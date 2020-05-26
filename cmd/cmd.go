@@ -9,6 +9,7 @@ import (
 	"github.com/anchore/vulnscan/internal/format"
 	"github.com/anchore/vulnscan/internal/logger"
 	"github.com/anchore/vulnscan/vulnscan"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
@@ -16,9 +17,39 @@ import (
 
 var appConfig *config.Application
 var log *zap.SugaredLogger
+var cliOnlyOpts config.CliOnlyOptions
+
+func init() {
+	// setup global CLI options (available on all CLI commands)
+	rootCmd.PersistentFlags().StringVarP(&cliOnlyOpts.ConfigPath, "config", "c", "", "application config file")
+
+	flag := "quiet"
+	rootCmd.PersistentFlags().BoolP(
+		flag, "q", false,
+		"suppress all logging output",
+	)
+	if err := viper.BindPFlag(flag, rootCmd.PersistentFlags().Lookup(flag)); err != nil {
+		fmt.Printf("unable to bind flag '%s': %+v", flag, err)
+		os.Exit(1)
+	}
+
+	rootCmd.PersistentFlags().CountVarP(&cliOnlyOpts.Verbosity, "verbose", "v", "increase verbosity (-v = info, -vv = debug)")
+
+	// read in config and setup logger
+	cobra.OnInitialize(initAppConfig)
+	cobra.OnInitialize(initLogging)
+	cobra.OnInitialize(logAppConfig)
+}
+
+func Execute() {
+	if err := rootCmd.Execute(); err != nil {
+		log.Errorf("could not start application: %w", err)
+		os.Exit(1)
+	}
+}
 
 func initAppConfig() {
-	cfg, err := config.LoadConfigFromFile(viper.GetViper(), &cliOpts)
+	cfg, err := config.LoadConfigFromFile(viper.GetViper(), &cliOnlyOpts)
 	if err != nil {
 		fmt.Printf("failed to load application config: \n\t%+v\n", err)
 		os.Exit(1)

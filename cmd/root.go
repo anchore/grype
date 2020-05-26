@@ -5,47 +5,58 @@ import (
 	"os"
 
 	"github.com/anchore/imgbom/imgbom"
+	"github.com/anchore/imgbom/imgbom/scope"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/vulnscan/internal"
 	"github.com/anchore/vulnscan/internal/format"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var rootCmd = &cobra.Command{
 	Use:   fmt.Sprintf("%s [IMAGE]", internal.ApplicationName),
-	Short: "A container image BOM tool", // TODO: add copy
-	Long: format.Tprintf(`\
-Supports the following image sources:
+	Short: "A container image vulnerability scanner", // TODO: add copy
+	Long: format.Tprintf(`Supports the following image sources:
     {{.appName}} yourrepo/yourimage:tag             defaults to using images from a docker daemon
-    {{.appName}} docker://yourrepo/yourimage:tag    explicitly use the docker daemon
+    {{.appName}} docker://yourrepo/yourimage:tag    explicitly use a docker daemon
     {{.appName}} tar://path/to/yourimage.tar        use a tarball from disk
 `, map[string]interface{}{
 		"appName": internal.ApplicationName,
 	}),
 	Args: cobra.MaximumNArgs(1),
-	Run:  runCmdWrapper,
+	Run: func(cmd *cobra.Command, args []string) {
+		os.Exit(runDefaultCmd(cmd, args))
+	},
 }
 
 func init() {
-	setCliOptions()
+	// setup CLI options specific to scanning an image
 
-	cobra.OnInitialize(initAppConfig)
-	cobra.OnInitialize(initLogging)
-	cobra.OnInitialize(logAppConfig)
-}
+	// scan options
+	flag := "scope"
+	rootCmd.Flags().StringP(
+		"scope", "s", scope.AllLayersScope.String(),
+		fmt.Sprintf("selection of layers to analyze, options=%v", scope.Options))
+	if err := viper.BindPFlag(flag, rootCmd.Flags().Lookup(flag)); err != nil {
+		fmt.Printf("unable to bind flag '%s': %+v", flag, err)
+		os.Exit(1)
+	}
 
-func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		log.Errorf("could not start application: %w", err)
+	// output & formatting options
+	flag = "output"
+	rootCmd.Flags().StringP(
+		// TODO: default option
+		flag, "o", "text",
+		// TODO: show all options
+		fmt.Sprintf("report output formatter, options=%v", []string{}),
+	)
+	if err := viper.BindPFlag(flag, rootCmd.Flags().Lookup(flag)); err != nil {
+		fmt.Printf("unable to bind flag '%s': %+v", flag, err)
 		os.Exit(1)
 	}
 }
 
-func runCmdWrapper(cmd *cobra.Command, args []string) {
-	os.Exit(doRunCmd(cmd, args))
-}
-
-func doRunCmd(cmd *cobra.Command, args []string) int {
+func runDefaultCmd(cmd *cobra.Command, args []string) int {
 	userImageStr := args[0]
 	log.Infof("Fetching image '%s'", userImageStr)
 	img, err := stereoscope.GetImage(userImageStr)

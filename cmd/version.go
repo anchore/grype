@@ -18,7 +18,7 @@ var version *Version
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "show the version",
-	Run:   printVersion,
+	Run:   runVersionCmd,
 }
 
 func init() {
@@ -29,6 +29,6 @@ func SetVersion(v *Version) {
 	version = v
 }
 
-func printVersion(cmd *cobra.Command, args []string) {
+func runVersionCmd(cmd *cobra.Command, args []string) {
 	fmt.Printf("%s %s\n", internal.ApplicationName, version.Version)
 }
