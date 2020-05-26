@@ -36,9 +36,11 @@ func init() {
 	rootCmd.PersistentFlags().CountVarP(&cliOnlyOpts.Verbosity, "verbose", "v", "increase verbosity (-v = info, -vv = debug)")
 
 	// read in config and setup logger
-	cobra.OnInitialize(initAppConfig)
-	cobra.OnInitialize(initLogging)
-	cobra.OnInitialize(logAppConfig)
+	cobra.OnInitialize(
+		initAppConfig,
+		initLogging,
+		logAppConfig,
+	)
 }
 
 func Execute() {
