@@ -1,0 +1,54 @@
+linter-settings:
+linters:
+  # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
+  disable-all: true
+  enable:
+    - asciicheck
+    - bodyclose
+    - deadcode
+    - depguard
+    - dogsled
+    - dupl
+    - errcheck
+    - funlen
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - gofmt
+    - goimports
+    - golint
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - maligned
+    - misspell
+    - nakedret
+    - nolintlint
+    - prealloc
+    - rowserrcheck
+    - scopelint
+    - staticcheck
+    - structcheck
+    - stylecheck
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - varcheck
+    - whitespace
+
+# do not enable...
+#    - gochecknoglobals
+#    - gochecknoinits    # this is too aggressive
+#    - godot
+#    - godox
+#    - goerr113
+#    - gomnd       # this is too aggressive
+#    - interfacer  # this is a good idea, but is no longer supported and is prone to false positives
+#    - lll         # without a way to specify per-line exception cases, this is not usable
+#    - nestif
+#    - testpackage
+#    - wsl
