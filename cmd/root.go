@@ -9,6 +9,7 @@ import (
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/vulnscan/internal"
 	"github.com/anchore/vulnscan/internal/format"
+	"github.com/anchore/vulnscan/vulnscan"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -73,7 +74,10 @@ func runDefaultCmd(cmd *cobra.Command, args []string) int {
 		return 1
 	}
 
-	log.Errorf("Todo...! %+v", catalog)
+	store := &struct{}{} // TODO: get store
+	results := vulnscan.FindAllVulnerabilities(store, &catalog)
+
+	fmt.Println(results)
 
 	return 0
 }
