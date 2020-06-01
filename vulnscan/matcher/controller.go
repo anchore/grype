@@ -1,11 +1,12 @@
 package matcher
 
 import (
+	imgbomOS "github.com/anchore/imgbom/imgbom/os"
 	"github.com/anchore/imgbom/imgbom/pkg"
 	"github.com/anchore/vulnscan/internal/log"
-	"github.com/anchore/vulnscan/vulnscan/match"
-	"github.com/anchore/vulnscan/vulnscan/matcher/dummy"
+	"github.com/anchore/vulnscan/vulnscan/matcher/os"
 	"github.com/anchore/vulnscan/vulnscan/result"
+	"github.com/anchore/vulnscan/vulnscan/vulnerability"
 )
 
 var controllerInstance controller
@@ -14,7 +15,7 @@ func init() {
 	controllerInstance = controller{
 		matchers: make(map[pkg.Type][]Matcher),
 	}
-	controllerInstance.add(&dummy.Matcher{})
+	controllerInstance.add(&os.Matcher{})
 }
 
 type controller struct {
@@ -23,28 +24,34 @@ type controller struct {
 
 func (c *controller) add(matchers ...Matcher) {
 	for _, m := range matchers {
-		if _, ok := c.matchers[m.Type()]; ok {
-			c.matchers[m.Type()] = make([]Matcher, 0)
-		}
+		for _, t := range m.Types() {
+			if _, ok := c.matchers[t]; ok {
+				c.matchers[t] = make([]Matcher, 0)
+			}
 
-		c.matchers[m.Type()] = append(c.matchers[m.Type()], m)
-		log.Debugf("adding matcher: %+v", m.Type())
+			c.matchers[t] = append(c.matchers[t], m)
+			log.Debugf("adding matcher: %+v", t)
+		}
 	}
 }
 
-// TODO: do we need to pass the entire store? or just a reader interface subset?
-func (c *controller) findMatches(s match.Store, packages ...pkg.Package) result.Result {
+func (c *controller) findMatches(s vulnerability.Provider, o imgbomOS.OS, packages ...*pkg.Package) result.Result {
 	res := result.NewResult()
 	for _, p := range packages {
 		for _, matchers := range c.matchers {
 			for _, m := range matchers {
-				res.Add(p, m.Match(s, p)...)
+				matches, err := m.Match(s, o, p)
+				if err != nil {
+					log.Errorf("matcher failed for pkg=%s: %w", p, err)
+				} else {
+					res.Add(p, matches...)
+				}
 			}
 		}
 	}
 	return res
 }
 
-func FindMatches(s match.Store, packages ...pkg.Package) result.Result {
-	return controllerInstance.findMatches(s, packages...)
+func FindMatches(s vulnerability.Provider, o imgbomOS.OS, packages ...*pkg.Package) result.Result {
+	return controllerInstance.findMatches(s, o, packages...)
 }
