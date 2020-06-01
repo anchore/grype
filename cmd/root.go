@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/anchore/imgbom/imgbom"
-	imgbomOS "github.com/anchore/imgbom/imgbom/os"
+	"github.com/anchore/imgbom/imgbom/distro"
 	"github.com/anchore/imgbom/imgbom/pkg"
 	"github.com/anchore/imgbom/imgbom/scope"
 	"github.com/anchore/stereoscope"
@@ -87,8 +87,8 @@ func runDefaultCmd(cmd *cobra.Command, args []string) int {
 
 	// TODO: remove me (replace with imgbom os.Identify call)
 
-	osObj := imgbomOS.OS{
-		Type:    imgbomOS.DebianOS,
+	osObj := distro.Distro{
+		Type:    distro.Debian,
 		Version: ver,
 	}
 

@@ -3,7 +3,7 @@ package version
 import (
 	"fmt"
 
-	"github.com/anchore/imgbom/imgbom/os"
+	"github.com/anchore/imgbom/imgbom/distro"
 )
 
 type Constraint interface {
@@ -22,10 +22,10 @@ func GetConstraint(constStr string, format Format) (Constraint, error) {
 	return nil, fmt.Errorf("could not find constraint for given format: %s", format)
 }
 
-func GetConstraintByOS(constStr string, o os.OS) (Constraint, error) {
+func GetConstraintByDisto(constStr string, o distro.Distro) (Constraint, error) {
 	var format Format
 	switch o.Type {
-	case os.DebianOS:
+	case distro.Debian:
 		format = DpkgFormat
 	//...
 	default:

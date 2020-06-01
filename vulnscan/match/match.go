@@ -17,5 +17,5 @@ type Match struct {
 }
 
 func (m Match) String() string {
-	return fmt.Sprintf("Match(pkg=%s vuln=%s key='%s' confidence=%f)", m.Package.String(), m.Vulnerability.String(), m.SearchKey, m.Confidence)
+	return fmt.Sprintf("Match(pkg=%s vuln=%s key='%s' confidence=%f)", m.Package, m.Vulnerability.String(), m.SearchKey, m.Confidence)
 }

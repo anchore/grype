@@ -1,10 +1,10 @@
 package matcher
 
 import (
-	imgbomOS "github.com/anchore/imgbom/imgbom/os"
+	"github.com/anchore/imgbom/imgbom/distro"
 	"github.com/anchore/imgbom/imgbom/pkg"
 	"github.com/anchore/vulnscan/internal/log"
-	"github.com/anchore/vulnscan/vulnscan/matcher/os"
+	_distro "github.com/anchore/vulnscan/vulnscan/matcher/distro"
 	"github.com/anchore/vulnscan/vulnscan/result"
 	"github.com/anchore/vulnscan/vulnscan/vulnerability"
 )
@@ -15,7 +15,7 @@ func init() {
 	controllerInstance = controller{
 		matchers: make(map[pkg.Type][]Matcher),
 	}
-	controllerInstance.add(&os.Matcher{})
+	controllerInstance.add(&_distro.Matcher{})
 }
 
 type controller struct {
@@ -35,7 +35,7 @@ func (c *controller) add(matchers ...Matcher) {
 	}
 }
 
-func (c *controller) findMatches(s vulnerability.Provider, o imgbomOS.OS, packages ...*pkg.Package) result.Result {
+func (c *controller) findMatches(s vulnerability.Provider, o distro.Distro, packages ...*pkg.Package) result.Result {
 	res := result.NewResult()
 	for _, p := range packages {
 		for _, matchers := range c.matchers {
@@ -52,6 +52,6 @@ func (c *controller) findMatches(s vulnerability.Provider, o imgbomOS.OS, packag
 	return res
 }
 
-func FindMatches(s vulnerability.Provider, o imgbomOS.OS, packages ...*pkg.Package) result.Result {
+func FindMatches(s vulnerability.Provider, o distro.Distro, packages ...*pkg.Package) result.Result {
 	return controllerInstance.findMatches(s, o, packages...)
 }

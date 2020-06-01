@@ -1,9 +1,9 @@
-package os
+package distro
 
 import (
 	"fmt"
 
-	"github.com/anchore/imgbom/imgbom/os"
+	"github.com/anchore/imgbom/imgbom/distro"
 	"github.com/anchore/imgbom/imgbom/pkg"
 	"github.com/anchore/vulnscan/vulnscan/match"
 	"github.com/anchore/vulnscan/vulnscan/version"
@@ -19,18 +19,18 @@ func (m *Matcher) Types() []pkg.Type {
 	return []pkg.Type{pkg.DebPkg}
 }
 
-func (m *Matcher) Match(store vulnerability.Provider, o os.OS, p *pkg.Package) ([]match.Match, error) {
+func (m *Matcher) Match(store vulnerability.Provider, o distro.Distro, p *pkg.Package) ([]match.Match, error) {
 	// TODO: add other kinds of matches? fuzzy matches, etc...
 	return m.exactPackageNameMatch(store, o, p)
 }
 
-func (m *Matcher) exactPackageNameMatch(store vulnerability.Provider, o os.OS, p *pkg.Package) ([]match.Match, error) {
+func (m *Matcher) exactPackageNameMatch(store vulnerability.Provider, o distro.Distro, p *pkg.Package) ([]match.Match, error) {
 
 	matches := make([]match.Match, 0)
 
 	// TODO: there should be a vulnerability object in the vulnscan-db/db/vulnerability for mondel serialization and one here in vulnerability for rich objects
 
-	allPkgVulns, err := store.GetByOs(o, p)
+	allPkgVulns, err := store.GetByDistro(o, p)
 	if err != nil {
 		return nil, fmt.Errorf("matcher failed to fetch os=%s pkg=%s: %w", o, p.Name, err)
 	}
