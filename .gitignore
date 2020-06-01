@@ -1,3 +1,5 @@
+.vscode/
+*.db
 *.tar
 .idea/
 *.log

@@ -5,11 +5,16 @@ import (
 	"os"
 
 	"github.com/anchore/imgbom/imgbom"
+	imgbomOS "github.com/anchore/imgbom/imgbom/os"
+	"github.com/anchore/imgbom/imgbom/pkg"
 	"github.com/anchore/imgbom/imgbom/scope"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/vulnscan/internal"
+	"github.com/anchore/vulnscan/internal/db"
 	"github.com/anchore/vulnscan/internal/format"
 	"github.com/anchore/vulnscan/vulnscan"
+	"github.com/anchore/vulnscan/vulnscan/vulnerability"
+	hashiVer "github.com/hashicorp/go-version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -74,10 +79,40 @@ func runDefaultCmd(cmd *cobra.Command, args []string) int {
 		return 1
 	}
 
-	store := &struct{}{} // TODO: get store
-	results := vulnscan.FindAllVulnerabilities(store, &catalog)
+	// TODO: remove me
+	ver, err := hashiVer.NewVersion("8")
+	if err != nil {
+		panic(err)
+	}
 
-	fmt.Println(results)
+	// TODO: remove me (replace with imgbom os.Identify call)
+
+	osObj := imgbomOS.OS{
+		Type:    imgbomOS.DebianOS,
+		Version: ver,
+	}
+
+	// TODO: remove me
+	// add vulnerable package
+	catalog.Add(pkg.Package{
+		Name:    "neutron",
+		Version: "2014.1.2-5",
+		Type:    pkg.DebPkg,
+	})
+
+	// TODO: remove me
+
+	store := db.NewMockDb()
+	provider := vulnerability.NewProviderFromStore(store)
+
+	results := vulnscan.FindAllVulnerabilities(provider, osObj, catalog)
+
+	count := 0
+	for match := range results.Enumerate() {
+		fmt.Println(match)
+		count++
+	}
+	fmt.Printf("Found %d Vulnerabilities\n", count)
 
 	return 0
 }
