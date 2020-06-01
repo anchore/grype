@@ -16,21 +16,36 @@ func NewResult() Result {
 }
 
 func (r *Result) Merge(other Result) {
-	// TODO: should we dedup matches? or assume that dups are ok?
+	// note: de-duplication of matches is an upstream concern (not here)
 	for pkgID, matches := range other.byPackage {
 		r.add(pkgID, matches...)
 	}
 }
 
 func (r *Result) add(id pkg.ID, matches ...match.Match) {
-	// TODO: should we not create new entries when no matches are given?
+	if len(matches) == 0 {
+		// only packages with matches should be added
+		return
+	}
 	if _, ok := r.byPackage[id]; !ok {
 		r.byPackage[id] = make([]match.Match, 0)
 	}
 	r.byPackage[id] = append(r.byPackage[id], matches...)
 }
 
-func (r *Result) Add(p pkg.Package, matches ...match.Match) {
-	// TODO: should we not create new entries when no matches are given?
+func (r *Result) Add(p *pkg.Package, matches ...match.Match) {
 	r.add(p.ID(), matches...)
+}
+
+func (r *Result) Enumerate() <-chan match.Match {
+	channel := make(chan match.Match)
+	go func() {
+		defer close(channel)
+		for _, matches := range r.byPackage {
+			for _, match := range matches {
+				channel <- match
+			}
+		}
+	}()
+	return channel
 }
