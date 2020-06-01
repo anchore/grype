@@ -1,0 +1,3 @@
+package db
+
+// TODO: add vulnscan-db client and helpers here...
