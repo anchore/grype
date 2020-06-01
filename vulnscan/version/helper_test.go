@@ -1,0 +1,38 @@
+package version
+
+import (
+	"errors"
+	"fmt"
+	"strings"
+	"testing"
+)
+
+type testCase struct {
+	version    string
+	constraint string
+	expected   bool
+	createErr  error
+	constErr   error
+	checkErr   error
+}
+
+func (c *testCase) name() string {
+	return fmt.Sprintf("ver='%s'const='%s'", c.version, strings.ReplaceAll(c.constraint, " ", ""))
+}
+
+func (c *testCase) assert(t *testing.T, format Format, constraint Constraint) {
+	verObj, err := NewVersion(c.version, format)
+	if !errors.Is(err, c.createErr) {
+		t.Fatalf("unexpected create error: '%+v'!='%+v'", err, c.createErr)
+	}
+
+	actual, err := constraint.Satisfied(verObj)
+	if !errors.Is(err, c.checkErr) {
+		t.Fatalf("unexpected check error: '%+v'!='%+v'", err, c.checkErr)
+	}
+
+	if actual != c.expected {
+		t.Errorf("unexpected constraint check result: expected %+v, got %+v", c.expected, actual)
+	}
+
+}
