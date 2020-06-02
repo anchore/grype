@@ -4,7 +4,7 @@ import (
 	"github.com/anchore/imgbom/imgbom/distro"
 	"github.com/anchore/imgbom/imgbom/pkg"
 	"github.com/anchore/vulnscan/internal/log"
-	_distro "github.com/anchore/vulnscan/vulnscan/matcher/distro"
+	"github.com/anchore/vulnscan/vulnscan/matcher/dpkg"
 	"github.com/anchore/vulnscan/vulnscan/result"
 	"github.com/anchore/vulnscan/vulnscan/vulnerability"
 )
@@ -15,7 +15,7 @@ func init() {
 	controllerInstance = controller{
 		matchers: make(map[pkg.Type][]Matcher),
 	}
-	controllerInstance.add(&_distro.Matcher{})
+	controllerInstance.add(&dpkg.Matcher{})
 }
 
 type controller struct {
@@ -38,14 +38,16 @@ func (c *controller) add(matchers ...Matcher) {
 func (c *controller) findMatches(s vulnerability.Provider, o distro.Distro, packages ...*pkg.Package) result.Result {
 	res := result.NewResult()
 	for _, p := range packages {
-		for _, matchers := range c.matchers {
-			for _, m := range matchers {
-				matches, err := m.Match(s, o, p)
-				if err != nil {
-					log.Errorf("matcher failed for pkg=%s: %w", p, err)
-				} else {
-					res.Add(p, matches...)
-				}
+		matchers, ok := c.matchers[p.Type]
+		if !ok {
+			log.Errorf("no matchers available for package type=%s pkg=%s", p.Type, p)
+		}
+		for _, m := range matchers {
+			matches, err := m.Match(s, o, p)
+			if err != nil {
+				log.Errorf("matcher failed for pkg=%s: %w", p, err)
+			} else {
+				res.Add(p, matches...)
 			}
 		}
 	}

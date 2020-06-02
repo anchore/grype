@@ -10,21 +10,15 @@ import (
 	"github.com/anchore/vulnscan/vulnscan/vulnerability"
 )
 
-// TODO: consider renaming this package to DISTRO for easier importing...
-
 type Matcher struct {
-}
-
-func (m *Matcher) Types() []pkg.Type {
-	return []pkg.Type{pkg.DebPkg}
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, o distro.Distro, p *pkg.Package) ([]match.Match, error) {
 	// TODO: add other kinds of matches? fuzzy matches, etc...
-	return m.exactPackageNameMatch(store, o, p)
+	return m.ExactPackageNameMatch(store, o, p)
 }
 
-func (m *Matcher) exactPackageNameMatch(store vulnerability.Provider, o distro.Distro, p *pkg.Package) ([]match.Match, error) {
+func (m *Matcher) ExactPackageNameMatch(store vulnerability.Provider, o distro.Distro, p *pkg.Package) ([]match.Match, error) {
 
 	matches := make([]match.Match, 0)
 
