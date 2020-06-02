@@ -26,12 +26,12 @@ func (m *Matcher) ExactPackageNameMatch(store vulnerability.Provider, o distro.D
 
 	allPkgVulns, err := store.GetByDistro(o, p)
 	if err != nil {
-		return nil, fmt.Errorf("matcher failed to fetch os=%s pkg=%s: %w", o, p.Name, err)
+		return nil, fmt.Errorf("matcher failed to fetch distro='%s' pkg='%s': %w", o, p.Name, err)
 	}
 
 	verObj, err := version.NewVersionFromPkg(p)
 	if err != nil {
-		return nil, fmt.Errorf("matcher failed to parse version pkg=%s ver=%s: %w", p.Name, p.Version, err)
+		return nil, fmt.Errorf("matcher failed to parse version pkg='%s' ver='%s': %w", p.Name, p.Version, err)
 	}
 
 	for _, vuln := range allPkgVulns {
@@ -39,7 +39,7 @@ func (m *Matcher) ExactPackageNameMatch(store vulnerability.Provider, o distro.D
 		satisfied, err := vuln.Constraint.Satisfied(verObj)
 		if err != nil {
 			// TODO: not enough information (cannot back track constraint object)
-			return nil, fmt.Errorf("matcher failed to check constraint=%s version=%s: %w", vuln.Constraint, verObj, err)
+			return nil, fmt.Errorf("matcher failed to check constraint='%s' version='%s': %w", vuln.Constraint, verObj, err)
 		}
 
 		if satisfied {

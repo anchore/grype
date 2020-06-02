@@ -21,6 +21,11 @@ type dpkgConstraint struct {
 }
 
 func newDpkgConstraint(raw string) (dpkgConstraint, error) {
+	// TODO: allow for "<" parsing
+	if raw == "" {
+		// an empty constraint is always satisfied
+		return dpkgConstraint{}, nil
+	}
 	fixedIn, err := newDpkgVersion(raw)
 	if err != nil {
 		return dpkgConstraint{}, fmt.Errorf("failed to create Dpkg constraint: %w", err)
@@ -36,6 +41,11 @@ func (c dpkgConstraint) supported(format Format) bool {
 }
 
 func (c dpkgConstraint) Satisfied(version *Version) (bool, error) {
+	if c.raw == "" && version != nil {
+		// an empty constraint is always satisfied
+		return true, nil
+	}
+
 	if !c.supported(version.Format) {
 		return false, fmt.Errorf("(dpkg) unsupported format: %s", version.Format)
 	}
@@ -47,5 +57,9 @@ func (c dpkgConstraint) Satisfied(version *Version) (bool, error) {
 }
 
 func (c dpkgConstraint) String() string {
+	// TODO: don't put the "<" here, allow the vulnscan-db to insert this for us
+	if c.raw == "" {
+		return "None (dpkg)"
+	}
 	return fmt.Sprintf("< %s (dpkg)", c.raw)
 }

@@ -6,7 +6,6 @@ import (
 
 	"github.com/anchore/imgbom/imgbom"
 	"github.com/anchore/imgbom/imgbom/distro"
-	"github.com/anchore/imgbom/imgbom/pkg"
 	"github.com/anchore/imgbom/imgbom/scope"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/vulnscan/internal"
@@ -79,30 +78,29 @@ func runDefaultCmd(cmd *cobra.Command, args []string) int {
 		return 1
 	}
 
-	// TODO: remove me
+	// TODO: remove me (replace with imgbom os.Identify call)
+
 	ver, err := hashiVer.NewVersion("8")
 	if err != nil {
 		panic(err)
 	}
-
-	// TODO: remove me (replace with imgbom os.Identify call)
 
 	osObj := distro.Distro{
 		Type:    distro.Debian,
 		Version: ver,
 	}
 
-	// TODO: remove me
-	// add vulnerable package
-	catalog.Add(pkg.Package{
-		Name:    "neutron",
-		Version: "2014.1.2-5",
-		Type:    pkg.DebPkg,
-	})
+	// // TODO: remove me
+	// // add vulnerable package
+	// catalog := pkg.NewCatalog()
+	// catalog.Add(pkg.Package{
+	// 	Name:    "util-linux",
+	// 	Version: "2.24.1-3",
+	// 	Type:    pkg.DebPkg,
+	// })
 
-	// TODO: remove me
-
-	store := db.NewMockDb()
+	// store := db.NewMockDb()
+	store := db.GetStoreFromSqlite()
 	provider := vulnerability.NewProviderFromStore(store)
 
 	results := vulnscan.FindAllVulnerabilities(provider, osObj, catalog)
@@ -116,3 +114,17 @@ func runDefaultCmd(cmd *cobra.Command, args []string) int {
 
 	return 0
 }
+
+// DEBIAN 8
+// Gate                   Trigger            Detail                                                                                                                                                        Status
+// dockerfile             instruction        Dockerfile directive 'HEALTHCHECK' not found, matching condition 'not_exists' check                                                                           warn
+// vulnerabilities        package            MEDIUM Vulnerability found in os package type (dpkg) - apt (CVE-2020-3810 - https://security-tracker.debian.org/tracker/CVE-2020-3810)                        warn
+// vulnerabilities        package            MEDIUM Vulnerability found in os package type (dpkg) - libapt-pkg4.12 (CVE-2020-3810 - https://security-tracker.debian.org/tracker/CVE-2020-3810)             warn
+// vulnerabilities        package            MEDIUM Vulnerability found in os package type (dpkg) - libblkid1 (CVE-2017-2616 - https://security-tracker.debian.org/tracker/CVE-2017-2616)                  warn
+// vulnerabilities        package            MEDIUM Vulnerability found in os package type (dpkg) - libgnutls-deb0-28 (CVE-2011-3389 - https://security-tracker.debian.org/tracker/CVE-2011-3389)          warn
+// vulnerabilities        package            MEDIUM Vulnerability found in os package type (dpkg) - libgnutls-openssl27 (CVE-2011-3389 - https://security-tracker.debian.org/tracker/CVE-2011-3389)        warn
+// vulnerabilities        package            MEDIUM Vulnerability found in os package type (dpkg) - libmount1 (CVE-2017-2616 - https://security-tracker.debian.org/tracker/CVE-2017-2616)                  warn
+// vulnerabilities        package            MEDIUM Vulnerability found in os package type (dpkg) - libsmartcols1 (CVE-2017-2616 - https://security-tracker.debian.org/tracker/CVE-2017-2616)              warn
+// vulnerabilities        package            MEDIUM Vulnerability found in os package type (dpkg) - libuuid1 (CVE-2017-2616 - https://security-tracker.debian.org/tracker/CVE-2017-2616)                   warn
+// vulnerabilities        package            MEDIUM Vulnerability found in os package type (dpkg) - mount (CVE-2017-2616 - https://security-tracker.debian.org/tracker/CVE-2017-2616)                      warn
+// vulnerabilities        package            MEDIUM Vulnerability found in os package type (dpkg) - util-linux (CVE-2017-2616 - https://security-tracker.debian.org/tracker/CVE-2017-2616)                 warn

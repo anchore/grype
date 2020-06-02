@@ -1,3 +1,7 @@
 package db
 
-// TODO: add vulnscan-db client and helpers here...
+import "github.com/anchore/vulnscan-db/pkg/db"
+
+func GetStoreFromSqlite() *db.SqliteStore {
+	return db.NewSqliteStore(nil)
+}

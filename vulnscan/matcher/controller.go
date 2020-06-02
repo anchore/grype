@@ -45,7 +45,7 @@ func (c *controller) findMatches(s vulnerability.Provider, o distro.Distro, pack
 		for _, m := range matchers {
 			matches, err := m.Match(s, o, p)
 			if err != nil {
-				log.Errorf("matcher failed for pkg=%s: %w", p, err)
+				log.Errorf("matcher failed for pkg=%s: %+v", p, err)
 			} else {
 				res.Add(p, matches...)
 			}
