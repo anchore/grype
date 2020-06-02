@@ -6,6 +6,7 @@ import (
 
 	"github.com/anchore/imgbom/imgbom"
 	"github.com/anchore/imgbom/imgbom/distro"
+	_distro "github.com/anchore/imgbom/imgbom/distro"
 	"github.com/anchore/imgbom/imgbom/scope"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/vulnscan/internal"
@@ -61,7 +62,7 @@ func init() {
 	}
 }
 
-func runDefaultCmd(cmd *cobra.Command, args []string) int {
+func runDefaultCmd(_ *cobra.Command, args []string) int {
 	userImageStr := args[0]
 	log.Infof("Fetching image '%s'", userImageStr)
 	img, err := stereoscope.GetImage(userImageStr)
@@ -85,7 +86,7 @@ func runDefaultCmd(cmd *cobra.Command, args []string) int {
 		panic(err)
 	}
 
-	osObj := distro.Distro{
+	osObj := _distro.Distro{
 		Type:    distro.Debian,
 		Version: ver,
 	}
@@ -114,17 +115,3 @@ func runDefaultCmd(cmd *cobra.Command, args []string) int {
 
 	return 0
 }
-
-// DEBIAN 8
-// Gate                   Trigger            Detail                                                                                                                                                        Status
-// dockerfile             instruction        Dockerfile directive 'HEALTHCHECK' not found, matching condition 'not_exists' check                                                                           warn
-// vulnerabilities        package            MEDIUM Vulnerability found in os package type (dpkg) - apt (CVE-2020-3810 - https://security-tracker.debian.org/tracker/CVE-2020-3810)                        warn
-// vulnerabilities        package            MEDIUM Vulnerability found in os package type (dpkg) - libapt-pkg4.12 (CVE-2020-3810 - https://security-tracker.debian.org/tracker/CVE-2020-3810)             warn
-// vulnerabilities        package            MEDIUM Vulnerability found in os package type (dpkg) - libblkid1 (CVE-2017-2616 - https://security-tracker.debian.org/tracker/CVE-2017-2616)                  warn
-// vulnerabilities        package            MEDIUM Vulnerability found in os package type (dpkg) - libgnutls-deb0-28 (CVE-2011-3389 - https://security-tracker.debian.org/tracker/CVE-2011-3389)          warn
-// vulnerabilities        package            MEDIUM Vulnerability found in os package type (dpkg) - libgnutls-openssl27 (CVE-2011-3389 - https://security-tracker.debian.org/tracker/CVE-2011-3389)        warn
-// vulnerabilities        package            MEDIUM Vulnerability found in os package type (dpkg) - libmount1 (CVE-2017-2616 - https://security-tracker.debian.org/tracker/CVE-2017-2616)                  warn
-// vulnerabilities        package            MEDIUM Vulnerability found in os package type (dpkg) - libsmartcols1 (CVE-2017-2616 - https://security-tracker.debian.org/tracker/CVE-2017-2616)              warn
-// vulnerabilities        package            MEDIUM Vulnerability found in os package type (dpkg) - libuuid1 (CVE-2017-2616 - https://security-tracker.debian.org/tracker/CVE-2017-2616)                   warn
-// vulnerabilities        package            MEDIUM Vulnerability found in os package type (dpkg) - mount (CVE-2017-2616 - https://security-tracker.debian.org/tracker/CVE-2017-2616)                      warn
-// vulnerabilities        package            MEDIUM Vulnerability found in os package type (dpkg) - util-linux (CVE-2017-2616 - https://security-tracker.debian.org/tracker/CVE-2017-2616)                 warn

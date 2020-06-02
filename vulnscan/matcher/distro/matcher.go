@@ -10,16 +10,7 @@ import (
 	"github.com/anchore/vulnscan/vulnscan/vulnerability"
 )
 
-type Matcher struct {
-}
-
-func (m *Matcher) Match(store vulnerability.Provider, o distro.Distro, p *pkg.Package) ([]match.Match, error) {
-	// TODO: add other kinds of matches? fuzzy matches, etc...
-	return m.ExactPackageNameMatch(store, o, p)
-}
-
-func (m *Matcher) ExactPackageNameMatch(store vulnerability.Provider, o distro.Distro, p *pkg.Package) ([]match.Match, error) {
-
+func ExactPackageNameMatch(store vulnerability.Provider, o distro.Distro, p *pkg.Package, matcherName string) ([]match.Match, error) {
 	matches := make([]match.Match, 0)
 
 	// TODO: there should be a vulnerability object in the vulnscan-db/db/vulnerability for mondel serialization and one here in vulnerability for rich objects
@@ -44,10 +35,13 @@ func (m *Matcher) ExactPackageNameMatch(store vulnerability.Provider, o distro.D
 
 		if satisfied {
 			matches = append(matches, match.Match{
+				Type:          match.ExactDirectMatch,
 				Confidence:    1.0, // TODO: this is hard coded for now
 				Vulnerability: *vuln,
 				Package:       p,
-				SearchKey:     fmt.Sprintf("%s:%s", p.Name, p.Version), // TODO: better way to signify exact match?
+				// signifies that we have a match from a search by exact package name and version
+				SearchKey: fmt.Sprintf("%s:%s", p.Name, p.Version),
+				Matcher:   matcherName,
 			})
 		}
 	}
