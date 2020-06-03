@@ -38,7 +38,6 @@ func NewVersionFromPkg(p *pkg.Package) (*Version, error) {
 	switch p.Type {
 	case pkg.DebPkg:
 		format = DpkgFormat
-	// ...
 	default:
 		format = UnknownFormat
 	}

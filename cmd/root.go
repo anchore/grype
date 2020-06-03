@@ -91,7 +91,7 @@ func runDefaultCmd(_ *cobra.Command, args []string) int {
 	// })
 
 	// store := db.NewMockDb()
-	store := db.GetStoreFromSqlite()
+	store := db.GetStore()
 	provider := vulnerability.NewProviderFromStore(store)
 
 	results := vulnscan.FindAllVulnerabilities(provider, osObj, catalog)

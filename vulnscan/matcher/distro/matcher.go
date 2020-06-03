@@ -25,13 +25,13 @@ func ExactPackageNameMatch(store vulnerability.Provider, o distro.Distro, p *pkg
 
 	for _, vuln := range allPkgVulns {
 		// if the constraint it met, then the given package has the vulnerability
-		satisfied, err := vuln.Constraint.Satisfied(verObj)
+		isPackageVulnerable, err := vuln.Constraint.Satisfied(verObj)
 		if err != nil {
 			// TODO: not enough information (cannot back track constraint object)
 			return nil, fmt.Errorf("matcher failed to check constraint='%s' version='%s': %w", vuln.Constraint, verObj, err)
 		}
 
-		if satisfied {
+		if isPackageVulnerable {
 			matches = append(matches, match.Match{
 				Type:          match.ExactDirectMatch,
 				Confidence:    1.0, // TODO: this is hard coded for now

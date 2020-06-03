@@ -2,6 +2,7 @@ package version
 
 import (
 	"fmt"
+	"strings"
 
 	deb "github.com/knqyf263/go-deb-version"
 )
@@ -21,12 +22,20 @@ type dpkgConstraint struct {
 }
 
 func newDpkgConstraint(raw string) (dpkgConstraint, error) {
-	// TODO: allow for "<" parsing
 	if raw == "" {
 		// an empty constraint is always satisfied
 		return dpkgConstraint{}, nil
 	}
-	fixedIn, err := newDpkgVersion(raw)
+
+	fixedVersion := strings.TrimPrefix(strings.TrimSpace(raw), "<")
+	if strings.ContainsAny(fixedVersion, "><=") {
+		return dpkgConstraint{}, fmt.Errorf("invalid constraint given (%s), only '< fixedversion' allowed for DPKG version constraints", fixedVersion)
+	}
+	if fixedVersion == raw {
+		return dpkgConstraint{}, fmt.Errorf("no constraints found (< operator)")
+	}
+
+	fixedIn, err := newDpkgVersion(fixedVersion)
 	if err != nil {
 		return dpkgConstraint{}, fmt.Errorf("failed to create Dpkg constraint: %w", err)
 	}
@@ -57,9 +66,8 @@ func (c dpkgConstraint) Satisfied(version *Version) (bool, error) {
 }
 
 func (c dpkgConstraint) String() string {
-	// TODO: don't put the "<" here, allow the vulnscan-db to insert this for us
 	if c.raw == "" {
-		return "None (dpkg)"
+		return "[no constraint] (dpkg)"
 	}
-	return fmt.Sprintf("< %s (dpkg)", c.raw)
+	return fmt.Sprintf("%s (dpkg)", c.raw)
 }

@@ -40,7 +40,7 @@ func (m *Matcher) Match(store vulnerability.Provider, d _distro.Distro, p *pkg.P
 	return matches, nil
 }
 
-func (m *Matcher) matchBySourceIndirection(store vulnerability.Provider, d _distro.Distro, p *pkg.Package) ([]match.Match, error) {
+func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro, d _distro.Distro, p *pkg.Package) ([]match.Match, error) {
 	value, ok := p.Metadata.(pkg.DpkgMetadata)
 	if !ok {
 		return nil, fmt.Errorf("bad dpkg metadata type='%T'", value)
