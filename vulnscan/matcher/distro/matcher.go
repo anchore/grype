@@ -13,8 +13,6 @@ import (
 func ExactPackageNameMatch(store vulnerability.Provider, o distro.Distro, p *pkg.Package, matcherName string) ([]match.Match, error) {
 	matches := make([]match.Match, 0)
 
-	// TODO: there should be a vulnerability object in the vulnscan-db/db/vulnerability for mondel serialization and one here in vulnerability for rich objects
-
 	allPkgVulns, err := store.GetByDistro(o, p)
 	if err != nil {
 		return nil, fmt.Errorf("matcher failed to fetch distro='%s' pkg='%s': %w", o, p.Name, err)

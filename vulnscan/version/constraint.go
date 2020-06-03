@@ -12,7 +12,6 @@ type Constraint interface {
 	Satisfied(*Version) (bool, error)
 }
 
-// TODO: consider prototype pattern for faster creation and better reuse
 func GetConstraint(constStr string, format Format) (Constraint, error) {
 	switch format {
 	case SemanticFormat:
@@ -34,4 +33,12 @@ func GetConstraintByDisto(constStr string, o _distro.Distro) (Constraint, error)
 	}
 
 	return GetConstraint(constStr, format)
+}
+
+func MustGetConstraint(constStr string, format Format) Constraint {
+	constraint, err := GetConstraint(constStr, format)
+	if err != nil {
+		panic(err)
+	}
+	return constraint
 }

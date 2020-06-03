@@ -106,6 +106,8 @@ github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d/go.mod h1:rBZYJk5
 github.com/anchore/go-testutils v0.0.0-20200520222037-edc2bf1864fe/go.mod h1:D3rc2L/q4Hcp9eeX6AIJH4Q+kPjOtJCFhG9za90j+nU=
 github.com/anchore/imgbom v0.0.0-20200601214218-f0b8aaacdae2 h1:hGKC1CpgK1x8HIUJ1hkZP8kuUXcywWIa7wz3Mi4aFus=
 github.com/anchore/imgbom v0.0.0-20200601214218-f0b8aaacdae2/go.mod h1:Ttau0/FsMvXMTlPQvSpyQPi0VZQDosjwuHUv1zUwl7k=
+github.com/anchore/imgbom v0.0.0-20200603004815-b6122a413ba8 h1:k8e5yQI3mnkoxeEI+s7ujBEtjLuicxyOn7IfKsQsotY=
+github.com/anchore/imgbom v0.0.0-20200603004815-b6122a413ba8/go.mod h1:Ttau0/FsMvXMTlPQvSpyQPi0VZQDosjwuHUv1zUwl7k=
 github.com/anchore/stereoscope v0.0.0-20200520221116-025e07f1c93e h1:QBwtrM0MXi0z+GcHk3RoSyzaQ+CLgas0bC/uOd1P+PQ=
 github.com/anchore/stereoscope v0.0.0-20200520221116-025e07f1c93e/go.mod h1:bkyLl5VITnrmgErv4S1vDfVz/TGAZ5il6161IQo7w2g=
 github.com/anchore/stereoscope v0.0.0-20200523232006-be5f3c18958f h1:aPJQyXi8Y7PhnzhUszZfS/23TA5o29UCc3XGreflaqo=
@@ -198,6 +200,7 @@ github.com/docker/distribution v2.7.1+incompatible h1:a5mlkVzth6W5A4fOsS3D2EO5BU
 github.com/docker/distribution v2.7.1+incompatible/go.mod h1:J2gT2udsDAN96Uj4KfcMRqY0/ypR+oyYUYmja8H+y+w=
 github.com/docker/docker v0.7.3-0.20190327010347-be7ac8be2ae0/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/docker v1.4.2-0.20190924003213-a8608b5b67c7/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
+github.com/docker/docker v1.13.1 h1:IkZjBSIc8hBjLpqeAbeE5mca5mNgeatLHBy3GO78BWo=
 github.com/docker/docker v17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible h1:G2hY8RD7jB9QaSmcb8mYEIg8QbEvVAB7se8+lXHZHfg=
 github.com/docker/docker v17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/docker-credential-helpers v0.6.3 h1:zI2p9+1NQYdnG6sMU26EX4aVGlqbInSQxQXLvzJ4RPQ=
@@ -912,6 +915,8 @@ golang.org/x/sys v0.0.0-20200523222454-059865788121 h1:rITEj+UZHYC927n8GT97eC3zr
 golang.org/x/sys v0.0.0-20200523222454-059865788121/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200602100848-8d3cce7afc34 h1:u6CI7A++8r4SItZHYe2cWeAEndN4p1p+3Oum/Ft2EzM=
 golang.org/x/sys v0.0.0-20200602100848-8d3cce7afc34/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980 h1:OjiUf46hAmXblsZdnoSXsEUSKU8r1UEzcL5RVZ4gO9Y=
+golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/text v0.0.0-20160726164857-2910a502d2bf/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.0.0-20170915032832-14c0d48ead0c/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=

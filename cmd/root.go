@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/anchore/imgbom/imgbom"
-	"github.com/anchore/imgbom/imgbom/distro"
 	_distro "github.com/anchore/imgbom/imgbom/distro"
 	"github.com/anchore/imgbom/imgbom/scope"
 	"github.com/anchore/stereoscope"
@@ -14,7 +13,6 @@ import (
 	"github.com/anchore/vulnscan/internal/format"
 	"github.com/anchore/vulnscan/vulnscan"
 	"github.com/anchore/vulnscan/vulnscan/vulnerability"
-	hashiVer "github.com/hashicorp/go-version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -81,15 +79,7 @@ func runDefaultCmd(_ *cobra.Command, args []string) int {
 
 	// TODO: remove me (replace with imgbom os.Identify call)
 
-	ver, err := hashiVer.NewVersion("8")
-	if err != nil {
-		panic(err)
-	}
-
-	osObj := _distro.Distro{
-		Type:    distro.Debian,
-		Version: ver,
-	}
+	osObj, _ := _distro.NewDistro(_distro.Debian, "8")
 
 	// // TODO: remove me
 	// // add vulnerable package
