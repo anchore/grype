@@ -5,10 +5,14 @@ import (
 	"os"
 
 	"github.com/anchore/imgbom/imgbom"
+	_distro "github.com/anchore/imgbom/imgbom/distro"
 	"github.com/anchore/imgbom/imgbom/scope"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/vulnscan/internal"
+	"github.com/anchore/vulnscan/internal/db"
 	"github.com/anchore/vulnscan/internal/format"
+	"github.com/anchore/vulnscan/vulnscan"
+	"github.com/anchore/vulnscan/vulnscan/vulnerability"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -56,7 +60,7 @@ func init() {
 	}
 }
 
-func runDefaultCmd(cmd *cobra.Command, args []string) int {
+func runDefaultCmd(_ *cobra.Command, args []string) int {
 	userImageStr := args[0]
 	log.Infof("Fetching image '%s'", userImageStr)
 	img, err := stereoscope.GetImage(userImageStr)
@@ -73,7 +77,31 @@ func runDefaultCmd(cmd *cobra.Command, args []string) int {
 		return 1
 	}
 
-	log.Errorf("Todo...! %+v", catalog)
+	// TODO: remove me (replace with imgbom os.Identify call)
+
+	osObj, _ := _distro.NewDistro(_distro.Debian, "8")
+
+	// // TODO: remove me
+	// // add vulnerable package
+	// catalog := pkg.NewCatalog()
+	// catalog.Add(pkg.Package{
+	// 	Name:    "util-linux",
+	// 	Version: "2.24.1-3",
+	// 	Type:    pkg.DebPkg,
+	// })
+
+	// store := db.NewMockDb()
+	store := db.GetStore()
+	provider := vulnerability.NewProviderFromStore(store)
+
+	results := vulnscan.FindAllVulnerabilities(provider, osObj, catalog)
+
+	count := 0
+	for match := range results.Enumerate() {
+		fmt.Println(match)
+		count++
+	}
+	fmt.Printf("Found %d Vulnerabilities\n", count)
 
 	return 0
 }
