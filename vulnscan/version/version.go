@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/anchore/imgbom/imgbom/pkg"
-	hashiVer "github.com/hashicorp/go-version"
 	deb "github.com/knqyf263/go-deb-version"
+	hashiVer "github.com/knqyf263/go-version"
 )
 
 type Version struct {
@@ -34,14 +34,7 @@ func NewVersion(raw string, format Format) (*Version, error) {
 }
 
 func NewVersionFromPkg(p *pkg.Package) (*Version, error) {
-	var format Format
-	switch p.Type {
-	case pkg.DebPkg:
-		format = DpkgFormat
-	default:
-		format = UnknownFormat
-	}
-	return NewVersion(p.Version, format)
+	return NewVersion(p.Version, FormatFromPkgType(p.Type))
 }
 
 func (v *Version) populate() error {

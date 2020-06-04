@@ -1,6 +1,10 @@
 package version
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/anchore/imgbom/imgbom/pkg"
+)
 
 const (
 	UnknownFormat Format = iota
@@ -23,12 +27,25 @@ var Formats = []Format{
 
 func ParseFormat(userStr string) Format {
 	switch strings.ToLower(userStr) {
-	case strings.ToLower(SemanticFormat.String()):
+	case strings.ToLower(SemanticFormat.String()), "semver":
 		return SemanticFormat
-	case strings.ToLower(DpkgFormat.String()):
+	case strings.ToLower(DpkgFormat.String()), "deb":
 		return DpkgFormat
 	}
 	return UnknownFormat
+}
+
+func FormatFromPkgType(t pkg.Type) Format {
+	var format Format
+	switch t {
+	case pkg.DebPkg:
+		format = DpkgFormat
+	case pkg.BundlerPkg:
+		format = SemanticFormat
+	default:
+		format = UnknownFormat
+	}
+	return format
 }
 
 func (f Format) String() string {

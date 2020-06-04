@@ -4,6 +4,7 @@ import (
 	"github.com/anchore/imgbom/imgbom/distro"
 	"github.com/anchore/imgbom/imgbom/pkg"
 	"github.com/anchore/vulnscan/internal/log"
+	"github.com/anchore/vulnscan/vulnscan/matcher/bundler"
 	"github.com/anchore/vulnscan/vulnscan/matcher/dpkg"
 	"github.com/anchore/vulnscan/vulnscan/result"
 	"github.com/anchore/vulnscan/vulnscan/vulnerability"
@@ -12,14 +13,20 @@ import (
 var controllerInstance controller
 
 func init() {
-	controllerInstance = controller{
-		matchers: make(map[pkg.Type][]Matcher),
-	}
-	controllerInstance.add(&dpkg.Matcher{})
+	controllerInstance = newController()
 }
 
 type controller struct {
 	matchers map[pkg.Type][]Matcher
+}
+
+func newController() controller {
+	ctrlr := controller{
+		matchers: make(map[pkg.Type][]Matcher),
+	}
+	ctrlr.add(&dpkg.Matcher{})
+	ctrlr.add(&bundler.Matcher{})
+	return ctrlr
 }
 
 func (c *controller) add(matchers ...Matcher) {
