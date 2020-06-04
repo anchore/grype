@@ -3,10 +3,10 @@ package dpkg
 import (
 	"fmt"
 
-	_distro "github.com/anchore/imgbom/imgbom/distro"
+	"github.com/anchore/imgbom/imgbom/distro"
 	"github.com/anchore/imgbom/imgbom/pkg"
 	"github.com/anchore/vulnscan/vulnscan/match"
-	"github.com/anchore/vulnscan/vulnscan/matcher/distro"
+	"github.com/anchore/vulnscan/vulnscan/matcher/common"
 	"github.com/anchore/vulnscan/vulnscan/vulnerability"
 	"github.com/jinzhu/copier"
 )
@@ -22,7 +22,7 @@ func (m *Matcher) Name() string {
 	return "dpkg-matcher"
 }
 
-func (m *Matcher) Match(store vulnerability.Provider, d _distro.Distro, p *pkg.Package) ([]match.Match, error) {
+func (m *Matcher) Match(store vulnerability.Provider, d distro.Distro, p *pkg.Package) ([]match.Match, error) {
 	matches := make([]match.Match, 0)
 
 	sourceMatches, err := m.matchBySourceIndirection(store, d, p)
@@ -31,7 +31,7 @@ func (m *Matcher) Match(store vulnerability.Provider, d _distro.Distro, p *pkg.P
 	}
 	matches = append(matches, sourceMatches...)
 
-	exactMatches, err := distro.ExactPackageNameMatch(store, d, p, m.Name())
+	exactMatches, err := common.FindMatchesByPackageDistro(store, d, p, m.Name())
 	if err != nil {
 		return nil, fmt.Errorf("failed to match by exact package name: %w", err)
 	}
@@ -40,7 +40,7 @@ func (m *Matcher) Match(store vulnerability.Provider, d _distro.Distro, p *pkg.P
 	return matches, nil
 }
 
-func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro, d _distro.Distro, p *pkg.Package) ([]match.Match, error) {
+func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro, d distro.Distro, p *pkg.Package) ([]match.Match, error) {
 	value, ok := p.Metadata.(pkg.DpkgMetadata)
 	if !ok {
 		return nil, fmt.Errorf("bad dpkg metadata type='%T'", value)
@@ -65,7 +65,7 @@ func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro,
 	// use the source package name
 	indirectPackage.Name = sourcePkgName
 
-	matches, err := distro.ExactPackageNameMatch(store, d, &indirectPackage, m.Name())
+	matches, err := common.FindMatchesByPackageDistro(store, d, &indirectPackage, m.Name())
 	if err != nil {
 		return nil, fmt.Errorf("failed to find vulnerabilities by dkpg source indirection: %w", err)
 	}

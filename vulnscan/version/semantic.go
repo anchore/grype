@@ -2,12 +2,17 @@ package version
 
 import (
 	"fmt"
+	"strings"
 
-	hashiVer "github.com/hashicorp/go-version"
+	hashiVer "github.com/knqyf263/go-version"
 )
 
+// ruby packages such as activerecord and sprockets don't strictly follow semver
+// note: this may result in missed matches for versioned betas
+var normalizer = strings.NewReplacer(".alpha", "-alpha", ".beta", "-beta", ".rc", "-rc")
+
 func newSemanticVersion(raw string) (*hashiVer.Version, error) {
-	return hashiVer.NewVersion(raw)
+	return hashiVer.NewVersion(normalizer.Replace(raw))
 }
 
 type semanticConstraint struct {
@@ -16,12 +21,13 @@ type semanticConstraint struct {
 }
 
 func newSemanticConstraint(constStr string) (semanticConstraint, error) {
-	constraints, err := hashiVer.NewConstraint(constStr)
+	normalized := normalizer.Replace(constStr)
+	constraints, err := hashiVer.NewConstraint(normalized)
 	if err != nil {
 		return semanticConstraint{}, err
 	}
 	return semanticConstraint{
-		raw:        constStr,
+		raw:        normalized,
 		constraint: constraints,
 	}, nil
 }

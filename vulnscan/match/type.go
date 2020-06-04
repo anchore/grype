@@ -11,6 +11,7 @@ const (
 type Type int
 
 var typeStr = []string{
+	"UnknownMatchType",
 	"Exact-Direct Match",
 	"Exact-Indirect Match",
 }
