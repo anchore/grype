@@ -110,6 +110,8 @@ github.com/anchore/imgbom v0.0.0-20200603004815-b6122a413ba8 h1:k8e5yQI3mnkoxeEI
 github.com/anchore/imgbom v0.0.0-20200603004815-b6122a413ba8/go.mod h1:Ttau0/FsMvXMTlPQvSpyQPi0VZQDosjwuHUv1zUwl7k=
 github.com/anchore/imgbom v0.0.0-20200604184352-e88669c536ce h1:t/2K7VPuKX7DrYnPeclLNrH0gsRbW8ZBig7o50pqq50=
 github.com/anchore/imgbom v0.0.0-20200604184352-e88669c536ce/go.mod h1:oVcJ4sEuqz/7XTPaJYIZRc4NYVl3zPP96g7RtWG31SE=
+github.com/anchore/imgbom v0.0.0-20200605135927-64a9125895b5 h1:0ylgLfUfao/4DiuhuYLV9vX9fs2N+VfmgWZ0d8HqsxA=
+github.com/anchore/imgbom v0.0.0-20200605135927-64a9125895b5/go.mod h1:c4LPvBC2SvyzgOdpbjUM6Ys4n10aX6gSOGQUYzfryWw=
 github.com/anchore/stereoscope v0.0.0-20200520221116-025e07f1c93e h1:QBwtrM0MXi0z+GcHk3RoSyzaQ+CLgas0bC/uOd1P+PQ=
 github.com/anchore/stereoscope v0.0.0-20200520221116-025e07f1c93e/go.mod h1:bkyLl5VITnrmgErv4S1vDfVz/TGAZ5il6161IQo7w2g=
 github.com/anchore/stereoscope v0.0.0-20200523232006-be5f3c18958f h1:aPJQyXi8Y7PhnzhUszZfS/23TA5o29UCc3XGreflaqo=
@@ -1087,6 +1089,8 @@ google.golang.org/genproto v0.0.0-20200603110839-e855014d5736 h1:+IE3xTD+6Eb7QWG
 google.golang.org/genproto v0.0.0-20200603110839-e855014d5736/go.mod h1:jDfRM7FcilCzHH/e9qn6dsT145K34l5v+OpcnNgKAAA=
 google.golang.org/genproto v0.0.0-20200604104852-0b0486081ffb h1:ek2py5bOqzR7MR/6obzk0rXUgYCLmjyLnaO9ssT+l6w=
 google.golang.org/genproto v0.0.0-20200604104852-0b0486081ffb/go.mod h1:jDfRM7FcilCzHH/e9qn6dsT145K34l5v+OpcnNgKAAA=
+google.golang.org/genproto v0.0.0-20200605102947-12044bf5ea91 h1:ES+5k7Xz+sYByd2L7mvcanaIuY0Iz3L3O6OhN+cRdu8=
+google.golang.org/genproto v0.0.0-20200605102947-12044bf5ea91/go.mod h1:jDfRM7FcilCzHH/e9qn6dsT145K34l5v+OpcnNgKAAA=
 google.golang.org/grpc v1.19.0/go.mod h1:mqu4LbDTu4XGKhr4mRzUsmM4RtVoemTSY81AxZiDr8c=
 google.golang.org/grpc v1.20.1/go.mod h1:10oTOabMzJvdu6/UiuZezV6QK5dSlG84ov/aaiqXj38=
 google.golang.org/grpc v1.21.0/go.mod h1:oYelfM1adQP15Ek0mdvEgi9Df8B9CZIaU1084ijfRaM=
