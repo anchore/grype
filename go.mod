@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/adrg/xdg v0.2.1
-	github.com/anchore/imgbom v0.0.0-20200604184352-e88669c536ce
+	github.com/anchore/imgbom v0.0.0-20200605135927-64a9125895b5
 	github.com/anchore/stereoscope v0.0.0-20200604133300-7e63b350b6d6
 	github.com/anchore/vulnscan-db v0.0.0-20200604185950-6a9f5a2c9ddf
 	github.com/hashicorp/go-version v1.2.0
@@ -17,6 +17,7 @@ require (
 	go.uber.org/zap v1.15.0
 	golang.org/x/net v0.0.0-20200602114024-627f9648deb9 // indirect
 	golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980 // indirect
+	google.golang.org/genproto v0.0.0-20200605102947-12044bf5ea91 // indirect
 	gopkg.in/ini.v1 v1.57.0 // indirect
 	gopkg.in/yaml.v2 v2.3.0
 )

@@ -42,6 +42,10 @@ func FormatFromPkgType(t pkg.Type) Format {
 		format = DpkgFormat
 	case pkg.BundlerPkg:
 		format = SemanticFormat
+	case pkg.EggPkg:
+		format = SemanticFormat
+	case pkg.WheelPkg:
+		format = SemanticFormat
 	default:
 		format = UnknownFormat
 	}
