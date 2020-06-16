@@ -1,9 +1,9 @@
 TEMPDIR = ./.tmp
 LINTCMD = $(TEMPDIR)/golangci-lint run --tests=false --config .golangci.yaml
-BOLD := $(shell tput bold)
-PURPLE := $(shell tput setaf 5)
-GREEN := $(shell tput setaf 2)
-RESET := $(shell tput sgr0)
+BOLD := $(shell tput -T linux bold)
+PURPLE := $(shell tput -T linux setaf 5)
+GREEN := $(shell tput -T linux setaf 2)
+RESET := $(shell tput -T linux sgr0)
 TITLE := $(BOLD)$(PURPLE)
 SUCCESS := $(BOLD)$(GREEN)
 
@@ -40,7 +40,7 @@ lint-fix:
 
 unit:
 	@printf '$(TITLE)Running unit tests$(RESET)\n'
-	go test --race ./...
+	go test ./...
 
 coverage:
 	@printf '$(TITLE)Running unit tests + coverage$(RESET)\n'
