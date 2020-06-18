@@ -5,6 +5,10 @@ import (
 	"github.com/anchore/vulnscan/vulnscan/match"
 )
 
+// TODO: consider moving this to the pkg/match under matches.go
+
+// TODO: consider renaming to Matches
+
 type Result struct {
 	byPackage map[pkg.ID][]match.Match
 }
