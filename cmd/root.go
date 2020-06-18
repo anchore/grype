@@ -76,14 +76,17 @@ func runDefaultCmd(_ *cobra.Command, args []string) int {
 		return 1
 	}
 
-	// TODO: remove me (replace with imgbom os.Identify call)
-
-	osObj, _ := _distro.NewDistro(_distro.Debian, "8")
+	osObj := _distro.Identify(img)
+	if osObj == nil {
+		// prevent moving forward with unknown distros for now, revisit later
+		log.Error("unable to detect distro type for accurate vulnerability matching")
+		return 1
+	}
 
 	store := db.GetStore()
 	provider := vulnerability.NewProviderFromStore(store)
 
-	results := vulnscan.FindAllVulnerabilities(provider, osObj, catalog)
+	results := vulnscan.FindAllVulnerabilities(provider, *osObj, catalog)
 	outputOption := viper.GetString("output")
 
 	presenterType := presenter.ParseOption(outputOption)
