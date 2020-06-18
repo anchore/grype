@@ -12,6 +12,7 @@ import (
 	"github.com/anchore/vulnscan/internal/db"
 	"github.com/anchore/vulnscan/internal/format"
 	"github.com/anchore/vulnscan/vulnscan"
+	"github.com/anchore/vulnscan/vulnscan/presenter"
 	"github.com/anchore/vulnscan/vulnscan/vulnerability"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -19,7 +20,7 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   fmt.Sprintf("%s [IMAGE]", internal.ApplicationName),
-	Short: "A container image vulnerability scanner", // TODO: add copy
+	Short: "A vulnerability scanner tool", // TODO: add copy, add path-based scans
 	Long: format.Tprintf(`Supports the following image sources:
     {{.appName}} yourrepo/yourimage:tag             defaults to using images from a docker daemon
     {{.appName}} docker://yourrepo/yourimage:tag    explicitly use a docker daemon
@@ -49,10 +50,8 @@ func init() {
 	// output & formatting options
 	flag = "output"
 	rootCmd.Flags().StringP(
-		// TODO: default option
-		flag, "o", "text",
-		// TODO: show all options
-		fmt.Sprintf("report output formatter, options=%v", []string{}),
+		flag, "o", "json",
+		fmt.Sprintf("report output formatter, options=%v", presenter.Options),
 	)
 	if err := viper.BindPFlag(flag, rootCmd.Flags().Lookup(flag)); err != nil {
 		fmt.Printf("unable to bind flag '%s': %+v", flag, err)
@@ -81,27 +80,23 @@ func runDefaultCmd(_ *cobra.Command, args []string) int {
 
 	osObj, _ := _distro.NewDistro(_distro.Debian, "8")
 
-	// // TODO: remove me
-	// // add vulnerable package
-	// catalog := pkg.NewCatalog()
-	// catalog.Add(pkg.Package{
-	// 	Name:    "util-linux",
-	// 	Version: "2.24.1-3",
-	// 	Type:    pkg.DebPkg,
-	// })
-
-	// store := db.NewMockDb()
 	store := db.GetStore()
 	provider := vulnerability.NewProviderFromStore(store)
 
 	results := vulnscan.FindAllVulnerabilities(provider, osObj, catalog)
+	outputOption := viper.GetString("output")
 
-	count := 0
-	for match := range results.Enumerate() {
-		fmt.Println(match)
-		count++
+	presenterType := presenter.ParseOption(outputOption)
+	if presenterType == presenter.UnknownPresenter {
+		log.Errorf("cannot find an output presenter for option: %s", outputOption)
+		return 1
 	}
-	fmt.Printf("Found %d Vulnerabilities\n", count)
+
+	err = presenter.GetPresenter(presenterType).Present(os.Stdout, catalog, results)
+	if err != nil {
+		log.Errorf("could not format catalog results: %w", err)
+		return 1
+	}
 
 	return 0
 }
