@@ -13,8 +13,7 @@ import (
 // TODO: move all of this to vulnscan-db
 
 type Listing struct {
-	Latest ListingEntry `json:"latest"`
-	// Beta      ListingEntry   `json:"beta"`
+	Latest    ListingEntry   `json:"latest"`
 	Available []ListingEntry `json:"available"`
 }
 
@@ -46,7 +45,7 @@ func newListingFromURL(fs afero.Fs, getter file.Getter, listingURL string) (List
 	}()
 
 	// download the listing file
-	err = getter.GetToFile(tempFile.Name(), listingURL)
+	err = getter.GetFile(tempFile.Name(), listingURL)
 	if err != nil {
 		return Listing{}, fmt.Errorf("unable to download listing: %w", err)
 	}

@@ -19,8 +19,6 @@ const (
 	dbFileName       = "vulnerability.db"
 )
 
-// var staleDuration = 24 * time.Hour
-
 type Config struct {
 	DbDir      string
 	ListingURL string

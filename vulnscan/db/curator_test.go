@@ -29,7 +29,7 @@ func newTestGetter(fs afero.Fs, f, d map[string]string) *testGetter {
 }
 
 // GetFile downloads the give URL into the given path. The URL must reference a single file.
-func (g *testGetter) GetToFile(dst, src string) error {
+func (g *testGetter) GetFile(dst, src string) error {
 	g.calls.Add(src)
 	if _, ok := g.file[src]; !ok {
 		return fmt.Errorf("blerg, no file!")

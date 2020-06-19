@@ -4,7 +4,7 @@ import "github.com/hashicorp/go-getter"
 
 type Getter interface {
 	// GetFile downloads the give URL into the given path. The URL must reference a single file.
-	GetToFile(dst, src string) error
+	GetFile(dst, src string) error
 
 	// Get downloads the given URL into the given directory. The directory must already exist.
 	GetToDir(dst, src string) error
@@ -13,7 +13,7 @@ type Getter interface {
 type HashiGoGetter struct {
 }
 
-func (g HashiGoGetter) GetToFile(dst, src string) error {
+func (g HashiGoGetter) GetFile(dst, src string) error {
 	return getter.GetFile(dst, src)
 }
 
