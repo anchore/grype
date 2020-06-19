@@ -1,20 +1,20 @@
 package internal
 
-type Set map[string]struct{}
+type StringSet map[string]struct{}
 
-func NewStringSet() Set {
-	return make(Set)
+func NewStringSet() StringSet {
+	return make(StringSet)
 }
 
-func (s Set) Add(i string) {
+func (s StringSet) Add(i string) {
 	s[i] = struct{}{}
 }
 
-func (s Set) Remove(i string) {
+func (s StringSet) Remove(i string) {
 	delete(s, i)
 }
 
-func (s Set) Contains(i string) bool {
+func (s StringSet) Contains(i string) bool {
 	_, ok := s[i]
 	return ok
 }
