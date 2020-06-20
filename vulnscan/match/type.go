@@ -6,6 +6,7 @@ const (
 	UnknownMatchType Type = iota
 	ExactDirectMatch
 	ExactIndirectMatch
+	FuzzyMatch
 )
 
 type Type int
@@ -14,6 +15,7 @@ var typeStr = []string{
 	"UnknownMatchType",
 	"Exact-Direct Match",
 	"Exact-Indirect Match",
+	"Fuzzy Match",
 }
 
 func ParseType(userStr string) Type {

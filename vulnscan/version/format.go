@@ -10,6 +10,7 @@ const (
 	UnknownFormat Format = iota
 	SemanticFormat
 	DpkgFormat
+	Cpe23Format
 )
 
 type Format int
@@ -18,11 +19,13 @@ var formatStr = []string{
 	"UnknownFormat",
 	"Semantic",
 	"Dpkg",
+	"Cpe2.3",
 }
 
 var Formats = []Format{
 	SemanticFormat,
 	DpkgFormat,
+	Cpe23Format,
 }
 
 func ParseFormat(userStr string) Format {
@@ -31,6 +34,8 @@ func ParseFormat(userStr string) Format {
 		return SemanticFormat
 	case strings.ToLower(DpkgFormat.String()), "deb":
 		return DpkgFormat
+	case strings.ToLower(Cpe23Format.String()), "cpe23":
+		return Cpe23Format
 	}
 	return UnknownFormat
 }
