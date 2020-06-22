@@ -42,15 +42,12 @@ func (pres *Presenter) Present(output io.Writer, catalog *pkg.Catalog, results r
 				Package: Package{Name: pkg.Name, Version: pkg.Version}},
 		)
 
-		//for _, match := range matches {
 		doc = append(
 			doc,
 			ResultObj{
 				Cve:     match.Vulnerability.ID,
 				Package: Package{Name: pkg.Name, Version: pkg.Version}},
 		)
-
-		//}
 	}
 
 	bytes, err := json.Marshal(&doc)

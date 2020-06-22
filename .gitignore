@@ -1,5 +1,7 @@
 .vscode/
+.server/
 *.db
+!**/test-fixtures/**/*.db
 *.tar
 .idea/
 *.log

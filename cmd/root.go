@@ -9,9 +9,9 @@ import (
 	"github.com/anchore/imgbom/imgbom/scope"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/vulnscan/internal"
-	"github.com/anchore/vulnscan/internal/db"
 	"github.com/anchore/vulnscan/internal/format"
 	"github.com/anchore/vulnscan/vulnscan"
+	"github.com/anchore/vulnscan/vulnscan/db"
 	"github.com/anchore/vulnscan/vulnscan/presenter"
 	"github.com/anchore/vulnscan/vulnscan/vulnerability"
 	"github.com/spf13/cobra"
@@ -83,7 +83,34 @@ func runDefaultCmd(_ *cobra.Command, args []string) int {
 		return 1
 	}
 
-	store := db.GetStore()
+	dbCurator, err := db.NewCurator(appConfig.Db.ToCuratorConfig())
+	if err != nil {
+		log.Errorf("could not curate database: %w", err)
+		return 1
+	}
+
+	if appConfig.Db.UpdateOnStartup {
+		updateAvailable, updateEntry, err := dbCurator.IsUpdateAvailable()
+		if err != nil {
+			// TODO: should this be so fatal? we can certainly continue with a warning...
+			log.Errorf("unable to check for vulnerability database update: %+v", err)
+			return 1
+		}
+		if updateAvailable {
+			err = dbCurator.UpdateTo(updateEntry)
+			if err != nil {
+				log.Errorf("unable to update vulnerability database: %+v", err)
+				return 1
+			}
+		}
+	}
+
+	store, err := dbCurator.GetStore()
+	if err != nil {
+		log.Errorf("failed to load vulnerability database: %w", err)
+		return 1
+	}
+
 	provider := vulnerability.NewProviderFromStore(store)
 
 	results := vulnscan.FindAllVulnerabilities(provider, *osObj, catalog)
