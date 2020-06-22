@@ -50,12 +50,13 @@ func newCpeConstraint(constStr string) (cpeConstraint, error) {
 		count := len(parsed)
 		switch count {
 		case 0:
-			//error
-			checkString = parsed[0]
-			cpeStr = parsed[1]
+			cpeStr = cs
 		case 1:
 			checkString = parsed[0]
 			cpeStr = parsed[1]
+		case 3:
+			checkString = parsed[1]
+			cpeStr = parsed[2]
 		default:
 			break
 		}
@@ -70,7 +71,7 @@ func newCpeConstraint(constStr string) (cpeConstraint, error) {
 	return cpeConstraint{
 		raw: constStr,
 		constraints: cpeConstraints,
-	}, err
+	}, nil
 }
 
 func (c cpeConstraint) supported(format Format) bool {
@@ -91,7 +92,7 @@ func (c cpeConstraint) Satisfied(version *Version) (bool, error) {
 
 	switch(version.Format) {
 	case Cpe23Format:
-		return matchCpeToCpe(c, version.rich.cpeVer)
+		return matchCpeToCpe(&c, version.rich.cpeVers...), nil
 
 	case DpkgFormat:
 		targetCpe = cpe.NewItem()
@@ -116,23 +117,25 @@ func (c cpeConstraint) Satisfied(version *Version) (bool, error) {
 	return false, nil
 }
 
-func matchCpeToCpe(constraint *cpeConstraint, targetCpe *cpe.Item) (bool, error){
-	targetCpe, err = cpe.NewItemFromFormattedString(version.Raw)
-	if err != nil {
-		return false, err
+func matchCpeToCpe(c *cpeConstraint, targetCpes... *cpe.Item) bool {
+	if len(targetCpes) == 0 {
+		return false
 	}
+	for _, targetCpe := range targetCpes {
 
-	for _, constraint := range c.constraints{
-		// TODO: update these to reflect a better comparison (< should take the version number comparison into consideration)
-		switch(constraint.check) {
-		case "=":
-			if ! cpe.CheckEqual(targetCpe, constraint.cpe) {
-				return false, nil
-			}
-		case "<":
-			if ! cpe.CheckSubset(targetCpe, constraint.cpe) {
-				return false, nil
+		for _, constraint := range c.constraints {
+			// TODO: update these to reflect a better comparison (< should take the version number comparison into consideration)
+			switch (constraint.check) {
+			case "=":
+				if !cpe.CheckEqual(targetCpe, constraint.cpe) {
+					return false
+				}
+			case "<":
+				if !cpe.CheckSubset(targetCpe, constraint.cpe) {
+					return false
+				}
 			}
 		}
 	}
+	return true
 }

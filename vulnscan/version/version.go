@@ -71,8 +71,7 @@ func (v *Version) populate() error {
 		return err
 	case Cpe23Format:
 		version, err := cpe.NewItemFromFormattedString(v.Raw)
-		v.rich.cpeVers = make([]*cpe.Item, 1)
-		v.rich.cpeVers[0] = version
+		v.rich.cpeVers = []*cpe.Item{version}
 		return err
 	}
 	return fmt.Errorf("no rich version populated (format=%s)", v.Format)

@@ -7,9 +7,9 @@ import (
 
 func TestVersionCpe23(t *testing.T) {
 	tests := []testCase{
-		{version: "cpe:2.3:a:*:*:*:*:*:*:*:*:*", constraint: "cpe:2.3:a:vendor:product:version:update:edition:language:softwareedition:targetsw:targethw:other", isVulnerable: true},
-		{version: "cpe:2.3:a:foobar:*:*:*:*:*:*:*:*", constraint: "cpe:2.3:a:vendor:product:version:update:edition:language:softwareedition:targetsw:targethw:other", isVulnerable: false},
-		{version: "cpe:2.3:a:foobar:producta:1.0.0:*:*:*:*:*:*", constraint: ">= cpe:2.3:a:foobar:producta:1.0.0:*:*:*:*:*:*, <= cpe:2.3:a:foobar:producta:1.0.1:*:*:*:*:*:*", isVulnerable: false},
+		{version: "cpe:2.3:a:*:*:*:*:*:*:*:*:*:*", constraint: "cpe:2.3:a:vendor:product:version:update:edition:language:softwareedition:targetsw:targethw:other", isVulnerable: false},
+		{version: "cpe:2.3:a:foobar:*:*:*:*:*:*:*:*:*", constraint: "cpe:2.3:a:vendor:product:version:update:edition:language:softwareedition:targetsw:targethw:other", isVulnerable: false},
+		{version: "cpe:2.3:a:foobar:producta:1.0.0:*:*:*:*:*:*:*", constraint: ">= cpe:2.3:a:foobar:producta:1.0.0:*:*:*:*:*:*:*, <= cpe:2.3:a:foobar:producta:1.0.1:*:*:*:*:*:*:*", isVulnerable: true},
 	}
 
 	for _, test := range tests {
