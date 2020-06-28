@@ -13,7 +13,7 @@ endif
 
 .PHONY: all boostrap lint lint-fix unit coverage integration build-release
 
-all: lint unit integration
+all: lint unit # integration
 	@printf '$(SUCCESS)All checks pass!$(RESET)\n'
 
 bootstrap:
@@ -49,9 +49,10 @@ coverage:
 
 # TODO: add benchmarks
 
-integration:
-	@printf '$(TITLE)Running integration tests...$(RESET)\n'
-	go test -tags=integration ./integration
+# TODO: add me back in when there are integration tests
+#integration:
+#	@printf '$(TITLE)Running integration tests...$(RESET)\n'
+#	go test -tags=integration ./integration
 
 build-release:
 	go build -s -w -X main.version="$(git describe --tags --dirty --always)" \
