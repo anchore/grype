@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	supportedVersion = ">=1.0.0, <2.0.0"
+	supportedVersion = "<1.0.0"
 	dbFileName       = "vulnerability.db"
 )
 

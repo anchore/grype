@@ -2,16 +2,16 @@ package version
 
 import (
 	"fmt"
+	"github.com/umisama/go-cpe"
 	"regexp"
 	"strings"
-	"github.com/umisama/go-cpe"
 )
 
 const (
-	cpeUrlPrefix = "cpe:/"
-	cpeFsPrefix  = "cpe:2.3:"
+	cpeUrlPrefix     = "cpe:/"
+	cpeFsPrefix      = "cpe:2.3:"
 	cpeFsPrefixRegex = "cpe:2.3:.*"
-	cpeWildcard = "*"
+	cpeWildcard      = "*"
 )
 
 var cpeOps = []string{">", ">=", "=", "<", "<="}
@@ -22,16 +22,14 @@ func init() {
 }
 
 type Cpe23Constraint struct {
-	cpe *cpe.Item
+	cpe   *cpe.Item
 	check string // The check to run (e.g. <=, <, =, >, >=)
 }
 
-
 type cpeConstraint struct {
-	raw string
+	raw         string
 	constraints []Cpe23Constraint
 }
-
 
 // Create a CPE constraint from a single string. Expects a format like: "< cpe:2.3:a:vendor:product:versionA...., > cpe:2.3:a:vendor:product:versionB:..." which effectively encodes "< A, > B"
 func newCpeConstraint(constStr string) (cpeConstraint, error) {
@@ -69,13 +67,13 @@ func newCpeConstraint(constStr string) (cpeConstraint, error) {
 	}
 
 	return cpeConstraint{
-		raw: constStr,
+		raw:         constStr,
 		constraints: cpeConstraints,
 	}, nil
 }
 
 func (c cpeConstraint) supported(format Format) bool {
-	return format == Cpe23Format || format == DpkgFormat || format == SemanticFormat
+	return format == DpkgFormat || format == SemanticFormat
 }
 
 func (c cpeConstraint) String() string {
@@ -83,59 +81,59 @@ func (c cpeConstraint) String() string {
 }
 
 func (c cpeConstraint) Satisfied(version *Version) (bool, error) {
-	var targetCpe *cpe.Item
-	var err error
+	// 1) use the version.Format to coerce the constraint version (CPE version field) into a mirroring rich type for comparison
 
-	if !c.supported(version.Format) {
-		return false, fmt.Errorf("(cpe23) unsupported format: %s", version.Format)
-	}
+	// 2) use the constraint target software to coerce the version.Version into a useful rich object
 
-	switch(version.Format) {
-	case Cpe23Format:
-		return matchCpeToCpe(&c, version.rich.cpeVers...), nil
-
-	case DpkgFormat:
-		targetCpe = cpe.NewItem()
-		if err = targetCpe.SetPart(cpe.Application); err != nil {
-			return false, err
-		}
-		if err = targetCpe.SetVersion(cpe.NewStringAttr(version.rich.dpkgVer.String())); err != nil {
-			return false, err
-		}
-		//Dpkg will not have a TargetSoftware field
-	case SemanticFormat:
-		targetCpe = cpe.NewItem()
-		if err = targetCpe.SetPart(cpe.Application); err != nil {
-			return false, err
-		}
-		if err = targetCpe.SetVersion(cpe.NewStringAttr(version.rich.semVer.String())); err != nil {
-			return false, err
-		}
-		// Semver may have a target, should add here or support selection by ecosystem upstream in match process (e.g. part of name selection)
-	}
-
-	return false, nil
+	//var targetCpe *cpe.Item
+	//var err error
+	//
+	//if !c.supported(version.Format) {
+	//	return false, fmt.Errorf("(cpe23) unsupported format: %s", version.Format)
+	//}
+	//
+	//switch version.Format {
+	//case DpkgFormat:
+	//	targetCpe = cpe.NewItem()
+	//	if err = targetCpe.SetPart(cpe.Application); err != nil {
+	//		return false, err
+	//	}
+	//	if err = targetCpe.SetVersion(cpe.NewStringAttr(version.rich.dpkgVer.String())); err != nil {
+	//		return false, err
+	//	}
+	//	//Dpkg will not have a TargetSoftware field
+	//case SemanticFormat:
+	//	targetCpe = cpe.NewItem()
+	//	if err = targetCpe.SetPart(cpe.Application); err != nil {
+	//		return false, err
+	//	}
+	//	if err = targetCpe.SetVersion(cpe.NewStringAttr(version.rich.semVer.String())); err != nil {
+	//		return false, err
+	//	}
+	//	// Semver may have a target, should add here or support selection by ecosystem upstream in match process (e.g. part of name selection)
+	//}
+	//
+	//return matchCpeToCpe(&c, version.rich.cpeVers...), nil
 }
 
-func matchCpeToCpe(c *cpeConstraint, targetCpes... *cpe.Item) bool {
-	if len(targetCpes) == 0 {
-		return false
-	}
-	for _, targetCpe := range targetCpes {
-
-		for _, constraint := range c.constraints {
-			// TODO: update these to reflect a better comparison (< should take the version number comparison into consideration)
-			switch (constraint.check) {
-			case "=":
-				if !cpe.CheckEqual(targetCpe, constraint.cpe) {
-					return false
-				}
-			case "<":
-				if !cpe.CheckSubset(targetCpe, constraint.cpe) {
-					return false
-				}
-			}
-		}
-	}
-	return true
-}
+//func matchCpeToCpe(c *cpeConstraint, targetCpes ...*cpe.CPE) bool {
+//	if len(targetCpes) == 0 {
+//		return false
+//	}
+//	for _, targetCpe := range targetCpes {
+//		for _, constraint := range c.constraints {
+//			// TODO: update these to reflect a better comparison (< should take the version number comparison into consideration)
+//			switch constraint.check {
+//			case "=":
+//				if !cpe.CheckEqual(targetCpe, constraint.cpe) {
+//					return false
+//				}
+//			case "<":
+//				if !cpe.CheckSubset(targetCpe, constraint.cpe) {
+//					return false
+//				}
+//			}
+//		}
+//	}
+//	return true
+//}
