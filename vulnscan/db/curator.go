@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	supportedVersion = ">=1.0.0, <2.0.0"
+	supportedVersion = "<1.0.0"
 	FileName         = db.StoreFileName
 )
 
@@ -102,17 +102,41 @@ func (c *Curator) Validate() error {
 	return c.validate(c.config.DbDir)
 }
 
-// TODO: implement me
-// func (c *Curator) ImportFrom(manualDbPath string) error {
-// 	// TODO: ...
+func (c *Curator) ImportFrom(dbArchivePath string) error {
+	// note: the temp directory is persisted upon download/validation/activation failure to allow for investigation
+	tempDir, err := ioutil.TempDir("", "vulnscan-import")
+	if err != nil {
+		return fmt.Errorf("unable to create db temp dir: %w", err)
+	}
 
-// 	// cp file to tempdir
+	f, err := os.Open(dbArchivePath)
+	if err != nil {
+		return fmt.Errorf("unable to open archive (%s): %w", dbArchivePath, err)
+	}
+	defer func() {
+		err = f.Close()
+		if err != nil {
+			log.Errorf("unable to close archive (%s): %w", dbArchivePath, err)
+		}
+	}()
 
-// 	// validate tempdir
+	err = file.UnTarGz(tempDir, f)
+	if err != nil {
+		return err
+	}
 
-// 	// activate
-// 	return nil
-// }
+	err = c.validate(tempDir)
+	if err != nil {
+		return err
+	}
+
+	err = c.activate(tempDir)
+	if err != nil {
+		return err
+	}
+
+	return c.fs.RemoveAll(tempDir)
+}
 
 func (c *Curator) UpdateTo(listing *curation.ListingEntry) error {
 	// note: the temp directory is persisted upon download/validation/activation failure to allow for investigation
@@ -135,7 +159,6 @@ func (c *Curator) UpdateTo(listing *curation.ListingEntry) error {
 }
 
 func (c *Curator) download(listing *curation.ListingEntry) (string, error) {
-	// get a temp dir
 	tempDir, err := ioutil.TempDir("", "vulnscan-scratch")
 	if err != nil {
 		return "", fmt.Errorf("unable to create db temp dir: %w", err)
