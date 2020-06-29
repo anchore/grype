@@ -27,14 +27,14 @@ func init() {
 func runDbCheckCmd(_ *cobra.Command, _ []string) int {
 	dbCurator, err := db.NewCurator(appConfig.Db.ToCuratorConfig())
 	if err != nil {
-		log.Errorf("could not curate database: %w", err)
+		log.Errorf("could not curate database: %+v", err)
 		return 1
 	}
 
 	updateAvailable, _, err := dbCurator.IsUpdateAvailable()
 	if err != nil {
 		// TODO: should this be so fatal? we can certainly continue with a warning...
-		log.Errorf("unable to check for vulnerability database update: %w", err)
+		log.Errorf("unable to check for vulnerability database update: %+v", err)
 		return 1
 	}
 

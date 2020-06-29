@@ -27,7 +27,7 @@ func init() {
 func runDbUpdateCmd(_ *cobra.Command, _ []string) int {
 	dbCurator, err := db.NewCurator(appConfig.Db.ToCuratorConfig())
 	if err != nil {
-		log.Errorf("could not curate database: %w", err)
+		log.Errorf("could not curate database: %+v", err)
 		return 1
 	}
 

@@ -33,7 +33,7 @@ func runDbDeleteCmd(_ *cobra.Command, _ []string) int {
 
 	err = dbCurator.Delete()
 	if err != nil {
-		log.Errorf("unable to delete vulnerability database: %w", err)
+		log.Errorf("unable to delete vulnerability database: %+v", err)
 		return 1
 	}
 
