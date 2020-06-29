@@ -15,33 +15,34 @@ import (
 
 var update = flag.Bool("update", false, "update the *.golden files for json presenters")
 
-var pkg1 = pkg.Package{
-	Name:    "package-1",
-	Version: "1.0.1",
-	Type:    pkg.DebPkg,
-}
-
-var pkg2 = pkg.Package{
-	Name:    "package-2",
-	Version: "2.0.1",
-	Type:    pkg.DebPkg,
-}
-
-var match1 = match.Match{
-	Type:          match.ExactDirectMatch,
-	Vulnerability: vulnerability.Vulnerability{ID: "CVE-1999-0001"},
-	// XXX: matches also have a `pkg *pkg.Pkg` field
-}
-
-var match2 = match.Match{
-	Type:          match.ExactIndirectMatch,
-	Vulnerability: vulnerability.Vulnerability{ID: "CVE-1999-0002"},
-}
-
 func TestJsonPresenter(t *testing.T) {
 
 	pres := NewPresenter()
 	var buffer bytes.Buffer
+
+	var pkg1 = pkg.Package{
+		Name:    "package-1",
+		Version: "1.0.1",
+		Type:    pkg.DebPkg,
+	}
+
+	var pkg2 = pkg.Package{
+		Name:    "package-2",
+		Version: "2.0.1",
+		Type:    pkg.DebPkg,
+	}
+
+	var match1 = match.Match{
+		Type:          match.ExactDirectMatch,
+		Vulnerability: vulnerability.Vulnerability{ID: "CVE-1999-0001"},
+		Package:       &pkg1,
+	}
+
+	var match2 = match.Match{
+		Type:          match.ExactIndirectMatch,
+		Vulnerability: vulnerability.Vulnerability{ID: "CVE-1999-0002"},
+		Package:       &pkg1,
+	}
 
 	results := result.NewResult()
 

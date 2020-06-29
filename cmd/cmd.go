@@ -45,7 +45,7 @@ func init() {
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		log.Errorf("could not start application: %w", err)
+		log.Errorf("could not start application: %+v", err)
 		os.Exit(1)
 	}
 }

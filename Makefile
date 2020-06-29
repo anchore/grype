@@ -46,6 +46,7 @@ coverage:
 	@printf '$(TITLE)Running unit tests + coverage$(RESET)\n'
 	$(TEMPDIR)/bin/go-acc -o $(TEMPDIR)/coverage.txt ./...
 
+
 # TODO: add benchmarks
 
 integration:

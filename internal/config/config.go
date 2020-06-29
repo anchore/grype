@@ -8,6 +8,7 @@ import (
 	"github.com/adrg/xdg"
 	"github.com/anchore/imgbom/imgbom/scope"
 	"github.com/anchore/vulnscan/internal"
+	"github.com/anchore/vulnscan/vulnscan/db"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 	"go.uber.org/zap/zapcore"
@@ -25,6 +26,7 @@ type Application struct {
 	Quiet      bool    `mapstructure:"quiet"`
 	Log        Logging `mapstructure:"log"`
 	CliOptions CliOnlyOptions
+	Db         Database `mapstructure:"db"`
 }
 
 type Logging struct {
@@ -34,10 +36,28 @@ type Logging struct {
 	FileLocation string `mapstructure:"file"`
 }
 
+type Database struct {
+	Dir             string `mapstructure:"cache-dir"`
+	UpdateURL       string `mapstructure:"update-url"`
+	UpdateOnStartup bool   `mapstructure:"update-on-startup"`
+}
+
+func (d Database) ToCuratorConfig() db.Config {
+	return db.Config{
+		DbDir:      d.Dir,
+		ListingURL: d.UpdateURL,
+	}
+}
+
 func setNonCliDefaultValues(v *viper.Viper) {
 	v.SetDefault("log.level", "")
 	v.SetDefault("log.file", "")
 	v.SetDefault("log.structured", false)
+	// e.g. ~/.cache/appname/db
+	v.SetDefault("db.cache-dir", path.Join(xdg.CacheHome, internal.ApplicationName, "db"))
+	// TODO: change me to the production URL at release
+	v.SetDefault("db.update-url", "http://localhost:5000/listing.json")
+	v.SetDefault("db.update-on-startup", true)
 }
 
 func LoadConfigFromFile(v *viper.Viper, cliOpts *CliOnlyOptions) (*Application, error) {

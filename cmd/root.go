@@ -9,9 +9,9 @@ import (
 	"github.com/anchore/imgbom/imgbom/scope"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/vulnscan/internal"
-	"github.com/anchore/vulnscan/internal/db"
 	"github.com/anchore/vulnscan/internal/format"
 	"github.com/anchore/vulnscan/vulnscan"
+	"github.com/anchore/vulnscan/vulnscan/db"
 	"github.com/anchore/vulnscan/vulnscan/presenter"
 	"github.com/anchore/vulnscan/vulnscan/vulnerability"
 	"github.com/spf13/cobra"
@@ -76,14 +76,44 @@ func runDefaultCmd(_ *cobra.Command, args []string) int {
 		return 1
 	}
 
-	// TODO: remove me (replace with imgbom os.Identify call)
+	osObj := _distro.Identify(img)
+	if osObj == nil {
+		// prevent moving forward with unknown distros for now, revisit later
+		log.Error("unable to detect distro type for accurate vulnerability matching")
+		return 1
+	}
 
-	osObj, _ := _distro.NewDistro(_distro.Debian, "8")
+	dbCurator, err := db.NewCurator(appConfig.Db.ToCuratorConfig())
+	if err != nil {
+		log.Errorf("could not curate database: %w", err)
+		return 1
+	}
 
-	store := db.GetStore()
+	if appConfig.Db.UpdateOnStartup {
+		updateAvailable, updateEntry, err := dbCurator.IsUpdateAvailable()
+		if err != nil {
+			// TODO: should this be so fatal? we can certainly continue with a warning...
+			log.Errorf("unable to check for vulnerability database update: %+v", err)
+			return 1
+		}
+		if updateAvailable {
+			err = dbCurator.UpdateTo(updateEntry)
+			if err != nil {
+				log.Errorf("unable to update vulnerability database: %+v", err)
+				return 1
+			}
+		}
+	}
+
+	store, err := dbCurator.GetStore()
+	if err != nil {
+		log.Errorf("failed to load vulnerability database: %w", err)
+		return 1
+	}
+
 	provider := vulnerability.NewProviderFromStore(store)
 
-	results := vulnscan.FindAllVulnerabilities(provider, osObj, catalog)
+	results := vulnscan.FindAllVulnerabilities(provider, *osObj, catalog)
 	outputOption := viper.GetString("output")
 
 	presenterType := presenter.ParseOption(outputOption)
