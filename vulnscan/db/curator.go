@@ -7,7 +7,8 @@ import (
 	"path"
 
 	"github.com/anchore/vulnscan-db/pkg/db"
-	"github.com/anchore/vulnscan-db/pkg/sqlite"
+	"github.com/anchore/vulnscan-db/pkg/db/curation"
+	"github.com/anchore/vulnscan-db/pkg/store/sqlite"
 	"github.com/anchore/vulnscan/internal/file"
 	"github.com/anchore/vulnscan/internal/log"
 	"github.com/hashicorp/go-version"
@@ -15,8 +16,8 @@ import (
 )
 
 const (
-	supportedVersion = ">=1.0.0, <2.0.0"
-	dbFileName       = "vulnerability.db"
+	supportedVersion = "<1.0.0"
+	FileName         = db.StoreFileName
 )
 
 type Config struct {
@@ -45,7 +46,7 @@ func NewCurator(cfg Config) (Curator, error) {
 	}, nil
 }
 
-func (c *Curator) GetStore() (db.VulnStore, error) {
+func (c *Curator) GetStore() (db.VulnerabilityStoreReader, error) {
 	// ensure the DB is ok
 	err := c.Validate()
 	if err != nil {
@@ -54,7 +55,7 @@ func (c *Curator) GetStore() (db.VulnStore, error) {
 
 	// provide an abstraction for the underlying store
 	connectOptions := sqlite.Options{
-		FilePath: path.Join(c.config.DbDir, dbFileName),
+		FilePath: path.Join(c.config.DbDir, FileName),
 	}
 	store, _, err := sqlite.NewStore(&connectOptions)
 	if err != nil {
@@ -67,27 +68,27 @@ func (c *Curator) Delete() error {
 	return c.fs.RemoveAll(c.config.DbDir)
 }
 
-func (c *Curator) IsUpdateAvailable() (bool, *ListingEntry, error) {
+func (c *Curator) IsUpdateAvailable() (bool, *curation.ListingEntry, error) {
 	log.Debugf("checking for available database updates")
 
-	listing, err := newListingFromURL(c.fs, c.client, c.config.ListingURL)
+	listing, err := curation.NewListingFromURL(c.fs, c.client, c.config.ListingURL)
 	if err != nil {
 		return false, nil, fmt.Errorf("failed to get listing file: %w", err)
 	}
 
-	updateEntry := listing.bestUpdate(c.versionConstraint)
+	updateEntry := listing.BestUpdate(c.versionConstraint)
 	if updateEntry == nil {
 		return false, nil, fmt.Errorf("no db candidates with correct version available (maybe there is an application update available?)")
 	}
 	log.Debugf("found database update candidate: %s", updateEntry)
 
 	// compare created data to current db date
-	current, err := newMetadataFromDir(c.fs, c.config.DbDir)
+	current, err := curation.NewMetadataFromDir(c.fs, c.config.DbDir)
 	if err != nil {
 		return false, nil, fmt.Errorf("current metadata corrupt: %w", err)
 	}
 
-	if current.isSupercededBy(updateEntry) {
+	if current.IsSupercededBy(updateEntry) {
 		log.Debugf("database update available: %s", updateEntry)
 		return true, updateEntry, nil
 	}
@@ -101,19 +102,43 @@ func (c *Curator) Validate() error {
 	return c.validate(c.config.DbDir)
 }
 
-// TODO: implement me
-// func (c *Curator) ImportFrom(manualDbPath string) error {
-// 	// TODO: ...
+func (c *Curator) ImportFrom(dbArchivePath string) error {
+	// note: the temp directory is persisted upon download/validation/activation failure to allow for investigation
+	tempDir, err := ioutil.TempDir("", "vulnscan-import")
+	if err != nil {
+		return fmt.Errorf("unable to create db temp dir: %w", err)
+	}
 
-// 	// cp file to tempdir
+	f, err := os.Open(dbArchivePath)
+	if err != nil {
+		return fmt.Errorf("unable to open archive (%s): %w", dbArchivePath, err)
+	}
+	defer func() {
+		err = f.Close()
+		if err != nil {
+			log.Errorf("unable to close archive (%s): %w", dbArchivePath, err)
+		}
+	}()
 
-// 	// validate tempdir
+	err = file.UnTarGz(tempDir, f)
+	if err != nil {
+		return err
+	}
 
-// 	// activate
-// 	return nil
-// }
+	err = c.validate(tempDir)
+	if err != nil {
+		return err
+	}
 
-func (c *Curator) UpdateTo(listing *ListingEntry) error {
+	err = c.activate(tempDir)
+	if err != nil {
+		return err
+	}
+
+	return c.fs.RemoveAll(tempDir)
+}
+
+func (c *Curator) UpdateTo(listing *curation.ListingEntry) error {
 	// note: the temp directory is persisted upon download/validation/activation failure to allow for investigation
 	tempDir, err := c.download(listing)
 	if err != nil {
@@ -133,8 +158,7 @@ func (c *Curator) UpdateTo(listing *ListingEntry) error {
 	return c.fs.RemoveAll(tempDir)
 }
 
-func (c *Curator) download(listing *ListingEntry) (string, error) {
-	// get a temp dir
+func (c *Curator) download(listing *curation.ListingEntry) (string, error) {
 	tempDir, err := ioutil.TempDir("", "vulnscan-scratch")
 	if err != nil {
 		return "", fmt.Errorf("unable to create db temp dir: %w", err)
@@ -160,7 +184,7 @@ func (c *Curator) download(listing *ListingEntry) (string, error) {
 
 func (c *Curator) validate(dbDirPath string) error {
 	// check that the disk checksum still matches the db payload
-	metadata, err := newMetadataFromDir(c.fs, dbDirPath)
+	metadata, err := curation.NewMetadataFromDir(c.fs, dbDirPath)
 	if err != nil {
 		return fmt.Errorf("failed to parse database metadata (%s): %w", dbDirPath, err)
 	}
@@ -168,7 +192,7 @@ func (c *Curator) validate(dbDirPath string) error {
 		return fmt.Errorf("database metadata not found: %s", dbDirPath)
 	}
 
-	dbPath := path.Join(dbDirPath, dbFileName)
+	dbPath := path.Join(dbDirPath, FileName)
 	valid, err := file.ValidateByHash(c.fs, dbPath, metadata.Checksum)
 	if err != nil {
 		return err

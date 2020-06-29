@@ -6,11 +6,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/anchore/vulnscan-db/pkg/db/curation"
 	"github.com/anchore/vulnscan/internal"
 	"github.com/anchore/vulnscan/internal/file"
 	"github.com/hashicorp/go-version"
 	"github.com/spf13/afero"
 )
+
+func mustUrl(u *url.URL, err error) *url.URL {
+	if err != nil {
+		panic(err)
+	}
+	return u
+}
 
 type testGetter struct {
 	file  map[string]string
@@ -60,13 +68,13 @@ func newTestCurator(fs afero.Fs, getter file.Getter, dbDir, metadataUrl string) 
 func TestCuratorDownload(t *testing.T) {
 	tests := []struct {
 		name        string
-		entry       *ListingEntry
+		entry       *curation.ListingEntry
 		expectedURL string
 		err         bool
 	}{
 		{
 			name: "download populates returned tempdir",
-			entry: &ListingEntry{
+			entry: &curation.ListingEntry{
 				Built:    time.Date(2020, 06, 13, 17, 13, 13, 0, time.UTC),
 				URL:      mustUrl(url.Parse("http://a-url/payload.tar.gz")),
 				Checksum: "sha256:deadbeefcafe",

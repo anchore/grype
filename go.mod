@@ -7,10 +7,9 @@ require (
 	github.com/anchore/go-testutils v0.0.0-20200520222037-edc2bf1864fe
 	github.com/anchore/imgbom v0.0.0-20200616171024-2cb7dad96784
 	github.com/anchore/stereoscope v0.0.0-20200616152009-189722bdb61b
-	github.com/anchore/vulnscan-db v0.0.0-20200604185950-6a9f5a2c9ddf
-	github.com/go-test/deep v1.0.6
+	github.com/anchore/vulnscan-db v0.0.0-20200628111346-8c1d0888ed4c
 	github.com/hashicorp/go-getter v1.4.1
-	github.com/hashicorp/go-version v1.2.0
+	github.com/hashicorp/go-version v1.2.1
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/knqyf263/go-deb-version v0.0.0-20190517075300-09fca494f03d
 	github.com/knqyf263/go-version v1.1.1
