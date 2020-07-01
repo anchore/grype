@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	hashiVer "github.com/knqyf263/go-version"
+	hashiVer "github.com/anchore/go-version"
 )
 
 // ruby packages such as activerecord and sprockets don't strictly follow semver
@@ -22,6 +22,7 @@ type semanticConstraint struct {
 
 func newSemanticConstraint(constStr string) (semanticConstraint, error) {
 	normalized := normalizer.Replace(constStr)
+
 	constraints, err := hashiVer.NewConstraint(normalized)
 	if err != nil {
 		return semanticConstraint{}, err
@@ -48,5 +49,8 @@ func (c semanticConstraint) Satisfied(version *Version) (bool, error) {
 }
 
 func (c semanticConstraint) String() string {
-	return fmt.Sprintf("%s (semantic)", c.raw)
+	if c.raw == "" {
+		return "none (semver)"
+	}
+	return fmt.Sprintf("%s (semver)", c.raw)
 }

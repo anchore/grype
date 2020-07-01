@@ -67,7 +67,7 @@ func (c dpkgConstraint) Satisfied(version *Version) (bool, error) {
 
 func (c dpkgConstraint) String() string {
 	if c.raw == "" {
-		return "[no constraint] (dpkg)"
+		return "none (dpkg)"
 	}
 	return fmt.Sprintf("%s (dpkg)", c.raw)
 }

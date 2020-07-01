@@ -3,12 +3,11 @@ package version
 import (
 	"fmt"
 
+	hashiVer "github.com/anchore/go-version"
 	"github.com/anchore/imgbom/imgbom/pkg"
 	"github.com/anchore/vulnscan/vulnscan/cpe"
 	deb "github.com/knqyf263/go-deb-version"
-	hashiVer "github.com/knqyf263/go-version"
 )
-
 
 type Version struct {
 	Raw    string
@@ -19,7 +18,7 @@ type Version struct {
 type rich struct {
 	semVer  *hashiVer.Version
 	dpkgVer *deb.Version
-	cpeVers []cpe.CPE // CPEs have additional fields, so allow array here for testing combinations of vendor and product tuples
+	cpeVers []cpe.CPE
 }
 
 func NewVersion(raw string, format Format) (*Version, error) {
@@ -37,7 +36,17 @@ func NewVersion(raw string, format Format) (*Version, error) {
 }
 
 func NewVersionFromPkg(p *pkg.Package) (*Version, error) {
-	return NewVersion(p.Version, FormatFromPkgType(p.Type))
+	ver, err := NewVersion(p.Version, FormatFromPkgType(p.Type))
+	if err != nil {
+		return nil, err
+	}
+	cpes, err := cpe.Generate(p)
+	if err != nil {
+		return nil, err
+	}
+
+	ver.rich.cpeVers = cpes
+	return ver, nil
 }
 
 func (v *Version) populate() error {
@@ -50,8 +59,15 @@ func (v *Version) populate() error {
 		version, err := newDpkgVersion(v.Raw)
 		v.rich.dpkgVer = version
 		return err
+	case UnknownFormat:
+		// use the raw string + fuzzy constraint
+		return nil
 	}
 	return fmt.Errorf("no rich version populated (format=%s)", v.Format)
+}
+
+func (v Version) CPEs() []cpe.CPE {
+	return v.rich.cpeVers
 }
 
 func (v Version) String() string {

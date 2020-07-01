@@ -5,6 +5,7 @@ import (
 	"github.com/anchore/imgbom/imgbom/pkg"
 	"github.com/anchore/vulnscan/internal/log"
 	"github.com/anchore/vulnscan/vulnscan/matcher/bundler"
+	"github.com/anchore/vulnscan/vulnscan/matcher/common"
 	"github.com/anchore/vulnscan/vulnscan/matcher/dpkg"
 	"github.com/anchore/vulnscan/vulnscan/matcher/python"
 	"github.com/anchore/vulnscan/vulnscan/result"
@@ -58,6 +59,14 @@ func (c *controller) findMatches(s vulnerability.Provider, o distro.Distro, pack
 			} else {
 				res.Add(p, matches...)
 			}
+		}
+
+		// for all packages, always look for CPEs
+		matches, err := common.FindMatchesByPackageCPE(s, p, "cpe-matcher")
+		if err != nil {
+			log.Errorf("CPE matcher failed for pkg=%s: %+v", p, err)
+		} else {
+			res.Add(p, matches...)
 		}
 	}
 	return res

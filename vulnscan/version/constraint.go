@@ -2,9 +2,6 @@ package version
 
 import (
 	"fmt"
-
-	"github.com/anchore/imgbom/imgbom/distro"
-	_distro "github.com/anchore/imgbom/imgbom/distro"
 )
 
 type Constraint interface {
@@ -18,23 +15,13 @@ func GetConstraint(constStr string, format Format) (Constraint, error) {
 		return newSemanticConstraint(constStr)
 	case DpkgFormat:
 		return newDpkgConstraint(constStr)
+	case UnknownFormat:
+		return newFuzzyConstraint(constStr)
 	}
 	return nil, fmt.Errorf("could not find constraint for given format: %s", format)
 }
 
-func GetConstraintByDisto(constStr string, o _distro.Distro) (Constraint, error) {
-	var format Format
-	switch o.Type {
-	case distro.Debian:
-		format = DpkgFormat
-	//...
-	default:
-		format = UnknownFormat
-	}
-
-	return GetConstraint(constStr, format)
-}
-
+// MustGetConstraint is meant for testing only, do not use within the library
 func MustGetConstraint(constStr string, format Format) Constraint {
 	constraint, err := GetConstraint(constStr, format)
 	if err != nil {

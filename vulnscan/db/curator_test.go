@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/anchore/go-version"
 	"github.com/anchore/vulnscan-db/pkg/db/curation"
 	"github.com/anchore/vulnscan/internal"
 	"github.com/anchore/vulnscan/internal/file"
-	"github.com/hashicorp/go-version"
 	"github.com/spf13/afero"
 )
 

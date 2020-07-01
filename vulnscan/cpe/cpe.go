@@ -2,8 +2,10 @@ package cpe
 
 import (
 	"fmt"
+
 	"github.com/anchore/imgbom/imgbom/pkg"
-	"github.com/umisama/go-cpe"
+	"github.com/anchore/vulnscan/internal"
+	"github.com/facebookincubator/nvdtools/wfn"
 )
 
 // TODO: would be great to allow these to be overridden by user data/config
@@ -26,44 +28,69 @@ var targetSoftware = map[pkg.Language][]string{
 	},
 }
 
+const ANY = "*"
 
-type CPE *cpe.Item
+type CPE = wfn.Attributes
 
-func New(cpeStr string) (CPE, error){
-	return cpe.NewItemFromFormattedString(cpeStr)
+func New(cpeStr string) (CPE, error) {
+	value, err := wfn.Parse(cpeStr)
+	// we need to compare the raw data since we are constructing CPEs in other locations
+	value.Vendor = wfn.StripSlashes(value.Vendor)
+	value.Product = wfn.StripSlashes(value.Product)
+	value.Language = wfn.StripSlashes(value.Language)
+	value.Version = wfn.StripSlashes(value.Version)
+	value.TargetSW = wfn.StripSlashes(value.TargetSW)
+	value.Part = wfn.StripSlashes(value.Part)
+	value.Edition = wfn.StripSlashes(value.Edition)
+	value.Other = wfn.StripSlashes(value.Other)
+	value.SWEdition = wfn.StripSlashes(value.SWEdition)
+	value.TargetHW = wfn.StripSlashes(value.TargetHW)
+	value.Update = wfn.StripSlashes(value.Update)
+
+	if value == nil || err != nil {
+		return CPE{}, fmt.Errorf("failed to parse CPE (%s): %w", cpeStr, err)
+	}
+	return *value, nil
+}
+
+func NewSlice(cpeStrs ...string) ([]CPE, error) {
+	ret := make([]CPE, len(cpeStrs))
+	for idx, c := range cpeStrs {
+		value, err := New(c)
+		if err != nil {
+			return nil, err
+		}
+		ret[idx] = value
+	}
+	return ret, nil
 }
 
 // Generate Create a list of CPEs, trying to guess the vendor, product tuple and setting TargetSoftware if possible
 func Generate(p *pkg.Package) ([]CPE, error) {
-	version := cpe.NewStringAttr(p.Version)
-	targetSoftwares, _ := candidateTargetSoftwareAttrs(p)
-	vendors, _ := candidateVendors(p)
-	products, _ := candidateProducts(p)
+	targetSoftwares := candidateTargetSoftwareAttrs(p)
+	vendors := candidateVendors(p)
+	products := candidateProducts(p)
 
-	cpes := make([]CPE, len(products)*len(vendors)*len(targetSoftwares))
-	idx := 0
-	for _, p := range products {
-		for _, v := range vendors {
-			for _, ts := range targetSoftwares {
-				candidateCpe := cpe.NewItem()
-				if err := candidateCpe.SetProduct(p); err != nil {
-					return nil, fmt.Errorf("unable to set product='%s': %w", p, err)
+	keys := internal.NewStringSet()
+	cpes := make([]CPE, 0)
+	for _, product := range products {
+		for _, vendor := range vendors {
+			for _, targetSw := range targetSoftwares {
+				// prevent duplicate entries...
+				key := fmt.Sprintf("%s|%s|%s|%s", product, vendor, p.Version, targetSw)
+				if keys.Contains(key) {
+					continue
 				}
+				keys.Add(key)
 
-				if err := candidateCpe.SetVendor(v); err != nil {
-					return nil, fmt.Errorf("unable to set vendor='%s': %w", v, err)
-				}
+				// add a new entry...
+				candidateCpe := wfn.NewAttributesWithAny()
+				candidateCpe.Product = product
+				candidateCpe.Vendor = vendor
+				candidateCpe.Version = p.Version
+				candidateCpe.TargetSW = targetSw
 
-				if err := candidateCpe.SetVersion(version); err != nil {
-					return nil, fmt.Errorf("unable to set version='%s': %w", version, err)
-				}
-
-				if err := candidateCpe.SetTargetSw(ts); err != nil {
-					return nil, fmt.Errorf("unable to set targetSw='%s': %w", ts, err)
-				}
-
-				cpes[idx] = candidateCpe
-				idx++
+				cpes = append(cpes, *candidateCpe)
 			}
 		}
 	}
@@ -71,27 +98,43 @@ func Generate(p *pkg.Package) ([]CPE, error) {
 	return cpes, nil
 }
 
-func candidateTargetSoftwareAttrs(p *pkg.Package) ([]cpe.StringAttr, error) {
+func candidateTargetSoftwareAttrs(p *pkg.Package) []string {
+	// TODO: expand with package metadata (from type assert)
 	mappedNames := targetSoftware[p.Language]
 
 	if mappedNames == nil {
 		mappedNames = []string{}
 	}
 
-	attrs := make([]cpe.StringAttr, len(mappedNames)+1)
-	for idx, o := range mappedNames {
-		attrs[idx] = cpe.NewStringAttr(o)
-	}
+	attrs := make([]string, len(mappedNames))
+	copy(attrs, targetSoftware[p.Language])
 	// last element is the any match, present for all
-	attrs[len(mappedNames)] = cpe.Any
+	attrs = append(attrs, ANY)
 
-	return attrs, nil
+	return attrs
 }
 
-func candidateVendors(p *pkg.Package) ([]cpe.StringAttr, error) {
-	return []cpe.StringAttr{cpe.NewStringAttr(p.Name)}, nil
+func candidateVendors(p *pkg.Package) []string {
+	// TODO: expand with package metadata (from type assert)
+	ret := []string{p.Name}
+	if p.Language == pkg.Python {
+		ret = append(ret, fmt.Sprintf("python-%s", p.Name))
+	}
+	return ret
 }
 
-func candidateProducts(p *pkg.Package) ([]cpe.StringAttr, error) {
-	return []cpe.StringAttr{cpe.NewStringAttr(p.Name)}, nil
+func candidateProducts(p *pkg.Package) []string {
+	// TODO: expand with package metadata (from type assert)
+	return []string{p.Name}
+}
+
+func MatchWithoutVersion(c CPE, candidates []CPE) []CPE {
+	results := make([]CPE, 0)
+	for _, candidate := range candidates {
+		canCopy := candidate
+		if c.MatchWithoutVersion(&canCopy) {
+			results = append(results, candidate)
+		}
+	}
+	return results
 }

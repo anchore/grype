@@ -1,9 +1,12 @@
-*.tar.gz
+.server
+Dockerfile
+/metadata.json
+/listing.json
 .vscode/
-.server/
 *.db
-!**/test-fixtures/**/*.db
+*.db-journal
 *.tar
+*tar.gz
 .idea/
 *.log
 .images
