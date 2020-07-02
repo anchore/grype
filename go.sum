@@ -120,6 +120,9 @@ github.com/anchore/stereoscope v0.0.0-20200520221116-025e07f1c93e h1:QBwtrM0MXi0
 github.com/anchore/stereoscope v0.0.0-20200520221116-025e07f1c93e/go.mod h1:bkyLl5VITnrmgErv4S1vDfVz/TGAZ5il6161IQo7w2g=
 github.com/anchore/stereoscope v0.0.0-20200616152009-189722bdb61b h1:LmFKsQi4oj2VJjch7JhQNzJg1A56FjwHqWZz1ZZKgIw=
 github.com/anchore/stereoscope v0.0.0-20200616152009-189722bdb61b/go.mod h1:eQ2/Al6XDA7RFk3FVfpjyGRErITRjNciUPIWixHc7kQ=
+github.com/anchore/vulnscan-db v0.0.0-20200628111346-8c1d0888ed4c/go.mod h1:dYygVCcr2YyhYCRjI85oDVnppbC5nIjA6YVTNOi473g=
+github.com/anchore/vulnscan-db v0.0.0-20200702180444-65cc4dd9745e h1:xxfUiJqfg5J5PbmuLAIOMkkdDTA7WSfGrJaDIFR/QJ4=
+github.com/anchore/vulnscan-db v0.0.0-20200702180444-65cc4dd9745e/go.mod h1:WUuyhJTP6zfvFSImydFMraenaISU46T/ynrotWuUlCY=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/antihax/optional v1.0.0 h1:xK2lYat7ZLaVVcIuj82J8kIro4V6kDe0AUDFboUCwcg=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
@@ -763,6 +766,7 @@ github.com/ulikunitz/xz v0.5.7 h1:YvTNdFzX6+W5m9msiYg/zpkSURPPtOlzbqYjrFn7Yt4=
 github.com/ulikunitz/xz v0.5.7/go.mod h1:nbz6k7qbPmH4IRqmfOplQw/tblSgqTqBwxkY0oWt/14=
 github.com/ultraware/funlen v0.0.2/go.mod h1:Dp4UiAus7Wdb9KUZsYWZEWiRzGuM2kXM1lPbfaF6xhA=
 github.com/ultraware/whitespace v0.0.4/go.mod h1:aVMh/gQve5Maj9hQ/hg+F75lr/X5A89uZnzAmWSineA=
+github.com/umisama/go-cpe v0.0.0-20190323060751-cdd6c3c28a23 h1:+168JmE638t0OxroPRx7BUbkB91hF3GWS1OkvITgdT0=
 github.com/umisama/go-cpe v0.0.0-20190323060751-cdd6c3c28a23/go.mod h1:Jv/KoYWD3+46wW8r3pEwISwtgv5Q8NTfFto2wFRKvoA=
 github.com/urfave/cli v0.0.0-20171014202726-7bc6a0acffa5/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijbERA=
 github.com/urfave/cli v1.20.0/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijbERA=

@@ -5,6 +5,7 @@ Dockerfile
 .vscode/
 *.db
 *.db-journal
+!**/test-fixtures/**/*.db
 *.tar
 *tar.gz
 .idea/

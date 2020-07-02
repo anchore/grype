@@ -22,3 +22,7 @@ type Match struct {
 func (m Match) String() string {
 	return fmt.Sprintf("Match(pkg=%s vuln=%s confidence=%f type='%s' key='%s' foundBy='%s')", m.Package, m.Vulnerability.String(), m.Confidence, m.Type, m.SearchKey, m.Matcher)
 }
+
+func (m Match) Summary() string {
+	return fmt.Sprintf("vuln='%s' confidence=%0.2f type='%s' key='%s' foundBy='%s')", m.Vulnerability.ID, m.Confidence, m.Type, m.SearchKey, m.Matcher)
+}

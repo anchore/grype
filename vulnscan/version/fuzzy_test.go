@@ -120,8 +120,6 @@ func TestSplitFuzzyPhrase(t *testing.T) {
 	}
 }
 
-// Note: the folling test code is from https://github.com/facebookincubator/nvdtools/blob/688794c4d3a41929eeca89304e198578d4595d53/cvefeed/nvd/smartvercmp_test.go (apache V2)
-// I'd prefer to import this functionality instead of copying it, however, these functions are not exported from the package
 func TestSmartVerCmp(t *testing.T) {
 	cases := []struct {
 		v1, v2 string
