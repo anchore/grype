@@ -49,7 +49,7 @@ func (c *controller) add(matchers ...Matcher) {
 func (c *controller) findMatches(s vulnerability.Provider, o distro.Distro, packages ...*pkg.Package) result.Result {
 	res := result.NewResult()
 	for _, p := range packages {
-		log.Debugf("finding vulnerability matches for pkg=%s", p)
+		log.Debugf("searching for vulnerability matches for pkg=%s", p)
 
 		matchers, ok := c.matchers[p.Type]
 		if !ok {

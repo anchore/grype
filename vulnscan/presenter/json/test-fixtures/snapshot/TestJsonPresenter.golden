@@ -1,1 +1,24 @@
-[{"cve":"CVE-1999-0001","found-by":{"matcher":"","search-key":""},"package":{"name":"package-1","version":"1.0.1"}},{"cve":"CVE-1999-0002","found-by":{"matcher":"","search-key":""},"package":{"name":"package-1","version":"1.0.1"}}]
+[
+ {
+  "cve": "CVE-1999-0001",
+  "found-by": {
+   "matcher": "",
+   "search-key": ""
+  },
+  "package": {
+   "name": "package-1",
+   "version": "1.0.1"
+  }
+ },
+ {
+  "cve": "CVE-1999-0002",
+  "found-by": {
+   "matcher": "",
+   "search-key": ""
+  },
+  "package": {
+   "name": "package-1",
+   "version": "1.0.1"
+  }
+ }
+]

@@ -37,7 +37,7 @@ func FindMatchesByPackageDistro(store vulnerability.ProviderByDistro, d distro.D
 				Vulnerability: *vuln,
 				Package:       p,
 				Matcher:       matcherName,
-				SearchKey:     fmt.Sprintf("distro=[%s] constraint=[%s]", d, vuln.Constraint.String()),
+				SearchKey:     fmt.Sprintf("distro[%s] constraint[%s]", d, vuln.Constraint.String()),
 			})
 		}
 	}

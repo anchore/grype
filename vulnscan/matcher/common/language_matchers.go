@@ -36,7 +36,7 @@ func FindMatchesByPackageLanguage(store vulnerability.ProviderByLanguage, l pkg.
 				Vulnerability: *vuln,
 				Package:       p,
 				Matcher:       matcherName,
-				SearchKey:     fmt.Sprintf("language=[%s] constraint=[%s]", l, vuln.Constraint.String()),
+				SearchKey:     fmt.Sprintf("language[%s] constraint[%s]", l, vuln.Constraint.String()),
 			})
 		}
 	}

@@ -5,7 +5,6 @@ import (
 	"io"
 
 	"github.com/anchore/imgbom/imgbom/pkg"
-	"github.com/anchore/vulnscan/internal/log"
 	"github.com/anchore/vulnscan/vulnscan/result"
 )
 
@@ -54,12 +53,9 @@ func (pres *Presenter) Present(output io.Writer, catalog *pkg.Catalog, results r
 		)
 	}
 
-	bytes, err := json.Marshal(&doc)
-
-	if err != nil {
-		log.Errorf("failed to marshal json (presenter=json): %w", err)
-	}
-
-	_, err = output.Write(bytes)
-	return err
+	enc := json.NewEncoder(output)
+	// prevent > and < from being escaped in the payload
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", " ")
+	return enc.Encode(&doc)
 }
