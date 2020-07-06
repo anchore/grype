@@ -19,7 +19,7 @@ jobs:
           keys:
             - go-<< parameters.version >>-{{ checksum "go.sum" }}-{{ checksum "Makefile" }}
 
-      - run: make bootstrap
+      - run: make ci-bootstrap
 
       - save_cache:
           key: go-<< parameters.version >>-{{ checksum "go.sum" }}-{{ checksum "Makefile" }}
@@ -49,7 +49,7 @@ jobs:
           keys:
             - go-<< parameters.version >>-{{ checksum "go.sum" }}-{{ checksum "Makefile" }}
 
-      - run: make bootstrap
+      - run: make ci-bootstrap
 
       - save_cache:
           key: go-<< parameters.version >>-{{ checksum "go.sum" }}-{{ checksum "Makefile" }}
