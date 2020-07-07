@@ -1,7 +1,9 @@
 linters-settings:
   funlen:
-    lines: 70
+    lines: 75
     statements: 50
+  gocognit:
+    min-complexity: 36
 linters:
   # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
   disable-all: true

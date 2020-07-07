@@ -14,11 +14,11 @@ func TestParseFormat(t *testing.T) {
 	}{
 		{
 			input:  "dpkg",
-			format: DpkgFormat,
+			format: DebFormat,
 		},
 		{
 			input:  "deb",
-			format: DpkgFormat,
+			format: DebFormat,
 		},
 		{
 			input:  "semantic",
@@ -48,7 +48,7 @@ func TestFormatFromPkgType(t *testing.T) {
 	}{
 		{
 			pkgType: pkg.DebPkg,
-			format:  DpkgFormat,
+			format:  DebFormat,
 		},
 		{
 			pkgType: pkg.BundlerPkg,
