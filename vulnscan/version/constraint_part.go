@@ -35,7 +35,7 @@ func splitConstraintPhrase(phrase string) ([]constraintPart, error) {
 	for _, pair := range pairs {
 		op, err := ParseOperator(pair["operator"])
 		if err != nil {
-			return nil, fmt.Errorf("bad operator parse: %+v", err)
+			return nil, fmt.Errorf("unable to parse constraint operator: %+v", err)
 		}
 		result = append(result, constraintPart{
 			operator: op,
