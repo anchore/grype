@@ -16,7 +16,7 @@ type constraintPart struct {
 func splitConstraintPhrase(phrase string) ([]constraintPart, error) {
 	// this implies that the returned set of constraint parts should be ANDed together
 	if strings.Contains(phrase, "||") {
-		return nil, fmt.Errorf("or operator (||) unsupported for constraints")
+		return nil, fmt.Errorf("'||' operator (OR) is unsupported for constraints")
 	}
 
 	matches := constraintPartPattern.FindAllStringSubmatch(phrase, -1)
