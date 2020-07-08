@@ -15,8 +15,9 @@ type Version struct {
 }
 
 type rich struct {
-	semVer  *hashiVer.Version
-	dpkgVer *deb.Version
+	semVer *hashiVer.Version
+	debVer *deb.Version
+	rpmVer *rpmVersion
 }
 
 func NewVersion(raw string, format Format) (*Version, error) {
@@ -40,12 +41,16 @@ func NewVersionFromPkg(p *pkg.Package) (*Version, error) {
 func (v *Version) populate() error {
 	switch v.Format {
 	case SemanticFormat:
-		version, err := newSemanticVersion(v.Raw)
-		v.rich.semVer = version
+		ver, err := newSemanticVersion(v.Raw)
+		v.rich.semVer = ver
 		return err
-	case DpkgFormat:
-		version, err := newDpkgVersion(v.Raw)
-		v.rich.dpkgVer = version
+	case DebFormat:
+		ver, err := newDebVersion(v.Raw)
+		v.rich.debVer = ver
+		return err
+	case RpmFormat:
+		ver, err := newRpmVersion(v.Raw)
+		v.rich.rpmVer = &ver
 		return err
 	}
 	return fmt.Errorf("no rich version populated (format=%s)", v.Format)

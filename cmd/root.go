@@ -70,7 +70,7 @@ func runDefaultCmd(_ *cobra.Command, args []string) int {
 	defer stereoscope.Cleanup()
 
 	log.Info("Cataloging image")
-	catalog, err := imgbom.CatalogImage(img, appConfig.ScopeOpt)
+	catalog, err := imgbom.CatalogImg(img, appConfig.ScopeOpt)
 	if err != nil {
 		log.Errorf("could not catalog image: %w", err)
 		return 1

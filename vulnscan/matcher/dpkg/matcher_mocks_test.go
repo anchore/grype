@@ -26,7 +26,7 @@ func (pr *mockProvider) stub() {
 		// direct...
 		"neutron": {
 			{
-				Constraint: version.MustGetConstraint("< 2014.1.3-6", version.DpkgFormat),
+				Constraint: version.MustGetConstraint("< 2014.1.3-6", version.DebFormat),
 				ID:         "CVE-2014-fake-1",
 			},
 		},
@@ -34,16 +34,16 @@ func (pr *mockProvider) stub() {
 		"neutron-devel": {
 			// expected...
 			{
-				Constraint: version.MustGetConstraint("< 2014.1.4-5", version.DpkgFormat),
+				Constraint: version.MustGetConstraint("< 2014.1.4-5", version.DebFormat),
 				ID:         "CVE-2014-fake-2",
 			},
 			{
-				Constraint: version.MustGetConstraint("< 2015.0.0-1", version.DpkgFormat),
+				Constraint: version.MustGetConstraint("< 2015.0.0-1", version.DebFormat),
 				ID:         "CVE-2013-fake-3",
 			},
 			// unexpected...
 			{
-				Constraint: version.MustGetConstraint("< 2014.0.4-1", version.DpkgFormat),
+				Constraint: version.MustGetConstraint("< 2014.0.4-1", version.DebFormat),
 				ID:         "CVE-2013-fake-BAD",
 			},
 		},

@@ -4,9 +4,9 @@ go 1.14
 
 require (
 	github.com/adrg/xdg v0.2.1
-	github.com/anchore/go-testutils v0.0.0-20200520222037-edc2bf1864fe
-	github.com/anchore/imgbom v0.0.0-20200616171024-2cb7dad96784
-	github.com/anchore/stereoscope v0.0.0-20200616152009-189722bdb61b
+	github.com/anchore/go-testutils v0.0.0-20200624184116-66aa578126db
+	github.com/anchore/imgbom v0.0.0-20200707130654-e040fc89309c
+	github.com/anchore/stereoscope v0.0.0-20200706164556-7cf39d7f4639
 	github.com/anchore/vulnscan-db v0.0.0-20200628111346-8c1d0888ed4c
 	github.com/hashicorp/go-getter v1.4.1
 	github.com/hashicorp/go-version v1.2.1

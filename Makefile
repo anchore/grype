@@ -33,8 +33,12 @@ test: unit #integration ## Run all tests (currently only unit)
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(BOLD)$(CYAN)%-25s$(RESET)%s\n", $$1, $$2}'
 
-ci-bootstrap: bootstrap
+ci-bootstrap: ci-lib-dependencies bootstrap
 	sudo apt install -y bc
+
+ci-lib-dependencies:
+	# libdb5.3-dev and libssl-dev are required for Berkeley DB C bindings for RPM DB support (in imgbom)
+	sudo apt install -y libdb5.3-dev libssl-dev
 
 bootstrap: ## Download and install all project dependencies (+ prep tooling in the ./tmp dir)
 	$(call title,Downloading dependencies)
