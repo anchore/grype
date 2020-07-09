@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	hashiVer "github.com/knqyf263/go-version"
+	hashiVer "github.com/anchore/go-version"
 )
 
 // ruby packages such as activerecord and sprockets don't strictly follow semver

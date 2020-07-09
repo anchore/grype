@@ -17,6 +17,8 @@ func GetConstraint(constStr string, format Format) (Constraint, error) {
 		return newDebConstraint(constStr)
 	case RpmFormat:
 		return newRpmConstraint(constStr)
+	case UnknownFormat:
+		return newFuzzyConstraint(constStr)
 	}
 	return nil, fmt.Errorf("could not find constraint for given format: %s", format)
 }

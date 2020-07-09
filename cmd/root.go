@@ -59,6 +59,7 @@ func init() {
 	}
 }
 
+// nolint:funlen
 func runDefaultCmd(_ *cobra.Command, args []string) int {
 	userImageStr := args[0]
 	log.Infof("Fetching image '%s'", userImageStr)

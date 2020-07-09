@@ -2,6 +2,7 @@ TEMPDIR = ./.tmp
 RESULTSDIR = $(TEMPDIR)/results
 COVER_REPORT = $(RESULTSDIR)/cover.report
 COVER_TOTAL = $(RESULTSDIR)/cover.total
+LICENSES_REPORT = $(RESULTSDIR)/licenses.json
 LINTCMD = $(TEMPDIR)/golangci-lint run --tests=false --config .golangci.yaml
 BOLD := $(shell tput -T linux bold)
 PURPLE := $(shell tput -T linux setaf 5)
@@ -12,7 +13,7 @@ RESET := $(shell tput -T linux sgr0)
 TITLE := $(BOLD)$(PURPLE)
 SUCCESS := $(BOLD)$(GREEN)
 # the quality gate lower threshold for unit test total % coverage (by function statements)
-COVERAGE_THRESHOLD := 40
+COVERAGE_THRESHOLD := 55
 
 ifndef TEMPDIR
     $(error TEMPDIR is not set)
@@ -26,6 +27,9 @@ endef
 
 all: lint test ## Run all checks (linting, unit tests, and integration tests)
 	@printf '$(SUCCESS)All checks pass!$(RESET)\n'
+
+compare:
+	@cd comparison && make
 
 # TODO: add me back in when integration tests are implemented
 test: unit #integration ## Run all tests (currently only unit)
@@ -49,6 +53,8 @@ bootstrap: ## Download and install all project dependencies (+ prep tooling in t
 	go get ./...
 	# install golangci-lint
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b .tmp/ v1.26.0
+	# install bouncer
+	curl -sSfL https://raw.githubusercontent.com/wagoodman/go-bouncer/master/bouncer.sh | sh -s -- -b .tmp/ v0.2.0
 
 lint: ## Run gofmt + golangci lint checks
 	$(call title,Running linters)
@@ -92,3 +98,8 @@ build-release: ## Build final release binary
 				   -X main.commit="$(git describe --dirty --always)" \
 				   -X main.buildTime="$(date --rfc-3339=seconds --utc)"
 				   -o dist/vulnscan
+
+# todo: this should be later used by goreleaser
+check-licenses:
+	$(TEMPDIR)/bouncer list -o json | tee $(LICENSES_REPORT)
+	$(TEMPDIR)/bouncer check

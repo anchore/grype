@@ -3,9 +3,9 @@ package version
 import (
 	"fmt"
 
+	hashiVer "github.com/anchore/go-version"
 	"github.com/anchore/imgbom/imgbom/pkg"
 	deb "github.com/knqyf263/go-deb-version"
-	hashiVer "github.com/knqyf263/go-version"
 )
 
 type Version struct {
@@ -52,6 +52,9 @@ func (v *Version) populate() error {
 		ver, err := newRpmVersion(v.Raw)
 		v.rich.rpmVer = &ver
 		return err
+	case UnknownFormat:
+		// use the raw string + fuzzy constraint
+		return nil
 	}
 	return fmt.Errorf("no rich version populated (format=%s)", v.Format)
 }
