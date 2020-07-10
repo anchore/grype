@@ -27,6 +27,7 @@ type ResultObj struct {
 type Package struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
+	Type    string `json:"type"`
 }
 
 // Present creates a JSON-based reporting
@@ -35,18 +36,12 @@ func (pres *Presenter) Present(output io.Writer, catalog *pkg.Catalog, results r
 
 	for match := range results.Enumerate() {
 		pkg := catalog.Package(match.Package.ID())
-		doc = append(
-			doc,
-			ResultObj{
-				Cve:     match.Vulnerability.ID,
-				Package: Package{Name: pkg.Name, Version: pkg.Version}},
-		)
 
 		doc = append(
 			doc,
 			ResultObj{
 				Cve:     match.Vulnerability.ID,
-				Package: Package{Name: pkg.Name, Version: pkg.Version}},
+				Package: Package{Name: pkg.Name, Version: pkg.Version, Type: pkg.Type.String()}},
 		)
 	}
 
