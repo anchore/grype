@@ -27,6 +27,9 @@ endef
 all: lint test ## Run all checks (linting, unit tests, and integration tests)
 	@printf '$(SUCCESS)All checks pass!$(RESET)\n'
 
+compare:
+	@cd comparison && make
+
 # TODO: add me back in when integration tests are implemented
 test: unit #integration ## Run all tests (currently only unit)
 
