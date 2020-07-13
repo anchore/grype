@@ -3,9 +3,9 @@ package version
 import (
 	"fmt"
 
+	hashiVer "github.com/anchore/go-version"
 	"github.com/anchore/imgbom/imgbom/pkg"
 	deb "github.com/knqyf263/go-deb-version"
-	hashiVer "github.com/knqyf263/go-version"
 )
 
 type Version struct {
