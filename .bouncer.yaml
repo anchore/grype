@@ -1,0 +1,5 @@
+permit:
+  - BSD.*
+  - MIT.*
+  - Apache.*
+  - MPL.*
