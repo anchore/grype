@@ -69,6 +69,7 @@ lint-fix: ## Auto-format all source code + run golangci lint fixers
 
 unit: ## Run unit tests (with coverage)
 	$(call title,Running unit tests)
+	mkdir -p $(RESULTSDIR)
 	go test -coverprofile $(COVER_REPORT) ./...
 	@go tool cover -func $(COVER_REPORT) | grep total |  awk '{print substr($$3, 1, length($$3)-1)}' > $(COVER_TOTAL)
 	@echo "Coverage: $$(cat $(COVER_TOTAL))"
