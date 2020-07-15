@@ -117,6 +117,12 @@ github.com/anchore/go-version v1.2.2-0.20200701162849-18adb9c92b9b h1:e1bmaoJfZV
 github.com/anchore/go-version v1.2.2-0.20200701162849-18adb9c92b9b/go.mod h1:Bkc+JYWjMCF8OyZ340IMSIi2Ebf3uwByOk6ho4wne1E=
 github.com/anchore/imgbom v0.0.0-20200707130654-e040fc89309c h1:ZtIiV609jCuFiqau4E/0swy+3DlQ7ZFuYtOR0m/BXog=
 github.com/anchore/imgbom v0.0.0-20200707130654-e040fc89309c/go.mod h1:vrV+LfqB1bcBUPiyfN7ijw88nDs9ZZPaTMaegaw4DUQ=
+github.com/anchore/imgbom v0.0.0-20200709210529-ef8c2157725a h1:50nHqj6giq050OpHjntV6oqV2sZFDzBwoRAVfMjzURg=
+github.com/anchore/imgbom v0.0.0-20200709210529-ef8c2157725a/go.mod h1:vrV+LfqB1bcBUPiyfN7ijw88nDs9ZZPaTMaegaw4DUQ=
+github.com/anchore/imgbom v0.0.0-20200710114513-502e2afd06eb h1:6TLZSeDqLO3ZBYGIkeev/iTJd2Of0p6NLcifD46QRFo=
+github.com/anchore/imgbom v0.0.0-20200710114513-502e2afd06eb/go.mod h1:vrV+LfqB1bcBUPiyfN7ijw88nDs9ZZPaTMaegaw4DUQ=
+github.com/anchore/imgbom v0.0.0-20200713170720-e8d11eec6992 h1:ERVRoY8sKpccEbuV53NyG/frJzIZ4n4NyOhbSGGOMSs=
+github.com/anchore/imgbom v0.0.0-20200713170720-e8d11eec6992/go.mod h1:b7euhNKBz5ReqVtal47okqWXg4YPT2/aitoWyQsDFns=
 github.com/anchore/siren-db v0.0.0-20200713191036-498d64d91776 h1:NwYrzqPB1zVdtH7xJqqfpNnM0hTyGxtgiKjFF4SZ1Ho=
 github.com/anchore/siren-db v0.0.0-20200713191036-498d64d91776/go.mod h1:iH1dk3aHPzrq7Qc82IG2UDCi6IVDwn9ikgEnnGr3rqU=
 github.com/anchore/stereoscope v0.0.0-20200520221116-025e07f1c93e h1:QBwtrM0MXi0z+GcHk3RoSyzaQ+CLgas0bC/uOd1P+PQ=
