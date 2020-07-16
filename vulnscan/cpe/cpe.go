@@ -16,9 +16,9 @@ var targetSoftware = map[pkg.Language][]string{
 		"jenkins",
 		"cloudbees_jenkins",
 	},
-	pkg.JavaScript: {
-		"node.js",
-	},
+	//pkg.JavaScript: {
+	//	"node.js",
+	//},
 	pkg.Python: {
 		"python",
 	},

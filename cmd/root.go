@@ -34,11 +34,11 @@ var rootCmd = &cobra.Command{
 		if appConfig.Dev.ProfileCPU {
 			f, err := os.Create("cpu.profile")
 			if err != nil {
-				log.Errorf("unable to create CPU profile: %w", err)
+				log.Errorf("unable to create CPU profile: %+v", err)
 			} else {
 				err := pprof.StartCPUProfile(f)
 				if err != nil {
-					log.Errorf("unable to start CPU profile: %w", err)
+					log.Errorf("unable to start CPU profile: %+v", err)
 				}
 			}
 		}
@@ -78,6 +78,7 @@ func init() {
 	}
 }
 
+// nolint:funlen
 func runDefaultCmd(_ *cobra.Command, args []string) int {
 	userImageStr := args[0]
 	log.Infof("Fetching image '%s'", userImageStr)
@@ -89,9 +90,9 @@ func runDefaultCmd(_ *cobra.Command, args []string) int {
 	defer stereoscope.Cleanup()
 
 	log.Info("Cataloging image")
-	catalog, err := imgbom.CatalogImage(img, appConfig.ScopeOpt)
+	catalog, err := imgbom.CatalogImg(img, appConfig.ScopeOpt)
 	if err != nil {
-		log.Errorf("could not catalog image: %w", err)
+		log.Errorf("could not catalog image: %+v", err)
 		return 1
 	}
 
@@ -104,7 +105,7 @@ func runDefaultCmd(_ *cobra.Command, args []string) int {
 
 	dbCurator, err := db.NewCurator(appConfig.Db.ToCuratorConfig())
 	if err != nil {
-		log.Errorf("could not curate database: %w", err)
+		log.Errorf("could not curate database: %+v", err)
 		return 1
 	}
 
@@ -126,7 +127,7 @@ func runDefaultCmd(_ *cobra.Command, args []string) int {
 
 	store, err := dbCurator.GetStore()
 	if err != nil {
-		log.Errorf("failed to load vulnerability database: %w", err)
+		log.Errorf("failed to load vulnerability database: %+v", err)
 		return 1
 	}
 
@@ -143,7 +144,7 @@ func runDefaultCmd(_ *cobra.Command, args []string) int {
 
 	err = presenter.GetPresenter(presenterType).Present(os.Stdout, catalog, results)
 	if err != nil {
-		log.Errorf("could not format catalog results: %w", err)
+		log.Errorf("could not format catalog results: %+v", err)
 		return 1
 	}
 

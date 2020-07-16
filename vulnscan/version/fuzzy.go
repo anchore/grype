@@ -8,29 +8,17 @@ import (
 	hashiVer "github.com/anchore/go-version"
 )
 
-// match examples:
-// = 5.0.0        ---> ( =, 5.0.0)
-// <= 6.1.2.beta  ---> (<=, 6.1.2.beta)
-// >=5	          ---> (>=, 5)
-// > 5, <6        ---> [(>, 5), (<, 6)]
-var constraintPartPattern = regexp.MustCompile(`(?P<operator>[><=]*)\s*(?P<version>[^<>=\s,]+)`)
-
 // derived from https://semver.org/, but additionally matches partial versions (e.g. "2.0")
 var pseudoSemverPattern = regexp.MustCompile(`^(0|[1-9]\d*)(\.(0|[1-9]\d*))?(\.(0|[1-9]\d*))?(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$`)
 
 type fuzzyConstraint struct {
 	rawPhrase          string
-	constraints        []fuzzyConstraintPart
+	constraints        []constraintPart
 	semanticConstraint *hashiVer.Constraints
 }
 
-type fuzzyConstraintPart struct {
-	operator Operator
-	version  string
-}
-
 func newFuzzyConstraint(phrase string) (*fuzzyConstraint, error) {
-	constraints, err := splitFuzzyPhrase(phrase)
+	constraints, err := splitConstraintPhrase(phrase)
 	if err != nil {
 		return nil, fmt.Errorf("could not create fuzzy constraint: %+v", err)
 	}
@@ -69,7 +57,7 @@ func (f *fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
 	}
 	// semver didn't work, use fuzzy part matching instead...
 	for _, c := range f.constraints {
-		if !c.Satisfied(version) {
+		if !c.Satisfied(fuzzyVersionComparison(verObj.Raw, c.version)) {
 			return false, nil
 		}
 	}
@@ -81,51 +69,6 @@ func (f *fuzzyConstraint) String() string {
 		return "none (unknown)"
 	}
 	return fmt.Sprintf("%s (unknown)", f.rawPhrase)
-}
-
-func splitFuzzyPhrase(phrase string) ([]fuzzyConstraintPart, error) {
-	matches := constraintPartPattern.FindAllStringSubmatch(phrase, -1)
-	pairs := make([]map[string]string, 0)
-	for _, match := range matches {
-		item := make(map[string]string)
-		for i, name := range constraintPartPattern.SubexpNames() {
-			if i != 0 && name != "" {
-				item[name] = match[i]
-			}
-		}
-		pairs = append(pairs, item)
-	}
-
-	result := make([]fuzzyConstraintPart, 0)
-	for _, pair := range pairs {
-		op, err := ParseOperator(pair["operator"])
-		if err != nil {
-			return nil, fmt.Errorf("bad operator parse: %+v", err)
-		}
-		result = append(result, fuzzyConstraintPart{
-			operator: op,
-			version:  pair["version"],
-		})
-	}
-
-	return result, nil
-}
-
-func (f *fuzzyConstraintPart) Satisfied(version string) bool {
-	comparison := fuzzyVersionComparison(version, f.version)
-	switch f.operator {
-	case EQ:
-		return comparison == 0
-	case GT:
-		return comparison > 0
-	case GTE:
-		return comparison >= 0
-	case LT:
-		return comparison < 0
-	case LTE:
-		return comparison <= 0
-	}
-	return false
 }
 
 // Note: the below code is from https://github.com/facebookincubator/nvdtools/blob/688794c4d3a41929eeca89304e198578d4595d53/cvefeed/nvd/smartvercmp.go (apache V2)

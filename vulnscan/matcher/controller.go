@@ -7,7 +7,9 @@ import (
 	"github.com/anchore/vulnscan/vulnscan/match"
 	"github.com/anchore/vulnscan/vulnscan/matcher/bundler"
 	"github.com/anchore/vulnscan/vulnscan/matcher/dpkg"
+	"github.com/anchore/vulnscan/vulnscan/matcher/java"
 	"github.com/anchore/vulnscan/vulnscan/matcher/python"
+	"github.com/anchore/vulnscan/vulnscan/matcher/rpmdb"
 	"github.com/anchore/vulnscan/vulnscan/result"
 	"github.com/anchore/vulnscan/vulnscan/vulnerability"
 )
@@ -29,6 +31,8 @@ func newController() controller {
 	ctrlr.add(&dpkg.Matcher{})
 	ctrlr.add(&bundler.Matcher{})
 	ctrlr.add(&python.Matcher{})
+	ctrlr.add(&rpmdb.Matcher{})
+	ctrlr.add(&java.Matcher{})
 	return ctrlr
 }
 

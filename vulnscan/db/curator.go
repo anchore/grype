@@ -7,9 +7,9 @@ import (
 	"path"
 
 	"github.com/anchore/go-version"
-	"github.com/anchore/vulnscan-db/pkg/db"
-	"github.com/anchore/vulnscan-db/pkg/db/curation"
-	"github.com/anchore/vulnscan-db/pkg/store/sqlite"
+	"github.com/anchore/siren-db/pkg/curation"
+	"github.com/anchore/siren-db/pkg/db"
+	"github.com/anchore/siren-db/pkg/store/sqlite"
 	"github.com/anchore/vulnscan/internal/file"
 	"github.com/anchore/vulnscan/internal/log"
 	"github.com/spf13/afero"

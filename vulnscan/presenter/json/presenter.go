@@ -33,6 +33,7 @@ type FoundBy struct {
 type Package struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
+	Type    string `json:"type"`
 }
 
 // Present creates a JSON-based reporting
@@ -49,7 +50,8 @@ func (pres *Presenter) Present(output io.Writer, catalog *pkg.Catalog, results r
 					Matcher:   match.Matcher,
 					SearchKey: match.SearchKey,
 				},
-				Package: Package{Name: p.Name, Version: p.Version}},
+				Package: Package{Name: p.Name, Version: p.Version, Type: p.Type.String()},
+			},
 		)
 	}
 

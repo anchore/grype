@@ -13,8 +13,10 @@ func GetConstraint(constStr string, format Format) (Constraint, error) {
 	switch format {
 	case SemanticFormat:
 		return newSemanticConstraint(constStr)
-	case DpkgFormat:
-		return newDpkgConstraint(constStr)
+	case DebFormat:
+		return newDebConstraint(constStr)
+	case RpmFormat:
+		return newRpmConstraint(constStr)
 	case UnknownFormat:
 		return newFuzzyConstraint(constStr)
 	}

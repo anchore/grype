@@ -2,123 +2,8 @@ package version
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
 )
-
-func TestSplitFuzzyPhrase(t *testing.T) {
-	tests := []struct {
-		phrase   string
-		expected []fuzzyConstraintPart
-		err      bool
-	}{
-		{
-			phrase:   "",
-			expected: []fuzzyConstraintPart{},
-		},
-		{
-			phrase: "= something",
-			expected: []fuzzyConstraintPart{
-				{
-					operator: EQ,
-					version:  "something",
-				},
-			},
-		},
-		{
-			phrase: "something",
-			expected: []fuzzyConstraintPart{
-				{
-					operator: EQ,
-					version:  "something",
-				},
-			},
-		},
-		{
-			phrase: "> something",
-			expected: []fuzzyConstraintPart{
-				{
-					operator: GT,
-					version:  "something",
-				},
-			},
-		},
-		{
-			phrase: ">= 2.3",
-			expected: []fuzzyConstraintPart{
-				{
-					operator: GTE,
-					version:  "2.3",
-				},
-			},
-		},
-		{
-			phrase: "< 2.3",
-			expected: []fuzzyConstraintPart{
-				{
-					operator: LT,
-					version:  "2.3",
-				},
-			},
-		},
-		{
-			phrase: "<= 2.3",
-			expected: []fuzzyConstraintPart{
-				{
-					operator: LTE,
-					version:  "2.3",
-				},
-			},
-		},
-		{
-			phrase: ">= 1.0, <= 2.3",
-			expected: []fuzzyConstraintPart{
-				{
-					operator: GTE,
-					version:  "1.0",
-				},
-				{
-					operator: LTE,
-					version:  "2.3",
-				},
-			},
-		},
-		{
-			phrase: "  >=   1.0 ,   <=   2.3  ",
-			expected: []fuzzyConstraintPart{
-				{
-					operator: GTE,
-					version:  "1.0",
-				},
-				{
-					operator: LTE,
-					version:  "2.3",
-				},
-			},
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.phrase, func(t *testing.T) {
-			actuals, err := splitFuzzyPhrase(test.phrase)
-			if err != nil && test.err == false {
-				t.Fatalf("expected no error, got %+v", err)
-			} else if err == nil && test.err {
-				t.Fatalf("expected an error but did not get one")
-			}
-
-			if len(actuals) != len(test.expected) {
-				t.Fatalf("unexpected length: %d!=%d", len(actuals), len(test.expected))
-			}
-
-			for idx, actual := range actuals {
-				if !reflect.DeepEqual(test.expected[idx], actual) {
-					t.Errorf("expected: '%+v' got: '%+v'", test.expected[idx], actual)
-				}
-			}
-		})
-	}
-}
 
 func TestSmartVerCmp(t *testing.T) {
 	cases := []struct {
@@ -266,27 +151,39 @@ func TestFuzzyConstraintSatisfaction(t *testing.T) {
 			expected:   false,
 		},
 		{
-			name:       "bad semver (gt)",
-			constraint: ">5a1",
+			name:       "bad semver (eq)",
 			version:    "5a2",
+			constraint: "=5a2",
+			expected:   true,
+		},
+		{
+			name:       "bad semver (gt)",
+			version:    "5a2",
+			constraint: ">5a1",
 			expected:   true,
 		},
 		{
 			name:       "bad semver (lt)",
-			constraint: "<6a1",
 			version:    "5a2",
+			constraint: "<6a1",
 			expected:   true,
 		},
 		{
 			name:       "bad semver (lte)",
-			constraint: "<=5a2",
 			version:    "5a2",
+			constraint: "<=5a2",
+			expected:   true,
+		},
+		{
+			name:       "bad semver (gte)",
+			version:    "5a2",
+			constraint: ">=5a2",
 			expected:   true,
 		},
 		{
 			name:       "bad semver (lt boundary)",
-			constraint: "<5a2",
 			version:    "5a2",
+			constraint: "<5a2",
 			expected:   false,
 		},
 	}

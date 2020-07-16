@@ -1,9 +1,3 @@
-linters-settings:
-  funlen:
-    lines: 70
-    statements: 50
-  dupl:
-    threshold: 175
 linters:
   # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
   disable-all: true

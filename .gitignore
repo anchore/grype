@@ -13,6 +13,7 @@ Dockerfile
 *.log
 .images
 .tmp/
+*.tmp
 coverage.txt
 
 # Binaries for programs and plugins
