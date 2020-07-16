@@ -11,23 +11,25 @@ import (
 	"github.com/spf13/afero"
 )
 
-func ValidateByHash(fs afero.Fs, path, hashStr string) (bool, error) {
+func ValidateByHash(fs afero.Fs, path, hashStr string) (bool, string, error) {
 	var hasher hash.Hash
+	var hashFn string
 	switch {
 	case strings.HasPrefix(hashStr, "sha256:"):
+		hashFn = "sha256"
 		hasher = sha256.New()
 	default:
-		return false, fmt.Errorf("hasher not supported or specified (given: %s)", hashStr)
+		return false, "", fmt.Errorf("hasher not supported or specified (given: %s)", hashStr)
 	}
 
 	hashNoPrefix := strings.Split(hashStr, ":")[1]
 
 	actualHash, err := HashFile(fs, path, hasher)
 	if err != nil {
-		return false, err
+		return false, "", err
 	}
 
-	return actualHash == hashNoPrefix, nil
+	return actualHash == hashNoPrefix, hashFn + ":" + actualHash, nil
 }
 
 func HashFile(fs afero.Fs, path string, hasher hash.Hash) (string, error) {
