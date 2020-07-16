@@ -20,5 +20,17 @@ func (m *Matcher) Name() string {
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, _ distro.Distro, p *pkg.Package) ([]match.Match, error) {
-	return common.FindMatchesByPackageLanguage(store, p.Language, p, m.Name())
+	var matches = make([]match.Match, 0)
+	langMatches, err := common.FindMatchesByPackageLanguage(store, p.Language, p, m.Name())
+	if err != nil {
+		return nil, err
+	}
+	matches = append(matches, langMatches...)
+
+	cpeMatches, err := common.FindMatchesByPackageCPE(store, p, m.Name())
+	if err != nil {
+		return nil, err
+	}
+	matches = append(matches, cpeMatches...)
+	return matches, nil
 }
