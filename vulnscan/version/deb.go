@@ -81,7 +81,7 @@ func (c debConstraint) Satisfied(version *Version) (bool, error) {
 
 func (c debConstraint) String() string {
 	if c.raw == "" {
-		return "[no constraint] (deb)"
+		return "none (deb)"
 	}
 	return fmt.Sprintf("%s (deb)", c.raw)
 }
