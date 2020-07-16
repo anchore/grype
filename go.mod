@@ -7,7 +7,7 @@ require (
 	github.com/anchore/go-testutils v0.0.0-20200624184116-66aa578126db
 	github.com/anchore/go-version v1.2.2-0.20200701162849-18adb9c92b9b
 	github.com/anchore/imgbom v0.0.0-20200713170720-e8d11eec6992
-	github.com/anchore/siren-db v0.0.0-20200713191036-498d64d91776
+	github.com/anchore/siren-db v0.0.0-20200716152335-9bc4580f72a1
 	github.com/anchore/stereoscope v0.0.0-20200706164556-7cf39d7f4639
 	github.com/hashicorp/go-getter v1.4.1
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a

@@ -65,7 +65,7 @@ func runDefaultCmd(_ *cobra.Command, args []string) int {
 	log.Infof("Fetching image '%s'", userImageStr)
 	img, err := stereoscope.GetImage(userImageStr)
 	if err != nil {
-		log.Errorf("could not fetch image '%s': %w", userImageStr, err)
+		log.Errorf("could not fetch image '%s': %+v", userImageStr, err)
 		return 1
 	}
 	defer stereoscope.Cleanup()
@@ -73,7 +73,7 @@ func runDefaultCmd(_ *cobra.Command, args []string) int {
 	log.Info("Cataloging image")
 	catalog, err := imgbom.CatalogImg(img, appConfig.ScopeOpt)
 	if err != nil {
-		log.Errorf("could not catalog image: %w", err)
+		log.Errorf("could not catalog image: %+v", err)
 		return 1
 	}
 
@@ -86,7 +86,7 @@ func runDefaultCmd(_ *cobra.Command, args []string) int {
 
 	dbCurator, err := db.NewCurator(appConfig.Db.ToCuratorConfig())
 	if err != nil {
-		log.Errorf("could not curate database: %w", err)
+		log.Errorf("could not curate database: %+v", err)
 		return 1
 	}
 
@@ -108,7 +108,7 @@ func runDefaultCmd(_ *cobra.Command, args []string) int {
 
 	store, err := dbCurator.GetStore()
 	if err != nil {
-		log.Errorf("failed to load vulnerability database: %w", err)
+		log.Errorf("failed to load vulnerability database: %+v", err)
 		return 1
 	}
 
@@ -125,7 +125,7 @@ func runDefaultCmd(_ *cobra.Command, args []string) int {
 
 	err = presenter.GetPresenter(presenterType).Present(os.Stdout, catalog, results)
 	if err != nil {
-		log.Errorf("could not format catalog results: %w", err)
+		log.Errorf("could not format catalog results: %+v", err)
 		return 1
 	}
 

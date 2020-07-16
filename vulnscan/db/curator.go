@@ -9,15 +9,15 @@ import (
 	"github.com/anchore/go-version"
 	"github.com/anchore/siren-db/pkg/curation"
 	"github.com/anchore/siren-db/pkg/db"
-	"github.com/anchore/siren-db/pkg/store/sqlite"
+	"github.com/anchore/siren-db/pkg/store"
 	"github.com/anchore/vulnscan/internal/file"
 	"github.com/anchore/vulnscan/internal/log"
+	"github.com/anchore/vulnscan/vulnscan"
 	"github.com/spf13/afero"
 )
 
 const (
-	supportedVersion = "<1.0.0"
-	FileName         = db.StoreFileName
+	FileName = db.VulnerabilityStoreFileName
 )
 
 type Config struct {
@@ -33,9 +33,9 @@ type Curator struct {
 }
 
 func NewCurator(cfg Config) (Curator, error) {
-	constraint, err := version.NewConstraint(supportedVersion)
+	constraint, err := version.NewConstraint(vulnscan.DbSchemaConstraint)
 	if err != nil {
-		return Curator{}, fmt.Errorf("unable to set DB curator version constraint (%s): %w", supportedVersion, err)
+		return Curator{}, fmt.Errorf("unable to set DB curator version constraint (%s): %w", vulnscan.DbSchemaConstraint, err)
 	}
 
 	return Curator{
@@ -53,15 +53,31 @@ func (c *Curator) GetStore() (db.VulnerabilityStoreReader, error) {
 		return nil, fmt.Errorf("vulnerability database is corrupt (run db update to correct): %+v", err)
 	}
 
-	// provide an abstraction for the underlying store
-	connectOptions := sqlite.Options{
-		FilePath: path.Join(c.config.DbDir, FileName),
-	}
-	store, _, err := sqlite.NewStore(&connectOptions)
+	dbPath := path.Join(c.config.DbDir, FileName)
+	s, _, err := store.LoadCurrent(dbPath, false)
+	return s, err
+}
+
+func (c *Curator) Status() Status {
+	metadata, err := curation.NewMetadataFromDir(c.fs, c.config.DbDir)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get vulnerability store: %w", err)
+		err = fmt.Errorf("failed to parse database metadata (%s): %w", c.config.DbDir, err)
 	}
-	return store, nil
+	if metadata == nil {
+		err = fmt.Errorf("database metadata not found at %q", c.config.DbDir)
+	}
+
+	if err == nil {
+		err = c.Validate()
+	}
+
+	return Status{
+		Age:              metadata.Built,
+		SchemaVersion:    metadata.Version.String(),
+		SchemaConstraint: vulnscan.DbSchemaConstraint,
+		Location:         c.config.DbDir,
+		Err:              err,
+	}
 }
 
 func (c *Curator) Delete() error {
@@ -193,12 +209,12 @@ func (c *Curator) validate(dbDirPath string) error {
 	}
 
 	dbPath := path.Join(dbDirPath, FileName)
-	valid, err := file.ValidateByHash(c.fs, dbPath, metadata.Checksum)
+	valid, actualHash, err := file.ValidateByHash(c.fs, dbPath, metadata.Checksum)
 	if err != nil {
 		return err
 	}
 	if !valid {
-		return fmt.Errorf("bad db checksum (%s)", dbDirPath)
+		return fmt.Errorf("bad db checksum (%s): %q vs %q", dbPath, metadata.Checksum, actualHash)
 	}
 
 	if !c.versionConstraint.Check(metadata.Version) {
