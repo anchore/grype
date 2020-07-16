@@ -84,7 +84,7 @@ func runDefaultCmd(_ *cobra.Command, args []string) int {
 	log.Infof("Fetching image '%s'", userImageStr)
 	img, err := stereoscope.GetImage(userImageStr)
 	if err != nil {
-		log.Errorf("could not fetch image '%s': %w", userImageStr, err)
+		log.Errorf("could not fetch image '%s': %+v", userImageStr, err)
 		return 1
 	}
 	defer stereoscope.Cleanup()
