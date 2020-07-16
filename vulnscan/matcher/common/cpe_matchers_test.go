@@ -30,7 +30,7 @@ func newMockProviderByCPE() *mockCPEProvider {
 }
 
 func (pr *mockCPEProvider) stub() {
-	pr.data["nvdv2"] = map[string][]*vulnerability.Vulnerability{
+	pr.data["nvd"] = map[string][]*vulnerability.Vulnerability{
 		"activerecord": {
 			{
 				Constraint: version.MustGetConstraint("< 3.7.6", version.SemanticFormat),
@@ -67,7 +67,7 @@ func (pr *mockCPEProvider) stub() {
 }
 
 func (pr *mockCPEProvider) GetByCPE(c cpe.CPE) ([]*vulnerability.Vulnerability, error) {
-	return pr.data["nvdv2"][c.Product], nil
+	return pr.data["nvd"][c.Product], nil
 }
 
 func TestFindMatchesByPackageCPE(t *testing.T) {

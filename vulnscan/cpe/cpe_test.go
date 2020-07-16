@@ -13,7 +13,6 @@ func must(c CPE, e error) CPE {
 	return c
 }
 
-
 func TestNew(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -21,18 +20,18 @@ func TestNew(t *testing.T) {
 		expected CPE
 	}{
 		{
-			name: "gocase",
-			input: `cpe:/a:10web:form_maker:1.0.0::~~~wordpress~~`,
+			name:     "gocase",
+			input:    `cpe:/a:10web:form_maker:1.0.0::~~~wordpress~~`,
 			expected: must(New(`cpe:2.3:a:10web:form_maker:1.0.0:*:*:*:*:wordpress:*:*`)),
 		},
 		{
-			name: "dashes",
-			input: `cpe:/a:7-zip:7-zip:4.56:beta:~~~windows~~`,
+			name:     "dashes",
+			input:    `cpe:/a:7-zip:7-zip:4.56:beta:~~~windows~~`,
 			expected: must(New(`cpe:2.3:a:7-zip:7-zip:4.56:beta:*:*:*:windows:*:*`)),
 		},
 		{
-			name: "URL escape characters",
-			input: `cpe:/a:%240.99_kindle_books_project:%240.99_kindle_books:6::~~~android~~`,
+			name:     "URL escape characters",
+			input:    `cpe:/a:%240.99_kindle_books_project:%240.99_kindle_books:6::~~~android~~`,
 			expected: must(New(`cpe:2.3:a:$0.99_kindle_books_project:$0.99_kindle_books:6:*:*:*:*:android:*:*`)),
 		},
 	}
