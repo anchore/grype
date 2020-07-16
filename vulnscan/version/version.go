@@ -5,6 +5,7 @@ import (
 
 	hashiVer "github.com/anchore/go-version"
 	"github.com/anchore/imgbom/imgbom/pkg"
+	"github.com/anchore/vulnscan/vulnscan/cpe"
 	deb "github.com/knqyf263/go-deb-version"
 )
 
@@ -15,9 +16,10 @@ type Version struct {
 }
 
 type rich struct {
-	semVer *hashiVer.Version
-	debVer *deb.Version
-	rpmVer *rpmVersion
+	cpeVers []cpe.CPE
+	semVer  *hashiVer.Version
+	debVer  *deb.Version
+	rpmVer  *rpmVersion
 }
 
 func NewVersion(raw string, format Format) (*Version, error) {
@@ -35,7 +37,17 @@ func NewVersion(raw string, format Format) (*Version, error) {
 }
 
 func NewVersionFromPkg(p *pkg.Package) (*Version, error) {
-	return NewVersion(p.Version, FormatFromPkgType(p.Type))
+	ver, err := NewVersion(p.Version, FormatFromPkgType(p.Type))
+	if err != nil {
+		return nil, err
+	}
+	cpes, err := cpe.Generate(p)
+	if err != nil {
+		return nil, err
+	}
+
+	ver.rich.cpeVers = cpes
+	return ver, nil
 }
 
 func (v *Version) populate() error {
@@ -57,6 +69,10 @@ func (v *Version) populate() error {
 		return nil
 	}
 	return fmt.Errorf("no rich version populated (format=%s)", v.Format)
+}
+
+func (v Version) CPEs() []cpe.CPE {
+	return v.rich.cpeVers
 }
 
 func (v Version) String() string {

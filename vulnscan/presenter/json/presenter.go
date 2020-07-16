@@ -5,7 +5,6 @@ import (
 	"io"
 
 	"github.com/anchore/imgbom/imgbom/pkg"
-	"github.com/anchore/vulnscan/internal/log"
 	"github.com/anchore/vulnscan/vulnscan/result"
 )
 
@@ -20,7 +19,14 @@ func NewPresenter() *Presenter {
 // ResultObj is a single item for the JSON array reported
 type ResultObj struct {
 	Cve     string  `json:"cve"`
+	FoundBy FoundBy `json:"found-by"`
 	Package Package `json:"package"`
+}
+
+// FoundBy contains all data that indicates how the result match was found
+type FoundBy struct {
+	Matcher   string `json:"matcher"`
+	SearchKey string `json:"search-key"`
 }
 
 // Package is a nested JSON object from ResultObj
@@ -35,22 +41,23 @@ func (pres *Presenter) Present(output io.Writer, catalog *pkg.Catalog, results r
 	doc := make([]ResultObj, 0)
 
 	for match := range results.Enumerate() {
-		pkg := catalog.Package(match.Package.ID())
-
+		p := catalog.Package(match.Package.ID())
 		doc = append(
 			doc,
 			ResultObj{
-				Cve:     match.Vulnerability.ID,
-				Package: Package{Name: pkg.Name, Version: pkg.Version, Type: pkg.Type.String()}},
+				Cve: match.Vulnerability.ID,
+				FoundBy: FoundBy{
+					Matcher:   match.Matcher,
+					SearchKey: match.SearchKey,
+				},
+				Package: Package{Name: p.Name, Version: p.Version, Type: p.Type.String()},
+			},
 		)
 	}
 
-	bytes, err := json.Marshal(&doc)
-
-	if err != nil {
-		log.Errorf("failed to marshal json (presenter=json): %w", err)
-	}
-
-	_, err = output.Write(bytes)
-	return err
+	enc := json.NewEncoder(output)
+	// prevent > and < from being escaped in the payload
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", " ")
+	return enc.Encode(&doc)
 }

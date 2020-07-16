@@ -9,6 +9,8 @@ require (
 	github.com/anchore/imgbom v0.0.0-20200713170720-e8d11eec6992
 	github.com/anchore/siren-db v0.0.0-20200716152335-9bc4580f72a1
 	github.com/anchore/stereoscope v0.0.0-20200706164556-7cf39d7f4639
+	github.com/facebookincubator/nvdtools v0.1.4-0.20200622182922-aed862a62ae6
+	github.com/go-test/deep v1.0.7
 	github.com/hashicorp/go-getter v1.4.1
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/knqyf263/go-deb-version v0.0.0-20190517075300-09fca494f03d

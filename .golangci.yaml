@@ -22,7 +22,6 @@ linters:
     - gosimple
     - govet
     - ineffassign
-    - maligned
     - misspell
     - nakedret
     - nolintlint
@@ -48,6 +47,7 @@ linters:
 #    - gomnd       # this is too aggressive
 #    - interfacer  # this is a good idea, but is no longer supported and is prone to false positives
 #    - lll         # without a way to specify per-line exception cases, this is not usable
+#    - maligned    # this is an excellent linter, but tricky to optimize and we are not sensitive to memory layout optimizations
 #    - nestif
 #    - testpackage
 #    - wsl

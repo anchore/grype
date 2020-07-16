@@ -26,7 +26,8 @@ type Application struct {
 	Quiet      bool    `mapstructure:"quiet"`
 	Log        Logging `mapstructure:"log"`
 	CliOptions CliOnlyOptions
-	Db         Database `mapstructure:"db"`
+	Db         Database    `mapstructure:"db"`
+	Dev        Development `mapstructure:"dev"`
 }
 
 type Logging struct {
@@ -40,6 +41,10 @@ type Database struct {
 	Dir             string `mapstructure:"cache-dir"`
 	UpdateURL       string `mapstructure:"update-url"`
 	UpdateOnStartup bool   `mapstructure:"update-on-startup"`
+}
+
+type Development struct {
+	ProfileCPU bool `mapstructure:"profile-cpu"`
 }
 
 func (d Database) ToCuratorConfig() db.Config {
@@ -59,6 +64,7 @@ func setNonCliDefaultValues(v *viper.Viper) {
 	v.SetDefault("db.update-url", "http://localhost:5000/listing.json")
 	// TODO: set this to true before release
 	v.SetDefault("db.update-on-startup", false)
+	v.SetDefault("dev.profile-cpu", false)
 }
 
 func LoadConfigFromFile(v *viper.Viper, cliOpts *CliOnlyOptions) (*Application, error) {
@@ -97,7 +103,7 @@ func (cfg *Application) Build() error {
 
 	if cfg.Quiet {
 		// TODO: this is bad: quiet option trumps all other logging options
-		// we should be able to quiet the consol logging and leave file logging alone...
+		// we should be able to quiet the console logging and leave file logging alone...
 		// ... this will be an enhancement for later
 		cfg.Log.LevelOpt = zapcore.PanicLevel
 	} else {
@@ -132,7 +138,7 @@ func readConfig(v *viper.Viper, configPath string) error {
 	v.SetEnvPrefix(internal.ApplicationName)
 	// allow for nested options to be specified via environment variables
 	// e.g. pod.context = APPNAME_POD_CONTEXT
-	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 
 	// use explicitly the given user config
 	if configPath != "" {

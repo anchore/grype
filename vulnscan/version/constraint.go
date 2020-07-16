@@ -23,6 +23,7 @@ func GetConstraint(constStr string, format Format) (Constraint, error) {
 	return nil, fmt.Errorf("could not find constraint for given format: %s", format)
 }
 
+// MustGetConstraint is meant for testing only, do not use within the library
 func MustGetConstraint(constStr string, format Format) Constraint {
 	constraint, err := GetConstraint(constStr, format)
 	if err != nil {

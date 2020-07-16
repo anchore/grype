@@ -71,7 +71,7 @@ func (c rpmConstraint) Satisfied(version *Version) (bool, error) {
 
 func (c rpmConstraint) String() string {
 	if c.raw == "" {
-		return "--- (rpm)"
+		return "none (rpm)"
 	}
 	return fmt.Sprintf("%s (rpm)", c.raw)
 }

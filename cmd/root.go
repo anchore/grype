@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"runtime/pprof"
 
 	"github.com/anchore/imgbom/imgbom"
 	_distro "github.com/anchore/imgbom/imgbom/distro"
@@ -30,7 +31,25 @@ var rootCmd = &cobra.Command{
 	}),
 	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		os.Exit(runDefaultCmd(cmd, args))
+		if appConfig.Dev.ProfileCPU {
+			f, err := os.Create("cpu.profile")
+			if err != nil {
+				log.Errorf("unable to create CPU profile: %+v", err)
+			} else {
+				err := pprof.StartCPUProfile(f)
+				if err != nil {
+					log.Errorf("unable to start CPU profile: %+v", err)
+				}
+			}
+		}
+
+		exitCode := runDefaultCmd(cmd, args)
+
+		if appConfig.Dev.ProfileCPU {
+			pprof.StopCPUProfile()
+		}
+
+		os.Exit(exitCode)
 	},
 }
 

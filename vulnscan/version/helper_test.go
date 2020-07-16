@@ -21,6 +21,8 @@ func (c *testCase) name() string {
 }
 
 func (c *testCase) assert(t *testing.T, format Format, constraint Constraint) {
+	t.Helper()
+
 	verObj, err := NewVersion(c.version, format)
 	if !errors.Is(err, c.createErr) {
 		t.Fatalf("unexpected create error: '%+v'!='%+v'", err, c.createErr)
