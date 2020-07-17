@@ -6,7 +6,7 @@ require (
 	github.com/adrg/xdg v0.2.1
 	github.com/anchore/go-testutils v0.0.0-20200624184116-66aa578126db
 	github.com/anchore/go-version v1.2.2-0.20200701162849-18adb9c92b9b
-	github.com/anchore/imgbom v0.0.0-20200713170720-e8d11eec6992
+	github.com/anchore/imgbom v0.0.0-20200717175414-b5a353349f55
 	github.com/anchore/siren-db v0.0.0-20200716152335-9bc4580f72a1
 	github.com/anchore/stereoscope v0.0.0-20200706164556-7cf39d7f4639
 	github.com/facebookincubator/nvdtools v0.1.4-0.20200622182922-aed862a62ae6

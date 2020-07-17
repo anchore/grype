@@ -115,6 +115,10 @@ github.com/anchore/go-version v1.2.2-0.20200701162849-18adb9c92b9b h1:e1bmaoJfZV
 github.com/anchore/go-version v1.2.2-0.20200701162849-18adb9c92b9b/go.mod h1:Bkc+JYWjMCF8OyZ340IMSIi2Ebf3uwByOk6ho4wne1E=
 github.com/anchore/imgbom v0.0.0-20200713170720-e8d11eec6992 h1:ERVRoY8sKpccEbuV53NyG/frJzIZ4n4NyOhbSGGOMSs=
 github.com/anchore/imgbom v0.0.0-20200713170720-e8d11eec6992/go.mod h1:b7euhNKBz5ReqVtal47okqWXg4YPT2/aitoWyQsDFns=
+github.com/anchore/imgbom v0.0.0-20200717123122-f03f7b32e93d h1:P8S+0tRUst2BZoTHrrsZ9QmPXtCdx9tyW7fksrZqYik=
+github.com/anchore/imgbom v0.0.0-20200717123122-f03f7b32e93d/go.mod h1:b7euhNKBz5ReqVtal47okqWXg4YPT2/aitoWyQsDFns=
+github.com/anchore/imgbom v0.0.0-20200717175414-b5a353349f55 h1:5PeLVtjW8yGRGC3MkrLwV1LqOdhawGKiWpG1Sk/PJhA=
+github.com/anchore/imgbom v0.0.0-20200717175414-b5a353349f55/go.mod h1:b7euhNKBz5ReqVtal47okqWXg4YPT2/aitoWyQsDFns=
 github.com/anchore/siren-db v0.0.0-20200716152335-9bc4580f72a1 h1:0EorIdCoVGD/Nv6zNfXduCubAixzZ/0VH6PGrK8xKug=
 github.com/anchore/siren-db v0.0.0-20200716152335-9bc4580f72a1/go.mod h1:kw/8/5C2Shyk5TzyaLZvwABulWJNtJbFo6FaQzeQEs0=
 github.com/anchore/stereoscope v0.0.0-20200520221116-025e07f1c93e h1:QBwtrM0MXi0z+GcHk3RoSyzaQ+CLgas0bC/uOd1P+PQ=
@@ -380,6 +384,7 @@ github.com/google/renameio v0.1.0/go.mod h1:KWCgfxg9yswjAJkECMjeO8J8rahYeXnNhOm4
 github.com/google/rpmpack v0.0.0-20191226140753-aa36bfddb3a0/go.mod h1:RaTPr0KUf2K7fnZYLNDrr8rxAamWs3iNywJLtQ2AzBg=
 github.com/google/subcommands v1.0.1/go.mod h1:ZjhPrFU+Olkh9WazFPsl27BQ4UPiG37m3yTrtFlrHVk=
 github.com/google/uuid v1.0.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/google/uuid v1.1.1 h1:Gkbcsh/GbpXz7lPftLA3P6TYMwjCLYm83jiFQZF/3gY=
 github.com/google/uuid v1.1.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/google/wire v0.3.0/go.mod h1:i1DMg/Lu8Sz5yYl25iOdmc5CT5qusaa+zmRWs16741s=
 github.com/google/wire v0.4.0/go.mod h1:ngWDr9Qvq3yZA10YrxfyGELY/AFWGVpy9c1LTRi1EoU=
@@ -769,6 +774,7 @@ github.com/wagoodman/go-partybus v0.0.0-20200526224238-eb215533f07d/go.mod h1:JP
 github.com/wagoodman/go-progress v0.0.0-20200621122631-1a2120f0695a/go.mod h1:jLXFoL31zFaHKAAyZUh+sxiTDFe1L1ZHrcK2T1itVKA=
 github.com/wagoodman/go-progress v0.0.0-20200621153512-2778c704bf22 h1:GYaiTP0ywrCjJ4qMxxCg+YKPSDMeFJg6i1X9X55LJCA=
 github.com/wagoodman/go-progress v0.0.0-20200621153512-2778c704bf22/go.mod h1:jLXFoL31zFaHKAAyZUh+sxiTDFe1L1ZHrcK2T1itVKA=
+github.com/wagoodman/jotframe v0.0.0-20200622123948-2995cbd43525 h1:fGlwSBQrl9/axciK2+gJ9q86SeQYJpbPx4vOrExvZXY=
 github.com/wagoodman/jotframe v0.0.0-20200622123948-2995cbd43525/go.mod h1:DzXZ1wfRedNhC3KQTick8Gf3CEPMFHsP5k4R/ldjKtw=
 github.com/xanzy/go-gitlab v0.31.0/go.mod h1:sPLojNBn68fMUWSxIJtdVVIP8uSBYqesTfDUseX11Ug=
 github.com/xanzy/go-gitlab v0.32.0/go.mod h1:sPLojNBn68fMUWSxIJtdVVIP8uSBYqesTfDUseX11Ug=
