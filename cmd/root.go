@@ -8,7 +8,6 @@ import (
 	"github.com/anchore/imgbom/imgbom"
 	_distro "github.com/anchore/imgbom/imgbom/distro"
 	"github.com/anchore/imgbom/imgbom/scope"
-	"github.com/anchore/stereoscope"
 	"github.com/anchore/vulnscan/internal"
 	"github.com/anchore/vulnscan/internal/format"
 	"github.com/anchore/vulnscan/vulnscan"
@@ -81,27 +80,20 @@ func init() {
 // nolint:funlen
 func runDefaultCmd(_ *cobra.Command, args []string) int {
 	userImageStr := args[0]
-	log.Infof("Fetching image '%s'", userImageStr)
-	img, err := stereoscope.GetImage(userImageStr)
+	scope, cleanup, err := imgbom.NewScope(userImageStr, appConfig.ScopeOpt)
 	if err != nil {
-		log.Errorf("could not fetch image '%s': %+v", userImageStr, err)
+		log.Errorf("could not produce catalog: %w", err)
 		return 1
 	}
-	defer stereoscope.Cleanup()
+	defer cleanup()
 
-	log.Info("Cataloging image")
-	catalog, err := imgbom.CatalogImg(img, appConfig.ScopeOpt)
+	log.Info("creating catalog")
+	catalog, err := imgbom.Catalog(scope)
 	if err != nil {
-		log.Errorf("could not catalog image: %+v", err)
-		return 1
+		log.Errorf("could not produce catalog: %w", err)
 	}
 
-	osObj := _distro.Identify(img)
-	if osObj == nil {
-		// prevent moving forward with unknown distros for now, revisit later
-		log.Error("unable to detect distro type for accurate vulnerability matching")
-		return 1
-	}
+	osObj := _distro.Identify(scope)
 
 	dbCurator, err := db.NewCurator(appConfig.Db.ToCuratorConfig())
 	if err != nil {
@@ -134,6 +126,7 @@ func runDefaultCmd(_ *cobra.Command, args []string) int {
 	provider := vulnerability.NewProviderFromStore(store)
 
 	results := vulnscan.FindAllVulnerabilities(provider, *osObj, catalog)
+
 	outputOption := viper.GetString("output")
 
 	presenterType := presenter.ParseOption(outputOption)
