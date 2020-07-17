@@ -5,6 +5,8 @@ import (
 	"path"
 	"strings"
 
+	"github.com/anchore/vulnscan/vulnscan/presenter"
+
 	"github.com/adrg/xdg"
 	"github.com/anchore/imgbom/imgbom/scope"
 	"github.com/anchore/vulnscan/internal"
@@ -20,14 +22,16 @@ type CliOnlyOptions struct {
 }
 
 type Application struct {
-	ConfigPath string
-	ScopeOpt   scope.Option
-	Scope      string  `mapstructure:"scope"`
-	Quiet      bool    `mapstructure:"quiet"`
-	Log        Logging `mapstructure:"log"`
-	CliOptions CliOnlyOptions
-	Db         Database    `mapstructure:"db"`
-	Dev        Development `mapstructure:"dev"`
+	ConfigPath   string
+	PresenterOpt presenter.Option
+	Output       string `mapstructure:"output"`
+	ScopeOpt     scope.Option
+	Scope        string  `mapstructure:"scope"`
+	Quiet        bool    `mapstructure:"quiet"`
+	Log          Logging `mapstructure:"log"`
+	CliOptions   CliOnlyOptions
+	Db           Database    `mapstructure:"db"`
+	Dev          Development `mapstructure:"dev"`
 }
 
 type Logging struct {
@@ -94,6 +98,13 @@ func LoadConfigFromFile(v *viper.Viper, cliOpts *CliOnlyOptions) (*Application, 
 }
 
 func (cfg *Application) Build() error {
+	// set the presenter
+	presenterOption := presenter.ParseOption(cfg.Output)
+	if presenterOption == presenter.UnknownPresenter {
+		return fmt.Errorf("bad --output value '%s'", cfg.Output)
+	}
+	cfg.PresenterOpt = presenterOption
+
 	// set the scope
 	scopeOption := scope.ParseOption(cfg.Scope)
 	if scopeOption == scope.UnknownScope {

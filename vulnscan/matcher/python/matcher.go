@@ -11,23 +11,23 @@ import (
 type Matcher struct {
 }
 
-func (m *Matcher) Types() []pkg.Type {
+func (m *Matcher) PackageTypes() []pkg.Type {
 	return []pkg.Type{pkg.EggPkg, pkg.WheelPkg}
 }
 
-func (m *Matcher) Name() string {
-	return "python-matcher"
+func (m *Matcher) Type() match.MatcherType {
+	return match.PythonMatcher
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, _ distro.Distro, p *pkg.Package) ([]match.Match, error) {
 	var matches = make([]match.Match, 0)
-	langMatches, err := common.FindMatchesByPackageLanguage(store, p.Language, p, m.Name())
+	langMatches, err := common.FindMatchesByPackageLanguage(store, p.Language, p, m.Type())
 	if err != nil {
 		return nil, err
 	}
 	matches = append(matches, langMatches...)
 
-	cpeMatches, err := common.FindMatchesByPackageCPE(store, p, m.Name())
+	cpeMatches, err := common.FindMatchesByPackageCPE(store, p, m.Type())
 	if err != nil {
 		return nil, err
 	}

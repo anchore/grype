@@ -20,6 +20,17 @@ var log *zap.SugaredLogger
 var cliOnlyOpts config.CliOnlyOptions
 
 func init() {
+	setGlobalCliOptions()
+
+	// read in config and setup logger
+	cobra.OnInitialize(
+		initAppConfig,
+		initLogging,
+		logAppConfig,
+	)
+}
+
+func setGlobalCliOptions() {
 	// setup global CLI options (available on all CLI commands)
 	rootCmd.PersistentFlags().StringVarP(&cliOnlyOpts.ConfigPath, "config", "c", "", "application config file")
 
@@ -34,13 +45,6 @@ func init() {
 	}
 
 	rootCmd.PersistentFlags().CountVarP(&cliOnlyOpts.Verbosity, "verbose", "v", "increase verbosity (-v = info, -vv = debug)")
-
-	// read in config and setup logger
-	cobra.OnInitialize(
-		initAppConfig,
-		initLogging,
-		logAppConfig,
-	)
 }
 
 func Execute() {

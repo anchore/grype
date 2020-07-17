@@ -12,7 +12,6 @@ import (
 	"github.com/anchore/siren-db/pkg/store"
 	"github.com/anchore/vulnscan/internal/file"
 	"github.com/anchore/vulnscan/internal/log"
-	"github.com/anchore/vulnscan/vulnscan"
 	"github.com/spf13/afero"
 )
 
@@ -33,9 +32,9 @@ type Curator struct {
 }
 
 func NewCurator(cfg Config) (Curator, error) {
-	constraint, err := version.NewConstraint(vulnscan.DbSchemaConstraint)
+	constraint, err := version.NewConstraint(DbSchemaConstraint)
 	if err != nil {
-		return Curator{}, fmt.Errorf("unable to set DB curator version constraint (%s): %w", vulnscan.DbSchemaConstraint, err)
+		return Curator{}, fmt.Errorf("unable to set DB curator version constraint (%s): %w", DbSchemaConstraint, err)
 	}
 
 	return Curator{
@@ -74,7 +73,7 @@ func (c *Curator) Status() Status {
 	return Status{
 		Age:              metadata.Built,
 		SchemaVersion:    metadata.Version.String(),
-		SchemaConstraint: vulnscan.DbSchemaConstraint,
+		SchemaConstraint: DbSchemaConstraint,
 		Location:         c.config.DbDir,
 		Err:              err,
 	}

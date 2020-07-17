@@ -36,12 +36,14 @@ func TestJsonPresenter(t *testing.T) {
 		Type:          match.ExactDirectMatch,
 		Vulnerability: vulnerability.Vulnerability{ID: "CVE-1999-0001"},
 		Package:       &pkg1,
+		Matcher:       match.DpkgMatcher,
 	}
 
 	var match2 = match.Match{
 		Type:          match.ExactIndirectMatch,
 		Vulnerability: vulnerability.Vulnerability{ID: "CVE-1999-0002"},
 		Package:       &pkg1,
+		Matcher:       match.DpkgMatcher,
 	}
 
 	results := result.NewResult()

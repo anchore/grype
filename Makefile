@@ -31,8 +31,7 @@ all: lint test ## Run all checks (linting, unit tests, and integration tests)
 compare:
 	@cd comparison && make
 
-# TODO: add me back in when integration tests are implemented
-test: unit #integration ## Run all tests (currently only unit)
+test: unit integration ## Run all tests (unit & integration tests)
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(BOLD)$(CYAN)%-25s$(RESET)%s\n", $$1, $$2}'
@@ -75,10 +74,12 @@ unit: ## Run unit tests (with coverage)
 	@echo "Coverage: $$(cat $(COVER_TOTAL))"
 	@if [ $$(echo "$$(cat $(COVER_TOTAL)) >= $(COVERAGE_THRESHOLD)" | bc -l) -ne 1 ]; then echo "$(RED)$(BOLD)Failed coverage quality gate (> $(COVERAGE_THRESHOLD)%)$(RESET)" && false; fi
 
-# TODO: add me back in when integration tests are implemented
-#integration: ## Run integration tests
-#	$(call title,Running integration tests)
-#	go test -tags=integration ./integration
+integration: ## Run integration tests
+	$(call title,Running integration tests)
+	go test -v -tags=integration ./integration
+
+integration/test-fixtures/tar-cache.key, integration-fingerprint:
+	find integration/test-fixtures/image-* -type f -exec md5sum {} + | awk '{print $1}' | sort | md5sum | tee integration/test-fixtures/tar-cache.fingerprint
 
 clear-test-cache: ## Delete all test cache (built docker image tars)
 	find . -type f -wholename "**/test-fixtures/tar-cache/*.tar" -delete

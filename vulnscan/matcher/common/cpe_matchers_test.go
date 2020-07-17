@@ -139,7 +139,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 
 			store := newMockProviderByCPE()
-			actual, err := FindMatchesByPackageCPE(store, &test.p, "SOME_OTHER_MATCHER")
+			actual, err := FindMatchesByPackageCPE(store, &test.p, match.PythonMatcher)
 			if err != nil {
 				t.Fatalf("error while finding matches: %+v", err)
 			}
@@ -164,7 +164,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 					t.Errorf("failed to capture correct original package: %s", a.Package.Name)
 				}
 
-				if a.Matcher != "SOME_OTHER_MATCHER" {
+				if a.Matcher != match.PythonMatcher {
 					t.Errorf("failed to capture matcher name: %s", a.Matcher)
 				}
 

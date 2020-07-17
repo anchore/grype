@@ -9,7 +9,7 @@ import (
 	"github.com/anchore/vulnscan/vulnscan/vulnerability"
 )
 
-func FindMatchesByPackageCPE(store vulnerability.ProviderByCPE, p *pkg.Package, matcherName string) ([]match.Match, error) {
+func FindMatchesByPackageCPE(store vulnerability.ProviderByCPE, p *pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
 	verObj, err := version.NewVersionFromPkg(p)
 	if err != nil {
 		return nil, fmt.Errorf("matcher failed to parse version pkg='%s' ver='%s': %w", p.Name, p.Version, err)
@@ -42,7 +42,7 @@ func FindMatchesByPackageCPE(store vulnerability.ProviderByCPE, p *pkg.Package, 
 					Confidence:    0.9, // TODO: this is hard coded for now
 					Vulnerability: *vuln,
 					Package:       p,
-					Matcher:       matcherName,
+					Matcher:       upstreamMatcher,
 					SearchKey:     fmt.Sprintf("cpe[%s] constraint[%s]", cpe.BindToFmtString(), vuln.Constraint.String()),
 				})
 			}

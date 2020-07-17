@@ -38,7 +38,7 @@ func newController() controller {
 
 func (c *controller) add(matchers ...Matcher) {
 	for _, m := range matchers {
-		for _, t := range m.Types() {
+		for _, t := range m.PackageTypes() {
 			if _, ok := c.matchers[t]; ok {
 				c.matchers[t] = make([]Matcher, 0)
 			}
@@ -49,7 +49,7 @@ func (c *controller) add(matchers ...Matcher) {
 	}
 }
 
-func (c *controller) findMatches(s vulnerability.Provider, o distro.Distro, packages ...*pkg.Package) result.Result {
+func (c *controller) findMatches(provider vulnerability.Provider, d distro.Distro, packages ...*pkg.Package) result.Result {
 	res := result.NewResult()
 	for _, p := range packages {
 		log.Debugf("searching for vulnerability matches for pkg=%s", p)
@@ -59,7 +59,7 @@ func (c *controller) findMatches(s vulnerability.Provider, o distro.Distro, pack
 			log.Errorf("no matchers available for package pkg=%s", p)
 		}
 		for _, m := range matchers {
-			matches, err := m.Match(s, o, p)
+			matches, err := m.Match(provider, d, p)
 			if err != nil {
 				log.Errorf("matcher failed for pkg=%s: %+v", p, err)
 			} else {
@@ -71,8 +71,8 @@ func (c *controller) findMatches(s vulnerability.Provider, o distro.Distro, pack
 	return res
 }
 
-func FindMatches(s vulnerability.Provider, o distro.Distro, packages ...*pkg.Package) result.Result {
-	return controllerInstance.findMatches(s, o, packages...)
+func FindMatches(provider vulnerability.Provider, d distro.Distro, packages ...*pkg.Package) result.Result {
+	return controllerInstance.findMatches(provider, d, packages...)
 }
 
 func logMatches(p *pkg.Package, matches []match.Match) {

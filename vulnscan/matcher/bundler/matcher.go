@@ -11,23 +11,23 @@ import (
 type Matcher struct {
 }
 
-func (m *Matcher) Types() []pkg.Type {
+func (m *Matcher) PackageTypes() []pkg.Type {
 	return []pkg.Type{pkg.BundlerPkg}
 }
 
-func (m *Matcher) Name() string {
-	return "bundler-matcher"
+func (m *Matcher) Type() match.MatcherType {
+	return match.RubyBundleMatcher
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, _ distro.Distro, p *pkg.Package) ([]match.Match, error) {
 	var matches = make([]match.Match, 0)
-	langMatches, err := common.FindMatchesByPackageLanguage(store, p.Language, p, m.Name())
+	langMatches, err := common.FindMatchesByPackageLanguage(store, p.Language, p, m.Type())
 	if err != nil {
 		return nil, err
 	}
 	matches = append(matches, langMatches...)
 
-	cpeMatches, err := common.FindMatchesByPackageCPE(store, p, m.Name())
+	cpeMatches, err := common.FindMatchesByPackageCPE(store, p, m.Type())
 	if err != nil {
 		return nil, err
 	}

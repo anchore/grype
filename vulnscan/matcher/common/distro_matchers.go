@@ -12,7 +12,7 @@ import (
 	"github.com/anchore/vulnscan/vulnscan/vulnerability"
 )
 
-func FindMatchesByPackageDistro(store vulnerability.ProviderByDistro, d distro.Distro, p *pkg.Package, matcherName string) ([]match.Match, error) {
+func FindMatchesByPackageDistro(store vulnerability.ProviderByDistro, d distro.Distro, p *pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
 	verObj, err := version.NewVersionFromPkg(p)
 	if err != nil {
 		return nil, fmt.Errorf("matcher failed to parse version pkg='%s' ver='%s': %w", p.Name, p.Version, err)
@@ -37,7 +37,7 @@ func FindMatchesByPackageDistro(store vulnerability.ProviderByDistro, d distro.D
 				Confidence:    1.0, // TODO: this is hard coded for now
 				Vulnerability: *vuln,
 				Package:       p,
-				Matcher:       matcherName,
+				Matcher:       upstreamMatcher,
 				SearchKey:     fmt.Sprintf("distro[%s] constraint[%s]", d, vuln.Constraint.String()),
 			})
 		}

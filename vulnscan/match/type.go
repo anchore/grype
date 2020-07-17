@@ -9,14 +9,14 @@ const (
 	FuzzyMatch
 )
 
-type Type int
-
 var typeStr = []string{
 	"UnknownMatchType",
 	"Exact-Direct Match",
 	"Exact-Indirect Match",
 	"Fuzzy Match",
 }
+
+type Type int
 
 func ParseType(userStr string) Type {
 	switch strings.ToLower(userStr) {

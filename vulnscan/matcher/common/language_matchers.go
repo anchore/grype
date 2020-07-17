@@ -11,7 +11,7 @@ import (
 	"github.com/anchore/vulnscan/vulnscan/vulnerability"
 )
 
-func FindMatchesByPackageLanguage(store vulnerability.ProviderByLanguage, l pkg.Language, p *pkg.Package, matcherName string) ([]match.Match, error) {
+func FindMatchesByPackageLanguage(store vulnerability.ProviderByLanguage, l pkg.Language, p *pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
 	verObj, err := version.NewVersionFromPkg(p)
 	if err != nil {
 		return nil, fmt.Errorf("matcher failed to parse version pkg='%s' ver='%s': %w", p.Name, p.Version, err)
@@ -36,7 +36,7 @@ func FindMatchesByPackageLanguage(store vulnerability.ProviderByLanguage, l pkg.
 				Confidence:    1.0, // TODO: this is hard coded for now
 				Vulnerability: *vuln,
 				Package:       p,
-				Matcher:       matcherName,
+				Matcher:       upstreamMatcher,
 				SearchKey:     fmt.Sprintf("language[%s] constraint[%s]", l, vuln.Constraint.String()),
 			})
 		}

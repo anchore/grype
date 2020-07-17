@@ -55,7 +55,7 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 	}
 
 	store := newMockProviderByLanguage()
-	actual, err := FindMatchesByPackageLanguage(store, p.Language, &p, "SOME_OTHER_MATCHER")
+	actual, err := FindMatchesByPackageLanguage(store, p.Language, &p, match.PythonMatcher)
 	if err != nil {
 		t.Fatalf("error while finding matches: %+v", err)
 	}
@@ -77,7 +77,7 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 			t.Errorf("failed to capture correct original package: %s", a.Package.Name)
 		}
 
-		if a.Matcher != "SOME_OTHER_MATCHER" {
+		if a.Matcher != match.PythonMatcher {
 			t.Errorf("failed to capture matcher name: %s", a.Matcher)
 		}
 

@@ -9,6 +9,9 @@ jobs:
       - image: circleci/golang:<< parameters.version >>
         environment:
           GO111MODULE: "on"
+          # work around for recent circle CI breaking change
+          # Error: "Error response from daemon: client version 1.39 is too new. Maximum supported API version is 1.38"
+          DOCKER_API_VERSION: "1.38"
     # 1CPU / 2GB RAM
     resource_class: small
     steps:
@@ -39,6 +42,9 @@ jobs:
       - image: circleci/golang:<< parameters.version >>
         environment:
           GO111MODULE: "on"
+          # work around for recent circle CI breaking change
+          # Error: "Error response from daemon: client version 1.39 is too new. Maximum supported API version is 1.38"
+          DOCKER_API_VERSION: "1.38"
     # 1CPU / 2GB RAM
     resource_class: small
     steps:
@@ -77,25 +83,21 @@ jobs:
           name: run unit tests
           command: make unit
 
-      # TODO: uncomment me when there are integration tests
+      - run:
+          name: build hash key for integration test-fixtures blobs
+          command: make integration-fingerprint
 
-      # - run:
-      #     name: build hash key for tar cache
-      #     command: find integration/test-fixtures/image-* -type f -exec md5sum {} + | awk '{print $1}' | sort | md5sum | tee integration/test-fixtures/tar-cache.key
+      - restore_cache:
+          keys:
+            - integration-test-tar-cache-{{ checksum "integration/test-fixtures/tar-cache.fingerprint" }}
+      - run:
+          name: run integration tests
+          command: make integration
 
-      # - restore_cache:
-      #     keys:
-      #       - integration-test-tar-cache-{{ checksum "integration/test-fixtures/tar-cache.key" }}
-      # - run:
-      #     name: run integration tests
-      #     command: |
-      #       docker version
-      #       make integration
-
-      # - save_cache:
-      #     key: integration-test-tar-cache-{{ checksum "integration/test-fixtures/tar-cache.key" }}
-      #     paths:
-      #       - "integration/test-fixtures/tar-cache"
+      - save_cache:
+          key: integration-test-tar-cache-{{ checksum "integration/test-fixtures/tar-cache.fingerprint" }}
+          paths:
+            - "integration/test-fixtures/tar-cache"
 
 workflows:
   "Static Analysis & All Tests":

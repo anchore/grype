@@ -11,14 +11,14 @@ import (
 type Matcher struct {
 }
 
-func (m *Matcher) Types() []pkg.Type {
+func (m *Matcher) PackageTypes() []pkg.Type {
 	return []pkg.Type{pkg.RpmPkg}
 }
 
-func (m *Matcher) Name() string {
-	return "rpmdb-matcher"
+func (m *Matcher) Type() match.MatcherType {
+	return match.RpmDBMatcher
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, d distro.Distro, p *pkg.Package) ([]match.Match, error) {
-	return common.FindMatchesByPackageDistro(store, d, p, m.Name())
+	return common.FindMatchesByPackageDistro(store, d, p, m.Type())
 }
