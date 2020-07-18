@@ -42,9 +42,9 @@ type Logging struct {
 }
 
 type Database struct {
-	Dir             string `mapstructure:"cache-dir"`
-	UpdateURL       string `mapstructure:"update-url"`
-	UpdateOnStartup bool   `mapstructure:"update-on-startup"`
+	Dir        string `mapstructure:"cache-dir"`
+	UpdateURL  string `mapstructure:"update-url"`
+	AutoUpdate bool   `mapstructure:"auto-update"`
 }
 
 type Development struct {
@@ -67,7 +67,7 @@ func setNonCliDefaultValues(v *viper.Viper) {
 	// TODO: change me to the production URL before release
 	v.SetDefault("db.update-url", "http://localhost:5000/listing.json")
 	// TODO: set this to true before release
-	v.SetDefault("db.update-on-startup", false)
+	v.SetDefault("db.auto-update", false)
 	v.SetDefault("dev.profile-cpu", false)
 }
 

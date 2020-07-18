@@ -80,7 +80,7 @@ func init() {
 func runDefaultCmd(_ *cobra.Command, args []string) error {
 	userImageStr := args[0]
 
-	provider, err := vulnscan.LoadVulnerabilityDb(appConfig.Db.ToCuratorConfig(), appConfig.Db.UpdateOnStartup)
+	provider, err := vulnscan.LoadVulnerabilityDb(appConfig.Db.ToCuratorConfig(), appConfig.Db.AutoUpdate)
 	if err != nil {
 		return fmt.Errorf("failed load vulnerability db: %w", err)
 	}
