@@ -82,7 +82,7 @@ func runDefaultCmd(_ *cobra.Command, args []string) error {
 
 	provider, err := vulnscan.LoadVulnerabilityDb(appConfig.Db.ToCuratorConfig(), appConfig.Db.AutoUpdate)
 	if err != nil {
-		return fmt.Errorf("failed load vulnerability db: %w", err)
+		return fmt.Errorf("failed to load vulnerability db: %w", err)
 	}
 
 	results, catalog, _, err := vulnscan.FindVulnerabilities(provider, userImageStr, appConfig.ScopeOpt)
