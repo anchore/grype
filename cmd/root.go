@@ -10,6 +10,7 @@ import (
 	"github.com/anchore/imgbom/imgbom/scope"
 	"github.com/anchore/vulnscan/internal"
 	"github.com/anchore/vulnscan/internal/format"
+	"github.com/anchore/vulnscan/internal/version"
 	"github.com/anchore/vulnscan/vulnscan"
 	"github.com/anchore/vulnscan/vulnscan/db"
 	"github.com/anchore/vulnscan/vulnscan/presenter"
@@ -79,6 +80,18 @@ func init() {
 
 // nolint:funlen
 func runDefaultCmd(_ *cobra.Command, args []string) int {
+	if appConfig.CheckForAppUpdate {
+		isAvailable, newVersion, err := version.IsUpdateAvailable()
+		if err != nil {
+			log.Errorf(err.Error())
+		}
+		if isAvailable {
+			log.Infof("New version of %s is available: %s", internal.ApplicationName, newVersion)
+		} else {
+			log.Debugf("No new %s update available", internal.ApplicationName)
+		}
+	}
+
 	userImageStr := args[0]
 	scope, cleanup, err := imgbom.NewScope(userImageStr, appConfig.ScopeOpt)
 	if err != nil {
