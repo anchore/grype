@@ -28,7 +28,7 @@ var rootCmd = &cobra.Command{
 `, map[string]interface{}{
 		"appName": internal.ApplicationName,
 	}),
-	Args: cobra.MaximumNArgs(1),
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if appConfig.Dev.ProfileCPU {
 			f, err := os.Create("cpu.profile")
