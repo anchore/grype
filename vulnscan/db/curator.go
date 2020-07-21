@@ -9,7 +9,7 @@ import (
 	"github.com/anchore/go-version"
 	"github.com/anchore/siren-db/pkg/curation"
 	"github.com/anchore/siren-db/pkg/db"
-	"github.com/anchore/siren-db/pkg/store"
+	"github.com/anchore/siren-db/pkg/store/sqlite/reader"
 	"github.com/anchore/vulnscan/internal/file"
 	"github.com/anchore/vulnscan/internal/log"
 	"github.com/spf13/afero"
@@ -53,7 +53,7 @@ func (c *Curator) GetStore() (db.VulnerabilityStoreReader, error) {
 	}
 
 	dbPath := path.Join(c.config.DbDir, FileName)
-	s, _, err := store.LoadCurrent(dbPath, false)
+	s, _, err := reader.NewStore(dbPath)
 	return s, err
 }
 
