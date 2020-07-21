@@ -46,8 +46,8 @@ func (r *Result) Enumerate() <-chan match.Match {
 	go func() {
 		defer close(channel)
 		for _, matches := range r.byPackage {
-			for _, match := range matches {
-				channel <- match
+			for _, m := range matches {
+				channel <- m
 			}
 		}
 	}()

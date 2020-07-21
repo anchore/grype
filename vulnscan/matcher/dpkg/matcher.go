@@ -14,12 +14,12 @@ import (
 type Matcher struct {
 }
 
-func (m *Matcher) Types() []pkg.Type {
+func (m *Matcher) PackageTypes() []pkg.Type {
 	return []pkg.Type{pkg.DebPkg}
 }
 
-func (m *Matcher) Name() string {
-	return "dpkg-matcher"
+func (m *Matcher) Type() match.MatcherType {
+	return match.DpkgMatcher
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, d distro.Distro, p *pkg.Package) ([]match.Match, error) {
@@ -31,7 +31,7 @@ func (m *Matcher) Match(store vulnerability.Provider, d distro.Distro, p *pkg.Pa
 	}
 	matches = append(matches, sourceMatches...)
 
-	exactMatches, err := common.FindMatchesByPackageDistro(store, d, p, m.Name())
+	exactMatches, err := common.FindMatchesByPackageDistro(store, d, p, m.Type())
 	if err != nil {
 		return nil, fmt.Errorf("failed to match by exact package name: %w", err)
 	}
@@ -65,7 +65,7 @@ func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro,
 	// use the source package name
 	indirectPackage.Name = sourcePkgName
 
-	matches, err := common.FindMatchesByPackageDistro(store, d, &indirectPackage, m.Name())
+	matches, err := common.FindMatchesByPackageDistro(store, d, &indirectPackage, m.Type())
 	if err != nil {
 		return nil, fmt.Errorf("failed to find vulnerabilities by dkpg source indirection: %w", err)
 	}
@@ -76,7 +76,7 @@ func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro,
 		matches[idx].Type = match.ExactIndirectMatch
 		matches[idx].Package = p
 		matches[idx].IndirectPackage = &indirectPackage
-		matches[idx].Matcher = m.Name()
+		matches[idx].Matcher = m.Type()
 	}
 
 	return matches, nil

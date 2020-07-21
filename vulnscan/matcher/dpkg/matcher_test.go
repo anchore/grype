@@ -45,8 +45,8 @@ func TestMatcherDpkg_matchBySourceIndirection(t *testing.T) {
 			t.Errorf("failed to capture correct original package: %s", a.Package.Name)
 		}
 
-		if a.Matcher != matcher.Name() {
-			t.Errorf("failed to capture matcher name: %s", a.Matcher)
+		if a.Matcher != matcher.Type() {
+			t.Errorf("failed to capture matcher type: %s", a.Matcher)
 		}
 
 		if a.IndirectPackage == nil {

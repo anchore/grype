@@ -73,7 +73,7 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 	}
 
 	store := newMockProviderByDistro()
-	actual, err := FindMatchesByPackageDistro(store, d, &p, "SOME_OTHER_MATCHER")
+	actual, err := FindMatchesByPackageDistro(store, d, &p, match.PythonMatcher)
 	if err != nil {
 		t.Fatalf("error while finding matches: %+v", err)
 	}
@@ -95,7 +95,7 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 			t.Errorf("failed to capture correct original package: %s", a.Package.Name)
 		}
 
-		if a.Matcher != "SOME_OTHER_MATCHER" {
+		if a.Matcher != match.PythonMatcher {
 			t.Errorf("failed to capture matcher name: %s", a.Matcher)
 		}
 

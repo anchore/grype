@@ -5,6 +5,8 @@ import (
 	"path"
 	"strings"
 
+	"github.com/anchore/vulnscan/vulnscan/presenter"
+
 	"github.com/adrg/xdg"
 	"github.com/anchore/imgbom/imgbom/scope"
 	"github.com/anchore/vulnscan/internal"
@@ -21,6 +23,8 @@ type CliOnlyOptions struct {
 
 type Application struct {
 	ConfigPath        string
+	PresenterOpt      presenter.Option
+	Output            string `mapstructure:"output"`
 	ScopeOpt          scope.Option
 	Scope             string  `mapstructure:"scope"`
 	Quiet             bool    `mapstructure:"quiet"`
@@ -39,9 +43,9 @@ type Logging struct {
 }
 
 type Database struct {
-	Dir             string `mapstructure:"cache-dir"`
-	UpdateURL       string `mapstructure:"update-url"`
-	UpdateOnStartup bool   `mapstructure:"update-on-startup"`
+	Dir        string `mapstructure:"cache-dir"`
+	UpdateURL  string `mapstructure:"update-url"`
+	AutoUpdate bool   `mapstructure:"auto-update"`
 }
 
 type Development struct {
@@ -64,7 +68,7 @@ func setNonCliDefaultValues(v *viper.Viper) {
 	// TODO: change me to the production URL before release
 	v.SetDefault("db.update-url", "http://localhost:5000/listing.json")
 	// TODO: set this to true before release
-	v.SetDefault("db.update-on-startup", false)
+	v.SetDefault("db.auto-update", false)
 	v.SetDefault("dev.profile-cpu", false)
 	v.SetDefault("check-for-app-update", true)
 }
@@ -96,6 +100,13 @@ func LoadConfigFromFile(v *viper.Viper, cliOpts *CliOnlyOptions) (*Application, 
 }
 
 func (cfg *Application) Build() error {
+	// set the presenter
+	presenterOption := presenter.ParseOption(cfg.Output)
+	if presenterOption == presenter.UnknownPresenter {
+		return fmt.Errorf("bad --output value '%s'", cfg.Output)
+	}
+	cfg.PresenterOpt = presenterOption
+
 	// set the scope
 	scopeOption := scope.ParseOption(cfg.Scope)
 	if scopeOption == scope.UnknownScope {

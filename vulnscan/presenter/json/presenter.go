@@ -47,7 +47,7 @@ func (pres *Presenter) Present(output io.Writer, catalog *pkg.Catalog, results r
 			ResultObj{
 				Cve: match.Vulnerability.ID,
 				FoundBy: FoundBy{
-					Matcher:   match.Matcher,
+					Matcher:   match.Matcher.String(),
 					SearchKey: match.SearchKey,
 				},
 				Package: Package{Name: p.Name, Version: p.Version, Type: p.Type.String()},
