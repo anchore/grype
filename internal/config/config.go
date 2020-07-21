@@ -22,16 +22,17 @@ type CliOnlyOptions struct {
 }
 
 type Application struct {
-	ConfigPath   string
-	PresenterOpt presenter.Option
-	Output       string `mapstructure:"output"`
-	ScopeOpt     scope.Option
-	Scope        string  `mapstructure:"scope"`
-	Quiet        bool    `mapstructure:"quiet"`
-	Log          Logging `mapstructure:"log"`
-	CliOptions   CliOnlyOptions
-	Db           Database    `mapstructure:"db"`
-	Dev          Development `mapstructure:"dev"`
+	ConfigPath        string
+	PresenterOpt      presenter.Option
+	Output            string `mapstructure:"output"`
+	ScopeOpt          scope.Option
+	Scope             string  `mapstructure:"scope"`
+	Quiet             bool    `mapstructure:"quiet"`
+	Log               Logging `mapstructure:"log"`
+	CliOptions        CliOnlyOptions
+	Db                Database    `mapstructure:"db"`
+	Dev               Development `mapstructure:"dev"`
+	CheckForAppUpdate bool        `mapstructure:"check-for-app-update"`
 }
 
 type Logging struct {
@@ -69,6 +70,7 @@ func setNonCliDefaultValues(v *viper.Viper) {
 	// TODO: set this to true before release
 	v.SetDefault("db.auto-update", false)
 	v.SetDefault("dev.profile-cpu", false)
+	v.SetDefault("check-for-app-update", true)
 }
 
 func LoadConfigFromFile(v *viper.Viper, cliOpts *CliOnlyOptions) (*Application, error) {
