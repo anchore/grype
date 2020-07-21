@@ -8,7 +8,6 @@ import (
 	"github.com/anchore/imgbom/imgbom/scope"
 	"github.com/anchore/vulnscan/internal"
 	"github.com/anchore/vulnscan/internal/format"
-	"github.com/anchore/vulnscan/internal/version"
 	"github.com/anchore/vulnscan/vulnscan"
 	"github.com/anchore/vulnscan/vulnscan/presenter"
 	"github.com/spf13/cobra"
@@ -79,18 +78,6 @@ func init() {
 }
 
 func runDefaultCmd(_ *cobra.Command, args []string) error {
-	if appConfig.CheckForAppUpdate {
-		isAvailable, newVersion, err := version.IsUpdateAvailable()
-		if err != nil {
-			log.Errorf(err.Error())
-		}
-		if isAvailable {
-			log.Infof("New version of %s is available: %s", internal.ApplicationName, newVersion)
-		} else {
-			log.Debugf("No new %s update available", internal.ApplicationName)
-		}
-	}
-
 	userImageStr := args[0]
 
 	provider, err := vulnscan.LoadVulnerabilityDb(appConfig.Db.ToCuratorConfig(), appConfig.Db.AutoUpdate)
