@@ -168,6 +168,13 @@ func TestFetchLatestApplicationVersion(t *testing.T) {
 			expected: nil,
 			err:      true,
 		},
+		{
+			name:     "too long",
+			response: "this is really long this is really long this is really long this is really long this is really long this is really long this is really long this is really long ",
+			code:     200,
+			expected: nil,
+			err:      true,
+		},
 	}
 
 	for _, test := range tests {
