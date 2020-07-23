@@ -119,6 +119,8 @@ github.com/anchore/imgbom v0.0.0-20200721160203-7ebb9f4e0b25 h1:X/w78P7u4WAWLjgz
 github.com/anchore/imgbom v0.0.0-20200721160203-7ebb9f4e0b25/go.mod h1:o7jSrMfQQjYv/S8ai69/bg30N5isLPe9gutTcnF9pf0=
 github.com/anchore/imgbom v0.0.0-20200721200020-265516682fb5 h1:RqpgpAcrD7yjmlpFgUudjdgW4DuEG3a3c4mP8CCzlu0=
 github.com/anchore/imgbom v0.0.0-20200721200020-265516682fb5/go.mod h1:o7jSrMfQQjYv/S8ai69/bg30N5isLPe9gutTcnF9pf0=
+github.com/anchore/imgbom v0.0.0-20200723135439-3cb7c43dbcfd h1:2ddXdl0Q6++JKovMsMiTdmU2E2zf9kClRwgg7NUZpuM=
+github.com/anchore/imgbom v0.0.0-20200723135439-3cb7c43dbcfd/go.mod h1:cVJAKNNyRXNOs1H4ydbg9gGViFdHJPz4BCbLxeGQ9Us=
 github.com/anchore/siren-db v0.0.0-20200721170640-64923624e7b2 h1:j3MwtIO1HBgGYD7pG0RVl+jXwkgpTfTk1EoT/QFIYhY=
 github.com/anchore/siren-db v0.0.0-20200721170640-64923624e7b2/go.mod h1:/n1sNOhAfvg5CrlhjWOinKEWpeLYYm9H8gv+afWtpOk=
 github.com/anchore/stereoscope v0.0.0-20200520221116-025e07f1c93e h1:QBwtrM0MXi0z+GcHk3RoSyzaQ+CLgas0bC/uOd1P+PQ=
@@ -662,6 +664,7 @@ github.com/remyoudompheng/bigfft v0.0.0-20170806203942-52369c62f446/go.mod h1:uY
 github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af/go.mod h1:XWv6SoW27p1b0cqNHllgS5HIMJraePCO15w5zCzIWYg=
 github.com/rogpeppe/fastuuid v1.1.0/go.mod h1:jVj6XXZzXRy/MSR5jhDC/2q6DgLz+nrA6LYCDYWNEvQ=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
+github.com/rogpeppe/go-internal v1.5.2 h1:qLvObTrvO/XRCqmkKxUlOBc48bI3efyDuAZe25QiF0w=
 github.com/rogpeppe/go-internal v1.5.2/go.mod h1:xXDCJY+GAPziupqXw64V24skbSoqbTEfhy4qGm1nDQc=
 github.com/rubiojr/go-vhd v0.0.0-20160810183302-0bfd3b39853c/go.mod h1:DM5xW0nvfNNm2uytzsvhI3OnX8uzaRAg8UX/CnDqbto=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
