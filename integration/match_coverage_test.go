@@ -1,6 +1,8 @@
 package integration
 
 import (
+	"testing"
+
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/imgbom/imgbom/pkg"
 	"github.com/anchore/imgbom/imgbom/scope"
@@ -9,7 +11,7 @@ import (
 	"github.com/anchore/vulnscan/vulnscan/match"
 	"github.com/anchore/vulnscan/vulnscan/result"
 	"github.com/anchore/vulnscan/vulnscan/vulnerability"
-	"testing"
+	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 func getPackagesByPath(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, thePath string) []*pkg.Package {
@@ -22,6 +24,29 @@ func getPackagesByPath(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog,
 		t.Fatalf("unexpected paths for %q: %+v", thePath, refs)
 	}
 	return catalog.PackagesByFile(refs[0])
+}
+
+func addJavascriptMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *result.Result) {
+	packages := getPackagesByPath(t, theScope, catalog, "/javascript/pkg-lock/package-lock.json")
+	if len(packages) != 1 {
+		t.Logf("Javascript Packages: %+v", packages)
+		t.Fatalf("problem with upstream imgbom cataloger (javascript)")
+	}
+	thePkg := packages[0]
+	theVuln := theStore.backend["github:npm"][thePkg.Name][0]
+	vulnObj, err := vulnerability.NewVulnerability(theVuln)
+	if err != nil {
+		t.Fatalf("failed to create vuln obj: %+v", err)
+	}
+	theResult.Add(thePkg, match.Match{
+		Type:            match.ExactDirectMatch,
+		Confidence:      1.0,
+		Vulnerability:   *vulnObj,
+		Package:         thePkg,
+		SearchKey:       "language[javascript] constraint[< 3.2.1 (unknown)]",
+		IndirectPackage: nil,
+		Matcher:         match.JavascriptMatcher,
+	})
 }
 
 func addPythonMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *result.Result) {
@@ -167,6 +192,7 @@ func TestPkgCoverageImage(t *testing.T) {
 				addRubyMatches(t, theScope, catalog, theStore, &expectedResults)
 				addJavaMatches(t, theScope, catalog, theStore, &expectedResults)
 				addDpkgMatches(t, theScope, catalog, theStore, &expectedResults)
+				addJavascriptMatches(t, theScope, catalog, theStore, &expectedResults)
 				return expectedResults
 			},
 		},
@@ -201,24 +227,34 @@ func TestPkgCoverageImage(t *testing.T) {
 			expectedResults := test.expectedFn(*theScope, catalog, theStore)
 
 			// build expected match set...
-			expectedMatchSet := internal.NewStringSet()
-			expectedCount := 0
+			//expectedMatchSet := internal.NewStringSet()
+			expectedMatches := map[string]string{}
+			//expectedCount := 0
 			for eMatch := range expectedResults.Enumerate() {
-				expectedCount++
+				//expectedCount++
 				// NOTE: this does not include all fields...
-				expectedMatchSet.Add(eMatch.String())
+				//expectedMatchSet.Add(eMatch.String())
+				expectedMatches[eMatch.Package.Name] = eMatch.String()
 			}
+
+			expectedCount := len(expectedMatches)
 
 			// ensure that all matches are covered
 			actualCount := 0
 			for aMatch := range actualResults.Enumerate() {
 				actualCount++
 				observedMatchers.Add(aMatch.Matcher.String())
-
-				if !expectedMatchSet.Contains(aMatch.String()) {
-					// NOTE: this is not the same as comparing an expected sequence which would allow for detailed diffing
-					t.Errorf("Disjoint Match: %+v", aMatch)
+				value, ok := expectedMatches[aMatch.Package.Name]
+				if !ok {
+					t.Errorf("Package: %s was expected but not found", aMatch.Package.Name)
 				}
+
+				if value != aMatch.String() {
+					dmp := diffmatchpatch.New()
+					diffs := dmp.DiffMain(value, aMatch.String(), true)
+					t.Errorf("mismatched output:\n%s", dmp.DiffPrettyText(diffs))
+				}
+
 			}
 
 			if expectedCount != actualCount {
