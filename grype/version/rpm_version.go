@@ -47,8 +47,19 @@ func newRpmVersion(raw string) (rpmVersion, error) {
 	}, nil
 }
 
+func (v *rpmVersion) Compare(other *Version) (int, error) {
+	if other.Format != RpmFormat {
+		return -1, fmt.Errorf("unable to compare rpm to given format: %s", other.Format)
+	}
+	if other.rich.rpmVer == nil {
+		return -1, fmt.Errorf("given empty rpmVersion object")
+	}
+
+	return other.rich.rpmVer.compare(*v), nil
+}
+
 // Compare returns 0 if v == v2, -1 if v < v2, and +1 if v > v2.
-func (v rpmVersion) Compare(v2 rpmVersion) int {
+func (v rpmVersion) compare(v2 rpmVersion) int {
 	if reflect.DeepEqual(v, v2) {
 		return 0
 	}
