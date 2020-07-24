@@ -5,7 +5,7 @@ import (
 	"os"
 	"runtime/pprof"
 
-	"github.com/anchore/imgbom/imgbom/scope"
+	"github.com/anchore/syft/syft/scope"
 	"github.com/anchore/vulnscan/internal"
 	"github.com/anchore/vulnscan/internal/format"
 	"github.com/anchore/vulnscan/vulnscan"
@@ -16,7 +16,7 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   fmt.Sprintf("%s [IMAGE]", internal.ApplicationName),
-	Short: "A vulnerability scanner tool", // TODO: add copy, add path-based scans
+	Short: "A vulnerability scanner for container images and filesystems", // TODO: add copy, add path-based scans
 	Long: format.Tprintf(`Supports the following image sources:
     {{.appName}} yourrepo/yourimage:tag             defaults to using images from a docker daemon
     {{.appName}} docker://yourrepo/yourimage:tag    explicitly use a docker daemon

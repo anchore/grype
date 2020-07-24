@@ -100,7 +100,7 @@ jobs:
             - "integration/test-fixtures/tar-cache"
 
 workflows:
-  "Static Analysis & All Tests":
+  "Static Analysis + Unit + Integration":
     jobs:
       - run-static-analysis:
           name: "Static Analysis"

@@ -1,8 +1,8 @@
 package matcher
 
 import (
-	"github.com/anchore/imgbom/imgbom/distro"
-	"github.com/anchore/imgbom/imgbom/pkg"
+	"github.com/anchore/syft/syft/distro"
+	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/vulnscan/internal/log"
 	"github.com/anchore/vulnscan/vulnscan/match"
 	"github.com/anchore/vulnscan/vulnscan/matcher/bundler"

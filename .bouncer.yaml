@@ -3,3 +3,4 @@ permit:
   - MIT.*
   - Apache.*
   - MPL.*
+  - ISC

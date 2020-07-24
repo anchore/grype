@@ -3,7 +3,7 @@ package version
 import (
 	"strings"
 
-	"github.com/anchore/imgbom/imgbom/pkg"
+	"github.com/anchore/syft/syft/pkg"
 )
 
 const (

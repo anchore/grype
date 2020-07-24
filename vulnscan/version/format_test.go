@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/anchore/imgbom/imgbom/pkg"
+	"github.com/anchore/syft/syft/pkg"
 )
 
 func TestParseFormat(t *testing.T) {

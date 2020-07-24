@@ -3,7 +3,7 @@ package match
 import (
 	"fmt"
 
-	"github.com/anchore/imgbom/imgbom/pkg"
+	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/vulnscan/vulnscan/vulnerability"
 )
 

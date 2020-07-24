@@ -1,7 +1,7 @@
 package cpe
 
 import (
-	"github.com/anchore/imgbom/imgbom/pkg"
+	"github.com/anchore/syft/syft/pkg"
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"testing"
 )
