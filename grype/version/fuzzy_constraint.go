@@ -13,23 +13,26 @@ var pseudoSemverPattern = regexp.MustCompile(`^(0|[1-9]\d*)(\.(0|[1-9]\d*))?(\.(
 
 type fuzzyConstraint struct {
 	rawPhrase          string
-	constraints        []constraintPart
 	semanticConstraint *hashiVer.Constraints
+	constraints        constraintExpression
 }
 
 func newFuzzyConstraint(phrase string) (*fuzzyConstraint, error) {
-	constraints, err := splitConstraintPhrase(phrase)
+	constraints, err := newConstraintExpression(phrase, newFuzzyComparator)
 	if err != nil {
 		return nil, fmt.Errorf("could not create fuzzy constraint: %+v", err)
 	}
 	var semverConstraint *hashiVer.Constraints
 
-	// check if this is a valid semver constraint
+	// check all version unit phrases to see if this is a valid semver constraint
 	valid := true
-	for _, constraint := range constraints {
-		if !pseudoSemverPattern.Match([]byte(constraint.version)) {
-			valid = false
-			break
+check:
+	for _, units := range constraints.units {
+		for _, unit := range units {
+			if !pseudoSemverPattern.Match([]byte(unit.version)) {
+				valid = false
+				break check
+			}
 		}
 	}
 
@@ -44,6 +47,14 @@ func newFuzzyConstraint(phrase string) (*fuzzyConstraint, error) {
 	}, nil
 }
 
+func newFuzzyComparator(unit constraintUnit) (Comparator, error) {
+	ver, err := newFuzzyVersion(unit.version)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse constraint version (%s): %w", unit.version, err)
+	}
+	return &ver, nil
+}
+
 func (f *fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
 	version := verObj.Raw
 
@@ -51,17 +62,12 @@ func (f *fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
 	if f.semanticConstraint != nil {
 		if pseudoSemverPattern.Match([]byte(version)) {
 			if semver, err := newSemanticVersion(version); err == nil && semver != nil {
-				return f.semanticConstraint.Check(semver), nil
+				return f.semanticConstraint.Check(semver.verObj), nil
 			}
 		}
 	}
 	// semver didn't work, use fuzzy part matching instead...
-	for _, c := range f.constraints {
-		if !c.Satisfied(fuzzyVersionComparison(verObj.Raw, c.version)) {
-			return false, nil
-		}
-	}
-	return true, nil
+	return f.constraints.Satisfied(verObj), nil
 }
 
 func (f *fuzzyConstraint) String() string {

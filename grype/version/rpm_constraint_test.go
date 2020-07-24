@@ -15,6 +15,11 @@ func TestVersionRpmConstraint(t *testing.T) {
 		{version: "1.0.0", constraint: ">= 1.0.0, < 2.0.0", satisfied: true},
 		{version: "1.0.0", constraint: "> 1.0.0, < 2.0.0", satisfied: false},
 		{version: "0.9.0", constraint: "> 1.0.0, < 2.0.0", satisfied: false},
+		{version: "1.5.0", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: true},
+		{version: "0.2.0", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: true},
+		{version: "0.0.1", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: false},
+		{version: "0.6.0", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: false},
+		{version: "2.5.0", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: false},
 		// trivial scenarios
 		{version: "2.3.1", constraint: "< 2.0.0", satisfied: false},
 		{version: "2.3.1", constraint: "< 2.0", satisfied: false},

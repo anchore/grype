@@ -61,6 +61,24 @@ func TestFuzzyConstraintSatisfaction(t *testing.T) {
 			expected:   true,
 		},
 		{
+			name:       "version within compound range",
+			constraint: ">1.0, <2.0 || > 3.0",
+			version:    "3.2+beta-3",
+			expected:   true,
+		},
+		{
+			name:       "version within compound range (2)",
+			constraint: ">1.0, <2.0 || > 3.0",
+			version:    "1.2+beta-3",
+			expected:   true,
+		},
+		{
+			name:       "version not within compound range",
+			constraint: ">1.0, <2.0 || > 3.0",
+			version:    "2.2+beta-3",
+			expected:   false,
+		},
+		{
 			name:       "version range within (prerelease)",
 			constraint: ">1.0, <2.0",
 			version:    "1.2.0-beta-prerelease",

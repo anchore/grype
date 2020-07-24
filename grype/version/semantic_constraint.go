@@ -11,10 +11,6 @@ import (
 // note: this may result in missed matches for versioned betas
 var normalizer = strings.NewReplacer(".alpha", "-alpha", ".beta", "-beta", ".rc", "-rc")
 
-func newSemanticVersion(raw string) (*hashiVer.Version, error) {
-	return hashiVer.NewVersion(normalizer.Replace(raw))
-}
-
 type semanticConstraint struct {
 	raw        string
 	constraint hashiVer.Constraints
@@ -45,7 +41,7 @@ func (c semanticConstraint) Satisfied(version *Version) (bool, error) {
 	if version.rich.semVer == nil {
 		return false, fmt.Errorf("no rich semantic version given: %+v", version)
 	}
-	return c.constraint.Check(version.rich.semVer), nil
+	return c.constraint.Check(version.rich.semVer.verObj), nil
 }
 
 func (c semanticConstraint) String() string {
