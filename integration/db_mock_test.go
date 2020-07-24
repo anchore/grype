@@ -14,6 +14,15 @@ type mockStore struct {
 func NewMockDbStore() *mockStore {
 	return &mockStore{
 		backend: map[string]map[string][]db.Vulnerability{
+			"github:npm": {
+				"validator": []db.Vulnerability{
+					{
+						ID:                "CVE-javascript-validator",
+						VersionConstraint: "< 3.2.1",
+						VersionFormat:     "unknown",
+					},
+				},
+			},
 			"github:python": {
 				"Pygments": []db.Vulnerability{
 					{

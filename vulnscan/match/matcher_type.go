@@ -7,6 +7,7 @@ const (
 	RpmDBMatcher
 	JavaMatcher
 	PythonMatcher
+	JavascriptMatcher
 )
 
 var matcherTypeStr = []string{
@@ -16,6 +17,7 @@ var matcherTypeStr = []string{
 	"rpmdb-matcher",
 	"java-matcher",
 	"python-matcher",
+	"javascript-matcher",
 }
 
 var AllMatcherTypes = []MatcherType{
@@ -24,6 +26,7 @@ var AllMatcherTypes = []MatcherType{
 	RpmDBMatcher,
 	JavaMatcher,
 	PythonMatcher,
+	JavascriptMatcher,
 }
 
 type MatcherType int
