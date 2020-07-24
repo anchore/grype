@@ -20,6 +20,7 @@ var rootCmd = &cobra.Command{
 	Short: "A vulnerability scanner for container images and filesystems", // TODO: add copy, add path-based scans
 	Long: format.Tprintf(`Supports the following image sources:
     {{.appName}} yourrepo/yourimage:tag             defaults to using images from a docker daemon
+    {{.appName}} dir://path/to/yourrepo             do a directory scan
     {{.appName}} docker://yourrepo/yourimage:tag    explicitly use a docker daemon
     {{.appName}} tar://path/to/yourimage.tar        use a tarball from disk
 `, map[string]interface{}{
