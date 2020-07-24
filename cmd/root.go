@@ -9,6 +9,7 @@ import (
 	"github.com/anchore/grype/grype/presenter"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/format"
+	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/syft/syft/scope"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -78,6 +79,18 @@ func init() {
 }
 
 func runDefaultCmd(_ *cobra.Command, args []string) error {
+	if appConfig.CheckForAppUpdate {
+		isAvailable, newVersion, err := version.IsUpdateAvailable()
+		if err != nil {
+			log.Errorf(err.Error())
+		}
+		if isAvailable {
+			log.Infof("New version of %s is available: %s", internal.ApplicationName, newVersion)
+		} else {
+			log.Debugf("No new %s update available", internal.ApplicationName)
+		}
+	}
+
 	userImageStr := args[0]
 
 	provider, err := grype.LoadVulnerabilityDb(appConfig.Db.ToCuratorConfig(), appConfig.Db.AutoUpdate)
