@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/anchore/go-version"
+	"github.com/anchore/grype-db/pkg/curation"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/file"
-	"github.com/anchore/siren-db/pkg/curation"
 	"github.com/spf13/afero"
 )
 

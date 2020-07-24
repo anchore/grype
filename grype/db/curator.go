@@ -7,11 +7,11 @@ import (
 	"path"
 
 	"github.com/anchore/go-version"
+	"github.com/anchore/grype-db/pkg/curation"
+	"github.com/anchore/grype-db/pkg/db"
+	"github.com/anchore/grype-db/pkg/store/sqlite/reader"
 	"github.com/anchore/grype/internal/file"
 	"github.com/anchore/grype/internal/log"
-	"github.com/anchore/siren-db/pkg/curation"
-	"github.com/anchore/siren-db/pkg/db"
-	"github.com/anchore/siren-db/pkg/store/sqlite/reader"
 	"github.com/spf13/afero"
 )
 

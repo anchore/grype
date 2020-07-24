@@ -1,7 +1,7 @@
 package integration
 
 import (
-	"github.com/anchore/siren-db/pkg/db"
+	"github.com/anchore/grype-db/pkg/db"
 )
 
 // integrity check
