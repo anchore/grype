@@ -1,3 +1,5 @@
+snapshot/
+dist/
 *.profile
 .server
 Dockerfile

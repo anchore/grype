@@ -7,10 +7,10 @@ import (
 
 	"github.com/anchore/vulnscan/vulnscan/logger"
 
-	"github.com/anchore/imgbom/imgbom"
-	"github.com/anchore/imgbom/imgbom/distro"
-	"github.com/anchore/imgbom/imgbom/pkg"
-	"github.com/anchore/imgbom/imgbom/scope"
+	"github.com/anchore/syft/syft"
+	"github.com/anchore/syft/syft/distro"
+	"github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/scope"
 	"github.com/anchore/vulnscan/internal/log"
 	"github.com/anchore/vulnscan/vulnscan/matcher"
 	"github.com/anchore/vulnscan/vulnscan/result"
@@ -22,7 +22,7 @@ const LibraryName = "vulnscan"
 
 func FindVulnerabilities(provider vulnerability.Provider, userImageStr string, scopeOpt scope.Option) (result.Result, *pkg.Catalog, *scope.Scope, error) {
 	log.Info("Cataloging image")
-	catalog, theScope, theDistro, err := imgbom.Catalog(userImageStr, scopeOpt)
+	catalog, theScope, theDistro, err := syft.Catalog(userImageStr, scopeOpt)
 	if err != nil {
 		return result.Result{}, nil, nil, err
 	}

@@ -5,13 +5,21 @@ VULNSCAN_REPORT = $(VULNSCAN_DIR)/$(IMAGE_CLEAN).json
 INLINE_DIR = inline-reports
 INLINE_REPORT = $(INLINE_DIR)/$(IMAGE_CLEAN)-content-os.json
 
-.PHONY: bootstrap
+ifndef VULNSCAN_DIR
+	$(error VULNSCAN_DIR is not set)
+endif
 
+ifndef INLINE_DIR
+	$(error INLINE_DIR is not set)
+endif
+
+.PHONY: all
 all: compare
 
+.PHONY: compare
 compare: $(INLINE_REPORT) $(VULNSCAN_REPORT)
-	docker build -t compare-imgbom:latest .
-	docker run compare-imgbom:latest $(IMAGE)
+	docker build -t compare-vulnscan:latest .
+	docker run compare-vulnscan:latest $(IMAGE)
 
 $(INLINE_REPORT):
 	echo "Creating $(INLINE_REPORT)..."
@@ -24,4 +32,8 @@ $(VULNSCAN_REPORT):
 	echo "Creating $(VULNSCAN_REPORT)..."
 	mkdir -p $(VULNSCAN_DIR)
 	docker pull $(IMAGE)
-	go run ../main.go centos:latest -o json > $(VULNSCAN_REPORT)
+	go run ../../main.go $(IMAGE) -o json > $(VULNSCAN_REPORT)
+
+.PHONY: clean
+clean:
+	rm -f $(INLINE_DIR)/*  $(VULNSCAN_DIR)/*

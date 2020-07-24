@@ -1,0 +1,44 @@
+builds:
+  - binary: vulnscan
+    env:
+      - CGO_ENABLED=0
+    goos:
+      # windows not supported yet (due to jotframe)
+      # - windows
+      - linux
+      - darwin
+    goarch:
+      - amd64
+    # Set the modified timestamp on the output binary to the git timestamp (to ensure a reproducible build)
+    mod_timestamp: '{{ .CommitTimestamp }}'
+    ldflags: |
+      -w
+      -s
+      -extldflags '-static'
+      -X github.com/anchore/vulnscan/internal/version.version={{.Version}}
+      -X github.com/anchore/vulnscan/internal/version.gitCommit={{.Commit}}
+      -X github.com/anchore/vulnscan/internal/version.buildDate={{.Date}}
+      -X github.com/anchore/vulnscan/internal/version.gitTreeState={{.Env.BUILD_GIT_TREE_STATE}}
+
+nfpms:
+  - license: "Apache 2.0"
+    maintainer: "Anchore, Inc"
+    homepage: &website "https://github.com/anchore/vulnscan"
+    description: &description "A vulnerability scanner for container images and filesystems"
+    formats:
+      - rpm
+      - deb
+
+brews:
+  - tap:
+      owner: anchore
+      name: homebrew-vulnscan
+    homepage: *website
+    description: *description
+
+archives:
+  - format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+

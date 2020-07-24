@@ -1,0 +1,81 @@
+name: 'Release'
+on:
+  push:
+    # take no actions on push...
+    branches-ignore:
+      - '**'
+    # ... only act on release tags
+    tags:
+      - 'v*'
+env:
+  GO_VERSION: "1.14.x"
+jobs:
+  wait-for-checks:
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v2
+
+      # we don't want to release commits that have been pushed and tagged, but not necessarily merged onto master
+      - name: Ensure tagged commit is on master
+        run: |
+          echo "Tag: ${GITHUB_REF##*/}"
+          git fetch origin master
+          git merge-base --is-ancestor ${GITHUB_REF##*/} origin/master && echo "${GITHUB_REF##*/} is a commit on master!"
+
+      - name: Check static anaylysis, unit, and integration test results
+        uses: fountainhead/action-wait-for-check@v1
+        id: sa-unit-int
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # This check name is defined as the circle-ci workflow name (in .circleci/config.yaml)
+          checkName: "Static Analysis + Unit + Integration"
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Quality gate
+        if: steps.sa-unit-int.outputs.conclusion != 'success'
+        run: |
+          echo "Static/Unit/Integration Status: ${{ steps.sa-unit-int.outputs.conclusion }}"
+          false
+
+  release:
+    runs-on: ubuntu-latest
+    steps:
+
+      # TODO: remove me after release
+      - name: Configure git for private modules
+        env:
+          TOKEN: ${{ secrets.ANCHORE_GIT_READ_TOKEN }}
+        run: git config --global url."https://anchore:${TOKEN}@github.com".insteadOf "https://github.com"
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - uses: actions/checkout@v2
+
+      - name: Restore bootstrap cache
+        id: cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/go/pkg/mod
+            ${{ github.workspace }}/.tmp
+          key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('Makefile') }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('Makefile') }}-
+            ${{ runner.os }}-go-${{ env.GO_VERSION }}-
+
+      - name: Bootstrap dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: make ci-bootstrap
+
+      - name: Build snapshot artifacts
+        run: make release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: artifacts
+          path: dist

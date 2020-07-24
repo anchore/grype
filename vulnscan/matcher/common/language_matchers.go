@@ -6,7 +6,7 @@ import (
 
 	"github.com/anchore/vulnscan/vulnscan/version"
 
-	"github.com/anchore/imgbom/imgbom/pkg"
+	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/vulnscan/vulnscan/match"
 	"github.com/anchore/vulnscan/vulnscan/vulnerability"
 )

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/anchore/imgbom/imgbom"
+	"github.com/anchore/syft/syft"
 	"github.com/anchore/vulnscan/internal/config"
 	"github.com/anchore/vulnscan/internal/format"
 	"github.com/anchore/vulnscan/internal/logger"
@@ -75,7 +75,7 @@ func initLogging() {
 	logWrapper := logger.NewZapLogger(config)
 	log = logWrapper.Logger
 	vulnscan.SetLogger(logWrapper)
-	imgbom.SetLogger(logWrapper)
+	syft.SetLogger(logWrapper)
 }
 
 func logAppConfig() {

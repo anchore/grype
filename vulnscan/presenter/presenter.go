@@ -3,7 +3,7 @@ package presenter
 import (
 	"io"
 
-	"github.com/anchore/imgbom/imgbom/pkg"
+	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/vulnscan/vulnscan/presenter/json"
 	"github.com/anchore/vulnscan/vulnscan/result"
 )

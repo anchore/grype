@@ -2,7 +2,6 @@
 import os
 import sys
 import json
-import functools
 import collections
 
 QUALITY_GATE_THRESHOLD = 0.9
@@ -33,7 +32,6 @@ class InlineScan:
             for entry in data[section]:
                 yield entry
 
-    @functools.lru_cache
     def vulnerabilities(self):
         vulnerabilities = set()
         metadata = collections.defaultdict(dict)
@@ -66,7 +64,6 @@ class Vulnscan:
             for entry in data:
                 yield entry
 
-    @functools.lru_cache
     def vulnerabilities(self):
         vulnerabilities = set()
         metadata = collections.defaultdict(dict)
@@ -123,19 +120,19 @@ def main(image):
     ) * 100.0
 
     if len(bonus_vulnerabilities) > 0:
-        print("Imgbom Bonus vulnerability:")
+        print("Vulnscan Bonus vulnerability:")
         for vulnerability in sorted(list(bonus_vulnerabilities)):
             print("    " + repr(vulnerability))
         print()
 
     if len(missing_pacakges) > 0:
-        print("Imgbom Missing vulnerability:")
+        print("Vulnscan Missing vulnerability:")
         for vulnerability in sorted(list(missing_pacakges)):
             print("    " + repr(vulnerability))
         print()
 
-    print("Inline Packages: %d" % len(inline_vulnerabilities))
-    print("Imgbom Packages: %d" % len(vulnscan_vulnerabilities))
+    print("Inline Packages  : %d" % len(inline_vulnerabilities))
+    print("Vulnscan Packages: %d" % len(vulnscan_vulnerabilities))
     print()
     print(
         "Baseline Vulnerabilities Matched: %2.3f %% (%d/%d vulnerability)"
@@ -151,7 +148,7 @@ def main(image):
     print("Overall Score: %2.3f %%" % overall_score)
 
     if overall_score < (QUALITY_GATE_THRESHOLD * 100):
-        print("failed quality gate (>= %d %%)" % (QUALITY_GATE_THRESHOLD * 100))
+        print("\nfailed quality gate (>= %d %%)\n" % (QUALITY_GATE_THRESHOLD * 100))
         return 1
 
     return 0

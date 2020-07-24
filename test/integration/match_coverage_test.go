@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/anchore/go-testutils"
-	"github.com/anchore/imgbom/imgbom/pkg"
-	"github.com/anchore/imgbom/imgbom/scope"
+	"github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/scope"
 	"github.com/anchore/vulnscan/internal"
 	"github.com/anchore/vulnscan/vulnscan"
 	"github.com/anchore/vulnscan/vulnscan/match"
@@ -30,7 +30,7 @@ func addJavascriptMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catal
 	packages := getPackagesByPath(t, theScope, catalog, "/javascript/pkg-lock/package-lock.json")
 	if len(packages) != 1 {
 		t.Logf("Javascript Packages: %+v", packages)
-		t.Fatalf("problem with upstream imgbom cataloger (javascript)")
+		t.Fatalf("problem with upstream syft cataloger (javascript)")
 	}
 	thePkg := packages[0]
 	theVuln := theStore.backend["github:npm"][thePkg.Name][0]
@@ -53,7 +53,7 @@ func addPythonMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, 
 	packages := getPackagesByPath(t, theScope, catalog, "/python/dist-info/METADATA")
 	if len(packages) != 1 {
 		t.Logf("Python Packages: %+v", packages)
-		t.Fatalf("problem with upstream imgbom cataloger (python)")
+		t.Fatalf("problem with upstream syft cataloger (python)")
 	}
 	thePkg := packages[0]
 	theVuln := theStore.backend["github:python"][thePkg.Name][0]
@@ -76,7 +76,7 @@ func addRubyMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, th
 	packages := getPackagesByPath(t, theScope, catalog, "/ruby/Gemfile.lock")
 	if len(packages) != 1 {
 		t.Logf("Ruby Packages: %+v", packages)
-		t.Fatalf("problem with upstream imgbom cataloger (ruby)")
+		t.Fatalf("problem with upstream syft cataloger (ruby)")
 	}
 	thePkg := packages[0]
 	theVuln := theStore.backend["github:gem"][thePkg.Name][0]
@@ -102,7 +102,7 @@ func addJavaMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, th
 	}
 	if len(packages) != 1 {
 		t.Logf("Java Packages: %+v", packages)
-		t.Fatalf("problem with upstream imgbom cataloger (java)")
+		t.Fatalf("problem with upstream syft cataloger (java)")
 	}
 	thePkg := packages[0]
 
@@ -129,7 +129,7 @@ func addDpkgMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, th
 	packages := getPackagesByPath(t, theScope, catalog, "/var/lib/dpkg/status")
 	if len(packages) != 1 {
 		t.Logf("Dpkg Packages: %+v", packages)
-		t.Fatalf("problem with upstream imgbom cataloger (dpkg)")
+		t.Fatalf("problem with upstream syft cataloger (dpkg)")
 	}
 	thePkg := packages[0]
 	// NOTE: this is an indirect match, in typical debian style
@@ -153,7 +153,7 @@ func addRhelMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, th
 	packages := getPackagesByPath(t, theScope, catalog, "/var/lib/rpm/Packages")
 	if len(packages) != 1 {
 		t.Logf("RPMDB Packages: %+v", packages)
-		t.Fatalf("problem with upstream imgbom cataloger (RPMDB)")
+		t.Fatalf("problem with upstream syft cataloger (RPMDB)")
 	}
 	thePkg := packages[0]
 	theVuln := theStore.backend["rhel:8"][thePkg.Name][0]

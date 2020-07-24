@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	hashiVer "github.com/anchore/go-version"
-	"github.com/anchore/imgbom/imgbom/pkg"
+	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/vulnscan/vulnscan/cpe"
 	deb "github.com/knqyf263/go-deb-version"
 )

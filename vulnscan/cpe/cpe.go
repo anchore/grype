@@ -3,7 +3,7 @@ package cpe
 import (
 	"fmt"
 
-	"github.com/anchore/imgbom/imgbom/pkg"
+	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/vulnscan/internal"
 	"github.com/facebookincubator/nvdtools/wfn"
 )
