@@ -64,5 +64,9 @@ func fetchLatestApplicationVersion() (*hashiVersion.Version, error) {
 	}
 
 	versionStr := strings.TrimSuffix(string(versionBytes), "\n")
+	if len(versionStr) > 50 {
+		return nil, fmt.Errorf("version too long: %q", versionStr[:50])
+	}
+
 	return hashiVersion.NewVersion(versionStr)
 }
