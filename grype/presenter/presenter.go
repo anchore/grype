@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/anchore/grype/grype/presenter/json"
+	"github.com/anchore/grype/grype/presenter/table"
 	"github.com/anchore/grype/grype/result"
 	"github.com/anchore/syft/syft/pkg"
 )
@@ -18,6 +19,8 @@ func GetPresenter(option Option) Presenter {
 	switch option {
 	case JSONPresenter:
 		return json.NewPresenter()
+	case TablePresenter:
+		return table.NewPresenter()
 	default:
 		return nil
 	}

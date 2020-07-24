@@ -68,7 +68,7 @@ func init() {
 	// output & formatting options
 	flag = "output"
 	rootCmd.Flags().StringP(
-		flag, "o", presenter.JSONPresenter.String(),
+		flag, "o", presenter.TablePresenter.String(),
 		fmt.Sprintf("report output formatter, options=%v", presenter.Options),
 	)
 	if err := viper.BindPFlag(flag, rootCmd.Flags().Lookup(flag)); err != nil {

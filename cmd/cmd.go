@@ -64,7 +64,7 @@ func initAppConfig() {
 }
 
 func initLogging() {
-	config := logger.LogConfig{
+	cfg := logger.LogConfig{
 		EnableConsole: (appConfig.Log.FileLocation == "" || appConfig.CliOptions.Verbosity > 0) && !appConfig.Quiet,
 		EnableFile:    appConfig.Log.FileLocation != "",
 		Level:         appConfig.Log.LevelOpt,
@@ -72,7 +72,7 @@ func initLogging() {
 		FileLocation:  appConfig.Log.FileLocation,
 	}
 
-	logWrapper := logger.NewZapLogger(config)
+	logWrapper := logger.NewZapLogger(cfg)
 	log = logWrapper.Logger
 	grype.SetLogger(logWrapper)
 	syft.SetLogger(logWrapper)

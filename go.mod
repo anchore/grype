@@ -15,6 +15,7 @@ require (
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/knqyf263/go-deb-version v0.0.0-20190517075300-09fca494f03d
 	github.com/mitchellh/go-homedir v1.1.0
+	github.com/olekukonko/tablewriter v0.0.4
 	github.com/sergi/go-diff v1.1.0
 	github.com/spf13/afero v1.3.2
 	github.com/spf13/cobra v1.0.0
