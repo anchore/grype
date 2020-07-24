@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/anchore/vulnscan/vulnscan/db"
+	"github.com/anchore/grype/grype/db"
 	"github.com/spf13/cobra"
 )
 

@@ -3,7 +3,7 @@ package logger
 import (
 	"os"
 
-	"github.com/anchore/vulnscan/internal/format"
+	"github.com/anchore/grype/internal/format"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

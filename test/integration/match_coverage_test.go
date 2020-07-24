@@ -4,13 +4,13 @@ import (
 	"testing"
 
 	"github.com/anchore/go-testutils"
+	"github.com/anchore/grype/grype"
+	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/result"
+	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal"
 	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/scope"
-	"github.com/anchore/vulnscan/internal"
-	"github.com/anchore/vulnscan/vulnscan"
-	"github.com/anchore/vulnscan/vulnscan/match"
-	"github.com/anchore/vulnscan/vulnscan/result"
-	"github.com/anchore/vulnscan/vulnscan/vulnerability"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
@@ -214,7 +214,7 @@ func TestPkgCoverageImage(t *testing.T) {
 			tarPath := testutils.GetFixtureImageTarPath(t, test.fixtureImage)
 			defer cleanup()
 
-			actualResults, catalog, theScope, err := vulnscan.FindVulnerabilities(
+			actualResults, catalog, theScope, err := grype.FindVulnerabilities(
 				vulnerability.NewProviderFromStore(theStore),
 				"docker-archive://"+tarPath,
 				scope.AllLayersScope,

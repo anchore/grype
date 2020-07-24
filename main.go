@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/anchore/vulnscan/cmd"
+	"github.com/anchore/grype/cmd"
 )
 
 func main() {

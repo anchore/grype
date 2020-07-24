@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/anchore/grype/grype"
+	"github.com/anchore/grype/internal/config"
+	"github.com/anchore/grype/internal/format"
+	"github.com/anchore/grype/internal/logger"
 	"github.com/anchore/syft/syft"
-	"github.com/anchore/vulnscan/internal/config"
-	"github.com/anchore/vulnscan/internal/format"
-	"github.com/anchore/vulnscan/internal/logger"
-	"github.com/anchore/vulnscan/vulnscan"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -74,7 +74,7 @@ func initLogging() {
 
 	logWrapper := logger.NewZapLogger(config)
 	log = logWrapper.Logger
-	vulnscan.SetLogger(logWrapper)
+	grype.SetLogger(logWrapper)
 	syft.SetLogger(logWrapper)
 }
 

@@ -1,6 +1,6 @@
 package log
 
-import "github.com/anchore/vulnscan/vulnscan/logger"
+import "github.com/anchore/grype/grype/logger"
 
 var Log logger.Logger = &nopLogger{}
 

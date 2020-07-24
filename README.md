@@ -1,1 +1,1 @@
-# vulnscan (TBD Name)
+# grype (TBD Name)

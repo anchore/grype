@@ -5,12 +5,12 @@ import (
 	"path"
 	"strings"
 
-	"github.com/anchore/vulnscan/vulnscan/presenter"
+	"github.com/anchore/grype/grype/presenter"
 
 	"github.com/adrg/xdg"
+	"github.com/anchore/grype/grype/db"
+	"github.com/anchore/grype/internal"
 	"github.com/anchore/syft/syft/scope"
-	"github.com/anchore/vulnscan/internal"
-	"github.com/anchore/vulnscan/vulnscan/db"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 	"go.uber.org/zap/zapcore"

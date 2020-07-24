@@ -49,7 +49,7 @@ class InlineScan:
         return vulnerabilities, metadata
 
 
-class Vulnscan:
+class grype:
 
     report_tmpl = "{image}.json"
 
@@ -89,50 +89,50 @@ def main(image):
     inline = InlineScan(image=image, report_dir="inline-reports")
     inline_vulnerabilities, inline_metadata = inline.vulnerabilities()
 
-    vulnscan = Vulnscan(image=image, report_dir="vulnscan-reports")
-    vulnscan_vulnerabilities, vulnscan_metadata = vulnscan.vulnerabilities()
+    grype = grype(image=image, report_dir="grype-reports")
+    grype_vulnerabilities, grype_metadata = grype.vulnerabilities()
 
-    if len(vulnscan_vulnerabilities) == 0 and len(inline_vulnerabilities) == 0:
+    if len(grype_vulnerabilities) == 0 and len(inline_vulnerabilities) == 0:
         print("nobody found any vulnerabilities")
         return 0
 
-    same_vulnerabilities = vulnscan_vulnerabilities & inline_vulnerabilities
+    same_vulnerabilities = grype_vulnerabilities & inline_vulnerabilities
     percent_overlap_vulnerabilities = (
         float(len(same_vulnerabilities)) / float(len(inline_vulnerabilities))
     ) * 100.0
 
-    bonus_vulnerabilities = vulnscan_vulnerabilities - inline_vulnerabilities
-    missing_pacakges = inline_vulnerabilities - vulnscan_vulnerabilities
+    bonus_vulnerabilities = grype_vulnerabilities - inline_vulnerabilities
+    missing_pacakges = inline_vulnerabilities - grype_vulnerabilities
 
     inline_metadata_set = set()
     for vulnerability in inline_vulnerabilities:
         metadata = inline_metadata[vulnerability.package.type][vulnerability.package]
         inline_metadata_set.add((vulnerability.package, metadata))
 
-    vulnscan_metadata_set = set()
-    for vulnerability in vulnscan_vulnerabilities:
-        metadata = vulnscan_metadata[vulnerability.package.type][vulnerability.package]
-        vulnscan_metadata_set.add((vulnerability.package, metadata))
+    grype_metadata_set = set()
+    for vulnerability in grype_vulnerabilities:
+        metadata = grype_metadata[vulnerability.package.type][vulnerability.package]
+        grype_metadata_set.add((vulnerability.package, metadata))
 
-    same_metadata = vulnscan_metadata_set & inline_metadata_set
+    same_metadata = grype_metadata_set & inline_metadata_set
     percent_overlap_metadata = (
         float(len(same_metadata)) / float(len(inline_metadata_set))
     ) * 100.0
 
     if len(bonus_vulnerabilities) > 0:
-        print("Vulnscan Bonus vulnerability:")
+        print("grype Bonus vulnerability:")
         for vulnerability in sorted(list(bonus_vulnerabilities)):
             print("    " + repr(vulnerability))
         print()
 
     if len(missing_pacakges) > 0:
-        print("Vulnscan Missing vulnerability:")
+        print("grype Missing vulnerability:")
         for vulnerability in sorted(list(missing_pacakges)):
             print("    " + repr(vulnerability))
         print()
 
     print("Inline Packages  : %d" % len(inline_vulnerabilities))
-    print("Vulnscan Packages: %d" % len(vulnscan_vulnerabilities))
+    print("grype Packages: %d" % len(grype_vulnerabilities))
     print()
     print(
         "Baseline Vulnerabilities Matched: %2.3f %% (%d/%d vulnerability)"

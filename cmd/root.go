@@ -5,11 +5,11 @@ import (
 	"os"
 	"runtime/pprof"
 
+	"github.com/anchore/grype/grype"
+	"github.com/anchore/grype/grype/presenter"
+	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/format"
 	"github.com/anchore/syft/syft/scope"
-	"github.com/anchore/vulnscan/internal"
-	"github.com/anchore/vulnscan/internal/format"
-	"github.com/anchore/vulnscan/vulnscan"
-	"github.com/anchore/vulnscan/vulnscan/presenter"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -80,12 +80,12 @@ func init() {
 func runDefaultCmd(_ *cobra.Command, args []string) error {
 	userImageStr := args[0]
 
-	provider, err := vulnscan.LoadVulnerabilityDb(appConfig.Db.ToCuratorConfig(), appConfig.Db.AutoUpdate)
+	provider, err := grype.LoadVulnerabilityDb(appConfig.Db.ToCuratorConfig(), appConfig.Db.AutoUpdate)
 	if err != nil {
 		return fmt.Errorf("failed to load vulnerability db: %w", err)
 	}
 
-	results, catalog, _, err := vulnscan.FindVulnerabilities(provider, userImageStr, appConfig.ScopeOpt)
+	results, catalog, _, err := grype.FindVulnerabilities(provider, userImageStr, appConfig.ScopeOpt)
 	if err != nil {
 		return fmt.Errorf("failed to find vulnerabilities: %w", err)
 	}

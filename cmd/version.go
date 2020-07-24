@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/anchore/vulnscan/internal"
-	"github.com/anchore/vulnscan/internal/version"
+	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/version"
 	"github.com/spf13/cobra"
 )
 

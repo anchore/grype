@@ -1,4 +1,4 @@
-module github.com/anchore/vulnscan
+module github.com/anchore/grype
 
 go 1.14
 

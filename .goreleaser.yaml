@@ -1,5 +1,5 @@
 builds:
-  - binary: vulnscan
+  - binary: grype
     env:
       - CGO_ENABLED=0
     goos:
@@ -15,15 +15,15 @@ builds:
       -w
       -s
       -extldflags '-static'
-      -X github.com/anchore/vulnscan/internal/version.version={{.Version}}
-      -X github.com/anchore/vulnscan/internal/version.gitCommit={{.Commit}}
-      -X github.com/anchore/vulnscan/internal/version.buildDate={{.Date}}
-      -X github.com/anchore/vulnscan/internal/version.gitTreeState={{.Env.BUILD_GIT_TREE_STATE}}
+      -X github.com/anchore/grype/internal/version.version={{.Version}}
+      -X github.com/anchore/grype/internal/version.gitCommit={{.Commit}}
+      -X github.com/anchore/grype/internal/version.buildDate={{.Date}}
+      -X github.com/anchore/grype/internal/version.gitTreeState={{.Env.BUILD_GIT_TREE_STATE}}
 
 nfpms:
   - license: "Apache 2.0"
     maintainer: "Anchore, Inc"
-    homepage: &website "https://github.com/anchore/vulnscan"
+    homepage: &website "https://github.com/anchore/grype"
     description: &description "A vulnerability scanner for container images and filesystems"
     formats:
       - rpm
@@ -32,7 +32,7 @@ nfpms:
 brews:
   - tap:
       owner: anchore
-      name: homebrew-vulnscan
+      name: homebrew-grype
     homepage: *website
     description: *description
 
