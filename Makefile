@@ -104,7 +104,7 @@ check-licenses:
 unit: ## Run unit tests (with coverage)
 	$(call title,Running unit tests)
 	mkdir -p $(RESULTSDIR)
-	go test -v -coverprofile $(COVER_REPORT) ./...
+	go test -coverprofile $(COVER_REPORT) ./...
 	@go tool cover -func $(COVER_REPORT) | grep total |  awk '{print substr($$3, 1, length($$3)-1)}' > $(COVER_TOTAL)
 	@echo "Coverage: $$(cat $(COVER_TOTAL))"
 	@if [ $$(echo "$$(cat $(COVER_TOTAL)) >= $(COVERAGE_THRESHOLD)" | bc -l) -ne 1 ]; then echo "$(RED)$(BOLD)Failed coverage quality gate (> $(COVERAGE_THRESHOLD)%)$(RESET)" && false; fi

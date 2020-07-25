@@ -1,7 +1,6 @@
 package table
 
 import (
-	"fmt"
 	"io"
 	"sort"
 
@@ -28,7 +27,7 @@ func (pres *Presenter) Present(output io.Writer, catalog *pkg.Catalog, results r
 			p.Package.Name,
 			p.Package.Version,
 			p.Vulnerability.ID,
-			fmt.Sprintf("%s %s", p.Matcher.String(), p.SearchKey),
+			p.SearchKey,
 		}
 		rows = append(rows, row)
 	}
