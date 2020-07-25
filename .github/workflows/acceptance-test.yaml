@@ -1,0 +1,71 @@
+name: 'Acceptance'
+on:
+  push:
+    # ... only act on pushes to master
+    branches:
+      - master
+    # ... do not act on release tags
+    tags-ignore:
+      - v*
+env:
+  GO_VERSION: "1.14.x"
+jobs:
+  # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
+  Build-Snapshot-Artifacts:
+    runs-on: ubuntu-latest
+    steps:
+
+      # TODO: remove me after release
+      - name: Configure git for private modules
+        env:
+          TOKEN: ${{ secrets.ANCHORE_GIT_READ_TOKEN }}
+        run: git config --global url."https://anchore:${TOKEN}@github.com".insteadOf "https://github.com"
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - uses: actions/checkout@v2
+
+      - name: Restore bootstrap cache
+        id: cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/go/pkg/mod
+            ${{ github.workspace }}/.tmp
+          key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('Makefile') }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-
+            ${{ runner.os }}-go-${{ env.GO_VERSION }}-
+
+      - name: Bootstrap dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: make ci-bootstrap
+
+      - name: Import GPG key
+        id: import_gpg
+        uses: crazy-max/ghaction-import-gpg@v2
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.SIGNING_GPG_PRIVATE_KEY }}
+          PASSPHRASE: ${{ secrets.SIGNING_GPG_PASSPHRASE }}
+
+      - name: GPG signing info
+        run: |
+          echo "fingerprint: ${{ steps.import_gpg.outputs.fingerprint }}"
+          echo "keyid:       ${{ steps.import_gpg.outputs.keyid }}"
+          echo "name:        ${{ steps.import_gpg.outputs.name }}"
+          echo "email:       ${{ steps.import_gpg.outputs.email }}"
+
+      - name: Build snapshot artifacts
+        run: make snapshot
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.SIGNING_GPG_PRIVATE_KEY }}
+          PASSPHRASE: ${{ secrets.SIGNING_GPG_PASSPHRASE }}
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: artifacts
+          path: snapshot/**/*
+
+# TODO: currently we only do a snapshot build, later we will add explicit acceptance tests per-platform
