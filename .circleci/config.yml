@@ -32,7 +32,7 @@ jobs:
 
       - run:
           name: run static analysis
-          command: make lint
+          command: make static-analysis
 
   run-tests:
     parameters:

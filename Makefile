@@ -46,9 +46,8 @@ define title
     @printf '$(TITLE)$(1)$(RESET)\n'
 endef
 
-.PHONY: all bootstrap lint lint-fix unit coverage integration check-pipeline clear-cache help test
-
-all: clean lint check-licenses test ## Run all checks (linting, license check, unit, integration, and linux acceptance tests tests)
+.PHONY: all
+all: clean static-analysis test ## Run all checks (linting, license check, unit, integration, and linux acceptance tests tests)
 	@printf '$(SUCCESS)All checks pass!$(RESET)\n'
 
 .PHONY: compare
@@ -77,6 +76,9 @@ bootstrap: ## Download and install all go dependencies (+ prep tooling in the ./
 	[ -f "$(TEMPDIR)/golangci" ] || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(TEMPDIR)/ v1.26.0
 	[ -f "$(TEMPDIR)/bouncer" ] || curl -sSfL https://raw.githubusercontent.com/wagoodman/go-bouncer/master/bouncer.sh | sh -s -- -b $(TEMPDIR)/ v0.1.0
 	[ -f "$(TEMPDIR)/goreleaser" ] || curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | sh -s -- -b $(TEMPDIR)/ v0.140.0
+
+.PHONY: static-analysis
+static-analysis: lint check-licenses
 
 .PHONY: lint
 lint: ## Run gofmt + golangci lint checks
