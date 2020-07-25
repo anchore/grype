@@ -67,8 +67,7 @@ func setNonCliDefaultValues(v *viper.Viper) {
 	v.SetDefault("db.cache-dir", path.Join(xdg.CacheHome, internal.ApplicationName, "db"))
 	// TODO: change me to the production URL before release
 	v.SetDefault("db.update-url", "http://localhost:5000/listing.json")
-	// TODO: set this to true before release
-	v.SetDefault("db.auto-update", false)
+	v.SetDefault("db.auto-update", true)
 	v.SetDefault("dev.profile-cpu", false)
 	v.SetDefault("check-for-app-update", true)
 }

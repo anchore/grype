@@ -6,7 +6,6 @@ import (
 	"os"
 	"path"
 
-	"github.com/anchore/go-version"
 	"github.com/anchore/grype-db/pkg/curation"
 	"github.com/anchore/grype-db/pkg/db"
 	"github.com/anchore/grype-db/pkg/store/sqlite/reader"
@@ -25,23 +24,18 @@ type Config struct {
 }
 
 type Curator struct {
-	fs                afero.Fs
-	config            Config
-	client            file.Getter
-	versionConstraint version.Constraints
+	fs           afero.Fs
+	config       Config
+	client       file.Getter
+	targetSchema int
 }
 
 func NewCurator(cfg Config) (Curator, error) {
-	constraint, err := version.NewConstraint(DbSchemaConstraint)
-	if err != nil {
-		return Curator{}, fmt.Errorf("unable to set DB curator version constraint (%s): %w", DbSchemaConstraint, err)
-	}
-
 	return Curator{
-		config:            cfg,
-		fs:                afero.NewOsFs(),
-		versionConstraint: constraint,
-		client:            &file.HashiGoGetter{},
+		config:       cfg,
+		fs:           afero.NewOsFs(),
+		targetSchema: db.SchemaVersion,
+		client:       &file.HashiGoGetter{},
 	}, nil
 }
 
@@ -71,11 +65,11 @@ func (c *Curator) Status() Status {
 	}
 
 	return Status{
-		Age:              metadata.Built,
-		SchemaVersion:    metadata.Version.String(),
-		SchemaConstraint: DbSchemaConstraint,
-		Location:         c.config.DbDir,
-		Err:              err,
+		Age:                   metadata.Built,
+		CurrentSchemaVersion:  metadata.Version,
+		RequiredSchemeVersion: db.SchemaVersion,
+		Location:              c.config.DbDir,
+		Err:                   err,
 	}
 }
 
@@ -88,10 +82,10 @@ func (c *Curator) IsUpdateAvailable() (bool, *curation.ListingEntry, error) {
 
 	listing, err := curation.NewListingFromURL(c.fs, c.client, c.config.ListingURL)
 	if err != nil {
-		return false, nil, fmt.Errorf("failed to get listing file: %w", err)
+		return false, nil, err
 	}
 
-	updateEntry := listing.BestUpdate(c.versionConstraint)
+	updateEntry := listing.BestUpdate(c.targetSchema)
 	if updateEntry == nil {
 		return false, nil, fmt.Errorf("no db candidates with correct version available (maybe there is an application update available?)")
 	}
@@ -103,7 +97,7 @@ func (c *Curator) IsUpdateAvailable() (bool, *curation.ListingEntry, error) {
 		return false, nil, fmt.Errorf("current metadata corrupt: %w", err)
 	}
 
-	if current.IsSupercededBy(updateEntry) {
+	if current.IsSupersededBy(updateEntry) {
 		log.Debugf("database update available: %s", updateEntry)
 		return true, updateEntry, nil
 	}
@@ -216,8 +210,8 @@ func (c *Curator) validate(dbDirPath string) error {
 		return fmt.Errorf("bad db checksum (%s): %q vs %q", dbPath, metadata.Checksum, actualHash)
 	}
 
-	if !c.versionConstraint.Check(metadata.Version) {
-		return fmt.Errorf("unsupported database version: version=%s constraint=%s", metadata.Version.String(), c.versionConstraint.String())
+	if c.targetSchema != metadata.Version {
+		return fmt.Errorf("unsupported database version: have=%d want=%d", metadata.Version, c.targetSchema)
 	}
 
 	// TODO: add version checks here to ensure this version of the application can use this database version (relative to what the DB says, not JUST the metadata!)

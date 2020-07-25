@@ -31,8 +31,8 @@ func runDbStatusCmd(_ *cobra.Command, _ []string) int {
 	status := dbCurator.Status()
 	fmt.Println("Location: ", status.Location)
 	fmt.Println("Built: ", status.Age.String())
-	fmt.Println("Version: ", status.SchemaVersion)
-	fmt.Println("Constraint: ", status.SchemaConstraint)
+	fmt.Println("Current DB Version: ", status.CurrentSchemaVersion)
+	fmt.Println("Require DB Version: ", status.RequiredSchemeVersion)
 	if status.Err != nil {
 		fmt.Printf("Status: INVALID [%+v]\n", status.Err)
 	} else {
