@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anchore/go-version"
 	"github.com/anchore/grype-db/pkg/curation"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/file"
@@ -59,6 +58,9 @@ func newTestCurator(fs afero.Fs, getter file.Getter, dbDir, metadataUrl string) 
 		DbDir:      dbDir,
 		ListingURL: metadataUrl,
 	})
+	if err != nil {
+		return Curator{}, err
+	}
 
 	c.client = getter
 	c.fs = fs
@@ -126,38 +128,32 @@ func TestCuratorValidate(t *testing.T) {
 	tests := []struct {
 		name       string
 		fixture    string
-		constraint string
+		constraint int
 		err        bool
 	}{
 		{
 			name:       "good checksum & good constraint",
 			fixture:    "test-fixtures/curator-validate/good-checksum",
-			constraint: ">=1.0.0, <2.0.0",
+			constraint: 1,
 			err:        false,
 		},
 		{
 			name:       "good checksum & bad constraint",
 			fixture:    "test-fixtures/curator-validate/good-checksum",
-			constraint: ">=0.0.0, <1.0.0",
+			constraint: 2,
 			err:        true,
 		},
 		{
 			name:       "bad checksum & good constraint",
 			fixture:    "test-fixtures/curator-validate/bad-checksum",
-			constraint: ">=1.0.0, <2.0.0",
+			constraint: 1,
 			err:        true,
 		},
 		{
 			name:       "bad checksum & bad constraint",
 			fixture:    "test-fixtures/curator-validate/bad-checksum",
-			constraint: ">=0.0.0, <1.0.0",
+			constraint: 2,
 			err:        true,
-		},
-		{
-			name:       "allow equal version",
-			fixture:    "test-fixtures/curator-validate/good-checksum",
-			constraint: ">=1.1.0",
-			err:        false,
 		},
 	}
 
@@ -172,11 +168,7 @@ func TestCuratorValidate(t *testing.T) {
 				t.Fatalf("failed making curator: %+v", err)
 			}
 
-			constraint, err := version.NewConstraint(test.constraint)
-			if err != nil {
-				t.Errorf("unable to set DB curator version constraint (%s): %w", test.constraint, err)
-			}
-			cur.versionConstraint = constraint
+			cur.targetSchema = test.constraint
 
 			err = cur.validate(test.fixture)
 

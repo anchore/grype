@@ -55,14 +55,17 @@ func LoadVulnerabilityDb(cfg db.Config, update bool) (vulnerability.Provider, er
 	if update {
 		updateAvailable, updateEntry, err := dbCurator.IsUpdateAvailable()
 		if err != nil {
-			// TODO: should this be so fatal? we can certainly continue with a warning...
-			return nil, fmt.Errorf("unable to check for vulnerability database update: %w", err)
+			// we want to continue if possible even if we can't check for an update
+			log.Errorf("unable to check for vulnerability database update")
+			log.Debugf("check for vulnerability update failed: %+v", err)
 		}
 		if updateAvailable {
+			log.Infof("Downloading new vulnerability DB")
 			err = dbCurator.UpdateTo(updateEntry)
 			if err != nil {
 				return nil, fmt.Errorf("unable to update vulnerability database: %w", err)
 			}
+			log.Infof("Updated vulnerability DB to version=%d built=%q", updateEntry.Version, updateEntry.Built.String())
 		}
 	}
 
