@@ -12,8 +12,8 @@ jobs:
           # work around for recent circle CI breaking change
           # Error: "Error response from daemon: client version 1.39 is too new. Maximum supported API version is 1.38"
           DOCKER_API_VERSION: "1.38"
-    # 1CPU / 2GB RAM
-    resource_class: small
+    # 2CPU / 4GB RAM
+    resource_class: medium
     steps:
 
       - checkout
@@ -45,8 +45,8 @@ jobs:
           # work around for recent circle CI breaking change
           # Error: "Error response from daemon: client version 1.39 is too new. Maximum supported API version is 1.38"
           DOCKER_API_VERSION: "1.38"
-    # 1CPU / 2GB RAM
-    resource_class: small
+    # 2CPU / 4GB RAM
+    resource_class: medium
     steps:
 
       - checkout
