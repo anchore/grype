@@ -49,6 +49,7 @@ jobs:
           false
 
   release:
+    needs: [ wait-for-checks ]
     runs-on: ubuntu-latest
     steps:
 
