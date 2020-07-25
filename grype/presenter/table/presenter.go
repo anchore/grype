@@ -51,14 +51,26 @@ func (pres *Presenter) Present(output io.Writer, catalog *pkg.Catalog, results r
 	table := tablewriter.NewWriter(output)
 
 	table.SetHeader(columns)
-	table.SetAutoMergeCells(true)
-	table.SetRowLine(true)
 	table.SetAutoWrapText(false)
-	table.SetCenterSeparator("·") // + ┼ ╎  ┆ ┊ · •
-	table.SetColumnSeparator("│")
-	table.SetRowSeparator("─")
 	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
 	table.SetAlignment(tablewriter.ALIGN_LEFT)
+
+	// these options allow for a more greppable table
+	table.SetHeaderLine(false)
+	table.SetBorder(false)
+	table.SetAutoFormatHeaders(true)
+	table.SetCenterSeparator("")
+	table.SetColumnSeparator("")
+	table.SetRowSeparator("")
+	table.SetTablePadding("  ")
+	table.SetNoWhiteSpace(true)
+
+	// these options allow for a more human-readable (but not greppable) table
+	//table.SetRowLine(true)
+	//table.SetAutoMergeCells(true)
+	//table.SetCenterSeparator("·") // + ┼ ╎  ┆ ┊ · •
+	//table.SetColumnSeparator("│")
+	//table.SetRowSeparator("─")
 
 	table.AppendBulk(rows)
 	table.Render()
