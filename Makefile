@@ -48,7 +48,7 @@ endef
 
 .PHONY: all bootstrap lint lint-fix unit coverage integration check-pipeline clear-cache help test
 
-all: clean lint check-licenses test ## Run all checks (linting, license check, unit, and integration tests)
+all: clean lint check-licenses test ## Run all checks (linting, license check, unit, integration, and linux acceptance tests tests)
 	@printf '$(SUCCESS)All checks pass!$(RESET)\n'
 
 .PHONY: compare
@@ -56,7 +56,7 @@ compare:
 	@cd test/inline-compare && make
 
 .PHONY: test
-test: unit integration ## Run all tests (currently unit & integration tests )
+test: unit integration acceptance-linux ## Run all tests (unit, integration, and linux acceptance tests )
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(BOLD)$(CYAN)%-25s$(RESET)%s\n", $$1, $$2}'
@@ -141,6 +141,9 @@ $(SNAPSHOTDIR): ## Build snapshot release binaries and packages
 	BUILD_GIT_TREE_STATE=$(GITTREESTATE) \
 	$(TEMPDIR)/goreleaser release --skip-publish --rm-dist --snapshot --config $(TEMPDIR)/goreleaser.yaml
 
+.PHONY: acceptance-linux
+acceptance-linux: $(SNAPSHOTDIR) ## Run acceptance tests on build snapshot binaries and packages (Linux)
+
 # TODO: this is not releasing yet
 .PHONY: release
 release: clean-dist ## Build and publish final binaries and packages
@@ -151,18 +154,21 @@ release: clean-dist ## Build and publish final binaries and packages
 
 	# release
 	BUILD_GIT_TREE_STATE=$(GITTREESTATE) \
-	$(TEMPDIR)/goreleaser --skip-publish --rm-dist --config $(TEMPDIR)/goreleaser.yaml
+	$(TEMPDIR)/goreleaser --rm-dist --config $(TEMPDIR)/goreleaser.yaml
+
+	# verify checksum signatures
+	.github/scripts/verify-signature.sh "$(DISTDIR)"
 
 	# create a version file for version-update checks
 	echo "$(VERSION)" > $(DISTDIR)/VERSION
 	# TODO: add upload to bucket
 
 .PHONY: clean
-clean: clean-dist clean-shapshot  ## Remove previous builds and result reports
+clean: clean-dist clean-snapshot  ## Remove previous builds and result reports
 	rm -rf $(RESULTSDIR)/*
 
-.PHONY: clean-shapshot
-clean-shapshot:
+.PHONY: clean-snapshot
+clean-snapshot:
 	rm -rf $(SNAPSHOTDIR) $(TEMPDIR)/goreleaser.yaml
 
 .PHONY: clean-dist

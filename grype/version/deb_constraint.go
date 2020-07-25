@@ -1,23 +1,10 @@
 package version
 
-import (
-	"fmt"
-
-	deb "github.com/knqyf263/go-deb-version"
-)
-
-func newDebVersion(raw string) (*deb.Version, error) {
-	ver, err := deb.NewVersion(raw)
-	if err != nil {
-		return nil, err
-	}
-	return &ver, nil
-}
+import "fmt"
 
 type debConstraint struct {
-	raw         string
-	versions    []*deb.Version
-	constraints []constraintPart
+	raw        string
+	expression constraintExpression
 }
 
 func newDebConstraint(raw string) (debConstraint, error) {
@@ -26,24 +13,22 @@ func newDebConstraint(raw string) (debConstraint, error) {
 		return debConstraint{}, nil
 	}
 
-	constraints, err := splitConstraintPhrase(raw)
+	constraints, err := newConstraintExpression(raw, newDebComparator)
 	if err != nil {
 		return debConstraint{}, fmt.Errorf("unable to parse deb constraint phrase: %w", err)
 	}
-	versions := make([]*deb.Version, len(constraints))
-
-	for idx, c := range constraints {
-		ver, err := newDebVersion(c.version)
-		if err != nil {
-			return debConstraint{}, fmt.Errorf("unable to parse constraint version (%s): %w", c.version, err)
-		}
-		versions[idx] = ver
-	}
 	return debConstraint{
-		raw:         raw,
-		versions:    versions,
-		constraints: constraints,
+		raw:        raw,
+		expression: constraints,
 	}, nil
+}
+
+func newDebComparator(unit constraintUnit) (Comparator, error) {
+	ver, err := newDebVersion(unit.version)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse constraint version (%s): %w", unit.version, err)
+	}
+	return ver, nil
 }
 
 func (c debConstraint) supported(format Format) bool {
@@ -70,13 +55,7 @@ func (c debConstraint) Satisfied(version *Version) (bool, error) {
 		return false, fmt.Errorf("no rich deb version given: %+v", version)
 	}
 
-	var result = true
-	for idx, constraint := range c.constraints {
-		ver := c.versions[idx]
-		result = result && constraint.Satisfied(version.rich.debVer.Compare(*ver))
-	}
-
-	return result, nil
+	return c.expression.Satisfied(version), nil
 }
 
 func (c debConstraint) String() string {

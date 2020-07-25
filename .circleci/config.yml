@@ -89,15 +89,15 @@ jobs:
 
       - restore_cache:
           keys:
-            - integration-test-tar-cache-{{ checksum "integration/test-fixtures/tar-cache.fingerprint" }}
+            - integration-test-tar-cache-{{ checksum "test/integration/test-fixtures/tar-cache.fingerprint" }}
       - run:
           name: run integration tests
           command: make integration
 
       - save_cache:
-          key: integration-test-tar-cache-{{ checksum "integration/test-fixtures/tar-cache.fingerprint" }}
+          key: integration-test-tar-cache-{{ checksum "test/integration/test-fixtures/tar-cache.fingerprint" }}
           paths:
-            - "integration/test-fixtures/tar-cache"
+            - "test/integration/test-fixtures/tar-cache"
 
 workflows:
   "Static Analysis + Unit + Integration":

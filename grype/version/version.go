@@ -3,10 +3,8 @@ package version
 import (
 	"fmt"
 
-	hashiVer "github.com/anchore/go-version"
 	"github.com/anchore/grype/grype/cpe"
 	"github.com/anchore/syft/syft/pkg"
-	deb "github.com/knqyf263/go-deb-version"
 )
 
 type Version struct {
@@ -17,8 +15,8 @@ type Version struct {
 
 type rich struct {
 	cpeVers []cpe.CPE
-	semVer  *hashiVer.Version
-	debVer  *deb.Version
+	semVer  *semanticVersion
+	debVer  *debVersion
 	rpmVer  *rpmVersion
 }
 
