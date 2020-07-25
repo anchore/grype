@@ -8,103 +8,103 @@ import (
 func TestSplitFuzzyPhrase(t *testing.T) {
 	tests := []struct {
 		phrase   string
-		expected []constraintPart
+		expected []constraintUnit
 		err      bool
 	}{
 		{
 			phrase:   "",
-			expected: []constraintPart{},
+			expected: []constraintUnit{},
 		},
 		{
 			phrase: "= something",
-			expected: []constraintPart{
+			expected: []constraintUnit{
 				{
-					operator: EQ,
-					version:  "something",
+					rangeOperator: EQ,
+					version:       "something",
 				},
 			},
 		},
 		{
 			phrase: "something",
-			expected: []constraintPart{
+			expected: []constraintUnit{
 				{
-					operator: EQ,
-					version:  "something",
+					rangeOperator: EQ,
+					version:       "something",
 				},
 			},
 		},
 		{
 			phrase: "> something",
-			expected: []constraintPart{
+			expected: []constraintUnit{
 				{
-					operator: GT,
-					version:  "something",
+					rangeOperator: GT,
+					version:       "something",
 				},
 			},
 		},
 		{
 			phrase: ">= 2.3",
-			expected: []constraintPart{
+			expected: []constraintUnit{
 				{
-					operator: GTE,
-					version:  "2.3",
+					rangeOperator: GTE,
+					version:       "2.3",
 				},
 			},
 		},
 		{
 			phrase: "< 2.3",
-			expected: []constraintPart{
+			expected: []constraintUnit{
 				{
-					operator: LT,
-					version:  "2.3",
+					rangeOperator: LT,
+					version:       "2.3",
 				},
 			},
 		},
 		{
 			phrase: "<= 2.3",
-			expected: []constraintPart{
+			expected: []constraintUnit{
 				{
-					operator: LTE,
-					version:  "2.3",
+					rangeOperator: LTE,
+					version:       "2.3",
 				},
 			},
 		},
 		{
 			phrase: ">= 1.0, <= 2.3",
-			expected: []constraintPart{
+			expected: []constraintUnit{
 				{
-					operator: GTE,
-					version:  "1.0",
+					rangeOperator: GTE,
+					version:       "1.0",
 				},
 				{
-					operator: LTE,
-					version:  "2.3",
+					rangeOperator: LTE,
+					version:       "2.3",
 				},
 			},
 		},
 		{
 			phrase: "  >=   1.0 ,   <=   2.3  ",
-			expected: []constraintPart{
+			expected: []constraintUnit{
 				{
-					operator: GTE,
-					version:  "1.0",
+					rangeOperator: GTE,
+					version:       "1.0",
 				},
 				{
-					operator: LTE,
-					version:  "2.3",
+					rangeOperator: LTE,
+					version:       "2.3",
 				},
 			},
 		},
 		{
 			phrase: ">1.0,<2.3",
-			expected: []constraintPart{
+			expected: []constraintUnit{
 				{
-					operator: GT,
-					version:  "1.0",
+					rangeOperator: GT,
+					version:       "1.0",
 				},
 				{
-					operator: LT,
-					version:  "2.3",
+					rangeOperator: LT,
+					version:       "2.3",
 				},
 			},
 		},

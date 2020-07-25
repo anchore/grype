@@ -1,3 +1,13 @@
+release:
+  # If set to auto, will mark the release as not ready for production
+  # in case there is an indicator for this in the tag e.g. v1.0.0-rc1
+  # If set to true, will mark the release as not ready for production.
+  prerelease: auto
+
+signs:
+  - artifacts: checksum
+    args: ["--output", "${signature}", "--detach-sign", "${artifact}"]
+
 builds:
   - binary: grype
     env:
@@ -29,12 +39,13 @@ nfpms:
       - rpm
       - deb
 
-brews:
-  - tap:
-      owner: anchore
-      name: homebrew-grype
-    homepage: *website
-    description: *description
+# TODO: add back in when open sourced
+#brews:
+#  - tap:
+#      owner: anchore
+#      name: homebrew-grype
+#    homepage: *website
+#    description: *description
 
 archives:
   - format: tar.gz

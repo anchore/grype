@@ -5,9 +5,8 @@ import (
 )
 
 type rpmConstraint struct {
-	raw         string
-	versions    []rpmVersion
-	constraints []constraintPart
+	raw        string
+	expression constraintExpression
 }
 
 func newRpmConstraint(raw string) (rpmConstraint, error) {
@@ -16,24 +15,23 @@ func newRpmConstraint(raw string) (rpmConstraint, error) {
 		return rpmConstraint{}, nil
 	}
 
-	constraints, err := splitConstraintPhrase(raw)
+	constraints, err := newConstraintExpression(raw, newRpmComparator)
 	if err != nil {
 		return rpmConstraint{}, fmt.Errorf("unable to parse deb constraint phrase: %w", err)
 	}
-	versions := make([]rpmVersion, len(constraints))
 
-	for idx, c := range constraints {
-		ver, err := newRpmVersion(c.version)
-		if err != nil {
-			return rpmConstraint{}, fmt.Errorf("could not parse constraint version (%s): %w", c.version, err)
-		}
-		versions[idx] = ver
-	}
 	return rpmConstraint{
-		raw:         raw,
-		versions:    versions,
-		constraints: constraints,
+		raw:        raw,
+		expression: constraints,
 	}, nil
+}
+
+func newRpmComparator(unit constraintUnit) (Comparator, error) {
+	ver, err := newRpmVersion(unit.version)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse constraint version (%s): %w", unit.version, err)
+	}
+	return &ver, nil
 }
 
 func (c rpmConstraint) supported(format Format) bool {
@@ -60,13 +58,7 @@ func (c rpmConstraint) Satisfied(version *Version) (bool, error) {
 		return false, fmt.Errorf("no rich rpm version given: %+v", version)
 	}
 
-	var result = true
-	for idx, constraint := range c.constraints {
-		ver := c.versions[idx]
-		result = result && constraint.Satisfied(version.rich.rpmVer.Compare(ver))
-	}
-
-	return result, nil
+	return c.expression.Satisfied(version), nil
 }
 
 func (c rpmConstraint) String() string {

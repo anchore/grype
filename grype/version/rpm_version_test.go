@@ -45,7 +45,7 @@ func TestVersionRpm(t *testing.T) {
 				t.Fatalf("failed to create v2: %+v", err)
 			}
 
-			actual := v1.Compare(v2)
+			actual := v1.compare(v2)
 
 			if actual != test.result {
 				t.Errorf("bad result: %+v (expected: %+v)", actual, test.result)
