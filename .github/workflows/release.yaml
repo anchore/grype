@@ -24,16 +24,16 @@ jobs:
           git merge-base --is-ancestor ${GITHUB_REF##*/} origin/master && echo "${GITHUB_REF##*/} is a commit on master!"
 
       - name: Build snapshot artifacts
-        uses: fountainhead/action-wait-for-check@v1
+        uses: fountainhead/action-wait-for-check@v1.0.0
         id: snapshot
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          # This check name is defined as the circle-ci workflow name (in .circleci/config.yaml)
+          # This check name is defined as the github actions job name (in .github/workflows/acceptance-test.yaml)
           checkName: "Build-Snapshot-Artifacts"
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check static anaylysis, unit, and integration test results
-        uses: fountainhead/action-wait-for-check@v1
+        uses: fountainhead/action-wait-for-check@v1.0.0
         id: sa-unit-int
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
