@@ -9,6 +9,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var showSupportedDbSchema bool
+
 var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "display database status",
@@ -18,6 +20,9 @@ var statusCmd = &cobra.Command{
 }
 
 func init() {
+	// Note: this option cannot change as it supports the nightly DB generation job
+	statusCmd.Flags().BoolVar(&showSupportedDbSchema, "schema", false, "show supported DB schema")
+
 	dbCmd.AddCommand(statusCmd)
 }
 
@@ -29,6 +34,13 @@ func runDbStatusCmd(_ *cobra.Command, _ []string) int {
 	}
 
 	status := dbCurator.Status()
+
+	if showSupportedDbSchema {
+		// Note: the output for this option cannot change as it supports the nightly DB generation job
+		fmt.Println(status.RequiredSchemeVersion)
+		return 0
+	}
+
 	fmt.Println("Location: ", status.Location)
 	fmt.Println("Built: ", status.Age.String())
 	fmt.Println("Current DB Version: ", status.CurrentSchemaVersion)

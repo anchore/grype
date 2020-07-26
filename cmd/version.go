@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/anchore/grype-db/pkg/db"
+
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/version"
 	"github.com/spf13/cobra"
@@ -25,14 +27,15 @@ func init() {
 func printVersion(_ *cobra.Command, _ []string) {
 	versionInfo := version.FromBuild()
 	if showVerboseVersionInfo {
-		fmt.Println("Application:  ", internal.ApplicationName)
-		fmt.Println("Version:      ", versionInfo.Version)
-		fmt.Println("BuildDate:    ", versionInfo.BuildDate)
-		fmt.Println("GitCommit:    ", versionInfo.GitCommit)
-		fmt.Println("GitTreeState: ", versionInfo.GitTreeState)
-		fmt.Println("Platform:     ", versionInfo.Platform)
-		fmt.Println("GoVersion:    ", versionInfo.GoVersion)
-		fmt.Println("Compiler:     ", versionInfo.Compiler)
+		fmt.Println("Application:         ", internal.ApplicationName)
+		fmt.Println("Version:             ", versionInfo.Version)
+		fmt.Println("BuildDate:           ", versionInfo.BuildDate)
+		fmt.Println("GitCommit:           ", versionInfo.GitCommit)
+		fmt.Println("GitTreeState:        ", versionInfo.GitTreeState)
+		fmt.Println("Platform:            ", versionInfo.Platform)
+		fmt.Println("GoVersion:           ", versionInfo.GoVersion)
+		fmt.Println("Compiler:            ", versionInfo.Compiler)
+		fmt.Println("Supported DB Schema: ", db.SchemaVersion)
 	} else {
 		fmt.Printf("%s %s\n", internal.ApplicationName, versionInfo.Version)
 	}
