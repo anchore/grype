@@ -7,15 +7,15 @@ import (
 	"path"
 
 	"github.com/anchore/grype-db/pkg/curation"
-	"github.com/anchore/grype-db/pkg/db"
-	"github.com/anchore/grype-db/pkg/store/sqlite/reader"
+	v1 "github.com/anchore/grype-db/pkg/db/v1"
+	"github.com/anchore/grype-db/pkg/db/v1/reader"
 	"github.com/anchore/grype/internal/file"
 	"github.com/anchore/grype/internal/log"
 	"github.com/spf13/afero"
 )
 
 const (
-	FileName = db.VulnerabilityStoreFileName
+	FileName = v1.VulnerabilityStoreFileName
 )
 
 type Config struct {
@@ -34,12 +34,12 @@ func NewCurator(cfg Config) (Curator, error) {
 	return Curator{
 		config:       cfg,
 		fs:           afero.NewOsFs(),
-		targetSchema: db.SchemaVersion,
+		targetSchema: v1.SchemaVersion,
 		client:       &file.HashiGoGetter{},
 	}, nil
 }
 
-func (c *Curator) GetStore() (db.VulnerabilityStoreReader, error) {
+func (c *Curator) GetStore() (v1.VulnerabilityStoreReader, error) {
 	// ensure the DB is ok
 	err := c.Validate()
 	if err != nil {
@@ -67,7 +67,7 @@ func (c *Curator) Status() Status {
 	return Status{
 		Age:                   metadata.Built,
 		CurrentSchemaVersion:  metadata.Version,
-		RequiredSchemeVersion: db.SchemaVersion,
+		RequiredSchemeVersion: v1.SchemaVersion,
 		Location:              c.config.DbDir,
 		Err:                   err,
 	}
