@@ -3,8 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/anchore/grype-db/pkg/db"
-
+	v1 "github.com/anchore/grype-db/pkg/db/v1"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/version"
 	"github.com/spf13/cobra"
@@ -35,7 +34,7 @@ func printVersion(_ *cobra.Command, _ []string) {
 		fmt.Println("Platform:            ", versionInfo.Platform)
 		fmt.Println("GoVersion:           ", versionInfo.GoVersion)
 		fmt.Println("Compiler:            ", versionInfo.Compiler)
-		fmt.Println("Supported DB Schema: ", db.SchemaVersion)
+		fmt.Println("Supported DB Schema: ", v1.SchemaVersion)
 	} else {
 		fmt.Printf("%s %s\n", internal.ApplicationName, versionInfo.Version)
 	}

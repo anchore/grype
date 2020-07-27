@@ -6,7 +6,7 @@ require (
 	github.com/adrg/xdg v0.2.1
 	github.com/anchore/go-testutils v0.0.0-20200624184116-66aa578126db
 	github.com/anchore/go-version v1.2.2-0.20200701162849-18adb9c92b9b
-	github.com/anchore/grype-db v0.0.0-20200725230023-ff38124c1f49
+	github.com/anchore/grype-db v0.0.0-20200727124815-9139f1175e84
 	github.com/anchore/syft v0.0.0-20200724122256-9ec5da24dd28
 	github.com/facebookincubator/nvdtools v0.1.4-0.20200622182922-aed862a62ae6
 	github.com/go-test/deep v1.0.7

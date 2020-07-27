@@ -1,21 +1,21 @@
 package integration
 
 import (
-	"github.com/anchore/grype-db/pkg/db"
+	v1 "github.com/anchore/grype-db/pkg/db/v1"
 )
 
 // integrity check
-var _ db.VulnerabilityStoreReader = &mockStore{}
+var _ v1.VulnerabilityStoreReader = &mockStore{}
 
 type mockStore struct {
-	backend map[string]map[string][]db.Vulnerability
+	backend map[string]map[string][]v1.Vulnerability
 }
 
 func NewMockDbStore() *mockStore {
 	return &mockStore{
-		backend: map[string]map[string][]db.Vulnerability{
+		backend: map[string]map[string][]v1.Vulnerability{
 			"github:npm": {
-				"validator": []db.Vulnerability{
+				"validator": []v1.Vulnerability{
 					{
 						ID:                "CVE-javascript-validator",
 						VersionConstraint: "< 3.2.1",
@@ -24,7 +24,7 @@ func NewMockDbStore() *mockStore {
 				},
 			},
 			"github:python": {
-				"Pygments": []db.Vulnerability{
+				"Pygments": []v1.Vulnerability{
 					{
 						ID:                "CVE-python-pygments",
 						VersionConstraint: "< 2.6.2",
@@ -33,7 +33,7 @@ func NewMockDbStore() *mockStore {
 				},
 			},
 			"github:gem": {
-				"rails": []db.Vulnerability{
+				"rails": []v1.Vulnerability{
 					{
 						ID:                "CVE-ruby-activerecord",
 						VersionConstraint: "> 4.0.0, <= 4.1.1",
@@ -42,7 +42,7 @@ func NewMockDbStore() *mockStore {
 				},
 			},
 			"github:java": {
-				"org.anchore:example-java-app-maven": []db.Vulnerability{
+				"org.anchore:example-java-app-maven": []v1.Vulnerability{
 					{
 						ID:                "CVE-java-example-java-app",
 						VersionConstraint: ">= 0.0.1, < 1.2.0",
@@ -51,7 +51,7 @@ func NewMockDbStore() *mockStore {
 				},
 			},
 			"debian:8": {
-				"apt-dev": []db.Vulnerability{
+				"apt-dev": []v1.Vulnerability{
 					{
 						ID:                "CVE-dpkg-apt",
 						VersionConstraint: "<= 1.8.2",
@@ -60,7 +60,7 @@ func NewMockDbStore() *mockStore {
 				},
 			},
 			"rhel:8": {
-				"dive": []db.Vulnerability{
+				"dive": []v1.Vulnerability{
 					{
 						ID:                "CVE-rpmdb-dive",
 						VersionConstraint: "<= 1.0.42",
@@ -72,7 +72,7 @@ func NewMockDbStore() *mockStore {
 	}
 }
 
-func (s *mockStore) GetVulnerability(namespace, name string) ([]db.Vulnerability, error) {
+func (s *mockStore) GetVulnerability(namespace, name string) ([]v1.Vulnerability, error) {
 	namespaceMap := s.backend[namespace]
 	if namespaceMap == nil {
 		return nil, nil
