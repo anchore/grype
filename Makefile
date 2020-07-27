@@ -146,7 +146,6 @@ $(SNAPSHOTDIR): ## Build snapshot release binaries and packages
 .PHONY: acceptance-linux
 acceptance-linux: $(SNAPSHOTDIR) ## Run acceptance tests on build snapshot binaries and packages (Linux)
 
-# TODO: this is not releasing yet
 .PHONY: release
 release: clean-dist ## Build and publish final binaries and packages
 	$(call title,Publishing release artifacts)
@@ -163,7 +162,16 @@ release: clean-dist ## Build and publish final binaries and packages
 
 	# create a version file for version-update checks
 	echo "$(VERSION)" > $(DISTDIR)/VERSION
-	# TODO: add upload to bucket
+
+	# upload the version file that supports the application version update check
+	@docker run --rm \
+		-i \
+		-e AWS_DEFAULT_REGION=us-west-2 \
+		-e AWS_ACCESS_KEY_ID=${TOOLBOX_AWS_ACCESS_KEY_ID} \
+		-e AWS_SECRET_ACCESS_KEY=${TOOLBOX_AWS_SECRET_ACCESS_KEY} \
+		-v $(shell pwd)/$(DISTDIR)/:/distmount \
+		amazon/aws-cli --debug \
+			s3 cp /distmount/VERSION s3://anchore-toolbox/$(BIN)/releases/latest/VERSION
 
 .PHONY: clean
 clean: clean-dist clean-snapshot  ## Remove previous builds and result reports
