@@ -17,9 +17,6 @@ import (
 	"github.com/anchore/syft/syft/scope"
 )
 
-// note: lib name must be a single word, all lowercase
-const LibraryName = "grype"
-
 func FindVulnerabilities(provider vulnerability.Provider, userImageStr string, scopeOpt scope.Option) (result.Result, *pkg.Catalog, *scope.Scope, error) {
 	log.Info("Cataloging image")
 	catalog, theScope, theDistro, err := syft.Catalog(userImageStr, scopeOpt)

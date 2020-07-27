@@ -172,7 +172,7 @@ release: clean-dist ## Build and publish final binaries and packages
 		-e AWS_SECRET_ACCESS_KEY=${TOOLBOX_AWS_SECRET_ACCESS_KEY} \
 		-v $(shell pwd)/$(DISTDIR)/:/distmount \
 		amazon/aws-cli --debug \
-			s3 cp /distmount/VERSION s3://anchore-toolbox/$(BIN)/releases/latest/VERSION
+			s3 cp /distmount/VERSION s3://toolbox-data.anchore.io/$(BIN)/releases/latest/VERSION
 
 .PHONY: clean
 clean: clean-dist clean-snapshot  ## Remove previous builds and result reports

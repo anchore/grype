@@ -1,4 +1,4 @@
 package internal
 
-// note: must be a single word, all lowercase
+// note: do not change this
 const ApplicationName = "grype"

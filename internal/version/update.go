@@ -7,15 +7,15 @@ import (
 	"strings"
 
 	hashiVersion "github.com/anchore/go-version"
+	"github.com/anchore/grype/internal"
 )
 
 var latestAppVersionURL = struct {
 	host string
 	path string
 }{
-	// TODO: set me to release host/path before release
-	host: "https://anchore.io",
-	path: "/grype/releases/latest/VERSION",
+	host: "https://toolbox-data.anchore.io",
+	path: fmt.Sprintf("/%s/releases/latest/VERSION", internal.ApplicationName),
 }
 
 func IsUpdateAvailable() (bool, string, error) {
