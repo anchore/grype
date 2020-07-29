@@ -102,8 +102,8 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.SIGNING_GPG_PRIVATE_KEY }}
           PASSPHRASE: ${{ secrets.SIGNING_GPG_PASSPHRASE }}
           SIGNING_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
-          TOOLBOX_AWS_ACCESS_KEY_ID: ${{ secrets.TOOLBOX_AWS_ACCESS_KEY_ID }}
-          TOOLBOX_AWS_SECRET_ACCESS_KEY: ${{ secrets.TOOLBOX_AWS_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.TOOLBOX_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.TOOLBOX_AWS_SECRET_ACCESS_KEY }}
 
       - uses: actions/upload-artifact@v2
         with:
