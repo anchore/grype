@@ -7,7 +7,7 @@ require (
 	github.com/anchore/go-testutils v0.0.0-20200624184116-66aa578126db
 	github.com/anchore/go-version v1.2.2-0.20200701162849-18adb9c92b9b
 	github.com/anchore/grype-db v0.0.0-20200727124815-9139f1175e84
-	github.com/anchore/syft v0.0.0-20200724122256-9ec5da24dd28
+	github.com/anchore/syft v0.1.0-beta.2.0.20200729152006-bc693829a628
 	github.com/facebookincubator/nvdtools v0.1.4-0.20200622182922-aed862a62ae6
 	github.com/go-test/deep v1.0.7
 	github.com/hashicorp/go-getter v1.4.1
