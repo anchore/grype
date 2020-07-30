@@ -154,26 +154,55 @@ func (c *Curator) ImportFrom(dbArchivePath string) error {
 }
 
 func (c *Curator) UpdateTo(listing *curation.ListingEntry) error {
+	// let consumers know of a monitorable event (download + import stages)
+	importProgress := &progress.Manual{
+		Total: 1,
+	}
+	stage := &progress.Stage{
+		Current: "downloading",
+	}
+	downloadProgress := &progress.Manual{
+		Total: 1,
+	}
+	aggregateProgress := progress.NewAggregator(progress.DefaultStrategy, downloadProgress, importProgress)
+
+	bus.Publish(partybus.Event{
+		Type:   event.UpdateVulnerabilityDatabase,
+		Source: path.Base(listing.URL.Path),
+		Value: progress.StagedProgressable(&struct {
+			progress.Stager
+			progress.Progressable
+		}{
+			Stager:       progress.Stager(stage),
+			Progressable: progress.Progressable(aggregateProgress),
+		}),
+	})
+
 	// note: the temp directory is persisted upon download/validation/activation failure to allow for investigation
-	tempDir, err := c.download(listing)
+	tempDir, err := c.download(listing, downloadProgress)
 	if err != nil {
 		return err
 	}
 
+	stage.Current = "validating"
 	err = c.validate(tempDir)
 	if err != nil {
 		return err
 	}
 
+	stage.Current = "importing"
 	err = c.activate(tempDir)
 	if err != nil {
 		return err
 	}
+	stage.Current = ""
+	importProgress.N = importProgress.Total
+	importProgress.SetCompleted()
 
 	return c.fs.RemoveAll(tempDir)
 }
 
-func (c *Curator) download(listing *curation.ListingEntry) (string, error) {
+func (c *Curator) download(listing *curation.ListingEntry, downloadProgress *progress.Manual) (string, error) {
 	tempDir, err := ioutil.TempDir("", "grype-scratch")
 	if err != nil {
 		return "", fmt.Errorf("unable to create db temp dir: %w", err)
@@ -188,16 +217,8 @@ func (c *Curator) download(listing *curation.ListingEntry) (string, error) {
 	query.Add("checksum", listing.Checksum)
 	url.RawQuery = query.Encode()
 
-	downloadProgress := progress.Manual{
-		Total: 1,
-	}
-	bus.Publish(partybus.Event{
-		Type:  event.DownloadingVulnerabilityDatabase,
-		Value: progress.Progressable(&downloadProgress),
-	})
-
 	// go-getter will automatically extract all files within the archive to the temp dir
-	err = c.downloader.GetToDir(tempDir, listing.URL.String(), &downloadProgress)
+	err = c.downloader.GetToDir(tempDir, listing.URL.String(), downloadProgress)
 	if err != nil {
 		return "", fmt.Errorf("unable to download db: %w", err)
 	}

@@ -49,17 +49,22 @@ func ParseAppUpdateAvailable(e partybus.Event) (string, error) {
 	return newVersion, nil
 }
 
-func ParseDownloadingVulnerabilityDatabase(e partybus.Event) (progress.Progressable, error) {
-	if err := checkEventType(e.Type, event.DownloadingVulnerabilityDatabase); err != nil {
-		return nil, err
+func ParseUpdateVulnerabilityDatabase(e partybus.Event) (string, progress.StagedProgressable, error) {
+	if err := checkEventType(e.Type, event.UpdateVulnerabilityDatabase); err != nil {
+		return "", nil, err
 	}
 
-	monitor, ok := e.Value.(progress.Progressable)
+	dbArchiveName, ok := e.Source.(string)
 	if !ok {
-		return nil, newPayloadErr(e.Type, "Value", e.Value)
+		return "", nil, newPayloadErr(e.Type, "Source", e.Source)
 	}
 
-	return monitor, nil
+	prog, ok := e.Value.(progress.StagedProgressable)
+	if !ok {
+		return "", nil, newPayloadErr(e.Type, "Value", e.Value)
+	}
+
+	return dbArchiveName, prog, nil
 }
 
 func ParseVulnerabilityScanningStarted(e partybus.Event) (*matcher.Monitor, error) {

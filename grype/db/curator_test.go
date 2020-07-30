@@ -95,7 +95,7 @@ func TestCuratorDownload(t *testing.T) {
 			getter := newTestGetter(fs, files, dirs)
 			cur := newTestCurator(fs, getter, "/tmp/dbdir", metadataUrl)
 
-			path, err := cur.download(test.entry)
+			path, err := cur.download(test.entry, &progress.Manual{})
 
 			if !getter.calls.Contains(test.expectedURL) {
 				t.Fatalf("never made the appropriate fetch call: %+v", getter.calls)

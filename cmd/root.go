@@ -4,6 +4,12 @@ import (
 	"fmt"
 	"os"
 	"runtime/pprof"
+	"sync"
+
+	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/syft/syft"
+	"github.com/anchore/syft/syft/distro"
+	"github.com/anchore/syft/syft/pkg"
 
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/event"
@@ -105,17 +111,39 @@ func startWorker(userInput string) <-chan error {
 			}
 		}
 
-		provider, err := grype.LoadVulnerabilityDb(appConfig.Db.ToCuratorConfig(), appConfig.Db.AutoUpdate)
+		var provider vulnerability.Provider
+		var catalog *pkg.Catalog
+		var theDistro *distro.Distro
+		var err error
+		var wg = &sync.WaitGroup{}
+
+		wg.Add(2)
+
+		go func() {
+			defer wg.Done()
+			provider, err = grype.LoadVulnerabilityDb(appConfig.Db.ToCuratorConfig(), appConfig.Db.AutoUpdate)
+			if err != nil {
+				errs <- fmt.Errorf("failed to load vulnerability db: %w", err)
+			}
+		}()
+
+		go func() {
+			defer wg.Done()
+			// TODO: move this log entry to syft
+			log.Info("Cataloging image")
+
+			catalog, _, theDistro, err = syft.Catalog(userInput, appConfig.ScopeOpt)
+			if err != nil {
+				errs <- fmt.Errorf("failed to catalog: %w", err)
+			}
+		}()
+
+		wg.Wait()
 		if err != nil {
-			errs <- fmt.Errorf("failed to load vulnerability db: %w", err)
 			return
 		}
 
-		results, catalog, _, err := grype.FindVulnerabilities(provider, userInput, appConfig.ScopeOpt)
-		if err != nil {
-			errs <- fmt.Errorf("failed to find vulnerabilities: %w", err)
-			return
-		}
+		results := grype.FindVulnerabilitiesForCatalog(provider, *theDistro, catalog)
 
 		bus.Publish(partybus.Event{
 			Type:  event.VulnerabilityScanningFinished,
