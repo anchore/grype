@@ -6,13 +6,17 @@ import (
 	"runtime/pprof"
 
 	"github.com/anchore/grype/grype"
+	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/presenter"
 	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/format"
+	"github.com/anchore/grype/internal/ui"
 	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/syft/syft/scope"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/wagoodman/go-partybus"
 )
 
 var rootCmd = &cobra.Command{
@@ -79,34 +83,53 @@ func init() {
 	}
 }
 
-func runDefaultCmd(_ *cobra.Command, args []string) error {
-	if appConfig.CheckForAppUpdate {
-		isAvailable, newVersion, err := version.IsUpdateAvailable()
+
+func startWorker(userInput string) <-chan error {
+	errs := make(chan error)
+	go func() {
+		defer close(errs)
+
+		if appConfig.CheckForAppUpdate {
+			isAvailable, newVersion, err := version.IsUpdateAvailable()
+			if err != nil {
+				log.Errorf(err.Error())
+			}
+			if isAvailable {
+				log.Infof("New version of %s is available: %s", internal.ApplicationName, newVersion)
+
+				bus.Publish(partybus.Event{
+					Type:  event.AppUpdateAvailable,
+					Value: newVersion,
+				})
+			} else {
+				log.Debugf("No new %s update available", internal.ApplicationName)
+			}
+		}
+
+		provider, err := grype.LoadVulnerabilityDb(appConfig.Db.ToCuratorConfig(), appConfig.Db.AutoUpdate)
 		if err != nil {
-			log.Errorf(err.Error())
+			errs <- fmt.Errorf("failed to load vulnerability db: %w", err)
+			return
 		}
-		if isAvailable {
-			log.Infof("New version of %s is available: %s", internal.ApplicationName, newVersion)
-		} else {
-			log.Debugf("No new %s update available", internal.ApplicationName)
+
+		results, catalog, _, err := grype.FindVulnerabilities(provider, userInput, appConfig.ScopeOpt)
+		if err != nil {
+			errs <- fmt.Errorf("failed to find vulnerabilities: %w", err)
+			return
 		}
-	}
 
-	userImageStr := args[0]
+		bus.Publish(partybus.Event{
+			Type:  event.VulnerabilityScanningFinished,
+			Value: presenter.GetPresenter(appConfig.PresenterOpt, results, catalog),
+		})
 
-	provider, err := grype.LoadVulnerabilityDb(appConfig.Db.ToCuratorConfig(), appConfig.Db.AutoUpdate)
-	if err != nil {
-		return fmt.Errorf("failed to load vulnerability db: %w", err)
-	}
+	}()
+	return errs
+}
 
-	results, catalog, _, err := grype.FindVulnerabilities(provider, userImageStr, appConfig.ScopeOpt)
-	if err != nil {
-		return fmt.Errorf("failed to find vulnerabilities: %w", err)
-	}
-
-	if err = presenter.GetPresenter(appConfig.PresenterOpt).Present(os.Stdout, catalog, results); err != nil {
-		return fmt.Errorf("could not format catalog results: %w", err)
-	}
-
-	return nil
+func runDefaultCmd(_ *cobra.Command, args []string) error {
+	userInput := args[0]
+	errs := startWorker(userInput)
+	ux := ui.Select(appConfig.CliOptions.Verbosity > 0, appConfig.Quiet)
+	return ux(errs, eventSubscription)
 }

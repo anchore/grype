@@ -10,19 +10,25 @@ import (
 )
 
 // Presenter is a generic struct for holding fields needed for reporting
-type Presenter struct{}
+type Presenter struct{
+	results result.Result
+	catalog *pkg.Catalog
+}
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter() *Presenter {
-	return &Presenter{}
+func NewPresenter(results result.Result, catalog *pkg.Catalog) *Presenter {
+	return &Presenter{
+		results: results,
+		catalog: catalog,
+	}
 }
 
 // Present creates a JSON-based reporting
-func (pres *Presenter) Present(output io.Writer, catalog *pkg.Catalog, results result.Result) error {
+func (pres *Presenter) Present(output io.Writer) error {
 	rows := make([][]string, 0)
 
 	columns := []string{"Name", "Installed", "Vulnerability", "Found-By"}
-	for p := range results.Enumerate() {
+	for p := range pres.results.Enumerate() {
 		row := []string{
 			p.Package.Name,
 			p.Package.Version,

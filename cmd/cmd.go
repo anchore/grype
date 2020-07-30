@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/anchore/stereoscope"
+	"github.com/wagoodman/go-partybus"
 	"os"
 
 	"github.com/anchore/grype/grype"
@@ -18,6 +20,8 @@ import (
 var appConfig *config.Application
 var log *zap.SugaredLogger
 var cliOnlyOpts config.CliOnlyOptions
+var eventBus *partybus.Bus
+var eventSubscription *partybus.Subscription
 
 func init() {
 	setGlobalCliOptions()
@@ -27,6 +31,7 @@ func init() {
 		initAppConfig,
 		initLogging,
 		logAppConfig,
+		initEventBus,
 	)
 }
 
@@ -86,4 +91,13 @@ func logAppConfig() {
 	} else {
 		log.Debugf("Application config:\n%+v", format.Magenta.Format(string(appCfgStr)))
 	}
+}
+
+func initEventBus() {
+	eventBus = partybus.NewBus()
+	eventSubscription = eventBus.Subscribe()
+
+	stereoscope.SetBus(eventBus)
+	syft.SetBus(eventBus)
+	grype.SetBus(eventBus)
 }

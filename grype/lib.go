@@ -2,6 +2,8 @@ package grype
 
 import (
 	"fmt"
+	"github.com/anchore/grype/internal/bus"
+	"github.com/wagoodman/go-partybus"
 
 	"github.com/anchore/grype/grype/db"
 
@@ -50,7 +52,7 @@ func LoadVulnerabilityDb(cfg db.Config, update bool) (vulnerability.Provider, er
 		updateAvailable, updateEntry, err := dbCurator.IsUpdateAvailable()
 		if err != nil {
 			// we want to continue if possible even if we can't check for an update
-			log.Errorf("unable to check for vulnerability database update")
+			log.Infof("unable to check for vulnerability database update")
 			log.Debugf("check for vulnerability update failed: %+v", err)
 		}
 		if updateAvailable {
@@ -73,4 +75,8 @@ func LoadVulnerabilityDb(cfg db.Config, update bool) (vulnerability.Provider, er
 
 func SetLogger(logger logger.Logger) {
 	log.Log = logger
+}
+
+func SetBus(b *partybus.Bus) {
+	bus.SetPublisher(b)
 }
