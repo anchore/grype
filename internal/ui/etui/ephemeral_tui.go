@@ -9,7 +9,7 @@ import (
 	grypeEvent "github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/ui/common"
-	syftUI "github.com/anchore/syft/ui"
+	grypeUI "github.com/anchore/grype/ui"
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/jotframe/pkg/frame"
 )
@@ -56,7 +56,7 @@ func OutputToEphemeralTUI(workerErrs <-chan error, subscription *partybus.Subscr
 	var wg = &sync.WaitGroup{}
 	events := subscription.Events()
 	ctx := context.Background()
-	syftUIHandler := syftUI.NewHandler()
+	grypeUIHandler := grypeUI.NewHandler()
 
 eventLoop:
 	for {
@@ -70,14 +70,14 @@ eventLoop:
 				break eventLoop
 			}
 			switch {
-			case syftUIHandler.RespondsTo(e):
-				if err = syftUIHandler.Handle(ctx, fr, e, wg); err != nil {
-					log.Errorf("unable to show %+v event: %+v", e, err)
+			case grypeUIHandler.RespondsTo(e):
+				if err = grypeUIHandler.Handle(ctx, fr, e, wg); err != nil {
+					log.Errorf("unable to show %s event: %+v", e.Type, err)
 				}
 
 			case e.Type == grypeEvent.AppUpdateAvailable:
 				if err = appUpdateAvailableHandler(ctx, fr, e, wg); err != nil {
-					log.Errorf("unable to show %s event: %+v", e, err)
+					log.Errorf("unable to show %s event: %+v", e.Type, err)
 				}
 
 			case e.Type == grypeEvent.VulnerabilityScanningFinished:
@@ -89,7 +89,7 @@ eventLoop:
 				isClosed = true
 
 				if err := common.VulnerabilityScanningFinishedHandler(e); err != nil {
-					log.Errorf("unable to show %s event: %+v", e, err)
+					log.Errorf("unable to show %s event: %+v", e.Type, err)
 				}
 
 				// this is the last expected event

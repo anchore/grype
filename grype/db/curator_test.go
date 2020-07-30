@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"github.com/wagoodman/go-progress"
 	"net/url"
 	"testing"
 	"time"
@@ -36,7 +37,7 @@ func newTestGetter(fs afero.Fs, f, d map[string]string) *testGetter {
 }
 
 // GetFile downloads the give URL into the given path. The URL must reference a single file.
-func (g *testGetter) GetFile(dst, src string) error {
+func (g *testGetter) GetFile(dst, src string, _ ...*progress.Manual) error {
 	g.calls.Add(src)
 	if _, ok := g.file[src]; !ok {
 		return fmt.Errorf("blerg, no file!")
@@ -45,7 +46,7 @@ func (g *testGetter) GetFile(dst, src string) error {
 }
 
 // Get downloads the given URL into the given directory. The directory must already exist.
-func (g *testGetter) GetToDir(dst, src string) error {
+func (g *testGetter) GetToDir(dst, src string, _ ...*progress.Manual) error {
 	g.calls.Add(src)
 	if _, ok := g.dir[src]; !ok {
 		return fmt.Errorf("blerg, no file!")
@@ -59,7 +60,7 @@ func newTestCurator(fs afero.Fs, getter file.Getter, dbDir, metadataUrl string) 
 		ListingURL: metadataUrl,
 	})
 
-	c.client = getter
+	c.downloader = getter
 	c.fs = fs
 	return c
 }

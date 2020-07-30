@@ -1,9 +1,9 @@
 package ui
 
 import (
+	grypeEvent "github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/ui/common"
-	syftEvent "github.com/anchore/syft/syft/event"
 	"github.com/wagoodman/go-partybus"
 )
 
@@ -23,10 +23,10 @@ eventLoop:
 			}
 
 			// ignore all events except for the final event
-			if e.Type == syftEvent.CatalogerFinished {
+			if e.Type == grypeEvent.VulnerabilityScanningFinished {
 				err := common.VulnerabilityScanningFinishedHandler(e)
 				if err != nil {
-					log.Errorf("unable to show catalog image finished event: %+v", err)
+					log.Errorf("unable to show %s event: %+v", e.Type, err)
 				}
 
 				// this is the last expected event

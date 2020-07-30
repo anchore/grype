@@ -2,7 +2,10 @@ package parsers
 
 import (
 	"fmt"
+
+	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/presenter"
+	"github.com/wagoodman/go-progress"
 
 	"github.com/anchore/grype/grype/event"
 	"github.com/wagoodman/go-partybus"
@@ -44,6 +47,32 @@ func ParseAppUpdateAvailable(e partybus.Event) (string, error) {
 	}
 
 	return newVersion, nil
+}
+
+func ParseDownloadingVulnerabilityDatabase(e partybus.Event) (progress.Progressable, error) {
+	if err := checkEventType(e.Type, event.DownloadingVulnerabilityDatabase); err != nil {
+		return nil, err
+	}
+
+	monitor, ok := e.Value.(progress.Progressable)
+	if !ok {
+		return nil, newPayloadErr(e.Type, "Value", e.Value)
+	}
+
+	return monitor, nil
+}
+
+func ParseVulnerabilityScanningStarted(e partybus.Event) (*matcher.Monitor, error) {
+	if err := checkEventType(e.Type, event.VulnerabilityScanningStarted); err != nil {
+		return nil, err
+	}
+
+	monitor, ok := e.Value.(matcher.Monitor)
+	if !ok {
+		return nil, newPayloadErr(e.Type, "Value", e.Value)
+	}
+
+	return &monitor, nil
 }
 
 func ParseVulnerabilityScanningFinished(e partybus.Event) (presenter.Presenter, error) {

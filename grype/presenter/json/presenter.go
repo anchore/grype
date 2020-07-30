@@ -9,7 +9,7 @@ import (
 )
 
 // Presenter is a generic struct for holding fields needed for reporting
-type Presenter struct{
+type Presenter struct {
 	results result.Result
 	catalog *pkg.Catalog
 }

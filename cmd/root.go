@@ -83,7 +83,6 @@ func init() {
 	}
 }
 
-
 func startWorker(userInput string) <-chan error {
 	errs := make(chan error)
 	go func() {
@@ -122,7 +121,6 @@ func startWorker(userInput string) <-chan error {
 			Type:  event.VulnerabilityScanningFinished,
 			Value: presenter.GetPresenter(appConfig.PresenterOpt, results, catalog),
 		})
-
 	}()
 	return errs
 }

@@ -2,6 +2,7 @@ package grype
 
 import (
 	"fmt"
+
 	"github.com/anchore/grype/internal/bus"
 	"github.com/wagoodman/go-partybus"
 
@@ -30,19 +31,15 @@ func FindVulnerabilities(provider vulnerability.Provider, userImageStr string, s
 }
 
 func FindVulnerabilitiesForCatalog(provider vulnerability.Provider, d distro.Distro, catalog *pkg.Catalog) result.Result {
-	res := result.NewResult()
+	packages := make([]*pkg.Package, 0)
 	for p := range catalog.Enumerate() {
-		res.Merge(FindVulnerabilitiesForPackage(provider, d, p))
+		packages = append(packages, p)
 	}
-	return res
+	return FindVulnerabilitiesForPackage(provider, d, packages...)
 }
 
 func FindVulnerabilitiesForPackage(provider vulnerability.Provider, d distro.Distro, packages ...*pkg.Package) result.Result {
-	res := result.NewResult()
-	for _, p := range packages {
-		res.Merge(matcher.FindMatches(provider, d, p))
-	}
-	return res
+	return matcher.FindMatches(provider, d, packages...)
 }
 
 func LoadVulnerabilityDb(cfg db.Config, update bool) (vulnerability.Provider, error) {

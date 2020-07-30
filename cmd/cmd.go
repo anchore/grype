@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/anchore/stereoscope"
 	"github.com/wagoodman/go-partybus"
-	"os"
 
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/internal/config"
