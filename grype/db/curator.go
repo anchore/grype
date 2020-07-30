@@ -9,9 +9,13 @@ import (
 	"github.com/anchore/grype-db/pkg/curation"
 	v1 "github.com/anchore/grype-db/pkg/db/v1"
 	"github.com/anchore/grype-db/pkg/db/v1/reader"
+	"github.com/anchore/grype/grype/event"
+	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/file"
 	"github.com/anchore/grype/internal/log"
 	"github.com/spf13/afero"
+	"github.com/wagoodman/go-partybus"
+	"github.com/wagoodman/go-progress"
 )
 
 const (
@@ -26,7 +30,7 @@ type Config struct {
 type Curator struct {
 	fs           afero.Fs
 	config       Config
-	client       file.Getter
+	downloader   file.Getter
 	targetSchema int
 }
 
@@ -35,7 +39,7 @@ func NewCurator(cfg Config) Curator {
 		config:       cfg,
 		fs:           afero.NewOsFs(),
 		targetSchema: v1.SchemaVersion,
-		client:       &file.HashiGoGetter{},
+		downloader:   file.NewGetter(),
 	}
 }
 
@@ -82,7 +86,7 @@ func (c *Curator) Delete() error {
 func (c *Curator) IsUpdateAvailable() (bool, *curation.ListingEntry, error) {
 	log.Debugf("checking for available database updates")
 
-	listing, err := curation.NewListingFromURL(c.fs, c.client, c.config.ListingURL)
+	listing, err := curation.NewListingFromURL(c.fs, c.config.ListingURL)
 	if err != nil {
 		return false, nil, err
 	}
@@ -150,26 +154,55 @@ func (c *Curator) ImportFrom(dbArchivePath string) error {
 }
 
 func (c *Curator) UpdateTo(listing *curation.ListingEntry) error {
+	// let consumers know of a monitorable event (download + import stages)
+	importProgress := &progress.Manual{
+		Total: 1,
+	}
+	stage := &progress.Stage{
+		Current: "downloading",
+	}
+	downloadProgress := &progress.Manual{
+		Total: 1,
+	}
+	aggregateProgress := progress.NewAggregator(progress.DefaultStrategy, downloadProgress, importProgress)
+
+	bus.Publish(partybus.Event{
+		Type:   event.UpdateVulnerabilityDatabase,
+		Source: path.Base(listing.URL.Path),
+		Value: progress.StagedProgressable(&struct {
+			progress.Stager
+			progress.Progressable
+		}{
+			Stager:       progress.Stager(stage),
+			Progressable: progress.Progressable(aggregateProgress),
+		}),
+	})
+
 	// note: the temp directory is persisted upon download/validation/activation failure to allow for investigation
-	tempDir, err := c.download(listing)
+	tempDir, err := c.download(listing, downloadProgress)
 	if err != nil {
 		return err
 	}
 
+	stage.Current = "validating"
 	err = c.validate(tempDir)
 	if err != nil {
 		return err
 	}
 
+	stage.Current = "importing"
 	err = c.activate(tempDir)
 	if err != nil {
 		return err
 	}
+	stage.Current = ""
+	importProgress.N = importProgress.Total
+	importProgress.SetCompleted()
 
 	return c.fs.RemoveAll(tempDir)
 }
 
-func (c *Curator) download(listing *curation.ListingEntry) (string, error) {
+func (c *Curator) download(listing *curation.ListingEntry, downloadProgress *progress.Manual) (string, error) {
 	tempDir, err := ioutil.TempDir("", "grype-scratch")
 	if err != nil {
 		return "", fmt.Errorf("unable to create db temp dir: %w", err)
@@ -185,7 +218,7 @@ func (c *Curator) download(listing *curation.ListingEntry) (string, error) {
 	url.RawQuery = query.Encode()
 
 	// go-getter will automatically extract all files within the archive to the temp dir
-	err = c.client.GetToDir(tempDir, listing.URL.String())
+	err = c.downloader.GetToDir(tempDir, listing.URL.String(), downloadProgress)
 	if err != nil {
 		return "", fmt.Errorf("unable to download db: %w", err)
 	}

@@ -9,11 +9,17 @@ import (
 )
 
 // Presenter is a generic struct for holding fields needed for reporting
-type Presenter struct{}
+type Presenter struct {
+	results result.Result
+	catalog *pkg.Catalog
+}
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter() *Presenter {
-	return &Presenter{}
+func NewPresenter(results result.Result, catalog *pkg.Catalog) *Presenter {
+	return &Presenter{
+		results: results,
+		catalog: catalog,
+	}
 }
 
 // ResultObj is a single item for the JSON array reported
@@ -37,11 +43,11 @@ type Package struct {
 }
 
 // Present creates a JSON-based reporting
-func (pres *Presenter) Present(output io.Writer, catalog *pkg.Catalog, results result.Result) error {
+func (pres *Presenter) Present(output io.Writer) error {
 	doc := make([]ResultObj, 0)
 
-	for match := range results.Enumerate() {
-		p := catalog.Package(match.Package.ID())
+	for match := range pres.results.Enumerate() {
+		p := pres.catalog.Package(match.Package.ID())
 		doc = append(
 			doc,
 			ResultObj{

@@ -3,6 +3,9 @@ package grype
 import (
 	"fmt"
 
+	"github.com/anchore/grype/internal/bus"
+	"github.com/wagoodman/go-partybus"
+
 	"github.com/anchore/grype/grype/db"
 
 	"github.com/anchore/grype/grype/logger"
@@ -28,19 +31,15 @@ func FindVulnerabilities(provider vulnerability.Provider, userImageStr string, s
 }
 
 func FindVulnerabilitiesForCatalog(provider vulnerability.Provider, d distro.Distro, catalog *pkg.Catalog) result.Result {
-	res := result.NewResult()
+	packages := make([]*pkg.Package, 0)
 	for p := range catalog.Enumerate() {
-		res.Merge(FindVulnerabilitiesForPackage(provider, d, p))
+		packages = append(packages, p)
 	}
-	return res
+	return FindVulnerabilitiesForPackage(provider, d, packages...)
 }
 
 func FindVulnerabilitiesForPackage(provider vulnerability.Provider, d distro.Distro, packages ...*pkg.Package) result.Result {
-	res := result.NewResult()
-	for _, p := range packages {
-		res.Merge(matcher.FindMatches(provider, d, p))
-	}
-	return res
+	return matcher.FindMatches(provider, d, packages...)
 }
 
 func LoadVulnerabilityDb(cfg db.Config, update bool) (vulnerability.Provider, error) {
@@ -50,7 +49,7 @@ func LoadVulnerabilityDb(cfg db.Config, update bool) (vulnerability.Provider, er
 		updateAvailable, updateEntry, err := dbCurator.IsUpdateAvailable()
 		if err != nil {
 			// we want to continue if possible even if we can't check for an update
-			log.Errorf("unable to check for vulnerability database update")
+			log.Infof("unable to check for vulnerability database update")
 			log.Debugf("check for vulnerability update failed: %+v", err)
 		}
 		if updateAvailable {
@@ -73,4 +72,8 @@ func LoadVulnerabilityDb(cfg db.Config, update bool) (vulnerability.Provider, er
 
 func SetLogger(logger logger.Logger) {
 	log.Log = logger
+}
+
+func SetBus(b *partybus.Bus) {
+	bus.SetPublisher(b)
 }

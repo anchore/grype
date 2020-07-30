@@ -17,7 +17,6 @@ var update = flag.Bool("update", false, "update the *.golden files for json pres
 
 func TestTablePresenter(t *testing.T) {
 
-	pres := NewPresenter()
 	var buffer bytes.Buffer
 
 	var pkg1 = pkg.Package{
@@ -57,10 +56,12 @@ func TestTablePresenter(t *testing.T) {
 	catalog.Add(pkg1)
 	catalog.Add(pkg2)
 
+	pres := NewPresenter(results, catalog)
+
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
 	// run presenter
-	err := pres.Present(&buffer, catalog, results)
+	err := pres.Present(&buffer)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,15 +84,16 @@ func TestTablePresenter(t *testing.T) {
 
 func TestEmptyTablePresenter(t *testing.T) {
 	// Expected to have no output
-	pres := NewPresenter()
+
 	var buffer bytes.Buffer
 
 	results := result.NewResult()
-
 	catalog := pkg.NewCatalog()
 
+	pres := NewPresenter(results, catalog)
+
 	// run presenter
-	err := pres.Present(&buffer, catalog, results)
+	err := pres.Present(&buffer)
 	if err != nil {
 		t.Fatal(err)
 	}

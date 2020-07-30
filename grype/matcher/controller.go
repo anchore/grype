@@ -1,6 +1,7 @@
 package matcher
 
 import (
+	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/bundler"
 	"github.com/anchore/grype/grype/matcher/dpkg"
@@ -10,12 +11,20 @@ import (
 	"github.com/anchore/grype/grype/matcher/rpmdb"
 	"github.com/anchore/grype/grype/result"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/distro"
 	"github.com/anchore/syft/syft/pkg"
+	"github.com/wagoodman/go-partybus"
+	"github.com/wagoodman/go-progress"
 )
 
 var controllerInstance controller
+
+type Monitor struct {
+	PackagesProcessed         progress.Monitorable
+	VulnerabilitiesDiscovered progress.Monitorable
+}
 
 func init() {
 	controllerInstance = newController()
@@ -51,9 +60,27 @@ func (c *controller) add(matchers ...Matcher) {
 	}
 }
 
+func (c *controller) trackMatcher() (*progress.Manual, *progress.Manual) {
+	packagesProcessed := progress.Manual{}
+	vulnerabilitiesDiscovered := progress.Manual{}
+
+	bus.Publish(partybus.Event{
+		Type: event.VulnerabilityScanningStarted,
+		Value: Monitor{
+			PackagesProcessed:         progress.Monitorable(&packagesProcessed),
+			VulnerabilitiesDiscovered: progress.Monitorable(&vulnerabilitiesDiscovered),
+		},
+	})
+	return &packagesProcessed, &vulnerabilitiesDiscovered
+}
+
 func (c *controller) findMatches(provider vulnerability.Provider, d distro.Distro, packages ...*pkg.Package) result.Result {
 	res := result.NewResult()
+
+	packagesProcessed, vulnerabilitiesDiscovered := c.trackMatcher()
+
 	for _, p := range packages {
+		packagesProcessed.N++
 		log.Debugf("searching for vulnerability matches for pkg=%s", p)
 
 		matchers, ok := c.matchers[p.Type]
@@ -67,9 +94,14 @@ func (c *controller) findMatches(provider vulnerability.Provider, d distro.Distr
 			} else {
 				logMatches(p, matches)
 				res.Add(p, matches...)
+				vulnerabilitiesDiscovered.N += int64(len(matches))
 			}
 		}
 	}
+
+	packagesProcessed.SetCompleted()
+	vulnerabilitiesDiscovered.SetCompleted()
+
 	return res
 }
 

@@ -4,15 +4,25 @@ import (
 	"fmt"
 	"os"
 	"runtime/pprof"
+	"sync"
+
+	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/syft/syft"
+	"github.com/anchore/syft/syft/distro"
+	"github.com/anchore/syft/syft/pkg"
 
 	"github.com/anchore/grype/grype"
+	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/presenter"
 	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/format"
+	"github.com/anchore/grype/internal/ui"
 	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/syft/syft/scope"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/wagoodman/go-partybus"
 )
 
 var rootCmd = &cobra.Command{
@@ -79,34 +89,73 @@ func init() {
 	}
 }
 
-func runDefaultCmd(_ *cobra.Command, args []string) error {
-	if appConfig.CheckForAppUpdate {
-		isAvailable, newVersion, err := version.IsUpdateAvailable()
+func startWorker(userInput string) <-chan error {
+	errs := make(chan error)
+	go func() {
+		defer close(errs)
+
+		if appConfig.CheckForAppUpdate {
+			isAvailable, newVersion, err := version.IsUpdateAvailable()
+			if err != nil {
+				log.Errorf(err.Error())
+			}
+			if isAvailable {
+				log.Infof("New version of %s is available: %s", internal.ApplicationName, newVersion)
+
+				bus.Publish(partybus.Event{
+					Type:  event.AppUpdateAvailable,
+					Value: newVersion,
+				})
+			} else {
+				log.Debugf("No new %s update available", internal.ApplicationName)
+			}
+		}
+
+		var provider vulnerability.Provider
+		var catalog *pkg.Catalog
+		var theDistro *distro.Distro
+		var err error
+		var wg = &sync.WaitGroup{}
+
+		wg.Add(2)
+
+		go func() {
+			defer wg.Done()
+			provider, err = grype.LoadVulnerabilityDb(appConfig.Db.ToCuratorConfig(), appConfig.Db.AutoUpdate)
+			if err != nil {
+				errs <- fmt.Errorf("failed to load vulnerability db: %w", err)
+			}
+		}()
+
+		go func() {
+			defer wg.Done()
+			// TODO: move this log entry to syft
+			log.Info("Cataloging image")
+
+			catalog, _, theDistro, err = syft.Catalog(userInput, appConfig.ScopeOpt)
+			if err != nil {
+				errs <- fmt.Errorf("failed to catalog: %w", err)
+			}
+		}()
+
+		wg.Wait()
 		if err != nil {
-			log.Errorf(err.Error())
+			return
 		}
-		if isAvailable {
-			log.Infof("New version of %s is available: %s", internal.ApplicationName, newVersion)
-		} else {
-			log.Debugf("No new %s update available", internal.ApplicationName)
-		}
-	}
 
-	userImageStr := args[0]
+		results := grype.FindVulnerabilitiesForCatalog(provider, *theDistro, catalog)
 
-	provider, err := grype.LoadVulnerabilityDb(appConfig.Db.ToCuratorConfig(), appConfig.Db.AutoUpdate)
-	if err != nil {
-		return fmt.Errorf("failed to load vulnerability db: %w", err)
-	}
+		bus.Publish(partybus.Event{
+			Type:  event.VulnerabilityScanningFinished,
+			Value: presenter.GetPresenter(appConfig.PresenterOpt, results, catalog),
+		})
+	}()
+	return errs
+}
 
-	results, catalog, _, err := grype.FindVulnerabilities(provider, userImageStr, appConfig.ScopeOpt)
-	if err != nil {
-		return fmt.Errorf("failed to find vulnerabilities: %w", err)
-	}
-
-	if err = presenter.GetPresenter(appConfig.PresenterOpt).Present(os.Stdout, catalog, results); err != nil {
-		return fmt.Errorf("could not format catalog results: %w", err)
-	}
-
-	return nil
+func runDefaultCmd(_ *cobra.Command, args []string) error {
+	userInput := args[0]
+	errs := startWorker(userInput)
+	ux := ui.Select(appConfig.CliOptions.Verbosity > 0, appConfig.Quiet)
+	return ux(errs, eventSubscription)
 }
