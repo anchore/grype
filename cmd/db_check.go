@@ -25,11 +25,7 @@ func init() {
 }
 
 func runDbCheckCmd(_ *cobra.Command, _ []string) int {
-	dbCurator, err := db.NewCurator(appConfig.Db.ToCuratorConfig())
-	if err != nil {
-		log.Errorf("could not curate database: %+v", err)
-		return 1
-	}
+	dbCurator := db.NewCurator(appConfig.Db.ToCuratorConfig())
 
 	updateAvailable, _, err := dbCurator.IsUpdateAvailable()
 	if err != nil {

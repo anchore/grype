@@ -44,10 +44,7 @@ func FindVulnerabilitiesForPackage(provider vulnerability.Provider, d distro.Dis
 }
 
 func LoadVulnerabilityDb(cfg db.Config, update bool) (vulnerability.Provider, error) {
-	dbCurator, err := db.NewCurator(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("could not curate database: %w", err)
-	}
+	dbCurator := db.NewCurator(cfg)
 
 	if update {
 		updateAvailable, updateEntry, err := dbCurator.IsUpdateAvailable()
