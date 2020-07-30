@@ -30,13 +30,13 @@ type Curator struct {
 	targetSchema int
 }
 
-func NewCurator(cfg Config) (Curator, error) {
+func NewCurator(cfg Config) Curator {
 	return Curator{
 		config:       cfg,
 		fs:           afero.NewOsFs(),
 		targetSchema: v1.SchemaVersion,
 		client:       &file.HashiGoGetter{},
-	}, nil
+	}
 }
 
 func (c *Curator) GetStore() (v1.VulnerabilityStoreReader, error) {
@@ -54,22 +54,24 @@ func (c *Curator) GetStore() (v1.VulnerabilityStoreReader, error) {
 func (c *Curator) Status() Status {
 	metadata, err := curation.NewMetadataFromDir(c.fs, c.config.DbDir)
 	if err != nil {
-		err = fmt.Errorf("failed to parse database metadata (%s): %w", c.config.DbDir, err)
+		return Status{
+			RequiredSchemaVersion: c.targetSchema,
+			Err:                   fmt.Errorf("failed to parse database metadata (%s): %w", c.config.DbDir, err),
+		}
 	}
 	if metadata == nil {
-		err = fmt.Errorf("database metadata not found at %q", c.config.DbDir)
-	}
-
-	if err == nil {
-		err = c.Validate()
+		return Status{
+			RequiredSchemaVersion: c.targetSchema,
+			Err:                   fmt.Errorf("database metadata not found at %q", c.config.DbDir),
+		}
 	}
 
 	return Status{
 		Age:                   metadata.Built,
 		CurrentSchemaVersion:  metadata.Version,
-		RequiredSchemeVersion: v1.SchemaVersion,
+		RequiredSchemaVersion: c.targetSchema,
 		Location:              c.config.DbDir,
-		Err:                   err,
+		Err:                   c.Validate(),
 	}
 }
 

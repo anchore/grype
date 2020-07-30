@@ -49,7 +49,7 @@ class InlineScan:
         return vulnerabilities, metadata
 
 
-class grype:
+class Grype:
 
     report_tmpl = "{image}.json"
 
@@ -89,7 +89,7 @@ def main(image):
     inline = InlineScan(image=image, report_dir="inline-reports")
     inline_vulnerabilities, inline_metadata = inline.vulnerabilities()
 
-    grype = grype(image=image, report_dir="grype-reports")
+    grype = Grype(image=image, report_dir="grype-reports")
     grype_vulnerabilities, grype_metadata = grype.vulnerabilities()
 
     if len(grype_vulnerabilities) == 0 and len(inline_vulnerabilities) == 0:

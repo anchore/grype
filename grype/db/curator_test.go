@@ -53,18 +53,15 @@ func (g *testGetter) GetToDir(dst, src string) error {
 	return afero.WriteFile(g.fs, dst, []byte(g.dir[src]), 0755)
 }
 
-func newTestCurator(fs afero.Fs, getter file.Getter, dbDir, metadataUrl string) (Curator, error) {
-	c, err := NewCurator(Config{
+func newTestCurator(fs afero.Fs, getter file.Getter, dbDir, metadataUrl string) Curator {
+	c := NewCurator(Config{
 		DbDir:      dbDir,
 		ListingURL: metadataUrl,
 	})
-	if err != nil {
-		return Curator{}, err
-	}
 
 	c.client = getter
 	c.fs = fs
-	return c, err
+	return c
 }
 
 func TestCuratorDownload(t *testing.T) {
@@ -95,10 +92,7 @@ func TestCuratorDownload(t *testing.T) {
 			}
 			fs := afero.NewMemMapFs()
 			getter := newTestGetter(fs, files, dirs)
-			cur, err := newTestCurator(fs, getter, "/tmp/dbdir", metadataUrl)
-			if err != nil {
-				t.Fatalf("failed making curator: %+v", err)
-			}
+			cur := newTestCurator(fs, getter, "/tmp/dbdir", metadataUrl)
 
 			path, err := cur.download(test.entry)
 
@@ -163,14 +157,11 @@ func TestCuratorValidate(t *testing.T) {
 
 			fs := afero.NewOsFs()
 			getter := newTestGetter(fs, nil, nil)
-			cur, err := newTestCurator(fs, getter, "/tmp/dbdir", metadataUrl)
-			if err != nil {
-				t.Fatalf("failed making curator: %+v", err)
-			}
+			cur := newTestCurator(fs, getter, "/tmp/dbdir", metadataUrl)
 
 			cur.targetSchema = test.constraint
 
-			err = cur.validate(test.fixture)
+			err := cur.validate(test.fixture)
 
 			if err == nil && test.err {
 				t.Errorf("expected an error but got none")
