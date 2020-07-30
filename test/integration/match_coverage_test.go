@@ -227,13 +227,9 @@ func TestPkgCoverageImage(t *testing.T) {
 			expectedResults := test.expectedFn(*theScope, catalog, theStore)
 
 			// build expected match set...
-			//expectedMatchSet := internal.NewStringSet()
 			expectedMatches := map[string]string{}
-			//expectedCount := 0
 			for eMatch := range expectedResults.Enumerate() {
-				//expectedCount++
 				// NOTE: this does not include all fields...
-				//expectedMatchSet.Add(eMatch.String())
 				expectedMatches[eMatch.Package.Name] = eMatch.String()
 			}
 
