@@ -32,10 +32,9 @@ func (r *Handler) RespondsTo(event partybus.Event) bool {
 func (r *Handler) Handle(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
 	switch event.Type {
 	case grypeEvent.VulnerabilityScanningStarted:
-		return VulnerabilityScanningStartedHandler(ctx, fr, event, wg)
-
+		return r.VulnerabilityScanningStartedHandler(ctx, fr, event, wg)
 	case grypeEvent.UpdateVulnerabilityDatabase:
-		return DownloadingVulnerabilityDatabaseHandler(ctx, fr, event, wg)
+		return r.UpdateVulnerabilityDatabaseHandler(ctx, fr, event, wg)
 	default:
 		return r.syftHandler.Handle(ctx, fr, event, wg)
 	}

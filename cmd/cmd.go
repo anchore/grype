@@ -4,22 +4,21 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/anchore/stereoscope"
-	"github.com/wagoodman/go-partybus"
-
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/internal/config"
 	"github.com/anchore/grype/internal/format"
 	"github.com/anchore/grype/internal/logger"
+	"github.com/anchore/stereoscope"
 	"github.com/anchore/syft/syft"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
+	"github.com/wagoodman/go-partybus"
 	"gopkg.in/yaml.v2"
 )
 
 var appConfig *config.Application
-var log *zap.SugaredLogger
+var log *logrus.Logger
 var cliOnlyOpts config.CliOnlyOptions
 var eventBus *partybus.Bus
 var eventSubscription *partybus.Subscription
@@ -70,7 +69,7 @@ func initAppConfig() {
 }
 
 func initLogging() {
-	cfg := logger.LogConfig{
+	cfg := logger.LogrusConfig{
 		EnableConsole: (appConfig.Log.FileLocation == "" || appConfig.CliOptions.Verbosity > 0) && !appConfig.Quiet,
 		EnableFile:    appConfig.Log.FileLocation != "",
 		Level:         appConfig.Log.LevelOpt,
@@ -78,10 +77,18 @@ func initLogging() {
 		FileLocation:  appConfig.Log.FileLocation,
 	}
 
-	logWrapper := logger.NewZapLogger(cfg)
+	logWrapper := logger.NewLogrusLogger(cfg)
+
 	log = logWrapper.Logger
 	grype.SetLogger(logWrapper)
-	syft.SetLogger(logWrapper)
+
+	// add a structured field to all loggers of dependencies
+	syft.SetLogger(&logger.LogrusNestedLogger{
+		Logger: log.WithField("from-lib", "syft"),
+	})
+	stereoscope.SetLogger(&logger.LogrusNestedLogger{
+		Logger: log.WithField("from-lib", "steroscope"),
+	})
 }
 
 func logAppConfig() {

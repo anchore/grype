@@ -5,6 +5,8 @@ import (
 	"path"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/anchore/grype/grype/presenter"
 
 	"github.com/adrg/xdg"
@@ -13,7 +15,6 @@ import (
 	"github.com/anchore/syft/syft/scope"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
-	"go.uber.org/zap/zapcore"
 )
 
 type CliOnlyOptions struct {
@@ -37,7 +38,7 @@ type Application struct {
 
 type Logging struct {
 	Structured   bool `mapstructure:"structured"`
-	LevelOpt     zapcore.Level
+	LevelOpt     logrus.Level
 	Level        string `mapstructure:"level"`
 	FileLocation string `mapstructure:"file"`
 }
@@ -116,27 +117,28 @@ func (cfg *Application) Build() error {
 		// TODO: this is bad: quiet option trumps all other logging options
 		// we should be able to quiet the console logging and leave file logging alone...
 		// ... this will be an enhancement for later
-		cfg.Log.LevelOpt = zapcore.PanicLevel
+		cfg.Log.LevelOpt = logrus.PanicLevel
 	} else {
 		if cfg.Log.Level != "" {
 			if cfg.CliOptions.Verbosity > 0 {
 				return fmt.Errorf("cannot explicitly set log level (cfg file or env var) and use -v flag together")
 			}
 
-			// set the log level explicitly
-			err := cfg.Log.LevelOpt.Set(cfg.Log.Level)
+			lvl, err := logrus.ParseLevel(strings.ToLower(cfg.Log.Level))
 			if err != nil {
-				return fmt.Errorf("bad log level value '%s': %+v", cfg.Log.Level, err)
+				return fmt.Errorf("bad log level configured (%q): %w", cfg.Log.Level, err)
 			}
+			// set the log level explicitly
+			cfg.Log.LevelOpt = lvl
 		} else {
 			// set the log level implicitly
 			switch v := cfg.CliOptions.Verbosity; {
 			case v == 1:
-				cfg.Log.LevelOpt = zapcore.InfoLevel
+				cfg.Log.LevelOpt = logrus.InfoLevel
 			case v >= 2:
-				cfg.Log.LevelOpt = zapcore.DebugLevel
+				cfg.Log.LevelOpt = logrus.DebugLevel
 			default:
-				cfg.Log.LevelOpt = zapcore.ErrorLevel
+				cfg.Log.LevelOpt = logrus.ErrorLevel
 			}
 		}
 	}

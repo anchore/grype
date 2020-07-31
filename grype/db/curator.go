@@ -83,6 +83,52 @@ func (c *Curator) Delete() error {
 	return c.fs.RemoveAll(c.config.DbDir)
 }
 
+func (c *Curator) Update() (bool, error) {
+	// let consumers know of a monitorable event (download + import stages)
+	importProgress := &progress.Manual{
+		Total: 1,
+	}
+	stage := &progress.Stage{
+		Current: "checking for update",
+	}
+	downloadProgress := &progress.Manual{
+		Total: 1,
+	}
+	aggregateProgress := progress.NewAggregator(progress.DefaultStrategy, downloadProgress, importProgress)
+
+	bus.Publish(partybus.Event{
+		Type: event.UpdateVulnerabilityDatabase,
+		Value: progress.StagedProgressable(&struct {
+			progress.Stager
+			progress.Progressable
+		}{
+			Stager:       progress.Stager(stage),
+			Progressable: progress.Progressable(aggregateProgress),
+		}),
+	})
+
+	defer downloadProgress.SetCompleted()
+	defer importProgress.SetCompleted()
+
+	updateAvailable, updateEntry, err := c.IsUpdateAvailable()
+	if err != nil {
+		// we want to continue if possible even if we can't check for an update
+		log.Infof("unable to check for vulnerability database update")
+		log.Debugf("check for vulnerability update failed: %+v", err)
+	}
+	if updateAvailable {
+		log.Infof("Downloading new vulnerability DB")
+		err = c.UpdateTo(updateEntry, downloadProgress, importProgress, stage)
+		if err != nil {
+			return false, fmt.Errorf("unable to update vulnerability database: %w", err)
+		}
+		log.Infof("Updated vulnerability DB to version=%d built=%q", updateEntry.Version, updateEntry.Built.String())
+		return true, nil
+	}
+	stage.Current = "no update available"
+	return false, nil
+}
+
 func (c *Curator) IsUpdateAvailable() (bool, *curation.ListingEntry, error) {
 	log.Debugf("checking for available database updates")
 
@@ -153,31 +199,8 @@ func (c *Curator) ImportFrom(dbArchivePath string) error {
 	return c.fs.RemoveAll(tempDir)
 }
 
-func (c *Curator) UpdateTo(listing *curation.ListingEntry) error {
-	// let consumers know of a monitorable event (download + import stages)
-	importProgress := &progress.Manual{
-		Total: 1,
-	}
-	stage := &progress.Stage{
-		Current: "downloading",
-	}
-	downloadProgress := &progress.Manual{
-		Total: 1,
-	}
-	aggregateProgress := progress.NewAggregator(progress.DefaultStrategy, downloadProgress, importProgress)
-
-	bus.Publish(partybus.Event{
-		Type:   event.UpdateVulnerabilityDatabase,
-		Source: path.Base(listing.URL.Path),
-		Value: progress.StagedProgressable(&struct {
-			progress.Stager
-			progress.Progressable
-		}{
-			Stager:       progress.Stager(stage),
-			Progressable: progress.Progressable(aggregateProgress),
-		}),
-	})
-
+func (c *Curator) UpdateTo(listing *curation.ListingEntry, downloadProgress, importProgress *progress.Manual, stage *progress.Stage) error {
+	stage.Current = "downloading"
 	// note: the temp directory is persisted upon download/validation/activation failure to allow for investigation
 	tempDir, err := c.download(listing, downloadProgress)
 	if err != nil {
