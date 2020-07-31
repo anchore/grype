@@ -23,7 +23,7 @@ require (
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.7.0
 	github.com/wagoodman/go-partybus v0.0.0-20200526224238-eb215533f07d
-	github.com/wagoodman/go-progress v0.0.0-20200730180031-b07fedc7c2a8
+	github.com/wagoodman/go-progress v0.0.0-20200731105512-1020f39e6240
 	github.com/wagoodman/jotframe v0.0.0-20200730190914-3517092dd163
 	go.uber.org/zap v1.15.0
 	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9

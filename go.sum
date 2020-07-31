@@ -779,8 +779,8 @@ github.com/wagoodman/go-partybus v0.0.0-20200526224238-eb215533f07d/go.mod h1:JP
 github.com/wagoodman/go-progress v0.0.0-20200621122631-1a2120f0695a/go.mod h1:jLXFoL31zFaHKAAyZUh+sxiTDFe1L1ZHrcK2T1itVKA=
 github.com/wagoodman/go-progress v0.0.0-20200621153512-2778c704bf22 h1:GYaiTP0ywrCjJ4qMxxCg+YKPSDMeFJg6i1X9X55LJCA=
 github.com/wagoodman/go-progress v0.0.0-20200621153512-2778c704bf22/go.mod h1:jLXFoL31zFaHKAAyZUh+sxiTDFe1L1ZHrcK2T1itVKA=
-github.com/wagoodman/go-progress v0.0.0-20200730180031-b07fedc7c2a8 h1:Z2eefds+IdvpB9AlXbyuNevY8XDqbVYG5XvS4wX6K2o=
-github.com/wagoodman/go-progress v0.0.0-20200730180031-b07fedc7c2a8/go.mod h1:jLXFoL31zFaHKAAyZUh+sxiTDFe1L1ZHrcK2T1itVKA=
+github.com/wagoodman/go-progress v0.0.0-20200731105512-1020f39e6240 h1:r6BlIP7CVZtMlxUQhT40h1IE1TzEgKVqwmsVGuscvdk=
+github.com/wagoodman/go-progress v0.0.0-20200731105512-1020f39e6240/go.mod h1:jLXFoL31zFaHKAAyZUh+sxiTDFe1L1ZHrcK2T1itVKA=
 github.com/wagoodman/go-rpmdb v0.0.0-20200719223757-ce54a4b0607b h1:elYGLFZPymeTWJ6qA3tIzFet3LQ9D/Jl6HLWNyFjdQc=
 github.com/wagoodman/go-rpmdb v0.0.0-20200719223757-ce54a4b0607b/go.mod h1:MjoIZzKmbYfcpbC6ARWMcHijAjtLBViDaHcayXKWQWI=
 github.com/wagoodman/jotframe v0.0.0-20200730190914-3517092dd163 h1:qoZwR+bHbFFNirY4Yt7lqbOXnFAMnlFfR89w0TXwjrc=
