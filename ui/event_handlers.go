@@ -37,8 +37,8 @@ func startProcess() (format.Simple, *common.Spinner) {
 	return formatter, &spinner
 }
 
-func DownloadingVulnerabilityDatabaseHandler(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
-	_, prog, err := grypeEventParsers.ParseUpdateVulnerabilityDatabase(event)
+func (r *Handler) UpdateVulnerabilityDatabaseHandler(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
+	prog, err := grypeEventParsers.ParseUpdateVulnerabilityDatabase(event)
 	if err != nil {
 		return fmt.Errorf("bad FetchImage event: %w", err)
 	}
@@ -50,45 +50,46 @@ func DownloadingVulnerabilityDatabaseHandler(ctx context.Context, fr *frame.Fram
 
 	wg.Add(1)
 
-	go func() {
-		defer line.Close()
-		defer wg.Done()
-		formatter, spinner := startProcess()
-		stream := progress.Stream(ctx, prog, 150*time.Millisecond)
-		title := tileFormat.Sprint("Updating Vulnerability DB...")
+	formatter, spinner := startProcess()
+	stream := progress.Stream(ctx, prog, 150*time.Millisecond)
+	title := tileFormat.Sprint("Vulnerability DB")
 
-		formatFn := func(p progress.Progress) {
-			progStr, err := formatter.Format(p)
-			spin := color.Magenta.Sprint(spinner.Next())
-			if err != nil {
-				_, _ = io.WriteString(line, fmt.Sprintf("Error: %+v", err))
-			} else {
-				var auxInfo string
-				switch prog.Stage() {
-				case "downloading":
-					auxInfo = auxInfoFormat.Sprintf("[%s / %s]", humanize.Bytes(uint64(prog.Current())), humanize.Bytes(uint64(prog.Size())))
-				default:
-					auxInfo = auxInfoFormat.Sprintf("[%s]", prog.Stage())
-				}
-
-				_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s %s", spin, title, progStr, auxInfo))
+	formatFn := func(p progress.Progress) {
+		progStr, err := formatter.Format(p)
+		spin := color.Magenta.Sprint(spinner.Next())
+		if err != nil {
+			_, _ = io.WriteString(line, fmt.Sprintf("Error: %+v", err))
+		} else {
+			var auxInfo string
+			switch prog.Stage() {
+			case "downloading":
+				auxInfo = auxInfoFormat.Sprintf("[%s / %s]", humanize.Bytes(uint64(prog.Current())), humanize.Bytes(uint64(prog.Size())))
+			default:
+				progStr = ""
+				auxInfo = auxInfoFormat.Sprintf("[%s]", prog.Stage())
 			}
+
+			_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s %s", spin, title, progStr, auxInfo))
 		}
+	}
+
+	go func() {
+		defer wg.Done()
 
 		formatFn(progress.Progress{})
-
 		for p := range stream {
 			formatFn(p)
 		}
 
 		spin := color.Green.Sprint(completedStatus)
-		title = tileFormat.Sprint("Updated Vulnerability DB")
-		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate, spin, title))
+		title = tileFormat.Sprint("Vulnerability DB")
+		auxInfo := auxInfoFormat.Sprintf("[%s]", prog.Stage())
+		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+" %s", spin, title, auxInfo))
 	}()
 	return err
 }
 
-func VulnerabilityScanningStartedHandler(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
+func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
 	monitor, err := grypeEventParsers.ParseVulnerabilityScanningStarted(event)
 	if err != nil {
 		return fmt.Errorf("bad %s event: %w", event.Type, err)
@@ -101,18 +102,18 @@ func VulnerabilityScanningStartedHandler(ctx context.Context, fr *frame.Frame, e
 
 	wg.Add(1)
 
-	go func() {
-		defer line.Close()
-		defer wg.Done()
-		_, spinner := startProcess()
-		stream := progress.StreamMonitors(ctx, []progress.Monitorable{monitor.PackagesProcessed, monitor.VulnerabilitiesDiscovered}, 50*time.Millisecond)
-		title := tileFormat.Sprint("Scanning image...")
+	_, spinner := startProcess()
+	stream := progress.StreamMonitors(ctx, []progress.Monitorable{monitor.PackagesProcessed, monitor.VulnerabilitiesDiscovered}, 50*time.Millisecond)
+	title := tileFormat.Sprint("Scanning image...")
 
-		formatFn := func(val int64) {
-			spin := color.Magenta.Sprint(spinner.Next())
-			auxInfo := auxInfoFormat.Sprintf("[vulnerabilities %d]", val)
-			_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
-		}
+	formatFn := func(val int64) {
+		spin := color.Magenta.Sprint(spinner.Next())
+		auxInfo := auxInfoFormat.Sprintf("[vulnerabilities %d]", val)
+		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
+	}
+
+	go func() {
+		defer wg.Done()
 
 		formatFn(0)
 		for p := range stream {

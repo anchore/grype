@@ -1,8 +1,6 @@
 package grype
 
 import (
-	"fmt"
-
 	"github.com/anchore/grype/internal/bus"
 	"github.com/wagoodman/go-partybus"
 
@@ -21,7 +19,6 @@ import (
 )
 
 func FindVulnerabilities(provider vulnerability.Provider, userImageStr string, scopeOpt scope.Option) (result.Result, *pkg.Catalog, *scope.Scope, error) {
-	log.Info("Cataloging image")
 	catalog, theScope, theDistro, err := syft.Catalog(userImageStr, scopeOpt)
 	if err != nil {
 		return result.Result{}, nil, nil, err
@@ -46,19 +43,9 @@ func LoadVulnerabilityDb(cfg db.Config, update bool) (vulnerability.Provider, er
 	dbCurator := db.NewCurator(cfg)
 
 	if update {
-		updateAvailable, updateEntry, err := dbCurator.IsUpdateAvailable()
+		_, err := dbCurator.Update()
 		if err != nil {
-			// we want to continue if possible even if we can't check for an update
-			log.Infof("unable to check for vulnerability database update")
-			log.Debugf("check for vulnerability update failed: %+v", err)
-		}
-		if updateAvailable {
-			log.Infof("Downloading new vulnerability DB")
-			err = dbCurator.UpdateTo(updateEntry)
-			if err != nil {
-				return nil, fmt.Errorf("unable to update vulnerability database: %w", err)
-			}
-			log.Infof("Updated vulnerability DB to version=%d built=%q", updateEntry.Version, updateEntry.Built.String())
+			return nil, err
 		}
 	}
 

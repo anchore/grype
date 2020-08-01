@@ -129,9 +129,6 @@ func startWorker(userInput string) <-chan error {
 
 		go func() {
 			defer wg.Done()
-			// TODO: move this log entry to syft
-			log.Info("Cataloging image")
-
 			catalog, _, theDistro, err = syft.Catalog(userInput, appConfig.ScopeOpt)
 			if err != nil {
 				errs <- fmt.Errorf("failed to catalog: %w", err)

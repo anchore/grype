@@ -39,7 +39,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 	}
 
 	if len(rows) == 0 {
-		_, err := io.WriteString(output, "No vulnerabilities found")
+		_, err := io.WriteString(output, "No vulnerabilities found\n")
 		return err
 	}
 

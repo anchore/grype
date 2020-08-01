@@ -27,23 +27,17 @@ func init() {
 func runDbUpdateCmd(_ *cobra.Command, _ []string) int {
 	dbCurator := db.NewCurator(appConfig.Db.ToCuratorConfig())
 
-	updateAvailable, updateEntry, err := dbCurator.IsUpdateAvailable()
+	updated, err := dbCurator.Update()
 	if err != nil {
-		// TODO: should this be so fatal? we can certainly continue with a warning...
-		log.Errorf("unable to check for vulnerability database update: %+v", err)
+		log.Errorf("unable to update vulnerability database: %+v", err)
 		return 1
 	}
-	if updateAvailable {
-		err = dbCurator.UpdateTo(updateEntry)
-		if err != nil {
-			log.Errorf("unable to update vulnerability database: %+v", err)
-			return 1
-		}
-	} else {
-		fmt.Println("No vulnerability database update available")
+
+	if updated {
+		fmt.Println("Vulnerability database updated!")
 		return 0
 	}
 
-	fmt.Println("Vulnerability database updated!")
+	fmt.Println("No vulnerability database update available")
 	return 0
 }
