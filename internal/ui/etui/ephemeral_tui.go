@@ -61,6 +61,10 @@ func OutputToEphemeralTUI(workerErrs <-chan error, subscription *partybus.Subscr
 			// flush any errors to the screen before the report
 			fmt.Fprint(output, logBuffer.String())
 		}
+		logWrapper, ok := log.Log.(*logger.LogrusLogger)
+		if ok {
+			logWrapper.Logger.SetOutput(output)
+		}
 	}()
 
 	var err error
