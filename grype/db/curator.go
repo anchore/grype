@@ -218,7 +218,7 @@ func (c *Curator) UpdateTo(listing *curation.ListingEntry, downloadProgress, imp
 	if err != nil {
 		return err
 	}
-	stage.Current = ""
+	stage.Current = "updated"
 	importProgress.N = importProgress.Total
 	importProgress.SetCompleted()
 
