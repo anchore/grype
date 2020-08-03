@@ -87,7 +87,7 @@ func initLogging() {
 		Logger: log.WithField("from-lib", "syft"),
 	})
 	stereoscope.SetLogger(&logger.LogrusNestedLogger{
-		Logger: log.WithField("from-lib", "steroscope"),
+		Logger: log.WithField("from-lib", "stereoscope"),
 	})
 }
 
