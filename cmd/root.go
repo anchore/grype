@@ -36,7 +36,7 @@ var rootCmd = &cobra.Command{
 `, map[string]interface{}{
 		"appName": internal.ApplicationName,
 	}),
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if appConfig.Dev.ProfileCPU {
 			f, err := os.Create("cpu.profile")
@@ -49,7 +49,14 @@ var rootCmd = &cobra.Command{
 				}
 			}
 		}
-
+		if len(args) == 0 {
+			err := cmd.Help()
+			if err != nil {
+				log.Errorf(err.Error())
+				os.Exit(1)
+			}
+			os.Exit(1)
+		}
 		err := runDefaultCmd(cmd, args)
 
 		if appConfig.Dev.ProfileCPU {
