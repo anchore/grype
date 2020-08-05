@@ -56,7 +56,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 					Matcher:   match.Matcher.String(),
 					SearchKey: match.SearchKey,
 				},
-				Package: Package{Name: p.Name, Version: p.Version, Type: p.Type.String()},
+				Package: Package{Name: p.Name, Version: p.Version, Type: string(p.Type)},
 			},
 		)
 	}

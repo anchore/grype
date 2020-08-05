@@ -100,7 +100,7 @@ func addJavaMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, th
 	for p := range catalog.Enumerate(pkg.JavaPkg) {
 		packages = append(packages, p)
 	}
-	if len(packages) != 1 {
+	if len(packages) != 2 { // 2, because there's a nested JAR inside the test fixture JAR
 		t.Logf("Java Packages: %+v", packages)
 		t.Fatalf("problem with upstream syft cataloger (java)")
 	}
