@@ -116,7 +116,7 @@ func candidateTargetSoftwareAttrs(p *pkg.Package) []string {
 
 func candidateVendors(p *pkg.Package) []string {
 	// TODO: expand with package metadata (from type assert)
-	ret := []string{p.Name}
+	ret := []string{p.Name, ANY}
 	if p.Language == pkg.Python {
 		ret = append(ret, fmt.Sprintf("python-%s", p.Name))
 	}

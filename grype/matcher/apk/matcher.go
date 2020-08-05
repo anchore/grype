@@ -1,8 +1,6 @@
 package apk
 
 import (
-	"fmt"
-
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/common"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -23,54 +21,40 @@ func (m *Matcher) Type() match.MatcherType {
 
 func (m *Matcher) Match(store vulnerability.Provider, d distro.Distro, p *pkg.Package) ([]match.Match, error) {
 	var matches = make([]match.Match, 0)
-	fixes := make(map[string]match.Match, 0)
 
-	// create a slice of Alpine's sec db
-	secDbFixes, err := FindFixesByPackageDistro(store, d, p, m.Type())
+	// map {  CVE string : []match }
+	var secDbCandidates = make(map[string][]match.Match)
+
+	// find Alpine SecDB matches for the given package name and version
+	secDbMatches, err := common.FindMatchesByPackageDistro(store, d, p, m.Type())
 	if err != nil {
 		return nil, err
 	}
 
-	for _, secDbFix := range secDbFixes {
-		key := fmt.Sprintf("%s%s", secDbFix.Package.Name, secDbFix.Vulnerability.Constraint.String())
-		fixes[key] = secDbFix
+	for _, secDbMatch := range secDbMatches {
+		secDbCandidates[secDbMatch.Vulnerability.ID] = append(secDbCandidates[secDbMatch.Vulnerability.ID], secDbMatch)
 	}
 
-	// NVD source
+	// find NVD matches specific to the given package name and version
+	var cpeCandidates = make(map[string][]match.Match)
 	cpeMatches, err := common.FindMatchesByPackageCPE(store, p, m.Type())
 	if err != nil {
 		return nil, err
 	}
+
 	for _, cpeMatch := range cpeMatches {
-		key := fmt.Sprintf("%s%s", cpeMatch.Package.Name, cpeMatch.Package.Version)
-		// check if the fix already exists, if it doesn't then this is a vulnerability
-		if _, ok := fixes[key]; !ok {
-			matches = append(matches, cpeMatch)
+		cpeCandidates[cpeMatch.Vulnerability.ID] = append(cpeCandidates[cpeMatch.Vulnerability.ID], cpeMatch)
+	}
+
+	// package is vulnerable if there is a match in the alpine SecDB and NVD for the same CVE
+	for cve, cpeCandidatesForCve := range cpeCandidates {
+		// by this point all matches have been verified to be vulnerable within the given package version relative to the vulnerability source
+		_, ok := secDbCandidates[cve]
+		if ok {
+			// this is a match, use the NVD records as the primary record source (no need to merge)
+			matches = append(matches, cpeCandidatesForCve...)
 		}
 	}
 
 	return matches, nil
-}
-
-// FindFixesByPackageDistro retrieves all the fixes reported by Alpine - much unlike other distros that report vulnerabilities
-func FindFixesByPackageDistro(store vulnerability.ProviderByDistro, d distro.Distro, p *pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
-	// XXX this might need to be removed or adapted with an IF-ONLY-IF, perhaps FindMatchesByPackageDistro can be used as-is
-	allPkgVulns, err := store.GetByDistro(d, p)
-	if err != nil {
-		return nil, fmt.Errorf("matcher failed to fetch distro='%s' pkg='%s': %w", d, p.Name, err)
-	}
-
-	matches := make([]match.Match, 0)
-	for _, vuln := range allPkgVulns {
-		matches = append(matches, match.Match{
-			Type:          match.ExactDirectMatch,
-			Confidence:    1.0, // TODO: this is hard coded for now
-			Vulnerability: *vuln,
-			Package:       p,
-			Matcher:       upstreamMatcher,
-			SearchKey:     fmt.Sprintf("distro[%s] constraint[%s]", d, vuln.Constraint.String()),
-		})
-	}
-
-	return matches, err
 }
