@@ -1,9 +1,10 @@
 package cpe
 
 import (
+	"testing"
+
 	"github.com/anchore/syft/syft/pkg"
 	"github.com/sergi/go-diff/diffmatchpatch"
-	"testing"
 )
 
 func must(c CPE, e error) CPE {
@@ -72,6 +73,11 @@ func TestGenerate(t *testing.T) {
 				must(New("cpe:2.3:*:name:name:3.2:*:*:*:*:jenkins:*:*")),
 				must(New("cpe:2.3:*:name:name:3.2:*:*:*:*:cloudbees_jenkins:*:*")),
 				must(New("cpe:2.3:*:name:name:3.2:*:*:*:*:*:*:*")),
+				must(New("cpe:2.3:*:*:name:3.2:*:*:*:*:java:*:*")),
+				must(New("cpe:2.3:*:*:name:3.2:*:*:*:*:maven:*:*")),
+				must(New("cpe:2.3:*:*:name:3.2:*:*:*:*:jenkins:*:*")),
+				must(New("cpe:2.3:*:*:name:3.2:*:*:*:*:cloudbees_jenkins:*:*")),
+				must(New("cpe:2.3:*:*:name:3.2:*:*:*:*:*:*:*")),
 			},
 		},
 	}
