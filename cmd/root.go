@@ -6,19 +6,18 @@ import (
 	"runtime/pprof"
 	"sync"
 
-	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/syft/syft"
-	"github.com/anchore/syft/syft/distro"
-	"github.com/anchore/syft/syft/pkg"
-
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/presenter"
+	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/format"
 	"github.com/anchore/grype/internal/ui"
 	"github.com/anchore/grype/internal/version"
+	"github.com/anchore/syft/syft"
+	"github.com/anchore/syft/syft/distro"
+	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/scope"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -76,7 +75,7 @@ func init() {
 	// scan options
 	flag := "scope"
 	rootCmd.Flags().StringP(
-		"scope", "s", scope.AllLayersScope.String(),
+		"scope", "s", scope.SquashedScope.String(),
 		fmt.Sprintf("selection of layers to analyze, options=%v", scope.Options),
 	)
 	if err := viper.BindPFlag(flag, rootCmd.Flags().Lookup(flag)); err != nil {
