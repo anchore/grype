@@ -1,9 +1,9 @@
 name: 'Acceptance'
 on:
   push:
-    # ... only act on pushes to master
+    # ... only act on pushes to main
     branches:
-      - master
+      - main
     # ... do not act on release tags
     tags-ignore:
       - v*
