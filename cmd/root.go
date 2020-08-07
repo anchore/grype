@@ -118,7 +118,9 @@ func startWorker(userInput string) <-chan error {
 		}
 
 		var provider vulnerability.Provider
+		var metadataProvider vulnerability.MetadataProvider
 		var catalog *pkg.Catalog
+		var theScope *scope.Scope
 		var theDistro *distro.Distro
 		var err error
 		var wg = &sync.WaitGroup{}
@@ -127,7 +129,7 @@ func startWorker(userInput string) <-chan error {
 
 		go func() {
 			defer wg.Done()
-			provider, err = grype.LoadVulnerabilityDb(appConfig.Db.ToCuratorConfig(), appConfig.Db.AutoUpdate)
+			provider, metadataProvider, err = grype.LoadVulnerabilityDb(appConfig.Db.ToCuratorConfig(), appConfig.Db.AutoUpdate)
 			if err != nil {
 				errs <- fmt.Errorf("failed to load vulnerability db: %w", err)
 			}
@@ -135,7 +137,7 @@ func startWorker(userInput string) <-chan error {
 
 		go func() {
 			defer wg.Done()
-			catalog, _, theDistro, err = syft.Catalog(userInput, appConfig.ScopeOpt)
+			catalog, theScope, theDistro, err = syft.Catalog(userInput, appConfig.ScopeOpt)
 			if err != nil {
 				errs <- fmt.Errorf("failed to catalog: %w", err)
 			}
@@ -150,7 +152,7 @@ func startWorker(userInput string) <-chan error {
 
 		bus.Publish(partybus.Event{
 			Type:  event.VulnerabilityScanningFinished,
-			Value: presenter.GetPresenter(appConfig.PresenterOpt, results, catalog),
+			Value: presenter.GetPresenter(appConfig.PresenterOpt, results, catalog, *theScope, metadataProvider),
 		})
 	}()
 	return errs
