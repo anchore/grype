@@ -26,6 +26,29 @@ func getPackagesByPath(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog,
 	return catalog.PackagesByFile(refs[0])
 }
 
+func addAlpineMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *result.Result) {
+	packages := getPackagesByPath(t, theScope, catalog, "/lib/apk/db/installed")
+	if len(packages) != 1 {
+		t.Logf("Alpine Packages: %+v", packages)
+		t.Fatalf("problem with upstream syft cataloger (alpine)")
+	}
+	thePkg := packages[0]
+	theVuln := theStore.backend["alpine:3.12"][thePkg.Name][0]
+	vulnObj, err := vulnerability.NewVulnerability(theVuln)
+	if err != nil {
+		t.Fatalf("failed to create vuln obj: %+v", err)
+	}
+	theResult.Add(thePkg, match.Match{
+		Type:            match.FuzzyMatch,
+		Confidence:      1.0,
+		Vulnerability:   *vulnObj,
+		Package:         thePkg,
+		SearchKey:       "cpe[cpe:2.3:*:*:libvncserver:0.9.9:*:*:*:*:*:*:*] constraint[< 0.9.10 (unknown)]",
+		IndirectPackage: nil,
+		Matcher:         match.ApkMatcher,
+	})
+}
+
 func addJavascriptMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *result.Result) {
 	packages := getPackagesByPath(t, theScope, catalog, "/javascript/pkg-lock/package-lock.json")
 	if len(packages) != 1 {
@@ -201,6 +224,14 @@ func TestPkgCoverageImage(t *testing.T) {
 			expectedFn: func(theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore) result.Result {
 				expectedResults := result.NewResult()
 				addRhelMatches(t, theScope, catalog, theStore, &expectedResults)
+				return expectedResults
+			},
+		},
+		{
+			fixtureImage: "image-alpine-match-coverage",
+			expectedFn: func(theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore) result.Result {
+				expectedResults := result.NewResult()
+				addAlpineMatches(t, theScope, catalog, theStore, &expectedResults)
 				return expectedResults
 			},
 		},

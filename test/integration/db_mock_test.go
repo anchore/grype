@@ -14,6 +14,25 @@ type mockStore struct {
 func NewMockDbStore() *mockStore {
 	return &mockStore{
 		backend: map[string]map[string][]v1.Vulnerability{
+			"nvd": {
+				"libvncserver": []v1.Vulnerability{
+					{
+						ID:                "CVE-alpine-libvncserver",
+						VersionConstraint: "< 0.9.10",
+						VersionFormat:     "unknown",
+						CPEs:              []string{"cpe:2.3:a:lib_vnc_project-(server):libvncserver:*:*:*:*:*:*:*:*"},
+					},
+				},
+			},
+			"alpine:3.12": {
+				"libvncserver": []v1.Vulnerability{
+					{
+						ID:                "CVE-alpine-libvncserver",
+						VersionConstraint: "< 0.9.10",
+						VersionFormat:     "unknown",
+					},
+				},
+			},
 			"github:npm": {
 				"validator": []v1.Vulnerability{
 					{

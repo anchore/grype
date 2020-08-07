@@ -3,6 +3,7 @@ package matcher
 import (
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher/apk"
 	"github.com/anchore/grype/grype/matcher/bundler"
 	"github.com/anchore/grype/grype/matcher/dpkg"
 	"github.com/anchore/grype/grype/matcher/java"
@@ -44,6 +45,7 @@ func newController() controller {
 	ctrlr.add(&rpmdb.Matcher{})
 	ctrlr.add(&java.Matcher{})
 	ctrlr.add(&javascript.Matcher{})
+	ctrlr.add(&apk.Matcher{})
 	return ctrlr
 }
 

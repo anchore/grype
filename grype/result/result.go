@@ -53,3 +53,8 @@ func (r *Result) Enumerate() <-chan match.Match {
 	}()
 	return channel
 }
+
+// Count returns the total number of matches in a result
+func (r *Result) Count() int {
+	return len(r.byPackage)
+}
