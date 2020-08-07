@@ -4,8 +4,8 @@ A vulnerability scanner for container images and filesystems
 
 **Features**
 - Scan the contents of a container image or filesystem to find known vulnerabilities.
-- Finds vulnerabilities in operating system packages including Debian, Ubuntu, Amazon Linux, Red Hat Enterprise Linux, Red Hat UBI, CentOS, Oracle Linux, openSUSE, and SUSE Enterprise Linux
-- Finds vulnerabilities in Ruby (Bundler), Java, JavaScript (npm/yarn), and Python (pip/Egg/Wheel) language packages and artifacts
+- Find vulnerabilities for major operating system packages across Alpine, BusyBox, CentOS / Red Hat, and Debian / Ubuntu flavored distributions
+- Find vulnerabilities for Ruby (Bundler), Java, JavaScript (npm/yarn), Python (Egg/Wheel) packages, and Python Pip/requirements.txt listings
 
 ## Getting started
 
@@ -30,19 +30,19 @@ grype docker-archive://path/to/image.tar
 grype dir://path/to/dir
 ```
 
-By default Grype shows a summary table, however, a `json` format is also available.
+By default Grype shows a summary table, however, a more detailed `json` format is also available.
 ```
 syft <image> -o json
 ```
 
-Grype pulls a database of vulnerabilities from the Anchore Feed Service. This database is updated at the beginning of each scan, but an update can also be triggered.
+Grype pulls a database of vulnerabilities derived from the publicly available [Anchore Feed Service](https://ancho.re/v1/service/feeds). This database is updated at the beginning of each scan, but an update can also be triggered manually.
 ```
 grype db update
 ```
 
 ## Installation
 
-*NOTE: This tool hasn't been released yet, so these installation methods work right now*
+*NOTE: This tool hasn't been released yet, so these installation methods do not work yet*
 
 **Recommended**
 ```bash
@@ -57,6 +57,11 @@ curl -sSfL https://raw.githubusercontent.com/anchore/grype/master/install.sh | s
 ```bash
 brew tap anchore/grype
 brew install grype
+```
+
+You may experience a "macOS cannot verify app is free from malware" error upon running Grype because it is not yet signed and notarized. You can override this using `xattr`.
+```bash
+xattr -rd com.apple.quarantine syft
 ```
 
 ## Configuration
@@ -92,6 +97,21 @@ log:
 
 # enable/disable checking for application updates on startup
 check-for-app-update: true
+
+db:
+  # location to write the vulnerability database cache
+  cache-dir: "$XDG_CACHE_HOME/grype/db"
+
+  # URL of the vulnerability database
+  update-url: "https://toolbox-data.anchore.io/grype/databases/listing.json"
+
+  # check for database updates on execution
+  auto-update: true
+
+dev:
+  # enable profiling
+  profile-cpu: false
+
 ```
 
 ## Developing
