@@ -1,7 +1,7 @@
 name: 'Release'
 on:
   push:
-    # take no actions on push...
+    # take no actions on push to any branch...
     branches-ignore:
       - '**'
     # ... only act on release tags
@@ -16,12 +16,12 @@ jobs:
 
       - uses: actions/checkout@v2
 
-      # we don't want to release commits that have been pushed and tagged, but not necessarily merged onto master
-      - name: Ensure tagged commit is on master
+      # we don't want to release commits that have been pushed and tagged, but not necessarily merged onto main
+      - name: Ensure tagged commit is on main
         run: |
           echo "Tag: ${GITHUB_REF##*/}"
-          git fetch origin master
-          git merge-base --is-ancestor ${GITHUB_REF##*/} origin/master && echo "${GITHUB_REF##*/} is a commit on master!"
+          git fetch origin main
+          git merge-base --is-ancestor ${GITHUB_REF##*/} origin/main && echo "${GITHUB_REF##*/} is a commit on main!"
 
       - name: Build snapshot artifacts
         uses: fountainhead/action-wait-for-check@v1.0.0
