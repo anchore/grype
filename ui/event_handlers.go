@@ -63,13 +63,14 @@ func (r *Handler) UpdateVulnerabilityDatabaseHandler(ctx context.Context, fr *fr
 			var auxInfo string
 			switch prog.Stage() {
 			case "downloading":
-				auxInfo = auxInfoFormat.Sprintf("[%s / %s]", humanize.Bytes(uint64(prog.Current())), humanize.Bytes(uint64(prog.Size())))
+				progStr += " "
+				auxInfo = auxInfoFormat.Sprintf(" [%s / %s]", humanize.Bytes(uint64(prog.Current())), humanize.Bytes(uint64(prog.Size())))
 			default:
 				progStr = ""
 				auxInfo = auxInfoFormat.Sprintf("[%s]", prog.Stage())
 			}
 
-			_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s %s", spin, title, progStr, auxInfo))
+			_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s%s", spin, title, progStr, auxInfo))
 		}
 	}
 
@@ -84,7 +85,7 @@ func (r *Handler) UpdateVulnerabilityDatabaseHandler(ctx context.Context, fr *fr
 		spin := color.Green.Sprint(completedStatus)
 		title = tileFormat.Sprint("Vulnerability DB")
 		auxInfo := auxInfoFormat.Sprintf("[%s]", prog.Stage())
-		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+" %s", spin, title, auxInfo))
+		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
 	}()
 	return err
 }
