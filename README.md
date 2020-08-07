@@ -2,14 +2,97 @@
 
 A vulnerability scanner for container images and filesystems
 
+**Features**
+- Scan the contents of a container image or filesystem to find known vulnerabilities.
+- Finds vulnerabilities in operating system packages including Debian, Ubuntu, Amazon Linux, Red Hat Enterprise Linux, Red Hat UBI, CentOS, Oracle Linux, openSUSE, and SUSE Enterprise Linux
+- Finds vulnerabilities in Ruby (Bundler), Java, JavaScript (npm/yarn), and Python (pip/Egg/Wheel) language packages and artifacts
 
 ## Getting started
 
-### Installation
+To scan for vulnerabilities in an image:
+```
+grype <image>
+```
 
-### Scanning Images
+The above command scans for vulnerabilities that are visible in the container (i.e., the squashed representation of the image).
+To include software from all image layers in the vulnerability scan, regardless of its presence in the final image, provide `--scope all-layers`:
 
-### Scanning local paths
+```
+grype <image> --scope all-layers
+```
+
+Grype can scan a variety of sources beyond those found in Docker.
+```
+# scan a docker image tar (from the result of "docker image save ... -o image.tar" command)
+grype docker-archive://path/to/image.tar
+
+# scan a directory
+grype dir://path/to/dir
+```
+
+By default Grype shows a summary table, however, a `json` format is also available.
+```
+syft <image> -o json
+```
+
+Grype pulls a database of vulnerabilities from the Anchore Feed Service. This database is updated at the beginning of each scan, but an update can also be triggered.
+```
+grype db update
+```
+
+## Installation
+
+*NOTE: This tool hasn't been released yet, so these installation methods work right now*
+
+**Recommended**
+```bash
+# install the latest version to /usr/local/bin
+curl -sSfL https://raw.githubusercontent.com/anchore/grype/master/install.sh | sh -s -- -b /usr/local/bin
+
+# install a specific version into a specific dir
+curl -sSfL https://raw.githubusercontent.com/anchore/grype/master/install.sh | sh -s <RELEASE_VERSION> -b <SOME_BIN_PATH>
+```
+
+**macOS**
+```bash
+brew tap anchore/grype
+brew install grype
+```
+
+## Configuration
+
+Configuration search paths:
+
+- `.grype.yaml`
+- `.grype/config.yaml`
+- `~/.grype.yaml`
+- `<XDG_CONFIG_HOME>/grype/config.yaml`
+
+Configuration options (example values are the default):
+
+```yaml
+# same as -o ; the output format of the vulnerability report (options: table, json)
+output: "table"
+
+# same as -s ; the search space to look for packages (options: all-layers, squashed)
+scope: "squashed"
+
+# same as -q ; suppress all output (except for the vulnerability list)
+quiet: false
+
+log:
+  # use structured logging
+  structured: false
+
+  # the log level; note: detailed logging suppress the ETUI
+  level: "error"
+
+  # location to write the log file (default is not to have a log file)
+  file: ""
+
+# enable/disable checking for application updates on startup
+check-for-app-update: true
+```
 
 ## Developing
 
