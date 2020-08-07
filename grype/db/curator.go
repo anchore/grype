@@ -43,7 +43,7 @@ func NewCurator(cfg Config) Curator {
 	}
 }
 
-func (c *Curator) GetStore() (v1.VulnerabilityStoreReader, error) {
+func (c *Curator) GetStore() (v1.StoreReader, error) {
 	// ensure the DB is ok
 	err := c.Validate()
 	if err != nil {

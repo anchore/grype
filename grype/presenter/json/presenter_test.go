@@ -3,6 +3,8 @@ package json
 import (
 	"bytes"
 	"flag"
+	"github.com/anchore/stereoscope/pkg/file"
+	"github.com/anchore/syft/syft/scope"
 	"testing"
 
 	"github.com/anchore/go-testutils"
@@ -15,53 +17,122 @@ import (
 
 var update = flag.Bool("update", false, "update the *.golden files for json presenters")
 
-func TestJsonPresenter(t *testing.T) {
+type metadataMock struct {
+	store map[string]map[string]vulnerability.Metadata
+}
 
+func newMetadataMock() *metadataMock {
+	return &metadataMock{
+		store: map[string]map[string]vulnerability.Metadata{
+			"CVE-1999-0001": {
+				"source-1": {
+					Description: "1999-01 description",
+					CvssV3: &vulnerability.Cvss{
+						BaseScore: 4,
+						Vector:    "another vector",
+					},
+				},
+			},
+			"CVE-1999-0002": {
+				"source-2": {
+					Description: "1999-02 description",
+					CvssV2: &vulnerability.Cvss{
+						BaseScore:           1,
+						ExploitabilityScore: 2,
+						ImpactScore:         3,
+						Vector:              "vector",
+					},
+				},
+			},
+			"CVE-1999-0003": {
+				"source-1": {
+					Description: "1999-03 description",
+				},
+			},
+		},
+	}
+}
+
+func (m *metadataMock) GetMetadata(id, recordSource string) (*vulnerability.Metadata, error) {
+	value := m.store[id][recordSource]
+	return &value, nil
+}
+
+func TestJsonPresenter(t *testing.T) {
 	var buffer bytes.Buffer
+	var testImage = "image-simple"
+
+	if *update {
+		testutils.UpdateGoldenFixtureImage(t, testImage)
+	}
+
+	img := testutils.GetGoldenFixtureImage(t, testImage)
 
 	var pkg1 = pkg.Package{
 		Name:    "package-1",
 		Version: "1.0.1",
 		Type:    pkg.DebPkg,
+		Source: []file.Reference{
+			*img.SquashedTree().File("/somefile-1.txt"),
+		},
+		FoundBy: "the-cataloger-1",
 	}
 
 	var pkg2 = pkg.Package{
 		Name:    "package-2",
 		Version: "2.0.1",
 		Type:    pkg.DebPkg,
+		Source: []file.Reference{
+			*img.SquashedTree().File("/somefile-2.txt"),
+		},
+		FoundBy: "the-cataloger-2",
 	}
 
 	var match1 = match.Match{
-		Type:          match.ExactDirectMatch,
-		Vulnerability: vulnerability.Vulnerability{ID: "CVE-1999-0001"},
-		Package:       &pkg1,
-		Matcher:       match.DpkgMatcher,
+		Type: match.ExactDirectMatch,
+		Vulnerability: vulnerability.Vulnerability{
+			ID:           "CVE-1999-0001",
+			RecordSource: "source-1",
+		},
+		Package: &pkg1,
+		Matcher: match.DpkgMatcher,
 	}
 
 	var match2 = match.Match{
-		Type:          match.ExactIndirectMatch,
-		Vulnerability: vulnerability.Vulnerability{ID: "CVE-1999-0002"},
-		Package:       &pkg1,
-		Matcher:       match.DpkgMatcher,
+		Type: match.ExactIndirectMatch,
+		Vulnerability: vulnerability.Vulnerability{
+			ID:           "CVE-1999-0002",
+			RecordSource: "source-2",
+		},
+		Package: &pkg1,
+		Matcher: match.DpkgMatcher,
+	}
+
+	var match3 = match.Match{
+		Type: match.ExactIndirectMatch,
+		Vulnerability: vulnerability.Vulnerability{
+			ID:           "CVE-1999-0003",
+			RecordSource: "source-1",
+		},
+		Package: &pkg1,
+		Matcher: match.DpkgMatcher,
 	}
 
 	results := result.NewResult()
-
-	results.Add(&pkg1, match1, match2)
+	results.Add(&pkg1, match1, match2, match3)
 
 	catalog := pkg.NewCatalog()
-
-	// populate catalog with test data
 	catalog.Add(pkg1)
 	catalog.Add(pkg2)
 
-	pres := NewPresenter(results, catalog)
+	theScope, err := scope.NewScopeFromImage(img, scope.AllLayersScope)
+
+	pres := NewPresenter(results, catalog, theScope, newMetadataMock())
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
 	// run presenter
-	err := pres.Present(&buffer)
-	if err != nil {
+	if err = pres.Present(&buffer); err != nil {
 		t.Fatal(err)
 	}
 	actual := buffer.Bytes()
@@ -89,7 +160,7 @@ func TestEmptyJsonPresenter(t *testing.T) {
 
 	catalog := pkg.NewCatalog()
 
-	pres := NewPresenter(results, catalog)
+	pres := NewPresenter(results, catalog, scope.Scope{}, nil)
 
 	// run presenter
 	err := pres.Present(&buffer)

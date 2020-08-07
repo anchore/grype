@@ -1,0 +1,29 @@
+C:Q1z0MwWQKfva+S+q7XmOBYFfQgW/k=
+P:libvncserver
+V:0.9.9
+A:x86_64
+S:166239
+I:389120
+T:Library to make writing a vnc server easy
+U:http://libvncserver.sourceforge.net/
+L:GPL-2.0-or-later
+o:libvncserver
+m:A. Wilcox <awilfox@adelielinux.org>
+t:1572818861
+c:bf1ec813f662f128fc6b70f37ef1c0474bb24488
+D:so:libc.musl-x86_64.so.1 so:libgcrypt.so.20 so:libgnutls.so.30 so:libjpeg.so.8 so:libpng16.so.16 so:libz.so.1
+p:so:libvncclient.so.1=1.0.0 so:libvncserver.so.1=1.0.0
+F:usr
+F:usr/lib
+R:libvncclient.so.1
+a:0:0:777
+Z:Q1quyp/JcSPFQhtQFjMUYdMwRvAWM=
+R:libvncserver.so.1.0.0
+a:0:0:755
+Z:Q16Pd1AqyqQRMwiFfbUt9XkYnkapw=
+R:libvncserver.so.1
+a:0:0:777
+Z:Q184HrHsxEBqnsH4QNxeU5w8alhKI=
+R:libvncclient.so.1.0.0
+a:0:0:755
+Z:Q1IEjCrEwVlQt2GjIsb3o39vcgqMg=

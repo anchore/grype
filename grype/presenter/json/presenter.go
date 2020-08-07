@@ -2,61 +2,73 @@ package json
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 
 	"github.com/anchore/grype/grype/result"
+	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/pkg"
+	syftJson "github.com/anchore/syft/syft/presenter/json"
+	"github.com/anchore/syft/syft/scope"
 )
 
 // Presenter is a generic struct for holding fields needed for reporting
 type Presenter struct {
-	results result.Result
-	catalog *pkg.Catalog
+	results          result.Result
+	catalog          *pkg.Catalog
+	scope            scope.Scope
+	metadataProvider vulnerability.MetadataProvider
 }
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter(results result.Result, catalog *pkg.Catalog) *Presenter {
+func NewPresenter(results result.Result, catalog *pkg.Catalog, theScope scope.Scope, metadataProvider vulnerability.MetadataProvider) *Presenter {
 	return &Presenter{
-		results: results,
-		catalog: catalog,
+		results:          results,
+		catalog:          catalog,
+		metadataProvider: metadataProvider,
+		scope:            theScope,
 	}
 }
 
-// ResultObj is a single item for the JSON array reported
-type ResultObj struct {
-	Cve     string  `json:"cve"`
-	FoundBy FoundBy `json:"found-by"`
-	Package Package `json:"package"`
+// Finding is a single item for the JSON array reported
+type Finding struct {
+	Vulnerability Vulnerability     `json:"vulnerability"`
+	MatchDetails  MatchDetails      `json:"matched-by"`
+	Artifact      syftJson.Artifact `json:"artifact"`
 }
 
-// FoundBy contains all data that indicates how the result match was found
-type FoundBy struct {
+// MatchDetails contains all data that indicates how the result match was found
+type MatchDetails struct {
 	Matcher   string `json:"matcher"`
 	SearchKey string `json:"search-key"`
 }
 
-// Package is a nested JSON object from ResultObj
-type Package struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
-	Type    string `json:"type"`
-}
-
 // Present creates a JSON-based reporting
 func (pres *Presenter) Present(output io.Writer) error {
-	doc := make([]ResultObj, 0)
+	doc := make([]Finding, 0)
 
-	for match := range pres.results.Enumerate() {
-		p := pres.catalog.Package(match.Package.ID())
+	for m := range pres.results.Enumerate() {
+		p := pres.catalog.Package(m.Package.ID())
+
+		art, err := syftJson.NewArtifact(p, pres.scope)
+		if err != nil {
+			return err
+		}
+
+		metadata, err := pres.metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.RecordSource)
+		if err != nil {
+			return fmt.Errorf("unable to fetch vuln=%q metadata: %+v", m.Vulnerability.ID, err)
+		}
+
 		doc = append(
 			doc,
-			ResultObj{
-				Cve: match.Vulnerability.ID,
-				FoundBy: FoundBy{
-					Matcher:   match.Matcher.String(),
-					SearchKey: match.SearchKey,
+			Finding{
+				Vulnerability: NewVulnerability(m, metadata),
+				Artifact:      art,
+				MatchDetails: MatchDetails{
+					Matcher:   m.Matcher.String(),
+					SearchKey: m.SearchKey,
 				},
-				Package: Package{Name: p.Name, Version: p.Version, Type: string(p.Type)},
 			},
 		)
 	}
