@@ -107,11 +107,6 @@ db:
 
   # check for database updates on execution
   auto-update: true
-
-dev:
-  # enable profiling
-  profile-cpu: false
-
 ```
 
 ## Developing
