@@ -1,26 +1,84 @@
 [
  {
-  "cve": "CVE-1999-0001",
-  "found-by": {
+  "vulnerability": {
+   "id": "CVE-1999-0001",
+   "description": "1999-01 description",
+   "cvss-v3": {
+    "base-score": 4,
+    "vector": "another vector"
+   }
+  },
+  "matched-by": {
    "matcher": "dpkg-matcher",
    "search-key": ""
   },
-  "package": {
+  "artifact": {
    "name": "package-1",
    "version": "1.0.1",
-   "type": "deb"
+   "type": "deb",
+   "found-by": [
+    "the-cataloger-1"
+   ],
+   "locations": [
+    {
+     "path": "/somefile-1.txt",
+     "layer-index": 0
+    }
+   ]
   }
  },
  {
-  "cve": "CVE-1999-0002",
-  "found-by": {
+  "vulnerability": {
+   "id": "CVE-1999-0002",
+   "description": "1999-02 description",
+   "cvss-v2": {
+    "base-score": 1,
+    "exploitability-score": 2,
+    "impact-score": 3,
+    "vector": "vector"
+   }
+  },
+  "matched-by": {
    "matcher": "dpkg-matcher",
    "search-key": ""
   },
-  "package": {
+  "artifact": {
    "name": "package-1",
    "version": "1.0.1",
-   "type": "deb"
+   "type": "deb",
+   "found-by": [
+    "the-cataloger-1"
+   ],
+   "locations": [
+    {
+     "path": "/somefile-1.txt",
+     "layer-index": 0
+    }
+   ]
+  }
+ },
+ {
+  "vulnerability": {
+   "id": "CVE-1999-0003",
+   "description": "1999-03 description"
+  },
+  "matched-by": {
+   "matcher": "dpkg-matcher",
+   "search-key": ""
+  },
+  "artifact": {
+   "name": "package-1",
+   "version": "1.0.1",
+   "type": "deb",
+   "found-by": [
+    "the-cataloger-1"
+   ],
+   "locations": [
+    {
+     "path": "/somefile-1.txt",
+     "layer-index": 0
+    }
+   ]
   }
  }
 ]

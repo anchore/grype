@@ -39,22 +39,22 @@ func FindVulnerabilitiesForPackage(provider vulnerability.Provider, d distro.Dis
 	return matcher.FindMatches(provider, d, packages...)
 }
 
-func LoadVulnerabilityDb(cfg db.Config, update bool) (vulnerability.Provider, error) {
+func LoadVulnerabilityDb(cfg db.Config, update bool) (vulnerability.Provider, vulnerability.MetadataProvider, error) {
 	dbCurator := db.NewCurator(cfg)
 
 	if update {
 		_, err := dbCurator.Update()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
 	store, err := dbCurator.GetStore()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return vulnerability.NewProviderFromStore(store), nil
+	return vulnerability.NewProviderFromStore(store), vulnerability.NewMetadataStoreProvider(store), nil
 }
 
 func SetLogger(logger logger.Logger) {
