@@ -23,7 +23,7 @@ func GetPresenter(option Option, results result.Result, catalog *pkg.Catalog, th
 	case JSONPresenter:
 		return json.NewPresenter(results, catalog, theScope, metadataProvider)
 	case TablePresenter:
-		return table.NewPresenter(results, catalog)
+		return table.NewPresenter(results, catalog, metadataProvider)
 	default:
 		return nil
 	}
