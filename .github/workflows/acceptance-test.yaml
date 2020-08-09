@@ -1,14 +1,17 @@
 name: 'Acceptance'
 on:
   push:
+    workflow_dispatch:
     # ... only act on pushes to main
     branches:
       - main
     # ... do not act on release tags
     tags-ignore:
       - v*
+
 env:
   GO_VERSION: "1.14.x"
+
 jobs:
   # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
   Build-Snapshot-Artifacts:
@@ -68,4 +71,31 @@ jobs:
           name: artifacts
           path: snapshot/**/*
 
-# TODO: currently we only do a snapshot build, later we will add explicit acceptance tests per-platform
+
+  # TODO: add basic acceptance tests against snapshot artifacts
+
+  # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
+  Inline-Compare:
+    needs: [ Build-Snapshot-Artifacts ]
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v2
+
+      - name: Fingerprint inline-compare sources
+        run: make compare-fingerprint
+
+      - name: Restore inline reports cache
+        id: cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ github.workspace }}/test/inline-compare/inline-reports
+          key: inline-reports-${{ hashFiles('**/inline-compare.fingerprint') }}
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: artifacts
+          path: snapshot
+
+      - name: Compare Anchore inline-scan results against snapshot build output
+        run: make compare-snapshot

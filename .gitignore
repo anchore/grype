@@ -2,6 +2,7 @@
 /dist/
 *.profile
 .server
+*.fingerprint
 Dockerfile
 /metadata.json
 /listing.json

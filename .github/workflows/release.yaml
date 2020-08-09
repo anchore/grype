@@ -7,8 +7,10 @@ on:
     # ... only act on release tags
     tags:
       - 'v*'
+
 env:
   GO_VERSION: "1.14.x"
+
 jobs:
   wait-for-checks:
     runs-on: ubuntu-latest
@@ -32,6 +34,15 @@ jobs:
           checkName: "Build-Snapshot-Artifacts"
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
+      - name: Check inline comparison test results
+        uses: fountainhead/action-wait-for-check@v1.0.0
+        id: inline-compare
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # This check name is defined as the github action job name (in .github/workflows/acceptance-test.yaml)
+          checkName: "Inline-Compare"
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
       - name: Check static anaylysis, unit, and integration test results
         uses: fountainhead/action-wait-for-check@v1.0.0
         id: sa-unit-int
@@ -42,10 +53,11 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Quality gate
-        if: steps.sa-unit-int.outputs.conclusion != 'success' || steps.snapshot.outputs.conclusion != 'success'
+        if: steps.sa-unit-int.outputs.conclusion != 'success' || steps.inline-compare.outputs.conclusion != 'success' || steps.snapshot.outputs.conclusion != 'success'
         run: |
           echo "Static/Unit/Integration Status : ${{ steps.sa-unit-int.outputs.conclusion }}"
           echo "Build Snapshot Artifacts Status: ${{ steps.snapshot.outputs.conclusion }}"
+          echo "Inline Compare Status: ${{ steps.inline-compare.outputs.conclusion }}"
           false
 
   release:

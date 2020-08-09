@@ -1,2 +1,3 @@
 *.json
 *-reports
+!/images/**/Dockerfile

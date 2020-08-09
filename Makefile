@@ -20,6 +20,7 @@ COVERAGE_THRESHOLD := 60
 DISTDIR=./dist
 SNAPSHOTDIR=./snapshot
 GITTREESTATE=$(if $(shell git status --porcelain),dirty,clean)
+SNAPSHOT_CMD=$(shell realpath $(shell pwd)/$(SNAPSHOTDIR)/grype_linux_amd64/grype)
 
 ifeq "$(strip $(VERSION))" ""
  override VERSION = $(shell git describe --always --tags --dirty)
@@ -50,10 +51,6 @@ endef
 .PHONY: all
 all: clean static-analysis test ## Run all checks (linting, license check, unit, integration, and linux acceptance tests tests)
 	@printf '$(SUCCESS)All checks pass!$(RESET)\n'
-
-.PHONY: compare
-compare:
-	@cd test/inline-compare && make
 
 .PHONY: test
 test: unit integration acceptance-linux ## Run all tests (unit, integration, and linux acceptance tests )
@@ -100,6 +97,7 @@ validate-schema:
 	# ensure the codebase is only referencing a single grype-db schema version, multiple is not allowed
 	python test/validate_schema.py
 
+.PHONY: lint-fix
 lint-fix: ## Auto-format all source code + run golangci lint fixers
 	$(call title,Running lint fixers)
 	gofmt -w -s .
@@ -109,6 +107,7 @@ lint-fix: ## Auto-format all source code + run golangci lint fixers
 check-licenses:
 	$(TEMPDIR)/bouncer check
 
+.PHONY: unit
 unit: ## Run unit tests (with coverage)
 	$(call title,Running unit tests)
 	mkdir -p $(RESULTSDIR)
@@ -117,16 +116,20 @@ unit: ## Run unit tests (with coverage)
 	@echo "Coverage: $$(cat $(COVER_TOTAL))"
 	@if [ $$(echo "$$(cat $(COVER_TOTAL)) >= $(COVERAGE_THRESHOLD)" | bc -l) -ne 1 ]; then echo "$(RED)$(BOLD)Failed coverage quality gate (> $(COVERAGE_THRESHOLD)%)$(RESET)" && false; fi
 
+.PHONY: integration
 integration: ## Run integration tests
 	$(call title,Running integration tests)
 	go test -v -tags=integration ./test/integration
 
-integration/test-fixtures/tar-cache.key, integration-fingerprint:
+.PHONY: integration-fingerprint
+test/integration/test-fixtures/tar-cache.fingerprint, integration-fingerprint:
 	find test/integration/test-fixtures/image-* -type f -exec md5sum {} + | awk '{print $1}' | sort | md5sum | tee test/integration/test-fixtures/tar-cache.fingerprint
 
+.PHONY: clear-test-cache
 clear-test-cache: ## Delete all test cache (built docker image tars)
 	find . -type f -wholename "**/test-fixtures/tar-cache/*.tar" -delete
 
+.PHONY: check-pipeline
 check-pipeline: ## Run local CircleCI pipeline locally (sanity check)
 	$(call title,Check pipeline)
 	# note: this is meant for local development & testing of the pipeline, NOT to be run in CI
@@ -151,6 +154,19 @@ $(SNAPSHOTDIR): ## Build snapshot release binaries and packages
 
 .PHONY: acceptance-linux
 acceptance-linux: $(SNAPSHOTDIR) ## Run acceptance tests on build snapshot binaries and packages (Linux)
+
+.PHONY: compare-fingerprint
+compare-fingerprint:
+	find test/inline-compare/* -type f -exec md5sum {} + | grep -v '\-reports' | grep -v 'fingerprint' | awk '{print $1}' | sort | md5sum | tee test/inline-compare/inline-compare.fingerprint
+
+.PHONY: compare-snapshot
+compare-snapshot: $(SNAPSHOTDIR)
+	chmod 755 $(SNAPSHOT_CMD)
+	@cd test/inline-compare && GRYPE_CMD=$(SNAPSHOT_CMD) make
+
+.PHONY: compare
+compare:
+	@cd test/inline-compare && make
 
 .PHONY: release
 release: clean-dist ## Build and publish final binaries and packages
