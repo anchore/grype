@@ -87,7 +87,7 @@ func (c *controller) findMatches(provider vulnerability.Provider, d distro.Distr
 
 		matchers, ok := c.matchers[p.Type]
 		if !ok {
-			log.Errorf("no matchers available for package pkg=%s", p)
+			log.Warnf("no matchers available for package pkg=%s", p)
 		}
 		for _, m := range matchers {
 			matches, err := m.Match(provider, d, p)
