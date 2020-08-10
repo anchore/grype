@@ -8,6 +8,10 @@ func Errorf(format string, args ...interface{}) {
 	Log.Errorf(format, args...)
 }
 
+func Warnf(format string, args ...interface{}) {
+	Log.Warnf(format, args...)
+}
+
 func Infof(format string, args ...interface{}) {
 	Log.Infof(format, args...)
 }

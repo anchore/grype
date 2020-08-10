@@ -90,6 +90,10 @@ func (l *LogrusLogger) Info(args ...interface{}) {
 	l.Logger.Info(args...)
 }
 
+func (l *LogrusLogger) Warnf(format string, args ...interface{}) {
+	l.Logger.Warnf(format, args...)
+}
+
 func (l *LogrusLogger) Errorf(format string, args ...interface{}) {
 	l.Logger.Errorf(format, args...)
 }
@@ -108,6 +112,10 @@ func (l *LogrusNestedLogger) Debug(args ...interface{}) {
 
 func (l *LogrusNestedLogger) Info(args ...interface{}) {
 	l.Logger.Info(args...)
+}
+
+func (l *LogrusNestedLogger) Warnf(format string, args ...interface{}) {
+	l.Logger.Warnf(format, args...)
 }
 
 func (l *LogrusNestedLogger) Errorf(format string, args ...interface{}) {
