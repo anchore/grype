@@ -7,6 +7,8 @@ A vulnerability scanner for container images and filesystems
 - Find vulnerabilities for major operating system packages across Alpine, BusyBox, CentOS / Red Hat, and Debian / Ubuntu flavored distributions
 - Find vulnerabilities for Ruby (Bundler), Java, JavaScript (npm/yarn), Python (Egg/Wheel) packages, and Python Pip/requirements.txt listings
 
+> :warning: **This is pre-release software** and it may not work as expected. If you encounter an issue, please [let us know using the issue tracker](https://github.com/anchore/grype/issues).
+
 ## Getting started
 
 To scan for vulnerabilities in an image:
@@ -166,4 +168,13 @@ id             record_source  package_name  namespace   version_constraint  vers
 -------------  -------------  ------------  ----------  ------------------  --------------  -----------------------------------------------------------  ---------------------
 CVE-2006-2450                 libvncserver  nvd         = 0.7.1             unknown         ["cpe:2.3:a:libvncserver:libvncserver:0.7.1:*:*:*:*:*:*:*"]  []
 ```
+
+## Future plans
+
+The following areas of potential development are currently being investigated:
+- Add CycloneDX to list of output formats
+- Support for allowlist, package mapping
+- Establish a stable interchange format w/Syft
+- Accept SBOM (CycloneDX, Syft) as input instead of image/directory
+
 
