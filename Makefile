@@ -121,8 +121,9 @@ integration: ## Run integration tests
 	$(call title,Running integration tests)
 	go test -v -tags=integration ./test/integration
 
+# note: this is used by CI to determine if the integration test fixture cache (docker image tars) should be busted
 .PHONY: integration-fingerprint
-test/integration/test-fixtures/tar-cache.fingerprint, integration-fingerprint:
+integration-fingerprint:
 	find test/integration/test-fixtures/image-* -type f -exec md5sum {} + | awk '{print $1}' | sort | md5sum | tee test/integration/test-fixtures/tar-cache.fingerprint
 
 .PHONY: clear-test-cache
@@ -155,12 +156,13 @@ $(SNAPSHOTDIR): ## Build snapshot release binaries and packages
 .PHONY: acceptance-linux
 acceptance-linux: $(SNAPSHOTDIR) ## Run acceptance tests on build snapshot binaries and packages (Linux)
 
+# note: this is used by CI to determine if the inline-scan report cache should be busted for the inline-compare tests
 .PHONY: compare-fingerprint
-compare-fingerprint:
+compare-fingerprint: ## Compare a snapshot build run of grype against inline-scan
 	find test/inline-compare/* -type f -exec md5sum {} + | grep -v '\-reports' | grep -v 'fingerprint' | awk '{print $1}' | sort | md5sum | tee test/inline-compare/inline-compare.fingerprint
 
 .PHONY: compare-snapshot
-compare-snapshot: $(SNAPSHOTDIR)
+compare-snapshot: $(SNAPSHOTDIR)  ## Compare a main branch build run of grype against inline-scan
 	chmod 755 $(SNAPSHOT_CMD)
 	@cd test/inline-compare && GRYPE_CMD=$(SNAPSHOT_CMD) make
 
