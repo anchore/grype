@@ -15,6 +15,50 @@ import (
 
 var update = flag.Bool("update", false, "update the *.golden files for json presenters")
 
+type metadataMock struct {
+	store map[string]map[string]vulnerability.Metadata
+}
+
+func newMetadataMock() *metadataMock {
+	return &metadataMock{
+		store: map[string]map[string]vulnerability.Metadata{
+			"CVE-1999-0001": {
+				"source-1": {
+					Description: "1999-01 description",
+					Severity:    "Low",
+					CvssV3: &vulnerability.Cvss{
+						BaseScore: 4,
+						Vector:    "another vector",
+					},
+				},
+			},
+			"CVE-1999-0002": {
+				"source-2": {
+					Description: "1999-02 description",
+					Severity:    "Critical",
+					CvssV2: &vulnerability.Cvss{
+						BaseScore:           1,
+						ExploitabilityScore: 2,
+						ImpactScore:         3,
+						Vector:              "vector",
+					},
+				},
+			},
+			"CVE-1999-0003": {
+				"source-1": {
+					Description: "1999-03 description",
+					Severity:    "High",
+				},
+			},
+		},
+	}
+}
+
+func (m *metadataMock) GetMetadata(id, recordSource string) (*vulnerability.Metadata, error) {
+	value := m.store[id][recordSource]
+	return &value, nil
+}
+
 func TestTablePresenter(t *testing.T) {
 
 	var buffer bytes.Buffer
@@ -32,18 +76,24 @@ func TestTablePresenter(t *testing.T) {
 	}
 
 	var match1 = match.Match{
-		Type:          match.ExactDirectMatch,
-		Vulnerability: vulnerability.Vulnerability{ID: "CVE-1999-0001"},
-		Package:       &pkg1,
-		Matcher:       match.DpkgMatcher,
+		Type: match.ExactDirectMatch,
+		Vulnerability: vulnerability.Vulnerability{
+			ID:           "CVE-1999-0001",
+			RecordSource: "source-1",
+		},
+		Package: &pkg1,
+		Matcher: match.DpkgMatcher,
 	}
 
 	var match2 = match.Match{
-		Type:          match.ExactIndirectMatch,
-		Vulnerability: vulnerability.Vulnerability{ID: "CVE-1999-0002"},
-		Package:       &pkg2,
-		Matcher:       match.DpkgMatcher,
-		SearchKey:     "a search key...",
+		Type: match.ExactIndirectMatch,
+		Vulnerability: vulnerability.Vulnerability{
+			ID:           "CVE-1999-0002",
+			RecordSource: "source-2",
+		},
+		Package:   &pkg2,
+		Matcher:   match.DpkgMatcher,
+		SearchKey: "a search key...",
 	}
 
 	results := result.NewResult()
@@ -56,7 +106,7 @@ func TestTablePresenter(t *testing.T) {
 	catalog.Add(pkg1)
 	catalog.Add(pkg2)
 
-	pres := NewPresenter(results, catalog)
+	pres := NewPresenter(results, catalog, newMetadataMock())
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
@@ -90,7 +140,7 @@ func TestEmptyTablePresenter(t *testing.T) {
 	results := result.NewResult()
 	catalog := pkg.NewCatalog()
 
-	pres := NewPresenter(results, catalog)
+	pres := NewPresenter(results, catalog, newMetadataMock())
 
 	// run presenter
 	err := pres.Present(&buffer)

@@ -1,25 +1,29 @@
 package table
 
 import (
+	"fmt"
 	"io"
 	"sort"
 
 	"github.com/anchore/grype/grype/result"
+	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/pkg"
 	"github.com/olekukonko/tablewriter"
 )
 
 // Presenter is a generic struct for holding fields needed for reporting
 type Presenter struct {
-	results result.Result
-	catalog *pkg.Catalog
+	results          result.Result
+	catalog          *pkg.Catalog
+	metadataProvider vulnerability.MetadataProvider
 }
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter(results result.Result, catalog *pkg.Catalog) *Presenter {
+func NewPresenter(results result.Result, catalog *pkg.Catalog, metadataProvider vulnerability.MetadataProvider) *Presenter {
 	return &Presenter{
-		results: results,
-		catalog: catalog,
+		results:          results,
+		catalog:          catalog,
+		metadataProvider: metadataProvider,
 	}
 }
 
@@ -27,13 +31,24 @@ func NewPresenter(results result.Result, catalog *pkg.Catalog) *Presenter {
 func (pres *Presenter) Present(output io.Writer) error {
 	rows := make([][]string, 0)
 
-	columns := []string{"Name", "Installed", "Vulnerability", "Found-By"}
-	for p := range pres.results.Enumerate() {
+	columns := []string{"Name", "Installed", "Vulnerability", "Severity"}
+	for m := range pres.results.Enumerate() {
+		var severity string
+
+		metadata, err := pres.metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.RecordSource)
+		if err != nil {
+			return fmt.Errorf("unable to fetch vuln=%q metadata: %+v", m.Vulnerability.ID, err)
+		}
+
+		if metadata != nil {
+			severity = metadata.Severity
+		}
+
 		row := []string{
-			p.Package.Name,
-			p.Package.Version,
-			p.Vulnerability.ID,
-			p.SearchKey,
+			m.Package.Name,
+			m.Package.Version,
+			m.Vulnerability.ID,
+			severity,
 		}
 		rows = append(rows, row)
 	}
@@ -60,7 +75,6 @@ func (pres *Presenter) Present(output io.Writer) error {
 	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
 	table.SetAlignment(tablewriter.ALIGN_LEFT)
 
-	// these options allow for a more greppable table
 	table.SetHeaderLine(false)
 	table.SetBorder(false)
 	table.SetAutoFormatHeaders(true)
@@ -69,13 +83,6 @@ func (pres *Presenter) Present(output io.Writer) error {
 	table.SetRowSeparator("")
 	table.SetTablePadding("  ")
 	table.SetNoWhiteSpace(true)
-
-	// these options allow for a more human-readable (but not greppable) table
-	//table.SetRowLine(true)
-	//table.SetAutoMergeCells(true)
-	//table.SetCenterSeparator("·") // + ┼ ╎  ┆ ┊ · •
-	//table.SetColumnSeparator("│")
-	//table.SetRowSeparator("─")
 
 	table.AppendBulk(rows)
 	table.Render()
