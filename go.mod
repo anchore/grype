@@ -8,7 +8,7 @@ require (
 	github.com/anchore/go-version v1.2.2-0.20200808191332-3efe44edd7a9
 	github.com/anchore/grype-db v0.0.0-20200807151757-5aee0401bf56
 	github.com/anchore/stereoscope v0.0.0-20200803190343-146f38f8cc19
-	github.com/anchore/syft v0.1.0-beta.2.0.20200809023532-6b77f2251f6e
+	github.com/anchore/syft v0.1.0-beta.2.0.20200810143344-2d452bf59e0f
 	github.com/dustin/go-humanize v1.0.0
 	github.com/facebookincubator/nvdtools v0.1.4-0.20200622182922-aed862a62ae6
 	github.com/go-test/deep v1.0.7
@@ -30,7 +30,3 @@ require (
 	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
 	gopkg.in/yaml.v2 v2.3.0
 )
-
-replace github.com/wagoodman/go-rpmdb => ../go-rpmdb
-
-replace github.com/anchore/syft => ../syft
