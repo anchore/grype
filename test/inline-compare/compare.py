@@ -10,8 +10,7 @@ QUALITY_GATE_THRESHOLD = 0.9
 INDENT = "    "
 IMAGE_QUALITY_GATE = collections.defaultdict(lambda: QUALITY_GATE_THRESHOLD, **{
     # not necessary if not comparing severity
-    # "debian:10.5": 0.86,     # anchore is replacing "Negligible" severity with "Low" in some (all?) situations
-    "centos:8.2.2004": 0.40, # anchore seems to be doing some sort of indirect matching like with dpkg (e.g. vim-minimal package is matching with rhel:8 upstream vim vulns [not vim-minimal])
+    # "debian:10.5": 0.86,   # anchore is replacing "Negligible" severity with "Low" in some (all?) situations
     "alpine:3.12.0": 1.0,    # no known vulnerabilities
     "alpine-vuln:latest": 0.92, # engine is seeing this from all layers, once we deduplicate the catalog and default to all-layers analysis this should be 100%
     "python-vuln:latest": 1.0,
@@ -27,7 +26,6 @@ IMAGE_QUALITY_GATE = collections.defaultdict(lambda: QUALITY_GATE_THRESHOLD, **{
 IMAGE_UPPER_THRESHOLD = collections.defaultdict(lambda: 1, **{
     # not necessary if not comparing severity
     # "debian:10.5": 0.90,
-    "centos:8.2.2004": 0.45,
     "alpine-vuln:latest": 0.94,
 })
 
