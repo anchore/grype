@@ -3,7 +3,7 @@
 [![CircleCI](https://circleci.com/gh/anchore/grype.svg?style=svg)](https://circleci.com/gh/anchore/grype)
 [![Go Report Card](https://goreportcard.com/badge/github.com/anchore/grype)](https://goreportcard.com/report/github.com/anchore/grype)
 [![GitHub release](https://img.shields.io/github/release/anchore/grype.svg)](https://github.com/anchore/grype/releases/latest)
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/anchore/grype/blob/master/LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/anchore/grype/blob/main/LICENSE)
 
 A vulnerability scanner for container images and filesystems
 
@@ -47,15 +47,13 @@ grype db update
 
 ## Installation
 
-*NOTE: This tool hasn't been released yet, so these installation methods do not work yet*
-
 **Recommended**
 ```bash
 # install the latest version to /usr/local/bin
-curl -sSfL https://raw.githubusercontent.com/anchore/grype/master/install.sh | sh -s -- -b /usr/local/bin
+curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
 
 # install a specific version into a specific dir
-curl -sSfL https://raw.githubusercontent.com/anchore/grype/master/install.sh | sh -s <RELEASE_VERSION> -b <SOME_BIN_PATH>
+curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s <RELEASE_VERSION> -b <SOME_BIN_PATH>
 ```
 
 **macOS**
