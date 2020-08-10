@@ -34,6 +34,10 @@ Package = collections.namedtuple("Package", "name type")
 Vulnerability = collections.namedtuple("Vulnerability", "id package")
 
 
+def clean(image: str) -> str:
+    return os.path.basename(image.replace(":", "_"))
+
+
 class InlineScan:
 
     report_tmpl = "{image}-{report}.json"
@@ -45,7 +49,7 @@ class InlineScan:
     def _report_path(self, report):
         return os.path.join(
             self.report_dir,
-            self.report_tmpl.format(image=self.image.replace(":", "_"), report=report),
+            self.report_tmpl.format(image=clean(self.image), report=report),
         )
 
     def _enumerate_section(self, report, section):
@@ -112,7 +116,7 @@ class Grype:
 
     def __init__(self, image, report_dir="./"):
         self.report_path = os.path.join(
-            report_dir, self.report_tmpl.format(image=image.replace(":", "_"))
+            report_dir, self.report_tmpl.format(image=clean(image))
         )
 
     def _enumerate_section(self):

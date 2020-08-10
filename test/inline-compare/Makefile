@@ -2,7 +2,7 @@ ifndef GRYPE_CMD
 	GRYPE_CMD = go run ../../main.go
 endif
 
-IMAGE_CLEAN = $(shell echo $(COMPARE_IMAGE) | tr ":" "_")
+IMAGE_CLEAN = $(shell echo $(COMPARE_IMAGE) | tr ":" "_" | tr "/" "_")
 GRYPE_DIR = grype-reports
 GRYPE_REPORT = $(GRYPE_DIR)/$(IMAGE_CLEAN).json
 INLINE_DIR = inline-reports
