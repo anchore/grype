@@ -59,7 +59,7 @@ help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(BOLD)$(CYAN)%-25s$(RESET)%s\n", $$1, $$2}'
 
 ci-bootstrap: bootstrap
-	sudo apt install -y bc
+	sudo apt update && sudo apt install -y bc jq
 
 .PHONY: boostrap
 bootstrap: ## Download and install all go dependencies (+ prep tooling in the ./tmp dir)
