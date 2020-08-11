@@ -5,7 +5,7 @@
 [![GitHub release](https://img.shields.io/github/release/anchore/grype.svg)](https://github.com/anchore/grype/releases/latest)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/anchore/grype/blob/main/LICENSE)
 
-A vulnerability scanner for container images and filesystems
+A vulnerability scanner for container images and filesystems. [Easily install the binary](#installation) to try it out.
 
 **Features**
 - Scan the contents of a container image or filesystem to find known vulnerabilities.
@@ -16,7 +16,7 @@ A vulnerability scanner for container images and filesystems
 
 ## Getting started
 
-To scan for vulnerabilities in an image:
+[Install the binary](#installation), and make sure that `grype` is available in your path. To scan for vulnerabilities in an image:
 ```
 grype <image>
 ```
