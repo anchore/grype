@@ -39,7 +39,7 @@ grype dir://path/to/dir
 
 By default Grype shows a summary table, however, a more detailed `json` format is also available.
 ```
-syft <image> -o json
+grype <image> -o json
 ```
 
 Grype pulls a database of vulnerabilities derived from the publicly available [Anchore Feed Service](https://ancho.re/v1/service/feeds). This database is updated at the beginning of each scan, but an update can also be triggered manually.
@@ -66,7 +66,7 @@ brew install grype
 
 You may experience a "macOS cannot verify app is free from malware" error upon running Grype because it is not yet signed and notarized. You can override this using `xattr`.
 ```bash
-xattr -rd com.apple.quarantine syft
+xattr -rd com.apple.quarantine grype 
 ```
 
 ## Configuration
