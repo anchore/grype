@@ -5,10 +5,13 @@ BIN="grype"
 DISTDIR=$1
 VERSION=$2
 
-if [[ $VERSION == *-* ]] ; then
-   echo "skipping publishing a version file (this is a pre-release: ${VERSION})"
-   exit 0
-fi
+# TODO: after v0.1.0 release, add the pre-release check back in. Currently we are only cutting beta releases so we want
+# to let user's know when there is a new beta available, however, after v0.1.0 we will rarely be cutting beta releases.
+# At that point we do not want to update the version file for new betas.
+# if [[ $VERSION == *-* ]] ; then
+#    echo "skipping publishing a version file (this is a pre-release: ${VERSION})"
+#    exit 0
+# fi
 
 echo "creating and publishing version file"
 
