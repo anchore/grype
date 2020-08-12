@@ -215,7 +215,7 @@ func TestFuzzyConstraintSatisfaction(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			c, err := newFuzzyConstraint(test.constraint)
+			c, err := newFuzzyConstraint(test.constraint, "")
 			if err != nil {
 				t.Fatalf("could not create constraint: %+v", err)
 			}
