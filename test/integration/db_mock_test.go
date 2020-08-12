@@ -47,7 +47,7 @@ func NewMockDbStore() *mockStore {
 					{
 						ID:                "CVE-python-pygments",
 						VersionConstraint: "< 2.6.2",
-						VersionFormat:     "semver",
+						VersionFormat:     "python",
 					},
 				},
 			},
