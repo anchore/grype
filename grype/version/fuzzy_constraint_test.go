@@ -10,6 +10,13 @@ func TestSmartVerCmp(t *testing.T) {
 		v1, v2 string
 		ret    int
 	}{
+		// Python PEP440 crazyness
+		{"1.5+1", "1.5+1.git.abc123de", -1},
+		{"1.0.0-post1", "1.0.0-post2", -1},
+		{"1.0.0", "1.0.0-post1", -1},
+		{"1.0.0-dev1", "1.0.0-post1", -1},
+		{"1.0.0-dev2", "1.0.0-post1", -1},
+		{"1.0.0", "1.0.0-dev1", -1},
 		{"5", "8", -1},
 		{"15", "3", 1},
 		{"4a", "4c", -1},
