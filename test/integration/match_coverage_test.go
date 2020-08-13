@@ -91,7 +91,7 @@ func addPythonMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, 
 		Confidence:      1.0,
 		Vulnerability:   *vulnObj,
 		Package:         thePkg,
-		SearchKey:       "language[python] constraint[< 2.6.2 (semver)]",
+		SearchKey:       "language[python] constraint[< 2.6.2 (python)]",
 		IndirectPackage: nil,
 		Matcher:         match.PythonMatcher,
 	})

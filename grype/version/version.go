@@ -62,6 +62,9 @@ func (v *Version) populate() error {
 		ver, err := newRpmVersion(v.Raw)
 		v.rich.rpmVer = &ver
 		return err
+	case PythonFormat:
+		// use the fuzzy constraint
+		return nil
 	case UnknownFormat:
 		// use the raw string + fuzzy constraint
 		return nil

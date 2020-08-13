@@ -13,11 +13,12 @@ var pseudoSemverPattern = regexp.MustCompile(`^(0|[1-9]\d*)(\.(0|[1-9]\d*))?(\.(
 
 type fuzzyConstraint struct {
 	rawPhrase          string
+	phraseHint         string
 	semanticConstraint *hashiVer.Constraints
 	constraints        constraintExpression
 }
 
-func newFuzzyConstraint(phrase string) (*fuzzyConstraint, error) {
+func newFuzzyConstraint(phrase, hint string) (*fuzzyConstraint, error) {
 	constraints, err := newConstraintExpression(phrase, newFuzzyComparator)
 	if err != nil {
 		return nil, fmt.Errorf("could not create fuzzy constraint: %+v", err)
@@ -42,6 +43,7 @@ check:
 
 	return &fuzzyConstraint{
 		rawPhrase:          phrase,
+		phraseHint:         hint,
 		constraints:        constraints,
 		semanticConstraint: semverConstraint,
 	}, nil
@@ -73,6 +75,9 @@ func (f *fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
 func (f *fuzzyConstraint) String() string {
 	if f.rawPhrase == "" {
 		return "none (unknown)"
+	}
+	if f.phraseHint != "" {
+		return fmt.Sprintf("%s (%s)", f.rawPhrase, f.phraseHint)
 	}
 	return fmt.Sprintf("%s (unknown)", f.rawPhrase)
 }

@@ -11,6 +11,7 @@ const (
 	SemanticFormat
 	DebFormat
 	RpmFormat
+	PythonFormat
 )
 
 type Format int
@@ -20,12 +21,14 @@ var formatStr = []string{
 	"Semantic",
 	"Deb",
 	"RPM",
+	"Python",
 }
 
 var Formats = []Format{
 	SemanticFormat,
 	DebFormat,
 	RpmFormat,
+	PythonFormat,
 }
 
 func ParseFormat(userStr string) Format {
@@ -36,6 +39,8 @@ func ParseFormat(userStr string) Format {
 		return DebFormat
 	case strings.ToLower(RpmFormat.String()), "rpmdb":
 		return RpmFormat
+	case strings.ToLower(PythonFormat.String()), "python":
+		return PythonFormat
 	}
 	return UnknownFormat
 }
@@ -50,9 +55,9 @@ func FormatFromPkgType(t pkg.Type) Format {
 	case pkg.BundlerPkg:
 		format = SemanticFormat
 	case pkg.EggPkg:
-		format = SemanticFormat
+		format = PythonFormat
 	case pkg.WheelPkg:
-		format = SemanticFormat
+		format = PythonFormat
 	default:
 		format = UnknownFormat
 	}
