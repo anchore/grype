@@ -7,6 +7,8 @@
 
 A vulnerability scanner for container images and filesystems. [Easily install the binary](#installation) to try it out.
 
+![grype-demo](https://user-images.githubusercontent.com/590471/90276236-9868f300-de31-11ea-8068-4268b6b68529.gif)
+
 **Features**
 - Scan the contents of a container image or filesystem to find known vulnerabilities.
 - Find vulnerabilities for major operating system packages across Alpine, BusyBox, CentOS / Red Hat, and Debian / Ubuntu flavored distributions
