@@ -11,8 +11,17 @@ A vulnerability scanner for container images and filesystems. [Easily install th
 
 **Features**
 - Scan the contents of a container image or filesystem to find known vulnerabilities.
-- Find vulnerabilities for major operating system packages across Alpine, BusyBox, CentOS / Red Hat, and Debian / Ubuntu flavored distributions
-- Find vulnerabilities for Ruby (Bundler), Java, JavaScript (npm/yarn), Python (Egg/Wheel) packages, and Python Pip/requirements.txt listings
+- Find vulnerabilities for major operating system packages
+  - Alpine, 
+  - BusyBox
+  - CentOS / Red Hat
+  - Debian / Ubuntu flavored distributions
+- Find vulnerabilities for language-specific packages
+  - Ruby (Bundler), 
+  - Java (jars, etc), 
+  - JavaScript (npm/yarn), 
+  - Python (Egg/Wheel) packages
+  - Python Pip/requirements.txt listings
 
 > :warning: **This is pre-release software** and it may not work as expected. If you encounter an issue, please [let us know using the issue tracker](https://github.com/anchore/grype/issues).
 
