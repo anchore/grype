@@ -8,7 +8,7 @@ require (
 	github.com/anchore/go-version v1.2.2-0.20200810141238-330bef18dbca
 	github.com/anchore/grype-db v0.0.0-20200807151757-5aee0401bf56
 	github.com/anchore/stereoscope v0.0.0-20200813152757-548b22c8a0b3
-	github.com/anchore/syft v0.1.0-beta.4.0.20200813161205-17b8d44ff52b
+	github.com/anchore/syft v0.1.0-beta.4.0.20200817141227-c5ba8c4a1d7c
 	github.com/dustin/go-humanize v1.0.0
 	github.com/facebookincubator/nvdtools v0.1.4-0.20200622182922-aed862a62ae6
 	github.com/go-test/deep v1.0.7
@@ -28,6 +28,6 @@ require (
 	github.com/wagoodman/go-progress v0.0.0-20200807221327-51d465df1451
 	github.com/wagoodman/jotframe v0.0.0-20200730190914-3517092dd163
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
-	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	gopkg.in/yaml.v2 v2.3.0
 )
