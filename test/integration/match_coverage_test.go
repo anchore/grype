@@ -18,7 +18,7 @@ import (
 
 func getPackagesByPath(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, thePath string) []*pkg.Package {
 	t.Helper()
-	refs, err := theScope.FilesByGlob(thePath)
+	refs, err := theScope.Resolver.FilesByGlob(thePath)
 	if err != nil {
 		t.Fatalf("could not get ref by path %q: %+v", thePath, err)
 	}
