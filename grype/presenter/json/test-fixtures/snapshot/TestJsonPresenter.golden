@@ -8,7 +8,7 @@
     "vector": "another vector"
    }
   },
-  "matched-by": {
+  "match-details": {
    "matcher": "dpkg-matcher",
    "search-key": ""
   },
@@ -38,7 +38,7 @@
     "vector": "vector"
    }
   },
-  "matched-by": {
+  "match-details": {
    "matcher": "dpkg-matcher",
    "search-key": ""
   },
@@ -62,7 +62,7 @@
    "id": "CVE-1999-0003",
    "description": "1999-03 description"
   },
-  "matched-by": {
+  "match-details": {
    "matcher": "dpkg-matcher",
    "search-key": ""
   },

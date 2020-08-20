@@ -3,9 +3,10 @@ package json
 import (
 	"bytes"
 	"flag"
+	"testing"
+
 	"github.com/anchore/stereoscope/pkg/file"
 	"github.com/anchore/syft/syft/scope"
-	"testing"
 
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
