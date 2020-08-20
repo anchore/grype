@@ -1,14 +1,12 @@
+// +build !windows
+
 package ui
 
 import (
-	"os"
-	"runtime"
-
 	"github.com/anchore/grype/internal/ui/etui"
 	"golang.org/x/crypto/ssh/terminal"
+	"os"
 )
-
-// TODO: build tags to exclude options from windows
 
 func Select(verbose, quiet bool) UI {
 	var ui UI
@@ -18,7 +16,7 @@ func Select(verbose, quiet bool) UI {
 	notATerminal := !isStderrATty && !isStdoutATty
 
 	switch {
-	case runtime.GOOS == "windows" || verbose || quiet || notATerminal || !isStderrATty:
+	case verbose || quiet || notATerminal || !isStderrATty:
 		ui = LoggerUI
 	default:
 		ui = etui.OutputToEphemeralTUI
