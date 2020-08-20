@@ -39,9 +39,9 @@ type Finding struct {
 
 // MatchDetails contains all data that indicates how the result match was found
 type MatchDetails struct {
-	Matcher   string `json:"matcher"`
-	SearchKey map[string]interface{} `json:"search-key"`
-	MatchInfo map[string]interface{} `json:"matched-on"`
+	Matcher   string                 `json:"matcher"`
+	SearchKey string                 `json:"search-key"`
+	MatchInfo map[string]interface{} `json:"matched-on,omitempty"`
 }
 
 // Present creates a JSON-based reporting
