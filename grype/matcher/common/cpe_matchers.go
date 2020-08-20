@@ -43,7 +43,13 @@ func FindMatchesByPackageCPE(store vulnerability.ProviderByCPE, p *pkg.Package, 
 					Vulnerability: *vuln,
 					Package:       p,
 					Matcher:       upstreamMatcher,
-					SearchKey:     fmt.Sprintf("cpe[%s] constraint[%s]", cpe.BindToFmtString(), vuln.Constraint.String()),
+					SearchKey:     map[string]interface{}{
+						"cpe": cpe.BindToFmtString(),
+					},
+					SearchMatches: map[string]interface{}{
+						"cpe": vuln.CPEs,
+						"constraint": vuln.Constraint.String(),
+					},
 				})
 			}
 		}
