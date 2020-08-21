@@ -41,11 +41,15 @@ func addAlpineMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, 
 		t.Fatalf("failed to create vuln obj: %+v", err)
 	}
 	theResult.Add(thePkg, match.Match{
-		Type:            match.FuzzyMatch,
-		Confidence:      1.0,
-		Vulnerability:   *vulnObj,
-		Package:         thePkg,
-		SearchKey:       "cpe[cpe:2.3:*:*:libvncserver:0.9.9:*:*:*:*:*:*:*] constraint[< 0.9.10 (unknown)]",
+		Type:          match.FuzzyMatch,
+		Confidence:    1.0,
+		Vulnerability: *vulnObj,
+		Package:       thePkg,
+		SearchKey:     "cpe:2.3:*:*:libvncserver:0.9.9:*:*:*:*:*:*:*",
+		SearchMatches: map[string]interface{}{
+			"cpes":       []string{"cpe:2.3:*:*:libvncserver:0.9.9:*:*:*:*:*:*:*"},
+			"constraint": "< 0.9.10 (unknown)",
+		},
 		IndirectPackage: nil,
 		Matcher:         match.ApkMatcher,
 	})
@@ -64,11 +68,14 @@ func addJavascriptMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catal
 		t.Fatalf("failed to create vuln obj: %+v", err)
 	}
 	theResult.Add(thePkg, match.Match{
-		Type:            match.ExactDirectMatch,
-		Confidence:      1.0,
-		Vulnerability:   *vulnObj,
-		Package:         thePkg,
-		SearchKey:       "language[javascript] constraint[< 3.2.1 (unknown)]",
+		Type:          match.ExactDirectMatch,
+		Confidence:    1.0,
+		Vulnerability: *vulnObj,
+		Package:       thePkg,
+		SearchKey:     "javascript",
+		SearchMatches: map[string]interface{}{
+			"constraint": "< 3.2.1 (unknown)",
+		},
 		IndirectPackage: nil,
 		Matcher:         match.JavascriptMatcher,
 	})
@@ -87,11 +94,14 @@ func addPythonMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, 
 		t.Fatalf("failed to create vuln obj: %+v", err)
 	}
 	theResult.Add(thePkg, match.Match{
-		Type:            match.ExactDirectMatch,
-		Confidence:      1.0,
-		Vulnerability:   *vulnObj,
-		Package:         thePkg,
-		SearchKey:       "language[python] constraint[< 2.6.2 (python)]",
+		Type:          match.ExactDirectMatch,
+		Confidence:    1.0,
+		Vulnerability: *vulnObj,
+		Package:       thePkg,
+		SearchKey:     "python",
+		SearchMatches: map[string]interface{}{
+			"constraint": "< 2.6.2 (python)",
+		},
 		IndirectPackage: nil,
 		Matcher:         match.PythonMatcher,
 	})
@@ -110,11 +120,14 @@ func addRubyMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, th
 		t.Fatalf("failed to create vuln obj: %+v", err)
 	}
 	theResult.Add(thePkg, match.Match{
-		Type:            match.ExactDirectMatch,
-		Confidence:      1.0,
-		Vulnerability:   *vulnObj,
-		Package:         thePkg,
-		SearchKey:       "language[ruby] constraint[> 4.0.0, <= 4.1.1 (semver)]",
+		Type:          match.ExactDirectMatch,
+		Confidence:    1.0,
+		Vulnerability: *vulnObj,
+		Package:       thePkg,
+		SearchKey:     "ruby",
+		SearchMatches: map[string]interface{}{
+			"constraint": "> 4.0.0, <= 4.1.1 (semver)",
+		},
 		IndirectPackage: nil,
 		Matcher:         match.RubyBundleMatcher,
 	})
@@ -140,11 +153,14 @@ func addJavaMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, th
 		t.Fatalf("failed to create vuln obj: %+v", err)
 	}
 	theResult.Add(thePkg, match.Match{
-		Type:            match.ExactDirectMatch,
-		Confidence:      1.0,
-		Vulnerability:   *vulnObj,
-		Package:         thePkg,
-		SearchKey:       "language[java] constraint[>= 0.0.1, < 1.2.0 (unknown)]",
+		Type:          match.ExactDirectMatch,
+		Confidence:    1.0,
+		Vulnerability: *vulnObj,
+		Package:       thePkg,
+		SearchKey:     "java",
+		SearchMatches: map[string]interface{}{
+			"constraint": ">= 0.0.1, < 1.2.0 (unknown)",
+		},
 		IndirectPackage: nil,
 		Matcher:         match.JavaMatcher,
 	})
@@ -164,11 +180,14 @@ func addDpkgMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, th
 		t.Fatalf("failed to create vuln obj: %+v", err)
 	}
 	theResult.Add(thePkg, match.Match{
-		Type:            match.ExactIndirectMatch,
-		Confidence:      1.0,
-		Vulnerability:   *vulnObj,
-		Package:         thePkg,
-		SearchKey:       "distro[debian 8] constraint[<= 1.8.2 (deb)]",
+		Type:          match.ExactIndirectMatch,
+		Confidence:    1.0,
+		Vulnerability: *vulnObj,
+		Package:       thePkg,
+		SearchKey:     "debian 8",
+		SearchMatches: map[string]interface{}{
+			"constraint": "<= 1.8.2 (deb)",
+		},
 		IndirectPackage: nil,
 		Matcher:         match.DpkgMatcher,
 	})
@@ -187,11 +206,14 @@ func addRhelMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, th
 		t.Fatalf("failed to create vuln obj: %+v", err)
 	}
 	theResult.Add(thePkg, match.Match{
-		Type:            match.ExactDirectMatch,
-		Confidence:      1.0,
-		Vulnerability:   *vulnObj,
-		Package:         thePkg,
-		SearchKey:       "distro[centos 8] constraint[<= 1.0.42 (rpm)]",
+		Type:          match.ExactDirectMatch,
+		Confidence:    1.0,
+		Vulnerability: *vulnObj,
+		Package:       thePkg,
+		SearchKey:     "centos 8",
+		SearchMatches: map[string]interface{}{
+			"constraint": "<= 1.0.42 (rpm)",
+		},
 		IndirectPackage: nil,
 		Matcher:         match.RpmDBMatcher,
 	})
