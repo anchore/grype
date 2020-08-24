@@ -10,24 +10,27 @@ A vulnerability scanner for container images and filesystems. [Easily install th
 ![grype-demo](https://user-images.githubusercontent.com/590471/90276236-9868f300-de31-11ea-8068-4268b6b68529.gif)
 
 **Features**
+
 - Scan the contents of a container image or filesystem to find known vulnerabilities.
 - Find vulnerabilities for major operating system packages
-  - Alpine, 
+  - Alpine
   - BusyBox
   - CentOS / Red Hat
-  - Debian / Ubuntu flavored distributions
+  - Debian
+  - Ubuntu
 - Find vulnerabilities for language-specific packages
-  - Ruby (Bundler), 
-  - Java (jars, etc), 
-  - JavaScript (npm/yarn), 
-  - Python (Egg/Wheel) packages
-  - Python Pip/requirements.txt listings
+  - Ruby (Bundler)
+  - Java (JARs, etc)
+  - JavaScript (NPM/Yarn)
+  - Python (Egg/Wheel)
+  - Python pip/requirements.txt/setup.py listings
 
 > :warning: **This is pre-release software** and it may not work as expected. If you encounter an issue, please [let us know using the issue tracker](https://github.com/anchore/grype/issues).
 
 ## Getting started
 
 [Install the binary](#installation), and make sure that `grype` is available in your path. To scan for vulnerabilities in an image:
+
 ```
 grype <image>
 ```
@@ -40,6 +43,7 @@ grype <image> --scope all-layers
 ```
 
 Grype can scan a variety of sources beyond those found in Docker.
+
 ```
 # scan a docker image tar (from the result of "docker image save ... -o image.tar" command)
 grype docker-archive://path/to/image.tar
@@ -49,11 +53,13 @@ grype dir://path/to/dir
 ```
 
 By default Grype shows a summary table, however, a more detailed `json` format is also available.
+
 ```
 grype <image> -o json
 ```
 
 Grype pulls a database of vulnerabilities derived from the publicly available [Anchore Feed Service](https://ancho.re/v1/service/feeds). This database is updated at the beginning of each scan, but an update can also be triggered manually.
+
 ```
 grype db update
 ```
@@ -61,6 +67,7 @@ grype db update
 ## Installation
 
 **Recommended**
+
 ```bash
 # install the latest version to /usr/local/bin
 curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
@@ -70,14 +77,16 @@ curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh 
 ```
 
 **macOS**
+
 ```bash
 brew tap anchore/grype
 brew install grype
 ```
 
 You may experience a "macOS cannot verify app is free from malware" error upon running Grype because it is not yet signed and notarized. You can override this using `xattr`.
+
 ```bash
-xattr -rd com.apple.quarantine grype 
+xattr -rd com.apple.quarantine grype
 ```
 
 ## Configuration
@@ -128,7 +137,6 @@ db:
 ## Developing
 
 There are a few useful things to know before diving into the codebase. This project depends on a few things being available like a vulnerability database, which you might want to create manually instead of retrieving a released version.
-
 
 ### Inspecting the database
 
@@ -186,6 +194,7 @@ CVE-2006-2450                 libvncserver  nvd         = 0.7.1             unkn
 ## Future plans
 
 The following areas of potential development are currently being investigated:
+
 - Add CycloneDX to list of output formats
 - Support for allowlist, package mapping
 - Establish a stable interchange format w/Syft
