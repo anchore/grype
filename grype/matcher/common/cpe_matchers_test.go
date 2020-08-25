@@ -1,13 +1,14 @@
 package common
 
 import (
+	"testing"
+
 	"github.com/anchore/grype/grype/cpe"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/syft/syft/pkg"
-	"testing"
 )
 
 func must(c cpe.CPE, e error) cpe.CPE {
@@ -44,6 +45,13 @@ func (pr *mockCPEProvider) stub() {
 				ID:         "CVE-2017-fake-2",
 				CPEs: []cpe.CPE{
 					must(cpe.New("cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:ruby:*:*")),
+				},
+			},
+			{
+				Constraint: version.MustGetConstraint("= 4.0.1", version.SemanticFormat),
+				ID:         "CVE-2017-fake-3",
+				CPEs: []cpe.CPE{
+					must(cpe.New("cpe:2.3:*:couldntgetthisrightcouldyou:activerecord:4.0.1:*:*:*:*:*:*:*")),
 				},
 			},
 			{
