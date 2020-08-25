@@ -33,14 +33,15 @@ func NewPresenter(results result.Result, catalog *pkg.Catalog, theScope scope.Sc
 // Finding is a single item for the JSON array reported
 type Finding struct {
 	Vulnerability Vulnerability     `json:"vulnerability"`
-	MatchDetails  MatchDetails      `json:"matched-by"`
+	MatchDetails  MatchDetails      `json:"match-details"`
 	Artifact      syftJson.Artifact `json:"artifact"`
 }
 
 // MatchDetails contains all data that indicates how the result match was found
 type MatchDetails struct {
-	Matcher   string `json:"matcher"`
-	SearchKey string `json:"search-key"`
+	Matcher   string                 `json:"matcher"`
+	SearchKey string                 `json:"search-key"`
+	MatchInfo map[string]interface{} `json:"matched-on,omitempty"`
 }
 
 // Present creates a JSON-based reporting
@@ -68,6 +69,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 				MatchDetails: MatchDetails{
 					Matcher:   m.Matcher.String(),
 					SearchKey: m.SearchKey,
+					MatchInfo: m.SearchMatches,
 				},
 			},
 		)

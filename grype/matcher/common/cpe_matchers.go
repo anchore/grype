@@ -6,9 +6,12 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal"
 	"github.com/anchore/syft/syft/pkg"
+	"github.com/facebookincubator/nvdtools/wfn"
 )
 
+// FindMatchesByPackageCPE retrieves all vulnerabilities that match the generated CPE
 func FindMatchesByPackageCPE(store vulnerability.ProviderByCPE, p *pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
 	verObj, err := version.NewVersionFromPkg(p)
 	if err != nil {
@@ -17,6 +20,7 @@ func FindMatchesByPackageCPE(store vulnerability.ProviderByCPE, p *pkg.Package, 
 
 	matches := make([]match.Match, 0)
 	vulnSet := vulnerability.NewSet()
+	vulnerableKeys := internal.NewStringSet()
 
 	for _, cpe := range verObj.CPEs() {
 		allPkgVulns, err := store.GetByCPE(cpe)
@@ -37,16 +41,37 @@ func FindMatchesByPackageCPE(store vulnerability.ProviderByCPE, p *pkg.Package, 
 			}
 
 			if isPackageVulnerable {
+				// create a string key to ensure we aren't adding previously added matches
+				vulnerableKey := fmt.Sprintf("%s%s%s", vuln.ID, cpe.BindToFmtString(), vuln.Constraint.String())
+				if vulnerableKeys.Contains(vulnerableKey) {
+					continue
+				}
+				vulnerableKeys.Add(vulnerableKey)
+
 				matches = append(matches, match.Match{
 					Type:          match.FuzzyMatch,
 					Confidence:    0.9, // TODO: this is hard coded for now
 					Vulnerability: *vuln,
 					Package:       p,
 					Matcher:       upstreamMatcher,
-					SearchKey:     fmt.Sprintf("cpe[%s] constraint[%s]", cpe.BindToFmtString(), vuln.Constraint.String()),
+					SearchKey:     cpe.BindToFmtString(),
+					SearchMatches: map[string]interface{}{
+						"cpes":       cpesToString(vuln.CPEs),
+						"constraint": vuln.Constraint.String(),
+					},
 				})
 			}
 		}
 	}
 	return matches, err
+}
+
+// cpesToString receives one or more CPEs and stringifies them
+func cpesToString(cpes []wfn.Attributes) []string {
+	var stringers = make([]string, 0)
+	for _, cpe := range cpes {
+		stringers = append(stringers, cpe.BindToFmtString())
+	}
+
+	return stringers
 }

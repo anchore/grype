@@ -15,6 +15,7 @@ type Match struct {
 	// SearchKey provides an indication of how this match was found.
 	// TODO: is this a good name for what it represents? (which is an audit trail of HOW we got this match from the store)
 	SearchKey       string
+	SearchMatches   map[string]interface{}
 	IndirectPackage *pkg.Package
 	Matcher         MatcherType
 }
