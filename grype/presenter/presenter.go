@@ -6,6 +6,7 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/scope"
 
+	"github.com/anchore/grype/grype/presenter/cyclonedx"
 	"github.com/anchore/grype/grype/presenter/json"
 	"github.com/anchore/grype/grype/presenter/table"
 	"github.com/anchore/grype/grype/result"
@@ -24,6 +25,8 @@ func GetPresenter(option Option, results result.Result, catalog *pkg.Catalog, th
 		return json.NewPresenter(results, catalog, theScope, metadataProvider)
 	case TablePresenter:
 		return table.NewPresenter(results, catalog, metadataProvider)
+	case CycloneDxPresenter:
+		return cyclonedx.NewPresenter(results, catalog, theScope, metadataProvider)
 	default:
 		return nil
 	}

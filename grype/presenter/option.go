@@ -6,17 +6,20 @@ const (
 	UnknownPresenter Option = iota
 	JSONPresenter
 	TablePresenter
+	CycloneDxPresenter
 )
 
 var optionStr = []string{
 	"UnknownPresenter",
 	"json",
 	"table",
+	"cyclonedx",
 }
 
 var Options = []Option{
 	JSONPresenter,
 	TablePresenter,
+	CycloneDxPresenter,
 }
 
 type Option int
@@ -27,6 +30,8 @@ func ParseOption(userStr string) Option {
 		return JSONPresenter
 	case strings.ToLower(TablePresenter.String()):
 		return TablePresenter
+	case strings.ToLower(CycloneDxPresenter.String()):
+		return CycloneDxPresenter
 	default:
 		return UnknownPresenter
 	}
