@@ -19,6 +19,15 @@ func NewResult() Result {
 	}
 }
 
+// GetByPkgID returns a slice of potential matches from an ID
+func (r *Result) GetByPkgID(id pkg.ID) []match.Match {
+	matches, ok := r.byPackage[id]
+	if !ok {
+		return nil
+	}
+	return matches
+}
+
 func (r *Result) Merge(other Result) {
 	// note: de-duplication of matches is an upstream concern (not here)
 	for pkgID, matches := range other.byPackage {
