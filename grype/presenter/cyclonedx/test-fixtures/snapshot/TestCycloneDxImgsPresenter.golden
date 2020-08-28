@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bom xmlns="http://cyclonedx.org/schema/bom/1.2" version="1" serialNumber="urn:uuid:665f8185-aa42-451a-802a-16aa71c673ec">
+  <components>
+    <component type="library">
+      <name>package-1</name>
+      <version>1.0.1</version>
+    </component>
+    <component type="library">
+      <name>package-2</name>
+      <version>2.0.1</version>
+      <licenses>
+        <license>
+          <name>MIT</name>
+        </license>
+        <license>
+          <name>Apache-v2</name>
+        </license>
+      </licenses>
+    </component>
+  </components>
+  <bd:metadata>
+    <bd:timestamp>2020-08-31T15:39:55-04:00</bd:timestamp>
+    <bd:tool>
+      <bd:vendor>anchore</bd:vendor>
+      <bd:name>syft</bd:name>
+      <bd:version>[not provided]</bd:version>
+    </bd:tool>
+    <bd:component type="container">
+      <name>index.docker.io/library/anchore-fixture-image-simple</name>
+      <version>04e16e44161c8888a1a963720fd0443cbf7eef8101434c431de8725cd98cc9f7</version>
+    </bd:component>
+  </bd:metadata>
+</bom>
