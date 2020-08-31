@@ -8,10 +8,11 @@ require (
 	github.com/anchore/go-version v1.2.2-0.20200810141238-330bef18dbca
 	github.com/anchore/grype-db v0.0.0-20200807151757-5aee0401bf56
 	github.com/anchore/stereoscope v0.0.0-20200813152757-548b22c8a0b3
-	github.com/anchore/syft v0.1.0-beta.4.0.20200817141227-c5ba8c4a1d7c
+	github.com/anchore/syft v0.1.0-beta.4.0.20200827121056-d85d0ac418a7
 	github.com/dustin/go-humanize v1.0.0
 	github.com/facebookincubator/nvdtools v0.1.4-0.20200622182922-aed862a62ae6
 	github.com/go-test/deep v1.0.7
+	github.com/google/uuid v1.1.1
 	github.com/gookit/color v1.2.7
 	github.com/hashicorp/go-getter v1.4.1
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
