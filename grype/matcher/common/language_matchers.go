@@ -1,4 +1,3 @@
-// nolint:dupl
 package common
 
 import (
@@ -37,7 +36,9 @@ func FindMatchesByPackageLanguage(store vulnerability.ProviderByLanguage, l pkg.
 				Vulnerability: *vuln,
 				Package:       p,
 				Matcher:       upstreamMatcher,
-				SearchKey:     l.String(),
+				SearchKey: map[string]interface{}{
+					"language": l.String(),
+				},
 				SearchMatches: map[string]interface{}{
 					"constraint": vuln.Constraint.String(),
 				},

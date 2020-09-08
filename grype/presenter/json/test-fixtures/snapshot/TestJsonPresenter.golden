@@ -10,7 +10,15 @@
   },
   "match-details": {
    "matcher": "dpkg-matcher",
-   "search-key": ""
+   "search-key": {
+    "distro": {
+     "type": "ubuntu",
+     "version": "20.04"
+    }
+   },
+   "matched-on": {
+    "constraint": ">= 20"
+   }
   },
   "artifact": {
    "name": "package-1",
@@ -40,7 +48,12 @@
   },
   "match-details": {
    "matcher": "dpkg-matcher",
-   "search-key": ""
+   "search-key": {
+    "cpe": "somecpe"
+   },
+   "matched-on": {
+    "constraint": "somecpe"
+   }
   },
   "artifact": {
    "name": "package-1",
@@ -64,7 +77,12 @@
   },
   "match-details": {
    "matcher": "dpkg-matcher",
-   "search-key": ""
+   "search-key": {
+    "language": "java"
+   },
+   "matched-on": {
+    "constraint": "< 2.0.0"
+   }
   },
   "artifact": {
    "name": "package-1",

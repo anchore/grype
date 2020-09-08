@@ -45,7 +45,9 @@ func addAlpineMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, 
 		Confidence:    1.0,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		SearchKey:     "cpe:2.3:*:*:libvncserver:0.9.9:*:*:*:*:*:*:*",
+		SearchKey: map[string]interface{}{
+			"cpe": "cpe:2.3:*:*:libvncserver:0.9.9:*:*:*:*:*:*:*",
+		},
 		SearchMatches: map[string]interface{}{
 			"cpes":       []string{"cpe:2.3:*:*:libvncserver:0.9.9:*:*:*:*:*:*:*"},
 			"constraint": "< 0.9.10 (unknown)",
@@ -72,7 +74,9 @@ func addJavascriptMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catal
 		Confidence:    1.0,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		SearchKey:     "javascript",
+		SearchKey: map[string]interface{}{
+			"language": "javascript",
+		},
 		SearchMatches: map[string]interface{}{
 			"constraint": "< 3.2.1 (unknown)",
 		},
@@ -98,7 +102,9 @@ func addPythonMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, 
 		Confidence:    1.0,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		SearchKey:     "python",
+		SearchKey: map[string]interface{}{
+			"language": "python",
+		},
 		SearchMatches: map[string]interface{}{
 			"constraint": "< 2.6.2 (python)",
 		},
@@ -124,7 +130,9 @@ func addRubyMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, th
 		Confidence:    1.0,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		SearchKey:     "ruby",
+		SearchKey: map[string]interface{}{
+			"language": "ruby",
+		},
 		SearchMatches: map[string]interface{}{
 			"constraint": "> 4.0.0, <= 4.1.1 (semver)",
 		},
@@ -157,7 +165,9 @@ func addJavaMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, th
 		Confidence:    1.0,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		SearchKey:     "java",
+		SearchKey: map[string]interface{}{
+			"language": "java",
+		},
 		SearchMatches: map[string]interface{}{
 			"constraint": ">= 0.0.1, < 1.2.0 (unknown)",
 		},
@@ -184,7 +194,12 @@ func addDpkgMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, th
 		Confidence:    1.0,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		SearchKey:     "debian 8",
+		SearchKey: map[string]interface{}{
+			"distro": map[string]string{
+				"type":    "debian",
+				"version": "8",
+			},
+		},
 		SearchMatches: map[string]interface{}{
 			"constraint": "<= 1.8.2 (deb)",
 		},
@@ -210,7 +225,12 @@ func addRhelMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, th
 		Confidence:    1.0,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		SearchKey:     "centos 8",
+		SearchKey: map[string]interface{}{
+			"distro": map[string]string{
+				"type":    "centos",
+				"version": "8",
+			},
+		},
 		SearchMatches: map[string]interface{}{
 			"constraint": "<= 1.0.42 (rpm)",
 		},

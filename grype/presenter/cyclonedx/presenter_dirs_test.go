@@ -76,9 +76,11 @@ func TestCycloneDxDirsPresenter(t *testing.T) {
 			ID:           "CVE-1999-0002",
 			RecordSource: "source-2",
 		},
-		Package:   &pkg2,
-		Matcher:   match.DpkgMatcher,
-		SearchKey: "a search key...",
+		Package: &pkg2,
+		Matcher: match.DpkgMatcher,
+		SearchKey: map[string]interface{}{
+			"some": "key",
+		},
 	}
 
 	results := result.NewResult()

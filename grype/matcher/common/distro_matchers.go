@@ -1,4 +1,3 @@
-// nolint:dupl
 package common
 
 import (
@@ -38,7 +37,12 @@ func FindMatchesByPackageDistro(store vulnerability.ProviderByDistro, d distro.D
 				Vulnerability: *vuln,
 				Package:       p,
 				Matcher:       upstreamMatcher,
-				SearchKey:     d.String(),
+				SearchKey: map[string]interface{}{
+					"distro": map[string]string{
+						"type":    d.Type.String(),
+						"version": d.RawVersion,
+					},
+				},
 				SearchMatches: map[string]interface{}{
 					"constraint": vuln.Constraint.String(),
 				},
