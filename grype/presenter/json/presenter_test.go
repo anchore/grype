@@ -97,6 +97,15 @@ func TestJsonPresenter(t *testing.T) {
 		},
 		Package: &pkg1,
 		Matcher: match.DpkgMatcher,
+		SearchKey: map[string]interface{}{
+			"distro": map[string]string{
+				"type":    "ubuntu",
+				"version": "20.04",
+			},
+		},
+		SearchMatches: map[string]interface{}{
+			"constraint": ">= 20",
+		},
 	}
 
 	var match2 = match.Match{
@@ -107,6 +116,12 @@ func TestJsonPresenter(t *testing.T) {
 		},
 		Package: &pkg1,
 		Matcher: match.DpkgMatcher,
+		SearchKey: map[string]interface{}{
+			"cpe": "somecpe",
+		},
+		SearchMatches: map[string]interface{}{
+			"constraint": "somecpe",
+		},
 	}
 
 	var match3 = match.Match{
@@ -117,6 +132,12 @@ func TestJsonPresenter(t *testing.T) {
 		},
 		Package: &pkg1,
 		Matcher: match.DpkgMatcher,
+		SearchKey: map[string]interface{}{
+			"language": "java",
+		},
+		SearchMatches: map[string]interface{}{
+			"constraint": "< 2.0.0",
+		},
 	}
 
 	results := result.NewResult()

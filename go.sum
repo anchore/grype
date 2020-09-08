@@ -127,11 +127,6 @@ github.com/anchore/stereoscope v0.0.0-20200520221116-025e07f1c93e h1:QBwtrM0MXi0
 github.com/anchore/stereoscope v0.0.0-20200520221116-025e07f1c93e/go.mod h1:bkyLl5VITnrmgErv4S1vDfVz/TGAZ5il6161IQo7w2g=
 github.com/anchore/stereoscope v0.0.0-20200813152757-548b22c8a0b3 h1:pl+txuYlhK8Mmio4d+4zQI/1xg8X6BtNErTASrx23Wk=
 github.com/anchore/stereoscope v0.0.0-20200813152757-548b22c8a0b3/go.mod h1:WntReQTI/I27FOQ87UgLVVzWgku6+ZsqfOTLxpIZFCs=
-github.com/anchore/syft v0.1.0-beta.4 h1:8gy/0jCDHmL+mjSrk+i2H8EGpRxPqbmk76nnmEiuSnU=
-github.com/anchore/syft v0.1.0-beta.4.0.20200813161205-17b8d44ff52b h1:mDLFT5nITUUxNnai6jCM8itlwmn2NrmB9RPx7H8+WB0=
-github.com/anchore/syft v0.1.0-beta.4.0.20200813161205-17b8d44ff52b/go.mod h1:3jUg8wy5f570Mc3C3nbO00OwRcMaNy++ETL44vXYFBA=
-github.com/anchore/syft v0.1.0-beta.4.0.20200817141227-c5ba8c4a1d7c h1:J+o26rEGNrVasll5KjTGTimKk8pY0mkFsyFkfrEgr4A=
-github.com/anchore/syft v0.1.0-beta.4.0.20200817141227-c5ba8c4a1d7c/go.mod h1:9+y7BAsXbGz8ZZQag9iru52xlEvy0PgDyceQ8pmWtWg=
 github.com/anchore/syft v0.1.0-beta.4.0.20200827121056-d85d0ac418a7 h1:mK3orcgTjK1YPWaYKUDbrDq1CFmBT5dQFq0a0w1zq3s=
 github.com/anchore/syft v0.1.0-beta.4.0.20200827121056-d85d0ac418a7/go.mod h1:zy2x5Z9URqzmLdWHENTGxcsap7HoLisEsekOv5lr0Us=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 h1:bvNMNQO63//z+xNgfBlViaCIJKLlCJ6/fmUseuG0wVQ=
@@ -863,8 +858,6 @@ golang.org/x/crypto v0.0.0-20191205180655-e7c4368fe9dd/go.mod h1:LzIPMQfyMNhhGPh
 golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
-golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9 h1:vEg9joUBmeBcK9iSJftGNf3coIG4HqZElCPehJsfAYM=
-golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 h1:psW17arqaxU48Z5kZ0CQnkZWQJsqcURM6tKiBApRjXI=
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/exp v0.0.0-20190121172915-509febef88a4/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
@@ -965,6 +958,7 @@ golang.org/x/sync v0.0.0-20190423024810-112230192c58/go.mod h1:RxMgew5VJxzue5/jJ
 golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a h1:WXEvlFVvvGxCJLG6REjsT03iWnKLEWinaScsxF2Vm2o=
 golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
+golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208 h1:qwRHBd0NqMbJxfbotnDhm2ByMI1Shq4Y6oRJo21SGJA=
 golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sys v0.0.0-20170830134202-bb24a47a89ea/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20180823144017-11551d06cbcc/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
