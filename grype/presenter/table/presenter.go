@@ -31,7 +31,7 @@ func NewPresenter(results result.Result, catalog *pkg.Catalog, metadataProvider 
 func (pres *Presenter) Present(output io.Writer) error {
 	rows := make([][]string, 0)
 
-	columns := []string{"Name", "Installed", "Vulnerability", "Severity"}
+	columns := []string{"Name", "Installed", "Fixed-In", "Vulnerability", "Severity"}
 	for m := range pres.results.Enumerate() {
 		var severity string
 
@@ -47,6 +47,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 		row := []string{
 			m.Package.Name,
 			m.Package.Version,
+			m.Vulnerability.FixedInVersion,
 			m.Vulnerability.ID,
 			severity,
 		}

@@ -92,8 +92,9 @@ func TestJsonPresenter(t *testing.T) {
 	var match1 = match.Match{
 		Type: match.ExactDirectMatch,
 		Vulnerability: vulnerability.Vulnerability{
-			ID:           "CVE-1999-0001",
-			RecordSource: "source-1",
+			ID:             "CVE-1999-0001",
+			RecordSource:   "source-1",
+			FixedInVersion: "the-next-version",
 		},
 		Package: &pkg1,
 		Matcher: match.DpkgMatcher,
@@ -127,8 +128,9 @@ func TestJsonPresenter(t *testing.T) {
 	var match3 = match.Match{
 		Type: match.ExactIndirectMatch,
 		Vulnerability: vulnerability.Vulnerability{
-			ID:           "CVE-1999-0003",
-			RecordSource: "source-1",
+			ID:             "CVE-1999-0003",
+			RecordSource:   "source-1",
+			FixedInVersion: "the-other-next-version",
 		},
 		Package: &pkg1,
 		Matcher: match.DpkgMatcher,

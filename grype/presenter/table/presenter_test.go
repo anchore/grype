@@ -88,8 +88,9 @@ func TestTablePresenter(t *testing.T) {
 	var match2 = match.Match{
 		Type: match.ExactIndirectMatch,
 		Vulnerability: vulnerability.Vulnerability{
-			ID:           "CVE-1999-0002",
-			RecordSource: "source-2",
+			ID:             "CVE-1999-0002",
+			RecordSource:   "source-2",
+			FixedInVersion: "the-next-version",
 		},
 		Package: &pkg2,
 		Matcher: match.DpkgMatcher,

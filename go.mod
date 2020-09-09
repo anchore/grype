@@ -6,7 +6,7 @@ require (
 	github.com/adrg/xdg v0.2.1
 	github.com/anchore/go-testutils v0.0.0-20200624184116-66aa578126db
 	github.com/anchore/go-version v1.2.2-0.20200810141238-330bef18dbca
-	github.com/anchore/grype-db v0.0.0-20200807151757-5aee0401bf56
+	github.com/anchore/grype-db v0.0.0-20200909132108-9474dd8f080f
 	github.com/anchore/stereoscope v0.0.0-20200813152757-548b22c8a0b3
 	github.com/anchore/syft v0.1.0-beta.4.0.20200827121056-d85d0ac418a7
 	github.com/dustin/go-humanize v1.0.0
