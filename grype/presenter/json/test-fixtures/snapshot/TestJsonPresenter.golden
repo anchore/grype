@@ -6,7 +6,8 @@
    "cvss-v3": {
     "base-score": 4,
     "vector": "another vector"
-   }
+   },
+   "fixed-in-version": "the-next-version"
   },
   "match-details": {
    "matcher": "dpkg-matcher",
@@ -73,7 +74,8 @@
  {
   "vulnerability": {
    "id": "CVE-1999-0003",
-   "description": "1999-03 description"
+   "description": "1999-03 description",
+   "fixed-in-version": "the-other-next-version"
   },
   "match-details": {
    "matcher": "dpkg-matcher",
