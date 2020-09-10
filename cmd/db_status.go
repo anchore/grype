@@ -14,6 +14,7 @@ var showSupportedDbSchema bool
 var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "display database status",
+	Args:  cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 		err := runDbStatusCmd(cmd, args)
 		if err != nil {

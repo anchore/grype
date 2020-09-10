@@ -11,6 +11,7 @@ import (
 var dbDeleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "delete the vulnerability database",
+	Args:  cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 		ret := runDbDeleteCmd(cmd, args)
 		if ret != 0 {
