@@ -42,11 +42,13 @@ $ grype completion fish | source
 $ grype completion fish > ~/.config/fish/completions/grype.fish
 `,
 	DisableFlagsInUseLine: true,
-	ValidArgs:             []string{"bash", "fish"},
+	ValidArgs:             []string{"bash", "fish", "zsh"},
 	Args:                  cobra.ExactValidArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
 		switch args[0] {
+		case "zsh":
+			err = cmd.Root().GenZshCompletion(os.Stdout)
 		case "bash":
 			err = cmd.Root().GenBashCompletion(os.Stdout)
 		case "fish":
