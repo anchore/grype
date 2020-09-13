@@ -11,6 +11,7 @@ import (
 var dbUpdateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "download the latest vulnerability database",
+	Args:  cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 		ret := runDbUpdateCmd(cmd, args)
 		if ret != 0 {

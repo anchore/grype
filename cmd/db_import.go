@@ -11,6 +11,7 @@ import (
 var dbImportCmd = &cobra.Command{
 	Use:   "import",
 	Short: "import a vulnerability database archive",
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		ret := runDbImportCmd(cmd, args)
 		if ret != 0 {

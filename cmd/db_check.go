@@ -11,6 +11,7 @@ import (
 var dbCheckCmd = &cobra.Command{
 	Use:   "check",
 	Short: "check to see if there is a database update available",
+	Args:  cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 		ret := runDbCheckCmd(cmd, args)
 		if ret != 0 {
