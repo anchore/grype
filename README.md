@@ -191,6 +191,17 @@ id             record_source  package_name  namespace   version_constraint  vers
 CVE-2006-2450                 libvncserver  nvd         = 0.7.1             unknown         ["cpe:2.3:a:libvncserver:libvncserver:0.7.1:*:*:*:*:*:*:*"]  []
 ```
 
+## Shell Completion
+Grype supplies shell completion through it's CLI implementation ([cobra](https://github.com/spf13/cobra/blob/master/shell_completions.md)). 
+Generate the completion code for your shell by running one of the following commands:
+* `grype completion <bash|fish>`
+* `go run main.go completion <bash|fish>`
+
+This will output a shell script to STDOUT, which can then be used as a completion script for Grype. Running one of the above commands with the 
+`-h` or `--help` flags will provide instructions on how to do that for your chosen shell.
+
+Note: [Cobra hs not yet released full ZSH support](https://github.com/spf13/cobra/issues/1226), but as soon as that gets released, we will add it here!
+
 ## Future plans
 
 The following areas of potential development are currently being investigated:
