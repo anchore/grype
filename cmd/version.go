@@ -46,7 +46,7 @@ func printVersion(_ *cobra.Command, _ []string) {
 		err := enc.Encode(&struct {
 			version.Version
 			Application   string `json:"application"`
-			SchemaVersion int    `json:"supported-db-schema"`
+			SchemaVersion int    `json:"supportedDbSchema"`
 		}{
 			Version:       versionInfo,
 			Application:   internal.ApplicationName,

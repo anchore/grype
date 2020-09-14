@@ -15,10 +15,10 @@ var platform = fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
 
 type Version struct {
 	Version      string `json:"version"`
-	GitCommit    string `json:"git-commit"`
-	GitTreeState string `json:"git-tree-state"`
-	BuildDate    string `json:"build-date"`
-	GoVersion    string `json:"go-version"`
+	GitCommit    string `json:"gitCommit"`
+	GitTreeState string `json:"gitTreeState"`
+	BuildDate    string `json:"buildDate"`
+	GoVersion    string `json:"goVersion"`
 	Compiler     string `json:"compiler"`
 	Platform     string `json:"platform"`
 }
