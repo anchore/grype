@@ -1,0 +1,1419 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+CycloneDX Software Bill-of-Material (SBoM) Specification
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning"
+           xmlns:bom="http://cyclonedx.org/schema/bom/1.2"
+           xmlns:spdx="http://cyclonedx.org/schema/spdx"
+           xmlns:v="https://cyclonedx.org/schema/ext/vulnerability/1.0"
+           elementFormDefault="qualified"
+           targetNamespace="http://cyclonedx.org/schema/bom/1.2"
+           vc:minVersion="1.0"
+           vc:maxVersion="1.1"
+           version="1.2">
+
+    <xs:import namespace="http://cyclonedx.org/schema/spdx" schemaLocation="spdx.xsd"/>
+
+    <xs:annotation>
+        <xs:documentation>
+            <name>CycloneDX Software Bill-of-Material Specification</name>
+            <url>https://cyclonedx.org/</url>
+            <license uri="http://www.apache.org/licenses/LICENSE-2.0"
+                     version="2.0">Apache License, Version 2.0</license>
+            <authors>
+                <author>Steve Springett</author>
+            </authors>
+        </xs:documentation>
+    </xs:annotation>
+
+    <xs:complexType name="metadata">
+        <xs:sequence minOccurs="0" maxOccurs="1">
+            <xs:element name="timestamp" type="xs:dateTime" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>The date and time (timestamp) when the document was created.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="tools" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>The tool(s) used in the creation of the BOM.</xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                    <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                        <xs:element name="tool" minOccurs="0" type="bom:toolType"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="authors" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>The person(s) who created the BOM. Authors are common in BOMs created through
+                        manual processes. BOMs created through automated means may not have authors.</xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                    <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                        <xs:element name="author" type="bom:organizationalContact"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="component" type="bom:component" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>The component that the BOM describes.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="manufacture" type="bom:organizationalEntity" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>The organization that manufactured the component that the BOM describes.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="supplier" type="bom:organizationalEntity" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>The organization that supplied the component that the BOM describes. The
+                        supplier may often be the manufacture, but may also be a distributor or repackager.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Allows any undeclared elements as long as the elements are placed in a different namespace.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:any>
+        </xs:sequence>
+        <xs:anyAttribute namespace="##other" processContents="lax">
+            <xs:annotation>
+                <xs:documentation>User-defined attributes may be used on this element as long as they
+                    do not have the same name as an existing attribute used by the schema.</xs:documentation>
+            </xs:annotation>
+        </xs:anyAttribute>
+    </xs:complexType>
+
+    <xs:complexType name="organizationalEntity">
+        <xs:sequence minOccurs="0" maxOccurs="1">
+            <xs:element name="name" type="xs:normalizedString" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>The name of the organization</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="url" type="xs:anyURI" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>The URL of the organization. Multiple URLs are allowed.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="contact" type="bom:organizationalContact" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>A contact person at the organization. Multiple contacts are allowed.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Allows any undeclared elements as long as the elements are placed in a different namespace.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:any>
+        </xs:sequence>
+        <xs:anyAttribute namespace="##other" processContents="lax">
+            <xs:annotation>
+                <xs:documentation>User-defined attributes may be used on this element as long as they
+                    do not have the same name as an existing attribute used by the schema.</xs:documentation>
+            </xs:annotation>
+        </xs:anyAttribute>
+    </xs:complexType>
+
+    <xs:complexType name="toolType">
+        <xs:annotation>
+            <xs:documentation>Specifies a tool (manual or automated).</xs:documentation>
+        </xs:annotation>
+        <xs:sequence minOccurs="0" maxOccurs="1">
+            <xs:element name="vendor" minOccurs="0" maxOccurs="1" type="xs:normalizedString">
+                <xs:annotation>
+                    <xs:documentation>The vendor of the tool used to create the BOM.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="name" minOccurs="0" maxOccurs="1" type="xs:normalizedString">
+                <xs:annotation>
+                    <xs:documentation>The name of the tool used to create the BOM.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="version" minOccurs="0" maxOccurs="1" type="xs:normalizedString">
+                <xs:annotation>
+                    <xs:documentation>The version of the tool used to create the BOM.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="hashes" minOccurs="0" maxOccurs="1">
+                <xs:complexType>
+                    <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                        <xs:element name="hash" type="bom:hashType"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Allows any undeclared elements as long as the elements are placed in a different namespace.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:any>
+        </xs:sequence>
+        <xs:anyAttribute namespace="##other" processContents="lax">
+            <xs:annotation>
+                <xs:documentation>User-defined attributes may be used on this element as long as they
+                    do not have the same name as an existing attribute used by the schema.</xs:documentation>
+            </xs:annotation>
+        </xs:anyAttribute>
+    </xs:complexType>
+
+    <xs:complexType name="organizationalContact">
+        <xs:sequence minOccurs="0" maxOccurs="1">
+            <xs:element name="name" type="xs:normalizedString" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>The name of the contact</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="email" type="xs:normalizedString" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>The email address of the contact. Multiple email addresses are allowed.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="phone" type="xs:normalizedString" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>The phone number of the contact. Multiple phone numbers are allowed.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Allows any undeclared elements as long as the elements are placed in a different namespace.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:any>
+        </xs:sequence>
+        <xs:anyAttribute namespace="##other" processContents="lax">
+            <xs:annotation>
+                <xs:documentation>User-defined attributes may be used on this element as long as they
+                    do not have the same name as an existing attribute used by the schema.</xs:documentation>
+            </xs:annotation>
+        </xs:anyAttribute>
+    </xs:complexType>
+
+    <xs:complexType name="componentsType">
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="component" type="bom:component"/>
+            <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Allows any undeclared elements as long as the elements are placed in a different namespace.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:any>
+        </xs:sequence>
+        <xs:anyAttribute namespace="##any" processContents="lax">
+            <xs:annotation>
+                <xs:documentation>User-defined attributes may be used on this element as long as they
+                    do not have the same name as an existing attribute used by the schema.</xs:documentation>
+            </xs:annotation>
+        </xs:anyAttribute>
+    </xs:complexType>
+
+    <xs:complexType name="component">
+        <xs:sequence>
+            <xs:element name="supplier" type="bom:organizationalEntity" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>The organization that supplied the component. The supplier may often
+                        be the manufacture, but may also be a distributor or repackager.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="author" type="xs:normalizedString" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>The person(s) or organization(s) that authored the component</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="publisher" type="xs:normalizedString" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>The person(s) or organization(s) that published the component</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="group" type="xs:normalizedString" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>The grouping name or identifier. This will often be a shortened, single
+                        name of the company or project that produced the component, or the source package or
+                        domain name. Whitespace and special characters should be avoided. Examples include:
+                        apache, org.apache.commons, and apache.org.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="name" type="xs:normalizedString" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>The name of the component. This will often be a shortened, single name
+                        of the component. Examples: commons-lang3 and jquery</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="version" type="xs:normalizedString" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>The component version. The version should ideally comply with semantic versioning
+                        but is not enforced.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="description" type="xs:normalizedString" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>Specifies a description for the component</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="scope" type="bom:scope" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>Specifies the scope of the component. If scope is not specified, 'runtime'
+                        scope should be assumed by the consumer of the BOM</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="hashes" minOccurs="0" maxOccurs="1">
+                <xs:complexType>
+                    <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                        <xs:element name="hash" type="bom:hashType"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="licenses" minOccurs="0" maxOccurs="1">
+                <xs:complexType>
+                    <xs:choice>
+                        <xs:element name="license" type="bom:licenseType" minOccurs="0" maxOccurs="unbounded"/>
+                        <xs:element name="expression" type="xs:normalizedString" minOccurs="0" maxOccurs="1">
+                            <xs:annotation>
+                                <xs:documentation>A valid SPDX license expression.
+                                    Refer to https://spdx.org/specifications for syntax requirements</xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                    </xs:choice>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="copyright" type="xs:normalizedString" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>An optional copyright notice informing users of the underlying claims to
+                        copyright ownership in a published work.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="cpe" type="bom:cpe" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        DEPRECATED - DO NOT USE. This will be removed in a future version.
+                        Specifies a well-formed CPE name. See https://nvd.nist.gov/products/cpe
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="purl" type="xs:anyURI" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Specifies the package-url (PURL). The purl, if specified, must be valid and conform
+                        to the specification defined at: https://github.com/package-url/purl-spec
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="swid" type="bom:swidType" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Specifies metadata and content for ISO-IEC 19770-2 Software Identification (SWID) Tags.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="modified" type="xs:boolean" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        DEPRECATED - DO NOT USE. This will be removed in a future version. Use the pedigree
+                        element instead to supply information on exactly how the component was modified.
+                        A boolean value indicating is the component has been modified from the original.
+                        A value of true indicates the component is a derivative of the original.
+                        A value of false indicates the component has not been modified from the original.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="pedigree" type="bom:pedigreeType" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Component pedigree is a way to document complex supply chain scenarios where components are
+                        created, distributed, modified, redistributed, combined with other components, etc.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="externalReferences" type="bom:externalReferences" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>Provides the ability to document external references related to the
+                        component or to the project the component describes.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="components" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Specifies optional sub-components. This is not a dependency tree. It provides a way
+                        to specify a hierarchical representation of component assemblies, similar to
+                        system -> subsystem -> parts assembly in physical supply chains.
+                    </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                    <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                        <xs:element name="component" type="bom:component"/>
+                        <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded">
+                            <xs:annotation>
+                                <xs:documentation>
+                                    Allows any undeclared elements as long as the elements are placed in a different namespace.
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:any>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Allows any undeclared elements as long as the elements are placed in a different namespace.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:any>
+        </xs:sequence>
+        <xs:attribute name="type" type="bom:classification" use="required">
+            <xs:annotation>
+                <xs:documentation>
+                    Specifies the type of component. For software components, classify as application if no more
+                    specific appropriate classification is available or cannot be determined for the component.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="mime-type" type="bom:mimeType">
+            <xs:annotation>
+                <xs:documentation>
+                    The optional mime-type of the component. When used on file components, the mime-type
+                    can provide additional context about the kind of file being represented such as an image,
+                    font, or executable. Some library or framework components may also have an associated mime-type.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="bom-ref" type="xs:string">
+            <xs:annotation>
+                <xs:documentation>
+                    An optional identifier which can be used to reference the component elsewhere in the BOM.
+                    Uniqueness is enforced within all elements and children of the root-level bom element.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:anyAttribute namespace="##any" processContents="lax">
+            <xs:annotation>
+                <xs:documentation>User-defined attributes may be used on this element as long as they
+                    do not have the same name as an existing attribute used by the schema.</xs:documentation>
+            </xs:annotation>
+        </xs:anyAttribute>
+    </xs:complexType>
+
+    <xs:complexType name="licenseType">
+        <xs:sequence>
+            <xs:choice>
+                <xs:element name="id" type="spdx:licenseId" minOccurs="0" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>A valid SPDX license ID</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="name" type="xs:normalizedString" minOccurs="0" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>If SPDX does not define the license used, this field may be used to provide the license name</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+            </xs:choice>
+            <xs:element name="text" type="bom:attachedTextType" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>Specifies the optional full text of the attachment</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="url" type="xs:anyURI" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>The URL to the attachment file. If the attachment is a license or BOM,
+                        an externalReference should also be specified for completeness.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Allows any undeclared elements as long as the elements are placed in a different namespace.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:any>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="attachedTextType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:annotation>
+                    <xs:documentation>Specifies attributes of the text</xs:documentation>
+                </xs:annotation>
+                <xs:attribute name="content-type" type="xs:normalizedString" default="text/plain">
+                    <xs:annotation>
+                        <xs:documentation>Specifies the content type of the text. Defaults to text/plain
+                            if not specified.</xs:documentation>
+                    </xs:annotation>
+                </xs:attribute>
+                <xs:attribute name="encoding" type="bom:encoding">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Specifies the optional encoding the text is represented in
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:attribute>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="hashType">
+        <xs:annotation>
+            <xs:documentation>Specifies the file hash of the component</xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:extension base="bom:hashValue">
+                <xs:attribute name="alg" type="bom:hashAlg" use="required">
+                    <xs:annotation>
+                        <xs:documentation>Specifies the algorithm used to create the hash</xs:documentation>
+                    </xs:annotation>
+                </xs:attribute>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:simpleType name="scope">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="required">
+                <xs:annotation>
+                    <xs:documentation>The component is required for runtime</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="optional">
+                <xs:annotation>
+                    <xs:documentation>The component is optional at runtime. Optional components are components that
+                        are not capable of being called due to them not be installed or otherwise accessible by any means.
+                        Components that are installed but due to configuration or other restrictions are prohibited from
+                        being called must be scoped as 'required'.</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="excluded">
+                <xs:annotation>
+                    <xs:documentation>Components that are excluded provide the ability to document component usage
+                        for test and other non-runtime purposes. Excluded components are not reachable within a call
+                        graph at runtime.</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="classification">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="application">
+                    <xs:annotation>
+                        <xs:documentation>A software application. Refer to https://en.wikipedia.org/wiki/Application_software
+                        for information about applications.</xs:documentation>
+                    </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="framework">
+                <xs:annotation>
+                    <xs:documentation>A software framework. Refer to https://en.wikipedia.org/wiki/Software_framework
+                    for information on how frameworks vary slightly from libraries.</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="library">
+                <xs:annotation>
+                    <xs:documentation>A software library. Refer to https://en.wikipedia.org/wiki/Library_(computing)
+                    for information about libraries. All third-party and open source reusable components will likely
+                    be a library. If the library also has key features of a framework, then it should be classified
+                    as a framework. If not, or is unknown, then specifying library is recommended.</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="container">
+                <xs:annotation>
+                    <xs:documentation>A packaging and/or runtime format, not specific to any particular technology,
+                    which isolates software inside the container from software outside of a container through
+                    virtualization technology. Refer to https://en.wikipedia.org/wiki/OS-level_virtualization</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="operating-system">
+                <xs:annotation>
+                    <xs:documentation>A software operating system without regard to deployment model
+                    (i.e. installed on physical hardware, virtual machine, image, etc) Refer to
+                    https://en.wikipedia.org/wiki/Operating_system</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="device">
+                <xs:annotation>
+                    <xs:documentation>A hardware device such as a processor, or chip-set. A hardware device
+                    containing firmware should include a component for the physical hardware itself, and another
+                    component of type 'firmware' or 'operating-system' (whichever is relevant), describing
+                    information about the software running on the device.</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="firmware">
+                <xs:annotation>
+                    <xs:documentation>A special type of software that provides low-level control over a devices
+                        hardware. Refer to https://en.wikipedia.org/wiki/Firmware</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="file">
+                <xs:annotation>
+                    <xs:documentation>A computer file. Refer to https://en.wikipedia.org/wiki/Computer_file
+                    for information about files.</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="hashAlg">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="MD5"/>
+            <xs:enumeration value="SHA-1"/>
+            <xs:enumeration value="SHA-256"/>
+            <xs:enumeration value="SHA-384"/>
+            <xs:enumeration value="SHA-512"/>
+            <xs:enumeration value="SHA3-256"/>
+            <xs:enumeration value="SHA3-384"/>
+            <xs:enumeration value="SHA3-512"/>
+            <xs:enumeration value="BLAKE2b-256"/>
+            <xs:enumeration value="BLAKE2b-384"/>
+            <xs:enumeration value="BLAKE2b-512"/>
+            <xs:enumeration value="BLAKE3"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="hashValue">
+        <xs:restriction base="xs:token">
+            <xs:pattern value="([a-fA-F0-9]{32})|([a-fA-F0-9]{40})|([a-fA-F0-9]{64})|([a-fA-F0-9]{96})|([a-fA-F0-9]{128})"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="mimeType">
+        <xs:restriction base="xs:token">
+            <xs:pattern value="^[-+a-z0-9.]+/[-+a-z0-9.]+$"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="encoding">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="base64"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="cpe">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">
+                Define the format for acceptable CPE URIs. Supports CPE 2.2 and CPE 2.3 formats.
+                Refer to https://nvd.nist.gov/products/cpe for official specification.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="([c][pP][eE]:/[AHOaho]?(:[A-Za-z0-9\._\-~%]*){0,6})|(cpe:2\.3:[aho\*\-](:(((\?*|\*?)([a-zA-Z0-9\-\._]|(\\[\\\*\?!&quot;#$$%&amp;'\(\)\+,/:;&lt;=&gt;@\[\]\^`\{\|}~]))+(\?*|\*?))|[\*\-])){5}(:(([a-zA-Z]{2,3}(-([a-zA-Z]{2}|[0-9]{3}))?)|[\*\-]))(:(((\?*|\*?)([a-zA-Z0-9\-\._]|(\\[\\\*\?!&quot;#$$%&amp;'\(\)\+,/:;&lt;=&gt;@\[\]\^`\{\|}~]))+(\?*|\*?))|[\*\-])){4})"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="swidType">
+        <xs:sequence>
+            <xs:element name="text" type="bom:attachedTextType" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>Specifies the full content of the SWID tag.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="url" type="xs:anyURI" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>The URL to the SWID file.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Allows any undeclared elements as long as the elements are placed in a different namespace.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:any>
+        </xs:sequence>
+        <xs:attribute name="tagId" type="xs:string" use="required">
+            <xs:annotation>
+                <xs:documentation>Maps to the tagId of a SoftwareIdentity.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="name" type="xs:string" use="required">
+            <xs:annotation>
+                <xs:documentation>Maps to the name of a SoftwareIdentity.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="version" type="xs:string" use="optional" default="0.0">
+            <xs:annotation>
+                <xs:documentation>Maps to the version of a SoftwareIdentity.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="tagVersion" type="xs:integer" use="optional" default="0">
+            <xs:annotation>
+                <xs:documentation>Maps to the tagVersion of a SoftwareIdentity.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="patch" type="xs:boolean" use="optional" default="false">
+            <xs:annotation>
+                <xs:documentation>Maps to the patch of a SoftwareIdentity.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+    <xs:simpleType name="urnUuid">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">
+                Defines a string representation of a UUID conforming to RFC 4122.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="urn:uuid:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})|(\{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\})"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="externalReferenceType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="vcs">
+                <xs:annotation>
+                    <xs:documentation>Version Control System</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="issue-tracker">
+                <xs:annotation>
+                    <xs:documentation>Issue or defect tracking system, or an Application Lifecycle Management (ALM) system</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="website">
+                <xs:annotation>
+                    <xs:documentation>Website</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="advisories">
+                <xs:annotation>
+                    <xs:documentation>Security advisories</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="bom">
+                <xs:annotation>
+                    <xs:documentation>Bill-of-material document (CycloneDX, SPDX, SWID, etc)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="mailing-list">
+                <xs:annotation>
+                    <xs:documentation>Mailing list or discussion group</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="social">
+                <xs:annotation>
+                    <xs:documentation>Social media account</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="chat">
+                <xs:annotation>
+                    <xs:documentation>Real-time chat platform</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="documentation">
+                <xs:annotation>
+                    <xs:documentation>Documentation, guides, or how-to instructions</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="support">
+                <xs:annotation>
+                    <xs:documentation>Community or commercial support</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="distribution">
+                <xs:annotation>
+                    <xs:documentation>Direct or repository download location</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="license">
+                <xs:annotation>
+                    <xs:documentation>The URL to the license file. If a license URL has been defined in the license
+                        node, it should also be defined as an external reference for completeness</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="build-meta">
+                <xs:annotation>
+                    <xs:documentation>Build-system specific meta file (i.e. pom.xml, package.json, .nuspec, etc)</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="build-system">
+                <xs:annotation>
+                    <xs:documentation>URL to an automated build system</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="other">
+                <xs:annotation>
+                    <xs:documentation>Use this if no other types accurately describe the purpose of the external reference</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="externalReferences">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">
+                External references provide a way to document systems, sites, and information that may be relevant
+                but which are not included with the BOM.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="reference" type="bom:externalReference">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">Zero or more external references can be defined</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="externalReference">
+        <xs:sequence>
+            <xs:element name="url" type="xs:anyURI" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">The URL to the external reference</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="comment" type="xs:string" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">An optional comment describing the external reference</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="type" type="bom:externalReferenceType" use="required">
+            <xs:annotation>
+                <xs:documentation>Specifies the type of external reference. There are built-in types to describe common
+                    references. If a type does not exist for the reference being referred to, use the "other" type.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:anyAttribute namespace="##any" processContents="lax">
+            <xs:annotation>
+                <xs:documentation>User-defined attributes may be used on this element as long as they
+                    do not have the same name as an existing attribute used by the schema.</xs:documentation>
+            </xs:annotation>
+        </xs:anyAttribute>
+    </xs:complexType>
+
+    <xs:complexType name="commitsType">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">Zero or more commits can be specified.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="commit" type="bom:commitType">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">Specifies an individual commit.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Allows any undeclared elements as long as the elements are placed in a different namespace.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:any>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="commitType">
+        <xs:sequence>
+            <xs:element name="uid" type="xs:normalizedString" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">A unique identifier of the commit. This may be version control
+                        specific. For example, Subversion uses revision numbers whereas git uses commit hashes.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="url" type="xs:anyURI" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">The URL to the commit. This URL will typically point to a commit
+                        in a version control system.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="author" type="bom:identifiableActionType" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">The author who created the changes in the commit</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="committer" type="bom:identifiableActionType" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">The person who committed or pushed the commit</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="message" type="xs:normalizedString" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">The text description of the contents of the commit</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Allows any undeclared elements as long as the elements are placed in a different namespace.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:any>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="patchesType">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">Zero or more patches can be specified.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="patch" type="bom:patchType">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">Specifies an individual patch.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Allows any undeclared elements as long as the elements are placed in a different namespace.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:any>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="patchType">
+        <xs:sequence>
+            <xs:element name="diff" type="bom:diffType" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">The patch file (or diff) that show changes.
+                        Refer to https://en.wikipedia.org/wiki/Diff</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="resolves" minOccurs="0" maxOccurs="1">
+                <xs:complexType>
+                    <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                        <xs:element name="issue" type="bom:issueType"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Allows any undeclared elements as long as the elements are placed in a different namespace.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:any>
+        </xs:sequence>
+        <xs:attribute name="type" type="bom:patchClassification" use="required">
+            <xs:annotation>
+                <xs:documentation>Specifies the purpose for the patch including the resolution of defects,
+                    security issues, or new behavior or functionality</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+    <xs:simpleType name="patchClassification">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="unofficial">
+                <xs:annotation>
+                    <xs:documentation>A patch which is not developed by the creators or maintainers of the software
+                        being patched. Refer to https://en.wikipedia.org/wiki/Unofficial_patch</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="monkey">
+                <xs:annotation>
+                    <xs:documentation>A patch which dynamically modifies runtime behavior.
+                        Refer to https://en.wikipedia.org/wiki/Monkey_patch</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="backport">
+                <xs:annotation>
+                    <xs:documentation>A patch which takes code from a newer version of software and applies
+                    it to older versions of the same software. Refer to https://en.wikipedia.org/wiki/Backporting</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="cherry-pick">
+                <xs:annotation>
+                    <xs:documentation>A patch created by selectively applying commits from other versions or
+                        branches of the same software.</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="issueClassification">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="defect">
+                <xs:annotation>
+                    <xs:documentation>A fault, flaw, or bug in software</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="enhancement">
+                <xs:annotation>
+                    <xs:documentation>A new feature or behavior in software</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="security">
+                <xs:annotation>
+                    <xs:documentation>A special type of defect which impacts security</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="diffType">
+        <xs:sequence>
+            <xs:element name="text" type="bom:attachedTextType" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">Specifies the optional text of the diff</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="url" type="xs:anyURI" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">Specifies the URL to the diff</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Allows any undeclared elements as long as the elements are placed in a different namespace.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:any>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="issueType">
+        <xs:sequence>
+            <xs:element name="id" type="xs:normalizedString" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">The identifier of the issue assigned by the source of the issue</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="name" type="xs:normalizedString" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">The name of the issue</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="description" type="xs:normalizedString" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">A description of the issue</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="source" minOccurs="0" maxOccurs="1">
+                <xs:complexType>
+                    <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                            The source of the issue where it is documented.
+                        </xs:documentation>
+                    </xs:annotation>
+                    <xs:sequence>
+                        <xs:element name="name" minOccurs="0" type="xs:normalizedString" maxOccurs="1">
+                            <xs:annotation>
+                                <xs:documentation xml:lang="en">
+                                    The name of the source. For example "National Vulnerability Database",
+                                    "NVD", and "Apache"
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                        <xs:element name="url" minOccurs="0" type="xs:anyURI" maxOccurs="1">
+                            <xs:annotation>
+                                <xs:documentation xml:lang="en">
+                                    The url of the issue documentation as provided by the source
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="references" minOccurs="0" maxOccurs="1">
+                <xs:complexType>
+                    <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                        <xs:element name="url" type="xs:anyURI"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Allows any undeclared elements as long as the elements are placed in a different namespace.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:any>
+        </xs:sequence>
+        <xs:attribute name="type" type="bom:issueClassification" use="required">
+            <xs:annotation>
+                <xs:documentation>Specifies the type of issue</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+    <xs:complexType name="identifiableActionType">
+        <xs:sequence>
+            <xs:element name="timestamp" type="xs:dateTime" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">The timestamp in which the action occurred</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="name" type="xs:normalizedString" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">The name of the individual who performed the action</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="email" type="xs:normalizedString" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">The email address of the individual who performed the action</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Allows any undeclared elements as long as the elements are placed in a different namespace.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:any>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="pedigreeType">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">
+                Component pedigree is a way to document complex supply chain scenarios where components are created,
+                distributed, modified, redistributed, combined with other components, etc. Pedigree supports viewing
+                this complex chain from the beginning, the end, or anywhere in the middle. It also provides a way to
+                document variants where the exact relation may not be known.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="ancestors" type="bom:componentsType" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">Describes zero or more components in which a component is derived
+                        from. This is commonly used to describe forks from existing projects where the forked version
+                        contains a ancestor node containing the original component it was forked from. For example,
+                        Component A is the original component. Component B is the component being used and documented
+                        in the BOM. However, Component B contains a pedigree node with a single ancestor documenting
+                        Component A - the original component from which Component B is derived from.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="descendants" type="bom:componentsType" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">Descendants are the exact opposite of ancestors. This provides a
+                        way to document all forks (and their forks) of an original or root component.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="variants" type="bom:componentsType" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">Variants describe relations where the relationship between the
+                        components are not known. For example, if Component A contains nearly identical code to
+                        Component B. They are both related, but it is unclear if one is derived from the other,
+                        or if they share a common ancestor.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="commits" type="bom:commitsType" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">A list of zero or more commits which provide a trail describing
+                        how the component deviates from an ancestor, descendant, or variant.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="patches" type="bom:patchesType" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">A list of zero or more patches describing how the component
+                        deviates from an ancestor, descendant, or variant. Patches may be complimentary to commits
+                        or may be used in place of commits.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="notes" type="xs:string" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">Notes, observations, and other non-structured commentary
+                        describing the components pedigree.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Allows any undeclared elements as long as the elements are placed in a different namespace.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:any>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="dependencyType">
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="dependency" type="bom:dependencyType"/>
+        </xs:sequence>
+        <xs:attribute name="ref" type="xs:string" use="required">
+            <xs:annotation>
+                <xs:documentation>References a component or service by the its bom-ref attribute</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:anyAttribute namespace="##other" processContents="lax">
+            <xs:annotation>
+                <xs:documentation>User-defined attributes may be used on this element as long as they
+                    do not have the same name as an existing attribute used by the schema.</xs:documentation>
+            </xs:annotation>
+        </xs:anyAttribute>
+    </xs:complexType>
+
+    <xs:complexType name="dependenciesType">
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="dependency" type="bom:dependencyType">
+                <xs:annotation>
+                    <xs:documentation>Components that do not have their own dependencies MUST be declared as empty
+                        elements within the graph. Components that are not represented in the dependency graph MAY
+                        have unknown dependencies. It is RECOMMENDED that implementations assume this to be opaque
+                        and not an indicator of a component being dependency-free.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="servicesType">
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="service" type="bom:service"/>
+            <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Allows any undeclared elements as long as the elements are placed in a different namespace.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:any>
+        </xs:sequence>
+        <xs:anyAttribute namespace="##any" processContents="lax">
+            <xs:annotation>
+                <xs:documentation>User-defined attributes may be used on this element as long as they
+                    do not have the same name as an existing attribute used by the schema.</xs:documentation>
+            </xs:annotation>
+        </xs:anyAttribute>
+    </xs:complexType>
+
+    <xs:complexType name="service">
+        <xs:sequence>
+            <xs:element name="provider" type="bom:organizationalEntity" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>The organization that provides the service.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="group" type="xs:normalizedString" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>The grouping name, namespace, or identifier. This will often be a shortened,
+                        single name of the company or project that produced the service or domain name.
+                        Whitespace and special characters should be avoided.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="name" type="xs:normalizedString" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>The name of the service. This will often be a shortened, single name
+                        of the service.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="version" type="xs:normalizedString" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>The service version.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="description" type="xs:normalizedString" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>Specifies a description for the service.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="endpoints" minOccurs="0" maxOccurs="1">
+                <xs:complexType>
+                    <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                        <xs:element name="endpoint" type="xs:anyURI" minOccurs="1">
+                            <xs:annotation>
+                                <xs:documentation>A service endpoint URI.</xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="authenticated" type="xs:boolean" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>A boolean value indicating if the service requires authentication.
+                        A value of true indicates the service requires authentication prior to use.
+                        A value of false indicates the service does not require authentication.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="x-trust-boundary" type="xs:boolean" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>A boolean value indicating if use of the service crosses a trust zone or boundary.
+                        A value of true indicates that by using the service, a trust boundary is crossed.
+                        A value of false indicates that by using the service, a trust boundary is not crossed.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="data" minOccurs="0" maxOccurs="1">
+                <xs:complexType>
+                    <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                        <xs:element name="classification" type="bom:dataClassificationType">
+                            <xs:annotation>
+                                <xs:documentation>Specifies the data classification.</xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="licenses" minOccurs="0" maxOccurs="1">
+                <xs:complexType>
+                    <xs:choice>
+                        <xs:element name="license" type="bom:licenseType" minOccurs="0" maxOccurs="unbounded"/>
+                        <xs:element name="expression" type="xs:normalizedString" minOccurs="0" maxOccurs="1">
+                            <xs:annotation>
+                                <xs:documentation>A valid SPDX license expression.
+                                    Refer to https://spdx.org/specifications for syntax requirements</xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                    </xs:choice>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="externalReferences" type="bom:externalReferences" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>Provides the ability to document external references related to the service.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="services" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation>
+                        Specifies optional sub-service. This is not a dependency tree. It provides a way
+                        to specify a hierarchical representation of service assemblies, similar to
+                        system -> subsystem -> parts assembly in physical supply chains.
+                    </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                    <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                        <xs:element name="service" type="bom:service"/>
+                        <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded">
+                            <xs:annotation>
+                                <xs:documentation>
+                                    Allows any undeclared elements as long as the elements are placed in a different namespace.
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:any>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Allows any undeclared elements as long as the elements are placed in a different namespace.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:any>
+        </xs:sequence>
+        <xs:attribute name="bom-ref" type="xs:string">
+            <xs:annotation>
+                <xs:documentation>
+                    An optional identifier which can be used to reference the service elsewhere in the BOM.
+                    Uniqueness is enforced within all elements and children of the root-level bom element.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:anyAttribute namespace="##any" processContents="lax">
+            <xs:annotation>
+                <xs:documentation>User-defined attributes may be used on this element as long as they
+                    do not have the same name as an existing attribute used by the schema.</xs:documentation>
+            </xs:annotation>
+        </xs:anyAttribute>
+    </xs:complexType>
+
+    <xs:complexType name="dataClassificationType">
+        <xs:annotation>
+            <xs:documentation>Specifies the data classification.</xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:extension base="xs:normalizedString">
+                <xs:attribute name="flow" type="bom:dataFlowType" use="required">
+                    <xs:annotation>
+                        <xs:documentation>Specifies the flow direction of the data.</xs:documentation>
+                    </xs:annotation>
+                </xs:attribute>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:simpleType name="dataFlowType">
+        <xs:annotation>
+            <xs:documentation>Specifies the flow direction of the data. Valid values are:
+                inbound, outbound, bi-directional, and unknown. Direction is relative to the service.
+                Inbound flow states that data enters the service. Outbound flow states that data
+                leaves the service. Bi-directional states that data flows both ways, and unknown
+                states that the direction is not known.</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="inbound"/>
+            <xs:enumeration value="outbound"/>
+            <xs:enumeration value="bi-directional"/>
+            <xs:enumeration value="unknown"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:element name="bom">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="metadata" type="bom:metadata" minOccurs="0" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>Provides additional information about a BOM.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="components" type="bom:componentsType" minOccurs="0" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>Provides the ability to document a list of components.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="services" type="bom:servicesType" minOccurs="0" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>Provides the ability to document a list of external services.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="externalReferences" type="bom:externalReferences" minOccurs="0" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>Provides the ability to document external references related to the BOM or
+                            to the project the BOM describes.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="dependencies" type="bom:dependenciesType" minOccurs="0" maxOccurs="1">
+                    <xs:annotation>
+                        <xs:documentation>Provides the ability to document dependency relationships.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded">
+                    <xs:annotation>
+                        <xs:documentation>
+                            Allows any undeclared elements as long as the elements are placed in a different namespace.
+                        </xs:documentation>
+                    </xs:annotation>
+                </xs:any>
+            </xs:sequence>
+            <xs:attribute name="version" type="xs:integer" default="1">
+                <xs:annotation>
+                    <xs:documentation>The version allows component publishers/authors to make changes to existing
+                        BOMs to update various aspects of the document such as description or licenses. When a system
+                        is presented with multiple BOMs for the same component, the system should use the most recent
+                        version of the BOM. The default version is '1' and should be incremented for each version of the
+                        BOM that is published. Each version of a component should have a unique BOM and if no changes are
+                        made to the BOMs, then each BOM will have a version of '1'.</xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="serialNumber" type="bom:urnUuid">
+                <xs:annotation>
+                    <xs:documentation>Every BOM generated should have a unique serial number, even if the contents
+                        of the BOM being generated have not changed over time. The process or tool responsible for
+                        creating the BOM should create random UUID's for every BOM generated.</xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+            <xs:anyAttribute namespace="##any" processContents="lax">
+                <xs:annotation>
+                    <xs:documentation>User-defined attributes may be used on this element as long as they
+                        do not have the same name as an existing attribute used by the schema.</xs:documentation>
+                </xs:annotation>
+            </xs:anyAttribute>
+        </xs:complexType>
+        <xs:unique name="bom-ref">
+            <xs:selector xpath=".//*"/>
+            <xs:field xpath="@bom-ref"/>
+        </xs:unique>
+    </xs:element>
+</xs:schema>

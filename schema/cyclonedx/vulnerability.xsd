@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+CycloneDX Vulnerability Extension
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning"
+           xmlns:vuln="http://cyclonedx.org/schema/ext/vulnerability/1.0"
+           elementFormDefault="qualified"
+           targetNamespace="http://cyclonedx.org/schema/ext/vulnerability/1.0"
+           vc:minVersion="1.0"
+           vc:maxVersion="1.1"
+           version="1.0.0">
+
+    <xs:annotation>
+        <xs:documentation>
+            <name>CycloneDX Vulnerability Extension</name>
+            <url>https://cyclonedx.org/ext/vulnerability</url>
+            <license uri="http://www.apache.org/licenses/LICENSE-2.0"
+                     version="2.0">Apache License, Version 2.0</license>
+        </xs:documentation>
+    </xs:annotation>
+
+    <xs:simpleType name="severityType" final="restriction">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">
+                Textual representation of the severity of the vulnerability adopted by the risk analysis method.
+                If an other risk analysis method is used other than whats defined in scoreSourceType,
+                the user is expected to translate appropriately to match with an element value below.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="None"/>
+            <xs:enumeration value="Low"/>
+            <xs:enumeration value="Medium"/>
+            <xs:enumeration value="High"/>
+            <xs:enumeration value="Critical"/>
+            <xs:enumeration value="Unknown"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="scoreValueType">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">
+                Numerical representation of the vulnerability score.
+                Must be a number between 0 - 10 (maps to lowest severity - highest severity)
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:decimal">
+            <xs:minInclusive value="0"/>
+            <xs:fractionDigits value="1"/>
+            <xs:maxInclusive value="10"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="scoreSourceType" final="restriction">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">
+                Specifies the risk scoring methodology/standard used.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="CVSSv2">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">
+                        The rating is based on CVSS v2 standard
+                        https://www.first.org/cvss/v2/guide
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="CVSSv3">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">
+                        The rating is based on CVSS v3 standard
+                        https://www.first.org/cvss/v3.1/specification-document
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="OWASP Risk">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">
+                        The rating is based on OWASP Risk Rating
+                        https://www.owasp.org/index.php/OWASP_Risk_Rating_Methodology
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Open FAIR">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">
+                        The rating is based on Open FAIR specification
+                        http://www.opengroup.org/subjectareas/security/risk
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="Other">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">
+                        Use this if the risk scoring methodology is not based on any of the options above
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="scoreType">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">
+                Defines the numerical risk score of a vulnerability
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="score" minOccurs="0" maxOccurs="1">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="base" type="vuln:scoreValueType" minOccurs="0" maxOccurs="1">
+                            <xs:annotation>
+                                <xs:documentation xml:lang="en">
+                                    The base score of the security vulnerability (Refer CVSS standard for example)
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                        <xs:element name="impact" type="vuln:scoreValueType" minOccurs="0" maxOccurs="1">
+                            <xs:annotation>
+                                <xs:documentation xml:lang="en">
+                                    The impact subscore of the security vulnerability (Refer CVSS standard for example)
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                        <xs:element name="exploitability" type="vuln:scoreValueType" minOccurs="0" maxOccurs="1">
+                            <xs:annotation>
+                                <xs:documentation xml:lang="en">
+                                    The exploitability subscore of the security vulnerability (Refer CVSS standard for
+                                    example)
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="severity" type="vuln:severityType" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="method" type="vuln:scoreSourceType" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="vector" type="xs:string" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">
+                        Textual representation of the metric values used to score the vulnerability
+                        see attack vector in https://www.first.org/cvss/v3.1/specification-document
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="vulnerability">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">
+                Defines the structure of a vulnerability.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="id" type="xs:normalizedString" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">
+                        The id of the vulnerability as defined by the risk scoring methodology
+                        For example CVE-2019-15842 (of https://nvd.nist.gov/vuln/detail/CVE-2019-15842)
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="source" minOccurs="0" maxOccurs="1">
+                <xs:complexType>
+                    <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                            The source of the vulnerability where it is documented.
+                            Usually the name of the organization publishing vulnerability information
+                        </xs:documentation>
+                    </xs:annotation>
+                    <xs:sequence>
+                        <xs:element name="url" minOccurs="0" type="xs:anyURI" maxOccurs="1">
+                            <xs:annotation>
+                                <xs:documentation xml:lang="en">
+                                    The url of the vulnerability documentation as provided by the source
+                                    For example https://nvd.nist.gov/vuln/detail/CVE-2019-15842
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                    </xs:sequence>
+                    <xs:attribute name="name" type="xs:normalizedString" use="required">
+                        <xs:annotation>
+                            <xs:documentation xml:lang="en">
+                                The name of the source. For example "National Vulnerability Database"
+                            </xs:documentation>
+                        </xs:annotation>
+                    </xs:attribute>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="ratings" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">
+                        List of the vulnerability ratings as defined by various risk rating methodologies.
+                    </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="rating" type="vuln:scoreType" minOccurs="0" maxOccurs="unbounded"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="cwes" minOccurs="0" maxOccurs="1">
+                <xs:complexType>
+                    <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                            List of Common Weaknesses Enumerations (CWEs) codes that describes this vulnerability.
+                            For example 399 (of https://cwe.mitre.org/data/definitions/399.html)
+                        </xs:documentation>
+                    </xs:annotation>
+                    <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                        <xs:element name="cwe" type="xs:integer" minOccurs="0" maxOccurs="1"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="description" type="xs:string" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                    <xs:documentation xml:lang="en">
+                        Description of the vulnerability as provided by the source organization
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="recommendations" minOccurs="0" maxOccurs="1">
+                <xs:complexType>
+                    <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                            The remediation options for the vulnerability if available
+                        </xs:documentation>
+                    </xs:annotation>
+                    <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                        <xs:element name="recommendation" type="xs:string">
+                            <xs:annotation>
+                                <xs:documentation xml:lang="en">
+                                    A recommendation of how the particular vulnerability can be avoided/mitigated.
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="advisories" minOccurs="0" maxOccurs="1">
+                <xs:complexType>
+                    <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                            Published advisories of the vulnerability if provided
+                        </xs:documentation>
+                    </xs:annotation>
+                    <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                        <xs:element name="advisory" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="ref" type="xs:string" use="required">
+            <xs:annotation>
+                <xs:documentation>References a component by the components bom-ref attribute</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+    <xs:element name="vulnerabilities">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">
+                Defines a list of vulnerabilities.
+                Vulnerabilities are intended to be used inside the BOM component element.
+                Extending a component ability to declare associated vulnerability information.
+                Each component element optionally can add a vulnerabilities element.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence minOccurs="0" maxOccurs="unbounded">
+                <xs:element name="vulnerability" type="vuln:vulnerability"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>
