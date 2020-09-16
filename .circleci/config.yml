@@ -80,6 +80,10 @@ jobs:
               chmod 755 ${HOME}/.local/bin/docker
 
       - run:
+          name: validate grype output against the CycloneDX schema
+          command: make validate-cyclonedx-schema
+
+      - run:
           name: run unit tests
           command: make unit
 
