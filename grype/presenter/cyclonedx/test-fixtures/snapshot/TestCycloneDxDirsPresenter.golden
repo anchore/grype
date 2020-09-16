@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.2" version="1" serialNumber="urn:uuid:9d8e0f0f-506a-4ed6-8723-f8d0fd4db521">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.2" xmlns:bd="http://cyclonedx.org/schema/ext/bom-descriptor/1.0" xmlns:v="http://cyclonedx.org/schema/ext/vulnerability/1.0" version="1" serialNumber="urn:uuid:28762d6d-78d7-497d-9b26-4ca4cc05530e">
   <components>
     <component type="library">
       <name>package-1</name>
       <version>1.0.1</version>
-      <v:vulnerabilities ref="urn:uuid:20cf4435-59df-4b0f-905b-5340c891d6ec">
+      <v:vulnerabilities ref="urn:uuid:03ea070c-0b32-4364-8f91-1a4c1cee7693">
         <v:id>CVE-1999-0001</v:id>
         <v:source v:name="source-1">
           <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0001</v:url>
@@ -22,7 +22,7 @@
         <v:description>1999-01 description</v:description>
         <v:advisories></v:advisories>
       </v:vulnerabilities>
-      <v:vulnerabilities ref="urn:uuid:5690f1e4-0239-4615-abeb-5dc0574d94e6">
+      <v:vulnerabilities ref="urn:uuid:c05a9235-bb92-46ae-bcc5-d7231142f5ee">
         <v:id>CVE-1999-0002</v:id>
         <v:source v:name="source-2">
           <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0002</v:url>
@@ -55,7 +55,7 @@
     </component>
   </components>
   <bd:metadata>
-    <bd:timestamp>2020-08-31T15:39:55-04:00</bd:timestamp>
+    <bd:timestamp>2020-09-16T11:48:40-04:00</bd:timestamp>
     <bd:tool>
       <bd:vendor>anchore</bd:vendor>
       <bd:name>syft</bd:name>
