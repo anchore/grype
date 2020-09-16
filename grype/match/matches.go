@@ -8,7 +8,7 @@ type Matches struct {
 	byPackage map[pkg.ID][]Match
 }
 
-func NewResult() Matches {
+func NewMatches() Matches {
 	return Matches{
 		byPackage: make(map[pkg.ID][]Match),
 	}

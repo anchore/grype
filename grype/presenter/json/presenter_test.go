@@ -141,8 +141,8 @@ func TestJsonPresenter(t *testing.T) {
 		},
 	}
 
-	results := match.NewResult()
-	results.Add(&pkg1, match1, match2, match3)
+	matches := match.NewMatches()
+	matches.Add(&pkg1, match1, match2, match3)
 
 	catalog := pkg.NewCatalog()
 	catalog.Add(pkg1)
@@ -150,7 +150,7 @@ func TestJsonPresenter(t *testing.T) {
 
 	theScope, err := scope.NewScopeFromImage(img, scope.AllLayersScope)
 
-	pres := NewPresenter(results, catalog, theScope, newMetadataMock())
+	pres := NewPresenter(matches, catalog, theScope, newMetadataMock())
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
@@ -179,11 +179,11 @@ func TestEmptyJsonPresenter(t *testing.T) {
 	// Expected to have an empty JSON array back
 	var buffer bytes.Buffer
 
-	results := match.NewResult()
+	matches := match.NewMatches()
 
 	catalog := pkg.NewCatalog()
 
-	pres := NewPresenter(results, catalog, scope.Scope{}, nil)
+	pres := NewPresenter(matches, catalog, scope.Scope{}, nil)
 
 	// run presenter
 	err := pres.Present(&buffer)

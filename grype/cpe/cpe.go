@@ -129,12 +129,12 @@ func candidateProducts(p *pkg.Package) []string {
 }
 
 func MatchWithoutVersion(c CPE, candidates []CPE) []CPE {
-	results := make([]CPE, 0)
+	matches := make([]CPE, 0)
 	for _, candidate := range candidates {
 		canCopy := candidate
 		if c.MatchWithoutVersion(&canCopy) {
-			results = append(results, candidate)
+			matches = append(matches, candidate)
 		}
 	}
-	return results
+	return matches
 }

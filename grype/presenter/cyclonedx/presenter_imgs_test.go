@@ -129,11 +129,11 @@ func TestCycloneDxImgsPresenter(t *testing.T) {
 		},
 	}
 
-	results := match.NewResult()
+	matches := match.NewMatches()
 
-	results.Add(&pkg1, match1, match2)
+	matches.Add(&pkg1, match1, match2)
 
-	pres := NewPresenter(results, catalog, s, newMetadataMock())
+	pres := NewPresenter(matches, catalog, s, newMetadataMock())
 
 	// run presenter
 	err = pres.Present(&buffer)

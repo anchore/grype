@@ -253,29 +253,29 @@ func TestPkgCoverageImage(t *testing.T) {
 		{
 			fixtureImage: "image-debian-match-coverage",
 			expectedFn: func(theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore) match.Matches {
-				expectedResults := match.NewResult()
-				addPythonMatches(t, theScope, catalog, theStore, &expectedResults)
-				addRubyMatches(t, theScope, catalog, theStore, &expectedResults)
-				addJavaMatches(t, theScope, catalog, theStore, &expectedResults)
-				addDpkgMatches(t, theScope, catalog, theStore, &expectedResults)
-				addJavascriptMatches(t, theScope, catalog, theStore, &expectedResults)
-				return expectedResults
+				expectedMatches := match.NewMatches()
+				addPythonMatches(t, theScope, catalog, theStore, &expectedMatches)
+				addRubyMatches(t, theScope, catalog, theStore, &expectedMatches)
+				addJavaMatches(t, theScope, catalog, theStore, &expectedMatches)
+				addDpkgMatches(t, theScope, catalog, theStore, &expectedMatches)
+				addJavascriptMatches(t, theScope, catalog, theStore, &expectedMatches)
+				return expectedMatches
 			},
 		},
 		{
 			fixtureImage: "image-centos-match-coverage",
 			expectedFn: func(theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore) match.Matches {
-				expectedResults := match.NewResult()
-				addRhelMatches(t, theScope, catalog, theStore, &expectedResults)
-				return expectedResults
+				expectedMatches := match.NewMatches()
+				addRhelMatches(t, theScope, catalog, theStore, &expectedMatches)
+				return expectedMatches
 			},
 		},
 		{
 			fixtureImage: "image-alpine-match-coverage",
 			expectedFn: func(theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore) match.Matches {
-				expectedResults := match.NewResult()
-				addAlpineMatches(t, theScope, catalog, theStore, &expectedResults)
-				return expectedResults
+				expectedMatches := match.NewMatches()
+				addAlpineMatches(t, theScope, catalog, theStore, &expectedMatches)
+				return expectedMatches
 			},
 		},
 	}
@@ -298,23 +298,23 @@ func TestPkgCoverageImage(t *testing.T) {
 			}
 
 			// build expected matches from what's discovered from the catalog
-			expectedResults := test.expectedFn(*theScope, catalog, theStore)
+			expectedMatches := test.expectedFn(*theScope, catalog, theStore)
 
 			// build expected match set...
-			expectedMatches := map[string]string{}
-			for eMatch := range expectedResults.Enumerate() {
+			expectedMatchSet := map[string]string{}
+			for eMatch := range expectedMatches.Enumerate() {
 				// NOTE: this does not include all fields...
-				expectedMatches[eMatch.Package.Name] = eMatch.String()
+				expectedMatchSet[eMatch.Package.Name] = eMatch.String()
 			}
 
-			expectedCount := len(expectedMatches)
+			expectedCount := len(expectedMatchSet)
 
 			// ensure that all matches are covered
 			actualCount := 0
 			for aMatch := range actualResults.Enumerate() {
 				actualCount++
 				observedMatchers.Add(aMatch.Matcher.String())
-				value, ok := expectedMatches[aMatch.Package.Name]
+				value, ok := expectedMatchSet[aMatch.Package.Name]
 				if !ok {
 					t.Errorf("Package: %s was expected but not found", aMatch.Package.Name)
 				}

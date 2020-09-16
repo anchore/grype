@@ -98,9 +98,9 @@ func TestTablePresenter(t *testing.T) {
 		},
 	}
 
-	results := match.NewResult()
+	matches := match.NewMatches()
 
-	results.Add(&pkg1, match1, match2)
+	matches.Add(&pkg1, match1, match2)
 
 	catalog := pkg.NewCatalog()
 
@@ -108,7 +108,7 @@ func TestTablePresenter(t *testing.T) {
 	catalog.Add(pkg1)
 	catalog.Add(pkg2)
 
-	pres := NewPresenter(results, catalog, newMetadataMock())
+	pres := NewPresenter(matches, catalog, newMetadataMock())
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
@@ -139,10 +139,10 @@ func TestEmptyTablePresenter(t *testing.T) {
 
 	var buffer bytes.Buffer
 
-	results := match.NewResult()
+	matches := match.NewMatches()
 	catalog := pkg.NewCatalog()
 
-	pres := NewPresenter(results, catalog, newMetadataMock())
+	pres := NewPresenter(matches, catalog, newMetadataMock())
 
 	// run presenter
 	err := pres.Present(&buffer)

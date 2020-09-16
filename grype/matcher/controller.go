@@ -76,7 +76,7 @@ func (c *controller) trackMatcher() (*progress.Manual, *progress.Manual) {
 }
 
 func (c *controller) findMatches(provider vulnerability.Provider, d distro.Distro, packages ...*pkg.Package) match.Matches {
-	res := match.NewResult()
+	res := match.NewMatches()
 
 	packagesProcessed, vulnerabilitiesDiscovered := c.trackMatcher()
 
