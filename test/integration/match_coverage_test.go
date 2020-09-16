@@ -8,7 +8,6 @@ import (
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/result"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/syft/syft/pkg"
@@ -28,7 +27,7 @@ func getPackagesByPath(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog,
 	return catalog.PackagesByFile(refs[0])
 }
 
-func addAlpineMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *result.Result) {
+func addAlpineMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *match.Matches) {
 	packages := getPackagesByPath(t, theScope, catalog, "/lib/apk/db/installed")
 	if len(packages) != 1 {
 		t.Logf("Alpine Packages: %+v", packages)
@@ -57,7 +56,7 @@ func addAlpineMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, 
 	})
 }
 
-func addJavascriptMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *result.Result) {
+func addJavascriptMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *match.Matches) {
 	packages := getPackagesByPath(t, theScope, catalog, "/javascript/pkg-lock/package-lock.json")
 	if len(packages) != 1 {
 		t.Logf("Javascript Packages: %+v", packages)
@@ -85,7 +84,7 @@ func addJavascriptMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catal
 	})
 }
 
-func addPythonMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *result.Result) {
+func addPythonMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *match.Matches) {
 	packages := getPackagesByPath(t, theScope, catalog, "/python/dist-info/METADATA")
 	if len(packages) != 1 {
 		t.Logf("Python Packages: %+v", packages)
@@ -113,7 +112,7 @@ func addPythonMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, 
 	})
 }
 
-func addRubyMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *result.Result) {
+func addRubyMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *match.Matches) {
 	packages := getPackagesByPath(t, theScope, catalog, "/ruby/Gemfile.lock")
 	if len(packages) != 1 {
 		t.Logf("Ruby Packages: %+v", packages)
@@ -141,7 +140,7 @@ func addRubyMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, th
 	})
 }
 
-func addJavaMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *result.Result) {
+func addJavaMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *match.Matches) {
 	packages := make([]*pkg.Package, 0)
 	for p := range catalog.Enumerate(pkg.JavaPkg) {
 		packages = append(packages, p)
@@ -176,7 +175,7 @@ func addJavaMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, th
 	})
 }
 
-func addDpkgMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *result.Result) {
+func addDpkgMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *match.Matches) {
 	packages := getPackagesByPath(t, theScope, catalog, "/var/lib/dpkg/status")
 	if len(packages) != 1 {
 		t.Logf("Dpkg Packages: %+v", packages)
@@ -208,7 +207,7 @@ func addDpkgMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, th
 	})
 }
 
-func addRhelMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *result.Result) {
+func addRhelMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *match.Matches) {
 	packages := getPackagesByPath(t, theScope, catalog, "/var/lib/rpm/Packages")
 	if len(packages) != 1 {
 		t.Logf("RPMDB Packages: %+v", packages)
@@ -249,12 +248,12 @@ func TestPkgCoverageImage(t *testing.T) {
 
 	tests := []struct {
 		fixtureImage string
-		expectedFn   func(scope.Scope, *pkg.Catalog, *mockStore) result.Result
+		expectedFn   func(scope.Scope, *pkg.Catalog, *mockStore) match.Matches
 	}{
 		{
 			fixtureImage: "image-debian-match-coverage",
-			expectedFn: func(theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore) result.Result {
-				expectedResults := result.NewResult()
+			expectedFn: func(theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore) match.Matches {
+				expectedResults := match.NewResult()
 				addPythonMatches(t, theScope, catalog, theStore, &expectedResults)
 				addRubyMatches(t, theScope, catalog, theStore, &expectedResults)
 				addJavaMatches(t, theScope, catalog, theStore, &expectedResults)
@@ -265,16 +264,16 @@ func TestPkgCoverageImage(t *testing.T) {
 		},
 		{
 			fixtureImage: "image-centos-match-coverage",
-			expectedFn: func(theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore) result.Result {
-				expectedResults := result.NewResult()
+			expectedFn: func(theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore) match.Matches {
+				expectedResults := match.NewResult()
 				addRhelMatches(t, theScope, catalog, theStore, &expectedResults)
 				return expectedResults
 			},
 		},
 		{
 			fixtureImage: "image-alpine-match-coverage",
-			expectedFn: func(theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore) result.Result {
-				expectedResults := result.NewResult()
+			expectedFn: func(theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore) match.Matches {
+				expectedResults := match.NewResult()
 				addAlpineMatches(t, theScope, catalog, theStore, &expectedResults)
 				return expectedResults
 			},

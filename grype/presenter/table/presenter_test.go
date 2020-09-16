@@ -7,7 +7,6 @@ import (
 
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/result"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/pkg"
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -99,7 +98,7 @@ func TestTablePresenter(t *testing.T) {
 		},
 	}
 
-	results := result.NewResult()
+	results := match.NewResult()
 
 	results.Add(&pkg1, match1, match2)
 
@@ -140,7 +139,7 @@ func TestEmptyTablePresenter(t *testing.T) {
 
 	var buffer bytes.Buffer
 
-	results := result.NewResult()
+	results := match.NewResult()
 	catalog := pkg.NewCatalog()
 
 	pres := NewPresenter(results, catalog, newMetadataMock())

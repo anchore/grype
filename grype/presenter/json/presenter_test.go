@@ -10,7 +10,6 @@ import (
 
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/result"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/pkg"
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -142,7 +141,7 @@ func TestJsonPresenter(t *testing.T) {
 		},
 	}
 
-	results := result.NewResult()
+	results := match.NewResult()
 	results.Add(&pkg1, match1, match2, match3)
 
 	catalog := pkg.NewCatalog()
@@ -180,7 +179,7 @@ func TestEmptyJsonPresenter(t *testing.T) {
 	// Expected to have an empty JSON array back
 	var buffer bytes.Buffer
 
-	results := result.NewResult()
+	results := match.NewResult()
 
 	catalog := pkg.NewCatalog()
 

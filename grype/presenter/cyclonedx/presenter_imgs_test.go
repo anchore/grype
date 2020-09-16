@@ -8,7 +8,6 @@ import (
 
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/result"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/stereoscope/pkg/file"
 	"github.com/anchore/syft/syft/pkg"
@@ -130,7 +129,7 @@ func TestCycloneDxImgsPresenter(t *testing.T) {
 		},
 	}
 
-	results := result.NewResult()
+	results := match.NewResult()
 
 	results.Add(&pkg1, match1, match2)
 
