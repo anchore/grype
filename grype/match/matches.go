@@ -1,26 +1,21 @@
-package result
+package match
 
 import (
-	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/syft/syft/pkg"
 )
 
-// TODO: consider moving this to the pkg/match under matches.go
-
-// TODO: consider renaming to Matches
-
-type Result struct {
-	byPackage map[pkg.ID][]match.Match
+type Matches struct {
+	byPackage map[pkg.ID][]Match
 }
 
-func NewResult() Result {
-	return Result{
-		byPackage: make(map[pkg.ID][]match.Match),
+func NewMatches() Matches {
+	return Matches{
+		byPackage: make(map[pkg.ID][]Match),
 	}
 }
 
 // GetByPkgID returns a slice of potential matches from an ID
-func (r *Result) GetByPkgID(id pkg.ID) []match.Match {
+func (r *Matches) GetByPkgID(id pkg.ID) []Match {
 	matches, ok := r.byPackage[id]
 	if !ok {
 		return nil
@@ -28,30 +23,30 @@ func (r *Result) GetByPkgID(id pkg.ID) []match.Match {
 	return matches
 }
 
-func (r *Result) Merge(other Result) {
+func (r *Matches) Merge(other Matches) {
 	// note: de-duplication of matches is an upstream concern (not here)
 	for pkgID, matches := range other.byPackage {
 		r.add(pkgID, matches...)
 	}
 }
 
-func (r *Result) add(id pkg.ID, matches ...match.Match) {
+func (r *Matches) add(id pkg.ID, matches ...Match) {
 	if len(matches) == 0 {
 		// only packages with matches should be added
 		return
 	}
 	if _, ok := r.byPackage[id]; !ok {
-		r.byPackage[id] = make([]match.Match, 0)
+		r.byPackage[id] = make([]Match, 0)
 	}
 	r.byPackage[id] = append(r.byPackage[id], matches...)
 }
 
-func (r *Result) Add(p *pkg.Package, matches ...match.Match) {
+func (r *Matches) Add(p *pkg.Package, matches ...Match) {
 	r.add(p.ID(), matches...)
 }
 
-func (r *Result) Enumerate() <-chan match.Match {
-	channel := make(chan match.Match)
+func (r *Matches) Enumerate() <-chan Match {
+	channel := make(chan Match)
 	go func() {
 		defer close(channel)
 		for _, matches := range r.byPackage {
@@ -64,6 +59,6 @@ func (r *Result) Enumerate() <-chan match.Match {
 }
 
 // Count returns the total number of matches in a result
-func (r *Result) Count() int {
+func (r *Matches) Count() int {
 	return len(r.byPackage)
 }

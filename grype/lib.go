@@ -1,6 +1,7 @@
 package grype
 
 import (
+	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/wagoodman/go-partybus"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/anchore/grype/grype/logger"
 
 	"github.com/anchore/grype/grype/matcher"
-	"github.com/anchore/grype/grype/result"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft"
@@ -18,16 +18,16 @@ import (
 	"github.com/anchore/syft/syft/scope"
 )
 
-func FindVulnerabilities(provider vulnerability.Provider, userImageStr string, scopeOpt scope.Option) (result.Result, *pkg.Catalog, *scope.Scope, error) {
+func FindVulnerabilities(provider vulnerability.Provider, userImageStr string, scopeOpt scope.Option) (match.Matches, *pkg.Catalog, *scope.Scope, error) {
 	catalog, theScope, theDistro, err := syft.Catalog(userImageStr, scopeOpt)
 	if err != nil {
-		return result.Result{}, nil, nil, err
+		return match.Matches{}, nil, nil, err
 	}
 
 	return FindVulnerabilitiesForCatalog(provider, *theDistro, catalog), catalog, theScope, nil
 }
 
-func FindVulnerabilitiesForCatalog(provider vulnerability.Provider, d distro.Distro, catalog *pkg.Catalog) result.Result {
+func FindVulnerabilitiesForCatalog(provider vulnerability.Provider, d distro.Distro, catalog *pkg.Catalog) match.Matches {
 	packages := make([]*pkg.Package, 0)
 	for p := range catalog.Enumerate() {
 		packages = append(packages, p)
@@ -35,7 +35,7 @@ func FindVulnerabilitiesForCatalog(provider vulnerability.Provider, d distro.Dis
 	return FindVulnerabilitiesForPackage(provider, d, packages...)
 }
 
-func FindVulnerabilitiesForPackage(provider vulnerability.Provider, d distro.Distro, packages ...*pkg.Package) result.Result {
+func FindVulnerabilitiesForPackage(provider vulnerability.Provider, d distro.Distro, packages ...*pkg.Package) match.Matches {
 	return matcher.FindMatches(provider, d, packages...)
 }
 

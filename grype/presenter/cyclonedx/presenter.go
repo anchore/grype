@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/anchore/grype/grype/result"
+	"github.com/anchore/grype/grype/match"
+
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/pkg"
 	syftCDX "github.com/anchore/syft/syft/presenter/cyclonedx"
@@ -14,14 +15,14 @@ import (
 
 // Presenter writes a CycloneDX report from the given Catalog and Scope contents
 type Presenter struct {
-	results          result.Result
+	results          match.Matches
 	catalog          *pkg.Catalog
 	scope            scope.Scope
 	metadataProvider vulnerability.MetadataProvider
 }
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter(results result.Result, catalog *pkg.Catalog, theScope scope.Scope, metadataProvider vulnerability.MetadataProvider) *Presenter {
+func NewPresenter(results match.Matches, catalog *pkg.Catalog, theScope scope.Scope, metadataProvider vulnerability.MetadataProvider) *Presenter {
 	return &Presenter{
 		results:          results,
 		catalog:          catalog,

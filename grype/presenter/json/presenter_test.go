@@ -10,7 +10,6 @@ import (
 
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/result"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/pkg"
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -142,8 +141,8 @@ func TestJsonPresenter(t *testing.T) {
 		},
 	}
 
-	results := result.NewResult()
-	results.Add(&pkg1, match1, match2, match3)
+	matches := match.NewMatches()
+	matches.Add(&pkg1, match1, match2, match3)
 
 	catalog := pkg.NewCatalog()
 	catalog.Add(pkg1)
@@ -151,7 +150,7 @@ func TestJsonPresenter(t *testing.T) {
 
 	theScope, err := scope.NewScopeFromImage(img, scope.AllLayersScope)
 
-	pres := NewPresenter(results, catalog, theScope, newMetadataMock())
+	pres := NewPresenter(matches, catalog, theScope, newMetadataMock())
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
@@ -180,11 +179,11 @@ func TestEmptyJsonPresenter(t *testing.T) {
 	// Expected to have an empty JSON array back
 	var buffer bytes.Buffer
 
-	results := result.NewResult()
+	matches := match.NewMatches()
 
 	catalog := pkg.NewCatalog()
 
-	pres := NewPresenter(results, catalog, scope.Scope{}, nil)
+	pres := NewPresenter(matches, catalog, scope.Scope{}, nil)
 
 	// run presenter
 	err := pres.Present(&buffer)

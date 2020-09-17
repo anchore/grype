@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/result"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/pkg"
 	syftCDX "github.com/anchore/syft/syft/presenter/cyclonedx"
@@ -90,7 +89,7 @@ func NewVulnerability(m match.Match, p vulnerability.MetadataProvider) (Vulnerab
 }
 
 // NewDocumentFromCatalog returns a CycloneDX Document object populated with the vulnerability contents.
-func NewDocumentFromCatalog(catalog *pkg.Catalog, matches result.Result, provider vulnerability.MetadataProvider) Document {
+func NewDocumentFromCatalog(catalog *pkg.Catalog, matches match.Matches, provider vulnerability.MetadataProvider) Document {
 	bom := NewDocument()
 	for p := range catalog.Enumerate() {
 		// make a new compoent (by value)

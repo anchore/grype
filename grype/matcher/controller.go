@@ -10,7 +10,6 @@ import (
 	"github.com/anchore/grype/grype/matcher/javascript"
 	"github.com/anchore/grype/grype/matcher/python"
 	"github.com/anchore/grype/grype/matcher/rpmdb"
-	"github.com/anchore/grype/grype/result"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
@@ -76,8 +75,8 @@ func (c *controller) trackMatcher() (*progress.Manual, *progress.Manual) {
 	return &packagesProcessed, &vulnerabilitiesDiscovered
 }
 
-func (c *controller) findMatches(provider vulnerability.Provider, d distro.Distro, packages ...*pkg.Package) result.Result {
-	res := result.NewResult()
+func (c *controller) findMatches(provider vulnerability.Provider, d distro.Distro, packages ...*pkg.Package) match.Matches {
+	res := match.NewMatches()
 
 	packagesProcessed, vulnerabilitiesDiscovered := c.trackMatcher()
 
@@ -107,7 +106,7 @@ func (c *controller) findMatches(provider vulnerability.Provider, d distro.Distr
 	return res
 }
 
-func FindMatches(provider vulnerability.Provider, d distro.Distro, packages ...*pkg.Package) result.Result {
+func FindMatches(provider vulnerability.Provider, d distro.Distro, packages ...*pkg.Package) match.Matches {
 	return controllerInstance.findMatches(provider, d, packages...)
 }
 

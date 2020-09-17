@@ -167,11 +167,11 @@ func startWorker(userInput string) <-chan error {
 			return
 		}
 
-		results := grype.FindVulnerabilitiesForCatalog(provider, *theDistro, catalog)
+		matches := grype.FindVulnerabilitiesForCatalog(provider, *theDistro, catalog)
 
 		bus.Publish(partybus.Event{
 			Type:  event.VulnerabilityScanningFinished,
-			Value: presenter.GetPresenter(appConfig.PresenterOpt, results, catalog, *theScope, metadataProvider),
+			Value: presenter.GetPresenter(appConfig.PresenterOpt, matches, catalog, *theScope, metadataProvider),
 		})
 	}()
 	return errs
