@@ -190,8 +190,8 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		// determine if there are any severities >= to the max allowable severity (which is optional).
 		// note: until the shared file lock in sqlittle is fixed the sqlite DB cannot be access concurrently,
 		// implying that the fail-on-severity check must be done before sending the presenter object.
-		if aboveAllowableSeverity(failOnSeverity, results, metadataProvider) {
-			errs <- grypeerr.ErrAboveAllowableSeverity
+		if hitSeverityThreshold(failOnSeverity, results, metadataProvider) {
+			errs <- grypeerr.ErrAboveSeverityThreshold
 		}
 
 		bus.Publish(partybus.Event{
@@ -209,9 +209,9 @@ func runDefaultCmd(_ *cobra.Command, args []string) error {
 	return ux(errs, eventSubscription)
 }
 
-// aboveAllowableSeverity indicates if there are any severities >= to the max allowable severity (which is optional)
-func aboveAllowableSeverity(failOnSeverity *vulnerability.Severity, results result.Result, metadataProvider vulnerability.MetadataProvider) bool {
-	if failOnSeverity != nil {
+// hitSeverityThreshold indicates if there are any severities >= to the max allowable severity (which is optional)
+func hitSeverityThreshold(thresholdSeverity *vulnerability.Severity, results result.Result, metadataProvider vulnerability.MetadataProvider) bool {
+	if thresholdSeverity != nil {
 		var maxDiscoveredSeverity vulnerability.Severity
 		for m := range results.Enumerate() {
 			metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.RecordSource)
@@ -224,7 +224,7 @@ func aboveAllowableSeverity(failOnSeverity *vulnerability.Severity, results resu
 			}
 		}
 
-		if maxDiscoveredSeverity >= *failOnSeverity {
+		if maxDiscoveredSeverity >= *thresholdSeverity {
 			return true
 		}
 	}

@@ -17,7 +17,7 @@ func LoggerUI(workerErrs <-chan error, subscription *partybus.Subscription) erro
 		select {
 		case err, ok := <-workerErrs:
 			if err != nil {
-				if errors.Is(err, grypeerr.ErrAboveAllowableSeverity) {
+				if errors.Is(err, grypeerr.ErrAboveSeverityThreshold) {
 					errResult = err
 					continue
 				}

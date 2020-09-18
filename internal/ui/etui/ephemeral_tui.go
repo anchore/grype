@@ -80,7 +80,7 @@ func OutputToEphemeralTUI(workerErrs <-chan error, subscription *partybus.Subscr
 		select {
 		case err, ok := <-workerErrs:
 			if err != nil {
-				if errors.Is(err, grypeerr.ErrAboveAllowableSeverity) {
+				if errors.Is(err, grypeerr.ErrAboveSeverityThreshold) {
 					errResult = err
 					continue
 				}

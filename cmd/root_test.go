@@ -97,7 +97,7 @@ func TestAboveAllowableSeverity(t *testing.T) {
 				failOnSeverity = &sev
 			}
 
-			actual := aboveAllowableSeverity(failOnSeverity, test.matches, metadataProvider)
+			actual := hitSeverityThreshold(failOnSeverity, test.matches, metadataProvider)
 
 			if test.expectedResult != actual {
 				t.Errorf("expected: %v got : %v", test.expectedResult, actual)
