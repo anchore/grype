@@ -3,11 +3,13 @@ package etui
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"sync"
 
 	grypeEvent "github.com/anchore/grype/grype/event"
+	"github.com/anchore/grype/grype/grypeerr"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/logger"
 	"github.com/anchore/grype/internal/ui/common"
@@ -73,16 +75,25 @@ func OutputToEphemeralTUI(workerErrs <-chan error, subscription *partybus.Subscr
 	ctx := context.Background()
 	grypeUIHandler := grypeUI.NewHandler()
 
-eventLoop:
+	var errResult error
 	for {
 		select {
-		case err := <-workerErrs:
+		case err, ok := <-workerErrs:
 			if err != nil {
+				if errors.Is(err, grypeerr.ErrAboveAllowableSeverity) {
+					errResult = err
+					continue
+				}
 				return err
+			}
+			if !ok {
+				// worker completed
+				workerErrs = nil
 			}
 		case e, ok := <-events:
 			if !ok {
-				break eventLoop
+				// event bus closed
+				events = nil
 			}
 			switch {
 			case grypeUIHandler.RespondsTo(e):
@@ -112,15 +123,15 @@ eventLoop:
 				}
 
 				// this is the last expected event
-				break eventLoop
+				events = nil
 			}
 		case <-ctx.Done():
-			if ctx.Err() != nil {
-				log.Errorf("cancelled (%+v)", err)
-			}
-			break eventLoop
+			return grypeerr.NewExpectedErr("cancelled: %w", ctx.Err())
+		}
+		if events == nil && workerErrs == nil {
+			break
 		}
 	}
 
-	return nil
+	return errResult
 }

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"runtime/pprof"
@@ -10,7 +11,9 @@ import (
 
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/event"
+	"github.com/anchore/grype/grype/grypeerr"
 	"github.com/anchore/grype/grype/presenter"
+	"github.com/anchore/grype/grype/result"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/bus"
@@ -68,13 +71,18 @@ var rootCmd = &cobra.Command{
 		}
 
 		if err != nil {
-			log.Errorf(err.Error())
+			var grypeErr grypeerr.ExpectedErr
+			if errors.As(err, &grypeErr) {
+				fmt.Fprintln(os.Stderr, format.Red.Format(grypeErr.Error()))
+			} else {
+				log.Errorf(err.Error())
+			}
 			os.Exit(1)
 		}
 	},
 	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		// Since we use ValidArgsFunction, Cobra will call this AFTER having parsed all flags and arguments provided
-		dockerImageRepoTags, err := ListLocalDockerImages(toComplete)
+		dockerImageRepoTags, err := listLocalDockerImages(toComplete)
 		if err != nil {
 			// Indicates that an error occurred and completions should be ignored
 			return []string{"completion failed"}, cobra.ShellCompDirectiveError
@@ -112,9 +120,19 @@ func init() {
 		fmt.Printf("unable to bind flag '%s': %+v", flag, err)
 		os.Exit(1)
 	}
+
+	rootCmd.Flags().StringP(
+		"fail-on", "f", "",
+		fmt.Sprintf("set the return code to 1 if a vulnerability is found with a severity >= the given severity, options=%v", vulnerability.AllSeverities),
+	)
+	if err := viper.BindPFlag("fail-on-severity", rootCmd.Flags().Lookup("fail-on")); err != nil {
+		fmt.Printf("unable to bind flag '%s': %+v", "fail-on", err)
+		os.Exit(1)
+	}
 }
 
-func startWorker(userInput string) <-chan error {
+// nolint:funlen
+func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-chan error {
 	errs := make(chan error)
 	go func() {
 		defer close(errs)
@@ -169,6 +187,13 @@ func startWorker(userInput string) <-chan error {
 
 		results := grype.FindVulnerabilitiesForCatalog(provider, *theDistro, catalog)
 
+		// determine if there are any severities >= to the max allowable severity (which is optional).
+		// note: until the shared file lock in sqlittle is fixed the sqlite DB cannot be access concurrently,
+		// implying that the fail-on-severity check must be done before sending the presenter object.
+		if aboveAllowableSeverity(failOnSeverity, results, metadataProvider) {
+			errs <- grypeerr.ErrAboveAllowableSeverity
+		}
+
 		bus.Publish(partybus.Event{
 			Type:  event.VulnerabilityScanningFinished,
 			Value: presenter.GetPresenter(appConfig.PresenterOpt, results, catalog, *theScope, metadataProvider),
@@ -179,12 +204,34 @@ func startWorker(userInput string) <-chan error {
 
 func runDefaultCmd(_ *cobra.Command, args []string) error {
 	userInput := args[0]
-	errs := startWorker(userInput)
+	errs := startWorker(userInput, appConfig.FailOnSeverity)
 	ux := ui.Select(appConfig.CliOptions.Verbosity > 0, appConfig.Quiet)
 	return ux(errs, eventSubscription)
 }
 
-func ListLocalDockerImages(prefix string) ([]string, error) {
+// aboveAllowableSeverity indicates if there are any severities >= to the max allowable severity (which is optional)
+func aboveAllowableSeverity(failOnSeverity *vulnerability.Severity, results result.Result, metadataProvider vulnerability.MetadataProvider) bool {
+	if failOnSeverity != nil {
+		var maxDiscoveredSeverity vulnerability.Severity
+		for m := range results.Enumerate() {
+			metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.RecordSource)
+			if err != nil {
+				continue
+			}
+			severity := vulnerability.ParseSeverity(metadata.Severity)
+			if severity > maxDiscoveredSeverity {
+				maxDiscoveredSeverity = severity
+			}
+		}
+
+		if maxDiscoveredSeverity >= *failOnSeverity {
+			return true
+		}
+	}
+	return false
+}
+
+func listLocalDockerImages(prefix string) ([]string, error) {
 	var repoTags = make([]string, 0)
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
