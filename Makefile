@@ -14,7 +14,7 @@ RESET := $(shell tput -T linux sgr0)
 TITLE := $(BOLD)$(PURPLE)
 SUCCESS := $(BOLD)$(GREEN)
 # the quality gate lower threshold for unit test total % coverage (by function statements)
-COVERAGE_THRESHOLD := 60
+COVERAGE_THRESHOLD := 55
 
 ## Build variables
 DISTDIR=./dist

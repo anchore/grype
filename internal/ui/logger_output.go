@@ -1,7 +1,10 @@
 package ui
 
 import (
+	"errors"
+
 	grypeEvent "github.com/anchore/grype/grype/event"
+	"github.com/anchore/grype/grype/grypeerr"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/ui/common"
 	"github.com/wagoodman/go-partybus"
@@ -9,17 +12,25 @@ import (
 
 func LoggerUI(workerErrs <-chan error, subscription *partybus.Subscription) error {
 	events := subscription.Events()
-eventLoop:
+	var errResult error
 	for {
 		select {
-		case err := <-workerErrs:
+		case err, ok := <-workerErrs:
 			if err != nil {
+				if errors.Is(err, grypeerr.ErrAboveSeverityThreshold) {
+					errResult = err
+					continue
+				}
 				return err
+			}
+			if !ok {
+				// worker completed
+				workerErrs = nil
 			}
 		case e, ok := <-events:
 			if !ok {
-				// event bus closed...
-				break eventLoop
+				// event bus closed
+				events = nil
 			}
 
 			// ignore all events except for the final event
@@ -30,10 +41,12 @@ eventLoop:
 				}
 
 				// this is the last expected event
-				break eventLoop
+				events = nil
 			}
 		}
+		if events == nil && workerErrs == nil {
+			break
+		}
 	}
-
-	return nil
+	return errResult
 }

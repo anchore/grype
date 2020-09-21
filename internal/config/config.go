@@ -5,15 +5,14 @@ import (
 	"path"
 	"strings"
 
-	"github.com/sirupsen/logrus"
-
-	"github.com/anchore/grype/grype/presenter"
-
 	"github.com/adrg/xdg"
 	"github.com/anchore/grype/grype/db"
+	"github.com/anchore/grype/grype/presenter"
+	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/syft/syft/scope"
 	"github.com/mitchellh/go-homedir"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -34,6 +33,8 @@ type Application struct {
 	Db                Database    `mapstructure:"db"`
 	Dev               Development `mapstructure:"dev"`
 	CheckForAppUpdate bool        `mapstructure:"check-for-app-update"`
+	FailOn            string      `mapstructure:"fail-on-severity"`
+	FailOnSeverity    *vulnerability.Severity
 }
 
 type Logging struct {
@@ -141,6 +142,15 @@ func (cfg *Application) Build() error {
 				cfg.Log.LevelOpt = logrus.ErrorLevel
 			}
 		}
+	}
+
+	// set the fail-on option
+	if cfg.FailOn != "" {
+		failOnSeverity := vulnerability.ParseSeverity(cfg.FailOn)
+		if failOnSeverity == vulnerability.UnknownSeverity {
+			return fmt.Errorf("bad --fail-on severity value '%s'", cfg.FailOn)
+		}
+		cfg.FailOnSeverity = &failOnSeverity
 	}
 
 	return nil
