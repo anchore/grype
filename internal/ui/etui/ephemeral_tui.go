@@ -126,7 +126,7 @@ func OutputToEphemeralTUI(workerErrs <-chan error, subscription *partybus.Subscr
 				events = nil
 			}
 		case <-ctx.Done():
-			return grypeerr.NewExpectedErr("cancelled: %w", ctx.Err())
+			return grypeerr.NewExpectedErr("canceled: %w", ctx.Err())
 		}
 		if events == nil && workerErrs == nil {
 			break
