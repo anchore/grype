@@ -33,7 +33,10 @@ func NewPresenter(results match.Matches, catalog *pkg.Catalog, theScope scope.Sc
 
 // Present creates a CycloneDX-based reporting
 func (pres *Presenter) Present(output io.Writer) error {
-	bom := NewDocumentFromCatalog(pres.catalog, pres.results, pres.metadataProvider)
+	bom, err := NewDocumentFromCatalog(pres.catalog, pres.results, pres.metadataProvider)
+	if err != nil {
+		return err
+	}
 
 	srcObj := pres.scope.Source()
 
@@ -70,7 +73,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 	encoder := xml.NewEncoder(output)
 	encoder.Indent("", "  ")
 
-	_, err := output.Write([]byte(xml.Header))
+	_, err = output.Write([]byte(xml.Header))
 	if err != nil {
 		return err
 	}
