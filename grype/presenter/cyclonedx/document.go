@@ -73,7 +73,15 @@ func NewVulnerability(m match.Match, p vulnerability.MetadataProvider) (Vulnerab
 	}
 
 	rating.Score = score
-	rating.Severity = metadata.Severity
+
+	// The schema does not allow "Negligible", only allowing the following:
+	// 'None', 'Low', 'Medium', 'High', 'Critical', 'Unknown'
+	severity := metadata.Severity
+	if metadata.Severity == "Negligible" {
+		severity = "Low"
+	}
+
+	rating.Severity = severity
 
 	v := Vulnerability{
 		Ref: uuid.New().URN(),
@@ -93,7 +101,7 @@ func NewVulnerability(m match.Match, p vulnerability.MetadataProvider) (Vulnerab
 }
 
 // NewDocumentFromCatalog returns a CycloneDX Document object populated with the vulnerability contents.
-func NewDocumentFromCatalog(catalog *pkg.Catalog, matches match.Matches, provider vulnerability.MetadataProvider) Document {
+func NewDocumentFromCatalog(catalog *pkg.Catalog, matches match.Matches, provider vulnerability.MetadataProvider) (Document, error) {
 	bom := NewDocument()
 	for p := range catalog.Enumerate() {
 		// make a new compoent (by value)
@@ -121,24 +129,27 @@ func NewDocumentFromCatalog(catalog *pkg.Catalog, matches match.Matches, provide
 		pkgMatches := matches.GetByPkgID(p.ID())
 
 		if len(pkgMatches) > 0 {
+			var vulnerabilities []Vulnerability
 			for _, m := range pkgMatches {
 				// Sort of eating up the error here, we are appending only when there is
 				// no error. When there is one, we ignore it and move to the next vuln
 				// An error is only possible if it metadata can't be produced
 				v, err := NewVulnerability(m, provider)
-				if err == nil {
-					component.Vulnerabilities = append(component.Vulnerabilities, v)
+				if err != nil {
+					return Document{}, err
 				}
+				vulnerabilities = append(vulnerabilities, v)
 			}
+			component.Vulnerabilities = &vulnerabilities
 		}
 
 		// add a *copy* of the component to the bom document
 		bom.Components = append(bom.Components, component)
 	}
 
-	bom.BomDescriptor = syftCDX.NewBomDescriptor()
+	bom.BomDescriptor = NewBomDescriptor()
 
-	return bom
+	return bom, nil
 }
 
 func makeURL(id string) string {
