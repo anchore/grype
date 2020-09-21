@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/adrg/xdg v0.2.1
-	github.com/anchore/go-testutils v0.0.0-20200624184116-66aa578126db
+	github.com/anchore/go-testutils v0.0.0-20200917125216-21656fe928a5
 	github.com/anchore/go-version v1.2.2-0.20200810141238-330bef18dbca
 	github.com/anchore/grype-db v0.0.0-20200909132108-9474dd8f080f
 	github.com/anchore/stereoscope v0.0.0-20200813152757-548b22c8a0b3

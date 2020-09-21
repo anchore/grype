@@ -9,7 +9,6 @@ import (
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/stereoscope/pkg/file"
 	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/scope"
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -61,29 +60,35 @@ func (m *metadataMock) GetMetadata(id, recordSource string) (*vulnerability.Meta
 	return &value, nil
 }
 
-func TestCycloneDxImgsPresenter(t *testing.T) {
+func TestCycloneDxPresenter(t *testing.T) {
+	testCases := []struct {
+		desc      string
+		scopeType string
+	}{
+		{
+			desc:      "CycloneDX Directory Presenter",
+			scopeType: "dirs",
+		},
+		{
+			desc:      "CycloneDX Image Presenter",
+			scopeType: "image",
+		},
+	}
+
 	var buffer bytes.Buffer
 
 	catalog := pkg.NewCatalog()
-	img, cleanup := testutils.GetFixtureImage(t, "docker-archive", "image-simple")
-	defer cleanup()
 
 	// populate catalog with test data
 	catalog.Add(pkg.Package{
 		Name:    "package-1",
 		Version: "1.0.1",
-		Source: []file.Reference{
-			*img.SquashedTree().File("/somefile-1.txt"),
-		},
 		Type:    pkg.DebPkg,
 		FoundBy: "the-cataloger-1",
 	})
 	catalog.Add(pkg.Package{
 		Name:    "package-2",
 		Version: "2.0.1",
-		Source: []file.Reference{
-			*img.SquashedTree().File("/somefile-2.txt"),
-		},
 		Type:    pkg.DebPkg,
 		FoundBy: "the-cataloger-2",
 		Licenses: []string{
@@ -91,8 +96,6 @@ func TestCycloneDxImgsPresenter(t *testing.T) {
 			"Apache-v2",
 		},
 	})
-
-	s, err := scope.NewScopeFromImage(img, scope.AllLayersScope)
 
 	var pkg1 = pkg.Package{
 		Name:    "package-1",
@@ -129,33 +132,62 @@ func TestCycloneDxImgsPresenter(t *testing.T) {
 		},
 	}
 
-	matches := match.NewMatches()
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
 
-	matches.Add(&pkg1, match1, match2)
+			// this is rather weird... ideally, these two should be separated, but due to this
+			// issue: https://github.com/anchore/syft/issues/166 those fail when running separately
+			if tC.scopeType == "image" {
+				matches := match.NewMatches()
 
-	pres := NewPresenter(matches, catalog, s, newMetadataMock())
+				matches.Add(&pkg1, match1, match2)
+				img, cleanup := testutils.GetFixtureImage(t, "docker-archive", "image-simple")
+				defer cleanup()
+				s, err := scope.NewScopeFromImage(img, scope.AllLayersScope)
+				pres := NewPresenter(matches, catalog, s, newMetadataMock())
+				// run presenter
+				err = pres.Present(&buffer)
+				if err != nil {
+					t.Fatal(err)
+				}
 
-	// run presenter
-	err = pres.Present(&buffer)
-	if err != nil {
-		t.Fatal(err)
-	}
-	actual := buffer.Bytes()
+			} else {
+				s, err := scope.NewScopeFromDir("/some/path")
+				if err != nil {
+					t.Fatal(err)
+				}
+				matches := match.NewMatches()
 
-	if *update {
-		testutils.UpdateGoldenFileContents(t, actual)
-	}
+				matches.Add(&pkg1, match1, match2)
 
-	var expected = testutils.GetGoldenFileContents(t)
+				pres := NewPresenter(matches, catalog, s, newMetadataMock())
 
-	// remove dynamic values, which are tested independently
-	actual = redact(actual)
-	expected = redact(expected)
+				// run presenter
+				err = pres.Present(&buffer)
+				if err != nil {
+					t.Fatal(err)
+				}
 
-	if !bytes.Equal(expected, actual) {
-		dmp := diffmatchpatch.New()
-		diffs := dmp.DiffMain(string(actual), string(expected), true)
-		t.Errorf("mismatched output:\n%s", dmp.DiffPrettyText(diffs))
+			}
+
+			actual := buffer.Bytes()
+			if *update {
+				testutils.UpdateGoldenFileContents(t, actual)
+			}
+
+			var expected = testutils.GetGoldenFileContents(t)
+
+			// remove dynamic values, which are tested independently
+			actual = redact(actual)
+			expected = redact(expected)
+
+			if !bytes.Equal(expected, actual) {
+				dmp := diffmatchpatch.New()
+				diffs := dmp.DiffMain(string(actual), string(expected), true)
+				t.Errorf("mismatched output:\n%s", dmp.DiffPrettyText(diffs))
+			}
+
+		})
 	}
 }
 

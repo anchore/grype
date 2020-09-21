@@ -53,13 +53,13 @@ all: clean static-analysis test ## Run all checks (linting, license check, unit,
 	@printf '$(SUCCESS)All checks pass!$(RESET)\n'
 
 .PHONY: test
-test: unit integration acceptance-linux ## Run all tests (unit, integration, and linux acceptance tests )
+test: unit validate-cyclonedx-schema integration acceptance-linux ## Run all tests (unit, integration, and linux acceptance tests )
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(BOLD)$(CYAN)%-25s$(RESET)%s\n", $$1, $$2}'
 
 ci-bootstrap: bootstrap
-	sudo apt update && sudo apt install -y bc jq
+	DEBIAN_FRONTEND=noninteractive sudo apt update && sudo -E apt install -y bc jq libxml2-utils
 
 .PHONY: boostrap
 bootstrap: ## Download and install all go dependencies (+ prep tooling in the ./tmp dir)
@@ -97,6 +97,10 @@ validate-schema:
 	# ensure the codebase is only referencing a single grype-db schema version, multiple is not allowed
 	python test/validate_schema.py
 
+.PHONY: validate-cyclonedx-schema
+validate-cyclonedx-schema:
+	cd schema/cyclonedx && make
+	
 .PHONY: lint-fix
 lint-fix: ## Auto-format all source code + run golangci lint fixers
 	$(call title,Running lint fixers)
