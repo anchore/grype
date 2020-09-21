@@ -3,21 +3,21 @@
   "vulnerability": {
    "id": "CVE-1999-0001",
    "description": "1999-01 description",
-   "cvss-v3": {
-    "base-score": 4,
+   "cvssV3": {
+    "baseScore": 4,
     "vector": "another vector"
    },
-   "fixed-in-version": "the-next-version"
+   "fixedInVersion": "the-next-version"
   },
-  "match-details": {
+  "matchDetails": {
    "matcher": "dpkg-matcher",
-   "search-key": {
+   "searchKey": {
     "distro": {
      "type": "ubuntu",
      "version": "20.04"
     }
    },
-   "matched-on": {
+   "matchedOn": {
     "constraint": ">= 20"
    }
   },
@@ -25,13 +25,13 @@
    "name": "package-1",
    "version": "1.0.1",
    "type": "deb",
-   "found-by": [
+   "foundBy": [
     "the-cataloger-1"
    ],
    "locations": [
     {
      "path": "/somefile-1.txt",
-     "layer-index": 0
+     "layerIndex": 0
     }
    ]
   }
@@ -40,19 +40,19 @@
   "vulnerability": {
    "id": "CVE-1999-0002",
    "description": "1999-02 description",
-   "cvss-v2": {
-    "base-score": 1,
-    "exploitability-score": 2,
-    "impact-score": 3,
+   "cvssV2": {
+    "baseScore": 1,
+    "exploitabilityScore": 2,
+    "impactScore": 3,
     "vector": "vector"
    }
   },
-  "match-details": {
+  "matchDetails": {
    "matcher": "dpkg-matcher",
-   "search-key": {
+   "searchKey": {
     "cpe": "somecpe"
    },
-   "matched-on": {
+   "matchedOn": {
     "constraint": "somecpe"
    }
   },
@@ -60,13 +60,13 @@
    "name": "package-1",
    "version": "1.0.1",
    "type": "deb",
-   "found-by": [
+   "foundBy": [
     "the-cataloger-1"
    ],
    "locations": [
     {
      "path": "/somefile-1.txt",
-     "layer-index": 0
+     "layerIndex": 0
     }
    ]
   }
@@ -75,14 +75,14 @@
   "vulnerability": {
    "id": "CVE-1999-0003",
    "description": "1999-03 description",
-   "fixed-in-version": "the-other-next-version"
+   "fixedInVersion": "the-other-next-version"
   },
-  "match-details": {
+  "matchDetails": {
    "matcher": "dpkg-matcher",
-   "search-key": {
+   "searchKey": {
     "language": "java"
    },
-   "matched-on": {
+   "matchedOn": {
     "constraint": "< 2.0.0"
    }
   },
@@ -90,13 +90,13 @@
    "name": "package-1",
    "version": "1.0.1",
    "type": "deb",
-   "found-by": [
+   "foundBy": [
     "the-cataloger-1"
    ],
    "locations": [
     {
      "path": "/somefile-1.txt",
-     "layer-index": 0
+     "layerIndex": 0
     }
    ]
   }
