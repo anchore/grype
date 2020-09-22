@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/result"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/pkg"
 	"testing"
@@ -42,7 +41,7 @@ func TestAboveAllowableSeverity(t *testing.T) {
 		Type:    pkg.RpmPkg,
 	}
 
-	matches := result.NewResult()
+	matches := match.NewMatches()
 	matches.Add(thePkg, match.Match{
 		Type: match.ExactDirectMatch,
 		Vulnerability: vulnerability.Vulnerability{
@@ -55,7 +54,7 @@ func TestAboveAllowableSeverity(t *testing.T) {
 	tests := []struct {
 		name           string
 		failOnSeverity string
-		matches        result.Result
+		matches        match.Matches
 		expectedResult bool
 	}{
 		{
