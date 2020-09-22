@@ -12,8 +12,8 @@ import (
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/grypeerr"
+	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/presenter"
-	"github.com/anchore/grype/grype/result"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/bus"
@@ -190,7 +190,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		// determine if there are any severities >= to the max allowable severity (which is optional).
 		// note: until the shared file lock in sqlittle is fixed the sqlite DB cannot be access concurrently,
 		// implying that the fail-on-severity check must be done before sending the presenter object.
-		if hitSeverityThreshold(failOnSeverity, results, metadataProvider) {
+		if hitSeverityThreshold(failOnSeverity, matches, metadataProvider) {
 			errs <- grypeerr.ErrAboveSeverityThreshold
 		}
 
@@ -210,10 +210,10 @@ func runDefaultCmd(_ *cobra.Command, args []string) error {
 }
 
 // hitSeverityThreshold indicates if there are any severities >= to the max allowable severity (which is optional)
-func hitSeverityThreshold(thresholdSeverity *vulnerability.Severity, results result.Result, metadataProvider vulnerability.MetadataProvider) bool {
+func hitSeverityThreshold(thresholdSeverity *vulnerability.Severity, matches match.Matches, metadataProvider vulnerability.MetadataProvider) bool {
 	if thresholdSeverity != nil {
 		var maxDiscoveredSeverity vulnerability.Severity
-		for m := range results.Enumerate() {
+		for m := range matches.Enumerate() {
 			metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.RecordSource)
 			if err != nil {
 				continue
