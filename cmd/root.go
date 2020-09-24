@@ -44,7 +44,7 @@ You can also explicitly specify the scheme to use:
     {{.appName}} docker:yourrepo/yourimage:tag          explicitly use the Docker daemon
     {{.appName}} docker-archive:path/to/yourimage.tar   use a tarball from disk for archives created from "docker save"
     {{.appName}} oci-archive:path/to/yourimage.tar      use a tarball from disk for OCI archives (from Podman or otherwise)
-    {{.appName}} oci-directory:path/to/yourimage        read directly from a path on disk for OCI layout directories (from Skopeo or otherwise)
+    {{.appName}} oci-dir:path/to/yourimage              read directly from a path on disk for OCI layout directories (from Skopeo or otherwise)
     {{.appName}} dir:path/to/yourproject                read directly from a path on disk (any directory)
 `, map[string]interface{}{
 		"appName": internal.ApplicationName,
