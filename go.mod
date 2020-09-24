@@ -4,10 +4,10 @@ go 1.14
 
 require (
 	github.com/adrg/xdg v0.2.1
-	github.com/anchore/go-testutils v0.0.0-20200923124913-cc3783363628
+	github.com/anchore/go-testutils v0.0.0-20200924130829-c7fdedf242b7
 	github.com/anchore/go-version v1.2.2-0.20200810141238-330bef18dbca
 	github.com/anchore/grype-db v0.0.0-20200909132108-9474dd8f080f
-	github.com/anchore/stereoscope v0.0.0-20200922191919-df2d5de22d9d
+	github.com/anchore/stereoscope v0.0.0-20200925141829-d086a3427f85
 	github.com/anchore/syft v0.1.0-beta.4.0.20200918175440-45b5cab49a8a
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible
 	github.com/dustin/go-humanize v1.0.0
