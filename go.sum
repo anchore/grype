@@ -117,8 +117,6 @@ github.com/anchore/go-rpmdb v0.0.0-20200811175839-cbc751c28e8e h1:kty6r0R2JeaNPe
 github.com/anchore/go-rpmdb v0.0.0-20200811175839-cbc751c28e8e/go.mod h1:iYuIG0Nai8dR0ri3LhZQKUyO1loxUWAGvoWhXDmjy1A=
 github.com/anchore/go-testutils v0.0.0-20200624184116-66aa578126db h1:LWKezJnFTFxNkZ4MzajVf+YWvJS0+7hwFr59u6SS7cw=
 github.com/anchore/go-testutils v0.0.0-20200624184116-66aa578126db/go.mod h1:D3rc2L/q4Hcp9eeX6AIJH4Q+kPjOtJCFhG9za90j+nU=
-github.com/anchore/go-testutils v0.0.0-20200917125216-21656fe928a5 h1:PTlhfgpfUWDfaflw35A64z9eF+OctprWrnympmRQ7tY=
-github.com/anchore/go-testutils v0.0.0-20200917125216-21656fe928a5/go.mod h1:D3rc2L/q4Hcp9eeX6AIJH4Q+kPjOtJCFhG9za90j+nU=
 github.com/anchore/go-testutils v0.0.0-20200923124913-cc3783363628 h1:caf7eF19+hdk94vtFrBnDmefWWEGY5706gcZdWrnVvQ=
 github.com/anchore/go-testutils v0.0.0-20200923124913-cc3783363628/go.mod h1:utpHUF0ws0l8seM+Dae3moM6S14xH8nqTZVLHAFYBuw=
 github.com/anchore/go-version v1.2.2-0.20200701162849-18adb9c92b9b h1:e1bmaoJfZVsCYMrIZBpFxwV26CbsuoEh5muXD5I1Ods=
@@ -133,8 +131,6 @@ github.com/anchore/stereoscope v0.0.0-20200813152757-548b22c8a0b3 h1:pl+txuYlhK8
 github.com/anchore/stereoscope v0.0.0-20200813152757-548b22c8a0b3/go.mod h1:WntReQTI/I27FOQ87UgLVVzWgku6+ZsqfOTLxpIZFCs=
 github.com/anchore/stereoscope v0.0.0-20200922191919-df2d5de22d9d h1:5SCC6HUKKXEBADHnpBaraweYVbmQNdY2fIklETxmkmo=
 github.com/anchore/stereoscope v0.0.0-20200922191919-df2d5de22d9d/go.mod h1:W89qUNQ/8ntF5+LY/dynjcvVjWy9ae4TDo48tNK+Cdw=
-github.com/anchore/syft v0.1.0-beta.4.0.20200827121056-d85d0ac418a7 h1:mK3orcgTjK1YPWaYKUDbrDq1CFmBT5dQFq0a0w1zq3s=
-github.com/anchore/syft v0.1.0-beta.4.0.20200827121056-d85d0ac418a7/go.mod h1:zy2x5Z9URqzmLdWHENTGxcsap7HoLisEsekOv5lr0Us=
 github.com/anchore/syft v0.1.0-beta.4.0.20200918175440-45b5cab49a8a h1:iuq3OFYmGlkG7/zaNNLD25vnScCe4jLjeSSTFRZYiyA=
 github.com/anchore/syft v0.1.0-beta.4.0.20200918175440-45b5cab49a8a/go.mod h1:Ne9mXL2d8LPldZxB1IQ6zM+VzG53tzwrInw1UMKVKbU=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 h1:bvNMNQO63//z+xNgfBlViaCIJKLlCJ6/fmUseuG0wVQ=
