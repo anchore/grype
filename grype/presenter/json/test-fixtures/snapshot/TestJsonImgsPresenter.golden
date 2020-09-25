@@ -1,0 +1,131 @@
+{
+ "matches": [
+  {
+   "vulnerability": {
+    "id": "CVE-1999-0001",
+    "description": "1999-01 description",
+    "cvssV3": {
+     "baseScore": 4,
+     "vector": "another vector"
+    },
+    "fixedInVersion": "the-next-version"
+   },
+   "matchDetails": {
+    "matcher": "dpkg-matcher",
+    "searchKey": {
+     "distro": {
+      "type": "ubuntu",
+      "version": "20.04"
+     }
+    },
+    "matchedOn": {
+     "constraint": ">= 20"
+    }
+   },
+   "artifact": {
+    "name": "package-1",
+    "version": "1.1.1",
+    "type": "deb",
+    "foundBy": [
+     "the-cataloger-1"
+    ],
+    "locations": [
+     {
+      "path": "/somefile-1.txt",
+      "layerIndex": 0
+     }
+    ]
+   }
+  },
+  {
+   "vulnerability": {
+    "id": "CVE-1999-0002",
+    "description": "1999-02 description",
+    "cvssV2": {
+     "baseScore": 1,
+     "exploitabilityScore": 2,
+     "impactScore": 3,
+     "vector": "vector"
+    }
+   },
+   "matchDetails": {
+    "matcher": "dpkg-matcher",
+    "searchKey": {
+     "cpe": "somecpe"
+    },
+    "matchedOn": {
+     "constraint": "somecpe"
+    }
+   },
+   "artifact": {
+    "name": "package-1",
+    "version": "1.1.1",
+    "type": "deb",
+    "foundBy": [
+     "the-cataloger-1"
+    ],
+    "locations": [
+     {
+      "path": "/somefile-1.txt",
+      "layerIndex": 0
+     }
+    ]
+   }
+  },
+  {
+   "vulnerability": {
+    "id": "CVE-1999-0003",
+    "description": "1999-03 description",
+    "fixedInVersion": "the-other-next-version"
+   },
+   "matchDetails": {
+    "matcher": "dpkg-matcher",
+    "searchKey": {
+     "language": "java"
+    },
+    "matchedOn": {
+     "constraint": "< 2.0.0"
+    }
+   },
+   "artifact": {
+    "name": "package-1",
+    "version": "1.1.1",
+    "type": "deb",
+    "foundBy": [
+     "the-cataloger-1"
+    ],
+    "locations": [
+     {
+      "path": "/somefile-1.txt",
+      "layerIndex": 0
+     }
+    ]
+   }
+  }
+ ],
+ "image": {
+  "layers": [
+   {
+    "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+    "digest": "sha256:e158b57d6f5a96ef5fd22f2fe76c70b5ba6ff5b2619f9d83125b2aad0492ac7b",
+    "size": 22
+   },
+   {
+    "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+    "digest": "sha256:da21056e7bf4308ecea0c0836848a7fe92f38fdcf35bc09ee6d98e7ab7beeebf",
+    "size": 16
+   },
+   {
+    "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+    "digest": "sha256:f0e18aa6032c24659a9c741fc36ca56f589782ea132061ccf6f52b952403da94",
+    "size": 27
+   }
+  ],
+  "size": 65,
+  "digest": "sha256:2731251dc34951c0e50fcc643b4c5f74922dad1a5d98f302b504cf46cd5d9368",
+  "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+  "tags": [
+   "anchore-fixture-image-simple:04e16e44161c8888a1a963720fd0443cbf7eef8101434c431de8725cd98cc9f7"
+  ]
+ }
+}
