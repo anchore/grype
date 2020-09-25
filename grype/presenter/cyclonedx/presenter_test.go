@@ -9,6 +9,7 @@ import (
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/stereoscope/pkg/imagetest"
 	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/scope"
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -141,7 +142,7 @@ func TestCycloneDxPresenter(t *testing.T) {
 				matches := match.NewMatches()
 
 				matches.Add(&pkg1, match1, match2)
-				img, cleanup := testutils.GetFixtureImage(t, "docker-archive", "image-simple")
+				img, cleanup := imagetest.GetFixtureImage(t, "docker-archive", "image-simple")
 				defer cleanup()
 				s, err := scope.NewScopeFromImage(img, scope.AllLayersScope)
 				pres := NewPresenter(matches, catalog, s, newMetadataMock())

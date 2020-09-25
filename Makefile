@@ -128,11 +128,11 @@ integration: ## Run integration tests
 # note: this is used by CI to determine if the integration test fixture cache (docker image tars) should be busted
 .PHONY: integration-fingerprint
 integration-fingerprint:
-	find test/integration/test-fixtures/image-* -type f -exec md5sum {} + | awk '{print $1}' | sort | md5sum | tee test/integration/test-fixtures/tar-cache.fingerprint
+	find test/integration/test-fixtures/image-* -type f -exec md5sum {} + | awk '{print $1}' | sort | md5sum | tee test/integration/test-fixtures/cache.fingerprint
 
 .PHONY: clear-test-cache
 clear-test-cache: ## Delete all test cache (built docker image tars)
-	find . -type f -wholename "**/test-fixtures/tar-cache/*.tar" -delete
+	find . -type f -wholename "**/test-fixtures/cache/*.tar" -delete
 
 .PHONY: check-pipeline
 check-pipeline: ## Run local CircleCI pipeline locally (sanity check)
@@ -174,8 +174,35 @@ compare-snapshot: $(SNAPSHOTDIR)  ## Compare a main branch build run of grype ag
 compare:
 	@cd test/inline-compare && make
 
+.PHONY: changlog-release
+changelog-release:
+	@docker run -it --rm  \
+		-v "$(shell pwd)":/usr/local/src/your-app ferrarimarco/github-changelog-generator \
+		--user anchore \
+		--project $(BIN) \
+		-t ${GITHUB_TOKEN} \
+		--no-pr-wo-labels \
+		--no-issues-wo-labels \
+		--unreleased-only \
+		--future-release $(VERSION)
+
+.PHONY: changelog-unreleased
+changelog-unreleased: ## show the current changelog that will be produced on the next release (note: requires GITHUB_TOKEN set)
+	@docker run -it --rm  \
+		-v "$(shell pwd)":/usr/local/src/your-app ferrarimarco/github-changelog-generator \
+		--user anchore \
+		--project $(BIN) \
+		-t ${GITHUB_TOKEN} \
+		--unreleased-only
+	@printf '\n$(BOLD)$(CYAN)Unreleased Changes (closed PRs and issues will not be in the final changelog)$(RESET)\n'
+	@docker run -it --rm \
+		-v $(shell pwd)/CHANGELOG.md:/CHANGELOG.md \
+		rawkode/mdv \
+			-t 785.3229 \
+			/CHANGELOG.md
+
 .PHONY: release
-release: clean-dist ## Build and publish final binaries and packages
+release: clean-dist changelog-release ## Build and publish final binaries and packages
 	$(call title,Publishing release artifacts)
 	# create a config with the dist dir overridden
 	echo "dist: $(DISTDIR)" > $(TEMPDIR)/goreleaser.yaml
@@ -183,7 +210,10 @@ release: clean-dist ## Build and publish final binaries and packages
 
 	# release
 	BUILD_GIT_TREE_STATE=$(GITTREESTATE) \
-	$(TEMPDIR)/goreleaser --rm-dist --config $(TEMPDIR)/goreleaser.yaml
+	$(TEMPDIR)/goreleaser \
+		--rm-dist \
+		--config $(TEMPDIR)/goreleaser.yaml \
+		--release-notes <(cat CHANGELOG.md)
 
 	# verify checksum signatures
 	.github/scripts/verify-signature.sh "$(DISTDIR)"

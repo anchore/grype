@@ -49,7 +49,7 @@ func TestApkMatch(t *testing.T) {
 
 	results, _, _, err := grype.FindVulnerabilities(
 		vulnerability.NewProviderFromStore(&store),
-		"dir://test-fixtures/corner-cases/apk/vnc",
+		"dir:test-fixtures/corner-cases/apk/vnc",
 		scope.AllLayersScope,
 	)
 	if err != nil {

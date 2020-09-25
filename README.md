@@ -24,6 +24,7 @@ A vulnerability scanner for container images and filesystems. [Easily install th
   - JavaScript (NPM/Yarn)
   - Python (Egg/Wheel)
   - Python pip/requirements.txt/setup.py listings
+- Supports Docker and OCI image formats
 
 > :warning: **This is pre-release software** and it may not work as expected. If you encounter an issue, please [let us know using the issue tracker](https://github.com/anchore/grype/issues).
 
@@ -45,18 +46,22 @@ grype <image> --scope all-layers
 Grype can scan a variety of sources beyond those found in Docker.
 
 ```
-# scan a docker image tar (from the result of "docker image save ... -o image.tar" command)
-grype docker-archive://path/to/image.tar
+# scan a container image archive (from the result of `docker image save ...`, `podman save ...`, or `skopeo copy` commands)
+grype path/to/image.tar
 
 # scan a directory
-grype dir://path/to/dir
+grype path/to/dir
 ```
 
-By default Grype shows a summary table, however, a more detailed `json` format is also available.
+The output format for Grype is configurable as well:
+```
+grype <image> -o <format>
+```
 
-```
-grype <image> -o json
-```
+Where the `format`s available are:
+- `json`: Use this to get as much information out of Grype as possible!
+- `cyclonedx`: A XML report conforming to the [CycloneDX 1.2](https://cyclonedx.org/) specification.
+- `table`: A columnar summary (default).
 
 Grype pulls a database of vulnerabilities derived from the publicly available [Anchore Feed Service](https://ancho.re/v1/service/feeds). This database is updated at the beginning of each scan, but an update can also be triggered manually.
 
@@ -89,6 +94,18 @@ You may experience a "macOS cannot verify app is free from malware" error upon r
 xattr -rd com.apple.quarantine grype
 ```
 
+## Shell Completion
+
+Grype supplies shell completion through it's CLI implementation ([cobra](https://github.com/spf13/cobra/blob/master/shell_completions.md)). 
+Generate the completion code for your shell by running one of the following commands:
+* `grype completion <bash|fish>`
+* `go run main.go completion <bash|fish>`
+
+This will output a shell script to STDOUT, which can then be used as a completion script for Grype. Running one of the above commands with the 
+`-h` or `--help` flags will provide instructions on how to do that for your chosen shell.
+
+Note: [Cobra hs not yet released full ZSH support](https://github.com/spf13/cobra/issues/1226), but as soon as that gets released, we will add it here!
+
 ## Configuration
 
 Configuration search paths:
@@ -101,7 +118,14 @@ Configuration search paths:
 Configuration options (example values are the default):
 
 ```yaml
-# same as -o ; the output format of the vulnerability report (options: table, json)
+# enable/disable checking for application updates on startup
+check-for-app-update: true
+
+# same as --fail-on ; upon scanning, if a severity is found at or above the given severity then the return code will be 1
+# default is unset which will skip this validation (options: negligible, low, medium, high, critical)
+fail-on-severity: ''
+
+# same as -o ; the output format of the vulnerability report (options: table, json, cyclonedx)
 output: "table"
 
 # same as -s ; the search space to look for packages (options: all-layers, squashed)
@@ -110,103 +134,31 @@ scope: "squashed"
 # same as -q ; suppress all output (except for the vulnerability list)
 quiet: false
 
-log:
-  # use structured logging
-  structured: false
-
-  # the log level; note: detailed logging suppress the ETUI
-  level: "error"
-
-  # location to write the log file (default is not to have a log file)
-  file: ""
-
-# enable/disable checking for application updates on startup
-check-for-app-update: true
-
 db:
+  # check for database updates on execution
+  auto-update: true
+
   # location to write the vulnerability database cache
   cache-dir: "$XDG_CACHE_HOME/grype/db"
 
   # URL of the vulnerability database
   update-url: "https://toolbox-data.anchore.io/grype/databases/listing.json"
 
-  # check for database updates on execution
-  auto-update: true
+log:
+  # location to write the log file (default is not to have a log file)
+  file: ""
+
+  # the log level; note: detailed logging suppress the ETUI
+  level: "error"
+
+  # use structured logging
+  structured: false
 ```
-
-## Developing
-
-There are a few useful things to know before diving into the codebase. This project depends on a few things being available like a vulnerability database, which you might want to create manually instead of retrieving a released version.
-
-### Inspecting the database
-
-The currently supported database provider is Sqlite3. Install `sqlite3` in your system and ensure that the `sqlite3` executable is available in your path. Ask `grype` about the location of the database, which will be different depending on the operating system:
-
-```
-$ go run main.go db status
-Location:  /Users/alfredo/Library/Caches/grype/db
-Built:  2020-07-31 08:18:29 +0000 UTC
-Current DB Version:  1
-Require DB Version:  1
-Status: Valid
-```
-
-In this case (OSX), the database is located in the user's home directory. To verify the database filename, list that path:
-
-```
-$ ls -alh  /Users/alfredo/Library/Caches/grype/db
-total 445392
-drwxr-xr-x  4 alfredo  staff   128B Jul 31 09:27 .
-drwxr-xr-x  3 alfredo  staff    96B Jul 31 09:27 ..
--rw-------  1 alfredo  staff   139B Jul 31 09:27 metadata.json
--rw-r--r--  1 alfredo  staff   217M Jul 31 09:27 vulnerability.db
-```
-
-Next, open the `vulnerability.db` with `sqlite3`:
-
-```
-$ sqlite3 /Users/alfredo/Library/Caches/grype/db/vulnerability.db
-```
-
-To make the reporting from Sqlite3 easier to read, enable the following:
-
-```
-sqlite> .mode column
-sqlite> .headers on
-```
-
-List the tables:
-
-```
-sqlite> .tables
-id                      vulnerability           vulnerability_metadata
-```
-
-In this example you retrieve a specific vulnerability from the `nvd` namespace:
-
-```
-sqlite> select * from vulnerability where (namespace="nvd" and package_name="libvncserver") limit 1;
-id             record_source  package_name  namespace   version_constraint  version_format  cpes                                                         proxy_vulnerabilities
--------------  -------------  ------------  ----------  ------------------  --------------  -----------------------------------------------------------  ---------------------
-CVE-2006-2450                 libvncserver  nvd         = 0.7.1             unknown         ["cpe:2.3:a:libvncserver:libvncserver:0.7.1:*:*:*:*:*:*:*"]  []
-```
-
-## Shell Completion
-Grype supplies shell completion through it's CLI implementation ([cobra](https://github.com/spf13/cobra/blob/master/shell_completions.md)). 
-Generate the completion code for your shell by running one of the following commands:
-* `grype completion <bash|fish>`
-* `go run main.go completion <bash|fish>`
-
-This will output a shell script to STDOUT, which can then be used as a completion script for Grype. Running one of the above commands with the 
-`-h` or `--help` flags will provide instructions on how to do that for your chosen shell.
-
-Note: [Cobra hs not yet released full ZSH support](https://github.com/spf13/cobra/issues/1226), but as soon as that gets released, we will add it here!
 
 ## Future plans
 
 The following areas of potential development are currently being investigated:
 
-- Add CycloneDX to list of output formats
 - Support for allowlist, package mapping
 - Establish a stable interchange format w/Syft
 - Accept SBOM (CycloneDX, Syft) as input instead of image/directory
