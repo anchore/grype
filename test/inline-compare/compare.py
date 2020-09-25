@@ -6,7 +6,7 @@ import collections
 
 INCLUDE_SEVERITY = False
 NO_COMPARE_VALUE = "n/a"
-QUALITY_GATE_THRESHOLD = 0.9
+QUALITY_GATE_THRESHOLD = 0.85
 INDENT = "    "
 IMAGE_QUALITY_GATE = collections.defaultdict(lambda: QUALITY_GATE_THRESHOLD, **{
     # not necessary if not comparing severity
@@ -119,16 +119,16 @@ class Grype:
             report_dir, self.report_tmpl.format(image=clean(image))
         )
 
-    def _enumerate_section(self):
+    def _enumerate_section(self, section):
         with open(self.report_path) as json_file:
             data = json.load(json_file)
-            for entry in data:
+            for entry in data[section]:
                 yield entry
 
     def vulnerabilities(self):
         vulnerabilities = set()
         metadata = collections.defaultdict(dict)
-        for entry in self._enumerate_section():
+        for entry in self._enumerate_section(section="vulnerabilities"):
 
             # normalize to inline
             pkg_type = entry["artifact"]["type"].lower()
@@ -197,7 +197,7 @@ def main(image):
     ) * 100.0
 
     bonus_vulnerabilities = grype_vulnerabilities - inline_vulnerabilities
-    missing_pacakges = inline_vulnerabilities - grype_vulnerabilities
+    missing_vulnerabilities = inline_vulnerabilities - grype_vulnerabilities
 
     inline_metadata_set = set()
     for vulnerability in inline_vulnerabilities:
@@ -226,10 +226,10 @@ def main(image):
         print_rows(rows)
         print()
 
-    if len(missing_pacakges) > 0:
+    if len(missing_vulnerabilities) > 0:
         rows = []
         print(colors.bold + "Grype missed vulnerabilities:", colors.reset)
-        for vulnerability in sorted(list(missing_pacakges)):
+        for vulnerability in sorted(list(missing_vulnerabilities)):
             metadata = inline_metadata[vulnerability.package.type][vulnerability.package]
             rows.append([INDENT, repr(vulnerability), repr(metadata)])
         print_rows(rows)
@@ -250,8 +250,10 @@ def main(image):
 
     print(colors.bold+"Summary:", colors.reset)
     print("   Image: %s" % image)
-    print("   Inline Packages : %d" % len(inline_vulnerabilities))
-    print("   Grype Packages  : %d" % len(grype_vulnerabilities))
+    print("   Inline Vulnerabilities : %d" % len(inline_vulnerabilities))
+    print("   Grype Vulnerabilities  : %d " % len(grype_vulnerabilities))
+    print("                 (extra)  : %d (note: this is ignored in the analysis!)" % len(bonus_vulnerabilities))
+    print("               (missing)  : %d " % len(missing_vulnerabilities))
     print(
         "   Baseline Vulnerabilities Matched : %2.1f %% (%d/%d vulnerability)"
         % (percent_overlap_vulnerabilities, len(same_vulnerabilities), len(inline_vulnerabilities))
