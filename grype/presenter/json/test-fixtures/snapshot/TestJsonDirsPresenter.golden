@@ -1,5 +1,5 @@
 {
- "vulnerabilities": [
+ "matches": [
   {
    "vulnerability": {
     "id": "CVE-1999-0001",

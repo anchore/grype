@@ -128,7 +128,7 @@ class Grype:
     def vulnerabilities(self):
         vulnerabilities = set()
         metadata = collections.defaultdict(dict)
-        for entry in self._enumerate_section(section="vulnerabilities"):
+        for entry in self._enumerate_section(section="matches"):
 
             # normalize to inline
             pkg_type = entry["artifact"]["type"].lower()

@@ -12,13 +12,13 @@ import (
 
 // Document represents the JSON document to be presented
 type Document struct {
-	Findings  []Finding       `json:"vulnerabilities"`
+	Matches   []Match         `json:"matches"`
 	Image     *syftJson.Image `json:"image,omitempty"`
 	Directory *string         `json:"directory,omitempty"`
 }
 
-// Finding is a single item for the JSON array reported
-type Finding struct {
+// Match is a single item for the JSON array reported
+type Match struct {
 	Vulnerability Vulnerability     `json:"vulnerability"`
 	MatchDetails  MatchDetails      `json:"matchDetails"`
 	Artifact      syftJson.Artifact `json:"artifact"`
@@ -46,7 +46,7 @@ func NewDocument(catalog *pkg.Catalog, s scope.Scope, matches match.Matches, met
 	}
 
 	// we must preallocate the findings to ensure the JSON document does not show "null" when no matches are found
-	var findings = make([]Finding, 0)
+	var findings = make([]Match, 0)
 	for m := range matches.Enumerate() {
 		p := catalog.Package(m.Package.ID())
 		art, err := syftJson.NewArtifact(p, s)
@@ -61,7 +61,7 @@ func NewDocument(catalog *pkg.Catalog, s scope.Scope, matches match.Matches, met
 
 		findings = append(
 			findings,
-			Finding{
+			Match{
 				Vulnerability: NewVulnerability(m, metadata),
 				Artifact:      art,
 				MatchDetails: MatchDetails{
@@ -72,7 +72,7 @@ func NewDocument(catalog *pkg.Catalog, s scope.Scope, matches match.Matches, met
 			},
 		)
 	}
-	doc.Findings = findings
+	doc.Matches = findings
 
 	return doc, nil
 }
