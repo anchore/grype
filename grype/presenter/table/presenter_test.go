@@ -9,6 +9,7 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/pkg"
+	"github.com/go-test/deep"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
@@ -160,6 +161,35 @@ func TestEmptyTablePresenter(t *testing.T) {
 		dmp := diffmatchpatch.New()
 		diffs := dmp.DiffMain(string(expected), string(actual), true)
 		t.Errorf("mismatched output:\n%s", dmp.DiffPrettyText(diffs))
+	}
+
+}
+
+func TestRemoveDuplicateRows(t *testing.T) {
+	data := [][]string{
+		{"1", "2", "3"},
+		{"a", "b", "c"},
+		{"1", "2", "3"},
+		{"a", "b", "c"},
+		{"1", "2", "3"},
+		{"4", "5", "6"},
+		{"1", "2", "1"},
+	}
+
+	expected := [][]string{
+		{"1", "2", "3"},
+		{"a", "b", "c"},
+		{"4", "5", "6"},
+		{"1", "2", "1"},
+	}
+
+	actual := removeDuplicateRows(data)
+
+	if diffs := deep.Equal(expected, actual); len(diffs) > 0 {
+		t.Errorf("found diffs!")
+		for _, d := range diffs {
+			t.Errorf("   diff: %+v", d)
+		}
 	}
 
 }
