@@ -1,0 +1,25 @@
+name: Greetings
+
+on: [pull_request, issues]
+
+jobs:
+  greeting:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/first-interaction@v1
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        issue-message: |-
+          Hello ${{ github.actor }},
+
+          Thank you for being part of the Anchore community!  An Anchorite will look at your issue soon.
+
+          You can also find our [contribution guidelines here](https://github.com/anchore/grype/blob/main/CONTRIBUTING.md). Thank you again!
+        pr-message: |-
+          Hello ${{ github.actor }},
+
+          Thank you for being part of the Anchore community!
+
+          An Anchorite will look at your PR soon. We value your contribution.
+
+          Please review our [contribution guidelines here](https://github.com/anchore/grype/blob/main/CONTRIBUTING.md). Thank you again!
