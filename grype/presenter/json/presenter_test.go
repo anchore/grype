@@ -297,10 +297,10 @@ func TestEmptyJsonPresenter(t *testing.T) {
 	var testImage = "image-simple"
 
 	if *update {
-		testutils.UpdateGoldenFixtureImage(t, testImage)
+		imagetest.UpdateGoldenFixtureImage(t, testImage)
 	}
 
-	img := testutils.GetGoldenFixtureImage(t, testImage)
+	img := imagetest.GetGoldenFixtureImage(t, testImage)
 
 	matches := match.NewMatches()
 

@@ -125,7 +125,7 @@
   "digest": "sha256:2731251dc34951c0e50fcc643b4c5f74922dad1a5d98f302b504cf46cd5d9368",
   "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
   "tags": [
-   "anchore-fixture-image-simple:04e16e44161c8888a1a963720fd0443cbf7eef8101434c431de8725cd98cc9f7"
+   "stereoscope-fixture-image-simple:04e16e44161c8888a1a963720fd0443cbf7eef8101434c431de8725cd98cc9f7"
   ]
  }
 }
