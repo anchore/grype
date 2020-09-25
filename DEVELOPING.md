@@ -1,7 +1,6 @@
 # Developing
 
-There are a few useful things to know before diving into the codebase. This project depends on a few things being available 
-like a vulnerability database, which you might want to create manually instead of retrieving a released version.
+There are a few useful things to know before diving into the codebase. This project depends on a few things being available like a vulnerability database, which you might want to create manually instead of retrieving a released version.
 
 ## Getting started
 
@@ -13,8 +12,7 @@ Checkout `make help` to see what other actions you can take.
 
 ## Inspecting the database
 
-The currently supported database format is Sqlite3. Install `sqlite3` in your system and ensure that the `sqlite3` executable 
-is available in your path. Ask `grype` about the location of the database, which will be different depending on the operating system:
+The currently supported database format is Sqlite3. Install `sqlite3` in your system and ensure that the `sqlite3` executable is available in your path. Ask `grype` about the location of the database, which will be different depending on the operating system:
 
 ```
 $ go run main.go db status
