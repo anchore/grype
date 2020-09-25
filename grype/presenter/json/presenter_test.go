@@ -5,13 +5,13 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/anchore/stereoscope/pkg/file"
-	"github.com/anchore/syft/syft/scope"
-
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/stereoscope/pkg/file"
+	"github.com/anchore/stereoscope/pkg/imagetest"
 	"github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/scope"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
@@ -63,10 +63,10 @@ func TestJsonImgsPresenter(t *testing.T) {
 	var testImage = "image-simple"
 
 	if *update {
-		testutils.UpdateGoldenFixtureImage(t, testImage)
+		imagetest.UpdateGoldenFixtureImage(t, testImage)
 	}
 
-	img := testutils.GetGoldenFixtureImage(t, testImage)
+	img := imagetest.GetGoldenFixtureImage(t, testImage)
 
 	var pkg1 = pkg.Package{
 		Name:    "package-1",
@@ -297,10 +297,10 @@ func TestEmptyJsonPresenter(t *testing.T) {
 	var testImage = "image-simple"
 
 	if *update {
-		testutils.UpdateGoldenFixtureImage(t, testImage)
+		imagetest.UpdateGoldenFixtureImage(t, testImage)
 	}
 
-	img := testutils.GetGoldenFixtureImage(t, testImage)
+	img := imagetest.GetGoldenFixtureImage(t, testImage)
 
 	matches := match.NewMatches()
 

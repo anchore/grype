@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.2" xmlns:bd="http://cyclonedx.org/schema/ext/bom-descriptor/1.0" xmlns:v="http://cyclonedx.org/schema/ext/vulnerability/1.0" version="1" serialNumber="urn:uuid:eb3e67c8-e1d2-471d-a103-54d1722d5c17">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.2" xmlns:bd="http://cyclonedx.org/schema/ext/bom-descriptor/1.0" xmlns:v="http://cyclonedx.org/schema/ext/vulnerability/1.0" version="1" serialNumber="urn:uuid:7f9d9544-4a3c-4816-9974-2fc76549bd83">
   <components>
     <component type="library">
       <name>package-1</name>
       <version>1.0.1</version>
       <v:vulnerabilities>
-        <v:vulnerability ref="urn:uuid:ed4abf46-d2de-442b-b6bb-4741eda0ec55">
+        <v:vulnerability ref="urn:uuid:74e83b32-6e0e-4ec0-b480-364ffab1d686">
           <v:id>CVE-1999-0001</v:id>
           <v:source name="source-1">
             <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0001</v:url>
@@ -25,7 +25,7 @@
           <v:description>1999-01 description</v:description>
           <v:advisories></v:advisories>
         </v:vulnerability>
-        <v:vulnerability ref="urn:uuid:313a376d-a429-4df1-b167-b0ca3f3498d0">
+        <v:vulnerability ref="urn:uuid:aa67380f-ac2e-4463-83ef-9daeb868e150">
           <v:id>CVE-1999-0002</v:id>
           <v:source name="source-2">
             <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0002</v:url>
@@ -61,7 +61,7 @@
     </component>
   </components>
   <bd:metadata>
-    <bd:timestamp>2020-09-21T15:34:33-04:00</bd:timestamp>
+    <bd:timestamp>2020-09-24T08:43:43-04:00</bd:timestamp>
     <bd:tool>
       <bd:vendor>anchore</bd:vendor>
       <bd:name>grype</bd:name>
@@ -73,13 +73,13 @@
     </bd:component>
   </bd:metadata>
 </bom><?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.2" xmlns:bd="http://cyclonedx.org/schema/ext/bom-descriptor/1.0" xmlns:v="http://cyclonedx.org/schema/ext/vulnerability/1.0" version="1" serialNumber="urn:uuid:6cc030e7-7abb-41b3-ac40-6ed43ae7f5fb">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.2" xmlns:bd="http://cyclonedx.org/schema/ext/bom-descriptor/1.0" xmlns:v="http://cyclonedx.org/schema/ext/vulnerability/1.0" version="1" serialNumber="urn:uuid:29dfd0be-5bc5-4e5a-ba25-07ba4708dd29">
   <components>
     <component type="library">
       <name>package-1</name>
       <version>1.0.1</version>
       <v:vulnerabilities>
-        <v:vulnerability ref="urn:uuid:8d01eafc-7128-48b7-85e7-a7629f1610a7">
+        <v:vulnerability ref="urn:uuid:11f3afe7-3438-41db-9955-aa1f2616e2ca">
           <v:id>CVE-1999-0001</v:id>
           <v:source name="source-1">
             <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0001</v:url>
@@ -99,7 +99,7 @@
           <v:description>1999-01 description</v:description>
           <v:advisories></v:advisories>
         </v:vulnerability>
-        <v:vulnerability ref="urn:uuid:e40cccf1-d3b2-4cf5-bca1-db13c934b32e">
+        <v:vulnerability ref="urn:uuid:424ae84d-2456-4597-bb26-e72152ece9a1">
           <v:id>CVE-1999-0002</v:id>
           <v:source name="source-2">
             <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0002</v:url>
@@ -135,14 +135,14 @@
     </component>
   </components>
   <bd:metadata>
-    <bd:timestamp>2020-09-21T15:34:33-04:00</bd:timestamp>
+    <bd:timestamp>2020-09-24T08:43:43-04:00</bd:timestamp>
     <bd:tool>
       <bd:vendor>anchore</bd:vendor>
       <bd:name>grype</bd:name>
       <bd:version>[not provided]</bd:version>
     </bd:tool>
     <bd:component type="container">
-      <name>index.docker.io/library/anchore-fixture-image-simple</name>
+      <name>index.docker.io/library/stereoscope-fixture-image-simple</name>
       <version>04e16e44161c8888a1a963720fd0443cbf7eef8101434c431de8725cd98cc9f7</version>
     </bd:component>
   </bd:metadata>

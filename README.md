@@ -24,6 +24,7 @@ A vulnerability scanner for container images and filesystems. [Easily install th
   - JavaScript (NPM/Yarn)
   - Python (Egg/Wheel)
   - Python pip/requirements.txt/setup.py listings
+- Supports Docker and OCI image formats
 
 > :warning: **This is pre-release software** and it may not work as expected. If you encounter an issue, please [let us know using the issue tracker](https://github.com/anchore/grype/issues).
 
@@ -45,18 +46,22 @@ grype <image> --scope all-layers
 Grype can scan a variety of sources beyond those found in Docker.
 
 ```
-# scan a docker image tar (from the result of "docker image save ... -o image.tar" command)
-grype docker-archive://path/to/image.tar
+# scan a container image archive (from the result of `docker image save ...`, `podman save ...`, or `skopeo copy` commands)
+grype path/to/image.tar
 
 # scan a directory
-grype dir://path/to/dir
+grype path/to/dir
 ```
 
-By default Grype shows a summary table, however, a more detailed `json` format is also available.
+The output format for Grype is configurable as well:
+```
+grype <image> -o <format>
+```
 
-```
-grype <image> -o json
-```
+Where the `format`s available are:
+- `json`: Use this to get as much information out of Grype as possible!
+- `cyclonedx`: A XML report conforming to the [CycloneDX 1.2](https://cyclonedx.org/) specification.
+- `table`: A columnar summary (default).
 
 Grype pulls a database of vulnerabilities derived from the publicly available [Anchore Feed Service](https://ancho.re/v1/service/feeds). This database is updated at the beginning of each scan, but an update can also be triggered manually.
 
