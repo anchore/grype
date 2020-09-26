@@ -26,6 +26,10 @@ ifeq "$(strip $(VERSION))" ""
  override VERSION = $(shell git describe --always --tags --dirty)
 endif
 
+# used to generate the changelog from the second to last tag to the current tag (used in the release pipeline when the release tag is in place)
+LAST_TAG := $(shell git describe --abbrev=0 --tags $(shell git rev-list --tags --max-count=1))
+SECOND_TO_LAST_TAG := $(shell git describe --abbrev=0 --tags $(shell git rev-list --tags --skip=1 --max-count=1))
+
 ## Variable assertions
 
 ifndef TEMPDIR
@@ -176,15 +180,20 @@ compare:
 
 .PHONY: changlog-release
 changelog-release:
-	@docker run -it --rm  \
+	@echo "Last tag: $(SECOND_TO_LAST_TAG)"
+	@echo "Current tag: $(VERSION)"
+	@docker run -i --rm  \
 		-v "$(shell pwd)":/usr/local/src/your-app ferrarimarco/github-changelog-generator \
 		--user anchore \
 		--project $(BIN) \
 		-t ${GITHUB_TOKEN} \
+		--exclude-labels 'duplicate,question,invalid,wontfix,size:small,size:medium,size:large,size:x-large' \
 		--no-pr-wo-labels \
 		--no-issues-wo-labels \
-		--unreleased-only \
-		--future-release $(VERSION)
+		--since-tag $(SECOND_TO_LAST_TAG)
+
+	@printf '\n$(BOLD)$(CYAN)Release $(VERSION) Changelog$(RESET)\n\n'
+	@cat CHANGELOG.md
 
 .PHONY: changelog-unreleased
 changelog-unreleased: ## show the current changelog that will be produced on the next release (note: requires GITHUB_TOKEN set)
@@ -193,12 +202,15 @@ changelog-unreleased: ## show the current changelog that will be produced on the
 		--user anchore \
 		--project $(BIN) \
 		-t ${GITHUB_TOKEN} \
-		--unreleased-only
+		--exclude-labels 'duplicate,question,invalid,wontfix,size:small,size:medium,size:large,size:x-large' \
+		--since-tag $(LAST_TAG)
+
 	@printf '\n$(BOLD)$(CYAN)Unreleased Changes (closed PRs and issues will not be in the final changelog)$(RESET)\n'
+
 	@docker run -it --rm \
 		-v $(shell pwd)/CHANGELOG.md:/CHANGELOG.md \
 		rawkode/mdv \
-			-t 785.3229 \
+			-t 754.5889 \
 			/CHANGELOG.md
 
 .PHONY: release
@@ -209,11 +221,10 @@ release: clean-dist changelog-release ## Build and publish final binaries and pa
 	cat .goreleaser.yaml >> $(TEMPDIR)/goreleaser.yaml
 
 	# release
-	BUILD_GIT_TREE_STATE=$(GITTREESTATE) \
-	$(TEMPDIR)/goreleaser \
+	bash -c "BUILD_GIT_TREE_STATE=$(GITTREESTATE) $(TEMPDIR)/goreleaser \
 		--rm-dist \
 		--config $(TEMPDIR)/goreleaser.yaml \
-		--release-notes <(cat CHANGELOG.md)
+		--release-notes <(cat CHANGELOG.md)"
 
 	# verify checksum signatures
 	.github/scripts/verify-signature.sh "$(DISTDIR)"
