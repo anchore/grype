@@ -4,6 +4,9 @@ release:
   # If set to true, will mark the release as not ready for production.
   prerelease: false
 
+  # If set to true, will not auto-publish the release. This is done to allow us to review the changelog before publishing.
+  draft: true
+
 signs:
   - artifacts: checksum
     args: ["--output", "${signature}", "--detach-sign", "${artifact}"]
