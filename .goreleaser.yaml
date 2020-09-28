@@ -2,7 +2,7 @@ release:
   # If set to auto, will mark the release as not ready for production
   # in case there is an indicator for this in the tag e.g. v1.0.0-rc1
   # If set to true, will mark the release as not ready for production.
-  prerelease: false
+  prerelease: auto
 
   # If set to true, will not auto-publish the release. This is done to allow us to review the changelog before publishing.
   draft: true
