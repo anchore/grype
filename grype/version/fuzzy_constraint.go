@@ -69,7 +69,7 @@ func (f *fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
 		}
 	}
 	// semver didn't work, use fuzzy part matching instead...
-	return f.constraints.Satisfied(verObj), nil
+	return f.constraints.satisfied(verObj)
 }
 
 func (f *fuzzyConstraint) String() string {

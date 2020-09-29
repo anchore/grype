@@ -55,7 +55,7 @@ func (c debConstraint) Satisfied(version *Version) (bool, error) {
 		return false, fmt.Errorf("no rich deb version given: %+v", version)
 	}
 
-	return c.expression.Satisfied(version), nil
+	return c.expression.satisfied(version)
 }
 
 func (c debConstraint) String() string {

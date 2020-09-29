@@ -115,7 +115,7 @@ func (cfg *Application) Build() error {
 	cfg.ScopeOpt = scopeOption
 
 	if cfg.Quiet {
-		// TODO: this is bad: quiet option trumps all other logging options
+		// TODO: this is bad: quiet option trumps all other logging options (such as to a file on disk)
 		// we should be able to quiet the console logging and leave file logging alone...
 		// ... this will be an enhancement for later
 		cfg.Log.LevelOpt = logrus.PanicLevel
