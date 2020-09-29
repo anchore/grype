@@ -58,7 +58,7 @@ func (c rpmConstraint) Satisfied(version *Version) (bool, error) {
 		return false, fmt.Errorf("no rich rpm version given: %+v", version)
 	}
 
-	return c.expression.Satisfied(version), nil
+	return c.expression.satisfied(version)
 }
 
 func (c rpmConstraint) String() string {

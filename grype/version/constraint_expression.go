@@ -41,15 +41,14 @@ func newConstraintExpression(phrase string, genFn comparatorGenerator) (constrai
 	return rootExpression, nil
 }
 
-func (c *constraintExpression) Satisfied(other *Version) bool {
+func (c *constraintExpression) satisfied(other *Version) (bool, error) {
 	oneSatisfied := false
 	for i, andOperand := range c.comparators {
 		allSatisfied := true
 		for j, andUnit := range andOperand {
 			result, err := andUnit.Compare(other)
 			if err != nil {
-				// TODO: just no....
-				panic(fmt.Errorf("uncomparable %+v %+v: %w", andUnit, other, err))
+				return false, fmt.Errorf("uncomparable %+v %+v: %w", andUnit, other, err)
 			}
 			constraintUnit := c.units[i][j]
 
@@ -60,5 +59,5 @@ func (c *constraintExpression) Satisfied(other *Version) bool {
 
 		oneSatisfied = oneSatisfied || allSatisfied
 	}
-	return oneSatisfied
+	return oneSatisfied, nil
 }

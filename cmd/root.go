@@ -34,7 +34,7 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   fmt.Sprintf("%s [IMAGE]", internal.ApplicationName),
-	Short: "A vulnerability scanner for container images and filesystems", // TODO: add copy, add path-based scans
+	Short: "A vulnerability scanner for container images and filesystems",
 	Long: format.Tprintf(`
 Supports the following image sources:
     {{.appName}} yourrepo/yourimage:tag     defaults to using images from a Docker daemon

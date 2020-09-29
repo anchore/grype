@@ -65,9 +65,4 @@ func TestFormatFromPkgType(t *testing.T) {
 			}
 		})
 	}
-
-	// TODO: once all pkgs are added, make this fail
-	if len(tests) != len(pkg.AllPkgs) {
-		t.Log("may have missed testing a pkgType -> version.Format test case")
-	}
 }
