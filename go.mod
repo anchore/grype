@@ -6,9 +6,9 @@ require (
 	github.com/adrg/xdg v0.2.1
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20200810141238-330bef18dbca
-	github.com/anchore/grype-db v0.0.0-20200909132108-9474dd8f080f
+	github.com/anchore/grype-db v0.0.0-20200929200644-6d1c82acc95e
 	github.com/anchore/stereoscope v0.0.0-20200925184903-c82da54e98fe
-	github.com/anchore/syft v0.1.0-beta.5.0.20200928212217-26855a2a9eb5
+	github.com/anchore/syft v0.1.0-beta.5.0.20200929155319-b6dfdf16b6a8
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/facebookincubator/nvdtools v0.1.4-0.20200622182922-aed862a62ae6
