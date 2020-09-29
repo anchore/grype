@@ -123,6 +123,8 @@ github.com/anchore/go-version v1.2.2-0.20200810141238-330bef18dbca h1:rLyc7Rih76
 github.com/anchore/go-version v1.2.2-0.20200810141238-330bef18dbca/go.mod h1:Bkc+JYWjMCF8OyZ340IMSIi2Ebf3uwByOk6ho4wne1E=
 github.com/anchore/grype-db v0.0.0-20200909132108-9474dd8f080f h1:/6h4PkxPn0VQ3EjvTKfiPHdpI1TYqRMMywatd81HX3Y=
 github.com/anchore/grype-db v0.0.0-20200909132108-9474dd8f080f/go.mod h1:LINmipRzG88vnJEWvgMMDVCFH1qZsj7+bjmpERlSyaA=
+github.com/anchore/grype-db v0.0.0-20200929200644-6d1c82acc95e h1:s0HmxxDuJyvgGBXmNBZwuXLLFSUfBmS9+/Rz1L58Bz0=
+github.com/anchore/grype-db v0.0.0-20200929200644-6d1c82acc95e/go.mod h1:LINmipRzG88vnJEWvgMMDVCFH1qZsj7+bjmpERlSyaA=
 github.com/anchore/stereoscope v0.0.0-20200925184903-c82da54e98fe h1:m4NSyTo2fVUoUHAV/ZVqE/PFMr/y8oz9HRrhWLk9It0=
 github.com/anchore/stereoscope v0.0.0-20200925184903-c82da54e98fe/go.mod h1:2Jja/4l0zYggW52og+nn0rut4i+OYjCf9vTyrM8RT4E=
 github.com/anchore/syft v0.1.0-beta.4.0.20200925202006-03378e976cd4 h1:i7Ev63zLIxJqJm6V8ETGif5Ffogl/Vz2cjk7aK7FPj4=
@@ -131,6 +133,8 @@ github.com/anchore/syft v0.1.0-beta.5.0.20200928190221-4b78d9a1c0b9 h1:a5NjGRmB1
 github.com/anchore/syft v0.1.0-beta.5.0.20200928190221-4b78d9a1c0b9/go.mod h1:kY+T44fgDXAOE15vQtlLo/WUh/cqUms79+gKRFL64bo=
 github.com/anchore/syft v0.1.0-beta.5.0.20200928212217-26855a2a9eb5 h1:VgTX0nArdUxiD8nge0edTtUC8+vpJUVF+mCVbJeYbZM=
 github.com/anchore/syft v0.1.0-beta.5.0.20200928212217-26855a2a9eb5/go.mod h1:kY+T44fgDXAOE15vQtlLo/WUh/cqUms79+gKRFL64bo=
+github.com/anchore/syft v0.1.0-beta.5.0.20200929155319-b6dfdf16b6a8 h1:lK6AEvTEDiKo4+I2NYaEiQVwvIzONH1kDbtaB9RwVhs=
+github.com/anchore/syft v0.1.0-beta.5.0.20200929155319-b6dfdf16b6a8/go.mod h1:fxzECHyEWfAZ06gJVyrKK+DEkLJeJ4PrK7eyPAwqJR0=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 h1:bvNMNQO63//z+xNgfBlViaCIJKLlCJ6/fmUseuG0wVQ=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/cascadia v1.1.0/go.mod h1:GsXiBklL0woXo1j/WYWtSYYC4ouU9PqHO0sqidkEA4Y=
