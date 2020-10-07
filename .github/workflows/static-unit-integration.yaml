@@ -1,0 +1,93 @@
+name: 'Static Analysis + Unit + Integration'
+on:
+  workflow_dispatch:
+  push:
+jobs:
+
+  Static-Analysis:
+    strategy:
+      matrix:
+        go-version: [1.x]
+        platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - uses: actions/checkout@v2
+
+      - name: Restore bootstrap cache
+        id: bootstrap-cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/go/pkg/mod
+            ${{ github.workspace }}/.tmp
+          key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('Makefile') }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}-
+            ${{ runner.os }}-go-${{ matrix.go-version }}-
+
+      - name: Bootstrap project dependencies
+        if: steps.bootstrap-cache.outputs.cache-hit != 'true'
+        run: make bootstrap
+
+      - name: Bootstrap CI dependencies
+        run: make ci-bootstrap
+
+      - name: Run static analysis
+        run: make static-analysis
+
+  Tests:
+    strategy:
+      matrix:
+        # test the lower bounds of support, and the latest available
+        go-version: [1.13.x, 1.x]
+        platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - uses: actions/checkout@v2
+
+      - name: Restore bootstrap cache
+        id: bootstrap-cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/go/pkg/mod
+            ${{ github.workspace }}/.tmp
+          key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('Makefile') }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}-
+            ${{ runner.os }}-go-${{ matrix.go-version }}-
+
+      - name: Bootstrap project dependencies
+        if: steps.bootstrap-cache.outputs.cache-hit != 'true'
+        run: make bootstrap
+
+      - name: Bootstrap CI dependencies
+        run: make ci-bootstrap
+
+      - name: Run unit tests
+        run: make unit
+
+      - name: Validate grype output against the CycloneDX schema
+        run: make validate-cyclonedx-schema
+
+      - name: Build key for tar cache
+        run: make integration-fingerprint
+
+      - name: Restore integration test cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ github.workspace }}/integration/test-fixtures/cache
+          key: ${{ runner.os }}-integration-test-cache-${{ hashFiles('integration/test-fixtures/cache.fingerprint') }}
+
+      - name: Run integration tests
+        run: make integration
