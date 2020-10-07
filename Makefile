@@ -138,16 +138,6 @@ integration-fingerprint:
 clear-test-cache: ## Delete all test cache (built docker image tars)
 	find . -type f -wholename "**/test-fixtures/cache/*.tar" -delete
 
-.PHONY: check-pipeline
-check-pipeline: ## Run local CircleCI pipeline locally (sanity check)
-	$(call title,Check pipeline)
-	# note: this is meant for local development & testing of the pipeline, NOT to be run in CI
-	mkdir -p $(TEMPDIR)
-	circleci config process .circleci/config.yml > .tmp/circleci.yml
-	circleci local execute -c .tmp/circleci.yml --job "Static Analysis"
-	circleci local execute -c .tmp/circleci.yml --job "Unit & Integration Tests (go-latest)"
-	@printf '$(SUCCESS)Pipeline checks pass!$(RESET)\n'
-
 .PHONY: build
 build: $(SNAPSHOTDIR) ## Build release snapshot binaries and packages
 
