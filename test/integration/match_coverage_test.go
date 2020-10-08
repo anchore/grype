@@ -113,7 +113,7 @@ func addPythonMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, 
 }
 
 func addRubyMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *match.Matches) {
-	packages := getPackagesByPath(t, theScope, catalog, "/ruby/Gemfile.lock")
+	packages := getPackagesByPath(t, theScope, catalog, "/ruby/specifications/bundler.gemspec")
 	if len(packages) != 1 {
 		t.Logf("Ruby Packages: %+v", packages)
 		t.Fatalf("problem with upstream syft cataloger (ruby)")

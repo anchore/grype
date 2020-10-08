@@ -52,7 +52,7 @@ func FormatFromPkgType(t pkg.Type) Format {
 		format = DebFormat
 	case pkg.RpmPkg:
 		format = RpmFormat
-	case pkg.BundlerPkg:
+	case pkg.GemPkg:
 		format = SemanticFormat
 	case pkg.EggPkg:
 		format = PythonFormat

@@ -38,9 +38,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 		return err
 	}
 
-	srcObj := pres.scope.Source()
-
-	switch src := srcObj.(type) {
+	switch src := pres.scope.Source.(type) {
 	case scope.DirSource:
 		bom.BomDescriptor.Component = &syftCDX.BdComponent{
 			Component: syftCDX.Component{
