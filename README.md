@@ -26,7 +26,7 @@ A vulnerability scanner for container images and filesystems. [Easily install th
   - Python pip/requirements.txt/setup.py listings
 - Supports Docker and OCI image formats
 
-> :warning: **This is pre-release software** and it may not work as expected. If you encounter an issue, please [let us know using the issue tracker](https://github.com/anchore/grype/issues).
+If you encounter an issue, please [let us know using the issue tracker](https://github.com/anchore/grype/issues).
 
 ## Getting started
 
@@ -96,12 +96,12 @@ xattr -rd com.apple.quarantine grype
 
 ## Shell Completion
 
-Grype supplies shell completion through it's CLI implementation ([cobra](https://github.com/spf13/cobra/blob/master/shell_completions.md)). 
+Grype supplies shell completion through it's CLI implementation ([cobra](https://github.com/spf13/cobra/blob/master/shell_completions.md)).
 Generate the completion code for your shell by running one of the following commands:
 * `grype completion <bash|fish>`
 * `go run main.go completion <bash|fish>`
 
-This will output a shell script to STDOUT, which can then be used as a completion script for Grype. Running one of the above commands with the 
+This will output a shell script to STDOUT, which can then be used as a completion script for Grype. Running one of the above commands with the
 `-h` or `--help` flags will provide instructions on how to do that for your chosen shell.
 
 Note: [Cobra hs not yet released full ZSH support](https://github.com/spf13/cobra/issues/1226), but as soon as that gets released, we will add it here!
