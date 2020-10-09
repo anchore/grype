@@ -51,7 +51,7 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 		Name:     "activerecord",
 		Version:  "3.7.5",
 		Language: pkg.Ruby,
-		Type:     pkg.BundlerPkg,
+		Type:     pkg.GemPkg,
 	}
 
 	store := newMockProviderByLanguage()

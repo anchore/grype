@@ -90,7 +90,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				Name:     "activerecord",
 				Version:  "3.7.5",
 				Language: pkg.Ruby,
-				Type:     pkg.BundlerPkg,
+				Type:     pkg.GemPkg,
 			},
 			expected: []string{
 				"CVE-2017-fake-1",
@@ -102,7 +102,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				Name:     "activerecord",
 				Version:  "3.7.3",
 				Language: pkg.Ruby,
-				Type:     pkg.BundlerPkg,
+				Type:     pkg.GemPkg,
 			},
 			expected: []string{
 				"CVE-2017-fake-1",
@@ -115,7 +115,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				Name:     "activerecord",
 				Version:  "4.0.1",
 				Language: pkg.Ruby,
-				Type:     pkg.BundlerPkg,
+				Type:     pkg.GemPkg,
 			},
 			expected: []string{
 				"CVE-2017-fake-3",
@@ -127,7 +127,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				Name:     "couldntgetthisrightcouldyou",
 				Version:  "4.0.1",
 				Language: pkg.Ruby,
-				Type:     pkg.BundlerPkg,
+				Type:     pkg.GemPkg,
 			},
 			expected: []string{},
 		},

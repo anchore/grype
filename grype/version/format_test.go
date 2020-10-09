@@ -51,7 +51,7 @@ func TestFormatFromPkgType(t *testing.T) {
 			format:  DebFormat,
 		},
 		{
-			pkgType: pkg.BundlerPkg,
+			pkgType: pkg.GemPkg,
 			format:  SemanticFormat,
 		},
 	}

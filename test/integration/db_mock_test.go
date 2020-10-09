@@ -54,10 +54,10 @@ func NewMockDbStore() *mockStore {
 				},
 			},
 			"github:gem": {
-				"rails": []v1.Vulnerability{
+				"bundler": []v1.Vulnerability{
 					{
-						ID:                "CVE-ruby-activerecord",
-						VersionConstraint: "> 4.0.0, <= 4.1.1",
+						ID:                "CVE-ruby-bundler",
+						VersionConstraint: "> 2.0.0, <= 2.1.4",
 						VersionFormat:     "semver",
 					},
 				},

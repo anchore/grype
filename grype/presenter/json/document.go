@@ -35,12 +35,11 @@ type MatchDetails struct {
 func NewDocument(catalog *pkg.Catalog, s scope.Scope, matches match.Matches, metadataProvider vulnerability.MetadataProvider) (Document, error) {
 	doc := Document{}
 
-	srcObj := s.Source()
-	switch src := srcObj.(type) {
+	switch src := s.Source.(type) {
 	case scope.ImageSource:
 		doc.Image = syftJson.NewImage(src)
 	case scope.DirSource:
-		doc.Directory = &s.DirSrc.Path
+		doc.Directory = &src.Path
 	default:
 		return Document{}, fmt.Errorf("unsupported source: %T", src)
 	}
