@@ -96,7 +96,7 @@ xattr -rd com.apple.quarantine grype
 
 ## Shell Completion
 
-Grype supplies shell completion through it's CLI implementation ([cobra](https://github.com/spf13/cobra/blob/master/shell_completions.md)).
+Grype supplies shell completion through its CLI implementation ([cobra](https://github.com/spf13/cobra/blob/master/shell_completions.md)).
 Generate the completion code for your shell by running one of the following commands:
 * `grype completion <bash|fish>`
 * `go run main.go completion <bash|fish>`
