@@ -2,6 +2,7 @@ name: 'Static Analysis + Unit + Integration'
 on:
   workflow_dispatch:
   push:
+  pull_request:
 jobs:
 
   Static-Analysis:
