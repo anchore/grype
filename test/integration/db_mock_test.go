@@ -1,5 +1,3 @@
-//+build integration
-
 package integration
 
 import (
@@ -36,10 +34,10 @@ func NewMockDbStore() *mockStore {
 				},
 			},
 			"github:npm": {
-				"validator": []v1.Vulnerability{
+				"npm": []v1.Vulnerability{
 					{
 						ID:                "CVE-javascript-validator",
-						VersionConstraint: "< 3.2.1",
+						VersionConstraint: "> 5, < 7.2.1",
 						VersionFormat:     "unknown",
 					},
 				},

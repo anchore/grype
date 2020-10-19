@@ -119,7 +119,7 @@ check-licenses:
 unit: ## Run unit tests (with coverage)
 	$(call title,Running unit tests)
 	mkdir -p $(RESULTSDIR)
-	go test -coverprofile $(COVER_REPORT) ./...
+	go test -coverprofile $(COVER_REPORT) $(shell go list ./... | grep -v anchore/grype/test)
 	@go tool cover -func $(COVER_REPORT) | grep total |  awk '{print substr($$3, 1, length($$3)-1)}' > $(COVER_TOTAL)
 	@echo "Coverage: $$(cat $(COVER_TOTAL))"
 	@if [ $$(echo "$$(cat $(COVER_TOTAL)) >= $(COVERAGE_THRESHOLD)" | bc -l) -ne 1 ]; then echo "$(RED)$(BOLD)Failed coverage quality gate (> $(COVERAGE_THRESHOLD)%)$(RESET)" && false; fi
@@ -127,7 +127,7 @@ unit: ## Run unit tests (with coverage)
 .PHONY: integration
 integration: ## Run integration tests
 	$(call title,Running integration tests)
-	go test -v -tags=integration ./test/integration
+	go test -v ./test/integration
 
 # note: this is used by CI to determine if the integration test fixture cache (docker image tars) should be busted
 .PHONY: integration-fingerprint
