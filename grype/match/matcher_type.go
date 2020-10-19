@@ -3,7 +3,7 @@ package match
 const (
 	UnknownMatcherType MatcherType = iota
 	ApkMatcher
-	RubyBundleMatcher
+	RubyGemMatcher
 	DpkgMatcher
 	RpmDBMatcher
 	JavaMatcher
@@ -14,7 +14,7 @@ const (
 var matcherTypeStr = []string{
 	"UnknownMatcherType",
 	"apk-matcher",
-	"ruby-bundle-matcher",
+	"ruby-gem-matcher",
 	"dpkg-matcher",
 	"rpmdb-matcher",
 	"java-matcher",
@@ -24,7 +24,7 @@ var matcherTypeStr = []string{
 
 var AllMatcherTypes = []MatcherType{
 	ApkMatcher,
-	RubyBundleMatcher,
+	RubyGemMatcher,
 	DpkgMatcher,
 	RpmDBMatcher,
 	JavaMatcher,

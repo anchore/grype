@@ -12,7 +12,7 @@ type Matcher struct {
 }
 
 func (m *Matcher) PackageTypes() []pkg.Type {
-	return []pkg.Type{pkg.NpmPkg, pkg.YarnPkg}
+	return []pkg.Type{pkg.NpmPkg}
 }
 
 func (m *Matcher) Type() match.MatcherType {

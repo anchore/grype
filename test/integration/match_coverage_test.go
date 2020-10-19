@@ -1,5 +1,3 @@
-//+build integration
-
 package integration
 
 import (
@@ -57,7 +55,7 @@ func addAlpineMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, 
 }
 
 func addJavascriptMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *match.Matches) {
-	packages := getPackagesByPath(t, theScope, catalog, "/javascript/pkg-lock/package-lock.json")
+	packages := getPackagesByPath(t, theScope, catalog, "/javascript/pkg-json/package.json")
 	if len(packages) != 1 {
 		t.Logf("Javascript Packages: %+v", packages)
 		t.Fatalf("problem with upstream syft cataloger (javascript)")
@@ -136,7 +134,7 @@ func addRubyMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, th
 			"constraint": "> 4.0.0, <= 4.1.1 (semver)",
 		},
 		IndirectPackage: nil,
-		Matcher:         match.RubyBundleMatcher,
+		Matcher:         match.RubyGemMatcher,
 	})
 }
 

@@ -4,12 +4,12 @@ import (
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/apk"
-	"github.com/anchore/grype/grype/matcher/bundler"
 	"github.com/anchore/grype/grype/matcher/dpkg"
 	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
 	"github.com/anchore/grype/grype/matcher/python"
 	"github.com/anchore/grype/grype/matcher/rpmdb"
+	"github.com/anchore/grype/grype/matcher/ruby"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
@@ -39,7 +39,7 @@ func newController() controller {
 		matchers: make(map[pkg.Type][]Matcher),
 	}
 	ctrlr.add(&dpkg.Matcher{})
-	ctrlr.add(&bundler.Matcher{})
+	ctrlr.add(&ruby.Matcher{})
 	ctrlr.add(&python.Matcher{})
 	ctrlr.add(&rpmdb.Matcher{})
 	ctrlr.add(&java.Matcher{})

@@ -1,4 +1,4 @@
-package bundler
+package ruby
 
 import (
 	"github.com/anchore/grype/grype/match"
@@ -16,7 +16,7 @@ func (m *Matcher) PackageTypes() []pkg.Type {
 }
 
 func (m *Matcher) Type() match.MatcherType {
-	return match.RubyBundleMatcher
+	return match.RubyGemMatcher
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, _ distro.Distro, p *pkg.Package) ([]match.Match, error) {
