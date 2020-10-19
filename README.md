@@ -51,7 +51,7 @@ Grype can scan a variety of sources beyond those found in Docker.
 grype path/to/image.tar
 
 # scan a directory
-grype path/to/dir
+grype dir:path/to/dir
 ```
 
 The output format for Grype is configurable as well:
@@ -61,7 +61,7 @@ grype <image> -o <format>
 
 Where the `format`s available are:
 - `json`: Use this to get as much information out of Grype as possible!
-- `cyclonedx`: A XML report conforming to the [CycloneDX 1.2](https://cyclonedx.org/) specification.
+- `cyclonedx`: An XML report conforming to the [CycloneDX 1.2](https://cyclonedx.org/) specification.
 - `table`: A columnar summary (default).
 
 Grype pulls a database of vulnerabilities derived from the publicly available [Anchore Feed Service](https://ancho.re/v1/service/feeds). This database is updated at the beginning of each scan, but an update can also be triggered manually.
@@ -105,7 +105,7 @@ Generate the completion code for your shell by running one of the following comm
 This will output a shell script to STDOUT, which can then be used as a completion script for Grype. Running one of the above commands with the
 `-h` or `--help` flags will provide instructions on how to do that for your chosen shell.
 
-Note: [Cobra hs not yet released full ZSH support](https://github.com/spf13/cobra/issues/1226), but as soon as that gets released, we will add it here!
+Note: [Cobra has not yet released full ZSH support](https://github.com/spf13/cobra/issues/1226), but as soon as that gets released, we will add it here!
 
 ## Configuration
 
