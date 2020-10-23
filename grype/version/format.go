@@ -54,9 +54,7 @@ func FormatFromPkgType(t pkg.Type) Format {
 		format = RpmFormat
 	case pkg.GemPkg:
 		format = SemanticFormat
-	case pkg.EggPkg:
-		format = PythonFormat
-	case pkg.WheelPkg:
+	case pkg.PythonPkg:
 		format = PythonFormat
 	default:
 		format = UnknownFormat

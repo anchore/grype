@@ -46,7 +46,7 @@ func (m *Matcher) Match(store vulnerability.Provider, d distro.Distro, p *pkg.Pa
 }
 
 func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro, d distro.Distro, p *pkg.Package) ([]match.Match, error) {
-	value, ok := p.Metadata.(pkg.RpmMetadata)
+	value, ok := p.Metadata.(pkg.RpmdbMetadata)
 	if !ok {
 		return nil, fmt.Errorf("bad rpmdb metadata type='%T'", value)
 	}

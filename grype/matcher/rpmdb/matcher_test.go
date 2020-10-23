@@ -16,7 +16,7 @@ func TestMatcherDpkg_matchBySourceIndirection(t *testing.T) {
 		Name:    "neutron-libs",
 		Version: "7.1.3-6",
 		Type:    pkg.RpmPkg,
-		Metadata: pkg.RpmMetadata{
+		Metadata: pkg.RpmdbMetadata{
 			SourceRpm: "neutron-7.1.3-6.el8.src.rpm",
 		},
 	}
@@ -76,7 +76,7 @@ func TestMatcherDpkg_matchBySourceIndirection_ignoreSource(t *testing.T) {
 		Name:    "neutron",
 		Version: "7.1.3-6",
 		Type:    pkg.RpmPkg,
-		Metadata: pkg.RpmMetadata{
+		Metadata: pkg.RpmdbMetadata{
 			SourceRpm: "neutron-7.1.3-6.el8.src.rpm",
 		},
 	}
