@@ -15,14 +15,9 @@ fi
 echo "creating and publishing version file"
 
 # create a version file for version-update checks
-echo "${VERSION}" | tee ${DISTDIR}/VERSION
+VERSION_FILE="${DISTDIR}/VERSION"
+echo "${VERSION}" | tee "${VERSION_FILE}"
 
 # upload the version file that supports the application version update check
-docker run --rm \
-    -i \
-    -e AWS_DEFAULT_REGION=us-west-2 \
-    -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
-    -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
-    -v $(pwd)/${DISTDIR}/:/distmount \
-    amazon/aws-cli \
-        s3 cp /distmount/VERSION s3://toolbox-data.anchore.io/${BIN}/releases/latest/VERSION
+export AWS_DEFAULT_REGION=us-west-2
+aws s3 cp "${VERSION_FILE}" s3://toolbox-data.anchore.io/${BIN}/releases/latest/VERSION

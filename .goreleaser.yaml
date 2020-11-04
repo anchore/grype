@@ -7,12 +7,13 @@ release:
   # If set to true, will not auto-publish the release. This is done to allow us to review the changelog before publishing.
   draft: true
 
-signs:
-  - artifacts: checksum
-    args: ["--output", "${signature}", "--detach-sign", "${artifact}"]
+  # This ensures any macOS signed artifacts get included with the release.
+  extra_files:
+    - glob: "./dist/*.dmg"
 
 builds:
   - binary: grype
+    id: grype
     env:
       - CGO_ENABLED=0
     goos:
@@ -32,6 +33,31 @@ builds:
       -X github.com/anchore/grype/internal/version.gitCommit={{.Commit}}
       -X github.com/anchore/grype/internal/version.buildDate={{.Date}}
       -X github.com/anchore/grype/internal/version.gitTreeState={{.Env.BUILD_GIT_TREE_STATE}}
+  # For more info on this macOS build, see: https://github.com/mitchellh/gon#usage-with-goreleaser
+  - binary: grype
+    id: grype-macos
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+    goarch:
+      - amd64
+    # Set the modified timestamp on the output binary to the git timestamp (to ensure a reproducible build)
+    mod_timestamp: '{{ .CommitTimestamp }}'
+    ldflags: |
+      -w
+      -s
+      -extldflags '-static'
+      -X github.com/anchore/grype/internal/version.version={{.Version}}
+      -X github.com/anchore/grype/internal/version.gitCommit={{.Commit}}
+      -X github.com/anchore/grype/internal/version.buildDate={{.Date}}
+      -X github.com/anchore/grype/internal/version.gitTreeState={{.Env.BUILD_GIT_TREE_STATE}}
+    hooks:
+      post: ./.github/scripts/mac-sign-and-notarize.sh "{{.IsSnapshot}}" "gon.hcl" "./dist/grype_{{.Tag}}_{{.Target}}.dmg"
+
+signs:
+  - artifacts: checksum
+    args: ["--output", "${signature}", "--detach-sign", "${artifact}"]
 
 nfpms:
   - license: "Apache 2.0"
@@ -51,7 +77,8 @@ brews:
 
 archives:
   - format: tar.gz
+    builds:
+      - grype # i.e. Linux only
     format_overrides:
       - goos: windows
         format: zip
-
