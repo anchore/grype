@@ -36,6 +36,10 @@ jobs:
             ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-
             ${{ runner.os }}-go-${{ env.GO_VERSION }}-
 
+      - name: Bootstrap project dependencies
+        if: steps.bootstrap-cache.outputs.cache-hit != 'true'
+        run: make bootstrap
+
       - name: Import GPG key
         id: import_gpg
         uses: crazy-max/ghaction-import-gpg@v2
