@@ -65,6 +65,15 @@ jobs:
           name: artifacts
           path: snapshot/**/*
 
+      - uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,workflow,job,commit,message,author
+          text: The grype acceptance tests have failed tragically!
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_TOOLBOX_WEBHOOK_URL }}
+        if: ${{ failure() }}
+
 
   # TODO: add basic acceptance tests against snapshot artifacts
 
@@ -93,3 +102,12 @@ jobs:
 
       - name: Compare Anchore inline-scan results against snapshot build output
         run: make compare-snapshot
+
+      - uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,workflow,job,commit,message,author
+          text: The grype acceptance tests have failed tragically!
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_TOOLBOX_WEBHOOK_URL }}
+        if: ${{ failure() }}
