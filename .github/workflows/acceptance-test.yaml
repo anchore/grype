@@ -36,6 +36,10 @@ jobs:
             ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-
             ${{ runner.os }}-go-${{ env.GO_VERSION }}-
 
+      - name: Bootstrap project dependencies
+        if: steps.bootstrap-cache.outputs.cache-hit != 'true'
+        run: make bootstrap
+
       - name: Import GPG key
         id: import_gpg
         uses: crazy-max/ghaction-import-gpg@v2
@@ -60,6 +64,15 @@ jobs:
         with:
           name: artifacts
           path: snapshot/**/*
+
+      - uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,workflow,job,commit,message,author
+          text: The grype acceptance tests have failed tragically!
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_TOOLBOX_WEBHOOK_URL }}
+        if: ${{ failure() }}
 
 
   # TODO: add basic acceptance tests against snapshot artifacts
@@ -89,3 +102,12 @@ jobs:
 
       - name: Compare Anchore inline-scan results against snapshot build output
         run: make compare-snapshot
+
+      - uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,workflow,job,commit,message,author
+          text: The grype acceptance tests have failed tragically!
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_TOOLBOX_WEBHOOK_URL }}
+        if: ${{ failure() }}
