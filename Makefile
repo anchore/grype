@@ -65,6 +65,10 @@ help:
 ci-bootstrap: bootstrap
 	DEBIAN_FRONTEND=noninteractive sudo apt update && sudo -E apt install -y bc jq libxml2-utils
 
+.PHONY:
+ci-bootstrap-mac:
+	github_changelog_generator --version || sudo gem install github_changelog_generator
+
 .PHONY: boostrap
 bootstrap: ## Download and install all go dependencies (+ prep tooling in the ./tmp dir)
 	$(call title,Boostrapping dependencies)
@@ -172,8 +176,7 @@ compare:
 changelog-release:
 	@echo "Last tag: $(SECOND_TO_LAST_TAG)"
 	@echo "Current tag: $(VERSION)"
-	@docker run -i --rm  \
-		-v "$(shell pwd)":/usr/local/src/your-app ferrarimarco/github-changelog-generator \
+	@github_changelog_generator \
 		--user anchore \
 		--project $(BIN) \
 		-t ${GITHUB_TOKEN} \
@@ -187,8 +190,9 @@ changelog-release:
 
 .PHONY: changelog-unreleased
 changelog-unreleased: ## show the current changelog that will be produced on the next release (note: requires GITHUB_TOKEN set)
-	@docker run -it --rm  \
-		-v "$(shell pwd)":/usr/local/src/your-app ferrarimarco/github-changelog-generator \
+	@docker run -it --rm \
+		-v "$(shell pwd)":/usr/local/src/your-app \
+		ferrarimarco/github-changelog-generator \
 		--user anchore \
 		--project $(BIN) \
 		-t ${GITHUB_TOKEN} \
@@ -204,8 +208,12 @@ changelog-unreleased: ## show the current changelog that will be produced on the
 			/CHANGELOG.md
 
 .PHONY: release
-release: clean-dist changelog-release ## Build and publish final binaries and packages
+release: clean-dist ci-bootstrap-mac changelog-release ## Build and publish final binaries and packages. Intended to be run only on macOS.
 	$(call title,Publishing release artifacts)
+
+	# Prepare for macOS-specific signing process
+	.github/scripts/mac-prepare-for-signing.sh
+
 	# create a config with the dist dir overridden
 	echo "dist: $(DISTDIR)" > $(TEMPDIR)/goreleaser.yaml
 	cat .goreleaser.yaml >> $(TEMPDIR)/goreleaser.yaml

@@ -15,7 +15,7 @@ env:
 jobs:
   # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
   Build-Snapshot-Artifacts:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest # We're creating these snapshot builds on macOS to be consistent with our release workflow's build process, which also takes place on macOS (due to code signing requirements).
     steps:
 
       - uses: actions/setup-go@v2
@@ -35,10 +35,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}-
             ${{ runner.os }}-go-${{ env.GO_VERSION }}-
-
-      - name: Bootstrap dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: make ci-bootstrap
 
       - name: Import GPG key
         id: import_gpg

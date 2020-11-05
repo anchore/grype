@@ -13,7 +13,7 @@ env:
 
 jobs:
   wait-for-checks:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # This OS choice is arbitrary. None of the steps in this job are specific to either Linux or macOS.
     steps:
 
       - uses: actions/checkout@v2
@@ -71,7 +71,7 @@ jobs:
 
   release:
     needs: [ wait-for-checks ]
-    runs-on: ubuntu-latest
+    runs-on: macos-latest # Due to our code signing process, it's vital that we run our release steps on macOS.
     steps:
 
       - uses: actions/setup-go@v2
@@ -82,6 +82,7 @@ jobs:
         with:
           fetch-depth: 0
 
+      # We are expecting this cache to have been created during the "Build-Snapshot-Artifacts" job in the "Acceptance" workflow.
       - name: Restore bootstrap cache
         id: cache
         uses: actions/cache@v2
@@ -93,10 +94,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('Makefile') }}-
             ${{ runner.os }}-go-${{ env.GO_VERSION }}-
-
-      - name: Bootstrap dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: make ci-bootstrap
 
       - name: Import GPG key
         id: import_gpg
@@ -121,6 +118,10 @@ jobs:
           SIGNING_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
           AWS_ACCESS_KEY_ID: ${{ secrets.TOOLBOX_AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.TOOLBOX_AWS_SECRET_ACCESS_KEY }}
+          APPLE_DEVELOPER_ID_CERT: ${{ secrets.APPLE_DEVELOPER_ID_CERT }} # Used during macOS code signing.
+          APPLE_DEVELOPER_ID_CERT_PASS: ${{ secrets.APPLE_DEVELOPER_ID_CERT_PASS }} # Used during macOS code signing.
+          AC_USERNAME: ${{ secrets.ENG_CI_APPLE_ID }} # Used during macOS notarization.
+          AC_PASSWORD: ${{ secrets.ENG_CI_APPLE_ID_PASS }} # Used during macOS notarization.
 
       - uses: 8398a7/action-slack@v3
         with:
