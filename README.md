@@ -72,7 +72,7 @@ grype db update
 
 ## Installation
 
-**Recommended**
+**Recommended (macOS and Linux)**
 
 ```bash
 # install the latest version to /usr/local/bin
@@ -82,17 +82,11 @@ curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh 
 curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b <SOME_BIN_PATH> <RELEASE_VERSION>
 ```
 
-**macOS**
+**Homebrew (macOS)**
 
 ```bash
 brew tap anchore/grype
 brew install grype
-```
-
-You may experience a "macOS cannot verify app is free from malware" error upon running Grype because it is not yet signed and notarized. You can override this using `xattr`.
-
-```bash
-xattr -rd com.apple.quarantine grype
 ```
 
 ## Shell Completion
