@@ -20,7 +20,6 @@ builds:
       # windows not supported yet (due to jotframe)
       # - windows
       - linux
-      - darwin
     goarch:
       - amd64
     # Set the modified timestamp on the output binary to the git timestamp (to ensure a reproducible build)
