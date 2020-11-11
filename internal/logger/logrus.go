@@ -82,6 +82,14 @@ func (l *LogrusLogger) Infof(format string, args ...interface{}) {
 	l.Logger.Infof(format, args...)
 }
 
+func (l *LogrusLogger) Warnf(format string, args ...interface{}) {
+	l.Logger.Warnf(format, args...)
+}
+
+func (l *LogrusLogger) Errorf(format string, args ...interface{}) {
+	l.Logger.Errorf(format, args...)
+}
+
 func (l *LogrusLogger) Debug(args ...interface{}) {
 	l.Logger.Debug(args...)
 }
@@ -90,12 +98,12 @@ func (l *LogrusLogger) Info(args ...interface{}) {
 	l.Logger.Info(args...)
 }
 
-func (l *LogrusLogger) Warnf(format string, args ...interface{}) {
-	l.Logger.Warnf(format, args...)
+func (l *LogrusLogger) Warn(args ...interface{}) {
+	l.Logger.Warn(args...)
 }
 
-func (l *LogrusLogger) Errorf(format string, args ...interface{}) {
-	l.Logger.Errorf(format, args...)
+func (l *LogrusLogger) Error(args ...interface{}) {
+	l.Logger.Error(args...)
 }
 
 func (l *LogrusNestedLogger) Debugf(format string, args ...interface{}) {
@@ -106,6 +114,14 @@ func (l *LogrusNestedLogger) Infof(format string, args ...interface{}) {
 	l.Logger.Infof(format, args...)
 }
 
+func (l *LogrusNestedLogger) Warnf(format string, args ...interface{}) {
+	l.Logger.Warnf(format, args...)
+}
+
+func (l *LogrusNestedLogger) Errorf(format string, args ...interface{}) {
+	l.Logger.Errorf(format, args...)
+}
+
 func (l *LogrusNestedLogger) Debug(args ...interface{}) {
 	l.Logger.Debug(args...)
 }
@@ -114,10 +130,10 @@ func (l *LogrusNestedLogger) Info(args ...interface{}) {
 	l.Logger.Info(args...)
 }
 
-func (l *LogrusNestedLogger) Warnf(format string, args ...interface{}) {
-	l.Logger.Warnf(format, args...)
+func (l *LogrusNestedLogger) Warn(args ...interface{}) {
+	l.Logger.Warn(args...)
 }
 
-func (l *LogrusNestedLogger) Errorf(format string, args ...interface{}) {
-	l.Logger.Errorf(format, args...)
+func (l *LogrusNestedLogger) Error(args ...interface{}) {
+	l.Logger.Error(args...)
 }
