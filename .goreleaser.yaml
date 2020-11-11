@@ -7,10 +7,6 @@ release:
   # If set to true, will not auto-publish the release. This is done to allow us to review the changelog before publishing.
   draft: true
 
-  # This ensures any macOS signed artifacts get included with the release.
-  extra_files:
-    - glob: "./dist/*.dmg"
-
 builds:
   - binary: grype
     id: grype
@@ -51,12 +47,34 @@ builds:
       -X github.com/anchore/grype/internal/version.gitCommit={{.Commit}}
       -X github.com/anchore/grype/internal/version.buildDate={{.Date}}
       -X github.com/anchore/grype/internal/version.gitTreeState={{.Env.BUILD_GIT_TREE_STATE}}
-    hooks:
-      post: ./.github/scripts/mac-sign-and-notarize.sh "{{.IsSnapshot}}" "gon.hcl" "./dist/grype_{{.Version}}_{{.Target}}.dmg"
+
+archives:
+  - format: tar.gz
+    builds:
+      - grype # i.e. Linux only
+  - format: zip # This is a hack! We don't actually intend to use _this_ ZIP file, we just need goreleaser to consider the ZIP file produced by gon (which will have the same file name) to be an artifact so we can use it downstream in publishing (e.g. to a homebrew tap)
+    id: grype-zip
+    builds:
+      - grype-macos
 
 signs:
   - artifacts: checksum
-    args: ["--output", "${signature}", "--detach-sign", "${artifact}"]
+    cmd: sh
+    args:
+      - '-c'
+      # we should not include the zip artifact, as the artifact is mutated throughout the next macOS notarization step
+      # note: sed -i is not portable
+      - 'sed "/.*\.zip/d" ${artifact} > tmpfile && mv tmpfile ${artifact} && gpg --output ${signature} --detach-sign ${artifact}'
+  - id: grype-macos-signing
+    ids:
+      - grype-macos
+    cmd: ./.github/scripts/mac-sign-and-notarize.sh
+    signature: "grype_${VERSION}_darwin_amd64.dmg" # This is somewhat unintuitive. This gets the DMG file recognized as an artifact. In fact, both a DMG and a ZIP file are being produced by this signing step.
+    args:
+      - "{{ .IsSnapshot }}"
+      - "gon.hcl"
+      - "./dist/grype_{{ .Version }}_darwin_amd64"
+    artifacts: all
 
 nfpms:
   - license: "Apache 2.0"
@@ -73,11 +91,3 @@ brews:
       name: homebrew-grype
     homepage: *website
     description: *description
-
-archives:
-  - format: tar.gz
-    builds:
-      - grype # i.e. Linux only
-    format_overrides:
-      - goos: windows
-        format: zip
