@@ -31,7 +31,8 @@
     ],
     "locations": [
      "/some/path/pkg1"
-    ]
+    ],
+    "licenses": null
    }
   },
   {
@@ -63,7 +64,8 @@
     ],
     "locations": [
      "/some/path/pkg1"
-    ]
+    ],
+    "licenses": null
    }
   },
   {
@@ -90,7 +92,8 @@
     ],
     "locations": [
      "/some/path/pkg1"
-    ]
+    ],
+    "licenses": null
    }
   }
  ],

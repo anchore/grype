@@ -21,7 +21,7 @@ func TestMatcherDpkg_matchBySourceIndirection(t *testing.T) {
 		},
 	}
 
-	d, err := distro.NewDistro(distro.CentOS, "8")
+	d, err := distro.NewDistro(distro.CentOS, "8", "")
 	if err != nil {
 		t.Fatal("could not create distro: ", err)
 	}
@@ -81,7 +81,7 @@ func TestMatcherDpkg_matchBySourceIndirection_ignoreSource(t *testing.T) {
 		},
 	}
 
-	d, err := distro.NewDistro(distro.CentOS, "8")
+	d, err := distro.NewDistro(distro.CentOS, "8", "")
 	if err != nil {
 		t.Fatal("could not create distro: ", err)
 	}

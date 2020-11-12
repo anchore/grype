@@ -339,6 +339,12 @@ func TestPkgCoverageImage(t *testing.T) {
 
 	if len(observedMatchers) != len(definedMatchers) {
 		t.Errorf("matcher coverage incomplete (matchers=%d, coverage=%d)", len(definedMatchers), len(observedMatchers))
+		for _, m := range definedMatchers.ToSlice() {
+			t.Logf("  defined: %+v\n", m)
+		}
+		for _, m := range observedMatchers.ToSlice() {
+			t.Logf("  found: %+v\n", m)
+		}
 	}
 
 }

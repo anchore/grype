@@ -53,7 +53,7 @@ func TestNoSecDBMatch(t *testing.T) {
 	provider := vulnerability.NewProviderFromStore(&store)
 
 	m := Matcher{}
-	d, err := distro.NewDistro(distro.Alpine, "3.12.0")
+	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
 	if err != nil {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
@@ -105,7 +105,7 @@ func TestMatches(t *testing.T) {
 	provider := vulnerability.NewProviderFromStore(&store)
 
 	m := Matcher{}
-	d, err := distro.NewDistro(distro.Alpine, "3.12.0")
+	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
 	if err != nil {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}

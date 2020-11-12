@@ -34,7 +34,8 @@
       "path": "/somefile-1.txt",
       "layerIndex": 0
      }
-    ]
+    ],
+    "licenses": null
    }
   },
   {
@@ -69,7 +70,8 @@
       "path": "/somefile-1.txt",
       "layerIndex": 0
      }
-    ]
+    ],
+    "licenses": null
    }
   },
   {
@@ -99,7 +101,8 @@
       "path": "/somefile-1.txt",
       "layerIndex": 0
      }
-    ]
+    ],
+    "licenses": null
    }
   }
  ],
