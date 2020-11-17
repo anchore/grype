@@ -8,14 +8,15 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/stereoscope/pkg/imagetest"
+	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/pkg"
-	"github.com/anchore/syft/syft/scope"
+	"github.com/anchore/syft/syft/source"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
-func getPackagesByPath(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, thePath string) []*pkg.Package {
+func getPackagesByPath(t *testing.T, theSource source.Source, catalog *pkg.Catalog, thePath string) []*pkg.Package {
 	t.Helper()
-	refs, err := theScope.Resolver.FilesByGlob(thePath)
+	refs, err := theSource.Resolver.FilesByGlob(thePath)
 	if err != nil {
 		t.Fatalf("could not get ref by path %q: %+v", thePath, err)
 	}
@@ -25,8 +26,8 @@ func getPackagesByPath(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog,
 	return catalog.PackagesByFile(refs[0])
 }
 
-func addAlpineMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *match.Matches) {
-	packages := getPackagesByPath(t, theScope, catalog, "/lib/apk/db/installed")
+func addAlpineMatches(t *testing.T, theSource source.Source, catalog *pkg.Catalog, theStore *mockStore, theResult *match.Matches) {
+	packages := getPackagesByPath(t, theSource, catalog, "/lib/apk/db/installed")
 	if len(packages) != 1 {
 		t.Logf("Alpine Packages: %+v", packages)
 		t.Fatalf("problem with upstream syft cataloger (alpine)")
@@ -54,8 +55,8 @@ func addAlpineMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, 
 	})
 }
 
-func addJavascriptMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *match.Matches) {
-	packages := getPackagesByPath(t, theScope, catalog, "/javascript/pkg-json/package.json")
+func addJavascriptMatches(t *testing.T, theSource source.Source, catalog *pkg.Catalog, theStore *mockStore, theResult *match.Matches) {
+	packages := getPackagesByPath(t, theSource, catalog, "/javascript/pkg-json/package.json")
 	if len(packages) != 1 {
 		t.Logf("Javascript Packages: %+v", packages)
 		t.Fatalf("problem with upstream syft cataloger (javascript)")
@@ -82,8 +83,8 @@ func addJavascriptMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catal
 	})
 }
 
-func addPythonMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *match.Matches) {
-	packages := getPackagesByPath(t, theScope, catalog, "/python/dist-info/METADATA")
+func addPythonMatches(t *testing.T, theSource source.Source, catalog *pkg.Catalog, theStore *mockStore, theResult *match.Matches) {
+	packages := getPackagesByPath(t, theSource, catalog, "/python/dist-info/METADATA")
 	if len(packages) != 1 {
 		t.Logf("Python Packages: %+v", packages)
 		t.Fatalf("problem with upstream syft cataloger (python)")
@@ -110,8 +111,8 @@ func addPythonMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, 
 	})
 }
 
-func addRubyMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *match.Matches) {
-	packages := getPackagesByPath(t, theScope, catalog, "/ruby/specifications/bundler.gemspec")
+func addRubyMatches(t *testing.T, theSource source.Source, catalog *pkg.Catalog, theStore *mockStore, theResult *match.Matches) {
+	packages := getPackagesByPath(t, theSource, catalog, "/ruby/specifications/bundler.gemspec")
 	if len(packages) != 1 {
 		t.Logf("Ruby Packages: %+v", packages)
 		t.Fatalf("problem with upstream syft cataloger (ruby)")
@@ -138,7 +139,7 @@ func addRubyMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, th
 	})
 }
 
-func addJavaMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *match.Matches) {
+func addJavaMatches(t *testing.T, theSource source.Source, catalog *pkg.Catalog, theStore *mockStore, theResult *match.Matches) {
 	packages := make([]*pkg.Package, 0)
 	for p := range catalog.Enumerate(pkg.JavaPkg) {
 		packages = append(packages, p)
@@ -173,8 +174,8 @@ func addJavaMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, th
 	})
 }
 
-func addDpkgMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *match.Matches) {
-	packages := getPackagesByPath(t, theScope, catalog, "/var/lib/dpkg/status")
+func addDpkgMatches(t *testing.T, theSource source.Source, catalog *pkg.Catalog, theStore *mockStore, theResult *match.Matches) {
+	packages := getPackagesByPath(t, theSource, catalog, "/var/lib/dpkg/status")
 	if len(packages) != 1 {
 		t.Logf("Dpkg Packages: %+v", packages)
 		t.Fatalf("problem with upstream syft cataloger (dpkg)")
@@ -205,8 +206,8 @@ func addDpkgMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, th
 	})
 }
 
-func addRhelMatches(t *testing.T, theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore, theResult *match.Matches) {
-	packages := getPackagesByPath(t, theScope, catalog, "/var/lib/rpm/Packages")
+func addRhelMatches(t *testing.T, theSource source.Source, catalog *pkg.Catalog, theStore *mockStore, theResult *match.Matches) {
+	packages := getPackagesByPath(t, theSource, catalog, "/var/lib/rpm/Packages")
 	if len(packages) != 1 {
 		t.Logf("RPMDB Packages: %+v", packages)
 		t.Fatalf("problem with upstream syft cataloger (RPMDB)")
@@ -246,33 +247,33 @@ func TestPkgCoverageImage(t *testing.T) {
 
 	tests := []struct {
 		fixtureImage string
-		expectedFn   func(scope.Scope, *pkg.Catalog, *mockStore) match.Matches
+		expectedFn   func(source.Source, *pkg.Catalog, *mockStore) match.Matches
 	}{
 		{
 			fixtureImage: "image-debian-match-coverage",
-			expectedFn: func(theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore) match.Matches {
+			expectedFn: func(theSource source.Source, catalog *pkg.Catalog, theStore *mockStore) match.Matches {
 				expectedMatches := match.NewMatches()
-				addPythonMatches(t, theScope, catalog, theStore, &expectedMatches)
-				addRubyMatches(t, theScope, catalog, theStore, &expectedMatches)
-				addJavaMatches(t, theScope, catalog, theStore, &expectedMatches)
-				addDpkgMatches(t, theScope, catalog, theStore, &expectedMatches)
-				addJavascriptMatches(t, theScope, catalog, theStore, &expectedMatches)
+				addPythonMatches(t, theSource, catalog, theStore, &expectedMatches)
+				addRubyMatches(t, theSource, catalog, theStore, &expectedMatches)
+				addJavaMatches(t, theSource, catalog, theStore, &expectedMatches)
+				addDpkgMatches(t, theSource, catalog, theStore, &expectedMatches)
+				addJavascriptMatches(t, theSource, catalog, theStore, &expectedMatches)
 				return expectedMatches
 			},
 		},
 		{
 			fixtureImage: "image-centos-match-coverage",
-			expectedFn: func(theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore) match.Matches {
+			expectedFn: func(theSource source.Source, catalog *pkg.Catalog, theStore *mockStore) match.Matches {
 				expectedMatches := match.NewMatches()
-				addRhelMatches(t, theScope, catalog, theStore, &expectedMatches)
+				addRhelMatches(t, theSource, catalog, theStore, &expectedMatches)
 				return expectedMatches
 			},
 		},
 		{
 			fixtureImage: "image-alpine-match-coverage",
-			expectedFn: func(theScope scope.Scope, catalog *pkg.Catalog, theStore *mockStore) match.Matches {
+			expectedFn: func(theSource source.Source, catalog *pkg.Catalog, theStore *mockStore) match.Matches {
 				expectedMatches := match.NewMatches()
-				addAlpineMatches(t, theScope, catalog, theStore, &expectedMatches)
+				addAlpineMatches(t, theSource, catalog, theStore, &expectedMatches)
 				return expectedMatches
 			},
 		},
@@ -286,17 +287,23 @@ func TestPkgCoverageImage(t *testing.T) {
 			tarPath := imagetest.GetFixtureImageTarPath(t, test.fixtureImage)
 			defer cleanup()
 
-			actualResults, catalog, theScope, err := grype.FindVulnerabilities(
-				vulnerability.NewProviderFromStore(theStore),
-				"docker-archive:"+tarPath,
-				scope.AllLayersScope,
-			)
+			userImage := "docker-archive:" + tarPath
+			scopeOption := source.AllLayersScope
+
+			// this is purely done to help setup mocks
+			theSource, theCatalog, theDistro, err := syft.Catalog(userImage, scopeOption)
 			if err != nil {
-				t.Fatalf("failed to find vulnerabilities: %+v", err)
+				t.Fatalf("could not get the source obj: %+v", err)
 			}
 
+			actualResults := grype.FindVulnerabilitiesForCatalog(
+				vulnerability.NewProviderFromStore(theStore),
+				theDistro,
+				theCatalog,
+			)
+
 			// build expected matches from what's discovered from the catalog
-			expectedMatches := test.expectedFn(*theScope, catalog, theStore)
+			expectedMatches := test.expectedFn(theSource, theCatalog, theStore)
 
 			// build expected match set...
 			expectedMatchSet := map[string]string{}

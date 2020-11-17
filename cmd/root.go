@@ -20,16 +20,21 @@ import (
 	"github.com/anchore/grype/internal/format"
 	"github.com/anchore/grype/internal/ui"
 	"github.com/anchore/grype/internal/version"
-	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/distro"
 	"github.com/anchore/syft/syft/pkg"
-	"github.com/anchore/syft/syft/scope"
+	"github.com/anchore/syft/syft/source"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/wagoodman/go-partybus"
+)
+
+const (
+	scopeFlag  = "scope"
+	outputFlag = "output"
+	FailOnFlag = "fail-on"
 )
 
 var rootCmd = &cobra.Command{
@@ -46,10 +51,15 @@ You can also explicitly specify the scheme to use:
     {{.appName}} oci-archive:path/to/yourimage.tar      use a tarball from disk for OCI archives (from Podman or otherwise)
     {{.appName}} oci-dir:path/to/yourimage              read directly from a path on disk for OCI layout directories (from Skopeo or otherwise)
     {{.appName}} dir:path/to/yourproject                read directly from a path on disk (any directory)
+    {{.appName}} sbom:path/to/syft.json                 read Syft JSON from path on disk
+
+You can also pipe in Syft JSON directly:
+	syft yourimage:tag -o json | {{.appName}}
+
 `, map[string]interface{}{
 		"appName": internal.ApplicationName,
 	}),
-	Args: cobra.MaximumNArgs(1),
+	Args: validateRootArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		if appConfig.Dev.ProfileCPU {
 			f, err := os.Create("cpu.profile")
@@ -62,14 +72,7 @@ You can also explicitly specify the scheme to use:
 				}
 			}
 		}
-		if len(args) == 0 {
-			err := cmd.Help()
-			if err != nil {
-				log.Errorf(err.Error())
-				os.Exit(1)
-			}
-			os.Exit(1)
-		}
+
 		err := runDefaultCmd(cmd, args)
 
 		if appConfig.Dev.ProfileCPU {
@@ -102,14 +105,24 @@ You can also explicitly specify the scheme to use:
 	},
 }
 
+func validateRootArgs(cmd *cobra.Command, args []string) error {
+	// the user must specify at least one argument OR wait for input on stdin IF it is a pipe
+	if len(args) == 0 && !internal.IsPipedInput() {
+		// return an error with no message for the user, which will implicitly show the help text (but no specific error)
+		return fmt.Errorf("")
+	}
+
+	return cobra.MaximumNArgs(1)(cmd, args)
+}
+
 func init() {
 	// setup CLI options specific to scanning an image
 
 	// scan options
-	flag := "scope"
+	flag := scopeFlag
 	rootCmd.Flags().StringP(
-		"scope", "s", scope.SquashedScope.String(),
-		fmt.Sprintf("selection of layers to analyze, options=%v", scope.Options),
+		scopeFlag, "s", source.SquashedScope.String(),
+		fmt.Sprintf("selection of layers to analyze, options=%v", source.AllScopes),
 	)
 	if err := viper.BindPFlag(flag, rootCmd.Flags().Lookup(flag)); err != nil {
 		fmt.Printf("unable to bind flag '%s': %+v", flag, err)
@@ -117,7 +130,7 @@ func init() {
 	}
 
 	// output & formatting options
-	flag = "output"
+	flag = outputFlag
 	rootCmd.Flags().StringP(
 		flag, "o", presenter.TablePresenter.String(),
 		fmt.Sprintf("report output formatter, options=%v", presenter.Options),
@@ -127,12 +140,13 @@ func init() {
 		os.Exit(1)
 	}
 
+	flag = FailOnFlag
 	rootCmd.Flags().StringP(
-		"fail-on", "f", "",
+		flag, "f", "",
 		fmt.Sprintf("set the return code to 1 if a vulnerability is found with a severity >= the given severity, options=%v", vulnerability.AllSeverities),
 	)
-	if err := viper.BindPFlag("fail-on-severity", rootCmd.Flags().Lookup("fail-on")); err != nil {
-		fmt.Printf("unable to bind flag '%s': %+v", "fail-on", err)
+	if err := viper.BindPFlag("fail-on-severity", rootCmd.Flags().Lookup(flag)); err != nil {
+		fmt.Printf("unable to bind flag '%s': %+v", flag, err)
 		os.Exit(1)
 	}
 }
@@ -163,8 +177,8 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		var provider vulnerability.Provider
 		var metadataProvider vulnerability.MetadataProvider
 		var catalog *pkg.Catalog
-		var theScope *scope.Scope
-		var theDistro *distro.Distro
+		var srcMetadata source.Metadata
+		var theDistro distro.Distro
 		var err error
 		var wg = &sync.WaitGroup{}
 
@@ -180,7 +194,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 		go func() {
 			defer wg.Done()
-			catalog, theScope, theDistro, err = syft.Catalog(userInput, appConfig.ScopeOpt)
+			srcMetadata, catalog, theDistro, err = grype.Catalog(userInput, appConfig.ScopeOpt)
 			if err != nil {
 				errs <- fmt.Errorf("failed to catalog: %w", err)
 			}
@@ -191,7 +205,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			return
 		}
 
-		matches := grype.FindVulnerabilitiesForCatalog(provider, *theDistro, catalog)
+		matches := grype.FindVulnerabilitiesForCatalog(provider, theDistro, catalog)
 
 		// determine if there are any severities >= to the max allowable severity (which is optional).
 		// note: until the shared file lock in sqlittle is fixed the sqlite DB cannot be access concurrently,
@@ -202,14 +216,18 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 		bus.Publish(partybus.Event{
 			Type:  event.VulnerabilityScanningFinished,
-			Value: presenter.GetPresenter(appConfig.PresenterOpt, matches, catalog, *theScope, metadataProvider),
+			Value: presenter.GetPresenter(appConfig.PresenterOpt, matches, catalog, theDistro, srcMetadata, metadataProvider),
 		})
 	}()
 	return errs
 }
 
 func runDefaultCmd(_ *cobra.Command, args []string) error {
-	userInput := args[0]
+	// we may not be provided an image if the user is piping in SBOM input
+	var userInput string
+	if len(args) > 0 {
+		userInput = args[0]
+	}
 	errs := startWorker(userInput, appConfig.FailOnSeverity)
 	ux := ui.Select(appConfig.CliOptions.Verbosity > 0, appConfig.Quiet)
 	return ux(errs, eventSubscription)
