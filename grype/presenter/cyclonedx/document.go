@@ -2,13 +2,14 @@ package cyclonedx
 
 import (
 	"encoding/xml"
-	"fmt"
-	"strings"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/syft/syft/pkg"
 	syftCDX "github.com/anchore/syft/syft/presenter/cyclonedx"
+	"github.com/anchore/syft/syft/source"
 	"github.com/google/uuid"
 )
 
@@ -27,84 +28,22 @@ type Document struct {
 }
 
 // NewDocument returns an empty CycloneDX Document object.
-func NewDocument() Document {
-	return Document{
-		XMLNs:        "http://cyclonedx.org/schema/bom/1.2",
-		XMLNsBd:      "http://cyclonedx.org/schema/ext/bom-descriptor/1.0",
-		XMLNsV:       "http://cyclonedx.org/schema/ext/vulnerability/1.0",
-		Version:      1,
-		SerialNumber: uuid.New().URN(),
-	}
-}
+func NewDocument(catalog *pkg.Catalog, matches match.Matches, srcMetadata source.Metadata, provider vulnerability.MetadataProvider) (Document, error) {
+	versionInfo := version.FromBuild()
 
-// NewVulnerability creates a Vulnerability document from a match and the metadata provider
-func NewVulnerability(m match.Match, p vulnerability.MetadataProvider) (Vulnerability, error) {
-	metadata, err := p.GetMetadata(m.Vulnerability.ID, m.Vulnerability.RecordSource)
-	if err != nil {
-		return Vulnerability{}, fmt.Errorf("unable to fetch vuln=%q metadata: %+v", m.Vulnerability.ID, err)
+	doc := Document{
+		XMLNs:         "http://cyclonedx.org/schema/bom/1.2",
+		XMLNsBd:       "http://cyclonedx.org/schema/ext/bom-descriptor/1.0",
+		XMLNsV:        "http://cyclonedx.org/schema/ext/vulnerability/1.0",
+		Version:       1,
+		SerialNumber:  uuid.New().URN(),
+		BomDescriptor: syftCDX.NewBomDescriptor(internal.ApplicationName, versionInfo.Version, srcMetadata),
 	}
 
-	// The spec allows many ratings, but we only have 1
-	var rating Rating
-	var score Score
+	// attach matches
 
-	if metadata.CvssV2 != nil {
-		if metadata.CvssV2.ExploitabilityScore > 0 {
-			score.Exploitability = metadata.CvssV2.ExploitabilityScore
-		}
-		if metadata.CvssV2.ImpactScore > 0 {
-			score.Impact = metadata.CvssV2.ImpactScore
-		}
-		score.Base = metadata.CvssV2.BaseScore
-		rating.Method = "CVSSv2"
-		rating.Vector = metadata.CvssV2.Vector
-	}
-
-	if metadata.CvssV3 != nil {
-		if metadata.CvssV3.ExploitabilityScore > 0 {
-			score.Exploitability = metadata.CvssV3.ExploitabilityScore
-		}
-		if metadata.CvssV3.ImpactScore > 0 {
-			score.Impact = metadata.CvssV3.ImpactScore
-		}
-		score.Base = metadata.CvssV3.BaseScore
-		rating.Method = "CVSSv3"
-		rating.Vector = metadata.CvssV3.Vector
-	}
-
-	rating.Score = score
-
-	// The schema does not allow "Negligible", only allowing the following:
-	// 'None', 'Low', 'Medium', 'High', 'Critical', 'Unknown'
-	severity := metadata.Severity
-	if metadata.Severity == "Negligible" {
-		severity = "Low"
-	}
-
-	rating.Severity = severity
-
-	v := Vulnerability{
-		Ref: uuid.New().URN(),
-		ID:  m.Vulnerability.ID,
-		Source: Source{
-			Name: m.Vulnerability.RecordSource,
-			URL:  makeURL(m.Vulnerability.ID),
-		},
-		Ratings:     []Rating{rating},
-		Description: metadata.Description,
-		Advisories: &Advisories{
-			Advisory: metadata.Links,
-		},
-	}
-
-	return v, nil
-}
-
-// NewDocumentFromCatalog returns a CycloneDX Document object populated with the vulnerability contents.
-func NewDocumentFromCatalog(catalog *pkg.Catalog, matches match.Matches, provider vulnerability.MetadataProvider) (Document, error) {
-	bom := NewDocument()
 	for p := range catalog.Enumerate() {
-		// make a new compoent (by value)
+		// make a new component (by value)
 		component := Component{
 			Component: syftCDX.Component{
 				Type:    "library", // TODO: this is not accurate, syft does the same thing
@@ -144,20 +83,8 @@ func NewDocumentFromCatalog(catalog *pkg.Catalog, matches match.Matches, provide
 		}
 
 		// add a *copy* of the component to the bom document
-		bom.Components = append(bom.Components, component)
+		doc.Components = append(doc.Components, component)
 	}
 
-	bom.BomDescriptor = NewBomDescriptor()
-
-	return bom, nil
-}
-
-func makeURL(id string) string {
-	if strings.HasPrefix(id, "CVE-") {
-		return fmt.Sprintf("http://cve.mitre.org/cgi-bin/cvename.cgi?name=%s", id)
-	}
-	if strings.HasPrefix(id, "GHSA") {
-		return fmt.Sprintf("https://github.com/advisories/%s", id)
-	}
-	return id
+	return doc, nil
 }

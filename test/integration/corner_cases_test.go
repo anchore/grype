@@ -3,10 +3,11 @@ package integration
 import (
 	"testing"
 
+	"github.com/anchore/syft/syft/source"
+
 	v1 "github.com/anchore/grype-db/pkg/db/v1"
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/syft/syft/scope"
 )
 
 func TestApkMatch(t *testing.T) {
@@ -48,7 +49,7 @@ func TestApkMatch(t *testing.T) {
 	results, _, _, err := grype.FindVulnerabilities(
 		vulnerability.NewProviderFromStore(&store),
 		"dir:test-fixtures/corner-cases/apk/vnc",
-		scope.AllLayersScope,
+		source.AllLayersScope,
 	)
 	if err != nil {
 		t.Fatalf("failed to find vulnerabilities: %+v", err)

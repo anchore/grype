@@ -26,13 +26,15 @@
     "name": "package-1",
     "version": "1.0.1",
     "type": "deb",
-    "foundBy": [
-     "the-cataloger-1"
-    ],
+    "foundBy": "the-cataloger-1",
     "locations": [
-     "/some/path/pkg1"
+     {
+      "path": "/some/path/pkg1"
+     }
     ],
-    "licenses": null
+    "licenses": null,
+    "language": "",
+    "metadataType": ""
    }
   },
   {
@@ -59,13 +61,15 @@
     "name": "package-1",
     "version": "1.0.1",
     "type": "deb",
-    "foundBy": [
-     "the-cataloger-1"
-    ],
+    "foundBy": "the-cataloger-1",
     "locations": [
-     "/some/path/pkg1"
+     {
+      "path": "/some/path/pkg1"
+     }
     ],
-    "licenses": null
+    "licenses": null,
+    "language": "",
+    "metadataType": ""
    }
   },
   {
@@ -87,15 +91,29 @@
     "name": "package-1",
     "version": "1.0.1",
     "type": "deb",
-    "foundBy": [
-     "the-cataloger-1"
-    ],
+    "foundBy": "the-cataloger-1",
     "locations": [
-     "/some/path/pkg1"
+     {
+      "path": "/some/path/pkg1"
+     }
     ],
-    "licenses": null
+    "licenses": null,
+    "language": "",
+    "metadataType": ""
    }
   }
  ],
- "directory": "/some/path"
+ "source": {
+  "type": "directory",
+  "target": "/some/path"
+ },
+ "distro": {
+  "name": "centos",
+  "version": "8.0",
+  "idLike": "rhel"
+ },
+ "descriptor": {
+  "name": "grype",
+  "version": "[not provided]"
+ }
 }

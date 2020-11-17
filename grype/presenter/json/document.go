@@ -3,25 +3,31 @@ package json
 import (
 	"fmt"
 
+	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/version"
+
+	"github.com/anchore/syft/syft/distro"
+
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/pkg"
 	syftJson "github.com/anchore/syft/syft/presenter/json"
-	"github.com/anchore/syft/syft/scope"
+	"github.com/anchore/syft/syft/source"
 )
 
 // Document represents the JSON document to be presented
 type Document struct {
-	Matches   []Match         `json:"matches"`
-	Image     *syftJson.Image `json:"image,omitempty"`
-	Directory *string         `json:"directory,omitempty"`
+	Matches    []Match               `json:"matches"`
+	Source     syftJson.Source       `json:"source"`
+	Distro     syftJson.Distribution `json:"distro"`
+	Descriptor Descriptor            `json:"descriptor"`
 }
 
 // Match is a single item for the JSON array reported
 type Match struct {
-	Vulnerability Vulnerability     `json:"vulnerability"`
-	MatchDetails  MatchDetails      `json:"matchDetails"`
-	Artifact      syftJson.Artifact `json:"artifact"`
+	Vulnerability Vulnerability    `json:"vulnerability"`
+	MatchDetails  MatchDetails     `json:"matchDetails"`
+	Artifact      syftJson.Package `json:"artifact"`
 }
 
 // MatchDetails contains all data that indicates how the result match was found
@@ -32,23 +38,12 @@ type MatchDetails struct {
 }
 
 // NewDocument creates and populates a new Document struct, representing the populated JSON document.
-func NewDocument(catalog *pkg.Catalog, s scope.Scope, matches match.Matches, metadataProvider vulnerability.MetadataProvider) (Document, error) {
-	doc := Document{}
-
-	switch src := s.Source.(type) {
-	case scope.ImageSource:
-		doc.Image = syftJson.NewImage(src)
-	case scope.DirSource:
-		doc.Directory = &src.Path
-	default:
-		return Document{}, fmt.Errorf("unsupported source: %T", src)
-	}
-
+func NewDocument(catalog *pkg.Catalog, d distro.Distro, srcMetadata source.Metadata, matches match.Matches, metadataProvider vulnerability.MetadataProvider) (Document, error) {
 	// we must preallocate the findings to ensure the JSON document does not show "null" when no matches are found
 	var findings = make([]Match, 0)
 	for m := range matches.Enumerate() {
 		p := catalog.Package(m.Package.ID())
-		art, err := syftJson.NewArtifact(p, s)
+		artifact, err := syftJson.NewPackage(p)
 		if err != nil {
 			return Document{}, err
 		}
@@ -62,7 +57,7 @@ func NewDocument(catalog *pkg.Catalog, s scope.Scope, matches match.Matches, met
 			findings,
 			Match{
 				Vulnerability: NewVulnerability(m, metadata),
-				Artifact:      art,
+				Artifact:      artifact,
 				MatchDetails: MatchDetails{
 					Matcher:   m.Matcher.String(),
 					SearchKey: m.SearchKey,
@@ -71,7 +66,19 @@ func NewDocument(catalog *pkg.Catalog, s scope.Scope, matches match.Matches, met
 			},
 		)
 	}
-	doc.Matches = findings
 
-	return doc, nil
+	src, err := syftJson.NewSource(srcMetadata)
+	if err != nil {
+		return Document{}, err
+	}
+
+	return Document{
+		Matches: findings,
+		Source:  src,
+		Distro:  syftJson.NewDistribution(d),
+		Descriptor: Descriptor{
+			Name:    internal.ApplicationName,
+			Version: version.FromBuild().Version,
+		},
+	}, nil
 }

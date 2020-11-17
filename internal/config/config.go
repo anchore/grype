@@ -10,7 +10,7 @@ import (
 	"github.com/anchore/grype/grype/presenter"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
-	"github.com/anchore/syft/syft/scope"
+	"github.com/anchore/syft/syft/source"
 	"github.com/mitchellh/go-homedir"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -25,7 +25,7 @@ type Application struct {
 	ConfigPath        string
 	PresenterOpt      presenter.Option
 	Output            string `mapstructure:"output"`
-	ScopeOpt          scope.Option
+	ScopeOpt          source.Scope
 	Scope             string  `mapstructure:"scope"`
 	Quiet             bool    `mapstructure:"quiet"`
 	Log               Logging `mapstructure:"log"`
@@ -108,8 +108,8 @@ func (cfg *Application) Build() error {
 	cfg.PresenterOpt = presenterOption
 
 	// set the scope
-	scopeOption := scope.ParseOption(cfg.Scope)
-	if scopeOption == scope.UnknownScope {
+	scopeOption := source.ParseScope(cfg.Scope)
+	if scopeOption == source.UnknownScope {
 		return fmt.Errorf("bad --scope value '%s'", cfg.Scope)
 	}
 	cfg.ScopeOpt = scopeOption

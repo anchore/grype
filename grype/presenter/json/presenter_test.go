@@ -5,13 +5,15 @@ import (
 	"flag"
 	"testing"
 
+	"github.com/anchore/syft/syft/distro"
+
+	"github.com/anchore/syft/syft/source"
+
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/stereoscope/pkg/file"
 	"github.com/anchore/stereoscope/pkg/imagetest"
 	"github.com/anchore/syft/syft/pkg"
-	"github.com/anchore/syft/syft/scope"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
@@ -72,8 +74,8 @@ func TestJsonImgsPresenter(t *testing.T) {
 		Name:    "package-1",
 		Version: "1.1.1",
 		Type:    pkg.DebPkg,
-		Source: []file.Reference{
-			*img.SquashedTree().File("/somefile-1.txt"),
+		Locations: []source.Location{
+			source.NewLocationFromImage(*img.SquashedTree().File("/somefile-1.txt"), img),
 		},
 		FoundBy: "the-cataloger-1",
 	}
@@ -82,8 +84,8 @@ func TestJsonImgsPresenter(t *testing.T) {
 		Name:    "package-2",
 		Version: "2.2.2",
 		Type:    pkg.DebPkg,
-		Source: []file.Reference{
-			*img.SquashedTree().File("/somefile-2.txt"),
+		Locations: []source.Location{
+			source.NewLocationFromImage(*img.SquashedTree().File("/somefile-2.txt"), img),
 		},
 		FoundBy: "the-cataloger-2",
 	}
@@ -141,6 +143,11 @@ func TestJsonImgsPresenter(t *testing.T) {
 		},
 	}
 
+	d, err := distro.NewDistro(distro.CentOS, "8.0", "rhel")
+	if err != nil {
+		t.Fatalf("could not make distro: %+v", err)
+	}
+
 	matches := match.NewMatches()
 	matches.Add(&pkg1, match1, match2, match3)
 
@@ -148,12 +155,12 @@ func TestJsonImgsPresenter(t *testing.T) {
 	catalog.Add(pkg1)
 	catalog.Add(pkg2)
 
-	theScope, err := scope.NewScopeFromImage(img, scope.AllLayersScope)
+	theSource, err := source.NewFromImage(img, source.AllLayersScope, "user-input")
 	if err != nil {
 		t.Fatalf("failed to create scope: %+v", err)
 	}
 
-	pres := NewPresenter(matches, catalog, theScope, newMetadataMock())
+	pres := NewPresenter(matches, catalog, d, theSource.Metadata, newMetadataMock())
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
@@ -189,7 +196,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 		Version: "1.0.1",
 		Type:    pkg.DebPkg,
 		FoundBy: "the-cataloger-1",
-		Source: []file.Reference{
+		Locations: []source.Location{
 			{Path: "/some/path/pkg1"},
 		},
 	})
@@ -259,12 +266,17 @@ func TestJsonDirsPresenter(t *testing.T) {
 	matches := match.NewMatches()
 	matches.Add(pkg1, match1, match2, match3)
 
-	s, err := scope.NewScopeFromDir("/some/path")
+	s, err := source.NewFromDirectory("/some/path")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	pres := NewPresenter(matches, catalog, s, newMetadataMock())
+	d, err := distro.NewDistro(distro.CentOS, "8.0", "rhel")
+	if err != nil {
+		t.Fatalf("could not make distro: %+v", err)
+	}
+
+	pres := NewPresenter(matches, catalog, d, s.Metadata, newMetadataMock())
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
@@ -306,12 +318,17 @@ func TestEmptyJsonPresenter(t *testing.T) {
 
 	catalog := pkg.NewCatalog()
 
-	theScope, err := scope.NewScopeFromImage(img, scope.AllLayersScope)
+	theSource, err := source.NewFromImage(img, source.AllLayersScope, "user-input")
 	if err != nil {
 		t.Fatalf("failed to create scope: %+v", err)
 	}
 
-	pres := NewPresenter(matches, catalog, theScope, nil)
+	d, err := distro.NewDistro(distro.CentOS, "8.0", "rhel")
+	if err != nil {
+		t.Fatalf("could not make distro: %+v", err)
+	}
+
+	pres := NewPresenter(matches, catalog, d, theSource.Metadata, nil)
 
 	// run presenter
 	if err = pres.Present(&buffer); err != nil {
