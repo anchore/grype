@@ -8,7 +8,7 @@ import (
 
 // completionCmd represents the completion command
 var completionCmd = &cobra.Command{
-	Use:   "completion [bash|zsh|fish|powershell]",
+	Use:   "completion [bash|zsh|fish]",
 	Short: "Generate a shell completion for Grype (listing local docker images)",
 	Long: `To load completions (docker image list):
 
