@@ -26,7 +26,7 @@ func TestMatcherDpkg_matchBySourceIndirection(t *testing.T) {
 	}
 
 	store := newMockProvider()
-	actual, err := matcher.matchBySourceIndirection(store, d, &p)
+	actual, err := matcher.matchBySourceIndirection(store, &d, &p)
 
 	if len(actual) != 2 {
 		t.Fatalf("unexpected indirect matches count: %d", len(actual))

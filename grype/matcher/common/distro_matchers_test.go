@@ -73,7 +73,7 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 	}
 
 	store := newMockProviderByDistro()
-	actual, err := FindMatchesByPackageDistro(store, d, &p, match.PythonMatcher)
+	actual, err := FindMatchesByPackageDistro(store, &d, &p, match.PythonMatcher)
 	if err != nil {
 		t.Fatalf("error while finding matches: %+v", err)
 	}

@@ -10,5 +10,5 @@ import (
 type Matcher interface {
 	PackageTypes() []pkg.Type
 	Type() match.MatcherType
-	Match(vulnerability.Provider, distro.Distro, *pkg.Package) ([]match.Match, error)
+	Match(vulnerability.Provider, *distro.Distro, *pkg.Package) ([]match.Match, error)
 }

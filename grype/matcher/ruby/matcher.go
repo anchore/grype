@@ -19,7 +19,7 @@ func (m *Matcher) Type() match.MatcherType {
 	return match.RubyGemMatcher
 }
 
-func (m *Matcher) Match(store vulnerability.Provider, _ distro.Distro, p *pkg.Package) ([]match.Match, error) {
+func (m *Matcher) Match(store vulnerability.Provider, _ *distro.Distro, p *pkg.Package) ([]match.Match, error) {
 	var matches = make([]match.Match, 0)
 	langMatches, err := common.FindMatchesByPackageLanguage(store, p.Language, p, m.Type())
 	if err != nil {

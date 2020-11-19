@@ -21,14 +21,14 @@ import (
 	"github.com/wagoodman/go-partybus"
 )
 
-func Catalog(userImageStr string, scopeOpt source.Scope) (source.Metadata, *pkg.Catalog, distro.Distro, error) {
+func Catalog(userImageStr string, scopeOpt source.Scope) (source.Metadata, *pkg.Catalog, *distro.Distro, error) {
 	// handle explicit sbom input first
 	if strings.HasPrefix(userImageStr, "sbom:") {
 		// the user has explicitly hinted this is an sbom, if there is an issue return the error
 		filepath := strings.TrimPrefix(userImageStr, "sbom:")
 		sbomReader, err := os.Open(filepath)
 		if err != nil {
-			return source.Metadata{}, nil, distro.Distro{}, fmt.Errorf("unable to read sbom: %w", err)
+			return source.Metadata{}, nil, nil, fmt.Errorf("unable to read sbom: %w", err)
 		}
 		return syft.CatalogFromJSON(sbomReader)
 	} else if internal.IsPipedInput() && userImageStr == "" {
@@ -47,7 +47,7 @@ func Catalog(userImageStr string, scopeOpt source.Scope) (source.Metadata, *pkg.
 	// attempt to parse as an image (left syft handle this)
 	theSource, catalog, theDistro, err := syft.Catalog(userImageStr, scopeOpt)
 	if err != nil {
-		return source.Metadata{}, nil, distro.Distro{}, err
+		return source.Metadata{}, nil, nil, err
 	}
 	return theSource.Metadata, catalog, theDistro, nil
 }
@@ -61,7 +61,7 @@ func FindVulnerabilities(provider vulnerability.Provider, userImageStr string, s
 	return FindVulnerabilitiesForCatalog(provider, theDistro, catalog), sourceMetadata, catalog, nil
 }
 
-func FindVulnerabilitiesForCatalog(provider vulnerability.Provider, d distro.Distro, catalog *pkg.Catalog) match.Matches {
+func FindVulnerabilitiesForCatalog(provider vulnerability.Provider, d *distro.Distro, catalog *pkg.Catalog) match.Matches {
 	packages := make([]*pkg.Package, 0)
 	for p := range catalog.Enumerate() {
 		packages = append(packages, p)
@@ -69,7 +69,7 @@ func FindVulnerabilitiesForCatalog(provider vulnerability.Provider, d distro.Dis
 	return FindVulnerabilitiesForPackage(provider, d, packages...)
 }
 
-func FindVulnerabilitiesForPackage(provider vulnerability.Provider, d distro.Distro, packages ...*pkg.Package) match.Matches {
+func FindVulnerabilitiesForPackage(provider vulnerability.Provider, d *distro.Distro, packages ...*pkg.Package) match.Matches {
 	return matcher.FindMatches(provider, d, packages...)
 }
 

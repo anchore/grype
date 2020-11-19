@@ -22,7 +22,7 @@ type Presenter interface {
 }
 
 // GetPresenter retrieves a Presenter that matches a CLI option
-func GetPresenter(option Option, matches match.Matches, catalog *pkg.Catalog, d distro.Distro, srcMetadata source.Metadata, metadataProvider vulnerability.MetadataProvider) Presenter {
+func GetPresenter(option Option, matches match.Matches, catalog *pkg.Catalog, d *distro.Distro, srcMetadata source.Metadata, metadataProvider vulnerability.MetadataProvider) Presenter {
 	switch option {
 	case JSONPresenter:
 		return json.NewPresenter(matches, catalog, d, srcMetadata, metadataProvider)

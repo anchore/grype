@@ -9,6 +9,13 @@ import (
 	"github.com/anchore/syft/syft/pkg"
 )
 
+func must(c pkg.CPE, e error) pkg.CPE {
+	if e != nil {
+		panic(e)
+	}
+	return c
+}
+
 type mockStore struct {
 	backend map[string]map[string][]v1.Vulnerability
 }
@@ -22,8 +29,7 @@ func (s *mockStore) GetVulnerability(namespace, name string) ([]v1.Vulnerability
 }
 
 func TestNoSecDBMatch(t *testing.T) {
-	// SecDB (matchesByPacakgeDistro) doesn't have a corresponding
-	// match to nvd, so no matches are returned
+	// SecDB (matchesByPackageDistro) doesn't have a corresponding match to nvd, so no matches are returned
 	store := mockStore{
 		backend: map[string]map[string][]v1.Vulnerability{
 			"nvd": {
@@ -39,8 +45,7 @@ func TestNoSecDBMatch(t *testing.T) {
 			"alpine:3.12": {
 				"libvncserver": []v1.Vulnerability{
 					{
-						// ID doesn't match - this is the key
-						// for comparison in the matcher
+						// ID doesn't match - this is the key for comparison in the matcher
 						ID:                "CVE-2020-2",
 						VersionConstraint: "<= 0.9.11",
 						VersionFormat:     "apk",
@@ -60,8 +65,11 @@ func TestNoSecDBMatch(t *testing.T) {
 	p := pkg.Package{
 		Name:    "libvncserver",
 		Version: "0.9.9",
+		CPEs: []pkg.CPE{
+			must(pkg.NewCPE("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*")),
+		},
 	}
-	matches, err := m.Match(provider, d, &p)
+	matches, err := m.Match(provider, &d, &p)
 
 	if err != nil {
 		t.Fatalf("failed to get matches: %+v", err)
@@ -74,8 +82,7 @@ func TestNoSecDBMatch(t *testing.T) {
 }
 
 func TestMatches(t *testing.T) {
-	// NVD and Alpine's secDB both have the same CVE ID for the package
-	// so it matches
+	// NVD and Alpine's secDB both have the same CVE ID for the package so it matches
 	store := mockStore{
 		backend: map[string]map[string][]v1.Vulnerability{
 			"nvd": {
@@ -91,8 +98,7 @@ func TestMatches(t *testing.T) {
 			"alpine:3.12": {
 				"libvncserver": []v1.Vulnerability{
 					{
-						// ID *does* match - this is the key
-						// for comparison in the matcher
+						// ID *does* match - this is the key for comparison in the matcher
 						ID:                "CVE-2020-1",
 						VersionConstraint: "<= 0.9.11",
 						VersionFormat:     "apk",
@@ -112,8 +118,11 @@ func TestMatches(t *testing.T) {
 	p := pkg.Package{
 		Name:    "libvncserver",
 		Version: "0.9.9",
+		CPEs: []pkg.CPE{
+			must(pkg.NewCPE("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*")),
+		},
 	}
-	matches, err := m.Match(provider, d, &p)
+	matches, err := m.Match(provider, &d, &p)
 
 	if err != nil {
 		t.Fatalf("failed to get matches: %+v", err)

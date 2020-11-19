@@ -19,7 +19,7 @@ func (m *Matcher) Type() match.MatcherType {
 	return match.ApkMatcher
 }
 
-func (m *Matcher) Match(store vulnerability.Provider, d distro.Distro, p *pkg.Package) ([]match.Match, error) {
+func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p *pkg.Package) ([]match.Match, error) {
 	var matches = make([]match.Match, 0)
 
 	// map {  CVE string : []match }

@@ -38,7 +38,7 @@ type MatchDetails struct {
 }
 
 // NewDocument creates and populates a new Document struct, representing the populated JSON document.
-func NewDocument(catalog *pkg.Catalog, d distro.Distro, srcMetadata source.Metadata, matches match.Matches, metadataProvider vulnerability.MetadataProvider) (Document, error) {
+func NewDocument(catalog *pkg.Catalog, d *distro.Distro, srcMetadata source.Metadata, matches match.Matches, metadataProvider vulnerability.MetadataProvider) (Document, error) {
 	// we must preallocate the findings to ensure the JSON document does not show "null" when no matches are found
 	var findings = make([]Match, 0)
 	for m := range matches.Enumerate() {
