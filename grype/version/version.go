@@ -3,7 +3,6 @@ package version
 import (
 	"fmt"
 
-	"github.com/anchore/grype/grype/cpe"
 	"github.com/anchore/syft/syft/pkg"
 )
 
@@ -14,7 +13,7 @@ type Version struct {
 }
 
 type rich struct {
-	cpeVers []cpe.CPE
+	cpeVers []pkg.CPE
 	semVer  *semanticVersion
 	debVer  *debVersion
 	rpmVer  *rpmVersion
@@ -39,12 +38,8 @@ func NewVersionFromPkg(p *pkg.Package) (*Version, error) {
 	if err != nil {
 		return nil, err
 	}
-	cpes, err := cpe.Generate(p)
-	if err != nil {
-		return nil, err
-	}
 
-	ver.rich.cpeVers = cpes
+	ver.rich.cpeVers = p.CPEs
 	return ver, nil
 }
 
@@ -72,7 +67,7 @@ func (v *Version) populate() error {
 	return fmt.Errorf("no rich version populated (format=%s)", v.Format)
 }
 
-func (v Version) CPEs() []cpe.CPE {
+func (v Version) CPEs() []pkg.CPE {
 	return v.rich.cpeVers
 }
 

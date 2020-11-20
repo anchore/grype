@@ -11,15 +11,18 @@ import (
 	"github.com/anchore/syft/syft/pkg"
 )
 
-func FindMatchesByPackageDistro(store vulnerability.ProviderByDistro, d distro.Distro, p *pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
+func FindMatchesByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p *pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
 	verObj, err := version.NewVersionFromPkg(p)
 	if err != nil {
 		return nil, fmt.Errorf("matcher failed to parse version pkg='%s' ver='%s': %w", p.Name, p.Version, err)
 	}
 
-	allPkgVulns, err := store.GetByDistro(d, p)
-	if err != nil {
-		return nil, fmt.Errorf("matcher failed to fetch distro='%s' pkg='%s': %w", d, p.Name, err)
+	var allPkgVulns []*vulnerability.Vulnerability
+	if d != nil {
+		allPkgVulns, err = store.GetByDistro(*d, p)
+		if err != nil {
+			return nil, fmt.Errorf("matcher failed to fetch distro='%s' pkg='%s': %w", d, p.Name, err)
+		}
 	}
 
 	matches := make([]match.Match, 0)

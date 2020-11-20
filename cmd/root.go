@@ -178,7 +178,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		var metadataProvider vulnerability.MetadataProvider
 		var catalog *pkg.Catalog
 		var srcMetadata source.Metadata
-		var theDistro distro.Distro
+		var theDistro *distro.Distro
 		var err error
 		var wg = &sync.WaitGroup{}
 

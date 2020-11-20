@@ -27,7 +27,7 @@ func (m *Matcher) Type() match.MatcherType {
 	return match.RpmDBMatcher
 }
 
-func (m *Matcher) Match(store vulnerability.Provider, d distro.Distro, p *pkg.Package) ([]match.Match, error) {
+func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p *pkg.Package) ([]match.Match, error) {
 	matches := make([]match.Match, 0)
 
 	sourceMatches, err := m.matchBySourceIndirection(store, d, p)
@@ -45,7 +45,7 @@ func (m *Matcher) Match(store vulnerability.Provider, d distro.Distro, p *pkg.Pa
 	return matches, nil
 }
 
-func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro, d distro.Distro, p *pkg.Package) ([]match.Match, error) {
+func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro, d *distro.Distro, p *pkg.Package) ([]match.Match, error) {
 	value, ok := p.Metadata.(pkg.RpmdbMetadata)
 	if !ok {
 		return nil, fmt.Errorf("bad rpmdb metadata type='%T'", value)

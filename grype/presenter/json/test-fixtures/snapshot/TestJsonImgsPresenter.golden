@@ -35,6 +35,8 @@
     ],
     "licenses": null,
     "language": "",
+    "cpes": [],
+    "purl": "",
     "metadataType": ""
    }
   },
@@ -71,6 +73,8 @@
     ],
     "licenses": null,
     "language": "",
+    "cpes": [],
+    "purl": "",
     "metadataType": ""
    }
   },
@@ -102,6 +106,8 @@
     ],
     "licenses": null,
     "language": "",
+    "cpes": [],
+    "purl": "",
     "metadataType": ""
    }
   }

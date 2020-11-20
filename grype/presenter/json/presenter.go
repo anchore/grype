@@ -17,13 +17,13 @@ import (
 type Presenter struct {
 	matches          match.Matches
 	catalog          *pkg.Catalog
-	distro           distro.Distro
+	distro           *distro.Distro
 	srcMetadata      source.Metadata
 	metadataProvider vulnerability.MetadataProvider
 }
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter(matches match.Matches, catalog *pkg.Catalog, d distro.Distro, srcMetadata source.Metadata, metadataProvider vulnerability.MetadataProvider) *Presenter {
+func NewPresenter(matches match.Matches, catalog *pkg.Catalog, d *distro.Distro, srcMetadata source.Metadata, metadataProvider vulnerability.MetadataProvider) *Presenter {
 	return &Presenter{
 		matches:          matches,
 		catalog:          catalog,

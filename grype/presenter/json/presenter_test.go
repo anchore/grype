@@ -160,7 +160,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 		t.Fatalf("failed to create scope: %+v", err)
 	}
 
-	pres := NewPresenter(matches, catalog, d, theSource.Metadata, newMetadataMock())
+	pres := NewPresenter(matches, catalog, &d, theSource.Metadata, newMetadataMock())
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
@@ -276,7 +276,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 		t.Fatalf("could not make distro: %+v", err)
 	}
 
-	pres := NewPresenter(matches, catalog, d, s.Metadata, newMetadataMock())
+	pres := NewPresenter(matches, catalog, &d, s.Metadata, newMetadataMock())
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
@@ -328,7 +328,7 @@ func TestEmptyJsonPresenter(t *testing.T) {
 		t.Fatalf("could not make distro: %+v", err)
 	}
 
-	pres := NewPresenter(matches, catalog, d, theSource.Metadata, nil)
+	pres := NewPresenter(matches, catalog, &d, theSource.Metadata, nil)
 
 	// run presenter
 	if err = pres.Present(&buffer); err != nil {

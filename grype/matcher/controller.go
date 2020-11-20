@@ -75,7 +75,7 @@ func (c *controller) trackMatcher() (*progress.Manual, *progress.Manual) {
 	return &packagesProcessed, &vulnerabilitiesDiscovered
 }
 
-func (c *controller) findMatches(provider vulnerability.Provider, d distro.Distro, packages ...*pkg.Package) match.Matches {
+func (c *controller) findMatches(provider vulnerability.Provider, d *distro.Distro, packages ...*pkg.Package) match.Matches {
 	res := match.NewMatches()
 
 	packagesProcessed, vulnerabilitiesDiscovered := c.trackMatcher()
@@ -106,7 +106,7 @@ func (c *controller) findMatches(provider vulnerability.Provider, d distro.Distr
 	return res
 }
 
-func FindMatches(provider vulnerability.Provider, d distro.Distro, packages ...*pkg.Package) match.Matches {
+func FindMatches(provider vulnerability.Provider, d *distro.Distro, packages ...*pkg.Package) match.Matches {
 	return controllerInstance.findMatches(provider, d, packages...)
 }
 
