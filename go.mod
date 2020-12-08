@@ -23,6 +23,7 @@ require (
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/olekukonko/tablewriter v0.0.4
+	github.com/scylladb/go-set v1.0.2
 	github.com/sergi/go-diff v1.1.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/afero v1.3.2
