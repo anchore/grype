@@ -4,13 +4,14 @@ import (
 	"testing"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
-	"github.com/anchore/syft/syft/pkg"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-func must(c pkg.CPE, e error) pkg.CPE {
+func must(c syftPkg.CPE, e error) syftPkg.CPE {
 	if e != nil {
 		panic(e)
 	}
@@ -35,29 +36,29 @@ func (pr *mockCPEProvider) stub() {
 			{
 				Constraint: version.MustGetConstraint("< 3.7.6", version.SemanticFormat),
 				ID:         "CVE-2017-fake-1",
-				CPEs: []pkg.CPE{
-					must(pkg.NewCPE("cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*")),
+				CPEs: []syftPkg.CPE{
+					must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*")),
 				},
 			},
 			{
 				Constraint: version.MustGetConstraint("< 3.7.4", version.SemanticFormat),
 				ID:         "CVE-2017-fake-2",
-				CPEs: []pkg.CPE{
-					must(pkg.NewCPE("cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:ruby:*:*")),
+				CPEs: []syftPkg.CPE{
+					must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:ruby:*:*")),
 				},
 			},
 			{
 				Constraint: version.MustGetConstraint("= 4.0.1", version.SemanticFormat),
 				ID:         "CVE-2017-fake-3",
-				CPEs: []pkg.CPE{
-					must(pkg.NewCPE("cpe:2.3:*:couldntgetthisrightcouldyou:activerecord:4.0.1:*:*:*:*:*:*:*")),
+				CPEs: []syftPkg.CPE{
+					must(syftPkg.NewCPE("cpe:2.3:*:couldntgetthisrightcouldyou:activerecord:4.0.1:*:*:*:*:*:*:*")),
 				},
 			},
 			{
 				Constraint: version.MustGetConstraint("= 4.0.1", version.SemanticFormat),
 				ID:         "CVE-2017-fake-3",
-				CPEs: []pkg.CPE{
-					must(pkg.NewCPE("cpe:2.3:*:couldntgetthisrightcouldyou:activerecord:4.0.1:*:*:*:*:*:*:*")),
+				CPEs: []syftPkg.CPE{
+					must(syftPkg.NewCPE("cpe:2.3:*:couldntgetthisrightcouldyou:activerecord:4.0.1:*:*:*:*:*:*:*")),
 				},
 			},
 		},
@@ -65,15 +66,15 @@ func (pr *mockCPEProvider) stub() {
 			{
 				Constraint: version.MustGetConstraint("< 98SP3", version.UnknownFormat),
 				ID:         "CVE-2017-fake-4",
-				CPEs: []pkg.CPE{
-					must(pkg.NewCPE("cpe:2.3:*:awesome:awesome:*:*:*:*:*:*:*:*")),
+				CPEs: []syftPkg.CPE{
+					must(syftPkg.NewCPE("cpe:2.3:*:awesome:awesome:*:*:*:*:*:*:*:*")),
 				},
 			},
 		},
 	}
 }
 
-func (pr *mockCPEProvider) GetByCPE(c pkg.CPE) ([]*vulnerability.Vulnerability, error) {
+func (pr *mockCPEProvider) GetByCPE(c syftPkg.CPE) ([]*vulnerability.Vulnerability, error) {
 	return pr.data["nvd"][c.Product], nil
 }
 
@@ -86,14 +87,14 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 		{
 			name: "match from range",
 			p: pkg.Package{
-				CPEs: []pkg.CPE{
-					must(pkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.5:rando1:*:rando2:*:ruby:*:*")),
-					must(pkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.5:rando4:*:rando3:*:rails:*:*")),
+				CPEs: []syftPkg.CPE{
+					must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.5:rando1:*:rando2:*:ruby:*:*")),
+					must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.5:rando4:*:rando3:*:rails:*:*")),
 				},
 				Name:     "activerecord",
 				Version:  "3.7.5",
-				Language: pkg.Ruby,
-				Type:     pkg.GemPkg,
+				Language: syftPkg.Ruby,
+				Type:     syftPkg.GemPkg,
 			},
 			expected: []string{
 				"CVE-2017-fake-1",
@@ -102,14 +103,14 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 		{
 			name: "multiple matches",
 			p: pkg.Package{
-				CPEs: []pkg.CPE{
-					must(pkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:rando2:*:ruby:*:*")),
-					must(pkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando4:*:rando3:*:rails:*:*")),
+				CPEs: []syftPkg.CPE{
+					must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:rando2:*:ruby:*:*")),
+					must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando4:*:rando3:*:rails:*:*")),
 				},
 				Name:     "activerecord",
 				Version:  "3.7.3",
-				Language: pkg.Ruby,
-				Type:     pkg.GemPkg,
+				Language: syftPkg.Ruby,
+				Type:     syftPkg.GemPkg,
 			},
 			expected: []string{
 				"CVE-2017-fake-1",
@@ -119,14 +120,14 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 		{
 			name: "exact match",
 			p: pkg.Package{
-				CPEs: []pkg.CPE{
-					must(pkg.NewCPE("cpe:2.3:*:activerecord:activerecord:4.0.1:rando1:*:rando2:*:ruby:*:*")),
-					must(pkg.NewCPE("cpe:2.3:*:activerecord:activerecord:4.0.1:rando4:*:rando3:*:rails:*:*")),
+				CPEs: []syftPkg.CPE{
+					must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:4.0.1:rando1:*:rando2:*:ruby:*:*")),
+					must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:4.0.1:rando4:*:rando3:*:rails:*:*")),
 				},
 				Name:     "activerecord",
 				Version:  "4.0.1",
-				Language: pkg.Ruby,
-				Type:     pkg.GemPkg,
+				Language: syftPkg.Ruby,
+				Type:     syftPkg.GemPkg,
 			},
 			expected: []string{
 				"CVE-2017-fake-3",
@@ -137,16 +138,16 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 			p: pkg.Package{
 				Name:     "couldntgetthisrightcouldyou",
 				Version:  "4.0.1",
-				Language: pkg.Ruby,
-				Type:     pkg.GemPkg,
+				Language: syftPkg.Ruby,
+				Type:     syftPkg.GemPkg,
 			},
 			expected: []string{},
 		},
 		{
 			name: "fuzzy version match",
 			p: pkg.Package{
-				CPEs: []pkg.CPE{
-					must(pkg.NewCPE("cpe:2.3:*:awesome:awesome:98SE1:rando1:*:rando2:*:dunno:*:*")),
+				CPEs: []syftPkg.CPE{
+					must(syftPkg.NewCPE("cpe:2.3:*:awesome:awesome:98SE1:rando1:*:rando2:*:dunno:*:*")),
 				},
 				Name:    "awesome",
 				Version: "98SE1",
@@ -161,7 +162,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 
 			store := newMockProviderByCPE()
-			actual, err := FindMatchesByPackageCPE(store, &test.p, match.PythonMatcher)
+			actual, err := FindMatchesByPackageCPE(store, test.p, match.PythonMatcher)
 			if err != nil {
 				t.Fatalf("error while finding matches: %+v", err)
 			}
@@ -188,10 +189,6 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 
 				if a.Matcher != match.PythonMatcher {
 					t.Errorf("failed to capture matcher name: %s", a.Matcher)
-				}
-
-				if a.IndirectPackage != nil {
-					t.Fatalf("should not have captured indirect package")
 				}
 
 				if a.Confidence != 0.9 {

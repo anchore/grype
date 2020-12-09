@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bom xmlns="http://cyclonedx.org/schema/bom/1.2" xmlns:bd="" xmlns:v="http://cyclonedx.org/schema/ext/vulnerability/1.0" version="1" serialNumber="urn:uuid:695cdce5-6808-4a74-ba25-da6c85b669f1">
+  <metadata>
+    <timestamp>2020-12-09T10:38:16-05:00</timestamp>
+    <tools>
+      <tool>
+        <vendor>anchore</vendor>
+        <name>grype</name>
+        <version>[not provided]</version>
+      </tool>
+    </tools>
+    <component type="container">
+      <name>user-input</name>
+      <version>sha256:2731251dc34951c0e50fcc643b4c5f74922dad1a5d98f302b504cf46cd5d9368</version>
+    </component>
+  </metadata>
+  <components>
+    <component type="library">
+      <name>package-1</name>
+      <version>1.0.1</version>
+      <v:vulnerabilities>
+        <v:vulnerability ref="urn:uuid:49000592-8db1-47e3-a8f5-dd8a0c40199e">
+          <v:id>CVE-1999-0001</v:id>
+          <v:source name="source-1">
+            <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0001</v:url>
+          </v:source>
+          <v:ratings>
+            <v:rating>
+              <v:score>
+                <v:base>4</v:base>
+                <v:impact>0</v:impact>
+                <v:exploitability>0</v:exploitability>
+              </v:score>
+              <v:severity>Low</v:severity>
+              <v:method>CVSSv3</v:method>
+              <v:vector>another vector</v:vector>
+            </v:rating>
+          </v:ratings>
+          <v:description>1999-01 description</v:description>
+          <v:advisories></v:advisories>
+        </v:vulnerability>
+        <v:vulnerability ref="urn:uuid:6a5260ea-14eb-46f5-bfca-800cc5437260">
+          <v:id>CVE-1999-0002</v:id>
+          <v:source name="source-2">
+            <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0002</v:url>
+          </v:source>
+          <v:ratings>
+            <v:rating>
+              <v:score>
+                <v:base>1</v:base>
+                <v:impact>3</v:impact>
+                <v:exploitability>2</v:exploitability>
+              </v:score>
+              <v:severity>Critical</v:severity>
+              <v:method>CVSSv2</v:method>
+              <v:vector>vector</v:vector>
+            </v:rating>
+          </v:ratings>
+          <v:description>1999-02 description</v:description>
+          <v:advisories></v:advisories>
+        </v:vulnerability>
+      </v:vulnerabilities>
+    </component>
+    <component type="library">
+      <name>package-2</name>
+      <version>2.0.1</version>
+      <licenses>
+        <license>
+          <name>MIT</name>
+        </license>
+        <license>
+          <name>Apache-v2</name>
+        </license>
+      </licenses>
+    </component>
+  </components>
+</bom>

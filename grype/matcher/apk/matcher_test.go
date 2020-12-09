@@ -4,12 +4,13 @@ import (
 	"testing"
 
 	v1 "github.com/anchore/grype-db/pkg/db/v1"
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/distro"
-	"github.com/anchore/syft/syft/pkg"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-func must(c pkg.CPE, e error) pkg.CPE {
+func must(c syftPkg.CPE, e error) syftPkg.CPE {
 	if e != nil {
 		panic(e)
 	}
@@ -65,11 +66,11 @@ func TestNoSecDBMatch(t *testing.T) {
 	p := pkg.Package{
 		Name:    "libvncserver",
 		Version: "0.9.9",
-		CPEs: []pkg.CPE{
-			must(pkg.NewCPE("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*")),
+		CPEs: []syftPkg.CPE{
+			must(syftPkg.NewCPE("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*")),
 		},
 	}
-	matches, err := m.Match(provider, &d, &p)
+	matches, err := m.Match(provider, &d, p)
 
 	if err != nil {
 		t.Fatalf("failed to get matches: %+v", err)
@@ -118,11 +119,11 @@ func TestMatches(t *testing.T) {
 	p := pkg.Package{
 		Name:    "libvncserver",
 		Version: "0.9.9",
-		CPEs: []pkg.CPE{
-			must(pkg.NewCPE("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*")),
+		CPEs: []syftPkg.CPE{
+			must(syftPkg.NewCPE("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*")),
 		},
 	}
-	matches, err := m.Match(provider, &d, &p)
+	matches, err := m.Match(provider, &d, p)
 
 	if err != nil {
 		t.Fatalf("failed to get matches: %+v", err)

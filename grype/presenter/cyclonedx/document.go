@@ -4,10 +4,10 @@ import (
 	"encoding/xml"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/version"
-	"github.com/anchore/syft/syft/pkg"
 	syftCDX "github.com/anchore/syft/syft/presenter/cyclonedx"
 	"github.com/anchore/syft/syft/source"
 	"github.com/google/uuid"
@@ -23,17 +23,16 @@ type Document struct {
 	XMLNsV        string                 `xml:"xmlns:v,attr"`
 	Version       int                    `xml:"version,attr"`
 	SerialNumber  string                 `xml:"serialNumber,attr"`
+	BomDescriptor *syftCDX.BomDescriptor `xml:"metadata"`
 	Components    []Component            `xml:"components>component"`
-	BomDescriptor *syftCDX.BomDescriptor `xml:"bd:metadata"` // The BOM descriptor extension
 }
 
-// NewDocument returns an empty CycloneDX Document object.
-func NewDocument(catalog *pkg.Catalog, matches match.Matches, srcMetadata source.Metadata, provider vulnerability.MetadataProvider) (Document, error) {
+// NewDocument returns a CycloneDX Document object populated with the SBOM and vulnerability findings.
+func NewDocument(packages []pkg.Package, matches match.Matches, srcMetadata source.Metadata, provider vulnerability.MetadataProvider) (Document, error) {
 	versionInfo := version.FromBuild()
 
 	doc := Document{
 		XMLNs:         "http://cyclonedx.org/schema/bom/1.2",
-		XMLNsBd:       "http://cyclonedx.org/schema/ext/bom-descriptor/1.0",
 		XMLNsV:        "http://cyclonedx.org/schema/ext/vulnerability/1.0",
 		Version:       1,
 		SerialNumber:  uuid.New().URN(),
@@ -42,7 +41,7 @@ func NewDocument(catalog *pkg.Catalog, matches match.Matches, srcMetadata source
 
 	// attach matches
 
-	for p := range catalog.Enumerate() {
+	for _, p := range packages {
 		// make a new component (by value)
 		component := Component{
 			Component: syftCDX.Component{
@@ -70,9 +69,6 @@ func NewDocument(catalog *pkg.Catalog, matches match.Matches, srcMetadata source
 		if len(pkgMatches) > 0 {
 			var vulnerabilities []Vulnerability
 			for _, m := range pkgMatches {
-				// Sort of eating up the error here, we are appending only when there is
-				// no error. When there is one, we ignore it and move to the next vuln
-				// An error is only possible if it metadata can't be produced
 				v, err := NewVulnerability(m, provider)
 				if err != nil {
 					return Document{}, err

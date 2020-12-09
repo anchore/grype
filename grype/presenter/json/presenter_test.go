@@ -5,15 +5,14 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/anchore/syft/syft/distro"
-
-	"github.com/anchore/syft/syft/source"
-
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/stereoscope/pkg/imagetest"
-	"github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/distro"
+	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/source"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
@@ -73,21 +72,19 @@ func TestJsonImgsPresenter(t *testing.T) {
 	var pkg1 = pkg.Package{
 		Name:    "package-1",
 		Version: "1.1.1",
-		Type:    pkg.DebPkg,
+		Type:    syftPkg.DebPkg,
 		Locations: []source.Location{
 			source.NewLocationFromImage(*img.SquashedTree().File("/somefile-1.txt"), img),
 		},
-		FoundBy: "the-cataloger-1",
 	}
 
 	var pkg2 = pkg.Package{
 		Name:    "package-2",
 		Version: "2.2.2",
-		Type:    pkg.DebPkg,
+		Type:    syftPkg.DebPkg,
 		Locations: []source.Location{
 			source.NewLocationFromImage(*img.SquashedTree().File("/somefile-2.txt"), img),
 		},
-		FoundBy: "the-cataloger-2",
 	}
 
 	var match1 = match.Match{
@@ -97,7 +94,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 			RecordSource:   "source-1",
 			FixedInVersion: "the-next-version",
 		},
-		Package: &pkg1,
+		Package: pkg1,
 		Matcher: match.DpkgMatcher,
 		SearchKey: map[string]interface{}{
 			"distro": map[string]string{
@@ -116,7 +113,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 			ID:           "CVE-1999-0002",
 			RecordSource: "source-2",
 		},
-		Package: &pkg1,
+		Package: pkg1,
 		Matcher: match.DpkgMatcher,
 		SearchKey: map[string]interface{}{
 			"cpe": "somecpe",
@@ -133,7 +130,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 			RecordSource:   "source-1",
 			FixedInVersion: "the-other-next-version",
 		},
-		Package: &pkg1,
+		Package: pkg1,
 		Matcher: match.DpkgMatcher,
 		SearchKey: map[string]interface{}{
 			"language": "java",
@@ -149,18 +146,16 @@ func TestJsonImgsPresenter(t *testing.T) {
 	}
 
 	matches := match.NewMatches()
-	matches.Add(&pkg1, match1, match2, match3)
+	matches.Add(pkg1, match1, match2, match3)
 
-	catalog := pkg.NewCatalog()
-	catalog.Add(pkg1)
-	catalog.Add(pkg2)
+	packages := []pkg.Package{pkg1, pkg2}
 
 	theSource, err := source.NewFromImage(img, source.AllLayersScope, "user-input")
 	if err != nil {
 		t.Fatalf("failed to create scope: %+v", err)
 	}
 
-	pres := NewPresenter(matches, catalog, &d, theSource.Metadata, newMetadataMock())
+	pres := NewPresenter(matches, packages, &d, theSource.Metadata, newMetadataMock())
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
@@ -188,25 +183,25 @@ func TestJsonImgsPresenter(t *testing.T) {
 func TestJsonDirsPresenter(t *testing.T) {
 	var buffer bytes.Buffer
 
-	catalog := pkg.NewCatalog()
+	catalog := syftPkg.NewCatalog()
 
 	// populate catalog with test data
-	catalog.Add(pkg.Package{
+	catalog.Add(syftPkg.Package{
 		Name:    "package-1",
 		Version: "1.0.1",
-		Type:    pkg.DebPkg,
+		Type:    syftPkg.DebPkg,
 		FoundBy: "the-cataloger-1",
 		Locations: []source.Location{
 			{Path: "/some/path/pkg1"},
 		},
 	})
 
-	var pkg1 *pkg.Package
+	var pkg1 pkg.Package
 
 	// we need a package with an ID from the catalog (we should fix this)
 	// TODO: fix this
 	for p := range catalog.Enumerate() {
-		pkg1 = p
+		pkg1 = pkg.New(p)
 		break
 	}
 
@@ -276,7 +271,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 		t.Fatalf("could not make distro: %+v", err)
 	}
 
-	pres := NewPresenter(matches, catalog, &d, s.Metadata, newMetadataMock())
+	pres := NewPresenter(matches, pkg.FromCatalog(catalog), &d, s.Metadata, newMetadataMock())
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
@@ -316,8 +311,6 @@ func TestEmptyJsonPresenter(t *testing.T) {
 
 	matches := match.NewMatches()
 
-	catalog := pkg.NewCatalog()
-
 	theSource, err := source.NewFromImage(img, source.AllLayersScope, "user-input")
 	if err != nil {
 		t.Fatalf("failed to create scope: %+v", err)
@@ -328,7 +321,7 @@ func TestEmptyJsonPresenter(t *testing.T) {
 		t.Fatalf("could not make distro: %+v", err)
 	}
 
-	pres := NewPresenter(matches, catalog, &d, theSource.Metadata, nil)
+	pres := NewPresenter(matches, []pkg.Package{}, &d, theSource.Metadata, nil)
 
 	// run presenter
 	if err = pres.Present(&buffer); err != nil {

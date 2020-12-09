@@ -4,15 +4,15 @@ import (
 	"fmt"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
-	"github.com/anchore/syft/syft/pkg"
 	"github.com/facebookincubator/nvdtools/wfn"
 )
 
 // FindMatchesByPackageCPE retrieves all vulnerabilities that match the generated CPE
-func FindMatchesByPackageCPE(store vulnerability.ProviderByCPE, p *pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
+func FindMatchesByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
 	verObj, err := version.NewVersionFromPkg(p)
 	if err != nil {
 		return nil, fmt.Errorf("matcher failed to parse version pkg='%s' ver='%s': %w", p.Name, p.Version, err)

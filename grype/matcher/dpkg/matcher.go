@@ -3,26 +3,28 @@ package dpkg
 import (
 	"fmt"
 
+	syftPkg "github.com/anchore/syft/syft/pkg"
+
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/common"
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/distro"
-	"github.com/anchore/syft/syft/pkg"
 	"github.com/jinzhu/copier"
 )
 
 type Matcher struct {
 }
 
-func (m *Matcher) PackageTypes() []pkg.Type {
-	return []pkg.Type{pkg.DebPkg}
+func (m *Matcher) PackageTypes() []syftPkg.Type {
+	return []syftPkg.Type{syftPkg.DebPkg}
 }
 
 func (m *Matcher) Type() match.MatcherType {
 	return match.DpkgMatcher
 }
 
-func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p *pkg.Package) ([]match.Match, error) {
+func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	matches := make([]match.Match, 0)
 
 	sourceMatches, err := m.matchBySourceIndirection(store, d, p)
@@ -40,32 +42,29 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p *pkg.P
 	return matches, nil
 }
 
-func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro, d *distro.Distro, p *pkg.Package) ([]match.Match, error) {
-	value, ok := p.Metadata.(pkg.DpkgMetadata)
+func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
+	metadata, ok := p.Metadata.(pkg.DpkgMetadata)
 	if !ok {
-		return nil, fmt.Errorf("bad dpkg metadata type='%T'", value)
+		return nil, nil
 	}
-	// grab source package name from metadata
-	sourcePkgName := value.Source
 
 	// ignore packages without source indirection hints
-	if sourcePkgName == "" {
+	if metadata.Source == "" {
 		return []match.Match{}, nil
 	}
 
 	// use source package name for exact package name matching
 	var indirectPackage pkg.Package
 
-	// TODO: we should add a copy() function onto package instead of relying on a 3rd party package
 	err := copier.Copy(&indirectPackage, p)
 	if err != nil {
 		return nil, fmt.Errorf("failed to copy package: %w", err)
 	}
 
 	// use the source package name
-	indirectPackage.Name = sourcePkgName
+	indirectPackage.Name = metadata.Source
 
-	matches, err := common.FindMatchesByPackageDistro(store, d, &indirectPackage, m.Type())
+	matches, err := common.FindMatchesByPackageDistro(store, d, indirectPackage, m.Type())
 	if err != nil {
 		return nil, fmt.Errorf("failed to find vulnerabilities by dkpg source indirection: %w", err)
 	}
@@ -75,7 +74,6 @@ func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro,
 	for idx := range matches {
 		matches[idx].Type = match.ExactIndirectMatch
 		matches[idx].Package = p
-		matches[idx].IndirectPackage = &indirectPackage
 		matches[idx].Matcher = m.Type()
 	}
 

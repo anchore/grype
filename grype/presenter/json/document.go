@@ -3,14 +3,12 @@ package json
 import (
 	"fmt"
 
+	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/version"
-
 	"github.com/anchore/syft/syft/distro"
-
-	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/syft/syft/pkg"
 	syftJson "github.com/anchore/syft/syft/presenter/json"
 	"github.com/anchore/syft/syft/source"
 )
@@ -25,9 +23,9 @@ type Document struct {
 
 // Match is a single item for the JSON array reported
 type Match struct {
-	Vulnerability Vulnerability    `json:"vulnerability"`
-	MatchDetails  MatchDetails     `json:"matchDetails"`
-	Artifact      syftJson.Package `json:"artifact"`
+	Vulnerability Vulnerability `json:"vulnerability"`
+	MatchDetails  MatchDetails  `json:"matchDetails"`
+	Artifact      Package       `json:"artifact"`
 }
 
 // MatchDetails contains all data that indicates how the result match was found
@@ -38,14 +36,13 @@ type MatchDetails struct {
 }
 
 // NewDocument creates and populates a new Document struct, representing the populated JSON document.
-func NewDocument(catalog *pkg.Catalog, d *distro.Distro, srcMetadata source.Metadata, matches match.Matches, metadataProvider vulnerability.MetadataProvider) (Document, error) {
+func NewDocument(packages []pkg.Package, d *distro.Distro, srcMetadata source.Metadata, matches match.Matches, metadataProvider vulnerability.MetadataProvider) (Document, error) {
 	// we must preallocate the findings to ensure the JSON document does not show "null" when no matches are found
 	var findings = make([]Match, 0)
 	for m := range matches.Enumerate() {
-		p := catalog.Package(m.Package.ID())
-		artifact, err := syftJson.NewPackage(p)
-		if err != nil {
-			return Document{}, err
+		p := pkg.ByID(m.Package.ID(), packages)
+		if p == nil {
+			return Document{}, fmt.Errorf("unable to find package in collection: %+v", p)
 		}
 
 		metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.RecordSource)
@@ -57,7 +54,7 @@ func NewDocument(catalog *pkg.Catalog, d *distro.Distro, srcMetadata source.Meta
 			findings,
 			Match{
 				Vulnerability: NewVulnerability(m, metadata),
-				Artifact:      artifact,
+				Artifact:      newPackage(*p),
 				MatchDetails: MatchDetails{
 					Matcher:   m.Matcher.String(),
 					SearchKey: m.SearchKey,

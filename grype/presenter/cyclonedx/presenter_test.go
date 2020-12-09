@@ -8,9 +8,10 @@ import (
 
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/stereoscope/pkg/imagetest"
-	"github.com/anchore/syft/syft/pkg"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
@@ -61,54 +62,28 @@ func (m *metadataMock) GetMetadata(id, recordSource string) (*vulnerability.Meta
 	return &value, nil
 }
 
-func TestCycloneDxPresenter(t *testing.T) {
-	testCases := []struct {
-		desc      string
-		scopeType string
-	}{
-		{
-			desc:      "CycloneDX Directory Presenter",
-			scopeType: "dirs",
+func createResults() (match.Matches, []pkg.Package) {
+	// the catalog is needed to assign the package IDs
+	catalog := syftPkg.NewCatalog(
+		syftPkg.Package{
+			Name:    "package-1",
+			Version: "1.0.1",
+			Type:    syftPkg.DebPkg,
 		},
-		{
-			desc:      "CycloneDX Image Presenter",
-			scopeType: "image",
-		},
-	}
+		syftPkg.Package{
+			Name:    "package-2",
+			Version: "2.0.1",
+			Type:    syftPkg.DebPkg,
+			Licenses: []string{
+				"MIT",
+				"Apache-v2",
+			},
+		})
 
-	var buffer bytes.Buffer
+	packages := pkg.FromCatalog(catalog)
 
-	catalog := pkg.NewCatalog()
-
-	// populate catalog with test data
-	catalog.Add(pkg.Package{
-		Name:    "package-1",
-		Version: "1.0.1",
-		Type:    pkg.DebPkg,
-		FoundBy: "the-cataloger-1",
-	})
-	catalog.Add(pkg.Package{
-		Name:    "package-2",
-		Version: "2.0.1",
-		Type:    pkg.DebPkg,
-		FoundBy: "the-cataloger-2",
-		Licenses: []string{
-			"MIT",
-			"Apache-v2",
-		},
-	})
-
-	var pkg1 = pkg.Package{
-		Name:    "package-1",
-		Version: "1.0.1",
-		Type:    pkg.DebPkg,
-	}
-
-	var pkg2 = pkg.Package{
-		Name:    "package-2",
-		Version: "2.0.1",
-		Type:    pkg.DebPkg,
-	}
+	var pkg1 = packages[0]
+	var pkg2 = packages[1]
 
 	var match1 = match.Match{
 		Type: match.ExactDirectMatch,
@@ -116,7 +91,7 @@ func TestCycloneDxPresenter(t *testing.T) {
 			ID:           "CVE-1999-0001",
 			RecordSource: "source-1",
 		},
-		Package: &pkg1,
+		Package: pkg1,
 		Matcher: match.DpkgMatcher,
 	}
 
@@ -126,79 +101,97 @@ func TestCycloneDxPresenter(t *testing.T) {
 			ID:           "CVE-1999-0002",
 			RecordSource: "source-2",
 		},
-		Package: &pkg2,
+		Package: pkg2,
 		Matcher: match.DpkgMatcher,
 		SearchKey: map[string]interface{}{
 			"some": "key",
 		},
 	}
 
-	for _, tC := range testCases {
-		t.Run(tC.desc, func(t *testing.T) {
+	matches := match.NewMatches()
 
-			// this is rather weird... ideally, these two should be separated, but due to this
-			// issue: https://github.com/anchore/syft/issues/166 those fail when running separately
-			if tC.scopeType == "image" {
-				matches := match.NewMatches()
+	matches.Add(pkg1, match1, match2)
 
-				matches.Add(&pkg1, match1, match2)
-				img, cleanup := imagetest.GetFixtureImage(t, "docker-archive", "image-simple")
-				defer cleanup()
-				s, err := source.NewFromImage(img, source.AllLayersScope, "user-input")
+	return matches, packages
+}
 
-				// This accounts for the non-deterministic digest value that we end up with when
-				// we build a container image dynamically during testing. Ultimately, we should
-				// use a golden image as a test fixture in place of building this image during
-				// testing. At that time, this line will no longer be necessary.
-				//
-				// This value is sourced from the "version" node in "./test-fixtures/snapshot/TestCycloneDxImgsPresenter.golden"
-				s.Metadata.ImageMetadata.Digest = "sha256:2731251dc34951c0e50fcc643b4c5f74922dad1a5d98f302b504cf46cd5d9368"
+func TestCycloneDxPresenterImage(t *testing.T) {
+	var buffer bytes.Buffer
 
-				pres := NewPresenter(matches, catalog, s.Metadata, newMetadataMock())
-				// run presenter
-				err = pres.Present(&buffer)
-				if err != nil {
-					t.Fatal(err)
-				}
+	matches, packages := createResults()
 
-			} else {
-				s, err := source.NewFromDirectory("/some/path")
-				if err != nil {
-					t.Fatal(err)
-				}
-				matches := match.NewMatches()
+	img, cleanup := imagetest.GetFixtureImage(t, "docker-archive", "image-simple")
+	defer cleanup()
+	s, err := source.NewFromImage(img, source.AllLayersScope, "user-input")
 
-				matches.Add(&pkg1, match1, match2)
+	// This accounts for the non-deterministic digest value that we end up with when
+	// we build a container image dynamically during testing. Ultimately, we should
+	// use a golden image as a test fixture in place of building this image during
+	// testing. At that time, this line will no longer be necessary.
+	//
+	// This value is sourced from the "version" node in "./test-fixtures/snapshot/TestCycloneDxImgsPresenter.golden"
+	s.Metadata.ImageMetadata.Digest = "sha256:2731251dc34951c0e50fcc643b4c5f74922dad1a5d98f302b504cf46cd5d9368"
 
-				pres := NewPresenter(matches, catalog, s.Metadata, newMetadataMock())
-
-				// run presenter
-				err = pres.Present(&buffer)
-				if err != nil {
-					t.Fatal(err)
-				}
-
-			}
-
-			actual := buffer.Bytes()
-			if *update {
-				testutils.UpdateGoldenFileContents(t, actual)
-			}
-
-			var expected = testutils.GetGoldenFileContents(t)
-
-			// remove dynamic values, which are tested independently
-			actual = redact(actual)
-			expected = redact(expected)
-
-			if !bytes.Equal(expected, actual) {
-				dmp := diffmatchpatch.New()
-				diffs := dmp.DiffMain(string(actual), string(expected), true)
-				t.Errorf("mismatched output:\n%s", dmp.DiffPrettyText(diffs))
-			}
-
-		})
+	pres := NewPresenter(matches, packages, s.Metadata, newMetadataMock())
+	// run presenter
+	err = pres.Present(&buffer)
+	if err != nil {
+		t.Fatal(err)
 	}
+
+	actual := buffer.Bytes()
+	if *update {
+		testutils.UpdateGoldenFileContents(t, actual)
+	}
+
+	var expected = testutils.GetGoldenFileContents(t)
+
+	// remove dynamic values, which are tested independently
+	actual = redact(actual)
+	expected = redact(expected)
+
+	if !bytes.Equal(expected, actual) {
+		dmp := diffmatchpatch.New()
+		diffs := dmp.DiffMain(string(expected), string(actual), true)
+		t.Errorf("mismatched output:\n%s", dmp.DiffPrettyText(diffs))
+	}
+
+}
+
+func TestCycloneDxPresenterDir(t *testing.T) {
+	var buffer bytes.Buffer
+	matches, packages := createResults()
+
+	s, err := source.NewFromDirectory("/some/path")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pres := NewPresenter(matches, packages, s.Metadata, newMetadataMock())
+
+	// run presenter
+	err = pres.Present(&buffer)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	actual := buffer.Bytes()
+	if *update {
+		testutils.UpdateGoldenFileContents(t, actual)
+	}
+
+	var expected = testutils.GetGoldenFileContents(t)
+
+	// remove dynamic values, which are tested independently
+	actual = redact(actual)
+	expected = redact(expected)
+
+	if !bytes.Equal(expected, actual) {
+		dmp := diffmatchpatch.New()
+		diffs := dmp.DiffMain(string(expected), string(actual), true)
+		t.Errorf("mismatched output:\n%s", dmp.DiffPrettyText(diffs))
+	}
+
 }
 
 func redact(s []byte) []byte {

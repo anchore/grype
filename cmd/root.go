@@ -13,6 +13,7 @@ import (
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/grypeerr"
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
@@ -21,7 +22,6 @@ import (
 	"github.com/anchore/grype/internal/ui"
 	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/syft/syft/distro"
-	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
@@ -176,7 +176,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 		var provider vulnerability.Provider
 		var metadataProvider vulnerability.MetadataProvider
-		var catalog *pkg.Catalog
+		var packages []pkg.Package
 		var srcMetadata source.Metadata
 		var theDistro *distro.Distro
 		var err error
@@ -194,7 +194,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 		go func() {
 			defer wg.Done()
-			srcMetadata, catalog, theDistro, err = grype.Catalog(userInput, appConfig.ScopeOpt)
+			srcMetadata, packages, theDistro, err = grype.Catalog(userInput, appConfig.ScopeOpt)
 			if err != nil {
 				errs <- fmt.Errorf("failed to catalog: %w", err)
 			}
@@ -205,7 +205,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			return
 		}
 
-		matches := grype.FindVulnerabilitiesForCatalog(provider, theDistro, catalog)
+		matches := grype.FindVulnerabilitiesForPackage(provider, theDistro, packages...)
 
 		// determine if there are any severities >= to the max allowable severity (which is optional).
 		// note: until the shared file lock in sqlittle is fixed the sqlite DB cannot be access concurrently,
@@ -216,7 +216,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 		bus.Publish(partybus.Event{
 			Type:  event.VulnerabilityScanningFinished,
-			Value: presenter.GetPresenter(appConfig.PresenterOpt, matches, catalog, theDistro, srcMetadata, metadataProvider),
+			Value: presenter.GetPresenter(appConfig.PresenterOpt, matches, packages, theDistro, srcMetadata, metadataProvider),
 		})
 	}()
 	return errs

@@ -5,11 +5,12 @@ import (
 	"testing"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/syft/syft/distro"
-	"github.com/anchore/syft/syft/pkg"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 type mockDistroProvider struct {
@@ -53,7 +54,7 @@ func (pr *mockDistroProvider) stub() {
 	}
 }
 
-func (pr *mockDistroProvider) GetByDistro(d distro.Distro, p *pkg.Package) ([]*vulnerability.Vulnerability, error) {
+func (pr *mockDistroProvider) GetByDistro(d distro.Distro, p pkg.Package) ([]*vulnerability.Vulnerability, error) {
 	return pr.data[strings.ToLower(d.Type.String())+":"+d.FullVersion()][p.Name], nil
 }
 
@@ -61,7 +62,7 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 	p := pkg.Package{
 		Name:    "neutron",
 		Version: "2014.1.3-6",
-		Type:    pkg.DebPkg,
+		Type:    syftPkg.DebPkg,
 		Metadata: pkg.DpkgMetadata{
 			Source: "neutron-devel",
 		},
@@ -73,7 +74,7 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 	}
 
 	store := newMockProviderByDistro()
-	actual, err := FindMatchesByPackageDistro(store, &d, &p, match.PythonMatcher)
+	actual, err := FindMatchesByPackageDistro(store, &d, p, match.PythonMatcher)
 	if err != nil {
 		t.Fatalf("error while finding matches: %+v", err)
 	}
@@ -99,9 +100,6 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 			t.Errorf("failed to capture matcher name: %s", a.Matcher)
 		}
 
-		if a.IndirectPackage != nil {
-			t.Fatalf("should not have captured indirect package")
-		}
 	}
 
 	for _, id := range []string{"CVE-2014-fake-1"} {

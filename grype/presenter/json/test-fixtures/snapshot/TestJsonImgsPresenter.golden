@@ -26,19 +26,16 @@
     "name": "package-1",
     "version": "1.1.1",
     "type": "deb",
-    "foundBy": "the-cataloger-1",
     "locations": [
      {
       "path": "/somefile-1.txt",
       "layerID": "sha256:e158b57d6f5a96ef5fd22f2fe76c70b5ba6ff5b2619f9d83125b2aad0492ac7b"
      }
     ],
-    "licenses": [],
     "language": "",
-    "cpes": [],
-    "purl": "",
-    "metadataType": "",
-    "metadata": null
+    "licenses": null,
+    "cpes": null,
+    "purl": ""
    }
   },
   {
@@ -65,19 +62,16 @@
     "name": "package-1",
     "version": "1.1.1",
     "type": "deb",
-    "foundBy": "the-cataloger-1",
     "locations": [
      {
       "path": "/somefile-1.txt",
       "layerID": "sha256:e158b57d6f5a96ef5fd22f2fe76c70b5ba6ff5b2619f9d83125b2aad0492ac7b"
      }
     ],
-    "licenses": [],
     "language": "",
-    "cpes": [],
-    "purl": "",
-    "metadataType": "",
-    "metadata": null
+    "licenses": null,
+    "cpes": null,
+    "purl": ""
    }
   },
   {
@@ -99,19 +93,16 @@
     "name": "package-1",
     "version": "1.1.1",
     "type": "deb",
-    "foundBy": "the-cataloger-1",
     "locations": [
      {
       "path": "/somefile-1.txt",
       "layerID": "sha256:e158b57d6f5a96ef5fd22f2fe76c70b5ba6ff5b2619f9d83125b2aad0492ac7b"
      }
     ],
-    "licenses": [],
     "language": "",
-    "cpes": [],
-    "purl": "",
-    "metadataType": "",
-    "metadata": null
+    "licenses": null,
+    "cpes": null,
+    "purl": ""
    }
   }
  ],

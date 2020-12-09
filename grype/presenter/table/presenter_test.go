@@ -7,8 +7,9 @@ import (
 
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/syft/syft/pkg"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/go-test/deep"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
@@ -66,13 +67,13 @@ func TestTablePresenter(t *testing.T) {
 	var pkg1 = pkg.Package{
 		Name:    "package-1",
 		Version: "1.0.1",
-		Type:    pkg.DebPkg,
+		Type:    syftPkg.DebPkg,
 	}
 
 	var pkg2 = pkg.Package{
 		Name:    "package-2",
 		Version: "2.0.1",
-		Type:    pkg.DebPkg,
+		Type:    syftPkg.DebPkg,
 	}
 
 	var match1 = match.Match{
@@ -81,7 +82,7 @@ func TestTablePresenter(t *testing.T) {
 			ID:           "CVE-1999-0001",
 			RecordSource: "source-1",
 		},
-		Package: &pkg1,
+		Package: pkg1,
 		Matcher: match.DpkgMatcher,
 	}
 
@@ -92,7 +93,7 @@ func TestTablePresenter(t *testing.T) {
 			RecordSource:   "source-2",
 			FixedInVersion: "the-next-version",
 		},
-		Package: &pkg2,
+		Package: pkg2,
 		Matcher: match.DpkgMatcher,
 		SearchKey: map[string]interface{}{
 			"some": "key",
@@ -101,15 +102,11 @@ func TestTablePresenter(t *testing.T) {
 
 	matches := match.NewMatches()
 
-	matches.Add(&pkg1, match1, match2)
+	matches.Add(pkg1, match1, match2)
 
-	catalog := pkg.NewCatalog()
+	packages := []pkg.Package{pkg1, pkg2}
 
-	// populate catalog with test data
-	catalog.Add(pkg1)
-	catalog.Add(pkg2)
-
-	pres := NewPresenter(matches, catalog, newMetadataMock())
+	pres := NewPresenter(matches, packages, newMetadataMock())
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
@@ -141,9 +138,8 @@ func TestEmptyTablePresenter(t *testing.T) {
 	var buffer bytes.Buffer
 
 	matches := match.NewMatches()
-	catalog := pkg.NewCatalog()
 
-	pres := NewPresenter(matches, catalog, newMetadataMock())
+	pres := NewPresenter(matches, []pkg.Package{}, newMetadataMock())
 
 	// run presenter
 	err := pres.Present(&buffer)
