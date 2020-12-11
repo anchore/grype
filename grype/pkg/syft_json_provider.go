@@ -15,6 +15,10 @@ import (
 	"github.com/anchore/syft/syft/source"
 )
 
+// syftJSONProvider extracts the necessary package and package context from syft JSON output. Note that this process carves out
+// only the necessary data needed and does not require unmarshalling the entire syft JSON data shape so this function is somewhat
+// resilient to multiple syft JSON schemas (to a degree).
+// TODO: add version detection and multi-parser support (when needed in the future)
 func syftJSONProvider(config providerConfig) ([]Package, Context, error) {
 	var reader io.Reader
 	if config.reader != nil {
@@ -27,7 +31,7 @@ func syftJSONProvider(config providerConfig) ([]Package, Context, error) {
 			filepath := strings.TrimPrefix(config.userInput, "sbom:")
 			sbomReader, err := os.Open(filepath)
 			if err != nil {
-				return nil, Context{}, fmt.Errorf("user hinted 'sbom:' but could read SBOM file: %w", err)
+				return nil, Context{}, fmt.Errorf("user hinted 'sbom:' but couldn't read SBOM file: %w", err)
 			}
 			reader = sbomReader
 		}
@@ -82,20 +86,20 @@ type packageMetadataUnpacker struct {
 	Metadata     json.RawMessage  `json:"metadata"`
 }
 
-// JavaMetadata encapsulates all Java ecosystem metadata for a package as well as an (optional) parent relationship.
+// partialSyftJavaMetadata encapsulates all Java ecosystem metadata for a package as well as an (optional) parent relationship.
 type partialSyftJavaMetadata struct {
 	VirtualPath   string                    `json:"virtualPath"`
 	Manifest      *partialSyftJavaManifest  `mapstructure:"Manifest" json:"manifest,omitempty"`
 	PomProperties *partialSyftPomProperties `mapstructure:"PomProperties" json:"pomProperties,omitempty"`
 }
 
-// PomProperties represents the fields of interest extracted from a Java archive's pom.xml file.
+// partialSyftPomProperties represents the fields of interest extracted from a Java archive's pom.xml file.
 type partialSyftPomProperties struct {
 	GroupID    string `mapstructure:"groupId" json:"groupId"`
 	ArtifactID string `mapstructure:"artifactId" json:"artifactId"`
 }
 
-// JavaManifest represents the fields of interest extracted from a Java archive's META-INF/MANIFEST.MF file.
+// partialSyftJavaManifest represents the fields of interest extracted from a Java archive's META-INF/MANIFEST.MF file.
 type partialSyftJavaManifest struct {
 	Main map[string]string `json:"main,omitempty"`
 }
@@ -165,7 +169,7 @@ func (p *partialSyftPackage) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// parseSyftJson attempts to loosely parse the available JSON for only the fields needed, not the exact syft JSON shape.
+// parseSyftJSON attempts to loosely parse the available JSON for only the fields needed, not the exact syft JSON shape.
 // This allows for some resiliency as the syft document shape changes over time (but not fool-proof).
 func parseSyftJSON(reader io.Reader) ([]Package, Context, error) {
 	var doc partialSyftDoc
