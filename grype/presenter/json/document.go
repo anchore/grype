@@ -8,15 +8,13 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/version"
-	"github.com/anchore/syft/syft/distro"
 	syftJson "github.com/anchore/syft/syft/presenter/json"
-	"github.com/anchore/syft/syft/source"
 )
 
 // Document represents the JSON document to be presented
 type Document struct {
 	Matches    []Match               `json:"matches"`
-	Source     syftJson.Source       `json:"source"`
+	Source     *syftJson.Source      `json:"source"`
 	Distro     syftJson.Distribution `json:"distro"`
 	Descriptor Descriptor            `json:"descriptor"`
 }
@@ -36,7 +34,7 @@ type MatchDetails struct {
 }
 
 // NewDocument creates and populates a new Document struct, representing the populated JSON document.
-func NewDocument(packages []pkg.Package, d *distro.Distro, srcMetadata source.Metadata, matches match.Matches, metadataProvider vulnerability.MetadataProvider) (Document, error) {
+func NewDocument(packages []pkg.Package, context pkg.Context, matches match.Matches, metadataProvider vulnerability.MetadataProvider) (Document, error) {
 	// we must preallocate the findings to ensure the JSON document does not show "null" when no matches are found
 	var findings = make([]Match, 0)
 	for m := range matches.Enumerate() {
@@ -64,15 +62,19 @@ func NewDocument(packages []pkg.Package, d *distro.Distro, srcMetadata source.Me
 		)
 	}
 
-	src, err := syftJson.NewSource(srcMetadata)
-	if err != nil {
-		return Document{}, err
+	var src *syftJson.Source
+	if context.Source != nil {
+		theSrc, err := syftJson.NewSource(*context.Source)
+		if err != nil {
+			return Document{}, err
+		}
+		src = &theSrc
 	}
 
 	return Document{
 		Matches: findings,
 		Source:  src,
-		Distro:  syftJson.NewDistribution(d),
+		Distro:  syftJson.NewDistribution(context.Distro),
 		Descriptor: Descriptor{
 			Name:    internal.ApplicationName,
 			Version: version.FromBuild().Version,

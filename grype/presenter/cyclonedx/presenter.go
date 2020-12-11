@@ -14,12 +14,12 @@ import (
 type Presenter struct {
 	results          match.Matches
 	packages         []pkg.Package
-	srcMetadata      source.Metadata
+	srcMetadata      *source.Metadata
 	metadataProvider vulnerability.MetadataProvider
 }
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter(results match.Matches, packages []pkg.Package, srcMetadata source.Metadata, metadataProvider vulnerability.MetadataProvider) *Presenter {
+func NewPresenter(results match.Matches, packages []pkg.Package, srcMetadata *source.Metadata, metadataProvider vulnerability.MetadataProvider) *Presenter {
 	return &Presenter{
 		results:          results,
 		packages:         packages,

@@ -155,7 +155,11 @@ func TestJsonImgsPresenter(t *testing.T) {
 		t.Fatalf("failed to create scope: %+v", err)
 	}
 
-	pres := NewPresenter(matches, packages, &d, theSource.Metadata, newMetadataMock())
+	ctx := pkg.Context{
+		Source: &theSource.Metadata,
+		Distro: &d,
+	}
+	pres := NewPresenter(matches, packages, ctx, newMetadataMock())
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
@@ -271,7 +275,11 @@ func TestJsonDirsPresenter(t *testing.T) {
 		t.Fatalf("could not make distro: %+v", err)
 	}
 
-	pres := NewPresenter(matches, pkg.FromCatalog(catalog), &d, s.Metadata, newMetadataMock())
+	ctx := pkg.Context{
+		Source: &s.Metadata,
+		Distro: &d,
+	}
+	pres := NewPresenter(matches, pkg.FromCatalog(catalog), ctx, newMetadataMock())
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
@@ -321,7 +329,12 @@ func TestEmptyJsonPresenter(t *testing.T) {
 		t.Fatalf("could not make distro: %+v", err)
 	}
 
-	pres := NewPresenter(matches, []pkg.Package{}, &d, theSource.Metadata, nil)
+	ctx := pkg.Context{
+		Source: &theSource.Metadata,
+		Distro: &d,
+	}
+
+	pres := NewPresenter(matches, []pkg.Package{}, ctx, nil)
 
 	// run presenter
 	if err = pres.Present(&buffer); err != nil {

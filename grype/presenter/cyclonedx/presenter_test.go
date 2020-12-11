@@ -130,9 +130,9 @@ func TestCycloneDxPresenterImage(t *testing.T) {
 	// testing. At that time, this line will no longer be necessary.
 	//
 	// This value is sourced from the "version" node in "./test-fixtures/snapshot/TestCycloneDxImgsPresenter.golden"
-	s.Metadata.ImageMetadata.Digest = "sha256:2731251dc34951c0e50fcc643b4c5f74922dad1a5d98f302b504cf46cd5d9368"
+	s.Metadata.ImageMetadata.ManifestDigest = "sha256:2731251dc34951c0e50fcc643b4c5f74922dad1a5d98f302b504cf46cd5d9368"
 
-	pres := NewPresenter(matches, packages, s.Metadata, newMetadataMock())
+	pres := NewPresenter(matches, packages, &s.Metadata, newMetadataMock())
 	// run presenter
 	err = pres.Present(&buffer)
 	if err != nil {
@@ -167,7 +167,7 @@ func TestCycloneDxPresenterDir(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pres := NewPresenter(matches, packages, s.Metadata, newMetadataMock())
+	pres := NewPresenter(matches, packages, &s.Metadata, newMetadataMock())
 
 	// run presenter
 	err = pres.Present(&buffer)

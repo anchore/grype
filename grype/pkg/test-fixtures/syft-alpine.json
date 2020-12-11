@@ -1,0 +1,521 @@
+{
+ "artifacts": [
+  {
+   "name": "alpine-baselayout",
+   "version": "3.2.0-r6",
+   "type": "rpm",
+   "foundBy": "apkdb-cataloger",
+   "locations": [
+    {
+     "path": "/lib/apk/db/installed",
+     "layerID": "sha256:93cf4cfb673c7e16a9e74f731d6767b70b92a0b7c9f59d06efd72fbff535371c"
+    }
+   ],
+   "licenses": [
+    "GPL-2.0-only"
+   ],
+   "language": "",
+   "cpes": [
+    "cpe:2.3:a:*:alpine-baselayout:3.2.0-r6:*:*:*:*:*:*:*",
+    "cpe:2.3:a:alpine-baselayout:alpine-baselayout:3.2.0-r6:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:alpine/alpine-baselayout@3.2.0-r6?arch=x86_64",
+   "metadataType": "RpmdbMetadata",
+   "metadata": {
+    "sourceRpm": "a-source.srpm",
+    "package": "alpine-baselayout",
+    "originPackage": "alpine-baselayout",
+    "maintainer": "Natanael Copa <ncopa@alpinelinux.org>",
+    "version": "3.2.0-r6",
+    "license": "GPL-2.0-only",
+    "architecture": "x86_64",
+    "url": "https://git.alpinelinux.org/cgit/aports/tree/main/alpine-baselayout",
+    "description": "Alpine base dir structure and init scripts",
+    "size": 19917,
+    "installedSize": 409600,
+    "pullDependencies": "/bin/sh so:libc.musl-x86_64.so.1",
+    "pullChecksum": "Q1myMNfd7u5v5UTgNHeq1e31qTjZU=",
+    "gitCommitOfApkPort": "e1c51734fa96fa4bac92e9f14a474324c67916fc",
+    "files": [
+     {
+      "path": "/dev"
+     },
+     {
+      "path": "/dev/pts"
+     },
+     {
+      "path": "/dev/shm"
+     },
+     {
+      "path": "/etc"
+     },
+     {
+      "path": "/etc/fstab",
+      "checksum": "Q11Q7hNe8QpDS531guqCdrXBzoA/o="
+     },
+     {
+      "path": "/etc/group",
+      "checksum": "Q1oJ16xWudgKOrXIEquEDzlF2Lsm4="
+     },
+     {
+      "path": "/etc/hostname",
+      "checksum": "Q16nVwYVXP/tChvUPdukVD2ifXOmc="
+     },
+     {
+      "path": "/etc/hosts",
+      "checksum": "Q1BD6zJKZTRWyqGnPi4tSfd3krsMU="
+     },
+     {
+      "path": "/etc/inittab",
+      "checksum": "Q1TsthbhW7QzWRe1E/NKwTOuD4pHc="
+     },
+     {
+      "path": "/etc/modules",
+      "checksum": "Q1toogjUipHGcMgECgPJX64SwUT1M="
+     },
+     {
+      "path": "/etc/motd",
+      "checksum": "Q1XmduVVNURHQ27TvYp1Lr5TMtFcA="
+     },
+     {
+      "path": "/etc/mtab",
+      "ownerUid": "0",
+      "ownerGid": "0",
+      "permissions": "777",
+      "checksum": "Q1kiljhXXH1LlQroHsEJIkPZg2eiw="
+     },
+     {
+      "path": "/etc/passwd",
+      "checksum": "Q1TchuuLUfur0izvfZQZxgN/LJhB8="
+     },
+     {
+      "path": "/etc/profile",
+      "checksum": "Q1KpFb8kl5LvwXWlY3e58FNsjrI34="
+     },
+     {
+      "path": "/etc/protocols",
+      "checksum": "Q13FqXUnvuOpMDrH/6rehxuYAEE34="
+     },
+     {
+      "path": "/etc/services",
+      "checksum": "Q1C6HJNgQvLWqt5VY+n7MZJ1rsDuY="
+     },
+     {
+      "path": "/etc/shadow",
+      "ownerUid": "0",
+      "ownerGid": "42",
+      "permissions": "640",
+      "checksum": "Q1ltrPIAW2zHeDiajsex2Bdmq3uqA="
+     },
+     {
+      "path": "/etc/shells",
+      "checksum": "Q1ojm2YdpCJ6B/apGDaZ/Sdb2xJkA="
+     },
+     {
+      "path": "/etc/sysctl.conf",
+      "checksum": "Q14upz3tfnNxZkIEsUhWn7Xoiw96g="
+     },
+     {
+      "path": "/etc/apk"
+     },
+     {
+      "path": "/etc/conf.d"
+     },
+     {
+      "path": "/etc/crontabs"
+     },
+     {
+      "path": "/etc/crontabs/root",
+      "ownerUid": "0",
+      "ownerGid": "0",
+      "permissions": "600",
+      "checksum": "Q1vfk1apUWI4yLJGhhNRd0kJixfvY="
+     },
+     {
+      "path": "/etc/init.d"
+     },
+     {
+      "path": "/etc/modprobe.d"
+     },
+     {
+      "path": "/etc/modprobe.d/aliases.conf",
+      "checksum": "Q1WUbh6TBYNVK7e4Y+uUvLs/7viqk="
+     },
+     {
+      "path": "/etc/modprobe.d/blacklist.conf",
+      "checksum": "Q1xxYGU6S6TLQvb7ervPrWWwAWqMg="
+     },
+     {
+      "path": "/etc/modprobe.d/i386.conf",
+      "checksum": "Q1pnay/njn6ol9cCssL7KiZZ8etlc="
+     },
+     {
+      "path": "/etc/modprobe.d/kms.conf",
+      "checksum": "Q1ynbLn3GYDpvajba/ldp1niayeog="
+     },
+     {
+      "path": "/etc/modules-load.d"
+     },
+     {
+      "path": "/etc/network"
+     },
+     {
+      "path": "/etc/network/if-down.d"
+     },
+     {
+      "path": "/etc/network/if-post-down.d"
+     },
+     {
+      "path": "/etc/network/if-pre-up.d"
+     },
+     {
+      "path": "/etc/network/if-up.d"
+     },
+     {
+      "path": "/etc/opt"
+     },
+     {
+      "path": "/etc/periodic"
+     },
+     {
+      "path": "/etc/periodic/15min"
+     },
+     {
+      "path": "/etc/periodic/daily"
+     },
+     {
+      "path": "/etc/periodic/hourly"
+     },
+     {
+      "path": "/etc/periodic/monthly"
+     },
+     {
+      "path": "/etc/periodic/weekly"
+     },
+     {
+      "path": "/etc/profile.d"
+     },
+     {
+      "path": "/etc/profile.d/color_prompt",
+      "checksum": "Q10wL23GuSCVfumMRgakabUI6EsSk="
+     },
+     {
+      "path": "/etc/profile.d/locale",
+      "checksum": "Q1R4bIEpnKxxOSrlnZy9AoawqZ5DU="
+     },
+     {
+      "path": "/etc/sysctl.d"
+     },
+     {
+      "path": "/home"
+     },
+     {
+      "path": "/lib"
+     },
+     {
+      "path": "/lib/firmware"
+     },
+     {
+      "path": "/lib/mdev"
+     },
+     {
+      "path": "/lib/modules-load.d"
+     },
+     {
+      "path": "/lib/sysctl.d"
+     },
+     {
+      "path": "/lib/sysctl.d/00-alpine.conf",
+      "checksum": "Q1HpElzW1xEgmKfERtTy7oommnq6c="
+     },
+     {
+      "path": "/media"
+     },
+     {
+      "path": "/media/cdrom"
+     },
+     {
+      "path": "/media/floppy"
+     },
+     {
+      "path": "/media/usb"
+     },
+     {
+      "path": "/mnt"
+     },
+     {
+      "path": "/opt"
+     },
+     {
+      "path": "/proc"
+     },
+     {
+      "path": "/root",
+      "ownerUid": "0",
+      "ownerGid": "0",
+      "permissions": "700"
+     },
+     {
+      "path": "/run"
+     },
+     {
+      "path": "/sbin"
+     },
+     {
+      "path": "/sbin/mkmntdirs",
+      "ownerUid": "0",
+      "ownerGid": "0",
+      "permissions": "755",
+      "checksum": "Q1YeuSmC7iDbEWrusPzA/zUQF6YSg="
+     },
+     {
+      "path": "/srv"
+     },
+     {
+      "path": "/sys"
+     },
+     {
+      "path": "/tmp",
+      "ownerUid": "0",
+      "ownerGid": "0",
+      "permissions": "1777"
+     },
+     {
+      "path": "/usr"
+     },
+     {
+      "path": "/usr/lib"
+     },
+     {
+      "path": "/usr/lib/modules-load.d"
+     },
+     {
+      "path": "/usr/local"
+     },
+     {
+      "path": "/usr/local/bin"
+     },
+     {
+      "path": "/usr/local/lib"
+     },
+     {
+      "path": "/usr/local/share"
+     },
+     {
+      "path": "/usr/sbin"
+     },
+     {
+      "path": "/usr/share"
+     },
+     {
+      "path": "/usr/share/man"
+     },
+     {
+      "path": "/usr/share/misc"
+     },
+     {
+      "path": "/var"
+     },
+     {
+      "path": "/var/run",
+      "ownerUid": "0",
+      "ownerGid": "0",
+      "permissions": "777",
+      "checksum": "Q11/SNZz/8cK2dSKK+cJpVrZIuF4Q="
+     },
+     {
+      "path": "/var/cache"
+     },
+     {
+      "path": "/var/cache/misc"
+     },
+     {
+      "path": "/var/empty",
+      "ownerUid": "0",
+      "ownerGid": "0",
+      "permissions": "555"
+     },
+     {
+      "path": "/var/lib"
+     },
+     {
+      "path": "/var/lib/misc"
+     },
+     {
+      "path": "/var/local"
+     },
+     {
+      "path": "/var/lock"
+     },
+     {
+      "path": "/var/lock/subsys"
+     },
+     {
+      "path": "/var/log"
+     },
+     {
+      "path": "/var/mail"
+     },
+     {
+      "path": "/var/opt"
+     },
+     {
+      "path": "/var/spool"
+     },
+     {
+      "path": "/var/spool/mail",
+      "ownerUid": "0",
+      "ownerGid": "0",
+      "permissions": "777",
+      "checksum": "Q1dzbdazYZA2nTzSIG3YyNw7d4Juc="
+     },
+     {
+      "path": "/var/spool/cron"
+     },
+     {
+      "path": "/var/spool/cron/crontabs",
+      "ownerUid": "0",
+      "ownerGid": "0",
+      "permissions": "777",
+      "checksum": "Q1OFZt+ZMp7j0Gny0rqSKuWJyqYmA="
+     },
+     {
+      "path": "/var/tmp",
+      "ownerUid": "0",
+      "ownerGid": "0",
+      "permissions": "1777"
+     }
+    ]
+   }
+  },
+  {
+   "name": "fake",
+   "version": "1.2.0-r0",
+   "type": "dpkg",
+   "foundBy": "apkdb-cataloger",
+   "locations": [
+    {
+     "path": "/lib/apk/db/installed",
+     "layerID": "sha256:93cf4cfb673c7e16a9e74f731d6767b70b92a0b7c9f59d06efd72fbff535371c"
+    }
+   ],
+   "licenses": [
+    "LGPL-3.0-or-later"
+   ],
+   "language": "lang",
+   "cpes": [
+    "cpe:2.3:a:*:gmp:6.2.0-r0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:gmp:gmp:6.2.0-r0:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:alpine/gmp@6.2.0-r0?arch=x86_64",
+   "metadataType": "DpkgMetadata",
+   "metadata": {
+    "source": "a-source"
+   }
+  },
+  {
+   "name": "gmp",
+   "version": "6.2.0-r0",
+   "type": "java-archive",
+   "foundBy": "apkdb-cataloger",
+   "locations": [
+    {
+     "path": "/lib/apk/db/installed",
+     "layerID": "sha256:93cf4cfb673c7e16a9e74f731d6767b70b92a0b7c9f59d06efd72fbff535371c"
+    }
+   ],
+   "licenses": [
+    "LGPL-3.0-or-later"
+   ],
+   "language": "the-lang",
+   "cpes": [
+    "cpe:2.3:a:*:gmp:6.2.0-r0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:gmp:gmp:6.2.0-r0:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:alpine/gmp@6.2.0-r0?arch=x86_64",
+   "metadataType": "JavaMetadata",
+   "metadata": {
+    "pomProperties": {
+     "groupId": "gid",
+     "artifactId": "aid"
+    },
+    "manifest": {
+     "main": {
+      "Name": "a-name"
+     }
+    },
+    "package": "gmp",
+    "originPackage": "gmp",
+    "maintainer": "Natanael Copa <ncopa@alpinelinux.org>",
+    "version": "6.2.0-r0",
+    "license": "LGPL-3.0-or-later",
+    "architecture": "x86_64",
+    "url": "https://gmplib.org/",
+    "description": "A free library for arbitrary precision arithmetic",
+    "size": 220040,
+    "installedSize": 430080,
+    "pullDependencies": "so:libc.musl-x86_64.so.1",
+    "pullChecksum": "Q1IdUBW9Q7DiKxqItRI93JTPsylgg=",
+    "gitCommitOfApkPort": "238b6bccbab3b844079fa109d5cee096b81756d3",
+    "files": [
+     {
+      "path": "/usr"
+     },
+     {
+      "path": "/usr/lib"
+     },
+     {
+      "path": "/usr/lib/libgmp.so.10",
+      "ownerUid": "0",
+      "ownerGid": "0",
+      "permissions": "777",
+      "checksum": "Q15mdJR0bVgCzxA6EspemNzt2PxJ0="
+     },
+     {
+      "path": "/usr/lib/libgmp.so.10.4.0",
+      "ownerUid": "0",
+      "ownerGid": "0",
+      "permissions": "755",
+      "checksum": "Q1hT4sjrKisl0oLyq41UhDM+5q2Z4="
+     }
+    ]
+   }
+  }
+ ],
+ "source": {
+  "type": "image",
+  "target": {
+   "userInput": "alpine:fake",
+   "imageID": "sha256:fadf1294c09213b20d4d6fc84109584e1c102d185c2cae15144a87d29de65c6d",
+   "manifestDigest": "sha256:1f6495428fb363e2d233e5df078b2b200635c4e51f0a3be34ecf09d44b547590",
+   "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+   "tags": [
+    "alpine:fake"
+   ],
+   "imageSize": 15879684,
+   "scope": "Squashed",
+   "layers": [
+    {
+     "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+     "digest": "sha256:50644c29ef5a27c9a40c393a73ece2479de78325cae7d762ef3cdc19bf42dd0a",
+     "size": 5570176
+    }
+   ],
+   "manifest": "eyJzY2hlbWFWZXJzaW9uIjoyLCJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQuZG9ja2VyLmRpc3RyaWJ1dGlvbi5tYW5pZmVzdC52Mitqc29uIiwiY29uZmlnIjp7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5kb2NrZXIuY29udGFpbmVyLmltYWdlLnYxK2pzb24iLCJzaXplIjoyMTE2LCJkaWdlc3QiOiJzaGEyNTY6ZmFkZjEyOTRjMDkyMTNiMjBkNGQ2ZmM4NDEwOTU4NGUxYzEwMmQxODVjMmNhZTE1MTQ0YTg3ZDI5ZGU2NWM2ZCJ9LCJsYXllcnMiOlt7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5kb2NrZXIuaW1hZ2Uucm9vdGZzLmRpZmYudGFyLmd6aXAiLCJzaXplIjo1ODQ0OTkyLCJkaWdlc3QiOiJzaGEyNTY6NTA2NDRjMjllZjVhMjdjOWE0MGMzOTNhNzNlY2UyNDc5ZGU3ODMyNWNhZTdkNzYyZWYzY2RjMTliZjQyZGQwYSJ9LHsibWVkaWFUeXBlIjoiYXBwbGljYXRpb24vdm5kLmRvY2tlci5pbWFnZS5yb290ZnMuZGlmZi50YXIuZ3ppcCIsInNpemUiOjE2NzkzNiwiZGlnZXN0Ijoic2hhMjU2OmNjMGZmMWRkYWQ2ZmU0OTc4ZDgzMjYzMGE5MzAzODgzYWRjNTZlZGZjNzdjYWEzNjkyMjM5YzJkODFjZjVkMDAifSx7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5kb2NrZXIuaW1hZ2Uucm9vdGZzLmRpZmYudGFyLmd6aXAiLCJzaXplIjoxMDE2Njc4NCwiZGlnZXN0Ijoic2hhMjU2OjNkZDJkYjQ4M2JjOWQ2YjU2MWNlNWNjMTEwNWUwYjZkMTk2MWNhMjQ5YTczNmJiYTgzNzFhYjI4ZWEzMDRmODQifSx7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5kb2NrZXIuaW1hZ2Uucm9vdGZzLmRpZmYudGFyLmd6aXAiLCJzaXplIjoyMjUyOCwiZGlnZXN0Ijoic2hhMjU2OjkzY2Y0Y2ZiNjczYzdlMTZhOWU3NGY3MzFkNjc2N2I3MGI5MmEwYjdjOWY1OWQwNmVmZDcyZmJmZjUzNTM3MWMifV19",
+   "config": "eyJhcmNoaXRlY3R1cmUiOiJhbWQ2NCIsImNvbmZpZyI6eyJIb3N0bmFtZSI6IiIsIkRvbWFpbm5hbWUiOiIiLCJVc2VyIjoiIiwiQXR0YWNoU3RkaW4iOmZhbHNlLCJBdHRhY2hTdGRvdXQiOmZhbHNlLCJBdHRhY2hTdGRlcnIiOmZhbHNlLCJUdHkiOmZhbHNlLCJPcGVuU3RkaW4iOmZhbHNlLCJTdGRpbk9uY2UiOmZhbHNlLCJFbnYiOlsiUEFUSD0vdXNyL2xvY2FsL3NiaW46L3Vzci9sb2NhbC9iaW46L3Vzci9zYmluOi91c3IvYmluOi9zYmluOi9iaW4iXSwiQ21kIjpbIi9iaW4vc2giXSwiQXJnc0VzY2FwZWQiOnRydWUsIkltYWdlIjoic2hhMjU2OjJjOWQ1MzNiMmI2NGFiMTI4MmFlYTE2ZGYwZjlkYmYwYjNjZDQ3YWMxZTAyYjc1YTM3NjNiMmY0M2NjOWRlNWUiLCJWb2x1bWVzIjpudWxsLCJXb3JraW5nRGlyIjoiIiwiRW50cnlwb2ludCI6bnVsbCwiT25CdWlsZCI6bnVsbCwiTGFiZWxzIjpudWxsfSwiY29udGFpbmVyIjoiYzJlMTM3OTEyYWU2MzdkNzBlMDJhMDVhYWEyM2U3N2JlY2I3Mzg5MDJmZDNjYWMyMjdkNDRlYjdlYzEwMmQ0OCIsImNvbnRhaW5lcl9jb25maWciOnsiSG9zdG5hbWUiOiIiLCJEb21haW5uYW1lIjoiIiwiVXNlciI6IiIsIkF0dGFjaFN0ZGluIjpmYWxzZSwiQXR0YWNoU3Rkb3V0IjpmYWxzZSwiQXR0YWNoU3RkZXJyIjpmYWxzZSwiVHR5IjpmYWxzZSwiT3BlblN0ZGluIjpmYWxzZSwiU3RkaW5PbmNlIjpmYWxzZSwiRW52IjpbIlBBVEg9L3Vzci9sb2NhbC9zYmluOi91c3IvbG9jYWwvYmluOi91c3Ivc2JpbjovdXNyL2Jpbjovc2JpbjovYmluIl0sIkNtZCI6WyIvYmluL3NoIiwiLWMiLCJzZWQgLWkgJ3MvVjowLjkuMTEtcjMvVjowLjkuOS1yMC8nIC9saWIvYXBrL2RiL2luc3RhbGxlZCJdLCJJbWFnZSI6InNoYTI1NjoyYzlkNTMzYjJiNjRhYjEyODJhZWExNmRmMGY5ZGJmMGIzY2Q0N2FjMWUwMmI3NWEzNzYzYjJmNDNjYzlkZTVlIiwiVm9sdW1lcyI6bnVsbCwiV29ya2luZ0RpciI6IiIsIkVudHJ5cG9pbnQiOm51bGwsIk9uQnVpbGQiOm51bGwsIkxhYmVscyI6bnVsbH0sImNyZWF0ZWQiOiIyMDIwLTA5LTI0VDIyOjI2OjQ2LjE2NzYxOTRaIiwiZG9ja2VyX3ZlcnNpb24iOiIxOS4wMy4xMiIsImhpc3RvcnkiOlt7ImNyZWF0ZWQiOiIyMDIwLTA1LTI5VDIxOjE5OjQ2LjE5MjA0NTk3MloiLCJjcmVhdGVkX2J5IjoiL2Jpbi9zaCAtYyAjKG5vcCkgQUREIGZpbGU6YzkyYzI0ODIzOWY4YzdiOWIzYzA2NzY1MDk1NDgxNWYzOTFiN2JjYjA5MDIzZjk4NDk3MmMwODJhY2UyYThkMCBpbiAvICJ9LHsiY3JlYXRlZCI6IjIwMjAtMDUtMjlUMjE6MTk6NDYuMzYzNTE4MzQ1WiIsImNyZWF0ZWRfYnkiOiIvYmluL3NoIC1jICMobm9wKSAgQ01EIFtcIi9iaW4vc2hcIl0iLCJlbXB0eV9sYXllciI6dHJ1ZX0seyJjcmVhdGVkIjoiMjAyMC0wOS0yNFQyMjoyNjo0NC4zMjk1NTc4WiIsImNyZWF0ZWRfYnkiOiIvYmluL3NoIC1jIHdnZXQgaHR0cDovL2RsLWNkbi5hbHBpbmVsaW51eC5vcmcvYWxwaW5lL3YzLjkvbWFpbi94ODZfNjQvbGlidm5jc2VydmVyLTAuOS4xMS1yMy5hcGsifSx7ImNyZWF0ZWQiOiIyMDIwLTA5LTI0VDIyOjI2OjQ1LjY3MDg1MzhaIiwiY3JlYXRlZF9ieSI6Ii9iaW4vc2ggLWMgYXBrIGFkZCAgbGlidm5jc2VydmVyLTAuOS4xMS1yMy5hcGsifSx7ImNyZWF0ZWQiOiIyMDIwLTA5LTI0VDIyOjI2OjQ2LjE2NzYxOTRaIiwiY3JlYXRlZF9ieSI6Ii9iaW4vc2ggLWMgc2VkIC1pICdzL1Y6MC45LjExLXIzL1Y6MC45LjktcjAvJyAvbGliL2Fway9kYi9pbnN0YWxsZWQifV0sIm9zIjoibGludXgiLCJyb290ZnMiOnsidHlwZSI6ImxheWVycyIsImRpZmZfaWRzIjpbInNoYTI1Njo1MDY0NGMyOWVmNWEyN2M5YTQwYzM5M2E3M2VjZTI0NzlkZTc4MzI1Y2FlN2Q3NjJlZjNjZGMxOWJmNDJkZDBhIiwic2hhMjU2OmNjMGZmMWRkYWQ2ZmU0OTc4ZDgzMjYzMGE5MzAzODgzYWRjNTZlZGZjNzdjYWEzNjkyMjM5YzJkODFjZjVkMDAiLCJzaGEyNTY6M2RkMmRiNDgzYmM5ZDZiNTYxY2U1Y2MxMTA1ZTBiNmQxOTYxY2EyNDlhNzM2YmJhODM3MWFiMjhlYTMwNGY4NCIsInNoYTI1Njo5M2NmNGNmYjY3M2M3ZTE2YTllNzRmNzMxZDY3NjdiNzBiOTJhMGI3YzlmNTlkMDZlZmQ3MmZiZmY1MzUzNzFjIl19fQ=="
+  }
+ },
+ "distro": {
+  "name": "alpine",
+  "version": "3.12.0",
+  "idLike": ""
+ },
+ "descriptor": {
+  "name": "syft",
+  "version": "[not provided]"
+ },
+ "schema": {
+  "version": "1.0.0",
+  "url": "https://raw.githubusercontent.com/anchore/syft/main/schema/json/schema-1.0.0.json"
+ }
+}

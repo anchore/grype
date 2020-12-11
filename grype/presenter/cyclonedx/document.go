@@ -28,15 +28,18 @@ type Document struct {
 }
 
 // NewDocument returns a CycloneDX Document object populated with the SBOM and vulnerability findings.
-func NewDocument(packages []pkg.Package, matches match.Matches, srcMetadata source.Metadata, provider vulnerability.MetadataProvider) (Document, error) {
+func NewDocument(packages []pkg.Package, matches match.Matches, srcMetadata *source.Metadata, provider vulnerability.MetadataProvider) (Document, error) {
 	versionInfo := version.FromBuild()
 
 	doc := Document{
-		XMLNs:         "http://cyclonedx.org/schema/bom/1.2",
-		XMLNsV:        "http://cyclonedx.org/schema/ext/vulnerability/1.0",
-		Version:       1,
-		SerialNumber:  uuid.New().URN(),
-		BomDescriptor: syftCDX.NewBomDescriptor(internal.ApplicationName, versionInfo.Version, srcMetadata),
+		XMLNs:        "http://cyclonedx.org/schema/bom/1.2",
+		XMLNsV:       "http://cyclonedx.org/schema/ext/vulnerability/1.0",
+		Version:      1,
+		SerialNumber: uuid.New().URN(),
+	}
+
+	if srcMetadata != nil {
+		doc.BomDescriptor = syftCDX.NewBomDescriptor(internal.ApplicationName, versionInfo.Version, *srcMetadata)
 	}
 
 	// attach matches

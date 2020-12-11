@@ -21,7 +21,6 @@ import (
 	"github.com/anchore/grype/internal/format"
 	"github.com/anchore/grype/internal/ui"
 	"github.com/anchore/grype/internal/version"
-	"github.com/anchore/syft/syft/distro"
 	"github.com/anchore/syft/syft/source"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
@@ -177,8 +176,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		var provider vulnerability.Provider
 		var metadataProvider vulnerability.MetadataProvider
 		var packages []pkg.Package
-		var srcMetadata source.Metadata
-		var theDistro *distro.Distro
+		var context pkg.Context
 		var err error
 		var wg = &sync.WaitGroup{}
 
@@ -186,6 +184,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 		go func() {
 			defer wg.Done()
+			log.Debug("loading DB")
 			provider, metadataProvider, err = grype.LoadVulnerabilityDb(appConfig.Db.ToCuratorConfig(), appConfig.Db.AutoUpdate)
 			if err != nil {
 				errs <- fmt.Errorf("failed to load vulnerability db: %w", err)
@@ -194,7 +193,8 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 		go func() {
 			defer wg.Done()
-			srcMetadata, packages, theDistro, err = grype.Catalog(userInput, appConfig.ScopeOpt)
+			log.Debugf("gathering packages")
+			packages, context, err = pkg.Provide(userInput, appConfig.ScopeOpt)
 			if err != nil {
 				errs <- fmt.Errorf("failed to catalog: %w", err)
 			}
@@ -205,7 +205,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			return
 		}
 
-		matches := grype.FindVulnerabilitiesForPackage(provider, theDistro, packages...)
+		matches := grype.FindVulnerabilitiesForPackage(provider, context.Distro, packages...)
 
 		// determine if there are any severities >= to the max allowable severity (which is optional).
 		// note: until the shared file lock in sqlittle is fixed the sqlite DB cannot be access concurrently,
@@ -216,7 +216,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 		bus.Publish(partybus.Event{
 			Type:  event.VulnerabilityScanningFinished,
-			Value: presenter.GetPresenter(appConfig.PresenterOpt, matches, packages, theDistro, srcMetadata, metadataProvider),
+			Value: presenter.GetPresenter(appConfig.PresenterOpt, matches, packages, context, metadataProvider),
 		})
 	}()
 	return errs
