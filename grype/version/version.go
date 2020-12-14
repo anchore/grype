@@ -3,7 +3,8 @@ package version
 import (
 	"fmt"
 
-	"github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/grype/grype/pkg"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 type Version struct {
@@ -13,7 +14,7 @@ type Version struct {
 }
 
 type rich struct {
-	cpeVers []pkg.CPE
+	cpeVers []syftPkg.CPE
 	semVer  *semanticVersion
 	debVer  *debVersion
 	rpmVer  *rpmVersion
@@ -33,7 +34,7 @@ func NewVersion(raw string, format Format) (*Version, error) {
 	return version, nil
 }
 
-func NewVersionFromPkg(p *pkg.Package) (*Version, error) {
+func NewVersionFromPkg(p pkg.Package) (*Version, error) {
 	ver, err := NewVersion(p.Version, FormatFromPkgType(p.Type))
 	if err != nil {
 		return nil, err
@@ -67,7 +68,7 @@ func (v *Version) populate() error {
 	return fmt.Errorf("no rich version populated (format=%s)", v.Format)
 }
 
-func (v Version) CPEs() []pkg.CPE {
+func (v Version) CPEs() []syftPkg.CPE {
 	return v.rich.cpeVers
 }
 

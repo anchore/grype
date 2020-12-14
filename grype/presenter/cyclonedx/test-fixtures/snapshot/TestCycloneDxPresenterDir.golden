@@ -1,11 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.2" xmlns:bd="http://cyclonedx.org/schema/ext/bom-descriptor/1.0" xmlns:v="http://cyclonedx.org/schema/ext/vulnerability/1.0" version="1" serialNumber="urn:uuid:fb34f36c-9e1e-498e-920f-87b93d11c80a">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.2" xmlns:bd="" xmlns:v="http://cyclonedx.org/schema/ext/vulnerability/1.0" version="1" serialNumber="urn:uuid:c646024d-b343-49ab-b9ed-2b28d84117d5">
+  <metadata>
+    <timestamp>2020-12-09T10:38:16-05:00</timestamp>
+    <tools>
+      <tool>
+        <vendor>anchore</vendor>
+        <name>grype</name>
+        <version>[not provided]</version>
+      </tool>
+    </tools>
+    <component type="file">
+      <name>/some/path</name>
+      <version></version>
+    </component>
+  </metadata>
   <components>
     <component type="library">
       <name>package-1</name>
       <version>1.0.1</version>
       <v:vulnerabilities>
-        <v:vulnerability ref="urn:uuid:46a01c04-1a43-49ac-b2f6-0aeb0f707da2">
+        <v:vulnerability ref="urn:uuid:6d50b4ac-e809-4989-a91f-4e481994e250">
           <v:id>CVE-1999-0001</v:id>
           <v:source name="source-1">
             <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0001</v:url>
@@ -25,7 +39,7 @@
           <v:description>1999-01 description</v:description>
           <v:advisories></v:advisories>
         </v:vulnerability>
-        <v:vulnerability ref="urn:uuid:a2a52b9c-92be-4b42-a56f-109ae0bab1b5">
+        <v:vulnerability ref="urn:uuid:61f04f8b-e8d1-49c4-a204-bc1df8fc46d0">
           <v:id>CVE-1999-0002</v:id>
           <v:source name="source-2">
             <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0002</v:url>
@@ -60,16 +74,4 @@
       </licenses>
     </component>
   </components>
-  <bd:metadata>
-    <bd:timestamp>2020-11-17T14:03:05-05:00</bd:timestamp>
-    <bd:tool>
-      <bd:vendor>anchore</bd:vendor>
-      <bd:name>grype</bd:name>
-      <bd:version>[not provided]</bd:version>
-    </bd:tool>
-    <bd:component type="file">
-      <name>/some/path</name>
-      <version></version>
-    </bd:component>
-  </bd:metadata>
 </bom>

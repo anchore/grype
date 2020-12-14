@@ -7,23 +7,23 @@ import (
 	"strings"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/syft/syft/pkg"
 	"github.com/olekukonko/tablewriter"
 )
 
 // Presenter is a generic struct for holding fields needed for reporting
 type Presenter struct {
 	results          match.Matches
-	catalog          *pkg.Catalog
+	packages         []pkg.Package
 	metadataProvider vulnerability.MetadataProvider
 }
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter(results match.Matches, catalog *pkg.Catalog, metadataProvider vulnerability.MetadataProvider) *Presenter {
+func NewPresenter(results match.Matches, packages []pkg.Package, metadataProvider vulnerability.MetadataProvider) *Presenter {
 	return &Presenter{
 		results:          results,
-		catalog:          catalog,
+		packages:         packages,
 		metadataProvider: metadataProvider,
 	}
 }

@@ -3,26 +3,28 @@ package common
 import (
 	"fmt"
 
-	"github.com/anchore/grype/grype/version"
-
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/distro"
-	"github.com/anchore/syft/syft/pkg"
 )
 
-func FindMatchesByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p *pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
+func FindMatchesByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
+	if d == nil {
+		return nil, nil
+	}
+
 	verObj, err := version.NewVersionFromPkg(p)
 	if err != nil {
 		return nil, fmt.Errorf("matcher failed to parse version pkg='%s' ver='%s': %w", p.Name, p.Version, err)
 	}
 
 	var allPkgVulns []*vulnerability.Vulnerability
-	if d != nil {
-		allPkgVulns, err = store.GetByDistro(*d, p)
-		if err != nil {
-			return nil, fmt.Errorf("matcher failed to fetch distro='%s' pkg='%s': %w", d, p.Name, err)
-		}
+
+	allPkgVulns, err = store.GetByDistro(*d, p)
+	if err != nil {
+		return nil, fmt.Errorf("matcher failed to fetch distro='%s' pkg='%s': %w", d, p.Name, err)
 	}
 
 	matches := make([]match.Match, 0)

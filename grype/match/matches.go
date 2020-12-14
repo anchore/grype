@@ -1,7 +1,7 @@
 package match
 
 import (
-	"github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/grype/grype/pkg"
 )
 
 type Matches struct {
@@ -41,7 +41,7 @@ func (r *Matches) add(id pkg.ID, matches ...Match) {
 	r.byPackage[id] = append(r.byPackage[id], matches...)
 }
 
-func (r *Matches) Add(p *pkg.Package, matches ...Match) {
+func (r *Matches) Add(p pkg.Package, matches ...Match) {
 	r.add(p.ID(), matches...)
 }
 

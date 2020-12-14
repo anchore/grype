@@ -4,9 +4,10 @@ import (
 	"testing"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/syft/syft/distro"
-	"github.com/anchore/syft/syft/pkg"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 func TestMatcherDpkg_matchBySourceIndirection(t *testing.T) {
@@ -14,7 +15,7 @@ func TestMatcherDpkg_matchBySourceIndirection(t *testing.T) {
 	p := pkg.Package{
 		Name:    "neutron",
 		Version: "2014.1.3-6",
-		Type:    pkg.DebPkg,
+		Type:    syftPkg.DebPkg,
 		Metadata: pkg.DpkgMetadata{
 			Source: "neutron-devel",
 		},
@@ -26,7 +27,7 @@ func TestMatcherDpkg_matchBySourceIndirection(t *testing.T) {
 	}
 
 	store := newMockProvider()
-	actual, err := matcher.matchBySourceIndirection(store, &d, &p)
+	actual, err := matcher.matchBySourceIndirection(store, &d, p)
 
 	if len(actual) != 2 {
 		t.Fatalf("unexpected indirect matches count: %d", len(actual))
@@ -49,13 +50,6 @@ func TestMatcherDpkg_matchBySourceIndirection(t *testing.T) {
 			t.Errorf("failed to capture matcher type: %s", a.Matcher)
 		}
 
-		if a.IndirectPackage == nil {
-			t.Fatalf("failed to capture correct indirect package")
-		}
-
-		if a.IndirectPackage.Name != p.Name+"-devel" {
-			t.Errorf("failed to capture correct indirect package name: %s", a.IndirectPackage.Name)
-		}
 	}
 
 	for _, id := range []string{"CVE-2014-fake-2", "CVE-2013-fake-3"} {

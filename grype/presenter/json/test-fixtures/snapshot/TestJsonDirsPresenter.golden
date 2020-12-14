@@ -26,18 +26,15 @@
     "name": "package-1",
     "version": "1.0.1",
     "type": "deb",
-    "foundBy": "the-cataloger-1",
     "locations": [
      {
       "path": "/some/path/pkg1"
      }
     ],
-    "licenses": [],
     "language": "",
-    "cpes": [],
-    "purl": "",
-    "metadataType": "",
-    "metadata": null
+    "licenses": null,
+    "cpes": null,
+    "purl": ""
    }
   },
   {
@@ -64,18 +61,15 @@
     "name": "package-1",
     "version": "1.0.1",
     "type": "deb",
-    "foundBy": "the-cataloger-1",
     "locations": [
      {
       "path": "/some/path/pkg1"
      }
     ],
-    "licenses": [],
     "language": "",
-    "cpes": [],
-    "purl": "",
-    "metadataType": "",
-    "metadata": null
+    "licenses": null,
+    "cpes": null,
+    "purl": ""
    }
   },
   {
@@ -97,18 +91,15 @@
     "name": "package-1",
     "version": "1.0.1",
     "type": "deb",
-    "foundBy": "the-cataloger-1",
     "locations": [
      {
       "path": "/some/path/pkg1"
      }
     ],
-    "licenses": [],
     "language": "",
-    "cpes": [],
-    "purl": "",
-    "metadataType": "",
-    "metadata": null
+    "licenses": null,
+    "cpes": null,
+    "purl": ""
    }
   }
  ],

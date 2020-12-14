@@ -5,10 +5,11 @@ import (
 	"testing"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
-	"github.com/anchore/syft/syft/pkg"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 type mockLanguageProvider struct {
@@ -39,8 +40,8 @@ func (pr *mockLanguageProvider) stub() {
 	}
 }
 
-func (pr *mockLanguageProvider) GetByLanguage(l pkg.Language, p *pkg.Package) ([]*vulnerability.Vulnerability, error) {
-	if l != pkg.Ruby {
+func (pr *mockLanguageProvider) GetByLanguage(l syftPkg.Language, p pkg.Package) ([]*vulnerability.Vulnerability, error) {
+	if l != syftPkg.Ruby {
 		panic(fmt.Errorf("test mock only supports ruby"))
 	}
 	return pr.data["github:gem"][p.Name], nil
@@ -50,12 +51,12 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 	p := pkg.Package{
 		Name:     "activerecord",
 		Version:  "3.7.5",
-		Language: pkg.Ruby,
-		Type:     pkg.GemPkg,
+		Language: syftPkg.Ruby,
+		Type:     syftPkg.GemPkg,
 	}
 
 	store := newMockProviderByLanguage()
-	actual, err := FindMatchesByPackageLanguage(store, p.Language, &p, match.PythonMatcher)
+	actual, err := FindMatchesByPackageLanguage(store, p.Language, p, match.PythonMatcher)
 	if err != nil {
 		t.Fatalf("error while finding matches: %+v", err)
 	}
@@ -81,9 +82,6 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 			t.Errorf("failed to capture matcher name: %s", a.Matcher)
 		}
 
-		if a.IndirectPackage != nil {
-			t.Fatalf("should not have captured indirect package")
-		}
 	}
 
 	for _, id := range []string{"CVE-2017-fake-1"} {

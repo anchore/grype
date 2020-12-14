@@ -2,10 +2,11 @@ package db
 
 import (
 	"fmt"
-	"github.com/wagoodman/go-progress"
 	"net/url"
 	"testing"
 	"time"
+
+	"github.com/wagoodman/go-progress"
 
 	"github.com/anchore/grype-db/pkg/curation"
 	"github.com/anchore/grype/internal"
@@ -54,10 +55,11 @@ func (g *testGetter) GetToDir(dst, src string, _ ...*progress.Manual) error {
 	return afero.WriteFile(g.fs, dst, []byte(g.dir[src]), 0755)
 }
 
-func newTestCurator(fs afero.Fs, getter file.Getter, dbDir, metadataUrl string) Curator {
+func newTestCurator(fs afero.Fs, getter file.Getter, dbDir, metadataUrl string, validateDbHash bool) Curator {
 	c := NewCurator(Config{
-		DbDir:      dbDir,
-		ListingURL: metadataUrl,
+		DbDir:               dbDir,
+		ListingURL:          metadataUrl,
+		ValidateByHashOnGet: validateDbHash,
 	})
 
 	c.downloader = getter
@@ -93,7 +95,7 @@ func TestCuratorDownload(t *testing.T) {
 			}
 			fs := afero.NewMemMapFs()
 			getter := newTestGetter(fs, files, dirs)
-			cur := newTestCurator(fs, getter, "/tmp/dbdir", metadataUrl)
+			cur := newTestCurator(fs, getter, "/tmp/dbdir", metadataUrl, false)
 
 			path, err := cur.download(test.entry, &progress.Manual{})
 
@@ -121,34 +123,46 @@ func TestCuratorDownload(t *testing.T) {
 
 func TestCuratorValidate(t *testing.T) {
 	tests := []struct {
-		name       string
-		fixture    string
-		constraint int
-		err        bool
+		name              string
+		fixture           string
+		constraint        int
+		cfgValidateDbHash bool
+		err               bool
 	}{
 		{
-			name:       "good checksum & good constraint",
-			fixture:    "test-fixtures/curator-validate/good-checksum",
-			constraint: 1,
-			err:        false,
+			name:              "good checksum & good constraint",
+			fixture:           "test-fixtures/curator-validate/good-checksum",
+			cfgValidateDbHash: true,
+			constraint:        1,
+			err:               false,
 		},
 		{
-			name:       "good checksum & bad constraint",
-			fixture:    "test-fixtures/curator-validate/good-checksum",
-			constraint: 2,
-			err:        true,
+			name:              "good checksum & bad constraint",
+			fixture:           "test-fixtures/curator-validate/good-checksum",
+			cfgValidateDbHash: true,
+			constraint:        2,
+			err:               true,
 		},
 		{
-			name:       "bad checksum & good constraint",
-			fixture:    "test-fixtures/curator-validate/bad-checksum",
-			constraint: 1,
-			err:        true,
+			name:              "bad checksum & good constraint",
+			fixture:           "test-fixtures/curator-validate/bad-checksum",
+			cfgValidateDbHash: true,
+			constraint:        1,
+			err:               true,
 		},
 		{
-			name:       "bad checksum & bad constraint",
-			fixture:    "test-fixtures/curator-validate/bad-checksum",
-			constraint: 2,
-			err:        true,
+			name:              "bad checksum & bad constraint",
+			fixture:           "test-fixtures/curator-validate/bad-checksum",
+			cfgValidateDbHash: true,
+			constraint:        2,
+			err:               true,
+		},
+		{
+			name:              "bad checksum ignored on config exception",
+			fixture:           "test-fixtures/curator-validate/bad-checksum",
+			cfgValidateDbHash: false,
+			constraint:        1,
+			err:               false,
 		},
 	}
 
@@ -158,7 +172,7 @@ func TestCuratorValidate(t *testing.T) {
 
 			fs := afero.NewOsFs()
 			getter := newTestGetter(fs, nil, nil)
-			cur := newTestCurator(fs, getter, "/tmp/dbdir", metadataUrl)
+			cur := newTestCurator(fs, getter, "/tmp/dbdir", metadataUrl, test.cfgValidateDbHash)
 
 			cur.targetSchema = test.constraint
 

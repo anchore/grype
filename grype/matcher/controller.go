@@ -10,11 +10,12 @@ import (
 	"github.com/anchore/grype/grype/matcher/python"
 	"github.com/anchore/grype/grype/matcher/rpmdb"
 	"github.com/anchore/grype/grype/matcher/ruby"
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/distro"
-	"github.com/anchore/syft/syft/pkg"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
 )
@@ -31,12 +32,12 @@ func init() {
 }
 
 type controller struct {
-	matchers map[pkg.Type][]Matcher
+	matchers map[syftPkg.Type][]Matcher
 }
 
 func newController() controller {
 	ctrlr := controller{
-		matchers: make(map[pkg.Type][]Matcher),
+		matchers: make(map[syftPkg.Type][]Matcher),
 	}
 	ctrlr.add(&dpkg.Matcher{})
 	ctrlr.add(&ruby.Matcher{})
@@ -75,7 +76,7 @@ func (c *controller) trackMatcher() (*progress.Manual, *progress.Manual) {
 	return &packagesProcessed, &vulnerabilitiesDiscovered
 }
 
-func (c *controller) findMatches(provider vulnerability.Provider, d *distro.Distro, packages ...*pkg.Package) match.Matches {
+func (c *controller) findMatches(provider vulnerability.Provider, d *distro.Distro, packages ...pkg.Package) match.Matches {
 	res := match.NewMatches()
 
 	packagesProcessed, vulnerabilitiesDiscovered := c.trackMatcher()
@@ -106,11 +107,11 @@ func (c *controller) findMatches(provider vulnerability.Provider, d *distro.Dist
 	return res
 }
 
-func FindMatches(provider vulnerability.Provider, d *distro.Distro, packages ...*pkg.Package) match.Matches {
+func FindMatches(provider vulnerability.Provider, d *distro.Distro, packages ...pkg.Package) match.Matches {
 	return controllerInstance.findMatches(provider, d, packages...)
 }
 
-func logMatches(p *pkg.Package, matches []match.Match) {
+func logMatches(p pkg.Package, matches []match.Match) {
 	if len(matches) > 0 {
 		log.Debugf("found %d vulnerabilities for pkg=%s", len(matches), p)
 		for idx, m := range matches {

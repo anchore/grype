@@ -3,10 +3,10 @@ package rpmdb
 import (
 	"strings"
 
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/distro"
-	"github.com/anchore/syft/syft/pkg"
 )
 
 type mockProvider struct {
@@ -50,7 +50,7 @@ func (pr *mockProvider) stub() {
 	}
 }
 
-func (pr *mockProvider) GetByDistro(d distro.Distro, p *pkg.Package) ([]*vulnerability.Vulnerability, error) {
+func (pr *mockProvider) GetByDistro(d distro.Distro, p pkg.Package) ([]*vulnerability.Vulnerability, error) {
 	var ty = strings.ToLower(d.Type.String())
 	if d.Type == distro.CentOS || d.Type == distro.RedHat {
 		ty = "rhel"

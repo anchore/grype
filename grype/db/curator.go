@@ -23,8 +23,9 @@ const (
 )
 
 type Config struct {
-	DbDir      string
-	ListingURL string
+	DbDir               string
+	ListingURL          string
+	ValidateByHashOnGet bool
 }
 
 type Curator struct {
@@ -259,13 +260,15 @@ func (c *Curator) validate(dbDirPath string) error {
 		return fmt.Errorf("database metadata not found: %s", dbDirPath)
 	}
 
-	dbPath := path.Join(dbDirPath, FileName)
-	valid, actualHash, err := file.ValidateByHash(c.fs, dbPath, metadata.Checksum)
-	if err != nil {
-		return err
-	}
-	if !valid {
-		return fmt.Errorf("bad db checksum (%s): %q vs %q", dbPath, metadata.Checksum, actualHash)
+	if c.config.ValidateByHashOnGet {
+		dbPath := path.Join(dbDirPath, FileName)
+		valid, actualHash, err := file.ValidateByHash(c.fs, dbPath, metadata.Checksum)
+		if err != nil {
+			return err
+		}
+		if !valid {
+			return fmt.Errorf("bad db checksum (%s): %q vs %q", dbPath, metadata.Checksum, actualHash)
+		}
 	}
 
 	if c.targetSchema != metadata.Version {

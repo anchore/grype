@@ -45,9 +45,10 @@ type Logging struct {
 }
 
 type Database struct {
-	Dir        string `mapstructure:"cache-dir"`
-	UpdateURL  string `mapstructure:"update-url"`
-	AutoUpdate bool   `mapstructure:"auto-update"`
+	Dir                   string `mapstructure:"cache-dir"`
+	UpdateURL             string `mapstructure:"update-url"`
+	AutoUpdate            bool   `mapstructure:"auto-update"`
+	ValidateByHashOnStart bool   `mapstructure:"validate-by-hash-on-start"`
 }
 
 type Development struct {
@@ -56,8 +57,9 @@ type Development struct {
 
 func (d Database) ToCuratorConfig() db.Config {
 	return db.Config{
-		DbDir:      d.Dir,
-		ListingURL: d.UpdateURL,
+		DbDir:               d.Dir,
+		ListingURL:          d.UpdateURL,
+		ValidateByHashOnGet: d.ValidateByHashOnStart,
 	}
 }
 
@@ -69,6 +71,7 @@ func setNonCliDefaultValues(v *viper.Viper) {
 	v.SetDefault("db.cache-dir", path.Join(xdg.CacheHome, internal.ApplicationName, "db"))
 	v.SetDefault("db.update-url", internal.DBUpdateURL)
 	v.SetDefault("db.auto-update", true)
+	v.SetDefault("db.validate-by-hash-on-start", false)
 	v.SetDefault("dev.profile-cpu", false)
 	v.SetDefault("check-for-app-update", true)
 }

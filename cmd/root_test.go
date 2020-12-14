@@ -1,13 +1,14 @@
 package cmd
 
 import (
-	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/syft/syft/pkg"
 	"testing"
-)
 
-import v1 "github.com/anchore/grype-db/pkg/db/v1"
+	v1 "github.com/anchore/grype-db/pkg/db/v1"
+	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/vulnerability"
+	syftPkg "github.com/anchore/syft/syft/pkg"
+)
 
 type mockMetadataStore struct {
 	data map[string]map[string]*v1.VulnerabilityMetadata
@@ -34,11 +35,10 @@ func (d *mockMetadataStore) GetVulnerabilityMetadata(id, recordSource string) (*
 }
 
 func TestAboveAllowableSeverity(t *testing.T) {
-	thePkg := &pkg.Package{
+	thePkg := pkg.Package{
 		Name:    "the-package",
 		Version: "v0.1",
-		FoundBy: "nothing",
-		Type:    pkg.RpmPkg,
+		Type:    syftPkg.RpmPkg,
 	}
 
 	matches := match.NewMatches()
