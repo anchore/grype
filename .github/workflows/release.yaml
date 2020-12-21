@@ -136,3 +136,38 @@ jobs:
         with:
           name: artifacts
           path: dist/**/*
+
+  integration:
+    needs: [ release ]
+    runs-on: ubuntu-latest # This OS choice is arbitrary. None of the steps in this job are specific to either Linux or macOS.
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set Grype version output
+        id: grype
+        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+
+      - name: checkout scan-action
+        uses: actions/checkout@v2
+        with:
+          repository: anchore/scan-action
+          path: scan-action
+
+      - name: find current scan-action version
+        id: scan-action
+        run: echo "SCAN_ACTION=$(grep \"const grypeVersion\" scan-action/index.js | cut -d ' ' -f 4 | sed \"s/\'//g\")" >> $GITHUB_ENV
+
+      - uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              username: 'toolbox-pipeline',
+              icon_emoji: ':hammer_and_wrench:',
+              attachments: [{
+                color: 'warning',
+                text: `Hey @Alfredo Deza ! there is a new grype release (${steps.grype.outputs.tag}) and you need to bump scan-action from ${env.SCAN_ACTION}`,
+              }]
+            }
+
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_TOOLBOX_WEBHOOK_URL }}
