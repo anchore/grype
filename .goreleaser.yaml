@@ -89,5 +89,15 @@ brews:
   - tap:
       owner: anchore
       name: homebrew-grype
+    install: |
+        bin.install "grype"
+
+        # Install bash completion
+        output = Utils.popen_read("#{bin}/grype completion bash")
+        (bash_completion/"grype").write output
+
+        # Install zsh completion
+        output = Utils.popen_read("#{bin}/grype completion zsh")
+        (zsh_completion/"_grype").write output
     homepage: *website
     description: *description
