@@ -116,6 +116,8 @@ github.com/alicebob/sqlittle v1.4.0 h1:vgYt0nAjhdf/hg52MjKJ84g/uTzBPfrvI+VUBrIgh
 github.com/alicebob/sqlittle v1.4.0/go.mod h1:Co1L1qxHqCwf41puWhk2HOodojR0mcsAV4BIt8byZh8=
 github.com/anchore/client-go v0.0.0-20201210022459-59e7a0749c74 h1:9kkKTIyXJC+/syUcY6KWxFoJZJ+GWwrIscF+gBY067k=
 github.com/anchore/client-go v0.0.0-20201210022459-59e7a0749c74/go.mod h1:FaODhIA06mxO1E6R32JE0TL1JWZZkmjRIAd4ULvHUKk=
+github.com/anchore/client-go v0.0.0-20201216213038-a486b838e238 h1:/iI+1cj1a27ow0wj378pPJIm8sCSy6I21Tz6oLbLDQY=
+github.com/anchore/client-go v0.0.0-20201216213038-a486b838e238/go.mod h1:FaODhIA06mxO1E6R32JE0TL1JWZZkmjRIAd4ULvHUKk=
 github.com/anchore/go-rpmdb v0.0.0-20201106153645-0043963c2e12 h1:xbeIbn5F52JVx3RUIajxCj8b0y+9lywspql4sFhcxWQ=
 github.com/anchore/go-rpmdb v0.0.0-20201106153645-0043963c2e12/go.mod h1:juoyWXIj7sJ1IDl4E/KIfyLtovbs5XQVSIdaQifFQT8=
 github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04 h1:VzprUTpc0vW0nnNKJfJieyH/TZ9UYAnTZs5/gHTdAe8=
@@ -130,12 +132,16 @@ github.com/anchore/stereoscope v0.0.0-20201203153145-3f9a05a624d7 h1:G3LnRqHL/II
 github.com/anchore/stereoscope v0.0.0-20201203153145-3f9a05a624d7/go.mod h1:2Jja/4l0zYggW52og+nn0rut4i+OYjCf9vTyrM8RT4E=
 github.com/anchore/stereoscope v0.0.0-20201210022249-091f9bddb42e h1:vHUqHTvH9/oxdDDh1fxS9Ls9gWGytKO7XbbzcQ9MBwI=
 github.com/anchore/stereoscope v0.0.0-20201210022249-091f9bddb42e/go.mod h1:/dHAFjYflH/1tzhdHAcnMCjprMch+YzHJKi59m/1KCM=
+github.com/anchore/stereoscope v0.0.0-20210105001222-7beea73cb7e5 h1:NGRfS6BZKElgiMbqdoH9iQn+6oxT7CJdZYrqgwvGkWY=
+github.com/anchore/stereoscope v0.0.0-20210105001222-7beea73cb7e5/go.mod h1:BMdPL0QEIYfpjQ3M7sHYZvuh6+vcomqF3TMHL8gr6Vw=
 github.com/anchore/syft v0.9.2 h1:kRmquh8qOqH+/84S3/kOzj0cnGiqtW4f38Iz3TGrzXQ=
 github.com/anchore/syft v0.9.2/go.mod h1:1vZpPrvAhEnpUsi4/+V3c9W0eGgSZLesStiKt/ujf6E=
 github.com/anchore/syft v0.9.3-0.20201204184855-2d0c127419a3 h1:kJFcZZlhP5spei7uRon+2QzFTABjmzcJfeYh2Hje8KQ=
 github.com/anchore/syft v0.9.3-0.20201204184855-2d0c127419a3/go.mod h1:1vZpPrvAhEnpUsi4/+V3c9W0eGgSZLesStiKt/ujf6E=
 github.com/anchore/syft v0.10.0 h1:fN7wUauj560M6rjaRYBobpTDxciYQT9f1JQTJvyBRuQ=
 github.com/anchore/syft v0.10.0/go.mod h1:U+cGFs4UkMRxkVgiJ1OtQHfemdDkk2Mpaq5Rw3rqHnI=
+github.com/anchore/syft v0.12.4 h1:fP1AyeDv85A2K/W0xoeBxYyMVWz+QXJVgGyaa1Q6/w4=
+github.com/anchore/syft v0.12.4/go.mod h1:dxcpTsSz1lxSbmq2hrNQA3Ngma1RcYo80s/tpMrVT90=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 h1:bvNMNQO63//z+xNgfBlViaCIJKLlCJ6/fmUseuG0wVQ=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/cascadia v1.1.0/go.mod h1:GsXiBklL0woXo1j/WYWtSYYC4ouU9PqHO0sqidkEA4Y=
@@ -173,6 +179,8 @@ github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb/go.mod h1:PkYb9DJNAw
 github.com/blang/semver v3.5.0+incompatible/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnwebNt5EWlYSAyrTnjyyk=
 github.com/bmatcuk/doublestar v1.3.3 h1:pVP1d49CcQQaNOl+PI6sPybIrIOD/6sux31PFdmhTH0=
 github.com/bmatcuk/doublestar v1.3.3/go.mod h1:wiQtGV+rzVYxB7WIlirSN++5HPtPlXEo9MEoZQC/PmE=
+github.com/bmatcuk/doublestar/v2 v2.0.4 h1:6I6oUiT/sU27eE2OFcWqBhL1SwjyvQuOssxT4a1yidI=
+github.com/bmatcuk/doublestar/v2 v2.0.4/go.mod h1:QMmcs3H2AUQICWhfzLXz+IYln8lRQmTZRptLie8RgRw=
 github.com/bombsimon/wsl/v2 v2.0.0/go.mod h1:mf25kr/SqFEPhhcxW1+7pxzGlW+hIl/hYTKY95VwV8U=
 github.com/bombsimon/wsl/v2 v2.2.0/go.mod h1:Azh8c3XGEJl9LyX0/sFC+CKMc7Ssgua0g+6abzXN4Pg=
 github.com/bombsimon/wsl/v3 v3.0.0/go.mod h1:st10JtZYLE4D5sC7b8xV4zTKZwAQjCH/Hy2Pm1FNZIc=
@@ -678,6 +686,8 @@ github.com/pkg/errors v0.8.1-0.20171018195549-f15c970de5b7/go.mod h1:bwawxfHBFNV
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
+github.com/pkg/profile v1.5.0 h1:042Buzk+NhDI+DeSAA62RwJL8VAuZUMQZUjCsRz1Mug=
+github.com/pkg/profile v1.5.0/go.mod h1:qBsxPvzyUincmltOk6iyRVxHYg4adc0OFOv72ZdLa18=
 github.com/pkg/sftp v1.10.1/go.mod h1:lYOWFsE0bwd1+KfKJaKeuokY15vzFx25BLbzYYoAxZI=
 github.com/pmezard/go-difflib v0.0.0-20151028094244-d8ed2627bdf0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

@@ -5,6 +5,8 @@ import (
 	"flag"
 	"testing"
 
+	"github.com/anchore/stereoscope/pkg/file"
+
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -69,12 +71,17 @@ func TestJsonImgsPresenter(t *testing.T) {
 
 	img := imagetest.GetGoldenFixtureImage(t, testImage)
 
+	getImageLocation := func(filepath string) source.Location {
+		_, ref, _ := img.SquashedTree().File(file.Path(filepath))
+		return source.NewLocationFromImage("", *ref, img)
+	}
+
 	var pkg1 = pkg.Package{
 		Name:    "package-1",
 		Version: "1.1.1",
 		Type:    syftPkg.DebPkg,
 		Locations: []source.Location{
-			source.NewLocationFromImage(*img.SquashedTree().File("/somefile-1.txt"), img),
+			getImageLocation("/somefile-1.txt"),
 		},
 	}
 
@@ -83,7 +90,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 		Version: "2.2.2",
 		Type:    syftPkg.DebPkg,
 		Locations: []source.Location{
-			source.NewLocationFromImage(*img.SquashedTree().File("/somefile-2.txt"), img),
+			getImageLocation("/somefile-2.txt"),
 		},
 	}
 
@@ -196,7 +203,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 		Type:    syftPkg.DebPkg,
 		FoundBy: "the-cataloger-1",
 		Locations: []source.Location{
-			{Path: "/some/path/pkg1"},
+			{RealPath: "/some/path/pkg1"},
 		},
 	})
 
