@@ -35,7 +35,7 @@ func TestParseSyftJSON(t *testing.T) {
 					Version: "3.2.0-r6",
 					Locations: []source.Location{
 						{
-							Path:         "/lib/apk/db/installed",
+							RealPath:     "/lib/apk/db/installed",
 							FileSystemID: "sha256:93cf4cfb673c7e16a9e74f731d6767b70b92a0b7c9f59d06efd72fbff535371c",
 						},
 					},
@@ -57,7 +57,7 @@ func TestParseSyftJSON(t *testing.T) {
 					Version: "1.2.0-r0",
 					Locations: []source.Location{
 						{
-							Path:         "/lib/apk/db/installed",
+							RealPath:     "/lib/apk/db/installed",
 							FileSystemID: "sha256:93cf4cfb673c7e16a9e74f731d6767b70b92a0b7c9f59d06efd72fbff535371c",
 						},
 					},
@@ -79,7 +79,7 @@ func TestParseSyftJSON(t *testing.T) {
 					Version: "6.2.0-r0",
 					Locations: []source.Location{
 						{
-							Path:         "/lib/apk/db/installed",
+							RealPath:     "/lib/apk/db/installed",
 							FileSystemID: "sha256:93cf4cfb673c7e16a9e74f731d6767b70b92a0b7c9f59d06efd72fbff535371c",
 						},
 					},
