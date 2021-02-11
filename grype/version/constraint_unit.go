@@ -3,53 +3,44 @@ package version
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
+
+	"github.com/anchore/grype/internal"
 )
 
 // operator group only matches on range operators (GT, LT, GTE, LTE, E)
 // version group matches on everything except for whitespace and operators (range or boolean)
-var constraintPartPattern = regexp.MustCompile(`(?P<operator>[><=]*)\s*(?P<version>[^<>=\s,|]+)`)
+var constraintPartPattern = regexp.MustCompile(`\s*(?P<operator>[><=]*)\s*(?P<version>.+)`)
 
 type constraintUnit struct {
 	rangeOperator operator
 	version       string
 }
 
-func splitConstraintPhrase(phrase string) ([]constraintUnit, error) {
-	// this implies that the returned set of constraint parts should be ANDed together
-	if strings.Contains(phrase, "(") || strings.Contains(phrase, ")") {
-		return nil, fmt.Errorf("version constraint groups are unsupported (use of parentheses)")
+func parseUnit(phrase string) (*constraintUnit, error) {
+	match := internal.MatchCaptureGroups(constraintPartPattern, phrase)
+	version, exists := match["version"]
+	if !exists {
+		return nil, nil
 	}
 
-	if strings.Contains(phrase, "||") {
-		return nil, fmt.Errorf("version constraint part should not have an OR")
+	version = strings.Trim(version, " ")
+
+	// version may have quotes, attempt to unquote it (ignore errors)
+	unquoted, err := strconv.Unquote(version)
+	if err == nil {
+		version = unquoted
 	}
 
-	matches := constraintPartPattern.FindAllStringSubmatch(phrase, -1)
-	pairs := make([]map[string]string, 0)
-	for _, match := range matches {
-		item := make(map[string]string)
-		for i, name := range constraintPartPattern.SubexpNames() {
-			if i != 0 && name != "" {
-				item[name] = match[i]
-			}
-		}
-		pairs = append(pairs, item)
+	op, err := parseOperator(match["operator"])
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse constraint operator=%q: %+v", match["operator"], err)
 	}
-
-	result := make([]constraintUnit, 0)
-	for _, pair := range pairs {
-		op, err := parseOperator(pair["operator"])
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse constraint operator: %+v", err)
-		}
-		result = append(result, constraintUnit{
-			rangeOperator: op,
-			version:       pair["version"],
-		})
-	}
-
-	return result, nil
+	return &constraintUnit{
+		rangeOperator: op,
+		version:       version,
+	}, nil
 }
 
 func (c *constraintUnit) Satisfied(comparison int) bool {
