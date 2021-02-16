@@ -29,6 +29,14 @@ func TestSplitFuzzyPhrase(t *testing.T) {
 			},
 		},
 		{
+			// to cover a version that has quotes within it, but not necessarily surrounding the entire version
+			phrase: ` >= inbet"ween)>quotes" with trailing words `,
+			expected: &constraintUnit{
+				rangeOperator: GTE,
+				version:       `inbet"ween)>quotes" with trailing words`,
+			},
+		},
+		{
 			phrase: `="something"`,
 			expected: &constraintUnit{
 				rangeOperator: EQ,
