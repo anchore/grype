@@ -5,11 +5,11 @@ import (
 )
 
 func syftProvider(config providerConfig) ([]Package, Context, error) {
-	if config.scopeOpt == nil {
+	if config.scopeOpt == "" {
 		return nil, Context{}, errDoesNotProvide
 	}
 
-	theSource, catalog, theDistro, err := syft.Catalog(config.userInput, *config.scopeOpt)
+	theSource, catalog, theDistro, err := syft.Catalog(config.userInput, config.scopeOpt)
 	if err != nil {
 		return nil, Context{}, err
 	}
