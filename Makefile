@@ -133,6 +133,11 @@ integration: ## Run integration tests
 integration-fingerprint:
 	find test/integration/test-fixtures/image-* -type f -exec md5sum {} + | awk '{print $1}' | sort | md5sum | tee test/integration/test-fixtures/cache.fingerprint
 
+.PHONY: cli
+cli: ## Run CLI tests
+	GRYPE_BINARY_LOCATION='snapshot/grype-macos_darwin_amd64/grype' \
+		go test -count=1 -v ./test/cli
+
 .PHONY: clear-test-cache
 clear-test-cache: ## Delete all test cache (built docker image tars)
 	find . -type f -wholename "**/test-fixtures/cache/*.tar" -delete
