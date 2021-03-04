@@ -3,7 +3,7 @@ package cmd
 import (
 	"testing"
 
-	v1 "github.com/anchore/grype-db/pkg/db/v1"
+	"github.com/anchore/grype-db/pkg/db"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -11,26 +11,26 @@ import (
 )
 
 type mockMetadataStore struct {
-	data map[string]map[string]*v1.VulnerabilityMetadata
+	data map[string]map[string]*db.VulnerabilityMetadata
 }
 
 func newMockStore() *mockMetadataStore {
 	d := mockMetadataStore{
-		data: make(map[string]map[string]*v1.VulnerabilityMetadata),
+		data: make(map[string]map[string]*db.VulnerabilityMetadata),
 	}
 	d.stub()
 	return &d
 }
 
 func (d *mockMetadataStore) stub() {
-	d.data["CVE-2014-fake-1"] = map[string]*v1.VulnerabilityMetadata{
+	d.data["CVE-2014-fake-1"] = map[string]*db.VulnerabilityMetadata{
 		"source-1": {
 			Severity: "medium",
 		},
 	}
 }
 
-func (d *mockMetadataStore) GetVulnerabilityMetadata(id, recordSource string) (*v1.VulnerabilityMetadata, error) {
+func (d *mockMetadataStore) GetVulnerabilityMetadata(id, recordSource string) (*db.VulnerabilityMetadata, error) {
 	return d.data[id][recordSource], nil
 }
 

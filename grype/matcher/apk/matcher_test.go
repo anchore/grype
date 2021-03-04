@@ -3,7 +3,7 @@ package apk
 import (
 	"testing"
 
-	v1 "github.com/anchore/grype-db/pkg/db/v1"
+	"github.com/anchore/grype-db/pkg/db"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/distro"
@@ -18,10 +18,10 @@ func must(c syftPkg.CPE, e error) syftPkg.CPE {
 }
 
 type mockStore struct {
-	backend map[string]map[string][]v1.Vulnerability
+	backend map[string]map[string][]db.Vulnerability
 }
 
-func (s *mockStore) GetVulnerability(namespace, name string) ([]v1.Vulnerability, error) {
+func (s *mockStore) GetVulnerability(namespace, name string) ([]db.Vulnerability, error) {
 	namespaceMap := s.backend[namespace]
 	if namespaceMap == nil {
 		return nil, nil
@@ -32,9 +32,9 @@ func (s *mockStore) GetVulnerability(namespace, name string) ([]v1.Vulnerability
 func TestNoSecDBMatch(t *testing.T) {
 	// SecDB (matchesByPackageDistro) doesn't have a corresponding match to nvd, so no matches are returned
 	store := mockStore{
-		backend: map[string]map[string][]v1.Vulnerability{
+		backend: map[string]map[string][]db.Vulnerability{
 			"nvd": {
-				"libvncserver": []v1.Vulnerability{
+				"libvncserver": []db.Vulnerability{
 					{
 						ID:                "CVE-2020-1",
 						VersionConstraint: "<= 0.9.11",
@@ -44,7 +44,7 @@ func TestNoSecDBMatch(t *testing.T) {
 				},
 			},
 			"alpine:3.12": {
-				"libvncserver": []v1.Vulnerability{
+				"libvncserver": []db.Vulnerability{
 					{
 						// ID doesn't match - this is the key for comparison in the matcher
 						ID:                "CVE-2020-2",
@@ -85,9 +85,9 @@ func TestNoSecDBMatch(t *testing.T) {
 func TestMatches(t *testing.T) {
 	// NVD and Alpine's secDB both have the same CVE ID for the package so it matches
 	store := mockStore{
-		backend: map[string]map[string][]v1.Vulnerability{
+		backend: map[string]map[string][]db.Vulnerability{
 			"nvd": {
-				"libvncserver": []v1.Vulnerability{
+				"libvncserver": []db.Vulnerability{
 					{
 						ID:                "CVE-2020-1",
 						VersionConstraint: "<= 0.9.11",
@@ -97,7 +97,7 @@ func TestMatches(t *testing.T) {
 				},
 			},
 			"alpine:3.12": {
-				"libvncserver": []v1.Vulnerability{
+				"libvncserver": []db.Vulnerability{
 					{
 						// ID *does* match - this is the key for comparison in the matcher
 						ID:                "CVE-2020-1",

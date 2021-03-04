@@ -188,7 +188,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 	}
 
 	// TODO: add me back in when there is a JSON schema
-	// validateAgainstV1Schema(t, string(actual))
+	// validateAgainstDbSchema(t, string(actual))
 }
 
 func TestJsonDirsPresenter(t *testing.T) {
@@ -309,7 +309,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 	}
 
 	// TODO: add me back in when there is a JSON schema
-	// validateAgainstV1Schema(t, string(actual))
+	// validateAgainstDbSchema(t, string(actual))
 }
 
 func TestEmptyJsonPresenter(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	v1 "github.com/anchore/grype-db/pkg/db/v1"
+	"github.com/anchore/grype-db/pkg/db"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/version"
 	"github.com/spf13/cobra"
@@ -37,7 +37,7 @@ func printVersion(_ *cobra.Command, _ []string) {
 		fmt.Println("Platform:            ", versionInfo.Platform)
 		fmt.Println("GoVersion:           ", versionInfo.GoVersion)
 		fmt.Println("Compiler:            ", versionInfo.Compiler)
-		fmt.Println("Supported DB Schema: ", v1.SchemaVersion)
+		fmt.Println("Supported DB Schema: ", db.SchemaVersion)
 	case "json":
 
 		enc := json.NewEncoder(os.Stdout)
@@ -50,7 +50,7 @@ func printVersion(_ *cobra.Command, _ []string) {
 		}{
 			Version:       versionInfo,
 			Application:   internal.ApplicationName,
-			SchemaVersion: v1.SchemaVersion,
+			SchemaVersion: db.SchemaVersion,
 		})
 		if err != nil {
 			fmt.Printf("failed to show version information: %+v\n", err)
