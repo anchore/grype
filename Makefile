@@ -84,7 +84,7 @@ bootstrap: ## Download and install all go dependencies (+ prep tooling in the ./
 	[ -f "$(TEMPDIR)/goreleaser" ] || curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | sh -s -- -b $(TEMPDIR)/ v0.140.0
 
 .PHONY: static-analysis
-static-analysis: lint check-licenses validate-schema
+static-analysis: lint check-licenses
 
 .PHONY: lint
 lint: ## Run gofmt + golangci lint checks
@@ -99,11 +99,6 @@ lint: ## Run gofmt + golangci lint checks
 	# go tooling does not play well with certain filename characters, ensure the common cases don't result in future "go get" failures
 	$(eval MALFORMED_FILENAMES := $(shell find . | grep -e ':'))
 	@bash -c "[[ '$(MALFORMED_FILENAMES)' == '' ]] || (printf '\nfound unsupported filename characters:\n$(MALFORMED_FILENAMES)\n\n' && false)"
-
-.PHONY: validate-schema
-validate-schema:
-	# ensure the codebase is only referencing a single grype-db schema version, multiple is not allowed
-	python test/validate_schema.py
 
 .PHONY: validate-cyclonedx-schema
 validate-cyclonedx-schema:
