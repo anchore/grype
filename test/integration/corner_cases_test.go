@@ -5,16 +5,16 @@ import (
 
 	"github.com/anchore/syft/syft/source"
 
-	v1 "github.com/anchore/grype-db/pkg/db/v1"
+	"github.com/anchore/grype-db/pkg/db"
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
 func TestApkMatch(t *testing.T) {
 	store := mockStore{
-		backend: map[string]map[string][]v1.Vulnerability{
+		backend: map[string]map[string][]db.Vulnerability{
 			"nvd": {
-				"libvncserver": []v1.Vulnerability{
+				"libvncserver": []db.Vulnerability{
 					{
 						ID:                "CVE-GOOD",
 						VersionConstraint: "<= 0.9.11",
@@ -30,7 +30,7 @@ func TestApkMatch(t *testing.T) {
 				},
 			},
 			"alpine:3.12": {
-				"libvncserver": []v1.Vulnerability{
+				"libvncserver": []db.Vulnerability{
 					{
 						ID:                "CVE-GOOD",
 						VersionConstraint: "< 0.9.11",
