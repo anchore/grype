@@ -92,3 +92,6 @@ jobs:
 
       - name: Run integration tests
         run: make integration
+
+      - name: Run CLI tests
+        run: make cli-linux
