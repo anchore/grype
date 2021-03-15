@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 
 	"github.com/anchore/grype/internal"
@@ -15,7 +16,7 @@ var errDoesNotProvide = fmt.Errorf("cannot provide packages from the given sourc
 
 type providerConfig struct {
 	userInput string
-	scopeOpt  *source.Scope
+	scopeOpt  source.Scope
 	reader    io.Reader
 }
 
@@ -28,29 +29,43 @@ func Provide(userInput string, scopeOpt source.Scope) ([]Package, Context, error
 		syftProvider, // important: we should try syft last
 	}
 
-	// aggregate stdin into a buffer that can be used across multiple providers dynamically
-	var previousStdin bytes.Buffer
+	// capture stdin bytes, so they can be used across multiple providers
+	capturedStdin := bytesFromStdin()
 
-	for _, p := range providers {
-		cfg := providerConfig{
-			userInput: userInput,
-			scopeOpt:  &scopeOpt,
-		}
+	for _, provide := range providers {
+		config := determineProviderConfig(userInput, scopeOpt, capturedStdin)
 
-		if internal.IsPipedInput() && userInput == "" {
-			// this is a hint to all providers that there is already a reader available, don't try and derive one from user input
-			// however, the user input may be useful in situations where the reader isn't provided
-
-			// this reader is a combination of previous bytes read from stdin by other providers as well as what still is
-			// available from stdin. The Tee reader is to ensure that any read bytes from stdin are preserved.
-			cfg.reader = io.MultiReader(&previousStdin, io.TeeReader(os.Stdin, &previousStdin))
-		}
-
-		packages, ctx, err := p(cfg)
+		packages, ctx, err := provide(config)
 		if !errors.Is(err, errDoesNotProvide) {
 			return packages, ctx, err
 		}
 	}
 
 	return nil, Context{}, errDoesNotProvide
+}
+
+func bytesFromStdin() []byte {
+	if internal.IsPipedInput() {
+		capturedStdin, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			return nil
+		}
+
+		return capturedStdin
+	}
+
+	return nil
+}
+
+func determineProviderConfig(userInput string, scopeOpt source.Scope, stdin []byte) providerConfig {
+	config := providerConfig{
+		userInput: userInput,
+		scopeOpt:  scopeOpt,
+	}
+
+	if len(stdin) > 0 {
+		config.reader = bytes.NewReader(stdin)
+	}
+
+	return config
 }

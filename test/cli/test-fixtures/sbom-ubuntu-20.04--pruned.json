@@ -1,0 +1,266 @@
+{
+  "artifacts": [
+    {
+      "name": "gcc-10-base",
+      "version": "10.2.0-5ubuntu1~20.04",
+      "type": "deb",
+      "foundBy": "dpkgdb-cataloger",
+      "locations": [
+        {
+          "path": "/var/lib/dpkg/status",
+          "layerID": "sha256:9f32931c9d28f10104a8eb1330954ba90e76d92b02c5256521ba864feec14009"
+        },
+        {
+          "path": "/var/lib/dpkg/info/gcc-10-base:amd64.md5sums",
+          "layerID": "sha256:9f32931c9d28f10104a8eb1330954ba90e76d92b02c5256521ba864feec14009"
+        },
+        {
+          "path": "/usr/share/doc/gcc-10-base/copyright",
+          "layerID": "sha256:9f32931c9d28f10104a8eb1330954ba90e76d92b02c5256521ba864feec14009"
+        }
+      ],
+      "licenses": [],
+      "language": "",
+      "cpes": [
+        "cpe:2.3:a:gcc-10-base:gcc-10-base:10.2.0-5ubuntu1~20.04:*:*:*:*:*:*:*",
+        "cpe:2.3:a:*:gcc-10-base:10.2.0-5ubuntu1~20.04:*:*:*:*:*:*:*"
+      ],
+      "purl": "pkg:deb/ubuntu/gcc-10-base@10.2.0-5ubuntu1~20.04?arch=amd64",
+      "metadataType": "DpkgMetadata",
+      "metadata": {
+        "package": "gcc-10-base",
+        "source": "gcc-10",
+        "version": "10.2.0-5ubuntu1~20.04",
+        "sourceVersion": "",
+        "architecture": "amd64",
+        "maintainer": "Ubuntu Core developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+        "installedSize": 260,
+        "files": [
+          {
+            "path": "/usr/share/doc/gcc-10-base/README.Debian.amd64.gz",
+            "md5": "3c03902e06eef5dcfe3005376c23a120"
+          },
+          {
+            "path": "/usr/share/doc/gcc-10-base/TODO.Debian",
+            "md5": "8afe308ec72834f3c24b209fbc4d149e"
+          },
+          {
+            "path": "/usr/share/doc/gcc-10-base/changelog.Debian.gz",
+            "md5": "0e3cbc1152a18bddf7c24fe3913866c6"
+          },
+          {
+            "path": "/usr/share/doc/gcc-10-base/copyright",
+            "md5": "a80ca2e181b9eecc3e4d373fd7ca59f2"
+          }
+        ]
+      }
+    },
+    {
+      "name": "hostname",
+      "version": "3.23",
+      "type": "deb",
+      "foundBy": "dpkgdb-cataloger",
+      "locations": [
+        {
+          "path": "/var/lib/dpkg/status",
+          "layerID": "sha256:9f32931c9d28f10104a8eb1330954ba90e76d92b02c5256521ba864feec14009"
+        },
+        {
+          "path": "/var/lib/dpkg/info/hostname.md5sums",
+          "layerID": "sha256:9f32931c9d28f10104a8eb1330954ba90e76d92b02c5256521ba864feec14009"
+        },
+        {
+          "path": "/usr/share/doc/hostname/copyright",
+          "layerID": "sha256:9f32931c9d28f10104a8eb1330954ba90e76d92b02c5256521ba864feec14009"
+        }
+      ],
+      "licenses": [],
+      "language": "",
+      "cpes": [
+        "cpe:2.3:a:hostname:hostname:3.23:*:*:*:*:*:*:*",
+        "cpe:2.3:a:*:hostname:3.23:*:*:*:*:*:*:*"
+      ],
+      "purl": "pkg:deb/ubuntu/hostname@3.23?arch=amd64",
+      "metadataType": "DpkgMetadata",
+      "metadata": {
+        "package": "hostname",
+        "source": "",
+        "version": "3.23",
+        "sourceVersion": "",
+        "architecture": "amd64",
+        "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+        "installedSize": 54,
+        "files": [
+          {
+            "path": "/bin/hostname",
+            "md5": "1ce73d718e3dccc1aaa7bce6ae2ef0a7"
+          },
+          {
+            "path": "/usr/share/doc/hostname/changelog.gz",
+            "md5": "087a3eabd7427692c216a5d7a4341127"
+          },
+          {
+            "path": "/usr/share/doc/hostname/copyright",
+            "md5": "460b6a1df2db2b5e80f05a44ec21c62f"
+          },
+          {
+            "path": "/usr/share/man/man1/hostname.1.gz",
+            "md5": "62e6be6a928b4b9f2a985778fee171fd"
+          }
+        ]
+      }
+    },
+    {
+      "name": "libacl1",
+      "version": "2.2.53-6",
+      "type": "deb",
+      "foundBy": "dpkgdb-cataloger",
+      "locations": [
+        {
+          "path": "/var/lib/dpkg/status",
+          "layerID": "sha256:9f32931c9d28f10104a8eb1330954ba90e76d92b02c5256521ba864feec14009"
+        },
+        {
+          "path": "/var/lib/dpkg/info/libacl1:amd64.md5sums",
+          "layerID": "sha256:9f32931c9d28f10104a8eb1330954ba90e76d92b02c5256521ba864feec14009"
+        },
+        {
+          "path": "/usr/share/doc/libacl1/copyright",
+          "layerID": "sha256:9f32931c9d28f10104a8eb1330954ba90e76d92b02c5256521ba864feec14009"
+        }
+      ],
+      "licenses": [
+        "GPL-2+",
+        "LGPL-2+"
+      ],
+      "language": "",
+      "cpes": [
+        "cpe:2.3:a:libacl1:libacl1:2.2.53-6:*:*:*:*:*:*:*",
+        "cpe:2.3:a:*:libacl1:2.2.53-6:*:*:*:*:*:*:*"
+      ],
+      "purl": "pkg:deb/ubuntu/libacl1@2.2.53-6?arch=amd64",
+      "metadataType": "DpkgMetadata",
+      "metadata": {
+        "package": "libacl1",
+        "source": "acl",
+        "version": "2.2.53-6",
+        "sourceVersion": "",
+        "architecture": "amd64",
+        "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+        "installedSize": 70,
+        "files": [
+          {
+            "path": "/usr/lib/x86_64-linux-gnu/libacl.so.1.1.2253",
+            "md5": "e77bf61a72656a594ef49768a7d6097b"
+          },
+          {
+            "path": "/usr/share/doc/libacl1/changelog.Debian.gz",
+            "md5": "65de3b787d67d4755ad3ae0584aee9f2"
+          },
+          {
+            "path": "/usr/share/doc/libacl1/copyright",
+            "md5": "40822d07cf4c0fb9ab13c2bebf51d981"
+          }
+        ]
+      }
+    },
+    {
+      "name": "libattr1",
+      "version": "1:2.4.48-5",
+      "type": "deb",
+      "foundBy": "dpkgdb-cataloger",
+      "locations": [
+        {
+          "path": "/var/lib/dpkg/status",
+          "layerID": "sha256:9f32931c9d28f10104a8eb1330954ba90e76d92b02c5256521ba864feec14009"
+        },
+        {
+          "path": "/var/lib/dpkg/info/libattr1:amd64.md5sums",
+          "layerID": "sha256:9f32931c9d28f10104a8eb1330954ba90e76d92b02c5256521ba864feec14009"
+        },
+        {
+          "path": "/usr/share/doc/libattr1/copyright",
+          "layerID": "sha256:9f32931c9d28f10104a8eb1330954ba90e76d92b02c5256521ba864feec14009"
+        }
+      ],
+      "licenses": [
+        "GPL-2+",
+        "LGPL-2+"
+      ],
+      "language": "",
+      "cpes": [
+        "cpe:2.3:a:libattr1:libattr1:1:2.4.48-5:*:*:*:*:*:*:*",
+        "cpe:2.3:a:*:libattr1:1:2.4.48-5:*:*:*:*:*:*:*"
+      ],
+      "purl": "pkg:deb/ubuntu/libattr1@1:2.4.48-5?arch=amd64",
+      "metadataType": "DpkgMetadata",
+      "metadata": {
+        "package": "libattr1",
+        "source": "attr",
+        "version": "1:2.4.48-5",
+        "sourceVersion": "",
+        "architecture": "amd64",
+        "maintainer": "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>",
+        "installedSize": 57,
+        "files": [
+          {
+            "path": "/usr/lib/x86_64-linux-gnu/libattr.so.1.1.2448",
+            "md5": "708453da8ebde1aaca2ca69c04d4c0a8"
+          },
+          {
+            "path": "/usr/share/doc/libattr1/changelog.Debian.gz",
+            "md5": "6465a4cda28287d4ea9979b530648ee3"
+          },
+          {
+            "path": "/usr/share/doc/libattr1/copyright",
+            "md5": "1e0c5c8b55170890f960aad90336aaed"
+          }
+        ]
+      }
+    }
+  ],
+  "source": {
+    "type": "image",
+    "target": {
+      "userInput": "ubuntu:20.04",
+      "imageID": "sha256:f63181f19b2fe819156dcb068b3b5bc036820bec7014c5f77277cfa341d4cb5e",
+      "manifestDigest": "sha256:5146935f9248826d44dfc2489abfd5f4bdfbc319a738c04dfe1ef071f228a1ac",
+      "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+      "tags": [
+        "ubuntu:20.04"
+      ],
+      "imageSize": 72898411,
+      "scope": "Squashed",
+      "layers": [
+        {
+          "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+          "digest": "sha256:9f32931c9d28f10104a8eb1330954ba90e76d92b02c5256521ba864feec14009",
+          "size": 72897593
+        },
+        {
+          "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+          "digest": "sha256:dbf2c0f42a39b60301f6d3936f7f8adb59bb97d31ec11cc4a049ce81155fef89",
+          "size": 811
+        },
+        {
+          "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+          "digest": "sha256:02473afd360bd5391fa51b6e7849ce88732ae29f50f3630c3551f528eba66d1e",
+          "size": 7
+        }
+      ]
+    }
+  },
+  "distro": {
+    "name": "ubuntu",
+    "version": "20.04",
+    "idLike": "debian"
+  },
+  "descriptor": {
+    "name": "syft",
+    "version": "0.12.7"
+  },
+  "schema": {
+    "version": "1.0.1",
+    "url": "https://raw.githubusercontent.com/anchore/syft/main/schema/json/schema-1.0.1.json"
+  }
+}

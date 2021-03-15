@@ -29,6 +29,7 @@ require (
 	github.com/spf13/afero v1.3.2
 	github.com/spf13/cobra v1.0.1-0.20200909172742-8a63648dd905
 	github.com/spf13/viper v1.7.0
+	github.com/stretchr/testify v1.6.0
 	github.com/wagoodman/go-partybus v0.0.0-20200526224238-eb215533f07d
 	github.com/wagoodman/go-progress v0.0.0-20200807221327-51d465df1451
 	github.com/wagoodman/jotframe v0.0.0-20200730190914-3517092dd163

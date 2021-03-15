@@ -2,11 +2,12 @@ package pkg
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
 	"strings"
+
+	"github.com/mitchellh/go-homedir"
 
 	"github.com/anchore/grype/grype/cpe"
 	"github.com/anchore/syft/syft/distro"
@@ -20,33 +21,57 @@ import (
 // resilient to multiple syft JSON schemas (to a degree).
 // TODO: add version detection and multi-parser support (when needed in the future)
 func syftJSONProvider(config providerConfig) ([]Package, Context, error) {
-	var reader io.Reader
-	if config.reader != nil {
-		// the caller is explicitly hinting to use the given reader as input
-		reader = config.reader
-	} else {
-		// try and get a reader from the description
-		if strings.HasPrefix(config.userInput, "sbom:") {
-			// the user has explicitly hinted this is an sbom, if there is an issue return the error
-			filepath := strings.TrimPrefix(config.userInput, "sbom:")
-			sbomReader, err := os.Open(filepath)
-			if err != nil {
-				return nil, Context{}, fmt.Errorf("user hinted 'sbom:' but couldn't read SBOM file: %w", err)
-			}
-			reader = sbomReader
-		}
-
-		// the user has not hinted that this may be a sbom, but lets try that first...
-		if sbomReader, err := os.Open(config.userInput); err != nil {
-			if errors.Is(err, os.ErrNotExist) {
-				return nil, Context{}, errDoesNotProvide
-			}
-		} else {
-			reader = sbomReader
-		}
+	reader, err := getSyftJSON(config)
+	if err != nil {
+		return nil, Context{}, err
 	}
 
 	return parseSyftJSON(reader)
+}
+
+func getSyftJSON(config providerConfig) (io.Reader, error) {
+	if config.reader != nil {
+		// the caller has explicitly indicated to use the given reader as input
+		return config.reader, nil
+	}
+
+	if explicitlySpecifyingSBOM(config.userInput) {
+		filepath := strings.TrimPrefix(config.userInput, "sbom:")
+
+		sbom, err := openSbom(filepath)
+		if err != nil {
+			return nil, fmt.Errorf("unable to use specified SBOM: %w", err)
+		}
+
+		return sbom, nil
+	}
+
+	// as a last resort, see if the raw user input specified an SBOM file
+	sbom, err := openSbom(config.userInput)
+	if err == nil {
+		return sbom, nil
+	}
+
+	// no usable SBOM is available
+	return nil, errDoesNotProvide
+}
+
+func openSbom(path string) (*os.File, error) {
+	expandedPath, err := homedir.Expand(path)
+	if err != nil {
+		return nil, fmt.Errorf("unable to open SBOM: %w", err)
+	}
+
+	sbom, err := os.Open(expandedPath)
+	if err != nil {
+		return nil, fmt.Errorf("unable to open SBOM: %w", err)
+	}
+
+	return sbom, nil
+}
+
+func explicitlySpecifyingSBOM(userInput string) bool {
+	return strings.HasPrefix(userInput, "sbom:")
 }
 
 // partialSyftDoc is the final package shape for a select elements from a syft JSON document.
@@ -160,10 +185,6 @@ func (p *partialSyftPackage) UnmarshalJSON(b []byte) error {
 			PomGroupID:    group,
 			ManifestName:  name,
 		}
-	case "":
-		// there may be packages with no metadata, which is OK
-	default:
-		return fmt.Errorf("unsupported package metadata type: %+v", p.MetadataType)
 	}
 
 	return nil

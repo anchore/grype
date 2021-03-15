@@ -57,7 +57,7 @@ all: clean static-analysis test ## Run all checks (linting, license check, unit,
 	@printf '$(SUCCESS)All checks pass!$(RESET)\n'
 
 .PHONY: test
-test: unit validate-cyclonedx-schema integration acceptance-linux ## Run all tests (unit, integration, and linux acceptance tests )
+test: unit validate-cyclonedx-schema integration acceptance-linux cli-linux ## Run all tests (unit, integration, linux acceptance, and linux CLI tests)
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(BOLD)$(CYAN)%-25s$(RESET)%s\n", $$1, $$2}'
@@ -133,6 +133,16 @@ integration: ## Run integration tests
 integration-fingerprint:
 	find test/integration/test-fixtures/image-* -type f -exec md5sum {} + | awk '{print $1}' | sort | md5sum | tee test/integration/test-fixtures/cache.fingerprint
 
+.PHONY: cli-linux
+cli-linux: $(SNAPSHOTDIR) ## Run CLI tests for Linux executable
+	GRYPE_BINARY_LOCATION='snapshot/grype_linux_amd64/grype' \
+		go test -count=1 -v ./test/cli
+
+.PHONY: cli-macos
+cli-macos: $(SNAPSHOTDIR) ## Run CLI tests for macOS executable
+	GRYPE_BINARY_LOCATION='snapshot/grype-macos_darwin_amd64/grype' \
+		go test -count=1 -v ./test/cli
+
 .PHONY: clear-test-cache
 clear-test-cache: ## Delete all test cache (built docker image tars)
 	find . -type f -wholename "**/test-fixtures/cache/*.tar" -delete
@@ -148,7 +158,7 @@ $(SNAPSHOTDIR): ## Build snapshot release binaries and packages
 
 	# build release snapshots
 	BUILD_GIT_TREE_STATE=$(GITTREESTATE) \
-	$(TEMPDIR)/goreleaser release --skip-publish --rm-dist --snapshot --config $(TEMPDIR)/goreleaser.yaml
+	$(TEMPDIR)/goreleaser release --skip-publish --skip-sign --rm-dist --snapshot --config $(TEMPDIR)/goreleaser.yaml
 
 .PHONY: acceptance-linux
 acceptance-linux: $(SNAPSHOTDIR) ## Run acceptance tests on build snapshot binaries and packages (Linux)
