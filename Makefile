@@ -15,6 +15,7 @@ TITLE := $(BOLD)$(PURPLE)
 SUCCESS := $(BOLD)$(GREEN)
 # the quality gate lower threshold for unit test total % coverage (by function statements)
 COVERAGE_THRESHOLD := 50
+BOOTSTRAP_CACHE="c7afb99ad"
 
 ## Build variables
 DISTDIR=./dist
@@ -65,10 +66,6 @@ help:
 ci-bootstrap: bootstrap
 	DEBIAN_FRONTEND=noninteractive sudo apt update && sudo -E apt install -y bc jq libxml2-utils
 
-.PHONY:
-ci-bootstrap-mac:
-	github_changelog_generator --version || sudo gem install github_changelog_generator
-
 .PHONY: boostrap
 bootstrap: ## Download and install all go dependencies (+ prep tooling in the ./tmp dir)
 	$(call title,Boostrapping dependencies)
@@ -79,9 +76,9 @@ bootstrap: ## Download and install all go dependencies (+ prep tooling in the ./
 	# install go dependencies
 	go mod download
 	# install utilities
-	[ -f "$(TEMPDIR)/golangci" ] || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(TEMPDIR)/ v1.26.0
-	[ -f "$(TEMPDIR)/bouncer" ] || curl -sSfL https://raw.githubusercontent.com/wagoodman/go-bouncer/master/bouncer.sh | sh -s -- -b $(TEMPDIR)/ v0.2.0
-	[ -f "$(TEMPDIR)/goreleaser" ] || curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | sh -s -- -b $(TEMPDIR)/ v0.140.0
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(TEMPDIR)/ v1.26.0
+	curl -sSfL https://raw.githubusercontent.com/wagoodman/go-bouncer/master/bouncer.sh | sh -s -- -b $(TEMPDIR)/ v0.2.0
+	curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | sh -s -- -b $(TEMPDIR)/ v0.160.0
 
 .PHONY: static-analysis
 static-analysis: lint check-licenses
@@ -181,7 +178,9 @@ compare:
 changelog-release:
 	@echo "Last tag: $(SECOND_TO_LAST_TAG)"
 	@echo "Current tag: $(VERSION)"
-	@github_changelog_generator \
+	@docker run --rm \
+		-v "$(shell pwd)":/usr/local/src/your-app \
+		ferrarimarco/github-changelog-generator \
 		--user anchore \
 		--project $(BIN) \
 		-t ${GITHUB_TOKEN} \
@@ -213,7 +212,7 @@ changelog-unreleased: ## show the current changelog that will be produced on the
 			/CHANGELOG.md
 
 .PHONY: release
-release: clean-dist ci-bootstrap-mac changelog-release ## Build and publish final binaries and packages. Intended to be run only on macOS.
+release: clean-dist changelog-release ## Build and publish final binaries and packages. Intended to be run only on macOS.
 	$(call title,Publishing release artifacts)
 
 	# Prepare for macOS-specific signing process
