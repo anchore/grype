@@ -101,3 +101,17 @@ brews:
         (zsh_completion/"_grype").write output
     homepage: *website
     description: *description
+
+dockers:
+  - dockerfile: Dockerfile
+    image_templates:
+      - "anchore/grype:latest"
+      - "anchore/grype:{{ .Tag }}"
+      - "anchore/grype:v{{ .Major }}"
+      - "anchore/grype:v{{ .Major }}.{{ .Minor }}"
+    build_flag_templates:
+      - "--build-arg=BUILD_DATE={{.Date}}"
+      - "--build-arg=BUILD_VERSION={{.Version}}"
+      - "--build-arg=VCS_REF={{.FullCommit}}"
+      - "--build-arg=VCS_URL={{.GitURL}}"
+    use_buildx: true

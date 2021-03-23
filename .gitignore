@@ -4,7 +4,6 @@ CHANGELOG.md
 *.profile
 .server
 *.fingerprint
-Dockerfile
 /metadata.json
 /listing.json
 .vscode/
