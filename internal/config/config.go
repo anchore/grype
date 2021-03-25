@@ -7,7 +7,6 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/anchore/grype/grype/db"
-	"github.com/anchore/grype/grype/presenter"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/syft/syft/source"
@@ -23,25 +22,24 @@ type CliOnlyOptions struct {
 
 type Application struct {
 	ConfigPath        string
-	PresenterOpt      presenter.Option
-	Output            string `mapstructure:"output"`
-	ScopeOpt          source.Scope
-	Scope             string  `mapstructure:"scope"`
-	Quiet             bool    `mapstructure:"quiet"`
-	Log               Logging `mapstructure:"log"`
+	Output            string       `mapstructure:"output"`
+	ScopeOpt          source.Scope `json:"-"`
+	Scope             string       `mapstructure:"scope"`
+	Quiet             bool         `mapstructure:"quiet"`
+	Log               Logging      `mapstructure:"log"`
 	CliOptions        CliOnlyOptions
-	Db                Database    `mapstructure:"db"`
-	Dev               Development `mapstructure:"dev"`
-	CheckForAppUpdate bool        `mapstructure:"check-for-app-update"`
-	FailOn            string      `mapstructure:"fail-on-severity"`
-	FailOnSeverity    *vulnerability.Severity
+	Db                Database                `mapstructure:"db"`
+	Dev               Development             `mapstructure:"dev"`
+	CheckForAppUpdate bool                    `mapstructure:"check-for-app-update"`
+	FailOn            string                  `mapstructure:"fail-on-severity"`
+	FailOnSeverity    *vulnerability.Severity `json:"-"`
 }
 
 type Logging struct {
-	Structured   bool `mapstructure:"structured"`
-	LevelOpt     logrus.Level
-	Level        string `mapstructure:"level"`
-	FileLocation string `mapstructure:"file"`
+	Structured   bool         `mapstructure:"structured"`
+	LevelOpt     logrus.Level `json:"-"`
+	Level        string       `mapstructure:"level"`
+	FileLocation string       `mapstructure:"file"`
 }
 
 type Database struct {
@@ -103,13 +101,6 @@ func LoadConfigFromFile(v *viper.Viper, cliOpts *CliOnlyOptions) (*Application, 
 }
 
 func (cfg *Application) Build() error {
-	// set the presenter
-	presenterOption := presenter.ParseOption(cfg.Output)
-	if presenterOption == presenter.UnknownPresenter {
-		return fmt.Errorf("bad --output value '%s'", cfg.Output)
-	}
-	cfg.PresenterOpt = presenterOption
-
 	// set the scope
 	scopeOption := source.ParseScope(cfg.Scope)
 	if scopeOption == source.UnknownScope {
