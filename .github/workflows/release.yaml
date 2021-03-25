@@ -93,9 +93,6 @@ jobs:
             ${{ github.workspace }}/.tmp
           key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('Makefile') }}-${{ hashFiles('**/go.sum') }}
 
-      - name: Login to Docker Hub
-        run: echo ${{ secrets.TOOLBOX_DOCKER_PASS }} | docker login docker.io -u ${{ secrets.TOOLBOX_DOCKER_USER }} --password-stdin
-
       - name: Import GPG key
         id: import_gpg
         uses: crazy-max/ghaction-import-gpg@v2
@@ -117,6 +114,8 @@ jobs:
       - name: Build snapshot artifacts
         run: make release
         env:
+          DOCKER_USERNAME: ${{ secrets.TOOLBOX_DOCKER_USER }}
+          DOCKER_PASSWORD: ${{ secrets.TOOLBOX_DOCKER_PASS }}
           GITHUB_TOKEN: ${{ secrets.ANCHORE_GIT_READ_TOKEN }}
           GPG_PRIVATE_KEY: ${{ secrets.SIGNING_GPG_PRIVATE_KEY }}
           PASSPHRASE: ${{ secrets.SIGNING_GPG_PASSPHRASE }}
