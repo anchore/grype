@@ -219,6 +219,7 @@ release: clean-dist changelog-release ## Build and publish final binaries and pa
 	.github/scripts/mac-prepare-for-signing.sh
 
 	# login to docker
+	# note: the previous step creates a new keychain, so it is important to reauth into docker.io
 	@echo $${DOCKER_PASSWORD} | docker login docker.io -u $${DOCKER_USERNAME}  --password-stdin
 
 	# create a config with the dist dir overridden
