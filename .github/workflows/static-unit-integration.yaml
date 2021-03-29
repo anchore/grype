@@ -8,7 +8,7 @@ jobs:
   Static-Analysis:
     strategy:
       matrix:
-        go-version: [1.x]
+        go-version: [1.16.x]
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
     steps:
@@ -41,8 +41,7 @@ jobs:
   Tests:
     strategy:
       matrix:
-        # test the lower bounds of support, and the latest available
-        go-version: [1.13.x, 1.x]
+        go-version: [1.16.x]
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
     steps:

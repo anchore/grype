@@ -10,7 +10,7 @@ on:
       - v*
 
 env:
-  GO_VERSION: "1.14.x"
+  GO_VERSION: "1.16.x"
 
 jobs:
   # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
