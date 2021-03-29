@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.2" xmlns:bd="" xmlns:v="http://cyclonedx.org/schema/ext/vulnerability/1.0" version="1" serialNumber="urn:uuid:695cdce5-6808-4a74-ba25-da6c85b669f1">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.2" xmlns:v="http://cyclonedx.org/schema/ext/vulnerability/1.0" version="1" serialNumber="urn:uuid:c260427a-e204-410a-a848-ec9effab4251">
   <metadata>
-    <timestamp>2020-12-09T10:38:16-05:00</timestamp>
+    <timestamp>2021-03-29T10:37:58-04:00</timestamp>
     <tools>
       <tool>
         <vendor>anchore</vendor>
@@ -19,7 +19,7 @@
       <name>package-1</name>
       <version>1.0.1</version>
       <v:vulnerabilities>
-        <v:vulnerability ref="urn:uuid:49000592-8db1-47e3-a8f5-dd8a0c40199e">
+        <v:vulnerability ref="urn:uuid:987d36fd-14f7-4b49-ad32-2e051b19d703">
           <v:id>CVE-1999-0001</v:id>
           <v:source name="source-1">
             <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0001</v:url>
@@ -39,7 +39,7 @@
           <v:description>1999-01 description</v:description>
           <v:advisories></v:advisories>
         </v:vulnerability>
-        <v:vulnerability ref="urn:uuid:6a5260ea-14eb-46f5-bfca-800cc5437260">
+        <v:vulnerability ref="urn:uuid:d4b1a88b-8a3e-437d-8745-e1ad3a6f6dda">
           <v:id>CVE-1999-0002</v:id>
           <v:source name="source-2">
             <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0002</v:url>

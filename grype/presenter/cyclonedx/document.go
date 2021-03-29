@@ -18,7 +18,6 @@ import (
 type Document struct {
 	XMLName       xml.Name       `xml:"bom"`
 	XMLNs         string         `xml:"xmlns,attr"`
-	XMLNsBd       string         `xml:"xmlns:bd,attr"`
 	XMLNsV        string         `xml:"xmlns:v,attr"`
 	Version       int            `xml:"version,attr"`
 	SerialNumber  string         `xml:"serialNumber,attr"`
