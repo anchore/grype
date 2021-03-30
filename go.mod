@@ -18,6 +18,7 @@ require (
 	github.com/gookit/color v1.2.7
 	github.com/gopherjs/gopherjs v0.0.0-20190910122728-9d188e94fb99 // indirect
 	github.com/hashicorp/go-getter v1.4.1
+	github.com/hashicorp/go-multierror v1.1.0
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/knqyf263/go-deb-version v0.0.0-20190517075300-09fca494f03d
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect

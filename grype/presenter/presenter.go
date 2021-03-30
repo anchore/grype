@@ -3,7 +3,7 @@ package presenter
 import (
 	"io"
 
-	"github.com/anchore/grype/internal/config"
+	"github.com/anchore/grype/grype/presenter/template"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -19,14 +19,17 @@ type Presenter interface {
 }
 
 // GetPresenter retrieves a Presenter that matches a CLI option
-func GetPresenter(option Option, matches match.Matches, packages []pkg.Package, context pkg.Context, metadataProvider vulnerability.MetadataProvider, appCfg config.Application) Presenter {
-	switch option {
-	case JSONPresenter:
-		return json.NewPresenter(matches, packages, context, metadataProvider, appCfg)
-	case TablePresenter:
+func GetPresenter(presenterConfig Config, matches match.Matches, packages []pkg.Package, context pkg.Context,
+	metadataProvider vulnerability.MetadataProvider, appConfig interface{}) Presenter {
+	switch presenterConfig.format {
+	case jsonFormat:
+		return json.NewPresenter(matches, packages, context, metadataProvider, appConfig)
+	case tableFormat:
 		return table.NewPresenter(matches, packages, metadataProvider)
-	case CycloneDxPresenter:
+	case cycloneDXFormat:
 		return cyclonedx.NewPresenter(matches, packages, context.Source, metadataProvider)
+	case templateFormat:
+		return template.NewPresenter(matches, packages, context, metadataProvider, appConfig, presenterConfig.templateFilePath)
 	default:
 		return nil
 	}

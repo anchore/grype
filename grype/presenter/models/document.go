@@ -1,9 +1,7 @@
-package json
+package models
 
 import (
 	"fmt"
-
-	"github.com/anchore/grype/internal/config"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -35,7 +33,8 @@ type MatchDetails struct {
 }
 
 // NewDocument creates and populates a new Document struct, representing the populated JSON document.
-func NewDocument(packages []pkg.Package, context pkg.Context, matches match.Matches, metadataProvider vulnerability.MetadataProvider, appConfig config.Application) (Document, error) {
+func NewDocument(packages []pkg.Package, context pkg.Context, matches match.Matches,
+	metadataProvider vulnerability.MetadataProvider, appConfig interface{}) (Document, error) {
 	// we must preallocate the findings to ensure the JSON document does not show "null" when no matches are found
 	var findings = make([]Match, 0)
 	for m := range matches.Enumerate() {

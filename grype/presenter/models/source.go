@@ -1,4 +1,4 @@
-package json
+package models
 
 import (
 	"fmt"

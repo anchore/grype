@@ -8,6 +8,8 @@ import (
 	"os"
 	"sync"
 
+	"github.com/hashicorp/go-multierror"
+
 	grypeEvent "github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/grypeerr"
 	"github.com/anchore/grype/internal/log"
@@ -76,6 +78,7 @@ func OutputToEphemeralTUI(workerErrs <-chan error, subscription *partybus.Subscr
 	grypeUIHandler := grypeUI.NewHandler()
 
 	var errResult error
+	// TODO: convert to multierror —— any `errResult = err` can be changed to a multierror append
 	for {
 		select {
 		case err, ok := <-workerErrs:
@@ -120,6 +123,7 @@ func OutputToEphemeralTUI(workerErrs <-chan error, subscription *partybus.Subscr
 
 				if err := common.VulnerabilityScanningFinishedHandler(e); err != nil {
 					log.Errorf("unable to show %s event: %+v", e.Type, err)
+					errResult = multierror.Append(errResult, err)
 				}
 
 				// this is the last expected event

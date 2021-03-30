@@ -21,18 +21,19 @@ type CliOnlyOptions struct {
 }
 
 type Application struct {
-	ConfigPath        string
-	Output            string       `mapstructure:"output"`
-	ScopeOpt          source.Scope `json:"-"`
-	Scope             string       `mapstructure:"scope"`
-	Quiet             bool         `mapstructure:"quiet"`
-	Log               Logging      `mapstructure:"log"`
-	CliOptions        CliOnlyOptions
-	Db                Database                `mapstructure:"db"`
-	Dev               Development             `mapstructure:"dev"`
-	CheckForAppUpdate bool                    `mapstructure:"check-for-app-update"`
-	FailOn            string                  `mapstructure:"fail-on-severity"`
-	FailOnSeverity    *vulnerability.Severity `json:"-"`
+	ConfigPath         string
+	Output             string       `mapstructure:"output"`
+	OutputTemplateFile string       `mapstructure:"output-template-file"`
+	ScopeOpt           source.Scope `json:"-"`
+	Scope              string       `mapstructure:"scope"`
+	Quiet              bool         `mapstructure:"quiet"`
+	Log                Logging      `mapstructure:"log"`
+	CliOptions         CliOnlyOptions
+	Db                 Database                `mapstructure:"db"`
+	Dev                Development             `mapstructure:"dev"`
+	CheckForAppUpdate  bool                    `mapstructure:"check-for-app-update"`
+	FailOn             string                  `mapstructure:"fail-on-severity"`
+	FailOnSeverity     *vulnerability.Severity `json:"-"`
 }
 
 type Logging struct {

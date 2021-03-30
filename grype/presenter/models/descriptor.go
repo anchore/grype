@@ -1,4 +1,4 @@
-package json
+package models
 
 // descriptor describes what created the document as well as surrounding metadata
 type descriptor struct {
