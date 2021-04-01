@@ -33,7 +33,7 @@
     ],
     "language": "",
     "licenses": null,
-    "cpes": null,
+    "cpes": [],
     "purl": ""
    }
   },
@@ -68,7 +68,7 @@
     ],
     "language": "",
     "licenses": null,
-    "cpes": null,
+    "cpes": [],
     "purl": ""
    }
   },
@@ -98,7 +98,7 @@
     ],
     "language": "",
     "licenses": null,
-    "cpes": null,
+    "cpes": [],
     "purl": ""
    }
   }
