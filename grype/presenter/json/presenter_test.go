@@ -85,6 +85,15 @@ func TestJsonImgsPresenter(t *testing.T) {
 		Locations: []syftSource.Location{
 			getImageLocation("/somefile-1.txt"),
 		},
+		CPEs: []syftPkg.CPE{
+			{
+				Part:     "a",
+				Vendor:   "anchore",
+				Product:  "engine",
+				Version:  "0.9.2",
+				Language: "python",
+			},
+		},
 	}
 
 	var pkg2 = pkg.Package{
