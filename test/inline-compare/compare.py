@@ -187,14 +187,20 @@ def main(image):
         print(colors.bold + colors.fg.red + "inline found no packages!", colors.reset)
         return 1
 
-    if len(grype_vulnerabilities) == 0 and len(inline_vulnerabilities) == 0:
-        print(colors.bold+"nobody found any vulnerabilities", colors.reset)
+    if len(inline_vulnerabilities) == 0:
+        if len(grype_vulnerabilities) == 0:
+            print(colors.bold+"nobody found any vulnerabilities", colors.reset)
+            return 0
+        print(colors.bold+"inline does not have any vulnerabilities to compare to", colors.reset)
         return 0
 
     same_vulnerabilities = grype_vulnerabilities & inline_vulnerabilities
-    percent_overlap_vulnerabilities = (
-        float(len(same_vulnerabilities)) / float(len(inline_vulnerabilities))
-    ) * 100.0
+    if len(inline_vulnerabilities) == 0:
+        percent_overlap_vulnerabilities = 0
+    else:
+        percent_overlap_vulnerabilities = (
+            float(len(same_vulnerabilities)) / float(len(inline_vulnerabilities))
+        ) * 100.0
 
     bonus_vulnerabilities = grype_vulnerabilities - inline_vulnerabilities
     missing_vulnerabilities = inline_vulnerabilities - grype_vulnerabilities
@@ -213,9 +219,12 @@ def main(image):
 
     same_metadata = grype_overlap_metadata_set & inline_metadata_set
     missing_metadata = inline_metadata_set - same_metadata
-    percent_overlap_metadata = (
-        float(len(same_metadata)) / float(len(inline_metadata_set))
-    ) * 100.0
+    if len(inline_metadata_set) == 0:
+        percent_overlap_metadata = 0
+    else:
+        percent_overlap_metadata = (
+            float(len(same_metadata)) / float(len(inline_metadata_set))
+        ) * 100.0
 
     if len(bonus_vulnerabilities) > 0:
         rows = []
