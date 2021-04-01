@@ -14,11 +14,16 @@ type Package struct {
 	Locations []syftSource.Location `json:"locations"`
 	Language  syftPkg.Language      `json:"language"`
 	Licenses  []string              `json:"licenses"`
-	CPEs      []syftPkg.CPE         `json:"cpes"`
+	CPEs      []string              `json:"cpes"`
 	PURL      string                `json:"purl"`
 }
 
 func newPackage(p pkg.Package) Package {
+	var cpes = make([]string, 0)
+	for _, c := range p.CPEs {
+		cpes = append(cpes, c.BindToFmtString())
+	}
+
 	return Package{
 		Name:      p.Name,
 		Version:   p.Version,
@@ -26,7 +31,7 @@ func newPackage(p pkg.Package) Package {
 		Licenses:  p.Licenses,
 		Language:  p.Language,
 		Type:      p.Type,
-		CPEs:      p.CPEs,
+		CPEs:      cpes,
 		PURL:      p.PURL,
 	}
 }
