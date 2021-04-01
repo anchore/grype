@@ -55,7 +55,7 @@ type Development struct {
 
 func (d Database) ToCuratorConfig() db.Config {
 	return db.Config{
-		DbDir:               d.Dir,
+		DbRootDir:           d.Dir,
 		ListingURL:          d.UpdateURL,
 		ValidateByHashOnGet: d.ValidateByHashOnStart,
 	}
