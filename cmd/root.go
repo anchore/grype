@@ -65,7 +65,7 @@ You can also pipe in Syft JSON directly:
 			// set the presenter
 			presenterOption := presenter.ParseOption(appConfig.Output)
 			if presenterOption == presenter.UnknownPresenter {
-				return fmt.Errorf("bad --output value '%s'", appConfig.Output)
+				return fmt.Errorf("unsupported --output value '%s', supported values: %+v", appConfig.Output, presenter.Options)
 			}
 			presenterOpt = presenterOption
 			return nil
