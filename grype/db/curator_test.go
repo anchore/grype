@@ -3,8 +3,12 @@ package db
 import (
 	"fmt"
 	"net/url"
+	"path"
+	"strconv"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/wagoodman/go-progress"
 
@@ -57,7 +61,7 @@ func (g *testGetter) GetToDir(dst, src string, _ ...*progress.Manual) error {
 
 func newTestCurator(fs afero.Fs, getter file.Getter, dbDir, metadataUrl string, validateDbHash bool) Curator {
 	c := NewCurator(Config{
-		DbDir:               dbDir,
+		DbRootDir:           dbDir,
 		ListingURL:          metadataUrl,
 		ValidateByHashOnGet: validateDbHash,
 	})
@@ -185,4 +189,15 @@ func TestCuratorValidate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCuratorDBPathHasSchemaVersion(t *testing.T) {
+
+	fs := afero.NewMemMapFs()
+	dbRootPath := "/tmp/dbdir"
+	cur := newTestCurator(fs, nil, dbRootPath, "http://metadata.io", false)
+
+	assert.Equal(t, path.Join(dbRootPath, strconv.Itoa(cur.targetSchema)), cur.dbDir, "unexpected dir")
+	assert.Contains(t, cur.dbPath, path.Join(dbRootPath, strconv.Itoa(cur.targetSchema)), "unexpected path")
+
 }

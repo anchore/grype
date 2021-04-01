@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strconv"
 
 	"github.com/anchore/grype-db/pkg/curation"
 	"github.com/anchore/grype-db/pkg/db"
@@ -23,24 +24,31 @@ const (
 )
 
 type Config struct {
-	DbDir               string
+	DbRootDir           string
 	ListingURL          string
 	ValidateByHashOnGet bool
 }
 
 type Curator struct {
-	fs           afero.Fs
-	config       Config
-	downloader   file.Getter
-	targetSchema int
+	fs                  afero.Fs
+	downloader          file.Getter
+	targetSchema        int
+	dbDir               string
+	dbPath              string
+	listingURL          string
+	validateByHashOnGet bool
 }
 
 func NewCurator(cfg Config) Curator {
+	dbDir := path.Join(cfg.DbRootDir, strconv.Itoa(db.SchemaVersion))
 	return Curator{
-		config:       cfg,
-		fs:           afero.NewOsFs(),
-		targetSchema: db.SchemaVersion,
-		downloader:   file.NewGetter(),
+		fs:                  afero.NewOsFs(),
+		targetSchema:        db.SchemaVersion,
+		downloader:          file.NewGetter(),
+		dbDir:               dbDir,
+		dbPath:              path.Join(dbDir, FileName),
+		listingURL:          cfg.ListingURL,
+		validateByHashOnGet: cfg.ValidateByHashOnGet,
 	}
 }
 
@@ -51,23 +59,22 @@ func (c *Curator) GetStore() (db.StoreReader, error) {
 		return nil, fmt.Errorf("vulnerability database is corrupt (run db update to correct): %+v", err)
 	}
 
-	dbPath := path.Join(c.config.DbDir, FileName)
-	s, _, err := reader.NewStore(dbPath)
+	s, _, err := reader.NewStore(c.dbPath)
 	return s, err
 }
 
 func (c *Curator) Status() Status {
-	metadata, err := curation.NewMetadataFromDir(c.fs, c.config.DbDir)
+	metadata, err := curation.NewMetadataFromDir(c.fs, c.dbDir)
 	if err != nil {
 		return Status{
 			RequiredSchemaVersion: c.targetSchema,
-			Err:                   fmt.Errorf("failed to parse database metadata (%s): %w", c.config.DbDir, err),
+			Err:                   fmt.Errorf("failed to parse database metadata (%s): %w", c.dbDir, err),
 		}
 	}
 	if metadata == nil {
 		return Status{
 			RequiredSchemaVersion: c.targetSchema,
-			Err:                   fmt.Errorf("database metadata not found at %q", c.config.DbDir),
+			Err:                   fmt.Errorf("database metadata not found at %q", c.dbDir),
 		}
 	}
 
@@ -75,15 +82,17 @@ func (c *Curator) Status() Status {
 		Age:                   metadata.Built,
 		CurrentSchemaVersion:  metadata.Version,
 		RequiredSchemaVersion: c.targetSchema,
-		Location:              c.config.DbDir,
+		Location:              c.dbDir,
 		Err:                   c.Validate(),
 	}
 }
 
+// Delete removes the DB and metadata file for this specific schema.
 func (c *Curator) Delete() error {
-	return c.fs.RemoveAll(c.config.DbDir)
+	return c.fs.RemoveAll(c.dbDir)
 }
 
+// Update the existing DB, returning an indication if any action was taken.
 func (c *Curator) Update() (bool, error) {
 	// let consumers know of a monitorable event (download + import stages)
 	importProgress := &progress.Manual{
@@ -130,10 +139,12 @@ func (c *Curator) Update() (bool, error) {
 	return false, nil
 }
 
+// IsUpdateAvailable indicates if there is a new update available as a boolean, and returns the latest listing information
+// available for this schema.
 func (c *Curator) IsUpdateAvailable() (bool, *curation.ListingEntry, error) {
 	log.Debugf("checking for available database updates")
 
-	listing, err := curation.NewListingFromURL(c.fs, c.config.ListingURL)
+	listing, err := curation.NewListingFromURL(c.fs, c.listingURL)
 	if err != nil {
 		return false, nil, err
 	}
@@ -145,7 +156,7 @@ func (c *Curator) IsUpdateAvailable() (bool, *curation.ListingEntry, error) {
 	log.Debugf("found database update candidate: %s", updateEntry)
 
 	// compare created data to current db date
-	current, err := curation.NewMetadataFromDir(c.fs, c.config.DbDir)
+	current, err := curation.NewMetadataFromDir(c.fs, c.dbDir)
 	if err != nil {
 		return false, nil, fmt.Errorf("current metadata corrupt: %w", err)
 	}
@@ -159,11 +170,39 @@ func (c *Curator) IsUpdateAvailable() (bool, *curation.ListingEntry, error) {
 	return false, nil, nil
 }
 
-// Validate checks the current database to ensure file integrity and if it can be used by this version of the application.
-func (c *Curator) Validate() error {
-	return c.validate(c.config.DbDir)
+// UpdateTo updates the existing DB with the specific other version provided from a listing entry.
+func (c *Curator) UpdateTo(listing *curation.ListingEntry, downloadProgress, importProgress *progress.Manual, stage *progress.Stage) error {
+	stage.Current = "downloading"
+	// note: the temp directory is persisted upon download/validation/activation failure to allow for investigation
+	tempDir, err := c.download(listing, downloadProgress)
+	if err != nil {
+		return err
+	}
+
+	stage.Current = "validating"
+	err = c.validate(tempDir)
+	if err != nil {
+		return err
+	}
+
+	stage.Current = "importing"
+	err = c.activate(tempDir)
+	if err != nil {
+		return err
+	}
+	stage.Current = "updated"
+	importProgress.N = importProgress.Total
+	importProgress.SetCompleted()
+
+	return c.fs.RemoveAll(tempDir)
 }
 
+// Validate checks the current database to ensure file integrity and if it can be used by this version of the application.
+func (c *Curator) Validate() error {
+	return c.validate(c.dbDir)
+}
+
+// ImportFrom takes a DB archive file and imports it into the final DB location.
 func (c *Curator) ImportFrom(dbArchivePath string) error {
 	// note: the temp directory is persisted upon download/validation/activation failure to allow for investigation
 	tempDir, err := ioutil.TempDir("", "grype-import")
@@ -196,32 +235,6 @@ func (c *Curator) ImportFrom(dbArchivePath string) error {
 	if err != nil {
 		return err
 	}
-
-	return c.fs.RemoveAll(tempDir)
-}
-
-func (c *Curator) UpdateTo(listing *curation.ListingEntry, downloadProgress, importProgress *progress.Manual, stage *progress.Stage) error {
-	stage.Current = "downloading"
-	// note: the temp directory is persisted upon download/validation/activation failure to allow for investigation
-	tempDir, err := c.download(listing, downloadProgress)
-	if err != nil {
-		return err
-	}
-
-	stage.Current = "validating"
-	err = c.validate(tempDir)
-	if err != nil {
-		return err
-	}
-
-	stage.Current = "importing"
-	err = c.activate(tempDir)
-	if err != nil {
-		return err
-	}
-	stage.Current = "updated"
-	importProgress.N = importProgress.Total
-	importProgress.SetCompleted()
 
 	return c.fs.RemoveAll(tempDir)
 }
@@ -260,7 +273,7 @@ func (c *Curator) validate(dbDirPath string) error {
 		return fmt.Errorf("database metadata not found: %s", dbDirPath)
 	}
 
-	if c.config.ValidateByHashOnGet {
+	if c.validateByHashOnGet {
 		dbPath := path.Join(dbDirPath, FileName)
 		valid, actualHash, err := file.ValidateByHash(c.fs, dbPath, metadata.Checksum)
 		if err != nil {
@@ -282,7 +295,7 @@ func (c *Curator) validate(dbDirPath string) error {
 
 // activate swaps over the downloaded db to the application directory
 func (c *Curator) activate(aDbDirPath string) error {
-	_, err := c.fs.Stat(c.config.DbDir)
+	_, err := c.fs.Stat(c.dbDir)
 	if !os.IsNotExist(err) {
 		// remove any previous databases
 		err = c.Delete()
@@ -292,11 +305,11 @@ func (c *Curator) activate(aDbDirPath string) error {
 	}
 
 	// ensure there is an application db directory
-	err = c.fs.MkdirAll(c.config.DbDir, 0755)
+	err = c.fs.MkdirAll(c.dbDir, 0755)
 	if err != nil {
 		return fmt.Errorf("failed to create db directory: %w", err)
 	}
 
 	// activate the new db cache
-	return file.CopyDir(c.fs, aDbDirPath, c.config.DbDir)
+	return file.CopyDir(c.fs, aDbDirPath, c.dbDir)
 }
