@@ -3,20 +3,21 @@ package json
 import (
 	"fmt"
 
+	"github.com/anchore/grype/internal/config"
+
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/version"
-	syftJson "github.com/anchore/syft/syft/presenter/json"
 )
 
 // Document represents the JSON document to be presented
 type Document struct {
-	Matches    []Match               `json:"matches"`
-	Source     *syftJson.Source      `json:"source"`
-	Distro     syftJson.Distribution `json:"distro"`
-	Descriptor Descriptor            `json:"descriptor"`
+	Matches    []Match      `json:"matches"`
+	Source     *source      `json:"source"`
+	Distro     distribution `json:"distro"`
+	Descriptor descriptor   `json:"descriptor"`
 }
 
 // Match is a single item for the JSON array reported
@@ -34,7 +35,7 @@ type MatchDetails struct {
 }
 
 // NewDocument creates and populates a new Document struct, representing the populated JSON document.
-func NewDocument(packages []pkg.Package, context pkg.Context, matches match.Matches, metadataProvider vulnerability.MetadataProvider) (Document, error) {
+func NewDocument(packages []pkg.Package, context pkg.Context, matches match.Matches, metadataProvider vulnerability.MetadataProvider, appConfig config.Application) (Document, error) {
 	// we must preallocate the findings to ensure the JSON document does not show "null" when no matches are found
 	var findings = make([]Match, 0)
 	for m := range matches.Enumerate() {
@@ -62,9 +63,9 @@ func NewDocument(packages []pkg.Package, context pkg.Context, matches match.Matc
 		)
 	}
 
-	var src *syftJson.Source
+	var src *source
 	if context.Source != nil {
-		theSrc, err := syftJson.NewSource(*context.Source)
+		theSrc, err := newSource(*context.Source)
 		if err != nil {
 			return Document{}, err
 		}
@@ -74,10 +75,11 @@ func NewDocument(packages []pkg.Package, context pkg.Context, matches match.Matc
 	return Document{
 		Matches: findings,
 		Source:  src,
-		Distro:  syftJson.NewDistribution(context.Distro),
-		Descriptor: Descriptor{
-			Name:    internal.ApplicationName,
-			Version: version.FromBuild().Version,
+		Distro:  newDistribution(context.Distro),
+		Descriptor: descriptor{
+			Name:          internal.ApplicationName,
+			Version:       version.FromBuild().Version,
+			Configuration: appConfig,
 		},
 	}, nil
 }

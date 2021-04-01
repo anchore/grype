@@ -4,11 +4,11 @@ import (
 	"os"
 	"testing"
 
+	"github.com/anchore/syft/syft/source"
+
 	"github.com/anchore/syft/syft/distro"
 
 	"github.com/go-test/deep"
-
-	"github.com/anchore/syft/syft/source"
 
 	"github.com/anchore/syft/syft/pkg"
 )
@@ -30,7 +30,6 @@ func TestParseSyftJSON(t *testing.T) {
 			Fixture: "test-fixtures/syft-alpine.json",
 			Packages: []Package{
 				{
-					id:      0,
 					Name:    "alpine-baselayout",
 					Version: "3.2.0-r6",
 					Locations: []source.Location{
@@ -52,7 +51,6 @@ func TestParseSyftJSON(t *testing.T) {
 					Metadata: RpmdbMetadata{SourceRpm: "a-source.srpm"},
 				},
 				{
-					id:      1,
 					Name:    "fake",
 					Version: "1.2.0-r0",
 					Locations: []source.Location{
@@ -74,7 +72,6 @@ func TestParseSyftJSON(t *testing.T) {
 					Metadata: DpkgMetadata{Source: "a-source"},
 				},
 				{
-					id:      1,
 					Name:    "gmp",
 					Version: "6.2.0-r0",
 					Locations: []source.Location{
@@ -105,7 +102,6 @@ func TestParseSyftJSON(t *testing.T) {
 					Scheme: source.ImageScheme,
 					ImageMetadata: source.ImageMetadata{
 						UserInput: "alpine:fake",
-						Scope:     "Squashed",
 						Layers: []source.LayerMetadata{
 							{
 								MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",

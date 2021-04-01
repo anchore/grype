@@ -493,7 +493,6 @@
     "alpine:fake"
    ],
    "imageSize": 15879684,
-   "scope": "Squashed",
    "layers": [
     {
      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",

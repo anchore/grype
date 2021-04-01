@@ -36,10 +36,12 @@ const (
 	FailOnFlag = "fail-on"
 )
 
-var rootCmd = &cobra.Command{
-	Use:   fmt.Sprintf("%s [IMAGE]", internal.ApplicationName),
-	Short: "A vulnerability scanner for container images and filesystems",
-	Long: format.Tprintf(`
+var (
+	presenterOpt presenter.Option
+	rootCmd      = &cobra.Command{
+		Use:   fmt.Sprintf("%s [IMAGE]", internal.ApplicationName),
+		Short: "A vulnerability scanner for container images and filesystems",
+		Long: format.Tprintf(`
 Supports the following image sources:
     {{.appName}} yourrepo/yourimage:tag     defaults to using images from a Docker daemon
     {{.appName}} path/to/yourproject        a Docker tar, OCI tar, OCI directory, or generic filesystem directory 
@@ -56,53 +58,63 @@ You can also pipe in Syft JSON directly:
 	syft yourimage:tag -o json | {{.appName}}
 
 `, map[string]interface{}{
-		"appName": internal.ApplicationName,
-	}),
-	Args: validateRootArgs,
-	Run: func(cmd *cobra.Command, args []string) {
-		if appConfig.Dev.ProfileCPU {
-			f, err := os.Create("cpu.profile")
-			if err != nil {
-				log.Errorf("unable to create CPU profile: %+v", err)
-			} else {
-				err := pprof.StartCPUProfile(f)
+			"appName": internal.ApplicationName,
+		}),
+		Args: validateRootArgs,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			// set the presenter
+			presenterOption := presenter.ParseOption(appConfig.Output)
+			if presenterOption == presenter.UnknownPresenter {
+				return fmt.Errorf("unsupported --output value '%s', supported values: %+v", appConfig.Output, presenter.Options)
+			}
+			presenterOpt = presenterOption
+			return nil
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+			if appConfig.Dev.ProfileCPU {
+				f, err := os.Create("cpu.profile")
 				if err != nil {
-					log.Errorf("unable to start CPU profile: %+v", err)
+					log.Errorf("unable to create CPU profile: %+v", err)
+				} else {
+					err := pprof.StartCPUProfile(f)
+					if err != nil {
+						log.Errorf("unable to start CPU profile: %+v", err)
+					}
 				}
 			}
-		}
 
-		err := runDefaultCmd(cmd, args)
+			err := runDefaultCmd(cmd, args)
 
-		if appConfig.Dev.ProfileCPU {
-			pprof.StopCPUProfile()
-		}
-
-		if err != nil {
-			var grypeErr grypeerr.ExpectedErr
-			if errors.As(err, &grypeErr) {
-				fmt.Fprintln(os.Stderr, format.Red.Format(grypeErr.Error()))
-			} else {
-				log.Errorf(err.Error())
+			if appConfig.Dev.ProfileCPU {
+				pprof.StopCPUProfile()
 			}
-			os.Exit(1)
-		}
-	},
-	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		// Since we use ValidArgsFunction, Cobra will call this AFTER having parsed all flags and arguments provided
-		dockerImageRepoTags, err := listLocalDockerImages(toComplete)
-		if err != nil {
-			// Indicates that an error occurred and completions should be ignored
-			return []string{"completion failed"}, cobra.ShellCompDirectiveError
-		}
-		if len(dockerImageRepoTags) == 0 {
-			return []string{"no docker images found"}, cobra.ShellCompDirectiveError
-		}
-		// ShellCompDirectiveDefault indicates that the shell will perform its default behavior after completions have
-		// been provided (without implying other possible directives)
-		return dockerImageRepoTags, cobra.ShellCompDirectiveDefault
-	},
-}
+
+			if err != nil {
+				var grypeErr grypeerr.ExpectedErr
+				if errors.As(err, &grypeErr) {
+					fmt.Fprintln(os.Stderr, format.Red.Format(grypeErr.Error()))
+				} else {
+					log.Errorf(err.Error())
+				}
+				os.Exit(1)
+			}
+		},
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			// Since we use ValidArgsFunction, Cobra will call this AFTER having parsed all flags and arguments provided
+			dockerImageRepoTags, err := listLocalDockerImages(toComplete)
+			if err != nil {
+				// Indicates that an error occurred and completions should be ignored
+				return []string{"completion failed"}, cobra.ShellCompDirectiveError
+			}
+			if len(dockerImageRepoTags) == 0 {
+				return []string{"no docker images found"}, cobra.ShellCompDirectiveError
+			}
+			// ShellCompDirectiveDefault indicates that the shell will perform its default behavior after completions have
+			// been provided (without implying other possible directives)
+			return dockerImageRepoTags, cobra.ShellCompDirectiveDefault
+		},
+	}
+)
 
 func validateRootArgs(cmd *cobra.Command, args []string) error {
 	// the user must specify at least one argument OR wait for input on stdin IF it is a pipe
@@ -216,7 +228,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 		bus.Publish(partybus.Event{
 			Type:  event.VulnerabilityScanningFinished,
-			Value: presenter.GetPresenter(appConfig.PresenterOpt, matches, packages, context, metadataProvider),
+			Value: presenter.GetPresenter(presenterOpt, matches, packages, context, metadataProvider, *appConfig),
 		})
 	}()
 	return errs

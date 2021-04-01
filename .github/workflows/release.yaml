@@ -9,7 +9,7 @@ on:
       - 'v*'
 
 env:
-  GO_VERSION: "1.14.x"
+  GO_VERSION: "1.16.x"
 
 jobs:
   wait-for-checks:

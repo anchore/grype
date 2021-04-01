@@ -5,6 +5,8 @@ import (
 	"flag"
 	"testing"
 
+	"github.com/anchore/grype/internal/config"
+
 	"github.com/anchore/stereoscope/pkg/file"
 
 	"github.com/anchore/go-testutils"
@@ -14,7 +16,7 @@ import (
 	"github.com/anchore/stereoscope/pkg/imagetest"
 	"github.com/anchore/syft/syft/distro"
 	syftPkg "github.com/anchore/syft/syft/pkg"
-	"github.com/anchore/syft/syft/source"
+	syftSource "github.com/anchore/syft/syft/source"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
@@ -71,16 +73,16 @@ func TestJsonImgsPresenter(t *testing.T) {
 
 	img := imagetest.GetGoldenFixtureImage(t, testImage)
 
-	getImageLocation := func(filepath string) source.Location {
+	getImageLocation := func(filepath string) syftSource.Location {
 		_, ref, _ := img.SquashedTree().File(file.Path(filepath))
-		return source.NewLocationFromImage("", *ref, img)
+		return syftSource.NewLocationFromImage("", *ref, img)
 	}
 
 	var pkg1 = pkg.Package{
 		Name:    "package-1",
 		Version: "1.1.1",
 		Type:    syftPkg.DebPkg,
-		Locations: []source.Location{
+		Locations: []syftSource.Location{
 			getImageLocation("/somefile-1.txt"),
 		},
 	}
@@ -89,7 +91,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 		Name:    "package-2",
 		Version: "2.2.2",
 		Type:    syftPkg.DebPkg,
-		Locations: []source.Location{
+		Locations: []syftSource.Location{
 			getImageLocation("/somefile-2.txt"),
 		},
 	}
@@ -157,16 +159,22 @@ func TestJsonImgsPresenter(t *testing.T) {
 
 	packages := []pkg.Package{pkg1, pkg2}
 
-	theSource, err := source.NewFromImage(img, source.AllLayersScope, "user-input")
+	src, err := syftSource.NewFromImage(img, "user-input")
 	if err != nil {
 		t.Fatalf("failed to create scope: %+v", err)
 	}
 
 	ctx := pkg.Context{
-		Source: &theSource.Metadata,
+		Source: &src.Metadata,
 		Distro: &d,
 	}
-	pres := NewPresenter(matches, packages, ctx, newMetadataMock())
+	pres := NewPresenter(matches, packages, ctx, newMetadataMock(), config.Application{
+		ConfigPath:        "config-path",
+		Output:            "output",
+		Scope:             "scope",
+		Quiet:             false,
+		CheckForAppUpdate: false,
+	})
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
@@ -202,7 +210,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 		Version: "1.0.1",
 		Type:    syftPkg.DebPkg,
 		FoundBy: "the-cataloger-1",
-		Locations: []source.Location{
+		Locations: []syftSource.Location{
 			{RealPath: "/some/path/pkg1"},
 		},
 	})
@@ -272,7 +280,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 	matches := match.NewMatches()
 	matches.Add(pkg1, match1, match2, match3)
 
-	s, err := source.NewFromDirectory("/some/path")
+	s, err := syftSource.NewFromDirectory("/some/path")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -286,7 +294,13 @@ func TestJsonDirsPresenter(t *testing.T) {
 		Source: &s.Metadata,
 		Distro: &d,
 	}
-	pres := NewPresenter(matches, pkg.FromCatalog(catalog), ctx, newMetadataMock())
+	pres := NewPresenter(matches, pkg.FromCatalog(catalog), ctx, newMetadataMock(), config.Application{
+		ConfigPath:        "config-path",
+		Output:            "output",
+		Scope:             "scope",
+		Quiet:             false,
+		CheckForAppUpdate: false,
+	})
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
@@ -326,7 +340,7 @@ func TestEmptyJsonPresenter(t *testing.T) {
 
 	matches := match.NewMatches()
 
-	theSource, err := source.NewFromImage(img, source.AllLayersScope, "user-input")
+	src, err := syftSource.NewFromImage(img, "user-input")
 	if err != nil {
 		t.Fatalf("failed to create scope: %+v", err)
 	}
@@ -337,11 +351,17 @@ func TestEmptyJsonPresenter(t *testing.T) {
 	}
 
 	ctx := pkg.Context{
-		Source: &theSource.Metadata,
+		Source: &src.Metadata,
 		Distro: &d,
 	}
 
-	pres := NewPresenter(matches, []pkg.Package{}, ctx, nil)
+	pres := NewPresenter(matches, []pkg.Package{}, ctx, nil, config.Application{
+		ConfigPath:        "config-path",
+		Output:            "output",
+		Scope:             "scope",
+		Quiet:             false,
+		CheckForAppUpdate: false,
+	})
 
 	// run presenter
 	if err = pres.Present(&buffer); err != nil {

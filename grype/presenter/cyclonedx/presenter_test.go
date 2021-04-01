@@ -120,9 +120,8 @@ func TestCycloneDxPresenterImage(t *testing.T) {
 
 	matches, packages := createResults()
 
-	img, cleanup := imagetest.GetFixtureImage(t, "docker-archive", "image-simple")
-	defer cleanup()
-	s, err := source.NewFromImage(img, source.AllLayersScope, "user-input")
+	img := imagetest.GetFixtureImage(t, "docker-archive", "image-simple")
+	s, err := source.NewFromImage(img, "user-input")
 
 	// This accounts for the non-deterministic digest value that we end up with when
 	// we build a container image dynamically during testing. Ultimately, we should

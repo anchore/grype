@@ -15,20 +15,8 @@ import (
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
-func getPackagesByPath(t *testing.T, theSource source.Source, catalog *syftPkg.Catalog, thePath string) []*syftPkg.Package {
-	t.Helper()
-	refs, err := theSource.Resolver.FilesByGlob(thePath)
-	if err != nil {
-		t.Fatalf("could not get ref by path %q: %+v", thePath, err)
-	}
-	if len(refs) != 1 {
-		t.Fatalf("unexpected paths for %q: %+v", thePath, refs)
-	}
-	return catalog.PackagesByFile(refs[0])
-}
-
 func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore, theResult *match.Matches) {
-	packages := getPackagesByPath(t, theSource, catalog, "/lib/apk/db/installed")
+	packages := catalog.PackagesByPath("/lib/apk/db/installed")
 	if len(packages) != 1 {
 		t.Logf("Alpine Packages: %+v", packages)
 		t.Fatalf("problem with upstream syft cataloger (alpine)")
@@ -56,7 +44,7 @@ func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Ca
 }
 
 func addJavascriptMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore, theResult *match.Matches) {
-	packages := getPackagesByPath(t, theSource, catalog, "/javascript/pkg-json/package.json")
+	packages := catalog.PackagesByPath("/javascript/pkg-json/package.json")
 	if len(packages) != 1 {
 		t.Logf("Javascript Packages: %+v", packages)
 		t.Fatalf("problem with upstream syft cataloger (javascript)")
@@ -83,9 +71,12 @@ func addJavascriptMatches(t *testing.T, theSource source.Source, catalog *syftPk
 }
 
 func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore, theResult *match.Matches) {
-	packages := getPackagesByPath(t, theSource, catalog, "/python/dist-info/METADATA")
+	packages := catalog.PackagesByPath("/python/dist-info/METADATA")
 	if len(packages) != 1 {
-		t.Logf("Python Packages: %+v", packages)
+		for _, p := range packages {
+			t.Logf("Python Package: %s %+v", p.ID, p)
+		}
+
 		t.Fatalf("problem with upstream syft cataloger (python)")
 	}
 	thePkg := pkg.New(packages[0])
@@ -110,7 +101,7 @@ func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Ca
 }
 
 func addRubyMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore, theResult *match.Matches) {
-	packages := getPackagesByPath(t, theSource, catalog, "/ruby/specifications/bundler.gemspec")
+	packages := catalog.PackagesByPath("/ruby/specifications/bundler.gemspec")
 	if len(packages) != 1 {
 		t.Logf("Ruby Packages: %+v", packages)
 		t.Fatalf("problem with upstream syft cataloger (ruby)")
@@ -173,7 +164,7 @@ func addJavaMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 }
 
 func addDpkgMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore, theResult *match.Matches) {
-	packages := getPackagesByPath(t, theSource, catalog, "/var/lib/dpkg/status")
+	packages := catalog.PackagesByPath("/var/lib/dpkg/status")
 	if len(packages) != 1 {
 		t.Logf("Dpkg Packages: %+v", packages)
 		t.Fatalf("problem with upstream syft cataloger (dpkg)")
@@ -204,7 +195,7 @@ func addDpkgMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 }
 
 func addRhelMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore, theResult *match.Matches) {
-	packages := getPackagesByPath(t, theSource, catalog, "/var/lib/rpm/Packages")
+	packages := catalog.PackagesByPath("/var/lib/rpm/Packages")
 	if len(packages) != 1 {
 		t.Logf("RPMDB Packages: %+v", packages)
 		t.Fatalf("problem with upstream syft cataloger (RPMDB)")
@@ -279,15 +270,19 @@ func TestPkgCoverageImage(t *testing.T) {
 		t.Run(test.fixtureImage, func(t *testing.T) {
 			theStore := NewMockDbStore()
 
-			_, cleanup := imagetest.GetFixtureImage(t, "docker-archive", test.fixtureImage)
+			imagetest.GetFixtureImage(t, "docker-archive", test.fixtureImage)
 			tarPath := imagetest.GetFixtureImageTarPath(t, test.fixtureImage)
-			defer cleanup()
 
 			userImage := "docker-archive:" + tarPath
-			scopeOption := source.AllLayersScope
 
 			// this is purely done to help setup mocks
-			theSource, theCatalog, theDistro, err := syft.Catalog(userImage, scopeOption)
+			theSource, cleanup, err := source.New(userImage)
+			if err != nil {
+				t.Fatalf("failed to determine image source: %+v", err)
+			}
+			defer cleanup()
+
+			theCatalog, theDistro, err := syft.CatalogPackages(theSource, source.SquashedScope)
 			if err != nil {
 				t.Fatalf("could not get the source obj: %+v", err)
 			}

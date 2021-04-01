@@ -8,23 +8,21 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/version"
-	syftCDX "github.com/anchore/syft/syft/presenter/cyclonedx"
 	"github.com/anchore/syft/syft/source"
 	"github.com/google/uuid"
 )
 
-// Source: https://github.com/CycloneDX/specification
+// source: https://github.com/CycloneDX/specification
 
 // Document represents a CycloneDX Vulnerability Document.
 type Document struct {
-	XMLName       xml.Name               `xml:"bom"`
-	XMLNs         string                 `xml:"xmlns,attr"`
-	XMLNsBd       string                 `xml:"xmlns:bd,attr"`
-	XMLNsV        string                 `xml:"xmlns:v,attr"`
-	Version       int                    `xml:"version,attr"`
-	SerialNumber  string                 `xml:"serialNumber,attr"`
-	BomDescriptor *syftCDX.BomDescriptor `xml:"metadata"`
-	Components    []Component            `xml:"components>component"`
+	XMLName       xml.Name       `xml:"bom"`
+	XMLNs         string         `xml:"xmlns,attr"`
+	XMLNsV        string         `xml:"xmlns:v,attr"`
+	Version       int            `xml:"version,attr"`
+	SerialNumber  string         `xml:"serialNumber,attr"`
+	BomDescriptor *BomDescriptor `xml:"metadata"`
+	Components    []Component    `xml:"components>Component"`
 }
 
 // NewDocument returns a CycloneDX Document object populated with the SBOM and vulnerability findings.
@@ -39,33 +37,31 @@ func NewDocument(packages []pkg.Package, matches match.Matches, srcMetadata *sou
 	}
 
 	if srcMetadata != nil {
-		doc.BomDescriptor = syftCDX.NewBomDescriptor(internal.ApplicationName, versionInfo.Version, *srcMetadata)
+		doc.BomDescriptor = NewBomDescriptor(internal.ApplicationName, versionInfo.Version, *srcMetadata)
 	}
 
 	// attach matches
 
 	for _, p := range packages {
-		// make a new component (by value)
+		// make a new Component (by value)
 		component := Component{
-			Component: syftCDX.Component{
-				Type:    "library", // TODO: this is not accurate, syft does the same thing
-				Name:    p.Name,
-				Version: p.Version,
-			},
+			Type:    "library", // TODO: this is not accurate, syft does the same thing
+			Name:    p.Name,
+			Version: p.Version,
 		}
 
-		var licenses []syftCDX.License
+		var licenses []License
 		for _, licenseName := range p.Licenses {
-			licenses = append(licenses, syftCDX.License{
+			licenses = append(licenses, License{
 				Name: licenseName,
 			})
 		}
 		if len(licenses) > 0 {
-			// adding licenses to the component
-			component.Component.Licenses = &licenses
+			// adding licenses to the Component
+			component.Licenses = &licenses
 		}
 
-		// mutate the component
+		// mutate the Component
 
 		pkgMatches := matches.GetByPkgID(p.ID())
 
@@ -81,7 +77,7 @@ func NewDocument(packages []pkg.Package, matches match.Matches, srcMetadata *sou
 			component.Vulnerabilities = &vulnerabilities
 		}
 
-		// add a *copy* of the component to the bom document
+		// add a *copy* of the Component to the bom document
 		doc.Components = append(doc.Components, component)
 	}
 

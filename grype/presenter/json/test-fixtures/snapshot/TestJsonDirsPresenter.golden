@@ -114,6 +114,32 @@
  },
  "descriptor": {
   "name": "grype",
-  "version": "[not provided]"
+  "version": "[not provided]",
+  "configuration": {
+   "ConfigPath": "config-path",
+   "Output": "output",
+   "Scope": "scope",
+   "Quiet": false,
+   "Log": {
+    "Structured": false,
+    "Level": "",
+    "FileLocation": ""
+   },
+   "CliOptions": {
+    "ConfigPath": "",
+    "Verbosity": 0
+   },
+   "Db": {
+    "Dir": "",
+    "UpdateURL": "",
+    "AutoUpdate": false,
+    "ValidateByHashOnStart": false
+   },
+   "Dev": {
+    "ProfileCPU": false
+   },
+   "CheckForAppUpdate": false,
+   "FailOn": ""
+  }
  }
 }
