@@ -14,7 +14,7 @@ func ValidatedConfig(output, outputTemplateFile string) (Config, error) {
 	format := parse(output)
 
 	if format == unknownFormat {
-		return Config{}, fmt.Errorf("unsupported output format %q, supported formats: %+v", output,
+		return Config{}, fmt.Errorf("unsupported output format %q, supported formats are: %+v", output,
 			AvailableFormats)
 	}
 
@@ -33,7 +33,7 @@ func ValidatedConfig(output, outputTemplateFile string) (Config, error) {
 	}
 
 	if outputTemplateFile != "" {
-		return Config{}, fmt.Errorf("user specified template file %q, but "+
+		return Config{}, fmt.Errorf("specified template file %q, but "+
 			"%q output format must be selected in order to use a template file",
 			outputTemplateFile, templateFormat)
 	}
