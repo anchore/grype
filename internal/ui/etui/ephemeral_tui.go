@@ -78,7 +78,6 @@ func OutputToEphemeralTUI(workerErrs <-chan error, subscription *partybus.Subscr
 	grypeUIHandler := grypeUI.NewHandler()
 
 	var errResult error
-	// TODO: convert to multierror —— any `errResult = err` can be changed to a multierror append
 	for {
 		select {
 		case err, ok := <-workerErrs:

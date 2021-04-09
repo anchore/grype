@@ -143,7 +143,8 @@ func init() {
 	}
 
 	flag = templateFlag
-	rootCmd.Flags().StringP(flag, "t", "", "specify the path to a Go template file")
+	rootCmd.Flags().StringP(flag, "t", "", "specify the path to a Go template file ("+
+		"requires 'template' output to be selected)")
 	if err := viper.BindPFlag("output-template-file", rootCmd.Flags().Lookup(flag)); err != nil {
 		fmt.Printf("unable to bind flag '%s': %+v", flag, err)
 		os.Exit(1)

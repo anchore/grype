@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/anchore/grype/grype/presenter/models"
+
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -17,50 +19,6 @@ import (
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for json presenters")
-
-type metadataMock struct {
-	store map[string]map[string]vulnerability.Metadata
-}
-
-func newMetadataMock() *metadataMock {
-	return &metadataMock{
-		store: map[string]map[string]vulnerability.Metadata{
-			"CVE-1999-0001": {
-				"source-1": {
-					Description: "1999-01 description",
-					Severity:    "Low",
-					CvssV3: &vulnerability.Cvss{
-						BaseScore: 4,
-						Vector:    "another vector",
-					},
-				},
-			},
-			"CVE-1999-0002": {
-				"source-2": {
-					Description: "1999-02 description",
-					Severity:    "Critical",
-					CvssV2: &vulnerability.Cvss{
-						BaseScore:           1,
-						ExploitabilityScore: 2,
-						ImpactScore:         3,
-						Vector:              "vector",
-					},
-				},
-			},
-			"CVE-1999-0003": {
-				"source-1": {
-					Description: "1999-03 description",
-					Severity:    "High",
-				},
-			},
-		},
-	}
-}
-
-func (m *metadataMock) GetMetadata(id, recordSource string) (*vulnerability.Metadata, error) {
-	value := m.store[id][recordSource]
-	return &value, nil
-}
 
 func createResults() (match.Matches, []pkg.Package) {
 	// the catalog is needed to assign the package IDs
@@ -131,7 +89,7 @@ func TestCycloneDxPresenterImage(t *testing.T) {
 	// This value is sourced from the "version" node in "./test-fixtures/snapshot/TestCycloneDxImgsPresenter.golden"
 	s.Metadata.ImageMetadata.ManifestDigest = "sha256:2731251dc34951c0e50fcc643b4c5f74922dad1a5d98f302b504cf46cd5d9368"
 
-	pres := NewPresenter(matches, packages, &s.Metadata, newMetadataMock())
+	pres := NewPresenter(matches, packages, &s.Metadata, models.NewMetadataMock())
 	// run presenter
 	err = pres.Present(&buffer)
 	if err != nil {
@@ -166,7 +124,7 @@ func TestCycloneDxPresenterDir(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pres := NewPresenter(matches, packages, &s.Metadata, newMetadataMock())
+	pres := NewPresenter(matches, packages, &s.Metadata, models.NewMetadataMock())
 
 	// run presenter
 	err = pres.Present(&buffer)
