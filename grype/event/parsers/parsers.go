@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/anchore/grype/grype/matcher"
-	"github.com/anchore/grype/grype/presenter"
 	"github.com/wagoodman/go-progress"
 
 	"github.com/anchore/grype/grype/event"
@@ -73,17 +72,4 @@ func ParseVulnerabilityScanningStarted(e partybus.Event) (*matcher.Monitor, erro
 	}
 
 	return &monitor, nil
-}
-
-func ParseVulnerabilityScanningFinished(e partybus.Event) (presenter.Presenter, error) {
-	if err := checkEventType(e.Type, event.VulnerabilityScanningFinished); err != nil {
-		return nil, err
-	}
-
-	pres, ok := e.Value.(presenter.Presenter)
-	if !ok {
-		return nil, newPayloadErr(e.Type, "Value", e.Value)
-	}
-
-	return pres, nil
 }

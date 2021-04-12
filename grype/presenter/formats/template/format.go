@@ -1,44 +1,45 @@
 package template
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"reflect"
 	"text/template"
 
+	"github.com/anchore/grype/grype/presenter/formats"
+
+	models2 "github.com/anchore/grype/grype/presenter/formats/models"
+
 	"github.com/anchore/grype/grype"
 
 	"github.com/mitchellh/go-homedir"
-
-	"github.com/anchore/grype/grype/presenter/models"
 )
 
-// The Name of the kind of presenter.
+// The Name of the Format.
 const Name = "template"
 
-// Presenter is an implementation of presenter.Presenter that formats output according to a user-provided Go text template.
-type Presenter struct {
-	pathToTemplateFile string
-}
-
-// NewPresenter returns a new template.Presenter.
-func NewPresenter(pathToTemplateFile string) *Presenter {
-	return &Presenter{
-		pathToTemplateFile: pathToTemplateFile,
+// Format returns the "template" Format implementation.
+func Format(pathToTemplateFile string) (formats.Format, error) {
+	if pathToTemplateFile == "" {
+		return nil, errors.New("must specify path to template file when using template format")
 	}
+
+	return func(analysis grype.Analysis, w io.Writer) error {
+		return format(pathToTemplateFile, analysis, w)
+	}, nil
 }
 
-// Present creates output using a user-supplied Go template.
-func (pres *Presenter) Present(output io.Writer, analysis grype.Analysis) error {
-	expandedPathToTemplateFile, err := homedir.Expand(pres.pathToTemplateFile)
+func format(pathToTemplateFile string, analysis grype.Analysis, w io.Writer) error {
+	expandedPathToTemplateFile, err := homedir.Expand(pathToTemplateFile)
 	if err != nil {
-		return fmt.Errorf("unable to expand path %q", pres.pathToTemplateFile)
+		return fmt.Errorf("unable to expand path %q", pathToTemplateFile)
 	}
 
 	templateContents, err := ioutil.ReadFile(expandedPathToTemplateFile)
 	if err != nil {
-		return fmt.Errorf("unable to get output template: %w", err)
+		return fmt.Errorf("unable to get w template: %w", err)
 	}
 
 	templateName := expandedPathToTemplateFile
@@ -47,12 +48,12 @@ func (pres *Presenter) Present(output io.Writer, analysis grype.Analysis) error 
 		return fmt.Errorf("unable to parse template: %w", err)
 	}
 
-	document, err := models.NewDocument(analysis)
+	document, err := models2.NewDocument(analysis)
 	if err != nil {
 		return err
 	}
 
-	err = tmpl.Execute(output, document)
+	err = tmpl.Execute(w, document)
 	if err != nil {
 		return fmt.Errorf("unable to execute supplied template: %w", err)
 	}

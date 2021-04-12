@@ -11,19 +11,11 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
-// The Name of the kind of presenter.
+// The Name of the Format.
 const Name = "table"
 
-// Presenter is a generic struct for holding fields needed for reporting
-type Presenter struct{}
-
-// NewPresenter is a *Presenter constructor
-func NewPresenter() *Presenter {
-	return &Presenter{}
-}
-
-// Present creates a JSON-based reporting
-func (pres *Presenter) Present(output io.Writer, analysis grype.Analysis) error {
+// Format returns the "table" Format implementation.
+func Format(analysis grype.Analysis, output io.Writer) error {
 	rows := make([][]string, 0)
 
 	columns := []string{"Name", "Installed", "Fixed-In", "Vulnerability", "Severity"}

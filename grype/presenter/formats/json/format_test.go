@@ -5,6 +5,8 @@ import (
 	"flag"
 	"testing"
 
+	"github.com/anchore/grype/grype/presenter/formats/models"
+
 	"github.com/anchore/grype/grype"
 
 	"github.com/anchore/grype/internal/config"
@@ -14,7 +16,6 @@ import (
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/stereoscope/pkg/imagetest"
 	"github.com/anchore/syft/syft/distro"
@@ -154,12 +155,9 @@ func TestJsonImgsPresenter(t *testing.T) {
 		},
 	}
 
-	pres := NewPresenter()
-
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
-	// run presenter
-	if err = pres.Present(&buffer, analysis); err != nil {
+	if err = Format(analysis, &buffer); err != nil {
 		t.Fatal(err)
 	}
 	actual := buffer.Bytes()
@@ -289,12 +287,9 @@ func TestJsonDirsPresenter(t *testing.T) {
 		},
 	}
 
-	pres := NewPresenter()
-
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
-	// run presenter
-	if err = pres.Present(&buffer, analysis); err != nil {
+	if err = Format(analysis, &buffer); err != nil {
 		t.Fatal(err)
 	}
 	actual := buffer.Bytes()
@@ -358,10 +353,7 @@ func TestEmptyJsonPresenter(t *testing.T) {
 		},
 	}
 
-	pres := NewPresenter()
-
-	// run presenter
-	if err = pres.Present(&buffer, analysis); err != nil {
+	if err = Format(analysis, &buffer); err != nil {
 		t.Fatal(err)
 	}
 	actual := buffer.Bytes()

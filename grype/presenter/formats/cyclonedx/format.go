@@ -7,19 +7,11 @@ import (
 	"github.com/anchore/grype/grype"
 )
 
-// The Name of the kind of presenter.
+// The Name of the Format.
 const Name = "cyclonedx"
 
-// Presenter writes a CycloneDX report from the given Catalog and Scope contents
-type Presenter struct{}
-
-// NewPresenter is a *Presenter constructor
-func NewPresenter() *Presenter {
-	return &Presenter{}
-}
-
-// Present creates a CycloneDX-based reporting
-func (pres *Presenter) Present(output io.Writer, analysis grype.Analysis) error {
+// Format returns the "cyclonedx" Format implementation.
+func Format(analysis grype.Analysis, output io.Writer) error {
 	bom, err := NewDocument(analysis.Packages, analysis.Matches, analysis.Context.Source, analysis.MetadataProvider)
 	if err != nil {
 		return err

@@ -69,7 +69,7 @@ You can also pipe in Syft JSON directly:
 				checkForAppUpdate()
 			}
 
-			presenter, err := presenter.GetPresenter(appConfig.Output, appConfig.OutputTemplateFile)
+			format, err := presenter.DetermineFormat(appConfig.Output, appConfig.OutputTemplateFile)
 			if err != nil {
 				reportAndExitWithError(err)
 			}
@@ -87,7 +87,16 @@ You can also pipe in Syft JSON directly:
 				defer reportError(grypeerr.ErrAboveSeverityThreshold)
 			}
 
-			err = presenter.Present(os.Stdout, analysis)
+			// Apply the format to the Grype analysis
+			present := presenter.Apply(format, analysis)
+
+			// Here, `present` is called immediately; but alternatively, this function
+			// ("command") could be passed to another actor (e.g. a UI) via an event
+			// stream/bus and be invoked there.
+
+			// TODO: Don't call this here —— pass to the UI.
+			err = present(os.Stdout)
+
 			if err != nil {
 				reportAndExitWithError(err)
 			}
@@ -140,6 +149,7 @@ func reportAndExitWithError(err error) {
 }
 
 // reportError reports the given error to the user (without exiting).
+// This helper function could be adapted to report the error to a specified "UI".
 func reportError(err error) {
 	var grypeErr grypeerr.ExpectedErr
 	if errors.As(err, &grypeErr) {
@@ -160,10 +170,10 @@ func checkForAppUpdate() {
 		return
 	}
 
-	log.Infof("New version of %s is available: %s", internal.ApplicationName, newVersion)
+	log.Infof("Apply version of %s is available: %s", internal.ApplicationName, newVersion)
 
 	// TODO: Should we conditionally not show this?
-	fmt.Println(color.Magenta.Sprintf("New version of %s is available: %s", internal.ApplicationName, newVersion))
+	fmt.Println(color.Magenta.Sprintf("Apply version of %s is available: %s", internal.ApplicationName, newVersion))
 }
 
 func validateRootArgs(cmd *cobra.Command, args []string) error {
@@ -194,7 +204,7 @@ func init() {
 	flag = outputFlag
 	rootCmd.Flags().StringP(
 		flag, "o", "",
-		fmt.Sprintf("report output formatter, formats=%v", presenter.AvailableFormats),
+		fmt.Sprintf("report output formats, formats=%v", presenter.AvailableFormats),
 	)
 	if err := viper.BindPFlag(flag, rootCmd.Flags().Lookup(flag)); err != nil {
 		fmt.Printf("unable to bind flag '%s': %+v", flag, err)

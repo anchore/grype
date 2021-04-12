@@ -6,14 +6,14 @@ import (
 	"path"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/anchore/grype/grype/presenter/formats/models"
 
-	"github.com/anchore/grype/grype/presenter/models"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/go-testutils"
 )
 
-func TestPresenter_Present(t *testing.T) {
+func TestFormat(t *testing.T) {
 	analysis := models.GenerateAnalysis(t)
 
 	workingDirectory, err := os.Getwd()
@@ -22,10 +22,13 @@ func TestPresenter_Present(t *testing.T) {
 	}
 	templateFilePath := path.Join(workingDirectory, "./test-fixtures/test.template")
 
-	templatePresenter := NewPresenter(templateFilePath)
+	format, err := Format(templateFilePath)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	var buffer bytes.Buffer
-	if err := templatePresenter.Present(&buffer, analysis); err != nil {
+	if err := format(analysis, &buffer); err != nil {
 		t.Fatal(err)
 	}
 

@@ -6,9 +6,9 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/anchore/grype/grype"
+	"github.com/anchore/grype/grype/presenter/formats/models"
 
-	"github.com/anchore/grype/grype/presenter/models"
+	"github.com/anchore/grype/grype"
 
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
@@ -100,9 +100,7 @@ func TestCycloneDxPresenterImage(t *testing.T) {
 		MetadataProvider: models.NewMetadataMock(),
 	}
 
-	pres := NewPresenter()
-	// run presenter
-	err = pres.Present(&buffer, analysis)
+	err = Format(analysis, &buffer)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,10 +142,7 @@ func TestCycloneDxPresenterDir(t *testing.T) {
 		MetadataProvider: models.NewMetadataMock(),
 	}
 
-	pres := NewPresenter()
-
-	// run presenter
-	err = pres.Present(&buffer, analysis)
+	err = Format(analysis, &buffer)
 	if err != nil {
 		t.Fatal(err)
 	}

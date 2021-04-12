@@ -5,9 +5,9 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/anchore/grype/grype"
+	"github.com/anchore/grype/grype/presenter/formats/models"
 
-	"github.com/anchore/grype/grype/presenter/models"
+	"github.com/anchore/grype/grype"
 
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
@@ -72,12 +72,9 @@ func TestTablePresenter(t *testing.T) {
 		MetadataProvider: models.NewMetadataMock(),
 	}
 
-	pres := NewPresenter()
-
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
-	// run presenter
-	err := pres.Present(&buffer, analysis)
+	err := Format(analysis, &buffer)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,10 +108,7 @@ func TestEmptyTablePresenter(t *testing.T) {
 		MetadataProvider: models.NewMetadataMock(),
 	}
 
-	pres := NewPresenter()
-
-	// run presenter
-	err := pres.Present(&buffer, analysis)
+	err := Format(analysis, &buffer)
 	if err != nil {
 		t.Fatal(err)
 	}
