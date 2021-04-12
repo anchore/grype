@@ -5,6 +5,8 @@ import (
 	"flag"
 	"testing"
 
+	"github.com/anchore/grype/grype/presenter/models"
+
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -15,50 +17,6 @@ import (
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for json presenters")
-
-type metadataMock struct {
-	store map[string]map[string]vulnerability.Metadata
-}
-
-func newMetadataMock() *metadataMock {
-	return &metadataMock{
-		store: map[string]map[string]vulnerability.Metadata{
-			"CVE-1999-0001": {
-				"source-1": {
-					Description: "1999-01 description",
-					Severity:    "Low",
-					CvssV3: &vulnerability.Cvss{
-						BaseScore: 4,
-						Vector:    "another vector",
-					},
-				},
-			},
-			"CVE-1999-0002": {
-				"source-2": {
-					Description: "1999-02 description",
-					Severity:    "Critical",
-					CvssV2: &vulnerability.Cvss{
-						BaseScore:           1,
-						ExploitabilityScore: 2,
-						ImpactScore:         3,
-						Vector:              "vector",
-					},
-				},
-			},
-			"CVE-1999-0003": {
-				"source-1": {
-					Description: "1999-03 description",
-					Severity:    "High",
-				},
-			},
-		},
-	}
-}
-
-func (m *metadataMock) GetMetadata(id, recordSource string) (*vulnerability.Metadata, error) {
-	value := m.store[id][recordSource]
-	return &value, nil
-}
 
 func TestTablePresenter(t *testing.T) {
 
@@ -106,7 +64,7 @@ func TestTablePresenter(t *testing.T) {
 
 	packages := []pkg.Package{pkg1, pkg2}
 
-	pres := NewPresenter(matches, packages, newMetadataMock())
+	pres := NewPresenter(matches, packages, models.NewMetadataMock())
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
@@ -139,7 +97,7 @@ func TestEmptyTablePresenter(t *testing.T) {
 
 	matches := match.NewMatches()
 
-	pres := NewPresenter(matches, []pkg.Package{}, newMetadataMock())
+	pres := NewPresenter(matches, []pkg.Package{}, models.NewMetadataMock())
 
 	// run presenter
 	err := pres.Present(&buffer)

@@ -1,4 +1,4 @@
-package json
+package models
 
 import "github.com/anchore/syft/syft/distro"
 

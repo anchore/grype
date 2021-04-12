@@ -1,0 +1,12 @@
+Identified distro as centos version 8.0.
+
+    Vulnerability: CVE-1999-0001
+    Severity: Low
+    Matched by: dpkg-matcher
+    Package: package-1 version 1.1.1 (deb)
+
+    Vulnerability: CVE-1999-0002
+    Severity: Critical
+    Matched by: dpkg-matcher
+    Package: package-1 version 1.1.1 (deb)
+

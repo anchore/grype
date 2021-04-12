@@ -60,9 +60,43 @@ grype <image> -o <format>
 ```
 
 Where the `format`s available are:
-- `json`: Use this to get as much information out of Grype as possible!
-- `cyclonedx`: An XML report conforming to the [CycloneDX 1.2](https://cyclonedx.org/) specification.
 - `table`: A columnar summary (default).
+- `cyclonedx`: An XML report conforming to the [CycloneDX 1.2](https://cyclonedx.org/) specification.
+- `json`: Use this to get as much information out of Grype as possible!
+- `template`: Lets the user specify the output format. See [Using Templates](#using-templates) below.
+
+### Using Templates
+
+Grype lets you define custom output formats, using [Go templates](https://golang.org/pkg/text/template/). Here's how it works:
+
+- Define your format as a Go template, and save this template as a file.
+
+- Set the output format to "template" (`-o template`). 
+
+- Specify the path to the template file (`-t ./path/to/custom.template`).
+
+- Grype's template processing uses the same data models as the `json` output format — so if you're wondering what data is available as you author a template, you can use the output from `grype <image> -o json` as a reference.
+
+**Example:** You could make Grype output data in CSV format by writing a Go template that renders CSV data and then running `grype <image> -o ~/path/to/csv.tmpl`.
+
+Here's what the `csv.tmpl` file might look like:
+```gotemplate
+"Package","Version Installed","Vulnerability ID","Severity"
+{{- range .Matches}}
+"{{.Artifact.Name}}","{{.Artifact.Version}}","{{.Vulnerability.ID}}","{{.Vulnerability.Severity}}"
+{{- end}}
+```
+
+Which would produce output like:
+```text
+"Package","Version Installed","Vulnerability ID","Severity"
+"coreutils","8.30-3ubuntu2","CVE-2016-2781","Low"
+"libc-bin","2.31-0ubuntu9","CVE-2016-10228","Negligible"
+"libc-bin","2.31-0ubuntu9","CVE-2020-6096","Low"
+...
+```
+
+### Grype's Database
 
 Grype pulls a database of vulnerabilities derived from the publicly available [Anchore Feed Service](https://ancho.re/v1/service/feeds). This database is updated at the beginning of each scan, but an update can also be triggered manually.
 

@@ -31,20 +31,20 @@ import (
 )
 
 const (
-	scopeFlag  = "scope"
-	outputFlag = "output"
-	FailOnFlag = "fail-on"
+	scopeFlag    = "scope"
+	outputFlag   = "output"
+	failOnFlag   = "fail-on"
+	templateFlag = "template"
 )
 
 var (
-	presenterOpt presenter.Option
-	rootCmd      = &cobra.Command{
+	rootCmd = &cobra.Command{
 		Use:   fmt.Sprintf("%s [IMAGE]", internal.ApplicationName),
 		Short: "A vulnerability scanner for container images and filesystems",
 		Long: format.Tprintf(`
 Supports the following image sources:
     {{.appName}} yourrepo/yourimage:tag     defaults to using images from a Docker daemon
-    {{.appName}} path/to/yourproject        a Docker tar, OCI tar, OCI directory, or generic filesystem directory 
+    {{.appName}} path/to/yourproject        a Docker tar, OCI tar, OCI directory, or generic filesystem directory
 
 You can also explicitly specify the scheme to use:
     {{.appName}} docker:yourrepo/yourimage:tag          explicitly use the Docker daemon
@@ -61,15 +61,6 @@ You can also pipe in Syft JSON directly:
 			"appName": internal.ApplicationName,
 		}),
 		Args: validateRootArgs,
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			// set the presenter
-			presenterOption := presenter.ParseOption(appConfig.Output)
-			if presenterOption == presenter.UnknownPresenter {
-				return fmt.Errorf("unsupported --output value '%s', supported values: %+v", appConfig.Output, presenter.Options)
-			}
-			presenterOpt = presenterOption
-			return nil
-		},
 		Run: func(cmd *cobra.Command, args []string) {
 			if appConfig.Dev.ProfileCPU {
 				f, err := os.Create("cpu.profile")
@@ -143,15 +134,23 @@ func init() {
 	// output & formatting options
 	flag = outputFlag
 	rootCmd.Flags().StringP(
-		flag, "o", presenter.TablePresenter.String(),
-		fmt.Sprintf("report output formatter, options=%v", presenter.Options),
+		flag, "o", "",
+		fmt.Sprintf("report output formatter, formats=%v", presenter.AvailableFormats),
 	)
 	if err := viper.BindPFlag(flag, rootCmd.Flags().Lookup(flag)); err != nil {
 		fmt.Printf("unable to bind flag '%s': %+v", flag, err)
 		os.Exit(1)
 	}
 
-	flag = FailOnFlag
+	flag = templateFlag
+	rootCmd.Flags().StringP(flag, "t", "", "specify the path to a Go template file ("+
+		"requires 'template' output to be selected)")
+	if err := viper.BindPFlag("output-template-file", rootCmd.Flags().Lookup(flag)); err != nil {
+		fmt.Printf("unable to bind flag '%s': %+v", flag, err)
+		os.Exit(1)
+	}
+
+	flag = failOnFlag
 	rootCmd.Flags().StringP(
 		flag, "f", "",
 		fmt.Sprintf("set the return code to 1 if a vulnerability is found with a severity >= the given severity, options=%v", vulnerability.AllSeverities),
@@ -167,6 +166,12 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 	errs := make(chan error)
 	go func() {
 		defer close(errs)
+
+		presenterConfig, err := presenter.ValidatedConfig(appConfig.Output, appConfig.OutputTemplateFile)
+		if err != nil {
+			errs <- err
+			return
+		}
 
 		if appConfig.CheckForAppUpdate {
 			isAvailable, newVersion, err := version.IsUpdateAvailable()
@@ -189,7 +194,6 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		var metadataProvider vulnerability.MetadataProvider
 		var packages []pkg.Package
 		var context pkg.Context
-		var err error
 		var wg = &sync.WaitGroup{}
 
 		wg.Add(2)
@@ -228,7 +232,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 		bus.Publish(partybus.Event{
 			Type:  event.VulnerabilityScanningFinished,
-			Value: presenter.GetPresenter(presenterOpt, matches, packages, context, metadataProvider, *appConfig),
+			Value: presenter.GetPresenter(presenterConfig, matches, packages, context, metadataProvider, *appConfig),
 		})
 	}()
 	return errs
@@ -240,6 +244,7 @@ func runDefaultCmd(_ *cobra.Command, args []string) error {
 	if len(args) > 0 {
 		userInput = args[0]
 	}
+
 	errs := startWorker(userInput, appConfig.FailOnSeverity)
 	ux := ui.Select(appConfig.CliOptions.Verbosity > 0, appConfig.Quiet)
 	return ux(errs, eventSubscription)

@@ -3,6 +3,7 @@
   {
    "vulnerability": {
     "id": "CVE-1999-0001",
+    "severity": "Low",
     "description": "1999-01 description",
     "cvssV3": {
      "baseScore": 4,
@@ -40,6 +41,7 @@
   {
    "vulnerability": {
     "id": "CVE-1999-0002",
+    "severity": "Critical",
     "description": "1999-02 description",
     "cvssV2": {
      "baseScore": 1,
@@ -75,6 +77,7 @@
   {
    "vulnerability": {
     "id": "CVE-1999-0003",
+    "severity": "High",
     "description": "1999-03 description",
     "fixedInVersion": "the-other-next-version"
    },
@@ -118,6 +121,7 @@
   "configuration": {
    "ConfigPath": "config-path",
    "Output": "output",
+   "OutputTemplateFile": "",
    "Scope": "scope",
    "Quiet": false,
    "Log": {

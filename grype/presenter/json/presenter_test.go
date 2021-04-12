@@ -12,6 +12,7 @@ import (
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/stereoscope/pkg/imagetest"
 	"github.com/anchore/syft/syft/distro"
@@ -21,47 +22,6 @@ import (
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for json presenters")
-
-type metadataMock struct {
-	store map[string]map[string]vulnerability.Metadata
-}
-
-func newMetadataMock() *metadataMock {
-	return &metadataMock{
-		store: map[string]map[string]vulnerability.Metadata{
-			"CVE-1999-0001": {
-				"source-1": {
-					Description: "1999-01 description",
-					CvssV3: &vulnerability.Cvss{
-						BaseScore: 4,
-						Vector:    "another vector",
-					},
-				},
-			},
-			"CVE-1999-0002": {
-				"source-2": {
-					Description: "1999-02 description",
-					CvssV2: &vulnerability.Cvss{
-						BaseScore:           1,
-						ExploitabilityScore: 2,
-						ImpactScore:         3,
-						Vector:              "vector",
-					},
-				},
-			},
-			"CVE-1999-0003": {
-				"source-1": {
-					Description: "1999-03 description",
-				},
-			},
-		},
-	}
-}
-
-func (m *metadataMock) GetMetadata(id, recordSource string) (*vulnerability.Metadata, error) {
-	value := m.store[id][recordSource]
-	return &value, nil
-}
 
 func TestJsonImgsPresenter(t *testing.T) {
 	var buffer bytes.Buffer
@@ -177,7 +137,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 		Source: &src.Metadata,
 		Distro: &d,
 	}
-	pres := NewPresenter(matches, packages, ctx, newMetadataMock(), config.Application{
+	pres := NewPresenter(matches, packages, ctx, models.NewMetadataMock(), config.Application{
 		ConfigPath:        "config-path",
 		Output:            "output",
 		Scope:             "scope",
@@ -303,7 +263,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 		Source: &s.Metadata,
 		Distro: &d,
 	}
-	pres := NewPresenter(matches, pkg.FromCatalog(catalog), ctx, newMetadataMock(), config.Application{
+	pres := NewPresenter(matches, pkg.FromCatalog(catalog), ctx, models.NewMetadataMock(), config.Application{
 		ConfigPath:        "config-path",
 		Output:            "output",
 		Scope:             "scope",

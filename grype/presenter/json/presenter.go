@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/anchore/grype/internal/config"
+	"github.com/anchore/grype/grype/presenter/models"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -17,11 +17,12 @@ type Presenter struct {
 	packages         []pkg.Package
 	context          pkg.Context
 	metadataProvider vulnerability.MetadataProvider
-	appConfig        config.Application
+	appConfig        interface{}
 }
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter(matches match.Matches, packages []pkg.Package, context pkg.Context, metadataProvider vulnerability.MetadataProvider, appConfig config.Application) *Presenter {
+func NewPresenter(matches match.Matches, packages []pkg.Package, context pkg.Context,
+	metadataProvider vulnerability.MetadataProvider, appConfig interface{}) *Presenter {
 	return &Presenter{
 		matches:          matches,
 		packages:         packages,
@@ -33,7 +34,7 @@ func NewPresenter(matches match.Matches, packages []pkg.Package, context pkg.Con
 
 // Present creates a JSON-based reporting
 func (pres *Presenter) Present(output io.Writer) error {
-	doc, err := NewDocument(pres.packages, pres.context, pres.matches, pres.metadataProvider, pres.appConfig)
+	doc, err := models.NewDocument(pres.packages, pres.context, pres.matches, pres.metadataProvider, pres.appConfig)
 	if err != nil {
 		return err
 	}
