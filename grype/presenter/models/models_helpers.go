@@ -3,6 +3,8 @@ package models
 import (
 	"testing"
 
+	"github.com/anchore/grype/grype"
+
 	"github.com/anchore/syft/syft/distro"
 
 	"github.com/anchore/stereoscope/pkg/image"
@@ -16,14 +18,19 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 )
 
-func GenerateAnalysis(t *testing.T) (match.Matches, []pkg.Package, pkg.Context, vulnerability.MetadataProvider, interface{}) {
+func GenerateAnalysis(t *testing.T) grype.Analysis {
 	t.Helper()
 
 	packages := generatePackages(t)
 	matches := generateMatches(t, packages[0])
 	context := generateContext(t)
 
-	return matches, packages, context, NewMetadataMock(), nil
+	return grype.Analysis{
+		Matches:          matches,
+		Packages:         packages,
+		Context:          context,
+		MetadataProvider: NewMetadataMock(),
+	}
 }
 
 func generateMatches(t *testing.T, p pkg.Package) match.Matches {

@@ -9,15 +9,14 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/gookit/color"
+
 	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/grypeerr"
-	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
-	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/format"
 	"github.com/anchore/grype/internal/ui"
 	"github.com/anchore/grype/internal/version"
@@ -27,7 +26,6 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/wagoodman/go-partybus"
 )
 
 const (
@@ -63,31 +61,35 @@ You can also pipe in Syft JSON directly:
 		Args: validateRootArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			if appConfig.Dev.ProfileCPU {
-				f, err := os.Create("cpu.profile")
-				if err != nil {
-					log.Errorf("unable to create CPU profile: %+v", err)
-				} else {
-					err := pprof.StartCPUProfile(f)
-					if err != nil {
-						log.Errorf("unable to start CPU profile: %+v", err)
-					}
-				}
+				stopProfile := createCPUProfile()
+				defer stopProfile()
 			}
 
-			err := runDefaultCmd(cmd, args)
-
-			if appConfig.Dev.ProfileCPU {
-				pprof.StopCPUProfile()
+			if appConfig.CheckForAppUpdate {
+				checkForAppUpdate()
 			}
 
+			presenter, err := presenter.GetPresenter(appConfig.Output, appConfig.OutputTemplateFile)
 			if err != nil {
-				var grypeErr grypeerr.ExpectedErr
-				if errors.As(err, &grypeErr) {
-					fmt.Fprintln(os.Stderr, format.Red.Format(grypeErr.Error()))
-				} else {
-					log.Errorf(err.Error())
-				}
-				os.Exit(1)
+				reportAndExitWithError(err)
+			}
+
+			userInput := getUserInputForAnalysis(args)
+			analysis, err := analyzeWithUI(userInput)
+			if err != nil {
+				reportAndExitWithError(err)
+			}
+
+			// determine if there are any severities >= to the max allowable severity (which is optional).
+			if hitSeverityThreshold(appConfig.FailOnSeverity, analysis) {
+				// deferring because we want the user to see this error easily, even when the app
+				// produces a large amount of output
+				defer reportError(grypeerr.ErrAboveSeverityThreshold)
+			}
+
+			err = presenter.Present(os.Stdout, analysis)
+			if err != nil {
+				reportAndExitWithError(err)
 			}
 		},
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -106,6 +108,63 @@ You can also pipe in Syft JSON directly:
 		},
 	}
 )
+
+func getUserInputForAnalysis(args []string) string {
+	// we may not be provided an image if the user is piping in SBOM input
+	if len(args) == 1 {
+		return args[0]
+	}
+
+	return ""
+}
+
+// createCPUProfile starts a CPU profile and returns a function to stop the profile.
+func createCPUProfile() func() {
+	f, err := os.Create("cpu.profile")
+	if err != nil {
+		log.Errorf("unable to create CPU profile: %+v", err)
+		return nil
+	}
+
+	err = pprof.StartCPUProfile(f)
+	if err != nil {
+		log.Errorf("unable to start CPU profile: %+v", err)
+	}
+	return pprof.StopCPUProfile
+}
+
+// reportAndExitWithError reports the given error to the user and then exits non-zero.
+func reportAndExitWithError(err error) {
+	reportError(err)
+	os.Exit(1)
+}
+
+// reportError reports the given error to the user (without exiting).
+func reportError(err error) {
+	var grypeErr grypeerr.ExpectedErr
+	if errors.As(err, &grypeErr) {
+		fmt.Fprintln(os.Stderr, format.Red.Format(grypeErr.Error()))
+	} else {
+		log.Errorf(err.Error())
+	}
+}
+
+func checkForAppUpdate() {
+	isAvailable, newVersion, err := version.IsUpdateAvailable()
+	if err != nil {
+		log.Errorf(err.Error())
+	}
+
+	if !isAvailable {
+		log.Debugf("No new %s update available", internal.ApplicationName)
+		return
+	}
+
+	log.Infof("New version of %s is available: %s", internal.ApplicationName, newVersion)
+
+	// TODO: Should we conditionally not show this?
+	fmt.Println(color.Magenta.Sprintf("New version of %s is available: %s", internal.ApplicationName, newVersion))
+}
 
 func validateRootArgs(cmd *cobra.Command, args []string) error {
 	// the user must specify at least one argument OR wait for input on stdin IF it is a pipe
@@ -161,58 +220,71 @@ func init() {
 	}
 }
 
-// nolint:funlen
-func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-chan error {
-	errs := make(chan error)
-	go func() {
-		defer close(errs)
+func analyzeWithUI(userInput string) (grype.Analysis, error) {
+	analysisEvents := startAnalysis(userInput)
 
-		presenterConfig, err := presenter.ValidatedConfig(appConfig.Output, appConfig.OutputTemplateFile)
-		if err != nil {
-			errs <- err
-			return
-		}
+	ux := ui.Select(appConfig.CliOptions.Verbosity > 0, appConfig.Quiet)
+	ctxForUX, terminateUX := context.WithCancel(context.Background())
+	defer terminateUX()
 
-		if appConfig.CheckForAppUpdate {
-			isAvailable, newVersion, err := version.IsUpdateAvailable()
+	analysisErrors := make(chan error)
+	uxError := ux(ctxForUX, analysisErrors, eventSubscription)
+
+	//nolint:gosimple
+	for {
+		select {
+		case e := <-analysisEvents:
+			if e.err != nil {
+				analysisErrors <- e.err
+				continue
+			}
+
+			terminateUX()
+
+			// Wait for UX to close out
+			err := <-uxError
+
 			if err != nil {
-				log.Errorf(err.Error())
+				return grype.Analysis{}, err
 			}
-			if isAvailable {
-				log.Infof("New version of %s is available: %s", internal.ApplicationName, newVersion)
 
-				bus.Publish(partybus.Event{
-					Type:  event.AppUpdateAvailable,
-					Value: newVersion,
-				})
-			} else {
-				log.Debugf("No new %s update available", internal.ApplicationName)
-			}
+			return e.analysis, nil
 		}
+	}
+}
 
+type analysisEvent struct {
+	err      error
+	analysis grype.Analysis
+}
+
+func startAnalysis(userInput string) <-chan analysisEvent {
+	events := make(chan analysisEvent)
+	go func() {
 		var provider vulnerability.Provider
 		var metadataProvider vulnerability.MetadataProvider
 		var packages []pkg.Package
 		var context pkg.Context
+		var err error
 		var wg = &sync.WaitGroup{}
 
-		wg.Add(2)
-
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			log.Debug("loading DB")
 			provider, metadataProvider, err = grype.LoadVulnerabilityDb(appConfig.Db.ToCuratorConfig(), appConfig.Db.AutoUpdate)
 			if err != nil {
-				errs <- fmt.Errorf("failed to load vulnerability db: %w", err)
+				events <- analysisEvent{err: fmt.Errorf("failed to load vulnerability db: %w", err)}
 			}
 		}()
 
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			log.Debugf("gathering packages")
 			packages, context, err = pkg.Provide(userInput, appConfig.ScopeOpt)
 			if err != nil {
-				errs <- fmt.Errorf("failed to catalog: %w", err)
+				events <- analysisEvent{err: fmt.Errorf("failed to catalog: %w", err)}
 			}
 		}()
 
@@ -222,54 +294,37 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		}
 
 		matches := grype.FindVulnerabilitiesForPackage(provider, context.Distro, packages...)
-
-		// determine if there are any severities >= to the max allowable severity (which is optional).
-		// note: until the shared file lock in sqlittle is fixed the sqlite DB cannot be access concurrently,
-		// implying that the fail-on-severity check must be done before sending the presenter object.
-		if hitSeverityThreshold(failOnSeverity, matches, metadataProvider) {
-			errs <- grypeerr.ErrAboveSeverityThreshold
+		analysis := grype.Analysis{
+			Matches:          matches,
+			Packages:         packages,
+			Context:          context,
+			MetadataProvider: metadataProvider,
+			AppConfig:        appConfig,
 		}
-
-		bus.Publish(partybus.Event{
-			Type:  event.VulnerabilityScanningFinished,
-			Value: presenter.GetPresenter(presenterConfig, matches, packages, context, metadataProvider, *appConfig),
-		})
+		events <- analysisEvent{analysis: analysis}
 	}()
-	return errs
-}
-
-func runDefaultCmd(_ *cobra.Command, args []string) error {
-	// we may not be provided an image if the user is piping in SBOM input
-	var userInput string
-	if len(args) > 0 {
-		userInput = args[0]
-	}
-
-	errs := startWorker(userInput, appConfig.FailOnSeverity)
-	ux := ui.Select(appConfig.CliOptions.Verbosity > 0, appConfig.Quiet)
-	return ux(errs, eventSubscription)
+	return events
 }
 
 // hitSeverityThreshold indicates if there are any severities >= to the max allowable severity (which is optional)
-func hitSeverityThreshold(thresholdSeverity *vulnerability.Severity, matches match.Matches, metadataProvider vulnerability.MetadataProvider) bool {
-	if thresholdSeverity != nil {
-		var maxDiscoveredSeverity vulnerability.Severity
-		for m := range matches.Enumerate() {
-			metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.RecordSource)
-			if err != nil {
-				continue
-			}
-			severity := vulnerability.ParseSeverity(metadata.Severity)
-			if severity > maxDiscoveredSeverity {
-				maxDiscoveredSeverity = severity
-			}
-		}
+func hitSeverityThreshold(thresholdSeverity *vulnerability.Severity, analysis grype.Analysis) bool {
+	if thresholdSeverity == nil {
+		return false
+	}
 
-		if maxDiscoveredSeverity >= *thresholdSeverity {
-			return true
+	var maxDiscoveredSeverity vulnerability.Severity
+	for m := range analysis.Matches.Enumerate() {
+		metadata, err := analysis.MetadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.RecordSource)
+		if err != nil {
+			continue
+		}
+		severity := vulnerability.ParseSeverity(metadata.Severity)
+		if severity > maxDiscoveredSeverity {
+			maxDiscoveredSeverity = severity
 		}
 	}
-	return false
+
+	return maxDiscoveredSeverity >= *thresholdSeverity
 }
 
 func listLocalDockerImages(prefix string) ([]string, error) {

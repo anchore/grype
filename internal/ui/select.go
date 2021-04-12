@@ -22,9 +22,9 @@ func Select(verbose, quiet bool) UI {
 
 	switch {
 	case runtime.GOOS == "windows" || verbose || quiet || notATerminal || !isStderrATty || isStdinPiped:
-		ui = LoggerUI
+		ui = loggerUI
 	default:
-		ui = etui.OutputToEphemeralTUI
+		ui = etui.EphemeralTUI
 	}
 
 	return ui

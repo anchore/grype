@@ -11,14 +11,14 @@ func TestValidatedConfig(t *testing.T) {
 		name                    string
 		outputValue             string
 		outputTemplateFileValue string
-		expectedConfig          Config
+		expectedConfig          config
 		assertErrExpectation    func(assert.TestingT, error, ...interface{}) bool
 	}{
 		{
 			"valid template config",
 			"template",
 			"./some/path/to/a/custom.template",
-			Config{
+			config{
 				format:           "template",
 				templateFilePath: "./some/path/to/a/custom.template",
 			},
@@ -28,14 +28,14 @@ func TestValidatedConfig(t *testing.T) {
 			"template file with non-template format",
 			"json",
 			"./some/path/to/a/custom.template",
-			Config{},
+			config{},
 			assert.Error,
 		},
 		{
 			"unknown format",
 			"some-made-up-format",
 			"",
-			Config{},
+			config{},
 			assert.Error,
 		},
 
@@ -43,7 +43,7 @@ func TestValidatedConfig(t *testing.T) {
 			"table format",
 			"table",
 			"",
-			Config{
+			config{
 				format: tableFormat,
 			},
 			assert.NoError,
@@ -52,7 +52,7 @@ func TestValidatedConfig(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			actualConfig, actualErr := ValidatedConfig(tc.outputValue, tc.outputTemplateFileValue)
+			actualConfig, actualErr := validatedConfig(tc.outputValue, tc.outputTemplateFileValue)
 
 			assert.Equal(t, tc.expectedConfig, actualConfig)
 			tc.assertErrExpectation(t, actualErr)

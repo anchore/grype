@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/anchore/grype/grype"
+
 	"github.com/anchore/grype/grype/presenter/models"
 
 	"github.com/anchore/go-testutils"
@@ -89,9 +91,18 @@ func TestCycloneDxPresenterImage(t *testing.T) {
 	// This value is sourced from the "version" node in "./test-fixtures/snapshot/TestCycloneDxImgsPresenter.golden"
 	s.Metadata.ImageMetadata.ManifestDigest = "sha256:2731251dc34951c0e50fcc643b4c5f74922dad1a5d98f302b504cf46cd5d9368"
 
-	pres := NewPresenter(matches, packages, &s.Metadata, models.NewMetadataMock())
+	analysis := grype.Analysis{
+		Matches:  matches,
+		Packages: packages,
+		Context: pkg.Context{
+			Source: &s.Metadata,
+		},
+		MetadataProvider: models.NewMetadataMock(),
+	}
+
+	pres := NewPresenter()
 	// run presenter
-	err = pres.Present(&buffer)
+	err = pres.Present(&buffer, analysis)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,10 +135,19 @@ func TestCycloneDxPresenterDir(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pres := NewPresenter(matches, packages, &s.Metadata, models.NewMetadataMock())
+	analysis := grype.Analysis{
+		Matches:  matches,
+		Packages: packages,
+		Context: pkg.Context{
+			Source: &s.Metadata,
+		},
+		MetadataProvider: models.NewMetadataMock(),
+	}
+
+	pres := NewPresenter()
 
 	// run presenter
-	err = pres.Present(&buffer)
+	err = pres.Present(&buffer, analysis)
 	if err != nil {
 		t.Fatal(err)
 	}

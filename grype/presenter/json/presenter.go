@@ -4,37 +4,25 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/anchore/grype/grype/presenter/models"
+	"github.com/anchore/grype/grype"
 
-	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/grype/presenter/models"
 )
 
+// The Name of the kind of presenter.
+const Name = "json"
+
 // Presenter is a generic struct for holding fields needed for reporting
-type Presenter struct {
-	matches          match.Matches
-	packages         []pkg.Package
-	context          pkg.Context
-	metadataProvider vulnerability.MetadataProvider
-	appConfig        interface{}
-}
+type Presenter struct{}
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter(matches match.Matches, packages []pkg.Package, context pkg.Context,
-	metadataProvider vulnerability.MetadataProvider, appConfig interface{}) *Presenter {
-	return &Presenter{
-		matches:          matches,
-		packages:         packages,
-		metadataProvider: metadataProvider,
-		context:          context,
-		appConfig:        appConfig,
-	}
+func NewPresenter() *Presenter {
+	return &Presenter{}
 }
 
 // Present creates a JSON-based reporting
-func (pres *Presenter) Present(output io.Writer) error {
-	doc, err := models.NewDocument(pres.packages, pres.context, pres.matches, pres.metadataProvider, pres.appConfig)
+func (pres *Presenter) Present(output io.Writer, analysis grype.Analysis) error {
+	doc, err := models.NewDocument(analysis)
 	if err != nil {
 		return err
 	}

@@ -14,7 +14,7 @@ import (
 )
 
 func TestPresenter_Present(t *testing.T) {
-	matches, packages, context, metadataProvider, appConfig := models.GenerateAnalysis(t)
+	analysis := models.GenerateAnalysis(t)
 
 	workingDirectory, err := os.Getwd()
 	if err != nil {
@@ -22,10 +22,10 @@ func TestPresenter_Present(t *testing.T) {
 	}
 	templateFilePath := path.Join(workingDirectory, "./test-fixtures/test.template")
 
-	templatePresenter := NewPresenter(matches, packages, context, metadataProvider, appConfig, templateFilePath)
+	templatePresenter := NewPresenter(templateFilePath)
 
 	var buffer bytes.Buffer
-	if err := templatePresenter.Present(&buffer); err != nil {
+	if err := templatePresenter.Present(&buffer, analysis); err != nil {
 		t.Fatal(err)
 	}
 

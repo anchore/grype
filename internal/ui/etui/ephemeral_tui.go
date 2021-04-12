@@ -3,18 +3,13 @@ package etui
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
-	"github.com/hashicorp/go-multierror"
-
-	grypeEvent "github.com/anchore/grype/grype/event"
-	"github.com/anchore/grype/grype/grypeerr"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/logger"
-	"github.com/anchore/grype/internal/ui/common"
 	grypeUI "github.com/anchore/grype/ui"
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/jotframe/pkg/frame"
@@ -22,24 +17,40 @@ import (
 
 // TODO: specify per-platform implementations with build tags
 
-func setupScreen(output *os.File) *frame.Frame {
-	config := frame.Config{
-		PositionPolicy: frame.PolicyFloatForward,
-		// only report output to stderr, reserve report output for stdout
-		Output: output,
-	}
+// EphemeralTUI creates and manages a short-lived terminal UI to display events from other asynchronous
+// processing.
+func EphemeralTUI(ctx context.Context, workerErrs <-chan error, subscription *partybus.Subscription) chan error {
+	result := make(chan error)
+	go func() {
+		fr, tearDownETUI, err := setUpETUI()
+		defer func() {
+			// We definitely want to tear down the ETUI regardless of what else happens!
+			if tearDownETUI != nil {
+				tearDownETUI()
+			}
+		}()
+		if err != nil {
+			result <- err
+			return
+		}
 
-	fr, err := frame.New(config)
-	if err != nil {
-		log.Errorf("failed to create screen object: %+v", err)
-		return nil
-	}
-	return fr
+		result <- <-handleAllEvents(ctx, fr, workerErrs, subscription.Events())
+	}()
+	return result
 }
 
-// nolint:funlen,gocognit
-func OutputToEphemeralTUI(workerErrs <-chan error, subscription *partybus.Subscription) error {
+func setUpETUI() (fr *frame.Frame, teardown func(), err error) {
 	output := os.Stderr
+
+	var teardownSteps []func()
+	defer func() {
+		teardown = func() {
+			// TODO: consider reversing order of steps to achieve a FILO effect
+			for _, doStep := range teardownSteps {
+				doStep()
+			}
+		}
+	}()
 
 	// prep the logger to not clobber the screen from now on (logrus only)
 	logBuffer := bytes.NewBufferString("")
@@ -50,91 +61,76 @@ func OutputToEphemeralTUI(workerErrs <-chan error, subscription *partybus.Subscr
 
 	// hide cursor
 	_, _ = fmt.Fprint(output, "\x1b[?25l")
-	// show cursor
-	defer fmt.Fprint(output, "\x1b[?25h")
+	teardownSteps = append(teardownSteps, func() {
+		// show cursor
+		fmt.Fprint(output, "\x1b[?25h")
+	})
 
-	fr := setupScreen(output)
+	fr = setUpScreen(output)
 	if fr == nil {
-		return fmt.Errorf("unable to setup screen")
+		err = fmt.Errorf("unable to setup screen")
+		return
 	}
-	var isClosed bool
-	defer func() {
-		if !isClosed {
-			fr.Close()
-			frame.Close()
-			// flush any errors to the screen before the report
-			fmt.Fprint(output, logBuffer.String())
-		}
+
+	teardownSteps = append(teardownSteps, func() {
+		fr.Close()
+		frame.Close()
+		// flush any errors to the screen before the report
+		fmt.Fprint(output, logBuffer.String())
+
 		logWrapper, ok := log.Log.(*logger.LogrusLogger)
 		if ok {
 			logWrapper.Logger.SetOutput(output)
 		}
-	}()
+	})
 
-	var err error
-	var wg = &sync.WaitGroup{}
-	events := subscription.Events()
-	ctx := context.Background()
-	grypeUIHandler := grypeUI.NewHandler()
+	return fr, teardown, nil
+}
 
-	var errResult error
-	for {
-		select {
-		case err, ok := <-workerErrs:
-			if err != nil {
-				if errors.Is(err, grypeerr.ErrAboveSeverityThreshold) {
-					errResult = err
-					continue
-				}
-				return err
-			}
-			if !ok {
-				// worker completed
-				workerErrs = nil
-			}
-		case e, ok := <-events:
-			if !ok {
-				// event bus closed
-				events = nil
-			}
-			switch {
-			case grypeUIHandler.RespondsTo(e):
-				if err = grypeUIHandler.Handle(ctx, fr, e, wg); err != nil {
-					log.Errorf("unable to show %s event: %+v", e.Type, err)
-				}
-
-			case e.Type == grypeEvent.AppUpdateAvailable:
-				if err = appUpdateAvailableHandler(ctx, fr, e, wg); err != nil {
-					log.Errorf("unable to show %s event: %+v", e.Type, err)
-				}
-
-			case e.Type == grypeEvent.VulnerabilityScanningFinished:
-				// we may have other background processes still displaying progress, wait for them to
-				// finish before discontinuing dynamic content and showing the final report
-				wg.Wait()
-				fr.Close()
-				// TODO: there is a race condition within frame.Close() that sometimes leads to an extra blank line being output
-				frame.Close()
-				isClosed = true
-
-				// flush any errors to the screen before the report
-				fmt.Fprint(output, logBuffer.String())
-
-				if err := common.VulnerabilityScanningFinishedHandler(e); err != nil {
-					log.Errorf("unable to show %s event: %+v", e.Type, err)
-					errResult = multierror.Append(errResult, err)
-				}
-
-				// this is the last expected event
-				events = nil
-			}
-		case <-ctx.Done():
-			return grypeerr.NewExpectedErr("canceled: %w", ctx.Err())
-		}
-		if events == nil && workerErrs == nil {
-			break
-		}
+func setUpScreen(output *os.File) *frame.Frame {
+	config := frame.Config{
+		PositionPolicy: frame.PolicyFloatForward,
+		// only use stderr, reserve stdout for report output
+		Output: output,
 	}
 
-	return errResult
+	fr, err := frame.New(config)
+	if err != nil {
+		log.Errorf("failed to create screen object: %+v", err)
+		return nil
+	}
+
+	return fr
+}
+
+func handleAllEvents(ctx context.Context, fr *frame.Frame, workerErrs <-chan error, events <-chan partybus.Event) chan error {
+	result := make(chan error)
+	go func() {
+		defer close(result)
+
+		grypeUIHandler := grypeUI.NewHandler()
+		wg := new(sync.WaitGroup)
+		defer wg.Wait()
+
+		for {
+			select {
+			case <-ctx.Done():
+				// TODO: Needless to say, DO NOT MERGE with this.
+				//  Taking this out makes obvious an existing race condition that can be seen when using the table
+				//  presenter with very few rows, where extra blank lines are inserted without carriage returns — sometimes.
+				time.Sleep(time.Second)
+
+				return
+			case err := <-workerErrs:
+				result <- err
+			case e := <-events:
+				if grypeUIHandler.RespondsTo(e) {
+					if err := grypeUIHandler.Handle(ctx, fr, e, wg); err != nil {
+						log.Errorf("unable to show %s event: %+v", e.Type, err)
+					}
+				}
+			}
+		}
+	}()
+	return result
 }

@@ -3,9 +3,9 @@ package models
 import (
 	"fmt"
 
-	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype"
+
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/version"
 )
@@ -33,17 +33,16 @@ type MatchDetails struct {
 }
 
 // NewDocument creates and populates a new Document struct, representing the populated JSON document.
-func NewDocument(packages []pkg.Package, context pkg.Context, matches match.Matches,
-	metadataProvider vulnerability.MetadataProvider, appConfig interface{}) (Document, error) {
+func NewDocument(analysis grype.Analysis) (Document, error) {
 	// we must preallocate the findings to ensure the JSON document does not show "null" when no matches are found
 	var findings = make([]Match, 0)
-	for m := range matches.Enumerate() {
-		p := pkg.ByID(m.Package.ID(), packages)
+	for m := range analysis.Matches.Enumerate() {
+		p := pkg.ByID(m.Package.ID(), analysis.Packages)
 		if p == nil {
 			return Document{}, fmt.Errorf("unable to find package in collection: %+v", p)
 		}
 
-		metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.RecordSource)
+		metadata, err := analysis.MetadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.RecordSource)
 		if err != nil {
 			return Document{}, fmt.Errorf("unable to fetch vuln=%q metadata: %+v", m.Vulnerability.ID, err)
 		}
@@ -63,8 +62,8 @@ func NewDocument(packages []pkg.Package, context pkg.Context, matches match.Matc
 	}
 
 	var src *source
-	if context.Source != nil {
-		theSrc, err := newSource(*context.Source)
+	if analysis.Context.Source != nil {
+		theSrc, err := newSource(*analysis.Context.Source)
 		if err != nil {
 			return Document{}, err
 		}
@@ -74,11 +73,11 @@ func NewDocument(packages []pkg.Package, context pkg.Context, matches match.Matc
 	return Document{
 		Matches: findings,
 		Source:  src,
-		Distro:  newDistribution(context.Distro),
+		Distro:  newDistribution(analysis.Context.Distro),
 		Descriptor: descriptor{
 			Name:          internal.ApplicationName,
 			Version:       version.FromBuild().Version,
-			Configuration: appConfig,
+			Configuration: analysis.AppConfig,
 		},
 	}, nil
 }

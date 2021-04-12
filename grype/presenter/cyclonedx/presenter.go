@@ -4,33 +4,23 @@ import (
 	"encoding/xml"
 	"io"
 
-	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/syft/syft/source"
+	"github.com/anchore/grype/grype"
 )
 
+// The Name of the kind of presenter.
+const Name = "cyclonedx"
+
 // Presenter writes a CycloneDX report from the given Catalog and Scope contents
-type Presenter struct {
-	results          match.Matches
-	packages         []pkg.Package
-	srcMetadata      *source.Metadata
-	metadataProvider vulnerability.MetadataProvider
-}
+type Presenter struct{}
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter(results match.Matches, packages []pkg.Package, srcMetadata *source.Metadata, metadataProvider vulnerability.MetadataProvider) *Presenter {
-	return &Presenter{
-		results:          results,
-		packages:         packages,
-		metadataProvider: metadataProvider,
-		srcMetadata:      srcMetadata,
-	}
+func NewPresenter() *Presenter {
+	return &Presenter{}
 }
 
 // Present creates a CycloneDX-based reporting
-func (pres *Presenter) Present(output io.Writer) error {
-	bom, err := NewDocument(pres.packages, pres.results, pres.srcMetadata, pres.metadataProvider)
+func (pres *Presenter) Present(output io.Writer, analysis grype.Analysis) error {
+	bom, err := NewDocument(analysis.Packages, analysis.Matches, analysis.Context.Source, analysis.MetadataProvider)
 	if err != nil {
 		return err
 	}

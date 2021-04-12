@@ -6,37 +6,31 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/grype"
+
 	"github.com/olekukonko/tablewriter"
 )
 
+// The Name of the kind of presenter.
+const Name = "table"
+
 // Presenter is a generic struct for holding fields needed for reporting
-type Presenter struct {
-	results          match.Matches
-	packages         []pkg.Package
-	metadataProvider vulnerability.MetadataProvider
-}
+type Presenter struct{}
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter(results match.Matches, packages []pkg.Package, metadataProvider vulnerability.MetadataProvider) *Presenter {
-	return &Presenter{
-		results:          results,
-		packages:         packages,
-		metadataProvider: metadataProvider,
-	}
+func NewPresenter() *Presenter {
+	return &Presenter{}
 }
 
 // Present creates a JSON-based reporting
-func (pres *Presenter) Present(output io.Writer) error {
+func (pres *Presenter) Present(output io.Writer, analysis grype.Analysis) error {
 	rows := make([][]string, 0)
 
 	columns := []string{"Name", "Installed", "Fixed-In", "Vulnerability", "Severity"}
-	for m := range pres.results.Enumerate() {
+	for m := range analysis.Matches.Enumerate() {
 		var severity string
 
-		metadata, err := pres.metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.RecordSource)
+		metadata, err := analysis.MetadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.RecordSource)
 		if err != nil {
 			return fmt.Errorf("unable to fetch vuln=%q metadata: %+v", m.Vulnerability.ID, err)
 		}
@@ -95,7 +89,6 @@ func (pres *Presenter) Present(output io.Writer) error {
 
 func removeDuplicateRows(items [][]string) [][]string {
 	seen := map[string][]string{}
-	// nolint:prealloc
 	var result [][]string
 
 	for _, v := range items {

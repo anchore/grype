@@ -3,6 +3,8 @@ package cmd
 import (
 	"testing"
 
+	"github.com/anchore/grype/grype"
+
 	"github.com/anchore/grype-db/pkg/db"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -96,7 +98,10 @@ func TestAboveAllowableSeverity(t *testing.T) {
 				failOnSeverity = &sev
 			}
 
-			actual := hitSeverityThreshold(failOnSeverity, test.matches, metadataProvider)
+			actual := hitSeverityThreshold(failOnSeverity, grype.Analysis{
+				Matches:          test.matches,
+				MetadataProvider: metadataProvider,
+			})
 
 			if test.expectedResult != actual {
 				t.Errorf("expected: %v got : %v", test.expectedResult, actual)

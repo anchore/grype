@@ -1,52 +1,43 @@
 package ui
 
 import (
-	"errors"
+	"context"
 
-	grypeEvent "github.com/anchore/grype/grype/event"
-	"github.com/anchore/grype/grype/grypeerr"
-	"github.com/anchore/grype/internal/log"
-	"github.com/anchore/grype/internal/ui/common"
 	"github.com/wagoodman/go-partybus"
 )
 
-func LoggerUI(workerErrs <-chan error, subscription *partybus.Subscription) error {
-	events := subscription.Events()
-	var errResult error
-	for {
-		select {
-		case err, ok := <-workerErrs:
-			if err != nil {
-				if errors.Is(err, grypeerr.ErrAboveSeverityThreshold) {
-					errResult = err
-					continue
-				}
-				return err
-			}
-			if !ok {
-				// worker completed
-				workerErrs = nil
-			}
-		case e, ok := <-events:
-			if !ok {
-				// event bus closed
-				events = nil
-			}
+func loggerUI(ctx context.Context, workerErrs <-chan error, subscription *partybus.Subscription) chan error {
+	result := make(chan error)
 
-			// ignore all events except for the final event
-			if e.Type == grypeEvent.VulnerabilityScanningFinished {
-				err := common.VulnerabilityScanningFinishedHandler(e)
+	go func() {
+		defer close(result)
+
+		events := subscription.Events()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case err, ok := <-workerErrs:
 				if err != nil {
-					log.Errorf("unable to show %s event: %+v", e.Type, err)
+					result <- err
+					return
 				}
-
-				// this is the last expected event
-				events = nil
+				if !ok {
+					// worker completed
+					workerErrs = nil
+				}
+			case _, ok := <-events:
+				if !ok {
+					// event bus closed
+					events = nil
+				}
+			}
+			if events == nil && workerErrs == nil {
+				break
 			}
 		}
-		if events == nil && workerErrs == nil {
-			break
-		}
-	}
-	return errResult
+	}()
+
+	return result
 }

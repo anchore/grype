@@ -1,7 +1,9 @@
 package ui
 
 import (
+	"context"
+
 	"github.com/wagoodman/go-partybus"
 )
 
-type UI func(<-chan error, *partybus.Subscription) error
+type UI func(context.Context, <-chan error, *partybus.Subscription) chan error

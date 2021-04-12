@@ -5,6 +5,8 @@ import (
 	"flag"
 	"testing"
 
+	"github.com/anchore/grype/grype"
+
 	"github.com/anchore/grype/grype/presenter/models"
 
 	"github.com/anchore/go-testutils"
@@ -64,12 +66,18 @@ func TestTablePresenter(t *testing.T) {
 
 	packages := []pkg.Package{pkg1, pkg2}
 
-	pres := NewPresenter(matches, packages, models.NewMetadataMock())
+	analysis := grype.Analysis{
+		Matches:          matches,
+		Packages:         packages,
+		MetadataProvider: models.NewMetadataMock(),
+	}
+
+	pres := NewPresenter()
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
 	// run presenter
-	err := pres.Present(&buffer)
+	err := pres.Present(&buffer, analysis)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,10 +105,16 @@ func TestEmptyTablePresenter(t *testing.T) {
 
 	matches := match.NewMatches()
 
-	pres := NewPresenter(matches, []pkg.Package{}, models.NewMetadataMock())
+	analysis := grype.Analysis{
+		Matches:          matches,
+		Packages:         []pkg.Package{},
+		MetadataProvider: models.NewMetadataMock(),
+	}
+
+	pres := NewPresenter()
 
 	// run presenter
-	err := pres.Present(&buffer)
+	err := pres.Present(&buffer, analysis)
 	if err != nil {
 		t.Fatal(err)
 	}

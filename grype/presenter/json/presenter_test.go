@@ -5,6 +5,8 @@ import (
 	"flag"
 	"testing"
 
+	"github.com/anchore/grype/grype"
+
 	"github.com/anchore/grype/internal/config"
 
 	"github.com/anchore/stereoscope/pkg/file"
@@ -137,18 +139,27 @@ func TestJsonImgsPresenter(t *testing.T) {
 		Source: &src.Metadata,
 		Distro: &d,
 	}
-	pres := NewPresenter(matches, packages, ctx, models.NewMetadataMock(), config.Application{
-		ConfigPath:        "config-path",
-		Output:            "output",
-		Scope:             "scope",
-		Quiet:             false,
-		CheckForAppUpdate: false,
-	})
+
+	analysis := grype.Analysis{
+		Matches:          matches,
+		Packages:         packages,
+		Context:          ctx,
+		MetadataProvider: models.NewMetadataMock(),
+		AppConfig: config.Application{
+			ConfigPath:        "config-path",
+			Output:            "output",
+			Scope:             "scope",
+			Quiet:             false,
+			CheckForAppUpdate: false,
+		},
+	}
+
+	pres := NewPresenter()
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
 	// run presenter
-	if err = pres.Present(&buffer); err != nil {
+	if err = pres.Present(&buffer, analysis); err != nil {
 		t.Fatal(err)
 	}
 	actual := buffer.Bytes()
@@ -263,18 +274,27 @@ func TestJsonDirsPresenter(t *testing.T) {
 		Source: &s.Metadata,
 		Distro: &d,
 	}
-	pres := NewPresenter(matches, pkg.FromCatalog(catalog), ctx, models.NewMetadataMock(), config.Application{
-		ConfigPath:        "config-path",
-		Output:            "output",
-		Scope:             "scope",
-		Quiet:             false,
-		CheckForAppUpdate: false,
-	})
+
+	analysis := grype.Analysis{
+		Matches:          matches,
+		Packages:         pkg.FromCatalog(catalog),
+		Context:          ctx,
+		MetadataProvider: models.NewMetadataMock(),
+		AppConfig: config.Application{
+			ConfigPath:        "config-path",
+			Output:            "output",
+			Scope:             "scope",
+			Quiet:             false,
+			CheckForAppUpdate: false,
+		},
+	}
+
+	pres := NewPresenter()
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
 	// run presenter
-	if err = pres.Present(&buffer); err != nil {
+	if err = pres.Present(&buffer, analysis); err != nil {
 		t.Fatal(err)
 	}
 	actual := buffer.Bytes()
@@ -324,16 +344,24 @@ func TestEmptyJsonPresenter(t *testing.T) {
 		Distro: &d,
 	}
 
-	pres := NewPresenter(matches, []pkg.Package{}, ctx, nil, config.Application{
-		ConfigPath:        "config-path",
-		Output:            "output",
-		Scope:             "scope",
-		Quiet:             false,
-		CheckForAppUpdate: false,
-	})
+	analysis := grype.Analysis{
+		Matches:          matches,
+		Packages:         []pkg.Package{},
+		Context:          ctx,
+		MetadataProvider: nil,
+		AppConfig: config.Application{
+			ConfigPath:        "config-path",
+			Output:            "output",
+			Scope:             "scope",
+			Quiet:             false,
+			CheckForAppUpdate: false,
+		},
+	}
+
+	pres := NewPresenter()
 
 	// run presenter
-	if err = pres.Present(&buffer); err != nil {
+	if err = pres.Present(&buffer, analysis); err != nil {
 		t.Fatal(err)
 	}
 	actual := buffer.Bytes()

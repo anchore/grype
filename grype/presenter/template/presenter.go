@@ -7,39 +7,30 @@ import (
 	"reflect"
 	"text/template"
 
+	"github.com/anchore/grype/grype"
+
 	"github.com/mitchellh/go-homedir"
 
 	"github.com/anchore/grype/grype/presenter/models"
-
-	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/vulnerability"
 )
+
+// The Name of the kind of presenter.
+const Name = "template"
 
 // Presenter is an implementation of presenter.Presenter that formats output according to a user-provided Go text template.
 type Presenter struct {
-	matches            match.Matches
-	packages           []pkg.Package
-	context            pkg.Context
-	metadataProvider   vulnerability.MetadataProvider
-	appConfig          interface{}
 	pathToTemplateFile string
 }
 
 // NewPresenter returns a new template.Presenter.
-func NewPresenter(matches match.Matches, packages []pkg.Package, context pkg.Context, metadataProvider vulnerability.MetadataProvider, appConfig interface{}, pathToTemplateFile string) *Presenter {
+func NewPresenter(pathToTemplateFile string) *Presenter {
 	return &Presenter{
-		matches:            matches,
-		packages:           packages,
-		metadataProvider:   metadataProvider,
-		context:            context,
-		appConfig:          appConfig,
 		pathToTemplateFile: pathToTemplateFile,
 	}
 }
 
 // Present creates output using a user-supplied Go template.
-func (pres *Presenter) Present(output io.Writer) error {
+func (pres *Presenter) Present(output io.Writer, analysis grype.Analysis) error {
 	expandedPathToTemplateFile, err := homedir.Expand(pres.pathToTemplateFile)
 	if err != nil {
 		return fmt.Errorf("unable to expand path %q", pres.pathToTemplateFile)
@@ -56,7 +47,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 		return fmt.Errorf("unable to parse template: %w", err)
 	}
 
-	document, err := models.NewDocument(pres.packages, pres.context, pres.matches, pres.metadataProvider, pres.appConfig)
+	document, err := models.NewDocument(analysis)
 	if err != nil {
 		return err
 	}

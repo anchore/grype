@@ -36,11 +36,3 @@ func parse(userInput string) format {
 		return unknownFormat
 	}
 }
-
-// AvailableFormats is a list of presenter format options available to users.
-var AvailableFormats = []format{
-	jsonFormat,
-	tableFormat,
-	cycloneDXFormat,
-	templateFormat,
-}
