@@ -54,6 +54,16 @@ grype path/to/image.tar
 grype dir:path/to/dir
 ```
 
+Sources can be explicitly provided with a scheme:
+```
+docker:yourrepo/yourimage:tag          use images from the Docker daemon
+docker-archive:path/to/yourimage.tar   use a tarball from disk for archives created from "docker save"
+oci-archive:path/to/yourimage.tar      use a tarball from disk for OCI archives (from Skopeo or otherwise)
+oci-dir:path/to/yourimage              read directly from a path on disk for OCI layout directories (from Skopeo or otherwise)
+dir:path/to/yourproject                read directly from a path on disk (any directory)
+registry:yourrepo/yourimage:tag        pull image directly from a registry (no container runtime required)
+```
+
 The output format for Grype is configurable as well:
 ```
 grype <image> -o <format>
@@ -172,6 +182,27 @@ db:
 
   # URL of the vulnerability database
   update-url: "https://toolbox-data.anchore.io/grype/databases/listing.json"
+
+# options when pulling directly from a registry via the "registry:" scheme
+registry:
+  # skip TLS verification when communicating with the registry
+  # GRYPE_REGISTRY_INSECURE_SKIP_TLS_VERIFY env var
+  insecure-skip-tls-verify: false
+
+  # credentials for specific registries
+  auth:
+    - # the URL to the registry (e.g. "docker.io", "localhost:5000", etc.)
+      # GRYPE_REGISTRY_AUTH_AUTHORITY env var
+      authority: ""
+      # GRYPE_REGISTRY_AUTH_USERNAME env var
+      username: ""
+      # GRYPE_REGISTRY_AUTH_PASSWORD env var
+      password: ""
+      # note: token and username/password are mutually exclusive
+      # GRYPE_REGISTRY_AUTH_TOKEN env var
+      token: ""
+    - ... # note, more credentials can be provided via config file only
+
 
 log:
   # location to write the log file (default is not to have a log file)
