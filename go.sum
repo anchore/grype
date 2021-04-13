@@ -102,6 +102,7 @@ github.com/PuerkitoBio/purell v1.1.1/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbt
 github.com/PuerkitoBio/urlesc v0.0.0-20160726150825-5bd2802263f2/go.mod h1:uGdkoq3SwY9Y+13GIhn11/XLaGBb4BfwItxLd5jeuXE=
 github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578/go.mod h1:uGdkoq3SwY9Y+13GIhn11/XLaGBb4BfwItxLd5jeuXE=
 github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6/go.mod h1:3eOhrUMpNV+6aFIbp5/iudMxNCF27Vw2OZgy4xEx0Fg=
+github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d h1:licZJFw2RwpHMqeKTCYkitsPqHNxTmd4SNR5r94FGM8=
 github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d/go.mod h1:asat636LX7Bqt5lYEZ27JNDcqxfjdBQuJ/MM4CN/Lzo=
 github.com/adrg/xdg v0.2.1 h1:VSVdnH7cQ7V+B33qSJHTCRlNgra1607Q8PzEmnvb2Ic=
 github.com/adrg/xdg v0.2.1/go.mod h1:ZuOshBmzV4Ta+s23hdfFZnBsdzmoR3US0d7ErpqSbTQ=
@@ -113,6 +114,7 @@ github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRF
 github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d/go.mod h1:rBZYJk541a8SKzHPHnH3zbiI+7dagKZ0cgpgrD7Fyho=
 github.com/alicebob/sqlittle v1.4.0 h1:vgYt0nAjhdf/hg52MjKJ84g/uTzBPfrvI+VUBrIghxA=
 github.com/alicebob/sqlittle v1.4.0/go.mod h1:Co1L1qxHqCwf41puWhk2HOodojR0mcsAV4BIt8byZh8=
+github.com/anchore/client-go v0.0.0-20210222170800-9c70f9b80bcf h1:DYssiUV1pBmKqzKsm4mqXx8artqC0Q8HgZsVI3lMsAg=
 github.com/anchore/client-go v0.0.0-20210222170800-9c70f9b80bcf/go.mod h1:FaODhIA06mxO1E6R32JE0TL1JWZZkmjRIAd4ULvHUKk=
 github.com/anchore/go-rpmdb v0.0.0-20201106153645-0043963c2e12 h1:xbeIbn5F52JVx3RUIajxCj8b0y+9lywspql4sFhcxWQ=
 github.com/anchore/go-rpmdb v0.0.0-20201106153645-0043963c2e12/go.mod h1:juoyWXIj7sJ1IDl4E/KIfyLtovbs5XQVSIdaQifFQT8=
@@ -125,11 +127,16 @@ github.com/anchore/grype-db v0.0.0-20210322113357-5aec8a7cb962 h1:yW3xed7hbEjdmE
 github.com/anchore/grype-db v0.0.0-20210322113357-5aec8a7cb962/go.mod h1:LINmipRzG88vnJEWvgMMDVCFH1qZsj7+bjmpERlSyaA=
 github.com/anchore/stereoscope v0.0.0-20210405181843-73d71fd93233 h1:XkoyUFdQGYT2tb7SH2YBsouw/9q1kZTgXVy52PzM4JE=
 github.com/anchore/stereoscope v0.0.0-20210405181843-73d71fd93233/go.mod h1:G7tFR0iI9r6AvibmXKA9v010pRS1IIJgd0t6fOMDxCw=
+github.com/anchore/stereoscope v0.0.0-20210412194439-0b9e0281ef0c h1:iAkv8iBnbHQzcROt55IbEh7r7qUJxj64E8bM4EnaBlA=
+github.com/anchore/stereoscope v0.0.0-20210412194439-0b9e0281ef0c/go.mod h1:vhh1M99rfWx5ejMvz1lkQiFZUrC5wu32V12R4JXH+ZI=
 github.com/anchore/syft v0.14.1-0.20210405182557-7a10cbae0c41 h1:xwq+qHO1fU45PoJXavdJ53xwUoPA2GAtS+fXGFjUMTk=
 github.com/anchore/syft v0.14.1-0.20210405182557-7a10cbae0c41/go.mod h1:9X0W88NsIKP0IoL5DFsn7uUffJbtU/KP2c6VYTnbolw=
+github.com/anchore/syft v0.14.1-0.20210413140827-8c178c497e2b h1:320tnSQqvb4gFAr5zjXUnjrJVudDcDTWNRS3BlGWbQU=
+github.com/anchore/syft v0.14.1-0.20210413140827-8c178c497e2b/go.mod h1:SjwNCIIz7vcXiTg2pXVRjNUIMyUJguXjYD65/GyQv50=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 h1:bvNMNQO63//z+xNgfBlViaCIJKLlCJ6/fmUseuG0wVQ=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/cascadia v1.1.0/go.mod h1:GsXiBklL0woXo1j/WYWtSYYC4ouU9PqHO0sqidkEA4Y=
+github.com/antihax/optional v1.0.0 h1:xK2lYat7ZLaVVcIuj82J8kIro4V6kDe0AUDFboUCwcg=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/apex/log v1.1.4/go.mod h1:AlpoD9aScyQfJDVHmLMEcx4oU6LqzkWp4Mg9GdAcEvQ=
 github.com/apex/log v1.3.0 h1:1fyfbPvUwD10nMoh3hY6MXzvZShJQn9/ck7ATgAt5pA=
@@ -650,6 +657,7 @@ github.com/pkg/errors v0.8.1-0.20171018195549-f15c970de5b7/go.mod h1:bwawxfHBFNV
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
+github.com/pkg/profile v1.5.0 h1:042Buzk+NhDI+DeSAA62RwJL8VAuZUMQZUjCsRz1Mug=
 github.com/pkg/profile v1.5.0/go.mod h1:qBsxPvzyUincmltOk6iyRVxHYg4adc0OFOv72ZdLa18=
 github.com/pkg/sftp v1.10.1/go.mod h1:lYOWFsE0bwd1+KfKJaKeuokY15vzFx25BLbzYYoAxZI=
 github.com/pmezard/go-difflib v0.0.0-20151028094244-d8ed2627bdf0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=

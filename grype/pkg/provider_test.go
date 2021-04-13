@@ -59,7 +59,7 @@ func TestDetermineProviderConfig(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			rawConfig := determineProviderConfig(tc.userInput, tc.scopeOpt, tc.stdin)
+			rawConfig := determineProviderConfig(tc.userInput, tc.scopeOpt, nil, tc.stdin)
 
 			actual := mapToProviderTestConfig(t, rawConfig)
 			assert.Equal(t, tc.expected, actual)

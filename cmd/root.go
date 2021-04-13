@@ -53,6 +53,7 @@ You can also explicitly specify the scheme to use:
     {{.appName}} oci-dir:path/to/yourimage              read directly from a path on disk for OCI layout directories (from Skopeo or otherwise)
     {{.appName}} dir:path/to/yourproject                read directly from a path on disk (any directory)
     {{.appName}} sbom:path/to/syft.json                 read Syft JSON from path on disk
+    {{.appName}} registry:yourrepo/yourimage:tag        pull image directly from a registry (no container runtime required)
 
 You can also pipe in Syft JSON directly:
 	syft yourimage:tag -o json | {{.appName}}
@@ -210,7 +211,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		go func() {
 			defer wg.Done()
 			log.Debugf("gathering packages")
-			packages, context, err = pkg.Provide(userInput, appConfig.ScopeOpt)
+			packages, context, err = pkg.Provide(userInput, appConfig.ScopeOpt, appConfig.Registry.ToOptions())
 			if err != nil {
 				errs <- fmt.Errorf("failed to catalog: %w", err)
 			}
