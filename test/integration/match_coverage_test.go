@@ -276,7 +276,7 @@ func TestPkgCoverageImage(t *testing.T) {
 			userImage := "docker-archive:" + tarPath
 
 			// this is purely done to help setup mocks
-			theSource, cleanup, err := source.New(userImage)
+			theSource, cleanup, err := source.New(userImage, nil)
 			if err != nil {
 				t.Fatalf("failed to determine image source: %+v", err)
 			}
