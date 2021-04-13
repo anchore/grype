@@ -1,17 +1,10 @@
 package cli
 
 import (
-	"fmt"
-	"io"
 	"os"
-	"os/exec"
 	"path"
 	"testing"
 )
-
-// GRYPE_BINARY_LOCATION is relative to the repository root. (e.g., "snapshot/grype_linux_amd64/grype")
-// This value is transformed due to the CLI tests' need for a path relative to the test directory.
-var grypeBinaryLocation = path.Join("..", "..", os.Getenv("GRYPE_BINARY_LOCATION"))
 
 const sbomLocation = "./test-fixtures/sbom-ubuntu-20.04--pruned.json"
 
@@ -69,62 +62,4 @@ func TestSBOMInput_FromStdin(t *testing.T) {
 	attachFileToCommandStdin(t, sbom, cmd)
 
 	assertCommandExecutionSuccess(t, cmd)
-}
-
-func getGrypeCommand(t *testing.T, args ...string) *exec.Cmd {
-	grype, err := getCommand(grypeBinaryLocation, args...)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return grype
-}
-
-// —— below this line is generalizable across projects
-
-func getCommand(relativePathToBinary string, args ...string) (*exec.Cmd, error) {
-	_, err := os.Stat(relativePathToBinary)
-	if err != nil {
-		return nil, fmt.Errorf("unable to lookup binary path %q: %w", relativePathToBinary, err)
-	}
-
-	workingDirectory, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-
-	resolvedPathToBinary := path.Join(workingDirectory, relativePathToBinary)
-
-	return exec.Command(resolvedPathToBinary, args...), nil
-}
-
-func attachFileToCommandStdin(t *testing.T, file io.Reader, command *exec.Cmd) {
-	stdin, err := command.StdinPipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = io.Copy(stdin, file)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = stdin.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-func assertCommandExecutionSuccess(t *testing.T, cmd *exec.Cmd) {
-	t.Logf("Running command: %q", cmd)
-	output, err := cmd.CombinedOutput()
-
-	t.Logf("Full command output:\n%s\n", output)
-
-	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			t.Fatal(exitErr)
-		}
-
-		t.Fatalf("unable to run command %q: %v", cmd, err)
-	}
 }
