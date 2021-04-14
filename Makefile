@@ -81,6 +81,7 @@ bootstrap: ## Download and install all go dependencies (+ prep tooling in the ./
 	mkdir -p $(RESULTSDIR)
 	# install go dependencies
 	go mod download
+	go mod tidy # note: it is important that the go.sum is kept in a consistent state at all times (especially during release)
 	# install utilities
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(TEMPDIR)/ v1.26.0
 	curl -sSfL https://raw.githubusercontent.com/wagoodman/go-bouncer/master/bouncer.sh | sh -s -- -b $(TEMPDIR)/ v0.2.0
