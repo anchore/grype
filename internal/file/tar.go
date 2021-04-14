@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const (
@@ -15,6 +16,29 @@ const (
 	MB
 	GB
 )
+
+type errZipSlipDetected struct {
+	Prefix   string
+	JoinArgs []string
+}
+
+func (e *errZipSlipDetected) Error() string {
+	return fmt.Sprintf("potential zip slip attack: prefix=%q dest=%q", e.Prefix, e.JoinArgs)
+}
+
+// safeJoin ensures that any destinations do not resolve to a path above the prefix path.
+func safeJoin(prefix string, dest ...string) (string, error) {
+	joinResult := filepath.Join(append([]string{prefix}, dest...)...)
+	cleanJoinResult := filepath.Clean(joinResult)
+	if !strings.HasPrefix(cleanJoinResult, filepath.Clean(prefix)) {
+		return "", &errZipSlipDetected{
+			Prefix:   prefix,
+			JoinArgs: dest,
+		}
+	}
+	// why not return the clean path? the called may not be expected it from what should only be a join operation.
+	return joinResult, nil
+}
 
 func UnTarGz(dst string, r io.Reader) error {
 	gzr, err := gzip.NewReader(r)
@@ -39,7 +63,10 @@ func UnTarGz(dst string, r io.Reader) error {
 			continue
 		}
 
-		target := filepath.Join(dst, header.Name)
+		target, err := safeJoin(dst, header.Name)
+		if err != nil {
+			return err
+		}
 
 		switch header.Typeflag {
 		case tar.TypeDir:
