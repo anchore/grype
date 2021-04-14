@@ -29,7 +29,7 @@ func (cfg *registry) parseConfigValues() {
 		os.Getenv("GRYPE_REGISTRY_AUTH_PASSWORD"),
 		os.Getenv("GRYPE_REGISTRY_AUTH_TOKEN")
 
-	if hasNonEmptyCredentials(authority, password, token) {
+	if hasNonEmptyCredentials(authority, username, password, token) {
 		// note: we prepend the credentials such that the environment variables take precedence over on-disk configuration.
 		cfg.Auth = append([]RegistryCredentials{
 			{
@@ -42,8 +42,8 @@ func (cfg *registry) parseConfigValues() {
 	}
 }
 
-func hasNonEmptyCredentials(authority, password, token string) bool {
-	return authority != "" && password != "" || authority != "" && token != ""
+func hasNonEmptyCredentials(authority, username, password, token string) bool {
+	return authority != "" && password != "" && username != "" || authority != "" && token != ""
 }
 
 func (cfg *registry) ToOptions() *image.RegistryOptions {
