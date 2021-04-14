@@ -31,7 +31,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           # This check name is defined as the circle-ci workflow name (in .github/workflows/static-unit-integration.yaml)
-          checkName: "Static-Analysis (1.x, ubuntu-latest)"
+          checkName: "Static-Analysis (1.16.x, ubuntu-latest)"
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check unit + integration results (latest go version)
@@ -40,7 +40,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           # This check name is defined as the circle-ci workflow name (in .github/workflows/static-unit-integration.yaml)
-          checkName: "Tests (1.x, ubuntu-latest)"
+          checkName: "Tests (1.16.x, ubuntu-latest)"
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Build snapshot artifacts
@@ -65,7 +65,8 @@ jobs:
         if: steps.static-analysis.outputs.conclusion != 'success' || steps.unit-integration.outputs.conclusion != 'success'  || steps.inline-compare.outputs.conclusion != 'success' || steps.snapshot.outputs.conclusion != 'success'
         run: |
           echo "Static Analysis Status: ${{ steps.static-analysis.conclusion }}"
-          echo "Unit & Integration Test Status: ${{ steps.unit-integration.outputs.conclusion }}"          echo "Build Snapshot Artifacts Status: ${{ steps.snapshot.outputs.conclusion }}"
+          echo "Unit & Integration Test Status: ${{ steps.unit-integration.outputs.conclusion }}"
+          echo "Build Snapshot Artifacts Status: ${{ steps.snapshot.outputs.conclusion }}"
           echo "Inline Compare Status: ${{ steps.inline-compare.outputs.conclusion }}"
           false
 
