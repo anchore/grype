@@ -9,6 +9,7 @@ import (
 
 	grypeEventParsers "github.com/anchore/grype/grype/event/parsers"
 	"github.com/anchore/grype/internal/ui/common"
+	syftUI "github.com/anchore/syft/ui"
 	"github.com/dustin/go-humanize"
 	"github.com/gookit/color"
 	"github.com/wagoodman/go-partybus"
@@ -21,9 +22,9 @@ const maxBarWidth = 50
 const statusSet = common.SpinnerDotSet // SpinnerCircleOutlineSet
 const completedStatus = "✔"            // "●"
 const tileFormat = color.Bold
-const statusTitleTemplate = " %s %-28s "
 
 var auxInfoFormat = color.HEX("#777777")
+var statusTitleTemplate = fmt.Sprintf(" %%s %%-%ds ", syftUI.StatusTitleColumn)
 
 func startProcess() (format.Simple, *common.Spinner) {
 	width, _ := frame.GetTerminalSize()
