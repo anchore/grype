@@ -143,7 +143,11 @@
     "ProfileCPU": false
    },
    "CheckForAppUpdate": false,
-   "FailOn": ""
+   "FailOn": "",
+   "registry": {
+    "insecure-skip-tls-verify": false,
+    "auth": null
+   }
   }
  }
 }

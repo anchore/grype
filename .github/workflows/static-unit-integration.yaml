@@ -87,4 +87,4 @@ jobs:
         run: make integration
 
       - name: Run CLI tests
-        run: make cli-linux
+        run: make cli

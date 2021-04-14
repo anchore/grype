@@ -10,7 +10,7 @@ func syftProvider(config providerConfig) ([]Package, Context, error) {
 		return nil, Context{}, errDoesNotProvide
 	}
 
-	src, cleanup, err := source.New(config.userInput)
+	src, cleanup, err := source.New(config.userInput, config.registryOptions)
 	if err != nil {
 		return nil, Context{}, err
 	}

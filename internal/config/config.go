@@ -34,6 +34,7 @@ type Application struct {
 	CheckForAppUpdate  bool                    `mapstructure:"check-for-app-update"`
 	FailOn             string                  `mapstructure:"fail-on-severity"`
 	FailOnSeverity     *vulnerability.Severity `json:"-"`
+	Registry           registry                `yaml:"registry" json:"registry" mapstructure:"registry"`
 }
 
 type Logging struct {
@@ -73,6 +74,8 @@ func setNonCliDefaultValues(v *viper.Viper) {
 	v.SetDefault("db.validate-by-hash-on-start", false)
 	v.SetDefault("dev.profile-cpu", false)
 	v.SetDefault("check-for-app-update", true)
+	v.SetDefault("registry.insecure-skip-tls-verify", false)
+	v.SetDefault("registry.auth", []RegistryCredentials{})
 }
 
 func LoadConfigFromFile(v *viper.Viper, cliOpts *CliOnlyOptions) (*Application, error) {
@@ -147,6 +150,9 @@ func (cfg *Application) Build() error {
 		}
 		cfg.FailOnSeverity = &failOnSeverity
 	}
+
+	// finalize registry values
+	cfg.Registry.parseConfigValues()
 
 	return nil
 }

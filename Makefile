@@ -4,7 +4,7 @@ RESULTSDIR = $(TEMPDIR)/results
 COVER_REPORT = $(RESULTSDIR)/cover.report
 COVER_TOTAL = $(RESULTSDIR)/cover.total
 LICENSES_REPORT = $(RESULTSDIR)/licenses.json
-LINTCMD = $(TEMPDIR)/golangci-lint run --tests=false --config .golangci.yaml
+LINTCMD = $(TEMPDIR)/golangci-lint run --tests=false --timeout 2m --config .golangci.yaml
 BOLD := $(shell tput -T linux bold)
 PURPLE := $(shell tput -T linux setaf 5)
 GREEN := $(shell tput -T linux setaf 2)
@@ -21,7 +21,13 @@ BOOTSTRAP_CACHE="c7afb99ad"
 DISTDIR=./dist
 SNAPSHOTDIR=./snapshot
 GITTREESTATE=$(if $(shell git status --porcelain),dirty,clean)
-SNAPSHOT_CMD=$(shell realpath $(shell pwd)/$(SNAPSHOTDIR)/grype_linux_amd64/grype)
+OS := $(shell uname)
+
+ifeq ($(OS),Darwin)
+	SNAPSHOT_CMD=$(shell realpath $(shell pwd)/$(SNAPSHOTDIR)/$(BIN)-macos_darwin_amd64/$(BIN))
+else
+	SNAPSHOT_CMD=$(shell realpath $(shell pwd)/$(SNAPSHOTDIR)/$(BIN)_linux_amd64/$(BIN))
+endif
 
 ifeq "$(strip $(VERSION))" ""
  override VERSION = $(shell git describe --always --tags --dirty)
@@ -58,7 +64,7 @@ all: clean static-analysis test ## Run all checks (linting, license check, unit,
 	@printf '$(SUCCESS)All checks pass!$(RESET)\n'
 
 .PHONY: test
-test: unit validate-cyclonedx-schema integration acceptance-linux cli-linux ## Run all tests (unit, integration, linux acceptance, and linux CLI tests)
+test: unit validate-cyclonedx-schema integration acceptance-linux cli ## Run all tests (unit, integration, linux acceptance, and CLI tests)
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(BOLD)$(CYAN)%-25s$(RESET)%s\n", $$1, $$2}'
@@ -130,14 +136,11 @@ integration: ## Run integration tests
 integration-fingerprint:
 	find test/integration/test-fixtures/image-* -type f -exec md5sum {} + | awk '{print $1}' | sort | md5sum | tee test/integration/test-fixtures/cache.fingerprint
 
-.PHONY: cli-linux
-cli-linux: $(SNAPSHOTDIR) ## Run CLI tests for Linux executable
-	GRYPE_BINARY_LOCATION='snapshot/grype_linux_amd64/grype' \
-		go test -count=1 -v ./test/cli
-
-.PHONY: cli-macos
-cli-macos: $(SNAPSHOTDIR) ## Run CLI tests for macOS executable
-	GRYPE_BINARY_LOCATION='snapshot/grype-macos_darwin_amd64/grype' \
+.PHONY: cli
+cli: $(SNAPSHOTDIR) ## Run CLI tests
+	chmod 755 "$(SNAPSHOT_CMD)"
+	$(SNAPSHOT_CMD) version
+	GRYPE_BINARY_LOCATION='$(SNAPSHOT_CMD)' \
 		go test -count=1 -v ./test/cli
 
 .PHONY: clear-test-cache

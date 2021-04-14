@@ -9,21 +9,23 @@ import (
 	"os"
 
 	"github.com/anchore/grype/internal"
+	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft/source"
 )
 
 var errDoesNotProvide = fmt.Errorf("cannot provide packages from the given source")
 
 type providerConfig struct {
-	userInput string
-	scopeOpt  source.Scope
-	reader    io.Reader
+	userInput       string
+	scopeOpt        source.Scope
+	reader          io.Reader
+	registryOptions *image.RegistryOptions
 }
 
 type provider func(cfg providerConfig) ([]Package, Context, error)
 
 // Provide a set of packages and context metadata describing where they were sourced from.
-func Provide(userInput string, scopeOpt source.Scope) ([]Package, Context, error) {
+func Provide(userInput string, scopeOpt source.Scope, registryOptions *image.RegistryOptions) ([]Package, Context, error) {
 	providers := []provider{
 		syftJSONProvider,
 		syftProvider, // important: we should try syft last
@@ -33,7 +35,7 @@ func Provide(userInput string, scopeOpt source.Scope) ([]Package, Context, error
 	capturedStdin := bytesFromStdin()
 
 	for _, provide := range providers {
-		config := determineProviderConfig(userInput, scopeOpt, capturedStdin)
+		config := determineProviderConfig(userInput, scopeOpt, registryOptions, capturedStdin)
 
 		packages, ctx, err := provide(config)
 		if !errors.Is(err, errDoesNotProvide) {
@@ -57,10 +59,11 @@ func bytesFromStdin() []byte {
 	return nil
 }
 
-func determineProviderConfig(userInput string, scopeOpt source.Scope, stdin []byte) providerConfig {
+func determineProviderConfig(userInput string, scopeOpt source.Scope, registryOptions *image.RegistryOptions, stdin []byte) providerConfig {
 	config := providerConfig{
-		userInput: userInput,
-		scopeOpt:  scopeOpt,
+		userInput:       userInput,
+		scopeOpt:        scopeOpt,
+		registryOptions: registryOptions,
 	}
 
 	if len(stdin) > 0 {

@@ -50,6 +50,7 @@ func TestApkMatch(t *testing.T) {
 		vulnerability.NewProviderFromStore(&store),
 		"dir:test-fixtures/corner-cases/apk/vnc",
 		source.AllLayersScope,
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("failed to find vulnerabilities: %+v", err)

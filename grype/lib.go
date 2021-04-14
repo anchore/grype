@@ -9,13 +9,14 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft/distro"
 	"github.com/anchore/syft/syft/source"
 	"github.com/wagoodman/go-partybus"
 )
 
-func FindVulnerabilities(provider vulnerability.Provider, userImageStr string, scopeOpt source.Scope) (match.Matches, pkg.Context, []pkg.Package, error) {
-	packages, context, err := pkg.Provide(userImageStr, scopeOpt)
+func FindVulnerabilities(provider vulnerability.Provider, userImageStr string, scopeOpt source.Scope, registryOptions *image.RegistryOptions) (match.Matches, pkg.Context, []pkg.Package, error) {
+	packages, context, err := pkg.Provide(userImageStr, scopeOpt, registryOptions)
 	if err != nil {
 		return match.Matches{}, pkg.Context{}, nil, err
 	}
