@@ -123,7 +123,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 						"cpe": "cpe:2.3:*:activerecord:activerecord:3.7.5:rando1:*:rando2:*:ruby:*:*",
 					},
 					SearchMatches: map[string]interface{}{
-						"grypeDbNamespace":  "nvd",
+						"namespace":         "nvd",
 						"cpes":              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*"},
 						"versionConstraint": "< 3.7.6 (semver)",
 					},
@@ -164,7 +164,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 						"cpe": "cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:rando2:*:ruby:*:*",
 					},
 					SearchMatches: map[string]interface{}{
-						"grypeDbNamespace":  "nvd",
+						"namespace":         "nvd",
 						"cpes":              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*"},
 						"versionConstraint": "< 3.7.6 (semver)",
 					},
@@ -190,7 +190,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 						"cpe": "cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:rando2:*:ruby:*:*",
 					},
 					SearchMatches: map[string]interface{}{
-						"grypeDbNamespace":  "nvd",
+						"namespace":         "nvd",
 						"cpes":              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:ruby:*:*"},
 						"versionConstraint": "< 3.7.4 (semver)",
 					},
@@ -231,7 +231,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 						"cpe": "cpe:2.3:*:activerecord:activerecord:4.0.1:rando1:*:rando2:*:ruby:*:*",
 					},
 					SearchMatches: map[string]interface{}{
-						"grypeDbNamespace":  "nvd",
+						"namespace":         "nvd",
 						"cpes":              []string{"cpe:2.3:*:couldntgetthisrightcouldyou:activerecord:4.0.1:*:*:*:*:*:*:*"},
 						"versionConstraint": "= 4.0.1 (semver)",
 					},
@@ -276,7 +276,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 						"cpe": "cpe:2.3:*:awesome:awesome:98SE1:rando1:*:rando2:*:dunno:*:*",
 					},
 					SearchMatches: map[string]interface{}{
-						"grypeDbNamespace":  "nvd",
+						"namespace":         "nvd",
 						"cpes":              []string{"cpe:2.3:*:awesome:awesome:*:*:*:*:*:*:*:*"},
 						"versionConstraint": "< 98SP3 (unknown)",
 					},

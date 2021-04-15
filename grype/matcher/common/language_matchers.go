@@ -40,7 +40,7 @@ func FindMatchesByPackageLanguage(store vulnerability.ProviderByLanguage, l syft
 					"language": l.String(),
 				},
 				SearchMatches: map[string]interface{}{
-					"grypeDbNamespace":  vuln.Namespace,
+					"namespace":         vuln.Namespace,
 					"versionConstraint": vuln.Constraint.String(),
 				},
 			})

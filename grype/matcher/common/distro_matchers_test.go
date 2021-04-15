@@ -89,7 +89,7 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 				},
 			},
 			SearchMatches: map[string]interface{}{
-				"grypeDbNamespace":  "debian:8",
+				"namespace":         "debian:8",
 				"versionConstraint": "< 2014.1.5-6 (deb)",
 			},
 			Matcher: match.PythonMatcher,

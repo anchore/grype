@@ -49,7 +49,7 @@ func FindMatchesByPackageDistro(store vulnerability.ProviderByDistro, d *distro.
 					},
 				},
 				SearchMatches: map[string]interface{}{
-					"grypeDbNamespace":  vuln.Namespace,
+					"namespace":         vuln.Namespace,
 					"versionConstraint": vuln.Constraint.String(),
 				},
 			})

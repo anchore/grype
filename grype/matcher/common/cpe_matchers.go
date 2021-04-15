@@ -58,7 +58,7 @@ func FindMatchesByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, u
 						"cpe": cpe.BindToFmtString(),
 					},
 					SearchMatches: map[string]interface{}{
-						"grypeDbNamespace":  vuln.Namespace,
+						"namespace":         vuln.Namespace,
 						"cpes":              cpesToString(vuln.CPEs),
 						"versionConstraint": vuln.Constraint.String(),
 					},

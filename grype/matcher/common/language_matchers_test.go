@@ -70,7 +70,7 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 				"language": "ruby",
 			},
 			SearchMatches: map[string]interface{}{
-				"grypeDbNamespace":  "github:ruby",
+				"namespace":         "github:ruby",
 				"versionConstraint": "< 3.7.6 (semver)",
 			},
 			Matcher: match.RubyGemMatcher,
