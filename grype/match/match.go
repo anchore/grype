@@ -14,7 +14,7 @@ type Match struct {
 	Vulnerability vulnerability.Vulnerability // The vulnerability details of the match.
 	Package       pkg.Package                 // The package used to search for a match.
 	SearchKey     map[string]interface{}      // The specific attributes that were used to search (other than package name and version) --this indicates "how" the match was made.
-	SearchMatches map[string]interface{}      // The specific attributes on the vulnerability object that were matched with --this indicates "what" was found in the match.
+	SearchMatches map[string]interface{}      // The specific attributes on the vulnerability object that were matched with --this indicates "what" was matched on / within.
 	Matcher       MatcherType                 // The matcher object that discovered the match.
 }
 

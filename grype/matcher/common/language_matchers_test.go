@@ -5,10 +5,11 @@ import (
 	"testing"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -31,10 +32,12 @@ func (pr *mockLanguageProvider) stub() {
 			{
 				Constraint: version.MustGetConstraint("< 3.7.6", version.SemanticFormat),
 				ID:         "CVE-2017-fake-1",
+				Namespace:  "github:ruby",
 			},
 			{
 				Constraint: version.MustGetConstraint("< 3.7.4", version.SemanticFormat),
 				ID:         "CVE-2017-fake-2",
+				Namespace:  "github:ruby",
 			},
 		},
 	}
@@ -55,39 +58,27 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 		Type:     syftPkg.GemPkg,
 	}
 
+	expected := []match.Match{
+		{
+			Type: match.ExactDirectMatch,
+			Vulnerability: vulnerability.Vulnerability{
+				ID: "CVE-2017-fake-1",
+			},
+			Confidence: 1,
+			Package:    p,
+			SearchKey: map[string]interface{}{
+				"language": "ruby",
+			},
+			SearchMatches: map[string]interface{}{
+				"grypeDbNamespace":  "github:ruby",
+				"versionConstraint": "< 3.7.6 (semver)",
+			},
+			Matcher: match.RubyGemMatcher,
+		},
+	}
+
 	store := newMockProviderByLanguage()
-	actual, err := FindMatchesByPackageLanguage(store, p.Language, p, match.PythonMatcher)
-	if err != nil {
-		t.Fatalf("error while finding matches: %+v", err)
-	}
-
-	if len(actual) != 1 {
-		t.Fatalf("unexpected direct matches count: %d", len(actual))
-	}
-
-	foundCVEs := internal.NewStringSet()
-
-	for _, a := range actual {
-		foundCVEs.Add(a.Vulnerability.ID)
-
-		if a.Type != match.ExactDirectMatch {
-			t.Error("direct match not indicated")
-		}
-
-		if a.Package.Name != p.Name {
-			t.Errorf("failed to capture correct original package: %s", a.Package.Name)
-		}
-
-		if a.Matcher != match.PythonMatcher {
-			t.Errorf("failed to capture matcher name: %s", a.Matcher)
-		}
-
-	}
-
-	for _, id := range []string{"CVE-2017-fake-1"} {
-		if !foundCVEs.Contains(id) {
-			t.Errorf("missing discovered CVE: %s", id)
-		}
-	}
-
+	actual, err := FindMatchesByPackageLanguage(store, p.Language, p, match.RubyGemMatcher)
+	assert.NoError(t, err)
+	assertMatchesWithoutVulnData(t, expected, actual)
 }

@@ -8,9 +8,9 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal"
 	"github.com/anchore/syft/syft/distro"
 	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/stretchr/testify/assert"
 )
 
 type mockDistroProvider struct {
@@ -32,6 +32,7 @@ func (pr *mockDistroProvider) stub() {
 			{
 				Constraint: version.MustGetConstraint("< 2014.1.5-6", version.DebFormat),
 				ID:         "CVE-2014-fake-1",
+				Namespace:  "debian:8",
 			},
 		},
 		// indirect...
@@ -73,39 +74,30 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 		t.Fatal("could not create distro: ", err)
 	}
 
+	expected := []match.Match{
+		{
+			Type: match.ExactDirectMatch,
+			Vulnerability: vulnerability.Vulnerability{
+				ID: "CVE-2014-fake-1",
+			},
+			Confidence: 1,
+			Package:    p,
+			SearchKey: map[string]interface{}{
+				"distro": map[string]string{
+					"type":    "debian",
+					"version": "8",
+				},
+			},
+			SearchMatches: map[string]interface{}{
+				"grypeDbNamespace":  "debian:8",
+				"versionConstraint": "< 2014.1.5-6 (deb)",
+			},
+			Matcher: match.PythonMatcher,
+		},
+	}
+
 	store := newMockProviderByDistro()
 	actual, err := FindMatchesByPackageDistro(store, &d, p, match.PythonMatcher)
-	if err != nil {
-		t.Fatalf("error while finding matches: %+v", err)
-	}
-
-	if len(actual) != 1 {
-		t.Fatalf("unexpected direct matches count: %d", len(actual))
-	}
-
-	foundCVEs := internal.NewStringSet()
-
-	for _, a := range actual {
-		foundCVEs.Add(a.Vulnerability.ID)
-
-		if a.Type != match.ExactDirectMatch {
-			t.Error("direct match not indicated")
-		}
-
-		if a.Package.Name != p.Name {
-			t.Errorf("failed to capture correct original package: %s", a.Package.Name)
-		}
-
-		if a.Matcher != match.PythonMatcher {
-			t.Errorf("failed to capture matcher name: %s", a.Matcher)
-		}
-
-	}
-
-	for _, id := range []string{"CVE-2014-fake-1"} {
-		if !foundCVEs.Contains(id) {
-			t.Errorf("missing discovered CVE: %s", id)
-		}
-	}
-
+	assert.NoError(t, err)
+	assertMatchesWithoutVulnData(t, expected, actual)
 }
