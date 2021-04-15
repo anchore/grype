@@ -23,7 +23,7 @@ type errZipSlipDetected struct {
 }
 
 func (e *errZipSlipDetected) Error() string {
-	return fmt.Sprintf("potential zip slip attack: prefix=%q dest=%q", e.Prefix, e.JoinArgs)
+	return fmt.Sprintf("paths are not allowed to resolve outside of the root prefix (%q). Destination: %q", e.Prefix, e.JoinArgs)
 }
 
 // safeJoin ensures that any destinations do not resolve to a path above the prefix path.
