@@ -155,37 +155,6 @@
  },
  "descriptor": {
   "name": "grype",
-  "version": "[not provided]",
-  "configuration": {
-   "ConfigPath": "config-path",
-   "Output": "output",
-   "OutputTemplateFile": "",
-   "Scope": "scope",
-   "Quiet": false,
-   "Log": {
-    "Structured": false,
-    "Level": "",
-    "FileLocation": ""
-   },
-   "CliOptions": {
-    "ConfigPath": "",
-    "Verbosity": 0
-   },
-   "Db": {
-    "Dir": "",
-    "UpdateURL": "",
-    "AutoUpdate": false,
-    "ValidateByHashOnStart": false
-   },
-   "Dev": {
-    "ProfileCPU": false
-   },
-   "CheckForAppUpdate": false,
-   "FailOn": "",
-   "registry": {
-    "insecure-skip-tls-verify": false,
-    "auth": null
-   }
-  }
+  "version": "[not provided]"
  }
 }

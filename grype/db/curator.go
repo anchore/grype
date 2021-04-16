@@ -67,23 +67,21 @@ func (c *Curator) Status() Status {
 	metadata, err := curation.NewMetadataFromDir(c.fs, c.dbDir)
 	if err != nil {
 		return Status{
-			RequiredSchemaVersion: c.targetSchema,
-			Err:                   fmt.Errorf("failed to parse database metadata (%s): %w", c.dbDir, err),
+			Err: fmt.Errorf("failed to parse database metadata (%s): %w", c.dbDir, err),
 		}
 	}
 	if metadata == nil {
 		return Status{
-			RequiredSchemaVersion: c.targetSchema,
-			Err:                   fmt.Errorf("database metadata not found at %q", c.dbDir),
+			Err: fmt.Errorf("database metadata not found at %q", c.dbDir),
 		}
 	}
 
 	return Status{
-		Age:                   metadata.Built,
-		CurrentSchemaVersion:  metadata.Version,
-		RequiredSchemaVersion: c.targetSchema,
-		Location:              c.dbDir,
-		Err:                   c.Validate(),
+		Built:         metadata.Built,
+		SchemaVersion: metadata.Version,
+		Location:      c.dbDir,
+		Checksum:      metadata.Checksum,
+		Err:           c.Validate(),
 	}
 }
 

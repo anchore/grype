@@ -5,8 +5,6 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/anchore/grype/internal/config"
-
 	"github.com/anchore/stereoscope/pkg/file"
 
 	"github.com/anchore/go-testutils"
@@ -137,13 +135,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 		Source: &src.Metadata,
 		Distro: &d,
 	}
-	pres := NewPresenter(matches, packages, ctx, models.NewMetadataMock(), config.Application{
-		ConfigPath:        "config-path",
-		Output:            "output",
-		Scope:             "scope",
-		Quiet:             false,
-		CheckForAppUpdate: false,
-	})
+	pres := NewPresenter(matches, packages, ctx, models.NewMetadataMock(), nil, nil)
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
@@ -263,13 +255,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 		Source: &s.Metadata,
 		Distro: &d,
 	}
-	pres := NewPresenter(matches, pkg.FromCatalog(catalog), ctx, models.NewMetadataMock(), config.Application{
-		ConfigPath:        "config-path",
-		Output:            "output",
-		Scope:             "scope",
-		Quiet:             false,
-		CheckForAppUpdate: false,
-	})
+	pres := NewPresenter(matches, pkg.FromCatalog(catalog), ctx, models.NewMetadataMock(), nil, nil)
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 
@@ -324,13 +310,7 @@ func TestEmptyJsonPresenter(t *testing.T) {
 		Distro: &d,
 	}
 
-	pres := NewPresenter(matches, []pkg.Package{}, ctx, nil, config.Application{
-		ConfigPath:        "config-path",
-		Output:            "output",
-		Scope:             "scope",
-		Quiet:             false,
-		CheckForAppUpdate: false,
-	})
+	pres := NewPresenter(matches, []pkg.Package{}, ctx, nil, nil, nil)
 
 	// run presenter
 	if err = pres.Present(&buffer); err != nil {

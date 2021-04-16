@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/anchore/grype/grype/db"
+
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/grypeerr"
@@ -193,6 +195,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 		var provider vulnerability.Provider
 		var metadataProvider vulnerability.MetadataProvider
+		var dbStatus *db.Status
 		var packages []pkg.Package
 		var context pkg.Context
 		var wg = &sync.WaitGroup{}
@@ -202,7 +205,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		go func() {
 			defer wg.Done()
 			log.Debug("loading DB")
-			provider, metadataProvider, err = grype.LoadVulnerabilityDb(appConfig.Db.ToCuratorConfig(), appConfig.Db.AutoUpdate)
+			provider, metadataProvider, dbStatus, err = grype.LoadVulnerabilityDb(appConfig.Db.ToCuratorConfig(), appConfig.Db.AutoUpdate)
 			if err != nil {
 				errs <- fmt.Errorf("failed to load vulnerability db: %w", err)
 			}
@@ -233,7 +236,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 		bus.Publish(partybus.Event{
 			Type:  event.VulnerabilityScanningFinished,
-			Value: presenter.GetPresenter(presenterConfig, matches, packages, context, metadataProvider, *appConfig),
+			Value: presenter.GetPresenter(presenterConfig, matches, packages, context, metadataProvider, *appConfig, *dbStatus),
 		})
 	}()
 	return errs

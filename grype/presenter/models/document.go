@@ -34,7 +34,7 @@ type MatchDetails struct {
 
 // NewDocument creates and populates a new Document struct, representing the populated JSON document.
 func NewDocument(packages []pkg.Package, context pkg.Context, matches match.Matches,
-	metadataProvider vulnerability.MetadataProvider, appConfig interface{}) (Document, error) {
+	metadataProvider vulnerability.MetadataProvider, appConfig interface{}, dbStatus interface{}) (Document, error) {
 	// we must preallocate the findings to ensure the JSON document does not show "null" when no matches are found
 	var findings = make([]Match, 0)
 	for m := range matches.Enumerate() {
@@ -76,9 +76,10 @@ func NewDocument(packages []pkg.Package, context pkg.Context, matches match.Matc
 		Source:  src,
 		Distro:  newDistribution(context.Distro),
 		Descriptor: descriptor{
-			Name:          internal.ApplicationName,
-			Version:       version.FromBuild().Version,
-			Configuration: appConfig,
+			Name:                  internal.ApplicationName,
+			Version:               version.FromBuild().Version,
+			Configuration:         appConfig,
+			VulnerabilityDbStatus: dbStatus,
 		},
 	}, nil
 }
