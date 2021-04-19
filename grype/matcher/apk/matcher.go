@@ -24,7 +24,7 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 	var matches = make([]match.Match, 0)
 
 	// map {  CVE string : []match }
-	var secDbCandidates = make(map[string][]match.Match)
+	var secDbMatchesByID = make(map[string][]match.Match)
 
 	// find Alpine SecDB matches for the given package name and version
 	secDbMatches, err := common.FindMatchesByPackageDistro(store, d, p, m.Type())
@@ -32,28 +32,34 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 		return nil, err
 	}
 
+	// treat all secdb matches as final matches
+	matches = append(matches, secDbMatches...)
+
+	// we need to track which CVEs were added to filter out duplicate NVD matches later
 	for _, secDbMatch := range secDbMatches {
-		secDbCandidates[secDbMatch.Vulnerability.ID] = append(secDbCandidates[secDbMatch.Vulnerability.ID], secDbMatch)
+		secDbMatchesByID[secDbMatch.Vulnerability.ID] = append(secDbMatchesByID[secDbMatch.Vulnerability.ID], secDbMatch)
 	}
 
 	// find NVD matches specific to the given package name and version
-	var cpeCandidates = make(map[string][]match.Match)
+	// map {  CVE string : []match }
+	var cpeMatchesByID = make(map[string][]match.Match)
+
 	cpeMatches, err := common.FindMatchesByPackageCPE(store, p, m.Type())
 	if err != nil {
 		return nil, err
 	}
 
 	for _, cpeMatch := range cpeMatches {
-		cpeCandidates[cpeMatch.Vulnerability.ID] = append(cpeCandidates[cpeMatch.Vulnerability.ID], cpeMatch)
+		cpeMatchesByID[cpeMatch.Vulnerability.ID] = append(cpeMatchesByID[cpeMatch.Vulnerability.ID], cpeMatch)
 	}
 
-	// package is vulnerable if there is a match in the alpine SecDB and NVD for the same CVE
-	for cve, cpeCandidatesForCve := range cpeCandidates {
-		// by this point all matches have been verified to be vulnerable within the given package version relative to the vulnerability source
-		_, ok := secDbCandidates[cve]
-		if ok {
-			// this is a match, use the NVD records as the primary record source (no need to merge)
-			matches = append(matches, cpeCandidatesForCve...)
+	// all secDB matches have been added, new we will add additional unique matches from CPE source (NVD et al.)
+	for id, cpeMatch := range cpeMatchesByID {
+		// by this point all matches have been verified to be vulnerable within the given package version relative to the vulnerability source.
+		// now we will add unique CPE candidates that were not found in secdb.
+		if _, exists := secDbMatchesByID[id]; !exists {
+			// add the new CPE-based record (e.g. NVD) since it was not found in secDB
+			matches = append(matches, cpeMatch...)
 		}
 	}
 

@@ -28,7 +28,8 @@ func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Ca
 		t.Fatalf("failed to create vuln obj: %+v", err)
 	}
 	theResult.Add(thePkg, match.Match{
-		Type:          match.FuzzyMatch,
+		// note: we are matching on the secdb record, not NVD primarily
+		Type:          match.ExactDirectMatch,
 		Confidence:    1.0,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
