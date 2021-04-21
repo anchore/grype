@@ -228,3 +228,103 @@ func TestNvdOnlyMatches(t *testing.T) {
 	}
 
 }
+
+func TestNvdMatchesWithSecDBFix(t *testing.T) {
+	nvdVuln := db.Vulnerability{
+		ID:                "CVE-2020-1",
+		VersionConstraint: "> 0.9.0, < 0.10.0", // note: this is not normal NVD configuration, but has the desired effect of a "wide net" for vulnerable indication
+		VersionFormat:     "unknown",
+		CPEs:              []string{"cpe:2.3:a:lib_vnc_project-(server):libvncserver:*:*:*:*:*:*:*:*"},
+	}
+
+	secDbVuln := db.Vulnerability{
+		ID:                "CVE-2020-1",
+		VersionConstraint: "< 0.9.11", // note: this does NOT include 0.9.11, so NVD and SecDB mismatch here... secDB should trump in this case
+		VersionFormat:     "apk",
+	}
+
+	store := mockStore{
+		backend: map[string]map[string][]db.Vulnerability{
+			"nvd": {
+				"libvncserver": []db.Vulnerability{nvdVuln},
+			},
+			"alpine:3.12": {
+				"libvncserver": []db.Vulnerability{secDbVuln},
+			},
+		},
+	}
+
+	provider := vulnerability.NewProviderFromStore(&store)
+
+	m := Matcher{}
+	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
+	if err != nil {
+		t.Fatalf("failed to create a new distro: %+v", err)
+	}
+	p := pkg.Package{
+		Name:    "libvncserver",
+		Version: "0.9.11",
+		CPEs: []syftPkg.CPE{
+			must(syftPkg.NewCPE("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*")),
+		},
+	}
+
+	expected := []match.Match{}
+
+	actual, err := m.Match(provider, &d, p)
+	assert.NoError(t, err)
+
+	for _, diff := range deep.Equal(expected, actual) {
+		t.Errorf("diff: %+v", diff)
+	}
+}
+
+func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
+	nvdVuln := db.Vulnerability{
+		ID:                "CVE-2020-1",
+		VersionConstraint: "", // note: empty value indicates that all versions are vulnerable
+		VersionFormat:     "unknown",
+		CPEs:              []string{"cpe:2.3:a:lib_vnc_project-(server):libvncserver:*:*:*:*:*:*:*:*"},
+	}
+
+	secDbVuln := db.Vulnerability{
+		ID:                "CVE-2020-1",
+		VersionConstraint: "< 0.9.11",
+		VersionFormat:     "apk",
+	}
+
+	store := mockStore{
+		backend: map[string]map[string][]db.Vulnerability{
+			"nvd": {
+				"libvncserver": []db.Vulnerability{nvdVuln},
+			},
+			"alpine:3.12": {
+				"libvncserver": []db.Vulnerability{secDbVuln},
+			},
+		},
+	}
+
+	provider := vulnerability.NewProviderFromStore(&store)
+
+	m := Matcher{}
+	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
+	if err != nil {
+		t.Fatalf("failed to create a new distro: %+v", err)
+	}
+	p := pkg.Package{
+		Name:    "libvncserver",
+		Version: "0.9.11",
+		CPEs: []syftPkg.CPE{
+			must(syftPkg.NewCPE("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*")),
+		},
+	}
+
+	expected := []match.Match{}
+
+	actual, err := m.Match(provider, &d, p)
+	assert.NoError(t, err)
+
+	for _, diff := range deep.Equal(expected, actual) {
+		t.Errorf("diff: %+v", diff)
+	}
+}
