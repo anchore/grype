@@ -7,6 +7,8 @@ import (
 
 func TestVersionDeb(t *testing.T) {
 	tests := []testCase{
+		// empty values
+		{version: "2.3.1", constraint: "", satisfied: true},
 		// compound conditions
 		{version: "2.3.1", constraint: "> 1.0.0, < 2.0.0", satisfied: false},
 		{version: "1.3.1", constraint: "> 1.0.0, < 2.0.0", satisfied: true},

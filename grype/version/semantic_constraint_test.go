@@ -7,6 +7,9 @@ import (
 
 func TestVersionSemantic(t *testing.T) {
 	tests := []testCase{
+		// empty values
+		{version: "2.3.1", constraint: "", satisfied: true},
+		// typical cases
 		{version: "0.9.9-r0", constraint: "< 0.9.12-r1", satisfied: true}, // regression case
 		{version: "1.5.0", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: true},
 		{version: "0.2.0", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: true},
