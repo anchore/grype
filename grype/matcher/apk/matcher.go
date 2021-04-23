@@ -40,17 +40,8 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 	// keep all secdb matches, as this is an authoritative source
 	matches = append(matches, secDbMatches...)
 
-	// add additional unique matches from CPE source that is unique from the SecDB matches
-	secDbMatchesByID := matchesByID(secDbMatches)
-	cpeMatchesByID := matchesByID(cpeMatches)
-	for id, cpeMatchesForID := range cpeMatchesByID {
-		// by this point all matches have been verified to be vulnerable within the given package version relative to the vulnerability source.
-		// now we will add unique CPE candidates that were not found in secdb.
-		if _, exists := secDbMatchesByID[id]; !exists {
-			// add the new CPE-based record (e.g. NVD) since it was not found in secDB
-			matches = append(matches, cpeMatchesForID...)
-		}
-	}
+	// keep only unique CPE matches
+	matches = append(matches, deduplicateMatches(secDbMatches, cpeMatches)...)
 
 	return matches, nil
 }
@@ -111,6 +102,21 @@ cveLoop:
 		}
 	}
 	return finalCpeMatches, nil
+}
+
+func deduplicateMatches(secDbMatches, cpeMatches []match.Match) (matches []match.Match) {
+	// add additional unique matches from CPE source that is unique from the SecDB matches
+	secDbMatchesByID := matchesByID(secDbMatches)
+	cpeMatchesByID := matchesByID(cpeMatches)
+	for id, cpeMatchesForID := range cpeMatchesByID {
+		// by this point all matches have been verified to be vulnerable within the given package version relative to the vulnerability source.
+		// now we will add unique CPE candidates that were not found in secdb.
+		if _, exists := secDbMatchesByID[id]; !exists {
+			// add the new CPE-based record (e.g. NVD) since it was not found in secDB
+			matches = append(matches, cpeMatchesForID...)
+		}
+	}
+	return matches
 }
 
 func matchesByID(matches []match.Match) map[string][]match.Match {
