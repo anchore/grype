@@ -9,6 +9,7 @@ const (
 	JavaMatcher
 	PythonMatcher
 	JavascriptMatcher
+	MsrcMatcher
 )
 
 var matcherTypeStr = []string{
@@ -20,6 +21,7 @@ var matcherTypeStr = []string{
 	"java-matcher",
 	"python-matcher",
 	"javascript-matcher",
+	"msrc-matcher",
 }
 
 var AllMatcherTypes = []MatcherType{
@@ -30,6 +32,7 @@ var AllMatcherTypes = []MatcherType{
 	JavaMatcher,
 	PythonMatcher,
 	JavascriptMatcher,
+	MsrcMatcher,
 }
 
 type MatcherType int

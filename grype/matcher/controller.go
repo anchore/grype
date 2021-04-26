@@ -7,6 +7,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/dpkg"
 	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
+	"github.com/anchore/grype/grype/matcher/msrc"
 	"github.com/anchore/grype/grype/matcher/python"
 	"github.com/anchore/grype/grype/matcher/rpmdb"
 	"github.com/anchore/grype/grype/matcher/ruby"
@@ -46,6 +47,7 @@ func newController() controller {
 	ctrlr.add(&java.Matcher{})
 	ctrlr.add(&javascript.Matcher{})
 	ctrlr.add(&apk.Matcher{})
+	ctrlr.add(&msrc.Matcher{})
 	return ctrlr
 }
 
