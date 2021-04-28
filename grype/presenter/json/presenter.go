@@ -18,23 +18,25 @@ type Presenter struct {
 	context          pkg.Context
 	metadataProvider vulnerability.MetadataProvider
 	appConfig        interface{}
+	dbStatus         interface{}
 }
 
 // NewPresenter is a *Presenter constructor
 func NewPresenter(matches match.Matches, packages []pkg.Package, context pkg.Context,
-	metadataProvider vulnerability.MetadataProvider, appConfig interface{}) *Presenter {
+	metadataProvider vulnerability.MetadataProvider, appConfig interface{}, dbStatus interface{}) *Presenter {
 	return &Presenter{
 		matches:          matches,
 		packages:         packages,
 		metadataProvider: metadataProvider,
 		context:          context,
 		appConfig:        appConfig,
+		dbStatus:         dbStatus,
 	}
 }
 
 // Present creates a JSON-based reporting
 func (pres *Presenter) Present(output io.Writer) error {
-	doc, err := models.NewDocument(pres.packages, pres.context, pres.matches, pres.metadataProvider, pres.appConfig)
+	doc, err := models.NewDocument(pres.packages, pres.context, pres.matches, pres.metadataProvider, pres.appConfig, pres.dbStatus)
 	if err != nil {
 		return err
 	}

@@ -23,17 +23,19 @@ type Presenter struct {
 	context            pkg.Context
 	metadataProvider   vulnerability.MetadataProvider
 	appConfig          interface{}
+	dbStatus           interface{}
 	pathToTemplateFile string
 }
 
 // NewPresenter returns a new template.Presenter.
-func NewPresenter(matches match.Matches, packages []pkg.Package, context pkg.Context, metadataProvider vulnerability.MetadataProvider, appConfig interface{}, pathToTemplateFile string) *Presenter {
+func NewPresenter(matches match.Matches, packages []pkg.Package, context pkg.Context, metadataProvider vulnerability.MetadataProvider, appConfig interface{}, dbStatus interface{}, pathToTemplateFile string) *Presenter {
 	return &Presenter{
 		matches:            matches,
 		packages:           packages,
 		metadataProvider:   metadataProvider,
 		context:            context,
 		appConfig:          appConfig,
+		dbStatus:           dbStatus,
 		pathToTemplateFile: pathToTemplateFile,
 	}
 }
@@ -56,7 +58,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 		return fmt.Errorf("unable to parse template: %w", err)
 	}
 
-	document, err := models.NewDocument(pres.packages, pres.context, pres.matches, pres.metadataProvider, pres.appConfig)
+	document, err := models.NewDocument(pres.packages, pres.context, pres.matches, pres.metadataProvider, pres.appConfig, pres.dbStatus)
 	if err != nil {
 		return err
 	}

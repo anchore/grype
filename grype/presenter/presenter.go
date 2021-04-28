@@ -20,16 +20,16 @@ type Presenter interface {
 
 // GetPresenter retrieves a Presenter that matches a CLI option
 func GetPresenter(presenterConfig Config, matches match.Matches, packages []pkg.Package, context pkg.Context,
-	metadataProvider vulnerability.MetadataProvider, appConfig interface{}) Presenter {
+	metadataProvider vulnerability.MetadataProvider, appConfig interface{}, dbStatus interface{}) Presenter {
 	switch presenterConfig.format {
 	case jsonFormat:
-		return json.NewPresenter(matches, packages, context, metadataProvider, appConfig)
+		return json.NewPresenter(matches, packages, context, metadataProvider, appConfig, dbStatus)
 	case tableFormat:
 		return table.NewPresenter(matches, packages, metadataProvider)
 	case cycloneDXFormat:
 		return cyclonedx.NewPresenter(matches, packages, context.Source, metadataProvider)
 	case templateFormat:
-		return template.NewPresenter(matches, packages, context, metadataProvider, appConfig, presenterConfig.templateFilePath)
+		return template.NewPresenter(matches, packages, context, metadataProvider, appConfig, dbStatus, presenterConfig.templateFilePath)
 	default:
 		return nil
 	}

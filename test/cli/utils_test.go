@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/acarl005/stripansi"
+	"github.com/anchore/stereoscope/pkg/imagetest"
 )
 
 type traitAssertion func(tb testing.TB, stdout, stderr string, rc int)
@@ -23,6 +24,11 @@ func assertInOutput(data string) traitAssertion {
 			tb.Errorf("data=%q was NOT found in any output, but should have been there", data)
 		}
 	}
+}
+
+func getFixtureImage(t testing.TB, fixtureImageName string) string {
+	imagetest.GetFixtureImage(t, "docker-archive", fixtureImageName)
+	return imagetest.GetFixtureImageTarPath(t, fixtureImageName)
 }
 
 func getGrypeCommand(t testing.TB, args ...string) *exec.Cmd {

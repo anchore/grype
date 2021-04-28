@@ -3,27 +3,23 @@ package models
 import (
 	"testing"
 
-	"github.com/anchore/syft/syft/distro"
-
-	"github.com/anchore/stereoscope/pkg/image"
-
-	syftPkg "github.com/anchore/syft/syft/pkg"
-	syftSource "github.com/anchore/syft/syft/source"
-
-	"github.com/anchore/grype/grype/vulnerability"
-
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/stereoscope/pkg/image"
+	"github.com/anchore/syft/syft/distro"
+	syftPkg "github.com/anchore/syft/syft/pkg"
+	syftSource "github.com/anchore/syft/syft/source"
 )
 
-func GenerateAnalysis(t *testing.T) (match.Matches, []pkg.Package, pkg.Context, vulnerability.MetadataProvider, interface{}) {
+func GenerateAnalysis(t *testing.T) (match.Matches, []pkg.Package, pkg.Context, vulnerability.MetadataProvider, interface{}, interface{}) {
 	t.Helper()
 
 	packages := generatePackages(t)
 	matches := generateMatches(t, packages[0])
 	context := generateContext(t)
 
-	return matches, packages, context, NewMetadataMock(), nil
+	return matches, packages, context, NewMetadataMock(), nil, nil
 }
 
 func generateMatches(t *testing.T, p pkg.Package) match.Matches {

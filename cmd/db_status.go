@@ -9,8 +9,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var showSupportedDbSchema bool
-
 var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "display database status",
@@ -25,9 +23,6 @@ var statusCmd = &cobra.Command{
 }
 
 func init() {
-	// Note: this option cannot change as it supports the nightly DB generation job
-	statusCmd.Flags().BoolVar(&showSupportedDbSchema, "schema", false, "show supported DB schema")
-
 	dbCmd.AddCommand(statusCmd)
 }
 
@@ -35,21 +30,16 @@ func runDbStatusCmd(_ *cobra.Command, _ []string) error {
 	dbCurator := db.NewCurator(appConfig.Db.ToCuratorConfig())
 	status := dbCurator.Status()
 
-	if showSupportedDbSchema {
-		// note: the output for this option cannot change as it supports the nightly DB generation job
-		fmt.Println(status.RequiredSchemaVersion)
-		return nil
-	}
-
+	statusStr := "valid"
 	if status.Err != nil {
-		return status.Err
+		statusStr = "invalid"
 	}
 
 	fmt.Println("Location: ", status.Location)
-	fmt.Println("Built: ", status.Age.String())
-	fmt.Println("Current DB Version: ", status.CurrentSchemaVersion)
-	fmt.Println("Require DB Version: ", status.RequiredSchemaVersion)
-	fmt.Println("Status: Valid")
+	fmt.Println("Built:    ", status.Built.String())
+	fmt.Println("Schema:   ", status.SchemaVersion)
+	fmt.Println("Checksum: ", status.Checksum)
+	fmt.Println("Status:   ", statusStr)
 
-	return nil
+	return status.Err
 }
