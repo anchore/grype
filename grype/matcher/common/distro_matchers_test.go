@@ -99,5 +99,5 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 	store := newMockProviderByDistro()
 	actual, err := FindMatchesByPackageDistro(store, &d, p, match.PythonMatcher)
 	assert.NoError(t, err)
-	assertMatchesWithoutVulnData(t, expected, actual)
+	assertMatchesUsingIDsForVulnerabilities(t, expected, actual)
 }

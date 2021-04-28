@@ -291,7 +291,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 			store := newMockProviderByCPE()
 			actual, err := FindMatchesByPackageCPE(store, test.p, matcher)
 			assert.NoError(t, err)
-			assertMatchesWithoutVulnData(t, test.expected, actual)
+			assertMatchesUsingIDsForVulnerabilities(t, test.expected, actual)
 		})
 	}
 }
