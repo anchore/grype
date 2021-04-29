@@ -7,8 +7,8 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal"
 	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/stretchr/testify/assert"
 )
 
 func must(c syftPkg.CPE, e error) syftPkg.CPE {
@@ -39,6 +39,7 @@ func (pr *mockCPEProvider) stub() {
 				CPEs: []syftPkg.CPE{
 					must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*")),
 				},
+				Namespace: "nvd",
 			},
 			{
 				Constraint: version.MustGetConstraint("< 3.7.4", version.SemanticFormat),
@@ -46,6 +47,7 @@ func (pr *mockCPEProvider) stub() {
 				CPEs: []syftPkg.CPE{
 					must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:ruby:*:*")),
 				},
+				Namespace: "nvd",
 			},
 			{
 				Constraint: version.MustGetConstraint("= 4.0.1", version.SemanticFormat),
@@ -53,6 +55,7 @@ func (pr *mockCPEProvider) stub() {
 				CPEs: []syftPkg.CPE{
 					must(syftPkg.NewCPE("cpe:2.3:*:couldntgetthisrightcouldyou:activerecord:4.0.1:*:*:*:*:*:*:*")),
 				},
+				Namespace: "nvd",
 			},
 			{
 				Constraint: version.MustGetConstraint("= 4.0.1", version.SemanticFormat),
@@ -60,6 +63,7 @@ func (pr *mockCPEProvider) stub() {
 				CPEs: []syftPkg.CPE{
 					must(syftPkg.NewCPE("cpe:2.3:*:couldntgetthisrightcouldyou:activerecord:4.0.1:*:*:*:*:*:*:*")),
 				},
+				Namespace: "nvd",
 			},
 		},
 		"awesome": {
@@ -69,6 +73,7 @@ func (pr *mockCPEProvider) stub() {
 				CPEs: []syftPkg.CPE{
 					must(syftPkg.NewCPE("cpe:2.3:*:awesome:awesome:*:*:*:*:*:*:*:*")),
 				},
+				Namespace: "nvd",
 			},
 		},
 	}
@@ -79,10 +84,11 @@ func (pr *mockCPEProvider) GetByCPE(c syftPkg.CPE) ([]*vulnerability.Vulnerabili
 }
 
 func TestFindMatchesByPackageCPE(t *testing.T) {
+	matcher := match.RubyGemMatcher
 	tests := []struct {
 		name     string
 		p        pkg.Package
-		expected []string
+		expected []match.Match
 	}{
 		{
 			name: "match from range",
@@ -96,8 +102,33 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				Language: syftPkg.Ruby,
 				Type:     syftPkg.GemPkg,
 			},
-			expected: []string{
-				"CVE-2017-fake-1",
+			expected: []match.Match{
+				{
+					Type:       match.FuzzyMatch,
+					Confidence: 0.9,
+					Vulnerability: vulnerability.Vulnerability{
+						ID: "CVE-2017-fake-1",
+					},
+					Package: pkg.Package{
+						CPEs: []syftPkg.CPE{
+							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.5:rando1:*:rando2:*:ruby:*:*")),
+							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.5:rando4:*:rando3:*:rails:*:*")),
+						},
+						Name:     "activerecord",
+						Version:  "3.7.5",
+						Language: syftPkg.Ruby,
+						Type:     syftPkg.GemPkg,
+					},
+					SearchKey: map[string]interface{}{
+						"cpe": "cpe:2.3:*:activerecord:activerecord:3.7.5:rando1:*:rando2:*:ruby:*:*",
+					},
+					SearchMatches: map[string]interface{}{
+						"namespace":         "nvd",
+						"cpes":              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*"},
+						"versionConstraint": "< 3.7.6 (semver)",
+					},
+					Matcher: matcher,
+				},
 			},
 		},
 		{
@@ -112,9 +143,59 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				Language: syftPkg.Ruby,
 				Type:     syftPkg.GemPkg,
 			},
-			expected: []string{
-				"CVE-2017-fake-1",
-				"CVE-2017-fake-2",
+			expected: []match.Match{
+				{
+					Type:       match.FuzzyMatch,
+					Confidence: 0.9,
+					Vulnerability: vulnerability.Vulnerability{
+						ID: "CVE-2017-fake-1",
+					},
+					Package: pkg.Package{
+						CPEs: []syftPkg.CPE{
+							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:rando2:*:ruby:*:*")),
+							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando4:*:rando3:*:rails:*:*")),
+						},
+						Name:     "activerecord",
+						Version:  "3.7.3",
+						Language: syftPkg.Ruby,
+						Type:     syftPkg.GemPkg,
+					},
+					SearchKey: map[string]interface{}{
+						"cpe": "cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:rando2:*:ruby:*:*",
+					},
+					SearchMatches: map[string]interface{}{
+						"namespace":         "nvd",
+						"cpes":              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*"},
+						"versionConstraint": "< 3.7.6 (semver)",
+					},
+					Matcher: matcher,
+				},
+				{
+					Type:       match.FuzzyMatch,
+					Confidence: 0.9,
+					Vulnerability: vulnerability.Vulnerability{
+						ID: "CVE-2017-fake-2",
+					},
+					Package: pkg.Package{
+						CPEs: []syftPkg.CPE{
+							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:rando2:*:ruby:*:*")),
+							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando4:*:rando3:*:rails:*:*")),
+						},
+						Name:     "activerecord",
+						Version:  "3.7.3",
+						Language: syftPkg.Ruby,
+						Type:     syftPkg.GemPkg,
+					},
+					SearchKey: map[string]interface{}{
+						"cpe": "cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:rando2:*:ruby:*:*",
+					},
+					SearchMatches: map[string]interface{}{
+						"namespace":         "nvd",
+						"cpes":              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:ruby:*:*"},
+						"versionConstraint": "< 3.7.4 (semver)",
+					},
+					Matcher: matcher,
+				},
 			},
 		},
 		{
@@ -129,8 +210,33 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				Language: syftPkg.Ruby,
 				Type:     syftPkg.GemPkg,
 			},
-			expected: []string{
-				"CVE-2017-fake-3",
+			expected: []match.Match{
+				{
+					Type:       match.FuzzyMatch,
+					Confidence: 0.9,
+					Vulnerability: vulnerability.Vulnerability{
+						ID: "CVE-2017-fake-3",
+					},
+					Package: pkg.Package{
+						CPEs: []syftPkg.CPE{
+							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:4.0.1:rando1:*:rando2:*:ruby:*:*")),
+							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:4.0.1:rando4:*:rando3:*:rails:*:*")),
+						},
+						Name:     "activerecord",
+						Version:  "4.0.1",
+						Language: syftPkg.Ruby,
+						Type:     syftPkg.GemPkg,
+					},
+					SearchKey: map[string]interface{}{
+						"cpe": "cpe:2.3:*:activerecord:activerecord:4.0.1:rando1:*:rando2:*:ruby:*:*",
+					},
+					SearchMatches: map[string]interface{}{
+						"namespace":         "nvd",
+						"cpes":              []string{"cpe:2.3:*:couldntgetthisrightcouldyou:activerecord:4.0.1:*:*:*:*:*:*:*"},
+						"versionConstraint": "= 4.0.1 (semver)",
+					},
+					Matcher: matcher,
+				},
 			},
 		},
 		{
@@ -141,7 +247,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				Language: syftPkg.Ruby,
 				Type:     syftPkg.GemPkg,
 			},
-			expected: []string{},
+			expected: []match.Match{},
 		},
 		{
 			name: "fuzzy version match",
@@ -152,55 +258,40 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				Name:    "awesome",
 				Version: "98SE1",
 			},
-			expected: []string{
-				"CVE-2017-fake-4",
+			expected: []match.Match{
+				{
+					Type:       match.FuzzyMatch,
+					Confidence: 0.9,
+					Vulnerability: vulnerability.Vulnerability{
+						ID: "CVE-2017-fake-4",
+					},
+					Package: pkg.Package{
+						CPEs: []syftPkg.CPE{
+							must(syftPkg.NewCPE("cpe:2.3:*:awesome:awesome:98SE1:rando1:*:rando2:*:dunno:*:*")),
+						},
+						Name:    "awesome",
+						Version: "98SE1",
+					},
+					SearchKey: map[string]interface{}{
+						"cpe": "cpe:2.3:*:awesome:awesome:98SE1:rando1:*:rando2:*:dunno:*:*",
+					},
+					SearchMatches: map[string]interface{}{
+						"namespace":         "nvd",
+						"cpes":              []string{"cpe:2.3:*:awesome:awesome:*:*:*:*:*:*:*:*"},
+						"versionConstraint": "< 98SP3 (unknown)",
+					},
+					Matcher: matcher,
+				},
 			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			store := newMockProviderByCPE()
-			actual, err := FindMatchesByPackageCPE(store, test.p, match.PythonMatcher)
-			if err != nil {
-				t.Fatalf("error while finding matches: %+v", err)
-			}
-
-			if len(actual) != len(test.expected) {
-				for _, a := range actual {
-					t.Errorf("   entry: %+v", a)
-				}
-				t.Fatalf("unexpected matches count: %d != %d", len(actual), len(test.expected))
-			}
-
-			foundCVEs := internal.NewStringSet()
-
-			for _, a := range actual {
-				foundCVEs.Add(a.Vulnerability.ID)
-
-				if a.Type != match.FuzzyMatch {
-					t.Error("fuzzy match not indicated")
-				}
-
-				if a.Package.Name != test.p.Name {
-					t.Errorf("failed to capture correct original package: %s", a.Package.Name)
-				}
-
-				if a.Matcher != match.PythonMatcher {
-					t.Errorf("failed to capture matcher name: %s", a.Matcher)
-				}
-
-				if a.Confidence != 0.9 {
-					t.Fatalf("unexpected confidence: %f", a.Confidence)
-				}
-			}
-
-			for _, id := range test.expected {
-				if !foundCVEs.Contains(id) {
-					t.Errorf("missing CVE: %s", id)
-				}
-			}
+			actual, err := FindMatchesByPackageCPE(store, test.p, matcher)
+			assert.NoError(t, err)
+			assertMatchesUsingIDsForVulnerabilities(t, test.expected, actual)
 		})
 	}
 }

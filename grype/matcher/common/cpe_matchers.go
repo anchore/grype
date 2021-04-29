@@ -58,8 +58,9 @@ func FindMatchesByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, u
 						"cpe": cpe.BindToFmtString(),
 					},
 					SearchMatches: map[string]interface{}{
-						"cpes":       cpesToString(vuln.CPEs),
-						"constraint": vuln.Constraint.String(),
+						"namespace":         vuln.Namespace,
+						"cpes":              cpesToString(vuln.CPEs),
+						"versionConstraint": vuln.Constraint.String(),
 					},
 				})
 			}
