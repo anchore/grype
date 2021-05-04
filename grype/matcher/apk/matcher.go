@@ -47,7 +47,7 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 }
 
 func (m *Matcher) cpeMatchesWithoutSecDbFixes(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
-	// find NVD matches specific to the given package name and version
+	// find CPE-indexed vulnerability matches specific to the given package name and version
 	cpeMatches, err := common.FindMatchesByPackageCPE(store, p, m.Type())
 	if err != nil {
 		return nil, err
