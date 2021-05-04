@@ -334,6 +334,7 @@ func TestPkgCoverageImage(t *testing.T) {
 
 	observedMatchers.Remove(match.UnknownMatcherType.String())
 	definedMatchers.Remove(match.UnknownMatcherType.String())
+	definedMatchers.Remove(match.MsrcMatcher.String())
 
 	if len(observedMatchers) != len(definedMatchers) {
 		t.Errorf("matcher coverage incomplete (matchers=%d, coverage=%d)", len(definedMatchers), len(observedMatchers))

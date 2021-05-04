@@ -18,6 +18,7 @@ type rich struct {
 	semVer  *semanticVersion
 	debVer  *debVersion
 	rpmVer  *rpmVersion
+	kbVer   *kbVersion
 }
 
 func NewVersion(raw string, format Format) (*Version, error) {
@@ -60,6 +61,10 @@ func (v *Version) populate() error {
 		return err
 	case PythonFormat:
 		// use the fuzzy constraint
+		return nil
+	case KBFormat:
+		ver := newKBVersion(v.Raw)
+		v.rich.kbVer = &ver
 		return nil
 	case UnknownFormat:
 		// use the raw string + fuzzy constraint
