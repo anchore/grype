@@ -41,6 +41,7 @@ func TestSecDBOnlyMatch(t *testing.T) {
 		ID:                "CVE-2020-2",
 		VersionConstraint: "<= 0.9.11",
 		VersionFormat:     "apk",
+		Namespace:         "secdb",
 	}
 	store := mockStore{
 		backend: map[string]map[string][]db.Vulnerability{
@@ -81,7 +82,8 @@ func TestSecDBOnlyMatch(t *testing.T) {
 				},
 			},
 			SearchMatches: map[string]interface{}{
-				"constraint": vulnFound.Constraint.String(),
+				"versionConstraint": vulnFound.Constraint.String(),
+				"namespace":         "secdb",
 			},
 			Matcher: match.ApkMatcher,
 		},
@@ -103,6 +105,7 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 		VersionConstraint: "<= 0.9.11",
 		VersionFormat:     "unknown",
 		CPEs:              []string{"cpe:2.3:a:lib_vnc_project-(server):libvncserver:*:*:*:*:*:*:*:*"},
+		Namespace:         "nvd",
 	}
 
 	secDbVuln := db.Vulnerability{
@@ -110,6 +113,7 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 		ID:                "CVE-2020-1",
 		VersionConstraint: "<= 0.9.11",
 		VersionFormat:     "apk",
+		Namespace:         "secdb",
 	}
 	store := mockStore{
 		backend: map[string]map[string][]db.Vulnerability{
@@ -154,7 +158,8 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 				},
 			},
 			SearchMatches: map[string]interface{}{
-				"constraint": vulnFound.Constraint.String(),
+				"versionConstraint": vulnFound.Constraint.String(),
+				"namespace":         "secdb",
 			},
 			Matcher: match.ApkMatcher,
 		},
@@ -175,7 +180,8 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 		VersionConstraint: "<= 0.9.11",
 		VersionFormat:     "unknown",
 		// Note: the product name is NOT the same as the target package name
-		CPEs: []string{"cpe:2.3:a:lib_vnc_project-(server):libvncumbrellaproject:*:*:*:*:*:*:*:*"},
+		CPEs:      []string{"cpe:2.3:a:lib_vnc_project-(server):libvncumbrellaproject:*:*:*:*:*:*:*:*"},
+		Namespace: "nvd",
 	}
 
 	secDbVuln := db.Vulnerability{
@@ -183,6 +189,7 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 		ID:                "CVE-2020-1",
 		VersionConstraint: "<= 0.9.11",
 		VersionFormat:     "apk",
+		Namespace:         "secdb",
 	}
 	store := mockStore{
 		backend: map[string]map[string][]db.Vulnerability{
@@ -228,7 +235,8 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 				},
 			},
 			SearchMatches: map[string]interface{}{
-				"constraint": vulnFound.Constraint.String(),
+				"versionConstraint": vulnFound.Constraint.String(),
+				"namespace":         "secdb",
 			},
 			Matcher: match.ApkMatcher,
 		},
@@ -248,6 +256,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 		VersionConstraint: "<= 0.9.11",
 		VersionFormat:     "unknown",
 		CPEs:              []string{"cpe:2.3:a:lib_vnc_project-(server):libvncserver:*:*:*:*:*:*:*:*"},
+		Namespace:         "nvd",
 	}
 	store := mockStore{
 		backend: map[string]map[string][]db.Vulnerability{
@@ -286,8 +295,9 @@ func TestNvdOnlyMatches(t *testing.T) {
 				"cpe": "cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*",
 			},
 			SearchMatches: map[string]interface{}{
-				"cpes":       []string{vulnFound.CPEs[0].BindToFmtString()},
-				"constraint": vulnFound.Constraint.String(),
+				"cpes":              []string{vulnFound.CPEs[0].BindToFmtString()},
+				"versionConstraint": vulnFound.Constraint.String(),
+				"namespace":         "nvd",
 			},
 			Matcher: match.ApkMatcher,
 		},
@@ -308,6 +318,7 @@ func TestNvdMatchesWithSecDBFix(t *testing.T) {
 		VersionConstraint: "> 0.9.0, < 0.10.0", // note: this is not normal NVD configuration, but has the desired effect of a "wide net" for vulnerable indication
 		VersionFormat:     "unknown",
 		CPEs:              []string{"cpe:2.3:a:lib_vnc_project-(server):libvncserver:*:*:*:*:*:*:*:*"},
+		Namespace:         "nvd",
 	}
 
 	secDbVuln := db.Vulnerability{
@@ -358,12 +369,14 @@ func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
 		VersionConstraint: "", // note: empty value indicates that all versions are vulnerable
 		VersionFormat:     "unknown",
 		CPEs:              []string{"cpe:2.3:a:lib_vnc_project-(server):libvncserver:*:*:*:*:*:*:*:*"},
+		Namespace:         "nvd",
 	}
 
 	secDbVuln := db.Vulnerability{
 		ID:                "CVE-2020-1",
 		VersionConstraint: "< 0.9.11",
 		VersionFormat:     "apk",
+		Namespace:         "secdb",
 	}
 
 	store := mockStore{
