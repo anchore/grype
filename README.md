@@ -7,7 +7,7 @@
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/anchore/grype/blob/main/LICENSE)
 [![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/anchore/grype.svg)](https://github.com/anchore/grype)
 
-A vulnerability scanner for container images and filesystems. [Easily install the binary](#installation) to try it out.
+A vulnerability scanner for container images and filesystems. [Easily install the binary](#installation) to try it out. Works with [Syft](https://github.com/anchore/syft), the powerful SBOM (software bill of materials) tool for container images and filesystems.
 
 ![grype-demo](https://user-images.githubusercontent.com/590471/90276236-9868f300-de31-11ea-8068-4268b6b68529.gif)
 
@@ -53,6 +53,19 @@ grype path/to/image.tar
 
 # scan a directory
 grype dir:path/to/dir
+```
+
+Use [Syft](https://github.com/anchore/syft) SBOMs for even faster vulnerability scanning in Grype:
+
+```
+# Just need to generate the SBOM once
+syft <image> -o json > ./image-sbom.json
+
+# Then scan for new vulnerabilities as frequently as needed
+grype sbom:./image-sbom.json
+
+# (You can also pipe the SBOM into Grype)
+cat ./image-sbom.json | grype
 ```
 
 Sources can be explicitly provided with a scheme:
@@ -221,7 +234,4 @@ log:
 The following areas of potential development are currently being investigated:
 
 - Support for allowlist, package mapping
-- Establish a stable interchange format w/Syft
-- Accept SBOM (CycloneDX, Syft) as input instead of image/directory
-
-
+- Accept alternative SBOM formats (CycloneDX, SPDX) as input
