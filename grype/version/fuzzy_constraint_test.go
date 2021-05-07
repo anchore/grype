@@ -62,6 +62,12 @@ func TestFuzzyConstraintSatisfaction(t *testing.T) {
 		expected   bool
 	}{
 		{
+			name:       "empty constraint",
+			version:    "2.3.1",
+			constraint: "",
+			expected:   true,
+		},
+		{
 			name:       "version range within",
 			constraint: ">1.0, <2.0",
 			version:    "1.2+beta-3",

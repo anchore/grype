@@ -17,6 +17,11 @@ type semanticConstraint struct {
 }
 
 func newSemanticConstraint(constStr string) (semanticConstraint, error) {
+	if constStr == "" {
+		// an empty constraint is always satisfied
+		return semanticConstraint{}, nil
+	}
+
 	normalized := normalizer.Replace(constStr)
 
 	constraints, err := hashiVer.NewConstraint(normalized)
@@ -34,6 +39,17 @@ func (c semanticConstraint) supported(format Format) bool {
 }
 
 func (c semanticConstraint) Satisfied(version *Version) (bool, error) {
+	if c.raw == "" && version != nil {
+		// an empty constraint is always satisfied
+		return true, nil
+	} else if version == nil {
+		if c.raw != "" {
+			// a non-empty constraint with no version given should always fail
+			return false, nil
+		}
+		return true, nil
+	}
+
 	if !c.supported(version.Format) {
 		return false, fmt.Errorf("(semantic) unsupported format: %s", version.Format)
 	}

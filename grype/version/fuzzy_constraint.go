@@ -19,6 +19,14 @@ type fuzzyConstraint struct {
 }
 
 func newFuzzyConstraint(phrase, hint string) (*fuzzyConstraint, error) {
+	if phrase == "" {
+		// an empty constraint is always satisfied
+		return &fuzzyConstraint{
+			rawPhrase:  phrase,
+			phraseHint: hint,
+		}, nil
+	}
+
 	constraints, err := newConstraintExpression(phrase, newFuzzyComparator)
 	if err != nil {
 		return nil, fmt.Errorf("could not create fuzzy constraint: %+v", err)
@@ -58,6 +66,17 @@ func newFuzzyComparator(unit constraintUnit) (Comparator, error) {
 }
 
 func (f *fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
+	if f.rawPhrase == "" && verObj != nil {
+		// an empty constraint is always satisfied
+		return true, nil
+	} else if verObj == nil {
+		if f.rawPhrase != "" {
+			// a non-empty constraint with no version given should always fail
+			return false, nil
+		}
+		return true, nil
+	}
+
 	version := verObj.Raw
 
 	// attempt semver first, then fallback to fuzzy part matching...
