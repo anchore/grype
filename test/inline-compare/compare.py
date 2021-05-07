@@ -12,7 +12,7 @@ IMAGE_QUALITY_GATE = collections.defaultdict(lambda: QUALITY_GATE_THRESHOLD, **{
     # not necessary if not comparing severity
     # "debian:10.5": 0.86,   # anchore is replacing "Negligible" severity with "Low" in some (all?) situations
     "alpine:3.12.0": 1.0,    # no known vulnerabilities
-    "alpine-vuln:latest": 0.92, # engine is seeing this from all layers, once we deduplicate the catalog and default to all-layers analysis this should be 100%
+    "alpine-vuln:latest": 1.0,
     "python-vuln:latest": 1.0,
     "java-vuln:latest": 1.0,
 })
@@ -24,9 +24,6 @@ IMAGE_QUALITY_GATE = collections.defaultdict(lambda: QUALITY_GATE_THRESHOLD, **{
 # to do this is to select an upper threshold for images with known threshold values, so we have a failure that
 # loudly indicates the lower threshold should be bumped.
 IMAGE_UPPER_THRESHOLD = collections.defaultdict(lambda: 1, **{
-    # not necessary if not comparing severity
-    # "debian:10.5": 0.90,
-    "alpine-vuln:latest": 0.94,
 })
 
 Metadata = collections.namedtuple("Metadata", "version severity")
