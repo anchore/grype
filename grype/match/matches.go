@@ -1,6 +1,8 @@
 package match
 
 import (
+	"sort"
+
 	"github.com/anchore/grype/grype/pkg"
 )
 
@@ -56,6 +58,28 @@ func (r *Matches) Enumerate() <-chan Match {
 		}
 	}()
 	return channel
+}
+
+func (r *Matches) Sorted() []Match {
+	matches := make([]Match, 0)
+	for m := range r.Enumerate() {
+		matches = append(matches, m)
+	}
+
+	sort.SliceStable(matches, func(i, j int) bool {
+		if matches[i].Vulnerability.ID == matches[j].Vulnerability.ID {
+			if matches[i].Package.Name == matches[j].Package.Name {
+				if matches[i].Package.Version == matches[j].Package.Version {
+					return matches[i].Package.Type < matches[j].Package.Type
+				}
+				return matches[i].Package.Version < matches[j].Package.Version
+			}
+			return matches[i].Package.Name < matches[j].Package.Name
+		}
+		return matches[i].Vulnerability.ID < matches[j].Vulnerability.ID
+	})
+
+	return matches
 }
 
 // Count returns the total number of matches in a result
