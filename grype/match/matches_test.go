@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMatchesSort(t *testing.T) {
+func TestMatchesSortMixedDimensions(t *testing.T) {
 	first := Match{
 		Vulnerability: vulnerability.Vulnerability{
 			ID: "CVE-2020-0010",
@@ -70,15 +70,142 @@ func TestMatchesSort(t *testing.T) {
 		matches.Add(i.Package, i)
 	}
 
-	actual := make([]Match, 0)
 	expected := []Match{
 		first, second, third, fourth, fifth,
 	}
 
-	for _, i := range matches.Sorted() {
-		actual = append(actual, i)
+	assert.Equal(t, expected, matches.Sorted())
+
+}
+
+func TestMatchesSortByVulnerability(t *testing.T) {
+	first := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID: "CVE-2020-0010",
+		},
+		Package: pkg.Package{
+			Name:    "package-b",
+			Version: "1.0.0",
+			Type:    syftPkg.RpmPkg,
+		},
+	}
+	second := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID: "CVE-2020-0020",
+		},
+		Package: pkg.Package{
+			Name:    "package-b",
+			Version: "1.0.0",
+			Type:    syftPkg.RpmPkg,
+		},
 	}
 
-	assert.Equal(t, expected, actual)
+	input := []Match{second, first}
+
+	matches := NewMatches()
+	for _, i := range input {
+		matches.Add(i.Package, i)
+	}
+
+	assert.Equal(t, []Match{first, second}, matches.Sorted())
+
+}
+
+func TestMatchesSortByPackage(t *testing.T) {
+	first := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID: "CVE-2020-0010",
+		},
+		Package: pkg.Package{
+			Name:    "package-b",
+			Version: "1.0.0",
+			Type:    syftPkg.RpmPkg,
+		},
+	}
+	second := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID: "CVE-2020-0010",
+		},
+		Package: pkg.Package{
+			Name:    "package-c",
+			Version: "1.0.0",
+			Type:    syftPkg.RpmPkg,
+		},
+	}
+
+	input := []Match{second, first}
+
+	matches := NewMatches()
+	for _, i := range input {
+		matches.Add(i.Package, i)
+	}
+
+	assert.Equal(t, []Match{first, second}, matches.Sorted())
+
+}
+
+func TestMatchesSortByPackageVersion(t *testing.T) {
+	first := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID: "CVE-2020-0010",
+		},
+		Package: pkg.Package{
+			Name:    "package-b",
+			Version: "1.0.0",
+			Type:    syftPkg.RpmPkg,
+		},
+	}
+	second := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID: "CVE-2020-0010",
+		},
+		Package: pkg.Package{
+			Name:    "package-b",
+			Version: "2.0.0",
+			Type:    syftPkg.RpmPkg,
+		},
+	}
+
+	input := []Match{second, first}
+
+	matches := NewMatches()
+	for _, i := range input {
+		matches.Add(i.Package, i)
+	}
+
+	assert.Equal(t, []Match{first, second}, matches.Sorted())
+
+}
+
+func TestMatchesSortByPackageType(t *testing.T) {
+	first := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID: "CVE-2020-0010",
+		},
+		Package: pkg.Package{
+			Name:    "package-b",
+			Version: "1.0.0",
+			Type:    syftPkg.ApkPkg,
+		},
+	}
+	second := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID: "CVE-2020-0010",
+		},
+		Package: pkg.Package{
+			Name:    "package-b",
+			Version: "1.0.0",
+			Type:    syftPkg.RpmPkg,
+		},
+	}
+
+	input := []Match{second, first}
+
+	matches := NewMatches()
+	for _, i := range input {
+		matches.Add(i.Package, i)
+	}
+
+	assert.Equal(t, []Match{first, second}, matches.Sorted())
 
 }
