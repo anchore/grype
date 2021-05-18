@@ -122,8 +122,7 @@ github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04/go.mod h1:6dK
 github.com/anchore/go-version v1.2.2-0.20200701162849-18adb9c92b9b/go.mod h1:Bkc+JYWjMCF8OyZ340IMSIi2Ebf3uwByOk6ho4wne1E=
 github.com/anchore/go-version v1.2.2-0.20200810141238-330bef18dbca h1:rLyc7Rih769rYABQe4nBPt3jHJd/snBuVvKKGoy5HEc=
 github.com/anchore/go-version v1.2.2-0.20200810141238-330bef18dbca/go.mod h1:Bkc+JYWjMCF8OyZ340IMSIi2Ebf3uwByOk6ho4wne1E=
-github.com/anchore/grype-db v0.0.0-20210525151544-6d0ab949b8fb h1:kngIkZ7X1mzY9mIo7me2iXx7GYrbzzEQiljBaOlQ4oc=
-github.com/anchore/grype-db v0.0.0-20210525151544-6d0ab949b8fb/go.mod h1:LINmipRzG88vnJEWvgMMDVCFH1qZsj7+bjmpERlSyaA=
+github.com/anchore/stereoscope v0.0.0-20210413221244-d577f30b19e6 h1:g9ZS2V/T0wxseccI4t1hQTqWBek5DVOQZOzzdWBjwnU=
 github.com/anchore/stereoscope v0.0.0-20210413221244-d577f30b19e6/go.mod h1:vhh1M99rfWx5ejMvz1lkQiFZUrC5wu32V12R4JXH+ZI=
 github.com/anchore/stereoscope v0.0.0-20210524175238-3b7662f3a66f h1:bFadyOLOkzME3BrZFZ5m8cf/b2hsn3aMSS9s+SKubRk=
 github.com/anchore/stereoscope v0.0.0-20210524175238-3b7662f3a66f/go.mod h1:vhh1M99rfWx5ejMvz1lkQiFZUrC5wu32V12R4JXH+ZI=

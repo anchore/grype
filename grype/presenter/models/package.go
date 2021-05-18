@@ -25,11 +25,16 @@ func newPackage(p pkg.Package) Package {
 		cpes = append(cpes, c.BindToFmtString())
 	}
 
+	licenses := p.Licenses
+	if licenses == nil {
+		licenses = make([]string, 0)
+	}
+
 	return Package{
 		Name:      p.Name,
 		Version:   p.Version,
 		Locations: p.Locations,
-		Licenses:  p.Licenses,
+		Licenses:  licenses,
 		Language:  p.Language,
 		Type:      p.Type,
 		CPEs:      cpes,

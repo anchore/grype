@@ -27,7 +27,7 @@ func TestMatches(t *testing.T) {
 	store := mockStore{
 		backend: map[string]map[string][]db.Vulnerability{
 			"microsoft": {
-				"Windows 10 Version 1903 for ARM64-based Systems": []db.Vulnerability{
+				"Windows 10 Versions 1903 for ARM64-based Systems": []db.Vulnerability{
 					{
 						ID:                "CVE-2020-1",
 						VersionConstraint: "878786 || 878787",
@@ -41,7 +41,7 @@ func TestMatches(t *testing.T) {
 					},
 				},
 				// Does not match, the package is Windows 10, not 11
-				"Windows 11 Version 1903 for ARM64-based Systems": []db.Vulnerability{
+				"Windows 11 Versions 1903 for ARM64-based Systems": []db.Vulnerability{
 					{
 						ID:                "CVE-2020-1",
 						VersionConstraint: "878786 || 878787",
@@ -55,12 +55,12 @@ func TestMatches(t *testing.T) {
 	provider := vulnerability.NewProviderFromStore(&store)
 
 	m := Matcher{}
-	d, err := distro.NewDistro(distro.Windows, "878787", "Windows 10 Version 1903 for ARM64-based Systems")
+	d, err := distro.NewDistro(distro.Windows, "878787", "Windows 10 Versions 1903 for ARM64-based Systems")
 	if err != nil {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
 	p := pkg.Package{
-		Name:    "Windows 10 Version 1903 for ARM64-based Systems",
+		Name:    "Windows 10 Versions 1903 for ARM64-based Systems",
 		Version: "878787",
 		Type:    syftPkg.KbPkg,
 	}

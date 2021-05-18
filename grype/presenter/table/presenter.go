@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strings"
 
+	grypeDb "github.com/anchore/grype-db/pkg/db"
+
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -36,7 +38,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 	for m := range pres.results.Enumerate() {
 		var severity string
 
-		metadata, err := pres.metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.RecordSource)
+		metadata, err := pres.metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.Namespace)
 		if err != nil {
 			return fmt.Errorf("unable to fetch vuln=%q metadata: %+v", m.Vulnerability.ID, err)
 		}
@@ -45,10 +47,18 @@ func (pres *Presenter) Present(output io.Writer) error {
 			severity = metadata.Severity
 		}
 
+		fixVersion := strings.Join(m.Vulnerability.Fix.Versions, ", ")
+		switch m.Vulnerability.Fix.State {
+		case grypeDb.WontFixState:
+			fixVersion = "(won't fix)"
+		case grypeDb.UnknownFixState:
+			fixVersion = "(fixes indeterminate)"
+		}
+
 		row := []string{
 			m.Package.Name,
 			m.Package.Version,
-			m.Vulnerability.FixedInVersion,
+			fixVersion,
 			m.Vulnerability.ID,
 			severity,
 		}

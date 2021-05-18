@@ -20,16 +20,17 @@ type Document struct {
 
 // Match is a single item for the JSON array reported
 type Match struct {
-	Vulnerability Vulnerability `json:"vulnerability"`
-	MatchDetails  MatchDetails  `json:"matchDetails"`
-	Artifact      Package       `json:"artifact"`
+	Vulnerability          Vulnerability           `json:"vulnerability"`
+	RelatedVulnerabilities []VulnerabilityMetadata `json:"relatedVulnerabilities"`
+	MatchDetails           MatchDetails            `json:"matchDetails"`
+	Artifact               Package                 `json:"artifact"`
 }
 
 // MatchDetails contains all data that indicates how the result match was found
 type MatchDetails struct {
-	Matcher   string                 `json:"matcher"`
-	SearchKey map[string]interface{} `json:"searchKey"`
-	MatchInfo map[string]interface{} `json:"matchedOn"`
+	Matcher    string                 `json:"matcher"`
+	SearchedBy map[string]interface{} `json:"searchedBy"`
+	MatchedOn  map[string]interface{} `json:"matchedOn"`
 }
 
 // NewDocument creates and populates a new Document struct, representing the populated JSON document.
@@ -43,7 +44,18 @@ func NewDocument(packages []pkg.Package, context pkg.Context, matches match.Matc
 			return Document{}, fmt.Errorf("unable to find package in collection: %+v", p)
 		}
 
-		metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.RecordSource)
+		relatedVulnerabilities := make([]VulnerabilityMetadata, len(m.Vulnerability.RelatedVulnerabilities))
+		for idx, r := range m.Vulnerability.RelatedVulnerabilities {
+			relatedMetadata, err := metadataProvider.GetMetadata(r.ID, r.Namespace)
+			if err != nil {
+				return Document{}, fmt.Errorf("unable to fetch related vuln=%q metadata: %+v", r, err)
+			}
+			if relatedMetadata != nil {
+				relatedVulnerabilities[idx] = NewVulnerabilityMetadata(r.ID, r.Namespace, relatedMetadata)
+			}
+		}
+
+		metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.Namespace)
 		if err != nil {
 			return Document{}, fmt.Errorf("unable to fetch vuln=%q metadata: %+v", m.Vulnerability.ID, err)
 		}
@@ -51,12 +63,13 @@ func NewDocument(packages []pkg.Package, context pkg.Context, matches match.Matc
 		findings = append(
 			findings,
 			Match{
-				Vulnerability: NewVulnerability(m, metadata),
-				Artifact:      newPackage(*p),
+				Vulnerability:          NewVulnerability(m.Vulnerability, metadata),
+				Artifact:               newPackage(*p),
+				RelatedVulnerabilities: relatedVulnerabilities,
 				MatchDetails: MatchDetails{
-					Matcher:   m.Matcher.String(),
-					SearchKey: m.SearchKey,
-					MatchInfo: m.SearchMatches,
+					Matcher:    m.Matcher.String(),
+					SearchedBy: m.SearchKey,
+					MatchedOn:  m.SearchMatches,
 				},
 			},
 		)

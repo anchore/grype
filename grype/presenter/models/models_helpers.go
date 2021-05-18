@@ -3,6 +3,8 @@ package models
 import (
 	"testing"
 
+	grypeDb "github.com/anchore/grype-db/pkg/db"
+
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -29,9 +31,11 @@ func generateMatches(t *testing.T, p pkg.Package) match.Matches {
 		{
 			Type: match.ExactDirectMatch,
 			Vulnerability: vulnerability.Vulnerability{
-				ID:             "CVE-1999-0001",
-				RecordSource:   "source-1",
-				FixedInVersion: "the-next-version",
+				ID: "CVE-1999-0001",
+				Fix: vulnerability.Fix{
+					Versions: []string{"the-next-version"},
+					State:    grypeDb.FixedState,
+				},
 			},
 			Package: p,
 			Matcher: match.DpkgMatcher,
@@ -48,8 +52,7 @@ func generateMatches(t *testing.T, p pkg.Package) match.Matches {
 		{
 			Type: match.ExactIndirectMatch,
 			Vulnerability: vulnerability.Vulnerability{
-				ID:           "CVE-1999-0002",
-				RecordSource: "source-2",
+				ID: "CVE-1999-0002",
 			},
 			Package: p,
 			Matcher: match.DpkgMatcher,
