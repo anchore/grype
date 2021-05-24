@@ -9,6 +9,11 @@ type MetadataMock struct {
 	store map[string]map[string]vulnerability.Metadata
 }
 
+type MockVendorMetadata struct {
+	BaseSeverity string
+	Status       string
+}
+
 // NewMetadataMock returns a new instance of MetadataMock.
 func NewMetadataMock() *MetadataMock {
 	return &MetadataMock{
@@ -17,9 +22,14 @@ func NewMetadataMock() *MetadataMock {
 				"source-1": {
 					Description: "1999-01 description",
 					Severity:    "Low",
-					CvssV3: &vulnerability.Cvss{
-						BaseScore: 4,
-						Vector:    "another vector",
+					Cvss: []vulnerability.Cvss{
+						{
+							Metrics: vulnerability.CvssMetrics{
+								BaseScore: 4,
+							},
+							Vector:  "another vector",
+							Version: "3.0",
+						},
 					},
 				},
 			},
@@ -27,11 +37,20 @@ func NewMetadataMock() *MetadataMock {
 				"source-2": {
 					Description: "1999-02 description",
 					Severity:    "Critical",
-					CvssV2: &vulnerability.Cvss{
-						BaseScore:           1,
-						ExploitabilityScore: 2,
-						ImpactScore:         3,
-						Vector:              "vector",
+					Cvss: []vulnerability.Cvss{
+						{
+							Metrics: vulnerability.NewCvssMetrics(
+								1,
+								2,
+								3,
+							),
+							Vector:  "vector",
+							Version: "2.0",
+							VendorMetadata: MockVendorMetadata{
+								BaseSeverity: "Low",
+								Status:       "verified",
+							},
+						},
 					},
 				},
 			},
