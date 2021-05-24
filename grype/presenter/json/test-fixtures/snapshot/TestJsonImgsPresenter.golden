@@ -38,7 +38,10 @@
     "cpes": [
      "cpe:2.3:a:anchore:engine:0.9.2:*:*:python:*:*:*:*"
     ],
-    "purl": ""
+    "purl": "",
+    "metadata": {
+     "Source": "a source!"
+    }
    }
   },
   {
@@ -77,7 +80,10 @@
     "cpes": [
      "cpe:2.3:a:anchore:engine:0.9.2:*:*:python:*:*:*:*"
     ],
-    "purl": ""
+    "purl": "",
+    "metadata": {
+     "Source": "a source!"
+    }
    }
   },
   {
@@ -111,7 +117,10 @@
     "cpes": [
      "cpe:2.3:a:anchore:engine:0.9.2:*:*:python:*:*:*:*"
     ],
-    "purl": ""
+    "purl": "",
+    "metadata": {
+     "Source": "a source!"
+    }
    }
   }
  ],
