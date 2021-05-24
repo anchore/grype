@@ -8,7 +8,7 @@ require (
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20200810141238-330bef18dbca
 	github.com/anchore/grype-db v0.0.0-20210322113357-5aec8a7cb962
-	github.com/anchore/stereoscope v0.0.0-20210413221244-d577f30b19e6
+	github.com/anchore/stereoscope v0.0.0-20210524175238-3b7662f3a66f
 	github.com/anchore/syft v0.15.3-0.20210524151556-2ca2f0350133
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible
 	github.com/dustin/go-humanize v1.0.0

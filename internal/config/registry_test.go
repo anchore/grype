@@ -9,51 +9,47 @@ import (
 
 func TestHasNonEmptyCredentials(t *testing.T) {
 	tests := []struct {
-		auth, username, password, token string
-		expected                        bool
+		username, password, token string
+		expected                  bool
 	}{
 		{
-			"", "", "", "",
+			"", "", "",
 			false,
 		},
 		{
-			"auth", "", "", "",
+			"user", "", "",
 			false,
 		},
 		{
-			"auth", "user", "", "",
+			"", "pass", "",
 			false,
 		},
 		{
-			"auth", "", "pass", "",
-			false,
-		},
-		{
-			"auth", "", "pass", "tok",
+			"", "pass", "tok",
 			true,
 		},
 		{
-			"auth", "user", "", "tok",
+			"user", "", "tok",
 			true,
 		},
 		{
-			"auth", "", "", "tok",
+			"", "", "tok",
 			true,
 		},
 		{
-			"auth", "user", "pass", "tok",
+			"user", "pass", "tok",
 			true,
 		},
 
 		{
-			"auth", "user", "pass", "",
+			"user", "pass", "",
 			true,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%+v", test), func(t *testing.T) {
-			assert.Equal(t, test.expected, hasNonEmptyCredentials(test.auth, test.username, test.password, test.token))
+			assert.Equal(t, test.expected, hasNonEmptyCredentials(test.username, test.password, test.token))
 		})
 	}
 }

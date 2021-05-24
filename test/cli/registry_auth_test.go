@@ -32,7 +32,7 @@ func TestRegistryAuth(t *testing.T) {
 			assertions: []traitAssertion{
 				assertInOutput("source=OciRegistry"),
 				assertInOutput("localhost:5000/something:latest"),
-				assertInOutput(`using registry credentials for "localhost:5000"`),
+				assertInOutput(`using basic auth for registry "localhost:5000"`),
 			},
 		},
 		{
@@ -45,7 +45,7 @@ func TestRegistryAuth(t *testing.T) {
 			assertions: []traitAssertion{
 				assertInOutput("source=OciRegistry"),
 				assertInOutput("localhost:5000/something:latest"),
-				assertInOutput(`using registry token for "localhost:5000"`),
+				assertInOutput(`using token for registry "localhost:5000"`),
 			},
 		},
 		{
