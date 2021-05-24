@@ -16,6 +16,7 @@ type Package struct {
 	Licenses  []string              `json:"licenses"`
 	CPEs      []string              `json:"cpes"`
 	PURL      string                `json:"purl"`
+	Metadata  interface{}           `json:"metadata"`
 }
 
 func newPackage(p pkg.Package) Package {
@@ -33,5 +34,6 @@ func newPackage(p pkg.Package) Package {
 		Type:      p.Type,
 		CPEs:      cpes,
 		PURL:      p.PURL,
+		Metadata:  p.Metadata,
 	}
 }

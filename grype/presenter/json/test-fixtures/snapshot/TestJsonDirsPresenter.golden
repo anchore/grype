@@ -35,7 +35,10 @@
     "language": "",
     "licenses": null,
     "cpes": [],
-    "purl": ""
+    "purl": "",
+    "metadata": {
+     "Source": "a source!"
+    }
    }
   },
   {
@@ -71,7 +74,10 @@
     "language": "",
     "licenses": null,
     "cpes": [],
-    "purl": ""
+    "purl": "",
+    "metadata": {
+     "Source": "a source!"
+    }
    }
   },
   {
@@ -102,7 +108,10 @@
     "language": "",
     "licenses": null,
     "cpes": [],
-    "purl": ""
+    "purl": "",
+    "metadata": {
+     "Source": "a source!"
+    }
    }
   }
  ],

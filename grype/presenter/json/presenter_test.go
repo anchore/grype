@@ -52,6 +52,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 				Language: "python",
 			},
 		},
+		Metadata: pkg.DpkgMetadata{Source: "a source!"},
 	}
 
 	var pkg2 = pkg.Package{
@@ -173,6 +174,10 @@ func TestJsonDirsPresenter(t *testing.T) {
 		FoundBy: "the-cataloger-1",
 		Locations: []syftSource.Location{
 			{RealPath: "/some/path/pkg1"},
+		},
+		MetadataType: syftPkg.DpkgMetadataType,
+		Metadata: syftPkg.DpkgMetadata{
+			Source: "a source!",
 		},
 	})
 
