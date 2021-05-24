@@ -126,8 +126,8 @@ github.com/anchore/grype-db v0.0.0-20210322113357-5aec8a7cb962 h1:yW3xed7hbEjdmE
 github.com/anchore/grype-db v0.0.0-20210322113357-5aec8a7cb962/go.mod h1:LINmipRzG88vnJEWvgMMDVCFH1qZsj7+bjmpERlSyaA=
 github.com/anchore/stereoscope v0.0.0-20210413221244-d577f30b19e6 h1:g9ZS2V/T0wxseccI4t1hQTqWBek5DVOQZOzzdWBjwnU=
 github.com/anchore/stereoscope v0.0.0-20210413221244-d577f30b19e6/go.mod h1:vhh1M99rfWx5ejMvz1lkQiFZUrC5wu32V12R4JXH+ZI=
-github.com/anchore/syft v0.15.2-0.20210506190909-360eb74cc71c h1:+ZGL3hHwPxBhQPEjyBU9rB5+tTVAOd8P6d3NMvpxSNM=
-github.com/anchore/syft v0.15.2-0.20210506190909-360eb74cc71c/go.mod h1:5k4L4CA5ZFFmRdk64oj0AV1ZqvLFZVOpfCk8DfUOsVc=
+github.com/anchore/syft v0.15.3-0.20210524151556-2ca2f0350133 h1:37KItVunSU9vX8umE0PoH8SKZ+XR7itt2+DehSjxv9A=
+github.com/anchore/syft v0.15.3-0.20210524151556-2ca2f0350133/go.mod h1:5k4L4CA5ZFFmRdk64oj0AV1ZqvLFZVOpfCk8DfUOsVc=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 h1:bvNMNQO63//z+xNgfBlViaCIJKLlCJ6/fmUseuG0wVQ=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/cascadia v1.1.0/go.mod h1:GsXiBklL0woXo1j/WYWtSYYC4ouU9PqHO0sqidkEA4Y=
