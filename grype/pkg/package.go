@@ -55,6 +55,7 @@ func New(p *pkg.Package) Package {
 			}
 
 			metadata = JavaMetadata{
+				VirtualPath:   value.VirtualPath,
 				PomArtifactID: artifact,
 				PomGroupID:    group,
 				ManifestName:  name,
