@@ -3,15 +3,14 @@ package pkg
 import (
 	"testing"
 
-	"github.com/scylladb/go-set/strset"
-
 	"github.com/anchore/syft/syft/file"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/scylladb/go-set"
+	"github.com/scylladb/go-set/strset"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPackageMetadataExtraction(t *testing.T) {
+func TestNew_MetadataExtraction(t *testing.T) {
 	tests := []struct {
 		name     string
 		syftPkg  syftPkg.Package
@@ -205,13 +204,13 @@ func TestPackageMetadataExtraction(t *testing.T) {
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
-	observedMetadataTypes := set.NewStringSet()
 	expectedMetadataTypes := set.NewStringSet()
 	for _, ty := range syftPkg.AllMetadataTypes {
 		expectedMetadataTypes.Add(string(ty))
 	}
 
 	// run all of our cases
+	observedMetadataTypes := set.NewStringSet()
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			observedMetadataTypes.Add(string(test.syftPkg.MetadataType))
@@ -221,7 +220,7 @@ func TestPackageMetadataExtraction(t *testing.T) {
 
 	// did we see all possible metadata types? if not, then there is an uncovered case and this test should error out
 	if !expectedMetadataTypes.IsEqual(observedMetadataTypes) {
-		t.Errorf("did not observe all possible package metadata types: missing: %+v extra %+v",
+		t.Errorf("did not observe all possible package metadata types: missing: %+v extra: %+v",
 			strset.Difference(expectedMetadataTypes, observedMetadataTypes),
 			strset.Difference(observedMetadataTypes, expectedMetadataTypes),
 		)
