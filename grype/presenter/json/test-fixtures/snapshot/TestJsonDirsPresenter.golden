@@ -5,10 +5,15 @@
     "id": "CVE-1999-0001",
     "severity": "Low",
     "description": "1999-01 description",
-    "cvssV3": {
-     "baseScore": 4,
-     "vector": "another vector"
-    },
+    "cvss": [
+     {
+      "version": "3.0",
+      "vector": "another vector",
+      "metrics": {
+       "baseScore": 4
+      }
+     }
+    ],
     "fixedInVersion": "the-next-version"
    },
    "matchDetails": {
@@ -46,12 +51,21 @@
     "id": "CVE-1999-0002",
     "severity": "Critical",
     "description": "1999-02 description",
-    "cvssV2": {
-     "baseScore": 1,
-     "exploitabilityScore": 2,
-     "impactScore": 3,
-     "vector": "vector"
-    }
+    "cvss": [
+     {
+      "version": "2.0",
+      "vector": "vector",
+      "metrics": {
+       "baseScore": 1,
+       "exploitabilityScore": 2,
+       "impactScore": 3
+      },
+      "vendorMetadata": {
+       "BaseSeverity": "Low",
+       "Status": "verified"
+      }
+     }
+    ]
    },
    "matchDetails": {
     "matcher": "dpkg-matcher",
