@@ -115,8 +115,8 @@ github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d/go.mod h1:rBZYJk5
 github.com/alicebob/sqlittle v1.4.0 h1:vgYt0nAjhdf/hg52MjKJ84g/uTzBPfrvI+VUBrIghxA=
 github.com/alicebob/sqlittle v1.4.0/go.mod h1:Co1L1qxHqCwf41puWhk2HOodojR0mcsAV4BIt8byZh8=
 github.com/anchore/client-go v0.0.0-20210222170800-9c70f9b80bcf/go.mod h1:FaODhIA06mxO1E6R32JE0TL1JWZZkmjRIAd4ULvHUKk=
-github.com/anchore/go-rpmdb v0.0.0-20210415132930-2460011e83c6 h1:wEN3HXc3VuC4wo7Cz27YCpeQ4gaB5ASKwMwM5GdFsew=
-github.com/anchore/go-rpmdb v0.0.0-20210415132930-2460011e83c6/go.mod h1:8jNYOxCJC5kyD/Ct4MbzsDN2hOhRoCAzQcb/7KdYYGw=
+github.com/anchore/go-rpmdb v0.0.0-20210602151223-1f0f707a2894 h1:VvCq7fFNU8dwWkCTGUykm4p64nVaDCYkKrj87x350Sk=
+github.com/anchore/go-rpmdb v0.0.0-20210602151223-1f0f707a2894/go.mod h1:8jNYOxCJC5kyD/Ct4MbzsDN2hOhRoCAzQcb/7KdYYGw=
 github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04 h1:VzprUTpc0vW0nnNKJfJieyH/TZ9UYAnTZs5/gHTdAe8=
 github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04/go.mod h1:6dK64g27Qi1qGQZ67gFmBFvEHScy0/C8qhQhNe5B5pQ=
 github.com/anchore/go-version v1.2.2-0.20200701162849-18adb9c92b9b/go.mod h1:Bkc+JYWjMCF8OyZ340IMSIi2Ebf3uwByOk6ho4wne1E=
@@ -125,9 +125,11 @@ github.com/anchore/go-version v1.2.2-0.20200810141238-330bef18dbca/go.mod h1:Bkc
 github.com/anchore/grype-db v0.0.0-20210527140125-6f881b00e927 h1:4DX6mymMdYIH1ptYEXZupij8x8AeNYR0Q9ILsqbE3nc=
 github.com/anchore/grype-db v0.0.0-20210527140125-6f881b00e927/go.mod h1:XSlPf1awNrMpah+rHbWrzgUvnmWLgn/KkdicxERVClg=
 github.com/anchore/stereoscope v0.0.0-20210524175238-3b7662f3a66f h1:bFadyOLOkzME3BrZFZ5m8cf/b2hsn3aMSS9s+SKubRk=
+github.com/anchore/stereoscope v0.0.0-20210524175238-3b7662f3a66f h1:bFadyOLOkzME3BrZFZ5m8cf/b2hsn3aMSS9s+SKubRk=
 github.com/anchore/stereoscope v0.0.0-20210524175238-3b7662f3a66f/go.mod h1:vhh1M99rfWx5ejMvz1lkQiFZUrC5wu32V12R4JXH+ZI=
-github.com/anchore/syft v0.16.2-0.20210526131825-2754c889eb0e h1:9ZDikTvJRDfIP4ltdChCZ4dd5iEAjn7ZrnGreM5dI+o=
-github.com/anchore/syft v0.16.2-0.20210526131825-2754c889eb0e/go.mod h1:9jf8z5ubQXc1XuMpmCnHnXtB6NtuMdO8k+hfcAWIsNM=
+github.com/anchore/stereoscope v0.0.0-20210524175238-3b7662f3a66f/go.mod h1:vhh1M99rfWx5ejMvz1lkQiFZUrC5wu32V12R4JXH+ZI=
+github.com/anchore/syft v0.16.2-0.20210604135254-776164a0787b h1:g++MkCp50aP8pnQKI6fqs8lnNLk5ZCBDVohX8jM0yoQ=
+github.com/anchore/syft v0.16.2-0.20210604135254-776164a0787b/go.mod h1:nrquK9r16pjmr3CGMzlYY8OgjNhUpviCNnN4UxvB7MQ=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 h1:bvNMNQO63//z+xNgfBlViaCIJKLlCJ6/fmUseuG0wVQ=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/cascadia v1.1.0/go.mod h1:GsXiBklL0woXo1j/WYWtSYYC4ouU9PqHO0sqidkEA4Y=

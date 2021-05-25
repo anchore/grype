@@ -11,24 +11,26 @@ import (
 )
 
 type rpmVersion struct {
-	epoch   *int
+	epoch   int
 	version string
 	release string
 }
 
 func newRpmVersion(raw string) (rpmVersion, error) {
-	fields := strings.SplitN(raw, ":", 2)
-
-	var epoch *int
+	var fields = strings.SplitN(raw, ":", 2)
+	var err error
+	// when the epoch is not included, should be considered to be 0 during comparisons
+	// see https://github.com/rpm-software-management/rpm/issues/450
+	var epoch int
 	var remaining = raw
+
 	if len(fields) > 1 {
 		// there is an epoch
 		epochStr := strings.TrimLeft(fields[0], " ")
-		epochInt, err := strconv.Atoi(epochStr)
+		epoch, err = strconv.Atoi(epochStr)
 		if err != nil {
 			return rpmVersion{}, fmt.Errorf("unable to parse epoch (%s): %w", epochStr, err)
 		}
-		epoch = &epochInt
 		remaining = fields[1]
 	}
 
@@ -64,13 +66,10 @@ func (v rpmVersion) compare(v2 rpmVersion) int {
 		return 0
 	}
 
-	// ignore the epoch if either is missing an epoch
-	if v.epoch != nil && v2.epoch != nil {
-		if *v.epoch > *v2.epoch {
-			return 1
-		} else if *v.epoch < *v2.epoch {
-			return -1
-		}
+	if v.epoch > v2.epoch {
+		return 1
+	} else if v.epoch < v2.epoch {
+		return -1
 	}
 
 	ret := compareRpmVersions(v.version, v2.version)
@@ -83,10 +82,8 @@ func (v rpmVersion) compare(v2 rpmVersion) int {
 
 func (v rpmVersion) String() string {
 	version := ""
-	if v.epoch == nil {
-		version += "none:"
-	} else if *v.epoch > 0 {
-		version += fmt.Sprintf("%d:", *v.epoch)
+	if v.epoch > 0 {
+		version += fmt.Sprintf("%d:", v.epoch)
 	}
 	version += v.version
 

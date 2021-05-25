@@ -51,7 +51,7 @@ func TestNew_MetadataExtraction(t *testing.T) {
 				Metadata: syftPkg.RpmdbMetadata{
 					Name:      "name-info",
 					Version:   "version-info",
-					Epoch:     30,
+					Epoch:     intRef(30),
 					Arch:      "arch-info",
 					Release:   "release-info",
 					SourceRpm: "src-rpm-info",
@@ -225,4 +225,8 @@ func TestNew_MetadataExtraction(t *testing.T) {
 			strset.Difference(observedMetadataTypes, expectedMetadataTypes),
 		)
 	}
+}
+
+func intRef(i int) *int {
+	return &i
 }
