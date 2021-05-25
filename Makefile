@@ -88,7 +88,7 @@ bootstrap: ## Download and install all go dependencies (+ prep tooling in the ./
 	curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | sh -s -- -b $(TEMPDIR)/ v0.160.0
 
 .PHONY: static-analysis
-static-analysis: lint check-licenses
+static-analysis: lint check-go-mod-tidy check-licenses
 
 .PHONY: lint
 lint: ## Run gofmt + golangci lint checks
@@ -104,6 +104,9 @@ lint: ## Run gofmt + golangci lint checks
 	$(eval MALFORMED_FILENAMES := $(shell find . | grep -e ':'))
 	@bash -c "[[ '$(MALFORMED_FILENAMES)' == '' ]] || (printf '\nfound unsupported filename characters:\n$(MALFORMED_FILENAMES)\n\n' && false)"
 
+check-go-mod-tidy:
+	@ .github/scripts/go_mod_tidy_check.sh && echo "go.mod is tidy!"
+
 .PHONY: validate-cyclonedx-schema
 validate-cyclonedx-schema:
 	cd schema/cyclonedx && make
@@ -113,6 +116,7 @@ lint-fix: ## Auto-format all source code + run golangci lint fixers
 	$(call title,Running lint fixers)
 	gofmt -w -s .
 	$(LINTCMD) --fix
+	go mod tidy
 
 .PHONY: check-licenses
 check-licenses:
