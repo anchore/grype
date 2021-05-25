@@ -209,6 +209,9 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			if err != nil {
 				errs <- fmt.Errorf("failed to load vulnerability db: %w", err)
 			}
+			if dbStatus == nil {
+				errs <- fmt.Errorf("unable to determine DB status")
+			}
 		}()
 
 		go func() {
@@ -234,10 +237,12 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			errs <- grypeerr.ErrAboveSeverityThreshold
 		}
 
-		bus.Publish(partybus.Event{
-			Type:  event.VulnerabilityScanningFinished,
-			Value: presenter.GetPresenter(presenterConfig, matches, packages, context, metadataProvider, *appConfig, *dbStatus),
-		})
+		if appConfig != nil && dbStatus != nil {
+			bus.Publish(partybus.Event{
+				Type:  event.VulnerabilityScanningFinished,
+				Value: presenter.GetPresenter(presenterConfig, matches, packages, context, metadataProvider, *appConfig, *dbStatus),
+			})
+		}
 	}()
 	return errs
 }
