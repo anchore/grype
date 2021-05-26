@@ -51,7 +51,7 @@ func getGrypeCommand(t testing.TB, args ...string) *exec.Cmd {
 	return exec.Command(
 		binaryLocation,
 		append(
-			[]string{"-c", "cli-test-config.yaml"},
+			[]string{"-c", "../grype-test-config.yaml"},
 			args...,
 		)...,
 	)
