@@ -241,7 +241,6 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			Type:  event.VulnerabilityScanningFinished,
 			Value: presenter.GetPresenter(presenterConfig, matches, packages, context, metadataProvider, appConfig, dbStatus),
 		})
-
 	}()
 	return errs
 }
