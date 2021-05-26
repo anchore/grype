@@ -237,12 +237,11 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			errs <- grypeerr.ErrAboveSeverityThreshold
 		}
 
-		if appConfig != nil && dbStatus != nil {
-			bus.Publish(partybus.Event{
-				Type:  event.VulnerabilityScanningFinished,
-				Value: presenter.GetPresenter(presenterConfig, matches, packages, context, metadataProvider, *appConfig, *dbStatus),
-			})
-		}
+		bus.Publish(partybus.Event{
+			Type:  event.VulnerabilityScanningFinished,
+			Value: presenter.GetPresenter(presenterConfig, matches, packages, context, metadataProvider, appConfig, dbStatus),
+		})
+
 	}()
 	return errs
 }
