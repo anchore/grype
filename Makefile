@@ -105,7 +105,7 @@ lint: ## Run gofmt + golangci lint checks
 	@bash -c "[[ '$(MALFORMED_FILENAMES)' == '' ]] || (printf '\nfound unsupported filename characters:\n$(MALFORMED_FILENAMES)\n\n' && false)"
 
 check-go-mod-tidy:
-	@ .github/scripts/go_mod_tidy_check.sh && echo "go.mod is tidy!"
+	@ .github/scripts/go_mod_tidy_check.sh && echo "go.mod and go.sum are tidy!"
 
 .PHONY: validate-cyclonedx-schema
 validate-cyclonedx-schema:

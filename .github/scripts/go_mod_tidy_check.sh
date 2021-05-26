@@ -18,7 +18,7 @@ cp "${TMP_GOMOD}" go.mod
 cp "${TMP_GOSUM}" go.sum
 
 if [[ -n "${DIFF_MOD}" || -n "${DIFF_SUM}" ]]; then
-    echo "go tidy changes are needed; please run make tidy"
+    echo "go.mod and/or go.sum are not tidy; please run go mod tidy"
     echo "go.mod diff:"
     echo "${DIFF_MOD}"
     echo "go.sum diff:"
