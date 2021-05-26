@@ -11,7 +11,8 @@
       "vector": "another vector",
       "metrics": {
        "baseScore": 4
-      }
+      },
+      "vendorMetadata": {}
      }
     ],
     "fixedInVersion": "the-next-version"
@@ -99,6 +100,7 @@
     "id": "CVE-1999-0003",
     "severity": "High",
     "description": "1999-03 description",
+    "cvss": [],
     "fixedInVersion": "the-other-next-version"
    },
    "matchDetails": {
