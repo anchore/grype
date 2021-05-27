@@ -7,7 +7,7 @@ require (
 	github.com/adrg/xdg v0.2.1
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20200810141238-330bef18dbca
-	github.com/anchore/grype-db v0.0.0-20210520150424-d5068175bf94
+	github.com/anchore/grype-db v0.0.0-20210527140125-6f881b00e927
 	github.com/anchore/stereoscope v0.0.0-20210413221244-d577f30b19e6
 	github.com/anchore/syft v0.15.2-0.20210506190909-360eb74cc71c
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible
@@ -44,5 +44,3 @@ require (
 	gopkg.in/ini.v1 v1.57.0 // indirect
 	gopkg.in/yaml.v2 v2.3.0
 )
-
-replace github.com/anchore/grype-db => ../grype-db

@@ -44,14 +44,14 @@ func NewDocument(packages []pkg.Package, context pkg.Context, matches match.Matc
 			return Document{}, fmt.Errorf("unable to find package in collection: %+v", p)
 		}
 
-		relatedVulnerabilities := make([]VulnerabilityMetadata, len(m.Vulnerability.RelatedVulnerabilities))
-		for idx, r := range m.Vulnerability.RelatedVulnerabilities {
+		relatedVulnerabilities := make([]VulnerabilityMetadata, 0)
+		for _, r := range m.Vulnerability.RelatedVulnerabilities {
 			relatedMetadata, err := metadataProvider.GetMetadata(r.ID, r.Namespace)
 			if err != nil {
 				return Document{}, fmt.Errorf("unable to fetch related vuln=%q metadata: %+v", r, err)
 			}
 			if relatedMetadata != nil {
-				relatedVulnerabilities[idx] = NewVulnerabilityMetadata(r.ID, r.Namespace, relatedMetadata)
+				relatedVulnerabilities = append(relatedVulnerabilities, NewVulnerabilityMetadata(r.ID, r.Namespace, relatedMetadata))
 			}
 		}
 
