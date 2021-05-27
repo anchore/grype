@@ -40,7 +40,7 @@ func generateMatches(t *testing.T, p pkg.Package) match.Matches {
 			},
 			Package: p,
 			Matcher: match.DpkgMatcher,
-			SearchKey: map[string]interface{}{
+			SearchedBy: map[string]interface{}{
 				"distro": map[string]string{
 					"type":    "ubuntu",
 					"version": "20.04",
@@ -58,7 +58,7 @@ func generateMatches(t *testing.T, p pkg.Package) match.Matches {
 			},
 			Package: p,
 			Matcher: match.DpkgMatcher,
-			SearchKey: map[string]interface{}{
+			SearchedBy: map[string]interface{}{
 				"cpe": "somecpe",
 			},
 			SearchMatches: map[string]interface{}{

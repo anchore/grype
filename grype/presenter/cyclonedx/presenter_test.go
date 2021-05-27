@@ -61,7 +61,7 @@ func createResults() (match.Matches, []pkg.Package) {
 		},
 		Package: pkg2,
 		Matcher: match.DpkgMatcher,
-		SearchKey: map[string]interface{}{
+		SearchedBy: map[string]interface{}{
 			"some": "key",
 		},
 	}

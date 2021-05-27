@@ -57,7 +57,7 @@ func TestTablePresenter(t *testing.T) {
 		},
 		Package: pkg2,
 		Matcher: match.DpkgMatcher,
-		SearchKey: map[string]interface{}{
+		SearchedBy: map[string]interface{}{
 			"some": "key",
 		},
 	}

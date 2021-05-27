@@ -13,7 +13,7 @@ type Match struct {
 	Confidence    float64                     // The certainty of the match as a ratio (currently unused, reserved for future use).
 	Vulnerability vulnerability.Vulnerability // The vulnerability details of the match.
 	Package       pkg.Package                 // The package used to search for a match.
-	SearchKey     map[string]interface{}      // The specific attributes that were used to search (other than package name and version) --this indicates "how" the match was made.
+	SearchedBy    map[string]interface{}      // The specific attributes that were used to search (other than package name and version) --this indicates "how" the match was made.
 	SearchMatches map[string]interface{}      // The specific attributes on the vulnerability object that were matched with --this indicates "what" was matched on / within.
 	Matcher       MatcherType                 // The matcher object that discovered the match.
 }
@@ -25,5 +25,5 @@ func (m Match) String() string {
 
 // Summary is a short string representation of the match object.
 func (m Match) Summary() string {
-	return fmt.Sprintf("vuln='%s' type='%s' key='%s' foundBy='%s'", m.Vulnerability.ID, m.Type, m.SearchKey, m.Matcher)
+	return fmt.Sprintf("vuln='%s' type='%s' key='%s' foundBy='%s'", m.Vulnerability.ID, m.Type, m.SearchedBy, m.Matcher)
 }

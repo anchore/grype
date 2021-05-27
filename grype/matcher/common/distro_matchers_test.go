@@ -82,7 +82,7 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 			},
 			Confidence: 1,
 			Package:    p,
-			SearchKey: map[string]interface{}{
+			SearchedBy: map[string]interface{}{
 				"distro": map[string]string{
 					"type":    "debian",
 					"version": "8",

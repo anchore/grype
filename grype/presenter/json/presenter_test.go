@@ -77,7 +77,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 		},
 		Package: pkg1,
 		Matcher: match.DpkgMatcher,
-		SearchKey: map[string]interface{}{
+		SearchedBy: map[string]interface{}{
 			"distro": map[string]string{
 				"type":    "ubuntu",
 				"version": "20.04",
@@ -96,7 +96,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 		},
 		Package: pkg1,
 		Matcher: match.DpkgMatcher,
-		SearchKey: map[string]interface{}{
+		SearchedBy: map[string]interface{}{
 			"cpe": "somecpe",
 		},
 		SearchMatches: map[string]interface{}{
@@ -117,7 +117,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 		},
 		Package: pkg1,
 		Matcher: match.DpkgMatcher,
-		SearchKey: map[string]interface{}{
+		SearchedBy: map[string]interface{}{
 			"language": "java",
 		},
 		SearchMatches: map[string]interface{}{
@@ -211,7 +211,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 		},
 		Package: pkg1,
 		Matcher: match.DpkgMatcher,
-		SearchKey: map[string]interface{}{
+		SearchedBy: map[string]interface{}{
 			"distro": map[string]string{
 				"type":    "ubuntu",
 				"version": "20.04",
@@ -230,7 +230,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 		},
 		Package: pkg1,
 		Matcher: match.DpkgMatcher,
-		SearchKey: map[string]interface{}{
+		SearchedBy: map[string]interface{}{
 			"cpe": "somecpe",
 		},
 		SearchMatches: map[string]interface{}{
@@ -251,7 +251,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 		},
 		Package: pkg1,
 		Matcher: match.DpkgMatcher,
-		SearchKey: map[string]interface{}{
+		SearchedBy: map[string]interface{}{
 			"language": "java",
 		},
 		SearchMatches: map[string]interface{}{

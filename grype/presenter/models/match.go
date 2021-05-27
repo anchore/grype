@@ -46,7 +46,7 @@ func newMatch(m match.Match, p pkg.Package, metadataProvider vulnerability.Metad
 		RelatedVulnerabilities: relatedVulnerabilities,
 		MatchDetails: MatchDetails{
 			Matcher:    m.Matcher.String(),
-			SearchedBy: m.SearchKey,
+			SearchedBy: m.SearchedBy,
 			MatchedOn:  m.SearchMatches,
 		},
 	}, nil
