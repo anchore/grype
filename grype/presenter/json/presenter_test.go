@@ -67,9 +67,13 @@ func TestJsonImgsPresenter(t *testing.T) {
 	var match1 = match.Match{
 		Type: match.ExactDirectMatch,
 		Vulnerability: vulnerability.Vulnerability{
-			ID:             "CVE-1999-0001",
-			RecordSource:   "source-1",
-			FixedInVersion: "the-next-version",
+			ID:        "CVE-1999-0001",
+			Namespace: "source-1",
+			Fix: vulnerability.Fix{
+				Versions: []string{
+					"the-next-versions",
+				},
+			},
 		},
 		Package: pkg1,
 		Matcher: match.DpkgMatcher,
@@ -87,8 +91,8 @@ func TestJsonImgsPresenter(t *testing.T) {
 	var match2 = match.Match{
 		Type: match.ExactIndirectMatch,
 		Vulnerability: vulnerability.Vulnerability{
-			ID:           "CVE-1999-0002",
-			RecordSource: "source-2",
+			ID:        "CVE-1999-0002",
+			Namespace: "source-2",
 		},
 		Package: pkg1,
 		Matcher: match.DpkgMatcher,
@@ -103,9 +107,13 @@ func TestJsonImgsPresenter(t *testing.T) {
 	var match3 = match.Match{
 		Type: match.ExactIndirectMatch,
 		Vulnerability: vulnerability.Vulnerability{
-			ID:             "CVE-1999-0003",
-			RecordSource:   "source-1",
-			FixedInVersion: "the-other-next-version",
+			ID:        "CVE-1999-0003",
+			Namespace: "source-1",
+			Fix: vulnerability.Fix{
+				Versions: []string{
+					"the-other-next-version",
+				},
+			},
 		},
 		Package: pkg1,
 		Matcher: match.DpkgMatcher,
@@ -193,9 +201,13 @@ func TestJsonDirsPresenter(t *testing.T) {
 	var match1 = match.Match{
 		Type: match.ExactDirectMatch,
 		Vulnerability: vulnerability.Vulnerability{
-			ID:             "CVE-1999-0001",
-			RecordSource:   "source-1",
-			FixedInVersion: "the-next-version",
+			ID:        "CVE-1999-0001",
+			Namespace: "source-1",
+			Fix: vulnerability.Fix{
+				Versions: []string{
+					"the-next-version",
+				},
+			},
 		},
 		Package: pkg1,
 		Matcher: match.DpkgMatcher,
@@ -213,8 +225,8 @@ func TestJsonDirsPresenter(t *testing.T) {
 	var match2 = match.Match{
 		Type: match.ExactIndirectMatch,
 		Vulnerability: vulnerability.Vulnerability{
-			ID:           "CVE-1999-0002",
-			RecordSource: "source-2",
+			ID:        "CVE-1999-0002",
+			Namespace: "source-2",
 		},
 		Package: pkg1,
 		Matcher: match.DpkgMatcher,
@@ -229,9 +241,13 @@ func TestJsonDirsPresenter(t *testing.T) {
 	var match3 = match.Match{
 		Type: match.ExactIndirectMatch,
 		Vulnerability: vulnerability.Vulnerability{
-			ID:             "CVE-1999-0003",
-			RecordSource:   "source-1",
-			FixedInVersion: "the-other-next-version",
+			ID:        "CVE-1999-0003",
+			Namespace: "source-1",
+			Fix: vulnerability.Fix{
+				Versions: []string{
+					"the-other-next-version",
+				},
+			},
 		},
 		Package: pkg1,
 		Matcher: match.DpkgMatcher,

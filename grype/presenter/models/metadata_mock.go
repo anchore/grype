@@ -65,7 +65,7 @@ func NewMetadataMock() *MetadataMock {
 }
 
 // GetMetadata returns vulnerability metadata for a given id and recordSource.
-func (m *MetadataMock) GetMetadata(id, recordSource string) (*vulnerability.Metadata, error) {
-	value := m.store[id][recordSource]
+func (m *MetadataMock) GetMetadata(id, namespace string) (*vulnerability.Metadata, error) {
+	value := m.store[id][namespace]
 	return &value, nil
 }

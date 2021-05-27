@@ -45,8 +45,8 @@ func TestAboveAllowableSeverity(t *testing.T) {
 	matches.Add(thePkg, match.Match{
 		Type: match.ExactDirectMatch,
 		Vulnerability: vulnerability.Vulnerability{
-			ID:           "CVE-2014-fake-1",
-			RecordSource: "source-1",
+			ID:        "CVE-2014-fake-1",
+			Namespace: "source-1",
 		},
 		Package: thePkg,
 	})

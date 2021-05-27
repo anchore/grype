@@ -18,21 +18,6 @@ type Document struct {
 	Descriptor descriptor   `json:"descriptor"`
 }
 
-// Match is a single item for the JSON array reported
-type Match struct {
-	Vulnerability          Vulnerability           `json:"vulnerability"`
-	RelatedVulnerabilities []VulnerabilityMetadata `json:"relatedVulnerabilities"`
-	MatchDetails           MatchDetails            `json:"matchDetails"`
-	Artifact               Package                 `json:"artifact"`
-}
-
-// MatchDetails contains all data that indicates how the result match was found
-type MatchDetails struct {
-	Matcher    string                 `json:"matcher"`
-	SearchedBy map[string]interface{} `json:"searchedBy"`
-	MatchedOn  map[string]interface{} `json:"matchedOn"`
-}
-
 // NewDocument creates and populates a new Document struct, representing the populated JSON document.
 func NewDocument(packages []pkg.Package, context pkg.Context, matches match.Matches,
 	metadataProvider vulnerability.MetadataProvider, appConfig interface{}, dbStatus interface{}) (Document, error) {
@@ -44,35 +29,12 @@ func NewDocument(packages []pkg.Package, context pkg.Context, matches match.Matc
 			return Document{}, fmt.Errorf("unable to find package in collection: %+v", p)
 		}
 
-		relatedVulnerabilities := make([]VulnerabilityMetadata, 0)
-		for _, r := range m.Vulnerability.RelatedVulnerabilities {
-			relatedMetadata, err := metadataProvider.GetMetadata(r.ID, r.Namespace)
-			if err != nil {
-				return Document{}, fmt.Errorf("unable to fetch related vuln=%q metadata: %+v", r, err)
-			}
-			if relatedMetadata != nil {
-				relatedVulnerabilities = append(relatedVulnerabilities, NewVulnerabilityMetadata(r.ID, r.Namespace, relatedMetadata))
-			}
-		}
-
-		metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.Namespace)
+		matchModel, err := newMatch(m, *p, metadataProvider)
 		if err != nil {
-			return Document{}, fmt.Errorf("unable to fetch vuln=%q metadata: %+v", m.Vulnerability.ID, err)
+			return Document{}, err
 		}
 
-		findings = append(
-			findings,
-			Match{
-				Vulnerability:          NewVulnerability(m.Vulnerability, metadata),
-				Artifact:               newPackage(*p),
-				RelatedVulnerabilities: relatedVulnerabilities,
-				MatchDetails: MatchDetails{
-					Matcher:    m.Matcher.String(),
-					SearchedBy: m.SearchKey,
-					MatchedOn:  m.SearchMatches,
-				},
-			},
-		)
+		findings = append(findings, *matchModel)
 	}
 
 	var src *source

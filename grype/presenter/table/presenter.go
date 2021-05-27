@@ -55,14 +55,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 			fixVersion = "(fixes indeterminate)"
 		}
 
-		row := []string{
-			m.Package.Name,
-			m.Package.Version,
-			fixVersion,
-			m.Vulnerability.ID,
-			severity,
-		}
-		rows = append(rows, row)
+		rows = append(rows, []string{m.Package.Name, m.Package.Version, fixVersion, m.Vulnerability.ID, severity})
 	}
 
 	if len(rows) == 0 {

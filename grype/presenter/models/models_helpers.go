@@ -31,7 +31,8 @@ func generateMatches(t *testing.T, p pkg.Package) match.Matches {
 		{
 			Type: match.ExactDirectMatch,
 			Vulnerability: vulnerability.Vulnerability{
-				ID: "CVE-1999-0001",
+				ID:        "CVE-1999-0001",
+				Namespace: "source-1",
 				Fix: vulnerability.Fix{
 					Versions: []string{"the-next-version"},
 					State:    grypeDb.FixedState,
@@ -52,7 +53,8 @@ func generateMatches(t *testing.T, p pkg.Package) match.Matches {
 		{
 			Type: match.ExactIndirectMatch,
 			Vulnerability: vulnerability.Vulnerability{
-				ID: "CVE-1999-0002",
+				ID:        "CVE-1999-0002",
+				Namespace: "source-2",
 			},
 			Package: p,
 			Matcher: match.DpkgMatcher,
