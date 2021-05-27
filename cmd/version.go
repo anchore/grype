@@ -30,7 +30,7 @@ func printVersion(_ *cobra.Command, _ []string) {
 	switch outputFormat {
 	case "text":
 		fmt.Println("Application:         ", internal.ApplicationName)
-		fmt.Println("Versions:             ", versionInfo.Version)
+		fmt.Println("Version:             ", versionInfo.Version)
 		fmt.Println("BuildDate:           ", versionInfo.BuildDate)
 		fmt.Println("GitCommit:           ", versionInfo.GitCommit)
 		fmt.Println("GitTreeState:        ", versionInfo.GitTreeState)
