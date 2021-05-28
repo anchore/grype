@@ -33,7 +33,7 @@ func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Ca
 		Confidence:    1.0,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		SearchKey: map[string]interface{}{
+		SearchedBy: map[string]interface{}{
 			"cpe": "cpe:2.3:*:*:libvncserver:0.9.9:*:*:*:*:*:*:*",
 		},
 		SearchMatches: map[string]interface{}{
@@ -61,7 +61,7 @@ func addJavascriptMatches(t *testing.T, theSource source.Source, catalog *syftPk
 		Confidence:    1.0,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		SearchKey: map[string]interface{}{
+		SearchedBy: map[string]interface{}{
 			"language": "javascript",
 		},
 		SearchMatches: map[string]interface{}{
@@ -91,7 +91,7 @@ func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Ca
 		Confidence:    1.0,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		SearchKey: map[string]interface{}{
+		SearchedBy: map[string]interface{}{
 			"language": "python",
 		},
 		SearchMatches: map[string]interface{}{
@@ -118,7 +118,7 @@ func addRubyMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 		Confidence:    1.0,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		SearchKey: map[string]interface{}{
+		SearchedBy: map[string]interface{}{
 			"language": "ruby",
 		},
 		SearchMatches: map[string]interface{}{
@@ -154,7 +154,7 @@ func addJavaMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 		Confidence:    1.0,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		SearchKey: map[string]interface{}{
+		SearchedBy: map[string]interface{}{
 			"language": "java",
 		},
 		SearchMatches: map[string]interface{}{
@@ -182,7 +182,7 @@ func addDpkgMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 		Confidence:    1.0,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		SearchKey: map[string]interface{}{
+		SearchedBy: map[string]interface{}{
 			"distro": map[string]string{
 				"type":    "debian",
 				"version": "8",
@@ -212,7 +212,7 @@ func addRhelMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 		Confidence:    1.0,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		SearchKey: map[string]interface{}{
+		SearchedBy: map[string]interface{}{
 			"distro": map[string]string{
 				"type":    "centos",
 				"version": "8",

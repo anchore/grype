@@ -84,7 +84,7 @@ cveLoop:
 		// there is a secdb entry...
 		for _, vuln := range secDbVulnerabilitiesForID {
 			// ...is there a fixed in entry? (should always be yes)
-			if vuln.FixedInVersion == "" {
+			if len(vuln.Fix.Versions) == 0 {
 				continue
 			}
 

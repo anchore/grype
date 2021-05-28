@@ -32,5 +32,5 @@ func TestPresenter_Present(t *testing.T) {
 	actual := buffer.Bytes()
 	expected := testutils.GetGoldenFileContents(t)
 
-	assert.Equal(t, string(actual), string(expected))
+	assert.Equal(t, string(expected), string(actual))
 }

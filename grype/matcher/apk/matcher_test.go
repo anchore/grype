@@ -75,7 +75,7 @@ func TestSecDBOnlyMatch(t *testing.T) {
 			Confidence:    1.0,
 			Vulnerability: *vulnFound,
 			Package:       p,
-			SearchKey: map[string]interface{}{
+			SearchedBy: map[string]interface{}{
 				"distro": map[string]string{
 					"type":    d.Type.String(),
 					"version": d.RawVersion,
@@ -151,7 +151,7 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 			Confidence:    1.0,
 			Vulnerability: *vulnFound,
 			Package:       p,
-			SearchKey: map[string]interface{}{
+			SearchedBy: map[string]interface{}{
 				"distro": map[string]string{
 					"type":    d.Type.String(),
 					"version": d.RawVersion,
@@ -228,7 +228,7 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 			Confidence:    1.0,
 			Vulnerability: *vulnFound,
 			Package:       p,
-			SearchKey: map[string]interface{}{
+			SearchedBy: map[string]interface{}{
 				"distro": map[string]string{
 					"type":    d.Type.String(),
 					"version": d.RawVersion,
@@ -291,7 +291,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 			Confidence:    0.9,
 			Vulnerability: *vulnFound,
 			Package:       p,
-			SearchKey: map[string]interface{}{
+			SearchedBy: map[string]interface{}{
 				"cpe": "cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*",
 			},
 			SearchMatches: map[string]interface{}{

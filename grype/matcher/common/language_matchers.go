@@ -36,7 +36,7 @@ func FindMatchesByPackageLanguage(store vulnerability.ProviderByLanguage, l syft
 				Vulnerability: *vuln,
 				Package:       p,
 				Matcher:       upstreamMatcher,
-				SearchKey: map[string]interface{}{
+				SearchedBy: map[string]interface{}{
 					"language": l.String(),
 				},
 				SearchMatches: map[string]interface{}{

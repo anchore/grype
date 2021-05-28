@@ -66,7 +66,7 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 			},
 			Confidence: 1,
 			Package:    p,
-			SearchKey: map[string]interface{}{
+			SearchedBy: map[string]interface{}{
 				"language": "ruby",
 			},
 			SearchMatches: map[string]interface{}{

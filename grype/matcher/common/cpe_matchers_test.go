@@ -119,7 +119,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 						Language: syftPkg.Ruby,
 						Type:     syftPkg.GemPkg,
 					},
-					SearchKey: map[string]interface{}{
+					SearchedBy: map[string]interface{}{
 						"cpe": "cpe:2.3:*:activerecord:activerecord:3.7.5:rando1:*:rando2:*:ruby:*:*",
 					},
 					SearchMatches: map[string]interface{}{
@@ -160,7 +160,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 						Language: syftPkg.Ruby,
 						Type:     syftPkg.GemPkg,
 					},
-					SearchKey: map[string]interface{}{
+					SearchedBy: map[string]interface{}{
 						"cpe": "cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:rando2:*:ruby:*:*",
 					},
 					SearchMatches: map[string]interface{}{
@@ -186,7 +186,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 						Language: syftPkg.Ruby,
 						Type:     syftPkg.GemPkg,
 					},
-					SearchKey: map[string]interface{}{
+					SearchedBy: map[string]interface{}{
 						"cpe": "cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:rando2:*:ruby:*:*",
 					},
 					SearchMatches: map[string]interface{}{
@@ -227,7 +227,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 						Language: syftPkg.Ruby,
 						Type:     syftPkg.GemPkg,
 					},
-					SearchKey: map[string]interface{}{
+					SearchedBy: map[string]interface{}{
 						"cpe": "cpe:2.3:*:activerecord:activerecord:4.0.1:rando1:*:rando2:*:ruby:*:*",
 					},
 					SearchMatches: map[string]interface{}{
@@ -272,7 +272,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 						Name:    "awesome",
 						Version: "98SE1",
 					},
-					SearchKey: map[string]interface{}{
+					SearchedBy: map[string]interface{}{
 						"cpe": "cpe:2.3:*:awesome:awesome:98SE1:rando1:*:rando2:*:dunno:*:*",
 					},
 					SearchMatches: map[string]interface{}{

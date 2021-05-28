@@ -262,7 +262,7 @@ func hitSeverityThreshold(thresholdSeverity *vulnerability.Severity, matches mat
 	if thresholdSeverity != nil {
 		var maxDiscoveredSeverity vulnerability.Severity
 		for m := range matches.Enumerate() {
-			metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.RecordSource)
+			metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.Namespace)
 			if err != nil {
 				continue
 			}
