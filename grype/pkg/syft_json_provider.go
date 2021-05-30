@@ -83,7 +83,7 @@ type partialSyftPackage struct {
 
 // packageBasicMetadata contains non-ambiguous values (type-wise) from pkg.Package.
 type packageBasicMetadata struct {
-	ID        string            `json:"id"`
+	ID        string            `json:"ID"`
 	Name      string            `json:"name"`
 	Version   string            `json:"version"`
 	Type      pkg.Type          `json:"type"`
@@ -202,7 +202,7 @@ func parseSyftJSON(reader io.Reader) ([]Package, Context, error) {
 		}
 
 		packages[i] = Package{
-			id:        ID(a.ID),
+			ID:        ID(a.ID),
 			Name:      a.Name,
 			Version:   a.Version,
 			Locations: a.Locations,

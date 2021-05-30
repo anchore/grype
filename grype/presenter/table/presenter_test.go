@@ -41,7 +41,11 @@ func TestTablePresenter(t *testing.T) {
 			Namespace: "source-1",
 		},
 		Package: pkg1,
-		Matcher: match.DpkgMatcher,
+		MatchDetails: []match.Details{
+			{
+				Matcher: match.DpkgMatcher,
+			},
+		},
 	}
 
 	var match2 = match.Match{
@@ -56,9 +60,13 @@ func TestTablePresenter(t *testing.T) {
 			},
 		},
 		Package: pkg2,
-		Matcher: match.DpkgMatcher,
-		SearchedBy: map[string]interface{}{
-			"some": "key",
+		MatchDetails: []match.Details{
+			{
+				Matcher: match.DpkgMatcher,
+				SearchedBy: map[string]interface{}{
+					"some": "key",
+				},
+			},
 		},
 	}
 

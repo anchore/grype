@@ -14,19 +14,19 @@ import (
 )
 
 type mockLanguageProvider struct {
-	data map[string]map[string][]*vulnerability.Vulnerability
+	data map[string]map[string][]vulnerability.Vulnerability
 }
 
 func newMockProviderByLanguage() *mockLanguageProvider {
 	pr := mockLanguageProvider{
-		data: make(map[string]map[string][]*vulnerability.Vulnerability),
+		data: make(map[string]map[string][]vulnerability.Vulnerability),
 	}
 	pr.stub()
 	return &pr
 }
 
 func (pr *mockLanguageProvider) stub() {
-	pr.data["github:gem"] = map[string][]*vulnerability.Vulnerability{
+	pr.data["github:gem"] = map[string][]vulnerability.Vulnerability{
 		// direct...
 		"activerecord": {
 			{
@@ -43,7 +43,7 @@ func (pr *mockLanguageProvider) stub() {
 	}
 }
 
-func (pr *mockLanguageProvider) GetByLanguage(l syftPkg.Language, p pkg.Package) ([]*vulnerability.Vulnerability, error) {
+func (pr *mockLanguageProvider) GetByLanguage(l syftPkg.Language, p pkg.Package) ([]vulnerability.Vulnerability, error) {
 	if l != syftPkg.Ruby {
 		panic(fmt.Errorf("test mock only supports ruby"))
 	}
@@ -64,16 +64,20 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 			Vulnerability: vulnerability.Vulnerability{
 				ID: "CVE-2017-fake-1",
 			},
-			Confidence: 1,
-			Package:    p,
-			SearchedBy: map[string]interface{}{
-				"language": "ruby",
+			Package: p,
+			MatchDetails: []match.Details{
+				{
+					Confidence: 1,
+					SearchedBy: map[string]interface{}{
+						"language":  "ruby",
+						"namespace": "github:ruby",
+					},
+					MatchedOn: map[string]interface{}{
+						"versionConstraint": "< 3.7.6 (semver)",
+					},
+					Matcher: match.RubyGemMatcher,
+				},
 			},
-			SearchMatches: map[string]interface{}{
-				"namespace":         "github:ruby",
-				"versionConstraint": "< 3.7.6 (semver)",
-			},
-			Matcher: match.RubyGemMatcher,
 		},
 	}
 

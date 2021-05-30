@@ -12,15 +12,15 @@ import (
 type Match struct {
 	Vulnerability          Vulnerability           `json:"vulnerability"`
 	RelatedVulnerabilities []VulnerabilityMetadata `json:"relatedVulnerabilities"`
-	MatchDetails           MatchDetails            `json:"matchDetails"`
+	MatchDetails           []MatchDetails          `json:"matchDetails"`
 	Artifact               Package                 `json:"artifact"`
 }
 
 // MatchDetails contains all data that indicates how the result match was found
 type MatchDetails struct {
-	Matcher    string                 `json:"matcher"`
-	SearchedBy map[string]interface{} `json:"searchedBy"`
-	MatchedOn  map[string]interface{} `json:"matchedOn"`
+	Matcher    string      `json:"matcher"`
+	SearchedBy interface{} `json:"searchedBy"`
+	MatchedOn  interface{} `json:"matchedOn"`
 }
 
 func newMatch(m match.Match, p pkg.Package, metadataProvider vulnerability.MetadataProvider) (*Match, error) {
@@ -40,14 +40,19 @@ func newMatch(m match.Match, p pkg.Package, metadataProvider vulnerability.Metad
 		return nil, fmt.Errorf("unable to fetch vuln=%q metadata: %+v", m.Vulnerability.ID, err)
 	}
 
+	details := make([]MatchDetails, len(m.MatchDetails))
+	for idx, d := range m.MatchDetails {
+		details[idx] = MatchDetails{
+			Matcher:    d.Matcher.String(),
+			SearchedBy: d.SearchedBy,
+			MatchedOn:  d.MatchedOn,
+		}
+	}
+
 	return &Match{
 		Vulnerability:          NewVulnerability(m.Vulnerability, metadata),
 		Artifact:               newPackage(p),
 		RelatedVulnerabilities: relatedVulnerabilities,
-		MatchDetails: MatchDetails{
-			Matcher:    m.Matcher.String(),
-			SearchedBy: m.SearchedBy,
-			MatchedOn:  m.SearchMatches,
-		},
+		MatchDetails:           details,
 	}, nil
 }

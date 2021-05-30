@@ -29,22 +29,28 @@ func FindMatchesByPackageLanguage(store vulnerability.ProviderByLanguage, l syft
 			return nil, fmt.Errorf("language matcher failed to check constraint='%s' version='%s': %w", vuln.Constraint, verObj, err)
 		}
 
-		if isPackageVulnerable {
-			matches = append(matches, match.Match{
-				Type:          match.ExactDirectMatch,
-				Confidence:    1.0, // TODO: this is hard coded for now
-				Vulnerability: *vuln,
-				Package:       p,
-				Matcher:       upstreamMatcher,
-				SearchedBy: map[string]interface{}{
-					"language": l.String(),
-				},
-				SearchMatches: map[string]interface{}{
-					"namespace":         vuln.Namespace,
-					"versionConstraint": vuln.Constraint.String(),
-				},
-			})
+		if !isPackageVulnerable {
+			continue
 		}
+
+		matches = append(matches, match.Match{
+			Type:          match.ExactDirectMatch,
+			Vulnerability: vuln,
+			Package:       p,
+			MatchDetails: []match.Details{
+				{
+					Confidence: 1.0, // TODO: this is hard coded for now
+					Matcher:    upstreamMatcher,
+					SearchedBy: map[string]interface{}{
+						"language":  l.String(),
+						"namespace": vuln.Namespace,
+					},
+					MatchedOn: map[string]interface{}{
+						"versionConstraint": vuln.Constraint.String(),
+					},
+				},
+			},
+		})
 	}
 
 	return matches, err

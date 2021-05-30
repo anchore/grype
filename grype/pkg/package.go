@@ -13,7 +13,7 @@ type ID string
 
 // Package represents an application or library that has been bundled into a distributable format.
 type Package struct {
-	id        ID
+	ID        ID
 	Name      string            // the package name
 	Version   string            // the version of the package
 	Locations []source.Location // the locations that lead to the discovery of this package (note: this is not necessarily the locations that make up this package)
@@ -66,7 +66,7 @@ func New(p *pkg.Package) Package {
 	}
 
 	return Package{
-		id:        ID(p.ID),
+		ID:        ID(p.ID),
 		Name:      p.Name,
 		Version:   p.Version,
 		Locations: p.Locations,
@@ -87,11 +87,6 @@ func FromCatalog(catalog *pkg.Catalog) []Package {
 	return result
 }
 
-// ID returns the package ID, which is unique relative to a package catalog.
-func (p Package) ID() ID {
-	return p.id
-}
-
 // Stringer to represent a package.
 func (p Package) String() string {
 	return fmt.Sprintf("Pkg(type=%s, name=%s, version=%s)", p.Type, p.Name, p.Version)
@@ -99,7 +94,7 @@ func (p Package) String() string {
 
 func ByID(id ID, pkgs []Package) *Package {
 	for _, p := range pkgs {
-		if p.ID() == id {
+		if p.ID == id {
 			return &p
 		}
 	}

@@ -14,19 +14,19 @@ import (
 )
 
 type mockDistroProvider struct {
-	data map[string]map[string][]*vulnerability.Vulnerability
+	data map[string]map[string][]vulnerability.Vulnerability
 }
 
 func newMockProviderByDistro() *mockDistroProvider {
 	pr := mockDistroProvider{
-		data: make(map[string]map[string][]*vulnerability.Vulnerability),
+		data: make(map[string]map[string][]vulnerability.Vulnerability),
 	}
 	pr.stub()
 	return &pr
 }
 
 func (pr *mockDistroProvider) stub() {
-	pr.data["debian:8"] = map[string][]*vulnerability.Vulnerability{
+	pr.data["debian:8"] = map[string][]vulnerability.Vulnerability{
 		// direct...
 		"neutron": {
 			{
@@ -55,7 +55,7 @@ func (pr *mockDistroProvider) stub() {
 	}
 }
 
-func (pr *mockDistroProvider) GetByDistro(d distro.Distro, p pkg.Package) ([]*vulnerability.Vulnerability, error) {
+func (pr *mockDistroProvider) GetByDistro(d distro.Distro, p pkg.Package) ([]vulnerability.Vulnerability, error) {
 	return pr.data[strings.ToLower(d.Type.String())+":"+d.FullVersion()][p.Name], nil
 }
 
@@ -80,19 +80,23 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 			Vulnerability: vulnerability.Vulnerability{
 				ID: "CVE-2014-fake-1",
 			},
-			Confidence: 1,
-			Package:    p,
-			SearchedBy: map[string]interface{}{
-				"distro": map[string]string{
-					"type":    "debian",
-					"version": "8",
+			Package: p,
+			MatchDetails: []match.Details{
+				{
+					Confidence: 1,
+					SearchedBy: map[string]interface{}{
+						"distro": map[string]string{
+							"type":    "debian",
+							"version": "8",
+						},
+						"namespace": "debian:8",
+					},
+					MatchedOn: map[string]interface{}{
+						"versionConstraint": "< 2014.1.5-6 (deb)",
+					},
+					Matcher: match.PythonMatcher,
 				},
 			},
-			SearchMatches: map[string]interface{}{
-				"namespace":         "debian:8",
-				"versionConstraint": "< 2014.1.5-6 (deb)",
-			},
-			Matcher: match.PythonMatcher,
 		},
 	}
 

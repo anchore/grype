@@ -26,18 +26,20 @@
     "advisories": []
    },
    "relatedVulnerabilities": [],
-   "matchDetails": {
-    "matcher": "dpkg-matcher",
-    "searchedBy": {
-     "distro": {
-      "type": "ubuntu",
-      "version": "20.04"
+   "matchDetails": [
+    {
+     "matcher": "dpkg-matcher",
+     "searchedBy": {
+      "distro": {
+       "type": "ubuntu",
+       "version": "20.04"
+      }
+     },
+     "matchedOn": {
+      "constraint": ">= 20"
      }
-    },
-    "matchedOn": {
-     "constraint": ">= 20"
     }
-   },
+   ],
    "artifact": {
     "name": "package-1",
     "version": "1.1.1",
@@ -88,15 +90,17 @@
     "advisories": []
    },
    "relatedVulnerabilities": [],
-   "matchDetails": {
-    "matcher": "dpkg-matcher",
-    "searchedBy": {
-     "cpe": "somecpe"
-    },
-    "matchedOn": {
-     "constraint": "somecpe"
+   "matchDetails": [
+    {
+     "matcher": "dpkg-matcher",
+     "searchedBy": {
+      "cpe": "somecpe"
+     },
+     "matchedOn": {
+      "constraint": "somecpe"
+     }
     }
-   },
+   ],
    "artifact": {
     "name": "package-1",
     "version": "1.1.1",
@@ -135,15 +139,17 @@
     "advisories": []
    },
    "relatedVulnerabilities": [],
-   "matchDetails": {
-    "matcher": "dpkg-matcher",
-    "searchedBy": {
-     "language": "java"
-    },
-    "matchedOn": {
-     "constraint": "< 2.0.0"
+   "matchDetails": [
+    {
+     "matcher": "dpkg-matcher",
+     "searchedBy": {
+      "language": "java"
+     },
+     "matchedOn": {
+      "constraint": "< 2.0.0"
+     }
     }
-   },
+   ],
    "artifact": {
     "name": "package-1",
     "version": "1.1.1",

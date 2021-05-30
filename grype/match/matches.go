@@ -44,7 +44,7 @@ func (r *Matches) add(id pkg.ID, matches ...Match) {
 }
 
 func (r *Matches) Add(p pkg.Package, matches ...Match) {
-	r.add(p.ID(), matches...)
+	r.add(p.ID, matches...)
 }
 
 func (r *Matches) Enumerate() <-chan Match {
@@ -66,18 +66,7 @@ func (r *Matches) Sorted() []Match {
 		matches = append(matches, m)
 	}
 
-	sort.SliceStable(matches, func(i, j int) bool {
-		if matches[i].Vulnerability.ID == matches[j].Vulnerability.ID {
-			if matches[i].Package.Name == matches[j].Package.Name {
-				if matches[i].Package.Version == matches[j].Package.Version {
-					return matches[i].Package.Type < matches[j].Package.Type
-				}
-				return matches[i].Package.Version < matches[j].Package.Version
-			}
-			return matches[i].Package.Name < matches[j].Package.Name
-		}
-		return matches[i].Vulnerability.ID < matches[j].Vulnerability.ID
-	})
+	sort.Sort(ByElements(matches))
 
 	return matches
 }
