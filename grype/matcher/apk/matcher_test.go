@@ -3,6 +3,8 @@ package apk
 import (
 	"testing"
 
+	"github.com/anchore/grype/grype/matcher/common"
+
 	"github.com/go-test/deep"
 
 	"github.com/anchore/grype/grype/match"
@@ -72,20 +74,24 @@ func TestSecDBOnlyMatch(t *testing.T) {
 	expected := []match.Match{
 		{
 			Type:          match.ExactDirectMatch,
-			Confidence:    1.0,
 			Vulnerability: *vulnFound,
 			Package:       p,
-			SearchedBy: map[string]interface{}{
-				"distro": map[string]string{
-					"type":    d.Type.String(),
-					"version": d.RawVersion,
+			MatchDetails: []match.Details{
+				{
+					Confidence: 1.0,
+					SearchedBy: map[string]interface{}{
+						"distro": map[string]string{
+							"type":    d.Type.String(),
+							"version": d.RawVersion,
+						},
+						"namespace": "secdb",
+					},
+					Found: map[string]interface{}{
+						"versionConstraint": vulnFound.Constraint.String(),
+					},
+					Matcher: match.ApkMatcher,
 				},
 			},
-			SearchMatches: map[string]interface{}{
-				"versionConstraint": vulnFound.Constraint.String(),
-				"namespace":         "secdb",
-			},
-			Matcher: match.ApkMatcher,
 		},
 	}
 
@@ -148,20 +154,24 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 	expected := []match.Match{
 		{
 			Type:          match.ExactDirectMatch,
-			Confidence:    1.0,
 			Vulnerability: *vulnFound,
 			Package:       p,
-			SearchedBy: map[string]interface{}{
-				"distro": map[string]string{
-					"type":    d.Type.String(),
-					"version": d.RawVersion,
+			MatchDetails: []match.Details{
+				{
+					Confidence: 1.0,
+					SearchedBy: map[string]interface{}{
+						"distro": map[string]string{
+							"type":    d.Type.String(),
+							"version": d.RawVersion,
+						},
+						"namespace": "secdb",
+					},
+					Found: map[string]interface{}{
+						"versionConstraint": vulnFound.Constraint.String(),
+					},
+					Matcher: match.ApkMatcher,
 				},
 			},
-			SearchMatches: map[string]interface{}{
-				"versionConstraint": vulnFound.Constraint.String(),
-				"namespace":         "secdb",
-			},
-			Matcher: match.ApkMatcher,
 		},
 	}
 
@@ -225,20 +235,24 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 	expected := []match.Match{
 		{
 			Type:          match.ExactDirectMatch,
-			Confidence:    1.0,
 			Vulnerability: *vulnFound,
 			Package:       p,
-			SearchedBy: map[string]interface{}{
-				"distro": map[string]string{
-					"type":    d.Type.String(),
-					"version": d.RawVersion,
+			MatchDetails: []match.Details{
+				{
+					Confidence: 1.0,
+					SearchedBy: map[string]interface{}{
+						"distro": map[string]string{
+							"type":    d.Type.String(),
+							"version": d.RawVersion,
+						},
+						"namespace": "secdb",
+					},
+					Found: map[string]interface{}{
+						"versionConstraint": vulnFound.Constraint.String(),
+					},
+					Matcher: match.ApkMatcher,
 				},
 			},
-			SearchMatches: map[string]interface{}{
-				"versionConstraint": vulnFound.Constraint.String(),
-				"namespace":         "secdb",
-			},
-			Matcher: match.ApkMatcher,
 		},
 	}
 
@@ -288,18 +302,22 @@ func TestNvdOnlyMatches(t *testing.T) {
 	expected := []match.Match{
 		{
 			Type:          match.FuzzyMatch,
-			Confidence:    0.9,
 			Vulnerability: *vulnFound,
 			Package:       p,
-			SearchedBy: map[string]interface{}{
-				"cpe": "cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*",
+			MatchDetails: []match.Details{
+				{
+					Confidence: 0.9,
+					SearchedBy: common.SearchedByCPEs{
+						CPEs:      []string{"cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"},
+						Namespace: "nvd",
+					},
+					Found: common.FoundCPEs{
+						CPEs:              []string{vulnFound.CPEs[0].BindToFmtString()},
+						VersionConstraint: vulnFound.Constraint.String(),
+					},
+					Matcher: match.ApkMatcher,
+				},
 			},
-			SearchMatches: map[string]interface{}{
-				"cpes":              []string{vulnFound.CPEs[0].BindToFmtString()},
-				"versionConstraint": vulnFound.Constraint.String(),
-				"namespace":         "nvd",
-			},
-			Matcher: match.ApkMatcher,
 		},
 	}
 

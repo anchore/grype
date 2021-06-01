@@ -76,15 +76,19 @@ func TestJsonImgsPresenter(t *testing.T) {
 			},
 		},
 		Package: pkg1,
-		Matcher: match.DpkgMatcher,
-		SearchedBy: map[string]interface{}{
-			"distro": map[string]string{
-				"type":    "ubuntu",
-				"version": "20.04",
+		MatchDetails: []match.Details{
+			{
+				Matcher: match.DpkgMatcher,
+				SearchedBy: map[string]interface{}{
+					"distro": map[string]string{
+						"type":    "ubuntu",
+						"version": "20.04",
+					},
+				},
+				Found: map[string]interface{}{
+					"constraint": ">= 20",
+				},
 			},
-		},
-		SearchMatches: map[string]interface{}{
-			"constraint": ">= 20",
 		},
 	}
 
@@ -95,12 +99,16 @@ func TestJsonImgsPresenter(t *testing.T) {
 			Namespace: "source-2",
 		},
 		Package: pkg1,
-		Matcher: match.DpkgMatcher,
-		SearchedBy: map[string]interface{}{
-			"cpe": "somecpe",
-		},
-		SearchMatches: map[string]interface{}{
-			"constraint": "somecpe",
+		MatchDetails: []match.Details{
+			{
+				Matcher: match.DpkgMatcher,
+				SearchedBy: map[string]interface{}{
+					"cpe": "somecpe",
+				},
+				Found: map[string]interface{}{
+					"constraint": "somecpe",
+				},
+			},
 		},
 	}
 
@@ -116,12 +124,16 @@ func TestJsonImgsPresenter(t *testing.T) {
 			},
 		},
 		Package: pkg1,
-		Matcher: match.DpkgMatcher,
-		SearchedBy: map[string]interface{}{
-			"language": "java",
-		},
-		SearchMatches: map[string]interface{}{
-			"constraint": "< 2.0.0",
+		MatchDetails: []match.Details{
+			{
+				Matcher: match.DpkgMatcher,
+				SearchedBy: map[string]interface{}{
+					"language": "java",
+				},
+				Found: map[string]interface{}{
+					"constraint": "< 2.0.0",
+				},
+			},
 		},
 	}
 
@@ -210,15 +222,19 @@ func TestJsonDirsPresenter(t *testing.T) {
 			},
 		},
 		Package: pkg1,
-		Matcher: match.DpkgMatcher,
-		SearchedBy: map[string]interface{}{
-			"distro": map[string]string{
-				"type":    "ubuntu",
-				"version": "20.04",
+		MatchDetails: []match.Details{
+			{
+				Matcher: match.DpkgMatcher,
+				SearchedBy: map[string]interface{}{
+					"distro": map[string]string{
+						"type":    "ubuntu",
+						"version": "20.04",
+					},
+				},
+				Found: map[string]interface{}{
+					"constraint": ">= 20",
+				},
 			},
-		},
-		SearchMatches: map[string]interface{}{
-			"constraint": ">= 20",
 		},
 	}
 
@@ -229,12 +245,16 @@ func TestJsonDirsPresenter(t *testing.T) {
 			Namespace: "source-2",
 		},
 		Package: pkg1,
-		Matcher: match.DpkgMatcher,
-		SearchedBy: map[string]interface{}{
-			"cpe": "somecpe",
-		},
-		SearchMatches: map[string]interface{}{
-			"constraint": "somecpe",
+		MatchDetails: []match.Details{
+			{
+				Matcher: match.DpkgMatcher,
+				SearchedBy: map[string]interface{}{
+					"cpe": "somecpe",
+				},
+				Found: map[string]interface{}{
+					"constraint": "somecpe",
+				},
+			},
 		},
 	}
 
@@ -250,12 +270,16 @@ func TestJsonDirsPresenter(t *testing.T) {
 			},
 		},
 		Package: pkg1,
-		Matcher: match.DpkgMatcher,
-		SearchedBy: map[string]interface{}{
-			"language": "java",
-		},
-		SearchMatches: map[string]interface{}{
-			"constraint": "< 2.0.0",
+		MatchDetails: []match.Details{
+			{
+				Matcher: match.DpkgMatcher,
+				SearchedBy: map[string]interface{}{
+					"language": "java",
+				},
+				Found: map[string]interface{}{
+					"constraint": "< 2.0.0",
+				},
+			},
 		},
 	}
 

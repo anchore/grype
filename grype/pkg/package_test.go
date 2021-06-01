@@ -97,8 +97,8 @@ func TestNew_MetadataExtraction(t *testing.T) {
 					PomProperties: &syftPkg.PomProperties{
 						Path:       "pom-path-info",
 						Name:       "pom-name-info",
-						GroupID:    "pom-group-id-info",
-						ArtifactID: "pom-artifact-id-info",
+						GroupID:    "pom-group-ID-info",
+						ArtifactID: "pom-artifact-ID-info",
 						Version:    "pom-version-info",
 						Extra: map[string]string{
 							"extra-key": "extra-value",
@@ -108,8 +108,8 @@ func TestNew_MetadataExtraction(t *testing.T) {
 			},
 			metadata: JavaMetadata{
 				VirtualPath:   "virtual-path-info",
-				PomArtifactID: "pom-artifact-id-info",
-				PomGroupID:    "pom-group-id-info",
+				PomArtifactID: "pom-artifact-ID-info",
+				PomGroupID:    "pom-group-ID-info",
 				ManifestName:  "main-section-name-info",
 			},
 		},

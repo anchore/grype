@@ -39,15 +39,19 @@ func generateMatches(t *testing.T, p pkg.Package) match.Matches {
 				},
 			},
 			Package: p,
-			Matcher: match.DpkgMatcher,
-			SearchedBy: map[string]interface{}{
-				"distro": map[string]string{
-					"type":    "ubuntu",
-					"version": "20.04",
+			MatchDetails: []match.Details{
+				{
+					Matcher: match.DpkgMatcher,
+					SearchedBy: map[string]interface{}{
+						"distro": map[string]string{
+							"type":    "ubuntu",
+							"version": "20.04",
+						},
+					},
+					Found: map[string]interface{}{
+						"constraint": ">= 20",
+					},
 				},
-			},
-			SearchMatches: map[string]interface{}{
-				"constraint": ">= 20",
 			},
 		},
 		{
@@ -57,12 +61,16 @@ func generateMatches(t *testing.T, p pkg.Package) match.Matches {
 				Namespace: "source-2",
 			},
 			Package: p,
-			Matcher: match.DpkgMatcher,
-			SearchedBy: map[string]interface{}{
-				"cpe": "somecpe",
-			},
-			SearchMatches: map[string]interface{}{
-				"constraint": "somecpe",
+			MatchDetails: []match.Details{
+				{
+					Matcher: match.DpkgMatcher,
+					SearchedBy: map[string]interface{}{
+						"cpe": "somecpe",
+					},
+					Found: map[string]interface{}{
+						"constraint": "somecpe",
+					},
+				},
 			},
 		},
 	}

@@ -50,7 +50,11 @@ func createResults() (match.Matches, []pkg.Package) {
 			Namespace: "source-1",
 		},
 		Package: pkg1,
-		Matcher: match.DpkgMatcher,
+		MatchDetails: []match.Details{
+			{
+				Matcher: match.DpkgMatcher,
+			},
+		},
 	}
 
 	var match2 = match.Match{
@@ -60,9 +64,13 @@ func createResults() (match.Matches, []pkg.Package) {
 			Namespace: "source-2",
 		},
 		Package: pkg2,
-		Matcher: match.DpkgMatcher,
-		SearchedBy: map[string]interface{}{
-			"some": "key",
+		MatchDetails: []match.Details{
+			{
+				Matcher: match.DpkgMatcher,
+				SearchedBy: map[string]interface{}{
+					"some": "key",
+				},
+			},
 		},
 	}
 

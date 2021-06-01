@@ -63,7 +63,7 @@ func NewDocument(packages []pkg.Package, matches match.Matches, srcMetadata *sou
 
 		// mutate the Component
 
-		pkgMatches := matches.GetByPkgID(p.ID())
+		pkgMatches := matches.GetByPkgID(p.ID)
 
 		if len(pkgMatches) > 0 {
 			var vulnerabilities []Vulnerability

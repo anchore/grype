@@ -24,7 +24,7 @@ func NewDocument(packages []pkg.Package, context pkg.Context, matches match.Matc
 	// we must preallocate the findings to ensure the JSON document does not show "null" when no matches are found
 	var findings = make([]Match, 0)
 	for _, m := range matches.Sorted() {
-		p := pkg.ByID(m.Package.ID(), packages)
+		p := pkg.ByID(m.Package.ID, packages)
 		if p == nil {
 			return Document{}, fmt.Errorf("unable to find package in collection: %+v", p)
 		}

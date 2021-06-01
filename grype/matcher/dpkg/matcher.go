@@ -74,7 +74,6 @@ func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro,
 	for idx := range matches {
 		matches[idx].Type = match.ExactIndirectMatch
 		matches[idx].Package = p
-		matches[idx].Matcher = m.Type()
 	}
 
 	return matches, nil

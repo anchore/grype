@@ -127,12 +127,9 @@ func matchesByID(matches []match.Match) map[string][]match.Match {
 	return results
 }
 
-func vulnerabilitiesByID(vulns []*vulnerability.Vulnerability) map[string][]*vulnerability.Vulnerability {
-	var results = make(map[string][]*vulnerability.Vulnerability)
+func vulnerabilitiesByID(vulns []vulnerability.Vulnerability) map[string][]vulnerability.Vulnerability {
+	var results = make(map[string][]vulnerability.Vulnerability)
 	for _, vuln := range vulns {
-		if vuln == nil {
-			continue
-		}
 		results[vuln.ID] = append(results[vuln.ID], vuln)
 	}
 
