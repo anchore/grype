@@ -1,5 +1,5 @@
 ifndef GRYPE_CMD
-	GRYPE_CMD = go run ../../main.go
+	GRYPE_CMD = go run ../../main.go -c ../../test/grype-test-config.yaml
 endif
 
 IMAGE_CLEAN = $(shell basename $(COMPARE_IMAGE) | tr ":" "_")

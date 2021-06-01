@@ -1,3 +1,1 @@
 check-for-app-update: false
-db:
-  update-url: https://toolbox-data.anchore.io/grype/staging-databases/listing.json
