@@ -30,17 +30,21 @@ func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Ca
 	theResult.Add(thePkg, match.Match{
 		// note: we are matching on the secdb record, not NVD primarily
 		Type:          match.ExactDirectMatch,
-		Confidence:    1.0,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		SearchKey: map[string]interface{}{
-			"cpe": "cpe:2.3:*:*:libvncserver:0.9.9:*:*:*:*:*:*:*",
+		MatchDetails: []match.Details{
+			{
+				Confidence: 1.0,
+				SearchedBy: map[string]interface{}{
+					"cpe": "cpe:2.3:*:*:libvncserver:0.9.9:*:*:*:*:*:*:*",
+				},
+				Found: map[string]interface{}{
+					"cpes":       []string{"cpe:2.3:*:*:libvncserver:0.9.9:*:*:*:*:*:*:*"},
+					"constraint": "< 0.9.10 (unknown)",
+				},
+				Matcher: match.ApkMatcher,
+			},
 		},
-		SearchMatches: map[string]interface{}{
-			"cpes":       []string{"cpe:2.3:*:*:libvncserver:0.9.9:*:*:*:*:*:*:*"},
-			"constraint": "< 0.9.10 (unknown)",
-		},
-		Matcher: match.ApkMatcher,
 	})
 }
 
@@ -58,16 +62,20 @@ func addJavascriptMatches(t *testing.T, theSource source.Source, catalog *syftPk
 	}
 	theResult.Add(thePkg, match.Match{
 		Type:          match.ExactDirectMatch,
-		Confidence:    1.0,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		SearchKey: map[string]interface{}{
-			"language": "javascript",
+		MatchDetails: []match.Details{
+			{
+				Confidence: 1.0,
+				SearchedBy: map[string]interface{}{
+					"language": "javascript",
+				},
+				Found: map[string]interface{}{
+					"constraint": "< 3.2.1 (unknown)",
+				},
+				Matcher: match.JavascriptMatcher,
+			},
 		},
-		SearchMatches: map[string]interface{}{
-			"constraint": "< 3.2.1 (unknown)",
-		},
-		Matcher: match.JavascriptMatcher,
 	})
 }
 
@@ -88,16 +96,20 @@ func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Ca
 	}
 	theResult.Add(thePkg, match.Match{
 		Type:          match.ExactDirectMatch,
-		Confidence:    1.0,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		SearchKey: map[string]interface{}{
-			"language": "python",
+		MatchDetails: []match.Details{
+			{
+				Confidence: 1.0,
+				SearchedBy: map[string]interface{}{
+					"language": "python",
+				},
+				Found: map[string]interface{}{
+					"constraint": "< 2.6.2 (python)",
+				},
+				Matcher: match.PythonMatcher,
+			},
 		},
-		SearchMatches: map[string]interface{}{
-			"constraint": "< 2.6.2 (python)",
-		},
-		Matcher: match.PythonMatcher,
 	})
 }
 
@@ -115,16 +127,20 @@ func addRubyMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 	}
 	theResult.Add(thePkg, match.Match{
 		Type:          match.ExactDirectMatch,
-		Confidence:    1.0,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		SearchKey: map[string]interface{}{
-			"language": "ruby",
+		MatchDetails: []match.Details{
+			{
+				Confidence: 1.0,
+				SearchedBy: map[string]interface{}{
+					"language": "ruby",
+				},
+				Found: map[string]interface{}{
+					"constraint": "> 4.0.0, <= 4.1.1 (semver)",
+				},
+				Matcher: match.RubyGemMatcher,
+			},
 		},
-		SearchMatches: map[string]interface{}{
-			"constraint": "> 4.0.0, <= 4.1.1 (semver)",
-		},
-		Matcher: match.RubyGemMatcher,
 	})
 }
 
@@ -151,16 +167,20 @@ func addJavaMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 	}
 	theResult.Add(thePkg, match.Match{
 		Type:          match.ExactDirectMatch,
-		Confidence:    1.0,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		SearchKey: map[string]interface{}{
-			"language": "java",
+		MatchDetails: []match.Details{
+			{
+				Confidence: 1.0,
+				SearchedBy: map[string]interface{}{
+					"language": "java",
+				},
+				Found: map[string]interface{}{
+					"constraint": ">= 0.0.1, < 1.2.0 (unknown)",
+				},
+				Matcher: match.JavaMatcher,
+			},
 		},
-		SearchMatches: map[string]interface{}{
-			"constraint": ">= 0.0.1, < 1.2.0 (unknown)",
-		},
-		Matcher: match.JavaMatcher,
 	})
 }
 
@@ -179,19 +199,23 @@ func addDpkgMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 	}
 	theResult.Add(thePkg, match.Match{
 		Type:          match.ExactIndirectMatch,
-		Confidence:    1.0,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		SearchKey: map[string]interface{}{
-			"distro": map[string]string{
-				"type":    "debian",
-				"version": "8",
+		MatchDetails: []match.Details{
+			{
+				Confidence: 1.0,
+				SearchedBy: map[string]interface{}{
+					"distro": map[string]string{
+						"type":    "debian",
+						"version": "8",
+					},
+				},
+				Found: map[string]interface{}{
+					"constraint": "<= 1.8.2 (deb)",
+				},
+				Matcher: match.DpkgMatcher,
 			},
 		},
-		SearchMatches: map[string]interface{}{
-			"constraint": "<= 1.8.2 (deb)",
-		},
-		Matcher: match.DpkgMatcher,
 	})
 }
 
@@ -209,19 +233,23 @@ func addRhelMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 	}
 	theResult.Add(thePkg, match.Match{
 		Type:          match.ExactDirectMatch,
-		Confidence:    1.0,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		SearchKey: map[string]interface{}{
-			"distro": map[string]string{
-				"type":    "centos",
-				"version": "8",
+		MatchDetails: []match.Details{
+			{
+				Confidence: 1.0,
+				SearchedBy: map[string]interface{}{
+					"distro": map[string]string{
+						"type":    "centos",
+						"version": "8",
+					},
+				},
+				Found: map[string]interface{}{
+					"constraint": "<= 1.0.42 (rpm)",
+				},
+				Matcher: match.RpmDBMatcher,
 			},
 		},
-		SearchMatches: map[string]interface{}{
-			"constraint": "<= 1.0.42 (rpm)",
-		},
-		Matcher: match.RpmDBMatcher,
 	})
 }
 
@@ -310,7 +338,9 @@ func TestPkgCoverageImage(t *testing.T) {
 			actualCount := 0
 			for aMatch := range actualResults.Enumerate() {
 				actualCount++
-				observedMatchers.Add(aMatch.Matcher.String())
+				for _, details := range aMatch.MatchDetails {
+					observedMatchers.Add(details.Matcher.String())
+				}
 				value, ok := expectedMatchSet[aMatch.Package.Name]
 				if !ok {
 					t.Errorf("Package: %s was expected but not found", aMatch.Package.Name)
@@ -327,12 +357,10 @@ func TestPkgCoverageImage(t *testing.T) {
 			if expectedCount != actualCount {
 				t.Errorf("expected %d matches but got %d matches", expectedCount, actualCount)
 			}
-
 		})
 	}
 
 	// ensure that integration test cases stay in sync with the implemented matchers
-
 	observedMatchers.Remove(match.UnknownMatcherType.String())
 	definedMatchers.Remove(match.UnknownMatcherType.String())
 	definedMatchers.Remove(match.MsrcMatcher.String())

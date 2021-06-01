@@ -48,16 +48,19 @@ func getGrypeCommand(t testing.TB, args ...string) *exec.Cmd {
 		}
 
 	}
-	cmd := exec.Command(binaryLocation, args...)
-	// note: we need to preserve env vars + add an additional var to suppress checking for app updates
-	cmd.Env = append(os.Environ(), "GRYPE_CHECK_FOR_APP_UPDATE=false")
-	return cmd
+	return exec.Command(
+		binaryLocation,
+		append(
+			[]string{"-c", "../grype-test-config.yaml"},
+			args...,
+		)...,
+	)
 }
 
 func runGrypeCommand(t testing.TB, env map[string]string, args ...string) (*exec.Cmd, string, string) {
 	cmd := getGrypeCommand(t, args...)
 	if env != nil {
-		cmd.Env = append(cmd.Env, envMapToSlice(env)...)
+		cmd.Env = append(os.Environ(), envMapToSlice(env)...)
 	}
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout

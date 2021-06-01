@@ -3,6 +3,8 @@ package dpkg
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/internal"
@@ -29,27 +31,17 @@ func TestMatcherDpkg_matchBySourceIndirection(t *testing.T) {
 	store := newMockProvider()
 	actual, err := matcher.matchBySourceIndirection(store, &d, p)
 
-	if len(actual) != 2 {
-		t.Fatalf("unexpected indirect matches count: %d", len(actual))
-	}
+	assert.Len(t, actual, 2, "unexpected indirect matches count")
 
 	foundCVEs := internal.NewStringSet()
-
 	for _, a := range actual {
 		foundCVEs.Add(a.Vulnerability.ID)
 
-		if a.Type != match.ExactIndirectMatch {
-			t.Error("indirect match not indicated")
+		assert.Equal(t, match.ExactIndirectMatch, a.Type, "indirect match not indicated")
+		assert.Equal(t, p.Name, a.Package.Name, "failed to capture original package name")
+		for _, detail := range a.MatchDetails {
+			assert.Equal(t, matcher.Type(), detail.Matcher, "failed to capture matcher type")
 		}
-
-		if a.Package.Name != p.Name {
-			t.Errorf("failed to capture correct original package: %s", a.Package.Name)
-		}
-
-		if a.Matcher != matcher.Type() {
-			t.Errorf("failed to capture matcher type: %s", a.Matcher)
-		}
-
 	}
 
 	for _, id := range []string{"CVE-2014-fake-2", "CVE-2013-fake-3"} {
@@ -60,5 +52,4 @@ func TestMatcherDpkg_matchBySourceIndirection(t *testing.T) {
 	if t.Failed() {
 		t.Logf("discovered CVES: %+v", foundCVEs)
 	}
-
 }

@@ -67,53 +67,73 @@ func TestJsonImgsPresenter(t *testing.T) {
 	var match1 = match.Match{
 		Type: match.ExactDirectMatch,
 		Vulnerability: vulnerability.Vulnerability{
-			ID:             "CVE-1999-0001",
-			RecordSource:   "source-1",
-			FixedInVersion: "the-next-version",
-		},
-		Package: pkg1,
-		Matcher: match.DpkgMatcher,
-		SearchKey: map[string]interface{}{
-			"distro": map[string]string{
-				"type":    "ubuntu",
-				"version": "20.04",
+			ID:        "CVE-1999-0001",
+			Namespace: "source-1",
+			Fix: vulnerability.Fix{
+				Versions: []string{
+					"the-next-versions",
+				},
 			},
 		},
-		SearchMatches: map[string]interface{}{
-			"constraint": ">= 20",
+		Package: pkg1,
+		MatchDetails: []match.Details{
+			{
+				Matcher: match.DpkgMatcher,
+				SearchedBy: map[string]interface{}{
+					"distro": map[string]string{
+						"type":    "ubuntu",
+						"version": "20.04",
+					},
+				},
+				Found: map[string]interface{}{
+					"constraint": ">= 20",
+				},
+			},
 		},
 	}
 
 	var match2 = match.Match{
 		Type: match.ExactIndirectMatch,
 		Vulnerability: vulnerability.Vulnerability{
-			ID:           "CVE-1999-0002",
-			RecordSource: "source-2",
+			ID:        "CVE-1999-0002",
+			Namespace: "source-2",
 		},
 		Package: pkg1,
-		Matcher: match.DpkgMatcher,
-		SearchKey: map[string]interface{}{
-			"cpe": "somecpe",
-		},
-		SearchMatches: map[string]interface{}{
-			"constraint": "somecpe",
+		MatchDetails: []match.Details{
+			{
+				Matcher: match.DpkgMatcher,
+				SearchedBy: map[string]interface{}{
+					"cpe": "somecpe",
+				},
+				Found: map[string]interface{}{
+					"constraint": "somecpe",
+				},
+			},
 		},
 	}
 
 	var match3 = match.Match{
 		Type: match.ExactIndirectMatch,
 		Vulnerability: vulnerability.Vulnerability{
-			ID:             "CVE-1999-0003",
-			RecordSource:   "source-1",
-			FixedInVersion: "the-other-next-version",
+			ID:        "CVE-1999-0003",
+			Namespace: "source-1",
+			Fix: vulnerability.Fix{
+				Versions: []string{
+					"the-other-next-version",
+				},
+			},
 		},
 		Package: pkg1,
-		Matcher: match.DpkgMatcher,
-		SearchKey: map[string]interface{}{
-			"language": "java",
-		},
-		SearchMatches: map[string]interface{}{
-			"constraint": "< 2.0.0",
+		MatchDetails: []match.Details{
+			{
+				Matcher: match.DpkgMatcher,
+				SearchedBy: map[string]interface{}{
+					"language": "java",
+				},
+				Found: map[string]interface{}{
+					"constraint": "< 2.0.0",
+				},
+			},
 		},
 	}
 
@@ -193,53 +213,73 @@ func TestJsonDirsPresenter(t *testing.T) {
 	var match1 = match.Match{
 		Type: match.ExactDirectMatch,
 		Vulnerability: vulnerability.Vulnerability{
-			ID:             "CVE-1999-0001",
-			RecordSource:   "source-1",
-			FixedInVersion: "the-next-version",
-		},
-		Package: pkg1,
-		Matcher: match.DpkgMatcher,
-		SearchKey: map[string]interface{}{
-			"distro": map[string]string{
-				"type":    "ubuntu",
-				"version": "20.04",
+			ID:        "CVE-1999-0001",
+			Namespace: "source-1",
+			Fix: vulnerability.Fix{
+				Versions: []string{
+					"the-next-version",
+				},
 			},
 		},
-		SearchMatches: map[string]interface{}{
-			"constraint": ">= 20",
+		Package: pkg1,
+		MatchDetails: []match.Details{
+			{
+				Matcher: match.DpkgMatcher,
+				SearchedBy: map[string]interface{}{
+					"distro": map[string]string{
+						"type":    "ubuntu",
+						"version": "20.04",
+					},
+				},
+				Found: map[string]interface{}{
+					"constraint": ">= 20",
+				},
+			},
 		},
 	}
 
 	var match2 = match.Match{
 		Type: match.ExactIndirectMatch,
 		Vulnerability: vulnerability.Vulnerability{
-			ID:           "CVE-1999-0002",
-			RecordSource: "source-2",
+			ID:        "CVE-1999-0002",
+			Namespace: "source-2",
 		},
 		Package: pkg1,
-		Matcher: match.DpkgMatcher,
-		SearchKey: map[string]interface{}{
-			"cpe": "somecpe",
-		},
-		SearchMatches: map[string]interface{}{
-			"constraint": "somecpe",
+		MatchDetails: []match.Details{
+			{
+				Matcher: match.DpkgMatcher,
+				SearchedBy: map[string]interface{}{
+					"cpe": "somecpe",
+				},
+				Found: map[string]interface{}{
+					"constraint": "somecpe",
+				},
+			},
 		},
 	}
 
 	var match3 = match.Match{
 		Type: match.ExactIndirectMatch,
 		Vulnerability: vulnerability.Vulnerability{
-			ID:             "CVE-1999-0003",
-			RecordSource:   "source-1",
-			FixedInVersion: "the-other-next-version",
+			ID:        "CVE-1999-0003",
+			Namespace: "source-1",
+			Fix: vulnerability.Fix{
+				Versions: []string{
+					"the-other-next-version",
+				},
+			},
 		},
 		Package: pkg1,
-		Matcher: match.DpkgMatcher,
-		SearchKey: map[string]interface{}{
-			"language": "java",
-		},
-		SearchMatches: map[string]interface{}{
-			"constraint": "< 2.0.0",
+		MatchDetails: []match.Details{
+			{
+				Matcher: match.DpkgMatcher,
+				SearchedBy: map[string]interface{}{
+					"language": "java",
+				},
+				Found: map[string]interface{}{
+					"constraint": "< 2.0.0",
+				},
+			},
 		},
 	}
 

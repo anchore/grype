@@ -10,7 +10,7 @@ import (
 	"github.com/anchore/syft/syft/source"
 )
 
-// Presenter writes a CycloneDX report from the given Catalog and Scope contents
+// Presenter writes a CycloneDX report from the given Matches and Scope contents
 type Presenter struct {
 	results          match.Matches
 	packages         []pkg.Package

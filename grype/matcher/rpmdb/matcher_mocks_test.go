@@ -10,19 +10,19 @@ import (
 )
 
 type mockProvider struct {
-	data map[string]map[string][]*vulnerability.Vulnerability
+	data map[string]map[string][]vulnerability.Vulnerability
 }
 
 func newMockProvider() *mockProvider {
 	pr := mockProvider{
-		data: make(map[string]map[string][]*vulnerability.Vulnerability),
+		data: make(map[string]map[string][]vulnerability.Vulnerability),
 	}
 	pr.stub()
 	return &pr
 }
 
 func (pr *mockProvider) stub() {
-	pr.data["rhel:8"] = map[string][]*vulnerability.Vulnerability{
+	pr.data["rhel:8"] = map[string][]vulnerability.Vulnerability{
 		// direct...
 		"neutron-libs": {
 			{
@@ -50,7 +50,7 @@ func (pr *mockProvider) stub() {
 	}
 }
 
-func (pr *mockProvider) GetByDistro(d distro.Distro, p pkg.Package) ([]*vulnerability.Vulnerability, error) {
+func (pr *mockProvider) GetByDistro(d distro.Distro, p pkg.Package) ([]vulnerability.Vulnerability, error) {
 	var ty = strings.ToLower(d.Type.String())
 	if d.Type == distro.CentOS || d.Type == distro.RedHat {
 		ty = "rhel"

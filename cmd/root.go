@@ -209,6 +209,9 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			if err != nil {
 				errs <- fmt.Errorf("failed to load vulnerability db: %w", err)
 			}
+			if dbStatus == nil {
+				errs <- fmt.Errorf("unable to determine DB status")
+			}
 		}()
 
 		go func() {
@@ -236,7 +239,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 		bus.Publish(partybus.Event{
 			Type:  event.VulnerabilityScanningFinished,
-			Value: presenter.GetPresenter(presenterConfig, matches, packages, context, metadataProvider, *appConfig, *dbStatus),
+			Value: presenter.GetPresenter(presenterConfig, matches, packages, context, metadataProvider, appConfig, dbStatus),
 		})
 	}()
 	return errs
@@ -259,7 +262,7 @@ func hitSeverityThreshold(thresholdSeverity *vulnerability.Severity, matches mat
 	if thresholdSeverity != nil {
 		var maxDiscoveredSeverity vulnerability.Severity
 		for m := range matches.Enumerate() {
-			metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.RecordSource)
+			metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.Namespace)
 			if err != nil {
 				continue
 			}

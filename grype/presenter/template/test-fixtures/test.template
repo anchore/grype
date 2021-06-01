@@ -1,9 +1,10 @@
 Identified distro as {{.Distro.Name}} version {{.Distro.Version}}.
 {{- range .Matches}}
-
     Vulnerability: {{.Vulnerability.ID}}
     Severity: {{.Vulnerability.Severity}}
-    Matched by: {{.MatchDetails.Matcher}}
     Package: {{.Artifact.Name}} version {{.Artifact.Version}} ({{.Artifact.Type}})
+    {{- range .MatchDetails}}
+    Matched by: {{.Matcher}}
+    {{- end}}
 {{- end}}
 

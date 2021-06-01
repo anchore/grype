@@ -3,6 +3,8 @@ package models
 import (
 	"testing"
 
+	grypeDb "github.com/anchore/grype-db/pkg/db"
+
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -29,35 +31,46 @@ func generateMatches(t *testing.T, p pkg.Package) match.Matches {
 		{
 			Type: match.ExactDirectMatch,
 			Vulnerability: vulnerability.Vulnerability{
-				ID:             "CVE-1999-0001",
-				RecordSource:   "source-1",
-				FixedInVersion: "the-next-version",
-			},
-			Package: p,
-			Matcher: match.DpkgMatcher,
-			SearchKey: map[string]interface{}{
-				"distro": map[string]string{
-					"type":    "ubuntu",
-					"version": "20.04",
+				ID:        "CVE-1999-0001",
+				Namespace: "source-1",
+				Fix: vulnerability.Fix{
+					Versions: []string{"the-next-version"},
+					State:    grypeDb.FixedState,
 				},
 			},
-			SearchMatches: map[string]interface{}{
-				"constraint": ">= 20",
+			Package: p,
+			MatchDetails: []match.Details{
+				{
+					Matcher: match.DpkgMatcher,
+					SearchedBy: map[string]interface{}{
+						"distro": map[string]string{
+							"type":    "ubuntu",
+							"version": "20.04",
+						},
+					},
+					Found: map[string]interface{}{
+						"constraint": ">= 20",
+					},
+				},
 			},
 		},
 		{
 			Type: match.ExactIndirectMatch,
 			Vulnerability: vulnerability.Vulnerability{
-				ID:           "CVE-1999-0002",
-				RecordSource: "source-2",
+				ID:        "CVE-1999-0002",
+				Namespace: "source-2",
 			},
 			Package: p,
-			Matcher: match.DpkgMatcher,
-			SearchKey: map[string]interface{}{
-				"cpe": "somecpe",
-			},
-			SearchMatches: map[string]interface{}{
-				"constraint": "somecpe",
+			MatchDetails: []match.Details{
+				{
+					Matcher: match.DpkgMatcher,
+					SearchedBy: map[string]interface{}{
+						"cpe": "somecpe",
+					},
+					Found: map[string]interface{}{
+						"constraint": "somecpe",
+					},
+				},
 			},
 		},
 	}

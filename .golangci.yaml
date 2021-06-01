@@ -28,7 +28,6 @@ linters:
     - misspell
     - nakedret
     - nolintlint
-    - prealloc
     - rowserrcheck
     - scopelint
     - staticcheck
@@ -51,6 +50,7 @@ linters:
 #    - interfacer  # this is a good idea, but is no longer supported and is prone to false positives
 #    - lll         # without a way to specify per-line exception cases, this is not usable
 #    - maligned    # this is an excellent linter, but tricky to optimize and we are not sensitive to memory layout optimizations
+#    - prealloc    # following this rule isn't consistently a good idea, as it sometimes forces unnecessary allocations that result in less idiomatic code
 #    - nestif
 #    - testpackage
 #    - wsl

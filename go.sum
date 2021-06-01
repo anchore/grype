@@ -122,13 +122,12 @@ github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04/go.mod h1:6dK
 github.com/anchore/go-version v1.2.2-0.20200701162849-18adb9c92b9b/go.mod h1:Bkc+JYWjMCF8OyZ340IMSIi2Ebf3uwByOk6ho4wne1E=
 github.com/anchore/go-version v1.2.2-0.20200810141238-330bef18dbca h1:rLyc7Rih769rYABQe4nBPt3jHJd/snBuVvKKGoy5HEc=
 github.com/anchore/go-version v1.2.2-0.20200810141238-330bef18dbca/go.mod h1:Bkc+JYWjMCF8OyZ340IMSIi2Ebf3uwByOk6ho4wne1E=
-github.com/anchore/grype-db v0.0.0-20210322113357-5aec8a7cb962 h1:yW3xed7hbEjdmEXRnBFit5AGN0exPIFgE1jgW9bks+Q=
-github.com/anchore/grype-db v0.0.0-20210322113357-5aec8a7cb962/go.mod h1:LINmipRzG88vnJEWvgMMDVCFH1qZsj7+bjmpERlSyaA=
-github.com/anchore/stereoscope v0.0.0-20210413221244-d577f30b19e6/go.mod h1:vhh1M99rfWx5ejMvz1lkQiFZUrC5wu32V12R4JXH+ZI=
+github.com/anchore/grype-db v0.0.0-20210527140125-6f881b00e927 h1:4DX6mymMdYIH1ptYEXZupij8x8AeNYR0Q9ILsqbE3nc=
+github.com/anchore/grype-db v0.0.0-20210527140125-6f881b00e927/go.mod h1:XSlPf1awNrMpah+rHbWrzgUvnmWLgn/KkdicxERVClg=
 github.com/anchore/stereoscope v0.0.0-20210524175238-3b7662f3a66f h1:bFadyOLOkzME3BrZFZ5m8cf/b2hsn3aMSS9s+SKubRk=
 github.com/anchore/stereoscope v0.0.0-20210524175238-3b7662f3a66f/go.mod h1:vhh1M99rfWx5ejMvz1lkQiFZUrC5wu32V12R4JXH+ZI=
-github.com/anchore/syft v0.15.3-0.20210524151556-2ca2f0350133 h1:37KItVunSU9vX8umE0PoH8SKZ+XR7itt2+DehSjxv9A=
-github.com/anchore/syft v0.15.3-0.20210524151556-2ca2f0350133/go.mod h1:5k4L4CA5ZFFmRdk64oj0AV1ZqvLFZVOpfCk8DfUOsVc=
+github.com/anchore/syft v0.16.2-0.20210526131825-2754c889eb0e h1:9ZDikTvJRDfIP4ltdChCZ4dd5iEAjn7ZrnGreM5dI+o=
+github.com/anchore/syft v0.16.2-0.20210526131825-2754c889eb0e/go.mod h1:9jf8z5ubQXc1XuMpmCnHnXtB6NtuMdO8k+hfcAWIsNM=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 h1:bvNMNQO63//z+xNgfBlViaCIJKLlCJ6/fmUseuG0wVQ=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/cascadia v1.1.0/go.mod h1:GsXiBklL0woXo1j/WYWtSYYC4ouU9PqHO0sqidkEA4Y=

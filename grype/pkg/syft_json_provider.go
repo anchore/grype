@@ -202,7 +202,7 @@ func parseSyftJSON(reader io.Reader) ([]Package, Context, error) {
 		}
 
 		packages[i] = Package{
-			id:        ID(a.ID),
+			ID:        ID(a.ID),
 			Name:      a.Name,
 			Version:   a.Version,
 			Locations: a.Locations,
