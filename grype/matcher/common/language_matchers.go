@@ -45,7 +45,7 @@ func FindMatchesByPackageLanguage(store vulnerability.ProviderByLanguage, l syft
 						"language":  l.String(),
 						"namespace": vuln.Namespace,
 					},
-					MatchedOn: map[string]interface{}{
+					Found: map[string]interface{}{
 						"versionConstraint": vuln.Constraint.String(),
 					},
 				},

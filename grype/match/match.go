@@ -18,7 +18,7 @@ type Match struct {
 
 type Details struct {
 	SearchedBy interface{} // The specific attributes that were used to search (other than package name and version) --this indicates "how" the match was made.
-	MatchedOn  interface{} // The specific attributes on the vulnerability object that were matched with --this indicates "what" was matched on / within.
+	Found      interface{} // The specific attributes on the vulnerability object that were matched with --this indicates "what" was matched on / within.
 	Matcher    MatcherType // The matcher object that discovered the match.
 	Confidence float64     // The certainty of the match as a ratio (currently unused, reserved for future use).
 }

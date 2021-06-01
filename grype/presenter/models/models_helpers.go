@@ -48,7 +48,7 @@ func generateMatches(t *testing.T, p pkg.Package) match.Matches {
 							"version": "20.04",
 						},
 					},
-					MatchedOn: map[string]interface{}{
+					Found: map[string]interface{}{
 						"constraint": ">= 20",
 					},
 				},
@@ -67,7 +67,7 @@ func generateMatches(t *testing.T, p pkg.Package) match.Matches {
 					SearchedBy: map[string]interface{}{
 						"cpe": "somecpe",
 					},
-					MatchedOn: map[string]interface{}{
+					Found: map[string]interface{}{
 						"constraint": "somecpe",
 					},
 				},

@@ -53,7 +53,7 @@ func FindMatchesByPackageDistro(store vulnerability.ProviderByDistro, d *distro.
 						},
 						"namespace": vuln.Namespace,
 					},
-					MatchedOn: map[string]interface{}{
+					Found: map[string]interface{}{
 						"versionConstraint": vuln.Constraint.String(),
 					},
 					Confidence: 1.0, // TODO: this is hard coded for now

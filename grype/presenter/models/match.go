@@ -20,7 +20,7 @@ type Match struct {
 type MatchDetails struct {
 	Matcher    string      `json:"matcher"`
 	SearchedBy interface{} `json:"searchedBy"`
-	MatchedOn  interface{} `json:"matchedOn"`
+	Found      interface{} `json:"found"`
 }
 
 func newMatch(m match.Match, p pkg.Package, metadataProvider vulnerability.MetadataProvider) (*Match, error) {
@@ -45,7 +45,7 @@ func newMatch(m match.Match, p pkg.Package, metadataProvider vulnerability.Metad
 		details[idx] = MatchDetails{
 			Matcher:    d.Matcher.String(),
 			SearchedBy: d.SearchedBy,
-			MatchedOn:  d.MatchedOn,
+			Found:      d.Found,
 		}
 	}
 

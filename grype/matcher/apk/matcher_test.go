@@ -86,7 +86,7 @@ func TestSecDBOnlyMatch(t *testing.T) {
 						},
 						"namespace": "secdb",
 					},
-					MatchedOn: map[string]interface{}{
+					Found: map[string]interface{}{
 						"versionConstraint": vulnFound.Constraint.String(),
 					},
 					Matcher: match.ApkMatcher,
@@ -166,7 +166,7 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 						},
 						"namespace": "secdb",
 					},
-					MatchedOn: map[string]interface{}{
+					Found: map[string]interface{}{
 						"versionConstraint": vulnFound.Constraint.String(),
 					},
 					Matcher: match.ApkMatcher,
@@ -247,7 +247,7 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 						},
 						"namespace": "secdb",
 					},
-					MatchedOn: map[string]interface{}{
+					Found: map[string]interface{}{
 						"versionConstraint": vulnFound.Constraint.String(),
 					},
 					Matcher: match.ApkMatcher,
@@ -311,7 +311,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 						CPEs:      []string{"cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"},
 						Namespace: "nvd",
 					},
-					MatchedOn: common.MatchedOnCPEs{
+					Found: common.FoundCPEs{
 						CPEs:              []string{vulnFound.CPEs[0].BindToFmtString()},
 						VersionConstraint: vulnFound.Constraint.String(),
 					},

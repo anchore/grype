@@ -91,7 +91,7 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 						},
 						"namespace": "debian:8",
 					},
-					MatchedOn: map[string]interface{}{
+					Found: map[string]interface{}{
 						"versionConstraint": "< 2014.1.5-6 (deb)",
 					},
 					Matcher: match.PythonMatcher,

@@ -85,7 +85,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 						"version": "20.04",
 					},
 				},
-				MatchedOn: map[string]interface{}{
+				Found: map[string]interface{}{
 					"constraint": ">= 20",
 				},
 			},
@@ -105,7 +105,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 				SearchedBy: map[string]interface{}{
 					"cpe": "somecpe",
 				},
-				MatchedOn: map[string]interface{}{
+				Found: map[string]interface{}{
 					"constraint": "somecpe",
 				},
 			},
@@ -130,7 +130,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 				SearchedBy: map[string]interface{}{
 					"language": "java",
 				},
-				MatchedOn: map[string]interface{}{
+				Found: map[string]interface{}{
 					"constraint": "< 2.0.0",
 				},
 			},
@@ -231,7 +231,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 						"version": "20.04",
 					},
 				},
-				MatchedOn: map[string]interface{}{
+				Found: map[string]interface{}{
 					"constraint": ">= 20",
 				},
 			},
@@ -251,7 +251,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 				SearchedBy: map[string]interface{}{
 					"cpe": "somecpe",
 				},
-				MatchedOn: map[string]interface{}{
+				Found: map[string]interface{}{
 					"constraint": "somecpe",
 				},
 			},
@@ -276,7 +276,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 				SearchedBy: map[string]interface{}{
 					"language": "java",
 				},
-				MatchedOn: map[string]interface{}{
+				Found: map[string]interface{}{
 					"constraint": "< 2.0.0",
 				},
 			},

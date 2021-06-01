@@ -38,7 +38,7 @@ func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Ca
 				SearchedBy: map[string]interface{}{
 					"cpe": "cpe:2.3:*:*:libvncserver:0.9.9:*:*:*:*:*:*:*",
 				},
-				MatchedOn: map[string]interface{}{
+				Found: map[string]interface{}{
 					"cpes":       []string{"cpe:2.3:*:*:libvncserver:0.9.9:*:*:*:*:*:*:*"},
 					"constraint": "< 0.9.10 (unknown)",
 				},
@@ -70,7 +70,7 @@ func addJavascriptMatches(t *testing.T, theSource source.Source, catalog *syftPk
 				SearchedBy: map[string]interface{}{
 					"language": "javascript",
 				},
-				MatchedOn: map[string]interface{}{
+				Found: map[string]interface{}{
 					"constraint": "< 3.2.1 (unknown)",
 				},
 				Matcher: match.JavascriptMatcher,
@@ -104,7 +104,7 @@ func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Ca
 				SearchedBy: map[string]interface{}{
 					"language": "python",
 				},
-				MatchedOn: map[string]interface{}{
+				Found: map[string]interface{}{
 					"constraint": "< 2.6.2 (python)",
 				},
 				Matcher: match.PythonMatcher,
@@ -135,7 +135,7 @@ func addRubyMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 				SearchedBy: map[string]interface{}{
 					"language": "ruby",
 				},
-				MatchedOn: map[string]interface{}{
+				Found: map[string]interface{}{
 					"constraint": "> 4.0.0, <= 4.1.1 (semver)",
 				},
 				Matcher: match.RubyGemMatcher,
@@ -175,7 +175,7 @@ func addJavaMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 				SearchedBy: map[string]interface{}{
 					"language": "java",
 				},
-				MatchedOn: map[string]interface{}{
+				Found: map[string]interface{}{
 					"constraint": ">= 0.0.1, < 1.2.0 (unknown)",
 				},
 				Matcher: match.JavaMatcher,
@@ -210,7 +210,7 @@ func addDpkgMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 						"version": "8",
 					},
 				},
-				MatchedOn: map[string]interface{}{
+				Found: map[string]interface{}{
 					"constraint": "<= 1.8.2 (deb)",
 				},
 				Matcher: match.DpkgMatcher,
@@ -244,7 +244,7 @@ func addRhelMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 						"version": "8",
 					},
 				},
-				MatchedOn: map[string]interface{}{
+				Found: map[string]interface{}{
 					"constraint": "<= 1.0.42 (rpm)",
 				},
 				Matcher: match.RpmDBMatcher,

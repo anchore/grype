@@ -35,7 +35,7 @@
        "version": "20.04"
       }
      },
-     "matchedOn": {
+     "found": {
       "constraint": ">= 20"
      }
     }
@@ -93,7 +93,7 @@
      "searchedBy": {
       "cpe": "somecpe"
      },
-     "matchedOn": {
+     "found": {
       "constraint": "somecpe"
      }
     }
@@ -139,7 +139,7 @@
      "searchedBy": {
       "language": "java"
      },
-     "matchedOn": {
+     "found": {
       "constraint": "< 2.0.0"
      }
     }

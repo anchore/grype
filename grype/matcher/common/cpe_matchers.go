@@ -31,12 +31,12 @@ func (i *SearchedByCPEs) Merge(other SearchedByCPEs) error {
 	return nil
 }
 
-type MatchedOnCPEs struct {
+type FoundCPEs struct {
 	VersionConstraint string   `json:"versionConstraint"`
 	CPEs              []string `json:"cpes"`
 }
 
-func (h MatchedOnCPEs) Equals(other MatchedOnCPEs) bool {
+func (h FoundCPEs) Equals(other FoundCPEs) bool {
 	if h.VersionConstraint != other.VersionConstraint {
 		return false
 	}
@@ -87,7 +87,7 @@ func FindMatchesByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, u
 				continue
 			}
 
-			addNewMatch(matchesByFingerprint, vuln, p, searchVersionObj, upstreamMatcher, cpe)
+			addNewMatch(matchesByFingerprint, vuln, p, *searchVersionObj, upstreamMatcher, cpe)
 		}
 	}
 
@@ -115,7 +115,7 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 					searchedByCPE.BindToFmtString(),
 				},
 			},
-			MatchedOn: MatchedOnCPEs{
+			Found: FoundCPEs{
 				VersionConstraint: vuln.Constraint.String(),
 				CPEs:              cpesToString(filterCPEsByVersion(pkgVersion, vuln.CPEs)),
 			},
@@ -126,7 +126,7 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 }
 
 func addMatchDetails(existingDetails []match.Details, newDetails match.Details) []match.Details {
-	newMatchedOn, ok := newDetails.MatchedOn.(MatchedOnCPEs)
+	newFound, ok := newDetails.Found.(FoundCPEs)
 	if !ok {
 		return existingDetails
 	}
@@ -136,7 +136,7 @@ func addMatchDetails(existingDetails []match.Details, newDetails match.Details) 
 		return existingDetails
 	}
 	for idx, detail := range existingDetails {
-		matchedOn, ok := detail.MatchedOn.(MatchedOnCPEs)
+		found, ok := detail.Found.(FoundCPEs)
 		if !ok {
 			continue
 		}
@@ -146,7 +146,7 @@ func addMatchDetails(existingDetails []match.Details, newDetails match.Details) 
 			continue
 		}
 
-		if !matchedOn.Equals(newMatchedOn) {
+		if !found.Equals(newFound) {
 			continue
 		}
 

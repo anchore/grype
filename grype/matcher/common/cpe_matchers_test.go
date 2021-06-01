@@ -144,7 +144,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 								Namespace: "nvd",
 								CPEs:      []string{"cpe:2.3:*:activerecord:activerecord:3.7.5:rando4:*:rando3:*:rails:*:*"},
 							},
-							MatchedOn: MatchedOnCPEs{
+							Found: FoundCPEs{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*"},
 								VersionConstraint: "< 3.7.6 (semver)",
 							},
@@ -192,7 +192,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 								},
 								Namespace: "nvd",
 							},
-							MatchedOn: MatchedOnCPEs{
+							Found: FoundCPEs{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*"},
 								VersionConstraint: "< 3.7.6 (semver)",
 							},
@@ -223,7 +223,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 								CPEs:      []string{"cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:rando2:*:ruby:*:*"},
 								Namespace: "nvd",
 							},
-							MatchedOn: MatchedOnCPEs{
+							Found: FoundCPEs{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:ruby:*:*"},
 								VersionConstraint: "< 3.7.4 (semver)",
 							},
@@ -266,7 +266,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 								CPEs:      []string{"cpe:2.3:*:*:activerecord:4.0.1:*:*:*:*:*:*:*"},
 								Namespace: "nvd",
 							},
-							MatchedOn: MatchedOnCPEs{
+							Found: FoundCPEs{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:4.0.1:*:*:*:*:*:*:*"},
 								VersionConstraint: "= 4.0.1 (semver)",
 							},
@@ -316,7 +316,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 								CPEs:      []string{"cpe:2.3:*:awesome:awesome:98SE1:rando1:*:rando2:*:dunno:*:*"},
 								Namespace: "nvd",
 							},
-							MatchedOn: MatchedOnCPEs{
+							Found: FoundCPEs{
 								CPEs:              []string{"cpe:2.3:*:awesome:awesome:*:*:*:*:*:*:*:*"},
 								VersionConstraint: "< 98SP3 (unknown)",
 							},
@@ -360,7 +360,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 								CPEs:      []string{"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*"},
 								Namespace: "nvd",
 							},
-							MatchedOn: MatchedOnCPEs{
+							Found: FoundCPEs{
 								CPEs: []string{
 									"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
 									"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
@@ -423,7 +423,7 @@ func TestFilterCPEsByVersion(t *testing.T) {
 			}
 
 			// run the test subject...
-			actual := filterCPEsByVersion(versionObj, vulnerabilityCPEs)
+			actual := filterCPEsByVersion(*versionObj, vulnerabilityCPEs)
 
 			// format CPE objects to string...
 			actualStrs := make([]string, len(actual))
@@ -444,7 +444,7 @@ func TestAddMatchDetails(t *testing.T) {
 		expected []match.Details
 	}{
 		{
-			name: "append new entry -- matchedOn not equal",
+			name: "append new entry -- found not equal",
 			existing: []match.Details{
 				{
 					SearchedBy: SearchedByCPEs{
@@ -453,7 +453,7 @@ func TestAddMatchDetails(t *testing.T) {
 							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 						},
 					},
-					MatchedOn: MatchedOnCPEs{
+					Found: FoundCPEs{
 						VersionConstraint: "< 2.0 (unknown)",
 						CPEs: []string{
 							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
@@ -468,7 +468,7 @@ func TestAddMatchDetails(t *testing.T) {
 						"totally-different-search",
 					},
 				},
-				MatchedOn: MatchedOnCPEs{
+				Found: FoundCPEs{
 					VersionConstraint: "< 2.0 (unknown)",
 					CPEs: []string{
 						"totally-different-match",
@@ -483,7 +483,7 @@ func TestAddMatchDetails(t *testing.T) {
 							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 						},
 					},
-					MatchedOn: MatchedOnCPEs{
+					Found: FoundCPEs{
 						VersionConstraint: "< 2.0 (unknown)",
 						CPEs: []string{
 							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
@@ -497,7 +497,7 @@ func TestAddMatchDetails(t *testing.T) {
 							"totally-different-search",
 						},
 					},
-					MatchedOn: MatchedOnCPEs{
+					Found: FoundCPEs{
 						VersionConstraint: "< 2.0 (unknown)",
 						CPEs: []string{
 							"totally-different-match",
@@ -516,7 +516,7 @@ func TestAddMatchDetails(t *testing.T) {
 							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 						},
 					},
-					MatchedOn: MatchedOnCPEs{
+					Found: FoundCPEs{
 						VersionConstraint: "< 2.0 (unknown)",
 						CPEs: []string{
 							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
@@ -531,7 +531,7 @@ func TestAddMatchDetails(t *testing.T) {
 						"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 					},
 				},
-				MatchedOn: MatchedOnCPEs{
+				Found: FoundCPEs{
 					VersionConstraint: "< 2.0 (unknown)",
 					CPEs: []string{
 						"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
@@ -546,7 +546,7 @@ func TestAddMatchDetails(t *testing.T) {
 							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 						},
 					},
-					MatchedOn: MatchedOnCPEs{
+					Found: FoundCPEs{
 						VersionConstraint: "< 2.0 (unknown)",
 						CPEs: []string{
 							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
@@ -560,7 +560,7 @@ func TestAddMatchDetails(t *testing.T) {
 							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 						},
 					},
-					MatchedOn: MatchedOnCPEs{
+					Found: FoundCPEs{
 						VersionConstraint: "< 2.0 (unknown)",
 						CPEs: []string{
 							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
@@ -579,7 +579,7 @@ func TestAddMatchDetails(t *testing.T) {
 							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 						},
 					},
-					MatchedOn: MatchedOnCPEs{
+					Found: FoundCPEs{
 						VersionConstraint: "< 2.0 (unknown)",
 						CPEs: []string{
 							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
@@ -594,7 +594,7 @@ func TestAddMatchDetails(t *testing.T) {
 						"totally-different-search",
 					},
 				},
-				MatchedOn: MatchedOnCPEs{
+				Found: FoundCPEs{
 					VersionConstraint: "< 2.0 (unknown)",
 					CPEs: []string{
 						"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
@@ -610,7 +610,7 @@ func TestAddMatchDetails(t *testing.T) {
 							"totally-different-search",
 						},
 					},
-					MatchedOn: MatchedOnCPEs{
+					Found: FoundCPEs{
 						VersionConstraint: "< 2.0 (unknown)",
 						CPEs: []string{
 							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
@@ -629,7 +629,7 @@ func TestAddMatchDetails(t *testing.T) {
 							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 						},
 					},
-					MatchedOn: MatchedOnCPEs{
+					Found: FoundCPEs{
 						VersionConstraint: "< 2.0 (unknown)",
 						CPEs: []string{
 							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
@@ -639,7 +639,7 @@ func TestAddMatchDetails(t *testing.T) {
 			},
 			new: match.Details{
 				SearchedBy: "something else!",
-				MatchedOn: MatchedOnCPEs{
+				Found: FoundCPEs{
 					VersionConstraint: "< 2.0 (unknown)",
 					CPEs: []string{
 						"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
@@ -654,7 +654,7 @@ func TestAddMatchDetails(t *testing.T) {
 							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 						},
 					},
-					MatchedOn: MatchedOnCPEs{
+					Found: FoundCPEs{
 						VersionConstraint: "< 2.0 (unknown)",
 						CPEs: []string{
 							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
@@ -664,7 +664,7 @@ func TestAddMatchDetails(t *testing.T) {
 			},
 		},
 		{
-			name: "no addition - bad new matchedOn type",
+			name: "no addition - bad new found type",
 			existing: []match.Details{
 				{
 					SearchedBy: SearchedByCPEs{
@@ -673,7 +673,7 @@ func TestAddMatchDetails(t *testing.T) {
 							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 						},
 					},
-					MatchedOn: MatchedOnCPEs{
+					Found: FoundCPEs{
 						VersionConstraint: "< 2.0 (unknown)",
 						CPEs: []string{
 							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
@@ -688,7 +688,7 @@ func TestAddMatchDetails(t *testing.T) {
 						"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 					},
 				},
-				MatchedOn: "something-else!",
+				Found: "something-else!",
 			},
 			expected: []match.Details{
 				{
@@ -698,7 +698,7 @@ func TestAddMatchDetails(t *testing.T) {
 							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 						},
 					},
-					MatchedOn: MatchedOnCPEs{
+					Found: FoundCPEs{
 						VersionConstraint: "< 2.0 (unknown)",
 						CPEs: []string{
 							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
@@ -719,19 +719,19 @@ func TestAddMatchDetails(t *testing.T) {
 func TestCPESearchHit_Equals(t *testing.T) {
 	tests := []struct {
 		name     string
-		current  MatchedOnCPEs
-		other    MatchedOnCPEs
+		current  FoundCPEs
+		other    FoundCPEs
 		expected bool
 	}{
 		{
 			name: "different version constraint",
-			current: MatchedOnCPEs{
+			current: FoundCPEs{
 				VersionConstraint: "current-constraint",
 				CPEs: []string{
 					"a-cpe",
 				},
 			},
-			other: MatchedOnCPEs{
+			other: FoundCPEs{
 				VersionConstraint: "different-constraint",
 				CPEs: []string{
 					"a-cpe",
@@ -741,13 +741,13 @@ func TestCPESearchHit_Equals(t *testing.T) {
 		},
 		{
 			name: "different number of CPEs",
-			current: MatchedOnCPEs{
+			current: FoundCPEs{
 				VersionConstraint: "current-constraint",
 				CPEs: []string{
 					"a-cpe",
 				},
 			},
-			other: MatchedOnCPEs{
+			other: FoundCPEs{
 				VersionConstraint: "current-constraint",
 				CPEs: []string{
 					"a-cpe",
@@ -758,13 +758,13 @@ func TestCPESearchHit_Equals(t *testing.T) {
 		},
 		{
 			name: "different CPE value",
-			current: MatchedOnCPEs{
+			current: FoundCPEs{
 				VersionConstraint: "current-constraint",
 				CPEs: []string{
 					"a-cpe",
 				},
 			},
-			other: MatchedOnCPEs{
+			other: FoundCPEs{
 				VersionConstraint: "current-constraint",
 				CPEs: []string{
 					"b-cpe",
@@ -774,13 +774,13 @@ func TestCPESearchHit_Equals(t *testing.T) {
 		},
 		{
 			name: "matches",
-			current: MatchedOnCPEs{
+			current: FoundCPEs{
 				VersionConstraint: "current-constraint",
 				CPEs: []string{
 					"a-cpe",
 				},
 			},
-			other: MatchedOnCPEs{
+			other: FoundCPEs{
 				VersionConstraint: "current-constraint",
 				CPEs: []string{
 					"a-cpe",
