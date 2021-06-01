@@ -307,11 +307,11 @@ func TestNvdOnlyMatches(t *testing.T) {
 			MatchDetails: []match.Details{
 				{
 					Confidence: 0.9,
-					SearchedBy: common.CPESearchInput{
+					SearchedBy: common.SearchedByCPEs{
 						CPEs:      []string{"cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"},
 						Namespace: "nvd",
 					},
-					MatchedOn: common.CPESearchHit{
+					MatchedOn: common.MatchedOnCPEs{
 						CPEs:              []string{vulnFound.CPEs[0].BindToFmtString()},
 						VersionConstraint: vulnFound.Constraint.String(),
 					},

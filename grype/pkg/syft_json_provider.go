@@ -83,7 +83,7 @@ type partialSyftPackage struct {
 
 // packageBasicMetadata contains non-ambiguous values (type-wise) from pkg.Package.
 type packageBasicMetadata struct {
-	ID        string            `json:"ID"`
+	ID        string            `json:"id"`
 	Name      string            `json:"name"`
 	Version   string            `json:"version"`
 	Type      pkg.Type          `json:"type"`

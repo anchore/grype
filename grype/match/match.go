@@ -24,11 +24,11 @@ type Details struct {
 }
 
 type Fingerprint struct {
-	VulnerabilityID        string
-	VulnerabilityNamespace string
-	VulnerabilityFixes     string
-	PackageID              pkg.ID // this encodes package name, version, type, location
-	MatchType              Type
+	vulnerabilityID        string
+	vulnerabilityNamespace string
+	vulnerabilityFixes     string
+	packageID              pkg.ID // this encodes package name, version, type, location
+	matchType              Type
 }
 
 // String is the string representation of select match fields.
@@ -42,10 +42,10 @@ func (m Match) Summary() string {
 
 func (m Match) Fingerprint() Fingerprint {
 	return Fingerprint{
-		VulnerabilityID:        m.Vulnerability.ID,
-		VulnerabilityNamespace: m.Vulnerability.Namespace,
-		VulnerabilityFixes:     strings.Join(m.Vulnerability.Fix.Versions, ","),
-		PackageID:              m.Package.ID,
-		MatchType:              m.Type,
+		vulnerabilityID:        m.Vulnerability.ID,
+		vulnerabilityNamespace: m.Vulnerability.Namespace,
+		vulnerabilityFixes:     strings.Join(m.Vulnerability.Fix.Versions, ","),
+		packageID:              m.Package.ID,
+		matchType:              m.Type,
 	}
 }

@@ -13,12 +13,12 @@ import (
 	"github.com/scylladb/go-set/strset"
 )
 
-type CPESearchInput struct {
+type SearchedByCPEs struct {
 	Namespace string   `json:"namespace"`
 	CPEs      []string `json:"cpes"`
 }
 
-func (i *CPESearchInput) Merge(other CPESearchInput) error {
+func (i *SearchedByCPEs) Merge(other SearchedByCPEs) error {
 	if i.Namespace != other.Namespace {
 		return fmt.Errorf("namespaces do not match")
 	}
@@ -31,12 +31,12 @@ func (i *CPESearchInput) Merge(other CPESearchInput) error {
 	return nil
 }
 
-type CPESearchHit struct {
+type MatchedOnCPEs struct {
 	VersionConstraint string   `json:"versionConstraint"`
 	CPEs              []string `json:"cpes"`
 }
 
-func (h CPESearchHit) Equals(other CPESearchHit) bool {
+func (h MatchedOnCPEs) Equals(other MatchedOnCPEs) bool {
 	if h.VersionConstraint != other.VersionConstraint {
 		return false
 	}
@@ -59,11 +59,11 @@ func FindMatchesByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, u
 	matchesByFingerprint := make(map[match.Fingerprint]match.Match)
 	for _, cpe := range p.CPEs {
 		// prefer the CPE version, but if npt specified use the package version
-		pkgVersion := cpe.Version
-		if pkgVersion == wfn.NA || pkgVersion == wfn.Any {
-			pkgVersion = p.Version
+		searchVersion := cpe.Version
+		if searchVersion == wfn.NA || searchVersion == wfn.Any {
+			searchVersion = p.Version
 		}
-		verObj, err := version.NewVersion(pkgVersion, version.FormatFromPkgType(p.Type))
+		searchVersionObj, err := version.NewVersion(searchVersion, version.FormatFromPkgType(p.Type))
 		if err != nil {
 			return nil, fmt.Errorf("matcher failed to parse version pkg='%s' ver='%s': %w", p.Name, p.Version, err)
 		}
@@ -78,23 +78,23 @@ func FindMatchesByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, u
 		// relative to the current version information from the CPE (or the package) then the given package
 		// is vulnerable.
 		for _, vuln := range allPkgVulns {
-			isPackageVulnerable, err := vuln.Constraint.Satisfied(verObj)
+			isPackageVulnerable, err := vuln.Constraint.Satisfied(searchVersionObj)
 			if err != nil {
-				return nil, fmt.Errorf("cpe matcher failed to check constraint='%s' version='%s': %w", vuln.Constraint, verObj, err)
+				return nil, fmt.Errorf("cpe matcher failed to check constraint='%s' version='%s': %w", vuln.Constraint, searchVersionObj, err)
 			}
 
 			if !isPackageVulnerable {
 				continue
 			}
 
-			addNewMatch(matchesByFingerprint, vuln, p, verObj, upstreamMatcher, cpe)
+			addNewMatch(matchesByFingerprint, vuln, p, searchVersionObj, upstreamMatcher, cpe)
 		}
 	}
 
 	return toMatches(matchesByFingerprint), nil
 }
 
-func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vulnerability.Vulnerability, p pkg.Package, pkgVersion *version.Version, upstreamMatcher match.MatcherType, searchedByCPE syftPkg.CPE) {
+func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vulnerability.Vulnerability, p pkg.Package, pkgVersion version.Version, upstreamMatcher match.MatcherType, searchedByCPE syftPkg.CPE) {
 	candidateMatch := match.Match{
 		Type:          match.FuzzyMatch,
 		Vulnerability: vuln,
@@ -109,15 +109,15 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 		match.Details{
 			Confidence: 0.9, // TODO: this is hard coded for now
 			Matcher:    upstreamMatcher,
-			SearchedBy: CPESearchInput{
+			SearchedBy: SearchedByCPEs{
 				Namespace: vuln.Namespace,
 				CPEs: []string{
 					searchedByCPE.BindToFmtString(),
 				},
 			},
-			MatchedOn: CPESearchHit{
+			MatchedOn: MatchedOnCPEs{
 				VersionConstraint: vuln.Constraint.String(),
-				CPEs:              cpesToString(keepMatchingCPEs(pkgVersion, vuln.CPEs)),
+				CPEs:              cpesToString(filterCPEsByVersion(pkgVersion, vuln.CPEs)),
 			},
 		},
 	)
@@ -126,22 +126,22 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 }
 
 func addMatchDetails(existingDetails []match.Details, newDetails match.Details) []match.Details {
-	newMatchedOn, ok := newDetails.MatchedOn.(CPESearchHit)
+	newMatchedOn, ok := newDetails.MatchedOn.(MatchedOnCPEs)
 	if !ok {
 		return existingDetails
 	}
 
-	newSearchedBy, ok := newDetails.SearchedBy.(CPESearchInput)
+	newSearchedBy, ok := newDetails.SearchedBy.(SearchedByCPEs)
 	if !ok {
 		return existingDetails
 	}
 	for idx, detail := range existingDetails {
-		matchedOn, ok := detail.MatchedOn.(CPESearchHit)
+		matchedOn, ok := detail.MatchedOn.(MatchedOnCPEs)
 		if !ok {
 			continue
 		}
 
-		searchedBy, ok := detail.SearchedBy.(CPESearchInput)
+		searchedBy, ok := detail.SearchedBy.(SearchedByCPEs)
 		if !ok {
 			continue
 		}
@@ -164,7 +164,7 @@ func addMatchDetails(existingDetails []match.Details, newDetails match.Details) 
 	return existingDetails
 }
 
-func keepMatchingCPEs(pkgVersion *version.Version, allCPEs []syftPkg.CPE) (matchedCPEs []syftPkg.CPE) {
+func filterCPEsByVersion(pkgVersion version.Version, allCPEs []syftPkg.CPE) (matchedCPEs []syftPkg.CPE) {
 	for _, c := range allCPEs {
 		if c.Version == wfn.Any || c.Version == wfn.NA {
 			matchedCPEs = append(matchedCPEs, c)
@@ -178,7 +178,7 @@ func keepMatchingCPEs(pkgVersion *version.Version, allCPEs []syftPkg.CPE) (match
 			continue
 		}
 
-		satisfied, err := constraint.Satisfied(pkgVersion)
+		satisfied, err := constraint.Satisfied(&pkgVersion)
 		if err != nil || satisfied {
 			// if we can't check for version satisfaction, don't filter out the CPE
 			matchedCPEs = append(matchedCPEs, c)
