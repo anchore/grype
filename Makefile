@@ -222,7 +222,11 @@ changelog-unreleased: ## show the current changelog that will be produced on the
 .PHONY: validate-grype-test-config
 validate-grype-test-config:
 	# ensure the update URL is not overridden (not pointing to staging)
-	@ grep -q "update-url" test/grype-test-config.yaml && echo "Found 'update-url' in CLI testing config. Cannot release if previous CLI testing did not use production (default) values"
+	@bash -c '\
+		grep -q "update-url" test/grype-test-config.yaml; \
+		if [ $$? -eq 0 ]; then \
+			echo "Found \"update-url\" in CLI testing config. Cannot release if previous CLI testing did not use production (default) values"; \
+		fi'
 
 .PHONY: release
 release: clean-dist validate-grype-test-config changelog-release ## Build and publish final binaries and packages. Intended to be run only on macOS.
