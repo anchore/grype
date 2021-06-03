@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/anchore/grype/internal"
+
 	"github.com/anchore/grype/grype/db"
 	"github.com/spf13/cobra"
 )
 
 var dbImportCmd = &cobra.Command{
-	Use:   "import",
+	Use:   "import FILE",
 	Short: "import a vulnerability database archive",
+	Long:  fmt.Sprintf("import a vulnerability database archive from a local FILE.\nDB archives can be obtained from %q.", internal.DBUpdateURL),
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		ret := runDbImportCmd(cmd, args)
