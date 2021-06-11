@@ -7,25 +7,28 @@
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/anchore/grype/blob/main/LICENSE)
 [![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/anchore/grype.svg)](https://github.com/anchore/grype)
 
-A vulnerability scanner for container images and filesystems. [Easily install the binary](#installation) to try it out. Works with [Syft](https://github.com/anchore/syft), the powerful SBOM (software bill of materials) tool for container images and filesystems.
+A vulnerability scanner for container images and filesystems. Easily [install the binary](#installation) to try it out. Works with [Syft](https://github.com/anchore/syft), the powerful SBOM (software bill of materials) tool for container images and filesystems.
 
 ![grype-demo](https://user-images.githubusercontent.com/590471/90276236-9868f300-de31-11ea-8068-4268b6b68529.gif)
 
-**Features**
+### Features
 
 - Scan the contents of a container image or filesystem to find known vulnerabilities.
-- Find vulnerabilities for major operating system packages
+- Find vulnerabilities for major operating system packages:
   - Alpine
+  - Amazon Linux
   - BusyBox
-  - CentOS / Red Hat
+  - CentOS
   - Debian
+  - Distroless
+  - Oracle Linux
+  - Red Hat (RHEL)
   - Ubuntu
-- Find vulnerabilities for language-specific packages
-  - Ruby (Bundler)
-  - Java (JARs, etc)
-  - JavaScript (NPM/Yarn)
-  - Python (Egg/Wheel)
-  - Python pip/requirements.txt/setup.py listings
+- Find vulnerabilities for language-specific packages:
+  - Ruby (Gems)
+  - Java (JAR, WAR, EAR, JPI, HPI)
+  - JavaScript (NPM, Yarn)
+  - Python (Egg, Wheel, Poetry, requirements.txt/setup.py files)
 - Supports Docker and OCI image formats
 
 If you encounter an issue, please [let us know using the issue tracker](https://github.com/anchore/grype/issues).
