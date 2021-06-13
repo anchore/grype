@@ -72,7 +72,7 @@ help:
 ci-bootstrap: bootstrap
 	DEBIAN_FRONTEND=noninteractive sudo apt update && sudo -E apt install -y bc jq libxml2-utils
 
-.PHONY: boostrap
+.PHONY: bootstrap
 bootstrap: ## Download and install all go dependencies (+ prep tooling in the ./tmp dir)
 	$(call title,Boostrapping dependencies)
 	@pwd
