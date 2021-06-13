@@ -182,7 +182,7 @@ compare-snapshot: $(SNAPSHOTDIR)  ## Compare a main branch build run of grype ag
 compare:
 	@cd test/inline-compare && make
 
-.PHONY: changlog-release
+.PHONY: changelog-release
 changelog-release:
 	@echo "Last tag: $(SECOND_TO_LAST_TAG)"
 	@echo "Current tag: $(VERSION)"
