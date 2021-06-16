@@ -90,7 +90,7 @@ func TestNew_MetadataExtraction(t *testing.T) {
 						},
 						NamedSections: map[string]map[string]string{
 							"named-section": {
-								"named-section-key": "named-section-vaulue",
+								"named-section-key": "named-section-value",
 							},
 						},
 					},

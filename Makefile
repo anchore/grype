@@ -72,9 +72,9 @@ help:
 ci-bootstrap: bootstrap
 	DEBIAN_FRONTEND=noninteractive sudo apt update && sudo -E apt install -y bc jq libxml2-utils
 
-.PHONY: boostrap
+.PHONY: bootstrap
 bootstrap: ## Download and install all go dependencies (+ prep tooling in the ./tmp dir)
-	$(call title,Boostrapping dependencies)
+	$(call title,Bootstrapping dependencies)
 	@pwd
 	# prep temp dirs
 	mkdir -p $(TEMPDIR)
@@ -182,7 +182,7 @@ compare-snapshot: $(SNAPSHOTDIR)  ## Compare a main branch build run of grype ag
 compare:
 	@cd test/inline-compare && make
 
-.PHONY: changlog-release
+.PHONY: changelog-release
 changelog-release:
 	@echo "Last tag: $(SECOND_TO_LAST_TAG)"
 	@echo "Current tag: $(VERSION)"

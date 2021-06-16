@@ -66,7 +66,7 @@ func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro,
 
 	matches, err := common.FindMatchesByPackageDistro(store, d, indirectPackage, m.Type())
 	if err != nil {
-		return nil, fmt.Errorf("failed to find vulnerabilities by dkpg source indirection: %w", err)
+		return nil, fmt.Errorf("failed to find vulnerabilities by dpkg source indirection: %w", err)
 	}
 
 	// we want to make certain that we are tracking the match based on the package from the SBOM (not the indirect package)
