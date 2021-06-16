@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import re
 import sys
 import json
 import collections
@@ -150,7 +151,12 @@ class Grype:
             if not INCLUDE_SEVERITY:
                 severity = NO_COMPARE_VALUE
 
-            metadata[package.type][package] = Metadata(version=entry["artifact"]["version"], severity=severity)
+            # engine doesn't capture epoch info, so we cannot use it during comparison
+            version = entry["artifact"]["version"]
+            if re.match(r'^\d+:', version):
+                version = ":".join(version.split(":")[1:])
+
+            metadata[package.type][package] = Metadata(version=version, severity=severity)
 
         return vulnerabilities, metadata
 
