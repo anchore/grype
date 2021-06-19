@@ -140,7 +140,14 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_TOOLBOX_WEBHOOK_URL }}
         if: ${{ success() }}
-
+        
+      - name: Generate SBOM
+        uses: CycloneDX/gh-gomod-generate-sbom@v0.2.0
+        with:
+          json: true
+          output: dist/bom.json
+        version: latest
+        
       - uses: actions/upload-artifact@v2
         with:
           name: artifacts
