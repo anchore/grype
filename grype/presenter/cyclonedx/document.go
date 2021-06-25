@@ -22,7 +22,7 @@ type Document struct {
 	Version       int            `xml:"version,attr"`
 	SerialNumber  string         `xml:"serialNumber,attr"`
 	BomDescriptor *BomDescriptor `xml:"metadata"`
-	Components    []Component    `xml:"components>Component"`
+	Components    []Component    `xml:"components>component"`
 }
 
 // NewDocument returns a CycloneDX Document object populated with the SBOM and vulnerability findings.
