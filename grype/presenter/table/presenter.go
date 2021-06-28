@@ -52,7 +52,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 		case grypeDb.WontFixState:
 			fixVersion = "(won't fix)"
 		case grypeDb.UnknownFixState:
-			fixVersion = "(fixes indeterminate)"
+			fixVersion = ""
 		}
 
 		rows = append(rows, []string{m.Package.Name, m.Package.Version, fixVersion, m.Vulnerability.ID, severity})
