@@ -133,6 +133,8 @@ github.com/anchore/syft v0.16.2-0.20210604135254-776164a0787b h1:g++MkCp50aP8pnQ
 github.com/anchore/syft v0.16.2-0.20210604135254-776164a0787b/go.mod h1:nrquK9r16pjmr3CGMzlYY8OgjNhUpviCNnN4UxvB7MQ=
 github.com/anchore/syft v0.18.0 h1:hOHyGaQQPYHouBb/8nzU0vSKc4ycFNBBn42Cf5VxTKo=
 github.com/anchore/syft v0.18.0/go.mod h1:ktWx72/MizsN9jgEh+Vzl9lfNIUC8tylQHk3ZjKehn0=
+github.com/anchore/syft v0.19.0 h1:zMwwK/eMsccsl6BgpmGFg3vfBf8CMliENTqFhJ6F2y4=
+github.com/anchore/syft v0.19.0/go.mod h1:ktWx72/MizsN9jgEh+Vzl9lfNIUC8tylQHk3ZjKehn0=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 h1:bvNMNQO63//z+xNgfBlViaCIJKLlCJ6/fmUseuG0wVQ=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/cascadia v1.1.0/go.mod h1:GsXiBklL0woXo1j/WYWtSYYC4ouU9PqHO0sqidkEA4Y=
