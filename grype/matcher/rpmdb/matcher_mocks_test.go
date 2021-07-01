@@ -50,7 +50,7 @@ func (pr *mockProvider) stub() {
 	}
 }
 
-func (pr *mockProvider) GetByDistro(d distro.Distro, p pkg.Package) ([]vulnerability.Vulnerability, error) {
+func (pr *mockProvider) GetByDistro(d *distro.Distro, p pkg.Package) ([]vulnerability.Vulnerability, error) {
 	var ty = strings.ToLower(d.Type.String())
 	if d.Type == distro.CentOS || d.Type == distro.RedHat {
 		ty = "rhel"

@@ -22,7 +22,7 @@ func FindMatchesByPackageDistro(store vulnerability.ProviderByDistro, d *distro.
 
 	var allPkgVulns []vulnerability.Vulnerability
 
-	allPkgVulns, err = store.GetByDistro(*d, p)
+	allPkgVulns, err = store.GetByDistro(d, p)
 	if err != nil {
 		return nil, fmt.Errorf("matcher failed to fetch distro='%s' pkg='%s': %w", d, p.Name, err)
 	}
