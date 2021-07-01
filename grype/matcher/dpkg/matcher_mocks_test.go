@@ -50,6 +50,6 @@ func (pr *mockProvider) stub() {
 	}
 }
 
-func (pr *mockProvider) GetByDistro(d distro.Distro, p pkg.Package) ([]vulnerability.Vulnerability, error) {
+func (pr *mockProvider) GetByDistro(d *distro.Distro, p pkg.Package) ([]vulnerability.Vulnerability, error) {
 	return pr.data[strings.ToLower(d.Type.String())+":"+d.FullVersion()][p.Name], nil
 }

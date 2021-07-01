@@ -57,7 +57,7 @@ func (m *Matcher) cpeMatchesWithoutSecDbFixes(store vulnerability.Provider, d *d
 
 	// remove cpe matches where there is an entry in the secDB for the particular package-vulnerability pairing, and the
 	// installed package version is >= the fixed in version for the secDB record.
-	secDbVulnerabilities, err := store.GetByDistro(*d, p)
+	secDbVulnerabilities, err := store.GetByDistro(d, p)
 	if err != nil {
 		return nil, err
 	}
