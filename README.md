@@ -9,23 +9,6 @@
 
 A vulnerability scanner for container images and filesystems. Easily [install the binary](#installation) to try it out. Works with [Syft](https://github.com/anchore/syft), the powerful SBOM (software bill of materials) tool for container images and filesystems.
 
-## Happening soon: [OSS Virtual Meetup](https://get.anchore.com/anchore-oss-meetup-jun-30-2021/)
-
-[**Register here!**](https://get.anchore.com/anchore-oss-meetup-jun-30-2021/)
-
-**When:** June 30, 11am-noon PT
-
-**What:** 3 fast-paced talks, with time for Q&A
-
-- **Using Syft to Streamline Compliance** (Chet Burgess — Principal Engineer, Cisco)
-
-
-- **Fast Container Scanning in CI: Three Ways to Use Grype in Your Builds** (Dan Luhring — Manager of Open Source Engineering, Anchore)
-
-
-- **Building More Optimal Container Images with Dive** (Alex Goodman — Creator of [Dive](https://github.com/wagoodman/dive), Sr Software Engineer for Open Source, Anchore)
-
-
 ![grype-demo](https://user-images.githubusercontent.com/590471/90276236-9868f300-de31-11ea-8068-4268b6b68529.gif)
 
 ### Features
