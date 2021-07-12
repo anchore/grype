@@ -8,9 +8,10 @@ import (
 	"strconv"
 
 	"github.com/anchore/grype-db/pkg/curation"
-	"github.com/anchore/grype-db/pkg/db"
-	"github.com/anchore/grype-db/pkg/db/reader"
+	grypeDB "github.com/anchore/grype-db/pkg/db/v3"
+	"github.com/anchore/grype-db/pkg/db/v3/reader"
 	"github.com/anchore/grype/grype/event"
+	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/file"
 	"github.com/anchore/grype/internal/log"
@@ -20,7 +21,7 @@ import (
 )
 
 const (
-	FileName = db.VulnerabilityStoreFileName
+	FileName = grypeDB.VulnerabilityStoreFileName
 )
 
 type Config struct {
@@ -40,10 +41,10 @@ type Curator struct {
 }
 
 func NewCurator(cfg Config) Curator {
-	dbDir := path.Join(cfg.DbRootDir, strconv.Itoa(db.SchemaVersion))
+	dbDir := path.Join(cfg.DbRootDir, strconv.Itoa(vulnerability.SchemaVersion))
 	return Curator{
 		fs:                  afero.NewOsFs(),
-		targetSchema:        db.SchemaVersion,
+		targetSchema:        vulnerability.SchemaVersion,
 		downloader:          file.NewGetter(),
 		dbDir:               dbDir,
 		dbPath:              path.Join(dbDir, FileName),
@@ -52,14 +53,14 @@ func NewCurator(cfg Config) Curator {
 	}
 }
 
-func (c *Curator) GetStore() (db.StoreReader, error) {
+func (c *Curator) GetStore() (*reader.Reader, error) {
 	// ensure the DB is ok
 	err := c.Validate()
 	if err != nil {
 		return nil, fmt.Errorf("vulnerability database is corrupt (run db update to correct): %+v", err)
 	}
 
-	s, _, err := reader.NewStore(c.dbPath)
+	s, _, err := reader.New(c.dbPath)
 	return s, err
 }
 

@@ -89,7 +89,7 @@ bootstrap: ## Download and install all go dependencies (+ prep tooling in the ./
 	curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | sh -s -- -b $(TEMPDIR)/ v0.160.0
 
 .PHONY: static-analysis
-static-analysis: lint check-go-mod-tidy check-licenses
+static-analysis: lint check-go-mod-tidy check-licenses validate-grype-db-schema
 
 .PHONY: lint
 lint: ## Run gofmt + golangci lint checks
@@ -111,7 +111,12 @@ check-go-mod-tidy:
 .PHONY: validate-cyclonedx-schema
 validate-cyclonedx-schema:
 	cd schema/cyclonedx && make
-	
+
+.PHONY: validate-grype-db-schema
+validate-grype-db-schema:
+	# ensure the codebase is only referencing a single grype-db schema version, multiple is not allowed
+	python test/validate-grype-db-schema.py
+
 .PHONY: lint-fix
 lint-fix: ## Auto-format all source code + run golangci lint fixers
 	$(call title,Running lint fixers)

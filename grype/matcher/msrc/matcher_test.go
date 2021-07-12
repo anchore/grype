@@ -3,7 +3,7 @@ package msrc
 import (
 	"testing"
 
-	"github.com/anchore/grype-db/pkg/db"
+	grypeDB "github.com/anchore/grype-db/pkg/db/v3"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/distro"
@@ -12,10 +12,10 @@ import (
 )
 
 type mockStore struct {
-	backend map[string]map[string][]db.Vulnerability
+	backend map[string]map[string][]grypeDB.Vulnerability
 }
 
-func (s *mockStore) GetVulnerability(namespace, name string) ([]db.Vulnerability, error) {
+func (s *mockStore) GetVulnerability(namespace, name string) ([]grypeDB.Vulnerability, error) {
 	namespaceMap := s.backend[namespace]
 	if namespaceMap == nil {
 		return nil, nil
@@ -25,9 +25,9 @@ func (s *mockStore) GetVulnerability(namespace, name string) ([]db.Vulnerability
 
 func TestMatches(t *testing.T) {
 	store := mockStore{
-		backend: map[string]map[string][]db.Vulnerability{
-			"microsoft": {
-				"Windows 10 Versions 1903 for ARM64-based Systems": []db.Vulnerability{
+		backend: map[string]map[string][]grypeDB.Vulnerability{
+			"msrc": {
+				"Windows 10 Versions 1903 for ARM64-based Systems": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-2020-1",
 						VersionConstraint: "878786 || 878787",
@@ -41,7 +41,7 @@ func TestMatches(t *testing.T) {
 					},
 				},
 				// Does not match, the package is Windows 10, not 11
-				"Windows 11 Versions 1903 for ARM64-based Systems": []db.Vulnerability{
+				"Windows 11 Versions 1903 for ARM64-based Systems": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-2020-1",
 						VersionConstraint: "878786 || 878787",

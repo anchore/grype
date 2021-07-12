@@ -3,8 +3,7 @@ package models
 import (
 	"testing"
 
-	grypeDb "github.com/anchore/grype-db/pkg/db"
-
+	grypeDb "github.com/anchore/grype-db/pkg/db/v3"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
