@@ -3,4 +3,4 @@ contact_links:
   - name: Join the Slack community 💬
     # link to our community Slack registration page
     url: https://anchore.com/slack
-    about: 'Be sure to check out the channels #toolbox-help (ask us questions) and #toolbox-dev (collaborate with us on design and development)!'
+    about: 'Be sure to check out the channels #grype-help (ask us questions) and #grype-dev (collaborate with us on design and development)!'
