@@ -28,8 +28,6 @@
             <v:rating>
               <v:score>
                 <v:base>4</v:base>
-                <v:impact>0</v:impact>
-                <v:exploitability>0</v:exploitability>
               </v:score>
               <v:severity>Low</v:severity>
               <v:method>CVSSv3</v:method>
