@@ -26,12 +26,14 @@
           </v:source>
           <v:ratings>
             <v:rating>
+              <v:severity>Low</v:severity>
+            </v:rating>
+            <v:rating>
               <v:score>
                 <v:base>4</v:base>
                 <v:impact>0</v:impact>
                 <v:exploitability>0</v:exploitability>
               </v:score>
-              <v:severity>Low</v:severity>
               <v:method>CVSSv3</v:method>
               <v:vector>another vector</v:vector>
             </v:rating>
@@ -46,12 +48,14 @@
           </v:source>
           <v:ratings>
             <v:rating>
+              <v:severity>Critical</v:severity>
+            </v:rating>
+            <v:rating>
               <v:score>
                 <v:base>1</v:base>
                 <v:impact>3</v:impact>
                 <v:exploitability>2</v:exploitability>
               </v:score>
-              <v:severity>Critical</v:severity>
               <v:method>CVSSv2</v:method>
               <v:vector>vector</v:vector>
             </v:rating>
