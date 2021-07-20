@@ -16,15 +16,15 @@ def report_schema_versions_found(schema_to_locations):
 
 
 def validate(schema_to_locations):
-    schema_versions_found = schema_to_locations.keys()
+    schema_versions_found = list(schema_to_locations.keys())
     try:
         for x in schema_versions_found:
             int(x)
-    except Exception:
-        sys.exit("Non-numeric schema found: %s" % ", ".join(list(schema_versions_found)))
+    except ValueError:
+        sys.exit("Non-numeric schema found: %s" % ", ".join(schema_versions_found))
 
     if len(schema_to_locations) > 1:
-        sys.exit("Found multiple schemas: %s" % ", ".join(list(schema_versions_found)))
+        sys.exit("Found multiple schemas: %s" % ", ".join(schema_versions_found))
     elif len(schema_to_locations) == 0:
         sys.exit("No schemas found!")
 
