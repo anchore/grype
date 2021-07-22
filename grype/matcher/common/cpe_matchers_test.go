@@ -3,8 +3,7 @@ package common
 import (
 	"testing"
 
-	"github.com/anchore/grype-db/pkg/db"
-
+	grypeDB "github.com/anchore/grype-db/pkg/db/v3"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
@@ -20,22 +19,22 @@ func must(c syftPkg.CPE, e error) syftPkg.CPE {
 	return c
 }
 
-var _ db.VulnerabilityStoreReader = (*mockVulnStore)(nil)
+var _ grypeDB.VulnerabilityStoreReader = (*mockVulnStore)(nil)
 
 type mockVulnStore struct {
-	data map[string]map[string][]db.Vulnerability
+	data map[string]map[string][]grypeDB.Vulnerability
 }
 
 func newMockStore() *mockVulnStore {
 	pr := mockVulnStore{
-		data: make(map[string]map[string][]db.Vulnerability),
+		data: make(map[string]map[string][]grypeDB.Vulnerability),
 	}
 	pr.stub()
 	return &pr
 }
 
 func (pr *mockVulnStore) stub() {
-	pr.data["nvd"] = map[string][]db.Vulnerability{
+	pr.data["nvd"] = map[string][]grypeDB.Vulnerability{
 		"activerecord": {
 			{
 				PackageName:       "activerecord",
@@ -98,7 +97,7 @@ func (pr *mockVulnStore) stub() {
 	}
 }
 
-func (pr *mockVulnStore) GetVulnerability(namespace, pkg string) ([]db.Vulnerability, error) {
+func (pr *mockVulnStore) GetVulnerability(namespace, pkg string) ([]grypeDB.Vulnerability, error) {
 	return pr.data[namespace][pkg], nil
 }
 
