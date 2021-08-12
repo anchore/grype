@@ -1,6 +1,7 @@
 package msrc
 
 import (
+	"fmt"
 	"testing"
 
 	grypeDB "github.com/anchore/grype-db/pkg/db/v3"
@@ -24,27 +25,33 @@ func (s *mockStore) GetVulnerability(namespace, name string) ([]grypeDB.Vulnerab
 }
 
 func TestMatches(t *testing.T) {
+	d, err := distro.NewDistro(distro.Windows, "10816", "Windows Server 2016")
+	assert.NoError(t, err)
+
 	store := mockStore{
 		backend: map[string]map[string][]grypeDB.Vulnerability{
-			"msrc": {
-				"Windows 10 Versions 1903 for ARM64-based Systems": []grypeDB.Vulnerability{
+
+			// TODO: it would be ideal to test against something that constructs the namespace based on grype-db
+			// and not break the adaption of grype-db
+			fmt.Sprintf("msrc:%s", d.RawVersion): {
+				d.RawVersion: []grypeDB.Vulnerability{
 					{
-						ID:                "CVE-2020-1",
-						VersionConstraint: "878786 || 878787",
+						ID:                "CVE-2016-3333",
+						VersionConstraint: "3200970 || 878787 || base",
 						VersionFormat:     "kb",
 					},
 					{
 						// Does not match, version constraints do not apply
-						ID:                "CVE-2020-1",
-						VersionConstraint: "778786 || 778787",
+						ID:                "CVE-2020-made-up",
+						VersionConstraint: "778786 || 878787 || base",
 						VersionFormat:     "kb",
 					},
 				},
-				// Does not match, the package is Windows 10, not 11
-				"Windows 11 Versions 1903 for ARM64-based Systems": []grypeDB.Vulnerability{
+				// Does not match the product ID
+				"something-else": []grypeDB.Vulnerability{
 					{
-						ID:                "CVE-2020-1",
-						VersionConstraint: "878786 || 878787",
+						ID:                "CVE-2020-also-made-up",
+						VersionConstraint: "3200970 || 878787 || base",
 						VersionFormat:     "kb",
 					},
 				},
@@ -54,21 +61,60 @@ func TestMatches(t *testing.T) {
 
 	provider := vulnerability.NewProviderFromStore(&store)
 
-	m := Matcher{}
-	d, err := distro.NewDistro(distro.Windows, "878787", "Windows 10 Versions 1903 for ARM64-based Systems")
-	if err != nil {
-		t.Fatalf("failed to create a new distro: %+v", err)
+	tests := []struct {
+		name            string
+		pkg             pkg.Package
+		expectedVulnIDs []string
+	}{
+		{
+			name: "direct KB match",
+			pkg: pkg.Package{
+				Name:    d.RawVersion,
+				Version: "3200970",
+				Type:    syftPkg.KbPkg,
+			},
+			expectedVulnIDs: []string{
+				"CVE-2016-3333",
+			},
+		},
+		{
+			name: "multiple direct KB match",
+			pkg: pkg.Package{
+				Name:    d.RawVersion,
+				Version: "878787",
+				Type:    syftPkg.KbPkg,
+			},
+			expectedVulnIDs: []string{
+				"CVE-2016-3333",
+				"CVE-2020-made-up",
+			},
+		},
+		{
+			name: "no KBs found",
+			pkg: pkg.Package{
+				Name: d.RawVersion,
+				// this is the assumed version if no KBs are found
+				Version: "base",
+				Type:    syftPkg.KbPkg,
+			},
+			expectedVulnIDs: []string{
+				"CVE-2016-3333",
+				"CVE-2020-made-up",
+			},
+		},
 	}
-	p := pkg.Package{
-		Name:    "Windows 10 Versions 1903 for ARM64-based Systems",
-		Version: "878787",
-		Type:    syftPkg.KbPkg,
-	}
-	matches, err := m.Match(provider, &d, p)
 
-	if err != nil {
-		t.Fatalf("failed to get matches: %+v", err)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			m := Matcher{}
+			matches, err := m.Match(provider, &d, test.pkg)
+			assert.NoError(t, err)
+			var actualVulnIDs []string
+			for _, a := range matches {
+				actualVulnIDs = append(actualVulnIDs, a.Vulnerability.ID)
+			}
+			assert.ElementsMatch(t, test.expectedVulnIDs, actualVulnIDs)
+		})
 	}
 
-	assert.Len(t, matches, 1)
 }
