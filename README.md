@@ -205,6 +205,9 @@ registry:
   # skip TLS verification when communicating with the registry
   # GRYPE_REGISTRY_INSECURE_SKIP_TLS_VERIFY env var
   insecure-skip-tls-verify: false
+  # use http instead of https when connecting to the registry
+  # SYFT_REGISTRY_INSECURE_USE_HTTP env var
+  insecure-use-http: false
 
   # credentials for specific registries
   auth:

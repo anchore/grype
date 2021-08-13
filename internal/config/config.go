@@ -75,6 +75,7 @@ func setNonCliDefaultValues(v *viper.Viper) {
 	v.SetDefault("dev.profile-cpu", false)
 	v.SetDefault("check-for-app-update", true)
 	v.SetDefault("registry.insecure-skip-tls-verify", false)
+	v.SetDefault("registry.insecure-use-http", false)
 	v.SetDefault("registry.auth", []RegistryCredentials{})
 }
 
