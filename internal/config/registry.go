@@ -18,7 +18,7 @@ type RegistryCredentials struct {
 
 type registry struct {
 	InsecureSkipTLSVerify bool                  `yaml:"insecure-skip-tls-verify" json:"insecure-skip-tls-verify" mapstructure:"insecure-skip-tls-verify"`
-	InsecureUseHttp       bool                  `yaml:"insecure-use-http" json:"insecure-use-http" mapstructure:"insecure-use-http"`
+	InsecureUseHTTP       bool                  `yaml:"insecure-use-http" json:"insecure-use-http" mapstructure:"insecure-use-http"`
 	Auth                  []RegistryCredentials `yaml:"auth" json:"auth" mapstructure:"auth"`
 }
 
@@ -59,7 +59,7 @@ func (cfg *registry) ToOptions() *image.RegistryOptions {
 	}
 	return &image.RegistryOptions{
 		InsecureSkipTLSVerify: cfg.InsecureSkipTLSVerify,
-		InsecureUseHTTP:       cfg.InsecureUseHttp,
+		InsecureUseHTTP:       cfg.InsecureUseHTTP,
 		Credentials:           auth,
 	}
 }
