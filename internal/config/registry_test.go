@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/anchore/stereoscope/pkg/image"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -54,33 +55,56 @@ func TestHasNonEmptyCredentials(t *testing.T) {
 	}
 }
 
-func TestRegistryOptions(t *testing.T) {
+func Test_registry_ToOptions(t *testing.T) {
 	tests := []struct {
-		InsecureSkipTLSVerify bool
-		InsecureUseHTTP       bool
+		name     string
+		input    registry
+		expected image.RegistryOptions
 	}{
 		{
-			false, false,
+			name:  "no registry options",
+			input: registry{},
+			expected: image.RegistryOptions{
+				Credentials: []image.RegistryCredentials{},
+			},
 		},
 		{
-			true, false,
+			name: "set InsecureSkipTLSVerify",
+			input: registry{
+				InsecureSkipTLSVerify: true,
+			},
+			expected: image.RegistryOptions{
+				InsecureSkipTLSVerify: true,
+				Credentials:           []image.RegistryCredentials{},
+			},
 		},
 		{
-			false, true,
+			name: "set InsecureUseHTTP",
+			input: registry{
+				InsecureUseHTTP: true,
+			},
+			expected: image.RegistryOptions{
+				InsecureUseHTTP: true,
+				Credentials:     []image.RegistryCredentials{},
+			},
 		},
 		{
-			true, true,
+			name: "set all bool options",
+			input: registry{
+				InsecureSkipTLSVerify: true,
+				InsecureUseHTTP:       true,
+			},
+			expected: image.RegistryOptions{
+				InsecureSkipTLSVerify: true,
+				InsecureUseHTTP:       true,
+				Credentials:           []image.RegistryCredentials{},
+			},
 		},
 	}
 
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("%+v", test), func(t *testing.T) {
-			reg := registry{}
-			reg.InsecureSkipTLSVerify = test.InsecureSkipTLSVerify
-			reg.InsecureUseHTTP = test.InsecureUseHTTP
-			opt := reg.ToOptions()
-			assert.Equal(t, opt.InsecureSkipTLSVerify, test.InsecureSkipTLSVerify)
-			assert.Equal(t, opt.InsecureUseHTTP, test.InsecureUseHTTP)
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, &test.expected, test.input.ToOptions())
 		})
 	}
 }
