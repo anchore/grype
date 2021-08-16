@@ -53,3 +53,34 @@ func TestHasNonEmptyCredentials(t *testing.T) {
 		})
 	}
 }
+
+func TestRegistryOptions(t *testing.T) {
+	tests := []struct {
+		InsecureSkipTLSVerify bool
+		InsecureUseHTTP       bool
+	}{
+		{
+			false, false,
+		},
+		{
+			true, false,
+		},
+		{
+			false, true,
+		},
+		{
+			true, true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%+v", test), func(t *testing.T) {
+			reg := registry{}
+			reg.InsecureSkipTLSVerify = test.InsecureSkipTLSVerify
+			reg.InsecureUseHTTP = test.InsecureUseHTTP
+			opt := reg.ToOptions()
+			assert.Equal(t, opt.InsecureSkipTLSVerify, test.InsecureSkipTLSVerify)
+			assert.Equal(t, opt.InsecureUseHTTP, test.InsecureUseHTTP)
+		})
+	}
+}
