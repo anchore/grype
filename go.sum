@@ -126,10 +126,10 @@ github.com/anchore/grype v0.14.1-0.20210702143224-05ade7bbbf70/go.mod h1:yPh9WHf
 github.com/anchore/grype-db v0.0.0-20210527140125-6f881b00e927/go.mod h1:XSlPf1awNrMpah+rHbWrzgUvnmWLgn/KkdicxERVClg=
 github.com/anchore/grype-db v0.0.0-20210809130557-72ff1b90af67 h1:JyK6DKtAWQ11jzzrvSe91gY07BW4I//IJQVdj5JKeIk=
 github.com/anchore/grype-db v0.0.0-20210809130557-72ff1b90af67/go.mod h1:Hx1keM12D75ZDD3kYVcSqBSg1NRSPtsF0bfWOdXa4E0=
-github.com/anchore/stereoscope v0.0.0-20210524175238-3b7662f3a66f h1:bFadyOLOkzME3BrZFZ5m8cf/b2hsn3aMSS9s+SKubRk=
-github.com/anchore/stereoscope v0.0.0-20210524175238-3b7662f3a66f h1:bFadyOLOkzME3BrZFZ5m8cf/b2hsn3aMSS9s+SKubRk=
 github.com/anchore/stereoscope v0.0.0-20210524175238-3b7662f3a66f/go.mod h1:vhh1M99rfWx5ejMvz1lkQiFZUrC5wu32V12R4JXH+ZI=
 github.com/anchore/stereoscope v0.0.0-20210524175238-3b7662f3a66f/go.mod h1:vhh1M99rfWx5ejMvz1lkQiFZUrC5wu32V12R4JXH+ZI=
+github.com/anchore/stereoscope v0.0.0-20210817160504-0f4abc2a5a5a h1:RQb+Gft1MKxjDfJCnHP/f1mwfy0Jz50Kp9QGgSWKQiY=
+github.com/anchore/stereoscope v0.0.0-20210817160504-0f4abc2a5a5a/go.mod h1:165DfE5jApgEkHTWwu7Bijeml9fofudrgcpuWaD9+tk=
 github.com/anchore/syft v0.19.0/go.mod h1:ktWx72/MizsN9jgEh+Vzl9lfNIUC8tylQHk3ZjKehn0=
 github.com/anchore/syft v0.19.2-0.20210809195219-98d4749f86ce h1:5XzTAfrOpiJdKB5MOqH9wpWwNyjH99u7SydkV6z1dic=
 github.com/anchore/syft v0.19.2-0.20210809195219-98d4749f86ce/go.mod h1:M0s6E6KErgtjmDFzbbVPnrljJ43W2oH12g/4tQJitwY=
@@ -138,7 +138,6 @@ github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo
 github.com/andybalholm/cascadia v1.1.0/go.mod h1:GsXiBklL0woXo1j/WYWtSYYC4ouU9PqHO0sqidkEA4Y=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/apex/log v1.1.4/go.mod h1:AlpoD9aScyQfJDVHmLMEcx4oU6LqzkWp4Mg9GdAcEvQ=
-github.com/apex/log v1.3.0 h1:1fyfbPvUwD10nMoh3hY6MXzvZShJQn9/ck7ATgAt5pA=
 github.com/apex/log v1.3.0/go.mod h1:jd8Vpsr46WAe3EZSQ/IUMs2qQD/GOycT5rPWCO1yGcs=
 github.com/apex/logs v0.0.4/go.mod h1:XzxuLZ5myVHDy9SAmYpamKKRNApGj54PfYLcFrXqDwo=
 github.com/aphistic/golf v0.0.0-20180712155816-02c07f170c5a/go.mod h1:3NqKYiepwy8kCu4PNA+aP7WUV72eXWJeP9/r3/K9aLE=
@@ -772,7 +771,6 @@ github.com/tetafro/godot v0.3.7/go.mod h1:/7NLHhv08H1+8DNj0MElpAACw1ajsCuf3TKNQx
 github.com/tetafro/godot v0.4.2/go.mod h1:/7NLHhv08H1+8DNj0MElpAACw1ajsCuf3TKNQxA5S+0=
 github.com/timakin/bodyclose v0.0.0-20190930140734-f7f2e9bca95e/go.mod h1:Qimiffbc6q9tBWlVV6x0P9sat/ao1xEkREYPPj9hphk=
 github.com/timakin/bodyclose v0.0.0-20200424151742-cb6215831a94/go.mod h1:Qimiffbc6q9tBWlVV6x0P9sat/ao1xEkREYPPj9hphk=
-github.com/tj/assert v0.0.0-20171129193455-018094318fb0 h1:Rw8kxzWo1mr6FSaYXjQELRe88y2KdfynXdnK72rdjtA=
 github.com/tj/assert v0.0.0-20171129193455-018094318fb0/go.mod h1:mZ9/Rh9oLWpLLDRpvE+3b7gP/C2YyLFYxNmcLnPTMe0=
 github.com/tj/go-elastic v0.0.0-20171221160941-36157cbbebc2/go.mod h1:WjeM0Oo1eNAjXGDx2yma7uG2XoyRZTq1uv3M/o7imD0=
 github.com/tj/go-kinesis v0.0.0-20171128231115-08b17f58cb1b/go.mod h1:/yhzCV0xPfx6jb1bBgRFjl5lytqVqZXEaeqWP8lTEao=
