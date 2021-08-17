@@ -7,6 +7,7 @@ import (
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/distro"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 type mockProvider struct {
@@ -57,4 +58,12 @@ func (pr *mockProvider) GetByDistro(d *distro.Distro, p pkg.Package) ([]vulnerab
 	}
 
 	return pr.data[ty+":"+d.FullVersion()][p.Name], nil
+}
+
+func (pr *mockProvider) GetByCPE(request syftPkg.CPE) (v []vulnerability.Vulnerability, err error) {
+	return v, err
+}
+
+func (pr *mockProvider) GetByLanguage(l syftPkg.Language, p pkg.Package) (v []vulnerability.Vulnerability, err error) {
+	return v, err
 }
