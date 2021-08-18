@@ -5,22 +5,23 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal"
 	"github.com/anchore/syft/syft/distro"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 func TestMatcherRpmdb(t *testing.T) {
 	tests := []struct {
-		name    string
-		p       pkg.Package
-		setup   func() (vulnerability.Provider, distro.Distro, Matcher)
-		wantErr bool
+		name            string
+		p               pkg.Package
+		setup           func() (vulnerability.Provider, distro.Distro, Matcher)
+		expectedMatches map[string]match.Type
+		wantErr         bool
 	}{
 		{
-			name: "Rpmdb Match matches by source indirection",
+			name: "Rpmdb Match matches by direct and by source indirection",
 			p: pkg.Package{
 				Name:    "neutron-libs",
 				Version: "7.1.3-6",
@@ -40,6 +41,11 @@ func TestMatcherRpmdb(t *testing.T) {
 
 				return store, d, matcher
 			},
+			expectedMatches: map[string]match.Type{
+				"CVE-2014-fake-1": match.ExactDirectMatch,
+				"CVE-2014-fake-2": match.ExactIndirectMatch,
+				"CVE-2013-fake-3": match.ExactIndirectMatch,
+			},
 			wantErr: false,
 		},
 	}
@@ -51,30 +57,27 @@ func TestMatcherRpmdb(t *testing.T) {
 			actual, err := matcher.Match(store, &d, tt.p)
 			if tt.wantErr {
 				assert.Equal(t, "", err) //TODO: error case
+				return
 			}
 
-			assert.Len(t, actual, 3, "unexpected indirect matches count")
-
-			foundCVEs := internal.NewStringSet()
+			assert.Len(t, actual, len(tt.expectedMatches), "unexpected matches count")
 
 			for _, a := range actual {
-				foundCVEs.Add(a.Vulnerability.ID)
-				// TODO: Ask about tool case - we should see 3 indirect and 1 direct after Match is called
-				// assert.Equal(t, match.ExactIndirectMatch, a.Type, "indirect match not indicated")
+				if val, ok := tt.expectedMatches[a.Vulnerability.ID]; !ok {
+					t.Errorf("return unkown match CVE: %s", a.Vulnerability.ID)
+					continue
+				} else {
+					assert.Equal(t, val, a.Type)
+				}
+
 				assert.Equal(t, tt.p.Name, a.Package.Name, "failed to capture original package name")
 				for _, detail := range a.MatchDetails {
 					assert.Equal(t, matcher.Type(), detail.Matcher, "failed to capture matcher type")
 				}
 			}
 
-			for _, id := range []string{"CVE-2014-fake-2", "CVE-2013-fake-3"} {
-				if !foundCVEs.Contains(id) {
-					t.Errorf("missing discovered CVE: %s", id)
-				}
-			}
-
 			if t.Failed() {
-				t.Logf("discovered CVES: %+v", foundCVEs)
+				t.Logf("discovered CVES: %+v", actual)
 			}
 		})
 	}
