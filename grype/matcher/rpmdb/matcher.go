@@ -16,7 +16,8 @@ import (
 
 // the source-rpm field has something akin to "util-linux-ng-2.17.2-12.28.el6_9.2.src.rpm"
 // in which case the pattern will extract out "util-linux-ng" as the left-most capture group
-var rpmPackageNamePattern = regexp.MustCompile(`(.*)-(.*)-(.*?)\.(.*)(\.rpm)`)
+// name, version, release, epoch, arch
+var rpmPackageNamePattern = regexp.MustCompile(`(?P<name>.*)-(?P<version>.*)-(?P<release>.*?)\.(?P<arch>.*)(\.rpm)`)
 
 type Matcher struct {
 }
