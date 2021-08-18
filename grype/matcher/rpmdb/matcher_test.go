@@ -48,6 +48,32 @@ func TestMatcherRpmdb(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "Rpmdb Match matches by direct and by source indirection when the SourceRpm version is desynced",
+			p: pkg.Package{
+				Name:    "neutron-libs",
+				Version: "7.1.3-6",
+				Type:    syftPkg.RpmPkg,
+				Metadata: pkg.RpmdbMetadata{
+					SourceRpm: "neutron-5.16.3-229.el8.src.rpm",
+				},
+			},
+			setup: func() (vulnerability.Provider, distro.Distro, Matcher) {
+				matcher := Matcher{}
+				d, err := distro.NewDistro(distro.CentOS, "8", "")
+				if err != nil {
+					t.Fatal("could not create distro: ", err)
+				}
+
+				store := newMockProvider()
+
+				return store, d, matcher
+			},
+			expectedMatches: map[string]match.Type{
+				"CVE-2014-fake-1": match.ExactDirectMatch,
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, test := range tests {
