@@ -49,13 +49,13 @@ func TestMatcherRpmdb(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Rpmdb Match matches by direct and by source indirection when the SourceRpm version is desynced",
+			name: "Rpmdb Match matches by direct and by source indirection when the SourceRpm version is desynced from package version",
 			p: pkg.Package{
 				Name:    "neutron-libs",
 				Version: "7.1.3-6",
 				Type:    syftPkg.RpmPkg,
 				Metadata: pkg.RpmdbMetadata{
-					SourceRpm: "neutron-5.16.3-229.el8.src.rpm",
+					SourceRpm: "neutron-17.16.3-229.el8.src.rpm",
 				},
 			},
 			setup: func() (vulnerability.Provider, distro.Distro, Matcher) {
