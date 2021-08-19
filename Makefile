@@ -87,7 +87,7 @@ bootstrap: ## Download and install all go dependencies (+ prep tooling in the ./
 
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(TEMPDIR)/ v1.26.0
 	curl -sSfL https://raw.githubusercontent.com/wagoodman/go-bouncer/master/bouncer.sh | sh -s -- -b $(TEMPDIR)/ v0.2.0
-	.github/scripts/goreleaser-install.sh -b $(TEMPDIR)/ v0.160.0
+	curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | sh -s -- -b $(TEMPDIR)/ v0.174.2
 
 .PHONY: static-analysis
 static-analysis: lint check-go-mod-tidy check-licenses validate-grype-db-schema
@@ -171,7 +171,7 @@ $(SNAPSHOTDIR): ## Build snapshot release binaries and packages
 	# build release snapshots
 	BUILD_GIT_TREE_STATE=$(GITTREESTATE) \
 	SYFT_VERSION=$(SYFTVERSION) \
-	$(TEMPDIR)/goreleaser release --skip-publish --skip-sign --rm-dist --snapshot --config $(TEMPDIR)/goreleaser.yaml
+		$(TEMPDIR)/goreleaser release --skip-publish --skip-validate --skip-announce --skip-sign --rm-dist --config $(TEMPDIR)/goreleaser.yaml
 
 .PHONY: acceptance-linux
 acceptance-linux: $(SNAPSHOTDIR) ## Run acceptance tests on build snapshot binaries and packages (Linux)
