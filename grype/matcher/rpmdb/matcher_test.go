@@ -37,7 +37,7 @@ func TestMatcherRpmdb(t *testing.T) {
 					t.Fatal("could not create distro: ", err)
 				}
 
-				store := newMockProvider()
+				store := newMockProvider("neutron-libs", "neutron")
 
 				return store, d, matcher
 			},
@@ -47,6 +47,31 @@ func TestMatcherRpmdb(t *testing.T) {
 				"CVE-2013-fake-3": match.ExactIndirectMatch,
 			},
 			wantErr: false,
+		},
+		{
+			name: "Rpmdb Match matches by direct and ignores the source rpm when the package names are the same",
+			p: pkg.Package{
+				Name:    "neutron",
+				Version: "7.1.3-6",
+				Type:    syftPkg.RpmPkg,
+				Metadata: pkg.RpmdbMetadata{
+					SourceRpm: "neutron-7.1.3-6.el8.src.rpm",
+				},
+			},
+			setup: func() (vulnerability.Provider, distro.Distro, Matcher) {
+				matcher := Matcher{}
+				d, err := distro.NewDistro(distro.CentOS, "8", "")
+				if err != nil {
+					t.Fatal("could not create distro: ", err)
+				}
+
+				store := newMockProvider("neutron", "neutron-devel")
+
+				return store, d, matcher
+			},
+			expectedMatches: map[string]match.Type{
+				"CVE-2014-fake-1": match.ExactDirectMatch,
+			},
 		},
 		{ // Regression against https://github.com/anchore/grype/issues/376
 			name: "Rpmdb Match matches by direct and by source indirection when the SourceRpm version is desynced from package version",
@@ -65,7 +90,7 @@ func TestMatcherRpmdb(t *testing.T) {
 					t.Fatal("could not create distro: ", err)
 				}
 
-				store := newMockProvider()
+				store := newMockProvider("neutron-libs", "neutron")
 
 				return store, d, matcher
 			},
