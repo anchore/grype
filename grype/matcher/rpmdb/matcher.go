@@ -65,8 +65,6 @@ func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro,
 	if len(groupMatches) == 0 {
 		log.Warnf("unable to extract name from SourceRPM for %s", p)
 		return nil, nil
-	} else if len(groupMatches) > 1 {
-		log.Warnf("ignoring multiple SourceRPMs for %s", p)
 	}
 
 	// note: the result is match is the full match followed by the sub matches, in our case we're interested in the first capture group
