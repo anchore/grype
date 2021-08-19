@@ -68,7 +68,6 @@ func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro,
 		log.Warnf("ignoring multiple SourceRPMs for %s", p)
 	}
 
-	fmt.Printf("g = %+v\n", groupMatches)
 	// note: the result is match is the full match followed by the sub matches, in our case we're interested in the first capture group
 	var sourcePackageName = groupMatches[1]
 

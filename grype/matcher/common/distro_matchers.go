@@ -15,7 +15,7 @@ func FindMatchesByPackageDistro(store vulnerability.ProviderByDistro, d *distro.
 		return nil, nil
 	}
 
-	verObj, err := version.NewVersionFromPkg(p) // Incorrect version if desynced
+	verObj, err := version.NewVersionFromPkg(p)
 	if err != nil {
 		return nil, fmt.Errorf("matcher failed to parse version pkg='%s' ver='%s': %w", p.Name, p.Version, err)
 	}
