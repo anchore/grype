@@ -48,7 +48,7 @@ func TestMatcherRpmdb(t *testing.T) {
 			},
 			wantErr: false,
 		},
-		{
+		{ // Regression against https://github.com/anchore/grype/issues/376
 			name: "Rpmdb Match matches by direct and by source indirection when the SourceRpm version is desynced from package version",
 			p: pkg.Package{
 				Name:    "neutron-libs",
