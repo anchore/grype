@@ -127,6 +127,7 @@ func TestParseSyftJSON(t *testing.T) {
 				}(),
 			},
 		},
+		springImageTestCase,
 	}
 
 	for _, test := range tests {
@@ -153,4 +154,82 @@ func TestParseSyftJSON(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Note that the fixture has been modified from the real syft output to include less packages, CPEs, layers,
+// and package IDs are removed so that the test case variable isn't unwieldingly huge.
+var springImageTestCase = struct {
+	Fixture  string
+	Packages []Package
+	Context  Context
+}{
+	Fixture: "test-fixtures/syft-spring.json",
+	Packages: []Package{
+		{
+			Name:    "charsets",
+			Version: "",
+			Locations: []source.Location{
+				{
+					RealPath:     "/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/charsets.jar",
+					FileSystemID: "sha256:a1a6ceadb701ab4e6c93b243dc2a0daedc8cee23a24203845ecccd5784cd1393",
+				},
+			},
+			Language: "java",
+			Licenses: []string{},
+			Type:     "java-archive",
+			CPEs: []pkg.CPE{
+				must(pkg.NewCPE("cpe:2.3:a:charsets:charsets:*:*:*:*:*:java:*:*")),
+				must(pkg.NewCPE("cpe:2.3:a:charsets:charsets:*:*:*:*:*:maven:*:*")),
+			},
+			PURL:     "",
+			Metadata: JavaMetadata{VirtualPath: "/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/charsets.jar"},
+		},
+		{
+			Name:    "tomcat-embed-el",
+			Version: "9.0.27",
+			Locations: []source.Location{
+				{
+					RealPath:     "/app/libs/tomcat-embed-el-9.0.27.jar",
+					FileSystemID: "sha256:89504f083d3f15322f97ae240df44650203f24427860db1b3d32e66dd05940e4",
+				},
+			},
+			Language: "java",
+			Licenses: []string{},
+			Type:     "java-archive",
+			CPEs: []pkg.CPE{
+				must(pkg.NewCPE("cpe:2.3:a:tomcat_embed_el:tomcat-embed-el:9.0.27:*:*:*:*:java:*:*")),
+				must(pkg.NewCPE("cpe:2.3:a:tomcat-embed-el:tomcat_embed_el:9.0.27:*:*:*:*:maven:*:*")),
+			},
+			PURL:     "",
+			Metadata: JavaMetadata{VirtualPath: "/app/libs/tomcat-embed-el-9.0.27.jar"},
+		},
+	},
+	Context: Context{
+		Source: &source.Metadata{
+			Scheme: source.ImageScheme,
+			ImageMetadata: source.ImageMetadata{
+				UserInput: "springio/gs-spring-boot-docker:latest",
+				Layers: []source.LayerMetadata{
+					{
+						MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
+						Digest:    "sha256:42a3027eaac150d2b8f516100921f4bd83b3dbc20bfe64124f686c072b49c602",
+						Size:      1809479,
+					},
+				},
+				Size:           142807921,
+				ID:             "sha256:9065659c6e537b0364b7b1d3e5442a3a5aa56d755fb883d221e9e8b3637fb58e",
+				ManifestDigest: "sha256:be3d8a5f700d4c45f3ed324b95d9f028f587c135bc85cf87e193414db521d533",
+				MediaType:      "application/vnd.docker.distribution.manifest.v2+json",
+				Tags: []string{
+					"springio/gs-spring-boot-docker:latest",
+				},
+				RepoDigests: []string{"springio/gs-spring-boot-docker@sha256:39c2ffc784f5f34862e22c1f2ccdbcb62430736114c13f60111eabdb79decb08"},
+			},
+			Path: "",
+		},
+		Distro: func() *distro.Distro {
+			d, _ := distro.NewDistro(distro.Debian, "9", "")
+			return &d
+		}(),
+	},
 }
