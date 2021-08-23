@@ -131,8 +131,8 @@ github.com/anchore/stereoscope v0.0.0-20210524175238-3b7662f3a66f/go.mod h1:vhh1
 github.com/anchore/stereoscope v0.0.0-20210817160504-0f4abc2a5a5a h1:RQb+Gft1MKxjDfJCnHP/f1mwfy0Jz50Kp9QGgSWKQiY=
 github.com/anchore/stereoscope v0.0.0-20210817160504-0f4abc2a5a5a/go.mod h1:165DfE5jApgEkHTWwu7Bijeml9fofudrgcpuWaD9+tk=
 github.com/anchore/syft v0.19.0/go.mod h1:ktWx72/MizsN9jgEh+Vzl9lfNIUC8tylQHk3ZjKehn0=
-github.com/anchore/syft v0.20.0 h1:2vNr2ge0rkvsdYZkn5zCM1ZKaMR2vP5hF/F2mQYNeBg=
-github.com/anchore/syft v0.20.0/go.mod h1:TkyUS5p742hvPuN8tU9/lK67Sk7iiKdFSGgG6kZDMu0=
+github.com/anchore/syft v0.21.0 h1:FHkpqskYPVi32WYYSbJ1y+07Rppmw6lxOp6p8uetIPU=
+github.com/anchore/syft v0.21.0/go.mod h1:TkyUS5p742hvPuN8tU9/lK67Sk7iiKdFSGgG6kZDMu0=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 h1:bvNMNQO63//z+xNgfBlViaCIJKLlCJ6/fmUseuG0wVQ=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/cascadia v1.1.0/go.mod h1:GsXiBklL0woXo1j/WYWtSYYC4ouU9PqHO0sqidkEA4Y=
