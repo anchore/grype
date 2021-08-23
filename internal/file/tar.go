@@ -15,8 +15,8 @@ const (
 	KB = 1 << (10 * iota)
 	MB
 	GB
-	// Why 5GB? This is somewhat of an arbitrary threshold, however, we need to keep this at at minimum 2GB
-	// to accommodate possible grype DB sizes.
+	// limit the tar reader to 5GB per file to prevent decompression bomb attacks. Why 5GB? This is somewhat of an
+	// arbitrary threshold, however, we need to keep this at at minimum 2GB to accommodate possible grype DB sizes.
 	decompressionByteReadLimit = 5 * GB
 )
 
@@ -96,12 +96,11 @@ func UnTarGz(dst string, r io.Reader) error {
 	}
 }
 
-func copyWithLimits(writer io.Writer, reader io.Reader, byteReadLimit int64, target string) error {
-	// limit the tar reader to 5GB per file to prevent decompression bomb attacks
+func copyWithLimits(writer io.Writer, reader io.Reader, byteReadLimit int64, pathInArchive string) error {
 	if numBytes, err := io.Copy(writer, io.LimitReader(reader, byteReadLimit)); err != nil {
-		return fmt.Errorf("failed to copy file (%s): %w", target, err)
+		return fmt.Errorf("failed to copy file (%s): %w", pathInArchive, err)
 	} else if numBytes >= byteReadLimit {
-		return fmt.Errorf("failed to copy file (%s): read limit (%d bytes) reached ", target, byteReadLimit)
+		return fmt.Errorf("failed to copy file (%s): read limit (%d bytes) reached ", pathInArchive, byteReadLimit)
 	}
 	return nil
 }

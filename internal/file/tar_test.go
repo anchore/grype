@@ -90,7 +90,7 @@ func Test_copyWithLimits(t *testing.T) {
 		name          string
 		input         string
 		byteReadLimit int64
-		target        string
+		pathInArchive string
 		expectWritten string
 		expectErr     bool
 	}{
@@ -98,7 +98,7 @@ func Test_copyWithLimits(t *testing.T) {
 			name:          "write bytes",
 			input:         "something here",
 			byteReadLimit: 1000,
-			target:        "dont care",
+			pathInArchive: "dont care",
 			expectWritten: "something here",
 			expectErr:     false,
 		},
@@ -106,7 +106,7 @@ func Test_copyWithLimits(t *testing.T) {
 			name:          "surpass upper limit",
 			input:         "something here",
 			byteReadLimit: 11,
-			target:        "dont care",
+			pathInArchive: "dont care",
 			expectWritten: "something h",
 			expectErr:     true,
 		},
@@ -116,7 +116,7 @@ func Test_copyWithLimits(t *testing.T) {
 			name:          "reach limit exactly",
 			input:         "something here",
 			byteReadLimit: 14,
-			target:        "dont care",
+			pathInArchive: "dont care",
 			expectWritten: "something here",
 			expectErr:     true,
 		},
@@ -124,12 +124,12 @@ func Test_copyWithLimits(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			writer := &bytes.Buffer{}
-			err := copyWithLimits(writer, strings.NewReader(test.input), test.byteReadLimit, test.target)
+			err := copyWithLimits(writer, strings.NewReader(test.input), test.byteReadLimit, test.pathInArchive)
 			if (err != nil) != test.expectErr {
 				t.Errorf("copyWithLimits() error = %v, want %v", err, test.expectErr)
 				return
 			} else if err != nil {
-				assert.Contains(t, err.Error(), test.target)
+				assert.Contains(t, err.Error(), test.pathInArchive)
 			}
 			assert.Equal(t, test.expectWritten, writer.String())
 
