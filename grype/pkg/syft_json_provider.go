@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/anchore/grype/internal/log"
+
 	"github.com/anchore/grype/grype/cpe"
 	"github.com/anchore/syft/syft/distro"
 	"github.com/anchore/syft/syft/pkg"
@@ -106,9 +108,13 @@ type packageMetadataUnpacker struct {
 	Metadata     json.RawMessage  `json:"metadata"`
 }
 
+func (p *packageMetadataUnpacker) String() string {
+	return fmt.Sprintf("metadataType: %s, metadata: %s", p.MetadataType, string(p.Metadata))
+}
+
 // partialSyftJavaMetadata encapsulates all Java ecosystem metadata for a package as well as an (optional) parent relationship.
 type partialSyftJavaMetadata struct {
-	VirtualPath   string                    `json:"virtualPath"`
+	VirtualPath   string                    `mapstructure:"VirtualPath" json:"virtualPath"`
 	Manifest      *partialSyftJavaManifest  `mapstructure:"Manifest" json:"manifest,omitempty"`
 	PomProperties *partialSyftPomProperties `mapstructure:"PomProperties" json:"pomProperties,omitempty"`
 }
@@ -139,6 +145,7 @@ func (p *partialSyftPackage) UnmarshalJSON(b []byte) error {
 
 	var unpacker packageMetadataUnpacker
 	if err := json.Unmarshal(b, &unpacker); err != nil {
+		log.Warnf("failed to unmarshall into packageMetadataUnpacker: %v", err)
 		return err
 	}
 
@@ -176,6 +183,7 @@ func (p *partialSyftPackage) UnmarshalJSON(b []byte) error {
 		}
 
 		p.Metadata = JavaMetadata{
+			VirtualPath:   partialPayload.VirtualPath,
 			PomArtifactID: artifact,
 			PomGroupID:    group,
 			ManifestName:  name,

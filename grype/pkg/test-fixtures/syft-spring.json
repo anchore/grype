@@ -1,0 +1,126 @@
+{
+ "artifacts": [
+  {
+   "name": "charsets",
+   "version": "",
+   "type": "java-archive",
+   "foundBy": "java-cataloger",
+   "locations": [
+    {
+     "path": "/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/charsets.jar",
+     "layerID": "sha256:a1a6ceadb701ab4e6c93b243dc2a0daedc8cee23a24203845ecccd5784cd1393"
+    }
+   ],
+   "licenses": [],
+   "language": "java",
+   "cpes": [
+    "cpe:2.3:a:charsets:charsets:*:*:*:*:*:java:*:*",
+    "cpe:2.3:a:charsets:charsets:*:*:*:*:*:maven:*:*"
+   ],
+   "purl": "",
+   "metadataType": "JavaMetadata",
+   "metadata": {
+    "virtualPath": "/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/charsets.jar",
+    "manifest": {
+     "main": {
+      "Created-By": "1.8.0_242 (Oracle Corporation)",
+      "Manifest-Version": "1.0"
+     }
+    }
+   }
+  },
+  {
+   "name": "tomcat-embed-el",
+   "version": "9.0.27",
+   "type": "java-archive",
+   "foundBy": "java-cataloger",
+   "locations": [
+    {
+     "path": "/app/libs/tomcat-embed-el-9.0.27.jar",
+     "layerID": "sha256:89504f083d3f15322f97ae240df44650203f24427860db1b3d32e66dd05940e4"
+    }
+   ],
+   "licenses": [],
+   "language": "java",
+   "cpes": [
+    "cpe:2.3:a:tomcat_embed_el:tomcat-embed-el:9.0.27:*:*:*:*:java:*:*",
+    "cpe:2.3:a:tomcat-embed-el:tomcat_embed_el:9.0.27:*:*:*:*:maven:*:*"
+   ],
+   "purl": "",
+   "metadataType": "JavaMetadata",
+   "metadata": {
+    "virtualPath": "/app/libs/tomcat-embed-el-9.0.27.jar",
+    "manifest": {
+     "main": {
+      "Ant-Version": "Apache Ant 1.9.9",
+      "Automatic-Module-Name": "org.apache.tomcat.embed.jasper.el",
+      "Bnd-LastModified": "1570442272460",
+      "Bundle-ManifestVersion": "2",
+      "Bundle-Name": "tomcat-embed-jasper-el",
+      "Bundle-SymbolicName": "org.apache.tomcat-embed-jasper-el",
+      "Bundle-Version": "9.0.27",
+      "Created-By": "1.8.0_222 (AdoptOpenJDK)",
+      "DSTAMP": "20191007",
+      "Export-Package": "javax.el,org.apache.el;uses:=\"javax.el,org.apache.el.parser\",org.apache.el.lang;uses:=\"javax.el,org.apache.el.parser\",org.apache.el.parser;uses:=\"javax.el,org.apache.el.lang\"",
+      "Implementation-Title": "Apache Tomcat",
+      "Implementation-Vendor": "Apache Software Foundation",
+      "Implementation-Version": "9.0.27",
+      "Import-Package": "javax.el,javax.servlet.jsp.el",
+      "Manifest-Version": "1.0",
+      "Originally-Created-By": "1.8.0_222-b10 ()",
+      "Private-Package": "org.apache.el.stream,org.apache.el.util",
+      "Require-Capability": "osgi.ee;filter:=\"(&(osgi.ee=JavaSE)(version=1.8))\"",
+      "Specification-Title": "Apache Tomcat",
+      "Specification-Vendor": "Apache Software Foundation",
+      "Specification-Version": "9.0",
+      "TODAY": "October 7 2019",
+      "TSTAMP": "1057",
+      "Tool": "Bnd-4.2.0.201903051501",
+      "X-Compile-Source-JDK": "8",
+      "X-Compile-Target-JDK": "8"
+     }
+    }
+   }
+  }
+ ],
+ "artifactRelationships": [],
+ "source": {
+  "type": "image",
+  "target": {
+   "userInput": "springio/gs-spring-boot-docker:latest",
+   "imageID": "sha256:9065659c6e537b0364b7b1d3e5442a3a5aa56d755fb883d221e9e8b3637fb58e",
+   "manifestDigest": "sha256:be3d8a5f700d4c45f3ed324b95d9f028f587c135bc85cf87e193414db521d533",
+   "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+   "tags": [
+    "springio/gs-spring-boot-docker:latest"
+   ],
+   "imageSize": 142807921,
+   "layers": [
+    {
+     "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+     "digest": "sha256:42a3027eaac150d2b8f516100921f4bd83b3dbc20bfe64124f686c072b49c602",
+     "size": 1809479
+    }
+   ],
+   "manifest": "eyJzY2hlbWFWZXJzaW9uIjoyLCJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQuZG9ja2VyLmRpc3RyaWJ1dGlvbi5tYW5pZmVzdC52Mitqc29uIiwiY29uZmlnIjp7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5kb2NrZXIuY29udGFpbmVyLmltYWdlLnYxK2pzb24iLCJzaXplIjoxNTk1LCJkaWdlc3QiOiJzaGEyNTY6OTA2NTY1OWM2ZTUzN2IwMzY0YjdiMWQzZTU0NDJhM2E1YWE1NmQ3NTVmYjg4M2QyMjFlOWU4YjM2MzdmYjU4ZSJ9LCJsYXllcnMiOlt7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5kb2NrZXIuaW1hZ2Uucm9vdGZzLmRpZmYudGFyLmd6aXAiLCJzaXplIjozMDYxNzYwLCJkaWdlc3QiOiJzaGEyNTY6NDJhMzAyN2VhYWMxNTBkMmI4ZjUxNjEwMDkyMWY0YmQ4M2IzZGJjMjBiZmU2NDEyNGY2ODZjMDcyYjQ5YzYwMiJ9LHsibWVkaWFUeXBlIjoiYXBwbGljYXRpb24vdm5kLmRvY2tlci5pbWFnZS5yb290ZnMuZGlmZi50YXIuZ3ppcCIsInNpemUiOjE1NDQxOTIwLCJkaWdlc3QiOiJzaGEyNTY6ZjQ3MTYzZThkZTU3ZTNlM2NjZmU4OWQ1ZGZiZDljMjUyZDllY2E1M2RjNzkwNmI4ZGI2MGVkZGNiODc2YzU5MiJ9LHsibWVkaWFUeXBlIjoiYXBwbGljYXRpb24vdm5kLmRvY2tlci5pbWFnZS5yb290ZnMuZGlmZi50YXIuZ3ppcCIsInNpemUiOjE5NjYwODAsImRpZ2VzdCI6InNoYTI1Njo2MTg5YWJlMDk1ZDUzYzFjOWYyYmZjOGY1MDEyOGVlODc2YjlhNWQxMGY5ZWRhMTU2NGU1ZjUzNTdkNmZmZTYxIn0seyJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQuZG9ja2VyLmltYWdlLnJvb3Rmcy5kaWZmLnRhci5nemlwIiwic2l6ZSI6MTA2ODMzOTIwLCJkaWdlc3QiOiJzaGEyNTY6YTFhNmNlYWRiNzAxYWI0ZTZjOTNiMjQzZGMyYTBkYWVkYzhjZWUyM2EyNDIwMzg0NWVjY2NkNTc4NGNkMTM5MyJ9LHsibWVkaWFUeXBlIjoiYXBwbGljYXRpb24vdm5kLmRvY2tlci5pbWFnZS5yb290ZnMuZGlmZi50YXIuZ3ppcCIsInNpemUiOjE3NDg3ODcyLCJkaWdlc3QiOiJzaGEyNTY6ODk1MDRmMDgzZDNmMTUzMjJmOTdhZTI0MGRmNDQ2NTAyMDNmMjQ0Mjc4NjBkYjFiM2QzMmU2NmRkMDU5NDBlNCJ9LHsibWVkaWFUeXBlIjoiYXBwbGljYXRpb24vdm5kLmRvY2tlci5pbWFnZS5yb290ZnMuZGlmZi50YXIuZ3ppcCIsInNpemUiOjM1ODQsImRpZ2VzdCI6InNoYTI1NjoyNDQzNDk3MWNhN2Y0MGUxYTdlNjRlZThlYTFjYTg0MzQzMmRhMWUxYmIxYzU5ODM4NzA4MzUwNjU2ODBkMTU0In0seyJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQuZG9ja2VyLmltYWdlLnJvb3Rmcy5kaWZmLnRhci5nemlwIiwic2l6ZSI6NDA5NiwiZGlnZXN0Ijoic2hhMjU2OjNjMDEwMjY1NDQ5ZDAwZmFlZTZmMmZhMWM3ZGY0ODEwOWMwZDcwOGM3MWJlZTRhMzhlNGI1ZTBmYTliODdjZTkifV19",
+   "config": "eyJjcmVhdGVkIjoiMTk3MC0wMS0wMVQwMDowMDowMFoiLCJhcmNoaXRlY3R1cmUiOiJhbWQ2NCIsIm9zIjoibGludXgiLCJjb25maWciOnsiRW52IjpbIlBBVEg9L3Vzci9sb2NhbC9zYmluOi91c3IvbG9jYWwvYmluOi91c3Ivc2JpbjovdXNyL2Jpbjovc2JpbjovYmluIiwiU1NMX0NFUlRfRklMRT0vZXRjL3NzbC9jZXJ0cy9jYS1jZXJ0aWZpY2F0ZXMuY3J0IiwiSkFWQV9WRVJTSU9OPTh1MjQyIl0sIkVudHJ5cG9pbnQiOlsiamF2YSIsIi1jcCIsIi9hcHAvcmVzb3VyY2VzOi9hcHAvY2xhc3NlczovYXBwL2xpYnMvKiIsImhlbGxvLkFwcGxpY2F0aW9uIl0sIkV4cG9zZWRQb3J0cyI6e30sIkxhYmVscyI6e30sIlZvbHVtZXMiOnt9fSwiaGlzdG9yeSI6W3siY3JlYXRlZCI6IjE5NzAtMDEtMDFUMDA6MDA6MDBaIiwiYXV0aG9yIjoiQmF6ZWwiLCJjcmVhdGVkX2J5IjoiYmF6ZWwgYnVpbGQgLi4uIn0seyJjcmVhdGVkIjoiMTk3MC0wMS0wMVQwMDowMDowMFoiLCJhdXRob3IiOiJCYXplbCIsImNyZWF0ZWRfYnkiOiJiYXplbCBidWlsZCAuLi4ifSx7ImNyZWF0ZWQiOiIxOTcwLTAxLTAxVDAwOjAwOjAwWiIsImF1dGhvciI6IkJhemVsIiwiY3JlYXRlZF9ieSI6ImJhemVsIGJ1aWxkIC4uLiJ9LHsiY3JlYXRlZCI6IjE5NzAtMDEtMDFUMDA6MDA6MDBaIiwiYXV0aG9yIjoiQmF6ZWwiLCJjcmVhdGVkX2J5IjoiYmF6ZWwgYnVpbGQgLi4uIn0seyJjcmVhdGVkIjoiMTk3MC0wMS0wMVQwMDowMDowMFoiLCJhdXRob3IiOiJKaWIiLCJjcmVhdGVkX2J5IjoiamliLW1hdmVuLXBsdWdpbjoyLjIuMCIsImNvbW1lbnQiOiJkZXBlbmRlbmNpZXMifSx7ImNyZWF0ZWQiOiIxOTcwLTAxLTAxVDAwOjAwOjAwWiIsImF1dGhvciI6IkppYiIsImNyZWF0ZWRfYnkiOiJqaWItbWF2ZW4tcGx1Z2luOjIuMi4wIiwiY29tbWVudCI6InJlc291cmNlcyJ9LHsiY3JlYXRlZCI6IjE5NzAtMDEtMDFUMDA6MDA6MDBaIiwiYXV0aG9yIjoiSmliIiwiY3JlYXRlZF9ieSI6ImppYi1tYXZlbi1wbHVnaW46Mi4yLjAiLCJjb21tZW50IjoiY2xhc3NlcyJ9XSwicm9vdGZzIjp7InR5cGUiOiJsYXllcnMiLCJkaWZmX2lkcyI6WyJzaGEyNTY6NDJhMzAyN2VhYWMxNTBkMmI4ZjUxNjEwMDkyMWY0YmQ4M2IzZGJjMjBiZmU2NDEyNGY2ODZjMDcyYjQ5YzYwMiIsInNoYTI1NjpmNDcxNjNlOGRlNTdlM2UzY2NmZTg5ZDVkZmJkOWMyNTJkOWVjYTUzZGM3OTA2YjhkYjYwZWRkY2I4NzZjNTkyIiwic2hhMjU2OjYxODlhYmUwOTVkNTNjMWM5ZjJiZmM4ZjUwMTI4ZWU4NzZiOWE1ZDEwZjllZGExNTY0ZTVmNTM1N2Q2ZmZlNjEiLCJzaGEyNTY6YTFhNmNlYWRiNzAxYWI0ZTZjOTNiMjQzZGMyYTBkYWVkYzhjZWUyM2EyNDIwMzg0NWVjY2NkNTc4NGNkMTM5MyIsInNoYTI1Njo4OTUwNGYwODNkM2YxNTMyMmY5N2FlMjQwZGY0NDY1MDIwM2YyNDQyNzg2MGRiMWIzZDMyZTY2ZGQwNTk0MGU0Iiwic2hhMjU2OjI0NDM0OTcxY2E3ZjQwZTFhN2U2NGVlOGVhMWNhODQzNDMyZGExZTFiYjFjNTk4Mzg3MDgzNTA2NTY4MGQxNTQiLCJzaGEyNTY6M2MwMTAyNjU0NDlkMDBmYWVlNmYyZmExYzdkZjQ4MTA5YzBkNzA4YzcxYmVlNGEzOGU0YjVlMGZhOWI4N2NlOSJdfX0=",
+   "repoDigests": [
+    "springio/gs-spring-boot-docker@sha256:39c2ffc784f5f34862e22c1f2ccdbcb62430736114c13f60111eabdb79decb08"
+   ],
+   "scope": "Squashed"
+  }
+ },
+ "distro": {
+  "name": "debian",
+  "version": "9",
+  "idLike": ""
+ },
+ "descriptor": {
+  "name": "syft",
+  "version": "[not provided]"
+ },
+ "schema": {
+  "version": "1.1.0",
+  "url": "https://raw.githubusercontent.com/anchore/syft/main/schema/json/schema-1.1.0.json"
+ }
+}
