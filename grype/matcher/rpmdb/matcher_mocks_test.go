@@ -7,31 +7,32 @@ import (
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/distro"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 type mockProvider struct {
 	data map[string]map[string][]vulnerability.Vulnerability
 }
 
-func newMockProvider() *mockProvider {
+func newMockProvider(packageName, indrectName string) *mockProvider {
 	pr := mockProvider{
 		data: make(map[string]map[string][]vulnerability.Vulnerability),
 	}
-	pr.stub()
+	pr.stub(packageName, indrectName)
 	return &pr
 }
 
-func (pr *mockProvider) stub() {
+func (pr *mockProvider) stub(packageName, indrectName string) {
 	pr.data["rhel:8"] = map[string][]vulnerability.Vulnerability{
 		// direct...
-		"neutron-libs": {
+		packageName: {
 			{
 				Constraint: version.MustGetConstraint("<= 7.1.3-6", version.RpmFormat),
 				ID:         "CVE-2014-fake-1",
 			},
 		},
 		// indirect...
-		"neutron": {
+		indrectName: {
 			// expected...
 			{
 				Constraint: version.MustGetConstraint("< 7.1.4-5", version.RpmFormat),
@@ -57,4 +58,12 @@ func (pr *mockProvider) GetByDistro(d *distro.Distro, p pkg.Package) ([]vulnerab
 	}
 
 	return pr.data[ty+":"+d.FullVersion()][p.Name], nil
+}
+
+func (pr *mockProvider) GetByCPE(request syftPkg.CPE) (v []vulnerability.Vulnerability, err error) {
+	return v, err
+}
+
+func (pr *mockProvider) GetByLanguage(l syftPkg.Language, p pkg.Package) (v []vulnerability.Vulnerability, err error) {
+	return v, err
 }
