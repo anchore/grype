@@ -46,7 +46,6 @@ func TestMatcherRpmdb(t *testing.T) {
 				"CVE-2014-fake-2": match.ExactIndirectMatch,
 				"CVE-2013-fake-3": match.ExactIndirectMatch,
 			},
-			wantErr: false,
 		},
 		{
 			name: "Rpmdb Match matches by direct and ignores the source rpm when the package names are the same",
@@ -97,7 +96,6 @@ func TestMatcherRpmdb(t *testing.T) {
 			expectedMatches: map[string]match.Type{
 				"CVE-2014-fake-1": match.ExactDirectMatch,
 			},
-			wantErr: false,
 		},
 	}
 
@@ -106,9 +104,8 @@ func TestMatcherRpmdb(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			store, d, matcher := tt.setup()
 			actual, err := matcher.Match(store, &d, tt.p)
-			if tt.wantErr {
-				assert.Equal(t, "", err) //TODO: error case
-				return
+			if err != nil {
+				t.Fatal("could not find match: ", err)
 			}
 
 			assert.Len(t, actual, len(tt.expectedMatches), "unexpected matches count")
