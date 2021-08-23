@@ -15,6 +15,9 @@ const (
 	KB = 1 << (10 * iota)
 	MB
 	GB
+	// limit the tar reader to 5GB per file to prevent decompression bomb attacks. Why 5GB? This is somewhat of an
+	// arbitrary threshold, however, we need to keep this at at minimum 2GB to accommodate possible grype DB sizes.
+	decompressionByteReadLimit = 5 * GB
 )
 
 type errZipSlipDetected struct {
@@ -82,9 +85,8 @@ func UnTarGz(dst string, r io.Reader) error {
 				return fmt.Errorf("failed to open file (%s): %w", target, err)
 			}
 
-			// limit the tar reader to 1GB per file to prevent decompression bomb attacks
-			if _, err := io.Copy(f, io.LimitReader(tr, 1*GB)); err != nil {
-				return fmt.Errorf("failed to copy file (%s): %w", target, err)
+			if err := copyWithLimits(f, tr, decompressionByteReadLimit, target); err != nil {
+				return err
 			}
 
 			if err = f.Close(); err != nil {
@@ -92,4 +94,13 @@ func UnTarGz(dst string, r io.Reader) error {
 			}
 		}
 	}
+}
+
+func copyWithLimits(writer io.Writer, reader io.Reader, byteReadLimit int64, pathInArchive string) error {
+	if numBytes, err := io.Copy(writer, io.LimitReader(reader, byteReadLimit)); err != nil {
+		return fmt.Errorf("failed to copy file (%s): %w", pathInArchive, err)
+	} else if numBytes >= byteReadLimit {
+		return fmt.Errorf("failed to copy file (%s): read limit (%d bytes) reached ", pathInArchive, byteReadLimit)
+	}
+	return nil
 }
