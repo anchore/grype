@@ -21,7 +21,7 @@ import (
 //		name = "util-linux-ng"
 //		version = "2.17.2"
 //		release = "12.28.el6_9.2"
-//      arch = "src"
+//		arch = "src"
 var rpmPackageNamePattern = regexp.MustCompile(`^(?P<name>.*)-(?P<version>.*)-(?P<release>.*)\.(?P<arch>[a-zA-Z][^.]+)(\.rpm)$`)
 
 type Matcher struct {

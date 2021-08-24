@@ -89,6 +89,10 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 							"type":    "debian",
 							"version": "8",
 						},
+						"package": map[string]string{
+							"name":    "neutron",
+							"version": "2014.1.3-6",
+						},
 						"namespace": "debian:8",
 					},
 					Found: map[string]interface{}{

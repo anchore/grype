@@ -81,6 +81,10 @@ func TestSecDBOnlyMatch(t *testing.T) {
 							"type":    d.Type.String(),
 							"version": d.RawVersion,
 						},
+						"package": map[string]string{
+							"name":    "libvncserver",
+							"version": "0.9.9",
+						},
 						"namespace": "secdb",
 					},
 					Found: map[string]interface{}{
@@ -160,6 +164,10 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 						"distro": map[string]string{
 							"type":    d.Type.String(),
 							"version": d.RawVersion,
+						},
+						"package": map[string]string{
+							"name":    "libvncserver",
+							"version": "0.9.9",
 						},
 						"namespace": "secdb",
 					},
@@ -241,6 +249,10 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 						"distro": map[string]string{
 							"type":    d.Type.String(),
 							"version": d.RawVersion,
+						},
+						"package": map[string]string{
+							"name":    "libvncserver",
+							"version": "0.9.9",
 						},
 						"namespace": "secdb",
 					},
