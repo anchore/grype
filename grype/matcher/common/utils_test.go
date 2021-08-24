@@ -10,6 +10,7 @@ import (
 )
 
 func assertMatchesUsingIDsForVulnerabilities(t testing.TB, expected, actual []match.Match) {
+	t.Helper()
 	assert.Len(t, actual, len(expected))
 	for idx, a := range actual {
 		// only compare the vulnerability ID, nothing else
