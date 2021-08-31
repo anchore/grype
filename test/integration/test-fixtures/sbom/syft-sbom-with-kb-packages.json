@@ -1,0 +1,31 @@
+{
+  "artifacts": [
+    {
+      "id": "eeb36c1c-c03a-425b-901f-df918cc3757e",
+      "name": "10816",
+      "version": "3200970",
+      "type": "msrc-kb"
+    }
+  ],
+  "artifactRelationships": [],
+  "source": {
+    "type": "image",
+    "target": {
+      "userInput": "my-awesome-image:latest",
+      "scope": "Squashed"
+    }
+  },
+  "distro": {
+    "name": "windows",
+    "version": "10816",
+    "idLike": ""
+  },
+  "descriptor": {
+    "name": "syft",
+    "version": "v0.19.1"
+  },
+  "schema": {
+    "version": "1.1.0",
+    "url": "https://raw.githubusercontent.com/anchore/syft/main/schema/json/schema-1.1.0.json"
+  }
+}

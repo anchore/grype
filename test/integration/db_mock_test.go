@@ -11,7 +11,7 @@ type mockStore struct {
 	backend map[string]map[string][]grypeDB.Vulnerability
 }
 
-func NewMockDbStore() *mockStore {
+func newMockDbStore() *mockStore {
 	return &mockStore{
 		backend: map[string]map[string][]grypeDB.Vulnerability{
 			"nvd": {
@@ -87,6 +87,15 @@ func NewMockDbStore() *mockStore {
 					},
 				},
 			},
+			"msrc:10816": {
+				"10816": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-2016-3333",
+						VersionConstraint: "3200970 || 878787 || base",
+						VersionFormat:     "kb",
+					},
+				},
+			},
 		},
 	}
 }
@@ -96,5 +105,12 @@ func (s *mockStore) GetVulnerability(namespace, name string) ([]grypeDB.Vulnerab
 	if namespaceMap == nil {
 		return nil, nil
 	}
-	return namespaceMap[name], nil
+	entries, ok := namespaceMap[name]
+	if !ok {
+		return entries, nil
+	}
+	for i := range entries {
+		entries[i].Namespace = namespace
+	}
+	return entries, nil
 }
