@@ -253,7 +253,7 @@ func addRhelMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 	})
 }
 
-func TestPkgCoverageImage(t *testing.T) {
+func TestMatchByImage(t *testing.T) {
 
 	observedMatchers := internal.NewStringSet()
 	definedMatchers := internal.NewStringSet()
@@ -297,7 +297,7 @@ func TestPkgCoverageImage(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.fixtureImage, func(t *testing.T) {
-			theStore := NewMockDbStore()
+			theStore := newMockDbStore()
 
 			imagetest.GetFixtureImage(t, "docker-archive", test.fixtureImage)
 			tarPath := imagetest.GetFixtureImageTarPath(t, test.fixtureImage)
