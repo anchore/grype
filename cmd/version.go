@@ -16,7 +16,7 @@ var outputFormat string
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "show the version",
-	Run:   printVersion,
+	RunE:  printVersion,
 }
 
 func init() {
@@ -25,7 +25,7 @@ func init() {
 	rootCmd.AddCommand(versionCmd)
 }
 
-func printVersion(_ *cobra.Command, _ []string) {
+func printVersion(_ *cobra.Command, _ []string) error {
 	versionInfo := version.FromBuild()
 	switch outputFormat {
 	case "text":
@@ -54,11 +54,10 @@ func printVersion(_ *cobra.Command, _ []string) {
 			SchemaVersion: vulnerability.SchemaVersion,
 		})
 		if err != nil {
-			fmt.Printf("failed to show version information: %+v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("failed to show version information: %+v", err)
 		}
 	default:
-		fmt.Printf("unsupported output format: %s\n", outputFormat)
-		os.Exit(1)
+		return fmt.Errorf("unsupported output format: %s", outputFormat)
 	}
+	return nil
 }

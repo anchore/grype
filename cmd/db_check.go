@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/anchore/grype/grype/db"
 	"github.com/spf13/cobra"
@@ -12,35 +11,27 @@ var dbCheckCmd = &cobra.Command{
 	Use:   "check",
 	Short: "check to see if there is a database update available",
 	Args:  cobra.ExactArgs(0),
-	Run: func(cmd *cobra.Command, args []string) {
-		ret := runDbCheckCmd(cmd, args)
-		if ret != 0 {
-			fmt.Println("Unable to check for vulnerability database updates")
-		}
-		os.Exit(ret)
-	},
+	RunE:  runDbCheckCmd,
 }
 
 func init() {
 	dbCmd.AddCommand(dbCheckCmd)
 }
 
-func runDbCheckCmd(_ *cobra.Command, _ []string) int {
+func runDbCheckCmd(_ *cobra.Command, _ []string) error {
 	dbCurator := db.NewCurator(appConfig.Db.ToCuratorConfig())
 
 	updateAvailable, _, err := dbCurator.IsUpdateAvailable()
 	if err != nil {
 		// TODO: should this be so fatal? we can certainly continue with a warning...
-		log.Errorf("unable to check for vulnerability database update: %+v", err)
-		return 1
+		return fmt.Errorf("unable to check for vulnerability database update: %+v", err)
 	}
 
 	if !updateAvailable {
 		fmt.Println("No update available")
-		return 0
+		return nil
 	}
 
 	fmt.Println("Update available!")
-
-	return 0
+	return nil
 }

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/anchore/grype/internal"
 
@@ -15,28 +14,21 @@ var dbImportCmd = &cobra.Command{
 	Short: "import a vulnerability database archive",
 	Long:  fmt.Sprintf("import a vulnerability database archive from a local FILE.\nDB archives can be obtained from %q.", internal.DBUpdateURL),
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		ret := runDbImportCmd(cmd, args)
-		if ret != 0 {
-			fmt.Println("Unable to import vulnerability database")
-		}
-		os.Exit(ret)
-	},
+	RunE:  runDbImportCmd,
 }
 
 func init() {
 	dbCmd.AddCommand(dbImportCmd)
 }
 
-func runDbImportCmd(_ *cobra.Command, args []string) int {
+func runDbImportCmd(_ *cobra.Command, args []string) error {
 	dbCurator := db.NewCurator(appConfig.Db.ToCuratorConfig())
 
 	if err := dbCurator.ImportFrom(args[0]); err != nil {
-		log.Errorf("unable to import vulnerability database: %+v", err)
-		return 1
+		return fmt.Errorf("unable to import vulnerability database: %+v", err)
+
 	}
 
 	fmt.Println("Vulnerability database imported")
-
-	return 0
+	return nil
 }
