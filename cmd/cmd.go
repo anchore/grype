@@ -6,50 +6,30 @@ import (
 
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/internal/config"
-	"github.com/anchore/grype/internal/format"
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/logger"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/syft/syft"
-	"github.com/sirupsen/logrus"
+	"github.com/gookit/color"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/wagoodman/go-partybus"
-	"gopkg.in/yaml.v2"
 )
 
-var appConfig *config.Application
-var log *logrus.Logger
-var cliOnlyOpts config.CliOnlyOptions
-var eventBus *partybus.Bus
-var eventSubscription *partybus.Subscription
+var (
+	appConfig         *config.Application
+	eventBus          *partybus.Bus
+	eventSubscription *partybus.Subscription
+)
 
 func init() {
-	setGlobalCliOptions()
-
-	// read in config and setup logger
 	cobra.OnInitialize(
+		initRootCmdConfigOptions,
 		initAppConfig,
 		initLogging,
 		logAppConfig,
 		initEventBus,
 	)
-}
-
-func setGlobalCliOptions() {
-	// setup global CLI options (available on all CLI commands)
-	rootCmd.PersistentFlags().StringVarP(&cliOnlyOpts.ConfigPath, "config", "c", "", "application config file")
-
-	flag := "quiet"
-	rootCmd.PersistentFlags().BoolP(
-		flag, "q", false,
-		"suppress all logging output",
-	)
-	if err := viper.BindPFlag(flag, rootCmd.PersistentFlags().Lookup(flag)); err != nil {
-		fmt.Printf("unable to bind flag '%s': %+v", flag, err)
-		os.Exit(1)
-	}
-
-	rootCmd.PersistentFlags().CountVarP(&cliOnlyOpts.Verbosity, "verbose", "v", "increase verbosity (-v = info, -vv = debug)")
 }
 
 func Execute() {
@@ -59,8 +39,14 @@ func Execute() {
 	}
 }
 
+func initRootCmdConfigOptions() {
+	if err := bindRootConfigOptions(rootCmd.Flags()); err != nil {
+		panic(err)
+	}
+}
+
 func initAppConfig() {
-	cfg, err := config.LoadConfigFromFile(viper.GetViper(), &cliOnlyOpts)
+	cfg, err := config.LoadApplicationConfig(viper.GetViper(), persistentOpts)
 	if err != nil {
 		fmt.Printf("failed to load application config: \n\t%+v\n", err)
 		os.Exit(1)
@@ -79,26 +65,19 @@ func initLogging() {
 
 	logWrapper := logger.NewLogrusLogger(cfg)
 
-	log = logWrapper.Logger
 	grype.SetLogger(logWrapper)
 
 	// add a structured field to all loggers of dependencies
 	syft.SetLogger(&logger.LogrusNestedLogger{
-		Logger: log.WithField("from-lib", "syft"),
+		Logger: logWrapper.Logger.WithField("from-lib", "syft"),
 	})
 	stereoscope.SetLogger(&logger.LogrusNestedLogger{
-		Logger: log.WithField("from-lib", "stereoscope"),
+		Logger: logWrapper.Logger.WithField("from-lib", "stereoscope"),
 	})
 }
 
 func logAppConfig() {
-	appCfgStr, err := yaml.Marshal(&appConfig)
-
-	if err != nil {
-		log.Debugf("Could not display application config: %+v", err)
-	} else {
-		log.Debugf("Application config:\n%+v", format.Magenta.Format(string(appCfgStr)))
-	}
+	log.Debugf("application config:\n%+v", color.Magenta.Sprint(appConfig.String()))
 }
 
 func initEventBus() {
