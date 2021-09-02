@@ -1,4 +1,4 @@
-package common
+package components
 
 import (
 	"strings"
@@ -7,33 +7,7 @@ import (
 
 // TODO: move me to a common module (used in multiple repos)
 
-const (
-	SpinnerCircleOutlineSet = "◜◠◯◎◉●◉◎◯◡◞"
-	SpinnerCircleSet        = "◌◯◎◉●◉◎◯"
-	SpinnerDotSet           = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
-	SpinnerHorizontalBarSet = "▉▊▋▌▍▎▏▎▍▌▋▊▉"
-	SpinnerVerticalBarSet   = "▁▃▄▅▆▇█▇▆▅▄▃▁"
-	SpinnerDoubleBarSet     = "▁▂▃▄▅▆▇█▉▊▋▌▍▎▏▏▎▍▌▋▊▉█▇▆▅▄▃▂▁"
-	SpinnerArrowSet         = "←↖↑↗→↘↓↙"
-)
-
-var SpinnerCircleDotSet = []string{
-	"⠈⠁",
-	"⠈⠑",
-	"⠈⠱",
-	"⠈⡱",
-	"⢀⡱",
-	"⢄⡱",
-	"⢄⡱",
-	"⢆⡱",
-	"⢎⡱",
-	"⢎⡰",
-	"⢎⡠",
-	"⢎⡀",
-	"⢎⠁",
-	"⠎⠁",
-	"⠊⠁",
-}
+const SpinnerDotSet = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 
 type Spinner struct {
 	index   int
@@ -44,12 +18,6 @@ type Spinner struct {
 func NewSpinner(charset string) Spinner {
 	return Spinner{
 		charset: strings.Split(charset, ""),
-	}
-}
-
-func NewSpinnerFromSlice(charset []string) Spinner {
-	return Spinner{
-		charset: charset,
 	}
 }
 

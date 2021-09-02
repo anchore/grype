@@ -8,7 +8,7 @@ import (
 	"time"
 
 	grypeEventParsers "github.com/anchore/grype/grype/event/parsers"
-	"github.com/anchore/grype/internal/ui/common"
+	"github.com/anchore/grype/internal/ui/components"
 	syftUI "github.com/anchore/syft/ui"
 	"github.com/dustin/go-humanize"
 	"github.com/gookit/color"
@@ -19,21 +19,21 @@ import (
 )
 
 const maxBarWidth = 50
-const statusSet = common.SpinnerDotSet // SpinnerCircleOutlineSet
-const completedStatus = "✔"            // "●"
+const statusSet = components.SpinnerDotSet // SpinnerCircleOutlineSet
+const completedStatus = "✔"                // "●"
 const tileFormat = color.Bold
 
 var auxInfoFormat = color.HEX("#777777")
 var statusTitleTemplate = fmt.Sprintf(" %%s %%-%ds ", syftUI.StatusTitleColumn)
 
-func startProcess() (format.Simple, *common.Spinner) {
+func startProcess() (format.Simple, *components.Spinner) {
 	width, _ := frame.GetTerminalSize()
 	barWidth := int(0.25 * float64(width))
 	if barWidth > maxBarWidth {
 		barWidth = maxBarWidth
 	}
 	formatter := format.NewSimpleWithTheme(barWidth, format.HeavyNoBarTheme, format.ColorCompleted, format.ColorTodo)
-	spinner := common.NewSpinner(statusSet)
+	spinner := components.NewSpinner(statusSet)
 
 	return formatter, &spinner
 }
