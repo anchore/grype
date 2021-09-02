@@ -19,9 +19,9 @@ func TestJsonDescriptor(t *testing.T) {
 				"GRYPE_CHECK_FOR_APP_UPDATE": "false",
 			},
 			assertions: []traitAssertion{
-				assertInOutput(`"CheckForAppUpdate": false`), // app config
-				assertInOutput(`"db": {`),                    // db status
-				assertInOutput(`"built":`),                   // db status
+				assertInOutput(`"check-for-app-update": false`), // app config
+				assertInOutput(`"db": {`),                       // db status
+				assertInOutput(`"built":`),                      // db status
 			},
 		},
 	}
