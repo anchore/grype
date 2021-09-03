@@ -6,7 +6,7 @@ require (
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 	github.com/adrg/xdg v0.2.1
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
-	github.com/anchore/go-version v1.2.2-0.20200810141238-330bef18dbca
+	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/grype-db v0.0.0-20210809130557-72ff1b90af67
 	github.com/anchore/stereoscope v0.0.0-20210817160504-0f4abc2a5a5a
 	github.com/anchore/syft v0.21.0
