@@ -86,7 +86,7 @@ bootstrap: ## Download and install all go dependencies (+ prep tooling in the ./
 
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(TEMPDIR)/ v1.26.0
 	curl -sSfL https://raw.githubusercontent.com/wagoodman/go-bouncer/master/bouncer.sh | sh -s -- -b $(TEMPDIR)/ v0.2.0
-	curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | sh -s -- -b $(TEMPDIR)/ v0.160.0
+	.github/scripts/goreleaser-install.sh -b $(TEMPDIR)/ v0.160.0
 
 .PHONY: static-analysis
 static-analysis: lint check-go-mod-tidy check-licenses validate-grype-db-schema
