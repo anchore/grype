@@ -119,11 +119,11 @@ func TestNew_MetadataExtraction(t *testing.T) {
 			syftPkg: syftPkg.Package{
 				MetadataType: syftPkg.ApkMetadataType,
 				Metadata: syftPkg.ApkMetadata{
-					Package:          "a",
-					OriginPackage:    "a",
-					Maintainer:       "a",
-					Version:          "a",
-					License:          "a",
+					Package:          "libcurl-tools",
+					OriginPackage:    "libcurl",
+					Maintainer:       "somone",
+					Version:          "1.2.3",
+					License:          "Apache",
 					Architecture:     "a",
 					URL:              "a",
 					Description:      "a",
@@ -134,7 +134,7 @@ func TestNew_MetadataExtraction(t *testing.T) {
 					GitCommitOfAport: "a",
 				},
 			},
-			metadata: nil,
+			metadata: ApkMetadata{OriginPackage: "libcurl"},
 		},
 		{
 			name: "npm-metadata",

@@ -63,6 +63,14 @@ func New(p *pkg.Package) Package {
 		} else {
 			log.Warnf("unable to extract Java metadata for %s", p)
 		}
+	case pkg.ApkMetadataType:
+		if value, ok := p.Metadata.(pkg.ApkMetadata); ok {
+			metadata = ApkMetadata{
+				OriginPackage: value.OriginPackage,
+			}
+		} else {
+			log.Warnf("unable to extract APK metadata for %s", p)
+		}
 	}
 
 	return Package{

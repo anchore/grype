@@ -441,3 +441,141 @@ func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
 		t.Errorf("diff: %+v", diff)
 	}
 }
+
+func TestDistroMatchBySourceIndirection(t *testing.T) {
+
+	secDbVuln := grypeDB.Vulnerability{
+		// ID doesn't match - this is the key for comparison in the matcher
+		ID:                "CVE-2020-2",
+		VersionConstraint: "<= 1.3.3-r0",
+		VersionFormat:     "apk",
+		Namespace:         "secdb",
+	}
+	store := mockStore{
+		backend: map[string]map[string][]grypeDB.Vulnerability{
+			"alpine:3.12": {
+				"musl": []grypeDB.Vulnerability{secDbVuln},
+			},
+		},
+	}
+
+	provider := vulnerability.NewProviderFromStore(&store)
+
+	m := Matcher{}
+	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
+	if err != nil {
+		t.Fatalf("failed to create a new distro: %+v", err)
+	}
+	p := pkg.Package{
+		Name:     "musl-utils",
+		Version:  "1.3.2-r0",
+		Metadata: pkg.ApkMetadata{OriginPackage: "musl"},
+	}
+
+	vulnFound, err := vulnerability.NewVulnerability(secDbVuln)
+	assert.NoError(t, err)
+
+	expected := []match.Match{
+		{
+			Type:          match.ExactIndirectMatch,
+			Vulnerability: *vulnFound,
+			Package:       p,
+			MatchDetails: []match.Details{
+				{
+					Confidence: 1.0,
+					SearchedBy: map[string]interface{}{
+						"distro": map[string]string{
+							"type":    d.Type.String(),
+							"version": d.RawVersion,
+						},
+						"package": map[string]string{
+							"name":    "musl",
+							"version": p.Version,
+						},
+						"namespace": "secdb",
+					},
+					Found: map[string]interface{}{
+						"versionConstraint": vulnFound.Constraint.String(),
+					},
+					Matcher: match.ApkMatcher,
+				},
+			},
+		},
+	}
+
+	actual, err := m.Match(provider, &d, p)
+	assert.NoError(t, err)
+
+	for _, diff := range deep.Equal(expected, actual) {
+		t.Errorf("diff: %+v", diff)
+	}
+
+}
+
+func TestNVDMatchBySourceIndirection(t *testing.T) {
+	nvdVuln := grypeDB.Vulnerability{
+		ID:                "CVE-2020-1",
+		VersionConstraint: "<= 1.3.3-r0",
+		VersionFormat:     "unknown",
+		CPEs:              []string{"cpe:2.3:a:musl:musl:*:*:*:*:*:*:*:*"},
+		Namespace:         "nvd",
+	}
+	store := mockStore{
+		backend: map[string]map[string][]grypeDB.Vulnerability{
+			"nvd": {
+				"musl": []grypeDB.Vulnerability{nvdVuln},
+			},
+		},
+	}
+
+	provider := vulnerability.NewProviderFromStore(&store)
+
+	m := Matcher{}
+	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
+	if err != nil {
+		t.Fatalf("failed to create a new distro: %+v", err)
+	}
+	p := pkg.Package{
+		Name:    "musl-utils",
+		Version: "1.3.2-r0",
+		CPEs: []syftPkg.CPE{
+			must(syftPkg.NewCPE("cpe:2.3:a:musl-utils:musl-utils:*:*:*:*:*:*:*:*")),
+			must(syftPkg.NewCPE("cpe:2.3:a:musl-utils:musl-utils:*:*:*:*:*:*:*:*")),
+		},
+		Metadata: pkg.ApkMetadata{OriginPackage: "musl"},
+	}
+
+	vulnFound, err := vulnerability.NewVulnerability(nvdVuln)
+	assert.NoError(t, err)
+	vulnFound.CPEs = []syftPkg.CPE{must(syftPkg.NewCPE(nvdVuln.CPEs[0]))}
+
+	expected := []match.Match{
+		{
+			Type:          match.FuzzyMatch,
+			Vulnerability: *vulnFound,
+			Package:       p,
+			MatchDetails: []match.Details{
+				{
+					Confidence: 0.9,
+					SearchedBy: common.SearchedByCPEs{
+						CPEs:      []string{"cpe:2.3:a:musl:musl:*:*:*:*:*:*:*:*"},
+						Namespace: "nvd",
+					},
+					Found: common.FoundCPEs{
+						CPEs:              []string{vulnFound.CPEs[0].BindToFmtString()},
+						VersionConstraint: vulnFound.Constraint.String(),
+					},
+					Matcher: match.ApkMatcher,
+				},
+			},
+		},
+	}
+
+	actual, err := m.Match(provider, &d, p)
+	assert.NoError(t, err)
+
+	for _, diff := range deep.Equal(expected, actual) {
+		t.Errorf("diff: %+v", diff)
+	}
+
+}

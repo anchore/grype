@@ -1,7 +1,9 @@
 package apk
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/common"
@@ -10,6 +12,8 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/distro"
 	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/jinzhu/copier"
+	"github.com/scylladb/go-set/strset"
 )
 
 type Matcher struct {
@@ -26,22 +30,19 @@ func (m *Matcher) Type() match.MatcherType {
 func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	var matches = make([]match.Match, 0)
 
-	// find Alpine SecDB matches for the given package name and version
-	secDbMatches, err := common.FindMatchesByPackageDistro(store, d, p, m.Type())
+	// direct matches with package
+	directMatches, err := m.findApkPackage(store, d, p)
 	if err != nil {
 		return nil, err
 	}
+	matches = append(matches, directMatches...)
 
-	cpeMatches, err := m.cpeMatchesWithoutSecDbFixes(store, d, p)
+	// indirect matches with package source
+	indirectMatches, err := m.matchBySourceIndirection(store, d, p)
 	if err != nil {
 		return nil, err
 	}
-
-	// keep all secdb matches, as this is an authoritative source
-	matches = append(matches, secDbMatches...)
-
-	// keep only unique CPE matches
-	matches = append(matches, deduplicateMatches(secDbMatches, cpeMatches)...)
+	matches = append(matches, indirectMatches...)
 
 	return matches, nil
 }
@@ -134,4 +135,93 @@ func vulnerabilitiesByID(vulns []vulnerability.Vulnerability) map[string][]vulne
 	}
 
 	return results
+}
+
+func (m *Matcher) findApkPackage(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
+	// find Alpine SecDB matches for the given package name and version
+	secDbMatches, err := common.FindMatchesByPackageDistro(store, d, p, m.Type())
+	if err != nil {
+		return nil, err
+	}
+
+	cpeMatches, err := m.cpeMatchesWithoutSecDbFixes(store, d, p)
+	if err != nil {
+		return nil, err
+	}
+
+	var matches []match.Match
+
+	// keep all secdb matches, as this is an authoritative source
+	matches = append(matches, secDbMatches...)
+
+	// keep only unique CPE matches
+	matches = append(matches, deduplicateMatches(secDbMatches, cpeMatches)...)
+
+	return matches, nil
+}
+
+func (m *Matcher) matchBySourceIndirection(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
+	// build indirect package for matching against source package
+	indirectPackage, err := buildIndirectPackage(p)
+	if err != nil {
+		// If the err is that there no indirect package return empty slice
+		if errors.Is(err, errNoIndirectPackage) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to build an indirect package for: %s", p.Name)
+	}
+
+	matches, err := m.findApkPackage(store, d, indirectPackage)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find vulnerabilities by apk source indirection: %w", err)
+	}
+
+	// we want to make certain that we are tracking the match based on the package from the SBOM (not the indirect package)
+	// however, we also want to keep the indirect package around for future reference
+	for idx := range matches {
+		matches[idx].Package = p
+
+		if matches[idx].Type == match.ExactDirectMatch {
+			matches[idx].Type = match.ExactIndirectMatch
+		}
+	}
+
+	return matches, nil
+}
+
+// Custom error for when indirect package is not present or is identical to package
+var errNoIndirectPackage = errors.New("source package is either identical to pkg or not present")
+
+func buildIndirectPackage(p pkg.Package) (pkg.Package, error) {
+	metadata, ok := p.Metadata.(pkg.ApkMetadata)
+	// ignore packages without source indirection hints or where source name is identical to package name
+	if !ok || metadata.OriginPackage == "" || metadata.OriginPackage == p.Name {
+		return pkg.Package{}, errNoIndirectPackage
+	}
+
+	var indirectPackage pkg.Package
+	err := copier.Copy(&indirectPackage, p)
+	if err != nil {
+		return pkg.Package{}, fmt.Errorf("failed to copy package: %w", err)
+	}
+
+	// use the source package name
+	indirectPackage.Name = metadata.OriginPackage
+
+	// For each cpe, replace pkg name with origin and add to set
+	cpeStrings := strset.New()
+	for _, cpe := range indirectPackage.CPEs {
+		updatedCPEString := strings.Replace(cpe.BindToFmtString(), p.Name, indirectPackage.Name, -1)
+		cpeStrings.Add(updatedCPEString)
+	}
+
+	// With each entry in set, convert string to CPE and update indirectPackage CPEs
+	var updatedCPEs []syftPkg.CPE
+	for _, cpeString := range cpeStrings.List() {
+		updatedCPE, _ := syftPkg.NewCPE(cpeString)
+		updatedCPEs = append(updatedCPEs, updatedCPE)
+	}
+	indirectPackage.CPEs = updatedCPEs
+
+	return indirectPackage, nil
 }

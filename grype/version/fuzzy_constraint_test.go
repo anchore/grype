@@ -44,6 +44,7 @@ func TestSmartVerCmp(t *testing.T) {
 		{"10.0", "1.000", 1},
 		{"10.0", "1.000.0.1", 1},
 		{"1.0.4", "1.0.4+metadata", -1}, // this is also somewhat wrong, however, there is a semver parser that can handle this case (which should be leveraged when possible)
+		{"1.3.2-r0", "1.3.3-r0", -1},    // regression: regression for https://github.com/anchore/go-version/pull/2
 	}
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("%q vs %q", c.v1, c.v2), func(t *testing.T) {
@@ -216,6 +217,13 @@ func TestFuzzyConstraintSatisfaction(t *testing.T) {
 			version:    "5a2",
 			constraint: "<5a2",
 			expected:   false,
+		},
+		// regression for https://github.com/anchore/go-version/pull/2
+		{
+			name:       "indirect package match",
+			version:    "1.3.2-r0",
+			constraint: "<= 1.3.3-r0",
+			expected:   true,
 		},
 	}
 
