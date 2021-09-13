@@ -96,6 +96,15 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
+			"sles:12.5": {
+				"dive": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-rpmdb-dive",
+						VersionConstraint: "<= 1.0.42",
+						VersionFormat:     "rpm",
+					},
+				},
+			},
 		},
 	}
 }
