@@ -225,6 +225,18 @@ func TestFuzzyConstraintSatisfaction(t *testing.T) {
 			constraint: "<= 1.3.3-r0",
 			expected:   true,
 		},
+		{
+			name:       "vulndb fuzzy constraint single quoted",
+			version:    "4.5.2",
+			constraint: "'4.5.1' || '4.5.2'",
+			expected:   true,
+		},
+		{
+			name:       "vulndb fuzzy constraint double quoted",
+			version:    "4.5.2",
+			constraint: "\"4.5.1\" || \"4.5.2\"",
+			expected:   true,
+		},
 	}
 
 	for _, test := range tests {
