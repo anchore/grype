@@ -323,7 +323,7 @@ func TestMatchByImage(t *testing.T) {
 			)
 
 			// build expected matches from what's discovered from the catalog
-			expectedMatches := test.expectedFn(theSource, theCatalog, theStore)
+			expectedMatches := test.expectedFn(*theSource, theCatalog, theStore)
 
 			// build expected match set...
 			expectedMatchSet := map[string]string{}
