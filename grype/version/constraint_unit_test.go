@@ -123,3 +123,94 @@ func TestSplitFuzzyPhrase(t *testing.T) {
 		})
 	}
 }
+
+func TestTrimQuotes(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+		err      bool
+	}{
+		{
+			name:     "no quotes",
+			input:    "test",
+			expected: "test",
+			err:      true,
+		},
+		{
+			name:     "double quotes",
+			input:    "\"test\"",
+			expected: "test",
+			err:      false,
+		},
+		{
+			name:     "single quotes",
+			input:    "'test'",
+			expected: "test",
+			err:      false,
+		},
+		{
+			name:     "leading_single_quote",
+			input:    "'test",
+			expected: "'test",
+			err:      true,
+		},
+		{
+			name:     "trailing_single_quote",
+			input:    "test'",
+			expected: "test'",
+			err:      true,
+		},
+		{
+			name:     "leading_double_quote",
+			input:    "'test",
+			expected: "'test",
+			err:      true,
+		},
+		{
+			name:     "trailing_double_quote",
+			input:    "test'",
+			expected: "test'",
+			err:      true,
+		},
+		{
+			// This raises an error, but I do not believe that this is a scenario that we need to account for, so should be ok.
+			name:     "nested double/double quotes",
+			input:    "\"t\"es\"t\"",
+			expected: "\"t\"es\"t\"",
+			err:      true,
+		},
+		{
+			name:     "nested single/single quotes",
+			input:    "'t'es't'",
+			expected: "t'es't",
+			err:      false,
+		},
+		{
+			name:     "nested single/double quotes",
+			input:    "'t\"es\"t'",
+			expected: "t\"es\"t",
+			err:      false,
+		},
+		{
+			name:     "nested double/single quotes",
+			input:    "\"t'es't\"",
+			expected: "t'es't",
+			err:      false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actual, err := trimQuotes(test.input)
+			if err != nil && test.err == false {
+				t.Errorf("expected no error, got \"%+v\"", err)
+			} else if err == nil && test.err {
+				t.Errorf("expected an error but did not get one")
+			}
+			if actual != test.expected {
+				t.Errorf("unexpected constraint satisfaction: exp:%v got:%v", test.expected, actual)
+			}
+		})
+	}
+}
