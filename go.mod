@@ -7,7 +7,7 @@ require (
 	github.com/adrg/xdg v0.2.1
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
-	github.com/anchore/grype-db v0.0.0-20210913174544-f2072e0c1c01
+	github.com/anchore/grype-db v0.0.0-20210913215030-fe28197b36f1
 	github.com/anchore/stereoscope v0.0.0-20210817160504-0f4abc2a5a5a
 	github.com/anchore/syft v0.23.0
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible
