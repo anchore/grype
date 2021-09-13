@@ -28,7 +28,7 @@ func parseUnit(phrase string) (*constraintUnit, error) {
 	version = strings.Trim(version, " ")
 
 	// version may have quotes, attempt to unquote it (ignore errors)
-	unquoted, err := strconv.Unquote(version)
+	unquoted, err := trimQuotes(version)
 	if err == nil {
 		version = unquoted
 	}
@@ -41,6 +41,21 @@ func parseUnit(phrase string) (*constraintUnit, error) {
 		rangeOperator: op,
 		version:       version,
 	}, nil
+}
+
+// TrimQuotes will attempt to remove double quotes.
+// If removing double quotes is unsuccessful, it will attempt to remove single quotes.
+// If neither operation is successful, it will return an error.
+func trimQuotes(s string) (string, error) {
+	unquoted, err := strconv.Unquote(s)
+	switch {
+	case err == nil:
+		return unquoted, nil
+	case strings.HasPrefix(s, "'") && strings.HasSuffix(s, "'"):
+		return strings.Trim(s, "'"), nil
+	default:
+		return s, fmt.Errorf("string %s is not single or double quoted", s)
+	}
 }
 
 func (c *constraintUnit) Satisfied(comparison int) bool {
