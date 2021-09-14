@@ -1,6 +1,7 @@
 package version
 
 import (
+	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
 )
@@ -203,14 +204,12 @@ func TestTrimQuotes(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			actual, err := trimQuotes(test.input)
-			if err != nil && test.err == false {
-				t.Errorf("expected no error, got \"%+v\"", err)
-			} else if err == nil && test.err {
-				t.Errorf("expected an error but did not get one")
+			if test.err {
+				assert.NotNil(t, err, "expected an error but did not get one")
+			} else {
+				assert.Nil(t, err, "expected no error, got \"%+v\"", err)
 			}
-			if actual != test.expected {
-				t.Errorf("unexpected constraint satisfaction: exp:%v got:%v", test.expected, actual)
-			}
+			assert.Equal(t, actual, test.expected, "output does not match expected: exp:%v got:%v", test.expected, actual)
 		})
 	}
 }
