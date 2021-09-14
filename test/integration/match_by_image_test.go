@@ -297,41 +297,41 @@ func TestMatchByImage(t *testing.T) {
 
 	tests := []struct {
 		fixtureImage string
-		expectedFn   func(*source.Source, *syftPkg.Catalog, *mockStore) match.Matches
+		expectedFn   func(source.Source, *syftPkg.Catalog, *mockStore) match.Matches
 	}{
 		{
 			fixtureImage: "image-debian-match-coverage",
-			expectedFn: func(theSource *source.Source, catalog *syftPkg.Catalog, theStore *mockStore) match.Matches {
+			expectedFn: func(theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore) match.Matches {
 				expectedMatches := match.NewMatches()
-				addPythonMatches(t, *theSource, catalog, theStore, &expectedMatches)
-				addRubyMatches(t, *theSource, catalog, theStore, &expectedMatches)
-				addJavaMatches(t, *theSource, catalog, theStore, &expectedMatches)
-				addDpkgMatches(t, *theSource, catalog, theStore, &expectedMatches)
-				addJavascriptMatches(t, *theSource, catalog, theStore, &expectedMatches)
+				addPythonMatches(t, theSource, catalog, theStore, &expectedMatches)
+				addRubyMatches(t, theSource, catalog, theStore, &expectedMatches)
+				addJavaMatches(t, theSource, catalog, theStore, &expectedMatches)
+				addDpkgMatches(t, theSource, catalog, theStore, &expectedMatches)
+				addJavascriptMatches(t, theSource, catalog, theStore, &expectedMatches)
 				return expectedMatches
 			},
 		},
 		{
 			fixtureImage: "image-centos-match-coverage",
-			expectedFn: func(theSource *source.Source, catalog *syftPkg.Catalog, theStore *mockStore) match.Matches {
+			expectedFn: func(theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore) match.Matches {
 				expectedMatches := match.NewMatches()
-				addRhelMatches(t, *theSource, catalog, theStore, &expectedMatches)
+				addRhelMatches(t, theSource, catalog, theStore, &expectedMatches)
 				return expectedMatches
 			},
 		},
 		{
 			fixtureImage: "image-alpine-match-coverage",
-			expectedFn: func(theSource *source.Source, catalog *syftPkg.Catalog, theStore *mockStore) match.Matches {
+			expectedFn: func(theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore) match.Matches {
 				expectedMatches := match.NewMatches()
-				addAlpineMatches(t, *theSource, catalog, theStore, &expectedMatches)
+				addAlpineMatches(t, theSource, catalog, theStore, &expectedMatches)
 				return expectedMatches
 			},
 		},
 		{
 			fixtureImage: "image-sles-match-coverage",
-			expectedFn: func(theSource *source.Source, catalog *syftPkg.Catalog, theStore *mockStore) match.Matches {
+			expectedFn: func(theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore) match.Matches {
 				expectedMatches := match.NewMatches()
-				addSlesMatches(t, *theSource, catalog, theStore, &expectedMatches)
+				addSlesMatches(t, theSource, catalog, theStore, &expectedMatches)
 				return expectedMatches
 			},
 		},
