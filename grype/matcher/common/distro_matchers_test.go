@@ -35,48 +35,14 @@ func (pr *mockDistroProvider) stub() {
 				Namespace:  "debian:8",
 			},
 		},
-		// indirect...
-		"neutron-devel": {
-			// expected...
-			{
-				Constraint: version.MustGetConstraint("< 2014.1.4-5", version.DebFormat),
-				ID:         "CVE-2014-fake-2",
-			},
-			{
-				Constraint: version.MustGetConstraint("< 2015.0.0-1", version.DebFormat),
-				ID:         "CVE-2013-fake-3",
-			},
-			// unexpected...
-			{
-				Constraint: version.MustGetConstraint("< 2014.0.4-1", version.DebFormat),
-				ID:         "CVE-2013-fake-BAD",
-			},
-		},
 	}
 	pr.data["sles:12.5"] = map[string][]vulnerability.Vulnerability{
 		// direct...
-		"sles": {
+		"sles_test_package": {
 			{
 				Constraint: version.MustGetConstraint("< 2014.1.5-6", version.RpmFormat),
 				ID:         "CVE-2014-fake-4",
 				Namespace:  "sles:12.5",
-			},
-		},
-		// indirect...
-		"sles-ltss": {
-			// expected...
-			{
-				Constraint: version.MustGetConstraint("< 2014.1.4-5", version.RpmFormat),
-				ID:         "CVE-2014-fake-5",
-			},
-			{
-				Constraint: version.MustGetConstraint("< 2015.0.0-1", version.RpmFormat),
-				ID:         "CVE-2013-fake-6",
-			},
-			// unexpected...
-			{
-				Constraint: version.MustGetConstraint("< 2014.0.4-1", version.RpmFormat),
-				ID:         "CVE-2013-fake-ALSO-BAD",
 			},
 		},
 	}
@@ -139,11 +105,11 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 
 func TestFindMatchesByPackageDistroSles(t *testing.T) {
 	p := pkg.Package{
-		Name:    "sles",
+		Name:    "sles_test_package",
 		Version: "2014.1.3-6",
 		Type:    syftPkg.RpmPkg,
 		Metadata: pkg.DpkgMetadata{
-			Source: "sles-ltss",
+			Source: "sles_test_package",
 		},
 	}
 
@@ -168,7 +134,7 @@ func TestFindMatchesByPackageDistroSles(t *testing.T) {
 							"version": "12.5",
 						},
 						"package": map[string]string{
-							"name":    "sles",
+							"name":    "sles_test_package",
 							"version": "2014.1.3-6",
 						},
 						"namespace": "sles:12.5",
