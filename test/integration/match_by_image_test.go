@@ -253,6 +253,40 @@ func addRhelMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 	})
 }
 
+func addSlesMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore, theResult *match.Matches) {
+	packages := catalog.PackagesByPath("/var/lib/rpm/Packages")
+	if len(packages) != 1 {
+		t.Logf("Sles Packages: %+v", packages)
+		t.Fatalf("problem with upstream syft cataloger (RPMDB)")
+	}
+	thePkg := pkg.New(packages[0])
+	theVuln := theStore.backend["rhel:8"][thePkg.Name][0]
+	vulnObj, err := vulnerability.NewVulnerability(theVuln)
+	if err != nil {
+		t.Fatalf("failed to create vuln obj: %+v", err)
+	}
+	theResult.Add(thePkg, match.Match{
+		Type:          match.ExactDirectMatch,
+		Vulnerability: *vulnObj,
+		Package:       thePkg,
+		MatchDetails: []match.Details{
+			{
+				Confidence: 1.0,
+				SearchedBy: map[string]interface{}{
+					"distro": map[string]string{
+						"type":    "sles",
+						"version": "12.5",
+					},
+				},
+				Found: map[string]interface{}{
+					"constraint": "<= 1.0.42 (rpm)",
+				},
+				Matcher: match.RpmDBMatcher,
+			},
+		},
+	})
+}
+
 func TestMatchByImage(t *testing.T) {
 
 	observedMatchers := internal.NewStringSet()
@@ -290,6 +324,14 @@ func TestMatchByImage(t *testing.T) {
 			expectedFn: func(theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore) match.Matches {
 				expectedMatches := match.NewMatches()
 				addAlpineMatches(t, theSource, catalog, theStore, &expectedMatches)
+				return expectedMatches
+			},
+		},
+		{
+			fixtureImage: "image-sles-match-coverage",
+			expectedFn: func(theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore) match.Matches {
+				expectedMatches := match.NewMatches()
+				addSlesMatches(t, theSource, catalog, theStore, &expectedMatches)
 				return expectedMatches
 			},
 		},

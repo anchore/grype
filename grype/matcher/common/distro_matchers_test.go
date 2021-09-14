@@ -35,21 +35,14 @@ func (pr *mockDistroProvider) stub() {
 				Namespace:  "debian:8",
 			},
 		},
-		// indirect...
-		"neutron-devel": {
-			// expected...
+	}
+	pr.data["sles:12.5"] = map[string][]vulnerability.Vulnerability{
+		// direct...
+		"sles_test_package": {
 			{
-				Constraint: version.MustGetConstraint("< 2014.1.4-5", version.DebFormat),
-				ID:         "CVE-2014-fake-2",
-			},
-			{
-				Constraint: version.MustGetConstraint("< 2015.0.0-1", version.DebFormat),
-				ID:         "CVE-2013-fake-3",
-			},
-			// unexpected...
-			{
-				Constraint: version.MustGetConstraint("< 2014.0.4-1", version.DebFormat),
-				ID:         "CVE-2013-fake-BAD",
+				Constraint: version.MustGetConstraint("< 2014.1.5-6", version.RpmFormat),
+				ID:         "CVE-2014-fake-4",
+				Namespace:  "sles:12.5",
 			},
 		},
 	}
@@ -97,6 +90,57 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 					},
 					Found: map[string]interface{}{
 						"versionConstraint": "< 2014.1.5-6 (deb)",
+					},
+					Matcher: match.PythonMatcher,
+				},
+			},
+		},
+	}
+
+	store := newMockProviderByDistro()
+	actual, err := FindMatchesByPackageDistro(store, &d, p, match.PythonMatcher)
+	assert.NoError(t, err)
+	assertMatchesUsingIDsForVulnerabilities(t, expected, actual)
+}
+
+func TestFindMatchesByPackageDistroSles(t *testing.T) {
+	p := pkg.Package{
+		Name:    "sles_test_package",
+		Version: "2014.1.3-6",
+		Type:    syftPkg.RpmPkg,
+		Metadata: pkg.DpkgMetadata{
+			Source: "sles_test_package",
+		},
+	}
+
+	d, err := distro.NewDistro(distro.SLES, "12.5", "")
+	if err != nil {
+		t.Fatal("could not create distro: ", err)
+	}
+
+	expected := []match.Match{
+		{
+			Type: match.ExactDirectMatch,
+			Vulnerability: vulnerability.Vulnerability{
+				ID: "CVE-2014-fake-4",
+			},
+			Package: p,
+			MatchDetails: []match.Details{
+				{
+					Confidence: 1,
+					SearchedBy: map[string]interface{}{
+						"distro": map[string]string{
+							"type":    "sles",
+							"version": "12.5",
+						},
+						"package": map[string]string{
+							"name":    "sles_test_package",
+							"version": "2014.1.3-6",
+						},
+						"namespace": "sles:12.5",
+					},
+					Found: map[string]interface{}{
+						"versionConstraint": "< 2014.1.5-6 (rpm)",
 					},
 					Matcher: match.PythonMatcher,
 				},
