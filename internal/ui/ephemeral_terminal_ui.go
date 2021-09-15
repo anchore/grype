@@ -33,19 +33,22 @@ import (
 // or in the shared ui package as a function on the main handler object. All handler functions should be completed
 // processing an event before the ETUI exits (coordinated with a sync.WaitGroup)
 type ephemeralTerminalUI struct {
-	unsubscribe func() error
-	handler     *ui.Handler
-	waitGroup   *sync.WaitGroup
-	frame       *frame.Frame
-	logBuffer   *bytes.Buffer
-	uiOutput    *os.File
+	unsubscribe  func() error
+	handler      *ui.Handler
+	waitGroup    *sync.WaitGroup
+	frame        *frame.Frame
+	logBuffer    *bytes.Buffer
+	uiOutput     *os.File
+	reportOutput io.Writer
 }
 
-func NewEphemeralTerminalUI() UI {
+// NewEphemeralTerminalUI writes all events to a TUI and writes the final report to the given writer.
+func NewEphemeralTerminalUI(reportWriter io.Writer) UI {
 	return &ephemeralTerminalUI{
-		handler:   ui.NewHandler(),
-		waitGroup: &sync.WaitGroup{},
-		uiOutput:  os.Stderr,
+		handler:      ui.NewHandler(),
+		waitGroup:    &sync.WaitGroup{},
+		uiOutput:     os.Stderr,
+		reportOutput: reportWriter,
 	}
 }
 
@@ -81,7 +84,7 @@ func (h *ephemeralTerminalUI) Handle(event partybus.Event) error {
 		// are about to write bytes to stdout, so we should reset the terminal state first
 		h.closeScreen(false)
 
-		if err := handleVulnerabilityScanningFinished(event); err != nil {
+		if err := handleVulnerabilityScanningFinished(event, h.reportOutput); err != nil {
 			log.Errorf("unable to show %s event: %+v", event.Type, err)
 		}
 
