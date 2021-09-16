@@ -21,6 +21,7 @@ BOOTSTRAP_CACHE="c7afb99ad"
 DISTDIR=./dist
 SNAPSHOTDIR=./snapshot
 GITTREESTATE=$(if $(shell git status --porcelain),dirty,clean)
+SYFTVERSION=$(shell go list -m all | grep github.com/anchore/syft | awk '{print $$2}')
 OS := $(shell uname)
 
 ifeq ($(OS),Darwin)
@@ -169,6 +170,7 @@ $(SNAPSHOTDIR): ## Build snapshot release binaries and packages
 
 	# build release snapshots
 	BUILD_GIT_TREE_STATE=$(GITTREESTATE) \
+	SYFT_VERSION=$(SYFTVERSION) \
 	$(TEMPDIR)/goreleaser release --skip-publish --skip-sign --rm-dist --snapshot --config $(TEMPDIR)/goreleaser.yaml
 
 .PHONY: acceptance-linux
@@ -252,6 +254,7 @@ release: clean-dist validate-grype-test-config changelog-release ## Build and pu
 	# release (note the version transformation from v0.7.0 --> 0.7.0)
 	bash -c "\
 		BUILD_GIT_TREE_STATE=$(GITTREESTATE) \
+		SYFT_VERSION=$(SYFTVERSION) \
 		VERSION=$(VERSION:v%=%) \
 		$(TEMPDIR)/goreleaser \
 			--rm-dist \
