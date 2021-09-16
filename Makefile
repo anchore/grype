@@ -21,7 +21,7 @@ BOOTSTRAP_CACHE="c7afb99ad"
 DISTDIR=./dist
 SNAPSHOTDIR=./snapshot
 GITTREESTATE=$(if $(shell git status --porcelain),dirty,clean)
-SYFTVERSION=$(shell go list -m all | grep github.com/anchore/syft | awk '{print $2}')
+SYFTVERSION=$(shell go list -m all | grep github.com/anchore/syft | awk '{print $$2}')
 OS := $(shell uname)
 
 ifeq ($(OS),Darwin)
@@ -63,10 +63,6 @@ endef
 .PHONY: all
 all: clean static-analysis test ## Run all checks (linting, license check, unit, integration, and linux acceptance tests tests)
 	@printf '$(SUCCESS)All checks pass!$(RESET)\n'
-
-.PHONY: foobar
-foobar:
-	@printf '$(SYFTVERSION)'
 
 .PHONY: test
 test: unit validate-cyclonedx-schema integration acceptance-linux cli ## Run all tests (unit, integration, linux acceptance, and CLI tests)
@@ -174,6 +170,7 @@ $(SNAPSHOTDIR): ## Build snapshot release binaries and packages
 
 	# build release snapshots
 	BUILD_GIT_TREE_STATE=$(GITTREESTATE) \
+	SYFT_VERSION=$(SYFTVERSION) \
 	$(TEMPDIR)/goreleaser release --skip-publish --skip-sign --rm-dist --snapshot --config $(TEMPDIR)/goreleaser.yaml
 
 .PHONY: acceptance-linux
