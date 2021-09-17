@@ -40,3 +40,13 @@ func MustGetConstraint(constStr string, format Format) Constraint {
 	}
 	return constraint
 }
+
+type NonFatalConstraintError struct {
+	constraint Constraint
+	version    *Version
+	message    string
+}
+
+func (e NonFatalConstraintError) Error() string {
+	return fmt.Sprintf("Matching raw constraint %s against version %s caused a non-fatal error: %s", e.constraint, e.version, e.message)
+}
