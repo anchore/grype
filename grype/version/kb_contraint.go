@@ -37,14 +37,10 @@ func (c kbConstraint) supported(format Format) bool {
 }
 
 func (c kbConstraint) Satisfied(version *Version) (bool, error) {
-	if c.raw == "" && version != nil {
-		// an empty constraint is always satisfied
-		return true, nil
+	if c.raw == "" {
+		// an empty constraint is never satisfied
+		return false, nil
 	} else if version == nil {
-		if c.raw != "" {
-			// a non-empty constraint with no version given should always fail
-			return false, nil
-		}
 		return true, nil
 	}
 

@@ -7,8 +7,9 @@ import (
 
 func TestVersionKbConstraint(t *testing.T) {
 	tests := []testCase{
-		{version: "", constraint: "", satisfied: true},
+		{version: "", constraint: "", satisfied: false},
 		{version: "", constraint: "foo", satisfied: false},
+		{version: "878787", constraint: "", satisfied: false},
 		{version: "1", constraint: "foo", satisfied: false},
 		{version: "1", constraint: "1", satisfied: true},
 		{version: "878787", constraint: "979797 || 101010 || 878787", satisfied: true},
