@@ -8,12 +8,13 @@ import (
 )
 
 type testCase struct {
-	version    string
-	constraint string
-	satisfied  bool
-	createErr  error
-	constErr   error
-	checkErr   error
+	version      string
+	constraint   string
+	satisfied    bool
+	createErr    error
+	constErr     error
+	checkErr     error
+	checkErrType interface{}
 }
 
 func (c *testCase) name() string {
@@ -29,7 +30,11 @@ func (c *testCase) assert(t *testing.T, format Format, constraint Constraint) {
 	}
 
 	isVulnerable, err := constraint.Satisfied(verObj)
-	if !errors.Is(err, c.checkErr) {
+	if c.checkErrType != nil {
+		if !errors.As(err, &c.checkErrType) {
+			t.Fatalf("unexpected check error: '%+v'!='%+v'", err, c.checkErrType)
+		}
+	} else if !errors.Is(err, c.checkErr) {
 		t.Fatalf("unexpected check error: '%+v'!='%+v'", err, c.checkErr)
 	}
 
