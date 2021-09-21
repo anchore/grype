@@ -1,7 +1,7 @@
 package version
 
 import (
-	"errors"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -80,11 +80,9 @@ func TestVersionSemantic(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name(), func(t *testing.T) {
 			constraint, err := newSemanticConstraint(test.constraint)
-			if !errors.Is(err, test.constErr) {
-				t.Fatalf("unexpected constraint error: '%+v'!='%+v'", err, test.constErr)
-			}
+			assert.NoError(t, err, "unexpected error from newSemanticConstraint: %v", err)
 
-			test.assert(t, SemanticFormat, constraint)
+			test.assertVersionConstraint(t, SemanticFormat, constraint)
 		})
 	}
 }

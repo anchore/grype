@@ -1,7 +1,7 @@
 package version
 
 import (
-	"errors"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -65,11 +65,9 @@ func TestVersionDeb(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name(), func(t *testing.T) {
 			constraint, err := newDebConstraint(test.constraint)
-			if !errors.Is(err, test.constErr) {
-				t.Fatalf("unexpected constraint error: '%+v'!='%+v'", err, test.constErr)
-			}
+			assert.NoError(t, err, "unexpected error from newDebConstraint: %v", err)
 
-			test.assert(t, DebFormat, constraint)
+			test.assertVersionConstraint(t, DebFormat, constraint)
 		})
 	}
 }
