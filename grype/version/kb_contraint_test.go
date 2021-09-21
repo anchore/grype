@@ -33,10 +33,10 @@ func TestVersionKbConstraint(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			constraint, err := newKBConstraint(test.constraint)
-			assert.NoError(t, err, "Unexpected error from newKBConstraint: %v", err)
+			assert.NoError(t, err, "unexpected error from newKBConstraint: %v", err)
 
 			version, err := NewVersion(test.version, KBFormat)
-			assert.NoError(t, err, "Unexpected error from NewVersion: %v", err)
+			assert.NoError(t, err, "unexpected error from NewVersion: %v", err)
 
 			isSatisfied, err := constraint.Satisfied(version)
 			if test.shouldErr {
@@ -46,9 +46,9 @@ func TestVersionKbConstraint(t *testing.T) {
 					assert.Error(t, err)
 				}
 			} else {
-				assert.NoError(t, err, "Unexpected error from kbConstraint.Satisfied: %v", err)
+				assert.NoError(t, err, "unexpected error from kbConstraint.Satisfied: %v", err)
 			}
-			assert.Equal(t, test.satisfied, isSatisfied, "Version constraint should be satisifed!")
+			assert.Equal(t, test.satisfied, isSatisfied, "unexpected constraint check result: expected %+v, got %+v", test.satisfied, isSatisfied)
 		})
 	}
 }
