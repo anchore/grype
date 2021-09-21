@@ -37,14 +37,16 @@ func (c kbConstraint) supported(format Format) bool {
 }
 
 func (c kbConstraint) Satisfied(version *Version) (bool, error) {
-	if c.raw == "" && version != nil {
-		// an empty constraint is always satisfied
-		return true, nil
-	} else if version == nil {
-		if c.raw != "" {
-			// a non-empty constraint with no version given should always fail
-			return false, nil
+	if c.raw == "" {
+		// an empty constraint is never satisfied
+		return false, &NonFatalConstraintError{
+			constraint: c,
+			version:    version,
+			message:    "Unexpected data in DB: Empty raw version constraint.",
 		}
+	}
+
+	if version == nil {
 		return true, nil
 	}
 
@@ -57,7 +59,7 @@ func (c kbConstraint) Satisfied(version *Version) (bool, error) {
 
 func (c kbConstraint) String() string {
 	if c.raw == "" {
-		return "none (kb)"
+		return fmt.Sprintf("%q (kb)", c.raw)
 	}
 	return fmt.Sprintf("%s (kb)", c.raw)
 }

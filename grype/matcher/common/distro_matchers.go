@@ -1,7 +1,10 @@
 package common
 
 import (
+	"errors"
 	"fmt"
+
+	"github.com/anchore/grype/internal/log"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -32,7 +35,12 @@ func FindMatchesByPackageDistro(store vulnerability.ProviderByDistro, d *distro.
 		// if the constraint it met, then the given package has the vulnerability
 		isPackageVulnerable, err := vuln.Constraint.Satisfied(verObj)
 		if err != nil {
-			return nil, fmt.Errorf("distro matcher failed to check constraint='%s' version='%s': %w", vuln.Constraint, verObj, err)
+			var e *version.NonFatalConstraintError
+			if errors.As(err, &e) {
+				log.Warn(e)
+			} else {
+				return nil, fmt.Errorf("distro matcher failed to check constraint='%s' version='%s': %w", vuln.Constraint, verObj, err)
+			}
 		}
 
 		if !isPackageVulnerable {

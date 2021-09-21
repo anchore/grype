@@ -40,3 +40,17 @@ func MustGetConstraint(constStr string, format Format) Constraint {
 	}
 	return constraint
 }
+
+// NonFatalConstraintError should be used any time an unexpected but recoverable condition is encountered while
+// checking version constraint satisfaction. The error should get returned by any implementer of the Constraint
+// interface. If returned by the Satisfied method on the Constraint interface, this error will be caught and
+// logged as a warning in the FindMatchesByPackageDistro function in grype/matcher/common/distro_matchers.go
+type NonFatalConstraintError struct {
+	constraint Constraint
+	version    *Version
+	message    string
+}
+
+func (e NonFatalConstraintError) Error() string {
+	return fmt.Sprintf("Matching raw constraint %s against version %s caused a non-fatal error: %s", e.constraint, e.version, e.message)
+}
