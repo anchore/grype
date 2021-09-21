@@ -3,12 +3,15 @@ package logger
 import (
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"os"
 
 	"github.com/sirupsen/logrus"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
+
+const defaultLogFilePermissions fs.FileMode = 0644
 
 type LogrusConfig struct {
 	EnableConsole bool
@@ -33,7 +36,7 @@ func NewLogrusLogger(cfg LogrusConfig) *LogrusLogger {
 	var output io.Writer
 	switch {
 	case cfg.EnableConsole && cfg.EnableFile:
-		logFile, err := os.OpenFile(cfg.FileLocation, os.O_WRONLY|os.O_CREATE, 0755)
+		logFile, err := os.OpenFile(cfg.FileLocation, os.O_WRONLY|os.O_CREATE, defaultLogFilePermissions)
 		if err != nil {
 			panic(fmt.Errorf("unable to setup log file: %w", err))
 		}
@@ -41,7 +44,7 @@ func NewLogrusLogger(cfg LogrusConfig) *LogrusLogger {
 	case cfg.EnableConsole:
 		output = os.Stderr
 	case cfg.EnableFile:
-		logFile, err := os.OpenFile(cfg.FileLocation, os.O_WRONLY|os.O_CREATE, 0755)
+		logFile, err := os.OpenFile(cfg.FileLocation, os.O_WRONLY|os.O_CREATE, defaultLogFilePermissions)
 		if err != nil {
 			panic(fmt.Errorf("unable to setup log file: %w", err))
 		}
