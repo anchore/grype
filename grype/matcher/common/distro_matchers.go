@@ -37,7 +37,7 @@ func FindMatchesByPackageDistro(store vulnerability.ProviderByDistro, d *distro.
 		if err != nil {
 			var e *version.NonFatalConstraintError
 			if errors.As(err, &e) {
-				log.Warn(e.Error())
+				log.Warn(e)
 			} else {
 				return nil, fmt.Errorf("distro matcher failed to check constraint='%s' version='%s': %w", vuln.Constraint, verObj, err)
 			}

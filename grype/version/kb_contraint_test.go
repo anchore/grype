@@ -48,7 +48,7 @@ func TestVersionKbConstraint(t *testing.T) {
 			} else {
 				assert.NoError(t, err, "unexpected error from kbConstraint.Satisfied: %v", err)
 			}
-			assert.Equal(t, test.satisfied, isSatisfied, "unexpected constraint check result: expected %+v, got %+v", test.satisfied, isSatisfied)
+			assert.Equal(t, test.satisfied, isSatisfied, "unexpected constraint check result")
 		})
 	}
 }

@@ -44,7 +44,9 @@ func (c kbConstraint) Satisfied(version *Version) (bool, error) {
 			version:    version,
 			message:    "Unexpected data in DB: Empty raw version constraint.",
 		}
-	} else if version == nil {
+	}
+
+	if version == nil {
 		return true, nil
 	}
 
