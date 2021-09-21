@@ -146,7 +146,7 @@ integration: ## Run integration tests
 # note: this is used by CI to determine if the integration test fixture cache (docker image tars) should be busted
 .PHONY: integration-fingerprint
 integration-fingerprint:
-	find test/integration/test-fixtures/image-* -type f -exec md5sum {} + | awk '{print $1}' | sort | md5sum | tee test/integration/test-fixtures/cache.fingerprint
+	find test/integration/*.go test/integration/test-fixtures/image-* -type f -exec md5sum {} + | awk '{print $1}' | sort | md5sum | tee test/integration/test-fixtures/cache.fingerprint
 
 .PHONY: cli
 cli: $(SNAPSHOTDIR) ## Run CLI tests
