@@ -35,12 +35,6 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 			"anchore/test_images:npm",
 		},
 		{
-			"anchore/test_images:vulnerabilities-alpine",
-		},
-		{
-			"anchore/test_images:java",
-		},
-		{
 			"anchore/test_images:java",
 		},
 		{
