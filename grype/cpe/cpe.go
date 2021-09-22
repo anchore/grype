@@ -1,19 +1,22 @@
 package cpe
 
 import (
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/pkg"
 )
 
 func NewSlice(cpeStrs ...string) ([]pkg.CPE, error) {
-	ret := make([]pkg.CPE, len(cpeStrs))
-	for idx, c := range cpeStrs {
+	var cpes []pkg.CPE
+	for _, c := range cpeStrs {
 		value, err := pkg.NewCPE(c)
 		if err != nil {
-			return nil, err
+			log.Warnf("unable to hydrate CPE for string %q, omitting from result CPE slice: %v", c, err)
+			continue
 		}
-		ret[idx] = value
+
+		cpes = append(cpes, value)
 	}
-	return ret, nil
+	return cpes, nil
 }
 
 func MatchWithoutVersion(c pkg.CPE, candidates []pkg.CPE) []pkg.CPE {
