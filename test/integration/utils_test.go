@@ -19,7 +19,14 @@ import (
 const cacheDirRelativePath string = "./test-fixtures/cache"
 
 func PullThroughImageCache(t testing.TB, imageName string) string {
-	cacheDirectory := getOrInitializeDirectory(t, cacheDirRelativePath)
+	cacheDirectory, absErr := filepath.Abs(cacheDirRelativePath)
+	if absErr != nil {
+		t.Fatalf("could not get absolute path of cache directory %s; %v", cacheDirRelativePath, absErr)
+	}
+	mkdirError := os.MkdirAll(cacheDirectory, 0755)
+	if mkdirError != nil {
+		t.Fatalf("could not create cache directory %s; %v", cacheDirRelativePath, absErr)
+	}
 	re := regexp.MustCompile("[/:]")
 	archiveFileName := fmt.Sprintf("%s.tar", re.ReplaceAllString(imageName, "-"))
 	imageArchivePath := filepath.Join(cacheDirectory, archiveFileName)
@@ -43,24 +50,6 @@ func saveImage(t testing.TB, imageName string, destPath string) {
 		t.Fatal(err)
 	}
 	t.Logf("Stdout: %s\n", out)
-}
-
-func getOrInitializeDirectory(t testing.TB, relativePath string) string {
-	if _, statErr := os.Stat(relativePath); statErr != nil {
-		if os.IsNotExist(statErr) {
-			mkdirError := os.Mkdir(relativePath, 0755)
-			if mkdirError != nil {
-				t.Fatalf("could not initialize cache directory %s; %v", relativePath, mkdirError)
-			}
-		} else {
-			t.Fatalf("could not check for existence of cache directory %s; %v", relativePath, statErr)
-		}
-	}
-	cacheDir, absErr := filepath.Abs(relativePath)
-	if absErr != nil {
-		t.Fatalf("could not get absolute path of cache directory %s; %v", relativePath, absErr)
-	}
-	return cacheDir
 }
 
 func getSyftSBOM(t testing.TB, image string) string {
