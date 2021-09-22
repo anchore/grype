@@ -12,7 +12,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/anchore/grype/grype/match"
 	"github.com/scylladb/go-set/strset"
 )
 
@@ -36,25 +35,18 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 			"anchore/test_images:npm",
 		},
 		{
-			"anchore/engine-cli:v0.3.4",
+			"anchore/test_images:vulnerabilities-alpine",
 		},
 		{
 			"anchore/test_images:java",
 		},
 		{
-			"jenkins/jenkins:lts",
+			"anchore/test_images:java",
 		},
 		{
-			"golangci/golangci-lint:latest-alpine",
+			"anchore/test_images:golang",
 		},
 	}
-	definedPkgTypes := strset.New()
-	for _, p := range syftPkg.AllPkgs {
-		definedPkgTypes.Add(string(p))
-	}
-	// exceptions: rust and msrc (kb) are not under test
-	definedPkgTypes.Remove(string(syftPkg.RustPkg), string(syftPkg.KbPkg))
-	observedPkgTypes := strset.New()
 
 	// get a grype DB
 	vulnProvider, _, _, err := grype.LoadVulnerabilityDb(db.Config{
@@ -64,12 +56,22 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 	}, true)
 	assert.NoError(t, err)
 
+	definedPkgTypes := strset.New()
+	for _, p := range syftPkg.AllPkgs {
+		definedPkgTypes.Add(string(p))
+	}
+	// exceptions: rust and msrc (kb) are not under test
+	definedPkgTypes.Remove(string(syftPkg.RustPkg), string(syftPkg.KbPkg))
+	observedPkgTypes := strset.New()
+
 	for _, test := range cases {
 		t.Run(test.image, func(t *testing.T) {
 
 			t.Logf("Running case %s", test.image)
+
 			imageArchive := PullThroughImageCache(t, test.image)
 			imageSource := fmt.Sprintf("docker-archive:%s", imageArchive)
+
 			// get SBOM from syft, write to temp file
 			sbomBytes := getSyftSBOM(t, imageSource)
 			sbomFile, err := ioutil.TempFile("", "")
@@ -107,12 +109,4 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 	unobservedPackageTypes := strset.Difference(definedPkgTypes, observedPkgTypes)
 	assert.Empty(t, unobservedPackageTypes.List(), "not all package type were covered in testing")
 
-}
-
-func getMatchSet(matches match.Matches) *strset.Set {
-	s := strset.New()
-	for _, m := range matches.Sorted() {
-		s.Add(fmt.Sprintf("%s-%s-%s-%s", m.Vulnerability.ID, m.Package.Name, m.Package.Version, string(m.Package.Type)))
-	}
-	return s
 }

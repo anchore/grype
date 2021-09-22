@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/anchore/grype/grype/match"
+	"github.com/scylladb/go-set/strset"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -23,24 +25,30 @@ func PullThroughImageCache(t testing.TB, imageName string) string {
 	if absErr != nil {
 		t.Fatalf("could not get absolute path of cache directory %s; %v", cacheDirRelativePath, absErr)
 	}
+
 	mkdirError := os.MkdirAll(cacheDirectory, 0755)
 	if mkdirError != nil {
 		t.Fatalf("could not create cache directory %s; %v", cacheDirRelativePath, absErr)
 	}
+
 	re := regexp.MustCompile("[/:]")
 	archiveFileName := fmt.Sprintf("%s.tar", re.ReplaceAllString(imageName, "-"))
 	imageArchivePath := filepath.Join(cacheDirectory, archiveFileName)
+
 	if _, err := os.Stat(imageArchivePath); os.IsNotExist(err) {
 		t.Logf("Cache miss for image %s; copying to archive at %s", imageName, imageArchivePath)
 		saveImage(t, imageName, imageArchivePath)
 	}
+
 	return imageArchivePath
 }
 
 func saveImage(t testing.TB, imageName string, destPath string) {
 	sourceImage := fmt.Sprintf("docker://docker.io/%s", imageName)
 	destinationString := fmt.Sprintf("docker-archive:%s", destPath)
+
 	cmd := exec.Command("skopeo", "copy", "--override-os", "linux", sourceImage, destinationString)
+
 	out, err := cmd.Output()
 	if err != nil {
 		var exitError *exec.ExitError
@@ -49,6 +57,7 @@ func saveImage(t testing.TB, imageName string, destPath string) {
 		}
 		t.Fatal(err)
 	}
+
 	t.Logf("Stdout: %s\n", out)
 }
 
@@ -75,4 +84,12 @@ func getSyftSBOM(t testing.TB, image string) string {
 	}
 
 	return buf.String()
+}
+
+func getMatchSet(matches match.Matches) *strset.Set {
+	s := strset.New()
+	for _, m := range matches.Sorted() {
+		s.Add(fmt.Sprintf("%s-%s-%s-%s", m.Vulnerability.ID, m.Package.Name, m.Package.Version, string(m.Package.Type)))
+	}
+	return s
 }
