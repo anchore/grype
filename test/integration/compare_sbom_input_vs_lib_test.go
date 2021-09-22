@@ -2,31 +2,21 @@ package integration
 
 import (
 	"fmt"
+	"github.com/anchore/grype/grype"
+	"github.com/anchore/grype/grype/db"
+	"github.com/anchore/grype/internal"
+	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/source"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
 	"testing"
 
-	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/internal"
-	syftPkg "github.com/anchore/syft/syft/pkg"
-	"github.com/anchore/syft/syft/source"
 	"github.com/scylladb/go-set/strset"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestCompareSBOMInputToLibResults(t *testing.T) {
-	// TODO: cache images between runs and use the tar
-
-	observedPkgTypes := strset.New()
-	definedPkgTypes := strset.New()
-	for _, p := range syftPkg.AllPkgs {
-		definedPkgTypes.Add(string(p))
-	}
-	// exceptions: rust and msrc (kb) are not under test
-	definedPkgTypes.Remove(string(syftPkg.RustPkg), string(syftPkg.KbPkg))
-
 	cases := []struct {
 		image string
 	}{
@@ -58,6 +48,13 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 			"golangci/golangci-lint:latest-alpine",
 		},
 	}
+	definedPkgTypes := strset.New()
+	for _, p := range syftPkg.AllPkgs {
+		definedPkgTypes.Add(string(p))
+	}
+	// exceptions: rust and msrc (kb) are not under test
+	definedPkgTypes.Remove(string(syftPkg.RustPkg), string(syftPkg.KbPkg))
+	observedPkgTypes := strset.New()
 
 	// get a grype DB
 	vulnProvider, _, _, err := grype.LoadVulnerabilityDb(db.Config{
@@ -69,10 +66,12 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 
 	for _, test := range cases {
 		t.Run(test.image, func(t *testing.T) {
-			t.Logf("Running case %s", test.image)
 
+			t.Logf("Running case %s", test.image)
+			imageArchive := PullThroughImageCache(t, test.image)
+			imageSource := fmt.Sprintf("docker-archive:%s", imageArchive)
 			// get SBOM from syft, write to temp file
-			sbomBytes := getSyftSBOM(t, test.image)
+			sbomBytes := getSyftSBOM(t, imageSource)
 			sbomFile, err := ioutil.TempFile("", "")
 			assert.NoError(t, err)
 			t.Cleanup(func() {
@@ -87,7 +86,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 			assert.NoError(t, err)
 
 			// get vulns (image)
-			matchesFromImage, _, _, err := grype.FindVulnerabilities(vulnProvider, test.image, source.SquashedScope, nil)
+			matchesFromImage, _, _, err := grype.FindVulnerabilities(vulnProvider, imageSource, source.SquashedScope, nil)
 			assert.NoError(t, err)
 
 			// compare packages (shallow)
