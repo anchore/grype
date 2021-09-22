@@ -1,0 +1,104 @@
+{
+  "artifacts": [
+    {
+      "id": "da8f3d4c-fc48-4a79-a775-31c730ce5f97",
+      "name": "wstx-asl",
+      "version": "3.2.7",
+      "type": "java-archive",
+      "foundBy": "java-cataloger",
+      "locations": [
+        {
+          "path": "/hudson.war",
+          "layerID": "sha256:540ce9731a52867a29db67bc9b7ead11db04918f00a6e432627d21e1160ed92b"
+        }
+      ],
+      "licenses": [],
+      "language": "java",
+      "cpes": [
+        "cpe:2.3:a:http://jcp_org/en/jsr/detail?id=173:wstx_asl:3.2.7:*:*:*:*:*:*:*",
+        "cpe:2.3:a:http://jcp_org/en/jsr/detail?id=173:wstx-asl:3.2.7:*:*:*:*:*:*:*",
+        "cpe:2.3:a:http://jcp-org/en/jsr/detail?id=173:wstx-asl:3.2.7:*:*:*:*:*:*:*",
+        "cpe:2.3:a:http://jcp-org/en/jsr/detail?id=173:wstx_asl:3.2.7:*:*:*:*:*:*:*",
+        "cpe:2.3:a:woodstox_codehaus_org:wstx-asl:3.2.7:*:*:*:*:*:*:*",
+        "cpe:2.3:a:woodstox-codehaus-org:wstx-asl:3.2.7:*:*:*:*:*:*:*",
+        "cpe:2.3:a:woodstox-codehaus-org:wstx_asl:3.2.7:*:*:*:*:*:*:*",
+        "cpe:2.3:a:woodstox_codehaus_org:wstx_asl:3.2.7:*:*:*:*:*:*:*",
+        "cpe:2.3:a:wstx-asl:wstx-asl:3.2.7:*:*:*:*:*:*:*",
+        "cpe:2.3:a:wstx-asl:wstx_asl:3.2.7:*:*:*:*:*:*:*",
+        "cpe:2.3:a:wstx_asl:wstx-asl:3.2.7:*:*:*:*:*:*:*",
+        "cpe:2.3:a:wstx_asl:wstx_asl:3.2.7:*:*:*:*:*:*:*",
+        "cpe:2.3:a:wstx:wstx-asl:3.2.7:*:*:*:*:*:*:*",
+        "cpe:2.3:a:wstx:wstx_asl:3.2.7:*:*:*:*:*:*:*"
+      ],
+      "purl": "",
+      "metadataType": "JavaMetadata",
+      "metadata": {
+        "virtualPath": "/hudson.war:WEB-INF/lib/wstx-asl-3.2.7.jar",
+        "manifest": {
+          "main": {
+            "Ant-Version": "Apache Ant 1.6.5",
+            "Built-By": "tatu",
+            "Created-By": "1.4.2_03-b02 (Sun Microsystems Inc.)",
+            "Implementation-Title": "WoodSToX XML-processor",
+            "Implementation-Vendor": "woodstox.codehaus.org",
+            "Implementation-Version": "3.2.7",
+            "Manifest-Version": "1.0",
+            "Specification-Title": "StAX 1.0 API",
+            "Specification-Vendor": "http://jcp.org/en/jsr/detail?id=173",
+            "Specification-Version": "1.0"
+          }
+        }
+      }
+    }
+  ],
+  "artifactRelationships": [],
+  "source": {
+    "type": "image",
+    "target": {
+      "userInput": "docker.io/anchore/test_images:java",
+      "imageID": "sha256:55125c059cf3d9e8a179c3b543deeaf8613b1aa3101515cd51a7918b857b8eea",
+      "manifestDigest": "sha256:64dc1086a990469c65bf65c28c8d2d9062dd32aa566d045e1fe71e32e6b0d600",
+      "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+      "tags": [
+        "anchore/test_images:java"
+      ],
+      "imageSize": 39383202,
+      "layers": [
+        {
+          "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+          "digest": "sha256:8ea3b23f387bedc5e3cee574742d748941443c328a75f511eb37b0d8b6164130",
+          "size": 5608905
+        },
+        {
+          "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+          "digest": "sha256:540ce9731a52867a29db67bc9b7ead11db04918f00a6e432627d21e1160ed92b",
+          "size": 33772593
+        },
+        {
+          "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+          "digest": "sha256:a155363a67edf6e6462aa47445c3d900b84cec3320b62405b495ddf65035c039",
+          "size": 1704
+        }
+      ],
+      "manifest": "eyJzY2hlbWFWZXJzaW9uIjoyLCJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQuZG9ja2VyLmRpc3RyaWJ1dGlvbi5tYW5pZmVzdC52Mitqc29uIiwiY29uZmlnIjp7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5kb2NrZXIuY29udGFpbmVyLmltYWdlLnYxK2pzb24iLCJzaXplIjoyMDc5LCJkaWdlc3QiOiJzaGEyNTY6NTUxMjVjMDU5Y2YzZDllOGExNzljM2I1NDNkZWVhZjg2MTNiMWFhMzEwMTUxNWNkNTFhNzkxOGI4NTdiOGVlYSJ9LCJsYXllcnMiOlt7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5kb2NrZXIuaW1hZ2Uucm9vdGZzLmRpZmYudGFyLmd6aXAiLCJzaXplIjo1ODc5ODA4LCJkaWdlc3QiOiJzaGEyNTY6OGVhM2IyM2YzODdiZWRjNWUzY2VlNTc0NzQyZDc0ODk0MTQ0M2MzMjhhNzVmNTExZWIzN2IwZDhiNjE2NDEzMCJ9LHsibWVkaWFUeXBlIjoiYXBwbGljYXRpb24vdm5kLmRvY2tlci5pbWFnZS5yb290ZnMuZGlmZi50YXIuZ3ppcCIsInNpemUiOjMzNzc2MTI4LCJkaWdlc3QiOiJzaGEyNTY6NTQwY2U5NzMxYTUyODY3YTI5ZGI2N2JjOWI3ZWFkMTFkYjA0OTE4ZjAwYTZlNDMyNjI3ZDIxZTExNjBlZDkyYiJ9LHsibWVkaWFUeXBlIjoiYXBwbGljYXRpb24vdm5kLmRvY2tlci5pbWFnZS5yb290ZnMuZGlmZi50YXIuZ3ppcCIsInNpemUiOjM1ODQsImRpZ2VzdCI6InNoYTI1NjphMTU1MzYzYTY3ZWRmNmU2NDYyYWE0NzQ0NWMzZDkwMGI4NGNlYzMzMjBiNjI0MDViNDk1ZGRmNjUwMzVjMDM5In1dfQ==",
+      "config": "eyJhcmNoaXRlY3R1cmUiOiJhbWQ2NCIsImNvbmZpZyI6eyJIb3N0bmFtZSI6IiIsIkRvbWFpbm5hbWUiOiIiLCJVc2VyIjoiIiwiQXR0YWNoU3RkaW4iOmZhbHNlLCJBdHRhY2hTdGRvdXQiOmZhbHNlLCJBdHRhY2hTdGRlcnIiOmZhbHNlLCJUdHkiOmZhbHNlLCJPcGVuU3RkaW4iOmZhbHNlLCJTdGRpbk9uY2UiOmZhbHNlLCJFbnYiOlsiUEFUSD0vdXNyL2xvY2FsL3NiaW46L3Vzci9sb2NhbC9iaW46L3Vzci9zYmluOi91c3IvYmluOi9zYmluOi9iaW4iXSwiQ21kIjpbIi9iaW4vc2giXSwiSW1hZ2UiOiJzaGEyNTY6NWI1MWNkNTVmNmQ5YmMyOTFkNDIzNGNmYTI2MGIyMWZmM2JkOTFkYzY2MWRlOWQ1ZmE3YzM4ZjYwNzljNGExZCIsIlZvbHVtZXMiOm51bGwsIldvcmtpbmdEaXIiOiIiLCJFbnRyeXBvaW50IjpudWxsLCJPbkJ1aWxkIjpbXSwiTGFiZWxzIjpudWxsfSwiY29udGFpbmVyX2NvbmZpZyI6eyJIb3N0bmFtZSI6IiIsIkRvbWFpbm5hbWUiOiIiLCJVc2VyIjoiIiwiQXR0YWNoU3RkaW4iOmZhbHNlLCJBdHRhY2hTdGRvdXQiOmZhbHNlLCJBdHRhY2hTdGRlcnIiOmZhbHNlLCJUdHkiOmZhbHNlLCJPcGVuU3RkaW4iOmZhbHNlLCJTdGRpbk9uY2UiOmZhbHNlLCJFbnYiOlsiUEFUSD0vdXNyL2xvY2FsL3NiaW46L3Vzci9sb2NhbC9iaW46L3Vzci9zYmluOi91c3IvYmluOi9zYmluOi9iaW4iXSwiQ21kIjpbIi9iaW4vc2giLCItYyIsIiMobm9wKSBDT1BZIGZpbGU6MmRkODU3MzFhNDA1NjliZmVjMDQ4ODBlNDU4OTg3NDhjNDIwMjBlMjM4NmRhMWViZjA5NDhiZjQ4YmIwZmRmZiBpbiAvICJdLCJJbWFnZSI6InNoYTI1Njo1YjUxY2Q1NWY2ZDliYzI5MWQ0MjM0Y2ZhMjYwYjIxZmYzYmQ5MWRjNjYxZGU5ZDVmYTdjMzhmNjA3OWM0YTFkIiwiVm9sdW1lcyI6bnVsbCwiV29ya2luZ0RpciI6IiIsIkVudHJ5cG9pbnQiOm51bGwsIk9uQnVpbGQiOltdLCJMYWJlbHMiOm51bGx9LCJjcmVhdGVkIjoiMjAyMS0wNC0wMVQxNToyODoyNy4zOTE0OTA5NjFaIiwiZG9ja2VyX3ZlcnNpb24iOiIxNy4wOS4wLWNlIiwiaGlzdG9yeSI6W3siY3JlYXRlZCI6IjIwMjEtMDMtMzFUMjA6MTA6MDYuNjg2MzU5MTI0WiIsImNyZWF0ZWRfYnkiOiIvYmluL3NoIC1jICMobm9wKSBBREQgZmlsZTo3MTE5MTY3YjU2ZmYxMjI4YjJmYjYzOWM3Njg5NTVjZTlkYjdhOTk5Y2Q5NDcxNzkyNDBiMjE2ZGZhNWNjYmI5IGluIC8gIn0seyJjcmVhdGVkIjoiMjAyMS0wMy0zMVQyMDoxMDowNi45MzQzNjg2MDRaIiwiY3JlYXRlZF9ieSI6Ii9iaW4vc2ggLWMgIyhub3ApICBDTUQgW1wiL2Jpbi9zaFwiXSIsImVtcHR5X2xheWVyIjp0cnVlfSx7ImNyZWF0ZWQiOiIyMDIxLTA0LTAxVDE1OjI4OjI3LjIyMTEwNTY1NVoiLCJjcmVhdGVkX2J5IjoiL2Jpbi9zaCAtYyB3Z2V0IC1udiBodHRwczovL3JlcG8xLm1hdmVuLm9yZy9tYXZlbjIvanVuaXQvanVuaXQvNC4xMy4xL2p1bml0LTQuMTMuMS5qYXIgXHUwMDI2XHUwMDI2ICAgICB3Z2V0IC1udiBodHRwczovL2dldC5qZW5raW5zLmlvL3BsdWdpbnMvVHdpbGlvTm90aWZpZXIvMC4yLjEvVHdpbGlvTm90aWZpZXIuaHBpIFx1MDAyNlx1MDAyNiAgICAgd2dldCAtbnYgaHR0cHM6Ly91cGRhdGVzLmplbmtpbnMtY2kub3JnL2Rvd25sb2FkL3dhci8xLjM5MC9odWRzb24ud2FyIn0seyJjcmVhdGVkIjoiMjAyMS0wNC0wMVQxNToyODoyNy4zOTE0OTA5NjFaIiwiY3JlYXRlZF9ieSI6Ii9iaW4vc2ggLWMgIyhub3ApIENPUFkgZmlsZToyZGQ4NTczMWE0MDU2OWJmZWMwNDg4MGU0NTg5ODc0OGM0MjAyMGUyMzg2ZGExZWJmMDk0OGJmNDhiYjBmZGZmIGluIC8gIn1dLCJvcyI6ImxpbnV4Iiwicm9vdGZzIjp7InR5cGUiOiJsYXllcnMiLCJkaWZmX2lkcyI6WyJzaGEyNTY6OGVhM2IyM2YzODdiZWRjNWUzY2VlNTc0NzQyZDc0ODk0MTQ0M2MzMjhhNzVmNTExZWIzN2IwZDhiNjE2NDEzMCIsInNoYTI1Njo1NDBjZTk3MzFhNTI4NjdhMjlkYjY3YmM5YjdlYWQxMWRiMDQ5MThmMDBhNmU0MzI2MjdkMjFlMTE2MGVkOTJiIiwic2hhMjU2OmExNTUzNjNhNjdlZGY2ZTY0NjJhYTQ3NDQ1YzNkOTAwYjg0Y2VjMzMyMGI2MjQwNWI0OTVkZGY2NTAzNWMwMzkiXX19",
+      "repoDigests": [
+        "anchore/test_images@sha256:4f6203a146e4c056f09fd72c687adfb23e75b18b58e3ea7c9a25a8af6699a381"
+      ],
+      "scope": "Squashed"
+    }
+  },
+  "distro": {
+    "name": "alpine",
+    "version": "3.13.4",
+    "idLike": ""
+  },
+  "descriptor": {
+    "name": "syft",
+    "version": "0.23.0"
+  },
+  "schema": {
+    "version": "1.1.0",
+    "url": "https://raw.githubusercontent.com/anchore/syft/main/schema/json/schema-1.1.0.json"
+  }
+}

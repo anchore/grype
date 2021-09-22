@@ -4,6 +4,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/anchore/syft/syft/source"
 
 	"github.com/anchore/syft/syft/distro"
@@ -156,7 +158,19 @@ func TestParseSyftJSON(t *testing.T) {
 	}
 }
 
-// Note that the fixture has been modified from the real syft output to include less packages, CPEs, layers,
+func TestParseSyftJSON_BadCPEs(t *testing.T) {
+	const testFixture = "test-fixtures/syft-java-bad-cpes.json"
+	fh, err := os.Open(testFixture)
+	if err != nil {
+		t.Fatalf("unable to open fixture: %+v", err)
+	}
+
+	pkgs, _, err := parseSyftJSON(fh)
+	assert.NoError(t, err)
+	assert.Len(t, pkgs, 1)
+}
+
+// Note that the fixture has been modified from the real syft output to include fewer packages, CPEs, layers,
 // and package IDs are removed so that the test case variable isn't unwieldingly huge.
 var springImageTestCase = struct {
 	Fixture  string
