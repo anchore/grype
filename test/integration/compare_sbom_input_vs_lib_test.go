@@ -2,44 +2,29 @@ package integration
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"testing"
+
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/internal"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
-	"os"
-	"testing"
 
 	"github.com/scylladb/go-set/strset"
 )
 
 func TestCompareSBOMInputToLibResults(t *testing.T) {
-	cases := []struct {
-		image string
-	}{
-		{
-			"anchore/test_images:vulnerabilities-alpine",
-		},
-		{
-			"anchore/test_images:gems",
-		},
-		{
-			"anchore/test_images:vulnerabilities-debian",
-		},
-		{
-			"anchore/test_images:vulnerabilities-centos",
-		},
-		{
-			"anchore/test_images:npm",
-		},
-		{
-			"anchore/test_images:java",
-		},
-		{
-			"anchore/test_images:golang",
-		},
+	images := []string{
+		"anchore/test_images:vulnerabilities-alpine",
+		"anchore/test_images:gems",
+		"anchore/test_images:vulnerabilities-debian",
+		"anchore/test_images:vulnerabilities-centos",
+		"anchore/test_images:npm",
+		"anchore/test_images:java",
+		"anchore/test_images:golang",
 	}
 
 	// get a grype DB
@@ -58,12 +43,12 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 	definedPkgTypes.Remove(string(syftPkg.RustPkg), string(syftPkg.KbPkg))
 	observedPkgTypes := strset.New()
 
-	for _, test := range cases {
-		t.Run(test.image, func(t *testing.T) {
+	for _, image := range images {
+		t.Run(image, func(t *testing.T) {
 
-			t.Logf("Running case %s", test.image)
+			t.Logf("Running case %s", image)
 
-			imageArchive := PullThroughImageCache(t, test.image)
+			imageArchive := PullThroughImageCache(t, image)
 			imageSource := fmt.Sprintf("docker-archive:%s", imageArchive)
 
 			// get SBOM from syft, write to temp file
