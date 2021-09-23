@@ -89,7 +89,8 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 			matchSetFromSbom := getMatchSet(matchesFromSbom)
 			matchSetFromImage := getMatchSet(matchesFromImage)
 
-			assert.Empty(t, strset.SymmetricDifference(matchSetFromSbom, matchSetFromImage).List())
+			assert.Empty(t, strset.Difference(matchSetFromSbom, matchSetFromImage).List(), "vulnerabilities present only in results when using sbom as input")
+			assert.Empty(t, strset.Difference(matchSetFromImage, matchSetFromSbom).List(), "vulnerabilities present only in results when using image as input")
 
 			// track all covered package types (for use after the test)
 			for _, p := range pkgsFromSbom {
