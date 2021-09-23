@@ -10,7 +10,7 @@ func NewSlice(cpeStrs ...string) ([]pkg.CPE, error) {
 	for _, c := range cpeStrs {
 		value, err := pkg.NewCPE(c)
 		if err != nil {
-			log.Warnf("unable to hydrate CPE for string %q, omitting from result CPE slice: %v", c, err)
+			log.Warnf("excluding invalid CPE %q: %v", c, err)
 			continue
 		}
 
