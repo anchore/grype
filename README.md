@@ -9,6 +9,14 @@
 
 A vulnerability scanner for container images and filesystems. Easily [install the binary](#installation) to try it out. Works with [Syft](https://github.com/anchore/syft), the powerful SBOM (software bill of materials) tool for container images and filesystems.
 
+## We'll be at KubeCon 2021!
+
+Attending KubeCon 2021 in person? Join us for a meetup on **Tuesday, October 12th**.
+
+We’ll have free swag, giveaways, snacks, and sips. Space will be limited, so make sure to [save your seat](https://get.anchore.com/2021-kubecon-na-opensource-happy-hour/)!
+
+---
+
 ![grype-demo](https://user-images.githubusercontent.com/590471/90276236-9868f300-de31-11ea-8068-4268b6b68529.gif)
 
 ### Features
