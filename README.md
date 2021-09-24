@@ -9,6 +9,14 @@
 
 A vulnerability scanner for container images and filesystems. Easily [install the binary](#installation) to try it out. Works with [Syft](https://github.com/anchore/syft), the powerful SBOM (software bill of materials) tool for container images and filesystems.
 
+## We'll be at KubeCon 2021!
+
+Attending KubeCon 2021 in person? Join us for a meetup on **Tuesday, October 12th**.
+
+We’ll have free swag, giveaways, snacks, and sips. Space will be limited, so make sure to [save your seat](https://get.anchore.com/2021-kubecon-na-opensource-happy-hour/)!
+
+---
+
 ![grype-demo](https://user-images.githubusercontent.com/590471/90276236-9868f300-de31-11ea-8068-4268b6b68529.gif)
 
 ### Features
@@ -152,15 +160,13 @@ brew install grype
 
 ## Shell Completion
 
-Grype supplies shell completion through its CLI implementation ([cobra](https://github.com/spf13/cobra/blob/master/shell_completions.md)).
-Generate the completion code for your shell by running one of the following commands:
-* `grype completion <bash|fish>`
-* `go run main.go completion <bash|fish>`
+Grype supplies shell completion through its CLI implementation ([cobra](https://github.com/spf13/cobra/blob/master/shell_completions.md)). Generate the completion code for your shell by running one of the following commands:
+
+* `grype completion <bash|zsh|fish>`
+* `go run main.go completion <bash|zsh|fish>`
 
 This will output a shell script to STDOUT, which can then be used as a completion script for Grype. Running one of the above commands with the
 `-h` or `--help` flags will provide instructions on how to do that for your chosen shell.
-
-Note: [Cobra has not yet released full ZSH support](https://github.com/spf13/cobra/issues/1226), but as soon as that gets released, we will add it here!
 
 ## Configuration
 
