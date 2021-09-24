@@ -160,15 +160,13 @@ brew install grype
 
 ## Shell Completion
 
-Grype supplies shell completion through its CLI implementation ([cobra](https://github.com/spf13/cobra/blob/master/shell_completions.md)).
-Generate the completion code for your shell by running one of the following commands:
-* `grype completion <bash|fish>`
-* `go run main.go completion <bash|fish>`
+Grype supplies shell completion through its CLI implementation ([cobra](https://github.com/spf13/cobra/blob/master/shell_completions.md)). Generate the completion code for your shell by running one of the following commands:
+
+* `grype completion <bash|zsh|fish>`
+* `go run main.go completion <bash|zsh|fish>`
 
 This will output a shell script to STDOUT, which can then be used as a completion script for Grype. Running one of the above commands with the
 `-h` or `--help` flags will provide instructions on how to do that for your chosen shell.
-
-Note: [Cobra has not yet released full ZSH support](https://github.com/spf13/cobra/issues/1226), but as soon as that gets released, we will add it here!
 
 ## Configuration
 
