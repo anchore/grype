@@ -132,6 +132,10 @@ jobs:
           AC_USERNAME: ${{ secrets.ENG_CI_APPLE_ID }} # Used during macOS notarization.
           AC_PASSWORD: ${{ secrets.ENG_CI_APPLE_ID_PASS }} # Used during macOS notarization.
 
+      - uses: anchore/sbom-action@v0
+        with:
+          artifact-name: sbom.spdx.json
+
       - uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
