@@ -228,18 +228,23 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			return
 		}
 
-		matches := grype.FindVulnerabilitiesForPackage(provider, context.Distro, packages...)
+		allMatches := grype.FindVulnerabilitiesForPackage(provider, context.Distro, packages...)
+		remainingMatches, ignoredMatches := match.ApplyIgnoreRules(allMatches, appConfig.Ignore)
+
+		if count := len(ignoredMatches); count > 0 {
+			log.Infof("Ignoring %d matches due to user-provided ignore rules", count)
+		}
 
 		// determine if there are any severities >= to the max allowable severity (which is optional).
 		// note: until the shared file lock in sqlittle is fixed the sqlite DB cannot be access concurrently,
 		// implying that the fail-on-severity check must be done before sending the presenter object.
-		if hitSeverityThreshold(failOnSeverity, matches, metadataProvider) {
+		if hitSeverityThreshold(failOnSeverity, remainingMatches, metadataProvider) {
 			errs <- grypeerr.ErrAboveSeverityThreshold
 		}
 
 		bus.Publish(partybus.Event{
 			Type:  event.VulnerabilityScanningFinished,
-			Value: presenter.GetPresenter(presenterConfig, matches, packages, context, metadataProvider, appConfig, dbStatus),
+			Value: presenter.GetPresenter(presenterConfig, remainingMatches, ignoredMatches, packages, context, metadataProvider, appConfig, dbStatus),
 		})
 	}()
 	return errs
