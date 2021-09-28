@@ -94,7 +94,7 @@ func FindMatchesByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, u
 	return toMatches(matchesByFingerprint), nil
 }
 
-func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vulnerability.Vulnerability, p pkg.Package, pkgVersion version.Version, upstreamMatcher match.MatcherType, searchedByCPE syftPkg.CPE) {
+func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vulnerability.Vulnerability, p pkg.Package, searchVersion version.Version, upstreamMatcher match.MatcherType, searchedByCPE syftPkg.CPE) {
 	candidateMatch := match.Match{
 		Type:          match.FuzzyMatch,
 		Vulnerability: vuln,
@@ -117,7 +117,7 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 			},
 			Found: FoundCPEs{
 				VersionConstraint: vuln.Constraint.String(),
-				CPEs:              cpesToString(filterCPEsByVersion(pkgVersion, vuln.CPEs)),
+				CPEs:              cpesToString(filterCPEsByVersion(searchVersion, vuln.CPEs)),
 			},
 		},
 	)

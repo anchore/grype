@@ -2,6 +2,7 @@ package match
 
 const (
 	UnknownMatcherType MatcherType = iota
+	StockMatcher
 	ApkMatcher
 	RubyGemMatcher
 	DpkgMatcher
@@ -14,6 +15,7 @@ const (
 
 var matcherTypeStr = []string{
 	"UnknownMatcherType",
+	"stock-matcher",
 	"apk-matcher",
 	"ruby-gem-matcher",
 	"dpkg-matcher",

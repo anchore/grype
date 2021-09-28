@@ -1,0 +1,36 @@
+{
+  "artifacts": [
+    {
+      "id": "eeb36c1c-c03a-425b-901f-df918cc3757e",
+      "name": "my-package",
+      "version": "1.0.5",
+      "type": "binary",
+      "language": "python",
+      "cpes": [
+        "cpe:2.3:a:my-package:my-package:1.0.5:*:*:*:*:*:*:*",
+        "cpe:2.3:a:bogus:my-package:1.0.5:*:*:*:*:*:*:*"
+      ]
+    }
+  ],
+  "artifactRelationships": [],
+  "source": {
+    "type": "image",
+    "target": {
+      "userInput": "my-awesome-image:latest",
+      "scope": "Squashed"
+    }
+  },
+  "distro": {
+    "name": "ubuntu",
+    "version": "20.04",
+    "idLike": ""
+  },
+  "descriptor": {
+    "name": "syft",
+    "version": "v0.19.1"
+  },
+  "schema": {
+    "version": "1.1.0",
+    "url": "https://raw.githubusercontent.com/anchore/syft/main/schema/json/schema-1.1.0.json"
+  }
+}
