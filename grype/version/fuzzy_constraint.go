@@ -111,6 +111,8 @@ func (f *fuzzyConstraint) String() string {
 // but not for "2000" vs "11.7".
 // Returns -1 if v1 < v2, 1 if v1 > v2 and 0 if v1 == v2.
 func fuzzyVersionComparison(v1, v2 string) int {
+	v1 = stripLeadingV(v1)
+	v2 = stripLeadingV(v2)
 	for s1, s2 := v1, v2; len(s1) > 0 && len(s2) > 0; {
 		num1, cmpTo1, skip1 := parseVersionParts(s1)
 		num2, cmpTo2, skip2 := parseVersionParts(s2)
@@ -180,4 +182,8 @@ func leftPad(s string, n int) string {
 	}
 	sb.WriteString(s)
 	return sb.String()
+}
+
+func stripLeadingV(ver string) string {
+	return strings.TrimPrefix(ver, "v")
 }

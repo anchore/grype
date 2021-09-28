@@ -237,6 +237,30 @@ func TestFuzzyConstraintSatisfaction(t *testing.T) {
 			constraint: "\"4.5.1\" || \"4.5.2\"",
 			expected:   true,
 		},
+		{
+			name:       "strip unbalanced v from left side <",
+			version:    "v17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible",
+			constraint: "< 1.5",
+			expected:   false,
+		},
+		{
+			name:       "strip unbalanced v from left side >",
+			version:    "v17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible",
+			constraint: "> 1.5",
+			expected:   true,
+		},
+		{
+			name:       "strip unbalanced v from right side <",
+			version:    "17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible",
+			constraint: "< v1.5",
+			expected:   false,
+		},
+		{
+			name:       "strip unbalanced v from right side >",
+			version:    "17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible",
+			constraint: "> v1.5",
+			expected:   true,
+		},
 	}
 
 	for _, test := range tests {
