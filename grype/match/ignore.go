@@ -68,6 +68,7 @@ func ApplyIgnoreRules(matches Matches, rules []IgnoreRule) (Matches, []IgnoredMa
 func shouldIgnore(match Match, rule IgnoreRule) bool {
 	ignoreConditions := getIgnoreConditionsForRule(rule)
 	if len(ignoreConditions) == 0 {
+		// this rule specifies no criteria, so it doesn't apply to the Match
 		return false
 	}
 
@@ -138,21 +139,29 @@ func ifPackageTypeApplies(t string) ignoreCondition {
 
 func ifPackageLocationApplies(location string) ignoreCondition {
 	return func(match Match) bool {
-		return locationAppliesToMatch(location, match)
+		return ruleLocationAppliesToMatch(location, match)
 	}
 }
 
-func locationAppliesToMatch(location string, match Match) bool {
+func ruleLocationAppliesToMatch(location string, match Match) bool {
 	for _, packageLocation := range match.Package.Locations {
-		doesLocationMatch, err := doublestar.Match(location, packageLocation.String())
-		if err != nil {
-			continue
+		if ruleLocationAppliesToPath(location, packageLocation.RealPath) {
+			return true
 		}
 
-		if doesLocationMatch {
+		if ruleLocationAppliesToPath(location, packageLocation.VirtualPath) {
 			return true
 		}
 	}
 
 	return false
+}
+
+func ruleLocationAppliesToPath(location, path string) bool {
+	doesMatch, err := doublestar.Match(location, path)
+	if err != nil {
+		return false
+	}
+
+	return doesMatch
 }
