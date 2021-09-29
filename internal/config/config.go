@@ -7,6 +7,7 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/anchore/grype/grype/db"
+	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/syft/syft/source"
@@ -35,6 +36,7 @@ type Application struct {
 	FailOn             string                  `mapstructure:"fail-on-severity"`
 	FailOnSeverity     *vulnerability.Severity `json:"-"`
 	Registry           registry                `yaml:"registry" json:"registry" mapstructure:"registry"`
+	Ignore             []match.IgnoreRule      `yaml:"ignore" json:"ignore" mapstructure:"ignore"`
 }
 
 type Logging struct {

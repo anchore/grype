@@ -67,7 +67,7 @@ func TestPackagesAreSorted(t *testing.T) {
 		},
 		Distro: &d,
 	}
-	doc, err := NewDocument(packages, ctx, matches, NewMetadataMock(), nil, nil)
+	doc, err := NewDocument(packages, ctx, matches, nil, NewMetadataMock(), nil, nil)
 	if err != nil {
 		t.Fatalf("unable to get document: %+v", err)
 	}

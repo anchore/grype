@@ -55,6 +55,7 @@ To include software from all image layers in the vulnerability scan, regardless 
 ```
 grype <image> --scope all-layers
 ```
+### Supported sources
 
 Grype can scan a variety of sources beyond those found in Docker.
 
@@ -89,6 +90,8 @@ dir:path/to/yourproject                read directly from a path on disk (any di
 registry:yourrepo/yourimage:tag        pull image directly from a registry (no container runtime required)
 ```
 
+### Output formats
+
 The output format for Grype is configurable as well:
 ```
 grype <image> -o <format>
@@ -98,9 +101,9 @@ Where the `format`s available are:
 - `table`: A columnar summary (default).
 - `cyclonedx`: An XML report conforming to the [CycloneDX 1.2](https://cyclonedx.org/) specification.
 - `json`: Use this to get as much information out of Grype as possible!
-- `template`: Lets the user specify the output format. See [Using Templates](#using-templates) below.
+- `template`: Lets the user specify the output format. See ["Using templates"](#using-templates) below.
 
-### Using Templates
+### Using templates
 
 Grype lets you define custom output formats, using [Go templates](https://golang.org/pkg/text/template/). Here's how it works:
 
@@ -131,7 +134,60 @@ Which would produce output like:
 ...
 ```
 
-### Grype's Database
+### Gating on severity of vulnerabilities
+
+You can have Grype exit with an error if any vulnerabilities are reported at or above the specified severity level. This comes in handy when using Grype within a script or CI pipeline. To do this, use the `--fail-on <severity>` CLI flag.
+
+For example, here's how you could trigger a CI pipeline failure if any vulnerabilities are found in the `ubuntu:latest` image with a severity of "medium" or higher:
+
+```
+grype ubuntu:latest --fail-on medium
+```
+
+### Specifying matches to ignore
+
+If you're seeing Grype report **false positives** or any other vulnerability matches that you just don't want to see, you can tell Grype to **ignore** matches by specifying one or more _"ignore rules"_ in your Grype configuration file (e.g. `~/.grype.yaml`). This causes Grype not to report any vulnerability matches that meet the criteria specified by any of your ignore rules.
+
+Each rule can specify any combination of the following criteria:
+
+- vulnerability ID (e.g. `"CVE-2008-4318"`)
+- package name (e.g. `"libcurl"`)
+- package version (e.g. `"1.5.1"`)
+- package type (e.g. `"npm"`; these values are defined [here](https://github.com/anchore/syft/blob/main/syft/pkg/type.go#L10-L21))
+- package location (e.g. `"/usr/local/lib/node_modules/**"`; supports glob patterns)
+
+Here's an example `~/.grype.yaml` that demonstrates the expected format for ignore rules:
+
+```yaml
+ignore:
+  
+  # This is the full set of supported rule fields:
+  - vulnerability: CVE-2008-4318
+    package:
+      name: libcurl
+      version: 1.5.1
+      type: npm
+      location: "/usr/local/lib/node_modules/**"
+
+  # We can make rules to match just by vulnerability ID:
+  - vulnerability: CVE-2017-41432
+  
+  # ...or just by a single package field:
+  - package:
+      type: gem
+```
+
+Vulnerability matches will be ignored if **any** rules apply to the match. A rule is considered to apply to a given vulnerability match only if **all** fields specified in the rule apply to the vulnerability match.
+
+When you run Grype while specifying ignore rules, the following happens to the vulnerability matches that are "ignored":
+
+- Ignored matches are **completely hidden** from Grype's output, except for when using the `json` or `template` output formats; however, in these two formats, the ignored matches are **removed** from the existing `matches` array field, and they are placed in a new `ignoredMatches` array field. Each listed ignored match also has an additional field, `appliedIgnoreRules`, which is an array of any rules that caused Grype to ignore this vulnerability match.
+
+- Ignored matches **do not** factor into Grype's exit status decision when using `--fail-on <severity>`. For instance, if a user specifies `--fail-on critical`, and all of the vulnerability matches found with a "critical" severity have been _ignored_, Grype will exit zero.
+
+**Note:** Please continue to **[report](https://github.com/anchore/grype/issues/new/choose)** any false positives you see! Even if you can reliably filter out false positives using ignore rules, it's very helpful to the Grype community if we have as much knowledge about Grype's false positives as possible. This helps us continuously improve Grype!
+
+### Grype's database
 
 Grype pulls a database of vulnerabilities derived from the publicly available [Anchore Feed Service](https://ancho.re/v1/service/feeds). This database is updated at the beginning of each scan, but an update can also be triggered manually.
 
@@ -158,7 +214,7 @@ brew tap anchore/grype
 brew install grype
 ```
 
-## Shell Completion
+## Shell completion
 
 Grype supplies shell completion through its CLI implementation ([cobra](https://github.com/spf13/cobra/blob/master/shell_completions.md)). Generate the completion code for your shell by running one of the following commands:
 
