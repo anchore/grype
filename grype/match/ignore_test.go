@@ -275,6 +275,16 @@ func TestShouldIgnore(t *testing.T) {
 			expected: true,
 		},
 		{
+			name:  "rule applies via package location glob",
+			match: exampleMatch,
+			rule: IgnoreRule{
+				Package: IgnoreRulePackage{
+					Location: "/some/**",
+				},
+			},
+			expected: true,
+		},
+		{
 			name:  "rule applies via multiple fields",
 			match: exampleMatch,
 			rule: IgnoreRule{
