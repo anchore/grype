@@ -15,6 +15,7 @@ type IgnoreRule struct {
 type IgnoreRulePackage struct {
 	Name     string `json:"name,omitempty"`
 	Version  string `json:"version,omitempty"`
+	Type     string `json:"type,omitempty"`
 	Location string `json:"location,omitempty"`
 }
 
@@ -22,10 +23,11 @@ func newIgnoreRule(r match.IgnoreRule) IgnoreRule {
 	var ignoreRulePackage *IgnoreRulePackage
 
 	// We'll only set the package part of the rule not to `nil` if there are any values to fill out.
-	if p := r.Package; p.Name != "" || p.Version != "" || p.Location != "" {
+	if p := r.Package; p.Name != "" || p.Version != "" || p.Type != "" || p.Location != "" {
 		ignoreRulePackage = &IgnoreRulePackage{
 			Name:     r.Package.Name,
 			Version:  r.Package.Version,
+			Type:     r.Package.Type,
 			Location: r.Package.Location,
 		}
 	}
