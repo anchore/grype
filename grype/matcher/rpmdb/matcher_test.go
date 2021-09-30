@@ -12,6 +12,10 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
+func intRef(x int) *int {
+	return &x
+}
+
 func TestMatcherRpmdb(t *testing.T) {
 	tests := []struct {
 		name            string
@@ -37,7 +41,7 @@ func TestMatcherRpmdb(t *testing.T) {
 					t.Fatal("could not create distro: ", err)
 				}
 
-				store := newMockProvider("neutron-libs", "neutron")
+				store := newMockProvider("neutron-libs", "neutron", false)
 
 				return store, d, matcher
 			},
@@ -64,7 +68,7 @@ func TestMatcherRpmdb(t *testing.T) {
 					t.Fatal("could not create distro: ", err)
 				}
 
-				store := newMockProvider("neutron", "neutron-devel")
+				store := newMockProvider("neutron", "neutron-devel", false)
 
 				return store, d, matcher
 			},
@@ -90,13 +94,133 @@ func TestMatcherRpmdb(t *testing.T) {
 					t.Fatal("could not create distro: ", err)
 				}
 
-				store := newMockProvider("neutron-libs", "neutron")
+				store := newMockProvider("neutron-libs", "neutron", false)
 
 				return store, d, matcher
 			},
 			expectedMatches: map[string]match.Type{
 				"CVE-2014-fake-1": match.ExactDirectMatch,
 			},
+		},
+		{
+			// Epoch in pkg but not in src package version, epoch found in the vuln record
+			// Regression: https://github.com/anchore/grype/issues/437
+			name: "Rpmdb Match should not occur due to source match even though source has no epoch",
+			p: pkg.Package{
+				Name:    "perl-Errno",
+				Version: "0:1.28-419.el8_4.1",
+				Type:    syftPkg.RpmPkg,
+				Metadata: pkg.RpmdbMetadata{
+					SourceRpm: "perl-5.26.3-419.el8_4.1.src.rpm",
+					Epoch:     intRef(0),
+				},
+			},
+			setup: func() (vulnerability.Provider, distro.Distro, Matcher) {
+				matcher := Matcher{}
+				d, err := distro.NewDistro(distro.CentOS, "8", "")
+				if err != nil {
+					t.Fatal("could not create distro: ", err)
+				}
+
+				store := newMockProvider("perl-Errno", "perl", true)
+
+				return store, d, matcher
+			},
+			expectedMatches: map[string]match.Type{
+				"CVE-2021-2": match.ExactDirectMatch,
+				"CVE-2021-3": match.ExactIndirectMatch,
+			},
+		},
+
+		{
+			name: "package without epoch is assumed to be 0 - compared against vuln with NO epoch (direct match only)",
+			p: pkg.Package{
+				Name:     "perl-Errno",
+				Version:  "1.28-419.el8_4.1",
+				Type:     syftPkg.RpmPkg,
+				Metadata: pkg.RpmdbMetadata{},
+			},
+			setup: func() (vulnerability.Provider, distro.Distro, Matcher) {
+				matcher := Matcher{}
+				d, err := distro.NewDistro(distro.CentOS, "8", "")
+				if err != nil {
+					t.Fatal("could not create distro: ", err)
+				}
+
+				store := newMockProvider("perl-Errno", "doesn't-matter", false)
+
+				return store, d, matcher
+			},
+			expectedMatches: map[string]match.Type{
+				"CVE-2014-fake-1": match.ExactDirectMatch,
+			},
+		},
+		{
+			name: "package without epoch is assumed to be 0 - compared against vuln WITH epoch (direct match only)",
+			p: pkg.Package{
+				Name:     "perl-Errno",
+				Version:  "1.28-419.el8_4.1",
+				Type:     syftPkg.RpmPkg,
+				Metadata: pkg.RpmdbMetadata{},
+			},
+			setup: func() (vulnerability.Provider, distro.Distro, Matcher) {
+				matcher := Matcher{}
+				d, err := distro.NewDistro(distro.CentOS, "8", "")
+				if err != nil {
+					t.Fatal("could not create distro: ", err)
+				}
+
+				store := newMockProvider("perl-Errno", "doesn't-matter", true)
+
+				return store, d, matcher
+			},
+			expectedMatches: map[string]match.Type{
+				"CVE-2021-2": match.ExactDirectMatch,
+			},
+		},
+		{
+			name: "package WITH epoch - compared against vuln with NO epoch (direct match only)",
+			p: pkg.Package{
+				Name:     "perl-Errno",
+				Version:  "2:1.28-419.el8_4.1",
+				Type:     syftPkg.RpmPkg,
+				Metadata: pkg.RpmdbMetadata{},
+			},
+			setup: func() (vulnerability.Provider, distro.Distro, Matcher) {
+				matcher := Matcher{}
+				d, err := distro.NewDistro(distro.CentOS, "8", "")
+				if err != nil {
+					t.Fatal("could not create distro: ", err)
+				}
+
+				store := newMockProvider("perl-Errno", "doesn't-matter", false)
+
+				return store, d, matcher
+			},
+			expectedMatches: map[string]match.Type{
+				"CVE-2014-fake-1": match.ExactDirectMatch,
+			},
+		},
+		{
+			name: "package WITH epoch - compared against vuln WITH epoch (direct match only)",
+			p: pkg.Package{
+				Name:     "perl-Errno",
+				Version:  "2:1.28-419.el8_4.1",
+				Type:     syftPkg.RpmPkg,
+				Metadata: pkg.RpmdbMetadata{},
+			},
+			setup: func() (vulnerability.Provider, distro.Distro, Matcher) {
+				matcher := Matcher{}
+				d, err := distro.NewDistro(distro.CentOS, "8", "")
+				if err != nil {
+					t.Fatal("could not create distro: ", err)
+				}
+
+				store := newMockProvider("perl-Errno", "doesn't-matter", true)
+
+				return store, d, matcher
+			},
+			expectedMatches: map[string]match.Type{},
 		},
 	}
 
@@ -170,7 +294,16 @@ func Test_getNameAndELVersion(t *testing.T) {
 				Epoch:     &epoch,
 			},
 			expectedName:    "sqlite",
-			expectedVersion: "1:3.26.0-6.el8",
+			expectedVersion: "3.26.0-6.el8",
+		},
+		{
+			name: "sqlite-bin-3.26.0-6.el8.src.rpm",
+			metadata: pkg.RpmdbMetadata{
+				SourceRpm: "sqlite-1.26.0-6.el8.src.rpm",
+				Epoch:     &epoch,
+			},
+			expectedName:    "sqlite",
+			expectedVersion: "1.26.0-6.el8",
 		},
 	}
 	for _, test := range tests {
@@ -178,6 +311,28 @@ func Test_getNameAndELVersion(t *testing.T) {
 			actualName, actualVersion := getNameAndELVersion(test.metadata)
 			assert.Equal(t, test.expectedName, actualName)
 			assert.Equal(t, test.expectedVersion, actualVersion)
+		})
+	}
+}
+
+func Test_addZeroEpicIfApplicable(t *testing.T) {
+	tests := []struct {
+		version  string
+		expected string
+	}{
+		{
+			version:  "3.26.0-6.el8",
+			expected: "0:3.26.0-6.el8",
+		},
+		{
+			version:  "7:3.26.0-6.el8",
+			expected: "7:3.26.0-6.el8",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.version, func(t *testing.T) {
+			actualVersion := addZeroEpicIfApplicable(test.version)
+			assert.Equal(t, test.expected, actualVersion)
 		})
 	}
 }
