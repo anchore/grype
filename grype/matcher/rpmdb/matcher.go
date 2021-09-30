@@ -18,7 +18,7 @@ import (
 // the source-rpm field has something akin to "util-linux-ng-2.17.2-12.28.el6_9.2.src.rpm"
 // in which case the pattern will extract out the following values for the named capture groups:
 //		name = "util-linux-ng"
-//		version = "2.17.2"
+//		version = "2.17.2" (or, if there's an epoch, we'd expect a value like "4:2.17.2")
 //		release = "12.28.el6_9.2"
 //		arch = "src"
 var rpmPackageNamePattern = regexp.MustCompile(`^(?P<name>.*)-(?P<version>.*)-(?P<release>.*)\.(?P<arch>[a-zA-Z][^.]+)(\.rpm)$`)

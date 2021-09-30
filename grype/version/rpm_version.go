@@ -17,7 +17,7 @@ type rpmVersion struct {
 }
 
 // missingEpoch is an epoch value that represents a missing epoch.
-var missingEpoch = -1
+const missingEpoch = -1
 
 func newRpmVersion(raw string) (rpmVersion, error) {
 	epoch, remainingVersion, err := splitEpochFromVersion(raw)
