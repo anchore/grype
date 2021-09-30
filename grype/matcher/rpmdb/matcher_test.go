@@ -101,6 +101,7 @@ func TestMatcherRpmdb(t *testing.T) {
 		},
 		{
 			// Epoch in pkg but not in src package version, epoch found in the vuln record
+			// Regression: https://github.com/anchore/grype/issues/437
 			name: "Rpmdb Match should not occur due to source match even though source has no epoch",
 			p: pkg.Package{
 				Name:    "perl-Errno",

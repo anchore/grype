@@ -43,7 +43,7 @@ func TestVersionRpmConstraint(t *testing.T) {
 		// regression: https://github.com/anchore/grype/issues/316
 		{version: "1.5.4-2.el7_9", constraint: "< 0:1.5.4-2.el7_9", satisfied: false},
 		{version: "1.5.4-2.el7", constraint: "< 0:1.5.4-2.el7_9", satisfied: true},
-		//Non-standard epoch handling. In comparisons with epoch on only one side, they are both ignored
+		// Non-standard epoch handling. In comparisons with epoch on only one side, they are both ignored
 		{version: "1:0", constraint: "< 1", satisfied: true},
 		{version: "0:0", constraint: "< 0", satisfied: false},
 		{version: "0:0", constraint: "= 0", satisfied: true},

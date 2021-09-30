@@ -66,8 +66,8 @@ func (v *rpmVersion) Compare(other *Version) (int, error) {
 
 // Compare returns 0 if v == v2, -1 if v < v2, and +1 if v > v2.
 // This a pragmatic adaptation of comparison for the messy data
-// encountered in vuln scanning. If epochs are present and explicit
-// (e.g. >= 0) in both verions then they are ignored for the comparison.
+// encountered in vuln scanning. If epochs are NOT present and explicit
+// (e.g. >= 0) in both versions then they are ignored for the comparison.
 // For a rpm spec-compliant comparison, see strictCompare() instead
 func (v rpmVersion) compare(v2 rpmVersion) int {
 	if reflect.DeepEqual(v, v2) {
