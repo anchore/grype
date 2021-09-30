@@ -90,41 +90,6 @@ func (v rpmVersion) compare(v2 rpmVersion) int {
 	return compareRpmVersions(v.release, v2.release)
 }
 
-// Note: this is here to show the strict compare behavior as a contrast to the regular compare in
-// case it is needed. Commented-out to make linting happy.
-
-// Strict comparison, defaulting epoch < 0 to be 0 per rpm spec
-// Compare returns 0 if v == v2, -1 if v < v2, and +1 if v > v2.
-//func (v rpmVersion) strictCompare(v2 rpmVersion) int {
-//	if reflect.DeepEqual(v, v2) {
-//		return 0
-//	}
-//
-//	vEpoch := 0
-//	v2Epoch := 0
-//
-//	// Apply default logic if epoch is not set (-1)
-//	if v.epoch > 0 {
-//		vEpoch = v.epoch
-//	}
-//
-//	if v2.epoch > 0 {
-//		v2Epoch = v.epoch
-//	}
-//
-//	epochResult := compareEpochs(vEpoch, v2Epoch)
-//	if epochResult != 0 {
-//		return epochResult
-//	}
-//
-//	ret := compareRpmVersions(v.version, v2.version)
-//	if ret != 0 {
-//		return ret
-//	}
-//
-//	return compareRpmVersions(v.release, v2.release)
-//}
-
 // Epoch comparison, standard int comparison for sorting
 func compareEpochs(e1 int, e2 int) int {
 	switch {
