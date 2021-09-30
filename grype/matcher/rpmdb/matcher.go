@@ -2,6 +2,8 @@ package rpmdb
 
 import (
 	"fmt"
+	"regexp"
+
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/common"
 	"github.com/anchore/grype/grype/pkg"
@@ -11,7 +13,6 @@ import (
 	"github.com/anchore/syft/syft/distro"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/jinzhu/copier"
-	"regexp"
 )
 
 // the source-rpm field has something akin to "util-linux-ng-2.17.2-12.28.el6_9.2.src.rpm"
