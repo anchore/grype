@@ -124,11 +124,12 @@ func (v rpmVersion) strictCompare(v2 rpmVersion) int {
 
 // Epoch comparison, standard int comparison for sorting
 func compareEpochs(e1 int, e2 int) int {
-	if e1 > e2 {
+	switch {
+	case e1 > e2:
 		return 1
-	} else if e1 < e2 {
+	case e1 < e2:
 		return -1
-	} else {
+	default:
 		return 0
 	}
 }
