@@ -11,13 +11,10 @@ import (
 )
 
 type rpmVersion struct {
-	epoch   int
+	epoch   *int
 	version string
 	release string
 }
-
-// missingEpoch is an epoch value that represents a missing epoch.
-const missingEpoch = -1
 
 func newRpmVersion(raw string) (rpmVersion, error) {
 	epoch, remainingVersion, err := splitEpochFromVersion(raw)
@@ -41,18 +38,19 @@ func newRpmVersion(raw string) (rpmVersion, error) {
 	}, nil
 }
 
-func splitEpochFromVersion(rawVersion string) (int, string, error) {
+func splitEpochFromVersion(rawVersion string) (*int, string, error) {
 	fields := strings.SplitN(rawVersion, ":", 2)
 
-	// When the epoch is not included, should be considered to be 0 during comparisons
-	// see https://github.com/rpm-software-management/rpm/issues/450
-	// But, often the inclusion of the epoch in vuln databases or source RPM filenames is not consistent
-	// so, represent a missing epoch as an invalid epoch value: `missingEpoch` (-1).
-	// this allows the comparison logic itself to determine if it should use a zero or another value
-	// which supports more flexible comparison options because the version creation is not lossy
+	// When the epoch is not included, should be considered to be 0 during
+	// comparisons (see https://github.com/rpm-software-management/rpm/issues/450).
+	// But, often the inclusion of the epoch in vuln databases or source RPM
+	// filenames is not consistent so, represent a missing epoch as nil. This allows
+	// the comparison logic itself to determine if it should use a zero or another
+	// value which supports more flexible comparison options because the version
+	// creation is not lossy
 
 	if len(fields) == 1 {
-		return missingEpoch, rawVersion, nil
+		return nil, rawVersion, nil
 	}
 
 	// there is an epoch
@@ -60,10 +58,10 @@ func splitEpochFromVersion(rawVersion string) (int, string, error) {
 
 	epoch, err := strconv.Atoi(epochStr)
 	if err != nil {
-		return 0, "", fmt.Errorf("unable to parse epoch (%s): %w", epochStr, err)
+		return nil, "", fmt.Errorf("unable to parse epoch (%s): %w", epochStr, err)
 	}
 
-	return epoch, fields[1], nil
+	return &epoch, fields[1], nil
 }
 
 func (v *rpmVersion) Compare(other *Version) (int, error) {
@@ -87,9 +85,13 @@ func (v rpmVersion) compare(v2 rpmVersion) int {
 		return 0
 	}
 
-	// Only compare epochs if both are present and explicit
+	// Only compare epochs if both are present and explicit. This is technically
+	// against what RedHat says to do with missing epoch (which is to assume a 0 epoch).
+	// However, since we may be dealing with upstream data sources where there is an epoch
+	// for a package but the value was stripped, the best we can do is to compare only the
+	// version values without the epoch values.
 	if epochIsPresent(v.epoch) && epochIsPresent(v2.epoch) {
-		epochResult := compareEpochs(v.epoch, v2.epoch)
+		epochResult := compareEpochs(*v.epoch, *v2.epoch)
 		if epochResult != 0 {
 			return epochResult
 		}
@@ -103,8 +105,8 @@ func (v rpmVersion) compare(v2 rpmVersion) int {
 	return compareRpmVersions(v.release, v2.release)
 }
 
-func epochIsPresent(epoch int) bool {
-	return epoch != missingEpoch
+func epochIsPresent(epoch *int) bool {
+	return epoch != nil
 }
 
 // Epoch comparison, standard int comparison for sorting
@@ -121,8 +123,8 @@ func compareEpochs(e1 int, e2 int) int {
 
 func (v rpmVersion) String() string {
 	version := ""
-	if v.epoch > 0 {
-		version += fmt.Sprintf("%d:", v.epoch)
+	if v.epoch != nil {
+		version += fmt.Sprintf("%d:", *v.epoch)
 	}
 	version += v.version
 
