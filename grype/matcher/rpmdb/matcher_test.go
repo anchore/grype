@@ -13,6 +13,7 @@ import (
 )
 
 func TestMatcherRpmdb(t *testing.T) {
+	zeroEpoch := 0
 	tests := []struct {
 		name            string
 		p               pkg.Package
@@ -37,7 +38,7 @@ func TestMatcherRpmdb(t *testing.T) {
 					t.Fatal("could not create distro: ", err)
 				}
 
-				store := newMockProvider("neutron-libs", "neutron")
+				store := newMockProvider("neutron-libs", "neutron", false)
 
 				return store, d, matcher
 			},
@@ -64,7 +65,7 @@ func TestMatcherRpmdb(t *testing.T) {
 					t.Fatal("could not create distro: ", err)
 				}
 
-				store := newMockProvider("neutron", "neutron-devel")
+				store := newMockProvider("neutron", "neutron-devel", false)
 
 				return store, d, matcher
 			},
@@ -90,12 +91,40 @@ func TestMatcherRpmdb(t *testing.T) {
 					t.Fatal("could not create distro: ", err)
 				}
 
-				store := newMockProvider("neutron-libs", "neutron")
+				store := newMockProvider("neutron-libs", "neutron", false)
 
 				return store, d, matcher
 			},
 			expectedMatches: map[string]match.Type{
 				"CVE-2014-fake-1": match.ExactDirectMatch,
+			},
+		},
+		{
+			// Epoch in pkg but not in src package version, epoch found in the vuln record
+			name: "Rpmdb Match should not occur due to source match even though source has no epoch",
+			p: pkg.Package{
+				Name:    "perl-Errno",
+				Version: "0:1.28-419.el8_4.1",
+				Type:    syftPkg.RpmPkg,
+				Metadata: pkg.RpmdbMetadata{
+					SourceRpm: "perl-5.26.3-419.el8_4.1.src.rpm",
+					Epoch:     &zeroEpoch,
+				},
+			},
+			setup: func() (vulnerability.Provider, distro.Distro, Matcher) {
+				matcher := Matcher{}
+				d, err := distro.NewDistro(distro.CentOS, "8", "")
+				if err != nil {
+					t.Fatal("could not create distro: ", err)
+				}
+
+				store := newMockProvider("perl-Errno", "perl", true)
+
+				return store, d, matcher
+			},
+			expectedMatches: map[string]match.Type{
+				"CVE-2021-2": match.ExactDirectMatch,
+				"CVE-2021-3": match.ExactIndirectMatch,
 			},
 		},
 	}
@@ -170,7 +199,16 @@ func Test_getNameAndELVersion(t *testing.T) {
 				Epoch:     &epoch,
 			},
 			expectedName:    "sqlite",
-			expectedVersion: "1:3.26.0-6.el8",
+			expectedVersion: "3.26.0-6.el8",
+		},
+		{
+			name: "sqlite-bin-3.26.0-6.el8.src.rpm",
+			metadata: pkg.RpmdbMetadata{
+				SourceRpm: "sqlite-1.26.0-6.el8.src.rpm",
+				Epoch:     &epoch,
+			},
+			expectedName:    "sqlite",
+			expectedVersion: "1.26.0-6.el8",
 		},
 	}
 	for _, test := range tests {

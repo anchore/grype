@@ -2,9 +2,6 @@ package rpmdb
 
 import (
 	"fmt"
-	"regexp"
-	"strconv"
-
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/common"
 	"github.com/anchore/grype/grype/pkg"
@@ -14,6 +11,7 @@ import (
 	"github.com/anchore/syft/syft/distro"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/jinzhu/copier"
+	"regexp"
 )
 
 // the source-rpm field has something akin to "util-linux-ng-2.17.2-12.28.el6_9.2.src.rpm"
@@ -106,12 +104,5 @@ func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro,
 func getNameAndELVersion(metadata pkg.RpmdbMetadata) (string, string) {
 	groupMatches := internal.MatchCaptureGroups(rpmPackageNamePattern, metadata.SourceRpm)
 	version := groupMatches["version"] + "-" + groupMatches["release"]
-	// source RPMs never specify epoch, however, leaving out the epoch makes comparisons with other versions that do
-	// include epoch is invalid since: unset epoch < "0" epoch < "1" epoch < "2" epoch ...
-	// The version extracted from here will always be used for comparison against another version (from the vulnerability
-	// data) which may include epoch. For this reason the epoch from the original package is used (only if specified).
-	if metadata.Epoch != nil {
-		version = strconv.Itoa(*metadata.Epoch) + ":" + version
-	}
 	return groupMatches["name"], version
 }

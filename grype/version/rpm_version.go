@@ -19,9 +19,13 @@ type rpmVersion struct {
 func newRpmVersion(raw string) (rpmVersion, error) {
 	var fields = strings.SplitN(raw, ":", 2)
 	var err error
-	// when the epoch is not included, should be considered to be 0 during comparisons
+	// When the epoch is not included, should be considered to be 0 during comparisons
 	// see https://github.com/rpm-software-management/rpm/issues/450
-	var epoch int
+	// But, often the inclusion of the epoch in vuln databases or source RPM filenames is not consistent
+	// so, represent a missing epoch as an invalid epoch value: -1.
+	// this allows the comparison logic itself to determine if it should use a zero or another value
+	// which supports more flexible comparison options because the version creation is not lossy
+	var epoch = -1
 	var remaining = raw
 
 	if len(fields) > 1 {
@@ -61,15 +65,21 @@ func (v *rpmVersion) Compare(other *Version) (int, error) {
 }
 
 // Compare returns 0 if v == v2, -1 if v < v2, and +1 if v > v2.
+// This a pragmatic adaptation of comparison for the messy data
+// encountered in vuln scanning. If epochs are present and explicit
+// (e.g. >= 0) in both verions then they are ignored for the comparison.
+// For a rpm spec-compliant comparison, see strictCompare() instead
 func (v rpmVersion) compare(v2 rpmVersion) int {
 	if reflect.DeepEqual(v, v2) {
 		return 0
 	}
 
-	if v.epoch > v2.epoch {
-		return 1
-	} else if v.epoch < v2.epoch {
-		return -1
+	// Only compare epochs if both are present and explicit
+	if v.epoch >= 0 && v2.epoch >= 0 {
+		epochResult := compareEpochs(v.epoch, v2.epoch)
+		if epochResult != 0 {
+			return epochResult
+		}
 	}
 
 	ret := compareRpmVersions(v.version, v2.version)
@@ -78,6 +88,49 @@ func (v rpmVersion) compare(v2 rpmVersion) int {
 	}
 
 	return compareRpmVersions(v.release, v2.release)
+}
+
+// Strict comparison, defaulting epoch < 0 to be 0 per rpm spec
+// Compare returns 0 if v == v2, -1 if v < v2, and +1 if v > v2.
+func (v rpmVersion) strictCompare(v2 rpmVersion) int {
+	if reflect.DeepEqual(v, v2) {
+		return 0
+	}
+
+	vEpoch := 0
+	v2Epoch := 0
+
+	// Apply default logic if epoch is not set (-1)
+	if v.epoch > 0 {
+		vEpoch = v.epoch
+	}
+
+	if v2.epoch > 0 {
+		v2Epoch = v.epoch
+	}
+
+	epochResult := compareEpochs(vEpoch, v2Epoch)
+	if epochResult != 0 {
+		return epochResult
+	}
+
+	ret := compareRpmVersions(v.version, v2.version)
+	if ret != 0 {
+		return ret
+	}
+
+	return compareRpmVersions(v.release, v2.release)
+}
+
+// Epoch comparison, standard int comparison for sorting
+func compareEpochs(e1 int, e2 int) int {
+	if e1 > e2 {
+		return 1
+	} else if e1 < e2 {
+		return -1
+	} else {
+		return 0
+	}
 }
 
 func (v rpmVersion) String() string {
