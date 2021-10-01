@@ -223,6 +223,12 @@ func TestFuzzyConstraintSatisfaction(t *testing.T) {
 			satisfied:  true,
 		},
 		{
+			name:       "indirect package match",
+			version:    "1.3.4-r0",
+			constraint: "<= 1.3.3-r0",
+			satisfied:  false,
+		},
+		{
 			name:       "vulndb fuzzy constraint single quoted",
 			version:    "4.5.2",
 			constraint: "'4.5.1' || '4.5.2'",
