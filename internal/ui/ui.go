@@ -4,4 +4,8 @@ import (
 	"github.com/wagoodman/go-partybus"
 )
 
-type UI func(<-chan error, *partybus.Subscription) error
+type UI interface {
+	Setup(unsubscribe func() error) error
+	partybus.Handler
+	Teardown(force bool) error
+}

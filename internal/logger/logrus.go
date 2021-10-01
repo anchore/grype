@@ -24,6 +24,7 @@ type LogrusConfig struct {
 type LogrusLogger struct {
 	Config LogrusConfig
 	Logger *logrus.Logger
+	Output io.Writer
 }
 
 type LogrusNestedLogger struct {
@@ -74,6 +75,7 @@ func NewLogrusLogger(cfg LogrusConfig) *LogrusLogger {
 	return &LogrusLogger{
 		Config: cfg,
 		Logger: appLogger,
+		Output: output,
 	}
 }
 

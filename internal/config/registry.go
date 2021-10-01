@@ -3,6 +3,8 @@ package config
 import (
 	"os"
 
+	"github.com/spf13/viper"
+
 	"github.com/anchore/stereoscope/pkg/image"
 )
 
@@ -22,7 +24,14 @@ type registry struct {
 	Auth                  []RegistryCredentials `yaml:"auth" json:"auth" mapstructure:"auth"`
 }
 
-func (cfg *registry) parseConfigValues() {
+func (cfg registry) loadDefaultValues(v *viper.Viper) {
+	v.SetDefault("registry.insecure-skip-tls-verify", false)
+	v.SetDefault("registry.insecure-use-http", false)
+	v.SetDefault("registry.auth", []RegistryCredentials{})
+}
+
+// nolint:unparam
+func (cfg *registry) parseConfigValues() error {
 	// there may be additional credentials provided by env var that should be appended to the set of credentials
 	authority, username, password, token :=
 		os.Getenv("GRYPE_REGISTRY_AUTH_AUTHORITY"),
@@ -41,6 +50,7 @@ func (cfg *registry) parseConfigValues() {
 			},
 		}, cfg.Auth...)
 	}
+	return nil
 }
 
 func hasNonEmptyCredentials(username, password, token string) bool {
