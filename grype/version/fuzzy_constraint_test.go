@@ -223,7 +223,7 @@ func TestFuzzyConstraintSatisfaction(t *testing.T) {
 			satisfied:  true,
 		},
 		{
-			name:       "indirect package match",
+			name:       "indirect package no match",
 			version:    "1.3.4-r0",
 			constraint: "<= 1.3.3-r0",
 			satisfied:  false,
