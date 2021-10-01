@@ -30,7 +30,6 @@ func (cfg registry) loadDefaultValues(v *viper.Viper) {
 	v.SetDefault("registry.auth", []RegistryCredentials{})
 }
 
-// nolint: unparam
 func (cfg *registry) parseConfigValues() error {
 	// there may be additional credentials provided by env var that should be appended to the set of credentials
 	authority, username, password, token :=

@@ -10,10 +10,10 @@ import (
 )
 
 type database struct {
-	Dir                   string `mapstructure:"cache-dir"`
-	UpdateURL             string `mapstructure:"update-url"`
-	AutoUpdate            bool   `mapstructure:"auto-update"`
-	ValidateByHashOnStart bool   `mapstructure:"validate-by-hash-on-start"`
+	Dir                   string `yaml:"cache-dir" json:"cache-dir" mapstructure:"cache-dir"`
+	UpdateURL             string `yaml:"update-url" json:"update-url" mapstructure:"update-url"`
+	AutoUpdate            bool   `yaml:"auto-update" json:"auto-update" mapstructure:"auto-update"`
+	ValidateByHashOnStart bool   `yaml:"validate-by-hash-on-start" json:"validate-by-hash-on-start" mapstructure:"validate-by-hash-on-start"`
 }
 
 func (cfg database) loadDefaultValues(v *viper.Viper) {

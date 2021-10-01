@@ -91,13 +91,43 @@ func (cfg Application) loadDefaultValues(v *viper.Viper) {
 }
 
 func (cfg *Application) parseConfigValues() error {
-	// set the scope
+	// parse application config options
+	for _, optionFn := range []func() error{
+		cfg.parseScopeOption,
+		cfg.parseLogLevelOption,
+		cfg.parseFailOnOption,
+	} {
+		if err := optionFn(); err != nil {
+			return err
+		}
+	}
+
+	// parse nested config options
+	// for each field in the configuration struct, see if the field implements the parser interface
+	// note: the app config is a pointer, so we need to grab the elements explicitly (to traverse the address)
+	value := reflect.ValueOf(cfg).Elem()
+	for i := 0; i < value.NumField(); i++ {
+		// note: since the interface method of parser is a pointer receiver we need to get the value of the field as a pointer.
+		if parsable, ok := value.Field(i).Addr().Interface().(parser); ok {
+			// the field implements parser, call it
+			if err := parsable.parseConfigValues(); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (cfg *Application) parseScopeOption() error {
 	scopeOption := source.ParseScope(cfg.Scope)
 	if scopeOption == source.UnknownScope {
 		return fmt.Errorf("bad --scope value '%s'", cfg.Scope)
 	}
 	cfg.ScopeOpt = scopeOption
+	return nil
+}
 
+func (cfg *Application) parseLogLevelOption() error {
 	if cfg.Quiet {
 		// TODO: this is bad: quiet option trumps all other logging options (such as to a file on disk)
 		// we should be able to quiet the console logging and leave file logging alone...
@@ -127,27 +157,16 @@ func (cfg *Application) parseConfigValues() error {
 			}
 		}
 	}
+	return nil
+}
 
-	// set the fail-on option
+func (cfg *Application) parseFailOnOption() error {
 	if cfg.FailOn != "" {
 		failOnSeverity := vulnerability.ParseSeverity(cfg.FailOn)
 		if failOnSeverity == vulnerability.UnknownSeverity {
 			return fmt.Errorf("bad --fail-on severity value '%s'", cfg.FailOn)
 		}
 		cfg.FailOnSeverity = &failOnSeverity
-	}
-
-	// for each field in the configuration struct, see if the field implements the parser interface
-	// note: the app config is a pointer, so we need to grab the elements explicitly (to traverse the address)
-	value := reflect.ValueOf(cfg).Elem()
-	for i := 0; i < value.NumField(); i++ {
-		// note: since the interface method of parser is a pointer receiver we need to get the value of the field as a pointer.
-		if parsable, ok := value.Field(i).Addr().Interface().(parser); ok {
-			// the field implements parser, call it
-			if err := parsable.parseConfigValues(); err != nil {
-				return err
-			}
-		}
 	}
 	return nil
 }
