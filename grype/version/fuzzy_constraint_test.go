@@ -2,8 +2,9 @@ package version
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSmartVerCmp(t *testing.T) {
@@ -59,176 +60,176 @@ func TestSmartVerCmp(t *testing.T) {
 func TestFuzzyConstraintSatisfaction(t *testing.T) {
 	tests := []testCase{
 		{
-			testName:   "empty constraint",
+			name:       "empty constraint",
 			version:    "2.3.1",
 			constraint: "",
 			satisfied:  true,
 		},
 		{
-			testName:   "version range within",
+			name:       "version range within",
 			constraint: ">1.0, <2.0",
 			version:    "1.2+beta-3",
 			satisfied:  true,
 		},
 		{
-			testName:   "version within compound range",
+			name:       "version within compound range",
 			constraint: ">1.0, <2.0 || > 3.0",
 			version:    "3.2+beta-3",
 			satisfied:  true,
 		},
 		{
-			testName:   "version within compound range (2)",
+			name:       "version within compound range (2)",
 			constraint: ">1.0, <2.0 || > 3.0",
 			version:    "1.2+beta-3",
 			satisfied:  true,
 		},
 		{
-			testName:   "version not within compound range",
+			name:       "version not within compound range",
 			constraint: ">1.0, <2.0 || > 3.0",
 			version:    "2.2+beta-3",
 			satisfied:  false,
 		},
 		{
-			testName:   "version range within (prerelease)",
+			name:       "version range within (prerelease)",
 			constraint: ">1.0, <2.0",
 			version:    "1.2.0-beta-prerelease",
 			satisfied:  true,
 		},
 		{
-			testName:   "version range within (prerelease)",
+			name:       "version range within (prerelease)",
 			constraint: ">=1.0, <2.0",
 			version:    "1.0.0-beta-prerelease",
 			satisfied:  false,
 		},
 		{
-			testName:   "version range outside (right)",
+			name:       "version range outside (right)",
 			constraint: ">1.0, <2.0",
 			version:    "2.1-beta-3",
 			satisfied:  false,
 		},
 		{
-			testName:   "version range outside (left)",
+			name:       "version range outside (left)",
 			constraint: ">1.0, <2.0",
 			version:    "0.9-beta-2",
 			satisfied:  false,
 		},
 		{
-			testName:   "version range within (excluding left, prerelease)",
+			name:       "version range within (excluding left, prerelease)",
 			constraint: ">=1.0, <2.0",
 			version:    "1.0-beta-3",
 			satisfied:  false,
 		},
 		{
-			testName:   "version range within (including left)",
+			name:       "version range within (including left)",
 			constraint: ">=1.1, <2.0",
 			version:    "1.1",
 			satisfied:  true,
 		},
 		{
-			testName:   "version range within (excluding right, 1)",
+			name:       "version range within (excluding right, 1)",
 			constraint: ">1.0, <=2.0",
 			version:    "2.0-beta-3",
 			satisfied:  true,
 		},
 		{
-			testName:   "version range within (excluding right, 2)",
+			name:       "version range within (excluding right, 2)",
 			constraint: ">1.0, <2.0",
 			version:    "2.0-beta-3",
 			satisfied:  true,
 		},
 		{
-			testName:   "version range within (including right)",
+			name:       "version range within (including right)",
 			constraint: ">1.0, <=2.0",
 			version:    "2.0",
 			satisfied:  true,
 		},
 		{
-			testName:   "version range within (including right, longer version [valid semver, bad fuzzy])",
+			name:       "version range within (including right, longer version [valid semver, bad fuzzy])",
 			constraint: ">1.0, <=2.0",
 			version:    "2.0.0",
 			satisfied:  true,
 		},
 		{
-			testName:   "version range not within range (prefix)",
+			name:       "version range not within range (prefix)",
 			constraint: ">1.0, <2.0",
 			version:    "5-1.2+beta-3",
 			satisfied:  false,
 		},
 		{
-			testName:   "odd major prefix wide constraint range",
+			name:       "odd major prefix wide constraint range",
 			constraint: ">4, <6",
 			version:    "5-1.2+beta-3",
 			satisfied:  true,
 		},
 		{
-			testName:   "odd major prefix narrow constraint",
+			name:       "odd major prefix narrow constraint",
 			constraint: ">5-1.15",
 			version:    "5-1.16",
 			satisfied:  true,
 		},
 		{
-			testName:   "odd major prefix narrow constraint range",
+			name:       "odd major prefix narrow constraint range",
 			constraint: ">5-1.15, <=5-1.16",
 			version:    "5-1.16",
 			satisfied:  true,
 		},
 		{
-			testName:   "odd major prefix narrow constraint range (excluding)",
+			name:       "odd major prefix narrow constraint range (excluding)",
 			constraint: ">4, <5-1.16",
 			version:    "5-1.16",
 			satisfied:  false,
 		},
 		{
-			testName:   "bad semver (eq)",
+			name:       "bad semver (eq)",
 			version:    "5a2",
 			constraint: "=5a2",
 			satisfied:  true,
 		},
 		{
-			testName:   "bad semver (gt)",
+			name:       "bad semver (gt)",
 			version:    "5a2",
 			constraint: ">5a1",
 			satisfied:  true,
 		},
 		{
-			testName:   "bad semver (lt)",
+			name:       "bad semver (lt)",
 			version:    "5a2",
 			constraint: "<6a1",
 			satisfied:  true,
 		},
 		{
-			testName:   "bad semver (lte)",
+			name:       "bad semver (lte)",
 			version:    "5a2",
 			constraint: "<=5a2",
 			satisfied:  true,
 		},
 		{
-			testName:   "bad semver (gte)",
+			name:       "bad semver (gte)",
 			version:    "5a2",
 			constraint: ">=5a2",
 			satisfied:  true,
 		},
 		{
-			testName:   "bad semver (lt boundary)",
+			name:       "bad semver (lt boundary)",
 			version:    "5a2",
 			constraint: "<5a2",
 			satisfied:  false,
 		},
 		// regression for https://github.com/anchore/go-version/pull/2
 		{
-			testName:   "indirect package match",
+			name:       "indirect package match",
 			version:    "1.3.2-r0",
 			constraint: "<= 1.3.3-r0",
 			satisfied:  true,
 		},
 		{
-			testName:   "vulndb fuzzy constraint single quoted",
+			name:       "vulndb fuzzy constraint single quoted",
 			version:    "4.5.2",
 			constraint: "'4.5.1' || '4.5.2'",
 			satisfied:  true,
 		},
 		{
-			testName:   "vulndb fuzzy constraint double quoted",
+			name:       "vulndb fuzzy constraint double quoted",
 			version:    "4.5.2",
 			constraint: "\"4.5.1\" || \"4.5.2\"",
 			satisfied:  true,
@@ -236,7 +237,7 @@ func TestFuzzyConstraintSatisfaction(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.name(), func(t *testing.T) {
+		t.Run(test.name, func(t *testing.T) {
 			constraint, err := newFuzzyConstraint(test.constraint, "")
 			assert.NoError(t, err, "unexpected error from newFuzzyConstraint: %v", err)
 

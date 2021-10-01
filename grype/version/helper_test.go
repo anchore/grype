@@ -2,13 +2,14 @@ package version
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type testCase struct {
-	testName       string
+	name           string
 	version        string
 	constraint     string
 	satisfied      bool
@@ -16,10 +17,11 @@ type testCase struct {
 	errorAssertion func(t *testing.T, err error)
 }
 
-func (c *testCase) name() string {
-	if c.testName != "" {
-		return c.testName
+func (c *testCase) tName() string {
+	if c.name != "" {
+		return c.name
 	}
+
 	return fmt.Sprintf("ver='%s'const='%s'", c.version, strings.ReplaceAll(c.constraint, " ", ""))
 }
 
