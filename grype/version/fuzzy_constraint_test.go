@@ -3,6 +3,8 @@ package version
 import (
 	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSmartVerCmp(t *testing.T) {
@@ -56,233 +58,220 @@ func TestSmartVerCmp(t *testing.T) {
 }
 
 func TestFuzzyConstraintSatisfaction(t *testing.T) {
-	tests := []struct {
-		name       string
-		constraint string
-		version    string
-		expected   bool
-	}{
+	tests := []testCase{
 		{
 			name:       "empty constraint",
 			version:    "2.3.1",
 			constraint: "",
-			expected:   true,
+			satisfied:  true,
 		},
 		{
 			name:       "version range within",
 			constraint: ">1.0, <2.0",
 			version:    "1.2+beta-3",
-			expected:   true,
+			satisfied:  true,
 		},
 		{
 			name:       "version within compound range",
 			constraint: ">1.0, <2.0 || > 3.0",
 			version:    "3.2+beta-3",
-			expected:   true,
+			satisfied:  true,
 		},
 		{
 			name:       "version within compound range (2)",
 			constraint: ">1.0, <2.0 || > 3.0",
 			version:    "1.2+beta-3",
-			expected:   true,
+			satisfied:  true,
 		},
 		{
 			name:       "version not within compound range",
 			constraint: ">1.0, <2.0 || > 3.0",
 			version:    "2.2+beta-3",
-			expected:   false,
+			satisfied:  false,
 		},
 		{
 			name:       "version range within (prerelease)",
 			constraint: ">1.0, <2.0",
 			version:    "1.2.0-beta-prerelease",
-			expected:   true,
+			satisfied:  true,
 		},
 		{
 			name:       "version range within (prerelease)",
 			constraint: ">=1.0, <2.0",
 			version:    "1.0.0-beta-prerelease",
-			expected:   false,
+			satisfied:  false,
 		},
 		{
 			name:       "version range outside (right)",
 			constraint: ">1.0, <2.0",
 			version:    "2.1-beta-3",
-			expected:   false,
+			satisfied:  false,
 		},
 		{
 			name:       "version range outside (left)",
 			constraint: ">1.0, <2.0",
 			version:    "0.9-beta-2",
-			expected:   false,
+			satisfied:  false,
 		},
 		{
 			name:       "version range within (excluding left, prerelease)",
 			constraint: ">=1.0, <2.0",
 			version:    "1.0-beta-3",
-			expected:   false,
+			satisfied:  false,
 		},
 		{
 			name:       "version range within (including left)",
 			constraint: ">=1.1, <2.0",
 			version:    "1.1",
-			expected:   true,
+			satisfied:  true,
 		},
 		{
 			name:       "version range within (excluding right, 1)",
 			constraint: ">1.0, <=2.0",
 			version:    "2.0-beta-3",
-			expected:   true,
+			satisfied:  true,
 		},
 		{
 			name:       "version range within (excluding right, 2)",
 			constraint: ">1.0, <2.0",
 			version:    "2.0-beta-3",
-			expected:   true,
+			satisfied:  true,
 		},
 		{
 			name:       "version range within (including right)",
 			constraint: ">1.0, <=2.0",
 			version:    "2.0",
-			expected:   true,
+			satisfied:  true,
 		},
 		{
 			name:       "version range within (including right, longer version [valid semver, bad fuzzy])",
 			constraint: ">1.0, <=2.0",
 			version:    "2.0.0",
-			expected:   true,
+			satisfied:  true,
 		},
 		{
 			name:       "version range not within range (prefix)",
 			constraint: ">1.0, <2.0",
 			version:    "5-1.2+beta-3",
-			expected:   false,
+			satisfied:  false,
 		},
 		{
 			name:       "odd major prefix wide constraint range",
 			constraint: ">4, <6",
 			version:    "5-1.2+beta-3",
-			expected:   true,
+			satisfied:  true,
 		},
 		{
 			name:       "odd major prefix narrow constraint",
 			constraint: ">5-1.15",
 			version:    "5-1.16",
-			expected:   true,
+			satisfied:  true,
 		},
 		{
 			name:       "odd major prefix narrow constraint range",
 			constraint: ">5-1.15, <=5-1.16",
 			version:    "5-1.16",
-			expected:   true,
+			satisfied:  true,
 		},
 		{
 			name:       "odd major prefix narrow constraint range (excluding)",
 			constraint: ">4, <5-1.16",
 			version:    "5-1.16",
-			expected:   false,
+			satisfied:  false,
 		},
 		{
 			name:       "bad semver (eq)",
 			version:    "5a2",
 			constraint: "=5a2",
-			expected:   true,
+			satisfied:  true,
 		},
 		{
 			name:       "bad semver (gt)",
 			version:    "5a2",
 			constraint: ">5a1",
-			expected:   true,
+			satisfied:  true,
 		},
 		{
 			name:       "bad semver (lt)",
 			version:    "5a2",
 			constraint: "<6a1",
-			expected:   true,
+			satisfied:  true,
 		},
 		{
 			name:       "bad semver (lte)",
 			version:    "5a2",
 			constraint: "<=5a2",
-			expected:   true,
+			satisfied:  true,
 		},
 		{
 			name:       "bad semver (gte)",
 			version:    "5a2",
 			constraint: ">=5a2",
-			expected:   true,
+			satisfied:  true,
 		},
 		{
 			name:       "bad semver (lt boundary)",
 			version:    "5a2",
 			constraint: "<5a2",
-			expected:   false,
+			satisfied:  false,
 		},
 		// regression for https://github.com/anchore/go-version/pull/2
 		{
 			name:       "indirect package match",
 			version:    "1.3.2-r0",
 			constraint: "<= 1.3.3-r0",
-			expected:   true,
+			satisfied:  true,
+		},
+		{
+			name:       "indirect package no match",
+			version:    "1.3.4-r0",
+			constraint: "<= 1.3.3-r0",
+			satisfied:  false,
 		},
 		{
 			name:       "vulndb fuzzy constraint single quoted",
 			version:    "4.5.2",
 			constraint: "'4.5.1' || '4.5.2'",
-			expected:   true,
+			satisfied:  true,
 		},
 		{
 			name:       "vulndb fuzzy constraint double quoted",
 			version:    "4.5.2",
 			constraint: "\"4.5.1\" || \"4.5.2\"",
-			expected:   true,
+			satisfied:  true,
 		},
 		{
 			name:       "strip unbalanced v from left side <",
 			version:    "v17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible",
 			constraint: "< 1.5",
-			expected:   false,
+			satisfied:  false,
 		},
 		{
 			name:       "strip unbalanced v from left side >",
 			version:    "v17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible",
 			constraint: "> 1.5",
-			expected:   true,
+			satisfied:  true,
 		},
 		{
 			name:       "strip unbalanced v from right side <",
 			version:    "17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible",
 			constraint: "< v1.5",
-			expected:   false,
+			satisfied:  false,
 		},
 		{
 			name:       "strip unbalanced v from right side >",
 			version:    "17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible",
 			constraint: "> v1.5",
-			expected:   true,
+			satisfied:  true,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			c, err := newFuzzyConstraint(test.constraint, "")
-			if err != nil {
-				t.Fatalf("could not create constraint: %+v", err)
-			}
+			constraint, err := newFuzzyConstraint(test.constraint, "")
+			assert.NoError(t, err, "unexpected error from newFuzzyConstraint: %v", err)
 
-			verObj := Version{
-				Raw: test.version,
-			}
-
-			actual, err := c.Satisfied(&verObj)
-			if err != nil {
-				t.Fatalf("could not check constraint satisfaction: %+v", err)
-			}
-
-			if actual != test.expected {
-				t.Errorf("unexpected constraint satisfaction: exp:%v got:%v", test.expected, actual)
-			}
-
+			test.assertVersionConstraint(t, UnknownFormat, constraint)
 		})
 	}
 }

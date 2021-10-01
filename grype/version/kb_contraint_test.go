@@ -1,19 +1,13 @@
 package version
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestVersionKbConstraint(t *testing.T) {
-	tests := []struct {
-		name           string
-		version        string
-		constraint     string
-		satisfied      bool
-		shouldErr      bool
-		errorAssertion func(t *testing.T, err error)
-	}{
+	tests := []testCase{
 		{name: "no constraint no version raises error", version: "", constraint: "", satisfied: false, shouldErr: true, errorAssertion: func(t *testing.T, err error) {
 			var expectedError *NonFatalConstraintError
 			assert.ErrorAs(t, err, &expectedError, "Unexpected error type from kbConstraint.Satisfied: %v", err)
@@ -35,20 +29,7 @@ func TestVersionKbConstraint(t *testing.T) {
 			constraint, err := newKBConstraint(test.constraint)
 			assert.NoError(t, err, "unexpected error from newKBConstraint: %v", err)
 
-			version, err := NewVersion(test.version, KBFormat)
-			assert.NoError(t, err, "unexpected error from NewVersion: %v", err)
-
-			isSatisfied, err := constraint.Satisfied(version)
-			if test.shouldErr {
-				if test.errorAssertion != nil {
-					test.errorAssertion(t, err)
-				} else {
-					assert.Error(t, err)
-				}
-			} else {
-				assert.NoError(t, err, "unexpected error from kbConstraint.Satisfied: %v", err)
-			}
-			assert.Equal(t, test.satisfied, isSatisfied, "unexpected constraint check result")
+			test.assertVersionConstraint(t, KBFormat, constraint)
 		})
 	}
 }

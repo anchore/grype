@@ -1,8 +1,9 @@
 package version
 
 import (
-	"errors"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestVersionRpmConstraint(t *testing.T) {
@@ -62,13 +63,11 @@ func TestVersionRpmConstraint(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.name(), func(t *testing.T) {
+		t.Run(test.tName(), func(t *testing.T) {
 			constraint, err := newRpmConstraint(test.constraint)
-			if !errors.Is(err, test.constErr) {
-				t.Fatalf("unexpected constraint error: '%+v'!='%+v'", err, test.constErr)
-			}
+			assert.NoError(t, err, "unexpected error from newRpmConstraint: %v", err)
 
-			test.assert(t, RpmFormat, constraint)
+			test.assertVersionConstraint(t, RpmFormat, constraint)
 		})
 	}
 }

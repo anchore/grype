@@ -1,40 +1,45 @@
 package version
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type testCase struct {
-	version    string
-	constraint string
-	satisfied  bool
-	createErr  error
-	constErr   error
-	checkErr   error
+	name           string
+	version        string
+	constraint     string
+	satisfied      bool
+	shouldErr      bool
+	errorAssertion func(t *testing.T, err error)
 }
 
-func (c *testCase) name() string {
+func (c *testCase) tName() string {
+	if c.name != "" {
+		return c.name
+	}
+
 	return fmt.Sprintf("ver='%s'const='%s'", c.version, strings.ReplaceAll(c.constraint, " ", ""))
 }
 
-func (c *testCase) assert(t *testing.T, format Format, constraint Constraint) {
+func (c *testCase) assertVersionConstraint(t *testing.T, format Format, constraint Constraint) {
 	t.Helper()
 
-	verObj, err := NewVersion(c.version, format)
-	if !errors.Is(err, c.createErr) {
-		t.Fatalf("unexpected create error: '%+v'!='%+v'", err, c.createErr)
-	}
+	version, err := NewVersion(c.version, format)
+	assert.NoError(t, err, "unexpected error from NewVersion: %v", err)
 
-	isVulnerable, err := constraint.Satisfied(verObj)
-	if !errors.Is(err, c.checkErr) {
-		t.Fatalf("unexpected check error: '%+v'!='%+v'", err, c.checkErr)
+	isSatisfied, err := constraint.Satisfied(version)
+	if c.shouldErr {
+		if c.errorAssertion != nil {
+			c.errorAssertion(t, err)
+		} else {
+			assert.Error(t, err)
+		}
+	} else {
+		assert.NoError(t, err, "unexpected error from constraint.Satisfied: %v", err)
 	}
-
-	if isVulnerable != c.satisfied {
-		t.Errorf("unexpected constraint check result: expected %+v, got %+v", c.satisfied, isVulnerable)
-	}
-
+	assert.Equal(t, c.satisfied, isSatisfied, "unexpected constraint check result")
 }
