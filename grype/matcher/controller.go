@@ -11,6 +11,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/python"
 	"github.com/anchore/grype/grype/matcher/rpmdb"
 	"github.com/anchore/grype/grype/matcher/ruby"
+	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
@@ -83,13 +84,14 @@ func (c *controller) findMatches(provider vulnerability.Provider, d *distro.Dist
 
 	packagesProcessed, vulnerabilitiesDiscovered := c.trackMatcher()
 
+	defaultMatcher := &stock.Matcher{}
 	for _, p := range packages {
 		packagesProcessed.N++
 		log.Debugf("searching for vulnerability matches for pkg=%s", p)
 
 		matchers, ok := c.matchers[p.Type]
 		if !ok {
-			log.Warnf("no matchers available for package pkg=%s", p)
+			matchers = []Matcher{defaultMatcher}
 		}
 		for _, m := range matchers {
 			matches, err := m.Match(provider, d, p)

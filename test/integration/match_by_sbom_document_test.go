@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/anchore/grype/grype/matcher/common"
+
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -45,6 +47,40 @@ func TestMatchBySBOMDocument(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:        "unknown package type",
+			fixture:     "test-fixtures/sbom/syft-sbom-with-unknown-packages.json",
+			expectedIDs: []string{"CVE-bogus-my-package-1", "CVE-bogus-my-package-2-python"},
+			expectedDetails: []match.Details{
+				{
+					SearchedBy: common.SearchedByCPEs{
+						Namespace: "nvd",
+						CPEs: []string{
+							"cpe:2.3:a:bogus:my-package:1.0.5:*:*:*:*:*:*:*",
+						},
+					},
+					Found: common.FoundCPEs{
+						VersionConstraint: "< 2.0 (unknown)",
+						CPEs: []string{
+							"cpe:2.3:a:bogus:my-package:*:*:*:*:*:*:something:*",
+						},
+					},
+					Matcher:    match.StockMatcher,
+					Confidence: 0.9,
+				},
+				{
+					SearchedBy: map[string]interface{}{
+						"language":  "python",
+						"namespace": "github:python",
+					},
+					Found: map[string]interface{}{
+						"versionConstraint": "< 2.0 (python)",
+					},
+					Matcher:    match.StockMatcher,
+					Confidence: 1,
+				},
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -58,7 +94,10 @@ func TestMatchBySBOMDocument(t *testing.T) {
 				details = append(details, m.MatchDetails...)
 				ids.Add(m.Vulnerability.ID)
 			}
-			assert.Len(t, details, len(test.expectedDetails))
+			if !assert.Len(t, details, len(test.expectedDetails)) {
+				t.Fatalf("mismatched lengths, will not compare")
+			}
+
 			for i := range test.expectedDetails {
 				for _, d := range deep.Equal(test.expectedDetails[i], details[i]) {
 					t.Error(d)

@@ -87,7 +87,7 @@ bootstrap: ## Download and install all go dependencies (+ prep tooling in the ./
 
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(TEMPDIR)/ v1.26.0
 	curl -sSfL https://raw.githubusercontent.com/wagoodman/go-bouncer/master/bouncer.sh | sh -s -- -b $(TEMPDIR)/ v0.2.0
-	.github/scripts/goreleaser-install.sh -b $(TEMPDIR)/ v0.160.0
+	curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | sh -s -- -b $(TEMPDIR)/ v0.179.0
 
 .PHONY: static-analysis
 static-analysis: lint check-go-mod-tidy check-licenses validate-grype-db-schema
@@ -146,7 +146,7 @@ integration: ## Run integration tests
 # note: this is used by CI to determine if the integration test fixture cache (docker image tars) should be busted
 .PHONY: integration-fingerprint
 integration-fingerprint:
-	find test/integration/test-fixtures/image-* -type f -exec md5sum {} + | awk '{print $1}' | sort | md5sum | tee test/integration/test-fixtures/cache.fingerprint
+	find test/integration/*.go test/integration/test-fixtures/image-* -type f -exec md5sum {} + | awk '{print $1}' | sort | md5sum | tee test/integration/test-fixtures/cache.fingerprint
 
 .PHONY: cli
 cli: $(SNAPSHOTDIR) ## Run CLI tests
@@ -171,7 +171,7 @@ $(SNAPSHOTDIR): ## Build snapshot release binaries and packages
 	# build release snapshots
 	BUILD_GIT_TREE_STATE=$(GITTREESTATE) \
 	SYFT_VERSION=$(SYFTVERSION) \
-	$(TEMPDIR)/goreleaser release --skip-publish --skip-sign --rm-dist --snapshot --config $(TEMPDIR)/goreleaser.yaml
+		$(TEMPDIR)/goreleaser build --snapshot --skip-validate --rm-dist --config $(TEMPDIR)/goreleaser.yaml
 
 .PHONY: acceptance-linux
 acceptance-linux: $(SNAPSHOTDIR) ## Run acceptance tests on build snapshot binaries and packages (Linux)

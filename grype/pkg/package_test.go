@@ -76,6 +76,7 @@ func TestNew_MetadataExtraction(t *testing.T) {
 			},
 			metadata: RpmdbMetadata{
 				SourceRpm: "src-rpm-info",
+				Epoch:     intRef(30),
 			},
 		},
 		{

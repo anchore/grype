@@ -37,7 +37,7 @@ func New(p *pkg.Package) Package {
 		}
 	case pkg.RpmdbMetadataType:
 		if value, ok := p.Metadata.(pkg.RpmdbMetadata); ok {
-			metadata = RpmdbMetadata{SourceRpm: value.SourceRpm}
+			metadata = RpmdbMetadata{SourceRpm: value.SourceRpm, Epoch: value.Epoch}
 		} else {
 			log.Warnf("unable to extract RPM metadata for %s", p)
 		}

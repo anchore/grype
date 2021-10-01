@@ -7,13 +7,15 @@ require (
 	github.com/adrg/xdg v0.2.1
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
-	github.com/anchore/grype-db v0.0.0-20210913215030-fe28197b36f1
+	github.com/anchore/grype-db v0.0.0-20210928194208-f146397d6cd0
 	github.com/anchore/stereoscope v0.0.0-20210817160504-0f4abc2a5a5a
-	github.com/anchore/syft v0.23.0
+	github.com/anchore/syft v0.24.1
+	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/facebookincubator/nvdtools v0.1.4
 	github.com/go-test/deep v1.0.7
+	github.com/google/go-cmp v0.4.1
 	github.com/google/uuid v1.1.1
 	github.com/gookit/color v1.2.7
 	github.com/hashicorp/go-getter v1.4.1

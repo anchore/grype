@@ -14,13 +14,27 @@ type mockStore struct {
 func newMockDbStore() *mockStore {
 	return &mockStore{
 		backend: map[string]map[string][]grypeDB.Vulnerability{
-			"nvd": {
+			grypeDB.NVDNamespace: {
 				"libvncserver": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-alpine-libvncserver",
 						VersionConstraint: "< 0.9.10",
 						VersionFormat:     "unknown",
 						CPEs:              []string{"cpe:2.3:a:lib_vnc_project-(server):libvncserver:*:*:*:*:*:*:*:*"},
+					},
+				},
+				"my-package": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-bogus-my-package-1",
+						VersionConstraint: "< 2.0",
+						VersionFormat:     "unknown",
+						CPEs:              []string{"cpe:2.3:a:bogus:my-package:*:*:*:*:*:*:something:*"},
+					},
+					{
+						ID:                "CVE-bogus-my-package-2-never-match",
+						VersionConstraint: "< 2.0",
+						VersionFormat:     "unknown",
+						CPEs:              []string{"cpe:2.3:a:something-wrong:my-package:*:*:*:*:*:*:something:*"},
 					},
 				},
 			},
@@ -47,6 +61,13 @@ func newMockDbStore() *mockStore {
 					{
 						ID:                "CVE-python-pygments",
 						VersionConstraint: "< 2.6.2",
+						VersionFormat:     "python",
+					},
+				},
+				"my-package": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-bogus-my-package-2-python",
+						VersionConstraint: "< 2.0",
 						VersionFormat:     "python",
 					},
 				},

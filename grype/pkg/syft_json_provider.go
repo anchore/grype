@@ -152,6 +152,12 @@ func (p *partialSyftPackage) UnmarshalJSON(b []byte) error {
 	p.MetadataType = unpacker.MetadataType
 
 	switch p.MetadataType {
+	case pkg.ApkMetadataType:
+		var payload ApkMetadata
+		if err := json.Unmarshal(unpacker.Metadata, &payload); err != nil {
+			return err
+		}
+		p.Metadata = payload
 	case pkg.RpmdbMetadataType:
 		var payload RpmdbMetadata
 		if err := json.Unmarshal(unpacker.Metadata, &payload); err != nil {
