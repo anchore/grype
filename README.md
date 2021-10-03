@@ -41,6 +41,29 @@ We’ll have free swag, giveaways, snacks, and sips. Space will be limited, so m
 
 If you encounter an issue, please [let us know using the issue tracker](https://github.com/anchore/grype/issues).
 
+## Installation
+
+### Recommended
+
+```bash
+curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+```
+
+...or, you can specify a release version and destination directory for the installation:
+
+```
+curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b <DESTINATION_DIR> <RELEASE_VERSION>
+```
+
+### Homebrew
+
+```bash
+brew tap anchore/grype
+brew install grype
+```
+
+**Note**: Currently, Grype is built only for macOS and Linux.
+
 ## Getting started
 
 [Install the binary](#installation), and make sure that `grype` is available in your path. To scan for vulnerabilities in an image:
@@ -193,25 +216,6 @@ Grype pulls a database of vulnerabilities derived from the publicly available [A
 
 ```
 grype db update
-```
-
-## Installation
-
-**Recommended (macOS and Linux)**
-
-```bash
-# install the latest version to /usr/local/bin
-curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
-
-# install a specific version into a specific dir
-curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b <SOME_BIN_PATH> <RELEASE_VERSION>
-```
-
-**Homebrew (macOS)**
-
-```bash
-brew tap anchore/grype
-brew install grype
 ```
 
 ## Shell completion
