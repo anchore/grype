@@ -1,12 +1,12 @@
-# Contributing to `grype`
+# Contributing to Grype
 
-If you are looking to contribute to this project and want to open a Github pull request ("PR"), there are a few guidelines of what we are looking for in patches. Make sure you go through this document and ensure that your code proposal is aligned.
+If you are looking to contribute to this project and want to open a GitHub pull request ("PR"), there are a few guidelines of what we are looking for in patches. Make sure you go through this document and ensure that your code proposal is aligned.
 
-## Sign your work
+## Sign off your work
 
 The `sign-off` is an added line at the end of the explanation for the commit, certifying that you wrote it or otherwise have the right to submit it as an open-source patch. By submitting a contribution, you agree to be bound by the terms of the DCO Version 1.1 and Apache License Version 2.0.
 
-Signing a commit certifies the below Developer's Certificate of Origin (DCO):
+Signing off a commit certifies the below Developer's Certificate of Origin (DCO):
 
 ```text
 Developer's Certificate of Origin 1.1
@@ -51,13 +51,13 @@ $ git config --global user.name "John Doe"
 $ git config --global user.email "john.doe@example.com"
 ```
 
-Creating a signed commit is then possible with `-s`:
+Creating a signed-off commit is then possible with `-s` or `--signoff`:
 
 ```text
 $ git commit -s -m "this is a commit message"
 ```
 
-To double check if the commit was signed, look at the log output:
+To double-check if the commit was signed-off, look at the log output:
 
 ```text
 $ git log -1
@@ -82,6 +82,11 @@ Date:   Mon Aug 1 11:27:13 2020 -0400
 
 [//]: # (TODO: PR title and description)
 
+## Sign your commits
+
+To ensure the authenticity and integrity of code contributions, **we require that all commits are signed**. Signing commits proves that your commits were truly created by you, as the holder of a private key.
+
+Configuring git to sign your commits is a straightforward process. To get set up, see [GitHub's documentation on signing commits](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits).
 
 ## Test your changes
 
