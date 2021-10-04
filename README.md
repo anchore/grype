@@ -4,8 +4,9 @@
 [![Acceptance](https://github.com/anchore/grype/workflows/Acceptance/badge.svg)](https://github.com/anchore/grype/actions?query=workflow%3AAcceptance)
 [![Go Report Card](https://goreportcard.com/badge/github.com/anchore/grype)](https://goreportcard.com/report/github.com/anchore/grype)
 [![GitHub release](https://img.shields.io/github/release/anchore/grype.svg)](https://github.com/anchore/grype/releases/latest)
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/anchore/grype/blob/main/LICENSE)
 [![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/anchore/grype.svg)](https://github.com/anchore/grype)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/anchore/grype/blob/main/LICENSE)
+[![Slack Invite](https://img.shields.io/badge/Slack-Join-blue?logo=slack)](https://anchore.com/slack)
 
 A vulnerability scanner for container images and filesystems. Easily [install the binary](#installation) to try it out. Works with [Syft](https://github.com/anchore/syft), the powerful SBOM (software bill of materials) tool for container images and filesystems.
 
@@ -40,6 +41,29 @@ We’ll have free swag, giveaways, snacks, and sips. Space will be limited, so m
 - Supports Docker and OCI image formats
 
 If you encounter an issue, please [let us know using the issue tracker](https://github.com/anchore/grype/issues).
+
+## Installation
+
+### Recommended
+
+```bash
+curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+```
+
+...or, you can specify a release version and destination directory for the installation:
+
+```
+curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b <DESTINATION_DIR> <RELEASE_VERSION>
+```
+
+### Homebrew
+
+```bash
+brew tap anchore/grype
+brew install grype
+```
+
+**Note**: Currently, Grype is built only for macOS and Linux.
 
 ## Getting started
 
@@ -193,25 +217,6 @@ Grype pulls a database of vulnerabilities derived from the publicly available [A
 
 ```
 grype db update
-```
-
-## Installation
-
-**Recommended (macOS and Linux)**
-
-```bash
-# install the latest version to /usr/local/bin
-curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
-
-# install a specific version into a specific dir
-curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b <SOME_BIN_PATH> <RELEASE_VERSION>
-```
-
-**Homebrew (macOS)**
-
-```bash
-brew tap anchore/grype
-brew install grype
 ```
 
 ## Shell completion
