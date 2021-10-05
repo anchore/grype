@@ -1,0 +1,1121 @@
+{
+ "artifacts": [
+  {
+   "id": "bef1ce7f-cce6-4049-9da4-53882a612bb3",
+   "name": "Pygments",
+   "version": "2.6.1",
+   "type": "python",
+   "foundBy": "python-package-cataloger",
+   "locations": [
+    {
+     "path": "test/integration/test-fixtures/image-debian-match-coverage/python/dist-info/METADATA"
+    },
+    {
+     "path": "test/integration/test-fixtures/image-debian-match-coverage/python/dist-info/top_level.txt"
+    }
+   ],
+   "licenses": [
+    "BSD License"
+   ],
+   "language": "python",
+   "cpes": [
+    "cpe:2.3:a:python-Pygments:python-Pygments:2.6.1:*:*:*:*:*:*:*",
+    "cpe:2.3:a:python_Pygments:python-Pygments:2.6.1:*:*:*:*:*:*:*",
+    "cpe:2.3:a:python-Pygments:python_Pygments:2.6.1:*:*:*:*:*:*:*",
+    "cpe:2.3:a:python_Pygments:python_Pygments:2.6.1:*:*:*:*:*:*:*",
+    "cpe:2.3:a:georg_brandl:python_Pygments:2.6.1:*:*:*:*:*:*:*",
+    "cpe:2.3:a:georg_brandl:python-Pygments:2.6.1:*:*:*:*:*:*:*",
+    "cpe:2.3:a:Pygments:python_Pygments:2.6.1:*:*:*:*:*:*:*",
+    "cpe:2.3:a:Pygments:python-Pygments:2.6.1:*:*:*:*:*:*:*",
+    "cpe:2.3:a:python_Pygments:Pygments:2.6.1:*:*:*:*:*:*:*",
+    "cpe:2.3:a:python-Pygments:Pygments:2.6.1:*:*:*:*:*:*:*",
+    "cpe:2.3:a:python:python_Pygments:2.6.1:*:*:*:*:*:*:*",
+    "cpe:2.3:a:python:python-Pygments:2.6.1:*:*:*:*:*:*:*",
+    "cpe:2.3:a:georg_brandl:Pygments:2.6.1:*:*:*:*:*:*:*",
+    "cpe:2.3:a:georg:python-Pygments:2.6.1:*:*:*:*:*:*:*",
+    "cpe:2.3:a:georg:python_Pygments:2.6.1:*:*:*:*:*:*:*",
+    "cpe:2.3:a:Pygments:Pygments:2.6.1:*:*:*:*:*:*:*",
+    "cpe:2.3:a:python:Pygments:2.6.1:*:*:*:*:*:*:*",
+    "cpe:2.3:a:georg:Pygments:2.6.1:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:pypi/Pygments@2.6.1",
+   "metadataType": "PythonPackageMetadata",
+   "metadata": {
+    "name": "Pygments",
+    "version": "2.6.1",
+    "license": "BSD License",
+    "author": "Georg Brandl",
+    "authorEmail": "georg@python.org",
+    "platform": "any",
+    "sitePackagesRootPath": "test/integration/test-fixtures/image-debian-match-coverage/python",
+    "topLevelPackages": [
+     "pygments"
+    ]
+   }
+  },
+  {
+   "id": "651f06ac-d509-4b33-92f1-88bf006beaf7",
+   "name": "apt",
+   "version": "1.8.2",
+   "type": "deb",
+   "foundBy": "dpkgdb-cataloger",
+   "locations": [
+    {
+     "path": "test/integration/test-fixtures/image-debian-match-coverage/var/lib/dpkg/status"
+    }
+   ],
+   "licenses": [],
+   "language": "",
+   "cpes": [
+    "cpe:2.3:a:apt:apt:1.8.2:*:*:*:*:*:*:*"
+   ],
+   "purl": "",
+   "metadataType": "DpkgMetadata",
+   "metadata": {
+    "package": "apt",
+    "source": "apt-dev",
+    "version": "1.8.2",
+    "sourceVersion": "",
+    "architecture": "amd64",
+    "maintainer": "APT Development Team <deity@lists.debian.org>",
+    "installedSize": 4064,
+    "files": [
+     {
+      "path": "/etc/apt/apt.conf.d/01autoremove",
+      "digest": {
+       "algorithm": "md5",
+       "value": "76120d358bc9037bb6358e737b3050b5"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/cron.daily/apt-compat",
+      "digest": {
+       "algorithm": "md5",
+       "value": "49e9b2cfa17849700d4db735d04244f3"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/kernel/postinst.d/apt-auto-removal",
+      "digest": {
+       "algorithm": "md5",
+       "value": "4ad976a68f045517cf4696cec7b8aa3a"
+      },
+      "isConfigFile": true
+     },
+     {
+      "path": "/etc/logrotate.d/apt",
+      "digest": {
+       "algorithm": "md5",
+       "value": "179f2ed4f85cbaca12fa3d69c2a4a1c3"
+      },
+      "isConfigFile": true
+     }
+    ]
+   }
+  },
+  {
+   "id": "e1d0474e-2a82-420c-ad82-a9de40d866c7",
+   "name": "dive",
+   "version": "0.9.2-1",
+   "type": "rpm",
+   "foundBy": "rpmdb-cataloger",
+   "locations": [
+    {
+     "path": "test/integration/test-fixtures/image-sles-match-coverage/var/lib/rpm/Packages"
+    }
+   ],
+   "licenses": [],
+   "language": "",
+   "cpes": [
+    "cpe:2.3:a:dive:dive:0.9.2-1:*:*:*:*:*:*:*"
+   ],
+   "purl": "",
+   "metadataType": "RpmdbMetadata",
+   "metadata": {
+    "name": "dive",
+    "version": "0.9.2",
+    "epoch": null,
+    "architecture": "x86_64",
+    "release": "1",
+    "sourceRpm": "dive-0.9.2-1.src.rpm",
+    "size": 12406784,
+    "license": "MIT",
+    "vendor": "",
+    "files": []
+   }
+  },
+  {
+   "id": "4f86c82e-2e7a-4f61-97cc-2058938257be",
+   "name": "example-java-app-maven",
+   "version": "0.1.0",
+   "type": "java-archive",
+   "foundBy": "java-cataloger",
+   "locations": [
+    {
+     "path": "test/integration/test-fixtures/image-debian-match-coverage/java/example-java-app-maven-0.1.0.jar"
+    }
+   ],
+   "licenses": [],
+   "language": "java",
+   "cpes": [
+    "cpe:2.3:a:example_java_app_maven:example-java-app-maven:0.1.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:example_java_app_maven:example_java_app_maven:0.1.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:example-java-app-maven:example_java_app_maven:0.1.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:example-java-app-maven:example-java-app-maven:0.1.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:example_java_app:example-java-app-maven:0.1.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:example_java_app:example_java_app_maven:0.1.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:example-java-app:example-java-app-maven:0.1.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:example-java-app:example_java_app_maven:0.1.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:example_java:example-java-app-maven:0.1.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:example-java:example-java-app-maven:0.1.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:example-java:example_java_app_maven:0.1.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:example_java:example_java_app_maven:0.1.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:example:example-java-app-maven:0.1.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:example:example_java_app_maven:0.1.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:anchore:example-java-app-maven:0.1.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:anchore:example_java_app_maven:0.1.0:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:maven/org.anchore/example-java-app-maven@0.1.0",
+   "metadataType": "JavaMetadata",
+   "metadata": {
+    "virtualPath": "test/integration/test-fixtures/image-debian-match-coverage/java/example-java-app-maven-0.1.0.jar",
+    "manifest": {
+     "main": {
+      "Archiver-Version": "Plexus Archiver",
+      "Build-Jdk": "14.0.1",
+      "Built-By": "?",
+      "Created-By": "Apache Maven 3.6.3",
+      "Main-Class": "hello.HelloWorld",
+      "Manifest-Version": "1.0"
+     }
+    },
+    "pomProperties": {
+     "path": "META-INF/maven/org.anchore/example-java-app-maven/pom.properties",
+     "name": "",
+     "groupId": "org.anchore",
+     "artifactId": "example-java-app-maven",
+     "version": "0.1.0",
+     "extraFields": {}
+    }
+   }
+  },
+  {
+   "id": "26f1dd60-f006-480f-8ad2-3c92a8d19f42",
+   "name": "github.com/acarl005/stripansi",
+   "version": "v0.0.0-20180116102854-5a71ef0e047d",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:acarl005:stripansi:v0.0.0-20180116102854-5a71ef0e047d:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/acarl005/stripansi@v0.0.0-20180116102854-5a71ef0e047d",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "b296ad62-b21d-487e-9914-6a5f5358f53a",
+   "name": "github.com/adrg/xdg",
+   "version": "v0.2.1",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:adrg:xdg:v0.2.1:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/adrg/xdg@v0.2.1",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "e1a7a167-c7c1-41b8-938e-3b17de0907fd",
+   "name": "github.com/anchore/go-testutils",
+   "version": "v0.0.0-20200925183923-d5f45b0d3c04",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:anchore:go_testutils:v0.0.0-20200925183923-d5f45b0d3c04:*:*:*:*:*:*:*",
+    "cpe:2.3:a:anchore:go-testutils:v0.0.0-20200925183923-d5f45b0d3c04:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/anchore/go-testutils@v0.0.0-20200925183923-d5f45b0d3c04",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "9ae8c8cb-0513-46c4-9a10-91720a0cf3c0",
+   "name": "github.com/anchore/go-version",
+   "version": "v1.2.2-0.20210903204242-51efa5b487c4",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:anchore:go-version:v1.2.2-0.20210903204242-51efa5b487c4:*:*:*:*:*:*:*",
+    "cpe:2.3:a:anchore:go_version:v1.2.2-0.20210903204242-51efa5b487c4:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/anchore/go-version@v1.2.2-0.20210903204242-51efa5b487c4",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "2268071f-cb45-4f99-82d3-87ac2ad0f1cc",
+   "name": "github.com/anchore/grype-db",
+   "version": "v0.0.0-20210928194208-f146397d6cd0",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:anchore:grype-db:v0.0.0-20210928194208-f146397d6cd0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:anchore:grype_db:v0.0.0-20210928194208-f146397d6cd0:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/anchore/grype-db@v0.0.0-20210928194208-f146397d6cd0",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "65c50f92-183e-4ff5-ba28-15c7eb5838dc",
+   "name": "github.com/anchore/stereoscope",
+   "version": "v0.0.0-20210817160504-0f4abc2a5a5a",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:anchore:stereoscope:v0.0.0-20210817160504-0f4abc2a5a5a:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/anchore/stereoscope@v0.0.0-20210817160504-0f4abc2a5a5a",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "42c879dc-c9d8-4c08-afde-2623f0ce6749",
+   "name": "github.com/anchore/syft",
+   "version": "v0.24.1",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:anchore:syft:v0.24.1:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/anchore/syft@v0.24.1",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "70be86c2-9e8b-43b3-90d7-2f0e61100b54",
+   "name": "github.com/bmatcuk/doublestar/v2",
+   "version": "v2.0.4",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:bmatcuk:doublestar:v2.0.4:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/bmatcuk/doublestar/v2@v2.0.4",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "814fe4dd-afad-4db8-bb2a-09d9d8fccbb1",
+   "name": "github.com/docker/docker",
+   "version": "v17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:docker:docker:v17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/docker/docker@v17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "8fda3ee5-90c5-4fbc-9b74-ac53f75e95a7",
+   "name": "github.com/dustin/go-humanize",
+   "version": "v1.0.0",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:dustin:go-humanize:v1.0.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:dustin:go_humanize:v1.0.0:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/dustin/go-humanize@v1.0.0",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "8b49fe37-0618-4dad-8379-692443ddc5e8",
+   "name": "github.com/facebookincubator/nvdtools",
+   "version": "v0.1.4",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:facebookincubator:nvdtools:v0.1.4:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/facebookincubator/nvdtools@v0.1.4",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "04e5343e-1023-48a1-9423-79972c4e4214",
+   "name": "github.com/go-test/deep",
+   "version": "v1.0.7",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:go-test:deep:v1.0.7:*:*:*:*:*:*:*",
+    "cpe:2.3:a:go_test:deep:v1.0.7:*:*:*:*:*:*:*",
+    "cpe:2.3:a:go:deep:v1.0.7:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/go-test/deep@v1.0.7",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "1ad992ea-1296-47e8-a468-4eb0c362a7e3",
+   "name": "github.com/google/go-cmp",
+   "version": "v0.4.1",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:google:go-cmp:v0.4.1:*:*:*:*:*:*:*",
+    "cpe:2.3:a:google:go_cmp:v0.4.1:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/google/go-cmp@v0.4.1",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "6d6cff34-9f29-450f-8cb8-ffe70775c1dd",
+   "name": "github.com/google/uuid",
+   "version": "v1.1.1",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:google:uuid:v1.1.1:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/google/uuid@v1.1.1",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "b4202bbd-9fb5-4d6f-83bd-83a4aa6d1608",
+   "name": "github.com/gookit/color",
+   "version": "v1.4.2",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:gookit:color:v1.4.2:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/gookit/color@v1.4.2",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "4ef230a8-22ef-4a45-92bb-fda1a17785bd",
+   "name": "github.com/hashicorp/go-getter",
+   "version": "v1.4.1",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:hashicorp:go_getter:v1.4.1:*:*:*:*:*:*:*",
+    "cpe:2.3:a:hashicorp:go-getter:v1.4.1:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/hashicorp/go-getter@v1.4.1",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "53de4a0f-f65c-4df4-90e7-9274471ae45e",
+   "name": "github.com/hashicorp/go-multierror",
+   "version": "v1.1.0",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:hashicorp:go-multierror:v1.1.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:hashicorp:go_multierror:v1.1.0:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/hashicorp/go-multierror@v1.1.0",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "3eacac5b-f362-4d47-a509-3dfaa0f65bde",
+   "name": "github.com/jinzhu/copier",
+   "version": "v0.0.0-20190924061706-b57f9002281a",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:jinzhu:copier:v0.0.0-20190924061706-b57f9002281a:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/jinzhu/copier@v0.0.0-20190924061706-b57f9002281a",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "ee1ac005-9c0d-45f4-a9b8-de9c805c8540",
+   "name": "github.com/knqyf263/go-deb-version",
+   "version": "v0.0.0-20190517075300-09fca494f03d",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:knqyf263:go-deb-version:v0.0.0-20190517075300-09fca494f03d:*:*:*:*:*:*:*",
+    "cpe:2.3:a:knqyf263:go_deb_version:v0.0.0-20190517075300-09fca494f03d:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/knqyf263/go-deb-version@v0.0.0-20190517075300-09fca494f03d",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "71970349-8c0d-41d9-b3f9-7dd5b50153ce",
+   "name": "github.com/mitchellh/go-homedir",
+   "version": "v1.1.0",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:mitchellh:go-homedir:v1.1.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:mitchellh:go_homedir:v1.1.0:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/mitchellh/go-homedir@v1.1.0",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "fdf5f063-2178-454b-8e84-1412a65ee968",
+   "name": "github.com/olekukonko/tablewriter",
+   "version": "v0.0.4",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:olekukonko:tablewriter:v0.0.4:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/olekukonko/tablewriter@v0.0.4",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "ed4372e1-d33e-4d18-9b5c-5c4b59e80662",
+   "name": "github.com/pkg/profile",
+   "version": "v1.6.0",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:pkg:profile:v1.6.0:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/pkg/profile@v1.6.0",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "8870327f-8eef-4e2d-af6e-3b57e11d50a7",
+   "name": "github.com/scylladb/go-set",
+   "version": "v1.0.2",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:scylladb:go-set:v1.0.2:*:*:*:*:*:*:*",
+    "cpe:2.3:a:scylladb:go_set:v1.0.2:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/scylladb/go-set@v1.0.2",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "b1a92a31-3aaf-45ec-9876-37bd1de81f8d",
+   "name": "github.com/sergi/go-diff",
+   "version": "v1.1.0",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:sergi:go_diff:v1.1.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:sergi:go-diff:v1.1.0:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/sergi/go-diff@v1.1.0",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "432db78d-4f4e-4df3-a1d9-22a19a5cecd3",
+   "name": "github.com/sirupsen/logrus",
+   "version": "v1.6.0",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:sirupsen:logrus:v1.6.0:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/sirupsen/logrus@v1.6.0",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "6cbdf0e8-95d6-4be6-b6db-ae1aed8495b3",
+   "name": "github.com/spf13/afero",
+   "version": "v1.3.2",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:spf13:afero:v1.3.2:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/spf13/afero@v1.3.2",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "999d42fa-0df6-4fb3-b12a-4943ce613034",
+   "name": "github.com/spf13/cobra",
+   "version": "v1.0.1-0.20200909172742-8a63648dd905",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:spf13:cobra:v1.0.1-0.20200909172742-8a63648dd905:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/spf13/cobra@v1.0.1-0.20200909172742-8a63648dd905",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "dccd69f3-390f-4480-a645-262e0d01452f",
+   "name": "github.com/spf13/pflag",
+   "version": "v1.0.5",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:spf13:pflag:v1.0.5:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/spf13/pflag@v1.0.5",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "ca7a9196-0bc3-4044-a09f-03b90208d4ca",
+   "name": "github.com/spf13/viper",
+   "version": "v1.7.0",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:spf13:viper:v1.7.0:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/spf13/viper@v1.7.0",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "203ee2fd-d494-4bd3-b563-edf0a217a625",
+   "name": "github.com/stretchr/testify",
+   "version": "v1.7.0",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:stretchr:testify:v1.7.0:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/stretchr/testify@v1.7.0",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "a9b26b3c-b7fa-4896-a1d3-4d57b237e0e2",
+   "name": "github.com/wagoodman/go-partybus",
+   "version": "v0.0.0-20210627031916-db1f5573bbc5",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:wagoodman:go-partybus:v0.0.0-20210627031916-db1f5573bbc5:*:*:*:*:*:*:*",
+    "cpe:2.3:a:wagoodman:go_partybus:v0.0.0-20210627031916-db1f5573bbc5:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/wagoodman/go-partybus@v0.0.0-20210627031916-db1f5573bbc5",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "0fc965b2-dae1-48c2-b444-aa06c0444e3a",
+   "name": "github.com/wagoodman/go-progress",
+   "version": "v0.0.0-20200807221327-51d465df1451",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:wagoodman:go-progress:v0.0.0-20200807221327-51d465df1451:*:*:*:*:*:*:*",
+    "cpe:2.3:a:wagoodman:go_progress:v0.0.0-20200807221327-51d465df1451:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/wagoodman/go-progress@v0.0.0-20200807221327-51d465df1451",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "7d006c48-72c5-442d-b485-c69eae9c2bd8",
+   "name": "github.com/wagoodman/jotframe",
+   "version": "v0.0.0-20200730190914-3517092dd163",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:wagoodman:jotframe:v0.0.0-20200730190914-3517092dd163:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/wagoodman/jotframe@v0.0.0-20200730190914-3517092dd163",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "179ada5b-cac6-49fe-a786-865874ab04ca",
+   "name": "github.com/x-cray/logrus-prefixed-formatter",
+   "version": "v0.5.2",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:x_cray:logrus_prefixed_formatter:v0.5.2:*:*:*:*:*:*:*",
+    "cpe:2.3:a:x-cray:logrus_prefixed_formatter:v0.5.2:*:*:*:*:*:*:*",
+    "cpe:2.3:a:x_cray:logrus-prefixed-formatter:v0.5.2:*:*:*:*:*:*:*",
+    "cpe:2.3:a:x-cray:logrus-prefixed-formatter:v0.5.2:*:*:*:*:*:*:*",
+    "cpe:2.3:a:x:logrus_prefixed_formatter:v0.5.2:*:*:*:*:*:*:*",
+    "cpe:2.3:a:x:logrus-prefixed-formatter:v0.5.2:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/github.com/x-cray/logrus-prefixed-formatter@v0.5.2",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "278908c5-bf45-4a37-9ef5-6ada37b2935a",
+   "name": "golang.org/x/crypto",
+   "version": "v0.0.0-20200622213623-75b288015ac9",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [
+    "cpe:2.3:a:golang:x/crypto:v0.0.0-20200622213623-75b288015ac9:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:golang/golang.org/x/crypto@v0.0.0-20200622213623-75b288015ac9",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "ccd900cd-78b1-4377-8265-2b1f2dff34a6",
+   "name": "gopkg.in/yaml.v2",
+   "version": "v2.3.0",
+   "type": "go-module",
+   "foundBy": "go-cataloger",
+   "locations": [
+    {
+     "path": "go.mod"
+    }
+   ],
+   "licenses": [],
+   "language": "go",
+   "cpes": [],
+   "purl": "pkg:golang/gopkg.in/yaml.v2@v2.3.0",
+   "metadataType": "",
+   "metadata": null
+  },
+  {
+   "id": "5582f267-e031-4687-99dc-3ee0d57cb724",
+   "name": "joda-time",
+   "version": "2.9.2",
+   "type": "java-archive",
+   "foundBy": "java-cataloger",
+   "locations": [
+    {
+     "path": "test/integration/test-fixtures/image-debian-match-coverage/java/example-java-app-maven-0.1.0.jar"
+    }
+   ],
+   "licenses": [],
+   "language": "java",
+   "cpes": [
+    "cpe:2.3:a:joda-time:joda-time:2.9.2:*:*:*:*:*:*:*",
+    "cpe:2.3:a:joda_time:joda-time:2.9.2:*:*:*:*:*:*:*",
+    "cpe:2.3:a:joda-time:joda_time:2.9.2:*:*:*:*:*:*:*",
+    "cpe:2.3:a:joda_time:joda_time:2.9.2:*:*:*:*:*:*:*",
+    "cpe:2.3:a:joda:joda-time:2.9.2:*:*:*:*:*:*:*",
+    "cpe:2.3:a:joda:joda_time:2.9.2:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:maven/joda-time/joda-time@2.9.2",
+   "metadataType": "JavaMetadata",
+   "metadata": {
+    "virtualPath": "test/integration/test-fixtures/image-debian-match-coverage/java/example-java-app-maven-0.1.0.jar:joda-time",
+    "pomProperties": {
+     "path": "META-INF/maven/joda-time/joda-time/pom.properties",
+     "name": "",
+     "groupId": "joda-time",
+     "artifactId": "joda-time",
+     "version": "2.9.2",
+     "extraFields": {}
+    },
+    "pomProject": {
+     "path": "META-INF/maven/joda-time/joda-time/pom.xml",
+     "groupId": "joda-time",
+     "artifactId": "joda-time",
+     "version": "2.9.2",
+     "name": "Joda-Time",
+     "description": "Date and time library to replace JDK date handling",
+     "url": "http://www.joda.org/joda-time/"
+    }
+   }
+  },
+  {
+   "id": "f727dab3-3fe8-4082-b12d-0fed59452c89",
+   "name": "libvncserver",
+   "version": "0.9.9",
+   "type": "apk",
+   "foundBy": "apkdb-cataloger",
+   "locations": [
+    {
+     "path": "test/integration/test-fixtures/image-alpine-match-coverage/lib/apk/db/installed"
+    }
+   ],
+   "licenses": [
+    "GPL-2.0-or-later"
+   ],
+   "language": "",
+   "cpes": [
+    "cpe:2.3:a:libvncserver:libvncserver:0.9.9:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:alpine/libvncserver@0.9.9?arch=x86_64",
+   "metadataType": "ApkMetadata",
+   "metadata": {
+    "package": "libvncserver",
+    "originPackage": "libvncserver",
+    "maintainer": "A. Wilcox <awilfox@adelielinux.org>",
+    "version": "0.9.9",
+    "license": "GPL-2.0-or-later",
+    "architecture": "x86_64",
+    "url": "http://libvncserver.sourceforge.net/",
+    "description": "Library to make writing a vnc server easy",
+    "size": 166239,
+    "installedSize": 389120,
+    "pullDependencies": "so:libc.musl-x86_64.so.1 so:libgcrypt.so.20 so:libgnutls.so.30 so:libjpeg.so.8 so:libpng16.so.16 so:libz.so.1",
+    "pullChecksum": "Q1z0MwWQKfva+S+q7XmOBYFfQgW/k=",
+    "gitCommitOfApkPort": "bf1ec813f662f128fc6b70f37ef1c0474bb24488",
+    "files": [
+     {
+      "path": "/usr",
+      "digest": {
+       "algorithm": "",
+       "value": ""
+      }
+     },
+     {
+      "path": "/usr/lib",
+      "digest": {
+       "algorithm": "",
+       "value": ""
+      }
+     },
+     {
+      "path": "/usr/lib/libvncclient.so.1",
+      "ownerUid": "0",
+      "ownerGid": "0",
+      "permissions": "777",
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q1quyp/JcSPFQhtQFjMUYdMwRvAWM="
+      }
+     },
+     {
+      "path": "/usr/lib/libvncserver.so.1.0.0",
+      "ownerUid": "0",
+      "ownerGid": "0",
+      "permissions": "755",
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q16Pd1AqyqQRMwiFfbUt9XkYnkapw="
+      }
+     },
+     {
+      "path": "/usr/lib/libvncserver.so.1",
+      "ownerUid": "0",
+      "ownerGid": "0",
+      "permissions": "777",
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q184HrHsxEBqnsH4QNxeU5w8alhKI="
+      }
+     },
+     {
+      "path": "/usr/lib/libvncclient.so.1.0.0",
+      "ownerUid": "0",
+      "ownerGid": "0",
+      "permissions": "755",
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q1IEjCrEwVlQt2GjIsb3o39vcgqMg="
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "731abc1d-e0ed-4c6d-9554-1df437e4c540",
+   "name": "rails",
+   "version": "4.1.1",
+   "type": "gem",
+   "foundBy": "ruby-gemfile-cataloger",
+   "locations": [
+    {
+     "path": "test/integration/test-fixtures/image-debian-match-coverage/ruby/Gemfile.lock"
+    }
+   ],
+   "licenses": [],
+   "language": "ruby",
+   "cpes": [
+    "cpe:2.3:a:ruby_lang:rails:4.1.1:*:*:*:*:*:*:*",
+    "cpe:2.3:a:ruby-lang:rails:4.1.1:*:*:*:*:*:*:*",
+    "cpe:2.3:a:rails:rails:4.1.1:*:*:*:*:*:*:*",
+    "cpe:2.3:a:ruby:rails:4.1.1:*:*:*:*:*:*:*",
+    "cpe:2.3:a:*:rails:4.1.1:*:*:*:*:*:*:*"
+   ],
+   "purl": "pkg:gem/rails@4.1.1",
+   "metadataType": "",
+   "metadata": null
+  }
+ ],
+ "artifactRelationships": [],
+ "source": {
+  "type": "directory",
+  "target": "./"
+ },
+ "distro": {
+  "name": "",
+  "version": "",
+  "idLike": ""
+ },
+ "descriptor": {
+  "name": "syft",
+  "version": "[not provided]"
+ },
+ "schema": {
+  "version": "1.1.0",
+  "url": "https://raw.githubusercontent.com/anchore/syft/main/schema/json/schema-1.1.0.json"
+ }
+}
