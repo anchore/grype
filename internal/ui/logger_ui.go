@@ -1,17 +1,23 @@
 package ui
 
 import (
+	"io"
+
 	grypeEvent "github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/internal/log"
 	"github.com/wagoodman/go-partybus"
 )
 
 type loggerUI struct {
-	unsubscribe func() error
+	unsubscribe  func() error
+	reportOutput io.Writer
 }
 
-func NewLoggerUI() UI {
-	return &loggerUI{}
+// NewLoggerUI writes all events to the common application logger and writes the final report to the given writer.
+func NewLoggerUI(reportWriter io.Writer) UI {
+	return &loggerUI{
+		reportOutput: reportWriter,
+	}
 }
 
 func (l *loggerUI) Setup(unsubscribe func() error) error {
@@ -25,7 +31,7 @@ func (l loggerUI) Handle(event partybus.Event) error {
 		return nil
 	}
 
-	if err := handleVulnerabilityScanningFinished(event); err != nil {
+	if err := handleVulnerabilityScanningFinished(event, l.reportOutput); err != nil {
 		log.Warnf("unable to show catalog image finished event: %+v", err)
 	}
 

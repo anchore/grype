@@ -102,6 +102,11 @@ func setRootFlags(flags *pflag.FlagSet) {
 		fmt.Sprintf("report output formatter, formats=%v", presenter.AvailableFormats),
 	)
 
+	flags.StringP(
+		"file", "", "",
+		"file to write the report output to (default is STDOUT)",
+	)
+
 	flags.StringP("template", "t", "", "specify the path to a Go template file ("+
 		"requires 'template' output to be selected)")
 
@@ -117,6 +122,10 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 	}
 
 	if err := viper.BindPFlag("output", flags.Lookup("output")); err != nil {
+		return err
+	}
+
+	if err := viper.BindPFlag("file", flags.Lookup("file")); err != nil {
 		return err
 	}
 
@@ -137,12 +146,23 @@ func rootExec(_ *cobra.Command, args []string) error {
 		userInput = args[0]
 	}
 
+	reporter, closer, err := reportWriter()
+	defer func() {
+		if err := closer(); err != nil {
+			log.Warnf("unable to write to report destination: %+v", err)
+		}
+	}()
+
+	if err != nil {
+		return err
+	}
+
 	return eventLoop(
 		startWorker(userInput, appConfig.FailOnSeverity),
 		setupSignals(),
 		eventSubscription,
-		ui.Select(appConfig.CliOptions.Verbosity > 0, appConfig.Quiet),
 		stereoscope.Cleanup,
+		ui.Select(appConfig.CliOptions.Verbosity > 0, appConfig.Quiet, reporter)...,
 	)
 }
 

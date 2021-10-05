@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"os"
 
 	"github.com/anchore/grype/internal/log"
@@ -14,11 +15,13 @@ import (
 // signal interrupts. Is responsible for handling each event relative to a given UI an to coordinate eventing until
 // an eventual graceful exit.
 // nolint:gocognit,funlen
-func eventLoop(workerErrs <-chan error, signals <-chan os.Signal, subscription *partybus.Subscription, ux ui.UI, cleanupFn func()) error {
+func eventLoop(workerErrs <-chan error, signals <-chan os.Signal, subscription *partybus.Subscription, cleanupFn func(), uxs ...ui.UI) error {
 	defer cleanupFn()
 	events := subscription.Events()
 	var err error
-	if ux, err = setupUI(subscription.Unsubscribe, ux); err != nil {
+	var ux ui.UI
+
+	if ux, err = setupUI(subscription.Unsubscribe, uxs...); err != nil {
 		return err
 	}
 
@@ -78,15 +81,18 @@ func eventLoop(workerErrs <-chan error, signals <-chan os.Signal, subscription *
 	return retErr
 }
 
-func setupUI(unsubscribe func() error, ux ui.UI) (ui.UI, error) {
-	if err := ux.Setup(unsubscribe); err != nil {
-		// replace the existing UI with a (simpler) logger UI
-		ux = ui.NewLoggerUI()
+// setupUI takes one or more UIs that responds to events and takes a event bus unsubscribe function for use
+// during teardown. With the given UIs, the first UI which the ui.Setup() function does not return an error
+// will be utilized in execution. Providing a set of UIs allows for the caller to provide graceful fallbacks
+// when there are environmental problem (e.g. unable to setup a TUI with the current TTY).
+func setupUI(unsubscribe func() error, uis ...ui.UI) (ui.UI, error) {
+	for _, ux := range uis {
 		if err := ux.Setup(unsubscribe); err != nil {
-			// something is very wrong, bail.
-			return ux, err
+			log.Warnf("unable to setup given UI, falling back to alternative UI: %+v", err)
+			continue
 		}
-		log.Errorf("unable to setup given UI, falling back to logger: %+v", err)
+
+		return ux, nil
 	}
-	return ux, nil
+	return nil, fmt.Errorf("unable to setup any UI")
 }

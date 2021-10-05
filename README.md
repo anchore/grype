@@ -257,6 +257,9 @@ scope: "squashed"
 # same as -q ; suppress all output (except for the vulnerability list)
 quiet: false
 
+# same as --file; write output report to a file (default is to write to stdout)
+file: ""
+
 db:
   # check for database updates on execution
   auto-update: true

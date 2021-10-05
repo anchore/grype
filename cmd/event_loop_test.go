@@ -96,8 +96,8 @@ func Test_eventLoop_gracefulExit(t *testing.T) {
 				worker(),
 				signaler(),
 				subscription,
-				ux,
 				cleanupFn,
+				ux,
 			),
 		)
 
@@ -159,8 +159,8 @@ func Test_eventLoop_workerError(t *testing.T) {
 				worker(),
 				signaler(),
 				subscription,
-				ux,
 				cleanupFn,
+				ux,
 			),
 			workerErr,
 			"should have seen a worker error, but did not",
@@ -230,8 +230,8 @@ func Test_eventLoop_unsubscribeError(t *testing.T) {
 				worker(),
 				signaler(),
 				subscription,
-				ux,
 				cleanupFn,
+				ux,
 			),
 		)
 
@@ -300,8 +300,8 @@ func Test_eventLoop_handlerError(t *testing.T) {
 				worker(),
 				signaler(),
 				subscription,
-				ux,
 				cleanupFn,
+				ux,
 			),
 			finalEvent.Error,
 			"should have seen a event error, but did not",
@@ -355,8 +355,8 @@ func Test_eventLoop_signalsStopExecution(t *testing.T) {
 				worker(),
 				signaler(),
 				subscription,
-				ux,
 				cleanupFn,
+				ux,
 			),
 		)
 
@@ -425,8 +425,8 @@ func Test_eventLoop_uiTeardownError(t *testing.T) {
 				worker(),
 				signaler(),
 				subscription,
-				ux,
 				cleanupFn,
+				ux,
 			),
 			teardownError,
 			"should have seen a UI teardown error, but did not",
