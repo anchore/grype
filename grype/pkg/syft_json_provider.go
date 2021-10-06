@@ -37,6 +37,8 @@ func (s *syftSource) UnmarshalJSON(b []byte) error {
 	s.Type = unpacker.Type
 
 	switch s.Type {
+	case "directory":
+		s.Target = string(unpacker.Target[:])
 	case "image":
 		var payload source.ImageMetadata
 		if err := json.Unmarshal(unpacker.Target, &payload); err != nil {

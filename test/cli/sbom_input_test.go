@@ -6,8 +6,6 @@ import (
 	"testing"
 )
 
-const sbomLocation = "./test-fixtures/sbom-ubuntu-20.04--pruned.json"
-
 func TestSBOMInput_AsArgument(t *testing.T) {
 	workingDirectory, err := os.Getwd()
 	if err != nil {
@@ -19,12 +17,16 @@ func TestSBOMInput_AsArgument(t *testing.T) {
 		path string
 	}{
 		{
-			"absolute path",
-			path.Join(workingDirectory, sbomLocation),
+			"absolute path - image scan",
+			path.Join(workingDirectory, "./test-fixtures/sbom-ubuntu-20.04--pruned.json"),
 		},
 		{
-			"relative path",
-			sbomLocation,
+			"relative path - image scan",
+			"./test-fixtures/sbom-ubuntu-20.04--pruned.json",
+		},
+		{
+			"directory scan",
+			"./test-fixtures/sbom-grype-source.json",
 		},
 	}
 
@@ -54,7 +56,7 @@ func TestSBOMInput_AsArgument(t *testing.T) {
 func TestSBOMInput_FromStdin(t *testing.T) {
 	cmd := getGrypeCommand(t)
 
-	sbom, err := os.Open(sbomLocation)
+	sbom, err := os.Open("./test-fixtures/sbom-ubuntu-20.04--pruned.json")
 	if err != nil {
 		t.Fatal(err)
 	}
