@@ -5,5 +5,5 @@ type descriptor struct {
 	Name                  string      `json:"name"`
 	Version               string      `json:"version"`
 	Configuration         interface{} `json:"configuration,omitempty"`
-	VulnerabilityDbStatus interface{} `json:"db,omitempty"`
+	VulnerabilityDBStatus interface{} `json:"db,omitempty"`
 }

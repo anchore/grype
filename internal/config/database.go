@@ -25,7 +25,7 @@ func (cfg database) loadDefaultValues(v *viper.Viper) {
 
 func (cfg database) ToCuratorConfig() db.Config {
 	return db.Config{
-		DbRootDir:           cfg.Dir,
+		DBRootDir:           cfg.Dir,
 		ListingURL:          cfg.UpdateURL,
 		ValidateByHashOnGet: cfg.ValidateByHashOnStart,
 	}

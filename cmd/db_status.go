@@ -12,15 +12,15 @@ var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "display database status",
 	Args:  cobra.ExactArgs(0),
-	RunE:  runDbStatusCmd,
+	RunE:  runDBStatusCmd,
 }
 
 func init() {
 	dbCmd.AddCommand(statusCmd)
 }
 
-func runDbStatusCmd(_ *cobra.Command, _ []string) error {
-	dbCurator := db.NewCurator(appConfig.Db.ToCuratorConfig())
+func runDBStatusCmd(_ *cobra.Command, _ []string) error {
+	dbCurator := db.NewCurator(appConfig.DB.ToCuratorConfig())
 	status := dbCurator.Status()
 
 	statusStr := "valid"
