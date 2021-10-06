@@ -11,15 +11,15 @@ var dbCheckCmd = &cobra.Command{
 	Use:   "check",
 	Short: "check to see if there is a database update available",
 	Args:  cobra.ExactArgs(0),
-	RunE:  runDbCheckCmd,
+	RunE:  runDBCheckCmd,
 }
 
 func init() {
 	dbCmd.AddCommand(dbCheckCmd)
 }
 
-func runDbCheckCmd(_ *cobra.Command, _ []string) error {
-	dbCurator := db.NewCurator(appConfig.Db.ToCuratorConfig())
+func runDBCheckCmd(_ *cobra.Command, _ []string) error {
+	dbCurator := db.NewCurator(appConfig.DB.ToCuratorConfig())
 
 	updateAvailable, _, err := dbCurator.IsUpdateAvailable()
 	if err != nil {

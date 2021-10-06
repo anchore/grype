@@ -39,7 +39,7 @@ type Application struct {
 	ScopeOpt           source.Scope            `json:"-"`
 	Scope              string                  `yaml:"scope" json:"scope" mapstructure:"scope"`
 	Log                logging                 `yaml:"log" json:"log" mapstructure:"log"`
-	Db                 database                `yaml:"db" json:"db" mapstructure:"db"`
+	DB                 database                `yaml:"db" json:"db" mapstructure:"db"`
 	Dev                development             `yaml:"dev" json:"dev" mapstructure:"dev"`
 	FailOn             string                  `yaml:"fail-on-severity" json:"fail-on-severity" mapstructure:"fail-on-severity"`
 	FailOnSeverity     *vulnerability.Severity `json:"-"`
@@ -184,7 +184,6 @@ func (cfg Application) String() string {
 }
 
 // readConfig attempts to read the given config path from disk or discover an alternate store location
-// nolint:funlen
 func readConfig(v *viper.Viper, configPath string) error {
 	var err error
 	v.AutomaticEnv()

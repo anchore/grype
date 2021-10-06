@@ -25,7 +25,7 @@ const (
 )
 
 type Config struct {
-	DbRootDir           string
+	DBRootDir           string
 	ListingURL          string
 	ValidateByHashOnGet bool
 }
@@ -41,7 +41,7 @@ type Curator struct {
 }
 
 func NewCurator(cfg Config) Curator {
-	dbDir := path.Join(cfg.DbRootDir, strconv.Itoa(vulnerability.SchemaVersion))
+	dbDir := path.Join(cfg.DBRootDir, strconv.Itoa(vulnerability.SchemaVersion))
 	return Curator{
 		fs:                  afero.NewOsFs(),
 		targetSchema:        vulnerability.SchemaVersion,
@@ -293,7 +293,7 @@ func (c *Curator) validate(dbDirPath string) error {
 }
 
 // activate swaps over the downloaded db to the application directory
-func (c *Curator) activate(aDbDirPath string) error {
+func (c *Curator) activate(dbDirPath string) error {
 	_, err := c.fs.Stat(c.dbDir)
 	if !os.IsNotExist(err) {
 		// remove any previous databases
@@ -310,5 +310,5 @@ func (c *Curator) activate(aDbDirPath string) error {
 	}
 
 	// activate the new db cache
-	return file.CopyDir(c.fs, aDbDirPath, c.dbDir)
+	return file.CopyDir(c.fs, dbDirPath, c.dbDir)
 }

@@ -47,7 +47,7 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 	return matches, nil
 }
 
-func (m *Matcher) cpeMatchesWithoutSecDbFixes(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) cpeMatchesWithoutSecDBFixes(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	// find CPE-indexed vulnerability matches specific to the given package name and version
 	cpeMatches, err := common.FindMatchesByPackageCPE(store, p, m.Type())
 	if err != nil {
@@ -58,12 +58,12 @@ func (m *Matcher) cpeMatchesWithoutSecDbFixes(store vulnerability.Provider, d *d
 
 	// remove cpe matches where there is an entry in the secDB for the particular package-vulnerability pairing, and the
 	// installed package version is >= the fixed in version for the secDB record.
-	secDbVulnerabilities, err := store.GetByDistro(d, p)
+	secDBVulnerabilities, err := store.GetByDistro(d, p)
 	if err != nil {
 		return nil, err
 	}
 
-	secDbVulnerabilitiesByID := vulnerabilitiesByID(secDbVulnerabilities)
+	secDBVulnerabilitiesByID := vulnerabilitiesByID(secDBVulnerabilities)
 
 	verObj, err := version.NewVersionFromPkg(p)
 	if err != nil {
@@ -75,7 +75,7 @@ func (m *Matcher) cpeMatchesWithoutSecDbFixes(store vulnerability.Provider, d *d
 cveLoop:
 	for id, cpeMatchesForID := range cpeMatchesByID {
 		// check to see if there is a secdb entry for this ID (CVE)
-		secDbVulnerabilitiesForID, exists := secDbVulnerabilitiesByID[id]
+		secDBVulnerabilitiesForID, exists := secDBVulnerabilitiesByID[id]
 		if !exists {
 			// does not exist in secdb, so the CPE record(s) should be added to the final results
 			finalCpeMatches = append(finalCpeMatches, cpeMatchesForID...)
@@ -83,7 +83,7 @@ cveLoop:
 		}
 
 		// there is a secdb entry...
-		for _, vuln := range secDbVulnerabilitiesForID {
+		for _, vuln := range secDBVulnerabilitiesForID {
 			// ...is there a fixed in entry? (should always be yes)
 			if len(vuln.Fix.Versions) == 0 {
 				continue
@@ -105,14 +105,14 @@ cveLoop:
 	return finalCpeMatches, nil
 }
 
-func deduplicateMatches(secDbMatches, cpeMatches []match.Match) (matches []match.Match) {
+func deduplicateMatches(secDBMatches, cpeMatches []match.Match) (matches []match.Match) {
 	// add additional unique matches from CPE source that is unique from the SecDB matches
-	secDbMatchesByID := matchesByID(secDbMatches)
+	secDBMatchesByID := matchesByID(secDBMatches)
 	cpeMatchesByID := matchesByID(cpeMatches)
 	for id, cpeMatchesForID := range cpeMatchesByID {
 		// by this point all matches have been verified to be vulnerable within the given package version relative to the vulnerability source.
 		// now we will add unique CPE candidates that were not found in secdb.
-		if _, exists := secDbMatchesByID[id]; !exists {
+		if _, exists := secDBMatchesByID[id]; !exists {
 			// add the new CPE-based record (e.g. NVD) since it was not found in secDB
 			matches = append(matches, cpeMatchesForID...)
 		}
@@ -122,8 +122,8 @@ func deduplicateMatches(secDbMatches, cpeMatches []match.Match) (matches []match
 
 func matchesByID(matches []match.Match) map[string][]match.Match {
 	var results = make(map[string][]match.Match)
-	for _, secDbMatch := range matches {
-		results[secDbMatch.Vulnerability.ID] = append(results[secDbMatch.Vulnerability.ID], secDbMatch)
+	for _, secDBMatch := range matches {
+		results[secDBMatch.Vulnerability.ID] = append(results[secDBMatch.Vulnerability.ID], secDBMatch)
 	}
 	return results
 }
@@ -139,12 +139,12 @@ func vulnerabilitiesByID(vulns []vulnerability.Vulnerability) map[string][]vulne
 
 func (m *Matcher) findApkPackage(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	// find Alpine SecDB matches for the given package name and version
-	secDbMatches, err := common.FindMatchesByPackageDistro(store, d, p, m.Type())
+	secDBMatches, err := common.FindMatchesByPackageDistro(store, d, p, m.Type())
 	if err != nil {
 		return nil, err
 	}
 
-	cpeMatches, err := m.cpeMatchesWithoutSecDbFixes(store, d, p)
+	cpeMatches, err := m.cpeMatchesWithoutSecDBFixes(store, d, p)
 	if err != nil {
 		return nil, err
 	}
@@ -152,10 +152,10 @@ func (m *Matcher) findApkPackage(store vulnerability.Provider, d *distro.Distro,
 	var matches []match.Match
 
 	// keep all secdb matches, as this is an authoritative source
-	matches = append(matches, secDbMatches...)
+	matches = append(matches, secDBMatches...)
 
 	// keep only unique CPE matches
-	matches = append(matches, deduplicateMatches(secDbMatches, cpeMatches)...)
+	matches = append(matches, deduplicateMatches(secDBMatches, cpeMatches)...)
 
 	return matches, nil
 }
@@ -211,7 +211,7 @@ func buildIndirectPackage(p pkg.Package) (pkg.Package, error) {
 	// For each cpe, replace pkg name with origin and add to set
 	cpeStrings := strset.New()
 	for _, cpe := range indirectPackage.CPEs {
-		updatedCPEString := strings.Replace(cpe.BindToFmtString(), p.Name, indirectPackage.Name, -1)
+		updatedCPEString := strings.ReplaceAll(cpe.BindToFmtString(), p.Name, indirectPackage.Name)
 		cpeStrings.Add(updatedCPEString)
 	}
 

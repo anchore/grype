@@ -74,7 +74,7 @@ func NewDocument(packages []pkg.Package, context pkg.Context, matches match.Matc
 			Name:                  internal.ApplicationName,
 			Version:               version.FromBuild().Version,
 			Configuration:         appConfig,
-			VulnerabilityDbStatus: dbStatus,
+			VulnerabilityDBStatus: dbStatus,
 		},
 	}, nil
 }

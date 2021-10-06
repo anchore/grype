@@ -28,7 +28,7 @@ func FindVulnerabilitiesForPackage(provider vulnerability.Provider, d *distro.Di
 	return matcher.FindMatches(provider, d, packages...)
 }
 
-func LoadVulnerabilityDb(cfg db.Config, update bool) (vulnerability.Provider, vulnerability.MetadataProvider, *db.Status, error) {
+func LoadVulnerabilityDB(cfg db.Config, update bool) (vulnerability.Provider, vulnerability.MetadataProvider, *db.Status, error) {
 	dbCurator := db.NewCurator(cfg)
 
 	if update {

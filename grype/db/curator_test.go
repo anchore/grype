@@ -61,7 +61,7 @@ func (g *testGetter) GetToDir(dst, src string, _ ...*progress.Manual) error {
 
 func newTestCurator(fs afero.Fs, getter file.Getter, dbDir, metadataUrl string, validateDbHash bool) Curator {
 	c := NewCurator(Config{
-		DbRootDir:           dbDir,
+		DBRootDir:           dbDir,
 		ListingURL:          metadataUrl,
 		ValidateByHashOnGet: validateDbHash,
 	})

@@ -207,7 +207,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		go func() {
 			defer wg.Done()
 			log.Debug("loading DB")
-			provider, metadataProvider, dbStatus, err = grype.LoadVulnerabilityDb(appConfig.Db.ToCuratorConfig(), appConfig.Db.AutoUpdate)
+			provider, metadataProvider, dbStatus, err = grype.LoadVulnerabilityDB(appConfig.DB.ToCuratorConfig(), appConfig.DB.AutoUpdate)
 			if err != nil {
 				errs <- fmt.Errorf("failed to load vulnerability db: %w", err)
 			}

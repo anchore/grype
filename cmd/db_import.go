@@ -14,15 +14,15 @@ var dbImportCmd = &cobra.Command{
 	Short: "import a vulnerability database archive",
 	Long:  fmt.Sprintf("import a vulnerability database archive from a local FILE.\nDB archives can be obtained from %q.", internal.DBUpdateURL),
 	Args:  cobra.ExactArgs(1),
-	RunE:  runDbImportCmd,
+	RunE:  runDBImportCmd,
 }
 
 func init() {
 	dbCmd.AddCommand(dbImportCmd)
 }
 
-func runDbImportCmd(_ *cobra.Command, args []string) error {
-	dbCurator := db.NewCurator(appConfig.Db.ToCuratorConfig())
+func runDBImportCmd(_ *cobra.Command, args []string) error {
+	dbCurator := db.NewCurator(appConfig.DB.ToCuratorConfig())
 
 	if err := dbCurator.ImportFrom(args[0]); err != nil {
 		return fmt.Errorf("unable to import vulnerability database: %+v", err)

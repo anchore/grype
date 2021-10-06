@@ -11,15 +11,15 @@ var dbUpdateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "download the latest vulnerability database",
 	Args:  cobra.ExactArgs(0),
-	RunE:  runDbUpdateCmd,
+	RunE:  runDBUpdateCmd,
 }
 
 func init() {
 	dbCmd.AddCommand(dbUpdateCmd)
 }
 
-func runDbUpdateCmd(_ *cobra.Command, _ []string) error {
-	dbCurator := db.NewCurator(appConfig.Db.ToCuratorConfig())
+func runDBUpdateCmd(_ *cobra.Command, _ []string) error {
+	dbCurator := db.NewCurator(appConfig.DB.ToCuratorConfig())
 
 	updated, err := dbCurator.Update()
 	if err != nil {
