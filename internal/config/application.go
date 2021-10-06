@@ -184,7 +184,6 @@ func (cfg Application) String() string {
 }
 
 // readConfig attempts to read the given config path from disk or discover an alternate store location
-
 func readConfig(v *viper.Viper, configPath string) error {
 	var err error
 	v.AutomaticEnv()
