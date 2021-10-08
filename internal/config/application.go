@@ -35,6 +35,7 @@ type Application struct {
 	OutputTemplateFile string                  `yaml:"output-template-file" json:"output-template-file" mapstructure:"output-template-file"` // -t, the template file to use for formatting the final report
 	Quiet              bool                    `yaml:"quiet" json:"quiet" mapstructure:"quiet"`                                              // -q, indicates to not show any status output to stderr (ETUI or logging UI)
 	CheckForAppUpdate  bool                    `yaml:"check-for-app-update" json:"check-for-app-update" mapstructure:"check-for-app-update"` // whether to check for an application update on start up or not
+	FailNoFix          bool                    `yaml:"fail-no-fix" json:"fail-no-fix" mapstructure:"fail-no-fix"`                            // whether to fail if detected vulns have no fix
 	CliOptions         CliOnlyOptions          `yaml:"-" json:"-"`
 	ScopeOpt           source.Scope            `json:"-"`
 	Scope              string                  `yaml:"scope" json:"scope" mapstructure:"scope"`
