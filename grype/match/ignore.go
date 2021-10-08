@@ -37,7 +37,7 @@ type IgnoreRulePackage struct {
 // applicable rules are attached to the Match to form an IgnoredMatch.
 // ApplyIgnoreRules returns two collections: the matches that are not being
 // ignored, and the matches that are being ignored.
-func ApplyIgnoreRules(matches Matches, rules []IgnoreRule) (Matches, []IgnoredMatch) {
+func ApplyIgnoreRules(matches Matches, rules []IgnoreRule, failOnlyFixed bool) (Matches, []IgnoredMatch) {
 	if len(rules) == 0 {
 		return matches, nil
 	}
@@ -54,7 +54,12 @@ func ApplyIgnoreRules(matches Matches, rules []IgnoreRule) (Matches, []IgnoredMa
 			}
 		}
 
-		if len(applicableRules) > 0 || isNoFix(match) {
+		var notFixed bool
+		if failOnlyFixed {
+			notFixed = isNotFixed(match)
+		}
+
+		if len(applicableRules) > 0 || notFixed {
 			ignoredMatches = append(ignoredMatches, IgnoredMatch{
 				Match:              match,
 				AppliedIgnoreRules: applicableRules,
@@ -69,7 +74,7 @@ func ApplyIgnoreRules(matches Matches, rules []IgnoreRule) (Matches, []IgnoredMa
 	return remainingMatches, ignoredMatches
 }
 
-func isNoFix(m Match) bool {
+func isNotFixed(m Match) bool {
 	return m.Vulnerability.Fix.State == grypeDb.NotFixedState
 }
 

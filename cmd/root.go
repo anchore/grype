@@ -241,7 +241,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		}
 
 		allMatches := grype.FindVulnerabilitiesForPackage(provider, context.Distro, packages...)
-		remainingMatches, ignoredMatches := match.ApplyIgnoreRules(allMatches, appConfig.Ignore)
+		remainingMatches, ignoredMatches := match.ApplyIgnoreRules(allMatches, appConfig.Ignore, appConfig.OnlyFixed)
 
 		if count := len(ignoredMatches); count > 0 {
 			log.Infof("Ignoring %d matches due to user-provided ignore rules", count)

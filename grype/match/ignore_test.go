@@ -149,11 +149,12 @@ func TestApplyIgnoreRules(t *testing.T) {
 
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
+			failOnlyFixed := false
 			locationComparerOption := cmp.Comparer(func(x, y source.Location) bool {
 				return x.RealPath == y.RealPath && x.VirtualPath == y.VirtualPath
 			})
 
-			actualRemainingMatches, actualIgnoredMatches := ApplyIgnoreRules(sliceToMatches(testCase.allMatches), testCase.ignoreRules)
+			actualRemainingMatches, actualIgnoredMatches := ApplyIgnoreRules(sliceToMatches(testCase.allMatches), testCase.ignoreRules, failOnlyFixed)
 
 			if diff := cmp.Diff(testCase.expectedRemainingMatches, matchesToSlice(actualRemainingMatches), locationComparerOption); diff != "" {
 				t.Errorf("unexpected diff in remaining matches (-expected +actual):\n%s", diff)
