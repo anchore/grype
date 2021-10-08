@@ -116,7 +116,7 @@ func setRootFlags(flags *pflag.FlagSet) {
 	)
 
 	flags.BoolP(
-		"fail-no-fix", "", true,
+		"only-fixed", "", false,
 		"set the return code to 1 if a vulnerability is found that has no listed fix",
 	)
 }
@@ -142,7 +142,7 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 		return err
 	}
 
-	if err := viper.BindPFlag("fail-no-fix", flags.Lookup("fail-no-fix")); err != nil {
+	if err := viper.BindPFlag("only-fixed", flags.Lookup("only-fixed")); err != nil {
 		return err
 	}
 

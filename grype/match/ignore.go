@@ -37,7 +37,7 @@ type IgnoreRulePackage struct {
 // applicable rules are attached to the Match to form an IgnoredMatch.
 // ApplyIgnoreRules returns two collections: the matches that are not being
 // ignored, and the matches that are being ignored.
-func ApplyIgnoreRules(matches Matches, rules []IgnoreRule, failNoFix bool) (Matches, []IgnoredMatch) {
+func ApplyIgnoreRules(matches Matches, rules []IgnoreRule) (Matches, []IgnoredMatch) {
 	if len(rules) == 0 {
 		return matches, nil
 	}

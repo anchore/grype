@@ -35,7 +35,7 @@ type Application struct {
 	OutputTemplateFile string                  `yaml:"output-template-file" json:"output-template-file" mapstructure:"output-template-file"` // -t, the template file to use for formatting the final report
 	Quiet              bool                    `yaml:"quiet" json:"quiet" mapstructure:"quiet"`                                              // -q, indicates to not show any status output to stderr (ETUI or logging UI)
 	CheckForAppUpdate  bool                    `yaml:"check-for-app-update" json:"check-for-app-update" mapstructure:"check-for-app-update"` // whether to check for an application update on start up or not
-	FailNoFix          bool                    `yaml:"fail-no-fix" json:"fail-no-fix" mapstructure:"fail-no-fix"`                            // whether to fail if detected vulns have no fix
+	OnlyFixed          bool                    `yaml:"only-fixed" json:"only-fixed" mapstructure:"only-fixed"`                               // fail only if detected vulns have a fix
 	CliOptions         CliOnlyOptions          `yaml:"-" json:"-"`
 	ScopeOpt           source.Scope            `json:"-"`
 	Scope              string                  `yaml:"scope" json:"scope" mapstructure:"scope"`
@@ -53,6 +53,7 @@ func newApplicationConfig(v *viper.Viper, cliOpts CliOnlyOptions) *Application {
 		CliOptions: cliOpts,
 	}
 	config.loadDefaultValues(v)
+
 	return config
 }
 
@@ -80,7 +81,7 @@ func LoadApplicationConfig(v *viper.Viper, cliOpts CliOnlyOptions) (*Application
 func (cfg Application) loadDefaultValues(v *viper.Viper) {
 	// set the default values for primitive fields in this struct
 	v.SetDefault("check-for-app-update", true)
-	v.SetDefault("fail-no-fix", true)
+	v.SetDefault("only-fixed", false)
 
 	// for each field in the configuration struct, see if the field implements the defaultValueLoader interface and invoke it if it does
 	value := reflect.ValueOf(cfg)
