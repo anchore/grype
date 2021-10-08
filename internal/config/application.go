@@ -80,6 +80,7 @@ func LoadApplicationConfig(v *viper.Viper, cliOpts CliOnlyOptions) (*Application
 func (cfg Application) loadDefaultValues(v *viper.Viper) {
 	// set the default values for primitive fields in this struct
 	v.SetDefault("check-for-app-update", true)
+	v.SetDefault("fail-no-fix", true)
 
 	// for each field in the configuration struct, see if the field implements the defaultValueLoader interface and invoke it if it does
 	value := reflect.ValueOf(cfg)

@@ -114,6 +114,11 @@ func setRootFlags(flags *pflag.FlagSet) {
 		"fail-on", "f", "",
 		fmt.Sprintf("set the return code to 1 if a vulnerability is found with a severity >= the given severity, options=%v", vulnerability.AllSeverities),
 	)
+
+	flags.BoolP(
+		"fail-no-fix", "", true,
+		"set the return code to 1 if a vulnerability is found that has no listed fix",
+	)
 }
 
 func bindRootConfigOptions(flags *pflag.FlagSet) error {
@@ -136,6 +141,11 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 	if err := viper.BindPFlag("fail-on-severity", flags.Lookup("fail-on")); err != nil {
 		return err
 	}
+
+	if err := viper.BindPFlag("fail-no-fix", flags.Lookup("fail-no-fix")); err != nil {
+		return err
+	}
+
 	return nil
 }
 
