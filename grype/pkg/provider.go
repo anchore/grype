@@ -27,7 +27,7 @@ type provider func(cfg providerConfig) ([]Package, Context, error)
 // Provide a set of packages and context metadata describing where they were sourced from.
 func Provide(userInput string, scopeOpt source.Scope, registryOptions *image.RegistryOptions) ([]Package, Context, error) {
 	providers := []provider{
-		syftJSONProvider,
+		syftSBOMProvider,
 		syftProvider, // important: we should try syft last
 	}
 

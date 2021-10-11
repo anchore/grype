@@ -1,5 +1,5 @@
 package pkg
 
 type DpkgMetadata struct {
-	Source string
+	Source string `json:"source"`
 }

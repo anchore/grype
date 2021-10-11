@@ -54,7 +54,7 @@
     "cpes": [],
     "purl": "",
     "metadata": {
-     "Source": "a source!"
+     "source": "a source!"
     }
    }
   },
@@ -112,7 +112,7 @@
     "cpes": [],
     "purl": "",
     "metadata": {
-     "Source": "a source!"
+     "source": "a source!"
     }
    }
   },
@@ -158,7 +158,7 @@
     "cpes": [],
     "purl": "",
     "metadata": {
-     "Source": "a source!"
+     "source": "a source!"
     }
    }
   }

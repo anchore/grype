@@ -1,5 +1,5 @@
 package pkg
 
 type ApkMetadata struct {
-	OriginPackage string
+	OriginPackage string `json:"originPackage"`
 }

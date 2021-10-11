@@ -57,7 +57,7 @@
     ],
     "purl": "",
     "metadata": {
-     "Source": "a source!"
+     "source": "a source!"
     }
    }
   },
@@ -118,7 +118,7 @@
     ],
     "purl": "",
     "metadata": {
-     "Source": "a source!"
+     "source": "a source!"
     }
    }
   },
@@ -167,7 +167,7 @@
     ],
     "purl": "",
     "metadata": {
-     "Source": "a source!"
+     "source": "a source!"
     }
    }
   }

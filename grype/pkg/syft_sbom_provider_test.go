@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -139,7 +140,7 @@ func TestParseSyftJSON(t *testing.T) {
 				t.Fatalf("unable to open fixture: %+v", err)
 			}
 
-			pkgs, context, err := parseSyftJSON(fh)
+			pkgs, context, err := syftSBOMProvider(providerConfig{reader: fh})
 			if err != nil {
 				t.Fatalf("unable to parse: %+v", err)
 			}
@@ -148,6 +149,10 @@ func TestParseSyftJSON(t *testing.T) {
 			context.Source.ImageMetadata.RawManifest = nil
 
 			for _, d := range deep.Equal(test.Packages, pkgs) {
+				if strings.Contains(d, ".ID: ") {
+					// package IDs will never match
+					continue
+				}
 				t.Errorf("pkg diff: %s", d)
 			}
 
@@ -165,7 +170,7 @@ func TestParseSyftJSON_BadCPEs(t *testing.T) {
 		t.Fatalf("unable to open fixture: %+v", err)
 	}
 
-	pkgs, _, err := parseSyftJSON(fh)
+	pkgs, _, err := syftSBOMProvider(providerConfig{reader: fh})
 	assert.NoError(t, err)
 	assert.Len(t, pkgs, 1)
 }

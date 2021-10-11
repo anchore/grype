@@ -1,6 +1,6 @@
 package pkg
 
 type RpmdbMetadata struct {
-	SourceRpm string
-	Epoch     *int
+	SourceRpm string `json:"sourceRpm"`
+	Epoch     *int   `json:"epoch"`
 }
