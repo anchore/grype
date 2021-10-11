@@ -54,12 +54,12 @@ func ApplyIgnoreRules(matches Matches, rules []IgnoreRule, failOnlyFixed bool) (
 			}
 		}
 
-		var notFixed bool
+		var ignoreMatch bool
 		if failOnlyFixed {
-			notFixed = isNotFixed(match)
+			ignoreMatch = isNotFixed(match)
 		}
 
-		if len(applicableRules) > 0 || notFixed {
+		if len(applicableRules) > 0 || ignoreMatch {
 			ignoredMatches = append(ignoredMatches, IgnoredMatch{
 				Match:              match,
 				AppliedIgnoreRules: applicableRules,
