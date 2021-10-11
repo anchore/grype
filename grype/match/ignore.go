@@ -1,6 +1,10 @@
 package match
 
-import "github.com/bmatcuk/doublestar/v2"
+import (
+	"github.com/bmatcuk/doublestar/v2"
+
+	grypeDb "github.com/anchore/grype-db/pkg/db/v3"
+)
 
 // An IgnoredMatch is a vulnerability Match that has been ignored because one or more IgnoreRules applied to the match.
 type IgnoredMatch struct {
@@ -33,7 +37,7 @@ type IgnoreRulePackage struct {
 // applicable rules are attached to the Match to form an IgnoredMatch.
 // ApplyIgnoreRules returns two collections: the matches that are not being
 // ignored, and the matches that are being ignored.
-func ApplyIgnoreRules(matches Matches, rules []IgnoreRule) (Matches, []IgnoredMatch) {
+func ApplyIgnoreRules(matches Matches, rules []IgnoreRule, failOnlyFixed bool) (Matches, []IgnoredMatch) {
 	if len(rules) == 0 {
 		return matches, nil
 	}
@@ -50,7 +54,12 @@ func ApplyIgnoreRules(matches Matches, rules []IgnoreRule) (Matches, []IgnoredMa
 			}
 		}
 
-		if len(applicableRules) > 0 {
+		var ignoreMatch bool
+		if failOnlyFixed {
+			ignoreMatch = isNotFixed(match)
+		}
+
+		if len(applicableRules) > 0 || ignoreMatch {
 			ignoredMatches = append(ignoredMatches, IgnoredMatch{
 				Match:              match,
 				AppliedIgnoreRules: applicableRules,
@@ -63,6 +72,10 @@ func ApplyIgnoreRules(matches Matches, rules []IgnoreRule) (Matches, []IgnoredMa
 	}
 
 	return remainingMatches, ignoredMatches
+}
+
+func isNotFixed(m Match) bool {
+	return m.Vulnerability.Fix.State == grypeDb.NotFixedState
 }
 
 func shouldIgnore(match Match, rule IgnoreRule) bool {

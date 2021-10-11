@@ -114,6 +114,11 @@ func setRootFlags(flags *pflag.FlagSet) {
 		"fail-on", "f", "",
 		fmt.Sprintf("set the return code to 1 if a vulnerability is found with a severity >= the given severity, options=%v", vulnerability.AllSeverities),
 	)
+
+	flags.BoolP(
+		"only-fixed", "", false,
+		"only set the return code to 1 if vulnerabilities are found that have fixes",
+	)
 }
 
 func bindRootConfigOptions(flags *pflag.FlagSet) error {
@@ -136,6 +141,11 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 	if err := viper.BindPFlag("fail-on-severity", flags.Lookup("fail-on")); err != nil {
 		return err
 	}
+
+	if err := viper.BindPFlag("only-fixed", flags.Lookup("only-fixed")); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -231,7 +241,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		}
 
 		allMatches := grype.FindVulnerabilitiesForPackage(provider, context.Distro, packages...)
-		remainingMatches, ignoredMatches := match.ApplyIgnoreRules(allMatches, appConfig.Ignore)
+		remainingMatches, ignoredMatches := match.ApplyIgnoreRules(allMatches, appConfig.Ignore, appConfig.OnlyFixed)
 
 		if count := len(ignoredMatches); count > 0 {
 			log.Infof("Ignoring %d matches due to user-provided ignore rules", count)
