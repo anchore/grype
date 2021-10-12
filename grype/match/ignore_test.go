@@ -11,6 +11,8 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 
 	"github.com/stretchr/testify/assert"
+
+	grypeDb "github.com/anchore/grype-db/pkg/db/v3"
 )
 
 var (
@@ -18,6 +20,9 @@ var (
 		{
 			Vulnerability: vulnerability.Vulnerability{
 				ID: "CVE-123",
+				Fix: vulnerability.Fix{
+					State: grypeDb.FixedState,
+				},
 			},
 			Package: pkg.Package{
 				Name:    "dive",
@@ -33,6 +38,9 @@ var (
 		{
 			Vulnerability: vulnerability.Vulnerability{
 				ID: "CVE-456",
+				Fix: vulnerability.Fix{
+					State: grypeDb.NotFixedState,
+				},
 			},
 			Package: pkg.Package{
 				Name:    "reach",
@@ -56,6 +64,7 @@ func TestApplyIgnoreRules(t *testing.T) {
 		ignoreRules              []IgnoreRule
 		expectedRemainingMatches []Match
 		expectedIgnoredMatches   []IgnoredMatch
+		ignoreMatchesWithoutFix  bool
 	}{
 		{
 			name:                     "no ignore rules",
@@ -63,6 +72,7 @@ func TestApplyIgnoreRules(t *testing.T) {
 			ignoreRules:              nil,
 			expectedRemainingMatches: allMatches,
 			expectedIgnoredMatches:   nil,
+			ignoreMatchesWithoutFix:  false,
 		},
 		{
 			name:       "no applicable ignore rules",
@@ -87,6 +97,7 @@ func TestApplyIgnoreRules(t *testing.T) {
 			},
 			expectedRemainingMatches: allMatches,
 			expectedIgnoredMatches:   nil,
+			ignoreMatchesWithoutFix:  false,
 		},
 		{
 			name:       "ignore all matches",
@@ -122,6 +133,7 @@ func TestApplyIgnoreRules(t *testing.T) {
 					},
 				},
 			},
+			ignoreMatchesWithoutFix: false,
 		},
 		{
 			name:       "ignore subset of matches",
@@ -144,17 +156,31 @@ func TestApplyIgnoreRules(t *testing.T) {
 					},
 				},
 			},
+			ignoreMatchesWithoutFix: false,
+		},
+		{
+			name:        "ignore matches without fix",
+			allMatches:  allMatches,
+			ignoreRules: nil,
+			expectedRemainingMatches: []Match{
+				allMatches[0],
+			},
+			expectedIgnoredMatches: []IgnoredMatch{
+				{
+					Match: allMatches[1],
+				},
+			},
+			ignoreMatchesWithoutFix: true,
 		},
 	}
 
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
-			failOnlyFixed := false
 			locationComparerOption := cmp.Comparer(func(x, y source.Location) bool {
 				return x.RealPath == y.RealPath && x.VirtualPath == y.VirtualPath
 			})
 
-			actualRemainingMatches, actualIgnoredMatches := ApplyIgnoreRules(sliceToMatches(testCase.allMatches), testCase.ignoreRules, failOnlyFixed)
+			actualRemainingMatches, actualIgnoredMatches := ApplyIgnoreRules(sliceToMatches(testCase.allMatches), testCase.ignoreRules, testCase.ignoreMatchesWithoutFix)
 
 			if diff := cmp.Diff(testCase.expectedRemainingMatches, matchesToSlice(actualRemainingMatches), locationComparerOption); diff != "" {
 				t.Errorf("unexpected diff in remaining matches (-expected +actual):\n%s", diff)
