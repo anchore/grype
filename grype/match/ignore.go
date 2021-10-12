@@ -73,7 +73,7 @@ func ApplyIgnoreRules(matches Matches, rules []IgnoreRule, ignoreMatchesWithoutF
 }
 
 func isNotFixed(m Match) bool {
-	return m.Vulnerability.Fix.State == grypeDb.NotFixedState
+	return m.Vulnerability.Fix.State != grypeDb.FixedState
 }
 
 func shouldIgnore(match Match, rule IgnoreRule) bool {

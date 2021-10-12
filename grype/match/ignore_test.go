@@ -54,6 +54,44 @@ var (
 				},
 			},
 		},
+		{
+			Vulnerability: vulnerability.Vulnerability{
+				ID: "CVE-457",
+				Fix: vulnerability.Fix{
+					State: grypeDb.WontFixState,
+				},
+			},
+			Package: pkg.Package{
+				Name:    "beach",
+				Version: "100.0.51",
+				Type:    "gem",
+				Locations: []source.Location{
+					{
+						RealPath:    "/real/path/with/beach",
+						VirtualPath: "/virtual/path/that/has/beach",
+					},
+				},
+			},
+		},
+		{
+			Vulnerability: vulnerability.Vulnerability{
+				ID: "CVE-458",
+				Fix: vulnerability.Fix{
+					State: grypeDb.UnknownFixState,
+				},
+			},
+			Package: pkg.Package{
+				Name:    "speach",
+				Version: "100.0.52",
+				Type:    "gem",
+				Locations: []source.Location{
+					{
+						RealPath:    "/real/path/with/speach",
+						VirtualPath: "/virtual/path/that/has/speach",
+					},
+				},
+			},
+		},
 	}
 )
 
@@ -112,7 +150,10 @@ func TestApplyIgnoreRules(t *testing.T) {
 					},
 				},
 			},
-			expectedRemainingMatches: nil,
+			expectedRemainingMatches: []Match{
+				allMatches[2],
+				allMatches[3],
+			},
 			expectedIgnoredMatches: []IgnoredMatch{
 				{
 					Match: allMatches[0],
@@ -145,6 +186,8 @@ func TestApplyIgnoreRules(t *testing.T) {
 			},
 			expectedRemainingMatches: []Match{
 				allMatches[0],
+				allMatches[2],
+				allMatches[3],
 			},
 			expectedIgnoredMatches: []IgnoredMatch{
 				{
@@ -168,6 +211,12 @@ func TestApplyIgnoreRules(t *testing.T) {
 			expectedIgnoredMatches: []IgnoredMatch{
 				{
 					Match: allMatches[1],
+				},
+				{
+					Match: allMatches[2],
+				},
+				{
+					Match: allMatches[3],
 				},
 			},
 			ignoreMatchesWithoutFix: true,
