@@ -117,7 +117,7 @@ func setRootFlags(flags *pflag.FlagSet) {
 
 	flags.BoolP(
 		"only-fixed", "", false,
-		"only set the return code to 1 if vulnerabilities are found that have fixes",
+		"ignore matches for vulnerabilities that are not fixed",
 	)
 }
 

@@ -37,11 +37,7 @@ type IgnoreRulePackage struct {
 // applicable rules are attached to the Match to form an IgnoredMatch.
 // ApplyIgnoreRules returns two collections: the matches that are not being
 // ignored, and the matches that are being ignored.
-func ApplyIgnoreRules(matches Matches, rules []IgnoreRule, failOnlyFixed bool) (Matches, []IgnoredMatch) {
-	if len(rules) == 0 {
-		return matches, nil
-	}
-
+func ApplyIgnoreRules(matches Matches, rules []IgnoreRule, ignoreMatchesWithoutFix bool) (Matches, []IgnoredMatch) {
 	var ignoredMatches []IgnoredMatch
 	remainingMatches := NewMatches()
 
@@ -55,7 +51,7 @@ func ApplyIgnoreRules(matches Matches, rules []IgnoreRule, failOnlyFixed bool) (
 		}
 
 		var ignoreMatch bool
-		if failOnlyFixed {
+		if ignoreMatchesWithoutFix {
 			ignoreMatch = isNotFixed(match)
 		}
 
