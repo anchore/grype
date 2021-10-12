@@ -35,6 +35,8 @@ type IgnoreRulePackage struct {
 // determines if the match should be ignored, by evaluating if any of the
 // provided IgnoreRules apply to the match. If any rules apply to the match, all
 // applicable rules are attached to the Match to form an IgnoredMatch.
+// It also checks if the user has provided a ignoreMatchesWithoutFix flag.
+// If this is the case, it ignores all vulnerability with no listed fix.
 // ApplyIgnoreRules returns two collections: the matches that are not being
 // ignored, and the matches that are being ignored.
 func ApplyIgnoreRules(matches Matches, rules []IgnoreRule, ignoreMatchesWithoutFix bool) (Matches, []IgnoredMatch) {
