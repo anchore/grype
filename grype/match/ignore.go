@@ -2,8 +2,6 @@ package match
 
 import (
 	"github.com/bmatcuk/doublestar/v2"
-
-	grypeDb "github.com/anchore/grype-db/pkg/db/v3"
 )
 
 // An IgnoredMatch is a vulnerability Match that has been ignored because one or more IgnoreRules applied to the match.
@@ -20,6 +18,7 @@ type IgnoredMatch struct {
 // rule to apply.
 type IgnoreRule struct {
 	Vulnerability string            `yaml:"vulnerability" json:"vulnerability" mapstructure:"vulnerability"`
+	FixedState    string            `yaml:"fixed_state" json:"fixedState" mapstructure:"fixed_state"`
 	Package       IgnoreRulePackage `yaml:"package" json:"package" mapstructure:"package"`
 }
 
@@ -39,7 +38,7 @@ type IgnoreRulePackage struct {
 // If this is the case, it ignores all vulnerability with no listed fix.
 // ApplyIgnoreRules returns two collections: the matches that are not being
 // ignored, and the matches that are being ignored.
-func ApplyIgnoreRules(matches Matches, rules []IgnoreRule, ignoreMatchesWithoutFix bool) (Matches, []IgnoredMatch) {
+func ApplyIgnoreRules(matches Matches, rules []IgnoreRule) (Matches, []IgnoredMatch) {
 	var ignoredMatches []IgnoredMatch
 	remainingMatches := NewMatches()
 
@@ -52,12 +51,7 @@ func ApplyIgnoreRules(matches Matches, rules []IgnoreRule, ignoreMatchesWithoutF
 			}
 		}
 
-		var ignoreMatch bool
-		if ignoreMatchesWithoutFix {
-			ignoreMatch = isNotFixed(match)
-		}
-
-		if len(applicableRules) > 0 || ignoreMatch {
+		if len(applicableRules) > 0 {
 			ignoredMatches = append(ignoredMatches, IgnoredMatch{
 				Match:              match,
 				AppliedIgnoreRules: applicableRules,
@@ -70,10 +64,6 @@ func ApplyIgnoreRules(matches Matches, rules []IgnoreRule, ignoreMatchesWithoutF
 	}
 
 	return remainingMatches, ignoredMatches
-}
-
-func isNotFixed(m Match) bool {
-	return m.Vulnerability.Fix.State != grypeDb.FixedState
 }
 
 func shouldIgnore(match Match, rule IgnoreRule) bool {
@@ -121,7 +111,17 @@ func getIgnoreConditionsForRule(rule IgnoreRule) []ignoreCondition {
 		ignoreConditions = append(ignoreConditions, ifPackageLocationApplies(l))
 	}
 
+	if fs := rule.FixedState; fs != "" {
+		ignoreConditions = append(ignoreConditions, ifVulnerabilityFixedStateApplies(fs))
+	}
+
 	return ignoreConditions
+}
+
+func ifVulnerabilityFixedStateApplies(fs string) ignoreCondition {
+	return func(match Match) bool {
+		return fs == string(match.Vulnerability.Fix.State)
+	}
 }
 
 func ifVulnerabilityApplies(vulnerability string) ignoreCondition {

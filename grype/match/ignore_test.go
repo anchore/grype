@@ -102,7 +102,6 @@ func TestApplyIgnoreRules(t *testing.T) {
 		ignoreRules              []IgnoreRule
 		expectedRemainingMatches []Match
 		expectedIgnoredMatches   []IgnoredMatch
-		ignoreMatchesWithoutFix  bool
 	}{
 		{
 			name:                     "no ignore rules",
@@ -110,7 +109,6 @@ func TestApplyIgnoreRules(t *testing.T) {
 			ignoreRules:              nil,
 			expectedRemainingMatches: allMatches,
 			expectedIgnoredMatches:   nil,
-			ignoreMatchesWithoutFix:  false,
 		},
 		{
 			name:       "no applicable ignore rules",
@@ -135,7 +133,6 @@ func TestApplyIgnoreRules(t *testing.T) {
 			},
 			expectedRemainingMatches: allMatches,
 			expectedIgnoredMatches:   nil,
-			ignoreMatchesWithoutFix:  false,
 		},
 		{
 			name:       "ignore all matches",
@@ -174,7 +171,6 @@ func TestApplyIgnoreRules(t *testing.T) {
 					},
 				},
 			},
-			ignoreMatchesWithoutFix: false,
 		},
 		{
 			name:       "ignore subset of matches",
@@ -199,27 +195,44 @@ func TestApplyIgnoreRules(t *testing.T) {
 					},
 				},
 			},
-			ignoreMatchesWithoutFix: false,
 		},
 		{
-			name:        "ignore matches without fix",
-			allMatches:  allMatches,
-			ignoreRules: nil,
+			name:       "ignore matches without fix",
+			allMatches: allMatches,
+			ignoreRules: []IgnoreRule{
+				{FixedState: string(grypeDb.NotFixedState)},
+				{FixedState: string(grypeDb.WontFixState)},
+				{FixedState: string(grypeDb.UnknownFixState)},
+			},
 			expectedRemainingMatches: []Match{
 				allMatches[0],
 			},
 			expectedIgnoredMatches: []IgnoredMatch{
 				{
 					Match: allMatches[1],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							FixedState: "not-fixed",
+						},
+					},
 				},
 				{
 					Match: allMatches[2],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							FixedState: "wont-fix",
+						},
+					},
 				},
 				{
 					Match: allMatches[3],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							FixedState: "unknown",
+						},
+					},
 				},
 			},
-			ignoreMatchesWithoutFix: true,
 		},
 	}
 
@@ -229,7 +242,7 @@ func TestApplyIgnoreRules(t *testing.T) {
 				return x.RealPath == y.RealPath && x.VirtualPath == y.VirtualPath
 			})
 
-			actualRemainingMatches, actualIgnoredMatches := ApplyIgnoreRules(sliceToMatches(testCase.allMatches), testCase.ignoreRules, testCase.ignoreMatchesWithoutFix)
+			actualRemainingMatches, actualIgnoredMatches := ApplyIgnoreRules(sliceToMatches(testCase.allMatches), testCase.ignoreRules)
 
 			if diff := cmp.Diff(testCase.expectedRemainingMatches, matchesToSlice(actualRemainingMatches), locationComparerOption); diff != "" {
 				t.Errorf("unexpected diff in remaining matches (-expected +actual):\n%s", diff)

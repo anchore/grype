@@ -27,9 +27,17 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/wagoodman/go-partybus"
+
+	grypeDb "github.com/anchore/grype-db/pkg/db/v3"
 )
 
 var persistentOpts = config.CliOnlyOptions{}
+
+var ignoreNonFixedMatches = []match.IgnoreRule{
+	{FixedState: string(grypeDb.NotFixedState)},
+	{FixedState: string(grypeDb.WontFixState)},
+	{FixedState: string(grypeDb.UnknownFixState)},
+}
 
 var (
 	rootCmd = &cobra.Command{
@@ -240,8 +248,12 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			return
 		}
 
+		if appConfig.OnlyFixed {
+			appConfig.Ignore = append(appConfig.Ignore, ignoreNonFixedMatches...)
+		}
+
 		allMatches := grype.FindVulnerabilitiesForPackage(provider, context.Distro, packages...)
-		remainingMatches, ignoredMatches := match.ApplyIgnoreRules(allMatches, appConfig.Ignore, appConfig.OnlyFixed)
+		remainingMatches, ignoredMatches := match.ApplyIgnoreRules(allMatches, appConfig.Ignore)
 
 		if count := len(ignoredMatches); count > 0 {
 			log.Infof("Ignoring %d matches due to user-provided ignore rules", count)
