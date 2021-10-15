@@ -20,6 +20,7 @@ func (v *kbVersion) Compare(other *Version) (int, error) {
 	if other.Format != KBFormat {
 		return -1, fmt.Errorf("unable to compare kb to given format: %s", other.Format)
 	}
+
 	if other.rich.kbVer == nil {
 		return -1, fmt.Errorf("given empty kbVersion object")
 	}
@@ -32,6 +33,7 @@ func (v kbVersion) compare(v2 kbVersion) int {
 	if reflect.DeepEqual(v, v2) {
 		return 0
 	}
+
 	return 1
 }
 
