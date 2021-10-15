@@ -30,5 +30,4 @@ func (a *apkVersion) Compare(other *Version) (int, error) {
 	}
 
 	return other.rich.apkVer.obj.Compare(a.obj), nil
-
 }
