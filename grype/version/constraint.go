@@ -11,6 +11,8 @@ type Constraint interface {
 
 func GetConstraint(constStr string, format Format) (Constraint, error) {
 	switch format {
+	case ApkFormat:
+		return newApkConstraint(constStr)
 	case SemanticFormat:
 		return newSemanticConstraint(constStr)
 	case DebFormat:

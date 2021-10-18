@@ -57,9 +57,11 @@ func TestSecDBOnlyMatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
+
 	p := pkg.Package{
 		Name:    "libvncserver",
 		Version: "0.9.9",
+		Type:    syftPkg.ApkPkg,
 		CPEs: []syftPkg.CPE{
 			must(syftPkg.NewCPE("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*")),
 		},
@@ -140,9 +142,11 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
+
 	p := pkg.Package{
 		Name:    "libvncserver",
 		Version: "0.9.9",
+		Type:    syftPkg.ApkPkg,
 		CPEs: []syftPkg.CPE{
 			must(syftPkg.NewCPE("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*")),
 		},
@@ -227,6 +231,7 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 	p := pkg.Package{
 		Name:    "libvncserver",
 		Version: "0.9.9",
+		Type:    syftPkg.ApkPkg,
 		CPEs: []syftPkg.CPE{
 			// Note: the product name is NOT the same as the package name
 			must(syftPkg.NewCPE("cpe:2.3:a:*:libvncumbrellaproject:0.9.9:*:*:*:*:*:*:*")),
@@ -299,6 +304,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 	p := pkg.Package{
 		Name:    "libvncserver",
 		Version: "0.9.9",
+		Type:    syftPkg.ApkPkg,
 		CPEs: []syftPkg.CPE{
 			must(syftPkg.NewCPE("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*")),
 		},
@@ -375,6 +381,7 @@ func TestNvdMatchesWithSecDBFix(t *testing.T) {
 	p := pkg.Package{
 		Name:    "libvncserver",
 		Version: "0.9.11",
+		Type:    syftPkg.ApkPkg,
 		CPEs: []syftPkg.CPE{
 			must(syftPkg.NewCPE("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*")),
 		},
@@ -427,6 +434,7 @@ func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
 	p := pkg.Package{
 		Name:    "libvncserver",
 		Version: "0.9.11",
+		Type:    syftPkg.ApkPkg,
 		CPEs: []syftPkg.CPE{
 			must(syftPkg.NewCPE("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*")),
 		},
@@ -469,6 +477,7 @@ func TestDistroMatchBySourceIndirection(t *testing.T) {
 	p := pkg.Package{
 		Name:     "musl-utils",
 		Version:  "1.3.2-r0",
+		Type:     syftPkg.ApkPkg,
 		Metadata: pkg.ApkMetadata{OriginPackage: "musl"},
 	}
 
@@ -538,6 +547,7 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 	p := pkg.Package{
 		Name:    "musl-utils",
 		Version: "1.3.2-r0",
+		Type:    syftPkg.ApkPkg,
 		CPEs: []syftPkg.CPE{
 			must(syftPkg.NewCPE("cpe:2.3:a:musl-utils:musl-utils:*:*:*:*:*:*:*:*")),
 			must(syftPkg.NewCPE("cpe:2.3:a:musl-utils:musl-utils:*:*:*:*:*:*:*:*")),

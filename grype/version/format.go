@@ -9,6 +9,7 @@ import (
 const (
 	UnknownFormat Format = iota
 	SemanticFormat
+	ApkFormat
 	DebFormat
 	RpmFormat
 	PythonFormat
@@ -20,6 +21,7 @@ type Format int
 var formatStr = []string{
 	"UnknownFormat",
 	"Semantic",
+	"Apk",
 	"Deb",
 	"RPM",
 	"Python",
@@ -28,6 +30,7 @@ var formatStr = []string{
 
 var Formats = []Format{
 	SemanticFormat,
+	ApkFormat,
 	DebFormat,
 	RpmFormat,
 	PythonFormat,
@@ -38,6 +41,8 @@ func ParseFormat(userStr string) Format {
 	switch strings.ToLower(userStr) {
 	case strings.ToLower(SemanticFormat.String()), "semver":
 		return SemanticFormat
+	case strings.ToLower(ApkFormat.String()), "apk":
+		return ApkFormat
 	case strings.ToLower(DebFormat.String()), "dpkg":
 		return DebFormat
 	case strings.ToLower(RpmFormat.String()), "rpmdb":
@@ -53,6 +58,8 @@ func ParseFormat(userStr string) Format {
 func FormatFromPkgType(t pkg.Type) Format {
 	var format Format
 	switch t {
+	case pkg.ApkPkg:
+		format = ApkFormat
 	case pkg.DebPkg:
 		format = DebFormat
 	case pkg.RpmPkg:

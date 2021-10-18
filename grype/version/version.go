@@ -16,6 +16,7 @@ type Version struct {
 type rich struct {
 	cpeVers []syftPkg.CPE
 	semVer  *semanticVersion
+	apkVer  *apkVersion
 	debVer  *debVersion
 	rpmVer  *rpmVersion
 	kbVer   *kbVersion
@@ -51,6 +52,10 @@ func (v *Version) populate() error {
 		ver, err := newSemanticVersion(v.Raw)
 		v.rich.semVer = ver
 		return err
+	case ApkFormat:
+		ver, err := newApkVersion(v.Raw)
+		v.rich.apkVer = ver
+		return err
 	case DebFormat:
 		ver, err := newDebVersion(v.Raw)
 		v.rich.debVer = ver
@@ -70,6 +75,7 @@ func (v *Version) populate() error {
 		// use the raw string + fuzzy constraint
 		return nil
 	}
+
 	return fmt.Errorf("no rich version populated (format=%s)", v.Format)
 }
 
