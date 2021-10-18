@@ -11,6 +11,8 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 
 	"github.com/stretchr/testify/assert"
+
+	grypeDb "github.com/anchore/grype-db/pkg/db/v3"
 )
 
 var (
@@ -18,6 +20,9 @@ var (
 		{
 			Vulnerability: vulnerability.Vulnerability{
 				ID: "CVE-123",
+				Fix: vulnerability.Fix{
+					State: grypeDb.FixedState,
+				},
 			},
 			Package: pkg.Package{
 				Name:    "dive",
@@ -33,6 +38,9 @@ var (
 		{
 			Vulnerability: vulnerability.Vulnerability{
 				ID: "CVE-456",
+				Fix: vulnerability.Fix{
+					State: grypeDb.NotFixedState,
+				},
 			},
 			Package: pkg.Package{
 				Name:    "reach",
@@ -42,6 +50,44 @@ var (
 					{
 						RealPath:    "/real/path/with/reach",
 						VirtualPath: "/virtual/path/that/has/reach",
+					},
+				},
+			},
+		},
+		{
+			Vulnerability: vulnerability.Vulnerability{
+				ID: "CVE-457",
+				Fix: vulnerability.Fix{
+					State: grypeDb.WontFixState,
+				},
+			},
+			Package: pkg.Package{
+				Name:    "beach",
+				Version: "100.0.51",
+				Type:    "gem",
+				Locations: []source.Location{
+					{
+						RealPath:    "/real/path/with/beach",
+						VirtualPath: "/virtual/path/that/has/beach",
+					},
+				},
+			},
+		},
+		{
+			Vulnerability: vulnerability.Vulnerability{
+				ID: "CVE-458",
+				Fix: vulnerability.Fix{
+					State: grypeDb.UnknownFixState,
+				},
+			},
+			Package: pkg.Package{
+				Name:    "speach",
+				Version: "100.0.52",
+				Type:    "gem",
+				Locations: []source.Location{
+					{
+						RealPath:    "/real/path/with/speach",
+						VirtualPath: "/virtual/path/that/has/speach",
 					},
 				},
 			},
@@ -101,7 +147,10 @@ func TestApplyIgnoreRules(t *testing.T) {
 					},
 				},
 			},
-			expectedRemainingMatches: nil,
+			expectedRemainingMatches: []Match{
+				allMatches[2],
+				allMatches[3],
+			},
 			expectedIgnoredMatches: []IgnoredMatch{
 				{
 					Match: allMatches[0],
@@ -133,6 +182,8 @@ func TestApplyIgnoreRules(t *testing.T) {
 			},
 			expectedRemainingMatches: []Match{
 				allMatches[0],
+				allMatches[2],
+				allMatches[3],
 			},
 			expectedIgnoredMatches: []IgnoredMatch{
 				{
@@ -145,16 +196,53 @@ func TestApplyIgnoreRules(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:       "ignore matches without fix",
+			allMatches: allMatches,
+			ignoreRules: []IgnoreRule{
+				{FixState: string(grypeDb.NotFixedState)},
+				{FixState: string(grypeDb.WontFixState)},
+				{FixState: string(grypeDb.UnknownFixState)},
+			},
+			expectedRemainingMatches: []Match{
+				allMatches[0],
+			},
+			expectedIgnoredMatches: []IgnoredMatch{
+				{
+					Match: allMatches[1],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							FixState: "not-fixed",
+						},
+					},
+				},
+				{
+					Match: allMatches[2],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							FixState: "wont-fix",
+						},
+					},
+				},
+				{
+					Match: allMatches[3],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							FixState: "unknown",
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
-			failOnlyFixed := false
 			locationComparerOption := cmp.Comparer(func(x, y source.Location) bool {
 				return x.RealPath == y.RealPath && x.VirtualPath == y.VirtualPath
 			})
 
-			actualRemainingMatches, actualIgnoredMatches := ApplyIgnoreRules(sliceToMatches(testCase.allMatches), testCase.ignoreRules, failOnlyFixed)
+			actualRemainingMatches, actualIgnoredMatches := ApplyIgnoreRules(sliceToMatches(testCase.allMatches), testCase.ignoreRules)
 
 			if diff := cmp.Diff(testCase.expectedRemainingMatches, matchesToSlice(actualRemainingMatches), locationComparerOption); diff != "" {
 				t.Errorf("unexpected diff in remaining matches (-expected +actual):\n%s", diff)

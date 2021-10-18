@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	grypeDb "github.com/anchore/grype-db/pkg/db/v3"
 	"github.com/anchore/grype/grype/match"
 )
 
@@ -19,6 +20,7 @@ func TestNewIgnoreRule(t *testing.T) {
 			input: match.IgnoreRule{},
 			expected: IgnoreRule{
 				Vulnerability: "",
+				FixState:      "",
 				Package:       nil,
 			},
 		},
@@ -31,6 +33,16 @@ func TestNewIgnoreRule(t *testing.T) {
 				Vulnerability: "CVE-2020-1234",
 			},
 		},
+		{
+			name: "only fix state field",
+			input: match.IgnoreRule{
+				FixState: string(grypeDb.NotFixedState),
+			},
+			expected: IgnoreRule{
+				FixState: string(grypeDb.NotFixedState),
+			},
+		},
+
 		{
 			name: "all package fields",
 			input: match.IgnoreRule{
@@ -67,6 +79,7 @@ func TestNewIgnoreRule(t *testing.T) {
 			name: "all fields",
 			input: match.IgnoreRule{
 				Vulnerability: "CVE-2020-1234",
+				FixState:      string(grypeDb.NotFixedState),
 				Package: match.IgnoreRulePackage{
 					Name:     "libc",
 					Version:  "3.0.0",
@@ -76,6 +89,7 @@ func TestNewIgnoreRule(t *testing.T) {
 			},
 			expected: IgnoreRule{
 				Vulnerability: "CVE-2020-1234",
+				FixState:      "not-fixed",
 				Package: &IgnoreRulePackage{
 					Name:     "libc",
 					Version:  "3.0.0",
