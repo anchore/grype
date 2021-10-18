@@ -45,6 +45,7 @@ func TestVersionApk(t *testing.T) {
 		{version: "0.1.0_alpha2", constraint: "> 0.1.0_alpha", satisfied: true},
 		{version: "1.1", constraint: "> 1.1_alpha1", satisfied: true},
 		{version: "1.1", constraint: "< 1.1_alpha1", satisfied: false},
+		{version: "2.3.0b-r1", constraint: "< 2.3.0b-r2", satisfied: true},
 	}
 
 	for _, test := range tests {
