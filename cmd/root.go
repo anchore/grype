@@ -34,9 +34,9 @@ import (
 var persistentOpts = config.CliOnlyOptions{}
 
 var ignoreNonFixedMatches = []match.IgnoreRule{
-	{FixedState: string(grypeDb.NotFixedState)},
-	{FixedState: string(grypeDb.WontFixState)},
-	{FixedState: string(grypeDb.UnknownFixState)},
+	{FixState: string(grypeDb.NotFixedState)},
+	{FixState: string(grypeDb.WontFixState)},
+	{FixState: string(grypeDb.UnknownFixState)},
 }
 
 var (

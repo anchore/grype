@@ -18,7 +18,7 @@ type IgnoredMatch struct {
 // rule to apply.
 type IgnoreRule struct {
 	Vulnerability string            `yaml:"vulnerability" json:"vulnerability" mapstructure:"vulnerability"`
-	FixedState    string            `yaml:"fixed_state" json:"fixedState" mapstructure:"fixed_state"`
+	FixState      string            `yaml:"fix-state" json:"fix-state" mapstructure:"fix-state"`
 	Package       IgnoreRulePackage `yaml:"package" json:"package" mapstructure:"package"`
 }
 
@@ -109,14 +109,14 @@ func getIgnoreConditionsForRule(rule IgnoreRule) []ignoreCondition {
 		ignoreConditions = append(ignoreConditions, ifPackageLocationApplies(l))
 	}
 
-	if fs := rule.FixedState; fs != "" {
-		ignoreConditions = append(ignoreConditions, ifVulnerabilityFixedStateApplies(fs))
+	if fs := rule.FixState; fs != "" {
+		ignoreConditions = append(ignoreConditions, ifFixStateApplies(fs))
 	}
 
 	return ignoreConditions
 }
 
-func ifVulnerabilityFixedStateApplies(fs string) ignoreCondition {
+func ifFixStateApplies(fs string) ignoreCondition {
 	return func(match Match) bool {
 		return fs == string(match.Vulnerability.Fix.State)
 	}

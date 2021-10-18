@@ -200,9 +200,9 @@ func TestApplyIgnoreRules(t *testing.T) {
 			name:       "ignore matches without fix",
 			allMatches: allMatches,
 			ignoreRules: []IgnoreRule{
-				{FixedState: string(grypeDb.NotFixedState)},
-				{FixedState: string(grypeDb.WontFixState)},
-				{FixedState: string(grypeDb.UnknownFixState)},
+				{FixState: string(grypeDb.NotFixedState)},
+				{FixState: string(grypeDb.WontFixState)},
+				{FixState: string(grypeDb.UnknownFixState)},
 			},
 			expectedRemainingMatches: []Match{
 				allMatches[0],
@@ -212,7 +212,7 @@ func TestApplyIgnoreRules(t *testing.T) {
 					Match: allMatches[1],
 					AppliedIgnoreRules: []IgnoreRule{
 						{
-							FixedState: "not-fixed",
+							FixState: "not-fixed",
 						},
 					},
 				},
@@ -220,7 +220,7 @@ func TestApplyIgnoreRules(t *testing.T) {
 					Match: allMatches[2],
 					AppliedIgnoreRules: []IgnoreRule{
 						{
-							FixedState: "wont-fix",
+							FixState: "wont-fix",
 						},
 					},
 				},
@@ -228,7 +228,7 @@ func TestApplyIgnoreRules(t *testing.T) {
 					Match: allMatches[3],
 					AppliedIgnoreRules: []IgnoreRule{
 						{
-							FixedState: "unknown",
+							FixState: "unknown",
 						},
 					},
 				},
