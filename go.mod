@@ -8,7 +8,7 @@ require (
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/grype-db v0.0.0-20210928194208-f146397d6cd0
-	github.com/anchore/stereoscope v0.0.0-20210817160504-0f4abc2a5a5a
+	github.com/anchore/stereoscope v0.0.0-20211005213828-538011008578
 	github.com/anchore/syft v0.24.1
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible
@@ -16,7 +16,7 @@ require (
 	github.com/facebookincubator/nvdtools v0.1.4
 	github.com/go-test/deep v1.0.7
 	github.com/google/go-cmp v0.4.1
-	github.com/google/uuid v1.1.1
+	github.com/google/uuid v1.2.0
 	github.com/gookit/color v1.4.2
 	github.com/hashicorp/go-getter v1.4.1
 	github.com/hashicorp/go-multierror v1.1.0
@@ -27,7 +27,7 @@ require (
 	github.com/pkg/profile v1.6.0
 	github.com/scylladb/go-set v1.0.2
 	github.com/sergi/go-diff v1.1.0
-	github.com/sirupsen/logrus v1.6.0
+	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/afero v1.3.2
 	github.com/spf13/cobra v1.0.1-0.20200909172742-8a63648dd905
 	github.com/spf13/pflag v1.0.5
@@ -38,5 +38,7 @@ require (
 	github.com/wagoodman/jotframe v0.0.0-20200730190914-3517092dd163
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
-	gopkg.in/yaml.v2 v2.3.0
+	gopkg.in/yaml.v2 v2.4.0
 )
+
+replace github.com/anchore/syft => C:\Users\cphil\development\golang\syft

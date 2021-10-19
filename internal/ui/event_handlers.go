@@ -1,3 +1,5 @@
+//go:build linux || darwin
+
 package ui
 
 import (
@@ -12,19 +14,6 @@ import (
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/jotframe/pkg/frame"
 )
-
-func handleVulnerabilityScanningFinished(event partybus.Event, reportOutput io.Writer) error {
-	// show the report to stdout
-	pres, err := grypeEventParsers.ParseVulnerabilityScanningFinished(event)
-	if err != nil {
-		return fmt.Errorf("bad CatalogerFinished event: %w", err)
-	}
-
-	if err := pres.Present(reportOutput); err != nil {
-		return fmt.Errorf("unable to show vulnerability report: %w", err)
-	}
-	return nil
-}
 
 func handleAppUpdateAvailable(_ context.Context, fr *frame.Frame, event partybus.Event, _ *sync.WaitGroup) error {
 	newVersion, err := grypeEventParsers.ParseAppUpdateAvailable(event)

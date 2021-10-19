@@ -1,14 +1,11 @@
-//go:build linnux || darwin
+//go:build windows
+// +build windows
+
 package ui
 
 import (
 	"io"
-	"os"
-
-	"golang.org/x/crypto/ssh/terminal"
 )
-
-// TODO: build tags to exclude options from windows
 
 // Select is responsible for determining the specific UI function given select user option, the current platform
 // config values, and environment status (such as a TTY being present). The first UI in the returned slice of UIs
@@ -16,16 +13,5 @@ import (
 // are environmental problems (e.g. cannot write to the terminal). A writer is provided to capture the output of
 // the final SBOM report.
 func Select(verbose, quiet bool, reportWriter io.Writer) (uis []UI) {
-	isStdoutATty := terminal.IsTerminal(int(os.Stdout.Fd()))
-	isStderrATty := terminal.IsTerminal(int(os.Stderr.Fd()))
-	notATerminal := !isStderrATty && !isStdoutATty
-
-	switch {
-	case verbose || quiet || notATerminal || !isStderrATty:
-		uis = append(uis, NewLoggerUI(reportWriter))
-	default:
-		uis = append(uis, NewEphemeralTerminalUI(reportWriter), NewLoggerUI(reportWriter))
-	}
-
-	return uis
+	return append(uis, NewLoggerUI(reportWriter))
 }
