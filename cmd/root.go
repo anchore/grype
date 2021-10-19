@@ -178,7 +178,15 @@ func rootExec(_ *cobra.Command, args []string) error {
 		return err
 	}
 
-	isVerbose := appConfig.CliOptions.Verbosity > 0 || internal.IsPipedInput()
+	isVerbose := appConfig.CliOptions.Verbosity > 0
+	if isPipedInput, err := internal.IsPipedInput(); err != nil {
+		// since we can't tell if there was piped input we assume that there could be to disable the ETUI
+		log.Warnf("unable to determine if there is piped input: %+v", err)
+		isVerbose = true
+	} else {
+		// verbosity should consider if there is piped input (in which case we should not show the ETUI)
+		isVerbose = isVerbose || isPipedInput
+	}
 
 	return eventLoop(
 		startWorker(userInput, appConfig.FailOnSeverity),
@@ -280,7 +288,13 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 }
 
 func validateRootArgs(cmd *cobra.Command, args []string) error {
-	if len(args) == 0 && !internal.IsPipedInput() {
+	isPipedInput, err := internal.IsPipedInput()
+	if err != nil {
+		log.Warnf("unable to determine if there is piped input: %+v", err)
+		isPipedInput = false
+	}
+
+	if len(args) == 0 && !isPipedInput {
 		// in the case that no arguments are given and there is no piped input we want to show the help text and return with a non-0 return code.
 		if err := cmd.Help(); err != nil {
 			return fmt.Errorf("unable to display help: %w", err)
