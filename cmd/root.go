@@ -277,9 +277,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 }
 
 func validateRootArgs(cmd *cobra.Command, args []string) error {
-	// the user must specify at least one argument OR wait for input on stdin IF it is a pipe
 	if len(args) == 0 && !internal.IsPipedInput() {
-		// return an error with no message for the user, which will implicitly show the help text (but no specific error)
 		if err := cmd.Help(); err != nil {
 			return fmt.Errorf("unable to display help: %w", err)
 		}
