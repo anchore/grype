@@ -36,7 +36,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/wagoodman/go-partybus v0.0.0-20210627031916-db1f5573bbc5
 	github.com/wagoodman/go-progress v0.0.0-20200807221327-51d465df1451
-	github.com/wagoodman/jotframe v0.0.0-20210922140816-1ca3cf05d349
+	github.com/wagoodman/jotframe v0.0.0-20200730190914-3517092dd163
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	gopkg.in/yaml.v2 v2.3.0
