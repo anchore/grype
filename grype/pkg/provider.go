@@ -34,16 +34,6 @@ func Provide(userInput string, scopeOpt source.Scope, registryOptions *image.Reg
 	// capture stdin bytes, so they can be used across multiple providers
 	capturedStdin := bytesFromStdin()
 
-	f, err := os.OpenFile("/tmp/output", os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0644)
-	if err != nil {
-		return nil, Context{}, err
-	}
-	defer f.Close()
-
-	if _, err := f.Write(capturedStdin); err != nil {
-		return nil, Context{}, err
-	}
-
 	for _, provide := range providers {
 		config := determineProviderConfig(userInput, scopeOpt, registryOptions, capturedStdin)
 
