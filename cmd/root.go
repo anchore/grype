@@ -63,7 +63,9 @@ You can also pipe in Syft JSON directly:
 `, map[string]interface{}{
 			"appName": internal.ApplicationName,
 		}),
-		Args: validateRootArgs,
+		Args:          validateRootArgs,
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if appConfig.Dev.ProfileCPU {
 				defer profile.Start(profile.CPUProfile).Stop()
