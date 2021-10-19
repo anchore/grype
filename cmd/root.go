@@ -178,12 +178,14 @@ func rootExec(_ *cobra.Command, args []string) error {
 		return err
 	}
 
+	isVerbose := appConfig.CliOptions.Verbosity > 0 || internal.IsPipedInput()
+
 	return eventLoop(
 		startWorker(userInput, appConfig.FailOnSeverity),
 		setupSignals(),
 		eventSubscription,
 		stereoscope.Cleanup,
-		ui.Select(appConfig.CliOptions.Verbosity > 0, appConfig.Quiet, reporter)...,
+		ui.Select(isVerbose, appConfig.Quiet, reporter)...,
 	)
 }
 
