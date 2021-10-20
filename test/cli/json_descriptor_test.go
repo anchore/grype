@@ -28,7 +28,7 @@ func TestJsonDescriptor(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			cmd, stdout, stderr := runGrypeCommand(t, test.env, test.args...)
+			cmd, stdout, stderr := runGrype(t, test.env, test.args...)
 			for _, traitAssertionFn := range test.assertions {
 				traitAssertionFn(t, stdout, stderr, cmd.ProcessState.ExitCode())
 			}

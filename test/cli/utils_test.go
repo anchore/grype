@@ -12,26 +12,19 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/acarl005/stripansi"
 	"github.com/anchore/stereoscope/pkg/imagetest"
 )
 
-type traitAssertion func(tb testing.TB, stdout, stderr string, rc int)
+func getFixtureImage(tb testing.TB, fixtureImageName string) string {
+	tb.Helper()
 
-func assertInOutput(data string) traitAssertion {
-	return func(tb testing.TB, stdout, stderr string, _ int) {
-		if !strings.Contains(stripansi.Strip(stderr), data) && !strings.Contains(stripansi.Strip(stdout), data) {
-			tb.Errorf("data=%q was NOT found in any output, but should have been there", data)
-		}
-	}
+	imagetest.GetFixtureImage(tb, "docker-archive", fixtureImageName)
+	return imagetest.GetFixtureImageTarPath(tb, fixtureImageName)
 }
 
-func getFixtureImage(t testing.TB, fixtureImageName string) string {
-	imagetest.GetFixtureImage(t, "docker-archive", fixtureImageName)
-	return imagetest.GetFixtureImageTarPath(t, fixtureImageName)
-}
+func getGrypeCommand(tb testing.TB, args ...string) *exec.Cmd {
+	tb.Helper()
 
-func getGrypeCommand(t testing.TB, args ...string) *exec.Cmd {
 	var binaryLocation string
 	if os.Getenv("GRYPE_BINARY_LOCATION") != "" {
 		// GRYPE_BINARY_LOCATION is the absolute path to the snapshot binary
@@ -40,11 +33,11 @@ func getGrypeCommand(t testing.TB, args ...string) *exec.Cmd {
 		// note: there is a subtle - vs _ difference between these versions
 		switch runtime.GOOS {
 		case "darwin":
-			binaryLocation = path.Join(repoRoot(t), fmt.Sprintf("snapshot/grype-macos_darwin_%s/grype", runtime.GOARCH))
+			binaryLocation = path.Join(repoRoot(tb), fmt.Sprintf("snapshot/grype-macos_darwin_%s/grype", runtime.GOARCH))
 		case "linux":
-			binaryLocation = path.Join(repoRoot(t), fmt.Sprintf("snapshot/grype_linux_%s/grype", runtime.GOARCH))
+			binaryLocation = path.Join(repoRoot(tb), fmt.Sprintf("snapshot/grype_linux_%s/grype", runtime.GOARCH))
 		default:
-			t.Fatalf("unsupported OS: %s", runtime.GOOS)
+			tb.Fatalf("unsupported OS: %s", runtime.GOOS)
 		}
 
 	}
@@ -57,8 +50,22 @@ func getGrypeCommand(t testing.TB, args ...string) *exec.Cmd {
 	)
 }
 
-func runGrypeCommand(t testing.TB, env map[string]string, args ...string) (*exec.Cmd, string, string) {
-	cmd := getGrypeCommand(t, args...)
+func runGrype(tb testing.TB, env map[string]string, args ...string) (*exec.Cmd, string, string) {
+	tb.Helper()
+
+	cmd := getGrypeCommand(tb, args...)
+	if env == nil {
+		env = make(map[string]string)
+	}
+
+	// we should not have tests reaching out for app update checks
+	env["GRYPE_CHECK_FOR_APP_UPDATE"] = "false"
+
+	stdout, stderr := runCommand(cmd, env)
+	return cmd, stdout, stderr
+}
+
+func runCommand(cmd *exec.Cmd, env map[string]string) (string, string) {
 	if env != nil {
 		cmd.Env = append(os.Environ(), envMapToSlice(env)...)
 	}
@@ -69,7 +76,7 @@ func runGrypeCommand(t testing.TB, env map[string]string, args ...string) (*exec
 	// ignore errors since this may be what the test expects
 	cmd.Run()
 
-	return cmd, stdout.String(), stderr.String()
+	return stdout.String(), stderr.String()
 }
 
 func envMapToSlice(env map[string]string) (envList []string) {
@@ -82,32 +89,34 @@ func envMapToSlice(env map[string]string) (envList []string) {
 	return
 }
 
-func repoRoot(t testing.TB) string {
-	t.Helper()
+func repoRoot(tb testing.TB) string {
+	tb.Helper()
 	root, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
 	if err != nil {
-		t.Fatalf("unable to find repo root dir: %+v", err)
+		tb.Fatalf("unable to find repo root dir: %+v", err)
 	}
 	absRepoRoot, err := filepath.Abs(strings.TrimSpace(string(root)))
 	if err != nil {
-		t.Fatal("unable to get abs path to repo root:", err)
+		tb.Fatal("unable to get abs path to repo root:", err)
 	}
 	return absRepoRoot
 }
 
-func attachFileToCommandStdin(t testing.TB, file io.Reader, command *exec.Cmd) {
+func attachFileToCommandStdin(tb testing.TB, file io.Reader, command *exec.Cmd) {
+	tb.Helper()
+
 	stdin, err := command.StdinPipe()
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 
 	_, err = io.Copy(stdin, file)
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 	err = stdin.Close()
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
 }
 

@@ -42,8 +42,9 @@ var ignoreNonFixedMatches = []match.IgnoreRule{
 var (
 	rootCmd = &cobra.Command{
 		Use:   fmt.Sprintf("%s [IMAGE]", internal.ApplicationName),
-		Short: "A vulnerability scanner for container images and filesystems",
-		Long: format.Tprintf(`
+		Short: "A vulnerability scanner for container images, filesystems, and SBOMs",
+		Long: format.Tprintf(`A vulnerability scanner for container images, filesystems, and SBOMs.
+
 Supports the following image sources:
     {{.appName}} yourrepo/yourimage:tag     defaults to using images from a Docker daemon
     {{.appName}} path/to/yourproject        a Docker tar, OCI tar, OCI directory, or generic filesystem directory
@@ -278,10 +279,11 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 func validateRootArgs(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 && !internal.IsPipedInput() {
+		// in the case that no arguments are given and there is no piped input we want to show the help text and return with a non-0 return code.
 		if err := cmd.Help(); err != nil {
 			return fmt.Errorf("unable to display help: %w", err)
 		}
-		return fmt.Errorf("")
+		return fmt.Errorf("an image/directory argument is required")
 	}
 
 	return cobra.MaximumNArgs(1)(cmd, args)
