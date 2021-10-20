@@ -67,12 +67,12 @@ brew install grype
 grype <image>
 ```
 
-The above command scans for vulnerabilities that are visible in the container (i.e., the squashed representation of the image).
-To include software from all image layers in the vulnerability scan, regardless of its presence in the final image, provide `--scope all-layers`:
+The above command scans for vulnerabilities that are visible in the container (i.e., the squashed representation of the image). To include software from all image layers in the vulnerability scan, regardless of its presence in the final image, provide `--scope all-layers`:
 
 ```
 grype <image> --scope all-layers
 ```
+
 ### Supported sources
 
 Grype can scan a variety of sources beyond those found in Docker.
@@ -169,6 +169,7 @@ If you're seeing Grype report **false positives** or any other vulnerability mat
 Each rule can specify any combination of the following criteria:
 
 - vulnerability ID (e.g. `"CVE-2008-4318"`)
+- fix state (e.g. `"wont-fix"`; these values are defined [here](https://github.com/anchore/grype-db/blob/main/pkg/db/v3/fix.go#L5-L10))
 - package name (e.g. `"libcurl"`)
 - package version (e.g. `"1.5.1"`)
 - package type (e.g. `"npm"`; these values are defined [here](https://github.com/anchore/syft/blob/main/syft/pkg/type.go#L10-L21))
@@ -181,6 +182,7 @@ ignore:
   
   # This is the full set of supported rule fields:
   - vulnerability: CVE-2008-4318
+    fix-state: unknown
     package:
       name: libcurl
       version: 1.5.1
@@ -204,6 +206,28 @@ When you run Grype while specifying ignore rules, the following happens to the v
 - Ignored matches **do not** factor into Grype's exit status decision when using `--fail-on <severity>`. For instance, if a user specifies `--fail-on critical`, and all of the vulnerability matches found with a "critical" severity have been _ignored_, Grype will exit zero.
 
 **Note:** Please continue to **[report](https://github.com/anchore/grype/issues/new/choose)** any false positives you see! Even if you can reliably filter out false positives using ignore rules, it's very helpful to the Grype community if we have as much knowledge about Grype's false positives as possible. This helps us continuously improve Grype!
+
+### Showing only "fixed" vulnerabilities
+
+If you only want Grype to report vulnerabilities **that have a confirmed fix**, you can use the `--only-fixed` flag. (This automatically adds [ignore rules](#specifying-matches-to-ignore) into Grype's configuration, such that vulnerabilities that aren't fixed will be ignored.)
+
+For example, here's a scan of Alpine 3.10:
+
+```
+NAME          INSTALLED  FIXED-IN   VULNERABILITY   SEVERITY
+apk-tools     2.10.6-r0  2.10.7-r0  CVE-2021-36159  Critical
+libcrypto1.1  1.1.1k-r0             CVE-2021-3711   Critical
+libcrypto1.1  1.1.1k-r0             CVE-2021-3712   High
+libssl1.1     1.1.1k-r0             CVE-2021-3712   High
+libssl1.1     1.1.1k-r0             CVE-2021-3711   Critical
+```
+
+...and here's the same scan, but adding the flag `--only-fixed`:
+
+```
+NAME       INSTALLED  FIXED-IN   VULNERABILITY   SEVERITY
+apk-tools  2.10.6-r0  2.10.7-r0  CVE-2021-36159  Critical
+```
 
 ### Grype's database
 
