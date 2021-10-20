@@ -42,8 +42,9 @@ var ignoreNonFixedMatches = []match.IgnoreRule{
 var (
 	rootCmd = &cobra.Command{
 		Use:   fmt.Sprintf("%s [IMAGE]", internal.ApplicationName),
-		Short: "A vulnerability scanner for container images and filesystems",
-		Long: format.Tprintf(`
+		Short: "A vulnerability scanner for container images, filesystems, and SBOMs",
+		Long: format.Tprintf(`A vulnerability scanner for container images, filesystems, and SBOMs.
+
 Supports the following image sources:
     {{.appName}} yourrepo/yourimage:tag     defaults to using images from a Docker daemon
     {{.appName}} path/to/yourproject        a Docker tar, OCI tar, OCI directory, or generic filesystem directory
@@ -63,7 +64,9 @@ You can also pipe in Syft JSON directly:
 `, map[string]interface{}{
 			"appName": internal.ApplicationName,
 		}),
-		Args: validateRootArgs,
+		Args:          validateRootArgs,
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if appConfig.Dev.ProfileCPU {
 				defer profile.Start(profile.CPUProfile).Stop()
@@ -275,10 +278,12 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 }
 
 func validateRootArgs(cmd *cobra.Command, args []string) error {
-	// the user must specify at least one argument OR wait for input on stdin IF it is a pipe
 	if len(args) == 0 && !internal.IsPipedInput() {
-		// return an error with no message for the user, which will implicitly show the help text (but no specific error)
-		return fmt.Errorf("")
+		// in the case that no arguments are given and there is no piped input we want to show the help text and return with a non-0 return code.
+		if err := cmd.Help(); err != nil {
+			return fmt.Errorf("unable to display help: %w", err)
+		}
+		return fmt.Errorf("an image/directory argument is required")
 	}
 
 	return cobra.MaximumNArgs(1)(cmd, args)
