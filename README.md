@@ -12,10 +12,6 @@
 
 A vulnerability scanner for container images and filesystems. Easily [install the binary](#installation) to try it out. Works with [Syft](https://github.com/anchore/syft), the powerful SBOM (software bill of materials) tool for container images and filesystems.
 
-**Announcement:** Join us on October 20, 11am-noon PT for a webinar where we’ll discuss Anchore’s open source and enterprise solutions. [Save your seat!](https://get.anchore.com/anchore-open-source-vs-enterprise/)
-
----
-
 ![grype-demo](https://user-images.githubusercontent.com/590471/90276236-9868f300-de31-11ea-8068-4268b6b68529.gif)
 
 ## Features
