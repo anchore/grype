@@ -132,35 +132,38 @@ func (cfg *Application) parseScopeOption() error {
 }
 
 func (cfg *Application) parseLogLevelOption() error {
-	if cfg.Quiet {
+	switch {
+	case cfg.Quiet:
 		// TODO: this is bad: quiet option trumps all other logging options (such as to a file on disk)
 		// we should be able to quiet the console logging and leave file logging alone...
 		// ... this will be an enhancement for later
 		cfg.Log.LevelOpt = logrus.PanicLevel
-	} else {
-		if cfg.Log.Level != "" {
-			if cfg.CliOptions.Verbosity > 0 {
-				return fmt.Errorf("cannot explicitly set log level (cfg file or env var) and use -v flag together")
-			}
+	case cfg.Log.Level != "":
+		if cfg.CliOptions.Verbosity > 0 {
+			return fmt.Errorf("cannot explicitly set log level (cfg file or env var) and use -v flag together")
+		}
 
-			lvl, err := logrus.ParseLevel(strings.ToLower(cfg.Log.Level))
-			if err != nil {
-				return fmt.Errorf("bad log level configured (%q): %w", cfg.Log.Level, err)
-			}
-			// set the log level explicitly
-			cfg.Log.LevelOpt = lvl
-		} else {
-			// set the log level implicitly
-			switch v := cfg.CliOptions.Verbosity; {
-			case v == 1:
-				cfg.Log.LevelOpt = logrus.InfoLevel
-			case v >= 2:
-				cfg.Log.LevelOpt = logrus.DebugLevel
-			default:
-				cfg.Log.LevelOpt = logrus.ErrorLevel
-			}
+		lvl, err := logrus.ParseLevel(strings.ToLower(cfg.Log.Level))
+		if err != nil {
+			return fmt.Errorf("bad log level configured (%q): %w", cfg.Log.Level, err)
+		}
+
+		cfg.Log.LevelOpt = lvl
+		if cfg.Log.LevelOpt >= logrus.InfoLevel {
+			cfg.CliOptions.Verbosity = 1
+		}
+	default:
+
+		switch v := cfg.CliOptions.Verbosity; {
+		case v == 1:
+			cfg.Log.LevelOpt = logrus.InfoLevel
+		case v >= 2:
+			cfg.Log.LevelOpt = logrus.DebugLevel
+		default:
+			cfg.Log.LevelOpt = logrus.ErrorLevel
 		}
 	}
+
 	return nil
 }
 

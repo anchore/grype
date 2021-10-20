@@ -8,6 +8,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/anchore/grype/internal/log"
+
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft/source"
@@ -47,7 +49,13 @@ func Provide(userInput string, scopeOpt source.Scope, registryOptions *image.Reg
 }
 
 func bytesFromStdin() []byte {
-	if internal.IsPipedInput() {
+	isPipedInput, err := internal.IsPipedInput()
+	if err != nil {
+		log.Warnf("unable to determine if there is piped input: %+v", err)
+		isPipedInput = false
+	}
+
+	if isPipedInput {
 		capturedStdin, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
 			return nil
