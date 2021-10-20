@@ -34,7 +34,7 @@ builds:
     env:
       - CGO_ENABLED=0
     goos:
-      - darwin
+      - linux 
     goarch:
       - arm64
     # Set the modified timestamp on the output binary to the git timestamp (to ensure a reproducible build)
@@ -74,6 +74,7 @@ archives:
   - format: tar.gz
     builds:
       - grype # i.e. Linux only
+      - grype-arm64
   - format: zip # This is a hack! We don't actually intend to use _this_ ZIP file, we just need goreleaser to consider the ZIP file produced by gon (which will have the same file name) to be an artifact so we can use it downstream in publishing (e.g. to a homebrew tap)
     id: grype-zip
     builds:
