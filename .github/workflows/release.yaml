@@ -76,10 +76,6 @@ jobs:
     steps:
       - uses: docker-practice/actions-setup-docker@v1
 
-      # note, it is important to always be auth'd into docker.io to prevent rate limiting issues
-      - name: Login to Docker Hub
-        run: echo ${{ secrets.TOOLBOX_DOCKER_PASS }} | docker login docker.io -u ${{ secrets.TOOLBOX_DOCKER_USER }} --password-stdin
-
       - uses: actions/setup-go@v2
         with:
           go-version: ${{ env.GO_VERSION }}
