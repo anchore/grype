@@ -137,8 +137,8 @@ github.com/anchore/stereoscope v0.0.0-20211021140357-9f8395cd95af h1:0w24yOOJx6D
 github.com/anchore/stereoscope v0.0.0-20211021140357-9f8395cd95af/go.mod h1:Rqltg0KqVKoDy4kCuJMLPFDfUg7pEmSqUEA9pOO1L7c=
 github.com/anchore/syft v0.19.0/go.mod h1:ktWx72/MizsN9jgEh+Vzl9lfNIUC8tylQHk3ZjKehn0=
 github.com/anchore/syft v0.23.0/go.mod h1:sr+rUnzPjdf97YUwZrbeuD8sebS5VsAZVTp6nXsjOWo=
-github.com/anchore/syft v0.24.1 h1:LAtIn/V5ceoU6nM/nNdDZaEd99ZoAVb5XWc+ceDm6Yg=
-github.com/anchore/syft v0.24.1/go.mod h1:XqVz3ZZYUKng59SXdyypYW6aXlI5fG6ZNR1SGbWGFhA=
+github.com/anchore/syft v0.27.0 h1:GWzZQPrP5wt8p7gpXxY0QdgGvTbujxVxb61RUxmY2gQ=
+github.com/anchore/syft v0.27.0/go.mod h1:LlwSfJxLlw+f9+RihKiyBbmQd+jwg3chKszHl2q0s84=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 h1:bvNMNQO63//z+xNgfBlViaCIJKLlCJ6/fmUseuG0wVQ=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/cascadia v1.1.0/go.mod h1:GsXiBklL0woXo1j/WYWtSYYC4ouU9PqHO0sqidkEA4Y=
@@ -655,8 +655,9 @@ github.com/package-url/packageurl-go v0.1.0/go.mod h1:C/ApiuWpmbpni4DIOECf6WCjFU
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/pborman/uuid v1.2.0/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
-github.com/pelletier/go-toml v1.8.0 h1:Keo9qb7iRJs2voHvunFtuuYFsbWeOBh8/P9v/kVMFtw=
 github.com/pelletier/go-toml v1.8.0/go.mod h1:D6yutnOGMveHEPV7VQOuvI/gXY61bv+9bAOTRnLElKs=
+github.com/pelletier/go-toml v1.8.1 h1:1Nf83orprkJyknT6h7zbuEGUEjcyVlCxSUGTENmNCRM=
+github.com/pelletier/go-toml v1.8.1/go.mod h1:T2/BmBdy8dvIRq1a/8aqjN41wvWlN4lrapLU/GW4pbc=
 github.com/peterbourgon/diskv v2.0.1+incompatible/go.mod h1:uqqh8zWWbv1HBMNONnaR/tNboyR3/BZd58JJSHlUSCU=
 github.com/phayes/checkstyle v0.0.0-20170904204023-bfd46e6a821d/go.mod h1:3OzsM7FXDQlpCiw2j81fOmAwQLnZnLGXVKUzeKQXIAw=
 github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
