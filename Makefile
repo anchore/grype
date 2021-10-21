@@ -87,7 +87,8 @@ bootstrap: ## Download and install all go dependencies (+ prep tooling in the ./
 
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(TEMPDIR)/ v1.42.1
 	curl -sSfL https://raw.githubusercontent.com/wagoodman/go-bouncer/master/bouncer.sh | sh -s -- -b $(TEMPDIR)/ v0.2.0
-	curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | sh -s -- -b $(TEMPDIR)/ v0.179.0
+	.github/scripts/goreleaser-install.sh -b $(TEMPDIR)/ v0.177.0
+	curl -sSfL https://raw.githubusercontent.com/anchore/chronicle/main/install.sh | sh -s -- -b $(TEMPDIR)/ v0.2.0-beta
 
 .PHONY: static-analysis
 static-analysis: lint check-go-mod-tidy check-licenses validate-grype-db-schema
@@ -192,39 +193,21 @@ compare:
 
 .PHONY: changelog-release
 changelog-release:
-	@echo "Last tag: $(SECOND_TO_LAST_TAG)"
-	@echo "Current tag: $(VERSION)"
-	@docker run --rm \
-		-v "$(shell pwd)":/usr/local/src/your-app \
-		ferrarimarco/github-changelog-generator \
-		--user anchore \
-		--project $(BIN) \
-		-t ${GITHUB_TOKEN} \
-		--exclude-labels 'duplicate,question,invalid,wontfix,size:small,size:medium,size:large,size:x-large' \
-		--no-pr-wo-labels \
-		--no-issues-wo-labels \
-		--since-tag $(SECOND_TO_LAST_TAG)
+	$(TEMPDIR)/chronicle --since-tag $(SECOND_TO_LAST_TAG) --until-tag $(LAST_TAG) -vv > CHANGELOG.md
 
 	@printf '\n$(BOLD)$(CYAN)Release $(VERSION) Changelog$(RESET)\n\n'
 	@cat CHANGELOG.md
 
 .PHONY: changelog-unreleased
 changelog-unreleased: ## show the current changelog that will be produced on the next release (note: requires GITHUB_TOKEN set)
-	@docker run -it --rm \
-		-v "$(shell pwd)":/usr/local/src/your-app \
-		ferrarimarco/github-changelog-generator \
-		--user anchore \
-		--project $(BIN) \
-		-t ${GITHUB_TOKEN} \
-		--exclude-labels 'duplicate,question,invalid,wontfix,size:small,size:medium,size:large,size:x-large' \
-		--since-tag $(LAST_TAG)
+	$(TEMPDIR)/chronicle --since-tag $(LAST_TAG) -vv > CHANGELOG.md
 
 	@printf '\n$(BOLD)$(CYAN)Unreleased Changes (closed PRs and issues will not be in the final changelog)$(RESET)\n'
 
 	@docker run -it --rm \
 		-v $(shell pwd)/CHANGELOG.md:/CHANGELOG.md \
 		rawkode/mdv \
-			-t 754.5889 \
+			-t 748.5989 \
 			/CHANGELOG.md
 
 .PHONY: validate-grype-test-config
