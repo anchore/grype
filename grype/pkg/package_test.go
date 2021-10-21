@@ -202,6 +202,17 @@ func TestNew_MetadataExtraction(t *testing.T) {
 			},
 			metadata: nil,
 		},
+		{
+			name: "golang-bin-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.GolangBinMetadataType,
+				Metadata: syftPkg.GolangBinMetadata{
+					GoCompiledVersion: "1.0.0",
+					H1Digest:          "a",
+				},
+			},
+			metadata: nil,
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
