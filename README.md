@@ -12,10 +12,6 @@
 
 A vulnerability scanner for container images and filesystems. Easily [install the binary](#installation) to try it out. Works with [Syft](https://github.com/anchore/syft), the powerful SBOM (software bill of materials) tool for container images and filesystems.
 
-**Announcement:** Join us on October 20, 11am-noon PT for a webinar where we’ll discuss Anchore’s open source and enterprise solutions. [Save your seat!](https://get.anchore.com/anchore-open-source-vs-enterprise/)
-
----
-
 ![grype-demo](https://user-images.githubusercontent.com/590471/90276236-9868f300-de31-11ea-8068-4268b6b68529.gif)
 
 ## Features
@@ -71,12 +67,12 @@ brew install grype
 grype <image>
 ```
 
-The above command scans for vulnerabilities that are visible in the container (i.e., the squashed representation of the image).
-To include software from all image layers in the vulnerability scan, regardless of its presence in the final image, provide `--scope all-layers`:
+The above command scans for vulnerabilities that are visible in the container (i.e., the squashed representation of the image). To include software from all image layers in the vulnerability scan, regardless of its presence in the final image, provide `--scope all-layers`:
 
 ```
 grype <image> --scope all-layers
 ```
+
 ### Supported sources
 
 Grype can scan a variety of sources beyond those found in Docker.
@@ -173,6 +169,7 @@ If you're seeing Grype report **false positives** or any other vulnerability mat
 Each rule can specify any combination of the following criteria:
 
 - vulnerability ID (e.g. `"CVE-2008-4318"`)
+- fix state (allowed values: `"fixed"`, `"not-fixed"`, `"wont-fix"`, or `"unknown"`)
 - package name (e.g. `"libcurl"`)
 - package version (e.g. `"1.5.1"`)
 - package type (e.g. `"npm"`; these values are defined [here](https://github.com/anchore/syft/blob/main/syft/pkg/type.go#L10-L21))
@@ -185,6 +182,7 @@ ignore:
   
   # This is the full set of supported rule fields:
   - vulnerability: CVE-2008-4318
+    fix-state: unknown
     package:
       name: libcurl
       version: 1.5.1
@@ -209,13 +207,84 @@ When you run Grype while specifying ignore rules, the following happens to the v
 
 **Note:** Please continue to **[report](https://github.com/anchore/grype/issues/new/choose)** any false positives you see! Even if you can reliably filter out false positives using ignore rules, it's very helpful to the Grype community if we have as much knowledge about Grype's false positives as possible. This helps us continuously improve Grype!
 
-### Grype's database
+### Showing only "fixed" vulnerabilities
 
-Grype pulls a database of vulnerabilities derived from the publicly available [Anchore Feed Service](https://ancho.re/v1/service/feeds). This database is updated at the beginning of each scan, but an update can also be triggered manually.
+If you only want Grype to report vulnerabilities **that have a confirmed fix**, you can use the `--only-fixed` flag. (This automatically adds [ignore rules](#specifying-matches-to-ignore) into Grype's configuration, such that vulnerabilities that aren't fixed will be ignored.)
+
+For example, here's a scan of Alpine 3.10:
 
 ```
-grype db update
+NAME          INSTALLED  FIXED-IN   VULNERABILITY   SEVERITY
+apk-tools     2.10.6-r0  2.10.7-r0  CVE-2021-36159  Critical
+libcrypto1.1  1.1.1k-r0             CVE-2021-3711   Critical
+libcrypto1.1  1.1.1k-r0             CVE-2021-3712   High
+libssl1.1     1.1.1k-r0             CVE-2021-3712   High
+libssl1.1     1.1.1k-r0             CVE-2021-3711   Critical
 ```
+
+...and here's the same scan, but adding the flag `--only-fixed`:
+
+```
+NAME       INSTALLED  FIXED-IN   VULNERABILITY   SEVERITY
+apk-tools  2.10.6-r0  2.10.7-r0  CVE-2021-36159  Critical
+```
+
+## Grype's database
+
+When Grype performs a scan for vulnerabilities, it does so using a vulnerability database that's stored on your local filesystem.
+
+By default, Grype automatically manages this database for you. Grype checks for new updates to the vulnerability database to make sure that every scan uses up-to-date vulnerability information. This behavior is configurable. For more information, see the [Managing Grype's database](#managing-grypes-database) section.
+
+### How database updates work
+
+Grype's vulnerability database is a SQLite file, named `vulnerability.db`. Updates to the database are atomic: the entire database is replaced and then treated as "readonly" by Grype.
+
+Grype's first step in a database update is discovering databases that are available for retrieval. Grype does this by requesting a "listing file" from a public endpoint:
+
+`https://toolbox-data.anchore.io/grype/databases/listing.json`
+
+The listing file contains entries for every database that's available for download.
+
+Here's an example of an entry in the listing file:
+
+```json
+{
+  "built": "2021-10-21T08:13:41Z",
+  "version": 3,
+  "url": "https://toolbox-data.anchore.io/grype/databases/vulnerability-db_v3_2021-10-21T08:13:41Z.tar.gz",
+  "checksum": "sha256:8c99fb4e516f10b304f026267c2a73a474e2df878a59bf688cfb0f094bfe7a91"
+}
+```
+
+With this information, Grype can select the correct database (the most recently built database with the current schema version), download the database, and verify the database's integrity using the listed `checksum` value.
+
+### Managing Grype's database
+
+> **Note:** During normal usage, _there is no need for users to manage Grype's database!_ Grype manages its database behind the scenes. However, for users that need more control, Grype provides options to manage the database more explicitly.
+
+#### Local database cache directory
+
+By default, the database is cached on the local filesystem in the directory `$XDG_CACHE_HOME/grype/db/<SCHEMA-VERSION>/`. For example, on macOS, the database would be stored in `~/Library/Caches/grype/db/3/`. (For more information on XDG paths, refer to the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html).)
+
+You can set the cache directory path using the environment variable `GRYPE_DB_CACHE_DIR`.
+
+#### Offline and air-gapped environments
+
+By default, Grype checks for a new database on every run, by making a network call over the Internet. You can tell Grype not to perform this check by setting the environment variable `GRYPE_DB_AUTO_UPDATE` to `false`.
+
+As long as you place Grype's `vulnerability.db` and `metadata.json` files in the cache directory for the expected schema version, Grype has no need to access the network.
+
+#### CLI commands for database management
+
+Grype provides database-specific CLI commands for users that want to control the database from the command line. Here are some of the useful commands provided:
+
+`grype db status` — report the current status of Grype's database (such as its location, build date, and checksum)
+
+`grype db check` — see if updates are available for the database
+
+`grype db update` — ensure the latest database has been downloaded to the cache directory (Grype performs this operation at the beginnign of every scan by default)
+
+Find complete information on Grype's database commands by running `grype db --help`.
 
 ## Shell completion
 
