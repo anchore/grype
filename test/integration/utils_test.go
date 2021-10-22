@@ -5,15 +5,17 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/anchore/grype/grype/match"
-	"github.com/scylladb/go-set/strset"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"testing"
 
+	"github.com/anchore/grype/grype/match"
+	"github.com/scylladb/go-set/strset"
+
 	"github.com/anchore/syft/syft"
+	"github.com/anchore/syft/syft/format"
 	"github.com/anchore/syft/syft/presenter/packages"
 	"github.com/anchore/syft/syft/source"
 )
@@ -71,7 +73,7 @@ func getSyftSBOM(t testing.TB, image string) string {
 	scope := source.SquashedScope
 	catalog, distro, err := syft.CatalogPackages(src, scope)
 
-	presenter := packages.Presenter(packages.JSONPresenterOption, packages.PresenterConfig{
+	presenter := packages.Presenter(format.JSONOption, packages.PresenterConfig{
 		SourceMetadata: src.Metadata,
 		Catalog:        catalog,
 		Distro:         distro,
