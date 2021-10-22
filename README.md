@@ -169,7 +169,7 @@ If you're seeing Grype report **false positives** or any other vulnerability mat
 Each rule can specify any combination of the following criteria:
 
 - vulnerability ID (e.g. `"CVE-2008-4318"`)
-- fix state (e.g. `"wont-fix"`; these values are defined [here](https://github.com/anchore/grype-db/blob/main/pkg/db/v3/fix.go#L5-L10))
+- fix state (allowed values: `"fixed"`, `"not-fixed"`, `"wont-fix"`, or `"unknown"`)
 - package name (e.g. `"libcurl"`)
 - package version (e.g. `"1.5.1"`)
 - package type (e.g. `"npm"`; these values are defined [here](https://github.com/anchore/syft/blob/main/syft/pkg/type.go#L10-L21))
