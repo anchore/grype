@@ -44,6 +44,9 @@ func eventLoop(workerErrs <-chan error, signals <-chan os.Signal, subscription *
 				if err := subscription.Unsubscribe(); err != nil {
 					retErr = multierror.Append(retErr, err)
 				}
+				// the worker has exited, we may have been mid-handling events for the UI which should now be
+				// ignored, in which case forcing a teardown of the UI irregardless of the state is required.
+				forceTeardown = true
 			}
 		case e, isOpen := <-events:
 			if !isOpen {
@@ -53,7 +56,6 @@ func eventLoop(workerErrs <-chan error, signals <-chan os.Signal, subscription *
 
 			if err := ux.Handle(e); err != nil {
 				if errors.Is(err, partybus.ErrUnsubscribe) {
-					log.Warnf("unable to unsubscribe from the event bus")
 					events = nil
 				} else {
 					retErr = multierror.Append(retErr, err)
