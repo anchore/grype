@@ -24,7 +24,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		"anchore/test_images:vulnerabilities-centos",
 		"anchore/test_images:npm",
 		"anchore/test_images:java",
-		"anchore/test_images:golang",
+		"anchore/test_images:golang-56d52bc",
 	}
 
 	// get a grype DB
