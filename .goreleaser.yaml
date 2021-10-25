@@ -13,10 +13,10 @@ builds:
     env:
       - CGO_ENABLED=0
     goos:
-      - windows
       - linux
     goarch:
       - amd64
+      - arm64
     # Set the modified timestamp on the output binary to the git timestamp (to ensure a reproducible build)
     mod_timestamp: '{{ .CommitTimestamp }}'
     ldflags: |
@@ -28,14 +28,15 @@ builds:
       -X github.com/anchore/grype/internal/version.gitCommit={{.Commit}}
       -X github.com/anchore/grype/internal/version.buildDate={{.Date}}
       -X github.com/anchore/grype/internal/version.gitTreeState={{.Env.BUILD_GIT_TREE_STATE}}
+
   - binary: grype
-    id: grype-arm64
+    id: grype-win
     env:
       - CGO_ENABLED=0
     goos:
-      - linux 
+      - windows
     goarch:
-      - arm64
+      - amd64
     # Set the modified timestamp on the output binary to the git timestamp (to ensure a reproducible build)
     mod_timestamp: '{{ .CommitTimestamp }}'
     ldflags: |
@@ -57,6 +58,7 @@ builds:
       - darwin
     goarch:
       - amd64
+      - arm64
     # Set the modified timestamp on the output binary to the git timestamp (to ensure a reproducible build)
     mod_timestamp: '{{ .CommitTimestamp }}'
     ldflags: |
@@ -73,11 +75,11 @@ archives:
   - format: tar.gz
     builds:
       - grype # i.e. Linux only
-      - grype-arm64
-  - format: zip # This is a hack! We don't actually intend to use _this_ ZIP file, we just need goreleaser to consider the ZIP file produced by gon (which will have the same file name) to be an artifact so we can use it downstream in publishing (e.g. to a homebrew tap)
+  - format: zip # This is a hack for grype-macos! We don't actually intend to use _this_ ZIP file, we just need goreleaser to consider the ZIP file produced by gon (which will have the same file name) to be an artifact so we can use it downstream in publishing (e.g. to a homebrew tap)
     id: grype-zip
     builds:
       - grype-macos
+      - grype-win
 
 signs:
   - artifacts: checksum
@@ -125,15 +127,30 @@ brews:
     description: *description
 
 dockers:
-  - dockerfile: Dockerfile
-    image_templates:
+  - image_templates:
       - "anchore/grype:latest"
-      - "anchore/grype:{{ .Tag }}"
-      - "anchore/grype:v{{ .Major }}"
-      - "anchore/grype:v{{ .Major }}.{{ .Minor }}"
+      - "anchore/grype:{{ .Tag }}-amd64"
+      - "anchore/grype:v{{ .Major }}-amd64"
+      - "anchore/grype:v{{ .Major }}.{{ .Minor }}-amd64"
+    dockerfile: Dockerfile
+    use: buildx
     build_flag_templates:
+      - "--platform=linux/amd64"
       - "--build-arg=BUILD_DATE={{.Date}}"
       - "--build-arg=BUILD_VERSION={{.Version}}"
       - "--build-arg=VCS_REF={{.FullCommit}}"
       - "--build-arg=VCS_URL={{.GitURL}}"
+
+  - image_templates:
+      - "anchore/grype:{{ .Tag }}-arm64v8"
+      - "anchore/grype:v{{ .Major }}-arm64v8"
+      - "anchore/grype:v{{ .Major }}.{{ .Minor }}-arm64v8"
+    goarch: arm64
+    dockerfile: Dockerfile
     use: buildx
+    build_flag_templates:
+      - "--platform=linux/arm64/v8"
+      - "--build-arg=BUILD_DATE={{.Date}}"
+      - "--build-arg=BUILD_VERSION={{.Version}}"
+      - "--build-arg=VCS_REF={{.FullCommit}}"
+      - "--build-arg=VCS_URL={{.GitURL}}"
