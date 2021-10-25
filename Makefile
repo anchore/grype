@@ -172,7 +172,7 @@ $(SNAPSHOTDIR): ## Build snapshot release binaries and packages
 	# build release snapshots
 	BUILD_GIT_TREE_STATE=$(GITTREESTATE) \
 	SYFT_VERSION=$(SYFTVERSION) \
-		$(TEMPDIR)/goreleaser build --snapshot --skip-validate --rm-dist --config $(TEMPDIR)/goreleaser.yaml
+		$(TEMPDIR)/goreleaser release --skip-publish --skip-sign --rm-dist --snapshot --config $(TEMPDIR)/goreleaser.yaml
 
 .PHONY: acceptance-linux
 acceptance-linux: $(SNAPSHOTDIR) ## Run acceptance tests on build snapshot binaries and packages (Linux)
