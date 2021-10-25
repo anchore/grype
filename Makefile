@@ -171,6 +171,7 @@ $(SNAPSHOTDIR): ## Build snapshot release binaries and packages
 
 	# build release snapshots
 	BUILD_GIT_TREE_STATE=$(GITTREESTATE) \
+	DOCKER_CLI_EXPERIMENTAL=enabled \
 	SYFT_VERSION=$(SYFTVERSION) \
 		$(TEMPDIR)/goreleaser release --skip-publish --skip-sign --rm-dist --snapshot --config $(TEMPDIR)/goreleaser.yaml
 
@@ -237,6 +238,7 @@ release: clean-dist validate-grype-test-config changelog-release ## Build and pu
 	# release (note the version transformation from v0.7.0 --> 0.7.0)
 	bash -c "\
 		BUILD_GIT_TREE_STATE=$(GITTREESTATE) \
+		DOCKER_CLI_EXPERIMENTAL=enabled \
 		SYFT_VERSION=$(SYFTVERSION) \
 		VERSION=$(VERSION:v%=%) \
 		$(TEMPDIR)/goreleaser \
