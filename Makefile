@@ -170,9 +170,12 @@ $(SNAPSHOTDIR): ## Build snapshot release binaries and packages
 	cat .goreleaser.yaml >> $(TEMPDIR)/goreleaser.yaml
 
 	# build release snapshots
+	# DOCKER_CLI_EXPERIMENTAL needed to support multi architecture builds for goreleaser
+	# the release command protects us from image build regressions if QEMU fails or docker is changed
 	BUILD_GIT_TREE_STATE=$(GITTREESTATE) \
+	DOCKER_CLI_EXPERIMENTAL=enabled \
 	SYFT_VERSION=$(SYFTVERSION) \
-		$(TEMPDIR)/goreleaser build --snapshot --skip-validate --rm-dist --config $(TEMPDIR)/goreleaser.yaml
+	$(TEMPDIR)/goreleaser release --skip-publish --skip-sign --rm-dist --snapshot --config $(TEMPDIR)/goreleaser.yaml
 
 .PHONY: acceptance-linux
 acceptance-linux: $(SNAPSHOTDIR) ## Run acceptance tests on build snapshot binaries and packages (Linux)
@@ -235,8 +238,10 @@ release: clean-dist validate-grype-test-config changelog-release ## Build and pu
 	cat .goreleaser.yaml >> $(TEMPDIR)/goreleaser.yaml
 
 	# release (note the version transformation from v0.7.0 --> 0.7.0)
+	# DOCKER_CLI_EXPERIMENTAL needed to support multi architecture builds for goreleaser
 	bash -c "\
 		BUILD_GIT_TREE_STATE=$(GITTREESTATE) \
+		DOCKER_CLI_EXPERIMENTAL=enabled \
 		SYFT_VERSION=$(SYFTVERSION) \
 		VERSION=$(VERSION:v%=%) \
 		$(TEMPDIR)/goreleaser \

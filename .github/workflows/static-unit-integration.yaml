@@ -86,5 +86,8 @@ jobs:
       - name: Run integration tests
         run: make integration
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
       - name: Run CLI tests
         run: make cli
