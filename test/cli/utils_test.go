@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/anchore/stereoscope/pkg/imagetest"
 )
@@ -45,6 +46,18 @@ func getGrypeCommand(tb testing.TB, args ...string) *exec.Cmd {
 		binaryLocation,
 		append(
 			[]string{"-c", "../grype-test-config.yaml"},
+			args...,
+		)...,
+	)
+}
+
+func getDockerRunCommand(tb testing.TB, args ...string) *exec.Cmd {
+	tb.Helper()
+
+	return exec.Command(
+		"docker",
+		append(
+			[]string{"run"},
 			args...,
 		)...,
 	)
@@ -132,5 +145,19 @@ func assertCommandExecutionSuccess(t testing.TB, cmd *exec.Cmd) {
 		}
 
 		t.Fatalf("unable to run command %q: %v", cmd, err)
+	}
+}
+
+func testWithTimeout(t *testing.T, name string, timeout time.Duration, test func(*testing.T)) {
+	done := make(chan bool)
+	go func() {
+		t.Run(name, test)
+		done <- true
+	}()
+
+	select {
+	case <-time.After(timeout):
+		t.Fatal("test timed out")
+	case <-done:
 	}
 }
