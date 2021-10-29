@@ -74,7 +74,7 @@ jobs:
       - name: Validate grype output against the CycloneDX schema
         run: make validate-cyclonedx-schema
 
-      - name: Build key for tar cache
+      - name: Build key for integration tar cache
         run: make integration-fingerprint
 
       - name: Restore integration test cache
@@ -82,6 +82,15 @@ jobs:
         with:
           path: ${{ github.workspace }}/test/integration/test-fixtures/cache
           key: ${{ runner.os }}-integration-test-cache-${{ hashFiles('test/integration/test-fixtures/cache.fingerprint') }}
+
+      - name: Build key for CLI tar cache
+        run: make cli-fingerprint
+
+      - name: Restore cli test cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ github.workspace }}/test/cli/test-fixtures/cache
+          key: ${{ runner.os }}-cli-test-cache-${{ hashFiles('test/cli/test-fixtures/cache.fingerprint') }}
 
       - name: Run integration tests
         run: make integration

@@ -14,6 +14,7 @@ require (
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/facebookincubator/nvdtools v0.1.4
+	github.com/gabriel-vasile/mimetype v1.3.0
 	github.com/go-test/deep v1.0.7
 	github.com/google/go-cmp v0.4.1
 	github.com/google/uuid v1.2.0

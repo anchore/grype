@@ -1,7 +1,7 @@
 package pkg
 
 import (
-	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -134,12 +134,7 @@ func TestParseSyftJSON(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Fixture, func(t *testing.T) {
-			fh, err := os.Open(test.Fixture)
-			if err != nil {
-				t.Fatalf("unable to open fixture: %+v", err)
-			}
-
-			pkgs, context, err := parseSyftJSON(fh)
+			pkgs, context, err := syftSBOMProvider(test.Fixture)
 			if err != nil {
 				t.Fatalf("unable to parse: %+v", err)
 			}
@@ -148,6 +143,12 @@ func TestParseSyftJSON(t *testing.T) {
 			context.Source.ImageMetadata.RawManifest = nil
 
 			for _, d := range deep.Equal(test.Packages, pkgs) {
+				if strings.Contains(d, ".ID: ") {
+					// today ID's get assigned by the catalog, which will change in the future. But in the meantime
+					// that means that these IDs are random and should not be counted as a difference we care about in
+					// this test.
+					continue
+				}
 				t.Errorf("pkg diff: %s", d)
 			}
 
@@ -159,13 +160,7 @@ func TestParseSyftJSON(t *testing.T) {
 }
 
 func TestParseSyftJSON_BadCPEs(t *testing.T) {
-	const testFixture = "test-fixtures/syft-java-bad-cpes.json"
-	fh, err := os.Open(testFixture)
-	if err != nil {
-		t.Fatalf("unable to open fixture: %+v", err)
-	}
-
-	pkgs, _, err := parseSyftJSON(fh)
+	pkgs, _, err := syftSBOMProvider("test-fixtures/syft-java-bad-cpes.json")
 	assert.NoError(t, err)
 	assert.Len(t, pkgs, 1)
 }

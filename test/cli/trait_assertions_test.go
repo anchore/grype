@@ -25,3 +25,10 @@ func assertFailingReturnCode(tb testing.TB, _, _ string, rc int) {
 		tb.Errorf("expected a failure but got rc=%d", rc)
 	}
 }
+
+func assertSucceedingReturnCode(tb testing.TB, _, _ string, rc int) {
+	tb.Helper()
+	if rc != 0 {
+		tb.Errorf("expected a failure but got rc=%d", rc)
+	}
+}
