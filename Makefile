@@ -149,6 +149,12 @@ integration: ## Run integration tests
 integration-fingerprint:
 	find test/integration/*.go test/integration/test-fixtures/image-* -type f -exec md5sum {} + | awk '{print $1}' | sort | md5sum | tee test/integration/test-fixtures/cache.fingerprint
 
+# note: this is used by CI to determine if the cli test fixture cache (docker image tars) should be busted
+.PHONY: cli-fingerprint
+cli-fingerprint:
+	find test/cli/*.go test/cli/test-fixtures/image-* -type f -exec md5sum {} + | awk '{print $1}' | sort | md5sum | tee test/cli/test-fixtures/cache.fingerprint
+
+
 .PHONY: cli
 cli: $(SNAPSHOTDIR) ## Run CLI tests
 	chmod 755 "$(SNAPSHOT_CMD)"

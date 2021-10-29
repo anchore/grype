@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"path"
 	"strings"
 	"testing"
 	"time"
@@ -10,6 +11,7 @@ import (
 )
 
 func TestSubprocessStdin(t *testing.T) {
+	binDir := path.Dir(getGrypeSnapshotLocation(t, "linux"))
 	tests := []struct {
 		name       string
 		args       []string
@@ -17,8 +19,20 @@ func TestSubprocessStdin(t *testing.T) {
 		assertions []traitAssertion
 	}{
 		{
+			// regression
 			name: "ensure can be used by node subprocess (without hanging)",
-			args: []string{"-v", fmt.Sprintf("%s:%s", repoRoot(t), "/code"), "-w", "/code", imagetest.LoadFixtureImageIntoDocker(t, "image-node-subprocess")},
+			args: []string{"-v", fmt.Sprintf("%s:%s:ro", binDir, "/app/bin"), imagetest.LoadFixtureImageIntoDocker(t, "image-node-subprocess"), "node", "/app.js"},
+			env: map[string]string{
+				"GRYPE_CHECK_FOR_APP_UPDATE": "false",
+			},
+			assertions: []traitAssertion{
+				assertSucceedingReturnCode,
+			},
+		},
+		{
+			// regression: https://github.com/anchore/grype/issues/267
+			name: "ensure can be used by java subprocess (without hanging)",
+			args: []string{"-v", fmt.Sprintf("%s:%s:ro", binDir, "/app/bin"), imagetest.LoadFixtureImageIntoDocker(t, "image-java-subprocess"), "java", "/app.java"},
 			env: map[string]string{
 				"GRYPE_CHECK_FOR_APP_UPDATE": "false",
 			},

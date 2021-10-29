@@ -26,29 +26,31 @@ func getFixtureImage(tb testing.TB, fixtureImageName string) string {
 func getGrypeCommand(tb testing.TB, args ...string) *exec.Cmd {
 	tb.Helper()
 
-	var binaryLocation string
-	if os.Getenv("GRYPE_BINARY_LOCATION") != "" {
-		// GRYPE_BINARY_LOCATION is the absolute path to the snapshot binary
-		binaryLocation = os.Getenv("GRYPE_BINARY_LOCATION")
-	} else {
-		// note: there is a subtle - vs _ difference between these versions
-		switch runtime.GOOS {
-		case "darwin":
-			binaryLocation = path.Join(repoRoot(tb), fmt.Sprintf("snapshot/grype-macos_darwin_%s/grype", runtime.GOARCH))
-		case "linux":
-			binaryLocation = path.Join(repoRoot(tb), fmt.Sprintf("snapshot/grype_linux_%s/grype", runtime.GOARCH))
-		default:
-			tb.Fatalf("unsupported OS: %s", runtime.GOOS)
-		}
-
-	}
 	return exec.Command(
-		binaryLocation,
+		getGrypeSnapshotLocation(tb, runtime.GOOS),
 		append(
 			[]string{"-c", "../grype-test-config.yaml"},
 			args...,
 		)...,
 	)
+}
+
+func getGrypeSnapshotLocation(tb testing.TB, goOS string) string {
+	if os.Getenv("GRYPE_BINARY_LOCATION") != "" {
+		// GRYPE_BINARY_LOCATION is the absolute path to the snapshot binary
+		return os.Getenv("GRYPE_BINARY_LOCATION")
+	}
+
+	// note: there is a subtle - vs _ difference between these versions
+	switch goOS {
+	case "darwin":
+		return path.Join(repoRoot(tb), fmt.Sprintf("snapshot/grype-macos_darwin_%s/grype", runtime.GOARCH))
+	case "linux":
+		return path.Join(repoRoot(tb), fmt.Sprintf("snapshot/grype_linux_%s/grype", runtime.GOARCH))
+	default:
+		tb.Fatalf("unsupported OS: %s", runtime.GOOS)
+	}
+	return ""
 }
 
 func getDockerRunCommand(tb testing.TB, args ...string) *exec.Cmd {

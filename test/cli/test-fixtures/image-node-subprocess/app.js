@@ -1,6 +1,4 @@
-require("child_process").spawn("go", [
-    "run",
-    "main.go",
+require("child_process").spawn("grype", [
     "-vv",
     "registry:busybox:latest",
 ], {
