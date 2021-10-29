@@ -154,7 +154,6 @@ integration-fingerprint:
 cli-fingerprint:
 	find test/cli/*.go test/cli/test-fixtures/image-* -type f -exec md5sum {} + | awk '{print $1}' | sort | md5sum | tee test/cli/test-fixtures/cache.fingerprint
 
-
 .PHONY: cli
 cli: $(SNAPSHOTDIR) ## Run CLI tests
 	chmod 755 "$(SNAPSHOT_CMD)"
