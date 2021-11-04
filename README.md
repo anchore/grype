@@ -298,14 +298,15 @@ This will output a shell script to STDOUT, which can then be used as a completio
 
 ## Private Registry Authentication
 
-Grype uses the [authn](https://github.com/google/go-containerregistry/tree/main/pkg/authn) package to solve for private registry access. 
+### Local Docker Credentials
+When a container runtime is not present, gype can still utilize credentials configured in common credential sources (such as `~/.docker/config.json`). 
+It will pull images from private registries using these credentials. The config file is where your credentials are stored when authenticating with private registries via some command like `docker login`. 
+For more information see the `go-containerregistry` [documentation](https://github.com/google/go-containerregistry/tree/main/pkg/authn).
 
-The config file listed in the linked authn package is where your credentials are stored when authenticating with private registries via some command like `docker login`.
 
-An example plain text `config.json` looks something like this:
+An example `config.json` looks something like this:
 ```
 // config.json
-
 {
 	"auths": {
 		"registry.example.com": {
@@ -316,62 +317,66 @@ An example plain text `config.json` looks something like this:
 }
 ```
 
-If you want to see the volume mount example detailed simply via podman you can use this command to verify a single run where `config.json` is populated to authenticate to the registry your private image is stored:
+You can run the following command as an example. It details the mount/environment configuration a container needs to access a private registry:
 
-`podman run -v ./config.json:/config/config.json -e "DOCKER_CONFIG=/config" anchore/syft:latest  <private_image>`
+`docker run -v ./config.json:/config/config.json -e "DOCKER_CONFIG=/config" anchore/grype:latest  <private_image>`
 
-The below section shows a simple workflow on how to mount this config as a secret into a container on kubernetes.
-1. Create a secret. The value of `config.json` is important. It refers to the specification outlined [here](https://github.com/google/go-containerregistry/tree/main/pkg/authn#the-config-file).
 
-Here is and example of the `secret.yaml` file that the pod configuration will consume as a volume. The key value `config.json` is important. That will be the name of the file on mount into the running pod.
-```
-# secret.yaml
+### Docker Credentials in Kubernetes
+The below section shows a simple workflow on how to mount this config file as a secret into a container on kubernetes.
+1. Create a secret. The value of `config.json` is important. It refers to the specification detailed [here](https://github.com/google/go-containerregistry/tree/main/pkg/authn#the-config-file). 
+Below this section is the `secret.yaml` file that the pod configuration will consume as a volume. 
+The key `config.json` is important. It will end up being the name of the file when mounted into the pod.
+    ```
+    # secret.yaml
+    
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: registry-config
+      namespace: grype 
+    data:
+      config.json: <base64 encoded config.json>
+    ```
 
-apiVersion: v1
-kind: Secret
-metadata:
-  name: registry-config
-  namespace: grype
-data:
-  config.json: <base64 encoded config.json>
-```
+    `kubectl apply -f secret.yaml`
 
-`kubectl apply -f secret.yaml -n grype`
 
-Note: if you have not done so, you can run `kubectl create namespace grype` to isolate this example.
+2. Create your pod running grype. The env `DOCKER_CONFIG` is important because it advertises where to look for the credential file. 
+In the below example, setting `DOCKER_CONFIG=/config` informs grype that credentials can be found at `/config/config.json`. 
+This is why we used `config.json` as the key for our secret. When mounted into containers the secrets' key is used as the filename. 
+The `volumeMounts` section mounts our secret to `/config`. The `volumes` section names our volume and leverages the secret we created in step one.
+    ```
+    # pod.yaml
+    
+    apiVersion: v1
+    kind: Pod
+    spec:
+      containers:
+        - image: anchore/grype:latest
+          name: grype-private-registry-demo
+          env:
+            - name: DOCKER_CONFIG
+              value: /config
+          volumeMounts:
+          - mountPath: /config
+            name: registry-config
+            readOnly: true
+          args:
+            - <private_image>
+      volumes:
+      - name: registry-config
+        secret:
+          secretName: registry-config
+    ```
 
-2. Create your pod running grype. The env `DOCKER_CONFIG` is important because it advertises to the `authn` package where to look for the credential file. In the below example, setting `DOCKER_CONFIG=/config` informs the package that credentials can be found at `/config/config.json`. This is why we used `config.json` as the key for our secret. When mounted into containers the secrets' key is used as the filename.
+    `kubectl apply -f pod.yaml`
 
-The `volumeMounts` section mounts our secret to `/config`. The `volumes` section names our volume and sources the secret we created in step one as the file we will be mounting.
-```
-# pod.yaml
 
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-    - image: anchore/grype:latest
-      name: grype-private-registry-demo
-      env:
-        - name: DOCKER_CONFIG
-          value: /config
-      volumeMounts:
-      - mountPath: /config
-        name: registry-config
-        readOnly: true
-      args:
-        - <private_image>
-  volumes:
-  - name: registry-config
-    secret:
-      secretName: registry-config
-```
+3. The user can now run `kubectl logs grype-private-registry-demo`. The logs should show the grype analysis for the `<private_image>` provided in the pod configuration.
 
-`kubectl apply -f pod.yaml -n grype`
-
-3. The user can now run `kubectl logs grype-private-registry-demo`. The logs should show the grype vulnerability analysis for the `<private_image>` provided in the pod configuration.
-
-Using the above information, users should be able to configure private registry access without having to interface or shim into the `grype` or `syft` configuration files. The will also not be dependent on a docker daemon, (or some other runtime software) for registry configuration and access.
+Using the above information, users should be able to configure private registry access without having to do so in the `grype` or `syft` configuration files.
+They will also not be dependent on a docker daemon, (or some other runtime software) for registry configuration and access.
 
 ## Configuration
 
