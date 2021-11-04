@@ -299,7 +299,7 @@ This will output a shell script to STDOUT, which can then be used as a completio
 ## Private Registry Authentication
 
 ### Local Docker Credentials
-When a container runtime is not present, gype can still utilize credentials configured in common credential sources (such as `~/.docker/config.json`). 
+When a container runtime is not present, grype can still utilize credentials configured in common credential sources (such as `~/.docker/config.json`). 
 It will pull images from private registries using these credentials. The config file is where your credentials are stored when authenticating with private registries via some command like `docker login`. 
 For more information see the `go-containerregistry` [documentation](https://github.com/google/go-containerregistry/tree/main/pkg/authn).
 
