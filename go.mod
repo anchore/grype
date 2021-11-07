@@ -19,7 +19,7 @@ require (
 	github.com/google/go-cmp v0.4.1
 	github.com/google/uuid v1.2.0
 	github.com/gookit/color v1.4.2
-	github.com/hashicorp/go-getter v1.4.1
+	github.com/hashicorp/go-getter v1.5.9
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/knqyf263/go-apk-version v0.0.0-20200609155635-041fdbb8563f
@@ -42,3 +42,5 @@ require (
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	gopkg.in/yaml.v2 v2.4.0
 )
+
+replace github.com/anchore/grype-db => ../grype-db

@@ -45,7 +45,7 @@ func NewCurator(cfg Config) Curator {
 	return Curator{
 		fs:                  afero.NewOsFs(),
 		targetSchema:        vulnerability.SchemaVersion,
-		downloader:          file.NewGetter(),
+		downloader:          file.NewGetter(nil),
 		dbDir:               dbDir,
 		dbPath:              path.Join(dbDir, FileName),
 		listingURL:          cfg.ListingURL,
@@ -143,7 +143,7 @@ func (c *Curator) Update() (bool, error) {
 func (c *Curator) IsUpdateAvailable() (bool, *curation.ListingEntry, error) {
 	log.Debugf("checking for available database updates")
 
-	listing, err := curation.NewListingFromURL(c.fs, c.listingURL)
+	listing, err := c.newListingFromURL(c.fs, c.listingURL)
 	if err != nil {
 		return false, nil, err
 	}
@@ -311,4 +311,31 @@ func (c *Curator) activate(dbDirPath string) error {
 
 	// activate the new db cache
 	return file.CopyDir(c.fs, dbDirPath, c.dbDir)
+}
+
+// newListingFromURL loads a Listing from a URL.
+func (c Curator) newListingFromURL(fs afero.Fs, listingURL string) (curation.Listing, error) {
+	tempFile, err := afero.TempFile(fs, "", "grype-db-listing")
+	if err != nil {
+		return curation.Listing{}, fmt.Errorf("unable to create listing temp file: %w", err)
+	}
+	defer func() {
+		err := fs.RemoveAll(tempFile.Name())
+		if err != nil {
+			log.Errorf("failed to remove file (%s): %w", tempFile.Name(), err)
+		}
+	}()
+
+	// download the listing file
+	err = c.downloader.GetFile(tempFile.Name(), listingURL)
+	if err != nil {
+		return curation.Listing{}, fmt.Errorf("unable to download listing: %w", err)
+	}
+
+	// parse the listing file
+	listing, err := curation.NewListingFromFile(fs, tempFile.Name())
+	if err != nil {
+		return curation.Listing{}, err
+	}
+	return listing, nil
 }

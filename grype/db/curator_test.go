@@ -120,7 +120,6 @@ func TestCuratorDownload(t *testing.T) {
 			if string(actual) != contents {
 				t.Fatalf("bad contents: %+v", string(actual))
 			}
-
 		})
 	}
 }
@@ -192,12 +191,10 @@ func TestCuratorValidate(t *testing.T) {
 }
 
 func TestCuratorDBPathHasSchemaVersion(t *testing.T) {
-
 	fs := afero.NewMemMapFs()
 	dbRootPath := "/tmp/dbdir"
 	cur := newTestCurator(fs, nil, dbRootPath, "http://metadata.io", false)
 
 	assert.Equal(t, path.Join(dbRootPath, strconv.Itoa(cur.targetSchema)), cur.dbDir, "unexpected dir")
 	assert.Contains(t, cur.dbPath, path.Join(dbRootPath, strconv.Itoa(cur.targetSchema)), "unexpected path")
-
 }
