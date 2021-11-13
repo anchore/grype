@@ -34,10 +34,6 @@ ifeq "$(strip $(VERSION))" ""
  override VERSION = $(shell git describe --always --tags --dirty)
 endif
 
-# used to generate the changelog from the second to last tag to the current tag (used in the release pipeline when the release tag is in place)
-LAST_TAG := $(shell git describe --abbrev=0 --tags $(shell git rev-list --tags --max-count=1))
-SECOND_TO_LAST_TAG := $(shell git describe --abbrev=0 --tags $(shell git rev-list --tags --skip=1 --max-count=1))
-
 ## Variable assertions
 
 ifndef TEMPDIR
@@ -199,24 +195,16 @@ compare-snapshot: $(SNAPSHOTDIR)  ## Compare a main branch build run of grype ag
 compare:
 	@cd test/inline-compare && make
 
-.PHONY: changelog-release
-changelog-release:
-	$(TEMPDIR)/chronicle --since-tag $(SECOND_TO_LAST_TAG) --until-tag $(LAST_TAG) -vv > CHANGELOG.md
-
-	@printf '\n$(BOLD)$(CYAN)Release $(VERSION) Changelog$(RESET)\n\n'
-	@cat CHANGELOG.md
-
-.PHONY: changelog-unreleased
-changelog-unreleased: ## show the current changelog that will be produced on the next release (note: requires GITHUB_TOKEN set)
-	$(TEMPDIR)/chronicle --since-tag $(LAST_TAG) -vv > CHANGELOG.md
-
-	@printf '\n$(BOLD)$(CYAN)Unreleased Changes (closed PRs and issues will not be in the final changelog)$(RESET)\n'
-
+.PHONY: changelog
+changelog: clean-changelog CHANGELOG.md
 	@docker run -it --rm \
 		-v $(shell pwd)/CHANGELOG.md:/CHANGELOG.md \
 		rawkode/mdv \
 			-t 748.5989 \
 			/CHANGELOG.md
+
+CHANGELOG.md:
+	$(TEMPDIR)/chronicle -vv > CHANGELOG.md
 
 .PHONY: validate-grype-test-config
 validate-grype-test-config:
@@ -228,7 +216,7 @@ validate-grype-test-config:
 		fi'
 
 .PHONY: release
-release: clean-dist validate-grype-test-config changelog-release ## Build and publish final binaries and packages. Intended to be run only on macOS.
+release: clean-dist validate-grype-test-config CHANGELOG.md ## Build and publish final binaries and packages. Intended to be run only on macOS.
 	$(call title,Publishing release artifacts)
 
 	# Prepare for macOS-specific signing process
@@ -269,5 +257,9 @@ clean-snapshot:
 	rm -rf $(SNAPSHOTDIR) $(TEMPDIR)/goreleaser.yaml
 
 .PHONY: clean-dist
-clean-dist:
+clean-dist: clean-changelog
 	rm -rf $(DISTDIR) $(TEMPDIR)/goreleaser.yaml
+
+.PHONY: clean-changelog
+clean-changelog:
+	rm -f CHANGELOG.md
