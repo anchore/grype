@@ -1,8 +1,6 @@
 package integration
 
 import (
-	"bufio"
-	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -16,7 +14,7 @@ import (
 
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/format"
-	"github.com/anchore/syft/syft/presenter/packages"
+	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -73,19 +71,20 @@ func getSyftSBOM(t testing.TB, image string) string {
 	scope := source.SquashedScope
 	catalog, distro, err := syft.CatalogPackages(src, scope)
 
-	presenter := packages.Presenter(format.JSONOption, packages.PresenterConfig{
-		SourceMetadata: src.Metadata,
-		Catalog:        catalog,
-		Distro:         distro,
-		Scope:          scope,
-	})
+	sbom := sbom.SBOM{
+		Artifacts: sbom.Artifacts{
+			PackageCatalog: catalog,
+			Distro:         distro,
+		},
+		Source: src.Metadata,
+	}
 
-	var buf bytes.Buffer
-	if err := presenter.Present(bufio.NewWriter(&buf)); err != nil {
+	bytes, err := syft.Encode(sbom, format.JSONOption)
+	if err != nil {
 		t.Fatalf("presenter failed: %+v", err)
 	}
 
-	return buf.String()
+	return string(bytes)
 }
 
 func getMatchSet(matches match.Matches) *strset.Set {

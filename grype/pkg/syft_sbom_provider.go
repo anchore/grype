@@ -24,7 +24,7 @@ func syftSBOMProvider(userInput string) ([]Package, Context, error) {
 		return nil, Context{}, err
 	}
 
-	catalog, srcMetadata, theDistro, _, formatOption, err := syft.Decode(reader)
+	sbom, formatOption, err := syft.Decode(reader)
 	if err != nil {
 		return nil, Context{}, fmt.Errorf("unable to decode sbom: %w", err)
 	}
@@ -32,9 +32,9 @@ func syftSBOMProvider(userInput string) ([]Package, Context, error) {
 		return nil, Context{}, errDoesNotProvide
 	}
 
-	return FromCatalog(catalog), Context{
-		Source: srcMetadata,
-		Distro: theDistro,
+	return FromCatalog(sbom.Artifacts.PackageCatalog), Context{
+		Source: &sbom.Source,
+		Distro: sbom.Artifacts.Distro,
 	}, nil
 }
 

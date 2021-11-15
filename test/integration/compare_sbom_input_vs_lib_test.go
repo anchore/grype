@@ -39,8 +39,12 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 	for _, p := range syftPkg.AllPkgs {
 		definedPkgTypes.Add(string(p))
 	}
-	// exceptions: rust and msrc (kb) are not under test
-	definedPkgTypes.Remove(string(syftPkg.RustPkg), string(syftPkg.KbPkg))
+	// exceptions: rust, php, and msrc (kb) are not under test
+	definedPkgTypes.Remove(
+		string(syftPkg.RustPkg),
+		string(syftPkg.KbPkg),
+		string(syftPkg.PhpComposerPkg),
+	)
 	observedPkgTypes := strset.New()
 
 	for _, image := range images {
@@ -88,5 +92,4 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 	// ensure we've covered all package types (-rust, -kb)
 	unobservedPackageTypes := strset.Difference(definedPkgTypes, observedPkgTypes)
 	assert.Empty(t, unobservedPackageTypes.List(), "not all package type were covered in testing")
-
 }
