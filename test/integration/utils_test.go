@@ -1,3 +1,12 @@
+/*
+
+
+
+
+
+
+
+
 package integration
 
 import (
@@ -16,7 +25,6 @@ import (
 
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/format"
-	"github.com/anchore/syft/syft/presenter/packages"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -95,3 +103,4 @@ func getMatchSet(matches match.Matches) *strset.Set {
 	}
 	return s
 }
+*/
