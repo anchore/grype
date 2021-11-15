@@ -7,3 +7,6 @@ permit:
 ignore-packages:
   # packageurl-go is released under the MIT license located in the root of the repo at /mit.LICENSE
   - github.com/anchore/packageurl-go
+  # tools-golang is released under the Apache License, version 2.0 (Apache-2.0)
+  # https://github.com/spdx/tools-golang/blob/main/LICENSE.code
+  - github.com/spdx/tools-golang
