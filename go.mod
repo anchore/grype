@@ -7,17 +7,15 @@ require (
 	github.com/adrg/xdg v0.2.1
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
-	github.com/anchore/grype-db v0.0.0-20211004133852-e0170394d953
+	github.com/anchore/grype-db v0.0.0-20211115233739-c0e91d61ed51
 	github.com/anchore/stereoscope v0.0.0-20211024152658-003132a67c10
 	github.com/anchore/syft v0.30.1
 	github.com/bmatcuk/doublestar/v2 v2.0.4
-	github.com/containerd/containerd v1.4.11 // indirect
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/facebookincubator/nvdtools v0.1.4
 	github.com/gabriel-vasile/mimetype v1.3.0
 	github.com/go-test/deep v1.0.7
-	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/go-cmp v0.4.1
 	github.com/google/uuid v1.2.0
 	github.com/gookit/color v1.4.2
@@ -37,7 +35,6 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.7.0
 	github.com/stretchr/testify v1.7.0
-	github.com/ulikunitz/xz v0.5.8 // indirect
 	github.com/wagoodman/go-partybus v0.0.0-20210627031916-db1f5573bbc5
 	github.com/wagoodman/go-progress v0.0.0-20200807221327-51d465df1451
 	github.com/wagoodman/jotframe v0.0.0-20200730190914-3517092dd163
