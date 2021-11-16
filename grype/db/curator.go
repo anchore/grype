@@ -1,8 +1,11 @@
 package db
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path"
 	"strconv"
@@ -27,6 +30,7 @@ const (
 type Config struct {
 	DBRootDir           string
 	ListingURL          string
+	CACert              string
 	ValidateByHashOnGet bool
 }
 
@@ -40,17 +44,33 @@ type Curator struct {
 	validateByHashOnGet bool
 }
 
-func NewCurator(cfg Config) Curator {
+func NewCurator(cfg Config) (Curator, error) {
 	dbDir := path.Join(cfg.DBRootDir, strconv.Itoa(vulnerability.SchemaVersion))
+
+	httpClient := new(http.Client)
+	if caCertFilePath := cfg.CACert; caCertFilePath != "" {
+		rootCAs := x509.NewCertPool()
+
+		pemBytes, err := ioutil.ReadFile(caCertFilePath)
+		if err != nil {
+			return Curator{}, fmt.Errorf("unable to configure root CAs for curator: %w", err)
+		}
+		rootCAs.AppendCertsFromPEM(pemBytes)
+
+		httpClient.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
+			RootCAs: rootCAs,
+		}
+	}
+
 	return Curator{
 		fs:                  afero.NewOsFs(),
 		targetSchema:        vulnerability.SchemaVersion,
-		downloader:          file.NewGetter(nil),
+		downloader:          file.NewGetter(httpClient),
 		dbDir:               dbDir,
 		dbPath:              path.Join(dbDir, FileName),
 		listingURL:          cfg.ListingURL,
 		validateByHashOnGet: cfg.ValidateByHashOnGet,
-	}
+	}, nil
 }
 
 func (c *Curator) GetStore() (*reader.Reader, error) {
