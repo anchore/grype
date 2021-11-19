@@ -17,6 +17,7 @@ class Handler(SimpleHTTPRequestHandler):
 
 httpd = HTTPServer(('0.0.0.0', port), Handler)
 sslctx = ssl.SSLContext()
+sslctx.options |= ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1
 sslctx.load_cert_chain(certfile='server.crt', keyfile="server.key")
 httpd.socket = sslctx.wrap_socket(httpd.socket, server_side=True)
 
