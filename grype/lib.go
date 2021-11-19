@@ -29,7 +29,10 @@ func FindVulnerabilitiesForPackage(provider vulnerability.Provider, d *distro.Di
 }
 
 func LoadVulnerabilityDB(cfg db.Config, update bool) (vulnerability.Provider, vulnerability.MetadataProvider, *db.Status, error) {
-	dbCurator := db.NewCurator(cfg)
+	dbCurator, err := db.NewCurator(cfg)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
 	if update {
 		_, err := dbCurator.Update()

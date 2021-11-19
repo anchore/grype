@@ -18,6 +18,7 @@ import (
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/file"
 	"github.com/anchore/grype/internal/log"
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/spf13/afero"
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
@@ -47,23 +48,14 @@ type Curator struct {
 func NewCurator(cfg Config) (Curator, error) {
 	dbDir := path.Join(cfg.DBRootDir, strconv.Itoa(vulnerability.SchemaVersion))
 
-	httpClient := new(http.Client)
-	if caCertFilePath := cfg.CACert; caCertFilePath != "" {
-		rootCAs := x509.NewCertPool()
-
-		pemBytes, err := ioutil.ReadFile(caCertFilePath)
-		if err != nil {
-			return Curator{}, fmt.Errorf("unable to configure root CAs for curator: %w", err)
-		}
-		rootCAs.AppendCertsFromPEM(pemBytes)
-
-		httpClient.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
-			RootCAs: rootCAs,
-		}
+	fs := afero.NewOsFs()
+	httpClient, err := defaultHTTPClient(fs, cfg.CACert)
+	if err != nil {
+		return Curator{}, err
 	}
 
 	return Curator{
-		fs:                  afero.NewOsFs(),
+		fs:                  fs,
 		targetSchema:        vulnerability.SchemaVersion,
 		downloader:          file.NewGetter(httpClient),
 		dbDir:               dbDir,
@@ -358,4 +350,23 @@ func (c Curator) newListingFromURL(fs afero.Fs, listingURL string) (curation.Lis
 		return curation.Listing{}, err
 	}
 	return listing, nil
+}
+
+func defaultHTTPClient(fs afero.Fs, caCertPath string) (*http.Client, error) {
+	httpClient := cleanhttp.DefaultClient()
+	if caCertPath != "" {
+		rootCAs := x509.NewCertPool()
+
+		pemBytes, err := afero.ReadFile(fs, caCertPath)
+		if err != nil {
+			return nil, fmt.Errorf("unable to configure root CAs for curator: %w", err)
+		}
+		rootCAs.AppendCertsFromPEM(pemBytes)
+
+		httpClient.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
+			MinVersion: tls.VersionTLS12,
+			RootCAs:    rootCAs,
+		}
+	}
+	return httpClient, nil
 }

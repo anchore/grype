@@ -56,6 +56,14 @@ func getterClient(dst, src string, dir bool, httpGetter getter.HttpGetter, monit
 		Getters: map[string]getter.Getter{
 			"http":  &httpGetter,
 			"https": &httpGetter,
+			// note: these are the default getters from https://github.com/hashicorp/go-getter/blob/v1.5.9/get.go#L68-L74
+			// it is possible that other implementations need to account for custom httpclient injection, however,
+			// that has not been accounted for at this time.
+			"file": new(getter.FileGetter),
+			"git":  new(getter.GitGetter),
+			"gcs":  new(getter.GCSGetter),
+			"hg":   new(getter.HgGetter),
+			"s3":   new(getter.S3Getter),
 		},
 		Options: mapToGetterClientOptions(monitors),
 	}

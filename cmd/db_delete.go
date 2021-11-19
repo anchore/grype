@@ -19,7 +19,10 @@ func init() {
 }
 
 func runDBDeleteCmd(_ *cobra.Command, _ []string) error {
-	dbCurator := db.NewCurator(appConfig.DB.ToCuratorConfig())
+	dbCurator, err := db.NewCurator(appConfig.DB.ToCuratorConfig())
+	if err != nil {
+		return err
+	}
 
 	if err := dbCurator.Delete(); err != nil {
 		return fmt.Errorf("unable to delete vulnerability database: %+v", err)
