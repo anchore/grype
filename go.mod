@@ -7,7 +7,7 @@ require (
 	github.com/adrg/xdg v0.2.1
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
-	github.com/anchore/grype-db v0.0.0-20211115233739-c0e91d61ed51
+	github.com/anchore/grype-db v0.0.0-20211119195714-911ff7162dc6
 	github.com/anchore/stereoscope v0.0.0-20211024152658-003132a67c10
 	github.com/anchore/syft v0.30.1
 	github.com/bmatcuk/doublestar/v2 v2.0.4
@@ -43,5 +43,3 @@ require (
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	gopkg.in/yaml.v2 v2.4.0
 )
-
-replace github.com/anchore/grype-db => ../grype-db
