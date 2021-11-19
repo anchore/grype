@@ -2,3 +2,4 @@ server.key
 server.crt
 www/
 listing.json
+dbdir/
