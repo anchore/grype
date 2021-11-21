@@ -76,6 +76,10 @@ func (c *Curator) GetStore() (*reader.Reader, error) {
 	return s, err
 }
 
+func (c Curator) SupportedSchema() int {
+	return c.targetSchema
+}
+
 func (c *Curator) Status() Status {
 	metadata, err := curation.NewMetadataFromDir(c.fs, c.dbDir)
 	if err != nil {
@@ -134,16 +138,16 @@ func (c *Curator) Update() (bool, error) {
 	updateAvailable, updateEntry, err := c.IsUpdateAvailable()
 	if err != nil {
 		// we want to continue if possible even if we can't check for an update
-		log.Infof("unable to check for vulnerability database update")
+		log.Warnf("unable to check for vulnerability database update")
 		log.Debugf("check for vulnerability update failed: %+v", err)
 	}
 	if updateAvailable {
-		log.Infof("Downloading new vulnerability DB")
+		log.Infof("downloading new vulnerability DB")
 		err = c.UpdateTo(updateEntry, downloadProgress, importProgress, stage)
 		if err != nil {
 			return false, fmt.Errorf("unable to update vulnerability database: %w", err)
 		}
-		log.Infof("Updated vulnerability DB to version=%d built=%q", updateEntry.Version, updateEntry.Built.String())
+		log.Infof("updated vulnerability DB to version=%d built=%q", updateEntry.Version, updateEntry.Built.String())
 		return true, nil
 	}
 	stage.Current = "no update available"
@@ -155,7 +159,7 @@ func (c *Curator) Update() (bool, error) {
 func (c *Curator) IsUpdateAvailable() (bool, *curation.ListingEntry, error) {
 	log.Debugf("checking for available database updates")
 
-	listing, err := c.newListingFromURL(c.fs, c.listingURL)
+	listing, err := c.ListingFromURL()
 	if err != nil {
 		return false, nil, err
 	}
@@ -325,27 +329,27 @@ func (c *Curator) activate(dbDirPath string) error {
 	return file.CopyDir(c.fs, dbDirPath, c.dbDir)
 }
 
-// newListingFromURL loads a Listing from a URL.
-func (c Curator) newListingFromURL(fs afero.Fs, listingURL string) (curation.Listing, error) {
-	tempFile, err := afero.TempFile(fs, "", "grype-db-listing")
+// ListingFromURL loads a Listing from a URL.
+func (c Curator) ListingFromURL() (curation.Listing, error) {
+	tempFile, err := afero.TempFile(c.fs, "", "grype-db-listing")
 	if err != nil {
 		return curation.Listing{}, fmt.Errorf("unable to create listing temp file: %w", err)
 	}
 	defer func() {
-		err := fs.RemoveAll(tempFile.Name())
+		err := c.fs.RemoveAll(tempFile.Name())
 		if err != nil {
 			log.Errorf("failed to remove file (%s): %w", tempFile.Name(), err)
 		}
 	}()
 
 	// download the listing file
-	err = c.downloader.GetFile(tempFile.Name(), listingURL)
+	err = c.downloader.GetFile(tempFile.Name(), c.listingURL)
 	if err != nil {
 		return curation.Listing{}, fmt.Errorf("unable to download listing: %w", err)
 	}
 
 	// parse the listing file
-	listing, err := curation.NewListingFromFile(fs, tempFile.Name())
+	listing, err := curation.NewListingFromFile(c.fs, tempFile.Name())
 	if err != nil {
 		return curation.Listing{}, err
 	}

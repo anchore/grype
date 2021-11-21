@@ -57,14 +57,14 @@ func TestGetter_GetFile(t *testing.T) {
 	}
 }
 
-func TestGetter_GetToDir_FilterNonArchives(t *testing.T) {
+func TestGetter_GetToDir_FilterNonArchivesWired(t *testing.T) {
 	testCases := []struct {
 		name   string
 		source string
 		assert assert.ErrorAssertionFunc
 	}{
 		{
-			name:   "error out on non-archive sources for dir fetching",
+			name:   "error out on non-archive sources",
 			source: "http://localhost/something.txt",
 			assert: assertErrNonArchiveSource,
 		},
@@ -77,7 +77,37 @@ func TestGetter_GetToDir_FilterNonArchives(t *testing.T) {
 	}
 }
 
-func TestGetter_GetToDir_CAconcerns(t *testing.T) {
+func TestGetter_validateHttpSource(t *testing.T) {
+	testCases := []struct {
+		name   string
+		source string
+		assert assert.ErrorAssertionFunc
+	}{
+		{
+			name:   "error out on non-archive sources",
+			source: "http://localhost/something.txt",
+			assert: assertErrNonArchiveSource,
+		},
+		{
+			name:   "filter out non-archive sources with get param",
+			source: "https://localhost/vulnerability-db_v3_2021-11-21T08:15:44Z.txt?checksum=sha256%3Ac402d01fa909a3fa85a5c6733ef27a3a51a9105b6c62b9152adbd24c08358911",
+			assert: assertErrNonArchiveSource,
+		},
+		{
+			name:   "ignore non http-https input",
+			source: "s3://bucket/something.txt",
+			assert: assert.NoError,
+		},
+	}
+
+	for _, test := range testCases {
+		t.Run(test.name, func(t *testing.T) {
+			test.assert(t, validateHTTPSource(test.source))
+		})
+	}
+}
+
+func TestGetter_GetToDir_CertConcerns(t *testing.T) {
 	testCases := []struct {
 		name          string
 		prepareClient func(*http.Client)

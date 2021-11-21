@@ -5,6 +5,8 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/hashicorp/go-getter/helper/url"
+
 	"github.com/anchore/grype/internal"
 	"github.com/hashicorp/go-getter"
 	"github.com/wagoodman/go-progress"
@@ -52,14 +54,28 @@ func (g HashiGoGetter) GetFile(dst, src string, monitors ...*progress.Manual) er
 }
 
 func (g HashiGoGetter) GetToDir(dst, src string, monitors ...*progress.Manual) error {
-	if !internal.HasAnyOfSuffixes(src, archiveExtensions...) {
-		return ErrNonArchiveSource
+	if err := validateHTTPSource(src); err != nil {
+		return err
 	}
 	if len(monitors) > 1 {
 		return fmt.Errorf("multiple monitors provided, which is not allowed")
 	}
 
 	return getterClient(dst, src, true, g.httpGetter, monitors).Get()
+}
+
+func validateHTTPSource(src string) error {
+	if !internal.HasAnyOfPrefixes(src, "http://", "https://") {
+		return nil
+	}
+	u, err := url.Parse(src)
+	if err != nil {
+		return fmt.Errorf("bad URL provided %q: %w", src, err)
+	}
+	if !internal.HasAnyOfSuffixes(u.Path, archiveExtensions...) {
+		return ErrNonArchiveSource
+	}
+	return nil
 }
 
 func getterClient(dst, src string, dir bool, httpGetter getter.HttpGetter, monitors []*progress.Manual) *getter.Client {
