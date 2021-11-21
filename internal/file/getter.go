@@ -5,8 +5,19 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/anchore/grype/internal"
 	"github.com/hashicorp/go-getter"
 	"github.com/wagoodman/go-progress"
+)
+
+var (
+	archiveExtensions = []string{
+		".tar",
+		".tar.gz",
+		".tgz",
+		".zip",
+	}
+	ErrNonArchiveSource = fmt.Errorf("non-archive sources are not supported for directory destinations")
 )
 
 type Getter interface {
@@ -41,6 +52,9 @@ func (g HashiGoGetter) GetFile(dst, src string, monitors ...*progress.Manual) er
 }
 
 func (g HashiGoGetter) GetToDir(dst, src string, monitors ...*progress.Manual) error {
+	if !internal.HasAnyOfSuffixes(src, archiveExtensions...) {
+		return ErrNonArchiveSource
+	}
 	if len(monitors) > 1 {
 		return fmt.Errorf("multiple monitors provided, which is not allowed")
 	}

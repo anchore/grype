@@ -57,12 +57,33 @@ func TestGetter_GetFile(t *testing.T) {
 	}
 }
 
-func TestGetter_GetToDir(t *testing.T) {
+func TestGetter_GetToDir_FilterNonArchives(t *testing.T) {
+	testCases := []struct {
+		name   string
+		source string
+		assert assert.ErrorAssertionFunc
+	}{
+		{
+			name:   "error out on non-archive sources for dir fetching",
+			source: "http://localhost/something.txt",
+			assert: assertErrNonArchiveSource,
+		},
+	}
+
+	for _, test := range testCases {
+		t.Run(test.name, func(t *testing.T) {
+			test.assert(t, NewGetter(nil).GetToDir(t.TempDir(), test.source))
+		})
+	}
+}
+
+func TestGetter_GetToDir_CAconcerns(t *testing.T) {
 	testCases := []struct {
 		name          string
 		prepareClient func(*http.Client)
 		assert        assert.ErrorAssertionFunc
 	}{
+
 		{
 			name:   "client trusts server's CA",
 			assert: assert.NoError,
@@ -100,6 +121,10 @@ func TestGetter_GetToDir(t *testing.T) {
 
 func assertUnknownAuthorityError(t assert.TestingT, err error, _ ...interface{}) bool {
 	return assert.ErrorAs(t, err, &x509.UnknownAuthorityError{})
+}
+
+func assertErrNonArchiveSource(t assert.TestingT, err error, _ ...interface{}) bool {
+	return assert.ErrorIs(t, err, ErrNonArchiveSource)
 }
 
 func removeTrustedCAs(client *http.Client) {
