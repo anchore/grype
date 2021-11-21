@@ -26,7 +26,6 @@ func runDBCheckCmd(_ *cobra.Command, _ []string) error {
 
 	updateAvailable, _, err := dbCurator.IsUpdateAvailable()
 	if err != nil {
-		// TODO: should this be so fatal? we can certainly continue with a warning...
 		return fmt.Errorf("unable to check for vulnerability database update: %+v", err)
 	}
 
