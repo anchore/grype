@@ -14,7 +14,6 @@ import (
 // eventLoop listens to worker errors (from execution path), worker events (from a partybus subscription), and
 // signal interrupts. Is responsible for handling each event relative to a given UI an to coordinate eventing until
 // an eventual graceful exit.
-// nolint:gocognit
 func eventLoop(workerErrs <-chan error, signals <-chan os.Signal, subscription *partybus.Subscription, cleanupFn func(), uxs ...ui.UI) error {
 	defer cleanupFn()
 	events := subscription.Events()
@@ -41,9 +40,7 @@ func eventLoop(workerErrs <-chan error, signals <-chan os.Signal, subscription *
 			if err != nil {
 				// capture the error from the worker and unsubscribe to complete a graceful shutdown
 				retErr = multierror.Append(retErr, err)
-				if err := subscription.Unsubscribe(); err != nil {
-					retErr = multierror.Append(retErr, err)
-				}
+				_ = subscription.Unsubscribe()
 				// the worker has exited, we may have been mid-handling events for the UI which should now be
 				// ignored, in which case forcing a teardown of the UI irregardless of the state is required.
 				forceTeardown = true
