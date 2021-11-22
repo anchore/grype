@@ -1,8 +1,11 @@
 package db
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path"
 	"strconv"
@@ -15,6 +18,7 @@ import (
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/file"
 	"github.com/anchore/grype/internal/log"
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/spf13/afero"
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
@@ -27,6 +31,7 @@ const (
 type Config struct {
 	DBRootDir           string
 	ListingURL          string
+	CACert              string
 	ValidateByHashOnGet bool
 }
 
@@ -40,17 +45,24 @@ type Curator struct {
 	validateByHashOnGet bool
 }
 
-func NewCurator(cfg Config) Curator {
+func NewCurator(cfg Config) (Curator, error) {
 	dbDir := path.Join(cfg.DBRootDir, strconv.Itoa(vulnerability.SchemaVersion))
+
+	fs := afero.NewOsFs()
+	httpClient, err := defaultHTTPClient(fs, cfg.CACert)
+	if err != nil {
+		return Curator{}, err
+	}
+
 	return Curator{
-		fs:                  afero.NewOsFs(),
+		fs:                  fs,
 		targetSchema:        vulnerability.SchemaVersion,
-		downloader:          file.NewGetter(),
+		downloader:          file.NewGetter(httpClient),
 		dbDir:               dbDir,
 		dbPath:              path.Join(dbDir, FileName),
 		listingURL:          cfg.ListingURL,
 		validateByHashOnGet: cfg.ValidateByHashOnGet,
-	}
+	}, nil
 }
 
 func (c *Curator) GetStore() (*reader.Reader, error) {
@@ -122,16 +134,16 @@ func (c *Curator) Update() (bool, error) {
 	updateAvailable, updateEntry, err := c.IsUpdateAvailable()
 	if err != nil {
 		// we want to continue if possible even if we can't check for an update
-		log.Infof("unable to check for vulnerability database update")
+		log.Warnf("unable to check for vulnerability database update")
 		log.Debugf("check for vulnerability update failed: %+v", err)
 	}
 	if updateAvailable {
-		log.Infof("Downloading new vulnerability DB")
+		log.Infof("downloading new vulnerability DB")
 		err = c.UpdateTo(updateEntry, downloadProgress, importProgress, stage)
 		if err != nil {
 			return false, fmt.Errorf("unable to update vulnerability database: %w", err)
 		}
-		log.Infof("Updated vulnerability DB to version=%d built=%q", updateEntry.Version, updateEntry.Built.String())
+		log.Infof("updated vulnerability DB to version=%d built=%q", updateEntry.Version, updateEntry.Built.String())
 		return true, nil
 	}
 	stage.Current = "no update available"
@@ -143,7 +155,7 @@ func (c *Curator) Update() (bool, error) {
 func (c *Curator) IsUpdateAvailable() (bool, *curation.ListingEntry, error) {
 	log.Debugf("checking for available database updates")
 
-	listing, err := curation.NewListingFromURL(c.fs, c.listingURL)
+	listing, err := c.ListingFromURL()
 	if err != nil {
 		return false, nil, err
 	}
@@ -311,4 +323,50 @@ func (c *Curator) activate(dbDirPath string) error {
 
 	// activate the new db cache
 	return file.CopyDir(c.fs, dbDirPath, c.dbDir)
+}
+
+// ListingFromURL loads a Listing from a URL.
+func (c Curator) ListingFromURL() (curation.Listing, error) {
+	tempFile, err := afero.TempFile(c.fs, "", "grype-db-listing")
+	if err != nil {
+		return curation.Listing{}, fmt.Errorf("unable to create listing temp file: %w", err)
+	}
+	defer func() {
+		err := c.fs.RemoveAll(tempFile.Name())
+		if err != nil {
+			log.Errorf("failed to remove file (%s): %w", tempFile.Name(), err)
+		}
+	}()
+
+	// download the listing file
+	err = c.downloader.GetFile(tempFile.Name(), c.listingURL)
+	if err != nil {
+		return curation.Listing{}, fmt.Errorf("unable to download listing: %w", err)
+	}
+
+	// parse the listing file
+	listing, err := curation.NewListingFromFile(c.fs, tempFile.Name())
+	if err != nil {
+		return curation.Listing{}, err
+	}
+	return listing, nil
+}
+
+func defaultHTTPClient(fs afero.Fs, caCertPath string) (*http.Client, error) {
+	httpClient := cleanhttp.DefaultClient()
+	if caCertPath != "" {
+		rootCAs := x509.NewCertPool()
+
+		pemBytes, err := afero.ReadFile(fs, caCertPath)
+		if err != nil {
+			return nil, fmt.Errorf("unable to configure root CAs for curator: %w", err)
+		}
+		rootCAs.AppendCertsFromPEM(pemBytes)
+
+		httpClient.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
+			MinVersion: tls.VersionTLS12,
+			RootCAs:    rootCAs,
+		}
+	}
+	return httpClient, nil
 }

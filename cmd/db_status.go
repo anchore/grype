@@ -20,7 +20,11 @@ func init() {
 }
 
 func runDBStatusCmd(_ *cobra.Command, _ []string) error {
-	dbCurator := db.NewCurator(appConfig.DB.ToCuratorConfig())
+	dbCurator, err := db.NewCurator(appConfig.DB.ToCuratorConfig())
+	if err != nil {
+		return err
+	}
+
 	status := dbCurator.Status()
 
 	statusStr := "valid"

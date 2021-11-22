@@ -19,7 +19,10 @@ func init() {
 }
 
 func runDBCheckCmd(_ *cobra.Command, _ []string) error {
-	dbCurator := db.NewCurator(appConfig.DB.ToCuratorConfig())
+	dbCurator, err := db.NewCurator(appConfig.DB.ToCuratorConfig())
+	if err != nil {
+		return err
+	}
 
 	updateAvailable, _, err := dbCurator.IsUpdateAvailable()
 	if err != nil {

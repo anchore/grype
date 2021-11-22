@@ -7,7 +7,7 @@ require (
 	github.com/adrg/xdg v0.2.1
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
-	github.com/anchore/grype-db v0.0.0-20211115233739-c0e91d61ed51
+	github.com/anchore/grype-db v0.0.0-20211119195714-911ff7162dc6
 	github.com/anchore/stereoscope v0.0.0-20211024152658-003132a67c10
 	github.com/anchore/syft v0.30.1
 	github.com/bmatcuk/doublestar/v2 v2.0.4
@@ -19,7 +19,8 @@ require (
 	github.com/google/go-cmp v0.4.1
 	github.com/google/uuid v1.2.0
 	github.com/gookit/color v1.4.2
-	github.com/hashicorp/go-getter v1.4.1
+	github.com/hashicorp/go-cleanhttp v0.5.2
+	github.com/hashicorp/go-getter v1.5.9
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/knqyf263/go-apk-version v0.0.0-20200609155635-041fdbb8563f

@@ -233,6 +233,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		var packages []pkg.Package
 		var context pkg.Context
 		var wg = &sync.WaitGroup{}
+		var loadedDB, gatheredPackages bool
 
 		wg.Add(2)
 
@@ -240,12 +241,11 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			defer wg.Done()
 			log.Debug("loading DB")
 			provider, metadataProvider, dbStatus, err = grype.LoadVulnerabilityDB(appConfig.DB.ToCuratorConfig(), appConfig.DB.AutoUpdate)
-			if err != nil {
-				errs <- fmt.Errorf("failed to load vulnerability db: %w", err)
+			if err = validateDBLoad(err, dbStatus); err != nil {
+				errs <- err
+				return
 			}
-			if dbStatus == nil {
-				errs <- fmt.Errorf("unable to determine DB status")
-			}
+			loadedDB = true
 		}()
 
 		go func() {
@@ -254,11 +254,13 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			packages, context, err = pkg.Provide(userInput, appConfig.ScopeOpt, appConfig.Registry.ToOptions())
 			if err != nil {
 				errs <- fmt.Errorf("failed to catalog: %w", err)
+				return
 			}
+			gatheredPackages = true
 		}()
 
 		wg.Wait()
-		if err != nil {
+		if !loadedDB || !gatheredPackages {
 			return
 		}
 
@@ -270,7 +272,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		remainingMatches, ignoredMatches := match.ApplyIgnoreRules(allMatches, appConfig.Ignore)
 
 		if count := len(ignoredMatches); count > 0 {
-			log.Infof("Ignoring %d matches due to user-provided ignore rules", count)
+			log.Infof("ignoring %d matches due to user-provided ignore rules", count)
 		}
 
 		// determine if there are any severities >= to the max allowable severity (which is optional).
@@ -286,6 +288,19 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		})
 	}()
 	return errs
+}
+
+func validateDBLoad(loadErr error, status *db.Status) error {
+	if loadErr != nil {
+		return fmt.Errorf("failed to load vulnerability db: %w", loadErr)
+	}
+	if status == nil {
+		return fmt.Errorf("unable to determine DB status")
+	}
+	if status.Err != nil {
+		return fmt.Errorf("db could not be loaded: %w", status.Err)
+	}
+	return nil
 }
 
 func validateRootArgs(cmd *cobra.Command, args []string) error {

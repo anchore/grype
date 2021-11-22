@@ -1,21 +1,28 @@
 package db
 
 import (
+	"bufio"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
+	"os"
+	"os/exec"
 	"path"
+	"path/filepath"
 	"strconv"
+	"syscall"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/assert"
-
-	"github.com/wagoodman/go-progress"
 
 	"github.com/anchore/grype-db/pkg/curation"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/file"
+	"github.com/gookit/color"
 	"github.com/spf13/afero"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/wagoodman/go-progress"
 )
 
 func mustUrl(u *url.URL, err error) *url.URL {
@@ -59,16 +66,116 @@ func (g *testGetter) GetToDir(dst, src string, _ ...*progress.Manual) error {
 	return afero.WriteFile(g.fs, dst, []byte(g.dir[src]), 0755)
 }
 
-func newTestCurator(fs afero.Fs, getter file.Getter, dbDir, metadataUrl string, validateDbHash bool) Curator {
-	c := NewCurator(Config{
+func newTestCurator(tb testing.TB, fs afero.Fs, getter file.Getter, dbDir, metadataUrl string, validateDbHash bool) Curator {
+	c, err := NewCurator(Config{
 		DBRootDir:           dbDir,
 		ListingURL:          metadataUrl,
 		ValidateByHashOnGet: validateDbHash,
 	})
 
+	require.NoError(tb, err)
+
 	c.downloader = getter
 	c.fs = fs
+
 	return c
+}
+
+func Test_defaultHTTPClient(t *testing.T) {
+	tests := []struct {
+		name    string
+		hasCert bool
+	}{
+		{
+			name:    "no custom cert should use default system root certs",
+			hasCert: false,
+		},
+		{
+			name:    "should use single custom cert",
+			hasCert: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var certPath string
+			if test.hasCert {
+				certPath = generateCertFixture(t)
+			}
+
+			httpClient, err := defaultHTTPClient(afero.NewOsFs(), certPath)
+			require.NoError(t, err)
+
+			if test.hasCert {
+				require.NotNil(t, httpClient.Transport.(*http.Transport).TLSClientConfig)
+				assert.Len(t, httpClient.Transport.(*http.Transport).TLSClientConfig.RootCAs.Subjects(), 1)
+			} else {
+				assert.Nil(t, httpClient.Transport.(*http.Transport).TLSClientConfig)
+			}
+
+		})
+	}
+}
+
+func generateCertFixture(t *testing.T) string {
+	path := "test-fixtures/tls/server.crt"
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		// fixture already exists...
+		return path
+	}
+
+	t.Logf(color.Bold.Sprint("Generating Key/Cert Fixture"))
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Errorf("unable to get cwd: %+v", err)
+	}
+
+	cmd := exec.Command("make", "server.crt")
+	cmd.Dir = filepath.Join(cwd, "test-fixtures/tls")
+
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		t.Fatalf("could not get stderr: %+v", err)
+	}
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		t.Fatalf("could not get stdout: %+v", err)
+	}
+
+	err = cmd.Start()
+	if err != nil {
+		t.Fatalf("failed to start cmd: %+v", err)
+	}
+
+	show := func(label string, reader io.ReadCloser) {
+		scanner := bufio.NewScanner(reader)
+		scanner.Split(bufio.ScanLines)
+		for scanner.Scan() {
+			t.Logf("%s: %s", label, scanner.Text())
+		}
+	}
+	go show("out", stdout)
+	go show("err", stderr)
+
+	if err := cmd.Wait(); err != nil {
+		if exiterr, ok := err.(*exec.ExitError); ok {
+			// The program has exited with an exit code != 0
+
+			// This works on both Unix and Windows. Although package
+			// syscall is generally platform dependent, WaitStatus is
+			// defined for both Unix and Windows and in both cases has
+			// an ExitStatus() method with the same signature.
+			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
+				if status.ExitStatus() != 0 {
+					t.Fatalf("failed to generate fixture: rc=%d", status.ExitStatus())
+				}
+			}
+		} else {
+			t.Fatalf("unable to get generate fixture result: %+v", err)
+		}
+	}
+	return path
 }
 
 func TestCuratorDownload(t *testing.T) {
@@ -99,7 +206,7 @@ func TestCuratorDownload(t *testing.T) {
 			}
 			fs := afero.NewMemMapFs()
 			getter := newTestGetter(fs, files, dirs)
-			cur := newTestCurator(fs, getter, "/tmp/dbdir", metadataUrl, false)
+			cur := newTestCurator(t, fs, getter, "/tmp/dbdir", metadataUrl, false)
 
 			path, err := cur.download(test.entry, &progress.Manual{})
 
@@ -120,7 +227,6 @@ func TestCuratorDownload(t *testing.T) {
 			if string(actual) != contents {
 				t.Fatalf("bad contents: %+v", string(actual))
 			}
-
 		})
 	}
 }
@@ -176,7 +282,7 @@ func TestCuratorValidate(t *testing.T) {
 
 			fs := afero.NewOsFs()
 			getter := newTestGetter(fs, nil, nil)
-			cur := newTestCurator(fs, getter, "/tmp/dbdir", metadataUrl, test.cfgValidateDbHash)
+			cur := newTestCurator(t, fs, getter, "/tmp/dbdir", metadataUrl, test.cfgValidateDbHash)
 
 			cur.targetSchema = test.constraint
 
@@ -192,12 +298,10 @@ func TestCuratorValidate(t *testing.T) {
 }
 
 func TestCuratorDBPathHasSchemaVersion(t *testing.T) {
-
 	fs := afero.NewMemMapFs()
 	dbRootPath := "/tmp/dbdir"
-	cur := newTestCurator(fs, nil, dbRootPath, "http://metadata.io", false)
+	cur := newTestCurator(t, fs, nil, dbRootPath, "http://metadata.io", false)
 
 	assert.Equal(t, path.Join(dbRootPath, strconv.Itoa(cur.targetSchema)), cur.dbDir, "unexpected dir")
 	assert.Contains(t, cur.dbPath, path.Join(dbRootPath, strconv.Itoa(cur.targetSchema)), "unexpected path")
-
 }
