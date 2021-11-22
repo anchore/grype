@@ -128,7 +128,8 @@ brews:
 
 dockers:
   - image_templates:
-      - "anchore/grype:{{ .Version }}-amd64"
+      - "anchore/grype:latest"
+      - "anchore/grype:{{ .Tag }}-amd64"
       - "anchore/grype:v{{ .Major }}-amd64"
       - "anchore/grype:v{{ .Major }}.{{ .Minor }}-amd64"
     dockerfile: Dockerfile
@@ -141,7 +142,7 @@ dockers:
       - "--build-arg=VCS_URL={{.GitURL}}"
 
   - image_templates:
-      - "anchore/grype:{{ .Version }}-arm64v8"
+      - "anchore/grype:{{ .Tag }}-arm64v8"
       - "anchore/grype:v{{ .Major }}-arm64v8"
       - "anchore/grype:v{{ .Major }}.{{ .Minor }}-arm64v8"
     goarch: arm64
@@ -155,20 +156,20 @@ dockers:
       - "--build-arg=VCS_URL={{.GitURL}}"
 
 docker_manifests:
-  - name_template: anchore/grype:{{ .Version }}
+  - name_template: anchore/grype:{{ .Tag }}
     image_templates:
-      - anchore/grype:{{ .Version }}-amd64
+      - anchore/grype:{{ .Tag }}-amd64
       - anchore/grype:v{{ .Major }}-amd64
       - anchore/grype:v{{ .Major }}.{{ .Minor }}-amd64
-      - anchore/grype:{{ .Version }}-arm64v8
+      - anchore/grype:{{ .Tag }}-arm64v8
       - anchore/grype:v{{ .Major }}-arm64v8
       - anchore/grype:v{{ .Major }}.{{ .Minor }}-arm64v8
   - name_template: anchore/grype:latest
     image_templates:
-      - anchore/grype:{{ .Version }}-amd64
+      - anchore/grype:{{ .Tag }}-amd64
       - anchore/grype:v{{ .Major }}-amd64
       - anchore/grype:v{{ .Major }}.{{ .Minor }}-amd64
-      - anchore/grype:{{ .Version }}-arm64v8
+      - anchore/grype:{{ .Tag }}-arm64v8
       - anchore/grype:v{{ .Major }}-arm64v8
       - anchore/grype:v{{ .Major }}.{{ .Minor }}-arm64v8
 
