@@ -76,10 +76,6 @@ func (c *Curator) GetStore() (*reader.Reader, error) {
 	return s, err
 }
 
-func (c Curator) SupportedSchema() int {
-	return c.targetSchema
-}
-
 func (c *Curator) Status() Status {
 	metadata, err := curation.NewMetadataFromDir(c.fs, c.dbDir)
 	if err != nil {

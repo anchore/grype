@@ -91,7 +91,7 @@ func Test_defaultHTTPClient(t *testing.T) {
 			hasCert: false,
 		},
 		{
-			name:    "use single custom cert",
+			name:    "should use single custom cert",
 			hasCert: true,
 		},
 	}

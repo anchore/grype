@@ -2,7 +2,7 @@ all: clean serve
 
 .PHONY: serve
 serve: www/listing.json www/db.tar.gz server.crt
-	python serve.py
+	python3 serve.py
 
 
 .PHONY: grype-test-fail
@@ -31,7 +31,7 @@ listing.json:
 	curl -L -O https://toolbox-data.anchore.io/grype/databases/listing.json
 
 www/listing.json www/db.tar.gz: www listing.json
-	$(eval location=$(shell python listing.py))
+	$(eval location=$(shell python3 listing.py))
 	curl -L -o www/db.tar.gz $(location)
 
 .PHONY: clean

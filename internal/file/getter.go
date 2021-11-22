@@ -54,6 +54,7 @@ func (g HashiGoGetter) GetFile(dst, src string, monitors ...*progress.Manual) er
 }
 
 func (g HashiGoGetter) GetToDir(dst, src string, monitors ...*progress.Manual) error {
+	// though there are multiple getters, only the http/https getter requires extra validation
 	if err := validateHTTPSource(src); err != nil {
 		return err
 	}
@@ -65,13 +66,16 @@ func (g HashiGoGetter) GetToDir(dst, src string, monitors ...*progress.Manual) e
 }
 
 func validateHTTPSource(src string) error {
+	// we are ignoring any sources that are not destined to use the http getter object
 	if !internal.HasAnyOfPrefixes(src, "http://", "https://") {
 		return nil
 	}
+
 	u, err := url.Parse(src)
 	if err != nil {
 		return fmt.Errorf("bad URL provided %q: %w", src, err)
 	}
+	// only allow for sources with archive extensions
 	if !internal.HasAnyOfSuffixes(u.Path, archiveExtensions...) {
 		return ErrNonArchiveSource
 	}
