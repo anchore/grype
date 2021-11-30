@@ -1,21 +1,21 @@
-name: 'Release'
+name: "Release"
 on:
   push:
     # take no actions on push to any branch...
     branches-ignore:
-      - '**'
+      - "**"
     # ... only act on release tags
     tags:
-      - 'v*'
+      - "v*"
 
 env:
   GO_VERSION: "1.16.x"
 
 jobs:
-  wait-for-checks:
+  quality-gate:
+    environment: release
     runs-on: ubuntu-latest # This OS choice is arbitrary. None of the steps in this job are specific to either Linux or macOS.
     steps:
-
       - uses: actions/checkout@v2
 
       # we don't want to release commits that have been pushed and tagged, but not necessarily merged onto main
@@ -30,45 +30,66 @@ jobs:
         id: static-analysis
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          # This check name is defined as the circle-ci workflow name (in .github/workflows/static-unit-integration.yaml)
-          checkName: "Static-Analysis (1.16.x, ubuntu-latest)"
+          # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
+          checkName: "Static analysis"
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - name: Check unit + integration results (latest go version)
+      - name: Check unit test results
         uses: fountainhead/action-wait-for-check@v1.0.0
-        id: unit-integration
+        id: unit
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          # This check name is defined as the circle-ci workflow name (in .github/workflows/static-unit-integration.yaml)
-          checkName: "Tests (1.16.x, ubuntu-latest)"
+          # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
+          checkName: "Unit tests"
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - name: Build snapshot artifacts
+      - name: Check integration test results
         uses: fountainhead/action-wait-for-check@v1.0.0
-        id: snapshot
+        id: integration
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          # This check name is defined as the github actions job name (in .github/workflows/acceptance-test.yaml)
-          checkName: "Build-Snapshot-Artifacts"
+          # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
+          checkName: "Integration tests"
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - name: Check inline comparison test results
+      - name: Check acceptance test results (linux)
         uses: fountainhead/action-wait-for-check@v1.0.0
-        id: inline-compare
+        id: acceptance-linux
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          # This check name is defined as the github action job name (in .github/workflows/acceptance-test.yaml)
-          checkName: "Inline-Compare"
+          # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
+          checkName: "Acceptance tests (Linux)"
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Check acceptance test results (mac)
+        uses: fountainhead/action-wait-for-check@v1.0.0
+        id: acceptance-mac
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
+          checkName: "Acceptance tests (Mac)"
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Check cli test results (linux)
+        uses: fountainhead/action-wait-for-check@v1.0.0
+        id: cli-linux
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
+          checkName: "CLI tests (Linux)"
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Quality gate
-        if: steps.static-analysis.outputs.conclusion != 'success' || steps.unit-integration.outputs.conclusion != 'success'  || steps.inline-compare.outputs.conclusion != 'success' || steps.snapshot.outputs.conclusion != 'success'
+        if: steps.static-analysis.outputs.conclusion != 'success' || steps.unit.outputs.conclusion != 'success' || steps.integration.outputs.conclusion != 'success' || steps.cli-linux.outputs.conclusion != 'success' || steps.acceptance-linux.outputs.conclusion != 'success' || steps.acceptance-mac.outputs.conclusion != 'success'
         run: |
           echo "Static Analysis Status: ${{ steps.static-analysis.conclusion }}"
-          echo "Unit & Integration Test Status: ${{ steps.unit-integration.outputs.conclusion }}"
-          echo "Build Snapshot Artifacts Status: ${{ steps.snapshot.outputs.conclusion }}"
-          echo "Inline Compare Status: ${{ steps.inline-compare.outputs.conclusion }}"
+          echo "Unit Test Status: ${{ steps.unit.outputs.conclusion }}"
+          echo "Integration Test Status: ${{ steps.integration.outputs.conclusion }}"
+          echo "Acceptance Test (Linux) Status: ${{ steps.acceptance-linux.outputs.conclusion }}"
+          echo "Acceptance Test (Mac) Status: ${{ steps.acceptance-mac.outputs.conclusion }}"
+          echo "CLI Test (Linux) Status: ${{ steps.cli-linux.outputs.conclusion }}"
           false
+
 
   release:
     needs: [ wait-for-checks ]

@@ -215,6 +215,10 @@ validate-grype-test-config:
 			echo "Found \"update-url\" in CLI testing config. Cannot release if previous CLI testing did not use production (default) values"; \
 		fi'
 
+.PHONY: validate-syft-release-version
+validate-syft-release-version:
+	@./.github/scripts/syft-released-version-check.sh
+
 .PHONY: release
 release: clean-dist validate-grype-test-config CHANGELOG.md ## Build and publish final binaries and packages. Intended to be run only on macOS.
 	$(call title,Publishing release artifacts)
