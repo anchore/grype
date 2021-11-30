@@ -193,7 +193,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 		Type:    syftPkg.DebPkg,
 		FoundBy: "the-cataloger-1",
 		Locations: []syftSource.Location{
-			{RealPath: "/some/path/pkg1"},
+			syftSource.NewLocation("/some/path/pkg1"),
 		},
 		MetadataType: syftPkg.DpkgMetadataType,
 		Metadata: syftPkg.DpkgMetadata{
