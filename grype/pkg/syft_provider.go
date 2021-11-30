@@ -17,7 +17,7 @@ func syftProvider(userInput string, scopeOpt source.Scope, registryOptions *imag
 	}
 	defer cleanup()
 
-	catalog, theDistro, err := syft.CatalogPackages(src, scopeOpt)
+	catalog, _, theDistro, err := syft.CatalogPackages(src, scopeOpt)
 	if err != nil {
 		return nil, Context{}, err
 	}
