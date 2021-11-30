@@ -66,25 +66,34 @@ test: unit validate-cyclonedx-schema integration acceptance-linux cli ## Run all
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(BOLD)$(CYAN)%-25s$(RESET)%s\n", $$1, $$2}'
 
-ci-bootstrap: bootstrap
+.PHONY: ci-bootstrap
+ci-bootstrap:
 	DEBIAN_FRONTEND=noninteractive sudo apt update && sudo -E apt install -y bc jq libxml2-utils
 
-.PHONY: bootstrap
-bootstrap: ## Download and install all go dependencies (+ prep tooling in the ./tmp dir)
-	$(call title,Bootstrapping dependencies)
-	@pwd
+.PHONY:
+ci-bootstrap-mac:
+	github_changelog_generator --version || sudo gem install github_changelog_generator
 
-	# prep temp dirs
-	mkdir -p $(TEMPDIR)
+$(RESULTSDIR):
 	mkdir -p $(RESULTSDIR)
 
-	# install go dependencies
-	go mod download
+$(TEMPDIR):
+	mkdir -p $(TEMPDIR)
 
+.PHONY: bootstrap-tools
+bootstrap-tools: $(TEMPDIR)
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(TEMPDIR)/ v1.42.1
 	curl -sSfL https://raw.githubusercontent.com/wagoodman/go-bouncer/master/bouncer.sh | sh -s -- -b $(TEMPDIR)/ v0.2.0
+	curl -sSfL https://raw.githubusercontent.com/anchore/chronicle/main/install.sh | sh -s -- -b $(TEMPDIR)/ v0.3.0
 	.github/scripts/goreleaser-install.sh -b $(TEMPDIR)/ v0.177.0
-	curl -sSfL https://raw.githubusercontent.com/anchore/chronicle/main/install.sh | sh -s -- -b $(TEMPDIR)/ v0.2.0-beta
+
+.PHONY: bootstrap-go
+bootstrap-go:
+	go mod download
+
+.PHONY: bootstrap
+bootstrap: $(RESULTSDIR) bootstrap-go bootstrap-tools ## Download and install all go dependencies (+ prep tooling in the ./tmp dir)
+	$(call title,Bootstrapping dependencies)
 
 .PHONY: static-analysis
 static-analysis: lint check-go-mod-tidy check-licenses validate-grype-db-schema
