@@ -89,7 +89,7 @@ func generatePackages(t *testing.T) []pkg.Package {
 			Version: "1.1.1",
 			Type:    syftPkg.DebPkg,
 			Locations: []syftSource.Location{
-				{RealPath: "/somefile-1.txt"},
+				syftSource.NewLocation("/somefile-1.txt"),
 			},
 			CPEs: []syftPkg.CPE{
 				{
@@ -106,7 +106,7 @@ func generatePackages(t *testing.T) []pkg.Package {
 			Version: "2.2.2",
 			Type:    syftPkg.DebPkg,
 			Locations: []syftSource.Location{
-				{RealPath: "/somefile-2.txt"},
+				syftSource.NewLocation("/somefile-2.txt"),
 			},
 		},
 	}

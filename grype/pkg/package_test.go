@@ -226,7 +226,7 @@ func TestNew_MetadataExtraction(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			observedMetadataTypes.Add(string(test.syftPkg.MetadataType))
-			assert.Equal(t, test.metadata, New(&test.syftPkg).Metadata)
+			assert.Equal(t, test.metadata, New(test.syftPkg).Metadata)
 		})
 	}
 

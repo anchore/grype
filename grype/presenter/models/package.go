@@ -8,15 +8,15 @@ import (
 
 // Package is meant to be only the fields that are needed when displaying a single pkg.Package object for the JSON presenter.
 type Package struct {
-	Name      string                `json:"name"`
-	Version   string                `json:"version"`
-	Type      syftPkg.Type          `json:"type"`
-	Locations []syftSource.Location `json:"locations"`
-	Language  syftPkg.Language      `json:"language"`
-	Licenses  []string              `json:"licenses"`
-	CPEs      []string              `json:"cpes"`
-	PURL      string                `json:"purl"`
-	Metadata  interface{}           `json:"metadata"`
+	Name      string                   `json:"name"`
+	Version   string                   `json:"version"`
+	Type      syftPkg.Type             `json:"type"`
+	Locations []syftSource.Coordinates `json:"locations"`
+	Language  syftPkg.Language         `json:"language"`
+	Licenses  []string                 `json:"licenses"`
+	CPEs      []string                 `json:"cpes"`
+	PURL      string                   `json:"purl"`
+	Metadata  interface{}              `json:"metadata"`
 }
 
 func newPackage(p pkg.Package) Package {
@@ -30,10 +30,15 @@ func newPackage(p pkg.Package) Package {
 		licenses = make([]string, 0)
 	}
 
+	var coordinates = make([]syftSource.Coordinates, 0)
+	for _, l := range p.Locations {
+		coordinates = append(coordinates, l.Coordinates)
+	}
+
 	return Package{
 		Name:      p.Name,
 		Version:   p.Version,
-		Locations: p.Locations,
+		Locations: coordinates,
 		Licenses:  licenses,
 		Language:  p.Language,
 		Type:      p.Type,

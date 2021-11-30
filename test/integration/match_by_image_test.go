@@ -83,7 +83,7 @@ func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Ca
 	packages := catalog.PackagesByPath("/python/dist-info/METADATA")
 	if len(packages) != 1 {
 		for _, p := range packages {
-			t.Logf("Python Package: %s %+v", p.ID, p)
+			t.Logf("Python Package: %s %+v", p.ID(), p)
 		}
 
 		t.Fatalf("problem with upstream syft cataloger (python)")
@@ -145,7 +145,7 @@ func addRubyMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 }
 
 func addJavaMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore, theResult *match.Matches) {
-	packages := make([]*syftPkg.Package, 0)
+	packages := make([]syftPkg.Package, 0)
 	for p := range catalog.Enumerate(syftPkg.JavaPkg) {
 		packages = append(packages, p)
 	}
@@ -353,7 +353,8 @@ func TestMatchByImage(t *testing.T) {
 			}
 			defer cleanup()
 
-			theCatalog, theDistro, err := syft.CatalogPackages(theSource, source.SquashedScope)
+			// TODO: relationships are not verified at this time
+			theCatalog, _, theDistro, err := syft.CatalogPackages(theSource, source.SquashedScope)
 			if err != nil {
 				t.Fatalf("could not get the source obj: %+v", err)
 			}

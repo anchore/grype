@@ -35,10 +35,10 @@ func TestParseSyftJSON(t *testing.T) {
 					Name:    "alpine-baselayout",
 					Version: "3.2.0-r6",
 					Locations: []source.Location{
-						{
+						source.NewLocationFromCoordinates(source.Coordinates{
 							RealPath:     "/lib/apk/db/installed",
 							FileSystemID: "sha256:93cf4cfb673c7e16a9e74f731d6767b70b92a0b7c9f59d06efd72fbff535371c",
-						},
+						}),
 					},
 					Language: "",
 					Licenses: []string{
@@ -56,10 +56,10 @@ func TestParseSyftJSON(t *testing.T) {
 					Name:    "fake",
 					Version: "1.2.0-r0",
 					Locations: []source.Location{
-						{
+						source.NewLocationFromCoordinates(source.Coordinates{
 							RealPath:     "/lib/apk/db/installed",
 							FileSystemID: "sha256:93cf4cfb673c7e16a9e74f731d6767b70b92a0b7c9f59d06efd72fbff535371c",
-						},
+						}),
 					},
 					Language: "lang",
 					Licenses: []string{
@@ -77,10 +77,10 @@ func TestParseSyftJSON(t *testing.T) {
 					Name:    "gmp",
 					Version: "6.2.0-r0",
 					Locations: []source.Location{
-						{
+						source.NewLocationFromCoordinates(source.Coordinates{
 							RealPath:     "/lib/apk/db/installed",
 							FileSystemID: "sha256:93cf4cfb673c7e16a9e74f731d6767b70b92a0b7c9f59d06efd72fbff535371c",
-						},
+						}),
 					},
 					Language: "the-lang",
 					Licenses: []string{
@@ -178,10 +178,10 @@ var springImageTestCase = struct {
 			Name:    "charsets",
 			Version: "",
 			Locations: []source.Location{
-				{
+				source.NewLocationFromCoordinates(source.Coordinates{
 					RealPath:     "/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/charsets.jar",
 					FileSystemID: "sha256:a1a6ceadb701ab4e6c93b243dc2a0daedc8cee23a24203845ecccd5784cd1393",
-				},
+				}),
 			},
 			Language: "java",
 			Licenses: []string{},
@@ -197,10 +197,10 @@ var springImageTestCase = struct {
 			Name:    "tomcat-embed-el",
 			Version: "9.0.27",
 			Locations: []source.Location{
-				{
+				source.NewLocationFromCoordinates(source.Coordinates{
 					RealPath:     "/app/libs/tomcat-embed-el-9.0.27.jar",
 					FileSystemID: "sha256:89504f083d3f15322f97ae240df44650203f24427860db1b3d32e66dd05940e4",
-				},
+				}),
 			},
 			Language: "java",
 			Licenses: []string{},

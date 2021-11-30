@@ -29,9 +29,7 @@ var (
 				Version: "0.5.2",
 				Type:    "deb",
 				Locations: []source.Location{
-					{
-						RealPath: "/path/that/has/dive",
-					},
+					source.NewLocation("/path/that/has/dive"),
 				},
 			},
 		},
@@ -47,10 +45,7 @@ var (
 				Version: "100.0.50",
 				Type:    "gem",
 				Locations: []source.Location{
-					{
-						RealPath:    "/real/path/with/reach",
-						VirtualPath: "/virtual/path/that/has/reach",
-					},
+					source.NewVirtualLocation("/real/path/with/reach", "/virtual/path/that/has/reach"),
 				},
 			},
 		},
@@ -66,10 +61,7 @@ var (
 				Version: "100.0.51",
 				Type:    "gem",
 				Locations: []source.Location{
-					{
-						RealPath:    "/real/path/with/beach",
-						VirtualPath: "/virtual/path/that/has/beach",
-					},
+					source.NewVirtualLocation("/real/path/with/beach", "/virtual/path/that/has/beach"),
 				},
 			},
 		},
@@ -85,10 +77,7 @@ var (
 				Version: "100.0.52",
 				Type:    "gem",
 				Locations: []source.Location{
-					{
-						RealPath:    "/real/path/with/speach",
-						VirtualPath: "/virtual/path/that/has/speach",
-					},
+					source.NewVirtualLocation("/real/path/with/speach", "/virtual/path/that/has/speach"),
 				},
 			},
 		},
@@ -279,13 +268,8 @@ var (
 			Name:    "a-pkg",
 			Version: "1.0",
 			Locations: []source.Location{
-				{
-					RealPath: "/some/path",
-				},
-				{
-					RealPath:    "/some/path",
-					VirtualPath: "/some/virtual/path",
-				},
+				source.NewLocation("/some/path"),
+				source.NewVirtualLocation("/some/path", "/some/virtual/path"),
 			},
 			Type: "rpm",
 		},

@@ -25,7 +25,7 @@ type Package struct {
 	Metadata  interface{} // This is NOT the syft metadata! Only the select data needed for vulnerability matching
 }
 
-func New(p *pkg.Package) Package {
+func New(p pkg.Package) Package {
 	var metadata interface{}
 
 	switch p.MetadataType {
@@ -74,7 +74,7 @@ func New(p *pkg.Package) Package {
 	}
 
 	return Package{
-		ID:        ID(p.ID),
+		ID:        ID(p.ID()),
 		Name:      p.Name,
 		Version:   p.Version,
 		Locations: p.Locations,

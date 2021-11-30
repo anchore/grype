@@ -10,6 +10,15 @@ After cloning do the following:
 
 Checkout `make help` to see what other actions you can take.
 
+## Relationship to Syft
+
+Grype uses Syft as a library for all-things related to obtaining and parsing the given scan target (pulling container 
+images, parsing container images, indexing directories, cataloging packages, etc). Releases of Grype should
+always use released versions of Syft (commits that are tagged and show up in the GitHub releases page). However, 
+continually integrating unreleased Syft changes into Grype incrementally is encouraged 
+(e.g. `go get github.com/anchore/syft@main`) as long as by the time a release is cut the Syft version is updated 
+to a released version (e.g. `go get github.com/anchore/syft@v<semantic-version>`).
+
 ## Inspecting the database
 
 The currently supported database format is Sqlite3. Install `sqlite3` in your system and ensure that the `sqlite3` executable is available in your path. Ask `grype` about the location of the database, which will be different depending on the operating system:

@@ -69,7 +69,8 @@ func getSyftSBOM(t testing.TB, image string) string {
 	t.Cleanup(cleanup)
 
 	scope := source.SquashedScope
-	catalog, distro, err := syft.CatalogPackages(src, scope)
+	// TODO: relationships are not verified at this time
+	catalog, _, distro, err := syft.CatalogPackages(src, scope)
 
 	sbom := sbom.SBOM{
 		Artifacts: sbom.Artifacts{
