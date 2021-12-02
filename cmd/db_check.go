@@ -30,10 +30,8 @@ func runDBCheckCmd(_ *cobra.Command, _ []string) error {
 	}
 
 	if !updateAvailable {
-		fmt.Println("No update available")
-		return nil
+		return stderrPrintLnf("No update available")
 	}
 
-	fmt.Println("Update available!")
-	return nil
+	return stderrPrintLnf("Update available!")
 }

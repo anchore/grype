@@ -39,8 +39,7 @@ func runDBListCmd(_ *cobra.Command, _ []string) error {
 	available, exists := listing.Available[supportedSchema]
 
 	if len(available) == 0 || !exists {
-		fmt.Printf("No databases available for the current schema (%d)\n", supportedSchema)
-		return nil
+		return stderrPrintLnf("No databases available for the current schema (%d)", supportedSchema)
 	}
 
 	switch dbListOutputFormat {
