@@ -272,7 +272,9 @@ You can set the cache directory path using the environment variable `GRYPE_DB_CA
 
 By default, Grype checks for a new database on every run, by making a network call over the Internet. You can tell Grype not to perform this check by setting the environment variable `GRYPE_DB_AUTO_UPDATE` to `false`.
 
-As long as you place Grype's `vulnerability.db` and `metadata.json` files in the cache directory for the expected schema version, Grype has no need to access the network.
+As long as you place Grype's `vulnerability.db` and `metadata.json` files in the cache directory for the expected schema version, Grype has no need to access the network. Additionally, you can get a listing of the database archives available for download from the `grype db list` command in an online environment, download the database archive, transfer it to your offline environment, and use `grype db import <db-archive-path>` to use the given database in an offline capacity.
+
+If you would like to distribute your own Grype databases internally without needing to use `db import` manually you can leverage Grype's DB update mechanism. To do this you can craft your own `listing.json` file similar to the one found publically (see `grype db list -o raw` for an example of our public `listing.json` file) and change the download URL to point to an internal endpoint (e.g. a private S3 bucket, an internal file server, etc). Any internal installation of Grype can receive database updates automatically by configuring the `db.update-url` (same as the `GRYPE_DB_UPDATE_URL` environment variable) to point to the hosted `listing.json` file you've crafted. 
 
 #### CLI commands for database management
 
@@ -282,7 +284,11 @@ Grype provides database-specific CLI commands for users that want to control the
 
 `grype db check` — see if updates are available for the database
 
-`grype db update` — ensure the latest database has been downloaded to the cache directory (Grype performs this operation at the beginnign of every scan by default)
+`grype db update` — ensure the latest database has been downloaded to the cache directory (Grype performs this operation at the beginning of every scan by default)
+
+`grype db list` — download the listing file configured at `db.update-url` and show databases that are available for download
+
+`grype db import` — provide grype with a database archive to explicitly use (useful for offline DB updates)
 
 Find complete information on Grype's database commands by running `grype db --help`.
 
