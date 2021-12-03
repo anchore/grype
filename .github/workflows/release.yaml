@@ -82,7 +82,7 @@ jobs:
 
 
   release:
-    needs: [ wait-for-checks ]
+    needs: [ quality-gate ]
     runs-on: macos-latest # Due to our code signing process, it's vital that we run our release steps on macOS.
     steps:
       - uses: docker-practice/actions-setup-docker@v1
