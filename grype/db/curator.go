@@ -65,6 +65,10 @@ func NewCurator(cfg Config) (Curator, error) {
 	}, nil
 }
 
+func (c Curator) SupportedSchema() int {
+	return c.targetSchema
+}
+
 func (c *Curator) GetStore() (*reader.Reader, error) {
 	// ensure the DB is ok
 	err := c.Validate()

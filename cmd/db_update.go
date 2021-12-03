@@ -31,10 +31,8 @@ func runDBUpdateCmd(_ *cobra.Command, _ []string) error {
 	}
 
 	if updated {
-		fmt.Println("Vulnerability database updated!")
-		return nil
+		return stderrPrintLnf("Vulnerability database updated!")
 	}
 
-	fmt.Println("No vulnerability database update available")
-	return nil
+	return stderrPrintLnf("No vulnerability database update available")
 }

@@ -28,6 +28,5 @@ func runDBDeleteCmd(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("unable to delete vulnerability database: %+v", err)
 	}
 
-	fmt.Println("Vulnerability database deleted")
-	return nil
+	return stderrPrintLnf("Vulnerability database deleted")
 }

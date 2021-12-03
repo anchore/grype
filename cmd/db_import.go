@@ -31,6 +31,5 @@ func runDBImportCmd(_ *cobra.Command, args []string) error {
 		return fmt.Errorf("unable to import vulnerability database: %+v", err)
 	}
 
-	fmt.Println("Vulnerability database imported")
-	return nil
+	return stderrPrintLnf("Vulnerability database imported")
 }
