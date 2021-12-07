@@ -86,7 +86,7 @@ func (pr *mockProvider) stubWithEpoch(packageName, indrectName string) {
 
 func (pr *mockProvider) GetByDistro(d *distro.Distro, p pkg.Package) ([]vulnerability.Vulnerability, error) {
 	var ty = strings.ToLower(d.Type.String())
-	if d.Type == distro.CentOS || d.Type == distro.RedHat || d.Type == distro.RockyLinux {
+	if d.Type == distro.CentOS || d.Type == distro.RedHat || d.Type == distro.RockyLinux || d.Type == distro.AlmaLinux {
 		ty = "rhel"
 	}
 
