@@ -196,8 +196,8 @@ github.com/anchore/syft v0.30.1/go.mod h1:7YlGmGFP/GlfNn80TDN1jFcosZqHBKCnrpwfiR
 github.com/anchore/syft v0.31.0/go.mod h1:ZHM2Brl5yU8qM6YuXLRxm4UXCMSWQdd78S0eKnVm1Uw=
 github.com/anchore/syft v0.31.0/go.mod h1:ZHM2Brl5yU8qM6YuXLRxm4UXCMSWQdd78S0eKnVm1Uw=
 github.com/anchore/syft v0.31.1-0.20211207205931-7a359dc16be8/go.mod h1:6tuVZBaHohcTuX8S0G6S80o/6PmzoF7sHbjxDUJaLjU=
-github.com/anchore/syft v0.32.1-0.20211210164950-ab9fe53ff2dc h1:g2PEzxM+7Hj37rdG26JiTJOA+uEIOrDz121pJ1cu/iY=
-github.com/anchore/syft v0.32.1-0.20211210164950-ab9fe53ff2dc/go.mod h1:6tuVZBaHohcTuX8S0G6S80o/6PmzoF7sHbjxDUJaLjU=
+github.com/anchore/syft v0.32.1 h1:rcSw3CqpTx6/IU0u2QuksvAgCh6rBdurj+W4OIw7vK8=
+github.com/anchore/syft v0.32.1/go.mod h1:6tuVZBaHohcTuX8S0G6S80o/6PmzoF7sHbjxDUJaLjU=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 h1:bvNMNQO63//z+xNgfBlViaCIJKLlCJ6/fmUseuG0wVQ=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/brotli v1.0.1/go.mod h1:loMXtMfwqflxFJPmdbJO0a3KNoPuLBgiu3qAvBg8x/Y=
