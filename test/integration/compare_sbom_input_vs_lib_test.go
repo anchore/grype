@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -57,7 +56,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 
 			// get SBOM from syft, write to temp file
 			sbomBytes := getSyftSBOM(t, imageSource)
-			sbomFile, err := ioutil.TempFile("", "")
+			sbomFile, err := os.CreateTemp("", "")
 			assert.NoError(t, err)
 			t.Cleanup(func() {
 				assert.NoError(t, os.Remove(sbomFile.Name()))

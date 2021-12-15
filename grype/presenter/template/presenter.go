@@ -3,7 +3,7 @@ package template
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"reflect"
 	"text/template"
 
@@ -49,7 +49,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 		return fmt.Errorf("unable to expand path %q", pres.pathToTemplateFile)
 	}
 
-	templateContents, err := ioutil.ReadFile(expandedPathToTemplateFile)
+	templateContents, err := os.ReadFile(expandedPathToTemplateFile)
 	if err != nil {
 		return fmt.Errorf("unable to get output template: %w", err)
 	}
