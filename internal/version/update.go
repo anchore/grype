@@ -2,7 +2,7 @@ package version
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -58,7 +58,7 @@ func fetchLatestApplicationVersion() (*hashiVersion.Version, error) {
 		return nil, fmt.Errorf("HTTP %d on fetching latest version: %s", resp.StatusCode, resp.Status)
 	}
 
-	versionBytes, err := ioutil.ReadAll(resp.Body)
+	versionBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read latest version: %w", err)
 	}

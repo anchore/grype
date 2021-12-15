@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -220,7 +219,7 @@ func (c *Curator) Validate() error {
 // ImportFrom takes a DB archive file and imports it into the final DB location.
 func (c *Curator) ImportFrom(dbArchivePath string) error {
 	// note: the temp directory is persisted upon download/validation/activation failure to allow for investigation
-	tempDir, err := ioutil.TempDir("", "grype-import")
+	tempDir, err := os.MkdirTemp("", "grype-import")
 	if err != nil {
 		return fmt.Errorf("unable to create db temp dir: %w", err)
 	}
@@ -255,7 +254,7 @@ func (c *Curator) ImportFrom(dbArchivePath string) error {
 }
 
 func (c *Curator) download(listing *curation.ListingEntry, downloadProgress *progress.Manual) (string, error) {
-	tempDir, err := ioutil.TempDir("", "grype-scratch")
+	tempDir, err := os.MkdirTemp("", "grype-scratch")
 	if err != nil {
 		return "", fmt.Errorf("unable to create db temp dir: %w", err)
 	}
