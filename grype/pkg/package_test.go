@@ -3,6 +3,8 @@ package pkg
 import (
 	"testing"
 
+	"github.com/anchore/syft/syft/source"
+
 	"github.com/anchore/syft/syft/file"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/scylladb/go-set"
@@ -237,6 +239,27 @@ func TestNew_MetadataExtraction(t *testing.T) {
 			strset.Difference(observedMetadataTypes, expectedMetadataTypes),
 		)
 	}
+}
+
+func TestFromCatalog_DoesNotPanic(t *testing.T) {
+	catalog := syftPkg.NewCatalog()
+
+	examplePackage := syftPkg.Package{
+		Name:    "test",
+		Version: "1.2.3",
+		Locations: []source.Location{
+			source.NewLocation("/test-path"),
+		},
+		Type: syftPkg.NpmPkg,
+	}
+
+	catalog.Add(examplePackage)
+	// add it again!
+	catalog.Add(examplePackage)
+
+	assert.NotPanics(t, func() {
+		_ = FromCatalog(catalog)
+	})
 }
 
 func intRef(i int) *int {
