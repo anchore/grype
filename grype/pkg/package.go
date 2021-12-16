@@ -88,9 +88,9 @@ func New(p pkg.Package) Package {
 }
 
 func FromCatalog(catalog *pkg.Catalog) []Package {
-	var result = make([]Package, catalog.PackageCount())
-	for i, p := range catalog.Sorted() {
-		result[i] = New(p)
+	result := make([]Package, 0, catalog.PackageCount())
+	for _, p := range catalog.Sorted() {
+		result = append(result, New(p))
 	}
 	return result
 }
