@@ -1,4 +1,4 @@
-<p style="text-align: center">
+<p align="center">
     <img alt="Grype logo" src="https://user-images.githubusercontent.com/5199289/136855393-d0a9eef9-ccf1-4e2b-9d7c-7aad16a567e5.png" width="234">
 </p>
 
@@ -114,11 +114,22 @@ dir:path/to/yourproject                read directly from a path on disk (any di
 registry:yourrepo/yourimage:tag        pull image directly from a registry (no container runtime required)
 ```
 
-Grype can exclude files and paths from being scanned within a source by using
-one or more `--exclude` parameters:
+### Excluding file paths
+
+Grype can exclude files and paths from being scanned within a source by using glob expressions
+with one or more `--exclude` parameters:
 ```
-grype path/to/dir --exclude **/*.json --exclude **/generated/**
+grype <source> --exclude './out/**/*.json' --exclude /etc
 ```
+**Note:** in the case of _image scanning_, since the entire filesystem is scanned it is
+possible to use absolute paths like `/etc` or `/usr/**/*.txt` whereas _directory scans_
+exclude files _relative to the specified directory_. For example: scanning `/usr/foo` with
+`--exclude ./package.json` would exclude `/usr/foo/package.json` and `--exclude '**/package.json'`
+would exclude all `package.json` files under `/usr/foo`. For _directory scans_,
+it is required to begin path expressions with `./`, `*/`, or `**/`, all of which
+will be resolved _relative to the specified scan directory_. Keep in mind, your shell
+may attempt to expand wildcards, so put those parameters in single quotes, like:
+`'**/*.json'`.
 
 ### Output formats
 
@@ -427,10 +438,10 @@ quiet: false
 # same as --file; write output report to a file (default is to write to stdout)
 file: ""
 
-# a list of globs to exclude. same as --exclude ; for example:
+# a list of globs to exclude from scanning. same as --exclude ; for example:
 # exclude:
 #   - '/etc/**'
-#   - '**/*.json'
+#   - './out/**/*.json'
 exclude:
 
 db:
