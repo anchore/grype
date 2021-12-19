@@ -24,6 +24,11 @@ func newSource(src syftSource.Metadata) (source, error) {
 			Type:   "directory",
 			Target: src.Path,
 		}, nil
+	case syftSource.FileScheme:
+		return source{
+			Type:   "file",
+			Target: src.Path,
+		}, nil
 	default:
 		return source{}, fmt.Errorf("unsupported source: %T", src)
 	}
