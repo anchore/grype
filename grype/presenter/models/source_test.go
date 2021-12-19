@@ -47,6 +47,17 @@ func TestNewSource(t *testing.T) {
 				Target: "/foo/bar",
 			},
 		},
+		{
+			name: "file",
+			metadata: syftSource.Metadata{
+				Scheme: syftSource.FileScheme,
+				Path:   "/foo/bar/test.zip",
+			},
+			expected: source{
+				Type:   "file",
+				Target: "/foo/bar/test.zip",
+			},
+		},
 	}
 
 	var testedSchemes []syftSource.Scheme
