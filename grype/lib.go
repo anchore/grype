@@ -35,6 +35,7 @@ func LoadVulnerabilityDB(cfg db.Config, update bool) (vulnerability.Provider, vu
 	}
 
 	if update {
+		log.Debug("looking for updates on vulnerability database")
 		_, err := dbCurator.Update()
 		if err != nil {
 			return nil, nil, nil, err
