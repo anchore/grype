@@ -3,6 +3,7 @@ package pkg
 import (
 	"errors"
 	"fmt"
+	"github.com/bmatcuk/doublestar/v2"
 
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft/source"
