@@ -160,7 +160,6 @@ github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d/go.mod h1:rBZYJk5
 github.com/alexflint/go-filemutex v0.0.0-20171022225611-72bdc8eae2ae/go.mod h1:CgnQgUtFrFz9mxFNtED3jI5tLDjKlOM+oUF/sTk6ps0=
 github.com/alicebob/sqlittle v1.4.0 h1:vgYt0nAjhdf/hg52MjKJ84g/uTzBPfrvI+VUBrIghxA=
 github.com/alicebob/sqlittle v1.4.0/go.mod h1:Co1L1qxHqCwf41puWhk2HOodojR0mcsAV4BIt8byZh8=
-github.com/anchore/client-go v0.0.0-20210222170800-9c70f9b80bcf h1:DYssiUV1pBmKqzKsm4mqXx8artqC0Q8HgZsVI3lMsAg=
 github.com/anchore/client-go v0.0.0-20210222170800-9c70f9b80bcf/go.mod h1:FaODhIA06mxO1E6R32JE0TL1JWZZkmjRIAd4ULvHUKk=
 github.com/anchore/go-presenter v0.0.0-20211102174526-0dbf20f6c7fa h1:mDLUAkgXsV5Z8D0EEj8eS6FBekolV/A+Xxbs9054bPw=
 github.com/anchore/go-presenter v0.0.0-20211102174526-0dbf20f6c7fa/go.mod h1:29jwxTSAS6pBcrmuwf1U3r1Tqp1o1XpuiOJ0NT9NoGg=
@@ -197,17 +196,14 @@ github.com/anchore/syft v0.30.1/go.mod h1:7YlGmGFP/GlfNn80TDN1jFcosZqHBKCnrpwfiR
 github.com/anchore/syft v0.31.0/go.mod h1:ZHM2Brl5yU8qM6YuXLRxm4UXCMSWQdd78S0eKnVm1Uw=
 github.com/anchore/syft v0.31.0/go.mod h1:ZHM2Brl5yU8qM6YuXLRxm4UXCMSWQdd78S0eKnVm1Uw=
 github.com/anchore/syft v0.31.1-0.20211207205931-7a359dc16be8/go.mod h1:6tuVZBaHohcTuX8S0G6S80o/6PmzoF7sHbjxDUJaLjU=
-github.com/anchore/syft v0.32.2 h1:3xeuAzR6m7iHzMvA9KvxzMTGVZAqScfhDyii//dsHSQ=
-github.com/anchore/syft v0.32.2/go.mod h1:6tuVZBaHohcTuX8S0G6S80o/6PmzoF7sHbjxDUJaLjU=
-github.com/anchore/syft v0.33.1-0.20211220153525-006ba9b557d5 h1:MCgLSRpny/4Y1ACfaXQ/AbdlIIZVdueklXt1U5gHAVQ=
-github.com/anchore/syft v0.33.1-0.20211220153525-006ba9b557d5/go.mod h1:6tuVZBaHohcTuX8S0G6S80o/6PmzoF7sHbjxDUJaLjU=
+github.com/anchore/syft v0.33.0 h1:9NYwmQu+7L/4XgYPT7smJkLGvYv1cwiqi7kwohSLNMw=
+github.com/anchore/syft v0.33.0/go.mod h1:6tuVZBaHohcTuX8S0G6S80o/6PmzoF7sHbjxDUJaLjU=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 h1:bvNMNQO63//z+xNgfBlViaCIJKLlCJ6/fmUseuG0wVQ=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/brotli v1.0.1/go.mod h1:loMXtMfwqflxFJPmdbJO0a3KNoPuLBgiu3qAvBg8x/Y=
 github.com/andybalholm/brotli v1.0.4 h1:V7DdXeJtZscaqfNuAdSRuRFzuiKlHSC/Zh3zl9qY3JY=
 github.com/andybalholm/brotli v1.0.4/go.mod h1:fO7iG3H7G2nSZ7m0zPUDn85XEX2GTukHGRSepvi9Eig=
 github.com/andybalholm/cascadia v1.1.0/go.mod h1:GsXiBklL0woXo1j/WYWtSYYC4ouU9PqHO0sqidkEA4Y=
-github.com/antihax/optional v1.0.0 h1:xK2lYat7ZLaVVcIuj82J8kIro4V6kDe0AUDFboUCwcg=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/apex/log v1.1.4/go.mod h1:AlpoD9aScyQfJDVHmLMEcx4oU6LqzkWp4Mg9GdAcEvQ=
 github.com/apex/log v1.3.0/go.mod h1:jd8Vpsr46WAe3EZSQ/IUMs2qQD/GOycT5rPWCO1yGcs=
