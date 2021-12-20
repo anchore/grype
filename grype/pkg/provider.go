@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/bmatcuk/doublestar/v2"
-
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft/source"
 )
@@ -29,22 +27,33 @@ func Provide(userInput string, scopeOpt source.Scope, registryOptions *image.Reg
 }
 
 func filterPackageExclusions(packages []Package, exclusions []string) ([]Package, error) {
-	for i := 0; i < len(packages); i++ {
-		pkg := packages[i]
-		for _, exclusion := range exclusions {
+	var out []Package
+	for _, pkg := range packages {
+		includePackage := true
+		if len(pkg.Locations) > 0 {
+			includePackage = false
+			// require ALL locations to be excluded for the package to be excluded
+		location:
 			for _, location := range pkg.Locations {
-				matches, err := matchesLocation(exclusion, location)
-				if err != nil {
-					return nil, err
+				for _, exclusion := range exclusions {
+					match, err := matchesLocation(exclusion, location)
+					if err != nil {
+						return nil, err
+					}
+					if match {
+						continue location
+					}
 				}
-				if matches {
-					packages = append(packages[:i], packages[i+1:]...)
-					i--
-				}
+				// if this point is reached, one location has not matched any exclusion, include the package
+				includePackage = true
+				break
 			}
 		}
+		if includePackage {
+			out = append(out, pkg)
+		}
 	}
-	return packages, nil
+	return out, nil
 }
 
 func matchesLocation(exclusion string, location source.Location) (bool, error) {
