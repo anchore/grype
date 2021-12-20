@@ -1,0 +1,7 @@
+{
+  "name": "top-level-package",
+  "version": "5.19.4",
+  "dependencies": {
+    "left-pad": "1.3.0"
+  }
+}
