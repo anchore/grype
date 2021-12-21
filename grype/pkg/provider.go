@@ -13,7 +13,7 @@ import (
 var errDoesNotProvide = fmt.Errorf("cannot provide packages from the given source")
 
 // Provide a set of packages and context metadata describing where they were sourced from.
-func Provide(userInput string, scopeOpt source.Scope, registryOptions *image.RegistryOptions, exclusions ...string) ([]Package, Context, error) {
+func Provide(userInput string, scopeOpt source.Scope, registryOptions *image.RegistryOptions, exclusions []string) ([]Package, Context, error) {
 	packages, ctx, err := syftSBOMProvider(userInput)
 	if !errors.Is(err, errDoesNotProvide) {
 		if len(exclusions) > 0 {
@@ -25,7 +25,7 @@ func Provide(userInput string, scopeOpt source.Scope, registryOptions *image.Reg
 		return packages, ctx, err
 	}
 
-	return syftProvider(userInput, scopeOpt, registryOptions, exclusions...)
+	return syftProvider(userInput, scopeOpt, registryOptions, exclusions)
 }
 
 func filterPackageExclusions(packages []Package, exclusions []string) ([]Package, error) {

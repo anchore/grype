@@ -260,7 +260,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		go func() {
 			defer wg.Done()
 			log.Debugf("gathering packages")
-			packages, context, err = pkg.Provide(userInput, appConfig.ScopeOpt, appConfig.Registry.ToOptions(), appConfig.Exclusions...)
+			packages, context, err = pkg.Provide(userInput, appConfig.ScopeOpt, appConfig.Registry.ToOptions(), appConfig.Exclusions)
 			if err != nil {
 				errs <- fmt.Errorf("failed to catalog: %w", err)
 				return

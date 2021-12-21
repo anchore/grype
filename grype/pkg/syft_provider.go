@@ -6,7 +6,7 @@ import (
 	"github.com/anchore/syft/syft/source"
 )
 
-func syftProvider(userInput string, scopeOpt source.Scope, registryOptions *image.RegistryOptions, exclusions ...string) ([]Package, Context, error) {
+func syftProvider(userInput string, scopeOpt source.Scope, registryOptions *image.RegistryOptions, exclusions []string) ([]Package, Context, error) {
 	if scopeOpt == "" {
 		return nil, Context{}, errDoesNotProvide
 	}
