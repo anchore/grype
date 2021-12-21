@@ -1,11 +1,12 @@
 package match
 
 import (
+	"testing"
+
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func Test_ApplyExplicitIgnoreRules(t *testing.T) {

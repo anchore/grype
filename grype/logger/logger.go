@@ -9,4 +9,5 @@ type Logger interface {
 	Info(args ...interface{})
 	Debugf(format string, args ...interface{})
 	Debug(args ...interface{})
+	IsDebugEnabled() bool
 }

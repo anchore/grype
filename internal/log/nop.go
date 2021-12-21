@@ -10,3 +10,4 @@ func (l *nopLogger) Infof(format string, args ...interface{})  {}
 func (l *nopLogger) Info(args ...interface{})                  {}
 func (l *nopLogger) Debugf(format string, args ...interface{}) {}
 func (l *nopLogger) Debug(args ...interface{})                 {}
+func (l *nopLogger) IsDebugEnabled() bool                      { return false }

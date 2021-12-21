@@ -35,3 +35,7 @@ func Debugf(format string, args ...interface{}) {
 func Debug(args ...interface{}) {
 	Log.Debug(args...)
 }
+
+func IsDebugEnabled() bool {
+	return Log.IsDebugEnabled()
+}
