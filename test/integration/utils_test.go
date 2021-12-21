@@ -62,7 +62,7 @@ func saveImage(t testing.TB, imageName string, destPath string) {
 }
 
 func getSyftSBOM(t testing.TB, image string) string {
-	src, cleanup, err := source.New(image, nil)
+	src, cleanup, err := source.New(image, nil, nil)
 	if err != nil {
 		t.Fatalf("can't get the source: %+v", err)
 	}

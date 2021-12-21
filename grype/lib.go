@@ -16,7 +16,7 @@ import (
 )
 
 func FindVulnerabilities(provider vulnerability.Provider, userImageStr string, scopeOpt source.Scope, registryOptions *image.RegistryOptions) (match.Matches, pkg.Context, []pkg.Package, error) {
-	packages, context, err := pkg.Provide(userImageStr, scopeOpt, registryOptions)
+	packages, context, err := pkg.Provide(userImageStr, scopeOpt, registryOptions, nil)
 	if err != nil {
 		return match.Matches{}, pkg.Context{}, nil, err
 	}
