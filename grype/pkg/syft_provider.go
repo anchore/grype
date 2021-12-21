@@ -11,7 +11,7 @@ func syftProvider(userInput string, scopeOpt source.Scope, registryOptions *imag
 		return nil, Context{}, errDoesNotProvide
 	}
 
-	src, cleanup, err := source.New(userInput, registryOptions, exclusions...)
+	src, cleanup, err := source.New(userInput, registryOptions, exclusions)
 	if err != nil {
 		return nil, Context{}, err
 	}

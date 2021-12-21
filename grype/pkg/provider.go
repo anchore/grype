@@ -28,6 +28,9 @@ func Provide(userInput string, scopeOpt source.Scope, registryOptions *image.Reg
 	return syftProvider(userInput, scopeOpt, registryOptions, exclusions)
 }
 
+// This will filter the provided packages list based on a set of exclusion expressions. Globs
+// are allowed for the exclusions. A package will be *excluded* only if *all locations* match
+// one of the provided exclusions.
 func filterPackageExclusions(packages []Package, exclusions []string) ([]Package, error) {
 	var out []Package
 	for _, pkg := range packages {
@@ -38,7 +41,7 @@ func filterPackageExclusions(packages []Package, exclusions []string) ([]Package
 		location:
 			for _, location := range pkg.Locations {
 				for _, exclusion := range exclusions {
-					match, err := matchesLocation(exclusion, location)
+					match, err := locationMatches(location, exclusion)
 					if err != nil {
 						return nil, err
 					}
@@ -58,7 +61,10 @@ func filterPackageExclusions(packages []Package, exclusions []string) ([]Package
 	return out, nil
 }
 
-func matchesLocation(exclusion string, location source.Location) (bool, error) {
+// Test a location RealPath and VirtualPath for a match against the exclusion parameter.
+// The exclusion allows glob expressions such as `/usr/**` or `**/*.json`. If the exclusion
+// is an invalid pattern, an error is returned; otherwise, the resulting boolean indicates a match.
+func locationMatches(location source.Location, exclusion string) (bool, error) {
 	matchesRealPath, err := doublestar.Match(exclusion, location.RealPath)
 	if err != nil {
 		return false, err

@@ -108,3 +108,119 @@ func TestSyftLocationExcludes(t *testing.T) {
 		})
 	}
 }
+
+func Test_filterPackageExclusions(t *testing.T) {
+	tests := []struct {
+		name       string
+		locations  [][]string
+		exclusions []string
+		expected   int
+	}{
+		{
+			name:       "exclude nothing",
+			locations:  [][]string{{"/foo", "/bar"}, {"/foo", "/bar"}},
+			exclusions: []string{"/asdf/**"},
+			expected:   2,
+		},
+		{
+			name:       "exclude everything",
+			locations:  [][]string{{"/foo", "/bar"}, {"/foo", "/bar"}},
+			exclusions: []string{"**"},
+			expected:   0,
+		},
+		{
+			name:       "exclude based on all location match",
+			locations:  [][]string{{"/foo1", "/bar1"}, {"/foo2", "/bar2"}},
+			exclusions: []string{"/foo2", "/bar2"},
+			expected:   1,
+		},
+		{
+			name:       "don't exclude with single location match",
+			locations:  [][]string{{"/foo1", "/bar1"}, {"/foo2", "/bar2"}},
+			exclusions: []string{"/foo1", "/foo2"},
+			expected:   2,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var packages []Package
+			for _, pkg := range test.locations {
+				var locations []source.Location
+				for _, l := range pkg {
+					locations = append(locations, source.Location{
+						Coordinates: source.Coordinates{
+							RealPath: l,
+						},
+						VirtualPath: l,
+					})
+				}
+				packages = append(packages, Package{Locations: locations})
+			}
+			filtered, err := filterPackageExclusions(packages, test.exclusions)
+
+			assert.NoError(t, err)
+			assert.Len(t, filtered, test.expected)
+		})
+	}
+}
+
+func Test_matchesLocation(t *testing.T) {
+	tests := []struct {
+		name        string
+		realPath    string
+		virtualPath string
+		match       string
+		expected    bool
+	}{
+		{
+			name:        "doesn't match real",
+			realPath:    "/asdf",
+			virtualPath: "",
+			match:       "/usr",
+			expected:    false,
+		},
+		{
+			name:        "doesn't match virtual",
+			realPath:    "",
+			virtualPath: "/asdf",
+			match:       "/usr",
+			expected:    false,
+		},
+		{
+			name:        "does match real",
+			realPath:    "/usr/foo",
+			virtualPath: "",
+			match:       "/usr/**",
+			expected:    true,
+		},
+		{
+			name:        "does match virtual",
+			realPath:    "",
+			virtualPath: "/usr/bar/oof.txt",
+			match:       "/usr/**",
+			expected:    true,
+		},
+		{
+			name:        "does match file",
+			realPath:    "",
+			virtualPath: "/usr/bar/oof.txt",
+			match:       "**/*.txt",
+			expected:    true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			matches, err := locationMatches(source.Location{
+				Coordinates: source.Coordinates{
+					RealPath: test.realPath,
+				},
+				VirtualPath: test.virtualPath,
+			}, test.match)
+
+			assert.NoError(t, err)
+			assert.Equal(t, test.expected, matches)
+		})
+	}
+}
