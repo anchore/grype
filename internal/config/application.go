@@ -46,6 +46,7 @@ type Application struct {
 	FailOnSeverity     *vulnerability.Severity `json:"-"`
 	Registry           registry                `yaml:"registry" json:"registry" mapstructure:"registry"`
 	Ignore             []match.IgnoreRule      `yaml:"ignore" json:"ignore" mapstructure:"ignore"`
+	Exclusions         []string                `yaml:"exclude" json:"exclude" mapstructure:"exclude"`
 }
 
 func newApplicationConfig(v *viper.Viper, cliOpts CliOnlyOptions) *Application {

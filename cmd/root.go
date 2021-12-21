@@ -130,6 +130,11 @@ func setRootFlags(flags *pflag.FlagSet) {
 		"only-fixed", "", false,
 		"ignore matches for vulnerabilities that are not fixed",
 	)
+
+	flags.StringArrayP(
+		"exclude", "", nil,
+		"exclude paths from being scanned using a glob expression",
+	)
 }
 
 func bindRootConfigOptions(flags *pflag.FlagSet) error {
@@ -154,6 +159,10 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 	}
 
 	if err := viper.BindPFlag("only-fixed", flags.Lookup("only-fixed")); err != nil {
+		return err
+	}
+
+	if err := viper.BindPFlag("exclude", flags.Lookup("exclude")); err != nil {
 		return err
 	}
 
@@ -251,7 +260,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		go func() {
 			defer wg.Done()
 			log.Debugf("gathering packages")
-			packages, context, err = pkg.Provide(userInput, appConfig.ScopeOpt, appConfig.Registry.ToOptions())
+			packages, context, err = pkg.Provide(userInput, appConfig.ScopeOpt, appConfig.Registry.ToOptions(), appConfig.Exclusions)
 			if err != nil {
 				errs <- fmt.Errorf("failed to catalog: %w", err)
 				return
