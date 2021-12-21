@@ -42,9 +42,9 @@ func ApplyExplicitIgnoreRules(matches Matches) Matches {
 	if log.IsDebugEnabled() {
 		removed := ""
 		for _, i := range ignored {
-			removed += i.Match.Vulnerability.ID + ":" + i.Package.PURL + ","
+			removed += "    - " + i.Match.Vulnerability.ID + ":" + i.Package.PURL + "\n"
 		}
-		log.Debugf("Removed explicit matches: %s", removed)
+		log.Debugf("Removed explicit matches: %s\n", removed)
 	}
 	return matches
 }
