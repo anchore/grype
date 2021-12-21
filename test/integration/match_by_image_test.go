@@ -347,7 +347,7 @@ func TestMatchByImage(t *testing.T) {
 			userImage := "docker-archive:" + tarPath
 
 			// this is purely done to help setup mocks
-			theSource, cleanup, err := source.New(userImage, nil)
+			theSource, cleanup, err := source.New(userImage, nil, nil)
 			if err != nil {
 				t.Fatalf("failed to determine image source: %+v", err)
 			}
