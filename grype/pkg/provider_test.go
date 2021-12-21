@@ -44,7 +44,7 @@ func TestProviderLocationExcludes(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			pkgs, _, _ := Provide(test.fixture, source.SquashedScope, nil, test.excludes...)
+			pkgs, _, _ := Provide(test.fixture, source.SquashedScope, nil, test.excludes)
 
 			var pkgNames []string
 
@@ -94,7 +94,7 @@ func TestSyftLocationExcludes(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			userInput := imagetest.GetFixtureImageTarPath(t, test.fixture)
 
-			pkgs, _, err := Provide(userInput, source.SquashedScope, &image.RegistryOptions{}, test.excludes...)
+			pkgs, _, err := Provide(userInput, source.SquashedScope, &image.RegistryOptions{}, test.excludes)
 
 			assert.NoErrorf(t, err, "error calling Provide function")
 
