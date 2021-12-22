@@ -247,7 +247,7 @@ extract_from_dmg() {
   dmg_file=$1
   mount_point="/Volumes/tmp-dmg"
   hdiutil attach -quiet -nobrowse -mountpoint "${mount_point}" "${dmg_file}"
-  cp -fR "${mount_point}/" ./
+  cp -fR "${mount_point}/." ./
   hdiutil detach -quiet -force "${mount_point}"
 }
 http_download_curl() {
