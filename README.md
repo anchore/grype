@@ -156,7 +156,7 @@ Grype lets you define custom output formats, using [Go templates](https://golang
 
 - Grype's template processing uses the same data models as the `json` output format — so if you're wondering what data is available as you author a template, you can use the output from `grype <image> -o json` as a reference.
 
-**Example:** You could make Grype output data in CSV format by writing a Go template that renders CSV data and then running `grype <image> -o ~/path/to/csv.tmpl`.
+**Example:** You could make Grype output data in CSV format by writing a Go template that renders CSV data and then running `grype <image> -o template -t ~/path/to/csv.tmpl`.
 
 Here's what the `csv.tmpl` file might look like:
 ```gotemplate
