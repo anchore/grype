@@ -108,6 +108,8 @@ func (c *controller) findMatches(provider vulnerability.Provider, d *distro.Dist
 	packagesProcessed.SetCompleted()
 	vulnerabilitiesDiscovered.SetCompleted()
 
+	res = match.ApplyExplicitIgnoreRules(res)
+
 	return res
 }
 
