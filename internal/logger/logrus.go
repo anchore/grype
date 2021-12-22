@@ -110,10 +110,6 @@ func (l *LogrusLogger) Error(args ...interface{}) {
 	l.Logger.Error(args...)
 }
 
-func (l *LogrusLogger) IsDebugEnabled() bool {
-	return l.Logger.IsLevelEnabled(logrus.DebugLevel)
-}
-
 func (l *LogrusNestedLogger) Debugf(format string, args ...interface{}) {
 	l.Logger.Debugf(format, args...)
 }
@@ -144,8 +140,4 @@ func (l *LogrusNestedLogger) Warn(args ...interface{}) {
 
 func (l *LogrusNestedLogger) Error(args ...interface{}) {
 	l.Logger.Error(args...)
-}
-
-func (l *LogrusNestedLogger) IsDebugEnabled() bool {
-	return l.Logger.Logger.IsLevelEnabled(logrus.DebugLevel)
 }
