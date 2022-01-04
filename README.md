@@ -114,6 +114,31 @@ dir:path/to/yourproject                read directly from a path on disk (any di
 registry:yourrepo/yourimage:tag        pull image directly from a registry (no container runtime required)
 ```
 
+### Vulnerability Summary
+
+#### Basic Grype Vulnerability Data Shape
+```json
+ {
+  "vulnerability": {
+    ...
+  },
+  "relatedVulnerabilities": [
+    ...
+  ],
+  "matchDetails": [
+    ...
+  ],
+  "artifact": {
+    ...
+  }
+}
+```
+- **Vulnerability**: All information on the specific vulnerability that was directly matched on (e.g. ID, severity, CVSS score, fix information, links for more information)
+- **RelatedVulnerabilities**: Information pertaining to vulnerabilities found to be related to the main reported vulnerability. Maybe the vulnerability we matched on was a GitHub Security Advisory, which has an upstream CVE (in the authoritative national vulnerability database). In these cases we list the upstream vulnerabilities here.
+- **MatchDetails**: This section tries to explain what we searched for while looking for a match and exactly what details on the package and vulnerability that lead to a match.
+- **Artifact**: This is a subset of the information that we know about the package (when compared to the [Syft](https://github.com/anchore/syft) json output, we summarize the metadata section).
+This has information about where within the container image or directory we found the package, what kind of package it is, licensing info, pURLs, CPEs, etc.
+
 ### Excluding file paths
 
 Grype can exclude files and paths from being scanned within a source by using glob expressions
