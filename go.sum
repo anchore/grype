@@ -161,7 +161,6 @@ github.com/alexflint/go-filemutex v0.0.0-20171022225611-72bdc8eae2ae/go.mod h1:C
 github.com/alicebob/sqlittle v1.4.0 h1:vgYt0nAjhdf/hg52MjKJ84g/uTzBPfrvI+VUBrIghxA=
 github.com/alicebob/sqlittle v1.4.0/go.mod h1:Co1L1qxHqCwf41puWhk2HOodojR0mcsAV4BIt8byZh8=
 github.com/anchore/client-go v0.0.0-20210222170800-9c70f9b80bcf/go.mod h1:FaODhIA06mxO1E6R32JE0TL1JWZZkmjRIAd4ULvHUKk=
-github.com/anchore/go-presenter v0.0.0-20211102174526-0dbf20f6c7fa h1:mDLUAkgXsV5Z8D0EEj8eS6FBekolV/A+Xxbs9054bPw=
 github.com/anchore/go-presenter v0.0.0-20211102174526-0dbf20f6c7fa/go.mod h1:29jwxTSAS6pBcrmuwf1U3r1Tqp1o1XpuiOJ0NT9NoGg=
 github.com/anchore/go-rpmdb v0.0.0-20210602151223-1f0f707a2894/go.mod h1:8jNYOxCJC5kyD/Ct4MbzsDN2hOhRoCAzQcb/7KdYYGw=
 github.com/anchore/go-rpmdb v0.0.0-20210914181456-a9c52348da63 h1:C9W/LAydEz/qdUhx1MdjO9l8NEcFKYknkxDVyo9LAoM=
@@ -197,8 +196,8 @@ github.com/anchore/syft v0.30.1/go.mod h1:7YlGmGFP/GlfNn80TDN1jFcosZqHBKCnrpwfiR
 github.com/anchore/syft v0.31.0/go.mod h1:ZHM2Brl5yU8qM6YuXLRxm4UXCMSWQdd78S0eKnVm1Uw=
 github.com/anchore/syft v0.31.0/go.mod h1:ZHM2Brl5yU8qM6YuXLRxm4UXCMSWQdd78S0eKnVm1Uw=
 github.com/anchore/syft v0.31.1-0.20211207205931-7a359dc16be8/go.mod h1:6tuVZBaHohcTuX8S0G6S80o/6PmzoF7sHbjxDUJaLjU=
-github.com/anchore/syft v0.34.0 h1:PrtTLdOfV1B5lx8FlyEeg7NhMnFdedqCYEpOoqnWHo4=
-github.com/anchore/syft v0.34.0/go.mod h1:/R925Uu1YHhLi035Dxy10lsvn3hN/Pc0xGUHbsKHGyk=
+github.com/anchore/syft v0.35.0 h1:Z5L/Jnst32Zj2gUpIMkE3vAwZhSRbsHMh3L/KQen+64=
+github.com/anchore/syft v0.35.0/go.mod h1:Tc9SYuelmg7xw3PxOPFXOVYpSA18y40pCDuNwS0idY8=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 h1:bvNMNQO63//z+xNgfBlViaCIJKLlCJ6/fmUseuG0wVQ=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/brotli v1.0.1/go.mod h1:loMXtMfwqflxFJPmdbJO0a3KNoPuLBgiu3qAvBg8x/Y=

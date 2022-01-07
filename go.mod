@@ -9,7 +9,7 @@ require (
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/grype-db v0.0.0-20211207213615-1bcbb779ee96
 	github.com/anchore/stereoscope v0.0.0-20211222141827-6e663afeef5d
-	github.com/anchore/syft v0.34.0
+	github.com/anchore/syft v0.35.0
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/docker/docker v20.10.11+incompatible
 	github.com/dustin/go-humanize v1.0.0
