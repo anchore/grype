@@ -11,6 +11,7 @@ import (
 	"github.com/anchore/stereoscope/pkg/imagetest"
 	"github.com/anchore/syft/syft"
 	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/pkg/cataloger"
 	"github.com/anchore/syft/syft/source"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
@@ -354,7 +355,10 @@ func TestMatchByImage(t *testing.T) {
 			defer cleanup()
 
 			// TODO: relationships are not verified at this time
-			theCatalog, _, theDistro, err := syft.CatalogPackages(theSource, source.SquashedScope)
+			config := cataloger.DefaultConfig()
+			config.Search.Scope = source.SquashedScope
+
+			theCatalog, _, theDistro, err := syft.CatalogPackages(theSource, config)
 			if err != nil {
 				t.Fatalf("could not get the source obj: %+v", err)
 			}

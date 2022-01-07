@@ -113,7 +113,7 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 		ID:                "CVE-2020-1",
 		VersionConstraint: "<= 0.9.11",
 		VersionFormat:     "unknown",
-		CPEs:              []string{"cpe:2.3:a:lib_vnc_project-(server):libvncserver:*:*:*:*:*:*:*:*"},
+		CPEs:              []string{`cpe:2.3:a:lib_vnc_project-\(server\):libvncserver:*:*:*:*:*:*:*:*`},
 		Namespace:         "nvd",
 	}
 
@@ -283,7 +283,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 		ID:                "CVE-2020-1",
 		VersionConstraint: "<= 0.9.11",
 		VersionFormat:     "unknown",
-		CPEs:              []string{"cpe:2.3:a:lib_vnc_project-(server):libvncserver:*:*:*:*:*:*:*:*"},
+		CPEs:              []string{`cpe:2.3:a:lib_vnc_project-\(server\):libvncserver:*:*:*:*:*:*:*:*`},
 		Namespace:         "nvd",
 	}
 	store := mockStore{
@@ -350,7 +350,7 @@ func TestNvdMatchesWithSecDBFix(t *testing.T) {
 		ID:                "CVE-2020-1",
 		VersionConstraint: "> 0.9.0, < 0.10.0", // note: this is not normal NVD configuration, but has the desired effect of a "wide net" for vulnerable indication
 		VersionFormat:     "unknown",
-		CPEs:              []string{"cpe:2.3:a:lib_vnc_project-(server):libvncserver:*:*:*:*:*:*:*:*"},
+		CPEs:              []string{`cpe:2.3:a:lib_vnc_project-\(server\):libvncserver:*:*:*:*:*:*:*:*`},
 		Namespace:         "nvd",
 	}
 
@@ -402,7 +402,7 @@ func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
 		ID:                "CVE-2020-1",
 		VersionConstraint: "", // note: empty value indicates that all versions are vulnerable
 		VersionFormat:     "unknown",
-		CPEs:              []string{"cpe:2.3:a:lib_vnc_project-(server):libvncserver:*:*:*:*:*:*:*:*"},
+		CPEs:              []string{`cpe:2.3:a:lib_vnc_project-\(server\):libvncserver:*:*:*:*:*:*:*:*`},
 		Namespace:         "nvd",
 	}
 

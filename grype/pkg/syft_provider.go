@@ -3,6 +3,7 @@ package pkg
 import (
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft"
+	"github.com/anchore/syft/syft/pkg/cataloger"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -17,7 +18,10 @@ func syftProvider(userInput string, scopeOpt source.Scope, registryOptions *imag
 	}
 	defer cleanup()
 
-	catalog, _, theDistro, err := syft.CatalogPackages(src, scopeOpt)
+	searchConfig := cataloger.DefaultConfig()
+	searchConfig.Search.Scope = scopeOpt
+
+	catalog, _, theDistro, err := syft.CatalogPackages(src, searchConfig)
 	if err != nil {
 		return nil, Context{}, err
 	}
