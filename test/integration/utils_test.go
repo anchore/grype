@@ -3,6 +3,7 @@ package integration
 import (
 	"errors"
 	"fmt"
+	"github.com/anchore/syft/syft/pkg/cataloger"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -68,9 +69,10 @@ func getSyftSBOM(t testing.TB, image string) string {
 	}
 	t.Cleanup(cleanup)
 
-	scope := source.SquashedScope
+	config := cataloger.DefaultConfig()
+	config.Search.Scope = source.SquashedScope
 	// TODO: relationships are not verified at this time
-	catalog, _, distro, err := syft.CatalogPackages(src, scope)
+	catalog, _, distro, err := syft.CatalogPackages(src, config)
 
 	sbom := sbom.SBOM{
 		Artifacts: sbom.Artifacts{
