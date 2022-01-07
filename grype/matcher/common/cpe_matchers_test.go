@@ -112,8 +112,8 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 			name: "match from range",
 			p: pkg.Package{
 				CPEs: []syftPkg.CPE{
-					must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.5:rando1:*:rando2:*:ruby:*:*")),
-					must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.5:rando4:*:rando3:*:rails:*:*")),
+					must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.5:rando1:*:ra:*:ruby:*:*")),
+					must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.5:rando4:*:re:*:rails:*:*")),
 				},
 				Name:     "activerecord",
 				Version:  "3.7.5",
@@ -128,8 +128,8 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 					},
 					Package: pkg.Package{
 						CPEs: []syftPkg.CPE{
-							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.5:rando1:*:rando2:*:ruby:*:*")),
-							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.5:rando4:*:rando3:*:rails:*:*")),
+							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.5:rando1:*:ra:*:ruby:*:*")),
+							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.5:rando4:*:re:*:rails:*:*")),
 						},
 						Name:     "activerecord",
 						Version:  "3.7.5",
@@ -141,7 +141,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							Confidence: 0.9,
 							SearchedBy: SearchedByCPEs{
 								Namespace: "nvd",
-								CPEs:      []string{"cpe:2.3:*:activerecord:activerecord:3.7.5:rando4:*:rando3:*:rails:*:*"},
+								CPEs:      []string{"cpe:2.3:*:activerecord:activerecord:3.7.5:rando4:*:re:*:rails:*:*"},
 							},
 							Found: FoundCPEs{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*"},
@@ -157,8 +157,8 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 			name: "multiple matches",
 			p: pkg.Package{
 				CPEs: []syftPkg.CPE{
-					must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:rando2:*:ruby:*:*")),
-					must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando4:*:rando3:*:rails:*:*")),
+					must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:ra:*:ruby:*:*")),
+					must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando4:*:re:*:rails:*:*")),
 				},
 				Name:     "activerecord",
 				Version:  "3.7.3",
@@ -173,8 +173,8 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 					},
 					Package: pkg.Package{
 						CPEs: []syftPkg.CPE{
-							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:rando2:*:ruby:*:*")),
-							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando4:*:rando3:*:rails:*:*")),
+							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:ra:*:ruby:*:*")),
+							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando4:*:re:*:rails:*:*")),
 						},
 						Name:     "activerecord",
 						Version:  "3.7.3",
@@ -187,7 +187,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							Confidence: 0.9,
 							SearchedBy: SearchedByCPEs{
 								CPEs: []string{
-									"cpe:2.3:*:activerecord:activerecord:3.7.3:rando4:*:rando3:*:rails:*:*",
+									"cpe:2.3:*:activerecord:activerecord:3.7.3:rando4:*:re:*:rails:*:*",
 								},
 								Namespace: "nvd",
 							},
@@ -206,8 +206,8 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 					},
 					Package: pkg.Package{
 						CPEs: []syftPkg.CPE{
-							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:rando2:*:ruby:*:*")),
-							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando4:*:rando3:*:rails:*:*")),
+							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:ra:*:ruby:*:*")),
+							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando4:*:re:*:rails:*:*")),
 						},
 						Name:     "activerecord",
 						Version:  "3.7.3",
@@ -219,7 +219,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 						{
 							Confidence: 0.9,
 							SearchedBy: SearchedByCPEs{
-								CPEs:      []string{"cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:rando2:*:ruby:*:*"},
+								CPEs:      []string{"cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:ra:*:ruby:*:*"},
 								Namespace: "nvd",
 							},
 							Found: FoundCPEs{
@@ -289,7 +289,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 			name: "fuzzy version match",
 			p: pkg.Package{
 				CPEs: []syftPkg.CPE{
-					must(syftPkg.NewCPE("cpe:2.3:*:awesome:awesome:98SE1:rando1:*:rando2:*:dunno:*:*")),
+					must(syftPkg.NewCPE("cpe:2.3:*:awesome:awesome:98SE1:rando1:*:ra:*:dunno:*:*")),
 				},
 				Name:    "awesome",
 				Version: "98SE1",
@@ -302,7 +302,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 					},
 					Package: pkg.Package{
 						CPEs: []syftPkg.CPE{
-							must(syftPkg.NewCPE("cpe:2.3:*:awesome:awesome:98SE1:rando1:*:rando2:*:dunno:*:*")),
+							must(syftPkg.NewCPE("cpe:2.3:*:awesome:awesome:98SE1:rando1:*:ra:*:dunno:*:*")),
 						},
 						Name:    "awesome",
 						Version: "98SE1",
@@ -312,7 +312,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 						{
 							Confidence: 0.9,
 							SearchedBy: SearchedByCPEs{
-								CPEs:      []string{"cpe:2.3:*:awesome:awesome:98SE1:rando1:*:rando2:*:dunno:*:*"},
+								CPEs:      []string{"cpe:2.3:*:awesome:awesome:98SE1:rando1:*:ra:*:dunno:*:*"},
 								Namespace: "nvd",
 							},
 							Found: FoundCPEs{
