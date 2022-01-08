@@ -7,11 +7,11 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/adrg/xdg"
 	"github.com/anchore/grype/grype/match"
+
+	"github.com/adrg/xdg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
-	"github.com/anchore/syft/syft/source"
 	"github.com/mitchellh/go-homedir"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -37,16 +37,15 @@ type Application struct {
 	CheckForAppUpdate  bool                    `yaml:"check-for-app-update" json:"check-for-app-update" mapstructure:"check-for-app-update"` // whether to check for an application update on start up or not
 	OnlyFixed          bool                    `yaml:"only-fixed" json:"only-fixed" mapstructure:"only-fixed"`                               // only fail if detected vulns have a fix
 	CliOptions         CliOnlyOptions          `yaml:"-" json:"-"`
-	ScopeOpt           source.Scope            `json:"-"`
-	Scope              string                  `yaml:"scope" json:"scope" mapstructure:"scope"`
-	Log                logging                 `yaml:"log" json:"log" mapstructure:"log"`
+	Search             search                  `yaml:"search" json:"search" mapstructure:"search"`
+	Ignore             []match.IgnoreRule      `yaml:"ignore" json:"ignore" mapstructure:"ignore"`
+	Exclusions         []string                `yaml:"exclude" json:"exclude" mapstructure:"exclude"`
 	DB                 database                `yaml:"db" json:"db" mapstructure:"db"`
 	Dev                development             `yaml:"dev" json:"dev" mapstructure:"dev"`
 	FailOn             string                  `yaml:"fail-on-severity" json:"fail-on-severity" mapstructure:"fail-on-severity"`
-	FailOnSeverity     *vulnerability.Severity `json:"-"`
+	FailOnSeverity     *vulnerability.Severity `yaml:"-" json:"-"`
 	Registry           registry                `yaml:"registry" json:"registry" mapstructure:"registry"`
-	Ignore             []match.IgnoreRule      `yaml:"ignore" json:"ignore" mapstructure:"ignore"`
-	Exclusions         []string                `yaml:"exclude" json:"exclude" mapstructure:"exclude"`
+	Log                logging                 `yaml:"log" json:"log" mapstructure:"log"`
 }
 
 func newApplicationConfig(v *viper.Viper, cliOpts CliOnlyOptions) *Application {
@@ -98,7 +97,6 @@ func (cfg Application) loadDefaultValues(v *viper.Viper) {
 func (cfg *Application) parseConfigValues() error {
 	// parse application config options
 	for _, optionFn := range []func() error{
-		cfg.parseScopeOption,
 		cfg.parseLogLevelOption,
 		cfg.parseFailOnOption,
 	} {
@@ -120,15 +118,6 @@ func (cfg *Application) parseConfigValues() error {
 			}
 		}
 	}
-	return nil
-}
-
-func (cfg *Application) parseScopeOption() error {
-	scopeOption := source.ParseScope(cfg.Scope)
-	if scopeOption == source.UnknownScope {
-		return fmt.Errorf("bad --scope value '%s'", cfg.Scope)
-	}
-	cfg.ScopeOpt = scopeOption
 	return nil
 }
 

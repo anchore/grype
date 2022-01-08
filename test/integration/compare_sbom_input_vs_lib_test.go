@@ -48,9 +48,6 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 
 	for _, image := range images {
 		t.Run(image, func(t *testing.T) {
-
-			t.Logf("Running case %s", image)
-
 			imageArchive := PullThroughImageCache(t, image)
 			imageSource := fmt.Sprintf("docker-archive:%s", imageArchive)
 

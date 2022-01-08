@@ -3,7 +3,8 @@ package pkg
 import (
 	"testing"
 
-	"github.com/anchore/stereoscope/pkg/image"
+	"github.com/anchore/syft/syft/pkg/cataloger"
+
 	"github.com/anchore/stereoscope/pkg/imagetest"
 	"github.com/anchore/syft/syft/source"
 	"github.com/stretchr/testify/assert"
@@ -44,7 +45,11 @@ func TestProviderLocationExcludes(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			pkgs, _, _ := Provide(test.fixture, source.SquashedScope, nil, test.excludes)
+			cfg := ProviderConfig{
+				Exclusions:        test.excludes,
+				CatalogingOptions: cataloger.DefaultConfig(),
+			}
+			pkgs, _, _ := Provide(test.fixture, cfg)
 
 			var pkgNames []string
 
@@ -93,8 +98,11 @@ func TestSyftLocationExcludes(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			userInput := imagetest.GetFixtureImageTarPath(t, test.fixture)
-
-			pkgs, _, err := Provide(userInput, source.SquashedScope, &image.RegistryOptions{}, test.excludes)
+			cfg := ProviderConfig{
+				Exclusions:        test.excludes,
+				CatalogingOptions: cataloger.DefaultConfig(),
+			}
+			pkgs, _, err := Provide(userInput, cfg)
 
 			assert.NoErrorf(t, err, "error calling Provide function")
 

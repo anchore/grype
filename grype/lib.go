@@ -11,12 +11,19 @@ import (
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft/distro"
+	"github.com/anchore/syft/syft/pkg/cataloger"
 	"github.com/anchore/syft/syft/source"
 	"github.com/wagoodman/go-partybus"
 )
 
 func FindVulnerabilities(provider vulnerability.Provider, userImageStr string, scopeOpt source.Scope, registryOptions *image.RegistryOptions) (match.Matches, pkg.Context, []pkg.Package, error) {
-	packages, context, err := pkg.Provide(userImageStr, scopeOpt, registryOptions, nil)
+	providerConfig := pkg.ProviderConfig{
+		RegistryOptions:   registryOptions,
+		CatalogingOptions: cataloger.DefaultConfig(),
+	}
+	providerConfig.CatalogingOptions.Search.Scope = scopeOpt
+
+	packages, context, err := pkg.Provide(userImageStr, providerConfig)
 	if err != nil {
 		return match.Matches{}, pkg.Context{}, nil, err
 	}
