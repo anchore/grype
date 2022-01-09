@@ -445,73 +445,103 @@ Configuration options (example values are the default):
 
 ```yaml
 # enable/disable checking for application updates on startup
+# same as GRYPE_CHECK_FOR_APP_UPDATE env var
 check-for-app-update: true
 
-# same as --fail-on ; upon scanning, if a severity is found at or above the given severity then the return code will be 1
+# upon scanning, if a severity is found at or above the given severity then the return code will be 1
 # default is unset which will skip this validation (options: negligible, low, medium, high, critical)
+# same as --fail-on ; GRYPE_FAIL_ON_SEVERITY env var
 fail-on-severity: ''
 
-# same as -o ; the output format of the vulnerability report (options: table, json, cyclonedx)
+# the output format of the vulnerability report (options: table, json, cyclonedx)
+# same as -o ; GRYPE_OUTPUT env var
 output: "table"
 
-# same as -s ; the search space to look for packages (options: all-layers, squashed)
-scope: "squashed"
-
-# same as -q ; suppress all output (except for the vulnerability list)
+# suppress all output (except for the vulnerability list)
+# same as -q ; GRYPE_QUIET env var
 quiet: false
 
-# same as --file; write output report to a file (default is to write to stdout)
+# write output report to a file (default is to write to stdout)
+# same as --file; GRYPE_FILE env var
 file: ""
 
-# a list of globs to exclude from scanning. same as --exclude ; for example:
+# a list of globs to exclude from scanning, for example:
 # exclude:
 #   - '/etc/**'
 #   - './out/**/*.json'
+# same as --exclude ; GRYPE_EXCLUDE env var
 exclude:
+
 
 db:
   # check for database updates on execution
+  # same as GRYPE_DB_AUTO_UPDATE env var
   auto-update: true
 
   # location to write the vulnerability database cache
+  # same as GRYPE_DB_CACHE_DIR env var
   cache-dir: "$XDG_CACHE_HOME/grype/db"
 
   # URL of the vulnerability database
+  # same as GRYPE_DB_UPDATE_URL env var
   update-url: "https://toolbox-data.anchore.io/grype/databases/listing.json"
 
+
+search:
+
+  # the search space to look for packages (options: all-layers, squashed)
+  # same as -s ; GRYPE_SEARCH_SCOPE env var
+  scope: "squashed"
+
+
+  # search within archives that do contain a file index to search against (zip)
+  # note: for now this only applies to the java package cataloger
+  # same as GRYPE_PACKAGE_SEARCH_INDEXED_ARCHIVES env var
+  indexed-archives: true
+
+  # search within archives that do not contain a file index to search against (tar, tar.gz, tar.bz2, etc)
+  # note: enabling this may result in a performance impact since all discovered compressed tars will be decompressed
+  # note: for now this only applies to the java package cataloger
+  # same as GRYPE_PACKAGE_SEARCH_UNINDEXED_ARCHIVES env var
+  unindexed-archives: false
+    
+    
 # options when pulling directly from a registry via the "registry:" scheme
 registry:
   # skip TLS verification when communicating with the registry
-  # GRYPE_REGISTRY_INSECURE_SKIP_TLS_VERIFY env var
+  # same as GRYPE_REGISTRY_INSECURE_SKIP_TLS_VERIFY env var
   insecure-skip-tls-verify: false
   # use http instead of https when connecting to the registry
-  # GRYPE_REGISTRY_INSECURE_USE_HTTP env var
+  # same as GRYPE_REGISTRY_INSECURE_USE_HTTP env var
   insecure-use-http: false
 
   # credentials for specific registries
   auth:
     - # the URL to the registry (e.g. "docker.io", "localhost:5000", etc.)
-      # GRYPE_REGISTRY_AUTH_AUTHORITY env var
+      # same as GRYPE_REGISTRY_AUTH_AUTHORITY env var
       authority: ""
-      # GRYPE_REGISTRY_AUTH_USERNAME env var
+      # same as GRYPE_REGISTRY_AUTH_USERNAME env var
       username: ""
-      # GRYPE_REGISTRY_AUTH_PASSWORD env var
+      # same as GRYPE_REGISTRY_AUTH_PASSWORD env var
       password: ""
       # note: token and username/password are mutually exclusive
-      # GRYPE_REGISTRY_AUTH_TOKEN env var
+      # same as GRYPE_REGISTRY_AUTH_TOKEN env var
       token: ""
     - ... # note, more credentials can be provided via config file only
 
 
 log:
-  # location to write the log file (default is not to have a log file)
-  file: ""
+  # use structured logging
+  # same as GRYPE_LOG_STRUCTURED env var
+  structured: false
 
   # the log level; note: detailed logging suppress the ETUI
+  # same as GRYPE_LOG_LEVEL env var
   level: "error"
 
-  # use structured logging
-  structured: false
+  # location to write the log file (default is not to have a log file)
+  # same as GRYPE_LOG_FILE env var
+  file: ""
 ```
 
 ## Future plans

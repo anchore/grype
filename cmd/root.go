@@ -138,7 +138,7 @@ func setRootFlags(flags *pflag.FlagSet) {
 }
 
 func bindRootConfigOptions(flags *pflag.FlagSet) error {
-	if err := viper.BindPFlag("scope", flags.Lookup("scope")); err != nil {
+	if err := viper.BindPFlag("search.scope", flags.Lookup("scope")); err != nil {
 		return err
 	}
 
@@ -260,7 +260,12 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		go func() {
 			defer wg.Done()
 			log.Debugf("gathering packages")
-			packages, context, err = pkg.Provide(userInput, appConfig.ScopeOpt, appConfig.Registry.ToOptions(), appConfig.Exclusions)
+			providerConfig := pkg.ProviderConfig{
+				RegistryOptions:   appConfig.Registry.ToOptions(),
+				Exclusions:        appConfig.Exclusions,
+				CatalogingOptions: appConfig.Search.ToConfig(),
+			}
+			packages, context, err = pkg.Provide(userInput, providerConfig)
 			if err != nil {
 				errs <- fmt.Errorf("failed to catalog: %w", err)
 				return

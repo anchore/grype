@@ -136,11 +136,7 @@ func attachFileToCommandStdin(tb testing.TB, file io.Reader, command *exec.Cmd) 
 }
 
 func assertCommandExecutionSuccess(t testing.TB, cmd *exec.Cmd) {
-	t.Logf("Running command: %q", cmd)
-	output, err := cmd.CombinedOutput()
-
-	t.Logf("Full command output:\n%s\n", output)
-
+	_, err := cmd.CombinedOutput()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			t.Fatal(exitErr)

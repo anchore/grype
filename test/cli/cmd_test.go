@@ -21,6 +21,32 @@ func TestCmd(t *testing.T) {
 				assertFailingReturnCode,
 			},
 		},
+		{
+			name: "ensure valid descriptor",
+			args: []string{getFixtureImage(t, "image-bare"), "-o", "json"},
+			assertions: []traitAssertion{
+				assertInOutput(`"check-for-app-update": false`), // assert existence of the app config block
+				assertInOutput(`"db": {`),                       // assert existence of the db status block
+				assertInOutput(`"built":`),                      // assert existence of the db status block
+			},
+		},
+		{
+			name: "responds-to-search-options",
+			args: []string{"-vv"},
+			env: map[string]string{
+				"GRYPE_SEARCH_UNINDEXED_ARCHIVES": "true",
+				"GRYPE_SEARCH_INDEXED_ARCHIVES":   "false",
+				"GRYPE_SEARCH_SCOPE":              "all-layers",
+			},
+			assertions: []traitAssertion{
+				// the application config in the log matches that of what we expect to have been configured. Note:
+				// we are not testing further wiring of this option, only that the config responds to
+				// package-cataloger-level options.
+				assertInOutput("unindexed-archives: true"),
+				assertInOutput("indexed-archives: false"),
+				assertInOutput("scope: all-layers"),
+			},
+		},
 	}
 
 	for _, test := range tests {

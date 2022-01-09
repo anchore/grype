@@ -6,18 +6,17 @@ import (
 
 	"github.com/bmatcuk/doublestar/v2"
 
-	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft/source"
 )
 
 var errDoesNotProvide = fmt.Errorf("cannot provide packages from the given source")
 
 // Provide a set of packages and context metadata describing where they were sourced from.
-func Provide(userInput string, scopeOpt source.Scope, registryOptions *image.RegistryOptions, exclusions []string) ([]Package, Context, error) {
+func Provide(userInput string, config ProviderConfig) ([]Package, Context, error) {
 	packages, ctx, err := syftSBOMProvider(userInput)
 	if !errors.Is(err, errDoesNotProvide) {
-		if len(exclusions) > 0 {
-			packages, err = filterPackageExclusions(packages, exclusions)
+		if len(config.Exclusions) > 0 {
+			packages, err = filterPackageExclusions(packages, config.Exclusions)
 			if err != nil {
 				return nil, ctx, err
 			}
@@ -25,7 +24,7 @@ func Provide(userInput string, scopeOpt source.Scope, registryOptions *image.Reg
 		return packages, ctx, err
 	}
 
-	return syftProvider(userInput, scopeOpt, registryOptions, exclusions)
+	return syftProvider(userInput, config)
 }
 
 // This will filter the provided packages list based on a set of exclusion expressions. Globs
