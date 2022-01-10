@@ -5,10 +5,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/internal"
-	"github.com/anchore/syft/syft/distro"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -29,7 +29,7 @@ func TestMatcherDpkg_matchBySourceIndirection(t *testing.T) {
 	}
 
 	store := newMockProvider()
-	actual, err := matcher.matchBySourceIndirection(store, &d, p)
+	actual, err := matcher.matchBySourceIndirection(store, d, p)
 
 	assert.Len(t, actual, 2, "unexpected indirect matches count")
 

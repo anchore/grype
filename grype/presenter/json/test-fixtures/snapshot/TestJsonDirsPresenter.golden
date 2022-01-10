@@ -168,9 +168,11 @@
   "target": "/some/path"
  },
  "distro": {
-  "name": "centos",
+  "name": "",
   "version": "8.0",
-  "idLike": "rhel"
+  "idLike": [
+   "rhel"
+  ]
  },
  "descriptor": {
   "name": "grype",

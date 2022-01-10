@@ -4,11 +4,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/anchore/syft/syft/linux"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/syft/syft/source"
-
-	"github.com/anchore/syft/syft/distro"
 
 	"github.com/go-test/deep"
 
@@ -123,10 +123,10 @@ func TestParseSyftJSON(t *testing.T) {
 					},
 					Path: "",
 				},
-				Distro: func() *distro.Distro {
-					d, _ := distro.NewDistro(distro.Alpine, "3.12.0", "")
-					return &d
-				}(),
+				Distro: &linux.Release{
+					Name:    "alpine",
+					Version: "3.12.0",
+				},
 			},
 		},
 		springImageTestCase,
@@ -153,6 +153,9 @@ func TestParseSyftJSON(t *testing.T) {
 			}
 
 			for _, d := range deep.Equal(test.Context, context) {
+				if strings.Contains(d, "Distro.IDLike: <nil slice> != []") {
+					continue
+				}
 				t.Errorf("ctx diff: %s", d)
 			}
 		})
@@ -236,9 +239,9 @@ var springImageTestCase = struct {
 			},
 			Path: "",
 		},
-		Distro: func() *distro.Distro {
-			d, _ := distro.NewDistro(distro.Debian, "9", "")
-			return &d
-		}(),
+		Distro: &linux.Release{
+			Name:    "debian",
+			Version: "9",
+		},
 	},
 }

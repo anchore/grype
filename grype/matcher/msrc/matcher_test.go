@@ -5,10 +5,9 @@ import (
 	"testing"
 
 	"github.com/anchore/grype/grype/db"
-
 	grypeDB "github.com/anchore/grype/grype/db/v3"
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/syft/syft/distro"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/stretchr/testify/assert"
 )
@@ -108,7 +107,7 @@ func TestMatches(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			m := Matcher{}
-			matches, err := m.Match(provider, &d, test.pkg)
+			matches, err := m.Match(provider, d, test.pkg)
 			assert.NoError(t, err)
 			var actualVulnIDs []string
 			for _, a := range matches {

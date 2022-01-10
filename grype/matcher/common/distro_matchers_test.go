@@ -4,11 +4,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/syft/syft/distro"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/stretchr/testify/assert"
 )
@@ -98,7 +98,7 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 	}
 
 	store := newMockProviderByDistro()
-	actual, err := FindMatchesByPackageDistro(store, &d, p, match.PythonMatcher)
+	actual, err := FindMatchesByPackageDistro(store, d, p, match.PythonMatcher)
 	assert.NoError(t, err)
 	assertMatchesUsingIDsForVulnerabilities(t, expected, actual)
 }
@@ -149,7 +149,7 @@ func TestFindMatchesByPackageDistroSles(t *testing.T) {
 	}
 
 	store := newMockProviderByDistro()
-	actual, err := FindMatchesByPackageDistro(store, &d, p, match.PythonMatcher)
+	actual, err := FindMatchesByPackageDistro(store, d, p, match.PythonMatcher)
 	assert.NoError(t, err)
 	assertMatchesUsingIDsForVulnerabilities(t, expected, actual)
 }

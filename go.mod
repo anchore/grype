@@ -24,6 +24,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-getter v1.5.9
 	github.com/hashicorp/go-multierror v1.1.0
+	github.com/hashicorp/go-version v1.2.0
 	github.com/jinzhu/copier v0.3.2
 	github.com/jinzhu/gorm v1.9.14
 	github.com/knqyf263/go-apk-version v0.0.0-20200609155635-041fdbb8563f
@@ -49,3 +50,7 @@ require (
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	gopkg.in/yaml.v2 v2.4.0
 )
+
+replace github.com/anchore/syft => ../syft
+
+replace github.com/anchore/grype-db => ../grype-db

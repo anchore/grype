@@ -5,10 +5,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/syft/syft/distro"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -20,7 +20,7 @@ func TestMatcherRpmdb(t *testing.T) {
 	tests := []struct {
 		name            string
 		p               pkg.Package
-		setup           func() (vulnerability.Provider, distro.Distro, Matcher)
+		setup           func() (vulnerability.Provider, *distro.Distro, Matcher)
 		expectedMatches map[string]match.Type
 		wantErr         bool
 	}{
@@ -34,7 +34,7 @@ func TestMatcherRpmdb(t *testing.T) {
 					SourceRpm: "neutron-7.1.3-6.el8.src.rpm",
 				},
 			},
-			setup: func() (vulnerability.Provider, distro.Distro, Matcher) {
+			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
 				d, err := distro.NewDistro(distro.CentOS, "8", "")
 				if err != nil {
@@ -61,7 +61,7 @@ func TestMatcherRpmdb(t *testing.T) {
 					SourceRpm: "neutron-7.1.3-6.el8.src.rpm",
 				},
 			},
-			setup: func() (vulnerability.Provider, distro.Distro, Matcher) {
+			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
 				d, err := distro.NewDistro(distro.CentOS, "8", "")
 				if err != nil {
@@ -87,7 +87,7 @@ func TestMatcherRpmdb(t *testing.T) {
 					SourceRpm: "neutron-17.16.3-229.el8.src.rpm",
 				},
 			},
-			setup: func() (vulnerability.Provider, distro.Distro, Matcher) {
+			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
 				d, err := distro.NewDistro(distro.CentOS, "8", "")
 				if err != nil {
@@ -115,7 +115,7 @@ func TestMatcherRpmdb(t *testing.T) {
 					Epoch:     intRef(0),
 				},
 			},
-			setup: func() (vulnerability.Provider, distro.Distro, Matcher) {
+			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
 				d, err := distro.NewDistro(distro.CentOS, "8", "")
 				if err != nil {
@@ -140,7 +140,7 @@ func TestMatcherRpmdb(t *testing.T) {
 				Type:     syftPkg.RpmPkg,
 				Metadata: pkg.RpmdbMetadata{},
 			},
-			setup: func() (vulnerability.Provider, distro.Distro, Matcher) {
+			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
 				d, err := distro.NewDistro(distro.CentOS, "8", "")
 				if err != nil {
@@ -163,7 +163,7 @@ func TestMatcherRpmdb(t *testing.T) {
 				Type:     syftPkg.RpmPkg,
 				Metadata: pkg.RpmdbMetadata{},
 			},
-			setup: func() (vulnerability.Provider, distro.Distro, Matcher) {
+			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
 				d, err := distro.NewDistro(distro.CentOS, "8", "")
 				if err != nil {
@@ -186,7 +186,7 @@ func TestMatcherRpmdb(t *testing.T) {
 				Type:     syftPkg.RpmPkg,
 				Metadata: pkg.RpmdbMetadata{},
 			},
-			setup: func() (vulnerability.Provider, distro.Distro, Matcher) {
+			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
 				d, err := distro.NewDistro(distro.CentOS, "8", "")
 				if err != nil {
@@ -209,7 +209,7 @@ func TestMatcherRpmdb(t *testing.T) {
 				Type:     syftPkg.RpmPkg,
 				Metadata: pkg.RpmdbMetadata{},
 			},
-			setup: func() (vulnerability.Provider, distro.Distro, Matcher) {
+			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
 				d, err := distro.NewDistro(distro.CentOS, "8", "")
 				if err != nil {
@@ -227,7 +227,7 @@ func TestMatcherRpmdb(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			store, d, matcher := test.setup()
-			actual, err := matcher.Match(store, &d, test.p)
+			actual, err := matcher.Match(store, d, test.p)
 			if err != nil {
 				t.Fatal("could not find match: ", err)
 			}

@@ -6,7 +6,7 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/syft/syft/distro"
+	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	syftSource "github.com/anchore/syft/syft/source"
 	"github.com/stretchr/testify/assert"
@@ -50,11 +50,6 @@ func TestPackagesAreSorted(t *testing.T) {
 		Package: pkg1,
 	}
 
-	d, err := distro.NewDistro(distro.CentOS, "8.0", "rhel")
-	if err != nil {
-		t.Fatalf("could not make distro: %+v", err)
-	}
-
 	matches := match.NewMatches()
 	matches.Add(pkg1, match1, match2, match3)
 
@@ -65,7 +60,11 @@ func TestPackagesAreSorted(t *testing.T) {
 			Scheme:        syftSource.DirectoryScheme,
 			ImageMetadata: syftSource.ImageMetadata{},
 		},
-		Distro: &d,
+		Distro: &linux.Release{
+			ID:      "centos",
+			IDLike:  []string{"rhel"},
+			Version: "8.0",
+		},
 	}
 	doc, err := NewDocument(packages, ctx, matches, nil, NewMetadataMock(), nil, nil)
 	if err != nil {
