@@ -4,18 +4,20 @@ import os
 import sys
 import collections
 
-pattern = re.compile(r'github.com/anchore/grype-db/pkg/db/v(?P<version>\d+)')
+dir_pattern = r'grype/db/v(?P<version>\d+)'
+db_dir_regex = re.compile(dir_pattern)
+import_regex = re.compile(rf'github.com/anchore/grype/{dir_pattern}')
 
 
-def report_schema_versions_found(schema_to_locations):
+def report_schema_versions_found(title, schema_to_locations):
     for schema, locations in sorted(schema_to_locations.items()):
-        print("Schema: %s" % schema)
+        print(f"{title} schema: {schema}")
         for location in locations:
-            print("  %s" % location)
+            print(f"  {location}")
     print()
 
 
-def validate(schema_to_locations):
+def assert_single_schema_version(schema_to_locations):
     schema_versions_found = list(schema_to_locations.keys())
     try:
         for x in schema_versions_found:
@@ -29,7 +31,7 @@ def validate(schema_to_locations):
         sys.exit("No schemas found!")
 
 
-def main():
+def find_db_schema_usages(filter_out_regexes=None, keep_regexes=None):
     schema_to_locations = collections.defaultdict(list)
 
     for root, dirs, files in os.walk("."):
@@ -37,13 +39,59 @@ def main():
             if not file.endswith(".go"):
                 continue
             location = os.path.join(root, file)
+
+            if filter_out_regexes:
+                do_filter = False
+                for regex in filter_out_regexes:
+                    if regex.findall(location):
+                        do_filter = True
+                        break
+                if do_filter:
+                    continue
+
+            if keep_regexes:
+                do_keep = False
+                for regex in keep_regexes:
+                    if regex.findall(location):
+                        do_keep = True
+                        break
+                if not do_keep:
+                    continue
+
+            # keep track of all of the imports (from this point on, this is only possible consumers of db/v# code
             with open(location) as f:
-                for match in pattern.findall(f.read(), re.MULTILINE):
+                for match in import_regex.findall(f.read(), re.MULTILINE):
                     schema_to_locations[match].append(location)
 
-    report_schema_versions_found(schema_to_locations)
-    validate(schema_to_locations)
-    print("Schema Version Found: %s" % list(schema_to_locations.keys())[0])
+    return schema_to_locations
+
+
+def assert_schema_version_prefix(schema, locations):
+    for location in locations:
+        if f"/grype/db/v{schema}" not in location:
+            sys.exit(f"found cross-schema reference: {location}")
+
+
+def validate_schema_consumers():
+    schema_to_locations = find_db_schema_usages(filter_out_regexes=[db_dir_regex])
+    report_schema_versions_found("Consumers of", schema_to_locations)
+    assert_single_schema_version(schema_to_locations)
+    print("Consuming schema versions found: %s" % list(schema_to_locations.keys())[0])
+
+
+def validate_schema_definitions():
+    schema_to_locations = find_db_schema_usages(keep_regexes=[db_dir_regex])
+    report_schema_versions_found("Definitions of", schema_to_locations)
+    # make certain that each definition keeps out of other schema definitions
+    for schema, locations in schema_to_locations.items():
+        assert_schema_version_prefix(schema, locations)
+    print("Verified that schema definitions don't cross-import")
+
+
+def main():
+    validate_schema_definitions()
+    print()
+    validate_schema_consumers()
 
 
 if __name__ == "__main__":
