@@ -3,6 +3,8 @@ package apk
 import (
 	"testing"
 
+	"github.com/anchore/grype/grype/db"
+
 	grypeDB "github.com/anchore/grype/grype/db/v3"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/common"
@@ -50,7 +52,7 @@ func TestSecDBOnlyMatch(t *testing.T) {
 		},
 	}
 
-	provider := vulnerability.NewProviderFromStore(&store)
+	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
 	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
@@ -135,7 +137,7 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 		},
 	}
 
-	provider := vulnerability.NewProviderFromStore(&store)
+	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
 	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
@@ -221,7 +223,7 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 		},
 	}
 
-	provider := vulnerability.NewProviderFromStore(&store)
+	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
 	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
@@ -294,7 +296,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 		},
 	}
 
-	provider := vulnerability.NewProviderFromStore(&store)
+	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
 	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
@@ -371,7 +373,7 @@ func TestNvdMatchesWithSecDBFix(t *testing.T) {
 		},
 	}
 
-	provider := vulnerability.NewProviderFromStore(&store)
+	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
 	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
@@ -424,7 +426,7 @@ func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
 		},
 	}
 
-	provider := vulnerability.NewProviderFromStore(&store)
+	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
 	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
@@ -467,7 +469,7 @@ func TestDistroMatchBySourceIndirection(t *testing.T) {
 		},
 	}
 
-	provider := vulnerability.NewProviderFromStore(&store)
+	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
 	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
@@ -537,7 +539,7 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 		},
 	}
 
-	provider := vulnerability.NewProviderFromStore(&store)
+	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
 	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")

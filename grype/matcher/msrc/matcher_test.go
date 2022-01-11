@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/anchore/grype/grype/db"
+
 	grypeDB "github.com/anchore/grype/grype/db/v3"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/distro"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/stretchr/testify/assert"
@@ -59,7 +60,7 @@ func TestMatches(t *testing.T) {
 		},
 	}
 
-	provider := vulnerability.NewProviderFromStore(&store)
+	provider := db.NewVulnerabilityProvider(&store)
 
 	tests := []struct {
 		name            string

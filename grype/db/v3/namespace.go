@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	grypePkg "github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/syft/syft/distro"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -91,17 +91,17 @@ func NamespacePackageNamersForLanguage(l syftPkg.Language) map[string]NamerByPac
 	return namespaces
 }
 
-type NamerByPackage func(p grypePkg.Package) []string
+type NamerByPackage func(p pkg.Package) []string
 
-func defaultPackageNamer(p grypePkg.Package) []string {
+func defaultPackageNamer(p pkg.Package) []string {
 	return []string{p.Name}
 }
 
-func githubJavaPackageNamer(p grypePkg.Package) []string {
+func githubJavaPackageNamer(p pkg.Package) []string {
 	names := internal.NewStringSet()
 
 	// all github advisories are stored by "<group-name>:<artifact-name>"
-	if metadata, ok := p.Metadata.(grypePkg.JavaMetadata); ok {
+	if metadata, ok := p.Metadata.(pkg.JavaMetadata); ok {
 		if metadata.PomGroupID != "" {
 			if metadata.PomArtifactID != "" {
 				names.Add(fmt.Sprintf("%s:%s", metadata.PomGroupID, metadata.PomArtifactID))

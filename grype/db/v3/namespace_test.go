@@ -4,11 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	grypePkg "github.com/anchore/grype/grype/pkg"
-
-	syftPkg "github.com/anchore/syft/syft/pkg"
-
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/syft/syft/distro"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/scylladb/go-set/strset"
 	"github.com/stretchr/testify/assert"
 )
@@ -208,14 +206,14 @@ func Test_NamespacesIndexedByCPE(t *testing.T) {
 func Test_NamespacesForLanguage(t *testing.T) {
 	tests := []struct {
 		language           syftPkg.Language
-		namerInput         *grypePkg.Package
+		namerInput         *pkg.Package
 		expectedNamespaces []string
 		expectedNames      []string
 	}{
 		// default languages
 		{
 			language: syftPkg.Rust,
-			namerInput: &grypePkg.Package{
+			namerInput: &pkg.Package{
 				Name: "a-name",
 			},
 			expectedNamespaces: []string{
@@ -227,7 +225,7 @@ func Test_NamespacesForLanguage(t *testing.T) {
 		},
 		{
 			language: syftPkg.Go,
-			namerInput: &grypePkg.Package{
+			namerInput: &pkg.Package{
 				Name: "a-name",
 			},
 			expectedNamespaces: []string{
@@ -240,7 +238,7 @@ func Test_NamespacesForLanguage(t *testing.T) {
 		// supported languages
 		{
 			language: syftPkg.Ruby,
-			namerInput: &grypePkg.Package{
+			namerInput: &pkg.Package{
 				Name: "a-name",
 			},
 			expectedNamespaces: []string{
@@ -252,7 +250,7 @@ func Test_NamespacesForLanguage(t *testing.T) {
 		},
 		{
 			language: syftPkg.JavaScript,
-			namerInput: &grypePkg.Package{
+			namerInput: &pkg.Package{
 				Name: "a-name",
 			},
 			expectedNamespaces: []string{
@@ -264,7 +262,7 @@ func Test_NamespacesForLanguage(t *testing.T) {
 		},
 		{
 			language: syftPkg.Python,
-			namerInput: &grypePkg.Package{
+			namerInput: &pkg.Package{
 				Name: "a-name",
 			},
 			expectedNamespaces: []string{
@@ -276,9 +274,9 @@ func Test_NamespacesForLanguage(t *testing.T) {
 		},
 		{
 			language: syftPkg.Java,
-			namerInput: &grypePkg.Package{
+			namerInput: &pkg.Package{
 				Name: "a-name",
-				Metadata: grypePkg.JavaMetadata{
+				Metadata: pkg.JavaMetadata{
 					VirtualPath:   "v-path",
 					PomArtifactID: "art-id",
 					PomGroupID:    "g-id",
@@ -325,14 +323,14 @@ func Test_NamespacesForLanguage(t *testing.T) {
 func Test_githubJavaPackageNamer(t *testing.T) {
 	tests := []struct {
 		name       string
-		namerInput grypePkg.Package
+		namerInput pkg.Package
 		expected   []string
 	}{
 		{
 			name: "both artifact and manifest",
-			namerInput: grypePkg.Package{
+			namerInput: pkg.Package{
 				Name: "a-name",
-				Metadata: grypePkg.JavaMetadata{
+				Metadata: pkg.JavaMetadata{
 					VirtualPath:   "v-path",
 					PomArtifactID: "art-id",
 					PomGroupID:    "g-id",
@@ -346,9 +344,9 @@ func Test_githubJavaPackageNamer(t *testing.T) {
 		},
 		{
 			name: "no group id",
-			namerInput: grypePkg.Package{
+			namerInput: pkg.Package{
 				Name: "a-name",
-				Metadata: grypePkg.JavaMetadata{
+				Metadata: pkg.JavaMetadata{
 					VirtualPath:   "v-path",
 					PomArtifactID: "art-id",
 					ManifestName:  "man-name",
@@ -358,9 +356,9 @@ func Test_githubJavaPackageNamer(t *testing.T) {
 		},
 		{
 			name: "only manifest",
-			namerInput: grypePkg.Package{
+			namerInput: pkg.Package{
 				Name: "a-name",
-				Metadata: grypePkg.JavaMetadata{
+				Metadata: pkg.JavaMetadata{
 					VirtualPath:  "v-path",
 					PomGroupID:   "g-id",
 					ManifestName: "man-name",
@@ -372,9 +370,9 @@ func Test_githubJavaPackageNamer(t *testing.T) {
 		},
 		{
 			name: "only artifact",
-			namerInput: grypePkg.Package{
+			namerInput: pkg.Package{
 				Name: "a-name",
-				Metadata: grypePkg.JavaMetadata{
+				Metadata: pkg.JavaMetadata{
 					VirtualPath:   "v-path",
 					PomArtifactID: "art-id",
 					PomGroupID:    "g-id",
@@ -386,9 +384,9 @@ func Test_githubJavaPackageNamer(t *testing.T) {
 		},
 		{
 			name: "no artifact or manifest",
-			namerInput: grypePkg.Package{
+			namerInput: pkg.Package{
 				Name: "a-name",
-				Metadata: grypePkg.JavaMetadata{
+				Metadata: pkg.JavaMetadata{
 					VirtualPath: "v-path",
 					PomGroupID:  "g-id",
 				},
