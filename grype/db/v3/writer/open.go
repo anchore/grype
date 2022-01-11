@@ -16,24 +16,24 @@ var connectStatements = []string{
 
 // config defines the information needed to connect and create a sqlite3 database
 type config struct {
-	DbPath    string
-	Overwrite bool
+	dbPath    string
+	overwrite bool
 }
 
 // ConnectionString creates a connection string for sqlite3
 func (o config) ConnectionString() (string, error) {
-	if o.DbPath == "" {
+	if o.dbPath == "" {
 		return "", fmt.Errorf("no db filepath given")
 	}
-	return fmt.Sprintf("file:%s?cache=shared", o.DbPath), nil
+	return fmt.Sprintf("file:%s?cache=shared", o.dbPath), nil
 }
 
 // open a new connection to a sqlite3 database file
 func open(cfg config) (*gorm.DB, error) {
-	if cfg.Overwrite {
+	if cfg.overwrite {
 		// the file may or may not exist, so we ignore the error explicitly
-		if _, err := os.Stat(cfg.DbPath); !os.IsNotExist(err) {
-			rmErr := os.Remove(cfg.DbPath)
+		if _, err := os.Stat(cfg.dbPath); !os.IsNotExist(err) {
+			rmErr := os.Remove(cfg.dbPath)
 			if rmErr != nil {
 				return nil, rmErr
 			}

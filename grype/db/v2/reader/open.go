@@ -8,18 +8,18 @@ import (
 
 // Options defines the information needed to connect and create a sqlite3 database
 type config struct {
-	DbPath    string
-	Overwrite bool
+	dbPath    string
+	overwrite bool
 }
 
 // Open a new connection to the sqlite3 database file
 func Open(cfg *config) (*sqlittle.DB, error) {
-	if cfg.Overwrite {
+	if cfg.overwrite {
 		// the file may or may not exist, so we ignore the error explicitly
-		_ = os.Remove(cfg.DbPath)
+		_ = os.Remove(cfg.dbPath)
 	}
 
-	db, err := sqlittle.Open(cfg.DbPath)
+	db, err := sqlittle.Open(cfg.dbPath)
 	if err != nil {
 		return nil, err
 	}

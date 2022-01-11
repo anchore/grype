@@ -19,8 +19,8 @@ type CleanupFn func() error
 // New creates a new instance of the store.
 func New(dbFilePath string) (*Reader, CleanupFn, error) {
 	d, err := Open(&config{
-		DbPath:    dbFilePath,
-		Overwrite: false,
+		dbPath:    dbFilePath,
+		overwrite: false,
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to create a new connection to sqlite3 db: %s", err)

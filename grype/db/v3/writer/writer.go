@@ -17,7 +17,7 @@ import (
 
 // Writer holds an instance of the database connection
 type Writer struct {
-	vulnDb *gorm.DB
+	db *gorm.DB
 }
 
 // CleanupFn is a callback for closing a DB connection.
@@ -25,9 +25,9 @@ type CleanupFn func() error
 
 // New creates a new instance of the store.
 func New(dbFilePath string, overwrite bool) (*Writer, CleanupFn, error) {
-	vulnDbObj, err := open(config{
-		DbPath:    dbFilePath,
-		Overwrite: overwrite,
+	db, err := open(config{
+		dbPath:    dbFilePath,
+		overwrite: overwrite,
 	})
 	if err != nil {
 		return nil, nil, err
@@ -36,19 +36,19 @@ func New(dbFilePath string, overwrite bool) (*Writer, CleanupFn, error) {
 	// TODO: automigrate could write to the database,
 	//  we should be validating the database is the correct database based on the version in the ID table before
 	//  automigrating
-	vulnDbObj.AutoMigrate(&model.IDModel{})
-	vulnDbObj.AutoMigrate(&model.VulnerabilityModel{})
-	vulnDbObj.AutoMigrate(&model.VulnerabilityMetadataModel{})
+	db.AutoMigrate(&model.IDModel{})
+	db.AutoMigrate(&model.VulnerabilityModel{})
+	db.AutoMigrate(&model.VulnerabilityMetadataModel{})
 
 	return &Writer{
-		vulnDb: vulnDbObj,
-	}, vulnDbObj.Close, nil
+		db: db,
+	}, db.Close, nil
 }
 
 // GetID fetches the metadata about the databases schema version and build time.
 func (s *Writer) GetID() (*v3.ID, error) {
 	var models []model.IDModel
-	result := s.vulnDb.Find(&models)
+	result := s.db.Find(&models)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -72,10 +72,10 @@ func (s *Writer) SetID(id v3.ID) error {
 	var ids []model.IDModel
 
 	// replace the existing ID with the given one
-	s.vulnDb.Find(&ids).Delete(&ids)
+	s.db.Find(&ids).Delete(&ids)
 
 	m := model.NewIDModel(id)
-	result := s.vulnDb.Create(&m)
+	result := s.db.Create(&m)
 
 	if result.RowsAffected != 1 {
 		return fmt.Errorf("unable to add id (%d rows affected)", result.RowsAffected)
@@ -88,7 +88,7 @@ func (s *Writer) SetID(id v3.ID) error {
 func (s *Writer) GetVulnerability(namespace, packageName string) ([]v3.Vulnerability, error) {
 	var models []model.VulnerabilityModel
 
-	result := s.vulnDb.Where("namespace = ? AND package_name = ?", namespace, packageName).Find(&models)
+	result := s.db.Where("namespace = ? AND package_name = ?", namespace, packageName).Find(&models)
 
 	var vulnerabilities = make([]v3.Vulnerability, len(models))
 	for idx, m := range models {
@@ -107,7 +107,7 @@ func (s *Writer) AddVulnerability(vulnerabilities ...v3.Vulnerability) error {
 	for _, vulnerability := range vulnerabilities {
 		m := model.NewVulnerabilityModel(vulnerability)
 
-		result := s.vulnDb.Create(&m)
+		result := s.db.Create(&m)
 		if result.Error != nil {
 			return result.Error
 		}
@@ -123,7 +123,7 @@ func (s *Writer) AddVulnerability(vulnerabilities ...v3.Vulnerability) error {
 func (s *Writer) GetVulnerabilityMetadata(id, namespace string) (*v3.VulnerabilityMetadata, error) {
 	var models []model.VulnerabilityMetadataModel
 
-	result := s.vulnDb.Where(&model.VulnerabilityMetadataModel{ID: id, Namespace: namespace}).Find(&models)
+	result := s.db.Where(&model.VulnerabilityMetadataModel{ID: id, Namespace: namespace}).Find(&models)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -143,7 +143,7 @@ func (s *Writer) GetVulnerabilityMetadata(id, namespace string) (*v3.Vulnerabili
 	return nil, nil
 }
 
-// nolint:gocognit,funlen
+// nolint:gocognit
 // AddVulnerabilityMetadata stores one or more vulnerability metadata models into the sqlite DB.
 func (s *Writer) AddVulnerabilityMetadata(metadata ...v3.VulnerabilityMetadata) error {
 	for _, m := range metadata {
@@ -186,7 +186,7 @@ func (s *Writer) AddVulnerabilityMetadata(metadata ...v3.VulnerabilityMetadata) 
 			sort.Strings(existing.URLs)
 
 			newModel := model.NewVulnerabilityMetadataModel(*existing)
-			result := s.vulnDb.Save(&newModel)
+			result := s.db.Save(&newModel)
 
 			if result.RowsAffected != 1 {
 				return fmt.Errorf("unable to merge vulnerability metadata (%d rows affected)", result.RowsAffected)
@@ -198,7 +198,7 @@ func (s *Writer) AddVulnerabilityMetadata(metadata ...v3.VulnerabilityMetadata) 
 		} else {
 			// this is a new entry
 			newModel := model.NewVulnerabilityMetadataModel(m)
-			result := s.vulnDb.Create(&newModel)
+			result := s.db.Create(&newModel)
 			if result.Error != nil {
 				return result.Error
 			}

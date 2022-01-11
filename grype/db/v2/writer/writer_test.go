@@ -148,7 +148,7 @@ func TestStore_GetVulnerability_SetVulnerability(t *testing.T) {
 	}
 
 	var allEntries []model.VulnerabilityModel
-	store.vulnDb.Find(&allEntries)
+	store.db.Find(&allEntries)
 	if len(allEntries) != len(total) {
 		t.Fatalf("unexpected number of entries: %d", len(allEntries))
 	}
@@ -239,7 +239,7 @@ func TestStore_GetVulnerabilityMetadata_SetVulnerabilityMetadata(t *testing.T) {
 	}
 
 	var allEntries []model.VulnerabilityMetadataModel
-	store.vulnDb.Find(&allEntries)
+	store.db.Find(&allEntries)
 	if len(allEntries) != len(total) {
 		t.Fatalf("unexpected number of entries: %d", len(allEntries))
 	}
@@ -521,7 +521,7 @@ func TestStore_MergeVulnerabilityMetadata(t *testing.T) {
 
 			// ensure there is exactly one entry
 			var allEntries []model.VulnerabilityMetadataModel
-			store.vulnDb.Find(&allEntries)
+			store.db.Find(&allEntries)
 			if len(allEntries) != 1 {
 				t.Fatalf("unexpected number of entries: %d", len(allEntries))
 			}
