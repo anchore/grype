@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	grypeDB "github.com/anchore/grype-db/pkg/db/v3"
+	grypeDB "github.com/anchore/grype/grype/db/v3"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/distro"

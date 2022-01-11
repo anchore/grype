@@ -6,10 +6,13 @@ import (
 	"github.com/spf13/afero"
 )
 
-func Exists(fs afero.Fs, path string) bool {
+func Exists(fs afero.Fs, path string) (bool, error) {
 	info, err := fs.Stat(path)
 	if os.IsNotExist(err) {
-		return false
+		return false, nil
+	} else if err != nil {
+		return false, err
 	}
-	return !info.IsDir()
+
+	return !info.IsDir(), nil
 }
