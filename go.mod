@@ -9,7 +9,7 @@ require (
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/stereoscope v0.0.0-20220110181730-c91cf94a3718
-	github.com/anchore/syft v0.35.1
+	github.com/anchore/syft v0.35.2-0.20220112171342-706f2916791a
 	github.com/aws/aws-sdk-go v1.31.6 // indirect
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/docker/docker v20.10.11+incompatible
@@ -50,5 +50,3 @@ require (
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	gopkg.in/yaml.v2 v2.4.0
 )
-
-replace github.com/anchore/syft => ../syft
