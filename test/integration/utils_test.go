@@ -3,7 +3,6 @@ package integration
 import (
 	"errors"
 	"fmt"
-	"github.com/anchore/syft/syft/pkg/cataloger"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,12 +10,12 @@ import (
 	"testing"
 
 	"github.com/anchore/grype/grype/match"
-	"github.com/scylladb/go-set/strset"
-
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/format"
+	"github.com/anchore/syft/syft/pkg/cataloger"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
+	"github.com/scylladb/go-set/strset"
 )
 
 const cacheDirRelativePath string = "./test-fixtures/cache"
@@ -76,8 +75,8 @@ func getSyftSBOM(t testing.TB, image string) string {
 
 	sbom := sbom.SBOM{
 		Artifacts: sbom.Artifacts{
-			PackageCatalog: catalog,
-			Distro:         distro,
+			PackageCatalog:    catalog,
+			LinuxDistribution: distro,
 		},
 		Source: src.Metadata,
 	}

@@ -8,7 +8,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/stereoscope/pkg/image"
-	"github.com/anchore/syft/syft/distro"
+	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	syftSource "github.com/anchore/syft/syft/source"
 )
@@ -120,13 +120,14 @@ func generateContext(t *testing.T) pkg.Context {
 		t.Fatalf("failed to create scope: %+v", err)
 	}
 
-	d, err := distro.NewDistro(distro.CentOS, "8.0", "rhel")
-	if err != nil {
-		t.Fatalf("could not make distro: %+v", err)
-	}
-
 	return pkg.Context{
 		Source: &src.Metadata,
-		Distro: &d,
+		Distro: &linux.Release{
+			Name: "centos",
+			IDLike: []string{
+				"rhel",
+			},
+			Version: "8.0",
+		},
 	}
 }

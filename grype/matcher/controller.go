@@ -1,6 +1,7 @@
 package matcher
 
 import (
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/apk"
@@ -16,7 +17,7 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
-	"github.com/anchore/syft/syft/distro"
+	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
@@ -79,8 +80,17 @@ func (c *controller) trackMatcher() (*progress.Manual, *progress.Manual) {
 	return &packagesProcessed, &vulnerabilitiesDiscovered
 }
 
-func (c *controller) findMatches(provider vulnerability.Provider, d *distro.Distro, packages ...pkg.Package) match.Matches {
+func (c *controller) findMatches(provider vulnerability.Provider, release *linux.Release, packages ...pkg.Package) match.Matches {
+	var err error
 	res := match.NewMatches()
+
+	var d *distro.Distro
+	if release != nil {
+		d, err = distro.NewFromRelease(*release)
+		if err != nil {
+			log.Warnf("unable to determine linux distribution: %+v", err)
+		}
+	}
 
 	packagesProcessed, vulnerabilitiesDiscovered := c.trackMatcher()
 
@@ -96,7 +106,7 @@ func (c *controller) findMatches(provider vulnerability.Provider, d *distro.Dist
 		for _, m := range matchers {
 			matches, err := m.Match(provider, d, p)
 			if err != nil {
-				log.Errorf("matcher failed for pkg=%s: %+v", p, err)
+				log.Warnf("matcher failed for pkg=%s: %+v", p, err)
 			} else {
 				logMatches(p, matches)
 				res.Add(p, matches...)
@@ -113,7 +123,7 @@ func (c *controller) findMatches(provider vulnerability.Provider, d *distro.Dist
 	return res
 }
 
-func FindMatches(provider vulnerability.Provider, d *distro.Distro, packages ...pkg.Package) match.Matches {
+func FindMatches(provider vulnerability.Provider, d *linux.Release, packages ...pkg.Package) match.Matches {
 	return controllerInstance.findMatches(provider, d, packages...)
 }
 

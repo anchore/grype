@@ -10,7 +10,7 @@ import (
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/stereoscope/pkg/image"
-	"github.com/anchore/syft/syft/distro"
+	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/pkg/cataloger"
 	"github.com/anchore/syft/syft/source"
 	"github.com/wagoodman/go-partybus"
@@ -31,7 +31,7 @@ func FindVulnerabilities(provider vulnerability.Provider, userImageStr string, s
 	return FindVulnerabilitiesForPackage(provider, context.Distro, packages...), context, packages, nil
 }
 
-func FindVulnerabilitiesForPackage(provider vulnerability.Provider, d *distro.Distro, packages ...pkg.Package) match.Matches {
+func FindVulnerabilitiesForPackage(provider vulnerability.Provider, d *linux.Release, packages ...pkg.Package) match.Matches {
 	return matcher.FindMatches(provider, d, packages...)
 }
 

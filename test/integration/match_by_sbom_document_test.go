@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/anchore/grype/grype/db"
 
 	"github.com/anchore/grype/grype/matcher/common"
@@ -24,7 +26,7 @@ func TestMatchBySBOMDocument(t *testing.T) {
 		expectedDetails []match.Details
 	}{
 		{
-			name:        "single package",
+			name:        "single KB package",
 			fixture:     "test-fixtures/sbom/syft-sbom-with-kb-packages.json",
 			expectedIDs: []string{"CVE-2016-3333"},
 			expectedDetails: []match.Details{
@@ -95,10 +97,8 @@ func TestMatchBySBOMDocument(t *testing.T) {
 				details = append(details, m.MatchDetails...)
 				ids.Add(m.Vulnerability.ID)
 			}
-			if !assert.Len(t, details, len(test.expectedDetails)) {
-				t.Fatalf("mismatched lengths, will not compare")
-			}
 
+			require.Len(t, details, len(test.expectedDetails))
 			for i := range test.expectedDetails {
 				for _, d := range deep.Equal(test.expectedDetails[i], details[i]) {
 					t.Error(d)

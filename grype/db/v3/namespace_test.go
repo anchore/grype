@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/syft/syft/distro"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/scylladb/go-set/strset"
 	"github.com/stretchr/testify/assert"
@@ -189,7 +189,7 @@ func Test_NamespaceForDistro(t *testing.T) {
 	for _, test := range tests {
 		name := fmt.Sprintf("%s:%s", test.dist, test.version)
 		t.Run(name, func(t *testing.T) {
-			d, err := distro.NewDistro(test.dist, test.version, "")
+			d, err := distro.New(test.dist, test.version, "")
 			assert.NoError(t, err)
 			observedDistros.Add(d.Type.String())
 			assert.Equal(t, NamespaceForDistro(d), test.expected)
