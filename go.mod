@@ -52,5 +52,3 @@ require (
 )
 
 replace github.com/anchore/syft => ../syft
-
-replace github.com/anchore/grype-db => ../grype-db

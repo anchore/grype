@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/syft/syft/distro"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/scylladb/go-set/strset"
 	"github.com/stretchr/testify/assert"
