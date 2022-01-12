@@ -3,6 +3,8 @@ package integration
 import (
 	"testing"
 
+	"github.com/anchore/grype/grype/db"
+
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -364,7 +366,7 @@ func TestMatchByImage(t *testing.T) {
 			}
 
 			actualResults := grype.FindVulnerabilitiesForPackage(
-				vulnerability.NewProviderFromStore(theStore),
+				db.NewVulnerabilityProvider(theStore),
 				theDistro,
 				pkg.FromCatalog(theCatalog)...,
 			)

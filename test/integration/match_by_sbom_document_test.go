@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/anchore/grype/grype/db"
+
 	"github.com/anchore/grype/grype/matcher/common"
 
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/source"
 	"github.com/go-test/deep"
 	"github.com/scylladb/go-set/strset"
@@ -85,7 +86,7 @@ func TestMatchBySBOMDocument(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			provider := vulnerability.NewProviderFromStore(newMockDbStore())
+			provider := db.NewVulnerabilityProvider(newMockDbStore())
 			matches, _, _, err := grype.FindVulnerabilities(provider, fmt.Sprintf("sbom:%s", test.fixture), source.SquashedScope, nil)
 			assert.NoError(t, err)
 			details := make([]match.Details, 0)

@@ -15,7 +15,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anchore/grype-db/pkg/curation"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/file"
 	"github.com/gookit/color"
@@ -24,13 +23,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/wagoodman/go-progress"
 )
-
-func mustUrl(u *url.URL, err error) *url.URL {
-	if err != nil {
-		panic(err)
-	}
-	return u
-}
 
 type testGetter struct {
 	file  map[string]string
@@ -181,13 +173,13 @@ func generateCertFixture(t *testing.T) string {
 func TestCuratorDownload(t *testing.T) {
 	tests := []struct {
 		name        string
-		entry       *curation.ListingEntry
+		entry       *ListingEntry
 		expectedURL string
 		err         bool
 	}{
 		{
 			name: "download populates returned tempdir",
-			entry: &curation.ListingEntry{
+			entry: &ListingEntry{
 				Built:    time.Date(2020, 06, 13, 17, 13, 13, 0, time.UTC),
 				URL:      mustUrl(url.Parse("http://a-url/payload.tar.gz")),
 				Checksum: "sha256:deadbeefcafe",

@@ -3,7 +3,8 @@ package cmd
 import (
 	"testing"
 
-	grypeDB "github.com/anchore/grype-db/pkg/db/v3"
+	"github.com/anchore/grype/grype/db"
+	grypeDB "github.com/anchore/grype/grype/db/v3"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -83,7 +84,7 @@ func TestAboveAllowableSeverity(t *testing.T) {
 		},
 	}
 
-	metadataProvider := vulnerability.NewMetadataStoreProvider(newMockStore())
+	metadataProvider := db.NewVulnerabilityMetadataProvider(newMockStore())
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

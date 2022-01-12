@@ -28,7 +28,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/wagoodman/go-partybus"
 
-	grypeDb "github.com/anchore/grype-db/pkg/db/v3"
+	grypeDb "github.com/anchore/grype/grype/db/v3"
 )
 
 var persistentOpts = config.CliOnlyOptions{}

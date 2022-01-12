@@ -9,9 +9,8 @@ import (
 	"path"
 	"strconv"
 
-	"github.com/anchore/grype-db/pkg/curation"
-	grypeDB "github.com/anchore/grype-db/pkg/db/v3"
-	"github.com/anchore/grype-db/pkg/db/v3/reader"
+	grypeDB "github.com/anchore/grype/grype/db/v3"
+	"github.com/anchore/grype/grype/db/v3/reader"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
@@ -80,7 +79,7 @@ func (c *Curator) GetStore() (*reader.Reader, error) {
 }
 
 func (c *Curator) Status() Status {
-	metadata, err := curation.NewMetadataFromDir(c.fs, c.dbDir)
+	metadata, err := NewMetadataFromDir(c.fs, c.dbDir)
 	if err != nil {
 		return Status{
 			Err: fmt.Errorf("failed to parse database metadata (%s): %w", c.dbDir, err),
@@ -155,7 +154,7 @@ func (c *Curator) Update() (bool, error) {
 
 // IsUpdateAvailable indicates if there is a new update available as a boolean, and returns the latest listing information
 // available for this schema.
-func (c *Curator) IsUpdateAvailable() (bool, *curation.ListingEntry, error) {
+func (c *Curator) IsUpdateAvailable() (bool, *ListingEntry, error) {
 	log.Debugf("checking for available database updates")
 
 	listing, err := c.ListingFromURL()
@@ -170,7 +169,7 @@ func (c *Curator) IsUpdateAvailable() (bool, *curation.ListingEntry, error) {
 	log.Debugf("found database update candidate: %s", updateEntry)
 
 	// compare created data to current db date
-	current, err := curation.NewMetadataFromDir(c.fs, c.dbDir)
+	current, err := NewMetadataFromDir(c.fs, c.dbDir)
 	if err != nil {
 		return false, nil, fmt.Errorf("current metadata corrupt: %w", err)
 	}
@@ -185,7 +184,7 @@ func (c *Curator) IsUpdateAvailable() (bool, *curation.ListingEntry, error) {
 }
 
 // UpdateTo updates the existing DB with the specific other version provided from a listing entry.
-func (c *Curator) UpdateTo(listing *curation.ListingEntry, downloadProgress, importProgress *progress.Manual, stage *progress.Stage) error {
+func (c *Curator) UpdateTo(listing *ListingEntry, downloadProgress, importProgress *progress.Manual, stage *progress.Stage) error {
 	stage.Current = "downloading"
 	// note: the temp directory is persisted upon download/validation/activation failure to allow for investigation
 	tempDir, err := c.download(listing, downloadProgress)
@@ -253,7 +252,7 @@ func (c *Curator) ImportFrom(dbArchivePath string) error {
 	return c.fs.RemoveAll(tempDir)
 }
 
-func (c *Curator) download(listing *curation.ListingEntry, downloadProgress *progress.Manual) (string, error) {
+func (c *Curator) download(listing *ListingEntry, downloadProgress *progress.Manual) (string, error) {
 	tempDir, err := os.MkdirTemp("", "grype-scratch")
 	if err != nil {
 		return "", fmt.Errorf("unable to create db temp dir: %w", err)
@@ -279,7 +278,7 @@ func (c *Curator) download(listing *curation.ListingEntry, downloadProgress *pro
 
 func (c *Curator) validate(dbDirPath string) error {
 	// check that the disk checksum still matches the db payload
-	metadata, err := curation.NewMetadataFromDir(c.fs, dbDirPath)
+	metadata, err := NewMetadataFromDir(c.fs, dbDirPath)
 	if err != nil {
 		return fmt.Errorf("failed to parse database metadata (%s): %w", dbDirPath, err)
 	}
@@ -329,10 +328,10 @@ func (c *Curator) activate(dbDirPath string) error {
 }
 
 // ListingFromURL loads a Listing from a URL.
-func (c Curator) ListingFromURL() (curation.Listing, error) {
+func (c Curator) ListingFromURL() (Listing, error) {
 	tempFile, err := afero.TempFile(c.fs, "", "grype-db-listing")
 	if err != nil {
-		return curation.Listing{}, fmt.Errorf("unable to create listing temp file: %w", err)
+		return Listing{}, fmt.Errorf("unable to create listing temp file: %w", err)
 	}
 	defer func() {
 		err := c.fs.RemoveAll(tempFile.Name())
@@ -344,13 +343,13 @@ func (c Curator) ListingFromURL() (curation.Listing, error) {
 	// download the listing file
 	err = c.downloader.GetFile(tempFile.Name(), c.listingURL)
 	if err != nil {
-		return curation.Listing{}, fmt.Errorf("unable to download listing: %w", err)
+		return Listing{}, fmt.Errorf("unable to download listing: %w", err)
 	}
 
 	// parse the listing file
-	listing, err := curation.NewListingFromFile(c.fs, tempFile.Name())
+	listing, err := NewListingFromFile(c.fs, tempFile.Name())
 	if err != nil {
-		return curation.Listing{}, err
+		return Listing{}, err
 	}
 	return listing, nil
 }
