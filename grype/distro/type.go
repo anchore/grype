@@ -1,6 +1,8 @@
 package distro
 
-import "github.com/anchore/syft/syft/linux"
+import (
+	"github.com/anchore/syft/syft/linux"
+)
 
 // Type represents the different Linux distribution options
 type Type string
@@ -81,6 +83,12 @@ func TypeFromRelease(release linux.Release) Type {
 		if t, ok := IDMapping[l]; ok {
 			return t
 		}
+	}
+
+	// first try the release name as a fallback
+	t, ok = IDMapping[release.Name]
+	if ok {
+		return t
 	}
 
 	return ""

@@ -36,7 +36,7 @@ func TestMatcherRpmdb(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.NewDistro(distro.CentOS, "8", "")
+				d, err := distro.New(distro.CentOS, "8", "")
 				if err != nil {
 					t.Fatal("could not create distro: ", err)
 				}
@@ -63,7 +63,7 @@ func TestMatcherRpmdb(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.NewDistro(distro.CentOS, "8", "")
+				d, err := distro.New(distro.CentOS, "8", "")
 				if err != nil {
 					t.Fatal("could not create distro: ", err)
 				}
@@ -89,7 +89,7 @@ func TestMatcherRpmdb(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.NewDistro(distro.CentOS, "8", "")
+				d, err := distro.New(distro.CentOS, "8", "")
 				if err != nil {
 					t.Fatal("could not create distro: ", err)
 				}
@@ -117,7 +117,7 @@ func TestMatcherRpmdb(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.NewDistro(distro.CentOS, "8", "")
+				d, err := distro.New(distro.CentOS, "8", "")
 				if err != nil {
 					t.Fatal("could not create distro: ", err)
 				}
@@ -142,7 +142,7 @@ func TestMatcherRpmdb(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.NewDistro(distro.CentOS, "8", "")
+				d, err := distro.New(distro.CentOS, "8", "")
 				if err != nil {
 					t.Fatal("could not create distro: ", err)
 				}
@@ -165,7 +165,7 @@ func TestMatcherRpmdb(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.NewDistro(distro.CentOS, "8", "")
+				d, err := distro.New(distro.CentOS, "8", "")
 				if err != nil {
 					t.Fatal("could not create distro: ", err)
 				}
@@ -188,7 +188,7 @@ func TestMatcherRpmdb(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.NewDistro(distro.CentOS, "8", "")
+				d, err := distro.New(distro.CentOS, "8", "")
 				if err != nil {
 					t.Fatal("could not create distro: ", err)
 				}
@@ -211,7 +211,7 @@ func TestMatcherRpmdb(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.NewDistro(distro.CentOS, "8", "")
+				d, err := distro.New(distro.CentOS, "8", "")
 				if err != nil {
 					t.Fatal("could not create distro: ", err)
 				}

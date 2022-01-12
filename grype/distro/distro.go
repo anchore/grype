@@ -16,6 +16,27 @@ type Distro struct {
 	IDLike     []string
 }
 
+// New creates a new Distro object populated with the given values.
+func New(t Type, version string, idLikes ...string) (*Distro, error) {
+	var verObj *hashiVer.Version
+	var err error
+
+	if version != "" {
+		verObj, err = hashiVer.NewVersion(version)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse version: %w", err)
+		}
+	}
+
+	return &Distro{
+		Type:       t,
+		Version:    verObj,
+		RawVersion: version,
+		IDLike:     idLikes,
+	}, nil
+}
+
+// NewFromRelease creates a new Distro object derived from a syft linux.Release object.
 func NewFromRelease(release linux.Release) (*Distro, error) {
 	t := TypeFromRelease(release)
 	if t == "" {
@@ -35,27 +56,7 @@ func NewFromRelease(release linux.Release) (*Distro, error) {
 		}
 	}
 
-	return NewDistro(t, selectedVersion, release.IDLike...)
-}
-
-// NewDistro creates a new Distro object populated with the given values.
-func NewDistro(t Type, version string, idLikes ...string) (*Distro, error) {
-	var verObj *hashiVer.Version
-	var err error
-
-	if version != "" {
-		verObj, err = hashiVer.NewVersion(version)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse version: %w", err)
-		}
-	}
-
-	return &Distro{
-		Type:       t,
-		Version:    verObj,
-		RawVersion: version,
-		IDLike:     idLikes,
-	}, nil
+	return New(t, selectedVersion, release.IDLike...)
 }
 
 func (d Distro) Name() string {

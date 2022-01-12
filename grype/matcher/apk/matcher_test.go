@@ -54,7 +54,7 @@ func TestSecDBOnlyMatch(t *testing.T) {
 	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
-	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
+	d, err := distro.New(distro.Alpine, "3.12.0", "")
 	if err != nil {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
@@ -139,7 +139,7 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
-	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
+	d, err := distro.New(distro.Alpine, "3.12.0", "")
 	if err != nil {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
@@ -225,7 +225,7 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
-	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
+	d, err := distro.New(distro.Alpine, "3.12.0", "")
 	if err != nil {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
@@ -298,7 +298,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
-	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
+	d, err := distro.New(distro.Alpine, "3.12.0", "")
 	if err != nil {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
@@ -375,7 +375,7 @@ func TestNvdMatchesWithSecDBFix(t *testing.T) {
 	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
-	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
+	d, err := distro.New(distro.Alpine, "3.12.0", "")
 	if err != nil {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
@@ -428,7 +428,7 @@ func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
 	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
-	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
+	d, err := distro.New(distro.Alpine, "3.12.0", "")
 	if err != nil {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
@@ -471,7 +471,7 @@ func TestDistroMatchBySourceIndirection(t *testing.T) {
 	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
-	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
+	d, err := distro.New(distro.Alpine, "3.12.0", "")
 	if err != nil {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
@@ -541,7 +541,7 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
-	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
+	d, err := distro.New(distro.Alpine, "3.12.0", "")
 	if err != nil {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}

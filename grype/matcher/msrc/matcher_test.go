@@ -25,7 +25,7 @@ func (s *mockStore) GetVulnerability(namespace, name string) ([]grypeDB.Vulnerab
 }
 
 func TestMatches(t *testing.T) {
-	d, err := distro.NewDistro(distro.Windows, "10816", "Windows Server 2016")
+	d, err := distro.New(distro.Windows, "10816", "Windows Server 2016")
 	assert.NoError(t, err)
 
 	store := mockStore{

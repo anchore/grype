@@ -32,6 +32,16 @@ func Test_NewDistroFromRelease(t *testing.T) {
 			expectedVersion:    "8.0.0",
 		},
 		{
+			name: "fallback to release name when release id is missing",
+			release: linux.Release{
+				Name:      "windows",
+				VersionID: "8",
+			},
+			expectedType:       Windows,
+			expectedRawVersion: "8",
+			expectedVersion:    "8.0.0",
+		},
+		{
 			name: "fallback to version when version-id missing",
 			release: linux.Release{
 				ID:      "centos",
