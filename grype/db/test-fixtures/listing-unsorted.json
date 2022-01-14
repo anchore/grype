@@ -1,0 +1,18 @@
+{
+  "available": {
+    "1": [
+      {
+        "built": "2020-06-12T12:12:12-04:00",
+        "version": 1,
+        "url": "http://localhost:5000/vulnerability-db_v1_2020-6-12.tar.gz",
+        "checksum": "sha256:e20c251202948df7f853ddc812f64826bdcd6a285c839a7c65939e68609dfc6e"
+      },
+      {
+        "built": "2020-06-13T13:13:13-04:00",
+        "version": 1,
+        "url": "http://localhost:5000/vulnerability-db_v1_2020-6-13.tar.gz",
+        "checksum": "sha256:dcd6a285c839a7c65939e20c251202912f64826be68609dfc6e48df7f853ddc8"
+      }
+    ]
+  }
+}

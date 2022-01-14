@@ -1,23 +1,25 @@
 package models
 
-import "github.com/anchore/syft/syft/distro"
+import (
+	"github.com/anchore/syft/syft/linux"
+)
 
 // distribution provides information about a detected Linux distribution.
 type distribution struct {
-	Name    string `json:"name"`    // Name of the Linux distribution
-	Version string `json:"version"` // Version of the Linux distribution (major or major.minor version)
-	IDLike  string `json:"idLike"`  // the ID_LIKE field found within the /etc/os-release file
+	Name    string   `json:"name"`    // Name of the Linux distribution
+	Version string   `json:"version"` // Version of the Linux distribution (major or major.minor version)
+	IDLike  []string `json:"idLike"`  // the ID_LIKE field found within the /etc/os-release file
 }
 
 // newDistribution creates a struct with the Linux distribution to be represented in JSON.
-func newDistribution(d *distro.Distro) distribution {
+func newDistribution(d *linux.Release) distribution {
 	if d == nil {
 		return distribution{}
 	}
 
 	return distribution{
-		Name:    d.Name(),
-		Version: d.FullVersion(),
+		Name:    d.Name,
+		Version: d.Version,
 		IDLike:  d.IDLike,
 	}
 }

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	grypeDB "github.com/anchore/grype-db/pkg/db/v3"
+	"github.com/anchore/grype/grype/db"
+	grypeDB "github.com/anchore/grype/grype/db/v3"
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/syft/syft/distro"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/stretchr/testify/assert"
 )
@@ -25,7 +25,7 @@ func (s *mockStore) GetVulnerability(namespace, name string) ([]grypeDB.Vulnerab
 }
 
 func TestMatches(t *testing.T) {
-	d, err := distro.NewDistro(distro.Windows, "10816", "Windows Server 2016")
+	d, err := distro.New(distro.Windows, "10816", "Windows Server 2016")
 	assert.NoError(t, err)
 
 	store := mockStore{
@@ -59,7 +59,7 @@ func TestMatches(t *testing.T) {
 		},
 	}
 
-	provider := vulnerability.NewProviderFromStore(&store)
+	provider := db.NewVulnerabilityProvider(&store)
 
 	tests := []struct {
 		name            string
@@ -107,7 +107,7 @@ func TestMatches(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			m := Matcher{}
-			matches, err := m.Match(provider, &d, test.pkg)
+			matches, err := m.Match(provider, d, test.pkg)
 			assert.NoError(t, err)
 			var actualVulnIDs []string
 			for _, a := range matches {

@@ -3,12 +3,13 @@ package apk
 import (
 	"testing"
 
-	grypeDB "github.com/anchore/grype-db/pkg/db/v3"
+	"github.com/anchore/grype/grype/db"
+	grypeDB "github.com/anchore/grype/grype/db/v3"
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/common"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/syft/syft/distro"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/go-test/deep"
 	"github.com/stretchr/testify/assert"
@@ -50,10 +51,10 @@ func TestSecDBOnlyMatch(t *testing.T) {
 		},
 	}
 
-	provider := vulnerability.NewProviderFromStore(&store)
+	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
-	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
+	d, err := distro.New(distro.Alpine, "3.12.0", "")
 	if err != nil {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
@@ -98,7 +99,7 @@ func TestSecDBOnlyMatch(t *testing.T) {
 		},
 	}
 
-	actual, err := m.Match(provider, &d, p)
+	actual, err := m.Match(provider, d, p)
 	assert.NoError(t, err)
 
 	for _, diff := range deep.Equal(expected, actual) {
@@ -135,10 +136,10 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 		},
 	}
 
-	provider := vulnerability.NewProviderFromStore(&store)
+	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
-	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
+	d, err := distro.New(distro.Alpine, "3.12.0", "")
 	if err != nil {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
@@ -184,7 +185,7 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 		},
 	}
 
-	actual, err := m.Match(provider, &d, p)
+	actual, err := m.Match(provider, d, p)
 	assert.NoError(t, err)
 
 	for _, diff := range deep.Equal(expected, actual) {
@@ -221,10 +222,10 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 		},
 	}
 
-	provider := vulnerability.NewProviderFromStore(&store)
+	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
-	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
+	d, err := distro.New(distro.Alpine, "3.12.0", "")
 	if err != nil {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
@@ -270,7 +271,7 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 		},
 	}
 
-	actual, err := m.Match(provider, &d, p)
+	actual, err := m.Match(provider, d, p)
 	assert.NoError(t, err)
 
 	for _, diff := range deep.Equal(expected, actual) {
@@ -294,10 +295,10 @@ func TestNvdOnlyMatches(t *testing.T) {
 		},
 	}
 
-	provider := vulnerability.NewProviderFromStore(&store)
+	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
-	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
+	d, err := distro.New(distro.Alpine, "3.12.0", "")
 	if err != nil {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
@@ -336,7 +337,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 		},
 	}
 
-	actual, err := m.Match(provider, &d, p)
+	actual, err := m.Match(provider, d, p)
 	assert.NoError(t, err)
 
 	for _, diff := range deep.Equal(expected, actual) {
@@ -371,10 +372,10 @@ func TestNvdMatchesWithSecDBFix(t *testing.T) {
 		},
 	}
 
-	provider := vulnerability.NewProviderFromStore(&store)
+	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
-	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
+	d, err := distro.New(distro.Alpine, "3.12.0", "")
 	if err != nil {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
@@ -389,7 +390,7 @@ func TestNvdMatchesWithSecDBFix(t *testing.T) {
 
 	expected := []match.Match{}
 
-	actual, err := m.Match(provider, &d, p)
+	actual, err := m.Match(provider, d, p)
 	assert.NoError(t, err)
 
 	for _, diff := range deep.Equal(expected, actual) {
@@ -424,10 +425,10 @@ func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
 		},
 	}
 
-	provider := vulnerability.NewProviderFromStore(&store)
+	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
-	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
+	d, err := distro.New(distro.Alpine, "3.12.0", "")
 	if err != nil {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
@@ -442,7 +443,7 @@ func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
 
 	expected := []match.Match{}
 
-	actual, err := m.Match(provider, &d, p)
+	actual, err := m.Match(provider, d, p)
 	assert.NoError(t, err)
 
 	for _, diff := range deep.Equal(expected, actual) {
@@ -467,10 +468,10 @@ func TestDistroMatchBySourceIndirection(t *testing.T) {
 		},
 	}
 
-	provider := vulnerability.NewProviderFromStore(&store)
+	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
-	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
+	d, err := distro.New(distro.Alpine, "3.12.0", "")
 	if err != nil {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
@@ -512,7 +513,7 @@ func TestDistroMatchBySourceIndirection(t *testing.T) {
 		},
 	}
 
-	actual, err := m.Match(provider, &d, p)
+	actual, err := m.Match(provider, d, p)
 	assert.NoError(t, err)
 
 	for _, diff := range deep.Equal(expected, actual) {
@@ -537,10 +538,10 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 		},
 	}
 
-	provider := vulnerability.NewProviderFromStore(&store)
+	provider := db.NewVulnerabilityProvider(&store)
 
 	m := Matcher{}
-	d, err := distro.NewDistro(distro.Alpine, "3.12.0", "")
+	d, err := distro.New(distro.Alpine, "3.12.0", "")
 	if err != nil {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
@@ -581,7 +582,7 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 		},
 	}
 
-	actual, err := m.Match(provider, &d, p)
+	actual, err := m.Match(provider, d, p)
 	assert.NoError(t, err)
 
 	for _, diff := range deep.Equal(expected, actual) {

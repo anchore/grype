@@ -3,7 +3,9 @@ package common
 import (
 	"testing"
 
-	grypeDB "github.com/anchore/grype-db/pkg/db/v3"
+	"github.com/anchore/grype/grype/db"
+
+	grypeDB "github.com/anchore/grype/grype/db/v3"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
@@ -376,7 +378,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			actual, err := FindMatchesByPackageCPE(vulnerability.NewProviderFromStore(newMockStore()), test.p, matcher)
+			actual, err := FindMatchesByPackageCPE(db.NewVulnerabilityProvider(newMockStore()), test.p, matcher)
 			assert.NoError(t, err)
 			assertMatchesUsingIDsForVulnerabilities(t, test.expected, actual)
 			for idx, e := range test.expected {

@@ -34,7 +34,7 @@ func syftSBOMProvider(userInput string) ([]Package, Context, error) {
 
 	return FromCatalog(sbom.Artifacts.PackageCatalog), Context{
 		Source: &sbom.Source,
-		Distro: sbom.Artifacts.Distro,
+		Distro: sbom.Artifacts.LinuxDistribution,
 	}, nil
 }
 

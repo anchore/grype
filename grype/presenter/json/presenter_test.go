@@ -5,6 +5,8 @@ import (
 	"flag"
 	"testing"
 
+	"github.com/anchore/syft/syft/linux"
+
 	"github.com/anchore/stereoscope/pkg/file"
 
 	"github.com/anchore/go-testutils"
@@ -13,7 +15,6 @@ import (
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/stereoscope/pkg/imagetest"
-	"github.com/anchore/syft/syft/distro"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	syftSource "github.com/anchore/syft/syft/source"
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -137,11 +138,6 @@ func TestJsonImgsPresenter(t *testing.T) {
 		},
 	}
 
-	d, err := distro.NewDistro(distro.CentOS, "8.0", "rhel")
-	if err != nil {
-		t.Fatalf("could not make distro: %+v", err)
-	}
-
 	matches := match.NewMatches()
 	matches.Add(pkg1, match1, match2, match3)
 
@@ -154,7 +150,11 @@ func TestJsonImgsPresenter(t *testing.T) {
 
 	ctx := pkg.Context{
 		Source: &src.Metadata,
-		Distro: &d,
+		Distro: &linux.Release{
+			ID:      "centos",
+			IDLike:  []string{"rhel"},
+			Version: "8.0",
+		},
 	}
 	pres := NewPresenter(matches, nil, packages, ctx, models.NewMetadataMock(), nil, nil)
 
@@ -291,14 +291,13 @@ func TestJsonDirsPresenter(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	d, err := distro.NewDistro(distro.CentOS, "8.0", "rhel")
-	if err != nil {
-		t.Fatalf("could not make distro: %+v", err)
-	}
-
 	ctx := pkg.Context{
 		Source: &s.Metadata,
-		Distro: &d,
+		Distro: &linux.Release{
+			ID:      "centos",
+			IDLike:  []string{"rhel"},
+			Version: "8.0",
+		},
 	}
 	pres := NewPresenter(matches, nil, pkg.FromCatalog(catalog), ctx, models.NewMetadataMock(), nil, nil)
 
@@ -345,14 +344,13 @@ func TestEmptyJsonPresenter(t *testing.T) {
 		t.Fatalf("failed to create scope: %+v", err)
 	}
 
-	d, err := distro.NewDistro(distro.CentOS, "8.0", "rhel")
-	if err != nil {
-		t.Fatalf("could not make distro: %+v", err)
-	}
-
 	ctx := pkg.Context{
 		Source: &src.Metadata,
-		Distro: &d,
+		Distro: &linux.Release{
+			ID:      "centos",
+			IDLike:  []string{"rhel"},
+			Version: "8.0",
+		},
 	}
 
 	pres := NewPresenter(matches, nil, []pkg.Package{}, ctx, nil, nil, nil)
