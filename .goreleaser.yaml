@@ -99,6 +99,8 @@ brews:
   - tap:
       owner: anchore
       name: homebrew-grype
+    ids:
+    - grype
     install: |
         bin.install "grype"
 
