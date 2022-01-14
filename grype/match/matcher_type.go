@@ -1,30 +1,17 @@
 package match
 
 const (
-	UnknownMatcherType MatcherType = iota
-	StockMatcher
-	ApkMatcher
-	RubyGemMatcher
-	DpkgMatcher
-	RpmDBMatcher
-	JavaMatcher
-	PythonMatcher
-	JavascriptMatcher
-	MsrcMatcher
+	UnknownMatcherType MatcherType = "UnknownMatcherType"
+	StockMatcher       MatcherType = "stock-matcher"
+	ApkMatcher         MatcherType = "apk-matcher"
+	RubyGemMatcher     MatcherType = "ruby-gem-matcher"
+	DpkgMatcher        MatcherType = "dpkg-matcher"
+	RpmDBMatcher       MatcherType = "rpmdb-matcher"
+	JavaMatcher        MatcherType = "java-matcher"
+	PythonMatcher      MatcherType = "python-matcher"
+	JavascriptMatcher  MatcherType = "javascript-matcher"
+	MsrcMatcher        MatcherType = "msrc-matcher"
 )
-
-var matcherTypeStr = []string{
-	"UnknownMatcherType",
-	"stock-matcher",
-	"apk-matcher",
-	"ruby-gem-matcher",
-	"dpkg-matcher",
-	"rpmdb-matcher",
-	"java-matcher",
-	"python-matcher",
-	"javascript-matcher",
-	"msrc-matcher",
-}
 
 var AllMatcherTypes = []MatcherType{
 	ApkMatcher,
@@ -37,12 +24,4 @@ var AllMatcherTypes = []MatcherType{
 	MsrcMatcher,
 }
 
-type MatcherType int
-
-func (f MatcherType) String() string {
-	if int(f) >= len(matcherTypeStr) || f < 0 {
-		return matcherTypeStr[0]
-	}
-
-	return matcherTypeStr[f]
-}
+type MatcherType string

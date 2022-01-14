@@ -34,11 +34,12 @@ func FindMatchesByPackageLanguage(store vulnerability.ProviderByLanguage, l syft
 		}
 
 		matches = append(matches, match.Match{
-			Type:          match.ExactDirectMatch,
+
 			Vulnerability: vuln,
 			Package:       p,
-			MatchDetails: []match.Details{
+			Details: []match.Detail{
 				{
+					Type:       match.ExactDirectMatch,
 					Confidence: 1.0, // TODO: this is hard coded for now
 					Matcher:    upstreamMatcher,
 					SearchedBy: map[string]interface{}{

@@ -44,12 +44,16 @@ func TestAboveAllowableSeverity(t *testing.T) {
 
 	matches := match.NewMatches()
 	matches.Add(thePkg, match.Match{
-		Type: match.ExactDirectMatch,
 		Vulnerability: vulnerability.Vulnerability{
 			ID:        "CVE-2014-fake-1",
 			Namespace: "source-1",
 		},
 		Package: thePkg,
+		Details: match.Details{
+			{
+				Type: match.ExactDirectMatch,
+			},
+		},
 	})
 
 	tests := []struct {

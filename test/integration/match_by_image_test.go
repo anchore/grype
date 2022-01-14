@@ -32,11 +32,12 @@ func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Ca
 	}
 	theResult.Add(thePkg, match.Match{
 		// note: we are matching on the secdb record, not NVD primarily
-		Type:          match.ExactDirectMatch,
+
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		MatchDetails: []match.Details{
+		Details: []match.Detail{
 			{
+				Type:       match.ExactDirectMatch,
 				Confidence: 1.0,
 				SearchedBy: map[string]interface{}{
 					"cpe": "cpe:2.3:*:*:libvncserver:0.9.9:*:*:*:*:*:*:*",
@@ -67,7 +68,7 @@ func addJavascriptMatches(t *testing.T, theSource source.Source, catalog *syftPk
 		Type:          match.ExactDirectMatch,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		MatchDetails: []match.Details{
+		Details: []match.Detail{
 			{
 				Confidence: 1.0,
 				SearchedBy: map[string]interface{}{
@@ -98,11 +99,12 @@ func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Ca
 		t.Fatalf("failed to create vuln obj: %+v", err)
 	}
 	theResult.Add(thePkg, match.Match{
-		Type:          match.ExactDirectMatch,
+
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		MatchDetails: []match.Details{
+		Details: []match.Detail{
 			{
+				Type:       match.ExactDirectMatch,
 				Confidence: 1.0,
 				SearchedBy: map[string]interface{}{
 					"language": "python",
@@ -132,7 +134,7 @@ func addRubyMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 		Type:          match.ExactDirectMatch,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		MatchDetails: []match.Details{
+		Details: []match.Detail{
 			{
 				Confidence: 1.0,
 				SearchedBy: map[string]interface{}{
@@ -169,11 +171,12 @@ func addJavaMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 		t.Fatalf("failed to create vuln obj: %+v", err)
 	}
 	theResult.Add(thePkg, match.Match{
-		Type:          match.ExactDirectMatch,
+
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		MatchDetails: []match.Details{
+		Details: []match.Detail{
 			{
+				Type:       match.ExactDirectMatch,
 				Confidence: 1.0,
 				SearchedBy: map[string]interface{}{
 					"language": "java",
@@ -204,7 +207,7 @@ func addDpkgMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 		Type:          match.ExactIndirectMatch,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		MatchDetails: []match.Details{
+		Details: []match.Detail{
 			{
 				Confidence: 1.0,
 				SearchedBy: map[string]interface{}{
@@ -235,11 +238,12 @@ func addRhelMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 		t.Fatalf("failed to create vuln obj: %+v", err)
 	}
 	theResult.Add(thePkg, match.Match{
-		Type:          match.ExactDirectMatch,
+
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		MatchDetails: []match.Details{
+		Details: []match.Detail{
 			{
+				Type:       match.ExactDirectMatch,
 				Confidence: 1.0,
 				SearchedBy: map[string]interface{}{
 					"distro": map[string]string{
@@ -272,7 +276,7 @@ func addSlesMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 		Type:          match.ExactDirectMatch,
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
-		MatchDetails: []match.Details{
+		Details: []match.Detail{
 			{
 				Confidence: 1.0,
 				SearchedBy: map[string]interface{}{
@@ -387,7 +391,7 @@ func TestMatchByImage(t *testing.T) {
 			actualCount := 0
 			for aMatch := range actualResults.Enumerate() {
 				actualCount++
-				for _, details := range aMatch.MatchDetails {
+				for _, details := range aMatch.Details {
 					observedMatchers.Add(details.Matcher.String())
 				}
 				value, ok := expectedMatchSet[aMatch.Package.Name]

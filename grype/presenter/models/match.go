@@ -18,6 +18,7 @@ type Match struct {
 
 // MatchDetails contains all data that indicates how the result match was found
 type MatchDetails struct {
+	Type       string      `json:"type"`
 	Matcher    string      `json:"matcher"`
 	SearchedBy interface{} `json:"searchedBy"`
 	Found      interface{} `json:"found"`
@@ -40,10 +41,11 @@ func newMatch(m match.Match, p pkg.Package, metadataProvider vulnerability.Metad
 		return nil, fmt.Errorf("unable to fetch vuln=%q metadata: %+v", m.Vulnerability.ID, err)
 	}
 
-	details := make([]MatchDetails, len(m.MatchDetails))
-	for idx, d := range m.MatchDetails {
+	details := make([]MatchDetails, len(m.Details))
+	for idx, d := range m.Details {
 		details[idx] = MatchDetails{
-			Matcher:    d.Matcher.String(),
+			Type:       string(d.Type),
+			Matcher:    string(d.Matcher),
 			SearchedBy: d.SearchedBy,
 			Found:      d.Found,
 		}

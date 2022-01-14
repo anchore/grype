@@ -69,13 +69,14 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 
 	expected := []match.Match{
 		{
-			Type: match.ExactDirectMatch,
+
 			Vulnerability: vulnerability.Vulnerability{
 				ID: "CVE-2014-fake-1",
 			},
 			Package: p,
-			MatchDetails: []match.Details{
+			Details: []match.Detail{
 				{
+					Type:       match.ExactDirectMatch,
 					Confidence: 1,
 					SearchedBy: map[string]interface{}{
 						"distro": map[string]string{
@@ -120,13 +121,14 @@ func TestFindMatchesByPackageDistroSles(t *testing.T) {
 
 	expected := []match.Match{
 		{
-			Type: match.ExactDirectMatch,
+
 			Vulnerability: vulnerability.Vulnerability{
 				ID: "CVE-2014-fake-4",
 			},
 			Package: p,
-			MatchDetails: []match.Details{
+			Details: []match.Detail{
 				{
+					Type:       match.ExactDirectMatch,
 					Confidence: 1,
 					SearchedBy: map[string]interface{}{
 						"distro": map[string]string{

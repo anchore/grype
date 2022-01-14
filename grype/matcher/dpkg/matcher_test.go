@@ -1,6 +1,7 @@
 package dpkg
 
 import (
+	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -37,9 +38,12 @@ func TestMatcherDpkg_matchBySourceIndirection(t *testing.T) {
 	for _, a := range actual {
 		foundCVEs.Add(a.Vulnerability.ID)
 
-		assert.Equal(t, match.ExactIndirectMatch, a.Type, "indirect match not indicated")
+		require.NotEmpty(t, a.Details)
+		for _, d := range a.Details {
+			assert.Equal(t, match.ExactIndirectMatch, d.Type, "indirect match not indicated")
+		}
 		assert.Equal(t, p.Name, a.Package.Name, "failed to capture original package name")
-		for _, detail := range a.MatchDetails {
+		for _, detail := range a.Details {
 			assert.Equal(t, matcher.Type(), detail.Matcher, "failed to capture matcher type")
 		}
 	}

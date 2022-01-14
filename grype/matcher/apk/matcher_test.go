@@ -73,11 +73,12 @@ func TestSecDBOnlyMatch(t *testing.T) {
 
 	expected := []match.Match{
 		{
-			Type:          match.ExactDirectMatch,
+
 			Vulnerability: *vulnFound,
 			Package:       p,
-			MatchDetails: []match.Details{
+			Details: []match.Detail{
 				{
+					Type:       match.ExactDirectMatch,
 					Confidence: 1.0,
 					SearchedBy: map[string]interface{}{
 						"distro": map[string]string{
@@ -159,11 +160,12 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 
 	expected := []match.Match{
 		{
-			Type:          match.ExactDirectMatch,
+
 			Vulnerability: *vulnFound,
 			Package:       p,
-			MatchDetails: []match.Details{
+			Details: []match.Detail{
 				{
+					Type:       match.ExactDirectMatch,
 					Confidence: 1.0,
 					SearchedBy: map[string]interface{}{
 						"distro": map[string]string{
@@ -245,11 +247,12 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 
 	expected := []match.Match{
 		{
-			Type:          match.ExactDirectMatch,
+
 			Vulnerability: *vulnFound,
 			Package:       p,
-			MatchDetails: []match.Details{
+			Details: []match.Detail{
 				{
+					Type:       match.ExactDirectMatch,
 					Confidence: 1.0,
 					SearchedBy: map[string]interface{}{
 						"distro": map[string]string{
@@ -317,11 +320,12 @@ func TestNvdOnlyMatches(t *testing.T) {
 
 	expected := []match.Match{
 		{
-			Type:          match.FuzzyMatch,
+
 			Vulnerability: *vulnFound,
 			Package:       p,
-			MatchDetails: []match.Details{
+			Details: []match.Detail{
 				{
+					Type:       match.FuzzyMatch,
 					Confidence: 0.9,
 					SearchedBy: common.SearchedByCPEs{
 						CPEs:      []string{"cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"},
@@ -487,11 +491,12 @@ func TestDistroMatchBySourceIndirection(t *testing.T) {
 
 	expected := []match.Match{
 		{
-			Type:          match.ExactIndirectMatch,
+
 			Vulnerability: *vulnFound,
 			Package:       p,
-			MatchDetails: []match.Details{
+			Details: []match.Detail{
 				{
+					Type:       match.ExactIndirectMatch,
 					Confidence: 1.0,
 					SearchedBy: map[string]interface{}{
 						"distro": map[string]string{
@@ -562,11 +567,11 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 
 	expected := []match.Match{
 		{
-			Type:          match.FuzzyMatch,
 			Vulnerability: *vulnFound,
 			Package:       p,
-			MatchDetails: []match.Details{
+			Details: []match.Detail{
 				{
+					Type:       match.FuzzyMatch,
 					Confidence: 0.9,
 					SearchedBy: common.SearchedByCPEs{
 						CPEs:      []string{"cpe:2.3:a:musl:musl:*:*:*:*:*:*:*:*"},

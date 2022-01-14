@@ -1,6 +1,7 @@
 package rpmdb
 
 import (
+	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -239,11 +240,14 @@ func TestMatcherRpmdb(t *testing.T) {
 					t.Errorf("return unkown match CVE: %s", a.Vulnerability.ID)
 					continue
 				} else {
-					assert.Equal(t, val, a.Type)
+					require.NotEmpty(t, a.Details)
+					for _, de := range a.Details {
+						assert.Equal(t, val, de.Type)
+					}
 				}
 
 				assert.Equal(t, test.p.Name, a.Package.Name, "failed to capture original package name")
-				for _, detail := range a.MatchDetails {
+				for _, detail := range a.Details {
 					assert.Equal(t, matcher.Type(), detail.Matcher, "failed to capture matcher type")
 				}
 			}

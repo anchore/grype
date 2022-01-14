@@ -158,7 +158,9 @@ func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro,
 	// we want to make certain that we are tracking the match based on the package from the SBOM (not the indirect package).
 	// The match details already contains the specific indirect package information used to make the match.
 	for idx := range matches {
-		matches[idx].Type = match.ExactIndirectMatch
+		for dIdx := range matches[idx].Details {
+			matches[idx].Details[dIdx].Type = match.ExactIndirectMatch
+		}
 		matches[idx].Package = p
 	}
 

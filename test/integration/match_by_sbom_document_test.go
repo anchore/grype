@@ -23,13 +23,13 @@ func TestMatchBySBOMDocument(t *testing.T) {
 		name            string
 		fixture         string
 		expectedIDs     []string
-		expectedDetails []match.Details
+		expectedDetails []match.Detail
 	}{
 		{
 			name:        "single KB package",
 			fixture:     "test-fixtures/sbom/syft-sbom-with-kb-packages.json",
 			expectedIDs: []string{"CVE-2016-3333"},
-			expectedDetails: []match.Details{
+			expectedDetails: []match.Detail{
 				{
 					SearchedBy: map[string]interface{}{
 						"distro": map[string]string{
@@ -54,7 +54,7 @@ func TestMatchBySBOMDocument(t *testing.T) {
 			name:        "unknown package type",
 			fixture:     "test-fixtures/sbom/syft-sbom-with-unknown-packages.json",
 			expectedIDs: []string{"CVE-bogus-my-package-1", "CVE-bogus-my-package-2-python"},
-			expectedDetails: []match.Details{
+			expectedDetails: []match.Detail{
 				{
 					SearchedBy: common.SearchedByCPEs{
 						Namespace: "nvd",
@@ -91,10 +91,10 @@ func TestMatchBySBOMDocument(t *testing.T) {
 			provider := db.NewVulnerabilityProvider(newMockDbStore())
 			matches, _, _, err := grype.FindVulnerabilities(provider, fmt.Sprintf("sbom:%s", test.fixture), source.SquashedScope, nil)
 			assert.NoError(t, err)
-			details := make([]match.Details, 0)
+			details := make([]match.Detail, 0)
 			ids := strset.New()
 			for _, m := range matches.Sorted() {
-				details = append(details, m.MatchDetails...)
+				details = append(details, m.Details...)
 				ids.Add(m.Vulnerability.ID)
 			}
 

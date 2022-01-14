@@ -181,8 +181,10 @@ func (m *Matcher) matchBySourceIndirection(store vulnerability.Provider, d *dist
 	for idx := range matches {
 		matches[idx].Package = p
 
-		if matches[idx].Type == match.ExactDirectMatch {
-			matches[idx].Type = match.ExactIndirectMatch
+		for dIdx := range matches[idx].Details {
+			if matches[idx].Details[dIdx].Type == match.ExactDirectMatch {
+				matches[idx].Details[dIdx].Type = match.ExactIndirectMatch
+			}
 		}
 	}
 

@@ -44,28 +44,30 @@ func createResults() (match.Matches, []pkg.Package) {
 	var pkg2 = packages[1]
 
 	var match1 = match.Match{
-		Type: match.ExactDirectMatch,
+
 		Vulnerability: vulnerability.Vulnerability{
 			ID:        "CVE-1999-0001",
 			Namespace: "source-1",
 		},
 		Package: pkg1,
-		MatchDetails: []match.Details{
+		Details: []match.Detail{
 			{
+				Type:    match.ExactDirectMatch,
 				Matcher: match.DpkgMatcher,
 			},
 		},
 	}
 
 	var match2 = match.Match{
-		Type: match.ExactIndirectMatch,
+
 		Vulnerability: vulnerability.Vulnerability{
 			ID:        "CVE-1999-0002",
 			Namespace: "source-2",
 		},
 		Package: pkg2,
-		MatchDetails: []match.Details{
+		Details: []match.Detail{
 			{
+				Type:    match.ExactIndirectMatch,
 				Matcher: match.DpkgMatcher,
 				SearchedBy: map[string]interface{}{
 					"some": "key",

@@ -28,7 +28,7 @@ func generateMatches(t *testing.T, p pkg.Package) match.Matches {
 
 	matches := []match.Match{
 		{
-			Type: match.ExactDirectMatch,
+
 			Vulnerability: vulnerability.Vulnerability{
 				ID:        "CVE-1999-0001",
 				Namespace: "source-1",
@@ -38,8 +38,9 @@ func generateMatches(t *testing.T, p pkg.Package) match.Matches {
 				},
 			},
 			Package: p,
-			MatchDetails: []match.Details{
+			Details: []match.Detail{
 				{
+					Type:    match.ExactDirectMatch,
 					Matcher: match.DpkgMatcher,
 					SearchedBy: map[string]interface{}{
 						"distro": map[string]string{
@@ -54,14 +55,15 @@ func generateMatches(t *testing.T, p pkg.Package) match.Matches {
 			},
 		},
 		{
-			Type: match.ExactIndirectMatch,
+
 			Vulnerability: vulnerability.Vulnerability{
 				ID:        "CVE-1999-0002",
 				Namespace: "source-2",
 			},
 			Package: p,
-			MatchDetails: []match.Details{
+			Details: []match.Detail{
 				{
+					Type:    match.ExactIndirectMatch,
 					Matcher: match.DpkgMatcher,
 					SearchedBy: map[string]interface{}{
 						"cpe": "somecpe",

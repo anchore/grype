@@ -27,27 +27,39 @@ func TestPackagesAreSorted(t *testing.T) {
 	}
 
 	var match1 = match.Match{
-		Type: match.ExactDirectMatch,
 		Vulnerability: vulnerability.Vulnerability{
 			ID: "CVE-1999-0003",
 		},
 		Package: pkg1,
+		Details: match.Details{
+			{
+				Type: match.ExactDirectMatch,
+			},
+		},
 	}
 
 	var match2 = match.Match{
-		Type: match.ExactIndirectMatch,
 		Vulnerability: vulnerability.Vulnerability{
 			ID: "CVE-1999-0002",
 		},
 		Package: pkg1,
+		Details: match.Details{
+			{
+				Type: match.ExactIndirectMatch,
+			},
+		},
 	}
 
 	var match3 = match.Match{
-		Type: match.ExactIndirectMatch,
 		Vulnerability: vulnerability.Vulnerability{
 			ID: "CVE-1999-0001",
 		},
 		Package: pkg1,
+		Details: match.Details{
+			{
+				Type: match.ExactIndirectMatch,
+			},
+		},
 	}
 
 	matches := match.NewMatches()

@@ -4,13 +4,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/anchore/grype/internal/log"
-
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal/log"
 )
 
 func FindMatchesByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
@@ -48,11 +47,12 @@ func FindMatchesByPackageDistro(store vulnerability.ProviderByDistro, d *distro.
 		}
 
 		matches = append(matches, match.Match{
-			Type:          match.ExactDirectMatch,
+
 			Vulnerability: vuln,
 			Package:       p,
-			MatchDetails: []match.Details{
+			Details: []match.Detail{
 				{
+					Type:    match.ExactDirectMatch,
 					Matcher: upstreamMatcher,
 					SearchedBy: map[string]interface{}{
 						"distro": map[string]string{
