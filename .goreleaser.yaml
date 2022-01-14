@@ -14,29 +14,10 @@ builds:
       - CGO_ENABLED=0
     goos:
       - linux
-    goarch:
-      - amd64
-      - arm64
-    # Set the modified timestamp on the output binary to the git timestamp (to ensure a reproducible build)
-    mod_timestamp: '{{ .CommitTimestamp }}'
-    ldflags: |
-      -w
-      -s
-      -extldflags '-static'
-      -X github.com/anchore/grype/internal/version.version={{.Version}}
-      -X github.com/anchore/grype/internal/version.syftVersion={{.Env.SYFT_VERSION}}
-      -X github.com/anchore/grype/internal/version.gitCommit={{.Commit}}
-      -X github.com/anchore/grype/internal/version.buildDate={{.Date}}
-      -X github.com/anchore/grype/internal/version.gitTreeState={{.Env.BUILD_GIT_TREE_STATE}}
-
-  - binary: grype
-    id: grype-win
-    env:
-      - CGO_ENABLED=0
-    goos:
       - windows
     goarch:
       - amd64
+      - arm64
     # Set the modified timestamp on the output binary to the git timestamp (to ensure a reproducible build)
     mod_timestamp: '{{ .CommitTimestamp }}'
     ldflags: |
@@ -72,14 +53,19 @@ builds:
       -X github.com/anchore/grype/internal/version.gitTreeState={{.Env.BUILD_GIT_TREE_STATE}}
 
 archives:
-  - format: tar.gz
-    builds:
-      - grype # i.e. Linux only
-  - format: zip # This is a hack for grype-macos! We don't actually intend to use _this_ ZIP file, we just need goreleaser to consider the ZIP file produced by gon (which will have the same file name) to be an artifact so we can use it downstream in publishing (e.g. to a homebrew tap)
-    id: grype-zip
+  - name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+    id: grype
+    replacements:
+      windows: Windows
+      amd64: x86_64
+    format_overrides:
+    - goos: windows
+      format: zip
+
+  - format: zip # This is a hack for syft-macos! We don't actually intend to use _this_ ZIP file, we just need goreleaser to consider the ZIP file produced by gon (which will have the same file name) to be an artifact so we can use it downstream in publishing (e.g. to a homebrew tap)
+    id: grype-exception
     builds:
       - grype-macos
-      - grype-win
 
 signs:
   - artifacts: checksum
