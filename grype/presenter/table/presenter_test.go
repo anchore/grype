@@ -5,11 +5,10 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/anchore/grype/grype/presenter/models"
-
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/go-test/deep"
@@ -23,12 +22,14 @@ func TestTablePresenter(t *testing.T) {
 	var buffer bytes.Buffer
 
 	var pkg1 = pkg.Package{
+		ID:      "package-1-id",
 		Name:    "package-1",
 		Version: "1.0.1",
 		Type:    syftPkg.DebPkg,
 	}
 
 	var pkg2 = pkg.Package{
+		ID:      "package-2-id",
 		Name:    "package-2",
 		Version: "2.0.1",
 		Type:    syftPkg.DebPkg,
@@ -74,7 +75,7 @@ func TestTablePresenter(t *testing.T) {
 
 	matches := match.NewMatches()
 
-	matches.Add(pkg1, match1, match2)
+	matches.Add(match1, match2)
 
 	packages := []pkg.Package{pkg1, pkg2}
 

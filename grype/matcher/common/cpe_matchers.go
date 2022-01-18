@@ -56,7 +56,8 @@ func (h FoundCPEs) Equals(other FoundCPEs) bool {
 
 // FindMatchesByPackageCPE retrieves all vulnerabilities that match the generated CPE
 func FindMatchesByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
-	var matches []match.Match
+	// we attempt to merge match details within the same matcher for the CPE matcher
+	matchesByFingerprint := make(map[match.Fingerprint]match.Match)
 	for _, cpe := range p.CPEs {
 		// prefer the CPE version, but if npt specified use the package version
 		searchVersion := cpe.Version
@@ -87,36 +88,82 @@ func FindMatchesByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, u
 				continue
 			}
 
-			matches = append(matches, newMatch(vuln, p, *searchVersionObj, upstreamMatcher, cpe))
+			addNewMatch(matchesByFingerprint, vuln, p, *searchVersionObj, upstreamMatcher, cpe)
 		}
 	}
 
-	return matches, nil
+	return toMatches(matchesByFingerprint), nil
 }
 
-func newMatch(vuln vulnerability.Vulnerability, p pkg.Package, searchVersion version.Version, upstreamMatcher match.MatcherType, searchedByCPE syftPkg.CPE) match.Match {
-	return match.Match{
+func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vulnerability.Vulnerability, p pkg.Package, searchVersion version.Version, upstreamMatcher match.MatcherType, searchedByCPE syftPkg.CPE) {
+	candidateMatch := match.Match{
 
 		Vulnerability: vuln,
 		Package:       p,
-		Details: []match.Detail{
-			{
-				Type:       match.FuzzyMatch,
-				Confidence: 0.9, // TODO: this is hard coded for now
-				Matcher:    upstreamMatcher,
-				SearchedBy: SearchedByCPEs{
-					Namespace: vuln.Namespace,
-					CPEs: []string{
-						searchedByCPE.BindToFmtString(),
-					},
-				},
-				Found: FoundCPEs{
-					VersionConstraint: vuln.Constraint.String(),
-					CPEs:              cpesToString(filterCPEsByVersion(searchVersion, vuln.CPEs)),
+	}
+
+	if existingMatch, exists := matchesByFingerprint[candidateMatch.Fingerprint()]; exists {
+		candidateMatch = existingMatch
+	}
+
+	candidateMatch.Details = addMatchDetails(candidateMatch.Details,
+		match.Detail{
+			Type:       match.CPEMatch,
+			Confidence: 0.9, // TODO: this is hard coded for now
+			Matcher:    upstreamMatcher,
+			SearchedBy: SearchedByCPEs{
+				Namespace: vuln.Namespace,
+				CPEs: []string{
+					searchedByCPE.BindToFmtString(),
 				},
 			},
+			Found: FoundCPEs{
+				VersionConstraint: vuln.Constraint.String(),
+				CPEs:              cpesToString(filterCPEsByVersion(searchVersion, vuln.CPEs)),
+			},
 		},
+	)
+
+	matchesByFingerprint[candidateMatch.Fingerprint()] = candidateMatch
+}
+
+func addMatchDetails(existingDetails []match.Detail, newDetails match.Detail) []match.Detail {
+	newFound, ok := newDetails.Found.(FoundCPEs)
+	if !ok {
+		return existingDetails
 	}
+
+	newSearchedBy, ok := newDetails.SearchedBy.(SearchedByCPEs)
+	if !ok {
+		return existingDetails
+	}
+	for idx, detail := range existingDetails {
+		found, ok := detail.Found.(FoundCPEs)
+		if !ok {
+			continue
+		}
+
+		searchedBy, ok := detail.SearchedBy.(SearchedByCPEs)
+		if !ok {
+			continue
+		}
+
+		if !found.Equals(newFound) {
+			continue
+		}
+
+		err := searchedBy.Merge(newSearchedBy)
+		if err != nil {
+			continue
+		}
+
+		existingDetails[idx].SearchedBy = searchedBy
+		return existingDetails
+	}
+
+	// could not merge with another entry, append to the end
+	existingDetails = append(existingDetails, newDetails)
+	return existingDetails
 }
 
 func filterCPEsByVersion(pkgVersion version.Version, allCPEs []syftPkg.CPE) (matchedCPEs []syftPkg.CPE) {
@@ -141,6 +188,14 @@ func filterCPEsByVersion(pkgVersion version.Version, allCPEs []syftPkg.CPE) (mat
 		}
 	}
 	return matchedCPEs
+}
+
+func toMatches(matchesByFingerprint map[match.Fingerprint]match.Match) (matches []match.Match) {
+	for _, m := range matchesByFingerprint {
+		matches = append(matches, m)
+	}
+	sort.Sort(match.ByElements(matches))
+	return matches
 }
 
 // cpesToString receives one or more CPEs and stringifies them

@@ -5,9 +5,8 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/anchore/syft/syft/linux"
-
 	"github.com/anchore/stereoscope/pkg/file"
+	"github.com/anchore/syft/syft/linux"
 
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
@@ -38,6 +37,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 	}
 
 	var pkg1 = pkg.Package{
+		ID:      pkg.ID("package-1-id"),
 		Name:    "package-1",
 		Version: "1.1.1",
 		Type:    syftPkg.DebPkg,
@@ -57,6 +57,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 	}
 
 	var pkg2 = pkg.Package{
+		ID:      pkg.ID("package-2-id"),
 		Name:    "package-2",
 		Version: "2.2.2",
 		Type:    syftPkg.DebPkg,
@@ -142,7 +143,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 	}
 
 	matches := match.NewMatches()
-	matches.Add(pkg1, match1, match2, match3)
+	matches.Add(match1, match2, match3)
 
 	packages := []pkg.Package{pkg1, pkg2}
 
@@ -290,7 +291,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 	}
 
 	matches := match.NewMatches()
-	matches.Add(pkg1, match1, match2, match3)
+	matches.Add(match1, match2, match3)
 
 	s, err := syftSource.NewFromDirectory("/some/path")
 	if err != nil {

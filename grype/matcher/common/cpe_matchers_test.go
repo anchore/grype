@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/anchore/grype/grype/db"
+	"github.com/google/uuid"
 
 	grypeDB "github.com/anchore/grype/grype/db/v3"
 	"github.com/anchore/grype/grype/match"
@@ -140,7 +141,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 					},
 					Details: []match.Detail{
 						{
-							Type:       match.FuzzyMatch,
+							Type:       match.CPEMatch,
 							Confidence: 0.9,
 							SearchedBy: SearchedByCPEs{
 								Namespace: "nvd",
@@ -187,7 +188,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 
 					Details: []match.Detail{
 						{
-							Type:       match.FuzzyMatch,
+							Type:       match.CPEMatch,
 							Confidence: 0.9,
 							SearchedBy: SearchedByCPEs{
 								CPEs: []string{
@@ -221,7 +222,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 
 					Details: []match.Detail{
 						{
-							Type:       match.FuzzyMatch,
+							Type:       match.CPEMatch,
 							Confidence: 0.9,
 							SearchedBy: SearchedByCPEs{
 								CPEs:      []string{"cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:ra:*:ruby:*:*"},
@@ -265,7 +266,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 					},
 					Details: []match.Detail{
 						{
-							Type:       match.FuzzyMatch,
+							Type:       match.CPEMatch,
 							Confidence: 0.9,
 							SearchedBy: SearchedByCPEs{
 								CPEs:      []string{"cpe:2.3:*:*:activerecord:4.0.1:*:*:*:*:*:*:*"},
@@ -284,6 +285,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 		{
 			name: "no match",
 			p: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
 				Name:     "couldntgetthisrightcouldyou",
 				Version:  "4.0.1",
 				Language: syftPkg.Ruby,
@@ -316,7 +318,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 
 					Details: []match.Detail{
 						{
-							Type:       match.FuzzyMatch,
+							Type:       match.CPEMatch,
 							Confidence: 0.9,
 							SearchedBy: SearchedByCPEs{
 								CPEs:      []string{"cpe:2.3:*:awesome:awesome:98SE1:rando1:*:ra:*:dunno:*:*"},
@@ -361,7 +363,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 
 					Details: []match.Detail{
 						{
-							Type:       match.FuzzyMatch,
+							Type:       match.CPEMatch,
 							Confidence: 0.9,
 							SearchedBy: SearchedByCPEs{
 								CPEs:      []string{"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*"},
@@ -439,6 +441,286 @@ func TestFilterCPEsByVersion(t *testing.T) {
 			}
 
 			assert.ElementsMatch(t, test.expected, actualStrs)
+		})
+	}
+}
+
+func TestAddMatchDetails(t *testing.T) {
+	tests := []struct {
+		name     string
+		existing []match.Detail
+		new      match.Detail
+		expected []match.Detail
+	}{
+		{
+			name: "append new entry -- found not equal",
+			existing: []match.Detail{
+				{
+					SearchedBy: SearchedByCPEs{
+						Namespace: "nvd",
+						CPEs: []string{
+							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
+						},
+					},
+					Found: FoundCPEs{
+						VersionConstraint: "< 2.0 (unknown)",
+						CPEs: []string{
+							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
+						},
+					},
+				},
+			},
+			new: match.Detail{
+				SearchedBy: SearchedByCPEs{
+					Namespace: "nvd",
+					CPEs: []string{
+						"totally-different-search",
+					},
+				},
+				Found: FoundCPEs{
+					VersionConstraint: "< 2.0 (unknown)",
+					CPEs: []string{
+						"totally-different-match",
+					},
+				},
+			},
+			expected: []match.Detail{
+				{
+					SearchedBy: SearchedByCPEs{
+						Namespace: "nvd",
+						CPEs: []string{
+							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
+						},
+					},
+					Found: FoundCPEs{
+						VersionConstraint: "< 2.0 (unknown)",
+						CPEs: []string{
+							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
+						},
+					},
+				},
+				{
+					SearchedBy: SearchedByCPEs{
+						Namespace: "nvd",
+						CPEs: []string{
+							"totally-different-search",
+						},
+					},
+					Found: FoundCPEs{
+						VersionConstraint: "< 2.0 (unknown)",
+						CPEs: []string{
+							"totally-different-match",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "append new entry -- searchedBy merge fails",
+			existing: []match.Detail{
+				{
+					SearchedBy: SearchedByCPEs{
+						Namespace: "nvd",
+						CPEs: []string{
+							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
+						},
+					},
+					Found: FoundCPEs{
+						VersionConstraint: "< 2.0 (unknown)",
+						CPEs: []string{
+							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
+						},
+					},
+				},
+			},
+			new: match.Detail{
+				SearchedBy: SearchedByCPEs{
+					Namespace: "totally-different",
+					CPEs: []string{
+						"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
+					},
+				},
+				Found: FoundCPEs{
+					VersionConstraint: "< 2.0 (unknown)",
+					CPEs: []string{
+						"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
+					},
+				},
+			},
+			expected: []match.Detail{
+				{
+					SearchedBy: SearchedByCPEs{
+						Namespace: "nvd",
+						CPEs: []string{
+							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
+						},
+					},
+					Found: FoundCPEs{
+						VersionConstraint: "< 2.0 (unknown)",
+						CPEs: []string{
+							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
+						},
+					},
+				},
+				{
+					SearchedBy: SearchedByCPEs{
+						Namespace: "totally-different",
+						CPEs: []string{
+							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
+						},
+					},
+					Found: FoundCPEs{
+						VersionConstraint: "< 2.0 (unknown)",
+						CPEs: []string{
+							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "merge with exiting entry",
+			existing: []match.Detail{
+				{
+					SearchedBy: SearchedByCPEs{
+						Namespace: "nvd",
+						CPEs: []string{
+							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
+						},
+					},
+					Found: FoundCPEs{
+						VersionConstraint: "< 2.0 (unknown)",
+						CPEs: []string{
+							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
+						},
+					},
+				},
+			},
+			new: match.Detail{
+				SearchedBy: SearchedByCPEs{
+					Namespace: "nvd",
+					CPEs: []string{
+						"totally-different-search",
+					},
+				},
+				Found: FoundCPEs{
+					VersionConstraint: "< 2.0 (unknown)",
+					CPEs: []string{
+						"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
+					},
+				},
+			},
+			expected: []match.Detail{
+				{
+					SearchedBy: SearchedByCPEs{
+						Namespace: "nvd",
+						CPEs: []string{
+							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
+							"totally-different-search",
+						},
+					},
+					Found: FoundCPEs{
+						VersionConstraint: "< 2.0 (unknown)",
+						CPEs: []string{
+							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "no addition - bad new searchedBy type",
+			existing: []match.Detail{
+				{
+					SearchedBy: SearchedByCPEs{
+						Namespace: "nvd",
+						CPEs: []string{
+							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
+						},
+					},
+					Found: FoundCPEs{
+						VersionConstraint: "< 2.0 (unknown)",
+						CPEs: []string{
+							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
+						},
+					},
+				},
+			},
+			new: match.Detail{
+				SearchedBy: "something else!",
+				Found: FoundCPEs{
+					VersionConstraint: "< 2.0 (unknown)",
+					CPEs: []string{
+						"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
+					},
+				},
+			},
+			expected: []match.Detail{
+				{
+					SearchedBy: SearchedByCPEs{
+						Namespace: "nvd",
+						CPEs: []string{
+							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
+						},
+					},
+					Found: FoundCPEs{
+						VersionConstraint: "< 2.0 (unknown)",
+						CPEs: []string{
+							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "no addition - bad new found type",
+			existing: []match.Detail{
+				{
+					SearchedBy: SearchedByCPEs{
+						Namespace: "nvd",
+						CPEs: []string{
+							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
+						},
+					},
+					Found: FoundCPEs{
+						VersionConstraint: "< 2.0 (unknown)",
+						CPEs: []string{
+							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
+						},
+					},
+				},
+			},
+			new: match.Detail{
+				SearchedBy: SearchedByCPEs{
+					Namespace: "nvd",
+					CPEs: []string{
+						"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
+					},
+				},
+				Found: "something-else!",
+			},
+			expected: []match.Detail{
+				{
+					SearchedBy: SearchedByCPEs{
+						Namespace: "nvd",
+						CPEs: []string{
+							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
+						},
+					},
+					Found: FoundCPEs{
+						VersionConstraint: "< 2.0 (unknown)",
+						CPEs: []string{
+							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.expected, addMatchDetails(test.existing, test.new))
 		})
 	}
 }

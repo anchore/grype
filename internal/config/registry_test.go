@@ -2,8 +2,9 @@ package config
 
 import (
 	"fmt"
-	"github.com/anchore/stereoscope/pkg/image"
 	"testing"
+
+	"github.com/anchore/stereoscope/pkg/image"
 
 	"github.com/stretchr/testify/assert"
 )

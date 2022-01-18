@@ -1,8 +1,10 @@
 package dpkg
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/assert"
 
@@ -16,6 +18,7 @@ import (
 func TestMatcherDpkg_matchBySourceIndirection(t *testing.T) {
 	matcher := Matcher{}
 	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
 		Name:    "neutron",
 		Version: "2014.1.3-6",
 		Type:    syftPkg.DebPkg,

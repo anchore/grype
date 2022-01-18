@@ -31,6 +31,7 @@ func TestMatchBySBOMDocument(t *testing.T) {
 			expectedIDs: []string{"CVE-2016-3333"},
 			expectedDetails: []match.Detail{
 				{
+					Type: match.ExactDirectMatch,
 					SearchedBy: map[string]interface{}{
 						"distro": map[string]string{
 							"type":    "windows",
@@ -56,6 +57,7 @@ func TestMatchBySBOMDocument(t *testing.T) {
 			expectedIDs: []string{"CVE-bogus-my-package-1", "CVE-bogus-my-package-2-python"},
 			expectedDetails: []match.Detail{
 				{
+					Type: match.CPEMatch,
 					SearchedBy: common.SearchedByCPEs{
 						Namespace: "nvd",
 						CPEs: []string{
@@ -72,6 +74,7 @@ func TestMatchBySBOMDocument(t *testing.T) {
 					Confidence: 0.9,
 				},
 				{
+					Type: match.ExactDirectMatch,
 					SearchedBy: map[string]interface{}{
 						"language":  "python",
 						"namespace": "github:python",

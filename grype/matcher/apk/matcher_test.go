@@ -12,6 +12,7 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/go-test/deep"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -60,6 +61,7 @@ func TestSecDBOnlyMatch(t *testing.T) {
 	}
 
 	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
 		Name:    "libvncserver",
 		Version: "0.9.9",
 		Type:    syftPkg.ApkPkg,
@@ -146,6 +148,7 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 	}
 
 	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
 		Name:    "libvncserver",
 		Version: "0.9.9",
 		Type:    syftPkg.ApkPkg,
@@ -232,6 +235,7 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
 	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
 		Name:    "libvncserver",
 		Version: "0.9.9",
 		Type:    syftPkg.ApkPkg,
@@ -306,6 +310,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
 	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
 		Name:    "libvncserver",
 		Version: "0.9.9",
 		Type:    syftPkg.ApkPkg,
@@ -325,7 +330,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 			Package:       p,
 			Details: []match.Detail{
 				{
-					Type:       match.FuzzyMatch,
+					Type:       match.CPEMatch,
 					Confidence: 0.9,
 					SearchedBy: common.SearchedByCPEs{
 						CPEs:      []string{"cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"},
@@ -384,6 +389,7 @@ func TestNvdMatchesWithSecDBFix(t *testing.T) {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
 	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
 		Name:    "libvncserver",
 		Version: "0.9.11",
 		Type:    syftPkg.ApkPkg,
@@ -437,6 +443,7 @@ func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
 	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
 		Name:    "libvncserver",
 		Version: "0.9.11",
 		Type:    syftPkg.ApkPkg,
@@ -480,6 +487,7 @@ func TestDistroMatchBySourceIndirection(t *testing.T) {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
 	p := pkg.Package{
+		ID:       pkg.ID(uuid.NewString()),
 		Name:     "musl-utils",
 		Version:  "1.3.2-r0",
 		Type:     syftPkg.ApkPkg,
@@ -551,6 +559,7 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
 	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
 		Name:    "musl-utils",
 		Version: "1.3.2-r0",
 		Type:    syftPkg.ApkPkg,
@@ -571,7 +580,7 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 			Package:       p,
 			Details: []match.Detail{
 				{
-					Type:       match.FuzzyMatch,
+					Type:       match.CPEMatch,
 					Confidence: 0.9,
 					SearchedBy: common.SearchedByCPEs{
 						CPEs:      []string{"cpe:2.3:a:musl:musl:*:*:*:*:*:*:*:*"},

@@ -10,6 +10,7 @@ import (
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -54,6 +55,7 @@ func (pr *mockDistroProvider) GetByDistro(d *distro.Distro, p pkg.Package) ([]vu
 
 func TestFindMatchesByPackageDistro(t *testing.T) {
 	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
 		Name:    "neutron",
 		Version: "2014.1.3-6",
 		Type:    syftPkg.DebPkg,
@@ -106,6 +108,7 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 
 func TestFindMatchesByPackageDistroSles(t *testing.T) {
 	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
 		Name:    "sles_test_package",
 		Version: "2014.1.3-6",
 		Type:    syftPkg.RpmPkg,

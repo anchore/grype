@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.2" xmlns:v="http://cyclonedx.org/schema/ext/vulnerability/1.0" version="1" serialNumber="urn:uuid:31b7919a-5717-4796-ab15-82af9a08f302">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.2" xmlns:v="http://cyclonedx.org/schema/ext/vulnerability/1.0" version="1" serialNumber="urn:uuid:0c06f40f-063d-4b97-a961-10ed96cf6c2a">
   <metadata>
-    <timestamp>2021-03-29T10:37:58-04:00</timestamp>
+    <timestamp>2022-01-14T16:06:26-05:00</timestamp>
     <tools>
       <tool>
         <vendor>anchore</vendor>
@@ -19,7 +19,7 @@
       <name>package-1</name>
       <version>1.0.1</version>
       <v:vulnerabilities>
-        <v:vulnerability ref="urn:uuid:82e72e9e-432e-4b71-bd66-5b4f92defe36">
+        <v:vulnerability ref="urn:uuid:78db20e0-4790-4122-823f-52fac58e3106">
           <v:id>CVE-1999-0001</v:id>
           <v:source name="source-1">
             <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0001</v:url>
@@ -41,7 +41,21 @@
           <v:description>1999-01 description</v:description>
           <v:advisories></v:advisories>
         </v:vulnerability>
-        <v:vulnerability ref="urn:uuid:b15af7a8-23bb-4539-958c-b934b63bfebe">
+      </v:vulnerabilities>
+    </component>
+    <component type="library">
+      <name>package-2</name>
+      <version>2.0.1</version>
+      <licenses>
+        <license>
+          <name>MIT</name>
+        </license>
+        <license>
+          <name>Apache-v2</name>
+        </license>
+      </licenses>
+      <v:vulnerabilities>
+        <v:vulnerability ref="urn:uuid:d13de4e3-6f2b-4b06-b4ae-a15aa4b094cd">
           <v:id>CVE-1999-0002</v:id>
           <v:source name="source-2">
             <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0002</v:url>
@@ -64,18 +78,6 @@
           <v:advisories></v:advisories>
         </v:vulnerability>
       </v:vulnerabilities>
-    </component>
-    <component type="library">
-      <name>package-2</name>
-      <version>2.0.1</version>
-      <licenses>
-        <license>
-          <name>MIT</name>
-        </license>
-        <license>
-          <name>Apache-v2</name>
-        </license>
-      </licenses>
     </component>
   </components>
 </bom>

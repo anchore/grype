@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/grype/grype/pkg"
@@ -52,6 +53,7 @@ func (pr *mockLanguageProvider) GetByLanguage(l syftPkg.Language, p pkg.Package)
 
 func TestFindMatchesByPackageLanguage(t *testing.T) {
 	p := pkg.Package{
+		ID:       pkg.ID(uuid.NewString()),
 		Name:     "activerecord",
 		Version:  "3.7.5",
 		Language: syftPkg.Ruby,

@@ -3,6 +3,8 @@ package models
 import (
 	"testing"
 
+	"github.com/google/uuid"
+
 	grypeDb "github.com/anchore/grype/grype/db/v3"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -76,8 +78,7 @@ func generateMatches(t *testing.T, p pkg.Package) match.Matches {
 		},
 	}
 
-	collection := match.NewMatches()
-	collection.Add(p, matches...)
+	collection := match.NewMatches(matches...)
 
 	return collection
 }
@@ -87,6 +88,7 @@ func generatePackages(t *testing.T) []pkg.Package {
 
 	return []pkg.Package{
 		{
+			ID:      pkg.ID(uuid.NewString()),
 			Name:    "package-1",
 			Version: "1.1.1",
 			Type:    syftPkg.DebPkg,
@@ -104,6 +106,7 @@ func generatePackages(t *testing.T) []pkg.Package {
 			},
 		},
 		{
+			ID:      pkg.ID(uuid.NewString()),
 			Name:    "package-2",
 			Version: "2.2.2",
 			Type:    syftPkg.DebPkg,
