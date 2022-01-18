@@ -1,8 +1,9 @@
 package match
 
 import (
-	"github.com/anchore/grype/internal/log"
 	"sort"
+
+	"github.com/anchore/grype/internal/log"
 
 	"github.com/anchore/grype/grype/pkg"
 )
@@ -12,7 +13,13 @@ type Matches struct {
 	byPackage     map[pkg.ID][]Fingerprint
 }
 
-func NewMatches() Matches {
+func NewMatches(matches ...Match) Matches {
+	m := newMatches()
+	m.Add(matches...)
+	return m
+}
+
+func newMatches() Matches {
 	return Matches{
 		byFingerprint: make(map[Fingerprint]Match),
 		byPackage:     make(map[pkg.ID][]Fingerprint),
@@ -28,14 +35,14 @@ func (r *Matches) GetByPkgID(id pkg.ID) (matches []Match) {
 }
 
 func (r *Matches) Merge(other Matches) {
-	for pkgID, fingerprints := range other.byPackage {
+	for _, fingerprints := range other.byPackage {
 		for _, fingerprint := range fingerprints {
-			r.add(pkgID, other.byFingerprint[fingerprint])
+			r.Add(other.byFingerprint[fingerprint])
 		}
 	}
 }
 
-func (r *Matches) add(id pkg.ID, matches ...Match) {
+func (r *Matches) Add(matches ...Match) {
 	if len(matches) == 0 {
 		return
 	}
@@ -53,12 +60,8 @@ func (r *Matches) add(id pkg.ID, matches ...Match) {
 		}
 
 		// keep track of which matches correspond to which packages
-		r.byPackage[id] = append(r.byPackage[id], fingerprint)
+		r.byPackage[newMatch.Package.ID] = append(r.byPackage[newMatch.Package.ID], fingerprint)
 	}
-}
-
-func (r *Matches) Add(p pkg.Package, matches ...Match) {
-	r.add(p.ID, matches...)
 }
 
 func (r *Matches) Enumerate() <-chan Match {

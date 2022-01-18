@@ -2,6 +2,7 @@ package match
 
 import (
 	"fmt"
+
 	"github.com/mitchellh/hashstructure/v2"
 )
 

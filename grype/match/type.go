@@ -1,9 +1,9 @@
 package match
 
 const (
-	ExactDirectMatch   Type = "Exact-Direct Match"
-	ExactIndirectMatch Type = "Exact-Indirect Match"
-	FuzzyMatch         Type = "Fuzzy Match"
+	ExactDirectMatch   Type = "exact-direct-match"
+	ExactIndirectMatch Type = "exact-indirect-match"
+	CPEMatch           Type = "cpe-match"
 )
 
 type Type string
