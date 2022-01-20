@@ -55,9 +55,6 @@ builds:
 archives:
   - name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
     id: grype
-    replacements:
-      windows: Windows
-      amd64: x86_64
     format_overrides:
     - goos: windows
       format: zip
@@ -74,7 +71,7 @@ signs:
       - '-c'
       # we should not include the zip artifact, as the artifact is mutated throughout the next macOS notarization step
       # note: sed -i is not portable
-      - 'sed "/.*\.zip/d" ${artifact} > tmpfile && mv tmpfile ${artifact} && gpg --output ${signature} --detach-sign ${artifact}'
+      - 'sed "/.*_darwin_.*\.zip/d" ${artifact} > tmpfile && mv tmpfile ${artifact} && gpg --output ${signature} --detach-sign ${artifact}'
   - id: grype-macos-signing
     ids:
       - grype-macos
