@@ -215,6 +215,17 @@ func TestNew_MetadataExtraction(t *testing.T) {
 			},
 			metadata: nil,
 		},
+		{
+			name: "php-composer-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.PhpComposerJSONMetadataType,
+				Metadata: syftPkg.PhpComposerJSONMetadata{
+					Name:    "a",
+					Version: "a",
+				},
+			},
+			metadata: nil,
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
