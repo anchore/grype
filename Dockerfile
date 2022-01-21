@@ -16,13 +16,13 @@ ARG BUILD_VERSION
 ARG VCS_REF
 ARG VCS_URL
 
-LABEL org.label-schema.schema-version="1.0"
-LABEL org.label-schema.build-date=$BUILD_DATE
-LABEL org.label-schema.name="grype"
-LABEL org.label-schema.description="A vulnerability scanner for container images and filesystems"
-LABEL org.label-schema.vcs-url=$VCS_URL
-LABEL org.label-schema.vcs-ref=$VCS_REF
-LABEL org.label-schema.vendor="Anchore, Inc."
-LABEL org.label-schema.version=$BUILD_VERSION
+LABEL org.opencontainers.image.created=$BUILD_DATE
+LABEL org.opencontainers.image.title="grype"
+LABEL org.opencontainers.image.description="A vulnerability scanner for container images and filesystems"
+LABEL org.opencontainers.image.source=$VCS_URL
+LABEL org.opencontainers.image.revision=$VCS_REF
+LABEL org.opencontainers.image.vendor="Anchore, Inc."
+LABEL org.opencontainers.image.version=$BUILD_VERSION
+LABEL org.opencontainers.image.licenses="Apache-2.0"
 
 ENTRYPOINT ["/grype"]
