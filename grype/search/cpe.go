@@ -54,9 +54,10 @@ func (h CPEResult) Equals(other CPEResult) bool {
 	return true
 }
 
-// MatchesByPackageCPE retrieves all vulnerabilities that match the generated CPE
-func MatchesByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
-	// we attempt to merge match details within the same matcher for the CPE matcher
+// ByPackageCPE retrieves all vulnerabilities that match the generated CPE
+func ByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
+	// we attempt to merge match details within the same matcher when searching by CPEs, in this way there are fewer duplicated match
+	// objects (and fewer duplicated match details).
 	matchesByFingerprint := make(map[match.Fingerprint]match.Match)
 	for _, cpe := range p.CPEs {
 		// prefer the CPE version, but if npt specified use the package version
@@ -64,31 +65,27 @@ func MatchesByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, upstr
 		if searchVersion == wfn.NA || searchVersion == wfn.Any {
 			searchVersion = p.Version
 		}
-		searchVersionObj, err := version.NewVersion(searchVersion, version.FormatFromPkgType(p.Type))
+		verObj, err := version.NewVersion(searchVersion, version.FormatFromPkgType(p.Type))
 		if err != nil {
-			return nil, fmt.Errorf("matcher failed to parse version pkg='%s' ver='%s': %w", p.Name, p.Version, err)
+			return nil, fmt.Errorf("matcher failed to parse version pkg=%q ver=%q: %w", p.Name, p.Version, err)
 		}
 
 		// find all vulnerability records in the DB for the given CPE (not including version comparisons)
 		allPkgVulns, err := store.GetByCPE(cpe)
 		if err != nil {
-			return nil, fmt.Errorf("matcher failed to fetch by CPE pkg='%s': %w", p.Name, err)
+			return nil, fmt.Errorf("matcher failed to fetch by CPE pkg=%q: %w", p.Name, err)
+		}
+
+		applicableVulns, err := onlyVulnerableVersions(verObj, allPkgVulns)
+		if err != nil {
+			return nil, fmt.Errorf("unable to filter cpe-related vulnerabilities: %w", err)
 		}
 
 		// for each vulnerability record found, check the version constraint. If the constraint is satisfied
 		// relative to the current version information from the CPE (or the package) then the given package
 		// is vulnerable.
-		for _, vuln := range allPkgVulns {
-			isPackageVulnerable, err := vuln.Constraint.Satisfied(searchVersionObj)
-			if err != nil {
-				return nil, fmt.Errorf("cpe matcher failed to check constraint='%s' version='%s': %w", vuln.Constraint, searchVersionObj, err)
-			}
-
-			if !isPackageVulnerable {
-				continue
-			}
-
-			addNewMatch(matchesByFingerprint, vuln, p, *searchVersionObj, upstreamMatcher, cpe)
+		for _, vuln := range applicableVulns {
+			addNewMatch(matchesByFingerprint, vuln, p, *verObj, upstreamMatcher, cpe)
 		}
 	}
 

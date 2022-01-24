@@ -24,17 +24,8 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
-	var matches []match.Match
-
 	// find KB matches for the MSFT version given in the package and version.
 	// The "distro" holds the information about the Windows version, and its
 	// patch (KB)
-	kbMatches, err := search.MatchesByPackageDistro(store, d, p, m.Type())
-	if err != nil {
-		return nil, err
-	}
-
-	matches = append(matches, kbMatches...)
-
-	return matches, nil
+	return search.ByCriteria(store, d, p, m.Type(), search.ByDistro)
 }

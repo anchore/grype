@@ -386,7 +386,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			actual, err := MatchesByPackageCPE(db.NewVulnerabilityProvider(newMockStore()), test.p, matcher)
+			actual, err := ByPackageCPE(db.NewVulnerabilityProvider(newMockStore()), test.p, matcher)
 			assert.NoError(t, err)
 			assertMatchesUsingIDsForVulnerabilities(t, test.expected, actual)
 			for idx, e := range test.expected {

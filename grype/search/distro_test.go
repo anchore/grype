@@ -101,7 +101,7 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 	}
 
 	store := newMockProviderByDistro()
-	actual, err := MatchesByPackageDistro(store, d, p, match.PythonMatcher)
+	actual, err := ByPackageDistro(store, d, p, match.PythonMatcher)
 	assert.NoError(t, err)
 	assertMatchesUsingIDsForVulnerabilities(t, expected, actual)
 }
@@ -154,7 +154,7 @@ func TestFindMatchesByPackageDistroSles(t *testing.T) {
 	}
 
 	store := newMockProviderByDistro()
-	actual, err := MatchesByPackageDistro(store, d, p, match.PythonMatcher)
+	actual, err := ByPackageDistro(store, d, p, match.PythonMatcher)
 	assert.NoError(t, err)
 	assertMatchesUsingIDsForVulnerabilities(t, expected, actual)
 }

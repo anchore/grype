@@ -49,7 +49,7 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 
 func (m *Matcher) cpeMatchesWithoutSecDBFixes(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	// find CPE-indexed vulnerability matches specific to the given package name and version
-	cpeMatches, err := search.MatchesByPackageCPE(store, p, m.Type())
+	cpeMatches, err := search.ByPackageCPE(store, p, m.Type())
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func vulnerabilitiesByID(vulns []vulnerability.Vulnerability) map[string][]vulne
 
 func (m *Matcher) findApkPackage(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	// find Alpine SecDB matches for the given package name and version
-	secDBMatches, err := search.MatchesByPackageDistro(store, d, p, m.Type())
+	secDBMatches, err := search.ByPackageDistro(store, d, p, m.Type())
 	if err != nil {
 		return nil, err
 	}
@@ -178,15 +178,7 @@ func (m *Matcher) matchBySourceIndirection(store vulnerability.Provider, d *dist
 
 	// we want to make certain that we are tracking the match based on the package from the SBOM (not the indirect package)
 	// however, we also want to keep the indirect package around for future reference
-	for idx := range matches {
-		matches[idx].Package = p
-
-		for dIdx := range matches[idx].Details {
-			if matches[idx].Details[dIdx].Type == match.ExactDirectMatch {
-				matches[idx].Details[dIdx].Type = match.ExactIndirectMatch
-			}
-		}
-	}
+	match.ConvertToIndirectMatches(matches, p)
 
 	return matches, nil
 }

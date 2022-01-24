@@ -85,7 +85,7 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 	}
 
 	store := newMockProviderByLanguage()
-	actual, err := MatchesByPackageLanguage(store, p.Language, p, match.RubyGemMatcher)
+	actual, err := ByPackageLanguage(store, p, match.RubyGemMatcher)
 	assert.NoError(t, err)
 	assertMatchesUsingIDsForVulnerabilities(t, expected, actual)
 }
