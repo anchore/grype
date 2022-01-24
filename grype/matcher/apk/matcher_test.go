@@ -1,13 +1,13 @@
 package apk
 
 import (
+	"github.com/anchore/grype/grype/search"
 	"testing"
 
 	"github.com/anchore/grype/grype/db"
 	grypeDB "github.com/anchore/grype/grype/db/v3"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/matcher/common"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -332,11 +332,11 @@ func TestNvdOnlyMatches(t *testing.T) {
 				{
 					Type:       match.CPEMatch,
 					Confidence: 0.9,
-					SearchedBy: common.SearchedByCPEs{
+					SearchedBy: search.CPEParameters{
 						CPEs:      []string{"cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"},
 						Namespace: "nvd",
 					},
-					Found: common.FoundCPEs{
+					Found: search.CPEResult{
 						CPEs:              []string{vulnFound.CPEs[0].BindToFmtString()},
 						VersionConstraint: vulnFound.Constraint.String(),
 					},
@@ -582,11 +582,11 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 				{
 					Type:       match.CPEMatch,
 					Confidence: 0.9,
-					SearchedBy: common.SearchedByCPEs{
+					SearchedBy: search.CPEParameters{
 						CPEs:      []string{"cpe:2.3:a:musl:musl:*:*:*:*:*:*:*:*"},
 						Namespace: "nvd",
 					},
-					Found: common.FoundCPEs{
+					Found: search.CPEResult{
 						CPEs:              []string{vulnFound.CPEs[0].BindToFmtString()},
 						VersionConstraint: vulnFound.Constraint.String(),
 					},

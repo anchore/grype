@@ -2,12 +2,12 @@ package dpkg
 
 import (
 	"fmt"
+	"github.com/anchore/grype/grype/search"
 
 	syftPkg "github.com/anchore/syft/syft/pkg"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/matcher/common"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/jinzhu/copier"
@@ -33,7 +33,7 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 	}
 	matches = append(matches, sourceMatches...)
 
-	exactMatches, err := common.FindMatchesByPackageDistro(store, d, p, m.Type())
+	exactMatches, err := search.MatchesByPackageDistro(store, d, p, m.Type())
 	if err != nil {
 		return nil, fmt.Errorf("failed to match by exact package name: %w", err)
 	}
@@ -64,7 +64,7 @@ func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro,
 	// use the source package name
 	indirectPackage.Name = metadata.Source
 
-	matches, err := common.FindMatchesByPackageDistro(store, d, indirectPackage, m.Type())
+	matches, err := search.MatchesByPackageDistro(store, d, indirectPackage, m.Type())
 	if err != nil {
 		return nil, fmt.Errorf("failed to find vulnerabilities by dpkg source indirection: %w", err)
 	}

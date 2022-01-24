@@ -3,8 +3,8 @@ package msrc
 import (
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/matcher/common"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
@@ -29,7 +29,7 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 	// find KB matches for the MSFT version given in the package and version.
 	// The "distro" holds the information about the Windows version, and its
 	// patch (KB)
-	kbMatches, err := common.FindMatchesByPackageDistro(store, d, p, m.Type())
+	kbMatches, err := search.MatchesByPackageDistro(store, d, p, m.Type())
 	if err != nil {
 		return nil, err
 	}

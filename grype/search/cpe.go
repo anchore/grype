@@ -1,4 +1,4 @@
-package common
+package search
 
 import (
 	"fmt"
@@ -13,12 +13,12 @@ import (
 	"github.com/scylladb/go-set/strset"
 )
 
-type SearchedByCPEs struct {
+type CPEParameters struct {
 	Namespace string   `json:"namespace"`
 	CPEs      []string `json:"cpes"`
 }
 
-func (i *SearchedByCPEs) Merge(other SearchedByCPEs) error {
+func (i *CPEParameters) Merge(other CPEParameters) error {
 	if i.Namespace != other.Namespace {
 		return fmt.Errorf("namespaces do not match")
 	}
@@ -31,12 +31,12 @@ func (i *SearchedByCPEs) Merge(other SearchedByCPEs) error {
 	return nil
 }
 
-type FoundCPEs struct {
+type CPEResult struct {
 	VersionConstraint string   `json:"versionConstraint"`
 	CPEs              []string `json:"cpes"`
 }
 
-func (h FoundCPEs) Equals(other FoundCPEs) bool {
+func (h CPEResult) Equals(other CPEResult) bool {
 	if h.VersionConstraint != other.VersionConstraint {
 		return false
 	}
@@ -54,8 +54,8 @@ func (h FoundCPEs) Equals(other FoundCPEs) bool {
 	return true
 }
 
-// FindMatchesByPackageCPE retrieves all vulnerabilities that match the generated CPE
-func FindMatchesByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
+// MatchesByPackageCPE retrieves all vulnerabilities that match the generated CPE
+func MatchesByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
 	// we attempt to merge match details within the same matcher for the CPE matcher
 	matchesByFingerprint := make(map[match.Fingerprint]match.Match)
 	for _, cpe := range p.CPEs {
@@ -111,13 +111,13 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 			Type:       match.CPEMatch,
 			Confidence: 0.9, // TODO: this is hard coded for now
 			Matcher:    upstreamMatcher,
-			SearchedBy: SearchedByCPEs{
+			SearchedBy: CPEParameters{
 				Namespace: vuln.Namespace,
 				CPEs: []string{
 					searchedByCPE.BindToFmtString(),
 				},
 			},
-			Found: FoundCPEs{
+			Found: CPEResult{
 				VersionConstraint: vuln.Constraint.String(),
 				CPEs:              cpesToString(filterCPEsByVersion(searchVersion, vuln.CPEs)),
 			},
@@ -128,22 +128,22 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 }
 
 func addMatchDetails(existingDetails []match.Detail, newDetails match.Detail) []match.Detail {
-	newFound, ok := newDetails.Found.(FoundCPEs)
+	newFound, ok := newDetails.Found.(CPEResult)
 	if !ok {
 		return existingDetails
 	}
 
-	newSearchedBy, ok := newDetails.SearchedBy.(SearchedByCPEs)
+	newSearchedBy, ok := newDetails.SearchedBy.(CPEParameters)
 	if !ok {
 		return existingDetails
 	}
 	for idx, detail := range existingDetails {
-		found, ok := detail.Found.(FoundCPEs)
+		found, ok := detail.Found.(CPEResult)
 		if !ok {
 			continue
 		}
 
-		searchedBy, ok := detail.SearchedBy.(SearchedByCPEs)
+		searchedBy, ok := detail.SearchedBy.(CPEParameters)
 		if !ok {
 			continue
 		}

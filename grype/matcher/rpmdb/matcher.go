@@ -2,12 +2,12 @@ package rpmdb
 
 import (
 	"fmt"
+	"github.com/anchore/grype/grype/search"
 	"regexp"
 	"strings"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/matcher/common"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
@@ -150,7 +150,7 @@ func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro,
 	indirectPackage.Name = sourceName
 	indirectPackage.Version = sourceVersion
 
-	matches, err := common.FindMatchesByPackageDistro(store, d, indirectPackage, m.Type())
+	matches, err := search.MatchesByPackageDistro(store, d, indirectPackage, m.Type())
 	if err != nil {
 		return nil, fmt.Errorf("failed to find vulnerabilities by dpkg source indirection: %w", err)
 	}
@@ -178,7 +178,7 @@ func (m *Matcher) matchOnPackage(store vulnerability.ProviderByDistro, d *distro
 
 	modifiedPackage.Version = addZeroEpicIfApplicable(p.Version)
 
-	matches, err := common.FindMatchesByPackageDistro(store, d, modifiedPackage, m.Type())
+	matches, err := search.MatchesByPackageDistro(store, d, modifiedPackage, m.Type())
 	if err != nil {
 		return nil, fmt.Errorf("failed to find vulnerabilities by dpkg source indirection: %w", err)
 	}

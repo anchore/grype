@@ -1,4 +1,4 @@
-package common
+package search
 
 import (
 	"errors"
@@ -12,7 +12,7 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-func FindMatchesByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
+func MatchesByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
 	if d == nil {
 		return nil, nil
 	}

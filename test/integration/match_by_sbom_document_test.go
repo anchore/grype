@@ -2,13 +2,12 @@ package integration
 
 import (
 	"fmt"
+	"github.com/anchore/grype/grype/search"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/db"
-
-	"github.com/anchore/grype/grype/matcher/common"
 
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/match"
@@ -58,13 +57,13 @@ func TestMatchBySBOMDocument(t *testing.T) {
 			expectedDetails: []match.Detail{
 				{
 					Type: match.CPEMatch,
-					SearchedBy: common.SearchedByCPEs{
+					SearchedBy: search.CPEParameters{
 						Namespace: "nvd",
 						CPEs: []string{
 							"cpe:2.3:a:bogus:my-package:1.0.5:*:*:*:*:*:*:*",
 						},
 					},
-					Found: common.FoundCPEs{
+					Found: search.CPEResult{
 						VersionConstraint: "< 2.0 (unknown)",
 						CPEs: []string{
 							"cpe:2.3:a:bogus:my-package:*:*:*:*:*:*:something:*",

@@ -1,4 +1,4 @@
-package common
+package search
 
 import (
 	"strings"
@@ -101,7 +101,7 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 	}
 
 	store := newMockProviderByDistro()
-	actual, err := FindMatchesByPackageDistro(store, d, p, match.PythonMatcher)
+	actual, err := MatchesByPackageDistro(store, d, p, match.PythonMatcher)
 	assert.NoError(t, err)
 	assertMatchesUsingIDsForVulnerabilities(t, expected, actual)
 }
@@ -154,7 +154,7 @@ func TestFindMatchesByPackageDistroSles(t *testing.T) {
 	}
 
 	store := newMockProviderByDistro()
-	actual, err := FindMatchesByPackageDistro(store, d, p, match.PythonMatcher)
+	actual, err := MatchesByPackageDistro(store, d, p, match.PythonMatcher)
 	assert.NoError(t, err)
 	assertMatchesUsingIDsForVulnerabilities(t, expected, actual)
 }

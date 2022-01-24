@@ -1,4 +1,4 @@
-package common
+package search
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-func FindMatchesByPackageLanguage(store vulnerability.ProviderByLanguage, l syftPkg.Language, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
+func MatchesByPackageLanguage(store vulnerability.ProviderByLanguage, l syftPkg.Language, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
 	verObj, err := version.NewVersionFromPkg(p)
 	if err != nil {
 		return nil, fmt.Errorf("matcher failed to parse version pkg='%s' ver='%s': %w", p.Name, p.Version, err)

@@ -1,4 +1,4 @@
-package common
+package search
 
 import (
 	"fmt"
@@ -85,7 +85,7 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 	}
 
 	store := newMockProviderByLanguage()
-	actual, err := FindMatchesByPackageLanguage(store, p.Language, p, match.RubyGemMatcher)
+	actual, err := MatchesByPackageLanguage(store, p.Language, p, match.RubyGemMatcher)
 	assert.NoError(t, err)
 	assertMatchesUsingIDsForVulnerabilities(t, expected, actual)
 }
