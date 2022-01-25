@@ -37,7 +37,7 @@ func ByPackageLanguage(store vulnerability.ProviderByLanguage, p pkg.Package, up
 					Confidence: 1.0, // TODO: this is hard coded for now
 					Matcher:    upstreamMatcher,
 					SearchedBy: map[string]interface{}{
-						"language":  p.Language,
+						"language":  string(p.Language),
 						"namespace": vuln.Namespace,
 					},
 					Found: map[string]interface{}{

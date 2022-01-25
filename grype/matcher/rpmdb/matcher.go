@@ -2,13 +2,13 @@ package rpmdb
 
 import (
 	"fmt"
-	"github.com/anchore/grype/grype/search"
 	"regexp"
 	"strings"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
