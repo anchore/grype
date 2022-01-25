@@ -1,10 +1,7 @@
-package common
+package search
 
 import (
-	"errors"
 	"fmt"
-
-	"github.com/anchore/grype/internal/log"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
@@ -13,46 +10,34 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
-func FindMatchesByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
+func ByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
 	if d == nil {
 		return nil, nil
 	}
 
 	verObj, err := version.NewVersionFromPkg(p)
 	if err != nil {
-		return nil, fmt.Errorf("matcher failed to parse version pkg='%s' ver='%s': %w", p.Name, p.Version, err)
+		return nil, fmt.Errorf("matcher failed to parse version pkg=%q ver=%q: %w", p.Name, p.Version, err)
 	}
 
-	var allPkgVulns []vulnerability.Vulnerability
-
-	allPkgVulns, err = store.GetByDistro(d, p)
+	allPkgVulns, err := store.GetByDistro(d, p)
 	if err != nil {
-		return nil, fmt.Errorf("matcher failed to fetch distro='%s' pkg='%s': %w", d, p.Name, err)
+		return nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", d, p.Name, err)
 	}
 
-	matches := make([]match.Match, 0)
-	for _, vuln := range allPkgVulns {
-		// if the constraint it met, then the given package has the vulnerability
-		isPackageVulnerable, err := vuln.Constraint.Satisfied(verObj)
-		if err != nil {
-			var e *version.NonFatalConstraintError
-			if errors.As(err, &e) {
-				log.Warn(e)
-			} else {
-				return nil, fmt.Errorf("distro matcher failed to check constraint='%s' version='%s': %w", vuln.Constraint, verObj, err)
-			}
-		}
+	applicableVulns, err := onlyVulnerableVersions(verObj, allPkgVulns)
+	if err != nil {
+		return nil, fmt.Errorf("unable to filter distro-related vulnerabilities: %w", err)
+	}
 
-		if !isPackageVulnerable {
-			continue
-		}
-
+	var matches []match.Match
+	for _, vuln := range applicableVulns {
 		matches = append(matches, match.Match{
-			Type:          match.ExactDirectMatch,
 			Vulnerability: vuln,
 			Package:       p,
-			MatchDetails: []match.Details{
+			Details: []match.Detail{
 				{
+					Type:    match.ExactDirectMatch,
 					Matcher: upstreamMatcher,
 					SearchedBy: map[string]interface{}{
 						"distro": map[string]string{

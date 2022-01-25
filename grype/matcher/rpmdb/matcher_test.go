@@ -3,6 +3,9 @@ package rpmdb
 import (
 	"testing"
 
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/grype/grype/distro"
@@ -27,6 +30,7 @@ func TestMatcherRpmdb(t *testing.T) {
 		{
 			name: "Rpmdb Match matches by direct and by source indirection",
 			p: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
 				Name:    "neutron-libs",
 				Version: "7.1.3-6",
 				Type:    syftPkg.RpmPkg,
@@ -54,6 +58,7 @@ func TestMatcherRpmdb(t *testing.T) {
 		{
 			name: "Rpmdb Match matches by direct and ignores the source rpm when the package names are the same",
 			p: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
 				Name:    "neutron",
 				Version: "7.1.3-6",
 				Type:    syftPkg.RpmPkg,
@@ -80,6 +85,7 @@ func TestMatcherRpmdb(t *testing.T) {
 			// Regression against https://github.com/anchore/grype/issues/376
 			name: "Rpmdb Match matches by direct and by source indirection when the SourceRpm version is desynced from package version",
 			p: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
 				Name:    "neutron-libs",
 				Version: "7.1.3-6",
 				Type:    syftPkg.RpmPkg,
@@ -107,6 +113,7 @@ func TestMatcherRpmdb(t *testing.T) {
 			// Regression: https://github.com/anchore/grype/issues/437
 			name: "Rpmdb Match should not occur due to source match even though source has no epoch",
 			p: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
 				Name:    "perl-Errno",
 				Version: "0:1.28-419.el8_4.1",
 				Type:    syftPkg.RpmPkg,
@@ -135,6 +142,7 @@ func TestMatcherRpmdb(t *testing.T) {
 		{
 			name: "package without epoch is assumed to be 0 - compared against vuln with NO epoch (direct match only)",
 			p: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
 				Name:     "perl-Errno",
 				Version:  "1.28-419.el8_4.1",
 				Type:     syftPkg.RpmPkg,
@@ -158,6 +166,7 @@ func TestMatcherRpmdb(t *testing.T) {
 		{
 			name: "package without epoch is assumed to be 0 - compared against vuln WITH epoch (direct match only)",
 			p: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
 				Name:     "perl-Errno",
 				Version:  "1.28-419.el8_4.1",
 				Type:     syftPkg.RpmPkg,
@@ -181,6 +190,7 @@ func TestMatcherRpmdb(t *testing.T) {
 		{
 			name: "package WITH epoch - compared against vuln with NO epoch (direct match only)",
 			p: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
 				Name:     "perl-Errno",
 				Version:  "2:1.28-419.el8_4.1",
 				Type:     syftPkg.RpmPkg,
@@ -204,6 +214,7 @@ func TestMatcherRpmdb(t *testing.T) {
 		{
 			name: "package WITH epoch - compared against vuln WITH epoch (direct match only)",
 			p: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
 				Name:     "perl-Errno",
 				Version:  "2:1.28-419.el8_4.1",
 				Type:     syftPkg.RpmPkg,
@@ -239,11 +250,14 @@ func TestMatcherRpmdb(t *testing.T) {
 					t.Errorf("return unkown match CVE: %s", a.Vulnerability.ID)
 					continue
 				} else {
-					assert.Equal(t, val, a.Type)
+					require.NotEmpty(t, a.Details)
+					for _, de := range a.Details {
+						assert.Equal(t, val, de.Type)
+					}
 				}
 
 				assert.Equal(t, test.p.Name, a.Package.Name, "failed to capture original package name")
-				for _, detail := range a.MatchDetails {
+				for _, detail := range a.Details {
 					assert.Equal(t, matcher.Type(), detail.Matcher, "failed to capture matcher type")
 				}
 			}

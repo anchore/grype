@@ -3,6 +3,8 @@ package cmd
 import (
 	"testing"
 
+	"github.com/google/uuid"
+
 	"github.com/anchore/grype/grype/db"
 	grypeDB "github.com/anchore/grype/grype/db/v3"
 	"github.com/anchore/grype/grype/match"
@@ -37,19 +39,24 @@ func (d *mockMetadataStore) GetVulnerabilityMetadata(id, recordSource string) (*
 
 func TestAboveAllowableSeverity(t *testing.T) {
 	thePkg := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
 		Name:    "the-package",
 		Version: "v0.1",
 		Type:    syftPkg.RpmPkg,
 	}
 
 	matches := match.NewMatches()
-	matches.Add(thePkg, match.Match{
-		Type: match.ExactDirectMatch,
+	matches.Add(match.Match{
 		Vulnerability: vulnerability.Vulnerability{
 			ID:        "CVE-2014-fake-1",
 			Namespace: "source-1",
 		},
 		Package: thePkg,
+		Details: match.Details{
+			{
+				Type: match.ExactDirectMatch,
+			},
+		},
 	})
 
 	tests := []struct {

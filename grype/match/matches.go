@@ -3,58 +3,73 @@ package match
 import (
 	"sort"
 
+	"github.com/anchore/grype/internal/log"
+
 	"github.com/anchore/grype/grype/pkg"
 )
 
 type Matches struct {
-	byPackage map[pkg.ID][]Match
+	byFingerprint map[Fingerprint]Match
+	byPackage     map[pkg.ID][]Fingerprint
 }
 
-func NewMatches() Matches {
+func NewMatches(matches ...Match) Matches {
+	m := newMatches()
+	m.Add(matches...)
+	return m
+}
+
+func newMatches() Matches {
 	return Matches{
-		byPackage: make(map[pkg.ID][]Match),
+		byFingerprint: make(map[Fingerprint]Match),
+		byPackage:     make(map[pkg.ID][]Fingerprint),
 	}
 }
 
 // GetByPkgID returns a slice of potential matches from an ID
-func (r *Matches) GetByPkgID(id pkg.ID) []Match {
-	matches, ok := r.byPackage[id]
-	if !ok {
-		return nil
+func (r *Matches) GetByPkgID(id pkg.ID) (matches []Match) {
+	for _, fingerprint := range r.byPackage[id] {
+		matches = append(matches, r.byFingerprint[fingerprint])
 	}
 	return matches
 }
 
 func (r *Matches) Merge(other Matches) {
-	// note: de-duplication of matches is an upstream concern (not here)
-	for pkgID, matches := range other.byPackage {
-		r.add(pkgID, matches...)
+	for _, fingerprints := range other.byPackage {
+		for _, fingerprint := range fingerprints {
+			r.Add(other.byFingerprint[fingerprint])
+		}
 	}
 }
 
-func (r *Matches) add(id pkg.ID, matches ...Match) {
+func (r *Matches) Add(matches ...Match) {
 	if len(matches) == 0 {
-		// only packages with matches should be added
 		return
 	}
-	if _, ok := r.byPackage[id]; !ok {
-		r.byPackage[id] = make([]Match, 0)
-	}
-	r.byPackage[id] = append(r.byPackage[id], matches...)
-}
+	for _, newMatch := range matches {
+		fingerprint := newMatch.Fingerprint()
 
-func (r *Matches) Add(p pkg.Package, matches ...Match) {
-	r.add(p.ID, matches...)
+		// add or merge the new match with an existing match
+		if existingMatch, exists := r.byFingerprint[fingerprint]; exists {
+			if err := existingMatch.Merge(newMatch); err != nil {
+				log.Warnf("unable to merge matches: original=%q new=%q : %w", existingMatch.String(), newMatch.String(), err)
+				// TODO: dropped match in this case, we should figure a way to handle this
+			}
+		} else {
+			r.byFingerprint[fingerprint] = newMatch
+		}
+
+		// keep track of which matches correspond to which packages
+		r.byPackage[newMatch.Package.ID] = append(r.byPackage[newMatch.Package.ID], fingerprint)
+	}
 }
 
 func (r *Matches) Enumerate() <-chan Match {
 	channel := make(chan Match)
 	go func() {
 		defer close(channel)
-		for _, matches := range r.byPackage {
-			for _, m := range matches {
-				channel <- m
-			}
+		for _, match := range r.byFingerprint {
+			channel <- match
 		}
 	}()
 	return channel
@@ -73,5 +88,5 @@ func (r *Matches) Sorted() []Match {
 
 // Count returns the total number of matches in a result
 func (r *Matches) Count() int {
-	return len(r.byPackage)
+	return len(r.byFingerprint)
 }

@@ -109,7 +109,7 @@ func (c *controller) findMatches(provider vulnerability.Provider, release *linux
 				log.Warnf("matcher failed for pkg=%s: %+v", p, err)
 			} else {
 				logMatches(p, matches)
-				res.Add(p, matches...)
+				res.Add(matches...)
 				vulnerabilitiesDiscovered.N += int64(len(matches))
 			}
 		}

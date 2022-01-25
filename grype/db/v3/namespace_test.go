@@ -7,6 +7,7 @@ import (
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg"
 	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/google/uuid"
 	"github.com/scylladb/go-set/strset"
 	"github.com/stretchr/testify/assert"
 )
@@ -214,6 +215,7 @@ func Test_NamespacesForLanguage(t *testing.T) {
 		{
 			language: syftPkg.Rust,
 			namerInput: &pkg.Package{
+				ID:   pkg.ID(uuid.NewString()),
 				Name: "a-name",
 			},
 			expectedNamespaces: []string{
@@ -226,6 +228,7 @@ func Test_NamespacesForLanguage(t *testing.T) {
 		{
 			language: syftPkg.Go,
 			namerInput: &pkg.Package{
+				ID:   pkg.ID(uuid.NewString()),
 				Name: "a-name",
 			},
 			expectedNamespaces: []string{
@@ -239,6 +242,7 @@ func Test_NamespacesForLanguage(t *testing.T) {
 		{
 			language: syftPkg.Ruby,
 			namerInput: &pkg.Package{
+				ID:   pkg.ID(uuid.NewString()),
 				Name: "a-name",
 			},
 			expectedNamespaces: []string{
@@ -251,6 +255,7 @@ func Test_NamespacesForLanguage(t *testing.T) {
 		{
 			language: syftPkg.JavaScript,
 			namerInput: &pkg.Package{
+				ID:   pkg.ID(uuid.NewString()),
 				Name: "a-name",
 			},
 			expectedNamespaces: []string{
@@ -263,6 +268,7 @@ func Test_NamespacesForLanguage(t *testing.T) {
 		{
 			language: syftPkg.Python,
 			namerInput: &pkg.Package{
+				ID:   pkg.ID(uuid.NewString()),
 				Name: "a-name",
 			},
 			expectedNamespaces: []string{
@@ -275,6 +281,7 @@ func Test_NamespacesForLanguage(t *testing.T) {
 		{
 			language: syftPkg.Java,
 			namerInput: &pkg.Package{
+				ID:   pkg.ID(uuid.NewString()),
 				Name: "a-name",
 				Metadata: pkg.JavaMetadata{
 					VirtualPath:   "v-path",
@@ -329,6 +336,7 @@ func Test_githubJavaPackageNamer(t *testing.T) {
 		{
 			name: "both artifact and manifest",
 			namerInput: pkg.Package{
+				ID:   pkg.ID(uuid.NewString()),
 				Name: "a-name",
 				Metadata: pkg.JavaMetadata{
 					VirtualPath:   "v-path",
@@ -345,6 +353,7 @@ func Test_githubJavaPackageNamer(t *testing.T) {
 		{
 			name: "no group id",
 			namerInput: pkg.Package{
+				ID:   pkg.ID(uuid.NewString()),
 				Name: "a-name",
 				Metadata: pkg.JavaMetadata{
 					VirtualPath:   "v-path",
@@ -357,6 +366,7 @@ func Test_githubJavaPackageNamer(t *testing.T) {
 		{
 			name: "only manifest",
 			namerInput: pkg.Package{
+				ID:   pkg.ID(uuid.NewString()),
 				Name: "a-name",
 				Metadata: pkg.JavaMetadata{
 					VirtualPath:  "v-path",
@@ -371,6 +381,7 @@ func Test_githubJavaPackageNamer(t *testing.T) {
 		{
 			name: "only artifact",
 			namerInput: pkg.Package{
+				ID:   pkg.ID(uuid.NewString()),
 				Name: "a-name",
 				Metadata: pkg.JavaMetadata{
 					VirtualPath:   "v-path",
@@ -385,6 +396,7 @@ func Test_githubJavaPackageNamer(t *testing.T) {
 		{
 			name: "no artifact or manifest",
 			namerInput: pkg.Package{
+				ID:   pkg.ID(uuid.NewString()),
 				Name: "a-name",
 				Metadata: pkg.JavaMetadata{
 					VirtualPath: "v-path",

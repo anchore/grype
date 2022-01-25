@@ -1,37 +1,26 @@
 package match
 
-import "strings"
-
-const (
-	UnknownMatchType Type = iota
-	ExactDirectMatch
-	ExactIndirectMatch
-	FuzzyMatch
+import (
+	"github.com/anchore/grype/grype/pkg"
 )
 
-var typeStr = []string{
-	"UnknownMatchType",
-	"Exact-Direct Match",
-	"Exact-Indirect Match",
-	"Fuzzy Match",
-}
+const (
+	ExactDirectMatch   Type = "exact-direct-match"
+	ExactIndirectMatch Type = "exact-indirect-match"
+	CPEMatch           Type = "cpe-match"
+)
 
-type Type int
+type Type string
 
-func ParseType(userStr string) Type {
-	switch strings.ToLower(userStr) {
-	case strings.ToLower(ExactDirectMatch.String()):
-		return ExactDirectMatch
-	case strings.ToLower(ExactIndirectMatch.String()):
-		return ExactIndirectMatch
+func ConvertToIndirectMatches(matches []Match, p pkg.Package) {
+	for idx := range matches {
+		for dIdx := range matches[idx].Details {
+			// only override the match details to "indirect" if the match details are explicitly indicate a "direct" match
+			if matches[idx].Details[dIdx].Type == ExactDirectMatch {
+				matches[idx].Details[dIdx].Type = ExactIndirectMatch
+			}
+		}
+		// we always override the package to the direct package
+		matches[idx].Package = p
 	}
-	return UnknownMatchType
-}
-
-func (f Type) String() string {
-	if int(f) >= len(typeStr) || f < 0 {
-		return typeStr[0]
-	}
-
-	return typeStr[f]
 }

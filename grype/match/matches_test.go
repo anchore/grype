@@ -3,6 +3,9 @@ package match
 import (
 	"testing"
 
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
+
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -15,6 +18,7 @@ func TestMatchesSortMixedDimensions(t *testing.T) {
 			ID: "CVE-2020-0010",
 		},
 		Package: pkg.Package{
+			ID:      pkg.ID(uuid.NewString()),
 			Name:    "package-b",
 			Version: "1.0.0",
 			Type:    syftPkg.RpmPkg,
@@ -25,6 +29,7 @@ func TestMatchesSortMixedDimensions(t *testing.T) {
 			ID: "CVE-2020-0020",
 		},
 		Package: pkg.Package{
+			ID:      pkg.ID(uuid.NewString()),
 			Name:    "package-a",
 			Version: "1.0.0",
 			Type:    syftPkg.NpmPkg,
@@ -35,6 +40,7 @@ func TestMatchesSortMixedDimensions(t *testing.T) {
 			ID: "CVE-2020-0020",
 		},
 		Package: pkg.Package{
+			ID:      pkg.ID(uuid.NewString()),
 			Name:    "package-a",
 			Version: "2.0.0",
 			Type:    syftPkg.RpmPkg,
@@ -45,6 +51,7 @@ func TestMatchesSortMixedDimensions(t *testing.T) {
 			ID: "CVE-2020-0020",
 		},
 		Package: pkg.Package{
+			ID:      pkg.ID(uuid.NewString()),
 			Name:    "package-c",
 			Version: "3.0.0",
 			Type:    syftPkg.ApkPkg,
@@ -55,26 +62,20 @@ func TestMatchesSortMixedDimensions(t *testing.T) {
 			ID: "CVE-2020-0020",
 		},
 		Package: pkg.Package{
+			ID:      pkg.ID(uuid.NewString()),
 			Name:    "package-d",
 			Version: "2.0.0",
 			Type:    syftPkg.RpmPkg,
 		},
 	}
 
-	matches := NewMatches()
 	input := []Match{
 		// shuffle vulnerability id, package name, package version, and package type
 		fifth, third, first, second, fourth,
 	}
-	for _, i := range input {
-		matches.Add(i.Package, i)
-	}
+	matches := NewMatches(input...)
 
-	expected := []Match{
-		first, second, third, fourth, fifth,
-	}
-
-	assert.Equal(t, expected, matches.Sorted())
+	assertMatchOrder(t, []Match{first, second, third, fourth, fifth}, matches.Sorted())
 
 }
 
@@ -84,6 +85,7 @@ func TestMatchesSortByVulnerability(t *testing.T) {
 			ID: "CVE-2020-0010",
 		},
 		Package: pkg.Package{
+			ID:      pkg.ID(uuid.NewString()),
 			Name:    "package-b",
 			Version: "1.0.0",
 			Type:    syftPkg.RpmPkg,
@@ -94,20 +96,19 @@ func TestMatchesSortByVulnerability(t *testing.T) {
 			ID: "CVE-2020-0020",
 		},
 		Package: pkg.Package{
+			ID:      pkg.ID(uuid.NewString()),
 			Name:    "package-b",
 			Version: "1.0.0",
 			Type:    syftPkg.RpmPkg,
 		},
 	}
 
-	input := []Match{second, first}
-
-	matches := NewMatches()
-	for _, i := range input {
-		matches.Add(i.Package, i)
+	input := []Match{
+		second, first,
 	}
+	matches := NewMatches(input...)
 
-	assert.Equal(t, []Match{first, second}, matches.Sorted())
+	assertMatchOrder(t, []Match{first, second}, matches.Sorted())
 
 }
 
@@ -117,6 +118,7 @@ func TestMatchesSortByPackage(t *testing.T) {
 			ID: "CVE-2020-0010",
 		},
 		Package: pkg.Package{
+			ID:      pkg.ID(uuid.NewString()),
 			Name:    "package-b",
 			Version: "1.0.0",
 			Type:    syftPkg.RpmPkg,
@@ -127,20 +129,19 @@ func TestMatchesSortByPackage(t *testing.T) {
 			ID: "CVE-2020-0010",
 		},
 		Package: pkg.Package{
+			ID:      pkg.ID(uuid.NewString()),
 			Name:    "package-c",
 			Version: "1.0.0",
 			Type:    syftPkg.RpmPkg,
 		},
 	}
 
-	input := []Match{second, first}
-
-	matches := NewMatches()
-	for _, i := range input {
-		matches.Add(i.Package, i)
+	input := []Match{
+		second, first,
 	}
+	matches := NewMatches(input...)
 
-	assert.Equal(t, []Match{first, second}, matches.Sorted())
+	assertMatchOrder(t, []Match{first, second}, matches.Sorted())
 
 }
 
@@ -150,6 +151,7 @@ func TestMatchesSortByPackageVersion(t *testing.T) {
 			ID: "CVE-2020-0010",
 		},
 		Package: pkg.Package{
+			ID:      pkg.ID(uuid.NewString()),
 			Name:    "package-b",
 			Version: "1.0.0",
 			Type:    syftPkg.RpmPkg,
@@ -160,20 +162,19 @@ func TestMatchesSortByPackageVersion(t *testing.T) {
 			ID: "CVE-2020-0010",
 		},
 		Package: pkg.Package{
+			ID:      pkg.ID(uuid.NewString()),
 			Name:    "package-b",
 			Version: "2.0.0",
 			Type:    syftPkg.RpmPkg,
 		},
 	}
 
-	input := []Match{second, first}
-
-	matches := NewMatches()
-	for _, i := range input {
-		matches.Add(i.Package, i)
+	input := []Match{
+		second, first,
 	}
+	matches := NewMatches(input...)
 
-	assert.Equal(t, []Match{first, second}, matches.Sorted())
+	assertMatchOrder(t, []Match{first, second}, matches.Sorted())
 
 }
 
@@ -183,6 +184,7 @@ func TestMatchesSortByPackageType(t *testing.T) {
 			ID: "CVE-2020-0010",
 		},
 		Package: pkg.Package{
+			ID:      pkg.ID(uuid.NewString()),
 			Name:    "package-b",
 			Version: "1.0.0",
 			Type:    syftPkg.ApkPkg,
@@ -193,19 +195,56 @@ func TestMatchesSortByPackageType(t *testing.T) {
 			ID: "CVE-2020-0010",
 		},
 		Package: pkg.Package{
+			ID:      pkg.ID(uuid.NewString()),
 			Name:    "package-b",
 			Version: "1.0.0",
 			Type:    syftPkg.RpmPkg,
 		},
 	}
 
-	input := []Match{second, first}
+	input := []Match{
+		second, first,
+	}
+	matches := NewMatches(input...)
 
-	matches := NewMatches()
-	for _, i := range input {
-		matches.Add(i.Package, i)
+	assertMatchOrder(t, []Match{first, second}, matches.Sorted())
+
+}
+
+func assertMatchOrder(t *testing.T, expected, actual []Match) {
+
+	var expectedStr []string
+	for _, e := range expected {
+		expectedStr = append(expectedStr, e.Package.Name)
 	}
 
-	assert.Equal(t, []Match{first, second}, matches.Sorted())
+	var actualStr []string
+	for _, a := range actual {
+		actualStr = append(actualStr, a.Package.Name)
+	}
 
+	// makes this easier on the eyes to sanity check...
+	require.Equal(t, expectedStr, actualStr)
+
+	// make certain the fields are what you'd expect
+	assert.Equal(t, expected, actual)
+}
+
+func assertIgnoredMatchOrder(t *testing.T, expected, actual []IgnoredMatch) {
+
+	var expectedStr []string
+	for _, e := range expected {
+		expectedStr = append(expectedStr, e.Package.Name)
+	}
+
+	var actualStr []string
+	for _, a := range actual {
+		actualStr = append(actualStr, a.Package.Name)
+	}
+
+	// makes this easier on the eyes to sanity check...
+	require.Equal(t, expectedStr, actualStr)
+
+	// make certain the fields are what you'd expect
+	assert.Equal(t, expected, actual)
 }

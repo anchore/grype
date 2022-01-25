@@ -10,7 +10,6 @@ require (
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/stereoscope v0.0.0-20220110181730-c91cf94a3718
 	github.com/anchore/syft v0.36.0
-	github.com/aws/aws-sdk-go v1.31.6 // indirect
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/docker/docker v20.10.11+incompatible
 	github.com/dustin/go-humanize v1.0.0
@@ -20,7 +19,6 @@ require (
 	github.com/google/go-cmp v0.5.6
 	github.com/google/uuid v1.2.0
 	github.com/gookit/color v1.4.2
-	github.com/gopherjs/gopherjs v0.0.0-20190910122728-9d188e94fb99 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-getter v1.5.9
 	github.com/hashicorp/go-multierror v1.1.0
@@ -29,15 +27,13 @@ require (
 	github.com/jinzhu/gorm v1.9.14
 	github.com/knqyf263/go-apk-version v0.0.0-20200609155635-041fdbb8563f
 	github.com/knqyf263/go-deb-version v0.0.0-20190517075300-09fca494f03d
-	github.com/lib/pq v1.2.0 // indirect
-	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
+	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/pkg/profile v1.6.0
 	github.com/scylladb/go-set v1.0.2
 	github.com/sergi/go-diff v1.1.0
 	github.com/sirupsen/logrus v1.8.1
-	github.com/smartystreets/assertions v1.0.0 // indirect
 	github.com/spf13/afero v1.6.0
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5

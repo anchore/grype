@@ -3,7 +3,7 @@ package match
 import (
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/google/uuid"
 
 	"github.com/anchore/syft/syft/source"
 
@@ -25,6 +25,7 @@ var (
 				},
 			},
 			Package: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
 				Name:    "dive",
 				Version: "0.5.2",
 				Type:    "deb",
@@ -41,6 +42,7 @@ var (
 				},
 			},
 			Package: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
 				Name:    "reach",
 				Version: "100.0.50",
 				Type:    "gem",
@@ -57,6 +59,7 @@ var (
 				},
 			},
 			Package: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
 				Name:    "beach",
 				Version: "100.0.51",
 				Type:    "gem",
@@ -73,6 +76,7 @@ var (
 				},
 			},
 			Package: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
 				Name:    "speach",
 				Version: "100.0.52",
 				Type:    "gem",
@@ -227,36 +231,19 @@ func TestApplyIgnoreRules(t *testing.T) {
 
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
-			locationComparerOption := cmp.Comparer(func(x, y source.Location) bool {
-				return x.RealPath == y.RealPath && x.VirtualPath == y.VirtualPath
-			})
-
 			actualRemainingMatches, actualIgnoredMatches := ApplyIgnoreRules(sliceToMatches(testCase.allMatches), testCase.ignoreRules)
 
-			if diff := cmp.Diff(testCase.expectedRemainingMatches, matchesToSlice(actualRemainingMatches), locationComparerOption); diff != "" {
-				t.Errorf("unexpected diff in remaining matches (-expected +actual):\n%s", diff)
-			}
+			assertMatchOrder(t, testCase.expectedRemainingMatches, actualRemainingMatches.Sorted())
+			assertIgnoredMatchOrder(t, testCase.expectedIgnoredMatches, actualIgnoredMatches)
 
-			if diff := cmp.Diff(testCase.expectedIgnoredMatches, actualIgnoredMatches, locationComparerOption); diff != "" {
-				t.Errorf("unexpected diff in ignored matches (-expected +actual):\n%s", diff)
-			}
 		})
 	}
 }
 
 func sliceToMatches(s []Match) Matches {
 	matches := NewMatches()
-	matches.add("123", s...)
+	matches.Add(s...)
 	return matches
-}
-
-func matchesToSlice(m Matches) []Match {
-	slice := m.Sorted()
-	if len(slice) == 0 {
-		return nil
-	}
-
-	return slice
 }
 
 var (
@@ -265,6 +252,7 @@ var (
 			ID: "CVE-2000-1234",
 		},
 		Package: pkg.Package{
+			ID:      pkg.ID(uuid.NewString()),
 			Name:    "a-pkg",
 			Version: "1.0",
 			Locations: []source.Location{

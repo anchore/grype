@@ -1,10 +1,11 @@
-package common
+package search
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/grype/grype/pkg"
@@ -52,6 +53,7 @@ func (pr *mockLanguageProvider) GetByLanguage(l syftPkg.Language, p pkg.Package)
 
 func TestFindMatchesByPackageLanguage(t *testing.T) {
 	p := pkg.Package{
+		ID:       pkg.ID(uuid.NewString()),
 		Name:     "activerecord",
 		Version:  "3.7.5",
 		Language: syftPkg.Ruby,
@@ -60,13 +62,14 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 
 	expected := []match.Match{
 		{
-			Type: match.ExactDirectMatch,
+
 			Vulnerability: vulnerability.Vulnerability{
 				ID: "CVE-2017-fake-1",
 			},
 			Package: p,
-			MatchDetails: []match.Details{
+			Details: []match.Detail{
 				{
+					Type:       match.ExactDirectMatch,
 					Confidence: 1,
 					SearchedBy: map[string]interface{}{
 						"language":  "ruby",
@@ -82,7 +85,7 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 	}
 
 	store := newMockProviderByLanguage()
-	actual, err := FindMatchesByPackageLanguage(store, p.Language, p, match.RubyGemMatcher)
+	actual, err := ByPackageLanguage(store, p, match.RubyGemMatcher)
 	assert.NoError(t, err)
 	assertMatchesUsingIDsForVulnerabilities(t, expected, actual)
 }
