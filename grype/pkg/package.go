@@ -4,7 +4,9 @@ import (
 	"fmt"
 
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/pkg/cataloger/common/cpe"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -87,10 +89,36 @@ func New(p pkg.Package) Package {
 	}
 }
 
-func FromCatalog(catalog *pkg.Catalog) []Package {
+func FromCatalog(catalog *pkg.Catalog, config ProviderConfig) []Package {
 	result := make([]Package, 0, catalog.PackageCount())
+	missingCPEs := false
 	for _, p := range catalog.Sorted() {
+		if p.Type == pkg.UnknownPkg {
+			p.Type = config.PackageType
+		}
+		if p.Metadata == nil && (p.Type == "apk" || p.Type == "Apk") {
+			if purl, err := packageurl.FromString(p.PURL); err == nil {
+				for _, q := range purl.Qualifiers {
+					if q.Key == "upstream" {
+						p.MetadataType = pkg.ApkMetadataType
+						p.Metadata = pkg.ApkMetadata{
+							OriginPackage: q.Value,
+						}
+					}
+				}
+			}
+		}
+		if len(p.CPEs) == 0 {
+			if config.AutoGenerateCPEs {
+				p.CPEs = cpe.Generate(p)
+			} else {
+				missingCPEs = true
+			}
+		}
 		result = append(result, New(p))
+	}
+	if missingCPEs {
+		log.Warnf("Some package(s) are missing CPEs. You may autogenerate these using: --auto-generate-cpes")
 	}
 	return result
 }

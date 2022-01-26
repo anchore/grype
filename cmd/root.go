@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/anchore/grype/grype"
@@ -21,6 +22,8 @@ import (
 	"github.com/anchore/grype/internal/ui"
 	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/stereoscope"
+	"github.com/anchore/syft/syft/linux"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
 	"github.com/pkg/profile"
 	"github.com/spf13/cobra"
@@ -118,6 +121,16 @@ func setRootFlags(flags *pflag.FlagSet) {
 		"file to write the report output to (default is STDOUT)",
 	)
 
+	flags.StringP(
+		"distro", "", "",
+		"distro to match against in the format: <distro>:<version>",
+	)
+
+	flags.BoolP(
+		"auto-generate-cpes", "", false,
+		"automatically generate missing CPEs",
+	)
+
 	flags.StringP("template", "t", "", "specify the path to a Go template file ("+
 		"requires 'template' output to be selected)")
 
@@ -147,6 +160,14 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 	}
 
 	if err := viper.BindPFlag("file", flags.Lookup("file")); err != nil {
+		return err
+	}
+
+	if err := viper.BindPFlag("distro", flags.Lookup("distro")); err != nil {
+		return err
+	}
+
+	if err := viper.BindPFlag("auto-generate-cpes", flags.Lookup("auto-generate-cpes")); err != nil {
 		return err
 	}
 
@@ -259,11 +280,16 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 		go func() {
 			defer wg.Done()
+
+			defaultPackageType := syftPkg.PackageTypeByName(strings.Split(appConfig.Distro, ":")[0])
+
 			log.Debugf("gathering packages")
 			providerConfig := pkg.ProviderConfig{
 				RegistryOptions:   appConfig.Registry.ToOptions(),
 				Exclusions:        appConfig.Exclusions,
 				CatalogingOptions: appConfig.Search.ToConfig(),
+				AutoGenerateCPEs:  appConfig.AutoGenerateCPEs,
+				PackageType:       defaultPackageType,
 			}
 			packages, context, err = pkg.Provide(userInput, providerConfig)
 			if err != nil {
@@ -280,6 +306,32 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 		if appConfig.OnlyFixed {
 			appConfig.Ignore = append(appConfig.Ignore, ignoreNonFixedMatches...)
+		}
+
+		if appConfig.Distro != "" {
+			log.Infof("using distro hint: %s", appConfig.Distro)
+			split := strings.Split(appConfig.Distro, ":")
+			d := split[0]
+			v := ""
+			if len(split) > 1 {
+				v = split[1]
+			}
+			context.Distro = &linux.Release{
+				PrettyName: d,
+				Name:       d,
+				ID:         d,
+				IDLike: []string{
+					d,
+				},
+				Version:   v,
+				VersionID: v,
+				HomeURL:   "",
+				CPEName:   "",
+			}
+		}
+
+		if context.Distro == nil {
+			log.Warnf("Unable to determine the OS distribution. Some matches will not occur. You may specify a distro hint using: --distro <distro>:<version>")
 		}
 
 		allMatches := grype.FindVulnerabilitiesForPackage(provider, context.Distro, packages...)

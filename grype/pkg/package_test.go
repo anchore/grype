@@ -269,7 +269,7 @@ func TestFromCatalog_DoesNotPanic(t *testing.T) {
 	catalog.Add(examplePackage)
 
 	assert.NotPanics(t, func() {
-		_ = FromCatalog(catalog)
+		_ = FromCatalog(catalog, ProviderConfig{})
 	})
 }
 
