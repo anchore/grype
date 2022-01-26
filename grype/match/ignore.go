@@ -40,7 +40,7 @@ func ApplyIgnoreRules(matches Matches, rules []IgnoreRule) (Matches, []IgnoredMa
 	var ignoredMatches []IgnoredMatch
 	remainingMatches := NewMatches()
 
-	for match := range matches.Enumerate() {
+	for _, match := range matches.Sorted() {
 		var applicableRules []IgnoreRule
 
 		for _, rule := range rules {
@@ -58,7 +58,7 @@ func ApplyIgnoreRules(matches Matches, rules []IgnoreRule) (Matches, []IgnoredMa
 			continue
 		}
 
-		remainingMatches.add(match.Package.ID, match)
+		remainingMatches.Add(match)
 	}
 
 	return remainingMatches, ignoredMatches

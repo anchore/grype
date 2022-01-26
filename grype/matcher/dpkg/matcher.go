@@ -3,13 +3,12 @@ package dpkg
 import (
 	"fmt"
 
-	syftPkg "github.com/anchore/syft/syft/pkg"
-
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/matcher/common"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/jinzhu/copier"
 )
 
@@ -33,7 +32,7 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 	}
 	matches = append(matches, sourceMatches...)
 
-	exactMatches, err := common.FindMatchesByPackageDistro(store, d, p, m.Type())
+	exactMatches, err := search.ByPackageDistro(store, d, p, m.Type())
 	if err != nil {
 		return nil, fmt.Errorf("failed to match by exact package name: %w", err)
 	}
@@ -64,17 +63,14 @@ func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro,
 	// use the source package name
 	indirectPackage.Name = metadata.Source
 
-	matches, err := common.FindMatchesByPackageDistro(store, d, indirectPackage, m.Type())
+	matches, err := search.ByPackageDistro(store, d, indirectPackage, m.Type())
 	if err != nil {
 		return nil, fmt.Errorf("failed to find vulnerabilities by dpkg source indirection: %w", err)
 	}
 
 	// we want to make certain that we are tracking the match based on the package from the SBOM (not the indirect package)
 	// however, we also want to keep the indirect package around for future reference
-	for idx := range matches {
-		matches[idx].Type = match.ExactIndirectMatch
-		matches[idx].Package = p
-	}
+	match.ConvertToIndirectMatches(matches, p)
 
 	return matches, nil
 }

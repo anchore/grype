@@ -3,6 +3,8 @@ package models
 import (
 	"testing"
 
+	"github.com/google/uuid"
+
 	grypeDb "github.com/anchore/grype/grype/db/v3"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -28,7 +30,7 @@ func generateMatches(t *testing.T, p pkg.Package) match.Matches {
 
 	matches := []match.Match{
 		{
-			Type: match.ExactDirectMatch,
+
 			Vulnerability: vulnerability.Vulnerability{
 				ID:        "CVE-1999-0001",
 				Namespace: "source-1",
@@ -38,8 +40,9 @@ func generateMatches(t *testing.T, p pkg.Package) match.Matches {
 				},
 			},
 			Package: p,
-			MatchDetails: []match.Details{
+			Details: []match.Detail{
 				{
+					Type:    match.ExactDirectMatch,
 					Matcher: match.DpkgMatcher,
 					SearchedBy: map[string]interface{}{
 						"distro": map[string]string{
@@ -54,14 +57,15 @@ func generateMatches(t *testing.T, p pkg.Package) match.Matches {
 			},
 		},
 		{
-			Type: match.ExactIndirectMatch,
+
 			Vulnerability: vulnerability.Vulnerability{
 				ID:        "CVE-1999-0002",
 				Namespace: "source-2",
 			},
 			Package: p,
-			MatchDetails: []match.Details{
+			Details: []match.Detail{
 				{
+					Type:    match.ExactIndirectMatch,
 					Matcher: match.DpkgMatcher,
 					SearchedBy: map[string]interface{}{
 						"cpe": "somecpe",
@@ -74,8 +78,7 @@ func generateMatches(t *testing.T, p pkg.Package) match.Matches {
 		},
 	}
 
-	collection := match.NewMatches()
-	collection.Add(p, matches...)
+	collection := match.NewMatches(matches...)
 
 	return collection
 }
@@ -85,6 +88,7 @@ func generatePackages(t *testing.T) []pkg.Package {
 
 	return []pkg.Package{
 		{
+			ID:      pkg.ID(uuid.NewString()),
 			Name:    "package-1",
 			Version: "1.1.1",
 			Type:    syftPkg.DebPkg,
@@ -102,6 +106,7 @@ func generatePackages(t *testing.T) []pkg.Package {
 			},
 		},
 		{
+			ID:      pkg.ID(uuid.NewString()),
 			Name:    "package-2",
 			Version: "2.2.2",
 			Type:    syftPkg.DebPkg,

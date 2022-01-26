@@ -5,9 +5,8 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/anchore/syft/syft/linux"
-
 	"github.com/anchore/stereoscope/pkg/file"
+	"github.com/anchore/syft/syft/linux"
 
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
@@ -38,6 +37,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 	}
 
 	var pkg1 = pkg.Package{
+		ID:      pkg.ID("package-1-id"),
 		Name:    "package-1",
 		Version: "1.1.1",
 		Type:    syftPkg.DebPkg,
@@ -57,6 +57,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 	}
 
 	var pkg2 = pkg.Package{
+		ID:      pkg.ID("package-2-id"),
 		Name:    "package-2",
 		Version: "2.2.2",
 		Type:    syftPkg.DebPkg,
@@ -66,7 +67,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 	}
 
 	var match1 = match.Match{
-		Type: match.ExactDirectMatch,
+
 		Vulnerability: vulnerability.Vulnerability{
 			ID:        "CVE-1999-0001",
 			Namespace: "source-1",
@@ -77,8 +78,9 @@ func TestJsonImgsPresenter(t *testing.T) {
 			},
 		},
 		Package: pkg1,
-		MatchDetails: []match.Details{
+		Details: []match.Detail{
 			{
+				Type:    match.ExactDirectMatch,
 				Matcher: match.DpkgMatcher,
 				SearchedBy: map[string]interface{}{
 					"distro": map[string]string{
@@ -94,14 +96,15 @@ func TestJsonImgsPresenter(t *testing.T) {
 	}
 
 	var match2 = match.Match{
-		Type: match.ExactIndirectMatch,
+
 		Vulnerability: vulnerability.Vulnerability{
 			ID:        "CVE-1999-0002",
 			Namespace: "source-2",
 		},
 		Package: pkg1,
-		MatchDetails: []match.Details{
+		Details: []match.Detail{
 			{
+				Type:    match.ExactIndirectMatch,
 				Matcher: match.DpkgMatcher,
 				SearchedBy: map[string]interface{}{
 					"cpe": "somecpe",
@@ -114,7 +117,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 	}
 
 	var match3 = match.Match{
-		Type: match.ExactIndirectMatch,
+
 		Vulnerability: vulnerability.Vulnerability{
 			ID:        "CVE-1999-0003",
 			Namespace: "source-1",
@@ -125,8 +128,9 @@ func TestJsonImgsPresenter(t *testing.T) {
 			},
 		},
 		Package: pkg1,
-		MatchDetails: []match.Details{
+		Details: []match.Detail{
 			{
+				Type:    match.ExactIndirectMatch,
 				Matcher: match.DpkgMatcher,
 				SearchedBy: map[string]interface{}{
 					"language": "java",
@@ -139,7 +143,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 	}
 
 	matches := match.NewMatches()
-	matches.Add(pkg1, match1, match2, match3)
+	matches.Add(match1, match2, match3)
 
 	packages := []pkg.Package{pkg1, pkg2}
 
@@ -211,7 +215,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 	}
 
 	var match1 = match.Match{
-		Type: match.ExactDirectMatch,
+
 		Vulnerability: vulnerability.Vulnerability{
 			ID:        "CVE-1999-0001",
 			Namespace: "source-1",
@@ -222,8 +226,9 @@ func TestJsonDirsPresenter(t *testing.T) {
 			},
 		},
 		Package: pkg1,
-		MatchDetails: []match.Details{
+		Details: []match.Detail{
 			{
+				Type:    match.ExactDirectMatch,
 				Matcher: match.DpkgMatcher,
 				SearchedBy: map[string]interface{}{
 					"distro": map[string]string{
@@ -239,14 +244,15 @@ func TestJsonDirsPresenter(t *testing.T) {
 	}
 
 	var match2 = match.Match{
-		Type: match.ExactIndirectMatch,
+
 		Vulnerability: vulnerability.Vulnerability{
 			ID:        "CVE-1999-0002",
 			Namespace: "source-2",
 		},
 		Package: pkg1,
-		MatchDetails: []match.Details{
+		Details: []match.Detail{
 			{
+				Type:    match.ExactIndirectMatch,
 				Matcher: match.DpkgMatcher,
 				SearchedBy: map[string]interface{}{
 					"cpe": "somecpe",
@@ -259,7 +265,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 	}
 
 	var match3 = match.Match{
-		Type: match.ExactIndirectMatch,
+
 		Vulnerability: vulnerability.Vulnerability{
 			ID:        "CVE-1999-0003",
 			Namespace: "source-1",
@@ -270,8 +276,9 @@ func TestJsonDirsPresenter(t *testing.T) {
 			},
 		},
 		Package: pkg1,
-		MatchDetails: []match.Details{
+		Details: []match.Detail{
 			{
+				Type:    match.ExactIndirectMatch,
 				Matcher: match.DpkgMatcher,
 				SearchedBy: map[string]interface{}{
 					"language": "java",
@@ -284,7 +291,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 	}
 
 	matches := match.NewMatches()
-	matches.Add(pkg1, match1, match2, match3)
+	matches.Add(match1, match2, match3)
 
 	s, err := syftSource.NewFromDirectory("/some/path")
 	if err != nil {

@@ -7,8 +7,8 @@ import (
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/matcher/common"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
@@ -150,17 +150,14 @@ func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro,
 	indirectPackage.Name = sourceName
 	indirectPackage.Version = sourceVersion
 
-	matches, err := common.FindMatchesByPackageDistro(store, d, indirectPackage, m.Type())
+	matches, err := search.ByPackageDistro(store, d, indirectPackage, m.Type())
 	if err != nil {
 		return nil, fmt.Errorf("failed to find vulnerabilities by dpkg source indirection: %w", err)
 	}
 
 	// we want to make certain that we are tracking the match based on the package from the SBOM (not the indirect package).
 	// The match details already contains the specific indirect package information used to make the match.
-	for idx := range matches {
-		matches[idx].Type = match.ExactIndirectMatch
-		matches[idx].Package = p
-	}
+	match.ConvertToIndirectMatches(matches, p)
 
 	return matches, nil
 }
@@ -176,7 +173,7 @@ func (m *Matcher) matchOnPackage(store vulnerability.ProviderByDistro, d *distro
 
 	modifiedPackage.Version = addZeroEpicIfApplicable(p.Version)
 
-	matches, err := common.FindMatchesByPackageDistro(store, d, modifiedPackage, m.Type())
+	matches, err := search.ByPackageDistro(store, d, modifiedPackage, m.Type())
 	if err != nil {
 		return nil, fmt.Errorf("failed to find vulnerabilities by dpkg source indirection: %w", err)
 	}

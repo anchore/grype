@@ -63,22 +63,20 @@ func Test_ApplyExplicitIgnoreRules(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			matches := Matches{
-				byPackage: make(map[pkg.ID][]Match),
-			}
+			matches := NewMatches()
 
 			for _, cp := range test.matches {
-				matches.byPackage[pkg.ID(cp.pkg)] = []Match{
-					{
-						Package: pkg.Package{
-							Name: cp.pkg,
-							Type: test.typ,
-						},
-						Vulnerability: vulnerability.Vulnerability{
-							ID: cp.cve,
-						},
+				matches.Add(Match{
+
+					Package: pkg.Package{
+						ID:   pkg.ID(cp.pkg),
+						Name: cp.pkg,
+						Type: test.typ,
 					},
-				}
+					Vulnerability: vulnerability.Vulnerability{
+						ID: cp.cve,
+					},
+				})
 			}
 
 			filtered := ApplyExplicitIgnoreRules(matches)

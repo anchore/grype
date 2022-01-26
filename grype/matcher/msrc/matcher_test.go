@@ -9,6 +9,7 @@ import (
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg"
 	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -69,6 +70,7 @@ func TestMatches(t *testing.T) {
 		{
 			name: "direct KB match",
 			pkg: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
 				Name:    d.RawVersion,
 				Version: "3200970",
 				Type:    syftPkg.KbPkg,
@@ -80,6 +82,7 @@ func TestMatches(t *testing.T) {
 		{
 			name: "multiple direct KB match",
 			pkg: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
 				Name:    d.RawVersion,
 				Version: "878787",
 				Type:    syftPkg.KbPkg,
@@ -92,6 +95,7 @@ func TestMatches(t *testing.T) {
 		{
 			name: "no KBs found",
 			pkg: pkg.Package{
+				ID:   pkg.ID(uuid.NewString()),
 				Name: d.RawVersion,
 				// this is the assumed version if no KBs are found
 				Version: "base",

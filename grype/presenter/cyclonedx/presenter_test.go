@@ -6,11 +6,10 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/anchore/grype/grype/presenter/models"
-
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/stereoscope/pkg/imagetest"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -21,51 +20,49 @@ import (
 var update = flag.Bool("update", false, "update the *.golden files for json presenters")
 
 func createResults() (match.Matches, []pkg.Package) {
-	// the catalog is needed to assign the package IDs
-	catalog := syftPkg.NewCatalog(
-		syftPkg.Package{
-			Name:    "package-1",
-			Version: "1.0.1",
-			Type:    syftPkg.DebPkg,
+
+	pkg1 := pkg.Package{
+		ID:      "package-1-id",
+		Name:    "package-1",
+		Version: "1.0.1",
+		Type:    syftPkg.DebPkg,
+	}
+	pkg2 := pkg.Package{
+		ID:      "package-2-id",
+		Name:    "package-2",
+		Version: "2.0.1",
+		Type:    syftPkg.DebPkg,
+		Licenses: []string{
+			"MIT",
+			"Apache-v2",
 		},
-		syftPkg.Package{
-			Name:    "package-2",
-			Version: "2.0.1",
-			Type:    syftPkg.DebPkg,
-			Licenses: []string{
-				"MIT",
-				"Apache-v2",
-			},
-		})
-
-	packages := pkg.FromCatalog(catalog)
-
-	var pkg1 = packages[0]
-	var pkg2 = packages[1]
+	}
 
 	var match1 = match.Match{
-		Type: match.ExactDirectMatch,
+
 		Vulnerability: vulnerability.Vulnerability{
 			ID:        "CVE-1999-0001",
 			Namespace: "source-1",
 		},
 		Package: pkg1,
-		MatchDetails: []match.Details{
+		Details: []match.Detail{
 			{
+				Type:    match.ExactDirectMatch,
 				Matcher: match.DpkgMatcher,
 			},
 		},
 	}
 
 	var match2 = match.Match{
-		Type: match.ExactIndirectMatch,
+
 		Vulnerability: vulnerability.Vulnerability{
 			ID:        "CVE-1999-0002",
 			Namespace: "source-2",
 		},
 		Package: pkg2,
-		MatchDetails: []match.Details{
+		Details: []match.Detail{
 			{
+				Type:    match.ExactIndirectMatch,
 				Matcher: match.DpkgMatcher,
 				SearchedBy: map[string]interface{}{
 					"some": "key",
@@ -76,9 +73,9 @@ func createResults() (match.Matches, []pkg.Package) {
 
 	matches := match.NewMatches()
 
-	matches.Add(pkg1, match1, match2)
+	matches.Add(match1, match2)
 
-	return matches, packages
+	return matches, []pkg.Package{pkg1, pkg2}
 }
 
 func TestCycloneDxPresenterImage(t *testing.T) {

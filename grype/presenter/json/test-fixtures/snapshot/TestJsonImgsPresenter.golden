@@ -28,6 +28,7 @@
    "relatedVulnerabilities": [],
    "matchDetails": [
     {
+     "type": "exact-direct-match",
      "matcher": "dpkg-matcher",
      "searchedBy": {
       "distro": {
@@ -92,6 +93,7 @@
    "relatedVulnerabilities": [],
    "matchDetails": [
     {
+     "type": "exact-indirect-match",
      "matcher": "dpkg-matcher",
      "searchedBy": {
       "cpe": "somecpe"
@@ -141,6 +143,7 @@
    "relatedVulnerabilities": [],
    "matchDetails": [
     {
+     "type": "exact-indirect-match",
      "matcher": "dpkg-matcher",
      "searchedBy": {
       "language": "java"
