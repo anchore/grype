@@ -14,13 +14,13 @@ const (
 
 func getPURLQualifiers(p string) map[string]string {
 	if p == "" {
-		return make(map[string]string, 0)
+		return make(map[string]string)
 	}
 
 	purl, err := packageurl.FromString(p)
 	if err != nil {
 		log.Warnf("unable to decode pURL: %+v", err)
-		return make(map[string]string, 0)
+		return make(map[string]string)
 	}
 
 	return purl.Qualifiers.Map()

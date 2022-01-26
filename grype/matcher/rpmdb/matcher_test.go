@@ -34,8 +34,11 @@ func TestMatcherRpmdb(t *testing.T) {
 				Name:    "neutron-libs",
 				Version: "7.1.3-6",
 				Type:    syftPkg.RpmPkg,
-				Metadata: pkg.RpmdbMetadata{
-					SourceRpm: "neutron-7.1.3-6.el8.src.rpm",
+				Upstreams: []pkg.UpstreamPackage{
+					{
+						Name:    "neutron",
+						Version: "7.1.3-6.el8",
+					},
 				},
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
@@ -62,8 +65,11 @@ func TestMatcherRpmdb(t *testing.T) {
 				Name:    "neutron",
 				Version: "7.1.3-6",
 				Type:    syftPkg.RpmPkg,
-				Metadata: pkg.RpmdbMetadata{
-					SourceRpm: "neutron-7.1.3-6.el8.src.rpm",
+				Upstreams: []pkg.UpstreamPackage{
+					{
+						Name:    "neutron",
+						Version: "7.1.3-6.el8",
+					},
 				},
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
@@ -89,8 +95,11 @@ func TestMatcherRpmdb(t *testing.T) {
 				Name:    "neutron-libs",
 				Version: "7.1.3-6",
 				Type:    syftPkg.RpmPkg,
-				Metadata: pkg.RpmdbMetadata{
-					SourceRpm: "neutron-17.16.3-229.el8.src.rpm",
+				Upstreams: []pkg.UpstreamPackage{
+					{
+						Name:    "neutron",
+						Version: "17.16.3-229.el8",
+					},
 				},
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
@@ -118,8 +127,13 @@ func TestMatcherRpmdb(t *testing.T) {
 				Version: "0:1.28-419.el8_4.1",
 				Type:    syftPkg.RpmPkg,
 				Metadata: pkg.RpmdbMetadata{
-					SourceRpm: "perl-5.26.3-419.el8_4.1.src.rpm",
-					Epoch:     intRef(0),
+					Epoch: intRef(0),
+				},
+				Upstreams: []pkg.UpstreamPackage{
+					{
+						Name:    "perl",
+						Version: "5.26.3-419.el8_4.1",
+					},
 				},
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
@@ -265,66 +279,6 @@ func TestMatcherRpmdb(t *testing.T) {
 			if t.Failed() {
 				t.Logf("discovered CVES: %+v", actual)
 			}
-		})
-	}
-}
-
-func Test_getNameAndELVersion(t *testing.T) {
-	epoch := 1
-	tests := []struct {
-		name            string
-		metadata        pkg.RpmdbMetadata
-		expectedName    string
-		expectedVersion string
-	}{
-		{
-			name: "sqlite-3.26.0-6.el8.src.rpm",
-			metadata: pkg.RpmdbMetadata{
-				SourceRpm: "sqlite-3.26.0-6.el8.src.rpm",
-			},
-			expectedName:    "sqlite",
-			expectedVersion: "3.26.0-6.el8",
-		},
-		{
-			name: "util-linux-ng-2.17.2-12.28.el6_9.src.rpm",
-			metadata: pkg.RpmdbMetadata{
-				SourceRpm: "util-linux-ng-2.17.2-12.28.el6_9.src.rpm",
-			},
-			expectedName:    "util-linux-ng",
-			expectedVersion: "2.17.2-12.28.el6_9",
-		},
-		{
-			name: "util-linux-ng-2.17.2-12.28.el6_9.2.src.rpm",
-			metadata: pkg.RpmdbMetadata{
-				SourceRpm: "util-linux-ng-2.17.2-12.28.el6_9.2.src.rpm",
-			},
-			expectedName:    "util-linux-ng",
-			expectedVersion: "2.17.2-12.28.el6_9.2",
-		},
-		{
-			name: "epoch 1 + sqlite-3.26.0-6.el8.src.rpm",
-			metadata: pkg.RpmdbMetadata{
-				SourceRpm: "sqlite-3.26.0-6.el8.src.rpm",
-				Epoch:     &epoch,
-			},
-			expectedName:    "sqlite",
-			expectedVersion: "3.26.0-6.el8",
-		},
-		{
-			name: "sqlite-bin-3.26.0-6.el8.src.rpm",
-			metadata: pkg.RpmdbMetadata{
-				SourceRpm: "sqlite-1.26.0-6.el8.src.rpm",
-				Epoch:     &epoch,
-			},
-			expectedName:    "sqlite",
-			expectedVersion: "1.26.0-6.el8",
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			actualName, actualVersion := getNameAndELVersion(test.metadata)
-			assert.Equal(t, test.expectedName, actualName)
-			assert.Equal(t, test.expectedVersion, actualVersion)
 		})
 	}
 }

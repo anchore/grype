@@ -5,14 +5,10 @@ import (
 	"testing"
 
 	"github.com/anchore/syft/syft/linux"
-
-	"github.com/stretchr/testify/assert"
-
-	"github.com/anchore/syft/syft/source"
-
-	"github.com/go-test/deep"
-
 	"github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/source"
+	"github.com/go-test/deep"
+	"github.com/stretchr/testify/assert"
 )
 
 func must(c pkg.CPE, e error) pkg.CPE {
@@ -29,7 +25,7 @@ func TestParseSyftJSON(t *testing.T) {
 		Context  Context
 	}{
 		{
-			Fixture: "test-fixtures/syft-alpine.json",
+			Fixture: "test-fixtures/syft-multiple-ecosystems.json",
 			Packages: []Package{
 				{
 					Name:    "alpine-baselayout",
@@ -37,24 +33,27 @@ func TestParseSyftJSON(t *testing.T) {
 					Locations: []source.Location{
 						source.NewLocationFromCoordinates(source.Coordinates{
 							RealPath:     "/lib/apk/db/installed",
-							FileSystemID: "sha256:93cf4cfb673c7e16a9e74f731d6767b70b92a0b7c9f59d06efd72fbff535371c",
+							FileSystemID: "sha256:8d3ac3489996423f53d6087c81180006263b79f206d3fdec9e66f0e27ceb8759",
 						}),
 					},
 					Language: "",
 					Licenses: []string{
 						"GPL-2.0-only",
 					},
-					Type: "rpm",
+					Type: "apk",
 					CPEs: []pkg.CPE{
-						must(pkg.NewCPE("cpe:2.3:a:*:alpine-baselayout:3.2.0-r6:*:*:*:*:*:*:*")),
-						must(pkg.NewCPE("cpe:2.3:a:alpine-baselayout:alpine-baselayout:3.2.0-r6:*:*:*:*:*:*:*")),
+						must(pkg.NewCPE("cpe:2.3:a:alpine:alpine_baselayout:3.2.0-r6:*:*:*:*:*:*:*")),
 					},
-					PURL:     "pkg:alpine/alpine-baselayout@3.2.0-r6?arch=x86_64",
-					Metadata: RpmdbMetadata{SourceRpm: "a-source.srpm"},
+					PURL: "pkg:alpine/alpine-baselayout@3.2.0-r6?arch=x86_64",
+					Upstreams: []UpstreamPackage{
+						{
+							Name: "alpine-baselayout",
+						},
+					},
 				},
 				{
 					Name:    "fake",
-					Version: "1.2.0-r0",
+					Version: "1.2.0",
 					Locations: []source.Location{
 						source.NewLocationFromCoordinates(source.Coordinates{
 							RealPath:     "/lib/apk/db/installed",
@@ -67,11 +66,16 @@ func TestParseSyftJSON(t *testing.T) {
 					},
 					Type: "dpkg",
 					CPEs: []pkg.CPE{
-						must(pkg.NewCPE("cpe:2.3:a:*:gmp:6.2.0-r0:*:*:*:*:*:*:*")),
-						must(pkg.NewCPE("cpe:2.3:a:gmp:gmp:6.2.0-r0:*:*:*:*:*:*:*")),
+						must(pkg.NewCPE("cpe:2.3:a:*:fake:1.2.0:*:*:*:*:*:*:*")),
+						must(pkg.NewCPE("cpe:2.3:a:fake:fake:1.2.0:*:*:*:*:*:*:*")),
 					},
-					PURL:     "pkg:alpine/gmp@6.2.0-r0?arch=x86_64",
-					Metadata: DpkgMetadata{Source: "a-source"},
+					PURL: "pkg:deb/debian/fake@1.2.0?arch=x86_64",
+					Upstreams: []UpstreamPackage{
+						{
+							Name:    "a-source",
+							Version: "1.4.5",
+						},
+					},
 				},
 				{
 					Name:    "gmp",
@@ -91,7 +95,8 @@ func TestParseSyftJSON(t *testing.T) {
 						must(pkg.NewCPE("cpe:2.3:a:*:gmp:6.2.0-r0:*:*:*:*:*:*:*")),
 						must(pkg.NewCPE("cpe:2.3:a:gmp:gmp:6.2.0-r0:*:*:*:*:*:*:*")),
 					},
-					PURL: "pkg:alpine/gmp@6.2.0-r0?arch=x86_64",
+					PURL:         "pkg:alpine/gmp@6.2.0-r0?arch=x86_64",
+					MetadataType: JavaMetadataType,
 					Metadata: JavaMetadata{
 						PomArtifactID: "aid",
 						PomGroupID:    "gid",
@@ -193,8 +198,9 @@ var springImageTestCase = struct {
 				must(pkg.NewCPE("cpe:2.3:a:charsets:charsets:*:*:*:*:*:java:*:*")),
 				must(pkg.NewCPE("cpe:2.3:a:charsets:charsets:*:*:*:*:*:maven:*:*")),
 			},
-			PURL:     "",
-			Metadata: JavaMetadata{VirtualPath: "/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/charsets.jar"},
+			PURL:         "",
+			MetadataType: JavaMetadataType,
+			Metadata:     JavaMetadata{VirtualPath: "/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/charsets.jar"},
 		},
 		{
 			Name:    "tomcat-embed-el",
@@ -212,8 +218,9 @@ var springImageTestCase = struct {
 				must(pkg.NewCPE("cpe:2.3:a:tomcat_embed_el:tomcat-embed-el:9.0.27:*:*:*:*:java:*:*")),
 				must(pkg.NewCPE("cpe:2.3:a:tomcat-embed-el:tomcat_embed_el:9.0.27:*:*:*:*:maven:*:*")),
 			},
-			PURL:     "",
-			Metadata: JavaMetadata{VirtualPath: "/app/libs/tomcat-embed-el-9.0.27.jar"},
+			PURL:         "",
+			MetadataType: JavaMetadataType,
+			Metadata:     JavaMetadata{VirtualPath: "/app/libs/tomcat-embed-el-9.0.27.jar"},
 		},
 	},
 	Context: Context{

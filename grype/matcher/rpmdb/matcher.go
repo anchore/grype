@@ -2,7 +2,6 @@ package rpmdb
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/anchore/grype/grype/distro"
@@ -10,19 +9,8 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal"
-	"github.com/anchore/grype/internal/log"
 	syftPkg "github.com/anchore/syft/syft/pkg"
-	"github.com/jinzhu/copier"
 )
-
-// the source-rpm field has something akin to "util-linux-ng-2.17.2-12.28.el6_9.2.src.rpm"
-// in which case the pattern will extract out the following values for the named capture groups:
-//		name = "util-linux-ng"
-//		version = "2.17.2" (or, if there's an epoch, we'd expect a value like "4:2.17.2")
-//		release = "12.28.el6_9.2"
-//		arch = "src"
-var rpmPackageNamePattern = regexp.MustCompile(`^(?P<name>.*)-(?P<version>.*)-(?P<release>.*)\.(?P<arch>[a-zA-Z][^.]+)(\.rpm)$`)
 
 type Matcher struct {
 }
@@ -84,7 +72,7 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 	// really assume an epoch of 4 on the other side). This could still lead to
 	// problems since an epoch delimits potentially non-comparable version lineages.
 
-	sourceMatches, err := m.matchBySourceIndirection(store, d, p)
+	sourceMatches, err := m.matchUpstreamPackages(store, d, p)
 	if err != nil {
 		return nil, fmt.Errorf("failed to match by source indirection: %w", err)
 	}
@@ -106,7 +94,7 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 	// case). To do this we fill in missing epoch values in the package versions with
 	// an explicit 0.
 
-	exactMatches, err := m.matchOnPackage(store, d, p)
+	exactMatches, err := m.matchPackage(store, d, p)
 	if err != nil {
 		return nil, fmt.Errorf("failed to match by exact package name: %w", err)
 	}
@@ -116,43 +104,15 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 	return matches, nil
 }
 
-func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
-	metadata, ok := p.Metadata.(pkg.RpmdbMetadata)
-	if !ok {
-		return nil, nil
-	}
+func (m *Matcher) matchUpstreamPackages(store vulnerability.ProviderByDistro, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
+	var matches []match.Match
 
-	// ignore packages without source indirection hints
-	if metadata.SourceRpm == "" {
-		return nil, nil
-	}
-
-	sourceName, sourceVersion := getNameAndELVersion(metadata)
-	if sourceName == "" && sourceVersion == "" {
-		log.Warnf("unable to extract name and version from SourceRPM=%q for %s@%s", metadata.SourceRpm, p.Name, p.Version)
-		return nil, nil
-	}
-
-	// don't include matches if the source package name matches the current package name
-	if sourceName == p.Name {
-		return nil, nil
-	}
-
-	// use source package name for exact package name matching
-	var indirectPackage pkg.Package
-
-	err := copier.Copy(&indirectPackage, p)
-	if err != nil {
-		return nil, fmt.Errorf("failed to copy package: %w", err)
-	}
-
-	// use the source package name
-	indirectPackage.Name = sourceName
-	indirectPackage.Version = sourceVersion
-
-	matches, err := search.ByPackageDistro(store, d, indirectPackage, m.Type())
-	if err != nil {
-		return nil, fmt.Errorf("failed to find vulnerabilities by dpkg source indirection: %w", err)
+	for indirectPackage := range pkg.UpstreamPackages(p) {
+		indirectMatches, err := search.ByPackageDistro(store, d, indirectPackage, m.Type())
+		if err != nil {
+			return nil, fmt.Errorf("failed to find vulnerabilities for rpm upstream source package: %w", err)
+		}
+		matches = append(matches, indirectMatches...)
 	}
 
 	// we want to make certain that we are tracking the match based on the package from the SBOM (not the indirect package).
@@ -162,25 +122,20 @@ func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro,
 	return matches, nil
 }
 
-func (m *Matcher) matchOnPackage(store vulnerability.ProviderByDistro, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) matchPackage(store vulnerability.ProviderByDistro, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	// we want to ensure that the version ALWAYS has an epoch specified...
-	var modifiedPackage pkg.Package
+	originalPkg := p
 
-	err := copier.Copy(&modifiedPackage, p)
-	if err != nil {
-		return nil, fmt.Errorf("failed to copy package: %w", err)
-	}
+	p.Version = addZeroEpicIfApplicable(p.Version)
 
-	modifiedPackage.Version = addZeroEpicIfApplicable(p.Version)
-
-	matches, err := search.ByPackageDistro(store, d, modifiedPackage, m.Type())
+	matches, err := search.ByPackageDistro(store, d, p, m.Type())
 	if err != nil {
 		return nil, fmt.Errorf("failed to find vulnerabilities by dpkg source indirection: %w", err)
 	}
 
 	// we want to make certain that we are tracking the match based on the package from the SBOM (not the modified package).
 	for idx := range matches {
-		matches[idx].Package = p
+		matches[idx].Package = originalPkg
 	}
 
 	return matches, nil
@@ -191,10 +146,4 @@ func addZeroEpicIfApplicable(version string) string {
 		return version
 	}
 	return "0:" + version
-}
-
-func getNameAndELVersion(metadata pkg.RpmdbMetadata) (string, string) {
-	groupMatches := internal.MatchCaptureGroups(rpmPackageNamePattern, metadata.SourceRpm)
-	version := groupMatches["version"] + "-" + groupMatches["release"]
-	return groupMatches["name"], version
 }

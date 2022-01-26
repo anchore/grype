@@ -54,9 +54,7 @@
     "licenses": [],
     "cpes": [],
     "purl": "",
-    "metadata": {
-     "Source": "a source!"
-    }
+    "upstreams": []
    }
   },
   {
@@ -113,9 +111,7 @@
     "licenses": [],
     "cpes": [],
     "purl": "",
-    "metadata": {
-     "Source": "a source!"
-    }
+    "upstreams": []
    }
   },
   {
@@ -160,9 +156,7 @@
     "licenses": [],
     "cpes": [],
     "purl": "",
-    "metadata": {
-     "Source": "a source!"
-    }
+    "upstreams": []
    }
   }
  ],
