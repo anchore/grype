@@ -280,18 +280,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 		go func() {
 			defer wg.Done()
-
-			defaultPackageType := syftPkg.PackageTypeByName(strings.Split(appConfig.Distro, ":")[0])
-
-			log.Debugf("gathering packages")
-			providerConfig := pkg.ProviderConfig{
-				RegistryOptions:   appConfig.Registry.ToOptions(),
-				Exclusions:        appConfig.Exclusions,
-				CatalogingOptions: appConfig.Search.ToConfig(),
-				AutoGenerateCPEs:  appConfig.AutoGenerateCPEs,
-				PackageType:       defaultPackageType,
-			}
-			packages, context, err = pkg.Provide(userInput, providerConfig)
+			packages, context, err = pkg.Provide(userInput, getProviderConfig())
 			if err != nil {
 				errs <- fmt.Errorf("failed to catalog: %w", err)
 				return
@@ -354,6 +343,19 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		})
 	}()
 	return errs
+}
+
+func getProviderConfig() pkg.ProviderConfig {
+	defaultPackageType := syftPkg.PackageTypeByName(strings.Split(appConfig.Distro, ":")[0])
+
+	log.Debugf("gathering packages")
+	return pkg.ProviderConfig{
+		RegistryOptions:   appConfig.Registry.ToOptions(),
+		Exclusions:        appConfig.Exclusions,
+		CatalogingOptions: appConfig.Search.ToConfig(),
+		AutoGenerateCPEs:  appConfig.AutoGenerateCPEs,
+		PackageType:       defaultPackageType,
+	}
 }
 
 func validateDBLoad(loadErr error, status *db.Status) error {
