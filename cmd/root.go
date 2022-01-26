@@ -297,31 +297,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			appConfig.Ignore = append(appConfig.Ignore, ignoreNonFixedMatches...)
 		}
 
-		if appConfig.Distro != "" {
-			log.Infof("using distro hint: %s", appConfig.Distro)
-			split := strings.Split(appConfig.Distro, ":")
-			d := split[0]
-			v := ""
-			if len(split) > 1 {
-				v = split[1]
-			}
-			context.Distro = &linux.Release{
-				PrettyName: d,
-				Name:       d,
-				ID:         d,
-				IDLike: []string{
-					d,
-				},
-				Version:   v,
-				VersionID: v,
-				HomeURL:   "",
-				CPEName:   "",
-			}
-		}
-
-		if context.Distro == nil {
-			log.Warnf("Unable to determine the OS distribution. Some matches will not occur. You may specify a distro hint using: --distro <distro>:<version>")
-		}
+		applyDistroHint(context)
 
 		allMatches := grype.FindVulnerabilitiesForPackage(provider, context.Distro, packages...)
 		remainingMatches, ignoredMatches := match.ApplyIgnoreRules(allMatches, appConfig.Ignore)
@@ -343,6 +319,35 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		})
 	}()
 	return errs
+}
+
+func applyDistroHint(context pkg.Context) {
+	if appConfig.Distro != "" {
+		log.Infof("using distro hint: %s", appConfig.Distro)
+
+		split := strings.Split(appConfig.Distro, ":")
+		d := split[0]
+		v := ""
+		if len(split) > 1 {
+			v = split[1]
+		}
+		context.Distro = &linux.Release{
+			PrettyName: d,
+			Name:       d,
+			ID:         d,
+			IDLike: []string{
+				d,
+			},
+			Version:   v,
+			VersionID: v,
+			HomeURL:   "",
+			CPEName:   "",
+		}
+	}
+
+	if context.Distro == nil {
+		log.Warnf("Unable to determine the OS distribution. Some matches will not occur. You may specify a distro hint using: --distro <distro>:<version>")
+	}
 }
 
 func getProviderConfig() pkg.ProviderConfig {

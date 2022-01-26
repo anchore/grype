@@ -1,8 +1,9 @@
 package apk
 
 import (
-	"github.com/anchore/grype/grype/search"
 	"testing"
+
+	"github.com/anchore/grype/grype/search"
 
 	"github.com/anchore/grype/grype/db"
 	grypeDB "github.com/anchore/grype/grype/db/v3"

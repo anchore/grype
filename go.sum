@@ -105,7 +105,6 @@ github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4/go.mod h1:ybxpYRF
 github.com/alexflint/go-filemutex v0.0.0-20171022225611-72bdc8eae2ae/go.mod h1:CgnQgUtFrFz9mxFNtED3jI5tLDjKlOM+oUF/sTk6ps0=
 github.com/alicebob/sqlittle v1.4.0 h1:vgYt0nAjhdf/hg52MjKJ84g/uTzBPfrvI+VUBrIghxA=
 github.com/alicebob/sqlittle v1.4.0/go.mod h1:Co1L1qxHqCwf41puWhk2HOodojR0mcsAV4BIt8byZh8=
-github.com/anchore/client-go v0.0.0-20210222170800-9c70f9b80bcf h1:DYssiUV1pBmKqzKsm4mqXx8artqC0Q8HgZsVI3lMsAg=
 github.com/anchore/client-go v0.0.0-20210222170800-9c70f9b80bcf/go.mod h1:FaODhIA06mxO1E6R32JE0TL1JWZZkmjRIAd4ULvHUKk=
 github.com/anchore/go-rpmdb v0.0.0-20210914181456-a9c52348da63 h1:C9W/LAydEz/qdUhx1MdjO9l8NEcFKYknkxDVyo9LAoM=
 github.com/anchore/go-rpmdb v0.0.0-20210914181456-a9c52348da63/go.mod h1:6qH8c6U/3CBVvDDDBZnPSTbTINq3cIdADUYTaVf75EM=
@@ -118,8 +117,6 @@ github.com/anchore/packageurl-go v0.0.0-20210922164639-b3fa992ebd29 h1:K9Lfnxwhq
 github.com/anchore/packageurl-go v0.0.0-20210922164639-b3fa992ebd29/go.mod h1:Oc1UkGaJwY6ND6vtAqPSlYrptKRJngHwkwB6W7l1uP0=
 github.com/anchore/stereoscope v0.0.0-20220110181730-c91cf94a3718 h1:46+DtmTaPlOCuY5KY3H6zazuz3+E/DSwc+ZpfPhyj50=
 github.com/anchore/stereoscope v0.0.0-20220110181730-c91cf94a3718/go.mod h1:OHhT0g7HQlELWJgZE80dJ0rCbMPIR+jIM8KNwN7ReKU=
-github.com/anchore/syft v0.36.1-0.20220126185202-2125e5400bc2 h1:hRXv67yF1sxH4LAY6Rn1Ne3SgYhGF+VN+yrkNFZR7Ns=
-github.com/anchore/syft v0.36.1-0.20220126185202-2125e5400bc2/go.mod h1:4MQzTDRfcRoGhysMofV4iIohIgx3dArF6aMxQNl8gaM=
 github.com/anchore/syft v0.36.1-0.20220126205108-a116e5cd5e29 h1:a96bIEooCN2a8bFbVH3EgZR6FZmqDlI8WVvq2w2B5co=
 github.com/anchore/syft v0.36.1-0.20220126205108-a116e5cd5e29/go.mod h1:4MQzTDRfcRoGhysMofV4iIohIgx3dArF6aMxQNl8gaM=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 h1:bvNMNQO63//z+xNgfBlViaCIJKLlCJ6/fmUseuG0wVQ=
@@ -128,7 +125,6 @@ github.com/andybalholm/brotli v1.0.1/go.mod h1:loMXtMfwqflxFJPmdbJO0a3KNoPuLBgiu
 github.com/andybalholm/brotli v1.0.4 h1:V7DdXeJtZscaqfNuAdSRuRFzuiKlHSC/Zh3zl9qY3JY=
 github.com/andybalholm/brotli v1.0.4/go.mod h1:fO7iG3H7G2nSZ7m0zPUDn85XEX2GTukHGRSepvi9Eig=
 github.com/andybalholm/cascadia v1.1.0/go.mod h1:GsXiBklL0woXo1j/WYWtSYYC4ouU9PqHO0sqidkEA4Y=
-github.com/antihax/optional v1.0.0 h1:xK2lYat7ZLaVVcIuj82J8kIro4V6kDe0AUDFboUCwcg=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
