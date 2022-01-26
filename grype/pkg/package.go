@@ -68,7 +68,7 @@ func FromCatalog(catalog *pkg.Catalog) []Package {
 
 // Stringer to represent a package.
 func (p Package) String() string {
-	return fmt.Sprintf("Pkg(type=%s, name=%s, version=%s)", p.Type, p.Name, p.Version)
+	return fmt.Sprintf("Pkg(type=%s, name=%s, version=%s, upstreams=%d)", p.Type, p.Name, p.Version, len(p.Upstreams))
 }
 
 func dataFromPkg(p pkg.Package) (MetadataType, interface{}, []UpstreamPackage) {

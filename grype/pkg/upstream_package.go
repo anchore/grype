@@ -34,7 +34,12 @@ func UpstreamPackages(p Package) <-chan Package {
 			// for each cpe, replace pkg name with origin and add to set
 			cpeStrings := strset.New()
 			for _, cpe := range tmp.CPEs {
+				if u.Version != "" {
+					cpe.Version = u.Version
+				}
+
 				updatedCPEString := strings.ReplaceAll(cpe.BindToFmtString(), p.Name, u.Name)
+
 				cpeStrings.Add(updatedCPEString)
 			}
 
