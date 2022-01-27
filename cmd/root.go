@@ -355,7 +355,7 @@ func getProviderConfig() pkg.ProviderConfig {
 		RegistryOptions:     appConfig.Registry.ToOptions(),
 		Exclusions:          appConfig.Exclusions,
 		CatalogingOptions:   appConfig.Search.ToConfig(),
-		GenerateMissingCPEs: appConfig.AutoGenerateCPEs,
+		GenerateMissingCPEs: appConfig.GenerateMissingCPEs,
 	}
 }
 
