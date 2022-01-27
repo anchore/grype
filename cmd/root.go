@@ -23,7 +23,6 @@ import (
 	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/syft/syft/linux"
-	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
 	"github.com/pkg/profile"
 	"github.com/spf13/cobra"
@@ -127,7 +126,7 @@ func setRootFlags(flags *pflag.FlagSet) {
 	)
 
 	flags.BoolP(
-		"auto-generate-cpes", "", false,
+		"generate-missing-cpes", "", false,
 		"automatically generate missing CPEs",
 	)
 
@@ -167,7 +166,7 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 		return err
 	}
 
-	if err := viper.BindPFlag("auto-generate-cpes", flags.Lookup("auto-generate-cpes")); err != nil {
+	if err := viper.BindPFlag("generate-missing-cpes", flags.Lookup("generate-missing-cpes")); err != nil {
 		return err
 	}
 
@@ -280,6 +279,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 		go func() {
 			defer wg.Done()
+			log.Debugf("gathering packages")
 			packages, context, err = pkg.Provide(userInput, getProviderConfig())
 			if err != nil {
 				errs <- fmt.Errorf("failed to catalog: %w", err)
@@ -351,15 +351,11 @@ func applyDistroHint(context pkg.Context) {
 }
 
 func getProviderConfig() pkg.ProviderConfig {
-	defaultPackageType := syftPkg.PackageTypeByName(strings.Split(appConfig.Distro, ":")[0])
-
-	log.Debugf("gathering packages")
 	return pkg.ProviderConfig{
-		RegistryOptions:   appConfig.Registry.ToOptions(),
-		Exclusions:        appConfig.Exclusions,
-		CatalogingOptions: appConfig.Search.ToConfig(),
-		AutoGenerateCPEs:  appConfig.AutoGenerateCPEs,
-		PackageType:       defaultPackageType,
+		RegistryOptions:     appConfig.Registry.ToOptions(),
+		Exclusions:          appConfig.Exclusions,
+		CatalogingOptions:   appConfig.Search.ToConfig(),
+		GenerateMissingCPEs: appConfig.AutoGenerateCPEs,
 	}
 }
 
