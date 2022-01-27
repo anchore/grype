@@ -99,22 +99,12 @@ func (c *controller) findMatches(provider vulnerability.Provider, release *linux
 		packagesProcessed.N++
 		log.Debugf("searching for vulnerability matches for pkg=%s", p)
 
-		dist := d
-		// try to find distro from the package
-		rel := linux.NewFromPURLDistro(p.PURL)
-		if rel != nil {
-			dist, _ = distro.NewFromRelease(*rel)
-			if dist == nil {
-				dist = d
-			}
-		}
-
 		matchers, ok := c.matchers[p.Type]
 		if !ok {
 			matchers = []Matcher{defaultMatcher}
 		}
 		for _, m := range matchers {
-			matches, err := m.Match(provider, dist, p)
+			matches, err := m.Match(provider, d, p)
 			if err != nil {
 				log.Warnf("matcher failed for pkg=%s: %+v", p, err)
 			} else {
