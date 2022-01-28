@@ -3,6 +3,7 @@ Identified distro as {{.Distro.Name}} version {{.Distro.Version}}.
     Vulnerability: {{.Vulnerability.ID}}
     Severity: {{.Vulnerability.Severity}}
     Package: {{.Artifact.Name}} version {{.Artifact.Version}} ({{.Artifact.Type}})
+    CPEs: {{ toJson .Artifact.CPEs }}
     {{- range .MatchDetails}}
     Matched by: {{.Matcher}}
     {{- end}}

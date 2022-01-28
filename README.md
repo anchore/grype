@@ -200,6 +200,8 @@ Which would produce output like:
 ...
 ```
 
+Grype also includes a vast array of utility templating functions from [sprig](http://masterminds.github.io/sprig/) apart from the default golang [text/template](https://pkg.go.dev/text/template#hdr-Functions) to allow users to customize the output from Grype.
+
 ### Gating on severity of vulnerabilities
 
 You can have Grype exit with an error if any vulnerabilities are reported at or above the specified severity level. This comes in handy when using Grype within a script or CI pipeline. To do this, use the `--fail-on <severity>` CLI flag.

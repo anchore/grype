@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"text/template"
 
+	"github.com/Masterminds/sprig/v3"
 	"github.com/mitchellh/go-homedir"
 
 	"github.com/anchore/grype/grype/presenter/models"
@@ -75,12 +76,14 @@ func (pres *Presenter) Present(output io.Writer) error {
 }
 
 // These are custom functions available to template authors.
-var funcMap = template.FuncMap{
-	"getLastIndex": func(collection interface{}) int {
+var funcMap = func() template.FuncMap {
+	f := sprig.HermeticTxtFuncMap()
+	f["getLastIndex"] = func(collection interface{}) int {
 		if v := reflect.ValueOf(collection); v.Kind() == reflect.Slice {
 			return v.Len() - 1
 		}
 
 		return 0
-	},
-}
+	}
+	return f
+}()

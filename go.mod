@@ -3,6 +3,7 @@ module github.com/anchore/grype
 go 1.16
 
 require (
+	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 	github.com/adrg/xdg v0.2.1
 	github.com/alicebob/sqlittle v1.4.0
@@ -23,10 +24,12 @@ require (
 	github.com/hashicorp/go-getter v1.5.9
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/go-version v1.2.0
+	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/jinzhu/copier v0.3.2
 	github.com/jinzhu/gorm v1.9.14
 	github.com/knqyf263/go-apk-version v0.0.0-20200609155635-041fdbb8563f
 	github.com/knqyf263/go-deb-version v0.0.0-20190517075300-09fca494f03d
+	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/olekukonko/tablewriter v0.0.4
