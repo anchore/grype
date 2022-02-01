@@ -9,14 +9,14 @@ require (
 	github.com/alicebob/sqlittle v1.4.0
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
-	github.com/anchore/stereoscope v0.0.0-20220110181730-c91cf94a3718
+	github.com/anchore/stereoscope v0.0.0-20220201190559-f162f1e96f45
 	github.com/anchore/syft v0.36.0
 	github.com/bmatcuk/doublestar/v2 v2.0.4
-	github.com/docker/docker v20.10.11+incompatible
+	github.com/docker/docker v20.10.12+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/facebookincubator/nvdtools v0.1.4
-	github.com/gabriel-vasile/mimetype v1.3.0
-	github.com/go-test/deep v1.0.7
+	github.com/gabriel-vasile/mimetype v1.4.0
+	github.com/go-test/deep v1.0.8
 	github.com/google/go-cmp v0.5.6
 	github.com/google/uuid v1.2.0
 	github.com/gookit/color v1.4.2
