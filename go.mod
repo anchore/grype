@@ -9,7 +9,7 @@ require (
 	github.com/alicebob/sqlittle v1.4.0
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
-	github.com/anchore/stereoscope v0.0.0-20220128220103-c30d664f2d82
+	github.com/anchore/stereoscope v0.0.0-20220201190559-f162f1e96f45
 	github.com/anchore/syft v0.36.0
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/docker/docker v20.10.12+incompatible
@@ -49,5 +49,3 @@ require (
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	gopkg.in/yaml.v2 v2.4.0
 )
-
-replace github.com/anchore/stereoscope => github.com/jonasagx/stereoscope v0.0.0-20220131221411-2844f306cc4c
