@@ -281,7 +281,18 @@ apk-tools  2.10.6-r0  2.10.7-r0  CVE-2021-36159  Critical
 
 ## Grype's database
 
-When Grype performs a scan for vulnerabilities, it does so using a vulnerability database that's stored on your local filesystem.
+When Grype performs a scan for vulnerabilities, it does so using a vulnerability database that's stored on your local filesystem, which is constructed by pulling data from a variety of publicly available vulnerability data sources. These sources include:
+
+- Alpine Linux SecDB: https://secdb.alpinelinux.org/
+- Amazon Linux ALAS: https://alas.aws.amazon.com/AL2/alas.rss
+- RedHat RHSAs: https://www.redhat.com/security/data/oval/
+- Debian Linux CVE Tracker: https://security-tracker.debian.org/tracker/data/json
+- Github GHSAs: https://github.com/advisories
+- National Vulnerability Database (NVD): https://nvd.nist.gov/vuln/data-feeds
+- Oracle Linux OVAL: https://linux.oracle.com/security/oval/
+- RedHat Linux Security Data: https://access.redhat.com/hydra/rest/securitydata/
+- Suse Linux OVAL: https://ftp.suse.com/pub/projects/security/oval/
+- Ubuntu Linux Security: https://people.canonical.com/~ubuntu-security/
 
 By default, Grype automatically manages this database for you. Grype checks for new updates to the vulnerability database to make sure that every scan uses up-to-date vulnerability information. This behavior is configurable. For more information, see the [Managing Grype's database](#managing-grypes-database) section.
 
