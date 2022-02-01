@@ -179,27 +179,52 @@ Grype lets you define custom output formats, using [Go templates](https://golang
 
 - Specify the path to the template file (`-t ./path/to/custom.template`).
 
-- Grype's template processing uses the same data models as the `json` output format — so if you're wondering what data is available as you author a template, you can use the output from `grype <image> -o json` as a reference.
 
-**Example:** You could make Grype output data in CSV format by writing a Go template that renders CSV data and then running `grype <image> -o template -t ~/path/to/csv.tmpl`.
+**Example:** Suppose you want Grype to output specific data columns, in CSV format.
 
-Here's what the `csv.tmpl` file might look like:
+(1) Grype's input template processing uses the same data models as found in the `json` output format Grype produces. So if you're wondering what data is available for you to use in a template, examine data objects found in the output file.
+
+```grype -o json SAMPLE.war  > SAMPLE.war.json```
+
+Looking inside `SAMPLE.war.json` you see a pattern of data objects similar to this:
+
+```
+    "matches": [
+        {
+        "vulnerability": { },
+        "relatedVulnerabilities": [ ],
+        "matchDetails": [ ],
+        "artifact": { },
+        },  ...   \\ "matches": is an Array containing a repeated matches, for each vulnerability found ...
+    ], 
+        "source": { },    
+        "distro": { },
+        "descriptor": { }
+```
+(2) Looking inside any of these JSON objects, you see nested values with Lower-case names. 
+(3) To use these any of these values in the Golang template, first change the name of the JSON value you want to use to be Upper-case. 
+Also, use the `.` to drill into a nested object. With these observations you can use any data identifiers you choose to reference in your template files. 
+For example: The Template expression `{{.Vulnerability.Fix.Versions}}` relates to the JSON object, ` "vulnerability": { "fix": { "versions": [ ] `
+More completely, here's what a custom `csv.tmpl` file might contain:
+
 ```gotemplate
-"Package","Version Installed","Vulnerability ID","Severity"
+"ARTIFACT:","VUL_SEV:","FIXED_STATE:","VERSION:","FIXED_VER:","PURL:","VULNERABILITY:","VUL_SOURCE:"
 {{- range .Matches}}
-"{{.Artifact.Name}}","{{.Artifact.Version}}","{{.Vulnerability.ID}}","{{.Vulnerability.Severity}}"
+"{{.Artifact.Name}}","{{.Vulnerability.Severity}}","{{.Vulnerability.Fix.State}}","'{{.Artifact.Version}}","{{.Vulnerability.Fix.Versions}}","{{.Artifact.PURL}}","{{.Vulnerability.ID}}","{{.Vulnerability.DataSource}}"
 {{- end}}
 ```
-
-Which would produce output like:
+(4) Finally, using your template file you can invoke Grype to produce the desired customized CSV output:  
+```grype SAMPLE.war -o template -t grype_csv.golang.tmpl```
 ```text
-"Package","Version Installed","Vulnerability ID","Severity"
-"coreutils","8.30-3ubuntu2","CVE-2016-2781","Low"
-"libc-bin","2.31-0ubuntu9","CVE-2016-10228","Negligible"
-"libc-bin","2.31-0ubuntu9","CVE-2020-6096","Low"
+ARTIFACT:,VUL_SEV:,FIXED_STATE:,VERSION:,FIXED_VER:,PURL:,VULNERABILITY:,VUL_SOURCE:
+db2jcc4,High,unknown,'4.19.49,[],,CVE-2012-3324,https://nvd.nist.gov/vuln/detail/CVE-2012-3324
+jackson-databind,Critical,fixed,'2.5.0,[2.7.9.5],pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.5.0,GHSA-4gq5-ch57-c2mg,https://github.com/advisories/GHSA-4gq5-ch57-c2mg
+jackson-databind,Critical,not-fixed,'2.5.0,[],pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.5.0,GHSA-gww7-p5w4-wrfv,https://github.com/advisories/GHSA-gww7-p5w4-wrfv
+jackson-databind,Critical,unknown,'2.5.0,[],pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.5.0,CVE-2018-7489,https://nvd.nist.gov/vuln/detail/CVE-2018-7489
+log4j,Critical,unknown,'1.2.16,[],pkg:maven/log4j/log4j@1.2.16,CVE-2019-17571,https://nvd.nist.gov/vuln/detail/CVE-2019-17571
+log4j-core,Critical,fixed,'2.10.0,[2.15.0],pkg:maven/org.apache.logging.log4j/log4j-core@2.10.0,GHSA-jfh8-c2jp-5v3q,https://github.com/advisories/GHSA-jfh8-c2jp-5v3q
 ...
 ```
-
 Grype also includes a vast array of utility templating functions from [sprig](http://masterminds.github.io/sprig/) apart from the default golang [text/template](https://pkg.go.dev/text/template#hdr-Functions) to allow users to customize the output from Grype.
 
 ### Gating on severity of vulnerabilities
@@ -281,18 +306,7 @@ apk-tools  2.10.6-r0  2.10.7-r0  CVE-2021-36159  Critical
 
 ## Grype's database
 
-When Grype performs a scan for vulnerabilities, it does so using a vulnerability database that's stored on your local filesystem, which is constructed by pulling data from a variety of publicly available vulnerability data sources. These sources include:
-
-- Alpine Linux SecDB: https://secdb.alpinelinux.org/
-- Amazon Linux ALAS: https://alas.aws.amazon.com/AL2/alas.rss
-- RedHat RHSAs: https://www.redhat.com/security/data/oval/
-- Debian Linux CVE Tracker: https://security-tracker.debian.org/tracker/data/json
-- Github GHSAs: https://github.com/advisories
-- National Vulnerability Database (NVD): https://nvd.nist.gov/vuln/data-feeds
-- Oracle Linux OVAL: https://linux.oracle.com/security/oval/
-- RedHat Linux Security Data: https://access.redhat.com/hydra/rest/securitydata/
-- Suse Linux OVAL: https://ftp.suse.com/pub/projects/security/oval/
-- Ubuntu Linux Security: https://people.canonical.com/~ubuntu-security/
+When Grype performs a scan for vulnerabilities, it does so using a vulnerability database that's stored on your local filesystem.
 
 By default, Grype automatically manages this database for you. Grype checks for new updates to the vulnerability database to make sure that every scan uses up-to-date vulnerability information. This behavior is configurable. For more information, see the [Managing Grype's database](#managing-grypes-database) section.
 
