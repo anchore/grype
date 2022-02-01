@@ -50,31 +50,6 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
-			name: "dpkg with source info in purl",
-			syftPkg: syftPkg.Package{
-				Type: syftPkg.DebPkg,
-				PURL: "pkg:deb/debian/p@v?upstream=source-info&distro=debian-11",
-			},
-			upstreams: []UpstreamPackage{
-				{
-					Name: "source-info",
-				},
-			},
-		},
-		{
-			name: "dpkg with source info in purl + version",
-			syftPkg: syftPkg.Package{
-				Type: syftPkg.DebPkg,
-				PURL: "pkg:deb/debian/p@v?upstream=source-info@2.3&distro=debian-11",
-			},
-			upstreams: []UpstreamPackage{
-				{
-					Name:    "source-info",
-					Version: "2.3",
-				},
-			},
-		},
-		{
 			name: "rpmdb with source info",
 			syftPkg: syftPkg.Package{
 				MetadataType: syftPkg.RpmdbMetadataType,
@@ -122,29 +97,6 @@ func TestNew(t *testing.T) {
 				Metadata: syftPkg.RpmdbMetadata{
 					SourceRpm: "sqlite-3.26.0-6.el8.src.rpm",
 				},
-			},
-		},
-		{
-			name: "rpmdb with source info in purl",
-			syftPkg: syftPkg.Package{
-				Type: syftPkg.RpmPkg,
-				PURL: "pkg:rpm/rhel/libcrypto@0.9.2-1?upstream=openssl-0.9.2-1.src.rpm&distro=rhel-8.4",
-			},
-			upstreams: []UpstreamPackage{
-				{
-					Name:    "openssl",
-					Version: "0.9.2-1",
-				},
-			},
-		},
-		{
-			name: "rpmdb with epoch in purl",
-			syftPkg: syftPkg.Package{
-				Type: syftPkg.RpmPkg,
-				PURL: "pkg:rpm/rhel/libcrypto@0.9.2-1?epoch=30&distro=rhel-8.4",
-			},
-			metadata: RpmdbMetadata{
-				Epoch: intRef(30),
 			},
 		},
 		{
@@ -205,18 +157,6 @@ func TestNew(t *testing.T) {
 			upstreams: []UpstreamPackage{
 				{
 					Name: "libcurl",
-				},
-			},
-		},
-		{
-			name: "apk with source info in purl",
-			syftPkg: syftPkg.Package{
-				Type: syftPkg.ApkPkg,
-				PURL: "pkg:alpine/p@v?arch=a&upstream=origin&distro=alpine-3.4.6",
-			},
-			upstreams: []UpstreamPackage{
-				{
-					Name: "origin",
 				},
 			},
 		},

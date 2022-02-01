@@ -159,7 +159,7 @@ func (m *Matcher) findApkPackage(store vulnerability.Provider, d *distro.Distro,
 func (m *Matcher) matchBySourceIndirection(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	var matches []match.Match
 
-	for indirectPackage := range pkg.UpstreamPackages(p) {
+	for _, indirectPackage := range pkg.UpstreamPackages(p) {
 		indirectMatches, err := m.findApkPackage(store, d, indirectPackage)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find vulnerabilities for apk upstream source package: %w", err)

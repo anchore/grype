@@ -3,8 +3,6 @@ package pkg
 import (
 	"fmt"
 	"regexp"
-	"strconv"
-	"strings"
 
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
@@ -93,49 +91,8 @@ func dataFromPkg(p pkg.Package) (MetadataType, interface{}, []UpstreamPackage) {
 		}
 	case pkg.ApkMetadataType:
 		upstreams = apkDataFromPkg(p)
-	case "":
-		// let's try to extract matching-specific information from additional sources other than syft json shapes.
-
-		// TODO: add java cases here
-		switch p.Type {
-		case pkg.ApkPkg:
-			upstreams = apkDataFromPURL(p.PURL)
-		case pkg.DebPkg:
-			upstreams = dpkgDataFromPURL(p.PURL)
-		case pkg.RpmPkg:
-			m, u := rpmdbDataFromPURL(p.PURL)
-			upstreams = u
-			if m != nil {
-				metadata = *m
-				metadataType = RpmdbMetadataType
-			}
-		}
 	}
 	return metadataType, metadata, upstreams
-}
-
-func dpkgDataFromPURL(p string) (upstreams []UpstreamPackage) {
-	qualifiers := getPURLQualifiers(p)
-	upstream := qualifiers[purlUpstreamQualifier]
-	if upstream == "" {
-		return nil
-	}
-
-	var sourceVersion string
-	src := upstream
-
-	fields := strings.SplitN(upstream, "@", 2)
-	if len(fields) > 1 {
-		src = fields[0]
-		sourceVersion = fields[1]
-	}
-
-	return []UpstreamPackage{
-		{
-			Name:    src,
-			Version: sourceVersion,
-		},
-	}
 }
 
 func dpkgDataFromPkg(p pkg.Package) (upstreams []UpstreamPackage) {
@@ -175,31 +132,6 @@ func rpmdbDataFromPkg(p pkg.Package) (metadata *RpmdbMetadata, upstreams []Upstr
 	return metadata, upstreams
 }
 
-func rpmdbDataFromPURL(p string) (meta *RpmdbMetadata, upstreams []UpstreamPackage) {
-	qualifiers := getPURLQualifiers(p)
-	upstream := qualifiers[purlUpstreamQualifier]
-	epoch := qualifiers[purlEpochQualifier]
-
-	if epoch != "" {
-		value, err := strconv.Atoi(epoch)
-		if err != nil {
-			log.Warnf("unable to parse RPM epoch=%q: %+v")
-		} else {
-			meta = &RpmdbMetadata{Epoch: &value}
-		}
-	}
-
-	if upstream != "" {
-		name, version := getNameAndELVersion(upstream)
-		upstreams = append(upstreams, UpstreamPackage{
-			Name:    name,
-			Version: version,
-		})
-	}
-
-	return meta, upstreams
-}
-
 func getNameAndELVersion(sourceRpm string) (string, string) {
 	groupMatches := internal.MatchCaptureGroups(rpmPackageNamePattern, sourceRpm)
 	version := groupMatches["version"] + "-" + groupMatches["release"]
@@ -229,17 +161,6 @@ func javaDataFromPkg(p pkg.Package) (metadata *JavaMetadata) {
 		log.Warnf("unable to extract Java metadata for %s", p)
 	}
 	return metadata
-}
-
-func apkDataFromPURL(p string) (upstreams []UpstreamPackage) {
-	qualifiers := getPURLQualifiers(p)
-	upstream := qualifiers[purlUpstreamQualifier]
-	if upstream != "" {
-		upstreams = append(upstreams, UpstreamPackage{
-			Name: upstream,
-		})
-	}
-	return upstreams
 }
 
 func apkDataFromPkg(p pkg.Package) (upstreams []UpstreamPackage) {

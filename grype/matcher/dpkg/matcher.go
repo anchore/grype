@@ -43,7 +43,7 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 func (m *Matcher) matchUpstreamPackages(store vulnerability.ProviderByDistro, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	var matches []match.Match
 
-	for indirectPackage := range pkg.UpstreamPackages(p) {
+	for _, indirectPackage := range pkg.UpstreamPackages(p) {
 		indirectMatches, err := search.ByPackageDistro(store, d, indirectPackage, m.Type())
 		if err != nil {
 			return nil, fmt.Errorf("failed to find vulnerabilities for dpkg upstream source package: %w", err)
