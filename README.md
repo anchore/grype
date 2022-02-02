@@ -203,9 +203,9 @@ Looking inside `SAMPLE.war.json` you see a pattern of data objects similar to th
 ```
 (2) Looking inside any of these JSON objects, you see nested values with Lower-case names. 
 (3) To use these any of these values in the Golang template, first change the name of the JSON value you want to use to be Upper-case. 
-* Also, use the `.` to drill into a nested object. With these observations you can use any data identifiers you choose to reference in your template files. 
-*For example: The Template expression `{{.Vulnerability.Fix.Versions}}` relates to the JSON object, ` "vulnerability": { "fix": { "versions": [ ] `
-More completely, here's what a custom `csv.tmpl` file might contain:
+Also, use the `.` to drill into a nested object. With these observations you can use any data identifiers you choose to reference in your template files. 
+For example: The Template expression `{{.Vulnerability.Fix.Versions}}` relates to the JSON object, ` "vulnerability": { "fix": { "versions": [ ] `
+More completely, here's what a custom `csv.tmpl` template file might contain:
 
 ```gotemplate
 "Artifact:","Severity:","Is Fixed:","Vulnerability:","Version:","Version Fixed:","Package URL:","Vulnerability Source:"
@@ -220,7 +220,7 @@ grype SAMPLE.war         -o template -t grype_csv.golang.tmpl >>  SAMPLE.grype.o
 ```
 To view the output in a Spreadsheet, you would use process like `File >> Import >> CSV file >> Delimited`
 This results in a Spreadsheet table that looks like this:
-```GFM
+```table
 | Artifact:             | Severity:  | Is Fixed: | Vulnerability:      | Version:                | Version Fixed:       | Package URL:                                                    | Vulnerability Source: | 
 | --------------------- | ---------- | --------- | ------------------- | ----------------------- | -------------------- | --------------------------------------------------------------- | --------------------- | 
 | curl                  | Medium     | fixed     | CVE-2021-22876      | '7.47.0-1ubuntu2.12     | [7.47.0-1ubuntu2.19] | pkg:deb/ubuntu/curl@7.47.0-1ubuntu2.12?arch=amd64               | http://people.ubuntu.com/~ubuntu-security/cve/CVE-2021-22876 | 
