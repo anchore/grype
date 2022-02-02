@@ -3,20 +3,20 @@ module github.com/anchore/grype
 go 1.16
 
 require (
+	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 	github.com/adrg/xdg v0.2.1
 	github.com/alicebob/sqlittle v1.4.0
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
-	github.com/anchore/stereoscope v0.0.0-20220110181730-c91cf94a3718
-	github.com/anchore/syft v0.36.1-0.20220127183523-cc18a37beb87
-	github.com/aws/aws-sdk-go v1.31.6 // indirect
+	github.com/anchore/stereoscope v0.0.0-20220201190559-f162f1e96f45
+	github.com/anchore/syft v0.36.0
 	github.com/bmatcuk/doublestar/v2 v2.0.4
-	github.com/docker/docker v20.10.11+incompatible
+	github.com/docker/docker v20.10.12+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/facebookincubator/nvdtools v0.1.4
-	github.com/gabriel-vasile/mimetype v1.3.0
-	github.com/go-test/deep v1.0.7
+	github.com/gabriel-vasile/mimetype v1.4.0
+	github.com/go-test/deep v1.0.8
 	github.com/google/go-cmp v0.5.6
 	github.com/google/uuid v1.2.0
 	github.com/gookit/color v1.4.2
@@ -24,10 +24,12 @@ require (
 	github.com/hashicorp/go-getter v1.5.9
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/go-version v1.2.0
+	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/jinzhu/copier v0.3.2
 	github.com/jinzhu/gorm v1.9.14
 	github.com/knqyf263/go-apk-version v0.0.0-20200609155635-041fdbb8563f
 	github.com/knqyf263/go-deb-version v0.0.0-20190517075300-09fca494f03d
+	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/olekukonko/tablewriter v0.0.4
