@@ -203,28 +203,35 @@ Looking inside `SAMPLE.war.json` you see a pattern of data objects similar to th
 ```
 (2) Looking inside any of these JSON objects, you see nested values with Lower-case names. 
 (3) To use these any of these values in the Golang template, first change the name of the JSON value you want to use to be Upper-case. 
-Also, use the `.` to drill into a nested object. With these observations you can use any data identifiers you choose to reference in your template files. 
-For example: The Template expression `{{.Vulnerability.Fix.Versions}}` relates to the JSON object, ` "vulnerability": { "fix": { "versions": [ ] `
+* Also, use the `.` to drill into a nested object. With these observations you can use any data identifiers you choose to reference in your template files. 
+*For example: The Template expression `{{.Vulnerability.Fix.Versions}}` relates to the JSON object, ` "vulnerability": { "fix": { "versions": [ ] `
 More completely, here's what a custom `csv.tmpl` file might contain:
 
 ```gotemplate
-"ARTIFACT:","VUL_SEV:","FIXED_STATE:","VERSION:","FIXED_VER:","PURL:","VULNERABILITY:","VUL_SOURCE:"
+"Artifact:","Severity:","Is Fixed:","Vulnerability:","Version:","Version Fixed:","Package URL:","Vulnerability Source:"
 {{- range .Matches}}
-"{{.Artifact.Name}}","{{.Vulnerability.Severity}}","{{.Vulnerability.Fix.State}}","'{{.Artifact.Version}}","{{.Vulnerability.Fix.Versions}}","{{.Artifact.PURL}}","{{.Vulnerability.ID}}","{{.Vulnerability.DataSource}}"
+"{{.Artifact.Name}}","{{.Vulnerability.Severity}}","{{.Vulnerability.Fix.State}}","{{.Vulnerability.ID}}","'{{.Artifact.Version}}","{{.Vulnerability.Fix.Versions}}","{{.Artifact.PURL}}","{{.Vulnerability.DataSource}}"
 {{- end}}
 ```
 (4) Finally, using your template file you can invoke Grype to produce the desired customized CSV output:  
-```grype SAMPLE.war -o template -t grype_csv.golang.tmpl```
-```text
-ARTIFACT:,VUL_SEV:,FIXED_STATE:,VERSION:,FIXED_VER:,PURL:,VULNERABILITY:,VUL_SOURCE:
-db2jcc4,High,unknown,'4.19.49,[],,CVE-2012-3324,https://nvd.nist.gov/vuln/detail/CVE-2012-3324
-jackson-databind,Critical,fixed,'2.5.0,[2.7.9.5],pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.5.0,GHSA-4gq5-ch57-c2mg,https://github.com/advisories/GHSA-4gq5-ch57-c2mg
-jackson-databind,Critical,not-fixed,'2.5.0,[],pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.5.0,GHSA-gww7-p5w4-wrfv,https://github.com/advisories/GHSA-gww7-p5w4-wrfv
-jackson-databind,Critical,unknown,'2.5.0,[],pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.5.0,CVE-2018-7489,https://nvd.nist.gov/vuln/detail/CVE-2018-7489
-log4j,Critical,unknown,'1.2.16,[],pkg:maven/log4j/log4j@1.2.16,CVE-2019-17571,https://nvd.nist.gov/vuln/detail/CVE-2019-17571
-log4j-core,Critical,fixed,'2.10.0,[2.15.0],pkg:maven/org.apache.logging.log4j/log4j-core@2.10.0,GHSA-jfh8-c2jp-5v3q,https://github.com/advisories/GHSA-jfh8-c2jp-5v3q
-...
 ```
+grype SAMPLE.docker.save -o template -t grype_csv.golang.tmpl >   SAMPLE.grype.output.csv
+grype SAMPLE.war         -o template -t grype_csv.golang.tmpl >>  SAMPLE.grype.output.csv
+```
+To view the output in a Spreadsheet, you would use process like `File >> Import >> CSV file >> Delimited`
+This results in a Spreadsheet table that looks like this:
+|Artifact:|Severity:|Is Fixed:|Vulnerability:|Version:|Version Fixed:|Package URL:|Vulnerability Source:|
+|curl|Medium|fixed|CVE-2021-22876|'7.47.0-1ubuntu2.12|[7.47.0-1ubuntu2.19]|pkg:deb/ubuntu/curl@7.47.0-1ubuntu2.12?arch=amd64|http://people.ubuntu.com/~ubuntu-security/cve/CVE-2021-22876|
+|geronimo-jta_1.1_spec|High|unknown|CVE-2011-5034|'1.1.1|[]|pkg:maven/org.apache.geronimo.specs/geronimo-jta_1.1_spec@1.1.1|https://nvd.nist.gov/vuln/detail/CVE-2011-5034|
+|hibernate-validator|High|fixed|GHSA-xxgp-pcfc-3vgc|'5.2.2.Final|[5.2.5]|pkg:maven/org.hibernate/hibernate-validator@5.2.2.Final|https://github.com/advisories/GHSA-xxgp-pcfc-3vgc|
+|jackson-databind|Critical|fixed|GHSA-4gq5-ch57-c2mg|'2.5.0|[2.7.9.5]|pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.5.0|https://github.com/advisories/GHSA-4gq5-ch57-c2mg|
+|libpython3.5|Medium|not-fixed|CVE-2021-4189|'3.5.2-2ubuntu0~16.04.5|[]|pkg:deb/ubuntu/libpython3.5@3.5.2-2ubuntu0~16.04.5?arch=amd64|http://people.ubuntu.com/~ubuntu-security/cve/CVE-2021-4189|
+|libsystemd0|High|fixed|CVE-2018-16864|'229-4ubuntu21.4|[229-4ubuntu21.15]|pkg:deb/ubuntu/libsystemd0@229-4ubuntu21.4?arch=amd64|http://people.ubuntu.com/~ubuntu-security/cve/CVE-2018-16864|
+|log4j|Critical|not-fixed|GHSA-2qrg-x229-3v8q|'1.2.16|[]|pkg:maven/log4j/log4j@1.2.16|https://github.com/advisories/GHSA-2qrg-x229-3v8q|
+|log4j|High|not-fixed|GHSA-fp5r-v3w9-4333|'1.2.16|[]|pkg:maven/log4j/log4j@1.2.16|https://github.com/advisories/GHSA-fp5r-v3w9-4333|
+|openssl|Negligible|not-fixed|CVE-2021-3601|'1.0.2g-1ubuntu4.14|[]|pkg:deb/ubuntu/openssl@1.0.2g-1ubuntu4.14?arch=amd64|http://people.ubuntu.com/~ubuntu-security/cve/CVE-2021-3601|
+
+
 Grype also includes a vast array of utility templating functions from [sprig](http://masterminds.github.io/sprig/) apart from the default golang [text/template](https://pkg.go.dev/text/template#hdr-Functions) to allow users to customize the output from Grype.
 
 ### Gating on severity of vulnerabilities
