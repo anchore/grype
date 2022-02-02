@@ -220,9 +220,9 @@ grype SAMPLE.war         -o template -t grype_csv.golang.tmpl >>  SAMPLE.grype.o
 ```
 To view the output in a Spreadsheet, you would use process like `File >> Import >> CSV file >> Delimited`
 This results in a Spreadsheet table that looks like this:
-```table
+```GFM
 | Artifact:             | Severity:  | Is Fixed: | Vulnerability:      | Version:                | Version Fixed:       | Package URL:                                                    | Vulnerability Source: | 
-| --------------------- | :--------- | -- -----: | :-----------------: | ----------------------- | -------------------- | --------------------------------------------------------------- | --------------------- | 
+| --------------------- | ---------- | --------- | ------------------- | ----------------------- | -------------------- | --------------------------------------------------------------- | --------------------- | 
 | curl                  | Medium     | fixed     | CVE-2021-22876      | '7.47.0-1ubuntu2.12     | [7.47.0-1ubuntu2.19] | pkg:deb/ubuntu/curl@7.47.0-1ubuntu2.12?arch=amd64               | http://people.ubuntu.com/~ubuntu-security/cve/CVE-2021-22876 | 
 | geronimo-jta_1.1_spec | High       | unknown   | CVE-2011-5034       | '1.1.1                  | []                   | pkg:maven/org.apache.geronimo.specs/geronimo-jta_1.1_spec@1.1.1 | https://nvd.nist.gov/vuln/detail/CVE-2011-5034 | 
 | hibernate-validator   | High       | fixed     | GHSA-xxgp-pcfc-3vgc | '5.2.2.Final            | [5.2.5]              | pkg:maven/org.hibernate/hibernate-validator@5.2.2.Final         | https://github.com/advisories/GHSA-xxgp-pcfc-3vgc | 
