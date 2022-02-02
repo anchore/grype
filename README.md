@@ -220,6 +220,7 @@ grype SAMPLE.war         -o template -t grype_csv.golang.tmpl >>  SAMPLE.grype.o
 ```
 To view the output in a Spreadsheet, you would use process like `File >> Import >> CSV file >> Delimited`
 This results in a Spreadsheet table that looks like this:
+```table
 | Artifact:             | Severity:  | Is Fixed: | Vulnerability:      | Version:                | Version Fixed:       | Package URL:                                                    | Vulnerability Source: | 
 | --------------------- | :--------- | -- -----: | :-----------------: | ----------------------- | -------------------- | --------------------------------------------------------------- | --------------------- | 
 | curl                  | Medium     | fixed     | CVE-2021-22876      | '7.47.0-1ubuntu2.12     | [7.47.0-1ubuntu2.19] | pkg:deb/ubuntu/curl@7.47.0-1ubuntu2.12?arch=amd64               | http://people.ubuntu.com/~ubuntu-security/cve/CVE-2021-22876 | 
@@ -231,6 +232,7 @@ This results in a Spreadsheet table that looks like this:
 | log4j                 | Critical   | not-fixed | GHSA-2qrg-x229-3v8q | '1.2.16                 | []                   | pkg:maven/log4j/log4j@1.2.16                                    | https://github.com/advisories/GHSA-2qrg-x229-3v8q | 
 | log4j                 | High       | not-fixed | GHSA-fp5r-v3w9-4333 | '1.2.16                 | []                   | pkg:maven/log4j/log4j@1.2.16                                    | https://github.com/advisories/GHSA-fp5r-v3w9-4333 | 
 | openssl               | Negligible | not-fixed | CVE-2021-3601       | '1.0.2g-1ubuntu4.14     | []                   | pkg:deb/ubuntu/openssl@1.0.2g-1ubuntu4.14?arch=amd64            | http://people.ubuntu.com/~ubuntu-security/cve/CVE-2021-3601 | 
+```
 
 
 Grype also includes a vast array of utility templating functions from [sprig](http://masterminds.github.io/sprig/) apart from the default golang [text/template](https://pkg.go.dev/text/template#hdr-Functions) to allow users to customize the output from Grype.
