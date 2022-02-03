@@ -218,7 +218,7 @@ More completely, here's what a custom `csv.tmpl` template file might contain:
 grype SAMPLE.docker.save -o template -t grype_csv.golang.tmpl >   SAMPLE.grype.output.csv
 grype SAMPLE.war         -o template -t grype_csv.golang.tmpl >>  SAMPLE.grype.output.csv
 ```
-To view the output in a Spreadsheet, you would use process like `File >> Import >> CSV file >> Delimited`.
+To view the output in a Spreadsheet, you would use a process like `File >> Import >> CSV file >> Delimited`.
 Importing this data, results in a Spreadsheet table that looks like this:
 ```table
 | Artifact:             | Severity:  | Is Fixed: | Vulnerability:      | Version:                | Version Fixed:       | Package URL:                                                    | Vulnerability Source: | 
