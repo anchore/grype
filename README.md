@@ -195,16 +195,16 @@ Looking inside `SAMPLE.war.json` you see a pattern of data objects similar to th
         "relatedVulnerabilities": [ ],
         "matchDetails": [ ],
         "artifact": { },
-        },  ...   \\ "matches": is an Array containing a repeated matches, for each vulnerability found ...
+        },  ...   \\ "matches": is an Array containing repeated matches, for each vulnerability found ...
     ], 
         "source": { },    
         "distro": { },
         "descriptor": { }
 ```
 (2) Looking inside any of these JSON objects, you see nested values with Lower-case names. 
-(3) To use these any of these values in the Golang template, first change the name of the JSON value you want to use to be Upper-case. 
+To use these any of these values in the Golang template, first change the name of the JSON value you want to use to be Upper-case. 
 Also, use the `.` to drill into a nested object. With these observations you can use any data identifiers you choose to reference in your template files. 
-For example: The Template expression `{{.Vulnerability.Fix.Versions}}` relates to the JSON object, ` "vulnerability": { "fix": { "versions": [ ] `
+For example: The Template expression `{{.Vulnerability.Fix.Versions}}` relates to the JSON object, ` "vulnerability": { "fix": { "versions": [ ] ` .
 More completely, here's what a custom `csv.tmpl` template file might contain:
 
 ```gotemplate
@@ -213,13 +213,13 @@ More completely, here's what a custom `csv.tmpl` template file might contain:
 "{{.Artifact.Name}}","{{.Vulnerability.Severity}}","{{.Vulnerability.Fix.State}}","{{.Vulnerability.ID}}","'{{.Artifact.Version}}","{{.Vulnerability.Fix.Versions}}","{{.Artifact.PURL}}","{{.Vulnerability.DataSource}}"
 {{- end}}
 ```
-(4) Finally, using your template file you can invoke Grype to produce the desired customized CSV output:  
+(3) Finally, using your template file you can invoke Grype to produce the desired customized CSV output:  
 ```
 grype SAMPLE.docker.save -o template -t grype_csv.golang.tmpl >   SAMPLE.grype.output.csv
 grype SAMPLE.war         -o template -t grype_csv.golang.tmpl >>  SAMPLE.grype.output.csv
 ```
-To view the output in a Spreadsheet, you would use process like `File >> Import >> CSV file >> Delimited`
-This results in a Spreadsheet table that looks like this:
+To view the output in a Spreadsheet, you would use process like `File >> Import >> CSV file >> Delimited`.
+Importing this data, results in a Spreadsheet table that looks like this:
 ```table
 | Artifact:             | Severity:  | Is Fixed: | Vulnerability:      | Version:                | Version Fixed:       | Package URL:                                                    | Vulnerability Source: | 
 | --------------------- | ---------- | --------- | ------------------- | ----------------------- | -------------------- | --------------------------------------------------------------- | --------------------- | 
