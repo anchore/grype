@@ -188,7 +188,7 @@ Grype lets you define custom output formats, using [Go templates](https://golang
 
 Looking inside `SAMPLE.war.json` you see a pattern of data objects similar to this:
 
-```
+```json-detailed
     "matches": [
         {
           "vulnerability"         : { },
