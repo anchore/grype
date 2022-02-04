@@ -191,20 +191,21 @@ Looking inside `SAMPLE.war.json` you see a pattern of data objects similar to th
 ```
     "matches": [
         {
-        "vulnerability": { },
-        "relatedVulnerabilities": [ ],
-        "matchDetails": [ ],
-        "artifact": { },
-        },  ...   \\ "matches": is an Array containing repeated matches, for each vulnerability found ...
+          "vulnerability"         : { },
+          "relatedVulnerabilities": [ ],
+          "matchDetails"          : [ ],
+          "artifact"              : { },
+        },  ...   // "matches": An Array containing the list of vulnerabilities found ...
     ], 
-        "source": { },    
-        "distro": { },
+        "source"    : { },    
+        "distro"    : { },
         "descriptor": { }
 ```
 (2) Looking inside any of these JSON objects, you see nested values with Lower-case names. 
 To use these any of these values in the Golang template, first change the name of the JSON value you want to use to be Upper-case. 
 Also, use the `.` to drill into a nested object. With these observations you can use any data identifiers you choose to reference in your template files. 
 For example: The Template expression `{{.Vulnerability.Fix.Versions}}` relates to the JSON object, ` "vulnerability": { "fix": { "versions": [ ] ` .
+The Template expression `{{- range .Matches}}` says to iterate across the JSON array, ` "matches": [ ` .
 More completely, here's what a custom `csv.tmpl` template file might contain:
 
 ```gotemplate
