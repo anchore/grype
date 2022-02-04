@@ -186,7 +186,7 @@ Refer to the section above [Basic Grype Vulnerability Data Shape](#basic-grype-v
 * More completely, below is what a custom `csv.tmpl` template file might contain:
 
 ```gotemplate
-"Artifact","Severity","Is Fixed","Vulnerability","Version","Version Fixed","Package URL","Vulnerability Source"
+"Artifact","Severity","Is Fixed","Vulnerability","Version","Version Fixed"
 {{- range .Matches}}
 "{{.Artifact.Name}}","{{.Vulnerability.Severity}}","{{.Vulnerability.Fix.State}}","{{.Vulnerability.ID}}","'{{.Artifact.Version}}","{{.Vulnerability.Fix.Versions}}"
 {{- end}}
