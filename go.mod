@@ -9,7 +9,7 @@ require (
 	github.com/alicebob/sqlittle v1.4.0
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
-	github.com/anchore/stereoscope v0.0.0-20220201190559-f162f1e96f45
+	github.com/anchore/stereoscope v0.0.0-20220209180455-403dd709a3fb
 	github.com/anchore/syft v0.36.0
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/docker/docker v20.10.12+incompatible
