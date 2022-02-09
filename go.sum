@@ -130,6 +130,10 @@ github.com/anchore/stereoscope v0.0.0-20220110181730-c91cf94a3718 h1:46+DtmTaPlO
 github.com/anchore/stereoscope v0.0.0-20220110181730-c91cf94a3718/go.mod h1:OHhT0g7HQlELWJgZE80dJ0rCbMPIR+jIM8KNwN7ReKU=
 github.com/anchore/syft v0.36.1-0.20220126161937-9f7104d4f194 h1:WlwDAT8AC3RDMpLvNgTOAnmFSZy/GDk/G0CAYZqKw+A=
 github.com/anchore/syft v0.36.1-0.20220126161937-9f7104d4f194/go.mod h1:qox7ntCZuKQ8mtHQoG40Waccjp2gZNJ6bYDrwgAkKp4=
+github.com/anchore/stereoscope v0.0.0-20220201190559-f162f1e96f45 h1:GYwI1qXcGh7fmyUWLK41suUXYfmrvGWWKGh0cw+k6ug=
+github.com/anchore/stereoscope v0.0.0-20220201190559-f162f1e96f45/go.mod h1:QpDHHV2h1NNfu7klzU75XC8RvSlaPK6HHgi0dy8A6sk=
+github.com/anchore/syft v0.37.11-0.20220209191120-76f8205936b2 h1:iqXZ72nqUf293HBxOhSn7JIhmCvoYMHbOtxdq3XuG3w=
+github.com/anchore/syft v0.37.11-0.20220209191120-76f8205936b2/go.mod h1:v45oVrOTnoSyJdmBRfQwl6Sf/HGqK2xCq7CrQd2ew5w=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 h1:bvNMNQO63//z+xNgfBlViaCIJKLlCJ6/fmUseuG0wVQ=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/brotli v1.0.1/go.mod h1:loMXtMfwqflxFJPmdbJO0a3KNoPuLBgiu3qAvBg8x/Y=
@@ -318,8 +322,9 @@ github.com/dgrijalva/jwt-go v0.0.0-20170104182250-a601269ab70c/go.mod h1:E3ru+11
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/dgryski/go-sip13 v0.0.0-20181026042036-e10d5fee7954/go.mod h1:vAd38F8PWV+bWy6jNmig1y/TA+kYO4g3RSRF0IAv0no=
 github.com/dnaeon/go-vcr v1.0.1/go.mod h1:aBB1+wY4s93YsC3HHjMBMrwTj2R9FHDzUr9KyGc8n1E=
-github.com/docker/cli v20.10.10+incompatible h1:kcbwdgWbrBOH8QwQzaJmyriHwF7XIl4HT1qh0HTRys4=
 github.com/docker/cli v20.10.10+incompatible/go.mod h1:JLrzqnKDaYBop7H2jaqPtU4hHvMKP+vjCwu2uszcLI8=
+github.com/docker/cli v20.10.12+incompatible h1:lZlz0uzG+GH+c0plStMUdF/qk3ppmgnswpR5EbqzVGA=
+github.com/docker/cli v20.10.12+incompatible/go.mod h1:JLrzqnKDaYBop7H2jaqPtU4hHvMKP+vjCwu2uszcLI8=
 github.com/docker/distribution v0.0.0-20190905152932-14b96e55d84c/go.mod h1:0+TTO4EOBfRPhZXAeF1Vu+W3hHZ8eLp8PgKVZlcvtFY=
 github.com/docker/distribution v2.7.1-0.20190205005809-0d3efadf0154+incompatible/go.mod h1:J2gT2udsDAN96Uj4KfcMRqY0/ypR+oyYUYmja8H+y+w=
 github.com/docker/distribution v2.7.1+incompatible h1:a5mlkVzth6W5A4fOsS3D2EO5BUmsJpcB+cRlLU7cSug=
