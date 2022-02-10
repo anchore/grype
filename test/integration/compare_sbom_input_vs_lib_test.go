@@ -2,6 +2,7 @@ package integration
 
 import (
 	"fmt"
+	"github.com/anchore/syft/syft/format"
 	"os"
 	"testing"
 
@@ -15,15 +16,20 @@ import (
 	"github.com/scylladb/go-set/strset"
 )
 
+var imagesWithVulnerabilities = []string{
+	"anchore/test_images:vulnerabilities-alpine",
+	"anchore/test_images:gems",
+	"anchore/test_images:vulnerabilities-debian",
+	"anchore/test_images:vulnerabilities-centos",
+	"anchore/test_images:npm",
+	"anchore/test_images:java",
+	"anchore/test_images:golang-56d52bc",
+}
+
 func TestCompareSBOMInputToLibResults(t *testing.T) {
-	images := []string{
-		"anchore/test_images:vulnerabilities-alpine",
-		"anchore/test_images:gems",
-		"anchore/test_images:vulnerabilities-debian",
-		"anchore/test_images:vulnerabilities-centos",
-		"anchore/test_images:npm",
-		"anchore/test_images:java",
-		"anchore/test_images:golang-56d52bc",
+	formats := []format.Option{
+		format.SPDXJSONOption,
+		format.SPDXTagValueOption,
 	}
 
 	// get a grype DB
@@ -43,46 +49,50 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		string(syftPkg.RustPkg),
 		string(syftPkg.KbPkg),
 		string(syftPkg.PhpComposerPkg),
+		string(syftPkg.JenkinsPluginPkg), // package type cannot be inferred for all formats
 	)
 	observedPkgTypes := strset.New()
 
-	for _, image := range images {
-		t.Run(image, func(t *testing.T) {
-			imageArchive := PullThroughImageCache(t, image)
-			imageSource := fmt.Sprintf("docker-archive:%s", imageArchive)
+	for _, image := range imagesWithVulnerabilities {
+		imageArchive := PullThroughImageCache(t, image)
+		imageSource := fmt.Sprintf("docker-archive:%s", imageArchive)
 
-			// get SBOM from syft, write to temp file
-			sbomBytes := getSyftSBOM(t, imageSource)
-			sbomFile, err := os.CreateTemp("", "")
-			assert.NoError(t, err)
-			t.Cleanup(func() {
-				assert.NoError(t, os.Remove(sbomFile.Name()))
+		for _, f := range formats {
+			t.Run(fmt.Sprintf("%s/%s", image, f), func(t *testing.T) {
+
+				// get SBOM from syft, write to temp file
+				sbomBytes := getSyftSBOM(t, imageSource, f)
+				sbomFile, err := os.CreateTemp("", "")
+				assert.NoError(t, err)
+				t.Cleanup(func() {
+					assert.NoError(t, os.Remove(sbomFile.Name()))
+				})
+				_, err = sbomFile.WriteString(sbomBytes)
+				assert.NoError(t, err)
+				assert.NoError(t, sbomFile.Close())
+
+				// get vulns (sbom)
+				matchesFromSbom, _, pkgsFromSbom, err := grype.FindVulnerabilities(vulnProvider, fmt.Sprintf("sbom:%s", sbomFile.Name()), source.SquashedScope, nil)
+				assert.NoError(t, err)
+
+				// get vulns (image)
+				matchesFromImage, _, _, err := grype.FindVulnerabilities(vulnProvider, imageSource, source.SquashedScope, nil)
+				assert.NoError(t, err)
+
+				// compare packages (shallow)
+				matchSetFromSbom := getMatchSet(matchesFromSbom)
+				matchSetFromImage := getMatchSet(matchesFromImage)
+
+				assert.Empty(t, strset.Difference(matchSetFromSbom, matchSetFromImage).List(), "vulnerabilities present only in results when using sbom as input")
+				assert.Empty(t, strset.Difference(matchSetFromImage, matchSetFromSbom).List(), "vulnerabilities present only in results when using image as input")
+
+				// track all covered package types (for use after the test)
+				for _, p := range pkgsFromSbom {
+					observedPkgTypes.Add(string(p.Type))
+				}
+
 			})
-			_, err = sbomFile.WriteString(sbomBytes)
-			assert.NoError(t, err)
-			assert.NoError(t, sbomFile.Close())
-
-			// get vulns (sbom)
-			matchesFromSbom, _, pkgsFromSbom, err := grype.FindVulnerabilities(vulnProvider, fmt.Sprintf("sbom:%s", sbomFile.Name()), source.SquashedScope, nil)
-			assert.NoError(t, err)
-
-			// get vulns (image)
-			matchesFromImage, _, _, err := grype.FindVulnerabilities(vulnProvider, imageSource, source.SquashedScope, nil)
-			assert.NoError(t, err)
-
-			// compare packages (shallow)
-			matchSetFromSbom := getMatchSet(matchesFromSbom)
-			matchSetFromImage := getMatchSet(matchesFromImage)
-
-			assert.Empty(t, strset.Difference(matchSetFromSbom, matchSetFromImage).List(), "vulnerabilities present only in results when using sbom as input")
-			assert.Empty(t, strset.Difference(matchSetFromImage, matchSetFromSbom).List(), "vulnerabilities present only in results when using image as input")
-
-			// track all covered package types (for use after the test)
-			for _, p := range pkgsFromSbom {
-				observedPkgTypes.Add(string(p.Type))
-			}
-
-		})
+		}
 	}
 
 	// ensure we've covered all package types (-rust, -kb)
