@@ -1,14 +1,15 @@
 {
  "artifacts": [
   {
+   "id": "8039c8621bcc1383",
    "name": "alpine-baselayout",
    "version": "3.2.0-r6",
-   "type": "rpm",
+   "type": "apk",
    "foundBy": "apkdb-cataloger",
    "locations": [
     {
      "path": "/lib/apk/db/installed",
-     "layerID": "sha256:93cf4cfb673c7e16a9e74f731d6767b70b92a0b7c9f59d06efd72fbff535371c"
+     "layerID": "sha256:8d3ac3489996423f53d6087c81180006263b79f206d3fdec9e66f0e27ceb8759"
     }
    ],
    "licenses": [
@@ -16,13 +17,11 @@
    ],
    "language": "",
    "cpes": [
-    "cpe:2.3:a:*:alpine-baselayout:3.2.0-r6:*:*:*:*:*:*:*",
-    "cpe:2.3:a:alpine-baselayout:alpine-baselayout:3.2.0-r6:*:*:*:*:*:*:*"
+    "cpe:2.3:a:alpine:alpine_baselayout:3.2.0-r6:*:*:*:*:*:*:*"
    ],
    "purl": "pkg:alpine/alpine-baselayout@3.2.0-r6?arch=x86_64",
-   "metadataType": "RpmdbMetadata",
+   "metadataType": "ApkMetadata",
    "metadata": {
-    "sourceRpm": "a-source.srpm",
     "package": "alpine-baselayout",
     "originPackage": "alpine-baselayout",
     "maintainer": "Natanael Copa <ncopa@alpinelinux.org>",
@@ -31,11 +30,11 @@
     "architecture": "x86_64",
     "url": "https://git.alpinelinux.org/cgit/aports/tree/main/alpine-baselayout",
     "description": "Alpine base dir structure and init scripts",
-    "size": 19917,
-    "installedSize": 409600,
+    "size": 21101,
+    "installedSize": 413696,
     "pullDependencies": "/bin/sh so:libc.musl-x86_64.so.1",
-    "pullChecksum": "Q1myMNfd7u5v5UTgNHeq1e31qTjZU=",
-    "gitCommitOfApkPort": "e1c51734fa96fa4bac92e9f14a474324c67916fc",
+    "pullChecksum": "Q1EymS6rAgmGs7XYhqdyEoiWgEZ6A=",
+    "gitCommitOfApkPort": "dfa1379357a321e638feef1cd8d55ab03d020f45",
     "files": [
      {
       "path": "/dev"
@@ -51,69 +50,114 @@
      },
      {
       "path": "/etc/fstab",
-      "checksum": "Q11Q7hNe8QpDS531guqCdrXBzoA/o="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q11Q7hNe8QpDS531guqCdrXBzoA/o="
+      }
      },
      {
       "path": "/etc/group",
-      "checksum": "Q1oJ16xWudgKOrXIEquEDzlF2Lsm4="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q13K+olJg5ayzHSVNUkggZJXuB+9Y="
+      }
      },
      {
       "path": "/etc/hostname",
-      "checksum": "Q16nVwYVXP/tChvUPdukVD2ifXOmc="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q16nVwYVXP/tChvUPdukVD2ifXOmc="
+      }
      },
      {
       "path": "/etc/hosts",
-      "checksum": "Q1BD6zJKZTRWyqGnPi4tSfd3krsMU="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q1BD6zJKZTRWyqGnPi4tSfd3krsMU="
+      }
      },
      {
       "path": "/etc/inittab",
-      "checksum": "Q1TsthbhW7QzWRe1E/NKwTOuD4pHc="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q1TsthbhW7QzWRe1E/NKwTOuD4pHc="
+      }
      },
      {
       "path": "/etc/modules",
-      "checksum": "Q1toogjUipHGcMgECgPJX64SwUT1M="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q1toogjUipHGcMgECgPJX64SwUT1M="
+      }
      },
      {
       "path": "/etc/motd",
-      "checksum": "Q1XmduVVNURHQ27TvYp1Lr5TMtFcA="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q1XmduVVNURHQ27TvYp1Lr5TMtFcA="
+      }
      },
      {
       "path": "/etc/mtab",
       "ownerUid": "0",
       "ownerGid": "0",
       "permissions": "777",
-      "checksum": "Q1kiljhXXH1LlQroHsEJIkPZg2eiw="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q1kiljhXXH1LlQroHsEJIkPZg2eiw="
+      }
      },
      {
       "path": "/etc/passwd",
-      "checksum": "Q1TchuuLUfur0izvfZQZxgN/LJhB8="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q1TchuuLUfur0izvfZQZxgN/LJhB8="
+      }
      },
      {
       "path": "/etc/profile",
-      "checksum": "Q1KpFb8kl5LvwXWlY3e58FNsjrI34="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q1VmHPWPjjvz4oCsbmYCUB4uWpSkc="
+      }
      },
      {
       "path": "/etc/protocols",
-      "checksum": "Q13FqXUnvuOpMDrH/6rehxuYAEE34="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q1omKlp3vgGq2ZqYzyD/KHNdo8rDc="
+      }
      },
      {
       "path": "/etc/services",
-      "checksum": "Q1C6HJNgQvLWqt5VY+n7MZJ1rsDuY="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q19WLCv5ItKg4MH7RWfNRh1I7byQc="
+      }
      },
      {
       "path": "/etc/shadow",
       "ownerUid": "0",
       "ownerGid": "42",
       "permissions": "640",
-      "checksum": "Q1ltrPIAW2zHeDiajsex2Bdmq3uqA="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q1ltrPIAW2zHeDiajsex2Bdmq3uqA="
+      }
      },
      {
       "path": "/etc/shells",
-      "checksum": "Q1ojm2YdpCJ6B/apGDaZ/Sdb2xJkA="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q1ojm2YdpCJ6B/apGDaZ/Sdb2xJkA="
+      }
      },
      {
       "path": "/etc/sysctl.conf",
-      "checksum": "Q14upz3tfnNxZkIEsUhWn7Xoiw96g="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q14upz3tfnNxZkIEsUhWn7Xoiw96g="
+      }
      },
      {
       "path": "/etc/apk"
@@ -129,7 +173,10 @@
       "ownerUid": "0",
       "ownerGid": "0",
       "permissions": "600",
-      "checksum": "Q1vfk1apUWI4yLJGhhNRd0kJixfvY="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q1vfk1apUWI4yLJGhhNRd0kJixfvY="
+      }
      },
      {
       "path": "/etc/init.d"
@@ -139,19 +186,31 @@
      },
      {
       "path": "/etc/modprobe.d/aliases.conf",
-      "checksum": "Q1WUbh6TBYNVK7e4Y+uUvLs/7viqk="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q1WUbh6TBYNVK7e4Y+uUvLs/7viqk="
+      }
      },
      {
       "path": "/etc/modprobe.d/blacklist.conf",
-      "checksum": "Q1xxYGU6S6TLQvb7ervPrWWwAWqMg="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q14TdgFHkTdt3uQC+NBtrntOnm9n4="
+      }
      },
      {
       "path": "/etc/modprobe.d/i386.conf",
-      "checksum": "Q1pnay/njn6ol9cCssL7KiZZ8etlc="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q1pnay/njn6ol9cCssL7KiZZ8etlc="
+      }
      },
      {
       "path": "/etc/modprobe.d/kms.conf",
-      "checksum": "Q1ynbLn3GYDpvajba/ldp1niayeog="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q1ynbLn3GYDpvajba/ldp1niayeog="
+      }
      },
      {
       "path": "/etc/modules-load.d"
@@ -196,12 +255,25 @@
       "path": "/etc/profile.d"
      },
      {
-      "path": "/etc/profile.d/color_prompt",
-      "checksum": "Q10wL23GuSCVfumMRgakabUI6EsSk="
+      "path": "/etc/profile.d/README",
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q135OWsCzzvnB2fmFx62kbqm1Ax1k="
+      }
      },
      {
-      "path": "/etc/profile.d/locale",
-      "checksum": "Q1R4bIEpnKxxOSrlnZy9AoawqZ5DU="
+      "path": "/etc/profile.d/color_prompt.sh.disabled",
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q10wL23GuSCVfumMRgakabUI6EsSk="
+      }
+     },
+     {
+      "path": "/etc/profile.d/locale.sh",
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q1S8j+WW71mWxfVy8ythqU7HUVoBw="
+      }
      },
      {
       "path": "/etc/sysctl.d"
@@ -226,7 +298,10 @@
      },
      {
       "path": "/lib/sysctl.d/00-alpine.conf",
-      "checksum": "Q1HpElzW1xEgmKfERtTy7oommnq6c="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q1HpElzW1xEgmKfERtTy7oommnq6c="
+      }
      },
      {
       "path": "/media"
@@ -266,7 +341,10 @@
       "ownerUid": "0",
       "ownerGid": "0",
       "permissions": "755",
-      "checksum": "Q1YeuSmC7iDbEWrusPzA/zUQF6YSg="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q1qjkdyRJcYblGC6RMqUR4Bdb5g10="
+      }
      },
      {
       "path": "/srv"
@@ -321,7 +399,10 @@
       "ownerUid": "0",
       "ownerGid": "0",
       "permissions": "777",
-      "checksum": "Q11/SNZz/8cK2dSKK+cJpVrZIuF4Q="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q11/SNZz/8cK2dSKK+cJpVrZIuF4Q="
+      }
      },
      {
       "path": "/var/cache"
@@ -367,7 +448,10 @@
       "ownerUid": "0",
       "ownerGid": "0",
       "permissions": "777",
-      "checksum": "Q1dzbdazYZA2nTzSIG3YyNw7d4Juc="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q1dzbdazYZA2nTzSIG3YyNw7d4Juc="
+      }
      },
      {
       "path": "/var/spool/cron"
@@ -377,7 +461,10 @@
       "ownerUid": "0",
       "ownerGid": "0",
       "permissions": "777",
-      "checksum": "Q1OFZt+ZMp7j0Gny0rqSKuWJyqYmA="
+      "digest": {
+       "algorithm": "sha1",
+       "value": "Q1OFZt+ZMp7j0Gny0rqSKuWJyqYmA="
+      }
      },
      {
       "path": "/var/tmp",
@@ -390,9 +477,9 @@
   },
   {
    "name": "fake",
-   "version": "1.2.0-r0",
+   "version": "1.2.0",
    "type": "dpkg",
-   "foundBy": "apkdb-cataloger",
+   "foundBy": "dpkg-cataloger",
    "locations": [
     {
      "path": "/lib/apk/db/installed",
@@ -404,20 +491,21 @@
    ],
    "language": "lang",
    "cpes": [
-    "cpe:2.3:a:*:gmp:6.2.0-r0:*:*:*:*:*:*:*",
-    "cpe:2.3:a:gmp:gmp:6.2.0-r0:*:*:*:*:*:*:*"
+    "cpe:2.3:a:*:fake:1.2.0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:fake:fake:1.2.0:*:*:*:*:*:*:*"
    ],
-   "purl": "pkg:alpine/gmp@6.2.0-r0?arch=x86_64",
+   "purl": "pkg:deb/debian/fake@1.2.0?arch=x86_64",
    "metadataType": "DpkgMetadata",
    "metadata": {
-    "source": "a-source"
+    "source": "a-source",
+    "sourceVersion": "1.4.5"
    }
   },
   {
    "name": "gmp",
    "version": "6.2.0-r0",
    "type": "java-archive",
-   "foundBy": "apkdb-cataloger",
+   "foundBy": "java-cataloger",
    "locations": [
     {
      "path": "/lib/apk/db/installed",
@@ -443,42 +531,7 @@
      "main": {
       "Name": "a-name"
      }
-    },
-    "package": "gmp",
-    "originPackage": "gmp",
-    "maintainer": "Natanael Copa <ncopa@alpinelinux.org>",
-    "version": "6.2.0-r0",
-    "license": "LGPL-3.0-or-later",
-    "architecture": "x86_64",
-    "url": "https://gmplib.org/",
-    "description": "A free library for arbitrary precision arithmetic",
-    "size": 220040,
-    "installedSize": 430080,
-    "pullDependencies": "so:libc.musl-x86_64.so.1",
-    "pullChecksum": "Q1IdUBW9Q7DiKxqItRI93JTPsylgg=",
-    "gitCommitOfApkPort": "238b6bccbab3b844079fa109d5cee096b81756d3",
-    "files": [
-     {
-      "path": "/usr"
-     },
-     {
-      "path": "/usr/lib"
-     },
-     {
-      "path": "/usr/lib/libgmp.so.10",
-      "ownerUid": "0",
-      "ownerGid": "0",
-      "permissions": "777",
-      "checksum": "Q15mdJR0bVgCzxA6EspemNzt2PxJ0="
-     },
-     {
-      "path": "/usr/lib/libgmp.so.10.4.0",
-      "ownerUid": "0",
-      "ownerGid": "0",
-      "permissions": "755",
-      "checksum": "Q1hT4sjrKisl0oLyq41UhDM+5q2Z4="
-     }
-    ]
+    }
    }
   }
  ],

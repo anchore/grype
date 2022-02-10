@@ -9,7 +9,6 @@ import (
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
-	"github.com/jinzhu/copier"
 )
 
 type Matcher struct {
@@ -26,7 +25,7 @@ func (m *Matcher) Type() match.MatcherType {
 func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	matches := make([]match.Match, 0)
 
-	sourceMatches, err := m.matchBySourceIndirection(store, d, p)
+	sourceMatches, err := m.matchUpstreamPackages(store, d, p)
 	if err != nil {
 		return nil, fmt.Errorf("failed to match by source indirection: %w", err)
 	}
@@ -41,31 +40,15 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 	return matches, nil
 }
 
-func (m *Matcher) matchBySourceIndirection(store vulnerability.ProviderByDistro, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
-	metadata, ok := p.Metadata.(pkg.DpkgMetadata)
-	if !ok {
-		return nil, nil
-	}
+func (m *Matcher) matchUpstreamPackages(store vulnerability.ProviderByDistro, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
+	var matches []match.Match
 
-	// ignore packages without source indirection hints
-	if metadata.Source == "" {
-		return []match.Match{}, nil
-	}
-
-	// use source package name for exact package name matching
-	var indirectPackage pkg.Package
-
-	err := copier.Copy(&indirectPackage, p)
-	if err != nil {
-		return nil, fmt.Errorf("failed to copy package: %w", err)
-	}
-
-	// use the source package name
-	indirectPackage.Name = metadata.Source
-
-	matches, err := search.ByPackageDistro(store, d, indirectPackage, m.Type())
-	if err != nil {
-		return nil, fmt.Errorf("failed to find vulnerabilities by dpkg source indirection: %w", err)
+	for _, indirectPackage := range pkg.UpstreamPackages(p) {
+		indirectMatches, err := search.ByPackageDistro(store, d, indirectPackage, m.Type())
+		if err != nil {
+			return nil, fmt.Errorf("failed to find vulnerabilities for dpkg upstream source package: %w", err)
+		}
+		matches = append(matches, indirectMatches...)
 	}
 
 	// we want to make certain that we are tracking the match based on the package from the SBOM (not the indirect package)

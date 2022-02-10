@@ -11,14 +11,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNew_MetadataExtraction(t *testing.T) {
+func TestNew(t *testing.T) {
 	tests := []struct {
-		name     string
-		syftPkg  syftPkg.Package
-		metadata interface{}
+		name      string
+		syftPkg   syftPkg.Package
+		metadata  interface{}
+		upstreams []UpstreamPackage
 	}{
 		{
-			name: "dpkg-metadata",
+			name: "dpkg with source info",
 			syftPkg: syftPkg.Package{
 				MetadataType: syftPkg.DpkgMetadataType,
 				Metadata: syftPkg.DpkgMetadata{
@@ -41,12 +42,15 @@ func TestNew_MetadataExtraction(t *testing.T) {
 					},
 				},
 			},
-			metadata: DpkgMetadata{
-				Source: "src-info",
+			upstreams: []UpstreamPackage{
+				{
+					Name:    "src-info",
+					Version: "src-version-info",
+				},
 			},
 		},
 		{
-			name: "rpmdb-metadata",
+			name: "rpmdb with source info",
 			syftPkg: syftPkg.Package{
 				MetadataType: syftPkg.RpmdbMetadataType,
 				Metadata: syftPkg.RpmdbMetadata{
@@ -55,7 +59,7 @@ func TestNew_MetadataExtraction(t *testing.T) {
 					Epoch:     intRef(30),
 					Arch:      "arch-info",
 					Release:   "release-info",
-					SourceRpm: "src-rpm-info",
+					SourceRpm: "sqlite-3.26.0-6.el8.src.rpm",
 					Size:      40,
 					License:   "license-info",
 					Vendor:    "vendor-info",
@@ -76,12 +80,27 @@ func TestNew_MetadataExtraction(t *testing.T) {
 				},
 			},
 			metadata: RpmdbMetadata{
-				SourceRpm: "src-rpm-info",
-				Epoch:     intRef(30),
+				Epoch: intRef(30),
+			},
+			upstreams: []UpstreamPackage{
+				{
+					Name:    "sqlite",
+					Version: "3.26.0-6.el8",
+				},
 			},
 		},
 		{
-			name: "java-metadata",
+			name: "rpmdb with source info that matches the package info",
+			syftPkg: syftPkg.Package{
+				Name:         "sqlite",
+				MetadataType: syftPkg.RpmdbMetadataType,
+				Metadata: syftPkg.RpmdbMetadata{
+					SourceRpm: "sqlite-3.26.0-6.el8.src.rpm",
+				},
+			},
+		},
+		{
+			name: "java pkg",
 			syftPkg: syftPkg.Package{
 				MetadataType: syftPkg.JavaMetadataType,
 				Metadata: syftPkg.JavaMetadata{
@@ -115,9 +134,8 @@ func TestNew_MetadataExtraction(t *testing.T) {
 				ManifestName:  "main-section-name-info",
 			},
 		},
-		// below cases we assert that there is no mapped metadata
 		{
-			name: "apk-metadata",
+			name: "apk with source info",
 			syftPkg: syftPkg.Package{
 				MetadataType: syftPkg.ApkMetadataType,
 				Metadata: syftPkg.ApkMetadata{
@@ -136,8 +154,13 @@ func TestNew_MetadataExtraction(t *testing.T) {
 					GitCommitOfAport: "a",
 				},
 			},
-			metadata: ApkMetadata{OriginPackage: "libcurl"},
+			upstreams: []UpstreamPackage{
+				{
+					Name: "libcurl",
+				},
+			},
 		},
+		// the below packages are those that have no metadata or upstream info to parse out
 		{
 			name: "npm-metadata",
 			syftPkg: syftPkg.Package{
@@ -149,7 +172,6 @@ func TestNew_MetadataExtraction(t *testing.T) {
 					URL:         "a",
 				},
 			},
-			metadata: nil,
 		},
 		{
 			name: "python-metadata",
@@ -165,7 +187,6 @@ func TestNew_MetadataExtraction(t *testing.T) {
 					SitePackagesRootPath: "a",
 				},
 			},
-			metadata: nil,
 		},
 		{
 			name: "gem-metadata",
@@ -177,7 +198,6 @@ func TestNew_MetadataExtraction(t *testing.T) {
 					Homepage: "a",
 				},
 			},
-			metadata: nil,
 		},
 		{
 			name: "kb-metadata",
@@ -188,7 +208,6 @@ func TestNew_MetadataExtraction(t *testing.T) {
 					Kb:        "a",
 				},
 			},
-			metadata: nil,
 		},
 		{
 			name: "rust-metadata",
@@ -201,7 +220,6 @@ func TestNew_MetadataExtraction(t *testing.T) {
 					Checksum: "a",
 				},
 			},
-			metadata: nil,
 		},
 		{
 			name: "golang-bin-metadata",
@@ -212,7 +230,6 @@ func TestNew_MetadataExtraction(t *testing.T) {
 					H1Digest:          "a",
 				},
 			},
-			metadata: nil,
 		},
 		{
 			name: "php-composer-metadata",
@@ -223,7 +240,6 @@ func TestNew_MetadataExtraction(t *testing.T) {
 					Version: "a",
 				},
 			},
-			metadata: nil,
 		},
 	}
 
@@ -237,8 +253,11 @@ func TestNew_MetadataExtraction(t *testing.T) {
 	observedMetadataTypes := set.NewStringSet()
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			observedMetadataTypes.Add(string(test.syftPkg.MetadataType))
-			assert.Equal(t, test.metadata, New(test.syftPkg).Metadata)
+			if string(test.syftPkg.MetadataType) != "" {
+				observedMetadataTypes.Add(string(test.syftPkg.MetadataType))
+			}
+			assert.Equal(t, test.metadata, New(test.syftPkg).Metadata, "unexpected metadata")
+			assert.Equal(t, test.upstreams, New(test.syftPkg).Upstreams, "unexpected upstream")
 		})
 	}
 
@@ -270,6 +289,41 @@ func TestFromCatalog_DoesNotPanic(t *testing.T) {
 	assert.NotPanics(t, func() {
 		_ = FromCatalog(catalog)
 	})
+}
+
+func Test_getNameAndELVersion(t *testing.T) {
+	tests := []struct {
+		name            string
+		sourceRPM       string
+		expectedName    string
+		expectedVersion string
+	}{
+		{
+			name:            "sqlite-3.26.0-6.el8.src.rpm",
+			sourceRPM:       "sqlite-3.26.0-6.el8.src.rpm",
+			expectedName:    "sqlite",
+			expectedVersion: "3.26.0-6.el8",
+		},
+		{
+			name:            "util-linux-ng-2.17.2-12.28.el6_9.src.rpm",
+			sourceRPM:       "util-linux-ng-2.17.2-12.28.el6_9.src.rpm",
+			expectedName:    "util-linux-ng",
+			expectedVersion: "2.17.2-12.28.el6_9",
+		},
+		{
+			name:            "util-linux-ng-2.17.2-12.28.el6_9.2.src.rpm",
+			sourceRPM:       "util-linux-ng-2.17.2-12.28.el6_9.2.src.rpm",
+			expectedName:    "util-linux-ng",
+			expectedVersion: "2.17.2-12.28.el6_9.2",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actualName, actualVersion := getNameAndELVersion(test.sourceRPM)
+			assert.Equal(t, test.expectedName, actualName)
+			assert.Equal(t, test.expectedVersion, actualVersion)
+		})
+	}
 }
 
 func intRef(i int) *int {

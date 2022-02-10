@@ -29,6 +29,6 @@ func assertFailingReturnCode(tb testing.TB, _, _ string, rc int) {
 func assertSucceedingReturnCode(tb testing.TB, _, _ string, rc int) {
 	tb.Helper()
 	if rc != 0 {
-		tb.Errorf("expected a failure but got rc=%d", rc)
+		tb.Errorf("expected to succeed but got rc=%d", rc)
 	}
 }

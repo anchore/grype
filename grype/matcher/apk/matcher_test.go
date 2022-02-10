@@ -487,11 +487,15 @@ func TestDistroMatchBySourceIndirection(t *testing.T) {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
 	p := pkg.Package{
-		ID:       pkg.ID(uuid.NewString()),
-		Name:     "musl-utils",
-		Version:  "1.3.2-r0",
-		Type:     syftPkg.ApkPkg,
-		Metadata: pkg.ApkMetadata{OriginPackage: "musl"},
+		ID:      pkg.ID(uuid.NewString()),
+		Name:    "musl-utils",
+		Version: "1.3.2-r0",
+		Type:    syftPkg.ApkPkg,
+		Upstreams: []pkg.UpstreamPackage{
+			{
+				Name: "musl",
+			},
+		},
 	}
 
 	vulnFound, err := vulnerability.NewVulnerability(secDbVuln)
@@ -567,7 +571,11 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 			must(syftPkg.NewCPE("cpe:2.3:a:musl-utils:musl-utils:*:*:*:*:*:*:*:*")),
 			must(syftPkg.NewCPE("cpe:2.3:a:musl-utils:musl-utils:*:*:*:*:*:*:*:*")),
 		},
-		Metadata: pkg.ApkMetadata{OriginPackage: "musl"},
+		Upstreams: []pkg.UpstreamPackage{
+			{
+				Name: "musl",
+			},
+		},
 	}
 
 	vulnFound, err := vulnerability.NewVulnerability(nvdVuln)

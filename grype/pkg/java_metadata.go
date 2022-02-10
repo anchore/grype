@@ -1,8 +1,8 @@
 package pkg
 
 type JavaMetadata struct {
-	VirtualPath   string
-	PomArtifactID string
-	PomGroupID    string
-	ManifestName  string
+	VirtualPath   string `json:"virtualPath"`
+	PomArtifactID string `json:"pomArtifactID"`
+	PomGroupID    string `json:"pomGroupID"`
+	ManifestName  string `json:"manifestName"`
 }

@@ -405,6 +405,31 @@ func Test_githubJavaPackageNamer(t *testing.T) {
 			},
 			expected: []string{},
 		},
+		{
+			name: "with valid purl",
+			namerInput: pkg.Package{
+				ID:   pkg.ID(uuid.NewString()),
+				Name: "a-name",
+				PURL: "pkg:maven/org.anchore/b-name@0.2",
+			},
+			expected: []string{"org.anchore:b-name"},
+		},
+		{
+			name: "ignore invalid pURLs",
+			namerInput: pkg.Package{
+				ID:   pkg.ID(uuid.NewString()),
+				Name: "a-name",
+				PURL: "pkg:BAD/",
+				Metadata: pkg.JavaMetadata{
+					VirtualPath:   "v-path",
+					PomArtifactID: "art-id",
+					PomGroupID:    "g-id",
+				},
+			},
+			expected: []string{
+				"g-id:art-id",
+			},
+		},
 	}
 
 	for _, test := range tests {

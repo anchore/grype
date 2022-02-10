@@ -7,6 +7,8 @@ import (
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/packageurl-go"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -113,6 +115,15 @@ func githubJavaPackageNamer(p pkg.Package) []string {
 			if metadata.ManifestName != "" {
 				names.Add(fmt.Sprintf("%s:%s", metadata.PomGroupID, metadata.ManifestName))
 			}
+		}
+	}
+
+	if p.PURL != "" {
+		purl, err := packageurl.FromString(p.PURL)
+		if err != nil {
+			log.Warnf("unable to extract GHSA java package information from purl=%q: %+v", p.PURL, err)
+		} else {
+			names.Add(fmt.Sprintf("%s:%s", purl.Namespace, purl.Name))
 		}
 	}
 

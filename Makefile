@@ -16,6 +16,8 @@ SUCCESS := $(BOLD)$(GREEN)
 # the quality gate lower threshold for unit test total % coverage (by function statements)
 COVERAGE_THRESHOLD := 47
 BOOTSTRAP_CACHE="c7afb99ad"
+INTEGRATION_CACHE_BUSTER="894d8ca"
+
 
 ## Build variables
 DISTDIR=./dist
@@ -152,7 +154,7 @@ integration: ## Run integration tests
 # note: this is used by CI to determine if the integration test fixture cache (docker image tars) should be busted
 .PHONY: integration-fingerprint
 integration-fingerprint:
-	find test/integration/*.go test/integration/test-fixtures/image-* -type f -exec md5sum {} + | awk '{print $1}' | sort | md5sum | tee test/integration/test-fixtures/cache.fingerprint
+	find test/integration/*.go test/integration/test-fixtures/image-* -type f -exec md5sum {} + | awk '{print $1}' | sort | tee /dev/stderr | md5sum | tee test/integration/test-fixtures/cache.fingerprint && echo "$(INTEGRATION_CACHE_BUSTER)" >> test/integration/test-fixtures/cache.fingerprint
 
 # note: this is used by CI to determine if the cli test fixture cache (docker image tars) should be busted
 .PHONY: cli-fingerprint

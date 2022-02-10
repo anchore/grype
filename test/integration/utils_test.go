@@ -61,7 +61,7 @@ func saveImage(t testing.TB, imageName string, destPath string) {
 	t.Logf("Stdout: %s\n", out)
 }
 
-func getSyftSBOM(t testing.TB, image string) string {
+func getSyftSBOM(t testing.TB, image string, formatOption format.Option) string {
 	src, cleanup, err := source.New(image, nil, nil)
 	if err != nil {
 		t.Fatalf("can't get the source: %+v", err)
@@ -81,7 +81,7 @@ func getSyftSBOM(t testing.TB, image string) string {
 		Source: src.Metadata,
 	}
 
-	bytes, err := syft.Encode(sbom, format.JSONOption)
+	bytes, err := syft.Encode(sbom, formatOption)
 	if err != nil {
 		t.Fatalf("presenter failed: %+v", err)
 	}
@@ -92,7 +92,7 @@ func getSyftSBOM(t testing.TB, image string) string {
 func getMatchSet(matches match.Matches) *strset.Set {
 	s := strset.New()
 	for _, m := range matches.Sorted() {
-		s.Add(fmt.Sprintf("%s-%s-%s-%s", m.Vulnerability.ID, m.Package.Name, m.Package.Version, string(m.Package.Type)))
+		s.Add(fmt.Sprintf("%s-%s-%s", m.Vulnerability.ID, m.Package.Name, m.Package.Version))
 	}
 	return s
 }
