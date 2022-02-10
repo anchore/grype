@@ -125,8 +125,8 @@ github.com/anchore/stereoscope v0.0.0-20220209160132-2e595043fa19/go.mod h1:QpDH
 github.com/anchore/stereoscope v0.0.0-20220209160132-2e595043fa19/go.mod h1:QpDHHV2h1NNfu7klzU75XC8RvSlaPK6HHgi0dy8A6sk=
 github.com/anchore/stereoscope v0.0.0-20220209180455-403dd709a3fb h1:yicFaC7dVBS4uYvU7sxsnEVi/2rndM0axZUgfhx+1qs=
 github.com/anchore/stereoscope v0.0.0-20220209180455-403dd709a3fb/go.mod h1:QpDHHV2h1NNfu7klzU75XC8RvSlaPK6HHgi0dy8A6sk=
-github.com/anchore/syft v0.37.11-0.20220210184638-ca032434b39f h1:l778WhJp0kKYxG8D9g9n5NkJBsT9qQNlQj1tucchWZQ=
-github.com/anchore/syft v0.37.11-0.20220210184638-ca032434b39f/go.mod h1:vjP8jxwgvL91DxhkoEH8GgEIUCumuPOuZuS/DWeYy0s=
+github.com/anchore/syft v0.37.11-0.20220210211800-220f3a24fdf5 h1:GLShI62a8Y5pW+SIWnwsoXC4szWIj98rzwzEurKem84=
+github.com/anchore/syft v0.37.11-0.20220210211800-220f3a24fdf5/go.mod h1:vjP8jxwgvL91DxhkoEH8GgEIUCumuPOuZuS/DWeYy0s=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 h1:bvNMNQO63//z+xNgfBlViaCIJKLlCJ6/fmUseuG0wVQ=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/brotli v1.0.1/go.mod h1:loMXtMfwqflxFJPmdbJO0a3KNoPuLBgiu3qAvBg8x/Y=

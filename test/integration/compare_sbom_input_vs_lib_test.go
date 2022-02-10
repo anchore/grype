@@ -28,6 +28,7 @@ var imagesWithVulnerabilities = []string{
 
 func TestCompareSBOMInputToLibResults(t *testing.T) {
 	formats := []format.Option{
+		format.JSONOption,
 		format.SPDXJSONOption,
 		format.SPDXTagValueOption,
 	}
