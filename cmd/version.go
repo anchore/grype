@@ -34,7 +34,7 @@ func printVersion(_ *cobra.Command, _ []string) error {
 		fmt.Println("Syft Version:        ", versionInfo.SyftVersion)
 		fmt.Println("BuildDate:           ", versionInfo.BuildDate)
 		fmt.Println("GitCommit:           ", versionInfo.GitCommit)
-		fmt.Println("GitTreeState:        ", versionInfo.GitTreeState)
+		fmt.Println("GitDescription:      ", versionInfo.GitDescription)
 		fmt.Println("Platform:            ", versionInfo.Platform)
 		fmt.Println("GoVersion:           ", versionInfo.GoVersion)
 		fmt.Println("Compiler:            ", versionInfo.Compiler)

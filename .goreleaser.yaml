@@ -1,26 +1,28 @@
 release:
-  # If set to auto, will mark the release as not ready for production
-  # in case there is an indicator for this in the tag e.g. v1.0.0-rc1
-  # If set to true, will mark the release as not ready for production.
   prerelease: auto
-
-  # If set to true, will not auto-publish the release. This is done to allow us to review the changelog before publishing.
   draft: true
 
+env:
+  # required to support multi architecture docker builds
+  - DOCKER_CLI_EXPERIMENTAL=enabled
+
+before:
+  hooks:
+    - ./.github/scripts/apple-signing/setup.sh {{ .IsSnapshot }}
+
 builds:
-  - binary: grype
-    id: grype
-    env:
-      - CGO_ENABLED=0
+  - id: linux-build
+    binary: grype
     goos:
       - linux
-      - windows
     goarch:
       - amd64
       - arm64
-    # Set the modified timestamp on the output binary to the git timestamp (to ensure a reproducible build)
-    mod_timestamp: '{{ .CommitTimestamp }}'
-    ldflags: |
+    # set the modified timestamp on the output binary to the git timestamp to ensure a reproducible build
+    mod_timestamp: &build-timestamp '{{ .CommitTimestamp }}'
+    env: &build-env
+      - CGO_ENABLED=0
+    ldflags: &build-ldflags |
       -w
       -s
       -extldflags '-static'
@@ -28,60 +30,47 @@ builds:
       -X github.com/anchore/grype/internal/version.syftVersion={{.Env.SYFT_VERSION}}
       -X github.com/anchore/grype/internal/version.gitCommit={{.Commit}}
       -X github.com/anchore/grype/internal/version.buildDate={{.Date}}
-      -X github.com/anchore/grype/internal/version.gitTreeState={{.Env.BUILD_GIT_TREE_STATE}}
+      -X github.com/anchore/grype/internal/version.gitDescription={{.Summary}}
 
-  # For more info on this macOS build, see: https://github.com/mitchellh/gon#usage-with-goreleaser
-  - binary: grype
-    id: grype-macos
-    env:
-      - CGO_ENABLED=0
+  - id: darwin-build
+    binary: grype
     goos:
       - darwin
     goarch:
       - amd64
       - arm64
-    # Set the modified timestamp on the output binary to the git timestamp (to ensure a reproducible build)
-    mod_timestamp: '{{ .CommitTimestamp }}'
-    ldflags: |
-      -w
-      -s
-      -extldflags '-static'
-      -X github.com/anchore/grype/internal/version.version={{.Version}}
-      -X github.com/anchore/grype/internal/version.syftVersion={{.Env.SYFT_VERSION}}
-      -X github.com/anchore/grype/internal/version.gitCommit={{.Commit}}
-      -X github.com/anchore/grype/internal/version.buildDate={{.Date}}
-      -X github.com/anchore/grype/internal/version.gitTreeState={{.Env.BUILD_GIT_TREE_STATE}}
+    mod_timestamp: *build-timestamp
+    env: *build-env
+    ldflags: *build-ldflags
+    hooks:
+      post:
+        # we must have signing as a build hook instead of the signs section. The signs section must register a new asset, where we want to replace an existing asset.
+        # a post-build hook has the advantage of not needing to unpackage and repackage a tar.gz with a signed binary
+        - ./.github/scripts/apple-signing/sign.sh "{{ .Path }}" "{{ .IsSnapshot }}" "{{ .Target }}"
+
+  - id: windows-build
+    binary: grype
+    goos:
+      - windows
+    goarch:
+      - amd64
+    mod_timestamp: *build-timestamp
+    env: *build-env
+    ldflags: *build-ldflags
 
 archives:
-  - name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
-    id: grype
-    format_overrides:
-    - goos: windows
-      format: zip
-
-  - format: zip # This is a hack for grype-macos! We don't actually intend to use _this_ ZIP file, we just need goreleaser to consider the ZIP file produced by gon (which will have the same file name) to be an artifact so we can use it downstream in publishing (e.g. to a homebrew tap)
-    id: grype-exception
+  - id: linux-archives
     builds:
-      - grype-macos
+      - linux-build
 
-signs:
-  - artifacts: checksum
-    cmd: sh
-    args:
-      - '-c'
-      # we should not include the zip artifact, as the artifact is mutated throughout the next macOS notarization step
-      # note: sed -i is not portable
-      - 'sed "/.*_darwin_.*\.zip/d" ${artifact} > tmpfile && mv tmpfile ${artifact} && gpg --output ${signature} --detach-sign ${artifact}'
-  - id: grype-macos-signing
-    ids:
-      - grype-macos
-    cmd: ./.github/scripts/mac-sign-and-notarize.sh
-    signature: "grype_${VERSION}_darwin_amd64.dmg" # This is somewhat unintuitive. This gets the DMG file recognized as an artifact. In fact, both a DMG and a ZIP file are being produced by this signing step.
-    args:
-      - "{{ .IsSnapshot }}"
-      - "gon.hcl"
-      - "./dist/grype_{{ .Version }}_darwin_amd64"
-    artifacts: all
+  - id: darwin-archives
+    builds:
+      - darwin-build
+
+  - id: windows-archives
+    format: zip
+    builds:
+      - windows-build
 
 nfpms:
   - license: "Apache 2.0"
@@ -97,19 +86,11 @@ brews:
       owner: anchore
       name: homebrew-grype
     ids:
-    - grype
-    install: |
-        bin.install "grype"
-
-        # Install bash completion
-        output = Utils.popen_read("#{bin}/grype completion bash")
-        (bash_completion/"grype").write output
-
-        # Install zsh completion
-        output = Utils.popen_read("#{bin}/grype completion zsh")
-        (zsh_completion/"_grype").write output
+      - darwin-archives
+      - linux-archives
     homepage: *website
     description: *description
+    license: "Apache License 2.0"
 
 dockers:
   - image_templates:
@@ -157,4 +138,3 @@ docker_manifests:
       - anchore/grype:{{ .Tag }}-arm64v8
       - anchore/grype:v{{ .Major }}-arm64v8
       - anchore/grype:v{{ .Major }}.{{ .Minor }}-arm64v8
-
