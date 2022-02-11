@@ -190,8 +190,7 @@ cli-fingerprint:
 
 .PHONY: cli
 cli: $(SNAPSHOTDIR) ## Run CLI tests
-	chmod 755 "$(SNAPSHOT_CMD)"
-	$(SNAPSHOT_CMD) version
+	chmod 755 "$(SNAPSHOT_BIN)"
 	GRYPE_BINARY_LOCATION='$(SNAPSHOT_BIN)' \
 		go test -count=1 -v ./test/cli
 
