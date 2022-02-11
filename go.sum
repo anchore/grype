@@ -128,7 +128,6 @@ github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4/go.mod h1:Bkc
 github.com/anchore/packageurl-go v0.0.0-20210922164639-b3fa992ebd29 h1:K9LfnxwhqvihqU0+MF325FNy7fsKV9EGaUxdfR4gnWk=
 github.com/anchore/packageurl-go v0.0.0-20210922164639-b3fa992ebd29/go.mod h1:Oc1UkGaJwY6ND6vtAqPSlYrptKRJngHwkwB6W7l1uP0=
 github.com/anchore/stereoscope v0.0.0-20220209160132-2e595043fa19/go.mod h1:QpDHHV2h1NNfu7klzU75XC8RvSlaPK6HHgi0dy8A6sk=
-github.com/anchore/stereoscope v0.0.0-20220209160132-2e595043fa19/go.mod h1:QpDHHV2h1NNfu7klzU75XC8RvSlaPK6HHgi0dy8A6sk=
 github.com/anchore/stereoscope v0.0.0-20220209180455-403dd709a3fb h1:yicFaC7dVBS4uYvU7sxsnEVi/2rndM0axZUgfhx+1qs=
 github.com/anchore/stereoscope v0.0.0-20220209180455-403dd709a3fb/go.mod h1:QpDHHV2h1NNfu7klzU75XC8RvSlaPK6HHgi0dy8A6sk=
 github.com/anchore/syft v0.37.11-0.20220210211800-220f3a24fdf5 h1:GLShI62a8Y5pW+SIWnwsoXC4szWIj98rzwzEurKem84=
@@ -1046,11 +1045,16 @@ go.opentelemetry.io/otel/metric v0.26.0/go.mod h1:c6YL0fhRo4YVoNs6GoByzUgBp36hBL
 go.opentelemetry.io/otel/sdk v1.3.0/go.mod h1:rIo4suHNhQwBIPg9axF8V9CA72Wz2mKF1teNrup8yzs=
 go.opentelemetry.io/otel/trace v1.3.0/go.mod h1:c/VDhno8888bvQYmbYLqe41/Ldmr/KKunbvWM4/fEjk=
 go.opentelemetry.io/proto/otlp v0.7.0/go.mod h1:PqfVotwruBrMGOCsRd/89rSnXhoiJIqeYNgFYFoEGnI=
+go.opentelemetry.io/proto/otlp v0.7.0/go.mod h1:PqfVotwruBrMGOCsRd/89rSnXhoiJIqeYNgFYFoEGnI=
 go.uber.org/atomic v1.3.2/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
+go.uber.org/atomic v1.3.2/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
+go.uber.org/atomic v1.4.0/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
 go.uber.org/atomic v1.4.0/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
 go.uber.org/atomic v1.5.0/go.mod h1:sABNBOSYdrvTF6hTgEIbc7YasKWGhgEQZyfxyTvoXHQ=
 go.uber.org/atomic v1.6.0/go.mod h1:sABNBOSYdrvTF6hTgEIbc7YasKWGhgEQZyfxyTvoXHQ=
 go.uber.org/atomic v1.7.0/go.mod h1:fEN4uk6kAWBTFdckzkM89CLk9XfWZrxpCo0nPH17wJc=
+go.uber.org/atomic v1.7.0/go.mod h1:fEN4uk6kAWBTFdckzkM89CLk9XfWZrxpCo0nPH17wJc=
+go.uber.org/multierr v1.1.0/go.mod h1:wR5kodmAFQ0UK8QlbwjlSNy0Z68gJhDJUG5sjR94q/0=
 go.uber.org/multierr v1.1.0/go.mod h1:wR5kodmAFQ0UK8QlbwjlSNy0Z68gJhDJUG5sjR94q/0=
 go.uber.org/multierr v1.3.0/go.mod h1:VgVr7evmIr6uPjLBxg28wmKNXyqE9akIJ5XnfpiKl+4=
 go.uber.org/multierr v1.5.0/go.mod h1:FeouvMocqHpRaaGuG9EjoKcStLC43Zu/fmqdUMPcKYU=

@@ -1,0 +1,2 @@
+FROM ubuntu:20.04
+RUN apt update -y && apt install make python3 curl unzip -y
