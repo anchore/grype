@@ -142,10 +142,12 @@ jobs:
           AC_PASSWORD: ${{ secrets.ENG_CI_APPLE_ID_PASS }}
 
       - uses: anchore/sbom-action@v0
+        continue-on-error: true
         with:
           artifact-name: sbom.spdx.json
 
       - uses: 8398a7/action-slack@v3
+        continue-on-error: true
         with:
           status: ${{ job.status }}
           fields: repo,workflow,action,eventName
