@@ -6,6 +6,11 @@ PROJECT_NAME="grype"
 OWNER=anchore
 REPO="${PROJECT_NAME}"
 GITHUB_DOWNLOAD_PREFIX=https://github.com/${OWNER}/${REPO}/releases/download
+INSTALL_SH_BASE_URL=https://raw.githubusercontent.com/${OWNER}/${PROJECT_NAME}
+PROGRAM_ARGS=$@
+
+# do not change the name of this parameter (this must always be backwards compatible)
+DOWNLOAD_TAG_INSTALL_SCRIPT=${DOWNLOAD_TAG_INSTALL_SCRIPT:-true}
 
 #
 # usage [script-name]
@@ -607,7 +612,10 @@ install_asset() (
 main() (
   # parse arguments
 
+  # note: never change default install directory (this must always be backwards compatible)
   install_dir=${install_dir:-./bin}
+
+  # note: never change the program flags or arguments (this must always be backwards compatible)
   while getopts "b:dh?x" arg; do
     case "$arg" in
       b) install_dir="$OPTARG" ;;
@@ -644,20 +652,30 @@ main() (
       return 1
   fi
 
-  version=$(tag_to_version "${tag}")
-
-  download_dir=$(mktemp -d)
-  trap 'rm -rf -- "$download_dir"' EXIT
-
   # run the application
 
+  version=$(tag_to_version "${tag}")
   os=$(uname_os)
   arch=$(uname_arch)
   format=$(get_format_name "${os}" "${arch}" "tar.gz")
   binary=$(get_binary_name "${os}" "${arch}" "${PROJECT_NAME}")
   download_url="${GITHUB_DOWNLOAD_PREFIX}/${tag}"
 
+  # we always use the install.sh script that is associated with the tagged release. Why? the latest install.sh is not
+  # guaranteed to be able to install every version of the application. We use the DOWNLOAD_TAG_INSTALL_SCRIPT env var
+  # to indicate if we should continue processing with the existing script or to download the script from the given tag.
+  if [ "${DOWNLOAD_TAG_INSTALL_SCRIPT}" = "true" ]; then
+      export DOWNLOAD_TAG_INSTALL_SCRIPT=false
+      log_info "fetching release script for tag='${tag}'"
+      http_copy "${INSTALL_SH_BASE_URL}/${tag}/install.sh" "" | sh -s -- ${PROGRAM_ARGS}
+      exit $?
+  fi
+
   log_info "using release tag='${tag}' version='${version}' os='${os}' arch='${arch}'"
+
+  download_dir=$(mktemp -d)
+  trap 'rm -rf -- "$download_dir"' EXIT
+
   log_debug "downloading files into ${download_dir}"
 
   download_and_install_asset "${download_url}" "${download_dir}" "${install_dir}" "${PROJECT_NAME}" "${os}" "${arch}" "${version}" "${format}" "${binary}"
