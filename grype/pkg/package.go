@@ -57,7 +57,7 @@ func New(p pkg.Package) Package {
 	}
 }
 
-func FromCatalog(catalog *pkg.Catalog) []Package {
+func FromCatalog(catalog *pkg.Catalog, config ProviderConfig) []Package {
 	result := make([]Package, 0, catalog.PackageCount())
 	missingCPEs := false
 	for _, p := range catalog.Sorted() {
