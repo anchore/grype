@@ -61,18 +61,31 @@ func FromCatalog(catalog *pkg.Catalog, config ProviderConfig) []Package {
 	result := make([]Package, 0, catalog.PackageCount())
 	missingCPEs := false
 	for _, p := range catalog.Sorted() {
-		if len(p.CPEs) == 0 {
+		switch len(p.CPEs) {
+		case 0:
+			// For SPDX (or any format, really) we may have no CPEs
 			if config.GenerateMissingCPEs {
 				p.CPEs = cpe.Generate(p)
 			} else {
 				log.Debugf("No CPEs for package: %s", p)
 				missingCPEs = true
 			}
+		case 1:
+			// For CycloneDX we may only have a single CPE
+			generated := cpe.Generate(p)
+			if len(generated) != 1 || generated[0] != p.CPEs[0] {
+				if config.GenerateMissingCPEs {
+					p.CPEs = append(p.CPEs, generated...)
+				} else if len(generated) > 1 {
+					log.Debugf("Missing CPEs for package: %s", p)
+					missingCPEs = true
+				}
+			}
 		}
 		result = append(result, New(p))
 	}
 	if missingCPEs {
-		log.Warnf("Some package(s) are missing CPEs. You may autogenerate these using: --generate-missing-cpes")
+		log.Warnf("Some package(s) are missing CPEs. This may result in missing vulnerabilities. You may autogenerate these using: --generate-missing-cpes")
 	}
 	return result
 }
