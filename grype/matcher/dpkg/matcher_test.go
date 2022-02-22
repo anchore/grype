@@ -22,8 +22,10 @@ func TestMatcherDpkg_matchBySourceIndirection(t *testing.T) {
 		Name:    "neutron",
 		Version: "2014.1.3-6",
 		Type:    syftPkg.DebPkg,
-		Metadata: pkg.DpkgMetadata{
-			Source: "neutron-devel",
+		Upstreams: []pkg.UpstreamPackage{
+			{
+				Name: "neutron-devel",
+			},
 		},
 	}
 
@@ -33,7 +35,7 @@ func TestMatcherDpkg_matchBySourceIndirection(t *testing.T) {
 	}
 
 	store := newMockProvider()
-	actual, err := matcher.matchBySourceIndirection(store, d, p)
+	actual, err := matcher.matchUpstreamPackages(store, d, p)
 
 	assert.Len(t, actual, 2, "unexpected indirect matches count")
 

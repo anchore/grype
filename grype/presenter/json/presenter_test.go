@@ -36,11 +36,13 @@ func TestJsonImgsPresenter(t *testing.T) {
 		return syftSource.NewLocationFromImage("", *ref, img)
 	}
 
+	epoch := 2
+
 	var pkg1 = pkg.Package{
 		ID:      pkg.ID("package-1-id"),
 		Name:    "package-1",
 		Version: "1.1.1",
-		Type:    syftPkg.DebPkg,
+		Type:    syftPkg.RpmPkg,
 		Locations: []syftSource.Location{
 			getImageLocation("/somefile-1.txt"),
 		},
@@ -53,7 +55,14 @@ func TestJsonImgsPresenter(t *testing.T) {
 				Language: "python",
 			},
 		},
-		Metadata: pkg.DpkgMetadata{Source: "a source!"},
+		Upstreams: []pkg.UpstreamPackage{
+			{
+				Name:    "nothing",
+				Version: "3.2",
+			},
+		},
+		MetadataType: pkg.RpmdbMetadataType,
+		Metadata:     pkg.RpmdbMetadata{Epoch: &epoch},
 	}
 
 	var pkg2 = pkg.Package{
@@ -198,10 +207,6 @@ func TestJsonDirsPresenter(t *testing.T) {
 		FoundBy: "the-cataloger-1",
 		Locations: []syftSource.Location{
 			syftSource.NewLocation("/some/path/pkg1"),
-		},
-		MetadataType: syftPkg.DpkgMetadataType,
-		Metadata: syftPkg.DpkgMetadata{
-			Source: "a source!",
 		},
 	})
 

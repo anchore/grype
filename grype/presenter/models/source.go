@@ -15,9 +15,18 @@ type source struct {
 func newSource(src syftSource.Metadata) (source, error) {
 	switch src.Scheme {
 	case syftSource.ImageScheme:
+		metadata := src.ImageMetadata
+		// ensure that empty collections are not shown as null
+		if metadata.RepoDigests == nil {
+			metadata.RepoDigests = []string{}
+		}
+		if metadata.Tags == nil {
+			metadata.Tags = []string{}
+		}
+
 		return source{
 			Type:   "image",
-			Target: src.ImageMetadata,
+			Target: metadata,
 		}, nil
 	case syftSource.DirectoryScheme:
 		return source{
@@ -29,7 +38,13 @@ func newSource(src syftSource.Metadata) (source, error) {
 			Type:   "file",
 			Target: src.Path,
 		}, nil
+	case "":
+		// we may be showing results from a input source that does not support source information
+		return source{
+			Type:   "unknown",
+			Target: "unknown",
+		}, nil
 	default:
-		return source{}, fmt.Errorf("unsupported source: %T", src)
+		return source{}, fmt.Errorf("unsupported source: %q", src.Scheme)
 	}
 }

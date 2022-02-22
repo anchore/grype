@@ -59,8 +59,10 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 		Name:    "neutron",
 		Version: "2014.1.3-6",
 		Type:    syftPkg.DebPkg,
-		Metadata: pkg.DpkgMetadata{
-			Source: "neutron-devel",
+		Upstreams: []pkg.UpstreamPackage{
+			{
+				Name: "neutron-devel",
+			},
 		},
 	}
 
@@ -112,8 +114,10 @@ func TestFindMatchesByPackageDistroSles(t *testing.T) {
 		Name:    "sles_test_package",
 		Version: "2014.1.3-6",
 		Type:    syftPkg.RpmPkg,
-		Metadata: pkg.DpkgMetadata{
-			Source: "sles_test_package",
+		Upstreams: []pkg.UpstreamPackage{
+			{
+				Name: "sles_test_package",
+			},
 		},
 	}
 

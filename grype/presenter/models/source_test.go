@@ -33,6 +33,8 @@ func TestNewSource(t *testing.T) {
 					ID:             "def",
 					ManifestDigest: "abcdef",
 					Size:           100,
+					RepoDigests:    []string{},
+					Tags:           []string{},
 				},
 			},
 		},

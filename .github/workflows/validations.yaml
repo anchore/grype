@@ -5,7 +5,7 @@ on:
   pull_request:
 
 env:
-  GO_VERSION: "1.16.x"
+  GO_VERSION: "1.17.x"
 
 jobs:
 
@@ -199,8 +199,43 @@ jobs:
           name: artifacts
           path: snapshot
 
-      - name: Run Acceptance Tests (Linux)
-        run: make acceptance-linux
+      - name: Build key for image cache
+        run: make install-fingerprint
+
+      - name: Restore install.sh test image cache
+        id: install-test-image-cache
+        uses: actions/cache@v2.1.3
+        with:
+          path: ${{ github.workspace }}/test/install/cache
+          key: ${{ runner.os }}-install-test-image-cache-${{ hashFiles('test/install/cache.fingerprint') }}
+
+      - name: Load test image cache
+        if: steps.install-test-image-cache.outputs.cache-hit == 'true'
+        run: make install-test-cache-load
+
+      - name: Run install.sh tests (Linux)
+        run: make install-test
+
+      - name: (cache-miss) Create test image cache
+        if: steps.install-test-image-cache.outputs.cache-hit != 'true'
+        run: make install-test-cache-save
+
+  Acceptance-Mac:
+    # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
+    name: "Acceptance tests (Mac)"
+    needs: [Build-Snapshot-Artifacts]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: artifacts
+          path: snapshot
+
+      - name: Run install.sh tests (Mac)
+        run: make install-test-ci-mac
+
 
   Cli-Linux:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
