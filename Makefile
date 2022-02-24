@@ -9,6 +9,14 @@ RELEASE_CMD=$(TEMPDIR)/goreleaser release --rm-dist
 SNAPSHOT_CMD=$(RELEASE_CMD) --skip-publish --snapshot
 VERSION=$(shell git describe --dirty --always --tags)
 
+# https://reproducible-builds.org/docs/source-date-epoch/
+DATE_FMT = +%Y-%m-%dT%H:%M:%SZ
+ifdef SOURCE_DATE_EPOCH
+    BUILD_DATE ?= $(shell date -u -d "@$(SOURCE_DATE_EPOCH)" "$(DATE_FMT)" 2>/dev/null || date -u -r "$(SOURCE_DATE_EPOCH)" "$(DATE_FMT)" 2>/dev/null || date -u "$(DATE_FMT)")
+else
+    BUILD_DATE ?= $(shell date "$(DATE_FMT)")
+endif
+
 # formatting variables
 BOLD := $(shell tput -T linux bold)
 PURPLE := $(shell tput -T linux setaf 5)
@@ -206,6 +214,7 @@ $(SNAPSHOTDIR): ## Build snapshot release binaries and packages
 
 	# build release snapshots
 	bash -c "\
+		BUILD_DATE=$(BUILD_DATE) \
 		SKIP_SIGNING=true \
 		SYFT_VERSION=$(SYFT_VERSION)\
 			$(SNAPSHOT_CMD) --skip-sign --config $(TEMPDIR)/goreleaser.yaml"
@@ -222,7 +231,8 @@ snapshot-with-signing: ## Build snapshot release binaries and packages (with dum
 
 	# build release snapshots
 	bash -c "\
-		SYFT_VERSION=$(SYFT_VERSION)\
+		SYFT_VERSION=$(SYFT_VERSION) \
+		BUILD_DATE=$(BUILD_DATE) \
 			$(SNAPSHOT_CMD) --config $(TEMPDIR)/goreleaser.yaml || (cat .github/scripts/apple-signing/log/*.txt && false)"
 
 	# remove the keychain with the trusted self-signed cert automatically
@@ -265,6 +275,7 @@ release: clean-dist CHANGELOG.md  ## Build and publish final binaries and packag
 	# note: notarization cannot be done in parallel, thus --parallelism 1
 	bash -c "\
 		SYFT_VERSION=$(SYFT_VERSION)\
+		BUILD_DATE=$(BUILD_DATE) \
 			$(RELEASE_CMD) \
 				--config $(TEMPDIR)/goreleaser.yaml \
 				--parallelism 1 \
