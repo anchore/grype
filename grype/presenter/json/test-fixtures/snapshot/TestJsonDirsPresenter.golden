@@ -165,7 +165,7 @@
   "target": "/some/path"
  },
  "distro": {
-  "name": "",
+  "name": "centos",
   "version": "8.0",
   "idLike": [
    "rhel"
