@@ -24,5 +24,8 @@ LABEL org.opencontainers.image.revision=$VCS_REF
 LABEL org.opencontainers.image.vendor="Anchore, Inc."
 LABEL org.opencontainers.image.version=$BUILD_VERSION
 LABEL org.opencontainers.image.licenses="Apache-2.0"
+LABEL io.artifacthub.package.readme-url="https://raw.githubusercontent.com/anchore/grype/main/README.md"
+LABEL io.artifacthub.package.logo-url="https://user-images.githubusercontent.com/5199289/136855393-d0a9eef9-ccf1-4e2b-9d7c-7aad16a567e5.png"
+LABEL io.artifacthub.package.license="Apache-2.0"
 
 ENTRYPOINT ["/grype"]
