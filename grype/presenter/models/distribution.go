@@ -1,6 +1,8 @@
 package models
 
 import (
+	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/linux"
 )
 
@@ -12,14 +14,34 @@ type distribution struct {
 }
 
 // newDistribution creates a struct with the Linux distribution to be represented in JSON.
-func newDistribution(d *linux.Release) distribution {
-	if d == nil {
+func newDistribution(r *linux.Release) distribution {
+	if r == nil {
 		return distribution{}
 	}
 
-	return distribution{
-		Name:    d.Name,
-		Version: d.Version,
-		IDLike:  d.IDLike,
+	// attempt to use the strong distro type (like the matchers do)
+	d, err := distro.NewFromRelease(*r)
+	if err != nil {
+		log.Warnf("unable to determine linux distribution: %+v", err)
+
+		// as a fallback use the raw release information
+		return distribution{
+			Name:    r.ID,
+			Version: r.VersionID,
+			IDLike:  cleanIDLike(r.IDLike),
+		}
 	}
+
+	return distribution{
+		Name:    d.Name(),
+		Version: d.FullVersion(),
+		IDLike:  cleanIDLike(d.IDLike),
+	}
+}
+
+func cleanIDLike(idLike []string) []string {
+	if idLike == nil {
+		return make([]string, 0)
+	}
+	return idLike
 }
