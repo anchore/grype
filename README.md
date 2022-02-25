@@ -50,7 +50,7 @@ If you encounter an issue, please [let us know using the issue tracker](https://
 curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
 ```
 
-...or, you can specify a release version and destination directory for the installation:
+You can also choose another destination directory and release version for the installation. The destination directory doesn't need to be `/usr/local/bin`, it just needs to be a location found in the user's PATH and writable by the user that's installing Grype.
 
 ```
 curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b <DESTINATION_DIR> <RELEASE_VERSION>
