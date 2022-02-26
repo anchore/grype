@@ -3,13 +3,12 @@ package presenter
 import (
 	"io"
 
-	"github.com/anchore/grype/grype/presenter/template"
-
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/cyclonedx"
 	"github.com/anchore/grype/grype/presenter/json"
 	"github.com/anchore/grype/grype/presenter/table"
+	"github.com/anchore/grype/grype/presenter/template"
 	"github.com/anchore/grype/grype/vulnerability"
 )
 

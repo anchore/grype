@@ -7,15 +7,15 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/anchore/grype/grype/match"
-
 	"github.com/adrg/xdg"
-	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal"
 	"github.com/mitchellh/go-homedir"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
+
+	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal"
 )
 
 var ErrApplicationConfigNotFound = fmt.Errorf("application config not found")

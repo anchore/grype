@@ -5,14 +5,15 @@ import (
 	"flag"
 	"testing"
 
+	"github.com/go-test/deep"
+	"github.com/sergi/go-diff/diffmatchpatch"
+
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
-	"github.com/go-test/deep"
-	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for json presenters")

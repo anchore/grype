@@ -6,11 +6,12 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/olekukonko/tablewriter"
+
 	grypeDb "github.com/anchore/grype/grype/db/v3"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/olekukonko/tablewriter"
 )
 
 // Presenter is a generic struct for holding fields needed for reporting

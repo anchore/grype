@@ -7,9 +7,10 @@ import (
 	"path"
 	"time"
 
+	"github.com/spf13/afero"
+
 	"github.com/anchore/grype/internal/file"
 	"github.com/anchore/grype/internal/log"
-	"github.com/spf13/afero"
 )
 
 const MetadataFileName = "metadata.json"

@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/anchore/syft/syft/linux"
 	hashiVer "github.com/hashicorp/go-version"
+
+	"github.com/anchore/syft/syft/linux"
 )
 
 // Distro represents a Linux Distribution.

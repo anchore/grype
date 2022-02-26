@@ -15,13 +15,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anchore/grype/internal"
-	"github.com/anchore/grype/internal/file"
 	"github.com/gookit/color"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/wagoodman/go-progress"
+
+	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/file"
 )
 
 type testGetter struct {

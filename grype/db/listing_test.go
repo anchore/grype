@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anchore/go-version"
 	"github.com/go-test/deep"
 	"github.com/spf13/afero"
+
+	"github.com/anchore/go-version"
 )
 
 func mustUrl(u *url.URL, err error) *url.URL {

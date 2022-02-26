@@ -1,19 +1,20 @@
 package apk
 
 import (
-	"github.com/anchore/grype/grype/search"
 	"testing"
+
+	"github.com/go-test/deep"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/grype/grype/db"
 	grypeDB "github.com/anchore/grype/grype/db/v3"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
-	"github.com/go-test/deep"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 )
 
 func must(c syftPkg.CPE, e error) syftPkg.CPE {

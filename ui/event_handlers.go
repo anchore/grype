@@ -7,15 +7,16 @@ import (
 	"sync"
 	"time"
 
-	grypeEventParsers "github.com/anchore/grype/grype/event/parsers"
-	"github.com/anchore/grype/internal/ui/components"
-	syftUI "github.com/anchore/syft/ui"
 	"github.com/dustin/go-humanize"
 	"github.com/gookit/color"
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
 	"github.com/wagoodman/go-progress/format"
 	"github.com/wagoodman/jotframe/pkg/frame"
+
+	grypeEventParsers "github.com/anchore/grype/grype/event/parsers"
+	"github.com/anchore/grype/internal/ui/components"
+	syftUI "github.com/anchore/syft/ui"
 )
 
 const maxBarWidth = 50

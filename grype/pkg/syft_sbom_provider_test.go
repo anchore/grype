@@ -4,11 +4,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-test/deep"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
-	"github.com/go-test/deep"
-	"github.com/stretchr/testify/assert"
 )
 
 func must(c pkg.CPE, e error) pkg.CPE {

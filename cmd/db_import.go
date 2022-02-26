@@ -3,10 +3,10 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/anchore/grype/internal"
+	"github.com/spf13/cobra"
 
 	"github.com/anchore/grype/grype/db"
-	"github.com/spf13/cobra"
+	"github.com/anchore/grype/internal"
 )
 
 var dbImportCmd = &cobra.Command{

@@ -1,6 +1,9 @@
 package matcher
 
 import (
+	"github.com/wagoodman/go-partybus"
+	"github.com/wagoodman/go-progress"
+
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/match"
@@ -19,8 +22,6 @@ import (
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
-	"github.com/wagoodman/go-partybus"
-	"github.com/wagoodman/go-progress"
 )
 
 var controllerInstance controller

@@ -2,18 +2,18 @@ package integration
 
 import (
 	"fmt"
-	"github.com/anchore/syft/syft/format"
 	"os"
 	"testing"
+
+	"github.com/scylladb/go-set/strset"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/internal"
+	"github.com/anchore/syft/syft/format"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
-	"github.com/stretchr/testify/assert"
-
-	"github.com/scylladb/go-set/strset"
 )
 
 var imagesWithVulnerabilities = []string{

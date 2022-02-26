@@ -4,15 +4,12 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-
-	"github.com/anchore/syft/syft/source"
-
-	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/vulnerability"
-
 	"github.com/stretchr/testify/assert"
 
 	grypeDb "github.com/anchore/grype/grype/db/v3"
+	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/syft/syft/source"
 )
 
 var (

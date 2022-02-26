@@ -3,10 +3,10 @@ package models
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	syftSource "github.com/anchore/syft/syft/source"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNewSource(t *testing.T) {
