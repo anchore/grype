@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eu
 
-KEYCHAIN_NAME="syft-ephemeral-keychain"
+KEYCHAIN_NAME="grype-ephemeral-keychain"
 KEYCHAIN_PATH="$HOME/Library/Keychains/${KEYCHAIN_NAME}-db"
 
 # import_signing_certificate
