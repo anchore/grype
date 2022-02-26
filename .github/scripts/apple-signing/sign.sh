@@ -27,19 +27,23 @@ sign_binary() {
       return 0
   fi
 
+  set -x
+
   codesign \
     -s "$identity" \
     -f \
     --verbose=4 \
     --timestamp \
     --options runtime \
-      $exe_path
+      "$exe_path"
 
   if [ $? -ne 0 ]; then
       exit_with_error "signing failed"
   fi
 
   codesign --verify "$exe_path"  --verbose=4
+
+  set +x
 }
 
 
