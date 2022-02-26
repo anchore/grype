@@ -27,21 +27,21 @@ func ByCriteria(store vulnerability.Provider, d *distro.Distro, p pkg.Package, u
 		case ByCPE:
 			m, err := ByPackageCPE(store, p, upstreamMatcher)
 			if err != nil {
-				log.Debugf("could not match by package CPE: %v", err)
+				log.Warnf("could not match by package CPE (package=%+v): %v", p, err)
 				continue
 			}
 			matches = append(matches, m...)
 		case ByLanguage:
 			m, err := ByPackageLanguage(store, p, upstreamMatcher)
 			if err != nil {
-				log.Debugf("could not match by package language: %v", err)
+				log.Warnf("could not match by package language (package=%+v): %v", p, err)
 				continue
 			}
 			matches = append(matches, m...)
 		case ByDistro:
 			m, err := ByPackageDistro(store, d, p, upstreamMatcher)
 			if err != nil {
-				log.Debugf("could not match by package distro: %v", err)
+				log.Warnf("could not match by package distro (package=%+v): %v", p, err)
 				continue
 			}
 			matches = append(matches, m...)
