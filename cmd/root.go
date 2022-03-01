@@ -340,8 +340,6 @@ func applyDistroHint(context pkg.Context) {
 			},
 			Version:   v,
 			VersionID: v,
-			HomeURL:   "",
-			CPEName:   "",
 		}
 	}
 
