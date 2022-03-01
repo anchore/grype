@@ -126,8 +126,8 @@ func setRootFlags(flags *pflag.FlagSet) {
 	)
 
 	flags.BoolP(
-		"generate-missing-cpes", "", false,
-		"automatically generate missing CPEs",
+		"add-cpes-if-none", "", false,
+		"generate CPEs for packages with no CPE data",
 	)
 
 	flags.StringP("template", "t", "", "specify the path to a Go template file ("+
@@ -166,7 +166,7 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 		return err
 	}
 
-	if err := viper.BindPFlag("generate-missing-cpes", flags.Lookup("generate-missing-cpes")); err != nil {
+	if err := viper.BindPFlag("add-cpes-if-none", flags.Lookup("add-cpes-if-none")); err != nil {
 		return err
 	}
 
@@ -323,7 +323,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 func applyDistroHint(context pkg.Context) {
 	if appConfig.Distro != "" {
-		log.Infof("using distro hint: %s", appConfig.Distro)
+		log.Infof("using distro: %s", appConfig.Distro)
 
 		split := strings.Split(appConfig.Distro, ":")
 		d := split[0]
@@ -346,7 +346,7 @@ func applyDistroHint(context pkg.Context) {
 	}
 
 	if context.Distro == nil {
-		log.Warnf("Unable to determine the OS distribution. Some matches will not occur. You may specify a distro hint using: --distro <distro>:<version>")
+		log.Warnf("Unable to determine the OS distribution. This may result in missing vulnerabilities. You may specify a distro using: --distro <distro>:<version>")
 	}
 }
 

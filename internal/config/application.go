@@ -29,15 +29,15 @@ type parser interface {
 }
 
 type Application struct {
-	ConfigPath          string                  `yaml:",omitempty" json:"configPath"`                                                            // the location where the application config was read from (either from -c or discovered while loading)
-	Output              string                  `yaml:"output" json:"output" mapstructure:"output"`                                              // -o, the Presenter hint string to use for report formatting
-	File                string                  `yaml:"file" json:"file" mapstructure:"file"`                                                    // --file, the file to write report output to
-	Distro              string                  `yaml:"distro" json:"distro" mapstructure:"distro"`                                              // --distro, specify a distro to explicitly use
-	GenerateMissingCPEs bool                    `yaml:"generate-missing-cpes" json:"generate-missing-cpes" mapstructure:"generate-missing-cpes"` // --generate-missing-cpes, automatically generate CPEs if they are not present in import (e.g. from a 3rd party SPDX document)
-	OutputTemplateFile  string                  `yaml:"output-template-file" json:"output-template-file" mapstructure:"output-template-file"`    // -t, the template file to use for formatting the final report
-	Quiet               bool                    `yaml:"quiet" json:"quiet" mapstructure:"quiet"`                                                 // -q, indicates to not show any status output to stderr (ETUI or logging UI)
-	CheckForAppUpdate   bool                    `yaml:"check-for-app-update" json:"check-for-app-update" mapstructure:"check-for-app-update"`    // whether to check for an application update on start up or not
-	OnlyFixed           bool                    `yaml:"only-fixed" json:"only-fixed" mapstructure:"only-fixed"`                                  // only fail if detected vulns have a fix
+	ConfigPath          string                  `yaml:",omitempty" json:"configPath"`                                                         // the location where the application config was read from (either from -c or discovered while loading)
+	Output              string                  `yaml:"output" json:"output" mapstructure:"output"`                                           // -o, the Presenter hint string to use for report formatting
+	File                string                  `yaml:"file" json:"file" mapstructure:"file"`                                                 // --file, the file to write report output to
+	Distro              string                  `yaml:"distro" json:"distro" mapstructure:"distro"`                                           // --distro, specify a distro to explicitly use
+	GenerateMissingCPEs bool                    `yaml:"add-cpes-if-none" json:"add-cpes-if-none" mapstructure:"add-cpes-if-none"`             // --add-cpes-if-none, automatically generate CPEs if they are not present in import (e.g. from a 3rd party SPDX document)
+	OutputTemplateFile  string                  `yaml:"output-template-file" json:"output-template-file" mapstructure:"output-template-file"` // -t, the template file to use for formatting the final report
+	Quiet               bool                    `yaml:"quiet" json:"quiet" mapstructure:"quiet"`                                              // -q, indicates to not show any status output to stderr (ETUI or logging UI)
+	CheckForAppUpdate   bool                    `yaml:"check-for-app-update" json:"check-for-app-update" mapstructure:"check-for-app-update"` // whether to check for an application update on start up or not
+	OnlyFixed           bool                    `yaml:"only-fixed" json:"only-fixed" mapstructure:"only-fixed"`                               // only fail if detected vulns have a fix
 	CliOptions          CliOnlyOptions          `yaml:"-" json:"-"`
 	Search              search                  `yaml:"search" json:"search" mapstructure:"search"`
 	Ignore              []match.IgnoreRule      `yaml:"ignore" json:"ignore" mapstructure:"ignore"`
