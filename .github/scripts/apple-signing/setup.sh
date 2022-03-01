@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -eu
+set -eu -o pipefail
 
 IS_SNAPSHOT="$1"
 
@@ -9,6 +9,8 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 mkdir -p "$SCRIPT_DIR/log"
 
 main() {
+  # defines KEYCHAIN_NAME and KEYCHAIN_PATH
+  . "$SCRIPT_DIR"/setup-import-cert.sh
 
   case "$IS_SNAPSHOT" in
 
