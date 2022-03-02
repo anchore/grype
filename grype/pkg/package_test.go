@@ -298,7 +298,7 @@ func TestFromCatalog_GeneratesCPEs(t *testing.T) {
 		Name:    "first",
 		Version: "1",
 		CPEs: []syftPkg.CPE{
-			syftPkg.CPE{},
+			{},
 		},
 	})
 
