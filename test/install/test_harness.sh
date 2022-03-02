@@ -5,6 +5,14 @@ TEST_INSTALL_SH=true
 . ../../install.sh
 set -u
 
+echoerr() {
+  echo "$@" 1>&2
+}
+
+printferr() {
+  printf "%s" "$*" >&2
+}
+
 assertTrue() {
   if eval "$1"; then
     echo "assertTrue failed: $2"
@@ -93,16 +101,34 @@ setup_snapshot_server() {
   python3 -m http.server --directory "$(snapshot_dir)" $serve_port &> /dev/null &
   worker_pid=$!
 
-  # it takes some time for the server to be ready...
-  sleep 3
+  echoerr "serving up $(snapshot_dir) on port $serve_port"
+
+  echoerr "$(ls -1 $(snapshot_dir) | sed 's/^/  ▕―― /')"
+
+  check_snapshots_server_ready
+
+  echoerr "snapshot server ready! (worker=${worker_pid})"
 
   echo "$worker_pid"
 }
 
+check_snapshots_server_ready() {
+  i=0
+  until $(curl -m 3 --output /dev/null --silent --head --fail localhost:$serve_port/); do
+    sleep 1
+    ((i=i+1))
+    if [ "$i" -gt "30" ]; then
+      echoerr "could not connect to local snapshot server! bailing..."
+      exit 1
+    fi
+    printferr '.'
+  done
+}
+
 teardown_snapshot_server() {
   worker_pid="$1"
-
-  kill $worker_pid
+  echoerr "stopping worker=${worker_pid}"
+  kill "$worker_pid"
 }
 
 snapshot_version() {
