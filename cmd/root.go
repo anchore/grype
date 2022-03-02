@@ -297,7 +297,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			appConfig.Ignore = append(appConfig.Ignore, ignoreNonFixedMatches...)
 		}
 
-		applyDistroHint(context)
+		applyDistroHint(&context, appConfig)
 
 		allMatches := grype.FindVulnerabilitiesForPackage(provider, context.Distro, packages...)
 		remainingMatches, ignoredMatches := match.ApplyIgnoreRules(allMatches, appConfig.Ignore)
@@ -321,7 +321,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 	return errs
 }
 
-func applyDistroHint(context pkg.Context) {
+func applyDistroHint(context *pkg.Context, appConfig *config.Application) {
 	if appConfig.Distro != "" {
 		log.Infof("using distro: %s", appConfig.Distro)
 

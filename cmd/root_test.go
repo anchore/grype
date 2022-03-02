@@ -4,12 +4,14 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/grype/grype/db"
 	grypeDB "github.com/anchore/grype/grype/db/v3"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal/config"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -111,4 +113,36 @@ func TestAboveAllowableSeverity(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_applyDistroHint(t *testing.T) {
+	ctx := pkg.Context{}
+	cfg := config.Application{}
+
+	applyDistroHint(&ctx, &cfg)
+	assert.Nil(t, ctx.Distro)
+
+	// works when distro is nil
+	cfg.Distro = "alpine:3.10"
+	applyDistroHint(&ctx, &cfg)
+	assert.NotNil(t, ctx.Distro)
+
+	assert.Equal(t, "alpine", ctx.Distro.Name)
+	assert.Equal(t, "3.10", ctx.Distro.Version)
+
+	// does override an existing distro
+	cfg.Distro = "ubuntu:latest"
+	applyDistroHint(&ctx, &cfg)
+	assert.NotNil(t, ctx.Distro)
+
+	assert.Equal(t, "ubuntu", ctx.Distro.Name)
+	assert.Equal(t, "latest", ctx.Distro.Version)
+
+	// doesn't remove an existing distro when empty
+	cfg.Distro = ""
+	applyDistroHint(&ctx, &cfg)
+	assert.NotNil(t, ctx.Distro)
+
+	assert.Equal(t, "ubuntu", ctx.Distro.Name)
+	assert.Equal(t, "latest", ctx.Distro.Version)
 }
