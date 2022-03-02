@@ -7,10 +7,10 @@ name: "CodeQL Security Scan"
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [main]
+    branches:
+      # only run when there are pushes to the main branch (not on PRs)
+      - main
+
   schedule:
     - cron: '0 14 * * 4'
 
