@@ -3,9 +3,9 @@ package cpe
 import (
 	"testing"
 
-	"github.com/anchore/syft/syft/pkg"
-
 	"github.com/sergi/go-diff/diffmatchpatch"
+
+	"github.com/anchore/syft/syft/pkg"
 )
 
 func must(c pkg.CPE, e error) pkg.CPE {

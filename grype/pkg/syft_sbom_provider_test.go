@@ -4,11 +4,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-test/deep"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
-	"github.com/go-test/deep"
-	"github.com/stretchr/testify/assert"
 )
 
 func must(c pkg.CPE, e error) pkg.CPE {
@@ -139,7 +140,7 @@ func TestParseSyftJSON(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Fixture, func(t *testing.T) {
-			pkgs, context, err := syftSBOMProvider(test.Fixture)
+			pkgs, context, err := syftSBOMProvider(test.Fixture, ProviderConfig{})
 			if err != nil {
 				t.Fatalf("unable to parse: %+v", err)
 			}
@@ -168,7 +169,7 @@ func TestParseSyftJSON(t *testing.T) {
 }
 
 func TestParseSyftJSON_BadCPEs(t *testing.T) {
-	pkgs, _, err := syftSBOMProvider("test-fixtures/syft-java-bad-cpes.json")
+	pkgs, _, err := syftSBOMProvider("test-fixtures/syft-java-bad-cpes.json", ProviderConfig{})
 	assert.NoError(t, err)
 	assert.Len(t, pkgs, 1)
 }

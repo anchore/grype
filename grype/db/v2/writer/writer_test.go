@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-test/deep"
+
 	v2 "github.com/anchore/grype/grype/db/v2"
 	"github.com/anchore/grype/grype/db/v2/model"
 	"github.com/anchore/grype/grype/db/v2/reader"
-	"github.com/go-test/deep"
 )
 
 func assertIDReader(t *testing.T, reader v2.IDReader, expected v2.ID) {

@@ -19,7 +19,6 @@ linters:
     - gocritic
     - gocyclo
     - gofmt
-    - goimports
     - goprintffuncname
     - gosec
     - gosimple
@@ -46,6 +45,7 @@ linters:
 #    - godot
 #    - godox
 #    - goerr113
+#    - goimports   # we're using gosimports now instead to account for extra whitespaces (see https://github.com/golang/go/issues/20818)
 #    - golint      # deprecated
 #    - gomnd       # this is too aggressive
 #    - interfacer  # this is a good idea, but is no longer supported and is prone to false positives

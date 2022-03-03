@@ -7,15 +7,15 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/anchore/grype/grype/match"
-
 	"github.com/adrg/xdg"
-	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal"
 	"github.com/mitchellh/go-homedir"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
+
+	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal"
 )
 
 var ErrApplicationConfigNotFound = fmt.Errorf("application config not found")
@@ -29,23 +29,25 @@ type parser interface {
 }
 
 type Application struct {
-	ConfigPath         string                  `yaml:",omitempty" json:"configPath"`                                                         // the location where the application config was read from (either from -c or discovered while loading)
-	Output             string                  `yaml:"output" json:"output" mapstructure:"output"`                                           // -o, the Presenter hint string to use for report formatting
-	File               string                  `yaml:"file" json:"file" mapstructure:"file"`                                                 // --file, the file to write report output to
-	OutputTemplateFile string                  `yaml:"output-template-file" json:"output-template-file" mapstructure:"output-template-file"` // -t, the template file to use for formatting the final report
-	Quiet              bool                    `yaml:"quiet" json:"quiet" mapstructure:"quiet"`                                              // -q, indicates to not show any status output to stderr (ETUI or logging UI)
-	CheckForAppUpdate  bool                    `yaml:"check-for-app-update" json:"check-for-app-update" mapstructure:"check-for-app-update"` // whether to check for an application update on start up or not
-	OnlyFixed          bool                    `yaml:"only-fixed" json:"only-fixed" mapstructure:"only-fixed"`                               // only fail if detected vulns have a fix
-	CliOptions         CliOnlyOptions          `yaml:"-" json:"-"`
-	Search             search                  `yaml:"search" json:"search" mapstructure:"search"`
-	Ignore             []match.IgnoreRule      `yaml:"ignore" json:"ignore" mapstructure:"ignore"`
-	Exclusions         []string                `yaml:"exclude" json:"exclude" mapstructure:"exclude"`
-	DB                 database                `yaml:"db" json:"db" mapstructure:"db"`
-	Dev                development             `yaml:"dev" json:"dev" mapstructure:"dev"`
-	FailOn             string                  `yaml:"fail-on-severity" json:"fail-on-severity" mapstructure:"fail-on-severity"`
-	FailOnSeverity     *vulnerability.Severity `yaml:"-" json:"-"`
-	Registry           registry                `yaml:"registry" json:"registry" mapstructure:"registry"`
-	Log                logging                 `yaml:"log" json:"log" mapstructure:"log"`
+	ConfigPath          string                  `yaml:",omitempty" json:"configPath"`                                                         // the location where the application config was read from (either from -c or discovered while loading)
+	Output              string                  `yaml:"output" json:"output" mapstructure:"output"`                                           // -o, the Presenter hint string to use for report formatting
+	File                string                  `yaml:"file" json:"file" mapstructure:"file"`                                                 // --file, the file to write report output to
+	Distro              string                  `yaml:"distro" json:"distro" mapstructure:"distro"`                                           // --distro, specify a distro to explicitly use
+	GenerateMissingCPEs bool                    `yaml:"add-cpes-if-none" json:"add-cpes-if-none" mapstructure:"add-cpes-if-none"`             // --add-cpes-if-none, automatically generate CPEs if they are not present in import (e.g. from a 3rd party SPDX document)
+	OutputTemplateFile  string                  `yaml:"output-template-file" json:"output-template-file" mapstructure:"output-template-file"` // -t, the template file to use for formatting the final report
+	Quiet               bool                    `yaml:"quiet" json:"quiet" mapstructure:"quiet"`                                              // -q, indicates to not show any status output to stderr (ETUI or logging UI)
+	CheckForAppUpdate   bool                    `yaml:"check-for-app-update" json:"check-for-app-update" mapstructure:"check-for-app-update"` // whether to check for an application update on start up or not
+	OnlyFixed           bool                    `yaml:"only-fixed" json:"only-fixed" mapstructure:"only-fixed"`                               // only fail if detected vulns have a fix
+	CliOptions          CliOnlyOptions          `yaml:"-" json:"-"`
+	Search              search                  `yaml:"search" json:"search" mapstructure:"search"`
+	Ignore              []match.IgnoreRule      `yaml:"ignore" json:"ignore" mapstructure:"ignore"`
+	Exclusions          []string                `yaml:"exclude" json:"exclude" mapstructure:"exclude"`
+	DB                  database                `yaml:"db" json:"db" mapstructure:"db"`
+	Dev                 development             `yaml:"dev" json:"dev" mapstructure:"dev"`
+	FailOn              string                  `yaml:"fail-on-severity" json:"fail-on-severity" mapstructure:"fail-on-severity"`
+	FailOnSeverity      *vulnerability.Severity `yaml:"-" json:"-"`
+	Registry            registry                `yaml:"registry" json:"registry" mapstructure:"registry"`
+	Log                 logging                 `yaml:"log" json:"log" mapstructure:"log"`
 }
 
 func newApplicationConfig(v *viper.Viper, cliOpts CliOnlyOptions) *Application {
@@ -150,7 +152,7 @@ func (cfg *Application) parseLogLevelOption() error {
 		case v >= 2:
 			cfg.Log.LevelOpt = logrus.DebugLevel
 		default:
-			cfg.Log.LevelOpt = logrus.ErrorLevel
+			cfg.Log.LevelOpt = logrus.WarnLevel
 		}
 	}
 

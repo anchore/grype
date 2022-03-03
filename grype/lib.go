@@ -1,6 +1,8 @@
 package grype
 
 import (
+	"github.com/wagoodman/go-partybus"
+
 	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/logger"
 	"github.com/anchore/grype/grype/match"
@@ -13,7 +15,6 @@ import (
 	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/pkg/cataloger"
 	"github.com/anchore/syft/syft/source"
-	"github.com/wagoodman/go-partybus"
 )
 
 func FindVulnerabilities(provider vulnerability.Provider, userImageStr string, scopeOpt source.Scope, registryOptions *image.RegistryOptions) (match.Matches, pkg.Context, []pkg.Package, error) {

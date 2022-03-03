@@ -3,10 +3,18 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 	"sync"
+
+	"github.com/pkg/profile"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
+	"github.com/wagoodman/go-partybus"
 
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db"
+	grypeDb "github.com/anchore/grype/grype/db/v3"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/grypeerr"
 	"github.com/anchore/grype/grype/match"
@@ -21,14 +29,8 @@ import (
 	"github.com/anchore/grype/internal/ui"
 	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/stereoscope"
+	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/source"
-	"github.com/pkg/profile"
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
-	"github.com/wagoodman/go-partybus"
-
-	grypeDb "github.com/anchore/grype/grype/db/v3"
 )
 
 var persistentOpts = config.CliOnlyOptions{}
@@ -118,6 +120,16 @@ func setRootFlags(flags *pflag.FlagSet) {
 		"file to write the report output to (default is STDOUT)",
 	)
 
+	flags.StringP(
+		"distro", "", "",
+		"distro to match against in the format: <distro>:<version>",
+	)
+
+	flags.BoolP(
+		"add-cpes-if-none", "", false,
+		"generate CPEs for packages with no CPE data",
+	)
+
 	flags.StringP("template", "t", "", "specify the path to a Go template file ("+
 		"requires 'template' output to be selected)")
 
@@ -147,6 +159,14 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 	}
 
 	if err := viper.BindPFlag("file", flags.Lookup("file")); err != nil {
+		return err
+	}
+
+	if err := viper.BindPFlag("distro", flags.Lookup("distro")); err != nil {
+		return err
+	}
+
+	if err := viper.BindPFlag("add-cpes-if-none", flags.Lookup("add-cpes-if-none")); err != nil {
 		return err
 	}
 
@@ -260,12 +280,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		go func() {
 			defer wg.Done()
 			log.Debugf("gathering packages")
-			providerConfig := pkg.ProviderConfig{
-				RegistryOptions:   appConfig.Registry.ToOptions(),
-				Exclusions:        appConfig.Exclusions,
-				CatalogingOptions: appConfig.Search.ToConfig(),
-			}
-			packages, context, err = pkg.Provide(userInput, providerConfig)
+			packages, context, err = pkg.Provide(userInput, getProviderConfig())
 			if err != nil {
 				errs <- fmt.Errorf("failed to catalog: %w", err)
 				return
@@ -281,6 +296,8 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		if appConfig.OnlyFixed {
 			appConfig.Ignore = append(appConfig.Ignore, ignoreNonFixedMatches...)
 		}
+
+		applyDistroHint(&context, appConfig)
 
 		allMatches := grype.FindVulnerabilitiesForPackage(provider, context.Distro, packages...)
 		remainingMatches, ignoredMatches := match.ApplyIgnoreRules(allMatches, appConfig.Ignore)
@@ -302,6 +319,42 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		})
 	}()
 	return errs
+}
+
+func applyDistroHint(context *pkg.Context, appConfig *config.Application) {
+	if appConfig.Distro != "" {
+		log.Infof("using distro: %s", appConfig.Distro)
+
+		split := strings.Split(appConfig.Distro, ":")
+		d := split[0]
+		v := ""
+		if len(split) > 1 {
+			v = split[1]
+		}
+		context.Distro = &linux.Release{
+			PrettyName: d,
+			Name:       d,
+			ID:         d,
+			IDLike: []string{
+				d,
+			},
+			Version:   v,
+			VersionID: v,
+		}
+	}
+
+	if context.Distro == nil {
+		log.Warnf("Unable to determine the OS distribution. This may result in missing vulnerabilities. You may specify a distro using: --distro <distro>:<version>")
+	}
+}
+
+func getProviderConfig() pkg.ProviderConfig {
+	return pkg.ProviderConfig{
+		RegistryOptions:     appConfig.Registry.ToOptions(),
+		Exclusions:          appConfig.Exclusions,
+		CatalogingOptions:   appConfig.Search.ToConfig(),
+		GenerateMissingCPEs: appConfig.GenerateMissingCPEs,
+	}
 }
 
 func validateDBLoad(loadErr error, status *db.Status) error {

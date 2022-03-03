@@ -9,6 +9,11 @@ import (
 	"path"
 	"strconv"
 
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/spf13/afero"
+	"github.com/wagoodman/go-partybus"
+	"github.com/wagoodman/go-progress"
+
 	grypeDB "github.com/anchore/grype/grype/db/v3"
 	"github.com/anchore/grype/grype/db/v3/reader"
 	"github.com/anchore/grype/grype/event"
@@ -16,10 +21,6 @@ import (
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/file"
 	"github.com/anchore/grype/internal/log"
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/spf13/afero"
-	"github.com/wagoodman/go-partybus"
-	"github.com/wagoodman/go-progress"
 )
 
 const (

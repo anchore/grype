@@ -13,7 +13,7 @@ var errDoesNotProvide = fmt.Errorf("cannot provide packages from the given sourc
 
 // Provide a set of packages and context metadata describing where they were sourced from.
 func Provide(userInput string, config ProviderConfig) ([]Package, Context, error) {
-	packages, ctx, err := syftSBOMProvider(userInput)
+	packages, ctx, err := syftSBOMProvider(userInput, config)
 	if !errors.Is(err, errDoesNotProvide) {
 		if len(config.Exclusions) > 0 {
 			packages, err = filterPackageExclusions(packages, config.Exclusions)

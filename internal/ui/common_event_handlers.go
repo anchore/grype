@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"io"
 
-	grypeEventParsers "github.com/anchore/grype/grype/event/parsers"
 	"github.com/wagoodman/go-partybus"
+
+	grypeEventParsers "github.com/anchore/grype/grype/event/parsers"
 )
 
 func handleVulnerabilityScanningFinished(event partybus.Event, reportOutput io.Writer) error {

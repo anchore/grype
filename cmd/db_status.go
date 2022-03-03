@@ -3,9 +3,9 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/anchore/grype/grype/db"
-
 	"github.com/spf13/cobra"
+
+	"github.com/anchore/grype/grype/db"
 )
 
 var statusCmd = &cobra.Command{

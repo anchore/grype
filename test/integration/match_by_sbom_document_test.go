@@ -2,19 +2,18 @@ package integration
 
 import (
 	"fmt"
-	"github.com/anchore/grype/grype/search"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
-	"github.com/anchore/grype/grype/db"
-
-	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/syft/syft/source"
 	"github.com/go-test/deep"
 	"github.com/scylladb/go-set/strset"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/anchore/grype/grype"
+	"github.com/anchore/grype/grype/db"
+	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/search"
+	"github.com/anchore/syft/syft/source"
 )
 
 func TestMatchBySBOMDocument(t *testing.T) {

@@ -5,11 +5,11 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/go-getter/helper/url"
+	"github.com/wagoodman/go-progress"
 
 	"github.com/anchore/grype/internal"
-	"github.com/hashicorp/go-getter"
-	"github.com/wagoodman/go-progress"
 )
 
 var (

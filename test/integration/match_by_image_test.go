@@ -3,9 +3,10 @@ package integration
 import (
 	"testing"
 
-	"github.com/anchore/grype/grype/db"
+	"github.com/sergi/go-diff/diffmatchpatch"
 
 	"github.com/anchore/grype/grype"
+	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -15,7 +16,6 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/pkg/cataloger"
 	"github.com/anchore/syft/syft/source"
-	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore, theResult *match.Matches) {
@@ -376,7 +376,7 @@ func TestMatchByImage(t *testing.T) {
 			actualResults := grype.FindVulnerabilitiesForPackage(
 				db.NewVulnerabilityProvider(theStore),
 				theDistro,
-				pkg.FromCatalog(theCatalog)...,
+				pkg.FromCatalog(theCatalog, pkg.ProviderConfig{})...,
 			)
 
 			// build expected matches from what's discovered from the catalog

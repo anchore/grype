@@ -3,12 +3,12 @@ package parsers
 import (
 	"fmt"
 
-	"github.com/anchore/grype/grype/matcher"
-	"github.com/anchore/grype/grype/presenter"
+	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
 
 	"github.com/anchore/grype/grype/event"
-	"github.com/wagoodman/go-partybus"
+	"github.com/anchore/grype/grype/matcher"
+	"github.com/anchore/grype/grype/presenter"
 )
 
 type ErrBadPayload struct {

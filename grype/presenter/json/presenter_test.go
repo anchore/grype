@@ -5,18 +5,18 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/anchore/stereoscope/pkg/file"
-	"github.com/anchore/syft/syft/linux"
+	"github.com/sergi/go-diff/diffmatchpatch"
 
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/stereoscope/pkg/file"
 	"github.com/anchore/stereoscope/pkg/imagetest"
+	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	syftSource "github.com/anchore/syft/syft/source"
-	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for json presenters")
@@ -311,7 +311,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 			Version: "8.0",
 		},
 	}
-	pres := NewPresenter(matches, nil, pkg.FromCatalog(catalog), ctx, models.NewMetadataMock(), nil, nil)
+	pres := NewPresenter(matches, nil, pkg.FromCatalog(catalog, pkg.ProviderConfig{}), ctx, models.NewMetadataMock(), nil, nil)
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 

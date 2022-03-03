@@ -9,8 +9,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/anchore/grype/internal/file"
 	"github.com/spf13/afero"
+
+	"github.com/anchore/grype/internal/file"
 )
 
 // ListingEntry represents basic metadata about a database archive such as what is in the archive (built/version)

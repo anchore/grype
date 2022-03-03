@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/scylladb/go-set/strset"
+
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/scylladb/go-set/strset"
 )
 
 var ErrCannotMerge = fmt.Errorf("unable to merge vulnerability matches")

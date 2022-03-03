@@ -3,12 +3,13 @@ package pkg
 import (
 	"testing"
 
-	"github.com/anchore/syft/syft/file"
-	syftPkg "github.com/anchore/syft/syft/pkg"
-	"github.com/anchore/syft/syft/source"
 	"github.com/scylladb/go-set"
 	"github.com/scylladb/go-set/strset"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/anchore/syft/syft/file"
+	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/source"
 )
 
 func TestNew(t *testing.T) {
@@ -287,8 +288,37 @@ func TestFromCatalog_DoesNotPanic(t *testing.T) {
 	catalog.Add(examplePackage)
 
 	assert.NotPanics(t, func() {
-		_ = FromCatalog(catalog)
+		_ = FromCatalog(catalog, ProviderConfig{})
 	})
+}
+
+func TestFromCatalog_GeneratesCPEs(t *testing.T) {
+	catalog := syftPkg.NewCatalog()
+
+	catalog.Add(syftPkg.Package{
+		Name:    "first",
+		Version: "1",
+		CPEs: []syftPkg.CPE{
+			{},
+		},
+	})
+
+	catalog.Add(syftPkg.Package{
+		Name:    "second",
+		Version: "2",
+	})
+
+	// doesn't generate cpes when no flag
+	pkgs := FromCatalog(catalog, ProviderConfig{})
+	assert.Len(t, pkgs[0].CPEs, 1)
+	assert.Len(t, pkgs[1].CPEs, 0)
+
+	// does generate cpes with the flag
+	pkgs = FromCatalog(catalog, ProviderConfig{
+		GenerateMissingCPEs: true,
+	})
+	assert.Len(t, pkgs[0].CPEs, 1)
+	assert.Len(t, pkgs[1].CPEs, 1)
 }
 
 func Test_getNameAndELVersion(t *testing.T) {
