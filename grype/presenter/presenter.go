@@ -3,13 +3,13 @@ package presenter
 import (
 	"io"
 
-	"github.com/anchore/grype/grype/presenter/template"
-
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/cyclonedx"
 	"github.com/anchore/grype/grype/presenter/json"
+	"github.com/anchore/grype/grype/presenter/sarif"
 	"github.com/anchore/grype/grype/presenter/table"
+	"github.com/anchore/grype/grype/presenter/template"
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
@@ -27,6 +27,8 @@ func GetPresenter(presenterConfig Config, matches match.Matches, ignoredMatches 
 		return table.NewPresenter(matches, packages, metadataProvider)
 	case cycloneDXFormat:
 		return cyclonedx.NewPresenter(matches, packages, context.Source, metadataProvider)
+	case sarifFormat:
+		return sarif.NewPresenter(matches, packages, context.Source, metadataProvider)
 	case templateFormat:
 		return template.NewPresenter(matches, ignoredMatches, packages, context, metadataProvider, appConfig, dbStatus, presenterConfig.templateFilePath)
 	default:

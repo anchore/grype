@@ -9,6 +9,7 @@ const (
 	jsonFormat      format = "json"
 	tableFormat     format = "table"
 	cycloneDXFormat format = "cyclonedx"
+	sarifFormat     format = "sarif"
 	templateFormat  format = "template"
 )
 
@@ -30,6 +31,8 @@ func parse(userInput string) format {
 		return tableFormat
 	case strings.ToLower(cycloneDXFormat.String()):
 		return cycloneDXFormat
+	case strings.ToLower(sarifFormat.String()):
+		return sarifFormat
 	case strings.ToLower(templateFormat.String()):
 		return templateFormat
 	default:
@@ -42,5 +45,6 @@ var AvailableFormats = []format{
 	jsonFormat,
 	tableFormat,
 	cycloneDXFormat,
+	sarifFormat,
 	templateFormat,
 }
