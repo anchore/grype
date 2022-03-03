@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/anchore/grype/grype/distro"
-	"github.com/anchore/grype/grype/pkg"
-	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/google/uuid"
 	"github.com/scylladb/go-set/strset"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/grype/pkg"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 func Test_NamespaceFromRecordSource(t *testing.T) {

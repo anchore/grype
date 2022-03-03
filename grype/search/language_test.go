@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/anchore/grype/grype/match"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"

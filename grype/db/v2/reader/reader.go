@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/alicebob/sqlittle"
+
 	v2 "github.com/anchore/grype/grype/db/v2"
 	"github.com/anchore/grype/grype/db/v2/model"
 )

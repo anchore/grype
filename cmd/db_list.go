@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/anchore/grype/grype/db"
 	"github.com/spf13/cobra"
+
+	"github.com/anchore/grype/grype/db"
 )
 
 var dbListOutputFormat string

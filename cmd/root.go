@@ -5,8 +5,15 @@ import (
 	"os"
 	"sync"
 
+	"github.com/pkg/profile"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
+	"github.com/wagoodman/go-partybus"
+
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db"
+	grypeDb "github.com/anchore/grype/grype/db/v3"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/grypeerr"
 	"github.com/anchore/grype/grype/match"
@@ -22,13 +29,6 @@ import (
 	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/syft/syft/source"
-	"github.com/pkg/profile"
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
-	"github.com/wagoodman/go-partybus"
-
-	grypeDb "github.com/anchore/grype/grype/db/v3"
 )
 
 var persistentOpts = config.CliOnlyOptions{}

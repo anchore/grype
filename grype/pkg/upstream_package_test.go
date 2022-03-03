@@ -1,9 +1,11 @@
 package pkg
 
 import (
-	"github.com/anchore/syft/syft/pkg"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/anchore/syft/syft/pkg"
 )
 
 func TestUpstreamPackages(t *testing.T) {

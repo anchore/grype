@@ -11,12 +11,13 @@ import (
 	"os"
 	"sync"
 
+	"github.com/wagoodman/go-partybus"
+	"github.com/wagoodman/jotframe/pkg/frame"
+
 	grypeEvent "github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/logger"
 	"github.com/anchore/grype/ui"
-	"github.com/wagoodman/go-partybus"
-	"github.com/wagoodman/jotframe/pkg/frame"
 )
 
 // ephemeralTerminalUI provides an "ephemeral" terminal user interface to display the application state dynamically.

@@ -7,11 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anchore/grype/grype/event"
-	"github.com/anchore/grype/internal/ui"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/wagoodman/go-partybus"
+
+	"github.com/anchore/grype/grype/event"
+	"github.com/anchore/grype/internal/ui"
 )
 
 var _ ui.UI = (*uiMock)(nil)

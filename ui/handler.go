@@ -4,10 +4,11 @@ import (
 	"context"
 	"sync"
 
-	grypeEvent "github.com/anchore/grype/grype/event"
-	syftUI "github.com/anchore/syft/ui"
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/jotframe/pkg/frame"
+
+	grypeEvent "github.com/anchore/grype/grype/event"
+	syftUI "github.com/anchore/syft/ui"
 )
 
 type Handler struct {

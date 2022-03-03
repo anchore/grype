@@ -7,15 +7,12 @@ import (
 	"strings"
 
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/mitchellh/go-homedir"
 
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
-
-	"github.com/anchore/syft/syft/format"
-
 	"github.com/anchore/syft/syft"
-
-	"github.com/mitchellh/go-homedir"
+	"github.com/anchore/syft/syft/format"
 )
 
 func syftSBOMProvider(userInput string) ([]Package, Context, error) {

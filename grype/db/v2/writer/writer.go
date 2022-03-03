@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/go-test/deep"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite" // provide the sqlite dialect to gorm via import
+
 	v2 "github.com/anchore/grype/grype/db/v2"
 	"github.com/anchore/grype/grype/db/v2/model"
 	"github.com/anchore/grype/internal"
-	"github.com/go-test/deep"
-	"github.com/jinzhu/gorm"
-
-	// provide the sqlite dialect to gorm via import
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
 // Writer holds an instance of the database connection

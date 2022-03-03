@@ -6,6 +6,11 @@ import (
 	"os"
 	"sort"
 
+	"github.com/gookit/color"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/wagoodman/go-partybus"
+
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/internal/config"
 	"github.com/anchore/grype/internal/log"
@@ -13,10 +18,6 @@ import (
 	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/syft/syft"
-	"github.com/gookit/color"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"github.com/wagoodman/go-partybus"
 )
 
 var (

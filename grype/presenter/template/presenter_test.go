@@ -7,9 +7,10 @@ import (
 	"path"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/presenter/models"
-	"github.com/stretchr/testify/assert"
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for template presenters")

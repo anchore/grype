@@ -3,9 +3,9 @@ package reader
 import (
 	"fmt"
 
-	v3 "github.com/anchore/grype/grype/db/v3"
-
 	"github.com/alicebob/sqlittle"
+
+	v3 "github.com/anchore/grype/grype/db/v3"
 	"github.com/anchore/grype/grype/db/v3/model"
 )
 

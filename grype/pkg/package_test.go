@@ -3,12 +3,13 @@ package pkg
 import (
 	"testing"
 
-	"github.com/anchore/syft/syft/file"
-	syftPkg "github.com/anchore/syft/syft/pkg"
-	"github.com/anchore/syft/syft/source"
 	"github.com/scylladb/go-set"
 	"github.com/scylladb/go-set/strset"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/anchore/syft/syft/file"
+	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/source"
 )
 
 func TestNew(t *testing.T) {

@@ -3,9 +3,10 @@ package ui
 import (
 	"io"
 
+	"github.com/wagoodman/go-partybus"
+
 	grypeEvent "github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/internal/log"
-	"github.com/wagoodman/go-partybus"
 )
 
 type loggerUI struct {
