@@ -15,7 +15,7 @@ import (
 	"github.com/anchore/syft/syft/format"
 )
 
-func syftSBOMProvider(userInput string) ([]Package, Context, error) {
+func syftSBOMProvider(userInput string, config ProviderConfig) ([]Package, Context, error) {
 	reader, err := getSBOMReader(userInput)
 	if err != nil {
 		return nil, Context{}, err
@@ -29,7 +29,7 @@ func syftSBOMProvider(userInput string) ([]Package, Context, error) {
 		return nil, Context{}, errDoesNotProvide
 	}
 
-	return FromCatalog(sbom.Artifacts.PackageCatalog), Context{
+	return FromCatalog(sbom.Artifacts.PackageCatalog, config), Context{
 		Source: &sbom.Source,
 		Distro: sbom.Artifacts.LinuxDistribution,
 	}, nil

@@ -311,7 +311,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 			Version: "8.0",
 		},
 	}
-	pres := NewPresenter(matches, nil, pkg.FromCatalog(catalog), ctx, models.NewMetadataMock(), nil, nil)
+	pres := NewPresenter(matches, nil, pkg.FromCatalog(catalog, pkg.ProviderConfig{}), ctx, models.NewMetadataMock(), nil, nil)
 
 	// TODO: add a constructor for a match.Match when the data is better shaped
 

@@ -6,7 +6,8 @@ import (
 )
 
 type ProviderConfig struct {
-	RegistryOptions   *image.RegistryOptions
-	Exclusions        []string
-	CatalogingOptions cataloger.Config
+	RegistryOptions     *image.RegistryOptions
+	Exclusions          []string
+	CatalogingOptions   cataloger.Config
+	GenerateMissingCPEs bool
 }

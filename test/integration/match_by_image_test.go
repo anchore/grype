@@ -376,7 +376,7 @@ func TestMatchByImage(t *testing.T) {
 			actualResults := grype.FindVulnerabilitiesForPackage(
 				db.NewVulnerabilityProvider(theStore),
 				theDistro,
-				pkg.FromCatalog(theCatalog)...,
+				pkg.FromCatalog(theCatalog, pkg.ProviderConfig{})...,
 			)
 
 			// build expected matches from what's discovered from the catalog

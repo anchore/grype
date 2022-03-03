@@ -7,6 +7,7 @@ import (
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/pkg/cataloger/common/cpe"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -56,10 +57,23 @@ func New(p pkg.Package) Package {
 	}
 }
 
-func FromCatalog(catalog *pkg.Catalog) []Package {
+func FromCatalog(catalog *pkg.Catalog, config ProviderConfig) []Package {
 	result := make([]Package, 0, catalog.PackageCount())
+	missingCPEs := false
 	for _, p := range catalog.Sorted() {
+		if len(p.CPEs) == 0 {
+			// For SPDX (or any format, really) we may have no CPEs
+			if config.GenerateMissingCPEs {
+				p.CPEs = cpe.Generate(p)
+			} else {
+				log.Debugf("no CPEs for package: %s", p)
+				missingCPEs = true
+			}
+		}
 		result = append(result, New(p))
+	}
+	if missingCPEs {
+		log.Warnf("some package(s) are missing CPEs. This may result in missing vulnerabilities. You may autogenerate these using: --add-cpes-if-none")
 	}
 	return result
 }
