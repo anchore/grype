@@ -10,7 +10,7 @@ require (
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/packageurl-go v0.0.0-20210922164639-b3fa992ebd29
-	github.com/anchore/stereoscope v0.0.0-20220217141419-c6f02aed9ed2
+	github.com/anchore/stereoscope v0.0.0-20220301220648-8aa8a4a0bf50
 	github.com/anchore/syft v0.39.4-0.20220301223752-edac8c7bf77a
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/docker/docker v20.10.12+incompatible
@@ -31,6 +31,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/olekukonko/tablewriter v0.0.5
+	github.com/owenrumney/go-sarif v1.1.1
 	github.com/pkg/profile v1.6.0
 	github.com/scylladb/go-set v1.0.2
 	github.com/sergi/go-diff v1.2.0
@@ -113,7 +114,6 @@ require (
 	github.com/onsi/gomega v1.18.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.3-0.20220114050600-8b9d41f48198 // indirect
-	github.com/owenrumney/go-sarif v1.1.1 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pierrec/lz4/v4 v4.1.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
