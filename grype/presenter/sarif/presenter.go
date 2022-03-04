@@ -2,7 +2,6 @@ package sarif
 
 import (
 	"fmt"
-	"github.com/anchore/grype/internal/log"
 	"io"
 	"strings"
 
@@ -44,9 +43,10 @@ func (pres *Presenter) Present(output io.Writer) error {
 	doc.AddRun(&s.Run{
 		Tool: s.Tool{
 			Driver: &s.ToolComponent{
-				Name:    "Anchore Container Vulnerability Report (T0)",
-				Version: sp(version.FromBuild().Version),
-				Rules:   pres.sarifRules(),
+				Name:           "Anchore Grype Scan",
+				Version:        sp(version.FromBuild().Version),
+				InformationURI: sp("https://github.com/anchore/grype"),
+				Rules:          pres.sarifRules(),
 			},
 		},
 		Results: pres.sarifResults(),
@@ -56,31 +56,19 @@ func (pres *Presenter) Present(output io.Writer) error {
 	return err
 }
 
-// matches returns a set of matches with duplicates removed
-func (pres *Presenter) matches() (out []match.Match) {
-	ruleIDs := map[string]bool{}
-
-	for _, m := range pres.results.Sorted() {
-		ruleID := pres.ruleID(m)
-
-		if ruleIDs[ruleID] {
-			log.Infof("skipping duplicate match: %s", m.String())
-			continue
-		}
-
-		ruleIDs[ruleID] = true
-
-		out = append(out, m)
-	}
-
-	return out
-}
-
 // sarifRules generates the set of rules to include in this run
 func (pres *Presenter) sarifRules() (out []*s.ReportingDescriptor) {
 	if pres.results.Count() > 0 {
-		for _, m := range pres.matches() {
+		ruleIDs := map[string]bool{}
+
+		for _, m := range pres.results.Sorted() {
 			ruleID := pres.ruleID(m)
+			if ruleIDs[ruleID] {
+				// here, we're only outputting information about the vulnerabilities, not where we matched them
+				continue
+			}
+
+			ruleIDs[ruleID] = true
 
 			// Entirely possible to not have any links whatsoever
 			link := m.Vulnerability.ID
@@ -88,14 +76,16 @@ func (pres *Presenter) sarifRules() (out []*s.ReportingDescriptor) {
 			if meta != nil {
 				switch {
 				case meta.DataSource != "":
-					link = fmt.Sprintf("[%s](%s)", m.Vulnerability.ID, meta.DataSource)
+					link = fmt.Sprintf("[%s](%s)", meta.ID, meta.DataSource)
 				case len(meta.URLs) > 0:
-					link = fmt.Sprintf("[%s](%s)", m.Vulnerability.ID, meta.URLs[0])
+					link = fmt.Sprintf("[%s](%s)", meta.ID, meta.URLs[0])
 				}
 			}
 
 			out = append(out, &s.ReportingDescriptor{
-				ID: ruleID,
+				ID:      ruleID,
+				Name:    sp(ruleName(m)),
+				HelpURI: sp("https://github.com/anchore/grype"),
 				// Title of the SARIF report
 				ShortDescription: &s.MultiformatMessageString{
 					Text: sp(pres.shortDescription(m)),
@@ -112,23 +102,19 @@ func (pres *Presenter) sarifRules() (out []*s.ReportingDescriptor) {
 }
 
 func (pres *Presenter) ruleID(m match.Match) string {
-	ruleID := fmt.Sprintf("ANCHOREVULN_%s_%s_%s_%s", m.Vulnerability.ID, m.Package.Type, m.Package.Name, m.Package.Version)
-	if pres.srcMetadata.Scheme == source.ImageScheme {
-		// include the container as part of the rule id so that users can sort by that
-		ruleID = fmt.Sprintf("ANCHOREVULN_%s_%s_%s_%s_%s", pres.srcMetadata.ImageMetadata.UserInput, m.Vulnerability.ID, m.Package.Type, m.Package.Name, m.Package.Version)
-	}
-	return ruleID
+	return m.Vulnerability.ID
 }
 
 func (pres *Presenter) helpText(m match.Match, link string) *s.MultiformatMessageString {
+	// FIXME we shouldn't necessarily be adding a location here, there may be multiple referencing the same vulnerability
 	text := fmt.Sprintf("Vulnerability %s\nSeverity: %s\nPackage: %s\nVersion: %s\nFix Version: %s\nType: %s\nLocation: %s\nData Namespace: unknown\nLink: %s",
-		m.Vulnerability.ID, pres.severity(m), m.Package.Name, m.Package.Version, fixVersions(m), m.Package.Type, location(m), link,
+		m.Vulnerability.ID, pres.severity(m), m.Package.Name, m.Package.Version, fixVersions(m), m.Package.Type, pres.location(m), link,
 	)
 	markdown := fmt.Sprintf(
 		"**Vulnerability %s**\n"+
 			"| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n"+
 			"| --- | --- | --- | --- | --- | --- | --- | --- |\n"+
-			"|%s|%s|%s|%s|%s|%s|unknown|%s|\n", m.Vulnerability.ID, pres.severity(m), m.Package.Name, m.Package.Version, fixVersions(m), m.Package.Type, location(m), link,
+			"|%s|%s|%s|%s|%s|%s|unknown|%s|\n", m.Vulnerability.ID, pres.severity(m), m.Package.Name, m.Package.Version, fixVersions(m), m.Package.Type, pres.location(m), link,
 	)
 	return &s.MultiformatMessageString{
 		Text:     &text,
@@ -136,11 +122,43 @@ func (pres *Presenter) helpText(m match.Match, link string) *s.MultiformatMessag
 	}
 }
 
-func location(m match.Match) string {
-	if len(m.Package.Locations) > 0 {
-		return m.Package.Locations[0].VirtualPath
+func (pres *Presenter) location(m match.Match) string {
+	var path string
+	for _, l := range m.Package.Locations {
+		switch {
+		case l.VirtualPath != "":
+			path = l.VirtualPath
+			break
+		case l.RealPath != "":
+			path = l.RealPath
+			break
+		case l.Coordinates.RealPath != "":
+			path = l.Coordinates.RealPath
+			break
+		}
 	}
-	// XXX there is room for improvement here, trying to mimick previous behavior
+
+	switch pres.srcMetadata.Scheme {
+	case source.DirectoryScheme:
+		if pres.srcMetadata.Path != "" {
+			return fmt.Sprintf("%s/%s", pres.srcMetadata.Path, path)
+		}
+		return path
+	case source.FileScheme:
+		if pres.srcMetadata.Path != "" {
+			return fmt.Sprintf("%s:%s", pres.srcMetadata.Path, path)
+		}
+		return path
+	case source.ImageScheme:
+		return fmt.Sprintf("%s:%s", pres.srcMetadata.ImageMetadata.UserInput, path)
+	}
+
+	if path != "" {
+		return path
+	}
+
+	// FIXME this was copied from the scan-action:
+	// there is room for improvement here, trying to mimick previous behavior
 	// If no `dockerfile-path` was provided, and in the improbable situation where there
 	// are no locations for the artifact, return 'Dockerfile'
 	return "Dockerfile"
@@ -152,7 +170,6 @@ func (pres *Presenter) severity(m match.Match) string {
 		return "unknown"
 	}
 	// FIXME allow severity cutoff specified here?
-	// FIXME convert to acs_
 	return meta.Severity
 }
 
@@ -192,18 +209,16 @@ func (pres *Presenter) shortDescription(m match.Match) string {
 }
 
 func (pres *Presenter) sarifResults() (out []*s.Result) {
-	for _, m := range pres.matches() {
+	for _, m := range pres.results.Sorted() {
 		out = append(out, &s.Result{
-			RuleID:         sp(pres.ruleID(m)),
-			RuleIndex:      up(0),
-			Level:          sp(pres.acsSeverityLevel(m)),
-			Message:        pres.resultMessage(m),
-			AnalysisTarget: pres.analysisTarget(m),
+			RuleID:  sp(pres.ruleID(m)),
+			Level:   sp(pres.acsSeverityLevel(m)),
+			Message: pres.resultMessage(m),
 			Locations: []*s.Location{
 				{
 					PhysicalLocation: &s.PhysicalLocation{
 						ArtifactLocation: &s.ArtifactLocation{
-							URI: sp(location(m)),
+							URI: sp(pres.location(m)),
 						},
 						// TODO: When grype starts reporting line numbers this will need to get updated
 						Region: &s.Region{
@@ -222,12 +237,6 @@ func (pres *Presenter) sarifResults() (out []*s.Result) {
 					},
 				},
 			},
-			Suppressions: []*s.Suppression{
-				{
-					Kind: "external",
-				},
-			},
-			BaselineState: sp("unchanged"),
 		})
 	}
 	return out
@@ -250,7 +259,7 @@ func sp(s string) *string {
 }
 
 func (pres *Presenter) resultMessage(m match.Match) s.Message {
-	path := location(m)
+	path := pres.location(m)
 	message := fmt.Sprintf("The path %s reports %s at version %s ", path, m.Package.Name, m.Package.Version)
 
 	if pres.srcMetadata.Scheme == source.DirectoryScheme {
@@ -262,16 +271,6 @@ func (pres *Presenter) resultMessage(m match.Match) s.Message {
 	return s.Message{
 		Text: &message,
 		Id:   sp("default"),
-	}
-}
-
-func (pres *Presenter) analysisTarget(m match.Match) *s.ArtifactLocation {
-	uri := location(m)
-	return &s.ArtifactLocation{
-		URI: &uri,
-		// XXX This is possibly a bug. The SARIF schema invalidates this when the index is present because there
-		// aren't any other elements present.
-		// Index: up(0),
 	}
 }
 
@@ -296,4 +295,19 @@ func (pres *Presenter) acsSeverityLevel(m match.Match) string {
 	}
 
 	return out
+}
+
+func ruleName(m match.Match) string {
+	if len(m.Details) > 0 {
+		d := m.Details[0]
+		buf := strings.Builder{}
+		for _, part := range []string{string(d.Matcher), string(d.Type)} {
+			for _, s := range strings.Split(part, "-") {
+				buf.WriteString(strings.ToUpper(s[:1]))
+				buf.WriteString(s[1:])
+			}
+		}
+		return buf.String()
+	}
+	return m.Vulnerability.ID
 }
