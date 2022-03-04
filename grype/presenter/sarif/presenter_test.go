@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/sergi/go-diff/diffmatchpatch"
+
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -14,7 +16,6 @@ import (
 	"github.com/anchore/stereoscope/pkg/imagetest"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
-	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for json presenters")
