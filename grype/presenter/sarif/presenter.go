@@ -95,6 +95,10 @@ func (pres *Presenter) sarifRules() (out []*s.ReportingDescriptor) {
 					Text: sp(pres.subtitle(m)),
 				},
 				Help: pres.helpText(m, link),
+				DefaultConfiguration: &s.ReportingConfiguration{
+					// FIXME: we may not want to specify this at all
+					Level: sp(pres.level(m)),
+				},
 				Properties: s.Properties{
 					// For GitHub reportingDescriptor object:
 					// https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning#reportingdescriptor-object
@@ -237,7 +241,6 @@ func (pres *Presenter) sarifResults() (out []*s.Result) {
 	for _, m := range pres.results.Sorted() {
 		out = append(out, &s.Result{
 			RuleID:  sp(pres.ruleID(m)),
-			Level:   sp(pres.level(m)),
 			Message: pres.resultMessage(m),
 			// FIXME github "requires" partialFingerprints
 			// PartialFingerprints: ???

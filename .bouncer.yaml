@@ -19,4 +19,4 @@ ignore-packages:
 
   # from: https://github.com/owenrumney/go-sarif/blob/main/LICENSE
   # This is released into the public domain using the "Unlicense license"
-  - github.com/owenrumney/go-sarif/sarif
+  - github.com/owenrumney/go-sarif
