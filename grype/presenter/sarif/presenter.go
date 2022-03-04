@@ -148,7 +148,7 @@ func (pres *Presenter) location(m match.Match) string {
 	switch pres.srcMetadata.Scheme {
 	case source.DirectoryScheme:
 		if pres.srcMetadata.Path != "" {
-			return fmt.Sprintf("%s/%s", pres.srcMetadata.Path, path)
+			return strings.TrimPrefix(fmt.Sprintf("%s/%s", pres.srcMetadata.Path, path), "./")
 		}
 		return path
 	case source.FileScheme:
