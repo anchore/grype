@@ -129,17 +129,15 @@ func (pres *Presenter) helpText(m match.Match, link string) *s.MultiformatMessag
 
 func (pres *Presenter) location(m match.Match) string {
 	var path string
-	for _, l := range m.Package.Locations {
+	if len(m.Package.Locations) > 0 {
+		l := m.Package.Locations[0]
 		switch {
 		case l.VirtualPath != "":
 			path = l.VirtualPath
-			break
 		case l.RealPath != "":
 			path = l.RealPath
-			break
 		case l.Coordinates.RealPath != "":
 			path = l.Coordinates.RealPath
-			break
 		}
 	}
 
@@ -271,12 +269,6 @@ func (pres *Presenter) sarifResults() (out []*s.Result) {
 	return out
 }
 
-// up returns a uint pointer based on the provided value
-func up(i int) *uint {
-	u := uint(i)
-	return &u
-}
-
 // ip returns an int pointer based on the provided value
 func ip(i int) *int {
 	return &i
@@ -307,10 +299,10 @@ func ruleName(m match.Match) string {
 	if len(m.Details) > 0 {
 		d := m.Details[0]
 		buf := strings.Builder{}
-		for _, part := range []string{string(d.Matcher), string(d.Type)} {
-			for _, s := range strings.Split(part, "-") {
-				buf.WriteString(strings.ToUpper(s[:1]))
-				buf.WriteString(s[1:])
+		for _, segment := range []string{string(d.Matcher), string(d.Type)} {
+			for _, part := range strings.Split(segment, "-") {
+				buf.WriteString(strings.ToUpper(part[:1]))
+				buf.WriteString(part[1:])
 			}
 		}
 		return buf.String()
