@@ -18,6 +18,9 @@
               "fullDescription": {
                 "text": "1999-01 description"
               },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
               "helpUri": "https://github.com/anchore/grype",
               "help": {
                 "text": "Vulnerability CVE-1999-0001\nSeverity: low\nPackage: package-1\nVersion: 1.0.1\nFix Version: \nType: deb\nLocation: user-input:\nData Namespace: unknown\nLink: CVE-1999-0001",
@@ -36,6 +39,9 @@
               "fullDescription": {
                 "text": "1999-02 description"
               },
+              "defaultConfiguration": {
+                "level": "error"
+              },
               "helpUri": "https://github.com/anchore/grype",
               "help": {
                 "text": "Vulnerability CVE-1999-0002\nSeverity: critical\nPackage: package-2\nVersion: 2.0.1\nFix Version: \nType: deb\nLocation: user-input:\nData Namespace: unknown\nLink: CVE-1999-0002",
@@ -51,7 +57,6 @@
       "results": [
         {
           "ruleId": "CVE-1999-0001",
-          "level": "warning",
           "message": {
             "text": "The path user-input: reports package-1 at version 1.0.1  which is a vulnerable (deb) package installed in the container",
             "id": "default"
@@ -81,7 +86,6 @@
         },
         {
           "ruleId": "CVE-1999-0002",
-          "level": "error",
           "message": {
             "text": "The path user-input: reports package-2 at version 2.0.1  which is a vulnerable (deb) package installed in the container",
             "id": "default"
