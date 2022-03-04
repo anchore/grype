@@ -95,6 +95,11 @@ func (pres *Presenter) sarifRules() (out []*s.ReportingDescriptor) {
 					Text: sp(pres.subtitle(m)),
 				},
 				Help: pres.helpText(m, link),
+				Properties: s.Properties{
+					// For GitHub reportingDescriptor object:
+					// https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning#reportingdescriptor-object
+					"security-severity": pres.severity(m),
+				},
 			})
 		}
 	}
@@ -164,13 +169,35 @@ func (pres *Presenter) location(m match.Match) string {
 	return "Dockerfile"
 }
 
+func (pres *Presenter) level(m match.Match) string {
+	meta := pres.metadata(m)
+	if meta != nil {
+		severity := vulnerability.ParseSeverity(meta.Severity)
+		// TODO look at a possible severity filter here
+		switch severity {
+		case vulnerability.CriticalSeverity, vulnerability.HighSeverity:
+			return "error"
+		case vulnerability.MediumSeverity, vulnerability.LowSeverity:
+			return "warning"
+		}
+	}
+	return "none"
+}
+
 func (pres *Presenter) severity(m match.Match) string {
 	meta := pres.metadata(m)
-	if meta == nil {
-		return "unknown"
+	if meta != nil {
+		severity := vulnerability.ParseSeverity(meta.Severity)
+		switch severity {
+		case vulnerability.CriticalSeverity:
+			return "critical"
+		case vulnerability.HighSeverity:
+			return "high"
+		case vulnerability.MediumSeverity:
+			return "medium"
+		}
 	}
-	// FIXME allow severity cutoff specified here?
-	return meta.Severity
+	return "low"
 }
 
 // metadata returns the matching *vulnerability.Metadata from the provider or nil if not found / error
@@ -212,8 +239,10 @@ func (pres *Presenter) sarifResults() (out []*s.Result) {
 	for _, m := range pres.results.Sorted() {
 		out = append(out, &s.Result{
 			RuleID:  sp(pres.ruleID(m)),
-			Level:   sp(pres.acsSeverityLevel(m)),
+			Level:   sp(pres.level(m)),
 			Message: pres.resultMessage(m),
+			// FIXME github "requires" partialFingerprints
+			// PartialFingerprints: ???
 			Locations: []*s.Location{
 				{
 					PhysicalLocation: &s.PhysicalLocation{
@@ -272,29 +301,6 @@ func (pres *Presenter) resultMessage(m match.Match) s.Message {
 		Text: &message,
 		Id:   sp("default"),
 	}
-}
-
-func (pres *Presenter) acsSeverityLevel(m match.Match) string {
-	// FIXME need an input cutoff param
-	// The `severity_cutoff_param` has been lowercased for case-insensitivity at this point, but the
-	// severity from the vulnerability will be capitalized, so this must be capitalized again to calculate
-	// using the same object
-	const cutoff = "High"
-	out := "error"
-	var severityLevels = map[string]int{
-		"Unknown":    0,
-		"Negligible": 1,
-		"Low":        2,
-		"Medium":     3,
-		"High":       4,
-		"Critical":   5,
-	}
-
-	if severityLevels[pres.severity(m)] < severityLevels[cutoff] {
-		out = "warning"
-	}
-
-	return out
 }
 
 func ruleName(m match.Match) string {
