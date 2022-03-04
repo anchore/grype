@@ -242,6 +242,9 @@ func (pres *Presenter) sarifResults() (out []*s.Result) {
 		out = append(out, &s.Result{
 			RuleID:  sp(pres.ruleID(m)),
 			Message: pres.resultMessage(m),
+			AnalysisTarget: &s.ArtifactLocation{
+				URI: sp(pres.location(m)),
+			},
 			// FIXME github "requires" partialFingerprints
 			// PartialFingerprints: ???
 			Locations: []*s.Location{
