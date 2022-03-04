@@ -263,8 +263,8 @@ func (pres *Presenter) sarifResults() (out []*s.Result) {
 						Region: &s.Region{
 							StartLine:   ip(1),
 							StartColumn: ip(1),
-							//EndLine:     ip(1),
-							EndColumn: ip(1),
+							EndLine:     ip(1),
+							EndColumn:   ip(1),
 							//ByteOffset:  ip(1),
 							//ByteLength:  ip(1),
 						},
