@@ -10,8 +10,8 @@ require (
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/packageurl-go v0.0.0-20210922164639-b3fa992ebd29
-	github.com/anchore/stereoscope v0.0.0-20220301220648-8aa8a4a0bf50
-	github.com/anchore/syft v0.40.0
+	github.com/anchore/stereoscope v0.0.0-20220217141419-c6f02aed9ed2
+	github.com/anchore/syft v0.39.4-0.20220301223752-edac8c7bf77a
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/docker/docker v20.10.12+incompatible
 	github.com/dustin/go-humanize v1.0.0
