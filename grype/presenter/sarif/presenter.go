@@ -108,7 +108,7 @@ func (pres *Presenter) sarifRules() (out []*s.ReportingDescriptor) {
 					//"problem.severity": pres.level(m),
 					// For GitHub reportingDescriptor object:
 					// https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning#reportingdescriptor-object
-					"security-severity": pres.severity(m),
+					"security-severity": pres.securitySeverityValue(m),
 				},
 			})
 		}
@@ -206,6 +206,24 @@ func (pres *Presenter) severity(m match.Match) string {
 		}
 	}
 	return "low"
+}
+
+func (pres *Presenter) securitySeverityValue(m match.Match) string {
+	meta := pres.metadata(m)
+	if meta != nil {
+		severity := vulnerability.ParseSeverity(meta.Severity)
+		switch severity {
+		case vulnerability.CriticalSeverity:
+			return "9.0"
+		case vulnerability.HighSeverity:
+			return "7.0"
+		case vulnerability.MediumSeverity:
+			return "4.0"
+		case vulnerability.LowSeverity:
+			return "1.0"
+		}
+	}
+	return "0.0"
 }
 
 // metadata returns the matching *vulnerability.Metadata from the provider or nil if not found / error
