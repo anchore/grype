@@ -11,7 +11,6 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -44,7 +43,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 		Tool: s.Tool{
 			Driver: &s.ToolComponent{
 				Name:           "Anchore Grype Scan",
-				Version:        sp(version.FromBuild().Version),
+				Version:        sp("0.90.1"), // sp(version.FromBuild().Version),
 				InformationURI: sp("https://github.com/anchore/grype"),
 				Rules:          pres.sarifRules(),
 			},
