@@ -97,10 +97,10 @@ func (pres *Presenter) sarifRules() (out []*s.ReportingDescriptor) {
 					Text: sp(pres.subtitle(m)),
 				},
 				Help: pres.helpText(m, link),
-				DefaultConfiguration: &s.ReportingConfiguration{
-					// FIXME: we may not want to specify this at all
-					Level: sp(pres.level(m)),
-				},
+				//DefaultConfiguration: &s.ReportingConfiguration{
+				//	// FIXME: we may not want to specify this at all
+				//	Level: sp(pres.level(m)),
+				//},
 				Properties: s.Properties{
 					"id":               ruleID,
 					"kind":             "path-problem",
