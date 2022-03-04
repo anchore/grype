@@ -51,6 +51,9 @@ func (pres *Presenter) Present(output io.Writer) error {
 		Results: pres.sarifResults(),
 	})
 
+	// ??
+	doc.Schema = "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json"
+
 	err = doc.PrettyWrite(output)
 	return err
 }
@@ -99,6 +102,10 @@ func (pres *Presenter) sarifRules() (out []*s.ReportingDescriptor) {
 					Level: sp(pres.level(m)),
 				},
 				Properties: s.Properties{
+					"id":               ruleID,
+					"kind":             "path-problem",
+					"name":             ruleName(m),
+					"problem.severity": pres.level(m),
 					// For GitHub reportingDescriptor object:
 					// https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning#reportingdescriptor-object
 					"security-severity": pres.severity(m),
@@ -241,9 +248,9 @@ func (pres *Presenter) sarifResults() (out []*s.Result) {
 		out = append(out, &s.Result{
 			RuleID:  sp(pres.ruleID(m)),
 			Message: pres.resultMessage(m),
-			AnalysisTarget: &s.ArtifactLocation{
-				URI: sp(pres.location(m)),
-			},
+			//AnalysisTarget: &s.ArtifactLocation{
+			//	URI: sp(pres.location(m)),
+			//},
 			// FIXME github "requires" partialFingerprints
 			// PartialFingerprints: ???
 			Locations: []*s.Location{
@@ -256,17 +263,17 @@ func (pres *Presenter) sarifResults() (out []*s.Result) {
 						Region: &s.Region{
 							StartLine:   ip(1),
 							StartColumn: ip(1),
-							EndLine:     ip(1),
-							EndColumn:   ip(1),
-							ByteOffset:  ip(1),
-							ByteLength:  ip(1),
+							//EndLine:     ip(1),
+							EndColumn: ip(1),
+							//ByteOffset:  ip(1),
+							//ByteLength:  ip(1),
 						},
 					},
-					LogicalLocations: []*s.LogicalLocation{
-						{
-							FullyQualifiedName: sp("dockerfile"),
-						},
-					},
+					//LogicalLocations: []*s.LogicalLocation{
+					//	{
+					//		FullyQualifiedName: sp("dockerfile"),
+					//	},
+					//},
 				},
 			},
 		})
