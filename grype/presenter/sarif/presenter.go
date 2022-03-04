@@ -102,10 +102,10 @@ func (pres *Presenter) sarifRules() (out []*s.ReportingDescriptor) {
 				//	Level: sp(pres.level(m)),
 				//},
 				Properties: s.Properties{
-					"id":               ruleID,
-					"kind":             "path-problem",
-					"name":             ruleName(m),
-					"problem.severity": pres.level(m),
+					//"id":               ruleID,
+					//"kind":             "path-problem",
+					//"name":             ruleName(m),
+					//"problem.severity": pres.level(m),
 					// For GitHub reportingDescriptor object:
 					// https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning#reportingdescriptor-object
 					"security-severity": pres.severity(m),
