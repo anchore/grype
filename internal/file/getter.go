@@ -13,14 +13,15 @@ import (
 )
 
 var (
-	archiveExtensions = []string{
-		".tar",
-		".tar.gz",
-		".tgz",
-		".zip",
-	}
+	archiveExtensions   []string
 	ErrNonArchiveSource = fmt.Errorf("non-archive sources are not supported for directory destinations")
 )
+
+func init() {
+	for name := range getter.Decompressors {
+		archiveExtensions = append(archiveExtensions, name)
+	}
+}
 
 type Getter interface {
 	// GetFile downloads the give URL into the given path. The URL must reference a single file.
