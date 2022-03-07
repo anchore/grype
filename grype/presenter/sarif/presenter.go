@@ -52,6 +52,7 @@ func (pres *Presenter) toSarifReport() (*s.Report, error) {
 
 	v := version.FromBuild().Version
 	if v == "[not provided]" {
+		// Need a semver to pass the MS SARIF validator
 		v = "0.0.0-dev"
 	}
 
@@ -67,12 +68,12 @@ func (pres *Presenter) toSarifReport() (*s.Report, error) {
 		Results: pres.sarifResults(),
 	})
 
-	// doc.Schema = "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json"
 	return doc, nil
 }
 
 // sarifRules generates the set of rules to include in this run
-func (pres *Presenter) sarifRules() (out []*s.ReportingDescriptor) {
+func (pres *Presenter) sarifRules() []*s.ReportingDescriptor {
+	out := make([]*s.ReportingDescriptor, 0) // make sure we have at least an empty array
 	if pres.results.Count() > 0 {
 		ruleIDs := map[string]bool{}
 
@@ -301,7 +302,8 @@ func (pres *Presenter) shortDescription(m match.Match) string {
 	return fmt.Sprintf("%s %s vulnerability for %s package", m.Vulnerability.ID, pres.severityText(m), m.Package.Name)
 }
 
-func (pres *Presenter) sarifResults() (out []*s.Result) {
+func (pres *Presenter) sarifResults() []*s.Result {
+	out := make([]*s.Result, 0) // make sure we have at least an empty array
 	for _, m := range pres.results.Sorted() {
 		out = append(out, &s.Result{
 			RuleID:  sp(pres.ruleID(m)),
