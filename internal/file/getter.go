@@ -13,12 +13,7 @@ import (
 )
 
 var (
-	archiveExtensions = []string{
-		".tar",
-		".tar.gz",
-		".tgz",
-		".zip",
-	}
+	archiveExtensions   = getterDecompressorNames()
 	ErrNonArchiveSource = fmt.Errorf("non-archive sources are not supported for directory destinations")
 )
 
@@ -139,4 +134,11 @@ func (a *progressAdapter) TrackProgress(_ string, currentSize, totalSize int64, 
 	return &readCloser{
 		Reader: *progress.NewProxyReader(stream, a.monitor),
 	}
+}
+
+func getterDecompressorNames() (names []string) {
+	for name := range getter.Decompressors {
+		names = append(names, name)
+	}
+	return names
 }
