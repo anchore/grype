@@ -97,15 +97,7 @@ func (pres *Presenter) sarifRules() (out []*s.ReportingDescriptor) {
 					Text: sp(pres.subtitle(m)),
 				},
 				Help: pres.helpText(m, link),
-				//DefaultConfiguration: &s.ReportingConfiguration{
-				//	// FIXME: we may not want to specify this at all
-				//	Level: sp(pres.level(m)),
-				//},
 				Properties: s.Properties{
-					//"id":               ruleID,
-					//"kind":             "path-problem",
-					//"name":             ruleName(m),
-					//"problem.severity": pres.level(m),
 					// For GitHub reportingDescriptor object:
 					// https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning#reportingdescriptor-object
 					"security-severity": pres.securitySeverityValue(m),
@@ -122,6 +114,8 @@ func (pres *Presenter) ruleID(m match.Match) string {
 
 func (pres *Presenter) helpText(m match.Match, link string) *s.MultiformatMessageString {
 	// FIXME we shouldn't necessarily be adding a location here, there may be multiple referencing the same vulnerability
+	// we could instead add some list of all affected locations in the case there are a number found within an image,
+	// for example
 	text := fmt.Sprintf("Vulnerability %s\nSeverity: %s\nPackage: %s\nVersion: %s\nFix Version: %s\nType: %s\nLocation: %s\nData Namespace: unknown\nLink: %s",
 		m.Vulnerability.ID, pres.severity(m), m.Package.Name, m.Package.Version, fixVersions(m), m.Package.Type, pres.location(m), link,
 	)
@@ -142,10 +136,10 @@ func (pres *Presenter) location(m match.Match) string {
 	if len(m.Package.Locations) > 0 {
 		l := m.Package.Locations[0]
 		switch {
-		case l.VirtualPath != "":
-			path = l.VirtualPath
 		case l.RealPath != "":
 			path = l.RealPath
+		case l.VirtualPath != "":
+			path = l.VirtualPath
 		case l.Coordinates.RealPath != "":
 			path = l.Coordinates.RealPath
 		}
@@ -156,40 +150,13 @@ func (pres *Presenter) location(m match.Match) string {
 		if pres.srcMetadata.Path != "" {
 			return strings.TrimPrefix(fmt.Sprintf("%s/%s", pres.srcMetadata.Path, path), "./")
 		}
-		return path
 	case source.FileScheme:
 		if pres.srcMetadata.Path != "" {
-			return fmt.Sprintf("%s:%s", pres.srcMetadata.Path, path)
-		}
-		return path
-	case source.ImageScheme:
-		return fmt.Sprintf("%s:%s", pres.srcMetadata.ImageMetadata.UserInput, path)
-	}
-
-	if path != "" {
-		return path
-	}
-
-	// FIXME this was copied from the scan-action:
-	// there is room for improvement here, trying to mimick previous behavior
-	// If no `dockerfile-path` was provided, and in the improbable situation where there
-	// are no locations for the artifact, return 'Dockerfile'
-	return "Dockerfile"
-}
-
-func (pres *Presenter) level(m match.Match) string {
-	meta := pres.metadata(m)
-	if meta != nil {
-		severity := vulnerability.ParseSeverity(meta.Severity)
-		// TODO look at a possible severity filter here
-		switch severity {
-		case vulnerability.CriticalSeverity, vulnerability.HighSeverity:
-			return "error"
-		case vulnerability.MediumSeverity, vulnerability.LowSeverity:
-			return "warning"
+			return pres.srcMetadata.Path
 		}
 	}
-	return "none"
+
+	return path
 }
 
 func (pres *Presenter) severity(m match.Match) string {
@@ -266,34 +233,11 @@ func (pres *Presenter) sarifResults() (out []*s.Result) {
 		out = append(out, &s.Result{
 			RuleID:  sp(pres.ruleID(m)),
 			Message: pres.resultMessage(m),
-			//AnalysisTarget: &s.ArtifactLocation{
-			//	URI: sp(pres.location(m)),
-			//},
+			// According to the SARIF spec, I believe we should be using AnalysisTarget.URI to indicate a logical
+			// file such as a "Dockerfile" but GitHub does not work well with this
 			// FIXME github "requires" partialFingerprints
 			// PartialFingerprints: ???
-			Locations: []*s.Location{
-				{
-					PhysicalLocation: &s.PhysicalLocation{
-						ArtifactLocation: &s.ArtifactLocation{
-							URI: sp(pres.location(m)),
-						},
-						// TODO: When grype starts reporting line numbers this will need to get updated
-						Region: &s.Region{
-							StartLine:   ip(1),
-							StartColumn: ip(1),
-							EndLine:     ip(1),
-							EndColumn:   ip(1),
-							//ByteOffset:  ip(1),
-							//ByteLength:  ip(1),
-						},
-					},
-					//LogicalLocations: []*s.LogicalLocation{
-					//	{
-					//		FullyQualifiedName: sp("dockerfile"),
-					//	},
-					//},
-				},
-			},
+			Locations: pres.locations(m),
 		})
 	}
 	return out
@@ -322,6 +266,55 @@ func (pres *Presenter) resultMessage(m match.Match) s.Message {
 	return s.Message{
 		Text: &message,
 		Id:   sp("default"),
+	}
+}
+
+func (pres *Presenter) locations(m match.Match) []*s.Location {
+	var logicalLocations []*s.LogicalLocation
+	physicalLocation := pres.location(m)
+
+	switch pres.srcMetadata.Scheme {
+	case source.ImageScheme:
+		img := pres.srcMetadata.ImageMetadata.UserInput
+		for _, l := range m.Package.Locations {
+			logicalLocations = append(logicalLocations, &s.LogicalLocation{
+				FullyQualifiedName: sp(fmt.Sprintf("image://%s/%s/%s", img,
+					strings.TrimPrefix(l.Coordinates.FileSystemID, "sha256:"),
+					strings.TrimPrefix(l.Coordinates.RealPath, "/"))),
+				Name: sp(l.Coordinates.RealPath),
+			})
+		}
+
+		// FIXME this is a hack to get results to show up in GitHub, as it requires relative paths for the location
+		// but we really won't have any information about what Dockerfile on the filesystem was used to build the image
+		physicalLocation = "Dockerfile"
+	case source.FileScheme:
+		physicalLocation = pres.srcMetadata.Path
+
+		for _, l := range m.Package.Locations {
+			logicalLocations = append(logicalLocations, &s.LogicalLocation{
+				FullyQualifiedName: sp(fmt.Sprintf("%s:%s", physicalLocation, l.Coordinates.RealPath)),
+				Name:               sp(l.Coordinates.RealPath),
+			})
+		}
+	}
+
+	return []*s.Location{
+		{
+			PhysicalLocation: &s.PhysicalLocation{
+				ArtifactLocation: &s.ArtifactLocation{
+					URI: sp(physicalLocation),
+				},
+				// TODO: When grype starts reporting line numbers this will need to get updated
+				Region: &s.Region{
+					StartLine:   ip(1),
+					StartColumn: ip(1),
+					EndLine:     ip(1),
+					EndColumn:   ip(1),
+				},
+			},
+			LogicalLocations: logicalLocations,
+		},
 	}
 }
 
