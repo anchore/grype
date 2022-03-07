@@ -36,6 +36,9 @@ func NewPresenter(results match.Matches, packages []pkg.Package, srcMetadata *so
 // Present creates a SARIF-based report
 func (pres *Presenter) Present(output io.Writer) error {
 	doc, err := pres.toSarifReport()
+	if err != nil {
+		return err
+	}
 	err = doc.PrettyWrite(output)
 	return err
 }
