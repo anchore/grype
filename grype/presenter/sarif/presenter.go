@@ -109,7 +109,7 @@ func (pres *Presenter) sarifRules() (out []*s.ReportingDescriptor) {
 }
 
 func (pres *Presenter) ruleID(m match.Match) string {
-	return m.Vulnerability.ID
+	return fmt.Sprintf("%s_%s", m.Details[0].Matcher, m.Vulnerability.ID)
 }
 
 func (pres *Presenter) helpText(m match.Match, link string) *s.MultiformatMessageString {
@@ -276,24 +276,28 @@ func (pres *Presenter) locations(m match.Match) []*s.Location {
 	switch pres.srcMetadata.Scheme {
 	case source.ImageScheme:
 		img := pres.srcMetadata.ImageMetadata.UserInput
-		for _, l := range m.Package.Locations {
-			logicalLocations = append(logicalLocations, &s.LogicalLocation{
-				FullyQualifiedName: sp(fmt.Sprintf("image://%s/%s/%s", img,
+		imagePath := fmt.Sprintf("image/%s", img)
+		for i, l := range m.Package.Locations {
+			if i == 0 {
+				imagePath = fmt.Sprintf("image/%s/%s/%s", img,
 					strings.TrimPrefix(l.Coordinates.FileSystemID, "sha256:"),
-					strings.TrimPrefix(l.Coordinates.RealPath, "/"))),
-				Name: sp(l.Coordinates.RealPath),
+					strings.TrimPrefix(l.Coordinates.RealPath, "/"))
+			}
+			logicalLocations = append(logicalLocations, &s.LogicalLocation{
+				FullyQualifiedName: sp(imagePath),
+				Name:               sp(l.Coordinates.RealPath),
 			})
 		}
 
 		// FIXME this is a hack to get results to show up in GitHub, as it requires relative paths for the location
 		// but we really won't have any information about what Dockerfile on the filesystem was used to build the image
-		physicalLocation = "Dockerfile"
+		physicalLocation = imagePath // "Dockerfile"
 	case source.FileScheme:
 		physicalLocation = pres.srcMetadata.Path
 
 		for _, l := range m.Package.Locations {
 			logicalLocations = append(logicalLocations, &s.LogicalLocation{
-				FullyQualifiedName: sp(fmt.Sprintf("%s:%s", physicalLocation, l.Coordinates.RealPath)),
+				FullyQualifiedName: sp(fmt.Sprintf("%s/%s", physicalLocation, l.Coordinates.RealPath)),
 				Name:               sp(l.Coordinates.RealPath),
 			})
 		}
