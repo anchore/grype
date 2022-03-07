@@ -108,22 +108,27 @@ func (pres *Presenter) sarifRules() (out []*s.ReportingDescriptor) {
 	return out
 }
 
+// ruleID creates a unique rule ID for a given match
 func (pres *Presenter) ruleID(m match.Match) string {
+	// TODO if we support configuration, we may want to allow addition of another qualifier such that if multiple
+	// vuln scans are run on multiple containers we can identify unique rules for each
 	return fmt.Sprintf("%s-%s", m.Vulnerability.ID, m.Package.Name)
 }
 
+// helpText gets the help text for a rule, this is displayed in GitHub if you click on the title in a list of vulns
 func (pres *Presenter) helpText(m match.Match, link string) *s.MultiformatMessageString {
-	// FIXME we shouldn't necessarily be adding a location here, there may be multiple referencing the same vulnerability
+	// TODO we shouldn't necessarily be adding a location here, there may be multiple referencing the same vulnerability
 	// we could instead add some list of all affected locations in the case there are a number found within an image,
-	// for example
-	text := fmt.Sprintf("Vulnerability %s\nSeverity: %s\nPackage: %s\nVersion: %s\nFix Version: %s\nType: %s\nLocation: %s\nData Namespace: unknown\nLink: %s",
-		m.Vulnerability.ID, pres.severity(m), m.Package.Name, m.Package.Version, fixVersions(m), m.Package.Type, pres.location(m), link,
+	// for example but this might get more complicated if there are multiple vuln scans for a particular branch
+	text := fmt.Sprintf("Vulnerability %s\nSeverity: %s\nPackage: %s\nVersion: %s\nFix Version: %s\nType: %s\nLocation: %s\nData Namespace: %s\nLink: %s",
+		m.Vulnerability.ID, pres.severityText(m), m.Package.Name, m.Package.Version, fixVersions(m), m.Package.Type, pres.location(m), m.Vulnerability.Namespace, link,
 	)
 	markdown := fmt.Sprintf(
 		"**Vulnerability %s**\n"+
 			"| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n"+
 			"| --- | --- | --- | --- | --- | --- | --- | --- |\n"+
-			"|%s|%s|%s|%s|%s|%s|unknown|%s|\n", m.Vulnerability.ID, pres.severity(m), m.Package.Name, m.Package.Version, fixVersions(m), m.Package.Type, pres.location(m), link,
+			"| %s  | %s  | %s  | %s  | %s  | %s  | %s  | %s  |\n",
+		m.Vulnerability.ID, pres.severityText(m), m.Package.Name, m.Package.Version, fixVersions(m), m.Package.Type, pres.location(m), m.Vulnerability.Namespace, link,
 	)
 	return &s.MultiformatMessageString{
 		Text:     &text,
@@ -131,6 +136,7 @@ func (pres *Presenter) helpText(m match.Match, link string) *s.MultiformatMessag
 	}
 }
 
+// location the "physical" location of the vuln match
 func (pres *Presenter) location(m match.Match) string {
 	var path string
 	if len(m.Package.Locations) > 0 {
@@ -159,7 +165,60 @@ func (pres *Presenter) location(m match.Match) string {
 	return path
 }
 
-func (pres *Presenter) severity(m match.Match) string {
+// locations the locations array is a single "physical" location with potentially multiple logical locations
+func (pres *Presenter) locations(m match.Match) []*s.Location {
+	var logicalLocations []*s.LogicalLocation
+	physicalLocation := pres.location(m)
+
+	switch pres.srcMetadata.Scheme {
+	case source.ImageScheme:
+		img := pres.srcMetadata.ImageMetadata.UserInput
+		for _, l := range m.Package.Locations {
+			logicalLocations = append(logicalLocations, &s.LogicalLocation{
+				FullyQualifiedName: sp(fmt.Sprintf("%s@%s:%s", img,
+					strings.TrimPrefix(l.Coordinates.FileSystemID, "sha256:"),
+					l.Coordinates.RealPath)),
+				Name: sp(l.Coordinates.RealPath),
+			})
+		}
+
+		// this is a hack to get results to show up in GitHub, as it requires relative paths for the location
+		// but we really won't have any information about what Dockerfile on the filesystem was used to build the image
+		// TODO we could add configuration to specify the prefix, a user might want to specify an image name and architecture
+		// in the case of multiple vuln scans, for example
+		physicalLocation = fmt.Sprintf("image/%s", strings.TrimPrefix(physicalLocation, "/"))
+	case source.FileScheme:
+		physicalLocation = pres.srcMetadata.Path
+
+		for _, l := range m.Package.Locations {
+			logicalLocations = append(logicalLocations, &s.LogicalLocation{
+				FullyQualifiedName: sp(fmt.Sprintf("%s:%s", physicalLocation, l.Coordinates.RealPath)),
+				Name:               sp(l.Coordinates.RealPath),
+			})
+		}
+	}
+
+	return []*s.Location{
+		{
+			PhysicalLocation: &s.PhysicalLocation{
+				ArtifactLocation: &s.ArtifactLocation{
+					URI: sp(physicalLocation),
+				},
+				// TODO When grype starts reporting line numbers this will need to get updated
+				Region: &s.Region{
+					StartLine:   ip(1),
+					StartColumn: ip(1),
+					EndLine:     ip(1),
+					EndColumn:   ip(1),
+				},
+			},
+			LogicalLocations: logicalLocations,
+		},
+	}
+}
+
+// severityText provides a textual representation of the severity level of the match
+func (pres *Presenter) severityText(m match.Match) string {
 	meta := pres.metadata(m)
 	if meta != nil {
 		severity := vulnerability.ParseSeverity(meta.Severity)
@@ -175,6 +234,7 @@ func (pres *Presenter) severity(m match.Match) string {
 	return "low"
 }
 
+// securitySeverityValue GitHub uses a numeric severity value to determine whether things are critical, high, etc.
 func (pres *Presenter) securitySeverityValue(m match.Match) string {
 	meta := pres.metadata(m)
 	if meta != nil {
@@ -225,7 +285,7 @@ func fixVersions(m match.Match) string {
 }
 
 func (pres *Presenter) shortDescription(m match.Match) string {
-	return fmt.Sprintf("%s %s vulnerability for %s package", m.Vulnerability.ID, pres.severity(m), m.Package.Name)
+	return fmt.Sprintf("%s %s vulnerability for %s package", m.Vulnerability.ID, pres.severityText(m), m.Package.Name)
 }
 
 func (pres *Presenter) sarifResults() (out []*s.Result) {
@@ -266,61 +326,6 @@ func (pres *Presenter) resultMessage(m match.Match) s.Message {
 	return s.Message{
 		Text: &message,
 		Id:   sp("default"),
-	}
-}
-
-func (pres *Presenter) locations(m match.Match) []*s.Location {
-	var logicalLocations []*s.LogicalLocation
-	physicalLocation := pres.location(m)
-
-	switch pres.srcMetadata.Scheme {
-	case source.ImageScheme:
-		img := pres.srcMetadata.ImageMetadata.UserInput
-		imagePath := fmt.Sprintf("image/%s", img)
-		for i, l := range m.Package.Locations {
-			if i == 0 {
-				//imagePath = fmt.Sprintf("image/%s/%s/%s", img,
-				//	strings.TrimPrefix(l.Coordinates.FileSystemID, "sha256:"),
-				//	strings.TrimPrefix(l.Coordinates.RealPath, "/"))
-				imagePath = fmt.Sprintf("image/%s/%s", img,
-					strings.TrimPrefix(l.Coordinates.RealPath, "/"))
-			}
-			logicalLocations = append(logicalLocations, &s.LogicalLocation{
-				FullyQualifiedName: sp(imagePath),
-				Name:               sp(l.Coordinates.RealPath),
-			})
-		}
-
-		// FIXME this is a hack to get results to show up in GitHub, as it requires relative paths for the location
-		// but we really won't have any information about what Dockerfile on the filesystem was used to build the image
-		physicalLocation = imagePath // "Dockerfile"
-	case source.FileScheme:
-		physicalLocation = pres.srcMetadata.Path
-
-		for _, l := range m.Package.Locations {
-			logicalLocations = append(logicalLocations, &s.LogicalLocation{
-				FullyQualifiedName: sp(fmt.Sprintf("%s/%s", physicalLocation, l.Coordinates.RealPath)),
-				Name:               sp(l.Coordinates.RealPath),
-			})
-		}
-	}
-
-	return []*s.Location{
-		{
-			PhysicalLocation: &s.PhysicalLocation{
-				ArtifactLocation: &s.ArtifactLocation{
-					URI: sp(physicalLocation),
-				},
-				// TODO: When grype starts reporting line numbers this will need to get updated
-				Region: &s.Region{
-					StartLine:   ip(1),
-					StartColumn: ip(1),
-					EndLine:     ip(1),
-					EndColumn:   ip(1),
-				},
-			},
-			LogicalLocations: logicalLocations,
-		},
 	}
 }
 
