@@ -13,15 +13,9 @@ import (
 )
 
 var (
-	archiveExtensions   []string
+	archiveExtensions   = getterDecompressorNames()
 	ErrNonArchiveSource = fmt.Errorf("non-archive sources are not supported for directory destinations")
 )
-
-func init() {
-	for name := range getter.Decompressors {
-		archiveExtensions = append(archiveExtensions, name)
-	}
-}
 
 type Getter interface {
 	// GetFile downloads the give URL into the given path. The URL must reference a single file.
@@ -140,4 +134,11 @@ func (a *progressAdapter) TrackProgress(_ string, currentSize, totalSize int64, 
 	return &readCloser{
 		Reader: *progress.NewProxyReader(stream, a.monitor),
 	}
+}
+
+func getterDecompressorNames() (names []string) {
+	for name := range getter.Decompressors {
+		names = append(names, name)
+	}
+	return names
 }
