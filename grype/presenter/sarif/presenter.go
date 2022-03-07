@@ -279,8 +279,10 @@ func (pres *Presenter) locations(m match.Match) []*s.Location {
 		imagePath := fmt.Sprintf("image/%s", img)
 		for i, l := range m.Package.Locations {
 			if i == 0 {
-				imagePath = fmt.Sprintf("image/%s/%s/%s", img,
-					strings.TrimPrefix(l.Coordinates.FileSystemID, "sha256:"),
+				//imagePath = fmt.Sprintf("image/%s/%s/%s", img,
+				//	strings.TrimPrefix(l.Coordinates.FileSystemID, "sha256:"),
+				//	strings.TrimPrefix(l.Coordinates.RealPath, "/"))
+				imagePath = fmt.Sprintf("image/%s/%s", img,
 					strings.TrimPrefix(l.Coordinates.RealPath, "/"))
 			}
 			logicalLocations = append(logicalLocations, &s.LogicalLocation{
