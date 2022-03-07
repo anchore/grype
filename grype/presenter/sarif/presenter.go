@@ -2,6 +2,7 @@ package sarif
 
 import (
 	"fmt"
+	"github.com/anchore/grype/internal/version"
 	"io"
 	"strings"
 
@@ -34,16 +35,28 @@ func NewPresenter(results match.Matches, packages []pkg.Package, srcMetadata *so
 
 // Present creates a SARIF-based report
 func (pres *Presenter) Present(output io.Writer) error {
+	doc, err := pres.toSarifReport()
+	err = doc.PrettyWrite(output)
+	return err
+}
+
+// toSarifReport outputs a sarif report object
+func (pres *Presenter) toSarifReport() (*s.Report, error) {
 	doc, err := s.New(s.Version210)
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	v := version.FromBuild().Version
+	if v == "[not provided]" {
+		v = "0.0.0-dev"
 	}
 
 	doc.AddRun(&s.Run{
 		Tool: s.Tool{
 			Driver: &s.ToolComponent{
 				Name:           "Anchore Grype Scan",
-				Version:        sp("0.90.1"), // sp(version.FromBuild().Version),
+				Version:        sp(v),
 				InformationURI: sp("https://github.com/anchore/grype"),
 				Rules:          pres.sarifRules(),
 			},
@@ -51,11 +64,8 @@ func (pres *Presenter) Present(output io.Writer) error {
 		Results: pres.sarifResults(),
 	})
 
-	// ??
-	doc.Schema = "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json"
-
-	err = doc.PrettyWrite(output)
-	return err
+	// doc.Schema = "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json"
+	return doc, nil
 }
 
 // sarifRules generates the set of rules to include in this run

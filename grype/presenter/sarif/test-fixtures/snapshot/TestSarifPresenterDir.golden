@@ -6,11 +6,11 @@
       "tool": {
         "driver": {
           "name": "Anchore Grype Scan",
-          "version": "[not provided]",
+          "version": "0.0.0-dev",
           "informationUri": "https://github.com/anchore/grype",
           "rules": [
             {
-              "id": "CVE-1999-0001",
+              "id": "CVE-1999-0001-package-1",
               "name": "DpkgMatcherExactDirectMatch",
               "shortDescription": {
                 "text": "CVE-1999-0001 low vulnerability for package-1 package"
@@ -18,20 +18,17 @@
               "fullDescription": {
                 "text": "1999-01 description"
               },
-              "defaultConfiguration": {
-                "level": "warning"
-              },
               "helpUri": "https://github.com/anchore/grype",
               "help": {
-                "text": "Vulnerability CVE-1999-0001\nSeverity: low\nPackage: package-1\nVersion: 1.0.1\nFix Version: \nType: deb\nLocation: /some/path/\nData Namespace: unknown\nLink: CVE-1999-0001",
-                "markdown": "**Vulnerability CVE-1999-0001**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n|low|package-1|1.0.1||deb|/some/path/|unknown|CVE-1999-0001|\n"
+                "text": "Vulnerability CVE-1999-0001\nSeverity: low\nPackage: package-1\nVersion: 1.0.1\nFix Version: \nType: deb\nLocation: /some/path/etc/pkg-1\nData Namespace: source-1\nLink: CVE-1999-0001",
+                "markdown": "**Vulnerability CVE-1999-0001**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| low  | package-1  | 1.0.1  |   | deb  | /some/path/etc/pkg-1  | source-1  | CVE-1999-0001  |\n"
               },
               "properties": {
-                "security-severity": "low"
+                "security-severity": "1.0"
               }
             },
             {
-              "id": "CVE-1999-0002",
+              "id": "CVE-1999-0002-package-2",
               "name": "DpkgMatcherExactIndirectMatch",
               "shortDescription": {
                 "text": "CVE-1999-0002 critical vulnerability for package-2 package"
@@ -39,16 +36,13 @@
               "fullDescription": {
                 "text": "1999-02 description"
               },
-              "defaultConfiguration": {
-                "level": "error"
-              },
               "helpUri": "https://github.com/anchore/grype",
               "help": {
-                "text": "Vulnerability CVE-1999-0002\nSeverity: critical\nPackage: package-2\nVersion: 2.0.1\nFix Version: \nType: deb\nLocation: /some/path/\nData Namespace: unknown\nLink: CVE-1999-0002",
-                "markdown": "**Vulnerability CVE-1999-0002**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n|critical|package-2|2.0.1||deb|/some/path/|unknown|CVE-1999-0002|\n"
+                "text": "Vulnerability CVE-1999-0002\nSeverity: critical\nPackage: package-2\nVersion: 2.0.1\nFix Version: \nType: deb\nLocation: /some/path/pkg-2\nData Namespace: source-2\nLink: CVE-1999-0002",
+                "markdown": "**Vulnerability CVE-1999-0002**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| critical  | package-2  | 2.0.1  |   | deb  | /some/path/pkg-2  | source-2  | CVE-1999-0002  |\n"
               },
               "properties": {
-                "security-severity": "critical"
+                "security-severity": "9.0"
               }
             }
           ]
@@ -56,60 +50,46 @@
       },
       "results": [
         {
-          "ruleId": "CVE-1999-0001",
+          "ruleId": "CVE-1999-0001-package-1",
           "message": {
-            "text": "The path /some/path/ reports package-1 at version 1.0.1  which would result in a vulnerable (deb) package installed",
+            "text": "The path /some/path/etc/pkg-1 reports package-1 at version 1.0.1  which would result in a vulnerable (deb) package installed",
             "id": "default"
           },
           "locations": [
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "/some/path/"
+                  "uri": "/some/path/etc/pkg-1"
                 },
                 "region": {
                   "startLine": 1,
                   "startColumn": 1,
                   "endLine": 1,
-                  "endColumn": 1,
-                  "byteOffset": 1,
-                  "byteLength": 1
+                  "endColumn": 1
                 }
-              },
-              "logicalLocations": [
-                {
-                  "fullyQualifiedName": "dockerfile"
-                }
-              ]
+              }
             }
           ]
         },
         {
-          "ruleId": "CVE-1999-0002",
+          "ruleId": "CVE-1999-0002-package-2",
           "message": {
-            "text": "The path /some/path/ reports package-2 at version 2.0.1  which would result in a vulnerable (deb) package installed",
+            "text": "The path /some/path/pkg-2 reports package-2 at version 2.0.1  which would result in a vulnerable (deb) package installed",
             "id": "default"
           },
           "locations": [
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "/some/path/"
+                  "uri": "/some/path/pkg-2"
                 },
                 "region": {
                   "startLine": 1,
                   "startColumn": 1,
                   "endLine": 1,
-                  "endColumn": 1,
-                  "byteOffset": 1,
-                  "byteLength": 1
+                  "endColumn": 1
                 }
-              },
-              "logicalLocations": [
-                {
-                  "fullyQualifiedName": "dockerfile"
-                }
-              ]
+              }
             }
           ]
         }

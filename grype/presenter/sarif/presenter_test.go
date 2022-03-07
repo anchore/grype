@@ -3,6 +3,7 @@ package sarif
 import (
 	"bytes"
 	"flag"
+	"github.com/stretchr/testify/assert"
 	"regexp"
 	"testing"
 
@@ -18,7 +19,7 @@ import (
 	"github.com/anchore/syft/syft/source"
 )
 
-var update = flag.Bool("update", true, "update the *.golden files for json presenters")
+var update = flag.Bool("update", false, "update the *.golden files for json presenters")
 
 func createResults() (match.Matches, []pkg.Package) {
 
@@ -27,6 +28,14 @@ func createResults() (match.Matches, []pkg.Package) {
 		Name:    "package-1",
 		Version: "1.0.1",
 		Type:    syftPkg.DebPkg,
+		Locations: []source.Location{
+			{
+				Coordinates: source.Coordinates{
+					RealPath:     "etc/pkg-1",
+					FileSystemID: "sha256:asdf",
+				},
+			},
+		},
 	}
 	pkg2 := pkg.Package{
 		ID:      "package-2-id",
@@ -36,6 +45,14 @@ func createResults() (match.Matches, []pkg.Package) {
 		Licenses: []string{
 			"MIT",
 			"Apache-v2",
+		},
+		Locations: []source.Location{
+			{
+				Coordinates: source.Coordinates{
+					RealPath:     "pkg-2",
+					FileSystemID: "sha256:asdf",
+				},
+			},
 		},
 	}
 
@@ -79,13 +96,14 @@ func createResults() (match.Matches, []pkg.Package) {
 	return matches, []pkg.Package{pkg1, pkg2}
 }
 
-func TestSarifPresenterImage(t *testing.T) {
-	var buffer bytes.Buffer
-
+func createImagePresenter(t *testing.T) *Presenter {
 	matches, packages := createResults()
 
 	img := imagetest.GetFixtureImage(t, "docker-archive", "image-simple")
 	s, err := source.NewFromImage(img, "user-input")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// This accounts for the non-deterministic digest value that we end up with when
 	// we build a container image dynamically during testing. Ultimately, we should
@@ -96,8 +114,86 @@ func TestSarifPresenterImage(t *testing.T) {
 	s.Metadata.ImageMetadata.ManifestDigest = "sha256:2731251dc34951c0e50fcc643b4c5f74922dad1a5d98f302b504cf46cd5d9368"
 
 	pres := NewPresenter(matches, packages, &s.Metadata, models.NewMetadataMock())
+
+	return pres
+}
+
+func createDirPresenter(t *testing.T) *Presenter {
+	matches, packages := createResults()
+
+	s, err := source.NewFromDirectory("/some/path")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pres := NewPresenter(matches, packages, &s.Metadata, models.NewMetadataMock())
+
+	return pres
+}
+
+func Test_imageToSarifReport(t *testing.T) {
+	pres := createImagePresenter(t)
+	s, err := pres.toSarifReport()
+	assert.NoError(t, err)
+
+	assert.Len(t, s.Runs, 1)
+
+	run := s.Runs[0]
+
+	// Sorted by vulnID, pkg name, ...
+	assert.Len(t, run.Tool.Driver.Rules, 2)
+	assert.Equal(t, run.Tool.Driver.Rules[0].ID, "CVE-1999-0001-package-1")
+	assert.Equal(t, run.Tool.Driver.Rules[1].ID, "CVE-1999-0002-package-2")
+
+	assert.Len(t, run.Results, 2)
+	result := run.Results[0]
+	assert.Equal(t, *result.RuleID, "CVE-1999-0001-package-1")
+	assert.Len(t, result.Locations, 1)
+	location := result.Locations[0]
+	assert.Equal(t, *location.PhysicalLocation.ArtifactLocation.URI, "image/etc/pkg-1")
+
+	result = run.Results[1]
+	assert.Equal(t, *result.RuleID, "CVE-1999-0002-package-2")
+	assert.Len(t, result.Locations, 1)
+	location = result.Locations[0]
+	assert.Equal(t, *location.PhysicalLocation.ArtifactLocation.URI, "image/pkg-2")
+}
+
+func Test_dirToSarifReport(t *testing.T) {
+	pres := createDirPresenter(t)
+	s, err := pres.toSarifReport()
+	assert.NoError(t, err)
+
+	assert.Len(t, s.Runs, 1)
+
+	run := s.Runs[0]
+
+	// Sorted by vulnID, pkg name, ...
+	assert.Len(t, run.Tool.Driver.Rules, 2)
+	assert.Equal(t, run.Tool.Driver.Rules[0].ID, "CVE-1999-0001-package-1")
+	assert.Equal(t, run.Tool.Driver.Rules[1].ID, "CVE-1999-0002-package-2")
+
+	assert.Len(t, run.Results, 2)
+	result := run.Results[0]
+	assert.Equal(t, *result.RuleID, "CVE-1999-0001-package-1")
+	assert.Len(t, result.Locations, 1)
+	location := result.Locations[0]
+	assert.Equal(t, *location.PhysicalLocation.ArtifactLocation.URI, "/some/path/etc/pkg-1")
+
+	result = run.Results[1]
+	assert.Equal(t, *result.RuleID, "CVE-1999-0002-package-2")
+	assert.Len(t, result.Locations, 1)
+	location = result.Locations[0]
+	assert.Equal(t, *location.PhysicalLocation.ArtifactLocation.URI, "/some/path/pkg-2")
+}
+
+func TestSarifPresenterImage(t *testing.T) {
+	var buffer bytes.Buffer
+
+	pres := createImagePresenter(t)
+
 	// run presenter
-	err = pres.Present(&buffer)
+	err := pres.Present(&buffer)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,17 +218,10 @@ func TestSarifPresenterImage(t *testing.T) {
 
 func TestSarifPresenterDir(t *testing.T) {
 	var buffer bytes.Buffer
-	matches, packages := createResults()
-
-	s, err := source.NewFromDirectory("/some/path")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	pres := NewPresenter(matches, packages, &s.Metadata, models.NewMetadataMock())
+	pres := createDirPresenter(t)
 
 	// run presenter
-	err = pres.Present(&buffer)
+	err := pres.Present(&buffer)
 	if err != nil {
 		t.Fatal(err)
 	}
