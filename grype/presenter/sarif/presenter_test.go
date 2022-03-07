@@ -3,11 +3,11 @@ package sarif
 import (
 	"bytes"
 	"flag"
-	"github.com/stretchr/testify/assert"
 	"regexp"
 	"testing"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
