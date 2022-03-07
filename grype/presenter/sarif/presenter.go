@@ -72,8 +72,7 @@ func (pres *Presenter) toSarifReport() (*s.Report, error) {
 }
 
 // sarifRules generates the set of rules to include in this run
-func (pres *Presenter) sarifRules() []*s.ReportingDescriptor {
-	out := make([]*s.ReportingDescriptor, 0) // make sure we have at least an empty array
+func (pres *Presenter) sarifRules() (out []*s.ReportingDescriptor) {
 	if pres.results.Count() > 0 {
 		ruleIDs := map[string]bool{}
 
