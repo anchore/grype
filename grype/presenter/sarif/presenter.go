@@ -109,7 +109,7 @@ func (pres *Presenter) sarifRules() (out []*s.ReportingDescriptor) {
 }
 
 func (pres *Presenter) ruleID(m match.Match) string {
-	return fmt.Sprintf("%s_%s", m.Details[0].Matcher, m.Vulnerability.ID)
+	return fmt.Sprintf("%s-%s", m.Vulnerability.ID, m.Package.Name)
 }
 
 func (pres *Presenter) helpText(m match.Match, link string) *s.MultiformatMessageString {
