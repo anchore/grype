@@ -182,6 +182,7 @@ func (pres *Presenter) location(m match.Match) string {
 func (pres *Presenter) locations(m match.Match) []*s.Location {
 	var logicalLocations []*s.LogicalLocation
 	physicalLocation := pres.location(m)
+	message := physicalLocation
 
 	switch pres.srcMetadata.Scheme {
 	case source.ImageScheme:
@@ -200,19 +201,24 @@ func (pres *Presenter) locations(m match.Match) []*s.Location {
 		// TODO we could add configuration to specify the prefix, a user might want to specify an image name and architecture
 		// in the case of multiple vuln scans, for example
 		physicalLocation = fmt.Sprintf("image/%s", strings.TrimPrefix(physicalLocation, "/"))
+		message = fmt.Sprintf("image://%s/%s", img, physicalLocation)
 	case source.FileScheme:
-		physicalLocation = pres.srcMetadata.Path
-
 		for _, l := range m.Package.Locations {
 			logicalLocations = append(logicalLocations, &s.LogicalLocation{
-				FullyQualifiedName: sp(fmt.Sprintf("%s:%s", physicalLocation, l.Coordinates.RealPath)),
+				FullyQualifiedName: sp(fmt.Sprintf("%s:%s", pres.srcMetadata.Path, l.Coordinates.RealPath)),
 				Name:               sp(l.Coordinates.RealPath),
 			})
 		}
+
+		message = fmt.Sprintf("image://%s/%s", pres.srcMetadata.Path, physicalLocation)
+		physicalLocation = pres.srcMetadata.Path
 	}
 
 	return []*s.Location{
 		{
+			Message: &s.Message{
+				Text: sp(fmt.Sprintf("MESSAGE: %s", message)),
+			},
 			PhysicalLocation: &s.PhysicalLocation{
 				ArtifactLocation: &s.ArtifactLocation{
 					URI: sp(physicalLocation),
@@ -339,7 +345,6 @@ func (pres *Presenter) resultMessage(m match.Match) s.Message {
 
 	return s.Message{
 		Text: &message,
-		Id:   sp("default"),
 	}
 }
 
