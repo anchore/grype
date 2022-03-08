@@ -202,6 +202,9 @@ func TestCuratorDownload(t *testing.T) {
 			cur := newTestCurator(t, fs, getter, "/tmp/dbdir", metadataUrl, false)
 
 			path, err := cur.download(test.entry, &progress.Manual{})
+			if err != nil {
+				t.Fatalf("could not download entry: %+v", err)
+			}
 
 			if !getter.calls.Contains(test.expectedURL) {
 				t.Fatalf("never made the appropriate fetch call: %+v", getter.calls)

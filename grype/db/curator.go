@@ -225,7 +225,7 @@ func (c *Curator) ImportFrom(dbArchivePath string) error {
 		return fmt.Errorf("unable to create db temp dir: %w", err)
 	}
 
-	err = archiver.DecompressFile(dbArchivePath, tempDir)
+	err = archiver.Unarchive(dbArchivePath, tempDir)
 	if err != nil {
 		return err
 	}
