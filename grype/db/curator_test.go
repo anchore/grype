@@ -1,9 +1,12 @@
 package db
 
 import (
+	"archive/tar"
 	"bufio"
+	"compress/gzip"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -202,6 +205,9 @@ func TestCuratorDownload(t *testing.T) {
 			cur := newTestCurator(t, fs, getter, "/tmp/dbdir", metadataUrl, false)
 
 			path, err := cur.download(test.entry, &progress.Manual{})
+			if err != nil {
+				t.Fatalf("could not download entry: %+v", err)
+			}
 
 			if !getter.calls.Contains(test.expectedURL) {
 				t.Fatalf("never made the appropriate fetch call: %+v", getter.calls)
@@ -297,4 +303,105 @@ func TestCuratorDBPathHasSchemaVersion(t *testing.T) {
 
 	assert.Equal(t, path.Join(dbRootPath, strconv.Itoa(cur.targetSchema)), cur.dbDir, "unexpected dir")
 	assert.Contains(t, cur.dbPath, path.Join(dbRootPath, strconv.Itoa(cur.targetSchema)), "unexpected path")
+}
+
+func TestImportFrom(t *testing.T) {
+	tests := []struct {
+		name       string
+		importPath string
+	}{
+		{
+			name: "ImportFrom is able to decompress a .tar.gz file",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			tempTarGZ := createTempTarGz(t)
+			fs := afero.NewMemMapFs()
+			dbRootPath := "/tmp/dbdir"
+			cur := newTestCurator(t, fs, nil, dbRootPath, "http://metadata.io", false)
+			err := cur.ImportFrom(tempTarGZ)
+			if err != nil {
+				t.Fatalf("could not import db from fixture path %s: %v", test.importPath, err)
+			}
+		})
+	}
+}
+
+func createTempTarGz(t *testing.T) string {
+	// Files which to include in the tar.gz archive
+	files := []string{"test-fixtures/archives/"}
+	tempDir, err := os.MkdirTemp("", "grype-import")
+	if err != nil {
+		t.Fatalf("could not create temp dir for tar gz: %v", err)
+	}
+
+	file := fmt.Sprintf("%s/output.tar.gz", tempDir)
+
+	// Create output file
+	out, err := os.Create(file)
+	if err != nil {
+		t.Fatalf("Error writing archive: %v", err)
+	}
+	defer out.Close()
+
+	gw := gzip.NewWriter(out)
+	defer gw.Close()
+	tw := tar.NewWriter(gw)
+	defer tw.Close()
+
+	for _, file := range files {
+		err := addToArchive(tw, file)
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+	}
+
+	if err != nil {
+		log.Fatalln("Error creating archive:", err)
+	}
+
+	return file
+}
+
+func addToArchive(tw *tar.Writer, filename string) error {
+	// Open the file which will be written into the archive
+	file, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Get FileInfo about our file providing file size, mode, etc.
+	info, err := file.Stat()
+	if err != nil {
+		return err
+	}
+
+	// Create a tar Header from the FileInfo data
+	header, err := tar.FileInfoHeader(info, info.Name())
+	if err != nil {
+		return err
+	}
+
+	// Use full path as name (FileInfoHeader only takes the basename)
+	// If we don't do this the directory strucuture would
+	// not be preserved
+	// https://golang.org/src/archive/tar/common.go?#L626
+	header.Name = filename
+
+	// Write file header to the tar archive
+	err = tw.WriteHeader(header)
+	if err != nil {
+		return err
+	}
+
+	// Copy file content to tar archive
+	_, err = io.Copy(tw, file)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
