@@ -52,8 +52,7 @@
         {
           "ruleId": "CVE-1999-0001-package-1",
           "message": {
-            "text": "The path /some/path/etc/pkg-1 reports package-1 at version 1.0.1  which would result in a vulnerable (deb) package installed",
-            "id": "default"
+            "text": "The path /some/path/etc/pkg-1 reports package-1 at version 1.0.1  which would result in a vulnerable (deb) package installed"
           },
           "locations": [
             {
@@ -74,8 +73,7 @@
         {
           "ruleId": "CVE-1999-0002-package-2",
           "message": {
-            "text": "The path /some/path/pkg-2 reports package-2 at version 2.0.1  which would result in a vulnerable (deb) package installed",
-            "id": "default"
+            "text": "The path /some/path/pkg-2 reports package-2 at version 2.0.1  which would result in a vulnerable (deb) package installed"
           },
           "locations": [
             {

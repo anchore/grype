@@ -52,8 +52,7 @@
         {
           "ruleId": "CVE-1999-0001-package-1",
           "message": {
-            "text": "The path etc/pkg-1 reports package-1 at version 1.0.1  which is a vulnerable (deb) package installed in the container",
-            "id": "default"
+            "text": "The path etc/pkg-1 reports package-1 at version 1.0.1  which is a vulnerable (deb) package installed in the container"
           },
           "locations": [
             {
@@ -80,8 +79,7 @@
         {
           "ruleId": "CVE-1999-0002-package-2",
           "message": {
-            "text": "The path pkg-2 reports package-2 at version 2.0.1  which is a vulnerable (deb) package installed in the container",
-            "id": "default"
+            "text": "The path pkg-2 reports package-2 at version 2.0.1  which is a vulnerable (deb) package installed in the container"
           },
           "locations": [
             {
