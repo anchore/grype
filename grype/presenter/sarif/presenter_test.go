@@ -170,21 +170,21 @@ func Test_dirToSarifReport(t *testing.T) {
 
 	// Sorted by vulnID, pkg name, ...
 	assert.Len(t, run.Tool.Driver.Rules, 2)
-	assert.Equal(t, run.Tool.Driver.Rules[0].ID, "CVE-1999-0001-package-1")
-	assert.Equal(t, run.Tool.Driver.Rules[1].ID, "CVE-1999-0002-package-2")
+	assert.Equal(t, "CVE-1999-0001-package-1", run.Tool.Driver.Rules[0].ID)
+	assert.Equal(t, "CVE-1999-0002-package-2", run.Tool.Driver.Rules[1].ID)
 
 	assert.Len(t, run.Results, 2)
 	result := run.Results[0]
-	assert.Equal(t, *result.RuleID, "CVE-1999-0001-package-1")
+	assert.Equal(t, "CVE-1999-0001-package-1", *result.RuleID)
 	assert.Len(t, result.Locations, 1)
 	location := result.Locations[0]
-	assert.Equal(t, *location.PhysicalLocation.ArtifactLocation.URI, "/some/path/etc/pkg-1")
+	assert.Equal(t, "/some/path/etc/pkg-1", *location.PhysicalLocation.ArtifactLocation.URI)
 
 	result = run.Results[1]
-	assert.Equal(t, *result.RuleID, "CVE-1999-0002-package-2")
+	assert.Equal(t, "CVE-1999-0002-package-2", *result.RuleID)
 	assert.Len(t, result.Locations, 1)
 	location = result.Locations[0]
-	assert.Equal(t, *location.PhysicalLocation.ArtifactLocation.URI, "/some/path/pkg-2")
+	assert.Equal(t, "/some/path/pkg-2", *location.PhysicalLocation.ArtifactLocation.URI)
 }
 
 func TestSarifPresenterImage(t *testing.T) {
