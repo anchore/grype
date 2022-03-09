@@ -153,15 +153,7 @@ func (pres *Presenter) helpText(m match.Match, link string) *s.MultiformatMessag
 func (pres *Presenter) location(m match.Match) string {
 	var path string
 	if len(m.Package.Locations) > 0 {
-		l := m.Package.Locations[0]
-		switch {
-		case l.RealPath != "":
-			path = l.RealPath
-		case l.VirtualPath != "":
-			path = l.VirtualPath
-		case l.Coordinates.RealPath != "":
-			path = l.Coordinates.RealPath
-		}
+		path = m.Package.Locations[0].RealPath
 	}
 
 	switch pres.srcMetadata.Scheme {
@@ -188,10 +180,8 @@ func (pres *Presenter) locations(m match.Match) []*s.Location {
 		img := pres.srcMetadata.ImageMetadata.UserInput
 		for _, l := range m.Package.Locations {
 			logicalLocations = append(logicalLocations, &s.LogicalLocation{
-				FullyQualifiedName: sp(fmt.Sprintf("%s@%s:%s", img,
-					strings.TrimPrefix(l.Coordinates.FileSystemID, "sha256:"),
-					l.Coordinates.RealPath)),
-				Name: sp(l.Coordinates.RealPath),
+				FullyQualifiedName: sp(fmt.Sprintf("%s@%s:%s", img, l.FileSystemID, l.RealPath)),
+				Name:               sp(l.RealPath),
 			})
 		}
 
@@ -203,8 +193,8 @@ func (pres *Presenter) locations(m match.Match) []*s.Location {
 	case source.FileScheme:
 		for _, l := range m.Package.Locations {
 			logicalLocations = append(logicalLocations, &s.LogicalLocation{
-				FullyQualifiedName: sp(fmt.Sprintf("%s:%s", pres.srcMetadata.Path, l.Coordinates.RealPath)),
-				Name:               sp(l.Coordinates.RealPath),
+				FullyQualifiedName: sp(fmt.Sprintf("%s:%s", pres.srcMetadata.Path, l.RealPath)),
+				Name:               sp(l.RealPath),
 			})
 		}
 
