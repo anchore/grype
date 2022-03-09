@@ -1,0 +1,5 @@
+# See documentation here: https://github.com/artifacthub/hub/blob/v1.6.0/docs/metadata/artifacthub-repo.yml
+
+owners:
+  - name: wagoodman
+    email: wagoodman@gmail.com
