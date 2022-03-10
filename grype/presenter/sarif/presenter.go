@@ -254,7 +254,8 @@ func (pres *Presenter) severityText(m match.Match) string {
 	return "low"
 }
 
-// securitySeverityValue GitHub uses a numeric severity value to determine whether things are critical, high, etc.
+// securitySeverityValue GitHub security-severity property uses a numeric severity value to determine whether things
+// are critical, high, etc.; this converts our vulnerability to a value within the ranges
 func (pres *Presenter) securitySeverityValue(m match.Match) string {
 	meta := pres.metadata(m)
 	if meta != nil {
