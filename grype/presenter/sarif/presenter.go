@@ -134,14 +134,14 @@ func (pres *Presenter) helpText(m match.Match, link string) *sarif.MultiformatMe
 	// we could instead add some list of all affected locations in the case there are a number found within an image,
 	// for example but this might get more complicated if there are multiple vuln scans for a particular branch
 	text := fmt.Sprintf("Vulnerability %s\nSeverity: %s\nPackage: %s\nVersion: %s\nFix Version: %s\nType: %s\nLocation: %s\nData Namespace: %s\nLink: %s",
-		m.Vulnerability.ID, pres.severityText(m), m.Package.Name, m.Package.Version, fixVersions(m), m.Package.Type, packagePath(m.Package), m.Vulnerability.Namespace, link,
+		m.Vulnerability.ID, pres.severityText(m), m.Package.Name, m.Package.Version, fixVersions(m), m.Package.Type, pres.packagePath(m.Package), m.Vulnerability.Namespace, link,
 	)
 	markdown := fmt.Sprintf(
 		"**Vulnerability %s**\n"+
 			"| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n"+
 			"| --- | --- | --- | --- | --- | --- | --- | --- |\n"+
 			"| %s  | %s  | %s  | %s  | %s  | %s  | %s  | %s  |\n",
-		m.Vulnerability.ID, pres.severityText(m), m.Package.Name, m.Package.Version, fixVersions(m), m.Package.Type, packagePath(m.Package), m.Vulnerability.Namespace, link,
+		m.Vulnerability.ID, pres.severityText(m), m.Package.Name, m.Package.Version, fixVersions(m), m.Package.Type, pres.packagePath(m.Package), m.Vulnerability.Namespace, link,
 	)
 	return &sarif.MultiformatMessageString{
 		Text:     &text,
@@ -150,49 +150,30 @@ func (pres *Presenter) helpText(m match.Match, link string) *sarif.MultiformatMe
 }
 
 // packagePath attempts to get the relative path of the package to the "scan root"
-func packagePath(p pkg.Package) string {
-	if len(p.Locations) > 0 {
-		location := p.Locations[0]
-		if location.VirtualPath != "" {
-			return location.VirtualPath
-		}
-		return location.RealPath
-	}
-	return ""
-}
-
-// toPath Generates a string representation of the package location, optionally including the layer hash
-func fullPath(s *source.Metadata, p pkg.Package) string {
-	inputPath := strings.TrimPrefix(s.Path, "./")
+func (pres *Presenter) packagePath(p pkg.Package) string {
+	inputPath := strings.TrimPrefix(pres.srcMetadata.Path, "./")
 	if inputPath == "." {
 		inputPath = ""
 	}
 	if len(p.Locations) > 0 {
-		packagePath := packagePath(p)
-		trimmedPath := strings.TrimPrefix(packagePath, "/")
-		switch s.Scheme {
-		case source.ImageScheme:
-			image := strings.ReplaceAll(s.ImageMetadata.UserInput, ":/", "//")
-			return fmt.Sprintf("%s:/%s", image, trimmedPath)
-		case source.FileScheme:
-			// Ideally here we include the path within the archive, but do not at the moment due to naming restrictions
-			return inputPath
-		case source.DirectoryScheme:
-			if inputPath != "" {
-				return fmt.Sprintf("%s/%s", inputPath, trimmedPath)
-			}
-			return packagePath
+		location := p.Locations[0]
+		packagePath := location.RealPath
+		if location.VirtualPath != "" {
+			packagePath = location.VirtualPath
 		}
+		if pres.srcMetadata.Scheme == source.DirectoryScheme {
+			packagePath = fmt.Sprintf("%s/%s", inputPath, packagePath)
+		}
+		return packagePath
 	}
-	return fmt.Sprintf("%s%s", inputPath, s.ImageMetadata.UserInput)
+	return inputPath
 }
 
 // locations the locations array is a single "physical" location with potentially multiple logical locations
 func (pres *Presenter) locations(m match.Match) []*sarif.Location {
 	var logicalLocations []*sarif.LogicalLocation
-	packagePath := packagePath(m.Package)
-	trimmedPath := strings.TrimPrefix(packagePath, "/")
-	physicalLocation := fullPath(pres.srcMetadata, m.Package)
+	physicalLocation := pres.packagePath(m.Package)
+	trimmedPath := strings.TrimPrefix(physicalLocation, "/")
 
 	switch pres.srcMetadata.Scheme {
 	case source.ImageScheme:
@@ -254,18 +235,51 @@ func (pres *Presenter) severityText(m match.Match) string {
 	return "low"
 }
 
+// cvssScore attempts to get the best CVSS score that our vulnerability data contains
+func (pres *Presenter) cvssScore(v vulnerability.Vulnerability) float64 {
+	var all []*vulnerability.Metadata
+	for _, related := range v.RelatedVulnerabilities {
+		meta, _ := pres.metadataProvider.GetMetadata(related.ID, related.Namespace)
+		all = append(all, meta)
+	}
+
+	score := -1.0
+
+	// first check vendor-specific entries
+	for _, m := range all {
+		if m.Namespace == "nvd" {
+			continue
+		}
+		for _, cvss := range m.Cvss {
+			if cvss.Metrics.BaseScore > score {
+				score = cvss.Metrics.BaseScore
+			}
+		}
+	}
+
+	if score > 0 {
+		return score
+	}
+
+	// next, check nvd entries
+	for _, m := range all {
+		for _, cvss := range m.Cvss {
+			if cvss.Metrics.BaseScore > score {
+				score = cvss.Metrics.BaseScore
+			}
+		}
+	}
+
+	return score
+}
+
 // securitySeverityValue GitHub security-severity property uses a numeric severity value to determine whether things
 // are critical, high, etc.; this converts our vulnerability to a value within the ranges
 func (pres *Presenter) securitySeverityValue(m match.Match) string {
 	meta := pres.metadata(m)
 	if meta != nil {
 		// this corresponds directly to the CVSS score, so we return this if we have it
-		score := -1.0
-		for _, cvss := range meta.Cvss {
-			if cvss.Metrics.BaseScore > score {
-				score = cvss.Metrics.BaseScore
-			}
-		}
+		score := pres.cvssScore(m.Vulnerability)
 		if score > 0 {
 			return fmt.Sprintf("%f", score)
 		}
@@ -346,7 +360,7 @@ func sp(sarif string) *string {
 }
 
 func (pres *Presenter) resultMessage(m match.Match) sarif.Message {
-	path := packagePath(m.Package)
+	path := pres.packagePath(m.Package)
 	message := fmt.Sprintf("The path %s reports %s at version %s ", path, m.Package.Name, m.Package.Version)
 
 	if pres.srcMetadata.Scheme == source.DirectoryScheme {
