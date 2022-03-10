@@ -59,7 +59,7 @@ func (pres *Presenter) toSarifReport() (*sarif.Report, error) {
 	doc.AddRun(&sarif.Run{
 		Tool: sarif.Tool{
 			Driver: &sarif.ToolComponent{
-				Name:           "Anchore Grype Scan",
+				Name:           "Grype",
 				Version:        sp(v),
 				InformationURI: sp("https://github.com/anchore/grype"),
 				Rules:          pres.sarifRules(),
