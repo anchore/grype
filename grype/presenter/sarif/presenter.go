@@ -259,6 +259,16 @@ func (pres *Presenter) severityText(m match.Match) string {
 func (pres *Presenter) securitySeverityValue(m match.Match) string {
 	meta := pres.metadata(m)
 	if meta != nil {
+		// this corresponds directly to the CVSS score, so we return this if we have it
+		cvss := -1.0
+		for _, score := range meta.Cvss {
+			if score.Metrics.BaseScore > cvss {
+				cvss = score.Metrics.BaseScore
+			}
+		}
+		if cvss > 0 {
+			return fmt.Sprintf("%f", cvss)
+		}
 		severity := vulnerability.ParseSeverity(meta.Severity)
 		switch severity {
 		case vulnerability.CriticalSeverity:
