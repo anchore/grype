@@ -134,14 +134,14 @@ func (pres *Presenter) helpText(m match.Match, link string) *sarif.MultiformatMe
 	// we could instead add some list of all affected locations in the case there are a number found within an image,
 	// for example but this might get more complicated if there are multiple vuln scans for a particular branch
 	text := fmt.Sprintf("Vulnerability %s\nSeverity: %s\nPackage: %s\nVersion: %s\nFix Version: %s\nType: %s\nLocation: %s\nData Namespace: %s\nLink: %s",
-		m.Vulnerability.ID, pres.severityText(m), m.Package.Name, m.Package.Version, fixVersions(m), m.Package.Type, pres.location(m), m.Vulnerability.Namespace, link,
+		m.Vulnerability.ID, pres.severityText(m), m.Package.Name, m.Package.Version, fixVersions(m), m.Package.Type, packagePath(m.Package), m.Vulnerability.Namespace, link,
 	)
 	markdown := fmt.Sprintf(
 		"**Vulnerability %s**\n"+
 			"| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n"+
 			"| --- | --- | --- | --- | --- | --- | --- | --- |\n"+
 			"| %s  | %s  | %s  | %s  | %s  | %s  | %s  | %s  |\n",
-		m.Vulnerability.ID, pres.severityText(m), m.Package.Name, m.Package.Version, fixVersions(m), m.Package.Type, pres.location(m), m.Vulnerability.Namespace, link,
+		m.Vulnerability.ID, pres.severityText(m), m.Package.Name, m.Package.Version, fixVersions(m), m.Package.Type, packagePath(m.Package), m.Vulnerability.Namespace, link,
 	)
 	return &sarif.MultiformatMessageString{
 		Text:     &text,
@@ -149,38 +149,57 @@ func (pres *Presenter) helpText(m match.Match, link string) *sarif.MultiformatMe
 	}
 }
 
-// location the "physical" location of the vuln match
-func (pres *Presenter) location(m match.Match) string {
-	var path string
-	if len(m.Package.Locations) > 0 {
-		path = m.Package.Locations[0].RealPath
-	}
-
-	switch pres.srcMetadata.Scheme {
-	case source.DirectoryScheme:
-		if pres.srcMetadata.Path != "" {
-			return strings.TrimPrefix(fmt.Sprintf("%s/%s", pres.srcMetadata.Path, path), "./")
+// packagePath attempts to get the relative path of the package to the "scan root"
+func packagePath(p pkg.Package) string {
+	if len(p.Locations) > 0 {
+		location := p.Locations[0]
+		if location.VirtualPath != "" {
+			return location.VirtualPath
 		}
-	case source.FileScheme:
-		if pres.srcMetadata.Path != "" {
-			return pres.srcMetadata.Path
+		return location.RealPath
+	}
+	return ""
+}
+
+// toPath Generates a string representation of the package location, optionally including the layer hash
+func fullPath(s *source.Metadata, p pkg.Package) string {
+	inputPath := strings.TrimPrefix(s.Path, "./")
+	if inputPath == "." {
+		inputPath = ""
+	}
+	if len(p.Locations) > 0 {
+		packagePath := packagePath(p)
+		trimmedPath := strings.TrimPrefix(packagePath, "/")
+		switch s.Scheme {
+		case source.ImageScheme:
+			image := strings.ReplaceAll(s.ImageMetadata.UserInput, ":/", "//")
+			return fmt.Sprintf("%s:/%s", image, trimmedPath)
+		case source.FileScheme:
+			// Ideally here we include the path within the archive, but do not at the moment due to naming restrictions
+			return inputPath
+		case source.DirectoryScheme:
+			if inputPath != "" {
+				return fmt.Sprintf("%s/%s", inputPath, trimmedPath)
+			}
+			return packagePath
 		}
 	}
-
-	return path
+	return fmt.Sprintf("%s%s", inputPath, s.ImageMetadata.UserInput)
 }
 
 // locations the locations array is a single "physical" location with potentially multiple logical locations
 func (pres *Presenter) locations(m match.Match) []*sarif.Location {
 	var logicalLocations []*sarif.LogicalLocation
-	physicalLocation := pres.location(m)
+	packagePath := packagePath(m.Package)
+	trimmedPath := strings.TrimPrefix(packagePath, "/")
+	physicalLocation := fullPath(pres.srcMetadata, m.Package)
 
 	switch pres.srcMetadata.Scheme {
 	case source.ImageScheme:
 		img := pres.srcMetadata.ImageMetadata.UserInput
 		for _, l := range m.Package.Locations {
 			logicalLocations = append(logicalLocations, &sarif.LogicalLocation{
-				FullyQualifiedName: sp(fmt.Sprintf("%s@%s:%s", img, l.FileSystemID, l.RealPath)),
+				FullyQualifiedName: sp(fmt.Sprintf("%s@%s:/%s", img, l.FileSystemID, trimmedPath)),
 				Name:               sp(l.RealPath),
 			})
 		}
@@ -189,16 +208,14 @@ func (pres *Presenter) locations(m match.Match) []*sarif.Location {
 		// but we really won't have any information about what Dockerfile on the filesystem was used to build the image
 		// TODO we could add configuration to specify the prefix, a user might want to specify an image name and architecture
 		// in the case of multiple vuln scans, for example
-		physicalLocation = fmt.Sprintf("image/%s", strings.TrimPrefix(physicalLocation, "/"))
+		physicalLocation = fmt.Sprintf("image/%s", physicalLocation)
 	case source.FileScheme:
 		for _, l := range m.Package.Locations {
 			logicalLocations = append(logicalLocations, &sarif.LogicalLocation{
-				FullyQualifiedName: sp(fmt.Sprintf("%s:%s", pres.srcMetadata.Path, l.RealPath)),
+				FullyQualifiedName: sp(fmt.Sprintf("%s:/%s", pres.srcMetadata.Path, trimmedPath)),
 				Name:               sp(l.RealPath),
 			})
 		}
-
-		physicalLocation = pres.srcMetadata.Path
 	}
 
 	return []*sarif.Location{
@@ -318,7 +335,7 @@ func sp(sarif string) *string {
 }
 
 func (pres *Presenter) resultMessage(m match.Match) sarif.Message {
-	path := pres.location(m)
+	path := packagePath(m.Package)
 	message := fmt.Sprintf("The path %s reports %s at version %s ", path, m.Package.Name, m.Package.Version)
 
 	if pres.srcMetadata.Scheme == source.DirectoryScheme {
