@@ -29,9 +29,9 @@ var imagesWithVulnerabilities = []string{
 
 func TestCompareSBOMInputToLibResults(t *testing.T) {
 	formats := []string{
-		"json",
-		"spdx-json",
-		"spdx-tag-value",
+		"syft-3-json",
+		"spdx-2-json",
+		"spdx-2-tag-value",
 	}
 
 	// get a grype DB
@@ -61,7 +61,10 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 
 		for _, formatID := range formats {
 			f := syft.FormatByID(sbom.FormatID(formatID))
-			t.Run(fmt.Sprintf("%s/%s", image, f), func(t *testing.T) {
+			if f == nil {
+				t.Errorf("Invalid formatID: %s", formatID)
+			}
+			t.Run(fmt.Sprintf("%s/%s", image, formatID), func(t *testing.T) {
 
 				// get SBOM from syft, write to temp file
 				sbomBytes := getSyftSBOM(t, imageSource, f)
