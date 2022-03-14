@@ -28,10 +28,10 @@ var imagesWithVulnerabilities = []string{
 }
 
 func TestCompareSBOMInputToLibResults(t *testing.T) {
-	formats := []string{
-		"syft-3-json",
-		"spdx-2-json",
-		"spdx-2-tag-value",
+	formats := []sbom.FormatID{
+		syft.JSONFormatID,
+		syft.SPDXJSONFormatID,
+		syft.SPDXTagValueFormatID,
 	}
 
 	// get a grype DB
@@ -60,7 +60,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		imageSource := fmt.Sprintf("docker-archive:%s", imageArchive)
 
 		for _, formatID := range formats {
-			f := syft.FormatByID(sbom.FormatID(formatID))
+			f := syft.FormatByID(formatID)
 			if f == nil {
 				t.Errorf("Invalid formatID: %s", formatID)
 			}
