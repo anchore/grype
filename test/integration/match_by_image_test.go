@@ -357,8 +357,13 @@ func TestMatchByImage(t *testing.T) {
 
 			userImage := "docker-archive:" + tarPath
 
+			sourceInput, err := source.ParseInput(userImage, "", true)
+			if err != nil {
+				t.Fatalf("unable to parse user input %+v", err)
+			}
+
 			// this is purely done to help setup mocks
-			theSource, cleanup, err := source.New(userImage, nil, nil)
+			theSource, cleanup, err := source.New(*sourceInput, nil, nil)
 			if err != nil {
 				t.Fatalf("failed to determine image source: %+v", err)
 			}

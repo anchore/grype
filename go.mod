@@ -10,8 +10,8 @@ require (
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/packageurl-go v0.0.0-20210922164639-b3fa992ebd29
-	github.com/anchore/stereoscope v0.0.0-20220217141419-c6f02aed9ed2
-	github.com/anchore/syft v0.39.4-0.20220301223752-edac8c7bf77a
+	github.com/anchore/stereoscope v0.0.0-20220307154759-8a5a70c227d3
+	github.com/anchore/syft v0.41.4
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/docker/docker v20.10.12+incompatible
 	github.com/dustin/go-humanize v1.0.0
@@ -55,7 +55,7 @@ require (
 	cloud.google.com/go/compute v1.3.0 // indirect
 	cloud.google.com/go/iam v0.1.1 // indirect
 	cloud.google.com/go/storage v1.21.0 // indirect
-	github.com/CycloneDX/cyclonedx-go v0.4.0 // indirect
+	github.com/CycloneDX/cyclonedx-go v0.5.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.1.1 // indirect
 	github.com/Microsoft/go-winio v0.5.1 // indirect
@@ -65,12 +65,12 @@ require (
 	github.com/aws/aws-sdk-go v1.43.0 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/bmatcuk/doublestar/v4 v4.0.2 // indirect
-	github.com/containerd/containerd v1.5.9 // indirect
+	github.com/containerd/containerd v1.5.10 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.10.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/denisenkom/go-mssqldb v0.11.0 // indirect
 	github.com/docker/cli v20.10.12+incompatible // indirect
-	github.com/docker/distribution v2.7.1+incompatible // indirect
+	github.com/docker/distribution v2.8.0+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.6.4 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect

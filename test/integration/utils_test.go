@@ -13,7 +13,6 @@ import (
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/syft/syft"
-	"github.com/anchore/syft/syft/format"
 	"github.com/anchore/syft/syft/pkg/cataloger"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
@@ -62,8 +61,13 @@ func saveImage(t testing.TB, imageName string, destPath string) {
 	t.Logf("Stdout: %s\n", out)
 }
 
-func getSyftSBOM(t testing.TB, image string, formatOption format.Option) string {
-	src, cleanup, err := source.New(image, nil, nil)
+func getSyftSBOM(t testing.TB, image string, format sbom.Format) string {
+	sourceInput, err := source.ParseInput(image, "", true)
+	if err != nil {
+		t.Fatalf("could not generate source input for packages command: %+v", err)
+	}
+
+	src, cleanup, err := source.New(*sourceInput, nil, nil)
 	if err != nil {
 		t.Fatalf("can't get the source: %+v", err)
 	}
@@ -74,7 +78,7 @@ func getSyftSBOM(t testing.TB, image string, formatOption format.Option) string 
 	// TODO: relationships are not verified at this time
 	catalog, _, distro, err := syft.CatalogPackages(src, config)
 
-	sbom := sbom.SBOM{
+	s := sbom.SBOM{
 		Artifacts: sbom.Artifacts{
 			PackageCatalog:    catalog,
 			LinuxDistribution: distro,
@@ -82,7 +86,7 @@ func getSyftSBOM(t testing.TB, image string, formatOption format.Option) string 
 		Source: src.Metadata,
 	}
 
-	bytes, err := syft.Encode(sbom, formatOption)
+	bytes, err := syft.Encode(s, format)
 	if err != nil {
 		t.Fatalf("presenter failed: %+v", err)
 	}
