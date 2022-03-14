@@ -12,6 +12,14 @@
 
 A vulnerability scanner for container images and filesystems. Easily [install the binary](#installation) to try it out. Works with [Syft](https://github.com/anchore/syft), the powerful SBOM (software bill of materials) tool for container images and filesystems.
 
+### Join our Virtual OSS Meetup!
+
+You are invited to join us on March 23rd, 11AM-Noon PT for our virtual open source meetup.  
+
+Hosts Priyanka “Pinky” Ravi of Weaveworks and Dan Luhring from Anchore OSS will explore how open source project Flux is utilizing Syft-generated SBOMs to secure the software supply chain.
+
+[Register here ->](https://get.anchore.com/anchore-oss-meetup-mar-23-2022/)
+
 ### Join our community meetings!
 
 - Calendar: https://calendar.google.com/calendar/u/0/r?cid=Y182OTM4dGt0MjRtajI0NnNzOThiaGtnM29qNEBncm91cC5jYWxlbmRhci5nb29nbGUuY29t
