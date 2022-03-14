@@ -5,7 +5,7 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/sergi/go-diff/diffmatchpatch"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
@@ -184,11 +184,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 
 	var expected = testutils.GetGoldenFileContents(t)
 
-	if !bytes.Equal(expected, actual) {
-		dmp := diffmatchpatch.New()
-		diffs := dmp.DiffMain(string(expected), string(actual), true)
-		t.Errorf("mismatched output:\n%s", dmp.DiffPrettyText(diffs))
-	}
+	assert.JSONEq(t, string(expected), string(actual))
 
 	// TODO: add me back in when there is a JSON schema
 	// validateAgainstDbSchema(t, string(actual))
@@ -327,11 +323,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 
 	var expected = testutils.GetGoldenFileContents(t)
 
-	if !bytes.Equal(expected, actual) {
-		dmp := diffmatchpatch.New()
-		diffs := dmp.DiffMain(string(expected), string(actual), true)
-		t.Errorf("mismatched output:\n%s", dmp.DiffPrettyText(diffs))
-	}
+	assert.JSONEq(t, string(expected), string(actual))
 
 	// TODO: add me back in when there is a JSON schema
 	// validateAgainstDbSchema(t, string(actual))
@@ -378,10 +370,5 @@ func TestEmptyJsonPresenter(t *testing.T) {
 
 	var expected = testutils.GetGoldenFileContents(t)
 
-	if !bytes.Equal(expected, actual) {
-		dmp := diffmatchpatch.New()
-		diffs := dmp.DiffMain(string(expected), string(actual), true)
-		t.Errorf("mismatched output:\n%s", dmp.DiffPrettyText(diffs))
-	}
-
+	assert.JSONEq(t, string(expected), string(actual))
 }
