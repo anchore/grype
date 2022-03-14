@@ -3,6 +3,7 @@ package sarif
 import (
 	"bytes"
 	"flag"
+	"fmt"
 	"regexp"
 	"testing"
 
@@ -249,4 +250,117 @@ func redact(s []byte) []byte {
 		s = pattern.ReplaceAll(s, []byte("redacted"))
 	}
 	return s
+}
+
+type MockMetadataProvider struct{}
+
+func (m *MockMetadataProvider) GetMetadata(id, namespace string) (*vulnerability.Metadata, error) {
+	cvss := func(id string, namespace string, scores ...float64) vulnerability.Metadata {
+		values := make([]vulnerability.Cvss, len(scores))
+		for _, score := range scores {
+			values = append(values, vulnerability.Cvss{
+				Metrics: vulnerability.CvssMetrics{
+					BaseScore: score,
+				},
+			})
+		}
+		return vulnerability.Metadata{
+			ID:        id,
+			Namespace: namespace,
+			Cvss:      values,
+		}
+	}
+	values := []vulnerability.Metadata{
+		cvss("1", "nvd", 1),
+		cvss("1", "not-nvd", 2),
+		cvss("2", "not-nvd", 3, 4),
+	}
+	for _, v := range values {
+		if v.ID == id && v.Namespace == namespace {
+			return &v, nil
+		}
+	}
+	return nil, fmt.Errorf("not found")
+}
+
+func Test_cvssScore(t *testing.T) {
+	tests := []struct {
+		name          string
+		vulnerability vulnerability.Vulnerability
+		expected      float64
+	}{
+		{
+			name: "none",
+			vulnerability: vulnerability.Vulnerability{
+				ID: "4",
+				RelatedVulnerabilities: []vulnerability.Reference{
+					{
+						ID:        "7",
+						Namespace: "nvd",
+					},
+				},
+			},
+			expected: -1,
+		},
+		{
+			name: "direct",
+			vulnerability: vulnerability.Vulnerability{
+				ID:        "2",
+				Namespace: "not-nvd",
+				RelatedVulnerabilities: []vulnerability.Reference{
+					{
+						ID:        "1",
+						Namespace: "nvd",
+					},
+				},
+			},
+			expected: 4,
+		},
+		{
+			name: "related not nvd",
+			vulnerability: vulnerability.Vulnerability{
+				ID:        "1",
+				Namespace: "nvd",
+				RelatedVulnerabilities: []vulnerability.Reference{
+					{
+						ID:        "1",
+						Namespace: "nvd",
+					},
+					{
+						ID:        "1",
+						Namespace: "not-nvd",
+					},
+				},
+			},
+			expected: 2,
+		},
+		{
+			name: "related nvd",
+			vulnerability: vulnerability.Vulnerability{
+				ID:        "4",
+				Namespace: "not-nvd",
+				RelatedVulnerabilities: []vulnerability.Reference{
+					{
+						ID:        "1",
+						Namespace: "nvd",
+					},
+					{
+						ID:        "7",
+						Namespace: "not-nvd",
+					},
+				},
+			},
+			expected: 1,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			pres := Presenter{
+				metadataProvider: &MockMetadataProvider{},
+			}
+			score := pres.cvssScore(test.vulnerability)
+			assert.Equal(t, test.expected, score)
+		})
+	}
 }

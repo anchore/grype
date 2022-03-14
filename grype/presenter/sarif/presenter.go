@@ -238,9 +238,17 @@ func (pres *Presenter) severityText(m match.Match) string {
 // cvssScore attempts to get the best CVSS score that our vulnerability data contains
 func (pres *Presenter) cvssScore(v vulnerability.Vulnerability) float64 {
 	var all []*vulnerability.Metadata
-	for _, related := range v.RelatedVulnerabilities {
-		meta, _ := pres.metadataProvider.GetMetadata(related.ID, related.Namespace)
+
+	meta, err := pres.metadataProvider.GetMetadata(v.ID, v.Namespace)
+	if err == nil {
 		all = append(all, meta)
+	}
+
+	for _, related := range v.RelatedVulnerabilities {
+		meta, err = pres.metadataProvider.GetMetadata(related.ID, related.Namespace)
+		if err == nil {
+			all = append(all, meta)
+		}
 	}
 
 	score := -1.0
