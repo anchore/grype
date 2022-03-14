@@ -147,6 +147,11 @@ func setRootFlags(flags *pflag.FlagSet) {
 		"exclude", "", nil,
 		"exclude paths from being scanned using a glob expression",
 	)
+
+	flags.StringP(
+		"platform", "", "",
+		"an optional platform specifier for container image sources (e.g. 'linux/arm64', 'linux/arm64/v8', 'arm64', 'linux')",
+	)
 }
 
 func bindRootConfigOptions(flags *pflag.FlagSet) error {
@@ -183,6 +188,10 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 	}
 
 	if err := viper.BindPFlag("exclude", flags.Lookup("exclude")); err != nil {
+		return err
+	}
+
+	if err := viper.BindPFlag("platform", flags.Lookup("platform")); err != nil {
 		return err
 	}
 
@@ -354,6 +363,7 @@ func getProviderConfig() pkg.ProviderConfig {
 		Exclusions:          appConfig.Exclusions,
 		CatalogingOptions:   appConfig.Search.ToConfig(),
 		GenerateMissingCPEs: appConfig.GenerateMissingCPEs,
+		Platform:            appConfig.Platform,
 	}
 }
 

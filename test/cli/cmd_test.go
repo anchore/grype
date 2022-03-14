@@ -31,6 +31,13 @@ func TestCmd(t *testing.T) {
 			},
 		},
 		{
+			name: "platform-option-wired-up",
+			args: []string{"--platform", "arm64", "-o", "json", "registry:busybox:1.31"},
+			assertions: []traitAssertion{
+				assertInOutput("sha256:1ee006886991ad4689838d3a288e0dd3fd29b70e276622f16b67a8922831a853"), // linux/arm64 image digest
+			},
+		},
+		{
 			name: "responds-to-search-options",
 			args: []string{"-vv"},
 			env: map[string]string{
