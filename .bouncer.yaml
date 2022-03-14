@@ -16,3 +16,7 @@ ignore-packages:
   # All these files have been put into the public domain.
   # You can do whatever you want with these files.
   - github.com/xi2/xz
+
+  # from: https://github.com/owenrumney/go-sarif/blob/main/LICENSE
+  # This is released into the public domain using the "Unlicense license"
+  - github.com/owenrumney/go-sarif

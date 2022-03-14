@@ -32,6 +32,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/olekukonko/tablewriter v0.0.5
+	github.com/owenrumney/go-sarif v1.1.1
 	github.com/pkg/profile v1.6.0
 	github.com/scylladb/go-set v1.0.2
 	github.com/sergi/go-diff v1.2.0
@@ -130,6 +131,7 @@ require (
 	github.com/vifraa/gopom v0.1.0 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
+	github.com/zclconf/go-cty v1.10.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20220213190939-1e6e3497d506 // indirect
 	golang.org/x/exp v0.0.0-20220209042442-160e291fcf24 // indirect
