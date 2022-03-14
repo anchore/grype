@@ -12,7 +12,6 @@ import (
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft"
-	"github.com/anchore/syft/syft/format"
 )
 
 func syftSBOMProvider(userInput string, config ProviderConfig) ([]Package, Context, error) {
@@ -21,11 +20,11 @@ func syftSBOMProvider(userInput string, config ProviderConfig) ([]Package, Conte
 		return nil, Context{}, err
 	}
 
-	sbom, formatOption, err := syft.Decode(reader)
+	sbom, format, err := syft.Decode(reader)
 	if err != nil {
 		return nil, Context{}, fmt.Errorf("unable to decode sbom: %w", err)
 	}
-	if formatOption == format.UnknownFormatOption {
+	if format == nil {
 		return nil, Context{}, errDoesNotProvide
 	}
 

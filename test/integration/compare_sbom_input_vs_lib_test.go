@@ -11,8 +11,9 @@ import (
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/internal"
-	"github.com/anchore/syft/syft/format"
+	"github.com/anchore/syft/syft"
 	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -27,10 +28,10 @@ var imagesWithVulnerabilities = []string{
 }
 
 func TestCompareSBOMInputToLibResults(t *testing.T) {
-	formats := []format.Option{
-		format.JSONOption,
-		format.SPDXJSONOption,
-		format.SPDXTagValueOption,
+	formats := []string{
+		"json",
+		"spdx-json",
+		"spdx-tag-value",
 	}
 
 	// get a grype DB
@@ -58,7 +59,8 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		imageArchive := PullThroughImageCache(t, image)
 		imageSource := fmt.Sprintf("docker-archive:%s", imageArchive)
 
-		for _, f := range formats {
+		for _, formatID := range formats {
+			f := syft.FormatByID(sbom.FormatID(formatID))
 			t.Run(fmt.Sprintf("%s/%s", image, f), func(t *testing.T) {
 
 				// get SBOM from syft, write to temp file
