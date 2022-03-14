@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/mholt/archiver/v3"
 	"github.com/spf13/afero"
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
@@ -224,18 +225,7 @@ func (c *Curator) ImportFrom(dbArchivePath string) error {
 		return fmt.Errorf("unable to create db temp dir: %w", err)
 	}
 
-	f, err := os.Open(dbArchivePath)
-	if err != nil {
-		return fmt.Errorf("unable to open archive (%s): %w", dbArchivePath, err)
-	}
-	defer func() {
-		err = f.Close()
-		if err != nil {
-			log.Errorf("unable to close archive (%s): %w", dbArchivePath, err)
-		}
-	}()
-
-	err = file.UnTarGz(tempDir, f)
+	err = archiver.Unarchive(dbArchivePath, tempDir)
 	if err != nil {
 		return err
 	}
