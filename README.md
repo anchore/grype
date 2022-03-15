@@ -18,7 +18,7 @@ You are invited to join us on March 23rd, 11AM-Noon PT for our virtual open sour
 
 Hosts Priyanka “Pinky” Ravi of Weaveworks and Dan Luhring from Anchore OSS will explore how open source project Flux is utilizing Syft-generated SBOMs to secure the software supply chain.
 
-[Register here ->](https://get.anchore.com/anchore-oss-meetup-mar-23-2022/)
+[Register here!](https://get.anchore.com/anchore-oss-meetup-mar-23-2022/)
 
 ### Join our community meetings!
 
