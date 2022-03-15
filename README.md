@@ -491,7 +491,11 @@ file: ""
 #   - '/etc/**'
 #   - './out/**/*.json'
 # same as --exclude ; GRYPE_EXCLUDE env var
-exclude:
+exclude: []
+
+# os and/or architecture to use when referencing container images (e.g. "windows/armv6" or "arm64")
+# same as --platform; GRYPE_PLATFORM env var
+platform: ""
 
 # If using SBOM input, automatically generate CPEs when packages have none
 add-cpes-if-none: false
