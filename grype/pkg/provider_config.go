@@ -10,4 +10,5 @@ type ProviderConfig struct {
 	Exclusions          []string
 	CatalogingOptions   cataloger.Config
 	GenerateMissingCPEs bool
+	Platform            string
 }
