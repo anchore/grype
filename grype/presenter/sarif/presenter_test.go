@@ -252,6 +252,12 @@ func redact(s []byte) []byte {
 	return s
 }
 
+type NilMetadataProvider struct{}
+
+func (m *NilMetadataProvider) GetMetadata(_, _ string) (*vulnerability.Metadata, error) {
+	return nil, nil
+}
+
 type MockMetadataProvider struct{}
 
 func (m *MockMetadataProvider) GetMetadata(id, namespace string) (*vulnerability.Metadata, error) {
@@ -281,6 +287,17 @@ func (m *MockMetadataProvider) GetMetadata(id, namespace string) (*vulnerability
 		}
 	}
 	return nil, fmt.Errorf("not found")
+}
+
+func Test_cvssScoreWithNilMetadata(t *testing.T) {
+	pres := Presenter{
+		metadataProvider: &NilMetadataProvider{},
+	}
+	score := pres.cvssScore(vulnerability.Vulnerability{
+		ID:        "id",
+		Namespace: "namespace",
+	})
+	assert.Equal(t, float64(-1), score)
 }
 
 func Test_cvssScore(t *testing.T) {
