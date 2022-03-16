@@ -240,13 +240,13 @@ func (pres *Presenter) cvssScore(v vulnerability.Vulnerability) float64 {
 	var all []*vulnerability.Metadata
 
 	meta, err := pres.metadataProvider.GetMetadata(v.ID, v.Namespace)
-	if err == nil {
+	if err == nil && meta != nil {
 		all = append(all, meta)
 	}
 
 	for _, related := range v.RelatedVulnerabilities {
 		meta, err = pres.metadataProvider.GetMetadata(related.ID, related.Namespace)
-		if err == nil {
+		if err == nil && meta != nil {
 			all = append(all, meta)
 		}
 	}
