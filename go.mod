@@ -9,9 +9,9 @@ require (
 	github.com/alicebob/sqlittle v1.4.0
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
-	github.com/anchore/packageurl-go v0.0.0-20210922164639-b3fa992ebd29
+	github.com/anchore/packageurl-go v0.1.1-0.20220314153042-1bcd40e5206b
 	github.com/anchore/stereoscope v0.0.0-20220307154759-8a5a70c227d3
-	github.com/anchore/syft v0.41.4
+	github.com/anchore/syft v0.41.6
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/docker/docker v20.10.12+incompatible
 	github.com/dustin/go-humanize v1.0.0
