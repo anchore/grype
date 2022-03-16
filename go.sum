@@ -268,12 +268,12 @@ github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04/go.mod h1:6dK
 github.com/anchore/go-version v1.2.2-0.20200701162849-18adb9c92b9b/go.mod h1:Bkc+JYWjMCF8OyZ340IMSIi2Ebf3uwByOk6ho4wne1E=
 github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4 h1:rmZG77uXgE+o2gozGEBoUMpX27lsku+xrMwlmBZJtbg=
 github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4/go.mod h1:Bkc+JYWjMCF8OyZ340IMSIi2Ebf3uwByOk6ho4wne1E=
-github.com/anchore/packageurl-go v0.0.0-20210922164639-b3fa992ebd29 h1:K9LfnxwhqvihqU0+MF325FNy7fsKV9EGaUxdfR4gnWk=
-github.com/anchore/packageurl-go v0.0.0-20210922164639-b3fa992ebd29/go.mod h1:Oc1UkGaJwY6ND6vtAqPSlYrptKRJngHwkwB6W7l1uP0=
+github.com/anchore/packageurl-go v0.1.1-0.20220314153042-1bcd40e5206b h1:YJWYt/6KQXR9JR46lLHrTTYi8rcye42tKcyjREA/hvA=
+github.com/anchore/packageurl-go v0.1.1-0.20220314153042-1bcd40e5206b/go.mod h1:Blo6OgJNiYF41ufcgHKkbCKF2MDOMlrqhXv/ij6ocR4=
 github.com/anchore/stereoscope v0.0.0-20220307154759-8a5a70c227d3 h1:Kx2jlMdENAf4cVjYGYLI+fiavVhzhtmU89GUYDITJ1w=
 github.com/anchore/stereoscope v0.0.0-20220307154759-8a5a70c227d3/go.mod h1:XESZQTgFETDBatmyoet6XZ0zVknoIMDSAhj2INj2a5w=
-github.com/anchore/syft v0.41.4 h1:dJqD0mqdBqDXA6ua09axLIQ/L/ecOAppcagVoL6bWoU=
-github.com/anchore/syft v0.41.4/go.mod h1:WXsoXmglV394k35V/q3ABsWKmvXvtSYX9j2yK+W54zc=
+github.com/anchore/syft v0.41.6 h1:MiI6kCByU7Yv3VCPBXMTE2MrGYrT+OZzhJgwJdmhuZ8=
+github.com/anchore/syft v0.41.6/go.mod h1:bpjCESyDJcJwdxey3IyLjsynIKxFpG56Xf2YlEvYX3I=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 h1:bvNMNQO63//z+xNgfBlViaCIJKLlCJ6/fmUseuG0wVQ=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/brotli v1.0.0/go.mod h1:loMXtMfwqflxFJPmdbJO0a3KNoPuLBgiu3qAvBg8x/Y=
