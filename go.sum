@@ -261,6 +261,8 @@ github.com/alexkohler/prealloc v1.0.0/go.mod h1:VetnK3dIgFBBKmg0YnD9F9x6Icjd+9cv
 github.com/alicebob/sqlittle v1.4.0 h1:vgYt0nAjhdf/hg52MjKJ84g/uTzBPfrvI+VUBrIghxA=
 github.com/alicebob/sqlittle v1.4.0/go.mod h1:Co1L1qxHqCwf41puWhk2HOodojR0mcsAV4BIt8byZh8=
 github.com/anchore/client-go v0.0.0-20210222170800-9c70f9b80bcf/go.mod h1:FaODhIA06mxO1E6R32JE0TL1JWZZkmjRIAd4ULvHUKk=
+github.com/anchore/go-macholibre v0.0.0-20220308212642-53e6d0aaf6fb h1:iDMnx6LIjtjZ46C0akqveX83WFzhpTD3eqOthawb5vU=
+github.com/anchore/go-macholibre v0.0.0-20220308212642-53e6d0aaf6fb/go.mod h1:DmTY2Mfcv38hsHbG78xMiTDdxFtkHpgYNVDPsF2TgHk=
 github.com/anchore/go-rpmdb v0.0.0-20210914181456-a9c52348da63 h1:C9W/LAydEz/qdUhx1MdjO9l8NEcFKYknkxDVyo9LAoM=
 github.com/anchore/go-rpmdb v0.0.0-20210914181456-a9c52348da63/go.mod h1:6qH8c6U/3CBVvDDDBZnPSTbTINq3cIdADUYTaVf75EM=
 github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04 h1:VzprUTpc0vW0nnNKJfJieyH/TZ9UYAnTZs5/gHTdAe8=
@@ -270,10 +272,10 @@ github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4 h1:rmZG77uXgE
 github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4/go.mod h1:Bkc+JYWjMCF8OyZ340IMSIi2Ebf3uwByOk6ho4wne1E=
 github.com/anchore/packageurl-go v0.1.1-0.20220314153042-1bcd40e5206b h1:YJWYt/6KQXR9JR46lLHrTTYi8rcye42tKcyjREA/hvA=
 github.com/anchore/packageurl-go v0.1.1-0.20220314153042-1bcd40e5206b/go.mod h1:Blo6OgJNiYF41ufcgHKkbCKF2MDOMlrqhXv/ij6ocR4=
-github.com/anchore/stereoscope v0.0.0-20220307154759-8a5a70c227d3 h1:Kx2jlMdENAf4cVjYGYLI+fiavVhzhtmU89GUYDITJ1w=
-github.com/anchore/stereoscope v0.0.0-20220307154759-8a5a70c227d3/go.mod h1:XESZQTgFETDBatmyoet6XZ0zVknoIMDSAhj2INj2a5w=
-github.com/anchore/syft v0.41.6 h1:MiI6kCByU7Yv3VCPBXMTE2MrGYrT+OZzhJgwJdmhuZ8=
-github.com/anchore/syft v0.41.6/go.mod h1:bpjCESyDJcJwdxey3IyLjsynIKxFpG56Xf2YlEvYX3I=
+github.com/anchore/stereoscope v0.0.0-20220315185520-25183ec78f40 h1:OSyFMZgEwQW0wFyv10kEi9kmB52FQFRUQmc2H6d8LTY=
+github.com/anchore/stereoscope v0.0.0-20220315185520-25183ec78f40/go.mod h1:OVVJ4y/L26pspeeHNvNa7GeQfoLPWxJe13iODl9x5l4=
+github.com/anchore/syft v0.42.0 h1:xHy7Viga48U80NwVBaSv9x63ygk/Bqja8Dr/P8F4nUg=
+github.com/anchore/syft v0.42.0/go.mod h1:zmU1U+xOgPbQ1h0vS11/A/05b2RH8vlXXvyT2kzCFbQ=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 h1:bvNMNQO63//z+xNgfBlViaCIJKLlCJ6/fmUseuG0wVQ=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/brotli v1.0.0/go.mod h1:loMXtMfwqflxFJPmdbJO0a3KNoPuLBgiu3qAvBg8x/Y=

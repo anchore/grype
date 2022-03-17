@@ -9,7 +9,8 @@ on:
       - "v*"
 
 env:
-  GO_VERSION: "1.17.x"
+  GO_VERSION: "1.18.x"
+  GO_STABLE_VERSION: true
 
 jobs:
   quality-gate:
@@ -32,6 +33,15 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
           checkName: "Static analysis"
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Check static analysis golangci-lint results
+        uses: fountainhead/action-wait-for-check@v1.0.0
+        id: static-analysis-go1-17
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
+          checkName: "Static analysis against 1.17"
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check unit test results
@@ -80,9 +90,10 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Quality gate
-        if: steps.static-analysis.outputs.conclusion != 'success' || steps.unit.outputs.conclusion != 'success' || steps.integration.outputs.conclusion != 'success' || steps.cli-linux.outputs.conclusion != 'success' || steps.acceptance-linux.outputs.conclusion != 'success' || steps.acceptance-mac.outputs.conclusion != 'success'
+        if: steps.static-analysis-go1-17.outputs.conclusion != 'success' || steps.static-analysis.outputs.conclusion != 'success' || steps.unit.outputs.conclusion != 'success' || steps.integration.outputs.conclusion != 'success' || steps.cli-linux.outputs.conclusion != 'success' || steps.acceptance-linux.outputs.conclusion != 'success' || steps.acceptance-mac.outputs.conclusion != 'success'
         run: |
           echo "Static Analysis Status: ${{ steps.static-analysis.conclusion }}"
+          echo "Static Analysis Status 1.17: ${{ steps.static-analysis-go1-17.conclusion }}"
           echo "Unit Test Status: ${{ steps.unit.outputs.conclusion }}"
           echo "Integration Test Status: ${{ steps.integration.outputs.conclusion }}"
           echo "Acceptance Test (Linux) Status: ${{ steps.acceptance-linux.outputs.conclusion }}"
@@ -100,6 +111,7 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: ${{ env.GO_VERSION }}
+          stable: ${{ env.GO_STABLE_VERSION }}
 
       - uses: actions/checkout@v2
         with:
