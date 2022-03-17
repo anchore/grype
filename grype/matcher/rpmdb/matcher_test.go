@@ -260,7 +260,7 @@ func TestMatcherRpmdb(t *testing.T) {
 
 			for _, a := range actual {
 				if val, ok := test.expectedMatches[a.Vulnerability.ID]; !ok {
-					t.Errorf("return unkown match CVE: %s", a.Vulnerability.ID)
+					t.Errorf("return unknown match CVE: %s", a.Vulnerability.ID)
 					continue
 				} else {
 					require.NotEmpty(t, a.Details)

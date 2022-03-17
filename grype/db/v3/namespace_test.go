@@ -185,7 +185,7 @@ func Test_NamespaceForDistro(t *testing.T) {
 		allDistros.Add(d.String())
 	}
 
-	// TOOD: what do we do with mariner
+	// TODO: what do we do with mariner
 	allDistros.Remove(distro.Mariner.String())
 
 	for _, test := range tests {
