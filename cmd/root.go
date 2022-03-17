@@ -52,6 +52,7 @@ Supports the following image sources:
     {{.appName}} path/to/yourproject        a Docker tar, OCI tar, OCI directory, or generic filesystem directory
 
 You can also explicitly specify the scheme to use:
+    {{.appName}} podman:yourrepo/yourimage:tag          explicitly use the Podman daemon
     {{.appName}} docker:yourrepo/yourimage:tag          explicitly use the Docker daemon
     {{.appName}} docker-archive:path/to/yourimage.tar   use a tarball from disk for archives created from "docker save"
     {{.appName}} oci-archive:path/to/yourimage.tar      use a tarball from disk for OCI archives (from Podman or otherwise)
