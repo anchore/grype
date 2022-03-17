@@ -64,6 +64,14 @@ You can also choose another destination directory and release version for the in
 curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b <DESTINATION_DIR> <RELEASE_VERSION>
 ```
 
+### Compiling from the source
+
+```bash
+# git clone https://github.com/anchore/grype
+# cd grype
+# go build -o grype
+```
+
 ### Homebrew
 
 ```bash
