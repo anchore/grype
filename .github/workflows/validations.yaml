@@ -11,7 +11,7 @@ env:
   GO_STABLE_VERSION: true
 
 jobs:
-  // TODO: please delete me once once we move to 1.18 and golangci-lint works with it.
+  # TODO: please delete me once once we move to 1.18 and golangci-lint works with it.
   Static-Analysis-Golangci-lint:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Static analysis against 1.17"
