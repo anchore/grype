@@ -74,7 +74,7 @@ all: clean static-analysis test ## Run all checks (linting, license check, unit,
 	@printf '$(SUCCESS)All checks pass!$(RESET)\n'
 
 .PHONY: test
-test: unit validate-cyclonedx-schema integration cli ## Run all tests (unit, integration, linux acceptance, and CLI tests)
+test: unit validate-cyclonedx-schema validate-cyclonedx-vex-schema integration cli ## Run all tests (unit, integration, linux acceptance, and CLI tests)
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(BOLD)$(CYAN)%-25s$(RESET)%s\n", $$1, $$2}'
@@ -96,6 +96,7 @@ bootstrap-tools: $(TEMPDIR)
 	curl -sSfL https://raw.githubusercontent.com/anchore/chronicle/main/install.sh | sh -s -- -b $(TEMPDIR)/ v0.3.0
 	# the only difference between goimports and gosimports is that gosimports removes extra whitespace between import blocks (see https://github.com/golang/go/issues/20818)
 	GOBIN="$(shell realpath $(TEMPDIR))" go install github.com/rinchsan/gosimports/cmd/gosimports@v0.1.5
+	GOBIN="$(shell realpath $(TEMPDIR))" go install github.com/neilpa/yajsv@v1.4.0
 	.github/scripts/goreleaser-install.sh -b $(TEMPDIR)/ v1.4.1
 
 .PHONY: bootstrap-go
@@ -142,6 +143,10 @@ check-go-mod-tidy:
 .PHONY: validate-cyclonedx-schema
 validate-cyclonedx-schema:
 	cd schema/cyclonedx && make
+
+.PHONY: validate-cyclonedx-vex-schema
+validate-cyclonedx-vex-schema:
+	cd schema/cyclonedxvex && make
 
 .PHONY: validate-grype-db-schema
 validate-grype-db-schema:

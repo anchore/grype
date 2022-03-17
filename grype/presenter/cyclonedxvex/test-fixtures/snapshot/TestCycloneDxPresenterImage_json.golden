@@ -1,0 +1,105 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "serialNumber": "urn:uuid:7266e5f9-8e64-464a-b998-fed127984f96",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2022-03-31T22:50:49+01:00",
+    "tools": [
+      {
+        "vendor": "anchore",
+        "name": "grype",
+        "version": "[not provided]"
+      }
+    ],
+    "component": {
+      "type": "container",
+      "name": "user-input",
+      "version": "sha256:2731251dc34951c0e50fcc643b4c5f74922dad1a5d98f302b504cf46cd5d9368"
+    }
+  },
+  "components": [
+    {
+      "bom-ref": "package-1-id",
+      "type": "library",
+      "name": "package-1",
+      "version": "1.0.1"
+    },
+    {
+      "bom-ref": "package-2-id",
+      "type": "library",
+      "name": "package-2",
+      "version": "2.0.1",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        },
+        {
+          "license": {
+            "name": "Apache-v2"
+          }
+        }
+      ]
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "id": "CVE-1999-0001",
+      "source": {
+        "name": "source-1",
+        "url": "http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0001"
+      },
+      "ratings": [
+        {
+          "score": 0,
+          "severity": "low"
+        },
+        {
+          "score": 4,
+          "method": "CVSSv3",
+          "vector": "another vector"
+        }
+      ],
+      "description": "1999-01 description",
+      "advisories": [],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "affects": [
+        {
+          "ref": "package-1-id"
+        }
+      ]
+    },
+    {
+      "id": "CVE-1999-0002",
+      "source": {
+        "name": "source-2",
+        "url": "http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0002"
+      },
+      "ratings": [
+        {
+          "score": 0,
+          "severity": "critical"
+        },
+        {
+          "score": 1,
+          "method": "CVSSv2",
+          "vector": "vector"
+        }
+      ],
+      "description": "1999-02 description",
+      "advisories": [],
+      "analysis": {
+        "state": "in_triage"
+      },
+      "affects": [
+        {
+          "ref": "package-2-id"
+        }
+      ]
+    }
+  ]
+}
