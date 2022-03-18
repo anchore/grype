@@ -82,12 +82,6 @@ Date:   Mon Aug 1 11:27:13 2020 -0400
 
 [//]: # (TODO: PR title and description)
 
-## Sign your commits
-
-To ensure the authenticity and integrity of code contributions, **we require that all commits are signed**. Signing commits proves that your commits were truly created by you, as the holder of a private key.
-
-Configuring git to sign your commits is a straightforward process. To get set up, see [GitHub's documentation on signing commits](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits).
-
 ## Test your changes
 
 This project has a `Makefile` which includes many helpers running both unit and integration tests. Although PRs will have automatic checks for these, it is useful to run them locally, ensuring they pass before submitting changes. Ensure you've bootstrapped once before running tests:
