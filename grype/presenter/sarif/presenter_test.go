@@ -275,13 +275,13 @@ func Test_dirToSarifReport(t *testing.T) {
 	assert.Equal(t, "CVE-1999-0001-package-1", *result.RuleID)
 	assert.Len(t, result.Locations, 1)
 	location := result.Locations[0]
-	assert.Equal(t, "/some/path/etc/pkg-1", *location.PhysicalLocation.ArtifactLocation.URI)
+	assert.Equal(t, "etc/pkg-1", *location.PhysicalLocation.ArtifactLocation.URI)
 
 	result = run.Results[1]
 	assert.Equal(t, "CVE-1999-0002-package-2", *result.RuleID)
 	assert.Len(t, result.Locations, 1)
 	location = result.Locations[0]
-	assert.Equal(t, "/some/path/pkg-2", *location.PhysicalLocation.ArtifactLocation.URI)
+	assert.Equal(t, "pkg-2", *location.PhysicalLocation.ArtifactLocation.URI)
 }
 
 func TestSarifPresenterImage(t *testing.T) {
