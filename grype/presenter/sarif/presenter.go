@@ -171,10 +171,11 @@ func (pres *Presenter) inputPath() string {
 
 // locationPath returns a path for the location
 func locationPath(l source.Location) string {
+	path := l.RealPath
 	if l.VirtualPath != "" {
-		return l.VirtualPath
+		path = l.VirtualPath
 	}
-	return l.RealPath
+	return strings.TrimPrefix(path, "./")
 }
 
 // locations the locations array is a single "physical" location with potentially multiple logical locations
