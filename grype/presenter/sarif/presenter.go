@@ -151,34 +151,43 @@ func (pres *Presenter) helpText(m match.Match, link string) *sarif.MultiformatMe
 
 // packagePath attempts to get the relative path of the package to the "scan root"
 func (pres *Presenter) packagePath(p pkg.Package) string {
-	inputPath := strings.TrimPrefix(pres.srcMetadata.Path, "./")
-	if inputPath == "." {
-		inputPath = ""
-	}
 	if len(p.Locations) > 0 {
-		location := p.Locations[0]
-		packagePath := location.RealPath
-		if location.VirtualPath != "" {
-			packagePath = location.VirtualPath
-		}
-		if pres.srcMetadata.Scheme == source.DirectoryScheme {
-			packagePath = fmt.Sprintf("%s/%s", inputPath, packagePath)
-		}
-		return packagePath
+		return locationPath(p.Locations[0])
 	}
-	return inputPath
+	return pres.inputPath()
+}
+
+// inputPath returns a friendlier relative path or absolute path depending on the input, not prefixed by . or ./
+func (pres *Presenter) inputPath() string {
+	if pres.srcMetadata != nil {
+		inputPath := strings.TrimPrefix(pres.srcMetadata.Path, "./")
+		if inputPath == "." {
+			return ""
+		}
+		return inputPath
+	}
+	return ""
+}
+
+// locationPath returns a path for the location
+func locationPath(l source.Location) string {
+	if l.VirtualPath != "" {
+		return l.VirtualPath
+	}
+	return l.RealPath
 }
 
 // locations the locations array is a single "physical" location with potentially multiple logical locations
 func (pres *Presenter) locations(m match.Match) []*sarif.Location {
-	var logicalLocations []*sarif.LogicalLocation
 	physicalLocation := pres.packagePath(m.Package)
-	trimmedPath := strings.TrimPrefix(physicalLocation, "/")
+
+	var logicalLocations []*sarif.LogicalLocation
 
 	switch pres.srcMetadata.Scheme {
 	case source.ImageScheme:
 		img := pres.srcMetadata.ImageMetadata.UserInput
 		for _, l := range m.Package.Locations {
+			trimmedPath := strings.TrimPrefix(locationPath(l), "/")
 			logicalLocations = append(logicalLocations, &sarif.LogicalLocation{
 				FullyQualifiedName: sp(fmt.Sprintf("%s@%s:/%s", img, l.FileSystemID, trimmedPath)),
 				Name:               sp(l.RealPath),
@@ -193,10 +202,13 @@ func (pres *Presenter) locations(m match.Match) []*sarif.Location {
 	case source.FileScheme:
 		for _, l := range m.Package.Locations {
 			logicalLocations = append(logicalLocations, &sarif.LogicalLocation{
-				FullyQualifiedName: sp(fmt.Sprintf("%s:/%s", pres.srcMetadata.Path, trimmedPath)),
+				FullyQualifiedName: sp(fmt.Sprintf("%s:/%s", pres.srcMetadata.Path, locationPath(l))),
 				Name:               sp(l.RealPath),
 			})
 		}
+	case source.DirectoryScheme:
+		// Get a friendly relative location as well as possible
+		physicalLocation = strings.TrimPrefix(physicalLocation, pres.inputPath())
 	}
 
 	return []*sarif.Location{
