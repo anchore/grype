@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/go-testutils"
@@ -132,6 +131,103 @@ func createDirPresenter(t *testing.T) *Presenter {
 	return pres
 }
 
+func Test_locations(t *testing.T) {
+	pres := createDirPresenter(t)
+
+	// Check .
+
+	pres.srcMetadata = &source.Metadata{
+		Scheme: source.DirectoryScheme,
+		Path:   ".",
+	}
+	assert.Equal(t, "", pres.inputPath())
+
+	path := pres.packagePath(pkg.Package{
+		Locations: []source.Location{
+			{
+				Coordinates: source.Coordinates{
+					RealPath: "/bin/exe",
+				},
+				VirtualPath: "./exe",
+			},
+		},
+	})
+
+	assert.Equal(t, "exe", path)
+
+	path = pres.packagePath(pkg.Package{
+		Locations: []source.Location{
+			{
+				Coordinates: source.Coordinates{
+					RealPath: "/bin/exe",
+				},
+			},
+		},
+	})
+
+	assert.Equal(t, "/bin/exe", path)
+
+	// check ./
+
+	pres.srcMetadata = &source.Metadata{
+		Scheme: source.DirectoryScheme,
+		Path:   "./",
+	}
+	assert.Equal(t, "", pres.inputPath())
+
+	path = pres.packagePath(pkg.Package{
+		Locations: []source.Location{
+			{
+				Coordinates: source.Coordinates{
+					RealPath: "/bin/exe",
+				},
+			},
+		},
+	})
+
+	assert.Equal(t, "/bin/exe", path)
+
+	path = pres.packagePath(pkg.Package{
+		Locations: []source.Location{
+			{
+				Coordinates: source.Coordinates{
+					RealPath: "/bin/exe",
+				},
+				VirtualPath: "exe",
+			},
+		},
+	})
+
+	assert.Equal(t, "exe", path)
+
+	// Check relative path
+
+	pres.srcMetadata = &source.Metadata{
+		Scheme: source.DirectoryScheme,
+		Path:   "./file",
+	}
+	assert.Equal(t, "file", pres.inputPath())
+
+	// Check absolute path:
+
+	pres.srcMetadata = &source.Metadata{
+		Scheme: source.DirectoryScheme,
+		Path:   "/usr",
+	}
+	assert.Equal(t, "/usr", pres.inputPath())
+
+	path = pres.packagePath(pkg.Package{
+		Locations: []source.Location{
+			{
+				VirtualPath: "/usr/bin/exe",
+			},
+		},
+	})
+
+	assert.Equal(t, "/usr/bin/exe", path)
+
+}
+
 func Test_imageToSarifReport(t *testing.T) {
 	pres := createImagePresenter(t)
 	s, err := pres.toSarifReport()
@@ -179,13 +275,13 @@ func Test_dirToSarifReport(t *testing.T) {
 	assert.Equal(t, "CVE-1999-0001-package-1", *result.RuleID)
 	assert.Len(t, result.Locations, 1)
 	location := result.Locations[0]
-	assert.Equal(t, "/some/path/etc/pkg-1", *location.PhysicalLocation.ArtifactLocation.URI)
+	assert.Equal(t, "etc/pkg-1", *location.PhysicalLocation.ArtifactLocation.URI)
 
 	result = run.Results[1]
 	assert.Equal(t, "CVE-1999-0002-package-2", *result.RuleID)
 	assert.Len(t, result.Locations, 1)
 	location = result.Locations[0]
-	assert.Equal(t, "/some/path/pkg-2", *location.PhysicalLocation.ArtifactLocation.URI)
+	assert.Equal(t, "pkg-2", *location.PhysicalLocation.ArtifactLocation.URI)
 }
 
 func TestSarifPresenterImage(t *testing.T) {
@@ -210,11 +306,7 @@ func TestSarifPresenterImage(t *testing.T) {
 	actual = redact(actual)
 	expected = redact(expected)
 
-	if !bytes.Equal(expected, actual) {
-		dmp := diffmatchpatch.New()
-		diffs := dmp.DiffMain(string(expected), string(actual), true)
-		t.Errorf("mismatched output:\n%s", dmp.DiffPrettyText(diffs))
-	}
+	assert.JSONEq(t, string(expected), string(actual))
 }
 
 func TestSarifPresenterDir(t *testing.T) {
@@ -238,11 +330,7 @@ func TestSarifPresenterDir(t *testing.T) {
 	actual = redact(actual)
 	expected = redact(expected)
 
-	if !bytes.Equal(expected, actual) {
-		dmp := diffmatchpatch.New()
-		diffs := dmp.DiffMain(string(expected), string(actual), true)
-		t.Errorf("mismatched output:\n%s", dmp.DiffPrettyText(diffs))
-	}
+	assert.JSONEq(t, string(expected), string(actual))
 }
 
 func redact(s []byte) []byte {
