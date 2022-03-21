@@ -159,14 +159,14 @@ func (pres *Presenter) packagePath(p pkg.Package) string {
 
 // inputPath returns a friendlier relative path or absolute path depending on the input, not prefixed by . or ./
 func (pres *Presenter) inputPath() string {
-	if pres.srcMetadata != nil {
-		inputPath := strings.TrimPrefix(pres.srcMetadata.Path, "./")
-		if inputPath == "." {
-			return ""
-		}
-		return inputPath
+	if pres.srcMetadata == nil {
+		return ""
 	}
-	return ""
+	inputPath := strings.TrimPrefix(pres.srcMetadata.Path, "./")
+	if inputPath == "." {
+		return ""
+	}
+	return inputPath
 }
 
 // locationPath returns a path for the location
