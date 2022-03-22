@@ -118,10 +118,10 @@ func createImagePresenter(t *testing.T) *Presenter {
 	return pres
 }
 
-func createDirPresenter(t *testing.T) *Presenter {
+func createDirPresenter(t *testing.T, path string) *Presenter {
 	matches, packages := createResults()
 
-	s, err := source.NewFromDirectory("/some/path")
+	s, err := source.NewFromDirectory(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,101 +131,114 @@ func createDirPresenter(t *testing.T) *Presenter {
 	return pres
 }
 
-func Test_locations(t *testing.T) {
-	pres := createDirPresenter(t)
-
-	// Check .
-
-	pres.srcMetadata = &source.Metadata{
-		Scheme: source.DirectoryScheme,
-		Path:   ".",
+func Test_locationPath(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		scheme   source.Scheme
+		real     string
+		virtual  string
+		expected string
+	}{
+		{
+			name:     "dir:.",
+			scheme:   source.DirectoryScheme,
+			path:     ".",
+			real:     "/home/usr/file",
+			virtual:  "file",
+			expected: "file",
+		},
+		{
+			name:     "dir:./",
+			scheme:   source.DirectoryScheme,
+			path:     "./",
+			real:     "/home/usr/file",
+			virtual:  "file",
+			expected: "file",
+		},
+		{
+			name:     "dir:./someplace",
+			scheme:   source.DirectoryScheme,
+			path:     "./someplace",
+			real:     "/home/usr/file",
+			virtual:  "file",
+			expected: "someplace/file",
+		},
+		{
+			name:     "dir:/someplace",
+			scheme:   source.DirectoryScheme,
+			path:     "/someplace",
+			real:     "file",
+			expected: "/someplace/file",
+		},
+		{
+			name:     "dir:/someplace symlink",
+			scheme:   source.DirectoryScheme,
+			path:     "/someplace",
+			real:     "/someplace/usr/file",
+			virtual:  "file",
+			expected: "/someplace/file",
+		},
+		{
+			name:     "dir:/someplace absolute",
+			scheme:   source.DirectoryScheme,
+			path:     "/someplace",
+			real:     "/usr/file",
+			expected: "/usr/file",
+		},
+		{
+			name:     "file:/someplace/file",
+			scheme:   source.FileScheme,
+			path:     "/someplace/file",
+			real:     "/usr/file",
+			expected: "/usr/file",
+		},
+		{
+			name:     "file:/someplace/file relative",
+			scheme:   source.FileScheme,
+			path:     "/someplace/file",
+			real:     "file",
+			expected: "file",
+		},
+		{
+			name:     "image",
+			scheme:   source.ImageScheme,
+			path:     "alpine:latest",
+			real:     "/etc/file",
+			expected: "/etc/file",
+		},
+		{
+			name:     "image symlink",
+			scheme:   source.ImageScheme,
+			path:     "alpine:latest",
+			real:     "/etc/elsewhere/file",
+			virtual:  "/etc/file",
+			expected: "/etc/file",
+		},
 	}
-	assert.Equal(t, "", pres.inputPath())
 
-	path := pres.packagePath(pkg.Package{
-		Locations: []source.Location{
-			{
-				Coordinates: source.Coordinates{
-					RealPath: "/bin/exe",
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			pres := createDirPresenter(t, test.path)
+			pres.srcMetadata = &source.Metadata{
+				Scheme: test.scheme,
+				Path:   test.path,
+			}
+
+			path := pres.packagePath(pkg.Package{
+				Locations: []source.Location{
+					{
+						Coordinates: source.Coordinates{
+							RealPath: test.real,
+						},
+						VirtualPath: test.virtual,
+					},
 				},
-				VirtualPath: "./exe",
-			},
-		},
-	})
+			})
 
-	assert.Equal(t, "exe", path)
-
-	path = pres.packagePath(pkg.Package{
-		Locations: []source.Location{
-			{
-				Coordinates: source.Coordinates{
-					RealPath: "/bin/exe",
-				},
-			},
-		},
-	})
-
-	assert.Equal(t, "/bin/exe", path)
-
-	// check ./
-
-	pres.srcMetadata = &source.Metadata{
-		Scheme: source.DirectoryScheme,
-		Path:   "./",
+			assert.Equal(t, test.expected, path)
+		})
 	}
-	assert.Equal(t, "", pres.inputPath())
-
-	path = pres.packagePath(pkg.Package{
-		Locations: []source.Location{
-			{
-				Coordinates: source.Coordinates{
-					RealPath: "/bin/exe",
-				},
-			},
-		},
-	})
-
-	assert.Equal(t, "/bin/exe", path)
-
-	path = pres.packagePath(pkg.Package{
-		Locations: []source.Location{
-			{
-				Coordinates: source.Coordinates{
-					RealPath: "/bin/exe",
-				},
-				VirtualPath: "exe",
-			},
-		},
-	})
-
-	assert.Equal(t, "exe", path)
-
-	// Check relative path
-
-	pres.srcMetadata = &source.Metadata{
-		Scheme: source.DirectoryScheme,
-		Path:   "./file",
-	}
-	assert.Equal(t, "file", pres.inputPath())
-
-	// Check absolute path:
-
-	pres.srcMetadata = &source.Metadata{
-		Scheme: source.DirectoryScheme,
-		Path:   "/usr",
-	}
-	assert.Equal(t, "/usr", pres.inputPath())
-
-	path = pres.packagePath(pkg.Package{
-		Locations: []source.Location{
-			{
-				VirtualPath: "/usr/bin/exe",
-			},
-		},
-	})
-
-	assert.Equal(t, "/usr/bin/exe", path)
-
 }
 
 func Test_imageToSarifReport(t *testing.T) {
@@ -257,7 +270,7 @@ func Test_imageToSarifReport(t *testing.T) {
 }
 
 func Test_dirToSarifReport(t *testing.T) {
-	pres := createDirPresenter(t)
+	pres := createDirPresenter(t, "/abs/path")
 	s, err := pres.toSarifReport()
 	assert.NoError(t, err)
 
@@ -275,13 +288,13 @@ func Test_dirToSarifReport(t *testing.T) {
 	assert.Equal(t, "CVE-1999-0001-package-1", *result.RuleID)
 	assert.Len(t, result.Locations, 1)
 	location := result.Locations[0]
-	assert.Equal(t, "etc/pkg-1", *location.PhysicalLocation.ArtifactLocation.URI)
+	assert.Equal(t, "/abs/path/etc/pkg-1", *location.PhysicalLocation.ArtifactLocation.URI)
 
 	result = run.Results[1]
 	assert.Equal(t, "CVE-1999-0002-package-2", *result.RuleID)
 	assert.Len(t, result.Locations, 1)
 	location = result.Locations[0]
-	assert.Equal(t, "pkg-2", *location.PhysicalLocation.ArtifactLocation.URI)
+	assert.Equal(t, "/abs/path/pkg-2", *location.PhysicalLocation.ArtifactLocation.URI)
 }
 
 func TestSarifPresenterImage(t *testing.T) {
@@ -311,7 +324,7 @@ func TestSarifPresenterImage(t *testing.T) {
 
 func TestSarifPresenterDir(t *testing.T) {
 	var buffer bytes.Buffer
-	pres := createDirPresenter(t)
+	pres := createDirPresenter(t, ".")
 
 	// run presenter
 	err := pres.Present(&buffer)

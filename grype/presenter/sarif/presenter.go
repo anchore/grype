@@ -3,6 +3,7 @@ package sarif
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 
 	"github.com/owenrumney/go-sarif/sarif"
@@ -152,7 +153,7 @@ func (pres *Presenter) helpText(m match.Match, link string) *sarif.MultiformatMe
 // packagePath attempts to get the relative path of the package to the "scan root"
 func (pres *Presenter) packagePath(p pkg.Package) string {
 	if len(p.Locations) > 0 {
-		return locationPath(p.Locations[0])
+		return pres.locationPath(p.Locations[0])
 	}
 	return pres.inputPath()
 }
@@ -169,13 +170,26 @@ func (pres *Presenter) inputPath() string {
 	return inputPath
 }
 
-// locationPath returns a path for the location
-func locationPath(l source.Location) string {
+// locationPath returns a path for the location, relative to the cwd
+func (pres *Presenter) locationPath(l source.Location) string {
 	path := l.RealPath
 	if l.VirtualPath != "" {
 		path = l.VirtualPath
 	}
-	return strings.TrimPrefix(path, "./")
+	in := pres.inputPath()
+	path = strings.TrimPrefix(path, "./")
+	// trimmed off any ./ and accounted for dir:. for both path and input path
+	if pres.srcMetadata != nil {
+		switch pres.srcMetadata.Scheme {
+		case source.DirectoryScheme:
+			if filepath.IsAbs(path) || in == "" {
+				return path
+			}
+			// return a path relative to the cwd, if it's not absolute
+			return fmt.Sprintf("%s/%s", in, path)
+		}
+	}
+	return path
 }
 
 // locations the locations array is a single "physical" location with potentially multiple logical locations
@@ -188,7 +202,7 @@ func (pres *Presenter) locations(m match.Match) []*sarif.Location {
 	case source.ImageScheme:
 		img := pres.srcMetadata.ImageMetadata.UserInput
 		for _, l := range m.Package.Locations {
-			trimmedPath := strings.TrimPrefix(locationPath(l), "/")
+			trimmedPath := strings.TrimPrefix(pres.locationPath(l), "/")
 			logicalLocations = append(logicalLocations, &sarif.LogicalLocation{
 				FullyQualifiedName: sp(fmt.Sprintf("%s@%s:/%s", img, l.FileSystemID, trimmedPath)),
 				Name:               sp(l.RealPath),
@@ -203,13 +217,12 @@ func (pres *Presenter) locations(m match.Match) []*sarif.Location {
 	case source.FileScheme:
 		for _, l := range m.Package.Locations {
 			logicalLocations = append(logicalLocations, &sarif.LogicalLocation{
-				FullyQualifiedName: sp(fmt.Sprintf("%s:/%s", pres.srcMetadata.Path, locationPath(l))),
+				FullyQualifiedName: sp(fmt.Sprintf("%s:/%s", pres.srcMetadata.Path, pres.locationPath(l))),
 				Name:               sp(l.RealPath),
 			})
 		}
 	case source.DirectoryScheme:
-		// Get a friendly relative location as well as possible
-		physicalLocation = strings.TrimPrefix(physicalLocation, pres.inputPath())
+		// DirectoryScheme is already handled, with input prepended if needed
 	}
 
 	return []*sarif.Location{
@@ -302,7 +315,7 @@ func (pres *Presenter) securitySeverityValue(m match.Match) string {
 		// this corresponds directly to the CVSS score, so we return this if we have it
 		score := pres.cvssScore(m.Vulnerability)
 		if score > 0 {
-			return fmt.Sprintf("%f", score)
+			return fmt.Sprintf("%.1f", score)
 		}
 		severity := vulnerability.ParseSeverity(meta.Severity)
 		switch severity {
