@@ -315,7 +315,7 @@ func (pres *Presenter) securitySeverityValue(m match.Match) string {
 		// this corresponds directly to the CVSS score, so we return this if we have it
 		score := pres.cvssScore(m.Vulnerability)
 		if score > 0 {
-			return fmt.Sprintf("%f", score)
+			return fmt.Sprintf("%.1f", score)
 		}
 		severity := vulnerability.ParseSeverity(meta.Severity)
 		switch severity {
