@@ -179,15 +179,12 @@ func (pres *Presenter) locationPath(l source.Location) string {
 	in := pres.inputPath()
 	path = strings.TrimPrefix(path, "./")
 	// trimmed off any ./ and accounted for dir:. for both path and input path
-	if pres.srcMetadata != nil {
-		switch pres.srcMetadata.Scheme {
-		case source.DirectoryScheme:
-			if filepath.IsAbs(path) || in == "" {
-				return path
-			}
-			// return a path relative to the cwd, if it's not absolute
-			return fmt.Sprintf("%s/%s", in, path)
+	if pres.srcMetadata != nil && pres.srcMetadata.Scheme == source.DirectoryScheme {
+		if filepath.IsAbs(path) || in == "" {
+			return path
 		}
+		// return a path relative to the cwd, if it's not absolute
+		return fmt.Sprintf("%s/%s", in, path)
 	}
 	return path
 }
