@@ -118,10 +118,10 @@ func createImagePresenter(t *testing.T) *Presenter {
 	return pres
 }
 
-func createDirPresenter(t *testing.T) *Presenter {
+func createDirPresenter(t *testing.T, path string) *Presenter {
 	matches, packages := createResults()
 
-	s, err := source.NewFromDirectory("/some/path")
+	s, err := source.NewFromDirectory(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -219,7 +219,7 @@ func Test_locationPath(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			pres := createDirPresenter(t)
+			pres := createDirPresenter(t, test.path)
 			pres.srcMetadata = &source.Metadata{
 				Scheme: test.scheme,
 				Path:   test.path,
@@ -270,7 +270,7 @@ func Test_imageToSarifReport(t *testing.T) {
 }
 
 func Test_dirToSarifReport(t *testing.T) {
-	pres := createDirPresenter(t)
+	pres := createDirPresenter(t, "/abs/path")
 	s, err := pres.toSarifReport()
 	assert.NoError(t, err)
 
@@ -288,13 +288,13 @@ func Test_dirToSarifReport(t *testing.T) {
 	assert.Equal(t, "CVE-1999-0001-package-1", *result.RuleID)
 	assert.Len(t, result.Locations, 1)
 	location := result.Locations[0]
-	assert.Equal(t, "etc/pkg-1", *location.PhysicalLocation.ArtifactLocation.URI)
+	assert.Equal(t, "/abs/path/etc/pkg-1", *location.PhysicalLocation.ArtifactLocation.URI)
 
 	result = run.Results[1]
 	assert.Equal(t, "CVE-1999-0002-package-2", *result.RuleID)
 	assert.Len(t, result.Locations, 1)
 	location = result.Locations[0]
-	assert.Equal(t, "pkg-2", *location.PhysicalLocation.ArtifactLocation.URI)
+	assert.Equal(t, "/abs/path/pkg-2", *location.PhysicalLocation.ArtifactLocation.URI)
 }
 
 func TestSarifPresenterImage(t *testing.T) {
@@ -324,7 +324,7 @@ func TestSarifPresenterImage(t *testing.T) {
 
 func TestSarifPresenterDir(t *testing.T) {
 	var buffer bytes.Buffer
-	pres := createDirPresenter(t)
+	pres := createDirPresenter(t, ".")
 
 	// run presenter
 	err := pres.Present(&buffer)
