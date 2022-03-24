@@ -158,7 +158,7 @@ func assertErrNonArchiveSource(t assert.TestingT, err error, _ ...interface{}) b
 }
 
 func removeTrustedCAs(client *http.Client) {
-	client.Transport.(*http.Transport).TLSClientConfig.RootCAs = nil
+	client.Transport.(*http.Transport).TLSClientConfig.RootCAs = x509.NewCertPool()
 }
 
 // createTarball makes a single-file tarball and returns it as a byte slice.
