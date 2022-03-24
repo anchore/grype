@@ -14,6 +14,14 @@ import (
 	"github.com/anchore/syft/syft"
 )
 
+type errEmptySBOM struct {
+	sbomFilepath string
+}
+
+func (e errEmptySBOM) Error() string {
+	return fmt.Sprintf("SBOM file is empty: %s", e.sbomFilepath)
+}
+
 func syftSBOMProvider(userInput string, config ProviderConfig) ([]Package, Context, error) {
 	reader, err := getSBOMReader(userInput)
 	if err != nil {
@@ -49,6 +57,10 @@ func getSBOMReader(userInput string) (io.Reader, error) {
 			return nil, fmt.Errorf("unable to use specified SBOM: %w", err)
 		}
 
+		if !sbomHasContent(sbom) {
+			return nil, errEmptySBOM{filepath}
+		}
+
 		return sbom, nil
 	}
 
@@ -62,6 +74,25 @@ func getSBOMReader(userInput string) (io.Reader, error) {
 
 	// no usable SBOM is available
 	return nil, errDoesNotProvide
+}
+
+// sbomHasContent returns a bool indicating whether the given SBOM file has data that could possibly be utilized in
+// downstream processing.
+func sbomHasContent(sbom *os.File) bool {
+	if sbom == nil {
+		return false
+	}
+
+	info, err := sbom.Stat()
+	if err != nil {
+		return false
+	}
+
+	if size := info.Size(); size > 0 {
+		return true
+	}
+
+	return false
 }
 
 func stdinReader() io.Reader {
