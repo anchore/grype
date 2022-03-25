@@ -65,6 +65,13 @@ brew install grype
 
 **Note**: Currently, Grype is built only for macOS and Linux.
 
+### MacPorts
+
+On macOS, Grype can additionally be installed via [MacPorts](https://www.macports.org):
+```bash
+sudo port install grype
+```
+
 ## Getting started
 
 [Install the binary](#installation), and make sure that `grype` is available in your path. To scan for vulnerabilities in an image:
