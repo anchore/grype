@@ -16,7 +16,7 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-var update = flag.Bool("update", false, "update the *.golden files for json presenters")
+var update = flag.Bool("update", false, "update the *.golden files for table presenters")
 
 func TestTablePresenter(t *testing.T) {
 
