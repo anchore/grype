@@ -154,3 +154,7 @@ func isAncestorOfMimetype(mType *mimetype.MIME, expected string) bool {
 func explicitlySpecifyingSBOM(userInput string) bool {
 	return strings.HasPrefix(userInput, "sbom:")
 }
+
+func explicitlySpecifySBOMAttestation(userInput string) bool {
+	return strings.HasPrefix(userInput, "sbom-att:")
+}

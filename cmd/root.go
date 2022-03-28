@@ -154,6 +154,13 @@ func setRootFlags(flags *pflag.FlagSet) {
 		"platform", "", "",
 		"an optional platform specifier for container image sources (e.g. 'linux/arm64', 'linux/arm64/v8', 'arm64', 'linux')",
 	)
+
+	flags.String(
+		// https://github.com/sigstore/cosign/blob/87a85e629c6a488df127ff30b45708a805f74ed3/cmd/cosign/cli/verify.go
+		// TODO: support for schemas enabling keyless validation
+		"key", "",
+		"Public key to validate attestation",
+	)
 }
 
 func bindRootConfigOptions(flags *pflag.FlagSet) error {
@@ -194,6 +201,10 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 	}
 
 	if err := viper.BindPFlag("platform", flags.Lookup("platform")); err != nil {
+		return err
+	}
+
+	if err := viper.BindPFlag("key", flags.Lookup("key")); err != nil {
 		return err
 	}
 
@@ -370,6 +381,7 @@ func getProviderConfig() pkg.ProviderConfig {
 		CatalogingOptions:   appConfig.Search.ToConfig(),
 		GenerateMissingCPEs: appConfig.GenerateMissingCPEs,
 		Platform:            appConfig.Platform,
+		Key:                 appConfig.Key,
 	}
 }
 
