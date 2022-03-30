@@ -91,12 +91,12 @@ var funcMap = func() template.FuncMap {
 			return collection
 		}
 
-		matches, ok := collection.([]match.Match)
+		matches, ok := collection.([]models.Match)
 		if !ok {
 			return collection
 		}
 
-		sort.Sort(match.ByName(matches))
+		sort.Sort(models.ByName(matches))
 		return matches
 	}
 	return f
