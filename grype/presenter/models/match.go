@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -57,4 +58,32 @@ func newMatch(m match.Match, p pkg.Package, metadataProvider vulnerability.Metad
 		RelatedVulnerabilities: relatedVulnerabilities,
 		MatchDetails:           details,
 	}, nil
+}
+
+var _ sort.Interface = (*ByName)(nil)
+
+type ByName []Match
+
+// Len is the number of elements in the collection.
+func (m ByName) Len() int {
+	return len(m)
+}
+
+// Less reports whether the element with index i should sort before the element with index j.
+func (m ByName) Less(i, j int) bool {
+	if m[i].Artifact.Name == m[j].Artifact.Name {
+		if m[i].Vulnerability.ID == m[j].Vulnerability.ID {
+			if m[i].Artifact.Version == m[j].Artifact.Version {
+				return m[i].Artifact.Type < m[j].Artifact.Type
+			}
+			return m[i].Artifact.Version < m[j].Artifact.Version
+		}
+		return m[i].Vulnerability.ID < m[j].Vulnerability.ID
+	}
+	return m[i].Artifact.Name < m[j].Artifact.Name
+}
+
+// Swap swaps the elements with indexes i and j.
+func (m ByName) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
 }

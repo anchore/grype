@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"sort"
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
@@ -83,6 +84,15 @@ var funcMap = func() template.FuncMap {
 		}
 
 		return 0
+	}
+	f["byMatchName"] = func(collection interface{}) interface{} {
+		matches, ok := collection.([]models.Match)
+		if !ok {
+			return collection
+		}
+
+		sort.Sort(models.ByName(matches))
+		return matches
 	}
 	return f
 }()
