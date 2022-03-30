@@ -29,31 +29,3 @@ func (m ByElements) Less(i, j int) bool {
 func (m ByElements) Swap(i, j int) {
 	m[i], m[j] = m[j], m[i]
 }
-
-var _ sort.Interface = (*ByName)(nil)
-
-type ByName []Match
-
-// Len is the number of elements in the collection.
-func (m ByName) Len() int {
-	return len(m)
-}
-
-// Less reports whether the element with index i should sort before the element with index j.
-func (m ByName) Less(i, j int) bool {
-	if m[i].Package.Name == m[j].Package.Name {
-		if m[i].Vulnerability.ID == m[j].Vulnerability.ID {
-			if m[i].Package.Version == m[j].Package.Version {
-				return m[i].Package.Type < m[j].Package.Type
-			}
-			return m[i].Package.Version < m[j].Package.Version
-		}
-		return m[i].Vulnerability.ID < m[j].Vulnerability.ID
-	}
-	return m[i].Package.Name < m[j].Package.Name
-}
-
-// Swap swaps the elements with indexes i and j.
-func (m ByName) Swap(i, j int) {
-	m[i], m[j] = m[j], m[i]
-}
