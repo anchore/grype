@@ -11,5 +11,5 @@ type ProviderConfig struct {
 	CatalogingOptions   cataloger.Config
 	GenerateMissingCPEs bool
 	Platform            string
-	PublicKeyPath       string
+	PublicKey           string
 }

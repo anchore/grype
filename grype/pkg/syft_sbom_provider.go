@@ -155,6 +155,6 @@ func explicitlySpecifyingSBOM(userInput string) bool {
 	return strings.HasPrefix(userInput, "sbom:")
 }
 
-func explicitlySpecifySBOMAttestation(userInput string) bool {
-	return strings.HasPrefix(userInput, "sbom-att:")
+func explicitlySpecifyAttestation(userInput string) bool {
+	return strings.HasPrefix(userInput, "att:")
 }

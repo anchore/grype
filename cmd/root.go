@@ -158,7 +158,7 @@ func setRootFlags(flags *pflag.FlagSet) {
 	flags.String(
 		// https://github.com/sigstore/cosign/blob/87a85e629c6a488df127ff30b45708a805f74ed3/cmd/cosign/cli/verify.go
 		// TODO: support for schemas enabling keyless validation
-		"key", "",
+		"public-key", "",
 		"Public key to validate attestation",
 	)
 }
@@ -204,7 +204,7 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 		return err
 	}
 
-	if err := viper.BindPFlag("key", flags.Lookup("key")); err != nil {
+	if err := viper.BindPFlag("public-key", flags.Lookup("public-key")); err != nil {
 		return err
 	}
 
@@ -381,7 +381,7 @@ func getProviderConfig() pkg.ProviderConfig {
 		CatalogingOptions:   appConfig.Search.ToConfig(),
 		GenerateMissingCPEs: appConfig.GenerateMissingCPEs,
 		Platform:            appConfig.Platform,
-		Key:                 appConfig.Key,
+		PublicKey:           appConfig.PublicKey,
 	}
 }
 
