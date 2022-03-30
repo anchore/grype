@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"sort"
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
@@ -83,6 +84,20 @@ var funcMap = func() template.FuncMap {
 		}
 
 		return 0
+	}
+	f["byName"] = func(collection interface{}) interface{} {
+		t := reflect.TypeOf(collection)
+		if t.Kind() != reflect.Slice {
+			return collection
+		}
+
+		matches, ok := collection.([]match.Match)
+		if !ok {
+			return collection
+		}
+
+		sort.Sort(match.ByName(matches))
+		return matches
 	}
 	return f
 }()
