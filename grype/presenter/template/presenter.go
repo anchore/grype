@@ -85,12 +85,7 @@ var funcMap = func() template.FuncMap {
 
 		return 0
 	}
-	f["byName"] = func(collection interface{}) interface{} {
-		t := reflect.TypeOf(collection)
-		if t.Kind() != reflect.Slice {
-			return collection
-		}
-
+	f["byMatchName"] = func(collection interface{}) interface{} {
 		matches, ok := collection.([]models.Match)
 		if !ok {
 			return collection
