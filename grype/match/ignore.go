@@ -153,7 +153,7 @@ func ifPackageLocationApplies(location string) ignoreCondition {
 }
 
 func ruleLocationAppliesToMatch(location string, match Match) bool {
-	for _, packageLocation := range match.Package.Locations {
+	for _, packageLocation := range match.Package.Locations.ToSlice() {
 		if ruleLocationAppliesToPath(location, packageLocation.RealPath) {
 			return true
 		}

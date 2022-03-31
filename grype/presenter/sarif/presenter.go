@@ -152,8 +152,9 @@ func (pres *Presenter) helpText(m match.Match, link string) *sarif.MultiformatMe
 
 // packagePath attempts to get the relative path of the package to the "scan root"
 func (pres *Presenter) packagePath(p pkg.Package) string {
-	if len(p.Locations) > 0 {
-		return pres.locationPath(p.Locations[0])
+	locations := p.Locations.ToSlice()
+	if len(locations) > 0 {
+		return pres.locationPath(locations[0])
 	}
 	return pres.inputPath()
 }
@@ -198,7 +199,8 @@ func (pres *Presenter) locations(m match.Match) []*sarif.Location {
 	switch pres.srcMetadata.Scheme {
 	case source.ImageScheme:
 		img := pres.srcMetadata.ImageMetadata.UserInput
-		for _, l := range m.Package.Locations {
+		locations := m.Package.Locations.ToSlice()
+		for _, l := range locations {
 			trimmedPath := strings.TrimPrefix(pres.locationPath(l), "/")
 			logicalLocations = append(logicalLocations, &sarif.LogicalLocation{
 				FullyQualifiedName: sp(fmt.Sprintf("%s@%s:/%s", img, l.FileSystemID, trimmedPath)),
@@ -212,7 +214,8 @@ func (pres *Presenter) locations(m match.Match) []*sarif.Location {
 		// in the case of multiple vuln scans, for example
 		physicalLocation = fmt.Sprintf("image/%s", physicalLocation)
 	case source.FileScheme:
-		for _, l := range m.Package.Locations {
+		locations := m.Package.Locations.ToSlice()
+		for _, l := range locations {
 			logicalLocations = append(logicalLocations, &sarif.LogicalLocation{
 				FullyQualifiedName: sp(fmt.Sprintf("%s:/%s", pres.srcMetadata.Path, pres.locationPath(l))),
 				Name:               sp(l.RealPath),
