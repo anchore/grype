@@ -24,17 +24,6 @@ func Provide(userInput string, config ProviderConfig) ([]Package, Context, error
 		return packages, ctx, err
 	}
 
-	packages, ctx, err = syftAttestationProvider(userInput, config)
-	if !errors.Is(err, errDoesNotProvide) {
-		if len(config.Exclusions) > 0 {
-			packages, err = filterPackageExclusions(packages, config.Exclusions)
-			if err != nil {
-				return nil, ctx, err
-			}
-		}
-		return packages, ctx, err
-	}
-
 	return syftProvider(userInput, config)
 }
 

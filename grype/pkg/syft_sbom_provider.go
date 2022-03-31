@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -29,6 +30,10 @@ func syftSBOMProvider(userInput string, config ProviderConfig) ([]Package, Conte
 	}
 
 	sbom, format, err := syft.Decode(reader)
+	if errors.Is(err, syft.ErrUnableToIdentifyFormat) {
+		return syftAttestationProvider(userInput, config)
+	}
+
 	if err != nil {
 		return nil, Context{}, fmt.Errorf("unable to decode sbom: %w", err)
 	}
@@ -47,6 +52,10 @@ func getSBOMReader(userInput string) (io.Reader, error) {
 		// we only want to attempt reading in from stdin if the user has not specified other
 		// options from the CLI, otherwise we should not assume there is any valid input from stdin.
 		return stdinReader(), nil
+	}
+
+	if explicitlySpecifyAttestation(userInput) {
+
 	}
 
 	if explicitlySpecifyingSBOM(userInput) {
