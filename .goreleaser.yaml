@@ -18,6 +18,7 @@ builds:
     goarch:
       - amd64
       - arm64
+      - s390x
     # set the modified timestamp on the output binary to the git timestamp to ensure a reproducible build
     mod_timestamp: &build-timestamp '{{ .CommitTimestamp }}'
     env: &build-env
@@ -121,12 +122,28 @@ dockers:
       - "--build-arg=VCS_REF={{.FullCommit}}"
       - "--build-arg=VCS_URL={{.GitURL}}"
 
+  - image_templates:
+      - "anchore/grype:{{ .Tag }}-s390x"
+      - "anchore/grype:v{{ .Major }}-s390x"
+      - "anchore/grype:v{{ .Major }}.{{ .Minor }}-s390x"
+    goarch: s390x
+    dockerfile: Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/s390x"
+      - "--build-arg=BUILD_DATE={{.Date}}"
+      - "--build-arg=BUILD_VERSION={{.Version}}"
+      - "--build-arg=VCS_REF={{.FullCommit}}"
+      - "--build-arg=VCS_URL={{.GitURL}}"
+
 docker_manifests:
   - name_template: anchore/grype:{{ .Tag }}
     image_templates:
       - anchore/grype:{{ .Tag }}-amd64
       - anchore/grype:{{ .Tag }}-arm64v8
+      - anchore/grype:{{ .Tag }}-s390x
   - name_template: anchore/grype:latest
     image_templates:
       - anchore/grype:{{ .Tag }}-amd64
       - anchore/grype:{{ .Tag }}-arm64v8
+      - anchore/grype:{{ .Tag }}-s390x
