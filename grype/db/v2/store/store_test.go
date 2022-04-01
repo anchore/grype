@@ -1,4 +1,4 @@
-package writer
+package store
 
 import (
 	"io/ioutil"
@@ -9,8 +9,7 @@ import (
 	"github.com/go-test/deep"
 
 	v2 "github.com/anchore/grype/grype/db/v2"
-	"github.com/anchore/grype/grype/db/v2/model"
-	"github.com/anchore/grype/grype/db/v2/reader"
+	"github.com/anchore/grype/grype/db/v2/store/model"
 )
 
 func assertIDReader(t *testing.T, reader v2.IDReader, expected v2.ID) {
@@ -34,8 +33,7 @@ func TestStore_GetID_SetID(t *testing.T) {
 	}
 	defer os.Remove(dbTempFile.Name())
 
-	store, cleanupFn, err := New(dbTempFile.Name(), true)
-	defer cleanupFn()
+	s, err := New(dbTempFile.Name(), true)
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
@@ -45,19 +43,11 @@ func TestStore_GetID_SetID(t *testing.T) {
 		SchemaVersion:  2,
 	}
 
-	if err = store.SetID(expected); err != nil {
+	if err = s.SetID(expected); err != nil {
 		t.Fatalf("failed to set ID: %+v", err)
 	}
 
-	assertIDReader(t, store, expected)
-
-	// gut check on reader
-	storeReader, othercleanfn, err := reader.New(dbTempFile.Name())
-	defer othercleanfn()
-	if err != nil {
-		t.Fatalf("could not open db reader: %+v", err)
-	}
-	assertIDReader(t, storeReader, expected)
+	assertIDReader(t, s, expected)
 
 }
 
@@ -87,8 +77,7 @@ func TestStore_GetVulnerability_SetVulnerability(t *testing.T) {
 	}
 	defer os.Remove(dbTempFile.Name())
 
-	store, cleanupFn, err := New(dbTempFile.Name(), true)
-	defer cleanupFn()
+	s, err := New(dbTempFile.Name(), true)
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
@@ -144,25 +133,17 @@ func TestStore_GetVulnerability_SetVulnerability(t *testing.T) {
 
 	total := append(expected, extra...)
 
-	if err = store.AddVulnerability(total...); err != nil {
+	if err = s.AddVulnerability(total...); err != nil {
 		t.Fatalf("failed to set Vulnerability: %+v", err)
 	}
 
 	var allEntries []model.VulnerabilityModel
-	store.db.Find(&allEntries)
+	s.(*store).db.Find(&allEntries)
 	if len(allEntries) != len(total) {
 		t.Fatalf("unexpected number of entries: %d", len(allEntries))
 	}
 
-	assertVulnerabilityReader(t, store, expected[0].Namespace, expected[0].PackageName, expected)
-
-	// gut check on reader
-	storeReader, othercleanfn, err := reader.New(dbTempFile.Name())
-	defer othercleanfn()
-	if err != nil {
-		t.Fatalf("could not open db reader: %+v", err)
-	}
-	assertVulnerabilityReader(t, storeReader, expected[0].Namespace, expected[0].PackageName, expected)
+	assertVulnerabilityReader(t, s, expected[0].Namespace, expected[0].PackageName, expected)
 
 }
 
@@ -188,8 +169,7 @@ func TestStore_GetVulnerabilityMetadata_SetVulnerabilityMetadata(t *testing.T) {
 	}
 	defer os.Remove(dbTempFile.Name())
 
-	store, cleanupFn, err := New(dbTempFile.Name(), true)
-	defer cleanupFn()
+	s, err := New(dbTempFile.Name(), true)
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
@@ -235,24 +215,15 @@ func TestStore_GetVulnerabilityMetadata_SetVulnerabilityMetadata(t *testing.T) {
 		},
 	}
 
-	if err = store.AddVulnerabilityMetadata(total...); err != nil {
+	if err = s.AddVulnerabilityMetadata(total...); err != nil {
 		t.Fatalf("failed to set metadata: %+v", err)
 	}
 
 	var allEntries []model.VulnerabilityMetadataModel
-	store.db.Find(&allEntries)
+	s.(*store).db.Find(&allEntries)
 	if len(allEntries) != len(total) {
 		t.Fatalf("unexpected number of entries: %d", len(allEntries))
 	}
-
-	// gut check on reader
-	storeReader, othercleanfn, err := reader.New(dbTempFile.Name())
-	defer othercleanfn()
-	if err != nil {
-		t.Fatalf("could not open db reader: %+v", err)
-	}
-
-	assertVulnerabilityMetadataReader(t, storeReader, total[0].ID, total[0].RecordSource, total[0])
 
 }
 
@@ -495,8 +466,7 @@ func TestStore_MergeVulnerabilityMetadata(t *testing.T) {
 			}
 			defer os.RemoveAll(dbTempDir)
 
-			store, cleanupFn, err := New(dbTempDir, true)
-			defer cleanupFn()
+			s, err := New(dbTempDir, true)
 			if err != nil {
 				t.Fatalf("could not create store: %+v", err)
 			}
@@ -504,7 +474,7 @@ func TestStore_MergeVulnerabilityMetadata(t *testing.T) {
 			// add each metadata in order
 			var theErr error
 			for _, metadata := range test.add {
-				err = store.AddVulnerabilityMetadata(metadata)
+				err = s.AddVulnerabilityMetadata(metadata)
 				if err != nil {
 					theErr = err
 					break
@@ -522,13 +492,13 @@ func TestStore_MergeVulnerabilityMetadata(t *testing.T) {
 
 			// ensure there is exactly one entry
 			var allEntries []model.VulnerabilityMetadataModel
-			store.db.Find(&allEntries)
+			s.(*store).db.Find(&allEntries)
 			if len(allEntries) != 1 {
 				t.Fatalf("unexpected number of entries: %d", len(allEntries))
 			}
 
 			// get the resulting metadata object
-			if actual, err := store.GetVulnerabilityMetadata(test.expected.ID, test.expected.RecordSource); err != nil {
+			if actual, err := s.GetVulnerabilityMetadata(test.expected.ID, test.expected.RecordSource); err != nil {
 				t.Fatalf("failed to get metadata: %+v", err)
 			} else {
 				diffs := deep.Equal(&test.expected, actual)
