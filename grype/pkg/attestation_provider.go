@@ -65,8 +65,9 @@ func syftAttestationProvider(userInput string, config ProviderConfig) ([]Package
 			return nil, Context{}, fmt.Errorf("failed to verify attestation: %w", err)
 		}
 
+		log.Infof("signature verified: %s", env.Signatures)
+
 		b, _ := base64.StdEncoding.DecodeString(env.Payload)
-		//fmt.Printf("payload: %s\nerr: %v", b, err)
 
 		stmt := &in_toto.Statement{}
 		err = json.Unmarshal(b, stmt)
