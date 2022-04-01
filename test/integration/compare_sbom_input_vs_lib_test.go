@@ -46,10 +46,11 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 	for _, p := range syftPkg.AllPkgs {
 		definedPkgTypes.Add(string(p))
 	}
-	// exceptions: rust, php, and msrc (kb) are not under test
+	// exceptions: rust, php, dart and msrc (kb) are not under test
 	definedPkgTypes.Remove(
 		string(syftPkg.RustPkg),
 		string(syftPkg.KbPkg),
+		string(syftPkg.DartPubPkg),
 		string(syftPkg.PhpComposerPkg),
 		string(syftPkg.JenkinsPluginPkg), // package type cannot be inferred for all formats
 	)

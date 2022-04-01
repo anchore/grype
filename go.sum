@@ -156,10 +156,10 @@ github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4 h1:rmZG77uXgE
 github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4/go.mod h1:Bkc+JYWjMCF8OyZ340IMSIi2Ebf3uwByOk6ho4wne1E=
 github.com/anchore/packageurl-go v0.1.1-0.20220314153042-1bcd40e5206b h1:YJWYt/6KQXR9JR46lLHrTTYi8rcye42tKcyjREA/hvA=
 github.com/anchore/packageurl-go v0.1.1-0.20220314153042-1bcd40e5206b/go.mod h1:Blo6OgJNiYF41ufcgHKkbCKF2MDOMlrqhXv/ij6ocR4=
-github.com/anchore/stereoscope v0.0.0-20220323180633-4bdc70599cde h1:yOi6g1D2q3WwzID0QQyF+x9VkzUyGSJy3cEYbp7ZOyk=
-github.com/anchore/stereoscope v0.0.0-20220323180633-4bdc70599cde/go.mod h1:OVVJ4y/L26pspeeHNvNa7GeQfoLPWxJe13iODl9x5l4=
-github.com/anchore/syft v0.42.4 h1:mQTRJ7a5cHHeIX1C8YTzGcEDVodXBpdsUZMBdM85VVA=
-github.com/anchore/syft v0.42.4/go.mod h1:P0IlaDduxKg6TokCCP6kmc/r5/8fJ9mjRRmsEU1KXjk=
+github.com/anchore/stereoscope v0.0.0-20220330165332-7fc73ee7b0f0 h1:mObz7bepZ6DtbIrsB2mxuOE9XEYmVtA/P/EDlKwfbjs=
+github.com/anchore/stereoscope v0.0.0-20220330165332-7fc73ee7b0f0/go.mod h1:yoCLUZY0k/pYLNIy0L80p2Ko0PKVNXm8rHtgxp4OiSc=
+github.com/anchore/syft v0.43.0 h1:9w52VCgSutRL08ojztoXwG6/KdOjS3w+5ePZqJNGx5o=
+github.com/anchore/syft v0.43.0/go.mod h1:Po6PO927XnrHzrs8qshOjAfb/wBmu4cXEeO7FmlWFgk=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 h1:bvNMNQO63//z+xNgfBlViaCIJKLlCJ6/fmUseuG0wVQ=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/brotli v1.0.1/go.mod h1:loMXtMfwqflxFJPmdbJO0a3KNoPuLBgiu3qAvBg8x/Y=
@@ -1108,7 +1108,6 @@ github.com/sagikazarmark/crypt v0.1.0/go.mod h1:B/mN0msZuINBtQ1zZLEQcegFJJf9vnYI
 github.com/sagikazarmark/crypt v0.3.0/go.mod h1:uD/D+6UF4SrIR1uGEv7bBNkNqLGqUr43MRiaGWX1Nig=
 github.com/sanposhiho/wastedassign/v2 v2.0.6/go.mod h1:KyZ0MWTwxxBmfwn33zh3k1dmsbF2ud9pAAGfoLfjhtI=
 github.com/satori/go.uuid v1.2.0/go.mod h1:dA0hQrYB0VpLJoorglMZABFdXlWrHn1NEOzdhQKdks0=
-github.com/scylladb/go-set v1.0.2/go.mod h1:DkpGd78rljTxKAnTDPFqXSGxvETQnJyuSOQwsHycqfs=
 github.com/scylladb/go-set v1.0.3-0.20200225121959-cc7b2070d91e h1:7q6NSFZDeGfvvtIRwBrU/aegEYJYmvev0cHAwo17zZQ=
 github.com/scylladb/go-set v1.0.3-0.20200225121959-cc7b2070d91e/go.mod h1:DkpGd78rljTxKAnTDPFqXSGxvETQnJyuSOQwsHycqfs=
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg65j358z/aeFdxmN0P9QXhEzd20vsDc=
