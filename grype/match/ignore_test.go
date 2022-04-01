@@ -22,13 +22,11 @@ var (
 				},
 			},
 			Package: pkg.Package{
-				ID:      pkg.ID(uuid.NewString()),
-				Name:    "dive",
-				Version: "0.5.2",
-				Type:    "deb",
-				Locations: []source.Location{
-					source.NewLocation("/path/that/has/dive"),
-				},
+				ID:        pkg.ID(uuid.NewString()),
+				Name:      "dive",
+				Version:   "0.5.2",
+				Type:      "deb",
+				Locations: source.NewLocationSet(source.NewLocation("/path/that/has/dive")),
 			},
 		},
 		{
@@ -43,9 +41,8 @@ var (
 				Name:    "reach",
 				Version: "100.0.50",
 				Type:    "gem",
-				Locations: []source.Location{
-					source.NewVirtualLocation("/real/path/with/reach", "/virtual/path/that/has/reach"),
-				},
+				Locations: source.NewLocationSet(source.NewVirtualLocation("/real/path/with/reach",
+					"/virtual/path/that/has/reach")),
 			},
 		},
 		{
@@ -60,9 +57,8 @@ var (
 				Name:    "beach",
 				Version: "100.0.51",
 				Type:    "gem",
-				Locations: []source.Location{
-					source.NewVirtualLocation("/real/path/with/beach", "/virtual/path/that/has/beach"),
-				},
+				Locations: source.NewLocationSet(source.NewVirtualLocation("/real/path/with/beach",
+					"/virtual/path/that/has/beach")),
 			},
 		},
 		{
@@ -77,9 +73,8 @@ var (
 				Name:    "speach",
 				Version: "100.0.52",
 				Type:    "gem",
-				Locations: []source.Location{
-					source.NewVirtualLocation("/real/path/with/speach", "/virtual/path/that/has/speach"),
-				},
+				Locations: source.NewLocationSet(source.NewVirtualLocation("/real/path/with/speach",
+					"/virtual/path/that/has/speach")),
 			},
 		},
 	}
@@ -252,10 +247,10 @@ var (
 			ID:      pkg.ID(uuid.NewString()),
 			Name:    "a-pkg",
 			Version: "1.0",
-			Locations: []source.Location{
+			Locations: source.NewLocationSet(
 				source.NewLocation("/some/path"),
 				source.NewVirtualLocation("/some/path", "/some/virtual/path"),
-			},
+			),
 			Type: "rpm",
 		},
 	}
@@ -317,7 +312,7 @@ func TestShouldIgnore(t *testing.T) {
 			match: exampleMatch,
 			rule: IgnoreRule{
 				Package: IgnoreRulePackage{
-					Location: exampleMatch.Package.Locations[0].RealPath,
+					Location: exampleMatch.Package.Locations.ToSlice()[0].RealPath,
 				},
 			},
 			expected: true,
@@ -327,7 +322,7 @@ func TestShouldIgnore(t *testing.T) {
 			match: exampleMatch,
 			rule: IgnoreRule{
 				Package: IgnoreRulePackage{
-					Location: exampleMatch.Package.Locations[1].VirtualPath,
+					Location: exampleMatch.Package.Locations.ToSlice()[1].VirtualPath,
 				},
 			},
 			expected: true,

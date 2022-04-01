@@ -43,9 +43,9 @@ func TestJsonImgsPresenter(t *testing.T) {
 		Name:    "package-1",
 		Version: "1.1.1",
 		Type:    syftPkg.RpmPkg,
-		Locations: []syftSource.Location{
+		Locations: syftSource.NewLocationSet(
 			getImageLocation("/somefile-1.txt"),
-		},
+		),
 		CPEs: []syftPkg.CPE{
 			{
 				Part:     "a",
@@ -70,9 +70,9 @@ func TestJsonImgsPresenter(t *testing.T) {
 		Name:    "package-2",
 		Version: "2.2.2",
 		Type:    syftPkg.DebPkg,
-		Locations: []syftSource.Location{
+		Locations: syftSource.NewLocationSet(
 			getImageLocation("/somefile-2.txt"),
-		},
+		),
 	}
 
 	var match1 = match.Match{
@@ -201,9 +201,9 @@ func TestJsonDirsPresenter(t *testing.T) {
 		Version: "1.0.1",
 		Type:    syftPkg.DebPkg,
 		FoundBy: "the-cataloger-1",
-		Locations: []syftSource.Location{
+		Locations: syftSource.NewLocationSet(
 			syftSource.NewLocation("/some/path/pkg1"),
-		},
+		),
 	})
 
 	var pkg1 pkg.Package
