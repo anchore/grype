@@ -189,7 +189,9 @@ func getSbomFromAttestation(file, key string) (io.Reader, error) {
 		return nil, fmt.Errorf("failed to verify attestation: %w", err)
 	}
 
-	log.Infof("signature verified: %s", env.Signatures)
+	for i, s := range env.Signatures {
+		log.Infof("signature verified (%d/%d): key id %s, sig: %s", i+1, len(env.Signatures), s.KeyID, s.Sig)
+	}
 
 	b, err := base64.StdEncoding.DecodeString(env.Payload)
 	if err != nil {
