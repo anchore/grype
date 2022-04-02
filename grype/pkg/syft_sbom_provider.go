@@ -54,6 +54,7 @@ func syftSBOMProvider(userInput string, config ProviderConfig) ([]Package, Conte
 
 func getSBOMReader(userInput string, config ProviderConfig) (io.Reader, error) {
 	switch {
+	// order of cases matter
 	case userInput == "":
 		// we only want to attempt reading in from stdin if the user has not specified other
 		// options from the CLI, otherwise we should not assume there is any valid input from stdin.
@@ -67,19 +68,18 @@ func getSBOMReader(userInput string, config ProviderConfig) (io.Reader, error) {
 		}
 
 		return sbom, nil
-	case explicitlySpecifyAttestation(userInput):
-		filepath := strings.TrimPrefix(userInput, "att:")
-		return getSbomFromAttestation(filepath, config.PublicKey)
-
-	case isPossibleAttestation(userInput):
-		return getSbomFromAttestation(userInput, config.PublicKey)
-
 	case isPossibleSBOM(userInput):
 		sbom, err := openSbom(userInput)
 		if err == nil {
 			return sbom, nil
 		}
 		log.Warnf("failed openning input file: %v", err)
+	case explicitlySpecifyAttestation(userInput):
+		filepath := strings.TrimPrefix(userInput, "att:")
+		return getSbomFromAttestation(filepath, config.PublicKey)
+
+	case isPossibleAttestation(userInput):
+		return getSbomFromAttestation(userInput, config.PublicKey)
 	}
 
 	// no usable SBOM is available
