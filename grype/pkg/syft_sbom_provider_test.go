@@ -21,6 +21,32 @@ func must(c pkg.CPE, e error) pkg.CPE {
 	return c
 }
 
+func TestParseAttestation(t *testing.T) {
+	tests := []struct {
+		Fixture string
+		Key     string
+	}{
+		{
+			Fixture: "att:test-fixtures/alpine.att.json",
+			Key:     "test-fixtures/cosign.pub",
+		},
+		{
+			Fixture: "test-fixtures/alpine.att.json",
+			Key:     "test-fixtures/cosign.pub",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Fixture, func(t *testing.T) {
+			pkgs, ctx, err := syftSBOMProvider(tt.Fixture, ProviderConfig{PublicKey: tt.Key})
+			require.NoError(t, err)
+			require.NotZero(t, pkgs)
+			require.NotNil(t, ctx)
+		})
+	}
+
+}
+
 func TestParseSyftJSON(t *testing.T) {
 	tests := []struct {
 		Fixture  string

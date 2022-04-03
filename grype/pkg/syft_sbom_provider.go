@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/anchore/syft/syft/sbom"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/mitchellh/go-homedir"
@@ -33,23 +34,37 @@ func (e errEmptySBOM) Error() string {
 }
 
 func syftSBOMProvider(userInput string, config ProviderConfig) ([]Package, Context, error) {
-	reader, err := getSBOMReader(userInput, config)
+	s, err := getSBOM(userInput, config)
 	if err != nil {
 		return nil, Context{}, err
 	}
 
-	sbom, format, err := syft.Decode(reader)
+	return FromCatalog(s.Artifacts.PackageCatalog, config), Context{
+		Source: &s.Source,
+		Distro: s.Artifacts.LinuxDistribution,
+	}, nil
+}
+
+func getSBOM(userInput string, config ProviderConfig) (*sbom.SBOM, error) {
+	reader, err := getSBOMReader(userInput, config)
 	if err != nil {
-		return nil, Context{}, fmt.Errorf("unable to decode sbom: %w", err)
-	}
-	if format == nil {
-		return nil, Context{}, errDoesNotProvide
+		return nil, err
 	}
 
-	return FromCatalog(sbom.Artifacts.PackageCatalog, config), Context{
-		Source: &sbom.Source,
-		Distro: sbom.Artifacts.LinuxDistribution,
-	}, nil
+	s, format, err := syft.Decode(reader)
+	if err != nil && err.Error() == "unable to identify format" && !explicitlySpecifyAttestation(userInput) {
+		return getSBOM(fmt.Sprintf("att:%s", userInput), config)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("unable to decode sbom: %w", err)
+	}
+
+	if format == nil {
+		return nil, errDoesNotProvide
+	}
+
+	return s, nil
 }
 
 func getSBOMReader(userInput string, config ProviderConfig) (io.Reader, error) {
@@ -77,9 +92,6 @@ func getSBOMReader(userInput string, config ProviderConfig) (io.Reader, error) {
 	case explicitlySpecifyAttestation(userInput):
 		filepath := strings.TrimPrefix(userInput, "att:")
 		return getSbomFromAttestation(filepath, config.PublicKey)
-
-	case isPossibleAttestation(userInput):
-		return getSbomFromAttestation(userInput, config.PublicKey)
 	}
 
 	// no usable SBOM is available
@@ -119,29 +131,11 @@ func stdinReader() io.Reader {
 	return os.Stdin
 }
 
-func isPossibleAttestation(userInput string) bool {
-	f, err := os.Open(userInput)
+func closeFile(f *os.File) {
+	err := f.Close()
 	if err != nil {
-		return false
+		log.Warnf("failed to close public key file: %v", err)
 	}
-	defer func() {
-		err := f.Close()
-		if err != nil {
-			log.Warnf("failed to close input file: %v", err)
-		}
-	}()
-
-	mType, err := mimetype.DetectReader(f)
-	fmt.Printf("mime type: %s\n", mType)
-	if err != nil {
-		return false
-	}
-
-	if _, err := f.Seek(0, io.SeekStart); err != nil {
-		log.Warnf("unable to seek to the start of the possible SBOM file=%q: %w", userInput, err)
-	}
-
-	return mType.Is("application/json")
 }
 
 func getSbomFromAttestation(file, key string) (io.Reader, error) {
@@ -149,12 +143,7 @@ func getSbomFromAttestation(file, key string) (io.Reader, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open attestation file %s: %w", file, err)
 	}
-	defer func() {
-		err := f.Close()
-		if err != nil {
-			log.Warnf("failed to close public key file: %v", err)
-		}
-	}()
+	defer closeFile(f)
 
 	if !fileHasContent(f) {
 		return nil, errEmptySBOM{file}
@@ -236,20 +225,11 @@ func isPossibleSBOM(userInput string) bool {
 	if err != nil {
 		return false
 	}
-	defer func() {
-		err := f.Close()
-		if err != nil {
-			log.Warnf("failed to close input file: %v", err)
-		}
-	}()
+	defer closeFile(f)
 
 	mType, err := mimetype.DetectReader(f)
 	if err != nil {
 		return false
-	}
-
-	if _, err := f.Seek(0, io.SeekStart); err != nil {
-		log.Warnf("unable to seek to the start of the possible SBOM file=%q: %w", userInput, err)
 	}
 
 	// we expect application/json, application/xml, and text/plain input documents. All of these are either
