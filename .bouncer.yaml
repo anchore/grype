@@ -20,3 +20,33 @@ ignore-packages:
   # from: https://github.com/owenrumney/go-sarif/blob/main/LICENSE
   # This is released into the public domain using the "Unlicense license"
   - github.com/owenrumney/go-sarif
+
+  # from: https://gitlab.com/cznic/sqlite/-/blob/v1.15.4/LICENSE
+  # This is a BSD-3-Clause license
+  - modernc.org/libc
+  - modernc.org/libc/errno
+  - modernc.org/libc/fcntl
+  - modernc.org/libc/fts
+  - modernc.org/libc/grp
+  - modernc.org/libc/langinfo
+  - modernc.org/libc/limits
+  - modernc.org/libc/netdb
+  - modernc.org/libc/netinet/in
+  - modernc.org/libc/poll
+  - modernc.org/libc/pthread
+  - modernc.org/libc/pwd
+  - modernc.org/libc/signal
+  - modernc.org/libc/stdio
+  - modernc.org/libc/stdlib
+  - modernc.org/libc/sys/socket
+  - modernc.org/libc/sys/stat
+  - modernc.org/libc/sys/types
+  - modernc.org/libc/termios
+  - modernc.org/libc/time
+  - modernc.org/libc/unistd
+  - modernc.org/libc/utime
+  - modernc.org/libc/uuid/uuid
+  - modernc.org/libc/wctype
+  - modernc.org/mathutil
+  - modernc.org/memory
+
