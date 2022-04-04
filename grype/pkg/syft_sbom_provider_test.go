@@ -38,7 +38,7 @@ func TestParseAttestation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.Fixture, func(t *testing.T) {
-			pkgs, ctx, err := syftSBOMProvider(tt.Fixture, ProviderConfig{PublicKey: tt.Key})
+			pkgs, ctx, err := syftSBOMProvider(tt.Fixture, ProviderConfig{Key: tt.Key})
 			require.NoError(t, err)
 			require.NotZero(t, pkgs)
 			require.NotNil(t, ctx)

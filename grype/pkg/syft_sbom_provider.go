@@ -10,7 +10,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/anchore/syft/syft/sbom"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/mitchellh/go-homedir"
@@ -23,6 +22,7 @@ import (
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft"
+	"github.com/anchore/syft/syft/sbom"
 )
 
 type errEmptySBOM struct {
@@ -77,21 +77,21 @@ func getSBOMReader(userInput string, config ProviderConfig) (io.Reader, error) {
 
 	case explicitlySpecifyingSBOM(userInput):
 		filepath := strings.TrimPrefix(userInput, "sbom:")
-		sbom, err := openSbom(filepath)
+		sbomFile, err := openSbom(filepath)
 		if err != nil {
 			return nil, fmt.Errorf("unable to use specified SBOM: %w", err)
 		}
 
-		return sbom, nil
+		return sbomFile, nil
 	case isPossibleSBOM(userInput):
-		sbom, err := openSbom(userInput)
+		sbomFile, err := openSbom(userInput)
 		if err == nil {
-			return sbom, nil
+			return sbomFile, nil
 		}
 		log.Warnf("failed openning input file: %v", err)
 	case explicitlySpecifyAttestation(userInput):
 		filepath := strings.TrimPrefix(userInput, "att:")
-		return getSbomFromAttestation(filepath, config.PublicKey)
+		return getSbomFromAttestation(filepath, config)
 	}
 
 	// no usable SBOM is available
@@ -138,7 +138,7 @@ func closeFile(f *os.File) {
 	}
 }
 
-func getSbomFromAttestation(file, key string) (io.Reader, error) {
+func getSbomFromAttestation(file string, config ProviderConfig) (io.Reader, error) {
 	f, err := os.Open(file)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open attestation file %s: %w", file, err)
@@ -159,27 +159,8 @@ func getSbomFromAttestation(file, key string) (io.Reader, error) {
 		return nil, fmt.Errorf("invalid payloadType %s on envelope. Expected %s", env.PayloadType, types.IntotoPayloadType)
 	}
 
-	pubKey, err := signature.PublicKeyFromKeyRef(context.TODO(), key)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load public key: %w", err)
-	}
-	pkcs11Key, ok := pubKey.(*pkcs11key.Key)
-	if ok {
-		defer pkcs11Key.Close()
-	}
-
-	dssev, err := ssldsse.NewEnvelopeVerifier(&dsse.VerifierAdapter{SignatureVerifier: pubKey})
-	if err != nil {
-		return nil, fmt.Errorf("failed to verify payload: %w", err)
-	}
-
-	_, err = dssev.Verify(env)
-	if err != nil {
-		return nil, fmt.Errorf("failed to verify attestation: %w", err)
-	}
-
-	for i, s := range env.Signatures {
-		log.Infof("signature verified (%d/%d): key id %s, sig: %s", i+1, len(env.Signatures), s.KeyID, s.Sig)
+	if err := verifyAttestationSignature(env, config.Key); err != nil {
+		return nil, fmt.Errorf("failed to verify attestation signature: %w", err)
 	}
 
 	b, err := base64.StdEncoding.DecodeString(env.Payload)
@@ -199,7 +180,33 @@ func getSbomFromAttestation(file, key string) (io.Reader, error) {
 	}
 
 	return bytes.NewBuffer(pb), nil
+}
 
+func verifyAttestationSignature(env *ssldsse.Envelope, key string) error {
+	pubKey, err := signature.PublicKeyFromKeyRef(context.TODO(), key)
+	if err != nil {
+		return fmt.Errorf("failed to load public key: %w", err)
+	}
+	pkcs11Key, ok := pubKey.(*pkcs11key.Key)
+	if ok {
+		defer pkcs11Key.Close()
+	}
+
+	dssev, err := ssldsse.NewEnvelopeVerifier(&dsse.VerifierAdapter{SignatureVerifier: pubKey})
+	if err != nil {
+		return fmt.Errorf("failed to verify payload: %w", err)
+	}
+
+	acceptedKeys, err := dssev.Verify(env)
+	if err != nil {
+		return fmt.Errorf("failed to verify attestation: %w", err)
+	}
+
+	for i, s := range acceptedKeys {
+		log.Infof("signature verified (%d/%d): key id %s, sig: %s", i+1, len(env.Signatures), s.KeyID, s.Sig)
+	}
+
+	return nil
 }
 
 func openSbom(path string) (*os.File, error) {
@@ -208,16 +215,16 @@ func openSbom(path string) (*os.File, error) {
 		return nil, fmt.Errorf("unable to open SBOM: %w", err)
 	}
 
-	sbom, err := os.Open(expandedPath)
+	sbomFile, err := os.Open(expandedPath)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open SBOM: %w", err)
 	}
 
-	if !fileHasContent(sbom) {
+	if !fileHasContent(sbomFile) {
 		return nil, errEmptySBOM{path}
 	}
 
-	return sbom, nil
+	return sbomFile, nil
 }
 
 func isPossibleSBOM(userInput string) bool {

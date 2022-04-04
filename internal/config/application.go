@@ -49,7 +49,7 @@ type Application struct {
 	FailOn              string                  `yaml:"fail-on-severity" json:"fail-on-severity" mapstructure:"fail-on-severity"`
 	FailOnSeverity      *vulnerability.Severity `yaml:"-" json:"-"`
 	Registry            registry                `yaml:"registry" json:"registry" mapstructure:"registry"`
-	PublicKey           string                  `yaml:"public-key" json:"public-key" mapstructure:"public-key"`
+	Key                 string                  `yaml:"key" json:"key" mapstructure:"key"`
 	Log                 logging                 `yaml:"log" json:"log" mapstructure:"log"`
 }
 
