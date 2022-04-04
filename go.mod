@@ -16,6 +16,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/facebookincubator/nvdtools v0.1.4
 	github.com/gabriel-vasile/mimetype v1.4.0
+	github.com/glebarez/sqlite v1.4.1
 	github.com/go-test/deep v1.0.8
 	github.com/google/go-cmp v0.5.7
 	github.com/google/uuid v1.3.0
@@ -47,10 +48,6 @@ require (
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	gopkg.in/yaml.v2 v2.4.0
-)
-
-require (
-	github.com/glebarez/sqlite v1.4.1
 	gorm.io/gorm v1.23.3
 )
 
