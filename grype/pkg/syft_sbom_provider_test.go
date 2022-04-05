@@ -25,23 +25,33 @@ func TestParseAttestation(t *testing.T) {
 	tests := []struct {
 		Fixture string
 		Key     string
+		WantErr assert.ErrorAssertionFunc
+		PkgsLen int
 	}{
 		{
 			Fixture: "att:test-fixtures/alpine.att.json",
 			Key:     "test-fixtures/cosign.pub",
+			WantErr: assert.NoError,
+			PkgsLen: 14,
 		},
 		{
 			Fixture: "test-fixtures/alpine.att.json",
 			Key:     "test-fixtures/cosign.pub",
+			WantErr: assert.NoError,
+			PkgsLen: 14,
+		},
+		{
+			Fixture: "test-fixtures/alpine.att.json",
+			Key:     "test-fixtures/cosign_broken.pub",
+			WantErr: assert.Error,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.Fixture, func(t *testing.T) {
-			pkgs, ctx, err := syftSBOMProvider(tt.Fixture, ProviderConfig{Key: tt.Key})
-			require.NoError(t, err)
-			require.NotZero(t, pkgs)
-			require.NotNil(t, ctx)
+			pkgs, _, err := syftSBOMProvider(tt.Fixture, ProviderConfig{Key: tt.Key})
+			tt.WantErr(t, err)
+			require.Len(t, pkgs, tt.PkgsLen)
 		})
 	}
 
