@@ -34,7 +34,7 @@ func NewPresenter(results match.Matches, packages []pkg.Package, metadataProvide
 func (pres *Presenter) Present(output io.Writer) error {
 	rows := make([][]string, 0)
 
-	columns := []string{"Name", "Type", "Installed", "Fixed-In", "Vulnerability", "Severity"}
+	columns := []string{"Name", "Installed", "Fixed-In", "Type", "Vulnerability", "Severity"}
 	for m := range pres.results.Enumerate() {
 		var severity string
 
@@ -55,7 +55,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 			fixVersion = ""
 		}
 
-		rows = append(rows, []string{m.Package.Name, string(m.Package.Type), m.Package.Version, fixVersion, m.Vulnerability.ID, severity})
+		rows = append(rows, []string{m.Package.Name, m.Package.Version, fixVersion, string(m.Package.Type), m.Vulnerability.ID, severity})
 	}
 
 	if len(rows) == 0 {
