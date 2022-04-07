@@ -379,7 +379,7 @@ func getProviderConfig() pkg.ProviderConfig {
 		CatalogingOptions:   appConfig.Search.ToConfig(),
 		GenerateMissingCPEs: appConfig.GenerateMissingCPEs,
 		Platform:            appConfig.Platform,
-		Key:                 appConfig.Key,
+		AttestationKey:      appConfig.AttestationKey,
 	}
 }
 

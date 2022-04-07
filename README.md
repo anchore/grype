@@ -123,6 +123,21 @@ use the `--distro <distro>:<version>` flag. A full example is:
 grype --add-cpes-if-none --distro alpine:3.10 sbom:some-apline-3.10.spdx.json
 ```
 
+### Scan attestations
+Grype can scan SBOMs from attestations, as long as they are encoded as part of (in-toto envelope)[https://github.com/in-toto/attestation/blob/main/spec/README.md#envelope], that is the format used by Syft.
+
+``` sh
+# scan an SBOM from an attestation file
+grype attestation.json --key [required public key file]
+
+# specify via the schema att: that the input file is an attestation
+grype att:attestation.json --key cosign.pub
+grype --key cosign.pub
+
+# generate an attestation for an image and pipe it into grype
+syft attest --output json --key cosign.key ubuntu:latest | grype --key cosign.pub
+```
+
 ### Vulnerability Summary
 
 #### Basic Grype Vulnerability Data Shape
