@@ -66,6 +66,10 @@ brew install grype
 
 **Note**: Currently, Grype is built only for macOS and Linux.
 
+### GitHub Actions
+
+If you're using GitHub Actions, you can simply use our [Grype-based action](https://github.com/marketplace/actions/anchore-container-scan) to run vulnerability scans on your code or container images during your CI workflows.
+
 ## Getting started
 
 [Install the binary](#installation), and make sure that `grype` is available in your path. To scan for vulnerabilities in an image:
