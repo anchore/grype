@@ -1,10 +1,11 @@
-package writer
+package gormadapter
 
 import (
 	"fmt"
 	"os"
 
-	"github.com/jinzhu/gorm"
+	"github.com/glebarez/sqlite"
+	"gorm.io/gorm"
 )
 
 var connectStatements = []string{
@@ -14,38 +15,22 @@ var connectStatements = []string{
 	`PRAGMA journal_mode = MEMORY`,
 }
 
-// config defines the information needed to connect and create a sqlite3 database
-type config struct {
-	dbPath    string
-	overwrite bool
-}
-
-// ConnectionString creates a connection string for sqlite3
-func (o config) ConnectionString() (string, error) {
-	if o.dbPath == "" {
-		return "", fmt.Errorf("no db filepath given")
-	}
-	return fmt.Sprintf("file:%s?cache=shared", o.dbPath), nil
-}
-
-// open a new connection to a sqlite3 database file
-func open(cfg config) (*gorm.DB, error) {
-	if cfg.overwrite {
+// Open a new connection to a sqlite3 database file
+func Open(path string, overwrite bool) (*gorm.DB, error) {
+	if overwrite {
 		// the file may or may not exist, so we ignore the error explicitly
-		_ = os.Remove(cfg.dbPath)
+		_ = os.Remove(path)
 	}
 
-	connStr, err := cfg.ConnectionString()
+	connStr, err := connectionString(path)
 	if err != nil {
 		return nil, err
 	}
 
-	dbObj, err := gorm.Open("sqlite3", connStr)
+	dbObj, err := gorm.Open(sqlite.Open(connStr), &gorm.Config{Logger: newLogger()})
 	if err != nil {
 		return nil, fmt.Errorf("unable to connect to DB: %w", err)
 	}
-
-	dbObj.SetLogger(&logAdapter{})
 
 	for _, sqlStmt := range connectStatements {
 		dbObj.Exec(sqlStmt)
@@ -54,4 +39,12 @@ func open(cfg config) (*gorm.DB, error) {
 		}
 	}
 	return dbObj, nil
+}
+
+// ConnectionString creates a connection string for sqlite3
+func connectionString(path string) (string, error) {
+	if path == "" {
+		return "", fmt.Errorf("no db filepath given")
+	}
+	return fmt.Sprintf("file:%s?cache=shared", path), nil
 }
