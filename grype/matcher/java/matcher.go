@@ -4,15 +4,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"sort"
+	"strings"
+
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
-	"net/http"
-	"sort"
-	"strings"
 )
 
 const (
@@ -89,12 +90,6 @@ func (ms *mavenSearch) GetMavenPackageBySha(sha1 string) (*pkg.Package, error) {
 	})
 	d := docs[0]
 
-	//ID           string `json:"id"`
-	//GroupID      string `json:"g"`
-	//ArtifactID   string `json:"a"`
-	//Version      string `json:"v"`
-	//P            string `json:"p"`
-	//VersionCount int    `json:"versionCount"`
 	return &pkg.Package{
 		Name:     strings.Join([]string{d.GroupID, d.ArtifactID}, ":"),
 		Version:  d.Version,
