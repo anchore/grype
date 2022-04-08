@@ -24,6 +24,12 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
+var defaultMatcherConfig = matcherConfig{
+	JavaMatcherConfig: java.MatcherConfig{
+		SearchMavenUpstream: false,
+	},
+}
+
 var controllerInstance controller
 
 type Monitor struct {
@@ -32,14 +38,18 @@ type Monitor struct {
 }
 
 func init() {
-	controllerInstance = newController()
+	controllerInstance = newController(defaultMatcherConfig)
 }
 
 type controller struct {
 	matchers map[syftPkg.Type][]Matcher
 }
 
-func newController() controller {
+type matcherConfig struct {
+	JavaMatcherConfig java.MatcherConfig
+}
+
+func newController(mc matcherConfig) controller {
 	ctrlr := controller{
 		matchers: make(map[syftPkg.Type][]Matcher),
 	}
@@ -47,7 +57,7 @@ func newController() controller {
 	ctrlr.add(&ruby.Matcher{})
 	ctrlr.add(&python.Matcher{})
 	ctrlr.add(&rpmdb.Matcher{})
-	ctrlr.add(&java.Matcher{})
+	ctrlr.add(java.NewJavaMatcher(mc.JavaMatcherConfig))
 	ctrlr.add(&javascript.Matcher{})
 	ctrlr.add(&apk.Matcher{})
 	ctrlr.add(&msrc.Matcher{})
