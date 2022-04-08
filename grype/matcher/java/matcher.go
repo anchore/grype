@@ -1,7 +1,6 @@
 package java
 
 import (
-	"crypto"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -97,8 +96,9 @@ func (ms *mavenSearch) GetMavenPackageBySha(sha1 string) (*pkg.Package, error) {
 	//P            string `json:"p"`
 	//VersionCount int    `json:"versionCount"`
 	return &pkg.Package{
-		Name:    d.ArtifactID,
-		Version: d.Version,
+		Name:     strings.Join([]string{d.GroupID, d.ArtifactID}, ":"),
+		Version:  d.Version,
+		Language: syftPkg.Java,
 		Metadata: pkg.JavaMetadata{
 			PomArtifactID: d.ArtifactID,
 			PomGroupID:    d.GroupID,
@@ -152,7 +152,7 @@ func (m *Matcher) matchUpstreamMavenPackages(store vulnerability.Provider, p pkg
 
 	if metadata, ok := p.Metadata.(pkg.JavaMetadata); ok {
 		for _, d := range metadata.ArchiveDigests {
-			if d.Algorithm == strings.ToLower(crypto.SHA1.String()) {
+			if d.Algorithm == "sha1" {
 				indirectPackage, err := m.GetMavenPackageBySha(d.Value)
 				if err != nil {
 					return nil, err
