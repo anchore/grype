@@ -165,11 +165,22 @@ func javaDataFromPkg(p pkg.Package) (metadata *JavaMetadata) {
 			}
 		}
 
+		var archiveDigests []Digest
+		if len(value.ArchiveDigests) > 0 {
+			for _, d := range value.ArchiveDigests {
+				archiveDigests = append(archiveDigests, Digest{
+					Algorithm: d.Algorithm,
+					Value:     d.Value,
+				})
+			}
+		}
+
 		metadata = &JavaMetadata{
-			VirtualPath:   value.VirtualPath,
-			PomArtifactID: artifact,
-			PomGroupID:    group,
-			ManifestName:  name,
+			VirtualPath:    value.VirtualPath,
+			PomArtifactID:  artifact,
+			PomGroupID:     group,
+			ManifestName:   name,
+			ArchiveDigests: archiveDigests,
 		}
 	} else {
 		log.Warnf("unable to extract Java metadata for %s", p)
