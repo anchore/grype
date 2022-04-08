@@ -1,6 +1,7 @@
 package java
 
 import (
+	"crypto"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"net/http"
 	"sort"
+	"strings"
 )
 
 const (
@@ -35,7 +37,7 @@ type mavenSearch struct {
 	baseURL string
 }
 
-type mavenApiResposne struct {
+type mavenAPIResponse struct {
 	Response struct {
 		NumFound int `json:"numFound"`
 		Docs     []struct {
@@ -71,7 +73,7 @@ func (ms *mavenSearch) GetMavenPackageBySha(sha1 string) (*pkg.Package, error) {
 		return nil, fmt.Errorf("status %s from %s", resp.Status, req.URL.String())
 	}
 
-	var res mavenApiResposne
+	var res mavenAPIResponse
 	if err = json.NewDecoder(resp.Body).Decode(&res); err != nil {
 		return nil, fmt.Errorf("json decode error: %w", err)
 	}
@@ -88,10 +90,19 @@ func (ms *mavenSearch) GetMavenPackageBySha(sha1 string) (*pkg.Package, error) {
 	})
 	d := docs[0]
 
-	// TODO: Syft java package construction from Pom Data
+	//ID           string `json:"id"`
+	//GroupID      string `json:"g"`
+	//ArtifactID   string `json:"a"`
+	//Version      string `json:"v"`
+	//P            string `json:"p"`
+	//VersionCount int    `json:"versionCount"`
 	return &pkg.Package{
 		Name:    d.ArtifactID,
 		Version: d.Version,
+		Metadata: pkg.JavaMetadata{
+			PomArtifactID: d.ArtifactID,
+			PomGroupID:    d.GroupID,
+		},
 	}, nil
 }
 
@@ -118,5 +129,44 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
-	return search.ByCriteria(store, d, p, m.Type(), search.CommonCriteria...)
+	matches := make([]match.Match, 0)
+	if m.SearchMavenUpstream {
+		upstreamMatches, err := m.matchUpstreamMavenPackages(store, p)
+		if err != nil {
+			return nil, fmt.Errorf("failed to match upstream maven data")
+		}
+
+		matches = append(matches, upstreamMatches...)
+	}
+	criteriaMatches, err := search.ByCriteria(store, d, p, m.Type(), search.CommonCriteria...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to match by exact package: %w", err)
+	}
+
+	matches = append(matches, criteriaMatches...)
+	return matches, nil
+}
+
+func (m *Matcher) matchUpstreamMavenPackages(store vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
+	var matches []match.Match
+
+	if metadata, ok := p.Metadata.(pkg.JavaMetadata); ok {
+		for _, d := range metadata.ArchiveDigests {
+			if d.Algorithm == strings.ToLower(crypto.SHA1.String()) {
+				indirectPackage, err := m.GetMavenPackageBySha(d.Value)
+				if err != nil {
+					return nil, err
+				}
+				indirectMatches, err := search.ByPackageLanguage(store, *indirectPackage, m.Type())
+				if err != nil {
+					return nil, err
+				}
+				matches = append(matches, indirectMatches...)
+			}
+		}
+	}
+
+	match.ConvertToIndirectMatches(matches, p)
+
+	return matches, nil
 }
