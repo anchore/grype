@@ -19,7 +19,7 @@ import (
 	"github.com/anchore/syft/syft/source"
 )
 
-var update = flag.Bool("update", false, "update the *.golden files for json presenters")
+var update = flag.Bool("update", false, "update the *.golden files for sarif presenters")
 
 func createResults() (match.Matches, []pkg.Package) {
 
