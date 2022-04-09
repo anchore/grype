@@ -4,6 +4,8 @@ import (
 	"os"
 	"path"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestSBOMInput_AsArgument(t *testing.T) {
@@ -53,15 +55,57 @@ func TestSBOMInput_AsArgument(t *testing.T) {
 	})
 }
 
-func TestSBOMInput_FromStdin(t *testing.T) {
-	cmd := getGrypeCommand(t)
-
-	sbom, err := os.Open("./test-fixtures/sbom-ubuntu-20.04--pruned.json")
-	if err != nil {
-		t.Fatal(err)
+func TestAttestationInput_AsArgument(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{
+			name: "no scheme",
+			args: []string{"./test-fixtures/alpine.att.json", "--key", "./test-fixtures/cosign.pub"},
+		},
+		{
+			name: "with scheme",
+			args: []string{"att:test-fixtures/alpine.att.json", "--key", "./test-fixtures/cosign.pub"},
+		},
 	}
 
-	attachFileToCommandStdin(t, sbom, cmd)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := getGrypeCommand(t, tt.args...)
+			assertCommandExecutionSuccess(t, cmd)
+		})
+	}
+}
 
-	assertCommandExecutionSuccess(t, cmd)
+func TestSBOMInput_FromStdin(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		args  []string
+	}{
+		{
+			name:  "sbom",
+			input: "./test-fixtures/sbom-ubuntu-20.04--pruned.json",
+		},
+		{
+			name:  "attestation",
+			input: "./test-fixtures/alpine.att.json",
+			//args:  []string{"--key", "./test-fixtures/cosign.pub"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := getGrypeCommand(t, tt.args...)
+
+			input, err := os.Open(tt.input)
+			require.NoError(t, err)
+
+			attachFileToCommandStdin(t, input, cmd)
+			assertCommandExecutionSuccess(t, cmd)
+			err = input.Close()
+			require.NoError(t, err)
+		})
+	}
 }

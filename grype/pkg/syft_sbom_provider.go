@@ -45,6 +45,14 @@ func syftSBOMProvider(userInput string, config ProviderConfig) ([]Package, Conte
 	}, nil
 }
 
+type inputType string
+
+var (
+	sbomInput inputType = "sbom"
+	attInput  inputType = "attestation"
+	stdInput  inputType = "stdin"
+)
+
 func getSBOM(userInput string, config ProviderConfig) (*sbom.SBOM, error) {
 	reader, err := getSBOMReader(userInput, config)
 	if err != nil {

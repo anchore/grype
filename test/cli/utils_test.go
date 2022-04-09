@@ -44,9 +44,9 @@ func getGrypeSnapshotLocation(tb testing.TB, goOS string) string {
 	// note: there is a subtle - vs _ difference between these versions
 	switch goOS {
 	case "darwin":
-		return path.Join(repoRoot(tb), fmt.Sprintf("snapshot/grype-macos_darwin_%s/grype", runtime.GOARCH))
+		return path.Join(repoRoot(tb), fmt.Sprintf("snapshot/darwin-build_darwin_%s/grype", runtime.GOARCH))
 	case "linux":
-		return path.Join(repoRoot(tb), fmt.Sprintf("snapshot/grype_linux_%s/grype", runtime.GOARCH))
+		return path.Join(repoRoot(tb), fmt.Sprintf("snapshot/linux-build_linux_%s/grype", runtime.GOARCH))
 	default:
 		tb.Fatalf("unsupported OS: %s", runtime.GOOS)
 	}

@@ -10,7 +10,7 @@ require (
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/packageurl-go v0.1.1-0.20220314153042-1bcd40e5206b
 	github.com/anchore/stereoscope v0.0.0-20220406160859-c03a18a6b270
-	github.com/anchore/syft v0.44.0
+	github.com/anchore/syft v0.43.0
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/docker/docker v20.10.12+incompatible
 	github.com/dustin/go-humanize v1.0.0
