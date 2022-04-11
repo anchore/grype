@@ -13,12 +13,12 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal/config"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 const (
-	defaultBaseURL = "https://search.maven.org/solrsearch/select"
-	sha1Query      = `1:"%s"`
+	sha1Query = `1:"%s"`
 )
 
 type Matcher struct {
@@ -32,6 +32,7 @@ type MavenSearcher interface {
 	GetMavenPackageBySha(string) (*pkg.Package, error)
 }
 
+// mavenSearch implements the MavenSearcher interface
 type mavenSearch struct {
 	client  *http.Client
 	baseURL string
@@ -101,16 +102,12 @@ func (ms *mavenSearch) GetMavenPackageBySha(sha1 string) (*pkg.Package, error) {
 	}, nil
 }
 
-type MatcherConfig struct {
-	SearchMavenUpstream bool
-}
-
-func NewJavaMatcher(matcherConfig MatcherConfig) *Matcher {
+func NewJavaMatcher(cfg *config.Application) *Matcher {
 	return &Matcher{
-		matcherConfig.SearchMavenUpstream,
+		cfg.ExternalSources.Maven.SearchMavenUpstream,
 		&mavenSearch{
 			client:  http.DefaultClient,
-			baseURL: defaultBaseURL,
+			baseURL: cfg.ExternalSources.Maven.BaseURL,
 		},
 	}
 }

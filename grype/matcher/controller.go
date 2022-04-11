@@ -19,16 +19,11 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
+	"github.com/anchore/grype/internal/config"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
-
-var defaultMatcherConfig = matcherConfig{
-	JavaMatcherConfig: java.MatcherConfig{
-		SearchMavenUpstream: false,
-	},
-}
 
 var controllerInstance controller
 
@@ -37,19 +32,11 @@ type Monitor struct {
 	VulnerabilitiesDiscovered progress.Monitorable
 }
 
-func init() {
-	controllerInstance = newController(defaultMatcherConfig)
-}
-
 type controller struct {
 	matchers map[syftPkg.Type][]Matcher
 }
 
-type matcherConfig struct {
-	JavaMatcherConfig java.MatcherConfig
-}
-
-func newController(mc matcherConfig) controller {
+func NewController(cfg *config.Application) {
 	ctrlr := controller{
 		matchers: make(map[syftPkg.Type][]Matcher),
 	}
@@ -57,11 +44,12 @@ func newController(mc matcherConfig) controller {
 	ctrlr.add(&ruby.Matcher{})
 	ctrlr.add(&python.Matcher{})
 	ctrlr.add(&rpmdb.Matcher{})
-	ctrlr.add(java.NewJavaMatcher(mc.JavaMatcherConfig))
+	ctrlr.add(java.NewJavaMatcher(cfg))
 	ctrlr.add(&javascript.Matcher{})
 	ctrlr.add(&apk.Matcher{})
 	ctrlr.add(&msrc.Matcher{})
-	return ctrlr
+
+	controllerInstance = ctrlr
 }
 
 func (c *controller) add(matchers ...Matcher) {

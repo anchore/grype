@@ -12,6 +12,7 @@ import (
 	"github.com/wagoodman/go-partybus"
 
 	"github.com/anchore/grype/grype"
+	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/internal/config"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/logger"
@@ -34,7 +35,12 @@ func init() {
 		logAppConfig,
 		logAppVersion,
 		initEventBus,
+		initMatchController,
 	)
+}
+
+func initMatchController() {
+	matcher.NewController(appConfig)
 }
 
 func Execute() {
