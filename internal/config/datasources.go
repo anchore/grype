@@ -17,7 +17,7 @@ type externalSources struct {
 
 type maven struct {
 	SearchMavenUpstream bool   `yaml:"search-maven-upstream" json:"search_maven_upstream" mapstructure:"search-maven-upstream"`
-	BaseURL             string `yaml:"baseURL" json:"base_url" mapstructure:"base-url"`
+	BaseURL             string `yaml:"base-url" json:"base_url" mapstructure:"base-url"`
 }
 
 func (cfg externalSources) loadDefaultValues(v *viper.Viper) {
@@ -27,8 +27,13 @@ func (cfg externalSources) loadDefaultValues(v *viper.Viper) {
 }
 
 func (cfg externalSources) ToJavaMatcherConfig() java.MatcherConfig {
+	// always respect if global config is disabled
+	smu := cfg.Maven.SearchMavenUpstream
+	if !cfg.Enable {
+		smu = cfg.Enable
+	}
 	return java.MatcherConfig{
-		SearchMavenUpstream: cfg.Maven.SearchMavenUpstream,
+		SearchMavenUpstream: smu,
 		MavenBaseURL:        cfg.Maven.BaseURL,
 	}
 }
