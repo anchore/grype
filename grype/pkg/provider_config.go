@@ -6,10 +6,11 @@ import (
 )
 
 type ProviderConfig struct {
-	RegistryOptions     *image.RegistryOptions
-	Exclusions          []string
-	CatalogingOptions   cataloger.Config
-	GenerateMissingCPEs bool
-	Platform            string
-	AttestationKey      string
+	RegistryOptions            *image.RegistryOptions
+	Exclusions                 []string
+	CatalogingOptions          cataloger.Config
+	GenerateMissingCPEs        bool
+	Platform                   string
+	AttestationKey             string
+	IgnoreAttestationSignature bool
 }

@@ -13,8 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anchore/stereoscope/pkg/imagetest"
 	"github.com/stretchr/testify/require"
+
+	"github.com/anchore/stereoscope/pkg/imagetest"
 )
 
 func getFixtureImage(tb testing.TB, fixtureImageName string) string {

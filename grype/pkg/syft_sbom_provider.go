@@ -11,7 +11,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/anchore/grype/internal"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/mitchellh/go-homedir"
@@ -20,6 +19,7 @@ import (
 	"github.com/sigstore/cosign/pkg/types"
 	"github.com/sigstore/sigstore/pkg/signature/dsse"
 
+	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/sbom"
@@ -195,8 +195,10 @@ func getSBOMFromAttestation(r io.Reader, config ProviderConfig) (io.Reader, erro
 		return nil, fmt.Errorf("invalid payload type %s on envelope. Expected %s", env.PayloadType, types.IntotoPayloadType)
 	}
 
-	if err := verifyAttestationSignature(env, config.AttestationKey); err != nil {
-		return nil, fmt.Errorf("failed to verify attestation signature: %w", err)
+	if !config.IgnoreAttestationSignature {
+		if err := verifyAttestationSignature(env, config.AttestationKey); err != nil {
+			return nil, fmt.Errorf("failed to verify attestation signature: %w", err)
+		}
 	}
 
 	b, err := base64.StdEncoding.DecodeString(env.Payload)

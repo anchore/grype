@@ -374,12 +374,13 @@ func applyDistroHint(context *pkg.Context, appConfig *config.Application) {
 
 func getProviderConfig() pkg.ProviderConfig {
 	return pkg.ProviderConfig{
-		RegistryOptions:     appConfig.Registry.ToOptions(),
-		Exclusions:          appConfig.Exclusions,
-		CatalogingOptions:   appConfig.Search.ToConfig(),
-		GenerateMissingCPEs: appConfig.GenerateMissingCPEs,
-		Platform:            appConfig.Platform,
-		AttestationKey:      appConfig.AttestationKey,
+		RegistryOptions:            appConfig.Registry.ToOptions(),
+		Exclusions:                 appConfig.Exclusions,
+		CatalogingOptions:          appConfig.Search.ToConfig(),
+		GenerateMissingCPEs:        appConfig.GenerateMissingCPEs,
+		Platform:                   appConfig.Platform,
+		AttestationKey:             appConfig.AttestationKey,
+		IgnoreAttestationSignature: appConfig.IgnoreAttestationSignature,
 	}
 }
 
