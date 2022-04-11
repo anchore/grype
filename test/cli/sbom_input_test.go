@@ -80,20 +80,28 @@ func TestAttestationInput_AsArgument(t *testing.T) {
 
 func TestSBOMInput_FromStdin(t *testing.T) {
 	tests := []struct {
-		name  string
-		input string
-		args  []string
+		name    string
+		input   string
+		args    []string
+		wantErr require.ErrorAssertionFunc
 	}{
 		{
-			name:  "sbom",
-			input: "./test-fixtures/sbom-ubuntu-20.04--pruned.json",
+			name:    "sbom",
+			input:   "./test-fixtures/sbom-ubuntu-20.04--pruned.json",
+			wantErr: require.NoError,
 		},
-		// TODO: broken test: times out at `attachFileToCommandStdin`
-		//{
-		//	name:  "attestation",
-		//	input: "./test-fixtures/alpine.att.json",
-		//args:  []string{"--key", "./test-fixtures/cosign.pub"},
-		//},
+		{
+			name:    "sbom with unnused attestation key",
+			input:   "./test-fixtures/sbom-ubuntu-20.04--pruned.json",
+			args:    []string{"--key", "./test-fixtures/cosign.pub"},
+			wantErr: require.Error,
+		},
+		{
+			name:    "attestation",
+			input:   "./test-fixtures/alpine.att.json",
+			args:    []string{"--key", "./test-fixtures/cosign.pub"},
+			wantErr: require.NoError,
+		},
 	}
 
 	for _, tt := range tests {
@@ -104,9 +112,11 @@ func TestSBOMInput_FromStdin(t *testing.T) {
 			require.NoError(t, err)
 
 			attachFileToCommandStdin(t, input, cmd)
-			assertCommandExecutionSuccess(t, cmd)
 			err = input.Close()
 			require.NoError(t, err)
+
+			_, err = cmd.CombinedOutput()
+			tt.wantErr(t, err)
 		})
 	}
 }

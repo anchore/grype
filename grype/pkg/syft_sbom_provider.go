@@ -11,6 +11,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/anchore/grype/internal"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/mitchellh/go-homedir"
@@ -19,7 +20,6 @@ import (
 	"github.com/sigstore/cosign/pkg/types"
 	"github.com/sigstore/sigstore/pkg/signature/dsse"
 
-	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/sbom"
@@ -66,6 +66,10 @@ func getSBOM(userInput string, config ProviderConfig) (*sbom.SBOM, error) {
 	if info != nil {
 		if (info.Scheme == "sbom" || info.ContentType == "sbom") && config.AttestationKey != "" {
 			return nil, fmt.Errorf("key is meant for atttestation verification, your input is a plain SBOM and doesn't need it")
+		}
+
+		if info.Scheme == "att" && info.ContentType != "att" {
+			return nil, fmt.Errorf("scheme specify an attestation but the content is not an attestation")
 		}
 	}
 
@@ -124,7 +128,7 @@ func getSBOMReader(userInput string, config ProviderConfig) (io.Reader, *inputIn
 func decodeStdin(r io.Reader, config ProviderConfig) (io.Reader, *inputInfo, error) {
 	b, err := ioutil.ReadAll(r)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed reading stdin: %w", err)
 	}
 
 	reader := bytes.NewReader(b)

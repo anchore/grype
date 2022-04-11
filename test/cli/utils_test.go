@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/anchore/stereoscope/pkg/imagetest"
+	"github.com/stretchr/testify/require"
 )
 
 func getFixtureImage(tb testing.TB, fixtureImageName string) string {
@@ -120,19 +121,9 @@ func repoRoot(tb testing.TB) string {
 func attachFileToCommandStdin(tb testing.TB, file io.Reader, command *exec.Cmd) {
 	tb.Helper()
 
-	stdin, err := command.StdinPipe()
-	if err != nil {
-		tb.Fatal(err)
-	}
-
-	_, err = io.Copy(stdin, file)
-	if err != nil {
-		tb.Fatal(err)
-	}
-	err = stdin.Close()
-	if err != nil {
-		tb.Fatal(err)
-	}
+	b, err := io.ReadAll(file)
+	require.NoError(tb, err)
+	command.Stdin = bytes.NewReader(b)
 }
 
 func assertCommandExecutionSuccess(t testing.TB, cmd *exec.Cmd) {
