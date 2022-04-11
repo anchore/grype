@@ -13,7 +13,6 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal/config"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -102,12 +101,17 @@ func (ms *mavenSearch) GetMavenPackageBySha(sha1 string) (*pkg.Package, error) {
 	}, nil
 }
 
-func NewJavaMatcher(cfg *config.Application) *Matcher {
+type MatcherConfig struct {
+	SearchMavenUpstream bool
+	MavenBaseURL        string
+}
+
+func NewJavaMatcher(cfg MatcherConfig) *Matcher {
 	return &Matcher{
-		cfg.ExternalSources.Maven.SearchMavenUpstream,
+		cfg.SearchMavenUpstream,
 		&mavenSearch{
 			client:  http.DefaultClient,
-			baseURL: cfg.ExternalSources.Maven.BaseURL,
+			baseURL: cfg.MavenBaseURL,
 		},
 	}
 }

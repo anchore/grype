@@ -18,6 +18,7 @@ import (
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/grypeerr"
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -309,7 +310,11 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 		applyDistroHint(&context, appConfig)
 
-		allMatches := grype.FindVulnerabilitiesForPackage(provider, context.Distro, packages...)
+		matchers := matcher.NewDefaultMatchers(matcher.Config{
+			Java: appConfig.ExternalSources.ToJavaMatcherConfig(),
+		})
+
+		allMatches := grype.FindVulnerabilitiesForPackage(provider, context.Distro, packages, matchers)
 		remainingMatches, ignoredMatches := match.ApplyIgnoreRules(allMatches, appConfig.Ignore)
 
 		if count := len(ignoredMatches); count > 0 {

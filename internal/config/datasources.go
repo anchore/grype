@@ -2,6 +2,8 @@ package config
 
 import (
 	"github.com/spf13/viper"
+
+	"github.com/anchore/grype/grype/matcher/java"
 )
 
 const (
@@ -22,4 +24,11 @@ func (cfg externalSources) loadDefaultValues(v *viper.Viper) {
 	v.SetDefault("external-sources.enable", false)
 	v.SetDefault("external-sources.maven.search-maven-upstream", false)
 	v.SetDefault("external-sources.maven.base-url", defaultMavenBaseURL)
+}
+
+func (cfg externalSources) ToJavaMatcherConfig() java.MatcherConfig {
+	return java.MatcherConfig{
+		SearchMavenUpstream: cfg.Maven.SearchMavenUpstream,
+		MavenBaseURL:        cfg.Maven.BaseURL,
+	}
 }

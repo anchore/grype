@@ -19,53 +19,35 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
-	"github.com/anchore/grype/internal/config"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
-
-var controllerInstance controller
 
 type Monitor struct {
 	PackagesProcessed         progress.Monitorable
 	VulnerabilitiesDiscovered progress.Monitorable
 }
 
-type controller struct {
-	matchers map[syftPkg.Type][]Matcher
+// Config contains values used by individual matcher structs for advanced configuration
+type Config struct {
+	Java java.MatcherConfig
 }
 
-func NewController(cfg *config.Application) {
-	ctrlr := controller{
-		matchers: make(map[syftPkg.Type][]Matcher),
-	}
-	ctrlr.add(&dpkg.Matcher{})
-	ctrlr.add(&ruby.Matcher{})
-	ctrlr.add(&python.Matcher{})
-	ctrlr.add(&rpmdb.Matcher{})
-	ctrlr.add(java.NewJavaMatcher(cfg))
-	ctrlr.add(&javascript.Matcher{})
-	ctrlr.add(&apk.Matcher{})
-	ctrlr.add(&msrc.Matcher{})
-
-	controllerInstance = ctrlr
-}
-
-func (c *controller) add(matchers ...Matcher) {
-	for _, m := range matchers {
-		for _, t := range m.PackageTypes() {
-			if _, ok := c.matchers[t]; ok {
-				c.matchers[t] = make([]Matcher, 0)
-			}
-
-			c.matchers[t] = append(c.matchers[t], m)
-			log.Debugf("adding matcher: %+v", t)
-		}
+func NewDefaultMatchers(mc Config) []Matcher {
+	return []Matcher{
+		&dpkg.Matcher{},
+		&ruby.Matcher{},
+		&python.Matcher{},
+		&rpmdb.Matcher{},
+		java.NewJavaMatcher(mc.Java),
+		&javascript.Matcher{},
+		&apk.Matcher{},
+		&msrc.Matcher{},
 	}
 }
 
-func (c *controller) trackMatcher() (*progress.Manual, *progress.Manual) {
+func trackMatcher() (*progress.Manual, *progress.Manual) {
 	packagesProcessed := progress.Manual{}
 	vulnerabilitiesDiscovered := progress.Manual{}
 
@@ -79,9 +61,26 @@ func (c *controller) trackMatcher() (*progress.Manual, *progress.Manual) {
 	return &packagesProcessed, &vulnerabilitiesDiscovered
 }
 
-func (c *controller) findMatches(provider vulnerability.Provider, release *linux.Release, packages ...pkg.Package) match.Matches {
+func newMatcherIndex(matchers []Matcher) map[syftPkg.Type][]Matcher {
+	matcherIndex := make(map[syftPkg.Type][]Matcher)
+	for _, m := range matchers {
+		for _, t := range m.PackageTypes() {
+			if _, ok := matcherIndex[t]; ok {
+				matcherIndex[t] = make([]Matcher, 0)
+			}
+
+			matcherIndex[t] = append(matcherIndex[t], m)
+			log.Debugf("adding matcher: %+v", t)
+		}
+	}
+
+	return matcherIndex
+}
+
+func FindMatches(provider vulnerability.Provider, release *linux.Release, packages []pkg.Package, matchers []Matcher) match.Matches {
 	var err error
 	res := match.NewMatches()
+	matcherIndex := newMatcherIndex(matchers)
 
 	var d *distro.Distro
 	if release != nil {
@@ -91,14 +90,14 @@ func (c *controller) findMatches(provider vulnerability.Provider, release *linux
 		}
 	}
 
-	packagesProcessed, vulnerabilitiesDiscovered := c.trackMatcher()
+	packagesProcessed, vulnerabilitiesDiscovered := trackMatcher()
 
 	defaultMatcher := &stock.Matcher{}
 	for _, p := range packages {
 		packagesProcessed.N++
 		log.Debugf("searching for vulnerability matches for pkg=%s", p)
 
-		matchers, ok := c.matchers[p.Type]
+		matchers, ok := matcherIndex[p.Type]
 		if !ok {
 			matchers = []Matcher{defaultMatcher}
 		}
@@ -120,10 +119,6 @@ func (c *controller) findMatches(provider vulnerability.Provider, release *linux
 	res = match.ApplyExplicitIgnoreRules(res)
 
 	return res
-}
-
-func FindMatches(provider vulnerability.Provider, d *linux.Release, packages ...pkg.Package) match.Matches {
-	return controllerInstance.findMatches(provider, d, packages...)
 }
 
 func logMatches(p pkg.Package, matches []match.Match) {
