@@ -65,7 +65,7 @@ func newMatcherIndex(matchers []Matcher) map[syftPkg.Type][]Matcher {
 	matcherIndex := make(map[syftPkg.Type][]Matcher)
 	for _, m := range matchers {
 		for _, t := range m.PackageTypes() {
-			if _, ok := matcherIndex[t]; ok {
+			if _, ok := matcherIndex[t]; !ok {
 				matcherIndex[t] = make([]Matcher, 0)
 			}
 
