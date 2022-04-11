@@ -45,18 +45,28 @@ func syftSBOMProvider(userInput string, config ProviderConfig) ([]Package, Conte
 	}, nil
 }
 
-type inputType string
+func newInputInfo(scheme, contentTye string) *inputInfo {
+	return &inputInfo{
+		Scheme:      scheme,
+		ContentType: contentTye,
+	}
+}
 
-var (
-	sbomInput inputType = "sbom"
-	attInput  inputType = "attestation"
-	stdInput  inputType = "stdin"
-)
+type inputInfo struct {
+	ContentType string
+	Scheme      string
+}
 
 func getSBOM(userInput string, config ProviderConfig) (*sbom.SBOM, error) {
-	reader, err := getSBOMReader(userInput, config)
+	reader, info, err := getSBOMReader(userInput, config)
 	if err != nil {
 		return nil, err
+	}
+
+	if info != nil {
+		if (info.Scheme == "sbom" || info.ContentType == "sbom") && config.AttestationKey != "" {
+			return nil, fmt.Errorf("key is meant for atttestation verification, your input is a plain SBOM and doesn't need it")
+		}
 	}
 
 	s, format, err := syft.Decode(reader)
@@ -71,9 +81,9 @@ func getSBOM(userInput string, config ProviderConfig) (*sbom.SBOM, error) {
 	return s, nil
 }
 
-func getSBOMReader(userInput string, config ProviderConfig) (io.Reader, error) {
+func getSBOMReader(userInput string, config ProviderConfig) (io.Reader, *inputInfo, error) {
 	switch {
-	// order of cases matter
+	// the order of cases matter
 	case userInput == "":
 		// we only want to attempt reading in from stdin if the user has not specified other
 		// options from the CLI, otherwise we should not assume there is any valid input from stdin.
@@ -81,44 +91,49 @@ func getSBOMReader(userInput string, config ProviderConfig) (io.Reader, error) {
 
 	case explicitlySpecifyingSBOM(userInput):
 		filepath := strings.TrimPrefix(userInput, "sbom:")
-		return openFile(filepath)
+		r, err := openFile(filepath)
+		return r, newInputInfo("sbom", "sbom"), err
 
 	case explicitlySpecifyAttestation(userInput):
 		path := strings.TrimPrefix(userInput, "att:")
 		f, err := openFile(path)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		return getSBOMFromAttestation(f, config)
+		r, err := getSBOMFromAttestation(f, config)
+		return r, newInputInfo("att", "att"), err
 
 	case isPossibleAttestation(userInput):
 		f, err := openFile(userInput)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		return getSBOMFromAttestation(f, config)
+		r, err := getSBOMFromAttestation(f, config)
+		return r, newInputInfo("", "att"), err
 
 	case isPossibleSBOM(userInput):
-		return openFile(userInput)
+		r, err := openFile(userInput)
+		return r, newInputInfo("", "sbom"), err
 
 	default:
 		// no usable SBOM is available
-		return nil, errDoesNotProvide
+		return nil, nil, errDoesNotProvide
 	}
 }
 
-func decodeStdin(r io.Reader, config ProviderConfig) (io.Reader, error) {
+func decodeStdin(r io.Reader, config ProviderConfig) (io.Reader, *inputInfo, error) {
 	b, err := ioutil.ReadAll(r)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	reader := bytes.NewReader(b)
 	if hasInTotoPayload(b) {
-		return getSBOMFromAttestation(reader, config)
+		reader, err := getSBOMFromAttestation(reader, config)
+		return reader, newInputInfo("", "att"), err
 	}
 
-	return reader, nil
+	return reader, newInputInfo("", "sbom"), nil
 }
 
 // fileHasContent returns a bool indicating whether the given file has data that could possibly be utilized in

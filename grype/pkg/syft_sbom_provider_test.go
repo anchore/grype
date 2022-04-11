@@ -23,37 +23,60 @@ func must(c pkg.CPE, e error) pkg.CPE {
 
 func TestParseAttestation(t *testing.T) {
 	tests := []struct {
+		Name    string
 		Fixture string
 		Key     string
 		WantErr assert.ErrorAssertionFunc
 		PkgsLen int
 	}{
 		{
+			Name:    "happy path with schema",
 			Fixture: "att:test-fixtures/alpine.att.json",
 			Key:     "test-fixtures/cosign.pub",
 			WantErr: assert.NoError,
 			PkgsLen: 14,
 		},
 		{
+			Name:    "happy path without schema",
 			Fixture: "test-fixtures/alpine.att.json",
 			Key:     "test-fixtures/cosign.pub",
 			WantErr: assert.NoError,
 			PkgsLen: 14,
 		},
 		{
+			Name:    "cycloneDX format",
 			Fixture: "test-fixtures/alpine.cyclonedx.att.json",
 			Key:     "test-fixtures/cosign.pub",
 			WantErr: assert.NoError,
 			PkgsLen: 14,
 		},
 		{
+			Name:    "broken key",
 			Fixture: "test-fixtures/alpine.att.json",
 			Key:     "test-fixtures/cosign_broken.pub",
 			WantErr: assert.Error,
 		},
 		{
+			Name:    "different but valid key",
 			Fixture: "test-fixtures/alpine.att.json",
 			Key:     "test-fixtures/another_cosign.pub",
+			WantErr: assert.Error,
+		},
+		{
+			Name:    "not an attestation but has the schema",
+			Fixture: "att:test-fixtures/syft-spring.json",
+			WantErr: assert.Error,
+		},
+		{
+			Name:    "not an attestation but has key",
+			Fixture: "test-fixtures/syft-spring.json",
+			Key:     "test-fixtures/cosign.pub",
+			WantErr: assert.Error,
+		},
+		{
+			Name:    "not an attestation but has key and scheme",
+			Fixture: "att:test-fixtures/syft-spring.json",
+			Key:     "test-fixtures/cosign.pub",
 			WantErr: assert.Error,
 		},
 	}
@@ -312,6 +335,6 @@ func TestGetSBOMReader_EmptySBOM(t *testing.T) {
 	filepath := sbomFile.Name()
 	userInput := "sbom:" + filepath
 
-	_, err = getSBOMReader(userInput, ProviderConfig{})
+	_, _, err = getSBOMReader(userInput, ProviderConfig{})
 	assert.ErrorAs(t, err, &errEmptySBOM{})
 }
