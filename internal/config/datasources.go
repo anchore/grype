@@ -17,7 +17,7 @@ type externalSources struct {
 
 type maven struct {
 	SearchMavenUpstream bool   `yaml:"search-maven-upstream" json:"search_maven_upstream" mapstructure:"search-maven-upstream"`
-	BaseURL             string `yaml:"base-url" json:"base_url" mapstructure:"base-url"`
+	BaseURL             string `yaml:"base-url" json:"base-url" mapstructure:"base-url"`
 }
 
 func (cfg externalSources) loadDefaultValues(v *viper.Viper) {

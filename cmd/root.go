@@ -314,7 +314,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			Java: appConfig.ExternalSources.ToJavaMatcherConfig(),
 		})
 
-		allMatches := grype.FindVulnerabilitiesForPackage(provider, context.Distro, packages, matchers)
+		allMatches := grype.FindVulnerabilitiesForPackage(provider, context.Distro, matchers, packages)
 		remainingMatches, ignoredMatches := match.ApplyIgnoreRules(allMatches, appConfig.Ignore)
 
 		if count := len(ignoredMatches); count > 0 {

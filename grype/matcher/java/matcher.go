@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"strings"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal/log"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -91,7 +91,7 @@ func (ms *mavenSearch) GetMavenPackageBySha(sha1 string) (*pkg.Package, error) {
 	d := docs[0]
 
 	return &pkg.Package{
-		Name:     strings.Join([]string{d.GroupID, d.ArtifactID}, ":"),
+		Name:     fmt.Sprintf("%s:%s", d.GroupID, d.ArtifactID),
 		Version:  d.Version,
 		Language: syftPkg.Java,
 		Metadata: pkg.JavaMetadata{
@@ -125,14 +125,14 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
-	matches := make([]match.Match, 0)
+	var matches []match.Match
 	if m.SearchMavenUpstream {
 		upstreamMatches, err := m.matchUpstreamMavenPackages(store, p)
 		if err != nil {
-			return nil, fmt.Errorf("failed to match upstream maven data")
+			log.Warnf("failed to match against upstream data for %s: %v", p.Name, err)
+		} else {
+			matches = append(matches, upstreamMatches...)
 		}
-
-		matches = append(matches, upstreamMatches...)
 	}
 	criteriaMatches, err := search.ByCriteria(store, d, p, m.Type(), search.CommonCriteria...)
 	if err != nil {

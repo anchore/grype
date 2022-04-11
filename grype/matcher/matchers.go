@@ -77,7 +77,7 @@ func newMatcherIndex(matchers []Matcher) map[syftPkg.Type][]Matcher {
 	return matcherIndex
 }
 
-func FindMatches(provider vulnerability.Provider, release *linux.Release, packages []pkg.Package, matchers []Matcher) match.Matches {
+func FindMatches(provider vulnerability.Provider, release *linux.Release, matchers []Matcher, packages []pkg.Package) match.Matches {
 	var err error
 	res := match.NewMatches()
 	matcherIndex := newMatcherIndex(matchers)
