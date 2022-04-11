@@ -2,7 +2,9 @@ package cli
 
 import (
 	"os"
+	"os/exec"
 	"path"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -88,25 +90,36 @@ func TestSBOMInput_FromStdin(t *testing.T) {
 		{
 			name:    "sbom",
 			input:   "./test-fixtures/sbom-ubuntu-20.04--pruned.json",
+			args:    []string{"-c", "../grype-test-config.yaml"},
 			wantErr: require.NoError,
 		},
 		{
-			name:    "sbom with unnused attestation key",
-			input:   "./test-fixtures/sbom-ubuntu-20.04--pruned.json",
-			args:    []string{"--key", "./test-fixtures/cosign.pub"},
+			name:  "sbom with unnused attestation key",
+			input: "./test-fixtures/sbom-ubuntu-20.04--pruned.json",
+			args: []string{
+				"-c", "../grype-test-config.yaml",
+				"--key", "./test-fixtures/cosign.pub"},
 			wantErr: require.Error,
 		},
 		{
-			name:    "attestation",
+			name:  "attestation",
+			input: "./test-fixtures/alpine.att.json",
+			args: []string{
+				"-c", "../grype-test-config.yaml",
+				"--key", "./test-fixtures/cosign.pub"},
+			wantErr: require.NoError,
+		},
+		{
+			name:    "attestation without key validation",
 			input:   "./test-fixtures/alpine.att.json",
-			args:    []string{"--key", "./test-fixtures/cosign.pub"},
+			args:    []string{"-c", "../ignore-att-signature.yaml"},
 			wantErr: require.NoError,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cmd := getGrypeCommand(t, tt.args...)
+			cmd := exec.Command(getGrypeSnapshotLocation(t, runtime.GOOS), tt.args...)
 
 			input, err := os.Open(tt.input)
 			require.NoError(t, err)

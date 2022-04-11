@@ -1,0 +1,2 @@
+check-for-app-update: false
+ignore-attestation-signature: true

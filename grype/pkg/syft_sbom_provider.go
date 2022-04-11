@@ -196,6 +196,10 @@ func getSBOMFromAttestation(r io.Reader, config ProviderConfig) (io.Reader, erro
 	}
 
 	if !config.IgnoreAttestationSignature {
+		if config.AttestationKey == "" {
+			return nil, fmt.Errorf("--key parameter is required to validate attestation")
+		}
+
 		if err := verifyAttestationSignature(env, config.AttestationKey); err != nil {
 			return nil, fmt.Errorf("failed to verify attestation signature: %w", err)
 		}
