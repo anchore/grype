@@ -126,15 +126,21 @@ grype --add-cpes-if-none --distro alpine:3.10 sbom:some-apline-3.10.spdx.json
 ### Scan attestations
 Grype can scan SBOMs from attestations, as long as they are encoded as part of (in-toto envelope)[https://github.com/in-toto/attestation/blob/main/spec/README.md#envelope], that is the format used by Syft.
 
+Examples:
 ``` sh
-# scan an SBOM from an attestation file
-grype attestation.json --key [required public key file]
+# generate cosign key pair
+cosign generate-key-pair # after that you'll have two files: cosign.key and cosign.pub
 
-# specify via the schema att: that the input file is an attestation
+# attest an image with Syft and your cosign private key (cosign.key)
+syft attest --output json --key cosign.key ubuntu:latest > ubuntu.att.json
+
+# scan an SBOM from an attestation file with the cosign public key (cosign.pub)
+grype attestation.json --key cosign.pub
+
+# explicitly tell Grype the input is an attestation file with the scheme `att:`
 grype att:attestation.json --key cosign.pub
-grype --key cosign.pub
 
-# generate an attestation for an image and pipe it into grype
+# generate an attestation for an image with Syft and pipe it into Grype, just because you can :)
 syft attest --output json --key cosign.key ubuntu:latest | grype --key cosign.pub
 ```
 

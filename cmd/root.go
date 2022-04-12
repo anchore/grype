@@ -61,7 +61,8 @@ You can also explicitly specify the scheme to use:
     {{.appName}} dir:path/to/yourproject                read directly from a path on disk (any directory)
     {{.appName}} sbom:path/to/syft.json                 read Syft JSON from path on disk
     {{.appName}} registry:yourrepo/yourimage:tag        pull image directly from a registry (no container runtime required)
-
+    {{.appName}} att:attestation.json --key cosign.pub  extract and scan SBOM from attestation file. Checkout Syft to attest your SBOMs
+    {{.appName}} attestation.json --key cosign.pub			the scheme att: is optional
 You can also pipe in Syft JSON directly:
 	syft yourimage:tag -o json | {{.appName}}
 
