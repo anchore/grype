@@ -33,7 +33,7 @@ type Application struct {
 	Output              string                  `yaml:"output" json:"output" mapstructure:"output"`                                         // -o, the Presenter hint string to use for report formatting
 	File                string                  `yaml:"file" json:"file" mapstructure:"file"`                                               // --file, the file to write report output to
 	Distro              string                  `yaml:"distro" json:"distro" mapstructure:"distro"`                                         // --distro, specify a distro to explicitly use
-	GenerateMissingCPEs bool                    `yaml:"add-cpes-if-none" json:"addCpesIfNone" mapstructure:"add-cpes-if-none"`              // --add-cpes-if-none, automatically generate CPEs if they are not present in import (e.g. from a 3rd party SPDX document)
+	GenerateMissingCPEs bool                    `yaml:"add-cpes-if-none" json:"addCPEsIfNone" mapstructure:"add-cpes-if-none"`              // --add-cpes-if-none, automatically generate CPEs if they are not present in import (e.g. from a 3rd party SPDX document)
 	OutputTemplateFile  string                  `yaml:"output-template-file" json:"outputTemplateFile" mapstructure:"output-template-file"` // -t, the template file to use for formatting the final report
 	Quiet               bool                    `yaml:"quiet" json:"quiet" mapstructure:"quiet"`                                            // -q, indicates to not show any status output to stderr (ETUI or logging UI)
 	CheckForAppUpdate   bool                    `yaml:"check-for-app-update" json:"checkForAppUpdate" mapstructure:"check-for-app-update"`  // whether to check for an application update on start up or not
