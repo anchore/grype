@@ -18,7 +18,7 @@ type IgnoredMatch struct {
 // rule to apply.
 type IgnoreRule struct {
 	Vulnerability string            `yaml:"vulnerability" json:"vulnerability" mapstructure:"vulnerability"`
-	FixState      string            `yaml:"fix-state" json:"fix-state" mapstructure:"fix-state"`
+	FixState      string            `yaml:"fix-state" json:"fixState" mapstructure:"fix-state"`
 	Package       IgnoreRulePackage `yaml:"package" json:"package" mapstructure:"package"`
 }
 
