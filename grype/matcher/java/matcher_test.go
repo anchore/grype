@@ -11,7 +11,6 @@ import (
 )
 
 func TestMatcherJava_matchUpstreamMavenPackage(t *testing.T) {
-	matcher := Matcher{}
 	p := pkg.Package{
 		ID:           pkg.ID(uuid.NewString()),
 		Name:         "spring-webmvc",
@@ -27,10 +26,14 @@ func TestMatcherJava_matchUpstreamMavenPackage(t *testing.T) {
 			},
 		},
 	}
+	matcher := Matcher{
+		SearchMavenUpstream: true,
+		MavenSearcher:       newMockSearcher(p),
+	}
 
 	store := newMockProvider()
 	actual, _ := matcher.matchUpstreamMavenPackages(store, p)
 
-	assert.Len(t, actual, 2, "unexpected indirect matches count")
+	assert.Len(t, actual, 0, "unexpected indirect matches count")
 
 }

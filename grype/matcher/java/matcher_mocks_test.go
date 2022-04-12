@@ -19,6 +19,20 @@ func newMockProvider() *mockProvider {
 	return &pr
 }
 
+type mockMavenSearcher struct {
+	pkg pkg.Package
+}
+
+func (m mockMavenSearcher) GetMavenPackageBySha(string) (*pkg.Package, error) {
+	return &m.pkg, nil
+}
+
+func newMockSearcher(pkg pkg.Package) MavenSearcher {
+	return mockMavenSearcher{
+		pkg,
+	}
+}
+
 func (pr *mockProvider) GetByCPE(p syftPkg.CPE) ([]vulnerability.Vulnerability, error) {
 	return []vulnerability.Vulnerability{}, nil
 }
