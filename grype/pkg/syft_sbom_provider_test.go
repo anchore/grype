@@ -45,7 +45,7 @@ func TestParseAttestation(t *testing.T) {
 		},
 		{
 			Name:    "cycloneDX format",
-			Fixture: "test-fixtures/alpine.cyclonedx.att.json",
+			Fixture: "test-fixtures/alpine.cdx.att.json",
 			Key:     "test-fixtures/cosign.pub",
 			WantErr: assert.NoError,
 			PkgsLen: 14,

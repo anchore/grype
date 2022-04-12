@@ -210,6 +210,8 @@ func getSBOMFromAttestation(r io.Reader, config ProviderConfig) (io.Reader, erro
 		return nil, fmt.Errorf("failed to decode attestation payload: %w", err)
 	}
 
+	// a statement contains predicate and subject, the digest present in the subject
+	// comes from RepoDigests -- according to Syft's implementation
 	stmt := &in_toto.Statement{}
 	err = json.Unmarshal(b, stmt)
 	if err != nil {
