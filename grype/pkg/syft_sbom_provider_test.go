@@ -85,6 +85,12 @@ func TestParseAttestation(t *testing.T) {
 			Key:     "test-fixtures/cosign.pub",
 			WantErr: assert.Error,
 		},
+		{
+			Name:    "tampered envelope predicate type",
+			Fixture: "att:test-fixtures/alpine-tampered.cdx.att.json",
+			Key:     "test-fixtures/cosign.pub",
+			WantErr: assert.Error,
+		},
 	}
 
 	for _, tt := range tests {
