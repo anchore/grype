@@ -242,6 +242,16 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "dart-pub-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.DartPubMetadataType,
+				Metadata: syftPkg.DartPubMetadata{
+					Name:    "a",
+					Version: "a",
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
@@ -277,9 +287,9 @@ func TestFromCatalog_DoesNotPanic(t *testing.T) {
 	examplePackage := syftPkg.Package{
 		Name:    "test",
 		Version: "1.2.3",
-		Locations: []source.Location{
+		Locations: source.NewLocationSet(
 			source.NewLocation("/test-path"),
-		},
+		),
 		Type: syftPkg.NpmPkg,
 	}
 

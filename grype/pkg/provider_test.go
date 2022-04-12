@@ -154,9 +154,9 @@ func Test_filterPackageExclusions(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			var packages []Package
 			for _, pkg := range test.locations {
-				var locations []source.Location
+				locations := source.NewLocationSet()
 				for _, l := range pkg {
-					locations = append(locations, source.Location{
+					locations.Add(source.Location{
 						Coordinates: source.Coordinates{
 							RealPath: l,
 						},

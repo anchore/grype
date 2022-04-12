@@ -1,50 +1,53 @@
-package writer
+package store
 
 import (
 	"fmt"
 	"sort"
 
+	_ "github.com/glebarez/sqlite" // provide the sqlite dialect to gorm via import
 	"github.com/go-test/deep"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite" // provide the sqlite dialect to gorm via import
+	"gorm.io/gorm"
 
-	v2 "github.com/anchore/grype/grype/db/v2"
-	"github.com/anchore/grype/grype/db/v2/model"
+	"github.com/anchore/grype/grype/db/internal/gormadapter"
+	v1 "github.com/anchore/grype/grype/db/v1"
+	"github.com/anchore/grype/grype/db/v1/store/model"
 	"github.com/anchore/grype/internal"
 )
 
-// Writer holds an instance of the database connection
-type Writer struct {
+// store holds an instance of the database connection
+type store struct {
 	db *gorm.DB
 }
 
-// CleanupFn is a callback for closing a DB connection.
-type CleanupFn func() error
-
 // New creates a new instance of the store.
-func New(dbFilePath string, overwrite bool) (*Writer, CleanupFn, error) {
-	db, err := open(config{
-		dbPath:    dbFilePath,
-		overwrite: overwrite,
-	})
+func New(dbFilePath string, overwrite bool) (v1.Store, error) {
+	db, err := gormadapter.Open(dbFilePath, overwrite)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	// TODO: automigrate could write to the database,
-	//  we should be validating the database is the correct database based on the version in the ID table before
-	//  automigrating
-	db.AutoMigrate(&model.IDModel{})
-	db.AutoMigrate(&model.VulnerabilityModel{})
-	db.AutoMigrate(&model.VulnerabilityMetadataModel{})
+	if overwrite {
+		// TODO: automigrate could write to the database,
+		//  we should be validating the database is the correct database based on the version in the ID table before
+		//  automigrating
+		if err := db.AutoMigrate(&model.IDModel{}); err != nil {
+			return nil, fmt.Errorf("unable to migrate ID model: %w", err)
+		}
+		if err := db.AutoMigrate(&model.VulnerabilityModel{}); err != nil {
+			return nil, fmt.Errorf("unable to migrate Vulnerability model: %w", err)
+		}
+		if err := db.AutoMigrate(&model.VulnerabilityMetadataModel{}); err != nil {
+			return nil, fmt.Errorf("unable to migrate Vulnerability Metadata model: %w", err)
+		}
+	}
 
-	return &Writer{
+	return &store{
 		db: db,
-	}, db.Close, nil
+	}, nil
 }
 
 // GetID fetches the metadata about the databases schema version and build time.
-func (s *Writer) GetID() (*v2.ID, error) {
+func (s *store) GetID() (*v1.ID, error) {
 	var models []model.IDModel
 	result := s.db.Find(&models)
 	if result.Error != nil {
@@ -66,7 +69,7 @@ func (s *Writer) GetID() (*v2.ID, error) {
 }
 
 // SetID stores the databases schema version and build time.
-func (s *Writer) SetID(id v2.ID) error {
+func (s *store) SetID(id v1.ID) error {
 	var ids []model.IDModel
 
 	// replace the existing ID with the given one
@@ -83,12 +86,12 @@ func (s *Writer) SetID(id v2.ID) error {
 }
 
 // GetVulnerability retrieves one or more vulnerabilities given a namespace and package name.
-func (s *Writer) GetVulnerability(namespace, packageName string) ([]v2.Vulnerability, error) {
+func (s *store) GetVulnerability(namespace, packageName string) ([]v1.Vulnerability, error) {
 	var models []model.VulnerabilityModel
 
 	result := s.db.Where("namespace = ? AND package_name = ?", namespace, packageName).Find(&models)
 
-	var vulnerabilities = make([]v2.Vulnerability, len(models))
+	var vulnerabilities = make([]v1.Vulnerability, len(models))
 	for idx, m := range models {
 		vulnerability, err := m.Inflate()
 		if err != nil {
@@ -101,7 +104,7 @@ func (s *Writer) GetVulnerability(namespace, packageName string) ([]v2.Vulnerabi
 }
 
 // AddVulnerability saves one or more vulnerabilities into the sqlite3 store.
-func (s *Writer) AddVulnerability(vulnerabilities ...v2.Vulnerability) error {
+func (s *store) AddVulnerability(vulnerabilities ...v1.Vulnerability) error {
 	for _, vulnerability := range vulnerabilities {
 		m := model.NewVulnerabilityModel(vulnerability)
 
@@ -118,7 +121,7 @@ func (s *Writer) AddVulnerability(vulnerabilities ...v2.Vulnerability) error {
 }
 
 // GetVulnerabilityMetadata retrieves metadata for the given vulnerability ID relative to a specific record source.
-func (s *Writer) GetVulnerabilityMetadata(id, recordSource string) (*v2.VulnerabilityMetadata, error) {
+func (s *store) GetVulnerabilityMetadata(id, recordSource string) (*v1.VulnerabilityMetadata, error) {
 	var models []model.VulnerabilityMetadataModel
 
 	result := s.db.Where(&model.VulnerabilityMetadataModel{ID: id, RecordSource: recordSource}).Find(&models)
@@ -142,7 +145,7 @@ func (s *Writer) GetVulnerabilityMetadata(id, recordSource string) (*v2.Vulnerab
 }
 
 // AddVulnerabilityMetadata stores one or more vulnerability metadata models into the sqlite DB.
-func (s *Writer) AddVulnerabilityMetadata(metadata ...v2.VulnerabilityMetadata) error {
+func (s *store) AddVulnerabilityMetadata(metadata ...v1.VulnerabilityMetadata) error {
 	for _, m := range metadata {
 		existing, err := s.GetVulnerabilityMetadata(m.ID, m.RecordSource)
 		if err != nil {

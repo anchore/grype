@@ -25,10 +25,10 @@ type ID string
 // Package represents an application or library that has been bundled into a distributable format.
 type Package struct {
 	ID           ID
-	Name         string            // the package name
-	Version      string            // the version of the package
-	Locations    []source.Location // the locations that lead to the discovery of this package (note: this is not necessarily the locations that make up this package)
-	Language     pkg.Language      // the language ecosystem this package belongs to (e.g. JavaScript, Python, etc)
+	Name         string             // the package name
+	Version      string             // the version of the package
+	Locations    source.LocationSet // the locations that lead to the discovery of this package (note: this is not necessarily the locations that make up this package)
+	Language     pkg.Language       // the language ecosystem this package belongs to (e.g. JavaScript, Python, etc)
 	Licenses     []string
 	Type         pkg.Type  // the package type (e.g. Npm, Yarn, Python, Rpm, Deb, etc)
 	CPEs         []pkg.CPE // all possible Common Platform Enumerators

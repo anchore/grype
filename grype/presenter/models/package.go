@@ -38,7 +38,8 @@ func newPackage(p pkg.Package) Package {
 	}
 
 	var coordinates = make([]syftSource.Coordinates, 0)
-	for _, l := range p.Locations {
+	locations := p.Locations.ToSlice()
+	for _, l := range locations {
 		coordinates = append(coordinates, l.Coordinates)
 	}
 

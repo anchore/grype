@@ -16,7 +16,7 @@ import (
 	"github.com/wagoodman/go-progress"
 
 	grypeDB "github.com/anchore/grype/grype/db/v3"
-	"github.com/anchore/grype/grype/db/v3/reader"
+	"github.com/anchore/grype/grype/db/v3/store"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
@@ -69,14 +69,14 @@ func (c Curator) SupportedSchema() int {
 	return c.targetSchema
 }
 
-func (c *Curator) GetStore() (*reader.Reader, error) {
+func (c *Curator) GetStore() (grypeDB.StoreReader, error) {
 	// ensure the DB is ok
 	err := c.Validate()
 	if err != nil {
 		return nil, fmt.Errorf("vulnerability database is corrupt (run db update to correct): %+v", err)
 	}
 
-	s, _, err := reader.New(c.dbPath)
+	s, err := store.New(c.dbPath, false)
 	return s, err
 }
 

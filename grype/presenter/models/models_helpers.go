@@ -88,13 +88,11 @@ func generatePackages(t *testing.T) []pkg.Package {
 
 	return []pkg.Package{
 		{
-			ID:      pkg.ID(uuid.NewString()),
-			Name:    "package-1",
-			Version: "1.1.1",
-			Type:    syftPkg.DebPkg,
-			Locations: []syftSource.Location{
-				syftSource.NewLocation("/somefile-1.txt"),
-			},
+			ID:        pkg.ID(uuid.NewString()),
+			Name:      "package-1",
+			Version:   "1.1.1",
+			Type:      syftPkg.DebPkg,
+			Locations: syftSource.NewLocationSet(syftSource.NewLocation("/somefile-1.txt")),
 			CPEs: []syftPkg.CPE{
 				{
 					Part:     "a",
@@ -106,13 +104,11 @@ func generatePackages(t *testing.T) []pkg.Package {
 			},
 		},
 		{
-			ID:      pkg.ID(uuid.NewString()),
-			Name:    "package-2",
-			Version: "2.2.2",
-			Type:    syftPkg.DebPkg,
-			Locations: []syftSource.Location{
-				syftSource.NewLocation("/somefile-2.txt"),
-			},
+			ID:        pkg.ID(uuid.NewString()),
+			Name:      "package-2",
+			Version:   "2.2.2",
+			Type:      syftPkg.DebPkg,
+			Locations: syftSource.NewLocationSet(syftSource.NewLocation("/somefile-2.txt")),
 		},
 	}
 }

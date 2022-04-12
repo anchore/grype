@@ -299,6 +299,19 @@ func Test_NamespacesForLanguage(t *testing.T) {
 				"g-id:man-name",
 			},
 		},
+		{
+			language: syftPkg.Dart,
+			namerInput: &pkg.Package{
+				ID:   pkg.ID(uuid.NewString()),
+				Name: "a-name",
+			},
+			expectedNamespaces: []string{
+				"github:dart",
+			},
+			expectedNames: []string{
+				"a-name",
+			},
+		},
 	}
 
 	observedLanguages := strset.New()

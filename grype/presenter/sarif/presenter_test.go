@@ -19,7 +19,7 @@ import (
 	"github.com/anchore/syft/syft/source"
 )
 
-var update = flag.Bool("update", false, "update the *.golden files for json presenters")
+var update = flag.Bool("update", false, "update the *.golden files for sarif presenters")
 
 func createResults() (match.Matches, []pkg.Package) {
 
@@ -28,14 +28,14 @@ func createResults() (match.Matches, []pkg.Package) {
 		Name:    "package-1",
 		Version: "1.0.1",
 		Type:    syftPkg.DebPkg,
-		Locations: []source.Location{
-			{
+		Locations: source.NewLocationSet(
+			source.Location{
 				Coordinates: source.Coordinates{
 					RealPath:     "etc/pkg-1",
 					FileSystemID: "sha256:asdf",
 				},
 			},
-		},
+		),
 	}
 	pkg2 := pkg.Package{
 		ID:      "package-2-id",
@@ -46,14 +46,14 @@ func createResults() (match.Matches, []pkg.Package) {
 			"MIT",
 			"Apache-v2",
 		},
-		Locations: []source.Location{
-			{
+		Locations: source.NewLocationSet(
+			source.Location{
 				Coordinates: source.Coordinates{
 					RealPath:     "pkg-2",
 					FileSystemID: "sha256:asdf",
 				},
 			},
-		},
+		),
 	}
 
 	var match1 = match.Match{
@@ -226,14 +226,14 @@ func Test_locationPath(t *testing.T) {
 			}
 
 			path := pres.packagePath(pkg.Package{
-				Locations: []source.Location{
-					{
+				Locations: source.NewLocationSet(
+					source.Location{
 						Coordinates: source.Coordinates{
 							RealPath: test.real,
 						},
 						VirtualPath: test.virtual,
 					},
-				},
+				),
 			})
 
 			assert.Equal(t, test.expected, path)

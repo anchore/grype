@@ -34,11 +34,12 @@ func filterPackageExclusions(packages []Package, exclusions []string) ([]Package
 	var out []Package
 	for _, pkg := range packages {
 		includePackage := true
-		if len(pkg.Locations) > 0 {
+		locations := pkg.Locations.ToSlice()
+		if len(locations) > 0 {
 			includePackage = false
 			// require ALL locations to be excluded for the package to be excluded
 		location:
-			for _, location := range pkg.Locations {
+			for _, location := range locations {
 				for _, exclusion := range exclusions {
 					match, err := locationMatches(location, exclusion)
 					if err != nil {
