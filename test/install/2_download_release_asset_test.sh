@@ -39,3 +39,6 @@ run_test_case test_download_release_asset "${release}" "linux" "amd64" "deb" "ap
 run_test_case test_download_release_asset "${release}" "linux" "arm64" "tar.gz" "application/gzip"
 run_test_case test_download_release_asset "${release}" "linux" "arm64" "rpm" "application/x-rpm"
 run_test_case test_download_release_asset "${release}" "linux" "arm64" "deb" "application/vnd.debian.binary-package"
+run_test_case test_download_release_asset "${release}" "linux" "s390x" "tar.gz" "application/gzip"
+run_test_case test_download_release_asset "${release}" "linux" "s390x" "rpm" "application/x-rpm"
+run_test_case test_download_release_asset "${release}" "linux" "s390x" "deb" "application/vnd.debian.binary-package"

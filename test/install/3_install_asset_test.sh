@@ -76,6 +76,7 @@ trap 'teardown_snapshot_server ${worker_pid}' EXIT
 # exercise all possible archive assets (not rpm/deb/dmg) against a snapshot build
 run_test_case test_positive_snapshot_install_asset "linux" "amd64" "tar.gz"
 run_test_case test_positive_snapshot_install_asset "linux" "arm64" "tar.gz"
+run_test_case test_positive_snapshot_install_asset "linux" "s390x" "tar.gz"
 run_test_case test_positive_snapshot_install_asset "darwin" "amd64" "tar.gz"
 run_test_case test_positive_snapshot_install_asset "darwin" "arm64" "tar.gz"
 run_test_case test_positive_snapshot_install_asset "windows" "amd64" "zip"
