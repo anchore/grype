@@ -8,6 +8,7 @@ import (
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
@@ -378,11 +379,9 @@ func TestMatchByImage(t *testing.T) {
 				t.Fatalf("could not get the source obj: %+v", err)
 			}
 
-			actualResults := grype.FindVulnerabilitiesForPackage(
-				db.NewVulnerabilityProvider(theStore),
-				theDistro,
-				pkg.FromCatalog(theCatalog, pkg.ProviderConfig{})...,
-			)
+			matchers := matcher.NewDefaultMatchers(matcher.Config{})
+
+			actualResults := grype.FindVulnerabilitiesForPackage(db.NewVulnerabilityProvider(theStore), theDistro, matchers, pkg.FromCatalog(theCatalog, pkg.ProviderConfig{}))
 
 			// build expected matches from what's discovered from the catalog
 			expectedMatches := test.expectedFn(*theSource, theCatalog, theStore)

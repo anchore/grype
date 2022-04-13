@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/syft/syft/file"
+	syftFile "github.com/anchore/syft/syft/file"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
 )
@@ -126,6 +127,10 @@ func TestNew(t *testing.T) {
 							"extra-key": "extra-value",
 						},
 					},
+					ArchiveDigests: []syftFile.Digest{{
+						Algorithm: "sha1",
+						Value:     "236e3bfdbdc6c86629237a74f0f11414adb4e211",
+					}},
 				},
 			},
 			metadata: JavaMetadata{
@@ -133,6 +138,10 @@ func TestNew(t *testing.T) {
 				PomArtifactID: "pom-artifact-ID-info",
 				PomGroupID:    "pom-group-ID-info",
 				ManifestName:  "main-section-name-info",
+				ArchiveDigests: []Digest{{
+					Algorithm: "sha1",
+					Value:     "236e3bfdbdc6c86629237a74f0f11414adb4e211",
+				}},
 			},
 		},
 		{

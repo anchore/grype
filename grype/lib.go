@@ -29,11 +29,13 @@ func FindVulnerabilities(provider vulnerability.Provider, userImageStr string, s
 		return match.Matches{}, pkg.Context{}, nil, err
 	}
 
-	return FindVulnerabilitiesForPackage(provider, context.Distro, packages...), context, packages, nil
+	matchers := matcher.NewDefaultMatchers(matcher.Config{})
+
+	return FindVulnerabilitiesForPackage(provider, context.Distro, matchers, packages), context, packages, nil
 }
 
-func FindVulnerabilitiesForPackage(provider vulnerability.Provider, d *linux.Release, packages ...pkg.Package) match.Matches {
-	return matcher.FindMatches(provider, d, packages...)
+func FindVulnerabilitiesForPackage(provider vulnerability.Provider, d *linux.Release, matchers []matcher.Matcher, packages []pkg.Package) match.Matches {
+	return matcher.FindMatches(provider, d, matchers, packages)
 }
 
 func LoadVulnerabilityDB(cfg db.Config, update bool) (vulnerability.Provider, vulnerability.MetadataProvider, *db.Status, error) {

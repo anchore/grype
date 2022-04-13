@@ -165,6 +165,20 @@ will be resolved _relative to the specified scan directory_. Keep in mind, your 
 may attempt to expand wildcards, so put those parameters in single quotes, like:
 `'**/*.json'`.
 
+### External Sources
+
+Grype can be configured to incorporate external data sources for added fidelity in vulnerability matching. This 
+feature is currently disabled by default. To enable this feature add the following to the grype config:
+```yaml
+external-sources:
+  enable: true
+  maven:
+    search-upstream-by-sha1: true
+    base-url: https://search.maven.org/solrsearch/select
+```
+
+You can also configure the base-url if you're using another registry as your maven endpoint.
+
 ### Output formats
 
 The output format for Grype is configurable as well:
@@ -503,6 +517,12 @@ add-cpes-if-none: false
 
 # Explicitly specify a linux distribution to use as <distro>:<version> like alpine:3.10
 distro:
+
+external-sources:
+  enable: false
+  maven:
+    search-upstream-by-sha1: true
+    base-url: https://search.maven.org/solrsearch/select
 
 db:
   # check for database updates on execution
