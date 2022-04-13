@@ -129,7 +129,7 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 	if m.SearchMavenUpstream {
 		upstreamMatches, err := m.matchUpstreamMavenPackages(store, p)
 		if err != nil {
-			log.Warnf("failed to match against upstream data for %s: %v", p.Name, err)
+			log.Debugf("failed to match against upstream data for %s: %v", p.Name, err)
 		} else {
 			matches = append(matches, upstreamMatches...)
 		}
