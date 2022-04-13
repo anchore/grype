@@ -1,6 +1,9 @@
 package java
 
 import (
+	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/internal"
+	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/google/uuid"
@@ -13,8 +16,9 @@ import (
 func TestMatcherJava_matchUpstreamMavenPackage(t *testing.T) {
 	p := pkg.Package{
 		ID:           pkg.ID(uuid.NewString()),
-		Name:         "spring-webmvc",
+		Name:         "org.springframework.spring-webmvc",
 		Version:      "5.1.5.RELEASE",
+		Language:     syftPkg.Java,
 		Type:         syftPkg.JavaPkg,
 		MetadataType: pkg.JavaMetadataType,
 		Metadata: pkg.JavaMetadata{
@@ -30,10 +34,29 @@ func TestMatcherJava_matchUpstreamMavenPackage(t *testing.T) {
 		SearchMavenUpstream: true,
 		MavenSearcher:       newMockSearcher(p),
 	}
-
 	store := newMockProvider()
 	actual, _ := matcher.matchUpstreamMavenPackages(store, p)
 
-	assert.Len(t, actual, 0, "unexpected indirect matches count")
+	assert.Len(t, actual, 2, "unexpected matches count")
 
+	foundCVEs := internal.NewStringSet()
+	for _, v := range actual {
+		foundCVEs.Add(v.Vulnerability.ID)
+
+		require.NotEmpty(t, v.Details)
+		for _, d := range v.Details {
+			assert.Equal(t, match.ExactIndirectMatch, d.Type, "indirect match not indicated")
+			assert.Equal(t, matcher.Type(), d.Matcher, "failed to capture matcher type")
+		}
+		assert.Equal(t, p.Name, v.Package.Name, "failed to capture original package name")
+	}
+
+	for _, id := range []string{"CVE-2014-fake-2", "CVE-2013-fake-3"} {
+		if !foundCVEs.Contains(id) {
+			t.Errorf("missing discovered CVE: %s", id)
+		}
+	}
+	if t.Failed() {
+		t.Logf("discovered CVES: %+v", foundCVEs)
+	}
 }
