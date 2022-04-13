@@ -49,8 +49,9 @@ var (
 		Long: format.Tprintf(`A vulnerability scanner for container images, filesystems, and SBOMs.
 
 Supports the following image sources:
-    {{.appName}} yourrepo/yourimage:tag     defaults to using images from a Docker daemon
-    {{.appName}} path/to/yourproject        a Docker tar, OCI tar, OCI directory, or generic filesystem directory
+    {{.appName}} yourrepo/yourimage:tag             defaults to using images from a Docker daemon
+    {{.appName}} path/to/yourproject                a Docker tar, OCI tar, OCI directory, or generic filesystem directory
+    {{.appName}} attestation.json --key cosign.pub  extract and scan SBOM from attestation file. Checkout Syft to attest your SBOMs
 
 You can also explicitly specify the scheme to use:
     {{.appName}} podman:yourrepo/yourimage:tag          explicitly use the Podman daemon
@@ -61,8 +62,7 @@ You can also explicitly specify the scheme to use:
     {{.appName}} dir:path/to/yourproject                read directly from a path on disk (any directory)
     {{.appName}} sbom:path/to/syft.json                 read Syft JSON from path on disk
     {{.appName}} registry:yourrepo/yourimage:tag        pull image directly from a registry (no container runtime required)
-    {{.appName}} att:attestation.json --key cosign.pub  extract and scan SBOM from attestation file. Checkout Syft to attest your SBOMs
-    {{.appName}} attestation.json --key cosign.pub			the scheme att: is optional
+    {{.appName}} att:attestation.json --key cosign.pub  explicitly use the input as an attestation
 You can also pipe in Syft JSON directly:
 	syft yourimage:tag -o json | {{.appName}}
 
@@ -157,7 +157,7 @@ func setRootFlags(flags *pflag.FlagSet) {
 	)
 
 	flags.String(
-		"key", "",
+		"key", "cosign.key",
 		"File path to a public key to validate attestation",
 	)
 }

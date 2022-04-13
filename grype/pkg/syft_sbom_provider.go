@@ -227,7 +227,7 @@ func getSBOMFromAttestation(r io.Reader, config ProviderConfig) (io.Reader, erro
 }
 
 func verifyAttestationSignature(env *ssldsse.Envelope, key string) error {
-	pubKey, err := signature.PublicKeyFromKeyRef(context.TODO(), key)
+	pubKey, err := signature.PublicKeyFromKeyRef(context.Background(), key)
 	if err != nil {
 		return fmt.Errorf("failed to load public key: %w", err)
 	}

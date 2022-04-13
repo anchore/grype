@@ -124,7 +124,7 @@ grype --add-cpes-if-none --distro alpine:3.10 sbom:some-apline-3.10.spdx.json
 ```
 
 ### Scan attestations
-Grype can scan SBOMs from attestations, as long as they are encoded as part of (in-toto envelope)[https://github.com/in-toto/attestation/blob/main/spec/README.md#envelope], that is the format used by Syft.
+Grype can scan SBOMs from attestations, as long as they are encoded as part of [in-toto envelope](https://github.com/in-toto/attestation/blob/main/spec/README.md#envelope).
 
 Examples:
 ``` sh
