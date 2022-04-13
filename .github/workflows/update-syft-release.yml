@@ -23,7 +23,6 @@ jobs:
 
       - run: |
           LATEST_VERSION=$(curl "https://api.github.com/repos/anchore/syft/releases/latest" 2>/dev/null | jq -r '.tag_name')
-          echo "export const VERSION = \"$LATEST_VERSION\";" > src/SyftVersion.ts
 
           # update go.mod
           go get github.com/anchore/syft@$LATEST_VERSION
