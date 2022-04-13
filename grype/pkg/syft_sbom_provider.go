@@ -113,11 +113,17 @@ func getSBOMReader(userInput string, config ProviderConfig) (io.Reader, *inputIn
 			return nil, nil, err
 		}
 		r, err := getSBOMFromAttestation(f, config)
-		return r, newInputInfo("", "att"), err
+		if err == nil {
+			return r, newInputInfo("", "att"), nil
+		}
+		fallthrough
 
 	case isPossibleSBOM(userInput):
 		r, err := openFile(userInput)
-		return r, newInputInfo("", "sbom"), err
+		if err == nil {
+			return r, newInputInfo("", "sbom"), err
+		}
+		fallthrough
 
 	default:
 		// no usable SBOM is available

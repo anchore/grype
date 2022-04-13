@@ -91,10 +91,26 @@ func TestParseAttestation(t *testing.T) {
 			Key:     "test-fixtures/cosign.pub",
 			WantErr: assert.Error,
 		},
+		{
+			Name:    "sbom with intoto mime string",
+			Fixture: "test-fixtures/sbom-with-intoto-string.json",
+			WantErr: assert.NoError,
+			PkgsLen: 4,
+		},
+		{
+			Name:    "empty file",
+			Fixture: "test-fixtures/empty.json",
+			WantErr: assert.Error,
+		},
+		{
+			Name:    "invalid json",
+			Fixture: "test-fixtures/empty.json",
+			WantErr: assert.Error,
+		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.Fixture, func(t *testing.T) {
+		t.Run(tt.Name, func(t *testing.T) {
 			pkgs, _, err := syftSBOMProvider(tt.Fixture, ProviderConfig{AttestationKey: tt.Key})
 			tt.WantErr(t, err)
 			require.Len(t, pkgs, tt.PkgsLen)
