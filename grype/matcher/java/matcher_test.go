@@ -1,15 +1,15 @@
 package java
 
 import (
-	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/internal"
-	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/internal"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
