@@ -26,6 +26,7 @@ jobs:
 
           # update go.mod
           go get github.com/anchore/syft@$LATEST_VERSION
+          go mod tidy
 
           # export the version for use with create-pull-request
           echo "::set-output name=LATEST_VERSION::$LATEST_VERSION"
