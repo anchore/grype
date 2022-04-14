@@ -157,7 +157,11 @@ func setRootFlags(flags *pflag.FlagSet) {
 	)
 
 	flags.String(
-		"key", "cosign.pub",
+		// NOTE(jonasagx): the default value is present even for SBOM inputs, causing errors.
+		// To avoid extra syscalls for file validation I will drop it for now.
+		// I know Syft has a default key value, but I am not certain that is a safe explicit
+		// approach when attesting.
+		"key", "",
 		"File path to a public key to validate attestation",
 	)
 }
