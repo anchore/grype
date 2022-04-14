@@ -44,13 +44,14 @@ type Application struct {
 	Ignore                     []match.IgnoreRule      `yaml:"ignore" json:"ignore" mapstructure:"ignore"`
 	Exclusions                 []string                `yaml:"exclude" json:"exclude" mapstructure:"exclude"`
 	DB                         database                `yaml:"db" json:"db" mapstructure:"db"`
+	ExternalSources            externalSources         `yaml:"external-sources" json:"externalSources" mapstructure:"external-sources"`
 	Dev                        development             `yaml:"dev" json:"dev" mapstructure:"dev"`
 	FailOn                     string                  `yaml:"fail-on-severity" json:"fail-on-severity" mapstructure:"fail-on-severity"`
 	FailOnSeverity             *vulnerability.Severity `yaml:"-" json:"-"`
 	Registry                   registry                `yaml:"registry" json:"registry" mapstructure:"registry"`
+	Log                        logging                 `yaml:"log" json:"log" mapstructure:"log"`
 	AttestationKey             string                  `yaml:"key" json:"key" mapstructure:"key"`
 	IgnoreAttestationSignature bool                    `yaml:"ignore-attestation-signature" json:"ignore-attestation-signature" mapstructure:"ignore-attestation-signature"`
-	Log                        logging                 `yaml:"log" json:"log" mapstructure:"log"`
 }
 
 func newApplicationConfig(v *viper.Viper, cliOpts CliOnlyOptions) *Application {
