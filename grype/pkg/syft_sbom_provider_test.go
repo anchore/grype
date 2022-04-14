@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -21,6 +22,12 @@ func must(c pkg.CPE, e error) pkg.CPE {
 	return c
 }
 
+func assertAs(expected string) assert.ErrorAssertionFunc {
+	return func(t assert.TestingT, err error, i ...interface{}) bool {
+		return assert.ErrorContains(t, errors.New(expected), err.Error())
+	}
+}
+
 func TestParseAttestation(t *testing.T) {
 	tests := []struct {
 		Name    string
@@ -35,6 +42,11 @@ func TestParseAttestation(t *testing.T) {
 			Key:     "test-fixtures/cosign.pub",
 			WantErr: assert.NoError,
 			PkgsLen: 14,
+		},
+		{
+			Name:    "no schema and no key",
+			Fixture: "test-fixtures/alpine.att.json",
+			WantErr: assertAs("--key parameter is required to validate attestations"),
 		},
 		{
 			Name:    "happy path without schema",
@@ -54,42 +66,42 @@ func TestParseAttestation(t *testing.T) {
 			Name:    "broken key",
 			Fixture: "test-fixtures/alpine.att.json",
 			Key:     "test-fixtures/cosign_broken.pub",
-			WantErr: assert.Error,
+			WantErr: assertAs("failed to verify attestation signature: cannot decode public key"),
 		},
 		{
 			Name:    "different but valid key",
 			Fixture: "test-fixtures/alpine.att.json",
 			Key:     "test-fixtures/another_cosign.pub",
-			WantErr: assert.Error,
+			WantErr: assertAs("failed to verify attestation signature: key and signature don't match"),
 		},
 		{
 			Name:    "not an attestation but has the schema",
 			Fixture: "att:test-fixtures/syft-spring.json",
-			WantErr: assert.Error,
+			WantErr: assertAs("invalid attestation payload"),
 		},
 		{
 			Name:    "not an attestation but has key",
 			Fixture: "test-fixtures/syft-spring.json",
 			Key:     "test-fixtures/cosign.pub",
-			WantErr: assert.Error,
+			WantErr: assertAs("key is meant for attestation verification, your input is a plain SBOM and doesn't need it"),
 		},
 		{
 			Name:    "not an attestation but has key and scheme",
 			Fixture: "att:test-fixtures/syft-spring.json",
 			Key:     "test-fixtures/cosign.pub",
-			WantErr: assert.Error,
+			WantErr: assertAs("invalid attestation payload"),
 		},
 		{
 			Name:    "tampered attestation payload",
 			Fixture: "att:test-fixtures/alpine-tampered.att.json",
 			Key:     "test-fixtures/cosign.pub",
-			WantErr: assert.Error,
+			WantErr: assertAs("failed to verify attestation signature: key and signature don't match"),
 		},
 		{
 			Name:    "tampered envelope predicate type",
 			Fixture: "att:test-fixtures/alpine-tampered.cdx.att.json",
 			Key:     "test-fixtures/cosign.pub",
-			WantErr: assert.Error,
+			WantErr: assertAs("failed to verify attestation signature: key and signature don't match"),
 		},
 		{
 			Name:    "sbom with intoto mime string",
@@ -100,12 +112,12 @@ func TestParseAttestation(t *testing.T) {
 		{
 			Name:    "empty file",
 			Fixture: "test-fixtures/empty.json",
-			WantErr: assert.Error,
+			WantErr: assertAs("cannot provide packages from the given source"),
 		},
 		{
 			Name:    "invalid json",
 			Fixture: "test-fixtures/empty.json",
-			WantErr: assert.Error,
+			WantErr: assertAs("cannot provide packages from the given source"),
 		},
 	}
 
@@ -363,6 +375,6 @@ func TestGetSBOMReader_EmptySBOM(t *testing.T) {
 	filepath := sbomFile.Name()
 	userInput := "sbom:" + filepath
 
-	_, _, err = getSBOMReader(userInput, ProviderConfig{})
+	_, err = getSBOMReader(userInput, ProviderConfig{})
 	assert.ErrorAs(t, err, &errEmptySBOM{})
 }

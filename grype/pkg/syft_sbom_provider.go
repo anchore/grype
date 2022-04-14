@@ -58,19 +58,9 @@ type inputInfo struct {
 }
 
 func getSBOM(userInput string, config ProviderConfig) (*sbom.SBOM, error) {
-	reader, info, err := getSBOMReader(userInput, config)
+	reader, err := getSBOMReader(userInput, config)
 	if err != nil {
 		return nil, err
-	}
-
-	if info != nil {
-		if (info.Scheme == "sbom" || info.ContentType == "sbom") && config.AttestationKey != "" {
-			return nil, fmt.Errorf("key is meant for atttestation verification, your input is a plain SBOM and doesn't need it")
-		}
-
-		if info.Scheme == "att" && info.ContentType != "att" {
-			return nil, fmt.Errorf("scheme specify an attestation but the content is not an attestation")
-		}
 	}
 
 	s, format, err := syft.Decode(reader)
@@ -85,7 +75,26 @@ func getSBOM(userInput string, config ProviderConfig) (*sbom.SBOM, error) {
 	return s, nil
 }
 
-func getSBOMReader(userInput string, config ProviderConfig) (io.Reader, *inputInfo, error) {
+func getSBOMReader(userInput string, config ProviderConfig) (r io.Reader, err error) {
+	r, info, err := extractReaderAndInfo(userInput, config)
+	if err != nil {
+		return nil, err
+	}
+
+	if info != nil {
+		if (info.Scheme == "sbom" || info.ContentType == "sbom") && config.AttestationKey != "" {
+			return nil, fmt.Errorf("key is meant for attestation verification, your input is a plain SBOM and doesn't need it")
+		}
+
+		if info.Scheme == "att" && info.ContentType != "att" {
+			return nil, fmt.Errorf("scheme specify an attestation but the content is not an attestation")
+		}
+	}
+
+	return r, nil
+}
+
+func extractReaderAndInfo(userInput string, config ProviderConfig) (io.Reader, *inputInfo, error) {
 	switch {
 	// the order of cases matter
 	case userInput == "":
@@ -95,40 +104,43 @@ func getSBOMReader(userInput string, config ProviderConfig) (io.Reader, *inputIn
 
 	case explicitlySpecifyingSBOM(userInput):
 		filepath := strings.TrimPrefix(userInput, "sbom:")
-		r, err := openFile(filepath)
-		return r, newInputInfo("sbom", "sbom"), err
+		return parseSBOM("sbom", filepath)
 
 	case explicitlySpecifyAttestation(userInput):
 		path := strings.TrimPrefix(userInput, "att:")
-		f, err := openFile(path)
-		if err != nil {
-			return nil, nil, err
-		}
-		r, err := getSBOMFromAttestation(f, config)
-		return r, newInputInfo("att", "att"), err
+		return parseAttestation("att", path, config)
 
 	case isPossibleAttestation(userInput):
-		f, err := openFile(userInput)
-		if err != nil {
-			return nil, nil, err
-		}
-		r, err := getSBOMFromAttestation(f, config)
-		if err == nil {
-			return r, newInputInfo("", "att"), nil
-		}
-		fallthrough
+		return parseAttestation("", userInput, config)
 
 	case isPossibleSBOM(userInput):
-		r, err := openFile(userInput)
-		if err == nil {
-			return r, newInputInfo("", "sbom"), err
-		}
-		fallthrough
+		return parseSBOM("", userInput)
 
 	default:
-		// no usable SBOM is available
 		return nil, nil, errDoesNotProvide
 	}
+}
+
+func parseSBOM(scheme, path string) (io.Reader, *inputInfo, error) {
+	r, err := openFile(path)
+	if err != nil {
+		return nil, nil, err
+	}
+	info := newInputInfo(scheme, "sbom")
+	return r, info, nil
+}
+
+func parseAttestation(scheme, path string, config ProviderConfig) (io.Reader, *inputInfo, error) {
+	f, err := openFile(path)
+	if err != nil {
+		return nil, nil, err
+	}
+	r, err := getSBOMFromAttestation(f, config)
+	if err != nil {
+		return nil, nil, err
+	}
+	info := newInputInfo(scheme, "att")
+	return r, info, nil
 }
 
 func decodeStdin(r io.Reader, config ProviderConfig) (io.Reader, *inputInfo, error) {
@@ -138,7 +150,12 @@ func decodeStdin(r io.Reader, config ProviderConfig) (io.Reader, *inputInfo, err
 	}
 
 	reader := bytes.NewReader(b)
-	if hasInTotoPayload(b) {
+	if isDSSEEnvelope(reader) {
+		_, err := reader.Seek(0, io.SeekStart)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to parse stdin: %w", err)
+		}
+
 		reader, err := getSBOMFromAttestation(reader, config)
 		return reader, newInputInfo("", "att"), err
 	}
@@ -198,12 +215,12 @@ func getSBOMFromAttestation(r io.Reader, config ProviderConfig) (io.Reader, erro
 	}
 
 	if env.PayloadType != types.IntotoPayloadType {
-		return nil, fmt.Errorf("invalid payload type %s on envelope. Expected %s", env.PayloadType, types.IntotoPayloadType)
+		return nil, fmt.Errorf("invalid attestation payload")
 	}
 
 	if !config.IgnoreAttestationSignature {
 		if config.AttestationKey == "" {
-			return nil, fmt.Errorf("--key parameter is required to validate attestation")
+			return nil, fmt.Errorf("--key parameter is required to validate attestations")
 		}
 
 		if err := verifyAttestationSignature(env, config.AttestationKey); err != nil {
@@ -235,7 +252,8 @@ func getSBOMFromAttestation(r io.Reader, config ProviderConfig) (io.Reader, erro
 func verifyAttestationSignature(env *ssldsse.Envelope, key string) error {
 	pubKey, err := signature.PublicKeyFromKeyRef(context.Background(), key)
 	if err != nil {
-		return fmt.Errorf("failed to load public key: %w", err)
+		log.Warnf("failed to get public get from key reference: %v", err)
+		return fmt.Errorf("cannot decode public key")
 	}
 
 	dssev, err := ssldsse.NewEnvelopeVerifier(&dsse.VerifierAdapter{SignatureVerifier: pubKey})
@@ -245,11 +263,12 @@ func verifyAttestationSignature(env *ssldsse.Envelope, key string) error {
 
 	acceptedKeys, err := dssev.Verify(env)
 	if err != nil {
-		return fmt.Errorf("failed to verify attestation: %w", err)
+		log.Warnf("key and signature don't match: %v", err)
+		return fmt.Errorf("key and signature don't match")
 	}
 
 	for i, s := range acceptedKeys {
-		log.Infof("signature verified (%d/%d): key id %s, sig: %s", i+1, len(env.Signatures), s.KeyID, s.Sig)
+		log.Infof("verified signature (%d/%d): key id %s, sig: %s", i+1, len(env.Signatures), s.KeyID, s.Sig)
 	}
 
 	return nil
@@ -297,12 +316,19 @@ func isPossibleAttestation(userInput string) bool {
 	}
 	defer closeFile(f)
 
-	b, err := ioutil.ReadAll(f)
+	return isDSSEEnvelope(f)
+}
+
+// isDSSEEnvelope validates r contains a DSSE envelope, which is the best
+// indicator for an attestations created by Syft
+func isDSSEEnvelope(r io.Reader) bool {
+	env := &ssldsse.Envelope{}
+	err := json.NewDecoder(r).Decode(env)
 	if err != nil {
 		return false
 	}
 
-	return hasInTotoPayload(b)
+	return env.PayloadType == types.IntotoPayloadType
 }
 
 func isAncestorOfMimetype(mType *mimetype.MIME, expected string) bool {
@@ -312,10 +338,6 @@ func isAncestorOfMimetype(mType *mimetype.MIME, expected string) bool {
 		}
 	}
 	return false
-}
-
-func hasInTotoPayload(b []byte) bool {
-	return bytes.Contains(b, []byte(types.IntotoPayloadType))
 }
 
 func explicitlySpecifyingSBOM(userInput string) bool {
