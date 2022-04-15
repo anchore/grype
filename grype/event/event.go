@@ -7,4 +7,5 @@ const (
 	UpdateVulnerabilityDatabase   partybus.EventType = "grype-update-vulnerability-database"
 	VulnerabilityScanningStarted  partybus.EventType = "grype-vulnerability-scanning-started"
 	VulnerabilityScanningFinished partybus.EventType = "grype-vulnerability-scanning-finished"
+	AttestatioSignaturePassed     partybus.EventType = "grype-attestation-signature-passed"
 )

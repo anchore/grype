@@ -18,8 +18,11 @@ import (
 	"github.com/sigstore/cosign/pkg/signature"
 	"github.com/sigstore/cosign/pkg/types"
 	"github.com/sigstore/sigstore/pkg/signature/dsse"
+	"github.com/wagoodman/go-partybus"
 
+	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/sbom"
@@ -275,6 +278,11 @@ func verifyAttestationSignature(env *ssldsse.Envelope, key string) error {
 	for i, s := range acceptedKeys {
 		log.Infof("verified signature (%d/%d): key id %s, sig: %s", i+1, len(env.Signatures), s.KeyID, s.Sig)
 	}
+
+	bus.Publish(partybus.Event{
+		Type:  event.AttestatioSignaturePassed,
+		Value: acceptedKeys,
+	})
 
 	return nil
 }

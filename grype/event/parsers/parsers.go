@@ -3,6 +3,7 @@ package parsers
 import (
 	"fmt"
 
+	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
 
@@ -86,4 +87,17 @@ func ParseVulnerabilityScanningFinished(e partybus.Event) (presenter.Presenter, 
 	}
 
 	return pres, nil
+}
+
+func ParseAttestationVerified(e partybus.Event) ([]dsse.AcceptedKey, error) {
+	if err := checkEventType(e.Type, event.AttestatioSignaturePassed); err != nil {
+		return nil, err
+	}
+
+	ak, ok := e.Value.([]dsse.AcceptedKey)
+	if !ok {
+		return nil, newPayloadErr(e.Type, "Value", e.Value)
+	}
+
+	return ak, nil
 }

@@ -131,3 +131,32 @@ func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *f
 
 	return nil
 }
+
+func (r *Handler) VerifyAttestationSignature(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
+	acceptedKeys, err := grypeEventParsers.ParseAttestationVerified(event)
+	if err != nil {
+		return fmt.Errorf("bad %s event: %w", event.Type, err)
+	}
+
+	line, err := fr.Append()
+	if err != nil {
+		return err
+	}
+
+	var sig string
+	for _, k := range acceptedKeys {
+		sig = k.Sig.Sig
+	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		spin := color.Green.Sprint(completedStatus)
+		title := tileFormat.Sprint("Attestation verified")
+		auxInfo := auxInfoFormat.Sprintf("[signature %s]", sig)
+		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
+	}()
+
+	return nil
+}

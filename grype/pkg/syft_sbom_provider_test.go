@@ -32,45 +32,45 @@ func assertAs(expected string) assert.ErrorAssertionFunc {
 func TestDecodeStdin(t *testing.T) {
 	tests := []struct {
 		Name    string
-		Fixture string
+		Input   string
 		Key     string
 		WantErr assert.ErrorAssertionFunc
 		PkgsLen int
 	}{
 		{
 			Name:    "no key",
-			Fixture: "test-fixtures/alpine.att.json",
+			Input:   "test-fixtures/alpine.att.json",
 			WantErr: assertAs("--key parameter is required to validate attestations"),
 		},
 		{
 			Name:    "happy path",
-			Fixture: "test-fixtures/alpine.att.json",
+			Input:   "test-fixtures/alpine.att.json",
 			Key:     "test-fixtures/cosign.pub",
 			WantErr: assert.NoError,
 			PkgsLen: 14,
 		},
 		{
 			Name:    "cycloneDX format",
-			Fixture: "test-fixtures/alpine.cdx.att.json",
+			Input:   "test-fixtures/alpine.cdx.att.json",
 			Key:     "test-fixtures/cosign.pub",
 			WantErr: assert.NoError,
 			PkgsLen: 14,
 		},
 		{
 			Name:    "broken key",
-			Fixture: "test-fixtures/alpine.att.json",
+			Input:   "test-fixtures/alpine.att.json",
 			Key:     "test-fixtures/cosign_broken.pub",
 			WantErr: assertAs("failed to verify attestation signature: cannot decode public key"),
 		},
 		{
 			Name:    "different but valid key",
-			Fixture: "test-fixtures/alpine.att.json",
+			Input:   "test-fixtures/alpine.att.json",
 			Key:     "test-fixtures/another_cosign.pub",
 			WantErr: assertAs("failed to verify attestation signature: key and signature don't match"),
 		},
 		{
 			Name:    "sbom with intoto mime string",
-			Fixture: "test-fixtures/sbom-with-intoto-string.json",
+			Input:   "test-fixtures/sbom-with-intoto-string.json",
 			WantErr: assert.NoError,
 			PkgsLen: 4,
 		},
@@ -78,7 +78,7 @@ func TestDecodeStdin(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
-			f, err := os.Open(tt.Fixture)
+			f, err := os.Open(tt.Input)
 			require.NoError(t, err)
 			r, info, err := decodeStdin(f, ProviderConfig{AttestationKey: tt.Key})
 			tt.WantErr(t, err)
@@ -97,99 +97,99 @@ func TestDecodeStdin(t *testing.T) {
 func TestParseAttestation(t *testing.T) {
 	tests := []struct {
 		Name    string
-		Fixture string
+		Input   string
 		Key     string
 		WantErr assert.ErrorAssertionFunc
 		PkgsLen int
 	}{
 		{
-			Name:    "happy path with schema",
-			Fixture: "att:test-fixtures/alpine.att.json",
+			Name:    "happy path with scheme",
+			Input:   "att:test-fixtures/alpine.att.json",
 			Key:     "test-fixtures/cosign.pub",
 			WantErr: assert.NoError,
 			PkgsLen: 14,
 		},
 		{
-			Name:    "no schema and no key",
-			Fixture: "test-fixtures/alpine.att.json",
+			Name:    "no scheme and no key",
+			Input:   "test-fixtures/alpine.att.json",
 			WantErr: assertAs("--key parameter is required to validate attestations"),
 		},
 		{
-			Name:    "happy path without schema",
-			Fixture: "test-fixtures/alpine.att.json",
+			Name:    "happy path without scheme",
+			Input:   "test-fixtures/alpine.att.json",
 			Key:     "test-fixtures/cosign.pub",
 			WantErr: assert.NoError,
 			PkgsLen: 14,
 		},
 		{
 			Name:    "cycloneDX format",
-			Fixture: "test-fixtures/alpine.cdx.att.json",
+			Input:   "test-fixtures/alpine.cdx.att.json",
 			Key:     "test-fixtures/cosign.pub",
 			WantErr: assert.NoError,
 			PkgsLen: 14,
 		},
 		{
 			Name:    "broken key",
-			Fixture: "test-fixtures/alpine.att.json",
+			Input:   "test-fixtures/alpine.att.json",
 			Key:     "test-fixtures/cosign_broken.pub",
 			WantErr: assertAs("failed to verify attestation signature: cannot decode public key"),
 		},
 		{
 			Name:    "different but valid key",
-			Fixture: "test-fixtures/alpine.att.json",
+			Input:   "test-fixtures/alpine.att.json",
 			Key:     "test-fixtures/another_cosign.pub",
 			WantErr: assertAs("failed to verify attestation signature: key and signature don't match"),
 		},
 		{
-			Name:    "not an attestation but has the schema",
-			Fixture: "att:test-fixtures/syft-spring.json",
+			Name:    "not an attestation but has the scheme",
+			Input:   "att:test-fixtures/syft-spring.json",
 			WantErr: assertAs("invalid attestation payload"),
 		},
 		{
 			Name:    "not an attestation but has key",
-			Fixture: "test-fixtures/syft-spring.json",
+			Input:   "test-fixtures/syft-spring.json",
 			Key:     "test-fixtures/cosign.pub",
 			WantErr: assertAs("key is meant for attestation verification, your input is a plain SBOM and doesn't need it"),
 		},
 		{
 			Name:    "not an attestation but has key and scheme",
-			Fixture: "att:test-fixtures/syft-spring.json",
+			Input:   "att:test-fixtures/syft-spring.json",
 			Key:     "test-fixtures/cosign.pub",
 			WantErr: assertAs("invalid attestation payload"),
 		},
 		{
 			Name:    "tampered attestation payload",
-			Fixture: "att:test-fixtures/alpine-tampered.att.json",
+			Input:   "att:test-fixtures/alpine-tampered.att.json",
 			Key:     "test-fixtures/cosign.pub",
 			WantErr: assertAs("failed to verify attestation signature: key and signature don't match"),
 		},
 		{
 			Name:    "tampered envelope predicate type",
-			Fixture: "att:test-fixtures/alpine-tampered.cdx.att.json",
+			Input:   "att:test-fixtures/alpine-tampered.cdx.att.json",
 			Key:     "test-fixtures/cosign.pub",
 			WantErr: assertAs("failed to verify attestation signature: key and signature don't match"),
 		},
 		{
 			Name:    "sbom with intoto mime string",
-			Fixture: "test-fixtures/sbom-with-intoto-string.json",
+			Input:   "test-fixtures/sbom-with-intoto-string.json",
 			WantErr: assert.NoError,
 			PkgsLen: 4,
 		},
 		{
 			Name:    "empty file",
-			Fixture: "test-fixtures/empty.json",
+			Input:   "test-fixtures/empty.json",
 			WantErr: assertAs("cannot provide packages from the given source"),
 		},
 		{
 			Name:    "invalid json",
-			Fixture: "test-fixtures/empty.json",
+			Input:   "test-fixtures/empty.json",
 			WantErr: assertAs("cannot provide packages from the given source"),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
-			pkgs, _, err := syftSBOMProvider(tt.Fixture, ProviderConfig{AttestationKey: tt.Key})
+			pkgs, _, err := syftSBOMProvider(tt.Input, ProviderConfig{AttestationKey: tt.Key})
 			tt.WantErr(t, err)
 			require.Len(t, pkgs, tt.PkgsLen)
 		})
