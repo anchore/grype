@@ -28,6 +28,78 @@ func assertAs(expected string) assert.ErrorAssertionFunc {
 	}
 }
 
+func TestDecodeStdin(t *testing.T) {
+	tests := []struct {
+		Name    string
+		Fixture string
+		Key     string
+		WantErr assert.ErrorAssertionFunc
+		PkgsLen int
+	}{
+		{
+			Name:    "no schema and no key",
+			Fixture: "test-fixtures/alpine.att.json",
+			WantErr: assertAs("--key parameter is required to validate attestations"),
+		},
+		{
+			Name:    "happy path without schema",
+			Fixture: "test-fixtures/alpine.att.json",
+			Key:     "test-fixtures/cosign.pub",
+			WantErr: assert.NoError,
+			PkgsLen: 14,
+		},
+		{
+			Name:    "cycloneDX format",
+			Fixture: "test-fixtures/alpine.cdx.att.json",
+			Key:     "test-fixtures/cosign.pub",
+			WantErr: assert.NoError,
+			PkgsLen: 14,
+		},
+		{
+			Name:    "broken key",
+			Fixture: "test-fixtures/alpine.att.json",
+			Key:     "test-fixtures/cosign_broken.pub",
+			WantErr: assertAs("failed to verify attestation signature: cannot decode public key"),
+		},
+		{
+			Name:    "different but valid key",
+			Fixture: "test-fixtures/alpine.att.json",
+			Key:     "test-fixtures/another_cosign.pub",
+			WantErr: assertAs("failed to verify attestation signature: key and signature don't match"),
+		},
+		{
+			Name:    "sbom with intoto mime string",
+			Fixture: "test-fixtures/sbom-with-intoto-string.json",
+			WantErr: assert.NoError,
+			PkgsLen: 4,
+		},
+		{
+			Name:    "empty file",
+			Fixture: "test-fixtures/empty.json",
+			WantErr: assertAs("cannot provide packages from the given source"),
+		},
+		{
+			Name:    "invalid json",
+			Fixture: "test-fixtures/empty.json",
+			WantErr: assertAs("cannot provide packages from the given source"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			f, err := os.Open(tt.Fixture)
+			require.NoError(t, err)
+			_, _, err = decodeStdin(f, ProviderConfig{AttestationKey: tt.Key})
+			tt.WantErr(t, err)
+
+			//sbom, format, err := syft.Decode(r)
+			//require.NoError(t, err)
+			//require.NotNil(t, format)
+			//assert.Len(t, FromCatalog(sbom.Artifacts.PackageCatalog, ProviderConfig{}), tt.PkgsLen)
+		})
+	}
+}
+
 func TestParseAttestation(t *testing.T) {
 	tests := []struct {
 		Name    string

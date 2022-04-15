@@ -160,6 +160,11 @@ func decodeStdin(r io.Reader, config ProviderConfig) (io.Reader, *inputInfo, err
 		return reader, newInputInfo("", "att"), err
 	}
 
+	_, err = reader.Seek(0, io.SeekStart)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to parse stdin: %w", err)
+	}
+
 	return reader, newInputInfo("", "sbom"), nil
 }
 
