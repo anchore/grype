@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/anchore/syft/syft"
 	"github.com/go-test/deep"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,12 +38,12 @@ func TestDecodeStdin(t *testing.T) {
 		PkgsLen int
 	}{
 		{
-			Name:    "no schema and no key",
+			Name:    "no key",
 			Fixture: "test-fixtures/alpine.att.json",
 			WantErr: assertAs("--key parameter is required to validate attestations"),
 		},
 		{
-			Name:    "happy path without schema",
+			Name:    "happy path",
 			Fixture: "test-fixtures/alpine.att.json",
 			Key:     "test-fixtures/cosign.pub",
 			WantErr: assert.NoError,
@@ -73,29 +74,22 @@ func TestDecodeStdin(t *testing.T) {
 			WantErr: assert.NoError,
 			PkgsLen: 4,
 		},
-		{
-			Name:    "empty file",
-			Fixture: "test-fixtures/empty.json",
-			WantErr: assertAs("cannot provide packages from the given source"),
-		},
-		{
-			Name:    "invalid json",
-			Fixture: "test-fixtures/empty.json",
-			WantErr: assertAs("cannot provide packages from the given source"),
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			f, err := os.Open(tt.Fixture)
 			require.NoError(t, err)
-			_, _, err = decodeStdin(f, ProviderConfig{AttestationKey: tt.Key})
+			r, info, err := decodeStdin(f, ProviderConfig{AttestationKey: tt.Key})
 			tt.WantErr(t, err)
 
-			//sbom, format, err := syft.Decode(r)
-			//require.NoError(t, err)
-			//require.NotNil(t, format)
-			//assert.Len(t, FromCatalog(sbom.Artifacts.PackageCatalog, ProviderConfig{}), tt.PkgsLen)
+			if err == nil {
+				require.NotNil(t, info)
+				sbom, format, err := syft.Decode(r)
+				require.NoError(t, err)
+				require.NotNil(t, format)
+				assert.Len(t, FromCatalog(sbom.Artifacts.PackageCatalog, ProviderConfig{}), tt.PkgsLen)
+			}
 		})
 	}
 }
