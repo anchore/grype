@@ -90,7 +90,7 @@ func ParseVulnerabilityScanningFinished(e partybus.Event) (presenter.Presenter, 
 }
 
 func ParseAttestationVerified(e partybus.Event) ([]dsse.AcceptedKey, error) {
-	if err := checkEventType(e.Type, event.AttestatioSignaturePassed); err != nil {
+	if err := checkEventType(e.Type, event.AttestationVerified); err != nil {
 		return nil, err
 	}
 

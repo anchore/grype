@@ -280,7 +280,7 @@ func verifyAttestationSignature(env *ssldsse.Envelope, key string) error {
 	}
 
 	bus.Publish(partybus.Event{
-		Type:  event.AttestatioSignaturePassed,
+		Type:  event.AttestationVerified,
 		Value: acceptedKeys,
 	})
 
