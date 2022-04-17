@@ -112,6 +112,48 @@ func TestMatchesSortByVulnerability(t *testing.T) {
 
 }
 
+func TestMatches_AllByPkgID(t *testing.T) {
+	first := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID: "CVE-2020-0010",
+		},
+		Package: pkg.Package{
+			ID:      pkg.ID(uuid.NewString()),
+			Name:    "package-b",
+			Version: "1.0.0",
+			Type:    syftPkg.RpmPkg,
+		},
+	}
+	second := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID: "CVE-2020-0010",
+		},
+		Package: pkg.Package{
+			ID:      pkg.ID(uuid.NewString()),
+			Name:    "package-c",
+			Version: "1.0.0",
+			Type:    syftPkg.RpmPkg,
+		},
+	}
+
+	input := []Match{
+		second, first,
+	}
+	matches := NewMatches(input...)
+
+	expected := map[pkg.ID][]Match{
+		first.Package.ID: {
+			first,
+		},
+		second.Package.ID: {
+			second,
+		},
+	}
+
+	assert.Equal(t, expected, matches.AllByPkgID())
+
+}
+
 func TestMatchesSortByPackage(t *testing.T) {
 	first := Match{
 		Vulnerability: vulnerability.Vulnerability{
