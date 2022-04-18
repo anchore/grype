@@ -226,7 +226,7 @@ func getSBOMFromAttestation(r io.Reader, config ProviderConfig) (io.Reader, erro
 		return nil, fmt.Errorf("invalid attestation payload")
 	}
 
-	if !config.IgnoreAttestationSignature {
+	if !config.AttestationIgnoreVerification {
 		if config.AttestationKey == "" {
 			return nil, fmt.Errorf("--key parameter is required to validate attestations")
 		}

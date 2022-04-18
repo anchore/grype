@@ -207,7 +207,7 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 		return err
 	}
 
-	if err := viper.BindPFlag("key", flags.Lookup("key")); err != nil {
+	if err := viper.BindPFlag("attestation.key", flags.Lookup("key")); err != nil {
 		return err
 	}
 
@@ -379,13 +379,13 @@ func applyDistroHint(context *pkg.Context, appConfig *config.Application) {
 
 func getProviderConfig() pkg.ProviderConfig {
 	return pkg.ProviderConfig{
-		RegistryOptions:            appConfig.Registry.ToOptions(),
-		Exclusions:                 appConfig.Exclusions,
-		CatalogingOptions:          appConfig.Search.ToConfig(),
-		GenerateMissingCPEs:        appConfig.GenerateMissingCPEs,
-		Platform:                   appConfig.Platform,
-		AttestationKey:             appConfig.AttestationKey,
-		IgnoreAttestationSignature: appConfig.IgnoreAttestationSignature,
+		RegistryOptions:               appConfig.Registry.ToOptions(),
+		Exclusions:                    appConfig.Exclusions,
+		CatalogingOptions:             appConfig.Search.ToConfig(),
+		GenerateMissingCPEs:           appConfig.GenerateMissingCPEs,
+		Platform:                      appConfig.Platform,
+		AttestationKey:                appConfig.Attestation.Key,
+		AttestationIgnoreVerification: appConfig.Attestation.SkipVerification,
 	}
 }
 

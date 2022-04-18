@@ -1,2 +1,3 @@
 check-for-app-update: false
-ignore-attestation-signature: true
+attestation:
+  skip-verification: true
