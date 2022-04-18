@@ -25,7 +25,7 @@ const completedStatus = "✔"                // "●"
 const tileFormat = color.Bold
 
 var auxInfoFormat = color.HEX("#777777")
-var statusTitleTemplate = fmt.Sprintf(" %%s %%-%ds ", syftUI.StatusTitleColumn)
+var statusTitleTemplate = fmt.Sprintf(" %%s %%-%ds ", syftUI.StatusTitleColumn+4)
 
 func startProcess() (format.Simple, *components.Spinner) {
 	width, _ := frame.GetTerminalSize()
@@ -155,6 +155,25 @@ func (r *Handler) VerifyAttestationSignature(ctx context.Context, fr *frame.Fram
 		spin := color.Green.Sprint(completedStatus)
 		title := tileFormat.Sprint("Attestation verified")
 		auxInfo := auxInfoFormat.Sprintf("[signature %s]", sig)
+		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
+	}()
+
+	return nil
+}
+
+func (r *Handler) SkippedAttestationVerification(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
+	line, err := fr.Append()
+	if err != nil {
+		return err
+	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		spin := color.Green.Sprint(completedStatus)
+		title := tileFormat.Sprint("Skipped attestation proof")
+		auxInfo := auxInfoFormat.Sprint("[no key was used to verify content]")
 		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
 	}()
 

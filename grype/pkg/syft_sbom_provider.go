@@ -234,6 +234,10 @@ func getSBOMFromAttestation(r io.Reader, config ProviderConfig) (io.Reader, erro
 		if err := verifyAttestationSignature(env, config.AttestationKey); err != nil {
 			return nil, fmt.Errorf("failed to verify attestation signature: %w", err)
 		}
+	} else {
+		bus.Publish(partybus.Event{
+			Type: event.AttestationVerificationSkipped,
+		})
 	}
 
 	b, err := base64.StdEncoding.DecodeString(env.Payload)
