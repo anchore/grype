@@ -80,7 +80,7 @@ func TestDecodeStdin(t *testing.T) {
 		t.Run(tt.Name, func(t *testing.T) {
 			f, err := os.Open(tt.Input)
 			require.NoError(t, err)
-			r, info, err := decodeStdin(f, ProviderConfig{AttestationKey: tt.Key})
+			r, info, err := decodeStdin(f, ProviderConfig{AttestationPublicKey: tt.Key})
 			tt.WantErr(t, err)
 
 			if err == nil {
@@ -189,7 +189,7 @@ func TestParseAttestation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
-			pkgs, _, err := syftSBOMProvider(tt.Input, ProviderConfig{AttestationKey: tt.Key})
+			pkgs, _, err := syftSBOMProvider(tt.Input, ProviderConfig{AttestationPublicKey: tt.Key})
 			tt.WantErr(t, err)
 			require.Len(t, pkgs, tt.PkgsLen)
 		})

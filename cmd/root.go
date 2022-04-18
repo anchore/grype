@@ -207,7 +207,7 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 		return err
 	}
 
-	if err := viper.BindPFlag("attestation.key", flags.Lookup("key")); err != nil {
+	if err := viper.BindPFlag("attestation.public-key", flags.Lookup("key")); err != nil {
 		return err
 	}
 
@@ -384,7 +384,7 @@ func getProviderConfig() pkg.ProviderConfig {
 		CatalogingOptions:             appConfig.Search.ToConfig(),
 		GenerateMissingCPEs:           appConfig.GenerateMissingCPEs,
 		Platform:                      appConfig.Platform,
-		AttestationKey:                appConfig.Attestation.Key,
+		AttestationPublicKey:          appConfig.Attestation.PublicKey,
 		AttestationIgnoreVerification: appConfig.Attestation.SkipVerification,
 	}
 }

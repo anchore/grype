@@ -85,7 +85,7 @@ func getSBOMReader(userInput string, config ProviderConfig) (r io.Reader, err er
 	}
 
 	if info != nil {
-		if (info.Scheme == "sbom" || info.ContentType == "sbom") && config.AttestationKey != "" {
+		if (info.Scheme == "sbom" || info.ContentType == "sbom") && config.AttestationPublicKey != "" {
 			return nil, fmt.Errorf("key is meant for attestation verification, your input is a plain SBOM and doesn't need it")
 		}
 
@@ -227,11 +227,11 @@ func getSBOMFromAttestation(r io.Reader, config ProviderConfig) (io.Reader, erro
 	}
 
 	if !config.AttestationIgnoreVerification {
-		if config.AttestationKey == "" {
+		if config.AttestationPublicKey == "" {
 			return nil, fmt.Errorf("--key parameter is required to validate attestations")
 		}
 
-		if err := verifyAttestationSignature(env, config.AttestationKey); err != nil {
+		if err := verifyAttestationSignature(env, config.AttestationPublicKey); err != nil {
 			return nil, fmt.Errorf("failed to verify attestation signature: %w", err)
 		}
 	} else {

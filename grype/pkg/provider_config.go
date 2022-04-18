@@ -11,6 +11,6 @@ type ProviderConfig struct {
 	CatalogingOptions             cataloger.Config
 	GenerateMissingCPEs           bool
 	Platform                      string
-	AttestationKey                string
+	AttestationPublicKey          string
 	AttestationIgnoreVerification bool
 }
