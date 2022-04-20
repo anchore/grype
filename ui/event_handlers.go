@@ -25,7 +25,7 @@ const completedStatus = "✔"                // "●"
 const tileFormat = color.Bold
 
 var auxInfoFormat = color.HEX("#777777")
-var statusTitleTemplate = fmt.Sprintf(" %%s %%-%ds ", syftUI.StatusTitleColumn+4)
+var statusTitleTemplate = fmt.Sprintf(" %%s %%-%ds ", syftUI.StatusTitleColumn)
 
 func startProcess() (format.Simple, *components.Spinner) {
 	width, _ := frame.GetTerminalSize()
@@ -133,19 +133,9 @@ func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *f
 }
 
 func (r *Handler) VerifyAttestationSignature(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
-	acceptedKeys, err := grypeEventParsers.ParseAttestationVerified(event)
-	if err != nil {
-		return fmt.Errorf("bad %s event: %w", event.Type, err)
-	}
-
 	line, err := fr.Append()
 	if err != nil {
 		return err
-	}
-
-	var sig string
-	for _, k := range acceptedKeys {
-		sig = k.Sig.Sig
 	}
 
 	wg.Add(1)
@@ -154,8 +144,7 @@ func (r *Handler) VerifyAttestationSignature(ctx context.Context, fr *frame.Fram
 
 		spin := color.Green.Sprint(completedStatus)
 		title := tileFormat.Sprint("Attestation verified")
-		auxInfo := auxInfoFormat.Sprintf("[signature %s]", sig)
-		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
+		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, ""))
 	}()
 
 	return nil
@@ -172,9 +161,8 @@ func (r *Handler) SkippedAttestationVerification(ctx context.Context, fr *frame.
 		defer wg.Done()
 
 		spin := color.Green.Sprint(completedStatus)
-		title := tileFormat.Sprint("Skipped attestation proof")
-		auxInfo := auxInfoFormat.Sprint("[no key was used to verify content]")
-		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
+		title := tileFormat.Sprint("Skipped attestation verification")
+		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, ""))
 	}()
 
 	return nil
