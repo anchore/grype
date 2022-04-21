@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/anchore/stereoscope/pkg/imagetest"
 )
 
@@ -44,9 +46,9 @@ func getGrypeSnapshotLocation(tb testing.TB, goOS string) string {
 	// note: there is a subtle - vs _ difference between these versions
 	switch goOS {
 	case "darwin":
-		return path.Join(repoRoot(tb), fmt.Sprintf("snapshot/grype-macos_darwin_%s/grype", runtime.GOARCH))
+		return path.Join(repoRoot(tb), fmt.Sprintf("snapshot/darwin-build_darwin_%s/grype", runtime.GOARCH))
 	case "linux":
-		return path.Join(repoRoot(tb), fmt.Sprintf("snapshot/grype_linux_%s/grype", runtime.GOARCH))
+		return path.Join(repoRoot(tb), fmt.Sprintf("snapshot/linux-build_linux_%s/grype", runtime.GOARCH))
 	default:
 		tb.Fatalf("unsupported OS: %s", runtime.GOOS)
 	}
@@ -120,19 +122,9 @@ func repoRoot(tb testing.TB) string {
 func attachFileToCommandStdin(tb testing.TB, file io.Reader, command *exec.Cmd) {
 	tb.Helper()
 
-	stdin, err := command.StdinPipe()
-	if err != nil {
-		tb.Fatal(err)
-	}
-
-	_, err = io.Copy(stdin, file)
-	if err != nil {
-		tb.Fatal(err)
-	}
-	err = stdin.Close()
-	if err != nil {
-		tb.Fatal(err)
-	}
+	b, err := io.ReadAll(file)
+	require.NoError(tb, err)
+	command.Stdin = bytes.NewReader(b)
 }
 
 func assertCommandExecutionSuccess(t testing.TB, cmd *exec.Cmd) {

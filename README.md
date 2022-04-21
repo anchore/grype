@@ -39,6 +39,7 @@ A vulnerability scanner for container images and filesystems. Easily [install th
   - JavaScript (NPM, Yarn)
   - Python (Egg, Wheel, Poetry, requirements.txt/setup.py files)
 - Supports Docker and OCI image formats
+- Consume SBOM [attestations](https://github.com/anchore/syft#sbom-attestation).
 
 If you encounter an issue, please [let us know using the issue tracker](https://github.com/anchore/grype/issues).
 
@@ -99,7 +100,9 @@ docker-archive:path/to/yourimage.tar   use a tarball from disk for archives crea
 oci-archive:path/to/yourimage.tar      use a tarball from disk for OCI archives (from Skopeo or otherwise)
 oci-dir:path/to/yourimage              read directly from a path on disk for OCI layout directories (from Skopeo or otherwise)
 dir:path/to/yourproject                read directly from a path on disk (any directory)
+sbom:path/to/syft.json                 read Syft JSON from path on disk
 registry:yourrepo/yourimage:tag        pull image directly from a registry (no container runtime required)
+att:attestation.json --key cosign.pub  explicitly use the input as an attestation
 ```
 
 Use SBOMs for even faster vulnerability scanning in Grype:
@@ -121,6 +124,27 @@ use the `--distro <distro>:<version>` flag. A full example is:
 
 ```
 grype --add-cpes-if-none --distro alpine:3.10 sbom:some-apline-3.10.spdx.json
+```
+
+### Scan attestations
+Grype can scan SBOMs from attestations as long as they are encoded [in-toto envelopes](https://github.com/in-toto/attestation/blob/main/spec/README.md#envelope).
+
+Examples:
+``` sh
+# generate cosign key pair
+cosign generate-key-pair # after that you'll have two files: cosign.key and cosign.pub
+
+# attest an image with Syft and your cosign private key (cosign.key)
+syft attest --output json --key cosign.key alpine:latest > alpine.att.json
+
+# scan an SBOM from an attestation file with the cosign public key (cosign.pub)
+grype alpine.json --key cosign.pub
+
+# explicitly tell Grype the input is an attestation file with the scheme `att:`
+grype att:alpine.json --key cosign.pub
+
+# generate an attestation for an image with Syft and pipe it into Grype, just because you can :)
+syft attest --output json --key cosign.key alpine:latest | grype --key cosign.pub
 ```
 
 ### Vulnerability Summary

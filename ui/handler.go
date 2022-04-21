@@ -23,7 +23,10 @@ func NewHandler() *Handler {
 
 func (r *Handler) RespondsTo(event partybus.Event) bool {
 	switch event.Type {
-	case grypeEvent.VulnerabilityScanningStarted, grypeEvent.UpdateVulnerabilityDatabase:
+	case grypeEvent.VulnerabilityScanningStarted,
+		grypeEvent.UpdateVulnerabilityDatabase,
+		grypeEvent.AttestationVerified,
+		grypeEvent.AttestationVerificationSkipped:
 		return true
 	default:
 		return r.syftHandler.RespondsTo(event)
@@ -36,6 +39,10 @@ func (r *Handler) Handle(ctx context.Context, fr *frame.Frame, event partybus.Ev
 		return r.VulnerabilityScanningStartedHandler(ctx, fr, event, wg)
 	case grypeEvent.UpdateVulnerabilityDatabase:
 		return r.UpdateVulnerabilityDatabaseHandler(ctx, fr, event, wg)
+	case grypeEvent.AttestationVerified:
+		return r.VerifyAttestationSignature(ctx, fr, event, wg)
+	case grypeEvent.AttestationVerificationSkipped:
+		return r.SkippedAttestationVerification(ctx, fr, event, wg)
 	default:
 		return r.syftHandler.Handle(ctx, fr, event, wg)
 	}

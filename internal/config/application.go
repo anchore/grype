@@ -50,6 +50,7 @@ type Application struct {
 	FailOnSeverity      *vulnerability.Severity `yaml:"-" json:"-"`
 	Registry            registry                `yaml:"registry" json:"registry" mapstructure:"registry"`
 	Log                 logging                 `yaml:"log" json:"log" mapstructure:"log"`
+	Attestation         Attestation             `yaml:"attestation" json:"attestation" mapstructure:"attestation"`
 }
 
 func newApplicationConfig(v *viper.Viper, cliOpts CliOnlyOptions) *Application {

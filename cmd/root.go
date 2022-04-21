@@ -49,8 +49,9 @@ var (
 		Long: format.Tprintf(`A vulnerability scanner for container images, filesystems, and SBOMs.
 
 Supports the following image sources:
-    {{.appName}} yourrepo/yourimage:tag     defaults to using images from a Docker daemon
-    {{.appName}} path/to/yourproject        a Docker tar, OCI tar, OCI directory, or generic filesystem directory
+    {{.appName}} yourrepo/yourimage:tag             defaults to using images from a Docker daemon
+    {{.appName}} path/to/yourproject                a Docker tar, OCI tar, OCI directory, or generic filesystem directory
+    {{.appName}} attestation.json --key cosign.pub  extract and scan SBOM from attestation file
 
 You can also explicitly specify the scheme to use:
     {{.appName}} podman:yourrepo/yourimage:tag          explicitly use the Podman daemon
@@ -61,7 +62,7 @@ You can also explicitly specify the scheme to use:
     {{.appName}} dir:path/to/yourproject                read directly from a path on disk (any directory)
     {{.appName}} sbom:path/to/syft.json                 read Syft JSON from path on disk
     {{.appName}} registry:yourrepo/yourimage:tag        pull image directly from a registry (no container runtime required)
-
+    {{.appName}} att:attestation.json --key cosign.pub  explicitly use the input as an attestation
 You can also pipe in Syft JSON directly:
 	syft yourimage:tag -o json | {{.appName}}
 
@@ -154,6 +155,15 @@ func setRootFlags(flags *pflag.FlagSet) {
 		"platform", "", "",
 		"an optional platform specifier for container image sources (e.g. 'linux/arm64', 'linux/arm64/v8', 'arm64', 'linux')",
 	)
+
+	flags.String(
+		// NOTE(jonasagx): the default value is present even for SBOM inputs, causing errors.
+		// To avoid extra syscalls for file validation I will drop it for now.
+		// I know Syft has a default key value, but I am not certain that is a safe explicit
+		// approach when attesting.
+		"key", "",
+		"File path to a public key to validate attestation",
+	)
 }
 
 func bindRootConfigOptions(flags *pflag.FlagSet) error {
@@ -194,6 +204,10 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 	}
 
 	if err := viper.BindPFlag("platform", flags.Lookup("platform")); err != nil {
+		return err
+	}
+
+	if err := viper.BindPFlag("attestation.public-key", flags.Lookup("key")); err != nil {
 		return err
 	}
 
@@ -365,11 +379,13 @@ func applyDistroHint(context *pkg.Context, appConfig *config.Application) {
 
 func getProviderConfig() pkg.ProviderConfig {
 	return pkg.ProviderConfig{
-		RegistryOptions:     appConfig.Registry.ToOptions(),
-		Exclusions:          appConfig.Exclusions,
-		CatalogingOptions:   appConfig.Search.ToConfig(),
-		GenerateMissingCPEs: appConfig.GenerateMissingCPEs,
-		Platform:            appConfig.Platform,
+		RegistryOptions:               appConfig.Registry.ToOptions(),
+		Exclusions:                    appConfig.Exclusions,
+		CatalogingOptions:             appConfig.Search.ToConfig(),
+		GenerateMissingCPEs:           appConfig.GenerateMissingCPEs,
+		Platform:                      appConfig.Platform,
+		AttestationPublicKey:          appConfig.Attestation.PublicKey,
+		AttestationIgnoreVerification: appConfig.Attestation.SkipVerification,
 	}
 }
 
