@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:0f37ab1e-55b1-46ec-bb8b-5e1c5f6b7904" version="1">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:079a3c2f-34ac-464b-a5c9-c3ddba189c52" version="1">
   <metadata>
-    <timestamp>2022-03-31T22:50:49+01:00</timestamp>
+    <timestamp>2022-04-29T13:18:21-04:00</timestamp>
     <tools>
       <tool>
         <vendor>anchore</vendor>
@@ -41,7 +41,6 @@
       </source>
       <ratings>
         <rating>
-          <score>0</score>
           <severity>low</severity>
         </rating>
         <rating>
@@ -69,7 +68,6 @@
       </source>
       <ratings>
         <rating>
-          <score>0</score>
           <severity>critical</severity>
         </rating>
         <rating>
