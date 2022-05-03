@@ -373,7 +373,8 @@ func applyDistroHint(context *pkg.Context, appConfig *config.Application) {
 	}
 
 	if context.Distro == nil {
-		log.Warnf("Unable to determine the OS distribution. This may result in missing vulnerabilities. You may specify a distro using: --distro <distro>:<version>")
+		log.Debug("Unable to determine the OS distribution. This may result in missing vulnerabilities. " +
+			"You may specify a distro using: --distro <distro>:<version>")
 	}
 }
 
