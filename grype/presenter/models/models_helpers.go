@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
-	grypeDb "github.com/anchore/grype/grype/db/v3"
+	grypeDb "github.com/anchore/grype/grype/db/v4"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
