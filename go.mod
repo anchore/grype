@@ -23,7 +23,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gookit/color v1.4.2
 	github.com/hashicorp/go-cleanhttp v0.5.2
-	github.com/hashicorp/go-getter v1.5.9
+	github.com/hashicorp/go-getter v1.5.11
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-version v1.4.0
 	github.com/knqyf263/go-apk-version v0.0.0-20200609155635-041fdbb8563f
