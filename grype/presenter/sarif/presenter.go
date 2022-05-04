@@ -8,7 +8,7 @@ import (
 
 	"github.com/owenrumney/go-sarif/sarif"
 
-	v3 "github.com/anchore/grype/grype/db/v3"
+	v4 "github.com/anchore/grype/grype/db/v4"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -357,7 +357,7 @@ func (pres *Presenter) subtitle(m match.Match) string {
 }
 
 func fixVersions(m match.Match) string {
-	if m.Vulnerability.Fix.State == v3.FixedState && len(m.Vulnerability.Fix.Versions) > 0 {
+	if m.Vulnerability.Fix.State == v4.FixedState && len(m.Vulnerability.Fix.Versions) > 0 {
 		return strings.Join(m.Vulnerability.Fix.Versions, ",")
 	}
 	return ""
