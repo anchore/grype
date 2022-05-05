@@ -1,7 +1,7 @@
 package integration
 
 import (
-	grypeDB "github.com/anchore/grype/grype/db/v3"
+	grypeDB "github.com/anchore/grype/grype/db/v4"
 )
 
 // integrity check

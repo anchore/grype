@@ -14,7 +14,7 @@ import (
 
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db"
-	grypeDb "github.com/anchore/grype/grype/db/v3"
+	grypeDb "github.com/anchore/grype/grype/db/v4"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/grypeerr"
 	"github.com/anchore/grype/grype/match"
