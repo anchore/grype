@@ -159,7 +159,7 @@ func TestStore_GetVulnerability_SetVulnerability(t *testing.T) {
 			Namespace:         "my-namespace",
 			VersionConstraint: "< 509.2.2",
 			VersionFormat:     "semver",
-			CPEs:              []string{"a-cool-cpe"},
+			CPEs:              nil,
 			RelatedVulnerabilities: []v4.VulnerabilityReference{
 				{
 					ID:        "another-cve",
@@ -174,6 +174,33 @@ func TestStore_GetVulnerability_SetVulnerability(t *testing.T) {
 				Versions: []string{"4.0.5"},
 				State:    v4.FixedState,
 			},
+		},
+		{
+			ID:                     "yet-another-cve",
+			PackageName:            "package-name",
+			Namespace:              "my-namespace",
+			VersionConstraint:      "< 1000.0.0",
+			VersionFormat:          "semver",
+			CPEs:                   nil,
+			RelatedVulnerabilities: nil,
+			Fix: v4.Fix{
+				Versions: []string{"1000.0.1"},
+				State:    v4.FixedState,
+			},
+		},
+		{
+			ID:                     "yet-another-cve-with-advisories",
+			PackageName:            "package-name",
+			Namespace:              "my-namespace",
+			VersionConstraint:      "< 1000.0.0",
+			VersionFormat:          "semver",
+			CPEs:                   nil,
+			RelatedVulnerabilities: nil,
+			Fix: v4.Fix{
+				Versions: []string{"1000.0.1"},
+				State:    v4.FixedState,
+			},
+			Advisories: []v4.Advisory{{ID: "ABC-12345", Link: "https://abc.xyz"}},
 		},
 	}
 
@@ -1031,7 +1058,7 @@ func TestCvssScoresInMetadata(t *testing.T) {
 	}
 }
 
-func assertVulnerabilityExclusionReader(t *testing.T, reader v4.VulnerabilityExclusionStoreReader, id, namespace string, expected []v4.VulnerabilityExclusion) {
+/*func assertVulnerabilityExclusionReader(t *testing.T, reader v4.VulnerabilityExclusionStoreReader, id, namespace string, expected []v4.VulnerabilityExclusion) {
 	if actual, err := reader.GetVulnerabilityExclusion(id, namespace); err != nil {
 		t.Fatalf("failed to get Vulnerability Exclusion: %+v", err)
 	} else {
@@ -1093,4 +1120,4 @@ func TestStore_GetVulnerabilityExclusion_SetVulnerabilityExclusion(t *testing.T)
 
 	assertVulnerabilityExclusionReader(t, s, expected[0].Id, expected[0].Namespace, expected)
 
-}
+}*/

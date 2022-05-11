@@ -39,6 +39,9 @@ func New(dbFilePath string, overwrite bool) (v4.Store, error) {
 		if err := db.AutoMigrate(&model.VulnerabilityMetadataModel{}); err != nil {
 			return nil, fmt.Errorf("unable to migrate Vulnerability Metadata model: %w", err)
 		}
+		if err := db.AutoMigrate(&model.VulnerabilityExclusionModel{}); err != nil {
+			return nil, fmt.Errorf("unable to migrate Vulnerability Exclusion model: %w", err)
+		}
 	}
 
 	return &store{
