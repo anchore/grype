@@ -76,6 +76,8 @@ func TestVersionSemantic(t *testing.T) {
 		{version: "1.2.0-beta", constraint: ">1.0", satisfied: true},
 		{version: "1.2.0-beta", constraint: "<2.0", satisfied: true},
 		{version: "1.2.0", constraint: ">1.0, <2.0", satisfied: true},
+		{version: "0.0.0-20210817164053-32db794688a5", constraint: "<= 0.0.0-20220214200702-86341886e292", satisfied: true},
+		{version: "0.0.0-20220315160706-3147a52a75dd", constraint: "<= 0.0.0-20220214200702-86341886e292", satisfied: false},
 	}
 
 	for _, test := range tests {
