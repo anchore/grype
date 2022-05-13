@@ -38,6 +38,7 @@ A vulnerability scanner for container images and filesystems. Easily [install th
   - Java (JAR, WAR, EAR, JPI, HPI)
   - JavaScript (NPM, Yarn)
   - Python (Egg, Wheel, Poetry, requirements.txt/setup.py files)
+  - Dotnet (deps.json)
 - Supports Docker and OCI image formats
 - Consume SBOM [attestations](https://github.com/anchore/syft#sbom-attestation).
 

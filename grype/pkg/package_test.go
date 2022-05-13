@@ -261,6 +261,19 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "dotnet-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.DotnetDepsMetadataType,
+				Metadata: syftPkg.DotnetDepsMetadata{
+					Name:     "a",
+					Version:  "a",
+					Path:     "a",
+					Sha512:   "a",
+					HashPath: "a",
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
