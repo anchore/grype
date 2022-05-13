@@ -120,6 +120,41 @@ func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Ca
 	})
 }
 
+func addDotnetMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore, theResult *match.Matches) {
+	packages := catalog.PackagesByPath("/dotnet/TestLibrary.deps.json")
+	if len(packages) != 1 {
+		for _, p := range packages {
+			t.Logf("Dotnet Package: %s %+v", p.ID(), p)
+		}
+
+		t.Fatalf("problem with upstream syft cataloger (dotnet)")
+	}
+	thePkg := pkg.New(packages[0])
+	theVuln := theStore.backend["github:nuget"][thePkg.Name][0]
+	vulnObj, err := vulnerability.NewVulnerability(theVuln)
+	if err != nil {
+		t.Fatalf("failed to create vuln obj: %+v", err)
+	}
+	theResult.Add(match.Match{
+
+		Vulnerability: *vulnObj,
+		Package:       thePkg,
+		Details: []match.Detail{
+			{
+				Type:       match.ExactDirectMatch,
+				Confidence: 1.0,
+				SearchedBy: map[string]interface{}{
+					"language": "dotnet",
+				},
+				Found: map[string]interface{}{
+					"constraint": ">= 3.7.0.0, < 3.7.12.0 (dotnet)",
+				},
+				Matcher: match.DotnetMatcher,
+			},
+		},
+	})
+}
+
 func addRubyMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore, theResult *match.Matches) {
 	packages := catalog.PackagesByPath("/ruby/specifications/bundler.gemspec")
 	if len(packages) != 1 {
@@ -320,6 +355,7 @@ func TestMatchByImage(t *testing.T) {
 				addJavaMatches(t, theSource, catalog, theStore, &expectedMatches)
 				addDpkgMatches(t, theSource, catalog, theStore, &expectedMatches)
 				addJavascriptMatches(t, theSource, catalog, theStore, &expectedMatches)
+				addDotnetMatches(t, theSource, catalog, theStore, &expectedMatches)
 				return expectedMatches
 			},
 		},

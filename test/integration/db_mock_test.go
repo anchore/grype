@@ -90,6 +90,15 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
+			"github:nuget": {
+				"AWSSDK.Core": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-dotnet-sample",
+						VersionConstraint: ">= 3.7.0.0, < 3.7.12.0",
+						VersionFormat:     "dotnet",
+					},
+				},
+			},
 			"debian:8": {
 				"apt-dev": []grypeDB.Vulnerability{
 					{
