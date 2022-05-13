@@ -8,6 +8,7 @@ import (
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/apk"
+	"github.com/anchore/grype/grype/matcher/dotnet"
 	"github.com/anchore/grype/grype/matcher/dpkg"
 	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
@@ -39,6 +40,7 @@ func NewDefaultMatchers(mc Config) []Matcher {
 		&dpkg.Matcher{},
 		&ruby.Matcher{},
 		&python.Matcher{},
+		&dotnet.Matcher{},
 		&rpmdb.Matcher{},
 		java.NewJavaMatcher(mc.Java),
 		&javascript.Matcher{},
