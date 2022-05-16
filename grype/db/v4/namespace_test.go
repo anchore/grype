@@ -239,6 +239,19 @@ func Test_NamespacesForLanguage(t *testing.T) {
 				"a-name",
 			},
 		},
+		{
+			language: syftPkg.Dotnet,
+			namerInput: &pkg.Package{
+				ID:   pkg.ID(uuid.NewString()),
+				Name: "a-name",
+			},
+			expectedNamespaces: []string{
+				"github:dotnet",
+			},
+			expectedNames: []string{
+				"a-name",
+			},
+		},
 		// supported languages
 		{
 			language: syftPkg.Ruby,
