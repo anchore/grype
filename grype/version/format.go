@@ -15,6 +15,7 @@ const (
 	PythonFormat
 	KBFormat
 	GemFormat
+	PortageFormat
 )
 
 type Format int
@@ -28,6 +29,7 @@ var formatStr = []string{
 	"Python",
 	"KB",
 	"Gem",
+	"Portage",
 }
 
 var Formats = []Format{
@@ -38,6 +40,7 @@ var Formats = []Format{
 	PythonFormat,
 	KBFormat,
 	GemFormat,
+	PortageFormat,
 }
 
 func ParseFormat(userStr string) Format {
@@ -56,6 +59,8 @@ func ParseFormat(userStr string) Format {
 		return KBFormat
 	case strings.ToLower(GemFormat.String()), "gem":
 		return GemFormat
+	case strings.ToLower(PortageFormat.String()), "portage":
+		return PortageFormat
 	}
 	return UnknownFormat
 }
@@ -75,6 +80,8 @@ func FormatFromPkgType(t pkg.Type) Format {
 		format = PythonFormat
 	case pkg.KbPkg:
 		format = KBFormat
+	case pkg.PortagePkg:
+		format = PortageFormat
 	default:
 		format = UnknownFormat
 	}

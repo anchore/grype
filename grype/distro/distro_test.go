@@ -200,6 +200,10 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			Type:    AlmaLinux,
 			Version: "8.4.0",
 		},
+		{
+			fixture: "test-fixtures/os/gentoo",
+			Type:    Gentoo,
+		},
 	}
 
 	observedDistros := internal.NewStringSet()

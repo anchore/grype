@@ -12,6 +12,7 @@ const (
 	DotnetMatcher      MatcherType = "dotnet-matcher"
 	JavascriptMatcher  MatcherType = "javascript-matcher"
 	MsrcMatcher        MatcherType = "msrc-matcher"
+	PortageMatcher     MatcherType = "portage-matcher"
 )
 
 var AllMatcherTypes = []MatcherType{
@@ -24,6 +25,7 @@ var AllMatcherTypes = []MatcherType{
 	DotnetMatcher,
 	JavascriptMatcher,
 	MsrcMatcher,
+	PortageMatcher,
 }
 
 type MatcherType string

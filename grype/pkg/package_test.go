@@ -289,6 +289,17 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "portage-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.PortageMetadataType,
+				Metadata: syftPkg.PortageMetadata{
+					Package:       "net-misc/curl",
+					Version:       "1.2.3",
+					InstalledSize: 1,
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
