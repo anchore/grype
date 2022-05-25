@@ -247,5 +247,10 @@ func (s *store) AddVulnerabilityExclusion(exclusions ...v4.VulnerabilityExclusio
 			return fmt.Errorf("unable to add vulnerability exclusion (%d rows affected)", result.RowsAffected)
 		}
 	}
+
 	return nil
+}
+
+func (s *store) Vacuum() {
+	s.db.Exec("VACUUM;")
 }
