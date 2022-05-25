@@ -17,4 +17,5 @@ type StoreWriter interface {
 	VulnerabilityStoreWriter
 	VulnerabilityMetadataStoreWriter
 	VulnerabilityExclusionStoreWriter
+	Vacuum()
 }
