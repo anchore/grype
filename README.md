@@ -617,6 +617,7 @@ log:
 
   # the log level; note: detailed logging suppress the ETUI
   # same as GRYPE_LOG_LEVEL env var
+  # Uses logrus logging levels: https://github.com/sirupsen/logrus#level-logging
   level: "error"
 
   # location to write the log file (default is not to have a log file)
