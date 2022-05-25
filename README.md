@@ -65,6 +65,14 @@ brew tap anchore/grype
 brew install grype
 ```
 
+### MacPorts
+
+On macOS, Grype can additionally be installed from the [community maintained port](https://ports.macports.org/port/grype/) via MacPorts:
+
+```bash
+sudo port install grype
+```
+
 **Note**: Currently, Grype is built only for macOS and Linux.
 
 ### GitHub Actions
