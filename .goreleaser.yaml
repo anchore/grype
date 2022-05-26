@@ -1,6 +1,6 @@
 release:
   prerelease: auto
-  draft: true
+  draft: false
 
 env:
   # required to support multi architecture docker builds
