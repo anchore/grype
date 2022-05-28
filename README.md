@@ -93,7 +93,7 @@ The above command scans for vulnerabilities that are visible in the container (i
 grype <image> --scope all-layers
 ```
 
-To run grype from a Docker container, use the following command:
+To run grype from a Docker container so it can scan a running container, use the following command:
 
 ```yml
 docker run --rm \
