@@ -88,7 +88,14 @@ func (s *store) SetID(id v4.ID) error {
 	return result.Error
 }
 
-// GetVulnerability retrieves one or more vulnerabilities given a namespace and package name.
+// GetVulnerabilityNamespaces retrieves all possible namespaces from the database.
+func (s *store) GetVulnerabilityNamespaces() ([]string, error) {
+	var names []string
+	result := s.db.Model(&model.VulnerabilityMetadataModel{}).Distinct().Pluck("namespace", &names)
+	return names, result.Error
+}
+
+// GetVulnerability retrieves vulnerabilities by namespace and package
 func (s *store) GetVulnerability(namespace, packageName string) ([]v4.Vulnerability, error) {
 	var models []model.VulnerabilityModel
 
