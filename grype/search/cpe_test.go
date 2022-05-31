@@ -37,7 +37,7 @@ func newMockStore() *mockVulnStore {
 }
 
 func (pr *mockVulnStore) stub() {
-	pr.data["nvd"] = map[string][]grypeDB.Vulnerability{
+	pr.data["nvd:cpe"] = map[string][]grypeDB.Vulnerability{
 		"activerecord": {
 			{
 				PackageName:       "activerecord",
@@ -47,7 +47,7 @@ func (pr *mockVulnStore) stub() {
 				CPEs: []string{
 					"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*",
 				},
-				Namespace: "nvd",
+				Namespace: "nvd:cpe",
 			},
 			{
 				PackageName:       "activerecord",
@@ -57,7 +57,7 @@ func (pr *mockVulnStore) stub() {
 				CPEs: []string{
 					"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:ruby:*:*",
 				},
-				Namespace: "nvd",
+				Namespace: "nvd:cpe",
 			},
 			{
 				PackageName:       "activerecord",
@@ -67,7 +67,7 @@ func (pr *mockVulnStore) stub() {
 				CPEs: []string{
 					"cpe:2.3:*:activerecord:activerecord:4.0.1:*:*:*:*:*:*:*",
 				},
-				Namespace: "nvd",
+				Namespace: "nvd:cpe",
 			},
 		},
 		"awesome": {
@@ -79,7 +79,7 @@ func (pr *mockVulnStore) stub() {
 				CPEs: []string{
 					"cpe:2.3:*:awesome:awesome:*:*:*:*:*:*:*:*",
 				},
-				Namespace: "nvd",
+				Namespace: "nvd:cpe",
 			},
 		},
 		"multiple": {
@@ -94,7 +94,7 @@ func (pr *mockVulnStore) stub() {
 					"cpe:2.3:*:multiple:multiple:2.0:*:*:*:*:*:*:*",
 					"cpe:2.3:*:multiple:multiple:3.0:*:*:*:*:*:*:*",
 				},
-				Namespace: "nvd",
+				Namespace: "nvd:cpe",
 			},
 		},
 	}
@@ -106,6 +106,15 @@ func (pr *mockVulnStore) GetVulnerability(namespace, pkg string) ([]grypeDB.Vuln
 
 func (pr *mockVulnStore) GetAllVulnerabilities() (*[]grypeDB.Vulnerability, error) {
 	return nil, nil
+}
+
+func (pr *mockVulnStore) GetVulnerabilityNamespaces() ([]string, error) {
+	keys := make([]string, 0, len(pr.data))
+	for k, _ := range pr.data {
+		keys = append(keys, k)
+	}
+
+	return keys, nil
 }
 
 func TestFindMatchesByPackageCPE(t *testing.T) {
@@ -148,7 +157,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							Type:       match.CPEMatch,
 							Confidence: 0.9,
 							SearchedBy: CPEParameters{
-								Namespace: "nvd",
+								Namespace: "nvd:cpe",
 								CPEs:      []string{"cpe:2.3:*:activerecord:activerecord:3.7.5:rando4:*:re:*:rails:*:*"},
 							},
 							Found: CPEResult{
@@ -198,7 +207,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 								CPEs: []string{
 									"cpe:2.3:*:activerecord:activerecord:3.7.3:rando4:*:re:*:rails:*:*",
 								},
-								Namespace: "nvd",
+								Namespace: "nvd:cpe",
 							},
 							Found: CPEResult{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*"},
@@ -230,7 +239,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							Confidence: 0.9,
 							SearchedBy: CPEParameters{
 								CPEs:      []string{"cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:ra:*:ruby:*:*"},
-								Namespace: "nvd",
+								Namespace: "nvd:cpe",
 							},
 							Found: CPEResult{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:ruby:*:*"},
@@ -274,7 +283,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							Confidence: 0.9,
 							SearchedBy: CPEParameters{
 								CPEs:      []string{"cpe:2.3:*:*:activerecord:4.0.1:*:*:*:*:*:*:*"},
-								Namespace: "nvd",
+								Namespace: "nvd:cpe",
 							},
 							Found: CPEResult{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:4.0.1:*:*:*:*:*:*:*"},
@@ -326,7 +335,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							Confidence: 0.9,
 							SearchedBy: CPEParameters{
 								CPEs:      []string{"cpe:2.3:*:awesome:awesome:98SE1:rando1:*:ra:*:dunno:*:*"},
-								Namespace: "nvd",
+								Namespace: "nvd:cpe",
 							},
 							Found: CPEResult{
 								CPEs:              []string{"cpe:2.3:*:awesome:awesome:*:*:*:*:*:*:*:*"},
@@ -371,7 +380,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							Confidence: 0.9,
 							SearchedBy: CPEParameters{
 								CPEs:      []string{"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*"},
-								Namespace: "nvd",
+								Namespace: "nvd:cpe",
 							},
 							Found: CPEResult{
 								CPEs: []string{
@@ -461,7 +470,7 @@ func TestAddMatchDetails(t *testing.T) {
 			existing: []match.Detail{
 				{
 					SearchedBy: CPEParameters{
-						Namespace: "nvd",
+						Namespace: "nvd:cpe",
 						CPEs: []string{
 							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 						},
@@ -476,7 +485,7 @@ func TestAddMatchDetails(t *testing.T) {
 			},
 			new: match.Detail{
 				SearchedBy: CPEParameters{
-					Namespace: "nvd",
+					Namespace: "nvd:cpe",
 					CPEs: []string{
 						"totally-different-search",
 					},
@@ -491,7 +500,7 @@ func TestAddMatchDetails(t *testing.T) {
 			expected: []match.Detail{
 				{
 					SearchedBy: CPEParameters{
-						Namespace: "nvd",
+						Namespace: "nvd:cpe",
 						CPEs: []string{
 							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 						},
@@ -505,7 +514,7 @@ func TestAddMatchDetails(t *testing.T) {
 				},
 				{
 					SearchedBy: CPEParameters{
-						Namespace: "nvd",
+						Namespace: "nvd:cpe",
 						CPEs: []string{
 							"totally-different-search",
 						},
@@ -524,7 +533,7 @@ func TestAddMatchDetails(t *testing.T) {
 			existing: []match.Detail{
 				{
 					SearchedBy: CPEParameters{
-						Namespace: "nvd",
+						Namespace: "nvd:cpe",
 						CPEs: []string{
 							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 						},
@@ -554,7 +563,7 @@ func TestAddMatchDetails(t *testing.T) {
 			expected: []match.Detail{
 				{
 					SearchedBy: CPEParameters{
-						Namespace: "nvd",
+						Namespace: "nvd:cpe",
 						CPEs: []string{
 							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 						},
@@ -587,7 +596,7 @@ func TestAddMatchDetails(t *testing.T) {
 			existing: []match.Detail{
 				{
 					SearchedBy: CPEParameters{
-						Namespace: "nvd",
+						Namespace: "nvd:cpe",
 						CPEs: []string{
 							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 						},
@@ -602,7 +611,7 @@ func TestAddMatchDetails(t *testing.T) {
 			},
 			new: match.Detail{
 				SearchedBy: CPEParameters{
-					Namespace: "nvd",
+					Namespace: "nvd:cpe",
 					CPEs: []string{
 						"totally-different-search",
 					},
@@ -617,7 +626,7 @@ func TestAddMatchDetails(t *testing.T) {
 			expected: []match.Detail{
 				{
 					SearchedBy: CPEParameters{
-						Namespace: "nvd",
+						Namespace: "nvd:cpe",
 						CPEs: []string{
 							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 							"totally-different-search",
@@ -637,7 +646,7 @@ func TestAddMatchDetails(t *testing.T) {
 			existing: []match.Detail{
 				{
 					SearchedBy: CPEParameters{
-						Namespace: "nvd",
+						Namespace: "nvd:cpe",
 						CPEs: []string{
 							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 						},
@@ -662,7 +671,7 @@ func TestAddMatchDetails(t *testing.T) {
 			expected: []match.Detail{
 				{
 					SearchedBy: CPEParameters{
-						Namespace: "nvd",
+						Namespace: "nvd:cpe",
 						CPEs: []string{
 							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 						},
@@ -681,7 +690,7 @@ func TestAddMatchDetails(t *testing.T) {
 			existing: []match.Detail{
 				{
 					SearchedBy: CPEParameters{
-						Namespace: "nvd",
+						Namespace: "nvd:cpe",
 						CPEs: []string{
 							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 						},
@@ -696,7 +705,7 @@ func TestAddMatchDetails(t *testing.T) {
 			},
 			new: match.Detail{
 				SearchedBy: CPEParameters{
-					Namespace: "nvd",
+					Namespace: "nvd:cpe",
 					CPEs: []string{
 						"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 					},
@@ -706,7 +715,7 @@ func TestAddMatchDetails(t *testing.T) {
 			expected: []match.Detail{
 				{
 					SearchedBy: CPEParameters{
-						Namespace: "nvd",
+						Namespace: "nvd:cpe",
 						CPEs: []string{
 							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 						},

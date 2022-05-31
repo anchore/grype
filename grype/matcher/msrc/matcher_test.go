@@ -30,6 +30,15 @@ func (s *mockStore) GetAllVulnerabilities() (*[]grypeDB.Vulnerability, error) {
 	return nil, nil
 }
 
+func (s *mockStore) GetVulnerabilityNamespaces() ([]string, error) {
+	keys := make([]string, 0, len(s.backend))
+	for k, _ := range s.backend {
+		keys = append(keys, k)
+	}
+
+	return keys, nil
+}
+
 func TestMatches(t *testing.T) {
 	d, err := distro.New(distro.Windows, "10816", "Windows Server 2016")
 	assert.NoError(t, err)
@@ -39,7 +48,7 @@ func TestMatches(t *testing.T) {
 
 			// TODO: it would be ideal to test against something that constructs the namespace based on grype-db
 			// and not break the adaption of grype-db
-			fmt.Sprintf("msrc:%s", d.RawVersion): {
+			fmt.Sprintf("msrc:distro:windows:%s", d.RawVersion): {
 				d.RawVersion: []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-2016-3333",
