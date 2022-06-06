@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	hashiVer "github.com/anchore/go-version"
 	"github.com/stretchr/testify/assert"
+
+	hashiVer "github.com/anchore/go-version"
 )
 
 func Test_newGemfileVersion(t *testing.T) {
