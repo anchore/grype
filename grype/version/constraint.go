@@ -28,6 +28,8 @@ func GetConstraint(constStr string, format Format) (Constraint, error) {
 		return newFuzzyConstraint(constStr, "python")
 	case KBFormat:
 		return newKBConstraint(constStr)
+	case GemfileFormat:
+		return newGemfileConstraint(constStr)
 	case UnknownFormat:
 		return newFuzzyConstraint(constStr, "unknown")
 	}

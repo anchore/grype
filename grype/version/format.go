@@ -14,6 +14,7 @@ const (
 	RpmFormat
 	PythonFormat
 	KBFormat
+	GemfileFormat
 )
 
 type Format int
@@ -26,6 +27,7 @@ var formatStr = []string{
 	"RPM",
 	"Python",
 	"KB",
+	"Gemfile",
 }
 
 var Formats = []Format{
@@ -35,6 +37,7 @@ var Formats = []Format{
 	RpmFormat,
 	PythonFormat,
 	KBFormat,
+	GemfileFormat,
 }
 
 func ParseFormat(userStr string) Format {
@@ -51,6 +54,8 @@ func ParseFormat(userStr string) Format {
 		return PythonFormat
 	case strings.ToLower(KBFormat.String()), "kb":
 		return KBFormat
+	case strings.ToLower(GemfileFormat.String()), "gem":
+		return GemfileFormat
 	}
 	return UnknownFormat
 }
@@ -65,7 +70,7 @@ func FormatFromPkgType(t pkg.Type) Format {
 	case pkg.RpmPkg:
 		format = RpmFormat
 	case pkg.GemPkg:
-		format = SemanticFormat
+		format = GemfileFormat
 	case pkg.PythonPkg:
 		format = PythonFormat
 	case pkg.KbPkg:
