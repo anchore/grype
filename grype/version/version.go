@@ -14,13 +14,13 @@ type Version struct {
 }
 
 type rich struct {
-	cpeVers []syftPkg.CPE
-	semVer  *semanticVersion
-	apkVer  *apkVersion
-	debVer  *debVersion
-	rpmVer  *rpmVersion
-	kbVer   *kbVersion
-	gemVer  *gemfileVersion
+	cpeVers    []syftPkg.CPE
+	semVer     *semanticVersion
+	apkVer     *apkVersion
+	debVer     *debVersion
+	rpmVer     *rpmVersion
+	kbVer      *kbVersion
+	gemfileVer *gemfileVersion
 }
 
 func NewVersion(raw string, format Format) (*Version, error) {
@@ -74,7 +74,7 @@ func (v *Version) populate() error {
 		return nil
 	case GemfileFormat:
 		ver, err := newGemfileVersion(v.Raw)
-		v.rich.gemVer = ver
+		v.rich.gemfileVer = ver
 		return err
 	case UnknownFormat:
 		// use the raw string + fuzzy constraint

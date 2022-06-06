@@ -31,12 +31,12 @@ func (pr *mockLanguageProvider) stub() {
 		// direct...
 		"activerecord": {
 			{
-				Constraint: version.MustGetConstraint("< 3.7.6", version.SemanticFormat),
+				Constraint: version.MustGetConstraint("< 3.7.6", version.GemfileFormat),
 				ID:         "CVE-2017-fake-1",
 				Namespace:  "github:ruby",
 			},
 			{
-				Constraint: version.MustGetConstraint("< 3.7.4", version.SemanticFormat),
+				Constraint: version.MustGetConstraint("< 3.7.4", version.GemfileFormat),
 				ID:         "CVE-2017-fake-2",
 				Namespace:  "github:ruby",
 			},
@@ -76,7 +76,7 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 						"namespace": "github:ruby",
 					},
 					Found: map[string]interface{}{
-						"versionConstraint": "< 3.7.6 (semver)",
+						"versionConstraint": "< 3.7.6 (gemfile)",
 					},
 					Matcher: match.RubyGemMatcher,
 				},
