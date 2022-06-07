@@ -24,7 +24,7 @@ func newGemfileVersion(raw string) (*gemfileVersion, error) {
 
 func (g *gemfileVersion) Compare(other *Version) (int, error) {
 	if other.Format != GemfileFormat {
-		return -1, fmt.Errorf("unable to compare Gemfile.lock version to given format: %s", other.Format)
+		return -1, fmt.Errorf("unable to compare Gemfile version to given format: %s", other.Format)
 	}
 	if other.rich.gemfileVer == nil {
 		return -1, fmt.Errorf("given empty gemfileVersion object")
