@@ -17,10 +17,10 @@ func TestValidatedConfig(t *testing.T) {
 		{
 			"valid template config",
 			"template",
-			"./some/path/to/a/custom.template",
+			"./template/test-fixtures/test.valid.template",
 			Config{
 				format:           "template",
-				templateFilePath: "./some/path/to/a/custom.template",
+				templateFilePath: "./template/test-fixtures/test.valid.template",
 			},
 			assert.NoError,
 		},

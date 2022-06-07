@@ -1,6 +1,11 @@
 package presenter
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+	"os"
+	"text/template"
+)
 
 // Config is the presenter domain's configuration data structure.
 type Config struct {
@@ -24,7 +29,19 @@ func ValidatedConfig(output, outputTemplateFile string) (Config, error) {
 				templateFormat)
 		}
 
-		// TODO: Should we also validate access to the template file and the template's syntax, too?
+		if _, err := os.Stat(outputTemplateFile); errors.Is(err, os.ErrNotExist) {
+			// file does not exist
+			return Config{}, fmt.Errorf("template file %q does not exist",
+				outputTemplateFile)
+		}
+
+		if _, err := os.ReadFile(outputTemplateFile); err != nil {
+			return Config{}, fmt.Errorf("unable to read template file: %w", err)
+		}
+
+		if _, err := template.ParseFiles(outputTemplateFile); err != nil {
+			return Config{}, fmt.Errorf("unable to parse template: %w", err)
+		}
 
 		return Config{
 			format:           format,
