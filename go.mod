@@ -17,7 +17,6 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/facebookincubator/nvdtools v0.1.4
 	github.com/gabriel-vasile/mimetype v1.4.0
-	github.com/glebarez/sqlite v1.4.1
 	github.com/go-test/deep v1.0.8
 	github.com/google/go-cmp v0.5.7
 	github.com/google/uuid v1.3.0
@@ -49,10 +48,11 @@ require (
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	gopkg.in/yaml.v2 v2.4.0
-	gorm.io/gorm v1.23.3
+	gorm.io/gorm v1.23.5
 )
 
 require (
+	github.com/anchore/sqlite v1.4.6-0.20220607210448-bcc6ee5c4963
 	github.com/in-toto/in-toto-golang v0.3.4-0.20211211042327-af1f9fb822bf
 	github.com/secure-systems-lab/go-securesystemslib v0.3.1
 	github.com/sigstore/cosign v1.8.0
@@ -111,7 +111,6 @@ require (
 	github.com/form3tech-oss/jwt-go v3.2.5+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/fullstorydev/grpcurl v1.8.2 // indirect
-	github.com/glebarez/go-sqlite v1.15.1 // indirect
 	github.com/go-chi/chi v4.1.2+incompatible // indirect
 	github.com/go-logr/logr v1.2.2 // indirect
 	github.com/go-openapi/analysis v0.21.2 // indirect
@@ -166,6 +165,7 @@ require (
 	github.com/jonboulle/clockwork v0.2.2 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/klauspost/compress v1.14.2 // indirect
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
@@ -283,10 +283,16 @@ require (
 	k8s.io/kube-openapi v0.0.0-20220124234850-424119656bbf // indirect
 	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect
 	knative.dev/pkg v0.0.0-20220325200448-1f7514acd0c2 // indirect
-	modernc.org/libc v1.14.12 // indirect
+	lukechampine.com/uint128 v1.1.1 // indirect
+	modernc.org/cc/v3 v3.36.0 // indirect
+	modernc.org/ccgo/v3 v3.16.6 // indirect
+	modernc.org/libc v1.16.8 // indirect
 	modernc.org/mathutil v1.4.1 // indirect
-	modernc.org/memory v1.0.7 // indirect
-	modernc.org/sqlite v1.15.2 // indirect
+	modernc.org/memory v1.1.1 // indirect
+	modernc.org/opt v0.1.1 // indirect
+	modernc.org/sqlite v1.17.3 // indirect
+	modernc.org/strutil v1.1.1 // indirect
+	modernc.org/token v1.0.0 // indirect
 	sigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
