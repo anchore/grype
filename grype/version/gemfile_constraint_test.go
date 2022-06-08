@@ -11,9 +11,18 @@ func TestGemfileVersionSemantic(t *testing.T) {
 		// empty values
 		{version: "2.3.1", constraint: "", satisfied: true},
 		// typical cases
+		{version: "0.9.9-r0", constraint: "< 0.9.12-r1", satisfied: true}, // regression case
+		{version: "1.5.0-arm-windows", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: true},
+		{version: "0.2.0-arm-windows", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: true},
+		{version: "0.0.1-armv5-window", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: false},
+		{version: "0.0.1-armv7-linux", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: false},
+		{version: "0.6.0-universal-darwin-9", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: false},
+		{version: "0.6.0-universal-darwin-10", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: false},
+		{version: "0.6.0-x86_64-darwin-10", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: false},
+		{version: "2.5.0", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: false},
 		{version: "1.2.0", constraint: ">1.0, <2.0", satisfied: true},
-		{version: "1.2.0-x86-linux", constraint: ">1.0, <2.0", satisfied: true},
 		{version: "1.2.0-x86", constraint: ">1.0, <2.0", satisfied: true},
+		{version: "1.2.0-x86-linux", constraint: ">1.0, <2.0", satisfied: true},
 		{version: "1.2.0-x86-linux", constraint: "= 1.2.0", satisfied: true},
 		{version: "1.2.0-x86_64-linux", constraint: "= 1.2.0", satisfied: true},
 		{version: "1.2.0-x86_64-linux", constraint: "< 1.2.1", satisfied: true},
