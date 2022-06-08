@@ -15,8 +15,7 @@ import (
 // chars that are not valid semantic versions, such as underscore (_ in 1.13.1-x86_64-linux),
 // also the arch and OS info would be read as a pre-release value, which is incorrect.
 type gemfileConstraint struct {
-	raw        string
-	constraint hashiVer.Constraints
+	semConst semanticConstraint
 }
 
 func newGemfileConstraint(constStr string) (gemfileConstraint, error) {
@@ -25,47 +24,32 @@ func newGemfileConstraint(constStr string) (gemfileConstraint, error) {
 		return gemfileConstraint{}, nil
 	}
 
-	semVer := extractSemVer(constStr)
-	normalized := normalizer.Replace(semVer)
-	constraints, err := hashiVer.NewConstraint(normalized)
+	semConst, err := newSemanticConstraint(constStr)
 	if err != nil {
 		return gemfileConstraint{}, err
 	}
-	return gemfileConstraint{
-		raw:        normalized,
-		constraint: constraints,
-	}, nil
+	semConst.checker = gemVerifier
+	return gemfileConstraint{semConst: semConst}, nil
 }
 
-func (g gemfileConstraint) supported(format Format) bool {
-	return format == GemfileFormat
-}
-
-func (g gemfileConstraint) Satisfied(version *Version) (bool, error) {
-	if g.raw == "" && version != nil {
-		// an empty constraint is always satisfied
-		return true, nil
-	} else if version == nil {
-		if g.raw != "" {
-			// a non-empty constraint with no version given should always fail
-			return false, nil
-		}
-		return true, nil
-	}
-
-	if !g.supported(version.Format) {
+func gemVerifier(constraint hashiVer.Constraints, version *Version) (bool, error) {
+	if GemfileFormat != version.Format {
 		return false, fmt.Errorf("(gemfile) unsupported format: %s", version.Format)
 	}
 
 	if version.rich.gemfileVer == nil {
 		return false, fmt.Errorf("no gemfile version given: %+v", version)
 	}
-	return g.constraint.Check(version.rich.gemfileVer.semVer.verObj), nil
+	return constraint.Check(version.rich.gemfileVer.semVer.verObj), nil
+}
+
+func (g gemfileConstraint) Satisfied(version *Version) (bool, error) {
+	return g.semConst.Satisfied(version)
 }
 
 func (g gemfileConstraint) String() string {
-	if g.raw == "" {
+	if g.semConst.raw == "" {
 		return "none (gemfile)"
 	}
-	return fmt.Sprintf("%s (gemfile)", g.raw)
+	return fmt.Sprintf("%s (gemfile)", g.semConst.raw)
 }
