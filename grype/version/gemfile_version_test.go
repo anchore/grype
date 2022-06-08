@@ -35,8 +35,8 @@ func Test_newGemfileVersion(t *testing.T) {
 		{input: "1.13.1-x86-mswin32-80", want: makeSemVer(t, "1.13.1")},
 		{input: "1.13.1-universal-darwin-8", want: makeSemVer(t, "1.13.1")},
 		{input: "1.13.1-beta-universal-darwin-8", want: makeSemVer(t, "1.13.1.beta")},
-		{input: "1.13.1-alpha-1-arm-linux+meta", want: makeSemVer(t, "1.13.1.alpha-1")},
-		{input: "1.13.1-alpha-1-arm-linux+build.12", want: makeSemVer(t, "1.13.1.alpha-1")},
+		{input: "1.13.1-alpha-1+meta-arm-linux", want: makeSemVer(t, "1.13.1.alpha-1+meta")},
+		{input: "1.13.1-alpha-1+build.12-arm-linux", want: makeSemVer(t, "1.13.1.alpha-1+build.12")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
@@ -52,6 +52,7 @@ func Test_newGemfileVersion(t *testing.T) {
 
 			v, err := got.Compare(other)
 			assert.NoError(t, err)
+			// zero here means `other` and `got` are the same version
 			assert.Equal(t, 0, v)
 		})
 	}

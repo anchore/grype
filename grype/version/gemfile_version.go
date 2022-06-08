@@ -20,14 +20,17 @@ type gemfileVersion struct {
 //
 // Bunlder's code: https://github.com/rubygems/rubygems/blob/2070231bf0c7c4654bbc2e4c08882bf414840360/bundler/spec/install/gemfile/platform_spec.rb offers more info on possible architecture values, for example `mswin32` may appead without arch.
 //
-// CPU is the most structured value present in gemfile.lock versions, we use it
+// Spec for pre-release info: https://github.com/rubygems/rubygems/blob/2070231bf0c7c4654bbc2e4c08882bf414840360/bundler/spec/install/gemfile/path_spec.rb#L186
+//
+// CPU/arch is the most structured value present in gemfile.lock versions, we use it
 // to split the version info in half, the first half has semVer, and
 // the second half has arch and OS which we ignore.
+// When there is no arch we split the version string with: {java, delvik, mswin32}
 func extractSemVer(raw string) string {
-	cpus := []string{"x86", "x86_64", "universal", "arm", "java", "dalvik", "x64", "powerpc", "sparc", "mswin32"}
+	platforms := []string{"x86", "x86_64", "universal", "arm", "java", "dalvik", "x64", "powerpc", "sparc", "mswin32"}
 	dash := "-"
-	for _, cpu := range cpus {
-		vals := strings.SplitN(raw, dash+cpu, 2)
+	for _, p := range platforms {
+		vals := strings.SplitN(raw, dash+p, 2)
 		if len(vals) == 2 {
 			return vals[0]
 		}
