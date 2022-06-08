@@ -10,4 +10,5 @@ type Namespace interface {
 	Provider() string
 	Type() Type
 	Resolver() resolver.Resolver
+	String() string
 }
