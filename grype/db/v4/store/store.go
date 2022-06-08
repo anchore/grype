@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	_ "github.com/glebarez/sqlite" // provide the sqlite dialect to gorm via import
+	_ "github.com/anchore/sqlite" // provide the sqlite dialect to gorm via import
 	"github.com/go-test/deep"
 	"gorm.io/gorm"
 
