@@ -28,6 +28,7 @@ func TestGemfileConstraint(t *testing.T) {
 		{version: "1.2.0-x86_64-linux", constraint: "< 1.2.1", satisfied: true},
 		{version: "1.2.3----RC-SNAPSHOT.12.9.1--.12+788", constraint: "> 1.0.0", satisfied: true},
 		{version: "1.2.3----RC-SNAPSHOT.12.9.1--.12+788-armv7-darwin", constraint: "< 1.2.3", satisfied: true},
+		{version: "1.2.3----rc-snapshot.12.9.1--.12+788-armv7-darwin", constraint: "< 1.2.3", satisfied: true},
 		// https://semver.org/#spec-item-11
 		{version: "1.2.0-alpha-x86-linux", constraint: "<1.2.0", satisfied: true},
 		{version: "1.2.0-alpha-1-x86-linux", constraint: "<1.2.0", satisfied: true},

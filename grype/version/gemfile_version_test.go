@@ -37,6 +37,8 @@ func Test_newGemfileVersion(t *testing.T) {
 		{input: "1.13.1-beta-universal-darwin-8", want: makeSemVer(t, "1.13.1.beta")},
 		{input: "1.13.1-alpha-1+meta-arm-linux", want: makeSemVer(t, "1.13.1.alpha-1+meta")},
 		{input: "1.13.1-alpha-1+build.12-arm-linux", want: makeSemVer(t, "1.13.1.alpha-1+build.12")},
+		{input: "1.2.3----RC-SNAPSHOT.12.9.1--.12+788-armv7-darwin", want: makeSemVer(t, "1.2.3----RC-SNAPSHOT.12.9.1--.12+788")},
+		{input: "1.2.3----rc-snapshot.12.9.1--.12+788-armv7-darwin", want: makeSemVer(t, "1.2.3----rc-snapshot.12.9.1--.12+788")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
