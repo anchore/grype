@@ -18,15 +18,16 @@ type gemfileVersion struct {
 // the underscore. Also, we can't sort based on arch and OS in a way that make sense
 // for versions. SemVer is a characteristic of the code, not which arch OS it runs on.
 //
+// Bunlder's code: https://github.com/rubygems/rubygems/blob/2070231bf0c7c4654bbc2e4c08882bf414840360/bundler/spec/install/gemfile/platform_spec.rb offers more info on possible architecture values, for example `mswin32` may appead without arch.
+//
 // CPU is the most structured value present in gemfile.lock versions, we use it
 // to split the version info in half, the first half has semVer, and
 // the second half has arch and OS which we ignore.
 func extractSemVer(raw string) string {
-	lower := strings.ToLower(raw)
-
-	cpus := []string{"-x86", "-x86_64", "-universal", "-arm", "-armv5", "-armv6", "-armv7"}
+	cpus := []string{"x86", "x86_64", "universal", "arm", "java", "dalvik", "x64", "powerpc", "sparc", "mswin32"}
+	dash := "-"
 	for _, cpu := range cpus {
-		vals := strings.SplitN(lower, cpu, 2)
+		vals := strings.SplitN(raw, dash+cpu, 2)
 		if len(vals) == 2 {
 			return vals[0]
 		}
@@ -48,10 +49,13 @@ func newGemfileVersion(raw string) (*gemfileVersion, error) {
 }
 
 func (g *gemfileVersion) Compare(other *Version) (int, error) {
-	if other.Format != GemfileFormat {
+	if other.Format != GemfileFormat && other.Format != SemanticFormat {
 		return -1, fmt.Errorf("unable to compare Gemfile version to given format: %s", other.Format)
 	}
 	if other.rich.gemfileVer == nil || other.rich.gemfileVer.semVer == nil {
+		if other.rich.semVer != nil {
+			return other.rich.semVer.verObj.Compare(g.semVer.verObj), nil
+		}
 		return -1, fmt.Errorf("given empty gemfileVersion object")
 	}
 
