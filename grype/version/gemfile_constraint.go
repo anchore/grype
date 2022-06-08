@@ -2,35 +2,37 @@ package version
 
 import (
 	"fmt"
-	"strings"
 
 	hashiVer "github.com/anchore/go-version"
 )
 
-// bundler >= 2.2.0 adds metadata suffixes to each package version
-// these values are removed to create clean/normalized semver value,
-// while the orignal value is preserved in raw.
-var gemfileNormalizer = strings.NewReplacer("-x86_64", "", "-darwin", "", "-linux", "", "-x86", "", ".alpha", "-alpha", ".beta", "-beta", ".rc", "-rc")
-
+// Gemfile.lock doesn't follow a spec, the best documentation comes
+// from `gem help platform`: The platform you pass must match "#{cpu}-#{os}" or
+// "#{cpu}-#{os}-#{version}".  On mswin
+// platforms, the version is the compiler version, not the OS version.  (Ruby
+// compiled with VC6 uses "60" as the compiler version, VC8 uses "80".)
+// Ruby Gemfile.locks, created by bundler, version string may include
+// chars that are not valid semantic versions, such as underscore (_ in 1.13.1-x86_64-linux),
+// also the arch and OS info would be read as a pre-release value, which is incorrect.
 type gemfileConstraint struct {
 	raw        string
 	constraint hashiVer.Constraints
 }
 
-func newGemfileConstraint(raw string) (gemfileConstraint, error) {
-	if raw == "" {
+func newGemfileConstraint(constStr string) (gemfileConstraint, error) {
+	if constStr == "" {
 		// an empty constraint is always satisfied
 		return gemfileConstraint{}, nil
 	}
 
-	normalized := gemfileNormalizer.Replace(raw)
-
+	semVer := extractSemVer(constStr)
+	normalized := normalizer.Replace(semVer)
 	constraints, err := hashiVer.NewConstraint(normalized)
 	if err != nil {
 		return gemfileConstraint{}, err
 	}
 	return gemfileConstraint{
-		raw:        raw,
+		raw:        normalized,
 		constraint: constraints,
 	}, nil
 }
@@ -58,7 +60,7 @@ func (g gemfileConstraint) Satisfied(version *Version) (bool, error) {
 	if version.rich.gemfileVer == nil {
 		return false, fmt.Errorf("no gemfile version given: %+v", version)
 	}
-	return g.constraint.Check(version.rich.gemfileVer.verObj), nil
+	return g.constraint.Check(version.rich.gemfileVer.semVer.verObj), nil
 }
 
 func (g gemfileConstraint) String() string {
