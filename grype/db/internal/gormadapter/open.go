@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
+
+	"github.com/anchore/sqlite"
 )
 
 var connectStatements = []string{
