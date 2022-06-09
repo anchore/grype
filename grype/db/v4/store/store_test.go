@@ -1058,12 +1058,12 @@ func TestCvssScoresInMetadata(t *testing.T) {
 	}
 }
 
-/*func assertVulnerabilityExclusionReader(t *testing.T, reader v4.VulnerabilityMatchExclusionStoreReader, id, namespace string, expected []v4.VulnerabilityMatchExclusion) {
+func assertVulnerabilityMatchExclusionReader(t *testing.T, reader v4.VulnerabilityMatchExclusionStoreReader, id, namespace string, expected []v4.VulnerabilityMatchExclusion) {
 	if actual, err := reader.GetVulnerabilityMatchExclusion(id, namespace); err != nil {
-		t.Fatalf("failed to get Vulnerability Exclusion: %+v", err)
+		t.Fatalf("failed to get Vulnerability Match Exclusion: %+v", err)
 	} else {
 		if len(actual) != len(expected) {
-			t.Fatalf("unexpected number of exclusions: %d", len(actual))
+			t.Fatalf("unexpected number of vulnerability match exclusions: %d", len(actual))
 		}
 		for idx := range actual {
 			diffs := deep.Equal(expected[idx], actual[idx])
@@ -1076,7 +1076,7 @@ func TestCvssScoresInMetadata(t *testing.T) {
 	}
 }
 
-func TestStore_GetVulnerabilityExclusion_SetVulnerabilityExclusion(t *testing.T) {
+func TestStore_GetVulnerabilityMatchExclusion_SetVulnerabilityMatchExclusion(t *testing.T) {
 	dbTempFile, err := ioutil.TempFile("", "grype-db-test-store")
 	if err != nil {
 		t.Fatalf("could not create temp file: %+v", err)
@@ -1090,26 +1090,87 @@ func TestStore_GetVulnerabilityExclusion_SetVulnerabilityExclusion(t *testing.T)
 
 	extra := []v4.VulnerabilityMatchExclusion{
 		{
-			ID:            "CVE-1234-14567",
-			Namespace:     "my-namespace",
-			Constraint:    "{}",
+			ID:        "CVE-1234-14567",
+			Namespace: "extra-namespace:cpe",
+			Constraints: []v4.VulnerabilityMatchExclusionConstraint{
+				{
+					Language: "ruby",
+					PackageConstraints: []v4.VulnerabilityMatchExclusionPackageConstraint{
+						{
+							PackageName: "abc",
+							Versions:    []string{"1.2.3", "4.5.6"},
+						},
+						{
+							PackageName: "time-1",
+						},
+					},
+				},
+				{
+					PackageType: "java-archive",
+					PackageConstraints: []v4.VulnerabilityMatchExclusionPackageConstraint{
+						{
+							PackageName: "abc.xyz:nothing-of-interest",
+						},
+					},
+				},
+			},
 			Justification: "Because I said so.",
 		},
 	}
 
 	expected := []v4.VulnerabilityMatchExclusion{
 		{
-			ID:            "CVE-1234-9999999",
-			Namespace:     "my-namespace",
-			Constraint:    "{\"packages\": [\"1234567\"]}",
+			ID:        "CVE-1234-9999999",
+			Namespace: "old-namespace:cpe",
+			Constraints: []v4.VulnerabilityMatchExclusionConstraint{
+				{
+					Language: "python",
+					PackageConstraints: []v4.VulnerabilityMatchExclusionPackageConstraint{
+						{
+							PackageName: "abc",
+							Versions:    []string{"1.2.3", "4.5.6"},
+						},
+						{
+							PackageName: "time-245",
+						},
+					},
+				},
+				{
+					PackageType: "npm",
+					PackageConstraints: []v4.VulnerabilityMatchExclusionPackageConstraint{
+						{
+							PackageName: "everything",
+						},
+					},
+				},
+			},
 			Justification: "This is a false positive",
+		},
+		{
+			ID:        "CVE-1234-9999999",
+			Namespace: "old-namespace:cpe",
+			Constraints: []v4.VulnerabilityMatchExclusionConstraint{
+				{
+					Language:    "go",
+					PackageType: "go-module",
+					PackageConstraints: []v4.VulnerabilityMatchExclusionPackageConstraint{
+						{
+							PackageName: "abc",
+						},
+					},
+				},
+				{
+					FixState: "wont-fix",
+				},
+			},
+			Justification: "This is also a false positive",
 		},
 	}
 
 	total := append(expected, extra...)
 
 	if err = s.AddVulnerabilityMatchExclusion(total...); err != nil {
-		t.Fatalf("failed to set Vulnerability Exclusion: %+v", err)
+		t.Fatalf("failed to set Vulnerability Match Exclusion: %+v", err)
 	}
 
 	var allEntries []model.VulnerabilityMatchExclusionModel
@@ -1118,6 +1179,5 @@ func TestStore_GetVulnerabilityExclusion_SetVulnerabilityExclusion(t *testing.T)
 		t.Fatalf("unexpected number of entries: %d", len(allEntries))
 	}
 
-	assertVulnerabilityExclusionReader(t, s, expected[0].Id, expected[0].Namespace, expected)
-
-}*/
+	assertVulnerabilityMatchExclusionReader(t, s, expected[0].ID, expected[0].Namespace, expected)
+}
