@@ -31,7 +31,7 @@ func (pr *mockLanguageProvider) stub() {
 		// direct...
 		"activerecord": {
 			{
-				Constraint: version.MustGetConstraint("< 3.7.6", version.GemfileFormat),
+				Constraint: version.MustGetConstraint("< 3.7.6", version.SemanticFormat),
 				ID:         "CVE-2017-fake-1",
 				Namespace:  "github:ruby",
 			},
