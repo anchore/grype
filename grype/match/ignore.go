@@ -27,6 +27,7 @@ type IgnoreRule struct {
 type IgnoreRulePackage struct {
 	Name     string `yaml:"name" json:"name" mapstructure:"name"`
 	Version  string `yaml:"version" json:"version" mapstructure:"version"`
+	Language string `yaml:"language" json:"language" mapstructure:"language"`
 	Type     string `yaml:"type" json:"type" mapstructure:"type"`
 	Location string `yaml:"location" json:"location" mapstructure:"location"`
 }
@@ -106,6 +107,10 @@ func getIgnoreConditionsForRule(rule IgnoreRule) []ignoreCondition {
 		ignoreConditions = append(ignoreConditions, ifPackageVersionApplies(v))
 	}
 
+	if l := rule.Package.Language; l != "" {
+		ignoreConditions = append(ignoreConditions, ifPackageLanguageApplies(l))
+	}
+
 	if t := rule.Package.Type; t != "" {
 		ignoreConditions = append(ignoreConditions, ifPackageTypeApplies(t))
 	}
@@ -148,6 +153,12 @@ func ifPackageNameApplies(name string) ignoreCondition {
 func ifPackageVersionApplies(version string) ignoreCondition {
 	return func(match Match) bool {
 		return version == match.Package.Version
+	}
+}
+
+func ifPackageLanguageApplies(language string) ignoreCondition {
+	return func(match Match) bool {
+		return language == string(match.Package.Language)
 	}
 }
 
