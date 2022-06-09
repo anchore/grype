@@ -9,13 +9,13 @@ type StoreReader interface {
 	IDReader
 	VulnerabilityStoreReader
 	VulnerabilityMetadataStoreReader
-	VulnerabilityExclusionStoreReader
+	VulnerabilityMatchExclusionStoreReader
 }
 
 type StoreWriter interface {
 	IDWriter
 	VulnerabilityStoreWriter
 	VulnerabilityMetadataStoreWriter
-	VulnerabilityExclusionStoreWriter
+	VulnerabilityMatchExclusionStoreWriter
 	Vacuum()
 }

@@ -1058,8 +1058,8 @@ func TestCvssScoresInMetadata(t *testing.T) {
 	}
 }
 
-/*func assertVulnerabilityExclusionReader(t *testing.T, reader v4.VulnerabilityExclusionStoreReader, id, namespace string, expected []v4.VulnerabilityExclusion) {
-	if actual, err := reader.GetVulnerabilityExclusion(id, namespace); err != nil {
+/*func assertVulnerabilityExclusionReader(t *testing.T, reader v4.VulnerabilityMatchExclusionStoreReader, id, namespace string, expected []v4.VulnerabilityMatchExclusion) {
+	if actual, err := reader.GetVulnerabilityMatchExclusion(id, namespace); err != nil {
 		t.Fatalf("failed to get Vulnerability Exclusion: %+v", err)
 	} else {
 		if len(actual) != len(expected) {
@@ -1088,7 +1088,7 @@ func TestStore_GetVulnerabilityExclusion_SetVulnerabilityExclusion(t *testing.T)
 		t.Fatalf("could not create store: %+v", err)
 	}
 
-	extra := []v4.VulnerabilityExclusion{
+	extra := []v4.VulnerabilityMatchExclusion{
 		{
 			ID:            "CVE-1234-14567",
 			Namespace:     "my-namespace",
@@ -1097,7 +1097,7 @@ func TestStore_GetVulnerabilityExclusion_SetVulnerabilityExclusion(t *testing.T)
 		},
 	}
 
-	expected := []v4.VulnerabilityExclusion{
+	expected := []v4.VulnerabilityMatchExclusion{
 		{
 			ID:            "CVE-1234-9999999",
 			Namespace:     "my-namespace",
@@ -1108,11 +1108,11 @@ func TestStore_GetVulnerabilityExclusion_SetVulnerabilityExclusion(t *testing.T)
 
 	total := append(expected, extra...)
 
-	if err = s.AddVulnerabilityExclusion(total...); err != nil {
+	if err = s.AddVulnerabilityMatchExclusion(total...); err != nil {
 		t.Fatalf("failed to set Vulnerability Exclusion: %+v", err)
 	}
 
-	var allEntries []model.VulnerabilityExclusionModel
+	var allEntries []model.VulnerabilityMatchExclusionModel
 	s.(*store).db.Find(&allEntries)
 	if len(allEntries) != len(total) {
 		t.Fatalf("unexpected number of entries: %d", len(allEntries))
