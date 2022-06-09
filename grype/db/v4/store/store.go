@@ -39,8 +39,8 @@ func New(dbFilePath string, overwrite bool) (v4.Store, error) {
 		if err := db.AutoMigrate(&model.VulnerabilityMetadataModel{}); err != nil {
 			return nil, fmt.Errorf("unable to migrate Vulnerability Metadata model: %w", err)
 		}
-		if err := db.AutoMigrate(&model.VulnerabilityExclusionModel{}); err != nil {
-			return nil, fmt.Errorf("unable to migrate Vulnerability Exclusion model: %w", err)
+		if err := db.AutoMigrate(&model.VulnerabilityMatchExclusionModel{}); err != nil {
+			return nil, fmt.Errorf("unable to migrate Vulnerability Match Exclusion model: %w", err)
 		}
 	}
 
@@ -222,13 +222,13 @@ func (s *store) AddVulnerabilityMetadata(metadata ...v4.VulnerabilityMetadata) e
 	return nil
 }
 
-// GetVulnerabilityExclusion retrieves one or more vulnerability exclusion records given an id and namespace.
-func (s *store) GetVulnerabilityExclusion(id, namespace string) ([]v4.VulnerabilityExclusion, error) {
-	var models []model.VulnerabilityExclusionModel
+// GetVulnerabilityMatchExclusion retrieves one or more vulnerability match exclusion records given an id and namespace.
+func (s *store) GetVulnerabilityMatchExclusion(id, namespace string) ([]v4.VulnerabilityMatchExclusion, error) {
+	var models []model.VulnerabilityMatchExclusionModel
 
 	result := s.db.Where("id = ? AND namespace = ?", id, namespace).Find(&models)
 
-	var exclusions = make([]v4.VulnerabilityExclusion, len(models))
+	var exclusions = make([]v4.VulnerabilityMatchExclusion, len(models))
 	for idx, m := range models {
 		exclusion, err := m.Inflate()
 		if err != nil {
@@ -240,10 +240,10 @@ func (s *store) GetVulnerabilityExclusion(id, namespace string) ([]v4.Vulnerabil
 	return exclusions, result.Error
 }
 
-// AddVulnerabilityExclusion saves one or more vulnerability exclusion records into the sqlite3 store.
-func (s *store) AddVulnerabilityExclusion(exclusions ...v4.VulnerabilityExclusion) error {
+// AddVulnerabilityMatchExclusion saves one or more vulnerability match exclusion records into the sqlite3 store.
+func (s *store) AddVulnerabilityMatchExclusion(exclusions ...v4.VulnerabilityMatchExclusion) error {
 	for _, exclusion := range exclusions {
-		m := model.NewVulnerabilityExclusionModel(exclusion)
+		m := model.NewVulnerabilityMatchExclusionModel(exclusion)
 
 		result := s.db.Create(&m)
 		if result.Error != nil {
@@ -251,7 +251,7 @@ func (s *store) AddVulnerabilityExclusion(exclusions ...v4.VulnerabilityExclusio
 		}
 
 		if result.RowsAffected != 1 {
-			return fmt.Errorf("unable to add vulnerability exclusion (%d rows affected)", result.RowsAffected)
+			return fmt.Errorf("unable to add vulnerability match exclusion (%d rows affected)", result.RowsAffected)
 		}
 	}
 
