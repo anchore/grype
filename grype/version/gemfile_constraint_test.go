@@ -43,7 +43,7 @@ func TestGemfileConstraint(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.tName(), func(t *testing.T) {
-			constraint, err := newGemfileConstraint(test.constraint)
+			constraint, err := newSemanticConstraint(test.constraint)
 			assert.NoError(t, err, "unexpected error from newSemanticConstraint: %v", err)
 
 			test.assertVersionConstraint(t, GemfileFormat, constraint)

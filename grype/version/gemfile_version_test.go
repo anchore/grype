@@ -46,7 +46,7 @@ func Test_newGemfileVersion(t *testing.T) {
 			if !assert.NoError(t, err, fmt.Sprintf("newGemfileVersion(%v)", tt.input)) {
 				return
 			}
-			assert.Equalf(t, tt.want, got.semVer, "newGemfileVersion(%v)", tt.input)
+			assert.Equalf(t, tt.want, got, "newGemfileVersion(%v)", tt.input)
 
 			// check that semantic versions are comaprable to gemfile versions
 			other, err := NewVersion(tt.want.verObj.String(), SemanticFormat)

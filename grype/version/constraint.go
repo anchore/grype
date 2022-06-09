@@ -13,7 +13,7 @@ func GetConstraint(constStr string, format Format) (Constraint, error) {
 	switch format {
 	case ApkFormat:
 		return newApkConstraint(constStr)
-	case SemanticFormat:
+	case SemanticFormat, GemfileFormat:
 		return newSemanticConstraint(constStr)
 	case DebFormat:
 		return newDebConstraint(constStr)
@@ -28,8 +28,6 @@ func GetConstraint(constStr string, format Format) (Constraint, error) {
 		return newFuzzyConstraint(constStr, "python")
 	case KBFormat:
 		return newKBConstraint(constStr)
-	case GemfileFormat:
-		return newGemfileConstraint(constStr)
 	case UnknownFormat:
 		return newFuzzyConstraint(constStr, "unknown")
 	}

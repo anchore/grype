@@ -149,7 +149,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							},
 							Found: CPEResult{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*"},
-								VersionConstraint: "< 3.7.6 (gemfile)",
+								VersionConstraint: "< 3.7.6 (semver)",
 							},
 							Matcher: matcher,
 						},
@@ -198,7 +198,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							},
 							Found: CPEResult{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*"},
-								VersionConstraint: "< 3.7.6 (gemfile)",
+								VersionConstraint: "< 3.7.6 (semver)",
 							},
 							Matcher: matcher,
 						},
@@ -230,7 +230,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							},
 							Found: CPEResult{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:ruby:*:*"},
-								VersionConstraint: "< 3.7.4 (gemfile)",
+								VersionConstraint: "< 3.7.4 (semver)",
 							},
 							Matcher: matcher,
 						},
@@ -274,7 +274,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							},
 							Found: CPEResult{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:4.0.1:*:*:*:*:*:*:*"},
-								VersionConstraint: "= 4.0.1 (gemfile)",
+								VersionConstraint: "= 4.0.1 (semver)",
 							},
 							Matcher: matcher,
 						},

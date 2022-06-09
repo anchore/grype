@@ -35,7 +35,7 @@ func newSemanticConstraint(constStr string) (semanticConstraint, error) {
 }
 
 func (c semanticConstraint) supported(format Format) bool {
-	return format == SemanticFormat
+	return format == SemanticFormat || format == GemfileFormat
 }
 
 func (c semanticConstraint) Satisfied(version *Version) (bool, error) {

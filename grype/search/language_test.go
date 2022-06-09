@@ -76,7 +76,7 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 						"namespace": "github:ruby",
 					},
 					Found: map[string]interface{}{
-						"versionConstraint": "< 3.7.6 (gemfile)",
+						"versionConstraint": "< 3.7.6 (semver)",
 					},
 					Matcher: match.RubyGemMatcher,
 				},

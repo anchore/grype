@@ -1,18 +1,12 @@
 package version
 
 import (
-	"fmt"
 	"strings"
 )
 
-type gemfileVersion struct {
-	// keeping the raw version for transparency,
-	// but its value might change to fit semVer standards: https://semver.org/
-	raw    string
-	semVer *semanticVersion
-}
-
-// Gemfile.lock versions may have "{cpu}-{os}" or "{cpu}-{os}-{version}"
+// Gemfile.lock doesn't follow a spec, the best documentation comes
+// from `gem help platform`. Gemfile.lock versions may have "{cpu}-{os}"
+// or "{cpu}-{os}-{version}"
 // after the semvVer, for example, 12.2.1-alpha-x86_64-darwin-8, where `2.2.1-alpha`
 // is a valid and comparable semVer, and `x86_64-darwin-8` is not a semVer due to
 // the underscore. Also, we can't sort based on arch and OS in a way that make sense
@@ -25,9 +19,9 @@ type gemfileVersion struct {
 // CPU/arch is the most structured value present in gemfile.lock versions, we use it
 // to split the version info in half, the first half has semVer, and
 // the second half has arch and OS which we ignore.
-// When there is no arch we split the version string with: {java, delvik, mswin32}
+// When there is no arch we split the version string with: {java, delvik, mswin}
 func extractSemVer(raw string) string {
-	platforms := []string{"x86", "x86_64", "universal", "arm", "java", "dalvik", "x64", "powerpc", "sparc", "mswin32"}
+	platforms := []string{"x86", "universal", "arm", "java", "dalvik", "x64", "powerpc", "sparc", "mswin"}
 	dash := "-"
 	for _, p := range platforms {
 		vals := strings.SplitN(raw, dash+p, 2)
@@ -39,28 +33,7 @@ func extractSemVer(raw string) string {
 	return raw
 }
 
-func newGemfileVersion(raw string) (*gemfileVersion, error) {
+func newGemfileVersion(raw string) (*semanticVersion, error) {
 	cleaned := extractSemVer(raw)
-	semVer, err := newSemanticVersion(cleaned)
-	if err != nil {
-		return nil, fmt.Errorf("unable to crate gemfile version obj: %w", err)
-	}
-	return &gemfileVersion{
-		raw:    raw,
-		semVer: semVer,
-	}, nil
-}
-
-func (g *gemfileVersion) Compare(other *Version) (int, error) {
-	if other.Format != GemfileFormat && other.Format != SemanticFormat {
-		return -1, fmt.Errorf("unable to compare Gemfile version to given format: %s", other.Format)
-	}
-	if other.rich.gemfileVer == nil || other.rich.gemfileVer.semVer == nil {
-		if other.rich.semVer != nil {
-			return other.rich.semVer.verObj.Compare(g.semVer.verObj), nil
-		}
-		return -1, fmt.Errorf("given empty gemfileVersion object")
-	}
-
-	return other.rich.gemfileVer.semVer.verObj.Compare(g.semVer.verObj), nil
+	return newSemanticVersion(cleaned)
 }
