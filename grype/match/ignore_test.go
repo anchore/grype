@@ -1,6 +1,7 @@
 package match
 
 import (
+	syftPkg "github.com/anchore/syft/syft/pkg"
 	"testing"
 
 	"github.com/google/uuid"
@@ -16,7 +17,8 @@ var (
 	allMatches = []Match{
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID: "CVE-123",
+				ID:        "CVE-123",
+				Namespace: "debian-vulns",
 				Fix: vulnerability.Fix{
 					State: grypeDb.FixedState,
 				},
@@ -31,48 +33,54 @@ var (
 		},
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID: "CVE-456",
+				ID:        "CVE-456",
+				Namespace: "ruby-vulns",
 				Fix: vulnerability.Fix{
 					State: grypeDb.NotFixedState,
 				},
 			},
 			Package: pkg.Package{
-				ID:      pkg.ID(uuid.NewString()),
-				Name:    "reach",
-				Version: "100.0.50",
-				Type:    "gem",
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "reach",
+				Version:  "100.0.50",
+				Language: syftPkg.Ruby,
+				Type:     syftPkg.GemPkg,
 				Locations: source.NewLocationSet(source.NewVirtualLocation("/real/path/with/reach",
 					"/virtual/path/that/has/reach")),
 			},
 		},
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID: "CVE-457",
+				ID:        "CVE-457",
+				Namespace: "ruby-vulns",
 				Fix: vulnerability.Fix{
 					State: grypeDb.WontFixState,
 				},
 			},
 			Package: pkg.Package{
-				ID:      pkg.ID(uuid.NewString()),
-				Name:    "beach",
-				Version: "100.0.51",
-				Type:    "gem",
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "beach",
+				Version:  "100.0.51",
+				Language: syftPkg.Ruby,
+				Type:     syftPkg.GemPkg,
 				Locations: source.NewLocationSet(source.NewVirtualLocation("/real/path/with/beach",
 					"/virtual/path/that/has/beach")),
 			},
 		},
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID: "CVE-458",
+				ID:        "CVE-458",
+				Namespace: "ruby-vulns",
 				Fix: vulnerability.Fix{
 					State: grypeDb.UnknownFixState,
 				},
 			},
 			Package: pkg.Package{
-				ID:      pkg.ID(uuid.NewString()),
-				Name:    "speach",
-				Version: "100.0.52",
-				Type:    "gem",
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "speach",
+				Version:  "100.0.52",
+				Language: syftPkg.Ruby,
+				Type:     syftPkg.GemPkg,
 				Locations: source.NewLocationSet(source.NewVirtualLocation("/real/path/with/speach",
 					"/virtual/path/that/has/speach")),
 			},
@@ -214,6 +222,88 @@ func TestApplyIgnoreRules(t *testing.T) {
 					AppliedIgnoreRules: []IgnoreRule{
 						{
 							FixState: "unknown",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:       "ignore matches on namespace",
+			allMatches: allMatches,
+			ignoreRules: []IgnoreRule{
+				{Namespace: "ruby-vulns"},
+			},
+			expectedRemainingMatches: []Match{
+				allMatches[0],
+			},
+			expectedIgnoredMatches: []IgnoredMatch{
+				{
+					Match: allMatches[1],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							Namespace: "ruby-vulns",
+						},
+					},
+				},
+				{
+					Match: allMatches[2],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							Namespace: "ruby-vulns",
+						},
+					},
+				},
+				{
+					Match: allMatches[3],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							Namespace: "ruby-vulns",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:       "ignore matches on language",
+			allMatches: allMatches,
+			ignoreRules: []IgnoreRule{
+				{
+					Package: IgnoreRulePackage{
+						Language: string(syftPkg.Ruby),
+					},
+				},
+			},
+			expectedRemainingMatches: []Match{
+				allMatches[0],
+			},
+			expectedIgnoredMatches: []IgnoredMatch{
+				{
+					Match: allMatches[1],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							Package: IgnoreRulePackage{
+								Language: string(syftPkg.Ruby),
+							},
+						},
+					},
+				},
+				{
+					Match: allMatches[2],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							Package: IgnoreRulePackage{
+								Language: string(syftPkg.Ruby),
+							},
+						},
+					},
+				},
+				{
+					Match: allMatches[3],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							Package: IgnoreRulePackage{
+								Language: string(syftPkg.Ruby),
+							},
 						},
 					},
 				},
