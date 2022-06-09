@@ -1,7 +1,6 @@
 package match
 
 import (
-	syftPkg "github.com/anchore/syft/syft/pkg"
 	"testing"
 
 	"github.com/google/uuid"
@@ -10,6 +9,7 @@ import (
 	grypeDb "github.com/anchore/grype/grype/db/v3"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
 )
 
