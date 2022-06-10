@@ -222,11 +222,11 @@ func (s *store) AddVulnerabilityMetadata(metadata ...v4.VulnerabilityMetadata) e
 	return nil
 }
 
-// GetVulnerabilityMatchExclusion retrieves one or more vulnerability match exclusion records given an id and namespace.
-func (s *store) GetVulnerabilityMatchExclusion(id, namespace string) ([]v4.VulnerabilityMatchExclusion, error) {
+// GetVulnerabilityMatchExclusion retrieves one or more vulnerability match exclusion records given a vulnerability identifier.
+func (s *store) GetVulnerabilityMatchExclusion(id string) ([]v4.VulnerabilityMatchExclusion, error) {
 	var models []model.VulnerabilityMatchExclusionModel
 
-	result := s.db.Where("id = ? AND namespace = ?", id, namespace).Find(&models)
+	result := s.db.Where("id = ?", id).Find(&models)
 
 	var exclusions = make([]v4.VulnerabilityMatchExclusion, len(models))
 	for idx, m := range models {
