@@ -1062,8 +1062,9 @@ func assertVulnerabilityMatchExclusionReader(t *testing.T, reader v4.Vulnerabili
 	if actual, err := reader.GetVulnerabilityMatchExclusion(id); err != nil {
 		t.Fatalf("failed to get Vulnerability Match Exclusion: %+v", err)
 	} else {
+		t.Logf("%+v", actual)
 		if len(actual) != len(expected) {
-			t.Fatalf("unexpected number of vulnerability match exclusions: %d", len(actual))
+			t.Fatalf("unexpected number of vulnerability match exclusions: expected=%d, actual=%d", len(expected), len(actual))
 		}
 		for idx := range actual {
 			diffs := deep.Equal(expected[idx], actual[idx])
@@ -1182,10 +1183,14 @@ func TestStore_GetVulnerabilityMatchExclusion_SetVulnerabilityMatchExclusion(t *
 			},
 			Justification: "This is also a false positive",
 		},
+		{
+			ID:            "CVE-1234-9999999",
+			Justification: "global exclude",
+		},
 	}
 
 	total := append(expected, extra...)
-
+	
 	if err = s.AddVulnerabilityMatchExclusion(total...); err != nil {
 		t.Fatalf("failed to set Vulnerability Match Exclusion: %+v", err)
 	}
@@ -1195,6 +1200,5 @@ func TestStore_GetVulnerabilityMatchExclusion_SetVulnerabilityMatchExclusion(t *
 	if len(allEntries) != len(total) {
 		t.Fatalf("unexpected number of entries: %d", len(allEntries))
 	}
-
 	assertVulnerabilityMatchExclusionReader(t, s, expected[0].ID, expected)
 }
