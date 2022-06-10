@@ -1058,8 +1058,8 @@ func TestCvssScoresInMetadata(t *testing.T) {
 	}
 }
 
-func assertVulnerabilityMatchExclusionReader(t *testing.T, reader v4.VulnerabilityMatchExclusionStoreReader, id, namespace string, expected []v4.VulnerabilityMatchExclusion) {
-	if actual, err := reader.GetVulnerabilityMatchExclusion(id, namespace); err != nil {
+func assertVulnerabilityMatchExclusionReader(t *testing.T, reader v4.VulnerabilityMatchExclusionStoreReader, id string, expected []v4.VulnerabilityMatchExclusion) {
+	if actual, err := reader.GetVulnerabilityMatchExclusion(id); err != nil {
 		t.Fatalf("failed to get Vulnerability Match Exclusion: %+v", err)
 	} else {
 		if len(actual) != len(expected) {
@@ -1090,26 +1090,30 @@ func TestStore_GetVulnerabilityMatchExclusion_SetVulnerabilityMatchExclusion(t *
 
 	extra := []v4.VulnerabilityMatchExclusion{
 		{
-			ID:        "CVE-1234-14567",
-			Namespace: "extra-namespace:cpe",
+			ID: "CVE-1234-14567",
 			Constraints: []v4.VulnerabilityMatchExclusionConstraint{
 				{
-					Language: "ruby",
-					PackageConstraints: []v4.VulnerabilityMatchExclusionPackageConstraint{
+					Namespaces: []string{"extra-namespace:cpe"},
+					EcosystemConstraints: []v4.VulnerabilityMatchExclusionEcosystemConstraint{
 						{
-							PackageName: "abc",
-							Versions:    []string{"1.2.3", "4.5.6"},
+							Language: "ruby",
+							PackageConstraints: []v4.VulnerabilityMatchExclusionPackageConstraint{
+								{
+									PackageName: "abc",
+									Versions:    []string{"1.2.3", "4.5.6"},
+								},
+								{
+									PackageName: "time-1",
+								},
+							},
 						},
 						{
-							PackageName: "time-1",
-						},
-					},
-				},
-				{
-					PackageType: "java-archive",
-					PackageConstraints: []v4.VulnerabilityMatchExclusionPackageConstraint{
-						{
-							PackageName: "abc.xyz:nothing-of-interest",
+							PackageType: "java-archive",
+							PackageConstraints: []v4.VulnerabilityMatchExclusionPackageConstraint{
+								{
+									PackageName: "abc.xyz:nothing-of-interest",
+								},
+							},
 						},
 					},
 				},
@@ -1118,7 +1122,6 @@ func TestStore_GetVulnerabilityMatchExclusion_SetVulnerabilityMatchExclusion(t *
 		},
 		{
 			ID:            "CVE-1234-10",
-			Namespace:     "extra-namespace:cpe",
 			Constraints:   nil,
 			Justification: "Because I said so.",
 		},
@@ -1126,26 +1129,30 @@ func TestStore_GetVulnerabilityMatchExclusion_SetVulnerabilityMatchExclusion(t *
 
 	expected := []v4.VulnerabilityMatchExclusion{
 		{
-			ID:        "CVE-1234-9999999",
-			Namespace: "old-namespace:cpe",
+			ID: "CVE-1234-9999999",
 			Constraints: []v4.VulnerabilityMatchExclusionConstraint{
 				{
-					Language: "python",
-					PackageConstraints: []v4.VulnerabilityMatchExclusionPackageConstraint{
+					Namespaces: []string{"old-namespace:cpe"},
+					EcosystemConstraints: []v4.VulnerabilityMatchExclusionEcosystemConstraint{
 						{
-							PackageName: "abc",
-							Versions:    []string{"1.2.3", "4.5.6"},
+							Language: "python",
+							PackageConstraints: []v4.VulnerabilityMatchExclusionPackageConstraint{
+								{
+									PackageName: "abc",
+									Versions:    []string{"1.2.3", "4.5.6"},
+								},
+								{
+									PackageName: "time-245",
+								},
+							},
 						},
 						{
-							PackageName: "time-245",
-						},
-					},
-				},
-				{
-					PackageType: "npm",
-					PackageConstraints: []v4.VulnerabilityMatchExclusionPackageConstraint{
-						{
-							PackageName: "everything",
+							PackageType: "npm",
+							PackageConstraints: []v4.VulnerabilityMatchExclusionPackageConstraint{
+								{
+									PackageName: "everything",
+								},
+							},
 						},
 					},
 				},
@@ -1153,20 +1160,24 @@ func TestStore_GetVulnerabilityMatchExclusion_SetVulnerabilityMatchExclusion(t *
 			Justification: "This is a false positive",
 		},
 		{
-			ID:        "CVE-1234-9999999",
-			Namespace: "old-namespace:cpe",
+			ID: "CVE-1234-9999999",
 			Constraints: []v4.VulnerabilityMatchExclusionConstraint{
 				{
-					Language:    "go",
-					PackageType: "go-module",
-					PackageConstraints: []v4.VulnerabilityMatchExclusionPackageConstraint{
+					Namespaces: []string{"old-namespace:cpe", "some-other-namespace:cpe"},
+					EcosystemConstraints: []v4.VulnerabilityMatchExclusionEcosystemConstraint{
 						{
-							PackageName: "abc",
+							Language:    "go",
+							PackageType: "go-module",
+							PackageConstraints: []v4.VulnerabilityMatchExclusionPackageConstraint{
+								{
+									PackageName: "abc",
+								},
+							},
 						},
 					},
 				},
 				{
-					FixState: "wont-fix",
+					FixStates: []v4.FixState{"wont-fix"},
 				},
 			},
 			Justification: "This is also a false positive",
@@ -1185,5 +1196,5 @@ func TestStore_GetVulnerabilityMatchExclusion_SetVulnerabilityMatchExclusion(t *
 		t.Fatalf("unexpected number of entries: %d", len(allEntries))
 	}
 
-	assertVulnerabilityMatchExclusionReader(t, s, expected[0].ID, expected[0].Namespace, expected)
+	assertVulnerabilityMatchExclusionReader(t, s, expected[0].ID, expected)
 }
