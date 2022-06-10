@@ -37,7 +37,7 @@ func (pr *mockLanguageProvider) stub() {
 				Namespace:  "github:ruby",
 			},
 			{
-				Constraint: version.MustGetConstraint("< 3.7.4", version.GemfileFormat),
+				Constraint: version.MustGetConstraint("< 3.7.4", version.GemFormat),
 				ID:         "CVE-2017-fake-2",
 				Namespace:  "github:ruby",
 			},
@@ -45,7 +45,7 @@ func (pr *mockLanguageProvider) stub() {
 		"nokogiri": {
 			{
 				// make sure we find it with gem version constraint
-				Constraint: version.MustGetConstraint("< 1.7.6", version.GemfileFormat),
+				Constraint: version.MustGetConstraint("< 1.7.6", version.GemFormat),
 				ID:         "CVE-2017-fake-1",
 				Namespace:  "github:ruby",
 			},
