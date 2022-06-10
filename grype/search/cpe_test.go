@@ -62,7 +62,7 @@ func (pr *mockVulnStore) stub() {
 			{
 				PackageName:       "activerecord",
 				VersionConstraint: "= 4.0.1",
-				VersionFormat:     version.SemanticFormat.String(),
+				VersionFormat:     version.GemFormat.String(),
 				ID:                "CVE-2017-fake-3",
 				CPEs: []string{
 					"cpe:2.3:*:activerecord:activerecord:4.0.1:*:*:*:*:*:*:*",

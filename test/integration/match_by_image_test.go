@@ -179,7 +179,7 @@ func addRubyMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 					"language": "ruby",
 				},
 				Found: map[string]interface{}{
-					"constraint": "> 4.0.0, <= 4.1.1 (semver)",
+					"constraint": "> 4.0.0, <= 4.1.1 (gemfile)",
 				},
 				Matcher: match.RubyGemMatcher,
 			},
