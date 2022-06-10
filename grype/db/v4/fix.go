@@ -11,6 +11,6 @@ const (
 
 // Fix represents all information about known fixes for a stated vulnerability.
 type Fix struct {
-	Versions []string // The version(s) which this particular vulnerability was fixed in
-	State    FixState
+	Versions []string `json:"versions"` // The version(s) which this particular vulnerability was fixed in
+	State    FixState `json:"state"`
 }

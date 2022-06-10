@@ -8,8 +8,8 @@ import (
 type ID struct {
 	// BuildTimestamp is the timestamp used to define the age of the DB, ideally including the age of the data
 	// contained in the DB, not just when the DB file was created.
-	BuildTimestamp time.Time
-	SchemaVersion  int
+	BuildTimestamp time.Time `json:"build_timestamp"`
+	SchemaVersion  int       `json:"schema_version"`
 }
 
 type IDReader interface {
