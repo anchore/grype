@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.2" xmlns:v="http://cyclonedx.org/schema/ext/vulnerability/1.0" version="1" serialNumber="urn:uuid:34a6630d-fe2b-4b08-856a-4a6292be7538">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.2" xmlns:v="http://cyclonedx.org/schema/ext/vulnerability/1.0" version="1" serialNumber="urn:uuid:70c09618-13d4-4239-965f-4e6dea3755a8">
   <metadata>
-    <timestamp>2022-04-29T13:18:20-04:00</timestamp>
+    <timestamp>2022-06-09T23:40:38Z</timestamp>
     <tools>
       <tool>
         <vendor>anchore</vendor>
@@ -19,7 +19,7 @@
       <name>package-1</name>
       <version>1.0.1</version>
       <v:vulnerabilities>
-        <v:vulnerability ref="urn:uuid:bc893913-42f8-4893-8c23-a6ffeef407f8">
+        <v:vulnerability ref="urn:uuid:1097357f-f654-4e53-bc54-5f9f3dae8898">
           <v:id>CVE-1999-0001</v:id>
           <v:source name="source-1">
             <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0001</v:url>
@@ -55,7 +55,7 @@
         </license>
       </licenses>
       <v:vulnerabilities>
-        <v:vulnerability ref="urn:uuid:a9d707b3-a31e-44e2-9a53-77c1f572d053">
+        <v:vulnerability ref="urn:uuid:8f844ffc-014c-4440-a5b2-649c2f1323aa">
           <v:id>CVE-1999-0002</v:id>
           <v:source name="source-2">
             <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0002</v:url>
