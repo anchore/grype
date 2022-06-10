@@ -228,15 +228,15 @@ func (s *store) GetVulnerabilityMatchExclusion(id string) ([]v4.VulnerabilityMat
 
 	result := s.db.Where("id = ?", id).Find(&models)
 
-	var exclusions = make([]v4.VulnerabilityMatchExclusion, len(models))
-	for idx, m := range models {
+	var exclusions []v4.VulnerabilityMatchExclusion
+	for _, m := range models {
 		exclusion, err := m.Inflate()
 		if err != nil {
 			return nil, err
 		}
 
 		if exclusion != nil {
-			exclusions[idx] = *exclusion
+			exclusions = append(exclusions, *exclusion)
 		}
 	}
 
