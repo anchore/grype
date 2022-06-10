@@ -234,7 +234,10 @@ func (s *store) GetVulnerabilityMatchExclusion(id string) ([]v4.VulnerabilityMat
 		if err != nil {
 			return nil, err
 		}
-		exclusions[idx] = exclusion
+
+		if exclusion != nil {
+			exclusions[idx] = *exclusion
+		}
 	}
 
 	return exclusions, result.Error
