@@ -1116,6 +1116,12 @@ func TestStore_GetVulnerabilityMatchExclusion_SetVulnerabilityMatchExclusion(t *
 			},
 			Justification: "Because I said so.",
 		},
+		{
+			ID:            "CVE-1234-10",
+			Namespace:     "extra-namespace:cpe",
+			Constraints:   nil,
+			Justification: "Because I said so.",
+		},
 	}
 
 	expected := []v4.VulnerabilityMatchExclusion{
