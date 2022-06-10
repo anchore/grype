@@ -27,7 +27,7 @@ var formatStr = []string{
 	"RPM",
 	"Python",
 	"KB",
-	"Gemfile",
+	"Gem",
 }
 
 var Formats = []Format{

@@ -35,6 +35,11 @@ func newSemanticConstraint(constStr string) (semanticConstraint, error) {
 }
 
 func (c semanticConstraint) supported(format Format) bool {
+	// gemfiles are a case of semantic version combined with non-semver
+	// and that doesn't work well. Gemfile_version.go extracts the semVer
+	// portion and makes a semVer object that is compatible with
+	// these constraints. In practice two formats (semVer, gemfile) follow semVer,
+	// but one of them needs extra cleanup to function (gemfile).
 	return format == SemanticFormat || format == GemfileFormat
 }
 

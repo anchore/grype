@@ -31,12 +31,26 @@ func (pr *mockLanguageProvider) stub() {
 		// direct...
 		"activerecord": {
 			{
+				// make sure we find it with semVer constraint
 				Constraint: version.MustGetConstraint("< 3.7.6", version.SemanticFormat),
 				ID:         "CVE-2017-fake-1",
 				Namespace:  "github:ruby",
 			},
 			{
 				Constraint: version.MustGetConstraint("< 3.7.4", version.GemfileFormat),
+				ID:         "CVE-2017-fake-2",
+				Namespace:  "github:ruby",
+			},
+		},
+		"nokogiri": {
+			{
+				// make sure we find it with gem version constraint
+				Constraint: version.MustGetConstraint("< 1.7.6", version.GemfileFormat),
+				ID:         "CVE-2017-fake-1",
+				Namespace:  "github:ruby",
+			},
+			{
+				Constraint: version.MustGetConstraint("< 1.7.4", version.SemanticFormat),
 				ID:         "CVE-2017-fake-2",
 				Namespace:  "github:ruby",
 			},
@@ -51,18 +65,9 @@ func (pr *mockLanguageProvider) GetByLanguage(l syftPkg.Language, p pkg.Package)
 	return pr.data["github:gem"][p.Name], nil
 }
 
-func TestFindMatchesByPackageLanguage(t *testing.T) {
-	p := pkg.Package{
-		ID:       pkg.ID(uuid.NewString()),
-		Name:     "activerecord",
-		Version:  "3.7.5",
-		Language: syftPkg.Ruby,
-		Type:     syftPkg.GemPkg,
-	}
-
-	expected := []match.Match{
+func expectedMatch(p pkg.Package, constraint string) []match.Match {
+	return []match.Match{
 		{
-
 			Vulnerability: vulnerability.Vulnerability{
 				ID: "CVE-2017-fake-1",
 			},
@@ -76,16 +81,48 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 						"namespace": "github:ruby",
 					},
 					Found: map[string]interface{}{
-						"versionConstraint": "< 3.7.6 (semver)",
+						"versionConstraint": constraint,
 					},
 					Matcher: match.RubyGemMatcher,
 				},
 			},
 		},
 	}
+}
+
+func TestFindMatchesByPackageLanguage(t *testing.T) {
+	cases := []struct {
+		p          pkg.Package
+		constraint string
+	}{
+		{
+			constraint: "< 3.7.6 (semver)",
+			p: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "activerecord",
+				Version:  "3.7.5",
+				Language: syftPkg.Ruby,
+				Type:     syftPkg.GemPkg,
+			},
+		},
+		{
+			constraint: "< 1.7.6 (semver)",
+			p: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "nokogiri",
+				Version:  "1.7.5",
+				Language: syftPkg.Ruby,
+				Type:     syftPkg.GemPkg,
+			},
+		},
+	}
 
 	store := newMockProviderByLanguage()
-	actual, err := ByPackageLanguage(store, p, match.RubyGemMatcher)
-	assert.NoError(t, err)
-	assertMatchesUsingIDsForVulnerabilities(t, expected, actual)
+	for _, c := range cases {
+		t.Run(c.p.Name, func(t *testing.T) {
+			actual, err := ByPackageLanguage(store, c.p, match.RubyGemMatcher)
+			assert.NoError(t, err)
+			assertMatchesUsingIDsForVulnerabilities(t, expectedMatch(c.p, c.constraint), actual)
+		})
+	}
 }
