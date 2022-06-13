@@ -1,6 +1,8 @@
 package match
 
-import "github.com/anchore/grype/internal/log"
+import (
+	"github.com/anchore/grype/internal/log"
+)
 
 var explicitIgnoreRules []IgnoreRule
 
@@ -37,8 +39,21 @@ func init() {
 
 // ApplyExplicitIgnoreRules This will filter out matches that are defined above, in the
 // explicitIgnores list
-func ApplyExplicitIgnoreRules(matches Matches) Matches {
-	matches, ignored := ApplyIgnoreRules(matches, explicitIgnoreRules)
+func ApplyExplicitIgnoreRules(provider ExclusionProvider, matches Matches) Matches {
+	var ignoreRules []IgnoreRule
+	ignoreRules = append(ignoreRules, explicitIgnoreRules...)
+
+	for _, m := range matches.Sorted() {
+		r, err := provider.GetRules(m.Vulnerability.ID)
+
+		if err != nil {
+			log.Warnf("unable to get ignore rules for vuln id=%s", m.Vulnerability.ID)
+		}
+
+		ignoreRules = append(ignoreRules, r...)
+	}
+
+	matches, ignored := ApplyIgnoreRules(matches, ignoreRules)
 
 	if len(ignored) > 0 {
 		log.Debugf("Removed %d explicit vulnerability matches:", len(ignored))

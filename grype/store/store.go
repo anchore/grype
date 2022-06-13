@@ -1,4 +1,4 @@
-package grype
+package store
 
 import (
 	"github.com/anchore/grype/grype/db"

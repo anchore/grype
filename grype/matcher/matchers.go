@@ -1,6 +1,7 @@
 package matcher
 
 import (
+	"github.com/anchore/grype/grype/store"
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
 
@@ -18,7 +19,6 @@ import (
 	"github.com/anchore/grype/grype/matcher/ruby"
 	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/linux"
@@ -79,7 +79,8 @@ func newMatcherIndex(matchers []Matcher) map[syftPkg.Type][]Matcher {
 	return matcherIndex
 }
 
-func FindMatches(provider vulnerability.Provider, release *linux.Release, matchers []Matcher, packages []pkg.Package) match.Matches {
+// TODO: store should be a minimal interface, not the full object
+func FindMatches(store store.Store, release *linux.Release, matchers []Matcher, packages []pkg.Package) match.Matches {
 	var err error
 	res := match.NewMatches()
 	matcherIndex := newMatcherIndex(matchers)
@@ -104,7 +105,7 @@ func FindMatches(provider vulnerability.Provider, release *linux.Release, matche
 			matchers = []Matcher{defaultMatcher}
 		}
 		for _, m := range matchers {
-			matches, err := m.Match(provider, d, p)
+			matches, err := m.Match(store.VulnerabilityProvider, d, p)
 			if err != nil {
 				log.Warnf("matcher failed for pkg=%s: %+v", p, err)
 			} else {
@@ -118,7 +119,8 @@ func FindMatches(provider vulnerability.Provider, release *linux.Release, matche
 	packagesProcessed.SetCompleted()
 	vulnerabilitiesDiscovered.SetCompleted()
 
-	res = match.ApplyExplicitIgnoreRules(res)
+	// Filter out matches based off of the records in the exclusion table in the database or from the old hard-coded rules
+	res = match.ApplyExplicitIgnoreRules(store.MatchExclusionProvider, res)
 
 	return res
 }

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/anchore/grype/grype/store"
 	"os"
 	"strings"
 	"sync"
@@ -281,7 +282,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			}
 		}
 
-		var store *grype.Store
+		var store *store.Store
 		var packages []pkg.Package
 		var context pkg.Context
 		var wg = &sync.WaitGroup{}
@@ -326,7 +327,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			Java: appConfig.ExternalSources.ToJavaMatcherConfig(),
 		})
 
-		allMatches := grype.FindVulnerabilitiesForPackage(store.VulnerabilityProvider, context.Distro, matchers, packages)
+		allMatches := grype.FindVulnerabilitiesForPackage(*store, context.Distro, matchers, packages)
 		remainingMatches, ignoredMatches := match.ApplyIgnoreRules(allMatches, appConfig.Ignore)
 
 		if count := len(ignoredMatches); count > 0 {

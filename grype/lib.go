@@ -1,6 +1,7 @@
 package grype
 
 import (
+	"github.com/anchore/grype/grype/store"
 	"github.com/wagoodman/go-partybus"
 
 	"github.com/anchore/grype/grype/db"
@@ -8,7 +9,6 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/stereoscope/pkg/image"
@@ -17,7 +17,8 @@ import (
 	"github.com/anchore/syft/syft/source"
 )
 
-func FindVulnerabilities(provider vulnerability.Provider, userImageStr string, scopeOpt source.Scope, registryOptions *image.RegistryOptions) (match.Matches, pkg.Context, []pkg.Package, error) {
+// TODO: store should be a minimal interface, not the full object
+func FindVulnerabilities(store store.Store, userImageStr string, scopeOpt source.Scope, registryOptions *image.RegistryOptions) (match.Matches, pkg.Context, []pkg.Package, error) {
 	providerConfig := pkg.ProviderConfig{
 		RegistryOptions:   registryOptions,
 		CatalogingOptions: cataloger.DefaultConfig(),
@@ -31,14 +32,15 @@ func FindVulnerabilities(provider vulnerability.Provider, userImageStr string, s
 
 	matchers := matcher.NewDefaultMatchers(matcher.Config{})
 
-	return FindVulnerabilitiesForPackage(provider, context.Distro, matchers, packages), context, packages, nil
+	return FindVulnerabilitiesForPackage(store, context.Distro, matchers, packages), context, packages, nil
 }
 
-func FindVulnerabilitiesForPackage(provider vulnerability.Provider, d *linux.Release, matchers []matcher.Matcher, packages []pkg.Package) match.Matches {
-	return matcher.FindMatches(provider, d, matchers, packages)
+// TODO: store should be a minimal interface, not the full object
+func FindVulnerabilitiesForPackage(store store.Store, d *linux.Release, matchers []matcher.Matcher, packages []pkg.Package) match.Matches {
+	return matcher.FindMatches(store, d, matchers, packages)
 }
 
-func LoadVulnerabilityDB(cfg db.Config, update bool) (*Store, error) {
+func LoadVulnerabilityDB(cfg db.Config, update bool) (*store.Store, error) {
 	dbCurator, err := db.NewCurator(cfg)
 	if err != nil {
 		return nil, err
