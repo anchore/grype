@@ -35,6 +35,6 @@ func (cfg database) ToCuratorConfig() db.Config {
 		ListingURL:          cfg.UpdateURL,
 		CACert:              cfg.CACert,
 		ValidateByHashOnGet: cfg.ValidateByHashOnStart,
-		DataStaleness:       cfg.StalenessThreshold,
+		StalenessThreshold:  cfg.StalenessThreshold,
 	}
 }

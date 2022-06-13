@@ -41,7 +41,7 @@ type Config struct {
 	ListingURL          string
 	CACert              string
 	ValidateByHashOnGet bool
-	DataStaleness       time.Duration
+	StalenessThreshold  time.Duration
 }
 
 type Curator struct {
@@ -72,7 +72,7 @@ func NewCurator(cfg Config) (Curator, error) {
 		dbPath:              path.Join(dbDir, FileName),
 		listingURL:          cfg.ListingURL,
 		validateByHashOnGet: cfg.ValidateByHashOnGet,
-		dataStalenessLimit:  cfg.DataStaleness,
+		dataStalenessLimit:  cfg.StalenessThreshold,
 	}, nil
 }
 
