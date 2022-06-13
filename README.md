@@ -399,6 +399,10 @@ By default, the database is cached on the local filesystem in the directory `$XD
 
 You can set the cache directory path using the environment variable `GRYPE_DB_CACHE_DIR`.
 
+#### Data staleness
+
+Grype needs up-to-date vulnerability information to provide good matches. By default, it will fail execution if the local database was not updated in the last 5 days. The data staleness check is configurable via the field `staleness-threshold`, under `db`. It uses golang's time duration syntax. Set it to 0 to disable staleness check.
+
 #### Offline and air-gapped environments
 
 By default, Grype checks for a new database on every run, by making a network call over the Internet. You can tell Grype not to perform this check by setting the environment variable `GRYPE_DB_AUTO_UPDATE` to `false`.
@@ -584,6 +588,11 @@ db:
   # same as GRYPE_DB_UPDATE_URL env var
   update-url: "https://toolbox-data.anchore.io/grype/databases/listing.json"
 
+  # if this period has passed since the
+  # last db update and `now` then db data is stale.
+  # Default threshold of 120h (or five days)
+  # Set it to 0 (zero) to disable staleness check
+  staleness-threshold: "120h"
 
 search:
 

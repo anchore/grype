@@ -301,3 +301,74 @@ func TestCuratorDBPathHasSchemaVersion(t *testing.T) {
 	assert.Equal(t, path.Join(dbRootPath, strconv.Itoa(cur.targetSchema)), cur.dbDir, "unexpected dir")
 	assert.Contains(t, cur.dbPath, path.Join(dbRootPath, strconv.Itoa(cur.targetSchema)), "unexpected path")
 }
+
+func assertAs(expected string) assert.ErrorAssertionFunc {
+	return func(t assert.TestingT, err error, i ...interface{}) bool {
+		return assert.ErrorContains(t, err, expected)
+	}
+}
+
+func TestCurator_validateStaleness(t *testing.T) {
+
+	type fields struct {
+		validateStalenss bool
+		staleLimist      time.Duration
+		md               *Metadata
+	}
+
+	tests := []struct {
+		name    string
+		cur     *Curator
+		fields  fields
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{
+			name: "no-validation",
+			fields: fields{
+				md: &Metadata{Built: time.Now()},
+			},
+			wantErr: assert.NoError,
+		},
+		{
+			name:    "no-metadata",
+			fields:  fields{},
+			wantErr: assert.NoError,
+		},
+		{
+			name: "up-to-date",
+			fields: fields{
+				validateStalenss: true,
+				staleLimist:      time.Hour,
+				md:               &Metadata{Built: time.Now()},
+			},
+			wantErr: assert.NoError,
+		},
+		{
+			name: "stale-data",
+			fields: fields{
+				validateStalenss: true,
+				staleLimist:      time.Hour,
+				md:               &Metadata{Built: time.Now().Add(-3 * time.Hour)},
+			},
+			wantErr: assertAs("data is stale"),
+		},
+		{
+			name: "db-without-built-time",
+			fields: fields{
+				validateStalenss: true,
+				staleLimist:      time.Hour,
+				md:               &Metadata{},
+			},
+			wantErr: assertAs("database built timestamp is empty: cannot verify if data is stale"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Curator{
+				validateDataStaleness: tt.fields.validateStalenss,
+				dataStalenessLimit:    tt.fields.staleLimist,
+			}
+			tt.wantErr(t, c.validateStaleness(tt.fields.md), fmt.Sprintf("validateStaleness(%v)", tt.fields.md))
+		})
+	}
+}

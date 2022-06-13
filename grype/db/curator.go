@@ -3,11 +3,13 @@ package db
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"path"
 	"strconv"
+	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/mholt/archiver/v3"
@@ -28,11 +30,17 @@ const (
 	FileName = grypeDB.VulnerabilityStoreFileName
 )
 
+var (
+	ErrDBNoBuiltTime = errors.New("database built timestamp is empty: cannot verify if data is stale")
+	ErrDataIsStale   = errors.New("data is stale")
+)
+
 type Config struct {
 	DBRootDir           string
 	ListingURL          string
 	CACert              string
 	ValidateByHashOnGet bool
+	DataStaleness       time.Duration
 }
 
 type Curator struct {
@@ -43,6 +51,7 @@ type Curator struct {
 	dbPath              string
 	listingURL          string
 	validateByHashOnGet bool
+	dataStalenessLimit  time.Duration
 }
 
 func NewCurator(cfg Config) (Curator, error) {
@@ -62,6 +71,7 @@ func NewCurator(cfg Config) (Curator, error) {
 		dbPath:              path.Join(dbDir, FileName),
 		listingURL:          cfg.ListingURL,
 		validateByHashOnGet: cfg.ValidateByHashOnGet,
+		dataStalenessLimit:  cfg.DataStaleness,
 	}, nil
 }
 
@@ -73,7 +83,7 @@ func (c *Curator) GetStore() (grypeDB.StoreReader, error) {
 	// ensure the DB is ok
 	err := c.Validate()
 	if err != nil {
-		return nil, fmt.Errorf("vulnerability database is corrupt (run db update to correct): %+v", err)
+		return nil, fmt.Errorf("vulnerability database is invalid (run db update to correct): %+v", err)
 	}
 
 	s, err := store.New(c.dbPath, false)
@@ -267,6 +277,24 @@ func (c *Curator) download(listing *ListingEntry, downloadProgress *progress.Man
 	return tempDir, nil
 }
 
+func (c *Curator) validateStaleness(m *Metadata) error {
+	if m == nil || c.dataStalenessLimit == 0 {
+		return nil
+	}
+
+	if m.Built.IsZero() {
+		return ErrDBNoBuiltTime
+	}
+
+	limit := time.Now().Add(-c.dataStalenessLimit)
+	if m.Built.Before(limit) {
+		age := time.Now().Sub(m.Built)
+		return fmt.Errorf("%w: last updated %s ago (> threshold %s)", ErrDataIsStale, age, c.dataStalenessLimit)
+	}
+
+	return nil
+}
+
 func (c *Curator) validate(dbDirPath string) error {
 	// check that the disk checksum still matches the db payload
 	metadata, err := NewMetadataFromDir(c.fs, dbDirPath)
@@ -294,7 +322,7 @@ func (c *Curator) validate(dbDirPath string) error {
 
 	// TODO: add version checks here to ensure this version of the application can use this database version (relative to what the DB says, not JUST the metadata!)
 
-	return nil
+	return c.validateStaleness(metadata)
 }
 
 // activate swaps over the downloaded db to the application directory

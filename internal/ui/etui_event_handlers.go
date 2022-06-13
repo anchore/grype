@@ -9,6 +9,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/anchore/grype/internal/version"
 	"github.com/gookit/color"
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/jotframe/pkg/frame"
@@ -28,7 +29,7 @@ func handleAppUpdateAvailable(_ context.Context, fr *frame.Frame, event partybus
 		return err
 	}
 
-	message := color.Magenta.Sprintf("New version of %s is available: %s", internal.ApplicationName, newVersion)
+	message := color.Magenta.Sprintf("You're currently running %s version %s and a new version is available: %s", internal.ApplicationName, version.FromBuild().Version, newVersion)
 	_, _ = io.WriteString(line, message)
 
 	return nil

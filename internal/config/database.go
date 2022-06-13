@@ -2,6 +2,7 @@ package config
 
 import (
 	"path"
+	"time"
 
 	"github.com/adrg/xdg"
 	"github.com/spf13/viper"
@@ -11,11 +12,12 @@ import (
 )
 
 type database struct {
-	Dir                   string `yaml:"cache-dir" json:"cache-dir" mapstructure:"cache-dir"`
-	UpdateURL             string `yaml:"update-url" json:"update-url" mapstructure:"update-url"`
-	CACert                string `yaml:"ca-cert" json:"ca-cert" mapstructure:"ca-cert"`
-	AutoUpdate            bool   `yaml:"auto-update" json:"auto-update" mapstructure:"auto-update"`
-	ValidateByHashOnStart bool   `yaml:"validate-by-hash-on-start" json:"validate-by-hash-on-start" mapstructure:"validate-by-hash-on-start"`
+	Dir                   string        `yaml:"cache-dir" json:"cache-dir" mapstructure:"cache-dir"`
+	UpdateURL             string        `yaml:"update-url" json:"update-url" mapstructure:"update-url"`
+	CACert                string        `yaml:"ca-cert" json:"ca-cert" mapstructure:"ca-cert"`
+	AutoUpdate            bool          `yaml:"auto-update" json:"auto-update" mapstructure:"auto-update"`
+	ValidateByHashOnStart bool          `yaml:"validate-by-hash-on-start" json:"validate-by-hash-on-start" mapstructure:"validate-by-hash-on-start"`
+	StalenessThreshold    time.Duration `yaml:"staleness-threshold" json:"staleness-threshold" mapstructure:"staleness-threshold"`
 }
 
 func (cfg database) loadDefaultValues(v *viper.Viper) {
@@ -24,6 +26,7 @@ func (cfg database) loadDefaultValues(v *viper.Viper) {
 	v.SetDefault("db.ca-cert", "")
 	v.SetDefault("db.auto-update", true)
 	v.SetDefault("db.validate-by-hash-on-start", false)
+	v.SetDefault("db.staleness-threshold", time.Hour*24*5)
 }
 
 func (cfg database) ToCuratorConfig() db.Config {
@@ -32,5 +35,6 @@ func (cfg database) ToCuratorConfig() db.Config {
 		ListingURL:          cfg.UpdateURL,
 		CACert:              cfg.CACert,
 		ValidateByHashOnGet: cfg.ValidateByHashOnStart,
+		DataStaleness:       cfg.StalenessThreshold,
 	}
 }
