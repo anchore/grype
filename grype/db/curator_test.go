@@ -335,7 +335,7 @@ func TestCurator_validateStaleness(t *testing.T) {
 		{
 			name: "up-to-date",
 			fields: fields{
-				staleLimist: time.Hour,
+				staleLimist: 2 * time.Hour,
 				md:          &Metadata{Built: time.Now()},
 			},
 			wantErr: assert.NoError,
@@ -344,7 +344,7 @@ func TestCurator_validateStaleness(t *testing.T) {
 			name: "stale-data",
 			fields: fields{
 				staleLimist: time.Hour,
-				md:          &Metadata{Built: time.Now().Add(-3 * time.Hour)},
+				md:          &Metadata{Built: time.Now().Add(-4 * time.Hour)},
 			},
 			wantErr: assertAs("data is stale"),
 		},

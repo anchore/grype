@@ -290,7 +290,7 @@ func (c *Curator) validateStaleness(m *Metadata) error {
 	}
 
 	if age > DefaultStalenessThreshold {
-		log.Warnf("your vuln db was updated %s ago and it might generate wrong results. Update it with: grype db update", age)
+		log.Warnf("your vuln db was updated %s ago and it might generate wrong results. To update run: grype db update", age)
 	}
 
 	return nil
