@@ -4,6 +4,8 @@ There are a few useful things to know before diving into the codebase. This proj
 
 ## Getting started
 
+### Native Development
+
 After cloning do the following:
 
 1. run `make bootstrap` to download go mod dependencies, create the `/.tmp` dir, and download helper utilities.
@@ -11,7 +13,7 @@ After cloning do the following:
 
 Checkout `make help` to see what other actions you can take.
 
-## Getting started [Docker]
+### Docker Development
 
 This depends on Docker and Docker Compose
 
