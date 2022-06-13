@@ -1,7 +1,7 @@
 FROM docker:latest
 
 ENV GO_VERSION=1.18.2
-ENV PATH=$PATH:/usr/local/go/bin:/usr/bin/env:$(go env GOPATH)/bin
+ENV PATH=$PATH:/usr/local/go/bin:/usr/bin/env:/root/go/bin
 
 WORKDIR /grype
 
