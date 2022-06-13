@@ -8,7 +8,7 @@ WORKDIR /grype
 COPY go.mod go.sum Makefile /grype/
 COPY .github .github
 
-RUN docker-entrypoint.sh && \
+RUN docker-entrypoint.sh sh && \
     apk update && \
     apk add make curl build-base bash ncurses openssl && \
     curl -OL https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz && \
