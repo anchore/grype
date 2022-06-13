@@ -26,7 +26,7 @@ func (cfg database) loadDefaultValues(v *viper.Viper) {
 	v.SetDefault("db.ca-cert", "")
 	v.SetDefault("db.auto-update", true)
 	v.SetDefault("db.validate-by-hash-on-start", false)
-	v.SetDefault("db.staleness-threshold", time.Hour*24*5)
+	v.SetDefault("db.staleness-threshold", db.DefaultStalenessThreshold)
 }
 
 func (cfg database) ToCuratorConfig() db.Config {

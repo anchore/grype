@@ -31,8 +31,9 @@ const (
 )
 
 var (
-	ErrDBNoBuiltTime = errors.New("database built timestamp is empty: cannot verify if data is stale")
-	ErrDataIsStale   = errors.New("data is stale")
+	ErrDataIsStale = errors.New("data is stale")
+
+	DefaultStalenessThreshold = time.Hour * 24 * 5
 )
 
 type Config struct {
@@ -278,17 +279,18 @@ func (c *Curator) download(listing *ListingEntry, downloadProgress *progress.Man
 }
 
 func (c *Curator) validateStaleness(m *Metadata) error {
-	if m == nil || c.dataStalenessLimit == 0 {
+	if m == nil {
 		return nil
 	}
 
-	if m.Built.IsZero() {
-		return ErrDBNoBuiltTime
+	age := time.Since(m.Built).Round(time.Hour)
+	// dataStalenessLimit == 0 means to not error on staleness
+	if c.dataStalenessLimit > 0 && age > c.dataStalenessLimit {
+		return fmt.Errorf("%w: last updated %s ago (> threshold %s)", ErrDataIsStale, age, c.dataStalenessLimit)
 	}
 
-	limit := time.Now().Add(-c.dataStalenessLimit)
-	if m.Built.Before(limit) {
-		return fmt.Errorf("%w: last updated %s ago (> threshold %s)", ErrDataIsStale, time.Since(m.Built), c.dataStalenessLimit)
+	if age > DefaultStalenessThreshold {
+		log.Warnf("your vuln db was updated %s ago and it might generate wrong results. Update it with: grype db update", age)
 	}
 
 	return nil

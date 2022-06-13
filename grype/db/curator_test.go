@@ -348,14 +348,6 @@ func TestCurator_validateStaleness(t *testing.T) {
 			},
 			wantErr: assertAs("data is stale"),
 		},
-		{
-			name: "db-without-built-time",
-			fields: fields{
-				staleLimist: time.Hour,
-				md:          &Metadata{},
-			},
-			wantErr: assertAs("database built timestamp is empty: cannot verify if data is stale"),
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
