@@ -36,7 +36,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 	}
 
 	// get a grype DB
-	vulnProvider, _, _, err := grype.LoadVulnerabilityDB(db.Config{
+	store, err := grype.LoadVulnerabilityDB(db.Config{
 		DBRootDir:           "test-fixtures/grype-db",
 		ListingURL:          internal.DBUpdateURL,
 		ValidateByHashOnGet: false,
@@ -81,11 +81,11 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 				assert.NoError(t, sbomFile.Close())
 
 				// get vulns (sbom)
-				matchesFromSbom, _, pkgsFromSbom, err := grype.FindVulnerabilities(vulnProvider, fmt.Sprintf("sbom:%s", sbomFile.Name()), source.SquashedScope, nil)
+				matchesFromSbom, _, pkgsFromSbom, err := grype.FindVulnerabilities(store, fmt.Sprintf("sbom:%s", sbomFile.Name()), source.SquashedScope, nil)
 				assert.NoError(t, err)
 
 				// get vulns (image)
-				matchesFromImage, _, _, err := grype.FindVulnerabilities(vulnProvider, imageSource, source.SquashedScope, nil)
+				matchesFromImage, _, _, err := grype.FindVulnerabilities(store, imageSource, source.SquashedScope, nil)
 				assert.NoError(t, err)
 
 				// compare packages (shallow)

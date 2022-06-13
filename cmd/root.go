@@ -281,9 +281,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			}
 		}
 
-		var provider vulnerability.Provider
-		var metadataProvider vulnerability.MetadataProvider
-		var dbStatus *db.Status
+		var store *grype.Store
 		var packages []pkg.Package
 		var context pkg.Context
 		var wg = &sync.WaitGroup{}
@@ -294,8 +292,8 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		go func() {
 			defer wg.Done()
 			log.Debug("loading DB")
-			provider, metadataProvider, dbStatus, err = grype.LoadVulnerabilityDB(appConfig.DB.ToCuratorConfig(), appConfig.DB.AutoUpdate)
-			if err = validateDBLoad(err, dbStatus); err != nil {
+			store, err = grype.LoadVulnerabilityDB(appConfig.DB.ToCuratorConfig(), appConfig.DB.AutoUpdate)
+			if err = validateDBLoad(err, store.Status); err != nil {
 				errs <- err
 				return
 			}
@@ -328,7 +326,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			Java: appConfig.ExternalSources.ToJavaMatcherConfig(),
 		})
 
-		allMatches := grype.FindVulnerabilitiesForPackage(provider, context.Distro, matchers, packages)
+		allMatches := grype.FindVulnerabilitiesForPackage(store.VulnerabilityProvider, context.Distro, matchers, packages)
 		remainingMatches, ignoredMatches := match.ApplyIgnoreRules(allMatches, appConfig.Ignore)
 
 		if count := len(ignoredMatches); count > 0 {
@@ -338,13 +336,13 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		// determine if there are any severities >= to the max allowable severity (which is optional).
 		// note: until the shared file lock in sqlittle is fixed the sqlite DB cannot be access concurrently,
 		// implying that the fail-on-severity check must be done before sending the presenter object.
-		if hitSeverityThreshold(failOnSeverity, remainingMatches, metadataProvider) {
+		if hitSeverityThreshold(failOnSeverity, remainingMatches, store.VulnerabilityMetadataProvider) {
 			errs <- grypeerr.ErrAboveSeverityThreshold
 		}
 
 		bus.Publish(partybus.Event{
 			Type:  event.VulnerabilityScanningFinished,
-			Value: presenter.GetPresenter(presenterConfig, remainingMatches, ignoredMatches, packages, context, metadataProvider, appConfig, dbStatus),
+			Value: presenter.GetPresenter(presenterConfig, remainingMatches, ignoredMatches, packages, context, store.VulnerabilityMetadataProvider, appConfig, store.Status),
 		})
 	}()
 	return errs
