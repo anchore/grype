@@ -288,8 +288,7 @@ func (c *Curator) validateStaleness(m *Metadata) error {
 
 	limit := time.Now().Add(-c.dataStalenessLimit)
 	if m.Built.Before(limit) {
-		age := time.Now().Sub(m.Built)
-		return fmt.Errorf("%w: last updated %s ago (> threshold %s)", ErrDataIsStale, age, c.dataStalenessLimit)
+		return fmt.Errorf("%w: last updated %s ago (> threshold %s)", ErrDataIsStale, time.Since(m.Built), c.dataStalenessLimit)
 	}
 
 	return nil

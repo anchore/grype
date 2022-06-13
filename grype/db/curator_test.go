@@ -309,11 +309,9 @@ func assertAs(expected string) assert.ErrorAssertionFunc {
 }
 
 func TestCurator_validateStaleness(t *testing.T) {
-
 	type fields struct {
-		validateStalenss bool
-		staleLimist      time.Duration
-		md               *Metadata
+		staleLimist time.Duration
+		md          *Metadata
 	}
 
 	tests := []struct {
@@ -337,27 +335,24 @@ func TestCurator_validateStaleness(t *testing.T) {
 		{
 			name: "up-to-date",
 			fields: fields{
-				validateStalenss: true,
-				staleLimist:      time.Hour,
-				md:               &Metadata{Built: time.Now()},
+				staleLimist: time.Hour,
+				md:          &Metadata{Built: time.Now()},
 			},
 			wantErr: assert.NoError,
 		},
 		{
 			name: "stale-data",
 			fields: fields{
-				validateStalenss: true,
-				staleLimist:      time.Hour,
-				md:               &Metadata{Built: time.Now().Add(-3 * time.Hour)},
+				staleLimist: time.Hour,
+				md:          &Metadata{Built: time.Now().Add(-3 * time.Hour)},
 			},
 			wantErr: assertAs("data is stale"),
 		},
 		{
 			name: "db-without-built-time",
 			fields: fields{
-				validateStalenss: true,
-				staleLimist:      time.Hour,
-				md:               &Metadata{},
+				staleLimist: time.Hour,
+				md:          &Metadata{},
 			},
 			wantErr: assertAs("database built timestamp is empty: cannot verify if data is stale"),
 		},
@@ -365,8 +360,7 @@ func TestCurator_validateStaleness(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Curator{
-				validateDataStaleness: tt.fields.validateStalenss,
-				dataStalenessLimit:    tt.fields.staleLimist,
+				dataStalenessLimit: tt.fields.staleLimist,
 			}
 			tt.wantErr(t, c.validateStaleness(tt.fields.md), fmt.Sprintf("validateStaleness(%v)", tt.fields.md))
 		})
