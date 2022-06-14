@@ -29,7 +29,7 @@ func handleAppUpdateAvailable(_ context.Context, fr *frame.Frame, event partybus
 		return err
 	}
 
-	message := color.Magenta.Sprintf("New version of %s available: %s (current version is %s)", internal.ApplicationName, newVersion, version.FromBuild().Version)
+	message := color.Magenta.Sprintf("New version of %s is available: %s (current version is %s)", internal.ApplicationName, newVersion, version.FromBuild().Version)
 	_, _ = io.WriteString(line, message)
 
 	return nil
