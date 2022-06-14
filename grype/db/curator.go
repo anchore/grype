@@ -292,7 +292,7 @@ func (c *Curator) validateStaleness(m Metadata) error {
 	}
 
 	// built time is defined in UTC,
-	// we should campare it against UTC
+	// we should compare it against UTC
 	now := time.Now().UTC()
 
 	age := now.Sub(m.Built)
