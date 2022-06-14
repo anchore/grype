@@ -336,7 +336,7 @@ func TestCurator_validateStaleness(t *testing.T) {
 				md:              &Metadata{Built: time.Now().Add(-4 * time.Hour)},
 			},
 			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
-				return assert.ErrorContains(t, err, "the vulnerability database was last built")
+				return assert.ErrorContains(t, err, "the vulnerability database was built")
 			},
 		},
 	}
