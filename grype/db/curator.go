@@ -3,7 +3,6 @@ package db
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -31,9 +30,7 @@ const (
 )
 
 var (
-	ErrDataIsStale = errors.New("data is stale")
-
-	DefaultStalenessThreshold = time.Hour * 24 * 5
+	DefaultMaxAllowedDBAge = time.Hour * 24 * 5
 )
 
 type Config struct {
@@ -41,7 +38,7 @@ type Config struct {
 	ListingURL          string
 	CACert              string
 	ValidateByHashOnGet bool
-	StalenessThreshold  time.Duration
+	MaxAllowedDBAge     time.Duration
 }
 
 type Curator struct {
@@ -52,7 +49,7 @@ type Curator struct {
 	dbPath              string
 	listingURL          string
 	validateByHashOnGet bool
-	dataStalenessLimit  time.Duration
+	maxAllowedDBAge     time.Duration
 }
 
 func NewCurator(cfg Config) (Curator, error) {
@@ -72,7 +69,7 @@ func NewCurator(cfg Config) (Curator, error) {
 		dbPath:              path.Join(dbDir, FileName),
 		listingURL:          cfg.ListingURL,
 		validateByHashOnGet: cfg.ValidateByHashOnGet,
-		dataStalenessLimit:  cfg.StalenessThreshold,
+		maxAllowedDBAge:     cfg.MaxAllowedDBAge,
 	}, nil
 }
 
@@ -278,20 +275,24 @@ func (c *Curator) download(listing *ListingEntry, downloadProgress *progress.Man
 	return tempDir, nil
 }
 
+// validateStaleness ensures the vulnerability database has not passed
+// the max allowed age, calculated from the time it was built until now.
 func (c *Curator) validateStaleness(m *Metadata) error {
-	if m == nil {
+	// duration comparison may have unnecessary precision,
+	// including fractions of minutes/seconds. Rounding it
+	// to hours provides enough information.
+	age := time.Since(m.Built).Round(time.Hour)
+	// dataStalenessLimit == 0 means to not error on staleness
+	if c.maxAllowedDBAge > 0 && age > c.maxAllowedDBAge {
+		return fmt.Errorf("the vulnerability database was built %s ago (> max allowed %s)", age, c.maxAllowedDBAge)
+	}
+
+	if age > DefaultMaxAllowedDBAge {
+		log.Warnf("the vulnerability database was built %s ago and it might generate inaccurate results. To update run: grype db update", age)
 		return nil
 	}
 
-	age := time.Since(m.Built).Round(time.Hour)
-	// dataStalenessLimit == 0 means to not error on staleness
-	if c.dataStalenessLimit > 0 && age > c.dataStalenessLimit {
-		return fmt.Errorf("%w: last updated %s ago (> threshold %s)", ErrDataIsStale, age, c.dataStalenessLimit)
-	}
-
-	if age > DefaultStalenessThreshold {
-		log.Warnf("your vuln db was updated %s ago and it might generate wrong results. To update run: grype db update", age)
-	}
+	log.Debugf("the vulnerability database was built %s ago", age)
 
 	return nil
 }

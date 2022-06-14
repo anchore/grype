@@ -302,16 +302,10 @@ func TestCuratorDBPathHasSchemaVersion(t *testing.T) {
 	assert.Contains(t, cur.dbPath, path.Join(dbRootPath, strconv.Itoa(cur.targetSchema)), "unexpected path")
 }
 
-func assertAs(expected string) assert.ErrorAssertionFunc {
-	return func(t assert.TestingT, err error, i ...interface{}) bool {
-		return assert.ErrorContains(t, err, expected)
-	}
-}
-
 func TestCurator_validateStaleness(t *testing.T) {
 	type fields struct {
-		staleLimist time.Duration
-		md          *Metadata
+		maxAllowedDBAge time.Duration
+		md              *Metadata
 	}
 
 	tests := []struct {
@@ -328,31 +322,28 @@ func TestCurator_validateStaleness(t *testing.T) {
 			wantErr: assert.NoError,
 		},
 		{
-			name:    "no-metadata",
-			fields:  fields{},
-			wantErr: assert.NoError,
-		},
-		{
 			name: "up-to-date",
 			fields: fields{
-				staleLimist: 2 * time.Hour,
-				md:          &Metadata{Built: time.Now()},
+				maxAllowedDBAge: 2 * time.Hour,
+				md:              &Metadata{Built: time.Now()},
 			},
 			wantErr: assert.NoError,
 		},
 		{
 			name: "stale-data",
 			fields: fields{
-				staleLimist: time.Hour,
-				md:          &Metadata{Built: time.Now().Add(-4 * time.Hour)},
+				maxAllowedDBAge: time.Hour,
+				md:              &Metadata{Built: time.Now().Add(-4 * time.Hour)},
 			},
-			wantErr: assertAs("data is stale"),
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return assert.ErrorContains(t, err, "the vulnerability database was last built")
+			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Curator{
-				dataStalenessLimit: tt.fields.staleLimist,
+				maxAllowedDBAge: tt.fields.maxAllowedDBAge,
 			}
 			tt.wantErr(t, c.validateStaleness(tt.fields.md), fmt.Sprintf("validateStaleness(%v)", tt.fields.md))
 		})

@@ -9,13 +9,13 @@ import (
 	"io"
 	"sync"
 
+	"github.com/anchore/grype/internal/version"
 	"github.com/gookit/color"
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/jotframe/pkg/frame"
 
 	grypeEventParsers "github.com/anchore/grype/grype/event/parsers"
 	"github.com/anchore/grype/internal"
-	"github.com/anchore/grype/internal/version"
 )
 
 func handleAppUpdateAvailable(_ context.Context, fr *frame.Frame, event partybus.Event, _ *sync.WaitGroup) error {
@@ -29,7 +29,7 @@ func handleAppUpdateAvailable(_ context.Context, fr *frame.Frame, event partybus
 		return err
 	}
 
-	message := color.Magenta.Sprintf("You're currently running %s version %s and a new version is available: %s", internal.ApplicationName, version.FromBuild().Version, newVersion)
+	message := color.Magenta.Sprintf("New version of % available: %s (current version is %s)", internal.ApplicationName, newVersion, version.FromBuild().Version)
 	_, _ = io.WriteString(line, message)
 
 	return nil

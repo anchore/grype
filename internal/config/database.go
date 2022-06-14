@@ -17,7 +17,7 @@ type database struct {
 	CACert                string        `yaml:"ca-cert" json:"ca-cert" mapstructure:"ca-cert"`
 	AutoUpdate            bool          `yaml:"auto-update" json:"auto-update" mapstructure:"auto-update"`
 	ValidateByHashOnStart bool          `yaml:"validate-by-hash-on-start" json:"validate-by-hash-on-start" mapstructure:"validate-by-hash-on-start"`
-	StalenessThreshold    time.Duration `yaml:"staleness-threshold" json:"staleness-threshold" mapstructure:"staleness-threshold"`
+	MaxAllowedDBAge       time.Duration `yaml:"max-allowed-db-age" json:"max-allowed-db-age" mapstructure:"max-allowed-db-age"`
 }
 
 func (cfg database) loadDefaultValues(v *viper.Viper) {
@@ -26,7 +26,7 @@ func (cfg database) loadDefaultValues(v *viper.Viper) {
 	v.SetDefault("db.ca-cert", "")
 	v.SetDefault("db.auto-update", true)
 	v.SetDefault("db.validate-by-hash-on-start", false)
-	v.SetDefault("db.staleness-threshold", db.DefaultStalenessThreshold)
+	v.SetDefault("db.max-allowed-db-age", db.DefaultMaxAllowedDBAge)
 }
 
 func (cfg database) ToCuratorConfig() db.Config {
@@ -35,6 +35,6 @@ func (cfg database) ToCuratorConfig() db.Config {
 		ListingURL:          cfg.UpdateURL,
 		CACert:              cfg.CACert,
 		ValidateByHashOnGet: cfg.ValidateByHashOnStart,
-		StalenessThreshold:  cfg.StalenessThreshold,
+		MaxAllowedDBAge:     cfg.MaxAllowedDBAge,
 	}
 }
