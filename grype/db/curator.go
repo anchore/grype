@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/hako/durafmt"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/mholt/archiver/v3"
 	"github.com/spf13/afero"
@@ -294,12 +295,9 @@ func (c *Curator) validateStaleness(m Metadata) error {
 	// we should campare it against UTC
 	now := time.Now().UTC()
 
-	// duration comparison may have unnecessary precision,
-	// including fractions of minutes/seconds. Rounding it
-	// to hours provides enough information.
-	age := now.Sub(m.Built).Round(time.Hour)
+	age := now.Sub(m.Built)
 	if age > c.maxAllowedBuiltAge {
-		return fmt.Errorf("the vulnerability database was built %s ago (> max allowed %s)", age, c.maxAllowedBuiltAge)
+		return fmt.Errorf("the vulnerability database was built %s ago (> max allowed %s)", durafmt.ParseShort(age), durafmt.ParseShort(c.maxAllowedBuiltAge))
 	}
 
 	return nil
