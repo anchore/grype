@@ -17,7 +17,8 @@ type database struct {
 	CACert                string        `yaml:"ca-cert" json:"ca-cert" mapstructure:"ca-cert"`
 	AutoUpdate            bool          `yaml:"auto-update" json:"auto-update" mapstructure:"auto-update"`
 	ValidateByHashOnStart bool          `yaml:"validate-by-hash-on-start" json:"validate-by-hash-on-start" mapstructure:"validate-by-hash-on-start"`
-	MaxAllowedDBAge       time.Duration `yaml:"max-allowed-db-age" json:"max-allowed-db-age" mapstructure:"max-allowed-db-age"`
+	ValidateAge           bool          `yaml:"validate-age" json:"validate-age" mapstructure:"validate-age"`
+	MaxAllowedBuiltAge    time.Duration `yaml:"max-allowed-built-age" json:"max-allowed-built-age" mapstructure:"max-allowed-built-age"`
 }
 
 func (cfg database) loadDefaultValues(v *viper.Viper) {
@@ -26,7 +27,8 @@ func (cfg database) loadDefaultValues(v *viper.Viper) {
 	v.SetDefault("db.ca-cert", "")
 	v.SetDefault("db.auto-update", true)
 	v.SetDefault("db.validate-by-hash-on-start", false)
-	v.SetDefault("db.max-allowed-db-age", db.DefaultMaxAllowedDBAge)
+	v.SetDefault("db.validate-age", true)
+	v.SetDefault("db.max-allowed-built-age", db.DefaultMaxAllowedBuiltAge)
 }
 
 func (cfg database) ToCuratorConfig() db.Config {
@@ -35,6 +37,7 @@ func (cfg database) ToCuratorConfig() db.Config {
 		ListingURL:          cfg.UpdateURL,
 		CACert:              cfg.CACert,
 		ValidateByHashOnGet: cfg.ValidateByHashOnStart,
-		MaxAllowedDBAge:     cfg.MaxAllowedDBAge,
+		ValidateAge:         cfg.ValidateAge,
+		MaxAllowedBuiltAge:  cfg.MaxAllowedBuiltAge,
 	}
 }

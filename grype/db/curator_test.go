@@ -282,11 +282,12 @@ func TestCuratorValidate(t *testing.T) {
 
 			cur.targetSchema = test.constraint
 
-			err := cur.validate(test.fixture)
+			md, err := cur.validate(test.fixture)
 
 			if err == nil && test.err {
 				t.Errorf("expected an error but got none")
 			} else if err != nil && !test.err {
+				assert.NotZero(t, md)
 				t.Errorf("expected no error, got: %+v", err)
 			}
 		})
@@ -304,8 +305,9 @@ func TestCuratorDBPathHasSchemaVersion(t *testing.T) {
 
 func TestCurator_validateStaleness(t *testing.T) {
 	type fields struct {
+		validateAge     bool
 		maxAllowedDBAge time.Duration
-		md              *Metadata
+		md              Metadata
 	}
 
 	tests := []struct {
@@ -317,7 +319,7 @@ func TestCurator_validateStaleness(t *testing.T) {
 		{
 			name: "no-validation",
 			fields: fields{
-				md: &Metadata{Built: time.Now()},
+				md: Metadata{Built: time.Now()},
 			},
 			wantErr: assert.NoError,
 		},
@@ -325,7 +327,8 @@ func TestCurator_validateStaleness(t *testing.T) {
 			name: "up-to-date",
 			fields: fields{
 				maxAllowedDBAge: 2 * time.Hour,
-				md:              &Metadata{Built: time.Now()},
+				validateAge:     true,
+				md:              Metadata{Built: time.Now()},
 			},
 			wantErr: assert.NoError,
 		},
@@ -333,17 +336,28 @@ func TestCurator_validateStaleness(t *testing.T) {
 			name: "stale-data",
 			fields: fields{
 				maxAllowedDBAge: time.Hour,
-				md:              &Metadata{Built: time.Now().Add(-4 * time.Hour)},
+				validateAge:     true,
+				md:              Metadata{Built: time.Now().UTC().Add(-4 * time.Hour)},
 			},
 			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
 				return assert.ErrorContains(t, err, "the vulnerability database was built")
 			},
 		},
+		{
+			name: "stale-data-no-validation",
+			fields: fields{
+				maxAllowedDBAge: time.Hour,
+				validateAge:     false,
+				md:              Metadata{Built: time.Now().UTC().Add(-4 * time.Hour)},
+			},
+			wantErr: assert.NoError,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Curator{
-				maxAllowedDBAge: tt.fields.maxAllowedDBAge,
+				validateAge:        tt.fields.validateAge,
+				maxAllowedBuiltAge: tt.fields.maxAllowedDBAge,
 			}
 			tt.wantErr(t, c.validateStaleness(tt.fields.md), fmt.Sprintf("validateStaleness(%v)", tt.fields.md))
 		})

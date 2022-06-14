@@ -401,7 +401,7 @@ You can set the cache directory path using the environment variable `GRYPE_DB_CA
 
 #### Data staleness
 
-Grype needs up-to-date vulnerability information to provide accurate matches. By default, it will fail execution if the local database was not built in the last 5 days. The data staleness check is configurable via the field `max-allowed-db-age`, under `db`. It uses [golang's time duration syntax](https://pkg.go.dev/time#ParseDuration). Set it to 0 to disable staleness check.
+Grype needs up-to-date vulnerability information to provide accurate matches. By default, it will fail execution if the local database was not built in the last 5 days. The data staleness check is configurable via the field `max-allowed-built-age`, under `db`. It uses [golang's time duration syntax](https://pkg.go.dev/time#ParseDuration). Set it to 0 to disable staleness check.
 
 #### Offline and air-gapped environments
 
@@ -592,7 +592,7 @@ db:
   # age being the time since it was built
   # Default max age is 120h (or five days)
   # Set it to 0 (zero) to disable check
-  max-allowed-db-age: "120h"
+  max-allowed-built-age: "120h"
 
 search:
 
