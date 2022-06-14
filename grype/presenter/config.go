@@ -3,6 +3,7 @@ package presenter
 import (
 	"errors"
 	"fmt"
+	presenterTemplate "github.com/anchore/grype/grype/presenter/template"
 	"os"
 	"text/template"
 )
@@ -39,7 +40,7 @@ func ValidatedConfig(output, outputTemplateFile string) (Config, error) {
 			return Config{}, fmt.Errorf("unable to read template file: %w", err)
 		}
 
-		if _, err := template.ParseFiles(outputTemplateFile); err != nil {
+		if _, err := template.New("").Funcs(presenterTemplate.FuncMap).ParseFiles(outputTemplateFile); err != nil {
 			return Config{}, fmt.Errorf("unable to parse template: %w", err)
 		}
 
