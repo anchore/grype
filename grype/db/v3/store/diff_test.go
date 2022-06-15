@@ -129,17 +129,17 @@ func Test_diffDatabaseTable(t *testing.T) {
 	}
 	expectedDiffs := []v3.Diff{
 		{
-			Reason:    v3.Diff_Added,
+			Reason:    v3.DiffAdded,
 			ID:        "GHSA-....-....",
 			Namespace: "github:go",
 		},
 		{
-			Reason:    v3.Diff_Changed,
+			Reason:    v3.DiffChanged,
 			ID:        "CVE-123-7654",
 			Namespace: "npm",
 		},
 		{
-			Reason:    v3.Diff_Removed,
+			Reason:    v3.DiffRemoved,
 			ID:        "CVE-123-4567",
 			Namespace: "github:python",
 		},
