@@ -1080,6 +1080,13 @@ func Test_DiffStore(t *testing.T) {
 			},
 		},
 	}
+	baseMetadata := []v3.VulnerabilityMetadata{
+		{
+			Namespace:  "nuget",
+			ID:         "GHSA-****-******",
+			DataSource: "nvd",
+		},
+	}
 	targetVulns := []v3.Vulnerability{
 		{
 			Namespace:         "github:python",
@@ -1122,6 +1129,11 @@ func Test_DiffStore(t *testing.T) {
 			ID:        "CVE-123-4567",
 			Namespace: "github:python",
 		},
+		{
+			Reason:    v3.Diff_Removed,
+			ID:        "GHSA-****-******",
+			Namespace: "nuget",
+		},
 	}
 
 	for _, vuln := range baseVulns {
@@ -1129,6 +1141,9 @@ func Test_DiffStore(t *testing.T) {
 	}
 	for _, vuln := range targetVulns {
 		s2.AddVulnerability(vuln)
+	}
+	for _, meta := range baseMetadata {
+		s1.AddVulnerabilityMetadata(meta)
 	}
 
 	//WHEN
