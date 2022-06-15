@@ -3,9 +3,9 @@ package v3
 type DiffReason = string
 
 const (
-	Diff_Added   DiffReason = "added"
-	Diff_Changed DiffReason = "changed"
-	Diff_Removed DiffReason = "removed"
+	DiffAdded   DiffReason = "added"
+	DiffChanged DiffReason = "changed"
+	DiffRemoved DiffReason = "removed"
 )
 
 type Diff struct {

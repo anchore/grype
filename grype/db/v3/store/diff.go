@@ -50,7 +50,8 @@ func diffDatabaseTable[T model.VulnerabilityModel | model.VulnerabilityMetadataM
 		}
 	}
 
-	for _, targetModel := range *targetModels {
+	for _, tModel := range *targetModels {
+		targetModel := tModel
 		k := getKey(targetModel)
 		if baseModel, exists := m[k]; exists {
 			baseModel.seen = true
@@ -60,14 +61,14 @@ func diffDatabaseTable[T model.VulnerabilityModel | model.VulnerabilityMetadataM
 
 			if *baseModel.item != targetModel {
 				diffs = append(diffs, v3.Diff{
-					Reason:    v3.Diff_Changed,
+					Reason:    v3.DiffChanged,
 					ID:        k.id,
 					Namespace: k.namespace,
 				})
 			}
 		} else {
 			diffs = append(diffs, v3.Diff{
-				Reason:    v3.Diff_Added,
+				Reason:    v3.DiffAdded,
 				ID:        k.id,
 				Namespace: k.namespace,
 			})
@@ -76,7 +77,7 @@ func diffDatabaseTable[T model.VulnerabilityModel | model.VulnerabilityMetadataM
 	for k, model := range m {
 		if !model.seen {
 			diffs = append(diffs, v3.Diff{
-				Reason:    v3.Diff_Removed,
+				Reason:    v3.DiffRemoved,
 				ID:        k.id,
 				Namespace: k.namespace,
 			})
@@ -87,6 +88,7 @@ func diffDatabaseTable[T model.VulnerabilityModel | model.VulnerabilityMetadataM
 }
 
 func clearPK(item interface{}) {
+	// nolint:gocritic
 	switch i := item.(type) {
 	case *model.VulnerabilityModel:
 		i.PK = 0

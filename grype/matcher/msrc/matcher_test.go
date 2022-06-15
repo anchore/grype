@@ -26,6 +26,10 @@ func (s *mockStore) GetVulnerability(namespace, name string) ([]grypeDB.Vulnerab
 	return namespaceMap[name], nil
 }
 
+func (s *mockStore) GetAllSerializedVulnerabilities() (interface{}, error) {
+	return nil, nil
+}
+
 func TestMatches(t *testing.T) {
 	d, err := distro.New(distro.Windows, "10816", "Windows Server 2016")
 	assert.NoError(t, err)

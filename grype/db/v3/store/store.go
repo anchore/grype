@@ -218,7 +218,7 @@ func (s *store) DiffStore(targetStore v3.StoreReader) (*[]v3.Diff, error) {
 	if err != nil {
 		return nil, err
 	}
-	all_diffs, err := diffDatabaseTable(s, vulns.(*[]model.VulnerabilityModel))
+	allDiffs, err := diffDatabaseTable(s, vulns.(*[]model.VulnerabilityModel))
 	if err != nil {
 		return nil, err
 	}
@@ -231,6 +231,6 @@ func (s *store) DiffStore(targetStore v3.StoreReader) (*[]v3.Diff, error) {
 	if err != nil {
 		return nil, err
 	}
-	*all_diffs = append((*all_diffs), (*diffs)...)
-	return all_diffs, nil
+	*allDiffs = append((*allDiffs), (*diffs)...)
+	return allDiffs, nil
 }
