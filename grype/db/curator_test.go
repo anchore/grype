@@ -310,6 +310,7 @@ func TestCurator_validateStaleness(t *testing.T) {
 		md              Metadata
 	}
 
+	now := time.Now().UTC()
 	tests := []struct {
 		name    string
 		cur     *Curator
@@ -319,7 +320,7 @@ func TestCurator_validateStaleness(t *testing.T) {
 		{
 			name: "no-validation",
 			fields: fields{
-				md: Metadata{Built: time.Now()},
+				md: Metadata{Built: now},
 			},
 			wantErr: assert.NoError,
 		},
@@ -328,7 +329,7 @@ func TestCurator_validateStaleness(t *testing.T) {
 			fields: fields{
 				maxAllowedDBAge: 2 * time.Hour,
 				validateAge:     true,
-				md:              Metadata{Built: time.Now()},
+				md:              Metadata{Built: now},
 			},
 			wantErr: assert.NoError,
 		},
@@ -337,7 +338,7 @@ func TestCurator_validateStaleness(t *testing.T) {
 			fields: fields{
 				maxAllowedDBAge: time.Hour,
 				validateAge:     true,
-				md:              Metadata{Built: time.Now().UTC().Add(-4 * time.Hour)},
+				md:              Metadata{Built: now.UTC().Add(-4 * time.Hour)},
 			},
 			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
 				return assert.ErrorContains(t, err, "the vulnerability database was built")
@@ -348,7 +349,7 @@ func TestCurator_validateStaleness(t *testing.T) {
 			fields: fields{
 				maxAllowedDBAge: time.Hour,
 				validateAge:     false,
-				md:              Metadata{Built: time.Now().UTC().Add(-4 * time.Hour)},
+				md:              Metadata{Built: now.Add(-4 * time.Hour)},
 			},
 			wantErr: assert.NoError,
 		},

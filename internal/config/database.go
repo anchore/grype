@@ -28,7 +28,8 @@ func (cfg database) loadDefaultValues(v *viper.Viper) {
 	v.SetDefault("db.auto-update", true)
 	v.SetDefault("db.validate-by-hash-on-start", false)
 	v.SetDefault("db.validate-age", true)
-	v.SetDefault("db.max-allowed-built-age", db.DefaultMaxAllowedBuiltAge)
+	// After this period (5 days) the db data is considered stale
+	v.SetDefault("db.max-allowed-built-age", time.Hour*24*5)
 }
 
 func (cfg database) ToCuratorConfig() db.Config {

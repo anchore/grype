@@ -30,13 +30,6 @@ const (
 	FileName = grypeDB.VulnerabilityStoreFileName
 )
 
-var (
-	// DefaultMaxAllowedBuiltAge defines the default max age for
-	// the vulnerability db build. After this period the db data
-	// is considered stale.
-	DefaultMaxAllowedBuiltAge = time.Hour * 24 * 5
-)
-
 type Config struct {
 	DBRootDir           string
 	ListingURL          string
