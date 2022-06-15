@@ -211,3 +211,26 @@ func (s *store) AddVulnerabilityMetadata(metadata ...v3.VulnerabilityMetadata) e
 	}
 	return nil
 }
+
+// DiffStore creates a diff between the current sql database and the given store
+func (s *store) DiffStore(targetStore v3.StoreReader) (*[]v3.Diff, error) {
+	vulns, err := targetStore.GetAllSerializedVulnerabilities()
+	if err != nil {
+		return nil, err
+	}
+	all_diffs, err := diffDatabaseTable(s, vulns.(*[]model.VulnerabilityModel))
+	if err != nil {
+		return nil, err
+	}
+
+	metadata, err := targetStore.GetAllSerializedVulnerabilityMetadata()
+	if err != nil {
+		return nil, err
+	}
+	diffs, err := diffDatabaseTable(s, metadata.(*[]model.VulnerabilityMetadataModel))
+	if err != nil {
+		return nil, err
+	}
+	*all_diffs = append((*all_diffs), (*diffs)...)
+	return all_diffs, nil
+}
