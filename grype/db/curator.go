@@ -31,6 +31,9 @@ const (
 )
 
 var (
+	// DefaultMaxAllowedBuiltAge defines the default max age for
+	// the vulnerability db build. After this period the db data
+	// is considered stale.
 	DefaultMaxAllowedBuiltAge = time.Hour * 24 * 5
 )
 
@@ -83,7 +86,7 @@ func (c Curator) SupportedSchema() int {
 
 func (c *Curator) GetStore() (grypeDB.StoreReader, error) {
 	// ensure the DB is ok
-	_, err := c.validate(c.dbDir)
+	_, err := c.validateIntegrity(c.dbDir)
 	if err != nil {
 		return nil, fmt.Errorf("vulnerability database is invalid (run db update to correct): %+v", err)
 	}
@@ -206,8 +209,8 @@ func (c *Curator) UpdateTo(listing *ListingEntry, downloadProgress, importProgre
 		return err
 	}
 
-	stage.Current = "validating"
-	_, err = c.validate(tempDir)
+	stage.Current = "validating integrity"
+	_, err = c.validateIntegrity(tempDir)
 	if err != nil {
 		return err
 	}
@@ -226,7 +229,7 @@ func (c *Curator) UpdateTo(listing *ListingEntry, downloadProgress, importProgre
 
 // Validate checks the current database to ensure file integrity and if it can be used by this version of the application.
 func (c *Curator) Validate() error {
-	metadata, err := c.validate(c.dbDir)
+	metadata, err := c.validateIntegrity(c.dbDir)
 	if err != nil {
 		return err
 	}
@@ -247,7 +250,7 @@ func (c *Curator) ImportFrom(dbArchivePath string) error {
 		return err
 	}
 
-	_, err = c.validate(tempDir)
+	_, err = c.validateIntegrity(tempDir)
 	if err != nil {
 		return err
 	}
@@ -297,13 +300,13 @@ func (c *Curator) validateStaleness(m Metadata) error {
 
 	age := now.Sub(m.Built)
 	if age > c.maxAllowedBuiltAge {
-		return fmt.Errorf("the vulnerability database was built %s ago (> max allowed %s)", durafmt.ParseShort(age), durafmt.ParseShort(c.maxAllowedBuiltAge))
+		return fmt.Errorf("the vulnerability database was built %s ago (max allowed age is %s)", durafmt.ParseShort(age), durafmt.ParseShort(c.maxAllowedBuiltAge))
 	}
 
 	return nil
 }
 
-func (c *Curator) validate(dbDirPath string) (Metadata, error) {
+func (c *Curator) validateIntegrity(dbDirPath string) (Metadata, error) {
 	// check that the disk checksum still matches the db payload
 	metadata, err := NewMetadataFromDir(c.fs, dbDirPath)
 	if err != nil {

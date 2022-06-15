@@ -270,7 +270,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 				log.Errorf(err.Error())
 			}
 			if isAvailable {
-				log.Infof("new version of %s is available: %s (current version is %s)", internal.ApplicationName, newVersion, version.FromBuild().Version)
+				log.Infof("new version of %s is available: %s (currently running: %s)", internal.ApplicationName, newVersion, version.FromBuild().Version)
 
 				bus.Publish(partybus.Event{
 					Type:  event.AppUpdateAvailable,

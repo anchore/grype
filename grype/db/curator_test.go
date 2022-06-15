@@ -282,7 +282,7 @@ func TestCuratorValidate(t *testing.T) {
 
 			cur.targetSchema = test.constraint
 
-			md, err := cur.validate(test.fixture)
+			md, err := cur.validateIntegrity(test.fixture)
 
 			if err == nil && test.err {
 				t.Errorf("expected an error but got none")
