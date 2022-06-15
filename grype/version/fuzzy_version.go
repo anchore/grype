@@ -9,7 +9,6 @@ type fuzzyVersion struct {
 	raw    string
 }
 
-// nolint:unparam
 func newFuzzyVersion(raw string) (fuzzyVersion, error) {
 	var semVer *semanticVersion
 
