@@ -14,7 +14,6 @@ import (
 	"github.com/wagoodman/go-partybus"
 
 	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/db"
 	grypeDb "github.com/anchore/grype/grype/db/v4"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/grypeerr"
@@ -294,7 +293,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			defer wg.Done()
 			log.Debug("loading DB")
 			store, err = grype.LoadVulnerabilityDB(appConfig.DB.ToCuratorConfig(), appConfig.DB.AutoUpdate)
-			if err = validateDBLoad(err, store.Status); err != nil {
+			if err = validateDBLoad(err, store); err != nil {
 				errs <- err
 				return
 			}
@@ -389,15 +388,15 @@ func getProviderConfig() pkg.ProviderConfig {
 	}
 }
 
-func validateDBLoad(loadErr error, status *db.Status) error {
+func validateDBLoad(loadErr error, store *store.Store) error {
 	if loadErr != nil {
 		return fmt.Errorf("failed to load vulnerability db: %w", loadErr)
 	}
-	if status == nil {
+	if store == nil || store.Status == nil {
 		return fmt.Errorf("unable to determine DB status")
 	}
-	if status.Err != nil {
-		return fmt.Errorf("db could not be loaded: %w", status.Err)
+	if store.Status.Err != nil {
+		return fmt.Errorf("db could not be loaded: %w", store.Status.Err)
 	}
 	return nil
 }
