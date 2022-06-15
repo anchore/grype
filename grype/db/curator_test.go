@@ -282,11 +282,12 @@ func TestCuratorValidate(t *testing.T) {
 
 			cur.targetSchema = test.constraint
 
-			err := cur.validate(test.fixture)
+			md, err := cur.validateIntegrity(test.fixture)
 
 			if err == nil && test.err {
 				t.Errorf("expected an error but got none")
 			} else if err != nil && !test.err {
+				assert.NotZero(t, md)
 				t.Errorf("expected no error, got: %+v", err)
 			}
 		})
@@ -300,4 +301,66 @@ func TestCuratorDBPathHasSchemaVersion(t *testing.T) {
 
 	assert.Equal(t, path.Join(dbRootPath, strconv.Itoa(cur.targetSchema)), cur.dbDir, "unexpected dir")
 	assert.Contains(t, cur.dbPath, path.Join(dbRootPath, strconv.Itoa(cur.targetSchema)), "unexpected path")
+}
+
+func TestCurator_validateStaleness(t *testing.T) {
+	type fields struct {
+		validateAge     bool
+		maxAllowedDBAge time.Duration
+		md              Metadata
+	}
+
+	now := time.Now().UTC()
+	tests := []struct {
+		name    string
+		cur     *Curator
+		fields  fields
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{
+			name: "no-validation",
+			fields: fields{
+				md: Metadata{Built: now},
+			},
+			wantErr: assert.NoError,
+		},
+		{
+			name: "up-to-date",
+			fields: fields{
+				maxAllowedDBAge: 2 * time.Hour,
+				validateAge:     true,
+				md:              Metadata{Built: now},
+			},
+			wantErr: assert.NoError,
+		},
+		{
+			name: "stale-data",
+			fields: fields{
+				maxAllowedDBAge: time.Hour,
+				validateAge:     true,
+				md:              Metadata{Built: now.UTC().Add(-4 * time.Hour)},
+			},
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return assert.ErrorContains(t, err, "the vulnerability database was built")
+			},
+		},
+		{
+			name: "stale-data-no-validation",
+			fields: fields{
+				maxAllowedDBAge: time.Hour,
+				validateAge:     false,
+				md:              Metadata{Built: now.Add(-4 * time.Hour)},
+			},
+			wantErr: assert.NoError,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Curator{
+				validateAge:        tt.fields.validateAge,
+				maxAllowedBuiltAge: tt.fields.maxAllowedDBAge,
+			}
+			tt.wantErr(t, c.validateStaleness(tt.fields.md), fmt.Sprintf("validateStaleness(%v)", tt.fields.md))
+		})
+	}
 }

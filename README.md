@@ -399,6 +399,10 @@ By default, the database is cached on the local filesystem in the directory `$XD
 
 You can set the cache directory path using the environment variable `GRYPE_DB_CACHE_DIR`.
 
+#### Data staleness
+
+Grype needs up-to-date vulnerability information to provide accurate matches. By default, it will fail execution if the local database was not built in the last 5 days. The data staleness check is configurable via the field `max-allowed-built-age` and `validate-age`, under `db`. It uses [golang's time duration syntax](https://pkg.go.dev/time#ParseDuration). Set `validate-age` to `false` to disable staleness check.
+
 #### Offline and air-gapped environments
 
 By default, Grype checks for a new database on every run, by making a network call over the Internet. You can tell Grype not to perform this check by setting the environment variable `GRYPE_DB_AUTO_UPDATE` to `false`.
@@ -584,6 +588,14 @@ db:
   # same as GRYPE_DB_UPDATE_URL env var
   update-url: "https://toolbox-data.anchore.io/grype/databases/listing.json"
 
+  # it ensures db build is no older than the max-allowed-built-age
+  # set to false to disable check
+  validate-age: true
+
+  # Max allowed age for vulnerability database,
+  # age being the time since it was built
+  # Default max age is 120h (or five days)
+  max-allowed-built-age: "120h"
 
 search:
 
