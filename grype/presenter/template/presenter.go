@@ -56,7 +56,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 	}
 
 	templateName := expandedPathToTemplateFile
-	tmpl, err := template.New(templateName).Funcs(funcMap).Parse(string(templateContents))
+	tmpl, err := template.New(templateName).Funcs(FuncMap).Parse(string(templateContents))
 	if err != nil {
 		return fmt.Errorf("unable to parse template: %w", err)
 	}
@@ -75,8 +75,8 @@ func (pres *Presenter) Present(output io.Writer) error {
 	return nil
 }
 
-// These are custom functions available to template authors.
-var funcMap = func() template.FuncMap {
+// FuncMap is a function that returns template.FuncMap with custom functions available to template authors.
+var FuncMap = func() template.FuncMap {
 	f := sprig.HermeticTxtFuncMap()
 	f["getLastIndex"] = func(collection interface{}) int {
 		if v := reflect.ValueOf(collection); v.Kind() == reflect.Slice {

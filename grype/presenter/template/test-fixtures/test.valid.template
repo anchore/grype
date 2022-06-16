@@ -1,6 +1,7 @@
 Identified distro as {{.Distro.Name}} version {{.Distro.Version}}.
 {{- range .Matches}}
     Vulnerability: {{.Vulnerability.ID}}
+    CVE: {{trimPrefix "CVE-" .Vulnerability.ID}}
     Severity: {{.Vulnerability.Severity}}
     Package: {{.Artifact.Name}} version {{.Artifact.Version}} ({{.Artifact.Type}})
     {{- range .MatchDetails}}
