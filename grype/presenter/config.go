@@ -3,9 +3,10 @@ package presenter
 import (
 	"errors"
 	"fmt"
-	presenterTemplate "github.com/anchore/grype/grype/presenter/template"
 	"os"
 	"text/template"
+
+	presenterTemplate "github.com/anchore/grype/grype/presenter/template"
 )
 
 // Config is the presenter domain's configuration data structure.
