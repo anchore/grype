@@ -47,6 +47,7 @@ Hosts Amy Bass from Docker Desktop and Christopher Phillips from Anchore OSS wil
   - JavaScript (NPM, Yarn)
   - Python (Egg, Wheel, Poetry, requirements.txt/setup.py files)
   - Dotnet (deps.json)
+  - Golang (go.mod)
 - Supports Docker and OCI image formats
 - Consume SBOM [attestations](https://github.com/anchore/syft#sbom-attestation).
 
