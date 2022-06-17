@@ -21,6 +21,21 @@ func TestNew(t *testing.T) {
 		upstreams []UpstreamPackage
 	}{
 		{
+			name: "alpm package with source info",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.AlpmMetadataType,
+				Metadata: syftPkg.AlpmMetadata{
+					BasePackage:  "base-pkg-info",
+					Package:      "pkg-info",
+					Version:      "version-info",
+					Architecture: "arch-info",
+					Files: []syftPkg.AlpmFileRecord{{
+						Path: "/this/path/exists",
+					}},
+				},
+			},
+		},
+		{
 			name: "dpkg with source info",
 			syftPkg: syftPkg.Package{
 				MetadataType: syftPkg.DpkgMetadataType,
