@@ -24,6 +24,11 @@ func Provide(userInput string, config ProviderConfig) ([]Package, Context, error
 		return packages, ctx, err
 	}
 
+	packages, ctx, err = csvProvider(userInput, config)
+	if !errors.Is(err, errDoesNotProvide) {
+		return packages, ctx, err
+	}
+
 	return syftProvider(userInput, config)
 }
 
