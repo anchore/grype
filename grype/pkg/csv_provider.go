@@ -8,6 +8,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/pkg"
 	"github.com/facebookincubator/nvdtools/wfn"
 	"github.com/mitchellh/go-homedir"
@@ -21,7 +23,7 @@ func (e errEmptyCSV) Error() string {
 	return fmt.Sprintf("CSV file is empty: %s", e.csvFilepath)
 }
 
-func csvProvider(userInput string, config ProviderConfig) ([]Package, Context, error) {
+func csvProvider(userInput string) ([]Package, Context, error) {
 	p, err := getCSVPackages(userInput)
 	return p, Context{}, err
 }
@@ -54,24 +56,45 @@ func decodeCSV(reader io.Reader) ([]Package, error) {
 			continue
 		}
 
-		pkgType := pkg.UnknownPkg
-		if len(row) > 1 {
-			purl := strings.TrimSpace(row[1])
-			pkgType = pkg.TypeFromPURL(purl)
-		}
-
 		rawCpe := strings.TrimSpace(row[0])
 		cpe, err := pkg.NewCPE(rawCpe)
 		if err != nil {
 			return nil, fmt.Errorf("unable to decode cpe: %v: %w", rawCpe, err)
 		}
 
+		var purl string
+		var pkgType pkg.Type = pkg.UnknownPkg
+		var pkgLanguage pkg.Language = pkg.Language(cpe.Language)
+		var pkgVersion string = cpe.Version
+
+		if len(row) > 1 {
+			purl = strings.TrimSpace(row[1])
+			pkgType = pkg.TypeFromPURL(purl)
+			if pkgLanguage == pkg.UnknownLanguage {
+				pkgLanguage = pkg.LanguageFromPURL(purl)
+			}
+			if pkgVersion == wfn.NA || pkgVersion == wfn.Any {
+				p, err := packageurl.FromString(purl)
+				if err == nil {
+					pkgVersion = p.Version
+				}
+			}
+		}
+
+		if pkgVersion == wfn.NA || pkgVersion == wfn.Any {
+			log.Warnf("fixed version is required in either purl or cpe (cpe=%+v, purl=%+v)", cpe, purl)
+		} else if pkgLanguage == pkg.UnknownLanguage {
+			log.Warnf("language is required for cpe or include a purl  (cpe=%+v, purl=%+v)", cpe, purl)
+		} else if pkgType == pkg.UnknownPkg {
+			log.Warnf("provide a valid purl for more accurate matching (cpe=%+v, purl%+v)", cpe, purl)
+		}
+
 		packages = append(packages, Package{
 			CPEs:     []wfn.Attributes{cpe},
 			Name:     cpe.Product,
-			Version:  cpe.Version,
+			Version:  pkgVersion,
 			Type:     pkgType,
-			Language: pkg.Language(cpe.Language),
+			Language: pkgLanguage,
 		})
 	}
 

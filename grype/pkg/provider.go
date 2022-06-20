@@ -24,7 +24,7 @@ func Provide(userInput string, config ProviderConfig) ([]Package, Context, error
 		return packages, ctx, err
 	}
 
-	packages, ctx, err = csvProvider(userInput, config)
+	packages, ctx, err = csvProvider(userInput)
 	if !errors.Is(err, errDoesNotProvide) {
 		return packages, ctx, err
 	}
