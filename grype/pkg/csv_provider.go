@@ -80,9 +80,11 @@ func decodeCSV(reader io.Reader) ([]Package, error) {
 
 		fmt.Println(cpe)
 
-		if pkgVersion == wfn.NA || pkgVersion == wfn.Any {
+		switch true {
+		case pkgVersion == wfn.NA || pkgVersion == wfn.Any:
 			log.Warnf("fixed version is required in either purl or cpe (cpe=%+v, purl=%+v)", cpe, purl)
-		} else if pkgLanguage == pkg.UnknownLanguage {
+			break
+		case pkgLanguage == pkg.UnknownLanguage:
 			log.Warnf("include a purl increase to matching accuracy with languages (cpe=%+v, purl=%+v)", cpe, purl)
 		}
 
