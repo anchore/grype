@@ -52,20 +52,17 @@ func decodeCSV(reader io.Reader) ([]Package, error) {
 	var packages []Package
 
 	for _, row := range records {
-		if len(row) == 0 {
-			continue
-		}
-
 		rawCpe := strings.TrimSpace(row[0])
+		fmt.Println(rawCpe)
 		cpe, err := pkg.NewCPE(rawCpe)
 		if err != nil {
 			return nil, fmt.Errorf("unable to decode cpe: %v: %w", rawCpe, err)
 		}
 
 		var purl string
-		var pkgType pkg.Type = pkg.UnknownPkg
-		var pkgLanguage pkg.Language = pkg.Language(cpe.Language)
-		var pkgVersion string = cpe.Version
+		var pkgType = pkg.UnknownPkg
+		var pkgLanguage pkg.Language
+		var pkgVersion = cpe.Version
 
 		if len(row) > 1 {
 			purl = strings.TrimSpace(row[1])
@@ -81,12 +78,12 @@ func decodeCSV(reader io.Reader) ([]Package, error) {
 			}
 		}
 
+		fmt.Println(cpe)
+
 		if pkgVersion == wfn.NA || pkgVersion == wfn.Any {
 			log.Warnf("fixed version is required in either purl or cpe (cpe=%+v, purl=%+v)", cpe, purl)
 		} else if pkgLanguage == pkg.UnknownLanguage {
-			log.Warnf("language is required for cpe or include a purl  (cpe=%+v, purl=%+v)", cpe, purl)
-		} else if pkgType == pkg.UnknownPkg {
-			log.Warnf("provide a valid purl for more accurate matching (cpe=%+v, purl%+v)", cpe, purl)
+			log.Warnf("include a purl increase to matching accuracy with languages (cpe=%+v, purl=%+v)", cpe, purl)
 		}
 
 		packages = append(packages, Package{
