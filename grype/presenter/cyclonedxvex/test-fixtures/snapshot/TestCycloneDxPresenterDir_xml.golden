@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:ae1948c7-fda4-4af7-945f-839b933e2e64" version="1">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:e59512d8-825c-4792-851d-aed502e9b99b" version="1">
   <metadata>
-    <timestamp>2022-04-29T13:18:21-04:00</timestamp>
+    <timestamp>2022-06-09T23:40:39Z</timestamp>
     <tools>
       <tool>
         <vendor>anchore</vendor>
@@ -58,6 +58,7 @@
           <ref>package-1-id</ref>
         </target>
       </affects>
+      <properties></properties>
     </vulnerability>
     <vulnerability>
       <id>CVE-1999-0002</id>
@@ -85,6 +86,7 @@
           <ref>package-2-id</ref>
         </target>
       </affects>
+      <properties></properties>
     </vulnerability>
   </vulnerabilities>
 </bom>

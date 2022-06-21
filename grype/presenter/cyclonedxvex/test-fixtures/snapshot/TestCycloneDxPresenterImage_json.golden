@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
-  "serialNumber": "urn:uuid:307601b7-a1bb-4dcd-9a4a-c9ee41f556e8",
+  "serialNumber": "urn:uuid:70c98fca-03d9-43ed-96a1-5a915c50d88b",
   "version": 1,
   "metadata": {
-    "timestamp": "2022-04-29T13:18:21-04:00",
+    "timestamp": "2022-06-09T23:40:38Z",
     "tools": [
       {
         "vendor": "anchore",
@@ -70,7 +70,8 @@
         {
           "ref": "package-1-id"
         }
-      ]
+      ],
+      "properties": []
     },
     {
       "id": "CVE-1999-0002",
@@ -97,7 +98,8 @@
         {
           "ref": "package-2-id"
         }
-      ]
+      ],
+      "properties": []
     }
   ]
 }
