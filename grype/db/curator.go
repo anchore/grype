@@ -4,15 +4,18 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	cleanhttp "github.com/hashicorp/go-cleanhttp"
-	archiver "github.com/mholt/archiver/v3"
-	partybus "github.com/wagoodman/go-partybus"
-	progress "github.com/wagoodman/go-progress"
 	"net/http"
 	"os"
 	"path"
 	"strconv"
 	"time"
+
+	"github.com/hako/durafmt"
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	archiver "github.com/mholt/archiver/v3"
+	"github.com/spf13/afero"
+	partybus "github.com/wagoodman/go-partybus"
+	progress "github.com/wagoodman/go-progress"
 
 	grypeDB "github.com/anchore/grype/grype/db/v4"
 	"github.com/anchore/grype/grype/db/v4/store"
@@ -21,8 +24,6 @@ import (
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/file"
 	"github.com/anchore/grype/internal/log"
-	"github.com/hako/durafmt"
-	"github.com/spf13/afero"
 )
 
 const (

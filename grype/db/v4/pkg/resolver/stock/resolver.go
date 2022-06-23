@@ -1,8 +1,9 @@
 package stock
 
 import (
-	grypePkg "github.com/anchore/grype/grype/pkg"
 	"strings"
+
+	grypePkg "github.com/anchore/grype/grype/pkg"
 )
 
 type Resolver struct {

@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/db"
 	grypeDB "github.com/anchore/grype/grype/db/v4"
@@ -106,7 +107,7 @@ func (pr *mockVulnStore) GetVulnerability(namespace, pkg string) ([]grypeDB.Vuln
 
 func (pr *mockVulnStore) GetVulnerabilityNamespaces() ([]string, error) {
 	keys := make([]string, 0, len(pr.data))
-	for k, _ := range pr.data {
+	for k := range pr.data {
 		keys = append(keys, k)
 	}
 
@@ -395,7 +396,9 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			actual, err := ByPackageCPE(db.NewVulnerabilityProvider(newMockStore()), test.p, matcher)
+			p, err := db.NewVulnerabilityProvider(newMockStore())
+			require.NoError(t, err)
+			actual, err := ByPackageCPE(p, test.p, matcher)
 			assert.NoError(t, err)
 			assertMatchesUsingIDsForVulnerabilities(t, test.expected, actual)
 			for idx, e := range test.expected {

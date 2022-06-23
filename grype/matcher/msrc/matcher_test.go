@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/db"
 	grypeDB "github.com/anchore/grype/grype/db/v4"
@@ -28,7 +29,7 @@ func (s *mockStore) GetVulnerability(namespace, name string) ([]grypeDB.Vulnerab
 
 func (s *mockStore) GetVulnerabilityNamespaces() ([]string, error) {
 	keys := make([]string, 0, len(s.backend))
-	for k, _ := range s.backend {
+	for k := range s.backend {
 		keys = append(keys, k)
 	}
 
@@ -70,7 +71,8 @@ func TestMatches(t *testing.T) {
 		},
 	}
 
-	provider := db.NewVulnerabilityProvider(&store)
+	provider, err := db.NewVulnerabilityProvider(&store)
+	require.NoError(t, err)
 
 	tests := []struct {
 		name            string

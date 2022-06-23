@@ -1,9 +1,11 @@
 package language
 
 import (
-	syftPkg "github.com/anchore/syft/syft/pkg"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 func TestFromString(t *testing.T) {

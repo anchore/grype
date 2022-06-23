@@ -3,9 +3,10 @@ package language
 import (
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/anchore/grype/grype/db/v4/pkg/resolver"
 	syftPkg "github.com/anchore/syft/syft/pkg"
-	"strings"
 )
 
 const ID = "language"

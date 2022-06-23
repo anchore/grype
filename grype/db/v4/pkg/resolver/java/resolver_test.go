@@ -1,10 +1,12 @@
 package java
 
 import (
-	grypePkg "github.com/anchore/grype/grype/pkg"
+	"testing"
+
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-	"testing"
+
+	grypePkg "github.com/anchore/grype/grype/pkg"
 )
 
 func TestResolver_Normalize(t *testing.T) {

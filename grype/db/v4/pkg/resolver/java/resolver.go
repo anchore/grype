@@ -2,11 +2,12 @@ package java
 
 import (
 	"fmt"
+	"strings"
+
 	grypePkg "github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/packageurl-go"
-	"strings"
 )
 
 type Resolver struct {

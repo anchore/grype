@@ -3,10 +3,11 @@ package namespace
 import (
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/anchore/grype/grype/db/v4/namespace/cpe"
 	"github.com/anchore/grype/grype/db/v4/namespace/distro"
 	"github.com/anchore/grype/grype/db/v4/namespace/language"
-	"strings"
 )
 
 func FromString(namespaceStr string) (Namespace, error) {

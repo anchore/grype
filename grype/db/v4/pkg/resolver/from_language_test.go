@@ -1,12 +1,14 @@
 package resolver
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
 	"github.com/anchore/grype/grype/db/v4/pkg/resolver/java"
 	"github.com/anchore/grype/grype/db/v4/pkg/resolver/python"
 	"github.com/anchore/grype/grype/db/v4/pkg/resolver/stock"
 	syftPkg "github.com/anchore/syft/syft/pkg"
-	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestFromLanguage(t *testing.T) {

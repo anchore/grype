@@ -1190,7 +1190,7 @@ func TestStore_GetVulnerabilityMatchExclusion_SetVulnerabilityMatchExclusion(t *
 	}
 
 	total := append(expected, extra...)
-	
+
 	if err = s.AddVulnerabilityMatchExclusion(total...); err != nil {
 		t.Fatalf("failed to set Vulnerability Match Exclusion: %+v", err)
 	}
