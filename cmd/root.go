@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/store"
 	"os"
 	"strings"
@@ -293,7 +294,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			defer wg.Done()
 			log.Debug("loading DB")
 			store, err = grype.LoadVulnerabilityDB(appConfig.DB.ToCuratorConfig(), appConfig.DB.AutoUpdate)
-			if err = validateDBLoad(err, store); err != nil {
+			if err = validateDBLoad(err, store.Status); err != nil {
 				errs <- err
 				return
 			}
@@ -336,13 +337,13 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		// determine if there are any severities >= to the max allowable severity (which is optional).
 		// note: until the shared file lock in sqlittle is fixed the sqlite DB cannot be access concurrently,
 		// implying that the fail-on-severity check must be done before sending the presenter object.
-		if hitSeverityThreshold(failOnSeverity, remainingMatches, store.VulnerabilityMetadataProvider) {
+		if hitSeverityThreshold(failOnSeverity, remainingMatches, store) {
 			errs <- grypeerr.ErrAboveSeverityThreshold
 		}
 
 		bus.Publish(partybus.Event{
 			Type:  event.VulnerabilityScanningFinished,
-			Value: presenter.GetPresenter(presenterConfig, remainingMatches, ignoredMatches, packages, context, store.VulnerabilityMetadataProvider, appConfig, store.Status),
+			Value: presenter.GetPresenter(presenterConfig, remainingMatches, ignoredMatches, packages, context, store, appConfig, store.Status),
 		})
 	}()
 	return errs
@@ -388,15 +389,15 @@ func getProviderConfig() pkg.ProviderConfig {
 	}
 }
 
-func validateDBLoad(loadErr error, store *store.Store) error {
+func validateDBLoad(loadErr error, status *db.Status) error {
 	if loadErr != nil {
 		return fmt.Errorf("failed to load vulnerability db: %w", loadErr)
 	}
-	if store == nil || store.Status == nil {
+	if status == nil {
 		return fmt.Errorf("unable to determine DB status")
 	}
-	if store.Status.Err != nil {
-		return fmt.Errorf("db could not be loaded: %w", store.Status.Err)
+	if status.Err != nil {
+		return fmt.Errorf("db could not be loaded: %w", status.Err)
 	}
 	return nil
 }

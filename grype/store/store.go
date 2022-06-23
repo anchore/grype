@@ -6,10 +6,9 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
-// TODO: review this object more thoroughly post M6 prototype
 type Store struct {
-	VulnerabilityProvider         vulnerability.Provider
-	VulnerabilityMetadataProvider vulnerability.MetadataProvider
-	MatchExclusionProvider        match.ExclusionProvider
-	Status                        *db.Status
+	vulnerability.Provider
+	vulnerability.MetadataProvider
+	match.ExclusionProvider
+	Status *db.Status
 }
