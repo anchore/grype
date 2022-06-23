@@ -261,6 +261,6 @@ func (s *store) AddVulnerabilityMatchExclusion(exclusions ...v4.VulnerabilityMat
 	return nil
 }
 
-func (s *store) Vacuum() {
+func (s *store) Close() {
 	s.db.Exec("VACUUM;")
 }
