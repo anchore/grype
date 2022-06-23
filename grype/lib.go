@@ -59,7 +59,11 @@ func LoadVulnerabilityDB(cfg db.Config, update bool) (vulnerability.Provider, vu
 
 	status := dbCurator.Status()
 
-	return db.NewVulnerabilityProvider(store), db.NewVulnerabilityMetadataProvider(store), &status, status.Err
+	p, err := db.NewVulnerabilityProvider(store)
+	if err != nil {
+		return nil, nil, &status, err
+	}
+	return p, db.NewVulnerabilityMetadataProvider(store), &status, status.Err
 }
 
 func SetLogger(logger logger.Logger) {

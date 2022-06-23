@@ -1,13 +1,15 @@
 package namespace
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
 	"github.com/anchore/grype/grype/db/v4/namespace/cpe"
 	"github.com/anchore/grype/grype/db/v4/namespace/distro"
 	"github.com/anchore/grype/grype/db/v4/namespace/language"
 	grypeDistro "github.com/anchore/grype/grype/distro"
 	syftPkg "github.com/anchore/syft/syft/pkg"
-	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestFromString(t *testing.T) {

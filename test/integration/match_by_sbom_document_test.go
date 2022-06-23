@@ -89,7 +89,8 @@ func TestMatchBySBOMDocument(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			provider := db.NewVulnerabilityProvider(newMockDbStore())
+			provider, err := db.NewVulnerabilityProvider(newMockDbStore())
+			require.NoError(t, err)
 			matches, _, _, err := grype.FindVulnerabilities(provider, fmt.Sprintf("sbom:%s", test.fixture), source.SquashedScope, nil)
 			assert.NoError(t, err)
 			details := make([]match.Detail, 0)

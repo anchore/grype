@@ -11,6 +11,10 @@ type mockStore struct {
 	backend map[string]map[string][]grypeDB.Vulnerability
 }
 
+func (s *mockStore) GetVulnerabilityNamespaces() ([]string, error) {
+	panic("not implemented")
+}
+
 func newMockDbStore() *mockStore {
 	return &mockStore{
 		backend: map[string]map[string][]grypeDB.Vulnerability{

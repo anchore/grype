@@ -1,8 +1,9 @@
 package stock
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestResolver_Normalize(t *testing.T) {

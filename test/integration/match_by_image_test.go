@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db"
@@ -417,7 +418,10 @@ func TestMatchByImage(t *testing.T) {
 
 			matchers := matcher.NewDefaultMatchers(matcher.Config{})
 
-			actualResults := grype.FindVulnerabilitiesForPackage(db.NewVulnerabilityProvider(theStore), theDistro, matchers, pkg.FromCatalog(theCatalog, pkg.ProviderConfig{}))
+			p, err := db.NewVulnerabilityProvider(theStore)
+			require.NoError(t, err)
+
+			actualResults := grype.FindVulnerabilitiesForPackage(p, theDistro, matchers, pkg.FromCatalog(theCatalog, pkg.ProviderConfig{}))
 
 			// build expected matches from what's discovered from the catalog
 			expectedMatches := test.expectedFn(*theSource, theCatalog, theStore)

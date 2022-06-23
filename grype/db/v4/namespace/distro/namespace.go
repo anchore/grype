@@ -3,10 +3,11 @@ package distro
 import (
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/anchore/grype/grype/db/v4/pkg/resolver"
 	"github.com/anchore/grype/grype/db/v4/pkg/resolver/stock"
 	"github.com/anchore/grype/grype/distro"
-	"strings"
 )
 
 const ID = "distro"

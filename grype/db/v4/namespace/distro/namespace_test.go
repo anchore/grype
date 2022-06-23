@@ -1,9 +1,11 @@
 package distro
 
 import (
-	grypeDistro "github.com/anchore/grype/grype/distro"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	grypeDistro "github.com/anchore/grype/grype/distro"
 )
 
 func TestFromString(t *testing.T) {

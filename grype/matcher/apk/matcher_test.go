@@ -6,6 +6,7 @@ import (
 	"github.com/go-test/deep"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/db"
 	grypeDB "github.com/anchore/grype/grype/db/v4"
@@ -42,7 +43,7 @@ func (s *mockStore) GetAllVulnerabilities() (*[]grypeDB.Vulnerability, error) {
 
 func (s *mockStore) GetVulnerabilityNamespaces() ([]string, error) {
 	keys := make([]string, 0, len(s.backend))
-	for k, _ := range s.backend {
+	for k := range s.backend {
 		keys = append(keys, k)
 	}
 
@@ -66,7 +67,8 @@ func TestSecDBOnlyMatch(t *testing.T) {
 		},
 	}
 
-	provider := db.NewVulnerabilityProvider(&store)
+	provider, err := db.NewVulnerabilityProvider(&store)
+	require.NoError(t, err)
 
 	m := Matcher{}
 	d, err := distro.New(distro.Alpine, "3.12.0", "")
@@ -153,7 +155,8 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 		},
 	}
 
-	provider := db.NewVulnerabilityProvider(&store)
+	provider, err := db.NewVulnerabilityProvider(&store)
+	require.NoError(t, err)
 
 	m := Matcher{}
 	d, err := distro.New(distro.Alpine, "3.12.0", "")
@@ -241,7 +244,8 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 		},
 	}
 
-	provider := db.NewVulnerabilityProvider(&store)
+	provider, err := db.NewVulnerabilityProvider(&store)
+	require.NoError(t, err)
 
 	m := Matcher{}
 	d, err := distro.New(distro.Alpine, "3.12.0", "")
@@ -316,7 +320,8 @@ func TestNvdOnlyMatches(t *testing.T) {
 		},
 	}
 
-	provider := db.NewVulnerabilityProvider(&store)
+	provider, err := db.NewVulnerabilityProvider(&store)
+	require.NoError(t, err)
 
 	m := Matcher{}
 	d, err := distro.New(distro.Alpine, "3.12.0", "")
@@ -395,7 +400,8 @@ func TestNvdMatchesWithSecDBFix(t *testing.T) {
 		},
 	}
 
-	provider := db.NewVulnerabilityProvider(&store)
+	provider, err := db.NewVulnerabilityProvider(&store)
+	require.NoError(t, err)
 
 	m := Matcher{}
 	d, err := distro.New(distro.Alpine, "3.12.0", "")
@@ -449,7 +455,8 @@ func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
 		},
 	}
 
-	provider := db.NewVulnerabilityProvider(&store)
+	provider, err := db.NewVulnerabilityProvider(&store)
+	require.NoError(t, err)
 
 	m := Matcher{}
 	d, err := distro.New(distro.Alpine, "3.12.0", "")
@@ -493,7 +500,8 @@ func TestDistroMatchBySourceIndirection(t *testing.T) {
 		},
 	}
 
-	provider := db.NewVulnerabilityProvider(&store)
+	provider, err := db.NewVulnerabilityProvider(&store)
+	require.NoError(t, err)
 
 	m := Matcher{}
 	d, err := distro.New(distro.Alpine, "3.12.0", "")
@@ -569,7 +577,8 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 		},
 	}
 
-	provider := db.NewVulnerabilityProvider(&store)
+	provider, err := db.NewVulnerabilityProvider(&store)
+	require.NoError(t, err)
 
 	m := Matcher{}
 	d, err := distro.New(distro.Alpine, "3.12.0", "")
