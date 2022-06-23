@@ -12,14 +12,6 @@
 
 A vulnerability scanner for container images and filesystems. Easily [install the binary](#installation) to try it out. Works with [Syft](https://github.com/anchore/syft), the powerful SBOM (software bill of materials) tool for container images and filesystems.
 
-### Join our Virtual OSS Meetup!
-
-You are invited to join us on June 15th, 11AM-Noon PT for our virtual open source meetup.  
-
-Hosts Amy Bass from Docker Desktop and Christopher Phillips from Anchore OSS will explore how Docker Extensions for Docker Desktop is supporting open source projects and we’ll have the latest update on Syft: in-toto attestations.
-
-[Register here ->](https://get.anchore.com/anchore-oss-meetup-jun-15-2022/)
-
 ### Join our community meetings!
 
 - Calendar: https://calendar.google.com/calendar/u/0/r?cid=Y182OTM4dGt0MjRtajI0NnNzOThiaGtnM29qNEBncm91cC5jYWxlbmRhci5nb29nbGUuY29t
