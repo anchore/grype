@@ -2,7 +2,6 @@ package java
 
 import (
 	"fmt"
-	"github.com/anchore/grype/grype/db/v4/pkg/resolver"
 	grypePkg "github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
@@ -11,10 +10,6 @@ import (
 )
 
 type Resolver struct {
-}
-
-func (r *Resolver) Type() resolver.Type {
-	return resolver.Java
 }
 
 func (r *Resolver) Normalize(name string) string {

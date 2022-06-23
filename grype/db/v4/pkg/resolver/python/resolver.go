@@ -1,17 +1,12 @@
 package python
 
 import (
-	"github.com/anchore/grype/grype/db/v4/pkg/resolver"
 	grypePkg "github.com/anchore/grype/grype/pkg"
 	"regexp"
 	"strings"
 )
 
 type Resolver struct {
-}
-
-func (r *Resolver) Type() resolver.Type {
-	return resolver.Python
 }
 
 func (r *Resolver) Normalize(name string) string {

@@ -1,4 +1,4 @@
-package index
+package namespace
 
 import (
 	"github.com/anchore/grype/grype/db/v4/namespace/cpe"
@@ -70,7 +70,7 @@ func TestFromStringSlice(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		result, _ := FromStringSlice(test.namespaces)
+		result, _ := FromStrings(test.namespaces)
 		assert.Len(t, result.all, len(test.namespaces))
 
 		for l, elems := range result.byLanguage {
@@ -102,7 +102,7 @@ func TestIndex_CPENamespaces(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		result, _ := FromStringSlice(test.namespaces)
+		result, _ := FromStrings(test.namespaces)
 		assert.Len(t, result.all, len(test.namespaces))
 		assert.ElementsMatch(t, result.CPENamespaces(), test.cpe)
 	}
@@ -115,7 +115,7 @@ func newDistro(t *testing.T, dt osDistro.Type, v string, idLikes []string) *osDi
 }
 
 func TestIndex_NamespacesForDistro(t *testing.T) {
-	namespaceIndex, err := FromStringSlice([]string{
+	namespaceIndex, err := FromStrings([]string{
 		"alpine:distro:alpine:3.15",
 		"alpine:distro:alpine:3.16",
 		"debian:distro:debian:8",
