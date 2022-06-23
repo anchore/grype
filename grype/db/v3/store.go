@@ -16,7 +16,7 @@ type StoreWriter interface {
 	IDWriter
 	VulnerabilityStoreWriter
 	VulnerabilityMetadataStoreWriter
-	Vacuum()
+	Close()
 }
 
 type DiffReader interface {

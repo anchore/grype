@@ -269,6 +269,6 @@ func (s *store) DiffStore(targetStore v3.StoreReader) (*[]v3.Diff, error) {
 	return allDiffs, nil
 }
 
-func (s *store) Vacuum() {
+func (s *store) Close() {
 	s.db.Exec("VACUUM;")
 }

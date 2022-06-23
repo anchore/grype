@@ -206,6 +206,6 @@ func (s *store) AddVulnerabilityMetadata(metadata ...v1.VulnerabilityMetadata) e
 	return nil
 }
 
-func (s *store) Vacuum() {
+func (s *store) Close() {
 	s.db.Exec("VACUUM;")
 }
