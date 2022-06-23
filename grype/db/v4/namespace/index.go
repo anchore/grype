@@ -1,11 +1,9 @@
-package index
+package namespace
 
 import (
 	"fmt"
-	"github.com/anchore/grype/grype/db/v4/namespace"
 	"github.com/anchore/grype/grype/db/v4/namespace/cpe"
 	"github.com/anchore/grype/grype/db/v4/namespace/distro"
-	"github.com/anchore/grype/grype/db/v4/namespace/factory"
 	"github.com/anchore/grype/grype/db/v4/namespace/language"
 	grypeDistro "github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/internal/log"
@@ -14,20 +12,20 @@ import (
 )
 
 type Index struct {
-	all         []namespace.Namespace
+	all         []Namespace
 	byLanguage  map[syftPkg.Language][]*language.Namespace
 	byDistroKey map[string][]*distro.Namespace
 	cpe         []*cpe.Namespace
 }
 
-func FromStringSlice(namespaces []string) (*Index, error) {
-	all := make([]namespace.Namespace, 0)
+func FromStrings(namespaces []string) (*Index, error) {
+	all := make([]Namespace, 0)
 	byLanguage := make(map[syftPkg.Language][]*language.Namespace)
 	byDistroKey := make(map[string][]*distro.Namespace)
 	cpeNamespaces := make([]*cpe.Namespace, 0)
 
 	for _, n := range namespaces {
-		ns, err := factory.FromString(n)
+		ns, err := FromString(n)
 
 		if err != nil {
 			log.Warnf("unable to create namespace object from namespace=%s: %+v", n, err)
@@ -36,26 +34,23 @@ func FromStringSlice(namespaces []string) (*Index, error) {
 
 		all = append(all, ns)
 
-		switch ns.Type() {
-		case namespace.Language:
-			langNs := ns.(*language.Namespace)
-			l := langNs.Language()
+		switch nsObj := ns.(type) {
+		case *language.Namespace:
+			l := nsObj.Language()
 			if _, ok := byLanguage[l]; !ok {
 				byLanguage[l] = make([]*language.Namespace, 0)
 			}
 
-			byLanguage[l] = append(byLanguage[l], langNs)
-		case namespace.Distro:
-			distroNs := ns.(*distro.Namespace)
-			distroKey := fmt.Sprintf("%s:%s", distroNs.DistroType(), distroNs.Version())
+			byLanguage[l] = append(byLanguage[l], nsObj)
+		case *distro.Namespace:
+			distroKey := fmt.Sprintf("%s:%s", nsObj.DistroType(), nsObj.Version())
 			if _, ok := byDistroKey[distroKey]; !ok {
 				byDistroKey[distroKey] = make([]*distro.Namespace, 0)
 			}
 
-			byDistroKey[distroKey] = append(byDistroKey[distroKey], distroNs)
-		case namespace.CPE:
-			cpeNs := ns.(*cpe.Namespace)
-			cpeNamespaces = append(cpeNamespaces, cpeNs)
+			byDistroKey[distroKey] = append(byDistroKey[distroKey], nsObj)
+		case *cpe.Namespace:
+			cpeNamespaces = append(cpeNamespaces, nsObj)
 		default:
 			log.Warnf("unable to index namespace=%s", n)
 			continue

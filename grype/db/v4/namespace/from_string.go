@@ -1,32 +1,31 @@
-package factory
+package namespace
 
 import (
 	"errors"
 	"fmt"
-	"github.com/anchore/grype/grype/db/v4/namespace"
 	"github.com/anchore/grype/grype/db/v4/namespace/cpe"
 	"github.com/anchore/grype/grype/db/v4/namespace/distro"
 	"github.com/anchore/grype/grype/db/v4/namespace/language"
 	"strings"
 )
 
-func FromString(namespaceStr string) (namespace.Namespace, error) {
+func FromString(namespaceStr string) (Namespace, error) {
 	if namespaceStr == "" {
 		return nil, errors.New("unable to create namespace from empty string")
 	}
 
-	components := strings.Split(namespaceStr, namespace.Separator)
+	components := strings.Split(namespaceStr, ":")
 
 	if len(components) < 1 {
 		return nil, fmt.Errorf("unable to create namespace from %s: incorrect number of components", namespaceStr)
 	}
 
 	switch components[1] {
-	case string(namespace.CPE):
+	case cpe.ID:
 		return cpe.FromString(namespaceStr)
-	case string(namespace.Distro):
+	case distro.ID:
 		return distro.FromString(namespaceStr)
-	case string(namespace.Language):
+	case language.ID:
 		return language.FromString(namespaceStr)
 	default:
 		return nil, fmt.Errorf("unable to create namespace from %s: unknown type %s", namespaceStr, components[1])

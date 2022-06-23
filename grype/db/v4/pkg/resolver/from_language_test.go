@@ -1,7 +1,6 @@
-package factory
+package resolver
 
 import (
-	"github.com/anchore/grype/grype/db/v4/pkg/resolver"
 	"github.com/anchore/grype/grype/db/v4/pkg/resolver/java"
 	"github.com/anchore/grype/grype/db/v4/pkg/resolver/python"
 	"github.com/anchore/grype/grype/db/v4/pkg/resolver/stock"
@@ -13,7 +12,7 @@ import (
 func TestFromLanguage(t *testing.T) {
 	tests := []struct {
 		language syftPkg.Language
-		result   resolver.Resolver
+		result   Resolver
 	}{
 		{
 			language: syftPkg.Python,

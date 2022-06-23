@@ -1,7 +1,6 @@
-package factory
+package namespace
 
 import (
-	"github.com/anchore/grype/grype/db/v4/namespace"
 	"github.com/anchore/grype/grype/db/v4/namespace/cpe"
 	"github.com/anchore/grype/grype/db/v4/namespace/distro"
 	"github.com/anchore/grype/grype/db/v4/namespace/language"
@@ -14,7 +13,7 @@ import (
 func TestFromString(t *testing.T) {
 	tests := []struct {
 		namespaceString string
-		result          namespace.Namespace
+		result          Namespace
 	}{
 		{
 			namespaceString: "github:language:python",

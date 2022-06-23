@@ -5,7 +5,6 @@ import (
 )
 
 type Resolver interface {
-	Type() Type
 	Normalize(string) string
 	Resolve(p grypePkg.Package) []string
 }
