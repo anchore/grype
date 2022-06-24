@@ -1,5 +1,2 @@
 cpe:2.3:a:benjamin_curtis:phpbugtracker:1.0.3:*:*:*:*:*:*:*,pkg:composer/phpbugtracker@1.0.3
-cpe:2.3:a:adobe:jrun:*:*:*:*:*:*:*:*,
-cpe:2.3:a:adobe:jrun:4.0:*:*:*:*:*:*:*,
-cpe:2.3:a:adobe:jrun:4.0:*:*:java:java:*:*:*,
 cpe:2.3:a:adobe:jrun:*:*:*:*:*:*:*:*,pkg:maven/jrun@4.0
