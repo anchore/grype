@@ -8,11 +8,12 @@ import (
 	"os"
 	"strings"
 
+	"github.com/facebookincubator/nvdtools/wfn"
+	"github.com/mitchellh/go-homedir"
+
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/pkg"
-	"github.com/facebookincubator/nvdtools/wfn"
-	"github.com/mitchellh/go-homedir"
 )
 
 type errEmptyCSV struct {

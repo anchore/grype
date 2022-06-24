@@ -5,11 +5,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/anchore/grype/internal/log"
-	"github.com/anchore/grype/internal/logger"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/grype/internal/logger"
 )
 
 func Test_CsvProvider_Fails(t *testing.T) {
