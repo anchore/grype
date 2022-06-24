@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/anchore/grype/grype/db"
-	"github.com/anchore/grype/grype/store"
 	"os"
 	"strings"
 	"sync"
@@ -15,6 +13,7 @@ import (
 	"github.com/wagoodman/go-partybus"
 
 	"github.com/anchore/grype/grype"
+	"github.com/anchore/grype/grype/db"
 	grypeDb "github.com/anchore/grype/grype/db/v4"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/grypeerr"
@@ -22,6 +21,7 @@ import (
 	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter"
+	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/bus"

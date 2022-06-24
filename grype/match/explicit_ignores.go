@@ -37,8 +37,7 @@ func init() {
 	}
 }
 
-// ApplyExplicitIgnoreRules This will filter out matches that are defined above, in the
-// explicitIgnores list
+// ApplyExplicitIgnoreRules Filters out matches meeting the criteria defined above and those within the grype database
 func ApplyExplicitIgnoreRules(provider ExclusionProvider, matches Matches) Matches {
 	var ignoreRules []IgnoreRule
 	ignoreRules = append(ignoreRules, explicitIgnoreRules...)

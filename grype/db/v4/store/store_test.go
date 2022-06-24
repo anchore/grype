@@ -1094,28 +1094,41 @@ func TestStore_GetVulnerabilityMatchExclusion_SetVulnerabilityMatchExclusion(t *
 			ID: "CVE-1234-14567",
 			Constraints: []v4.VulnerabilityMatchExclusionConstraint{
 				{
-					Namespaces: []string{"extra-namespace:cpe"},
-					EcosystemConstraints: []v4.VulnerabilityMatchExclusionEcosystemConstraint{
-						{
-							Language: "ruby",
-							PackageConstraints: []v4.VulnerabilityMatchExclusionPackageConstraint{
-								{
-									PackageName: "abc",
-									Versions:    []string{"1.2.3", "4.5.6"},
-								},
-								{
-									PackageName: "time-1",
-								},
-							},
-						},
-						{
-							PackageType: "java-archive",
-							PackageConstraints: []v4.VulnerabilityMatchExclusionPackageConstraint{
-								{
-									PackageName: "abc.xyz:nothing-of-interest",
-								},
-							},
-						},
+					Vulnerability: v4.VulnerabilityExclusionConstraint{
+						Namespace: "extra-namespace:cpe",
+					},
+					Package: v4.PackageExclusionConstraint{
+						Name:     "abc",
+						Language: "ruby",
+						Version:  "1.2.3",
+					},
+				},
+				{
+					Vulnerability: v4.VulnerabilityExclusionConstraint{
+						Namespace: "extra-namespace:cpe",
+					},
+					Package: v4.PackageExclusionConstraint{
+						Name:     "abc",
+						Language: "ruby",
+						Version:  "4.5.6",
+					},
+				},
+				{
+					Vulnerability: v4.VulnerabilityExclusionConstraint{
+						Namespace: "extra-namespace:cpe",
+					},
+					Package: v4.PackageExclusionConstraint{
+						Name:     "time-1",
+						Language: "ruby",
+					},
+				},
+				{
+					Vulnerability: v4.VulnerabilityExclusionConstraint{
+						Namespace: "extra-namespace:cpe",
+					},
+					Package: v4.PackageExclusionConstraint{
+						Name: "abc.xyz:nothing-of-interest",
+						Type: "java-archive",
 					},
 				},
 			},
@@ -1133,28 +1146,41 @@ func TestStore_GetVulnerabilityMatchExclusion_SetVulnerabilityMatchExclusion(t *
 			ID: "CVE-1234-9999999",
 			Constraints: []v4.VulnerabilityMatchExclusionConstraint{
 				{
-					Namespaces: []string{"old-namespace:cpe"},
-					EcosystemConstraints: []v4.VulnerabilityMatchExclusionEcosystemConstraint{
-						{
-							Language: "python",
-							PackageConstraints: []v4.VulnerabilityMatchExclusionPackageConstraint{
-								{
-									PackageName: "abc",
-									Versions:    []string{"1.2.3", "4.5.6"},
-								},
-								{
-									PackageName: "time-245",
-								},
-							},
-						},
-						{
-							PackageType: "npm",
-							PackageConstraints: []v4.VulnerabilityMatchExclusionPackageConstraint{
-								{
-									PackageName: "everything",
-								},
-							},
-						},
+					Vulnerability: v4.VulnerabilityExclusionConstraint{
+						Namespace: "old-namespace:cpe",
+					},
+					Package: v4.PackageExclusionConstraint{
+						Language: "python",
+						Name:     "abc",
+						Version:  "1.2.3",
+					},
+				},
+				{
+					Vulnerability: v4.VulnerabilityExclusionConstraint{
+						Namespace: "old-namespace:cpe",
+					},
+					Package: v4.PackageExclusionConstraint{
+						Language: "python",
+						Name:     "abc",
+						Version:  "4.5.6",
+					},
+				},
+				{
+					Vulnerability: v4.VulnerabilityExclusionConstraint{
+						Namespace: "old-namespace:cpe",
+					},
+					Package: v4.PackageExclusionConstraint{
+						Language: "python",
+						Name:     "time-245",
+					},
+				},
+				{
+					Vulnerability: v4.VulnerabilityExclusionConstraint{
+						Namespace: "old-namespace:cpe",
+					},
+					Package: v4.PackageExclusionConstraint{
+						Type: "npm",
+						Name: "everything",
 					},
 				},
 			},
@@ -1164,21 +1190,29 @@ func TestStore_GetVulnerabilityMatchExclusion_SetVulnerabilityMatchExclusion(t *
 			ID: "CVE-1234-9999999",
 			Constraints: []v4.VulnerabilityMatchExclusionConstraint{
 				{
-					Namespaces: []string{"old-namespace:cpe", "some-other-namespace:cpe"},
-					EcosystemConstraints: []v4.VulnerabilityMatchExclusionEcosystemConstraint{
-						{
-							Language:    "go",
-							PackageType: "go-module",
-							PackageConstraints: []v4.VulnerabilityMatchExclusionPackageConstraint{
-								{
-									PackageName: "abc",
-								},
-							},
-						},
+					Vulnerability: v4.VulnerabilityExclusionConstraint{
+						Namespace: "old-namespace:cpe",
+					},
+					Package: v4.PackageExclusionConstraint{
+						Language: "go",
+						Type:     "go-module",
+						Name:     "abc",
 					},
 				},
 				{
-					FixStates: []v4.FixState{"wont-fix"},
+					Vulnerability: v4.VulnerabilityExclusionConstraint{
+						Namespace: "some-other-namespace:cpe",
+					},
+					Package: v4.PackageExclusionConstraint{
+						Language: "go",
+						Type:     "go-module",
+						Name:     "abc",
+					},
+				},
+				{
+					Vulnerability: v4.VulnerabilityExclusionConstraint{
+						FixState: "wont-fix",
+					},
 				},
 			},
 			Justification: "This is also a false positive",
