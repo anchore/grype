@@ -212,22 +212,56 @@ func (s *store) AddVulnerabilityMetadata(metadata ...v3.VulnerabilityMetadata) e
 	return nil
 }
 
+// GetAllVulnerabilities gets all vulnerabilities in the database
+func (s *store) GetAllVulnerabilities() (*[]v3.Vulnerability, error) {
+	var models []model.VulnerabilityModel
+	if result := s.db.Find(&models); result.Error != nil {
+		return nil, result.Error
+	}
+	vulns := make([]v3.Vulnerability, len(models))
+	for idx, m := range models {
+		vuln, err := m.Inflate()
+		if err != nil {
+			return nil, err
+		}
+		vulns[idx] = vuln
+	}
+	return &vulns, nil
+}
+
+// GetAllVulnerabilityMetadata gets all vulnerability metadata in the database
+func (s *store) GetAllVulnerabilityMetadata() (*[]v3.VulnerabilityMetadata, error) {
+	var models []model.VulnerabilityMetadataModel
+	if result := s.db.Find(&models); result.Error != nil {
+		return nil, result.Error
+	}
+	metadata := make([]v3.VulnerabilityMetadata, len(models))
+	for idx, m := range models {
+		data, err := m.Inflate()
+		if err != nil {
+			return nil, err
+		}
+		metadata[idx] = data
+	}
+	return &metadata, nil
+}
+
 // DiffStore creates a diff between the current sql database and the given store
 func (s *store) DiffStore(targetStore v3.StoreReader) (*[]v3.Diff, error) {
-	vulns, err := targetStore.GetAllSerializedVulnerabilities()
+	vulns, err := targetStore.GetAllVulnerabilities()
 	if err != nil {
 		return nil, err
 	}
-	allDiffs, err := diffDatabaseTable(s, vulns.(*[]model.VulnerabilityModel))
+	allDiffs, err := diffVulnerabilities(s, vulns)
 	if err != nil {
 		return nil, err
 	}
 
-	metadata, err := targetStore.GetAllSerializedVulnerabilityMetadata()
+	metadata, err := targetStore.GetAllVulnerabilityMetadata()
 	if err != nil {
 		return nil, err
 	}
-	diffs, err := diffDatabaseTable(s, metadata.(*[]model.VulnerabilityMetadataModel))
+	diffs, err := diffVulnerabilityMetadata(s, metadata)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,8 @@
 package store
 
 import (
+	"strings"
+
 	v3 "github.com/anchore/grype/grype/db/v3"
 	"github.com/anchore/grype/grype/db/v3/store/model"
 )
@@ -13,53 +15,43 @@ type storeKey struct {
 	cpes        string
 }
 
-type storeItem[T any] struct {
-	item *T
+type storeVulnerability struct {
+	item *v3.Vulnerability
+	seen bool
+}
+type storeMetadata struct {
+	item *v3.VulnerabilityMetadata
 	seen bool
 }
 
-func (s *store) GetAllSerializedVulnerabilities() (v3.SerializedVulnerabilities, error) {
-	return getAllRowsFromTable[model.VulnerabilityModel](s)
-}
-
-func (s *store) GetAllSerializedVulnerabilityMetadata() (v3.SerializedVulnerabilityMetadata, error) {
-	return getAllRowsFromTable[model.VulnerabilityMetadataModel](s)
-}
-
-func getAllRowsFromTable[T model.VulnerabilityModel | model.VulnerabilityMetadataModel](s *store) (*[]T, error) {
-	var models []T
-	if result := s.db.Find(&models); result.Error != nil {
-		return nil, result.Error
-	}
-	return &models, nil
-}
-
-func diffDatabaseTable[T model.VulnerabilityModel | model.VulnerabilityMetadataModel](s *store, targetModels *[]T) (*[]v3.Diff, error) {
-	var models []T
+//nolint:dupl
+func diffVulnerabilities(s *store, targetModels *[]v3.Vulnerability) (*[]v3.Diff, error) {
+	var models []model.VulnerabilityModel
 	diffs := []v3.Diff{}
 
 	if result := s.db.Find(&models); result.Error != nil {
 		return nil, result.Error
 	}
 
-	m := make(map[storeKey]*storeItem[T], len(models))
-	for idx, model := range models {
-		m[getKey(model)] = &storeItem[T]{
-			item: &models[idx],
+	m := make(map[storeKey]*storeVulnerability, len(models))
+	for _, model := range models {
+		inflatedModel, err := model.Inflate()
+		if err != nil {
+			return nil, err
+		}
+		m[getVulnerabilityKey(inflatedModel)] = &storeVulnerability{
+			item: &inflatedModel,
 			seen: false,
 		}
 	}
 
 	for _, tModel := range *targetModels {
 		targetModel := tModel
-		k := getKey(targetModel)
+		k := getVulnerabilityKey(targetModel)
 		if baseModel, exists := m[k]; exists {
 			baseModel.seen = true
 
-			clearPK(&targetModel)
-			clearPK(baseModel.item)
-
-			if *baseModel.item != targetModel {
+			if !baseModel.item.Equal(targetModel) {
 				diffs = append(diffs, v3.Diff{
 					Reason:    v3.DiffChanged,
 					ID:        k.id,
@@ -87,20 +79,69 @@ func diffDatabaseTable[T model.VulnerabilityModel | model.VulnerabilityMetadataM
 	return &diffs, nil
 }
 
-func clearPK(item interface{}) {
-	// nolint:gocritic
-	switch i := item.(type) {
-	case *model.VulnerabilityModel:
-		i.PK = 0
+func getVulnerabilityKey(vuln v3.Vulnerability) storeKey {
+	var sb strings.Builder
+	for _, str := range vuln.CPEs {
+		sb.WriteString(str)
 	}
+	return storeKey{vuln.ID, vuln.Namespace, vuln.PackageName, vuln.VersionConstraint, sb.String()}
 }
 
-func getKey(item interface{}) storeKey {
-	switch i := item.(type) {
-	case model.VulnerabilityModel:
-		return storeKey{i.ID, i.Namespace, i.PackageName, i.VersionConstraint, i.CPEs}
-	case model.VulnerabilityMetadataModel:
-		return storeKey{i.ID, i.Namespace, "", "", ""}
+//nolint:dupl
+func diffVulnerabilityMetadata(s *store, targetModels *[]v3.VulnerabilityMetadata) (*[]v3.Diff, error) {
+	var models []model.VulnerabilityMetadataModel
+	diffs := []v3.Diff{}
+
+	if result := s.db.Find(&models); result.Error != nil {
+		return nil, result.Error
 	}
-	return storeKey{}
+
+	m := make(map[storeKey]*storeMetadata, len(models))
+	for _, model := range models {
+		inflatedModel, err := model.Inflate()
+		if err != nil {
+			return nil, err
+		}
+		m[getMetadataKey(inflatedModel)] = &storeMetadata{
+			item: &inflatedModel,
+			seen: false,
+		}
+	}
+
+	for _, tModel := range *targetModels {
+		targetModel := tModel
+		k := getMetadataKey(targetModel)
+		if baseModel, exists := m[k]; exists {
+			baseModel.seen = true
+
+			if !baseModel.item.Equal(targetModel) {
+				diffs = append(diffs, v3.Diff{
+					Reason:    v3.DiffChanged,
+					ID:        k.id,
+					Namespace: k.namespace,
+				})
+			}
+		} else {
+			diffs = append(diffs, v3.Diff{
+				Reason:    v3.DiffAdded,
+				ID:        k.id,
+				Namespace: k.namespace,
+			})
+		}
+	}
+	for k, model := range m {
+		if !model.seen {
+			diffs = append(diffs, v3.Diff{
+				Reason:    v3.DiffRemoved,
+				ID:        k.id,
+				Namespace: k.namespace,
+			})
+		}
+	}
+
+	return &diffs, nil
+}
+
+func getMetadataKey(metadata v3.VulnerabilityMetadata) storeKey {
+	return storeKey{metadata.ID, metadata.Namespace, "", "", ""}
 }

@@ -26,7 +26,7 @@ func (s *mockStore) GetVulnerability(namespace, name string) ([]grypeDB.Vulnerab
 	return namespaceMap[name], nil
 }
 
-func (s *mockStore) GetAllSerializedVulnerabilities() (interface{}, error) {
+func (s *mockStore) GetAllVulnerabilities() (*[]grypeDB.Vulnerability, error) {
 	return nil, nil
 }
 

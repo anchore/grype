@@ -39,7 +39,7 @@ func (d *mockMetadataStore) GetVulnerabilityMetadata(id, recordSource string) (*
 	return d.data[id][recordSource], nil
 }
 
-func (d *mockMetadataStore) GetAllSerializedVulnerabilityMetadata() (interface{}, error) {
+func (d *mockMetadataStore) GetAllVulnerabilityMetadata() (*[]grypeDB.VulnerabilityMetadata, error) {
 	return nil, nil
 }
 
