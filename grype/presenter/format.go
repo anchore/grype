@@ -53,4 +53,6 @@ var AvailableFormats = []format{
 	cycloneDXFormat,
 	sarifFormat,
 	templateFormat,
+	embeddedVEXJSON,
+	embeddedVEXXML,
 }
