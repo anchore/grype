@@ -54,14 +54,16 @@ func LoadVulnerabilityDB(cfg db.Config, update bool) (*store.Store, error) {
 
 	storeReader, err := dbCurator.GetStore()
 	if err != nil {
-		return nil, err
+		return &store.Store{}, err
 	}
 
 	status := dbCurator.Status()
 
 	p, err := db.NewVulnerabilityProvider(storeReader)
 	if err != nil {
-		return nil, err
+		return &store.Store{
+			Status: &status,
+		}, err
 	}
 
 	s := &store.Store{
