@@ -11,6 +11,7 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/stereoscope/pkg/imagetest"
@@ -418,10 +419,17 @@ func TestMatchByImage(t *testing.T) {
 
 			matchers := matcher.NewDefaultMatchers(matcher.Config{})
 
-			p, err := db.NewVulnerabilityProvider(theStore)
+			vp, err := db.NewVulnerabilityProvider(theStore)
 			require.NoError(t, err)
 
-			actualResults := grype.FindVulnerabilitiesForPackage(p, theDistro, matchers, pkg.FromCatalog(theCatalog, pkg.ProviderConfig{}))
+			store := store.Store{
+				Provider:          vp,
+				MetadataProvider:  nil,
+				ExclusionProvider: nil,
+				Status:            nil,
+			}
+
+			actualResults := grype.FindVulnerabilitiesForPackage(store, theDistro, matchers, pkg.FromCatalog(theCatalog, pkg.ProviderConfig{}))
 
 			// build expected matches from what's discovered from the catalog
 			expectedMatches := test.expectedFn(*theSource, theCatalog, theStore)

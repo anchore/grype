@@ -18,7 +18,7 @@ func (s *mockStore) GetVulnerabilityNamespaces() ([]string, error) {
 func newMockDbStore() *mockStore {
 	return &mockStore{
 		backend: map[string]map[string][]grypeDB.Vulnerability{
-			grypeDB.NVDNamespace: {
+			"nvd:cpe": {
 				"libvncserver": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-alpine-libvncserver",
