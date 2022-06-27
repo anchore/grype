@@ -82,6 +82,8 @@ func ByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, upstreamMatc
 			return nil, fmt.Errorf("unable to filter cpe-related vulnerabilities: %w", err)
 		}
 
+		applicableVulns = onlyVulnerableTargets(p, allPkgVulns)
+
 		// for each vulnerability record found, check the version constraint. If the constraint is satisfied
 		// relative to the current version information from the CPE (or the package) then the given package
 		// is vulnerable.
