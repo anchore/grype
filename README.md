@@ -95,6 +95,15 @@ The above command scans for vulnerabilities that are visible in the container (i
 grype <image> --scope all-layers
 ```
 
+To run grype from a Docker container so it can scan a running container, use the following command:
+
+```yml
+docker run --rm \
+--volume /var/run/docker.sock:/var/run/docker.sock \
+--name Grype anchore/grype:latest \
+$(ImageName):$(ImageTag)
+```
+
 ### Supported sources
 
 Grype can scan a variety of sources beyond those found in Docker.
