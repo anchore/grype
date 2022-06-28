@@ -9,18 +9,33 @@ type NullString struct {
 	sql.NullString
 }
 
+func NewNullString(s string, valid bool) NullString {
+	return NullString{
+		sql.NullString{
+			String: s,
+			Valid:  valid,
+		},
+	}
+}
+
 func ToNullString(v any) NullString {
 	nullString := NullString{}
 	nullString.Valid = false
 
 	if v != nil {
-		vBytes, err := json.Marshal(v)
-		if err != nil {
-			// TODO: just no
-			panic(err)
-		}
+		var stringValue string
 
-		stringValue := string(vBytes)
+		if s, ok := v.(string); ok {
+			stringValue = s
+		} else {
+			vBytes, err := json.Marshal(v)
+			if err != nil {
+				// TODO: just no
+				panic(err)
+			}
+
+			stringValue = string(vBytes)
+		}
 
 		if stringValue != "null" {
 			nullString.String = stringValue
