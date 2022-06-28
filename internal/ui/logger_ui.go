@@ -27,13 +27,18 @@ func (l *loggerUI) Setup(unsubscribe func() error) error {
 }
 
 func (l loggerUI) Handle(event partybus.Event) error {
-	// ignore all events except for the final event
-	if event.Type != grypeEvent.VulnerabilityScanningFinished {
+	switch event.Type {
+	case grypeEvent.VulnerabilityScanningFinished:
+		if err := handleVulnerabilityScanningFinished(event, l.reportOutput); err != nil {
+			log.Warnf("unable to show catalog image finished event: %+v", err)
+		}
+	case grypeEvent.NonRootCommandFinished:
+		if err := handleNonRootCommandFinished(event, l.reportOutput); err != nil {
+			log.Warnf("unable to show command finished event: %+v", err)
+		}
+	// ignore all events except for the final events
+	default:
 		return nil
-	}
-
-	if err := handleVulnerabilityScanningFinished(event, l.reportOutput); err != nil {
-		log.Warnf("unable to show catalog image finished event: %+v", err)
 	}
 
 	// this is the last expected event, stop listening to events

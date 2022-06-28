@@ -87,3 +87,16 @@ func ParseVulnerabilityScanningFinished(e partybus.Event) (presenter.Presenter, 
 
 	return pres, nil
 }
+
+func ParseNonRootCommandFinished(e partybus.Event) (*string, error) {
+	if err := checkEventType(e.Type, event.NonRootCommandFinished); err != nil {
+		return nil, err
+	}
+
+	result, ok := e.Value.(string)
+	if !ok {
+		return nil, newPayloadErr(e.Type, "Value", e.Value)
+	}
+
+	return &result, nil
+}
