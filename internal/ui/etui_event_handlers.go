@@ -15,6 +15,7 @@ import (
 
 	grypeEventParsers "github.com/anchore/grype/grype/event/parsers"
 	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/version"
 )
 
 func handleAppUpdateAvailable(_ context.Context, fr *frame.Frame, event partybus.Event, _ *sync.WaitGroup) error {
@@ -28,7 +29,7 @@ func handleAppUpdateAvailable(_ context.Context, fr *frame.Frame, event partybus
 		return err
 	}
 
-	message := color.Magenta.Sprintf("New version of %s is available: %s", internal.ApplicationName, newVersion)
+	message := color.Magenta.Sprintf("New version of %s is available: %s (currently running: %s)", internal.ApplicationName, newVersion, version.FromBuild().Version)
 	_, _ = io.WriteString(line, message)
 
 	return nil

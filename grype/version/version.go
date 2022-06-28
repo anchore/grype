@@ -71,6 +71,10 @@ func (v *Version) populate() error {
 		ver := newKBVersion(v.Raw)
 		v.rich.kbVer = &ver
 		return nil
+	case GemFormat:
+		ver, err := newGemfileVersion(v.Raw)
+		v.rich.semVer = ver
+		return err
 	case UnknownFormat:
 		// use the raw string + fuzzy constraint
 		return nil

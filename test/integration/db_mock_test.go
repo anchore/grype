@@ -77,7 +77,7 @@ func newMockDbStore() *mockStore {
 					{
 						ID:                "CVE-ruby-bundler",
 						VersionConstraint: "> 2.0.0, <= 2.1.4",
-						VersionFormat:     "semver",
+						VersionFormat:     "gemfile",
 					},
 				},
 			},
@@ -152,4 +152,8 @@ func (s *mockStore) GetVulnerability(namespace, name string) ([]grypeDB.Vulnerab
 		entries[i].Namespace = namespace
 	}
 	return entries, nil
+}
+
+func (s *mockStore) GetAllVulnerabilities() (*[]grypeDB.Vulnerability, error) {
+	return nil, nil
 }

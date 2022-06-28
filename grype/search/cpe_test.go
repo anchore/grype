@@ -62,7 +62,7 @@ func (pr *mockVulnStore) stub() {
 			{
 				PackageName:       "activerecord",
 				VersionConstraint: "= 4.0.1",
-				VersionFormat:     version.SemanticFormat.String(),
+				VersionFormat:     version.GemFormat.String(),
 				ID:                "CVE-2017-fake-3",
 				CPEs: []string{
 					"cpe:2.3:*:activerecord:activerecord:4.0.1:*:*:*:*:*:*:*",
@@ -102,6 +102,10 @@ func (pr *mockVulnStore) stub() {
 
 func (pr *mockVulnStore) GetVulnerability(namespace, pkg string) ([]grypeDB.Vulnerability, error) {
 	return pr.data[namespace][pkg], nil
+}
+
+func (pr *mockVulnStore) GetAllVulnerabilities() (*[]grypeDB.Vulnerability, error) {
+	return nil, nil
 }
 
 func TestFindMatchesByPackageCPE(t *testing.T) {

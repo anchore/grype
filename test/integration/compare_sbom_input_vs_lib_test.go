@@ -25,6 +25,7 @@ var imagesWithVulnerabilities = []string{
 	"anchore/test_images:npm",
 	"anchore/test_images:java",
 	"anchore/test_images:golang-56d52bc",
+	"anchore/test_images:arch",
 }
 
 func TestCompareSBOMInputToLibResults(t *testing.T) {

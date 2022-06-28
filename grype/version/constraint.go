@@ -13,7 +13,7 @@ func GetConstraint(constStr string, format Format) (Constraint, error) {
 	switch format {
 	case ApkFormat:
 		return newApkConstraint(constStr)
-	case SemanticFormat:
+	case SemanticFormat, GemFormat:
 		return newSemanticConstraint(constStr)
 	case DebFormat:
 		return newDebConstraint(constStr)

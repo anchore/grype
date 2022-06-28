@@ -1030,3 +1030,126 @@ func TestCvssScoresInMetadata(t *testing.T) {
 		})
 	}
 }
+
+func Test_DiffStore(t *testing.T) {
+	//GIVEN
+	dbTempFile, err := ioutil.TempFile("", "grype-db-test-store")
+	if err != nil {
+		t.Fatalf("could not create temp file: %+v", err)
+	}
+	defer os.Remove(dbTempFile.Name())
+
+	s1, err := New(dbTempFile.Name(), true)
+	if err != nil {
+		t.Fatalf("could not create store: %+v", err)
+	}
+	dbTempFile, err = ioutil.TempFile("", "grype-db-test-store")
+	if err != nil {
+		t.Fatalf("could not create temp file: %+v", err)
+	}
+	defer os.Remove(dbTempFile.Name())
+
+	s2, err := New(dbTempFile.Name(), true)
+	if err != nil {
+		t.Fatalf("could not create store: %+v", err)
+	}
+
+	baseVulns := []v3.Vulnerability{
+		{
+			Namespace:         "github:python",
+			ID:                "CVE-123-4567",
+			PackageName:       "pypi:requests",
+			VersionConstraint: "< 2.0 >= 1.29",
+			CPEs:              []string{"cpe:2.3:pypi:requests:*:*:*:*:*:*"},
+		},
+		{
+			Namespace:         "github:python",
+			ID:                "CVE-123-4567",
+			PackageName:       "pypi:requests",
+			VersionConstraint: "< 3.0 >= 2.17",
+			CPEs:              []string{"cpe:2.3:pypi:requests:*:*:*:*:*:*"},
+		},
+		{
+			Namespace:         "npm",
+			ID:                "CVE-123-7654",
+			PackageName:       "npm:axios",
+			VersionConstraint: "< 3.0 >= 2.17",
+			CPEs:              []string{"cpe:2.3:npm:axios:*:*:*:*:*:*"},
+			Fix: v3.Fix{
+				State: v3.UnknownFixState,
+			},
+		},
+	}
+	baseMetadata := []v3.VulnerabilityMetadata{
+		{
+			Namespace:  "nuget",
+			ID:         "GHSA-****-******",
+			DataSource: "nvd",
+		},
+	}
+	targetVulns := []v3.Vulnerability{
+		{
+			Namespace:         "github:python",
+			ID:                "CVE-123-4567",
+			PackageName:       "pypi:requests",
+			VersionConstraint: "< 2.0 >= 1.29",
+			CPEs:              []string{"cpe:2.3:pypi:requests:*:*:*:*:*:*"},
+		},
+		{
+			Namespace:         "github:go",
+			ID:                "GHSA-....-....",
+			PackageName:       "hashicorp:nomad",
+			VersionConstraint: "< 3.0 >= 2.17",
+			CPEs:              []string{"cpe:2.3:golang:hashicorp:nomad:*:*:*:*:*"},
+		},
+		{
+			Namespace:         "npm",
+			ID:                "CVE-123-7654",
+			PackageName:       "npm:axios",
+			VersionConstraint: "< 3.0 >= 2.17",
+			CPEs:              []string{"cpe:2.3:npm:axios:*:*:*:*:*:*"},
+			Fix: v3.Fix{
+				State: v3.WontFixState,
+			},
+		},
+	}
+	expectedDiffs := []v3.Diff{
+		{
+			Reason:    v3.DiffAdded,
+			ID:        "GHSA-....-....",
+			Namespace: "github:go",
+		},
+		{
+			Reason:    v3.DiffChanged,
+			ID:        "CVE-123-7654",
+			Namespace: "npm",
+		},
+		{
+			Reason:    v3.DiffRemoved,
+			ID:        "CVE-123-4567",
+			Namespace: "github:python",
+		},
+		{
+			Reason:    v3.DiffRemoved,
+			ID:        "GHSA-****-******",
+			Namespace: "nuget",
+		},
+	}
+
+	for _, vuln := range baseVulns {
+		s1.AddVulnerability(vuln)
+	}
+	for _, vuln := range targetVulns {
+		s2.AddVulnerability(vuln)
+	}
+	for _, meta := range baseMetadata {
+		s1.AddVulnerabilityMetadata(meta)
+	}
+
+	//WHEN
+	result, err := s1.DiffStore(s2)
+
+	//THEN
+	assert.NoError(t, err)
+	assert.Equal(t, expectedDiffs, *result)
+}

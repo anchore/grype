@@ -39,6 +39,10 @@ func (d *mockMetadataStore) GetVulnerabilityMetadata(id, recordSource string) (*
 	return d.data[id][recordSource], nil
 }
 
+func (d *mockMetadataStore) GetAllVulnerabilityMetadata() (*[]grypeDB.VulnerabilityMetadata, error) {
+	return nil, nil
+}
+
 func TestAboveAllowableSeverity(t *testing.T) {
 	thePkg := pkg.Package{
 		ID:      pkg.ID(uuid.NewString()),
