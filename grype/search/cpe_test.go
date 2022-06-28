@@ -104,6 +104,10 @@ func (pr *mockVulnStore) GetVulnerability(namespace, pkg string) ([]grypeDB.Vuln
 	return pr.data[namespace][pkg], nil
 }
 
+func (pr *mockVulnStore) GetAllVulnerabilities() (*[]grypeDB.Vulnerability, error) {
+	return nil, nil
+}
+
 func TestFindMatchesByPackageCPE(t *testing.T) {
 	matcher := match.RubyGemMatcher
 	tests := []struct {
