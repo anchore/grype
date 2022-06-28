@@ -33,6 +33,30 @@ func TestFromLanguage(t *testing.T) {
 			result:   &stock.Resolver{},
 		},
 		{
+			language: syftPkg.Rust,
+			result:   &stock.Resolver{},
+		},
+		{
+			language: syftPkg.Go,
+			result:   &stock.Resolver{},
+		},
+		{
+			language: syftPkg.JavaScript,
+			result:   &stock.Resolver{},
+		},
+		{
+			language: syftPkg.Dotnet,
+			result:   &stock.Resolver{},
+		},
+		{
+			language: syftPkg.PHP,
+			result:   &stock.Resolver{},
+		},
+		{
+			language: syftPkg.Ruby,
+			result:   &stock.Resolver{},
+		},
+		{
 			language: syftPkg.Language("something-new"),
 			result:   &stock.Resolver{},
 		},

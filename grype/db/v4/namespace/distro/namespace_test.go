@@ -29,6 +29,14 @@ func TestFromString(t *testing.T) {
 			namespaceString: "msrc:distro:windows:10111",
 			result:          NewNamespace("msrc", grypeDistro.Type("windows"), "10111"),
 		},
+		{
+			namespaceString: "amazon:distro:amazonlinux:2022",
+			result:          NewNamespace("amazon", grypeDistro.AmazonLinux, "2022"),
+		},
+		{
+			namespaceString: "amazon:distro:amazonlinux:2",
+			result:          NewNamespace("amazon", grypeDistro.AmazonLinux, "2"),
+		},
 	}
 
 	for _, test := range successTests {
