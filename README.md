@@ -41,6 +41,7 @@ A vulnerability scanner for container images and filesystems. Easily [install th
   - Dotnet (deps.json)
   - Golang (go.mod)
   - PHP (Composer)
+  - Rust (Cargo)
 - Supports Docker and OCI image formats
 - Consume SBOM [attestations](https://github.com/anchore/syft#sbom-attestation).
 
