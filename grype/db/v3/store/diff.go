@@ -3,8 +3,14 @@ package store
 import (
 	"strings"
 
+	"github.com/wagoodman/go-partybus"
+	"github.com/wagoodman/go-progress"
+
 	v3 "github.com/anchore/grype/grype/db/v3"
 	"github.com/anchore/grype/grype/db/v3/store/model"
+	diffEvents "github.com/anchore/grype/grype/differ/events"
+	"github.com/anchore/grype/grype/event"
+	"github.com/anchore/grype/internal/bus"
 )
 
 type storeKey struct {
@@ -24,14 +30,28 @@ type storeMetadata struct {
 	seen bool
 }
 
-//nolint:dupl
-func diffVulnerabilities(s *store, targetModels *[]v3.Vulnerability) (*[]v3.Diff, error) {
+func trackDiff() (*progress.Manual, *progress.Manual) {
+	rowsProcessed := progress.Manual{}
+	differencesDiscovered := progress.Manual{}
+
+	bus.Publish(partybus.Event{
+		Type: event.DatabaseDiffingStarted,
+		Value: diffEvents.Monitor{
+			RowsProcessed:         progress.Monitorable(&rowsProcessed),
+			DifferencesDiscovered: progress.Monitorable(&differencesDiscovered),
+		},
+	})
+	return &rowsProcessed, &differencesDiscovered
+}
+
+func diffVulnerabilities(s *store, targetModels *[]v3.Vulnerability, queryProgress *progress.Manual, differentItems *progress.Manual) (*[]v3.Diff, error) {
 	var models []model.VulnerabilityModel
 	diffs := []v3.Diff{}
 
 	if result := s.db.Find(&models); result.Error != nil {
 		return nil, result.Error
 	}
+	queryProgress.N++
 
 	m := make(map[storeKey]*storeVulnerability, len(models))
 	for _, model := range models {
@@ -57,6 +77,7 @@ func diffVulnerabilities(s *store, targetModels *[]v3.Vulnerability) (*[]v3.Diff
 					ID:        k.id,
 					Namespace: k.namespace,
 				})
+				differentItems.N++
 			}
 		} else {
 			diffs = append(diffs, v3.Diff{
@@ -64,6 +85,7 @@ func diffVulnerabilities(s *store, targetModels *[]v3.Vulnerability) (*[]v3.Diff
 				ID:        k.id,
 				Namespace: k.namespace,
 			})
+			differentItems.N++
 		}
 	}
 	for k, model := range m {
@@ -73,6 +95,7 @@ func diffVulnerabilities(s *store, targetModels *[]v3.Vulnerability) (*[]v3.Diff
 				ID:        k.id,
 				Namespace: k.namespace,
 			})
+			differentItems.N++
 		}
 	}
 
@@ -87,14 +110,14 @@ func getVulnerabilityKey(vuln v3.Vulnerability) storeKey {
 	return storeKey{vuln.ID, vuln.Namespace, vuln.PackageName, vuln.VersionConstraint, sb.String()}
 }
 
-//nolint:dupl
-func diffVulnerabilityMetadata(s *store, targetModels *[]v3.VulnerabilityMetadata) (*[]v3.Diff, error) {
+func diffVulnerabilityMetadata(s *store, targetModels *[]v3.VulnerabilityMetadata, queryProgress *progress.Manual, differentItems *progress.Manual) (*[]v3.Diff, error) {
 	var models []model.VulnerabilityMetadataModel
 	diffs := []v3.Diff{}
 
 	if result := s.db.Find(&models); result.Error != nil {
 		return nil, result.Error
 	}
+	queryProgress.N++
 
 	m := make(map[storeKey]*storeMetadata, len(models))
 	for _, model := range models {
@@ -115,11 +138,13 @@ func diffVulnerabilityMetadata(s *store, targetModels *[]v3.VulnerabilityMetadat
 			baseModel.seen = true
 
 			if !baseModel.item.Equal(targetModel) {
+				baseModel.item.Equal(targetModel)
 				diffs = append(diffs, v3.Diff{
 					Reason:    v3.DiffChanged,
 					ID:        k.id,
 					Namespace: k.namespace,
 				})
+				differentItems.N++
 			}
 		} else {
 			diffs = append(diffs, v3.Diff{
@@ -127,6 +152,7 @@ func diffVulnerabilityMetadata(s *store, targetModels *[]v3.VulnerabilityMetadat
 				ID:        k.id,
 				Namespace: k.namespace,
 			})
+			differentItems.N++
 		}
 	}
 	for k, model := range m {
@@ -136,6 +162,7 @@ func diffVulnerabilityMetadata(s *store, targetModels *[]v3.VulnerabilityMetadat
 				ID:        k.id,
 				Namespace: k.namespace,
 			})
+			differentItems.N++
 		}
 	}
 

@@ -248,11 +248,14 @@ func (s *store) GetAllVulnerabilityMetadata() (*[]v3.VulnerabilityMetadata, erro
 
 // DiffStore creates a diff between the current sql database and the given store
 func (s *store) DiffStore(targetStore v3.StoreReader) (*[]v3.Diff, error) {
+	rowsProgress, diffItems := trackDiff()
+
 	vulns, err := targetStore.GetAllVulnerabilities()
+	rowsProgress.N++
 	if err != nil {
 		return nil, err
 	}
-	allDiffs, err := diffVulnerabilities(s, vulns)
+	allDiffs, err := diffVulnerabilities(s, vulns, rowsProgress, diffItems)
 	if err != nil {
 		return nil, err
 	}
@@ -261,10 +264,15 @@ func (s *store) DiffStore(targetStore v3.StoreReader) (*[]v3.Diff, error) {
 	if err != nil {
 		return nil, err
 	}
-	diffs, err := diffVulnerabilityMetadata(s, metadata)
+	rowsProgress.N++
+	diffs, err := diffVulnerabilityMetadata(s, metadata, rowsProgress, diffItems)
 	if err != nil {
 		return nil, err
 	}
 	*allDiffs = append((*allDiffs), (*diffs)...)
+
+	rowsProgress.SetCompleted()
+	diffItems.SetCompleted()
+
 	return allDiffs, nil
 }

@@ -50,7 +50,7 @@ func NewDiffer(config db.Config) (*Differ, error) {
 	}, nil
 }
 
-func (d *Differ) DownloadDatabases(baseUrl, targetUrl *url.URL) error {
+func (d *Differ) DownloadDatabases(baseURL, targetURL *url.URL) error {
 	listing, err := d.baseCurator.ListingFromURL()
 	if err != nil {
 		return err
@@ -63,18 +63,19 @@ func (d *Differ) DownloadDatabases(baseUrl, targetUrl *url.URL) error {
 	var targetListing *db.ListingEntry
 
 	for _, db := range dbs {
-		if *db.URL == *baseUrl {
-			baseListing = &db
+		database := db
+		if *db.URL == *baseURL {
+			baseListing = &database
 		}
-		if *db.URL == *targetUrl {
-			targetListing = &db
+		if *db.URL == *targetURL {
+			targetListing = &database
 		}
 	}
 
 	if baseListing == nil {
-		return fmt.Errorf("Unable to find listing for base url: %s", baseUrl.String())
+		return fmt.Errorf("unable to find listing for base url: %s", baseURL.String())
 	} else if targetListing == nil {
-		return fmt.Errorf("Unable to find listing for target url: %s", targetUrl.String())
+		return fmt.Errorf("unable to find listing for target url: %s", targetURL.String())
 	}
 
 	if err := download(&d.baseCurator, baseListing); err != nil {

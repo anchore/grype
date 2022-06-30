@@ -34,7 +34,7 @@ func init() {
 	dbCmd.AddCommand(dbDiffCmd)
 }
 
-func startDBDiffCmd(baseUrl, targetUrl string, deleteDatabases bool) <-chan error {
+func startDBDiffCmd(baseURL, targetURL string, deleteDatabases bool) <-chan error {
 	errs := make(chan error)
 	go func() {
 		defer close(errs)
@@ -44,18 +44,18 @@ func startDBDiffCmd(baseUrl, targetUrl string, deleteDatabases bool) <-chan erro
 			return
 		}
 
-		baseUrl, err := url.Parse(baseUrl)
+		baseURL, err := url.Parse(baseURL)
 		if err != nil {
-			errs <- fmt.Errorf("Base url is malformed: %w", err)
+			errs <- fmt.Errorf("base url is malformed: %w", err)
 			return
 		}
-		targetUrl, err := url.Parse(targetUrl)
+		targetURL, err := url.Parse(targetURL)
 		if err != nil {
-			errs <- fmt.Errorf("Target url is malformed: %w", err)
+			errs <- fmt.Errorf("target url is malformed: %w", err)
 			return
 		}
 
-		if err := d.DownloadDatabases(baseUrl, targetUrl); err != nil {
+		if err := d.DownloadDatabases(baseURL, targetURL); err != nil {
 			errs <- err
 			return
 		}
@@ -69,7 +69,10 @@ func startDBDiffCmd(baseUrl, targetUrl string, deleteDatabases bool) <-chan erro
 		if len(*diff) == 0 {
 			fmt.Println("Databases are identical!")
 		} else {
-			d.Present(dbDiffOutputFormat, diff, os.Stdout)
+			err := d.Present(dbDiffOutputFormat, diff, os.Stdout)
+			if err != nil {
+				errs <- err
+			}
 		}
 
 		if deleteDatabases {
