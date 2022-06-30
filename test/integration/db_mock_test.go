@@ -12,7 +12,16 @@ type mockStore struct {
 }
 
 func (s *mockStore) GetVulnerabilityNamespaces() ([]string, error) {
-	panic("not implemented")
+	var results []string
+	for k := range s.backend {
+		results = append(results, k)
+	}
+
+	return results, nil
+}
+
+func (s *mockStore) GetVulnerabilityMatchExclusion(id string) ([]grypeDB.VulnerabilityMatchExclusion, error) {
+	return nil, nil
 }
 
 func newMockDbStore() *mockStore {
@@ -42,7 +51,7 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
-			"alpine:3.12": {
+			"alpine:distro:alpine:3.12": {
 				"libvncserver": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-alpine-libvncserver",
@@ -51,7 +60,7 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
-			"github:npm": {
+			"github:language:javascript": {
 				"npm": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-javascript-validator",
@@ -60,7 +69,7 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
-			"github:python": {
+			"github:language:python": {
 				"Pygments": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-python-pygments",
@@ -76,7 +85,7 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
-			"github:gem": {
+			"github:language:ruby": {
 				"bundler": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-ruby-bundler",
@@ -85,7 +94,7 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
-			"github:java": {
+			"github:language:java": {
 				"org.anchore:example-java-app-maven": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-java-example-java-app",
@@ -94,7 +103,7 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
-			"github:nuget": {
+			"github:language:dotnet": {
 				"AWSSDK.Core": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-dotnet-sample",
@@ -103,7 +112,7 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
-			"debian:8": {
+			"debian:distro:debian:8": {
 				"apt-dev": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-dpkg-apt",
@@ -112,7 +121,7 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
-			"rhel:8": {
+			"redhat:distro:redhat:8": {
 				"dive": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-rpmdb-dive",
@@ -121,7 +130,7 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
-			"msrc:10816": {
+			"msrc:distro:windows:10816": {
 				"10816": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-2016-3333",
@@ -130,7 +139,7 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
-			"sles:12.5": {
+			"sles:distro:sles:12.5": {
 				"dive": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-rpmdb-dive",

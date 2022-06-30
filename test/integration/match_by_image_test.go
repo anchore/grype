@@ -1,10 +1,8 @@
 package integration
 
 import (
-	"testing"
-
-	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/require"
+	"testing"
 
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db"
@@ -19,6 +17,7 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/pkg/cataloger"
 	"github.com/anchore/syft/syft/source"
+	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore, theResult *match.Matches) {
@@ -28,7 +27,7 @@ func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Ca
 		t.Fatalf("problem with upstream syft cataloger (alpine)")
 	}
 	thePkg := pkg.New(packages[0])
-	theVuln := theStore.backend["alpine:3.12"][thePkg.Name][0]
+	theVuln := theStore.backend["alpine:distro:alpine:3.12"][thePkg.Name][0]
 	vulnObj, err := vulnerability.NewVulnerability(theVuln)
 	if err != nil {
 		t.Fatalf("failed to create vuln obj: %+v", err)
@@ -62,7 +61,7 @@ func addJavascriptMatches(t *testing.T, theSource source.Source, catalog *syftPk
 		t.Fatalf("problem with upstream syft cataloger (javascript)")
 	}
 	thePkg := pkg.New(packages[0])
-	theVuln := theStore.backend["github:npm"][thePkg.Name][0]
+	theVuln := theStore.backend["github:language:javascript"][thePkg.Name][0]
 	vulnObj, err := vulnerability.NewVulnerability(theVuln)
 	if err != nil {
 		t.Fatalf("failed to create vuln obj: %+v", err)
@@ -97,7 +96,7 @@ func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Ca
 		t.Fatalf("problem with upstream syft cataloger (python)")
 	}
 	thePkg := pkg.New(packages[0])
-	theVuln := theStore.backend["github:python"][thePkg.Name][0]
+	theVuln := theStore.backend["github:language:python"][thePkg.Name][0]
 	vulnObj, err := vulnerability.NewVulnerability(theVuln)
 	if err != nil {
 		t.Fatalf("failed to create vuln obj: %+v", err)
@@ -132,7 +131,7 @@ func addDotnetMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Ca
 		t.Fatalf("problem with upstream syft cataloger (dotnet)")
 	}
 	thePkg := pkg.New(packages[0])
-	theVuln := theStore.backend["github:nuget"][thePkg.Name][0]
+	theVuln := theStore.backend["github:language:dotnet"][thePkg.Name][0]
 	vulnObj, err := vulnerability.NewVulnerability(theVuln)
 	if err != nil {
 		t.Fatalf("failed to create vuln obj: %+v", err)
@@ -164,7 +163,7 @@ func addRubyMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 		t.Fatalf("problem with upstream syft cataloger (ruby)")
 	}
 	thePkg := pkg.New(packages[0])
-	theVuln := theStore.backend["github:gem"][thePkg.Name][0]
+	theVuln := theStore.backend["github:language:ruby"][thePkg.Name][0]
 	vulnObj, err := vulnerability.NewVulnerability(theVuln)
 	if err != nil {
 		t.Fatalf("failed to create vuln obj: %+v", err)
@@ -205,7 +204,7 @@ func addJavaMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 
 	thePkg := pkg.New(theSyftPkg)
 
-	theVuln := theStore.backend["github:java"][lookup][0]
+	theVuln := theStore.backend["github:language:java"][lookup][0]
 	vulnObj, err := vulnerability.NewVulnerability(theVuln)
 	if err != nil {
 		t.Fatalf("failed to create vuln obj: %+v", err)
@@ -238,7 +237,7 @@ func addDpkgMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 	}
 	thePkg := pkg.New(packages[0])
 	// NOTE: this is an indirect match, in typical debian style
-	theVuln := theStore.backend["debian:8"][thePkg.Name+"-dev"][0]
+	theVuln := theStore.backend["debian:distro:debian:8"][thePkg.Name+"-dev"][0]
 	vulnObj, err := vulnerability.NewVulnerability(theVuln)
 	if err != nil {
 		t.Fatalf("failed to create vuln obj: %+v", err)
@@ -273,7 +272,7 @@ func addRhelMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 		t.Fatalf("problem with upstream syft cataloger (RPMDB)")
 	}
 	thePkg := pkg.New(packages[0])
-	theVuln := theStore.backend["rhel:8"][thePkg.Name][0]
+	theVuln := theStore.backend["redhat:distro:redhat:8"][thePkg.Name][0]
 	vulnObj, err := vulnerability.NewVulnerability(theVuln)
 	if err != nil {
 		t.Fatalf("failed to create vuln obj: %+v", err)
@@ -308,7 +307,7 @@ func addSlesMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 		t.Fatalf("problem with upstream syft cataloger (RPMDB)")
 	}
 	thePkg := pkg.New(packages[0])
-	theVuln := theStore.backend["rhel:8"][thePkg.Name][0]
+	theVuln := theStore.backend["redhat:distro:redhat:8"][thePkg.Name][0]
 	vulnObj, err := vulnerability.NewVulnerability(theVuln)
 	if err != nil {
 		t.Fatalf("failed to create vuln obj: %+v", err)
@@ -421,11 +420,11 @@ func TestMatchByImage(t *testing.T) {
 
 			vp, err := db.NewVulnerabilityProvider(theStore)
 			require.NoError(t, err)
-
+			ep := db.NewMatchExclusionProvider(theStore)
 			store := store.Store{
 				Provider:          vp,
 				MetadataProvider:  nil,
-				ExclusionProvider: nil,
+				ExclusionProvider: ep,
 				Status:            nil,
 			}
 
