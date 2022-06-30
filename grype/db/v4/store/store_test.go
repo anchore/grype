@@ -1236,3 +1236,126 @@ func TestStore_GetVulnerabilityMatchExclusion_SetVulnerabilityMatchExclusion(t *
 	}
 	assertVulnerabilityMatchExclusionReader(t, s, expected[0].ID, expected)
 }
+
+func Test_DiffStore(t *testing.T) {
+	//GIVEN
+	dbTempFile, err := ioutil.TempFile("", "grype-db-test-store")
+	if err != nil {
+		t.Fatalf("could not create temp file: %+v", err)
+	}
+	defer os.Remove(dbTempFile.Name())
+
+	s1, err := New(dbTempFile.Name(), true)
+	if err != nil {
+		t.Fatalf("could not create store: %+v", err)
+	}
+	dbTempFile, err = ioutil.TempFile("", "grype-db-test-store")
+	if err != nil {
+		t.Fatalf("could not create temp file: %+v", err)
+	}
+	defer os.Remove(dbTempFile.Name())
+
+	s2, err := New(dbTempFile.Name(), true)
+	if err != nil {
+		t.Fatalf("could not create store: %+v", err)
+	}
+
+	baseVulns := []v4.Vulnerability{
+		{
+			Namespace:         "github:language:python",
+			ID:                "CVE-123-4567",
+			PackageName:       "pypi:requests",
+			VersionConstraint: "< 2.0 >= 1.29",
+			CPEs:              []string{"cpe:2.3:pypi:requests:*:*:*:*:*:*"},
+		},
+		{
+			Namespace:         "github:language:python",
+			ID:                "CVE-123-4567",
+			PackageName:       "pypi:requests",
+			VersionConstraint: "< 3.0 >= 2.17",
+			CPEs:              []string{"cpe:2.3:pypi:requests:*:*:*:*:*:*"},
+		},
+		{
+			Namespace:         "npm",
+			ID:                "CVE-123-7654",
+			PackageName:       "npm:axios",
+			VersionConstraint: "< 3.0 >= 2.17",
+			CPEs:              []string{"cpe:2.3:npm:axios:*:*:*:*:*:*"},
+			Fix: v4.Fix{
+				State: v4.UnknownFixState,
+			},
+		},
+	}
+	baseMetadata := []v4.VulnerabilityMetadata{
+		{
+			Namespace:  "nuget",
+			ID:         "GHSA-****-******",
+			DataSource: "nvd",
+		},
+	}
+	targetVulns := []v4.Vulnerability{
+		{
+			Namespace:         "github:language:python",
+			ID:                "CVE-123-4567",
+			PackageName:       "pypi:requests",
+			VersionConstraint: "< 2.0 >= 1.29",
+			CPEs:              []string{"cpe:2.3:pypi:requests:*:*:*:*:*:*"},
+		},
+		{
+			Namespace:         "github:language:go",
+			ID:                "GHSA-....-....",
+			PackageName:       "hashicorp:nomad",
+			VersionConstraint: "< 3.0 >= 2.17",
+			CPEs:              []string{"cpe:2.3:golang:hashicorp:nomad:*:*:*:*:*"},
+		},
+		{
+			Namespace:         "npm",
+			ID:                "CVE-123-7654",
+			PackageName:       "npm:axios",
+			VersionConstraint: "< 3.0 >= 2.17",
+			CPEs:              []string{"cpe:2.3:npm:axios:*:*:*:*:*:*"},
+			Fix: v4.Fix{
+				State: v4.WontFixState,
+			},
+		},
+	}
+	expectedDiffs := []v4.Diff{
+		{
+			Reason:    v4.DiffAdded,
+			ID:        "GHSA-....-....",
+			Namespace: "github:language:go",
+		},
+		{
+			Reason:    v4.DiffChanged,
+			ID:        "CVE-123-7654",
+			Namespace: "npm",
+		},
+		{
+			Reason:    v4.DiffRemoved,
+			ID:        "CVE-123-4567",
+			Namespace: "github:language:python",
+		},
+		{
+			Reason:    v4.DiffRemoved,
+			ID:        "GHSA-****-******",
+			Namespace: "nuget",
+		},
+	}
+
+	for _, vuln := range baseVulns {
+		s1.AddVulnerability(vuln)
+	}
+	for _, vuln := range targetVulns {
+		s2.AddVulnerability(vuln)
+	}
+	for _, meta := range baseMetadata {
+		s1.AddVulnerabilityMetadata(meta)
+	}
+
+	//WHEN
+	result, err := s1.DiffStore(s2)
+
+	//THEN
+	assert.NoError(t, err)
+	assert.Equal(t, expectedDiffs, *result)
+}

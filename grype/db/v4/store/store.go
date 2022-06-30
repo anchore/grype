@@ -264,3 +264,60 @@ func (s *store) AddVulnerabilityMatchExclusion(exclusions ...v4.VulnerabilityMat
 func (s *store) Close() {
 	s.db.Exec("VACUUM;")
 }
+
+// GetAllVulnerabilities gets all vulnerabilities in the database
+func (s *store) GetAllVulnerabilities() (*[]v4.Vulnerability, error) {
+	var models []model.VulnerabilityModel
+	if result := s.db.Find(&models); result.Error != nil {
+		return nil, result.Error
+	}
+	vulns := make([]v4.Vulnerability, len(models))
+	for idx, m := range models {
+		vuln, err := m.Inflate()
+		if err != nil {
+			return nil, err
+		}
+		vulns[idx] = vuln
+	}
+	return &vulns, nil
+}
+
+// GetAllVulnerabilityMetadata gets all vulnerability metadata in the database
+func (s *store) GetAllVulnerabilityMetadata() (*[]v4.VulnerabilityMetadata, error) {
+	var models []model.VulnerabilityMetadataModel
+	if result := s.db.Find(&models); result.Error != nil {
+		return nil, result.Error
+	}
+	metadata := make([]v4.VulnerabilityMetadata, len(models))
+	for idx, m := range models {
+		data, err := m.Inflate()
+		if err != nil {
+			return nil, err
+		}
+		metadata[idx] = data
+	}
+	return &metadata, nil
+}
+
+// DiffStore creates a diff between the current sql database and the given store
+func (s *store) DiffStore(targetStore v4.StoreReader) (*[]v4.Diff, error) {
+	vulns, err := targetStore.GetAllVulnerabilities()
+	if err != nil {
+		return nil, err
+	}
+	allDiffs, err := diffVulnerabilities(s, vulns)
+	if err != nil {
+		return nil, err
+	}
+
+	metadata, err := targetStore.GetAllVulnerabilityMetadata()
+	if err != nil {
+		return nil, err
+	}
+	diffs, err := diffVulnerabilityMetadata(s, metadata)
+	if err != nil {
+		return nil, err
+	}
+	*allDiffs = append((*allDiffs), (*diffs)...)
+	return allDiffs, nil
+}
