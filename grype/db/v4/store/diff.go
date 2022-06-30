@@ -19,6 +19,7 @@ type storeVulnerability struct {
 	item *v4.Vulnerability
 	seen bool
 }
+
 type storeMetadata struct {
 	item *v4.VulnerabilityMetadata
 	seen bool
