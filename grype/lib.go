@@ -41,14 +41,14 @@ func FindVulnerabilitiesForPackage(store store.Store, d *linux.Release, matchers
 func LoadVulnerabilityDB(cfg db.Config, update bool) (*store.Store, error) {
 	dbCurator, err := db.NewCurator(cfg)
 	if err != nil {
-		return nil, err
+		return &store.Store{}, err
 	}
 
 	if update {
 		log.Debug("looking for updates on vulnerability database")
 		_, err := dbCurator.Update()
 		if err != nil {
-			return nil, err
+			return &store.Store{}, err
 		}
 	}
 
