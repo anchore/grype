@@ -58,7 +58,7 @@ func TestMatchBySBOMDocument(t *testing.T) {
 				{
 					Type: match.CPEMatch,
 					SearchedBy: search.CPEParameters{
-						Namespace: "nvd",
+						Namespace: "nvd:cpe",
 						CPEs: []string{
 							"cpe:2.3:a:bogus:my-package:1.0.5:*:*:*:*:*:*:*",
 						},

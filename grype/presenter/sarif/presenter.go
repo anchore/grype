@@ -281,7 +281,7 @@ func (pres *Presenter) cvssScore(v vulnerability.Vulnerability) float64 {
 
 	// first check vendor-specific entries
 	for _, m := range all {
-		if m.Namespace == "nvd" {
+		if m.Namespace == "nvd:cpe" {
 			continue
 		}
 		for _, cvss := range m.Cvss {
