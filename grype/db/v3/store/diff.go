@@ -17,13 +17,11 @@ type storeKey struct {
 	id          string
 	namespace   string
 	packageName string
-	version     string
-	cpes        string
 }
 
 type storeVulnerability struct {
-	item *v3.Vulnerability
-	seen bool
+	items []*v3.Vulnerability
+	seen  bool
 }
 type storeMetadata struct {
 	item *v3.VulnerabilityMetadata
@@ -59,9 +57,14 @@ func diffVulnerabilities(s *store, targetModels *[]v3.Vulnerability, queryProgre
 		if err != nil {
 			return nil, err
 		}
-		m[getVulnerabilityKey(inflatedModel)] = &storeVulnerability{
-			item: &inflatedModel,
-			seen: false,
+
+		if storeVuln, exists := m[getVulnerabilityKey(inflatedModel)]; exists {
+			storeVuln.items = append(storeVuln.items, &inflatedModel)
+		} else {
+			m[getVulnerabilityKey(inflatedModel)] = &storeVulnerability{
+				items: []*v3.Vulnerability{&inflatedModel},
+				seen:  false,
+			}
 		}
 	}
 
@@ -70,8 +73,13 @@ func diffVulnerabilities(s *store, targetModels *[]v3.Vulnerability, queryProgre
 		k := getVulnerabilityKey(targetModel)
 		if baseModel, exists := m[k]; exists {
 			baseModel.seen = true
-
-			if !baseModel.item.Equal(targetModel) {
+			matched := false
+			for _, item := range baseModel.items {
+				if item.Equal(targetModel) {
+					matched = true
+				}
+			}
+			if !matched {
 				diffs = append(diffs, v3.Diff{
 					Reason:    v3.DiffChanged,
 					ID:        k.id,
@@ -107,7 +115,7 @@ func getVulnerabilityKey(vuln v3.Vulnerability) storeKey {
 	for _, str := range vuln.CPEs {
 		sb.WriteString(str)
 	}
-	return storeKey{vuln.ID, vuln.Namespace, vuln.PackageName, vuln.VersionConstraint, sb.String()}
+	return storeKey{vuln.ID, vuln.Namespace, vuln.PackageName}
 }
 
 func diffVulnerabilityMetadata(s *store, targetModels *[]v3.VulnerabilityMetadata, queryProgress *progress.Manual, differentItems *progress.Manual) (*[]v3.Diff, error) {
@@ -170,5 +178,5 @@ func diffVulnerabilityMetadata(s *store, targetModels *[]v3.VulnerabilityMetadat
 }
 
 func getMetadataKey(metadata v3.VulnerabilityMetadata) storeKey {
-	return storeKey{metadata.ID, metadata.Namespace, "", "", ""}
+	return storeKey{metadata.ID, metadata.Namespace, ""}
 }
