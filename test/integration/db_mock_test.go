@@ -8,7 +8,8 @@ import (
 var _ grypeDB.VulnerabilityStoreReader = &mockStore{}
 
 type mockStore struct {
-	backend map[string]map[string][]grypeDB.Vulnerability
+	normalizedPackageNames map[string]map[string]string
+	backend                map[string]map[string][]grypeDB.Vulnerability
 }
 
 func (s *mockStore) GetVulnerabilityNamespaces() ([]string, error) {
@@ -26,6 +27,15 @@ func (s *mockStore) GetVulnerabilityMatchExclusion(id string) ([]grypeDB.Vulnera
 
 func newMockDbStore() *mockStore {
 	return &mockStore{
+		normalizedPackageNames: map[string]map[string]string{
+			"github:language:python": {
+				"Pygments":   "pygments",
+				"my-package": "my-package",
+			},
+			"github:language:dotnet": {
+				"AWSSDK.Core": "awssdk.core",
+			},
+		},
 		backend: map[string]map[string][]grypeDB.Vulnerability{
 			"nvd:cpe": {
 				"libvncserver": []grypeDB.Vulnerability{
@@ -70,7 +80,7 @@ func newMockDbStore() *mockStore {
 				},
 			},
 			"github:language:python": {
-				"Pygments": []grypeDB.Vulnerability{
+				"pygments": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-python-pygments",
 						VersionConstraint: "< 2.6.2",
@@ -104,7 +114,7 @@ func newMockDbStore() *mockStore {
 				},
 			},
 			"github:language:dotnet": {
-				"AWSSDK.Core": []grypeDB.Vulnerability{
+				"awssdk.core": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-dotnet-sample",
 						VersionConstraint: ">= 3.7.0.0, < 3.7.12.0",

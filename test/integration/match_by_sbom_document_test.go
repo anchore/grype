@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"github.com/anchore/grype/grype/store"
 	"testing"
 
 	"github.com/go-test/deep"
@@ -14,6 +13,7 @@ import (
 	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/search"
+	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/syft/syft/source"
 )
 

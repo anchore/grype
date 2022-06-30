@@ -1,8 +1,10 @@
 package integration
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/sergi/go-diff/diffmatchpatch"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db"
@@ -17,7 +19,6 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/pkg/cataloger"
 	"github.com/anchore/syft/syft/source"
-	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore, theResult *match.Matches) {
@@ -67,7 +68,6 @@ func addJavascriptMatches(t *testing.T, theSource source.Source, catalog *syftPk
 		t.Fatalf("failed to create vuln obj: %+v", err)
 	}
 	theResult.Add(match.Match{
-
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
 		Details: []match.Detail{
@@ -96,7 +96,8 @@ func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Ca
 		t.Fatalf("problem with upstream syft cataloger (python)")
 	}
 	thePkg := pkg.New(packages[0])
-	theVuln := theStore.backend["github:language:python"][thePkg.Name][0]
+	normalizedName := theStore.normalizedPackageNames["github:language:python"][thePkg.Name]
+	theVuln := theStore.backend["github:language:python"][normalizedName][0]
 	vulnObj, err := vulnerability.NewVulnerability(theVuln)
 	if err != nil {
 		t.Fatalf("failed to create vuln obj: %+v", err)
@@ -131,7 +132,8 @@ func addDotnetMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Ca
 		t.Fatalf("problem with upstream syft cataloger (dotnet)")
 	}
 	thePkg := pkg.New(packages[0])
-	theVuln := theStore.backend["github:language:dotnet"][thePkg.Name][0]
+	normalizedName := theStore.normalizedPackageNames["github:language:dotnet"][thePkg.Name]
+	theVuln := theStore.backend["github:language:dotnet"][normalizedName][0]
 	vulnObj, err := vulnerability.NewVulnerability(theVuln)
 	if err != nil {
 		t.Fatalf("failed to create vuln obj: %+v", err)
@@ -210,7 +212,6 @@ func addJavaMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 		t.Fatalf("failed to create vuln obj: %+v", err)
 	}
 	theResult.Add(match.Match{
-
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
 		Details: []match.Detail{
@@ -459,7 +460,6 @@ func TestMatchByImage(t *testing.T) {
 					diffs := dmp.DiffMain(value, aMatch.String(), true)
 					t.Errorf("mismatched output:\n%s", dmp.DiffPrettyText(diffs))
 				}
-
 			}
 
 			if expectedCount != actualCount {
