@@ -426,7 +426,6 @@ func TestMatchByImage(t *testing.T) {
 				Provider:          vp,
 				MetadataProvider:  nil,
 				ExclusionProvider: ep,
-				Status:            nil,
 			}
 
 			actualResults := grype.FindVulnerabilitiesForPackage(store, theDistro, matchers, pkg.FromCatalog(theCatalog, pkg.ProviderConfig{}))

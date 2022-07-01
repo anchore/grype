@@ -283,6 +283,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		}
 
 		var store *store.Store
+		var status *db.Status
 		var packages []pkg.Package
 		var context pkg.Context
 		var wg = &sync.WaitGroup{}
@@ -293,8 +294,8 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		go func() {
 			defer wg.Done()
 			log.Debug("loading DB")
-			store, err = grype.LoadVulnerabilityDB(appConfig.DB.ToCuratorConfig(), appConfig.DB.AutoUpdate)
-			if err = validateDBLoad(err, store.Status); err != nil {
+			store, status, err = grype.LoadVulnerabilityDB(appConfig.DB.ToCuratorConfig(), appConfig.DB.AutoUpdate)
+			if err = validateDBLoad(err, status); err != nil {
 				errs <- err
 				return
 			}
@@ -343,7 +344,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 		bus.Publish(partybus.Event{
 			Type:  event.VulnerabilityScanningFinished,
-			Value: presenter.GetPresenter(presenterConfig, remainingMatches, ignoredMatches, packages, context, store, appConfig, store.Status),
+			Value: presenter.GetPresenter(presenterConfig, remainingMatches, ignoredMatches, packages, context, store, appConfig, status),
 		})
 	}()
 	return errs
@@ -394,7 +395,7 @@ func validateDBLoad(loadErr error, status *db.Status) error {
 		return fmt.Errorf("failed to load vulnerability db: %w", loadErr)
 	}
 	if status == nil {
-		return fmt.Errorf("unable to determine DB status")
+		return fmt.Errorf("unable to determine the status of the vulnerability db")
 	}
 	if status.Err != nil {
 		return fmt.Errorf("db could not be loaded: %w", status.Err)

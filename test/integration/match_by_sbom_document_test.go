@@ -98,7 +98,6 @@ func TestMatchBySBOMDocument(t *testing.T) {
 				Provider:          vp,
 				MetadataProvider:  nil,
 				ExclusionProvider: ep,
-				Status:            nil,
 			}
 			matches, _, _, err := grype.FindVulnerabilities(store, fmt.Sprintf("sbom:%s", test.fixture), source.SquashedScope, nil)
 			assert.NoError(t, err)
