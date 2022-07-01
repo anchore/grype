@@ -47,6 +47,7 @@ func ApplyExplicitIgnoreRules(provider ExclusionProvider, matches Matches) Match
 
 		if err != nil {
 			log.Warnf("unable to get ignore rules for vuln id=%s", m.Vulnerability.ID)
+			continue
 		}
 
 		ignoreRules = append(ignoreRules, r...)
