@@ -1079,6 +1079,23 @@ func Test_DiffStore(t *testing.T) {
 				State: v3.UnknownFixState,
 			},
 		},
+		{
+			Namespace:         "nuget",
+			ID:                "GHSA-****-******",
+			PackageName:       "nuget:net",
+			VersionConstraint: "< 3.0 >= 2.17",
+			CPEs:              []string{"cpe:2.3:nuget:net:*:*:*:*:*:*"},
+			Fix: v3.Fix{
+				State: v3.UnknownFixState,
+			},
+		},
+		{
+			Namespace:         "hex",
+			ID:                "GHSA-^^^^-^^^^^^",
+			PackageName:       "hex:esbuild",
+			VersionConstraint: "< 3.0 >= 2.17",
+			CPEs:              []string{"cpe:2.3:hex:esbuild:*:*:*:*:*:*"},
+		},
 	}
 	baseMetadata := []v3.VulnerabilityMetadata{
 		{
@@ -1103,6 +1120,13 @@ func Test_DiffStore(t *testing.T) {
 			CPEs:              []string{"cpe:2.3:golang:hashicorp:nomad:*:*:*:*:*"},
 		},
 		{
+			Namespace:         "github:go",
+			ID:                "GHSA-....-....",
+			PackageName:       "hashicorp:n",
+			VersionConstraint: "< 2.0 >= 1.17",
+			CPEs:              []string{"cpe:2.3:golang:hashicorp:n:*:*:*:*:*"},
+		},
+		{
 			Namespace:         "npm",
 			ID:                "CVE-123-7654",
 			PackageName:       "npm:axios",
@@ -1112,27 +1136,47 @@ func Test_DiffStore(t *testing.T) {
 				State: v3.WontFixState,
 			},
 		},
+		{
+			Namespace:         "nuget",
+			ID:                "GHSA-****-******",
+			PackageName:       "nuget:net",
+			VersionConstraint: "< 3.0 >= 2.17",
+			CPEs:              []string{"cpe:2.3:nuget:net:*:*:*:*:*:*"},
+			Fix: v3.Fix{
+				State: v3.UnknownFixState,
+			},
+		},
 	}
 	expectedDiffs := []v3.Diff{
 		{
-			Reason:    v3.DiffAdded,
-			ID:        "GHSA-....-....",
-			Namespace: "github:go",
+			Reason:    v3.DiffChanged,
+			ID:        "CVE-123-4567",
+			Namespace: "github:python",
+			Packages:  []string{"pypi:requests"},
 		},
 		{
 			Reason:    v3.DiffChanged,
 			ID:        "CVE-123-7654",
 			Namespace: "npm",
-		},
-		{
-			Reason:    v3.DiffRemoved,
-			ID:        "CVE-123-4567",
-			Namespace: "github:python",
+			Packages:  []string{"npm:axios"},
 		},
 		{
 			Reason:    v3.DiffRemoved,
 			ID:        "GHSA-****-******",
 			Namespace: "nuget",
+			Packages:  []string{"nuget:net"},
+		},
+		{
+			Reason:    v3.DiffAdded,
+			ID:        "GHSA-....-....",
+			Namespace: "github:go",
+			Packages:  []string{"hashicorp:nomad", "hashicorp:n"},
+		},
+		{
+			Reason:    v3.DiffRemoved,
+			ID:        "GHSA-^^^^-^^^^^^",
+			Namespace: "hex",
+			Packages:  []string{"hex:esbuild"},
 		},
 	}
 
@@ -1150,6 +1194,10 @@ func Test_DiffStore(t *testing.T) {
 	result, err := s1.DiffStore(s2)
 
 	//THEN
+	sort.SliceStable(*result, func(i, j int) bool {
+		return (*result)[i].ID < (*result)[j].ID
+	})
+
 	assert.NoError(t, err)
 	assert.Equal(t, expectedDiffs, *result)
 }

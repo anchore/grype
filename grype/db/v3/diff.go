@@ -12,4 +12,5 @@ type Diff struct {
 	Reason    DiffReason `json:"reason"`
 	ID        string     `json:"id"`
 	Namespace string     `json:"namespace"`
+	Packages  []string   `json:"packages"`
 }

@@ -250,29 +250,52 @@ func (s *store) GetAllVulnerabilityMetadata() (*[]v3.VulnerabilityMetadata, erro
 func (s *store) DiffStore(targetStore v3.StoreReader) (*[]v3.Diff, error) {
 	rowsProgress, diffItems := trackDiff()
 
-	vulns, err := targetStore.GetAllVulnerabilities()
+	targetVulns, err := targetStore.GetAllVulnerabilities()
 	rowsProgress.N++
-	if err != nil {
-		return nil, err
-	}
-	allDiffs, err := diffVulnerabilities(s, vulns, rowsProgress, diffItems)
 	if err != nil {
 		return nil, err
 	}
 
-	metadata, err := targetStore.GetAllVulnerabilityMetadata()
+	baseVulns, err := s.GetAllVulnerabilities()
+	rowsProgress.N++
+	if err != nil {
+		return nil, err
+	}
+
+	baseVulnPkgMap := buildVulnerabilityPkgsMap(baseVulns)
+	targetVulnPkgMap := buildVulnerabilityPkgsMap(targetVulns)
+
+	allDiffsMap, err := diffVulnerabilities(baseVulns, targetVulns, baseVulnPkgMap, targetVulnPkgMap, diffItems)
+	if err != nil {
+		return nil, err
+	}
+
+	baseMetadata, err := s.GetAllVulnerabilityMetadata()
 	if err != nil {
 		return nil, err
 	}
 	rowsProgress.N++
-	diffs, err := diffVulnerabilityMetadata(s, metadata, rowsProgress, diffItems)
+
+	targetMetadata, err := targetStore.GetAllVulnerabilityMetadata()
 	if err != nil {
 		return nil, err
 	}
-	*allDiffs = append((*allDiffs), (*diffs)...)
+	rowsProgress.N++
+
+	metaDiffsMap, err := diffVulnerabilityMetadata(baseMetadata, targetMetadata, baseVulnPkgMap, targetVulnPkgMap, diffItems)
+	if err != nil {
+		return nil, err
+	}
+	for k, diff := range *metaDiffsMap {
+		(*allDiffsMap)[k] = diff
+	}
+	allDiffs := []v3.Diff{}
+	for _, diff := range *allDiffsMap {
+		allDiffs = append(allDiffs, *diff)
+	}
 
 	rowsProgress.SetCompleted()
 	diffItems.SetCompleted()
 
-	return allDiffs, nil
+	return &allDiffs, nil
 }

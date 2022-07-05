@@ -3,6 +3,7 @@ package store
 import (
 	"io/ioutil"
 	"os"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -132,16 +133,19 @@ func Test_Diff_Vulnerabilities(t *testing.T) {
 			Reason:    v3.DiffAdded,
 			ID:        "GHSA-....-....",
 			Namespace: "github:go",
+			Packages:  []string{"hashicorp:nomad"},
 		},
 		{
 			Reason:    v3.DiffChanged,
 			ID:        "CVE-123-7654",
 			Namespace: "npm",
+			Packages:  []string{"npm:axios"},
 		},
 		{
-			Reason:    v3.DiffRemoved,
+			Reason:    v3.DiffChanged,
 			ID:        "CVE-123-4567",
 			Namespace: "github:python",
+			Packages:  []string{"pypi:requests"},
 		},
 	}
 
@@ -214,19 +218,22 @@ func Test_Diff_Metadata(t *testing.T) {
 	}
 	expectedDiffs := []v3.Diff{
 		{
-			Reason:    v3.DiffAdded,
-			ID:        "GHSA-....-....",
-			Namespace: "github:go",
+			Reason:    v3.DiffRemoved,
+			ID:        "CVE-123-4567",
+			Namespace: "github:python",
+			Packages:  []string{},
 		},
 		{
 			Reason:    v3.DiffChanged,
 			ID:        "CVE-123-7654",
 			Namespace: "npm",
+			Packages:  []string{},
 		},
 		{
-			Reason:    v3.DiffRemoved,
-			ID:        "CVE-123-4567",
-			Namespace: "github:python",
+			Reason:    v3.DiffAdded,
+			ID:        "GHSA-....-....",
+			Namespace: "github:go",
+			Packages:  []string{},
 		},
 	}
 
@@ -241,6 +248,10 @@ func Test_Diff_Metadata(t *testing.T) {
 	result, err := s1.DiffStore(s2)
 
 	//THEN
+	sort.SliceStable(*result, func(i, j int) bool {
+		return (*result)[i].ID < (*result)[j].ID
+	})
+
 	assert.NoError(t, err)
 	assert.Equal(t, expectedDiffs, *result)
 }
