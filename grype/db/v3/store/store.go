@@ -265,10 +265,7 @@ func (s *store) DiffStore(targetStore v3.StoreReader) (*[]v3.Diff, error) {
 	baseVulnPkgMap := buildVulnerabilityPkgsMap(baseVulns)
 	targetVulnPkgMap := buildVulnerabilityPkgsMap(targetVulns)
 
-	allDiffsMap, err := diffVulnerabilities(baseVulns, targetVulns, baseVulnPkgMap, targetVulnPkgMap, diffItems)
-	if err != nil {
-		return nil, err
-	}
+	allDiffsMap := diffVulnerabilities(baseVulns, targetVulns, baseVulnPkgMap, targetVulnPkgMap, diffItems)
 
 	baseMetadata, err := s.GetAllVulnerabilityMetadata()
 	if err != nil {
@@ -282,10 +279,7 @@ func (s *store) DiffStore(targetStore v3.StoreReader) (*[]v3.Diff, error) {
 	}
 	rowsProgress.N++
 
-	metaDiffsMap, err := diffVulnerabilityMetadata(baseMetadata, targetMetadata, baseVulnPkgMap, targetVulnPkgMap, diffItems)
-	if err != nil {
-		return nil, err
-	}
+	metaDiffsMap := diffVulnerabilityMetadata(baseMetadata, targetMetadata, baseVulnPkgMap, targetVulnPkgMap, diffItems)
 	for k, diff := range *metaDiffsMap {
 		(*allDiffsMap)[k] = diff
 	}

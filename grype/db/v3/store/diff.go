@@ -82,7 +82,7 @@ func createDiff(baseStore, targetStore *PkgMap, key storeKey, reason v3.DiffReas
 		}
 	}
 	pkgs := []string{}
-	for pkg, _ := range pkgMap {
+	for pkg := range pkgMap {
 		pkgs = append(pkgs, pkg)
 	}
 
@@ -173,14 +173,12 @@ func (v *VulnerabilitySet) getUnmatched() ([]storeKey, []storeKey) {
 					break componentLoop
 				}
 			}
-
 		}
-
 	}
 	return notSeen, notEntirelySeen
 }
 
-func diffVulnerabilities(baseModels, targetModels *[]v3.Vulnerability, basePkgsMap, targetPkgsMap *PkgMap, differentItems *progress.Manual) (*map[string]*v3.Diff, error) {
+func diffVulnerabilities(baseModels, targetModels *[]v3.Vulnerability, basePkgsMap, targetPkgsMap *PkgMap, differentItems *progress.Manual) *map[string]*v3.Diff {
 	diffs := make(map[string]*v3.Diff)
 	m := NewVulnerabilitySet(baseModels)
 
@@ -220,7 +218,7 @@ func diffVulnerabilities(baseModels, targetModels *[]v3.Vulnerability, basePkgsM
 		differentItems.N++
 	}
 
-	return &diffs, nil
+	return &diffs
 }
 
 type MetadataSet struct {
@@ -264,7 +262,7 @@ func (v *MetadataSet) getUnmatched() []storeKey {
 	return notSeen
 }
 
-func diffVulnerabilityMetadata(baseModels, targetModels *[]v3.VulnerabilityMetadata, basePkgsMap, targetPkgsMap *PkgMap, differentItems *progress.Manual) (*map[string]*v3.Diff, error) {
+func diffVulnerabilityMetadata(baseModels, targetModels *[]v3.VulnerabilityMetadata, basePkgsMap, targetPkgsMap *PkgMap, differentItems *progress.Manual) *map[string]*v3.Diff {
 	diffs := make(map[string]*v3.Diff)
 	m := NewMetadataSet(baseModels)
 
@@ -272,7 +270,6 @@ func diffVulnerabilityMetadata(baseModels, targetModels *[]v3.VulnerabilityMetad
 		targetModel := tModel
 		k := getMetadataKey(targetModel)
 		if m.in(targetModel) {
-
 			if !m.match(targetModel) {
 				if _, exists := diffs[k.id+k.namespace]; exists {
 					continue
@@ -296,7 +293,7 @@ func diffVulnerabilityMetadata(baseModels, targetModels *[]v3.VulnerabilityMetad
 		differentItems.N++
 	}
 
-	return &diffs, nil
+	return &diffs
 }
 
 func getMetadataKey(metadata v3.VulnerabilityMetadata) storeKey {
