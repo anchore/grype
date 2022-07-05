@@ -50,7 +50,7 @@ func decodeCSV(reader io.Reader) ([]Package, error) {
 		return nil, fmt.Errorf("unable to parse csv: %w", err)
 	}
 
-	var packages []Package
+	packages := []Package{}
 
 	for _, row := range records {
 		rawCpe := strings.TrimSpace(row[0])
@@ -59,10 +59,12 @@ func decodeCSV(reader io.Reader) ([]Package, error) {
 			return nil, fmt.Errorf("unable to decode cpe: %v: %w", rawCpe, err)
 		}
 
-		var purl string
-		var pkgType = pkg.UnknownPkg
-		var pkgLanguage pkg.Language
-		var pkgVersion = cpe.Version
+		var (
+			purl        string
+			pkgType     = pkg.UnknownPkg
+			pkgLanguage pkg.Language
+			pkgVersion  = cpe.Version
+		)
 
 		if len(row) > 1 {
 			purl = strings.TrimSpace(row[1])
