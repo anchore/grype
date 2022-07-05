@@ -43,7 +43,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 	}
 
 	// get a grype DB
-	store, err := grype.LoadVulnerabilityDB(db.Config{
+	store, _, err := grype.LoadVulnerabilityDB(db.Config{
 		DBRootDir:           "test-fixtures/grype-db",
 		ListingURL:          getListingURL(),
 		ValidateByHashOnGet: false,
