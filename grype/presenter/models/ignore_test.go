@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	grypeDb "github.com/anchore/grype/grype/db/v3"
+	grypeDb "github.com/anchore/grype/grype/db/v4"
 	"github.com/anchore/grype/grype/match"
 )
 

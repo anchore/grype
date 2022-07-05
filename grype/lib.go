@@ -8,7 +8,7 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/stereoscope/pkg/image"
@@ -17,7 +17,7 @@ import (
 	"github.com/anchore/syft/syft/source"
 )
 
-func FindVulnerabilities(provider vulnerability.Provider, userImageStr string, scopeOpt source.Scope, registryOptions *image.RegistryOptions) (match.Matches, pkg.Context, []pkg.Package, error) {
+func FindVulnerabilities(store store.Store, userImageStr string, scopeOpt source.Scope, registryOptions *image.RegistryOptions) (match.Matches, pkg.Context, []pkg.Package, error) {
 	providerConfig := pkg.ProviderConfig{
 		RegistryOptions:   registryOptions,
 		CatalogingOptions: cataloger.DefaultConfig(),
@@ -31,35 +31,46 @@ func FindVulnerabilities(provider vulnerability.Provider, userImageStr string, s
 
 	matchers := matcher.NewDefaultMatchers(matcher.Config{})
 
-	return FindVulnerabilitiesForPackage(provider, context.Distro, matchers, packages), context, packages, nil
+	return FindVulnerabilitiesForPackage(store, context.Distro, matchers, packages), context, packages, nil
 }
 
-func FindVulnerabilitiesForPackage(provider vulnerability.Provider, d *linux.Release, matchers []matcher.Matcher, packages []pkg.Package) match.Matches {
-	return matcher.FindMatches(provider, d, matchers, packages)
+func FindVulnerabilitiesForPackage(store store.Store, d *linux.Release, matchers []matcher.Matcher, packages []pkg.Package) match.Matches {
+	return matcher.FindMatches(store, d, matchers, packages)
 }
 
-func LoadVulnerabilityDB(cfg db.Config, update bool) (vulnerability.Provider, vulnerability.MetadataProvider, *db.Status, error) {
+func LoadVulnerabilityDB(cfg db.Config, update bool) (*store.Store, *db.Status, error) {
 	dbCurator, err := db.NewCurator(cfg)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	if update {
 		log.Debug("looking for updates on vulnerability database")
 		_, err := dbCurator.Update()
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 	}
 
-	store, err := dbCurator.GetStore()
+	storeReader, err := dbCurator.GetStore()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	status := dbCurator.Status()
 
-	return db.NewVulnerabilityProvider(store), db.NewVulnerabilityMetadataProvider(store), &status, status.Err
+	p, err := db.NewVulnerabilityProvider(storeReader)
+	if err != nil {
+		return nil, &status, err
+	}
+
+	s := &store.Store{
+		Provider:          p,
+		MetadataProvider:  db.NewVulnerabilityMetadataProvider(storeReader),
+		ExclusionProvider: db.NewMatchExclusionProvider(storeReader),
+	}
+
+	return s, &status, nil
 }
 
 func SetLogger(logger logger.Logger) {
