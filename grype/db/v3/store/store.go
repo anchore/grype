@@ -297,3 +297,7 @@ func (s *store) DiffStore(targetStore v3.StoreReader) (*[]v3.Diff, error) {
 func (s *store) Close() {
 	s.db.Exec("VACUUM;")
 }
+
+func (s *store) Close() {
+	s.db.Exec("VACUUM;")
+}

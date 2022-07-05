@@ -1262,14 +1262,14 @@ func Test_DiffStore(t *testing.T) {
 
 	baseVulns := []v4.Vulnerability{
 		{
-			Namespace:         "github:python",
+			Namespace:         "github:language:python",
 			ID:                "CVE-123-4567",
 			PackageName:       "pypi:requests",
 			VersionConstraint: "< 2.0 >= 1.29",
 			CPEs:              []string{"cpe:2.3:pypi:requests:*:*:*:*:*:*"},
 		},
 		{
-			Namespace:         "github:python",
+			Namespace:         "github:language:python",
 			ID:                "CVE-123-4567",
 			PackageName:       "pypi:requests",
 			VersionConstraint: "< 3.0 >= 2.17",
@@ -1312,14 +1312,14 @@ func Test_DiffStore(t *testing.T) {
 	}
 	targetVulns := []v4.Vulnerability{
 		{
-			Namespace:         "github:python",
+			Namespace:         "github:language:python",
 			ID:                "CVE-123-4567",
 			PackageName:       "pypi:requests",
 			VersionConstraint: "< 2.0 >= 1.29",
 			CPEs:              []string{"cpe:2.3:pypi:requests:*:*:*:*:*:*"},
 		},
 		{
-			Namespace:         "github:go",
+			Namespace:         "github:language:go",
 			ID:                "GHSA-....-....",
 			PackageName:       "hashicorp:nomad",
 			VersionConstraint: "< 3.0 >= 2.17",
@@ -1357,7 +1357,7 @@ func Test_DiffStore(t *testing.T) {
 		{
 			Reason:    v4.DiffChanged,
 			ID:        "CVE-123-4567",
-			Namespace: "github:python",
+			Namespace: "github:language:python",
 			Packages:  []string{"pypi:requests"},
 		},
 		{
@@ -1375,7 +1375,7 @@ func Test_DiffStore(t *testing.T) {
 		{
 			Reason:    v4.DiffAdded,
 			ID:        "GHSA-....-....",
-			Namespace: "github:go",
+			Namespace: "github:language:go",
 			Packages:  []string{"hashicorp:nomad", "hashicorp:n"},
 		},
 		{
