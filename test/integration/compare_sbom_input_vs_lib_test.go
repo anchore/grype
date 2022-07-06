@@ -61,6 +61,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		string(syftPkg.DartPubPkg),
 		string(syftPkg.DotnetPkg),
 		string(syftPkg.PhpComposerPkg),
+		string(syftPkg.ConanPkg),
 		string(syftPkg.JenkinsPluginPkg), // package type cannot be inferred for all formats
 	)
 	observedPkgTypes := strset.New()
