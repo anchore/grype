@@ -1403,7 +1403,7 @@ func Test_DiffStore(t *testing.T) {
 	sort.SliceStable(*result, func(i, j int) bool {
 		return (*result)[i].ID < (*result)[j].ID
 	})
-	for i, _ := range *result {
+	for i := range *result {
 		sort.Strings((*result)[i].Packages)
 	}
 
