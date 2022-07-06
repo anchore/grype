@@ -1170,7 +1170,7 @@ func Test_DiffStore(t *testing.T) {
 			Reason:    v3.DiffAdded,
 			ID:        "GHSA-....-....",
 			Namespace: "github:go",
-			Packages:  []string{"hashicorp:nomad", "hashicorp:n"},
+			Packages:  []string{"hashicorp:n", "hashicorp:nomad"},
 		},
 		{
 			Reason:    v3.DiffRemoved,
@@ -1197,6 +1197,9 @@ func Test_DiffStore(t *testing.T) {
 	sort.SliceStable(*result, func(i, j int) bool {
 		return (*result)[i].ID < (*result)[j].ID
 	})
+	for i, _ := range *result {
+		sort.Strings((*result)[i].Packages)
+	}
 
 	assert.NoError(t, err)
 	assert.Equal(t, expectedDiffs, *result)

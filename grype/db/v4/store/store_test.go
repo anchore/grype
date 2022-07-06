@@ -1326,7 +1326,7 @@ func Test_DiffStore(t *testing.T) {
 			CPEs:              []string{"cpe:2.3:golang:hashicorp:nomad:*:*:*:*:*"},
 		},
 		{
-			Namespace:         "github:go",
+			Namespace:         "github:language:go",
 			ID:                "GHSA-....-....",
 			PackageName:       "hashicorp:n",
 			VersionConstraint: "< 2.0 >= 1.17",
@@ -1376,7 +1376,7 @@ func Test_DiffStore(t *testing.T) {
 			Reason:    v4.DiffAdded,
 			ID:        "GHSA-....-....",
 			Namespace: "github:language:go",
-			Packages:  []string{"hashicorp:nomad", "hashicorp:n"},
+			Packages:  []string{"hashicorp:n", "hashicorp:nomad"},
 		},
 		{
 			Reason:    v4.DiffRemoved,
@@ -1403,6 +1403,9 @@ func Test_DiffStore(t *testing.T) {
 	sort.SliceStable(*result, func(i, j int) bool {
 		return (*result)[i].ID < (*result)[j].ID
 	})
+	for i, _ := range *result {
+		sort.Strings((*result)[i].Packages)
+	}
 
 	assert.NoError(t, err)
 	assert.Equal(t, expectedDiffs, *result)

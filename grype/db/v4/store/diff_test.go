@@ -130,10 +130,10 @@ func Test_Diff_Vulnerabilities(t *testing.T) {
 	}
 	expectedDiffs := []v4.Diff{
 		{
-			Reason:    v4.DiffAdded,
-			ID:        "GHSA-....-....",
-			Namespace: "github:language:go",
-			Packages:  []string{"hashicorp:nomad"},
+			Reason:    v4.DiffChanged,
+			ID:        "CVE-123-4567",
+			Namespace: "github:language:python",
+			Packages:  []string{"pypi:requests"},
 		},
 		{
 			Reason:    v4.DiffChanged,
@@ -142,10 +142,10 @@ func Test_Diff_Vulnerabilities(t *testing.T) {
 			Packages:  []string{"npm:axios"},
 		},
 		{
-			Reason:    v4.DiffChanged,
-			ID:        "CVE-123-4567",
-			Namespace: "github:language:python",
-			Packages:  []string{"pypi:requests"},
+			Reason:    v4.DiffAdded,
+			ID:        "GHSA-....-....",
+			Namespace: "github:language:go",
+			Packages:  []string{"hashicorp:nomad"},
 		},
 	}
 
@@ -158,6 +158,9 @@ func Test_Diff_Vulnerabilities(t *testing.T) {
 
 	//WHEN
 	result, err := s1.DiffStore(s2)
+	sort.SliceStable(*result, func(i, j int) bool {
+		return (*result)[i].ID < (*result)[j].ID
+	})
 
 	//THEN
 	assert.NoError(t, err)
