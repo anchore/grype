@@ -5,11 +5,12 @@ import (
 	"flag"
 	"testing"
 
+	"github.com/sergi/go-diff/diffmatchpatch"
+	"github.com/stretchr/testify/require"
+
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/db"
 	v4 "github.com/anchore/grype/grype/db/v4"
-	"github.com/sergi/go-diff/diffmatchpatch"
-	"github.com/stretchr/testify/require"
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for diff presenter")

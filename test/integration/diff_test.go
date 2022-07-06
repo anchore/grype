@@ -7,11 +7,12 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/sergi/go-diff/diffmatchpatch"
+	"github.com/stretchr/testify/require"
+
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/differ"
-	"github.com/sergi/go-diff/diffmatchpatch"
-	"github.com/stretchr/testify/require"
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for diff presenter")
@@ -38,7 +39,7 @@ func TestDatabaseDiff(t *testing.T) {
 	require.NoError(t, differ.DownloadDatabases(base, target))
 	diffs, err := differ.DiffDatabases()
 	require.NoError(t, err)
-	for i, _ := range *diffs {
+	for i := range *diffs {
 		sort.Strings((*diffs)[i].Packages)
 	}
 	sort.SliceStable(*diffs, func(i, j int) bool {
