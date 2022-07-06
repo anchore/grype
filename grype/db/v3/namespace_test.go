@@ -334,8 +334,9 @@ func Test_NamespacesForLanguage(t *testing.T) {
 		allLanguages.Add(string(l))
 	}
 
-	// remove PHP for coverage as feed has not been updated
+	// remove PHP, CPP for coverage as feed has not been updated
 	allLanguages.Remove(string(syftPkg.PHP))
+	allLanguages.Remove(string(syftPkg.CPP))
 
 	for _, test := range tests {
 		t.Run(string(test.language), func(t *testing.T) {
