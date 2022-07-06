@@ -147,8 +147,9 @@ func (v *VulnerabilitySet) match(item v3.Vulnerability) bool {
 		parent.seen = true
 		key := getVulnerabilityKey(item)
 		if children, exists := parent.items[key]; exists {
-			for _, child := range children {
+			for idx, child := range children {
 				if item.Equal(*child.item) {
+					children[idx].seen = true
 					return true
 				}
 			}
