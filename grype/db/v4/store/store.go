@@ -301,23 +301,48 @@ func (s *store) GetAllVulnerabilityMetadata() (*[]v4.VulnerabilityMetadata, erro
 
 // DiffStore creates a diff between the current sql database and the given store
 func (s *store) DiffStore(targetStore v4.StoreReader) (*[]v4.Diff, error) {
-	vulns, err := targetStore.GetAllVulnerabilities()
-	if err != nil {
-		return nil, err
-	}
-	allDiffs, err := diffVulnerabilities(s, vulns)
+	rowsProgress, diffItems := trackDiff()
+
+	targetVulns, err := targetStore.GetAllVulnerabilities()
+	rowsProgress.N++
 	if err != nil {
 		return nil, err
 	}
 
-	metadata, err := targetStore.GetAllVulnerabilityMetadata()
+	baseVulns, err := s.GetAllVulnerabilities()
+	rowsProgress.N++
 	if err != nil {
 		return nil, err
 	}
-	diffs, err := diffVulnerabilityMetadata(s, metadata)
+
+	baseVulnPkgMap := buildVulnerabilityPkgsMap(baseVulns)
+	targetVulnPkgMap := buildVulnerabilityPkgsMap(targetVulns)
+
+	allDiffsMap := diffVulnerabilities(baseVulns, targetVulns, baseVulnPkgMap, targetVulnPkgMap, diffItems)
+
+	baseMetadata, err := s.GetAllVulnerabilityMetadata()
 	if err != nil {
 		return nil, err
 	}
-	*allDiffs = append((*allDiffs), (*diffs)...)
-	return allDiffs, nil
+	rowsProgress.N++
+
+	targetMetadata, err := targetStore.GetAllVulnerabilityMetadata()
+	if err != nil {
+		return nil, err
+	}
+	rowsProgress.N++
+
+	metaDiffsMap := diffVulnerabilityMetadata(baseMetadata, targetMetadata, baseVulnPkgMap, targetVulnPkgMap, diffItems)
+	for k, diff := range *metaDiffsMap {
+		(*allDiffsMap)[k] = diff
+	}
+	allDiffs := []v4.Diff{}
+	for _, diff := range *allDiffsMap {
+		allDiffs = append(allDiffs, *diff)
+	}
+
+	rowsProgress.SetCompleted()
+	diffItems.SetCompleted()
+
+	return &allDiffs, nil
 }

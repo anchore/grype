@@ -1262,14 +1262,14 @@ func Test_DiffStore(t *testing.T) {
 
 	baseVulns := []v4.Vulnerability{
 		{
-			Namespace:         "github:language:python",
+			Namespace:         "github:python",
 			ID:                "CVE-123-4567",
 			PackageName:       "pypi:requests",
 			VersionConstraint: "< 2.0 >= 1.29",
 			CPEs:              []string{"cpe:2.3:pypi:requests:*:*:*:*:*:*"},
 		},
 		{
-			Namespace:         "github:language:python",
+			Namespace:         "github:python",
 			ID:                "CVE-123-4567",
 			PackageName:       "pypi:requests",
 			VersionConstraint: "< 3.0 >= 2.17",
@@ -1285,6 +1285,23 @@ func Test_DiffStore(t *testing.T) {
 				State: v4.UnknownFixState,
 			},
 		},
+		{
+			Namespace:         "nuget",
+			ID:                "GHSA-****-******",
+			PackageName:       "nuget:net",
+			VersionConstraint: "< 3.0 >= 2.17",
+			CPEs:              []string{"cpe:2.3:nuget:net:*:*:*:*:*:*"},
+			Fix: v4.Fix{
+				State: v4.UnknownFixState,
+			},
+		},
+		{
+			Namespace:         "hex",
+			ID:                "GHSA-^^^^-^^^^^^",
+			PackageName:       "hex:esbuild",
+			VersionConstraint: "< 3.0 >= 2.17",
+			CPEs:              []string{"cpe:2.3:hex:esbuild:*:*:*:*:*:*"},
+		},
 	}
 	baseMetadata := []v4.VulnerabilityMetadata{
 		{
@@ -1295,18 +1312,25 @@ func Test_DiffStore(t *testing.T) {
 	}
 	targetVulns := []v4.Vulnerability{
 		{
-			Namespace:         "github:language:python",
+			Namespace:         "github:python",
 			ID:                "CVE-123-4567",
 			PackageName:       "pypi:requests",
 			VersionConstraint: "< 2.0 >= 1.29",
 			CPEs:              []string{"cpe:2.3:pypi:requests:*:*:*:*:*:*"},
 		},
 		{
-			Namespace:         "github:language:go",
+			Namespace:         "github:go",
 			ID:                "GHSA-....-....",
 			PackageName:       "hashicorp:nomad",
 			VersionConstraint: "< 3.0 >= 2.17",
 			CPEs:              []string{"cpe:2.3:golang:hashicorp:nomad:*:*:*:*:*"},
+		},
+		{
+			Namespace:         "github:go",
+			ID:                "GHSA-....-....",
+			PackageName:       "hashicorp:n",
+			VersionConstraint: "< 2.0 >= 1.17",
+			CPEs:              []string{"cpe:2.3:golang:hashicorp:n:*:*:*:*:*"},
 		},
 		{
 			Namespace:         "npm",
@@ -1318,27 +1342,47 @@ func Test_DiffStore(t *testing.T) {
 				State: v4.WontFixState,
 			},
 		},
+		{
+			Namespace:         "nuget",
+			ID:                "GHSA-****-******",
+			PackageName:       "nuget:net",
+			VersionConstraint: "< 3.0 >= 2.17",
+			CPEs:              []string{"cpe:2.3:nuget:net:*:*:*:*:*:*"},
+			Fix: v4.Fix{
+				State: v4.UnknownFixState,
+			},
+		},
 	}
 	expectedDiffs := []v4.Diff{
 		{
-			Reason:    v4.DiffAdded,
-			ID:        "GHSA-....-....",
-			Namespace: "github:language:go",
+			Reason:    v4.DiffChanged,
+			ID:        "CVE-123-4567",
+			Namespace: "github:python",
+			Packages:  []string{"pypi:requests"},
 		},
 		{
 			Reason:    v4.DiffChanged,
 			ID:        "CVE-123-7654",
 			Namespace: "npm",
-		},
-		{
-			Reason:    v4.DiffRemoved,
-			ID:        "CVE-123-4567",
-			Namespace: "github:language:python",
+			Packages:  []string{"npm:axios"},
 		},
 		{
 			Reason:    v4.DiffRemoved,
 			ID:        "GHSA-****-******",
 			Namespace: "nuget",
+			Packages:  []string{"nuget:net"},
+		},
+		{
+			Reason:    v4.DiffAdded,
+			ID:        "GHSA-....-....",
+			Namespace: "github:go",
+			Packages:  []string{"hashicorp:nomad", "hashicorp:n"},
+		},
+		{
+			Reason:    v4.DiffRemoved,
+			ID:        "GHSA-^^^^-^^^^^^",
+			Namespace: "hex",
+			Packages:  []string{"hex:esbuild"},
 		},
 	}
 
@@ -1356,6 +1400,10 @@ func Test_DiffStore(t *testing.T) {
 	result, err := s1.DiffStore(s2)
 
 	//THEN
+	sort.SliceStable(*result, func(i, j int) bool {
+		return (*result)[i].ID < (*result)[j].ID
+	})
+
 	assert.NoError(t, err)
 	assert.Equal(t, expectedDiffs, *result)
 }

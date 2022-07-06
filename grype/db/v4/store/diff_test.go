@@ -3,6 +3,7 @@ package store
 import (
 	"io/ioutil"
 	"os"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -77,14 +78,14 @@ func Test_Diff_Vulnerabilities(t *testing.T) {
 
 	baseVulns := []v4.Vulnerability{
 		{
-			Namespace:         "github:language:python",
+			Namespace:         "github:python",
 			ID:                "CVE-123-4567",
 			PackageName:       "pypi:requests",
 			VersionConstraint: "< 2.0 >= 1.29",
 			CPEs:              []string{"cpe:2.3:pypi:requests:*:*:*:*:*:*"},
 		},
 		{
-			Namespace:         "github:language:python",
+			Namespace:         "github:python",
 			ID:                "CVE-123-4567",
 			PackageName:       "pypi:requests",
 			VersionConstraint: "< 3.0 >= 2.17",
@@ -103,14 +104,14 @@ func Test_Diff_Vulnerabilities(t *testing.T) {
 	}
 	targetVulns := []v4.Vulnerability{
 		{
-			Namespace:         "github:language:python",
+			Namespace:         "github:python",
 			ID:                "CVE-123-4567",
 			PackageName:       "pypi:requests",
 			VersionConstraint: "< 2.0 >= 1.29",
 			CPEs:              []string{"cpe:2.3:pypi:requests:*:*:*:*:*:*"},
 		},
 		{
-			Namespace:         "github:language:go",
+			Namespace:         "github:go",
 			ID:                "GHSA-....-....",
 			PackageName:       "hashicorp:nomad",
 			VersionConstraint: "< 3.0 >= 2.17",
@@ -131,17 +132,20 @@ func Test_Diff_Vulnerabilities(t *testing.T) {
 		{
 			Reason:    v4.DiffAdded,
 			ID:        "GHSA-....-....",
-			Namespace: "github:language:go",
+			Namespace: "github:go",
+			Packages:  []string{"hashicorp:nomad"},
 		},
 		{
 			Reason:    v4.DiffChanged,
 			ID:        "CVE-123-7654",
 			Namespace: "npm",
+			Packages:  []string{"npm:axios"},
 		},
 		{
-			Reason:    v4.DiffRemoved,
+			Reason:    v4.DiffChanged,
 			ID:        "CVE-123-4567",
-			Namespace: "github:language:python",
+			Namespace: "github:python",
+			Packages:  []string{"pypi:requests"},
 		},
 	}
 
@@ -185,12 +189,12 @@ func Test_Diff_Metadata(t *testing.T) {
 
 	baseVulns := []v4.VulnerabilityMetadata{
 		{
-			Namespace:  "github:language:python",
+			Namespace:  "github:python",
 			ID:         "CVE-123-4567",
 			DataSource: "nvd",
 		},
 		{
-			Namespace:  "github:language:python",
+			Namespace:  "github:python",
 			ID:         "CVE-123-4567",
 			DataSource: "nvd",
 		},
@@ -202,7 +206,7 @@ func Test_Diff_Metadata(t *testing.T) {
 	}
 	targetVulns := []v4.VulnerabilityMetadata{
 		{
-			Namespace:  "github:language:go",
+			Namespace:  "github:go",
 			ID:         "GHSA-....-....",
 			DataSource: "nvd",
 		},
@@ -214,19 +218,22 @@ func Test_Diff_Metadata(t *testing.T) {
 	}
 	expectedDiffs := []v4.Diff{
 		{
-			Reason:    v4.DiffAdded,
-			ID:        "GHSA-....-....",
-			Namespace: "github:language:go",
+			Reason:    v4.DiffRemoved,
+			ID:        "CVE-123-4567",
+			Namespace: "github:python",
+			Packages:  []string{},
 		},
 		{
 			Reason:    v4.DiffChanged,
 			ID:        "CVE-123-7654",
 			Namespace: "npm",
+			Packages:  []string{},
 		},
 		{
-			Reason:    v4.DiffRemoved,
-			ID:        "CVE-123-4567",
-			Namespace: "github:language:python",
+			Reason:    v4.DiffAdded,
+			ID:        "GHSA-....-....",
+			Namespace: "github:go",
+			Packages:  []string{},
 		},
 	}
 
@@ -241,6 +248,10 @@ func Test_Diff_Metadata(t *testing.T) {
 	result, err := s1.DiffStore(s2)
 
 	//THEN
+	sort.SliceStable(*result, func(i, j int) bool {
+		return (*result)[i].ID < (*result)[j].ID
+	})
+
 	assert.NoError(t, err)
 	assert.Equal(t, expectedDiffs, *result)
 }

@@ -13,7 +13,7 @@ import (
 	"github.com/wagoodman/go-progress"
 
 	"github.com/anchore/grype/grype/db"
-	v3 "github.com/anchore/grype/grype/db/v3"
+	v4 "github.com/anchore/grype/grype/db/v4"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/internal/bus"
 )
@@ -57,7 +57,7 @@ func (d *Differ) DownloadDatabases(baseURL, targetURL *url.URL) error {
 	}
 
 	listings := listing.Available
-	dbs := listings[v3.SchemaVersion]
+	dbs := listings[v4.SchemaVersion]
 
 	var baseListing *db.ListingEntry
 	var targetListing *db.ListingEntry
@@ -117,7 +117,7 @@ func download(curator *db.Curator, listing *db.ListingEntry) error {
 	return curator.UpdateTo(listing, downloadProgress, importProgress, stage)
 }
 
-func (d *Differ) DiffDatabases() (*[]v3.Diff, error) {
+func (d *Differ) DiffDatabases() (*[]v4.Diff, error) {
 	baseStore, err := d.baseCurator.GetStore()
 	if err != nil {
 		return nil, err
@@ -141,7 +141,7 @@ func (d *Differ) DeleteDatabases() error {
 	return nil
 }
 
-func (d *Differ) Present(outputFormat string, diff *[]v3.Diff, output io.Writer) error {
+func (d *Differ) Present(outputFormat string, diff *[]v4.Diff, output io.Writer) error {
 	if diff == nil {
 		return nil
 	}
