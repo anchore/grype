@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"os"
 	"path"
 
 	"github.com/olekukonko/tablewriter"
@@ -153,7 +152,7 @@ func (d *Differ) Present(outputFormat string, diff *[]v4.Diff, output io.Writer)
 			rows = append(rows, []string{d.ID, d.Namespace, d.Reason})
 		}
 
-		table := tablewriter.NewWriter(os.Stdout)
+		table := tablewriter.NewWriter(output)
 		columns := []string{"ID", "Namespace", "Reason"}
 
 		table.SetHeader(columns)
@@ -173,7 +172,7 @@ func (d *Differ) Present(outputFormat string, diff *[]v4.Diff, output io.Writer)
 		table.AppendBulk(rows)
 		table.Render()
 	case "json":
-		enc := json.NewEncoder(os.Stdout)
+		enc := json.NewEncoder(output)
 		enc.SetEscapeHTML(false)
 		enc.SetIndent("", " ")
 		if err := enc.Encode(*diff); err != nil {
