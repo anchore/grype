@@ -6,6 +6,7 @@ import (
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
 
+	diffEvents "github.com/anchore/grype/grype/differ/events"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/presenter"
@@ -99,4 +100,17 @@ func ParseNonRootCommandFinished(e partybus.Event) (*string, error) {
 	}
 
 	return &result, nil
+}
+
+func ParseDatabaseDiffingStarted(e partybus.Event) (*diffEvents.Monitor, error) {
+	if err := checkEventType(e.Type, event.DatabaseDiffingStarted); err != nil {
+		return nil, err
+	}
+
+	monitor, ok := e.Value.(diffEvents.Monitor)
+	if !ok {
+		return nil, newPayloadErr(e.Type, "Value", e.Value)
+	}
+
+	return &monitor, nil
 }

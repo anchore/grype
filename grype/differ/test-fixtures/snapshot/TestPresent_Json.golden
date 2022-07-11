@@ -1,0 +1,25 @@
+[
+ {
+  "reason": "added",
+  "id": "CVE-1",
+  "namespace": "nvd",
+  "packages": [
+   "requests",
+   "vault"
+  ]
+ },
+ {
+  "reason": "removed",
+  "id": "CVE-2",
+  "namespace": "nvd",
+  "packages": [
+   "k8s"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-3",
+  "namespace": "nvd",
+  "packages": []
+ }
+]

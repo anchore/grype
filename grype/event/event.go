@@ -10,4 +10,5 @@ const (
 	AttestationVerified            partybus.EventType = "grype-attestation-signature-passed"
 	AttestationVerificationSkipped partybus.EventType = "grype-attestation-verification-skipped"
 	NonRootCommandFinished         partybus.EventType = "grype-non-root-command-finished"
+	DatabaseDiffingStarted         partybus.EventType = "grype-database-diffing-started"
 )

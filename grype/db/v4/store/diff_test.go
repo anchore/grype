@@ -3,6 +3,7 @@ package store
 import (
 	"io/ioutil"
 	"os"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -129,19 +130,22 @@ func Test_Diff_Vulnerabilities(t *testing.T) {
 	}
 	expectedDiffs := []v4.Diff{
 		{
-			Reason:    v4.DiffAdded,
-			ID:        "GHSA-....-....",
-			Namespace: "github:language:go",
+			Reason:    v4.DiffChanged,
+			ID:        "CVE-123-4567",
+			Namespace: "github:language:python",
+			Packages:  []string{"pypi:requests"},
 		},
 		{
 			Reason:    v4.DiffChanged,
 			ID:        "CVE-123-7654",
 			Namespace: "npm",
+			Packages:  []string{"npm:axios"},
 		},
 		{
-			Reason:    v4.DiffRemoved,
-			ID:        "CVE-123-4567",
-			Namespace: "github:language:python",
+			Reason:    v4.DiffAdded,
+			ID:        "GHSA-....-....",
+			Namespace: "github:language:go",
+			Packages:  []string{"hashicorp:nomad"},
 		},
 	}
 
@@ -154,6 +158,9 @@ func Test_Diff_Vulnerabilities(t *testing.T) {
 
 	//WHEN
 	result, err := s1.DiffStore(s2)
+	sort.SliceStable(*result, func(i, j int) bool {
+		return (*result)[i].ID < (*result)[j].ID
+	})
 
 	//THEN
 	assert.NoError(t, err)
@@ -214,19 +221,22 @@ func Test_Diff_Metadata(t *testing.T) {
 	}
 	expectedDiffs := []v4.Diff{
 		{
-			Reason:    v4.DiffAdded,
-			ID:        "GHSA-....-....",
-			Namespace: "github:language:go",
+			Reason:    v4.DiffRemoved,
+			ID:        "CVE-123-4567",
+			Namespace: "github:language:python",
+			Packages:  []string{},
 		},
 		{
 			Reason:    v4.DiffChanged,
 			ID:        "CVE-123-7654",
 			Namespace: "npm",
+			Packages:  []string{},
 		},
 		{
-			Reason:    v4.DiffRemoved,
-			ID:        "CVE-123-4567",
-			Namespace: "github:language:python",
+			Reason:    v4.DiffAdded,
+			ID:        "GHSA-....-....",
+			Namespace: "github:language:go",
+			Packages:  []string{},
 		},
 	}
 
@@ -241,6 +251,10 @@ func Test_Diff_Metadata(t *testing.T) {
 	result, err := s1.DiffStore(s2)
 
 	//THEN
+	sort.SliceStable(*result, func(i, j int) bool {
+		return (*result)[i].ID < (*result)[j].ID
+	})
+
 	assert.NoError(t, err)
 	assert.Equal(t, expectedDiffs, *result)
 }

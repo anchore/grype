@@ -26,7 +26,8 @@ func (r *Handler) RespondsTo(event partybus.Event) bool {
 	case grypeEvent.VulnerabilityScanningStarted,
 		grypeEvent.UpdateVulnerabilityDatabase,
 		grypeEvent.AttestationVerified,
-		grypeEvent.AttestationVerificationSkipped:
+		grypeEvent.AttestationVerificationSkipped,
+		grypeEvent.DatabaseDiffingStarted:
 		return true
 	default:
 		return r.syftHandler.RespondsTo(event)
@@ -43,6 +44,8 @@ func (r *Handler) Handle(ctx context.Context, fr *frame.Frame, event partybus.Ev
 		return r.VerifyAttestationSignature(ctx, fr, event, wg)
 	case grypeEvent.AttestationVerificationSkipped:
 		return r.SkippedAttestationVerification(ctx, fr, event, wg)
+	case grypeEvent.DatabaseDiffingStarted:
+		return r.DatabaseDiffingStartedHandler(ctx, fr, event, wg)
 	default:
 		return r.syftHandler.Handle(ctx, fr, event, wg)
 	}
