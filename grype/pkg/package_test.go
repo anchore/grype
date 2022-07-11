@@ -299,6 +299,28 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "cocoapods cocoapods-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.CocoapodsMetadataType,
+				Metadata: syftPkg.CocoapodsMetadata{
+					Name:    "name",
+					Version: "version",
+					PkgHash: "123eere234",
+				},
+			},
+		},
+		{
+			name: "portage portage-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.PortageMetadataType,
+				Metadata: syftPkg.PortageMetadata{
+					Package:       "portage-testing",
+					Version:       "v0.0.1",
+					InstalledSize: 0,
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
