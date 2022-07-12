@@ -10,6 +10,25 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
+type mockExclusionProvider struct {
+	data map[string][]IgnoreRule
+}
+
+func newMockExclusionProvider() *mockExclusionProvider {
+	d := mockExclusionProvider{
+		data: make(map[string][]IgnoreRule),
+	}
+	d.stub()
+	return &d
+}
+
+func (d *mockExclusionProvider) stub() {
+}
+
+func (d *mockExclusionProvider) GetRules(vulnerabilityID string) ([]IgnoreRule, error) {
+	return d.data[vulnerabilityID], nil
+}
+
 func Test_ApplyExplicitIgnoreRules(t *testing.T) {
 	type cvePkg struct {
 		cve string
@@ -62,6 +81,8 @@ func Test_ApplyExplicitIgnoreRules(t *testing.T) {
 		},
 	}
 
+	p := newMockExclusionProvider()
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			matches := NewMatches()
@@ -80,7 +101,7 @@ func Test_ApplyExplicitIgnoreRules(t *testing.T) {
 				})
 			}
 
-			filtered := ApplyExplicitIgnoreRules(matches)
+			filtered := ApplyExplicitIgnoreRules(p, matches)
 
 			var found []string
 			for match := range filtered.Enumerate() {

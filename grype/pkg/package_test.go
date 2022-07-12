@@ -290,6 +290,27 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
+			name: "cpp conan-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.ConanaMetadataType,
+				Metadata: syftPkg.ConanMetadata{
+					Name:    "name",
+					Version: "version",
+				},
+			},
+		},
+		{
+			name: "cocoapods cocoapods-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.CocoapodsMetadataType,
+				Metadata: syftPkg.CocoapodsMetadata{
+					Name:    "name",
+					Version: "version",
+					PkgHash: "123eere234",
+				},
+			},
+		},
+		{
 			name: "portage-metadata",
 			syftPkg: syftPkg.Package{
 				MetadataType: syftPkg.PortageMetadataType,

@@ -81,7 +81,10 @@ func newMatcherIndex(matchers []Matcher) map[syftPkg.Type][]Matcher {
 	return matcherIndex
 }
 
-func FindMatches(provider vulnerability.Provider, release *linux.Release, matchers []Matcher, packages []pkg.Package) match.Matches {
+func FindMatches(store interface {
+	vulnerability.Provider
+	match.ExclusionProvider
+}, release *linux.Release, matchers []Matcher, packages []pkg.Package) match.Matches {
 	var err error
 	res := match.NewMatches()
 	matcherIndex := newMatcherIndex(matchers)
@@ -106,7 +109,7 @@ func FindMatches(provider vulnerability.Provider, release *linux.Release, matche
 			matchers = []Matcher{defaultMatcher}
 		}
 		for _, m := range matchers {
-			matches, err := m.Match(provider, d, p)
+			matches, err := m.Match(store, d, p)
 			if err != nil {
 				log.Warnf("matcher failed for pkg=%s: %+v", p, err)
 			} else {
@@ -120,7 +123,8 @@ func FindMatches(provider vulnerability.Provider, release *linux.Release, matche
 	packagesProcessed.SetCompleted()
 	vulnerabilitiesDiscovered.SetCompleted()
 
-	res = match.ApplyExplicitIgnoreRules(res)
+	// Filter out matches based off of the records in the exclusion table in the database or from the old hard-coded rules
+	res = match.ApplyExplicitIgnoreRules(store, res)
 
 	return res
 }

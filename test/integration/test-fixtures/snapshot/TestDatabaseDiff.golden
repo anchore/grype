@@ -1,0 +1,5675 @@
+[
+ {
+  "reason": "changed",
+  "id": "CVE-2015-20107",
+  "namespace": "sles:distro:sles:12.2",
+  "packages": [
+   "libpython2_7-1_0",
+   "libpython2_7-1_0-32bit",
+   "libpython3_4m1_0",
+   "python",
+   "python-32bit",
+   "python-base",
+   "python-base-32bit",
+   "python-curses",
+   "python-demo",
+   "python-doc",
+   "python-doc-pdf",
+   "python-gdbm",
+   "python-idle",
+   "python-tk",
+   "python-xml",
+   "python3",
+   "python3-base",
+   "python3-curses"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-20107",
+  "namespace": "sles:distro:sles:12.3",
+  "packages": [
+   "libpython2_7-1_0",
+   "libpython2_7-1_0-32bit",
+   "libpython3_4m1_0",
+   "libpython3_6m1_0",
+   "python",
+   "python-32bit",
+   "python-base",
+   "python-base-32bit",
+   "python-curses",
+   "python-demo",
+   "python-devel",
+   "python-doc",
+   "python-doc-pdf",
+   "python-gdbm",
+   "python-idle",
+   "python-tk",
+   "python-xml",
+   "python3",
+   "python3-base",
+   "python3-curses",
+   "python3-devel",
+   "python36",
+   "python36-base",
+   "python36-curses",
+   "python36-dbm",
+   "python36-devel",
+   "python36-idle",
+   "python36-testsuite",
+   "python36-tk",
+   "python36-tools"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-20107",
+  "namespace": "sles:distro:sles:12.4",
+  "packages": [
+   "libpython2_7-1_0",
+   "libpython2_7-1_0-32bit",
+   "libpython3_4m1_0",
+   "python",
+   "python-32bit",
+   "python-base",
+   "python-base-32bit",
+   "python-curses",
+   "python-demo",
+   "python-devel",
+   "python-doc",
+   "python-doc-pdf",
+   "python-gdbm",
+   "python-idle",
+   "python-tk",
+   "python-xml",
+   "python3",
+   "python3-base",
+   "python3-curses",
+   "python3-devel"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-20107",
+  "namespace": "sles:distro:sles:12.5",
+  "packages": [
+   "libpython2_7-1_0",
+   "libpython2_7-1_0-32bit",
+   "libpython3_4m1_0",
+   "libpython3_4m1_0-32bit",
+   "libpython3_6m1_0",
+   "libpython3_6m1_0-32bit",
+   "python",
+   "python-32bit",
+   "python-base",
+   "python-base-32bit",
+   "python-curses",
+   "python-demo",
+   "python-devel",
+   "python-doc",
+   "python-doc-pdf",
+   "python-gdbm",
+   "python-idle",
+   "python-tk",
+   "python-xml",
+   "python3",
+   "python3-base",
+   "python3-curses",
+   "python3-devel",
+   "python3-tk",
+   "python36",
+   "python36-base"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2708",
+  "namespace": "sles:distro:sles:12",
+  "packages": [
+   "mozillafirefox",
+   "mozillafirefox-translations"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2708",
+  "namespace": "sles:distro:sles:12.1",
+  "packages": [
+   "mozillafirefox",
+   "mozillafirefox-translations"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2708",
+  "namespace": "sles:distro:sles:12.2",
+  "packages": [
+   "mozillafirefox",
+   "mozillafirefox-translations"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2708",
+  "namespace": "sles:distro:sles:12.3",
+  "packages": [
+   "mozillafirefox",
+   "mozillafirefox-translations"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2708",
+  "namespace": "sles:distro:sles:12.4",
+  "packages": [
+   "mozillafirefox",
+   "mozillafirefox-translations"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2708",
+  "namespace": "sles:distro:sles:12.5",
+  "packages": [
+   "mozillafirefox",
+   "mozillafirefox-translations-common"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2708",
+  "namespace": "sles:distro:sles:15",
+  "packages": [
+   "mozillathunderbird",
+   "mozillathunderbird-devel",
+   "mozillathunderbird-translations-common",
+   "mozillathunderbird-translations-other"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2708",
+  "namespace": "sles:distro:sles:15.1",
+  "packages": [
+   "mozillathunderbird",
+   "mozillathunderbird-translations-common",
+   "mozillathunderbird-translations-other"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2708",
+  "namespace": "sles:distro:sles:15.2",
+  "packages": [
+   "mozillathunderbird",
+   "mozillathunderbird-translations-common",
+   "mozillathunderbird-translations-other"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2708",
+  "namespace": "sles:distro:sles:15.3",
+  "packages": [
+   "mozillathunderbird",
+   "mozillathunderbird-translations-common",
+   "mozillathunderbird-translations-other"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2708",
+  "namespace": "sles:distro:sles:15.4",
+  "packages": [
+   "mozillathunderbird",
+   "mozillathunderbird-translations-common",
+   "mozillathunderbird-translations-other"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2710",
+  "namespace": "sles:distro:sles:12",
+  "packages": [
+   "mozillafirefox",
+   "mozillafirefox-translations"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2710",
+  "namespace": "sles:distro:sles:12.1",
+  "packages": [
+   "mozillafirefox",
+   "mozillafirefox-translations"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2710",
+  "namespace": "sles:distro:sles:12.2",
+  "packages": [
+   "mozillafirefox",
+   "mozillafirefox-translations"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2710",
+  "namespace": "sles:distro:sles:12.3",
+  "packages": [
+   "mozillafirefox",
+   "mozillafirefox-translations"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2710",
+  "namespace": "sles:distro:sles:12.4",
+  "packages": [
+   "mozillafirefox",
+   "mozillafirefox-translations"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2710",
+  "namespace": "sles:distro:sles:12.5",
+  "packages": [
+   "mozillafirefox",
+   "mozillafirefox-translations-common"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2710",
+  "namespace": "sles:distro:sles:15",
+  "packages": [
+   "mozillathunderbird",
+   "mozillathunderbird-devel",
+   "mozillathunderbird-translations-common",
+   "mozillathunderbird-translations-other"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2710",
+  "namespace": "sles:distro:sles:15.1",
+  "packages": [
+   "mozillathunderbird",
+   "mozillathunderbird-translations-common",
+   "mozillathunderbird-translations-other"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2710",
+  "namespace": "sles:distro:sles:15.2",
+  "packages": [
+   "mozillathunderbird",
+   "mozillathunderbird-translations-common",
+   "mozillathunderbird-translations-other"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2710",
+  "namespace": "sles:distro:sles:15.3",
+  "packages": [
+   "mozillathunderbird",
+   "mozillathunderbird-translations-common",
+   "mozillathunderbird-translations-other"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2710",
+  "namespace": "sles:distro:sles:15.4",
+  "packages": [
+   "mozillathunderbird",
+   "mozillathunderbird-translations-common",
+   "mozillathunderbird-translations-other"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2713",
+  "namespace": "sles:distro:sles:12",
+  "packages": [
+   "mozillafirefox",
+   "mozillafirefox-translations"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2713",
+  "namespace": "sles:distro:sles:12.1",
+  "packages": [
+   "mozillafirefox",
+   "mozillafirefox-translations"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2713",
+  "namespace": "sles:distro:sles:12.2",
+  "packages": [
+   "mozillafirefox",
+   "mozillafirefox-translations"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2713",
+  "namespace": "sles:distro:sles:12.3",
+  "packages": [
+   "mozillafirefox",
+   "mozillafirefox-translations"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2713",
+  "namespace": "sles:distro:sles:12.4",
+  "packages": [
+   "mozillafirefox",
+   "mozillafirefox-translations"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2713",
+  "namespace": "sles:distro:sles:12.5",
+  "packages": [
+   "mozillafirefox",
+   "mozillafirefox-translations-common"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2713",
+  "namespace": "sles:distro:sles:15",
+  "packages": [
+   "mozillathunderbird",
+   "mozillathunderbird-devel",
+   "mozillathunderbird-translations-common",
+   "mozillathunderbird-translations-other"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2713",
+  "namespace": "sles:distro:sles:15.1",
+  "packages": [
+   "mozillathunderbird",
+   "mozillathunderbird-translations-common",
+   "mozillathunderbird-translations-other"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2713",
+  "namespace": "sles:distro:sles:15.2",
+  "packages": [
+   "mozillathunderbird",
+   "mozillathunderbird-translations-common",
+   "mozillathunderbird-translations-other"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2713",
+  "namespace": "sles:distro:sles:15.3",
+  "packages": [
+   "mozillathunderbird",
+   "mozillathunderbird-translations-common",
+   "mozillathunderbird-translations-other"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2015-2713",
+  "namespace": "sles:distro:sles:15.4",
+  "packages": [
+   "mozillathunderbird",
+   "mozillathunderbird-translations-common",
+   "mozillathunderbird-translations-other"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2015-5191",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2016-10345",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2016-3710",
+  "namespace": "redhat:distro:redhat:7",
+  "packages": [
+   "qemu-kvm",
+   "qemu-kvm-rhev"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2017-15131",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": []
+ },
+ {
+  "reason": "removed",
+  "id": "CVE-2018-1000022",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "electrum"
+  ]
+ },
+ {
+  "reason": "removed",
+  "id": "CVE-2018-6353",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "electrum"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2019-17540",
+  "namespace": "sles:distro:sles:15.3",
+  "packages": [
+   "imagemagick",
+   "imagemagick-config-7-suse",
+   "imagemagick-config-7-upstream",
+   "imagemagick-devel",
+   "libmagick++-7_q16hdri4",
+   "libmagick++-devel",
+   "libmagickcore-7_q16hdri6",
+   "libmagickwand-7_q16hdri6"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2019-19725",
+  "namespace": "sles:distro:sles:12.2",
+  "packages": [
+   "sysstat",
+   "sysstat-isag"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20005",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20005",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20005",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20005",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20006",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20006",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20006",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20006",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20007",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20007",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20007",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20007",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2019-20044",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20198",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20198",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20198",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20198",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20199",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20199",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20199",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20199",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20200",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20200",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20200",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20200",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20201",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20201",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20201",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20201",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20202",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20202",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20202",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2019-20202",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "removed",
+  "id": "CVE-2019-25067",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "container-tools:rhel8/podman"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2020-10713",
+  "namespace": "redhat:distro:redhat:7",
+  "packages": [
+   "dbxtool",
+   "fwupdate",
+   "grub2",
+   "shim",
+   "shim-signed"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2020-10713",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "dbxtool",
+   "fwupd",
+   "fwupdate",
+   "grub2",
+   "shim",
+   "shim-unsigned-x64"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2020-9850",
+  "namespace": "redhat:distro:redhat:7",
+  "packages": [
+   "webkitgtk3",
+   "webkitgtk4"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2020-9850",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "webkit2gtk3"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2021-20193",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-22555",
+  "namespace": "redhat:distro:redhat:7",
+  "packages": [
+   "kernel",
+   "kernel-alt",
+   "kernel-rt"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-24485",
+  "namespace": "nvd:cpe",
+  "packages": [
+   "wp-special-textboxes"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2021-25056",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2021-25066",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-25121",
+  "namespace": "nvd:cpe",
+  "packages": [
+   "rating"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-26220",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-26220",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-26220",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-26220",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-26221",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-26221",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-26221",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-26221",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-26222",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-26222",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-26222",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-26222",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-28544",
+  "namespace": "redhat:distro:redhat:6",
+  "packages": [
+   "subversion"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-28544",
+  "namespace": "redhat:distro:redhat:7",
+  "packages": [
+   "subversion"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-28544",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "subversion:1.10/subversion",
+   "subversion:1.14/subversion"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-28544",
+  "namespace": "redhat:distro:redhat:9",
+  "packages": [
+   "subversion"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-30485",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-30485",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-30485",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-30485",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-31229",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-31229",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-31229",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-31229",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-31347",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-31347",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-31347",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-31347",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-31348",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-31348",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-31348",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-31348",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-31598",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-31598",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-31598",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-31598",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-33430",
+  "namespace": "sles:distro:sles:12.2",
+  "packages": [
+   "python-numpy_1_13_3-gnu-hpc",
+   "python-numpy_1_13_3-gnu-hpc-devel",
+   "python2-numpy-gnu-hpc",
+   "python2-numpy-gnu-hpc-devel",
+   "python3-numpy-gnu-hpc",
+   "python3-numpy-gnu-hpc-devel",
+   "python3-numpy_1_13_3-gnu-hpc",
+   "python3-numpy_1_13_3-gnu-hpc-devel"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-33430",
+  "namespace": "sles:distro:sles:12.3",
+  "packages": [
+   "python-numpy_1_13_3-gnu-hpc",
+   "python-numpy_1_13_3-gnu-hpc-devel",
+   "python2-numpy-gnu-hpc",
+   "python2-numpy-gnu-hpc-devel",
+   "python3-numpy-gnu-hpc",
+   "python3-numpy-gnu-hpc-devel",
+   "python3-numpy_1_13_3-gnu-hpc",
+   "python3-numpy_1_13_3-gnu-hpc-devel"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-33430",
+  "namespace": "sles:distro:sles:12.4",
+  "packages": [
+   "python-numpy_1_13_3-gnu-hpc",
+   "python-numpy_1_13_3-gnu-hpc-devel",
+   "python2-numpy-gnu-hpc",
+   "python2-numpy-gnu-hpc-devel",
+   "python3-numpy-gnu-hpc",
+   "python3-numpy-gnu-hpc-devel",
+   "python3-numpy_1_13_3-gnu-hpc",
+   "python3-numpy_1_13_3-gnu-hpc-devel"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-33430",
+  "namespace": "sles:distro:sles:12.5",
+  "packages": [
+   "python-numpy_1_13_3-gnu-hpc",
+   "python-numpy_1_13_3-gnu-hpc-devel",
+   "python2-numpy-gnu-hpc",
+   "python2-numpy-gnu-hpc-devel",
+   "python3-numpy-gnu-hpc",
+   "python3-numpy-gnu-hpc-devel",
+   "python3-numpy_1_13_3-gnu-hpc",
+   "python3-numpy_1_13_3-gnu-hpc-devel"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-33430",
+  "namespace": "sles:distro:sles:15.3",
+  "packages": [
+   "python2-numpy",
+   "python2-numpy-devel"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-33430",
+  "namespace": "sles:distro:sles:15.4",
+  "packages": [
+   "python3-numpy",
+   "python3-numpy-devel"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-3600",
+  "namespace": "redhat:distro:redhat:7",
+  "packages": [
+   "kernel",
+   "kernel-alt",
+   "kernel-rt"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-3697",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "grub2"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-3697",
+  "namespace": "redhat:distro:redhat:9",
+  "packages": [
+   "grub2"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-38199",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "kernel",
+   "kernel-rt"
+  ]
+ },
+ {
+  "reason": "removed",
+  "id": "CVE-2021-39802",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": [
+   "linux",
+   "linux-aws",
+   "linux-aws-5.4",
+   "linux-azure-4.15",
+   "linux-azure-5.4",
+   "linux-dell300x",
+   "linux-gcp-4.15",
+   "linux-gcp-5.4",
+   "linux-gke-5.4",
+   "linux-gkeop-5.4",
+   "linux-hwe-5.4",
+   "linux-ibm-5.4",
+   "linux-kvm",
+   "linux-oracle",
+   "linux-oracle-5.4",
+   "linux-raspi-5.4",
+   "linux-raspi2",
+   "linux-snapdragon"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-39802",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "linux",
+   "linux-aws",
+   "linux-aws-5.13",
+   "linux-azure",
+   "linux-azure-5.13",
+   "linux-azure-fde",
+   "linux-bluefield",
+   "linux-gcp",
+   "linux-gcp-5.13",
+   "linux-gke",
+   "linux-gkeop",
+   "linux-hwe-5.13",
+   "linux-ibm",
+   "linux-intel-iotg-5.15",
+   "linux-kvm",
+   "linux-oem-5.14",
+   "linux-oracle",
+   "linux-oracle-5.13",
+   "linux-raspi"
+  ]
+ },
+ {
+  "reason": "removed",
+  "id": "CVE-2021-39802",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "linux",
+   "linux-aws",
+   "linux-azure",
+   "linux-gcp",
+   "linux-kvm",
+   "linux-oracle",
+   "linux-raspi",
+   "linux-riscv"
+  ]
+ },
+ {
+  "reason": "removed",
+  "id": "CVE-2021-39802",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "linux",
+   "linux-aws",
+   "linux-azure",
+   "linux-gcp",
+   "linux-gke",
+   "linux-ibm",
+   "linux-intel-iotg",
+   "linux-kvm",
+   "linux-lowlatency",
+   "linux-oem-5.17",
+   "linux-oracle",
+   "linux-raspi",
+   "linux-riscv"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-4197",
+  "namespace": "nvd:cpe",
+  "packages": [
+   "linux_kernel"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2021-4206",
+  "namespace": "sles:distro:sles:15.3",
+  "packages": [
+   "qemu",
+   "qemu-arm",
+   "qemu-audio-alsa",
+   "qemu-audio-pa",
+   "qemu-audio-spice",
+   "qemu-block-curl",
+   "qemu-block-iscsi",
+   "qemu-block-rbd",
+   "qemu-block-ssh",
+   "qemu-chardev-baum",
+   "qemu-chardev-spice",
+   "qemu-guest-agent",
+   "qemu-hw-display-qxl",
+   "qemu-hw-display-virtio-gpu",
+   "qemu-hw-display-virtio-gpu-pci",
+   "qemu-hw-display-virtio-vga",
+   "qemu-hw-s390x-virtio-gpu-ccw",
+   "qemu-hw-usb-redirect",
+   "qemu-ipxe",
+   "qemu-ksm",
+   "qemu-kvm",
+   "qemu-lang",
+   "qemu-ppc",
+   "qemu-s390x",
+   "qemu-seabios",
+   "qemu-sgabios",
+   "qemu-skiboot",
+   "qemu-slof",
+   "qemu-ui-curses",
+   "qemu-ui-gtk",
+   "qemu-ui-opengl",
+   "qemu-ui-spice-app",
+   "qemu-ui-spice-core",
+   "qemu-vgabios",
+   "qemu-x86"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2021-4206",
+  "namespace": "sles:distro:sles:15.4",
+  "packages": [
+   "qemu",
+   "qemu-accel-tcg-x86",
+   "qemu-arm",
+   "qemu-audio-alsa",
+   "qemu-audio-pa",
+   "qemu-audio-spice",
+   "qemu-block-curl",
+   "qemu-block-iscsi",
+   "qemu-block-rbd",
+   "qemu-block-ssh",
+   "qemu-chardev-baum",
+   "qemu-chardev-spice",
+   "qemu-guest-agent",
+   "qemu-hw-display-qxl",
+   "qemu-hw-display-virtio-gpu",
+   "qemu-hw-display-virtio-gpu-pci",
+   "qemu-hw-display-virtio-vga",
+   "qemu-hw-s390x-virtio-gpu-ccw",
+   "qemu-hw-usb-host",
+   "qemu-hw-usb-redirect",
+   "qemu-ipxe",
+   "qemu-ksm",
+   "qemu-kvm",
+   "qemu-lang",
+   "qemu-ppc",
+   "qemu-s390x",
+   "qemu-seabios",
+   "qemu-sgabios",
+   "qemu-skiboot",
+   "qemu-slof",
+   "qemu-ui-curses",
+   "qemu-ui-gtk",
+   "qemu-ui-opengl",
+   "qemu-ui-spice-app",
+   "qemu-ui-spice-core",
+   "qemu-vgabios",
+   "qemu-x86"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2021-4207",
+  "namespace": "sles:distro:sles:15.3",
+  "packages": [
+   "qemu",
+   "qemu-arm",
+   "qemu-audio-alsa",
+   "qemu-audio-pa",
+   "qemu-audio-spice",
+   "qemu-block-curl",
+   "qemu-block-iscsi",
+   "qemu-block-rbd",
+   "qemu-block-ssh",
+   "qemu-chardev-baum",
+   "qemu-chardev-spice",
+   "qemu-guest-agent",
+   "qemu-hw-display-qxl",
+   "qemu-hw-display-virtio-gpu",
+   "qemu-hw-display-virtio-gpu-pci",
+   "qemu-hw-display-virtio-vga",
+   "qemu-hw-s390x-virtio-gpu-ccw",
+   "qemu-hw-usb-redirect",
+   "qemu-ipxe",
+   "qemu-ksm",
+   "qemu-kvm",
+   "qemu-lang",
+   "qemu-ppc",
+   "qemu-s390x",
+   "qemu-seabios",
+   "qemu-sgabios",
+   "qemu-skiboot",
+   "qemu-slof",
+   "qemu-ui-curses",
+   "qemu-ui-gtk",
+   "qemu-ui-opengl",
+   "qemu-ui-spice-app",
+   "qemu-ui-spice-core",
+   "qemu-vgabios",
+   "qemu-x86"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2021-4207",
+  "namespace": "sles:distro:sles:15.4",
+  "packages": [
+   "qemu",
+   "qemu-accel-tcg-x86",
+   "qemu-arm",
+   "qemu-audio-alsa",
+   "qemu-audio-pa",
+   "qemu-audio-spice",
+   "qemu-block-curl",
+   "qemu-block-iscsi",
+   "qemu-block-rbd",
+   "qemu-block-ssh",
+   "qemu-chardev-baum",
+   "qemu-chardev-spice",
+   "qemu-guest-agent",
+   "qemu-hw-display-qxl",
+   "qemu-hw-display-virtio-gpu",
+   "qemu-hw-display-virtio-gpu-pci",
+   "qemu-hw-display-virtio-vga",
+   "qemu-hw-s390x-virtio-gpu-ccw",
+   "qemu-hw-usb-host",
+   "qemu-hw-usb-redirect",
+   "qemu-ipxe",
+   "qemu-ksm",
+   "qemu-kvm",
+   "qemu-lang",
+   "qemu-ppc",
+   "qemu-s390x",
+   "qemu-seabios",
+   "qemu-sgabios",
+   "qemu-skiboot",
+   "qemu-slof",
+   "qemu-ui-curses",
+   "qemu-ui-gtk",
+   "qemu-ui-opengl",
+   "qemu-ui-spice-app",
+   "qemu-ui-spice-core",
+   "qemu-vgabios",
+   "qemu-x86"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-42700",
+  "namespace": "redhat:distro:redhat:6",
+  "packages": [
+   "inkscape"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-42700",
+  "namespace": "redhat:distro:redhat:7",
+  "packages": [
+   "inkscape"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-42700",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "inkscape:0.92.3/inkscape",
+   "inkscape:flatpak/inkscape"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-42700",
+  "namespace": "redhat:distro:redhat:9",
+  "packages": [
+   "inkscape",
+   "inkscape:flatpak/inkscape"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-42702",
+  "namespace": "redhat:distro:redhat:6",
+  "packages": [
+   "inkscape"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-42702",
+  "namespace": "redhat:distro:redhat:7",
+  "packages": [
+   "inkscape"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-42702",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "inkscape:0.92.3/inkscape",
+   "inkscape:flatpak/inkscape"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-42702",
+  "namespace": "redhat:distro:redhat:9",
+  "packages": [
+   "inkscape",
+   "inkscape:flatpak/inkscape"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-42704",
+  "namespace": "redhat:distro:redhat:6",
+  "packages": [
+   "inkscape"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-42704",
+  "namespace": "redhat:distro:redhat:7",
+  "packages": [
+   "inkscape"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-42704",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "inkscape:0.92.3/inkscape",
+   "inkscape:flatpak/inkscape"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-42704",
+  "namespace": "redhat:distro:redhat:9",
+  "packages": [
+   "inkscape",
+   "inkscape:flatpak/inkscape"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-44269",
+  "namespace": "nvd:cpe",
+  "packages": [
+   "wavpack"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-44568",
+  "namespace": "redhat:distro:redhat:7",
+  "packages": [
+   "libsolv"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-44568",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "libsolv"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-44568",
+  "namespace": "redhat:distro:redhat:9",
+  "packages": [
+   "libsolv"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-44906",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "nodejs:12/nodejs",
+   "nodejs:12/nodejs-nodemon"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-44906",
+  "namespace": "redhat:distro:redhat:9",
+  "packages": [
+   "nodejs",
+   "nodejs-nodemon"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-44917",
+  "namespace": "nvd:cpe",
+  "packages": [
+   "gnuplot"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2021-45444",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2021-46822",
+  "namespace": "redhat:distro:redhat:6",
+  "packages": [
+   "libjpeg-turbo"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2021-46822",
+  "namespace": "redhat:distro:redhat:7",
+  "packages": [
+   "libjpeg-turbo"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2021-46822",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "libjpeg-turbo"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2021-46822",
+  "namespace": "redhat:distro:redhat:9",
+  "packages": [
+   "libjpeg-turbo"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-0085",
+  "namespace": "debian:distro:debian:10",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-0085",
+  "namespace": "debian:distro:debian:11",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-0085",
+  "namespace": "debian:distro:debian:12",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-0085",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-0250",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-0330",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "linux-gkeop"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-0494",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "removed",
+  "id": "CVE-2022-0812",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "kernel",
+   "kernel-rt"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-0854",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-1011",
+  "namespace": "nvd:cpe",
+  "packages": [
+   "hci_baseboard_management_controller"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-1048",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-1116",
+  "namespace": "sles:distro:sles:15.3",
+  "packages": [
+   "kernel-livepatch-5_3_18-150300_59_43-default",
+   "kernel-livepatch-5_3_18-150300_59_46-default",
+   "kernel-livepatch-5_3_18-150300_59_49-default",
+   "kernel-livepatch-5_3_18-150300_59_54-default",
+   "kernel-livepatch-5_3_18-150300_59_60-default",
+   "kernel-livepatch-5_3_18-150300_59_63-default",
+   "kernel-livepatch-5_3_18-150300_59_68-default",
+   "kernel-livepatch-5_3_18-150300_59_71-default",
+   "kernel-livepatch-5_3_18-57-default",
+   "kernel-livepatch-5_3_18-59_10-default",
+   "kernel-livepatch-5_3_18-59_13-default",
+   "kernel-livepatch-5_3_18-59_16-default",
+   "kernel-livepatch-5_3_18-59_19-default",
+   "kernel-livepatch-5_3_18-59_24-default",
+   "kernel-livepatch-5_3_18-59_27-default",
+   "kernel-livepatch-5_3_18-59_34-default",
+   "kernel-livepatch-5_3_18-59_37-default",
+   "kernel-livepatch-5_3_18-59_40-default",
+   "kernel-livepatch-5_3_18-59_5-default"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-1195",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-1292",
+  "namespace": "alpine:distro:alpine:3.15",
+  "packages": [
+   "openssl",
+   "openssl3"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-1292",
+  "namespace": "alpine:distro:alpine:3.16",
+  "packages": [
+   "openssl",
+   "openssl3"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-1292",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "edk2",
+   "openssl",
+   "shim"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-1292",
+  "namespace": "sles:distro:sles:15.2",
+  "packages": [
+   "libopenssl-1_1-devel",
+   "libopenssl1_1",
+   "libopenssl1_1-32bit",
+   "libopenssl1_1-hmac",
+   "libopenssl1_1-hmac-32bit",
+   "openssl-1_1"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-1292",
+  "namespace": "sles:distro:sles:15.3",
+  "packages": [
+   "libopenssl-1_1-devel",
+   "libopenssl1_1",
+   "libopenssl1_1-32bit",
+   "libopenssl1_1-hmac",
+   "libopenssl1_1-hmac-32bit",
+   "openssl-1_1"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-1301",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-1353",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-1419",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-1516",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-1652",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-1665",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "kernel"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-1734",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-1734",
+  "namespace": "sles:distro:sles:15.3",
+  "packages": [
+   "kernel-livepatch-5_3_18-150300_59_43-default",
+   "kernel-livepatch-5_3_18-150300_59_46-default",
+   "kernel-livepatch-5_3_18-150300_59_49-default",
+   "kernel-livepatch-5_3_18-150300_59_54-default",
+   "kernel-livepatch-5_3_18-150300_59_60-default",
+   "kernel-livepatch-5_3_18-150300_59_63-default",
+   "kernel-livepatch-5_3_18-150300_59_68-default",
+   "kernel-livepatch-5_3_18-57-default",
+   "kernel-livepatch-5_3_18-59_10-default",
+   "kernel-livepatch-5_3_18-59_13-default",
+   "kernel-livepatch-5_3_18-59_16-default",
+   "kernel-livepatch-5_3_18-59_19-default",
+   "kernel-livepatch-5_3_18-59_24-default",
+   "kernel-livepatch-5_3_18-59_27-default",
+   "kernel-livepatch-5_3_18-59_34-default",
+   "kernel-livepatch-5_3_18-59_37-default",
+   "kernel-livepatch-5_3_18-59_40-default",
+   "kernel-livepatch-5_3_18-59_5-default"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-1946",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-1967",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-2068",
+  "namespace": "alpine:distro:alpine:3.15",
+  "packages": [
+   "openssl",
+   "openssl3"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-2068",
+  "namespace": "alpine:distro:alpine:3.16",
+  "packages": [
+   "openssl",
+   "openssl3"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2068",
+  "namespace": "sles:distro:sles:15.2",
+  "packages": [
+   "libopenssl-1_1-devel",
+   "libopenssl1_1",
+   "libopenssl1_1-32bit",
+   "libopenssl1_1-hmac",
+   "libopenssl1_1-hmac-32bit",
+   "openssl-1_1"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2068",
+  "namespace": "sles:distro:sles:15.3",
+  "packages": [
+   "libopenssl-1_1-devel",
+   "libopenssl1_1",
+   "libopenssl1_1-32bit",
+   "libopenssl1_1-hmac",
+   "libopenssl1_1-hmac-32bit",
+   "openssl-1_1"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-2084",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "cloud-init"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2097",
+  "namespace": "alpine:distro:alpine:3.13",
+  "packages": [
+   "openssl"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2097",
+  "namespace": "alpine:distro:alpine:3.14",
+  "packages": [
+   "openssl"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2097",
+  "namespace": "alpine:distro:alpine:3.15",
+  "packages": [
+   "openssl",
+   "openssl3"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2097",
+  "namespace": "alpine:distro:alpine:3.16",
+  "packages": [
+   "openssl",
+   "openssl3"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2097",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "openssl"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2097",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "openssl"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2097",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "openssl"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2097",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "openssl"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2097",
+  "namespace": "ubuntu:distro:ubuntu:14.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2097",
+  "namespace": "ubuntu:distro:ubuntu:16.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2097",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2097",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "openssl"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2097",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "openssl"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2097",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "openssl"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-21123",
+  "namespace": "nvd:cpe",
+  "packages": [
+   "sgx_dcap",
+   "sgx_psw",
+   "sgx_sdk"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-21125",
+  "namespace": "nvd:cpe",
+  "packages": [
+   "sgx_dcap",
+   "sgx_psw",
+   "sgx_sdk"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-21166",
+  "namespace": "nvd:cpe",
+  "packages": [
+   "sgx_dcap",
+   "sgx_psw",
+   "sgx_sdk"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2200",
+  "namespace": "ubuntu:distro:ubuntu:14.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2200",
+  "namespace": "ubuntu:distro:ubuntu:16.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2200",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2200",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2200",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2200",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-2211",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "virt-v2v",
+   "virt:rhel/libguestfs"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-2211",
+  "namespace": "redhat:distro:redhat:9",
+  "packages": [
+   "guestfs-tools",
+   "libguestfs",
+   "virt-v2v"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-22677",
+  "namespace": "alpine:distro:alpine:3.16",
+  "packages": [
+   "webkit2gtk",
+   "webkit2gtk-5.0"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2268",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-22710",
+  "namespace": "alpine:distro:alpine:3.16",
+  "packages": [
+   "webkit2gtk",
+   "webkit2gtk-5.0"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-2285",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "vim"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-2285",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "vim"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-2288",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "vim"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-2288",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "vim"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-2288",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "vim"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-2288",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "vim"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-2289",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "vim"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-2289",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "vim"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-2289",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "vim"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-2289",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "vim"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-22967",
+  "namespace": "sles:distro:sles:15",
+  "packages": [
+   "python3-salt",
+   "salt",
+   "salt-api",
+   "salt-bash-completion",
+   "salt-cloud",
+   "salt-doc",
+   "salt-fish-completion",
+   "salt-master",
+   "salt-minion",
+   "salt-proxy",
+   "salt-ssh",
+   "salt-standalone-formulas-configuration",
+   "salt-syndic",
+   "salt-transactional-update",
+   "salt-zsh-completion"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2300",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-2301",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "chafa"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-2301",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "chafa"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-2301",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "chafa"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-2301",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "chafa"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2301",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2304",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "vim"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2304",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "vim"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2304",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "vim"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2304",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "vim"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2309",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "lxml"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2309",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "lxml"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2309",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "lxml"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2309",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "lxml"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2318",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "linux"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2318",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "linux"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2318",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "linux"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-2318",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "linux"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-23960",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-24070",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "subversion"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-24070",
+  "namespace": "redhat:distro:redhat:9",
+  "packages": [
+   "subversion"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-24851",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "ldap-account-manager"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-24958",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": [
+   "linux",
+   "linux-aws",
+   "linux-aws-5.4",
+   "linux-azure-4.15",
+   "linux-azure-5.4",
+   "linux-dell300x",
+   "linux-gcp-4.15",
+   "linux-gcp-5.4",
+   "linux-gke-5.4",
+   "linux-gkeop-5.4",
+   "linux-hwe-5.4",
+   "linux-ibm-5.4",
+   "linux-kvm",
+   "linux-oracle",
+   "linux-oracle-5.4",
+   "linux-raspi-5.4",
+   "linux-raspi2",
+   "linux-snapdragon"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-24958",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "linux",
+   "linux-aws",
+   "linux-aws-5.11",
+   "linux-aws-5.13",
+   "linux-azure",
+   "linux-azure-5.11",
+   "linux-azure-5.13",
+   "linux-bluefield",
+   "linux-gcp",
+   "linux-gcp-5.11",
+   "linux-gcp-5.13",
+   "linux-gke",
+   "linux-gkeop",
+   "linux-hwe-5.13",
+   "linux-ibm",
+   "linux-intel-5.13",
+   "linux-intel-iotg-5.15",
+   "linux-kvm",
+   "linux-oem-5.14",
+   "linux-oracle",
+   "linux-oracle-5.11",
+   "linux-oracle-5.13",
+   "linux-raspi",
+   "linux-riscv-5.11"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-24958",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "linux",
+   "linux-aws",
+   "linux-azure",
+   "linux-gcp",
+   "linux-kvm",
+   "linux-oracle",
+   "linux-raspi",
+   "linux-riscv"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-25235",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "expat",
+   "firefox",
+   "firefox:flatpak/firefox",
+   "thunderbird",
+   "thunderbird:flatpak/thunderbird",
+   "xmlrpc-c"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-25236",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "expat",
+   "firefox",
+   "firefox:flatpak/firefox",
+   "thunderbird",
+   "thunderbird:flatpak/thunderbird",
+   "xmlrpc-c"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-25265",
+  "namespace": "ubuntu:distro:ubuntu:14.04",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-25265",
+  "namespace": "ubuntu:distro:ubuntu:16.04",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-25265",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-25265",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-25265",
+  "namespace": "ubuntu:distro:ubuntu:21.04",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-25265",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-25265",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-25315",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "expat",
+   "firefox",
+   "firefox:flatpak/firefox",
+   "thunderbird",
+   "thunderbird:flatpak/thunderbird"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-25878",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "grafana"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-25878",
+  "namespace": "redhat:distro:redhat:9",
+  "packages": [
+   "grafana"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-25896",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "passportjs"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-25896",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "passportjs"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-25896",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "passportjs"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-25896",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "passportjs"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-26051",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-26054",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-26353",
+  "namespace": "sles:distro:sles:15.4",
+  "packages": [
+   "qemu",
+   "qemu-accel-tcg-x86",
+   "qemu-arm",
+   "qemu-audio-alsa",
+   "qemu-audio-pa",
+   "qemu-audio-spice",
+   "qemu-block-curl",
+   "qemu-block-iscsi",
+   "qemu-block-rbd",
+   "qemu-block-ssh",
+   "qemu-chardev-baum",
+   "qemu-chardev-spice",
+   "qemu-guest-agent",
+   "qemu-hw-display-qxl",
+   "qemu-hw-display-virtio-gpu",
+   "qemu-hw-display-virtio-gpu-pci",
+   "qemu-hw-display-virtio-vga",
+   "qemu-hw-s390x-virtio-gpu-ccw",
+   "qemu-hw-usb-host",
+   "qemu-hw-usb-redirect",
+   "qemu-ipxe",
+   "qemu-ksm",
+   "qemu-kvm",
+   "qemu-lang",
+   "qemu-ppc",
+   "qemu-s390x",
+   "qemu-seabios",
+   "qemu-sgabios",
+   "qemu-skiboot",
+   "qemu-slof",
+   "qemu-ui-curses",
+   "qemu-ui-gtk",
+   "qemu-ui-opengl",
+   "qemu-ui-spice-app",
+   "qemu-ui-spice-core",
+   "qemu-vgabios",
+   "qemu-x86"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-26354",
+  "namespace": "sles:distro:sles:15.3",
+  "packages": [
+   "qemu",
+   "qemu-arm",
+   "qemu-audio-alsa",
+   "qemu-audio-pa",
+   "qemu-audio-spice",
+   "qemu-block-curl",
+   "qemu-block-iscsi",
+   "qemu-block-rbd",
+   "qemu-block-ssh",
+   "qemu-chardev-baum",
+   "qemu-chardev-spice",
+   "qemu-guest-agent",
+   "qemu-hw-display-qxl",
+   "qemu-hw-display-virtio-gpu",
+   "qemu-hw-display-virtio-gpu-pci",
+   "qemu-hw-display-virtio-vga",
+   "qemu-hw-s390x-virtio-gpu-ccw",
+   "qemu-hw-usb-redirect",
+   "qemu-ipxe",
+   "qemu-ksm",
+   "qemu-kvm",
+   "qemu-lang",
+   "qemu-ppc",
+   "qemu-s390x",
+   "qemu-seabios",
+   "qemu-sgabios",
+   "qemu-skiboot",
+   "qemu-slof",
+   "qemu-ui-curses",
+   "qemu-ui-gtk",
+   "qemu-ui-opengl",
+   "qemu-ui-spice-app",
+   "qemu-ui-spice-core",
+   "qemu-vgabios",
+   "qemu-x86"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-26354",
+  "namespace": "sles:distro:sles:15.4",
+  "packages": [
+   "qemu",
+   "qemu-accel-tcg-x86",
+   "qemu-arm",
+   "qemu-audio-alsa",
+   "qemu-audio-pa",
+   "qemu-audio-spice",
+   "qemu-block-curl",
+   "qemu-block-iscsi",
+   "qemu-block-rbd",
+   "qemu-block-ssh",
+   "qemu-chardev-baum",
+   "qemu-chardev-spice",
+   "qemu-guest-agent",
+   "qemu-hw-display-qxl",
+   "qemu-hw-display-virtio-gpu",
+   "qemu-hw-display-virtio-gpu-pci",
+   "qemu-hw-display-virtio-vga",
+   "qemu-hw-s390x-virtio-gpu-ccw",
+   "qemu-hw-usb-host",
+   "qemu-hw-usb-redirect",
+   "qemu-ipxe",
+   "qemu-ksm",
+   "qemu-kvm",
+   "qemu-lang",
+   "qemu-ppc",
+   "qemu-s390x",
+   "qemu-seabios",
+   "qemu-sgabios",
+   "qemu-skiboot",
+   "qemu-slof",
+   "qemu-ui-curses",
+   "qemu-ui-gtk",
+   "qemu-ui-opengl",
+   "qemu-ui-spice-app",
+   "qemu-ui-spice-core",
+   "qemu-vgabios",
+   "qemu-x86"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-26365",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-26365",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-26365",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-26365",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-26368",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-26490",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-26981",
+  "namespace": "sles:distro:sles:15",
+  "packages": [
+   "liblouis-data",
+   "liblouis-devel",
+   "liblouis14",
+   "python3-louis"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-26981",
+  "namespace": "sles:distro:sles:15.1",
+  "packages": [
+   "liblouis-data",
+   "liblouis-devel",
+   "liblouis14",
+   "python3-louis"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-27627",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-27661",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-27666",
+  "namespace": "nvd:cpe",
+  "packages": [
+   "virtualization"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-27803",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-27807",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-28356",
+  "namespace": "nvd:cpe",
+  "packages": [
+   "linux_kernel"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-28388",
+  "namespace": "nvd:cpe",
+  "packages": [
+   "hci_baseboard_management_controller"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-28389",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-28390",
+  "namespace": "nvd:cpe",
+  "packages": [
+   "hci_baseboard_management_controller"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-28390",
+  "namespace": "redhat:distro:redhat:6",
+  "packages": [
+   "kernel"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-28390",
+  "namespace": "redhat:distro:redhat:7",
+  "packages": [
+   "kernel",
+   "kernel-rt"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-28390",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "kernel",
+   "kernel-rt"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-28390",
+  "namespace": "redhat:distro:redhat:9",
+  "packages": [
+   "kernel",
+   "kernel-rt"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-28692",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-28713",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-28718",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-29078",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "pcs"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-29242",
+  "namespace": "debian:distro:debian:12",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-29248",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "guzzle",
+   "mediawiki"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-29467",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-29471",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-29484",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-29513",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-29581",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-29581",
+  "namespace": "redhat:distro:redhat:6",
+  "packages": [
+   "kernel"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-29581",
+  "namespace": "redhat:distro:redhat:7",
+  "packages": [
+   "kernel",
+   "kernel-rt"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-29581",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "kernel",
+   "kernel-rt"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-29581",
+  "namespace": "redhat:distro:redhat:9",
+  "packages": [
+   "kernel",
+   "kernel-rt"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-29892",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-30045",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-30045",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-30045",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-30045",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "mapcache",
+   "netcdf",
+   "netcdf-parallel",
+   "scilab"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-30594",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-30629",
+  "namespace": "redhat:distro:redhat:7",
+  "packages": [
+   "buildah",
+   "containernetworking-plugins",
+   "podman",
+   "skopeo"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-30629",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "container-tools:3.0/buildah",
+   "container-tools:3.0/containernetworking-plugins",
+   "container-tools:3.0/podman",
+   "container-tools:3.0/runc",
+   "container-tools:3.0/skopeo",
+   "container-tools:3.0/toolbox",
+   "container-tools:4.0/buildah",
+   "container-tools:4.0/conmon",
+   "container-tools:4.0/containernetworking-plugins",
+   "container-tools:4.0/podman",
+   "container-tools:4.0/runc",
+   "container-tools:4.0/skopeo",
+   "container-tools:4.0/toolbox",
+   "container-tools:rhel8/buildah",
+   "container-tools:rhel8/conmon",
+   "container-tools:rhel8/containernetworking-plugins",
+   "container-tools:rhel8/podman",
+   "container-tools:rhel8/runc",
+   "container-tools:rhel8/skopeo",
+   "container-tools:rhel8/toolbox",
+   "go-toolset:rhel8/golang",
+   "grafana",
+   "grafana-pcp"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-30629",
+  "namespace": "redhat:distro:redhat:9",
+  "packages": [
+   "buildah",
+   "butane",
+   "containernetworking-plugins",
+   "golang",
+   "grafana",
+   "grafana-pcp",
+   "ignition",
+   "podman",
+   "runc",
+   "skopeo",
+   "toolbox"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-30974",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "mujs"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-30975",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "mujs"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-31042",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "guzzle",
+   "mediawiki"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-31043",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "guzzle",
+   "mediawiki"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-31084",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "ldap-account-manager"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-31085",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "ldap-account-manager"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-31086",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "ldap-account-manager"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-31087",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "ldap-account-manager"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-31088",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "ldap-account-manager"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-31090",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "guzzle",
+   "mediawiki"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-31091",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "guzzle",
+   "mediawiki"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-31117",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "ujson"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-31117",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "ujson"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-31117",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "ujson"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-31117",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "ujson"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-31599",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-31600",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-31601",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-31602",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-31603",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-31783",
+  "namespace": "sles:distro:sles:15",
+  "packages": [
+   "liblouis-data",
+   "liblouis-devel",
+   "liblouis14",
+   "python3-louis"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-31783",
+  "namespace": "sles:distro:sles:15.1",
+  "packages": [
+   "liblouis-data",
+   "liblouis-devel",
+   "liblouis14",
+   "python3-louis"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-32250",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-32250",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": [
+   "linux",
+   "linux-aws",
+   "linux-aws-5.4",
+   "linux-azure-4.15",
+   "linux-azure-5.4",
+   "linux-dell300x",
+   "linux-gcp-4.15",
+   "linux-gcp-5.4",
+   "linux-gke-5.4",
+   "linux-gkeop-5.4",
+   "linux-hwe-5.4",
+   "linux-ibm-5.4",
+   "linux-kvm",
+   "linux-oracle",
+   "linux-oracle-5.4",
+   "linux-raspi-5.4",
+   "linux-raspi2",
+   "linux-snapdragon"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-32250",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "linux",
+   "linux-aws",
+   "linux-aws-5.13",
+   "linux-azure",
+   "linux-azure-5.13",
+   "linux-bluefield",
+   "linux-gcp",
+   "linux-gcp-5.13",
+   "linux-gke",
+   "linux-gkeop",
+   "linux-hwe-5.13",
+   "linux-ibm",
+   "linux-intel-5.13",
+   "linux-intel-iotg-5.15",
+   "linux-kvm",
+   "linux-oem-5.14",
+   "linux-oracle",
+   "linux-oracle-5.13",
+   "linux-raspi"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-32250",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "linux",
+   "linux-aws",
+   "linux-azure",
+   "linux-gcp",
+   "linux-kvm",
+   "linux-oracle",
+   "linux-raspi",
+   "linux-riscv"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-32250",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "linux",
+   "linux-aws",
+   "linux-azure",
+   "linux-gcp",
+   "linux-gke",
+   "linux-ibm",
+   "linux-intel-iotg",
+   "linux-kvm",
+   "linux-lowlatency",
+   "linux-oem-5.17",
+   "linux-oracle",
+   "linux-raspi",
+   "linux-riscv"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-32275",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "grafana"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-32275",
+  "namespace": "redhat:distro:redhat:9",
+  "packages": [
+   "grafana"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-32296",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-32545",
+  "namespace": "sles:distro:sles:15.3",
+  "packages": [
+   "imagemagick",
+   "imagemagick-config-7-suse",
+   "imagemagick-config-7-upstream",
+   "imagemagick-devel",
+   "libmagick++-7_q16hdri4",
+   "libmagick++-devel",
+   "libmagickcore-7_q16hdri6",
+   "libmagickwand-7_q16hdri6"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-32546",
+  "namespace": "sles:distro:sles:15.3",
+  "packages": [
+   "imagemagick",
+   "imagemagick-config-7-suse",
+   "imagemagick-config-7-upstream",
+   "imagemagick-devel",
+   "libmagick++-7_q16hdri4",
+   "libmagick++-devel",
+   "libmagickcore-7_q16hdri6",
+   "libmagickwand-7_q16hdri6"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-32547",
+  "namespace": "sles:distro:sles:15.3",
+  "packages": [
+   "imagemagick",
+   "imagemagick-config-7-suse",
+   "imagemagick-config-7-upstream",
+   "imagemagick-devel",
+   "libmagick++-7_q16hdri4",
+   "libmagick++-devel",
+   "libmagickcore-7_q16hdri6",
+   "libmagickwand-7_q16hdri6"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-32990",
+  "namespace": "redhat:distro:redhat:6",
+  "packages": [
+   "gimp"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-32990",
+  "namespace": "redhat:distro:redhat:7",
+  "packages": [
+   "gimp"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-32990",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "gimp:2.8/gimp",
+   "gimp:flatpak/gimp"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-32990",
+  "namespace": "redhat:distro:redhat:9",
+  "packages": [
+   "gimp"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33068",
+  "namespace": "redhat:distro:redhat:7",
+  "packages": [
+   "harfbuzz"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33068",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "harfbuzz",
+   "mingw-harfbuzz"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33068",
+  "namespace": "redhat:distro:redhat:9",
+  "packages": [
+   "harfbuzz"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-33070",
+  "namespace": "redhat:distro:redhat:7",
+  "packages": [
+   "protobuf-c"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-33070",
+  "namespace": "redhat:distro:redhat:8",
+  "packages": [
+   "protobuf-c"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-33070",
+  "namespace": "redhat:distro:redhat:9",
+  "packages": [
+   "protobuf-c"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-33103",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "u-boot"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-33103",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "u-boot"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33171",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33740",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33740",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33740",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33740",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33741",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33741",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33741",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33741",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33742",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33742",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33742",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33742",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33743",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33743",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33743",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33743",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33744",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33744",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33744",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-33744",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "linux",
+   "xen"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-33981",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-33987",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "node-got"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-34265",
+  "namespace": "debian:distro:debian:10",
+  "packages": [
+   "python-django"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-34265",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "python-django"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-34265",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "python-django"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-34265",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "python-django"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34265",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34468",
+  "namespace": "ubuntu:distro:ubuntu:14.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34468",
+  "namespace": "ubuntu:distro:ubuntu:16.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34468",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34468",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34468",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34468",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34469",
+  "namespace": "ubuntu:distro:ubuntu:14.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34469",
+  "namespace": "ubuntu:distro:ubuntu:16.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34469",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34469",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34469",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34469",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34470",
+  "namespace": "ubuntu:distro:ubuntu:14.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34470",
+  "namespace": "ubuntu:distro:ubuntu:16.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34470",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34470",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34470",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34470",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34471",
+  "namespace": "ubuntu:distro:ubuntu:14.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34471",
+  "namespace": "ubuntu:distro:ubuntu:16.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34471",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34471",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34471",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34471",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34472",
+  "namespace": "ubuntu:distro:ubuntu:14.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34472",
+  "namespace": "ubuntu:distro:ubuntu:16.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34472",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34472",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34472",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34472",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34473",
+  "namespace": "ubuntu:distro:ubuntu:14.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34473",
+  "namespace": "ubuntu:distro:ubuntu:16.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34473",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34473",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34473",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34473",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34474",
+  "namespace": "ubuntu:distro:ubuntu:14.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34474",
+  "namespace": "ubuntu:distro:ubuntu:16.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34474",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34474",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34474",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34474",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34475",
+  "namespace": "ubuntu:distro:ubuntu:14.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34475",
+  "namespace": "ubuntu:distro:ubuntu:16.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34475",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34475",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34475",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34475",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34476",
+  "namespace": "ubuntu:distro:ubuntu:14.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34476",
+  "namespace": "ubuntu:distro:ubuntu:16.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34476",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34476",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34476",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34476",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34477",
+  "namespace": "ubuntu:distro:ubuntu:14.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34477",
+  "namespace": "ubuntu:distro:ubuntu:16.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34477",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34477",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34477",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34477",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34478",
+  "namespace": "ubuntu:distro:ubuntu:14.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34478",
+  "namespace": "ubuntu:distro:ubuntu:16.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34478",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34478",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34478",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34478",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34479",
+  "namespace": "ubuntu:distro:ubuntu:14.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34479",
+  "namespace": "ubuntu:distro:ubuntu:16.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34479",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34479",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34479",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34479",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34480",
+  "namespace": "ubuntu:distro:ubuntu:14.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34480",
+  "namespace": "ubuntu:distro:ubuntu:16.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34480",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34480",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34480",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34480",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34481",
+  "namespace": "ubuntu:distro:ubuntu:14.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34481",
+  "namespace": "ubuntu:distro:ubuntu:16.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34481",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34481",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34481",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34481",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34482",
+  "namespace": "ubuntu:distro:ubuntu:14.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34482",
+  "namespace": "ubuntu:distro:ubuntu:16.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34482",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34482",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34482",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34482",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34483",
+  "namespace": "ubuntu:distro:ubuntu:14.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34483",
+  "namespace": "ubuntu:distro:ubuntu:16.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34483",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34483",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34483",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34483",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34484",
+  "namespace": "ubuntu:distro:ubuntu:14.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34484",
+  "namespace": "ubuntu:distro:ubuntu:16.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34484",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34484",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34484",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34484",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34485",
+  "namespace": "ubuntu:distro:ubuntu:14.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34485",
+  "namespace": "ubuntu:distro:ubuntu:16.04",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34485",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34485",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34485",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "firefox",
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34485",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "thunderbird"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34829",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34903",
+  "namespace": "alpine:distro:alpine:3.13",
+  "packages": [
+   "gnupg"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34903",
+  "namespace": "alpine:distro:alpine:3.14",
+  "packages": [
+   "gnupg"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34903",
+  "namespace": "alpine:distro:alpine:3.15",
+  "packages": [
+   "gnupg"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34903",
+  "namespace": "alpine:distro:alpine:3.16",
+  "packages": [
+   "gnupg"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-34903",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34903",
+  "namespace": "ubuntu:distro:ubuntu:18.04",
+  "packages": [
+   "gnupg2"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34903",
+  "namespace": "ubuntu:distro:ubuntu:20.04",
+  "packages": [
+   "gnupg2"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34903",
+  "namespace": "ubuntu:distro:ubuntu:21.10",
+  "packages": [
+   "gnupg2"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34903",
+  "namespace": "ubuntu:distro:ubuntu:22.04",
+  "packages": [
+   "gnupg2"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-34911",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "mediawiki"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "CVE-2022-34912",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "mediawiki"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34918",
+  "namespace": "debian:distro:debian:10",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34918",
+  "namespace": "debian:distro:debian:11",
+  "packages": [
+   "linux"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34918",
+  "namespace": "debian:distro:debian:12",
+  "packages": [
+   "linux"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34918",
+  "namespace": "debian:distro:debian:unstable",
+  "packages": [
+   "linux"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "CVE-2022-34918",
+  "namespace": "nvd:cpe",
+  "packages": []
+ },
+ {
+  "reason": "added",
+  "id": "ELSA-2022-9557",
+  "namespace": "oracle:distro:oraclelinux:6",
+  "packages": [
+   "kernel-uek",
+   "kernel-uek-debug",
+   "kernel-uek-debug-devel",
+   "kernel-uek-devel",
+   "kernel-uek-doc",
+   "kernel-uek-firmware"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "ELSA-2022-9557",
+  "namespace": "oracle:distro:oraclelinux:7",
+  "packages": [
+   "kernel-uek",
+   "kernel-uek-debug",
+   "kernel-uek-debug-devel",
+   "kernel-uek-devel",
+   "kernel-uek-doc",
+   "kernel-uek-firmware"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-24h8-cpqm-qmf3",
+  "namespace": "github:language:java",
+  "packages": [
+   "com.convertigo.jenkins.plugins:convertigo-mobile-platform"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-29q6-p2cg-4v23",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.jenkins-ci.plugins:pipeline-input-step"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-35r9-gfqf-r6cw",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.jenkins-ci.plugins:vmware-vrealize-orchestrator"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-39r3-h8q6-2phq",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.jenkins-ci.plugins:embeddable-build-status"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-3j8f-xvm3-ffx4",
+  "namespace": "github:language:javascript",
+  "packages": [
+   "parse-path"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-437j-5qc3-c589",
+  "namespace": "github:language:php",
+  "packages": [
+   "microweber/microweber"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-438w-rjj9-5fjf",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.jenkins-ci.plugins:repository-connector"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "GHSA-484f-743f-6jx2",
+  "namespace": "github:language:php",
+  "packages": [
+   "phpfastcache/phpfastcache"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-49j4-v37g-5gg2",
+  "namespace": "github:language:java",
+  "packages": [
+   "com.geteasyqa:easyqa"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-4p35-cfcx-8653",
+  "namespace": "github:language:javascript",
+  "packages": [
+   "parse-url"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-5247-whvj-83qw",
+  "namespace": "github:language:java",
+  "packages": [
+   "eu.markov.jenkins.plugin.mvnmeta:maven-metadata-plugin"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "GHSA-5c5f-7vfq-3732",
+  "namespace": "github:language:ruby",
+  "packages": [
+   "jmespath"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-5hh2-f4h9-446g",
+  "namespace": "github:language:java",
+  "packages": [
+   "me.leejay.jenkins:date-parameter"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "GHSA-5ww9-9qp2-x524",
+  "namespace": "github:language:ruby",
+  "packages": [
+   "diffy"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-64mj-3p92-589v",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.jenkins-ci.plugins:junit"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-65r6-w7vr-c75r",
+  "namespace": "github:language:java",
+  "packages": [
+   "io.jenkins.plugins:agent-server-parameter"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-6882-385p-hhhw",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.jenkins-ci.plugins:ontrack"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-6923-546p-6rrc",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.jenkins-ci.plugins:image-tag-parameter"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-73pr-g6jj-5hc9",
+  "namespace": "github:language:ruby",
+  "packages": [
+   "ruby-mysql"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-7495-24mx-hph2",
+  "namespace": "github:language:java",
+  "packages": [
+   "com.convertigo.jenkins.plugins:convertigo-mobile-platform"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-7558-6q45-6x7m",
+  "namespace": "github:language:java",
+  "packages": [
+   "com.moded.extendedchoiceparameter:dynamic_extended_choice_parameter"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-77vq-4j66-46m5",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.jenkins-ci.plugins:threadfix"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-7f3x-x4pr-wqhj",
+  "namespace": "github:language:javascript",
+  "packages": [
+   "parse-url"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-88r9-hfj2-54hv",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.jenkins-ci.plugins:stashbranchparameter"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-977c-63xq-cgw3",
+  "namespace": "github:language:ruby",
+  "packages": [
+   "opensearch-ruby"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-9hx5-jmxv-x44q",
+  "namespace": "github:language:python",
+  "packages": [
+   "inventree"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-9j8q-m9x5-9g6j",
+  "namespace": "github:language:rust",
+  "packages": [
+   "async-coap"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-c58j-88f5-h53f",
+  "namespace": "github:language:python",
+  "packages": [
+   "pycares"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-c8mf-mc3f-2wvc",
+  "namespace": "github:language:java",
+  "packages": [
+   "com.convertigo.jenkins.plugins:convertigo-mobile-platform"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-c965-p3w4-835c",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.jenkins-ci.plugins:vmware-vrealize-orchestrator"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-cgrj-xjm7-9q27",
+  "namespace": "github:language:python",
+  "packages": [
+   "web2py"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-cqhr-q835-62gm",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.jenkins-ci.plugins:sauce-ondemand"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-cxgw-r5jg-7xwq",
+  "namespace": "github:language:php",
+  "packages": [
+   "getgrav/grav"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "GHSA-f38p-c2gq-4pmr",
+  "namespace": "github:language:javascript",
+  "packages": [
+   "schema-inspector"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-fcqr-gh8w-wm8f",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.jenkins-ci.plugins:readonly-parameters"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-ffmh-x56j-9rc3",
+  "namespace": "github:language:javascript",
+  "packages": [
+   "jquery-validation"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-fm67-cv37-96ff",
+  "namespace": "github:language:python",
+  "packages": [
+   "ujson"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "GHSA-fvcj-hvfw-7f2v",
+  "namespace": "github:language:javascript",
+  "packages": [
+   "botframework-connector"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-gpw4-7mcw-m8vx",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.lilicurroad.jenkins:packageversion"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-h642-5h74-3x9c",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.jenkins-ci.plugins:nested-view"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-hc44-p2qq-cfm9",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.jenkins-ci.plugins:crx-content-package-deployer"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-hg5p-233h-c7fh",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.directwebremoting:dwr"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "GHSA-jc8g-xhw5-6x46",
+  "namespace": "github:language:dotnet",
+  "packages": [
+   "microsoft.netcore.universalwindowsplatform"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-jhfv-8936-g652",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.jenkins-ci.plugins:hidden-parameter"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-jpp7-7chh-cf67",
+  "namespace": "github:language:javascript",
+  "packages": [
+   "parse-url"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-m7w4-8wp8-m2xq",
+  "namespace": "github:language:rust",
+  "packages": [
+   "beef"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-p64x-8rxx-wf6q",
+  "namespace": "github:language:python",
+  "packages": [
+   "django"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-pc9c-547w-hhmc",
+  "namespace": "github:language:java",
+  "packages": [
+   "io.jenkins.plugins:rest-list-parameter"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-pf6p-25r2-fx45",
+  "namespace": "github:language:php",
+  "packages": [
+   "dompdf/dompdf"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-pf7h-h2wq-m7pg",
+  "namespace": "github:language:python",
+  "packages": [
+   "salt"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-pg8v-g4xq-hww9",
+  "namespace": "github:language:ruby",
+  "packages": [
+   "rails-html-sanitizer"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-pv38-mqpp-v72h",
+  "namespace": "github:language:java",
+  "packages": [
+   "io.jenkins.plugins:cavisson-ns-nd-integration"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-q6wq-5p59-983w",
+  "namespace": "github:language:javascript",
+  "packages": [
+   "parse-url"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-q8v3-7h6q-g39q",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.jenkins-ci.plugins:jianliao"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "GHSA-qc65-cgvr-93p6",
+  "namespace": "github:language:javascript",
+  "packages": [
+   "kill-process-by-name"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "GHSA-qmx3-m648-hr74",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.apache.sling:org.apache.sling.api",
+   "org.apache.sling:org.apache.sling.commons.log"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-rf5q-8gx3-xqfc",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.jenkins-ci.plugins:git"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-rpxm-vmr7-5f5f",
+  "namespace": "github:language:rust",
+  "packages": [
+   "convec"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-rq99-93c5-33f6",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.jenkins-ci.plugins:threadfix"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "GHSA-rvgf-69j7-xh78",
+  "namespace": "github:language:javascript",
+  "packages": [
+   "@discordjs/opus"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-v6h8-5cp2-j9w4",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.jenkins-ci.plugins:jianliao"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "GHSA-vpf5-82c8-9v36",
+  "namespace": "github:language:javascript",
+  "packages": [
+   "algoliasearch-helper"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-vqpp-q5x5-qj4r",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.jenkins-ci.plugins:beaker-builder"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-w4q4-jcm7-g4m6",
+  "namespace": "github:language:java",
+  "packages": [
+   "com.github.kfcfans:powerjob"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-wpqr-jcpx-745r",
+  "namespace": "github:language:python",
+  "packages": [
+   "ujson"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-x3vm-38hw-55wf",
+  "namespace": "github:language:javascript",
+  "packages": [
+   "mermaid"
+  ]
+ },
+ {
+  "reason": "changed",
+  "id": "GHSA-x4mq-m75f-mx8m",
+  "namespace": "github:language:rust",
+  "packages": [
+   "windows"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-x95w-qf3m-pqpx",
+  "namespace": "github:language:java",
+  "packages": [
+   "aendter.jenkins.plugins:filesystem-list-parameter-plugin"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-xcp5-j5fj-3xp6",
+  "namespace": "github:language:java",
+  "packages": [
+   "com.geteasyqa:easyqa"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-xfjq-5m4w-cc6h",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.jenkins-ci.plugins:beaker-builder"
+  ]
+ },
+ {
+  "reason": "added",
+  "id": "GHSA-xxhf-xq6v-c8mj",
+  "namespace": "github:language:java",
+  "packages": [
+   "org.jenkins-ci.plugins:embeddable-build-status"
+  ]
+ }
+]
