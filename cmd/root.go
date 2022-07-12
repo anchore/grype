@@ -284,6 +284,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 		var store *store.Store
 		var status *db.Status
+		var dbCloser *db.Closer
 		var packages []pkg.Package
 		var context pkg.Context
 		var wg = &sync.WaitGroup{}
@@ -294,7 +295,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		go func() {
 			defer wg.Done()
 			log.Debug("loading DB")
-			store, status, err = grype.LoadVulnerabilityDB(appConfig.DB.ToCuratorConfig(), appConfig.DB.AutoUpdate)
+			store, status, dbCloser, err = grype.LoadVulnerabilityDB(appConfig.DB.ToCuratorConfig(), appConfig.DB.AutoUpdate)
 			if err = validateDBLoad(err, status); err != nil {
 				errs <- err
 				return
@@ -316,6 +317,10 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		wg.Wait()
 		if !loadedDB || !gatheredPackages {
 			return
+		}
+
+		if dbCloser != nil {
+			defer dbCloser.Close()
 		}
 
 		if appConfig.OnlyFixed {

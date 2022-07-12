@@ -38,30 +38,30 @@ func FindVulnerabilitiesForPackage(store store.Store, d *linux.Release, matchers
 	return matcher.FindMatches(store, d, matchers, packages)
 }
 
-func LoadVulnerabilityDB(cfg db.Config, update bool) (*store.Store, *db.Status, error) {
+func LoadVulnerabilityDB(cfg db.Config, update bool) (*store.Store, *db.Status, *db.Closer, error) {
 	dbCurator, err := db.NewCurator(cfg)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	if update {
 		log.Debug("looking for updates on vulnerability database")
 		_, err := dbCurator.Update()
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 	}
 
-	storeReader, err := dbCurator.GetStore()
+	storeReader, dbCloser, err := dbCurator.GetStore()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	status := dbCurator.Status()
 
 	p, err := db.NewVulnerabilityProvider(storeReader)
 	if err != nil {
-		return nil, &status, err
+		return nil, &status, nil, err
 	}
 
 	s := &store.Store{
@@ -70,7 +70,9 @@ func LoadVulnerabilityDB(cfg db.Config, update bool) (*store.Store, *db.Status, 
 		ExclusionProvider: db.NewMatchExclusionProvider(storeReader),
 	}
 
-	return s, &status, nil
+	closer := &db.Closer{DBCloser: dbCloser}
+
+	return s, &status, closer, nil
 }
 
 func SetLogger(logger logger.Logger) {

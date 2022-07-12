@@ -117,15 +117,19 @@ func download(curator *db.Curator, listing *db.ListingEntry) error {
 }
 
 func (d *Differ) DiffDatabases() (*[]v4.Diff, error) {
-	baseStore, err := d.baseCurator.GetStore()
+	baseStore, baseDBCloser, err := d.baseCurator.GetStore()
 	if err != nil {
 		return nil, err
 	}
 
-	targetStore, err := d.targetCurator.GetStore()
+	defer baseDBCloser.Close()
+
+	targetStore, targetDBCloser, err := d.targetCurator.GetStore()
 	if err != nil {
 		return nil, err
 	}
+
+	defer targetDBCloser.Close()
 
 	return baseStore.DiffStore(targetStore)
 }

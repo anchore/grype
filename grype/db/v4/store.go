@@ -3,6 +3,7 @@ package v4
 type Store interface {
 	StoreReader
 	StoreWriter
+	DBCloser
 }
 
 type StoreReader interface {
@@ -18,9 +19,12 @@ type StoreWriter interface {
 	VulnerabilityStoreWriter
 	VulnerabilityMetadataStoreWriter
 	VulnerabilityMatchExclusionStoreWriter
-	Close()
 }
 
 type DiffReader interface {
 	DiffStore(s StoreReader) (*[]Diff, error)
+}
+
+type DBCloser interface {
+	Close()
 }
