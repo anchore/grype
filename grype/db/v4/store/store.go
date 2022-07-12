@@ -263,6 +263,11 @@ func (s *store) AddVulnerabilityMatchExclusion(exclusions ...v4.VulnerabilityMat
 
 func (s *store) Close() {
 	s.db.Exec("VACUUM;")
+
+	sqlDB, err := s.db.DB()
+	if err != nil {
+		_ = sqlDB.Close()
+	}
 }
 
 // GetAllVulnerabilities gets all vulnerabilities in the database

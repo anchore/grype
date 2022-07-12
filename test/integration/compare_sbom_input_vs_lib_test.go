@@ -43,12 +43,16 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 	}
 
 	// get a grype DB
-	store, _, err := grype.LoadVulnerabilityDB(db.Config{
+	store, _, closer, err := grype.LoadVulnerabilityDB(db.Config{
 		DBRootDir:           "test-fixtures/grype-db",
 		ListingURL:          getListingURL(),
 		ValidateByHashOnGet: false,
 	}, true)
 	assert.NoError(t, err)
+
+	if closer != nil {
+		defer closer.Close()
+	}
 
 	definedPkgTypes := strset.New()
 	for _, p := range syftPkg.AllPkgs {

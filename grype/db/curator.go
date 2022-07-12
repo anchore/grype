@@ -77,15 +77,15 @@ func (c Curator) SupportedSchema() int {
 	return c.targetSchema
 }
 
-func (c *Curator) GetStore() (grypeDB.StoreReader, error) {
+func (c *Curator) GetStore() (grypeDB.StoreReader, grypeDB.DBCloser, error) {
 	// ensure the DB is ok
 	_, err := c.validateIntegrity(c.dbDir)
 	if err != nil {
-		return nil, fmt.Errorf("vulnerability database is invalid (run db update to correct): %+v", err)
+		return nil, nil, fmt.Errorf("vulnerability database is invalid (run db update to correct): %+v", err)
 	}
 
 	s, err := store.New(c.dbPath, false)
-	return s, err
+	return s, s, err
 }
 
 func (c *Curator) Status() Status {
