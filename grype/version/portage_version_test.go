@@ -23,15 +23,8 @@ func TestVersionPortage(t *testing.T) {
 	for _, test := range tests {
 		name := test.v1 + "_vs_" + test.v2
 		t.Run(name, func(t *testing.T) {
-			v1, err := newPortageVersion(test.v1)
-			if err != nil {
-				t.Fatalf("failed to create v1: %+v", err)
-			}
-
-			v2, err := newPortageVersion(test.v2)
-			if err != nil {
-				t.Fatalf("failed to create v2: %+v", err)
-			}
+			v1 := newPortageVersion(test.v1)
+			v2 := newPortageVersion(test.v2)
 
 			actual := v1.compare(v2)
 

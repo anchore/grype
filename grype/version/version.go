@@ -79,6 +79,7 @@ func (v *Version) populate() error {
 	case PortageFormat:
 		ver := newPortageVersion(v.Raw)
 		v.rich.portVer = &ver
+		return nil
 	case UnknownFormat:
 		// use the raw string + fuzzy constraint
 		return nil
