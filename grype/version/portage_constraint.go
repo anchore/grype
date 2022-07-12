@@ -27,10 +27,7 @@ func newPortageConstraint(raw string) (portageConstraint, error) {
 }
 
 func newPortageComparator(unit constraintUnit) (Comparator, error) {
-	ver, err := newPortageVersion(unit.version)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse constraint version (%s): %w", unit.version, err)
-	}
+	ver := newPortageVersion(unit.version)
 	return &ver, nil
 }
 

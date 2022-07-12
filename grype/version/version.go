@@ -75,10 +75,10 @@ func (v *Version) populate() error {
 	case GemFormat:
 		ver, err := newGemfileVersion(v.Raw)
 		v.rich.semVer = ver
-	case PortageFormat:
-		ver, err := newPortageVersion(v.Raw)
-		v.rich.portVer = &ver
 		return err
+	case PortageFormat:
+		ver := newPortageVersion(v.Raw)
+		v.rich.portVer = &ver
 	case UnknownFormat:
 		// use the raw string + fuzzy constraint
 		return nil

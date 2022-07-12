@@ -11,10 +11,10 @@ type portageVersion struct {
 	version string
 }
 
-func newPortageVersion(raw string) (portageVersion, error) {
+func newPortageVersion(raw string) portageVersion {
 	return portageVersion{
 		version: raw,
-	}, nil
+	}
 }
 
 func (v *portageVersion) Compare(other *Version) (int, error) {
@@ -38,10 +38,13 @@ func (v portageVersion) compare(v2 portageVersion) int {
 
 // For the original python implementation, see:
 // https://github.com/gentoo/portage/blob/master/lib/portage/versions.py
-var versionRegexp = regexp.MustCompile(`(\d+)((\.\d+)*)([a-z]?)((_(pre|p|beta|alpha|rc)\d*)*)(-r(\d+))?`)
-var suffixRegexp = regexp.MustCompile(`^(alpha|beta|rc|pre|p)(\d*)$`)
-var suffixValue = map[string]int{"pre": -2, "p": 0, "alpha": -4, "beta": -3, "rc": -1}
+var (
+	versionRegexp = regexp.MustCompile(`(\d+)((\.\d+)*)([a-z]?)((_(pre|p|beta|alpha|rc)\d*)*)(-r(\d+))?`)
+	suffixRegexp  = regexp.MustCompile(`^(alpha|beta|rc|pre|p)(\d*)$`)
+	suffixValue   = map[string]int{"pre": -2, "p": 0, "alpha": -4, "beta": -3, "rc": -1}
+)
 
+// nolint:funlen,gocognit
 func comparePortageVersions(a, b string) int {
 	match1 := versionRegexp.FindStringSubmatch(a)
 	match2 := versionRegexp.FindStringSubmatch(b)
@@ -55,34 +58,36 @@ func comparePortageVersions(a, b string) int {
 	if len(vlist2) > vlistMaxLen {
 		vlistMaxLen = len(vlist2)
 	}
+
 	for index := 0; index < vlistMaxLen; index++ {
-		if len(vlist1) <= index {
+		switch {
+		case len(vlist1) <= index:
 			list1 = append(list1, big.NewInt(-1))
 			i := big.NewInt(0)
 			i.SetString(vlist2[index], 10)
 			list2 = append(list2, i)
-		} else if len(vlist2) <= index {
+		case len(vlist2) <= index:
 			list2 = append(list2, big.NewInt(-1))
 			i := big.NewInt(0)
 			i.SetString(vlist1[index], 10)
 			list1 = append(list1, i)
-		} else if !strings.HasPrefix(vlist1[index], "0") && !strings.HasPrefix(vlist2[index], "0") {
+		case !strings.HasPrefix(vlist1[index], "0") && !strings.HasPrefix(vlist2[index], "0"):
 			i := big.NewInt(0)
 			i.SetString(vlist1[index], 10)
 			list1 = append(list1, i)
 			j := big.NewInt(0)
 			j.SetString(vlist2[index], 10)
 			list2 = append(list2, j)
-		} else {
+		default:
 			maxLen := len(vlist1[index])
 			if len(vlist2[index]) > maxLen {
 				maxLen = len(vlist2[index])
 			}
 			if len(vlist1[index]) < maxLen {
-				vlist1[index] = vlist1[index] + strings.Repeat("0", maxLen-len(vlist1[index]))
+				vlist1[index] += strings.Repeat("0", maxLen-len(vlist1[index]))
 			}
 			if len(vlist2[index]) < maxLen {
-				vlist2[index] = vlist2[index] + strings.Repeat("0", maxLen-len(vlist2[index]))
+				vlist2[index] += strings.Repeat("0", maxLen-len(vlist2[index]))
 			}
 			i := big.NewInt(0)
 			i.SetString(vlist1[index], 10)
@@ -148,9 +153,9 @@ func comparePortageVersions(a, b string) int {
 			v2 := suffixValue[s2[0]]
 			if v1 > v2 {
 				return 1
-			} else {
-				return -1
 			}
+
+			return -1
 		}
 		if s1[1] != s2[1] {
 			i := big.NewInt(0)
