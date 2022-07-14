@@ -465,6 +465,58 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "match included even though multiple cpes are mismatch",
+			p: pkg.Package{
+				CPEs: []syftPkg.CPE{
+					must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:rust:*:*")),
+					must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:rails:*:*")),
+					must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:ruby:*:*")),
+					must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:python:*:*")),
+				},
+				Name:     "funfun",
+				Version:  "5.2.1",
+				Language: syftPkg.Python,
+				Type:     syftPkg.PythonPkg,
+			},
+			expected: []match.Match{
+				{
+					Vulnerability: vulnerability.Vulnerability{
+						ID: "CVE-2017-fake-6",
+					},
+					Package: pkg.Package{
+						CPEs: []syftPkg.CPE{
+							must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:rust:*:*")),
+							must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:rails:*:*")),
+							must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:ruby:*:*")),
+							must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:python:*:*")),
+						},
+						Name:     "funfun",
+						Version:  "5.2.1",
+						Language: syftPkg.Python,
+						Type:     syftPkg.PythonPkg,
+					},
+					Details: []match.Detail{
+						{
+							Type:       match.CPEMatch,
+							Confidence: 0.9,
+							SearchedBy: CPEParameters{
+								CPEs:      []string{"cpe:2.3:*:funfun:funfun:*:*:*:*:*:python:*:*"},
+								Namespace: "nvd",
+							},
+							Found: CPEResult{
+								CPEs: []string{
+									"cpe:2.3:*:funfun:funfun:*:*:*:*:*:python:*:*",
+									"cpe:2.3:*:funfun:funfun:5.2.1:*:*:*:*:python:*:*",
+								},
+								VersionConstraint: "= 5.2.1 (python)",
+							},
+							Matcher: matcher,
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, test := range tests {
