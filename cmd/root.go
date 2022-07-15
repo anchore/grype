@@ -43,6 +43,10 @@ var ignoreNonFixedMatches = []match.IgnoreRule{
 	{FixState: string(grypeDb.UnknownFixState)},
 }
 
+var ignoreFixedMatches = []match.IgnoreRule{
+	{FixState: string(grypeDb.FixedState)},
+}
+
 var (
 	rootCmd = &cobra.Command{
 		Use:   fmt.Sprintf("%s [IMAGE]", internal.ApplicationName),
@@ -147,6 +151,11 @@ func setRootFlags(flags *pflag.FlagSet) {
 		"ignore matches for vulnerabilities that are not fixed",
 	)
 
+	flags.BoolP(
+		"only-notfixed", "", false,
+		"ignore matches for vulnerabilities that are fixed",
+	)
+
 	flags.StringArrayP(
 		"exclude", "", nil,
 		"exclude paths from being scanned using a glob expression",
@@ -197,6 +206,10 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 	}
 
 	if err := viper.BindPFlag("only-fixed", flags.Lookup("only-fixed")); err != nil {
+		return err
+	}
+
+	if err := viper.BindPFlag("only-notfixed", flags.Lookup("only-notfixed")); err != nil {
 		return err
 	}
 
@@ -325,6 +338,10 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 		if appConfig.OnlyFixed {
 			appConfig.Ignore = append(appConfig.Ignore, ignoreNonFixedMatches...)
+		}
+
+		if appConfig.OnlyNotFixed {
+			appConfig.Ignore = append(appConfig.Ignore, ignoreFixedMatches...)
 		}
 
 		applyDistroHint(&context, appConfig)
