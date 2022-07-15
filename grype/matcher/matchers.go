@@ -1,6 +1,7 @@
 package matcher
 
 import (
+	"github.com/anchore/grype/grype/matcher/golang"
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
 
@@ -45,6 +46,7 @@ func NewDefaultMatchers(mc Config) []Matcher {
 		java.NewJavaMatcher(mc.Java),
 		&javascript.Matcher{},
 		&apk.Matcher{},
+		&golang.Matcher{},
 		&msrc.Matcher{},
 	}
 }
