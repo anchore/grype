@@ -6,7 +6,8 @@ type MetadataType string
 const (
 	// this is the full set of data shapes that can be represented within the pkg.Package.Metadata field
 
-	UnknownMetadataType MetadataType = "UnknownMetadata"
-	JavaMetadataType    MetadataType = "JavaMetadata"
-	RpmdbMetadataType   MetadataType = "RpmdbMetadata"
+	UnknownMetadataType   MetadataType = "UnknownMetadata"
+	JavaMetadataType      MetadataType = "JavaMetadata"
+	RpmdbMetadataType     MetadataType = "RpmdbMetadata"
+	GolangBinMetadataType MetadataType = "GolangBinMetadata"
 )
