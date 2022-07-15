@@ -38,6 +38,7 @@ type Application struct {
 	Quiet               bool                    `yaml:"quiet" json:"quiet" mapstructure:"quiet"`                                              // -q, indicates to not show any status output to stderr (ETUI or logging UI)
 	CheckForAppUpdate   bool                    `yaml:"check-for-app-update" json:"check-for-app-update" mapstructure:"check-for-app-update"` // whether to check for an application update on start up or not
 	OnlyFixed           bool                    `yaml:"only-fixed" json:"only-fixed" mapstructure:"only-fixed"`                               // only fail if detected vulns have a fix
+	OnlyNotFixed        bool                    `yaml:"only-notfixed" json:"only-notfixed" mapstructure:"only-notfixed"`                      // only fail if detected vulns don't have a fix
 	Platform            string                  `yaml:"platform" json:"platform" mapstructure:"platform"`                                     // --platform, override the target platform for a container image
 	CliOptions          CliOnlyOptions          `yaml:"-" json:"-"`
 	Search              search                  `yaml:"search" json:"search" mapstructure:"search"`
@@ -87,6 +88,7 @@ func (cfg Application) loadDefaultValues(v *viper.Viper) {
 	// set the default values for primitive fields in this struct
 	v.SetDefault("check-for-app-update", true)
 	v.SetDefault("only-fixed", false)
+	v.SetDefault("only-notfixed", false)
 
 	// for each field in the configuration struct, see if the field implements the defaultValueLoader interface and invoke it if it does
 	value := reflect.ValueOf(cfg)
