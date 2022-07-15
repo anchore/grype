@@ -70,6 +70,15 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
+			"gentoo:distro:gentoo:portage": {
+				"app-containers/skopeo": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-gentoo-skopeo",
+						VersionConstraint: "< 1.6.0",
+						VersionFormat:     "unknown",
+					},
+				},
+			},
 			"github:language:javascript": {
 				"npm": []grypeDB.Vulnerability{
 					{

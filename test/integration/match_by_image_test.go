@@ -266,6 +266,40 @@ func addDpkgMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 	})
 }
 
+func addPortageMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore, theResult *match.Matches) {
+	packages := catalog.PackagesByPath("/var/db/pkg/app-containers/skopeo-1.5.1/CONTENTS")
+	if len(packages) != 1 {
+		t.Logf("Portage Packages: %+v", packages)
+		t.Fatalf("problem with upstream syft cataloger (portage)")
+	}
+	thePkg := pkg.New(packages[0])
+	theVuln := theStore.backend["gentoo:distro:gentoo:portage"][thePkg.Name][0]
+	vulnObj, err := vulnerability.NewVulnerability(theVuln)
+	if err != nil {
+		t.Fatalf("failed to create vuln obj: %+v", err)
+	}
+	theResult.Add(match.Match{
+		Vulnerability: *vulnObj,
+		Package:       thePkg,
+		Details: []match.Detail{
+			{
+				Type:       match.ExactDirectMatch,
+				Confidence: 1.0,
+				SearchedBy: map[string]interface{}{
+					"distro": map[string]string{
+						"type":    "gentoo",
+						"version": "portage",
+					},
+				},
+				Found: map[string]interface{}{
+					"constraint": "<= 1.6.0 (gentoo)",
+				},
+				Matcher: match.PortageMatcher,
+			},
+		},
+	})
+}
+
 func addRhelMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore, theResult *match.Matches) {
 	packages := catalog.PackagesByPath("/var/lib/rpm/Packages")
 	if len(packages) != 1 {
@@ -337,7 +371,6 @@ func addSlesMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 }
 
 func TestMatchByImage(t *testing.T) {
-
 	observedMatchers := internal.NewStringSet()
 	definedMatchers := internal.NewStringSet()
 	for _, l := range match.AllMatcherTypes {
@@ -382,6 +415,14 @@ func TestMatchByImage(t *testing.T) {
 			expectedFn: func(theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore) match.Matches {
 				expectedMatches := match.NewMatches()
 				addSlesMatches(t, theSource, catalog, theStore, &expectedMatches)
+				return expectedMatches
+			},
+		},
+		{
+			fixtureImage: "image-portage-match-coverage",
+			expectedFn: func(theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore) match.Matches {
+				expectedMatches := match.NewMatches()
+				addPortageMatches(t, theSource, catalog, theStore, &expectedMatches)
 				return expectedMatches
 			},
 		},

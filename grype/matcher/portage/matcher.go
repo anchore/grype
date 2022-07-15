@@ -23,7 +23,7 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
-	matches, err := search.ByPackageDistro(store, d, p, m.Type())
+	matches, err := search.ByCriteria(store, d, p, m.Type(), search.CommonCriteria...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find vulnerabilities: %w", err)
 	}
