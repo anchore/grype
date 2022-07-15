@@ -12,6 +12,7 @@ const (
 	DotnetMatcher      MatcherType = "dotnet-matcher"
 	JavascriptMatcher  MatcherType = "javascript-matcher"
 	MsrcMatcher        MatcherType = "msrc-matcher"
+	GoModuleMatcher    MatcherType = "go-module-matcher"
 )
 
 var AllMatcherTypes = []MatcherType{
@@ -24,6 +25,7 @@ var AllMatcherTypes = []MatcherType{
 	DotnetMatcher,
 	JavascriptMatcher,
 	MsrcMatcher,
+	GoModuleMatcher,
 }
 
 type MatcherType string
