@@ -364,6 +364,8 @@ NAME       INSTALLED  FIXED-IN   VULNERABILITY   SEVERITY
 apk-tools  2.10.6-r0  2.10.7-r0  CVE-2021-36159  Critical
 ```
 
+If you want Grype to only report vulnerabilities **that do not have a confirmed fix**, you can use the `--only-notfixed` flag. (This automatically adds [ignore rules](#specifying-matches-to-ignore) into Grype's configuration, such that vulnerabilities that are fixed will be ignored.)
+
 ## Grype's database
 
 When Grype performs a scan for vulnerabilities, it does so using a vulnerability database that's stored on your local filesystem, which is constructed by pulling data from a variety of publicly available vulnerability data sources. These sources include:
