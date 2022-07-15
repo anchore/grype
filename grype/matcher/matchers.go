@@ -1,7 +1,6 @@
 package matcher
 
 import (
-	"github.com/anchore/grype/grype/matcher/golang"
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/apk"
 	"github.com/anchore/grype/grype/matcher/dotnet"
 	"github.com/anchore/grype/grype/matcher/dpkg"
+	"github.com/anchore/grype/grype/matcher/golang"
 	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
 	"github.com/anchore/grype/grype/matcher/msrc"

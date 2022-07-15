@@ -3,13 +3,13 @@ package golang
 import (
 	"testing"
 
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
