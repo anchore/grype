@@ -22,7 +22,10 @@ func (m *Matcher) Type() match.MatcherType {
 
 func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	matches := make([]match.Match, 0)
-	metadata := p.Metadata.(pkg.GolangBinMetadata)
+	metadata := pkg.GolangBinMetadata{}
+	if p.Metadata != nil {
+		metadata = p.Metadata.(pkg.GolangBinMetadata)
+	}
 
 	// Golang currently does not have a standard way of incorporating the vcs version
 	// into the compiled binary: https://github.com/golang/go/issues/50603

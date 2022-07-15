@@ -70,6 +70,22 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
+			"github:language:go": {
+				"github.com/anchore/coverage": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-coverage-main-module-vuln",
+						VersionConstraint: "< 1.4.0",
+						VersionFormat:     "unknown",
+					},
+				},
+				"github.com/google/uuid": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-uuid-vuln",
+						VersionConstraint: "< 1.4.0",
+						VersionFormat:     "unknown",
+					},
+				},
+			},
 			"github:language:javascript": {
 				"npm": []grypeDB.Vulnerability{
 					{
