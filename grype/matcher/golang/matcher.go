@@ -33,7 +33,8 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 	// into the compiled binary: https://github.com/golang/go/issues/50603
 	// current version information for the main module is incomplete leading to multiple FP
 	// TODO: remove this exclusion when vcs information is included in future go version
-	if p.Name == metadata.MainModule && strings.HasPrefix(p.Version, "v0.0.0-") {
+	isNotCorrected := strings.HasPrefix(p.Version, "v0.0.0-") || strings.HasPrefix(p.Version, "(devel)")
+	if p.Name == metadata.MainModule && isNotCorrected {
 		return matches, nil
 	}
 
