@@ -98,6 +98,31 @@ func (pr *mockVulnStore) stub() {
 				Namespace: "nvd:cpe",
 			},
 		},
+		"funfun": {
+			{
+				PackageName:       "funfun",
+				VersionConstraint: "= 5.2.1",
+				VersionFormat:     version.PythonFormat.String(),
+				ID:                "CVE-2017-fake-6",
+				CPEs: []string{
+					"cpe:2.3:*:funfun:funfun:5.2.1:*:*:*:*:python:*:*",
+					"cpe:2.3:*:funfun:funfun:*:*:*:*:*:python:*:*",
+				},
+				Namespace: "nvd",
+			},
+		},
+		"sw": {
+			{
+				PackageName:       "sw",
+				VersionConstraint: "< 1.0",
+				VersionFormat:     version.UnknownFormat.String(),
+				ID:                "CVE-2017-fake-7",
+				CPEs: []string{
+					"cpe:2.3:*:sw:sw:*:*:*:*:*:puppet:*:*",
+				},
+				Namespace: "nvd",
+			},
+		},
 	}
 }
 
@@ -389,6 +414,116 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 									"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 								},
 								VersionConstraint: "< 4.0 (unknown)",
+							},
+							Matcher: matcher,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "filtered out match due to target_sw mismatch",
+			p: pkg.Package{
+				CPEs: []syftPkg.CPE{
+					must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:*:*:*")),
+				},
+				Name:     "funfun",
+				Version:  "5.2.1",
+				Language: syftPkg.Rust,
+				Type:     syftPkg.RustPkg,
+			},
+			expected: []match.Match{},
+		},
+		{
+			name: "target_sw mismatch with unsupported target_sw",
+			p: pkg.Package{
+				CPEs: []syftPkg.CPE{
+					must(syftPkg.NewCPE("cpe:2.3:*:sw:sw:*:*:*:*:*:*:*:*")),
+				},
+				Name:     "sw",
+				Version:  "0.1",
+				Language: syftPkg.Go,
+				Type:     syftPkg.GoModulePkg,
+			},
+			expected: []match.Match{
+				{
+					Vulnerability: vulnerability.Vulnerability{
+						ID: "CVE-2017-fake-7",
+					},
+					Package: pkg.Package{
+						CPEs: []syftPkg.CPE{
+							must(syftPkg.NewCPE("cpe:2.3:*:sw:sw:*:*:*:*:*:*:*:*")),
+						},
+						Name:     "sw",
+						Version:  "0.1",
+						Language: syftPkg.Go,
+						Type:     syftPkg.GoModulePkg,
+					},
+					Details: []match.Detail{
+						{
+							Type:       match.CPEMatch,
+							Confidence: 0.9,
+							SearchedBy: CPEParameters{
+								CPEs:      []string{"cpe:2.3:*:sw:sw:*:*:*:*:*:*:*:*"},
+								Namespace: "nvd",
+							},
+							Found: CPEResult{
+								CPEs: []string{
+									"cpe:2.3:*:sw:sw:*:*:*:*:*:puppet:*:*",
+								},
+								VersionConstraint: "< 1.0 (unknown)",
+							},
+							Matcher: matcher,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "match included even though multiple cpes are mismatch",
+			p: pkg.Package{
+				CPEs: []syftPkg.CPE{
+					must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:rust:*:*")),
+					must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:rails:*:*")),
+					must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:ruby:*:*")),
+					must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:python:*:*")),
+				},
+				Name:     "funfun",
+				Version:  "5.2.1",
+				Language: syftPkg.Python,
+				Type:     syftPkg.PythonPkg,
+			},
+			expected: []match.Match{
+				{
+					Vulnerability: vulnerability.Vulnerability{
+						ID: "CVE-2017-fake-6",
+					},
+					Package: pkg.Package{
+						CPEs: []syftPkg.CPE{
+							must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:rust:*:*")),
+							must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:rails:*:*")),
+							must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:ruby:*:*")),
+							must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:python:*:*")),
+						},
+						Name:     "funfun",
+						Version:  "5.2.1",
+						Language: syftPkg.Python,
+						Type:     syftPkg.PythonPkg,
+					},
+					Details: []match.Detail{
+						{
+							Type:       match.CPEMatch,
+							Confidence: 0.9,
+							SearchedBy: CPEParameters{
+								CPEs:      []string{"cpe:2.3:*:funfun:funfun:*:*:*:*:*:python:*:*"},
+								Namespace: "nvd",
+							},
+							Found: CPEResult{
+								CPEs: []string{
+									"cpe:2.3:*:funfun:funfun:*:*:*:*:*:python:*:*",
+									"cpe:2.3:*:funfun:funfun:5.2.1:*:*:*:*:python:*:*",
+								},
+								VersionConstraint: "= 5.2.1 (python)",
 							},
 							Matcher: matcher,
 						},
