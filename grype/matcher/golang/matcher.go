@@ -34,8 +34,8 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 	// current version information for the main module is incomplete leading to multiple FP
 	// TODO: remove this exclusion when vcs information is included in future go version
 	if p.Name == metadata.MainModule && strings.HasPrefix(p.Version, "v0.0.0-") {
-		return search.ByCriteria(store, d, p, m.Type(), search.CommonCriteria...)
+		return matches, nil
 	}
 
-	return matches, nil
+	return search.ByCriteria(store, d, p, m.Type(), search.CommonCriteria...)
 }
