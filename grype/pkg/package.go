@@ -89,6 +89,11 @@ func dataFromPkg(p pkg.Package) (MetadataType, interface{}, []UpstreamPackage) {
 	var metadataType MetadataType
 
 	switch p.MetadataType {
+	case pkg.GolangBinMetadataType:
+		if m := golangBinDataFromPkg(p); m != nil {
+			metadata = *m
+			metadataType = GolangBinMetadataType
+		}
 	case pkg.DpkgMetadataType:
 		upstreams = dpkgDataFromPkg(p)
 	case pkg.RpmdbMetadataType:
@@ -107,6 +112,20 @@ func dataFromPkg(p pkg.Package) (MetadataType, interface{}, []UpstreamPackage) {
 		upstreams = apkDataFromPkg(p)
 	}
 	return metadataType, metadata, upstreams
+}
+
+func golangBinDataFromPkg(p pkg.Package) (m *GolangBinMetadata) {
+	metadata := &GolangBinMetadata{}
+	if value, ok := p.Metadata.(pkg.GolangBinMetadata); ok {
+		if value.BuildSettings != nil {
+			metadata.BuildSettings = value.BuildSettings
+		}
+		metadata.GoCompiledVersion = value.GoCompiledVersion
+		metadata.Architecture = value.Architecture
+		metadata.H1Digest = value.H1Digest
+		metadata.MainModule = value.MainModule
+	}
+	return metadata
 }
 
 func dpkgDataFromPkg(p pkg.Package) (upstreams []UpstreamPackage) {

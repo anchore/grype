@@ -251,9 +251,17 @@ func TestNew(t *testing.T) {
 			syftPkg: syftPkg.Package{
 				MetadataType: syftPkg.GolangBinMetadataType,
 				Metadata: syftPkg.GolangBinMetadata{
+					BuildSettings:     map[string]string{},
 					GoCompiledVersion: "1.0.0",
 					H1Digest:          "a",
+					MainModule:        "myMainModule",
 				},
+			},
+			metadata: GolangBinMetadata{
+				BuildSettings:     map[string]string{},
+				GoCompiledVersion: "1.0.0",
+				H1Digest:          "a",
+				MainModule:        "myMainModule",
 			},
 		},
 		{

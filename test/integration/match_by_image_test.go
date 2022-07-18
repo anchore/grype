@@ -190,6 +190,44 @@ func addRubyMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 	})
 }
 
+func addGolangMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore, theResult *match.Matches) {
+	packages := catalog.PackagesByPath("/go-app")
+	if len(packages) != 2 {
+		t.Logf("Golang Packages: %+v", packages)
+		t.Fatalf("problem with upstream syft cataloger (golang)")
+	}
+
+	for _, p := range packages {
+		thePkg := pkg.New(p)
+		theVuln := theStore.backend["github:language:go"][p.Name][0]
+		vulnObj, err := vulnerability.NewVulnerability(theVuln)
+		if err != nil {
+			t.Fatalf("failed to create vuln obj: %+v", err)
+		}
+
+		// no vuln match supported for main module
+		if p.Name != "github.com/anchore/coverage" {
+			theResult.Add(match.Match{
+				Vulnerability: *vulnObj,
+				Package:       thePkg,
+				Details: []match.Detail{
+					{
+						Type:       match.ExactDirectMatch,
+						Confidence: 1.0,
+						SearchedBy: map[string]interface{}{
+							"langauge": "go",
+						},
+						Found: map[string]interface{}{
+							"constraint": " < 1.4.0 (golang)",
+						},
+						Matcher: match.GoModuleMatcher,
+					},
+				},
+			})
+		}
+	}
+}
+
 func addJavaMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore, theResult *match.Matches) {
 	packages := make([]syftPkg.Package, 0)
 	for p := range catalog.Enumerate(syftPkg.JavaPkg) {
@@ -348,7 +386,6 @@ func addSlesMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 		t.Fatalf("failed to create vuln obj: %+v", err)
 	}
 	theResult.Add(match.Match{
-
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
 		Details: []match.Detail{
@@ -391,6 +428,7 @@ func TestMatchByImage(t *testing.T) {
 				addDpkgMatches(t, theSource, catalog, theStore, &expectedMatches)
 				addJavascriptMatches(t, theSource, catalog, theStore, &expectedMatches)
 				addDotnetMatches(t, theSource, catalog, theStore, &expectedMatches)
+				addGolangMatches(t, theSource, catalog, theStore, &expectedMatches)
 				return expectedMatches
 			},
 		},
