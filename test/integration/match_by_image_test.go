@@ -311,7 +311,7 @@ func addPortageMatches(t *testing.T, theSource source.Source, catalog *syftPkg.C
 		t.Fatalf("problem with upstream syft cataloger (portage)")
 	}
 	thePkg := pkg.New(packages[0])
-	theVuln := theStore.backend["gentoo:distro:gentoo:portage"][thePkg.Name][0]
+	theVuln := theStore.backend["gentoo:distro:gentoo:2.8"][thePkg.Name][0]
 	vulnObj, err := vulnerability.NewVulnerability(theVuln)
 	if err != nil {
 		t.Fatalf("failed to create vuln obj: %+v", err)

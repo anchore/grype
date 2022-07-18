@@ -109,7 +109,7 @@ func (i *Index) NamespacesForDistro(d *grypeDistro.Distro) []*distro.Namespace {
 		// Fall back into the manual mapping logic derived from
 		// https://github.com/anchore/enterprise/blob/eb71bc6686b9f4c92347a4e95bec828cee879197/anchore_engine/services/policy_engine/__init__.py#L127-L140
 		switch d.Type {
-		case grypeDistro.CentOS, grypeDistro.RedHat, grypeDistro.Fedora, grypeDistro.RockyLinux, grypeDistro.AlmaLinux:
+		case grypeDistro.CentOS, grypeDistro.RedHat, grypeDistro.Fedora, grypeDistro.RockyLinux, grypeDistro.AlmaLinux, grypeDistro.Gentoo:
 			// TODO: there is no mapping of fedora version to RHEL latest version (only the name)
 			distroKey = fmt.Sprintf("%s:%d", strings.ToLower(string(grypeDistro.RedHat)), versionSegments[0])
 			if v, ok := i.byDistroKey[distroKey]; ok {

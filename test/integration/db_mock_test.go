@@ -70,8 +70,31 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
-      "gentoo:distro:gentoo:portage": {},
-			"github:language:go": {},
+			"gentoo:distro:gentoo:2.8": {
+				"app-containers/skopeo": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-gentoo-skopeo",
+						VersionConstraint: "< 1.6.0",
+						VersionFormat:     "unknown",
+					},
+				},
+			},
+			"github:language:go": {
+				"github.com/anchore/coverage": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-coverage-main-module-vuln",
+						VersionConstraint: "< 1.4.0",
+						VersionFormat:     "unknown",
+					},
+				},
+				"github.com/google/uuid": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-uuid-vuln",
+						VersionConstraint: "< 1.4.0",
+						VersionFormat:     "unknown",
+					},
+				},
+			},
 			"github:language:javascript": {
 				"npm": []grypeDB.Vulnerability{
 					{
