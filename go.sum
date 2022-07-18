@@ -256,6 +256,8 @@ github.com/anchore/sqlite v1.4.6-0.20220607210448-bcc6ee5c4963 h1:vrf2PYH77vqVJo
 github.com/anchore/sqlite v1.4.6-0.20220607210448-bcc6ee5c4963/go.mod h1:AVRyXOUP0hTz9Cb8OlD1XnwA8t4lBPfTuwPHmEUuiLc=
 github.com/anchore/stereoscope v0.0.0-20220708133445-777471f38c5b h1:cDOGZbZYFNidVKJ0eO+pC3B0o23O95bXLyAck5fLiNE=
 github.com/anchore/stereoscope v0.0.0-20220708133445-777471f38c5b/go.mod h1:31d7mF3OgaWrCU8zVJTttBxaz57nP0tCPgKCCKcS5q8=
+github.com/anchore/syft v0.51.0 h1:KT3NI8Dm+96Bk5vXv+FfOhuT4yiDJCCyDBbzi61YyIM=
+github.com/anchore/syft v0.51.0/go.mod h1:xIuJX9YM4baOldrA6Pk/C2oBMpimcFIdYanX4412Njo=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/brotli v1.0.1/go.mod h1:loMXtMfwqflxFJPmdbJO0a3KNoPuLBgiu3qAvBg8x/Y=
 github.com/andybalholm/brotli v1.0.2/go.mod h1:loMXtMfwqflxFJPmdbJO0a3KNoPuLBgiu3qAvBg8x/Y=
