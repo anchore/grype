@@ -10,6 +10,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/apk"
 	"github.com/anchore/grype/grype/matcher/dotnet"
 	"github.com/anchore/grype/grype/matcher/dpkg"
+	"github.com/anchore/grype/grype/matcher/golang"
 	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
 	"github.com/anchore/grype/grype/matcher/msrc"
@@ -45,6 +46,7 @@ func NewDefaultMatchers(mc Config) []Matcher {
 		java.NewJavaMatcher(mc.Java),
 		&javascript.Matcher{},
 		&apk.Matcher{},
+		&golang.Matcher{},
 		&msrc.Matcher{},
 	}
 }
