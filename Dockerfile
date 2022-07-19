@@ -2,7 +2,7 @@ FROM alpine:latest AS build
 
 RUN apk --no-cache add ca-certificates
 
-FROM scratch
+FROM gcr.io/distroless/base
 # needed for version check HTTPS request
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
