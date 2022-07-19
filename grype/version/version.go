@@ -20,6 +20,7 @@ type rich struct {
 	debVer  *debVersion
 	rpmVer  *rpmVersion
 	kbVer   *kbVersion
+	portVer *portageVersion
 }
 
 func NewVersion(raw string, format Format) (*Version, error) {
@@ -75,6 +76,10 @@ func (v *Version) populate() error {
 		ver, err := newGemfileVersion(v.Raw)
 		v.rich.semVer = ver
 		return err
+	case PortageFormat:
+		ver := newPortageVersion(v.Raw)
+		v.rich.portVer = &ver
+		return nil
 	case UnknownFormat:
 		// use the raw string + fuzzy constraint
 		return nil

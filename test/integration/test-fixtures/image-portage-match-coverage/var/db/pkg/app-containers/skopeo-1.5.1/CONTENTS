@@ -1,0 +1,13 @@
+dir /usr
+dir /usr/bin
+obj /usr/bin/skopeo 376c02bd3b22804df8fdfdc895e7dbfb 1649284374
+dir /etc
+dir /etc/containers
+obj /etc/containers/policy.json c01eb6950f03419e09d4fc88cb42ff6f 1649284375
+dir /etc/containers/registries.d
+obj /etc/containers/registries.d/default.yaml e6e66cd3c24623e0667f26542e0e08f6 1649284375
+dir /var
+dir /var/lib
+dir /var/lib/atomic
+dir /var/lib/atomic/sigstore
+obj /var/lib/atomic/sigstore/.keep_app-containers_skopeo-0 d41d8cd98f00b204e9800998ecf8427e 1649284375

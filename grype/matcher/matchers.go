@@ -14,6 +14,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
 	"github.com/anchore/grype/grype/matcher/msrc"
+	"github.com/anchore/grype/grype/matcher/portage"
 	"github.com/anchore/grype/grype/matcher/python"
 	"github.com/anchore/grype/grype/matcher/rpmdb"
 	"github.com/anchore/grype/grype/matcher/ruby"
@@ -48,6 +49,7 @@ func NewDefaultMatchers(mc Config) []Matcher {
 		&apk.Matcher{},
 		&golang.Matcher{},
 		&msrc.Matcher{},
+		&portage.Matcher{},
 	}
 }
 

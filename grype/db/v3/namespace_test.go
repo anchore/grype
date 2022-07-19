@@ -176,6 +176,11 @@ func Test_NamespaceForDistro(t *testing.T) {
 			version:  "8.5",
 			expected: "rhel:8",
 		},
+		{
+			dist:     distro.Gentoo,
+			version:  "", // Gentoo doesn't expose a version
+			expected: "gentoo:",
+		},
 	}
 
 	observedDistros := strset.New()

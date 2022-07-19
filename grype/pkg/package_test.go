@@ -319,13 +319,13 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
-			name: "portage portage-metadata",
+			name: "portage-metadata",
 			syftPkg: syftPkg.Package{
 				MetadataType: syftPkg.PortageMetadataType,
 				Metadata: syftPkg.PortageMetadata{
-					Package:       "portage-testing",
-					Version:       "v0.0.1",
-					InstalledSize: 0,
+					Package:       "net-misc/curl",
+					Version:       "1.2.3",
+					InstalledSize: 1,
 				},
 			},
 		},
