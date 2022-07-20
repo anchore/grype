@@ -13,7 +13,7 @@ services:
   grype:
     build:
       context: .
-      dockerfile: dev.Dockerfile
+      dockerfile: Dockerfile.dev
     volumes:
       - .:/grype
       - docker-certs-client:/certs/client:ro
