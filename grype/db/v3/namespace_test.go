@@ -330,6 +330,19 @@ func Test_NamespacesForLanguage(t *testing.T) {
 				"a-name",
 			},
 		},
+		{
+			language: syftPkg.Haskell,
+			namerInput: &pkg.Package{
+				ID:   pkg.ID(uuid.NewString()),
+				Name: "h-name",
+			},
+			expectedNamespaces: []string{
+				"github:haskell",
+			},
+			expectedNames: []string{
+				"h-name",
+			},
+		},
 	}
 
 	observedLanguages := strset.New()

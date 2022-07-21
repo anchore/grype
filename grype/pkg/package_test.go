@@ -329,6 +329,16 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "hackage-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.HackageMetadataType,
+				Metadata: syftPkg.HackageMetadata{
+					Name:    "hackage",
+					Version: "v0.0.1",
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
