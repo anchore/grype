@@ -1,0 +1,17 @@
+active-repositories: hackage.haskell.org:merge
+constraints: any.Cabal ==3.2.1.0,
+             any.Diff ==0.4.1,
+             any.HTTP ==4000.3.16,
+             any.HUnit ==1.6.2.0,
+             any.OneTuple ==0.3.1,
+             tls +compat -hans +network,
+             any.Only ==0.1,
+             any.PyF ==0.10.2.0,
+             any.QuickCheck ==2.14.2,
+             semigroups +binary +bytestring -bytestring-builder +containers +deepseq +hashable +tagged +template-haskell +text +transformers +unordered-containers,
+             any.RSA ==2.4.1,
+             any.SHA ==1.6.4.4,
+             void -safe,
+             any.Spock ==0.14.0.0,
+
+index-state: hackage.haskell.org 2022-07-07T01:01:53Z

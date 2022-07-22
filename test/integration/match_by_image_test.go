@@ -407,6 +407,40 @@ func addSlesMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 	})
 }
 
+func addHaskellMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Catalog, theStore *mockStore, theResult *match.Matches) {
+	packages := catalog.PackagesByPath("/haskell/stack.yaml")
+	if len(packages) < 1 {
+		t.Logf("Haskel Packages: %+v", packages)
+		t.Fatalf("problem with upstream syft cataloger (haskell)")
+	}
+	thePkg := pkg.New(packages[0])
+	theVuln := theStore.backend["github:language:haskell"][thePkg.Name][0]
+	vulnObj, err := vulnerability.NewVulnerability(theVuln)
+	if err != nil {
+		t.Fatalf("failed to create vuln obj: %+v", err)
+	}
+	theResult.Add(match.Match{
+		Vulnerability: *vulnObj,
+		Package:       thePkg,
+		Details: []match.Detail{
+			{
+				Type:       match.ExactDirectMatch,
+				Confidence: 1.0,
+				SearchedBy: map[string]interface{}{
+					"language": map[string]string{
+						"type":    "haskell",
+						"version": "",
+					},
+				},
+				Found: map[string]interface{}{
+					"constraint": "< 0.9.0 (haskell)",
+				},
+				Matcher: match.UnknownMatcherType,
+			},
+		},
+	})
+}
+
 func TestMatchByImage(t *testing.T) {
 	observedMatchers := internal.NewStringSet()
 	definedMatchers := internal.NewStringSet()
@@ -429,6 +463,7 @@ func TestMatchByImage(t *testing.T) {
 				addJavascriptMatches(t, theSource, catalog, theStore, &expectedMatches)
 				addDotnetMatches(t, theSource, catalog, theStore, &expectedMatches)
 				addGolangMatches(t, theSource, catalog, theStore, &expectedMatches)
+				addHaskellMatches(t, theSource, catalog, theStore, &expectedMatches)
 				return expectedMatches
 			},
 		},
@@ -490,6 +525,9 @@ func TestMatchByImage(t *testing.T) {
 			// TODO: relationships are not verified at this time
 			config := cataloger.DefaultConfig()
 			config.Search.Scope = source.SquashedScope
+
+			// enable all catalogers to cover non default cases
+			config.Catalogers = []string{"all"}
 
 			theCatalog, _, theDistro, err := syft.CatalogPackages(theSource, config)
 			if err != nil {
