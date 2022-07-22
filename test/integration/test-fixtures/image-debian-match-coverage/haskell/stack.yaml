@@ -1,0 +1,16 @@
+flags: {}
+extra-package-dbs: []
+packages:
+  - .
+resolver: lts-18.28
+extra-deps:
+  - ShellCheck-0.8.0@sha256:353c9322847b661e4c6f7c83c2acf8e5c08b682fbe516c7d46c29605937543df,3297
+  - colourista-0.1.0.1@sha256:98353ee0e2f5d97d2148513f084c1cd37dfda03e48aa9dd7a017c9d9c0ba710e,3307
+  - language-docker-11.0.0@sha256:3406ff0c1d592490f53ead8cf2cd22bdf3d79fd125ccaf3add683f6d71c24d55,3883
+  - spdx-1.0.0.2@sha256:7dfac9b454ff2da0abb7560f0ffbe00ae442dd5cb76e8be469f77e6988a70fed,2008
+  - hspec-2.9.4@sha256:658a6a74d5a70c040edd6df2a12228c6d9e63082adaad1ed4d0438ad082a0ef3,1709
+  - hspec-core-2.9.4@sha256:a126e9087409fef8dcafcd2f8656456527ac7bb163ed4d9cb3a57589042a5fe8,6498
+  - hspec-discover-2.9.4@sha256:fbcf49ecfc3d4da53e797fd0275264cba776ffa324ee223e2a3f4ec2d2c9c4a6,2165
+  - stm-2.5.0.2@sha256:e4dc6473faaa75fbd7eccab4e3ee1d651d75bb0e49946ef0b8b751ccde771a55,2314
+ghc-options:
+  "$everything": -haddock

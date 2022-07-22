@@ -147,6 +147,15 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
+			"github:language:haskell": {
+				"ShellCheck": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-haskell-sample",
+						VersionConstraint: "< 0.9.0",
+						VersionFormat:     "haskell",
+					},
+				},
+			},
 			"debian:distro:debian:8": {
 				"apt-dev": []grypeDB.Vulnerability{
 					{
