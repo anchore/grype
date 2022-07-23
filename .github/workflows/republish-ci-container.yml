@@ -1,0 +1,19 @@
+name: "Republish grype:ci Container"
+on:
+  repository_dispatch:
+    types: [republish-ci-image]
+env:
+  GO_VERSION: "1.18.x"
+  GO_STABLE_VERSION: true
+
+jobs:
+  republish-ci-container:
+    environment: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: 
+        run: make republish-ci-container
+        env:
+          DOCKER_USERNAME: ${{ secrets.TOOLBOX_DOCKER_USER }}
+          DOCKER_PASSWORD: ${{ secrets.TOOLBOX_DOCKER_PASS }}

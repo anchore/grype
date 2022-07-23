@@ -287,6 +287,11 @@ release: clean-dist CHANGELOG.md  ## Build and publish final binaries and packag
 	# upload the version file that supports the application version update check (excluding pre-releases)
 	.github/scripts/update-version-file.sh "$(DISTDIR)" "$(VERSION)"
 
+.PHONY: republish-ci-container
+republish-ci-container:
+	cat .goreleaser.ci.yaml >> $(TEMPDIR)/goreleaser.yaml
+	bash -c "$(RELEASE_CMD) --config $(TEMPDIR)/goreleaser.yaml"
+
 .PHONY: clean
 clean: clean-dist clean-snapshot  ## Remove previous builds and result reports
 	$(call safe_rm_rf_children,$(RESULTSDIR))

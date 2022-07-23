@@ -1,0 +1,23 @@
+release:
+  prerelease: auto
+  draft: false
+
+env:
+  # required to support multi architecture docker builds
+  - DOCKER_CLI_EXPERIMENTAL=enabled
+
+dockers:
+  - image_templates:
+      - anchore/grype:ci
+      - ghcr.io/anchore/grype:ci
+    goarch: amd64
+    dockerfile: Dockerfile.ci
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--build-arg=BUILD_DATE={{.Date}}"
+
+docker_manifests:
+  - name_template: anchore/grype:ci
+    image_templates:
+      - anchore/grype:ci
