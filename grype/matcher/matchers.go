@@ -10,9 +10,11 @@ import (
 	"github.com/anchore/grype/grype/matcher/apk"
 	"github.com/anchore/grype/grype/matcher/dotnet"
 	"github.com/anchore/grype/grype/matcher/dpkg"
+	"github.com/anchore/grype/grype/matcher/golang"
 	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
 	"github.com/anchore/grype/grype/matcher/msrc"
+	"github.com/anchore/grype/grype/matcher/portage"
 	"github.com/anchore/grype/grype/matcher/python"
 	"github.com/anchore/grype/grype/matcher/rpmdb"
 	"github.com/anchore/grype/grype/matcher/ruby"
@@ -45,7 +47,9 @@ func NewDefaultMatchers(mc Config) []Matcher {
 		java.NewJavaMatcher(mc.Java),
 		&javascript.Matcher{},
 		&apk.Matcher{},
+		&golang.Matcher{},
 		&msrc.Matcher{},
+		&portage.Matcher{},
 	}
 }
 
@@ -79,7 +83,10 @@ func newMatcherIndex(matchers []Matcher) map[syftPkg.Type][]Matcher {
 	return matcherIndex
 }
 
-func FindMatches(provider vulnerability.Provider, release *linux.Release, matchers []Matcher, packages []pkg.Package) match.Matches {
+func FindMatches(store interface {
+	vulnerability.Provider
+	match.ExclusionProvider
+}, release *linux.Release, matchers []Matcher, packages []pkg.Package) match.Matches {
 	var err error
 	res := match.NewMatches()
 	matcherIndex := newMatcherIndex(matchers)
@@ -104,7 +111,7 @@ func FindMatches(provider vulnerability.Provider, release *linux.Release, matche
 			matchers = []Matcher{defaultMatcher}
 		}
 		for _, m := range matchers {
-			matches, err := m.Match(provider, d, p)
+			matches, err := m.Match(store, d, p)
 			if err != nil {
 				log.Warnf("matcher failed for pkg=%s: %+v", p, err)
 			} else {
@@ -118,7 +125,8 @@ func FindMatches(provider vulnerability.Provider, release *linux.Release, matche
 	packagesProcessed.SetCompleted()
 	vulnerabilitiesDiscovered.SetCompleted()
 
-	res = match.ApplyExplicitIgnoreRules(res)
+	// Filter out matches based off of the records in the exclusion table in the database or from the old hard-coded rules
+	res = match.ApplyExplicitIgnoreRules(store, res)
 
 	return res
 }

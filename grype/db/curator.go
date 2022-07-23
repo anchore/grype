@@ -11,14 +11,14 @@ import (
 	"time"
 
 	"github.com/hako/durafmt"
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/mholt/archiver/v3"
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	archiver "github.com/mholt/archiver/v3"
 	"github.com/spf13/afero"
-	"github.com/wagoodman/go-partybus"
-	"github.com/wagoodman/go-progress"
+	partybus "github.com/wagoodman/go-partybus"
+	progress "github.com/wagoodman/go-progress"
 
-	grypeDB "github.com/anchore/grype/grype/db/v3"
-	"github.com/anchore/grype/grype/db/v3/store"
+	grypeDB "github.com/anchore/grype/grype/db/v4"
+	"github.com/anchore/grype/grype/db/v4/store"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
@@ -77,15 +77,15 @@ func (c Curator) SupportedSchema() int {
 	return c.targetSchema
 }
 
-func (c *Curator) GetStore() (grypeDB.StoreReader, error) {
+func (c *Curator) GetStore() (grypeDB.StoreReader, grypeDB.DBCloser, error) {
 	// ensure the DB is ok
 	_, err := c.validateIntegrity(c.dbDir)
 	if err != nil {
-		return nil, fmt.Errorf("vulnerability database is invalid (run db update to correct): %+v", err)
+		return nil, nil, fmt.Errorf("vulnerability database is invalid (run db update to correct): %+v", err)
 	}
 
 	s, err := store.New(c.dbPath, false)
-	return s, err
+	return s, s, err
 }
 
 func (c *Curator) Status() Status {

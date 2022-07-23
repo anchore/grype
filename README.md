@@ -41,6 +41,7 @@ A vulnerability scanner for container images and filesystems. Easily [install th
   - Dotnet (deps.json)
   - Golang (go.mod)
   - PHP (Composer)
+  - Rust (Cargo)
 - Supports Docker and OCI image formats
 - Consume SBOM [attestations](https://github.com/anchore/syft#sbom-attestation).
 
@@ -362,6 +363,8 @@ libssl1.1     1.1.1k-r0             CVE-2021-3711   Critical
 NAME       INSTALLED  FIXED-IN   VULNERABILITY   SEVERITY
 apk-tools  2.10.6-r0  2.10.7-r0  CVE-2021-36159  Critical
 ```
+
+If you want Grype to only report vulnerabilities **that do not have a confirmed fix**, you can use the `--only-notfixed` flag. (This automatically adds [ignore rules](#specifying-matches-to-ignore) into Grype's configuration, such that vulnerabilities that are fixed will be ignored.)
 
 ## Grype's database
 

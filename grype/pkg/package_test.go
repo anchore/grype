@@ -251,9 +251,17 @@ func TestNew(t *testing.T) {
 			syftPkg: syftPkg.Package{
 				MetadataType: syftPkg.GolangBinMetadataType,
 				Metadata: syftPkg.GolangBinMetadata{
+					BuildSettings:     map[string]string{},
 					GoCompiledVersion: "1.0.0",
 					H1Digest:          "a",
+					MainModule:        "myMainModule",
 				},
+			},
+			metadata: GolangBinMetadata{
+				BuildSettings:     map[string]string{},
+				GoCompiledVersion: "1.0.0",
+				H1Digest:          "a",
+				MainModule:        "myMainModule",
 			},
 		},
 		{
@@ -286,6 +294,48 @@ func TestNew(t *testing.T) {
 					Path:     "a",
 					Sha512:   "a",
 					HashPath: "a",
+				},
+			},
+		},
+		{
+			name: "cpp conan-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.ConanaMetadataType,
+				Metadata: syftPkg.ConanMetadata{
+					Name:    "name",
+					Version: "version",
+				},
+			},
+		},
+		{
+			name: "cocoapods cocoapods-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.CocoapodsMetadataType,
+				Metadata: syftPkg.CocoapodsMetadata{
+					Name:    "name",
+					Version: "version",
+					PkgHash: "123eere234",
+				},
+			},
+		},
+		{
+			name: "portage-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.PortageMetadataType,
+				Metadata: syftPkg.PortageMetadata{
+					Package:       "net-misc/curl",
+					Version:       "1.2.3",
+					InstalledSize: 1,
+				},
+			},
+		},
+		{
+			name: "hackage-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.HackageMetadataType,
+				Metadata: syftPkg.HackageMetadata{
+					Name:    "hackage",
+					Version: "v0.0.1",
 				},
 			},
 		},

@@ -13,7 +13,7 @@ type semanticVersion struct {
 func newSemanticVersion(raw string) (*semanticVersion, error) {
 	verObj, err := hashiVer.NewVersion(normalizer.Replace(raw))
 	if err != nil {
-		return nil, fmt.Errorf("unable to crate semver obj: %w", err)
+		return nil, fmt.Errorf("unable to create semver obj: %w", err)
 	}
 	return &semanticVersion{
 		verObj: verObj,

@@ -27,6 +27,7 @@ const (
 	Mariner      Type = "mariner"
 	RockyLinux   Type = "rockylinux"
 	AlmaLinux    Type = "almalinux"
+	Gentoo       Type = "gentoo"
 )
 
 // All contains all Linux distribution options
@@ -48,6 +49,7 @@ var All = []Type{
 	Mariner,
 	RockyLinux,
 	AlmaLinux,
+	Gentoo,
 }
 
 // IDMapping connects a distro ID like "ubuntu" to a Distro type
@@ -69,6 +71,7 @@ var IDMapping = map[string]Type{
 	"mariner":       Mariner,
 	"rocky":         RockyLinux,
 	"almalinux":     AlmaLinux,
+	"gentoo":        Gentoo,
 }
 
 func TypeFromRelease(release linux.Release) Type {

@@ -14,13 +14,14 @@ import (
 
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db"
-	grypeDb "github.com/anchore/grype/grype/db/v3"
+	grypeDb "github.com/anchore/grype/grype/db/v4"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/grypeerr"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter"
+	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/bus"
@@ -40,6 +41,10 @@ var ignoreNonFixedMatches = []match.IgnoreRule{
 	{FixState: string(grypeDb.NotFixedState)},
 	{FixState: string(grypeDb.WontFixState)},
 	{FixState: string(grypeDb.UnknownFixState)},
+}
+
+var ignoreFixedMatches = []match.IgnoreRule{
+	{FixState: string(grypeDb.FixedState)},
 }
 
 var (
@@ -64,6 +69,7 @@ You can also explicitly specify the scheme to use:
     {{.appName}} registry:yourrepo/yourimage:tag        pull image directly from a registry (no container runtime required)
     {{.appName}} att:attestation.json --key cosign.pub  explicitly use the input as an attestation
     {{.appName}} csv:path/to/yourcsv                    read a CSV of CPE,PURL from a path on disk
+
 You can also pipe in Syft JSON directly:
 	syft yourimage:tag -o json | {{.appName}}
 
@@ -147,6 +153,11 @@ func setRootFlags(flags *pflag.FlagSet) {
 		"ignore matches for vulnerabilities that are not fixed",
 	)
 
+	flags.BoolP(
+		"only-notfixed", "", false,
+		"ignore matches for vulnerabilities that are fixed",
+	)
+
 	flags.StringArrayP(
 		"exclude", "", nil,
 		"exclude paths from being scanned using a glob expression",
@@ -197,6 +208,10 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 	}
 
 	if err := viper.BindPFlag("only-fixed", flags.Lookup("only-fixed")); err != nil {
+		return err
+	}
+
+	if err := viper.BindPFlag("only-notfixed", flags.Lookup("only-notfixed")); err != nil {
 		return err
 	}
 
@@ -282,9 +297,9 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			}
 		}
 
-		var provider vulnerability.Provider
-		var metadataProvider vulnerability.MetadataProvider
-		var dbStatus *db.Status
+		var store *store.Store
+		var status *db.Status
+		var dbCloser *db.Closer
 		var packages []pkg.Package
 		var context pkg.Context
 		var wg = &sync.WaitGroup{}
@@ -295,8 +310,8 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		go func() {
 			defer wg.Done()
 			log.Debug("loading DB")
-			provider, metadataProvider, dbStatus, err = grype.LoadVulnerabilityDB(appConfig.DB.ToCuratorConfig(), appConfig.DB.AutoUpdate)
-			if err = validateDBLoad(err, dbStatus); err != nil {
+			store, status, dbCloser, err = grype.LoadVulnerabilityDB(appConfig.DB.ToCuratorConfig(), appConfig.DB.AutoUpdate)
+			if err = validateDBLoad(err, status); err != nil {
 				errs <- err
 				return
 			}
@@ -319,8 +334,16 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			return
 		}
 
+		if dbCloser != nil {
+			defer dbCloser.Close()
+		}
+
 		if appConfig.OnlyFixed {
 			appConfig.Ignore = append(appConfig.Ignore, ignoreNonFixedMatches...)
+		}
+
+		if appConfig.OnlyNotFixed {
+			appConfig.Ignore = append(appConfig.Ignore, ignoreFixedMatches...)
 		}
 
 		applyDistroHint(&context, appConfig)
@@ -329,7 +352,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			Java: appConfig.ExternalSources.ToJavaMatcherConfig(),
 		})
 
-		allMatches := grype.FindVulnerabilitiesForPackage(provider, context.Distro, matchers, packages)
+		allMatches := grype.FindVulnerabilitiesForPackage(*store, context.Distro, matchers, packages)
 		remainingMatches, ignoredMatches := match.ApplyIgnoreRules(allMatches, appConfig.Ignore)
 
 		if count := len(ignoredMatches); count > 0 {
@@ -339,13 +362,13 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		// determine if there are any severities >= to the max allowable severity (which is optional).
 		// note: until the shared file lock in sqlittle is fixed the sqlite DB cannot be access concurrently,
 		// implying that the fail-on-severity check must be done before sending the presenter object.
-		if hitSeverityThreshold(failOnSeverity, remainingMatches, metadataProvider) {
+		if hitSeverityThreshold(failOnSeverity, remainingMatches, store) {
 			errs <- grypeerr.ErrAboveSeverityThreshold
 		}
 
 		bus.Publish(partybus.Event{
 			Type:  event.VulnerabilityScanningFinished,
-			Value: presenter.GetPresenter(presenterConfig, remainingMatches, ignoredMatches, packages, context, metadataProvider, appConfig, dbStatus),
+			Value: presenter.GetPresenter(presenterConfig, remainingMatches, ignoredMatches, packages, context, store, appConfig, status),
 		})
 	}()
 	return errs
@@ -396,7 +419,7 @@ func validateDBLoad(loadErr error, status *db.Status) error {
 		return fmt.Errorf("failed to load vulnerability db: %w", loadErr)
 	}
 	if status == nil {
-		return fmt.Errorf("unable to determine DB status")
+		return fmt.Errorf("unable to determine the status of the vulnerability db")
 	}
 	if status.Err != nil {
 		return fmt.Errorf("db could not be loaded: %w", status.Err)
