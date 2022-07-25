@@ -143,7 +143,7 @@ func getDefaultURL() (defaultURL []*url.URL, err error) {
 
 	recent := available[:2]
 	for _, entry := range recent {
-		defaultURL = append(defaultURL, entry.URL)
+		defaultURL = append([]*url.URL{entry.URL}, defaultURL...)
 	}
 
 	return defaultURL, nil
