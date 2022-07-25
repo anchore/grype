@@ -130,6 +130,8 @@ jobs:
       - name: Build & publish release artifacts
         run: make release
         env:
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_USERNAME: ${{ secrets.TOOLBOX_DOCKER_USER }}
           DOCKER_PASSWORD: ${{ secrets.TOOLBOX_DOCKER_PASS }}
           # we use a different token than GITHUB_SECRETS to additionally allow updating the homebrew repos

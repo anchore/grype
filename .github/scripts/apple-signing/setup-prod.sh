@@ -21,6 +21,14 @@ fi
 if [ -z "$DOCKER_PASSWORD" ]; then
   exit_with_error "DOCKER_PASSWORD not set"
 fi
+
+if [ -z "$GHCR_USERNAME" ]; then
+  exit_with_error "GHCR_USERNAME not set"
+fi
+
+if [ -z "$GHCR_PASSWORD" ]; then
+  exit_with_error "GHCR_PASSWORD not set"
+fi
 set -u
 
 # setup_signing
@@ -41,4 +49,5 @@ setup_signing() {
 
   commentary "log into docker -- required for publishing (since the default keychain has now been replaced)"
   echo "${DOCKER_PASSWORD}" | docker login docker.io -u "${DOCKER_USERNAME}"  --password-stdin
+  echo "${GHCR_PASSWORD}" | docker login ghcr.io -u "${GHCR_USERNAME}"  --password-stdin
 }
