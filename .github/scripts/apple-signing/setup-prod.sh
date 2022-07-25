@@ -21,6 +21,14 @@ fi
 if [ -z "$DOCKER_PASSWORD" ]; then
   exit_with_error "DOCKER_PASSWORD not set"
 fi
+
+if [ -z "$GHCR_USERNAME" ]; then
+  exit_with_error "GHCR_USERNAME not set"
+fi
+
+if [ -z "$GHCR_PASSWORD" ]; then
+  exit_with_error "GHCR_PASSWORD not set"
+fi
 set -u
 
 # setup_signing
