@@ -43,6 +43,12 @@ func getGrypeSnapshotLocation(tb testing.TB, goOS string) string {
 		return os.Getenv("GRYPE_BINARY_LOCATION")
 	}
 
+	// note: for amd64 we need to update the snapshot location with the v1 suffix
+	// see : https://goreleaser.com/customization/build/#why-is-there-a-_v1-suffix-on-amd64-builds
+	archPath := runtime.GOARCH
+	if runtime.GOARCH == "amd64" {
+		archPath = fmt.Sprintf("%s_v1", archPath)
+	}
 	// note: there is a subtle - vs _ difference between these versions
 	switch goOS {
 	case "darwin":
