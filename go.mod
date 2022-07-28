@@ -56,7 +56,7 @@ require (
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/in-toto/in-toto-golang v0.3.4-0.20211211042327-af1f9fb822bf
 	github.com/secure-systems-lab/go-securesystemslib v0.4.0
-	github.com/sigstore/cosign v1.9.0
+	github.com/sigstore/cosign v1.10.0
 	github.com/sigstore/sigstore v1.2.1-0.20220526001230-8dc4fa90a468
 )
 
