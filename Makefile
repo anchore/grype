@@ -32,7 +32,7 @@ DISTDIR=./dist
 SNAPSHOTDIR=./snapshot
 OS=$(shell uname | tr '[:upper:]' '[:lower:]')
 SYFT_VERSION=$(shell go list -m all | grep github.com/anchore/syft | awk '{print $$2}')
-SNAPSHOT_BIN=$(shell realpath $(shell pwd)/$(SNAPSHOTDIR)/$(OS)-build_$(OS)_amd64_v1/$(BIN))
+SNAPSHOT_BIN=$(realpath $(shell pwd)/$(SNAPSHOTDIR)/$(OS)-build_$(OS)_amd64_v1/$(BIN))
 
 
 ## Variable assertions
@@ -95,8 +95,8 @@ bootstrap-tools: $(TEMPDIR)
 	curl -sSfL https://raw.githubusercontent.com/wagoodman/go-bouncer/master/bouncer.sh | sh -s -- -b $(TEMPDIR)/ v0.4.0
 	curl -sSfL https://raw.githubusercontent.com/anchore/chronicle/main/install.sh | sh -s -- -b $(TEMPDIR)/ v0.3.0
 	# the only difference between goimports and gosimports is that gosimports removes extra whitespace between import blocks (see https://github.com/golang/go/issues/20818)
-	GOBIN="$(shell realpath $(TEMPDIR))" go install github.com/rinchsan/gosimports/cmd/gosimports@v0.1.5
-	GOBIN="$(shell realpath $(TEMPDIR))" go install github.com/neilpa/yajsv@v1.4.0
+	GOBIN="$(realpath $(TEMPDIR))" go install github.com/rinchsan/gosimports/cmd/gosimports@v0.1.5
+	GOBIN="$(realpath $(TEMPDIR))" go install github.com/neilpa/yajsv@v1.4.0
 	.github/scripts/goreleaser-install.sh -b $(TEMPDIR)/ v1.10.3
 
 .PHONY: bootstrap-go
