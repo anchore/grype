@@ -16,10 +16,6 @@ var writerStatements = []string{
 	`PRAGMA journal_mode = MEMORY`,
 }
 
-var readerStatments = []string{
-	`PRAGMA journal_mode = WAL`,
-}
-
 var readOptions = []string{
 	"&immutable=1",
 	"&cache=shared",
@@ -52,13 +48,6 @@ func Open(path string, write bool) (*gorm.DB, error) {
 
 	if write {
 		for _, sqlStmt := range writerStatements {
-			dbObj.Exec(sqlStmt)
-			if dbObj.Error != nil {
-				return nil, fmt.Errorf("unable to execute (%s): %w", sqlStmt, dbObj.Error)
-			}
-		}
-	} else {
-		for _, sqlStmt := range readerStatments {
 			dbObj.Exec(sqlStmt)
 			if dbObj.Error != nil {
 				return nil, fmt.Errorf("unable to execute (%s): %w", sqlStmt, dbObj.Error)
