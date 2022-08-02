@@ -16,6 +16,12 @@ var writerStatements = []string{
 	`PRAGMA journal_mode = MEMORY`,
 }
 
+var readOptions = []string{
+	"immutable=1",
+	"cache=shared",
+	"mode=ro",
+}
+
 // Open a new connection to a sqlite3 database file
 func Open(path string, write bool) (*gorm.DB, error) {
 	if write {
@@ -29,7 +35,10 @@ func Open(path string, write bool) (*gorm.DB, error) {
 	}
 
 	if !write {
-		connStr += "&immutable=1"
+		// &immutable=1&cache=shared&mode=ro
+		for _, o := range readOptions {
+			connStr += fmt.Sprintf("&%s", o)
+		}
 	}
 
 	dbObj, err := gorm.Open(sqlite.Open(connStr), &gorm.Config{Logger: newLogger()})
