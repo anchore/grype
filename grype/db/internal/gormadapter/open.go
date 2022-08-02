@@ -9,7 +9,7 @@ import (
 	"github.com/anchore/sqlite"
 )
 
-var connectStatements = []string{
+var writerStatements = []string{
 	// performance improvements (note: will result in lost data on write interruptions).
 	// on my box it reduces the time to write from 10 minutes to 10 seconds (with ~1GB memory utilization spikes)
 	`PRAGMA synchronous = OFF`,
@@ -17,8 +17,8 @@ var connectStatements = []string{
 }
 
 // Open a new connection to a sqlite3 database file
-func Open(path string, overwrite bool) (*gorm.DB, error) {
-	if overwrite {
+func Open(path string, write bool) (*gorm.DB, error) {
+	if write {
 		// the file may or may not exist, so we ignore the error explicitly
 		_ = os.Remove(path)
 	}
@@ -28,17 +28,24 @@ func Open(path string, overwrite bool) (*gorm.DB, error) {
 		return nil, err
 	}
 
+	if !write {
+		connStr += "&immutable=1"
+	}
+
 	dbObj, err := gorm.Open(sqlite.Open(connStr), &gorm.Config{Logger: newLogger()})
 	if err != nil {
 		return nil, fmt.Errorf("unable to connect to DB: %w", err)
 	}
 
-	for _, sqlStmt := range connectStatements {
-		dbObj.Exec(sqlStmt)
-		if dbObj.Error != nil {
-			return nil, fmt.Errorf("unable to execute (%s): %w", sqlStmt, dbObj.Error)
+	if write {
+		for _, sqlStmt := range writerStatements {
+			dbObj.Exec(sqlStmt)
+			if dbObj.Error != nil {
+				return nil, fmt.Errorf("unable to execute (%s): %w", sqlStmt, dbObj.Error)
+			}
 		}
 	}
+
 	return dbObj, nil
 }
 
