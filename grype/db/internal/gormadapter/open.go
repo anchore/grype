@@ -35,7 +35,7 @@ func Open(path string, write bool) (*gorm.DB, error) {
 	}
 
 	if !write {
-		// &immutable=1&cache=shared&mode=ro&_journal_mode=WAL
+		// &immutable=1&cache=shared&mode=ro
 		for _, o := range readOptions {
 			connStr += fmt.Sprintf("&%s", o)
 		}
