@@ -155,15 +155,26 @@ func (c *Curator) Update() (bool, error) {
 		if err != nil {
 			return false, fmt.Errorf("unable to update vulnerability database: %w", err)
 		}
+
+		if metadata != nil {
+			log.Infof(
+				"updated vulnerability DB from version=%d built=%q to version=%d built=%q",
+				metadata.Version,
+				metadata.Built.String(),
+				updateEntry.Version,
+				updateEntry.Built.String(),
+			)
+			return true, nil
+		}
+
 		log.Infof(
-			"updated vulnerability DB from version=%d built=%q to version=%d built=%q",
-			metadata.Version,
-			metadata.Built.String(),
+			"downloaded new vulnerability DB version=%d built=%q",
 			updateEntry.Version,
 			updateEntry.Built.String(),
 		)
 		return true, nil
 	}
+
 	stage.Current = "no update available"
 	return false, nil
 }
