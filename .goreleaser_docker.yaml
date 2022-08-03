@@ -1,9 +1,5 @@
 # Separate docker configuration to isolate docker dependency away from
 # mac-os runner on github actions.
-# See:
-# https://github.com/anchore/grype/issues/577
-# https://github.com/anchore/grype/issues/519
-# https://github.com/anchore/grype/issues/576
 release:
   disable: true
 
@@ -13,7 +9,6 @@ env:
 
 builds:
   - id: linux-build
-    dir: ./cmd/grype
     binary: grype
     goos:
       - linux
