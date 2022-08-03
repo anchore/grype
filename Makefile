@@ -296,6 +296,7 @@ release-docker-assets:
 	cat .goreleaser_docker.yaml >> $(TEMPDIR)/goreleaser.yaml
 
 	bash -c "\
+		SYFT_VERSION=$(SYFT_VERSION)\
 		$(RELEASE_CMD) \
 			--config $(TEMPDIR)/goreleaser.yaml \
 			--parallelism 1"
@@ -308,6 +309,7 @@ snapshot-docker-assets: # Build snapshot images of docker images that will be pu
 	cat .goreleaser_docker.yaml >> $(TEMPDIR)/goreleaser.yaml
 
 	bash -c "\
+		SYFT_VERSION=$(SYFT_VERSION)\
 		$(SNAPSHOT_CMD) \
 			--config $(TEMPDIR)/goreleaser.yaml \
 			--parallelism 1"
