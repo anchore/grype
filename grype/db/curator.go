@@ -143,7 +143,7 @@ func (c *Curator) Update() (bool, error) {
 	defer downloadProgress.SetCompleted()
 	defer importProgress.SetCompleted()
 
-	updateAvailable, _, updateEntry, err := c.IsUpdateAvailable()
+	updateAvailable, metadata, updateEntry, err := c.IsUpdateAvailable()
 	if err != nil {
 		// we want to continue if possible even if we can't check for an update
 		log.Warnf("unable to check for vulnerability database update")
@@ -155,7 +155,13 @@ func (c *Curator) Update() (bool, error) {
 		if err != nil {
 			return false, fmt.Errorf("unable to update vulnerability database: %w", err)
 		}
-		log.Infof("updated vulnerability DB to version=%d built=%q", updateEntry.Version, updateEntry.Built.String())
+		log.Infof(
+			"updated vulnerability DB from version=%d built=%q to version=%d built=%q",
+			metadata.Version,
+			metadata.Built.String(),
+			updateEntry.Version,
+			updateEntry.Built.String(),
+		)
 		return true, nil
 	}
 	stage.Current = "no update available"
