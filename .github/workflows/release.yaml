@@ -96,7 +96,7 @@ jobs:
     # due to our code signing process, it's vital that we run our release steps on macOS
     runs-on: macos-latest
     steps:
-      - uses: docker-practice/actions-setup-docker@v1.0.8
+      - uses: docker-practice/actions-setup-dockerv1
 
       - uses: actions/setup-go@v2
         with:
