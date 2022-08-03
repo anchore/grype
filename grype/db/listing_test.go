@@ -7,18 +7,9 @@ import (
 
 	"github.com/go-test/deep"
 	"github.com/spf13/afero"
-
-	"github.com/anchore/go-version"
 )
 
 func mustUrl(u *url.URL, err error) *url.URL {
-	if err != nil {
-		panic(err)
-	}
-	return u
-}
-
-func mustConst(u version.Constraints, err error) version.Constraints {
 	if err != nil {
 		panic(err)
 	}
