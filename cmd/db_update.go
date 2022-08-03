@@ -41,7 +41,7 @@ func startDBUpdateCmd() <-chan error {
 
 		result := "No vulnerability database update available\n"
 		if updated {
-			result = "Vulnerability database updated!\n"
+			result = "Vulnerability database updated to latest version!\n"
 		}
 
 		bus.Publish(partybus.Event{
