@@ -20,7 +20,6 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/pkg"
-	type "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/grype/grype/presenter"
 	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -33,6 +32,7 @@ import (
 	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/syft/syft/linux"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -400,7 +400,7 @@ func applyDistroHint(pkgs []pkg.Package, context *pkg.Context, appConfig *config
 	hasOSPackage := false
 	for _, p := range pkgs {
 		switch p.Type {
-		case type.AlpmPkg, type.DebPkg, type.RpmPkg, type.KbPkg:
+		case syftPkg.AlpmPkg, syftPkg.DebPkg, syftPkg.RpmPkg, syftPkg.KbPkg:
 			hasOSPackage = true
 		}
 	}
