@@ -26,7 +26,7 @@ test_positive_snapshot_install_asset() {
   expected_path="${install_dir}/${binary}"
   assertFileExists "${expected_path}" "install_asset os=${os} arch=${arch} format=${format}"
 
-    # directory structure for arch has been updated as of go 1.18
+  # directory structure for arch has been updated as of go 1.18
   # https://goreleaser.com/customization/build/#why-is-there-a-_v1-suffix-on-amd64-buildsjk
   if [ $arch == "amd64" ]; then
 	  arch="amd64_v1"
