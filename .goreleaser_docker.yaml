@@ -15,6 +15,7 @@ builds:
     goarch:
       - amd64
       - arm64
+      = s390x
     # set the modified timestamp on the output binary to the git timestamp to ensure a reproducible build
     mod_timestamp: &build-timestamp '{{ .CommitTimestamp }}'
     env: &build-env
@@ -61,6 +62,21 @@ dockers:
       - "--build-arg=VCS_URL={{.GitURL}}"
 
   - image_templates:
+      - anchore/grype:debug-arm64v8
+      - anchore/grype:{{.Tag}}-debug-arm64v8
+      - ghcr.io/anchore/grype:debug-arm64v8
+      - ghcr.io/anchore/grype:{{.Tag}}-debug-arm64v8
+    goarch: s390x
+    dockerfile: Dockerfile.debug
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/arm64/v8"
+      - "--build-arg=BUILD_DATE={{.Date}}"
+      - "--build-arg=BUILD_VERSION={{.Version}}"
+      - "--build-arg=VCS_REF={{.FullCommit}}"
+      - "--build-arg=VCS_URL={{.GitURL}}"
+
+  - image_templates:
       - anchore/grype:latest
       - anchore/grype:{{.Tag}}
       - ghcr.io/anchore/grype:latest
@@ -88,33 +104,52 @@ dockers:
       - "--build-arg=VCS_REF={{.FullCommit}}"
       - "--build-arg=VCS_URL={{.GitURL}}"
 
+  - image_templates:
+      - anchore/grype:{{.Tag}}-arm64v8
+      - ghcr.io/anchore/grype:{{.Tag}}-arm64v8
+    goarch: s390x
+    dockerfile: Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/arm64/v8"
+      - "--build-arg=BUILD_DATE={{.Date}}"
+      - "--build-arg=BUILD_VERSION={{.Version}}"
+      - "--build-arg=VCS_REF={{.FullCommit}}"
+      - "--build-arg=VCS_URL={{.GitURL}}"
+
 docker_manifests:
   - name_template: anchore/grype:latest
     image_templates:
       - anchore/grype:{{.Tag}}
       - anchore/grype:{{.Tag}}-arm64v8
+      - anchore/grype:{{.Tag}}-s390x
+
 
   - name_template: anchore/grype:debug
       - anchore/grype:{{.Tag}}-debug
       - anchore/grype:{{.Tag}}-debug-arm64v8
+      - anchore/grype:{{.Tag}}-debug-s390x
 
   - name_template: anchore/grype:{{.Tag}}
     image_templates:
       - anchore/grype:{{.Tag}}
       - anchore/grype:{{.Tag}}-arm64v8
+      - anchore/grype:{{.Tag}}-s390x
 
   - name_template: ghcr.io/anchore/grype:latest
     image_templates:
       - ghcr.io/anchore/grype:{{.Tag}}
       - ghcr.io/anchore/grype:{{.Tag}}-arm64v8
+      - ghcr.io/anchore/grype:{{.Tag}}-s390x
 
   - name_template: ghcr.io/anchore/grype:debug
     image_templates:
       - ghcr.io/anchore/grype:{{.Tag}}-debug
       - ghcr.io/anchore/grype:{{.Tag}}-debug-arm64v8
+      - ghcr.io/anchore/grype:{{.Tag}}-debug-s390x
 
   - name_template: ghcr.io/anchore/grype:{{.Tag}}
     image_templates:
       - ghcr.io/anchore/grype:{{.Tag}}
       - ghcr.io/anchore/grype:{{.Tag}}-arm64v8
-
+      - ghcr.io/anchore/grype:{{.Tag}}-s390x
