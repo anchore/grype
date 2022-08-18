@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/syft/syft/file"
+	syftFile "github.com/anchore/syft/syft/file"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
 )
@@ -19,6 +20,21 @@ func TestNew(t *testing.T) {
 		metadata  interface{}
 		upstreams []UpstreamPackage
 	}{
+		{
+			name: "alpm package with source info",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.AlpmMetadataType,
+				Metadata: syftPkg.AlpmMetadata{
+					BasePackage:  "base-pkg-info",
+					Package:      "pkg-info",
+					Version:      "version-info",
+					Architecture: "arch-info",
+					Files: []syftPkg.AlpmFileRecord{{
+						Path: "/this/path/exists",
+					}},
+				},
+			},
+		},
 		{
 			name: "dpkg with source info",
 			syftPkg: syftPkg.Package{
@@ -126,6 +142,10 @@ func TestNew(t *testing.T) {
 							"extra-key": "extra-value",
 						},
 					},
+					ArchiveDigests: []syftFile.Digest{{
+						Algorithm: "sha1",
+						Value:     "236e3bfdbdc6c86629237a74f0f11414adb4e211",
+					}},
 				},
 			},
 			metadata: JavaMetadata{
@@ -133,6 +153,10 @@ func TestNew(t *testing.T) {
 				PomArtifactID: "pom-artifact-ID-info",
 				PomGroupID:    "pom-group-ID-info",
 				ManifestName:  "main-section-name-info",
+				ArchiveDigests: []Digest{{
+					Algorithm: "sha1",
+					Value:     "236e3bfdbdc6c86629237a74f0f11414adb4e211",
+				}},
 			},
 		},
 		{
@@ -227,9 +251,17 @@ func TestNew(t *testing.T) {
 			syftPkg: syftPkg.Package{
 				MetadataType: syftPkg.GolangBinMetadataType,
 				Metadata: syftPkg.GolangBinMetadata{
+					BuildSettings:     map[string]string{},
 					GoCompiledVersion: "1.0.0",
 					H1Digest:          "a",
+					MainModule:        "myMainModule",
 				},
+			},
+			metadata: GolangBinMetadata{
+				BuildSettings:     map[string]string{},
+				GoCompiledVersion: "1.0.0",
+				H1Digest:          "a",
+				MainModule:        "myMainModule",
 			},
 		},
 		{
@@ -249,6 +281,61 @@ func TestNew(t *testing.T) {
 				Metadata: syftPkg.DartPubMetadata{
 					Name:    "a",
 					Version: "a",
+				},
+			},
+		},
+		{
+			name: "dotnet-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.DotnetDepsMetadataType,
+				Metadata: syftPkg.DotnetDepsMetadata{
+					Name:     "a",
+					Version:  "a",
+					Path:     "a",
+					Sha512:   "a",
+					HashPath: "a",
+				},
+			},
+		},
+		{
+			name: "cpp conan-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.ConanaMetadataType,
+				Metadata: syftPkg.ConanMetadata{
+					Name:    "name",
+					Version: "version",
+				},
+			},
+		},
+		{
+			name: "cocoapods cocoapods-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.CocoapodsMetadataType,
+				Metadata: syftPkg.CocoapodsMetadata{
+					Name:    "name",
+					Version: "version",
+					PkgHash: "123eere234",
+				},
+			},
+		},
+		{
+			name: "portage-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.PortageMetadataType,
+				Metadata: syftPkg.PortageMetadata{
+					Package:       "net-misc/curl",
+					Version:       "1.2.3",
+					InstalledSize: 1,
+				},
+			},
+		},
+		{
+			name: "hackage-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.HackageMetadataType,
+				Metadata: syftPkg.HackageMetadata{
+					Name:    "hackage",
+					Version: "v0.0.1",
 				},
 			},
 		},

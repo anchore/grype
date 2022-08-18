@@ -13,6 +13,7 @@ import (
 	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/search"
+	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -35,7 +36,7 @@ func TestMatchBySBOMDocument(t *testing.T) {
 							"type":    "windows",
 							"version": "10816",
 						},
-						"namespace": "msrc:10816",
+						"namespace": "msrc:distro:windows:10816",
 						"package": map[string]string{
 							"name":    "10816",
 							"version": "3200970",
@@ -57,7 +58,7 @@ func TestMatchBySBOMDocument(t *testing.T) {
 				{
 					Type: match.CPEMatch,
 					SearchedBy: search.CPEParameters{
-						Namespace: "nvd",
+						Namespace: "nvd:cpe",
 						CPEs: []string{
 							"cpe:2.3:a:bogus:my-package:1.0.5:*:*:*:*:*:*:*",
 						},
@@ -75,7 +76,7 @@ func TestMatchBySBOMDocument(t *testing.T) {
 					Type: match.ExactDirectMatch,
 					SearchedBy: map[string]interface{}{
 						"language":  "python",
-						"namespace": "github:python",
+						"namespace": "github:language:python",
 					},
 					Found: map[string]interface{}{
 						"versionConstraint": "< 2.0 (python)",
@@ -89,8 +90,16 @@ func TestMatchBySBOMDocument(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			provider := db.NewVulnerabilityProvider(newMockDbStore())
-			matches, _, _, err := grype.FindVulnerabilities(provider, fmt.Sprintf("sbom:%s", test.fixture), source.SquashedScope, nil)
+			mockStore := newMockDbStore()
+			vp, err := db.NewVulnerabilityProvider(mockStore)
+			require.NoError(t, err)
+			ep := db.NewMatchExclusionProvider(mockStore)
+			store := store.Store{
+				Provider:          vp,
+				MetadataProvider:  nil,
+				ExclusionProvider: ep,
+			}
+			matches, _, _, err := grype.FindVulnerabilities(store, fmt.Sprintf("sbom:%s", test.fixture), source.SquashedScope, nil)
 			assert.NoError(t, err)
 			details := make([]match.Detail, 0)
 			ids := strset.New()

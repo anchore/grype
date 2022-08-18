@@ -14,12 +14,14 @@ import (
 
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db"
-	grypeDb "github.com/anchore/grype/grype/db/v3"
+	grypeDb "github.com/anchore/grype/grype/db/v4"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/grypeerr"
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter"
+	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/bus"
@@ -30,6 +32,7 @@ import (
 	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/syft/syft/linux"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -41,6 +44,10 @@ var ignoreNonFixedMatches = []match.IgnoreRule{
 	{FixState: string(grypeDb.UnknownFixState)},
 }
 
+var ignoreFixedMatches = []match.IgnoreRule{
+	{FixState: string(grypeDb.FixedState)},
+}
+
 var (
 	rootCmd = &cobra.Command{
 		Use:   fmt.Sprintf("%s [IMAGE]", internal.ApplicationName),
@@ -48,8 +55,9 @@ var (
 		Long: format.Tprintf(`A vulnerability scanner for container images, filesystems, and SBOMs.
 
 Supports the following image sources:
-    {{.appName}} yourrepo/yourimage:tag     defaults to using images from a Docker daemon
-    {{.appName}} path/to/yourproject        a Docker tar, OCI tar, OCI directory, or generic filesystem directory
+    {{.appName}} yourrepo/yourimage:tag             defaults to using images from a Docker daemon
+    {{.appName}} path/to/yourproject                a Docker tar, OCI tar, OCI directory, or generic filesystem directory
+    {{.appName}} attestation.json --key cosign.pub  extract and scan SBOM from attestation file
 
 You can also explicitly specify the scheme to use:
     {{.appName}} podman:yourrepo/yourimage:tag          explicitly use the Podman daemon
@@ -60,6 +68,8 @@ You can also explicitly specify the scheme to use:
     {{.appName}} dir:path/to/yourproject                read directly from a path on disk (any directory)
     {{.appName}} sbom:path/to/syft.json                 read Syft JSON from path on disk
     {{.appName}} registry:yourrepo/yourimage:tag        pull image directly from a registry (no container runtime required)
+    {{.appName}} att:attestation.json --key cosign.pub  explicitly use the input as an attestation
+    {{.appName}} purl:path/to/purl/file                 read a newline separated file of purls from a path on disk
 
 You can also pipe in Syft JSON directly:
 	syft yourimage:tag -o json | {{.appName}}
@@ -144,6 +154,11 @@ func setRootFlags(flags *pflag.FlagSet) {
 		"ignore matches for vulnerabilities that are not fixed",
 	)
 
+	flags.BoolP(
+		"only-notfixed", "", false,
+		"ignore matches for vulnerabilities that are fixed",
+	)
+
 	flags.StringArrayP(
 		"exclude", "", nil,
 		"exclude paths from being scanned using a glob expression",
@@ -152,6 +167,15 @@ func setRootFlags(flags *pflag.FlagSet) {
 	flags.StringP(
 		"platform", "", "",
 		"an optional platform specifier for container image sources (e.g. 'linux/arm64', 'linux/arm64/v8', 'arm64', 'linux')",
+	)
+
+	flags.String(
+		// NOTE(jonasagx): the default value is present even for SBOM inputs, causing errors.
+		// To avoid extra syscalls for file validation I will drop it for now.
+		// I know Syft has a default key value, but I am not certain that is a safe explicit
+		// approach when attesting.
+		"key", "",
+		"File path to a public key to validate attestation",
 	)
 }
 
@@ -188,11 +212,19 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 		return err
 	}
 
+	if err := viper.BindPFlag("only-notfixed", flags.Lookup("only-notfixed")); err != nil {
+		return err
+	}
+
 	if err := viper.BindPFlag("exclude", flags.Lookup("exclude")); err != nil {
 		return err
 	}
 
 	if err := viper.BindPFlag("platform", flags.Lookup("platform")); err != nil {
+		return err
+	}
+
+	if err := viper.BindPFlag("attestation.public-key", flags.Lookup("key")); err != nil {
 		return err
 	}
 
@@ -255,7 +287,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 				log.Errorf(err.Error())
 			}
 			if isAvailable {
-				log.Infof("New version of %s is available: %s", internal.ApplicationName, newVersion)
+				log.Infof("new version of %s is available: %s (currently running: %s)", internal.ApplicationName, newVersion, version.FromBuild().Version)
 
 				bus.Publish(partybus.Event{
 					Type:  event.AppUpdateAvailable,
@@ -266,9 +298,9 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			}
 		}
 
-		var provider vulnerability.Provider
-		var metadataProvider vulnerability.MetadataProvider
-		var dbStatus *db.Status
+		var store *store.Store
+		var status *db.Status
+		var dbCloser *db.Closer
 		var packages []pkg.Package
 		var context pkg.Context
 		var wg = &sync.WaitGroup{}
@@ -279,8 +311,8 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		go func() {
 			defer wg.Done()
 			log.Debug("loading DB")
-			provider, metadataProvider, dbStatus, err = grype.LoadVulnerabilityDB(appConfig.DB.ToCuratorConfig(), appConfig.DB.AutoUpdate)
-			if err = validateDBLoad(err, dbStatus); err != nil {
+			store, status, dbCloser, err = grype.LoadVulnerabilityDB(appConfig.DB.ToCuratorConfig(), appConfig.DB.AutoUpdate)
+			if err = validateDBLoad(err, status); err != nil {
 				errs <- err
 				return
 			}
@@ -303,13 +335,25 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			return
 		}
 
+		if dbCloser != nil {
+			defer dbCloser.Close()
+		}
+
 		if appConfig.OnlyFixed {
 			appConfig.Ignore = append(appConfig.Ignore, ignoreNonFixedMatches...)
 		}
 
-		applyDistroHint(&context, appConfig)
+		if appConfig.OnlyNotFixed {
+			appConfig.Ignore = append(appConfig.Ignore, ignoreFixedMatches...)
+		}
 
-		allMatches := grype.FindVulnerabilitiesForPackage(provider, context.Distro, packages...)
+		applyDistroHint(packages, &context, appConfig)
+
+		matchers := matcher.NewDefaultMatchers(matcher.Config{
+			Java: appConfig.ExternalSources.ToJavaMatcherConfig(),
+		})
+
+		allMatches := grype.FindVulnerabilitiesForPackage(*store, context.Distro, matchers, packages)
 		remainingMatches, ignoredMatches := match.ApplyIgnoreRules(allMatches, appConfig.Ignore)
 
 		if count := len(ignoredMatches); count > 0 {
@@ -319,19 +363,19 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		// determine if there are any severities >= to the max allowable severity (which is optional).
 		// note: until the shared file lock in sqlittle is fixed the sqlite DB cannot be access concurrently,
 		// implying that the fail-on-severity check must be done before sending the presenter object.
-		if hitSeverityThreshold(failOnSeverity, remainingMatches, metadataProvider) {
+		if hitSeverityThreshold(failOnSeverity, remainingMatches, store) {
 			errs <- grypeerr.ErrAboveSeverityThreshold
 		}
 
 		bus.Publish(partybus.Event{
 			Type:  event.VulnerabilityScanningFinished,
-			Value: presenter.GetPresenter(presenterConfig, remainingMatches, ignoredMatches, packages, context, metadataProvider, appConfig, dbStatus),
+			Value: presenter.GetPresenter(presenterConfig, remainingMatches, ignoredMatches, packages, context, store, appConfig, status),
 		})
 	}()
 	return errs
 }
 
-func applyDistroHint(context *pkg.Context, appConfig *config.Application) {
+func applyDistroHint(pkgs []pkg.Package, context *pkg.Context, appConfig *config.Application) {
 	if appConfig.Distro != "" {
 		log.Infof("using distro: %s", appConfig.Distro)
 
@@ -353,18 +397,29 @@ func applyDistroHint(context *pkg.Context, appConfig *config.Application) {
 		}
 	}
 
-	if context.Distro == nil {
-		log.Warnf("Unable to determine the OS distribution. This may result in missing vulnerabilities. You may specify a distro using: --distro <distro>:<version>")
+	hasOSPackage := false
+	for _, p := range pkgs {
+		switch p.Type {
+		case syftPkg.AlpmPkg, syftPkg.DebPkg, syftPkg.RpmPkg, syftPkg.KbPkg:
+			hasOSPackage = true
+		}
+	}
+
+	if context.Distro == nil && hasOSPackage {
+		log.Warnf("Unable to determine the OS distribution. This may result in missing vulnerabilities. " +
+			"You may specify a distro using: --distro <distro>:<version>")
 	}
 }
 
 func getProviderConfig() pkg.ProviderConfig {
 	return pkg.ProviderConfig{
-		RegistryOptions:     appConfig.Registry.ToOptions(),
-		Exclusions:          appConfig.Exclusions,
-		CatalogingOptions:   appConfig.Search.ToConfig(),
-		GenerateMissingCPEs: appConfig.GenerateMissingCPEs,
-		Platform:            appConfig.Platform,
+		RegistryOptions:               appConfig.Registry.ToOptions(),
+		Exclusions:                    appConfig.Exclusions,
+		CatalogingOptions:             appConfig.Search.ToConfig(),
+		GenerateMissingCPEs:           appConfig.GenerateMissingCPEs,
+		Platform:                      appConfig.Platform,
+		AttestationPublicKey:          appConfig.Attestation.PublicKey,
+		AttestationIgnoreVerification: appConfig.Attestation.SkipVerification,
 	}
 }
 
@@ -373,7 +428,7 @@ func validateDBLoad(loadErr error, status *db.Status) error {
 		return fmt.Errorf("failed to load vulnerability db: %w", loadErr)
 	}
 	if status == nil {
-		return fmt.Errorf("unable to determine DB status")
+		return fmt.Errorf("unable to determine the status of the vulnerability db")
 	}
 	if status.Err != nil {
 		return fmt.Errorf("db could not be loaded: %w", status.Err)

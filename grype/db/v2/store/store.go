@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sort"
 
-	_ "github.com/glebarez/sqlite" // provide the sqlite dialect to gorm via import
 	"github.com/go-test/deep"
 	"gorm.io/gorm"
 
@@ -12,6 +11,7 @@ import (
 	v2 "github.com/anchore/grype/grype/db/v2"
 	"github.com/anchore/grype/grype/db/v2/store/model"
 	"github.com/anchore/grype/internal"
+	_ "github.com/anchore/sqlite" // provide the sqlite dialect to gorm via import
 )
 
 // store holds an instance of the database connection
@@ -203,4 +203,8 @@ func (s *store) AddVulnerabilityMetadata(metadata ...v2.VulnerabilityMetadata) e
 		}
 	}
 	return nil
+}
+
+func (s *store) Close() {
+	s.db.Exec("VACUUM;")
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
-	"github.com/anchore/packageurl-go"
+	packageurl "github.com/anchore/packageurl-go"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -91,6 +91,8 @@ func NamespacePackageNamersForLanguage(l syftPkg.Language) map[string]NamerByPac
 		namespaces["github:npm"] = defaultPackageNamer
 	case syftPkg.Python:
 		namespaces["github:python"] = defaultPackageNamer
+	case syftPkg.Dotnet:
+		namespaces["github:nuget"] = defaultPackageNamer
 	default:
 		namespaces[fmt.Sprintf("github:%s", l)] = defaultPackageNamer
 	}

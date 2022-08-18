@@ -1,6 +1,4 @@
-FROM alpine:latest AS build
-
-RUN apk --no-cache add ca-certificates
+FROM gcr.io/distroless/static-debian11:debug AS build
 
 FROM scratch
 # needed for version check HTTPS request

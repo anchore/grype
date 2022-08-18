@@ -378,7 +378,7 @@ func (m *MockMetadataProvider) GetMetadata(id, namespace string) (*vulnerability
 		}
 	}
 	values := []vulnerability.Metadata{
-		cvss("1", "nvd", 1),
+		cvss("1", "nvd:cpe", 1),
 		cvss("1", "not-nvd", 2),
 		cvss("2", "not-nvd", 3, 4),
 	}
@@ -414,7 +414,7 @@ func Test_cvssScore(t *testing.T) {
 				RelatedVulnerabilities: []vulnerability.Reference{
 					{
 						ID:        "7",
-						Namespace: "nvd",
+						Namespace: "nvd:cpe",
 					},
 				},
 			},
@@ -428,7 +428,7 @@ func Test_cvssScore(t *testing.T) {
 				RelatedVulnerabilities: []vulnerability.Reference{
 					{
 						ID:        "1",
-						Namespace: "nvd",
+						Namespace: "nvd:cpe",
 					},
 				},
 			},
@@ -438,11 +438,11 @@ func Test_cvssScore(t *testing.T) {
 			name: "related not nvd",
 			vulnerability: vulnerability.Vulnerability{
 				ID:        "1",
-				Namespace: "nvd",
+				Namespace: "nvd:cpe",
 				RelatedVulnerabilities: []vulnerability.Reference{
 					{
 						ID:        "1",
-						Namespace: "nvd",
+						Namespace: "nvd:cpe",
 					},
 					{
 						ID:        "1",
@@ -460,7 +460,7 @@ func Test_cvssScore(t *testing.T) {
 				RelatedVulnerabilities: []vulnerability.Reference{
 					{
 						ID:        "1",
-						Namespace: "nvd",
+						Namespace: "nvd:cpe",
 					},
 					{
 						ID:        "7",

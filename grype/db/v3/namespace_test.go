@@ -176,6 +176,11 @@ func Test_NamespaceForDistro(t *testing.T) {
 			version:  "8.5",
 			expected: "rhel:8",
 		},
+		{
+			dist:     distro.Gentoo,
+			version:  "", // Gentoo doesn't expose a version
+			expected: "gentoo:",
+		},
 	}
 
 	observedDistros := strset.New()
@@ -312,6 +317,32 @@ func Test_NamespacesForLanguage(t *testing.T) {
 				"a-name",
 			},
 		},
+		{
+			language: syftPkg.Dotnet,
+			namerInput: &pkg.Package{
+				ID:   pkg.ID(uuid.NewString()),
+				Name: "a-name",
+			},
+			expectedNamespaces: []string{
+				"github:nuget",
+			},
+			expectedNames: []string{
+				"a-name",
+			},
+		},
+		{
+			language: syftPkg.Haskell,
+			namerInput: &pkg.Package{
+				ID:   pkg.ID(uuid.NewString()),
+				Name: "h-name",
+			},
+			expectedNamespaces: []string{
+				"github:haskell",
+			},
+			expectedNames: []string{
+				"h-name",
+			},
+		},
 	}
 
 	observedLanguages := strset.New()
@@ -321,8 +352,10 @@ func Test_NamespacesForLanguage(t *testing.T) {
 		allLanguages.Add(string(l))
 	}
 
-	// remove PHP for coverage as feed has not been updated
+	// remove PHP, CPP for coverage as feed has not been updated
 	allLanguages.Remove(string(syftPkg.PHP))
+	allLanguages.Remove(string(syftPkg.CPP))
+	allLanguages.Remove(string(syftPkg.Swift))
 
 	for _, test := range tests {
 		t.Run(string(test.language), func(t *testing.T) {

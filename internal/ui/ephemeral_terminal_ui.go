@@ -94,6 +94,16 @@ func (h *ephemeralTerminalUI) Handle(event partybus.Event) error {
 
 		// this is the last expected event, stop listening to events
 		return h.unsubscribe()
+
+	case event.Type == grypeEvent.NonRootCommandFinished:
+		h.closeScreen(false)
+
+		if err := handleNonRootCommandFinished(event, h.reportOutput); err != nil {
+			log.Errorf("unable to show %s event: %+v", event.Type, err)
+		}
+
+		// this is the last expected event, stop listening to events
+		return h.unsubscribe()
 	}
 	return nil
 }

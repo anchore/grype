@@ -1030,3 +1030,177 @@ func TestCvssScoresInMetadata(t *testing.T) {
 		})
 	}
 }
+
+func Test_DiffStore(t *testing.T) {
+	//GIVEN
+	dbTempFile, err := ioutil.TempFile("", "grype-db-test-store")
+	if err != nil {
+		t.Fatalf("could not create temp file: %+v", err)
+	}
+	defer os.Remove(dbTempFile.Name())
+
+	s1, err := New(dbTempFile.Name(), true)
+	if err != nil {
+		t.Fatalf("could not create store: %+v", err)
+	}
+	dbTempFile, err = ioutil.TempFile("", "grype-db-test-store")
+	if err != nil {
+		t.Fatalf("could not create temp file: %+v", err)
+	}
+	defer os.Remove(dbTempFile.Name())
+
+	s2, err := New(dbTempFile.Name(), true)
+	if err != nil {
+		t.Fatalf("could not create store: %+v", err)
+	}
+
+	baseVulns := []v3.Vulnerability{
+		{
+			Namespace:         "github:python",
+			ID:                "CVE-123-4567",
+			PackageName:       "pypi:requests",
+			VersionConstraint: "< 2.0 >= 1.29",
+			CPEs:              []string{"cpe:2.3:pypi:requests:*:*:*:*:*:*"},
+		},
+		{
+			Namespace:         "github:python",
+			ID:                "CVE-123-4567",
+			PackageName:       "pypi:requests",
+			VersionConstraint: "< 3.0 >= 2.17",
+			CPEs:              []string{"cpe:2.3:pypi:requests:*:*:*:*:*:*"},
+		},
+		{
+			Namespace:         "npm",
+			ID:                "CVE-123-7654",
+			PackageName:       "npm:axios",
+			VersionConstraint: "< 3.0 >= 2.17",
+			CPEs:              []string{"cpe:2.3:npm:axios:*:*:*:*:*:*"},
+			Fix: v3.Fix{
+				State: v3.UnknownFixState,
+			},
+		},
+		{
+			Namespace:         "nuget",
+			ID:                "GHSA-****-******",
+			PackageName:       "nuget:net",
+			VersionConstraint: "< 3.0 >= 2.17",
+			CPEs:              []string{"cpe:2.3:nuget:net:*:*:*:*:*:*"},
+			Fix: v3.Fix{
+				State: v3.UnknownFixState,
+			},
+		},
+		{
+			Namespace:         "hex",
+			ID:                "GHSA-^^^^-^^^^^^",
+			PackageName:       "hex:esbuild",
+			VersionConstraint: "< 3.0 >= 2.17",
+			CPEs:              []string{"cpe:2.3:hex:esbuild:*:*:*:*:*:*"},
+		},
+	}
+	baseMetadata := []v3.VulnerabilityMetadata{
+		{
+			Namespace:  "nuget",
+			ID:         "GHSA-****-******",
+			DataSource: "nvd",
+		},
+	}
+	targetVulns := []v3.Vulnerability{
+		{
+			Namespace:         "github:python",
+			ID:                "CVE-123-4567",
+			PackageName:       "pypi:requests",
+			VersionConstraint: "< 2.0 >= 1.29",
+			CPEs:              []string{"cpe:2.3:pypi:requests:*:*:*:*:*:*"},
+		},
+		{
+			Namespace:         "github:go",
+			ID:                "GHSA-....-....",
+			PackageName:       "hashicorp:nomad",
+			VersionConstraint: "< 3.0 >= 2.17",
+			CPEs:              []string{"cpe:2.3:golang:hashicorp:nomad:*:*:*:*:*"},
+		},
+		{
+			Namespace:         "github:go",
+			ID:                "GHSA-....-....",
+			PackageName:       "hashicorp:n",
+			VersionConstraint: "< 2.0 >= 1.17",
+			CPEs:              []string{"cpe:2.3:golang:hashicorp:n:*:*:*:*:*"},
+		},
+		{
+			Namespace:         "npm",
+			ID:                "CVE-123-7654",
+			PackageName:       "npm:axios",
+			VersionConstraint: "< 3.0 >= 2.17",
+			CPEs:              []string{"cpe:2.3:npm:axios:*:*:*:*:*:*"},
+			Fix: v3.Fix{
+				State: v3.WontFixState,
+			},
+		},
+		{
+			Namespace:         "nuget",
+			ID:                "GHSA-****-******",
+			PackageName:       "nuget:net",
+			VersionConstraint: "< 3.0 >= 2.17",
+			CPEs:              []string{"cpe:2.3:nuget:net:*:*:*:*:*:*"},
+			Fix: v3.Fix{
+				State: v3.UnknownFixState,
+			},
+		},
+	}
+	expectedDiffs := []v3.Diff{
+		{
+			Reason:    v3.DiffChanged,
+			ID:        "CVE-123-4567",
+			Namespace: "github:python",
+			Packages:  []string{"pypi:requests"},
+		},
+		{
+			Reason:    v3.DiffChanged,
+			ID:        "CVE-123-7654",
+			Namespace: "npm",
+			Packages:  []string{"npm:axios"},
+		},
+		{
+			Reason:    v3.DiffRemoved,
+			ID:        "GHSA-****-******",
+			Namespace: "nuget",
+			Packages:  []string{"nuget:net"},
+		},
+		{
+			Reason:    v3.DiffAdded,
+			ID:        "GHSA-....-....",
+			Namespace: "github:go",
+			Packages:  []string{"hashicorp:n", "hashicorp:nomad"},
+		},
+		{
+			Reason:    v3.DiffRemoved,
+			ID:        "GHSA-^^^^-^^^^^^",
+			Namespace: "hex",
+			Packages:  []string{"hex:esbuild"},
+		},
+	}
+
+	for _, vuln := range baseVulns {
+		s1.AddVulnerability(vuln)
+	}
+	for _, vuln := range targetVulns {
+		s2.AddVulnerability(vuln)
+	}
+	for _, meta := range baseMetadata {
+		s1.AddVulnerabilityMetadata(meta)
+	}
+
+	//WHEN
+	result, err := s1.DiffStore(s2)
+
+	//THEN
+	sort.SliceStable(*result, func(i, j int) bool {
+		return (*result)[i].ID < (*result)[j].ID
+	})
+	for i := range *result {
+		sort.Strings((*result)[i].Packages)
+	}
+
+	assert.NoError(t, err)
+	assert.Equal(t, expectedDiffs, *result)
+}

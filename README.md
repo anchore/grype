@@ -18,6 +18,8 @@ A vulnerability scanner for container images and filesystems. Easily [install th
 - Agenda: https://docs.google.com/document/d/1ZtSAa6fj2a6KRWviTn3WoJm09edvrNUp4Iz_dOjjyY8/edit?usp=sharing (join [this group](https://groups.google.com/g/anchore-oss-community) for write access)
 - All are welcome!
 
+For commercial support options with Syft or Grype, please [contact Anchore](https://get.anchore.com/contact/)
+
 ![grype-demo](https://user-images.githubusercontent.com/590471/90276236-9868f300-de31-11ea-8068-4268b6b68529.gif)
 
 ## Features
@@ -38,7 +40,12 @@ A vulnerability scanner for container images and filesystems. Easily [install th
   - Java (JAR, WAR, EAR, JPI, HPI)
   - JavaScript (NPM, Yarn)
   - Python (Egg, Wheel, Poetry, requirements.txt/setup.py files)
+  - Dotnet (deps.json)
+  - Golang (go.mod)
+  - PHP (Composer)
+  - Rust (Cargo)
 - Supports Docker and OCI image formats
+- Consume SBOM [attestations](https://github.com/anchore/syft#sbom-attestation).
 
 If you encounter an issue, please [let us know using the issue tracker](https://github.com/anchore/grype/issues).
 
@@ -63,7 +70,19 @@ brew tap anchore/grype
 brew install grype
 ```
 
+### MacPorts
+
+On macOS, Grype can additionally be installed from the [community maintained port](https://ports.macports.org/port/grype/) via MacPorts:
+
+```bash
+sudo port install grype
+```
+
 **Note**: Currently, Grype is built only for macOS and Linux.
+
+### GitHub Actions
+
+If you're using GitHub Actions, you can simply use our [Grype-based action](https://github.com/marketplace/actions/anchore-container-scan) to run vulnerability scans on your code or container images during your CI workflows.
 
 ## Getting started
 
@@ -79,6 +98,15 @@ The above command scans for vulnerabilities that are visible in the container (i
 grype <image> --scope all-layers
 ```
 
+To run grype from a Docker container so it can scan a running container, use the following command:
+
+```yml
+docker run --rm \
+--volume /var/run/docker.sock:/var/run/docker.sock \
+--name Grype anchore/grype:latest \
+$(ImageName):$(ImageTag)
+```
+
 ### Supported sources
 
 Grype can scan a variety of sources beyond those found in Docker.
@@ -92,6 +120,7 @@ grype dir:path/to/dir
 ```
 
 Sources can be explicitly provided with a scheme:
+
 ```
 podman:yourrepo/yourimage:tag          use images from the Podman daemon
 docker:yourrepo/yourimage:tag          use images from the Docker daemon
@@ -99,7 +128,9 @@ docker-archive:path/to/yourimage.tar   use a tarball from disk for archives crea
 oci-archive:path/to/yourimage.tar      use a tarball from disk for OCI archives (from Skopeo or otherwise)
 oci-dir:path/to/yourimage              read directly from a path on disk for OCI layout directories (from Skopeo or otherwise)
 dir:path/to/yourproject                read directly from a path on disk (any directory)
+sbom:path/to/syft.json                 read Syft JSON from path on disk
 registry:yourrepo/yourimage:tag        pull image directly from a registry (no container runtime required)
+att:attestation.json --key cosign.pub  explicitly use the input as an attestation
 ```
 
 Use SBOMs for even faster vulnerability scanning in Grype:
@@ -123,9 +154,33 @@ use the `--distro <distro>:<version>` flag. A full example is:
 grype --add-cpes-if-none --distro alpine:3.10 sbom:some-apline-3.10.spdx.json
 ```
 
+### Scan attestations
+
+Grype can scan SBOMs from attestations as long as they are encoded [in-toto envelopes](https://github.com/in-toto/attestation/blob/main/spec/README.md#envelope).
+
+Examples:
+
+```sh
+# generate cosign key pair
+cosign generate-key-pair # after that you'll have two files: cosign.key and cosign.pub
+
+# attest an image with Syft and your cosign private key (cosign.key)
+syft attest --output json --key cosign.key alpine:latest > alpine.att.json
+
+# scan an SBOM from an attestation file with the cosign public key (cosign.pub)
+grype alpine.json --key cosign.pub
+
+# explicitly tell Grype the input is an attestation file with the scheme `att:`
+grype att:alpine.json --key cosign.pub
+
+# generate an attestation for an image with Syft and pipe it into Grype, just because you can :)
+syft attest --output json --key cosign.key alpine:latest | grype --key cosign.pub
+```
+
 ### Vulnerability Summary
 
 #### Basic Grype Vulnerability Data Shape
+
 ```json
  {
   "vulnerability": {
@@ -142,19 +197,22 @@ grype --add-cpes-if-none --distro alpine:3.10 sbom:some-apline-3.10.spdx.json
   }
 }
 ```
+
 - **Vulnerability**: All information on the specific vulnerability that was directly matched on (e.g. ID, severity, CVSS score, fix information, links for more information)
 - **RelatedVulnerabilities**: Information pertaining to vulnerabilities found to be related to the main reported vulnerability. Maybe the vulnerability we matched on was a GitHub Security Advisory, which has an upstream CVE (in the authoritative national vulnerability database). In these cases we list the upstream vulnerabilities here.
 - **MatchDetails**: This section tries to explain what we searched for while looking for a match and exactly what details on the package and vulnerability that lead to a match.
 - **Artifact**: This is a subset of the information that we know about the package (when compared to the [Syft](https://github.com/anchore/syft) json output, we summarize the metadata section).
-This has information about where within the container image or directory we found the package, what kind of package it is, licensing info, pURLs, CPEs, etc.
+  This has information about where within the container image or directory we found the package, what kind of package it is, licensing info, pURLs, CPEs, etc.
 
 ### Excluding file paths
 
 Grype can exclude files and paths from being scanned within a source by using glob expressions
 with one or more `--exclude` parameters:
+
 ```
 grype <source> --exclude './out/**/*.json' --exclude /etc
 ```
+
 **Note:** in the case of _image scanning_, since the entire filesystem is scanned it is
 possible to use absolute paths like `/etc` or `/usr/**/*.txt` whereas _directory scans_
 exclude files _relative to the specified directory_. For example: scanning `/usr/foo` with
@@ -165,14 +223,31 @@ will be resolved _relative to the specified scan directory_. Keep in mind, your 
 may attempt to expand wildcards, so put those parameters in single quotes, like:
 `'**/*.json'`.
 
+### External Sources
+
+Grype can be configured to incorporate external data sources for added fidelity in vulnerability matching. This
+feature is currently disabled by default. To enable this feature add the following to the grype config:
+
+```yaml
+external-sources:
+  enable: true
+  maven:
+    search-upstream-by-sha1: true
+    base-url: https://search.maven.org/solrsearch/select
+```
+
+You can also configure the base-url if you're using another registry as your maven endpoint.
+
 ### Output formats
 
 The output format for Grype is configurable as well:
+
 ```
 grype <image> -o <format>
 ```
 
 Where the `format`s available are:
+
 - `table`: A columnar summary (default).
 - `cyclonedx`: An XML report conforming to the [CycloneDX 1.2](https://cyclonedx.org/) specification.
 - `json`: Use this to get as much information out of Grype as possible!
@@ -184,7 +259,7 @@ Grype lets you define custom output formats, using [Go templates](https://golang
 
 - Define your format as a Go template, and save this template as a file.
 
-- Set the output format to "template" (`-o template`). 
+- Set the output format to "template" (`-o template`).
 
 - Specify the path to the template file (`-t ./path/to/custom.template`).
 
@@ -193,6 +268,7 @@ Grype lets you define custom output formats, using [Go templates](https://golang
 **Example:** You could make Grype output data in CSV format by writing a Go template that renders CSV data and then running `grype <image> -o template -t ~/path/to/csv.tmpl`.
 
 Here's what the `csv.tmpl` file might look like:
+
 ```gotemplate
 "Package","Version Installed","Vulnerability ID","Severity"
 {{- range .Matches}}
@@ -201,6 +277,7 @@ Here's what the `csv.tmpl` file might look like:
 ```
 
 Which would produce output like:
+
 ```text
 "Package","Version Installed","Vulnerability ID","Severity"
 "coreutils","8.30-3ubuntu2","CVE-2016-2781","Low"
@@ -228,17 +305,18 @@ If you're seeing Grype report **false positives** or any other vulnerability mat
 Each rule can specify any combination of the following criteria:
 
 - vulnerability ID (e.g. `"CVE-2008-4318"`)
+- namespace (e.g. `"nvd"`)
 - fix state (allowed values: `"fixed"`, `"not-fixed"`, `"wont-fix"`, or `"unknown"`)
 - package name (e.g. `"libcurl"`)
 - package version (e.g. `"1.5.1"`)
-- package type (e.g. `"npm"`; these values are defined [here](https://github.com/anchore/syft/blob/main/syft/pkg/type.go#L10-L21))
+- package language (e.g. `"python"`; these values are defined [here](https://github.com/anchore/syft/blob/main/syft/pkg/language.go#L14-L23))
+- package type (e.g. `"npm"`; these values are defined [here](https://github.com/anchore/syft/blob/main/syft/pkg/type.go#L10-L24))
 - package location (e.g. `"/usr/local/lib/node_modules/**"`; supports glob patterns)
 
 Here's an example `~/.grype.yaml` that demonstrates the expected format for ignore rules:
 
 ```yaml
 ignore:
-  
   # This is the full set of supported rule fields:
   - vulnerability: CVE-2008-4318
     fix-state: unknown
@@ -250,7 +328,7 @@ ignore:
 
   # We can make rules to match just by vulnerability ID:
   - vulnerability: CVE-2017-41432
-  
+
   # ...or just by a single package field:
   - package:
       type: gem
@@ -287,6 +365,8 @@ libssl1.1     1.1.1k-r0             CVE-2021-3711   Critical
 NAME       INSTALLED  FIXED-IN   VULNERABILITY   SEVERITY
 apk-tools  2.10.6-r0  2.10.7-r0  CVE-2021-36159  Critical
 ```
+
+If you want Grype to only report vulnerabilities **that do not have a confirmed fix**, you can use the `--only-notfixed` flag. (This automatically adds [ignore rules](#specifying-matches-to-ignore) into Grype's configuration, such that vulnerabilities that are fixed will be ignored.)
 
 ## Grype's database
 
@@ -338,13 +418,17 @@ By default, the database is cached on the local filesystem in the directory `$XD
 
 You can set the cache directory path using the environment variable `GRYPE_DB_CACHE_DIR`.
 
+#### Data staleness
+
+Grype needs up-to-date vulnerability information to provide accurate matches. By default, it will fail execution if the local database was not built in the last 5 days. The data staleness check is configurable via the environment variable `GRYPE_DB_MAX_ALLOWED_BUILT_AGE` and `GRYPE_DB_VALIDATE_AGE` or the field `max-allowed-built-age` and `validate-age`, under `db`. It uses [golang's time duration syntax](https://pkg.go.dev/time#ParseDuration). Set `GRYPE_DB_VALIDATE_AGE` or `validate-age` to `false` to disable staleness check.
+
 #### Offline and air-gapped environments
 
 By default, Grype checks for a new database on every run, by making a network call over the Internet. You can tell Grype not to perform this check by setting the environment variable `GRYPE_DB_AUTO_UPDATE` to `false`.
 
 As long as you place Grype's `vulnerability.db` and `metadata.json` files in the cache directory for the expected schema version, Grype has no need to access the network. Additionally, you can get a listing of the database archives available for download from the `grype db list` command in an online environment, download the database archive, transfer it to your offline environment, and use `grype db import <db-archive-path>` to use the given database in an offline capacity.
 
-If you would like to distribute your own Grype databases internally without needing to use `db import` manually you can leverage Grype's DB update mechanism. To do this you can craft your own `listing.json` file similar to the one found publically (see `grype db list -o raw` for an example of our public `listing.json` file) and change the download URL to point to an internal endpoint (e.g. a private S3 bucket, an internal file server, etc). Any internal installation of Grype can receive database updates automatically by configuring the `db.update-url` (same as the `GRYPE_DB_UPDATE_URL` environment variable) to point to the hosted `listing.json` file you've crafted. 
+If you would like to distribute your own Grype databases internally without needing to use `db import` manually you can leverage Grype's DB update mechanism. To do this you can craft your own `listing.json` file similar to the one found publically (see `grype db list -o raw` for an example of our public `listing.json` file) and change the download URL to point to an internal endpoint (e.g. a private S3 bucket, an internal file server, etc). Any internal installation of Grype can receive database updates automatically by configuring the `db.update-url` (same as the `GRYPE_DB_UPDATE_URL` environment variable) to point to the hosted `listing.json` file you've crafted.
 
 #### CLI commands for database management
 
@@ -366,8 +450,8 @@ Find complete information on Grype's database commands by running `grype db --he
 
 Grype supplies shell completion through its CLI implementation ([cobra](https://github.com/spf13/cobra/blob/master/shell_completions.md)). Generate the completion code for your shell by running one of the following commands:
 
-* `grype completion <bash|zsh|fish>`
-* `go run main.go completion <bash|zsh|fish>`
+- `grype completion <bash|zsh|fish>`
+- `go run main.go completion <bash|zsh|fish>`
 
 This will output a shell script to STDOUT, which can then be used as a completion script for Grype. Running one of the above commands with the
 `-h` or `--help` flags will provide instructions on how to do that for your chosen shell.
@@ -375,12 +459,13 @@ This will output a shell script to STDOUT, which can then be used as a completio
 ## Private Registry Authentication
 
 ### Local Docker Credentials
-When a container runtime is not present, grype can still utilize credentials configured in common credential sources (such as `~/.docker/config.json`). 
-It will pull images from private registries using these credentials. The config file is where your credentials are stored when authenticating with private registries via some command like `docker login`. 
+
+When a container runtime is not present, grype can still utilize credentials configured in common credential sources (such as `~/.docker/config.json`).
+It will pull images from private registries using these credentials. The config file is where your credentials are stored when authenticating with private registries via some command like `docker login`.
 For more information see the `go-containerregistry` [documentation](https://github.com/google/go-containerregistry/tree/main/pkg/authn).
 
-
 An example `config.json` looks something like this:
+
 ```
 // config.json
 {
@@ -395,61 +480,58 @@ An example `config.json` looks something like this:
 
 You can run the following command as an example. It details the mount/environment configuration a container needs to access a private registry:
 
-`docker run -v ./config.json:/config/config.json -e "DOCKER_CONFIG=/config" anchore/grype:latest  <private_image>`
-
+`docker run -v ./config.json:/config/config.json -e "DOCKER_CONFIG=/config" anchore/grype:latest <private_image>`
 
 ### Docker Credentials in Kubernetes
+
 The below section shows a simple workflow on how to mount this config file as a secret into a container on kubernetes.
-1. Create a secret. The value of `config.json` is important. It refers to the specification detailed [here](https://github.com/google/go-containerregistry/tree/main/pkg/authn#the-config-file). 
-Below this section is the `secret.yaml` file that the pod configuration will consume as a volume. 
-The key `config.json` is important. It will end up being the name of the file when mounted into the pod.
-    ```
-    # secret.yaml
-    
-    apiVersion: v1
-    kind: Secret
-    metadata:
-      name: registry-config
-      namespace: grype 
-    data:
-      config.json: <base64 encoded config.json>
-    ```
 
-    `kubectl apply -f secret.yaml`
+1.  Create a secret. The value of `config.json` is important. It refers to the specification detailed [here](https://github.com/google/go-containerregistry/tree/main/pkg/authn#the-config-file).
+    Below this section is the `secret.yaml` file that the pod configuration will consume as a volume.
+    The key `config.json` is important. It will end up being the name of the file when mounted into the pod.
+    ``` # secret.yaml
 
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: registry-config
+          namespace: grype
+        data:
+          config.json: <base64 encoded config.json>
+        ```
 
-2. Create your pod running grype. The env `DOCKER_CONFIG` is important because it advertises where to look for the credential file. 
-In the below example, setting `DOCKER_CONFIG=/config` informs grype that credentials can be found at `/config/config.json`. 
-This is why we used `config.json` as the key for our secret. When mounted into containers the secrets' key is used as the filename. 
-The `volumeMounts` section mounts our secret to `/config`. The `volumes` section names our volume and leverages the secret we created in step one.
-    ```
-    # pod.yaml
-    
-    apiVersion: v1
-    kind: Pod
-    spec:
-      containers:
-        - image: anchore/grype:latest
-          name: grype-private-registry-demo
-          env:
-            - name: DOCKER_CONFIG
-              value: /config
-          volumeMounts:
-          - mountPath: /config
-            name: registry-config
-            readOnly: true
-          args:
-            - <private_image>
-      volumes:
-      - name: registry-config
-        secret:
-          secretName: registry-config
-    ```
+        `kubectl apply -f secret.yaml`
 
-    `kubectl apply -f pod.yaml`
+2.  Create your pod running grype. The env `DOCKER_CONFIG` is important because it advertises where to look for the credential file.
+    In the below example, setting `DOCKER_CONFIG=/config` informs grype that credentials can be found at `/config/config.json`.
+    This is why we used `config.json` as the key for our secret. When mounted into containers the secrets' key is used as the filename.
+    The `volumeMounts` section mounts our secret to `/config`. The `volumes` section names our volume and leverages the secret we created in step one.
+    ``` # pod.yaml
 
+        apiVersion: v1
+        kind: Pod
+        spec:
+          containers:
+            - image: anchore/grype:latest
+              name: grype-private-registry-demo
+              env:
+                - name: DOCKER_CONFIG
+                  value: /config
+              volumeMounts:
+              - mountPath: /config
+                name: registry-config
+                readOnly: true
+              args:
+                - <private_image>
+          volumes:
+          - name: registry-config
+            secret:
+              secretName: registry-config
+        ```
 
-3. The user can now run `kubectl logs grype-private-registry-demo`. The logs should show the grype analysis for the `<private_image>` provided in the pod configuration.
+        `kubectl apply -f pod.yaml`
+
+3.  The user can now run `kubectl logs grype-private-registry-demo`. The logs should show the grype analysis for the `<private_image>` provided in the pod configuration.
 
 Using the above information, users should be able to configure private registry access without having to do so in the `grype` or `syft` configuration files.
 They will also not be dependent on a docker daemon, (or some other runtime software) for registry configuration and access.
@@ -473,7 +555,7 @@ check-for-app-update: true
 # upon scanning, if a severity is found at or above the given severity then the return code will be 1
 # default is unset which will skip this validation (options: negligible, low, medium, high, critical)
 # same as --fail-on ; GRYPE_FAIL_ON_SEVERITY env var
-fail-on-severity: ''
+fail-on-severity: ""
 
 # the output format of the vulnerability report (options: table, json, cyclonedx)
 # same as -o ; GRYPE_OUTPUT env var
@@ -504,6 +586,12 @@ add-cpes-if-none: false
 # Explicitly specify a linux distribution to use as <distro>:<version> like alpine:3.10
 distro:
 
+external-sources:
+  enable: false
+  maven:
+    search-upstream-by-sha1: true
+    base-url: https://search.maven.org/solrsearch/select
+
 db:
   # check for database updates on execution
   # same as GRYPE_DB_AUTO_UPDATE env var
@@ -517,13 +605,19 @@ db:
   # same as GRYPE_DB_UPDATE_URL env var
   update-url: "https://toolbox-data.anchore.io/grype/databases/listing.json"
 
+  # it ensures db build is no older than the max-allowed-built-age
+  # set to false to disable check
+  validate-age: true
+
+  # Max allowed age for vulnerability database,
+  # age being the time since it was built
+  # Default max age is 120h (or five days)
+  max-allowed-built-age: "120h"
 
 search:
-
   # the search space to look for packages (options: all-layers, squashed)
   # same as -s ; GRYPE_SEARCH_SCOPE env var
   scope: "squashed"
-
 
   # search within archives that do contain a file index to search against (zip)
   # note: for now this only applies to the java package cataloger
@@ -535,8 +629,7 @@ search:
   # note: for now this only applies to the java package cataloger
   # same as GRYPE_PACKAGE_SEARCH_UNINDEXED_ARCHIVES env var
   unindexed-archives: false
-    
-    
+
 # options when pulling directly from a registry via the "registry:" scheme
 registry:
   # skip TLS verification when communicating with the registry
@@ -560,7 +653,6 @@ registry:
       token: ""
     - ... # note, more credentials can be provided via config file only
 
-
 log:
   # use structured logging
   # same as GRYPE_LOG_STRUCTURED env var
@@ -568,6 +660,7 @@ log:
 
   # the log level; note: detailed logging suppress the ETUI
   # same as GRYPE_LOG_LEVEL env var
+  # Uses logrus logging levels: https://github.com/sirupsen/logrus#level-logging
   level: "error"
 
   # location to write the log file (default is not to have a log file)

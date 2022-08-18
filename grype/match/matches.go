@@ -33,6 +33,17 @@ func (r *Matches) GetByPkgID(id pkg.ID) (matches []Match) {
 	return matches
 }
 
+// AllByPkgID returns a map of all matches organized by package ID
+func (r *Matches) AllByPkgID() map[pkg.ID][]Match {
+	matches := make(map[pkg.ID][]Match)
+	for id, fingerprints := range r.byPackage {
+		for _, fingerprint := range fingerprints {
+			matches[id] = append(matches[id], r.byFingerprint[fingerprint])
+		}
+	}
+	return matches
+}
+
 func (r *Matches) Merge(other Matches) {
 	for _, fingerprints := range other.byPackage {
 		for _, fingerprint := range fingerprints {

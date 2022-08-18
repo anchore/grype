@@ -25,6 +25,14 @@ var imagesWithVulnerabilities = []string{
 	"anchore/test_images:npm",
 	"anchore/test_images:java",
 	"anchore/test_images:golang-56d52bc",
+	"anchore/test_images:arch",
+}
+
+func getListingURL() string {
+	if value, ok := os.LookupEnv("GRYPE_DB_UPDATE_URL"); ok {
+		return value
+	}
+	return internal.DBUpdateURL
 }
 
 func TestCompareSBOMInputToLibResults(t *testing.T) {
@@ -35,12 +43,16 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 	}
 
 	// get a grype DB
-	vulnProvider, _, _, err := grype.LoadVulnerabilityDB(db.Config{
+	store, _, closer, err := grype.LoadVulnerabilityDB(db.Config{
 		DBRootDir:           "test-fixtures/grype-db",
-		ListingURL:          internal.DBUpdateURL,
+		ListingURL:          getListingURL(),
 		ValidateByHashOnGet: false,
 	}, true)
 	assert.NoError(t, err)
+
+	if closer != nil {
+		defer closer.Close()
+	}
 
 	definedPkgTypes := strset.New()
 	for _, p := range syftPkg.AllPkgs {
@@ -51,7 +63,12 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		string(syftPkg.RustPkg),
 		string(syftPkg.KbPkg),
 		string(syftPkg.DartPubPkg),
+		string(syftPkg.DotnetPkg),
 		string(syftPkg.PhpComposerPkg),
+		string(syftPkg.ConanPkg),
+		string(syftPkg.PortagePkg),
+		string(syftPkg.CocoapodsPkg),
+		string(syftPkg.HackagePkg),
 		string(syftPkg.JenkinsPluginPkg), // package type cannot be inferred for all formats
 	)
 	observedPkgTypes := strset.New()
@@ -79,11 +96,11 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 				assert.NoError(t, sbomFile.Close())
 
 				// get vulns (sbom)
-				matchesFromSbom, _, pkgsFromSbom, err := grype.FindVulnerabilities(vulnProvider, fmt.Sprintf("sbom:%s", sbomFile.Name()), source.SquashedScope, nil)
+				matchesFromSbom, _, pkgsFromSbom, err := grype.FindVulnerabilities(*store, fmt.Sprintf("sbom:%s", sbomFile.Name()), source.SquashedScope, nil)
 				assert.NoError(t, err)
 
 				// get vulns (image)
-				matchesFromImage, _, _, err := grype.FindVulnerabilities(vulnProvider, imageSource, source.SquashedScope, nil)
+				matchesFromImage, _, _, err := grype.FindVulnerabilities(*store, imageSource, source.SquashedScope, nil)
 				assert.NoError(t, err)
 
 				// compare packages (shallow)

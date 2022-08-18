@@ -6,9 +6,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/db"
-	grypeDB "github.com/anchore/grype/grype/db/v3"
+	grypeDB "github.com/anchore/grype/grype/db/v4"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -26,6 +27,19 @@ func (s *mockStore) GetVulnerability(namespace, name string) ([]grypeDB.Vulnerab
 	return namespaceMap[name], nil
 }
 
+func (s *mockStore) GetAllVulnerabilities() (*[]grypeDB.Vulnerability, error) {
+	return nil, nil
+}
+
+func (s *mockStore) GetVulnerabilityNamespaces() ([]string, error) {
+	keys := make([]string, 0, len(s.backend))
+	for k := range s.backend {
+		keys = append(keys, k)
+	}
+
+	return keys, nil
+}
+
 func TestMatches(t *testing.T) {
 	d, err := distro.New(distro.Windows, "10816", "Windows Server 2016")
 	assert.NoError(t, err)
@@ -35,7 +49,7 @@ func TestMatches(t *testing.T) {
 
 			// TODO: it would be ideal to test against something that constructs the namespace based on grype-db
 			// and not break the adaption of grype-db
-			fmt.Sprintf("msrc:%s", d.RawVersion): {
+			fmt.Sprintf("msrc:distro:windows:%s", d.RawVersion): {
 				d.RawVersion: []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-2016-3333",
@@ -61,7 +75,8 @@ func TestMatches(t *testing.T) {
 		},
 	}
 
-	provider := db.NewVulnerabilityProvider(&store)
+	provider, err := db.NewVulnerabilityProvider(&store)
+	require.NoError(t, err)
 
 	tests := []struct {
 		name            string

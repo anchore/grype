@@ -1,20 +1,43 @@
 package integration
 
 import (
-	grypeDB "github.com/anchore/grype/grype/db/v3"
+	grypeDB "github.com/anchore/grype/grype/db/v4"
 )
 
 // integrity check
 var _ grypeDB.VulnerabilityStoreReader = &mockStore{}
 
 type mockStore struct {
-	backend map[string]map[string][]grypeDB.Vulnerability
+	normalizedPackageNames map[string]map[string]string
+	backend                map[string]map[string][]grypeDB.Vulnerability
+}
+
+func (s *mockStore) GetVulnerabilityNamespaces() ([]string, error) {
+	var results []string
+	for k := range s.backend {
+		results = append(results, k)
+	}
+
+	return results, nil
+}
+
+func (s *mockStore) GetVulnerabilityMatchExclusion(id string) ([]grypeDB.VulnerabilityMatchExclusion, error) {
+	return nil, nil
 }
 
 func newMockDbStore() *mockStore {
 	return &mockStore{
+		normalizedPackageNames: map[string]map[string]string{
+			"github:language:python": {
+				"Pygments":   "pygments",
+				"my-package": "my-package",
+			},
+			"github:language:dotnet": {
+				"AWSSDK.Core": "awssdk.core",
+			},
+		},
 		backend: map[string]map[string][]grypeDB.Vulnerability{
-			grypeDB.NVDNamespace: {
+			"nvd:cpe": {
 				"libvncserver": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-alpine-libvncserver",
@@ -38,7 +61,7 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
-			"alpine:3.12": {
+			"alpine:distro:alpine:3.12": {
 				"libvncserver": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-alpine-libvncserver",
@@ -47,7 +70,32 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
-			"github:npm": {
+			"gentoo:distro:gentoo:2.8": {
+				"app-containers/skopeo": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-gentoo-skopeo",
+						VersionConstraint: "< 1.6.0",
+						VersionFormat:     "unknown",
+					},
+				},
+			},
+			"github:language:go": {
+				"github.com/anchore/coverage": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-coverage-main-module-vuln",
+						VersionConstraint: "< 1.4.0",
+						VersionFormat:     "unknown",
+					},
+				},
+				"github.com/google/uuid": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-uuid-vuln",
+						VersionConstraint: "< 1.4.0",
+						VersionFormat:     "unknown",
+					},
+				},
+			},
+			"github:language:javascript": {
 				"npm": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-javascript-validator",
@@ -56,8 +104,8 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
-			"github:python": {
-				"Pygments": []grypeDB.Vulnerability{
+			"github:language:python": {
+				"pygments": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-python-pygments",
 						VersionConstraint: "< 2.6.2",
@@ -72,16 +120,16 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
-			"github:gem": {
+			"github:language:ruby": {
 				"bundler": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-ruby-bundler",
 						VersionConstraint: "> 2.0.0, <= 2.1.4",
-						VersionFormat:     "semver",
+						VersionFormat:     "gemfile",
 					},
 				},
 			},
-			"github:java": {
+			"github:language:java": {
 				"org.anchore:example-java-app-maven": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-java-example-java-app",
@@ -90,7 +138,25 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
-			"debian:8": {
+			"github:language:dotnet": {
+				"awssdk.core": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-dotnet-sample",
+						VersionConstraint: ">= 3.7.0.0, < 3.7.12.0",
+						VersionFormat:     "dotnet",
+					},
+				},
+			},
+			"github:language:haskell": {
+				"ShellCheck": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-haskell-sample",
+						VersionConstraint: "< 0.9.0",
+						VersionFormat:     "haskell",
+					},
+				},
+			},
+			"debian:distro:debian:8": {
 				"apt-dev": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-dpkg-apt",
@@ -99,7 +165,7 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
-			"rhel:8": {
+			"redhat:distro:redhat:8": {
 				"dive": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-rpmdb-dive",
@@ -108,7 +174,7 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
-			"msrc:10816": {
+			"msrc:distro:windows:10816": {
 				"10816": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-2016-3333",
@@ -117,7 +183,7 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
-			"sles:12.5": {
+			"sles:distro:sles:12.5": {
 				"dive": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-rpmdb-dive",
@@ -143,4 +209,8 @@ func (s *mockStore) GetVulnerability(namespace, name string) ([]grypeDB.Vulnerab
 		entries[i].Namespace = namespace
 	}
 	return entries, nil
+}
+
+func (s *mockStore) GetAllVulnerabilities() (*[]grypeDB.Vulnerability, error) {
+	return nil, nil
 }

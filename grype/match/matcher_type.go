@@ -9,8 +9,11 @@ const (
 	RpmDBMatcher       MatcherType = "rpmdb-matcher"
 	JavaMatcher        MatcherType = "java-matcher"
 	PythonMatcher      MatcherType = "python-matcher"
+	DotnetMatcher      MatcherType = "dotnet-matcher"
 	JavascriptMatcher  MatcherType = "javascript-matcher"
 	MsrcMatcher        MatcherType = "msrc-matcher"
+	PortageMatcher     MatcherType = "portage-matcher"
+	GoModuleMatcher    MatcherType = "go-module-matcher"
 )
 
 var AllMatcherTypes = []MatcherType{
@@ -20,8 +23,11 @@ var AllMatcherTypes = []MatcherType{
 	RpmDBMatcher,
 	JavaMatcher,
 	PythonMatcher,
+	DotnetMatcher,
 	JavascriptMatcher,
 	MsrcMatcher,
+	PortageMatcher,
+	GoModuleMatcher,
 }
 
 type MatcherType string

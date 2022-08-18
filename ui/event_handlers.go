@@ -92,6 +92,7 @@ func (r *Handler) UpdateVulnerabilityDatabaseHandler(ctx context.Context, fr *fr
 	return err
 }
 
+// nolint: dupl
 func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
 	monitor, err := grypeEventParsers.ParseVulnerabilityScanningStarted(event)
 	if err != nil {
@@ -126,6 +127,83 @@ func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *f
 		spin := color.Green.Sprint(completedStatus)
 		title = tileFormat.Sprint("Scanned image")
 		auxInfo := auxInfoFormat.Sprintf("[%d vulnerabilities]", monitor.VulnerabilitiesDiscovered.Current())
+		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
+	}()
+
+	return nil
+}
+
+func (r *Handler) VerifyAttestationSignature(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
+	line, err := fr.Append()
+	if err != nil {
+		return err
+	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		spin := color.Green.Sprint(completedStatus)
+		title := tileFormat.Sprint("Attestation verified")
+		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, ""))
+	}()
+
+	return nil
+}
+
+func (r *Handler) SkippedAttestationVerification(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
+	line, err := fr.Append()
+	if err != nil {
+		return err
+	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		spin := color.Green.Sprint(completedStatus)
+		title := tileFormat.Sprint("Skipped attestation verification")
+		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, ""))
+	}()
+
+	return nil
+}
+
+// nolint: dupl
+func (r *Handler) DatabaseDiffingStartedHandler(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
+	monitor, err := grypeEventParsers.ParseDatabaseDiffingStarted(event)
+	if err != nil {
+		return fmt.Errorf("bad %s event: %w", event.Type, err)
+	}
+
+	line, err := fr.Append()
+	if err != nil {
+		return err
+	}
+
+	wg.Add(1)
+
+	_, spinner := startProcess()
+	stream := progress.StreamMonitors(ctx, []progress.Monitorable{monitor.RowsProcessed, monitor.DifferencesDiscovered}, 50*time.Millisecond)
+	title := tileFormat.Sprint("Diffing databases...")
+
+	formatFn := func(val int64) {
+		spin := color.Magenta.Sprint(spinner.Next())
+		auxInfo := auxInfoFormat.Sprintf("[differences %d]", val)
+		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
+	}
+
+	go func() {
+		defer wg.Done()
+
+		formatFn(0)
+		for p := range stream {
+			formatFn(p[1])
+		}
+
+		spin := color.Green.Sprint(completedStatus)
+		title = tileFormat.Sprint("Diff Complete")
+		auxInfo := auxInfoFormat.Sprintf("[%d differences]", monitor.DifferencesDiscovered.Current())
 		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
 	}()
 

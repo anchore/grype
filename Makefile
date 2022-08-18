@@ -25,14 +25,14 @@ COVERAGE_THRESHOLD := 47
 
 # CI cache busting values; change these if you want CI to not use previous stored cache
 BOOTSTRAP_CACHE="c7afb99ad"
-INTEGRATION_CACHE_BUSTER="894d8ca"
+INTEGRATION_CACHE_BUSTER="904d8ca"
 
 ## Build variables
 DISTDIR=./dist
 SNAPSHOTDIR=./snapshot
 OS=$(shell uname | tr '[:upper:]' '[:lower:]')
 SYFT_VERSION=$(shell go list -m all | grep github.com/anchore/syft | awk '{print $$2}')
-SNAPSHOT_BIN=$(shell realpath $(shell pwd)/$(SNAPSHOTDIR)/$(OS)-build_$(OS)_amd64/$(BIN))
+SNAPSHOT_BIN=$(shell realpath $(shell pwd)/$(SNAPSHOTDIR)/$(OS)-build_$(OS)_amd64_v1/$(BIN))
 
 
 ## Variable assertions
@@ -74,7 +74,7 @@ all: clean static-analysis test ## Run all checks (linting, license check, unit,
 	@printf '$(SUCCESS)All checks pass!$(RESET)\n'
 
 .PHONY: test
-test: unit validate-cyclonedx-schema integration cli ## Run all tests (unit, integration, linux acceptance, and CLI tests)
+test: unit validate-cyclonedx-schema validate-cyclonedx-vex-schema integration cli ## Run all tests (unit, integration, linux acceptance, and CLI tests)
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(BOLD)$(CYAN)%-25s$(RESET)%s\n", $$1, $$2}'
@@ -91,12 +91,13 @@ $(TEMPDIR):
 
 .PHONY: bootstrap-tools
 bootstrap-tools: $(TEMPDIR)
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(TEMPDIR)/ v1.45.0
-	curl -sSfL https://raw.githubusercontent.com/wagoodman/go-bouncer/master/bouncer.sh | sh -s -- -b $(TEMPDIR)/ v0.3.0
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(TEMPDIR)/ v1.47.2
+	curl -sSfL https://raw.githubusercontent.com/wagoodman/go-bouncer/master/bouncer.sh | sh -s -- -b $(TEMPDIR)/ v0.4.0
 	curl -sSfL https://raw.githubusercontent.com/anchore/chronicle/main/install.sh | sh -s -- -b $(TEMPDIR)/ v0.3.0
 	# the only difference between goimports and gosimports is that gosimports removes extra whitespace between import blocks (see https://github.com/golang/go/issues/20818)
 	GOBIN="$(shell realpath $(TEMPDIR))" go install github.com/rinchsan/gosimports/cmd/gosimports@v0.1.5
-	.github/scripts/goreleaser-install.sh -b $(TEMPDIR)/ v1.4.1
+	GOBIN="$(shell realpath $(TEMPDIR))" go install github.com/neilpa/yajsv@v1.4.0
+	.github/scripts/goreleaser-install.sh -b $(TEMPDIR)/ v1.10.3
 
 .PHONY: bootstrap-go
 bootstrap-go:
@@ -142,6 +143,10 @@ check-go-mod-tidy:
 .PHONY: validate-cyclonedx-schema
 validate-cyclonedx-schema:
 	cd schema/cyclonedx && make
+
+.PHONY: validate-cyclonedx-vex-schema
+validate-cyclonedx-vex-schema:
+	cd schema/cyclonedxvex && make
 
 .PHONY: validate-grype-db-schema
 validate-grype-db-schema:
@@ -281,6 +286,33 @@ release: clean-dist CHANGELOG.md  ## Build and publish final binaries and packag
 	# TODO: turn this into a post-release hook
 	# upload the version file that supports the application version update check (excluding pre-releases)
 	.github/scripts/update-version-file.sh "$(DISTDIR)" "$(VERSION)"
+
+.PHONY: release-docker-assets
+release-docker-assets:
+	$(call title,Publishing docker release assets)
+
+	# create a config with the dist dir overridden
+	echo "dist: $(DISTDIR)" > $(TEMPDIR)/goreleaser.yaml
+	cat .goreleaser_docker.yaml >> $(TEMPDIR)/goreleaser.yaml
+
+	bash -c "\
+		SYFT_VERSION=$(SYFT_VERSION)\
+		$(RELEASE_CMD) \
+			--config $(TEMPDIR)/goreleaser.yaml \
+			--parallelism 1"
+
+snapshot-docker-assets: # Build snapshot images of docker images that will be published on release
+	$(call title,Building snapshot docker release assets)
+
+	# create a config with the dist dir overridden
+	echo "dist: $(DISTDIR)" > $(TEMPDIR)/goreleaser.yaml
+	cat .goreleaser_docker.yaml >> $(TEMPDIR)/goreleaser.yaml
+
+	bash -c "\
+		SYFT_VERSION=$(SYFT_VERSION)\
+		$(SNAPSHOT_CMD) \
+			--config $(TEMPDIR)/goreleaser.yaml \
+			--parallelism 1"
 
 .PHONY: clean
 clean: clean-dist clean-snapshot  ## Remove previous builds and result reports

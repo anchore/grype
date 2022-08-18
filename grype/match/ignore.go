@@ -18,6 +18,7 @@ type IgnoredMatch struct {
 // rule to apply.
 type IgnoreRule struct {
 	Vulnerability string            `yaml:"vulnerability" json:"vulnerability" mapstructure:"vulnerability"`
+	Namespace     string            `yaml:"namespace" json:"namespace" mapstructure:"namespace"`
 	FixState      string            `yaml:"fix-state" json:"fix-state" mapstructure:"fix-state"`
 	Package       IgnoreRulePackage `yaml:"package" json:"package" mapstructure:"package"`
 }
@@ -26,6 +27,7 @@ type IgnoreRule struct {
 type IgnoreRulePackage struct {
 	Name     string `yaml:"name" json:"name" mapstructure:"name"`
 	Version  string `yaml:"version" json:"version" mapstructure:"version"`
+	Language string `yaml:"language" json:"language" mapstructure:"language"`
 	Type     string `yaml:"type" json:"type" mapstructure:"type"`
 	Location string `yaml:"location" json:"location" mapstructure:"location"`
 }
@@ -93,12 +95,20 @@ func getIgnoreConditionsForRule(rule IgnoreRule) []ignoreCondition {
 		ignoreConditions = append(ignoreConditions, ifVulnerabilityApplies(v))
 	}
 
+	if ns := rule.Namespace; ns != "" {
+		ignoreConditions = append(ignoreConditions, ifNamespaceApplies(ns))
+	}
+
 	if n := rule.Package.Name; n != "" {
 		ignoreConditions = append(ignoreConditions, ifPackageNameApplies(n))
 	}
 
 	if v := rule.Package.Version; v != "" {
 		ignoreConditions = append(ignoreConditions, ifPackageVersionApplies(v))
+	}
+
+	if l := rule.Package.Language; l != "" {
+		ignoreConditions = append(ignoreConditions, ifPackageLanguageApplies(l))
 	}
 
 	if t := rule.Package.Type; t != "" {
@@ -128,6 +138,12 @@ func ifVulnerabilityApplies(vulnerability string) ignoreCondition {
 	}
 }
 
+func ifNamespaceApplies(namespace string) ignoreCondition {
+	return func(match Match) bool {
+		return namespace == match.Vulnerability.Namespace
+	}
+}
+
 func ifPackageNameApplies(name string) ignoreCondition {
 	return func(match Match) bool {
 		return name == match.Package.Name
@@ -137,6 +153,12 @@ func ifPackageNameApplies(name string) ignoreCondition {
 func ifPackageVersionApplies(version string) ignoreCondition {
 	return func(match Match) bool {
 		return version == match.Package.Version
+	}
+}
+
+func ifPackageLanguageApplies(language string) ignoreCondition {
+	return func(match Match) bool {
+		return language == string(match.Package.Language)
 	}
 }
 

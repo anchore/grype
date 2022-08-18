@@ -7,6 +7,7 @@ type Store interface {
 
 type StoreReader interface {
 	IDReader
+	DiffReader
 	VulnerabilityStoreReader
 	VulnerabilityMetadataStoreReader
 }
@@ -15,4 +16,9 @@ type StoreWriter interface {
 	IDWriter
 	VulnerabilityStoreWriter
 	VulnerabilityMetadataStoreWriter
+	Close()
+}
+
+type DiffReader interface {
+	DiffStore(s StoreReader) (*[]Diff, error)
 }

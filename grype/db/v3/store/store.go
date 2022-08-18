@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sort"
 
-	_ "github.com/glebarez/sqlite" // provide the sqlite dialect to gorm via import
 	"github.com/go-test/deep"
 	"gorm.io/gorm"
 
@@ -12,6 +11,7 @@ import (
 	v3 "github.com/anchore/grype/grype/db/v3"
 	"github.com/anchore/grype/grype/db/v3/store/model"
 	"github.com/anchore/grype/internal"
+	_ "github.com/anchore/sqlite" // provide the sqlite dialect to gorm via import
 )
 
 // store holds an instance of the database connection
@@ -210,4 +210,90 @@ func (s *store) AddVulnerabilityMetadata(metadata ...v3.VulnerabilityMetadata) e
 		}
 	}
 	return nil
+}
+
+// GetAllVulnerabilities gets all vulnerabilities in the database
+func (s *store) GetAllVulnerabilities() (*[]v3.Vulnerability, error) {
+	var models []model.VulnerabilityModel
+	if result := s.db.Find(&models); result.Error != nil {
+		return nil, result.Error
+	}
+	vulns := make([]v3.Vulnerability, len(models))
+	for idx, m := range models {
+		vuln, err := m.Inflate()
+		if err != nil {
+			return nil, err
+		}
+		vulns[idx] = vuln
+	}
+	return &vulns, nil
+}
+
+// GetAllVulnerabilityMetadata gets all vulnerability metadata in the database
+func (s *store) GetAllVulnerabilityMetadata() (*[]v3.VulnerabilityMetadata, error) {
+	var models []model.VulnerabilityMetadataModel
+	if result := s.db.Find(&models); result.Error != nil {
+		return nil, result.Error
+	}
+	metadata := make([]v3.VulnerabilityMetadata, len(models))
+	for idx, m := range models {
+		data, err := m.Inflate()
+		if err != nil {
+			return nil, err
+		}
+		metadata[idx] = data
+	}
+	return &metadata, nil
+}
+
+// DiffStore creates a diff between the current sql database and the given store
+func (s *store) DiffStore(targetStore v3.StoreReader) (*[]v3.Diff, error) {
+	rowsProgress, diffItems := trackDiff()
+
+	targetVulns, err := targetStore.GetAllVulnerabilities()
+	rowsProgress.N++
+	if err != nil {
+		return nil, err
+	}
+
+	baseVulns, err := s.GetAllVulnerabilities()
+	rowsProgress.N++
+	if err != nil {
+		return nil, err
+	}
+
+	baseVulnPkgMap := buildVulnerabilityPkgsMap(baseVulns)
+	targetVulnPkgMap := buildVulnerabilityPkgsMap(targetVulns)
+
+	allDiffsMap := diffVulnerabilities(baseVulns, targetVulns, baseVulnPkgMap, targetVulnPkgMap, diffItems)
+
+	baseMetadata, err := s.GetAllVulnerabilityMetadata()
+	if err != nil {
+		return nil, err
+	}
+	rowsProgress.N++
+
+	targetMetadata, err := targetStore.GetAllVulnerabilityMetadata()
+	if err != nil {
+		return nil, err
+	}
+	rowsProgress.N++
+
+	metaDiffsMap := diffVulnerabilityMetadata(baseMetadata, targetMetadata, baseVulnPkgMap, targetVulnPkgMap, diffItems)
+	for k, diff := range *metaDiffsMap {
+		(*allDiffsMap)[k] = diff
+	}
+	allDiffs := []v3.Diff{}
+	for _, diff := range *allDiffsMap {
+		allDiffs = append(allDiffs, *diff)
+	}
+
+	rowsProgress.SetCompleted()
+	diffItems.SetCompleted()
+
+	return &allDiffs, nil
+}
+
+func (s *store) Close() {
+	s.db.Exec("VACUUM;")
 }

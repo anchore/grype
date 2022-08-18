@@ -8,15 +8,17 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"time"
 
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/mholt/archiver/v3"
+	"github.com/hako/durafmt"
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	archiver "github.com/mholt/archiver/v3"
 	"github.com/spf13/afero"
-	"github.com/wagoodman/go-partybus"
-	"github.com/wagoodman/go-progress"
+	partybus "github.com/wagoodman/go-partybus"
+	progress "github.com/wagoodman/go-progress"
 
-	grypeDB "github.com/anchore/grype/grype/db/v3"
-	"github.com/anchore/grype/grype/db/v3/store"
+	grypeDB "github.com/anchore/grype/grype/db/v4"
+	"github.com/anchore/grype/grype/db/v4/store"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
@@ -33,6 +35,8 @@ type Config struct {
 	ListingURL          string
 	CACert              string
 	ValidateByHashOnGet bool
+	ValidateAge         bool
+	MaxAllowedBuiltAge  time.Duration
 }
 
 type Curator struct {
@@ -43,6 +47,8 @@ type Curator struct {
 	dbPath              string
 	listingURL          string
 	validateByHashOnGet bool
+	validateAge         bool
+	maxAllowedBuiltAge  time.Duration
 }
 
 func NewCurator(cfg Config) (Curator, error) {
@@ -62,6 +68,8 @@ func NewCurator(cfg Config) (Curator, error) {
 		dbPath:              path.Join(dbDir, FileName),
 		listingURL:          cfg.ListingURL,
 		validateByHashOnGet: cfg.ValidateByHashOnGet,
+		validateAge:         cfg.ValidateAge,
+		maxAllowedBuiltAge:  cfg.MaxAllowedBuiltAge,
 	}, nil
 }
 
@@ -69,15 +77,15 @@ func (c Curator) SupportedSchema() int {
 	return c.targetSchema
 }
 
-func (c *Curator) GetStore() (grypeDB.StoreReader, error) {
+func (c *Curator) GetStore() (grypeDB.StoreReader, grypeDB.DBCloser, error) {
 	// ensure the DB is ok
-	err := c.Validate()
+	_, err := c.validateIntegrity(c.dbDir)
 	if err != nil {
-		return nil, fmt.Errorf("vulnerability database is corrupt (run db update to correct): %+v", err)
+		return nil, nil, fmt.Errorf("vulnerability database is invalid (run db update to correct): %+v", err)
 	}
 
 	s, err := store.New(c.dbPath, false)
-	return s, err
+	return s, s, err
 }
 
 func (c *Curator) Status() Status {
@@ -135,7 +143,7 @@ func (c *Curator) Update() (bool, error) {
 	defer downloadProgress.SetCompleted()
 	defer importProgress.SetCompleted()
 
-	updateAvailable, updateEntry, err := c.IsUpdateAvailable()
+	updateAvailable, metadata, updateEntry, err := c.IsUpdateAvailable()
 	if err != nil {
 		// we want to continue if possible even if we can't check for an update
 		log.Warnf("unable to check for vulnerability database update")
@@ -147,42 +155,59 @@ func (c *Curator) Update() (bool, error) {
 		if err != nil {
 			return false, fmt.Errorf("unable to update vulnerability database: %w", err)
 		}
-		log.Infof("updated vulnerability DB to version=%d built=%q", updateEntry.Version, updateEntry.Built.String())
+
+		if metadata != nil {
+			log.Infof(
+				"updated vulnerability DB from version=%d built=%q to version=%d built=%q",
+				metadata.Version,
+				metadata.Built.String(),
+				updateEntry.Version,
+				updateEntry.Built.String(),
+			)
+			return true, nil
+		}
+
+		log.Infof(
+			"downloaded new vulnerability DB version=%d built=%q",
+			updateEntry.Version,
+			updateEntry.Built.String(),
+		)
 		return true, nil
 	}
+
 	stage.Current = "no update available"
 	return false, nil
 }
 
 // IsUpdateAvailable indicates if there is a new update available as a boolean, and returns the latest listing information
 // available for this schema.
-func (c *Curator) IsUpdateAvailable() (bool, *ListingEntry, error) {
+func (c *Curator) IsUpdateAvailable() (bool, *Metadata, *ListingEntry, error) {
 	log.Debugf("checking for available database updates")
 
 	listing, err := c.ListingFromURL()
 	if err != nil {
-		return false, nil, err
+		return false, nil, nil, err
 	}
 
 	updateEntry := listing.BestUpdate(c.targetSchema)
 	if updateEntry == nil {
-		return false, nil, fmt.Errorf("no db candidates with correct version available (maybe there is an application update available?)")
+		return false, nil, nil, fmt.Errorf("no db candidates with correct version available (maybe there is an application update available?)")
 	}
 	log.Debugf("found database update candidate: %s", updateEntry)
 
 	// compare created data to current db date
 	current, err := NewMetadataFromDir(c.fs, c.dbDir)
 	if err != nil {
-		return false, nil, fmt.Errorf("current metadata corrupt: %w", err)
+		return false, nil, nil, fmt.Errorf("current metadata corrupt: %w", err)
 	}
 
 	if current.IsSupersededBy(updateEntry) {
 		log.Debugf("database update available: %s", updateEntry)
-		return true, updateEntry, nil
+		return true, current, updateEntry, nil
 	}
 	log.Debugf("no database update available")
 
-	return false, nil, nil
+	return false, nil, nil, nil
 }
 
 // UpdateTo updates the existing DB with the specific other version provided from a listing entry.
@@ -194,8 +219,8 @@ func (c *Curator) UpdateTo(listing *ListingEntry, downloadProgress, importProgre
 		return err
 	}
 
-	stage.Current = "validating"
-	err = c.validate(tempDir)
+	stage.Current = "validating integrity"
+	_, err = c.validateIntegrity(tempDir)
 	if err != nil {
 		return err
 	}
@@ -214,7 +239,12 @@ func (c *Curator) UpdateTo(listing *ListingEntry, downloadProgress, importProgre
 
 // Validate checks the current database to ensure file integrity and if it can be used by this version of the application.
 func (c *Curator) Validate() error {
-	return c.validate(c.dbDir)
+	metadata, err := c.validateIntegrity(c.dbDir)
+	if err != nil {
+		return err
+	}
+
+	return c.validateStaleness(metadata)
 }
 
 // ImportFrom takes a DB archive file and imports it into the final DB location.
@@ -230,7 +260,7 @@ func (c *Curator) ImportFrom(dbArchivePath string) error {
 		return err
 	}
 
-	err = c.validate(tempDir)
+	_, err = c.validateIntegrity(tempDir)
 	if err != nil {
 		return err
 	}
@@ -267,34 +297,53 @@ func (c *Curator) download(listing *ListingEntry, downloadProgress *progress.Man
 	return tempDir, nil
 }
 
-func (c *Curator) validate(dbDirPath string) error {
+// validateStaleness ensures the vulnerability database has not passed
+// the max allowed age, calculated from the time it was built until now.
+func (c *Curator) validateStaleness(m Metadata) error {
+	if !c.validateAge {
+		return nil
+	}
+
+	// built time is defined in UTC,
+	// we should compare it against UTC
+	now := time.Now().UTC()
+
+	age := now.Sub(m.Built)
+	if age > c.maxAllowedBuiltAge {
+		return fmt.Errorf("the vulnerability database was built %s ago (max allowed age is %s)", durafmt.ParseShort(age), durafmt.ParseShort(c.maxAllowedBuiltAge))
+	}
+
+	return nil
+}
+
+func (c *Curator) validateIntegrity(dbDirPath string) (Metadata, error) {
 	// check that the disk checksum still matches the db payload
 	metadata, err := NewMetadataFromDir(c.fs, dbDirPath)
 	if err != nil {
-		return fmt.Errorf("failed to parse database metadata (%s): %w", dbDirPath, err)
+		return Metadata{}, fmt.Errorf("failed to parse database metadata (%s): %w", dbDirPath, err)
 	}
 	if metadata == nil {
-		return fmt.Errorf("database metadata not found: %s", dbDirPath)
+		return Metadata{}, fmt.Errorf("database metadata not found: %s", dbDirPath)
 	}
 
 	if c.validateByHashOnGet {
 		dbPath := path.Join(dbDirPath, FileName)
 		valid, actualHash, err := file.ValidateByHash(c.fs, dbPath, metadata.Checksum)
 		if err != nil {
-			return err
+			return Metadata{}, err
 		}
 		if !valid {
-			return fmt.Errorf("bad db checksum (%s): %q vs %q", dbPath, metadata.Checksum, actualHash)
+			return Metadata{}, fmt.Errorf("bad db checksum (%s): %q vs %q", dbPath, metadata.Checksum, actualHash)
 		}
 	}
 
 	if c.targetSchema != metadata.Version {
-		return fmt.Errorf("unsupported database version: have=%d want=%d", metadata.Version, c.targetSchema)
+		return Metadata{}, fmt.Errorf("unsupported database version: have=%d want=%d", metadata.Version, c.targetSchema)
 	}
 
 	// TODO: add version checks here to ensure this version of the application can use this database version (relative to what the DB says, not JUST the metadata!)
 
-	return nil
+	return *metadata, nil
 }
 
 // activate swaps over the downloaded db to the application directory
