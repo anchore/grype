@@ -32,6 +32,7 @@ import (
 	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/syft/syft/linux"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -346,7 +347,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			appConfig.Ignore = append(appConfig.Ignore, ignoreFixedMatches...)
 		}
 
-		applyDistroHint(&context, appConfig)
+		applyDistroHint(packages, &context, appConfig)
 
 		matchers := matcher.NewDefaultMatchers(matcher.Config{
 			Java: appConfig.ExternalSources.ToJavaMatcherConfig(),
@@ -374,7 +375,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 	return errs
 }
 
-func applyDistroHint(context *pkg.Context, appConfig *config.Application) {
+func applyDistroHint(pkgs []pkg.Package, context *pkg.Context, appConfig *config.Application) {
 	if appConfig.Distro != "" {
 		log.Infof("using distro: %s", appConfig.Distro)
 
@@ -396,8 +397,16 @@ func applyDistroHint(context *pkg.Context, appConfig *config.Application) {
 		}
 	}
 
-	if context.Distro == nil {
-		log.Debug("Unable to determine the OS distribution. This may result in missing vulnerabilities. " +
+	hasOSPackage := false
+	for _, p := range pkgs {
+		switch p.Type {
+		case syftPkg.AlpmPkg, syftPkg.DebPkg, syftPkg.RpmPkg, syftPkg.KbPkg:
+			hasOSPackage = true
+		}
+	}
+
+	if context.Distro == nil && hasOSPackage {
+		log.Warnf("Unable to determine the OS distribution. This may result in missing vulnerabilities. " +
 			"You may specify a distro using: --distro <distro>:<version>")
 	}
 }
