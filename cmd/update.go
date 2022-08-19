@@ -33,10 +33,7 @@ func runUpdate(_ *cobra.Command, _ []string) error {
 		panic(err)
 	}
 	if newerVersionAvailable {
-		compressed, err := downloadCompressed(desiredVersion)
-		if err != nil {
-			panic(err)
-		}
+		compressed := downloadCompressed(desiredVersion)
 		filePath := extractBinary(compressed)
 		replaceBinary(filePath)
 	} else {
@@ -52,6 +49,9 @@ func extractBinary(fileName string) string {
 		panic(err)
 	}
 	tempDir, err := os.MkdirTemp("", "e_grype")
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("Extracting grype...")
 	log.Infof("Extracting grype")
 	log.Debugf("Extract destination is %s", tempDir)
@@ -92,7 +92,7 @@ func replaceBinary(fileName string) {
 		log.Errorf("Error while overwriting current executable: %s", err)
 	}
 	fmt.Println("Grype updated successfully! Run 'grype version' to get more info")
-	log.Infof("Updated grype (%s) succesfully\n", executablePath)
+	log.Infof("Updated grype (%s) successfully\n", executablePath)
 }
 
 func ExtractTarGz(gzipStream io.Reader, destination string) error {
@@ -104,7 +104,7 @@ func ExtractTarGz(gzipStream io.Reader, destination string) error {
 
 	tarReader := tar.NewReader(uncompressedStream)
 
-	for true {
+	for {
 		header, err := tarReader.Next()
 		if err == io.EOF {
 			break
@@ -129,9 +129,15 @@ func ExtractTarGz(gzipStream io.Reader, destination string) error {
 				log.Errorf("ExtractTarGz: Create() failed: %s", err.Error())
 				return err
 			}
-			if _, err := io.Copy(outFile, tarReader); err != nil {
-				log.Errorf("ExtractTarGz: Copy() failed: %s", err.Error())
-				return err
+			for {
+				_, err := io.CopyN(outFile, tarReader, 1024)
+				if err != nil {
+					if err == io.EOF {
+						break
+					}
+					log.Errorf("ExtractTarGz: Copy() failed: %s", err.Error())
+					return err
+				}
 			}
 			outFile.Close()
 
@@ -156,13 +162,12 @@ func checkLatestVersion() (bool, string, error) {
 	if updateAvaliable {
 		log.Infof("New version available v%s", version)
 		return true, version, nil
-	} else {
-		log.Infof("No updates available")
 	}
+	log.Infof("No updates available")
 	return false, "", nil
 }
 
-func downloadCompressed(version string) (string, error) {
+func downloadCompressed(version string) string {
 	var extension = "tar.gz"
 	if runtime.GOOS == "windows" {
 		extension = "zip"
@@ -174,11 +179,11 @@ func downloadCompressed(version string) (string, error) {
 		panic(err)
 	}
 
-	var downloadUrlTemplate = "https://github.com/%s/%s/releases/download/v%s/grype_%s_%s_%s.%s"
-	var downloadUrl = fmt.Sprintf(downloadUrlTemplate, "anchore", "grype", version, version, runtime.GOOS, runtime.GOARCH, extension)
+	var downloadURLTemplate = "https://github.com/%s/%s/releases/download/v%s/grype_%s_%s_%s.%s"
+	var downloadURL = fmt.Sprintf(downloadURLTemplate, "anchore", "grype", version, version, runtime.GOOS, runtime.GOARCH, extension)
 	log.Infof("Downloading v%s", version)
 	fmt.Printf("Downloading v%s...\n", version)
-	resp, err := http.Get(downloadUrl)
+	resp, err := http.Get(downloadURL) //nolint
 	if err != nil {
 		panic(err)
 	}
@@ -188,5 +193,5 @@ func downloadCompressed(version string) (string, error) {
 	if err != nil {
 		panic(err)
 	}
-	return f.Name(), nil
+	return f.Name()
 }
