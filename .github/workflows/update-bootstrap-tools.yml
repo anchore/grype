@@ -26,7 +26,7 @@ jobs:
           BOUNCER_LATEST_VERSION=$(go list -m -json github.com/wagoodman/go-bouncer@latest 2>/dev/null | jq -r '.Version')
           CHRONICLE_LATEST_VERSION=$(go list -m -json github.com/anchore/chronicle@latest 2>/dev/null | jq -r '.Version')
           GORELEASER_LATEST_VERSION=$(go list -m -json github.com/goreleaser/goreleaser@latest 2>/dev/null | jq -r '.Version')
-          GOSIMPORTS_LATEST_VERSION=$(go list -m -json github.com/rinchsan/gosimports/cmd/gosimports@latest 2>/dev/null | jq -r '.Version')
+          GOSIMPORTS_LATEST_VERSION=$(go list -m -json github.com/rinchsan/gosimports@latest 2>/dev/null | jq -r '.Version')
           YAJSV_LATEST_VERSION=$(go list -m -json github.com/neilpa/yajsv@latest 2>/dev/null | jq -r '.Version')
           
           # update version variables in the Makefile
