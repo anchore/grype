@@ -154,8 +154,9 @@ func (s *store) GetVulnerabilityMetadata(id, namespace string) (*v4.Vulnerabilit
 	return nil, nil
 }
 
-// nolint:gocognit
 // AddVulnerabilityMetadata stores one or more vulnerability metadata models into the sqlite DB.
+//
+//nolint:gocognit
 func (s *store) AddVulnerabilityMetadata(metadata ...v4.VulnerabilityMetadata) error {
 	for _, m := range metadata {
 		existing, err := s.GetVulnerabilityMetadata(m.ID, m.Namespace)

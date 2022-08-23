@@ -44,7 +44,7 @@ var (
 	suffixValue   = map[string]int{"pre": -2, "p": 0, "alpha": -4, "beta": -3, "rc": -1}
 )
 
-// nolint:funlen,gocognit
+//nolint:funlen,gocognit
 func comparePortageVersions(a, b string) int {
 	match1 := versionRegexp.FindStringSubmatch(a)
 	match2 := versionRegexp.FindStringSubmatch(b)

@@ -141,7 +141,7 @@ func (v rpmVersion) String() string {
 // https://github.com/rpm-software-management/rpm/blob/master/lib/rpmvercmp.c#L16
 var alphanumPattern = regexp.MustCompile("([a-zA-Z]+)|([0-9]+)|(~)")
 
-// nolint:funlen,gocognit
+//nolint:funlen,gocognit
 func compareRpmVersions(a, b string) int {
 	// shortcut for equality
 	if a == b {
