@@ -23,7 +23,7 @@ func (m *Matcher) Type() match.MatcherType {
 	return match.RpmDBMatcher
 }
 
-// nolint:funlen
+//nolint:funlen
 func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	matches := make([]match.Match, 0)
 
