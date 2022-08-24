@@ -8,7 +8,11 @@ There are a few useful things to know before diving into the codebase. This proj
 
 After cloning do the following:
 
-1. run `make bootstrap` to download go mod dependencies, create the `/.tmp` dir, and download helper utilities.
+1. run `go build main.go` to get a binary named `main` from the source (use `-o <name>` to get a differently named binary), or optionally `go run main.go` to run from source.
+
+In order to run tests and build all artifacts:
+
+1. run `make bootstrap` to download go mod dependencies, create the `/.tmp` dir, and download helper utilities (this only needs to be done once or when build tools are updated).
 2. run `make` to run linting, tests, and other verifications to make certain everything is working alright.
 
 Checkout `make help` to see what other actions you can take.
