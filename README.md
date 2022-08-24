@@ -80,6 +80,10 @@ sudo port install grype
 
 **Note**: Currently, Grype is built only for macOS and Linux.
 
+### From source
+
+See [DEVELOPING.md](DEVELOPING.md#native-development) for instructions to build and run from source.
+
 ### GitHub Actions
 
 If you're using GitHub Actions, you can simply use our [Grype-based action](https://github.com/marketplace/actions/anchore-container-scan) to run vulnerability scans on your code or container images during your CI workflows.
