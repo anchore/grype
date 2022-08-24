@@ -185,7 +185,7 @@ jobs:
         run: make bootstrap
 
       - name: Build snapshot artifacts
-        run: make snapshot
+        run: make snapshot snapshot-docker-assets
 
       - uses: actions/upload-artifact@v2
         with:
