@@ -108,7 +108,7 @@ func (pr *mockVulnStore) stub() {
 					"cpe:2.3:*:funfun:funfun:5.2.1:*:*:*:*:python:*:*",
 					"cpe:2.3:*:funfun:funfun:*:*:*:*:*:python:*:*",
 				},
-				Namespace: "nvd",
+				Namespace: "nvd:cpe",
 			},
 		},
 		"sw": {
@@ -120,7 +120,19 @@ func (pr *mockVulnStore) stub() {
 				CPEs: []string{
 					"cpe:2.3:*:sw:sw:*:*:*:*:*:puppet:*:*",
 				},
-				Namespace: "nvd",
+				Namespace: "nvd:cpe",
+			},
+		},
+		"handlebars": {
+			{
+				PackageName:       "handlebars",
+				VersionConstraint: "< 4.7.7",
+				VersionFormat:     version.UnknownFormat.String(),
+				ID:                "CVE-2021-23369",
+				CPEs: []string{
+					"cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:node.js:*:*",
+				},
+				Namespace: "nvd:cpe",
 			},
 		},
 	}
@@ -465,7 +477,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							Confidence: 0.9,
 							SearchedBy: CPEParameters{
 								CPEs:      []string{"cpe:2.3:*:sw:sw:*:*:*:*:*:*:*:*"},
-								Namespace: "nvd",
+								Namespace: "nvd:cpe",
 							},
 							Found: CPEResult{
 								CPEs: []string{
@@ -516,7 +528,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							Confidence: 0.9,
 							SearchedBy: CPEParameters{
 								CPEs:      []string{"cpe:2.3:*:funfun:funfun:*:*:*:*:*:python:*:*"},
-								Namespace: "nvd",
+								Namespace: "nvd:cpe",
 							},
 							Found: CPEResult{
 								CPEs: []string{
@@ -524,6 +536,96 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 									"cpe:2.3:*:funfun:funfun:5.2.1:*:*:*:*:python:*:*",
 								},
 								VersionConstraint: "= 5.2.1 (python)",
+							},
+							Matcher: matcher,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Ensure target_sw mismatch does not apply to java packages",
+			p: pkg.Package{
+				CPEs: []syftPkg.CPE{
+					must(syftPkg.NewCPE("cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:*:*:*")),
+				},
+				Name:     "handlebars",
+				Version:  "0.1",
+				Language: syftPkg.Java,
+				Type:     syftPkg.JavaPkg,
+			},
+			expected: []match.Match{
+				{
+					Vulnerability: vulnerability.Vulnerability{
+						ID: "CVE-2021-23369",
+					},
+					Package: pkg.Package{
+						CPEs: []syftPkg.CPE{
+							must(syftPkg.NewCPE("cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:*:*:*")),
+						},
+						Name:     "handlebars",
+						Version:  "0.1",
+						Language: syftPkg.Java,
+						Type:     syftPkg.JavaPkg,
+					},
+					Details: []match.Detail{
+						{
+							Type:       match.CPEMatch,
+							Confidence: 0.9,
+							SearchedBy: CPEParameters{
+								CPEs:      []string{"cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:*:*:*"},
+								Namespace: "nvd:cpe",
+							},
+							Found: CPEResult{
+								CPEs: []string{
+									"cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:node.js:*:*",
+								},
+								VersionConstraint: "< 4.7.7 (unknown)",
+							},
+							Matcher: matcher,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Ensure target_sw mismatch does not apply to java jenkins plugins packages",
+			p: pkg.Package{
+				CPEs: []syftPkg.CPE{
+					must(syftPkg.NewCPE("cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:*:*:*")),
+				},
+				Name:     "handlebars",
+				Version:  "0.1",
+				Language: syftPkg.Java,
+				Type:     syftPkg.JenkinsPluginPkg,
+			},
+			expected: []match.Match{
+				{
+					Vulnerability: vulnerability.Vulnerability{
+						ID: "CVE-2021-23369",
+					},
+					Package: pkg.Package{
+						CPEs: []syftPkg.CPE{
+							must(syftPkg.NewCPE("cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:*:*:*")),
+						},
+						Name:     "handlebars",
+						Version:  "0.1",
+						Language: syftPkg.Java,
+						Type:     syftPkg.JenkinsPluginPkg,
+					},
+					Details: []match.Detail{
+						{
+							Type:       match.CPEMatch,
+							Confidence: 0.9,
+							SearchedBy: CPEParameters{
+								CPEs:      []string{"cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:*:*:*"},
+								Namespace: "nvd:cpe",
+							},
+							Found: CPEResult{
+								CPEs: []string{
+									"cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:node.js:*:*",
+								},
+								VersionConstraint: "< 4.7.7 (unknown)",
 							},
 							Matcher: matcher,
 						},
