@@ -317,8 +317,7 @@ snapshot-docker-assets: # Build snapshot images of docker images that will be pu
 	bash -c "\
 		SYFT_VERSION=$(SYFT_VERSION)\
 		$(SNAPSHOT_CMD) \
-			--config $(TEMPDIR)/goreleaser.yaml \
-			--parallelism 1"
+			--config $(TEMPDIR)/goreleaser.yaml"
 
 .PHONY: clean
 clean: clean-dist clean-snapshot  ## Remove previous builds and result reports
