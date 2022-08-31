@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -15,6 +16,8 @@ import (
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/version"
 )
+
+var downloadURLTemplate = "https://github.com/anchore/grype/releases/download/v%s/grype_%s_%s_%s.%s"
 
 var updateCmd = &cobra.Command{
 	Use:   "update",
@@ -30,27 +33,39 @@ func runUpdate(_ *cobra.Command, _ []string) error {
 	fmt.Println("Checking for a newer version...")
 	newerVersionAvailable, desiredVersion, err := checkLatestVersion()
 	if err != nil {
-		panic(err)
+		log.Errorf("Error while checking for a newer version: %s", err)
+		return err
 	}
 	if newerVersionAvailable {
-		compressed := downloadCompressed(desiredVersion)
-		filePath := extractBinary(compressed)
-		replaceBinary(filePath)
-	} else {
-		fmt.Println("You are already running the newest version available")
+		compressed, err := downloadCompressed(desiredVersion)
+		if err != nil {
+			return err
+		}
+		filePath, err := extractBinary(compressed)
+		if err != nil {
+			return err
+		}
+		err = replaceBinary(filePath)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
+	fmt.Println("You are already running the newest version available")
 	return nil
 }
 
-func extractBinary(fileName string) string {
+func extractBinary(fileName string) (string, error) {
 	r, err := os.Open(fileName)
 	if err != nil {
+		log.Errorf("Error while opening downloaded grype version: %s", err)
 		defer os.Remove(fileName)
-		panic(err)
+		return "", err
 	}
 	tempDir, err := os.MkdirTemp("", "e_grype")
 	if err != nil {
-		panic(err)
+		log.Errorf("Error while creating a temporary directory: %s", err)
+		return "", err
 	}
 	fmt.Println("Extracting grype...")
 	log.Infof("Extracting grype")
@@ -58,41 +73,47 @@ func extractBinary(fileName string) string {
 	err = ExtractTarGz(r, tempDir)
 	if err != nil {
 		defer os.RemoveAll(tempDir)
-		panic(err)
+		return "", err
 	}
 	updatedGrypePath := fmt.Sprintf("%s/grype", tempDir)
 	err = os.Chmod(updatedGrypePath, 0777)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
-	return updatedGrypePath
+	return updatedGrypePath, nil
 }
 
-func replaceBinary(fileName string) {
+func replaceBinary(fileName string) error {
 	fmt.Println("Applying update...")
 	log.Infof("Updating grype")
 
 	executablePath, err := os.Executable()
 	currentDir := filepath.Dir(executablePath)
-
 	if err != nil {
-		panic("Error getting current executable path")
+		log.Errorf("Error while getting current executable path: %s", err)
+		return err
 	}
+
 	updatedBytes, err := os.ReadFile(fileName)
 	if err != nil {
-		panic(err)
+		log.Errorf("Error while reading new grype binary: %s", err)
+		return err
 	}
+
 	tempBinaryPath := fmt.Sprintf("%s/updatedGrype", currentDir)
 	err = os.WriteFile(tempBinaryPath, updatedBytes, os.FileMode(0755))
 	if err != nil {
-		panic(err)
+		log.Errorf("Error while copying new binary: %s", err)
+		return err
 	}
 	err = os.Rename(tempBinaryPath, executablePath)
 	if err != nil {
-		log.Errorf("Error while overwriting current executable: %s", err)
+		log.Errorf("Error while aplying new binary: %s", err)
+		return err
 	}
 	fmt.Println("Grype updated successfully! Run 'grype version' to get more info")
 	log.Infof("Updated grype (%s) successfully\n", executablePath)
+	return nil
 }
 
 func ExtractTarGz(gzipStream io.Reader, destination string) error {
@@ -167,7 +188,7 @@ func checkLatestVersion() (bool, string, error) {
 	return false, "", nil
 }
 
-func downloadCompressed(version string) string {
+func downloadCompressed(version string) (string, error) {
 	var extension = "tar.gz"
 	if runtime.GOOS == "windows" {
 		extension = "zip"
@@ -175,23 +196,32 @@ func downloadCompressed(version string) string {
 	f, err := os.CreateTemp("", "grype")
 	log.Debugf("Created temporary file %s", f.Name())
 	if err != nil {
+		log.Errorf("Error while creating temporary file: %s", err)
 		defer os.Remove(f.Name())
-		panic(err)
+		return "", err
 	}
 
-	var downloadURLTemplate = "https://github.com/%s/%s/releases/download/v%s/grype_%s_%s_%s.%s"
-	var downloadURL = fmt.Sprintf(downloadURLTemplate, "anchore", "grype", version, version, runtime.GOOS, runtime.GOARCH, extension)
+	var downloadURL = fmt.Sprintf(downloadURLTemplate, version, version, runtime.GOOS, runtime.GOARCH, extension)
+	_, err = url.Parse(downloadURL)
+	if err != nil {
+		//TODO: implement correct output
+		log.Errorf("Request url is not correctly formatted: %s\n", err)
+		return "", err
+	}
 	log.Infof("Downloading v%s", version)
 	fmt.Printf("Downloading v%s...\n", version)
 	resp, err := http.Get(downloadURL) //nolint
 	if err != nil {
-		panic(err)
+		log.Errorf("Error while downloading grype: %s", err)
+		return "", err
 	}
 	defer resp.Body.Close()
 	n, err := io.Copy(f, resp.Body)
 	log.Debugf("Wrote %d bytes to %s", uint64(n), f.Name())
 	if err != nil {
-		panic(err)
+		log.Errorf("Error while writing downloaded file to a temporary location: %s", err)
+		defer os.Remove(f.Name())
+		return "", err
 	}
-	return f.Name()
+	return f.Name(), nil
 }
