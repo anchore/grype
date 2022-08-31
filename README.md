@@ -131,6 +131,7 @@ docker:yourrepo/yourimage:tag          use images from the Docker daemon
 docker-archive:path/to/yourimage.tar   use a tarball from disk for archives created from "docker save"
 oci-archive:path/to/yourimage.tar      use a tarball from disk for OCI archives (from Skopeo or otherwise)
 oci-dir:path/to/yourimage              read directly from a path on disk for OCI layout directories (from Skopeo or otherwise)
+singularity:path/to/yourimage.sif      read directly from a Singularity Image Format (SIF) container on disk
 dir:path/to/yourproject                read directly from a path on disk (any directory)
 sbom:path/to/syft.json                 read Syft JSON from path on disk
 registry:yourrepo/yourimage:tag        pull image directly from a registry (no container runtime required)
