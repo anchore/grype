@@ -119,6 +119,9 @@ Grype can scan a variety of sources beyond those found in Docker.
 # scan a container image archive (from the result of `docker image save ...`, `podman save ...`, or `skopeo copy` commands)
 grype path/to/image.tar
 
+# scan a Singularity Image Format (SIF) container
+syft path/to/image.sif
+
 # scan a directory
 grype dir:path/to/dir
 ```
