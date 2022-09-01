@@ -56,7 +56,7 @@ var (
 
 Supports the following image sources:
     {{.appName}} yourrepo/yourimage:tag             defaults to using images from a Docker daemon
-    {{.appName}} path/to/yourproject                a Docker tar, OCI tar, OCI directory, or generic filesystem directory
+    {{.appName}} path/to/yourproject                a Docker tar, OCI tar, OCI directory, SIF container, or generic filesystem directory
     {{.appName}} attestation.json --key cosign.pub  extract and scan SBOM from attestation file
 
 You can also explicitly specify the scheme to use:
