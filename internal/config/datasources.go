@@ -26,7 +26,7 @@ func (cfg externalSources) loadDefaultValues(v *viper.Viper) {
 	v.SetDefault("external-sources.maven.base-url", defaultMavenBaseURL)
 }
 
-func (cfg externalSources) ToJavaMatcherConfig() java.MatcherConfig {
+func (cfg externalSources) ToJavaMatcherConfig(matchCfg matcherConfig) java.MatcherConfig {
 	// always respect if global config is disabled
 	smu := cfg.Maven.SearchUpstreamBySha1
 	if !cfg.Enable {
@@ -35,5 +35,6 @@ func (cfg externalSources) ToJavaMatcherConfig() java.MatcherConfig {
 	return java.MatcherConfig{
 		SearchMavenUpstream: smu,
 		MavenBaseURL:        cfg.Maven.BaseURL,
+		UseCPEs:             matchCfg.UseCPEs,
 	}
 }

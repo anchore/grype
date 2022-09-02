@@ -34,22 +34,29 @@ type Monitor struct {
 
 // Config contains values used by individual matcher structs for advanced configuration
 type Config struct {
-	Java java.MatcherConfig
+	Java       java.MatcherConfig
+	Ruby       ruby.MatcherConfig
+	Python     python.MatcherConfig
+	Dotnet     dotnet.MatcherConfig
+	Javascript javascript.MatcherConfig
+	Golang     golang.MatcherConfig
+	Stock      stock.MatcherConfig
 }
 
 func NewDefaultMatchers(mc Config) []Matcher {
 	return []Matcher{
 		&dpkg.Matcher{},
-		&ruby.Matcher{},
-		&python.Matcher{},
-		&dotnet.Matcher{},
+		ruby.NewRubyMatcher(mc.Ruby),
+		python.NewPythonMatcher(mc.Python),
+		dotnet.NewDotnetMatcher(mc.Dotnet),
 		&rpmdb.Matcher{},
 		java.NewJavaMatcher(mc.Java),
-		&javascript.Matcher{},
+		javascript.NewJavascriptMatcher(mc.Javascript),
 		&apk.Matcher{},
-		&golang.Matcher{},
+		golang.NewGolangMatcher(mc.Golang),
 		&msrc.Matcher{},
 		&portage.Matcher{},
+		stock.NewStockMatcher(mc.Stock),
 	}
 }
 
@@ -67,9 +74,14 @@ func trackMatcher() (*progress.Manual, *progress.Manual) {
 	return &packagesProcessed, &vulnerabilitiesDiscovered
 }
 
-func newMatcherIndex(matchers []Matcher) map[syftPkg.Type][]Matcher {
+func newMatcherIndex(matchers []Matcher) (map[syftPkg.Type][]Matcher, Matcher) {
 	matcherIndex := make(map[syftPkg.Type][]Matcher)
+	var defaultMatcher Matcher = nil
 	for _, m := range matchers {
+		if m.Type() == match.StockMatcher {
+			defaultMatcher = m
+			continue
+		}
 		for _, t := range m.PackageTypes() {
 			if _, ok := matcherIndex[t]; !ok {
 				matcherIndex[t] = make([]Matcher, 0)
@@ -80,7 +92,7 @@ func newMatcherIndex(matchers []Matcher) map[syftPkg.Type][]Matcher {
 		}
 	}
 
-	return matcherIndex
+	return matcherIndex, defaultMatcher
 }
 
 func FindMatches(store interface {
@@ -89,7 +101,7 @@ func FindMatches(store interface {
 }, release *linux.Release, matchers []Matcher, packages []pkg.Package) match.Matches {
 	var err error
 	res := match.NewMatches()
-	matcherIndex := newMatcherIndex(matchers)
+	matcherIndex, defaultMatcher := newMatcherIndex(matchers)
 
 	var d *distro.Distro
 	if release != nil {
@@ -101,7 +113,9 @@ func FindMatches(store interface {
 
 	packagesProcessed, vulnerabilitiesDiscovered := trackMatcher()
 
-	defaultMatcher := &stock.Matcher{}
+	if defaultMatcher == nil {
+		defaultMatcher = &stock.Matcher{UseCPEs: true}
+	}
 	for _, p := range packages {
 		packagesProcessed.N++
 		log.Debugf("searching for vulnerability matches for pkg=%s", p)

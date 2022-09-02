@@ -12,6 +12,17 @@ import (
 )
 
 type Matcher struct {
+	UseCPEs bool
+}
+
+type MatcherConfig struct {
+	UseCPEs bool
+}
+
+func NewGolangMatcher(cfg MatcherConfig) *Matcher {
+	return &Matcher{
+		UseCPEs: cfg.UseCPEs,
+	}
 }
 
 func (m *Matcher) PackageTypes() []syftPkg.Type {
@@ -38,5 +49,9 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 		return matches, nil
 	}
 
-	return search.ByCriteria(store, d, p, m.Type(), search.CommonCriteria...)
+	criteria := search.CommonCriteria
+	if m.UseCPEs {
+		criteria = append(criteria, search.ByCPE)
+	}
+	return search.ByCriteria(store, d, p, m.Type(), criteria...)
 }
