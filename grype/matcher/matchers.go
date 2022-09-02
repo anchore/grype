@@ -76,7 +76,7 @@ func trackMatcher() (*progress.Manual, *progress.Manual) {
 
 func newMatcherIndex(matchers []Matcher) (map[syftPkg.Type][]Matcher, Matcher) {
 	matcherIndex := make(map[syftPkg.Type][]Matcher)
-	var defaultMatcher Matcher = nil
+	var defaultMatcher Matcher
 	for _, m := range matchers {
 		if m.Type() == match.StockMatcher {
 			defaultMatcher = m
