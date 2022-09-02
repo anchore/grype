@@ -12,7 +12,6 @@ import (
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/syft/syft/source"
 )
@@ -53,25 +52,8 @@ func TestMatchBySBOMDocument(t *testing.T) {
 		{
 			name:        "unknown package type",
 			fixture:     "test-fixtures/sbom/syft-sbom-with-unknown-packages.json",
-			expectedIDs: []string{"CVE-bogus-my-package-1", "CVE-bogus-my-package-2-python"},
+			expectedIDs: []string{"CVE-bogus-my-package-2-python"},
 			expectedDetails: []match.Detail{
-				{
-					Type: match.CPEMatch,
-					SearchedBy: search.CPEParameters{
-						Namespace: "nvd:cpe",
-						CPEs: []string{
-							"cpe:2.3:a:bogus:my-package:1.0.5:*:*:*:*:*:*:*",
-						},
-					},
-					Found: search.CPEResult{
-						VersionConstraint: "< 2.0 (unknown)",
-						CPEs: []string{
-							"cpe:2.3:a:bogus:my-package:*:*:*:*:*:*:something:*",
-						},
-					},
-					Matcher:    match.StockMatcher,
-					Confidence: 0.9,
-				},
 				{
 					Type: match.ExactDirectMatch,
 					SearchedBy: map[string]interface{}{
