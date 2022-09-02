@@ -44,7 +44,7 @@ For commercial support options with Syft or Grype, please [contact Anchore](http
   - Golang (go.mod)
   - PHP (Composer)
   - Rust (Cargo)
-- Supports Docker and OCI image formats
+- Supports Docker, OCI and [Singularity](https://github.com/sylabs/singularity) image formats.
 - Consume SBOM [attestations](https://github.com/anchore/syft#sbom-attestation).
 
 If you encounter an issue, please [let us know using the issue tracker](https://github.com/anchore/grype/issues).
