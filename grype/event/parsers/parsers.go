@@ -63,6 +63,19 @@ func ParseUpdateVulnerabilityDatabase(e partybus.Event) (progress.StagedProgress
 	return prog, nil
 }
 
+func ParseGrypeUpdate(e partybus.Event) (progress.StagedProgressable, error) {
+	if err := checkEventType(e.Type, event.GrypeUpdate); err != nil {
+		return nil, err
+	}
+
+	prog, ok := e.Value.(progress.StagedProgressable)
+	if !ok {
+		return nil, newPayloadErr(e.Type, "Value", e.Value)
+	}
+
+	return prog, nil
+}
+
 func ParseVulnerabilityScanningStarted(e partybus.Event) (*matcher.Monitor, error) {
 	if err := checkEventType(e.Type, event.VulnerabilityScanningStarted); err != nil {
 		return nil, err

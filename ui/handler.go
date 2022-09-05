@@ -25,6 +25,7 @@ func (r *Handler) RespondsTo(event partybus.Event) bool {
 	switch event.Type {
 	case grypeEvent.VulnerabilityScanningStarted,
 		grypeEvent.UpdateVulnerabilityDatabase,
+		grypeEvent.GrypeUpdate,
 		grypeEvent.AttestationVerified,
 		grypeEvent.AttestationVerificationSkipped,
 		grypeEvent.DatabaseDiffingStarted:
@@ -40,6 +41,8 @@ func (r *Handler) Handle(ctx context.Context, fr *frame.Frame, event partybus.Ev
 		return r.VulnerabilityScanningStartedHandler(ctx, fr, event, wg)
 	case grypeEvent.UpdateVulnerabilityDatabase:
 		return r.UpdateVulnerabilityDatabaseHandler(ctx, fr, event, wg)
+	case grypeEvent.GrypeUpdate:
+		return r.GrypeUpdateHandler(ctx, fr, event, wg)
 	case grypeEvent.AttestationVerified:
 		return r.VerifyAttestationSignature(ctx, fr, event, wg)
 	case grypeEvent.AttestationVerificationSkipped:

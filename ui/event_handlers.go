@@ -92,6 +92,53 @@ func (r *Handler) UpdateVulnerabilityDatabaseHandler(ctx context.Context, fr *fr
 	return err
 }
 
+func (r *Handler) GrypeUpdateHandler(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
+	prog, err := grypeEventParsers.ParseGrypeUpdate(event)
+	if err != nil {
+		return fmt.Errorf("bad FetchImage event: %w", err)
+	}
+
+	line, err := fr.Prepend()
+	if err != nil {
+		return err
+	}
+
+	wg.Add(1)
+
+	formatter, spinner := startProcess()
+	stream := progress.Stream(ctx, prog, 150*time.Millisecond)
+	title := tileFormat.Sprint("Grype update")
+
+	formatFn := func(p progress.Progress) {
+		_, err := formatter.Format(p)
+		spin := color.Magenta.Sprint(spinner.Next())
+		if err != nil {
+			_, _ = io.WriteString(line, fmt.Sprintf("Error: %+v", err))
+		} else {
+			var auxInfo string
+			progStr := ""
+			auxInfo = auxInfoFormat.Sprintf("[%s]", prog.Stage())
+
+			_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s%s", spin, title, progStr, auxInfo))
+		}
+	}
+
+	go func() {
+		defer wg.Done()
+
+		formatFn(progress.Progress{})
+		for p := range stream {
+			formatFn(p)
+		}
+
+		spin := color.Green.Sprint(completedStatus)
+		title = tileFormat.Sprint("Grype update")
+		auxInfo := auxInfoFormat.Sprintf("[%s]", prog.Stage())
+		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
+	}()
+	return err
+}
+
 // nolint: dupl
 func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
 	monitor, err := grypeEventParsers.ParseVulnerabilityScanningStarted(event)

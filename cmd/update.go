@@ -12,12 +12,19 @@ import (
 	"runtime"
 
 	"github.com/spf13/cobra"
+	"github.com/wagoodman/go-partybus"
+	"github.com/wagoodman/go-progress"
 
+	"github.com/anchore/grype/grype/event"
+	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/grype/internal/ui"
 	"github.com/anchore/grype/internal/version"
+	"github.com/anchore/stereoscope"
 )
 
 var downloadURLTemplate = "https://github.com/anchore/grype/releases/download/v%s/grype_%s_%s_%s.%s"
+var commandResultString = ""
 
 var updateCmd = &cobra.Command{
 	Use:   "update",
@@ -30,29 +37,90 @@ func init() {
 }
 
 func runUpdate(_ *cobra.Command, _ []string) error {
-	fmt.Println("Checking for a newer version...")
-	newerVersionAvailable, desiredVersion, err := checkLatestVersion()
+	reporter, closer, err := reportWriter()
+	defer func() {
+		if err := closer(); err != nil {
+			log.Warnf("unable to write to report destination: %+v", err)
+		}
+	}()
 	if err != nil {
-		log.Errorf("Error while checking for a newer version: %s", err)
 		return err
 	}
-	if newerVersionAvailable {
-		compressed, err := downloadCompressed(desiredVersion)
-		if err != nil {
-			return err
+	return eventLoop(
+		startGrypeUpdate(),
+		setupSignals(),
+		eventSubscription,
+		stereoscope.Cleanup,
+		ui.Select(isVerbose(), appConfig.Quiet, reporter)...,
+	)
+}
+
+func startGrypeUpdate() <-chan error {
+	errs := make(chan error)
+	go func() {
+		defer close(errs)
+		importProgress := &progress.Manual{
+			Total: 1,
 		}
-		filePath, err := extractBinary(compressed)
-		if err != nil {
-			return err
+		stage := &progress.Stage{
+			Current: "checking available versions",
 		}
-		err = replaceBinary(filePath)
-		if err != nil {
-			return err
+		downloadProgress := &progress.Manual{
+			Total: 1,
 		}
-		return nil
-	}
-	fmt.Println("You are already running the newest version available")
-	return nil
+		aggregateProgress := progress.NewAggregator(progress.DefaultStrategy, downloadProgress, importProgress)
+
+		bus.Publish(partybus.Event{
+			Type: event.GrypeUpdate,
+			Value: progress.StagedProgressable(&struct {
+				progress.Stager
+				progress.Progressable
+			}{
+				Stager:       progress.Stager(stage),
+				Progressable: progress.Progressable(aggregateProgress),
+			}),
+		})
+
+		defer downloadProgress.SetCompleted()
+		defer importProgress.SetCompleted()
+
+		newerVersionAvailable, desiredVersion, err := checkLatestVersion()
+
+		if err != nil {
+			log.Errorf("Error while checking for a newer version: %s", err)
+			errs <- err
+			return
+		}
+		if newerVersionAvailable {
+			stage.Current = "downloading grype"
+			compressed, err := downloadCompressed(desiredVersion)
+			if err != nil {
+				errs <- err
+				return
+			}
+			stage.Current = "extracting grype"
+			filePath, err := extractBinary(compressed)
+			if err != nil {
+				errs <- err
+				return
+			}
+			stage.Current = "applying binary update"
+			err = replaceBinary(filePath)
+			if err != nil {
+				errs <- err
+				return
+			}
+			commandResultString = "Grype updated successfully! Run 'grype version' to get more info\n"
+		} else {
+			commandResultString = "You are already running the latest grype version\n"
+		}
+		stage.Current = "success"
+		bus.Publish(partybus.Event{
+			Type:  event.NonRootCommandFinished,
+			Value: commandResultString,
+		})
+	}()
+	return errs
 }
 
 func extractBinary(fileName string) (string, error) {
@@ -67,7 +135,6 @@ func extractBinary(fileName string) (string, error) {
 		log.Errorf("Error while creating a temporary directory: %s", err)
 		return "", err
 	}
-	fmt.Println("Extracting grype...")
 	log.Infof("Extracting grype")
 	log.Debugf("Extract destination is %s", tempDir)
 	err = ExtractTarGz(r, tempDir)
@@ -84,7 +151,6 @@ func extractBinary(fileName string) (string, error) {
 }
 
 func replaceBinary(fileName string) error {
-	fmt.Println("Applying update...")
 	log.Infof("Updating grype")
 
 	executablePath, err := os.Executable()
@@ -111,7 +177,6 @@ func replaceBinary(fileName string) error {
 		log.Errorf("Error while aplying new binary: %s", err)
 		return err
 	}
-	fmt.Println("Grype updated successfully! Run 'grype version' to get more info")
 	log.Infof("Updated grype (%s) successfully\n", executablePath)
 	return nil
 }
@@ -176,8 +241,6 @@ func ExtractTarGz(gzipStream io.Reader, destination string) error {
 func checkLatestVersion() (bool, string, error) {
 	updateAvaliable, version, err := version.IsUpdateAvailable()
 	if err != nil {
-		log.Errorf("ERROR")
-		fmt.Println(err)
 		return false, "", err
 	}
 	if updateAvaliable {
@@ -204,12 +267,10 @@ func downloadCompressed(version string) (string, error) {
 	var downloadURL = fmt.Sprintf(downloadURLTemplate, version, version, runtime.GOOS, runtime.GOARCH, extension)
 	_, err = url.Parse(downloadURL)
 	if err != nil {
-		//TODO: implement correct output
 		log.Errorf("Request url is not correctly formatted: %s\n", err)
 		return "", err
 	}
-	log.Infof("Downloading v%s", version)
-	fmt.Printf("Downloading v%s...\n", version)
+	log.Infof("Downloading grype v%s", version)
 	resp, err := http.Get(downloadURL) //nolint
 	if err != nil {
 		log.Errorf("Error while downloading grype: %s", err)
