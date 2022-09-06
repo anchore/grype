@@ -62,15 +62,15 @@ dockers:
       - "--build-arg=VCS_URL={{.GitURL}}"
 
   - image_templates:
-      - anchore/grype:debug-arm64v8
-      - anchore/grype:{{.Tag}}-debug-arm64v8
-      - ghcr.io/anchore/grype:debug-arm64v8
-      - ghcr.io/anchore/grype:{{.Tag}}-debug-arm64v8
+      - anchore/grype:debug-s390x
+      - anchore/grype:{{.Tag}}-debug-s390x
+      - ghcr.io/anchore/grype:debug-s390x
+      - ghcr.io/anchore/grype:{{.Tag}}-debug-s390x
     goarch: s390x
     dockerfile: Dockerfile.debug
     use: buildx
     build_flag_templates:
-      - "--platform=linux/arm64/v8"
+      - "--platform=linux/s390x"
       - "--build-arg=BUILD_DATE={{.Date}}"
       - "--build-arg=BUILD_VERSION={{.Version}}"
       - "--build-arg=VCS_REF={{.FullCommit}}"
@@ -95,19 +95,6 @@ dockers:
       - anchore/grype:{{.Tag}}-arm64v8
       - ghcr.io/anchore/grype:{{.Tag}}-arm64v8
     goarch: arm64
-    dockerfile: Dockerfile
-    use: buildx
-    build_flag_templates:
-      - "--platform=linux/arm64/v8"
-      - "--build-arg=BUILD_DATE={{.Date}}"
-      - "--build-arg=BUILD_VERSION={{.Version}}"
-      - "--build-arg=VCS_REF={{.FullCommit}}"
-      - "--build-arg=VCS_URL={{.GitURL}}"
-
-  - image_templates:
-      - anchore/grype:{{.Tag}}-arm64v8
-      - ghcr.io/anchore/grype:{{.Tag}}-arm64v8
-    goarch: s390x
     dockerfile: Dockerfile
     use: buildx
     build_flag_templates:
