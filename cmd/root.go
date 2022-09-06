@@ -19,6 +19,12 @@ import (
 	"github.com/anchore/grype/grype/grypeerr"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
+	"github.com/anchore/grype/grype/matcher/dotnet"
+	"github.com/anchore/grype/grype/matcher/golang"
+	"github.com/anchore/grype/grype/matcher/javascript"
+	"github.com/anchore/grype/grype/matcher/python"
+	"github.com/anchore/grype/grype/matcher/ruby"
+	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter"
 	"github.com/anchore/grype/grype/store"
@@ -351,7 +357,13 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		applyDistroHint(packages, &context, appConfig)
 
 		matchers := matcher.NewDefaultMatchers(matcher.Config{
-			Java: appConfig.ExternalSources.ToJavaMatcherConfig(),
+			Java:       appConfig.ExternalSources.ToJavaMatcherConfig(appConfig.Match.Java),
+			Ruby:       ruby.MatcherConfig(appConfig.Match.Ruby),
+			Python:     python.MatcherConfig(appConfig.Match.Python),
+			Dotnet:     dotnet.MatcherConfig(appConfig.Match.Dotnet),
+			Javascript: javascript.MatcherConfig(appConfig.Match.Javascript),
+			Golang:     golang.MatcherConfig(appConfig.Match.Golang),
+			Stock:      stock.MatcherConfig(appConfig.Match.Stock),
 		})
 
 		allMatches := grype.FindVulnerabilitiesForPackage(*store, context.Distro, matchers, packages)

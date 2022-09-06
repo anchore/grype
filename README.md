@@ -674,6 +674,25 @@ log:
   # location to write the log file (default is not to have a log file)
   # same as GRYPE_LOG_FILE env var
   file: ""
+
+match:
+  # sets the matchers below to use cpes when trying to find 
+  # vulnerability matches. The stock matcher is the default
+  # when no primary matcher can be identified 
+  java:
+    using-cpes: true
+  python:
+    using-cpes: true
+  javascript:
+    using-cpes: true
+  ruby:
+    using-cpes: true
+  dotnet:
+    using-cpes: true
+  golang:
+    using-cpes: true
+  stock:
+    using-cpes: true
 ```
 
 ## Future plans

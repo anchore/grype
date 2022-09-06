@@ -46,6 +46,7 @@ type Application struct {
 	Exclusions          []string                `yaml:"exclude" json:"exclude" mapstructure:"exclude"`
 	DB                  database                `yaml:"db" json:"db" mapstructure:"db"`
 	ExternalSources     externalSources         `yaml:"external-sources" json:"externalSources" mapstructure:"external-sources"`
+	Match               matchConfig             `yaml:"match" json:"match" mapstructure:"match"`
 	Dev                 development             `yaml:"dev" json:"dev" mapstructure:"dev"`
 	FailOn              string                  `yaml:"fail-on-severity" json:"fail-on-severity" mapstructure:"fail-on-severity"`
 	FailOnSeverity      *vulnerability.Severity `yaml:"-" json:"-"`
