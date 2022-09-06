@@ -148,7 +148,7 @@ jobs:
         with:
           status: ${{ job.status }}
           fields: repo,workflow,action,eventName
-          text: "A new Grype release is ready to be manually published: https://github.com/anchore/grype/releases"
+          text: "A new Grype release has been published published: https://github.com/anchore/grype/releases"
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_TOOLBOX_WEBHOOK_URL }}
         if: ${{ success() }}
