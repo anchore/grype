@@ -1,5 +1,5 @@
 package pkg
 
-type RpmdbMetadata struct {
+type RpmMetadata struct {
 	Epoch *int `json:"epoch"`
 }

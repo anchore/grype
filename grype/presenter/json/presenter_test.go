@@ -61,8 +61,8 @@ func TestJsonImgsPresenter(t *testing.T) {
 				Version: "3.2",
 			},
 		},
-		MetadataType: pkg.RpmdbMetadataType,
-		Metadata:     pkg.RpmdbMetadata{Epoch: &epoch},
+		MetadataType: pkg.RpmMetadataType,
+		Metadata:     pkg.RpmMetadata{Epoch: &epoch},
 	}
 
 	var pkg2 = pkg.Package{
