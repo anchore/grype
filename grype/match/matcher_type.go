@@ -6,7 +6,7 @@ const (
 	ApkMatcher         MatcherType = "apk-matcher"
 	RubyGemMatcher     MatcherType = "ruby-gem-matcher"
 	DpkgMatcher        MatcherType = "dpkg-matcher"
-	RpmDBMatcher       MatcherType = "rpmdb-matcher"
+	RpmMatcher         MatcherType = "rpm-matcher"
 	JavaMatcher        MatcherType = "java-matcher"
 	PythonMatcher      MatcherType = "python-matcher"
 	DotnetMatcher      MatcherType = "dotnet-matcher"
@@ -20,7 +20,7 @@ var AllMatcherTypes = []MatcherType{
 	ApkMatcher,
 	RubyGemMatcher,
 	DpkgMatcher,
-	RpmDBMatcher,
+	RpmMatcher,
 	JavaMatcher,
 	PythonMatcher,
 	DotnetMatcher,

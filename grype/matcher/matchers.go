@@ -16,7 +16,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/msrc"
 	"github.com/anchore/grype/grype/matcher/portage"
 	"github.com/anchore/grype/grype/matcher/python"
-	"github.com/anchore/grype/grype/matcher/rpmdb"
+	"github.com/anchore/grype/grype/matcher/rpm"
 	"github.com/anchore/grype/grype/matcher/ruby"
 	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
@@ -49,7 +49,7 @@ func NewDefaultMatchers(mc Config) []Matcher {
 		ruby.NewRubyMatcher(mc.Ruby),
 		python.NewPythonMatcher(mc.Python),
 		dotnet.NewDotnetMatcher(mc.Dotnet),
-		&rpmdb.Matcher{},
+		&rpm.Matcher{},
 		java.NewJavaMatcher(mc.Java),
 		javascript.NewJavascriptMatcher(mc.Javascript),
 		&apk.Matcher{},

@@ -367,7 +367,7 @@ func addRhelMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 				Found: map[string]interface{}{
 					"constraint": "<= 1.0.42 (rpm)",
 				},
-				Matcher: match.RpmDBMatcher,
+				Matcher: match.RpmMatcher,
 			},
 		},
 	})
@@ -401,7 +401,7 @@ func addSlesMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Cata
 				Found: map[string]interface{}{
 					"constraint": "<= 1.0.42 (rpm)",
 				},
-				Matcher: match.RpmDBMatcher,
+				Matcher: match.RpmMatcher,
 			},
 		},
 	})
