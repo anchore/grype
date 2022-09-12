@@ -120,7 +120,7 @@
    "name": "dive",
    "version": "0.9.2-1",
    "type": "rpm",
-   "foundBy": "rpm-db-cataloger",
+   "foundBy": "rpmdb-cataloger",
    "locations": [
     {
      "path": "test/integration/test-fixtures/image-sles-match-coverage/var/lib/rpm/Packages"
@@ -132,7 +132,7 @@
     "cpe:2.3:a:dive:dive:0.9.2-1:*:*:*:*:*:*:*"
    ],
    "purl": "",
-   "metadataType": "RpmMetadata",
+   "metadataType": "RpmdbMetadata",
    "metadata": {
     "name": "dive",
     "version": "0.9.2",

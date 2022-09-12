@@ -1,4 +1,4 @@
-package rpm
+package rpmdb
 
 import (
 	"testing"
@@ -18,7 +18,7 @@ func intRef(x int) *int {
 	return &x
 }
 
-func TestMatcherRpm(t *testing.T) {
+func TestMatcherRpmdb(t *testing.T) {
 	tests := []struct {
 		name            string
 		p               pkg.Package
@@ -27,7 +27,7 @@ func TestMatcherRpm(t *testing.T) {
 		wantErr         bool
 	}{
 		{
-			name: "Rpm Match matches by direct and by source indirection",
+			name: "Rpmdb Match matches by direct and by source indirection",
 			p: pkg.Package{
 				ID:      pkg.ID(uuid.NewString()),
 				Name:    "neutron-libs",
@@ -58,7 +58,7 @@ func TestMatcherRpm(t *testing.T) {
 			},
 		},
 		{
-			name: "Rpm Match matches by direct and ignores the source rpm when the package names are the same",
+			name: "Rpmdb Match matches by direct and ignores the source rpm when the package names are the same",
 			p: pkg.Package{
 				ID:      pkg.ID(uuid.NewString()),
 				Name:    "neutron",
@@ -88,7 +88,7 @@ func TestMatcherRpm(t *testing.T) {
 		},
 		{
 			// Regression against https://github.com/anchore/grype/issues/376
-			name: "Rpm Match matches by direct and by source indirection when the SourceRpm version is desynced from package version",
+			name: "Rpmdb Match matches by direct and by source indirection when the SourceRpm version is desynced from package version",
 			p: pkg.Package{
 				ID:      pkg.ID(uuid.NewString()),
 				Name:    "neutron-libs",
@@ -119,13 +119,13 @@ func TestMatcherRpm(t *testing.T) {
 		{
 			// Epoch in pkg but not in src package version, epoch found in the vuln record
 			// Regression: https://github.com/anchore/grype/issues/437
-			name: "Rpm Match should not occur due to source match even though source has no epoch",
+			name: "Rpmdb Match should not occur due to source match even though source has no epoch",
 			p: pkg.Package{
 				ID:      pkg.ID(uuid.NewString()),
 				Name:    "perl-Errno",
 				Version: "0:1.28-419.el8_4.1",
 				Type:    syftPkg.RpmPkg,
-				Metadata: pkg.RpmMetadata{
+				Metadata: pkg.RpmdbMetadata{
 					Epoch: intRef(0),
 				},
 				Upstreams: []pkg.UpstreamPackage{
@@ -159,7 +159,7 @@ func TestMatcherRpm(t *testing.T) {
 				Name:     "perl-Errno",
 				Version:  "1.28-419.el8_4.1",
 				Type:     syftPkg.RpmPkg,
-				Metadata: pkg.RpmMetadata{},
+				Metadata: pkg.RpmdbMetadata{},
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
@@ -183,7 +183,7 @@ func TestMatcherRpm(t *testing.T) {
 				Name:     "perl-Errno",
 				Version:  "1.28-419.el8_4.1",
 				Type:     syftPkg.RpmPkg,
-				Metadata: pkg.RpmMetadata{},
+				Metadata: pkg.RpmdbMetadata{},
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
@@ -207,7 +207,7 @@ func TestMatcherRpm(t *testing.T) {
 				Name:     "perl-Errno",
 				Version:  "2:1.28-419.el8_4.1",
 				Type:     syftPkg.RpmPkg,
-				Metadata: pkg.RpmMetadata{},
+				Metadata: pkg.RpmdbMetadata{},
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
@@ -231,7 +231,7 @@ func TestMatcherRpm(t *testing.T) {
 				Name:     "perl-Errno",
 				Version:  "2:1.28-419.el8_4.1",
 				Type:     syftPkg.RpmPkg,
-				Metadata: pkg.RpmMetadata{},
+				Metadata: pkg.RpmdbMetadata{},
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}

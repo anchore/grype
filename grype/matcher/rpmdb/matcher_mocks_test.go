@@ -1,4 +1,4 @@
-package rpm
+package rpmdb
 
 import (
 	"strings"

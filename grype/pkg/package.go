@@ -97,12 +97,12 @@ func dataFromPkg(p pkg.Package) (MetadataType, interface{}, []UpstreamPackage) {
 		}
 	case pkg.DpkgMetadataType:
 		upstreams = dpkgDataFromPkg(p)
-	case pkg.RpmMetadataType:
-		m, u := rpmDataFromPkg(p)
+	case pkg.RpmdbMetadataType:
+		m, u := rpmdbDataFromPkg(p)
 		upstreams = u
 		if m != nil {
 			metadata = *m
-			metadataType = RpmMetadataType
+			metadataType = RpmdbMetadataType
 		}
 	case pkg.JavaMetadataType:
 		if m := javaDataFromPkg(p); m != nil {
@@ -143,8 +143,8 @@ func dpkgDataFromPkg(p pkg.Package) (upstreams []UpstreamPackage) {
 	return upstreams
 }
 
-func rpmDataFromPkg(p pkg.Package) (metadata *RpmMetadata, upstreams []UpstreamPackage) {
-	if value, ok := p.Metadata.(pkg.RpmMetadata); ok {
+func rpmdbDataFromPkg(p pkg.Package) (metadata *RpmdbMetadata, upstreams []UpstreamPackage) {
+	if value, ok := p.Metadata.(pkg.RpmdbMetadata); ok {
 		if value.SourceRpm != "" {
 			name, version := getNameAndELVersion(value.SourceRpm)
 			if name == "" && version == "" {
@@ -158,7 +158,7 @@ func rpmDataFromPkg(p pkg.Package) (metadata *RpmMetadata, upstreams []UpstreamP
 			}
 		}
 		if value.Epoch != nil {
-			metadata = &RpmMetadata{Epoch: value.Epoch}
+			metadata = &RpmdbMetadata{Epoch: value.Epoch}
 		}
 	} else {
 		log.Warnf("unable to extract RPM metadata for %s", p)

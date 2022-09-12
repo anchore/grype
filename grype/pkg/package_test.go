@@ -67,10 +67,10 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
-			name: "rpm with source info",
+			name: "rpmdb with source info",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.RpmMetadataType,
-				Metadata: syftPkg.RpmMetadata{
+				MetadataType: syftPkg.RpmdbMetadataType,
+				Metadata: syftPkg.RpmdbMetadata{
 					Name:      "name-info",
 					Version:   "version-info",
 					Epoch:     intRef(30),
@@ -96,7 +96,7 @@ func TestNew(t *testing.T) {
 					},
 				},
 			},
-			metadata: RpmMetadata{
+			metadata: RpmdbMetadata{
 				Epoch: intRef(30),
 			},
 			upstreams: []UpstreamPackage{
@@ -107,11 +107,11 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
-			name: "rpm with source info that matches the package info",
+			name: "rpmdb with source info that matches the package info",
 			syftPkg: syftPkg.Package{
 				Name:         "sqlite",
-				MetadataType: syftPkg.RpmMetadataType,
-				Metadata: syftPkg.RpmMetadata{
+				MetadataType: syftPkg.RpmdbMetadataType,
+				Metadata: syftPkg.RpmdbMetadata{
 					SourceRpm: "sqlite-3.26.0-6.el8.src.rpm",
 				},
 			},

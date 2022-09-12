@@ -8,6 +8,6 @@ const (
 
 	UnknownMetadataType   MetadataType = "UnknownMetadata"
 	JavaMetadataType      MetadataType = "JavaMetadata"
-	RpmMetadataType       MetadataType = "RpmMetadata"
+	RpmdbMetadataType     MetadataType = "RpmdbMetadata"
 	GolangBinMetadataType MetadataType = "GolangBinMetadata"
 )
