@@ -77,7 +77,12 @@ func ByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, upstreamMatc
 			return nil, fmt.Errorf("matcher failed to fetch by CPE pkg=%q: %w", p.Name, err)
 		}
 
-		applicableVulns, err := onlyVulnerableVersions(verObj, allPkgVulns)
+		applicableVulns, err := onlyQualifiedPackages(p, allPkgVulns)
+		if err != nil {
+			return nil, fmt.Errorf("unable to filter cpe-related vulnerabilities: %w", err)
+		}
+
+		applicableVulns, err = onlyVulnerableVersions(verObj, applicableVulns)
 		if err != nil {
 			return nil, fmt.Errorf("unable to filter cpe-related vulnerabilities: %w", err)
 		}

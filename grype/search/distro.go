@@ -25,7 +25,12 @@ func ByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p p
 		return nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", d, p.Name, err)
 	}
 
-	applicableVulns, err := onlyVulnerableVersions(verObj, allPkgVulns)
+	applicableVulns, err := onlyQualifiedPackages(p, allPkgVulns)
+	if err != nil {
+		return nil, fmt.Errorf("unable to filter distro-related vulnerabilities: %w", err)
+	}
+
+	applicableVulns, err = onlyVulnerableVersions(verObj, applicableVulns)
 	if err != nil {
 		return nil, fmt.Errorf("unable to filter distro-related vulnerabilities: %w", err)
 	}

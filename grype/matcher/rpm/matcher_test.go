@@ -47,7 +47,7 @@ func TestMatcherRpm(t *testing.T) {
 					t.Fatal("could not create distro: ", err)
 				}
 
-				store := newMockProvider("neutron-libs", "neutron", false)
+				store := newMockProvider("neutron-libs", "neutron", false, false)
 
 				return store, d, matcher
 			},
@@ -78,7 +78,7 @@ func TestMatcherRpm(t *testing.T) {
 					t.Fatal("could not create distro: ", err)
 				}
 
-				store := newMockProvider("neutron", "neutron-devel", false)
+				store := newMockProvider("neutron", "neutron-devel", false, false)
 
 				return store, d, matcher
 			},
@@ -108,7 +108,7 @@ func TestMatcherRpm(t *testing.T) {
 					t.Fatal("could not create distro: ", err)
 				}
 
-				store := newMockProvider("neutron-libs", "neutron", false)
+				store := newMockProvider("neutron-libs", "neutron", false, false)
 
 				return store, d, matcher
 			},
@@ -142,7 +142,7 @@ func TestMatcherRpm(t *testing.T) {
 					t.Fatal("could not create distro: ", err)
 				}
 
-				store := newMockProvider("perl-Errno", "perl", true)
+				store := newMockProvider("perl-Errno", "perl", true, false)
 
 				return store, d, matcher
 			},
@@ -151,7 +151,6 @@ func TestMatcherRpm(t *testing.T) {
 				"CVE-2021-3": match.ExactIndirectMatch,
 			},
 		},
-
 		{
 			name: "package without epoch is assumed to be 0 - compared against vuln with NO epoch (direct match only)",
 			p: pkg.Package{
@@ -168,7 +167,7 @@ func TestMatcherRpm(t *testing.T) {
 					t.Fatal("could not create distro: ", err)
 				}
 
-				store := newMockProvider("perl-Errno", "doesn't-matter", false)
+				store := newMockProvider("perl-Errno", "doesn't-matter", false, false)
 
 				return store, d, matcher
 			},
@@ -192,7 +191,7 @@ func TestMatcherRpm(t *testing.T) {
 					t.Fatal("could not create distro: ", err)
 				}
 
-				store := newMockProvider("perl-Errno", "doesn't-matter", true)
+				store := newMockProvider("perl-Errno", "doesn't-matter", true, false)
 
 				return store, d, matcher
 			},
@@ -216,7 +215,7 @@ func TestMatcherRpm(t *testing.T) {
 					t.Fatal("could not create distro: ", err)
 				}
 
-				store := newMockProvider("perl-Errno", "doesn't-matter", false)
+				store := newMockProvider("perl-Errno", "doesn't-matter", false, false)
 
 				return store, d, matcher
 			},
@@ -240,11 +239,91 @@ func TestMatcherRpm(t *testing.T) {
 					t.Fatal("could not create distro: ", err)
 				}
 
-				store := newMockProvider("perl-Errno", "doesn't-matter", true)
+				store := newMockProvider("perl-Errno", "doesn't-matter", true, false)
 
 				return store, d, matcher
 			},
 			expectedMatches: map[string]match.Type{},
+		},
+		{
+			name: "package with modularity label 1",
+			p: pkg.Package{
+				ID:           pkg.ID(uuid.NewString()),
+				Name:         "maniac",
+				Version:      "0.1",
+				Type:         syftPkg.RpmPkg,
+				MetadataType: pkg.RpmMetadataType,
+				Metadata: pkg.RpmMetadata{
+					ModularityLabel: "containertools:3:1234:5678",
+				},
+			},
+			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
+				matcher := Matcher{}
+				d, err := distro.New(distro.CentOS, "8", "")
+				if err != nil {
+					t.Fatal("could not create distro: ", err)
+				}
+
+				store := newMockProvider("maniac", "doesn't-matter", false, true)
+
+				return store, d, matcher
+			},
+			expectedMatches: map[string]match.Type{
+				"CVE-2021-1": match.ExactDirectMatch,
+				"CVE-2021-3": match.ExactDirectMatch,
+			},
+		},
+		{
+			name: "package with modularity label 2",
+			p: pkg.Package{
+				ID:           pkg.ID(uuid.NewString()),
+				Name:         "maniac",
+				Version:      "0.1",
+				Type:         syftPkg.RpmPkg,
+				MetadataType: pkg.RpmMetadataType,
+				Metadata: pkg.RpmMetadata{
+					ModularityLabel: "containertools:1:abc:123",
+				},
+			},
+			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
+				matcher := Matcher{}
+				d, err := distro.New(distro.CentOS, "8", "")
+				if err != nil {
+					t.Fatal("could not create distro: ", err)
+				}
+
+				store := newMockProvider("maniac", "doesn't-matter", false, true)
+
+				return store, d, matcher
+			},
+			expectedMatches: map[string]match.Type{
+				"CVE-2021-3": match.ExactDirectMatch,
+			},
+		},
+		{
+			name: "package without modularity label",
+			p: pkg.Package{
+				ID:           pkg.ID(uuid.NewString()),
+				Name:         "maniac",
+				Version:      "0.1",
+				Type:         syftPkg.RpmPkg,
+				MetadataType: pkg.RpmMetadataType,
+			},
+			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
+				matcher := Matcher{}
+				d, err := distro.New(distro.CentOS, "8", "")
+				if err != nil {
+					t.Fatal("could not create distro: ", err)
+				}
+
+				store := newMockProvider("maniac", "doesn't-matter", false, true)
+
+				return store, d, matcher
+			},
+			expectedMatches: map[string]match.Type{
+				"CVE-2021-2": match.ExactDirectMatch,
+				"CVE-2021-3": match.ExactDirectMatch,
+			},
 		},
 	}
 

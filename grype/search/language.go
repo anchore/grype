@@ -20,7 +20,12 @@ func ByPackageLanguage(store vulnerability.ProviderByLanguage, p pkg.Package, up
 		return nil, fmt.Errorf("matcher failed to fetch language=%q pkg=%q: %w", p.Language, p.Name, err)
 	}
 
-	applicableVulns, err := onlyVulnerableVersions(verObj, allPkgVulns)
+	applicableVulns, err := onlyQualifiedPackages(p, allPkgVulns)
+	if err != nil {
+		return nil, fmt.Errorf("unable to filter language-related vulnerabilities: %w", err)
+	}
+
+	applicableVulns, err = onlyVulnerableVersions(verObj, applicableVulns)
 	if err != nil {
 		return nil, fmt.Errorf("unable to filter language-related vulnerabilities: %w", err)
 	}
