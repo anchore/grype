@@ -2,8 +2,8 @@ package search
 
 import (
 	"fmt"
-	"github.com/anchore/grype/grype/pkg"
 
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 )
 

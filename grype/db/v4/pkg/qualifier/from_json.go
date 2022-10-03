@@ -2,9 +2,11 @@ package qualifier
 
 import (
 	"encoding/json"
+
+	"github.com/mitchellh/mapstructure"
+
 	"github.com/anchore/grype/grype/db/v4/pkg/qualifier/rpmmodularity"
 	"github.com/anchore/grype/internal/log"
-	"github.com/mitchellh/mapstructure"
 )
 
 func FromJSON(data []byte) ([]Qualifier, error) {

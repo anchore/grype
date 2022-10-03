@@ -1,9 +1,10 @@
 package rpmmodularity
 
 import (
+	"strings"
+
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/pkg/qualifier"
-	"strings"
 )
 
 type rpmModularity struct {

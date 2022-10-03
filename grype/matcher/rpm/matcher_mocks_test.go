@@ -1,12 +1,12 @@
 package rpm
 
 import (
-	"github.com/anchore/grype/grype/pkg/qualifier"
-	"github.com/anchore/grype/grype/pkg/qualifier/rpmmodularity"
 	"strings"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/pkg/qualifier"
+	"github.com/anchore/grype/grype/pkg/qualifier/rpmmodularity"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"

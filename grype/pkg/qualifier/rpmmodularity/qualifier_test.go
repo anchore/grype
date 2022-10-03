@@ -1,10 +1,12 @@
 package rpmmodularity
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/pkg/qualifier"
-	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestRpmModularity_Satisfied(t *testing.T) {

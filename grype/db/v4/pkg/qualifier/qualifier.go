@@ -2,6 +2,7 @@ package qualifier
 
 import (
 	"fmt"
+
 	"github.com/anchore/grype/grype/pkg/qualifier"
 )
 
