@@ -104,30 +104,58 @@ func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *f
 		return err
 	}
 
+	line2, err := fr.Append()
+	if err != nil {
+		return err
+	}
+
 	wg.Add(1)
 
+	monitors := []progress.Monitorable{
+		monitor.PackagesProcessed,
+		monitor.VulnerabilitiesDiscovered,
+		monitor.VulnerabilitiesCategories.Unknown,
+		monitor.VulnerabilitiesCategories.Low,
+		monitor.VulnerabilitiesCategories.Medium,
+		monitor.VulnerabilitiesCategories.High,
+		monitor.VulnerabilitiesCategories.Critical,
+	}
 	_, spinner := startProcess()
-	stream := progress.StreamMonitors(ctx, []progress.Monitorable{monitor.PackagesProcessed, monitor.VulnerabilitiesDiscovered}, 50*time.Millisecond)
+	stream := progress.StreamMonitors(ctx, monitors, 50*time.Millisecond)
 	title := tileFormat.Sprint("Scanning image...")
+	title2 := tileFormat.Sprint("Categories")
 
-	formatFn := func(val int64) {
+	formatFn := func(total, unknown, low, medium, high, critical int64) {
 		spin := color.Magenta.Sprint(spinner.Next())
-		auxInfo := auxInfoFormat.Sprintf("[vulnerabilities %d]", val)
+		auxInfo := auxInfoFormat.Sprintf("[vulnerabilities %d]", total)
 		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
+
+		auxInfo2 := auxInfoFormat.Sprintf("[Unknown: %d, Low: %d, Medium: %d, High: %d, Critical: %d]", unknown, low, medium, high, critical)
+		_, _ = io.WriteString(line2, fmt.Sprintf(statusTitleTemplate+"%s", spin, title2, auxInfo2))
 	}
 
 	go func() {
 		defer wg.Done()
 
-		formatFn(0)
+		formatFn(0, 0, 0, 0, 0, 0)
 		for p := range stream {
-			formatFn(p[1])
+			formatFn(p[1], p[2], p[3], p[4], p[5], p[6])
 		}
 
 		spin := color.Green.Sprint(completedStatus)
 		title = tileFormat.Sprint("Scanned image")
 		auxInfo := auxInfoFormat.Sprintf("[%d vulnerabilities]", monitor.VulnerabilitiesDiscovered.Current())
 		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
+
+		auxInfo2 := auxInfoFormat.Sprintf(
+			"[Unknown: %d, Low: %d, Medium: %d, High: %d, Critical: %d]",
+			monitor.VulnerabilitiesCategories.Unknown.Current(),
+			monitor.VulnerabilitiesCategories.Low.Current(),
+			monitor.VulnerabilitiesCategories.Medium.Current(),
+			monitor.VulnerabilitiesCategories.High.Current(),
+			monitor.VulnerabilitiesCategories.Critical.Current(),
+		)
+		_, _ = io.WriteString(line2, fmt.Sprintf(statusTitleTemplate+"%s", spin, title2, auxInfo2))
 	}()
 
 	return nil

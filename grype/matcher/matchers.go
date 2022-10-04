@@ -30,6 +30,15 @@ import (
 type Monitor struct {
 	PackagesProcessed         progress.Monitorable
 	VulnerabilitiesDiscovered progress.Monitorable
+	VulnerabilitiesCategories *VulnerabilitiesCategories
+}
+
+type VulnerabilitiesCategories struct {
+	Unknown  progress.Monitorable
+	Low      progress.Monitorable
+	Medium   progress.Monitorable
+	High     progress.Monitorable
+	Critical progress.Monitorable
 }
 
 // Config contains values used by individual matcher structs for advanced configuration
@@ -60,18 +69,47 @@ func NewDefaultMatchers(mc Config) []Matcher {
 	}
 }
 
-func trackMatcher() (*progress.Manual, *progress.Manual) {
+type vulnerabilitiesList struct {
+	Unknown  *progress.Manual
+	Low      *progress.Manual
+	Medium   *progress.Manual
+	High     *progress.Manual
+	Critical *progress.Manual
+}
+
+func trackMatcher() (*progress.Manual, *progress.Manual, *vulnerabilitiesList) {
 	packagesProcessed := progress.Manual{}
 	vulnerabilitiesDiscovered := progress.Manual{}
+	vulnerabilitiesUnknownCategory := progress.Manual{}
+	vulnerabilitiesLowCategory := progress.Manual{}
+	vulnerabilitiesMediumCategory := progress.Manual{}
+	vulnerabilitiesHighCategory := progress.Manual{}
+	vulnerabilitiesCriticalCategory := progress.Manual{}
 
 	bus.Publish(partybus.Event{
 		Type: event.VulnerabilityScanningStarted,
 		Value: Monitor{
 			PackagesProcessed:         progress.Monitorable(&packagesProcessed),
 			VulnerabilitiesDiscovered: progress.Monitorable(&vulnerabilitiesDiscovered),
+			VulnerabilitiesCategories: &VulnerabilitiesCategories{
+				Unknown:  progress.Monitorable(&vulnerabilitiesUnknownCategory),
+				Low:      progress.Monitorable(&vulnerabilitiesLowCategory),
+				Medium:   progress.Monitorable(&vulnerabilitiesMediumCategory),
+				High:     progress.Monitorable(&vulnerabilitiesHighCategory),
+				Critical: progress.Monitorable(&vulnerabilitiesCriticalCategory),
+			},
 		},
 	})
-	return &packagesProcessed, &vulnerabilitiesDiscovered
+
+	vulnerabilitiesList := &vulnerabilitiesList{
+		Unknown:  &vulnerabilitiesUnknownCategory,
+		Low:      &vulnerabilitiesLowCategory,
+		Medium:   &vulnerabilitiesMediumCategory,
+		High:     &vulnerabilitiesHighCategory,
+		Critical: &vulnerabilitiesCriticalCategory,
+	}
+
+	return &packagesProcessed, &vulnerabilitiesDiscovered, vulnerabilitiesList
 }
 
 func newMatcherIndex(matchers []Matcher) (map[syftPkg.Type][]Matcher, Matcher) {
@@ -97,6 +135,7 @@ func newMatcherIndex(matchers []Matcher) (map[syftPkg.Type][]Matcher, Matcher) {
 
 func FindMatches(store interface {
 	vulnerability.Provider
+	vulnerability.MetadataProvider
 	match.ExclusionProvider
 }, release *linux.Release, matchers []Matcher, packages []pkg.Package) match.Matches {
 	var err error
@@ -111,7 +150,7 @@ func FindMatches(store interface {
 		}
 	}
 
-	packagesProcessed, vulnerabilitiesDiscovered := trackMatcher()
+	packagesProcessed, vulnerabilitiesDiscovered, vulnerabilitiesList := trackMatcher()
 
 	if defaultMatcher == nil {
 		defaultMatcher = &stock.Matcher{UseCPEs: true}
@@ -132,17 +171,46 @@ func FindMatches(store interface {
 				logMatches(p, matches)
 				res.Add(matches...)
 				vulnerabilitiesDiscovered.N += int64(len(matches))
+				updateVulnerabilityList(vulnerabilitiesList, matches, store)
 			}
 		}
 	}
 
 	packagesProcessed.SetCompleted()
 	vulnerabilitiesDiscovered.SetCompleted()
+	vulnerabilitiesList.Unknown.SetCompleted()
+	vulnerabilitiesList.Low.SetCompleted()
+	vulnerabilitiesList.Medium.SetCompleted()
+	vulnerabilitiesList.High.SetCompleted()
+	vulnerabilitiesList.Critical.SetCompleted()
 
 	// Filter out matches based off of the records in the exclusion table in the database or from the old hard-coded rules
 	res = match.ApplyExplicitIgnoreRules(store, res)
 
 	return res
+}
+
+func updateVulnerabilityList(list *vulnerabilitiesList, matches []match.Match, metadataProvider vulnerability.MetadataProvider) {
+	for _, m := range matches {
+		metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.Namespace)
+		if err != nil || metadata == nil {
+			list.Unknown.N += 1
+			continue
+		}
+
+		switch metadata.Severity {
+		case "Low":
+			list.Low.N += 1
+		case "Medium":
+			list.Medium.N += 1
+		case "High":
+			list.High.N += 1
+		case "Critical":
+			list.Critical.N += 1
+		default:
+			list.Unknown.N += 1
+		}
+	}
 }
 
 func logMatches(p pkg.Package, matches []match.Match) {
