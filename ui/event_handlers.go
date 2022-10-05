@@ -130,7 +130,7 @@ func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *f
 		auxInfo := auxInfoFormat.Sprintf("[vulnerabilities %d]", total)
 		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
 
-		auxInfo2 := auxInfoFormat.Sprintf("[Unknown: %d, Low: %d, Medium: %d, High: %d, Critical: %d]", unknown, low, medium, high, critical)
+		auxInfo2 := auxInfoFormat.Sprintf("[Critical: %d, High: %d, Medium: %d, Low: %d, Unknown: %d]", critical, high, medium, low, unknown)
 		_, _ = io.WriteString(line2, fmt.Sprintf(statusTitleTemplate+"%s", spin, title2, auxInfo2))
 	}
 
@@ -148,12 +148,12 @@ func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *f
 		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
 
 		auxInfo2 := auxInfoFormat.Sprintf(
-			"[Unknown: %d, Low: %d, Medium: %d, High: %d, Critical: %d]",
-			monitor.VulnerabilitiesCategories.Unknown.Current(),
-			monitor.VulnerabilitiesCategories.Low.Current(),
-			monitor.VulnerabilitiesCategories.Medium.Current(),
-			monitor.VulnerabilitiesCategories.High.Current(),
+			"[Critical: %d, High: %d, Medium: %d, Low: %d, Unknown: %d]",
 			monitor.VulnerabilitiesCategories.Critical.Current(),
+			monitor.VulnerabilitiesCategories.High.Current(),
+			monitor.VulnerabilitiesCategories.Medium.Current(),
+			monitor.VulnerabilitiesCategories.Low.Current(),
+			monitor.VulnerabilitiesCategories.Unknown.Current(),
 		)
 		_, _ = io.WriteString(line2, fmt.Sprintf(statusTitleTemplate+"%s", spin, title2, auxInfo2))
 	}()
