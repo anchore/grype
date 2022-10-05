@@ -168,6 +168,11 @@ unit: ## Run unit tests (with coverage)
 	@echo "Coverage: $$(cat $(COVER_TOTAL))"
 	@if [ $$(echo "$$(cat $(COVER_TOTAL)) >= $(COVERAGE_THRESHOLD)" | bc -l) -ne 1 ]; then echo "$(RED)$(BOLD)Failed coverage quality gate (> $(COVERAGE_THRESHOLD)%)$(RESET)" && false; fi
 
+.PHONY: quality
+quality: ## Run quality tests
+	$(call title,Running quality tests)
+	cd test/quality && make
+
 # note: this is used by CI to determine if the install test fixture cache (docker image tars) should be busted
 install-fingerprint:
 	cd test/install && \
