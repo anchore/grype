@@ -38,7 +38,7 @@ sboms: $(YARDSTICK_RESULT_DIR) venv clear-results ## Collect and store all syft 
 .PHONY: download-sboms
 download-sboms:
 	cd vulnerability-match-labels && make venv
-	bash -c "export ORAS_CACHE=$(shell pwd)/.oras-cache && . vulnerability-match-labels/venv/bin/activate && ./vulnerability-match-labels/sboms.py download -r $(RESULT_SET)"
+	bash -c "export ORAS_CACHE=$(shell pwd)/.oras-cache && make venv && . vulnerability-match-labels/venv/bin/activate && ./vulnerability-match-labels/sboms.py download -r $(RESULT_SET)"
 
 venv: venv/touchfile
 
