@@ -1,6 +1,8 @@
 package matcher
 
 import (
+	grypeDb "github.com/anchore/grype/grype/db/v4"
+
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
 
@@ -39,6 +41,7 @@ type VulnerabilitiesCategories struct {
 	Medium   progress.Monitorable
 	High     progress.Monitorable
 	Critical progress.Monitorable
+	Fixed    progress.Monitorable
 }
 
 // Config contains values used by individual matcher structs for advanced configuration
@@ -75,6 +78,7 @@ type vulnerabilitiesList struct {
 	Medium   *progress.Manual
 	High     *progress.Manual
 	Critical *progress.Manual
+	Fixed    *progress.Manual
 }
 
 func trackMatcher() (*progress.Manual, *progress.Manual, *vulnerabilitiesList) {
@@ -85,6 +89,7 @@ func trackMatcher() (*progress.Manual, *progress.Manual, *vulnerabilitiesList) {
 	vulnerabilitiesMediumCategory := progress.Manual{}
 	vulnerabilitiesHighCategory := progress.Manual{}
 	vulnerabilitiesCriticalCategory := progress.Manual{}
+	vulnerabilitiesFixed := progress.Manual{}
 
 	bus.Publish(partybus.Event{
 		Type: event.VulnerabilityScanningStarted,
@@ -97,6 +102,7 @@ func trackMatcher() (*progress.Manual, *progress.Manual, *vulnerabilitiesList) {
 				Medium:   progress.Monitorable(&vulnerabilitiesMediumCategory),
 				High:     progress.Monitorable(&vulnerabilitiesHighCategory),
 				Critical: progress.Monitorable(&vulnerabilitiesCriticalCategory),
+				Fixed:    progress.Monitorable(&vulnerabilitiesFixed),
 			},
 		},
 	})
@@ -107,6 +113,7 @@ func trackMatcher() (*progress.Manual, *progress.Manual, *vulnerabilitiesList) {
 		Medium:   &vulnerabilitiesMediumCategory,
 		High:     &vulnerabilitiesHighCategory,
 		Critical: &vulnerabilitiesCriticalCategory,
+		Fixed:    &vulnerabilitiesFixed,
 	}
 
 	return &packagesProcessed, &vulnerabilitiesDiscovered, vulnerabilitiesList
@@ -183,6 +190,7 @@ func FindMatches(store interface {
 	vulnerabilitiesList.Medium.SetCompleted()
 	vulnerabilitiesList.High.SetCompleted()
 	vulnerabilitiesList.Critical.SetCompleted()
+	vulnerabilitiesList.Fixed.SetCompleted()
 
 	// Filter out matches based off of the records in the exclusion table in the database or from the old hard-coded rules
 	res = match.ApplyExplicitIgnoreRules(store, res)
@@ -209,6 +217,10 @@ func updateVulnerabilityList(list *vulnerabilitiesList, matches []match.Match, m
 			list.Critical.N += 1
 		default:
 			list.Unknown.N += 1
+		}
+
+		if m.Vulnerability.Fix.State == grypeDb.FixedState {
+			list.Fixed.N += 1
 		}
 	}
 }
