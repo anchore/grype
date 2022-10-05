@@ -300,10 +300,24 @@ func TestNew(t *testing.T) {
 		{
 			name: "cpp conan-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.ConanaMetadataType,
+				MetadataType: syftPkg.ConanMetadataType,
 				Metadata: syftPkg.ConanMetadata{
-					Name:    "name",
-					Version: "version",
+					Ref: "catch2/2.13.8",
+				},
+			},
+		},
+		{
+			name: "cpp conan lock metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.ConanLockMetadataType,
+				Metadata: syftPkg.ConanLockMetadata{
+					Ref: "zlib/1.2.12",
+					Options: map[string]string{
+						"fPIC":   "True",
+						"shared": "False",
+					},
+					Path:    "all/conanfile.py",
+					Context: "host",
 				},
 			},
 		},
