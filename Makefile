@@ -34,7 +34,7 @@ OS=$(shell uname | tr '[:upper:]' '[:lower:]')
 SYFT_VERSION=$(shell go list -m all | grep github.com/anchore/syft | awk '{print $$2}')
 SNAPSHOT_BIN=$(shell realpath $(shell pwd)/$(SNAPSHOTDIR)/$(OS)-build_$(OS)_amd64_v1/$(BIN))
 
-GOLANGCILINT_VERSION = v1.49.0
+GOLANGCILINT_VERSION = v1.50.0
 BOUNCER_VERSION = v0.4.0
 CHRONICLE_VERSION = v0.4.1
 GOSIMPORTS_VERSION = v0.3.2
@@ -167,6 +167,11 @@ unit: ## Run unit tests (with coverage)
 	@go tool cover -func $(COVER_REPORT) | grep total |  awk '{print substr($$3, 1, length($$3)-1)}' > $(COVER_TOTAL)
 	@echo "Coverage: $$(cat $(COVER_TOTAL))"
 	@if [ $$(echo "$$(cat $(COVER_TOTAL)) >= $(COVERAGE_THRESHOLD)" | bc -l) -ne 1 ]; then echo "$(RED)$(BOLD)Failed coverage quality gate (> $(COVERAGE_THRESHOLD)%)$(RESET)" && false; fi
+
+.PHONY: quality
+quality: ## Run quality tests
+	$(call title,Running quality tests)
+	cd test/quality && make
 
 # note: this is used by CI to determine if the install test fixture cache (docker image tars) should be busted
 install-fingerprint:
