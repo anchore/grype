@@ -15,6 +15,9 @@ ignore-packages:
   # https://github.com/spdx/tools-golang/blob/main/LICENSE.code
   - github.com/spdx/tools-golang
 
+  # crypto/internal/boring is released under the openSSL license as a part of the Golang Standard Libary
+  - crypto/internal/boring
+
   # from: https://github.com/xi2/xz/blob/master/LICENSE
   # All these files have been put into the public domain.
   # You can do whatever you want with these files.

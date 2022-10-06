@@ -15,6 +15,7 @@ import (
 	"github.com/wagoodman/jotframe/pkg/frame"
 
 	grypeEventParsers "github.com/anchore/grype/grype/event/parsers"
+	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/internal/ui/components"
 	syftUI "github.com/anchore/syft/ui"
 )
@@ -24,8 +25,10 @@ const statusSet = components.SpinnerDotSet // SpinnerCircleOutlineSet
 const completedStatus = "✔"                // "●"
 const tileFormat = color.Bold
 
-var auxInfoFormat = color.HEX("#777777")
-var statusTitleTemplate = fmt.Sprintf(" %%s %%-%ds ", syftUI.StatusTitleColumn)
+var (
+	auxInfoFormat       = color.HEX("#777777")
+	statusTitleTemplate = fmt.Sprintf(" %%s %%-%ds ", syftUI.StatusTitleColumn)
+)
 
 func startProcess() (format.Simple, *components.Spinner) {
 	width, _ := frame.GetTerminalSize()
@@ -92,46 +95,61 @@ func (r *Handler) UpdateVulnerabilityDatabaseHandler(ctx context.Context, fr *fr
 	return err
 }
 
+func scanningAndSummaryLines(fr *frame.Frame) (scanningLine, summaryLine *frame.Line, err error) {
+	scanningLine, err = fr.Append()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	summaryLine, err = fr.Append()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return scanningLine, summaryLine, nil
+}
+
+func assembleProgressMonitors(m *matcher.Monitor) []progress.Monitorable {
+	return []progress.Monitorable{
+		m.PackagesProcessed,
+		m.VulnerabilitiesDiscovered,
+		m.VulnerabilitiesCategories.Unknown,
+		m.VulnerabilitiesCategories.Low,
+		m.VulnerabilitiesCategories.Medium,
+		m.VulnerabilitiesCategories.High,
+		m.VulnerabilitiesCategories.Critical,
+		m.VulnerabilitiesCategories.Fixed,
+	}
+}
+
 func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
 	monitor, err := grypeEventParsers.ParseVulnerabilityScanningStarted(event)
 	if err != nil {
 		return fmt.Errorf("bad %s event: %w", event.Type, err)
 	}
 
-	line, err := fr.Append()
-	if err != nil {
-		return err
-	}
-
-	line2, err := fr.Append()
+	scanningLine, summaryLine, err := scanningAndSummaryLines(fr)
 	if err != nil {
 		return err
 	}
 
 	wg.Add(1)
 
-	monitors := []progress.Monitorable{
-		monitor.PackagesProcessed,
-		monitor.VulnerabilitiesDiscovered,
-		monitor.VulnerabilitiesCategories.Unknown,
-		monitor.VulnerabilitiesCategories.Low,
-		monitor.VulnerabilitiesCategories.Medium,
-		monitor.VulnerabilitiesCategories.High,
-		monitor.VulnerabilitiesCategories.Critical,
-		monitor.VulnerabilitiesCategories.Fixed,
-	}
+	monitors := assembleProgressMonitors(monitor)
+
 	_, spinner := startProcess()
 	stream := progress.StreamMonitors(ctx, monitors, 50*time.Millisecond)
+
 	title := tileFormat.Sprint("Scanning image...")
 	title2 := tileFormat.Sprint("Summary")
 
 	formatFn := func(total, unknown, low, medium, high, critical, fixed int64) {
 		spin := color.Magenta.Sprint(spinner.Next())
 		auxInfo := auxInfoFormat.Sprintf("[vulnerabilities %d]", total)
-		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
+		_, _ = io.WriteString(scanningLine, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
 
 		auxInfo2 := auxInfoFormat.Sprintf("[Critical: %d, High: %d, Medium: %d, Low: %d, Unknown: %d, Fixed: %d]", critical, high, medium, low, unknown, fixed)
-		_, _ = io.WriteString(line2, fmt.Sprintf(statusTitleTemplate+"%s", spin, title2, auxInfo2))
+		_, _ = io.WriteString(summaryLine, fmt.Sprintf(statusTitleTemplate+"%s", spin, title2, auxInfo2))
 	}
 
 	go func() {
@@ -145,7 +163,7 @@ func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *f
 		spin := color.Green.Sprint(completedStatus)
 		title = tileFormat.Sprint("Scanned image")
 		auxInfo := auxInfoFormat.Sprintf("[%d vulnerabilities]", monitor.VulnerabilitiesDiscovered.Current())
-		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
+		_, _ = io.WriteString(scanningLine, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
 
 		auxInfo2 := auxInfoFormat.Sprintf(
 			"[Critical: %d, High: %d, Medium: %d, Low: %d, Unknown: %d, Fixed: %d]",
@@ -156,7 +174,7 @@ func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *f
 			monitor.VulnerabilitiesCategories.Unknown.Current(),
 			monitor.VulnerabilitiesCategories.Fixed.Current(),
 		)
-		_, _ = io.WriteString(line2, fmt.Sprintf(statusTitleTemplate+"%s", spin, title2, auxInfo2))
+		_, _ = io.WriteString(summaryLine, fmt.Sprintf(statusTitleTemplate+"%s", spin, title2, auxInfo2))
 	}()
 
 	return nil

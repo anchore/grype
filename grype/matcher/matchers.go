@@ -1,11 +1,10 @@
 package matcher
 
 import (
-	grypeDb "github.com/anchore/grype/grype/db/v4"
-
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
 
+	grypeDb "github.com/anchore/grype/grype/db/v4"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/match"
