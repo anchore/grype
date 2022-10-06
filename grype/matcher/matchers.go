@@ -202,25 +202,25 @@ func updateVulnerabilityList(list *vulnerabilitiesList, matches []match.Match, m
 	for _, m := range matches {
 		metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.Namespace)
 		if err != nil || metadata == nil {
-			list.Unknown.N += 1
+			list.Unknown.N++
 			continue
 		}
 
 		switch metadata.Severity {
 		case "Low":
-			list.Low.N += 1
+			list.Low.N++
 		case "Medium":
-			list.Medium.N += 1
+			list.Medium.N++
 		case "High":
-			list.High.N += 1
+			list.High.N++
 		case "Critical":
-			list.Critical.N += 1
+			list.Critical.N++
 		default:
-			list.Unknown.N += 1
+			list.Unknown.N++
 		}
 
 		if m.Vulnerability.Fix.State == grypeDb.FixedState {
-			list.Fixed.N += 1
+			list.Fixed.N++
 		}
 	}
 }

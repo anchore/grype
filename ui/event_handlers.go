@@ -92,7 +92,6 @@ func (r *Handler) UpdateVulnerabilityDatabaseHandler(ctx context.Context, fr *fr
 	return err
 }
 
-//nolint:dupl
 func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
 	monitor, err := grypeEventParsers.ParseVulnerabilityScanningStarted(event)
 	if err != nil {
@@ -124,14 +123,14 @@ func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *f
 	_, spinner := startProcess()
 	stream := progress.StreamMonitors(ctx, monitors, 50*time.Millisecond)
 	title := tileFormat.Sprint("Scanning image...")
-	title2 := tileFormat.Sprint("Categories")
+	title2 := tileFormat.Sprint("Summary")
 
 	formatFn := func(total, unknown, low, medium, high, critical, fixed int64) {
 		spin := color.Magenta.Sprint(spinner.Next())
 		auxInfo := auxInfoFormat.Sprintf("[vulnerabilities %d]", total)
 		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
 
-		auxInfo2 := auxInfoFormat.Sprintf("[Critical: %d, High: %d, Medium: %d, Low: %d, Unknown: %d; Fixed: %d]", critical, high, medium, low, unknown, fixed)
+		auxInfo2 := auxInfoFormat.Sprintf("[Critical: %d, High: %d, Medium: %d, Low: %d, Unknown: %d, Fixed: %d]", critical, high, medium, low, unknown, fixed)
 		_, _ = io.WriteString(line2, fmt.Sprintf(statusTitleTemplate+"%s", spin, title2, auxInfo2))
 	}
 
@@ -149,7 +148,7 @@ func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *f
 		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
 
 		auxInfo2 := auxInfoFormat.Sprintf(
-			"[Critical: %d, High: %d, Medium: %d, Low: %d, Unknown: %d; Fixed: %d]",
+			"[Critical: %d, High: %d, Medium: %d, Low: %d, Unknown: %d, Fixed: %d]",
 			monitor.VulnerabilitiesCategories.Critical.Current(),
 			monitor.VulnerabilitiesCategories.High.Current(),
 			monitor.VulnerabilitiesCategories.Medium.Current(),
@@ -199,7 +198,6 @@ func (r *Handler) SkippedAttestationVerification(ctx context.Context, fr *frame.
 	return nil
 }
 
-//nolint:dupl
 func (r *Handler) DatabaseDiffingStartedHandler(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
 	monitor, err := grypeEventParsers.ParseDatabaseDiffingStarted(event)
 	if err != nil {
