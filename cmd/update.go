@@ -23,8 +23,9 @@ import (
 	"github.com/anchore/stereoscope"
 )
 
-var downloadURLTemplate = "https://github.com/anchore/grype/releases/download/v%s/grype_%s_%s_%s.%s"
-var commandResultString = ""
+var (
+	downloadURLTemplate = "https://github.com/anchore/grype/releases/download/v%s/grype_%s_%s_%s.%s"
+)
 
 var updateCmd = &cobra.Command{
 	Use:   "update",
@@ -43,9 +44,11 @@ func runUpdate(_ *cobra.Command, _ []string) error {
 			log.Warnf("unable to write to report destination: %+v", err)
 		}
 	}()
+
 	if err != nil {
 		return err
 	}
+
 	return eventLoop(
 		startGrypeUpdate(),
 		setupSignals(),
@@ -55,6 +58,7 @@ func runUpdate(_ *cobra.Command, _ []string) error {
 	)
 }
 
+//nolint:funlen
 func startGrypeUpdate() <-chan error {
 	errs := make(chan error)
 	go func() {
@@ -62,12 +66,15 @@ func startGrypeUpdate() <-chan error {
 		importProgress := &progress.Manual{
 			Total: 1,
 		}
+
 		stage := &progress.Stage{
 			Current: "checking available versions",
 		}
+
 		downloadProgress := &progress.Manual{
 			Total: 1,
 		}
+
 		aggregateProgress := progress.NewAggregator(progress.DefaultStrategy, downloadProgress, importProgress)
 
 		bus.Publish(partybus.Event{
@@ -91,6 +98,8 @@ func startGrypeUpdate() <-chan error {
 			errs <- err
 			return
 		}
+
+		commandResultString := "You are already running the latest grype version\n"
 		if newerVersionAvailable {
 			stage.Current = "downloading grype"
 			compressed, err := downloadCompressed(desiredVersion)
@@ -98,28 +107,31 @@ func startGrypeUpdate() <-chan error {
 				errs <- err
 				return
 			}
+
 			stage.Current = "extracting grype"
 			filePath, err := extractBinary(compressed)
 			if err != nil {
 				errs <- err
 				return
 			}
+
 			stage.Current = "applying binary update"
 			err = replaceBinary(filePath)
 			if err != nil {
 				errs <- err
 				return
 			}
+
 			commandResultString = "Grype updated successfully! Run 'grype version' to get more info\n"
-		} else {
-			commandResultString = "You are already running the latest grype version\n"
 		}
+
 		stage.Current = "success"
 		bus.Publish(partybus.Event{
 			Type:  event.NonRootCommandFinished,
 			Value: commandResultString,
 		})
 	}()
+
 	return errs
 }
 
@@ -127,26 +139,30 @@ func extractBinary(fileName string) (string, error) {
 	r, err := os.Open(fileName)
 	if err != nil {
 		log.Errorf("Error while opening downloaded grype version: %s", err)
-		defer os.Remove(fileName)
+		os.Remove(fileName)
 		return "", err
 	}
+
 	tempDir, err := os.MkdirTemp("", "e_grype")
 	if err != nil {
 		log.Errorf("Error while creating a temporary directory: %s", err)
 		return "", err
 	}
+
 	log.Infof("Extracting grype")
 	log.Debugf("Extract destination is %s", tempDir)
 	err = ExtractTarGz(r, tempDir)
 	if err != nil {
-		defer os.RemoveAll(tempDir)
+		os.RemoveAll(tempDir)
 		return "", err
 	}
+
 	updatedGrypePath := fmt.Sprintf("%s/grype", tempDir)
 	err = os.Chmod(updatedGrypePath, 0777)
 	if err != nil {
 		return "", err
 	}
+
 	return updatedGrypePath, nil
 }
 
@@ -172,11 +188,13 @@ func replaceBinary(fileName string) error {
 		log.Errorf("Error while copying new binary: %s", err)
 		return err
 	}
+
 	err = os.Rename(tempBinaryPath, executablePath)
 	if err != nil {
 		log.Errorf("Error while aplying new binary: %s", err)
 		return err
 	}
+
 	log.Infof("Updated grype (%s) successfully\n", executablePath)
 	return nil
 }
@@ -243,19 +261,23 @@ func checkLatestVersion() (bool, string, error) {
 	if err != nil {
 		return false, "", err
 	}
+
 	if updateAvaliable {
 		log.Infof("New version available v%s", version)
 		return true, version, nil
 	}
+
 	log.Infof("No updates available")
 	return false, "", nil
 }
 
 func downloadCompressed(version string) (string, error) {
-	var extension = "tar.gz"
+	extension := "tar.gz"
+
 	if runtime.GOOS == "windows" {
 		extension = "zip"
 	}
+
 	f, err := os.CreateTemp("", "grype")
 	log.Debugf("Created temporary file %s", f.Name())
 	if err != nil {
@@ -264,18 +286,20 @@ func downloadCompressed(version string) (string, error) {
 		return "", err
 	}
 
-	var downloadURL = fmt.Sprintf(downloadURLTemplate, version, version, runtime.GOOS, runtime.GOARCH, extension)
+	downloadURL := fmt.Sprintf(downloadURLTemplate, version, version, runtime.GOOS, runtime.GOARCH, extension)
 	_, err = url.Parse(downloadURL)
 	if err != nil {
 		log.Errorf("Request url is not correctly formatted: %s\n", err)
 		return "", err
 	}
+
 	log.Infof("Downloading grype v%s", version)
-	resp, err := http.Get(downloadURL) //nolint
+	resp, err := http.Get(downloadURL)
 	if err != nil {
 		log.Errorf("Error while downloading grype: %s", err)
 		return "", err
 	}
+
 	defer resp.Body.Close()
 	n, err := io.Copy(f, resp.Body)
 	log.Debugf("Wrote %d bytes to %s", uint64(n), f.Name())
@@ -284,5 +308,6 @@ func downloadCompressed(version string) (string, error) {
 		defer os.Remove(f.Name())
 		return "", err
 	}
+
 	return f.Name(), nil
 }

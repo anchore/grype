@@ -267,7 +267,7 @@ func isVerbose() (result bool) {
 	return appConfig.CliOptions.Verbosity > 0 || isPipedInput
 }
 
-// nolint:funlen
+//nolint:funlen
 func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-chan error {
 	errs := make(chan error)
 	go func() {

@@ -139,7 +139,7 @@ func (r *Handler) GrypeUpdateHandler(ctx context.Context, fr *frame.Frame, event
 	return err
 }
 
-// nolint: dupl
+//nolint:dupl
 func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
 	monitor, err := grypeEventParsers.ParseVulnerabilityScanningStarted(event)
 	if err != nil {
@@ -216,7 +216,7 @@ func (r *Handler) SkippedAttestationVerification(ctx context.Context, fr *frame.
 	return nil
 }
 
-// nolint: dupl
+//nolint:dupl
 func (r *Handler) DatabaseDiffingStartedHandler(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
 	monitor, err := grypeEventParsers.ParseDatabaseDiffingStarted(event)
 	if err != nil {

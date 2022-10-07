@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -147,7 +146,7 @@ func parseAttestation(scheme, path string, config ProviderConfig) (io.Reader, *i
 }
 
 func decodeStdin(r io.Reader, config ProviderConfig) (io.Reader, *inputInfo, error) {
-	b, err := ioutil.ReadAll(r)
+	b, err := io.ReadAll(r)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed reading stdin: %w", err)
 	}

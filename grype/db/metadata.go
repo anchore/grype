@@ -3,7 +3,7 @@ package db
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path"
 	"time"
 
@@ -129,7 +129,7 @@ func (m Metadata) Write(toPath string) error {
 		return fmt.Errorf("failed to encode metadata file: %w", err)
 	}
 
-	err = ioutil.WriteFile(toPath, contents, 0600)
+	err = os.WriteFile(toPath, contents, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to write metadata file: %w", err)
 	}
