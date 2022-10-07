@@ -12,6 +12,14 @@ import (
 func onlyVulnerableTargets(p pkg.Package, allVulns []vulnerability.Vulnerability) []vulnerability.Vulnerability {
 	var vulns []vulnerability.Vulnerability
 
+	// There are quite a few cases within java where other ecosystem components (particularly javascript packages)
+	// are embedded directly within jar files, so we can't yet make this assumption with java as it will cause dropping
+	// of valid vulnerabilities that syft has specific logic https://github.com/anchore/syft/blob/main/syft/pkg/cataloger/common/cpe/candidate_by_package_type.go#L48-L75
+	// to ensure will be surfaced
+	if p.Language == syftPkg.Java {
+		return allVulns
+	}
+
 	for _, vuln := range allVulns {
 		isPackageVulnerable := len(vuln.CPEs) == 0
 		for _, cpe := range vuln.CPEs {

@@ -1,4 +1,4 @@
-package rpmdb
+package rpm
 
 import (
 	"fmt"
@@ -20,7 +20,7 @@ func (m *Matcher) PackageTypes() []syftPkg.Type {
 }
 
 func (m *Matcher) Type() match.MatcherType {
-	return match.RpmDBMatcher
+	return match.RpmMatcher
 }
 
 //nolint:funlen

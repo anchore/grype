@@ -25,7 +25,7 @@ func runDBCheckCmd(_ *cobra.Command, _ []string) error {
 		return err
 	}
 
-	updateAvailable, _, err := dbCurator.IsUpdateAvailable()
+	updateAvailable, currentDBMetadata, updateDBEntry, err := dbCurator.IsUpdateAvailable()
 	if err != nil {
 		return fmt.Errorf("unable to check for vulnerability database update: %+v", err)
 	}
@@ -34,5 +34,15 @@ func runDBCheckCmd(_ *cobra.Command, _ []string) error {
 		return stderrPrintLnf("No update available")
 	}
 
-	return stderrPrintLnf("Update available!")
+	fmt.Println("Update available!")
+
+	if currentDBMetadata != nil {
+		fmt.Printf("Current DB version %d was built on %s\n", currentDBMetadata.Version, currentDBMetadata.Built.String())
+	}
+
+	fmt.Printf("Updated DB version %d was built on %s\n", updateDBEntry.Version, updateDBEntry.Built.String())
+	fmt.Printf("Updated DB URL: %s\n", updateDBEntry.URL.String())
+	fmt.Println("You can run 'grype db update' to update to the latest db")
+
+	return nil
 }

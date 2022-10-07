@@ -14,7 +14,6 @@ var (
 	ByDistro       Criteria = "by-distro"
 	CommonCriteria          = []Criteria{
 		ByLanguage,
-		ByCPE,
 	}
 )
 

@@ -143,7 +143,7 @@ func (c *Curator) Update() (bool, error) {
 	defer downloadProgress.SetCompleted()
 	defer importProgress.SetCompleted()
 
-	updateAvailable, updateEntry, err := c.IsUpdateAvailable()
+	updateAvailable, metadata, updateEntry, err := c.IsUpdateAvailable()
 	if err != nil {
 		// we want to continue if possible even if we can't check for an update
 		log.Warnf("unable to check for vulnerability database update")
@@ -155,42 +155,59 @@ func (c *Curator) Update() (bool, error) {
 		if err != nil {
 			return false, fmt.Errorf("unable to update vulnerability database: %w", err)
 		}
-		log.Infof("updated vulnerability DB to version=%d built=%q", updateEntry.Version, updateEntry.Built.String())
+
+		if metadata != nil {
+			log.Infof(
+				"updated vulnerability DB from version=%d built=%q to version=%d built=%q",
+				metadata.Version,
+				metadata.Built.String(),
+				updateEntry.Version,
+				updateEntry.Built.String(),
+			)
+			return true, nil
+		}
+
+		log.Infof(
+			"downloaded new vulnerability DB version=%d built=%q",
+			updateEntry.Version,
+			updateEntry.Built.String(),
+		)
 		return true, nil
 	}
+
 	stage.Current = "no update available"
 	return false, nil
 }
 
 // IsUpdateAvailable indicates if there is a new update available as a boolean, and returns the latest listing information
 // available for this schema.
-func (c *Curator) IsUpdateAvailable() (bool, *ListingEntry, error) {
+func (c *Curator) IsUpdateAvailable() (bool, *Metadata, *ListingEntry, error) {
 	log.Debugf("checking for available database updates")
 
 	listing, err := c.ListingFromURL()
 	if err != nil {
-		return false, nil, err
+		return false, nil, nil, err
 	}
 
 	updateEntry := listing.BestUpdate(c.targetSchema)
 	if updateEntry == nil {
-		return false, nil, fmt.Errorf("no db candidates with correct version available (maybe there is an application update available?)")
+		return false, nil, nil, fmt.Errorf("no db candidates with correct version available (maybe there is an application update available?)")
 	}
 	log.Debugf("found database update candidate: %s", updateEntry)
 
 	// compare created data to current db date
 	current, err := NewMetadataFromDir(c.fs, c.dbDir)
 	if err != nil {
-		return false, nil, fmt.Errorf("current metadata corrupt: %w", err)
+		return false, nil, nil, fmt.Errorf("current metadata corrupt: %w", err)
 	}
 
 	if current.IsSupersededBy(updateEntry) {
 		log.Debugf("database update available: %s", updateEntry)
-		return true, updateEntry, nil
+		return true, current, updateEntry, nil
 	}
 	log.Debugf("no database update available")
 
-	return false, nil, nil
+	return false, nil, nil, nil
 }
 
 // UpdateTo updates the existing DB with the specific other version provided from a listing entry.

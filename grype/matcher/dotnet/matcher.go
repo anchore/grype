@@ -10,6 +10,17 @@ import (
 )
 
 type Matcher struct {
+	UseCPEs bool
+}
+
+type MatcherConfig struct {
+	UseCPEs bool
+}
+
+func NewDotnetMatcher(cfg MatcherConfig) *Matcher {
+	return &Matcher{
+		UseCPEs: cfg.UseCPEs,
+	}
 }
 
 func (m *Matcher) PackageTypes() []syftPkg.Type {
@@ -21,5 +32,9 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
-	return search.ByCriteria(store, d, p, m.Type(), search.CommonCriteria...)
+	criteria := search.CommonCriteria
+	if m.UseCPEs {
+		criteria = append(criteria, search.ByCPE)
+	}
+	return search.ByCriteria(store, d, p, m.Type(), criteria...)
 }

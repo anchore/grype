@@ -96,8 +96,6 @@ jobs:
     # due to our code signing process, it's vital that we run our release steps on macOS
     runs-on: macos-latest
     steps:
-      - uses: docker-practice/actions-setup-docker@v1
-
       - uses: actions/setup-go@v2
         with:
           go-version: ${{ env.GO_VERSION }}
@@ -130,11 +128,6 @@ jobs:
       - name: Build & publish release artifacts
         run: make release
         env:
-          GHCR_USERNAME: ${{ github.actor }}
-          GHCR_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-          DOCKER_USERNAME: ${{ secrets.TOOLBOX_DOCKER_USER }}
-          DOCKER_PASSWORD: ${{ secrets.TOOLBOX_DOCKER_PASS }}
-          # we use a different token than GITHUB_SECRETS to additionally allow updating the homebrew repos
           GITHUB_TOKEN: ${{ secrets.ANCHORE_GIT_READ_TOKEN }}
           AWS_ACCESS_KEY_ID: ${{ secrets.TOOLBOX_AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.TOOLBOX_AWS_SECRET_ACCESS_KEY }}
@@ -155,7 +148,7 @@ jobs:
         with:
           status: ${{ job.status }}
           fields: repo,workflow,action,eventName
-          text: "A new Grype release is ready to be manually published: https://github.com/anchore/grype/releases"
+          text: "A new Grype release has been published: https://github.com/anchore/grype/releases/tag/${{ github.ref_name }}"
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_TOOLBOX_WEBHOOK_URL }}
         if: ${{ success() }}
@@ -164,3 +157,44 @@ jobs:
         with:
           name: artifacts
           path: dist/**/*
+
+  release-docker-assets:
+    needs: [release]
+    # code signing requires we run on mac-os runners. docker does not come installed on the mac-os runner
+    # a previous release process installed and configured docker on the mac-os runner which lead to blocked releases
+    # the anchore tools team opted to break this step out to a separate process to remove this work constraint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.TOOLBOX_DOCKER_USER }}
+          password: ${{ secrets.TOOLBOX_DOCKER_PASS }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Restore go cache
+        id: go-cache
+        uses: actions/cache@v2.1.3
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ env.GO_VERSION }}-
+
+      - name: (cache-miss) Bootstrap all project dependencies
+        if: steps.tool-cache.outputs.cache-hit != 'true' || steps.go-cache.outputs.cache-hit != 'true'
+        run: make bootstrap
+
+      - name: Build & Publish docker images
+        run: make release-docker-assets

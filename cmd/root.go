@@ -19,6 +19,12 @@ import (
 	"github.com/anchore/grype/grype/grypeerr"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
+	"github.com/anchore/grype/grype/matcher/dotnet"
+	"github.com/anchore/grype/grype/matcher/golang"
+	"github.com/anchore/grype/grype/matcher/javascript"
+	"github.com/anchore/grype/grype/matcher/python"
+	"github.com/anchore/grype/grype/matcher/ruby"
+	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter"
 	"github.com/anchore/grype/grype/store"
@@ -32,6 +38,7 @@ import (
 	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/syft/syft/linux"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -55,7 +62,7 @@ var (
 
 Supports the following image sources:
     {{.appName}} yourrepo/yourimage:tag             defaults to using images from a Docker daemon
-    {{.appName}} path/to/yourproject                a Docker tar, OCI tar, OCI directory, or generic filesystem directory
+    {{.appName}} path/to/yourproject                a Docker tar, OCI tar, OCI directory, SIF container, or generic filesystem directory
     {{.appName}} attestation.json --key cosign.pub  extract and scan SBOM from attestation file
 
 You can also explicitly specify the scheme to use:
@@ -64,10 +71,12 @@ You can also explicitly specify the scheme to use:
     {{.appName}} docker-archive:path/to/yourimage.tar   use a tarball from disk for archives created from "docker save"
     {{.appName}} oci-archive:path/to/yourimage.tar      use a tarball from disk for OCI archives (from Podman or otherwise)
     {{.appName}} oci-dir:path/to/yourimage              read directly from a path on disk for OCI layout directories (from Skopeo or otherwise)
+    {{.appName}} singularity:path/to/yourimage.sif      read directly from a Singularity Image Format (SIF) container on disk
     {{.appName}} dir:path/to/yourproject                read directly from a path on disk (any directory)
     {{.appName}} sbom:path/to/syft.json                 read Syft JSON from path on disk
     {{.appName}} registry:yourrepo/yourimage:tag        pull image directly from a registry (no container runtime required)
     {{.appName}} att:attestation.json --key cosign.pub  explicitly use the input as an attestation
+    {{.appName}} purl:path/to/purl/file                 read a newline separated file of purls from a path on disk
 
 You can also pipe in Syft JSON directly:
 	syft yourimage:tag -o json | {{.appName}}
@@ -345,10 +354,16 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			appConfig.Ignore = append(appConfig.Ignore, ignoreFixedMatches...)
 		}
 
-		applyDistroHint(&context, appConfig)
+		applyDistroHint(packages, &context, appConfig)
 
 		matchers := matcher.NewDefaultMatchers(matcher.Config{
-			Java: appConfig.ExternalSources.ToJavaMatcherConfig(),
+			Java:       appConfig.ExternalSources.ToJavaMatcherConfig(appConfig.Match.Java),
+			Ruby:       ruby.MatcherConfig(appConfig.Match.Ruby),
+			Python:     python.MatcherConfig(appConfig.Match.Python),
+			Dotnet:     dotnet.MatcherConfig(appConfig.Match.Dotnet),
+			Javascript: javascript.MatcherConfig(appConfig.Match.Javascript),
+			Golang:     golang.MatcherConfig(appConfig.Match.Golang),
+			Stock:      stock.MatcherConfig(appConfig.Match.Stock),
 		})
 
 		allMatches := grype.FindVulnerabilitiesForPackage(*store, context.Distro, matchers, packages)
@@ -373,7 +388,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 	return errs
 }
 
-func applyDistroHint(context *pkg.Context, appConfig *config.Application) {
+func applyDistroHint(pkgs []pkg.Package, context *pkg.Context, appConfig *config.Application) {
 	if appConfig.Distro != "" {
 		log.Infof("using distro: %s", appConfig.Distro)
 
@@ -395,8 +410,16 @@ func applyDistroHint(context *pkg.Context, appConfig *config.Application) {
 		}
 	}
 
-	if context.Distro == nil {
-		log.Debug("Unable to determine the OS distribution. This may result in missing vulnerabilities. " +
+	hasOSPackage := false
+	for _, p := range pkgs {
+		switch p.Type {
+		case syftPkg.AlpmPkg, syftPkg.DebPkg, syftPkg.RpmPkg, syftPkg.KbPkg:
+			hasOSPackage = true
+		}
+	}
+
+	if context.Distro == nil && hasOSPackage {
+		log.Warnf("Unable to determine the OS distribution. This may result in missing vulnerabilities. " +
 			"You may specify a distro using: --distro <distro>:<version>")
 	}
 }

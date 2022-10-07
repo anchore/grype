@@ -51,7 +51,7 @@ func ParseFormat(userStr string) Format {
 		return ApkFormat
 	case strings.ToLower(DebFormat.String()), "dpkg":
 		return DebFormat
-	case strings.ToLower(RpmFormat.String()), "rpmdb":
+	case strings.ToLower(RpmFormat.String()), "rpm":
 		return RpmFormat
 	case strings.ToLower(PythonFormat.String()), "python":
 		return PythonFormat

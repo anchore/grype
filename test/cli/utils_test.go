@@ -43,12 +43,16 @@ func getGrypeSnapshotLocation(tb testing.TB, goOS string) string {
 		return os.Getenv("GRYPE_BINARY_LOCATION")
 	}
 
-	// note: there is a subtle - vs _ difference between these versions
+	// note: for amd64 we need to update the snapshot location with the v1 suffix
+	// see : https://goreleaser.com/customization/build/#why-is-there-a-_v1-suffix-on-amd64-builds
+	archPath := runtime.GOARCH
+	if runtime.GOARCH == "amd64" {
+		archPath = fmt.Sprintf("%s_v1", archPath)
+	}
+
 	switch goOS {
-	case "darwin":
-		return path.Join(repoRoot(tb), fmt.Sprintf("snapshot/darwin-build_darwin_%s/grype", runtime.GOARCH))
-	case "linux":
-		return path.Join(repoRoot(tb), fmt.Sprintf("snapshot/linux-build_linux_%s/grype", runtime.GOARCH))
+	case "darwin", "linux":
+		return path.Join(repoRoot(tb), fmt.Sprintf("snapshot/%s-build_%s_%s/grype", goOS, goOS, archPath))
 	default:
 		tb.Fatalf("unsupported OS: %s", runtime.GOOS)
 	}

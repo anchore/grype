@@ -1,0 +1,71 @@
+name: PR for latest versions of bootstrap tools
+on:
+  schedule:
+    - cron: "0 8 * * *" # 3 AM EST
+
+  workflow_dispatch:
+
+env:
+  GO_VERSION: "1.18.x"
+  GO_STABLE_VERSION: true
+
+jobs:
+  update-bootstrap-tools:
+    runs-on: ubuntu-latest
+    if: github.repository == 'anchore/grype' # only run for main repo
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          stable: ${{ env.GO_STABLE_VERSION }}
+
+      - run: |
+          GOLANGCILINT_LATEST_VERSION=$(go list -m -json github.com/golangci/golangci-lint@latest 2>/dev/null | jq -r '.Version')
+          BOUNCER_LATEST_VERSION=$(go list -m -json github.com/wagoodman/go-bouncer@latest 2>/dev/null | jq -r '.Version')
+          CHRONICLE_LATEST_VERSION=$(go list -m -json github.com/anchore/chronicle@latest 2>/dev/null | jq -r '.Version')
+          GORELEASER_LATEST_VERSION=$(go list -m -json github.com/goreleaser/goreleaser@latest 2>/dev/null | jq -r '.Version')
+          GOSIMPORTS_LATEST_VERSION=$(go list -m -json github.com/rinchsan/gosimports@latest 2>/dev/null | jq -r '.Version')
+          YAJSV_LATEST_VERSION=$(go list -m -json github.com/neilpa/yajsv@latest 2>/dev/null | jq -r '.Version')
+          
+          # update version variables in the Makefile
+          sed -r -i -e 's/^(GOLANGCILINT_VERSION = ).*/\1'${GOLANGCILINT_LATEST_VERSION}'/' Makefile
+          sed -r -i -e 's/^(BOUNCER_VERSION = ).*/\1'${BOUNCER_LATEST_VERSION}'/' Makefile
+          sed -r -i -e 's/^(CHRONICLE_VERSION = ).*/\1'${CHRONICLE_LATEST_VERSION}'/' Makefile
+          sed -r -i -e 's/^(GORELEASER_VERSION = ).*/\1'${GORELEASER_LATEST_VERSION}'/' Makefile
+          sed -r -i -e 's/^(GOSIMPORTS_VERSION = ).*/\1'${GOSIMPORTS_LATEST_VERSION}'/' Makefile
+          sed -r -i -e 's/^(YAJSV_VERSION = ).*/\1'${YAJSV_LATEST_VERSION}'/' Makefile
+          
+          # export the versions for use with create-pull-request
+          echo "::set-output name=GOLANGCILINT::$GOLANGCILINT_LATEST_VERSION"
+          echo "::set-output name=BOUNCER::$BOUNCER_LATEST_VERSION"
+          echo "::set-output name=CHRONICLE::$CHRONICLE_LATEST_VERSION"
+          echo "::set-output name=GORELEASER::$GORELEASER_LATEST_VERSION"
+          echo "::set-output name=GOSIMPORTS::$GOSIMPORTS_LATEST_VERSION"
+          echo "::set-output name=YAJSV::$YAJSV_LATEST_VERSION"
+        id: latest-versions
+
+      - uses: tibdex/github-app-token@v1
+        id: generate-token
+        with:
+          app_id: ${{ secrets.TOKEN_APP_ID }}
+          private_key: ${{ secrets.TOKEN_APP_PRIVATE_KEY }}
+
+      - uses: peter-evans/create-pull-request@v4
+        with:
+          signoff: true
+          delete-branch: true
+          branch: auto/latest-bootstrap-tools
+          labels: dependencies
+          commit-message: 'Update grype bootstrap tools to latest versions.'
+          title: 'Update grype bootstrap tools to latest versions.'
+          body: |
+            - [golangci-lint ${{ steps.latest-versions.outputs.GOLANGCILINT }}](https://github.com/golangci/golangci-lint/releases/tag/${{ steps.latest-versions.outputs.GOLANGCILINT }})
+            - [bouncer ${{ steps.latest-versions.outputs.BOUNCER }}](https://github.com/wagoodman/go-bouncer/releases/tag/${{ steps.latest-versions.outputs.BOUNCER }})
+            - [chronicle ${{ steps.latest-versions.outputs.CHRONICLE }}](https://github.com/anchore/chronicle/releases/tag/${{ steps.latest-versions.outputs.CHRONICLE }})
+            - [goreleaser ${{ steps.latest-versions.outputs.GORELEASER }}](https://github.com/goreleaser/goreleaser/releases/tag/${{ steps.latest-versions.outputs.GORELEASER }})
+            - [gosimports ${{ steps.latest-versions.outputs.GOSIMPORTS }}](https://github.com/rinchsan/gosimports/releases/tag/${{ steps.latest-versions.outputs.GOSIMPORTS }})
+            - [yajsv ${{ steps.latest-versions.outputs.YAJSV }}](https://github.com/neilpa/yajsv/releases/tag/${{ steps.latest-versions.outputs.YAJSV }})
+            This is an auto-generated pull request to update all of the bootstrap tools to the latest versions.
+          token: ${{ steps.generate-token.outputs.token }}

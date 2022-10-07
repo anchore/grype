@@ -63,7 +63,7 @@
       "version": "3.2"
      }
     ],
-    "metadataType": "RpmdbMetadata",
+    "metadataType": "RpmMetadata",
     "metadata": {
      "epoch": 2
     }
@@ -132,7 +132,7 @@
       "version": "3.2"
      }
     ],
-    "metadataType": "RpmdbMetadata",
+    "metadataType": "RpmMetadata",
     "metadata": {
      "epoch": 2
     }
@@ -189,7 +189,7 @@
       "version": "3.2"
      }
     ],
-    "metadataType": "RpmdbMetadata",
+    "metadataType": "RpmMetadata",
     "metadata": {
      "epoch": 2
     }

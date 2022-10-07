@@ -1,0 +1,1 @@
+pkg:deb/debian/curl@7.50.3-1?cpes=invalid

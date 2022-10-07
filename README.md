@@ -18,6 +18,8 @@ A vulnerability scanner for container images and filesystems. Easily [install th
 - Agenda: https://docs.google.com/document/d/1ZtSAa6fj2a6KRWviTn3WoJm09edvrNUp4Iz_dOjjyY8/edit?usp=sharing (join [this group](https://groups.google.com/g/anchore-oss-community) for write access)
 - All are welcome!
 
+For commercial support options with Syft or Grype, please [contact Anchore](https://get.anchore.com/contact/)
+
 ![grype-demo](https://user-images.githubusercontent.com/590471/90276236-9868f300-de31-11ea-8068-4268b6b68529.gif)
 
 ## Features
@@ -42,7 +44,7 @@ A vulnerability scanner for container images and filesystems. Easily [install th
   - Golang (go.mod)
   - PHP (Composer)
   - Rust (Cargo)
-- Supports Docker and OCI image formats
+- Supports Docker, OCI and [Singularity](https://github.com/sylabs/singularity) image formats.
 - Consume SBOM [attestations](https://github.com/anchore/syft#sbom-attestation).
 
 If you encounter an issue, please [let us know using the issue tracker](https://github.com/anchore/grype/issues).
@@ -77,6 +79,10 @@ sudo port install grype
 ```
 
 **Note**: Currently, Grype is built only for macOS and Linux.
+
+### From source
+
+See [DEVELOPING.md](DEVELOPING.md#native-development) for instructions to build and run from source.
 
 ### GitHub Actions
 
@@ -113,6 +119,9 @@ Grype can scan a variety of sources beyond those found in Docker.
 # scan a container image archive (from the result of `docker image save ...`, `podman save ...`, or `skopeo copy` commands)
 grype path/to/image.tar
 
+# scan a Singularity Image Format (SIF) container
+grype path/to/image.sif
+
 # scan a directory
 grype dir:path/to/dir
 ```
@@ -125,6 +134,7 @@ docker:yourrepo/yourimage:tag          use images from the Docker daemon
 docker-archive:path/to/yourimage.tar   use a tarball from disk for archives created from "docker save"
 oci-archive:path/to/yourimage.tar      use a tarball from disk for OCI archives (from Skopeo or otherwise)
 oci-dir:path/to/yourimage              read directly from a path on disk for OCI layout directories (from Skopeo or otherwise)
+singularity:path/to/yourimage.sif      read directly from a Singularity Image Format (SIF) container on disk
 dir:path/to/yourproject                read directly from a path on disk (any directory)
 sbom:path/to/syft.json                 read Syft JSON from path on disk
 registry:yourrepo/yourimage:tag        pull image directly from a registry (no container runtime required)
@@ -418,7 +428,7 @@ You can set the cache directory path using the environment variable `GRYPE_DB_CA
 
 #### Data staleness
 
-Grype needs up-to-date vulnerability information to provide accurate matches. By default, it will fail execution if the local database was not built in the last 5 days. The data staleness check is configurable via the field `max-allowed-built-age` and `validate-age`, under `db`. It uses [golang's time duration syntax](https://pkg.go.dev/time#ParseDuration). Set `validate-age` to `false` to disable staleness check.
+Grype needs up-to-date vulnerability information to provide accurate matches. By default, it will fail execution if the local database was not built in the last 5 days. The data staleness check is configurable via the environment variable `GRYPE_DB_MAX_ALLOWED_BUILT_AGE` and `GRYPE_DB_VALIDATE_AGE` or the field `max-allowed-built-age` and `validate-age`, under `db`. It uses [golang's time duration syntax](https://pkg.go.dev/time#ParseDuration). Set `GRYPE_DB_VALIDATE_AGE` or `validate-age` to `false` to disable staleness check.
 
 #### Offline and air-gapped environments
 
@@ -664,6 +674,25 @@ log:
   # location to write the log file (default is not to have a log file)
   # same as GRYPE_LOG_FILE env var
   file: ""
+
+match:
+  # sets the matchers below to use cpes when trying to find 
+  # vulnerability matches. The stock matcher is the default
+  # when no primary matcher can be identified 
+  java:
+    using-cpes: true
+  python:
+    using-cpes: true
+  javascript:
+    using-cpes: true
+  ruby:
+    using-cpes: true
+  dotnet:
+    using-cpes: true
+  golang:
+    using-cpes: true
+  stock:
+    using-cpes: true
 ```
 
 ## Future plans

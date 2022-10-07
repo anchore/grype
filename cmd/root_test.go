@@ -123,12 +123,12 @@ func Test_applyDistroHint(t *testing.T) {
 	ctx := pkg.Context{}
 	cfg := config.Application{}
 
-	applyDistroHint(&ctx, &cfg)
+	applyDistroHint([]pkg.Package{}, &ctx, &cfg)
 	assert.Nil(t, ctx.Distro)
 
 	// works when distro is nil
 	cfg.Distro = "alpine:3.10"
-	applyDistroHint(&ctx, &cfg)
+	applyDistroHint([]pkg.Package{}, &ctx, &cfg)
 	assert.NotNil(t, ctx.Distro)
 
 	assert.Equal(t, "alpine", ctx.Distro.Name)
@@ -136,7 +136,7 @@ func Test_applyDistroHint(t *testing.T) {
 
 	// does override an existing distro
 	cfg.Distro = "ubuntu:latest"
-	applyDistroHint(&ctx, &cfg)
+	applyDistroHint([]pkg.Package{}, &ctx, &cfg)
 	assert.NotNil(t, ctx.Distro)
 
 	assert.Equal(t, "ubuntu", ctx.Distro.Name)
@@ -144,7 +144,7 @@ func Test_applyDistroHint(t *testing.T) {
 
 	// doesn't remove an existing distro when empty
 	cfg.Distro = ""
-	applyDistroHint(&ctx, &cfg)
+	applyDistroHint([]pkg.Package{}, &ctx, &cfg)
 	assert.NotNil(t, ctx.Distro)
 
 	assert.Equal(t, "ubuntu", ctx.Distro.Name)

@@ -67,10 +67,10 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
-			name: "rpmdb with source info",
+			name: "rpm with source info",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.RpmdbMetadataType,
-				Metadata: syftPkg.RpmdbMetadata{
+				MetadataType: syftPkg.RpmMetadataType,
+				Metadata: syftPkg.RpmMetadata{
 					Name:      "name-info",
 					Version:   "version-info",
 					Epoch:     intRef(30),
@@ -96,7 +96,7 @@ func TestNew(t *testing.T) {
 					},
 				},
 			},
-			metadata: RpmdbMetadata{
+			metadata: RpmMetadata{
 				Epoch: intRef(30),
 			},
 			upstreams: []UpstreamPackage{
@@ -107,11 +107,11 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
-			name: "rpmdb with source info that matches the package info",
+			name: "rpm with source info that matches the package info",
 			syftPkg: syftPkg.Package{
 				Name:         "sqlite",
-				MetadataType: syftPkg.RpmdbMetadataType,
-				Metadata: syftPkg.RpmdbMetadata{
+				MetadataType: syftPkg.RpmMetadataType,
+				Metadata: syftPkg.RpmMetadata{
 					SourceRpm: "sqlite-3.26.0-6.el8.src.rpm",
 				},
 			},
@@ -300,10 +300,24 @@ func TestNew(t *testing.T) {
 		{
 			name: "cpp conan-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.ConanaMetadataType,
+				MetadataType: syftPkg.ConanMetadataType,
 				Metadata: syftPkg.ConanMetadata{
-					Name:    "name",
-					Version: "version",
+					Ref: "catch2/2.13.8",
+				},
+			},
+		},
+		{
+			name: "cpp conan lock metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.ConanLockMetadataType,
+				Metadata: syftPkg.ConanLockMetadata{
+					Ref: "zlib/1.2.12",
+					Options: map[string]string{
+						"fPIC":   "True",
+						"shared": "False",
+					},
+					Path:    "all/conanfile.py",
+					Context: "host",
 				},
 			},
 		},

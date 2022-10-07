@@ -23,6 +23,7 @@ const (
 type Matcher struct {
 	SearchMavenUpstream bool
 	MavenSearcher
+	UseCPEs bool
 }
 
 // MavenSearcher is the interface that wraps the GetMavenPackageBySha method.
@@ -104,6 +105,7 @@ func (ms *mavenSearch) GetMavenPackageBySha(sha1 string) (*pkg.Package, error) {
 type MatcherConfig struct {
 	SearchMavenUpstream bool
 	MavenBaseURL        string
+	UseCPEs             bool
 }
 
 func NewJavaMatcher(cfg MatcherConfig) *Matcher {
@@ -113,6 +115,7 @@ func NewJavaMatcher(cfg MatcherConfig) *Matcher {
 			client:  http.DefaultClient,
 			baseURL: cfg.MavenBaseURL,
 		},
+		cfg.UseCPEs,
 	}
 }
 
@@ -134,7 +137,11 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 			matches = append(matches, upstreamMatches...)
 		}
 	}
-	criteriaMatches, err := search.ByCriteria(store, d, p, m.Type(), search.CommonCriteria...)
+	criteria := search.CommonCriteria
+	if m.UseCPEs {
+		criteria = append(criteria, search.ByCPE)
+	}
+	criteriaMatches, err := search.ByCriteria(store, d, p, m.Type(), criteria...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to match by exact package: %w", err)
 	}

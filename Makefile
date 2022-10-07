@@ -25,15 +25,21 @@ COVERAGE_THRESHOLD := 47
 
 # CI cache busting values; change these if you want CI to not use previous stored cache
 BOOTSTRAP_CACHE="c7afb99ad"
-INTEGRATION_CACHE_BUSTER="894d8ca"
+INTEGRATION_CACHE_BUSTER="904d8ca"
 
 ## Build variables
 DISTDIR=./dist
 SNAPSHOTDIR=./snapshot
 OS=$(shell uname | tr '[:upper:]' '[:lower:]')
 SYFT_VERSION=$(shell go list -m all | grep github.com/anchore/syft | awk '{print $$2}')
-SNAPSHOT_BIN=$(shell realpath $(shell pwd)/$(SNAPSHOTDIR)/$(OS)-build_$(OS)_amd64/$(BIN))
+SNAPSHOT_BIN=$(shell realpath $(shell pwd)/$(SNAPSHOTDIR)/$(OS)-build_$(OS)_amd64_v1/$(BIN))
 
+GOLANGCILINT_VERSION = v1.50.0
+BOUNCER_VERSION = v0.4.0
+CHRONICLE_VERSION = v0.4.1
+GOSIMPORTS_VERSION = v0.3.2
+YAJSV_VERSION = v1.4.1
+GORELEASER_VERSION = v1.11.5
 
 ## Variable assertions
 
@@ -91,13 +97,13 @@ $(TEMPDIR):
 
 .PHONY: bootstrap-tools
 bootstrap-tools: $(TEMPDIR)
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(TEMPDIR)/ v1.45.0
-	curl -sSfL https://raw.githubusercontent.com/wagoodman/go-bouncer/master/bouncer.sh | sh -s -- -b $(TEMPDIR)/ v0.3.0
-	curl -sSfL https://raw.githubusercontent.com/anchore/chronicle/main/install.sh | sh -s -- -b $(TEMPDIR)/ v0.3.0
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(TEMPDIR)/ $(GOLANGCILINT_VERSION)
+	curl -sSfL https://raw.githubusercontent.com/wagoodman/go-bouncer/master/bouncer.sh | sh -s -- -b $(TEMPDIR)/ $(BOUNCER_VERSION)
+	curl -sSfL https://raw.githubusercontent.com/anchore/chronicle/main/install.sh | sh -s -- -b $(TEMPDIR)/ $(CHRONICLE_VERSION)
 	# the only difference between goimports and gosimports is that gosimports removes extra whitespace between import blocks (see https://github.com/golang/go/issues/20818)
-	GOBIN="$(shell realpath $(TEMPDIR))" go install github.com/rinchsan/gosimports/cmd/gosimports@v0.1.5
-	GOBIN="$(shell realpath $(TEMPDIR))" go install github.com/neilpa/yajsv@v1.4.0
-	.github/scripts/goreleaser-install.sh -b $(TEMPDIR)/ v1.4.1
+	GOBIN="$(shell realpath $(TEMPDIR))" go install github.com/rinchsan/gosimports/cmd/gosimports@$(GOSIMPORTS_VERSION)
+	GOBIN="$(shell realpath $(TEMPDIR))" go install github.com/neilpa/yajsv@$(YAJSV_VERSION)
+	.github/scripts/goreleaser-install.sh -b $(TEMPDIR)/ $(GORELEASER_VERSION)
 
 .PHONY: bootstrap-go
 bootstrap-go:
@@ -161,6 +167,11 @@ unit: ## Run unit tests (with coverage)
 	@go tool cover -func $(COVER_REPORT) | grep total |  awk '{print substr($$3, 1, length($$3)-1)}' > $(COVER_TOTAL)
 	@echo "Coverage: $$(cat $(COVER_TOTAL))"
 	@if [ $$(echo "$$(cat $(COVER_TOTAL)) >= $(COVERAGE_THRESHOLD)" | bc -l) -ne 1 ]; then echo "$(RED)$(BOLD)Failed coverage quality gate (> $(COVERAGE_THRESHOLD)%)$(RESET)" && false; fi
+
+.PHONY: quality
+quality: ## Run quality tests
+	$(call title,Running quality tests)
+	cd test/quality && make
 
 # note: this is used by CI to determine if the install test fixture cache (docker image tars) should be busted
 install-fingerprint:
@@ -286,6 +297,32 @@ release: clean-dist CHANGELOG.md  ## Build and publish final binaries and packag
 	# TODO: turn this into a post-release hook
 	# upload the version file that supports the application version update check (excluding pre-releases)
 	.github/scripts/update-version-file.sh "$(DISTDIR)" "$(VERSION)"
+
+.PHONY: release-docker-assets
+release-docker-assets:
+	$(call title,Publishing docker release assets)
+
+	# create a config with the dist dir overridden
+	echo "dist: $(DISTDIR)" > $(TEMPDIR)/goreleaser.yaml
+	cat .goreleaser_docker.yaml >> $(TEMPDIR)/goreleaser.yaml
+
+	bash -c "\
+		SYFT_VERSION=$(SYFT_VERSION)\
+		$(RELEASE_CMD) \
+			--config $(TEMPDIR)/goreleaser.yaml \
+			--parallelism 1"
+
+snapshot-docker-assets: # Build snapshot images of docker images that will be published on release
+	$(call title,Building snapshot docker release assets)
+
+	# create a config with the dist dir overridden
+	echo "dist: $(DISTDIR)" > $(TEMPDIR)/goreleaser.yaml
+	cat .goreleaser_docker.yaml >> $(TEMPDIR)/goreleaser.yaml
+
+	bash -c "\
+		SYFT_VERSION=$(SYFT_VERSION)\
+		$(SNAPSHOT_CMD) \
+			--config $(TEMPDIR)/goreleaser.yaml"
 
 .PHONY: clean
 clean: clean-dist clean-snapshot  ## Remove previous builds and result reports
