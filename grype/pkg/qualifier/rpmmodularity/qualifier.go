@@ -17,9 +17,9 @@ func NewRpmModularityQualifier(module string) qualifier.Qualifier {
 
 func (r rpmModularity) Satisfied(p pkg.Package) (bool, error) {
 	if p.MetadataType == pkg.RpmMetadataType {
-		// TODO: Does no ModularityLabel match anything or only no module?
+		// If unable to determine package modularity, the constraint should be considered satisfied
 		if p.Metadata == nil {
-			return r.module == "", nil
+			return true, nil
 		}
 
 		m, ok := p.Metadata.(pkg.RpmMetadata)
@@ -31,9 +31,9 @@ func (r rpmModularity) Satisfied(p pkg.Package) (bool, error) {
 			return true, nil
 		}
 
-		// TODO: Does no ModularityLabel match anything or only no module?
+		// If the package modularity is empty (""), the constraint should be considered satisfied
 		if m.ModularityLabel == "" {
-			return r.module == "", nil
+			return true, nil
 		}
 
 		if r.module == "" {

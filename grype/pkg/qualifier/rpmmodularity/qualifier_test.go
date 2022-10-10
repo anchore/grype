@@ -35,13 +35,13 @@ func TestRpmModularity_Satisfied(t *testing.T) {
 			satisfied: true,
 		},
 		{
-			name:          "rpm metadata lacking actual metadata 1",
+			name:          "module with package rpm metadata lacking actual metadata 1",
 			rpmModularity: NewRpmModularityQualifier("test:1"),
 			pkg:           pkg.Package{MetadataType: pkg.RpmMetadataType, Metadata: nil},
-			satisfied:     false,
+			satisfied:     true,
 		},
 		{
-			name:          "rpm metadata lacking actual metadata 2",
+			name:          "empty module with rpm metadata lacking actual metadata 2",
 			rpmModularity: NewRpmModularityQualifier(""),
 			pkg:           pkg.Package{MetadataType: pkg.RpmMetadataType, Metadata: nil},
 			satisfied:     true,
@@ -60,7 +60,7 @@ func TestRpmModularity_Satisfied(t *testing.T) {
 			pkg: pkg.Package{MetadataType: pkg.RpmMetadataType, Metadata: pkg.RpmMetadata{
 				Epoch: nil,
 			}},
-			satisfied: false,
+			satisfied: true,
 		},
 		{
 			name:          "modularity label with no module",

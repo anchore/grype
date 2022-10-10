@@ -321,8 +321,10 @@ func TestMatcherRpm(t *testing.T) {
 				return store, d, matcher
 			},
 			expectedMatches: map[string]match.Type{
+				"CVE-2021-1": match.ExactDirectMatch,
 				"CVE-2021-2": match.ExactDirectMatch,
 				"CVE-2021-3": match.ExactDirectMatch,
+				"CVE-2021-4": match.ExactDirectMatch,
 			},
 		},
 	}
