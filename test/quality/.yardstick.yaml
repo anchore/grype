@@ -25,7 +25,7 @@ x-ref:
 
 # new vulnerabilities are added all of the time, instead of keeping up it's easier to ignore newer entries.
 # This approach helps tremendously with keeping the analysis relatively stable.
-default_max_year: 2021
+default_max_year: 2020
 
 result-sets:
   pr_vs_latest_via_sbom:
@@ -37,14 +37,14 @@ result-sets:
 
         - name: syft
           # note: we want to use a fixed version of syft for capturing all results (NOT "latest")
-          version: v0.58.0
+          version: v0.54.0
           produces: SBOM
           refresh: false
 
         - name: grype
-          version: git:current-commit+import-db=/Users/weston/github/anchore/grype-db-builder/build/local/vulnerability-db_v4_2022-10-05T21:39:33Z_6fc7fcc94a6610ad188a.tar.gz
+          version: git:current-commit+import-db=/Users/weston/github/anchore/grype-db-builder/build/local/vulnerability-db_v4_2022-10-12T15:37:18Z_e17fc000d465b6f450ef.tar.gz
           takes: SBOM
 
         - name: grype
-          version: latest+import-db=/Users/weston/github/anchore/grype-db-builder/build/local/vulnerability-db_v4_2022-10-05T21:39:33Z_6fc7fcc94a6610ad188a.tar.gz
+          version: latest+import-db=/Users/weston/github/anchore/grype-db-builder/build/local/vulnerability-db_v4_2022-10-12T15:37:18Z_e17fc000d465b6f450ef.tar.gz
           takes: SBOM
