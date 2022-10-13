@@ -42,9 +42,9 @@ result-sets:
           refresh: false
 
         - name: grype
-          version: git:current-commit+import-db=/Users/weston/github/anchore/grype-db-builder/build/local/vulnerability-db_v4_2022-10-12T15:37:18Z_e17fc000d465b6f450ef.tar.gz
+          version: git:current-commit+import-db=/Users/weston/github/anchore/grype-db-builder/build/local/5/vulnerability-db_v5_2022-10-13T15:09:39Z_f06fb5cedf66715423e7.tar.gz
           takes: SBOM
 
         - name: grype
-          version: latest+import-db=/Users/weston/github/anchore/grype-db-builder/build/local/vulnerability-db_v4_2022-10-12T15:37:18Z_e17fc000d465b6f450ef.tar.gz
+          version: latest+import-db=/Users/weston/github/anchore/grype-db-builder/build/local/4/vulnerability-db_v4_2022-10-13T15:09:39Z_6b21782eee3ac761d0db.tar.gz
           takes: SBOM
