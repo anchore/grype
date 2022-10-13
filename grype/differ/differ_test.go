@@ -10,7 +10,7 @@ import (
 
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/db"
-	v4 "github.com/anchore/grype/grype/db/v4"
+	v5 "github.com/anchore/grype/grype/db/v5"
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for diff presenter")
@@ -29,10 +29,10 @@ func TestNewDiffer(t *testing.T) {
 
 func TestPresent_Json(t *testing.T) {
 	//GIVEN
-	diffs := []v4.Diff{
-		{v4.DiffAdded, "CVE-1", "nvd", []string{"requests", "vault"}},
-		{v4.DiffRemoved, "CVE-2", "nvd", []string{"k8s"}},
-		{v4.DiffChanged, "CVE-3", "nvd", []string{}},
+	diffs := []v5.Diff{
+		{v5.DiffAdded, "CVE-1", "nvd", []string{"requests", "vault"}},
+		{v5.DiffRemoved, "CVE-2", "nvd", []string{"k8s"}},
+		{v5.DiffChanged, "CVE-3", "nvd", []string{}},
 	}
 	differ := Differ{}
 	var buffer bytes.Buffer
@@ -55,10 +55,10 @@ func TestPresent_Json(t *testing.T) {
 
 func TestPresent_Table(t *testing.T) {
 	//GIVEN
-	diffs := []v4.Diff{
-		{v4.DiffAdded, "CVE-1", "nvd", []string{"requests", "vault"}},
-		{v4.DiffRemoved, "CVE-2", "nvd", []string{"k8s"}},
-		{v4.DiffChanged, "CVE-3", "nvd", []string{}},
+	diffs := []v5.Diff{
+		{v5.DiffAdded, "CVE-1", "nvd", []string{"requests", "vault"}},
+		{v5.DiffRemoved, "CVE-2", "nvd", []string{"k8s"}},
+		{v5.DiffChanged, "CVE-3", "nvd", []string{}},
 	}
 	differ := Differ{}
 	var buffer bytes.Buffer
@@ -81,8 +81,8 @@ func TestPresent_Table(t *testing.T) {
 
 func TestPresent_Invalid(t *testing.T) {
 	//GIVEN
-	diffs := []v4.Diff{
-		{v4.DiffRemoved, "CVE-2", "nvd", []string{"k8s"}},
+	diffs := []v5.Diff{
+		{v5.DiffRemoved, "CVE-2", "nvd", []string{"k8s"}},
 	}
 	differ := Differ{}
 	var buffer bytes.Buffer
