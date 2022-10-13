@@ -538,10 +538,11 @@ func TestMatchByImage(t *testing.T) {
 
 			vp, err := db.NewVulnerabilityProvider(theStore)
 			require.NoError(t, err)
+			mp := db.NewVulnerabilityMetadataProvider(theStore)
 			ep := db.NewMatchExclusionProvider(theStore)
 			store := store.Store{
 				Provider:          vp,
-				MetadataProvider:  nil,
+				MetadataProvider:  mp,
 				ExclusionProvider: ep,
 			}
 

@@ -214,3 +214,11 @@ func (s *mockStore) GetVulnerability(namespace, name string) ([]grypeDB.Vulnerab
 func (s *mockStore) GetAllVulnerabilities() (*[]grypeDB.Vulnerability, error) {
 	return nil, nil
 }
+
+func (s *mockStore) GetVulnerabilityMetadata(id string, namespace string) (*grypeDB.VulnerabilityMetadata, error) {
+	return nil, nil
+}
+
+func (s *mockStore) GetAllVulnerabilityMetadata() (*[]grypeDB.VulnerabilityMetadata, error) {
+	return nil, nil
+}
