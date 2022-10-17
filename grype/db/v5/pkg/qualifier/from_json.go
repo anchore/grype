@@ -18,20 +18,25 @@ func FromJSON(data []byte) ([]Qualifier, error) {
 	var qualifiers []Qualifier
 
 	for _, r := range records {
-		if k, ok := r["kind"]; ok {
-			// create the specific kind of Qualifier
-			switch k {
-			case "rpm-modularity":
-				var q rpmmodularity.Qualifier
-				if err := mapstructure.Decode(r, &q); err != nil {
-					log.Warn("Error decoding rpm-modularity package qualifier:  (%v)", err)
-					continue
-				}
-				qualifiers = append(qualifiers, q)
-			default:
-				log.Warn("Skipping unsupported package qualifier: %s", k)
+		k, ok := r["kind"]
+
+		if !ok {
+			log.Warn("Skipping qualifier with no kind specified")
+			continue
+		}
+
+		// create the specific kind of Qualifier
+		switch k {
+		case "rpm-modularity":
+			var q rpmmodularity.Qualifier
+			if err := mapstructure.Decode(r, &q); err != nil {
+				log.Warn("Error decoding rpm-modularity package qualifier:  (%v)", err)
 				continue
 			}
+			qualifiers = append(qualifiers, q)
+		default:
+			log.Warn("Skipping unsupported package qualifier: %s", k)
+			continue
 		}
 	}
 
