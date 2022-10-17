@@ -82,6 +82,7 @@ func ByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, upstreamMatc
 			return nil, fmt.Errorf("unable to filter cpe-related vulnerabilities: %w", err)
 		}
 
+		// TODO: Port this over to a qualifier and remove
 		applicableVulns, err = onlyVulnerableVersions(verObj, applicableVulns)
 		if err != nil {
 			return nil, fmt.Errorf("unable to filter cpe-related vulnerabilities: %w", err)

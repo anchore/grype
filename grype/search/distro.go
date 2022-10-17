@@ -30,6 +30,7 @@ func ByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p p
 		return nil, fmt.Errorf("unable to filter distro-related vulnerabilities: %w", err)
 	}
 
+	// TODO: Port this over to a qualifier and remove
 	applicableVulns, err = onlyVulnerableVersions(verObj, applicableVulns)
 	if err != nil {
 		return nil, fmt.Errorf("unable to filter distro-related vulnerabilities: %w", err)
