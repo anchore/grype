@@ -157,8 +157,10 @@ func rpmDataFromPkg(p pkg.Package) (metadata *RpmMetadata, upstreams []UpstreamP
 				})
 			}
 		}
-		if value.Epoch != nil {
-			metadata = &RpmMetadata{Epoch: value.Epoch}
+
+		metadata = &RpmMetadata{
+			Epoch:           value.Epoch,
+			ModularityLabel: value.ModularityLabel,
 		}
 	} else {
 		log.Warnf("unable to extract RPM metadata for %s", p)

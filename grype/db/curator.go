@@ -17,8 +17,8 @@ import (
 	partybus "github.com/wagoodman/go-partybus"
 	progress "github.com/wagoodman/go-progress"
 
-	grypeDB "github.com/anchore/grype/grype/db/v4"
-	"github.com/anchore/grype/grype/db/v4/store"
+	grypeDB "github.com/anchore/grype/grype/db/v5"
+	"github.com/anchore/grype/grype/db/v5/store"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"

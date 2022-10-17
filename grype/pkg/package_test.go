@@ -115,6 +115,19 @@ func TestNew(t *testing.T) {
 					SourceRpm: "sqlite-3.26.0-6.el8.src.rpm",
 				},
 			},
+			metadata: RpmMetadata{},
+		},
+		{
+			name: "rpm with modularity label",
+			syftPkg: syftPkg.Package{
+				Name:         "sqlite",
+				MetadataType: syftPkg.RpmMetadataType,
+				Metadata: syftPkg.RpmMetadata{
+					SourceRpm:       "sqlite-3.26.0-6.el8.src.rpm",
+					ModularityLabel: "abc:2",
+				},
+			},
+			metadata: RpmMetadata{ModularityLabel: "abc:2"},
 		},
 		{
 			name: "java pkg",
