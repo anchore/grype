@@ -17,5 +17,5 @@ func (q Qualifier) Parse() qualifier.Qualifier {
 }
 
 func (q Qualifier) String() string {
-	return fmt.Sprintf("kind: %s, module: %s", q.Kind, q.Module)
+	return fmt.Sprintf("kind: %s, module: %q", q.Kind, q.Module)
 }
