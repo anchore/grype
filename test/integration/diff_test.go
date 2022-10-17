@@ -18,8 +18,8 @@ import (
 var update = flag.Bool("update", false, "update the *.golden files for diff presenter")
 
 const (
-	baseURL   = "https://toolbox-data.anchore.io/grype/databases/vulnerability-db_v4_2022-07-05T08:18:22Z_39868af44fc51829a7c9.tar.gz"
-	targetURL = "https://toolbox-data.anchore.io/grype/databases/vulnerability-db_v4_2022-07-06T08:16:42Z_c840f17244dea46d0c07.tar.gz"
+	baseURL   = "https://toolbox-data.anchore.io/grype/staging-databases/vulnerability-db_v5_2022-10-14T08:22:01Z_69c99aa5917dea969f2d.tar.gz"
+	targetURL = "https://toolbox-data.anchore.io/grype/staging-databases/vulnerability-db_v5_2022-10-17T08:14:57Z_10e4086061ab36cfa900.tar.gz"
 )
 
 func TestDatabaseDiff(t *testing.T) {
