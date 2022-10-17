@@ -96,14 +96,14 @@ func (pr *mockProvider) stubWithPackageQualifiers(packageName string) {
 				Constraint: version.MustGetConstraint("<= 0:1.0-419.el8.", version.RpmFormat),
 				ID:         "CVE-2021-1",
 				PackageQualifiers: []qualifier.Qualifier{
-					rpmmodularity.NewRpmModularityQualifier("containertools:3"),
+					rpmmodularity.New("containertools:3"),
 				},
 			},
 			{
 				Constraint: version.MustGetConstraint("<= 0:1.0-419.el8.", version.RpmFormat),
 				ID:         "CVE-2021-2",
 				PackageQualifiers: []qualifier.Qualifier{
-					rpmmodularity.NewRpmModularityQualifier(""),
+					rpmmodularity.New(""),
 				},
 			},
 			{
@@ -114,7 +114,7 @@ func (pr *mockProvider) stubWithPackageQualifiers(packageName string) {
 				Constraint: version.MustGetConstraint("<= 0:1.0-419.el8.", version.RpmFormat),
 				ID:         "CVE-2021-4",
 				PackageQualifiers: []qualifier.Qualifier{
-					rpmmodularity.NewRpmModularityQualifier("containertools:4"),
+					rpmmodularity.New("containertools:4"),
 				},
 			},
 		},

@@ -13,7 +13,7 @@ type Qualifier struct {
 }
 
 func (q Qualifier) Parse() qualifier.Qualifier {
-	return rpmmodularity.NewRpmModularityQualifier(q.Module)
+	return rpmmodularity.New(q.Module)
 }
 
 func (q Qualifier) String() string {

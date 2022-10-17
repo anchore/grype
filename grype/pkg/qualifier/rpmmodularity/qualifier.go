@@ -11,7 +11,7 @@ type rpmModularity struct {
 	module string
 }
 
-func NewRpmModularityQualifier(module string) qualifier.Qualifier {
+func New(module string) qualifier.Qualifier {
 	return &rpmModularity{module: module}
 }
 
