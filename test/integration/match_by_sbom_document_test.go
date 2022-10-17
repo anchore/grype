@@ -75,10 +75,11 @@ func TestMatchBySBOMDocument(t *testing.T) {
 			mockStore := newMockDbStore()
 			vp, err := db.NewVulnerabilityProvider(mockStore)
 			require.NoError(t, err)
+			mp := db.NewVulnerabilityMetadataProvider(mockStore)
 			ep := db.NewMatchExclusionProvider(mockStore)
 			store := store.Store{
 				Provider:          vp,
-				MetadataProvider:  nil,
+				MetadataProvider:  mp,
 				ExclusionProvider: ep,
 			}
 			matches, _, _, err := grype.FindVulnerabilities(store, fmt.Sprintf("sbom:%s", test.fixture), source.SquashedScope, nil)
