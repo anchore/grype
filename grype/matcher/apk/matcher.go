@@ -160,6 +160,9 @@ func (m *Matcher) matchBySourceIndirection(store vulnerability.Provider, d *dist
 	var matches []match.Match
 
 	for _, indirectPackage := range pkg.UpstreamPackages(p) {
+		if indirectPackage.Name == "openssl" {
+			indirectPackage.Name = "openssl1.1-compact"
+		}
 		indirectMatches, err := m.findApkPackage(store, d, indirectPackage)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find vulnerabilities for apk upstream source package: %w", err)
