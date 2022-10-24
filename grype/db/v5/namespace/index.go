@@ -118,6 +118,15 @@ func (i *Index) NamespacesForDistro(d *grypeDistro.Distro) []*distro.Namespace {
 		}
 	}
 
+	// Fall back to alpine:edge if no version segments found
+	// alpine:edge is labeled as alpine-x.x_alphaYYYYMMDD
+	if versionSegments == nil && d.Type.String() == "alpine" {
+		distroKey := fmt.Sprintf("%s:%s", strings.ToLower(d.Type.String()), "edge")
+		if v, ok := i.byDistroKey[distroKey]; ok {
+			return v
+		}
+	}
+
 	return nil
 }
 
