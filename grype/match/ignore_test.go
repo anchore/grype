@@ -84,6 +84,7 @@ var (
 				Locations: source.NewLocationSet(source.NewVirtualLocation("/real/path/with/speach",
 					"/virtual/path/that/has/speach")),
 			},
+			IsSuppressed: true,
 		},
 	}
 )
@@ -95,17 +96,20 @@ func TestApplyIgnoreRules(t *testing.T) {
 		ignoreRules              []IgnoreRule
 		expectedRemainingMatches []Match
 		expectedIgnoredMatches   []IgnoredMatch
+		includeSuppressed        bool
 	}{
 		{
 			name:                     "no ignore rules",
 			allMatches:               allMatches,
+			includeSuppressed:        false,
 			ignoreRules:              nil,
 			expectedRemainingMatches: allMatches,
 			expectedIgnoredMatches:   nil,
 		},
 		{
-			name:       "no applicable ignore rules",
-			allMatches: allMatches,
+			name:              "no applicable ignore rules",
+			allMatches:        allMatches,
+			includeSuppressed: false,
 			ignoreRules: []IgnoreRule{
 				{
 					Vulnerability: "CVE-789",
@@ -128,8 +132,9 @@ func TestApplyIgnoreRules(t *testing.T) {
 			expectedIgnoredMatches:   nil,
 		},
 		{
-			name:       "ignore all matches",
-			allMatches: allMatches,
+			name:              "ignore all matches",
+			allMatches:        allMatches,
+			includeSuppressed: false,
 			ignoreRules: []IgnoreRule{
 				{
 					Vulnerability: "CVE-123",
@@ -166,8 +171,9 @@ func TestApplyIgnoreRules(t *testing.T) {
 			},
 		},
 		{
-			name:       "ignore subset of matches",
-			allMatches: allMatches,
+			name:              "ignore subset of matches",
+			allMatches:        allMatches,
+			includeSuppressed: false,
 			ignoreRules: []IgnoreRule{
 				{
 					Vulnerability: "CVE-456",
@@ -190,8 +196,9 @@ func TestApplyIgnoreRules(t *testing.T) {
 			},
 		},
 		{
-			name:       "ignore matches without fix",
-			allMatches: allMatches,
+			name:              "ignore matches without fix",
+			allMatches:        allMatches,
+			includeSuppressed: false,
 			ignoreRules: []IgnoreRule{
 				{FixState: string(grypeDb.NotFixedState)},
 				{FixState: string(grypeDb.WontFixState)},
@@ -228,8 +235,9 @@ func TestApplyIgnoreRules(t *testing.T) {
 			},
 		},
 		{
-			name:       "ignore matches on namespace",
-			allMatches: allMatches,
+			name:              "ignore matches on namespace",
+			allMatches:        allMatches,
+			includeSuppressed: false,
 			ignoreRules: []IgnoreRule{
 				{Namespace: "ruby-vulns"},
 			},
@@ -264,8 +272,9 @@ func TestApplyIgnoreRules(t *testing.T) {
 			},
 		},
 		{
-			name:       "ignore matches on language",
-			allMatches: allMatches,
+			name:              "ignore matches on language",
+			allMatches:        allMatches,
+			includeSuppressed: false,
 			ignoreRules: []IgnoreRule{
 				{
 					Package: IgnoreRulePackage{
@@ -309,11 +318,30 @@ func TestApplyIgnoreRules(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:              "include suppressed match",
+			allMatches:        allMatches,
+			includeSuppressed: true,
+			ignoreRules: []IgnoreRule{
+				{FixState: string(grypeDb.UnknownFixState)},
+			},
+			expectedRemainingMatches: allMatches,
+			expectedIgnoredMatches: []IgnoredMatch{
+				{
+					Match: allMatches[3],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							FixState: "unknown",
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
-			actualRemainingMatches, actualIgnoredMatches := ApplyIgnoreRules(sliceToMatches(testCase.allMatches), testCase.ignoreRules)
+			actualRemainingMatches, actualIgnoredMatches := ApplyIgnoreRules(sliceToMatches(testCase.allMatches), testCase.ignoreRules, testCase.includeSuppressed)
 
 			assertMatchOrder(t, testCase.expectedRemainingMatches, actualRemainingMatches.Sorted())
 			assertIgnoredMatchOrder(t, testCase.expectedIgnoredMatches, actualIgnoredMatches)

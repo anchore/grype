@@ -35,10 +35,12 @@ type IgnoreRulePackage struct {
 // ApplyIgnoreRules iterates through the provided matches and, for each match,
 // determines if the match should be ignored, by evaluating if any of the
 // provided IgnoreRules apply to the match. If any rules apply to the match, all
-// applicable rules are attached to the Match to form an IgnoredMatch.
+// applicable rules are attached to the Match to form an IgnoredMatch. If ignored
+// matches (i.e. suppressed) are to be displayed, then all of the ignored matches
+// are also added tothe remaining matches with the IsSuppressed parameter set to true.
 // ApplyIgnoreRules returns two collections: the matches that are not being
 // ignored, and the matches that are being ignored.
-func ApplyIgnoreRules(matches Matches, rules []IgnoreRule) (Matches, []IgnoredMatch) {
+func ApplyIgnoreRules(matches Matches, rules []IgnoreRule, inclSuppressed bool) (Matches, []IgnoredMatch) {
 	var ignoredMatches []IgnoredMatch
 	remainingMatches := NewMatches()
 
@@ -57,7 +59,11 @@ func ApplyIgnoreRules(matches Matches, rules []IgnoreRule) (Matches, []IgnoredMa
 				AppliedIgnoreRules: applicableRules,
 			})
 
-			continue
+			if inclSuppressed {
+				match.IsSuppressed = true
+			} else {
+				continue
+			}
 		}
 
 		remainingMatches.Add(match)

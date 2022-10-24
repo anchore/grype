@@ -14,6 +14,10 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
+const (
+	AppendSuppressed = "-(suppressed)"
+)
+
 // Presenter is a generic struct for holding fields needed for reporting
 type Presenter struct {
 	results          match.Matches
@@ -45,6 +49,10 @@ func (pres *Presenter) Present(output io.Writer) error {
 
 		if metadata != nil {
 			severity = metadata.Severity
+			// Append to the severity if the match is a suppressed one that is being displayed
+			if m.IsSuppressed {
+				severity += AppendSuppressed
+			}
 		}
 
 		fixVersion := strings.Join(m.Vulnerability.Fix.Versions, ", ")

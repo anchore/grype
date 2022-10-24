@@ -166,6 +166,11 @@ func setRootFlags(flags *pflag.FlagSet) {
 		"ignore matches for vulnerabilities that are fixed",
 	)
 
+	flags.BoolP(
+		"include-suppressed", "", false,
+		"include suppressed/ignored vulnerabilities in the output (only supported with table output format)",
+	)
+
 	flags.StringArrayP(
 		"exclude", "", nil,
 		"exclude paths from being scanned using a glob expression",
@@ -220,6 +225,10 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 	}
 
 	if err := viper.BindPFlag("only-notfixed", flags.Lookup("only-notfixed")); err != nil {
+		return err
+	}
+
+	if err := viper.BindPFlag("include-suppressed", flags.Lookup("include-suppressed")); err != nil {
 		return err
 	}
 
@@ -367,7 +376,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		})
 
 		allMatches := grype.FindVulnerabilitiesForPackage(*store, context.Distro, matchers, packages)
-		remainingMatches, ignoredMatches := match.ApplyIgnoreRules(allMatches, appConfig.Ignore)
+		remainingMatches, ignoredMatches := match.ApplyIgnoreRules(allMatches, appConfig.Ignore, appConfig.IncludeSuppressed)
 
 		if count := len(ignoredMatches); count > 0 {
 			log.Infof("ignoring %d matches due to user-provided ignore rules", count)

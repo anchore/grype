@@ -72,6 +72,7 @@ func TestTablePresenter(t *testing.T) {
 				},
 			},
 		},
+		IsSuppressed: true,
 	}
 
 	matches := match.NewMatches()

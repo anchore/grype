@@ -53,6 +53,7 @@ type Application struct {
 	Registry            registry                `yaml:"registry" json:"registry" mapstructure:"registry"`
 	Log                 logging                 `yaml:"log" json:"log" mapstructure:"log"`
 	Attestation         Attestation             `yaml:"attestation" json:"attestation" mapstructure:"attestation"`
+	IncludeSuppressed   bool                    `yaml:"include-suppressed" json:"include-suppressed" mapstructure:"include-suppressed"`
 }
 
 func newApplicationConfig(v *viper.Viper, cliOpts CliOnlyOptions) *Application {
