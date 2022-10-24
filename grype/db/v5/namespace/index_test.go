@@ -120,6 +120,7 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 	namespaceIndex, err := FromStrings([]string{
 		"alpine:distro:alpine:3.15",
 		"alpine:distro:alpine:3.16",
+		"alpine:distro:alpine:edge",
 		"debian:distro:debian:8",
 		"amazon:distro:amazonlinux:2",
 		"amazon:distro:amazonlinux:2022",
@@ -137,26 +138,38 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 	assert.NoError(t, err)
 
 	tests := []struct {
+		name       string
 		distro     *osDistro.Distro
 		namespaces []*distro.Namespace
 	}{
 		{
+			name:   "alpine patch version matches minor version namespace",
 			distro: newDistro(t, osDistro.Alpine, "3.15.4", []string{"alpine"}),
 			namespaces: []*distro.Namespace{
 				distro.NewNamespace("alpine", osDistro.Alpine, "3.15"),
 			},
 		},
 		{
+			name:   "alpine minor version matches minor version namespace",
 			distro: newDistro(t, osDistro.Alpine, "3.16", []string{}),
 			namespaces: []*distro.Namespace{
 				distro.NewNamespace("alpine", osDistro.Alpine, "3.16"),
 			},
 		},
 		{
+			name:   "alpine edge version matches edge namespace",
+			distro: &osDistro.Distro{Type: osDistro.Alpine, Version: nil, RawVersion: "3.17_alpha20221002", IDLike: []string{"alpine"}},
+			namespaces: []*distro.Namespace{
+				distro.NewNamespace("alpine", osDistro.Alpine, "edge"),
+			},
+		},
+		{
+			name:       "alpine malformed version matches no namespace",
 			distro:     newDistro(t, osDistro.Alpine, "3.16.4.5", []string{}),
 			namespaces: nil,
 		},
 		{
+			name:   "Debian minor version matches debian and other-provider namespaces",
 			distro: newDistro(t, osDistro.Debian, "8.5", []string{}),
 			namespaces: []*distro.Namespace{
 				distro.NewNamespace("debian", osDistro.Debian, "8"),
@@ -164,6 +177,7 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 			},
 		},
 		{
+			name:   "Redhat minor version matches redhat and other-provider namespaces",
 			distro: newDistro(t, osDistro.RedHat, "9.5", []string{}),
 			namespaces: []*distro.Namespace{
 				distro.NewNamespace("redhat", osDistro.RedHat, "9"),
@@ -171,6 +185,7 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 			},
 		},
 		{
+			name:   "Centos minor version matches redhat and other-provider namespaces",
 			distro: newDistro(t, osDistro.CentOS, "9.5", []string{}),
 			namespaces: []*distro.Namespace{
 				distro.NewNamespace("redhat", osDistro.RedHat, "9"),
@@ -178,6 +193,7 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 			},
 		},
 		{
+			name:   "Alma Linux minor version matches redhat and other-provider namespaces",
 			distro: newDistro(t, osDistro.AlmaLinux, "9.5", []string{}),
 			namespaces: []*distro.Namespace{
 				distro.NewNamespace("redhat", osDistro.RedHat, "9"),
@@ -185,6 +201,7 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 			},
 		},
 		{
+			name:   "Rocky Linux minor version matches redhat and other-provider namespaces",
 			distro: newDistro(t, osDistro.RockyLinux, "9.5", []string{}),
 			namespaces: []*distro.Namespace{
 				distro.NewNamespace("redhat", osDistro.RedHat, "9"),
@@ -192,69 +209,84 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 			},
 		},
 		{
+			name:   "SLES minor version matches suse namespace",
 			distro: newDistro(t, osDistro.SLES, "12.5", []string{}),
 			namespaces: []*distro.Namespace{
 				distro.NewNamespace("suse", osDistro.SLES, "12.5"),
 			},
 		},
 		{
+			name:   "Windows version object matches msrc namespace with exact version",
 			distro: newDistro(t, osDistro.Windows, "471816", []string{}),
 			namespaces: []*distro.Namespace{
 				distro.NewNamespace("msrc", osDistro.Windows, "471816"),
 			},
 		},
 		{
+			name:   "Ubuntu minor semvar matches ubuntu namespace with exact version",
 			distro: newDistro(t, osDistro.Ubuntu, "18.04", []string{}),
 			namespaces: []*distro.Namespace{
 				distro.NewNamespace("ubuntu", osDistro.Ubuntu, "18.04"),
 			},
 		},
 		{
+			name:       "Fedora minor semvar will not match a namespace",
 			distro:     newDistro(t, osDistro.Fedora, "31.4", []string{}),
 			namespaces: nil,
 		},
 		{
+			name:   "Amazon Linux Major semvar matches amazon namespace with exact version",
 			distro: newDistro(t, osDistro.AmazonLinux, "2", []string{}),
 			namespaces: []*distro.Namespace{
 				distro.NewNamespace("amazon", osDistro.AmazonLinux, "2"),
 			},
 		},
 		{
+			name:   "Amazon Linux year version matches amazon namespace with exact uear",
 			distro: newDistro(t, osDistro.AmazonLinux, "2022", []string{}),
 			namespaces: []*distro.Namespace{
 				distro.NewNamespace("amazon", osDistro.AmazonLinux, "2022"),
 			},
 		},
 		{
+			name:       "Mariner minor semvar matches no namespace",
 			distro:     newDistro(t, osDistro.Mariner, "20.1", []string{}),
 			namespaces: nil,
 		},
 		{
+			name:   "Oracle Linux Major semvar matches oracle namespace with exact version",
 			distro: newDistro(t, osDistro.OracleLinux, "8", []string{}),
 			namespaces: []*distro.Namespace{
 				distro.NewNamespace("oracle", osDistro.OracleLinux, "8"),
 			},
 		},
 		{
+
+			name:       "Arch Linux matches no namespace",
 			distro:     newDistro(t, osDistro.ArchLinux, "", []string{}),
 			namespaces: nil,
 		},
 		{
+			name:       "Open Suse Leap semvar matches no namespace",
 			distro:     newDistro(t, osDistro.OpenSuseLeap, "100", []string{}),
 			namespaces: nil,
 		},
 		{
+			name:       "Photon minor semvar no namespace",
 			distro:     newDistro(t, osDistro.Photon, "20.1", []string{}),
 			namespaces: nil,
 		},
 		{
+			name:       "Busybox minor semvar matches no namespace",
 			distro:     newDistro(t, osDistro.Busybox, "20.1", []string{}),
 			namespaces: nil,
 		},
 	}
 
 	for _, test := range tests {
-		result := namespaceIndex.NamespacesForDistro(test.distro)
-		assert.ElementsMatch(t, result, test.namespaces)
+		t.Run(test.name, func(t *testing.T) {
+			namespaces := namespaceIndex.NamespacesForDistro(test.distro)
+			assert.Equal(t, test.namespaces, namespaces)
+		})
 	}
 }
