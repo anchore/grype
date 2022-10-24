@@ -120,11 +120,11 @@ func FindMatches(store interface {
 		packagesProcessed.N++
 		log.Debugf("searching for vulnerability matches for pkg=%s", p)
 
-		matchers, ok := matcherIndex[p.Type]
+		matchAgainst, ok := matcherIndex[p.Type]
 		if !ok {
-			matchers = []Matcher{defaultMatcher}
+			matchAgainst = []Matcher{defaultMatcher}
 		}
-		for _, m := range matchers {
+		for _, m := range matchAgainst {
 			matches, err := m.Match(store, d, p)
 			if err != nil {
 				log.Warnf("matcher failed for pkg=%s: %+v", p, err)
