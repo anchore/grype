@@ -67,6 +67,7 @@ func decodePurlFile(reader io.Reader) ([]Package, error) {
 		}
 
 		packages = append(packages, Package{
+			ID:       ID(purl.String()),
 			CPEs:     cpes,
 			Name:     purl.Name,
 			Version:  purl.Version,
