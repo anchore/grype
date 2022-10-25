@@ -35,7 +35,7 @@ func Test_PurlProvider_Fails(t *testing.T) {
 
 func Test_CsvProvide(t *testing.T) {
 	//GIVEN
-	expected := []string{"curl"}
+	expected := []string{"curl", "ant", "log4j-core"}
 
 	//WHEN
 	packages, _, err := purlProvider("purl:test-fixtures/valid-purl.txt")
@@ -43,6 +43,7 @@ func Test_CsvProvide(t *testing.T) {
 	//THEN
 	packageNames := []string{}
 	for _, pkg := range packages {
+		assert.NotEmpty(t, pkg.ID)
 		packageNames = append(packageNames, pkg.Name)
 	}
 	assert.NoError(t, err)
