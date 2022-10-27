@@ -119,20 +119,8 @@ func (i *Index) NamespacesForDistro(d *grypeDistro.Distro) []*distro.Namespace {
 				return v
 			}
 		case grypeDistro.Alpine:
-			// Check if the alpine raw version matches x.y.z
-			if alpineVersionRegularExpression.Match([]byte(d.RawVersion)) {
-				// Get the first two version components
-				distroKey = fmt.Sprintf("%s:%d.%d", strings.ToLower(d.Type.String()), versionSegments[0], versionSegments[1])
-				if v, ok := i.byDistroKey[distroKey]; ok {
-					return v
-				}
-			}
-
-			// If the version does not match x.y.z then it is edge
-			// In this case it would have - or _ alpha,beta,etc
-			// https://github.com/anchore/grype/issues/964#issuecomment-1290888755
-			distroKey := fmt.Sprintf("%s:%s", strings.ToLower(d.Type.String()), "edge")
-			if v, ok := i.byDistroKey[distroKey]; ok {
+			v := getAlpineNamespace(i, d, versionSegments)
+			if v != nil {
 				return v
 			}
 		}
@@ -145,6 +133,27 @@ func (i *Index) NamespacesForDistro(d *grypeDistro.Distro) []*distro.Namespace {
 		if v, ok := i.byDistroKey[distroKey]; ok {
 			return v
 		}
+	}
+
+	return nil
+}
+
+func getAlpineNamespace(i *Index, d *grypeDistro.Distro, versionSegments []int) []*distro.Namespace {
+	// check if distro version matches x.y.z
+	if alpineVersionRegularExpression.Match([]byte(d.RawVersion)) {
+		// Get the first two version components
+		distroKey := fmt.Sprintf("%s:%d.%d", strings.ToLower(d.Type.String()), versionSegments[0], versionSegments[1])
+		if v, ok := i.byDistroKey[distroKey]; ok {
+			return v
+		}
+	}
+
+	// If the version does not match x.y.z then it is edge
+	// In this case it would have - or _ alpha,beta,etc
+	// https://github.com/anchore/grype/issues/964#issuecomment-1290888755
+	distroKey := fmt.Sprintf("%s:%s", strings.ToLower(d.Type.String()), "edge")
+	if v, ok := i.byDistroKey[distroKey]; ok {
+		return v
 	}
 
 	return nil
