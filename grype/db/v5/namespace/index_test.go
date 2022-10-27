@@ -164,6 +164,27 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 			},
 		},
 		{
+			name:   "alpine raw version matches edge with - character",
+			distro: &osDistro.Distro{Type: osDistro.Alpine, Version: nil, RawVersion: "3.17-alpha20221002", IDLike: []string{"alpine"}},
+			namespaces: []*distro.Namespace{
+				distro.NewNamespace("alpine", osDistro.Alpine, "edge"),
+			},
+		},
+		{
+			name:   "alpine raw version matches edge with - character no sha",
+			distro: &osDistro.Distro{Type: osDistro.Alpine, Version: nil, RawVersion: "3.17-alpha", IDLike: []string{"alpine"}},
+			namespaces: []*distro.Namespace{
+				distro.NewNamespace("alpine", osDistro.Alpine, "edge"),
+			},
+		},
+		{
+			name:   "alpine raw version matches edge with _ character no sha",
+			distro: &osDistro.Distro{Type: osDistro.Alpine, Version: nil, RawVersion: "3.17_alpha", IDLike: []string{"alpine"}},
+			namespaces: []*distro.Namespace{
+				distro.NewNamespace("alpine", osDistro.Alpine, "edge"),
+			},
+		},
+		{
 			name:       "alpine malformed version matches no namespace",
 			distro:     newDistro(t, osDistro.Alpine, "3.16.4.5", []string{}),
 			namespaces: nil,
