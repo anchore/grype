@@ -158,36 +158,39 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 		},
 		{
 			name:   "alpine edge version matches edge namespace",
-			distro: &osDistro.Distro{Type: osDistro.Alpine, Version: nil, RawVersion: "3.17_alpha20221002", IDLike: []string{"alpine"}},
+			distro: &osDistro.Distro{Type: osDistro.Alpine, Version: nil, RawVersion: "3.17.1_alpha20221002", IDLike: []string{"alpine"}},
 			namespaces: []*distro.Namespace{
 				distro.NewNamespace("alpine", osDistro.Alpine, "edge"),
 			},
 		},
 		{
 			name:   "alpine raw version matches edge with - character",
-			distro: &osDistro.Distro{Type: osDistro.Alpine, Version: nil, RawVersion: "3.17-alpha20221002", IDLike: []string{"alpine"}},
+			distro: &osDistro.Distro{Type: osDistro.Alpine, Version: nil, RawVersion: "3.17.1-alpha20221002", IDLike: []string{"alpine"}},
 			namespaces: []*distro.Namespace{
 				distro.NewNamespace("alpine", osDistro.Alpine, "edge"),
 			},
 		},
 		{
 			name:   "alpine raw version matches edge with - character no sha",
-			distro: &osDistro.Distro{Type: osDistro.Alpine, Version: nil, RawVersion: "3.17-alpha", IDLike: []string{"alpine"}},
+			distro: newDistro(t, osDistro.Alpine, "3.17.1-alpha", []string{"alpine"}),
 			namespaces: []*distro.Namespace{
 				distro.NewNamespace("alpine", osDistro.Alpine, "edge"),
 			},
 		},
 		{
-			name:   "alpine raw version matches edge with _ character no sha",
-			distro: &osDistro.Distro{Type: osDistro.Alpine, Version: nil, RawVersion: "3.17_alpha", IDLike: []string{"alpine"}},
+			name: "alpine raw version matches edge with _ character no sha",
+			// we don't create a newDistro from this since parsing the version fails
+			distro: &osDistro.Distro{Type: osDistro.Alpine, Version: nil, RawVersion: "3.17.1_alpha", IDLike: []string{"alpine"}},
 			namespaces: []*distro.Namespace{
 				distro.NewNamespace("alpine", osDistro.Alpine, "edge"),
 			},
 		},
 		{
-			name:       "alpine malformed version matches no namespace",
-			distro:     newDistro(t, osDistro.Alpine, "3.16.4.5", []string{}),
-			namespaces: nil,
+			name:   "alpine malformed version matches no namespace",
+			distro: newDistro(t, osDistro.Alpine, "3.16.4.5", []string{}),
+			namespaces: []*distro.Namespace{
+				distro.NewNamespace("alpine", osDistro.Alpine, "edge"),
+			},
 		},
 		{
 			name:   "Debian minor version matches debian and other-provider namespaces",

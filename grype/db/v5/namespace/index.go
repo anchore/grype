@@ -2,6 +2,7 @@ package namespace
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/anchore/grype/grype/db/v5/namespace/cpe"
@@ -11,6 +12,8 @@ import (
 	"github.com/anchore/grype/internal/log"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
+
+var alpineVersionRegularExpression = regexp.MustCompile(`^(\d+)\.(\d+)(?:\.(\d+))?(?:-r(\d+))?$`)
 
 type Index struct {
 	all         []Namespace
@@ -112,6 +115,23 @@ func (i *Index) NamespacesForDistro(d *grypeDistro.Distro) []*distro.Namespace {
 		case grypeDistro.CentOS, grypeDistro.RedHat, grypeDistro.Fedora, grypeDistro.RockyLinux, grypeDistro.AlmaLinux, grypeDistro.Gentoo:
 			// TODO: there is no mapping of fedora version to RHEL latest version (only the name)
 			distroKey = fmt.Sprintf("%s:%d", strings.ToLower(string(grypeDistro.RedHat)), versionSegments[0])
+			if v, ok := i.byDistroKey[distroKey]; ok {
+				return v
+			}
+		case grypeDistro.Alpine:
+			// Check if the alpine raw version matches x.y.z
+			if alpineVersionRegularExpression.Match([]byte(d.RawVersion)) {
+				// Get the first two version components
+				distroKey = fmt.Sprintf("%s:%d.%d", strings.ToLower(d.Type.String()), versionSegments[0], versionSegments[1])
+				if v, ok := i.byDistroKey[distroKey]; ok {
+					return v
+				}
+			}
+
+			// If the version does not match x.y.z then it is edge
+			// In this case it would have - or _ alpha,beta,etc
+			// https://github.com/anchore/grype/issues/964#issuecomment-1290888755
+			distroKey := fmt.Sprintf("%s:%s", strings.ToLower(d.Type.String()), "edge")
 			if v, ok := i.byDistroKey[distroKey]; ok {
 				return v
 			}
