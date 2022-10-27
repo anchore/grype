@@ -17,7 +17,6 @@ type Match struct {
 	Vulnerability vulnerability.Vulnerability // The vulnerability details of the match.
 	Package       pkg.Package                 // The package used to search for a match.
 	Details       Details                     // all ways in which how this particular match was made.
-	IsSuppressed  bool                        // Indicate if the match is a suppressed one.
 }
 
 // String is the string representation of select match fields.

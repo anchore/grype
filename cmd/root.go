@@ -291,7 +291,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 	go func() {
 		defer close(errs)
 
-		presenterConfig, err := presenter.ValidatedConfig(appConfig.Output, appConfig.OutputTemplateFile)
+		presenterConfig, err := presenter.ValidatedConfig(appConfig.IncludeSuppressed, appConfig.Output, appConfig.OutputTemplateFile)
 		if err != nil {
 			errs <- err
 			return
@@ -376,7 +376,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		})
 
 		allMatches := grype.FindVulnerabilitiesForPackage(*store, context.Distro, matchers, packages)
-		remainingMatches, ignoredMatches := match.ApplyIgnoreRules(allMatches, appConfig.Ignore, appConfig.IncludeSuppressed)
+		remainingMatches, ignoredMatches := match.ApplyIgnoreRules(allMatches, appConfig.Ignore)
 
 		if count := len(ignoredMatches); count > 0 {
 			log.Infof("ignoring %d matches due to user-provided ignore rules", count)

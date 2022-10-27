@@ -53,7 +53,7 @@ func ApplyExplicitIgnoreRules(provider ExclusionProvider, matches Matches) Match
 		ignoreRules = append(ignoreRules, r...)
 	}
 
-	matches, ignored := ApplyIgnoreRules(matches, ignoreRules, false)
+	matches, ignored := ApplyIgnoreRules(matches, ignoreRules)
 
 	if len(ignored) > 0 {
 		log.Debugf("Removed %d explicit vulnerability matches:", len(ignored))

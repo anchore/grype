@@ -27,7 +27,7 @@ func GetPresenter(presenterConfig Config, matches match.Matches, ignoredMatches 
 	case jsonFormat:
 		return json.NewPresenter(matches, ignoredMatches, packages, context, metadataProvider, appConfig, dbStatus)
 	case tableFormat:
-		return table.NewPresenter(matches, packages, metadataProvider)
+		return table.NewPresenter(matches, ignoredMatches, packages, metadataProvider, presenterConfig.includeSuppressed)
 	case cycloneDXFormat:
 		return cyclonedx.NewPresenter(matches, packages, context.Source, metadataProvider)
 	case embeddedVEXJSON:
