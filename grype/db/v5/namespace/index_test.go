@@ -150,12 +150,20 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 			},
 		},
 		{
-			name:   "alpine minor version matches minor version namespace",
+			name:   "alpine minor version with no patch should match edge",
 			distro: newDistro(t, osDistro.Alpine, "3.16", []string{}),
 			namespaces: []*distro.Namespace{
-				distro.NewNamespace("alpine", osDistro.Alpine, "3.16"),
+				distro.NewNamespace("alpine", osDistro.Alpine, "edge"),
 			},
 		},
+		{
+			name:   "alpine rc version with no patch should match edge",
+			distro: newDistro(t, osDistro.Alpine, "3.16.4-r4", []string{}),
+			namespaces: []*distro.Namespace{
+				distro.NewNamespace("alpine", osDistro.Alpine, "edge"),
+			},
+		},
+
 		{
 			name:   "alpine edge version matches edge namespace",
 			distro: &osDistro.Distro{Type: osDistro.Alpine, Version: nil, RawVersion: "3.17.1_alpha20221002", IDLike: []string{"alpine"}},

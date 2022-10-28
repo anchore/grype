@@ -13,7 +13,7 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-var alpineVersionRegularExpression = regexp.MustCompile(`^(\d+)\.(\d+)(?:\.(\d+))?(?:-r(\d+))?$`)
+var alpineVersionRegularExpression = regexp.MustCompile(`^(\d+)\.(\d+)\.(\d+)$`)
 
 type Index struct {
 	all         []Namespace
@@ -88,7 +88,15 @@ func (i *Index) NamespacesForDistro(d *grypeDistro.Distro) []*distro.Namespace {
 	}
 
 	if len(versionSegments) > 0 {
-		// First attempt a direct match on distro full name and version
+		// Alpine is a special case since we can only match on x.y.z
+		// after this things like x.y and x are valid namespace selections
+		if d.Type == grypeDistro.Alpine {
+			if v := getAlpineNamespace(i, d, versionSegments); v != nil {
+				return v
+			}
+		}
+
+		// Next attempt a direct match on distro full name and version
 		distroKey := fmt.Sprintf("%s:%s", strings.ToLower(d.Type.String()), d.FullVersion())
 
 		if v, ok := i.byDistroKey[distroKey]; ok {
@@ -118,11 +126,6 @@ func (i *Index) NamespacesForDistro(d *grypeDistro.Distro) []*distro.Namespace {
 			if v, ok := i.byDistroKey[distroKey]; ok {
 				return v
 			}
-		case grypeDistro.Alpine:
-			v := getAlpineNamespace(i, d, versionSegments)
-			if v != nil {
-				return v
-			}
 		}
 	}
 
@@ -142,6 +145,7 @@ func getAlpineNamespace(i *Index, d *grypeDistro.Distro, versionSegments []int) 
 	// check if distro version matches x.y.z
 	if alpineVersionRegularExpression.Match([]byte(d.RawVersion)) {
 		// Get the first two version components
+		// TODO: should we update the namespaces in db generation to match x.y.z here?
 		distroKey := fmt.Sprintf("%s:%d.%d", strings.ToLower(d.Type.String()), versionSegments[0], versionSegments[1])
 		if v, ok := i.byDistroKey[distroKey]; ok {
 			return v
