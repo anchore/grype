@@ -48,7 +48,7 @@ $ grype completion fish > ~/.config/fish/completions/grype.fish
 `,
 	DisableFlagsInUseLine: true,
 	ValidArgs:             []string{"bash", "fish", "zsh"},
-	Args:                  cobra.ExactValidArgs(1),
+	Args:                  cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 		switch args[0] {
