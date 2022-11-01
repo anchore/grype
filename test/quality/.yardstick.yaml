@@ -22,10 +22,12 @@ x-ref:
     - docker.io/amazonlinux:2@sha256:1301cc9f889f21dc45733df9e58034ac1c318202b4b0f0a08d88b3fdc03004de
     - registry.access.redhat.com/ubi8@sha256:68fecea0d255ee253acbf0c860eaebb7017ef5ef007c25bee9eeffd29ce85b29
     - docker.io/python:3.8.0-slim@sha256:5e96e03a493a54904aa8be573fc0414431afb4f47ac58fbffd03b2a725005364
+    - docker.io/ghost:5.2.4@sha256:42137b9bd1faf4cdea5933279c48a912d010ef614551aeb0e44308600aa3e69f
+    - docker.io/node:14.1.0-slim@sha256:d8a88e8e15fd26eee7734c9f60531b5ad2abdc3d663be0d818ed26159db80512
 
 # new vulnerabilities are added all of the time, instead of keeping up it's easier to ignore newer entries.
 # This approach helps tremendously with keeping the analysis relatively stable.
-default_max_year: 2020
+default_max_year: 2021
 
 result-sets:
   pr_vs_latest_via_sbom:
@@ -37,7 +39,7 @@ result-sets:
 
         - name: syft
           # note: we want to use a fixed version of syft for capturing all results (NOT "latest")
-          version: v0.54.0
+          version: v0.60.1
           produces: SBOM
           refresh: false
 
