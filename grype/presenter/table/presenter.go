@@ -14,17 +14,23 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
+const (
+	appendSuppressed = " (suppressed)"
+)
+
 // Presenter is a generic struct for holding fields needed for reporting
 type Presenter struct {
 	results          match.Matches
+	ignoredMatches   []match.IgnoredMatch
 	packages         []pkg.Package
 	metadataProvider vulnerability.MetadataProvider
 }
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter(results match.Matches, packages []pkg.Package, metadataProvider vulnerability.MetadataProvider) *Presenter {
+func NewPresenter(results match.Matches, packages []pkg.Package, metadataProvider vulnerability.MetadataProvider, ignoredMatches []match.IgnoredMatch) *Presenter {
 	return &Presenter{
 		results:          results,
+		ignoredMatches:   ignoredMatches,
 		packages:         packages,
 		metadataProvider: metadataProvider,
 	}
@@ -35,27 +41,24 @@ func (pres *Presenter) Present(output io.Writer) error {
 	rows := make([][]string, 0)
 
 	columns := []string{"Name", "Installed", "Fixed-In", "Type", "Vulnerability", "Severity"}
+	// Generate rows for matching vulnerabilities
 	for m := range pres.results.Enumerate() {
-		var severity string
+		row, err := createRow(m, pres.metadataProvider, "")
 
-		metadata, err := pres.metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.Namespace)
 		if err != nil {
-			return fmt.Errorf("unable to fetch vuln=%q metadata: %+v", m.Vulnerability.ID, err)
+			return err
 		}
+		rows = append(rows, row)
+	}
 
-		if metadata != nil {
-			severity = metadata.Severity
+	// Generate rows for suppressed vulnerabilities
+	for _, m := range pres.ignoredMatches {
+		row, err := createRow(m.Match, pres.metadataProvider, appendSuppressed)
+
+		if err != nil {
+			return err
 		}
-
-		fixVersion := strings.Join(m.Vulnerability.Fix.Versions, ", ")
-		switch m.Vulnerability.Fix.State {
-		case grypeDb.WontFixState:
-			fixVersion = "(won't fix)"
-		case grypeDb.UnknownFixState:
-			fixVersion = ""
-		}
-
-		rows = append(rows, []string{m.Package.Name, m.Package.Version, fixVersion, string(m.Package.Type), m.Vulnerability.ID, severity})
+		rows = append(rows, row)
 	}
 
 	if len(rows) == 0 {
@@ -112,4 +115,27 @@ func removeDuplicateRows(items [][]string) [][]string {
 		result = append(result, v)
 	}
 	return result
+}
+
+func createRow(m match.Match, metadataProvider vulnerability.MetadataProvider, severitySuffix string) ([]string, error) {
+	var severity string
+
+	metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("unable to fetch vuln=%q metadata: %+v", m.Vulnerability.ID, err)
+	}
+
+	if metadata != nil {
+		severity = metadata.Severity + severitySuffix
+	}
+
+	fixVersion := strings.Join(m.Vulnerability.Fix.Versions, ", ")
+	switch m.Vulnerability.Fix.State {
+	case grypeDb.WontFixState:
+		fixVersion = "(won't fix)"
+	case grypeDb.UnknownFixState:
+		fixVersion = ""
+	}
+
+	return []string{m.Package.Name, m.Package.Version, fixVersion, string(m.Package.Type), m.Vulnerability.ID, severity}, nil
 }

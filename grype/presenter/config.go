@@ -13,11 +13,12 @@ import (
 type Config struct {
 	format           format
 	templateFilePath string
+	showSuppressed   bool
 }
 
 // ValidatedConfig returns a new, validated presenter.Config. If a valid Config cannot be created using the given input,
 // an error is returned.
-func ValidatedConfig(output, outputTemplateFile string) (Config, error) {
+func ValidatedConfig(output, outputTemplateFile string, showSuppressed bool) (Config, error) {
 	format := parse(output)
 
 	if format == unknownFormat {
@@ -58,6 +59,7 @@ func ValidatedConfig(output, outputTemplateFile string) (Config, error) {
 	}
 
 	return Config{
-		format: format,
+		format:         format,
+		showSuppressed: showSuppressed,
 	}, nil
 }

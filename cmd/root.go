@@ -122,6 +122,7 @@ func setGlobalCliOptions() {
 	rootCmd.PersistentFlags().CountVarP(&persistentOpts.Verbosity, "verbose", "v", "increase verbosity (-v = info, -vv = debug)")
 }
 
+//nolint:funlen
 func setRootFlags(flags *pflag.FlagSet) {
 	flags.StringP(
 		"scope", "s", source.SquashedScope.String(),
@@ -164,6 +165,11 @@ func setRootFlags(flags *pflag.FlagSet) {
 	flags.BoolP(
 		"only-notfixed", "", false,
 		"ignore matches for vulnerabilities that are fixed",
+	)
+
+	flags.BoolP(
+		"show-suppressed", "", false,
+		"show suppressed/ignored vulnerabilities in the output (only supported with table output format)",
 	)
 
 	flags.StringArrayP(
@@ -220,6 +226,10 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 	}
 
 	if err := viper.BindPFlag("only-notfixed", flags.Lookup("only-notfixed")); err != nil {
+		return err
+	}
+
+	if err := viper.BindPFlag("show-suppressed", flags.Lookup("show-suppressed")); err != nil {
 		return err
 	}
 
@@ -282,7 +292,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 	go func() {
 		defer close(errs)
 
-		presenterConfig, err := presenter.ValidatedConfig(appConfig.Output, appConfig.OutputTemplateFile)
+		presenterConfig, err := presenter.ValidatedConfig(appConfig.Output, appConfig.OutputTemplateFile, appConfig.ShowSuppressed)
 		if err != nil {
 			errs <- err
 			return
