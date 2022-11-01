@@ -11,14 +11,14 @@ import (
 
 // Config is the presenter domain's configuration data structure.
 type Config struct {
-	format            format
-	templateFilePath  string
-	includeSuppressed bool
+	format           format
+	templateFilePath string
+	showSuppressed   bool
 }
 
 // ValidatedConfig returns a new, validated presenter.Config. If a valid Config cannot be created using the given input,
 // an error is returned.
-func ValidatedConfig(inclSuppressed bool, output, outputTemplateFile string) (Config, error) {
+func ValidatedConfig(output, outputTemplateFile string, showSuppressed bool) (Config, error) {
 	format := parse(output)
 
 	if format == unknownFormat {
@@ -59,7 +59,7 @@ func ValidatedConfig(inclSuppressed bool, output, outputTemplateFile string) (Co
 	}
 
 	return Config{
-		format:            format,
-		includeSuppressed: inclSuppressed,
+		format:         format,
+		showSuppressed: showSuppressed,
 	}, nil
 }

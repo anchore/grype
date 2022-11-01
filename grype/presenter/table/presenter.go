@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	AppendSuppressed = "-(suppressed)"
+	appendSuppressed = " (suppressed)"
 )
 
 // Presenter is a generic struct for holding fields needed for reporting
@@ -24,17 +24,15 @@ type Presenter struct {
 	ignoredMatches   []match.IgnoredMatch
 	packages         []pkg.Package
 	metadataProvider vulnerability.MetadataProvider
-	inclSuppressed   bool
 }
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter(results match.Matches, ignoredMatches []match.IgnoredMatch, packages []pkg.Package, metadataProvider vulnerability.MetadataProvider, inclSuppressed bool) *Presenter {
+func NewPresenter(results match.Matches, packages []pkg.Package, metadataProvider vulnerability.MetadataProvider, ignoredMatches []match.IgnoredMatch) *Presenter {
 	return &Presenter{
 		results:          results,
 		ignoredMatches:   ignoredMatches,
 		packages:         packages,
 		metadataProvider: metadataProvider,
-		inclSuppressed:   inclSuppressed,
 	}
 }
 
@@ -45,7 +43,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 	columns := []string{"Name", "Installed", "Fixed-In", "Type", "Vulnerability", "Severity"}
 	// Generate rows for matching vulnerabilities
 	for m := range pres.results.Enumerate() {
-		row, err := createRow(m, false, pres.metadataProvider)
+		row, err := createRow(m, pres.metadataProvider, "")
 
 		if err != nil {
 			return err
@@ -54,15 +52,13 @@ func (pres *Presenter) Present(output io.Writer) error {
 	}
 
 	// Generate rows for suppressed vulnerabilities
-	if pres.inclSuppressed {
-		for _, m := range pres.ignoredMatches {
-			row, err := createRow(m.Match, true, pres.metadataProvider)
+	for _, m := range pres.ignoredMatches {
+		row, err := createRow(m.Match, pres.metadataProvider, appendSuppressed)
 
-			if err != nil {
-				return err
-			}
-			rows = append(rows, row)
+		if err != nil {
+			return err
 		}
+		rows = append(rows, row)
 	}
 
 	if len(rows) == 0 {
@@ -121,7 +117,7 @@ func removeDuplicateRows(items [][]string) [][]string {
 	return result
 }
 
-func createRow(m match.Match, suppressed bool, metadataProvider vulnerability.MetadataProvider) ([]string, error) {
+func createRow(m match.Match, metadataProvider vulnerability.MetadataProvider, severitySuffix string) ([]string, error) {
 	var severity string
 
 	metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.Namespace)
@@ -130,11 +126,7 @@ func createRow(m match.Match, suppressed bool, metadataProvider vulnerability.Me
 	}
 
 	if metadata != nil {
-		severity = metadata.Severity
-
-		if suppressed {
-			severity += AppendSuppressed
-		}
+		severity = metadata.Severity + severitySuffix
 	}
 
 	fixVersion := strings.Join(m.Vulnerability.Fix.Versions, ", ")

@@ -167,8 +167,8 @@ func setRootFlags(flags *pflag.FlagSet) {
 	)
 
 	flags.BoolP(
-		"include-suppressed", "", false,
-		"include suppressed/ignored vulnerabilities in the output (only supported with table output format)",
+		"show-suppressed", "", false,
+		"show suppressed/ignored vulnerabilities in the output (only supported with table output format)",
 	)
 
 	flags.StringArrayP(
@@ -228,7 +228,7 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 		return err
 	}
 
-	if err := viper.BindPFlag("include-suppressed", flags.Lookup("include-suppressed")); err != nil {
+	if err := viper.BindPFlag("show-suppressed", flags.Lookup("show-suppressed")); err != nil {
 		return err
 	}
 
@@ -291,7 +291,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 	go func() {
 		defer close(errs)
 
-		presenterConfig, err := presenter.ValidatedConfig(appConfig.IncludeSuppressed, appConfig.Output, appConfig.OutputTemplateFile)
+		presenterConfig, err := presenter.ValidatedConfig(appConfig.Output, appConfig.OutputTemplateFile, appConfig.ShowSuppressed)
 		if err != nil {
 			errs <- err
 			return

@@ -10,7 +10,7 @@ func TestValidatedConfig(t *testing.T) {
 	cases := []struct {
 		name                    string
 		outputValue             string
-		inclSuppressedValue     bool
+		includeSuppressed       bool
 		outputTemplateFileValue string
 		expectedConfig          Config
 		assertErrExpectation    func(assert.TestingT, error, ...interface{}) bool
@@ -49,8 +49,8 @@ func TestValidatedConfig(t *testing.T) {
 			true,
 			"",
 			Config{
-				format:            tableFormat,
-				includeSuppressed: true,
+				format:         tableFormat,
+				showSuppressed: true,
 			},
 			assert.NoError,
 		},
@@ -58,7 +58,7 @@ func TestValidatedConfig(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			actualConfig, actualErr := ValidatedConfig(tc.inclSuppressedValue, tc.outputValue, tc.outputTemplateFileValue)
+			actualConfig, actualErr := ValidatedConfig(tc.outputValue, tc.outputTemplateFileValue, tc.includeSuppressed)
 
 			assert.Equal(t, tc.expectedConfig, actualConfig)
 			tc.assertErrExpectation(t, actualErr)
