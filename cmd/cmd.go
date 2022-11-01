@@ -72,10 +72,11 @@ func initLogging() {
 
 	grype.SetLogger(logWrapper)
 
-	// add a structured field to all loggers of dependencies
+	/* add a structured field to all loggers of dependencies
 	syft.SetLogger(&logger.LogrusNestedLogger{
 		Logger: logWrapper.Logger.WithField("from-lib", "syft"),
 	})
+	*/
 	stereoscope.SetLogger(&logger.LogrusNestedLogger{
 		Logger: logWrapper.Logger.WithField("from-lib", "stereoscope"),
 	})
