@@ -122,6 +122,7 @@ func setGlobalCliOptions() {
 	rootCmd.PersistentFlags().CountVarP(&persistentOpts.Verbosity, "verbose", "v", "increase verbosity (-v = info, -vv = debug)")
 }
 
+//nolint:funlen
 func setRootFlags(flags *pflag.FlagSet) {
 	flags.StringP(
 		"scope", "s", source.SquashedScope.String(),
