@@ -7,14 +7,15 @@ import (
 	"sort"
 
 	"github.com/gookit/color"
+	logrusUpstream "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/wagoodman/go-partybus"
 
+	"github.com/anchore/go-logger/adapter/logrus"
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/internal/config"
 	"github.com/anchore/grype/internal/log"
-	"github.com/anchore/grype/internal/logger"
 	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/syft/syft"
@@ -59,27 +60,60 @@ func initAppConfig() {
 	appConfig = cfg
 }
 
-func initLogging() {
-	cfg := logger.LogrusConfig{
-		EnableConsole: (appConfig.Log.FileLocation == "" || appConfig.CliOptions.Verbosity > 0) && !appConfig.Quiet,
-		EnableFile:    appConfig.Log.FileLocation != "",
-		Level:         appConfig.Log.LevelOpt,
-		Structured:    appConfig.Log.Structured,
-		FileLocation:  appConfig.Log.FileLocation,
+/*
+	cfg := logrus.Config{
+		EnableConsole: (app.Log.FileLocation == "" || app.Verbosity > 0) && !app.Quiet,
+		FileLocation:  app.Log.FileLocation,
+		Level:         app.Log.Level,
 	}
 
-	logWrapper := logger.NewLogrusLogger(cfg)
+	if app.Log.Structured {
+		cfg.Formatter = &logrusUpstream.JSONFormatter{
+			TimestampFormat:   "2006-01-02 15:04:05",
+			DisableTimestamp:  false,
+			DisableHTMLEscape: false,
+			PrettyPrint:       false,
+		}
+	}
+
+	logWrapper, err := logrus.New(cfg)
+	if err != nil {
+		// this is kinda circular, but we can't return an error... ¯\_(ツ)_/¯
+		// I'm going to leave this here in case we one day have a different default logger other than the "discard" logger
+		log.Error("unable to initialize logger: %+v", err)
+		return
+	}
+	syft.SetLogger(logWrapper)
+	stereoscope.SetLogger(logWrapper.Nested("from-lib", "stereoscope"))
+
+*/
+
+func initLogging() {
+	cfg := logrus.Config{
+		EnableConsole: (appConfig.Log.FileLocation == "" || appConfig.CliOptions.Verbosity > 0) && !appConfig.Quiet,
+		FileLocation:  appConfig.Log.FileLocation,
+		Level:         appConfig.Log.Level,
+	}
+
+	if appConfig.Log.Structured {
+		cfg.Formatter = &logrusUpstream.JSONFormatter{
+			TimestampFormat:   "2006-01-02 15:04:05",
+			DisableTimestamp:  false,
+			DisableHTMLEscape: false,
+			PrettyPrint:       false,
+		}
+	}
+	logWrapper, err := logrus.New(cfg)
+	if err != nil {
+		log.Error("unable to initialize logger: %+v", err)
+		return
+	}
 
 	grype.SetLogger(logWrapper)
 
-	/* add a structured field to all loggers of dependencies
-	syft.SetLogger(&logger.LogrusNestedLogger{
-		Logger: logWrapper.Logger.WithField("from-lib", "syft"),
-	})
-	*/
-	stereoscope.SetLogger(&logger.LogrusNestedLogger{
-		Logger: logWrapper.Logger.WithField("from-lib", "stereoscope"),
-	})
+	syft.SetLogger(logWrapper)
+
+	stereoscope.SetLogger(logWrapper.Nested("from-lib", "stereoscope"))
 }
 
 func logAppConfig() {

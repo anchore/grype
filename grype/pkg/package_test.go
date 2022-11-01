@@ -366,6 +366,17 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "binary-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.BinaryMetadataType,
+				Metadata: syftPkg.BinaryMetadata{
+					Classifier:  "classifier",
+					VirtualPath: "virtualPath",
+					RealPath:    "realPath",
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
