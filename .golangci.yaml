@@ -7,7 +7,6 @@ linters:
   enable:
     - asciicheck
     - bodyclose
-    - deadcode
     - depguard
     - dogsled
     - dupl
@@ -28,15 +27,12 @@ linters:
     - nakedret
     - nolintlint
     - revive
-    - rowserrcheck
     - staticcheck
-    - structcheck
     - stylecheck
     - typecheck
     - unconvert
     - unparam
     - unused
-    - varcheck
     - whitespace
 
 # do not enable...
@@ -44,6 +40,7 @@ linters:
 #    - gochecknoinits    # this is too aggressive
 #    - godot
 #    - godox
+#    - rowserrcheck # blocked until generics upgrade
 #    - goerr113
 #    - goimports   # we're using gosimports now instead to account for extra whitespaces (see https://github.com/golang/go/issues/20818)
 #    - golint      # deprecated

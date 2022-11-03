@@ -3,7 +3,7 @@ package db
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"sort"
 
 	"github.com/spf13/afero"
@@ -82,7 +82,7 @@ func (l Listing) Write(toPath string) error {
 		return fmt.Errorf("failed to encode listing file: %w", err)
 	}
 
-	err = ioutil.WriteFile(toPath, contents, 0600)
+	err = os.WriteFile(toPath, contents, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to write listing file: %w", err)
 	}

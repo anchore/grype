@@ -11,6 +11,8 @@ import (
 	"github.com/spf13/viper"
 	"github.com/wagoodman/go-partybus"
 
+	anchoreLogger "github.com/anchore/go-logger"
+	"github.com/anchore/go-logger/adapter/logrus"
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/internal/config"
 	"github.com/anchore/grype/internal/log"
@@ -60,8 +62,9 @@ func initAppConfig() {
 }
 
 func initLogging() {
+	enableConsole := (appConfig.Log.FileLocation == "" || appConfig.CliOptions.Verbosity > 0) && !appConfig.Quiet
 	cfg := logger.LogrusConfig{
-		EnableConsole: (appConfig.Log.FileLocation == "" || appConfig.CliOptions.Verbosity > 0) && !appConfig.Quiet,
+		EnableConsole: enableConsole,
 		EnableFile:    appConfig.Log.FileLocation != "",
 		Level:         appConfig.Log.LevelOpt,
 		Structured:    appConfig.Log.Structured,
@@ -72,10 +75,16 @@ func initLogging() {
 
 	grype.SetLogger(logWrapper)
 
-	// add a structured field to all loggers of dependencies
-	syft.SetLogger(&logger.LogrusNestedLogger{
-		Logger: logWrapper.Logger.WithField("from-lib", "syft"),
-	})
+	// TODO: separate syft logger config until grype consumes new logger
+	syftLoggerCfg := logrus.Config{
+		EnableConsole: enableConsole,
+		Level:         anchoreLogger.Level(appConfig.Log.LevelOpt.String()),
+	}
+	lw, err := logrus.New(syftLoggerCfg)
+	if err != nil {
+		panic(err)
+	}
+	syft.SetLogger(lw)
 	stereoscope.SetLogger(&logger.LogrusNestedLogger{
 		Logger: logWrapper.Logger.WithField("from-lib", "stereoscope"),
 	})
