@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/wagoodman/go-partybus"
 
-	iface "github.com/anchore/go-logger"
+	anchoreLogger "github.com/anchore/go-logger"
 	"github.com/anchore/go-logger/adapter/logrus"
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/internal/config"
@@ -75,11 +75,10 @@ func initLogging() {
 
 	grype.SetLogger(logWrapper)
 
-	// add a structured field to all loggers of dependencies
+	// TODO: separate syft logger config until grype consumes new logger
 	syftLoggerCfg := logrus.Config{
 		EnableConsole: enableConsole,
-		FileLocation:  appConfig.Log.FileLocation,
-		Level:         iface.Level(appConfig.Log.LevelOpt.String()),
+		Level:         anchoreLogger.Level(appConfig.Log.LevelOpt.String()),
 	}
 	lw, err := logrus.New(syftLoggerCfg)
 	if err != nil {
