@@ -6,13 +6,13 @@ import (
 	"os"
 	"sort"
 
-	iface "github.com/anchore/go-logger"
-	"github.com/anchore/go-logger/adapter/logrus"
 	"github.com/gookit/color"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/wagoodman/go-partybus"
 
+	iface "github.com/anchore/go-logger"
+	"github.com/anchore/go-logger/adapter/logrus"
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/internal/config"
 	"github.com/anchore/grype/internal/log"
