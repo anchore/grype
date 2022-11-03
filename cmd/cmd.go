@@ -6,6 +6,8 @@ import (
 	"os"
 	"sort"
 
+	iface "github.com/anchore/go-logger"
+	"github.com/anchore/go-logger/adapter/logrus"
 	"github.com/gookit/color"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -60,8 +62,9 @@ func initAppConfig() {
 }
 
 func initLogging() {
+	enableConsole := (appConfig.Log.FileLocation == "" || appConfig.CliOptions.Verbosity > 0) && !appConfig.Quiet
 	cfg := logger.LogrusConfig{
-		EnableConsole: (appConfig.Log.FileLocation == "" || appConfig.CliOptions.Verbosity > 0) && !appConfig.Quiet,
+		EnableConsole: enableConsole,
 		EnableFile:    appConfig.Log.FileLocation != "",
 		Level:         appConfig.Log.LevelOpt,
 		Structured:    appConfig.Log.Structured,
@@ -72,14 +75,20 @@ func initLogging() {
 
 	grype.SetLogger(logWrapper)
 
-	/*add a structured field to all loggers of dependencies
-	syft.SetLogger(&logger.LogrusNestedLogger{
-		Logger: logWrapper.Logger.WithField("from-lib", "syft"),
-	})
+	// add a structured field to all loggers of dependencies
+	syftLoggerCfg := logrus.Config{
+		EnableConsole: enableConsole,
+		FileLocation:  appConfig.Log.FileLocation,
+		Level:         iface.Level(appConfig.Log.LevelOpt.String()),
+	}
+	lw, err := logrus.New(syftLoggerCfg)
+	if err != nil {
+		panic(err)
+	}
+	syft.SetLogger(lw)
 	stereoscope.SetLogger(&logger.LogrusNestedLogger{
 		Logger: logWrapper.Logger.WithField("from-lib", "stereoscope"),
 	})
-	*/
 }
 
 func logAppConfig() {
