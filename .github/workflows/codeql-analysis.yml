@@ -11,7 +11,7 @@ on:
      - '**'
      - '!**.md'
      - '!LICENSE'
-     - 'test/**'
+     - '!test/**'
     branches: [ main ]
 
   schedule:
