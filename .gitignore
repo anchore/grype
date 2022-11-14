@@ -25,6 +25,8 @@ coverage.txt
 *.dll
 *.so
 *.dylib
+/grype/grype
+
 
 # Test binary, build with `go test -c`
 *.test
