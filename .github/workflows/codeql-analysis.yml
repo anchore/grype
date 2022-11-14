@@ -20,6 +20,9 @@ on:
 env:
   CODEQL_EXTRACTOR_GO_BUILD_TRACING: on
 
+permissions:
+  contents: read
+
 jobs:
   analyze:
     name: Analyze
