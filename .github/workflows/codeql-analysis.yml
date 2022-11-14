@@ -22,6 +22,8 @@ jobs:
     name: Analyze
     runs-on: ubuntu-latest
 
+    security-events: write
+
     strategy:
       fail-fast: false
       matrix:
