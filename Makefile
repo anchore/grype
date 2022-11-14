@@ -79,6 +79,11 @@ endef
 all: clean static-analysis test ## Run all checks (linting, license check, unit, integration, and linux acceptance tests tests)
 	@printf '$(SUCCESS)All checks pass!$(RESET)\n'
 
+.PHONY: grype
+grype: ## Build the grype binary
+	@printf '$(TITLE)Building grype$(RESET)\n'
+	CGO_ENABLED=0 go build -o $@ -trimpath -ldflags "-X main.version=$(VERSION) -X main.syftVersion=$(SYFT_VERSION)"
+
 .PHONY: test
 test: unit validate-cyclonedx-schema validate-cyclonedx-vex-schema integration cli ## Run all tests (unit, integration, linux acceptance, and CLI tests)
 
