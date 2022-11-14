@@ -12,13 +12,13 @@ on:
      - '!**.md'
      - '!LICENSE'
      - '!test/**'
-    branches: [ main, codeql-upgrade]
+    branches: [ main ]
 
   schedule:
     - cron: '0 14 * * 4'
 
 env:
-  CODEQL_EXTRACTOR_GO_BUILD_TRACING: true
+  CODEQL_EXTRACTOR_GO_BUILD_TRACING: on
 
 jobs:
   analyze:
@@ -34,7 +34,7 @@ jobs:
       matrix:
         # Override automatic language detection by changing the below list
         # Supported options are ['csharp', 'cpp', 'go', 'java', 'javascript', 'python']
-        language: ['go']
+        language: ['go', 'python']
         # Learn more...
         # https://docs.github.com/en/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-code-scanning#overriding-automatic-language-detection
 
