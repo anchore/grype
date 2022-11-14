@@ -100,3 +100,8 @@ $ make integration
 ## Document your changes
 
 When proposed changes are modifying user-facing functionality or output, it is expected the PR will include updates to the documentation as well.
+
+
+## Security Vulnerabilities
+
+Found a security vulnerability? See in our [Security Policy](SECURITY.md) to see how to report it to be solved as soon as possible. 
