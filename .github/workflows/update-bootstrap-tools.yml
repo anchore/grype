@@ -17,9 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository == 'anchore/grype' # only run for main repo
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791 # v2.5.0
 
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@c4a742cab115ed795e34d4513e2cf7d472deb55f # v3.3.1
         with:
           go-version: ${{ env.GO_VERSION }}
           stable: ${{ env.GO_STABLE_VERSION }}
@@ -31,7 +31,7 @@ jobs:
           GORELEASER_LATEST_VERSION=$(go list -m -json github.com/goreleaser/goreleaser@latest 2>/dev/null | jq -r '.Version')
           GOSIMPORTS_LATEST_VERSION=$(go list -m -json github.com/rinchsan/gosimports@latest 2>/dev/null | jq -r '.Version')
           YAJSV_LATEST_VERSION=$(go list -m -json github.com/neilpa/yajsv@latest 2>/dev/null | jq -r '.Version')
-          
+
           # update version variables in the Makefile
           sed -r -i -e 's/^(GOLANGCILINT_VERSION = ).*/\1'${GOLANGCILINT_LATEST_VERSION}'/' Makefile
           sed -r -i -e 's/^(BOUNCER_VERSION = ).*/\1'${BOUNCER_LATEST_VERSION}'/' Makefile
@@ -39,7 +39,7 @@ jobs:
           sed -r -i -e 's/^(GORELEASER_VERSION = ).*/\1'${GORELEASER_LATEST_VERSION}'/' Makefile
           sed -r -i -e 's/^(GOSIMPORTS_VERSION = ).*/\1'${GOSIMPORTS_LATEST_VERSION}'/' Makefile
           sed -r -i -e 's/^(YAJSV_VERSION = ).*/\1'${YAJSV_LATEST_VERSION}'/' Makefile
-          
+
           # export the versions for use with create-pull-request
           echo "::set-output name=GOLANGCILINT::$GOLANGCILINT_LATEST_VERSION"
           echo "::set-output name=BOUNCER::$BOUNCER_LATEST_VERSION"
@@ -49,13 +49,13 @@ jobs:
           echo "::set-output name=YAJSV::$YAJSV_LATEST_VERSION"
         id: latest-versions
 
-      - uses: tibdex/github-app-token@v1
+      - uses: tibdex/github-app-token@021a2405c7f990db57f5eae5397423dcc554159c # v1.7.0
         id: generate-token
         with:
           app_id: ${{ secrets.TOKEN_APP_ID }}
           private_key: ${{ secrets.TOKEN_APP_PRIVATE_KEY }}
 
-      - uses: peter-evans/create-pull-request@v4
+      - uses: peter-evans/create-pull-request@b4d51739f96fca8047ad065eccef63442d8e99f7 # v4.2.0
         with:
           signoff: true
           delete-branch: true
