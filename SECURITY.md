@@ -25,7 +25,7 @@ reported vulnerability, what to expect if the vulnerability is accepted or
 declined, etc. -->
 
 To report a security issue, please email
-[your-email@example.com](mailto:your-email@example.com)
+[security@anchore.com](mailto:security@anchore.com)
 with a description of the issue, the steps you took to create the issue,
 affected versions, and, if known, mitigations for the issue.
 
