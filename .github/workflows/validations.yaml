@@ -11,6 +11,9 @@ env:
   GO_STABLE_VERSION: true
   PYTHON_VERSION: "3.10"
 
+permissions:
+  contents: read
+
 jobs:
   Static-Analysis:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
