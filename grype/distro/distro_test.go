@@ -204,6 +204,10 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			fixture: "test-fixtures/os/gentoo",
 			Type:    Gentoo,
 		},
+		{
+			fixture: "test-fixtures/os/wolfi",
+			Type:    Wolfi,
+		},
 	}
 
 	observedDistros := internal.NewStringSet()
