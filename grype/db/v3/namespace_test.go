@@ -178,8 +178,13 @@ func Test_NamespaceForDistro(t *testing.T) {
 		},
 		{
 			dist:     distro.Gentoo,
-			version:  "", // Gentoo doesn't expose a version
+			version:  "", // Gentoo is a rolling release
 			expected: "gentoo:",
+		},
+		{
+			dist:     distro.Wolfi,
+			version:  "2022yzblah", // Wolfi is a rolling release
+			expected: "wolfi:rolling",
 		},
 	}
 
