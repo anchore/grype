@@ -85,3 +85,7 @@ func (d Distro) String() string {
 	}
 	return fmt.Sprintf("%s %s", d.Type, versionStr)
 }
+
+func (d Distro) IsRolling() bool {
+	return d.Type == Wolfi || d.Type == ArchLinux || d.Type == Gentoo
+}

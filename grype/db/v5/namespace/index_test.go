@@ -133,6 +133,8 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 		"msrc:distro:windows:471816",
 		"ubuntu:distro:ubuntu:18.04",
 		"oracle:distro:oraclelinux:8",
+		"wolfi:distro:wolfi:rolling",
+		"archlinux:distro:archlinux:rolling",
 	})
 
 	assert.NoError(t, err)
@@ -294,8 +296,24 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 		},
 		{
 
-			name:       "Arch Linux matches no namespace",
-			distro:     newDistro(t, osDistro.ArchLinux, "", []string{}),
+			name:   "Arch Linux matches archlinux rolling namespace",
+			distro: newDistro(t, osDistro.ArchLinux, "", []string{}),
+			namespaces: []*distro.Namespace{
+				distro.NewNamespace("archlinux", osDistro.ArchLinux, "rolling"),
+			},
+		},
+		{
+
+			name:   "Wolfi matches wolfi rolling namespace",
+			distro: newDistro(t, osDistro.Wolfi, "20221011", []string{}),
+			namespaces: []*distro.Namespace{
+				distro.NewNamespace("wolfi", osDistro.Wolfi, "rolling"),
+			},
+		},
+		{
+
+			name:       "Gentoo doesn't match any namespace since the gentoo rolling namespace doesn't exist in index",
+			distro:     newDistro(t, osDistro.Gentoo, "", []string{}),
 			namespaces: nil,
 		},
 		{

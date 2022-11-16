@@ -49,6 +49,10 @@ func NamespaceForDistro(d *distro.Distro) string {
 		return ""
 	}
 
+	if d.IsRolling() {
+		return fmt.Sprintf("%s:%s", strings.ToLower(d.Type.String()), "rolling")
+	}
+
 	var versionSegments []int
 	if d.Version != nil {
 		versionSegments = d.Version.Segments()
@@ -71,8 +75,6 @@ func NamespaceForDistro(d *distro.Distro) string {
 			return fmt.Sprintf("sles:%d.%d", versionSegments[0], versionSegments[1])
 		case distro.Windows:
 			return fmt.Sprintf("%s:%d", MSRCNamespacePrefix, versionSegments[0])
-		case distro.Wolfi:
-			return "wolfi:rolling"
 		}
 	}
 	return fmt.Sprintf("%s:%s", strings.ToLower(d.Type.String()), d.FullVersion())
