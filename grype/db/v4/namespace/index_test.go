@@ -132,6 +132,8 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 		"msrc:distro:windows:471816",
 		"ubuntu:distro:ubuntu:18.04",
 		"oracle:distro:oraclelinux:8",
+		"wolfi:distro:wolfi:rolling",
+		"archlinux:distro:archlinux:rolling",
 	})
 
 	assert.NoError(t, err)
@@ -236,7 +238,15 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 			},
 		},
 		{
-			distro:     newDistro(t, osDistro.ArchLinux, "", []string{}),
+			distro: newDistro(t, osDistro.ArchLinux, "", []string{}),
+			namespaces: []*distro.Namespace{
+				distro.NewNamespace("archlinux", osDistro.ArchLinux, "rolling"),
+			},
+		},
+		{
+			// Gentoo is a rolling distro; however, because we currently have no namespaces populated for it in the
+			// index fixture, we expect to get nil
+			distro:     newDistro(t, osDistro.Gentoo, "", []string{}),
 			namespaces: nil,
 		},
 		{
@@ -250,6 +260,12 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 		{
 			distro:     newDistro(t, osDistro.Busybox, "20.1", []string{}),
 			namespaces: nil,
+		},
+		{
+			distro: newDistro(t, osDistro.Wolfi, "20221011", []string{}),
+			namespaces: []*distro.Namespace{
+				distro.NewNamespace("wolfi", osDistro.Wolfi, "rolling"),
+			},
 		},
 	}
 

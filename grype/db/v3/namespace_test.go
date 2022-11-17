@@ -142,7 +142,7 @@ func Test_NamespaceForDistro(t *testing.T) {
 			// TODO: this is not correct. This should be mapped to a feed source.
 			dist:     distro.ArchLinux,
 			version:  "", // ArchLinux doesn't expose a version
-			expected: "archlinux:",
+			expected: "archlinux:rolling",
 		},
 		{
 			// TODO: this is not correct. This should be mapped to a feed source.
@@ -179,7 +179,7 @@ func Test_NamespaceForDistro(t *testing.T) {
 		{
 			dist:     distro.Gentoo,
 			version:  "", // Gentoo is a rolling release
-			expected: "gentoo:",
+			expected: "gentoo:rolling",
 		},
 		{
 			dist:     distro.Wolfi,
@@ -204,7 +204,7 @@ func Test_NamespaceForDistro(t *testing.T) {
 			d, err := distro.New(test.dist, test.version, "")
 			assert.NoError(t, err)
 			observedDistros.Add(d.Type.String())
-			assert.Equal(t, NamespaceForDistro(d), test.expected)
+			assert.Equal(t, test.expected, NamespaceForDistro(d))
 		})
 	}
 

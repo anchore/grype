@@ -77,9 +77,17 @@ func (i *Index) NamespacesForLanguage(l syftPkg.Language) []*language.Namespace 
 	return nil
 }
 
+//nolint:funlen,gocognit
 func (i *Index) NamespacesForDistro(d *grypeDistro.Distro) []*distro.Namespace {
 	if d == nil {
 		return nil
+	}
+
+	if d.IsRolling() {
+		distroKey := fmt.Sprintf("%s:%s", strings.ToLower(d.Type.String()), "rolling")
+		if v, ok := i.byDistroKey[distroKey]; ok {
+			return v
+		}
 	}
 
 	var versionSegments []int
