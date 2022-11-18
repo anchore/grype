@@ -167,6 +167,8 @@ jobs:
     # a previous release process installed and configured docker on the mac-os runner which lead to blocked releases
     # the anchore tools team opted to break this step out to a separate process to remove this work constraint
     runs-on: ubuntu-latest
+    permissions:
+      content: write
     steps:
       - uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791 # v2.5.0
       - uses: actions/setup-go@c4a742cab115ed795e34d4513e2cf7d472deb55f # v3.3.1
