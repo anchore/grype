@@ -177,19 +177,16 @@ func TestNew(t *testing.T) {
 			syftPkg: syftPkg.Package{
 				MetadataType: syftPkg.ApkMetadataType,
 				Metadata: syftPkg.ApkMetadata{
-					Package:          "libcurl-tools",
-					OriginPackage:    "libcurl",
-					Maintainer:       "somone",
-					Version:          "1.2.3",
-					License:          "Apache",
-					Architecture:     "a",
-					URL:              "a",
-					Description:      "a",
-					Size:             1,
-					InstalledSize:    1,
-					PullDependencies: "a",
-					PullChecksum:     "a",
-					GitCommitOfAport: "a",
+					Package:       "libcurl-tools",
+					OriginPackage: "libcurl",
+					Maintainer:    "somone",
+					Version:       "1.2.3",
+					License:       "Apache",
+					Architecture:  "a",
+					URL:           "a",
+					Description:   "a",
+					Size:          1,
+					InstalledSize: 1,
 				},
 			},
 			upstreams: []UpstreamPackage{
@@ -339,9 +336,7 @@ func TestNew(t *testing.T) {
 			syftPkg: syftPkg.Package{
 				MetadataType: syftPkg.CocoapodsMetadataType,
 				Metadata: syftPkg.CocoapodsMetadata{
-					Name:    "name",
-					Version: "version",
-					PkgHash: "123eere234",
+					Checksum: "123eere234",
 				},
 			},
 		},
@@ -350,9 +345,8 @@ func TestNew(t *testing.T) {
 			syftPkg: syftPkg.Package{
 				MetadataType: syftPkg.PortageMetadataType,
 				Metadata: syftPkg.PortageMetadata{
-					Package:       "net-misc/curl",
-					Version:       "1.2.3",
 					InstalledSize: 1,
+					Files:         []syftPkg.PortageFileRecord{},
 				},
 			},
 		},
