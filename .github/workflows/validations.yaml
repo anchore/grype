@@ -11,6 +11,12 @@ on:
     branches:
       - main
   pull_request:
+    paths:
+      - '**'
+      - '!**.md'
+      - '!LICENSE'
+      - '!.github/workflows/release.yaml'
+      - '!.github/workflows/validations.yaml'
 
 env:
   GO_VERSION: "1.18.x"
