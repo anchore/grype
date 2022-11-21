@@ -7,6 +7,7 @@ on:
       - '!**.md'
       - '!LICENSE'
       - '!.github/workflows/release.yaml'
+      - '!.github/workflows/validations.yaml'
     branches:
       - main
   pull_request:
