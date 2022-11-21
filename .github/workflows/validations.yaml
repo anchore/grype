@@ -2,6 +2,11 @@ name: "Validations"
 on:
   workflow_dispatch:
   push:
+    paths:
+      - '**'
+      - '!**.md'
+      - '!LICENSE'
+      - '!.github/workflows/release.yaml'
     branches:
       - main
   pull_request:
