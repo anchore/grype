@@ -14,7 +14,7 @@ env:
 
 permissions:
   contents: read
-  pacakges: read
+  packages: read
 
 jobs:
   quality-gate:
