@@ -1,6 +1,7 @@
 package models
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/google/uuid"
@@ -23,6 +24,19 @@ func GenerateAnalysis(t *testing.T) (match.Matches, []pkg.Package, pkg.Context, 
 	context := generateContext(t)
 
 	return matches, packages, context, NewMetadataMock(), nil, nil
+}
+
+func Redact(s []byte) []byte {
+	serialPattern := regexp.MustCompile(`serialNumber="[a-zA-Z0-9\-:]+"`)
+	uuidPattern := regexp.MustCompile(`urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`)
+	refPattern := regexp.MustCompile(`ref="[a-zA-Z0-9\-:]+"`)
+	rfc3339Pattern := regexp.MustCompile(`([0-9]+)-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])[Tt]([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.[0-9]+)?(([Zz])|([\+|\-]([01][0-9]|2[0-3]):[0-5][0-9]))`)
+	cycloneDxBomRefPattern := regexp.MustCompile(`[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`)
+
+	for _, pattern := range []*regexp.Regexp{serialPattern, rfc3339Pattern, refPattern, uuidPattern, cycloneDxBomRefPattern} {
+		s = pattern.ReplaceAll(s, []byte("redacted"))
+	}
+	return s
 }
 
 func generateMatches(t *testing.T, p pkg.Package) match.Matches {

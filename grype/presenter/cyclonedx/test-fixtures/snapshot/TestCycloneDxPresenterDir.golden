@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.2" xmlns:v="http://cyclonedx.org/schema/ext/vulnerability/1.0" version="1" serialNumber="urn:uuid:5eadecca-0f28-4921-b71a-f0e62398f8ef">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.2" xmlns:v="http://cyclonedx.org/schema/ext/vulnerability/1.0" version="1" serialNumber="urn:uuid:eef93236-33a7-4ee7-a70d-3e4708511f67">
   <metadata>
-    <timestamp>2022-06-09T23:40:38Z</timestamp>
+    <timestamp>2022-11-23T11:09:19-05:00</timestamp>
     <tools>
       <tool>
         <vendor>anchore</vendor>
@@ -17,9 +17,9 @@
   <components>
     <component type="library">
       <name>package-1</name>
-      <version>1.0.1</version>
+      <version>1.1.1</version>
       <v:vulnerabilities>
-        <v:vulnerability ref="urn:uuid:60c1e44a-2318-45b0-a8d0-7d4d510c3c59">
+        <v:vulnerability ref="urn:uuid:4196edd4-d49a-46b0-bbc8-b4478e2faa67">
           <v:id>CVE-1999-0001</v:id>
           <v:source name="source-1">
             <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0001</v:url>
@@ -41,21 +41,7 @@
           <v:description>1999-01 description</v:description>
           <v:advisories></v:advisories>
         </v:vulnerability>
-      </v:vulnerabilities>
-    </component>
-    <component type="library">
-      <name>package-2</name>
-      <version>2.0.1</version>
-      <licenses>
-        <license>
-          <name>MIT</name>
-        </license>
-        <license>
-          <name>Apache-v2</name>
-        </license>
-      </licenses>
-      <v:vulnerabilities>
-        <v:vulnerability ref="urn:uuid:c7b09c89-9962-4f1f-b607-9eff52105113">
+        <v:vulnerability ref="urn:uuid:ee611beb-9250-4d1e-8bd6-a47211960034">
           <v:id>CVE-1999-0002</v:id>
           <v:source name="source-2">
             <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0002</v:url>
@@ -78,6 +64,10 @@
           <v:advisories></v:advisories>
         </v:vulnerability>
       </v:vulnerabilities>
+    </component>
+    <component type="library">
+      <name>package-2</name>
+      <version>2.2.2</version>
     </component>
   </components>
 </bom>

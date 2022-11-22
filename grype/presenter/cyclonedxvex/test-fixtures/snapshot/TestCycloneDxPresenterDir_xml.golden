@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:e59512d8-825c-4792-851d-aed502e9b99b" version="1">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:9d4c727e-1bc5-41ad-9a5e-bf54a77287fd" version="1">
   <metadata>
-    <timestamp>2022-06-09T23:40:39Z</timestamp>
+    <timestamp>2022-11-23T11:49:02-05:00</timestamp>
     <tools>
       <tool>
         <vendor>anchore</vendor>
@@ -14,21 +14,13 @@
     </component>
   </metadata>
   <components>
-    <component bom-ref="package-1-id" type="library">
+    <component bom-ref="0bc7e6ff-87d0-4d48-8207-79c5ae1773f0" type="library">
       <name>package-1</name>
-      <version>1.0.1</version>
+      <version>1.1.1</version>
     </component>
-    <component bom-ref="package-2-id" type="library">
+    <component bom-ref="05b13bfd-a99c-4f2f-9ff3-11e52f5b6d9d" type="library">
       <name>package-2</name>
-      <version>2.0.1</version>
-      <licenses>
-        <license>
-          <name>MIT</name>
-        </license>
-        <license>
-          <name>Apache-v2</name>
-        </license>
-      </licenses>
+      <version>2.2.2</version>
     </component>
   </components>
   <vulnerabilities>
@@ -55,10 +47,12 @@
       </analysis>
       <affects>
         <target>
-          <ref>package-1-id</ref>
+          <ref>0bc7e6ff-87d0-4d48-8207-79c5ae1773f0</ref>
         </target>
       </affects>
-      <properties></properties>
+      <properties>
+        <property name="grype:fixed_versions">the-next-version</property>
+      </properties>
     </vulnerability>
     <vulnerability>
       <id>CVE-1999-0002</id>
@@ -83,7 +77,7 @@
       </analysis>
       <affects>
         <target>
-          <ref>package-2-id</ref>
+          <ref>0bc7e6ff-87d0-4d48-8207-79c5ae1773f0</ref>
         </target>
       </affects>
       <properties></properties>

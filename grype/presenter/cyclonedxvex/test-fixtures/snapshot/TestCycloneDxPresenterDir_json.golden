@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
-  "serialNumber": "urn:uuid:bab41c93-7506-4d43-a9e7-44a51a43be95",
+  "serialNumber": "urn:uuid:71840f70-739f-4044-8074-f37c1212d1f2",
   "version": 1,
   "metadata": {
-    "timestamp": "2022-06-09T23:40:38Z",
+    "timestamp": "2022-11-23T11:49:02-05:00",
     "tools": [
       {
         "vendor": "anchore",
@@ -19,28 +19,16 @@
   },
   "components": [
     {
-      "bom-ref": "package-1-id",
+      "bom-ref": "58ff09ab-760b-4b7d-b64b-5f40ad980aa6",
       "type": "library",
       "name": "package-1",
-      "version": "1.0.1"
+      "version": "1.1.1"
     },
     {
-      "bom-ref": "package-2-id",
+      "bom-ref": "bcfa21bb-0d02-4e1e-8335-6a0fdae3ca58",
       "type": "library",
       "name": "package-2",
-      "version": "2.0.1",
-      "licenses": [
-        {
-          "license": {
-            "name": "MIT"
-          }
-        },
-        {
-          "license": {
-            "name": "Apache-v2"
-          }
-        }
-      ]
+      "version": "2.2.2"
     }
   ],
   "vulnerabilities": [
@@ -67,10 +55,15 @@
       },
       "affects": [
         {
-          "ref": "package-1-id"
+          "ref": "58ff09ab-760b-4b7d-b64b-5f40ad980aa6"
         }
       ],
-      "properties": []
+      "properties": [
+        {
+          "name": "grype:fixed_versions",
+          "value": "the-next-version"
+        }
+      ]
     },
     {
       "id": "CVE-1999-0002",
@@ -95,7 +88,7 @@
       },
       "affects": [
         {
-          "ref": "package-2-id"
+          "ref": "58ff09ab-760b-4b7d-b64b-5f40ad980aa6"
         }
       ],
       "properties": []

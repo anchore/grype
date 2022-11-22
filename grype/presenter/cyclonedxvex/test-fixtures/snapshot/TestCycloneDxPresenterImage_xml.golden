@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:4ffe8b79-1a2d-4fb4-b47c-4be38a8a6f10" version="1">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:7171ebfe-2af1-4b35-83ae-8cdecd0b69d6" version="1">
   <metadata>
-    <timestamp>2022-06-09T23:40:38Z</timestamp>
+    <timestamp>2022-11-23T11:49:02-05:00</timestamp>
     <tools>
       <tool>
         <vendor>anchore</vendor>
@@ -11,25 +11,16 @@
     </tools>
     <component type="container">
       <name>user-input</name>
-      <version>sha256:2731251dc34951c0e50fcc643b4c5f74922dad1a5d98f302b504cf46cd5d9368</version>
     </component>
   </metadata>
   <components>
-    <component bom-ref="package-1-id" type="library">
+    <component bom-ref="91a37a15-7973-48e1-b857-34d08635694e" type="library">
       <name>package-1</name>
-      <version>1.0.1</version>
+      <version>1.1.1</version>
     </component>
-    <component bom-ref="package-2-id" type="library">
+    <component bom-ref="d88b05c4-4d22-487f-8e7d-5d19357723f7" type="library">
       <name>package-2</name>
-      <version>2.0.1</version>
-      <licenses>
-        <license>
-          <name>MIT</name>
-        </license>
-        <license>
-          <name>Apache-v2</name>
-        </license>
-      </licenses>
+      <version>2.2.2</version>
     </component>
   </components>
   <vulnerabilities>
@@ -56,10 +47,12 @@
       </analysis>
       <affects>
         <target>
-          <ref>package-1-id</ref>
+          <ref>91a37a15-7973-48e1-b857-34d08635694e</ref>
         </target>
       </affects>
-      <properties></properties>
+      <properties>
+        <property name="grype:fixed_versions">the-next-version</property>
+      </properties>
     </vulnerability>
     <vulnerability>
       <id>CVE-1999-0002</id>
@@ -84,7 +77,7 @@
       </analysis>
       <affects>
         <target>
-          <ref>package-2-id</ref>
+          <ref>91a37a15-7973-48e1-b857-34d08635694e</ref>
         </target>
       </affects>
       <properties></properties>
