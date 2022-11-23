@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
-  "serialNumber": "urn:uuid:03191e60-c835-4062-a402-f88ffbd1fdec",
+  "serialNumber": "urn:uuid:0a5b9db4-20ae-4a86-9a71-0253ee31b6a8",
   "version": 1,
   "metadata": {
-    "timestamp": "2022-11-23T13:36:48-05:00",
+    "timestamp": "2022-11-23T14:18:43-05:00",
     "tools": [
       {
         "vendor": "anchore",
@@ -19,16 +19,28 @@
   },
   "components": [
     {
-      "bom-ref": "47314950-a817-4942-af19-42d13dd925b0",
+      "bom-ref": "8938cdf5-5198-42cc-8cf4-9751f151b1ca",
       "type": "library",
       "name": "package-1",
       "version": "1.1.1"
     },
     {
-      "bom-ref": "520fe03c-c12d-4d21-ba31-2c9fe625ba9f",
+      "bom-ref": "0beb078a-8468-4b5c-b50a-e60f1f421f34",
       "type": "library",
       "name": "package-2",
-      "version": "2.2.2"
+      "version": "2.2.2",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        },
+        {
+          "license": {
+            "name": "Aoache-v2"
+          }
+        }
+      ]
     }
   ],
   "vulnerabilities": [
@@ -55,7 +67,7 @@
       },
       "affects": [
         {
-          "ref": "47314950-a817-4942-af19-42d13dd925b0"
+          "ref": "8938cdf5-5198-42cc-8cf4-9751f151b1ca"
         }
       ],
       "properties": [
@@ -88,7 +100,7 @@
       },
       "affects": [
         {
-          "ref": "520fe03c-c12d-4d21-ba31-2c9fe625ba9f"
+          "ref": "0beb078a-8468-4b5c-b50a-e60f1f421f34"
         }
       ],
       "properties": []

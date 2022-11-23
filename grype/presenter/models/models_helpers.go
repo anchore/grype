@@ -99,13 +99,13 @@ func generateMatches(t *testing.T, p, p2 pkg.Package) match.Matches {
 
 func generatePackages(t *testing.T) []pkg.Package {
 	t.Helper()
-
+	epoch := 2
 	return []pkg.Package{
 		{
 			ID:        pkg.ID(uuid.NewString()),
 			Name:      "package-1",
 			Version:   "1.1.1",
-			Type:      syftPkg.DebPkg,
+			Type:      syftPkg.RpmPkg,
 			Locations: syftSource.NewLocationSet(syftSource.NewVirtualLocation("/foo/bar/somefile-1.txt", "somefile-1.txt")),
 			CPEs: []syftPkg.CPE{
 				{
@@ -116,6 +116,16 @@ func generatePackages(t *testing.T) []pkg.Package {
 					Language: "python",
 				},
 			},
+			Upstreams: []pkg.UpstreamPackage{
+				{
+					Name:    "nothing",
+					Version: "3.2",
+				},
+			},
+			MetadataType: pkg.RpmMetadataType,
+			Metadata: pkg.RpmMetadata{
+				Epoch: &epoch,
+			},
 		},
 		{
 			ID:        pkg.ID(uuid.NewString()),
@@ -123,13 +133,53 @@ func generatePackages(t *testing.T) []pkg.Package {
 			Version:   "2.2.2",
 			Type:      syftPkg.DebPkg,
 			Locations: syftSource.NewLocationSet(syftSource.NewVirtualLocation("/foo/bar/somefile-2.txt", "somefile-2.txt")),
+			CPEs: []syftPkg.CPE{
+				{
+					Part:     "a",
+					Vendor:   "anchore",
+					Product:  "engine",
+					Version:  "2.2.2",
+					Language: "python",
+				},
+			},
+			Licenses: []string{"MIT", "Aoache-v2"},
 		},
 	}
 }
 
 func generateContext(t *testing.T, scheme syftSource.Scheme) pkg.Context {
 	var src syftSource.Source
-	img := image.Image{}
+	img := image.Image{
+		Metadata: image.Metadata{
+			ID:             "sha256:ab5608d634db2716a297adbfa6a5dd5d8f8f5a7d0cab73649ea7fbb8c8da544f",
+			ManifestDigest: "sha256:ca738abb87a8d58f112d3400ebb079b61ceae7dc290beb34bda735be4b1941d5",
+			MediaType:      "application/vnd.docker.distribution.manifest.v2+json",
+			Size:           65,
+		},
+		Layers: []*image.Layer{
+			{
+				Metadata: image.LayerMetadata{
+					Digest:    "sha256:ca738abb87a8d58f112d3400ebb079b61ceae7dc290beb34bda735be4b1941d5",
+					MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
+					Size:      22,
+				},
+			},
+			{
+				Metadata: image.LayerMetadata{
+					Digest:    "sha256:a05cd9ebf88af96450f1e25367281ab232ac0645f314124fe01af759b93f3006",
+					MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
+					Size:      16,
+				},
+			},
+			{
+				Metadata: image.LayerMetadata{
+					Digest:    "sha256:ab5608d634db2716a297adbfa6a5dd5d8f8f5a7d0cab73649ea7fbb8c8da544f",
+					MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
+					Size:      27,
+				},
+			},
+		},
+	}
 
 	switch scheme {
 	case syftSource.ImageScheme:

@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
-  "serialNumber": "urn:uuid:44c1a398-f786-4790-bbc5-0c56edd4f58c",
+  "serialNumber": "urn:uuid:09c02e63-f3be-4e31-89f6-3f25a28c836a",
   "version": 1,
   "metadata": {
-    "timestamp": "2022-11-23T13:36:48-05:00",
+    "timestamp": "2022-11-23T14:18:43-05:00",
     "tools": [
       {
         "vendor": "anchore",
@@ -14,21 +14,34 @@
     ],
     "component": {
       "type": "container",
-      "name": "user-input"
+      "name": "user-input",
+      "version": "sha256:ca738abb87a8d58f112d3400ebb079b61ceae7dc290beb34bda735be4b1941d5"
     }
   },
   "components": [
     {
-      "bom-ref": "983fdea2-c7eb-4615-8110-94eda9d0feba",
+      "bom-ref": "99645fbe-7953-42e1-8a90-6b16223f5e01",
       "type": "library",
       "name": "package-1",
       "version": "1.1.1"
     },
     {
-      "bom-ref": "2f26e2b3-213a-41e8-866e-2f7b8de38412",
+      "bom-ref": "76ed5581-f117-44de-b2d1-ef21976a7209",
       "type": "library",
       "name": "package-2",
-      "version": "2.2.2"
+      "version": "2.2.2",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        },
+        {
+          "license": {
+            "name": "Aoache-v2"
+          }
+        }
+      ]
     }
   ],
   "vulnerabilities": [
@@ -55,7 +68,7 @@
       },
       "affects": [
         {
-          "ref": "983fdea2-c7eb-4615-8110-94eda9d0feba"
+          "ref": "99645fbe-7953-42e1-8a90-6b16223f5e01"
         }
       ],
       "properties": [
@@ -88,7 +101,7 @@
       },
       "affects": [
         {
-          "ref": "2f26e2b3-213a-41e8-866e-2f7b8de38412"
+          "ref": "76ed5581-f117-44de-b2d1-ef21976a7209"
         }
       ],
       "properties": []

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:5d475869-46a2-4858-9bd8-3a281efc071c" version="1">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:ea82892e-0d66-452e-a404-dc070ec7b729" version="1">
   <metadata>
-    <timestamp>2022-11-23T13:36:48-05:00</timestamp>
+    <timestamp>2022-11-23T14:18:43-05:00</timestamp>
     <tools>
       <tool>
         <vendor>anchore</vendor>
@@ -14,13 +14,21 @@
     </component>
   </metadata>
   <components>
-    <component bom-ref="4101d955-b078-4dd1-b41c-94a0ea5b2d9f" type="library">
+    <component bom-ref="64ab86ae-5bb8-40a3-b353-394dc3059e04" type="library">
       <name>package-1</name>
       <version>1.1.1</version>
     </component>
-    <component bom-ref="555a5c88-4667-4532-bc45-e9e10d94894b" type="library">
+    <component bom-ref="5da08d3f-5b81-4ef3-9f07-25aac69dfa2b" type="library">
       <name>package-2</name>
       <version>2.2.2</version>
+      <licenses>
+        <license>
+          <name>MIT</name>
+        </license>
+        <license>
+          <name>Aoache-v2</name>
+        </license>
+      </licenses>
     </component>
   </components>
   <vulnerabilities>
@@ -47,7 +55,7 @@
       </analysis>
       <affects>
         <target>
-          <ref>4101d955-b078-4dd1-b41c-94a0ea5b2d9f</ref>
+          <ref>64ab86ae-5bb8-40a3-b353-394dc3059e04</ref>
         </target>
       </affects>
       <properties>
@@ -77,7 +85,7 @@
       </analysis>
       <affects>
         <target>
-          <ref>555a5c88-4667-4532-bc45-e9e10d94894b</ref>
+          <ref>5da08d3f-5b81-4ef3-9f07-25aac69dfa2b</ref>
         </target>
       </affects>
       <properties></properties>
