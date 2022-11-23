@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.2" xmlns:v="http://cyclonedx.org/schema/ext/vulnerability/1.0" version="1" serialNumber="urn:uuid:8fc53273-9d6f-4e10-ae5a-84d926149fa9">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.2" xmlns:v="http://cyclonedx.org/schema/ext/vulnerability/1.0" version="1" serialNumber="urn:uuid:f44893ea-988d-4ff8-bf21-e825ca710e77">
   <metadata>
-    <timestamp>2022-11-23T14:18:43-05:00</timestamp>
+    <timestamp>2022-11-23T16:21:11-05:00</timestamp>
     <tools>
       <tool>
         <vendor>anchore</vendor>
@@ -19,7 +19,7 @@
       <name>package-1</name>
       <version>1.1.1</version>
       <v:vulnerabilities>
-        <v:vulnerability ref="urn:uuid:32383406-aa50-40a2-8b85-0c7065c62b38">
+        <v:vulnerability ref="urn:uuid:f643dfc8-73a1-4b68-ba46-d57d944ed5f4">
           <v:id>CVE-1999-0001</v:id>
           <v:source name="source-1">
             <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0001</v:url>
@@ -51,11 +51,11 @@
           <name>MIT</name>
         </license>
         <license>
-          <name>Aoache-v2</name>
+          <name>Apache-2.0</name>
         </license>
       </licenses>
       <v:vulnerabilities>
-        <v:vulnerability ref="urn:uuid:963568b6-a962-4cd4-a687-d7d08ec429ba">
+        <v:vulnerability ref="urn:uuid:319b0e16-a9ae-4fc0-8c98-7565b6b1131b">
           <v:id>CVE-1999-0002</v:id>
           <v:source name="source-2">
             <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0002</v:url>

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/go-testutils"
@@ -18,31 +17,45 @@ import (
 
 var update = flag.Bool("update", false, "update .golden files for sarif presenters")
 
-func TestSarifPresenterImage(t *testing.T) {
-	var buffer bytes.Buffer
-
-	matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, source.ImageScheme)
-	pres := NewPresenter(matches, packages, context.Source, metadataProvider)
-
-	err := pres.Present(&buffer)
-	if err != nil {
-		t.Fatal(err)
+func TestSarifPresenter(t *testing.T) {
+	tests := []struct {
+		name   string
+		scheme source.Scheme
+	}{
+		{
+			name:   "directory",
+			scheme: source.DirectoryScheme,
+		},
+		{
+			name:   "image",
+			scheme: source.ImageScheme,
+		},
 	}
 
-	actual := buffer.Bytes()
-	if *update {
-		testutils.UpdateGoldenFileContents(t, actual)
-	}
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			var buffer bytes.Buffer
+			matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, tc.scheme)
+			pres := NewPresenter(matches, packages, context.Source, metadataProvider)
+			err := pres.Present(&buffer)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	var expected = testutils.GetGoldenFileContents(t)
+			actual := buffer.Bytes()
+			if *update {
+				testutils.UpdateGoldenFileContents(t, actual)
+			}
 
-	actual = models.Redact(actual)
-	expected = models.Redact(expected)
+			var expected = testutils.GetGoldenFileContents(t)
+			actual = models.Redact(actual)
+			expected = models.Redact(expected)
 
-	if !bytes.Equal(expected, actual) {
-		dmp := diffmatchpatch.New()
-		diffs := dmp.DiffMain(string(expected), string(actual), true)
-		t.Errorf("mismatched output:\n%s", dmp.DiffPrettyText(diffs))
+			if !bytes.Equal(expected, actual) {
+				assert.JSONEq(t, string(expected), string(actual))
+			}
+		})
 	}
 }
 

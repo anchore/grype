@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
-  "serialNumber": "urn:uuid:09c02e63-f3be-4e31-89f6-3f25a28c836a",
+  "serialNumber": "urn:uuid:66755c26-b74b-4e0a-91cb-553fdf4e7153",
   "version": 1,
   "metadata": {
-    "timestamp": "2022-11-23T14:18:43-05:00",
+    "timestamp": "2022-11-23T16:23:09-05:00",
     "tools": [
       {
         "vendor": "anchore",
@@ -20,13 +20,13 @@
   },
   "components": [
     {
-      "bom-ref": "99645fbe-7953-42e1-8a90-6b16223f5e01",
+      "bom-ref": "4ab475af-df40-4a79-82fb-9c463788f56c",
       "type": "library",
       "name": "package-1",
       "version": "1.1.1"
     },
     {
-      "bom-ref": "76ed5581-f117-44de-b2d1-ef21976a7209",
+      "bom-ref": "5c5f8e26-00bc-4d8e-9d47-0dc26c4c5fd3",
       "type": "library",
       "name": "package-2",
       "version": "2.2.2",
@@ -38,7 +38,7 @@
         },
         {
           "license": {
-            "name": "Aoache-v2"
+            "name": "Apache-2.0"
           }
         }
       ]
@@ -68,7 +68,7 @@
       },
       "affects": [
         {
-          "ref": "99645fbe-7953-42e1-8a90-6b16223f5e01"
+          "ref": "4ab475af-df40-4a79-82fb-9c463788f56c"
         }
       ],
       "properties": [
@@ -101,7 +101,7 @@
       },
       "affects": [
         {
-          "ref": "76ed5581-f117-44de-b2d1-ef21976a7209"
+          "ref": "5c5f8e26-00bc-4d8e-9d47-0dc26c4c5fd3"
         }
       ],
       "properties": []

@@ -142,7 +142,7 @@ func generatePackages(t *testing.T) []pkg.Package {
 					Language: "python",
 				},
 			},
-			Licenses: []string{"MIT", "Aoache-v2"},
+			Licenses: []string{"MIT", "Apache-2.0"},
 		},
 	}
 }
@@ -203,7 +203,7 @@ func generateContext(t *testing.T, scheme syftSource.Scheme) pkg.Context {
 		Distro: &linux.Release{
 			Name: "centos",
 			IDLike: []string{
-				"rhel",
+				"centos",
 			},
 			Version: "8.0",
 		},

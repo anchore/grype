@@ -122,7 +122,7 @@
     "language": "",
     "licenses": [
      "MIT",
-     "Aoache-v2"
+     "Apache-2.0"
     ],
     "cpes": [
      "cpe:2.3:a:anchore:engine:2.2.2:*:*:python:*:*:*:*"
@@ -166,10 +166,10 @@
   }
  },
  "distro": {
-  "name": "redhat",
+  "name": "centos",
   "version": "8.0",
   "idLike": [
-   "rhel"
+   "centos"
   ]
  },
  "descriptor": {
