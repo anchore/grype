@@ -15,63 +15,31 @@ import (
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/source"
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for table presenters")
 
-var pkg1 = pkg.Package{
-	ID:      "package-1-id",
-	Name:    "package-1",
-	Version: "1.0.1",
-	Type:    syftPkg.DebPkg,
-}
-
-var pkg2 = pkg.Package{
-	ID:      "package-2-id",
-	Name:    "package-2",
-	Version: "2.0.1",
-	Type:    syftPkg.DebPkg,
-}
-
-var match1 = match.Match{
-
-	Vulnerability: vulnerability.Vulnerability{
-		ID:        "CVE-1999-0001",
-		Namespace: "source-1",
-	},
-	Package: pkg1,
-	Details: []match.Detail{
-		{
-			Type:    match.ExactDirectMatch,
-			Matcher: match.DpkgMatcher,
-		},
-	},
-}
-
-var match2 = match.Match{
-
-	Vulnerability: vulnerability.Vulnerability{
-		ID:        "CVE-1999-0002",
-		Namespace: "source-2",
-		Fix: vulnerability.Fix{
-			Versions: []string{
-				"the-next-version",
-			},
-		},
-	},
-	Package: pkg2,
-	Details: []match.Detail{
-		{
-			Type:    match.ExactIndirectMatch,
-			Matcher: match.DpkgMatcher,
-			SearchedBy: map[string]interface{}{
-				"some": "key",
-			},
-		},
-	},
-}
-
 func TestCreateRow(t *testing.T) {
+	pkg1 := pkg.Package{
+		ID:      "package-1-id",
+		Name:    "package-1",
+		Version: "1.0.1",
+		Type:    syftPkg.DebPkg,
+	}
+	match1 := match.Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID:        "CVE-1999-0001",
+			Namespace: "source-1",
+		},
+		Package: pkg1,
+		Details: []match.Detail{
+			{
+				Type:    match.ExactDirectMatch,
+				Matcher: match.DpkgMatcher,
+			},
+		},
+	}
 	cases := []struct {
 		name           string
 		match          match.Match
@@ -108,16 +76,9 @@ func TestCreateRow(t *testing.T) {
 func TestTablePresenter(t *testing.T) {
 
 	var buffer bytes.Buffer
+	matches, packages, _, metadataProvider, _, _ := models.GenerateAnalysis(t, source.ImageScheme)
 
-	matches := match.NewMatches()
-
-	matches.Add(match1, match2)
-
-	packages := []pkg.Package{pkg1, pkg2}
-
-	pres := NewPresenter(matches, packages, models.NewMetadataMock(), []match.IgnoredMatch{})
-
-	// TODO: add a constructor for a match.Match when the data is better shaped
+	pres := NewPresenter(matches, packages, metadataProvider, []match.IgnoredMatch{})
 
 	// run presenter
 	err := pres.Present(&buffer)

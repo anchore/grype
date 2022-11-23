@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.2" xmlns:v="http://cyclonedx.org/schema/ext/vulnerability/1.0" version="1" serialNumber="urn:uuid:70c09618-13d4-4239-965f-4e6dea3755a8">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.2" xmlns:v="http://cyclonedx.org/schema/ext/vulnerability/1.0" version="1" serialNumber="urn:uuid:6ac73f7b-da57-48c6-b04a-86e008086c5e">
   <metadata>
-    <timestamp>2022-06-09T23:40:38Z</timestamp>
+    <timestamp>2022-11-23T16:21:11-05:00</timestamp>
     <tools>
       <tool>
         <vendor>anchore</vendor>
@@ -11,15 +11,15 @@
     </tools>
     <component type="container">
       <name>user-input</name>
-      <version>sha256:2731251dc34951c0e50fcc643b4c5f74922dad1a5d98f302b504cf46cd5d9368</version>
+      <version>sha256:ca738abb87a8d58f112d3400ebb079b61ceae7dc290beb34bda735be4b1941d5</version>
     </component>
   </metadata>
   <components>
     <component type="library">
       <name>package-1</name>
-      <version>1.0.1</version>
+      <version>1.1.1</version>
       <v:vulnerabilities>
-        <v:vulnerability ref="urn:uuid:1097357f-f654-4e53-bc54-5f9f3dae8898">
+        <v:vulnerability ref="urn:uuid:24391334-9e29-4dcf-b528-b1dba4ded9d5">
           <v:id>CVE-1999-0001</v:id>
           <v:source name="source-1">
             <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0001</v:url>
@@ -45,17 +45,17 @@
     </component>
     <component type="library">
       <name>package-2</name>
-      <version>2.0.1</version>
+      <version>2.2.2</version>
       <licenses>
         <license>
           <name>MIT</name>
         </license>
         <license>
-          <name>Apache-v2</name>
+          <name>Apache-2.0</name>
         </license>
       </licenses>
       <v:vulnerabilities>
-        <v:vulnerability ref="urn:uuid:8f844ffc-014c-4440-a5b2-649c2f1323aa">
+        <v:vulnerability ref="urn:uuid:b24a18f6-2678-4f60-af3f-50851898e386">
           <v:id>CVE-1999-0002</v:id>
           <v:source name="source-2">
             <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0002</v:url>

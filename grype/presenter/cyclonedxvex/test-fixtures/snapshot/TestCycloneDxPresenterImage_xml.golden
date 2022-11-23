@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:4ffe8b79-1a2d-4fb4-b47c-4be38a8a6f10" version="1">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:0c4aaa8f-5858-43a6-ab4a-2c5b7856b627" version="1">
   <metadata>
-    <timestamp>2022-06-09T23:40:38Z</timestamp>
+    <timestamp>2022-11-23T16:23:09-05:00</timestamp>
     <tools>
       <tool>
         <vendor>anchore</vendor>
@@ -11,23 +11,23 @@
     </tools>
     <component type="container">
       <name>user-input</name>
-      <version>sha256:2731251dc34951c0e50fcc643b4c5f74922dad1a5d98f302b504cf46cd5d9368</version>
+      <version>sha256:ca738abb87a8d58f112d3400ebb079b61ceae7dc290beb34bda735be4b1941d5</version>
     </component>
   </metadata>
   <components>
-    <component bom-ref="package-1-id" type="library">
+    <component bom-ref="3079bc39-2dc9-4ac3-8981-04e6f4175d0d" type="library">
       <name>package-1</name>
-      <version>1.0.1</version>
+      <version>1.1.1</version>
     </component>
-    <component bom-ref="package-2-id" type="library">
+    <component bom-ref="98d49da2-7878-41c3-a55a-5841b8da967e" type="library">
       <name>package-2</name>
-      <version>2.0.1</version>
+      <version>2.2.2</version>
       <licenses>
         <license>
           <name>MIT</name>
         </license>
         <license>
-          <name>Apache-v2</name>
+          <name>Apache-2.0</name>
         </license>
       </licenses>
     </component>
@@ -56,10 +56,12 @@
       </analysis>
       <affects>
         <target>
-          <ref>package-1-id</ref>
+          <ref>3079bc39-2dc9-4ac3-8981-04e6f4175d0d</ref>
         </target>
       </affects>
-      <properties></properties>
+      <properties>
+        <property name="grype:fixed_versions">the-next-version</property>
+      </properties>
     </vulnerability>
     <vulnerability>
       <id>CVE-1999-0002</id>
@@ -84,7 +86,7 @@
       </analysis>
       <affects>
         <target>
-          <ref>package-2-id</ref>
+          <ref>98d49da2-7878-41c3-a55a-5841b8da967e</ref>
         </target>
       </affects>
       <properties></properties>
