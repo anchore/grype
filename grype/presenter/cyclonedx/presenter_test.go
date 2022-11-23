@@ -17,7 +17,7 @@ var update = flag.Bool("update", false, "update the *.golden files for cyclonedx
 func TestCycloneDxPresenterImage(t *testing.T) {
 	var buffer bytes.Buffer
 
-	matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t)
+	matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, source.ImageScheme)
 
 	pres := NewPresenter(matches, packages, context.Source, metadataProvider)
 	// run presenter
@@ -47,17 +47,12 @@ func TestCycloneDxPresenterImage(t *testing.T) {
 
 func TestCycloneDxPresenterDir(t *testing.T) {
 	var buffer bytes.Buffer
-	matches, packages, _, metadataProvider, _, _ := models.GenerateAnalysis(t)
+	matches, packages, ctx, metadataProvider, _, _ := models.GenerateAnalysis(t, source.DirectoryScheme)
 
-	s, err := source.NewFromDirectory("/some/path")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	pres := NewPresenter(matches, packages, &s.Metadata, metadataProvider)
+	pres := NewPresenter(matches, packages, ctx.Source, metadataProvider)
 
 	// run presenter
-	err = pres.Present(&buffer)
+	err := pres.Present(&buffer)
 	if err != nil {
 		t.Fatal(err)
 	}

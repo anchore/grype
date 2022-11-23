@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:7171ebfe-2af1-4b35-83ae-8cdecd0b69d6" version="1">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:3932ca12-9eca-452e-9da7-524411fcceff" version="1">
   <metadata>
-    <timestamp>2022-11-23T11:49:02-05:00</timestamp>
+    <timestamp>2022-11-23T13:36:48-05:00</timestamp>
     <tools>
       <tool>
         <vendor>anchore</vendor>
@@ -14,11 +14,11 @@
     </component>
   </metadata>
   <components>
-    <component bom-ref="91a37a15-7973-48e1-b857-34d08635694e" type="library">
+    <component bom-ref="d7a5bc00-1389-4f20-8deb-515288b39ebd" type="library">
       <name>package-1</name>
       <version>1.1.1</version>
     </component>
-    <component bom-ref="d88b05c4-4d22-487f-8e7d-5d19357723f7" type="library">
+    <component bom-ref="bac32f33-6f91-4f31-84cb-10bc1973edde" type="library">
       <name>package-2</name>
       <version>2.2.2</version>
     </component>
@@ -47,7 +47,7 @@
       </analysis>
       <affects>
         <target>
-          <ref>91a37a15-7973-48e1-b857-34d08635694e</ref>
+          <ref>d7a5bc00-1389-4f20-8deb-515288b39ebd</ref>
         </target>
       </affects>
       <properties>
@@ -77,7 +77,7 @@
       </analysis>
       <affects>
         <target>
-          <ref>91a37a15-7973-48e1-b857-34d08635694e</ref>
+          <ref>bac32f33-6f91-4f31-84cb-10bc1973edde</ref>
         </target>
       </affects>
       <properties></properties>

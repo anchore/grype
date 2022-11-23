@@ -15,6 +15,7 @@ import (
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/source"
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for table presenters")
@@ -75,7 +76,7 @@ func TestCreateRow(t *testing.T) {
 func TestTablePresenter(t *testing.T) {
 
 	var buffer bytes.Buffer
-	matches, packages, _, metadataProvider, _, _ := models.GenerateAnalysis(t)
+	matches, packages, _, metadataProvider, _, _ := models.GenerateAnalysis(t, source.ImageScheme)
 
 	pres := NewPresenter(matches, packages, metadataProvider, []match.IgnoredMatch{})
 

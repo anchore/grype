@@ -19,7 +19,7 @@ var update = flag.Bool("update", false, "update the *.golden files for json pres
 
 func TestJsonImgsPresenter(t *testing.T) {
 	var buffer bytes.Buffer
-	matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t)
+	matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, source.ImageScheme)
 	pres := NewPresenter(matches, nil, packages, context, metadataProvider, nil, nil)
 
 	// run presenter
@@ -41,7 +41,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 
 func TestJsonDirsPresenter(t *testing.T) {
 	var buffer bytes.Buffer
-	matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t)
+	matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, source.DirectoryScheme)
 	pres := NewPresenter(matches, nil, packages, context, metadataProvider, nil, nil)
 
 	// run presenter

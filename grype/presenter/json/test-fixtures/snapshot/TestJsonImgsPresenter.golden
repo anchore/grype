@@ -47,7 +47,7 @@
     "type": "deb",
     "locations": [
      {
-      "path": "/somefile-1.txt"
+      "path": "/foo/bar/somefile-1.txt"
      }
     ],
     "language": "",
@@ -101,19 +101,17 @@
     }
    ],
    "artifact": {
-    "name": "package-1",
-    "version": "1.1.1",
+    "name": "package-2",
+    "version": "2.2.2",
     "type": "deb",
     "locations": [
      {
-      "path": "/somefile-1.txt"
+      "path": "/foo/bar/somefile-2.txt"
      }
     ],
     "language": "",
     "licenses": [],
-    "cpes": [
-     "cpe:2.3:a:anchore:engine:0.9.2:*:*:python:*:*:*:*"
-    ],
+    "cpes": [],
     "purl": "",
     "upstreams": []
    }

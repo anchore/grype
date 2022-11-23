@@ -16,14 +16,12 @@ import (
 	"github.com/anchore/syft/syft/source"
 )
 
-// TODO: update models.GenerateAnalysis to be source aware to keep coverage for dir/img sources
-
 var update = flag.Bool("update", false, "update .golden files for sarif presenters")
 
 func TestSarifPresenterImage(t *testing.T) {
 	var buffer bytes.Buffer
 
-	matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t)
+	matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, source.ImageScheme)
 	pres := NewPresenter(matches, packages, context.Source, metadataProvider)
 
 	err := pres.Present(&buffer)
@@ -47,14 +45,6 @@ func TestSarifPresenterImage(t *testing.T) {
 		t.Errorf("mismatched output:\n%s", dmp.DiffPrettyText(diffs))
 	}
 }
-
-// switch on source from dir or source from image
-/*
-
-	s, err := source.NewFromImage(img, "user-input")
-	vs
-	s, err := source.NewFromDirectory(path)
-*/
 
 func Test_locationPath(t *testing.T) {
 	tests := []struct {
@@ -167,7 +157,7 @@ func Test_locationPath(t *testing.T) {
 }
 
 func createDirPresenter(t *testing.T, path string) *Presenter {
-	matches, packages, _, metadataProvider, _, _ := models.GenerateAnalysis(t)
+	matches, packages, _, metadataProvider, _, _ := models.GenerateAnalysis(t, source.DirectoryScheme)
 	s, err := source.NewFromDirectory(path)
 	if err != nil {
 		t.Fatal(err)
@@ -178,65 +168,77 @@ func createDirPresenter(t *testing.T, path string) *Presenter {
 	return pres
 }
 
-/*
+func TestToSarifReport(t *testing.T) {
+	tt := []struct {
+		name      string
+		scheme    source.Scheme
+		locations map[string]string
+	}{
+		{
+			name:   "directory",
+			scheme: source.DirectoryScheme,
+			locations: map[string]string{
+				"CVE-1999-0001-package-1": "/some/path/somefile-1.txt",
+				"CVE-1999-0002-package-2": "/some/path/somefile-2.txt",
+			},
+		},
+		{
+			name:   "image",
+			scheme: source.ImageScheme,
+			locations: map[string]string{
+				"CVE-1999-0001-package-1": "image/somefile-1.txt",
+				"CVE-1999-0002-package-2": "image/somefile-2.txt",
+			},
+		},
+	}
 
-Convert this to Table test for image and dir presenters that run the same assertions here...
-func Test_imageToSarifReport(t *testing.T) {
-	pres := createImagePresenter(t)
-	s, err := pres.toSarifReport()
-	assert.NoError(t, err)
+	for _, tc := range tt {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-	assert.Len(t, s.Runs, 1)
+			matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, tc.scheme)
+			pres := NewPresenter(matches, packages, context.Source, metadataProvider)
 
-	run := s.Runs[0]
+			report, err := pres.toSarifReport()
+			assert.NoError(t, err)
 
-	// Sorted by vulnID, pkg name, ...
-	assert.Len(t, run.Tool.Driver.Rules, 2)
-	assert.Equal(t, "CVE-1999-0001-package-1", run.Tool.Driver.Rules[0].ID)
-	assert.Equal(t, "CVE-1999-0002-package-2", run.Tool.Driver.Rules[1].ID)
+			assert.Len(t, report.Runs, 1)
+			assert.NotEmpty(t, report.Runs)
+			assert.NotEmpty(t, report.Runs[0].Results)
+			assert.NotEmpty(t, report.Runs[0].Tool.Driver)
+			assert.NotEmpty(t, report.Runs[0].Tool.Driver.Rules)
 
-	assert.Len(t, run.Results, 2)
-	result := run.Results[0]
-	assert.Equal(t, "CVE-1999-0001-package-1", *result.RuleID)
-	assert.Len(t, result.Locations, 1)
-	location := result.Locations[0]
-	assert.Equal(t, "image/etc/pkg-1", *location.PhysicalLocation.ArtifactLocation.URI)
+			// Sorted by vulnID, pkg name, ...
+			run := report.Runs[0]
+			assert.Len(t, run.Tool.Driver.Rules, 2)
+			assert.Equal(t, "CVE-1999-0001-package-1", run.Tool.Driver.Rules[0].ID)
+			assert.Equal(t, "CVE-1999-0002-package-2", run.Tool.Driver.Rules[1].ID)
 
-	result = run.Results[1]
-	assert.Equal(t, "CVE-1999-0002-package-2", *result.RuleID)
-	assert.Len(t, result.Locations, 1)
-	location = result.Locations[0]
-	assert.Equal(t, "image/pkg-2", *location.PhysicalLocation.ArtifactLocation.URI)
+			assert.Len(t, run.Results, 2)
+			result := run.Results[0]
+			assert.Equal(t, "CVE-1999-0001-package-1", *result.RuleID)
+			assert.Len(t, result.Locations, 1)
+			location := result.Locations[0]
+			expectedLocation, ok := tc.locations[*result.RuleID]
+			if !ok {
+				t.Fatalf("no expected location for %s", *result.RuleID)
+			}
+			assert.Equal(t, expectedLocation, *location.PhysicalLocation.ArtifactLocation.URI)
+
+			result = run.Results[1]
+			assert.Equal(t, "CVE-1999-0002-package-2", *result.RuleID)
+			assert.Len(t, result.Locations, 1)
+			location = result.Locations[0]
+			expectedLocation, ok = tc.locations[*result.RuleID]
+			if !ok {
+				t.Fatalf("no expected location for %s", *result.RuleID)
+			}
+			assert.Equal(t, expectedLocation, *location.PhysicalLocation.ArtifactLocation.URI)
+		})
+	}
+
 }
-
-func Test_dirToSarifReport(t *testing.T) {
-	pres := createDirPresenter(t, "/abs/path")
-	s, err := pres.toSarifReport()
-	assert.NoError(t, err)
-
-	assert.Len(t, s.Runs, 1)
-
-	run := s.Runs[0]
-
-	// Sorted by vulnID, pkg name, ...
-	assert.Len(t, run.Tool.Driver.Rules, 2)
-	assert.Equal(t, "CVE-1999-0001-package-1", run.Tool.Driver.Rules[0].ID)
-	assert.Equal(t, "CVE-1999-0002-package-2", run.Tool.Driver.Rules[1].ID)
-
-	assert.Len(t, run.Results, 2)
-	result := run.Results[0]
-	assert.Equal(t, "CVE-1999-0001-package-1", *result.RuleID)
-	assert.Len(t, result.Locations, 1)
-	location := result.Locations[0]
-	assert.Equal(t, "/abs/path/etc/pkg-1", *location.PhysicalLocation.ArtifactLocation.URI)
-
-	result = run.Results[1]
-	assert.Equal(t, "CVE-1999-0002-package-2", *result.RuleID)
-	assert.Len(t, result.Locations, 1)
-	location = result.Locations[0]
-	assert.Equal(t, "/abs/path/pkg-2", *location.PhysicalLocation.ArtifactLocation.URI)
-}
-*/
 
 type NilMetadataProvider struct{}
 

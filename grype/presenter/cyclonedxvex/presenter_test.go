@@ -13,7 +13,7 @@ import (
 	"github.com/anchore/syft/syft/source"
 )
 
-var update = flag.Bool("update", true, "update the *.golden files for json presenters")
+var update = flag.Bool("update", false, "update the *.golden files for json presenters")
 
 func TestCycloneDxPresenterImage(t *testing.T) {
 	for _, tcase := range []struct {
@@ -26,7 +26,7 @@ func TestCycloneDxPresenterImage(t *testing.T) {
 		t.Run(tcase.name, func(t *testing.T) {
 			var buffer bytes.Buffer
 
-			matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t)
+			matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, source.ImageScheme)
 
 			pres := NewPresenter(matches, packages, context.Source, metadataProvider, true, tcase.format)
 			// run presenter
@@ -65,16 +65,11 @@ func TestCycloneDxPresenterDir(t *testing.T) {
 	} {
 		t.Run(tcase.name, func(t *testing.T) {
 			var buffer bytes.Buffer
-			matches, packages, _, metadataProvider, _, _ := models.GenerateAnalysis(t)
-
-			s, err := source.NewFromDirectory("/some/path")
-			if err != nil {
-				t.Fatal(err)
-			}
-			pres := NewPresenter(matches, packages, &s.Metadata, metadataProvider, true, tcase.format)
+			matches, packages, ctx, metadataProvider, _, _ := models.GenerateAnalysis(t, source.DirectoryScheme)
+			pres := NewPresenter(matches, packages, ctx.Source, metadataProvider, true, tcase.format)
 
 			// run presenter
-			err = pres.Present(&buffer)
+			err := pres.Present(&buffer)
 			if err != nil {
 				t.Fatal(err)
 			}

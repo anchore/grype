@@ -20,26 +20,26 @@
               },
               "helpUri": "https://github.com/anchore/grype",
               "help": {
-                "text": "Vulnerability CVE-1999-0001\nSeverity: low\nPackage: package-1\nVersion: 1.1.1\nFix Version: the-next-version\nType: deb\nLocation: /somefile-1.txt\nData Namespace: source-1\nLink: CVE-1999-0001",
-                "markdown": "**Vulnerability CVE-1999-0001**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| low  | package-1  | 1.1.1  | the-next-version  | deb  | /somefile-1.txt  | source-1  | CVE-1999-0001  |\n"
+                "text": "Vulnerability CVE-1999-0001\nSeverity: low\nPackage: package-1\nVersion: 1.1.1\nFix Version: the-next-version\nType: deb\nLocation: somefile-1.txt\nData Namespace: source-1\nLink: CVE-1999-0001",
+                "markdown": "**Vulnerability CVE-1999-0001**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| low  | package-1  | 1.1.1  | the-next-version  | deb  | somefile-1.txt  | source-1  | CVE-1999-0001  |\n"
               },
               "properties": {
                 "security-severity": "4.0"
               }
             },
             {
-              "id": "CVE-1999-0002-package-1",
+              "id": "CVE-1999-0002-package-2",
               "name": "DpkgMatcherExactIndirectMatch",
               "shortDescription": {
-                "text": "CVE-1999-0002 critical vulnerability for package-1 package"
+                "text": "CVE-1999-0002 critical vulnerability for package-2 package"
               },
               "fullDescription": {
                 "text": "1999-02 description"
               },
               "helpUri": "https://github.com/anchore/grype",
               "help": {
-                "text": "Vulnerability CVE-1999-0002\nSeverity: critical\nPackage: package-1\nVersion: 1.1.1\nFix Version: \nType: deb\nLocation: /somefile-1.txt\nData Namespace: source-2\nLink: CVE-1999-0002",
-                "markdown": "**Vulnerability CVE-1999-0002**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| critical  | package-1  | 1.1.1  |   | deb  | /somefile-1.txt  | source-2  | CVE-1999-0002  |\n"
+                "text": "Vulnerability CVE-1999-0002\nSeverity: critical\nPackage: package-2\nVersion: 2.2.2\nFix Version: \nType: deb\nLocation: somefile-2.txt\nData Namespace: source-2\nLink: CVE-1999-0002",
+                "markdown": "**Vulnerability CVE-1999-0002**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| critical  | package-2  | 2.2.2  |   | deb  | somefile-2.txt  | source-2  | CVE-1999-0002  |\n"
               },
               "properties": {
                 "security-severity": "1.0"
@@ -52,13 +52,13 @@
         {
           "ruleId": "CVE-1999-0001-package-1",
           "message": {
-            "text": "The path /somefile-1.txt reports package-1 at version 1.1.1  which is a vulnerable (deb) package installed in the container"
+            "text": "The path somefile-1.txt reports package-1 at version 1.1.1  which is a vulnerable (deb) package installed in the container"
           },
           "locations": [
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "image//somefile-1.txt"
+                  "uri": "image/somefile-1.txt"
                 },
                 "region": {
                   "startLine": 1,
@@ -69,7 +69,7 @@
               },
               "logicalLocations": [
                 {
-                  "name": "/somefile-1.txt",
+                  "name": "/foo/bar/somefile-1.txt",
                   "fullyQualifiedName": "user-input@:/somefile-1.txt"
                 }
               ]
@@ -77,15 +77,15 @@
           ]
         },
         {
-          "ruleId": "CVE-1999-0002-package-1",
+          "ruleId": "CVE-1999-0002-package-2",
           "message": {
-            "text": "The path /somefile-1.txt reports package-1 at version 1.1.1  which is a vulnerable (deb) package installed in the container"
+            "text": "The path somefile-2.txt reports package-2 at version 2.2.2  which is a vulnerable (deb) package installed in the container"
           },
           "locations": [
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "image//somefile-1.txt"
+                  "uri": "image/somefile-2.txt"
                 },
                 "region": {
                   "startLine": 1,
@@ -96,8 +96,8 @@
               },
               "logicalLocations": [
                 {
-                  "name": "/somefile-1.txt",
-                  "fullyQualifiedName": "user-input@:/somefile-1.txt"
+                  "name": "/foo/bar/somefile-2.txt",
+                  "fullyQualifiedName": "user-input@:/somefile-2.txt"
                 }
               ]
             }

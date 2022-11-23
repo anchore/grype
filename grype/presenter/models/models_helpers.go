@@ -16,12 +16,12 @@ import (
 	syftSource "github.com/anchore/syft/syft/source"
 )
 
-func GenerateAnalysis(t *testing.T) (match.Matches, []pkg.Package, pkg.Context, vulnerability.MetadataProvider, interface{}, interface{}) {
+func GenerateAnalysis(t *testing.T, scheme syftSource.Scheme) (match.Matches, []pkg.Package, pkg.Context, vulnerability.MetadataProvider, interface{}, interface{}) {
 	t.Helper()
 
 	packages := generatePackages(t)
-	matches := generateMatches(t, packages[0])
-	context := generateContext(t)
+	matches := generateMatches(t, packages[0], packages[1])
+	context := generateContext(t, scheme)
 
 	return matches, packages, context, NewMetadataMock(), nil, nil
 }
@@ -39,7 +39,7 @@ func Redact(s []byte) []byte {
 	return s
 }
 
-func generateMatches(t *testing.T, p pkg.Package) match.Matches {
+func generateMatches(t *testing.T, p, p2 pkg.Package) match.Matches {
 	t.Helper()
 
 	matches := []match.Match{
@@ -76,7 +76,7 @@ func generateMatches(t *testing.T, p pkg.Package) match.Matches {
 				ID:        "CVE-1999-0002",
 				Namespace: "source-2",
 			},
-			Package: p,
+			Package: p2,
 			Details: []match.Detail{
 				{
 					Type:    match.ExactIndirectMatch,
@@ -106,7 +106,7 @@ func generatePackages(t *testing.T) []pkg.Package {
 			Name:      "package-1",
 			Version:   "1.1.1",
 			Type:      syftPkg.DebPkg,
-			Locations: syftSource.NewLocationSet(syftSource.NewLocation("/somefile-1.txt")),
+			Locations: syftSource.NewLocationSet(syftSource.NewVirtualLocation("/foo/bar/somefile-1.txt", "somefile-1.txt")),
 			CPEs: []syftPkg.CPE{
 				{
 					Part:     "a",
@@ -122,17 +122,30 @@ func generatePackages(t *testing.T) []pkg.Package {
 			Name:      "package-2",
 			Version:   "2.2.2",
 			Type:      syftPkg.DebPkg,
-			Locations: syftSource.NewLocationSet(syftSource.NewLocation("/somefile-2.txt")),
+			Locations: syftSource.NewLocationSet(syftSource.NewVirtualLocation("/foo/bar/somefile-2.txt", "somefile-2.txt")),
 		},
 	}
 }
 
-func generateContext(t *testing.T) pkg.Context {
+func generateContext(t *testing.T, scheme syftSource.Scheme) pkg.Context {
+	var src syftSource.Source
 	img := image.Image{}
 
-	src, err := syftSource.NewFromImage(&img, "user-input")
-	if err != nil {
-		t.Fatalf("failed to create scope: %+v", err)
+	switch scheme {
+	case syftSource.ImageScheme:
+		var err error
+		src, err = syftSource.NewFromImage(&img, "user-input")
+		if err != nil {
+			t.Fatalf("failed to generate mock image source from mock image: %+v", err)
+		}
+	case syftSource.DirectoryScheme:
+		var err error
+		src, err = syftSource.NewFromDirectory("/some/path")
+		if err != nil {
+			t.Fatalf("failed to generate mock directory source from mock dir: %+v", err)
+		}
+	default:
+		t.Fatalf("unknown scheme: %s", scheme)
 	}
 
 	return pkg.Context{
