@@ -8,9 +8,14 @@ x-ref:
     - docker.io/anchore/test_images:grype-quality-golang-d89207b@sha256:7536ee345532f674ec9e448e3768db4e546c48220ba2b6ec9bc9cfbfb3b7b74a
     - docker.io/anchore/test_images:grype-quality-ruby-d89207b@sha256:1a5a5f870924e88a6f0f2b8089cf276ef0a79b5244a052cdfe4a47bb9e5a2c10
     - docker.io/anchore/test_images:vulnerabilities-package-name-normalization@sha256:92f1981518e92bf3712ff95cf342f7f4d5fc83fb93a30a36d7d1204e64342199
-    - docker.io/anchore/test_images:appstreams-rhel-8-1a287dd@sha256:524ff8a75f21fd886ec7ed82387766df386671e8b77e898d05786118d5b7880b
-    - docker.io/anchore/test_images:appstreams-oraclelinux-8-1a287dd@sha256:c8d664b0e728d52f57eeb98ed1899c16d3b265f02ddfb41303d7a16c31e0b0f1
     - docker.io/anchore/test_images:appstreams-centos-stream-8-1a287dd@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9
+    - docker.io/anchore/test_images:appstreams-oraclelinux-8-1a287dd@sha256:c8d664b0e728d52f57eeb98ed1899c16d3b265f02ddfb41303d7a16c31e0b0f1
+    - docker.io/anchore/test_images:appstreams-rhel-8-1a287dd@sha256:524ff8a75f21fd886ec7ed82387766df386671e8b77e898d05786118d5b7880b
+    - docker.io/anchore/test_images:java-56d52bc@sha256:10008791acbc5866de04108746a02a0c4029ce3a4400a9b3dad45d7f2245f9da
+    - docker.io/anchore/test_images:npm-56d52bc@sha256:ba42ded8613fc643d407a050faf5ab48cfb405ad3ef2015bf6feeb5dff44738d
+    - docker.io/anchore/test_images:gems-56d52bc@sha256:5763c8a225f950961bf01ddec68e36f18e236130e182f2b9290a6e03b9777bfe
+    - docker.io/anchore/test_images:golang-56d52bc@sha256:d1819e59e89e8ea90073460acb4ebb2ee18ccead9fa880dae91e8fc61b19ca1c
+    - docker.io/anchore/test_images:ubuntu-content-56d52bc@sha256:f8e72da9f67caf90714926e7b21f0da93ca1e528b37a97dffe71e2ec38872a8b
     - docker.io/alpine:3.2@sha256:ddac200f3ebc9902fb8cfcd599f41feb2151f1118929da21bcef57dc276975f9
     - docker.io/centos:6@sha256:3688aa867eb84332460e172b9250c9c198fdfd8d987605fd53f246f498c60bcf
     - docker.io/ubuntu:16.10@sha256:8dc9652808dc091400d7d5983949043a9f9c7132b15c14814275d25f94bca18a
@@ -27,7 +32,8 @@ x-ref:
     - docker.io/elastic/kibana:8.5.0@sha256:b9e3e52f61e0a347e38eabe80ba0859f859023bc0cc8836410320aa7eb5d3e02
     - docker.io/jenkins/jenkins:2.361.4-lts-jdk11@sha256:6fd5699ab182b5d23d0e3936de6047edc30955a3a92e01c392d5a2fd583efac0
     - docker.io/neo4j:4.4.14-community:4.4.14-community@sha256:fcfcbb026e0e538bf66f5fe5c4b2db3dd4931c3aae07f13a5a8c10e979596256
-
+    - docker.io/sonatype/nexus3:3.30.0@sha256:e8fea6b4279f2b5b24b36170459cb7aa3d6afe999f9d3e3713541be28bae8ec4
+    
 # new vulnerabilities are added all of the time, instead of keeping up it's easier to ignore newer entries.
 # This approach helps tremendously with keeping the analysis relatively stable.
 default_max_year: 2021
