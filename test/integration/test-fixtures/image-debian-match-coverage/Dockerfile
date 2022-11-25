@@ -1,4 +1,4 @@
-FROM golang@sha256:06b538f1c9d785537f4d24b0ee7297e8b2381dae954bd33c19513cc6465c4171
+FROM docker.io/golang:1.16@sha256:92ccbb6513249c08e582ca3eafc5c9176dbc5cbfe73af245542c5c78250e9b49
 WORKDIR /go/src/github.com/anchore/test/
 COPY golang/ ./
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o go-app .
