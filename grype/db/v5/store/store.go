@@ -95,8 +95,26 @@ func (s *store) GetVulnerabilityNamespaces() ([]string, error) {
 	return names, result.Error
 }
 
-// GetVulnerability retrieves vulnerabilities by namespace and package
-func (s *store) GetVulnerability(namespace, packageName string) ([]v5.Vulnerability, error) {
+// GetVulnerability retrieves vulnerabilities by namespace and id
+func (s *store) GetVulnerability(namespace, id string) ([]v5.Vulnerability, error) {
+	var models []model.VulnerabilityModel
+
+	result := s.db.Where("namespace = ? AND id = ?", namespace, id).Find(&models)
+
+	var vulnerabilities = make([]v5.Vulnerability, len(models))
+	for idx, m := range models {
+		vulnerability, err := m.Inflate()
+		if err != nil {
+			return nil, err
+		}
+		vulnerabilities[idx] = vulnerability
+	}
+
+	return vulnerabilities, result.Error
+}
+
+// SearchForVulnerabilities retrieves vulnerabilities by namespace and package
+func (s *store) SearchForVulnerabilities(namespace, packageName string) ([]v5.Vulnerability, error) {
 	var models []model.VulnerabilityModel
 
 	result := s.db.Where("namespace = ? AND package_name = ?", namespace, packageName).Find(&models)

@@ -80,7 +80,11 @@ func TestDecodeStdin(t *testing.T) {
 		t.Run(tt.Name, func(t *testing.T) {
 			f, err := os.Open(tt.Input)
 			require.NoError(t, err)
-			r, info, err := decodeStdin(f, ProviderConfig{AttestationPublicKey: tt.Key})
+			r, info, err := decodeStdin(f, ProviderConfig{
+				SyftProviderConfig: SyftProviderConfig{
+					AttestationPublicKey: tt.Key,
+				},
+			})
 			tt.WantErr(t, err)
 
 			if err == nil {
@@ -88,7 +92,7 @@ func TestDecodeStdin(t *testing.T) {
 				sbom, format, err := syft.Decode(r)
 				require.NoError(t, err)
 				require.NotNil(t, format)
-				assert.Len(t, FromCatalog(sbom.Artifacts.PackageCatalog, ProviderConfig{}), tt.PkgsLen)
+				assert.Len(t, FromCatalog(sbom.Artifacts.PackageCatalog, SynthesisConfig{}), tt.PkgsLen)
 			}
 		})
 	}
@@ -189,7 +193,11 @@ func TestParseAttestation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
-			pkgs, _, err := syftSBOMProvider(tt.Input, ProviderConfig{AttestationPublicKey: tt.Key})
+			pkgs, _, err := syftSBOMProvider(tt.Input, ProviderConfig{
+				SyftProviderConfig: SyftProviderConfig{
+					AttestationPublicKey: tt.Key,
+				},
+			})
 			tt.WantErr(t, err)
 			require.Len(t, pkgs, tt.PkgsLen)
 		})

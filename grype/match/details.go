@@ -17,9 +17,9 @@ type Detail struct {
 }
 
 // String is the string representation of select match fields.
-func (m Detail) String() string {
-	return fmt.Sprintf("Detail(searchedBy=%q found=%q matcher=%q)", m.SearchedBy, m.Found, m.Matcher)
-}
+// func (m Detail) String() string {
+//	return fmt.Sprintf("Detail(searchedBy=%q found=%q matcher=%q)", m.SearchedBy, m.Found, m.Matcher)
+//}
 
 func (m Details) Matchers() (tys []MatcherType) {
 	if len(m) == 0 {

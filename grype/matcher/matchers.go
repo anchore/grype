@@ -114,7 +114,7 @@ func FindMatches(store interface {
 	packagesProcessed, vulnerabilitiesDiscovered := trackMatcher()
 
 	if defaultMatcher == nil {
-		defaultMatcher = &stock.Matcher{UseCPEs: true}
+		defaultMatcher = stock.NewStockMatcher(stock.MatcherConfig{UseCPEs: true})
 	}
 	for _, p := range packages {
 		packagesProcessed.N++

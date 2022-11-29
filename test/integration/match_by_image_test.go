@@ -545,7 +545,7 @@ func TestMatchByImage(t *testing.T) {
 				ExclusionProvider: ep,
 			}
 
-			actualResults := grype.FindVulnerabilitiesForPackage(store, theDistro, matchers, pkg.FromCatalog(theCatalog, pkg.ProviderConfig{}))
+			actualResults := grype.FindVulnerabilitiesForPackage(store, theDistro, matchers, pkg.FromCatalog(theCatalog, pkg.SynthesisConfig{}))
 
 			// build expected matches from what's discovered from the catalog
 			expectedMatches := test.expectedFn(*theSource, theCatalog, theStore)

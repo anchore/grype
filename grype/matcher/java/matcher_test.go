@@ -31,8 +31,13 @@ func TestMatcherJava_matchUpstreamMavenPackage(t *testing.T) {
 		},
 	}
 	matcher := Matcher{
-		SearchMavenUpstream: true,
-		MavenSearcher:       newMockSearcher(p),
+		cfg: MatcherConfig{
+			ExternalSearchConfig: ExternalSearchConfig{
+				SearchMavenUpstream: true,
+			},
+			UseCPEs: false,
+		},
+		MavenSearcher: newMockSearcher(p),
 	}
 	store := newMockProvider()
 	actual, _ := matcher.matchUpstreamMavenPackages(store, p)

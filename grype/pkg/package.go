@@ -58,10 +58,14 @@ func New(p pkg.Package) Package {
 	}
 }
 
-func FromCatalog(catalog *pkg.Catalog, config ProviderConfig) []Package {
-	result := make([]Package, 0, catalog.PackageCount())
-	missingCPEs := false
-	for _, p := range catalog.Sorted() {
+func FromCatalog(catalog *pkg.Catalog, config SynthesisConfig) []Package {
+	return FromPackages(catalog.Sorted(), config)
+}
+
+func FromPackages(syftpkgs []pkg.Package, config SynthesisConfig) []Package {
+	var pkgs []Package
+	var missingCPEs bool
+	for _, p := range syftpkgs {
 		if len(p.CPEs) == 0 {
 			// For SPDX (or any format, really) we may have no CPEs
 			if config.GenerateMissingCPEs {
@@ -71,12 +75,12 @@ func FromCatalog(catalog *pkg.Catalog, config ProviderConfig) []Package {
 				missingCPEs = true
 			}
 		}
-		result = append(result, New(p))
+		pkgs = append(pkgs, New(p))
 	}
 	if missingCPEs {
 		log.Warnf("some package(s) are missing CPEs. This may result in missing vulnerabilities. You may autogenerate these using: --add-cpes-if-none")
 	}
-	return result
+	return pkgs
 }
 
 // Stringer to represent a package.

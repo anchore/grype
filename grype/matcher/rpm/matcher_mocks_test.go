@@ -16,6 +16,11 @@ type mockProvider struct {
 	data map[string]map[string][]vulnerability.Vulnerability
 }
 
+func (pr *mockProvider) Get(id, namespace string) ([]vulnerability.Vulnerability, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func newMockProvider(packageName, indirectName string, withEpoch bool, withPackageQualifiers bool) *mockProvider {
 	pr := mockProvider{
 		data: make(map[string]map[string][]vulnerability.Vulnerability),

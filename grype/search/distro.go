@@ -60,6 +60,7 @@ func ByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p p
 						"namespace": vuln.Namespace,
 					},
 					Found: map[string]interface{}{
+						"vulnerabilityID":   vuln.ID,
 						"versionConstraint": vuln.Constraint.String(),
 					},
 					Confidence: 1.0, // TODO: this is hard coded for now
