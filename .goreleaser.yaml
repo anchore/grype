@@ -14,6 +14,7 @@ builds:
     goarch:
       - amd64
       - arm64
+      - ppc64le
       - s390x
     # set the modified timestamp on the output binary to the git timestamp to ensure a reproducible build
     mod_timestamp: &build-timestamp '{{ .CommitTimestamp }}'
