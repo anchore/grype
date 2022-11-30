@@ -59,9 +59,16 @@ func New(p pkg.Package) Package {
 }
 
 func FromCatalog(catalog *pkg.Catalog, config ProviderConfig) []Package {
+	overlapRelationships := pkg.RelationshipsByFileOwnership(catalog)
 	result := make([]Package, 0, catalog.PackageCount())
 	missingCPEs := false
+nextPackage:
 	for _, p := range catalog.Sorted() {
+		for _, overlapRelationship := range overlapRelationships {
+			if overlapRelationship.To.ID() == p.ID() {
+				continue nextPackage
+			}
+		}
 		if len(p.CPEs) == 0 {
 			// For SPDX (or any format, really) we may have no CPEs
 			if config.GenerateMissingCPEs {
