@@ -2,11 +2,11 @@ package pkg
 
 import (
 	"fmt"
-	"github.com/anchore/syft/syft/artifact"
 	"regexp"
 
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/pkg/cataloger/common/cpe"
 	"github.com/anchore/syft/syft/source"

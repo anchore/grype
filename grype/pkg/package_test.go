@@ -1,13 +1,13 @@
 package pkg
 
 import (
-	"github.com/anchore/syft/syft/artifact"
 	"testing"
 
 	"github.com/scylladb/go-set"
 	"github.com/scylladb/go-set/strset"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/file"
 	syftFile "github.com/anchore/syft/syft/file"
 	syftPkg "github.com/anchore/syft/syft/pkg"
