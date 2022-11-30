@@ -69,7 +69,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 	// sort by name, version, then type
 	sort.SliceStable(rows, func(i, j int) bool {
 		for col := 0; col < len(columns); col++ {
-			if rows[i][0] != rows[j][0] {
+			if rows[i][col] != rows[j][col] {
 				return rows[i][col] < rows[j][col]
 			}
 		}
