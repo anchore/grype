@@ -153,7 +153,7 @@ func newMockDbStore() *mockStore {
 				},
 			},
 			"github:language:haskell": {
-				"ShellCheck": []grypeDB.Vulnerability{
+				"shellcheck": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-haskell-sample",
 						VersionConstraint: "< 0.9.0",
