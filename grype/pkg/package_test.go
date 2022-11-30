@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"github.com/anchore/syft/syft/artifact"
 	"testing"
 
 	"github.com/scylladb/go-set"
@@ -485,4 +486,74 @@ func Test_getNameAndELVersion(t *testing.T) {
 
 func intRef(i int) *int {
 	return &i
+}
+
+func Test_RemovePackagesByOverlap(t *testing.T) {
+	tests := []struct {
+		name             string
+		sbom             catalogRelationships
+		expectedPackages []string
+	}{
+		{
+			name:             "includes all packages without overlap",
+			sbom:             catalogWithOverlaps([]string{"go"}, []string{}),
+			expectedPackages: []string{"go"},
+		},
+		{
+			name:             "excludes single package by overlap",
+			sbom:             catalogWithOverlaps([]string{"go", "node"}, []string{"node"}),
+			expectedPackages: []string{"go"},
+		},
+		{
+			name:             "excludes multiple package by overlap",
+			sbom:             catalogWithOverlaps([]string{"go", "node", "python", "george"}, []string{"node", "george"}),
+			expectedPackages: []string{"go", "python"},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			catalog := RemovePackagesByOverlap(test.sbom.catalog, test.sbom.relationships)
+			pkgs := FromCatalog(catalog, ProviderConfig{})
+			var pkgNames []string
+			for _, p := range pkgs {
+				pkgNames = append(pkgNames, p.Name)
+			}
+			assert.EqualValues(t, test.expectedPackages, pkgNames)
+		})
+	}
+}
+
+type catalogRelationships struct {
+	catalog       *syftPkg.Catalog
+	relationships []artifact.Relationship
+}
+
+func catalogWithOverlaps(packages []string, overlaps []string) catalogRelationships {
+	var pkgs []syftPkg.Package
+	var relationships []artifact.Relationship
+
+	for _, name := range packages {
+		p := syftPkg.Package{
+			Name: name,
+		}
+		p.SetID()
+
+		for _, overlap := range overlaps {
+			if overlap == name {
+				relationships = append(relationships, artifact.Relationship{
+					From: p,
+					To:   p,
+					Type: artifact.OwnershipByFileOverlapRelationship,
+				})
+			}
+		}
+
+		pkgs = append(pkgs, p)
+	}
+	catalog := syftPkg.NewCatalog(pkgs...)
+
+	return catalogRelationships{
+		catalog:       catalog,
+		relationships: relationships,
+	}
 }

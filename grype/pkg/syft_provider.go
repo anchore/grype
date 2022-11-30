@@ -21,10 +21,12 @@ func syftProvider(userInput string, config ProviderConfig) ([]Package, Context, 
 	}
 	defer cleanup()
 
-	catalog, _, theDistro, err := syft.CatalogPackages(src, config.CatalogingOptions)
+	catalog, relationships, theDistro, err := syft.CatalogPackages(src, config.CatalogingOptions)
 	if err != nil {
 		return nil, Context{}, err
 	}
+
+	catalog = RemovePackagesByOverlap(catalog, relationships)
 
 	return FromCatalog(catalog, config), Context{
 		Source: &src.Metadata,

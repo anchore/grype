@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"fmt"
+	"github.com/anchore/syft/syft/artifact"
 	"regexp"
 
 	"github.com/anchore/grype/internal"
@@ -58,17 +59,30 @@ func New(p pkg.Package) Package {
 	}
 }
 
+func RemovePackagesByOverlap(catalog *pkg.Catalog, relationships []artifact.Relationship) *pkg.Catalog {
+	byOverlap := map[artifact.ID]artifact.Identifiable{}
+	for _, r := range relationships {
+		if r.Type == artifact.OwnershipByFileOverlapRelationship {
+			byOverlap[r.To.ID()] = r.To
+		}
+	}
+
+	out := pkg.NewCatalog()
+	for p := range catalog.Enumerate() {
+		if _, ok := byOverlap[p.ID()]; ok {
+			continue
+		}
+		out.Add(p)
+	}
+
+	return out
+}
+
 func FromCatalog(catalog *pkg.Catalog, config ProviderConfig) []Package {
-	overlapRelationships := pkg.RelationshipsByFileOwnership(catalog)
 	result := make([]Package, 0, catalog.PackageCount())
 	missingCPEs := false
-nextPackage:
+
 	for _, p := range catalog.Sorted() {
-		for _, overlapRelationship := range overlapRelationships {
-			if overlapRelationship.To.ID() == p.ID() {
-				continue nextPackage
-			}
-		}
 		if len(p.CPEs) == 0 {
 			// For SPDX (or any format, really) we may have no CPEs
 			if config.GenerateMissingCPEs {
