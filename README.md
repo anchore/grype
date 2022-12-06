@@ -337,7 +337,7 @@ ignore:
       location: "/usr/local/lib/node_modules/**"
 
   # We can make rules to match just by vulnerability ID:
-  - vulnerability: CVE-2017-41432
+  - vulnerability: CVE-2014-54321
 
   # ...or just by a single package field:
   - package:
