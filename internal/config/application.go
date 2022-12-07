@@ -139,8 +139,9 @@ func (cfg *Application) parseLogLevelOption() error {
 		// ... this will be an enhancement for later
 		cfg.Log.Level = logger.DisabledLevel
 
-	case cfg.Verbosity > 0:
-		cfg.Log.Level = logger.LevelFromVerbosity(int(cfg.Verbosity), logger.WarnLevel, logger.InfoLevel, logger.DebugLevel, logger.TraceLevel)
+	case cfg.CliOptions.Verbosity > 0:
+		verb := cfg.CliOptions.Verbosity
+		cfg.Log.Level = logger.LevelFromVerbosity(verb, logger.WarnLevel, logger.InfoLevel, logger.DebugLevel, logger.TraceLevel)
 
 	case cfg.Log.Level != "":
 		var err error
