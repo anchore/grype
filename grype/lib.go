@@ -3,8 +3,8 @@ package grype
 import (
 	"github.com/wagoodman/go-partybus"
 
+	"github.com/anchore/go-logger"
 	"github.com/anchore/grype/grype/db"
-	"github.com/anchore/grype/grype/logger"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/pkg"
