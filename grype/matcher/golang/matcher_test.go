@@ -46,6 +46,11 @@ type mockProvider struct {
 	data map[syftPkg.Language]map[string][]vulnerability.Vulnerability
 }
 
+func (mp *mockProvider) Get(id, namespace string) ([]vulnerability.Vulnerability, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (mp *mockProvider) populateData() {
 	mp.data[syftPkg.Go] = map[string][]vulnerability.Vulnerability{
 		"istio.io/istio": {

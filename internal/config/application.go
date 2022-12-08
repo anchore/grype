@@ -55,6 +55,7 @@ type Application struct {
 	Log                 logging                 `yaml:"log" json:"log" mapstructure:"log"`
 	Attestation         Attestation             `yaml:"attestation" json:"attestation" mapstructure:"attestation"`
 	ShowSuppressed      bool                    `yaml:"show-suppressed" json:"show-suppressed" mapstructure:"show-suppressed"`
+	ByCVE               bool                    `yaml:"by-cve" json:"by-cve" mapstructure:"by-cve"` // --by-cve, indicates if the original match vulnerability IDs should be preserved or the CVE should be used instead
 }
 
 func newApplicationConfig(v *viper.Viper, cliOpts CliOnlyOptions) *Application {
@@ -90,8 +91,6 @@ func LoadApplicationConfig(v *viper.Viper, cliOpts CliOnlyOptions) (*Application
 func (cfg Application) loadDefaultValues(v *viper.Viper) {
 	// set the default values for primitive fields in this struct
 	v.SetDefault("check-for-app-update", true)
-	v.SetDefault("only-fixed", false)
-	v.SetDefault("only-notfixed", false)
 
 	// for each field in the configuration struct, see if the field implements the defaultValueLoader interface and invoke it if it does
 	value := reflect.ValueOf(cfg)

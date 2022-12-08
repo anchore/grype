@@ -41,6 +41,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 
 func TestJsonDirsPresenter(t *testing.T) {
 	var buffer bytes.Buffer
+
 	matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, source.DirectoryScheme)
 	pres := NewPresenter(matches, nil, packages, context, metadataProvider, nil, nil)
 

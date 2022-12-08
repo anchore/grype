@@ -26,7 +26,7 @@ func syftProvider(userInput string, config ProviderConfig) ([]Package, Context, 
 		return nil, Context{}, err
 	}
 
-	return FromCatalog(catalog, config), Context{
+	return FromCatalog(catalog, config.SynthesisConfig), Context{
 		Source: &src.Metadata,
 		Distro: theDistro,
 	}, nil

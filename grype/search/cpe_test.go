@@ -3,6 +3,7 @@ package search
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,6 +28,11 @@ var _ grypeDB.VulnerabilityStoreReader = (*mockVulnStore)(nil)
 
 type mockVulnStore struct {
 	data map[string]map[string][]grypeDB.Vulnerability
+}
+
+func (pr *mockVulnStore) GetVulnerability(namespace, id string) ([]grypeDB.Vulnerability, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func newMockStore() *mockVulnStore {
@@ -138,7 +144,7 @@ func (pr *mockVulnStore) stub() {
 	}
 }
 
-func (pr *mockVulnStore) GetVulnerability(namespace, pkg string) ([]grypeDB.Vulnerability, error) {
+func (pr *mockVulnStore) SearchForVulnerabilities(namespace, pkg string) ([]grypeDB.Vulnerability, error) {
 	return pr.data[namespace][pkg], nil
 }
 
@@ -201,6 +207,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							Found: CPEResult{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*"},
 								VersionConstraint: "< 3.7.6 (semver)",
+								VulnerabilityID:   "CVE-2017-fake-1",
 							},
 							Matcher: matcher,
 						},
@@ -250,6 +257,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							Found: CPEResult{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*"},
 								VersionConstraint: "< 3.7.6 (semver)",
+								VulnerabilityID:   "CVE-2017-fake-1",
 							},
 							Matcher: matcher,
 						},
@@ -282,6 +290,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							Found: CPEResult{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:ruby:*:*"},
 								VersionConstraint: "< 3.7.4 (semver)",
+								VulnerabilityID:   "CVE-2017-fake-2",
 							},
 							Matcher: matcher,
 						},
@@ -326,6 +335,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							Found: CPEResult{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:4.0.1:*:*:*:*:*:*:*"},
 								VersionConstraint: "= 4.0.1 (semver)",
+								VulnerabilityID:   "CVE-2017-fake-3",
 							},
 							Matcher: matcher,
 						},
@@ -378,6 +388,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							Found: CPEResult{
 								CPEs:              []string{"cpe:2.3:*:awesome:awesome:*:*:*:*:*:*:*:*"},
 								VersionConstraint: "< 98SP3 (unknown)",
+								VulnerabilityID:   "CVE-2017-fake-4",
 							},
 							Matcher: matcher,
 						},
@@ -426,6 +437,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 									"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 								},
 								VersionConstraint: "< 4.0 (unknown)",
+								VulnerabilityID:   "CVE-2017-fake-5",
 							},
 							Matcher: matcher,
 						},
@@ -484,6 +496,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 									"cpe:2.3:*:sw:sw:*:*:*:*:*:puppet:*:*",
 								},
 								VersionConstraint: "< 1.0 (unknown)",
+								VulnerabilityID:   "CVE-2017-fake-7",
 							},
 							Matcher: matcher,
 						},
@@ -536,6 +549,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 									"cpe:2.3:*:funfun:funfun:5.2.1:*:*:*:*:python:*:*",
 								},
 								VersionConstraint: "= 5.2.1 (python)",
+								VulnerabilityID:   "CVE-2017-fake-6",
 							},
 							Matcher: matcher,
 						},
@@ -581,6 +595,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 									"cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:node.js:*:*",
 								},
 								VersionConstraint: "< 4.7.7 (unknown)",
+								VulnerabilityID:   "CVE-2021-23369",
 							},
 							Matcher: matcher,
 						},
@@ -626,6 +641,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 									"cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:node.js:*:*",
 								},
 								VersionConstraint: "< 4.7.7 (unknown)",
+								VulnerabilityID:   "CVE-2021-23369",
 							},
 							Matcher: matcher,
 						},
@@ -643,7 +659,9 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 			assert.NoError(t, err)
 			assertMatchesUsingIDsForVulnerabilities(t, test.expected, actual)
 			for idx, e := range test.expected {
-				assert.Equal(t, e.Details, actual[idx].Details)
+				if d := cmp.Diff(e.Details, actual[idx].Details); d != "" {
+					t.Errorf("unexpected match details (-want +got):\n%s", d)
+				}
 			}
 		})
 	}
