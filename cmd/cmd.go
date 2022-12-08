@@ -7,16 +7,15 @@ import (
 	"sort"
 
 	"github.com/gookit/color"
+	logrusUpstream "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/wagoodman/go-partybus"
 
-	anchoreLogger "github.com/anchore/go-logger"
 	"github.com/anchore/go-logger/adapter/logrus"
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/internal/config"
 	"github.com/anchore/grype/internal/log"
-	"github.com/anchore/grype/internal/logger"
 	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/syft/syft"
@@ -62,32 +61,31 @@ func initAppConfig() {
 }
 
 func initLogging() {
-	enableConsole := (appConfig.Log.FileLocation == "" || appConfig.CliOptions.Verbosity > 0) && !appConfig.Quiet
-	cfg := logger.LogrusConfig{
-		EnableConsole: enableConsole,
-		EnableFile:    appConfig.Log.FileLocation != "",
-		Level:         appConfig.Log.LevelOpt,
-		Structured:    appConfig.Log.Structured,
+	cfg := logrus.Config{
+		EnableConsole: (appConfig.Log.FileLocation == "" || appConfig.CliOptions.Verbosity > 0) && !appConfig.Quiet,
 		FileLocation:  appConfig.Log.FileLocation,
+		Level:         appConfig.Log.Level,
 	}
 
-	logWrapper := logger.NewLogrusLogger(cfg)
-
-	grype.SetLogger(logWrapper)
-
-	// TODO: separate syft logger config until grype consumes new logger
-	syftLoggerCfg := logrus.Config{
-		EnableConsole: enableConsole,
-		Level:         anchoreLogger.Level(appConfig.Log.LevelOpt.String()),
+	if appConfig.Log.Structured {
+		cfg.Formatter = &logrusUpstream.JSONFormatter{
+			TimestampFormat:   "2006-01-02T15:04:05.000Z",
+			DisableTimestamp:  false,
+			DisableHTMLEscape: false,
+			PrettyPrint:       false,
+		}
 	}
-	lw, err := logrus.New(syftLoggerCfg)
+
+	logWrapper, err := logrus.New(cfg)
 	if err != nil {
-		panic(err)
+		// this is kinda circular, but we can't return an error... ¯\_(ツ)_/¯
+		// I'm going to leave this here in case we one day have a different default logger other than the "discard" logger
+		log.Error("unable to initialize logger: %+v", err)
+		return
 	}
-	syft.SetLogger(lw)
-	stereoscope.SetLogger(&logger.LogrusNestedLogger{
-		Logger: logWrapper.Logger.WithField("from-lib", "stereoscope"),
-	})
+	grype.SetLogger(logWrapper)
+	syft.SetLogger(logWrapper.Nested("form-lib", "syft"))
+	stereoscope.SetLogger(logWrapper.Nested("form-lib", "stereoscope"))
 }
 
 func logAppConfig() {
