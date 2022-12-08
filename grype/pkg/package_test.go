@@ -488,7 +488,7 @@ func intRef(i int) *int {
 	return &i
 }
 
-func Test_RemovePackagesByOverlap(t *testing.T) {
+func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
 	tests := []struct {
 		name             string
 		sbom             catalogRelationships
@@ -496,17 +496,17 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 	}{
 		{
 			name:             "includes all packages without overlap",
-			sbom:             catalogWithOverlaps([]string{"go"}, []string{}),
+			sbom:             catalogWithBinaryOverlaps([]string{"go"}, []string{}),
 			expectedPackages: []string{"go"},
 		},
 		{
 			name:             "excludes single package by overlap",
-			sbom:             catalogWithOverlaps([]string{"go", "node"}, []string{"node"}),
+			sbom:             catalogWithBinaryOverlaps([]string{"go", "node"}, []string{"node"}),
 			expectedPackages: []string{"go"},
 		},
 		{
 			name:             "excludes multiple package by overlap",
-			sbom:             catalogWithOverlaps([]string{"go", "node", "python", "george"}, []string{"node", "george"}),
+			sbom:             catalogWithBinaryOverlaps([]string{"go", "node", "python", "george"}, []string{"node", "george"}),
 			expectedPackages: []string{"go", "python"},
 		},
 	}
@@ -528,13 +528,14 @@ type catalogRelationships struct {
 	relationships []artifact.Relationship
 }
 
-func catalogWithOverlaps(packages []string, overlaps []string) catalogRelationships {
+func catalogWithBinaryOverlaps(packages []string, overlaps []string) catalogRelationships {
 	var pkgs []syftPkg.Package
 	var relationships []artifact.Relationship
 
 	for _, name := range packages {
 		p := syftPkg.Package{
 			Name: name,
+			Type: syftPkg.BinaryPkg,
 		}
 		p.SetID()
 
