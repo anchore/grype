@@ -512,7 +512,7 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			catalog := RemovePackagesByOverlap(test.sbom.catalog, test.sbom.relationships)
+			catalog := RemoveBinaryPackagesByOverlap(test.sbom.catalog, test.sbom.relationships)
 			pkgs := FromCatalog(catalog, ProviderConfig{})
 			var pkgNames []string
 			for _, p := range pkgs {

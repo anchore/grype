@@ -59,7 +59,7 @@ func New(p pkg.Package) Package {
 	}
 }
 
-func RemovePackagesByOverlap(catalog *pkg.Catalog, relationships []artifact.Relationship) *pkg.Catalog {
+func RemoveBinaryPackagesByOverlap(catalog *pkg.Catalog, relationships []artifact.Relationship) *pkg.Catalog {
 	byOverlap := map[artifact.ID]artifact.Identifiable{}
 	for _, r := range relationships {
 		if r.Type == artifact.OwnershipByFileOverlapRelationship {
@@ -69,7 +69,7 @@ func RemovePackagesByOverlap(catalog *pkg.Catalog, relationships []artifact.Rela
 
 	out := pkg.NewCatalog()
 	for p := range catalog.Enumerate() {
-		if _, ok := byOverlap[p.ID()]; ok {
+		if _, ok := byOverlap[p.ID()]; p.Type == pkg.BinaryPkg && ok {
 			continue
 		}
 		out.Add(p)
