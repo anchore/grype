@@ -89,7 +89,6 @@ func (p Package) String() string {
 	return fmt.Sprintf("Pkg(type=%s, name=%s, version=%s, upstreams=%d)", p.Type, p.Name, p.Version, len(p.Upstreams))
 }
 
-
 func RemoveBinaryPackagesByOverlap(catalog *pkg.Catalog, relationships []artifact.Relationship) *pkg.Catalog {
 	byOverlap := map[artifact.ID]artifact.Identifiable{}
 	for _, r := range relationships {
