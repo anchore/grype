@@ -141,15 +141,124 @@ to keep in mind:
   significantly for all images. Only bump this ceiling if all possible matches
   are labeled.
 
+## Workflow
+
+One way of working is to simply run `yardstick` and `gate.py` in the `test/quality` directory.
+You will need to make sure the `vulnerabilty-match-labels` submodule has been initialized. This happens automatically
+for some `make` commands, but you can ensure this by `git submodule update --init`. After the submodule has been
+initialized, the match data from `vulnerabilty-match-labels` will be available locally.
+
+To do this we need some results to begin with. As noted above, start with (this does ensure the submodule is initialized):
+```shell
+make capture
+```
+
+This will download prebuilt SBOMs from the images and run the quality gate comparison
+on the configured previous grype version as well as the local version.
+
+After `make capture` has finished, and we have results, we can now start inspecting and
+modifying the results.
+
+To get started, let's assume we see some quality gate failure in CI like this:
+
+```
+Running comparison against labels... 
+   Results used:
+    ├── f4fb4e6e-c911-41b6-9a10-f90b3954a41a : grype@v0.53.1-19-g8900767 against docker.io/anchore/test_images@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9
+    └── fcebdd0b-d80a-4fe2-b81a-802c7b98d83b : grype@v0.53.1 against docker.io/anchore/test_images@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9
+
+Match differences between tooling (with labels):
+   TOOL PARTITION      PACKAGE       VULNERABILITY   LABEL         COMMENTARY
+   grype@v0.53.1 ONLY  node@14.18.2  CVE-2021-44531  TruePositive  (this is a new FN 😱)
+   grype@v0.53.1 ONLY  node@14.18.2  CVE-2021-44532  TruePositive  (this is a new FN 😱)
+   grype@v0.53.1 ONLY  node@14.18.2  CVE-2021-44533  TruePositive  (this is a new FN 😱)
+
+Failed quality gate
+   - current F1 score is lower than the latest release F1 score: current=0.80 latest=0.80 image=docker.io/anchore/test_images@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9
+   - current indeterminate matches % is greater than 10%: current=13.60% image=docker.io/anchore/test_images@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9
+   - current false negatives is greater than the latest release false negatives: current=6 latest=3 image=docker.io/anchore/test_images@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9
+```
+
+We can also replicate this using just:
+```shell
+python gate.py
+```
+
+This tells us some important information -- first of all, we need to look at image `docker.io/anchore/test_images@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9`.
+
+Using the SHA above, we can run `yardstick` to see which results we can find:
+```shell
+$ yardstick result list --result-set pr_vs_latest_via_sbom | grep 808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9
+
+5bf0611b-183f-4525-a1ab-f268f62f48b6  docker.io/anchore/test_images:appstreams-centos-stream-8-1a287dd@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9          grype@v0.53.1              2022-12-09 20:49:56+00:00
+43a9650a-d5de-4687-b3ba-459105e32cb8  docker.io/anchore/test_images:appstreams-centos-stream-8-1a287dd@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9          grype@v0.53.1-15-gf29a32b  2022-12-09 20:49:53+00:00
+67913f57-690f-4f35-a2d9-ffccd2a0b2a1  docker.io/anchore/test_images:appstreams-centos-stream-8-1a287dd@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9          syft@v0.60.1               2022-11-01 20:30:52+00:00
+```
+
+Copying the first UUID, which we can see was run against the last Grype release, we can browse the results:
+
+```shell
+yardstick label explore 5bf0611b-183f-4525-a1ab-f268f62f48b6
+```
+
+At this point we can use the TUI to explore and modify the match data, by deleting things or labeling as
+true positives, false positives, etc.. **After making changes make sure to save the results** (`Ctrl-S`)!
+
+At this point you can run the quality gate using updated label data. The quality gate can run against 
+just one image, for example the image we first found in the failure, we can run the quality gate and see
+how changes to the label data have affected the result:
+```shell
+python gate.py --image docker.io/anchore/test_images@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9
+```
+
+After iterating on all the changes we need using `yardstick label explore`, we're now ready to commit changes. Since
+we're using `git submodules`, we need to do two steps:
+1. get the changes merged to the `vulnerability-match-labels` repository
+2. update the submodule hash in this repository
+
+To create a pull request for the `vulnerability-match-labels`, `cd` there and 
+create a branch -- something like:
+```shell
+cd vulnerability-match-labels
+git checkout --no-track -b my-branch-name
+```
+
+Commit the chagnes to this branch, push, create a pull request like normal. NOTE: you may need to add a fork
+(`git remote add ...`) and push to the fork if you don't have push permissions against the main
+`vulnerability-match-labels` repo. After the PR is approved and merged to `vulnerability-match-labels @ main`,
+update the submodule locally using:
+
+```shell
+git submodule update --remote
+```
+
+Next, commit the submodule change as part of any other changes 
+to the Grype pull request and push as part of the in-progress PR
+against Grype.
+
 ## Required setup
 
 In order to manage Python versions, [pyenv](https://github.com/pyenv/pyenv) can be used. (e.g. `brew install pyenv`)
 
-Both this project and `yardstick` require Python 3.10. (e.g. `pyenv install 3.10.7`)
+Both this project and `yardstick` require Python 3.10.
 
-It is also required to have `oras` installed (e.g. `brew install oras`)
+Using `pyenv`, see which python versions are available, for example:
+```shell
+$ pyenv install --list|grep 3.10
+  3.10.0
+  ...
+  3.10.7
+  ...
+```
 
-To view the specific Python versions installed use `pyenv versions`:
+In this case, we see `3.10.7` is the latest version, so we'll use that for the rest of the setup:
+
+Install this version using `pyenv`:
+```shell
+pyenv install 3.10.7
+```
+
+NOTE: to view the specific Python versions installed use `pyenv versions`:
 ```shell
 $ pyenv versions
   system
@@ -168,6 +277,8 @@ Verify this has worked properly by running:
 ```shell
 python --version
 ```
+
+It is also required to have `oras` installed (e.g. `brew install oras`)
 
 **After** setting the working Python version to 3.10, in the `test/quality` directory,
 you need to set up a virtual environment using:
