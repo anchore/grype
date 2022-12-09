@@ -47,6 +47,7 @@ func ByPackageLanguage(store vulnerability.ProviderByLanguage, p pkg.Package, up
 						"namespace": vuln.Namespace,
 					},
 					Found: map[string]interface{}{
+						"vulnerabilityID":   vuln.ID,
 						"versionConstraint": vuln.Constraint.String(),
 					},
 				},

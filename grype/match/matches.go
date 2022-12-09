@@ -65,6 +65,7 @@ func (r *Matches) Add(matches ...Match) {
 				log.Warnf("unable to merge matches: original=%q new=%q : %w", existingMatch.String(), newMatch.String(), err)
 				// TODO: dropped match in this case, we should figure a way to handle this
 			}
+			r.byFingerprint[fingerprint] = existingMatch
 		} else {
 			r.byFingerprint[fingerprint] = newMatch
 		}

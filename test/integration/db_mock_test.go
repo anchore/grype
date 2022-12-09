@@ -12,6 +12,11 @@ type mockStore struct {
 	backend                map[string]map[string][]grypeDB.Vulnerability
 }
 
+func (s *mockStore) GetVulnerability(namespace, id string) ([]grypeDB.Vulnerability, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (s *mockStore) GetVulnerabilityNamespaces() ([]string, error) {
 	var results []string
 	for k := range s.backend {
@@ -148,7 +153,7 @@ func newMockDbStore() *mockStore {
 				},
 			},
 			"github:language:haskell": {
-				"ShellCheck": []grypeDB.Vulnerability{
+				"shellcheck": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-haskell-sample",
 						VersionConstraint: "< 0.9.0",
@@ -196,7 +201,7 @@ func newMockDbStore() *mockStore {
 	}
 }
 
-func (s *mockStore) GetVulnerability(namespace, name string) ([]grypeDB.Vulnerability, error) {
+func (s *mockStore) SearchForVulnerabilities(namespace, name string) ([]grypeDB.Vulnerability, error) {
 	namespaceMap := s.backend[namespace]
 	if namespaceMap == nil {
 		return nil, nil

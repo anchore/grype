@@ -44,7 +44,7 @@ func syftSBOMProvider(userInput string, config ProviderConfig) ([]Package, Conte
 	catalog := s.Artifacts.PackageCatalog
 	catalog = RemoveBinaryPackagesByOverlap(catalog, s.Relationships)
 
-	return FromCatalog(catalog, config), Context{
+	return FromCatalog(catalog, config.SynthesisConfig), Context{
 		Source: &s.Source,
 		Distro: s.Artifacts.LinuxDistribution,
 	}, nil

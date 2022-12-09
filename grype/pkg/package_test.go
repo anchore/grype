@@ -416,7 +416,7 @@ func TestFromCatalog_DoesNotPanic(t *testing.T) {
 	catalog.Add(examplePackage)
 
 	assert.NotPanics(t, func() {
-		_ = FromCatalog(catalog, ProviderConfig{})
+		_ = FromCatalog(catalog, SynthesisConfig{})
 	})
 }
 
@@ -437,12 +437,12 @@ func TestFromCatalog_GeneratesCPEs(t *testing.T) {
 	})
 
 	// doesn't generate cpes when no flag
-	pkgs := FromCatalog(catalog, ProviderConfig{})
+	pkgs := FromCatalog(catalog, SynthesisConfig{})
 	assert.Len(t, pkgs[0].CPEs, 1)
 	assert.Len(t, pkgs[1].CPEs, 0)
 
 	// does generate cpes with the flag
-	pkgs = FromCatalog(catalog, ProviderConfig{
+	pkgs = FromCatalog(catalog, SynthesisConfig{
 		GenerateMissingCPEs: true,
 	})
 	assert.Len(t, pkgs[0].CPEs, 1)

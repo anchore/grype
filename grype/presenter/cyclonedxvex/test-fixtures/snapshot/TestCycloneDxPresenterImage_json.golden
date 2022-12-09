@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
-  "serialNumber": "urn:uuid:66755c26-b74b-4e0a-91cb-553fdf4e7153",
+  "serialNumber": "urn:uuid:58ce0fc9-d5c2-47b7-885b-4d97a3b3e335",
   "version": 1,
   "metadata": {
-    "timestamp": "2022-11-23T16:23:09-05:00",
+    "timestamp": "2022-12-08T13:54:36-05:00",
     "tools": [
       {
         "vendor": "anchore",
@@ -20,13 +20,13 @@
   },
   "components": [
     {
-      "bom-ref": "4ab475af-df40-4a79-82fb-9c463788f56c",
+      "bom-ref": "52a05cbc-fb99-4571-b222-57e0ea5031b5",
       "type": "library",
       "name": "package-1",
       "version": "1.1.1"
     },
     {
-      "bom-ref": "5c5f8e26-00bc-4d8e-9d47-0dc26c4c5fd3",
+      "bom-ref": "d039d2f2-00fe-46c2-959c-797f9572ac65",
       "type": "library",
       "name": "package-2",
       "version": "2.2.2",
@@ -68,7 +68,7 @@
       },
       "affects": [
         {
-          "ref": "4ab475af-df40-4a79-82fb-9c463788f56c"
+          "ref": "52a05cbc-fb99-4571-b222-57e0ea5031b5"
         }
       ],
       "properties": [
@@ -101,7 +101,7 @@
       },
       "affects": [
         {
-          "ref": "5c5f8e26-00bc-4d8e-9d47-0dc26c4c5fd3"
+          "ref": "d039d2f2-00fe-46c2-959c-797f9572ac65"
         }
       ],
       "properties": []
