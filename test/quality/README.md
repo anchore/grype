@@ -14,6 +14,8 @@ static set of reference container images. The kinds of comparisons made are:
 
 ## Getting started
 
+For information about required setup see: [Required setup](#required-setup).
+
 To capture raw tool output and store into the local `.yardstick` directory for
 further analysis:
 ```
@@ -138,3 +140,71 @@ to keep in mind:
   Pushing this ceiling will likely raise the number of unlabled matches
   significantly for all images. Only bump this ceiling if all possible matches
   are labeled.
+
+## Required setup
+
+Both this project and `yardstick` require Python 3.10. (e.g. `brew install python@3.10`)
+
+It is required to have `oras` installed (e.g. `brew install oras`)
+
+In order to manage Python versions, [pyenv](https://github.com/pyenv/pyenv) can be used. (e.g. `brew install pyenv`)
+
+To view the specific Python versions installed use `pyenv versions`:
+```shell
+$ pyenv versions
+  system
+* 3.8.13 (set by /Users/usr/.pyenv/version)
+  3.10.7
+```
+
+To select the `3.10` version use the exact version number:
+```shell
+pyenv shell 3.10.7
+```
+
+(or maybe just: `pyenv shell $(pyenv versions | grep 3.10 | tail -1)`)
+
+Verify this has worked properly by running:
+```shell
+python --version
+```
+
+**After** setting the working Python version to 3.10, in the `test/quality` directory,
+you need to set up a virtual environment using:
+```shell
+make venv
+```
+
+**After** creating the virtual environment, you can now activate it to set up a
+working shell using:
+```shell
+. venv/bin/activate
+```
+
+You should now have a shell running in the correct virtual environment, it might look something
+like this:
+```shell
+(venv) user@HOST quality %
+```
+
+Now you should be able to run both `yardstick` and `python gate.py`.
+
+## Troubleshooting
+
+As noted above, yardstick requires Python 3.10. If you try to run with an older version, such as
+the default macOS 3.8 version, you will likely see an error similar to:
+
+```
+Traceback (most recent call last):
+  File "./vulnerability-match-labels/sboms.py", line 12, in <module>
+    import yardstick
+  File "/grype/test/quality/vulnerability-match-labels/venv/lib/python3.8/site-packages/yardstick/__init__.py", line 4, in <module>
+    from . import arrange, artifact, capture, cli, comparison, label, store, tool, utils
+  File "/grype/test/quality/vulnerability-match-labels/venv/lib/python3.8/site-packages/yardstick/arrange.py", line 4, in <module>
+    from yardstick import artifact
+  File "/grype/test/quality/vulnerability-match-labels/venv/lib/python3.8/site-packages/yardstick/artifact.py", line 482, in <module>
+    class ResultSet:
+  File "/grype/test/quality/vulnerability-match-labels/venv/lib/python3.8/site-packages/yardstick/artifact.py", line 484, in ResultSet
+    state: list[ResultState] = field(default_factory=list)
+TypeError: 'type' object is not subscriptable
+```
