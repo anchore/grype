@@ -143,11 +143,11 @@ to keep in mind:
 
 ## Required setup
 
-Both this project and `yardstick` require Python 3.10. (e.g. `brew install python@3.10`)
-
-It is required to have `oras` installed (e.g. `brew install oras`)
-
 In order to manage Python versions, [pyenv](https://github.com/pyenv/pyenv) can be used. (e.g. `brew install pyenv`)
+
+Both this project and `yardstick` require Python 3.10. (e.g. `pyenv install 3.10.7`)
+
+It is also required to have `oras` installed (e.g. `brew install oras`)
 
 To view the specific Python versions installed use `pyenv versions`:
 ```shell
