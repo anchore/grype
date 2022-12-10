@@ -153,14 +153,14 @@ To do this we need some results to begin with. As noted above, start with (this 
 make capture
 ```
 
-This will download prebuilt SBOMs from the images and run the quality gate comparison
-on the configured previous grype version as well as the local version.
+This will download prebuilt SBOMs for the configured images and generate match results for configured tools (here:
+the previous Grype version as well as the local version).
 
-After `make capture` has finished, and we have results, we can now start inspecting and
-modifying the results.
+After `make capture` has finished, we should have results and can now start inspecting and
+modifying the comparison labels.
 
-To get started, let's assume we see some quality gate failure in CI like this:
-
+To get started, let's assume we see some quality gate failure in like this (something found in CI
+or after running `./gate.py`):
 ```
 Running comparison against labels... 
    Results used:
@@ -179,14 +179,10 @@ Failed quality gate
    - current false negatives is greater than the latest release false negatives: current=6 latest=3 image=docker.io/anchore/test_images@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9
 ```
 
-We can also replicate this using just:
-```shell
-python gate.py
-```
+This tells us some important information: which package, version, and vulnerability had a difference;
+how it was previously labeled, and most importantly: the image we need to focus on (`docker.io/anchore/test_images@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9`).
 
-This tells us some important information -- first of all, we need to look at image `docker.io/anchore/test_images@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9`.
-
-Using the SHA above, we can run `yardstick` to see which results we can find:
+Using the SHA above, we can run `yardstick` to see which results are available:
 ```shell
 $ yardstick result list --result-set pr_vs_latest_via_sbom | grep 808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9
 
@@ -195,8 +191,8 @@ $ yardstick result list --result-set pr_vs_latest_via_sbom | grep 808f6cf3cf4473
 67913f57-690f-4f35-a2d9-ffccd2a0b2a1  docker.io/anchore/test_images:appstreams-centos-stream-8-1a287dd@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9          syft@v0.60.1               2022-11-01 20:30:52+00:00
 ```
 
-Copying the first UUID, which we can see was run against the last Grype release, we can browse the results:
-
+We'll need to use the UUIDs to explore the labels, so copy the first UUID, which we can see was run against the last Grype release (`grype@v0.53.1`). Use the UUID to explore and edit the results with
+`yardstick label explore`:
 ```shell
 yardstick label explore 5bf0611b-183f-4525-a1ab-f268f62f48b6
 ```
@@ -205,36 +201,35 @@ At this point we can use the TUI to explore and modify the match data, by deleti
 true positives, false positives, etc.. **After making changes make sure to save the results** (`Ctrl-S`)!
 
 At this point you can run the quality gate using updated label data. The quality gate can run against 
-just one image, for example the image we first found in the failure, we can run the quality gate and see
+just one image, for example the image we first found in the failure, so run the quality gate and see
 how changes to the label data have affected the result:
 ```shell
-python gate.py --image docker.io/anchore/test_images@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9
+./gate.py --image docker.io/anchore/test_images@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9
 ```
 
 After iterating on all the changes we need using `yardstick label explore`, we're now ready to commit changes. Since
 we're using `git submodules`, we need to do two steps:
-1. get the changes merged to the `vulnerability-match-labels` repository
-2. update the submodule hash in this repository
+1. get the changes merged to the `vulnerability-match-labels` repository `main` branch
+2. update the submodule in this repository
 
-To create a pull request for the `vulnerability-match-labels`, `cd` there and 
-create a branch -- something like:
+To create a pull request for the `vulnerability-match-labels`, make sure you are in the `vulnerability-match-labels`
+subdirectory and create a branch -- something like:
 ```shell
-cd vulnerability-match-labels
 git checkout --no-track -b my-branch-name
 ```
 
-Commit the chagnes to this branch, push, create a pull request like normal. NOTE: you may need to add a fork
+Commit the changes to this branch, push, create a pull request like normal. NOTE: you may need to add a fork
 (`git remote add ...`) and push to the fork if you don't have push permissions against the main
-`vulnerability-match-labels` repo. After the PR is approved and merged to `vulnerability-match-labels @ main`,
-update the submodule locally using:
-
+`vulnerability-match-labels` repo. After the PR is approved and merged to `vulnerability-match-labels` repo's `main`
+branch, update the submodule locally using:
 ```shell
 git submodule update --remote
 ```
 
-Next, commit the submodule change as part of any other changes 
+Next, _commit the submodule change_ as part of any other changes 
 to the Grype pull request and push as part of the in-progress PR
-against Grype.
+against Grype. The PR will now use the updated match labels when running
+the quality check.
 
 ## Required setup
 
@@ -278,7 +273,7 @@ Verify this has worked properly by running:
 python --version
 ```
 
-It is also required to have `oras` installed (e.g. `brew install oras`)
+**Important:** it is also required to have `oras` installed (e.g. `brew install oras`)
 
 **After** setting the working Python version to 3.10, in the `test/quality` directory,
 you need to set up a virtual environment using:
@@ -298,7 +293,7 @@ like this:
 (venv) user@HOST quality %
 ```
 
-Now you should be able to run both `yardstick` and `python gate.py`.
+Now you should be able to run both `yardstick` and `./gate.py`.
 
 ## Troubleshooting
 
