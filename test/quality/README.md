@@ -148,6 +148,12 @@ You will need to make sure the `vulnerabilty-match-labels` submodule has been in
 for some `make` commands, but you can ensure this by `git submodule update --init`. After the submodule has been
 initialized, the match data from `vulnerabilty-match-labels` will be available locally.
 
+**TIP**: when dealing with submodules, it may be convenient to set the git config option `submodule.recurse` to `true`
+so `git checkout` will automatically update submodules to the correct commit:
+```shell
+git config submodule.recurse true
+```
+
 To do this we need some results to begin with. As noted above, start with (this does ensure the submodule is initialized):
 ```shell
 make capture
