@@ -26,7 +26,7 @@ func NewPresenter(results match.Matches, packages []pkg.Package, srcMetadata *so
 		packages:         packages,
 		metadataProvider: metadataProvider,
 		srcMetadata:      srcMetadata,
-		format:           cyclondx.BOMFileFormatJSON,
+		format:           cyclonedx.BOMFileFormatJSON,
 	}
 }
 
