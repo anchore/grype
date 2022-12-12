@@ -17,6 +17,7 @@ import (
 	"github.com/anchore/syft/syft/source"
 )
 
+// TODO: do we want this to return the SBOM used to generate the report
 func FindVulnerabilities(store store.Store, userImageStr string, scopeOpt source.Scope, registryOptions *image.RegistryOptions) (match.Matches, pkg.Context, []pkg.Package, error) {
 	providerConfig := pkg.ProviderConfig{
 		RegistryOptions:   registryOptions,
@@ -24,7 +25,7 @@ func FindVulnerabilities(store store.Store, userImageStr string, scopeOpt source
 	}
 	providerConfig.CatalogingOptions.Search.Scope = scopeOpt
 
-	packages, context, err := pkg.Provide(userImageStr, providerConfig)
+	packages, context, _, err := pkg.Provide(userImageStr, providerConfig)
 	if err != nil {
 		return match.Matches{}, pkg.Context{}, nil, err
 	}

@@ -27,6 +27,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter"
+	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
@@ -39,6 +40,7 @@ import (
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -319,6 +321,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		var status *db.Status
 		var dbCloser *db.Closer
 		var packages []pkg.Package
+		var sbom *sbom.SBOM
 		var context pkg.Context
 		var wg = &sync.WaitGroup{}
 		var loadedDB, gatheredPackages bool
@@ -339,7 +342,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		go func() {
 			defer wg.Done()
 			log.Debugf("gathering packages")
-			packages, context, err = pkg.Provide(userInput, getProviderConfig())
+			packages, context, sbom, err = pkg.Provide(userInput, getProviderConfig())
 			if err != nil {
 				errs <- fmt.Errorf("failed to catalog: %w", err)
 				return
@@ -390,9 +393,20 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			errs <- grypeerr.ErrAboveSeverityThreshold
 		}
 
+		pb := models.PresenterBundle{
+			Matches:          remainingMatches,
+			IgnoredMatches:   ignoredMatches,
+			Packages:         packages,
+			Context:          context,
+			MetadataProvider: store,
+			SBOM:             sbom,
+			AppConfig:        appConfig,
+			DBStatus:         status,
+		}
+
 		bus.Publish(partybus.Event{
 			Type:  event.VulnerabilityScanningFinished,
-			Value: presenter.GetPresenter(presenterConfig, remainingMatches, ignoredMatches, packages, context, store, appConfig, status),
+			Value: presenter.GetPresenter(presenterConfig, pb),
 		})
 	}()
 	return errs
