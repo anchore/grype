@@ -19,6 +19,9 @@ CHANGELOG.md
 *.tmp
 coverage.txt
 
+# OS files
+.DS_Store
+
 # Binaries for programs and plugins
 *.exe
 *.exe~

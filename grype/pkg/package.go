@@ -6,6 +6,7 @@ import (
 
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/pkg/cataloger/common/cpe"
 	"github.com/anchore/syft/syft/source"
@@ -86,6 +87,25 @@ func FromPackages(syftpkgs []pkg.Package, config SynthesisConfig) []Package {
 // Stringer to represent a package.
 func (p Package) String() string {
 	return fmt.Sprintf("Pkg(type=%s, name=%s, version=%s, upstreams=%d)", p.Type, p.Name, p.Version, len(p.Upstreams))
+}
+
+func RemoveBinaryPackagesByOverlap(catalog *pkg.Catalog, relationships []artifact.Relationship) *pkg.Catalog {
+	byOverlap := map[artifact.ID]artifact.Identifiable{}
+	for _, r := range relationships {
+		if r.Type == artifact.OwnershipByFileOverlapRelationship {
+			byOverlap[r.To.ID()] = r.To
+		}
+	}
+
+	out := pkg.NewCatalog()
+	for p := range catalog.Enumerate() {
+		if _, ok := byOverlap[p.ID()]; p.Type == pkg.BinaryPkg && ok {
+			continue
+		}
+		out.Add(p)
+	}
+
+	return out
 }
 
 func dataFromPkg(p pkg.Package) (MetadataType, interface{}, []UpstreamPackage) {
