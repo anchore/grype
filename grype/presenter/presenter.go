@@ -3,6 +3,9 @@ package presenter
 import (
 	"io"
 
+	cyclonedxLib "github.com/CycloneDX/cyclonedx-go"
+	"github.com/anchore/grype/grype/presenter/cyclonedx"
+	"github.com/anchore/grype/grype/presenter/cyclonedxvex"
 	"github.com/anchore/grype/grype/presenter/json"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/presenter/sarif"
@@ -26,6 +29,12 @@ func GetPresenter(c Config, pb models.PresenterBundle) Presenter {
 			return table.NewPresenter(pb)
 		}
 		return table.NewPresenter(pb)
+	case cycloneDXFormat:
+		return cyclonedx.NewPresenter(pb)
+	case embeddedVEXJSON:
+		return cyclonedxvex.NewPresenter(pb, cyclonedxLib.BOMFileFormatJSON)
+	case embeddedVEXXML:
+		return cyclonedxvex.NewPresenter(pb, cyclonedxLib.BOMFileFormatXML)
 	case sarifFormat:
 		return sarif.NewPresenter(pb)
 	case templateFormat:

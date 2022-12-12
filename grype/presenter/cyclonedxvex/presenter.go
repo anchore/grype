@@ -1,4 +1,4 @@
-package cyclonedx
+package cyclonedxvex
 
 import (
 	"io"
@@ -16,21 +16,20 @@ import (
 type Presenter struct {
 	results          match.Matches
 	packages         []pkg.Package
-	srcMetadata      *source.Metadata
 	metadataProvider vulnerability.MetadataProvider
-	format           cyclonedx.BOMFileFormat
+	srcMetadata      *source.Metadata
 	sbom             *sbom.SBOM
+	format           cyclonedx.BOMFileFormat
 }
 
-// NewPresenter is a *Presenter constructor
-func NewPresenter(pb models.PresenterBundle) *Presenter {
+func NewPresenter(pb models.PresenterBundle, format cyclonedx.BOMFileFormat) *Presenter {
 	return &Presenter{
 		results:          pb.Matches,
 		packages:         pb.Packages,
 		metadataProvider: pb.MetadataProvider,
 		srcMetadata:      pb.Context.Source,
 		sbom:             pb.SBOM,
-		format:           cyclonedx.BOMFileFormatJSON,
+		format:           format,
 	}
 }
 
