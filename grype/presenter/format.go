@@ -31,12 +31,12 @@ func parse(userInput string) format {
 		return jsonFormat
 	case strings.ToLower(tableFormat.String()):
 		return tableFormat
-	case strings.ToLower(cycloneDXFormat.String()):
-		return cycloneDXFormat
 	case strings.ToLower(sarifFormat.String()):
 		return sarifFormat
 	case strings.ToLower(templateFormat.String()):
 		return templateFormat
+	case strings.ToLower(cycloneDXFormat.String()):
+		return cycloneDXFormat
 	case strings.ToLower(embeddedVEXJSON.String()):
 		return embeddedVEXJSON
 	case strings.ToLower(embeddedVEXXML.String()):

@@ -29,12 +29,14 @@ func GetPresenter(c Config, pb models.PresenterBundle) Presenter {
 			return table.NewPresenter(pb)
 		}
 		return table.NewPresenter(pb)
+	// NOTE: cyclonedx is identical to embeddedVEXJSON
+	// The cyclonedx library only provides two BOM formats: JSON and XML
 	case cycloneDXFormat:
-		return cyclonedx.NewPresenter(pb)
+		return cyclonedx.NewPresenter(pb, cyclonedxLib.BOMFileFormatJSON)
 	case embeddedVEXJSON:
 		return cyclonedxvex.NewPresenter(pb, cyclonedxLib.BOMFileFormatJSON)
 	case embeddedVEXXML:
-		return cyclonedxvex.NewPresenter(pb, cyclonedxLib.BOMFileFormatXML)
+		return cyclonedx.NewPresenter(pb, cyclonedxLib.BOMFileFormatXML)
 	case sarifFormat:
 		return sarif.NewPresenter(pb)
 	case templateFormat:

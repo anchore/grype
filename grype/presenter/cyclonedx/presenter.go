@@ -24,14 +24,14 @@ type Presenter struct {
 }
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter(pb models.PresenterBundle) *Presenter {
+func NewPresenter(pb models.PresenterBundle, format cyclonedx.BOMFileFormat) *Presenter {
 	return &Presenter{
 		results:          pb.Matches,
 		packages:         pb.Packages,
 		metadataProvider: pb.MetadataProvider,
 		srcMetadata:      pb.Context.Source,
 		sbom:             pb.SBOM,
-		format:           cyclonedx.BOMFileFormatJSON,
+		format:           format,
 	}
 }
 
