@@ -28,7 +28,7 @@ type Presenter struct {
 // NewPresenter is a *Presenter constructor
 func NewPresenter(pb models.PresenterBundle) *Presenter {
 	return &Presenter{
-		results:          pb.Matches,
+		results:          *pb.Matches,
 		packages:         pb.Packages,
 		metadataProvider: pb.MetadataProvider,
 		srcMetadata:      pb.Context.Source,

@@ -21,7 +21,7 @@ func FindVulnerabilities(store store.Store, userImageStr string, scopeOpt source
 	}
 	providerConfig.CatalogingOptions.Search.Scope = scopeOpt
 
-	packages, context, err := pkg.Provide(userImageStr, providerConfig)
+	packages, context, _, err := pkg.Provide(userImageStr, providerConfig)
 	if err != nil {
 		return match.Matches{}, pkg.Context{}, nil, err
 	}

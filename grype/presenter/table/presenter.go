@@ -21,7 +21,7 @@ const (
 
 // Presenter is a generic struct for holding fields needed for reporting
 type Presenter struct {
-	results          match.Matches
+	results          *match.Matches
 	ignoredMatches   []match.IgnoredMatch
 	packages         []pkg.Package
 	metadataProvider vulnerability.MetadataProvider

@@ -51,7 +51,7 @@ func TestProviderLocationExcludes(t *testing.T) {
 					CatalogingOptions: cataloger.DefaultConfig(),
 				},
 			}
-			pkgs, _, _ := Provide(test.fixture, cfg)
+			pkgs, _, _, _ := Provide(test.fixture, cfg)
 
 			var pkgNames []string
 

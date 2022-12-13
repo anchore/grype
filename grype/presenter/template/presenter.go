@@ -19,7 +19,7 @@ import (
 
 // Presenter is an implementation of presenter.Presenter that formats output according to a user-provided Go text template.
 type Presenter struct {
-	matches            match.Matches
+	matches            *match.Matches
 	ignoredMatches     []match.IgnoredMatch
 	packages           []pkg.Package
 	context            pkg.Context
@@ -61,7 +61,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 		return fmt.Errorf("unable to parse template: %w", err)
 	}
 
-	document, err := models.NewDocument(pres.packages, pres.context, pres.matches, pres.ignoredMatches, pres.metadataProvider,
+	document, err := models.NewDocument(pres.packages, pres.context, *pres.matches, pres.ignoredMatches, pres.metadataProvider,
 		pres.appConfig, pres.dbStatus)
 	if err != nil {
 		return err

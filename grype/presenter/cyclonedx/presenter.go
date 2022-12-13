@@ -15,7 +15,7 @@ import (
 
 // Presenter writes a CycloneDX report from the given Matches and Scope contents
 type Presenter struct {
-	results          match.Matches
+	results          *match.Matches
 	packages         []pkg.Package
 	srcMetadata      *source.Metadata
 	metadataProvider vulnerability.MetadataProvider
