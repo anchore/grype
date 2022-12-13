@@ -8,6 +8,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/syft/syft/formats/common/cyclonedxhelpers"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
 )
@@ -37,5 +38,18 @@ func NewPresenter(pb models.PresenterBundle) *Presenter {
 // Present creates a CycloneDX-based reporting
 func (pres *Presenter) Present(output io.Writer) error {
 	// update to use syft library
-	return nil
+	cyclonedxBOM := cyclonedxhelpers.ToFormatModel(*pres.sbom)
+	vulnberabilities := make([]cyclonedx.Vulnerability, 0)
+	for m := range pres.results.Enumerate() {
+		v, err := NewVulnerability(m, pres.metadataProvider)
+		if err != nil {
+			continue
+		}
+		vulnberabilities = append(vulnberabilities, v)
+	}
+	cyclonedxBOM.Vulnerabilities = &vulnberabilities
+	enc := cyclonedx.NewBOMEncoder(output, pres.format)
+	enc.SetPretty(true)
+
+	return enc.Encode(cyclonedxBOM)
 }

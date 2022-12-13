@@ -342,6 +342,8 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		go func() {
 			defer wg.Done()
 			log.Debugf("gathering packages")
+			// packages here are grype.Pacakge, not syft.Package
+			// the SBOM is returned for formatting concerns (e.g. CYCLONEDX)
 			packages, context, sbom, err = pkg.Provide(userInput, getProviderConfig())
 			if err != nil {
 				errs <- fmt.Errorf("failed to catalog: %w", err)
