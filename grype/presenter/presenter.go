@@ -4,6 +4,7 @@ import (
 	"io"
 
 	cyclonedxLib "github.com/CycloneDX/cyclonedx-go"
+
 	"github.com/anchore/grype/grype/presenter/cyclonedx"
 	"github.com/anchore/grype/grype/presenter/json"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -28,6 +29,7 @@ func GetPresenter(c Config, pb models.PresenterBundle) Presenter {
 			return table.NewPresenter(pb)
 		}
 		return table.NewPresenter(pb)
+
 	// NOTE: cyclonedx is identical to embeddedVEXJSON
 	// The cyclonedx library only provides two BOM formats: JSON and XML
 	case cycloneDXFormat:

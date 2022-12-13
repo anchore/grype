@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/CycloneDX/cyclonedx-go"
+
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
