@@ -55,7 +55,7 @@ func TestStore_GetID_SetID(t *testing.T) {
 }
 
 func assertVulnerabilityReader(t *testing.T, reader v5.VulnerabilityStoreReader, namespace, name string, expected []v5.Vulnerability) {
-	if actual, err := reader.GetVulnerability(namespace, name); err != nil {
+	if actual, err := reader.SearchForVulnerabilities(namespace, name); err != nil {
 		t.Fatalf("failed to get Vulnerability: %+v", err)
 	} else {
 		if len(actual) != len(expected) {

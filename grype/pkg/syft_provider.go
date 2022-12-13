@@ -27,11 +27,12 @@ func syftProvider(userInput string, config ProviderConfig) ([]Package, Context, 
 		return nil, Context{}, nil, err
 	}
 
-	packages := FromCatalog(catalog, config)
+	packages := FromCatalog(catalog, config.SynthesisConfig)
 	context := Context{
 		Source: &src.Metadata,
 		Distro: theDistro,
 	}
+
 	sbom := &sbom.SBOM{
 		Source:        src.Metadata,
 		Relationships: relationships,

@@ -33,6 +33,7 @@ func (i *CPEParameters) Merge(other CPEParameters) error {
 }
 
 type CPEResult struct {
+	VulnerabilityID   string   `json:"vulnerabilityID"`
 	VersionConstraint string   `json:"versionConstraint"`
 	CPEs              []string `json:"cpes"`
 }
@@ -124,6 +125,7 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 				},
 			},
 			Found: CPEResult{
+				VulnerabilityID:   vuln.ID,
 				VersionConstraint: vuln.Constraint.String(),
 				CPEs:              cpesToString(filterCPEsByVersion(searchVersion, vuln.CPEs)),
 			},

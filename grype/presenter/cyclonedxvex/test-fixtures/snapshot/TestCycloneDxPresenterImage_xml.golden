@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:9252cfa6-c1bb-4577-969f-6426a9576a4b" version="1">
+  <metadata>
+    <timestamp>2022-12-08T13:54:36-05:00</timestamp>
+    <tools>
+      <tool>
+        <vendor>anchore</vendor>
+        <name>grype</name>
+        <version>[not provided]</version>
+      </tool>
+    </tools>
+    <component type="container">
+      <name>user-input</name>
+      <version>sha256:ca738abb87a8d58f112d3400ebb079b61ceae7dc290beb34bda735be4b1941d5</version>
+    </component>
+  </metadata>
+  <components>
+    <component bom-ref="34c838f5-21cb-4366-80ae-cc2592319a81" type="library">
+      <name>package-1</name>
+      <version>1.1.1</version>
+    </component>
+    <component bom-ref="19b6f279-29f9-4193-b84e-5e5bc3a32267" type="library">
+      <name>package-2</name>
+      <version>2.2.2</version>
+      <licenses>
+        <license>
+          <name>MIT</name>
+        </license>
+        <license>
+          <name>Apache-2.0</name>
+        </license>
+      </licenses>
+    </component>
+  </components>
+  <vulnerabilities>
+    <vulnerability>
+      <id>CVE-1999-0001</id>
+      <source>
+        <name>source-1</name>
+        <url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0001</url>
+      </source>
+      <ratings>
+        <rating>
+          <severity>low</severity>
+        </rating>
+        <rating>
+          <score>4</score>
+          <method>CVSSv3</method>
+          <vector>another vector</vector>
+        </rating>
+      </ratings>
+      <description>1999-01 description</description>
+      <advisories></advisories>
+      <analysis>
+        <state>in_triage</state>
+      </analysis>
+      <affects>
+        <target>
+          <ref>34c838f5-21cb-4366-80ae-cc2592319a81</ref>
+        </target>
+      </affects>
+      <properties>
+        <property name="grype:fixed_versions">the-next-version</property>
+      </properties>
+    </vulnerability>
+    <vulnerability>
+      <id>CVE-1999-0002</id>
+      <source>
+        <name>source-2</name>
+        <url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0002</url>
+      </source>
+      <ratings>
+        <rating>
+          <severity>critical</severity>
+        </rating>
+        <rating>
+          <score>1</score>
+          <method>CVSSv2</method>
+          <vector>vector</vector>
+        </rating>
+      </ratings>
+      <description>1999-02 description</description>
+      <advisories></advisories>
+      <analysis>
+        <state>in_triage</state>
+      </analysis>
+      <affects>
+        <target>
+          <ref>19b6f279-29f9-4193-b84e-5e5bc3a32267</ref>
+        </target>
+      </affects>
+      <properties></properties>
+    </vulnerability>
+  </vulnerabilities>
+</bom>

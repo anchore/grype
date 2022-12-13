@@ -33,7 +33,8 @@ x-ref:
     - docker.io/jenkins/jenkins:2.361.4-lts-jdk11@sha256:6fd5699ab182b5d23d0e3936de6047edc30955a3a92e01c392d5a2fd583efac0
     - docker.io/neo4j:4.4.14-community:4.4.14-community@sha256:fcfcbb026e0e538bf66f5fe5c4b2db3dd4931c3aae07f13a5a8c10e979596256
     - docker.io/sonatype/nexus3:3.30.0@sha256:e8fea6b4279f2b5b24b36170459cb7aa3d6afe999f9d3e3713541be28bae8ec4
-    
+    - docker.io/gitlab/gitlab-ce:15.6.1-ce.0@sha256:04d4219d5dfb3acccc9997e50477c8d24b371387a95857e1ea8fc779e17a716c
+
 # new vulnerabilities are added all of the time, instead of keeping up it's easier to ignore newer entries.
 # This approach helps tremendously with keeping the analysis relatively stable.
 default_max_year: 2021

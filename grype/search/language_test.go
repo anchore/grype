@@ -82,6 +82,7 @@ func expectedMatch(p pkg.Package, constraint string) []match.Match {
 					},
 					Found: map[string]interface{}{
 						"versionConstraint": constraint,
+						"vulnerabilityID":   "CVE-2017-fake-1",
 					},
 					Matcher: match.RubyGemMatcher,
 				},

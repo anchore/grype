@@ -6,6 +6,7 @@ import (
 
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/pkg/cataloger/common/cpe"
 	"github.com/anchore/syft/syft/source"
@@ -58,10 +59,14 @@ func New(p pkg.Package) Package {
 	}
 }
 
-func FromCatalog(catalog *pkg.Catalog, config ProviderConfig) []Package {
-	result := make([]Package, 0, catalog.PackageCount())
-	missingCPEs := false
-	for _, p := range catalog.Sorted() {
+func FromCatalog(catalog *pkg.Catalog, config SynthesisConfig) []Package {
+	return FromPackages(catalog.Sorted(), config)
+}
+
+func FromPackages(syftpkgs []pkg.Package, config SynthesisConfig) []Package {
+	var pkgs []Package
+	var missingCPEs bool
+	for _, p := range syftpkgs {
 		if len(p.CPEs) == 0 {
 			// For SPDX (or any format, really) we may have no CPEs
 			if config.GenerateMissingCPEs {
@@ -71,17 +76,36 @@ func FromCatalog(catalog *pkg.Catalog, config ProviderConfig) []Package {
 				missingCPEs = true
 			}
 		}
-		result = append(result, New(p))
+		pkgs = append(pkgs, New(p))
 	}
 	if missingCPEs {
 		log.Warnf("some package(s) are missing CPEs. This may result in missing vulnerabilities. You may autogenerate these using: --add-cpes-if-none")
 	}
-	return result
+	return pkgs
 }
 
 // Stringer to represent a package.
 func (p Package) String() string {
 	return fmt.Sprintf("Pkg(type=%s, name=%s, version=%s, upstreams=%d)", p.Type, p.Name, p.Version, len(p.Upstreams))
+}
+
+func RemoveBinaryPackagesByOverlap(catalog *pkg.Catalog, relationships []artifact.Relationship) *pkg.Catalog {
+	byOverlap := map[artifact.ID]artifact.Identifiable{}
+	for _, r := range relationships {
+		if r.Type == artifact.OwnershipByFileOverlapRelationship {
+			byOverlap[r.To.ID()] = r.To
+		}
+	}
+
+	out := pkg.NewCatalog()
+	for p := range catalog.Enumerate() {
+		if _, ok := byOverlap[p.ID()]; p.Type == pkg.BinaryPkg && ok {
+			continue
+		}
+		out.Add(p)
+	}
+
+	return out
 }
 
 func dataFromPkg(p pkg.Package) (MetadataType, interface{}, []UpstreamPackage) {

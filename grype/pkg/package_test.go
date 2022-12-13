@@ -7,6 +7,7 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/file"
 	syftFile "github.com/anchore/syft/syft/file"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -415,7 +416,7 @@ func TestFromCatalog_DoesNotPanic(t *testing.T) {
 	catalog.Add(examplePackage)
 
 	assert.NotPanics(t, func() {
-		_ = FromCatalog(catalog, ProviderConfig{})
+		_ = FromCatalog(catalog, SynthesisConfig{})
 	})
 }
 
@@ -436,12 +437,12 @@ func TestFromCatalog_GeneratesCPEs(t *testing.T) {
 	})
 
 	// doesn't generate cpes when no flag
-	pkgs := FromCatalog(catalog, ProviderConfig{})
+	pkgs := FromCatalog(catalog, SynthesisConfig{})
 	assert.Len(t, pkgs[0].CPEs, 1)
 	assert.Len(t, pkgs[1].CPEs, 0)
 
 	// does generate cpes with the flag
-	pkgs = FromCatalog(catalog, ProviderConfig{
+	pkgs = FromCatalog(catalog, SynthesisConfig{
 		GenerateMissingCPEs: true,
 	})
 	assert.Len(t, pkgs[0].CPEs, 1)
@@ -485,4 +486,75 @@ func Test_getNameAndELVersion(t *testing.T) {
 
 func intRef(i int) *int {
 	return &i
+}
+
+func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
+	tests := []struct {
+		name             string
+		sbom             catalogRelationships
+		expectedPackages []string
+	}{
+		{
+			name:             "includes all packages without overlap",
+			sbom:             catalogWithBinaryOverlaps([]string{"go"}, []string{}),
+			expectedPackages: []string{"go"},
+		},
+		{
+			name:             "excludes single package by overlap",
+			sbom:             catalogWithBinaryOverlaps([]string{"go", "node"}, []string{"node"}),
+			expectedPackages: []string{"go"},
+		},
+		{
+			name:             "excludes multiple package by overlap",
+			sbom:             catalogWithBinaryOverlaps([]string{"go", "node", "python", "george"}, []string{"node", "george"}),
+			expectedPackages: []string{"go", "python"},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			catalog := RemoveBinaryPackagesByOverlap(test.sbom.catalog, test.sbom.relationships)
+			pkgs := FromCatalog(catalog, SynthesisConfig{})
+			var pkgNames []string
+			for _, p := range pkgs {
+				pkgNames = append(pkgNames, p.Name)
+			}
+			assert.EqualValues(t, test.expectedPackages, pkgNames)
+		})
+	}
+}
+
+type catalogRelationships struct {
+	catalog       *syftPkg.Catalog
+	relationships []artifact.Relationship
+}
+
+func catalogWithBinaryOverlaps(packages []string, overlaps []string) catalogRelationships {
+	var pkgs []syftPkg.Package
+	var relationships []artifact.Relationship
+
+	for _, name := range packages {
+		p := syftPkg.Package{
+			Name: name,
+			Type: syftPkg.BinaryPkg,
+		}
+		p.SetID()
+
+		for _, overlap := range overlaps {
+			if overlap == name {
+				relationships = append(relationships, artifact.Relationship{
+					From: p,
+					To:   p,
+					Type: artifact.OwnershipByFileOverlapRelationship,
+				})
+			}
+		}
+
+		pkgs = append(pkgs, p)
+	}
+	catalog := syftPkg.NewCatalog(pkgs...)
+
+	return catalogRelationships{
+		catalog:       catalog,
+		relationships: relationships,
+	}
 }
