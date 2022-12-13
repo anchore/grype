@@ -20,7 +20,15 @@ var update = flag.Bool("update", false, "update the *.golden files for json pres
 func TestJsonImgsPresenter(t *testing.T) {
 	var buffer bytes.Buffer
 	matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, source.ImageScheme)
-	pres := NewPresenter(matches, nil, packages, context, metadataProvider, nil, nil)
+
+	pb := models.PresenterBundle{
+		Matches:          &matches,
+		Packages:         packages,
+		Context:          context,
+		MetadataProvider: metadataProvider,
+	}
+
+	pres := NewPresenter(pb)
 
 	// run presenter
 	if err := pres.Present(&buffer); err != nil {
@@ -43,7 +51,15 @@ func TestJsonDirsPresenter(t *testing.T) {
 	var buffer bytes.Buffer
 
 	matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, source.DirectoryScheme)
-	pres := NewPresenter(matches, nil, packages, context, metadataProvider, nil, nil)
+
+	pb := models.PresenterBundle{
+		Matches:          &matches,
+		Packages:         packages,
+		Context:          context,
+		MetadataProvider: metadataProvider,
+	}
+
+	pres := NewPresenter(pb)
 
 	// run presenter
 	if err := pres.Present(&buffer); err != nil {
@@ -78,7 +94,14 @@ func TestEmptyJsonPresenter(t *testing.T) {
 		},
 	}
 
-	pres := NewPresenter(matches, nil, []pkg.Package{}, ctx, nil, nil, nil)
+	pb := models.PresenterBundle{
+		Matches:          &matches,
+		Packages:         nil,
+		Context:          ctx,
+		MetadataProvider: nil,
+	}
+
+	pres := NewPresenter(pb)
 
 	// run presenter
 	if err := pres.Present(&buffer); err != nil {

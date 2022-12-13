@@ -106,7 +106,7 @@ func TestSyftLocationExcludes(t *testing.T) {
 					CatalogingOptions: cataloger.DefaultConfig(),
 				},
 			}
-			pkgs, _, err := Provide(userInput, cfg)
+			pkgs, _, _, err := Provide(userInput, cfg)
 
 			assert.NoErrorf(t, err, "error calling Provide function")
 

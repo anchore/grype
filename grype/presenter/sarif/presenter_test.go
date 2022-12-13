@@ -37,7 +37,15 @@ func TestSarifPresenter(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var buffer bytes.Buffer
 			matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, tc.scheme)
-			pres := NewPresenter(matches, packages, context.Source, metadataProvider)
+
+			pb := models.PresenterBundle{
+				Matches:          &matches,
+				Packages:         packages,
+				Context:          context,
+				MetadataProvider: metadataProvider,
+			}
+
+			pres := NewPresenter(pb)
 			err := pres.Present(&buffer)
 			if err != nil {
 				t.Fatal(err)
@@ -176,7 +184,16 @@ func createDirPresenter(t *testing.T, path string) *Presenter {
 		t.Fatal(err)
 	}
 
-	pres := NewPresenter(matches, packages, &s.Metadata, metadataProvider)
+	pb := models.PresenterBundle{
+		Matches:          &matches,
+		Packages:         packages,
+		MetadataProvider: metadataProvider,
+		Context: pkg.Context{
+			Source: &s.Metadata,
+		},
+	}
+
+	pres := NewPresenter(pb)
 
 	return pres
 }
@@ -211,7 +228,15 @@ func TestToSarifReport(t *testing.T) {
 			t.Parallel()
 
 			matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, tc.scheme)
-			pres := NewPresenter(matches, packages, context.Source, metadataProvider)
+
+			pb := models.PresenterBundle{
+				Matches:          &matches,
+				Packages:         packages,
+				MetadataProvider: metadataProvider,
+				Context:          context,
+			}
+
+			pres := NewPresenter(pb)
 
 			report, err := pres.toSarifReport()
 			assert.NoError(t, err)

@@ -193,7 +193,7 @@ func TestParseAttestation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
-			pkgs, _, err := syftSBOMProvider(tt.Input, ProviderConfig{
+			pkgs, _, _, err := syftSBOMProvider(tt.Input, ProviderConfig{
 				SyftProviderConfig: SyftProviderConfig{
 					AttestationPublicKey: tt.Key,
 				},
@@ -324,7 +324,7 @@ func TestParseSyftJSON(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Fixture, func(t *testing.T) {
-			pkgs, context, err := syftSBOMProvider(test.Fixture, ProviderConfig{})
+			pkgs, context, _, err := syftSBOMProvider(test.Fixture, ProviderConfig{})
 			if err != nil {
 				t.Fatalf("unable to parse: %+v", err)
 			}
@@ -353,7 +353,7 @@ func TestParseSyftJSON(t *testing.T) {
 }
 
 func TestParseSyftJSON_BadCPEs(t *testing.T) {
-	pkgs, _, err := syftSBOMProvider("test-fixtures/syft-java-bad-cpes.json", ProviderConfig{})
+	pkgs, _, _, err := syftSBOMProvider("test-fixtures/syft-java-bad-cpes.json", ProviderConfig{})
 	assert.NoError(t, err)
 	assert.Len(t, pkgs, 1)
 }
