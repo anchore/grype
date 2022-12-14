@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:997b27c3-3f82-476d-912f-01aabdb5ea28" version="1">
+  <metadata>
+    <timestamp>2022-12-21T10:49:54-05:00</timestamp>
+    <tools>
+      <tool>
+        <vendor>anchore</vendor>
+        <name>syft</name>
+      </tool>
+    </tools>
+  </metadata>
+  <components></components>
+  <vulnerabilities>
+    <vulnerability bom-ref="urn:uuid:dd9980f3-9fb1-4a98-8720-5a17485ddf27">
+      <id>CVE-1999-0001</id>
+      <source></source>
+      <references>
+        <reference>
+          <id>CVE-1999-0001</id>
+          <source></source>
+        </reference>
+      </references>
+      <ratings>
+        <rating>
+          <score>4</score>
+          <severity>low</severity>
+          <method>CVSSv3</method>
+          <vector>another vector</vector>
+        </rating>
+      </ratings>
+      <description>1999-01 description</description>
+      <advisories></advisories>
+    </vulnerability>
+    <vulnerability bom-ref="urn:uuid:29398657-afb5-489c-82bb-4269630c2140">
+      <id>CVE-1999-0002</id>
+      <source></source>
+      <references>
+        <reference>
+          <id>CVE-1999-0002</id>
+          <source></source>
+        </reference>
+      </references>
+      <ratings>
+        <rating>
+          <score>1</score>
+          <severity>critical</severity>
+          <method>CVSSv2</method>
+          <vector>vector</vector>
+        </rating>
+      </ratings>
+      <description>1999-02 description</description>
+      <advisories></advisories>
+    </vulnerability>
+  </vulnerabilities>
+</bom>
