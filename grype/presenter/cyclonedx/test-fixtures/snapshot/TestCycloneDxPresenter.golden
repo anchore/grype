@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:7bbe71d3-98b6-4966-8237-1ad36467ecee" version="1">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:e6978a5a-365c-4c9d-863b-51da91f07648" version="1">
   <metadata>
-    <timestamp>2022-12-21T12:15:27-05:00</timestamp>
+    <timestamp>2022-12-21T13:04:52-05:00</timestamp>
     <tools>
       <tool>
         <vendor>anchore</vendor>
@@ -11,7 +11,7 @@
   </metadata>
   <components></components>
   <vulnerabilities>
-    <vulnerability bom-ref="urn:uuid:39251a04-2ece-4480-ad36-6d7faa631e0a">
+    <vulnerability bom-ref="urn:uuid:416c3196-537e-4022-be2d-3d7f8e33119d">
       <id>CVE-1999-0001</id>
       <source></source>
       <references>
@@ -31,7 +31,7 @@
       <description>1999-01 description</description>
       <advisories></advisories>
     </vulnerability>
-    <vulnerability bom-ref="urn:uuid:5e065946-950f-4023-8166-9d0bd6a57965">
+    <vulnerability bom-ref="urn:uuid:a255e1d3-1eea-4f59-b81a-953d2a8de113">
       <id>CVE-1999-0002</id>
       <source></source>
       <references>

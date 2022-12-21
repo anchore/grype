@@ -51,7 +51,7 @@ func TestCycloneDxPresenter(t *testing.T) {
 		matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, test.scheme)
 
 		pb := models.PresenterBundle{
-			Matches:          &matches,
+			Matches:          matches,
 			Packages:         packages,
 			Context:          context,
 			MetadataProvider: metadataProvider,
