@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:c687b95d-4096-4513-b940-ced6da69b7f1" version="1">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:f01581a8-c85e-4123-92b0-f6627e800a04" version="1">
   <metadata>
-    <timestamp>2022-12-21T14:49:45-05:00</timestamp>
+    <timestamp>2022-12-21T15:20:36-05:00</timestamp>
     <tools>
       <tool>
         <vendor>anchore</vendor>
-        <name>syft</name>
+        <name>grype</name>
+        <version>[not provided]</version>
       </tool>
     </tools>
   </metadata>
@@ -30,7 +31,7 @@
     </component>
   </components>
   <vulnerabilities>
-    <vulnerability bom-ref="urn:uuid:3ff2425d-2fd3-4523-9f19-3c2778aeba72">
+    <vulnerability bom-ref="urn:uuid:6c05cad3-d49e-4ae1-bd40-f62bfd9e9f90">
       <id>CVE-1999-0001</id>
       <source></source>
       <references>
@@ -51,11 +52,11 @@
       <advisories></advisories>
       <affects>
         <target>
-          <ref>631171d2-957f-40d1-8228-55739a22becd</ref>
+          <ref>51d86ac6-b069-4766-9a53-761d9f211c67</ref>
         </target>
       </affects>
     </vulnerability>
-    <vulnerability bom-ref="urn:uuid:1e7ab862-3a52-4483-a78c-fa5b7d95c4b5">
+    <vulnerability bom-ref="urn:uuid:99e86852-cdaf-4bb2-b671-f977982f81ac">
       <id>CVE-1999-0002</id>
       <source></source>
       <references>
@@ -76,7 +77,7 @@
       <advisories></advisories>
       <affects>
         <target>
-          <ref>edfec57c-588a-46af-a9fb-f789ca5dcb61</ref>
+          <ref>cc724e1f-8bb6-4e14-be16-97ff7ae4d1e9</ref>
         </target>
       </affects>
     </vulnerability>

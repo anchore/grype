@@ -9,6 +9,8 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/syft/syft/formats/common/cyclonedxhelpers"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
@@ -41,6 +43,17 @@ func (pres *Presenter) Present(output io.Writer) error {
 	// note: this uses the syft cyclondx helpers to create
 	// a consistent cyclondx BOM across syft and grype
 	cyclonedxBOM := cyclonedxhelpers.ToFormatModel(*pres.sbom)
+
+	// empty the tool metadata and add grype metadata
+	versionInfo := version.FromBuild()
+	cyclonedxBOM.Metadata.Tools = &[]cyclonedx.Tool{
+		{
+			Vendor:  "anchore",
+			Name:    internal.ApplicationName,
+			Version: versionInfo.Version,
+		},
+	}
+
 	vulns := make([]cyclonedx.Vulnerability, 0)
 	for m := range pres.results.Enumerate() {
 		v, err := NewVulnerability(m, pres.metadataProvider)
