@@ -12,7 +12,7 @@ import (
 
 // Presenter is a generic struct for holding fields needed for reporting
 type Presenter struct {
-	matches          *match.Matches
+	matches          match.Matches
 	ignoredMatches   []match.IgnoredMatch
 	packages         []pkg.Package
 	context          pkg.Context
@@ -36,7 +36,7 @@ func NewPresenter(pb models.PresenterBundle) *Presenter {
 
 // Present creates a JSON-based reporting
 func (pres *Presenter) Present(output io.Writer) error {
-	doc, err := models.NewDocument(pres.packages, pres.context, *pres.matches, pres.ignoredMatches, pres.metadataProvider,
+	doc, err := models.NewDocument(pres.packages, pres.context, pres.matches, pres.ignoredMatches, pres.metadataProvider,
 		pres.appConfig, pres.dbStatus)
 	if err != nil {
 		return err

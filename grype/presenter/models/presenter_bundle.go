@@ -8,7 +8,7 @@ import (
 )
 
 type PresenterBundle struct {
-	Matches          *match.Matches
+	Matches          match.Matches
 	IgnoredMatches   []match.IgnoredMatch
 	Packages         []pkg.Package
 	Context          pkg.Context
