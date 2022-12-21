@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:c242b1ff-47ce-49da-b16d-d14f365d724f" version="1">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:3aa284aa-2fa7-4be7-b638-4f61c2c0ea7c" version="1">
   <metadata>
-    <timestamp>2022-12-21T13:47:43-05:00</timestamp>
+    <timestamp>2022-12-21T14:49:45-05:00</timestamp>
     <tools>
       <tool>
         <vendor>anchore</vendor>
@@ -9,9 +9,28 @@
       </tool>
     </tools>
   </metadata>
-  <components></components>
+  <components>
+    <component bom-ref="76bd1479d016ce8f" type="library">
+      <name>package-1</name>
+      <version>1.1.1</version>
+      <cpe>cpe:2.3:a:anchore:engine:0.9.2:*:*:python:*:*:*:*</cpe>
+      <properties>
+        <property name="syft:package:type">rpm</property>
+        <property name="syft:location:0:path">/foo/bar/somefile-1.txt</property>
+      </properties>
+    </component>
+    <component bom-ref="3199ef19b28ce437" type="library">
+      <name>package-2</name>
+      <version>2.2.2</version>
+      <cpe>cpe:2.3:a:anchore:engine:2.2.2:*:*:python:*:*:*:*</cpe>
+      <properties>
+        <property name="syft:package:type">deb</property>
+        <property name="syft:location:0:path">/foo/bar/somefile-2.txt</property>
+      </properties>
+    </component>
+  </components>
   <vulnerabilities>
-    <vulnerability bom-ref="urn:uuid:a858127e-94a3-45fc-b619-dbf5a0b76aaf">
+    <vulnerability bom-ref="urn:uuid:39d500ee-1cbc-4868-90f4-ec5c34ee5608">
       <id>CVE-1999-0001</id>
       <source></source>
       <references>
@@ -30,8 +49,13 @@
       </ratings>
       <description>1999-01 description</description>
       <advisories></advisories>
+      <affects>
+        <target>
+          <ref>1713f283-16f9-4a83-8373-1d7a5382b797</ref>
+        </target>
+      </affects>
     </vulnerability>
-    <vulnerability bom-ref="urn:uuid:75cd70cf-9269-49ec-ae56-6b1252a955fe">
+    <vulnerability bom-ref="urn:uuid:f98b3038-45d6-428f-8bf7-9d04f8ac3456">
       <id>CVE-1999-0002</id>
       <source></source>
       <references>
@@ -50,6 +74,11 @@
       </ratings>
       <description>1999-02 description</description>
       <advisories></advisories>
+      <affects>
+        <target>
+          <ref>8bcb6ac3-a7f4-4719-aac1-b324db6d273f</ref>
+        </target>
+      </affects>
     </vulnerability>
   </vulnerabilities>
 </bom>

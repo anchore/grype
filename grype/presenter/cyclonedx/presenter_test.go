@@ -10,7 +10,6 @@ import (
 
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/presenter/models"
-	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -58,12 +57,13 @@ func TestCycloneDxPresenterImage(t *testing.T) {
 func TestCycloneDxPresenterDir(t *testing.T) {
 	var buffer bytes.Buffer
 	matches, packages, ctx, metadataProvider, _, _ := models.GenerateAnalysis(t, source.DirectoryScheme)
+	sbom := models.SBOMFromPackages(t, packages)
 	pb := models.PresenterBundle{
 		Matches:          matches,
 		Packages:         packages,
 		Context:          ctx,
 		MetadataProvider: metadataProvider,
-		SBOM:             &sbom.SBOM{},
+		SBOM:             sbom,
 	}
 
 	pres := NewPresenter(pb, cyclonedx.BOMFileFormatXML)
