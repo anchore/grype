@@ -9,10 +9,9 @@ const (
 	jsonFormat      format = "json"
 	tableFormat     format = "table"
 	cycloneDXFormat format = "cyclonedx"
+	cycloneDXXML    format = "cyclonedx-xml"
 	sarifFormat     format = "sarif"
 	templateFormat  format = "template"
-	embeddedVEXJSON format = "embedded-cyclonedx-vex-json"
-	embeddedVEXXML  format = "embedded-cyclonedx-vex-xml"
 )
 
 // format is a dedicated type to represent a specific kind of presenter output format.
@@ -37,10 +36,8 @@ func parse(userInput string) format {
 		return templateFormat
 	case strings.ToLower(cycloneDXFormat.String()):
 		return cycloneDXFormat
-	case strings.ToLower(embeddedVEXJSON.String()):
-		return embeddedVEXJSON
-	case strings.ToLower(embeddedVEXXML.String()):
-		return embeddedVEXXML
+	case strings.ToLower(cycloneDXXML.String()):
+		return cycloneDXXML
 	default:
 		return unknownFormat
 	}
@@ -51,8 +48,7 @@ var AvailableFormats = []format{
 	jsonFormat,
 	tableFormat,
 	cycloneDXFormat,
+	cycloneDXXML,
 	sarifFormat,
 	templateFormat,
-	embeddedVEXJSON,
-	embeddedVEXXML,
 }
