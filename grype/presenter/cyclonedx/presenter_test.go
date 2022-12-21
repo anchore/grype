@@ -3,11 +3,12 @@ package cyclonedx
 import (
 	"bytes"
 	"flag"
-	"github.com/anchore/go-testutils"
-	"github.com/google/go-cmp/cmp"
 	"testing"
 
 	"github.com/CycloneDX/cyclonedx-go"
+	"github.com/google/go-cmp/cmp"
+
+	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
