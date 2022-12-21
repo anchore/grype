@@ -1,60 +1,55 @@
-{
-  "bomFormat": "CycloneDX",
-  "specVersion": "1.4",
-  "serialNumber": "urn:uuid:a0ef95d4-73b2-431a-922b-9234d4d0076b",
-  "version": 1,
-  "metadata": {
-    "timestamp": "2022-12-21T13:14:16-05:00",
-    "tools": [
-      {
-        "vendor": "anchore",
-        "name": "syft"
-      }
-    ]
-  },
-  "components": [],
-  "vulnerabilities": [
-    {
-      "bom-ref": "urn:uuid:fcc9100c-8f2d-4fd5-85b5-bf7287a59aed",
-      "id": "CVE-1999-0001",
-      "source": {},
-      "references": [
-        {
-          "id": "CVE-1999-0001",
-          "source": {}
-        }
-      ],
-      "ratings": [
-        {
-          "score": 4,
-          "severity": "low",
-          "method": "CVSSv3",
-          "vector": "another vector"
-        }
-      ],
-      "description": "1999-01 description",
-      "advisories": []
-    },
-    {
-      "bom-ref": "urn:uuid:0df93bc9-44c1-4343-bb82-0f7fba633f5f",
-      "id": "CVE-1999-0002",
-      "source": {},
-      "references": [
-        {
-          "id": "CVE-1999-0002",
-          "source": {}
-        }
-      ],
-      "ratings": [
-        {
-          "score": 1,
-          "severity": "critical",
-          "method": "CVSSv2",
-          "vector": "vector"
-        }
-      ],
-      "description": "1999-02 description",
-      "advisories": []
-    }
-  ]
-}
+<?xml version="1.0" encoding="UTF-8"?>
+<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:06be76d9-d74a-4677-acc6-6170cba29f3c" version="1">
+  <metadata>
+    <timestamp>2022-12-21T13:26:20-05:00</timestamp>
+    <tools>
+      <tool>
+        <vendor>anchore</vendor>
+        <name>syft</name>
+      </tool>
+    </tools>
+  </metadata>
+  <components></components>
+  <vulnerabilities>
+    <vulnerability bom-ref="urn:uuid:81e8e853-1e82-43b1-aced-0b47d2dbf202">
+      <id>CVE-1999-0001</id>
+      <source></source>
+      <references>
+        <reference>
+          <id>CVE-1999-0001</id>
+          <source></source>
+        </reference>
+      </references>
+      <ratings>
+        <rating>
+          <score>4</score>
+          <severity>low</severity>
+          <method>CVSSv3</method>
+          <vector>another vector</vector>
+        </rating>
+      </ratings>
+      <description>1999-01 description</description>
+      <advisories></advisories>
+    </vulnerability>
+    <vulnerability bom-ref="urn:uuid:e8e205d4-abed-4eca-b0b8-49ddf759d0dc">
+      <id>CVE-1999-0002</id>
+      <source></source>
+      <references>
+        <reference>
+          <id>CVE-1999-0002</id>
+          <source></source>
+        </reference>
+      </references>
+      <ratings>
+        <rating>
+          <score>1</score>
+          <severity>critical</severity>
+          <method>CVSSv2</method>
+          <vector>vector</vector>
+        </rating>
+      </ratings>
+      <description>1999-02 description</description>
+      <advisories></advisories>
+    </vulnerability>
+  </vulnerabilities>
+</bom>

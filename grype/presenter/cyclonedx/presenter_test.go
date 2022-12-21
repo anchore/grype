@@ -28,7 +28,7 @@ func TestCycloneDxPresenterImage(t *testing.T) {
 		SBOM:             &sbom.SBOM{},
 	}
 
-	pres := NewPresenter(pb, cyclonedx.BOMFileFormatJSON)
+	pres := NewPresenter(pb, cyclonedx.BOMFileFormatXML)
 	// run presenter
 	err := pres.Present(&buffer)
 	if err != nil {
@@ -65,7 +65,7 @@ func TestCycloneDxPresenterDir(t *testing.T) {
 		SBOM:             &sbom.SBOM{},
 	}
 
-	pres := NewPresenter(pb, cyclonedx.BOMFileFormatJSON)
+	pres := NewPresenter(pb, cyclonedx.BOMFileFormatXML)
 
 	// run presenter
 	err := pres.Present(&buffer)
