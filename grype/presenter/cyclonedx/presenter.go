@@ -38,17 +38,18 @@ func NewPresenter(pb models.PresenterBundle, format cyclonedx.BOMFileFormat) *Pr
 
 // Present creates a CycloneDX-based reporting
 func (pres *Presenter) Present(output io.Writer) error {
-	// update to use syft library
+	// note: this uses the syft cyclondx helpers to create
+	// a consistent cyclondx BOM across syft and grype
 	cyclonedxBOM := cyclonedxhelpers.ToFormatModel(*pres.sbom)
-	vulnberabilities := make([]cyclonedx.Vulnerability, 0)
+	vulns := make([]cyclonedx.Vulnerability, 0)
 	for m := range pres.results.Enumerate() {
 		v, err := NewVulnerability(m, pres.metadataProvider)
 		if err != nil {
 			continue
 		}
-		vulnberabilities = append(vulnberabilities, v)
+		vulns = append(vulns, v)
 	}
-	cyclonedxBOM.Vulnerabilities = &vulnberabilities
+	cyclonedxBOM.Vulnerabilities = &vulns
 	enc := cyclonedx.NewBOMEncoder(output, pres.format)
 	enc.SetPretty(true)
 

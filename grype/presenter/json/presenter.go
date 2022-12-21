@@ -21,7 +21,7 @@ type Presenter struct {
 	dbStatus         interface{}
 }
 
-// NewPresenter is a *Presenter constructor
+// NewPresenter creates a new JSON presenter
 func NewPresenter(pb models.PresenterBundle) *Presenter {
 	return &Presenter{
 		matches:          pb.Matches,
