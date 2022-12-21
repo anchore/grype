@@ -1,0 +1,60 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "serialNumber": "urn:uuid:a0ef95d4-73b2-431a-922b-9234d4d0076b",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2022-12-21T13:14:16-05:00",
+    "tools": [
+      {
+        "vendor": "anchore",
+        "name": "syft"
+      }
+    ]
+  },
+  "components": [],
+  "vulnerabilities": [
+    {
+      "bom-ref": "urn:uuid:fcc9100c-8f2d-4fd5-85b5-bf7287a59aed",
+      "id": "CVE-1999-0001",
+      "source": {},
+      "references": [
+        {
+          "id": "CVE-1999-0001",
+          "source": {}
+        }
+      ],
+      "ratings": [
+        {
+          "score": 4,
+          "severity": "low",
+          "method": "CVSSv3",
+          "vector": "another vector"
+        }
+      ],
+      "description": "1999-01 description",
+      "advisories": []
+    },
+    {
+      "bom-ref": "urn:uuid:0df93bc9-44c1-4343-bb82-0f7fba633f5f",
+      "id": "CVE-1999-0002",
+      "source": {},
+      "references": [
+        {
+          "id": "CVE-1999-0002",
+          "source": {}
+        }
+      ],
+      "ratings": [
+        {
+          "score": 1,
+          "severity": "critical",
+          "method": "CVSSv2",
+          "vector": "vector"
+        }
+      ],
+      "description": "1999-02 description",
+      "advisories": []
+    }
+  ]
+}
