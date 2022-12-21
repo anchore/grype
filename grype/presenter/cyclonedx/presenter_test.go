@@ -20,12 +20,13 @@ func TestCycloneDxPresenterImage(t *testing.T) {
 	var buffer bytes.Buffer
 
 	matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, source.ImageScheme)
+	sbom := models.SBOMFromPackages(t, packages)
 	pb := models.PresenterBundle{
 		Matches:          matches,
 		Packages:         packages,
 		Context:          context,
 		MetadataProvider: metadataProvider,
-		SBOM:             &sbom.SBOM{},
+		SBOM:             sbom,
 	}
 
 	pres := NewPresenter(pb, cyclonedx.BOMFileFormatXML)

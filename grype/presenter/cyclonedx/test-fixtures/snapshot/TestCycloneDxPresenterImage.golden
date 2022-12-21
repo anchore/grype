@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:06be76d9-d74a-4677-acc6-6170cba29f3c" version="1">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:36ff045c-c226-4b38-9c64-66c3879739e2" version="1">
   <metadata>
-    <timestamp>2022-12-21T13:26:20-05:00</timestamp>
+    <timestamp>2022-12-21T13:47:43-05:00</timestamp>
     <tools>
       <tool>
         <vendor>anchore</vendor>
@@ -9,9 +9,28 @@
       </tool>
     </tools>
   </metadata>
-  <components></components>
+  <components>
+    <component bom-ref="76bd1479d016ce8f" type="library">
+      <name>package-1</name>
+      <version>1.1.1</version>
+      <cpe>cpe:2.3:a:anchore:engine:0.9.2:*:*:python:*:*:*:*</cpe>
+      <properties>
+        <property name="syft:package:type">rpm</property>
+        <property name="syft:location:0:path">/foo/bar/somefile-1.txt</property>
+      </properties>
+    </component>
+    <component bom-ref="3199ef19b28ce437" type="library">
+      <name>package-2</name>
+      <version>2.2.2</version>
+      <cpe>cpe:2.3:a:anchore:engine:2.2.2:*:*:python:*:*:*:*</cpe>
+      <properties>
+        <property name="syft:package:type">deb</property>
+        <property name="syft:location:0:path">/foo/bar/somefile-2.txt</property>
+      </properties>
+    </component>
+  </components>
   <vulnerabilities>
-    <vulnerability bom-ref="urn:uuid:81e8e853-1e82-43b1-aced-0b47d2dbf202">
+    <vulnerability bom-ref="urn:uuid:08616ba1-4caa-4069-8aa4-a37882a694b7">
       <id>CVE-1999-0001</id>
       <source></source>
       <references>
@@ -31,7 +50,7 @@
       <description>1999-01 description</description>
       <advisories></advisories>
     </vulnerability>
-    <vulnerability bom-ref="urn:uuid:e8e205d4-abed-4eca-b0b8-49ddf759d0dc">
+    <vulnerability bom-ref="urn:uuid:fdfc84af-cf43-4341-ae5e-86dac6086bc6">
       <id>CVE-1999-0002</id>
       <source></source>
       <references>
