@@ -27,6 +27,8 @@ func syftProvider(userInput string, config ProviderConfig) ([]Package, Context, 
 		return nil, Context{}, nil, err
 	}
 
+	catalog = removePackagesByOverlap(catalog, relationships)
+
 	packages := FromCatalog(catalog, config.SynthesisConfig)
 	context := Context{
 		Source: &src.Metadata,

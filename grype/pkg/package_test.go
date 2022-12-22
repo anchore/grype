@@ -1,6 +1,8 @@
 package pkg
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/scylladb/go-set"
@@ -495,28 +497,41 @@ func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
 		expectedPackages []string
 	}{
 		{
-			name:             "includes all packages without overlap",
-			sbom:             catalogWithBinaryOverlaps([]string{"go"}, []string{}),
-			expectedPackages: []string{"go"},
+			name: "includes all packages without overlap",
+			sbom: catalogWithOverlaps(
+				[]string{":go@1.18", "apk:node@19.2-r1", "binary:python@3.9"},
+				[]string{}),
+			expectedPackages: []string{":go@1.18", "apk:node@19.2-r1", "binary:python@3.9"},
 		},
 		{
-			name:             "excludes single package by overlap",
-			sbom:             catalogWithBinaryOverlaps([]string{"go", "node"}, []string{"node"}),
-			expectedPackages: []string{"go"},
+			name: "excludes single package by overlap",
+			sbom: catalogWithOverlaps(
+				[]string{"apk:go@1.18", "apk:node@19.2-r1", "binary:node@19.2"},
+				[]string{"apk:node@19.2-r1 -> binary:node@19.2"}),
+			expectedPackages: []string{"apk:go@1.18", "apk:node@19.2-r1"},
 		},
 		{
-			name:             "excludes multiple package by overlap",
-			sbom:             catalogWithBinaryOverlaps([]string{"go", "node", "python", "george"}, []string{"node", "george"}),
-			expectedPackages: []string{"go", "python"},
+			name: "excludes multiple package by overlap",
+			sbom: catalogWithOverlaps(
+				[]string{"apk:go@1.18", "apk:node@19.2-r1", "binary:node@19.2", "apk:python@3.9-r9", ":python@3.9"},
+				[]string{"apk:node@19.2-r1 -> binary:node@19.2", "apk:python@3.9-r9 -> :python@3.9"}),
+			expectedPackages: []string{"apk:go@1.18", "apk:node@19.2-r1", "apk:python@3.9-r9"},
+		},
+		{
+			name: "does not exclude with different types",
+			sbom: catalogWithOverlaps(
+				[]string{"rpm:node@19.2-r1", "apk:node@19.2"},
+				[]string{"rpm:node@19.2-r1 -> apk:node@19.2"}),
+			expectedPackages: []string{"apk:node@19.2", "rpm:node@19.2-r1"},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			catalog := RemoveBinaryPackagesByOverlap(test.sbom.catalog, test.sbom.relationships)
+			catalog := removePackagesByOverlap(test.sbom.catalog, test.sbom.relationships)
 			pkgs := FromCatalog(catalog, SynthesisConfig{})
 			var pkgNames []string
 			for _, p := range pkgs {
-				pkgNames = append(pkgNames, p.Name)
+				pkgNames = append(pkgNames, fmt.Sprintf("%s:%s@%s", p.Type, p.Name, p.Version))
 			}
 			assert.EqualValues(t, test.expectedPackages, pkgNames)
 		})
@@ -528,29 +543,53 @@ type catalogRelationships struct {
 	relationships []artifact.Relationship
 }
 
-func catalogWithBinaryOverlaps(packages []string, overlaps []string) catalogRelationships {
+func catalogWithOverlaps(packages []string, overlaps []string) catalogRelationships {
 	var pkgs []syftPkg.Package
 	var relationships []artifact.Relationship
 
-	for _, name := range packages {
+	toPkg := func(str string) syftPkg.Package {
+		var typ, name, version string
+		s := strings.Split(strings.TrimSpace(str), ":")
+		if len(s) > 1 {
+			typ = s[0]
+			str = s[1]
+		}
+		s = strings.Split(str, "@")
+		name = s[0]
+		if len(s) > 1 {
+			version = s[1]
+		}
+
 		p := syftPkg.Package{
-			Name: name,
-			Type: syftPkg.BinaryPkg,
+			Type:    syftPkg.Type(typ),
+			Name:    name,
+			Version: version,
 		}
 		p.SetID()
 
-		for _, overlap := range overlaps {
-			if overlap == name {
-				relationships = append(relationships, artifact.Relationship{
-					From: p,
-					To:   p,
-					Type: artifact.OwnershipByFileOverlapRelationship,
-				})
-			}
-		}
+		return p
+	}
 
+	for _, pkg := range packages {
+		p := toPkg(pkg)
 		pkgs = append(pkgs, p)
 	}
+
+	for _, overlap := range overlaps {
+		parts := strings.Split(overlap, "->")
+		if len(parts) < 2 {
+			panic("invalid overlap, use -> to specify, e.g.: pkg1->pkg2")
+		}
+		from := toPkg(parts[0])
+		to := toPkg(parts[1])
+
+		relationships = append(relationships, artifact.Relationship{
+			From: from,
+			To:   to,
+			Type: artifact.OwnershipByFileOverlapRelationship,
+		})
+	}
+
 	catalog := syftPkg.NewCatalog(pkgs...)
 
 	return catalogRelationships{

@@ -3,6 +3,7 @@ package pkg
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
@@ -89,23 +90,46 @@ func (p Package) String() string {
 	return fmt.Sprintf("Pkg(type=%s, name=%s, version=%s, upstreams=%d)", p.Type, p.Name, p.Version, len(p.Upstreams))
 }
 
-func RemoveBinaryPackagesByOverlap(catalog *pkg.Catalog, relationships []artifact.Relationship) *pkg.Catalog {
-	byOverlap := map[artifact.ID]artifact.Identifiable{}
+func removePackagesByOverlap(catalog *pkg.Catalog, relationships []artifact.Relationship) *pkg.Catalog {
+	byOverlap := map[artifact.ID]artifact.Relationship{}
 	for _, r := range relationships {
 		if r.Type == artifact.OwnershipByFileOverlapRelationship {
-			byOverlap[r.To.ID()] = r.To
+			byOverlap[r.To.ID()] = r
 		}
 	}
 
 	out := pkg.NewCatalog()
+
 	for p := range catalog.Enumerate() {
-		if _, ok := byOverlap[p.ID()]; p.Type == pkg.BinaryPkg && ok {
-			continue
+		r, ok := byOverlap[p.ID()]
+		if ok {
+			from, ok := r.From.(pkg.Package)
+			if ok && excludePackage(p, from) {
+				continue
+			}
 		}
 		out.Add(p)
 	}
 
 	return out
+}
+
+func excludePackage(p pkg.Package, parent pkg.Package) bool {
+	// NOTE: we are not checking the name because we have mismatches like:
+	// python      3.9.2      binary
+	// python3.9   3.9.2-1    deb
+
+	// If the version is not effectively the same, keep both
+	if !strings.HasPrefix(parent.Version, p.Version) {
+		return false
+	}
+
+	// filter out only binary pkg, empty types, or equal types
+	if p.Type != pkg.BinaryPkg && p.Type != "" && p.Type != parent.Type {
+		return false
+	}
+
+	return true
 }
 
 func dataFromPkg(p pkg.Package) (MetadataType, interface{}, []UpstreamPackage) {
