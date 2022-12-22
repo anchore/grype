@@ -64,7 +64,7 @@ var AvailableFormats = []format{
 	templateFormat,
 }
 
-// TODO: remove in v1.0
+// DeprecatedFormats TODO: remove in v1.0
 var DeprecatedFormats = []format{
 	embeddedVEXJSON,
 	embeddedVEXXML,
