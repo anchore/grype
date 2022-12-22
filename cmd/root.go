@@ -135,7 +135,7 @@ func setRootFlags(flags *pflag.FlagSet) {
 
 	flags.StringP(
 		"output", "o", "",
-		fmt.Sprintf("report output formatter, formats=%v", presenter.AvailableFormats),
+		fmt.Sprintf("report output formatter, formats=%v, deprecated formats=%v", presenter.AvailableFormats, presenter.DeprecatedFormats),
 	)
 
 	flags.StringP(

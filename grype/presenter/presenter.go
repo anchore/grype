@@ -9,6 +9,7 @@ import (
 	"github.com/anchore/grype/grype/presenter/sarif"
 	"github.com/anchore/grype/grype/presenter/table"
 	"github.com/anchore/grype/grype/presenter/template"
+	"github.com/anchore/grype/internal/log"
 )
 
 // Presenter is the main interface other Presenters need to implement
@@ -30,14 +31,22 @@ func GetPresenter(c Config, pb models.PresenterBundle) Presenter {
 
 	// NOTE: cyclonedx is identical to embeddedVEXJSON
 	// The cyclonedx library only provides two BOM formats: JSON and XML
+	// These embedded formats will be removed in v1.0
 	case cycloneDXFormat:
-		return cyclonedx.NewJSONPresenter(pb)
-	case cycloneDXXML:
 		return cyclonedx.NewXMLPresenter(pb)
+	case cycloneDXJSON:
+		return cyclonedx.NewJSONPresenter(pb)
 	case sarifFormat:
 		return sarif.NewPresenter(pb)
 	case templateFormat:
 		return template.NewPresenter(pb, c.templateFilePath)
+	// DEPRECATED TODO: remove in v1.0
+	case embeddedVEXJSON:
+		log.Warn("embedded-cyclonedx-vex-json format is deprecated and will be removed in v1.0")
+		return cyclonedx.NewJSONPresenter(pb)
+	case embeddedVEXXML:
+		log.Warn("embedded-cyclonedx-vex-xml format is deprecated and will be removed in v1.0")
+		return cyclonedx.NewXMLPresenter(pb)
 	default:
 		return nil
 	}
