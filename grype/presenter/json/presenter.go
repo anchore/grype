@@ -22,7 +22,7 @@ type Presenter struct {
 }
 
 // NewPresenter creates a new JSON presenter
-func NewPresenter(pb models.PresenterBundle) *Presenter {
+func NewPresenter(pb models.PresenterConfig) *Presenter {
 	return &Presenter{
 		matches:          pb.Matches,
 		ignoredMatches:   pb.IgnoredMatches,

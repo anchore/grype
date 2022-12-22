@@ -78,7 +78,7 @@ func TestTablePresenter(t *testing.T) {
 	var buffer bytes.Buffer
 	matches, packages, _, metadataProvider, _, _ := models.GenerateAnalysis(t, source.ImageScheme)
 
-	pb := models.PresenterBundle{
+	pb := models.PresenterConfig{
 		Matches:          matches,
 		Packages:         packages,
 		MetadataProvider: metadataProvider,
@@ -115,7 +115,7 @@ func TestEmptyTablePresenter(t *testing.T) {
 
 	matches := match.NewMatches()
 
-	pb := models.PresenterBundle{
+	pb := models.PresenterConfig{
 		Matches:          matches,
 		Packages:         nil,
 		MetadataProvider: nil,

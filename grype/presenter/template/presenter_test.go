@@ -25,7 +25,7 @@ func TestPresenter_Present(t *testing.T) {
 	}
 	templateFilePath := path.Join(workingDirectory, "./test-fixtures/test.template")
 
-	pb := models.PresenterBundle{
+	pb := models.PresenterConfig{
 		Matches:          matches,
 		Packages:         packages,
 		Context:          context,

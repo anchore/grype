@@ -30,7 +30,7 @@ type Presenter struct {
 }
 
 // NewPresenter returns a new template.Presenter.
-func NewPresenter(pb models.PresenterBundle, templateFile string) *Presenter {
+func NewPresenter(pb models.PresenterConfig, templateFile string) *Presenter {
 	return &Presenter{
 		matches:            pb.Matches,
 		ignoredMatches:     pb.IgnoredMatches,

@@ -38,7 +38,7 @@ func TestSarifPresenter(t *testing.T) {
 			var buffer bytes.Buffer
 			matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, tc.scheme)
 
-			pb := models.PresenterBundle{
+			pb := models.PresenterConfig{
 				Matches:          matches,
 				Packages:         packages,
 				Context:          context,
@@ -184,7 +184,7 @@ func createDirPresenter(t *testing.T, path string) *Presenter {
 		t.Fatal(err)
 	}
 
-	pb := models.PresenterBundle{
+	pb := models.PresenterConfig{
 		Matches:          matches,
 		Packages:         packages,
 		MetadataProvider: metadataProvider,
@@ -229,7 +229,7 @@ func TestToSarifReport(t *testing.T) {
 
 			matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, tc.scheme)
 
-			pb := models.PresenterBundle{
+			pb := models.PresenterConfig{
 				Matches:          matches,
 				Packages:         packages,
 				MetadataProvider: metadataProvider,

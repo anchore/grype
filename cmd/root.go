@@ -385,7 +385,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			}
 		}
 
-		pb := models.PresenterBundle{
+		pb := models.PresenterConfig{
 			Matches:          *remainingMatches,
 			IgnoredMatches:   ignoredMatches,
 			Packages:         packages,

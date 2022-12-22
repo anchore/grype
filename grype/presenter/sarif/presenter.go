@@ -26,7 +26,7 @@ type Presenter struct {
 }
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter(pb models.PresenterBundle) *Presenter {
+func NewPresenter(pb models.PresenterConfig) *Presenter {
 	return &Presenter{
 		results:          pb.Matches,
 		packages:         pb.Packages,

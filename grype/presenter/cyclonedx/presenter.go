@@ -27,7 +27,7 @@ type Presenter struct {
 }
 
 // NewPresenter is a *Presenter constructor
-func NewJSONPresenter(pb models.PresenterBundle) *Presenter {
+func NewJSONPresenter(pb models.PresenterConfig) *Presenter {
 	return &Presenter{
 		results:          pb.Matches,
 		packages:         pb.Packages,
@@ -39,7 +39,7 @@ func NewJSONPresenter(pb models.PresenterBundle) *Presenter {
 }
 
 // NewPresenter is a *Presenter constructor
-func NewXMLPresenter(pb models.PresenterBundle) *Presenter {
+func NewXMLPresenter(pb models.PresenterConfig) *Presenter {
 	return &Presenter{
 		results:          pb.Matches,
 		packages:         pb.Packages,

@@ -19,7 +19,7 @@ type Presenter interface {
 
 // GetPresenter retrieves a Presenter that matches a CLI option
 // TODO dependency cycle with presenter package to sub formats
-func GetPresenter(c Config, pb models.PresenterBundle) Presenter {
+func GetPresenter(c Config, pb models.PresenterConfig) Presenter {
 	switch c.format {
 	case jsonFormat:
 		return json.NewPresenter(pb)
@@ -36,6 +36,8 @@ func GetPresenter(c Config, pb models.PresenterBundle) Presenter {
 		return cyclonedx.NewXMLPresenter(pb)
 	case cycloneDXJSON:
 		return cyclonedx.NewJSONPresenter(pb)
+	case cycloneDXXML:
+		return cyclonedx.NewXMLPresenter(pb)
 	case sarifFormat:
 		return sarif.NewPresenter(pb)
 	case templateFormat:

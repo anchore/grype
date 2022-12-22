@@ -10,6 +10,7 @@ const (
 	tableFormat     format = "table"
 	cycloneDXFormat format = "cyclonedx"
 	cycloneDXJSON   format = "cyclonedx-json"
+	cycloneDXXML    format = "cyclonedx-xml"
 	sarifFormat     format = "sarif"
 	templateFormat  format = "template"
 
@@ -42,6 +43,8 @@ func parse(userInput string) format {
 		return cycloneDXFormat
 	case strings.ToLower(cycloneDXJSON.String()):
 		return cycloneDXJSON
+	case strings.ToLower(cycloneDXXML.String()):
+		return cycloneDXXML
 	case strings.ToLower(embeddedVEXJSON.String()):
 		return cycloneDXJSON
 	case strings.ToLower(embeddedVEXXML.String()):
@@ -61,6 +64,7 @@ var AvailableFormats = []format{
 	templateFormat,
 }
 
+// TODO: remove in v1.0
 var DeprecatedFormats = []format{
 	embeddedVEXJSON,
 	embeddedVEXXML,

@@ -7,7 +7,7 @@ import (
 	"github.com/anchore/syft/syft/sbom"
 )
 
-type PresenterBundle struct {
+type PresenterConfig struct {
 	Matches          match.Matches
 	IgnoredMatches   []match.IgnoredMatch
 	Packages         []pkg.Package

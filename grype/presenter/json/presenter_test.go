@@ -21,7 +21,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 	var buffer bytes.Buffer
 	matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, source.ImageScheme)
 
-	pb := models.PresenterBundle{
+	pb := models.PresenterConfig{
 		Matches:          matches,
 		Packages:         packages,
 		Context:          context,
@@ -52,7 +52,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 
 	matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, source.DirectoryScheme)
 
-	pb := models.PresenterBundle{
+	pb := models.PresenterConfig{
 		Matches:          matches,
 		Packages:         packages,
 		Context:          context,
@@ -94,7 +94,7 @@ func TestEmptyJsonPresenter(t *testing.T) {
 		},
 	}
 
-	pb := models.PresenterBundle{
+	pb := models.PresenterConfig{
 		Matches:          matches,
 		Packages:         nil,
 		Context:          ctx,

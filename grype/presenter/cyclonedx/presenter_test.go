@@ -5,7 +5,6 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/CycloneDX/cyclonedx-go"
 	"github.com/sergi/go-diff/diffmatchpatch"
 
 	"github.com/anchore/go-testutils"
@@ -20,7 +19,7 @@ func TestCycloneDxPresenterImage(t *testing.T) {
 
 	matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, source.ImageScheme)
 	sbom := models.SBOMFromPackages(t, packages)
-	pb := models.PresenterBundle{
+	pb := models.PresenterConfig{
 		Matches:          matches,
 		Packages:         packages,
 		Context:          context,
@@ -28,7 +27,7 @@ func TestCycloneDxPresenterImage(t *testing.T) {
 		SBOM:             sbom,
 	}
 
-	pres := NewPresenter(pb, cyclonedx.BOMFileFormatXML)
+	pres := NewXMLPresenter(pb)
 	// run presenter
 	err := pres.Present(&buffer)
 	if err != nil {
@@ -58,7 +57,7 @@ func TestCycloneDxPresenterDir(t *testing.T) {
 	var buffer bytes.Buffer
 	matches, packages, ctx, metadataProvider, _, _ := models.GenerateAnalysis(t, source.DirectoryScheme)
 	sbom := models.SBOMFromPackages(t, packages)
-	pb := models.PresenterBundle{
+	pb := models.PresenterConfig{
 		Matches:          matches,
 		Packages:         packages,
 		Context:          ctx,
@@ -66,7 +65,7 @@ func TestCycloneDxPresenterDir(t *testing.T) {
 		SBOM:             sbom,
 	}
 
-	pres := NewPresenter(pb, cyclonedx.BOMFileFormatXML)
+	pres := NewXMLPresenter(pb)
 
 	// run presenter
 	err := pres.Present(&buffer)
