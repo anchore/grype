@@ -11,6 +11,7 @@ import (
 	grypeDb "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
@@ -27,12 +28,12 @@ type Presenter struct {
 }
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter(results match.Matches, packages []pkg.Package, metadataProvider vulnerability.MetadataProvider, ignoredMatches []match.IgnoredMatch) *Presenter {
+func NewPresenter(pb models.PresenterConfig) *Presenter {
 	return &Presenter{
-		results:          results,
-		ignoredMatches:   ignoredMatches,
-		packages:         packages,
-		metadataProvider: metadataProvider,
+		results:          pb.Matches,
+		ignoredMatches:   pb.IgnoredMatches,
+		packages:         pb.Packages,
+		metadataProvider: pb.MetadataProvider,
 	}
 }
 

@@ -21,16 +21,16 @@ type Presenter struct {
 	dbStatus         interface{}
 }
 
-// NewPresenter is a *Presenter constructor
-func NewPresenter(matches match.Matches, ignoredMatches []match.IgnoredMatch, packages []pkg.Package, context pkg.Context, metadataProvider vulnerability.MetadataProvider, appConfig interface{}, dbStatus interface{}) *Presenter {
+// NewPresenter creates a new JSON presenter
+func NewPresenter(pb models.PresenterConfig) *Presenter {
 	return &Presenter{
-		matches:          matches,
-		ignoredMatches:   ignoredMatches,
-		packages:         packages,
-		metadataProvider: metadataProvider,
-		context:          context,
-		appConfig:        appConfig,
-		dbStatus:         dbStatus,
+		matches:          pb.Matches,
+		ignoredMatches:   pb.IgnoredMatches,
+		packages:         pb.Packages,
+		metadataProvider: pb.MetadataProvider,
+		context:          pb.Context,
+		appConfig:        pb.AppConfig,
+		dbStatus:         pb.DBStatus,
 	}
 }
 

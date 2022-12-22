@@ -11,6 +11,7 @@ import (
 	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/syft/syft/source"
@@ -25,12 +26,12 @@ type Presenter struct {
 }
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter(results match.Matches, packages []pkg.Package, srcMetadata *source.Metadata, metadataProvider vulnerability.MetadataProvider) *Presenter {
+func NewPresenter(pb models.PresenterConfig) *Presenter {
 	return &Presenter{
-		results:          results,
-		packages:         packages,
-		metadataProvider: metadataProvider,
-		srcMetadata:      srcMetadata,
+		results:          pb.Matches,
+		packages:         pb.Packages,
+		metadataProvider: pb.MetadataProvider,
+		srcMetadata:      pb.Context.Source,
 	}
 }
 

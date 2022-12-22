@@ -25,7 +25,16 @@ func TestPresenter_Present(t *testing.T) {
 	}
 	templateFilePath := path.Join(workingDirectory, "./test-fixtures/test.template")
 
-	templatePresenter := NewPresenter(matches, nil, packages, context, metadataProvider, appConfig, dbStatus, templateFilePath)
+	pb := models.PresenterConfig{
+		Matches:          matches,
+		Packages:         packages,
+		Context:          context,
+		MetadataProvider: metadataProvider,
+		AppConfig:        appConfig,
+		DBStatus:         dbStatus,
+	}
+
+	templatePresenter := NewPresenter(pb, templateFilePath)
 
 	var buffer bytes.Buffer
 	if err := templatePresenter.Present(&buffer); err != nil {

@@ -6,27 +6,28 @@ import (
 
 	"github.com/bmatcuk/doublestar/v2"
 
+	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
 )
 
 var errDoesNotProvide = fmt.Errorf("cannot provide packages from the given source")
 
 // Provide a set of packages and context metadata describing where they were sourced from.
-func Provide(userInput string, config ProviderConfig) ([]Package, Context, error) {
-	packages, ctx, err := syftSBOMProvider(userInput, config)
+func Provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom.SBOM, error) {
+	packages, ctx, s, err := syftSBOMProvider(userInput, config)
 	if !errors.Is(err, errDoesNotProvide) {
 		if len(config.Exclusions) > 0 {
 			packages, err = filterPackageExclusions(packages, config.Exclusions)
 			if err != nil {
-				return nil, ctx, err
+				return nil, ctx, s, err
 			}
 		}
-		return packages, ctx, err
+		return packages, ctx, s, err
 	}
 
 	packages, ctx, err = purlProvider(userInput)
 	if !errors.Is(err, errDoesNotProvide) {
-		return packages, ctx, err
+		return packages, ctx, s, err
 	}
 
 	return syftProvider(userInput, config)

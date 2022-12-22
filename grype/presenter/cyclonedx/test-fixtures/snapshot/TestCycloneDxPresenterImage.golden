@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.2" xmlns:v="http://cyclonedx.org/schema/ext/vulnerability/1.0" version="1" serialNumber="urn:uuid:6ac73f7b-da57-48c6-b04a-86e008086c5e">
+<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:f01581a8-c85e-4123-92b0-f6627e800a04" version="1">
   <metadata>
-    <timestamp>2022-11-23T16:21:11-05:00</timestamp>
+    <timestamp>2022-12-21T15:20:36-05:00</timestamp>
     <tools>
       <tool>
         <vendor>anchore</vendor>
@@ -9,75 +9,77 @@
         <version>[not provided]</version>
       </tool>
     </tools>
-    <component type="container">
-      <name>user-input</name>
-      <version>sha256:ca738abb87a8d58f112d3400ebb079b61ceae7dc290beb34bda735be4b1941d5</version>
-    </component>
   </metadata>
   <components>
-    <component type="library">
+    <component bom-ref="76bd1479d016ce8f" type="library">
       <name>package-1</name>
       <version>1.1.1</version>
-      <v:vulnerabilities>
-        <v:vulnerability ref="urn:uuid:24391334-9e29-4dcf-b528-b1dba4ded9d5">
-          <v:id>CVE-1999-0001</v:id>
-          <v:source name="source-1">
-            <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0001</v:url>
-          </v:source>
-          <v:ratings>
-            <v:rating>
-              <v:severity>Low</v:severity>
-            </v:rating>
-            <v:rating>
-              <v:score>
-                <v:base>4</v:base>
-                <v:impact>0</v:impact>
-                <v:exploitability>0</v:exploitability>
-              </v:score>
-              <v:method>CVSSv3</v:method>
-              <v:vector>another vector</v:vector>
-            </v:rating>
-          </v:ratings>
-          <v:description>1999-01 description</v:description>
-          <v:advisories></v:advisories>
-        </v:vulnerability>
-      </v:vulnerabilities>
+      <cpe>cpe:2.3:a:anchore:engine:0.9.2:*:*:python:*:*:*:*</cpe>
+      <properties>
+        <property name="syft:package:type">rpm</property>
+        <property name="syft:location:0:path">/foo/bar/somefile-1.txt</property>
+      </properties>
     </component>
-    <component type="library">
+    <component bom-ref="3199ef19b28ce437" type="library">
       <name>package-2</name>
       <version>2.2.2</version>
-      <licenses>
-        <license>
-          <name>MIT</name>
-        </license>
-        <license>
-          <name>Apache-2.0</name>
-        </license>
-      </licenses>
-      <v:vulnerabilities>
-        <v:vulnerability ref="urn:uuid:b24a18f6-2678-4f60-af3f-50851898e386">
-          <v:id>CVE-1999-0002</v:id>
-          <v:source name="source-2">
-            <v:url>http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-1999-0002</v:url>
-          </v:source>
-          <v:ratings>
-            <v:rating>
-              <v:severity>Critical</v:severity>
-            </v:rating>
-            <v:rating>
-              <v:score>
-                <v:base>1</v:base>
-                <v:impact>3</v:impact>
-                <v:exploitability>2</v:exploitability>
-              </v:score>
-              <v:method>CVSSv2</v:method>
-              <v:vector>vector</v:vector>
-            </v:rating>
-          </v:ratings>
-          <v:description>1999-02 description</v:description>
-          <v:advisories></v:advisories>
-        </v:vulnerability>
-      </v:vulnerabilities>
+      <cpe>cpe:2.3:a:anchore:engine:2.2.2:*:*:python:*:*:*:*</cpe>
+      <properties>
+        <property name="syft:package:type">deb</property>
+        <property name="syft:location:0:path">/foo/bar/somefile-2.txt</property>
+      </properties>
     </component>
   </components>
+  <vulnerabilities>
+    <vulnerability bom-ref="urn:uuid:6c05cad3-d49e-4ae1-bd40-f62bfd9e9f90">
+      <id>CVE-1999-0001</id>
+      <source></source>
+      <references>
+        <reference>
+          <id>CVE-1999-0001</id>
+          <source></source>
+        </reference>
+      </references>
+      <ratings>
+        <rating>
+          <score>4</score>
+          <severity>low</severity>
+          <method>CVSSv3</method>
+          <vector>another vector</vector>
+        </rating>
+      </ratings>
+      <description>1999-01 description</description>
+      <advisories></advisories>
+      <affects>
+        <target>
+          <ref>51d86ac6-b069-4766-9a53-761d9f211c67</ref>
+        </target>
+      </affects>
+    </vulnerability>
+    <vulnerability bom-ref="urn:uuid:99e86852-cdaf-4bb2-b671-f977982f81ac">
+      <id>CVE-1999-0002</id>
+      <source></source>
+      <references>
+        <reference>
+          <id>CVE-1999-0002</id>
+          <source></source>
+        </reference>
+      </references>
+      <ratings>
+        <rating>
+          <score>1</score>
+          <severity>critical</severity>
+          <method>CVSSv2</method>
+          <vector>vector</vector>
+        </rating>
+      </ratings>
+      <description>1999-02 description</description>
+      <advisories></advisories>
+      <affects>
+        <target>
+          <ref>cc724e1f-8bb6-4e14-be16-97ff7ae4d1e9</ref>
+        </target>
+      </affects>
+    </vulnerability>
+  </vulnerabilities>
 </bom>

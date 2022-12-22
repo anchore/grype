@@ -13,6 +13,7 @@ import (
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/sbom"
 	syftSource "github.com/anchore/syft/syft/source"
 )
 
@@ -24,6 +25,33 @@ func GenerateAnalysis(t *testing.T, scheme syftSource.Scheme) (match.Matches, []
 	context := generateContext(t, scheme)
 
 	return matches, packages, context, NewMetadataMock(), nil, nil
+}
+
+func SBOMFromPackages(t *testing.T, packages []pkg.Package) *sbom.SBOM {
+	t.Helper()
+
+	sbom := &sbom.SBOM{
+		Artifacts: sbom.Artifacts{
+			PackageCatalog: syftPkg.NewCatalog(),
+		},
+	}
+
+	for _, p := range packages {
+		sbom.Artifacts.PackageCatalog.Add(toSyftPkg(p))
+	}
+
+	return sbom
+}
+
+func toSyftPkg(p pkg.Package) syftPkg.Package {
+	return syftPkg.Package{
+		Name:      p.Name,
+		Version:   p.Version,
+		Type:      p.Type,
+		Metadata:  p.Metadata,
+		Locations: p.Locations,
+		CPEs:      p.CPEs,
+	}
 }
 
 func Redact(s []byte) []byte {

@@ -35,10 +35,10 @@ func (e errEmptySBOM) Error() string {
 	return fmt.Sprintf("SBOM file is empty: %s", e.sbomFilepath)
 }
 
-func syftSBOMProvider(userInput string, config ProviderConfig) ([]Package, Context, error) {
+func syftSBOMProvider(userInput string, config ProviderConfig) ([]Package, Context, *sbom.SBOM, error) {
 	s, err := getSBOM(userInput, config)
 	if err != nil {
-		return nil, Context{}, err
+		return nil, Context{}, nil, err
 	}
 
 	catalog := s.Artifacts.PackageCatalog
@@ -47,7 +47,7 @@ func syftSBOMProvider(userInput string, config ProviderConfig) ([]Package, Conte
 	return FromCatalog(catalog, config.SynthesisConfig), Context{
 		Source: &s.Source,
 		Distro: s.Artifacts.LinuxDistribution,
-	}, nil
+	}, s, nil
 }
 
 func newInputInfo(scheme, contentTye string) *inputInfo {

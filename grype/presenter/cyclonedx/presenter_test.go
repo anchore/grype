@@ -18,8 +18,16 @@ func TestCycloneDxPresenterImage(t *testing.T) {
 	var buffer bytes.Buffer
 
 	matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, source.ImageScheme)
+	sbom := models.SBOMFromPackages(t, packages)
+	pb := models.PresenterConfig{
+		Matches:          matches,
+		Packages:         packages,
+		Context:          context,
+		MetadataProvider: metadataProvider,
+		SBOM:             sbom,
+	}
 
-	pres := NewPresenter(matches, packages, context.Source, metadataProvider)
+	pres := NewXMLPresenter(pb)
 	// run presenter
 	err := pres.Present(&buffer)
 	if err != nil {
@@ -48,8 +56,16 @@ func TestCycloneDxPresenterImage(t *testing.T) {
 func TestCycloneDxPresenterDir(t *testing.T) {
 	var buffer bytes.Buffer
 	matches, packages, ctx, metadataProvider, _, _ := models.GenerateAnalysis(t, source.DirectoryScheme)
+	sbom := models.SBOMFromPackages(t, packages)
+	pb := models.PresenterConfig{
+		Matches:          matches,
+		Packages:         packages,
+		Context:          ctx,
+		MetadataProvider: metadataProvider,
+		SBOM:             sbom,
+	}
 
-	pres := NewPresenter(matches, packages, ctx.Source, metadataProvider)
+	pres := NewXMLPresenter(pb)
 
 	// run presenter
 	err := pres.Present(&buffer)

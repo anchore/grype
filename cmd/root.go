@@ -29,6 +29,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter"
+	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
@@ -41,6 +42,7 @@ import (
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -133,7 +135,7 @@ func setRootFlags(flags *pflag.FlagSet) {
 
 	flags.StringP(
 		"output", "o", "",
-		fmt.Sprintf("report output formatter, formats=%v", presenter.AvailableFormats),
+		fmt.Sprintf("report output formatter, formats=%v, deprecated formats=%v", presenter.AvailableFormats, presenter.DeprecatedFormats),
 	)
 
 	flags.StringP(
@@ -315,6 +317,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		var status *db.Status
 		var dbCloser *db.Closer
 		var packages []pkg.Package
+		var sbom *sbom.SBOM
 		var pkgContext pkg.Context
 		var wg = &sync.WaitGroup{}
 		var loadedDB, gatheredPackages bool
@@ -335,7 +338,11 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		go func() {
 			defer wg.Done()
 			log.Debugf("gathering packages")
-			packages, pkgContext, err = pkg.Provide(userInput, getProviderConfig())
+			// packages are grype.Pacakge, not syft.Package
+			// the SBOM is returned for downstream formatting concerns
+			// grype uses the SBOM in combination with syft formatters to produce cycloneDX
+			// with vulnerability information appended
+			packages, pkgContext, sbom, err = pkg.Provide(userInput, getProviderConfig())
 			if err != nil {
 				errs <- fmt.Errorf("failed to catalog: %w", err)
 				return
@@ -378,9 +385,20 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			}
 		}
 
+		pb := models.PresenterConfig{
+			Matches:          *remainingMatches,
+			IgnoredMatches:   ignoredMatches,
+			Packages:         packages,
+			Context:          pkgContext,
+			MetadataProvider: str,
+			SBOM:             sbom,
+			AppConfig:        appConfig,
+			DBStatus:         status,
+		}
+
 		bus.Publish(partybus.Event{
 			Type:  event.VulnerabilityScanningFinished,
-			Value: presenter.GetPresenter(presenterConfig, *remainingMatches, ignoredMatches, packages, pkgContext, str, appConfig, status),
+			Value: presenter.GetPresenter(presenterConfig, pb),
 		})
 	}()
 	return errs

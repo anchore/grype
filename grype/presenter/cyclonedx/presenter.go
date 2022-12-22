@@ -1,12 +1,18 @@
 package cyclonedx
 
 import (
-	"encoding/xml"
 	"io"
+
+	"github.com/CycloneDX/cyclonedx-go"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/version"
+	"github.com/anchore/syft/syft/formats/common/cyclonedxhelpers"
+	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -16,38 +22,61 @@ type Presenter struct {
 	packages         []pkg.Package
 	srcMetadata      *source.Metadata
 	metadataProvider vulnerability.MetadataProvider
+	format           cyclonedx.BOMFileFormat
+	sbom             *sbom.SBOM
 }
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter(results match.Matches, packages []pkg.Package, srcMetadata *source.Metadata, metadataProvider vulnerability.MetadataProvider) *Presenter {
+func NewJSONPresenter(pb models.PresenterConfig) *Presenter {
 	return &Presenter{
-		results:          results,
-		packages:         packages,
-		metadataProvider: metadataProvider,
-		srcMetadata:      srcMetadata,
+		results:          pb.Matches,
+		packages:         pb.Packages,
+		metadataProvider: pb.MetadataProvider,
+		srcMetadata:      pb.Context.Source,
+		sbom:             pb.SBOM,
+		format:           cyclonedx.BOMFileFormatJSON,
+	}
+}
+
+// NewPresenter is a *Presenter constructor
+func NewXMLPresenter(pb models.PresenterConfig) *Presenter {
+	return &Presenter{
+		results:          pb.Matches,
+		packages:         pb.Packages,
+		metadataProvider: pb.MetadataProvider,
+		srcMetadata:      pb.Context.Source,
+		sbom:             pb.SBOM,
+		format:           cyclonedx.BOMFileFormatXML,
 	}
 }
 
 // Present creates a CycloneDX-based reporting
 func (pres *Presenter) Present(output io.Writer) error {
-	bom, err := NewDocument(pres.packages, pres.results, pres.srcMetadata, pres.metadataProvider)
-	if err != nil {
-		return err
+	// note: this uses the syft cyclondx helpers to create
+	// a consistent cyclondx BOM across syft and grype
+	cyclonedxBOM := cyclonedxhelpers.ToFormatModel(*pres.sbom)
+
+	// empty the tool metadata and add grype metadata
+	versionInfo := version.FromBuild()
+	cyclonedxBOM.Metadata.Tools = &[]cyclonedx.Tool{
+		{
+			Vendor:  "anchore",
+			Name:    internal.ApplicationName,
+			Version: versionInfo.Version,
+		},
 	}
 
-	encoder := xml.NewEncoder(output)
-	encoder.Indent("", "  ")
-
-	_, err = output.Write([]byte(xml.Header))
-	if err != nil {
-		return err
+	vulns := make([]cyclonedx.Vulnerability, 0)
+	for m := range pres.results.Enumerate() {
+		v, err := NewVulnerability(m, pres.metadataProvider)
+		if err != nil {
+			continue
+		}
+		vulns = append(vulns, v)
 	}
+	cyclonedxBOM.Vulnerabilities = &vulns
+	enc := cyclonedx.NewBOMEncoder(output, pres.format)
+	enc.SetPretty(true)
 
-	err = encoder.Encode(bom)
-
-	if err != nil {
-		return err
-	}
-
-	return err
+	return enc.Encode(cyclonedxBOM)
 }
