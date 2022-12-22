@@ -27,14 +27,26 @@ type Presenter struct {
 }
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter(pb models.PresenterBundle, format cyclonedx.BOMFileFormat) *Presenter {
+func NewJSONPresenter(pb models.PresenterBundle) *Presenter {
 	return &Presenter{
 		results:          pb.Matches,
 		packages:         pb.Packages,
 		metadataProvider: pb.MetadataProvider,
 		srcMetadata:      pb.Context.Source,
 		sbom:             pb.SBOM,
-		format:           format,
+		format:           cyclonedx.BOMFileFormatJSON,
+	}
+}
+
+// NewPresenter is a *Presenter constructor
+func NewXMLPresenter(pb models.PresenterBundle) *Presenter {
+	return &Presenter{
+		results:          pb.Matches,
+		packages:         pb.Packages,
+		metadataProvider: pb.MetadataProvider,
+		srcMetadata:      pb.Context.Source,
+		sbom:             pb.SBOM,
+		format:           cyclonedx.BOMFileFormatXML,
 	}
 }
 
