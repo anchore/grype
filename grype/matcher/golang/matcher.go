@@ -35,9 +35,9 @@ func (m *Matcher) Type() match.MatcherType {
 
 func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	matches := make([]match.Match, 0)
-	metadata := pkg.GolangBinMetadata{}
+	metadata := pkg.GolangMetadata{}
 	if p.Metadata != nil {
-		metadata = p.Metadata.(pkg.GolangBinMetadata)
+		metadata = p.Metadata.(pkg.GolangMetadata)
 	}
 
 	// Golang currently does not have a standard way of incorporating the vcs version

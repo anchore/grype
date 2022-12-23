@@ -260,17 +260,17 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
-			name: "golang-bin-metadata",
+			name: "golang-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.GolangBinMetadataType,
-				Metadata: syftPkg.GolangBinMetadata{
+				MetadataType: syftPkg.GolangMetadataType,
+				Metadata: syftPkg.GolangMetadata{
 					BuildSettings:     map[string]string{},
 					GoCompiledVersion: "1.0.0",
 					H1Digest:          "a",
 					MainModule:        "myMainModule",
 				},
 			},
-			metadata: GolangBinMetadata{
+			metadata: GolangMetadata{
 				BuildSettings:     map[string]string{},
 				GoCompiledVersion: "1.0.0",
 				H1Digest:          "a",

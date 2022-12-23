@@ -25,7 +25,7 @@ func TestRpmModularity_Satisfied(t *testing.T) {
 		{
 			name:          "invalid rpm metadata",
 			rpmModularity: New("test:1"),
-			pkg: pkg.Package{MetadataType: pkg.RpmMetadataType, Metadata: pkg.GolangBinMetadata{
+			pkg: pkg.Package{MetadataType: pkg.RpmMetadataType, Metadata: pkg.GolangMetadata{
 				BuildSettings:     nil,
 				GoCompiledVersion: "",
 				Architecture:      "",

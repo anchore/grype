@@ -1,6 +1,6 @@
 package pkg
 
-type GolangBinMetadata struct {
+type GolangMetadata struct {
 	BuildSettings     map[string]string `json:"goBuildSettings,omitempty"`
 	GoCompiledVersion string            `json:"goCompiledVersion"`
 	Architecture      string            `json:"architecture"`

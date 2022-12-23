@@ -77,6 +77,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 	cyclonedxBOM.Vulnerabilities = &vulns
 	enc := cyclonedx.NewBOMEncoder(output, pres.format)
 	enc.SetPretty(true)
+	enc.SetEscapeHTML(false)
 
 	return enc.Encode(cyclonedxBOM)
 }
