@@ -138,7 +138,7 @@ func dataFromPkg(p pkg.Package) (MetadataType, interface{}, []UpstreamPackage) {
 	var metadataType MetadataType
 
 	switch p.MetadataType {
-	case pkg.GolangBinMetadataType:
+	case pkg.GolangMetadataType:
 		if m := golangBinDataFromPkg(p); m != nil {
 			metadata = *m
 			metadataType = GolangBinMetadataType
@@ -165,7 +165,7 @@ func dataFromPkg(p pkg.Package) (MetadataType, interface{}, []UpstreamPackage) {
 
 func golangBinDataFromPkg(p pkg.Package) (m *GolangBinMetadata) {
 	metadata := &GolangBinMetadata{}
-	if value, ok := p.Metadata.(pkg.GolangBinMetadata); ok {
+	if value, ok := p.Metadata.(pkg.GolangMetadata); ok {
 		if value.BuildSettings != nil {
 			metadata.BuildSettings = value.BuildSettings
 		}
