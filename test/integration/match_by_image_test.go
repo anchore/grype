@@ -42,26 +42,6 @@ func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Ca
 		Package:       thePkg,
 		Details: []match.Detail{
 			{
-				Type:       match.ExactDirectMatch,
-				Confidence: 1.0,
-				SearchedBy: map[string]interface{}{
-					"distro": map[string]string{
-						"type":    "alpine",
-						"version": "3.12.0",
-					},
-					"namespace": "alpine:distro:alpine:3.12",
-					"package": map[string]string{
-						"name":    "libvncserver",
-						"version": "0.9.9",
-					},
-				},
-				Found: map[string]interface{}{
-					"versionConstraint": "< 0.9.10 (unknown)",
-					"vulnerabilityID":   vulnObj.ID,
-				},
-				Matcher: match.ApkMatcher,
-			},
-			{
 				// note: the input pURL has an upstream reference (redundant)
 				Type: "exact-indirect-match",
 				SearchedBy: map[string]any{
@@ -81,6 +61,26 @@ func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Ca
 				},
 				Matcher:    "apk-matcher",
 				Confidence: 1,
+			},
+			{
+				Type:       match.ExactDirectMatch,
+				Confidence: 1.0,
+				SearchedBy: map[string]interface{}{
+					"distro": map[string]string{
+						"type":    "alpine",
+						"version": "3.12.0",
+					},
+					"namespace": "alpine:distro:alpine:3.12",
+					"package": map[string]string{
+						"name":    "libvncserver",
+						"version": "0.9.9",
+					},
+				},
+				Found: map[string]interface{}{
+					"versionConstraint": "< 0.9.10 (unknown)",
+					"vulnerabilityID":   vulnObj.ID,
+				},
+				Matcher: match.ApkMatcher,
 			},
 		},
 	})
