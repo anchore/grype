@@ -1,85 +1,106 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:01e40bfe-6f3d-4a97-8ac0-e47c8023d686" version="1">
-  <metadata>
-    <timestamp>2022-12-21T15:20:36-05:00</timestamp>
-    <tools>
-      <tool>
-        <vendor>anchore</vendor>
-        <name>grype</name>
-        <version>[not provided]</version>
-      </tool>
-    </tools>
-  </metadata>
-  <components>
-    <component bom-ref="76bd1479d016ce8f" type="library">
-      <name>package-1</name>
-      <version>1.1.1</version>
-      <cpe>cpe:2.3:a:anchore:engine:0.9.2:*:*:python:*:*:*:*</cpe>
-      <properties>
-        <property name="syft:package:type">rpm</property>
-        <property name="syft:location:0:path">/foo/bar/somefile-1.txt</property>
-      </properties>
-    </component>
-    <component bom-ref="3199ef19b28ce437" type="library">
-      <name>package-2</name>
-      <version>2.2.2</version>
-      <cpe>cpe:2.3:a:anchore:engine:2.2.2:*:*:python:*:*:*:*</cpe>
-      <properties>
-        <property name="syft:package:type">deb</property>
-        <property name="syft:location:0:path">/foo/bar/somefile-2.txt</property>
-      </properties>
-    </component>
-  </components>
-  <vulnerabilities>
-    <vulnerability bom-ref="urn:uuid:dffeabef-9e5d-4d21-a1e7-0c446c6eb9bd">
-      <id>CVE-1999-0001</id>
-      <source></source>
-      <references>
-        <reference>
-          <id>CVE-1999-0001</id>
-          <source></source>
-        </reference>
-      </references>
-      <ratings>
-        <rating>
-          <score>4</score>
-          <severity>low</severity>
-          <method>CVSSv3</method>
-          <vector>another vector</vector>
-        </rating>
-      </ratings>
-      <description>1999-01 description</description>
-      <advisories></advisories>
-      <affects>
-        <target>
-          <ref>d0588608-3c1f-45d6-8eda-b158736b800f</ref>
-        </target>
-      </affects>
-    </vulnerability>
-    <vulnerability bom-ref="urn:uuid:b313fe4a-8e9c-44ad-bd76-4304393622fd">
-      <id>CVE-1999-0002</id>
-      <source></source>
-      <references>
-        <reference>
-          <id>CVE-1999-0002</id>
-          <source></source>
-        </reference>
-      </references>
-      <ratings>
-        <rating>
-          <score>1</score>
-          <severity>critical</severity>
-          <method>CVSSv2</method>
-          <vector>vector</vector>
-        </rating>
-      </ratings>
-      <description>1999-02 description</description>
-      <advisories></advisories>
-      <affects>
-        <target>
-          <ref>a7ad0b6b-78f7-4bad-994a-5e1ff09aa706</ref>
-        </target>
-      </affects>
-    </vulnerability>
-  </vulnerabilities>
-</bom>
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "serialNumber": "urn:uuid:5aeb2528-777d-488f-83f4-dfd8918643ee",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2023-01-04T15:06:03-05:00",
+    "tools": [
+      {
+        "vendor": "anchore",
+        "name": "grype",
+        "version": "[not provided]"
+      }
+    ]
+  },
+  "components": [
+    {
+      "bom-ref": "76bd1479d016ce8f",
+      "type": "library",
+      "name": "package-1",
+      "version": "1.1.1",
+      "cpe": "cpe:2.3:a:anchore:engine:0.9.2:*:*:python:*:*:*:*",
+      "properties": [
+        {
+          "name": "syft:package:type",
+          "value": "rpm"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/foo/bar/somefile-1.txt"
+        }
+      ]
+    },
+    {
+      "bom-ref": "3199ef19b28ce437",
+      "type": "library",
+      "name": "package-2",
+      "version": "2.2.2",
+      "cpe": "cpe:2.3:a:anchore:engine:2.2.2:*:*:python:*:*:*:*",
+      "properties": [
+        {
+          "name": "syft:package:type",
+          "value": "deb"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/foo/bar/somefile-2.txt"
+        }
+      ]
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "bom-ref": "urn:uuid:98a38cb7-bf11-41e5-8f55-02dfbe5c7839",
+      "id": "CVE-1999-0001",
+      "source": {},
+      "references": [
+        {
+          "id": "CVE-1999-0001",
+          "source": {}
+        }
+      ],
+      "ratings": [
+        {
+          "score": 4,
+          "severity": "low",
+          "method": "CVSSv3",
+          "vector": "another vector"
+        }
+      ],
+      "description": "1999-01 description",
+      "advisories": [],
+      "affects": [
+        {
+          "ref": "49c2f910-3c3c-4581-8237-c0dd8674b81a"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:uuid:e5abab75-8ee4-4370-b1d6-7b67de1b958f",
+      "id": "CVE-1999-0002",
+      "source": {},
+      "references": [
+        {
+          "id": "CVE-1999-0002",
+          "source": {}
+        }
+      ],
+      "ratings": [
+        {
+          "score": 1,
+          "severity": "critical",
+          "method": "CVSSv2",
+          "vector": "vector"
+        }
+      ],
+      "description": "1999-02 description",
+      "advisories": [],
+      "affects": [
+        {
+          "ref": "c38c501d-e801-48b2-bd2f-2aac404fdb79"
+        }
+      ]
+    }
+  ]
+}
