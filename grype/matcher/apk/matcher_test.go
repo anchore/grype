@@ -16,15 +16,9 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
-
-func must(c syftPkg.CPE, e error) syftPkg.CPE {
-	if e != nil {
-		panic(e)
-	}
-	return c
-}
 
 type mockStore struct {
 	backend map[string]map[string][]grypeDB.Vulnerability
@@ -87,8 +81,8 @@ func TestSecDBOnlyMatch(t *testing.T) {
 		Name:    "libvncserver",
 		Version: "0.9.9",
 		Type:    syftPkg.ApkPkg,
-		CPEs: []syftPkg.CPE{
-			must(syftPkg.NewCPE("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*")),
+		CPEs: []cpe.CPE{
+			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"),
 		},
 	}
 
@@ -173,8 +167,8 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 		Name:    "libvncserver",
 		Version: "0.9.9",
 		Type:    syftPkg.ApkPkg,
-		CPEs: []syftPkg.CPE{
-			must(syftPkg.NewCPE("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*")),
+		CPEs: []cpe.CPE{
+			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"),
 		},
 	}
 
@@ -260,9 +254,9 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 		Name:    "libvncserver",
 		Version: "0.9.9",
 		Type:    syftPkg.ApkPkg,
-		CPEs: []syftPkg.CPE{
+		CPEs: []cpe.CPE{
 			// Note: the product name is NOT the same as the package name
-			must(syftPkg.NewCPE("cpe:2.3:a:*:libvncumbrellaproject:0.9.9:*:*:*:*:*:*:*")),
+			cpe.Must("cpe:2.3:a:*:libvncumbrellaproject:0.9.9:*:*:*:*:*:*:*"),
 		},
 	}
 
@@ -335,14 +329,14 @@ func TestNvdOnlyMatches(t *testing.T) {
 		Name:    "libvncserver",
 		Version: "0.9.9",
 		Type:    syftPkg.ApkPkg,
-		CPEs: []syftPkg.CPE{
-			must(syftPkg.NewCPE("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*")),
+		CPEs: []cpe.CPE{
+			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"),
 		},
 	}
 
 	vulnFound, err := vulnerability.NewVulnerability(nvdVuln)
 	assert.NoError(t, err)
-	vulnFound.CPEs = []syftPkg.CPE{must(syftPkg.NewCPE(nvdVuln.CPEs[0]))}
+	vulnFound.CPEs = []cpe.CPE{cpe.Must(nvdVuln.CPEs[0])}
 
 	expected := []match.Match{
 		{
@@ -413,8 +407,8 @@ func TestNvdMatchesWithSecDBFix(t *testing.T) {
 		Name:    "libvncserver",
 		Version: "0.9.11",
 		Type:    syftPkg.ApkPkg,
-		CPEs: []syftPkg.CPE{
-			must(syftPkg.NewCPE("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*")),
+		CPEs: []cpe.CPE{
+			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"),
 		},
 	}
 
@@ -466,8 +460,8 @@ func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
 		Name:    "libvncserver",
 		Version: "0.9.11",
 		Type:    syftPkg.ApkPkg,
-		CPEs: []syftPkg.CPE{
-			must(syftPkg.NewCPE("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*")),
+		CPEs: []cpe.CPE{
+			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"),
 		},
 	}
 
@@ -584,9 +578,9 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 		Name:    "musl-utils",
 		Version: "1.3.2-r0",
 		Type:    syftPkg.ApkPkg,
-		CPEs: []syftPkg.CPE{
-			must(syftPkg.NewCPE("cpe:2.3:a:musl-utils:musl-utils:*:*:*:*:*:*:*:*")),
-			must(syftPkg.NewCPE("cpe:2.3:a:musl-utils:musl-utils:*:*:*:*:*:*:*:*")),
+		CPEs: []cpe.CPE{
+			cpe.Must("cpe:2.3:a:musl-utils:musl-utils:*:*:*:*:*:*:*:*"),
+			cpe.Must("cpe:2.3:a:musl-utils:musl-utils:*:*:*:*:*:*:*:*"),
 		},
 		Upstreams: []pkg.UpstreamPackage{
 			{
@@ -597,7 +591,7 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 
 	vulnFound, err := vulnerability.NewVulnerability(nvdVuln)
 	assert.NoError(t, err)
-	vulnFound.CPEs = []syftPkg.CPE{must(syftPkg.NewCPE(nvdVuln.CPEs[0]))}
+	vulnFound.CPEs = []cpe.CPE{cpe.Must(nvdVuln.CPEs[0])}
 
 	expected := []match.Match{
 		{
