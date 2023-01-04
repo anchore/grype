@@ -11,6 +11,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/stereoscope/pkg/image"
+	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/sbom"
@@ -135,7 +136,7 @@ func generatePackages(t *testing.T) []pkg.Package {
 			Version:   "1.1.1",
 			Type:      syftPkg.RpmPkg,
 			Locations: syftSource.NewLocationSet(syftSource.NewVirtualLocation("/foo/bar/somefile-1.txt", "somefile-1.txt")),
-			CPEs: []syftPkg.CPE{
+			CPEs: []cpe.CPE{
 				{
 					Part:     "a",
 					Vendor:   "anchore",
@@ -161,7 +162,7 @@ func generatePackages(t *testing.T) []pkg.Package {
 			Version:   "2.2.2",
 			Type:      syftPkg.DebPkg,
 			Locations: syftSource.NewLocationSet(syftSource.NewVirtualLocation("/foo/bar/somefile-2.txt", "somefile-2.txt")),
-			CPEs: []syftPkg.CPE{
+			CPEs: []cpe.CPE{
 				{
 					Part:     "a",
 					Vendor:   "anchore",

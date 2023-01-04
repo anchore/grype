@@ -11,7 +11,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
-	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/cpe"
 )
 
 type CPEParameters struct {
@@ -61,9 +61,9 @@ func ByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, upstreamMatc
 	// we attempt to merge match details within the same matcher when searching by CPEs, in this way there are fewer duplicated match
 	// objects (and fewer duplicated match details).
 	matchesByFingerprint := make(map[match.Fingerprint]match.Match)
-	for _, cpe := range p.CPEs {
+	for _, c := range p.CPEs {
 		// prefer the CPE version, but if npt specified use the package version
-		searchVersion := cpe.Version
+		searchVersion := c.Version
 		if searchVersion == wfn.NA || searchVersion == wfn.Any {
 			searchVersion = p.Version
 		}
@@ -73,7 +73,7 @@ func ByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, upstreamMatc
 		}
 
 		// find all vulnerability records in the DB for the given CPE (not including version comparisons)
-		allPkgVulns, err := store.GetByCPE(cpe)
+		allPkgVulns, err := store.GetByCPE(c)
 		if err != nil {
 			return nil, fmt.Errorf("matcher failed to fetch by CPE pkg=%q: %w", p.Name, err)
 		}
@@ -95,14 +95,14 @@ func ByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, upstreamMatc
 		// relative to the current version information from the CPE (or the package) then the given package
 		// is vulnerable.
 		for _, vuln := range applicableVulns {
-			addNewMatch(matchesByFingerprint, vuln, p, *verObj, upstreamMatcher, cpe)
+			addNewMatch(matchesByFingerprint, vuln, p, *verObj, upstreamMatcher, c)
 		}
 	}
 
 	return toMatches(matchesByFingerprint), nil
 }
 
-func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vulnerability.Vulnerability, p pkg.Package, searchVersion version.Version, upstreamMatcher match.MatcherType, searchedByCPE syftPkg.CPE) {
+func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vulnerability.Vulnerability, p pkg.Package, searchVersion version.Version, upstreamMatcher match.MatcherType, searchedByCPE cpe.CPE) {
 	candidateMatch := match.Match{
 
 		Vulnerability: vuln,
@@ -174,7 +174,7 @@ func addMatchDetails(existingDetails []match.Detail, newDetails match.Detail) []
 	return existingDetails
 }
 
-func filterCPEsByVersion(pkgVersion version.Version, allCPEs []syftPkg.CPE) (matchedCPEs []syftPkg.CPE) {
+func filterCPEsByVersion(pkgVersion version.Version, allCPEs []cpe.CPE) (matchedCPEs []cpe.CPE) {
 	for _, c := range allCPEs {
 		if c.Version == wfn.Any || c.Version == wfn.NA {
 			matchedCPEs = append(matchedCPEs, c)
@@ -207,10 +207,10 @@ func toMatches(matchesByFingerprint map[match.Fingerprint]match.Match) (matches 
 }
 
 // cpesToString receives one or more CPEs and stringifies them
-func cpesToString(cpes []syftPkg.CPE) []string {
+func cpesToString(cpes []cpe.CPE) []string {
 	var strs = make([]string, len(cpes))
-	for idx, cpe := range cpes {
-		strs[idx] = cpe.BindToFmtString()
+	for idx, c := range cpes {
+		strs[idx] = c.BindToFmtString()
 	}
 	sort.Strings(strs)
 	return strs

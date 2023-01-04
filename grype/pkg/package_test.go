@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/syft/syft/artifact"
+	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/file"
 	syftFile "github.com/anchore/syft/syft/file"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -428,7 +429,7 @@ func TestFromCatalog_GeneratesCPEs(t *testing.T) {
 	catalog.Add(syftPkg.Package{
 		Name:    "first",
 		Version: "1",
-		CPEs: []syftPkg.CPE{
+		CPEs: []cpe.CPE{
 			{},
 		},
 	})

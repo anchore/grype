@@ -10,6 +10,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -62,7 +63,7 @@ func (mp *mockProvider) populateData() {
 	}
 }
 
-func (mp *mockProvider) GetByCPE(p syftPkg.CPE) ([]vulnerability.Vulnerability, error) {
+func (mp *mockProvider) GetByCPE(p cpe.CPE) ([]vulnerability.Vulnerability, error) {
 	return []vulnerability.Vulnerability{}, nil
 }
 

@@ -8,8 +8,9 @@ import (
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/artifact"
+	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/pkg"
-	"github.com/anchore/syft/syft/pkg/cataloger/common/cpe"
+	cpes "github.com/anchore/syft/syft/pkg/cataloger/common/cpe"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -34,7 +35,7 @@ type Package struct {
 	Language     pkg.Language       // the language ecosystem this package belongs to (e.g. JavaScript, Python, etc)
 	Licenses     []string
 	Type         pkg.Type  // the package type (e.g. Npm, Yarn, Python, Rpm, Deb, etc)
-	CPEs         []pkg.CPE // all possible Common Platform Enumerators
+	CPEs         []cpe.CPE // all possible Common Platform Enumerators
 	PURL         string    // the Package URL (see https://github.com/package-url/purl-spec)
 	Upstreams    []UpstreamPackage
 	MetadataType MetadataType
@@ -71,7 +72,7 @@ func FromPackages(syftpkgs []pkg.Package, config SynthesisConfig) []Package {
 		if len(p.CPEs) == 0 {
 			// For SPDX (or any format, really) we may have no CPEs
 			if config.GenerateMissingCPEs {
-				p.CPEs = cpe.Generate(p)
+				p.CPEs = cpes.Generate(p)
 			} else {
 				log.Debugf("no CPEs for package: %s", p)
 				missingCPEs = true

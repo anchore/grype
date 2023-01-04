@@ -9,7 +9,7 @@ import (
 
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
-	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/cpe"
 )
 
 var ErrCannotMerge = fmt.Errorf("unable to merge vulnerability matches")
@@ -64,25 +64,6 @@ func (m *Match) Merge(other Match) error {
 		return strings.Compare(referenceID(a), referenceID(b)) < 0
 	})
 
-	// similarly we need to retain unique CPEs for consistent output
-	cpes := strset.New()
-	for _, c := range m.Vulnerability.CPEs {
-		cpes.Add(syftPkg.CPEString(c))
-	}
-	for _, c := range other.Vulnerability.CPEs {
-		if cpes.Has(syftPkg.CPEString(c)) {
-			continue
-		}
-		m.Vulnerability.CPEs = append(m.Vulnerability.CPEs, c)
-	}
-
-	// for stable output
-	sort.Slice(m.Vulnerability.CPEs, func(i, j int) bool {
-		a := m.Vulnerability.CPEs[i]
-		b := m.Vulnerability.CPEs[j]
-		return strings.Compare(syftPkg.CPEString(a), syftPkg.CPEString(b)) < 0
-	})
-
 	// also keep details from the other match that are unique
 	detailIDs := strset.New()
 	for _, d := range m.Details {
@@ -101,6 +82,9 @@ func (m *Match) Merge(other Match) error {
 		b := m.Details[j]
 		return strings.Compare(a.ID(), b.ID()) < 0
 	})
+
+	// retain all unique CPEs for consistent output
+	m.Vulnerability.CPEs = cpe.Merge(m.Vulnerability.CPEs, other.Vulnerability.CPEs)
 
 	return nil
 }
