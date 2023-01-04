@@ -5,7 +5,7 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/sergi/go-diff/diffmatchpatch"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -27,7 +27,7 @@ func TestCycloneDxPresenterImage(t *testing.T) {
 		SBOM:             sbom,
 	}
 
-	pres := NewXMLPresenter(pb)
+	pres := NewJSONPresenter(pb)
 	// run presenter
 	err := pres.Present(&buffer)
 	if err != nil {
@@ -45,12 +45,7 @@ func TestCycloneDxPresenterImage(t *testing.T) {
 	actual = models.Redact(actual)
 	expected = models.Redact(expected)
 
-	if !bytes.Equal(expected, actual) {
-		dmp := diffmatchpatch.New()
-		diffs := dmp.DiffMain(string(expected), string(actual), true)
-		t.Errorf("mismatched output:\n%s", dmp.DiffPrettyText(diffs))
-	}
-
+	require.JSONEq(t, string(expected), string(actual))
 }
 
 func TestCycloneDxPresenterDir(t *testing.T) {
@@ -65,7 +60,7 @@ func TestCycloneDxPresenterDir(t *testing.T) {
 		SBOM:             sbom,
 	}
 
-	pres := NewXMLPresenter(pb)
+	pres := NewJSONPresenter(pb)
 
 	// run presenter
 	err := pres.Present(&buffer)
@@ -84,10 +79,5 @@ func TestCycloneDxPresenterDir(t *testing.T) {
 	actual = models.Redact(actual)
 	expected = models.Redact(expected)
 
-	if !bytes.Equal(expected, actual) {
-		dmp := diffmatchpatch.New()
-		diffs := dmp.DiffMain(string(expected), string(actual), true)
-		t.Errorf("mismatched output:\n%s", dmp.DiffPrettyText(diffs))
-	}
-
+	require.JSONEq(t, string(expected), string(actual))
 }

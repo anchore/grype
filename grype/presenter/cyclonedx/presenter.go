@@ -67,7 +67,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 	}
 
 	vulns := make([]cyclonedx.Vulnerability, 0)
-	for m := range pres.results.Enumerate() {
+	for _, m := range pres.results.Sorted() {
 		v, err := NewVulnerability(m, pres.metadataProvider)
 		if err != nil {
 			continue
