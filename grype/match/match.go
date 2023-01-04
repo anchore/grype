@@ -85,6 +85,10 @@ func (m *Match) Merge(other Match) error {
 
 	// retain all unique CPEs for consistent output
 	m.Vulnerability.CPEs = cpe.Merge(m.Vulnerability.CPEs, other.Vulnerability.CPEs)
+	if m.Vulnerability.CPEs == nil {
+		// ensure we always have a non-nil slice
+		m.Vulnerability.CPEs = []cpe.CPE{}
+	}
 
 	return nil
 }
