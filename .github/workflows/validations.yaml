@@ -155,6 +155,8 @@ jobs:
 
       - name: Run quality tests
         run: make quality
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   Integration-Test:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
