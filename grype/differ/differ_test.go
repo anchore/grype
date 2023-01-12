@@ -3,6 +3,7 @@ package differ
 import (
 	"bytes"
 	"flag"
+	"strconv"
 	"testing"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -11,6 +12,7 @@ import (
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/db"
 	v5 "github.com/anchore/grype/grype/db/v5"
+	"github.com/anchore/grype/grype/vulnerability"
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for diff presenter")
@@ -25,6 +27,25 @@ func TestNewDiffer(t *testing.T) {
 	//THEN
 	require.NoError(t, err)
 	require.NotNil(t, differ.baseCurator)
+}
+
+func Test_DifferDirectory(t *testing.T) {
+	d, err := NewDiffer(db.Config{
+		DBRootDir: "root-dir",
+	})
+	require.NoError(t, err)
+
+	err = d.SetBaseDB("test-fixtures/dbs/base")
+	require.NoError(t, err)
+
+	baseStatus := d.baseCurator.Status()
+	require.Equal(t, "test-fixtures/dbs/base/"+strconv.Itoa(vulnerability.SchemaVersion), baseStatus.Location)
+
+	err = d.SetTargetDB("test-fixtures/dbs/target")
+	require.NoError(t, err)
+
+	targetStatus := d.targetCurator.Status()
+	require.Equal(t, "test-fixtures/dbs/target/"+strconv.Itoa(vulnerability.SchemaVersion), targetStatus.Location)
 }
 
 func TestPresent_Json(t *testing.T) {

@@ -49,40 +49,51 @@ func NewDiffer(config db.Config) (*Differ, error) {
 	}, nil
 }
 
-func (d *Differ) DownloadDatabases(baseURL, targetURL *url.URL) error {
-	listing, err := d.baseCurator.ListingFromURL()
-	if err != nil {
-		return err
-	}
+func (d *Differ) SetBaseDB(base string) error {
+	return d.setOrDownload(&d.baseCurator, base)
+}
 
-	listings := listing.Available
-	dbs := listings[v5.SchemaVersion]
+func (d *Differ) SetTargetDB(target string) error {
+	return d.setOrDownload(&d.targetCurator, target)
+}
 
-	var baseListing *db.ListingEntry
-	var targetListing *db.ListingEntry
+func (d *Differ) setOrDownload(curator *db.Curator, filenameOrURL string) error {
+	u, err := url.ParseRequestURI(filenameOrURL)
 
-	for _, db := range dbs {
-		database := db
-		if *db.URL == *baseURL {
-			baseListing = &database
+	if err != nil || u.Scheme == "" {
+		*curator, err = db.NewCurator(db.Config{
+			DBRootDir: filenameOrURL,
+		})
+		if err != nil {
+			return err
 		}
-		if *db.URL == *targetURL {
-			targetListing = &database
+	} else {
+		listings, err := d.baseCurator.ListingFromURL()
+		if err != nil {
+			return err
+		}
+
+		available := listings.Available
+		dbs := available[v5.SchemaVersion]
+
+		var listing *db.ListingEntry
+
+		for _, d := range dbs {
+			database := d
+			if *d.URL == *u {
+				listing = &database
+			}
+		}
+
+		if listing == nil {
+			return fmt.Errorf("unable to find listing for url: %s", filenameOrURL)
+		}
+
+		if err := download(curator, listing); err != nil {
+			return fmt.Errorf("unable to download vulnerability database: %+v", err)
 		}
 	}
 
-	if baseListing == nil {
-		return fmt.Errorf("unable to find listing for base url: %s", baseURL.String())
-	} else if targetListing == nil {
-		return fmt.Errorf("unable to find listing for target url: %s", targetURL.String())
-	}
-
-	if err := download(&d.baseCurator, baseListing); err != nil {
-		return fmt.Errorf("unable to update base vulnerability database: %+v", err)
-	}
-	if err := download(&d.targetCurator, targetListing); err != nil {
-		return fmt.Errorf("unable to update target vulnerability database: %+v", err)
-	}
 	return nil
 }
 
