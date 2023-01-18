@@ -20,8 +20,8 @@ func TestMatcherGolang_DropMainPackage(t *testing.T) {
 		Name:         "istio.io/istio",
 		Version:      "v0.0.0-20220606222826-f59ce19ec6b6",
 		Type:         syftPkg.GoModulePkg,
-		MetadataType: pkg.GolangMetadataType,
-		Metadata: pkg.GolangMetadata{
+		MetadataType: pkg.GolangBinMetadataType,
+		Metadata: pkg.GolangBinMetadata{
 			MainModule: "istio.io/istio",
 		},
 	}

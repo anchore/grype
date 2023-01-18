@@ -348,6 +348,32 @@ func Test_NamespacesForLanguage(t *testing.T) {
 				"h-name",
 			},
 		},
+		{
+			language: syftPkg.Elixir,
+			namerInput: &pkg.Package{
+				ID:   pkg.ID(uuid.NewString()),
+				Name: "e-name",
+			},
+			expectedNamespaces: []string{
+				"github:elixir",
+			},
+			expectedNames: []string{
+				"e-name",
+			},
+		},
+		{
+			language: syftPkg.Erlang,
+			namerInput: &pkg.Package{
+				ID:   pkg.ID(uuid.NewString()),
+				Name: "2-name",
+			},
+			expectedNamespaces: []string{
+				"github:erlang",
+			},
+			expectedNames: []string{
+				"2-name",
+			},
+		},
 	}
 
 	observedLanguages := strset.New()
