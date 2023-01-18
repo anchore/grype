@@ -35,9 +35,10 @@ func (m *Matcher) Type() match.MatcherType {
 
 func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	matches := make([]match.Match, 0)
-	metadata := pkg.GolangMetadata{}
-	if p.Metadata != nil {
-		metadata = p.Metadata.(pkg.GolangMetadata)
+
+	mainModule := ""
+	if m, ok := p.Metadata.(pkg.GolangBinMetadata); ok {
+		mainModule = m.MainModule
 	}
 
 	// Golang currently does not have a standard way of incorporating the vcs version
@@ -45,7 +46,7 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 	// current version information for the main module is incomplete leading to multiple FP
 	// TODO: remove this exclusion when vcs information is included in future go version
 	isNotCorrected := strings.HasPrefix(p.Version, "v0.0.0-") || strings.HasPrefix(p.Version, "(devel)")
-	if p.Name == metadata.MainModule && isNotCorrected {
+	if p.Name == mainModule && isNotCorrected {
 		return matches, nil
 	}
 

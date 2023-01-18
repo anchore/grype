@@ -139,11 +139,8 @@ func dataFromPkg(p pkg.Package) (MetadataType, interface{}, []UpstreamPackage) {
 	var metadataType MetadataType
 
 	switch p.MetadataType {
-	case pkg.GolangMetadataType:
-		if m := golangBinDataFromPkg(p); m != nil {
-			metadata = *m
-			metadataType = GolangMetadataType
-		}
+	case pkg.GolangBinMetadataType, pkg.GolangModMetadataType:
+		metadataType, metadata = golangMetadataFromPkg(p)
 	case pkg.DpkgMetadataType:
 		upstreams = dpkgDataFromPkg(p)
 	case pkg.RpmMetadataType:
@@ -164,9 +161,10 @@ func dataFromPkg(p pkg.Package) (MetadataType, interface{}, []UpstreamPackage) {
 	return metadataType, metadata, upstreams
 }
 
-func golangBinDataFromPkg(p pkg.Package) (m *GolangMetadata) {
-	metadata := &GolangMetadata{}
-	if value, ok := p.Metadata.(pkg.GolangMetadata); ok {
+func golangMetadataFromPkg(p pkg.Package) (MetadataType, interface{}) {
+	switch value := p.Metadata.(type) {
+	case pkg.GolangBinMetadata:
+		metadata := GolangBinMetadata{}
 		if value.BuildSettings != nil {
 			metadata.BuildSettings = value.BuildSettings
 		}
@@ -174,8 +172,13 @@ func golangBinDataFromPkg(p pkg.Package) (m *GolangMetadata) {
 		metadata.Architecture = value.Architecture
 		metadata.H1Digest = value.H1Digest
 		metadata.MainModule = value.MainModule
+		return GolangBinMetadataType, metadata
+	case pkg.GolangModMetadata:
+		metadata := GolangModMetadata{}
+		metadata.H1Digest = value.H1Digest
+		return GolangModMetadataType, metadata
 	}
-	return metadata
+	return "", nil
 }
 
 func dpkgDataFromPkg(p pkg.Package) (upstreams []UpstreamPackage) {
