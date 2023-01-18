@@ -279,6 +279,18 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
+			name: "golang-mod-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.GolangModMetadataType,
+				Metadata: syftPkg.GolangModMetadata{
+					H1Digest: "h1:as234NweNNTNWEtt13nwNENTt",
+				},
+			},
+			metadata: GolangModMetadata{
+				H1Digest: "h1:as234NweNNTNWEtt13nwNENTt",
+			},
+		},
+		{
 			name: "php-composer-metadata",
 			syftPkg: syftPkg.Package{
 				MetadataType: syftPkg.PhpComposerJSONMetadataType,
@@ -361,6 +373,48 @@ func TestNew(t *testing.T) {
 				Metadata: syftPkg.HackageMetadata{
 					Name:    "hackage",
 					Version: "v0.0.1",
+				},
+			},
+		},
+		{
+			name: "rebar-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.RebarLockMetadataType,
+				Metadata: syftPkg.RebarLockMetadata{
+					Name:    "rebar",
+					Version: "v0.1.1",
+				},
+			},
+		},
+		{
+			name: "npm-package-lock-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.NpmPackageLockJSONMetadataType,
+				Metadata: syftPkg.NpmPackageLockJSONMetadata{
+					Resolved:  "resolved",
+					Integrity: "sha1:ab7d8979989b7a98d97",
+				},
+			},
+		},
+		{
+			name: "mix-lock-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.MixLockMetadataType,
+				Metadata: syftPkg.MixLockMetadata{
+					Name:    "mix-lock",
+					Version: "v0.1.2",
+				},
+			},
+		},
+		{
+			name: "pipfile-lock-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.PythonPipfileLockMetadataType,
+				Metadata: syftPkg.PythonPipfileLockMetadata{
+					Hashes: []string{
+						"sha1:ab8v88a8b88d8d8c88b8s765s47",
+					},
+					Index: "1",
 				},
 			},
 		},

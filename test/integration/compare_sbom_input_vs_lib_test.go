@@ -58,7 +58,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 	for _, p := range syftPkg.AllPkgs {
 		definedPkgTypes.Add(string(p))
 	}
-	// exceptions: rust, php, dart and msrc (kb) are not under test
+	// exceptions: rust, php, dart, msrc (kb), etc. are not under test
 	definedPkgTypes.Remove(
 		string(syftPkg.RustPkg),
 		string(syftPkg.KbPkg),
@@ -66,6 +66,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		string(syftPkg.DotnetPkg),
 		string(syftPkg.PhpComposerPkg),
 		string(syftPkg.ConanPkg),
+		string(syftPkg.HexPkg),
 		string(syftPkg.PortagePkg),
 		string(syftPkg.CocoapodsPkg),
 		string(syftPkg.HackagePkg),
