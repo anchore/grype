@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"net/url"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -35,7 +34,7 @@ func init() {
 	dbCmd.AddCommand(dbDiffCmd)
 }
 
-func startDBDiffCmd(dbURL []*url.URL, deleteDatabases bool) <-chan error {
+func startDBDiffCmd(base string, target string, deleteDatabases bool) <-chan error {
 	errs := make(chan error)
 	go func() {
 		defer close(errs)
@@ -45,10 +44,12 @@ func startDBDiffCmd(dbURL []*url.URL, deleteDatabases bool) <-chan error {
 			return
 		}
 
-		baseURL := dbURL[0]
-		targetURL := dbURL[1]
+		if err := d.SetBaseDB(base); err != nil {
+			errs <- err
+			return
+		}
 
-		if err := d.DownloadDatabases(baseURL, targetURL); err != nil {
+		if err := d.SetTargetDB(target); err != nil {
 			errs <- err
 			return
 		}
@@ -96,27 +97,29 @@ func runDBDiffCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	var dbURL []*url.URL
+	var base, target string
 
-	if len(args) < 2 {
+	switch len(args) {
+	case 0:
 		log.Info("base_db_url and target_db_url not provided; fetching most recent")
-		dbURL, err = getDefaultURL()
+		base, target, err = getDefaultURLs()
 		if err != nil {
-			return fmt.Errorf("could not fetch most recent database URL: %w", err)
+			return err
 		}
-	} else {
-		for _, arg := range args {
-			u, err := url.Parse(arg)
-			if err != nil {
-				return fmt.Errorf("url argument is malformed: %w", err)
-			}
-
-			dbURL = append(dbURL, u)
+	case 1:
+		log.Info("target_db_url not provided; fetching most recent")
+		base = args[0]
+		_, target, err = getDefaultURLs()
+		if err != nil {
+			return err
 		}
+	default:
+		base = args[0]
+		target = args[1]
 	}
 
 	return eventLoop(
-		startDBDiffCmd(dbURL, deleteDatabases),
+		startDBDiffCmd(base, target, deleteDatabases),
 		setupSignals(),
 		eventSubscription,
 		stereoscope.Cleanup,
@@ -124,27 +127,25 @@ func runDBDiffCmd(cmd *cobra.Command, args []string) error {
 	)
 }
 
-func getDefaultURL() (defaultURL []*url.URL, err error) {
+func getDefaultURLs() (baseURL string, targetURL string, err error) {
 	dbCurator, err := db.NewCurator(appConfig.DB.ToCuratorConfig())
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
 
 	listing, err := dbCurator.ListingFromURL()
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
 
 	supportedSchema := dbCurator.SupportedSchema()
 	available, exists := listing.Available[supportedSchema]
 	if len(available) < 2 || !exists {
-		return nil, stderrPrintLnf("Not enough databases available for the current schema to diff (%d)", supportedSchema)
+		return "", "", stderrPrintLnf("Not enough databases available for the current schema to diff (%d)", supportedSchema)
 	}
 
-	recent := available[:2]
-	for _, entry := range recent {
-		defaultURL = append([]*url.URL{entry.URL}, defaultURL...)
-	}
+	targetURL = available[0].URL.String()
+	baseURL = available[1].URL.String()
 
-	return defaultURL, nil
+	return baseURL, targetURL, nil
 }

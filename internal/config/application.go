@@ -9,10 +9,10 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/mitchellh/go-homedir"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 
+	"github.com/anchore/go-logger"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
@@ -29,7 +29,8 @@ type parser interface {
 }
 
 type Application struct {
-	ConfigPath          string                  `yaml:",omitempty" json:"configPath"`                                                         // the location where the application config was read from (either from -c or discovered while loading)
+	ConfigPath          string                  `yaml:",omitempty" json:"configPath"` // the location where the application config was read from (either from -c or discovered while loading)
+	Verbosity           uint                    `yaml:"verbosity,omitempty" json:"verbosity" mapstructure:"verbosity"`
 	Output              string                  `yaml:"output" json:"output" mapstructure:"output"`                                           // -o, the Presenter hint string to use for report formatting
 	File                string                  `yaml:"file" json:"file" mapstructure:"file"`                                                 // --file, the file to write report output to
 	Distro              string                  `yaml:"distro" json:"distro" mapstructure:"distro"`                                           // --distro, specify a distro to explicitly use
@@ -53,6 +54,8 @@ type Application struct {
 	Registry            registry                `yaml:"registry" json:"registry" mapstructure:"registry"`
 	Log                 logging                 `yaml:"log" json:"log" mapstructure:"log"`
 	Attestation         Attestation             `yaml:"attestation" json:"attestation" mapstructure:"attestation"`
+	ShowSuppressed      bool                    `yaml:"show-suppressed" json:"show-suppressed" mapstructure:"show-suppressed"`
+	ByCVE               bool                    `yaml:"by-cve" json:"by-cve" mapstructure:"by-cve"` // --by-cve, indicates if the original match vulnerability IDs should be preserved or the CVE should be used instead
 }
 
 func newApplicationConfig(v *viper.Viper, cliOpts CliOnlyOptions) *Application {
@@ -88,8 +91,6 @@ func LoadApplicationConfig(v *viper.Viper, cliOpts CliOnlyOptions) (*Application
 func (cfg Application) loadDefaultValues(v *viper.Viper) {
 	// set the default values for primitive fields in this struct
 	v.SetDefault("check-for-app-update", true)
-	v.SetDefault("only-fixed", false)
-	v.SetDefault("only-notfixed", false)
 
 	// for each field in the configuration struct, see if the field implements the defaultValueLoader interface and invoke it if it does
 	value := reflect.ValueOf(cfg)
@@ -135,31 +136,24 @@ func (cfg *Application) parseLogLevelOption() error {
 		// TODO: this is bad: quiet option trumps all other logging options (such as to a file on disk)
 		// we should be able to quiet the console logging and leave file logging alone...
 		// ... this will be an enhancement for later
-		cfg.Log.LevelOpt = logrus.PanicLevel
+		cfg.Log.Level = logger.DisabledLevel
+
+	case cfg.CliOptions.Verbosity > 0:
+		verb := cfg.CliOptions.Verbosity
+		cfg.Log.Level = logger.LevelFromVerbosity(verb, logger.WarnLevel, logger.InfoLevel, logger.DebugLevel, logger.TraceLevel)
+
 	case cfg.Log.Level != "":
-		if cfg.CliOptions.Verbosity > 0 {
-			return fmt.Errorf("cannot explicitly set log level (cfg file or env var) and use -v flag together")
-		}
-
-		lvl, err := logrus.ParseLevel(strings.ToLower(cfg.Log.Level))
+		var err error
+		cfg.Log.Level, err = logger.LevelFromString(string(cfg.Log.Level))
 		if err != nil {
-			return fmt.Errorf("bad log level configured (%q): %w", cfg.Log.Level, err)
+			return err
 		}
 
-		cfg.Log.LevelOpt = lvl
-		if cfg.Log.LevelOpt >= logrus.InfoLevel {
-			cfg.CliOptions.Verbosity = 1
+		if logger.IsVerbose(cfg.Log.Level) {
+			cfg.Verbosity = 1
 		}
 	default:
-
-		switch v := cfg.CliOptions.Verbosity; {
-		case v == 1:
-			cfg.Log.LevelOpt = logrus.InfoLevel
-		case v >= 2:
-			cfg.Log.LevelOpt = logrus.DebugLevel
-		default:
-			cfg.Log.LevelOpt = logrus.WarnLevel
-		}
+		cfg.Log.Level = logger.WarnLevel
 	}
 
 	return nil

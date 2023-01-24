@@ -46,10 +46,12 @@ func TestProviderLocationExcludes(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			cfg := ProviderConfig{
-				Exclusions:        test.excludes,
-				CatalogingOptions: cataloger.DefaultConfig(),
+				SyftProviderConfig: SyftProviderConfig{
+					Exclusions:        test.excludes,
+					CatalogingOptions: cataloger.DefaultConfig(),
+				},
 			}
-			pkgs, _, _ := Provide(test.fixture, cfg)
+			pkgs, _, _, _ := Provide(test.fixture, cfg)
 
 			var pkgNames []string
 
@@ -99,10 +101,12 @@ func TestSyftLocationExcludes(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			userInput := imagetest.GetFixtureImageTarPath(t, test.fixture)
 			cfg := ProviderConfig{
-				Exclusions:        test.excludes,
-				CatalogingOptions: cataloger.DefaultConfig(),
+				SyftProviderConfig: SyftProviderConfig{
+					Exclusions:        test.excludes,
+					CatalogingOptions: cataloger.DefaultConfig(),
+				},
 			}
-			pkgs, _, err := Provide(userInput, cfg)
+			pkgs, _, _, err := Provide(userInput, cfg)
 
 			assert.NoErrorf(t, err, "error calling Provide function")
 

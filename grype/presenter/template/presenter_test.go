@@ -11,12 +11,13 @@ import (
 
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/presenter/models"
+	"github.com/anchore/syft/syft/source"
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for template presenters")
 
 func TestPresenter_Present(t *testing.T) {
-	matches, packages, context, metadataProvider, appConfig, dbStatus := models.GenerateAnalysis(t)
+	matches, packages, context, metadataProvider, appConfig, dbStatus := models.GenerateAnalysis(t, source.ImageScheme)
 
 	workingDirectory, err := os.Getwd()
 	if err != nil {
@@ -24,7 +25,16 @@ func TestPresenter_Present(t *testing.T) {
 	}
 	templateFilePath := path.Join(workingDirectory, "./test-fixtures/test.template")
 
-	templatePresenter := NewPresenter(matches, nil, packages, context, metadataProvider, appConfig, dbStatus, templateFilePath)
+	pb := models.PresenterConfig{
+		Matches:          matches,
+		Packages:         packages,
+		Context:          context,
+		MetadataProvider: metadataProvider,
+		AppConfig:        appConfig,
+		DBStatus:         dbStatus,
+	}
+
+	templatePresenter := NewPresenter(pb, templateFilePath)
 
 	var buffer bytes.Buffer
 	if err := templatePresenter.Present(&buffer); err != nil {

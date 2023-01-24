@@ -7,11 +7,17 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 type mockProvider struct {
 	data map[string]map[string][]vulnerability.Vulnerability
+}
+
+func (pr *mockProvider) Get(id, namespace string) ([]vulnerability.Vulnerability, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func newMockProvider() *mockProvider {
@@ -42,7 +48,7 @@ func (pr *mockProvider) GetByDistro(d *distro.Distro, p pkg.Package) ([]vulnerab
 	return pr.data[strings.ToLower(d.Type.String())+":"+d.FullVersion()][p.Name], nil
 }
 
-func (pr *mockProvider) GetByCPE(request syftPkg.CPE) (v []vulnerability.Vulnerability, err error) {
+func (pr *mockProvider) GetByCPE(request cpe.CPE) (v []vulnerability.Vulnerability, err error) {
 	return v, err
 }
 

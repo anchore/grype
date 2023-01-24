@@ -10,6 +10,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -46,6 +47,11 @@ type mockProvider struct {
 	data map[syftPkg.Language]map[string][]vulnerability.Vulnerability
 }
 
+func (mp *mockProvider) Get(id, namespace string) ([]vulnerability.Vulnerability, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (mp *mockProvider) populateData() {
 	mp.data[syftPkg.Go] = map[string][]vulnerability.Vulnerability{
 		"istio.io/istio": {
@@ -57,7 +63,7 @@ func (mp *mockProvider) populateData() {
 	}
 }
 
-func (mp *mockProvider) GetByCPE(p syftPkg.CPE) ([]vulnerability.Vulnerability, error) {
+func (mp *mockProvider) GetByCPE(p cpe.CPE) ([]vulnerability.Vulnerability, error) {
 	return []vulnerability.Vulnerability{}, nil
 }
 

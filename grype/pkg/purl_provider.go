@@ -11,6 +11,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 
 	"github.com/anchore/packageurl-go"
+	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/pkg"
 )
 
@@ -57,16 +58,17 @@ func decodePurlFile(reader io.Reader) ([]Package, error) {
 			if qualifier.Key == cpesQualifierKey {
 				rawCpes := strings.Split(qualifier.Value, ",")
 				for _, rawCpe := range rawCpes {
-					cpe, err := pkg.NewCPE(rawCpe)
+					c, err := cpe.New(rawCpe)
 					if err != nil {
 						return nil, fmt.Errorf("unable to decode cpe %s in purl %s: %w", rawCpe, rawLine, err)
 					}
-					cpes = append(cpes, cpe)
+					cpes = append(cpes, c)
 				}
 			}
 		}
 
 		packages = append(packages, Package{
+			ID:       ID(purl.String()),
 			CPEs:     cpes,
 			Name:     purl.Name,
 			Version:  purl.Version,

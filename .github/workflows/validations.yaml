@@ -11,29 +11,32 @@ env:
   GO_STABLE_VERSION: true
   PYTHON_VERSION: "3.10"
 
+permissions:
+  contents: read
+
 jobs:
   Static-Analysis:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Static analysis"
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@c4a742cab115ed795e34d4513e2cf7d472deb55f # v3.3.1
         with:
           go-version: ${{ env.GO_VERSION }}
           stable: ${{ env.GO_STABLE_VERSION }}
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791 # v2.5.0
 
       - name: Restore tool cache
         id: tool-cache
-        uses: actions/cache@v2.1.3
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
         with:
           path: ${{ github.workspace }}/.tmp
           key: ${{ runner.os }}-tool-${{ hashFiles('Makefile') }}
 
       - name: Restore go cache
         id: go-cache
-        uses: actions/cache@v2.1.3
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
@@ -63,23 +66,23 @@ jobs:
     name: "Unit tests"
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@c4a742cab115ed795e34d4513e2cf7d472deb55f #v3.3.1
         with:
           go-version: ${{ env.GO_VERSION }}
           stable: ${{ env.GO_STABLE_VERSION }}
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791 #v2.5.0
 
       - name: Restore tool cache
         id: tool-cache
-        uses: actions/cache@v2.1.3
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
         with:
           path: ${{ github.workspace }}/.tmp
           key: ${{ runner.os }}-tool-${{ hashFiles('Makefile') }}
 
       - name: Restore go cache
         id: go-cache
-        uses: actions/cache@v2.1.3
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
@@ -96,7 +99,7 @@ jobs:
       - name: Run unit tests
         run: make unit
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb # v3.1.1
         with:
           name: unit-test-results
           path: test/results/**/*
@@ -106,29 +109,29 @@ jobs:
     name: "Quality tests"
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@c4a742cab115ed795e34d4513e2cf7d472deb55f # v3.3.1
         with:
           go-version: ${{ env.GO_VERSION }}
           stable: ${{ env.GO_STABLE_VERSION }}
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984 # v4.3.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791 # v2.5.0
         with:
           submodules: true
 
       - name: Restore tool cache
         id: tool-cache
-        uses: actions/cache@v2.1.3
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
         with:
           path: ${{ github.workspace }}/.tmp
           key: ${{ runner.os }}-tool-${{ hashFiles('Makefile') }}
 
       - name: Restore go cache
         id: go-cache
-        uses: actions/cache@v2.1.3
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
@@ -137,7 +140,7 @@ jobs:
 
       - name: Restore python cache
         id: python-cache
-        uses: actions/cache@v2.1.3
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
         with:
           path: |
             test/quality/venv
@@ -152,29 +155,31 @@ jobs:
 
       - name: Run quality tests
         run: make quality
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   Integration-Test:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Integration tests"
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@c4a742cab115ed795e34d4513e2cf7d472deb55f # v3.3.1
         with:
           go-version: ${{ env.GO_VERSION }}
           stable: ${{ env.GO_STABLE_VERSION }}
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791 # v2.5.0
 
       - name: Restore tool cache
         id: tool-cache
-        uses: actions/cache@v2.1.3
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
         with:
           path: ${{ github.workspace }}/.tmp
           key: ${{ runner.os }}-tool-${{ hashFiles('Makefile') }}
 
       - name: Restore go cache
         id: go-cache
-        uses: actions/cache@v2.1.3
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
@@ -195,7 +200,7 @@ jobs:
         run: make integration-fingerprint
 
       - name: Restore integration test cache
-        uses: actions/cache@v2.1.3
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
         with:
           path: ${{ github.workspace }}/test/integration/test-fixtures/cache
           key: ${{ runner.os }}-integration-test-cache-${{ hashFiles('test/integration/test-fixtures/cache.fingerprint') }}
@@ -207,26 +212,26 @@ jobs:
     name: "Build snapshot artifacts"
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@c4a742cab115ed795e34d4513e2cf7d472deb55f # v3.3.1
         with:
           go-version: ${{ env.GO_VERSION }}
           stable: ${{ env.GO_STABLE_VERSION }}
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791 # v2.5.0
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@e81a89b1732b9c48d79cd809d8d81d79c4647a18 # v2.1.0
 
       - name: Restore tool cache
         id: tool-cache
-        uses: actions/cache@v2.1.3
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
         with:
           path: ${{ github.workspace }}/.tmp
           key: ${{ runner.os }}-tool-${{ hashFiles('Makefile') }}
 
       - name: Restore go cache
         id: go-cache
-        uses: actions/cache@v2.1.3
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
@@ -240,7 +245,7 @@ jobs:
       - name: Build snapshot artifacts
         run: make snapshot snapshot-docker-assets
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb # v3.1.1
         with:
           name: artifacts
           path: snapshot/**/*
@@ -251,9 +256,9 @@ jobs:
     needs: [Build-Snapshot-Artifacts]
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791 # v2.5.0
 
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@9782bd6a9848b53b110e712e20e42d89988822b7 # v3.0.1
         with:
           name: artifacts
           path: snapshot
@@ -263,7 +268,7 @@ jobs:
 
       - name: Restore install.sh test image cache
         id: install-test-image-cache
-        uses: actions/cache@v2.1.3
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
         with:
           path: ${{ github.workspace }}/test/install/cache
           key: ${{ runner.os }}-install-test-image-cache-${{ hashFiles('test/install/cache.fingerprint') }}
@@ -285,9 +290,9 @@ jobs:
     needs: [Build-Snapshot-Artifacts]
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791 # v2.5.0
 
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@9782bd6a9848b53b110e712e20e42d89988822b7 # v3.0.1
         with:
           name: artifacts
           path: snapshot
@@ -302,16 +307,16 @@ jobs:
     needs: [Build-Snapshot-Artifacts]
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@c4a742cab115ed795e34d4513e2cf7d472deb55f # v3.3.1
         with:
           go-version: ${{ env.GO_VERSION }}
           stable: ${{ env.GO_STABLE_VERSION }}
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791 # v2.5.0
 
       - name: Restore go cache
         id: go-cache
-        uses: actions/cache@v2.1.3
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
@@ -326,12 +331,12 @@ jobs:
         run: make cli-fingerprint
 
       - name: Restore CLI test cache
-        uses: actions/cache@v2.1.3
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
         with:
           path: ${{ github.workspace }}/test/cli/test-fixtures/cache
           key: ${{ runner.os }}-cli-test-cache-${{ hashFiles('test/cli/test-fixtures/cache.fingerprint') }}
 
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@9782bd6a9848b53b110e712e20e42d89988822b7 # v3.0.1
         with:
           name: artifacts
           path: snapshot

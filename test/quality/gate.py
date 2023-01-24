@@ -73,7 +73,7 @@ def guess_tool_orientation(tools: list[str]):
 
     if latest_release_tool is None:
         # "latest" value isn't accessible, so we do a best guess at which version is latest
-        current_tool, latest_release_tool = sorted(tools)
+        latest_release_tool, current_tool = sorted(tools)
 
     if current_tool is None:
         raise ValueError("current tool not found")

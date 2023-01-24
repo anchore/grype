@@ -19,12 +19,17 @@ CHANGELOG.md
 *.tmp
 coverage.txt
 
+# OS files
+.DS_Store
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
+/grype/grype
+
 
 # Test binary, build with `go test -c`
 *.test

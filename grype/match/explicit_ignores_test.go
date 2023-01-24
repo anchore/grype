@@ -79,6 +79,23 @@ func Test_ApplyExplicitIgnoreRules(t *testing.T) {
 			},
 			expected: []string{},
 		},
+		{
+			name: "filters invalid CVEs for protobuf Go module",
+			typ:  "go-module",
+			matches: []cvePkg{
+				{"CVE-2015-5237", "google.golang.org/protobuf"},
+				{"CVE-2021-22570", "google.golang.org/protobuf"},
+			},
+			expected: []string{},
+		},
+		{
+			name: "keeps valid CVEs for protobuf Go module",
+			typ:  "go-module",
+			matches: []cvePkg{
+				{"CVE-1998-99999", "google.golang.org/protobuf"},
+			},
+			expected: []string{"google.golang.org/protobuf"},
+		},
 	}
 
 	p := newMockExclusionProvider()

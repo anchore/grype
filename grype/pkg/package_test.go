@@ -1,12 +1,16 @@
 package pkg
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/scylladb/go-set"
 	"github.com/scylladb/go-set/strset"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/anchore/syft/syft/artifact"
+	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/file"
 	syftFile "github.com/anchore/syft/syft/file"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -115,6 +119,19 @@ func TestNew(t *testing.T) {
 					SourceRpm: "sqlite-3.26.0-6.el8.src.rpm",
 				},
 			},
+			metadata: RpmMetadata{},
+		},
+		{
+			name: "rpm with modularity label",
+			syftPkg: syftPkg.Package{
+				Name:         "sqlite",
+				MetadataType: syftPkg.RpmMetadataType,
+				Metadata: syftPkg.RpmMetadata{
+					SourceRpm:       "sqlite-3.26.0-6.el8.src.rpm",
+					ModularityLabel: "abc:2",
+				},
+			},
+			metadata: RpmMetadata{ModularityLabel: "abc:2"},
 		},
 		{
 			name: "java pkg",
@@ -164,19 +181,16 @@ func TestNew(t *testing.T) {
 			syftPkg: syftPkg.Package{
 				MetadataType: syftPkg.ApkMetadataType,
 				Metadata: syftPkg.ApkMetadata{
-					Package:          "libcurl-tools",
-					OriginPackage:    "libcurl",
-					Maintainer:       "somone",
-					Version:          "1.2.3",
-					License:          "Apache",
-					Architecture:     "a",
-					URL:              "a",
-					Description:      "a",
-					Size:             1,
-					InstalledSize:    1,
-					PullDependencies: "a",
-					PullChecksum:     "a",
-					GitCommitOfAport: "a",
+					Package:       "libcurl-tools",
+					OriginPackage: "libcurl",
+					Maintainer:    "somone",
+					Version:       "1.2.3",
+					License:       "Apache",
+					Architecture:  "a",
+					URL:           "a",
+					Description:   "a",
+					Size:          1,
+					InstalledSize: 1,
 				},
 			},
 			upstreams: []UpstreamPackage{
@@ -247,7 +261,7 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
-			name: "golang-bin-metadata",
+			name: "golang-metadata",
 			syftPkg: syftPkg.Package{
 				MetadataType: syftPkg.GolangBinMetadataType,
 				Metadata: syftPkg.GolangBinMetadata{
@@ -262,6 +276,18 @@ func TestNew(t *testing.T) {
 				GoCompiledVersion: "1.0.0",
 				H1Digest:          "a",
 				MainModule:        "myMainModule",
+			},
+		},
+		{
+			name: "golang-mod-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.GolangModMetadataType,
+				Metadata: syftPkg.GolangModMetadata{
+					H1Digest: "h1:as234NweNNTNWEtt13nwNENTt",
+				},
+			},
+			metadata: GolangModMetadata{
+				H1Digest: "h1:as234NweNNTNWEtt13nwNENTt",
 			},
 		},
 		{
@@ -326,9 +352,7 @@ func TestNew(t *testing.T) {
 			syftPkg: syftPkg.Package{
 				MetadataType: syftPkg.CocoapodsMetadataType,
 				Metadata: syftPkg.CocoapodsMetadata{
-					Name:    "name",
-					Version: "version",
-					PkgHash: "123eere234",
+					Checksum: "123eere234",
 				},
 			},
 		},
@@ -337,9 +361,8 @@ func TestNew(t *testing.T) {
 			syftPkg: syftPkg.Package{
 				MetadataType: syftPkg.PortageMetadataType,
 				Metadata: syftPkg.PortageMetadata{
-					Package:       "net-misc/curl",
-					Version:       "1.2.3",
 					InstalledSize: 1,
+					Files:         []syftPkg.PortageFileRecord{},
 				},
 			},
 		},
@@ -350,6 +373,57 @@ func TestNew(t *testing.T) {
 				Metadata: syftPkg.HackageMetadata{
 					Name:    "hackage",
 					Version: "v0.0.1",
+				},
+			},
+		},
+		{
+			name: "rebar-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.RebarLockMetadataType,
+				Metadata: syftPkg.RebarLockMetadata{
+					Name:    "rebar",
+					Version: "v0.1.1",
+				},
+			},
+		},
+		{
+			name: "npm-package-lock-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.NpmPackageLockJSONMetadataType,
+				Metadata: syftPkg.NpmPackageLockJSONMetadata{
+					Resolved:  "resolved",
+					Integrity: "sha1:ab7d8979989b7a98d97",
+				},
+			},
+		},
+		{
+			name: "mix-lock-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.MixLockMetadataType,
+				Metadata: syftPkg.MixLockMetadata{
+					Name:    "mix-lock",
+					Version: "v0.1.2",
+				},
+			},
+		},
+		{
+			name: "pipfile-lock-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.PythonPipfileLockMetadataType,
+				Metadata: syftPkg.PythonPipfileLockMetadata{
+					Hashes: []string{
+						"sha1:ab8v88a8b88d8d8c88b8s765s47",
+					},
+					Index: "1",
+				},
+			},
+		},
+		{
+			name: "binary-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.BinaryMetadataType,
+				Metadata: syftPkg.BinaryMetadata{
+					Classifier: "classifier",
 				},
 			},
 		},
@@ -399,7 +473,7 @@ func TestFromCatalog_DoesNotPanic(t *testing.T) {
 	catalog.Add(examplePackage)
 
 	assert.NotPanics(t, func() {
-		_ = FromCatalog(catalog, ProviderConfig{})
+		_ = FromCatalog(catalog, SynthesisConfig{})
 	})
 }
 
@@ -409,7 +483,7 @@ func TestFromCatalog_GeneratesCPEs(t *testing.T) {
 	catalog.Add(syftPkg.Package{
 		Name:    "first",
 		Version: "1",
-		CPEs: []syftPkg.CPE{
+		CPEs: []cpe.CPE{
 			{},
 		},
 	})
@@ -420,12 +494,12 @@ func TestFromCatalog_GeneratesCPEs(t *testing.T) {
 	})
 
 	// doesn't generate cpes when no flag
-	pkgs := FromCatalog(catalog, ProviderConfig{})
+	pkgs := FromCatalog(catalog, SynthesisConfig{})
 	assert.Len(t, pkgs[0].CPEs, 1)
 	assert.Len(t, pkgs[1].CPEs, 0)
 
 	// does generate cpes with the flag
-	pkgs = FromCatalog(catalog, ProviderConfig{
+	pkgs = FromCatalog(catalog, SynthesisConfig{
 		GenerateMissingCPEs: true,
 	})
 	assert.Len(t, pkgs[0].CPEs, 1)
@@ -469,4 +543,112 @@ func Test_getNameAndELVersion(t *testing.T) {
 
 func intRef(i int) *int {
 	return &i
+}
+
+func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
+	tests := []struct {
+		name             string
+		sbom             catalogRelationships
+		expectedPackages []string
+	}{
+		{
+			name: "includes all packages without overlap",
+			sbom: catalogWithOverlaps(
+				[]string{":go@1.18", "apk:node@19.2-r1", "binary:python@3.9"},
+				[]string{}),
+			expectedPackages: []string{":go@1.18", "apk:node@19.2-r1", "binary:python@3.9"},
+		},
+		{
+			name: "excludes single package by overlap",
+			sbom: catalogWithOverlaps(
+				[]string{"apk:go@1.18", "apk:node@19.2-r1", "binary:node@19.2"},
+				[]string{"apk:node@19.2-r1 -> binary:node@19.2"}),
+			expectedPackages: []string{"apk:go@1.18", "apk:node@19.2-r1"},
+		},
+		{
+			name: "excludes multiple package by overlap",
+			sbom: catalogWithOverlaps(
+				[]string{"apk:go@1.18", "apk:node@19.2-r1", "binary:node@19.2", "apk:python@3.9-r9", ":python@3.9"},
+				[]string{"apk:node@19.2-r1 -> binary:node@19.2", "apk:python@3.9-r9 -> :python@3.9"}),
+			expectedPackages: []string{"apk:go@1.18", "apk:node@19.2-r1", "apk:python@3.9-r9"},
+		},
+		{
+			name: "does not exclude with different types",
+			sbom: catalogWithOverlaps(
+				[]string{"rpm:node@19.2-r1", "apk:node@19.2"},
+				[]string{"rpm:node@19.2-r1 -> apk:node@19.2"}),
+			expectedPackages: []string{"apk:node@19.2", "rpm:node@19.2-r1"},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			catalog := removePackagesByOverlap(test.sbom.catalog, test.sbom.relationships)
+			pkgs := FromCatalog(catalog, SynthesisConfig{})
+			var pkgNames []string
+			for _, p := range pkgs {
+				pkgNames = append(pkgNames, fmt.Sprintf("%s:%s@%s", p.Type, p.Name, p.Version))
+			}
+			assert.EqualValues(t, test.expectedPackages, pkgNames)
+		})
+	}
+}
+
+type catalogRelationships struct {
+	catalog       *syftPkg.Catalog
+	relationships []artifact.Relationship
+}
+
+func catalogWithOverlaps(packages []string, overlaps []string) catalogRelationships {
+	var pkgs []syftPkg.Package
+	var relationships []artifact.Relationship
+
+	toPkg := func(str string) syftPkg.Package {
+		var typ, name, version string
+		s := strings.Split(strings.TrimSpace(str), ":")
+		if len(s) > 1 {
+			typ = s[0]
+			str = s[1]
+		}
+		s = strings.Split(str, "@")
+		name = s[0]
+		if len(s) > 1 {
+			version = s[1]
+		}
+
+		p := syftPkg.Package{
+			Type:    syftPkg.Type(typ),
+			Name:    name,
+			Version: version,
+		}
+		p.SetID()
+
+		return p
+	}
+
+	for _, pkg := range packages {
+		p := toPkg(pkg)
+		pkgs = append(pkgs, p)
+	}
+
+	for _, overlap := range overlaps {
+		parts := strings.Split(overlap, "->")
+		if len(parts) < 2 {
+			panic("invalid overlap, use -> to specify, e.g.: pkg1->pkg2")
+		}
+		from := toPkg(parts[0])
+		to := toPkg(parts[1])
+
+		relationships = append(relationships, artifact.Relationship{
+			From: from,
+			To:   to,
+			Type: artifact.OwnershipByFileOverlapRelationship,
+		})
+	}
+
+	catalog := syftPkg.NewCatalog(pkgs...)
+
+	return catalogRelationships{
+		catalog:       catalog,
+		relationships: relationships,
+	}
 }

@@ -9,6 +9,8 @@
 [![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/anchore/grype.svg)](https://github.com/anchore/grype)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/anchore/grype/blob/main/LICENSE)
 [![Slack Invite](https://img.shields.io/badge/Slack-Join-blue?logo=slack)](https://anchore.com/slack)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/anchore/grype/badge)](https://api.securityscorecards.dev/projects/github.com/anchore/grype)
+
 
 A vulnerability scanner for container images and filesystems. Easily [install the binary](#installation) to try it out. Works with [Syft](https://github.com/anchore/syft), the powerful SBOM (software bill of materials) tool for container images and filesystems.
 
@@ -335,7 +337,7 @@ ignore:
       location: "/usr/local/lib/node_modules/**"
 
   # We can make rules to match just by vulnerability ID:
-  - vulnerability: CVE-2017-41432
+  - vulnerability: CVE-2014-54321
 
   # ...or just by a single package field:
   - package:

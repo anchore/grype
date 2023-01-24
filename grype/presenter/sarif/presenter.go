@@ -8,9 +8,10 @@ import (
 
 	"github.com/owenrumney/go-sarif/sarif"
 
-	v4 "github.com/anchore/grype/grype/db/v4"
+	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/syft/syft/source"
@@ -25,12 +26,12 @@ type Presenter struct {
 }
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter(results match.Matches, packages []pkg.Package, srcMetadata *source.Metadata, metadataProvider vulnerability.MetadataProvider) *Presenter {
+func NewPresenter(pb models.PresenterConfig) *Presenter {
 	return &Presenter{
-		results:          results,
-		packages:         packages,
-		metadataProvider: metadataProvider,
-		srcMetadata:      srcMetadata,
+		results:          pb.Matches,
+		packages:         pb.Packages,
+		metadataProvider: pb.MetadataProvider,
+		srcMetadata:      pb.Context.Source,
 	}
 }
 
@@ -357,7 +358,7 @@ func (pres *Presenter) subtitle(m match.Match) string {
 }
 
 func fixVersions(m match.Match) string {
-	if m.Vulnerability.Fix.State == v4.FixedState && len(m.Vulnerability.Fix.Versions) > 0 {
+	if m.Vulnerability.Fix.State == v5.FixedState && len(m.Vulnerability.Fix.Versions) > 0 {
 		return strings.Join(m.Vulnerability.Fix.Versions, ",")
 	}
 	return ""

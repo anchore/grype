@@ -25,7 +25,13 @@ func ByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p p
 		return nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", d, p.Name, err)
 	}
 
-	applicableVulns, err := onlyVulnerableVersions(verObj, allPkgVulns)
+	applicableVulns, err := onlyQualifiedPackages(p, allPkgVulns)
+	if err != nil {
+		return nil, fmt.Errorf("unable to filter distro-related vulnerabilities: %w", err)
+	}
+
+	// TODO: Port this over to a qualifier and remove
+	applicableVulns, err = onlyVulnerableVersions(verObj, applicableVulns)
 	if err != nil {
 		return nil, fmt.Errorf("unable to filter distro-related vulnerabilities: %w", err)
 	}
@@ -54,6 +60,7 @@ func ByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p p
 						"namespace": vuln.Namespace,
 					},
 					Found: map[string]interface{}{
+						"vulnerabilityID":   vuln.ID,
 						"versionConstraint": vuln.Constraint.String(),
 					},
 					Confidence: 1.0, // TODO: this is hard coded for now

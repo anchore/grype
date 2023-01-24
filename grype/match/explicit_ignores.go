@@ -16,9 +16,16 @@ func init() {
 	var explicitIgnores = []ignoreValues{
 		// Based on https://github.com/anchore/grype/issues/552, which includes a reference to the
 		// https://github.com/mergebase/log4j-samples collection, we want to filter these explicitly:
-		{"java-archive",
-			[]string{"CVE-2021-44228", "CVE-2021-45046", "GHSA-jfh8-c2jp-5v3q", "GHSA-7rjr-3q55-vv33"},
-			[]string{"log4j-api", "log4j-slf4j-impl", "log4j-to-slf4j", "log4j-1.2-api", "log4j-detector", "log4j-over-slf4j", "slf4j-log4j12"},
+		{
+			typ:             "java-archive",
+			vulnerabilities: []string{"CVE-2021-44228", "CVE-2021-45046", "GHSA-jfh8-c2jp-5v3q", "GHSA-7rjr-3q55-vv33"},
+			packages:        []string{"log4j-api", "log4j-slf4j-impl", "log4j-to-slf4j", "log4j-1.2-api", "log4j-detector", "log4j-over-slf4j", "slf4j-log4j12"},
+		},
+		// Based on https://github.com/anchore/grype/issues/558:
+		{
+			typ:             "go-module",
+			vulnerabilities: []string{"CVE-2015-5237", "CVE-2021-22570"},
+			packages:        []string{"google.golang.org/protobuf"},
 		},
 	}
 

@@ -34,12 +34,12 @@ OS=$(shell uname | tr '[:upper:]' '[:lower:]')
 SYFT_VERSION=$(shell go list -m all | grep github.com/anchore/syft | awk '{print $$2}')
 SNAPSHOT_BIN=$(shell realpath $(shell pwd)/$(SNAPSHOTDIR)/$(OS)-build_$(OS)_amd64_v1/$(BIN))
 
-GOLANGCILINT_VERSION = v1.50.0
+GOLANGCILINT_VERSION = v1.50.1
 BOUNCER_VERSION = v0.4.0
-CHRONICLE_VERSION = v0.4.1
-GOSIMPORTS_VERSION = v0.3.2
+CHRONICLE_VERSION = v0.4.2
+GOSIMPORTS_VERSION = v0.3.5
 YAJSV_VERSION = v1.4.1
-GORELEASER_VERSION = v1.11.5
+GORELEASER_VERSION = v1.14.1
 
 ## Variable assertions
 
@@ -79,8 +79,13 @@ endef
 all: clean static-analysis test ## Run all checks (linting, license check, unit, integration, and linux acceptance tests tests)
 	@printf '$(SUCCESS)All checks pass!$(RESET)\n'
 
+.PHONY: grype
+grype: ## Build the grype binary
+	@printf '$(TITLE)Building grype$(RESET)\n'
+	CGO_ENABLED=0 go build -o $@ -trimpath -ldflags "-X main.version=$(VERSION) -X main.syftVersion=$(SYFT_VERSION)"
+
 .PHONY: test
-test: unit validate-cyclonedx-schema validate-cyclonedx-vex-schema integration cli ## Run all tests (unit, integration, linux acceptance, and CLI tests)
+test: unit validate-cyclonedx-schema integration cli ## Run all tests (unit, integration, linux acceptance, and CLI tests)
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(BOLD)$(CYAN)%-25s$(RESET)%s\n", $$1, $$2}'
@@ -149,10 +154,6 @@ check-go-mod-tidy:
 .PHONY: validate-cyclonedx-schema
 validate-cyclonedx-schema:
 	cd schema/cyclonedx && make
-
-.PHONY: validate-cyclonedx-vex-schema
-validate-cyclonedx-vex-schema:
-	cd schema/cyclonedxvex && make
 
 .PHONY: validate-grype-db-schema
 validate-grype-db-schema:

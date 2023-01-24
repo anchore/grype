@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/anchore/grype/grype/pkg"
-	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/cpe"
 )
 
 type Version struct {
@@ -14,7 +14,7 @@ type Version struct {
 }
 
 type rich struct {
-	cpeVers []syftPkg.CPE
+	cpeVers []cpe.CPE
 	semVer  *semanticVersion
 	apkVer  *apkVersion
 	debVer  *debVersion
@@ -88,7 +88,7 @@ func (v *Version) populate() error {
 	return fmt.Errorf("no rich version populated (format=%s)", v.Format)
 }
 
-func (v Version) CPEs() []syftPkg.CPE {
+func (v Version) CPEs() []cpe.CPE {
 	return v.rich.cpeVers
 }
 

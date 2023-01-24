@@ -12,12 +12,16 @@ env:
   GO_VERSION: "1.18.x"
   GO_STABLE_VERSION: true
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   quality-gate:
     environment: release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791 # v2.5.0
 
       # we don't want to release commits that have been pushed and tagged, but not necessarily merged onto main
       - name: Ensure tagged commit is on main
@@ -27,7 +31,7 @@ jobs:
           git merge-base --is-ancestor ${GITHUB_REF##*/} origin/main && echo "${GITHUB_REF##*/} is a commit on main!"
 
       - name: Check static analysis results
-        uses: fountainhead/action-wait-for-check@v1.0.0
+        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
         id: static-analysis
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -36,7 +40,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check unit test results
-        uses: fountainhead/action-wait-for-check@v1.0.0
+        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
         id: unit
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -45,7 +49,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check integration test results
-        uses: fountainhead/action-wait-for-check@v1.0.0
+        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
         id: integration
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -54,7 +58,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check acceptance test results (linux)
-        uses: fountainhead/action-wait-for-check@v1.0.0
+        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
         id: acceptance-linux
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -63,7 +67,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check acceptance test results (mac)
-        uses: fountainhead/action-wait-for-check@v1.0.0
+        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
         id: acceptance-mac
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -72,7 +76,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check cli test results (linux)
-        uses: fountainhead/action-wait-for-check@v1.0.0
+        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
         id: cli-linux
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -96,25 +100,25 @@ jobs:
     # due to our code signing process, it's vital that we run our release steps on macOS
     runs-on: macos-latest
     steps:
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@c4a742cab115ed795e34d4513e2cf7d472deb55f # v3.3.1
         with:
           go-version: ${{ env.GO_VERSION }}
           stable: ${{ env.GO_STABLE_VERSION }}
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791 # v2.5.0
         with:
           fetch-depth: 0
 
       - name: Restore tool cache
         id: tool-cache
-        uses: actions/cache@v2.1.3
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
         with:
           path: ${{ github.workspace }}/.tmp
           key: ${{ runner.os }}-tool-${{ hashFiles('Makefile') }}
 
       - name: Restore go cache
         id: go-cache
-        uses: actions/cache@v2.1.3
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
@@ -138,12 +142,12 @@ jobs:
           AC_USERNAME: ${{ secrets.ENG_CI_APPLE_ID }}
           AC_PASSWORD: ${{ secrets.ENG_CI_APPLE_ID_PASS }}
 
-      - uses: anchore/sbom-action@v0
+      - uses: anchore/sbom-action@06e109483e6aa305a2b2395eabae554e51530e1d # v0.13.1
         continue-on-error: true
         with:
           artifact-name: sbom.spdx.json
 
-      - uses: 8398a7/action-slack@v3
+      - uses: 8398a7/action-slack@a189acbf0b7ea434558662ae25a0de71df69a435 # v3.14.0
         continue-on-error: true
         with:
           status: ${{ job.status }}
@@ -153,7 +157,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_TOOLBOX_WEBHOOK_URL }}
         if: ${{ success() }}
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb # v3.1.1
         with:
           name: artifacts
           path: dist/**/*
@@ -164,20 +168,22 @@ jobs:
     # a previous release process installed and configured docker on the mac-os runner which lead to blocked releases
     # the anchore tools team opted to break this step out to a separate process to remove this work constraint
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
+      - uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791 # v2.5.0
+      - uses: actions/setup-go@c4a742cab115ed795e34d4513e2cf7d472deb55f # v3.3.1
         with:
           go-version: ${{ env.GO_VERSION }}
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # v2.1.0
         with:
           username: ${{ secrets.TOOLBOX_DOCKER_USER }}
           password: ${{ secrets.TOOLBOX_DOCKER_PASS }}
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # v2.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -185,7 +191,7 @@ jobs:
 
       - name: Restore go cache
         id: go-cache
-        uses: actions/cache@v2.1.3
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}

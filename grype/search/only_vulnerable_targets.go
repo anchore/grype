@@ -8,6 +8,29 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
+func isUnknownTarget(targetSW string) bool {
+	if syftPkg.LanguageByName(targetSW) != syftPkg.UnknownLanguage {
+		return false
+	}
+
+	// There are some common target software CPE components which are not currently
+	// supported by syft but are signifcant sources of false positives and should be
+	// considered known for the purposes of filtering here
+	known := map[string]bool{
+		"wordpress":  true,
+		"wordpress_": true,
+		"joomla":     true,
+		"joomla\\!":  true,
+		"drupal":     true,
+	}
+
+	if _, ok := known[targetSW]; ok {
+		return false
+	}
+
+	return true
+}
+
 // Determines if a vulnerability is an accurate match using the vulnerability's cpes' target software
 func onlyVulnerableTargets(p pkg.Package, allVulns []vulnerability.Vulnerability) []vulnerability.Vulnerability {
 	var vulns []vulnerability.Vulnerability
@@ -24,7 +47,7 @@ func onlyVulnerableTargets(p pkg.Package, allVulns []vulnerability.Vulnerability
 		isPackageVulnerable := len(vuln.CPEs) == 0
 		for _, cpe := range vuln.CPEs {
 			targetSW := cpe.TargetSW
-			mismatchWithUnknownLanguage := targetSW != string(p.Language) && syftPkg.LanguageByName(targetSW) == syftPkg.UnknownLanguage
+			mismatchWithUnknownLanguage := targetSW != string(p.Language) && isUnknownTarget(targetSW)
 			if targetSW == wfn.Any || targetSW == wfn.NA || targetSW == string(p.Language) || mismatchWithUnknownLanguage {
 				isPackageVulnerable = true
 			}

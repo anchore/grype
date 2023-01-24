@@ -4,131 +4,67 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/go-testutils"
-	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/stereoscope/pkg/imagetest"
-	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
 )
 
-var update = flag.Bool("update", false, "update the *.golden files for sarif presenters")
+var update = flag.Bool("update", false, "update .golden files for sarif presenters")
 
-func createResults() (match.Matches, []pkg.Package) {
-
-	pkg1 := pkg.Package{
-		ID:      "package-1-id",
-		Name:    "package-1",
-		Version: "1.0.1",
-		Type:    syftPkg.DebPkg,
-		Locations: source.NewLocationSet(
-			source.Location{
-				Coordinates: source.Coordinates{
-					RealPath:     "etc/pkg-1",
-					FileSystemID: "sha256:asdf",
-				},
-			},
-		),
-	}
-	pkg2 := pkg.Package{
-		ID:      "package-2-id",
-		Name:    "package-2",
-		Version: "2.0.1",
-		Type:    syftPkg.DebPkg,
-		Licenses: []string{
-			"MIT",
-			"Apache-v2",
+func TestSarifPresenter(t *testing.T) {
+	tests := []struct {
+		name   string
+		scheme source.Scheme
+	}{
+		{
+			name:   "directory",
+			scheme: source.DirectoryScheme,
 		},
-		Locations: source.NewLocationSet(
-			source.Location{
-				Coordinates: source.Coordinates{
-					RealPath:     "pkg-2",
-					FileSystemID: "sha256:asdf",
-				},
-			},
-		),
-	}
-
-	var match1 = match.Match{
-
-		Vulnerability: vulnerability.Vulnerability{
-			ID:        "CVE-1999-0001",
-			Namespace: "source-1",
-		},
-		Package: pkg1,
-		Details: []match.Detail{
-			{
-				Type:    match.ExactDirectMatch,
-				Matcher: match.DpkgMatcher,
-			},
+		{
+			name:   "image",
+			scheme: source.ImageScheme,
 		},
 	}
 
-	var match2 = match.Match{
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			var buffer bytes.Buffer
+			matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, tc.scheme)
 
-		Vulnerability: vulnerability.Vulnerability{
-			ID:        "CVE-1999-0002",
-			Namespace: "source-2",
-		},
-		Package: pkg2,
-		Details: []match.Detail{
-			{
-				Type:    match.ExactIndirectMatch,
-				Matcher: match.DpkgMatcher,
-				SearchedBy: map[string]interface{}{
-					"some": "key",
-				},
-			},
-		},
+			pb := models.PresenterConfig{
+				Matches:          matches,
+				Packages:         packages,
+				Context:          context,
+				MetadataProvider: metadataProvider,
+			}
+
+			pres := NewPresenter(pb)
+			err := pres.Present(&buffer)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			actual := buffer.Bytes()
+			if *update {
+				testutils.UpdateGoldenFileContents(t, actual)
+			}
+
+			var expected = testutils.GetGoldenFileContents(t)
+			actual = models.Redact(actual)
+			expected = models.Redact(expected)
+
+			if !bytes.Equal(expected, actual) {
+				assert.JSONEq(t, string(expected), string(actual))
+			}
+		})
 	}
-
-	matches := match.NewMatches()
-
-	matches.Add(match1, match2)
-
-	return matches, []pkg.Package{pkg1, pkg2}
-}
-
-func createImagePresenter(t *testing.T) *Presenter {
-	matches, packages := createResults()
-
-	img := imagetest.GetFixtureImage(t, "docker-archive", "image-simple")
-	s, err := source.NewFromImage(img, "user-input")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// This accounts for the non-deterministic digest value that we end up with when
-	// we build a container image dynamically during testing. Ultimately, we should
-	// use a golden image as a test fixture in place of building this image during
-	// testing. At that time, this line will no longer be necessary.
-	//
-	// This value is sourced from the "version" node in "./test-fixtures/snapshot/TestSarifImgsPresenter.golden"
-	s.Metadata.ImageMetadata.ManifestDigest = "sha256:2731251dc34951c0e50fcc643b4c5f74922dad1a5d98f302b504cf46cd5d9368"
-
-	pres := NewPresenter(matches, packages, &s.Metadata, models.NewMetadataMock())
-
-	return pres
-}
-
-func createDirPresenter(t *testing.T, path string) *Presenter {
-	matches, packages := createResults()
-
-	s, err := source.NewFromDirectory(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	pres := NewPresenter(matches, packages, &s.Metadata, models.NewMetadataMock())
-
-	return pres
 }
 
 func Test_locationPath(t *testing.T) {
@@ -241,116 +177,105 @@ func Test_locationPath(t *testing.T) {
 	}
 }
 
-func Test_imageToSarifReport(t *testing.T) {
-	pres := createImagePresenter(t)
-	s, err := pres.toSarifReport()
-	assert.NoError(t, err)
-
-	assert.Len(t, s.Runs, 1)
-
-	run := s.Runs[0]
-
-	// Sorted by vulnID, pkg name, ...
-	assert.Len(t, run.Tool.Driver.Rules, 2)
-	assert.Equal(t, "CVE-1999-0001-package-1", run.Tool.Driver.Rules[0].ID)
-	assert.Equal(t, "CVE-1999-0002-package-2", run.Tool.Driver.Rules[1].ID)
-
-	assert.Len(t, run.Results, 2)
-	result := run.Results[0]
-	assert.Equal(t, "CVE-1999-0001-package-1", *result.RuleID)
-	assert.Len(t, result.Locations, 1)
-	location := result.Locations[0]
-	assert.Equal(t, "image/etc/pkg-1", *location.PhysicalLocation.ArtifactLocation.URI)
-
-	result = run.Results[1]
-	assert.Equal(t, "CVE-1999-0002-package-2", *result.RuleID)
-	assert.Len(t, result.Locations, 1)
-	location = result.Locations[0]
-	assert.Equal(t, "image/pkg-2", *location.PhysicalLocation.ArtifactLocation.URI)
-}
-
-func Test_dirToSarifReport(t *testing.T) {
-	pres := createDirPresenter(t, "/abs/path")
-	s, err := pres.toSarifReport()
-	assert.NoError(t, err)
-
-	assert.Len(t, s.Runs, 1)
-
-	run := s.Runs[0]
-
-	// Sorted by vulnID, pkg name, ...
-	assert.Len(t, run.Tool.Driver.Rules, 2)
-	assert.Equal(t, "CVE-1999-0001-package-1", run.Tool.Driver.Rules[0].ID)
-	assert.Equal(t, "CVE-1999-0002-package-2", run.Tool.Driver.Rules[1].ID)
-
-	assert.Len(t, run.Results, 2)
-	result := run.Results[0]
-	assert.Equal(t, "CVE-1999-0001-package-1", *result.RuleID)
-	assert.Len(t, result.Locations, 1)
-	location := result.Locations[0]
-	assert.Equal(t, "/abs/path/etc/pkg-1", *location.PhysicalLocation.ArtifactLocation.URI)
-
-	result = run.Results[1]
-	assert.Equal(t, "CVE-1999-0002-package-2", *result.RuleID)
-	assert.Len(t, result.Locations, 1)
-	location = result.Locations[0]
-	assert.Equal(t, "/abs/path/pkg-2", *location.PhysicalLocation.ArtifactLocation.URI)
-}
-
-func TestSarifPresenterImage(t *testing.T) {
-	var buffer bytes.Buffer
-
-	pres := createImagePresenter(t)
-
-	// run presenter
-	err := pres.Present(&buffer)
+func createDirPresenter(t *testing.T, path string) *Presenter {
+	matches, packages, _, metadataProvider, _, _ := models.GenerateAnalysis(t, source.DirectoryScheme)
+	s, err := source.NewFromDirectory(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	actual := buffer.Bytes()
-	if *update {
-		testutils.UpdateGoldenFileContents(t, actual)
+	pb := models.PresenterConfig{
+		Matches:          matches,
+		Packages:         packages,
+		MetadataProvider: metadataProvider,
+		Context: pkg.Context{
+			Source: &s.Metadata,
+		},
 	}
 
-	var expected = testutils.GetGoldenFileContents(t)
+	pres := NewPresenter(pb)
 
-	// remove dynamic values, which are tested independently
-	actual = redact(actual)
-	expected = redact(expected)
-
-	assert.JSONEq(t, string(expected), string(actual))
+	return pres
 }
 
-func TestSarifPresenterDir(t *testing.T) {
-	var buffer bytes.Buffer
-	pres := createDirPresenter(t, ".")
-
-	// run presenter
-	err := pres.Present(&buffer)
-	if err != nil {
-		t.Fatal(err)
+func TestToSarifReport(t *testing.T) {
+	tt := []struct {
+		name      string
+		scheme    source.Scheme
+		locations map[string]string
+	}{
+		{
+			name:   "directory",
+			scheme: source.DirectoryScheme,
+			locations: map[string]string{
+				"CVE-1999-0001-package-1": "/some/path/somefile-1.txt",
+				"CVE-1999-0002-package-2": "/some/path/somefile-2.txt",
+			},
+		},
+		{
+			name:   "image",
+			scheme: source.ImageScheme,
+			locations: map[string]string{
+				"CVE-1999-0001-package-1": "image/somefile-1.txt",
+				"CVE-1999-0002-package-2": "image/somefile-2.txt",
+			},
+		},
 	}
 
-	actual := buffer.Bytes()
-	if *update {
-		testutils.UpdateGoldenFileContents(t, actual)
+	for _, tc := range tt {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, tc.scheme)
+
+			pb := models.PresenterConfig{
+				Matches:          matches,
+				Packages:         packages,
+				MetadataProvider: metadataProvider,
+				Context:          context,
+			}
+
+			pres := NewPresenter(pb)
+
+			report, err := pres.toSarifReport()
+			assert.NoError(t, err)
+
+			assert.Len(t, report.Runs, 1)
+			assert.NotEmpty(t, report.Runs)
+			assert.NotEmpty(t, report.Runs[0].Results)
+			assert.NotEmpty(t, report.Runs[0].Tool.Driver)
+			assert.NotEmpty(t, report.Runs[0].Tool.Driver.Rules)
+
+			// Sorted by vulnID, pkg name, ...
+			run := report.Runs[0]
+			assert.Len(t, run.Tool.Driver.Rules, 2)
+			assert.Equal(t, "CVE-1999-0001-package-1", run.Tool.Driver.Rules[0].ID)
+			assert.Equal(t, "CVE-1999-0002-package-2", run.Tool.Driver.Rules[1].ID)
+
+			assert.Len(t, run.Results, 2)
+			result := run.Results[0]
+			assert.Equal(t, "CVE-1999-0001-package-1", *result.RuleID)
+			assert.Len(t, result.Locations, 1)
+			location := result.Locations[0]
+			expectedLocation, ok := tc.locations[*result.RuleID]
+			if !ok {
+				t.Fatalf("no expected location for %s", *result.RuleID)
+			}
+			assert.Equal(t, expectedLocation, *location.PhysicalLocation.ArtifactLocation.URI)
+
+			result = run.Results[1]
+			assert.Equal(t, "CVE-1999-0002-package-2", *result.RuleID)
+			assert.Len(t, result.Locations, 1)
+			location = result.Locations[0]
+			expectedLocation, ok = tc.locations[*result.RuleID]
+			if !ok {
+				t.Fatalf("no expected location for %s", *result.RuleID)
+			}
+			assert.Equal(t, expectedLocation, *location.PhysicalLocation.ArtifactLocation.URI)
+		})
 	}
 
-	var expected = testutils.GetGoldenFileContents(t)
-
-	// remove dynamic values, which are tested independently
-	actual = redact(actual)
-	expected = redact(expected)
-
-	assert.JSONEq(t, string(expected), string(actual))
-}
-
-func redact(s []byte) []byte {
-	for _, pattern := range []*regexp.Regexp{} {
-		s = pattern.ReplaceAll(s, []byte("redacted"))
-	}
-	return s
 }
 
 type NilMetadataProvider struct{}
