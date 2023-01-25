@@ -16,6 +16,7 @@ x-ref:
     - docker.io/anchore/test_images:gems-56d52bc@sha256:5763c8a225f950961bf01ddec68e36f18e236130e182f2b9290a6e03b9777bfe
     - docker.io/anchore/test_images:golang-56d52bc@sha256:d1819e59e89e8ea90073460acb4ebb2ee18ccead9fa880dae91e8fc61b19ca1c
     - docker.io/anchore/test_images:ubuntu-content-56d52bc@sha256:f8e72da9f67caf90714926e7b21f0da93ca1e528b37a97dffe71e2ec38872a8b
+    - docker.io/anchore/test_images:syft_bin-fb727c1@sha256:ff80ae5de3446939639f3fbb58f66f641e2da1d881bdab704d9237424f64417f
     - docker.io/alpine:3.2@sha256:ddac200f3ebc9902fb8cfcd599f41feb2151f1118929da21bcef57dc276975f9
     - docker.io/centos:6@sha256:3688aa867eb84332460e172b9250c9c198fdfd8d987605fd53f246f498c60bcf
     - docker.io/ubuntu:16.10@sha256:8dc9652808dc091400d7d5983949043a9f9c7132b15c14814275d25f94bca18a
@@ -31,9 +32,11 @@ x-ref:
     - docker.io/node:14.1.0-slim@sha256:d8a88e8e15fd26eee7734c9f60531b5ad2abdc3d663be0d818ed26159db80512
     - docker.io/elastic/kibana:8.5.0@sha256:b9e3e52f61e0a347e38eabe80ba0859f859023bc0cc8836410320aa7eb5d3e02
     - docker.io/jenkins/jenkins:2.361.4-lts-jdk11@sha256:6fd5699ab182b5d23d0e3936de6047edc30955a3a92e01c392d5a2fd583efac0
-    - docker.io/neo4j:4.4.14-community:4.4.14-community@sha256:fcfcbb026e0e538bf66f5fe5c4b2db3dd4931c3aae07f13a5a8c10e979596256
+    - docker.io/neo4j:4.4.14-community@sha256:fcfcbb026e0e538bf66f5fe5c4b2db3dd4931c3aae07f13a5a8c10e979596256
     - docker.io/sonatype/nexus3:3.30.0@sha256:e8fea6b4279f2b5b24b36170459cb7aa3d6afe999f9d3e3713541be28bae8ec4
+    - cgr.dev/chainguard/wolfi-base:latest-20221001@sha256:be3834598c3c4b76ace6a866edcbbe1fa18086f9ee238b57769e4d230cd7d507
     - docker.io/gitlab/gitlab-ce:15.6.1-ce.0@sha256:04d4219d5dfb3acccc9997e50477c8d24b371387a95857e1ea8fc779e17a716c
+    - docker.io/postgres:13.2@sha256:1a67ab960138c479d66834cd6bcb5b5582c53869e6052dbf4ff48d4a94c13da3
 
 # new vulnerabilities are added all of the time, instead of keeping up it's easier to ignore newer entries.
 # This approach helps tremendously with keeping the analysis relatively stable.
@@ -49,7 +52,7 @@ result-sets:
 
         - name: syft
           # note: we want to use a fixed version of syft for capturing all results (NOT "latest")
-          version: v0.60.1
+          version: v0.68.1
           produces: SBOM
           refresh: false
 
