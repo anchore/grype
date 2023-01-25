@@ -1,14 +1,11 @@
-BIN = grype
-TEMPDIR = ./.tmp
-RESULTSDIR = $(TEMPDIR)/results
-COVER_REPORT = $(RESULTSDIR)/cover.report
-COVER_TOTAL = $(RESULTSDIR)/cover.total
-LICENSES_REPORT = $(RESULTSDIR)/licenses.json
-LINTCMD = $(TEMPDIR)/golangci-lint run --tests=false --timeout 5m --config .golangci.yaml
-GOIMPORTS_CMD = $(TEMPDIR)/gosimports -local github.com/anchore
-RELEASE_CMD=$(TEMPDIR)/goreleaser release --rm-dist
-SNAPSHOT_CMD=$(RELEASE_CMD) --skip-publish --snapshot
-VERSION=$(shell git describe --dirty --always --tags)
+BIN := grype
+TEMP_DIR := ./.tmp
+
+# Command templates #################################
+LINT_CMD := $(TEMP_DIR)/golangci-lint run --tests=false --timeout 5m --config .golangci.yaml
+GOIMPORTS_CMD := $(TEMP_DIR)/gosimports -local github.com/anchore
+RELEASE_CMD := $(TEMP_DIR)/goreleaser release --rm-dist
+SNAPSHOT_CMD := $(RELEASE_CMD) --skip-publish --snapshot
 
 # formatting variables
 BOLD := $(shell tput -T linux bold)
@@ -22,41 +19,46 @@ SUCCESS := $(BOLD)$(GREEN)
 
 # the quality gate lower threshold for unit test total % coverage (by function statements)
 COVERAGE_THRESHOLD := 47
+RESULTS_DIR := $(TEMP_DIR)/results
+COVER_REPORT := $(RESULTS_DIR)/cover.report
+COVER_TOTAL := $(RESULTS_DIR)/cover.total
+LICENSES_REPORT := $(RESULTS_DIR)/licenses.json
 
 # CI cache busting values; change these if you want CI to not use previous stored cache
-BOOTSTRAP_CACHE="c7afb99ad"
-INTEGRATION_CACHE_BUSTER="904d8ca"
+BOOTSTRAP_CACHE := "c7afb99ad"
+INTEGRATION_CACHE_BUSTER := "904d8ca"
 
 ## Build variables
-DISTDIR=./dist
-SNAPSHOTDIR=./snapshot
-OS=$(shell uname | tr '[:upper:]' '[:lower:]')
-SYFT_VERSION=$(shell go list -m all | grep github.com/anchore/syft | awk '{print $$2}')
-SNAPSHOT_BIN=$(shell realpath $(shell pwd)/$(SNAPSHOTDIR)/$(OS)-build_$(OS)_amd64_v1/$(BIN))
+VERSION := $(shell git describe --dirty --always --tags)
+DIST_DIR := ./dist
+SNAPSHOT_DIR := ./snapshot
+OS := $(shell uname | tr '[:upper:]' '[:lower:]')
+SYFT_VERSION := $(shell go list -m all | grep github.com/anchore/syft | awk '{print $$2}')
+SNAPSHOT_BIN := $(realpath $(shell pwd)/$(SNAPSHOT_DIR)/$(OS)-build_$(OS)_amd64_v1/$(BIN))
 
-GOLANGCILINT_VERSION = v1.50.1
-BOUNCER_VERSION = v0.4.0
-CHRONICLE_VERSION = v0.5.1
-GOSIMPORTS_VERSION = v0.3.5
-YAJSV_VERSION = v1.4.1
-GORELEASER_VERSION = v1.14.1
+GOLANGCILINT_VERSION := v1.50.1
+BOUNCER_VERSION := v0.4.0
+CHRONICLE_VERSION := v0.5.1
+GOSIMPORTS_VERSION := v0.3.5
+YAJSV_VERSION := v1.4.1
+GORELEASER_VERSION := v1.14.1
 
 ## Variable assertions
 
-ifndef TEMPDIR
-	$(error TEMPDIR is not set)
+ifndef TEMP_DIR
+	$(error TEMP_DIR is not set)
 endif
 
-ifndef RESULTSDIR
-	$(error RESULTSDIR is not set)
+ifndef RESULTS_DIR
+	$(error RESULTS_DIR is not set)
 endif
 
-ifndef DISTDIR
-	$(error DISTDIR is not set)
+ifndef DIST_DIR
+	$(error DIST_DIR is not set)
 endif
 
-ifndef SNAPSHOTDIR
-	$(error SNAPSHOTDIR is not set)
+ifndef SNAPSHOT_DIR
+	$(error SNAPSHOT_DIR is not set)
 endif
 
 ifndef VERSION
@@ -94,28 +96,28 @@ help:
 ci-bootstrap:
 	DEBIAN_FRONTEND=noninteractive sudo apt update && sudo -E apt install -y bc jq libxml2-utils
 
-$(RESULTSDIR):
-	mkdir -p $(RESULTSDIR)
+$(RESULTS_DIR):
+	mkdir -p $(RESULTS_DIR)
 
-$(TEMPDIR):
-	mkdir -p $(TEMPDIR)
+$(TEMP_DIR):
+	mkdir -p $(TEMP_DIR)
 
 .PHONY: bootstrap-tools
-bootstrap-tools: $(TEMPDIR)
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(TEMPDIR)/ $(GOLANGCILINT_VERSION)
-	curl -sSfL https://raw.githubusercontent.com/wagoodman/go-bouncer/master/bouncer.sh | sh -s -- -b $(TEMPDIR)/ $(BOUNCER_VERSION)
-	curl -sSfL https://raw.githubusercontent.com/anchore/chronicle/main/install.sh | sh -s -- -b $(TEMPDIR)/ $(CHRONICLE_VERSION)
+bootstrap-tools: $(TEMP_DIR)
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(TEMP_DIR)/ $(GOLANGCILINT_VERSION)
+	curl -sSfL https://raw.githubusercontent.com/wagoodman/go-bouncer/master/bouncer.sh | sh -s -- -b $(TEMP_DIR)/ $(BOUNCER_VERSION)
+	curl -sSfL https://raw.githubusercontent.com/anchore/chronicle/main/install.sh | sh -s -- -b $(TEMP_DIR)/ $(CHRONICLE_VERSION)
 	# the only difference between goimports and gosimports is that gosimports removes extra whitespace between import blocks (see https://github.com/golang/go/issues/20818)
-	GOBIN="$(shell realpath $(TEMPDIR))" go install github.com/rinchsan/gosimports/cmd/gosimports@$(GOSIMPORTS_VERSION)
-	GOBIN="$(shell realpath $(TEMPDIR))" go install github.com/neilpa/yajsv@$(YAJSV_VERSION)
-	.github/scripts/goreleaser-install.sh -b $(TEMPDIR)/ $(GORELEASER_VERSION)
+	GOBIN="$(realpath $(TEMP_DIR))" go install github.com/rinchsan/gosimports/cmd/gosimports@$(GOSIMPORTS_VERSION)
+	GOBIN="$(realpath $(TEMP_DIR))" go install github.com/neilpa/yajsv@$(YAJSV_VERSION)
+	.github/scripts/goreleaser-install.sh -b $(TEMP_DIR)/ $(GORELEASER_VERSION)
 
 .PHONY: bootstrap-go
 bootstrap-go:
 	go mod download
 
 .PHONY: bootstrap
-bootstrap: $(RESULTSDIR) bootstrap-go bootstrap-tools ## Download and install all go dependencies (+ prep tooling in the ./tmp dir)
+bootstrap: $(RESULTS_DIR) bootstrap-go bootstrap-tools ## Download and install all go dependencies (+ prep tooling in the ./tmp dir)
 	$(call title,Bootstrapping dependencies)
 
 .PHONY: static-analysis
@@ -129,7 +131,7 @@ lint: ## Run gofmt + golangci lint checks
 	@test -z "$(shell gofmt -l -s .)"
 
 	# run all golangci-lint rules
-	$(LINTCMD)
+	$(LINT_CMD)
 	@[ -z "$(shell $(GOIMPORTS_CMD) -d .)" ] || (echo "goimports needs to be fixed" && false)
 
 	# go tooling does not play well with certain filename characters, ensure the common cases don't result in future "go get" failures
@@ -141,12 +143,12 @@ lint-fix: ## Auto-format all source code + run golangci lint fixers
 	$(call title,Running lint fixers)
 	gofmt -w -s .
 	$(GOIMPORTS_CMD) -w .
-	$(LINTCMD) --fix
+	$(LINT_CMD) --fix
 	go mod tidy
 
 .PHONY: check-licenses
 check-licenses:
-	$(TEMPDIR)/bouncer check
+	$(TEMP_DIR)/bouncer check
 
 check-go-mod-tidy:
 	@ .github/scripts/go-mod-tidy-check.sh && echo "go.mod and go.sum are tidy!"
@@ -163,7 +165,7 @@ validate-grype-db-schema:
 .PHONY: unit
 unit: ## Run unit tests (with coverage)
 	$(call title,Running unit tests)
-	mkdir -p $(RESULTSDIR)
+	mkdir -p $(RESULTS_DIR)
 	go test -coverprofile $(COVER_REPORT) $(shell go list ./... | grep -v anchore/grype/test)
 	@go tool cover -func $(COVER_REPORT) | grep total |  awk '{print substr($$3, 1, length($$3)-1)}' > $(COVER_TOTAL)
 	@echo "Coverage: $$(cat $(COVER_TOTAL))"
@@ -179,19 +181,19 @@ install-fingerprint:
 	cd test/install && \
 		make cache.fingerprint
 
-install-test: $(SNAPSHOTDIR)
+install-test: $(SNAPSHOT_DIR)
 	cd test/install && \
 		make
 
-install-test-cache-save: $(SNAPSHOTDIR)
+install-test-cache-save: $(SNAPSHOT_DIR)
 	cd test/install && \
 		make save
 
-install-test-cache-load: $(SNAPSHOTDIR)
+install-test-cache-load: $(SNAPSHOT_DIR)
 	cd test/install && \
 		make load
 
-install-test-ci-mac: $(SNAPSHOTDIR)
+install-test-ci-mac: $(SNAPSHOT_DIR)
 	cd test/install && \
 		make ci-test-mac
 
@@ -211,41 +213,41 @@ cli-fingerprint:
 	find test/cli/*.go test/cli/test-fixtures/image-* -type f -exec md5sum {} + | awk '{print $1}' | sort | md5sum | tee test/cli/test-fixtures/cache.fingerprint
 
 .PHONY: cli
-cli: $(SNAPSHOTDIR) ## Run CLI tests
+cli: $(SNAPSHOT_DIR) ## Run CLI tests
 	chmod 755 "$(SNAPSHOT_BIN)"
 	GRYPE_BINARY_LOCATION='$(SNAPSHOT_BIN)' \
 		go test -count=1 -v ./test/cli
 
 .PHONY: build
-build: $(SNAPSHOTDIR) ## Build release snapshot binaries and packages
+build: $(SNAPSHOT_DIR) ## Build release snapshot binaries and packages
 
-$(SNAPSHOTDIR): ## Build snapshot release binaries and packages
+$(SNAPSHOT_DIR): ## Build snapshot release binaries and packages
 	$(call title,Building snapshot artifacts)
 
 	# create a config with the dist dir overridden
-	echo "dist: $(SNAPSHOTDIR)" > $(TEMPDIR)/goreleaser.yaml
-	cat .goreleaser.yaml >> $(TEMPDIR)/goreleaser.yaml
+	echo "dist: $(SNAPSHOT_DIR)" > $(TEMP_DIR)/goreleaser.yaml
+	cat .goreleaser.yaml >> $(TEMP_DIR)/goreleaser.yaml
 
 	# build release snapshots
 	bash -c "\
 		SKIP_SIGNING=true \
 		SYFT_VERSION=$(SYFT_VERSION)\
-			$(SNAPSHOT_CMD) --skip-sign --config $(TEMPDIR)/goreleaser.yaml"
+			$(SNAPSHOT_CMD) --skip-sign --config $(TEMP_DIR)/goreleaser.yaml"
 
 .PHONY: snapshot-with-signing
 snapshot-with-signing: ## Build snapshot release binaries and packages (with dummy signing)
 	$(call title,Building snapshot artifacts (+ signing))
 
 	# create a config with the dist dir overridden
-	echo "dist: $(SNAPSHOTDIR)" > $(TEMPDIR)/goreleaser.yaml
-	cat .goreleaser.yaml >> $(TEMPDIR)/goreleaser.yaml
+	echo "dist: $(SNAPSHOT_DIR)" > $(TEMP_DIR)/goreleaser.yaml
+	cat .goreleaser.yaml >> $(TEMP_DIR)/goreleaser.yaml
 
 	rm -f .github/scripts/apple-signing/log/*.txt
 
 	# build release snapshots
 	bash -c "\
 		SYFT_VERSION=$(SYFT_VERSION)\
-			$(SNAPSHOT_CMD) --config $(TEMPDIR)/goreleaser.yaml || (cat .github/scripts/apple-signing/log/*.txt && false)"
+			$(SNAPSHOT_CMD) --config $(TEMP_DIR)/goreleaser.yaml || (cat .github/scripts/apple-signing/log/*.txt && false)"
 
 	# remove the keychain with the trusted self-signed cert automatically
 	.github/scripts/apple-signing/cleanup.sh
@@ -259,7 +261,7 @@ changelog: clean-changelog CHANGELOG.md
 			/CHANGELOG.md
 
 CHANGELOG.md:
-	$(TEMPDIR)/chronicle -vv > CHANGELOG.md
+	$(TEMP_DIR)/chronicle -vv > CHANGELOG.md
 
 .PHONY: validate-grype-test-config
 validate-grype-test-config:
@@ -279,8 +281,8 @@ release: clean-dist CHANGELOG.md  ## Build and publish final binaries and packag
 	$(call title,Publishing release artifacts)
 
 	# create a config with the dist dir overridden
-	echo "dist: $(DISTDIR)" > $(TEMPDIR)/goreleaser.yaml
-	cat .goreleaser.yaml >> $(TEMPDIR)/goreleaser.yaml
+	echo "dist: $(DIST_DIR)" > $(TEMP_DIR)/goreleaser.yaml
+	cat .goreleaser.yaml >> $(TEMP_DIR)/goreleaser.yaml
 
 	rm -f .github/scripts/apple-signing/log/*.txt
 
@@ -288,7 +290,7 @@ release: clean-dist CHANGELOG.md  ## Build and publish final binaries and packag
 	bash -c "\
 		SYFT_VERSION=$(SYFT_VERSION)\
 			$(RELEASE_CMD) \
-				--config $(TEMPDIR)/goreleaser.yaml \
+				--config $(TEMP_DIR)/goreleaser.yaml \
 				--parallelism 1 \
 				--release-notes <(cat CHANGELOG.md)\
 					 || (cat .github/scripts/apple-signing/log/*.txt && false)"
@@ -297,47 +299,47 @@ release: clean-dist CHANGELOG.md  ## Build and publish final binaries and packag
 
 	# TODO: turn this into a post-release hook
 	# upload the version file that supports the application version update check (excluding pre-releases)
-	.github/scripts/update-version-file.sh "$(DISTDIR)" "$(VERSION)"
+	.github/scripts/update-version-file.sh "$(DIST_DIR)" "$(VERSION)"
 
 .PHONY: release-docker-assets
 release-docker-assets:
 	$(call title,Publishing docker release assets)
 
 	# create a config with the dist dir overridden
-	echo "dist: $(DISTDIR)" > $(TEMPDIR)/goreleaser.yaml
-	cat .goreleaser_docker.yaml >> $(TEMPDIR)/goreleaser.yaml
+	echo "dist: $(DIST_DIR)" > $(TEMP_DIR)/goreleaser.yaml
+	cat .goreleaser_docker.yaml >> $(TEMP_DIR)/goreleaser.yaml
 
 	bash -c "\
 		SYFT_VERSION=$(SYFT_VERSION)\
 		$(RELEASE_CMD) \
-			--config $(TEMPDIR)/goreleaser.yaml \
+			--config $(TEMP_DIR)/goreleaser.yaml \
 			--parallelism 1"
 
 snapshot-docker-assets: # Build snapshot images of docker images that will be published on release
 	$(call title,Building snapshot docker release assets)
 
 	# create a config with the dist dir overridden
-	echo "dist: $(DISTDIR)" > $(TEMPDIR)/goreleaser.yaml
-	cat .goreleaser_docker.yaml >> $(TEMPDIR)/goreleaser.yaml
+	echo "dist: $(DIST_DIR)" > $(TEMP_DIR)/goreleaser.yaml
+	cat .goreleaser_docker.yaml >> $(TEMP_DIR)/goreleaser.yaml
 
 	bash -c "\
 		SYFT_VERSION=$(SYFT_VERSION)\
 		$(SNAPSHOT_CMD) \
-			--config $(TEMPDIR)/goreleaser.yaml"
+			--config $(TEMP_DIR)/goreleaser.yaml"
 
 .PHONY: clean
 clean: clean-dist clean-snapshot  ## Remove previous builds and result reports
-	$(call safe_rm_rf_children,$(RESULTSDIR))
+	$(call safe_rm_rf_children,$(RESULTS_DIR))
 
 .PHONY: clean-snapshot
 clean-snapshot:
-	$(call safe_rm_rf,$(SNAPSHOTDIR))
-	rm -f $(TEMPDIR)/goreleaser.yaml
+	$(call safe_rm_rf,$(SNAPSHOT_DIR))
+	rm -f $(TEMP_DIR)/goreleaser.yaml
 
 .PHONY: clean-dist
 clean-dist: clean-changelog
-	$(call safe_rm_rf,$(DISTDIR))
-	rm -f $(TEMPDIR)/goreleaser.yaml
+	$(call safe_rm_rf,$(DIST_DIR))
+	rm -f $(TEMP_DIR)/goreleaser.yaml
 
 .PHONY: clean-changelog
 clean-changelog:
