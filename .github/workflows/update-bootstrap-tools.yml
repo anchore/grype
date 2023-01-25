@@ -33,20 +33,20 @@ jobs:
           YAJSV_LATEST_VERSION=$(go list -m -json github.com/neilpa/yajsv@latest 2>/dev/null | jq -r '.Version')
 
           # update version variables in the Makefile
-          sed -r -i -e 's/^(GOLANGCILINT_VERSION = ).*/\1'${GOLANGCILINT_LATEST_VERSION}'/' Makefile
-          sed -r -i -e 's/^(BOUNCER_VERSION = ).*/\1'${BOUNCER_LATEST_VERSION}'/' Makefile
-          sed -r -i -e 's/^(CHRONICLE_VERSION = ).*/\1'${CHRONICLE_LATEST_VERSION}'/' Makefile
-          sed -r -i -e 's/^(GORELEASER_VERSION = ).*/\1'${GORELEASER_LATEST_VERSION}'/' Makefile
-          sed -r -i -e 's/^(GOSIMPORTS_VERSION = ).*/\1'${GOSIMPORTS_LATEST_VERSION}'/' Makefile
-          sed -r -i -e 's/^(YAJSV_VERSION = ).*/\1'${YAJSV_LATEST_VERSION}'/' Makefile
+          sed -r -i -e 's/^(GOLANGCILINT_VERSION := ).*/\1'${GOLANGCILINT_LATEST_VERSION}'/' Makefile
+          sed -r -i -e 's/^(BOUNCER_VERSION := ).*/\1'${BOUNCER_LATEST_VERSION}'/' Makefile
+          sed -r -i -e 's/^(CHRONICLE_VERSION := ).*/\1'${CHRONICLE_LATEST_VERSION}'/' Makefile
+          sed -r -i -e 's/^(GORELEASER_VERSION := ).*/\1'${GORELEASER_LATEST_VERSION}'/' Makefile
+          sed -r -i -e 's/^(GOSIMPORTS_VERSION := ).*/\1'${GOSIMPORTS_LATEST_VERSION}'/' Makefile
+          sed -r -i -e 's/^(YAJSV_VERSION := ).*/\1'${YAJSV_LATEST_VERSION}'/' Makefile
 
           # export the versions for use with create-pull-request
-          echo "::set-output name=GOLANGCILINT::$GOLANGCILINT_LATEST_VERSION"
-          echo "::set-output name=BOUNCER::$BOUNCER_LATEST_VERSION"
-          echo "::set-output name=CHRONICLE::$CHRONICLE_LATEST_VERSION"
-          echo "::set-output name=GORELEASER::$GORELEASER_LATEST_VERSION"
-          echo "::set-output name=GOSIMPORTS::$GOSIMPORTS_LATEST_VERSION"
-          echo "::set-output name=YAJSV::$YAJSV_LATEST_VERSION"
+          echo "GOLANGCILINT=$GOLANGCILINT_LATEST_VERSION" >> $GITHUB_OUTPUT
+          echo "BOUNCER=$BOUNCER_LATEST_VERSION" >> $GITHUB_OUTPUT
+          echo "CHRONICLE=$CHRONICLE_LATEST_VERSION" >> $GITHUB_OUTPUT
+          echo "GORELEASER=$GORELEASER_LATEST_VERSION" >> $GITHUB_OUTPUT
+          echo "GOSIMPORTS=$GOSIMPORTS_LATEST_VERSION" >> $GITHUB_OUTPUT
+          echo "YAJSV=$YAJSV_LATEST_VERSION" >> $GITHUB_OUTPUT
         id: latest-versions
 
       - uses: tibdex/github-app-token@021a2405c7f990db57f5eae5397423dcc554159c # v1.7.0
