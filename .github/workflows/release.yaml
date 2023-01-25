@@ -142,7 +142,7 @@ jobs:
           AC_USERNAME: ${{ secrets.ENG_CI_APPLE_ID }}
           AC_PASSWORD: ${{ secrets.ENG_CI_APPLE_ID_PASS }}
 
-      - uses: anchore/sbom-action@06e109483e6aa305a2b2395eabae554e51530e1d # v0.13.1
+      - uses: anchore/sbom-action@54e36e45f34bc64728f51adb8044404daca492a6 # v0.13.2
         continue-on-error: true
         with:
           artifact-name: sbom.spdx.json
