@@ -49,7 +49,7 @@ jobs:
           echo "YAJSV=$YAJSV_LATEST_VERSION" >> $GITHUB_OUTPUT
         id: latest-versions
 
-      - uses: tibdex/github-app-token@021a2405c7f990db57f5eae5397423dcc554159c # v1.7.0
+      - uses: tibdex/github-app-token@b62528385c34dbc9f38e5f4225ac829252d1ea92 # v1.8.0
         id: generate-token
         with:
           app_id: ${{ secrets.TOKEN_APP_ID }}
