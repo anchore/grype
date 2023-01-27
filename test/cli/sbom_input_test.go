@@ -57,29 +57,6 @@ func TestSBOMInput_AsArgument(t *testing.T) {
 	})
 }
 
-func TestAttestationInput_AsArgument(t *testing.T) {
-	tests := []struct {
-		name string
-		args []string
-	}{
-		{
-			name: "no scheme",
-			args: []string{"./test-fixtures/alpine.att.json", "--key", "./test-fixtures/cosign.pub"},
-		},
-		{
-			name: "with scheme",
-			args: []string{"att:test-fixtures/alpine.att.json", "--key", "./test-fixtures/cosign.pub"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cmd := getGrypeCommand(t, tt.args...)
-			assertCommandExecutionSuccess(t, cmd)
-		})
-	}
-}
-
 func TestSBOMInput_FromStdin(t *testing.T) {
 	tests := []struct {
 		name       string

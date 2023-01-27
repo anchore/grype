@@ -25,7 +25,7 @@ func (e errEmptySBOM) Error() string {
 }
 
 func syftSBOMProvider(userInput string, config ProviderConfig) ([]Package, Context, *sbom.SBOM, error) {
-	s, err := getSBOM(userInput, config)
+	s, err := getSBOM(userInput)
 	if err != nil {
 		return nil, Context{}, nil, err
 	}
@@ -51,8 +51,8 @@ type inputInfo struct {
 	Scheme      string
 }
 
-func getSBOM(userInput string, config ProviderConfig) (*sbom.SBOM, error) {
-	reader, err := getSBOMReader(userInput, config)
+func getSBOM(userInput string) (*sbom.SBOM, error) {
+	reader, err := getSBOMReader(userInput)
 	if err != nil {
 		return nil, err
 	}
@@ -69,19 +69,15 @@ func getSBOM(userInput string, config ProviderConfig) (*sbom.SBOM, error) {
 	return s, nil
 }
 
-func getSBOMReader(userInput string, config ProviderConfig) (r io.Reader, err error) {
-	r, info, err := extractReaderAndInfo(userInput, config)
+func getSBOMReader(userInput string) (r io.Reader, err error) {
+	r, info, err := extractReaderAndInfo(userInput)
 	if err != nil {
 		return nil, err
 	}
 
 	if info != nil {
-		if (info.Scheme == "sbom" || info.ContentType == "sbom") && config.AttestationPublicKey != "" {
+		if info.Scheme == "sbom" || info.ContentType == "sbom" {
 			return nil, fmt.Errorf("key is meant for attestation verification, your input is a plain SBOM and doesn't need it")
-		}
-
-		if info.Scheme == "att" && info.ContentType != "att" {
-			return nil, fmt.Errorf("scheme specify an attestation but the content is not an attestation")
 		}
 	}
 

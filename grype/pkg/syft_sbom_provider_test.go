@@ -265,6 +265,6 @@ func TestGetSBOMReader_EmptySBOM(t *testing.T) {
 	filepath := sbomFile.Name()
 	userInput := "sbom:" + filepath
 
-	_, err = getSBOMReader(userInput, ProviderConfig{})
+	_, err = getSBOMReader(userInput)
 	assert.ErrorAs(t, err, &errEmptySBOM{})
 }

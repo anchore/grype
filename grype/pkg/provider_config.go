@@ -11,12 +11,10 @@ type ProviderConfig struct {
 }
 
 type SyftProviderConfig struct {
-	CatalogingOptions             cataloger.Config
-	RegistryOptions               *image.RegistryOptions
-	Platform                      string
-	Exclusions                    []string
-	AttestationPublicKey          string
-	AttestationIgnoreVerification bool
+	CatalogingOptions cataloger.Config
+	RegistryOptions   *image.RegistryOptions
+	Platform          string
+	Exclusions        []string
 }
 
 type SynthesisConfig struct {
