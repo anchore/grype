@@ -7,12 +7,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/gabriel-vasile/mimetype"
+	"github.com/mitchellh/go-homedir"
+
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/sbom"
-	"github.com/gabriel-vasile/mimetype"
-	"github.com/mitchellh/go-homedir"
 )
 
 type errEmptySBOM struct {
@@ -93,7 +94,7 @@ func extractReaderAndInfo(userInput string, config ProviderConfig) (io.Reader, *
 	case userInput == "":
 		// we only want to attempt reading in from stdin if the user has not specified other
 		// options from the CLI, otherwise we should not assume there is any valid input from stdin.
-		return decodeStdin(stdinReader(), config)
+		return decodeStdin(stdinReader())
 
 	case explicitlySpecifyingSBOM(userInput):
 		filepath := strings.TrimPrefix(userInput, "sbom:")
@@ -116,7 +117,7 @@ func parseSBOM(scheme, path string) (io.Reader, *inputInfo, error) {
 	return r, info, nil
 }
 
-func decodeStdin(r io.Reader, config ProviderConfig) (io.Reader, *inputInfo, error) {
+func decodeStdin(r io.Reader) (io.Reader, *inputInfo, error) {
 	b, err := io.ReadAll(r)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed reading stdin: %w", err)
@@ -221,8 +222,4 @@ func isAncestorOfMimetype(mType *mimetype.MIME, expected string) bool {
 
 func explicitlySpecifyingSBOM(userInput string) bool {
 	return strings.HasPrefix(userInput, "sbom:")
-}
-
-func explicitlySpecifyAttestation(userInput string) bool {
-	return strings.HasPrefix(userInput, "att:")
 }

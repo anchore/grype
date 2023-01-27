@@ -124,7 +124,6 @@ func setGlobalCliOptions() {
 	rootCmd.PersistentFlags().CountVarP(&persistentOpts.Verbosity, "verbose", "v", "increase verbosity (-v = info, -vv = debug)")
 }
 
-//nolint:funlen
 func setRootFlags(flags *pflag.FlagSet) {
 	flags.StringP(
 		"scope", "s", source.SquashedScope.String(),
@@ -466,10 +465,10 @@ func getMatchers() []matcher.Matcher {
 func getProviderConfig() pkg.ProviderConfig {
 	return pkg.ProviderConfig{
 		SyftProviderConfig: pkg.SyftProviderConfig{
-			RegistryOptions:               appConfig.Registry.ToOptions(),
-			Exclusions:                    appConfig.Exclusions,
-			CatalogingOptions:             appConfig.Search.ToConfig(),
-			Platform:                      appConfig.Platform,
+			RegistryOptions:   appConfig.Registry.ToOptions(),
+			Exclusions:        appConfig.Exclusions,
+			CatalogingOptions: appConfig.Search.ToConfig(),
+			Platform:          appConfig.Platform,
 		},
 		SynthesisConfig: pkg.SynthesisConfig{
 			GenerateMissingCPEs: appConfig.GenerateMissingCPEs,
