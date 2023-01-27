@@ -11,7 +11,6 @@
 [![Slack Invite](https://img.shields.io/badge/Slack-Join-blue?logo=slack)](https://anchore.com/slack)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/anchore/grype/badge)](https://api.securityscorecards.dev/projects/github.com/anchore/grype)
 
-
 A vulnerability scanner for container images and filesystems. Easily [install the binary](#installation) to try it out. Works with [Syft](https://github.com/anchore/syft), the powerful SBOM (software bill of materials) tool for container images and filesystems.
 
 ### Join our community meetings!
@@ -47,7 +46,6 @@ For commercial support options with Syft or Grype, please [contact Anchore](http
   - PHP (Composer)
   - Rust (Cargo)
 - Supports Docker, OCI and [Singularity](https://github.com/sylabs/singularity) image formats.
-- Consume SBOM [attestations](https://github.com/anchore/syft#sbom-attestation).
 
 If you encounter an issue, please [let us know using the issue tracker](https://github.com/anchore/grype/issues).
 
@@ -140,7 +138,6 @@ singularity:path/to/yourimage.sif      read directly from a Singularity Image Fo
 dir:path/to/yourproject                read directly from a path on disk (any directory)
 sbom:path/to/syft.json                 read Syft JSON from path on disk
 registry:yourrepo/yourimage:tag        pull image directly from a registry (no container runtime required)
-att:attestation.json --key cosign.pub  explicitly use the input as an attestation
 ```
 
 Use SBOMs for even faster vulnerability scanning in Grype:
@@ -162,29 +159,6 @@ use the `--distro <distro>:<version>` flag. A full example is:
 
 ```
 grype --add-cpes-if-none --distro alpine:3.10 sbom:some-apline-3.10.spdx.json
-```
-
-### Scan attestations
-
-Grype can scan SBOMs from attestations as long as they are encoded [in-toto envelopes](https://github.com/in-toto/attestation/blob/main/spec/README.md#envelope).
-
-Examples:
-
-```sh
-# generate cosign key pair
-cosign generate-key-pair # after that you'll have two files: cosign.key and cosign.pub
-
-# attest an image with Syft and your cosign private key (cosign.key)
-syft attest --output json --key cosign.key alpine:latest > alpine.att.json
-
-# scan an SBOM from an attestation file with the cosign public key (cosign.pub)
-grype alpine.json --key cosign.pub
-
-# explicitly tell Grype the input is an attestation file with the scheme `att:`
-grype att:alpine.json --key cosign.pub
-
-# generate an attestation for an image with Syft and pipe it into Grype, just because you can :)
-syft attest --output json --key cosign.key alpine:latest | grype --key cosign.pub
 ```
 
 ### Vulnerability Summary

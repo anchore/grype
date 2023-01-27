@@ -53,7 +53,6 @@ type Application struct {
 	FailOnSeverity      *vulnerability.Severity `yaml:"-" json:"-"`
 	Registry            registry                `yaml:"registry" json:"registry" mapstructure:"registry"`
 	Log                 logging                 `yaml:"log" json:"log" mapstructure:"log"`
-	Attestation         Attestation             `yaml:"attestation" json:"attestation" mapstructure:"attestation"`
 	ShowSuppressed      bool                    `yaml:"show-suppressed" json:"show-suppressed" mapstructure:"show-suppressed"`
 	ByCVE               bool                    `yaml:"by-cve" json:"by-cve" mapstructure:"by-cve"` // --by-cve, indicates if the original match vulnerability IDs should be preserved or the CVE should be used instead
 }
