@@ -88,7 +88,7 @@ func getSBOMReader(userInput string, config ProviderConfig) (r io.Reader, err er
 	return r, nil
 }
 
-func extractReaderAndInfo(userInput string, config ProviderConfig) (io.Reader, *inputInfo, error) {
+func extractReaderAndInfo(userInput string) (io.Reader, *inputInfo, error) {
 	switch {
 	// the order of cases matter
 	case userInput == "":
