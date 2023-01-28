@@ -12,6 +12,9 @@ PROGRAM_ARGS=$@
 # do not change the name of this parameter (this must always be backwards compatible)
 DOWNLOAD_TAG_INSTALL_SCRIPT=${DOWNLOAD_TAG_INSTALL_SCRIPT:-false}
 
+# if set, use this token to authenticate with GitHub API
+GITHUB_TOKEN=${GITHUB_TOKEN:-""}
+
 #
 # usage [script-name]
 #
@@ -199,13 +202,18 @@ http_download_curl() (
   source_url=$2
   header=$3
 
+  all_headers=""
+  if [ "$header" != "" ]; then
+   IFS=,
+   for h in $header; do
+     all_headers="${all_headers} -H \"${h}\""
+   done
+  fi
+
   log_trace "http_download_curl(local_file=$local_file, source_url=$source_url, header=$header)"
 
-  if [ -z "$header" ]; then
-    code=$(curl -w '%{http_code}' -sL -o "$local_file" "$source_url")
-  else
-    code=$(curl -w '%{http_code}' -sL -H "$header" -o "$local_file" "$source_url")
-  fi
+  cmd="curl -w '%{http_code}' $all_headers -sL -o \"$local_file\" \"$source_url\""
+  code=$(eval $cmd)
 
   if [ "$code" != "200" ]; then
     log_err "received HTTP status=$code for url='$source_url'"
@@ -219,13 +227,18 @@ http_download_wget() (
   source_url=$2
   header=$3
 
+  all_headers=""
+  if [ "$header" != "" ]; then
+   IFS=,
+   for h in $header; do
+     all_headers="${all_headers} --header \"${h}\""
+   done
+  fi
+
   log_trace "http_download_wget(local_file=$local_file, source_url=$source_url, header=$header)"
 
-  if [ -z "$header" ]; then
-    wget -q -O "$local_file" "$source_url"
-  else
-    wget -q --header "$header" -O "$local_file" "$source_url"
-  fi
+  cmd="wget -q $all_headers -O \"$local_file\" \"$source_url\""
+  eval $cmd
 )
 
 http_download() (
@@ -315,7 +328,11 @@ github_release_json() (
   version=$3
   test -z "$version" && version="latest"
   giturl="https://api.github.com/repos/${owner}/${repo}/releases/${version}"
-  json=$(http_copy "$giturl" "Accept:application/json")
+  header="Accept:application/json"
+  if [ "${GITHUB_TOKEN}" != "" ]; then
+    header="${header},Authorization:Bearer ${GITHUB_TOKEN}"
+  fi
+  json=$(http_copy "$giturl" "$header")
 
   log_trace "github_release_json(owner=${owner}, repo=${repo}, version=${version}) returned '${json}'"
 
