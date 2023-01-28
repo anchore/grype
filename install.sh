@@ -10,7 +10,7 @@ INSTALL_SH_BASE_URL=https://raw.githubusercontent.com/${OWNER}/${PROJECT_NAME}
 PROGRAM_ARGS=$@
 
 # do not change the name of this parameter (this must always be backwards compatible)
-DOWNLOAD_TAG_INSTALL_SCRIPT=${DOWNLOAD_TAG_INSTALL_SCRIPT:-true}
+DOWNLOAD_TAG_INSTALL_SCRIPT=${DOWNLOAD_TAG_INSTALL_SCRIPT:-false}
 
 #
 # usage [script-name]
@@ -314,7 +314,7 @@ github_release_json() (
   repo=$2
   version=$3
   test -z "$version" && version="latest"
-  giturl="https://github.com/${owner}/${repo}/releases/${version}"
+  giturl="https://api.github.com/repos/${owner}/${repo}/releases/${version}"
   json=$(http_copy "$giturl" "Accept:application/json")
 
   log_trace "github_release_json(owner=${owner}, repo=${repo}, version=${version}) returned '${json}'"
@@ -353,7 +353,7 @@ extract_json_value() (
 #
 github_release_tag() (
   json="$1"
-  tag=$(extract_json_value "${json}" "tag_name")
+  tag=$(extract_json_value "${json}" "tag_name" | sed 's/ //g')
   test -z "$tag" && return 1
   echo "$tag"
 )
