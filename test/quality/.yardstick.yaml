@@ -1,7 +1,9 @@
 x-ref:
   # note: always reference images with BOTH a tag and a digest
   images: &images
+    - docker.io/cloudbees/cloudbees-core-agent:2.289.2.2@sha256:d48f0546b4cf5ef4626136242ce302f94a42751156b7be42f4b1b75a66608880
     - docker.io/cloudbees/cloudbees-core-mm:2.277.3.1@sha256:4c564f473d38f23da1caa48c4ef53b958ef03d279232007ad3319b1f38584bdb
+    - docker.io/cloudbees/cloudbees-core-oc:2.289.2.2@sha256:9cd85ee84e401dc27e3a8268aae67b594a651b2f4c7fc056ca14c7b0a0a6b82d
     - docker.io/anchore/test_images:grype-quality-node-d89207b@sha256:f56164678054e5eb59ab838367373a49df723b324617b1ba6de775749d7f91d4
     - docker.io/anchore/test_images:grype-quality-python-d89207b@sha256:b2b58a55c0b03c1626d2aaae2add9832208b02124dda7b7b41811e14f0fb272c
     - docker.io/anchore/test_images:grype-quality-java-d89207b@sha256:b3534fc2e37943136d5b54e3a58b55d4ccd4363d926cf7aa5bf55a524cf8275b
@@ -16,6 +18,16 @@ x-ref:
     - docker.io/anchore/test_images:gems-56d52bc@sha256:5763c8a225f950961bf01ddec68e36f18e236130e182f2b9290a6e03b9777bfe
     - docker.io/anchore/test_images:golang-56d52bc@sha256:d1819e59e89e8ea90073460acb4ebb2ee18ccead9fa880dae91e8fc61b19ca1c
     - docker.io/anchore/test_images:ubuntu-content-56d52bc@sha256:f8e72da9f67caf90714926e7b21f0da93ca1e528b37a97dffe71e2ec38872a8b
+    - docker.io/anchore/test_images:vulnerabilities-alpine-3.11-d5be50d@sha256:01c78cee3fe398bf1f77566177770b07f1d2af01753c2434cb0735bd43a078b6
+    - docker.io/anchore/test_images:vulnerabilities-alpine-3.12-d5be50d@sha256:55c9ba4e24e15c0467a071d93fead0990b8f04bb60b359b4056a997598aa56a1
+    - docker.io/anchore/test_images:vulnerabilities-alpine-3.13-d5be50d@sha256:6749b1509fc4dd3f2b4e8688325fc5d447751bc9ae3be10c0f1fb92ec062b798
+    - docker.io/anchore/test_images:vulnerabilities-alpine-3.14-d5be50d@sha256:fe242a3a63699425317fba0a749253bceb700fb3d63e7a0f6497f53a587e38c5
+    - docker.io/anchore/test_images:vulnerabilities-alpine-3.15-d5be50d@sha256:7790691e5efae8bfe9cf4a4447312318d8daaf05ffd5f265ae913edf660f4653
+    - docker.io/anchore/test_images:vulnerabilities-alpine-3.6-d5be50d@sha256:58637f273108e3e9eb4df4d73f7b6b1da303cbbf64f65e65fb7762482f2de63d
+    - docker.io/anchore/test_images:vulnerabilities-alpine-3.8-d5be50d@sha256:a287a0ff98ac343aa710f4f4258d7198e240e9d416d5c7274663564202f832fb
+    - docker.io/anchore/test_images:vulnerabilities-amazonlinux-2-5c26ce9@sha256:cf742eca189b02902a0a7926ac3fbb423e799937bf4358b0d2acc6cc36ab82aa
+    - docker.io/anchore/test_images:vulnerabilities-centos@sha256:746d31247006cc06434ce91ccf3523b2c230ff6c378ffed7ca1c60bbb48ea86f
+    - docker.io/anchore/test_images:vulnerabilities-no-distro-6bde59e@sha256:347fba6fbfa15d4e11217f9d49bf70a5a6eef35c6c642dc8c5db89115912d0c1
     - docker.io/anchore/test_images:syft_bin-fb727c1@sha256:ff80ae5de3446939639f3fbb58f66f641e2da1d881bdab704d9237424f64417f
     - docker.io/alpine:3.2@sha256:ddac200f3ebc9902fb8cfcd599f41feb2151f1118929da21bcef57dc276975f9
     - docker.io/centos:6@sha256:3688aa867eb84332460e172b9250c9c198fdfd8d987605fd53f246f498c60bcf
