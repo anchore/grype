@@ -70,15 +70,9 @@ func getSBOM(userInput string) (*sbom.SBOM, error) {
 }
 
 func getSBOMReader(userInput string) (r io.Reader, err error) {
-	r, info, err := extractReaderAndInfo(userInput)
+	r, _, err = extractReaderAndInfo(userInput)
 	if err != nil {
 		return nil, err
-	}
-
-	if info != nil {
-		if info.Scheme == "sbom" || info.ContentType == "sbom" {
-			return nil, fmt.Errorf("key is meant for attestation verification, your input is a plain SBOM and doesn't need it")
-		}
 	}
 
 	return r, nil
