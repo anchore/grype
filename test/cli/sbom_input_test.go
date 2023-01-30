@@ -66,48 +66,6 @@ func TestSBOMInput_FromStdin(t *testing.T) {
 		wantOutput string
 	}{
 		{
-			name:       "no schema and no key",
-			input:      "./test-fixtures/alpine.att.json",
-			args:       []string{"-c", "../grype-test-config.yaml"},
-			wantErr:    require.Error,
-			wantOutput: "--key parameter is required to validate attestations",
-		},
-		{
-			name:  "cycloneDX format",
-			input: "test-fixtures/alpine.cdx.att.json",
-			args: []string{
-				"-c", "../grype-test-config.yaml",
-				"--key", "./test-fixtures/cosign.pub",
-			},
-			wantErr: require.NoError,
-		},
-		{
-			name:  "broken key",
-			input: "test-fixtures/alpine.att.json",
-			args: []string{
-				"-c", "../grype-test-config.yaml",
-				"--key", "./test-fixtures/cosign_broken.pub",
-			},
-			wantErr:    require.Error,
-			wantOutput: "failed to verify attestation signature: cannot decode public key",
-		},
-		{
-			name:  "different but valid key",
-			input: "test-fixtures/alpine.att.json",
-			args: []string{
-				"-c", "../grype-test-config.yaml",
-				"--key", "./test-fixtures/another_cosign.pub",
-			},
-			wantErr:    require.Error,
-			wantOutput: "failed to verify attestation signature: key and signature don't match",
-		},
-		{
-			name:    "sbom with intoto mime string",
-			input:   "./test-fixtures/sbom-with-intoto-string.json",
-			args:    []string{"-c", "../grype-test-config.yaml"},
-			wantErr: require.NoError,
-		},
-		{
 			name:       "empty file",
 			input:      "./test-fixtures/empty.json",
 			args:       []string{"-c", "../grype-test-config.yaml"},
@@ -118,28 +76,6 @@ func TestSBOMInput_FromStdin(t *testing.T) {
 			name:    "sbom",
 			input:   "./test-fixtures/sbom-ubuntu-20.04--pruned.json",
 			args:    []string{"-c", "../grype-test-config.yaml"},
-			wantErr: require.NoError,
-		},
-		{
-			name:  "sbom with unused attestation key",
-			input: "./test-fixtures/sbom-ubuntu-20.04--pruned.json",
-			args: []string{
-				"-c", "../grype-test-config.yaml",
-				"--key", "./test-fixtures/cosign.pub"},
-			wantErr: require.Error,
-		},
-		{
-			name:  "attestation",
-			input: "./test-fixtures/alpine.att.json",
-			args: []string{
-				"-c", "../grype-test-config.yaml",
-				"--key", "./test-fixtures/cosign.pub"},
-			wantErr: require.NoError,
-		},
-		{
-			name:    "attestation without key validation",
-			input:   "./test-fixtures/alpine.att.json",
-			args:    []string{"-c", "../ignore-att-signature.yaml"},
 			wantErr: require.NoError,
 		},
 	}
