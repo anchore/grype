@@ -162,10 +162,14 @@ grype --add-cpes-if-none --distro alpine:3.10 sbom:some-apline-3.10.spdx.json
 ```
 
 ### Working with attestations
-Grype supports the input of SBOM via stdin. Users can use [cosign](https://github.com/sigstore/cosign) to verify attestations
-with SBOM as its content to scan an image for vulnerabilities:
+Grype supports scanning SBOMs as input via stdin. Users can use [cosign](https://github.com/sigstore/cosign) to verify attestations
+with an SBOM as its content to scan an image for vulnerabilities:
 ```
-COSIGN_EXPERIMENTAL=1 cosign verify-attestation caphill4/java-spdx-tools:latest | jq -r .payload | base64 --decode | jq -r .predicate.Data | grype
+COSIGN_EXPERIMENTAL=1 cosign verify-attestation caphill4/java-spdx-tools:latest \
+| jq -r .payload \
+| base64 --decode \
+| jq -r .predicate.Data \
+| grype
 ```
 
 ### Vulnerability Summary
