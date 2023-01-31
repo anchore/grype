@@ -1,6 +1,6 @@
 module github.com/anchore/grype
 
-go 1.18
+go 1.19
 
 require (
 	github.com/CycloneDX/cyclonedx-go v0.7.1-0.20221222100750-41a1ac565cce
