@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/source"
@@ -20,182 +19,6 @@ func assertAs(expected string) assert.ErrorAssertionFunc {
 	return func(t assert.TestingT, err error, i ...interface{}) bool {
 		return assert.ErrorContains(t, errors.New(expected), err.Error())
 	}
-}
-
-func TestDecodeStdin(t *testing.T) {
-	tests := []struct {
-		Name    string
-		Input   string
-		Key     string
-		WantErr assert.ErrorAssertionFunc
-		PkgsLen int
-	}{
-		{
-			Name:    "no key",
-			Input:   "test-fixtures/alpine.att.json",
-			WantErr: assertAs("--key parameter is required to validate attestations"),
-		},
-		{
-			Name:    "happy path",
-			Input:   "test-fixtures/alpine.att.json",
-			Key:     "test-fixtures/cosign.pub",
-			WantErr: assert.NoError,
-			PkgsLen: 14,
-		},
-		{
-			Name:    "cycloneDX format",
-			Input:   "test-fixtures/alpine.cdx.att.json",
-			Key:     "test-fixtures/cosign.pub",
-			WantErr: assert.NoError,
-			PkgsLen: 14,
-		},
-		{
-			Name:    "broken key",
-			Input:   "test-fixtures/alpine.att.json",
-			Key:     "test-fixtures/cosign_broken.pub",
-			WantErr: assertAs("failed to verify attestation signature: cannot decode public key"),
-		},
-		{
-			Name:    "different but valid key",
-			Input:   "test-fixtures/alpine.att.json",
-			Key:     "test-fixtures/another_cosign.pub",
-			WantErr: assertAs("failed to verify attestation signature: key and signature don't match"),
-		},
-		{
-			Name:    "sbom with intoto mime string",
-			Input:   "test-fixtures/sbom-with-intoto-string.json",
-			WantErr: assert.NoError,
-			PkgsLen: 4,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.Name, func(t *testing.T) {
-			f, err := os.Open(tt.Input)
-			require.NoError(t, err)
-			r, info, err := decodeStdin(f, ProviderConfig{
-				SyftProviderConfig: SyftProviderConfig{
-					AttestationPublicKey: tt.Key,
-				},
-			})
-			tt.WantErr(t, err)
-
-			if err == nil {
-				require.NotNil(t, info)
-				sbom, format, err := syft.Decode(r)
-				require.NoError(t, err)
-				require.NotNil(t, format)
-				assert.Len(t, FromCatalog(sbom.Artifacts.PackageCatalog, SynthesisConfig{}), tt.PkgsLen)
-			}
-		})
-	}
-}
-
-func TestParseAttestation(t *testing.T) {
-	tests := []struct {
-		Name    string
-		Input   string
-		Key     string
-		WantErr assert.ErrorAssertionFunc
-		PkgsLen int
-	}{
-		{
-			Name:    "happy path with scheme",
-			Input:   "att:test-fixtures/alpine.att.json",
-			Key:     "test-fixtures/cosign.pub",
-			WantErr: assert.NoError,
-			PkgsLen: 14,
-		},
-		{
-			Name:    "no scheme and no key",
-			Input:   "test-fixtures/alpine.att.json",
-			WantErr: assertAs("--key parameter is required to validate attestations"),
-		},
-		{
-			Name:    "happy path without scheme",
-			Input:   "test-fixtures/alpine.att.json",
-			Key:     "test-fixtures/cosign.pub",
-			WantErr: assert.NoError,
-			PkgsLen: 14,
-		},
-		{
-			Name:    "cycloneDX format",
-			Input:   "test-fixtures/alpine.cdx.att.json",
-			Key:     "test-fixtures/cosign.pub",
-			WantErr: assert.NoError,
-			PkgsLen: 14,
-		},
-		{
-			Name:    "broken key",
-			Input:   "test-fixtures/alpine.att.json",
-			Key:     "test-fixtures/cosign_broken.pub",
-			WantErr: assertAs("failed to verify attestation signature: cannot decode public key"),
-		},
-		{
-			Name:    "different but valid key",
-			Input:   "test-fixtures/alpine.att.json",
-			Key:     "test-fixtures/another_cosign.pub",
-			WantErr: assertAs("failed to verify attestation signature: key and signature don't match"),
-		},
-		{
-			Name:    "not an attestation but has the scheme",
-			Input:   "att:test-fixtures/syft-spring.json",
-			WantErr: assertAs("invalid attestation payload"),
-		},
-		{
-			Name:    "not an attestation but has key",
-			Input:   "test-fixtures/syft-spring.json",
-			Key:     "test-fixtures/cosign.pub",
-			WantErr: assertAs("key is meant for attestation verification, your input is a plain SBOM and doesn't need it"),
-		},
-		{
-			Name:    "not an attestation but has key and scheme",
-			Input:   "att:test-fixtures/syft-spring.json",
-			Key:     "test-fixtures/cosign.pub",
-			WantErr: assertAs("invalid attestation payload"),
-		},
-		{
-			Name:    "tampered attestation payload",
-			Input:   "att:test-fixtures/alpine-tampered.att.json",
-			Key:     "test-fixtures/cosign.pub",
-			WantErr: assertAs("failed to verify attestation signature: key and signature don't match"),
-		},
-		{
-			Name:    "tampered envelope predicate type",
-			Input:   "att:test-fixtures/alpine-tampered.cdx.att.json",
-			Key:     "test-fixtures/cosign.pub",
-			WantErr: assertAs("failed to verify attestation signature: key and signature don't match"),
-		},
-		{
-			Name:    "sbom with intoto mime string",
-			Input:   "test-fixtures/sbom-with-intoto-string.json",
-			WantErr: assert.NoError,
-			PkgsLen: 4,
-		},
-		{
-			Name:    "empty file",
-			Input:   "test-fixtures/empty.json",
-			WantErr: assertAs("cannot provide packages from the given source"),
-		},
-		{
-			Name:    "invalid json",
-			Input:   "test-fixtures/empty.json",
-			WantErr: assertAs("cannot provide packages from the given source"),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.Name, func(t *testing.T) {
-			pkgs, _, _, err := syftSBOMProvider(tt.Input, ProviderConfig{
-				SyftProviderConfig: SyftProviderConfig{
-					AttestationPublicKey: tt.Key,
-				},
-			})
-			tt.WantErr(t, err)
-			require.Len(t, pkgs, tt.PkgsLen)
-		})
-	}
-
 }
 
 func TestParseSyftJSON(t *testing.T) {
@@ -442,6 +265,6 @@ func TestGetSBOMReader_EmptySBOM(t *testing.T) {
 	filepath := sbomFile.Name()
 	userInput := "sbom:" + filepath
 
-	_, err = getSBOMReader(userInput, ProviderConfig{})
+	_, err = getSBOMReader(userInput)
 	assert.ErrorAs(t, err, &errEmptySBOM{})
 }
