@@ -53,7 +53,7 @@ require (
 require (
 	github.com/anchore/go-logger v0.0.0-20220728155337-03b66a5207d8
 	github.com/anchore/sqlite v1.4.6-0.20220607210448-bcc6ee5c4963
-	github.com/anchore/syft v0.69.0
+	github.com/anchore/syft v0.69.1
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/mitchellh/mapstructure v1.5.0
 )
@@ -70,6 +70,7 @@ require (
 	github.com/Microsoft/go-winio v0.6.0 // indirect
 	github.com/acobaugh/osrelease v0.1.0 // indirect
 	github.com/anchore/go-macholibre v0.0.0-20220308212642-53e6d0aaf6fb // indirect
+	github.com/anchore/go-struct-converter v0.0.0-20221118182256-c68fdcfa2092 // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/aws/aws-sdk-go v1.44.180 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
@@ -133,7 +134,7 @@ require (
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/sassoftware/go-rpmutils v0.2.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
-	github.com/spdx/tools-golang v0.4.0 // indirect
+	github.com/spdx/tools-golang v0.5.0-rc1 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
