@@ -369,6 +369,13 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		allMatches := grype.FindVulnerabilitiesForPackage(*store, context.Distro, matchers, packages)
 		remainingMatches, ignoredMatches := match.ApplyIgnoreRules(allMatches, appConfig.Ignore)
 
+		// TODO: add summary logging for matches... e.g.
+		// [0000] DEBUG found 12 vulnerabilities for 10 package
+		//    ├── fixed: 3
+		//    ├── ignored: 5
+		//    └── matched: 12
+		//        ├── low: 4
+		//        └── high: 8
 		if count := len(ignoredMatches); count > 0 {
 			log.Infof("ignoring %d matches due to user-provided ignore rules", count)
 		}

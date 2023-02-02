@@ -95,18 +95,22 @@ func (r *Handler) UpdateVulnerabilityDatabaseHandler(ctx context.Context, fr *fr
 	return err
 }
 
-func scanningAndSummaryLines(fr *frame.Frame) (scanningLine, summaryLine *frame.Line, err error) {
+func scanningAndSummaryLines(fr *frame.Frame) (scanningLine, summaryLine, fixedLine *frame.Line, err error) {
 	scanningLine, err = fr.Append()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	summaryLine, err = fr.Append()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return scanningLine, summaryLine, nil
+	fixedLine, err = fr.Append()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return scanningLine, summaryLine, fixedLine, nil
 }
 
 func assembleProgressMonitors(m *matcher.Monitor) []progress.Monitorable {
@@ -128,7 +132,7 @@ func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *f
 		return fmt.Errorf("bad %s event: %w", event.Type, err)
 	}
 
-	scanningLine, summaryLine, err := scanningAndSummaryLines(fr)
+	scanningLine, summaryLine, fixLine, err := scanningAndSummaryLines(fr)
 	if err != nil {
 		return err
 	}
@@ -141,15 +145,27 @@ func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *f
 	stream := progress.StreamMonitors(ctx, monitors, 50*time.Millisecond)
 
 	title := tileFormat.Sprint("Scanning image...")
-	title2 := tileFormat.Sprint("Summary")
+	branch := "├──"
+	end := "└──"
+
+	summaryTempl := "%d critical, %d high, %d medium, %d low  %s"
+	FixTempl := "%d fixed"
 
 	formatFn := func(total, unknown, low, medium, high, critical, fixed int64) {
 		spin := color.Magenta.Sprint(spinner.Next())
 		auxInfo := auxInfoFormat.Sprintf("[vulnerabilities %d]", total)
 		_, _ = io.WriteString(scanningLine, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
 
-		auxInfo2 := auxInfoFormat.Sprintf("[Critical: %d, High: %d, Medium: %d, Low: %d, Unknown: %d, Fixed: %d]", critical, high, medium, low, unknown, fixed)
-		_, _ = io.WriteString(summaryLine, fmt.Sprintf(statusTitleTemplate+"%s", spin, title2, auxInfo2))
+		unknownStr := ""
+		if unknown > 0 {
+			unknownStr = fmt.Sprintf("(%d unknown)", unknown)
+		}
+
+		status := fmt.Sprintf(summaryTempl, critical, high, medium, low, unknownStr)
+		_, _ = io.WriteString(summaryLine, auxInfoFormat.Sprintf("   %s %s", branch, status))
+
+		fixStatus := fmt.Sprintf(FixTempl, fixed)
+		_, _ = io.WriteString(fixLine, auxInfoFormat.Sprintf("   %s %s", end, fixStatus))
 	}
 
 	go func() {
@@ -165,16 +181,28 @@ func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *f
 		auxInfo := auxInfoFormat.Sprintf("[%d vulnerabilities]", monitor.VulnerabilitiesDiscovered.Current())
 		_, _ = io.WriteString(scanningLine, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
 
-		auxInfo2 := auxInfoFormat.Sprintf(
-			"[Critical: %d, High: %d, Medium: %d, Low: %d, Unknown: %d, Fixed: %d]",
+		unknownStr := ""
+		unknown := monitor.VulnerabilitiesCategories.Unknown.Current()
+		if unknown > 0 {
+			unknownStr = fmt.Sprintf("(%d unknown)", unknown)
+		}
+
+		status := fmt.Sprintf(
+			summaryTempl,
 			monitor.VulnerabilitiesCategories.Critical.Current(),
 			monitor.VulnerabilitiesCategories.High.Current(),
 			monitor.VulnerabilitiesCategories.Medium.Current(),
 			monitor.VulnerabilitiesCategories.Low.Current(),
-			monitor.VulnerabilitiesCategories.Unknown.Current(),
+			unknownStr,
+		)
+		auxInfo2 := auxInfoFormat.Sprintf("   %s %s", branch, status)
+		_, _ = io.WriteString(summaryLine, auxInfo2)
+
+		fixStatus := fmt.Sprintf(
+			FixTempl,
 			monitor.VulnerabilitiesCategories.Fixed.Current(),
 		)
-		_, _ = io.WriteString(summaryLine, fmt.Sprintf(statusTitleTemplate+"%s", spin, title2, auxInfo2))
+		_, _ = io.WriteString(fixLine, auxInfoFormat.Sprintf("   %s %s", end, fixStatus))
 	}()
 
 	return nil
