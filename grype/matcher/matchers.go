@@ -191,10 +191,24 @@ func FindMatches(store interface {
 	vulnerabilitiesList.Critical.SetCompleted()
 	vulnerabilitiesList.Fixed.SetCompleted()
 
+	logListSummary(vulnerabilitiesList, vulnerabilitiesDiscovered.N, len(packages))
+
 	// Filter out matches based off of the records in the exclusion table in the database or from the old hard-coded rules
 	res = match.ApplyExplicitIgnoreRules(store, res)
 
 	return res
+}
+
+func logListSummary(vl *vulnerabilitiesList, vulnerabilitiesDiscovered int64, packages int) {
+	log.Debugf("found %d vulnerabilities for %d packages", vulnerabilitiesDiscovered, packages)
+	log.Debugf("  ├── fixed: %d", vl.Fixed.N)
+	log.Debugf("  ├── ignored: %d", vl.Unknown.N)
+	log.Debugf("  └── matched: %d", vulnerabilitiesDiscovered)
+	log.Debugf("      ├── unknown: %d", vl.Unknown.N)
+	log.Debugf("      ├── low: %d", vl.Low.N)
+	log.Debugf("      ├── medium: %d", vl.Medium.N)
+	log.Debugf("      ├── high: %d", vl.High.N)
+	log.Debugf("      └── critical: %d", vl.Critical.N)
 }
 
 func updateVulnerabilityList(list *vulnerabilitiesList, matches []match.Match, metadataProvider vulnerability.MetadataProvider) {

@@ -353,13 +353,6 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 		applyDistroHint(packages, &pkgContext, appConfig)
 
-		// TODO: add summary logging for matches... e.g.
-		// [0000] DEBUG found 12 vulnerabilities for 10 package
-		//    ├── fixed: 3
-		//    ├── ignored: 5
-		//    └── matched: 12
-		//        ├── low: 4
-		//        └── high: 8
 		vulnMatcher := grype.VulnerabilityMatcher{
 			Store:          *str,
 			IgnoreRules:    appConfig.Ignore,
