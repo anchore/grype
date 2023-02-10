@@ -126,6 +126,7 @@ func assembleProgressMonitors(m *matcher.Monitor) []progress.Monitorable {
 	}
 }
 
+//nolint:funlen
 func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
 	monitor, err := grypeEventParsers.ParseVulnerabilityScanningStarted(event)
 	if err != nil {
@@ -208,7 +209,6 @@ func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *f
 	return nil
 }
 
-//nolint:dupl
 func (r *Handler) DatabaseDiffingStartedHandler(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
 	monitor, err := grypeEventParsers.ParseDatabaseDiffingStarted(event)
 	if err != nil {

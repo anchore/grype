@@ -4,7 +4,7 @@ import (
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
 
-	grypeDb "github.com/anchore/grype/grype/db/v4"
+	grypeDb "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/match"
