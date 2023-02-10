@@ -6,11 +6,17 @@ import (
 )
 
 type ProviderConfig struct {
-	RegistryOptions               *image.RegistryOptions
-	Exclusions                    []string
-	CatalogingOptions             cataloger.Config
-	GenerateMissingCPEs           bool
-	Platform                      string
-	AttestationPublicKey          string
-	AttestationIgnoreVerification bool
+	SyftProviderConfig
+	SynthesisConfig
+}
+
+type SyftProviderConfig struct {
+	CatalogingOptions cataloger.Config
+	RegistryOptions   *image.RegistryOptions
+	Platform          string
+	Exclusions        []string
+}
+
+type SynthesisConfig struct {
+	GenerateMissingCPEs bool
 }

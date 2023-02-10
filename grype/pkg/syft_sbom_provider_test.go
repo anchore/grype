@@ -10,191 +10,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/syft/syft"
+	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/linux"
-	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
 )
-
-func must(c pkg.CPE, e error) pkg.CPE {
-	if e != nil {
-		panic(e)
-	}
-	return c
-}
 
 func assertAs(expected string) assert.ErrorAssertionFunc {
 	return func(t assert.TestingT, err error, i ...interface{}) bool {
 		return assert.ErrorContains(t, errors.New(expected), err.Error())
 	}
-}
-
-func TestDecodeStdin(t *testing.T) {
-	tests := []struct {
-		Name    string
-		Input   string
-		Key     string
-		WantErr assert.ErrorAssertionFunc
-		PkgsLen int
-	}{
-		{
-			Name:    "no key",
-			Input:   "test-fixtures/alpine.att.json",
-			WantErr: assertAs("--key parameter is required to validate attestations"),
-		},
-		{
-			Name:    "happy path",
-			Input:   "test-fixtures/alpine.att.json",
-			Key:     "test-fixtures/cosign.pub",
-			WantErr: assert.NoError,
-			PkgsLen: 14,
-		},
-		{
-			Name:    "cycloneDX format",
-			Input:   "test-fixtures/alpine.cdx.att.json",
-			Key:     "test-fixtures/cosign.pub",
-			WantErr: assert.NoError,
-			PkgsLen: 14,
-		},
-		{
-			Name:    "broken key",
-			Input:   "test-fixtures/alpine.att.json",
-			Key:     "test-fixtures/cosign_broken.pub",
-			WantErr: assertAs("failed to verify attestation signature: cannot decode public key"),
-		},
-		{
-			Name:    "different but valid key",
-			Input:   "test-fixtures/alpine.att.json",
-			Key:     "test-fixtures/another_cosign.pub",
-			WantErr: assertAs("failed to verify attestation signature: key and signature don't match"),
-		},
-		{
-			Name:    "sbom with intoto mime string",
-			Input:   "test-fixtures/sbom-with-intoto-string.json",
-			WantErr: assert.NoError,
-			PkgsLen: 4,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.Name, func(t *testing.T) {
-			f, err := os.Open(tt.Input)
-			require.NoError(t, err)
-			r, info, err := decodeStdin(f, ProviderConfig{AttestationPublicKey: tt.Key})
-			tt.WantErr(t, err)
-
-			if err == nil {
-				require.NotNil(t, info)
-				sbom, format, err := syft.Decode(r)
-				require.NoError(t, err)
-				require.NotNil(t, format)
-				assert.Len(t, FromCatalog(sbom.Artifacts.PackageCatalog, ProviderConfig{}), tt.PkgsLen)
-			}
-		})
-	}
-}
-
-func TestParseAttestation(t *testing.T) {
-	tests := []struct {
-		Name    string
-		Input   string
-		Key     string
-		WantErr assert.ErrorAssertionFunc
-		PkgsLen int
-	}{
-		{
-			Name:    "happy path with scheme",
-			Input:   "att:test-fixtures/alpine.att.json",
-			Key:     "test-fixtures/cosign.pub",
-			WantErr: assert.NoError,
-			PkgsLen: 14,
-		},
-		{
-			Name:    "no scheme and no key",
-			Input:   "test-fixtures/alpine.att.json",
-			WantErr: assertAs("--key parameter is required to validate attestations"),
-		},
-		{
-			Name:    "happy path without scheme",
-			Input:   "test-fixtures/alpine.att.json",
-			Key:     "test-fixtures/cosign.pub",
-			WantErr: assert.NoError,
-			PkgsLen: 14,
-		},
-		{
-			Name:    "cycloneDX format",
-			Input:   "test-fixtures/alpine.cdx.att.json",
-			Key:     "test-fixtures/cosign.pub",
-			WantErr: assert.NoError,
-			PkgsLen: 14,
-		},
-		{
-			Name:    "broken key",
-			Input:   "test-fixtures/alpine.att.json",
-			Key:     "test-fixtures/cosign_broken.pub",
-			WantErr: assertAs("failed to verify attestation signature: cannot decode public key"),
-		},
-		{
-			Name:    "different but valid key",
-			Input:   "test-fixtures/alpine.att.json",
-			Key:     "test-fixtures/another_cosign.pub",
-			WantErr: assertAs("failed to verify attestation signature: key and signature don't match"),
-		},
-		{
-			Name:    "not an attestation but has the scheme",
-			Input:   "att:test-fixtures/syft-spring.json",
-			WantErr: assertAs("invalid attestation payload"),
-		},
-		{
-			Name:    "not an attestation but has key",
-			Input:   "test-fixtures/syft-spring.json",
-			Key:     "test-fixtures/cosign.pub",
-			WantErr: assertAs("key is meant for attestation verification, your input is a plain SBOM and doesn't need it"),
-		},
-		{
-			Name:    "not an attestation but has key and scheme",
-			Input:   "att:test-fixtures/syft-spring.json",
-			Key:     "test-fixtures/cosign.pub",
-			WantErr: assertAs("invalid attestation payload"),
-		},
-		{
-			Name:    "tampered attestation payload",
-			Input:   "att:test-fixtures/alpine-tampered.att.json",
-			Key:     "test-fixtures/cosign.pub",
-			WantErr: assertAs("failed to verify attestation signature: key and signature don't match"),
-		},
-		{
-			Name:    "tampered envelope predicate type",
-			Input:   "att:test-fixtures/alpine-tampered.cdx.att.json",
-			Key:     "test-fixtures/cosign.pub",
-			WantErr: assertAs("failed to verify attestation signature: key and signature don't match"),
-		},
-		{
-			Name:    "sbom with intoto mime string",
-			Input:   "test-fixtures/sbom-with-intoto-string.json",
-			WantErr: assert.NoError,
-			PkgsLen: 4,
-		},
-		{
-			Name:    "empty file",
-			Input:   "test-fixtures/empty.json",
-			WantErr: assertAs("cannot provide packages from the given source"),
-		},
-		{
-			Name:    "invalid json",
-			Input:   "test-fixtures/empty.json",
-			WantErr: assertAs("cannot provide packages from the given source"),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.Name, func(t *testing.T) {
-			pkgs, _, err := syftSBOMProvider(tt.Input, ProviderConfig{AttestationPublicKey: tt.Key})
-			tt.WantErr(t, err)
-			require.Len(t, pkgs, tt.PkgsLen)
-		})
-	}
-
 }
 
 func TestParseSyftJSON(t *testing.T) {
@@ -220,8 +44,8 @@ func TestParseSyftJSON(t *testing.T) {
 						"GPL-2.0-only",
 					},
 					Type: "apk",
-					CPEs: []pkg.CPE{
-						must(pkg.NewCPE("cpe:2.3:a:alpine:alpine_baselayout:3.2.0-r6:*:*:*:*:*:*:*")),
+					CPEs: []cpe.CPE{
+						cpe.Must("cpe:2.3:a:alpine:alpine_baselayout:3.2.0-r6:*:*:*:*:*:*:*"),
 					},
 					PURL: "pkg:alpine/alpine-baselayout@3.2.0-r6?arch=x86_64",
 					Upstreams: []UpstreamPackage{
@@ -244,9 +68,9 @@ func TestParseSyftJSON(t *testing.T) {
 						"LGPL-3.0-or-later",
 					},
 					Type: "dpkg",
-					CPEs: []pkg.CPE{
-						must(pkg.NewCPE("cpe:2.3:a:*:fake:1.2.0:*:*:*:*:*:*:*")),
-						must(pkg.NewCPE("cpe:2.3:a:fake:fake:1.2.0:*:*:*:*:*:*:*")),
+					CPEs: []cpe.CPE{
+						cpe.Must("cpe:2.3:a:*:fake:1.2.0:*:*:*:*:*:*:*"),
+						cpe.Must("cpe:2.3:a:fake:fake:1.2.0:*:*:*:*:*:*:*"),
 					},
 					PURL: "pkg:deb/debian/fake@1.2.0?arch=x86_64",
 					Upstreams: []UpstreamPackage{
@@ -270,9 +94,9 @@ func TestParseSyftJSON(t *testing.T) {
 						"LGPL-3.0-or-later",
 					},
 					Type: "java-archive",
-					CPEs: []pkg.CPE{
-						must(pkg.NewCPE("cpe:2.3:a:*:gmp:6.2.0-r0:*:*:*:*:*:*:*")),
-						must(pkg.NewCPE("cpe:2.3:a:gmp:gmp:6.2.0-r0:*:*:*:*:*:*:*")),
+					CPEs: []cpe.CPE{
+						cpe.Must("cpe:2.3:a:*:gmp:6.2.0-r0:*:*:*:*:*:*:*"),
+						cpe.Must("cpe:2.3:a:gmp:gmp:6.2.0-r0:*:*:*:*:*:*:*"),
 					},
 					PURL:         "pkg:alpine/gmp@6.2.0-r0?arch=x86_64",
 					MetadataType: JavaMetadataType,
@@ -316,7 +140,7 @@ func TestParseSyftJSON(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Fixture, func(t *testing.T) {
-			pkgs, context, err := syftSBOMProvider(test.Fixture, ProviderConfig{})
+			pkgs, context, _, err := syftSBOMProvider(test.Fixture, ProviderConfig{})
 			if err != nil {
 				t.Fatalf("unable to parse: %+v", err)
 			}
@@ -345,7 +169,7 @@ func TestParseSyftJSON(t *testing.T) {
 }
 
 func TestParseSyftJSON_BadCPEs(t *testing.T) {
-	pkgs, _, err := syftSBOMProvider("test-fixtures/syft-java-bad-cpes.json", ProviderConfig{})
+	pkgs, _, _, err := syftSBOMProvider("test-fixtures/syft-java-bad-cpes.json", ProviderConfig{})
 	assert.NoError(t, err)
 	assert.Len(t, pkgs, 1)
 }
@@ -371,9 +195,9 @@ var springImageTestCase = struct {
 			Language: "java",
 			Licenses: []string{},
 			Type:     "java-archive",
-			CPEs: []pkg.CPE{
-				must(pkg.NewCPE("cpe:2.3:a:charsets:charsets:*:*:*:*:*:java:*:*")),
-				must(pkg.NewCPE("cpe:2.3:a:charsets:charsets:*:*:*:*:*:maven:*:*")),
+			CPEs: []cpe.CPE{
+				cpe.Must("cpe:2.3:a:charsets:charsets:*:*:*:*:*:java:*:*"),
+				cpe.Must("cpe:2.3:a:charsets:charsets:*:*:*:*:*:maven:*:*"),
 			},
 			PURL:         "",
 			MetadataType: JavaMetadataType,
@@ -391,9 +215,9 @@ var springImageTestCase = struct {
 			Language: "java",
 			Licenses: []string{},
 			Type:     "java-archive",
-			CPEs: []pkg.CPE{
-				must(pkg.NewCPE("cpe:2.3:a:tomcat_embed_el:tomcat-embed-el:9.0.27:*:*:*:*:java:*:*")),
-				must(pkg.NewCPE("cpe:2.3:a:tomcat-embed-el:tomcat_embed_el:9.0.27:*:*:*:*:maven:*:*")),
+			CPEs: []cpe.CPE{
+				cpe.Must("cpe:2.3:a:tomcat_embed_el:tomcat-embed-el:9.0.27:*:*:*:*:java:*:*"),
+				cpe.Must("cpe:2.3:a:tomcat-embed-el:tomcat_embed_el:9.0.27:*:*:*:*:maven:*:*"),
 			},
 			PURL:         "",
 			MetadataType: JavaMetadataType,
@@ -441,6 +265,6 @@ func TestGetSBOMReader_EmptySBOM(t *testing.T) {
 	filepath := sbomFile.Name()
 	userInput := "sbom:" + filepath
 
-	_, err = getSBOMReader(userInput, ProviderConfig{})
+	_, err = getSBOMReader(userInput)
 	assert.ErrorAs(t, err, &errEmptySBOM{})
 }

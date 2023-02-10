@@ -159,17 +159,17 @@ func FindMatches(store interface {
 	packagesProcessed, vulnerabilitiesDiscovered, vulnerabilitiesList := trackMatcher()
 
 	if defaultMatcher == nil {
-		defaultMatcher = &stock.Matcher{UseCPEs: true}
+		defaultMatcher = stock.NewStockMatcher(stock.MatcherConfig{UseCPEs: true})
 	}
 	for _, p := range packages {
 		packagesProcessed.N++
 		log.Debugf("searching for vulnerability matches for pkg=%s", p)
 
-		matchers, ok := matcherIndex[p.Type]
+		matchAgainst, ok := matcherIndex[p.Type]
 		if !ok {
-			matchers = []Matcher{defaultMatcher}
+			matchAgainst = []Matcher{defaultMatcher}
 		}
-		for _, m := range matchers {
+		for _, m := range matchAgainst {
 			matches, err := m.Match(store, d, p)
 			if err != nil {
 				log.Warnf("matcher failed for pkg=%s: %+v", p, err)

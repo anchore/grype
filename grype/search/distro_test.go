@@ -96,6 +96,7 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 					},
 					Found: map[string]interface{}{
 						"versionConstraint": "< 2014.1.5-6 (deb)",
+						"vulnerabilityID":   "CVE-2014-fake-1",
 					},
 					Matcher: match.PythonMatcher,
 				},
@@ -151,6 +152,7 @@ func TestFindMatchesByPackageDistroSles(t *testing.T) {
 					},
 					Found: map[string]interface{}{
 						"versionConstraint": "< 2014.1.5-6 (rpm)",
+						"vulnerabilityID":   "CVE-2014-fake-4",
 					},
 					Matcher: match.PythonMatcher,
 				},

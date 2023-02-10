@@ -30,16 +30,16 @@ type Presenter struct {
 }
 
 // NewPresenter returns a new template.Presenter.
-func NewPresenter(matches match.Matches, ignoredMatches []match.IgnoredMatch, packages []pkg.Package, context pkg.Context, metadataProvider vulnerability.MetadataProvider, appConfig interface{}, dbStatus interface{}, pathToTemplateFile string) *Presenter {
+func NewPresenter(pb models.PresenterConfig, templateFile string) *Presenter {
 	return &Presenter{
-		matches:            matches,
-		ignoredMatches:     ignoredMatches,
-		packages:           packages,
-		metadataProvider:   metadataProvider,
-		context:            context,
-		appConfig:          appConfig,
-		dbStatus:           dbStatus,
-		pathToTemplateFile: pathToTemplateFile,
+		matches:            pb.Matches,
+		ignoredMatches:     pb.IgnoredMatches,
+		packages:           pb.Packages,
+		metadataProvider:   pb.MetadataProvider,
+		context:            pb.Context,
+		appConfig:          pb.AppConfig,
+		dbStatus:           pb.DBStatus,
+		pathToTemplateFile: templateFile,
 	}
 }
 

@@ -10,4 +10,5 @@ const (
 	JavaMetadataType      MetadataType = "JavaMetadata"
 	RpmMetadataType       MetadataType = "RpmMetadata"
 	GolangBinMetadataType MetadataType = "GolangBinMetadata"
+	GolangModMetadataType MetadataType = "GolangModMetadata"
 )

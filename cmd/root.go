@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -14,19 +15,21 @@ import (
 
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db"
-	grypeDb "github.com/anchore/grype/grype/db/v4"
+	grypeDb "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/grypeerr"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/matcher/dotnet"
 	"github.com/anchore/grype/grype/matcher/golang"
+	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
 	"github.com/anchore/grype/grype/matcher/python"
 	"github.com/anchore/grype/grype/matcher/ruby"
 	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter"
+	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
@@ -39,6 +42,7 @@ import (
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -63,7 +67,6 @@ var (
 Supports the following image sources:
     {{.appName}} yourrepo/yourimage:tag             defaults to using images from a Docker daemon
     {{.appName}} path/to/yourproject                a Docker tar, OCI tar, OCI directory, SIF container, or generic filesystem directory
-    {{.appName}} attestation.json --key cosign.pub  extract and scan SBOM from attestation file
 
 You can also explicitly specify the scheme to use:
     {{.appName}} podman:yourrepo/yourimage:tag          explicitly use the Podman daemon
@@ -75,7 +78,6 @@ You can also explicitly specify the scheme to use:
     {{.appName}} dir:path/to/yourproject                read directly from a path on disk (any directory)
     {{.appName}} sbom:path/to/syft.json                 read Syft JSON from path on disk
     {{.appName}} registry:yourrepo/yourimage:tag        pull image directly from a registry (no container runtime required)
-    {{.appName}} att:attestation.json --key cosign.pub  explicitly use the input as an attestation
     {{.appName}} purl:path/to/purl/file                 read a newline separated file of purls from a path on disk
 
 You can also pipe in Syft JSON directly:
@@ -130,7 +132,7 @@ func setRootFlags(flags *pflag.FlagSet) {
 
 	flags.StringP(
 		"output", "o", "",
-		fmt.Sprintf("report output formatter, formats=%v", presenter.AvailableFormats),
+		fmt.Sprintf("report output formatter, formats=%v, deprecated formats=%v", presenter.AvailableFormats, presenter.DeprecatedFormats),
 	)
 
 	flags.StringP(
@@ -166,6 +168,16 @@ func setRootFlags(flags *pflag.FlagSet) {
 		"ignore matches for vulnerabilities that are fixed",
 	)
 
+	flags.BoolP(
+		"by-cve", "", false,
+		"orient results by CVE instead of the original vulnerability ID when possible",
+	)
+
+	flags.BoolP(
+		"show-suppressed", "", false,
+		"show suppressed/ignored vulnerabilities in the output (only supported with table output format)",
+	)
+
 	flags.StringArrayP(
 		"exclude", "", nil,
 		"exclude paths from being scanned using a glob expression",
@@ -174,15 +186,6 @@ func setRootFlags(flags *pflag.FlagSet) {
 	flags.StringP(
 		"platform", "", "",
 		"an optional platform specifier for container image sources (e.g. 'linux/arm64', 'linux/arm64/v8', 'arm64', 'linux')",
-	)
-
-	flags.String(
-		// NOTE(jonasagx): the default value is present even for SBOM inputs, causing errors.
-		// To avoid extra syscalls for file validation I will drop it for now.
-		// I know Syft has a default key value, but I am not certain that is a safe explicit
-		// approach when attesting.
-		"key", "",
-		"File path to a public key to validate attestation",
 	)
 }
 
@@ -223,15 +226,19 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 		return err
 	}
 
+	if err := viper.BindPFlag("by-cve", flags.Lookup("by-cve")); err != nil {
+		return err
+	}
+
+	if err := viper.BindPFlag("show-suppressed", flags.Lookup("show-suppressed")); err != nil {
+		return err
+	}
+
 	if err := viper.BindPFlag("exclude", flags.Lookup("exclude")); err != nil {
 		return err
 	}
 
 	if err := viper.BindPFlag("platform", flags.Lookup("platform")); err != nil {
-		return err
-	}
-
-	if err := viper.BindPFlag("attestation.public-key", flags.Lookup("key")); err != nil {
 		return err
 	}
 
@@ -282,34 +289,20 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 	go func() {
 		defer close(errs)
 
-		presenterConfig, err := presenter.ValidatedConfig(appConfig.Output, appConfig.OutputTemplateFile)
+		presenterConfig, err := presenter.ValidatedConfig(appConfig.Output, appConfig.OutputTemplateFile, appConfig.ShowSuppressed)
 		if err != nil {
 			errs <- err
 			return
 		}
 
-		if appConfig.CheckForAppUpdate {
-			isAvailable, newVersion, err := version.IsUpdateAvailable()
-			if err != nil {
-				log.Errorf(err.Error())
-			}
-			if isAvailable {
-				log.Infof("new version of %s is available: %s (currently running: %s)", internal.ApplicationName, newVersion, version.FromBuild().Version)
+		checkForAppUpdate()
 
-				bus.Publish(partybus.Event{
-					Type:  event.AppUpdateAvailable,
-					Value: newVersion,
-				})
-			} else {
-				log.Debugf("No new %s update available", internal.ApplicationName)
-			}
-		}
-
-		var store *store.Store
+		var str *store.Store
 		var status *db.Status
 		var dbCloser *db.Closer
 		var packages []pkg.Package
-		var context pkg.Context
+		var sbom *sbom.SBOM
+		var pkgContext pkg.Context
 		var wg = &sync.WaitGroup{}
 		var loadedDB, gatheredPackages bool
 
@@ -318,7 +311,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		go func() {
 			defer wg.Done()
 			log.Debug("loading DB")
-			store, status, dbCloser, err = grype.LoadVulnerabilityDB(appConfig.DB.ToCuratorConfig(), appConfig.DB.AutoUpdate)
+			str, status, dbCloser, err = grype.LoadVulnerabilityDB(appConfig.DB.ToCuratorConfig(), appConfig.DB.AutoUpdate)
 			if err = validateDBLoad(err, status); err != nil {
 				errs <- err
 				return
@@ -329,7 +322,11 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		go func() {
 			defer wg.Done()
 			log.Debugf("gathering packages")
-			packages, context, err = pkg.Provide(userInput, getProviderConfig())
+			// packages are grype.Pacakge, not syft.Package
+			// the SBOM is returned for downstream formatting concerns
+			// grype uses the SBOM in combination with syft formatters to produce cycloneDX
+			// with vulnerability information appended
+			packages, pkgContext, sbom, err = pkg.Provide(userInput, getProviderConfig())
 			if err != nil {
 				errs <- fmt.Errorf("failed to catalog: %w", err)
 				return
@@ -354,20 +351,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			appConfig.Ignore = append(appConfig.Ignore, ignoreFixedMatches...)
 		}
 
-		applyDistroHint(packages, &context, appConfig)
-
-		matchers := matcher.NewDefaultMatchers(matcher.Config{
-			Java:       appConfig.ExternalSources.ToJavaMatcherConfig(appConfig.Match.Java),
-			Ruby:       ruby.MatcherConfig(appConfig.Match.Ruby),
-			Python:     python.MatcherConfig(appConfig.Match.Python),
-			Dotnet:     dotnet.MatcherConfig(appConfig.Match.Dotnet),
-			Javascript: javascript.MatcherConfig(appConfig.Match.Javascript),
-			Golang:     golang.MatcherConfig(appConfig.Match.Golang),
-			Stock:      stock.MatcherConfig(appConfig.Match.Stock),
-		})
-
-		allMatches := grype.FindVulnerabilitiesForPackage(*store, context.Distro, matchers, packages)
-		remainingMatches, ignoredMatches := match.ApplyIgnoreRules(allMatches, appConfig.Ignore)
+		applyDistroHint(packages, &pkgContext, appConfig)
 
 		// TODO: add summary logging for matches... e.g.
 		// [0000] DEBUG found 12 vulnerabilities for 10 package
@@ -376,20 +360,36 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		//    └── matched: 12
 		//        ├── low: 4
 		//        └── high: 8
-		if count := len(ignoredMatches); count > 0 {
-			log.Infof("ignoring %d matches due to user-provided ignore rules", count)
+		vulnMatcher := grype.VulnerabilityMatcher{
+			Store:          *str,
+			IgnoreRules:    appConfig.Ignore,
+			NormalizeByCVE: appConfig.ByCVE,
+			FailSeverity:   failOnSeverity,
+			Matchers:       getMatchers(),
 		}
 
-		// determine if there are any severities >= to the max allowable severity (which is optional).
-		// note: until the shared file lock in sqlittle is fixed the sqlite DB cannot be access concurrently,
-		// implying that the fail-on-severity check must be done before sending the presenter object.
-		if hitSeverityThreshold(failOnSeverity, remainingMatches, store) {
-			errs <- grypeerr.ErrAboveSeverityThreshold
+		remainingMatches, ignoredMatches, err := vulnMatcher.FindMatches(packages, pkgContext)
+		if err != nil {
+			errs <- err
+			if !errors.Is(err, grypeerr.ErrAboveSeverityThreshold) {
+				return
+			}
+		}
+
+		pb := models.PresenterConfig{
+			Matches:          *remainingMatches,
+			IgnoredMatches:   ignoredMatches,
+			Packages:         packages,
+			Context:          pkgContext,
+			MetadataProvider: str,
+			SBOM:             sbom,
+			AppConfig:        appConfig,
+			DBStatus:         status,
 		}
 
 		bus.Publish(partybus.Event{
 			Type:  event.VulnerabilityScanningFinished,
-			Value: presenter.GetPresenter(presenterConfig, remainingMatches, ignoredMatches, packages, context, store, appConfig, status),
+			Value: presenter.GetPresenter(presenterConfig, pb),
 		})
 	}()
 	return errs
@@ -431,15 +431,55 @@ func applyDistroHint(pkgs []pkg.Package, context *pkg.Context, appConfig *config
 	}
 }
 
+func checkForAppUpdate() {
+	if !appConfig.CheckForAppUpdate {
+		return
+	}
+
+	isAvailable, newVersion, err := version.IsUpdateAvailable()
+	if err != nil {
+		log.Errorf(err.Error())
+	}
+	if isAvailable {
+		log.Infof("new version of %s is available: %s (currently running: %s)", internal.ApplicationName, newVersion, version.FromBuild().Version)
+
+		bus.Publish(partybus.Event{
+			Type:  event.AppUpdateAvailable,
+			Value: newVersion,
+		})
+	} else {
+		log.Debugf("no new %s update available", internal.ApplicationName)
+	}
+}
+
+func getMatchers() []matcher.Matcher {
+	return matcher.NewDefaultMatchers(
+		matcher.Config{
+			Java: java.MatcherConfig{
+				ExternalSearchConfig: appConfig.ExternalSources.ToJavaMatcherConfig(),
+				UseCPEs:              appConfig.Match.Java.UseCPEs,
+			},
+			Ruby:       ruby.MatcherConfig(appConfig.Match.Ruby),
+			Python:     python.MatcherConfig(appConfig.Match.Python),
+			Dotnet:     dotnet.MatcherConfig(appConfig.Match.Dotnet),
+			Javascript: javascript.MatcherConfig(appConfig.Match.Javascript),
+			Golang:     golang.MatcherConfig(appConfig.Match.Golang),
+			Stock:      stock.MatcherConfig(appConfig.Match.Stock),
+		},
+	)
+}
+
 func getProviderConfig() pkg.ProviderConfig {
 	return pkg.ProviderConfig{
-		RegistryOptions:               appConfig.Registry.ToOptions(),
-		Exclusions:                    appConfig.Exclusions,
-		CatalogingOptions:             appConfig.Search.ToConfig(),
-		GenerateMissingCPEs:           appConfig.GenerateMissingCPEs,
-		Platform:                      appConfig.Platform,
-		AttestationPublicKey:          appConfig.Attestation.PublicKey,
-		AttestationIgnoreVerification: appConfig.Attestation.SkipVerification,
+		SyftProviderConfig: pkg.SyftProviderConfig{
+			RegistryOptions:   appConfig.Registry.ToOptions(),
+			Exclusions:        appConfig.Exclusions,
+			CatalogingOptions: appConfig.Search.ToConfig(),
+			Platform:          appConfig.Platform,
+		},
+		SynthesisConfig: pkg.SynthesisConfig{
+			GenerateMissingCPEs: appConfig.GenerateMissingCPEs,
+		},
 	}
 }
 
@@ -472,26 +512,4 @@ func validateRootArgs(cmd *cobra.Command, args []string) error {
 	}
 
 	return cobra.MaximumNArgs(1)(cmd, args)
-}
-
-// hitSeverityThreshold indicates if there are any severities >= to the max allowable severity (which is optional)
-func hitSeverityThreshold(thresholdSeverity *vulnerability.Severity, matches match.Matches, metadataProvider vulnerability.MetadataProvider) bool {
-	if thresholdSeverity != nil {
-		var maxDiscoveredSeverity vulnerability.Severity
-		for m := range matches.Enumerate() {
-			metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.Namespace)
-			if err != nil {
-				continue
-			}
-			severity := vulnerability.ParseSeverity(metadata.Severity)
-			if severity > maxDiscoveredSeverity {
-				maxDiscoveredSeverity = severity
-			}
-		}
-
-		if maxDiscoveredSeverity >= *thresholdSeverity {
-			return true
-		}
-	}
-	return false
 }

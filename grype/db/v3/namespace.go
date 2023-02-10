@@ -49,6 +49,10 @@ func NamespaceForDistro(d *distro.Distro) string {
 		return ""
 	}
 
+	if d.IsRolling() {
+		return fmt.Sprintf("%s:%s", strings.ToLower(d.Type.String()), "rolling")
+	}
+
 	var versionSegments []int
 	if d.Version != nil {
 		versionSegments = d.Version.Segments()

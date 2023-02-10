@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/go-test/deep"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/scylladb/go-set/strset"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -12,6 +13,7 @@ import (
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/syft/syft/source"
 )
@@ -43,6 +45,7 @@ func TestMatchBySBOMDocument(t *testing.T) {
 					},
 					Found: map[string]interface{}{
 						"versionConstraint": "3200970 || 878787 || base (kb)",
+						"vulnerabilityID":   "CVE-2016-3333",
 					},
 					Matcher:    match.MsrcMatcher,
 					Confidence: 1,
@@ -62,6 +65,7 @@ func TestMatchBySBOMDocument(t *testing.T) {
 					},
 					Found: map[string]interface{}{
 						"versionConstraint": "< 2.0 (python)",
+						"vulnerabilityID":   "CVE-bogus-my-package-2-python",
 					},
 					Matcher:    match.StockMatcher,
 					Confidence: 1,
@@ -72,17 +76,16 @@ func TestMatchBySBOMDocument(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			mockStore := newMockDbStore()
-			vp, err := db.NewVulnerabilityProvider(mockStore)
+			mkStr := newMockDbStore()
+			vp, err := db.NewVulnerabilityProvider(mkStr)
 			require.NoError(t, err)
-			mp := db.NewVulnerabilityMetadataProvider(mockStore)
-			ep := db.NewMatchExclusionProvider(mockStore)
-			store := store.Store{
+			ep := db.NewMatchExclusionProvider(mkStr)
+			str := store.Store{
 				Provider:          vp,
-				MetadataProvider:  mp,
+				MetadataProvider:  nil,
 				ExclusionProvider: ep,
 			}
-			matches, _, _, err := grype.FindVulnerabilities(store, fmt.Sprintf("sbom:%s", test.fixture), source.SquashedScope, nil)
+			matches, _, _, err := grype.FindVulnerabilities(str, fmt.Sprintf("sbom:%s", test.fixture), source.SquashedScope, nil)
 			assert.NoError(t, err)
 			details := make([]match.Detail, 0)
 			ids := strset.New()
@@ -92,9 +95,14 @@ func TestMatchBySBOMDocument(t *testing.T) {
 			}
 
 			require.Len(t, details, len(test.expectedDetails))
+
+			cmpOpts := []cmp.Option{
+				cmpopts.IgnoreFields(pkg.Package{}, "Locations"),
+			}
+
 			for i := range test.expectedDetails {
-				for _, d := range deep.Equal(test.expectedDetails[i], details[i]) {
-					t.Error(d)
+				if d := cmp.Diff(test.expectedDetails[i], details[i], cmpOpts...); d != "" {
+					t.Errorf("unexpected match details (-want +got):\n%s", d)
 				}
 			}
 

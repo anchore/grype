@@ -3,11 +3,14 @@ package pkg
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/syft/syft/artifact"
+	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/pkg"
-	"github.com/anchore/syft/syft/pkg/cataloger/common/cpe"
+	cpes "github.com/anchore/syft/syft/pkg/cataloger/common/cpe"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -32,7 +35,7 @@ type Package struct {
 	Language     pkg.Language       // the language ecosystem this package belongs to (e.g. JavaScript, Python, etc)
 	Licenses     []string
 	Type         pkg.Type  // the package type (e.g. Npm, Yarn, Python, Rpm, Deb, etc)
-	CPEs         []pkg.CPE // all possible Common Platform Enumerators
+	CPEs         []cpe.CPE // all possible Common Platform Enumerators
 	PURL         string    // the Package URL (see https://github.com/package-url/purl-spec)
 	Upstreams    []UpstreamPackage
 	MetadataType MetadataType
@@ -58,30 +61,76 @@ func New(p pkg.Package) Package {
 	}
 }
 
-func FromCatalog(catalog *pkg.Catalog, config ProviderConfig) []Package {
-	result := make([]Package, 0, catalog.PackageCount())
-	missingCPEs := false
-	for _, p := range catalog.Sorted() {
+func FromCatalog(catalog *pkg.Catalog, config SynthesisConfig) []Package {
+	return FromPackages(catalog.Sorted(), config)
+}
+
+func FromPackages(syftpkgs []pkg.Package, config SynthesisConfig) []Package {
+	var pkgs []Package
+	var missingCPEs bool
+	for _, p := range syftpkgs {
 		if len(p.CPEs) == 0 {
 			// For SPDX (or any format, really) we may have no CPEs
 			if config.GenerateMissingCPEs {
-				p.CPEs = cpe.Generate(p)
+				p.CPEs = cpes.Generate(p)
 			} else {
 				log.Debugf("no CPEs for package: %s", p)
 				missingCPEs = true
 			}
 		}
-		result = append(result, New(p))
+		pkgs = append(pkgs, New(p))
 	}
 	if missingCPEs {
 		log.Warnf("some package(s) are missing CPEs. This may result in missing vulnerabilities. You may autogenerate these using: --add-cpes-if-none")
 	}
-	return result
+	return pkgs
 }
 
 // Stringer to represent a package.
 func (p Package) String() string {
 	return fmt.Sprintf("Pkg(type=%s, name=%s, version=%s, upstreams=%d)", p.Type, p.Name, p.Version, len(p.Upstreams))
+}
+
+func removePackagesByOverlap(catalog *pkg.Catalog, relationships []artifact.Relationship) *pkg.Catalog {
+	byOverlap := map[artifact.ID]artifact.Relationship{}
+	for _, r := range relationships {
+		if r.Type == artifact.OwnershipByFileOverlapRelationship {
+			byOverlap[r.To.ID()] = r
+		}
+	}
+
+	out := pkg.NewCatalog()
+
+	for p := range catalog.Enumerate() {
+		r, ok := byOverlap[p.ID()]
+		if ok {
+			from, ok := r.From.(pkg.Package)
+			if ok && excludePackage(p, from) {
+				continue
+			}
+		}
+		out.Add(p)
+	}
+
+	return out
+}
+
+func excludePackage(p pkg.Package, parent pkg.Package) bool {
+	// NOTE: we are not checking the name because we have mismatches like:
+	// python      3.9.2      binary
+	// python3.9   3.9.2-1    deb
+
+	// If the version is not effectively the same, keep both
+	if !strings.HasPrefix(parent.Version, p.Version) {
+		return false
+	}
+
+	// filter out only binary pkg, empty types, or equal types
+	if p.Type != pkg.BinaryPkg && p.Type != "" && p.Type != parent.Type {
+		return false
+	}
+
+	return true
 }
 
 func dataFromPkg(p pkg.Package) (MetadataType, interface{}, []UpstreamPackage) {
@@ -90,11 +139,8 @@ func dataFromPkg(p pkg.Package) (MetadataType, interface{}, []UpstreamPackage) {
 	var metadataType MetadataType
 
 	switch p.MetadataType {
-	case pkg.GolangBinMetadataType:
-		if m := golangBinDataFromPkg(p); m != nil {
-			metadata = *m
-			metadataType = GolangBinMetadataType
-		}
+	case pkg.GolangBinMetadataType, pkg.GolangModMetadataType:
+		metadataType, metadata = golangMetadataFromPkg(p)
 	case pkg.DpkgMetadataType:
 		upstreams = dpkgDataFromPkg(p)
 	case pkg.RpmMetadataType:
@@ -115,9 +161,10 @@ func dataFromPkg(p pkg.Package) (MetadataType, interface{}, []UpstreamPackage) {
 	return metadataType, metadata, upstreams
 }
 
-func golangBinDataFromPkg(p pkg.Package) (m *GolangBinMetadata) {
-	metadata := &GolangBinMetadata{}
-	if value, ok := p.Metadata.(pkg.GolangBinMetadata); ok {
+func golangMetadataFromPkg(p pkg.Package) (MetadataType, interface{}) {
+	switch value := p.Metadata.(type) {
+	case pkg.GolangBinMetadata:
+		metadata := GolangBinMetadata{}
 		if value.BuildSettings != nil {
 			metadata.BuildSettings = value.BuildSettings
 		}
@@ -125,8 +172,13 @@ func golangBinDataFromPkg(p pkg.Package) (m *GolangBinMetadata) {
 		metadata.Architecture = value.Architecture
 		metadata.H1Digest = value.H1Digest
 		metadata.MainModule = value.MainModule
+		return GolangBinMetadataType, metadata
+	case pkg.GolangModMetadata:
+		metadata := GolangModMetadata{}
+		metadata.H1Digest = value.H1Digest
+		return GolangModMetadataType, metadata
 	}
-	return metadata
+	return "", nil
 }
 
 func dpkgDataFromPkg(p pkg.Package) (upstreams []UpstreamPackage) {
@@ -157,8 +209,10 @@ func rpmDataFromPkg(p pkg.Package) (metadata *RpmMetadata, upstreams []UpstreamP
 				})
 			}
 		}
-		if value.Epoch != nil {
-			metadata = &RpmMetadata{Epoch: value.Epoch}
+
+		metadata = &RpmMetadata{
+			Epoch:           value.Epoch,
+			ModularityLabel: value.ModularityLabel,
 		}
 	} else {
 		log.Warnf("unable to extract RPM metadata for %s", p)

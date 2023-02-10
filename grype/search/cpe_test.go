@@ -3,30 +3,30 @@ package search
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/db"
-	grypeDB "github.com/anchore/grype/grype/db/v4"
+	grypeDB "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
-
-func must(c syftPkg.CPE, e error) syftPkg.CPE {
-	if e != nil {
-		panic(e)
-	}
-	return c
-}
 
 var _ grypeDB.VulnerabilityStoreReader = (*mockVulnStore)(nil)
 
 type mockVulnStore struct {
 	data map[string]map[string][]grypeDB.Vulnerability
+}
+
+func (pr *mockVulnStore) GetVulnerability(namespace, id string) ([]grypeDB.Vulnerability, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func newMockStore() *mockVulnStore {
@@ -138,7 +138,7 @@ func (pr *mockVulnStore) stub() {
 	}
 }
 
-func (pr *mockVulnStore) GetVulnerability(namespace, pkg string) ([]grypeDB.Vulnerability, error) {
+func (pr *mockVulnStore) SearchForVulnerabilities(namespace, pkg string) ([]grypeDB.Vulnerability, error) {
 	return pr.data[namespace][pkg], nil
 }
 
@@ -165,9 +165,9 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 		{
 			name: "match from range",
 			p: pkg.Package{
-				CPEs: []syftPkg.CPE{
-					must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.5:rando1:*:ra:*:ruby:*:*")),
-					must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.5:rando4:*:re:*:rails:*:*")),
+				CPEs: []cpe.CPE{
+					cpe.Must("cpe:2.3:*:activerecord:activerecord:3.7.5:rando1:*:ra:*:ruby:*:*"),
+					cpe.Must("cpe:2.3:*:activerecord:activerecord:3.7.5:rando4:*:re:*:rails:*:*"),
 				},
 				Name:     "activerecord",
 				Version:  "3.7.5",
@@ -181,9 +181,9 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 						ID: "CVE-2017-fake-1",
 					},
 					Package: pkg.Package{
-						CPEs: []syftPkg.CPE{
-							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.5:rando1:*:ra:*:ruby:*:*")),
-							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.5:rando4:*:re:*:rails:*:*")),
+						CPEs: []cpe.CPE{
+							cpe.Must("cpe:2.3:*:activerecord:activerecord:3.7.5:rando1:*:ra:*:ruby:*:*"),
+							cpe.Must("cpe:2.3:*:activerecord:activerecord:3.7.5:rando4:*:re:*:rails:*:*"),
 						},
 						Name:     "activerecord",
 						Version:  "3.7.5",
@@ -201,6 +201,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							Found: CPEResult{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*"},
 								VersionConstraint: "< 3.7.6 (semver)",
+								VulnerabilityID:   "CVE-2017-fake-1",
 							},
 							Matcher: matcher,
 						},
@@ -211,9 +212,9 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 		{
 			name: "multiple matches",
 			p: pkg.Package{
-				CPEs: []syftPkg.CPE{
-					must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:ra:*:ruby:*:*")),
-					must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando4:*:re:*:rails:*:*")),
+				CPEs: []cpe.CPE{
+					cpe.Must("cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:ra:*:ruby:*:*"),
+					cpe.Must("cpe:2.3:*:activerecord:activerecord:3.7.3:rando4:*:re:*:rails:*:*"),
 				},
 				Name:     "activerecord",
 				Version:  "3.7.3",
@@ -227,9 +228,9 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 						ID: "CVE-2017-fake-1",
 					},
 					Package: pkg.Package{
-						CPEs: []syftPkg.CPE{
-							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:ra:*:ruby:*:*")),
-							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando4:*:re:*:rails:*:*")),
+						CPEs: []cpe.CPE{
+							cpe.Must("cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:ra:*:ruby:*:*"),
+							cpe.Must("cpe:2.3:*:activerecord:activerecord:3.7.3:rando4:*:re:*:rails:*:*"),
 						},
 						Name:     "activerecord",
 						Version:  "3.7.3",
@@ -250,6 +251,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							Found: CPEResult{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*"},
 								VersionConstraint: "< 3.7.6 (semver)",
+								VulnerabilityID:   "CVE-2017-fake-1",
 							},
 							Matcher: matcher,
 						},
@@ -261,9 +263,9 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 						ID: "CVE-2017-fake-2",
 					},
 					Package: pkg.Package{
-						CPEs: []syftPkg.CPE{
-							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:ra:*:ruby:*:*")),
-							must(syftPkg.NewCPE("cpe:2.3:*:activerecord:activerecord:3.7.3:rando4:*:re:*:rails:*:*")),
+						CPEs: []cpe.CPE{
+							cpe.Must("cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:ra:*:ruby:*:*"),
+							cpe.Must("cpe:2.3:*:activerecord:activerecord:3.7.3:rando4:*:re:*:rails:*:*"),
 						},
 						Name:     "activerecord",
 						Version:  "3.7.3",
@@ -282,6 +284,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							Found: CPEResult{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:ruby:*:*"},
 								VersionConstraint: "< 3.7.4 (semver)",
+								VulnerabilityID:   "CVE-2017-fake-2",
 							},
 							Matcher: matcher,
 						},
@@ -292,8 +295,8 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 		{
 			name: "exact match",
 			p: pkg.Package{
-				CPEs: []syftPkg.CPE{
-					must(syftPkg.NewCPE("cpe:2.3:*:*:activerecord:4.0.1:*:*:*:*:*:*:*")),
+				CPEs: []cpe.CPE{
+					cpe.Must("cpe:2.3:*:*:activerecord:4.0.1:*:*:*:*:*:*:*"),
 				},
 				Name:     "activerecord",
 				Version:  "4.0.1",
@@ -307,8 +310,8 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 						ID: "CVE-2017-fake-3",
 					},
 					Package: pkg.Package{
-						CPEs: []syftPkg.CPE{
-							must(syftPkg.NewCPE("cpe:2.3:*:*:activerecord:4.0.1:*:*:*:*:*:*:*")),
+						CPEs: []cpe.CPE{
+							cpe.Must("cpe:2.3:*:*:activerecord:4.0.1:*:*:*:*:*:*:*"),
 						},
 						Name:     "activerecord",
 						Version:  "4.0.1",
@@ -326,6 +329,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							Found: CPEResult{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:4.0.1:*:*:*:*:*:*:*"},
 								VersionConstraint: "= 4.0.1 (semver)",
+								VulnerabilityID:   "CVE-2017-fake-3",
 							},
 							Matcher: matcher,
 						},
@@ -347,8 +351,8 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 		{
 			name: "fuzzy version match",
 			p: pkg.Package{
-				CPEs: []syftPkg.CPE{
-					must(syftPkg.NewCPE("cpe:2.3:*:awesome:awesome:98SE1:rando1:*:ra:*:dunno:*:*")),
+				CPEs: []cpe.CPE{
+					cpe.Must("cpe:2.3:*:awesome:awesome:98SE1:rando1:*:ra:*:dunno:*:*"),
 				},
 				Name:    "awesome",
 				Version: "98SE1",
@@ -360,8 +364,8 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 						ID: "CVE-2017-fake-4",
 					},
 					Package: pkg.Package{
-						CPEs: []syftPkg.CPE{
-							must(syftPkg.NewCPE("cpe:2.3:*:awesome:awesome:98SE1:rando1:*:ra:*:dunno:*:*")),
+						CPEs: []cpe.CPE{
+							cpe.Must("cpe:2.3:*:awesome:awesome:98SE1:rando1:*:ra:*:dunno:*:*"),
 						},
 						Name:    "awesome",
 						Version: "98SE1",
@@ -378,6 +382,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							Found: CPEResult{
 								CPEs:              []string{"cpe:2.3:*:awesome:awesome:*:*:*:*:*:*:*:*"},
 								VersionConstraint: "< 98SP3 (unknown)",
+								VulnerabilityID:   "CVE-2017-fake-4",
 							},
 							Matcher: matcher,
 						},
@@ -388,8 +393,8 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 		{
 			name: "multiple matched CPEs",
 			p: pkg.Package{
-				CPEs: []syftPkg.CPE{
-					must(syftPkg.NewCPE("cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*")),
+				CPEs: []cpe.CPE{
+					cpe.Must("cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*"),
 				},
 				Name:     "multiple",
 				Version:  "1.0",
@@ -403,8 +408,8 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 						ID: "CVE-2017-fake-5",
 					},
 					Package: pkg.Package{
-						CPEs: []syftPkg.CPE{
-							must(syftPkg.NewCPE("cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*")),
+						CPEs: []cpe.CPE{
+							cpe.Must("cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*"),
 						},
 						Name:     "multiple",
 						Version:  "1.0",
@@ -426,6 +431,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 									"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 								},
 								VersionConstraint: "< 4.0 (unknown)",
+								VulnerabilityID:   "CVE-2017-fake-5",
 							},
 							Matcher: matcher,
 						},
@@ -436,8 +442,8 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 		{
 			name: "filtered out match due to target_sw mismatch",
 			p: pkg.Package{
-				CPEs: []syftPkg.CPE{
-					must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:*:*:*")),
+				CPEs: []cpe.CPE{
+					cpe.Must("cpe:2.3:*:funfun:funfun:*:*:*:*:*:*:*:*"),
 				},
 				Name:     "funfun",
 				Version:  "5.2.1",
@@ -449,8 +455,8 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 		{
 			name: "target_sw mismatch with unsupported target_sw",
 			p: pkg.Package{
-				CPEs: []syftPkg.CPE{
-					must(syftPkg.NewCPE("cpe:2.3:*:sw:sw:*:*:*:*:*:*:*:*")),
+				CPEs: []cpe.CPE{
+					cpe.Must("cpe:2.3:*:sw:sw:*:*:*:*:*:*:*:*"),
 				},
 				Name:     "sw",
 				Version:  "0.1",
@@ -463,8 +469,8 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 						ID: "CVE-2017-fake-7",
 					},
 					Package: pkg.Package{
-						CPEs: []syftPkg.CPE{
-							must(syftPkg.NewCPE("cpe:2.3:*:sw:sw:*:*:*:*:*:*:*:*")),
+						CPEs: []cpe.CPE{
+							cpe.Must("cpe:2.3:*:sw:sw:*:*:*:*:*:*:*:*"),
 						},
 						Name:     "sw",
 						Version:  "0.1",
@@ -484,6 +490,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 									"cpe:2.3:*:sw:sw:*:*:*:*:*:puppet:*:*",
 								},
 								VersionConstraint: "< 1.0 (unknown)",
+								VulnerabilityID:   "CVE-2017-fake-7",
 							},
 							Matcher: matcher,
 						},
@@ -494,11 +501,11 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 		{
 			name: "match included even though multiple cpes are mismatch",
 			p: pkg.Package{
-				CPEs: []syftPkg.CPE{
-					must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:rust:*:*")),
-					must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:rails:*:*")),
-					must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:ruby:*:*")),
-					must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:python:*:*")),
+				CPEs: []cpe.CPE{
+					cpe.Must("cpe:2.3:*:funfun:funfun:*:*:*:*:*:rust:*:*"),
+					cpe.Must("cpe:2.3:*:funfun:funfun:*:*:*:*:*:rails:*:*"),
+					cpe.Must("cpe:2.3:*:funfun:funfun:*:*:*:*:*:ruby:*:*"),
+					cpe.Must("cpe:2.3:*:funfun:funfun:*:*:*:*:*:python:*:*"),
 				},
 				Name:     "funfun",
 				Version:  "5.2.1",
@@ -511,11 +518,11 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 						ID: "CVE-2017-fake-6",
 					},
 					Package: pkg.Package{
-						CPEs: []syftPkg.CPE{
-							must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:rust:*:*")),
-							must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:rails:*:*")),
-							must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:ruby:*:*")),
-							must(syftPkg.NewCPE("cpe:2.3:*:funfun:funfun:*:*:*:*:*:python:*:*")),
+						CPEs: []cpe.CPE{
+							cpe.Must("cpe:2.3:*:funfun:funfun:*:*:*:*:*:rust:*:*"),
+							cpe.Must("cpe:2.3:*:funfun:funfun:*:*:*:*:*:rails:*:*"),
+							cpe.Must("cpe:2.3:*:funfun:funfun:*:*:*:*:*:ruby:*:*"),
+							cpe.Must("cpe:2.3:*:funfun:funfun:*:*:*:*:*:python:*:*"),
 						},
 						Name:     "funfun",
 						Version:  "5.2.1",
@@ -536,6 +543,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 									"cpe:2.3:*:funfun:funfun:5.2.1:*:*:*:*:python:*:*",
 								},
 								VersionConstraint: "= 5.2.1 (python)",
+								VulnerabilityID:   "CVE-2017-fake-6",
 							},
 							Matcher: matcher,
 						},
@@ -546,8 +554,8 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 		{
 			name: "Ensure target_sw mismatch does not apply to java packages",
 			p: pkg.Package{
-				CPEs: []syftPkg.CPE{
-					must(syftPkg.NewCPE("cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:*:*:*")),
+				CPEs: []cpe.CPE{
+					cpe.Must("cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:*:*:*"),
 				},
 				Name:     "handlebars",
 				Version:  "0.1",
@@ -560,8 +568,8 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 						ID: "CVE-2021-23369",
 					},
 					Package: pkg.Package{
-						CPEs: []syftPkg.CPE{
-							must(syftPkg.NewCPE("cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:*:*:*")),
+						CPEs: []cpe.CPE{
+							cpe.Must("cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:*:*:*"),
 						},
 						Name:     "handlebars",
 						Version:  "0.1",
@@ -581,6 +589,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 									"cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:node.js:*:*",
 								},
 								VersionConstraint: "< 4.7.7 (unknown)",
+								VulnerabilityID:   "CVE-2021-23369",
 							},
 							Matcher: matcher,
 						},
@@ -591,8 +600,8 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 		{
 			name: "Ensure target_sw mismatch does not apply to java jenkins plugins packages",
 			p: pkg.Package{
-				CPEs: []syftPkg.CPE{
-					must(syftPkg.NewCPE("cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:*:*:*")),
+				CPEs: []cpe.CPE{
+					cpe.Must("cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:*:*:*"),
 				},
 				Name:     "handlebars",
 				Version:  "0.1",
@@ -605,8 +614,8 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 						ID: "CVE-2021-23369",
 					},
 					Package: pkg.Package{
-						CPEs: []syftPkg.CPE{
-							must(syftPkg.NewCPE("cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:*:*:*")),
+						CPEs: []cpe.CPE{
+							cpe.Must("cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:*:*:*"),
 						},
 						Name:     "handlebars",
 						Version:  "0.1",
@@ -626,6 +635,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 									"cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:node.js:*:*",
 								},
 								VersionConstraint: "< 4.7.7 (unknown)",
+								VulnerabilityID:   "CVE-2021-23369",
 							},
 							Matcher: matcher,
 						},
@@ -643,7 +653,9 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 			assert.NoError(t, err)
 			assertMatchesUsingIDsForVulnerabilities(t, test.expected, actual)
 			for idx, e := range test.expected {
-				assert.Equal(t, e.Details, actual[idx].Details)
+				if d := cmp.Diff(e.Details, actual[idx].Details); d != "" {
+					t.Errorf("unexpected match details (-want +got):\n%s", d)
+				}
 			}
 		})
 	}
@@ -674,9 +686,9 @@ func TestFilterCPEsByVersion(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			// format strings to CPE objects...
-			vulnerabilityCPEs := make([]syftPkg.CPE, len(test.vulnerabilityCPEs))
+			vulnerabilityCPEs := make([]cpe.CPE, len(test.vulnerabilityCPEs))
 			for idx, c := range test.vulnerabilityCPEs {
-				vulnerabilityCPEs[idx] = must(syftPkg.NewCPE(c))
+				vulnerabilityCPEs[idx] = cpe.Must(c)
 			}
 
 			versionObj, err := version.NewVersion(test.version, version.UnknownFormat)

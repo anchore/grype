@@ -10,7 +10,7 @@ import (
 )
 
 type Matcher struct {
-	UseCPEs bool
+	cfg MatcherConfig
 }
 
 type MatcherConfig struct {
@@ -19,7 +19,7 @@ type MatcherConfig struct {
 
 func NewDotnetMatcher(cfg MatcherConfig) *Matcher {
 	return &Matcher{
-		UseCPEs: cfg.UseCPEs,
+		cfg: cfg,
 	}
 }
 
@@ -33,7 +33,7 @@ func (m *Matcher) Type() match.MatcherType {
 
 func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	criteria := search.CommonCriteria
-	if m.UseCPEs {
+	if m.cfg.UseCPEs {
 		criteria = append(criteria, search.ByCPE)
 	}
 	return search.ByCriteria(store, d, p, m.Type(), criteria...)

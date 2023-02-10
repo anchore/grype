@@ -3,6 +3,7 @@ package differ
 import (
 	"bytes"
 	"flag"
+	"strconv"
 	"testing"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -10,7 +11,8 @@ import (
 
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/db"
-	v4 "github.com/anchore/grype/grype/db/v4"
+	v5 "github.com/anchore/grype/grype/db/v5"
+	"github.com/anchore/grype/grype/vulnerability"
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for diff presenter")
@@ -27,12 +29,31 @@ func TestNewDiffer(t *testing.T) {
 	require.NotNil(t, differ.baseCurator)
 }
 
+func Test_DifferDirectory(t *testing.T) {
+	d, err := NewDiffer(db.Config{
+		DBRootDir: "root-dir",
+	})
+	require.NoError(t, err)
+
+	err = d.SetBaseDB("test-fixtures/dbs/base")
+	require.NoError(t, err)
+
+	baseStatus := d.baseCurator.Status()
+	require.Equal(t, "test-fixtures/dbs/base/"+strconv.Itoa(vulnerability.SchemaVersion), baseStatus.Location)
+
+	err = d.SetTargetDB("test-fixtures/dbs/target")
+	require.NoError(t, err)
+
+	targetStatus := d.targetCurator.Status()
+	require.Equal(t, "test-fixtures/dbs/target/"+strconv.Itoa(vulnerability.SchemaVersion), targetStatus.Location)
+}
+
 func TestPresent_Json(t *testing.T) {
 	//GIVEN
-	diffs := []v4.Diff{
-		{v4.DiffAdded, "CVE-1", "nvd", []string{"requests", "vault"}},
-		{v4.DiffRemoved, "CVE-2", "nvd", []string{"k8s"}},
-		{v4.DiffChanged, "CVE-3", "nvd", []string{}},
+	diffs := []v5.Diff{
+		{v5.DiffAdded, "CVE-1", "nvd", []string{"requests", "vault"}},
+		{v5.DiffRemoved, "CVE-2", "nvd", []string{"k8s"}},
+		{v5.DiffChanged, "CVE-3", "nvd", []string{}},
 	}
 	differ := Differ{}
 	var buffer bytes.Buffer
@@ -55,10 +76,10 @@ func TestPresent_Json(t *testing.T) {
 
 func TestPresent_Table(t *testing.T) {
 	//GIVEN
-	diffs := []v4.Diff{
-		{v4.DiffAdded, "CVE-1", "nvd", []string{"requests", "vault"}},
-		{v4.DiffRemoved, "CVE-2", "nvd", []string{"k8s"}},
-		{v4.DiffChanged, "CVE-3", "nvd", []string{}},
+	diffs := []v5.Diff{
+		{v5.DiffAdded, "CVE-1", "nvd", []string{"requests", "vault"}},
+		{v5.DiffRemoved, "CVE-2", "nvd", []string{"k8s"}},
+		{v5.DiffChanged, "CVE-3", "nvd", []string{}},
 	}
 	differ := Differ{}
 	var buffer bytes.Buffer
@@ -81,8 +102,8 @@ func TestPresent_Table(t *testing.T) {
 
 func TestPresent_Invalid(t *testing.T) {
 	//GIVEN
-	diffs := []v4.Diff{
-		{v4.DiffRemoved, "CVE-2", "nvd", []string{"k8s"}},
+	diffs := []v5.Diff{
+		{v5.DiffRemoved, "CVE-2", "nvd", []string{"k8s"}},
 	}
 	differ := Differ{}
 	var buffer bytes.Buffer

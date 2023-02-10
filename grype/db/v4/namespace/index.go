@@ -79,6 +79,13 @@ func (i *Index) NamespacesForDistro(d *grypeDistro.Distro) []*distro.Namespace {
 		return nil
 	}
 
+	if d.IsRolling() {
+		distroKey := fmt.Sprintf("%s:%s", strings.ToLower(d.Type.String()), "rolling")
+		if v, ok := i.byDistroKey[distroKey]; ok {
+			return v
+		}
+	}
+
 	var versionSegments []int
 	if d.Version != nil {
 		versionSegments = d.Version.Segments()

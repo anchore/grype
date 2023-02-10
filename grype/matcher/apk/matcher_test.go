@@ -3,33 +3,33 @@ package apk
 import (
 	"testing"
 
-	"github.com/go-test/deep"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/db"
-	grypeDB "github.com/anchore/grype/grype/db/v4"
+	grypeDB "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
-
-func must(c syftPkg.CPE, e error) syftPkg.CPE {
-	if e != nil {
-		panic(e)
-	}
-	return c
-}
 
 type mockStore struct {
 	backend map[string]map[string][]grypeDB.Vulnerability
 }
 
-func (s *mockStore) GetVulnerability(namespace, name string) ([]grypeDB.Vulnerability, error) {
+func (s *mockStore) GetVulnerability(namespace, id string) ([]grypeDB.Vulnerability, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *mockStore) SearchForVulnerabilities(namespace, name string) ([]grypeDB.Vulnerability, error) {
 	namespaceMap := s.backend[namespace]
 	if namespaceMap == nil {
 		return nil, nil
@@ -81,8 +81,8 @@ func TestSecDBOnlyMatch(t *testing.T) {
 		Name:    "libvncserver",
 		Version: "0.9.9",
 		Type:    syftPkg.ApkPkg,
-		CPEs: []syftPkg.CPE{
-			must(syftPkg.NewCPE("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*")),
+		CPEs: []cpe.CPE{
+			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"),
 		},
 	}
 
@@ -111,6 +111,7 @@ func TestSecDBOnlyMatch(t *testing.T) {
 					},
 					Found: map[string]interface{}{
 						"versionConstraint": vulnFound.Constraint.String(),
+						"vulnerabilityID":   "CVE-2020-2",
 					},
 					Matcher: match.ApkMatcher,
 				},
@@ -121,10 +122,7 @@ func TestSecDBOnlyMatch(t *testing.T) {
 	actual, err := m.Match(provider, d, p)
 	assert.NoError(t, err)
 
-	for _, diff := range deep.Equal(expected, actual) {
-		t.Errorf("diff: %+v", diff)
-	}
-
+	assertMatches(t, expected, actual)
 }
 
 func TestBothSecdbAndNvdMatches(t *testing.T) {
@@ -169,8 +167,8 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 		Name:    "libvncserver",
 		Version: "0.9.9",
 		Type:    syftPkg.ApkPkg,
-		CPEs: []syftPkg.CPE{
-			must(syftPkg.NewCPE("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*")),
+		CPEs: []cpe.CPE{
+			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"),
 		},
 	}
 
@@ -200,6 +198,7 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 					},
 					Found: map[string]interface{}{
 						"versionConstraint": vulnFound.Constraint.String(),
+						"vulnerabilityID":   "CVE-2020-1",
 					},
 					Matcher: match.ApkMatcher,
 				},
@@ -210,9 +209,7 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 	actual, err := m.Match(provider, d, p)
 	assert.NoError(t, err)
 
-	for _, diff := range deep.Equal(expected, actual) {
-		t.Errorf("diff: %+v", diff)
-	}
+	assertMatches(t, expected, actual)
 }
 
 func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
@@ -257,9 +254,9 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 		Name:    "libvncserver",
 		Version: "0.9.9",
 		Type:    syftPkg.ApkPkg,
-		CPEs: []syftPkg.CPE{
+		CPEs: []cpe.CPE{
 			// Note: the product name is NOT the same as the package name
-			must(syftPkg.NewCPE("cpe:2.3:a:*:libvncumbrellaproject:0.9.9:*:*:*:*:*:*:*")),
+			cpe.Must("cpe:2.3:a:*:libvncumbrellaproject:0.9.9:*:*:*:*:*:*:*"),
 		},
 	}
 
@@ -289,6 +286,7 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 					},
 					Found: map[string]interface{}{
 						"versionConstraint": vulnFound.Constraint.String(),
+						"vulnerabilityID":   "CVE-2020-1",
 					},
 					Matcher: match.ApkMatcher,
 				},
@@ -299,9 +297,7 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 	actual, err := m.Match(provider, d, p)
 	assert.NoError(t, err)
 
-	for _, diff := range deep.Equal(expected, actual) {
-		t.Errorf("diff: %+v", diff)
-	}
+	assertMatches(t, expected, actual)
 }
 
 func TestNvdOnlyMatches(t *testing.T) {
@@ -333,14 +329,14 @@ func TestNvdOnlyMatches(t *testing.T) {
 		Name:    "libvncserver",
 		Version: "0.9.9",
 		Type:    syftPkg.ApkPkg,
-		CPEs: []syftPkg.CPE{
-			must(syftPkg.NewCPE("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*")),
+		CPEs: []cpe.CPE{
+			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"),
 		},
 	}
 
 	vulnFound, err := vulnerability.NewVulnerability(nvdVuln)
 	assert.NoError(t, err)
-	vulnFound.CPEs = []syftPkg.CPE{must(syftPkg.NewCPE(nvdVuln.CPEs[0]))}
+	vulnFound.CPEs = []cpe.CPE{cpe.Must(nvdVuln.CPEs[0])}
 
 	expected := []match.Match{
 		{
@@ -358,6 +354,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 					Found: search.CPEResult{
 						CPEs:              []string{vulnFound.CPEs[0].BindToFmtString()},
 						VersionConstraint: vulnFound.Constraint.String(),
+						VulnerabilityID:   "CVE-2020-1",
 					},
 					Matcher: match.ApkMatcher,
 				},
@@ -368,10 +365,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 	actual, err := m.Match(provider, d, p)
 	assert.NoError(t, err)
 
-	for _, diff := range deep.Equal(expected, actual) {
-		t.Errorf("diff: %+v", diff)
-	}
-
+	assertMatches(t, expected, actual)
 }
 
 func TestNvdMatchesWithSecDBFix(t *testing.T) {
@@ -413,8 +407,8 @@ func TestNvdMatchesWithSecDBFix(t *testing.T) {
 		Name:    "libvncserver",
 		Version: "0.9.11",
 		Type:    syftPkg.ApkPkg,
-		CPEs: []syftPkg.CPE{
-			must(syftPkg.NewCPE("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*")),
+		CPEs: []cpe.CPE{
+			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"),
 		},
 	}
 
@@ -423,9 +417,7 @@ func TestNvdMatchesWithSecDBFix(t *testing.T) {
 	actual, err := m.Match(provider, d, p)
 	assert.NoError(t, err)
 
-	for _, diff := range deep.Equal(expected, actual) {
-		t.Errorf("diff: %+v", diff)
-	}
+	assertMatches(t, expected, actual)
 }
 
 func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
@@ -468,8 +460,8 @@ func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
 		Name:    "libvncserver",
 		Version: "0.9.11",
 		Type:    syftPkg.ApkPkg,
-		CPEs: []syftPkg.CPE{
-			must(syftPkg.NewCPE("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*")),
+		CPEs: []cpe.CPE{
+			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"),
 		},
 	}
 
@@ -478,9 +470,7 @@ func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
 	actual, err := m.Match(provider, d, p)
 	assert.NoError(t, err)
 
-	for _, diff := range deep.Equal(expected, actual) {
-		t.Errorf("diff: %+v", diff)
-	}
+	assertMatches(t, expected, actual)
 }
 
 func TestDistroMatchBySourceIndirection(t *testing.T) {
@@ -545,6 +535,7 @@ func TestDistroMatchBySourceIndirection(t *testing.T) {
 					},
 					Found: map[string]interface{}{
 						"versionConstraint": vulnFound.Constraint.String(),
+						"vulnerabilityID":   "CVE-2020-2",
 					},
 					Matcher: match.ApkMatcher,
 				},
@@ -555,10 +546,7 @@ func TestDistroMatchBySourceIndirection(t *testing.T) {
 	actual, err := m.Match(provider, d, p)
 	assert.NoError(t, err)
 
-	for _, diff := range deep.Equal(expected, actual) {
-		t.Errorf("diff: %+v", diff)
-	}
-
+	assertMatches(t, expected, actual)
 }
 
 func TestNVDMatchBySourceIndirection(t *testing.T) {
@@ -590,9 +578,9 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 		Name:    "musl-utils",
 		Version: "1.3.2-r0",
 		Type:    syftPkg.ApkPkg,
-		CPEs: []syftPkg.CPE{
-			must(syftPkg.NewCPE("cpe:2.3:a:musl-utils:musl-utils:*:*:*:*:*:*:*:*")),
-			must(syftPkg.NewCPE("cpe:2.3:a:musl-utils:musl-utils:*:*:*:*:*:*:*:*")),
+		CPEs: []cpe.CPE{
+			cpe.Must("cpe:2.3:a:musl-utils:musl-utils:*:*:*:*:*:*:*:*"),
+			cpe.Must("cpe:2.3:a:musl-utils:musl-utils:*:*:*:*:*:*:*:*"),
 		},
 		Upstreams: []pkg.UpstreamPackage{
 			{
@@ -603,7 +591,7 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 
 	vulnFound, err := vulnerability.NewVulnerability(nvdVuln)
 	assert.NoError(t, err)
-	vulnFound.CPEs = []syftPkg.CPE{must(syftPkg.NewCPE(nvdVuln.CPEs[0]))}
+	vulnFound.CPEs = []cpe.CPE{cpe.Must(nvdVuln.CPEs[0])}
 
 	expected := []match.Match{
 		{
@@ -620,6 +608,7 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 					Found: search.CPEResult{
 						CPEs:              []string{vulnFound.CPEs[0].BindToFmtString()},
 						VersionConstraint: vulnFound.Constraint.String(),
+						VulnerabilityID:   "CVE-2020-1",
 					},
 					Matcher: match.ApkMatcher,
 				},
@@ -630,8 +619,17 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 	actual, err := m.Match(provider, d, p)
 	assert.NoError(t, err)
 
-	for _, diff := range deep.Equal(expected, actual) {
-		t.Errorf("diff: %+v", diff)
+	assertMatches(t, expected, actual)
+}
+
+func assertMatches(t *testing.T, expected, actual []match.Match) {
+	t.Helper()
+	var opts = []cmp.Option{
+		cmpopts.IgnoreFields(vulnerability.Vulnerability{}, "Constraint"),
+		cmpopts.IgnoreFields(pkg.Package{}, "Locations"),
 	}
 
+	if diff := cmp.Diff(expected, actual, opts...); diff != "" {
+		t.Errorf("mismatch (-want +got):\n%s", diff)
+	}
 }

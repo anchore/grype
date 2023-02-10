@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/db"
-	grypeDB "github.com/anchore/grype/grype/db/v4"
+	grypeDB "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -19,7 +19,12 @@ type mockStore struct {
 	backend map[string]map[string][]grypeDB.Vulnerability
 }
 
-func (s *mockStore) GetVulnerability(namespace, name string) ([]grypeDB.Vulnerability, error) {
+func (s *mockStore) GetVulnerability(namespace, id string) ([]grypeDB.Vulnerability, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *mockStore) SearchForVulnerabilities(namespace, name string) ([]grypeDB.Vulnerability, error) {
 	namespaceMap := s.backend[namespace]
 	if namespaceMap == nil {
 		return nil, nil

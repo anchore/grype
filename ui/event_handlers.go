@@ -208,42 +208,7 @@ func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *f
 	return nil
 }
 
-func (r *Handler) VerifyAttestationSignature(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
-	line, err := fr.Append()
-	if err != nil {
-		return err
-	}
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-
-		spin := color.Green.Sprint(completedStatus)
-		title := tileFormat.Sprint("Attestation verified")
-		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, ""))
-	}()
-
-	return nil
-}
-
-func (r *Handler) SkippedAttestationVerification(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
-	line, err := fr.Append()
-	if err != nil {
-		return err
-	}
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-
-		spin := color.Green.Sprint(completedStatus)
-		title := tileFormat.Sprint("Skipped attestation verification")
-		_, _ = io.WriteString(line, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, ""))
-	}()
-
-	return nil
-}
-
+//nolint:dupl
 func (r *Handler) DatabaseDiffingStartedHandler(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
 	monitor, err := grypeEventParsers.ParseDatabaseDiffingStarted(event)
 	if err != nil {

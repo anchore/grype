@@ -1,0 +1,109 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://json.schemastore.org/sarif-2.1.0-rtm.5.json",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "Grype",
+          "version": "0.0.0-dev",
+          "informationUri": "https://github.com/anchore/grype",
+          "rules": [
+            {
+              "id": "CVE-1999-0001-package-1",
+              "name": "DpkgMatcherExactDirectMatch",
+              "shortDescription": {
+                "text": "CVE-1999-0001 low vulnerability for package-1 package"
+              },
+              "fullDescription": {
+                "text": "1999-01 description"
+              },
+              "helpUri": "https://github.com/anchore/grype",
+              "help": {
+                "text": "Vulnerability CVE-1999-0001\nSeverity: low\nPackage: package-1\nVersion: 1.1.1\nFix Version: the-next-version\nType: rpm\nLocation: somefile-1.txt\nData Namespace: source-1\nLink: CVE-1999-0001",
+                "markdown": "**Vulnerability CVE-1999-0001**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| low  | package-1  | 1.1.1  | the-next-version  | rpm  | somefile-1.txt  | source-1  | CVE-1999-0001  |\n"
+              },
+              "properties": {
+                "security-severity": "4.0"
+              }
+            },
+            {
+              "id": "CVE-1999-0002-package-2",
+              "name": "DpkgMatcherExactIndirectMatch",
+              "shortDescription": {
+                "text": "CVE-1999-0002 critical vulnerability for package-2 package"
+              },
+              "fullDescription": {
+                "text": "1999-02 description"
+              },
+              "helpUri": "https://github.com/anchore/grype",
+              "help": {
+                "text": "Vulnerability CVE-1999-0002\nSeverity: critical\nPackage: package-2\nVersion: 2.2.2\nFix Version: \nType: deb\nLocation: somefile-2.txt\nData Namespace: source-2\nLink: CVE-1999-0002",
+                "markdown": "**Vulnerability CVE-1999-0002**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| critical  | package-2  | 2.2.2  |   | deb  | somefile-2.txt  | source-2  | CVE-1999-0002  |\n"
+              },
+              "properties": {
+                "security-severity": "1.0"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "CVE-1999-0001-package-1",
+          "message": {
+            "text": "The path somefile-1.txt reports package-1 at version 1.1.1  which is a vulnerable (rpm) package installed in the container"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "image/somefile-1.txt"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "/foo/bar/somefile-1.txt",
+                  "fullyQualifiedName": "user-input@:/somefile-1.txt"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "ruleId": "CVE-1999-0002-package-2",
+          "message": {
+            "text": "The path somefile-2.txt reports package-2 at version 2.2.2  which is a vulnerable (deb) package installed in the container"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "image/somefile-2.txt"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "/foo/bar/somefile-2.txt",
+                  "fullyQualifiedName": "user-input@:/somefile-2.txt"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

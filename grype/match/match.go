@@ -2,12 +2,14 @@ package match
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/scylladb/go-set/strset"
 
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/syft/syft/cpe"
 )
 
 var ErrCannotMerge = fmt.Errorf("unable to merge vulnerability matches")
@@ -42,17 +44,56 @@ func (m *Match) Merge(other Match) error {
 		return ErrCannotMerge
 	}
 
+	// there are cases related vulnerabilities are synthetic, for example when
+	// orienting results by CVE. we need to keep track of these
+	related := strset.New()
+	for _, r := range m.Vulnerability.RelatedVulnerabilities {
+		related.Add(referenceID(r))
+	}
+	for _, r := range other.Vulnerability.RelatedVulnerabilities {
+		if related.Has(referenceID(r)) {
+			continue
+		}
+		m.Vulnerability.RelatedVulnerabilities = append(m.Vulnerability.RelatedVulnerabilities, r)
+	}
+
+	// for stable output
+	sort.Slice(m.Vulnerability.RelatedVulnerabilities, func(i, j int) bool {
+		a := m.Vulnerability.RelatedVulnerabilities[i]
+		b := m.Vulnerability.RelatedVulnerabilities[j]
+		return strings.Compare(referenceID(a), referenceID(b)) < 0
+	})
+
+	// also keep details from the other match that are unique
 	detailIDs := strset.New()
 	for _, d := range m.Details {
 		detailIDs.Add(d.ID())
 	}
-
-	// keep details from the other match that are unique
 	for _, d := range other.Details {
 		if detailIDs.Has(d.ID()) {
 			continue
 		}
 		m.Details = append(m.Details, d)
 	}
+
+	// for stable output
+	sort.Slice(m.Details, func(i, j int) bool {
+		a := m.Details[i]
+		b := m.Details[j]
+		return strings.Compare(a.ID(), b.ID()) < 0
+	})
+
+	// retain all unique CPEs for consistent output
+	m.Vulnerability.CPEs = cpe.Merge(m.Vulnerability.CPEs, other.Vulnerability.CPEs)
+	if m.Vulnerability.CPEs == nil {
+		// ensure we always have a non-nil slice
+		m.Vulnerability.CPEs = []cpe.CPE{}
+	}
+
 	return nil
+}
+
+// referenceID returns an "ID" string for a vulnerability.Reference
+func referenceID(r vulnerability.Reference) string {
+	return fmt.Sprintf("%s:%s", r.Namespace, r.ID)
 }

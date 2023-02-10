@@ -29,7 +29,7 @@ notarize() {
   fi
 
   # install gon
-  which gon || (go install github.com/mitchellh/gon/cmd/gon@latest)
+  which gon || (go install github.com/mitchellh/gon/cmd/gon@c3afcf0180c2f21feca1a76eb4ffeef59c6197d6)
 
   # create config (note: json via stdin with gon is broken, can only use HCL from file)
   hcl_file=$(mktemp).hcl
