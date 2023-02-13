@@ -8,6 +8,10 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
+func isOSPackage(p pkg.Package) bool {
+	return p.Type == syftPkg.AlpmPkg || p.Type == syftPkg.ApkPkg || p.Type == syftPkg.DebPkg || p.Type == syftPkg.KbPkg || p.Type == syftPkg.PortagePkg || p.Type == syftPkg.RpmPkg
+}
+
 func isUnknownTarget(targetSW string) bool {
 	if syftPkg.LanguageByName(targetSW) != syftPkg.UnknownLanguage {
 		return false
@@ -34,6 +38,11 @@ func isUnknownTarget(targetSW string) bool {
 // Determines if a vulnerability is an accurate match using the vulnerability's cpes' target software
 func onlyVulnerableTargets(p pkg.Package, allVulns []vulnerability.Vulnerability) []vulnerability.Vulnerability {
 	var vulns []vulnerability.Vulnerability
+
+	// Exclude OS package types from this logic, since they could be embedding any type of ecosystem package
+	if isOSPackage(p) {
+		return allVulns
+	}
 
 	// There are quite a few cases within java where other ecosystem components (particularly javascript packages)
 	// are embedded directly within jar files, so we can't yet make this assumption with java as it will cause dropping
