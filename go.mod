@@ -76,7 +76,7 @@ require (
 	github.com/becheran/wildmatch-go v1.0.0 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/bmatcuk/doublestar/v4 v4.6.0 // indirect
-	github.com/containerd/containerd v1.6.12 // indirect
+	github.com/containerd/containerd v1.6.18 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.12.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/cli v20.10.20+incompatible // indirect
