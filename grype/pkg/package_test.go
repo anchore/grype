@@ -425,7 +425,7 @@ func TestNew(t *testing.T) {
 				Metadata: syftPkg.BinaryMetadata{
 					Matches: []syftPkg.ClassifierMatch{
 						{
-							Classifier:    "node",
+							Classifier: "node",
 						},
 					},
 				},
