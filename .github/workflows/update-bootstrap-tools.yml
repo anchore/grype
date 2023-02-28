@@ -31,6 +31,8 @@ jobs:
           GORELEASER_LATEST_VERSION=$(go list -m -json github.com/goreleaser/goreleaser@latest 2>/dev/null | jq -r '.Version')
           GOSIMPORTS_LATEST_VERSION=$(go list -m -json github.com/rinchsan/gosimports@latest 2>/dev/null | jq -r '.Version')
           YAJSV_LATEST_VERSION=$(go list -m -json github.com/neilpa/yajsv@latest 2>/dev/null | jq -r '.Version')
+          COSIGN_LATEST_VERSION=$(go list -m -json github.com/sigstore/cosign@latest 2>/dev/null | jq -r '.Version')
+          GLOW_LATEST_VERSION=$(go list -m -json github.com/charmbracelet/glow@latest 2>/dev/null | jq -r '.Version')
 
           # update version variables in the Makefile
           sed -r -i -e 's/^(GOLANGCILINT_VERSION := ).*/\1'${GOLANGCILINT_LATEST_VERSION}'/' Makefile
@@ -39,6 +41,8 @@ jobs:
           sed -r -i -e 's/^(GORELEASER_VERSION := ).*/\1'${GORELEASER_LATEST_VERSION}'/' Makefile
           sed -r -i -e 's/^(GOSIMPORTS_VERSION := ).*/\1'${GOSIMPORTS_LATEST_VERSION}'/' Makefile
           sed -r -i -e 's/^(YAJSV_VERSION := ).*/\1'${YAJSV_LATEST_VERSION}'/' Makefile
+          sed -r -i -e 's/^(COSIGN_VERSION := ).*/\1'${COSIGN_LATEST_VERSION}'/' Makefile
+          sed -r -i -e 's/^(GLOW_VERSION := ).*/\1'${GLOW_LATEST_VERSION}'/' Makefile
 
           # export the versions for use with create-pull-request
           echo "GOLANGCILINT=$GOLANGCILINT_LATEST_VERSION" >> $GITHUB_OUTPUT
@@ -47,6 +51,8 @@ jobs:
           echo "GORELEASER=$GORELEASER_LATEST_VERSION" >> $GITHUB_OUTPUT
           echo "GOSIMPORTS=$GOSIMPORTS_LATEST_VERSION" >> $GITHUB_OUTPUT
           echo "YAJSV=$YAJSV_LATEST_VERSION" >> $GITHUB_OUTPUT
+          echo "COSIGN=$COSIGN_LATEST_VERSION" >> $GITHUB_OUTPUT
+          echo "GLOW=GLOW_LATEST_VERSION" >> $GITHUB_OUTPUT
         id: latest-versions
 
       - uses: tibdex/github-app-token@b62528385c34dbc9f38e5f4225ac829252d1ea92 # v1.8.0
