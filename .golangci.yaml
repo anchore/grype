@@ -1,6 +1,11 @@
-linters-settings:
-  funlen:
-    lines: 65
+issues:
+  max-same-issues: 25
+
+  # TODO: enable this when we have coverage on docstring comments
+#  # The list of ids of default excludes to include or disable.
+#  include:
+#    - EXC0002 # disable excluding of issues about comments from golint
+
 linters:
   # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
   disable-all: true
@@ -18,6 +23,7 @@ linters:
     - gocritic
     - gocyclo
     - gofmt
+    - goimports
     - goprintffuncname
     - gosec
     - gosimple
@@ -25,7 +31,6 @@ linters:
     - ineffassign
     - misspell
     - nakedret
-    - nolintlint
     - revive
     - staticcheck
     - stylecheck
@@ -35,12 +40,30 @@ linters:
     - unused
     - whitespace
 
+linters-settings:
+  funlen:
+    # Checks the number of lines in a function.
+    # If lower than 0, disable the check.
+    # Default: 60
+    lines: 70
+    # Checks the number of statements in a function.
+    # If lower than 0, disable the check.
+    # Default: 40
+    statements: 50
+output:
+  uniq-by-line: false
+run:
+  timeout: 10m
+
 # do not enable...
+#    - deadcode          # The owner seems to have abandoned the linter. Replaced by "unused".
+#    - goprintffuncname  # does not catch all cases and there are exceptions
+#    - nakedret          # does not catch all cases and should not fail a build
 #    - gochecknoglobals
 #    - gochecknoinits    # this is too aggressive
+#    - rowserrcheck disabled per generics https://github.com/golangci/golangci-lint/issues/2649
 #    - godot
 #    - godox
-#    - rowserrcheck # blocked until generics upgrade
 #    - goerr113
 #    - goimports   # we're using gosimports now instead to account for extra whitespaces (see https://github.com/golang/go/issues/20818)
 #    - golint      # deprecated
@@ -49,7 +72,11 @@ linters:
 #    - lll         # without a way to specify per-line exception cases, this is not usable
 #    - maligned    # this is an excellent linter, but tricky to optimize and we are not sensitive to memory layout optimizations
 #    - nestif
-#    - prealloc    # following this rule isn't consistently a good idea, as it sometimes forces unnecessary allocations that result in less idiomatic code
-#    - scopelint   # deprecated
+#    - nolintlint   # as of go1.19 this conflicts with the behavior of gofmt, which is a deal-breaker (lint-fix will still fail when running lint)
+#    - prealloc     # following this rule isn't consistently a good idea, as it sometimes forces unnecessary allocations that result in less idiomatic code
+#    - rowserrcheck # not in a repo with sql, so this is not useful
+#    - scopelint    # deprecated
+#    - structcheck  # The owner seems to have abandoned the linter. Replaced by "unused".
 #    - testpackage
-#    - wsl         # this doens't have an auto-fixer yet and is pretty noisy (https://github.com/bombsimon/wsl/issues/90)
+#    - varcheck     # The owner seems to have abandoned the linter. Replaced by "unused".
+#    - wsl          # this doens't have an auto-fixer yet and is pretty noisy (https://github.com/bombsimon/wsl/issues/90)
