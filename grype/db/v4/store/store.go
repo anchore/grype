@@ -310,13 +310,13 @@ func (s *store) DiffStore(targetStore v4.StoreReader) (*[]v4.Diff, error) {
 	rowsProgress, diffItems := trackDiff()
 
 	targetVulns, err := targetStore.GetAllVulnerabilities()
-	rowsProgress.N++
+	rowsProgress.Increment()
 	if err != nil {
 		return nil, err
 	}
 
 	baseVulns, err := s.GetAllVulnerabilities()
-	rowsProgress.N++
+	rowsProgress.Increment()
 	if err != nil {
 		return nil, err
 	}
@@ -330,13 +330,13 @@ func (s *store) DiffStore(targetStore v4.StoreReader) (*[]v4.Diff, error) {
 	if err != nil {
 		return nil, err
 	}
-	rowsProgress.N++
+	rowsProgress.Increment()
 
 	targetMetadata, err := targetStore.GetAllVulnerabilityMetadata()
 	if err != nil {
 		return nil, err
 	}
-	rowsProgress.N++
+	rowsProgress.Increment()
 
 	metaDiffsMap := diffVulnerabilityMetadata(baseMetadata, targetMetadata, baseVulnPkgMap, targetVulnPkgMap, diffItems)
 	for k, diff := range *metaDiffsMap {
