@@ -36,12 +36,14 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
 
-    - uses: actions/cache@69d9d449aced6a2ede0bc19182fadc3a0a42d2b0 # v3.2.6
+    - name: Restore python cache
+      id: python-venv-cache
+      uses: actions/cache@69d9d449aced6a2ede0bc19182fadc3a0a42d2b0 # v3.2.6
       with:
         path: |
           test/quality/venv
           test/quality/vulnerability-match-labels/venv
-        key: ${{ runner.os }}-go-${{ inputs.python-version }}-${{ hashFiles('**/test/quality/**/requirements.txt') }}
+        key: ${{ runner.os }}-python-${{ inputs.python-version }}-${{ hashFiles('**/test/quality/**/requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-python-${{ env.python-version }}-
 
@@ -80,17 +82,6 @@ runs:
         key: ${{ inputs.cache-key-prefix }}-${{ inputs.build-cache-key-prefix }}-${{ runner.os }}-go-${{ inputs.go-version }}-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ inputs.cache-key-prefix }}-${{ inputs.build-cache-key-prefix }}-${{ runner.os }}-go-${{ inputs.go-version }}-
-
-      - name: Restore python cache
-        id: python-cache
-        uses: actions/cache@69d9d449aced6a2ede0bc19182fadc3a0a42d2b0 # v3.2.6
-        with:
-          path: |
-            test/quality/venv
-            test/quality/vulnerability-match-labels/venv
-          key: ${{ runner.os }}-go-${{ env.PYTHON_VERSION }}-${{ hashFiles('**/test/quality/**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-go-${{ env.PYTHON_VERSION }}-
 
     - name: (cache-miss) Bootstrap go dependencies
       shell: bash
