@@ -117,7 +117,7 @@ func FindMatches(store interface {
 		defaultMatcher = stock.NewStockMatcher(stock.MatcherConfig{UseCPEs: true})
 	}
 	for _, p := range packages {
-		packagesProcessed.N++
+		packagesProcessed.Increment()
 		log.Debugf("searching for vulnerability matches for pkg=%s", p)
 
 		matchAgainst, ok := matcherIndex[p.Type]
@@ -131,7 +131,7 @@ func FindMatches(store interface {
 			} else {
 				logMatches(p, matches)
 				res.Add(matches...)
-				vulnerabilitiesDiscovered.N += int64(len(matches))
+				vulnerabilitiesDiscovered.Add(int64(len(matches)))
 			}
 		}
 	}
