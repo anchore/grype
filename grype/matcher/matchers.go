@@ -109,7 +109,7 @@ func FindMatches(store interface {
 		if err != nil {
 			log.Warnf("unable to determine linux distribution: %+v", err)
 		}
-		if d.Disabled() {
+		if d != nil && d.Disabled() {
 			log.Warnf("unsupported linux distribution: %s", d.Name())
 			return match.Matches{}
 		}
