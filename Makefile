@@ -42,6 +42,7 @@ LICENSES_REPORT := $(RESULTS_DIR)/licenses.json
 VERSION := $(shell git describe --dirty --always --tags)
 DIST_DIR := ./dist
 SNAPSHOT_DIR := ./snapshot
+CHANGELOG := CHANGELOG.md
 OS := $(shell uname | tr '[:upper:]' '[:lower:]')
 SYFT_VERSION := $(shell go list -m all | grep github.com/anchore/syft | awk '{print $$2}')
 SNAPSHOT_BIN := $(realpath $(shell pwd)/$(SNAPSHOT_DIR)/$(OS)-build_$(OS)_amd64_v1/$(BIN))

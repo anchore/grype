@@ -1,14 +1,14 @@
-#name: "Release"
-#on:
-#  workflow_dispatch:
-#    inputs:
-#      version:
-#        description: tag the latest commit on main with the given version (prefixed with v)
-#        required: true
-#
-#env:
-#  GO_VERSION: "1.19.x"
-#
+name: "Release"
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: tag the latest commit on main with the given version (prefixed with v)
+        required: true
+
+env:
+  GO_VERSION: "1.19.x"
+
 #jobs:
 #  quality-gate:
 #    environment: release
