@@ -76,3 +76,31 @@ jobs:
 
       - name: Run integration tests
         run: make integration
+
+  Build-Snapshot-Artifacts:
+    name: "Build snapshot artifacts"
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Bootstrap environment
+        uses: ./.github/actions/bootstrap
+        with:
+          # why have another build cache key? We don't want unit/integration/etc test build caches to replace
+          # the snapshot build cache, which includes builds for all OSs and architectures. As long as this key is
+          # unique from the build-cache-key-prefix in other CI jobs, we should be fine.
+          #
+          # note: ideally this value should match what is used in release (just to help with build times).
+          build-cache-key-prefix: "snapshot"
+          bootstrap-apt-packages: ""
+
+      - name: Build snapshot artifacts
+        run: make snapshot
+
+      # why not use actions/upload-artifact? It is very slow (3 minutes to upload ~600MB of data, vs 10 seconds with this approach).
+      # see https://github.com/actions/upload-artifact/issues/199 for more info
+      - name: Upload snapshot artifacts
+        uses: actions/cache/save@v3
+        with:
+          path: snapshot
+          key: snapshot-build-${{ github.run_id }}
