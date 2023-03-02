@@ -1,163 +1,163 @@
-name: "Release"
-on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: tag the latest commit on main with the given version (prefixed with v)
-        required: true
-
-env:
-  GO_VERSION: "1.19.x"
-
-jobs:
-  quality-gate:
-    environment: release
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3 ## TODO (cphillips) pin this to sha
-
-      - name: Check if tag already exists
-        # note: this will fail if the tag already exists
-        run: |
-          [[ "${{ github.event.inputs.version }}" == v* ]] || (echo "version '${{ github.event.inputs.version }}' does not have a 'v' prefix" && exit 1)
-          git tag ${{ github.event.inputs.version }}
-
-      - name: Check static analysis results
-        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
-        id: static-analysis
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
-          checkName: "Static analysis"
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-
-      - name: Check unit test results
-        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
-        id: unit
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
-          checkName: "Unit tests"
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-
-      - name: Check integration test results
-        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
-        id: integration
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
-          checkName: "Integration tests"
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-
-      - name: Check acceptance test results (linux)
-        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
-        id: acceptance-linux
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
-          checkName: "Acceptance tests (Linux)"
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-
-      - name: Check acceptance test results (mac)
-        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
-        id: acceptance-mac
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
-          checkName: "Acceptance tests (Mac)"
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-
-      - name: Check cli test results (linux)
-        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
-        id: cli-linux
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
-          checkName: "CLI tests (Linux)"
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-
-      - name: Quality gate
-        if: steps.static-analysis.outputs.conclusion != 'success' || steps.unit.outputs.conclusion != 'success' || steps.integration.outputs.conclusion != 'success' || steps.cli-linux.outputs.conclusion != 'success' || steps.acceptance-linux.outputs.conclusion != 'success' || steps.acceptance-mac.outputs.conclusion != 'success'
-        run: |
-          echo "Static Analysis Status: ${{ steps.static-analysis.conclusion }}"
-          echo "Unit Test Status: ${{ steps.unit.outputs.conclusion }}"
-          echo "Integration Test Status: ${{ steps.integration.outputs.conclusion }}"
-          echo "Acceptance Test (Linux) Status: ${{ steps.acceptance-linux.outputs.conclusion }}"
-          echo "Acceptance Test (Mac) Status: ${{ steps.acceptance-mac.outputs.conclusion }}"
-          echo "CLI Test (Linux) Status: ${{ steps.cli-linux.outputs.conclusion }}"
-          false
-
-  release:
-    needs: [quality-gate]
-    runs-on: ubuntu-20.04
-    permissions:
-      contents: write
-      packages: write
-    steps:
-      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v2.5.0
-        with:
-          fetch-depth: 0
-
-      - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
-        with:
-          # use the same cache we used for building snapshots
-          build-cache-key-prefix: "snapshot"
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.TOOLBOX_DOCKER_USER }}
-          password: ${{ secrets.TOOLBOX_DOCKER_PASS }}
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Tag release
-        run: |
-          git tag ${{ github.event.inputs.version }}
-          git push origin --tags
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build & publish release artifacts
-        run: make ci-release
-        env:
-          # for mac signing and notarization...
-          QUILL_SIGN_P12: ${{ secrets.ANCHORE_APPLE_DEVELOPER_ID_CERT_CHAIN }}
-          QUILL_SIGN_PASSWORD: ${{ secrets.ANCHORE_APPLE_DEVELOPER_ID_CERT_PASS }}
-          QUILL_NOTARY_ISSUER: ${{ secrets.APPLE_NOTARY_ISSUER }}
-          QUILL_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
-          QUILL_NOTARY_KEY: ${{ secrets.APPLE_NOTARY_KEY }}
-          # for creating the release (requires write access to packages and content)
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # for updating brew formula in anchore/homebrew-syft
-          GITHUB_BREW_TOKEN: ${{ secrets.ANCHORE_GIT_READ_TOKEN }}
-          # for updating the VERSION file in S3...
-          AWS_ACCESS_KEY_ID: ${{ secrets.TOOLBOX_AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.TOOLBOX_AWS_SECRET_ACCESS_KEY }}
-
-
-      - uses: anchore/sbom-action@07978da4bdb4faa726e52dfc6b1bed63d4b56479 # v0.13.3
-        continue-on-error: true
-        with:
-          artifact-name: sbom.spdx.json
-
-      - uses: 8398a7/action-slack@bdc6f9de222d3b7518e6cf99c4f3410f653cfde3 # v3.15.0
-        continue-on-error: true
-        with:
-          status: ${{ job.status }}
-          fields: repo,workflow,action,eventName
-          text: "A new Grype release has been published: https://github.com/anchore/grype/releases/tag/${{ github.ref_name }}"
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_TOOLBOX_WEBHOOK_URL }}
-        if: ${{ success() }}
-
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
-        with:
-          name: artifacts
-          path: dist/**/*
+#name: "Release"
+#on:
+#  workflow_dispatch:
+#    inputs:
+#      version:
+#        description: tag the latest commit on main with the given version (prefixed with v)
+#        required: true
+#
+#env:
+#  GO_VERSION: "1.19.x"
+#
+#jobs:
+#  quality-gate:
+#    environment: release
+#    runs-on: ubuntu-20.04
+#    steps:
+#      - uses: actions/checkout@v3 ## TODO (cphillips) pin this to sha
+#
+#      - name: Check if tag already exists
+#        # note: this will fail if the tag already exists
+#        run: |
+#          [[ "${{ github.event.inputs.version }}" == v* ]] || (echo "version '${{ github.event.inputs.version }}' does not have a 'v' prefix" && exit 1)
+#          git tag ${{ github.event.inputs.version }}
+#
+#      - name: Check static analysis results
+#        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
+#        id: static-analysis
+#        with:
+#          token: ${{ secrets.GITHUB_TOKEN }}
+#          # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
+#          checkName: "Static analysis"
+#          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+#
+#      - name: Check unit test results
+#        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
+#        id: unit
+#        with:
+#          token: ${{ secrets.GITHUB_TOKEN }}
+#          # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
+#          checkName: "Unit tests"
+#          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+#
+#      - name: Check integration test results
+#        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
+#        id: integration
+#        with:
+#          token: ${{ secrets.GITHUB_TOKEN }}
+#          # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
+#          checkName: "Integration tests"
+#          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+#
+#      - name: Check acceptance test results (linux)
+#        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
+#        id: acceptance-linux
+#        with:
+#          token: ${{ secrets.GITHUB_TOKEN }}
+#          # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
+#          checkName: "Acceptance tests (Linux)"
+#          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+#
+#      - name: Check acceptance test results (mac)
+#        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
+#        id: acceptance-mac
+#        with:
+#          token: ${{ secrets.GITHUB_TOKEN }}
+#          # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
+#          checkName: "Acceptance tests (Mac)"
+#          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+#
+#      - name: Check cli test results (linux)
+#        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
+#        id: cli-linux
+#        with:
+#          token: ${{ secrets.GITHUB_TOKEN }}
+#          # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
+#          checkName: "CLI tests (Linux)"
+#          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+#
+#      - name: Quality gate
+#        if: steps.static-analysis.outputs.conclusion != 'success' || steps.unit.outputs.conclusion != 'success' || steps.integration.outputs.conclusion != 'success' || steps.cli-linux.outputs.conclusion != 'success' || steps.acceptance-linux.outputs.conclusion != 'success' || steps.acceptance-mac.outputs.conclusion != 'success'
+#        run: |
+#          echo "Static Analysis Status: ${{ steps.static-analysis.conclusion }}"
+#          echo "Unit Test Status: ${{ steps.unit.outputs.conclusion }}"
+#          echo "Integration Test Status: ${{ steps.integration.outputs.conclusion }}"
+#          echo "Acceptance Test (Linux) Status: ${{ steps.acceptance-linux.outputs.conclusion }}"
+#          echo "Acceptance Test (Mac) Status: ${{ steps.acceptance-mac.outputs.conclusion }}"
+#          echo "CLI Test (Linux) Status: ${{ steps.cli-linux.outputs.conclusion }}"
+#          false
+#
+#  release:
+#    needs: [quality-gate]
+#    runs-on: ubuntu-20.04
+#    permissions:
+#      contents: write
+#      packages: write
+#    steps:
+#      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v2.5.0
+#        with:
+#          fetch-depth: 0
+#
+#      - name: Bootstrap environment
+#        uses: ./.github/actions/bootstrap
+#        with:
+#          # use the same cache we used for building snapshots
+#          build-cache-key-prefix: "snapshot"
+#
+#      - name: Login to Docker Hub
+#        uses: docker/login-action@v2
+#        with:
+#          username: ${{ secrets.TOOLBOX_DOCKER_USER }}
+#          password: ${{ secrets.TOOLBOX_DOCKER_PASS }}
+#
+#      - name: Login to GitHub Container Registry
+#        uses: docker/login-action@v2
+#        with:
+#          registry: ghcr.io
+#          username: ${{ github.actor }}
+#          password: ${{ secrets.GITHUB_TOKEN }}
+#
+#      - name: Tag release
+#        run: |
+#          git tag ${{ github.event.inputs.version }}
+#          git push origin --tags
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#
+#      - name: Build & publish release artifacts
+#        run: make ci-release
+#        env:
+#          # for mac signing and notarization...
+#          QUILL_SIGN_P12: ${{ secrets.ANCHORE_APPLE_DEVELOPER_ID_CERT_CHAIN }}
+#          QUILL_SIGN_PASSWORD: ${{ secrets.ANCHORE_APPLE_DEVELOPER_ID_CERT_PASS }}
+#          QUILL_NOTARY_ISSUER: ${{ secrets.APPLE_NOTARY_ISSUER }}
+#          QUILL_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+#          QUILL_NOTARY_KEY: ${{ secrets.APPLE_NOTARY_KEY }}
+#          # for creating the release (requires write access to packages and content)
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          # for updating brew formula in anchore/homebrew-syft
+#          GITHUB_BREW_TOKEN: ${{ secrets.ANCHORE_GIT_READ_TOKEN }}
+#          # for updating the VERSION file in S3...
+#          AWS_ACCESS_KEY_ID: ${{ secrets.TOOLBOX_AWS_ACCESS_KEY_ID }}
+#          AWS_SECRET_ACCESS_KEY: ${{ secrets.TOOLBOX_AWS_SECRET_ACCESS_KEY }}
+#
+#
+#      - uses: anchore/sbom-action@07978da4bdb4faa726e52dfc6b1bed63d4b56479 # v0.13.3
+#        continue-on-error: true
+#        with:
+#          artifact-name: sbom.spdx.json
+#
+#      - uses: 8398a7/action-slack@bdc6f9de222d3b7518e6cf99c4f3410f653cfde3 # v3.15.0
+#        continue-on-error: true
+#        with:
+#          status: ${{ job.status }}
+#          fields: repo,workflow,action,eventName
+#          text: "A new Grype release has been published: https://github.com/anchore/grype/releases/tag/${{ github.ref_name }}"
+#        env:
+#          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_TOOLBOX_WEBHOOK_URL }}
+#        if: ${{ success() }}
+#
+#      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+#        with:
+#          path: dist/**/*
+#          name: artifacts
