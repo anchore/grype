@@ -164,7 +164,7 @@ check-go-mod-tidy:
 ## Testing targets #################################
 
 .PHONY: unit
-unit: $(TEMP_DIR) fixtures  ## Run unit tests (with coverage)
+unit: $(TEMP_DIR) ## Run unit tests (with coverage)
 	$(call title,Running unit tests)
 	go test -coverprofile $(TEMP_DIR)/unit-coverage-details.txt $(shell go list ./... | grep -v anchore/grype/test)
 	@.github/scripts/coverage.py $(COVERAGE_THRESHOLD) $(TEMP_DIR)/unit-coverage-details.txt
