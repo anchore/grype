@@ -23,3 +23,17 @@ jobs:
 
       - name: Run static analysis
         run: make static-analysis
+
+  Unit-Test:
+    # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
+    name: "Unit tests"
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Bootstrap environment
+        uses: ./.github/actions/bootstrap
+      # TODO: any test fixtures
+      
+      - name: Run unit tests
+        run: make unit
