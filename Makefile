@@ -253,7 +253,8 @@ $(SNAPSHOT_DIR):  ## Build snapshot release binaries and packages
 	cat .goreleaser.yaml >> $(TEMP_DIR)/goreleaser.yaml
 
 	# build release snapshots
-	$(SNAPSHOT_CMD) --config $(TEMP_DIR)/goreleaser.yaml
+	SYFT_VERSION=$(SYFT_VERSION) \
+		$(SNAPSHOT_CMD) --config $(TEMP_DIR)/goreleaser.yaml
 
 .PHONY: changelog
 changelog: clean-changelog  ## Generate and show the changelog for the current unreleased version
@@ -291,7 +292,7 @@ ci-check:
 ## Cleanup targets #################################
 
 .PHONY: clean
-clean: clean-dist clean-snapshot clean-test-image-cache  ## Remove previous builds, result reports, and test cache
+clean: clean-dist clean-snapshot ## Remove previous builds, result reports, and test cache
 	$(call safe_rm_rf_children,$(TEMP_DIR))
 
 .PHONY: clean-snapshot
