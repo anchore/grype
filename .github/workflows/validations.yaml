@@ -37,3 +37,25 @@ jobs:
       
       - name: Run unit tests
         run: make unit
+
+  Integration-Test:
+    # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
+    name: "Integration tests"
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Bootstrap environment
+        uses: ./.github/actions/bootstrap
+
+      - name: Validate grype output against the CycloneDX schema
+        run: make validate-cyclonedx-schema
+
+      - name: Restore integration test cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/test/integration/test-fixtures/cache
+          key: ${{ runner.os }}-integration-test-cache-${{ hashFiles('test/integration/test-fixtures/cache.fingerprint') }}
+
+      - name: Run integration tests
+        run: make integration
