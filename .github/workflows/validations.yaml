@@ -43,7 +43,7 @@ jobs:
     name: "Quality tests"
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v2.5.0
+      - uses: actions/checkout@v3
         with:
           submodules: true
 
