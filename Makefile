@@ -236,6 +236,27 @@ install-test-ci-mac: $(SNAPSHOT_DIR)
 	cd test/install && \
 		make ci-test-mac
 
+# note: we cannot clean the snapshot directory since the pipeline builds the snapshot separately
+.PHONY: compare-linux
+compare-linux: compare-test-deb-package-install compare-test-rpm-package-install  ## Run compare tests on build snapshot binaries and packages (Linux)
+
+.PHONY: compare-test-deb-package-install
+compare-test-deb-package-install: $(TEMP_DIR) $(SNAPSHOT_DIR)
+	$(call title,Running compare test: DEB install)
+	$(COMPARE_DIR)/deb.sh \
+			$(SNAPSHOT_DIR) \
+			$(COMPARE_DIR) \
+			$(COMPARE_TEST_IMAGE) \
+			$(TEMP_DIR)
+
+.PHONY: compare-test-rpm-package-install
+compare-test-rpm-package-install: $(TEMP_DIR) $(SNAPSHOT_DIR)
+	$(call title,Running compare test: RPM install)
+	$(COMPARE_DIR)/rpm.sh \
+			$(SNAPSHOT_DIR) \
+			$(COMPARE_DIR) \
+			$(COMPARE_TEST_IMAGE) \
+			$(TEMP_DIR)
 
 ## Code generation targets #################################
 ## TODO (cphillips) what does grype have here?
