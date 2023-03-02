@@ -136,3 +136,54 @@ jobs:
       - name: (cache-miss) Create test image cache
         if: steps.install-test-image-cache.outputs.cache-hit != 'true'
         run: make install-test-cache-save
+
+  Acceptance-Mac:
+    # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
+    name: "Acceptance tests (Mac)"
+    needs: [Build-Snapshot-Artifacts]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download snapshot build
+        uses: actions/cache/restore@v3
+        with:
+          path: snapshot
+          key: snapshot-build-${{ github.run_id }}
+
+      - name: Restore docker image cache for compare testing
+        id: mac-compare-testing-cache
+        uses: actions/cache@v3
+        with:
+          path: image.tar
+          key: ${{ runner.os }}-${{ hashFiles('test/compare/mac.sh') }}
+
+      - name: Run install.sh tests (Mac)
+        run: make install-test-ci-mac
+
+
+  Cli-Linux:
+    # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
+    name: "CLI tests (Linux)"
+    needs: [Build-Snapshot-Artifacts]
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Bootstrap environment
+        uses: ./.github/actions/bootstrap
+
+      - name: Restore CLI test-fixture cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/test/cli/test-fixtures/cache
+          key: ${{ runner.os }}-cli-test-cache-${{ hashFiles('test/cli/test-fixtures/cache.fingerprint') }}
+
+      - name: Download snapshot build
+        uses: actions/cache/restore@v3
+        with:
+          path: snapshot
+          key: snapshot-build-${{ github.run_id }}
+
+      - name: Run CLI Tests (Linux)
+        run: make cli

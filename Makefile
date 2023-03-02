@@ -236,10 +236,6 @@ install-test-ci-mac: $(SNAPSHOT_DIR)
 	cd test/install && \
 		make ci-test-mac
 
-# note: we cannot clean the snapshot directory since the pipeline builds the snapshot separately
-.PHONY: compare-linux
-compare-linux: compare-test-deb-package-install compare-test-rpm-package-install  ## Run compare tests on build snapshot binaries and packages (Linux)
-
 .PHONY: compare-test-deb-package-install
 compare-test-deb-package-install: $(TEMP_DIR) $(SNAPSHOT_DIR)
 	$(call title,Running compare test: DEB install)
