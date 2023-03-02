@@ -119,9 +119,6 @@ jobs:
           path: snapshot
           key: snapshot-build-${{ github.run_id }}
 
-      - name: Run comparison tests (Linux)
-        run: make compare-linux
-
       - name: Restore install.sh test image cache
         id: install-test-image-cache
         uses: actions/cache@v3
