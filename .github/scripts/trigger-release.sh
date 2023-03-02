@@ -37,7 +37,7 @@ done
 
 echo "${bold}Kicking off release for ${NEXT_VERSION}${normal}..."
 echo
-gh workflow run release.yaml --ref pipeline-parity -f version=${NEXT_VERSION}
+gh workflow run release.yaml -f version=${NEXT_VERSION}
 
 echo
 echo "${bold}Waiting for release to start...${normal}"
