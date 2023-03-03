@@ -3,7 +3,6 @@ package ui
 import (
 	"context"
 	"fmt"
-	"github.com/anchore/grype/grype/vulnerability"
 	"io"
 	"sort"
 	"strings"
@@ -19,6 +18,7 @@ import (
 
 	grypeEventParsers "github.com/anchore/grype/grype/event/parsers"
 	"github.com/anchore/grype/grype/matcher"
+	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/ui/components"
 	syftUI "github.com/anchore/syft/ui"
 )
