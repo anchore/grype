@@ -6,6 +6,7 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 	"io"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -154,67 +155,54 @@ func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *f
 	branch := "├──"
 	end := "└──"
 
-	summaryTempl := "%d critical, %d high, %d medium, %d low  %s"
-	FixTempl := "%d fixed"
+	fixTempl := "%d fixed"
 
-	formatFn := func(total, unknown, low, medium, high, critical, fixed int64) {
-		spin := color.Magenta.Sprint(spinner.Next())
-		auxInfo := auxInfoFormat.Sprintf("[vulnerabilities %d]", total)
-		_, _ = io.WriteString(scanningLine, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
-
-		unknownStr := ""
-		if unknown > 0 {
-			unknownStr = fmt.Sprintf("(%d unknown)", unknown)
+	formatFn := func(m *matcher.Monitor, complete bool) {
+		var spin string
+		if complete {
+			spin = color.Green.Sprint(completedStatus)
+		} else {
+			spin = color.Magenta.Sprint(spinner.Next())
 		}
 
-		status := fmt.Sprintf(summaryTempl, critical, high, medium, low, unknownStr)
-		_, _ = io.WriteString(summaryLine, auxInfoFormat.Sprintf("   %s %s", branch, status))
+		auxInfo := auxInfoFormat.Sprintf("[%d vulnerabilities]", m.VulnerabilitiesDiscovered.Current())
+		_, _ = io.WriteString(scanningLine, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
 
-		fixStatus := fmt.Sprintf(FixTempl, fixed)
+		var unknownStr string
+		unknown := m.BySeverity[vulnerability.UnknownSeverity].Current()
+		if unknown > 0 {
+			unknownStr = fmt.Sprintf(" (%d unknown)", unknown)
+		}
+
+		allSeverities := vulnerability.AllSeverities()
+		sort.Sort(sort.Reverse(vulnerability.Severities(allSeverities)))
+
+		var builder strings.Builder
+		for idx, sev := range allSeverities {
+			count := m.BySeverity[sev].Current()
+			builder.WriteString(fmt.Sprintf("%d %s", count, sev))
+			if idx < len(allSeverities)-1 {
+				builder.WriteString(", ")
+			}
+		}
+		builder.WriteString(unknownStr)
+
+		status := builder.String()
+		auxInfo2 := auxInfoFormat.Sprintf("   %s %s", branch, status)
+		_, _ = io.WriteString(summaryLine, auxInfo2)
+
+		fixStatus := fmt.Sprintf(fixTempl, m.Fixed.Current())
 		_, _ = io.WriteString(fixLine, auxInfoFormat.Sprintf("   %s %s", end, fixStatus))
 	}
 
 	go func() {
 		defer wg.Done()
 
-		formatFn(0, 0, 0, 0, 0, 0, 0)
-		for p := range stream {
-			formatFn(p[1], p[2], p[3], p[4], p[5], p[6], p[7])
+		formatFn(monitor, false)
+		for range stream {
+			formatFn(monitor, false)
 		}
-
-		spin := color.Green.Sprint(completedStatus)
-		title = tileFormat.Sprint("Scanned image")
-		auxInfo := auxInfoFormat.Sprintf("[%d vulnerabilities]", monitor.VulnerabilitiesDiscovered.Current())
-		_, _ = io.WriteString(scanningLine, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
-
-		unknownStr := ""
-		unknown := monitor.BySeverity[vulnerability.UnknownSeverity].Current()
-		if unknown > 0 {
-			unknownStr = fmt.Sprintf("(%d unknown)", unknown)
-		}
-
-		allSeverities := vulnerability.AllSeverities()
-		sort.Sort(sort.Reverse(vulnerability.Severities(allSeverities)))
-
-		var values []interface{}
-
-		for _, sev := range allSeverities {
-			values = append(values, monitor.BySeverity[sev].Current())
-		}
-		values = append(values, unknownStr)
-
-		status := fmt.Sprintf(
-			summaryTempl,
-			values...,
-		)
-		auxInfo2 := auxInfoFormat.Sprintf("   %s %s", branch, status)
-		_, _ = io.WriteString(summaryLine, auxInfo2)
-
-		fixStatus := fmt.Sprintf(
-			FixTempl,
-			monitor.Fixed.Current(),
-		)
-		_, _ = io.WriteString(fixLine, auxInfoFormat.Sprintf("   %s %s", end, fixStatus))
+		formatFn(monitor, true)
 	}()
 
 	return nil
