@@ -129,8 +129,8 @@ type progressAdapter struct {
 }
 
 func (a *progressAdapter) TrackProgress(_ string, currentSize, totalSize int64, stream io.ReadCloser) io.ReadCloser {
-	a.monitor.N = currentSize
-	a.monitor.Total = totalSize
+	a.monitor.Set(currentSize)
+	a.monitor.SetTotal(totalSize)
 	return &readCloser{
 		Reader: *progress.NewProxyReader(stream, a.monitor),
 	}

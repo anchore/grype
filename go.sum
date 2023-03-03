@@ -232,10 +232,10 @@ github.com/anchore/packageurl-go v0.1.1-0.20230104203445-02e0a6721501 h1:AV7qjwM
 github.com/anchore/packageurl-go v0.1.1-0.20230104203445-02e0a6721501/go.mod h1:Blo6OgJNiYF41ufcgHKkbCKF2MDOMlrqhXv/ij6ocR4=
 github.com/anchore/sqlite v1.4.6-0.20220607210448-bcc6ee5c4963 h1:vrf2PYH77vqVJoNR15ZuFJ63qwBMqrmGIt/7VsBhLF8=
 github.com/anchore/sqlite v1.4.6-0.20220607210448-bcc6ee5c4963/go.mod h1:AVRyXOUP0hTz9Cb8OlD1XnwA8t4lBPfTuwPHmEUuiLc=
-github.com/anchore/stereoscope v0.0.0-20230222185948-fab1c9638abc h1:b+2KauWByrCPLNnzRHjLoUxo85tpszFtU7S1I5pAKK0=
-github.com/anchore/stereoscope v0.0.0-20230222185948-fab1c9638abc/go.mod h1:Y+jiUa5PmQh9jUvzmvus4EvLnEG87cDTOYgV3nw3wDg=
-github.com/anchore/syft v0.73.0 h1:htS03PVnCwvTuVEna2hpXcYrgOU4j+kB/l0rUAe0PW0=
-github.com/anchore/syft v0.73.0/go.mod h1:oKRfCKZVYtzdWwaPzSvmTgTB7p71IwOUkK6B7/LsUZw=
+github.com/anchore/stereoscope v0.0.0-20230301191755-abfb374a1122 h1:Oe2PE8zNbJH4nGZoCIC/VZBgpr62BInLnUqIMZICUOk=
+github.com/anchore/stereoscope v0.0.0-20230301191755-abfb374a1122/go.mod h1:IihP/SUVHP94PBwIP2bepOB/c0MVadcII7lxo13Ijzs=
+github.com/anchore/syft v0.74.0 h1:a3ogFiZfC0IWQVz2rNeXH/fhcd+jzeNG+MWlSpkZOzg=
+github.com/anchore/syft v0.74.0/go.mod h1:zVJ7rhUaW3dxNNYhSWVTgfi7e4oJ9codJD48Uq5xnP8=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/brotli v1.0.1/go.mod h1:loMXtMfwqflxFJPmdbJO0a3KNoPuLBgiu3qAvBg8x/Y=
 github.com/andybalholm/brotli v1.0.4 h1:V7DdXeJtZscaqfNuAdSRuRFzuiKlHSC/Zh3zl9qY3JY=
@@ -788,8 +788,8 @@ github.com/vmihailenco/msgpack/v4 v4.3.12/go.mod h1:gborTTJjAo/GWTqqRjrLCn9pgNN+
 github.com/vmihailenco/tagparser v0.1.1/go.mod h1:OeAg3pn3UbLjkWt+rN9oFYB6u/cQgqMEUPoW2WPyhdI=
 github.com/wagoodman/go-partybus v0.0.0-20210627031916-db1f5573bbc5 h1:phTLPgMRDYTizrBSKsNSOa2zthoC2KsJsaY/8sg3rD8=
 github.com/wagoodman/go-partybus v0.0.0-20210627031916-db1f5573bbc5/go.mod h1:JPirS5jde/CF5qIjcK4WX+eQmKXdPc6vcZkJ/P0hfPw=
-github.com/wagoodman/go-progress v0.0.0-20200807221327-51d465df1451 h1:ULknorKcCigmaFEBfB99pzEQmYY2E0F5Yp/bIyaBdEI=
-github.com/wagoodman/go-progress v0.0.0-20200807221327-51d465df1451/go.mod h1:jLXFoL31zFaHKAAyZUh+sxiTDFe1L1ZHrcK2T1itVKA=
+github.com/wagoodman/go-progress v0.0.0-20230301185719-21920a456ad5 h1:lwgTsTy18nYqASnH58qyfRW/ldj7Gt2zzBvgYPzdA4s=
+github.com/wagoodman/go-progress v0.0.0-20230301185719-21920a456ad5/go.mod h1:jLXFoL31zFaHKAAyZUh+sxiTDFe1L1ZHrcK2T1itVKA=
 github.com/wagoodman/jotframe v0.0.0-20211129225309-56b0d0a4aebb h1:Yz6VVOcLuWLAHYlJzTw7JKnWxdV/WXpug2X0quEzRnY=
 github.com/wagoodman/jotframe v0.0.0-20211129225309-56b0d0a4aebb/go.mod h1:nDi3BAC5nEbVbg+WSJDHLbjHv0ZToq8nMPA97XMxF3E=
 github.com/x-cray/logrus-prefixed-formatter v0.5.2 h1:00txxvfBM9muc0jiLIEAkAcIMJzfthRT6usrui8uGmg=

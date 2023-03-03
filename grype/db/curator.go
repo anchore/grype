@@ -118,15 +118,11 @@ func (c *Curator) Delete() error {
 // Update the existing DB, returning an indication if any action was taken.
 func (c *Curator) Update() (bool, error) {
 	// let consumers know of a monitorable event (download + import stages)
-	importProgress := &progress.Manual{
-		Total: 1,
-	}
+	importProgress := progress.NewManual(1)
 	stage := &progress.Stage{
 		Current: "checking for update",
 	}
-	downloadProgress := &progress.Manual{
-		Total: 1,
-	}
+	downloadProgress := progress.NewManual(1)
 	aggregateProgress := progress.NewAggregator(progress.DefaultStrategy, downloadProgress, importProgress)
 
 	bus.Publish(partybus.Event{
@@ -231,7 +227,7 @@ func (c *Curator) UpdateTo(listing *ListingEntry, downloadProgress, importProgre
 		return err
 	}
 	stage.Current = "updated"
-	importProgress.N = importProgress.Total
+	importProgress.Set(importProgress.Size())
 	importProgress.SetCompleted()
 
 	return c.fs.RemoveAll(tempDir)
