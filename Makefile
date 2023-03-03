@@ -43,7 +43,6 @@ DIST_DIR := ./dist
 SNAPSHOT_DIR := ./snapshot
 CHANGELOG := CHANGELOG.md
 OS := $(shell uname | tr '[:upper:]' '[:lower:]')
-SYFT_VERSION := $(shell go list -m all | grep github.com/anchore/syft | awk '{print $$2}')
 SNAPSHOT_BIN := $(realpath $(shell pwd)/$(SNAPSHOT_DIR)/$(OS)-build_$(OS)_amd64_v1/$(BIN))
 
 ifndef TEMP_DIR
@@ -269,7 +268,6 @@ $(SNAPSHOT_DIR):  ## Build snapshot release binaries and packages
 	cat .goreleaser.yaml >> $(TEMP_DIR)/goreleaser.yaml
 
 	# build release snapshots
-	SYFT_VERSION=$(SYFT_VERSION) \
 		$(SNAPSHOT_CMD) --config $(TEMP_DIR)/goreleaser.yaml
 
 .PHONY: changelog

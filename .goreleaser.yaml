@@ -24,7 +24,6 @@ builds:
       -s
       -extldflags '-static'
       -X github.com/anchore/grype/internal/version.version={{.Version}}
-      -X github.com/anchore/grype/internal/version.syftVersion={{.Env.SYFT_VERSION}}
       -X github.com/anchore/grype/internal/version.gitCommit={{.Commit}}
       -X github.com/anchore/grype/internal/version.buildDate={{.Date}}
       -X github.com/anchore/grype/internal/version.gitDescription={{.Summary}}

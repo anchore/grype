@@ -3,14 +3,16 @@ package version
 import (
 	"fmt"
 	"runtime"
+	"runtime/debug"
 	"strings"
+
+	"github.com/anchore/grype/internal/log"
 )
 
 const valueNotProvided = "[not provided]"
 
 // all variables here are provided as build-time arguments, with clear default values
 var version = valueNotProvided
-var syftVersion = valueNotProvided
 var gitCommit = valueNotProvided
 var gitDescription = valueNotProvided
 var buildDate = valueNotProvided
@@ -37,9 +39,15 @@ func (v Version) isProductionBuild() bool {
 
 // FromBuild provides all version details
 func FromBuild() Version {
+	actualSyftVersion, err := extractSyftVersion()
+	if err != nil {
+		// TODO: parameterize error
+		log.Trace("unable to find syft version")
+		actualSyftVersion = valueNotProvided
+	}
 	return Version{
 		Version:        version,
-		SyftVersion:    syftVersion,
+		SyftVersion:    actualSyftVersion,
 		GitCommit:      gitCommit,
 		GitDescription: gitDescription,
 		BuildDate:      buildDate,
@@ -47,4 +55,19 @@ func FromBuild() Version {
 		Compiler:       runtime.Compiler,
 		Platform:       platform,
 	}
+}
+
+func extractSyftVersion() (string, error) {
+	buildInfo, ok := debug.ReadBuildInfo()
+	if !ok {
+		return "", fmt.Errorf("unable to find the buildinfo section of the binary (syft version is unknown)")
+	}
+
+	for _, d := range buildInfo.Deps {
+		if d.Path == "github.com/anchore/syft" {
+			return d.Version, nil
+		}
+	}
+
+	return "", fmt.Errorf("unable to find 'github.com/anchore/syft' from the buildinfo section of the binary")
 }
