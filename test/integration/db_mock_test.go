@@ -219,3 +219,11 @@ func (s *mockStore) SearchForVulnerabilities(namespace, name string) ([]grypeDB.
 func (s *mockStore) GetAllVulnerabilities() (*[]grypeDB.Vulnerability, error) {
 	return nil, nil
 }
+
+func (s *mockStore) GetVulnerabilityMetadata(id string, namespace string) (*grypeDB.VulnerabilityMetadata, error) {
+	return nil, nil
+}
+
+func (s *mockStore) GetAllVulnerabilityMetadata() (*[]grypeDB.VulnerabilityMetadata, error) {
+	return nil, nil
+}
