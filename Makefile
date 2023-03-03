@@ -2,12 +2,24 @@ BIN := grype
 TEMP_DIR := ./.tmp
 
 # Command templates #################################
-LINT_CMD := $(TEMP_DIR)/golangci-lint run --tests=false --timeout 5m --config .golangci.yaml
+LINT_CMD := $(TEMP_DIR)/golangci-lint run --tests=false
 GOIMPORTS_CMD := $(TEMP_DIR)/gosimports -local github.com/anchore
-RELEASE_CMD := $(TEMP_DIR)/goreleaser release --rm-dist
-SNAPSHOT_CMD := $(RELEASE_CMD) --skip-publish --snapshot
+RELEASE_CMD := $(TEMP_DIR)/goreleaser release --clean
+SNAPSHOT_CMD := $(RELEASE_CMD) --skip-publish --skip-sign --snapshot
+CHRONICLE_CMD = $(TEMP_DIR)/chronicle
+GLOW_CMD = $(TEMP_DIR)/glow
 
-# formatting variables
+# Tool versions #################################
+GOLANGCILINT_VERSION := v1.51.2
+GOSIMPORTS_VERSION := v0.3.7
+BOUNCER_VERSION := v0.4.0
+CHRONICLE_VERSION := v0.6.0
+GORELEASER_VERSION := v1.15.2
+YAJSV_VERSION := v1.4.1
+QUILL_VERSION := v0.2.0
+GLOW_VERSION := v1.5.0
+
+# Formatting variables ############################
 BOLD := $(shell tput -T linux bold)
 PURPLE := $(shell tput -T linux setaf 5)
 GREEN := $(shell tput -T linux setaf 2)
@@ -17,6 +29,7 @@ RESET := $(shell tput -T linux sgr0)
 TITLE := $(BOLD)$(PURPLE)
 SUCCESS := $(BOLD)$(GREEN)
 
+# Test variables #################################
 # the quality gate lower threshold for unit test total % coverage (by function statements)
 COVERAGE_THRESHOLD := 47
 RESULTS_DIR := $(TEMP_DIR)/results
@@ -24,26 +37,13 @@ COVER_REPORT := $(RESULTS_DIR)/cover.report
 COVER_TOTAL := $(RESULTS_DIR)/cover.total
 LICENSES_REPORT := $(RESULTS_DIR)/licenses.json
 
-# CI cache busting values; change these if you want CI to not use previous stored cache
-BOOTSTRAP_CACHE := "c7afb99ad"
-INTEGRATION_CACHE_BUSTER := "904d8ca"
-
-## Build variables
+## Build variables #################################
 VERSION := $(shell git describe --dirty --always --tags)
 DIST_DIR := ./dist
 SNAPSHOT_DIR := ./snapshot
+CHANGELOG := CHANGELOG.md
 OS := $(shell uname | tr '[:upper:]' '[:lower:]')
-SYFT_VERSION := $(shell go list -m all | grep github.com/anchore/syft | awk '{print $$2}')
 SNAPSHOT_BIN := $(realpath $(shell pwd)/$(SNAPSHOT_DIR)/$(OS)-build_$(OS)_amd64_v1/$(BIN))
-
-GOLANGCILINT_VERSION := v1.51.2
-BOUNCER_VERSION := v0.4.0
-CHRONICLE_VERSION := v0.6.0
-GOSIMPORTS_VERSION := v0.3.7
-YAJSV_VERSION := v1.4.1
-GORELEASER_VERSION := v1.15.2
-
-## Variable assertions
 
 ifndef TEMP_DIR
 	$(error TEMP_DIR is not set)
@@ -77,54 +77,59 @@ define safe_rm_rf_children
 	bash -c 'test -z "$(1)" && false || rm -rf $(1)/*'
 endef
 
+.DEFAULT_GOAL:=help
+
 .PHONY: all
-all: clean static-analysis test ## Run all checks (linting, license check, unit, integration, and linux acceptance tests tests)
+all: static-analysis test ## Run all checks (linting, license check, unit, integration, and linux acceptance tests tests)
 	@printf '$(SUCCESS)All checks pass!$(RESET)\n'
 
-.PHONY: grype
-grype: ## Build the grype binary
-	@printf '$(TITLE)Building grype$(RESET)\n'
-	CGO_ENABLED=0 go build -o $@ -trimpath -ldflags "-X main.version=$(VERSION) -X main.syftVersion=$(SYFT_VERSION)"
+.PHONY: static-analysis
+static-analysis: check-go-mod-tidy lint check-licenses validate-grype-db-schema
 
 .PHONY: test
-test: unit validate-cyclonedx-schema integration cli ## Run all tests (unit, integration, linux acceptance, and CLI tests)
+test: unit integration validate-cyclonedx-schema validate-grype-db-schema cli ## Run all tests (unit, integration, linux acceptance, and CLI tests)
 
-help:
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(BOLD)$(CYAN)%-25s$(RESET)%s\n", $$1, $$2}'
+.PHONY: validate-cyclonedx-schema
+validate-cyclonedx-schema:
+	cd schema/cyclonedx && make
 
-.PHONY: ci-bootstrap
-ci-bootstrap:
-	DEBIAN_FRONTEND=noninteractive sudo apt update && sudo -E apt install -y bc jq libxml2-utils
+.PHONY: validate-grype-db-schema
+validate-grype-db-schema:
+	# ensure the codebase is only referencing a single grype-db schema version, multiple is not allowed
+	python test/validate-grype-db-schema.py
 
-$(RESULTS_DIR):
-	mkdir -p $(RESULTS_DIR)
 
-$(TEMP_DIR):
-	mkdir -p $(TEMP_DIR)
+## Bootstrapping targets #################################
+
+.PHONY: bootstrap
+bootstrap: $(TEMP_DIR) bootstrap-go bootstrap-tools ## Download and install all tooling dependencies (+ prep tooling in the ./tmp dir)
+	$(call title,Bootstrapping dependencies)
 
 .PHONY: bootstrap-tools
 bootstrap-tools: $(TEMP_DIR)
+	curl -sSfL https://raw.githubusercontent.com/anchore/quill/main/install.sh | sh -s -- -b $(TEMP_DIR)/ $(QUILL_VERSION)
+	GO111MODULE=off GOBIN=$(realpath $(TEMP_DIR)) go get -u golang.org/x/perf/cmd/benchstat
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(TEMP_DIR)/ $(GOLANGCILINT_VERSION)
 	curl -sSfL https://raw.githubusercontent.com/wagoodman/go-bouncer/master/bouncer.sh | sh -s -- -b $(TEMP_DIR)/ $(BOUNCER_VERSION)
 	curl -sSfL https://raw.githubusercontent.com/anchore/chronicle/main/install.sh | sh -s -- -b $(TEMP_DIR)/ $(CHRONICLE_VERSION)
+	.github/scripts/goreleaser-install.sh -d -b $(TEMP_DIR)/ $(GORELEASER_VERSION)
 	# the only difference between goimports and gosimports is that gosimports removes extra whitespace between import blocks (see https://github.com/golang/go/issues/20818)
 	GOBIN="$(realpath $(TEMP_DIR))" go install github.com/rinchsan/gosimports/cmd/gosimports@$(GOSIMPORTS_VERSION)
 	GOBIN="$(realpath $(TEMP_DIR))" go install github.com/neilpa/yajsv@$(YAJSV_VERSION)
-	.github/scripts/goreleaser-install.sh -b $(TEMP_DIR)/ $(GORELEASER_VERSION)
+	GOBIN="$(realpath $(TEMP_DIR))" go install github.com/charmbracelet/glow@$(GLOW_VERSION)
 
 .PHONY: bootstrap-go
 bootstrap-go:
 	go mod download
 
-.PHONY: bootstrap
-bootstrap: $(RESULTS_DIR) bootstrap-go bootstrap-tools ## Download and install all go dependencies (+ prep tooling in the ./tmp dir)
-	$(call title,Bootstrapping dependencies)
+$(TEMP_DIR):
+	mkdir -p $(TEMP_DIR)
 
-.PHONY: static-analysis
-static-analysis: lint check-go-mod-tidy check-licenses validate-grype-db-schema
+
+## Static analysis targets #################################
 
 .PHONY: lint
-lint: ## Run gofmt + golangci lint checks
+lint:  ## Run gofmt + golangci lint checks
 	$(call title,Running linters)
 	# ensure there are no go fmt differences
 	@printf "files with gofmt issues: [$(shell gofmt -l -s .)]\n"
@@ -139,7 +144,7 @@ lint: ## Run gofmt + golangci lint checks
 	@bash -c "[[ '$(MALFORMED_FILENAMES)' == '' ]] || (printf '\nfound unsupported filename characters:\n$(MALFORMED_FILENAMES)\n\n' && false)"
 
 .PHONY: lint-fix
-lint-fix: ## Auto-format all source code + run golangci lint fixers
+lint-fix:  ## Auto-format all source code + run golangci lint fixers
 	$(call title,Running lint fixers)
 	gofmt -w -s .
 	$(GOIMPORTS_CMD) -w .
@@ -147,39 +152,71 @@ lint-fix: ## Auto-format all source code + run golangci lint fixers
 	go mod tidy
 
 .PHONY: check-licenses
-check-licenses:
-	$(TEMP_DIR)/bouncer check
+check-licenses:  ## Ensure transitive dependencies are compliant with the current license policy
+	$(call title,Checking for license compliance)
+	$(TEMP_DIR)/bouncer check ./...
 
 check-go-mod-tidy:
 	@ .github/scripts/go-mod-tidy-check.sh && echo "go.mod and go.sum are tidy!"
 
-.PHONY: validate-cyclonedx-schema
-validate-cyclonedx-schema:
-	cd schema/cyclonedx && make
-
-.PHONY: validate-grype-db-schema
-validate-grype-db-schema:
-	# ensure the codebase is only referencing a single grype-db schema version, multiple is not allowed
-	python test/validate-grype-db-schema.py
+## Testing targets #################################
 
 .PHONY: unit
-unit: ## Run unit tests (with coverage)
+unit: $(TEMP_DIR) ## Run unit tests (with coverage)
 	$(call title,Running unit tests)
-	mkdir -p $(RESULTS_DIR)
-	go test -coverprofile $(COVER_REPORT) $(shell go list ./... | grep -v anchore/grype/test)
-	@go tool cover -func $(COVER_REPORT) | grep total |  awk '{print substr($$3, 1, length($$3)-1)}' > $(COVER_TOTAL)
-	@echo "Coverage: $$(cat $(COVER_TOTAL))"
-	@if [ $$(echo "$$(cat $(COVER_TOTAL)) >= $(COVERAGE_THRESHOLD)" | bc -l) -ne 1 ]; then echo "$(RED)$(BOLD)Failed coverage quality gate (> $(COVERAGE_THRESHOLD)%)$(RESET)" && false; fi
+	go test -coverprofile $(TEMP_DIR)/unit-coverage-details.txt $(shell go list ./... | grep -v anchore/grype/test)
+	@.github/scripts/coverage.py $(COVERAGE_THRESHOLD) $(TEMP_DIR)/unit-coverage-details.txt
+
+.PHONY: integration
+integration:  ## Run integration tests
+	$(call title,Running integration tests)
+	go test -v ./test/integration
 
 .PHONY: quality
 quality: ## Run quality tests
 	$(call title,Running quality tests)
 	cd test/quality && make
 
-# note: this is used by CI to determine if the install test fixture cache (docker image tars) should be busted
-install-fingerprint:
+.PHONY: cli
+cli: $(SNAPSHOT_DIR)  ## Run CLI tests
+	chmod 755 "$(SNAPSHOT_BIN)"
+	$(SNAPSHOT_BIN) version
+	SYFT_BINARY_LOCATION='$(SNAPSHOT_BIN)' \
+		go test -count=1 -timeout=15m -v ./test/cli
+
+## Test-fixture-related targets #################################
+
+# note: this is used by CI to determine if various test fixture cache should be restored or recreated
+# TODO (cphillips) check for all fixtures and individual makefile
+fingerprints:
+	$(call title,Creating all test cache input fingerprints)
+
+	# for IMAGE integration test fixtures
+	cd test/integration/test-fixtures && \
+		make cache.fingerprint
+
+	# for INSTALL integration test fixtures
 	cd test/install && \
 		make cache.fingerprint
+
+	# for CLI test fixtures
+	cd test/cli/test-fixtures && \
+		make cache.fingerprint
+
+.PHONY: show-test-image-cache
+show-test-image-cache:  ## Show all docker and image tar cache
+	$(call title,Docker daemon cache)
+	@docker images --format '{{.ID}} {{.Repository}}:{{.Tag}}' | grep stereoscope-fixture- | sort
+
+	$(call title,Tar cache)
+	@find . -type f -wholename "**/test-fixtures/cache/stereoscope-fixture-*.tar" | sort
+
+.PHONY: show-test-snapshots
+show-test-snapshots:  ## Show all test snapshots
+	$(call title,Test snapshots)
+	@find . -type f -wholename "**/test-fixtures/snapshot/*" | sort
+
+## install.sh testing targets #################################
 
 install-test: $(SNAPSHOT_DIR)
 	cd test/install && \
@@ -197,31 +234,33 @@ install-test-ci-mac: $(SNAPSHOT_DIR)
 	cd test/install && \
 		make ci-test-mac
 
-.PHONY: integration
-integration: ## Run integration tests
-	$(call title,Running integration tests)
-	go test -v ./test/integration
+.PHONY: compare-test-deb-package-install
+compare-test-deb-package-install: $(TEMP_DIR) $(SNAPSHOT_DIR)
+	$(call title,Running compare test: DEB install)
+	$(COMPARE_DIR)/deb.sh \
+			$(SNAPSHOT_DIR) \
+			$(COMPARE_DIR) \
+			$(COMPARE_TEST_IMAGE) \
+			$(TEMP_DIR)
 
-# note: this is used by CI to determine if the integration test fixture cache (docker image tars) should be busted
-.PHONY: integration-fingerprint
-integration-fingerprint:
-	find test/integration/*.go test/integration/test-fixtures/image-* -type f -exec md5sum {} + | awk '{print $1}' | sort | tee /dev/stderr | md5sum | tee test/integration/test-fixtures/cache.fingerprint && echo "$(INTEGRATION_CACHE_BUSTER)" >> test/integration/test-fixtures/cache.fingerprint
+.PHONY: compare-test-rpm-package-install
+compare-test-rpm-package-install: $(TEMP_DIR) $(SNAPSHOT_DIR)
+	$(call title,Running compare test: RPM install)
+	$(COMPARE_DIR)/rpm.sh \
+			$(SNAPSHOT_DIR) \
+			$(COMPARE_DIR) \
+			$(COMPARE_TEST_IMAGE) \
+			$(TEMP_DIR)
 
-# note: this is used by CI to determine if the cli test fixture cache (docker image tars) should be busted
-.PHONY: cli-fingerprint
-cli-fingerprint:
-	find test/cli/*.go test/cli/test-fixtures/image-* -type f -exec md5sum {} + | awk '{print $1}' | sort | md5sum | tee test/cli/test-fixtures/cache.fingerprint
+## Code generation targets #################################
+## TODO (cphillips) what does grype have here?
 
-.PHONY: cli
-cli: $(SNAPSHOT_DIR) ## Run CLI tests
-	chmod 755 "$(SNAPSHOT_BIN)"
-	GRYPE_BINARY_LOCATION='$(SNAPSHOT_BIN)' \
-		go test -count=1 -v ./test/cli
+## Build-related targets #################################
 
 .PHONY: build
-build: $(SNAPSHOT_DIR) ## Build release snapshot binaries and packages
+build: $(SNAPSHOT_DIR)
 
-$(SNAPSHOT_DIR): ## Build snapshot release binaries and packages
+$(SNAPSHOT_DIR):  ## Build snapshot release binaries and packages
 	$(call title,Building snapshot artifacts)
 
 	# create a config with the dist dir overridden
@@ -229,107 +268,46 @@ $(SNAPSHOT_DIR): ## Build snapshot release binaries and packages
 	cat .goreleaser.yaml >> $(TEMP_DIR)/goreleaser.yaml
 
 	# build release snapshots
-	bash -c "\
-		SKIP_SIGNING=true \
-		SYFT_VERSION=$(SYFT_VERSION)\
-			$(SNAPSHOT_CMD) --skip-sign --config $(TEMP_DIR)/goreleaser.yaml"
-
-.PHONY: snapshot-with-signing
-snapshot-with-signing: ## Build snapshot release binaries and packages (with dummy signing)
-	$(call title,Building snapshot artifacts (+ signing))
-
-	# create a config with the dist dir overridden
-	echo "dist: $(SNAPSHOT_DIR)" > $(TEMP_DIR)/goreleaser.yaml
-	cat .goreleaser.yaml >> $(TEMP_DIR)/goreleaser.yaml
-
-	rm -f .github/scripts/apple-signing/log/*.txt
-
-	# build release snapshots
-	bash -c "\
-		SYFT_VERSION=$(SYFT_VERSION)\
-			$(SNAPSHOT_CMD) --config $(TEMP_DIR)/goreleaser.yaml || (cat .github/scripts/apple-signing/log/*.txt && false)"
-
-	# remove the keychain with the trusted self-signed cert automatically
-	.github/scripts/apple-signing/cleanup.sh
+		$(SNAPSHOT_CMD) --config $(TEMP_DIR)/goreleaser.yaml
 
 .PHONY: changelog
-changelog: clean-changelog CHANGELOG.md
-	@docker run -it --rm \
-		-v $(shell pwd)/CHANGELOG.md:/CHANGELOG.md \
-		rawkode/mdv \
-			-t 748.5989 \
-			/CHANGELOG.md
+changelog: clean-changelog  ## Generate and show the changelog for the current unreleased version
+	$(CHRONICLE_CMD) -vv -n --version-file VERSION > $(CHANGELOG)
+	@$(GLOW_CMD) $(CHANGELOG)
 
-CHANGELOG.md:
-	$(TEMP_DIR)/chronicle -vv > CHANGELOG.md
-
-.PHONY: validate-grype-test-config
-validate-grype-test-config:
-	# ensure the update URL is not overridden (not pointing to staging)
-	@bash -c '\
-		grep -q "update-url" test/grype-test-config.yaml; \
-		if [ $$? -eq 0 ]; then \
-			echo "Found \"update-url\" in CLI testing config. Cannot release if previous CLI testing did not use production (default) values"; \
-		fi'
-
-.PHONY: validate-syft-release-version
-validate-syft-release-version:
-	@./.github/scripts/syft-released-version-check.sh
+$(CHANGELOG):
+	$(CHRONICLE_CMD) -vvv > $(CHANGELOG)
 
 .PHONY: release
-release: clean-dist CHANGELOG.md  ## Build and publish final binaries and packages. Intended to be run only on macOS.
+release:
+	@.github/scripts/trigger-release.sh
+
+.PHONY: ci-release
+ci-release: ci-check clean-dist $(CHANGELOG)
 	$(call title,Publishing release artifacts)
 
 	# create a config with the dist dir overridden
 	echo "dist: $(DIST_DIR)" > $(TEMP_DIR)/goreleaser.yaml
 	cat .goreleaser.yaml >> $(TEMP_DIR)/goreleaser.yaml
 
-	rm -f .github/scripts/apple-signing/log/*.txt
-
-	# note: notarization cannot be done in parallel, thus --parallelism 1
 	bash -c "\
-		SYFT_VERSION=$(SYFT_VERSION)\
-			$(RELEASE_CMD) \
-				--config $(TEMP_DIR)/goreleaser.yaml \
-				--parallelism 1 \
-				--release-notes <(cat CHANGELOG.md)\
-					 || (cat .github/scripts/apple-signing/log/*.txt && false)"
+		$(RELEASE_CMD) \
+			--config $(TEMP_DIR)/goreleaser.yaml \
+			--release-notes <(cat $(CHANGELOG)) \
+				 || (cat /tmp/quill-*.log && false)"
 
-	cat .github/scripts/apple-signing/log/*.txt
-
-	# TODO: turn this into a post-release hook
 	# upload the version file that supports the application version update check (excluding pre-releases)
 	.github/scripts/update-version-file.sh "$(DIST_DIR)" "$(VERSION)"
 
-.PHONY: release-docker-assets
-release-docker-assets:
-	$(call title,Publishing docker release assets)
+.PHONY: ci-check
+ci-check:
+	@.github/scripts/ci-check.sh
 
-	# create a config with the dist dir overridden
-	echo "dist: $(DIST_DIR)" > $(TEMP_DIR)/goreleaser.yaml
-	cat .goreleaser_docker.yaml >> $(TEMP_DIR)/goreleaser.yaml
-
-	bash -c "\
-		SYFT_VERSION=$(SYFT_VERSION)\
-		$(RELEASE_CMD) \
-			--config $(TEMP_DIR)/goreleaser.yaml \
-			--parallelism 1"
-
-snapshot-docker-assets: # Build snapshot images of docker images that will be published on release
-	$(call title,Building snapshot docker release assets)
-
-	# create a config with the dist dir overridden
-	echo "dist: $(DIST_DIR)" > $(TEMP_DIR)/goreleaser.yaml
-	cat .goreleaser_docker.yaml >> $(TEMP_DIR)/goreleaser.yaml
-
-	bash -c "\
-		SYFT_VERSION=$(SYFT_VERSION)\
-		$(SNAPSHOT_CMD) \
-			--config $(TEMP_DIR)/goreleaser.yaml"
+## Cleanup targets #################################
 
 .PHONY: clean
-clean: clean-dist clean-snapshot  ## Remove previous builds and result reports
-	$(call safe_rm_rf_children,$(RESULTS_DIR))
+clean: clean-dist clean-snapshot ## Remove previous builds, result reports, and test cache
+	$(call safe_rm_rf_children,$(TEMP_DIR))
 
 .PHONY: clean-snapshot
 clean-snapshot:
@@ -343,7 +321,29 @@ clean-dist: clean-changelog
 
 .PHONY: clean-changelog
 clean-changelog:
-	rm -f CHANGELOG.md
+	rm -f $(CHANGELOG) VERSION
+
+clean-test-image-cache: clean-test-image-tar-cache clean-test-image-docker-cache ## Clean test image cache
+
+## Halp! #################################
+
+.PHONY: help
+help:  ## Display this help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(BOLD)$(CYAN)%-25s$(RESET)%s\n", $$1, $$2}'
+
+
+.PHONY: validate-grype-test-config
+validate-grype-test-config:
+	# ensure the update URL is not overridden (not pointing to staging)
+	@bash -c '\
+		grep -q "update-url" test/grype-test-config.yaml; \
+		if [ $$? -eq 0 ]; then \
+			echo "Found \"update-url\" in CLI testing config. Cannot release if previous CLI testing did not use production (default) values"; \
+		fi'
+
+.PHONY: validate-syft-release-version
+validate-syft-release-version:
+	@./.github/scripts/syft-released-version-check.sh
 
 .PHONY: clean-test-cache
 clean-test-cache: ## Delete all test cache (built docker image tars)
