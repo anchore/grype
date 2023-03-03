@@ -33,7 +33,6 @@ jobs:
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
-      # TODO: any test fixtures
       
       - name: Run unit tests
         run: make unit
