@@ -16,7 +16,6 @@ BOUNCER_VERSION := v0.4.0
 CHRONICLE_VERSION := v0.6.0
 GORELEASER_VERSION := v1.15.2
 YAJSV_VERSION := v1.4.1
-COSIGN_VERSION := v1.13.1
 QUILL_VERSION := v0.2.0
 GLOW_VERSION := v1.5.0
 
@@ -118,7 +117,6 @@ bootstrap-tools: $(TEMP_DIR)
 	# the only difference between goimports and gosimports is that gosimports removes extra whitespace between import blocks (see https://github.com/golang/go/issues/20818)
 	GOBIN="$(realpath $(TEMP_DIR))" go install github.com/rinchsan/gosimports/cmd/gosimports@$(GOSIMPORTS_VERSION)
 	GOBIN="$(realpath $(TEMP_DIR))" go install github.com/neilpa/yajsv@$(YAJSV_VERSION)
-	GOBIN="$(realpath $(TEMP_DIR))" go install github.com/sigstore/cosign/cmd/cosign@$(COSIGN_VERSION)
 	GOBIN="$(realpath $(TEMP_DIR))" go install github.com/charmbracelet/glow@$(GLOW_VERSION)
 
 .PHONY: bootstrap-go
@@ -276,7 +274,7 @@ $(SNAPSHOT_DIR):  ## Build snapshot release binaries and packages
 
 .PHONY: changelog
 changelog: clean-changelog  ## Generate and show the changelog for the current unreleased version
-	$(CHRONICLE_CMD) -vvv -n --version-file VERSION > $(CHANGELOG)
+	$(CHRONICLE_CMD) -vv -n --version-file VERSION > $(CHANGELOG)
 	@$(GLOW_CMD) $(CHANGELOG)
 
 $(CHANGELOG):
