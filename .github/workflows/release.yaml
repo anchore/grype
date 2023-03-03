@@ -117,47 +117,47 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Tag release
-        run: |
-          git tag ${{ github.event.inputs.version }}
-          git push origin --tags
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build & publish release artifacts
-        run: make ci-release
-        env:
-          # for mac signing and notarization...
-          QUILL_SIGN_P12: ${{ secrets.ANCHORE_APPLE_DEVELOPER_ID_CERT_CHAIN }}
-          QUILL_SIGN_PASSWORD: ${{ secrets.ANCHORE_APPLE_DEVELOPER_ID_CERT_PASS }}
-          QUILL_NOTARY_ISSUER: ${{ secrets.APPLE_NOTARY_ISSUER }}
-          QUILL_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
-          QUILL_NOTARY_KEY: ${{ secrets.APPLE_NOTARY_KEY }}
-          # for creating the release (requires write access to packages and content)
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # for updating brew formula in anchore/homebrew-syft
-          GITHUB_BREW_TOKEN: ${{ secrets.ANCHORE_GIT_READ_TOKEN }}
-          # for updating the VERSION file in S3...
-          AWS_ACCESS_KEY_ID: ${{ secrets.TOOLBOX_AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.TOOLBOX_AWS_SECRET_ACCESS_KEY }}
-
-
-      - uses: anchore/sbom-action@07978da4bdb4faa726e52dfc6b1bed63d4b56479 # v0.13.3
-        continue-on-error: true
-        with:
-          artifact-name: sbom.spdx.json
-
-      - uses: 8398a7/action-slack@bdc6f9de222d3b7518e6cf99c4f3410f653cfde3 # v3.15.0
-        continue-on-error: true
-        with:
-          status: ${{ job.status }}
-          fields: repo,workflow,action,eventName
-          text: "A new Grype release has been published: https://github.com/anchore/grype/releases/tag/${{ github.ref_name }}"
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_TOOLBOX_WEBHOOK_URL }}
-        if: ${{ success() }}
-
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
-        with:
-          path: dist/**/*
-          name: artifacts
+#      - name: Tag release
+#        run: |
+#          git tag ${{ github.event.inputs.version }}
+#          git push origin --tags
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#
+#      - name: Build & publish release artifacts
+#        run: make ci-release
+#        env:
+#          # for mac signing and notarization...
+#          QUILL_SIGN_P12: ${{ secrets.ANCHORE_APPLE_DEVELOPER_ID_CERT_CHAIN }}
+#          QUILL_SIGN_PASSWORD: ${{ secrets.ANCHORE_APPLE_DEVELOPER_ID_CERT_PASS }}
+#          QUILL_NOTARY_ISSUER: ${{ secrets.APPLE_NOTARY_ISSUER }}
+#          QUILL_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+#          QUILL_NOTARY_KEY: ${{ secrets.APPLE_NOTARY_KEY }}
+#          # for creating the release (requires write access to packages and content)
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          # for updating brew formula in anchore/homebrew-syft
+#          GITHUB_BREW_TOKEN: ${{ secrets.ANCHORE_GIT_READ_TOKEN }}
+#          # for updating the VERSION file in S3...
+#          AWS_ACCESS_KEY_ID: ${{ secrets.TOOLBOX_AWS_ACCESS_KEY_ID }}
+#          AWS_SECRET_ACCESS_KEY: ${{ secrets.TOOLBOX_AWS_SECRET_ACCESS_KEY }}
+#
+#
+#      - uses: anchore/sbom-action@07978da4bdb4faa726e52dfc6b1bed63d4b56479 # v0.13.3
+#        continue-on-error: true
+#        with:
+#          artifact-name: sbom.spdx.json
+#
+#      - uses: 8398a7/action-slack@bdc6f9de222d3b7518e6cf99c4f3410f653cfde3 # v3.15.0
+#        continue-on-error: true
+#        with:
+#          status: ${{ job.status }}
+#          fields: repo,workflow,action,eventName
+#          text: "A new Grype release has been published: https://github.com/anchore/grype/releases/tag/${{ github.ref_name }}"
+#        env:
+#          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_TOOLBOX_WEBHOOK_URL }}
+#        if: ${{ success() }}
+#
+#      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+#        with:
+#          path: dist/**/*
+#          name: artifacts
