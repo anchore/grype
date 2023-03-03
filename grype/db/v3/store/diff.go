@@ -193,14 +193,14 @@ func diffVulnerabilities(baseModels, targetModels *[]v3.Vulnerability, basePkgsM
 					continue
 				}
 				diffs[k.id+k.namespace] = createDiff(basePkgsMap, targetPkgsMap, k, v3.DiffChanged)
-				differentItems.N++
+				differentItems.Increment()
 			}
 		} else {
 			if _, exists := diffs[k.id+k.namespace]; exists {
 				continue
 			}
 			diffs[k.id+k.namespace] = createDiff(nil, targetPkgsMap, k, v3.DiffAdded)
-			differentItems.N++
+			differentItems.Increment()
 		}
 	}
 	notSeen, partialSeen := m.getUnmatched()
@@ -209,14 +209,14 @@ func diffVulnerabilities(baseModels, targetModels *[]v3.Vulnerability, basePkgsM
 			continue
 		}
 		diffs[k.id+k.namespace] = createDiff(basePkgsMap, targetPkgsMap, k, v3.DiffChanged)
-		differentItems.N++
+		differentItems.Increment()
 	}
 	for _, k := range notSeen {
 		if _, exists := diffs[k.id+k.namespace]; exists {
 			continue
 		}
 		diffs[k.id+k.namespace] = createDiff(basePkgsMap, nil, k, v3.DiffRemoved)
-		differentItems.N++
+		differentItems.Increment()
 	}
 
 	return &diffs
@@ -276,14 +276,14 @@ func diffVulnerabilityMetadata(baseModels, targetModels *[]v3.VulnerabilityMetad
 					continue
 				}
 				diffs[k.id+k.namespace] = createDiff(basePkgsMap, targetPkgsMap, k, v3.DiffChanged)
-				differentItems.N++
+				differentItems.Increment()
 			}
 		} else {
 			if _, exists := diffs[k.id+k.namespace]; exists {
 				continue
 			}
 			diffs[k.id+k.namespace] = createDiff(nil, targetPkgsMap, k, v3.DiffAdded)
-			differentItems.N++
+			differentItems.Increment()
 		}
 	}
 	for _, k := range m.getUnmatched() {
@@ -291,7 +291,7 @@ func diffVulnerabilityMetadata(baseModels, targetModels *[]v3.VulnerabilityMetad
 			continue
 		}
 		diffs[k.id+k.namespace] = createDiff(basePkgsMap, nil, k, v3.DiffRemoved)
-		differentItems.N++
+		differentItems.Increment()
 	}
 
 	return &diffs

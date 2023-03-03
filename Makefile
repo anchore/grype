@@ -36,10 +36,10 @@ OS := $(shell uname | tr '[:upper:]' '[:lower:]')
 SYFT_VERSION := $(shell go list -m all | grep github.com/anchore/syft | awk '{print $$2}')
 SNAPSHOT_BIN := $(realpath $(shell pwd)/$(SNAPSHOT_DIR)/$(OS)-build_$(OS)_amd64_v1/$(BIN))
 
-GOLANGCILINT_VERSION := v1.51.1
+GOLANGCILINT_VERSION := v1.51.2
 BOUNCER_VERSION := v0.4.0
 CHRONICLE_VERSION := v0.6.0
-GOSIMPORTS_VERSION := v0.3.5
+GOSIMPORTS_VERSION := v0.3.7
 YAJSV_VERSION := v1.4.1
 GORELEASER_VERSION := v1.15.2
 

@@ -154,6 +154,10 @@ func FindMatches(store interface {
 		if err != nil {
 			log.Warnf("unable to determine linux distribution: %+v", err)
 		}
+		if d != nil && d.Disabled() {
+			log.Warnf("unsupported linux distribution: %s", d.Name())
+			return match.Matches{}
+		}
 	}
 
 	packagesProcessed, vulnerabilitiesDiscovered, vulnerabilitiesList := trackMatcher()
@@ -162,7 +166,7 @@ func FindMatches(store interface {
 		defaultMatcher = stock.NewStockMatcher(stock.MatcherConfig{UseCPEs: true})
 	}
 	for _, p := range packages {
-		packagesProcessed.N++
+		packagesProcessed.Increment()
 		log.Debugf("searching for vulnerability matches for pkg=%s", p)
 
 		matchAgainst, ok := matcherIndex[p.Type]
@@ -176,7 +180,7 @@ func FindMatches(store interface {
 			} else {
 				logMatches(p, matches)
 				res.Add(matches...)
-				vulnerabilitiesDiscovered.N += int64(len(matches))
+				vulnerabilitiesDiscovered.Add(int64(len(matches)))
 				updateVulnerabilityList(vulnerabilitiesList, matches, store)
 			}
 		}
@@ -201,39 +205,39 @@ func FindMatches(store interface {
 
 func logListSummary(vl *vulnerabilitiesList, vulnerabilitiesDiscovered int64, packages int) {
 	log.Debugf("found %d vulnerabilities for %d packages", vulnerabilitiesDiscovered, packages)
-	log.Debugf("  ├── fixed: %d", vl.Fixed.N)
-	log.Debugf("  ├── ignored: %d", vl.Unknown.N)
+	log.Debugf("  ├── fixed: %d", vl.Fixed.Current())
+	log.Debugf("  ├── ignored: %d", vl.Unknown.Current())
 	log.Debugf("  └── matched: %d", vulnerabilitiesDiscovered)
-	log.Debugf("      ├── unknown: %d", vl.Unknown.N)
-	log.Debugf("      ├── low: %d", vl.Low.N)
-	log.Debugf("      ├── medium: %d", vl.Medium.N)
-	log.Debugf("      ├── high: %d", vl.High.N)
-	log.Debugf("      └── critical: %d", vl.Critical.N)
+	log.Debugf("      ├── unknown: %d", vl.Unknown.Current())
+	log.Debugf("      ├── low: %d", vl.Low.Current())
+	log.Debugf("      ├── medium: %d", vl.Medium.Current())
+	log.Debugf("      ├── high: %d", vl.High.Current())
+	log.Debugf("      └── critical: %d", vl.Critical.Current())
 }
 
 func updateVulnerabilityList(list *vulnerabilitiesList, matches []match.Match, metadataProvider vulnerability.MetadataProvider) {
 	for _, m := range matches {
 		metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.Namespace)
 		if err != nil || metadata == nil {
-			list.Unknown.N++
+			list.Unknown.Increment()
 			continue
 		}
 
 		switch metadata.Severity {
 		case "Low":
-			list.Low.N++
+			list.Low.Increment()
 		case "Medium":
-			list.Medium.N++
+			list.Medium.Increment()
 		case "High":
-			list.High.N++
+			list.High.Increment()
 		case "Critical":
-			list.Critical.N++
+			list.Critical.Increment()
 		default:
-			list.Unknown.N++
+			list.Unknown.Increment()
 		}
 
 		if m.Vulnerability.Fix.State == grypeDb.FixedState {
-			list.Fixed.N++
+			list.Fixed.Increment()
 		}
 	}
 }

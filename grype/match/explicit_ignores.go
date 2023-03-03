@@ -27,6 +27,30 @@ func init() {
 			vulnerabilities: []string{"CVE-2015-5237", "CVE-2021-22570"},
 			packages:        []string{"google.golang.org/protobuf"},
 		},
+		// Affects Squiz Matrix, not in any way related to the matrix ruby gem
+		{
+			typ:             "gem",
+			vulnerabilities: []string{"CVE-2017-14196", "CVE-2017-14197", "CVE-2017-14198", "CVE-2019-19373", "CVE-2019-19374"},
+			packages:        []string{"matrix"},
+		},
+		// Affects the DeleGate proxy server, not in any way related to the delegate ruby gem
+		{
+			typ:             "gem",
+			vulnerabilities: []string{"CVE-1999-1338", "CVE-2001-1202", "CVE-2002-1781", "CVE-2004-0789", "CVE-2004-2003", "CVE-2005-0036", "CVE-2005-0861", "CVE-2006-2072", "CVE-2015-7556"},
+			packages:        []string{"delegate"},
+		},
+		// Affects the Observer autodiscovery PHP/MySQL/SNMP/CDP based network management system, not in any way related to the observer ruby gem
+		{
+			typ:             "gem",
+			vulnerabilities: []string{"CVE-2008-4318"},
+			packages:        []string{"observer"},
+		},
+		// Affects the WeeChat logger plugin, not in any way related to the logger ruby gem
+		{
+			typ:             "gem",
+			vulnerabilities: []string{"CVE-2017-14727"},
+			packages:        []string{"logger"},
+		},
 	}
 
 	for _, ignore := range explicitIgnores {

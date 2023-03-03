@@ -99,15 +99,11 @@ func (d *Differ) setOrDownload(curator *db.Curator, filenameOrURL string) error 
 
 func download(curator *db.Curator, listing *db.ListingEntry) error {
 	// let consumers know of a monitorable event (download + import stages)
-	importProgress := &progress.Manual{
-		Total: 1,
-	}
+	importProgress := progress.NewManual(1)
 	stage := &progress.Stage{
 		Current: "checking available databases",
 	}
-	downloadProgress := &progress.Manual{
-		Total: 1,
-	}
+	downloadProgress := progress.NewManual(1)
 	aggregateProgress := progress.NewAggregator(progress.DefaultStrategy, downloadProgress, importProgress)
 
 	bus.Publish(partybus.Event{
