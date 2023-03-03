@@ -3,7 +3,9 @@ package ui
 import (
 	"context"
 	"fmt"
+	"github.com/anchore/grype/grype/vulnerability"
 	"io"
+	"sort"
 	"sync"
 	"time"
 
@@ -114,16 +116,19 @@ func scanningAndSummaryLines(fr *frame.Frame) (scanningLine, summaryLine, fixedL
 }
 
 func assembleProgressMonitors(m *matcher.Monitor) []progress.Monitorable {
-	return []progress.Monitorable{
+	ret := []progress.Monitorable{
 		m.PackagesProcessed,
 		m.VulnerabilitiesDiscovered,
-		m.VulnerabilitiesCategories.Unknown,
-		m.VulnerabilitiesCategories.Low,
-		m.VulnerabilitiesCategories.Medium,
-		m.VulnerabilitiesCategories.High,
-		m.VulnerabilitiesCategories.Critical,
-		m.VulnerabilitiesCategories.Fixed,
 	}
+
+	allSeverities := append([]vulnerability.Severity{vulnerability.UnknownSeverity}, vulnerability.AllSeverities()...)
+	for _, sev := range allSeverities {
+		ret = append(ret, m.BySeverity[sev])
+	}
+
+	ret = append(ret, m.Fixed)
+
+	return ret
 }
 
 //nolint:funlen
@@ -183,25 +188,31 @@ func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *f
 		_, _ = io.WriteString(scanningLine, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
 
 		unknownStr := ""
-		unknown := monitor.VulnerabilitiesCategories.Unknown.Current()
+		unknown := monitor.BySeverity[vulnerability.UnknownSeverity].Current()
 		if unknown > 0 {
 			unknownStr = fmt.Sprintf("(%d unknown)", unknown)
 		}
 
+		allSeverities := vulnerability.AllSeverities()
+		sort.Sort(sort.Reverse(vulnerability.Severities(allSeverities)))
+
+		var values []interface{}
+
+		for _, sev := range allSeverities {
+			values = append(values, monitor.BySeverity[sev].Current())
+		}
+		values = append(values, unknownStr)
+
 		status := fmt.Sprintf(
 			summaryTempl,
-			monitor.VulnerabilitiesCategories.Critical.Current(),
-			monitor.VulnerabilitiesCategories.High.Current(),
-			monitor.VulnerabilitiesCategories.Medium.Current(),
-			monitor.VulnerabilitiesCategories.Low.Current(),
-			unknownStr,
+			values...,
 		)
 		auxInfo2 := auxInfoFormat.Sprintf("   %s %s", branch, status)
 		_, _ = io.WriteString(summaryLine, auxInfo2)
 
 		fixStatus := fmt.Sprintf(
 			FixTempl,
-			monitor.VulnerabilitiesCategories.Fixed.Current(),
+			monitor.Fixed.Current(),
 		)
 		_, _ = io.WriteString(fixLine, auxInfoFormat.Sprintf("   %s %s", end, fixStatus))
 	}()

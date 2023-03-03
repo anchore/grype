@@ -31,16 +31,51 @@ import (
 type Monitor struct {
 	PackagesProcessed         progress.Monitorable
 	VulnerabilitiesDiscovered progress.Monitorable
-	VulnerabilitiesCategories *VulnerabilitiesCategories
+	Fixed                     progress.Monitorable
+	BySeverity                map[vulnerability.Severity]progress.Monitorable
 }
 
-type VulnerabilitiesCategories struct {
-	Unknown  progress.Monitorable
-	Low      progress.Monitorable
-	Medium   progress.Monitorable
-	High     progress.Monitorable
-	Critical progress.Monitorable
-	Fixed    progress.Monitorable
+type monitor struct {
+	PackagesProcessed         *progress.Manual
+	VulnerabilitiesDiscovered *progress.Manual
+	Fixed                     *progress.Manual
+	BySeverity                map[vulnerability.Severity]*progress.Manual
+}
+
+func newMonitor() (monitor, Monitor) {
+	manualBySev := make(map[vulnerability.Severity]*progress.Manual)
+	for _, severity := range vulnerability.AllSeverities() {
+		manualBySev[severity] = progress.NewManual(-1)
+	}
+	manualBySev[vulnerability.UnknownSeverity] = progress.NewManual(-1)
+
+	m := monitor{
+		PackagesProcessed:         progress.NewManual(-1),
+		VulnerabilitiesDiscovered: progress.NewManual(-1),
+		Fixed:                     progress.NewManual(-1),
+		BySeverity:                manualBySev,
+	}
+
+	monitorableBySev := make(map[vulnerability.Severity]progress.Monitorable)
+	for sev, manual := range manualBySev {
+		monitorableBySev[sev] = manual
+	}
+
+	return m, Monitor{
+		PackagesProcessed:         m.PackagesProcessed,
+		VulnerabilitiesDiscovered: m.VulnerabilitiesDiscovered,
+		Fixed:                     m.Fixed,
+		BySeverity:                monitorableBySev,
+	}
+}
+
+func (m *monitor) SetCompleted() {
+	m.PackagesProcessed.SetCompleted()
+	m.VulnerabilitiesDiscovered.SetCompleted()
+	m.Fixed.SetCompleted()
+	for _, v := range m.BySeverity {
+		v.SetCompleted()
+	}
 }
 
 // Config contains values used by individual matcher structs for advanced configuration
@@ -71,51 +106,15 @@ func NewDefaultMatchers(mc Config) []Matcher {
 	}
 }
 
-type vulnerabilitiesList struct {
-	Unknown  *progress.Manual
-	Low      *progress.Manual
-	Medium   *progress.Manual
-	High     *progress.Manual
-	Critical *progress.Manual
-	Fixed    *progress.Manual
-}
-
-func trackMatcher() (*progress.Manual, *progress.Manual, *vulnerabilitiesList) {
-	packagesProcessed := progress.Manual{}
-	vulnerabilitiesDiscovered := progress.Manual{}
-	vulnerabilitiesUnknownCategory := progress.Manual{}
-	vulnerabilitiesLowCategory := progress.Manual{}
-	vulnerabilitiesMediumCategory := progress.Manual{}
-	vulnerabilitiesHighCategory := progress.Manual{}
-	vulnerabilitiesCriticalCategory := progress.Manual{}
-	vulnerabilitiesFixed := progress.Manual{}
+func trackMatcher() *monitor {
+	writer, reader := newMonitor()
 
 	bus.Publish(partybus.Event{
-		Type: event.VulnerabilityScanningStarted,
-		Value: Monitor{
-			PackagesProcessed:         progress.Monitorable(&packagesProcessed),
-			VulnerabilitiesDiscovered: progress.Monitorable(&vulnerabilitiesDiscovered),
-			VulnerabilitiesCategories: &VulnerabilitiesCategories{
-				Unknown:  progress.Monitorable(&vulnerabilitiesUnknownCategory),
-				Low:      progress.Monitorable(&vulnerabilitiesLowCategory),
-				Medium:   progress.Monitorable(&vulnerabilitiesMediumCategory),
-				High:     progress.Monitorable(&vulnerabilitiesHighCategory),
-				Critical: progress.Monitorable(&vulnerabilitiesCriticalCategory),
-				Fixed:    progress.Monitorable(&vulnerabilitiesFixed),
-			},
-		},
+		Type:  event.VulnerabilityScanningStarted,
+		Value: reader,
 	})
 
-	vulnerabilitiesList := &vulnerabilitiesList{
-		Unknown:  &vulnerabilitiesUnknownCategory,
-		Low:      &vulnerabilitiesLowCategory,
-		Medium:   &vulnerabilitiesMediumCategory,
-		High:     &vulnerabilitiesHighCategory,
-		Critical: &vulnerabilitiesCriticalCategory,
-		Fixed:    &vulnerabilitiesFixed,
-	}
-
-	return &packagesProcessed, &vulnerabilitiesDiscovered, vulnerabilitiesList
+	return &writer
 }
 
 func newMatcherIndex(matchers []Matcher) (map[syftPkg.Type][]Matcher, Matcher) {
@@ -160,13 +159,13 @@ func FindMatches(store interface {
 		}
 	}
 
-	packagesProcessed, vulnerabilitiesDiscovered, vulnerabilitiesList := trackMatcher()
+	progressMonitor := trackMatcher()
 
 	if defaultMatcher == nil {
 		defaultMatcher = stock.NewStockMatcher(stock.MatcherConfig{UseCPEs: true})
 	}
 	for _, p := range packages {
-		packagesProcessed.Increment()
+		progressMonitor.PackagesProcessed.Increment()
 		log.Debugf("searching for vulnerability matches for pkg=%s", p)
 
 		matchAgainst, ok := matcherIndex[p.Type]
@@ -180,22 +179,15 @@ func FindMatches(store interface {
 			} else {
 				logMatches(p, matches)
 				res.Add(matches...)
-				vulnerabilitiesDiscovered.Add(int64(len(matches)))
-				updateVulnerabilityList(vulnerabilitiesList, matches, store)
+				progressMonitor.VulnerabilitiesDiscovered.Add(int64(len(matches)))
+				updateVulnerabilityList(progressMonitor, matches, store)
 			}
 		}
 	}
 
-	packagesProcessed.SetCompleted()
-	vulnerabilitiesDiscovered.SetCompleted()
-	vulnerabilitiesList.Unknown.SetCompleted()
-	vulnerabilitiesList.Low.SetCompleted()
-	vulnerabilitiesList.Medium.SetCompleted()
-	vulnerabilitiesList.High.SetCompleted()
-	vulnerabilitiesList.Critical.SetCompleted()
-	vulnerabilitiesList.Fixed.SetCompleted()
+	progressMonitor.SetCompleted()
 
-	logListSummary(vulnerabilitiesList, vulnerabilitiesDiscovered.N, len(packages))
+	logListSummary(progressMonitor)
 
 	// Filter out matches based off of the records in the exclusion table in the database or from the old hard-coded rules
 	res = match.ApplyExplicitIgnoreRules(store, res)
@@ -203,38 +195,41 @@ func FindMatches(store interface {
 	return res
 }
 
-func logListSummary(vl *vulnerabilitiesList, vulnerabilitiesDiscovered int64, packages int) {
-	log.Debugf("found %d vulnerabilities for %d packages", vulnerabilitiesDiscovered, packages)
+func logListSummary(vl *monitor) {
+	log.Infof("found %d vulnerabilities for %d packages", vl.VulnerabilitiesDiscovered.Current(), vl.PackagesProcessed.Current())
 	log.Debugf("  ├── fixed: %d", vl.Fixed.Current())
-	log.Debugf("  ├── ignored: %d", vl.Unknown.Current())
-	log.Debugf("  └── matched: %d", vulnerabilitiesDiscovered)
-	log.Debugf("      ├── unknown: %d", vl.Unknown.Current())
-	log.Debugf("      ├── low: %d", vl.Low.Current())
-	log.Debugf("      ├── medium: %d", vl.Medium.Current())
-	log.Debugf("      ├── high: %d", vl.High.Current())
-	log.Debugf("      └── critical: %d", vl.Critical.Current())
+	log.Debugf("  └── matched: %d", vl.VulnerabilitiesDiscovered.Current())
+
+	var unknownCount int64
+	if count, ok := vl.BySeverity[vulnerability.UnknownSeverity]; ok {
+		unknownCount = count.Current()
+	}
+	log.Debugf("      ├── %s: %d", vulnerability.UnknownSeverity.String(), unknownCount)
+
+	allSeverities := vulnerability.AllSeverities()
+	for idx, sev := range allSeverities {
+		branch := "├"
+		if idx == len(allSeverities)-1 {
+			branch = "└"
+		}
+		log.Debugf("      %s── %s: %d", branch, sev.String(), vl.BySeverity[sev].Current())
+	}
 }
 
-func updateVulnerabilityList(list *vulnerabilitiesList, matches []match.Match, metadataProvider vulnerability.MetadataProvider) {
+func updateVulnerabilityList(list *monitor, matches []match.Match, metadataProvider vulnerability.MetadataProvider) {
 	for _, m := range matches {
 		metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.Namespace)
 		if err != nil || metadata == nil {
-			list.Unknown.Increment()
+			list.BySeverity[vulnerability.UnknownSeverity].Increment()
 			continue
 		}
 
-		switch metadata.Severity {
-		case "Low":
-			list.Low.Increment()
-		case "Medium":
-			list.Medium.Increment()
-		case "High":
-			list.High.Increment()
-		case "Critical":
-			list.Critical.Increment()
-		default:
-			list.Unknown.Increment()
+		sevManualProgress, ok := list.BySeverity[vulnerability.ParseSeverity(metadata.Severity)]
+		if !ok {
+			list.BySeverity[vulnerability.UnknownSeverity].Increment()
+			continue
 		}
+		sevManualProgress.Increment()
 
 		if m.Vulnerability.Fix.State == grypeDb.FixedState {
 			list.Fixed.Increment()
