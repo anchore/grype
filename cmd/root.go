@@ -155,7 +155,7 @@ func setRootFlags(flags *pflag.FlagSet) {
 
 	flags.StringP(
 		"fail-on", "f", "",
-		fmt.Sprintf("set the return code to 1 if a vulnerability is found with a severity >= the given severity, options=%v", vulnerability.AllSeverities),
+		fmt.Sprintf("set the return code to 1 if a vulnerability is found with a severity >= the given severity, options=%v", vulnerability.AllSeverities()),
 	)
 
 	flags.BoolP(
