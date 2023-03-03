@@ -1,5 +1,6 @@
 name: "Release"
 on:
+  push:
   workflow_dispatch:
     inputs:
       version:
@@ -14,13 +15,13 @@ jobs:
     environment: release
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3 ## TODO (cphillips) pin this to sha
+      - uses: actions/checkout@v3
 
-      - name: Check if tag already exists
-        # note: this will fail if the tag already exists
-        run: |
-          [[ "${{ github.event.inputs.version }}" == v* ]] || (echo "version '${{ github.event.inputs.version }}' does not have a 'v' prefix" && exit 1)
-          git tag ${{ github.event.inputs.version }}
+#      - name: Check if tag already exists
+#        # note: this will fail if the tag already exists
+#        run: |
+#          [[ "${{ github.event.inputs.version }}" == v* ]] || (echo "version '${{ github.event.inputs.version }}' does not have a 'v' prefix" && exit 1)
+#          git tag ${{ github.event.inputs.version }}
 
       - name: Check static analysis results
         uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
