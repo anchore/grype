@@ -368,6 +368,81 @@ func TestNvdOnlyMatches(t *testing.T) {
 	assertMatches(t, expected, actual)
 }
 
+func TestNvdMatchesProperVersionFiltering(t *testing.T) {
+	nvdVulnMatch := grypeDB.Vulnerability{
+		ID:                "CVE-2020-1",
+		VersionConstraint: "<= 0.9.11",
+		VersionFormat:     "unknown",
+		CPEs:              []string{`cpe:2.3:a:lib_vnc_project-\(server\):libvncserver:*:*:*:*:*:*:*:*`},
+		Namespace:         "nvd:cpe",
+	}
+	nvdVulnNoMatch := grypeDB.Vulnerability{
+		ID:                "CVE-2020-2",
+		VersionConstraint: "< 0.9.11",
+		VersionFormat:     "unknown",
+		CPEs:              []string{`cpe:2.3:a:lib_vnc_project-\(server\):libvncserver:*:*:*:*:*:*:*:*`},
+		Namespace:         "nvd:cpe",
+	}
+	store := mockStore{
+		backend: map[string]map[string][]grypeDB.Vulnerability{
+			"nvd:cpe": {
+				"libvncserver": []grypeDB.Vulnerability{nvdVulnMatch, nvdVulnNoMatch},
+			},
+		},
+	}
+
+	provider, err := db.NewVulnerabilityProvider(&store)
+	require.NoError(t, err)
+
+	m := Matcher{}
+	d, err := distro.New(distro.Alpine, "3.12.0", "")
+	if err != nil {
+		t.Fatalf("failed to create a new distro: %+v", err)
+	}
+	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
+		Name:    "libvncserver",
+		Version: "0.9.11-r10",
+		Type:    syftPkg.ApkPkg,
+		CPEs: []cpe.CPE{
+			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.11:*:*:*:*:*:*:*"),
+		},
+	}
+
+	vulnFound, err := vulnerability.NewVulnerability(nvdVulnMatch)
+	assert.NoError(t, err)
+	vulnFound.CPEs = []cpe.CPE{cpe.Must(nvdVulnMatch.CPEs[0])}
+
+	expected := []match.Match{
+		{
+
+			Vulnerability: *vulnFound,
+			Package:       p,
+			Details: []match.Detail{
+				{
+					Type:       match.CPEMatch,
+					Confidence: 0.9,
+					SearchedBy: search.CPEParameters{
+						CPEs:      []string{"cpe:2.3:a:*:libvncserver:0.9.11:*:*:*:*:*:*:*"},
+						Namespace: "nvd:cpe",
+					},
+					Found: search.CPEResult{
+						CPEs:              []string{vulnFound.CPEs[0].BindToFmtString()},
+						VersionConstraint: vulnFound.Constraint.String(),
+						VulnerabilityID:   "CVE-2020-1",
+					},
+					Matcher: match.ApkMatcher,
+				},
+			},
+		},
+	}
+
+	actual, err := m.Match(provider, d, p)
+	assert.NoError(t, err)
+
+	assertMatches(t, expected, actual)
+}
+
 func TestNvdMatchesWithSecDBFix(t *testing.T) {
 	nvdVuln := grypeDB.Vulnerability{
 		ID:                "CVE-2020-1",
