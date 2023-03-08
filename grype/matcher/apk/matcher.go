@@ -2,7 +2,6 @@ package apk
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
@@ -46,8 +45,7 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 
 func (m *Matcher) cpeMatchesWithoutSecDBFixes(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	// find CPE-indexed vulnerability matches specific to the given package name and version
-	cpePackage := cpeComparablePackage(p)
-	cpeMatches, err := search.ByPackageCPE(store, cpePackage, m.Type())
+	cpeMatches, err := search.ByPackageCPE(store, p, m.Type())
 	if err != nil {
 		return nil, err
 	}
@@ -101,37 +99,6 @@ cveLoop:
 		}
 	}
 	return finalCpeMatches, nil
-}
-
-func cpeComparablePackage(p pkg.Package) pkg.Package {
-	// clean the alpine package version so that it compares correctly with the CPE version comparison logic
-	// alpine versions are suffixed with -r{buildindex}; however, if left intact CPE comparison logic will
-	// incorrectly treat these as a pre-release.  In actuality, we just want to treat 1.2.3-r21 as equivalent to
-	// 1.2.3 for purposes of CPE-based matching since the alpine fix should filter out any cases where a later
-	// build fixes something that was vulnerable in 1.2.3
-	components := strings.Split(p.Version, "-r")
-	cpeComparableVersion := p.Version
-
-	if len(components) == 2 {
-		cpeComparableVersion = components[0]
-	}
-
-	if cpeComparableVersion == p.Version {
-		return p
-	}
-
-	t := p
-	t.CPEs = nil
-	t.CPEs = append(t.CPEs, p.CPEs...)
-
-	for index, cpe := range t.CPEs {
-		if cpe.Version == p.Version {
-			cpe.Version = cpeComparableVersion
-			t.CPEs[index] = cpe
-		}
-	}
-
-	return t
 }
 
 func deduplicateMatches(secDBMatches, cpeMatches []match.Match) (matches []match.Match) {

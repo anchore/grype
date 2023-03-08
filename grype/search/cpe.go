@@ -3,6 +3,7 @@ package search
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/facebookincubator/nvdtools/wfn"
 	"github.com/scylladb/go-set/strset"
@@ -12,6 +13,7 @@ import (
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/cpe"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 type CPEParameters struct {
@@ -56,6 +58,22 @@ func (h CPEResult) Equals(other CPEResult) bool {
 	return true
 }
 
+func alpineCPEComparableVersion(version string) string {
+	// clean the alpine package version so that it compares correctly with the CPE version comparison logic
+	// alpine versions are suffixed with -r{buildindex}; however, if left intact CPE comparison logic will
+	// incorrectly treat these as a pre-release.  In actuality, we just want to treat 1.2.3-r21 as equivalent to
+	// 1.2.3 for purposes of CPE-based matching since the alpine fix should filter out any cases where a later
+	// build fixes something that was vulnerable in 1.2.3
+	components := strings.Split(version, "-r")
+	cpeComparableVersion := version
+
+	if len(components) == 2 {
+		cpeComparableVersion = components[0]
+	}
+
+	return cpeComparableVersion
+}
+
 // ByPackageCPE retrieves all vulnerabilities that match the generated CPE
 func ByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
 	// we attempt to merge match details within the same matcher when searching by CPEs, in this way there are fewer duplicated match
@@ -64,6 +82,11 @@ func ByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, upstreamMatc
 	for _, c := range p.CPEs {
 		// prefer the CPE version, but if npt specified use the package version
 		searchVersion := c.Version
+
+		if p.Type == syftPkg.ApkPkg {
+			searchVersion = alpineCPEComparableVersion(searchVersion)
+		}
+
 		if searchVersion == wfn.NA || searchVersion == wfn.Any {
 			searchVersion = p.Version
 		}
