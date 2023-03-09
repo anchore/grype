@@ -15,7 +15,7 @@ require (
 	github.com/docker/docker v23.0.1+incompatible
 	github.com/dustin/go-humanize v1.0.1
 	github.com/facebookincubator/nvdtools v0.1.5
-	github.com/gabriel-vasile/mimetype v1.4.1
+	github.com/gabriel-vasile/mimetype v1.4.2
 	github.com/go-test/deep v1.1.0
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.0
