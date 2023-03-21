@@ -67,7 +67,7 @@ func init() {
 	rootCmd.AddCommand(completionCmd)
 }
 
-func dockerImageValidArgsFunction(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func dockerImageValidArgsFunction(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	// Since we use ValidArgsFunction, Cobra will call this AFTER having parsed all flags and arguments provided
 	dockerImageRepoTags, err := listLocalDockerImages(toComplete)
 	if err != nil {

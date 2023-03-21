@@ -189,6 +189,7 @@ func setRootFlags(flags *pflag.FlagSet) {
 	)
 }
 
+//nolint:revive
 func bindRootConfigOptions(flags *pflag.FlagSet) error {
 	if err := viper.BindPFlag("search.scope", flags.Lookup("scope")); err != nil {
 		return err
