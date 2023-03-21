@@ -20,7 +20,7 @@ func (l logAdapter) LogMode(logger.LogLevel) logger.Interface {
 	return l
 }
 
-func (l logAdapter) Info(_ context.Context, fmt string, v ...interface{}) {
+func (l logAdapter) Info(_ context.Context, _ string, _ ...interface{}) {
 	// unimplemented
 }
 
@@ -32,6 +32,6 @@ func (l logAdapter) Error(_ context.Context, fmt string, v ...interface{}) {
 	log.Errorf("gorm: "+fmt, v...)
 }
 
-func (l logAdapter) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
+func (l logAdapter) Trace(_ context.Context, _ time.Time, _ func() (sql string, rowsAffected int64), _ error) {
 	// unimplemented
 }
