@@ -64,8 +64,8 @@ jobs:
           delete-branch: true
           branch: auto/latest-bootstrap-tools
           labels: dependencies
-          commit-message: 'Update grype bootstrap tools to latest versions.'
-          title: 'Update grype bootstrap tools to latest versions.'
+          commit-message: 'chore(deps): update bootstrap tools to latest versions'
+          title: 'chore(deps): update bootstrap tools to latest versions'
           body: |
             - [golangci-lint ${{ steps.latest-versions.outputs.GOLANGCILINT }}](https://github.com/golangci/golangci-lint/releases/tag/${{ steps.latest-versions.outputs.GOLANGCILINT }})
             - [bouncer ${{ steps.latest-versions.outputs.BOUNCER }}](https://github.com/wagoodman/go-bouncer/releases/tag/${{ steps.latest-versions.outputs.BOUNCER }})
