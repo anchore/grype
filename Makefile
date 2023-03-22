@@ -10,7 +10,7 @@ CHRONICLE_CMD = $(TEMP_DIR)/chronicle
 GLOW_CMD = $(TEMP_DIR)/glow
 
 # Tool versions #################################
-GOLANGCILINT_VERSION := v1.52.0
+GOLANGCILINT_VERSION := v1.52.1
 GOSIMPORTS_VERSION := v0.3.8
 BOUNCER_VERSION := v0.4.0
 CHRONICLE_VERSION := v0.6.0
