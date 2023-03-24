@@ -186,6 +186,10 @@ func Test_NamespaceForDistro(t *testing.T) {
 			version:  "2022yzblah", // Wolfi is a rolling release
 			expected: "wolfi:rolling",
 		},
+		{
+			dist:     distro.Chainguard,
+			expected: "chainguard:rolling",
+		},
 	}
 
 	observedDistros := strset.New()

@@ -133,6 +133,7 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 		"ubuntu:distro:ubuntu:18.04",
 		"oracle:distro:oraclelinux:8",
 		"wolfi:distro:wolfi:rolling",
+		"chainguard:distro:chainguard:rolling",
 		"archlinux:distro:archlinux:rolling",
 	})
 
@@ -265,6 +266,12 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 			distro: newDistro(t, osDistro.Wolfi, "20221011", []string{}),
 			namespaces: []*distro.Namespace{
 				distro.NewNamespace("wolfi", osDistro.Wolfi, "rolling"),
+			},
+		},
+		{
+			distro: newDistro(t, osDistro.Chainguard, "20230214", []string{}),
+			namespaces: []*distro.Namespace{
+				distro.NewNamespace("chainguard", osDistro.Chainguard, "rolling"),
 			},
 		},
 	}
