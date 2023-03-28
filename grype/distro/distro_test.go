@@ -208,6 +208,10 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			fixture: "test-fixtures/os/wolfi",
 			Type:    Wolfi,
 		},
+		{
+			fixture: "test-fixtures/os/chainguard",
+			Type:    Chainguard,
+		},
 	}
 
 	observedDistros := internal.NewStringSet()
@@ -243,7 +247,6 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			if test.Version != "" {
 				assert.Equal(t, d.Version.String(), test.Version)
 			}
-
 		})
 	}
 
