@@ -50,6 +50,7 @@ x-ref:
     - cgr.dev/chainguard/wolfi-base:latest-20221001@sha256:be3834598c3c4b76ace6a866edcbbe1fa18086f9ee238b57769e4d230cd7d507
     - docker.io/gitlab/gitlab-ce:15.6.1-ce.0@sha256:04d4219d5dfb3acccc9997e50477c8d24b371387a95857e1ea8fc779e17a716c
     - docker.io/postgres:13.2@sha256:1a67ab960138c479d66834cd6bcb5b5582c53869e6052dbf4ff48d4a94c13da3
+    - ghcr.io/chainguard-images/scanner-test@sha256:59bddc101fba0c45d5c093575c6bc5bfee7f0e46ff127e6bb4e5acaaafb525f9
 
 # new vulnerabilities are added all of the time, instead of keeping up it's easier to ignore newer entries.
 # This approach helps tremendously with keeping the analysis relatively stable.
