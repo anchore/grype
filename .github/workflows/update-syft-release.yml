@@ -24,8 +24,12 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           stable: ${{ env.GO_STABLE_VERSION }}
 
-      - run: |
-          LATEST_VERSION=$(curl "https://api.github.com/repos/anchore/syft/releases/latest" 2>/dev/null | jq -r '.tag_name')
+      - name: Get latest Syft version
+        id: latest-version
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          LATEST_VERSION=$(gh release view --json name -q '.name' -R anchore/syft)
 
           # update go.mod
           go get github.com/anchore/syft@$LATEST_VERSION
@@ -33,7 +37,6 @@ jobs:
 
           # export the version for use with create-pull-request
           echo "LATEST_VERSION=$LATEST_VERSION" >> $GITHUB_OUTPUT
-        id: latest-version
 
       - uses: tibdex/github-app-token@b62528385c34dbc9f38e5f4225ac829252d1ea92 # v1.8.0
         id: generate-token
