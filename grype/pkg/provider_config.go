@@ -11,10 +11,12 @@ type ProviderConfig struct {
 }
 
 type SyftProviderConfig struct {
-	CatalogingOptions cataloger.Config
-	RegistryOptions   *image.RegistryOptions
-	Platform          string
-	Exclusions        []string
+	CatalogingOptions      cataloger.Config
+	RegistryOptions        *image.RegistryOptions
+	Platform               string
+	Exclusions             []string
+	Name                   string
+	DefaultImagePullSource string
 }
 
 type SynthesisConfig struct {

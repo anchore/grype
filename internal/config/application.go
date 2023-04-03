@@ -55,6 +55,7 @@ type Application struct {
 	Log                    logging                 `yaml:"log" json:"log" mapstructure:"log"`
 	ShowSuppressed         bool                    `yaml:"show-suppressed" json:"show-suppressed" mapstructure:"show-suppressed"`
 	ByCVE                  bool                    `yaml:"by-cve" json:"by-cve" mapstructure:"by-cve"` // --by-cve, indicates if the original match vulnerability IDs should be preserved or the CVE should be used instead
+	Name                   string                  `yaml:"name" json:"name" mapstructure:"name"`
 	DefaultImagePullSource string                  `yaml:"default-image-pull-source" json:"default-image-pull-source" mapstructure:"default-image-pull-source"`
 }
 

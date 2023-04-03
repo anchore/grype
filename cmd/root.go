@@ -466,10 +466,12 @@ func getMatchers() []matcher.Matcher {
 func getProviderConfig() pkg.ProviderConfig {
 	return pkg.ProviderConfig{
 		SyftProviderConfig: pkg.SyftProviderConfig{
-			RegistryOptions:   appConfig.Registry.ToOptions(),
-			Exclusions:        appConfig.Exclusions,
-			CatalogingOptions: appConfig.Search.ToConfig(),
-			Platform:          appConfig.Platform,
+			RegistryOptions:        appConfig.Registry.ToOptions(),
+			Exclusions:             appConfig.Exclusions,
+			CatalogingOptions:      appConfig.Search.ToConfig(),
+			Platform:               appConfig.Platform,
+			Name:                   appConfig.Name,
+			DefaultImagePullSource: appConfig.DefaultImagePullSource,
 		},
 		SynthesisConfig: pkg.SynthesisConfig{
 			GenerateMissingCPEs: appConfig.GenerateMissingCPEs,
