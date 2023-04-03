@@ -11,7 +11,7 @@ func syftProvider(userInput string, config ProviderConfig) ([]Package, Context, 
 		return nil, Context{}, nil, errDoesNotProvide
 	}
 
-	sourceInput, err := source.ParseInputWithName(userInput, config.Platform, "", config.DefaultImagePullSource)
+	sourceInput, err := source.ParseInputWithName(userInput, config.Platform, config.Name, config.DefaultImagePullSource)
 	if err != nil {
 		return nil, Context{}, nil, err
 	}
