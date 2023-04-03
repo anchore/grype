@@ -62,7 +62,7 @@ func saveImage(t testing.TB, imageName string, destPath string) {
 }
 
 func getSyftSBOM(t testing.TB, image string, format sbom.Format) string {
-	sourceInput, err := source.ParseInput(image, "", true)
+	sourceInput, err := source.ParseInput(image, "")
 	if err != nil {
 		t.Fatalf("could not generate source input for packages command: %+v", err)
 	}

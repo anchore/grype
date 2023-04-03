@@ -578,7 +578,7 @@ func TestMatchByImage(t *testing.T) {
 
 			userImage := "docker-archive:" + tarPath
 
-			sourceInput, err := source.ParseInput(userImage, "", true)
+			sourceInput, err := source.ParseInput(userImage, "")
 			require.NoError(t, err)
 
 			// this is purely done to help setup mocks
