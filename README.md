@@ -557,6 +557,9 @@ check-for-app-update: true
 # valid values are: registry, docker, podman
 default-image-pull-source: ""
 
+# same as --name; set the name of the target being analyzed
+name: ""
+
 # upon scanning, if a severity is found at or above the given severity then the return code will be 1
 # default is unset which will skip this validation (options: negligible, low, medium, high, critical)
 # same as --fail-on ; GRYPE_FAIL_ON_SEVERITY env var
