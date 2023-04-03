@@ -555,6 +555,7 @@ check-for-app-update: true
 
 # allows users to specify which image source should be used to generate the sbom
 # valid values are: registry, docker, podman
+# same as GRYPE_DEFAULT_IMAGE_PULL_SOURCE env var
 default-image-pull-source: ""
 
 # same as --name; set the name of the target being analyzed
