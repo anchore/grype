@@ -11,7 +11,7 @@ func syftProvider(userInput string, config ProviderConfig) ([]Package, Context, 
 		return nil, Context{}, nil, errDoesNotProvide
 	}
 
-	sourceInput, err := source.ParseInput(userInput, config.Platform, true)
+	sourceInput, err := source.ParseInput(userInput, config.Platform)
 	if err != nil {
 		return nil, Context{}, nil, err
 	}
