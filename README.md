@@ -140,6 +140,12 @@ sbom:path/to/syft.json                 read Syft JSON from path on disk
 registry:yourrepo/yourimage:tag        pull image directly from a registry (no container runtime required)
 ```
 
+If an image source is not provided and cannot be detected from the given reference it is assumed the image should be pulled from the Docker daemon.
+If docker is not present, then the Podman daemon is attempted next, followed by reaching out directly to the image registry last.
+
+
+This default behavior can be overridden with the `default-image-pull-source` configuration option (See [Configuration](https://github.com/anchore/grype#configuration) for more details).
+
 Use SBOMs for even faster vulnerability scanning in Grype:
 
 ```
@@ -546,6 +552,10 @@ Configuration options (example values are the default):
 # enable/disable checking for application updates on startup
 # same as GRYPE_CHECK_FOR_APP_UPDATE env var
 check-for-app-update: true
+
+# allows users to specify which image source should be used to generate the sbom
+# valid values are: registry, docker, podman
+default-image-pull-source: ""
 
 # upon scanning, if a severity is found at or above the given severity then the return code will be 1
 # default is unset which will skip this validation (options: negligible, low, medium, high, critical)
