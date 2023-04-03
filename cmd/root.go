@@ -141,6 +141,11 @@ func setRootFlags(flags *pflag.FlagSet) {
 	)
 
 	flags.StringP(
+		"name", "", "",
+		"set the name of the target being analyzed",
+	)
+
+	flags.StringP(
 		"distro", "", "",
 		"distro to match against in the format: <distro>:<version>",
 	)
@@ -240,6 +245,10 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 	}
 
 	if err := viper.BindPFlag("platform", flags.Lookup("platform")); err != nil {
+		return err
+	}
+
+	if err := viper.BindPFlag("name", flags.Lookup("name")); err != nil {
 		return err
 	}
 
