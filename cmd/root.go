@@ -141,6 +141,11 @@ func setRootFlags(flags *pflag.FlagSet) {
 	)
 
 	flags.StringP(
+		"name", "", "",
+		"set the name of the target being analyzed",
+	)
+
+	flags.StringP(
 		"distro", "", "",
 		"distro to match against in the format: <distro>:<version>",
 	)
@@ -240,6 +245,10 @@ func bindRootConfigOptions(flags *pflag.FlagSet) error {
 	}
 
 	if err := viper.BindPFlag("platform", flags.Lookup("platform")); err != nil {
+		return err
+	}
+
+	if err := viper.BindPFlag("name", flags.Lookup("name")); err != nil {
 		return err
 	}
 
@@ -466,10 +475,12 @@ func getMatchers() []matcher.Matcher {
 func getProviderConfig() pkg.ProviderConfig {
 	return pkg.ProviderConfig{
 		SyftProviderConfig: pkg.SyftProviderConfig{
-			RegistryOptions:   appConfig.Registry.ToOptions(),
-			Exclusions:        appConfig.Exclusions,
-			CatalogingOptions: appConfig.Search.ToConfig(),
-			Platform:          appConfig.Platform,
+			RegistryOptions:        appConfig.Registry.ToOptions(),
+			Exclusions:             appConfig.Exclusions,
+			CatalogingOptions:      appConfig.Search.ToConfig(),
+			Platform:               appConfig.Platform,
+			Name:                   appConfig.Name,
+			DefaultImagePullSource: appConfig.DefaultImagePullSource,
 		},
 		SynthesisConfig: pkg.SynthesisConfig{
 			GenerateMissingCPEs: appConfig.GenerateMissingCPEs,
