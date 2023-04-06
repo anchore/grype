@@ -234,8 +234,8 @@ github.com/anchore/sqlite v1.4.6-0.20220607210448-bcc6ee5c4963 h1:vrf2PYH77vqVJo
 github.com/anchore/sqlite v1.4.6-0.20220607210448-bcc6ee5c4963/go.mod h1:AVRyXOUP0hTz9Cb8OlD1XnwA8t4lBPfTuwPHmEUuiLc=
 github.com/anchore/stereoscope v0.0.0-20230323161519-d7551b7f46f5 h1:2I4m/L4INVVyv0yBRuCadwxM+nuJoaKj9iBNPyXbSO4=
 github.com/anchore/stereoscope v0.0.0-20230323161519-d7551b7f46f5/go.mod h1:IihP/SUVHP94PBwIP2bepOB/c0MVadcII7lxo13Ijzs=
-github.com/anchore/syft v0.76.0 h1:C+yTTuvDrXOfmcyS4YdoJhB4u4ykW3jZFhkibkXdNMs=
-github.com/anchore/syft v0.76.0/go.mod h1:wF+mc3lHmiNS0oWWYEBCAPvdJtGoSy0C+9kFC/T9Zdk=
+github.com/anchore/syft v0.76.1 h1:x46OzNjrGTSHNFmxr8WVdbqJMl/Jza7l93CKAxpNhj8=
+github.com/anchore/syft v0.76.1/go.mod h1:A0X1GCoGFbQs/rTtVSrzYEZePWbE4FM+K2f4fC0SRes=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/brotli v1.0.1/go.mod h1:loMXtMfwqflxFJPmdbJO0a3KNoPuLBgiu3qAvBg8x/Y=
 github.com/andybalholm/brotli v1.0.4 h1:V7DdXeJtZscaqfNuAdSRuRFzuiKlHSC/Zh3zl9qY3JY=
@@ -731,8 +731,8 @@ github.com/sirupsen/logrus v1.9.0 h1:trlNQbNUG3OdDrDil03MCb1H2o9nJ1x4/5LYw7byDE0
 github.com/sirupsen/logrus v1.9.0/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72/go.mod h1:JwIasOWyU6f++ZhiEuf87xNszmSA2myDM2Kzu9HwQUA=
 github.com/spdx/gordf v0.0.0-20201111095634-7098f93598fb/go.mod h1:uKWaldnbMnjsSAXRurWqqrdyZen1R7kxl8TkmWk2OyM=
-github.com/spdx/tools-golang v0.5.0-rc1 h1:ooCSe48QatlidqEFd+nSI308tyeNTR6NJvauUj3ApX8=
-github.com/spdx/tools-golang v0.5.0-rc1/go.mod h1:LI6onw172PdO57Ob/hgnLDD4Y2PMnroeNT3wO/2WJJI=
+github.com/spdx/tools-golang v0.5.0 h1:/fqihV2Jna7fmow65dHpgKNsilgLK7ICpd2tkCnPEyY=
+github.com/spdx/tools-golang v0.5.0/go.mod h1:kkGlrSXXfHwuSzHQZJRV3aKu9ZXCq/MSf2+xyiJH1lM=
 github.com/spf13/afero v1.3.3/go.mod h1:5KUK8ByomD5Ti5Artl0RtHeI5pTF7MIDuXL3yY520V4=
 github.com/spf13/afero v1.6.0/go.mod h1:Ai8FlHk4v/PARR026UzYexafAt9roJ7LcLMAmO6Z93I=
 github.com/spf13/afero v1.9.5 h1:stMpOSZFs//0Lv29HduCmli3GUfpFoF3Y1Q/aXj/wVM=
