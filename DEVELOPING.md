@@ -15,7 +15,9 @@ In order to run tests and build all artifacts:
 1. run `make bootstrap` to download go mod dependencies, create the `/.tmp` dir, and download helper utilities (this only needs to be done once or when build tools are updated).
 2. run `make` to run linting, tests, and other verifications to make certain everything is working alright.
 
-Checkout `make help` to see what other actions you can take.
+The main make tasks for common static analysis and testing are `lint`, `format`, `lint-fix`, `unit`, and `integration`.
+
+See `make help` for all the current make tasks.
 
 ### Docker Development
 
