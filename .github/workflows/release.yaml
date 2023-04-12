@@ -147,7 +147,7 @@ jobs:
         with:
           artifact-name: sbom.spdx.json
 
-      - uses: 8398a7/action-slack@bdc6f9de222d3b7518e6cf99c4f3410f653cfde3 # v3.15.0
+      - uses: 8398a7/action-slack@fbd6aa58ba854a740e11a35d0df80cb5d12101d8 # v3.15.1
         continue-on-error: true
         with:
           status: ${{ job.status }}
