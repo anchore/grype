@@ -22,12 +22,18 @@ type registry struct {
 	InsecureSkipTLSVerify bool                  `yaml:"insecure-skip-tls-verify" json:"insecure-skip-tls-verify" mapstructure:"insecure-skip-tls-verify"`
 	InsecureUseHTTP       bool                  `yaml:"insecure-use-http" json:"insecure-use-http" mapstructure:"insecure-use-http"`
 	Auth                  []RegistryCredentials `yaml:"auth" json:"auth" mapstructure:"auth"`
+	CAFile                string                `yaml:"ca-file" json:"ca-file" mapstructure:"ca-file"`
+	ClientCert            string                `yaml:"client-cert" json:"client-cert" mapstructure:"client-cert"`
+	ClientKey             string                `yaml:"client-key" json:"client-key" mapstructure:"client-key"`
 }
 
 func (cfg registry) loadDefaultValues(v *viper.Viper) {
 	v.SetDefault("registry.insecure-skip-tls-verify", false)
 	v.SetDefault("registry.insecure-use-http", false)
 	v.SetDefault("registry.auth", []RegistryCredentials{})
+	v.SetDefault("registry.ca-file", "")
+	v.SetDefault("registry.client-cert", "")
+	v.SetDefault("registry.client-key", "")
 }
 
 //nolint:unparam
@@ -71,5 +77,8 @@ func (cfg *registry) ToOptions() *image.RegistryOptions {
 		InsecureSkipTLSVerify: cfg.InsecureSkipTLSVerify,
 		InsecureUseHTTP:       cfg.InsecureUseHTTP,
 		Credentials:           auth,
+		CAFile:                cfg.CAFile,
+		ClientCert:            cfg.ClientCert,
+		ClientKey:             cfg.ClientKey,
 	}
 }

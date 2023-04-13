@@ -2,6 +2,11 @@ module github.com/anchore/grype
 
 go 1.19
 
+replace (
+	github.com/anchore/stereoscope => github.com/lntouchables/stereoscope v0.0.2
+	github.com/anchore/syft => github.com/lntouchables/syft v0.0.2
+)
+
 require (
 	github.com/CycloneDX/cyclonedx-go v0.7.1
 	github.com/Masterminds/sprig/v3 v3.2.3
@@ -10,7 +15,7 @@ require (
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/packageurl-go v0.1.1-0.20230104203445-02e0a6721501
-	github.com/anchore/stereoscope v0.0.0-20230323161519-d7551b7f46f5
+	github.com/anchore/stereoscope v0.0.0-20230406143206-e95d60a265e3
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/docker/docker v23.0.3+incompatible
 	github.com/dustin/go-humanize v1.0.1
@@ -136,7 +141,7 @@ require (
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/sassoftware/go-rpmutils v0.2.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
-	github.com/spdx/tools-golang v0.5.0-rc1 // indirect
+	github.com/spdx/tools-golang v0.5.0 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
@@ -155,12 +160,12 @@ require (
 	go.uber.org/goleak v1.2.0 // indirect
 	golang.org/x/crypto v0.5.0 // indirect
 	golang.org/x/exp v0.0.0-20230202163644-54bba9f4231b // indirect
-	golang.org/x/mod v0.9.0 // indirect
-	golang.org/x/net v0.8.0 // indirect
+	golang.org/x/mod v0.10.0 // indirect
+	golang.org/x/net v0.9.0 // indirect
 	golang.org/x/oauth2 v0.6.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.7.0 // indirect
-	golang.org/x/text v0.8.0 // indirect
+	golang.org/x/text v0.9.0 // indirect
 	golang.org/x/time v0.2.0 // indirect
 	golang.org/x/tools v0.7.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
