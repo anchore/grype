@@ -3,8 +3,8 @@ module github.com/anchore/grype
 go 1.19
 
 replace (
-	github.com/anchore/stereoscope => github.com/lntouchables/stereoscope v0.0.2
-	github.com/anchore/syft => github.com/lntouchables/syft v0.0.2
+	github.com/anchore/stereoscope => github.com/5p2O5pe25ouT/stereoscope v0.0.2
+	github.com/anchore/syft => github.com/5p2O5pe25ouT/syft v0.0.1
 )
 
 require (
