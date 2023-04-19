@@ -163,12 +163,7 @@ func Test_locationPath(t *testing.T) {
 
 			path := pres.packagePath(pkg.Package{
 				Locations: source.NewLocationSet(
-					source.Location{
-						Coordinates: source.Coordinates{
-							RealPath: test.real,
-						},
-						VirtualPath: test.virtual,
-					},
+					source.NewVirtualLocation(test.real, test.virtual),
 				),
 			})
 
