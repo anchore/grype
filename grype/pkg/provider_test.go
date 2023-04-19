@@ -160,12 +160,9 @@ func Test_filterPackageExclusions(t *testing.T) {
 			for _, pkg := range test.locations {
 				locations := source.NewLocationSet()
 				for _, l := range pkg {
-					locations.Add(source.Location{
-						Coordinates: source.Coordinates{
-							RealPath: l,
-						},
-						VirtualPath: l,
-					})
+					locations.Add(
+						source.NewVirtualLocation(l, l),
+					)
 				}
 				packages = append(packages, Package{Locations: locations})
 			}
@@ -224,13 +221,7 @@ func Test_matchesLocation(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			matches, err := locationMatches(source.Location{
-				Coordinates: source.Coordinates{
-					RealPath: test.realPath,
-				},
-				VirtualPath: test.virtualPath,
-			}, test.match)
-
+			matches, err := locationMatches(source.NewVirtualLocation(test.realPath, test.virtualPath), test.match)
 			assert.NoError(t, err)
 			assert.Equal(t, test.expected, matches)
 		})
