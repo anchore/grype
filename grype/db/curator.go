@@ -141,9 +141,9 @@ func (c *Curator) Update() (bool, error) {
 
 	updateAvailable, metadata, updateEntry, err := c.IsUpdateAvailable()
 	if err != nil {
-		// we want to continue if possible even if we can't check for an update
 		log.Warnf("unable to check for vulnerability database update")
 		log.Debugf("check for vulnerability update failed: %+v", err)
+		return false, fmt.Errorf("unable to update vulnerability database: %w", err)
 	}
 	if updateAvailable {
 		log.Infof("downloading new vulnerability DB")
