@@ -37,14 +37,15 @@ func TestJsonImgsPresenter(t *testing.T) {
 		t.Fatal(err)
 	}
 	actual := buffer.Bytes()
+	actual = redact(actual)
+
 	if *update {
 		testutils.UpdateGoldenFileContents(t, actual)
 	}
 
 	var expected = testutils.GetGoldenFileContents(t)
-	actualString := redactTimestamp(string(actual))
 
-	assert.JSONEq(t, string(expected), actualString)
+	assert.JSONEq(t, string(expected), string(actual))
 
 	// TODO: add me back in when there is a JSON schema
 	// validateAgainstDbSchema(t, string(actual))
@@ -69,15 +70,15 @@ func TestJsonDirsPresenter(t *testing.T) {
 		t.Fatal(err)
 	}
 	actual := buffer.Bytes()
+	actual = redact(actual)
 
 	if *update {
 		testutils.UpdateGoldenFileContents(t, actual)
 	}
 
 	var expected = testutils.GetGoldenFileContents(t)
-	actualString := redactTimestamp(string(actual))
 
-	assert.JSONEq(t, string(expected), actualString)
+	assert.JSONEq(t, string(expected), string(actual))
 
 	// TODO: add me back in when there is a JSON schema
 	// validateAgainstDbSchema(t, string(actual))
@@ -112,17 +113,18 @@ func TestEmptyJsonPresenter(t *testing.T) {
 		t.Fatal(err)
 	}
 	actual := buffer.Bytes()
+	actual = redact(actual)
+
 	if *update {
 		testutils.UpdateGoldenFileContents(t, actual)
 	}
 
 	var expected = testutils.GetGoldenFileContents(t)
-	actualString := redactTimestamp(string(actual))
 
-	assert.JSONEq(t, string(expected), actualString)
+	assert.JSONEq(t, string(expected), string(actual))
 
 }
 
-func redactTimestamp(s string) string {
-	return timestampRegexp.ReplaceAllString(s, `"timestamp":""`)
+func redact(content []byte) []byte {
+	return timestampRegexp.ReplaceAll(content, []byte(`"timestamp":""`))
 }
