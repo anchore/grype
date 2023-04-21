@@ -2,8 +2,11 @@ package json
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -40,8 +43,23 @@ func TestJsonImgsPresenter(t *testing.T) {
 	}
 
 	var expected = testutils.GetGoldenFileContents(t)
+	var expectedJSON, actualJSON models.Document
 
-	assert.JSONEq(t, string(expected), string(actual))
+	if err := json.Unmarshal(expected, &expectedJSON); err != nil {
+		assert.Fail(t, fmt.Sprintf("Expected value ('%s') is not valid json.\nJSON parsing error: '%s'", expected, err.Error()))
+	}
+
+	if err := json.Unmarshal(actual, &actualJSON); err != nil {
+		assert.Fail(t, fmt.Sprintf("Input ('%s') is not valid json.\nJSON parsing error: '%s'", actual, err.Error()))
+	}
+
+	assert.NotEmpty(t, actualJSON.Descriptor.Timestamp)
+	// Check format is RFC3339 compatible e.g. 2023-04-21T00:22:06.491137+01:00
+	_, err := time.Parse(time.RFC3339, actualJSON.Descriptor.Timestamp)
+	if assert.NoError(t, err) {
+		actualJSON.Descriptor.Timestamp = expectedJSON.Descriptor.Timestamp
+		assert.Equal(t, expectedJSON, actualJSON)
+	}
 
 	// TODO: add me back in when there is a JSON schema
 	// validateAgainstDbSchema(t, string(actual))
@@ -72,8 +90,23 @@ func TestJsonDirsPresenter(t *testing.T) {
 	}
 
 	var expected = testutils.GetGoldenFileContents(t)
+	var expectedJSON, actualJSON models.Document
 
-	assert.JSONEq(t, string(expected), string(actual))
+	if err := json.Unmarshal(expected, &expectedJSON); err != nil {
+		assert.Fail(t, fmt.Sprintf("Expected value ('%s') is not valid json.\nJSON parsing error: '%s'", expected, err.Error()))
+	}
+
+	if err := json.Unmarshal(actual, &actualJSON); err != nil {
+		assert.Fail(t, fmt.Sprintf("Input ('%s') is not valid json.\nJSON parsing error: '%s'", actual, err.Error()))
+	}
+
+	assert.NotEmpty(t, actualJSON.Descriptor.Timestamp)
+	// Check format is RFC3339 compatible e.g. 2023-04-21T00:22:06.491137+01:00
+	_, err := time.Parse(time.RFC3339, actualJSON.Descriptor.Timestamp)
+	if assert.NoError(t, err) {
+		actualJSON.Descriptor.Timestamp = expectedJSON.Descriptor.Timestamp
+		assert.Equal(t, expectedJSON, actualJSON)
+	}
 
 	// TODO: add me back in when there is a JSON schema
 	// validateAgainstDbSchema(t, string(actual))
@@ -113,6 +146,22 @@ func TestEmptyJsonPresenter(t *testing.T) {
 	}
 
 	var expected = testutils.GetGoldenFileContents(t)
+	var expectedJSON, actualJSON models.Document
 
-	assert.JSONEq(t, string(expected), string(actual))
+	if err := json.Unmarshal(expected, &expectedJSON); err != nil {
+		assert.Fail(t, fmt.Sprintf("Expected value ('%s') is not valid json.\nJSON parsing error: '%s'", expected, err.Error()))
+	}
+
+	if err := json.Unmarshal(actual, &actualJSON); err != nil {
+		assert.Fail(t, fmt.Sprintf("Input ('%s') is not valid json.\nJSON parsing error: '%s'", actual, err.Error()))
+	}
+
+	assert.NotEmpty(t, actualJSON.Descriptor.Timestamp)
+	// Check format is RFC3339 compatible e.g. 2023-04-21T00:22:06.491137+01:00
+	_, err := time.Parse(time.RFC3339, actualJSON.Descriptor.Timestamp)
+	if assert.NoError(t, err) {
+		actualJSON.Descriptor.Timestamp = expectedJSON.Descriptor.Timestamp
+		assert.Equal(t, expectedJSON, actualJSON)
+	}
+
 }

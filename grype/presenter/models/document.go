@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -21,6 +22,11 @@ type Document struct {
 
 // NewDocument creates and populates a new Document struct, representing the populated JSON document.
 func NewDocument(packages []pkg.Package, context pkg.Context, matches match.Matches, ignoredMatches []match.IgnoredMatch, metadataProvider vulnerability.MetadataProvider, appConfig interface{}, dbStatus interface{}) (Document, error) {
+	timestamp, timestampErr := time.Now().Local().MarshalText()
+	if timestampErr != nil {
+		return Document{}, timestampErr
+	}
+
 	// we must preallocate the findings to ensure the JSON document does not show "null" when no matches are found
 	var findings = make([]Match, 0)
 	for _, m := range matches.Sorted() {
@@ -75,6 +81,7 @@ func NewDocument(packages []pkg.Package, context pkg.Context, matches match.Matc
 			Version:               version.FromBuild().Version,
 			Configuration:         appConfig,
 			VulnerabilityDBStatus: dbStatus,
+			Timestamp:             string(timestamp),
 		},
 	}, nil
 }
