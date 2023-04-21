@@ -45,6 +45,10 @@ type Package struct {
 func New(p pkg.Package) Package {
 	metadataType, metadata, upstreams := dataFromPkg(p)
 
+	if p.Type == "python" {
+		p.Name = pipCheckExtras(p.Name)
+	}
+
 	return Package{
 		ID:           ID(p.ID()),
 		Name:         p.Name,
@@ -282,4 +286,13 @@ func ByID(id ID, pkgs []Package) *Package {
 		}
 	}
 	return nil
+}
+
+// check if pip package has extras, if so remove it from package name
+func pipCheckExtras(packageName string) string {
+	pipExtrasRegex := regexp.MustCompile(`\[.*\]`)
+	if pipExtrasRegex.MatchString(packageName) {
+		return pipExtrasRegex.ReplaceAllString(packageName, "")
+	}
+	return packageName
 }
