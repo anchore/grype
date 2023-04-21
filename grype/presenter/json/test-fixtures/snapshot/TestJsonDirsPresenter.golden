@@ -145,6 +145,7 @@
  },
  "descriptor": {
   "name": "grype",
-  "version": "[not provided]"
+  "version": "[not provided]",
+  "timestamp": ""
  }
 }
