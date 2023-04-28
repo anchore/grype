@@ -18,6 +18,7 @@ GORELEASER_VERSION := v1.17.2
 YAJSV_VERSION := v1.4.1
 QUILL_VERSION := v0.2.0
 GLOW_VERSION := v1.5.0
+SKOPEO_VERSION := v1.12.0
 
 # Formatting variables ############################
 BOLD := $(shell tput -T linux bold)
@@ -117,6 +118,7 @@ bootstrap-tools: $(TEMP_DIR)
 	GOBIN="$(realpath $(TEMP_DIR))" go install github.com/rinchsan/gosimports/cmd/gosimports@$(GOSIMPORTS_VERSION)
 	GOBIN="$(realpath $(TEMP_DIR))" go install github.com/neilpa/yajsv@$(YAJSV_VERSION)
 	GOBIN="$(realpath $(TEMP_DIR))" go install github.com/charmbracelet/glow@$(GLOW_VERSION)
+	GOBIN="$(realpath $(TEMP_DIR))" CGO_ENABLED=0 GO_DYN_FLAGS="" go install -tags "containers_image_openpgp" github.com/containers/skopeo/cmd/skopeo@$(SKOPEO_VERSION)
 
 .PHONY: bootstrap-go
 bootstrap-go:

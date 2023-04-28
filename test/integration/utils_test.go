@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/scylladb/go-set/strset"
@@ -46,8 +47,15 @@ func PullThroughImageCache(t testing.TB, imageName string) string {
 func saveImage(t testing.TB, imageName string, destPath string) {
 	sourceImage := fmt.Sprintf("docker://docker.io/%s", imageName)
 	destinationString := fmt.Sprintf("docker-archive:%s", destPath)
+	skopeoPath := filepath.Join(repoRoot(t), ".tmp", "skopeo")
+	policyPath := filepath.Join(repoRoot(t), "test", "integration", "test-fixtures", "skopeo-policy.json")
 
-	cmd := exec.Command("skopeo", "copy", "--override-os", "linux", sourceImage, destinationString)
+	skopeoCommand := []string{
+		"--policy", policyPath,
+		"copy", "--override-os", "linux", sourceImage, destinationString,
+	}
+
+	cmd := exec.Command(skopeoPath, skopeoCommand...)
 
 	out, err := cmd.Output()
 	if err != nil {
@@ -100,4 +108,17 @@ func getMatchSet(matches match.Matches) *strset.Set {
 		s.Add(fmt.Sprintf("%s-%s-%s", m.Vulnerability.ID, m.Package.Name, m.Package.Version))
 	}
 	return s
+}
+
+func repoRoot(tb testing.TB) string {
+	tb.Helper()
+	root, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
+	if err != nil {
+		tb.Fatalf("unable to find repo root dir: %+v", err)
+	}
+	absRepoRoot, err := filepath.Abs(strings.TrimSpace(string(root)))
+	if err != nil {
+		tb.Fatal("unable to get abs path to repo root:", err)
+	}
+	return absRepoRoot
 }
