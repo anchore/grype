@@ -247,10 +247,11 @@ The output format for Grype is configurable as well:
 grype <image> -o <format>
 ```
 
-Where the `format`s available are:
+Where the formats available are:
 
 - `table`: A columnar summary (default).
-- `cyclonedx`: An XML report conforming to the [CycloneDX 1.2](https://cyclonedx.org/) specification.
+- `cyclonedx`: An XML report conforming to the [CycloneDX 1.4 specification](https://cyclonedx.org/specification/overview/).
+- `cyclonedx-json`: A JSON report conforming to the [CycloneDX 1.4 specification](https://cyclonedx.org/specification/overview/).
 - `json`: Use this to get as much information out of Grype as possible!
 - `template`: Lets the user specify the output format. See ["Using templates"](#using-templates) below.
 
