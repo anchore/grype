@@ -12,7 +12,7 @@ require (
 	github.com/anchore/packageurl-go v0.1.1-0.20230104203445-02e0a6721501
 	github.com/anchore/stereoscope v0.0.0-20230412183729-8602f1afc574
 	github.com/bmatcuk/doublestar/v2 v2.0.4
-	github.com/docker/docker v23.0.4+incompatible
+	github.com/docker/docker v23.0.5+incompatible
 	github.com/dustin/go-humanize v1.0.1
 	github.com/facebookincubator/nvdtools v0.1.5
 	github.com/gabriel-vasile/mimetype v1.4.2
