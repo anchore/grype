@@ -4,7 +4,9 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/google/uuid"
+	"github.com/anchore/syft/syft/artifact"
+	"github.com/samber/lo"
+	"github.com/stretchr/testify/require"
 
 	grypeDb "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
@@ -129,9 +131,9 @@ func generateMatches(t *testing.T, p, p2 pkg.Package) match.Matches {
 func generatePackages(t *testing.T) []pkg.Package {
 	t.Helper()
 	epoch := 2
-	return []pkg.Package{
+
+	pkgs := []pkg.Package{
 		{
-			ID:        pkg.ID(uuid.NewString()),
 			Name:      "package-1",
 			Version:   "1.1.1",
 			Type:      syftPkg.RpmPkg,
@@ -157,7 +159,6 @@ func generatePackages(t *testing.T) []pkg.Package {
 			},
 		},
 		{
-			ID:        pkg.ID(uuid.NewString()),
 			Name:      "package-2",
 			Version:   "2.2.2",
 			Type:      syftPkg.DebPkg,
@@ -174,6 +175,16 @@ func generatePackages(t *testing.T) []pkg.Package {
 			Licenses: []string{"MIT", "Apache-2.0"},
 		},
 	}
+
+	pkgs = lo.Map(pkgs, func(p pkg.Package, _ int) pkg.Package {
+		id, err := artifact.IDByHash(p)
+		require.NoError(t, err)
+
+		p.ID = pkg.ID(id)
+		return p
+	})
+
+	return pkgs
 }
 
 func generateContext(t *testing.T, scheme syftSource.Scheme) pkg.Context {
