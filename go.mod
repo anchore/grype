@@ -56,7 +56,6 @@ require (
 	github.com/anchore/syft v0.79.0
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/samber/lo v1.38.1
 )
 
 require (

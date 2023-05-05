@@ -4,7 +4,6 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	grypeDb "github.com/anchore/grype/grype/db/v5"
@@ -176,15 +175,17 @@ func generatePackages(t *testing.T) []pkg.Package {
 		},
 	}
 
-	pkgs = lo.Map(pkgs, func(p pkg.Package, _ int) pkg.Package {
+	updatedPkgs := make([]pkg.Package, 0, len(pkgs))
+
+	for _, p := range pkgs {
 		id, err := artifact.IDByHash(p)
 		require.NoError(t, err)
 
 		p.ID = pkg.ID(id)
-		return p
-	})
+		updatedPkgs = append(updatedPkgs, p)
+	}
 
-	return pkgs
+	return updatedPkgs
 }
 
 func generateContext(t *testing.T, scheme syftSource.Scheme) pkg.Context {
