@@ -540,12 +540,18 @@ They will also not be dependent on a docker daemon, (or some other runtime softw
 
 ## Configuration
 
-Configuration search paths:
+Default configuration search paths:
 
 - `.grype.yaml`
 - `.grype/config.yaml`
 - `~/.grype.yaml`
 - `<XDG_CONFIG_HOME>/grype/config.yaml`
+
+You can also use the `--config` / `-c` flag to provide your own configuration file/path:
+
+```
+grype <image> -c /path/to/config.yaml
+```
 
 Configuration options (example values are the default):
 
