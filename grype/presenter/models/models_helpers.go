@@ -23,7 +23,7 @@ func GenerateAnalysis(t *testing.T, scheme syftSource.Scheme) (match.Matches, []
 	t.Helper()
 
 	packages := generatePackages(t)
-	matches := generateMatches(t, packages[0], packages[1])
+	matches := generateMatches(t, packages[0], packages[1], packages[2])
 	context := generateContext(t, scheme)
 
 	return matches, packages, context, NewMetadataMock(), nil, nil
@@ -69,7 +69,7 @@ func Redact(s []byte) []byte {
 	return s
 }
 
-func generateMatches(t *testing.T, p, p2 pkg.Package) match.Matches {
+func generateMatches(t *testing.T, p, p2, p3 pkg.Package) match.Matches {
 	t.Helper()
 
 	matches := []match.Match{
@@ -111,6 +111,26 @@ func generateMatches(t *testing.T, p, p2 pkg.Package) match.Matches {
 				{
 					Type:    match.ExactIndirectMatch,
 					Matcher: match.DpkgMatcher,
+					SearchedBy: map[string]interface{}{
+						"cpe": "somecpe",
+					},
+					Found: map[string]interface{}{
+						"constraint": "somecpe",
+					},
+				},
+			},
+		},
+		{
+
+			Vulnerability: vulnerability.Vulnerability{
+				ID:        "CVE-1999-0003",
+				Namespace: "source-3",
+			},
+			Package: p3,
+			Details: []match.Detail{
+				{
+					Type:    match.ExactIndirectMatch,
+					Matcher: match.JavascriptMatcher,
 					SearchedBy: map[string]interface{}{
 						"cpe": "somecpe",
 					},
@@ -168,6 +188,22 @@ func generatePackages(t *testing.T) []pkg.Package {
 					Vendor:   "anchore",
 					Product:  "engine",
 					Version:  "2.2.2",
+					Language: "python",
+				},
+			},
+			Licenses: []string{"MIT", "Apache-2.0"},
+		},
+		{
+			Name:      "package-3",
+			Version:   "3.3.3",
+			Type:      syftPkg.NpmPkg,
+			Locations: syftSource.NewLocationSet(syftSource.NewVirtualLocation("/foo/bar/somefile-3.txt", "somefile-3.txt")),
+			CPEs: []cpe.CPE{
+				{
+					Part:     "a",
+					Vendor:   "anchore",
+					Product:  "engine",
+					Version:  "3.3.3",
 					Language: "python",
 				},
 			},

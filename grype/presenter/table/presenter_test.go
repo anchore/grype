@@ -3,6 +3,7 @@ package table
 import (
 	"bytes"
 	"flag"
+	"strings"
 	"testing"
 
 	"github.com/go-test/deep"
@@ -13,7 +14,6 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
-	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
 )
@@ -21,25 +21,32 @@ import (
 var update = flag.Bool("update", false, "update the *.golden files for table presenters")
 
 func TestCreateRow(t *testing.T) {
-	pkg1 := pkg.Package{
-		ID:      "package-1-id",
-		Name:    "package-1",
-		Version: "1.0.1",
-		Type:    syftPkg.DebPkg,
+
+	matches, _, _, _, _, _ := models.GenerateAnalysis(t, source.ImageScheme)
+	var match1, match2, match3 match.Match
+
+	for m := range matches.Enumerate() {
+		switch m.Vulnerability.ID {
+		case "CVE-1999-0001":
+			match1 = m
+		case "CVE-1999-0002":
+			match2 = m
+		case "CVE-1999-0003":
+			match3 = m
+		}
 	}
-	match1 := match.Match{
-		Vulnerability: vulnerability.Vulnerability{
-			ID:        "CVE-1999-0001",
-			Namespace: "source-1",
-		},
-		Package: pkg1,
-		Details: []match.Detail{
-			{
-				Type:    match.ExactDirectMatch,
-				Matcher: match.DpkgMatcher,
-			},
+
+	match4 := match.Match{
+		Vulnerability: match2.Vulnerability,
+		Details:       match2.Details,
+		Package: pkg.Package{
+			ID:      match2.Package.ID,
+			Name:    match2.Package.Name,
+			Version: match2.Package.Version,
+			Type:    syftPkg.ApkPkg,
 		},
 	}
+
 	cases := []struct {
 		name           string
 		match          match.Match
@@ -52,14 +59,42 @@ func TestCreateRow(t *testing.T) {
 			match:          match1,
 			severitySuffix: "",
 			expectedErr:    nil,
-			expectedRow:    []string{match1.Package.Name, match1.Package.Version, "", string(match1.Package.Type), match1.Vulnerability.ID, "Low"},
+			expectedRow:    []string{match1.Package.Name, match1.Package.Version, "the-next-version", string(match1.Package.Type), match1.Vulnerability.ID, "Low", ""},
 		},
 		{
 			name:           "create row for suppressed vulnerability",
 			match:          match1,
 			severitySuffix: appendSuppressed,
 			expectedErr:    nil,
-			expectedRow:    []string{match1.Package.Name, match1.Package.Version, "", string(match1.Package.Type), match1.Vulnerability.ID, "Low (suppressed)"},
+			expectedRow:    []string{match1.Package.Name, match1.Package.Version, "the-next-version", string(match1.Package.Type), match1.Vulnerability.ID, "Low (suppressed)", ""},
+		},
+		{
+			name:           "create row for suppressed location (rpm)",
+			match:          match1,
+			severitySuffix: "",
+			expectedErr:    nil,
+			expectedRow:    []string{match1.Package.Name, match1.Package.Version, "the-next-version", string(match1.Package.Type), match1.Vulnerability.ID, "Low", ""},
+		},
+		{
+			name:           "create row for suppressed location (deb)",
+			match:          match2,
+			severitySuffix: "",
+			expectedErr:    nil,
+			expectedRow:    []string{match2.Package.Name, match2.Package.Version, "", string(match2.Package.Type), match2.Vulnerability.ID, "Critical", ""},
+		},
+		{
+			name:           "create row for location",
+			match:          match3,
+			severitySuffix: "",
+			expectedErr:    nil,
+			expectedRow:    []string{match3.Package.Name, match3.Package.Version, "", string(match3.Package.Type), match3.Vulnerability.ID, "High", strings.Join(match3.Package.Locations.CoordinateSet().Paths(), ", ")},
+		},
+		{
+			name:           "create row for suppressed location (apk)",
+			match:          match4,
+			severitySuffix: "",
+			expectedErr:    nil,
+			expectedRow:    []string{match4.Package.Name, match4.Package.Version, "", string(match4.Package.Type), match4.Vulnerability.ID, "Critical", ""},
 		},
 	}
 

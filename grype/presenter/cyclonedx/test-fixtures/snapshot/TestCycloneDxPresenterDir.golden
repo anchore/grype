@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.4.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
-  "serialNumber": "urn:uuid:f701dea7-2715-48eb-8d63-878377007e65",
+  "serialNumber": "urn:uuid:716ad06c-2cad-4ffd-a507-08862a89959a",
   "version": 1,
   "metadata": {
-    "timestamp": "2023-05-04T09:41:30-04:00",
+    "timestamp": "2023-05-06T03:07:35+01:00",
     "tools": [
       {
         "vendor": "anchore",
@@ -48,11 +48,28 @@
           "value": "/foo/bar/somefile-2.txt"
         }
       ]
+    },
+    {
+      "bom-ref": "a8d804be757ae96",
+      "type": "library",
+      "name": "package-3",
+      "version": "3.3.3",
+      "cpe": "cpe:2.3:a:anchore:engine:3.3.3:*:*:python:*:*:*:*",
+      "properties": [
+        {
+          "name": "syft:package:type",
+          "value": "npm"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/foo/bar/somefile-3.txt"
+        }
+      ]
     }
   ],
   "vulnerabilities": [
     {
-      "bom-ref": "urn:uuid:befb74e5-738d-4b2c-adf2-03d276553bca",
+      "bom-ref": "urn:uuid:61854d6b-1741-4369-b975-b2cad5f9115a",
       "id": "CVE-1999-0001",
       "source": {},
       "references": [
@@ -78,7 +95,7 @@
       ]
     },
     {
-      "bom-ref": "urn:uuid:9cf43de2-c92a-4f29-add6-29bdd71a0285",
+      "bom-ref": "urn:uuid:0289344e-4b40-4418-b399-9a709d13819f",
       "id": "CVE-1999-0002",
       "source": {},
       "references": [
@@ -100,6 +117,32 @@
       "affects": [
         {
           "ref": "b4013a965511376c"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:uuid:31c2575e-43eb-43e6-bcfa-fc70c36b61e6",
+      "id": "CVE-1999-0003",
+      "source": {},
+      "references": [
+        {
+          "id": "CVE-1999-0003",
+          "source": {}
+        }
+      ],
+      "ratings": [
+        {
+          "score": 1,
+          "severity": "high",
+          "method": "CVSSv3",
+          "vector": "vector"
+        }
+      ],
+      "description": "1999-03 description",
+      "advisories": [],
+      "affects": [
+        {
+          "ref": "f45d1ab14d63730d"
         }
       ]
     }

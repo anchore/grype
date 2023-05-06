@@ -44,6 +44,24 @@
               "properties": {
                 "security-severity": "1.0"
               }
+            },
+            {
+              "id": "CVE-1999-0003-package-3",
+              "name": "JavascriptMatcherExactIndirectMatch",
+              "shortDescription": {
+                "text": "CVE-1999-0003 high vulnerability for package-3 package"
+              },
+              "fullDescription": {
+                "text": "1999-03 description"
+              },
+              "helpUri": "https://github.com/anchore/grype",
+              "help": {
+                "text": "Vulnerability CVE-1999-0003\nSeverity: high\nPackage: package-3\nVersion: 3.3.3\nFix Version: \nType: npm\nLocation: somefile-3.txt\nData Namespace: source-3\nLink: CVE-1999-0003",
+                "markdown": "**Vulnerability CVE-1999-0003**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| high  | package-3  | 3.3.3  |   | npm  | somefile-3.txt  | source-3  | CVE-1999-0003  |\n"
+              },
+              "properties": {
+                "security-severity": "1.0"
+              }
             }
           ]
         }
@@ -98,6 +116,33 @@
                 {
                   "name": "/foo/bar/somefile-2.txt",
                   "fullyQualifiedName": "user-input@:/somefile-2.txt"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "ruleId": "CVE-1999-0003-package-3",
+          "message": {
+            "text": "The path somefile-3.txt reports package-3 at version 3.3.3  which is a vulnerable (npm) package installed in the container"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "image/somefile-3.txt"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1,
+                  "endLine": 1,
+                  "endColumn": 1
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "/foo/bar/somefile-3.txt",
+                  "fullyQualifiedName": "user-input@:/somefile-3.txt"
                 }
               ]
             }

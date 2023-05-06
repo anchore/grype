@@ -1,3 +1,4 @@
-NAME       INSTALLED  FIXED-IN          TYPE  VULNERABILITY  SEVERITY 
-package-1  1.1.1      the-next-version  rpm   CVE-1999-0001  Low       
-package-2  2.2.2                        deb   CVE-1999-0002  Critical  
+NAME       INSTALLED  FIXED-IN          TYPE  VULNERABILITY  SEVERITY  LOCATION                
+package-1  1.1.1      the-next-version  rpm   CVE-1999-0001  Low                                
+package-2  2.2.2                        deb   CVE-1999-0002  Critical                           
+package-3  3.3.3                        npm   CVE-1999-0003  High      /foo/bar/somefile-3.txt  
