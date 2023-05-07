@@ -84,11 +84,11 @@ func getSyftSBOM(t testing.TB, image string, format sbom.Format) string {
 	config := cataloger.DefaultConfig()
 	config.Search.Scope = source.SquashedScope
 	// TODO: relationships are not verified at this time
-	catalog, _, distro, err := syft.CatalogPackages(src, config)
+	collection, _, distro, err := syft.CatalogPackages(src, config)
 
 	s := sbom.SBOM{
 		Artifacts: sbom.Artifacts{
-			PackageCatalog:    catalog,
+			Packages:          collection,
 			LinuxDistribution: distro,
 		},
 		Source: src.Metadata,
