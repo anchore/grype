@@ -419,6 +419,19 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
+			name: "python-requirements-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.PythonRequirementsMetadataType,
+				Metadata: syftPkg.PythonRequirementsMetadata{
+					Name:              "a",
+					Extras:            []string{"a"},
+					VersionConstraint: "a",
+					URL:               "a",
+					Markers:           map[string]string{"a": "a"},
+				},
+			},
+		},
+		{
 			name: "binary-metadata",
 			syftPkg: syftPkg.Package{
 				MetadataType: syftPkg.BinaryMetadataType,
