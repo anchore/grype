@@ -23,7 +23,7 @@ import (
 //	arch = "src"
 var rpmPackageNamePattern = regexp.MustCompile(`^(?P<name>.*)-(?P<version>.*)-(?P<release>.*)\.(?P<arch>[a-zA-Z][^.]+)(\.rpm)$`)
 
-// ID represents a unique value for each package added to a package catalog.
+// ID represents a unique value for each package added to a package collection.
 type ID string
 
 // Package represents an application or library that has been bundled into a distributable format.
@@ -61,7 +61,7 @@ func New(p pkg.Package) Package {
 	}
 }
 
-func FromCatalog(catalog *pkg.Catalog, config SynthesisConfig) []Package {
+func FromCollection(catalog *pkg.Collection, config SynthesisConfig) []Package {
 	return FromPackages(catalog.Sorted(), config)
 }
 
@@ -91,7 +91,7 @@ func (p Package) String() string {
 	return fmt.Sprintf("Pkg(type=%s, name=%s, version=%s, upstreams=%d)", p.Type, p.Name, p.Version, len(p.Upstreams))
 }
 
-func removePackagesByOverlap(catalog *pkg.Catalog, relationships []artifact.Relationship) *pkg.Catalog {
+func removePackagesByOverlap(catalog *pkg.Collection, relationships []artifact.Relationship) *pkg.Collection {
 	byOverlap := map[artifact.ID]artifact.Relationship{}
 	for _, r := range relationships {
 		if r.Type == artifact.OwnershipByFileOverlapRelationship {
@@ -99,7 +99,7 @@ func removePackagesByOverlap(catalog *pkg.Catalog, relationships []artifact.Rela
 		}
 	}
 
-	out := pkg.NewCatalog()
+	out := pkg.NewCollection()
 
 	for p := range catalog.Enumerate() {
 		r, ok := byOverlap[p.ID()]

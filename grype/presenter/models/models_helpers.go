@@ -34,12 +34,12 @@ func SBOMFromPackages(t *testing.T, packages []pkg.Package) *sbom.SBOM {
 
 	sbom := &sbom.SBOM{
 		Artifacts: sbom.Artifacts{
-			PackageCatalog: syftPkg.NewCatalog(),
+			Packages: syftPkg.NewCollection(),
 		},
 	}
 
 	for _, p := range packages {
-		sbom.Artifacts.PackageCatalog.Add(toSyftPkg(p))
+		sbom.Artifacts.Packages.Add(toSyftPkg(p))
 	}
 
 	return sbom
