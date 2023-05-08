@@ -269,6 +269,8 @@ Grype lets you define custom output formats, using [Go templates](https://golang
 
 **Example:** You could make Grype output data in CSV format by writing a Go template that renders CSV data and then running `grype <image> -o template -t ~/path/to/csv.tmpl`.
 
+**Please note:** Templates can access information about the system they are running on, such as environment variables. You should never run untrusted templates.
+
 Here's what the `csv.tmpl` file might look like:
 
 ```gotemplate
