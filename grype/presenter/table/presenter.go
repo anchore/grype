@@ -26,16 +26,18 @@ type Presenter struct {
 	packages         []pkg.Package
 	metadataProvider vulnerability.MetadataProvider
 	showSuppressed   bool
+	noColor          bool
 }
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter(pb models.PresenterConfig, showSuppressed bool) *Presenter {
+func NewPresenter(pb models.PresenterConfig, showSuppressed bool, noColor bool) *Presenter {
 	return &Presenter{
 		results:          pb.Matches,
 		ignoredMatches:   pb.IgnoredMatches,
 		packages:         pb.Packages,
 		metadataProvider: pb.MetadataProvider,
 		showSuppressed:   showSuppressed,
+		noColor:          noColor,
 	}
 }
 
@@ -98,10 +100,38 @@ func (pres *Presenter) Present(output io.Writer) error {
 	table.SetTablePadding("  ")
 	table.SetNoWhiteSpace(true)
 
-	table.AppendBulk(rows)
+	if !pres.noColor {
+		for _, row := range rows {
+			severityColor := getSeverityColor(row[len(row)-1])
+			table.Rich(row, []tablewriter.Colors{{}, {}, {}, {}, {}, severityColor})
+		}
+	} else {
+		table.AppendBulk(rows)
+	}
+
 	table.Render()
 
 	return nil
+}
+
+func getSeverityColor(severity string) tablewriter.Colors {
+	severityFontType, severityColor := tablewriter.Normal, tablewriter.Normal
+
+	switch strings.ToLower(severity) {
+	case "critical":
+		severityFontType = tablewriter.Bold
+		severityColor = tablewriter.FgRedColor
+	case "high":
+		severityColor = tablewriter.FgRedColor
+	case "medium":
+		severityColor = tablewriter.FgYellowColor
+	case "low":
+		severityColor = tablewriter.FgGreenColor
+	case "negligible":
+		severityColor = tablewriter.FgBlueColor
+	}
+
+	return tablewriter.Colors{severityFontType, severityColor}
 }
 
 func removeDuplicateRows(items [][]string) [][]string {

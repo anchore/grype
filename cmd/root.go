@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/muesli/termenv"
 	"github.com/pkg/profile"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -110,6 +111,7 @@ func init() {
 func setGlobalCliOptions() {
 	// setup global CLI options (available on all CLI commands)
 	rootCmd.PersistentFlags().StringVarP(&persistentOpts.ConfigPath, "config", "c", "", "application config file")
+	rootCmd.PersistentFlags().BoolVar(&persistentOpts.NoColor, "no-color", false, "disable color for table output")
 
 	flag := "quiet"
 	rootCmd.PersistentFlags().BoolP(
@@ -390,9 +392,14 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			DBStatus:         status,
 		}
 
+		noColor := persistentOpts.NoColor
+		if !noColor && termenv.ColorProfile() == termenv.Ascii {
+			noColor = true
+		}
+
 		bus.Publish(partybus.Event{
 			Type:  event.VulnerabilityScanningFinished,
-			Value: presenter.GetPresenter(presenterConfig, pb),
+			Value: presenter.GetPresenter(presenterConfig, pb, noColor),
 		})
 	}()
 	return errs

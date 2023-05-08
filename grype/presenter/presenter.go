@@ -19,12 +19,12 @@ type Presenter interface {
 
 // GetPresenter retrieves a Presenter that matches a CLI option
 // TODO dependency cycle with presenter package to sub formats
-func GetPresenter(c Config, pb models.PresenterConfig) Presenter {
+func GetPresenter(c Config, pb models.PresenterConfig, tableNoColor bool) Presenter {
 	switch c.format {
 	case jsonFormat:
 		return json.NewPresenter(pb)
 	case tableFormat:
-		return table.NewPresenter(pb, c.showSuppressed)
+		return table.NewPresenter(pb, c.showSuppressed, tableNoColor)
 
 	// NOTE: cyclonedx is identical to embeddedVEXJSON
 	// The cyclonedx library only provides two BOM formats: JSON and XML
