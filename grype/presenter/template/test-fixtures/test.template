@@ -1,3 +1,4 @@
+Timestamp: {{ now | date "2006-01-02" }}
 Identified distro as {{.Distro.Name}} version {{.Distro.Version}}.
 {{- range .Matches}}
     Vulnerability: {{.Vulnerability.ID}}
