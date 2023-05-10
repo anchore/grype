@@ -17,7 +17,7 @@ CHRONICLE_VERSION := v0.6.0
 GORELEASER_VERSION := v1.18.2
 YAJSV_VERSION := v1.4.1
 QUILL_VERSION := v0.2.0
-GLOW_VERSION := v1.5.0
+GLOW_VERSION := v1.5.1
 SKOPEO_VERSION := v1.12.0
 
 # Formatting variables ############################
