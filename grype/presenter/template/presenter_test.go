@@ -5,10 +5,10 @@ import (
 	"flag"
 	"os"
 	"path"
-	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -16,7 +16,6 @@ import (
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for template presenters")
-var timestampRegexp = regexp.MustCompile(`Timestamp:\s*\d{4}-\d{2}-\d{2}`)
 
 func TestPresenter_Present(t *testing.T) {
 	matches, packages, context, metadataProvider, appConfig, dbStatus := models.GenerateAnalysis(t, source.ImageScheme)
@@ -44,7 +43,6 @@ func TestPresenter_Present(t *testing.T) {
 	}
 
 	actual := buffer.Bytes()
-	actual = mustRedact(t, actual)
 
 	if *update {
 		testutils.UpdateGoldenFileContents(t, actual)
@@ -54,7 +52,26 @@ func TestPresenter_Present(t *testing.T) {
 	assert.Equal(t, string(expected), string(actual))
 }
 
-func mustRedact(t *testing.T, content []byte) []byte {
-	assert.True(t, timestampRegexp.Match(content))
-	return timestampRegexp.ReplaceAll(content, []byte(`Timestamp:`))
+func TestPresenter_SprigDate_Fails(t *testing.T) {
+	matches, packages, context, metadataProvider, appConfig, dbStatus := models.GenerateAnalysis(t, source.ImageScheme)
+	workingDirectory, err := os.Getwd()
+	require.NoError(t, err)
+
+	// this template has the generic sprig date function, which is intentionally not supported for security reasons
+	templateFilePath := path.Join(workingDirectory, "./test-fixtures/test.template.sprig.date")
+
+	pb := models.PresenterConfig{
+		Matches:          matches,
+		Packages:         packages,
+		Context:          context,
+		MetadataProvider: metadataProvider,
+		AppConfig:        appConfig,
+		DBStatus:         dbStatus,
+	}
+
+	templatePresenter := NewPresenter(pb, templateFilePath)
+
+	var buffer bytes.Buffer
+	err = templatePresenter.Present(&buffer)
+	require.ErrorContains(t, err, `function "now" not defined`)
 }
