@@ -53,7 +53,7 @@ func (m *Matcher) Type() match.MatcherType {
 func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	var matches []match.Match
 	if m.cfg.SearchMavenUpstream {
-		upstreamMatches, err := m.matchUpstreamMavenPackages(store, p)
+		upstreamMatches, err := m.matchUpstreamMavenPackages(store, d, p)
 		if err != nil {
 			log.Debugf("failed to match against upstream data for %s: %v", p.Name, err)
 		} else {
@@ -73,17 +73,17 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 	return matches, nil
 }
 
-func (m *Matcher) matchUpstreamMavenPackages(store vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) matchUpstreamMavenPackages(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	var matches []match.Match
 
 	if metadata, ok := p.Metadata.(pkg.JavaMetadata); ok {
-		for _, d := range metadata.ArchiveDigests {
-			if d.Algorithm == "sha1" {
-				indirectPackage, err := m.GetMavenPackageBySha(d.Value)
+		for _, digest := range metadata.ArchiveDigests {
+			if digest.Algorithm == "sha1" {
+				indirectPackage, err := m.GetMavenPackageBySha(digest.Value)
 				if err != nil {
 					return nil, err
 				}
-				indirectMatches, err := search.ByPackageLanguage(store, *indirectPackage, m.Type())
+				indirectMatches, err := search.ByPackageLanguage(store, d, *indirectPackage, m.Type())
 				if err != nil {
 					return nil, err
 				}
