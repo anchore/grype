@@ -29,7 +29,7 @@ func syftProvider(userInput string, config ProviderConfig) ([]Package, Context, 
 
 	catalog = removePackagesByOverlap(catalog, relationships)
 
-	packages := FromCatalog(catalog, config.SynthesisConfig)
+	packages := FromCollection(catalog, config.SynthesisConfig)
 	context := Context{
 		Source: &src.Metadata,
 		Distro: theDistro,
@@ -39,7 +39,7 @@ func syftProvider(userInput string, config ProviderConfig) ([]Package, Context, 
 		Source:        src.Metadata,
 		Relationships: relationships,
 		Artifacts: sbom.Artifacts{
-			PackageCatalog: catalog,
+			Packages: catalog,
 		},
 	}
 

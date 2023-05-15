@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.4.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.4",
-  "serialNumber": "urn:uuid:e598c6ef-9834-47e0-ace3-a4ef0c7a351c",
+  "serialNumber": "urn:uuid:f701dea7-2715-48eb-8d63-878377007e65",
   "version": 1,
   "metadata": {
-    "timestamp": "2023-04-04T10:31:46-04:00",
+    "timestamp": "2023-05-04T09:41:30-04:00",
     "tools": [
       {
         "vendor": "anchore",
@@ -52,7 +52,7 @@
   ],
   "vulnerabilities": [
     {
-      "bom-ref": "urn:uuid:0677b2cd-e4a0-4530-a6f9-2d021f640e3f",
+      "bom-ref": "urn:uuid:befb74e5-738d-4b2c-adf2-03d276553bca",
       "id": "CVE-1999-0001",
       "source": {},
       "references": [
@@ -73,12 +73,12 @@
       "advisories": [],
       "affects": [
         {
-          "ref": "539d6c66-f75b-40fb-a3e5-799ab369780d"
+          "ref": "96699b00fe3004b4"
         }
       ]
     },
     {
-      "bom-ref": "urn:uuid:d0e3c417-5c5d-4387-8b20-0b2d2222627d",
+      "bom-ref": "urn:uuid:9cf43de2-c92a-4f29-add6-29bdd71a0285",
       "id": "CVE-1999-0002",
       "source": {},
       "references": [
@@ -99,7 +99,7 @@
       "advisories": [],
       "affects": [
         {
-          "ref": "12a142fd-c719-4211-bebf-a0bb27792b44"
+          "ref": "b4013a965511376c"
         }
       ]
     }

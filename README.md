@@ -247,10 +247,11 @@ The output format for Grype is configurable as well:
 grype <image> -o <format>
 ```
 
-Where the `format`s available are:
+Where the formats available are:
 
 - `table`: A columnar summary (default).
-- `cyclonedx`: An XML report conforming to the [CycloneDX 1.2](https://cyclonedx.org/) specification.
+- `cyclonedx`: An XML report conforming to the [CycloneDX 1.4 specification](https://cyclonedx.org/specification/overview/).
+- `cyclonedx-json`: A JSON report conforming to the [CycloneDX 1.4 specification](https://cyclonedx.org/specification/overview/).
 - `json`: Use this to get as much information out of Grype as possible!
 - `template`: Lets the user specify the output format. See ["Using templates"](#using-templates) below.
 
@@ -267,6 +268,8 @@ Grype lets you define custom output formats, using [Go templates](https://golang
 - Grype's template processing uses the same data models as the `json` output format — so if you're wondering what data is available as you author a template, you can use the output from `grype <image> -o json` as a reference.
 
 **Example:** You could make Grype output data in CSV format by writing a Go template that renders CSV data and then running `grype <image> -o template -t ~/path/to/csv.tmpl`.
+
+**Please note:** Templates can access information about the system they are running on, such as environment variables. You should never run untrusted templates.
 
 Here's what the `csv.tmpl` file might look like:
 
@@ -539,12 +542,18 @@ They will also not be dependent on a docker daemon, (or some other runtime softw
 
 ## Configuration
 
-Configuration search paths:
+Default configuration search paths:
 
 - `.grype.yaml`
 - `.grype/config.yaml`
 - `~/.grype.yaml`
 - `<XDG_CONFIG_HOME>/grype/config.yaml`
+
+You can also use the `--config` / `-c` flag to provide your own configuration file/path:
+
+```
+grype <image> -c /path/to/config.yaml
+```
 
 Configuration options (example values are the default):
 

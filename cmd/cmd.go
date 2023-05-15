@@ -84,8 +84,8 @@ func initLogging() {
 		return
 	}
 	grype.SetLogger(logWrapper)
-	syft.SetLogger(logWrapper.Nested("form-lib", "syft"))
-	stereoscope.SetLogger(logWrapper.Nested("form-lib", "stereoscope"))
+	syft.SetLogger(logWrapper.Nested("from-lib", "syft"))
+	stereoscope.SetLogger(logWrapper.Nested("from-lib", "stereoscope"))
 }
 
 func logAppConfig() {

@@ -4,13 +4,14 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
 
 	grypeDb "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/stereoscope/pkg/image"
+	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -33,12 +34,12 @@ func SBOMFromPackages(t *testing.T, packages []pkg.Package) *sbom.SBOM {
 
 	sbom := &sbom.SBOM{
 		Artifacts: sbom.Artifacts{
-			PackageCatalog: syftPkg.NewCatalog(),
+			Packages: syftPkg.NewCollection(),
 		},
 	}
 
 	for _, p := range packages {
-		sbom.Artifacts.PackageCatalog.Add(toSyftPkg(p))
+		sbom.Artifacts.Packages.Add(toSyftPkg(p))
 	}
 
 	return sbom
@@ -129,9 +130,9 @@ func generateMatches(t *testing.T, p, p2 pkg.Package) match.Matches {
 func generatePackages(t *testing.T) []pkg.Package {
 	t.Helper()
 	epoch := 2
-	return []pkg.Package{
+
+	pkgs := []pkg.Package{
 		{
-			ID:        pkg.ID(uuid.NewString()),
 			Name:      "package-1",
 			Version:   "1.1.1",
 			Type:      syftPkg.RpmPkg,
@@ -157,7 +158,6 @@ func generatePackages(t *testing.T) []pkg.Package {
 			},
 		},
 		{
-			ID:        pkg.ID(uuid.NewString()),
 			Name:      "package-2",
 			Version:   "2.2.2",
 			Type:      syftPkg.DebPkg,
@@ -174,6 +174,18 @@ func generatePackages(t *testing.T) []pkg.Package {
 			Licenses: []string{"MIT", "Apache-2.0"},
 		},
 	}
+
+	updatedPkgs := make([]pkg.Package, 0, len(pkgs))
+
+	for _, p := range pkgs {
+		id, err := artifact.IDByHash(p)
+		require.NoError(t, err)
+
+		p.ID = pkg.ID(id)
+		updatedPkgs = append(updatedPkgs, p)
+	}
+
+	return updatedPkgs
 }
 
 func generateContext(t *testing.T, scheme syftSource.Scheme) pkg.Context {

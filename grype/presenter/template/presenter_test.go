@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -42,10 +43,35 @@ func TestPresenter_Present(t *testing.T) {
 	}
 
 	actual := buffer.Bytes()
+
 	if *update {
 		testutils.UpdateGoldenFileContents(t, actual)
 	}
 	expected := testutils.GetGoldenFileContents(t)
 
 	assert.Equal(t, string(expected), string(actual))
+}
+
+func TestPresenter_SprigDate_Fails(t *testing.T) {
+	matches, packages, context, metadataProvider, appConfig, dbStatus := models.GenerateAnalysis(t, source.ImageScheme)
+	workingDirectory, err := os.Getwd()
+	require.NoError(t, err)
+
+	// this template has the generic sprig date function, which is intentionally not supported for security reasons
+	templateFilePath := path.Join(workingDirectory, "./test-fixtures/test.template.sprig.date")
+
+	pb := models.PresenterConfig{
+		Matches:          matches,
+		Packages:         packages,
+		Context:          context,
+		MetadataProvider: metadataProvider,
+		AppConfig:        appConfig,
+		DBStatus:         dbStatus,
+	}
+
+	templatePresenter := NewPresenter(pb, templateFilePath)
+
+	var buffer bytes.Buffer
+	err = templatePresenter.Present(&buffer)
+	require.ErrorContains(t, err, `function "now" not defined`)
 }
