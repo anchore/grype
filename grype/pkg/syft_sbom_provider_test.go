@@ -150,7 +150,7 @@ func TestParseSyftJSON(t *testing.T) {
 
 			for _, d := range deep.Equal(test.Packages, pkgs) {
 				if strings.Contains(d, ".ID: ") {
-					// today ID's get assigned by the catalog, which will change in the future. But in the meantime
+					// today ID's get assigned by the collection, which will change in the future. But in the meantime
 					// that means that these IDs are random and should not be counted as a difference we care about in
 					// this test.
 					continue

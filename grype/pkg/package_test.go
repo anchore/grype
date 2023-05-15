@@ -419,6 +419,19 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
+			name: "python-requirements-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.PythonRequirementsMetadataType,
+				Metadata: syftPkg.PythonRequirementsMetadata{
+					Name:              "a",
+					Extras:            []string{"a"},
+					VersionConstraint: "a",
+					URL:               "a",
+					Markers:           map[string]string{"a": "a"},
+				},
+			},
+		},
+		{
 			name: "binary-metadata",
 			syftPkg: syftPkg.Package{
 				MetadataType: syftPkg.BinaryMetadataType,
@@ -426,6 +439,61 @@ func TestNew(t *testing.T) {
 					Matches: []syftPkg.ClassifierMatch{
 						{
 							Classifier: "node",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "nix-store-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.NixStoreMetadataType,
+				Metadata: syftPkg.NixStoreMetadata{
+					OutputHash: "a",
+					Output:     "a",
+					Files: []string{
+						"a",
+					},
+				},
+			},
+		},
+		{
+			name: "linux-kernel-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.LinuxKernelMetadataType,
+				Metadata: syftPkg.LinuxKernelMetadata{
+					Name:            "a",
+					Architecture:    "a",
+					Version:         "a",
+					ExtendedVersion: "a",
+					BuildTime:       "a",
+					Author:          "a",
+					Format:          "a",
+					RWRootFS:        true,
+					SwapDevice:      10,
+					RootDevice:      11,
+					VideoMode:       "a",
+				},
+			},
+		},
+		{
+			name: "linux-kernel-module-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.LinuxKernelModuleMetadataType,
+				Metadata: syftPkg.LinuxKernelModuleMetadata{
+					Name:          "a",
+					Version:       "a",
+					SourceVersion: "a",
+					Path:          "a",
+					Description:   "a",
+					Author:        "a",
+					License:       "a",
+					KernelVersion: "a",
+					VersionMagic:  "a",
+					Parameters: map[string]syftPkg.LinuxKernelModuleParameter{
+						"a": {
+							Type:        "a",
+							Description: "a",
 						},
 					},
 				},
@@ -460,8 +528,8 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestFromCatalog_DoesNotPanic(t *testing.T) {
-	catalog := syftPkg.NewCatalog()
+func TestFromCollection_DoesNotPanic(t *testing.T) {
+	collection := syftPkg.NewCollection()
 
 	examplePackage := syftPkg.Package{
 		Name:    "test",
@@ -472,19 +540,19 @@ func TestFromCatalog_DoesNotPanic(t *testing.T) {
 		Type: syftPkg.NpmPkg,
 	}
 
-	catalog.Add(examplePackage)
+	collection.Add(examplePackage)
 	// add it again!
-	catalog.Add(examplePackage)
+	collection.Add(examplePackage)
 
 	assert.NotPanics(t, func() {
-		_ = FromCatalog(catalog, SynthesisConfig{})
+		_ = FromCollection(collection, SynthesisConfig{})
 	})
 }
 
-func TestFromCatalog_GeneratesCPEs(t *testing.T) {
-	catalog := syftPkg.NewCatalog()
+func TestFromCollection_GeneratesCPEs(t *testing.T) {
+	collection := syftPkg.NewCollection()
 
-	catalog.Add(syftPkg.Package{
+	collection.Add(syftPkg.Package{
 		Name:    "first",
 		Version: "1",
 		CPEs: []cpe.CPE{
@@ -492,18 +560,18 @@ func TestFromCatalog_GeneratesCPEs(t *testing.T) {
 		},
 	})
 
-	catalog.Add(syftPkg.Package{
+	collection.Add(syftPkg.Package{
 		Name:    "second",
 		Version: "2",
 	})
 
 	// doesn't generate cpes when no flag
-	pkgs := FromCatalog(catalog, SynthesisConfig{})
+	pkgs := FromCollection(collection, SynthesisConfig{})
 	assert.Len(t, pkgs[0].CPEs, 1)
 	assert.Len(t, pkgs[1].CPEs, 0)
 
 	// does generate cpes with the flag
-	pkgs = FromCatalog(catalog, SynthesisConfig{
+	pkgs = FromCollection(collection, SynthesisConfig{
 		GenerateMissingCPEs: true,
 	})
 	assert.Len(t, pkgs[0].CPEs, 1)
@@ -586,8 +654,8 @@ func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			catalog := removePackagesByOverlap(test.sbom.catalog, test.sbom.relationships)
-			pkgs := FromCatalog(catalog, SynthesisConfig{})
+			catalog := removePackagesByOverlap(test.sbom.collection, test.sbom.relationships)
+			pkgs := FromCollection(catalog, SynthesisConfig{})
 			var pkgNames []string
 			for _, p := range pkgs {
 				pkgNames = append(pkgNames, fmt.Sprintf("%s:%s@%s", p.Type, p.Name, p.Version))
@@ -598,7 +666,7 @@ func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
 }
 
 type catalogRelationships struct {
-	catalog       *syftPkg.Catalog
+	collection    *syftPkg.Collection
 	relationships []artifact.Relationship
 }
 
@@ -649,10 +717,10 @@ func catalogWithOverlaps(packages []string, overlaps []string) catalogRelationsh
 		})
 	}
 
-	catalog := syftPkg.NewCatalog(pkgs...)
+	catalog := syftPkg.NewCollection(pkgs...)
 
 	return catalogRelationships{
-		catalog:       catalog,
+		collection:    catalog,
 		relationships: relationships,
 	}
 }

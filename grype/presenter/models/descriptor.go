@@ -6,4 +6,5 @@ type descriptor struct {
 	Version               string      `json:"version"`
 	Configuration         interface{} `json:"configuration,omitempty"`
 	VulnerabilityDBStatus interface{} `json:"db,omitempty"`
+	Timestamp             string      `json:"timestamp"`
 }

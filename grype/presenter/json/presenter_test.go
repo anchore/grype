@@ -3,6 +3,7 @@ package json
 import (
 	"bytes"
 	"flag"
+	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,6 +17,7 @@ import (
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for json presenters")
+var timestampRegexp = regexp.MustCompile(`"timestamp":\s*"[^"]+"`)
 
 func TestJsonImgsPresenter(t *testing.T) {
 	var buffer bytes.Buffer
@@ -35,6 +37,8 @@ func TestJsonImgsPresenter(t *testing.T) {
 		t.Fatal(err)
 	}
 	actual := buffer.Bytes()
+	actual = redact(actual)
+
 	if *update {
 		testutils.UpdateGoldenFileContents(t, actual)
 	}
@@ -66,6 +70,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 		t.Fatal(err)
 	}
 	actual := buffer.Bytes()
+	actual = redact(actual)
 
 	if *update {
 		testutils.UpdateGoldenFileContents(t, actual)
@@ -108,6 +113,8 @@ func TestEmptyJsonPresenter(t *testing.T) {
 		t.Fatal(err)
 	}
 	actual := buffer.Bytes()
+	actual = redact(actual)
+
 	if *update {
 		testutils.UpdateGoldenFileContents(t, actual)
 	}
@@ -115,4 +122,9 @@ func TestEmptyJsonPresenter(t *testing.T) {
 	var expected = testutils.GetGoldenFileContents(t)
 
 	assert.JSONEq(t, string(expected), string(actual))
+
+}
+
+func redact(content []byte) []byte {
+	return timestampRegexp.ReplaceAll(content, []byte(`"timestamp":""`))
 }

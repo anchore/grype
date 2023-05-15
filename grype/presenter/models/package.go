@@ -8,6 +8,7 @@ import (
 
 // Package is meant to be only the fields that are needed when displaying a single pkg.Package object for the JSON presenter.
 type Package struct {
+	ID           string                   `json:"id"`
 	Name         string                   `json:"name"`
 	Version      string                   `json:"version"`
 	Type         syftPkg.Type             `json:"type"`
@@ -52,6 +53,7 @@ func newPackage(p pkg.Package) Package {
 	}
 
 	return Package{
+		ID:           string(p.ID),
 		Name:         p.Name,
 		Version:      p.Version,
 		Locations:    coordinates,

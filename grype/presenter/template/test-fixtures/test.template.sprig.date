@@ -1,0 +1,11 @@
+Identified distro as {{.Distro.Name}} version {{.Distro.Version}}.
+Date: {{ now | date "2006-01-02" }}
+{{- range .Matches}}
+    Vulnerability: {{.Vulnerability.ID}}
+    Severity: {{.Vulnerability.Severity}}
+    Package: {{.Artifact.Name}} version {{.Artifact.Version}} ({{.Artifact.Type}})
+    CPEs: {{ toJson .Artifact.CPEs }}
+    {{- range .MatchDetails}}
+    Matched by: {{.Matcher}}
+    {{- end}}
+{{- end}}
