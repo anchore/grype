@@ -2,7 +2,6 @@ package store
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"sort"
 	"testing"
@@ -30,7 +29,7 @@ func assertIDReader(t *testing.T, reader v4.IDReader, expected v4.ID) {
 }
 
 func TestStore_GetID_SetID(t *testing.T) {
-	dbTempFile, err := ioutil.TempFile("", "grype-db-test-store")
+	dbTempFile, err := os.CreateTemp("", "grype-db-test-store")
 	if err != nil {
 		t.Fatalf("could not create temp file: %+v", err)
 	}
@@ -73,7 +72,7 @@ func assertVulnerabilityReader(t *testing.T, reader v4.VulnerabilityStoreReader,
 }
 
 func TestStore_GetVulnerability_SetVulnerability(t *testing.T) {
-	dbTempFile, err := ioutil.TempFile("", "grype-db-test-store")
+	dbTempFile, err := os.CreateTemp("", "grype-db-test-store")
 	if err != nil {
 		t.Fatalf("could not create temp file: %+v", err)
 	}
@@ -280,7 +279,7 @@ type CustomMetadata struct {
 }
 
 func TestStore_GetVulnerabilityMetadata_SetVulnerabilityMetadata(t *testing.T) {
-	dbTempFile, err := ioutil.TempFile("", "grype-db-test-store")
+	dbTempFile, err := os.CreateTemp("", "grype-db-test-store")
 	if err != nil {
 		t.Fatalf("could not create temp file: %+v", err)
 	}
@@ -754,13 +753,13 @@ func TestStore_MergeVulnerabilityMetadata(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			dbTempDir, err := ioutil.TempDir("", "grype-db-test-store")
+			dbTempDir, err := os.CreateTemp("", "grype-db-test-store")
 			if err != nil {
 				t.Fatalf("could not create temp file: %+v", err)
 			}
-			defer os.RemoveAll(dbTempDir)
+			defer os.RemoveAll(dbTempDir.Name())
 
-			s, err := New(dbTempDir, true)
+			s, err := New(dbTempDir.Name(), true)
 			if err != nil {
 				t.Fatalf("could not create store: %+v", err)
 			}
@@ -1027,13 +1026,13 @@ func TestCvssScoresInMetadata(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			dbTempDir, err := ioutil.TempDir("", "grype-db-test-s")
+			dbTempDir, err := os.CreateTemp("", "grype-db-test-s")
 			if err != nil {
 				t.Fatalf("could not create temp file: %+v", err)
 			}
-			defer os.RemoveAll(dbTempDir)
+			defer os.RemoveAll(dbTempDir.Name())
 
-			s, err := New(dbTempDir, true)
+			s, err := New(dbTempDir.Name(), true)
 			if err != nil {
 				t.Fatalf("could not create s: %+v", err)
 			}
@@ -1078,7 +1077,7 @@ func assertVulnerabilityMatchExclusionReader(t *testing.T, reader v4.Vulnerabili
 }
 
 func TestStore_GetVulnerabilityMatchExclusion_SetVulnerabilityMatchExclusion(t *testing.T) {
-	dbTempFile, err := ioutil.TempFile("", "grype-db-test-store")
+	dbTempFile, err := os.CreateTemp("", "grype-db-test-store")
 	if err != nil {
 		t.Fatalf("could not create temp file: %+v", err)
 	}
@@ -1239,7 +1238,7 @@ func TestStore_GetVulnerabilityMatchExclusion_SetVulnerabilityMatchExclusion(t *
 
 func Test_DiffStore(t *testing.T) {
 	//GIVEN
-	dbTempFile, err := ioutil.TempFile("", "grype-db-test-store")
+	dbTempFile, err := os.CreateTemp("", "grype-db-test-store")
 	if err != nil {
 		t.Fatalf("could not create temp file: %+v", err)
 	}
@@ -1249,7 +1248,7 @@ func Test_DiffStore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
-	dbTempFile, err = ioutil.TempFile("", "grype-db-test-store")
+	dbTempFile, err = os.CreateTemp("", "grype-db-test-store")
 	if err != nil {
 		t.Fatalf("could not create temp file: %+v", err)
 	}
