@@ -283,14 +283,14 @@ func rootExec(_ *cobra.Command, args []string) error {
 }
 
 func isVerbose() (result bool) {
-	isPipedInput, err := internal.IsPipedInput()
+	isStdinPipeOrRedirect, err := internal.IsStdinPipeOrRedirect()
 	if err != nil {
 		// since we can't tell if there was piped input we assume that there could be to disable the ETUI
 		log.Warnf("unable to determine if there is piped input: %+v", err)
 		return true
 	}
 	// verbosity should consider if there is piped input (in which case we should not show the ETUI)
-	return appConfig.CliOptions.Verbosity > 0 || isPipedInput
+	return appConfig.CliOptions.Verbosity > 0 || isStdinPipeOrRedirect
 }
 
 //nolint:funlen
@@ -502,13 +502,13 @@ func validateDBLoad(loadErr error, status *db.Status) error {
 }
 
 func validateRootArgs(cmd *cobra.Command, args []string) error {
-	isPipedInput, err := internal.IsPipedInput()
+	isStdinPipeOrRedirect, err := internal.IsStdinPipeOrRedirect()
 	if err != nil {
 		log.Warnf("unable to determine if there is piped input: %+v", err)
-		isPipedInput = false
+		isStdinPipeOrRedirect = false
 	}
 
-	if len(args) == 0 && !isPipedInput {
+	if len(args) == 0 && !isStdinPipeOrRedirect {
 		// in the case that no arguments are given and there is no piped input we want to show the help text and return with a non-0 return code.
 		if err := cmd.Help(); err != nil {
 			return fmt.Errorf("unable to display help: %w", err)

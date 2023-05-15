@@ -142,13 +142,13 @@ func fileHasContent(f *os.File) bool {
 }
 
 func stdinReader() io.Reader {
-	isPipedInput, err := internal.IsPipedInput()
+	isStdinPipeOrRedirect, err := internal.IsStdinPipeOrRedirect()
 	if err != nil {
 		log.Warnf("unable to determine if there is piped input: %+v", err)
 		return nil
 	}
 
-	if !isPipedInput {
+	if !isStdinPipeOrRedirect {
 		return nil
 	}
 
