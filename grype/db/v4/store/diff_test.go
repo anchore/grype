@@ -1,7 +1,6 @@
 package store
 
 import (
-	"io/ioutil"
 	"os"
 	"sort"
 	"testing"
@@ -13,7 +12,7 @@ import (
 
 func Test_GetAllVulnerabilities(t *testing.T) {
 	//GIVEN
-	dbTempFile, err := ioutil.TempFile("", "grype-db-test-store")
+	dbTempFile, err := os.CreateTemp("", "grype-db-test-store")
 	if err != nil {
 		t.Fatalf("could not create temp file: %+v", err)
 	}
@@ -34,7 +33,7 @@ func Test_GetAllVulnerabilities(t *testing.T) {
 
 func Test_GetAllVulnerabilityMetadata(t *testing.T) {
 	//GIVEN
-	dbTempFile, err := ioutil.TempFile("", "grype-db-test-store")
+	dbTempFile, err := os.CreateTemp("", "grype-db-test-store")
 	if err != nil {
 		t.Fatalf("could not create temp file: %+v", err)
 	}
@@ -55,7 +54,7 @@ func Test_GetAllVulnerabilityMetadata(t *testing.T) {
 
 func Test_Diff_Vulnerabilities(t *testing.T) {
 	//GIVEN
-	dbTempFile, err := ioutil.TempFile("", "grype-db-test-store")
+	dbTempFile, err := os.CreateTemp("", "grype-db-test-store")
 	if err != nil {
 		t.Fatalf("could not create temp file: %+v", err)
 	}
@@ -65,7 +64,7 @@ func Test_Diff_Vulnerabilities(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
-	dbTempFile, err = ioutil.TempFile("", "grype-db-test-store")
+	dbTempFile, err = os.CreateTemp("", "grype-db-test-store")
 	if err != nil {
 		t.Fatalf("could not create temp file: %+v", err)
 	}
@@ -169,7 +168,7 @@ func Test_Diff_Vulnerabilities(t *testing.T) {
 
 func Test_Diff_Metadata(t *testing.T) {
 	//GIVEN
-	dbTempFile, err := ioutil.TempFile("", "grype-db-test-store")
+	dbTempFile, err := os.CreateTemp("", "grype-db-test-store")
 	if err != nil {
 		t.Fatalf("could not create temp file: %+v", err)
 	}
@@ -179,7 +178,7 @@ func Test_Diff_Metadata(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
-	dbTempFile, err = ioutil.TempFile("", "grype-db-test-store")
+	dbTempFile, err = os.CreateTemp("", "grype-db-test-store")
 	if err != nil {
 		t.Fatalf("could not create temp file: %+v", err)
 	}
