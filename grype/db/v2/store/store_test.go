@@ -1,8 +1,6 @@
 package store
 
 import (
-	"io/ioutil"
-	"os"
 	"testing"
 	"time"
 
@@ -27,13 +25,9 @@ func assertIDReader(t *testing.T, reader v2.IDReader, expected v2.ID) {
 }
 
 func TestStore_GetID_SetID(t *testing.T) {
-	dbTempFile, err := ioutil.TempFile("", "grype-db-test-store")
-	if err != nil {
-		t.Fatalf("could not create temp file: %+v", err)
-	}
-	defer os.Remove(dbTempFile.Name())
+	dbTempFile := t.TempDir()
 
-	s, err := New(dbTempFile.Name(), true)
+	s, err := New(dbTempFile, true)
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
@@ -71,13 +65,8 @@ func assertVulnerabilityReader(t *testing.T, reader v2.VulnerabilityStoreReader,
 }
 
 func TestStore_GetVulnerability_SetVulnerability(t *testing.T) {
-	dbTempFile, err := ioutil.TempFile("", "grype-db-test-store")
-	if err != nil {
-		t.Fatalf("could not create temp file: %+v", err)
-	}
-	defer os.Remove(dbTempFile.Name())
-
-	s, err := New(dbTempFile.Name(), true)
+	dbTempFile := t.TempDir()
+	s, err := New(dbTempFile, true)
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
@@ -163,13 +152,9 @@ func assertVulnerabilityMetadataReader(t *testing.T, reader v2.VulnerabilityMeta
 }
 
 func TestStore_GetVulnerabilityMetadata_SetVulnerabilityMetadata(t *testing.T) {
-	dbTempFile, err := ioutil.TempFile("", "grype-db-test-store")
-	if err != nil {
-		t.Fatalf("could not create temp file: %+v", err)
-	}
-	defer os.Remove(dbTempFile.Name())
+	dbTempFile := t.TempDir()
 
-	s, err := New(dbTempFile.Name(), true)
+	s, err := New(dbTempFile, true)
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
@@ -460,11 +445,7 @@ func TestStore_MergeVulnerabilityMetadata(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			dbTempDir, err := ioutil.TempDir("", "grype-db-test-store")
-			if err != nil {
-				t.Fatalf("could not create temp file: %+v", err)
-			}
-			defer os.RemoveAll(dbTempDir)
+			dbTempDir := t.TempDir()
 
 			s, err := New(dbTempDir, true)
 			if err != nil {
