@@ -93,7 +93,7 @@ func TestRpmModularity_Satisfied(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			s, err := test.rpmModularity.Satisfied(test.pkg)
+			s, err := test.rpmModularity.Satisfied(nil, test.pkg)
 			assert.NoError(t, err)
 			assert.Equal(t, test.satisfied, s)
 		})

@@ -1,7 +1,10 @@
 package qualifier
 
-import "github.com/anchore/grype/grype/pkg"
+import (
+	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/grype/pkg"
+)
 
 type Qualifier interface {
-	Satisfied(p pkg.Package) (bool, error)
+	Satisfied(d *distro.Distro, p pkg.Package) (bool, error)
 }

@@ -3,13 +3,14 @@ package search
 import (
 	"fmt"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
-func ByPackageLanguage(store vulnerability.ProviderByLanguage, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
+func ByPackageLanguage(store vulnerability.ProviderByLanguage, d *distro.Distro, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
 	verObj, err := version.NewVersionFromPkg(p)
 	if err != nil {
 		return nil, fmt.Errorf("matcher failed to parse version pkg=%q ver=%q: %w", p.Name, p.Version, err)
@@ -20,7 +21,7 @@ func ByPackageLanguage(store vulnerability.ProviderByLanguage, p pkg.Package, up
 		return nil, fmt.Errorf("matcher failed to fetch language=%q pkg=%q: %w", p.Language, p.Name, err)
 	}
 
-	applicableVulns, err := onlyQualifiedPackages(p, allPkgVulns)
+	applicableVulns, err := onlyQualifiedPackages(d, p, allPkgVulns)
 	if err != nil {
 		return nil, fmt.Errorf("unable to filter language-related vulnerabilities: %w", err)
 	}

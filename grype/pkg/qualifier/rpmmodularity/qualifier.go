@@ -3,6 +3,7 @@ package rpmmodularity
 import (
 	"strings"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/pkg/qualifier"
 )
@@ -15,7 +16,7 @@ func New(module string) qualifier.Qualifier {
 	return &rpmModularity{module: module}
 }
 
-func (r rpmModularity) Satisfied(p pkg.Package) (bool, error) {
+func (r rpmModularity) Satisfied(_ *distro.Distro, p pkg.Package) (bool, error) {
 	if p.MetadataType == pkg.RpmMetadataType {
 		// If unable to determine package modularity, the constraint should be considered satisfied
 		if p.Metadata == nil {
