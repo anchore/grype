@@ -45,12 +45,22 @@ type Package struct {
 func New(p pkg.Package) Package {
 	metadataType, metadata, upstreams := dataFromPkg(p)
 
+	licenseObjs := p.Licenses.ToSlice()
+	// note: this is used for presentation downstream and is a collection, thus should always be allocated
+	licenses := make([]string, 0, len(licenseObjs))
+	for _, l := range licenseObjs {
+		licenses = append(licenses, l.Value)
+	}
+	if licenses == nil {
+		licenses = []string{}
+	}
+
 	return Package{
 		ID:           ID(p.ID()),
 		Name:         p.Name,
 		Version:      p.Version,
 		Locations:    p.Locations,
-		Licenses:     p.Licenses,
+		Licenses:     licenses,
 		Language:     p.Language,
 		Type:         p.Type,
 		CPEs:         p.CPEs,

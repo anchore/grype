@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -14,12 +13,6 @@ import (
 	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/source"
 )
-
-func assertAs(expected string) assert.ErrorAssertionFunc {
-	return func(t assert.TestingT, err error, i ...interface{}) bool {
-		return assert.ErrorContains(t, errors.New(expected), err.Error())
-	}
-}
 
 func TestParseSyftJSON(t *testing.T) {
 	tests := []struct {
