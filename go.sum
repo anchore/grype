@@ -241,11 +241,8 @@ github.com/anchore/packageurl-go v0.1.1-0.20230104203445-02e0a6721501 h1:AV7qjwM
 github.com/anchore/packageurl-go v0.1.1-0.20230104203445-02e0a6721501/go.mod h1:Blo6OgJNiYF41ufcgHKkbCKF2MDOMlrqhXv/ij6ocR4=
 github.com/anchore/sqlite v1.4.6-0.20220607210448-bcc6ee5c4963 h1:vrf2PYH77vqVJoNR15ZuFJ63qwBMqrmGIt/7VsBhLF8=
 github.com/anchore/sqlite v1.4.6-0.20220607210448-bcc6ee5c4963/go.mod h1:AVRyXOUP0hTz9Cb8OlD1XnwA8t4lBPfTuwPHmEUuiLc=
-github.com/anchore/stereoscope v0.0.0-20230508133058-5543439b749f h1:wiWDirrn2a4gT2TfFeGb5zqFjKoEy3Hx+K8u8lReHzY=
-github.com/anchore/stereoscope v0.0.0-20230508133058-5543439b749f/go.mod h1:2GGFHkHry/xDlEQgBrVGcarq+z7Z6hLnHdyhcKB2lfQ=
+github.com/anchore/stereoscope v0.0.0-20230522170632-e14bc4437b2e h1:YPWJxds1hKRedS92u7O6D6ULVOx1F2HGgS4CWqJdBYw=
 github.com/anchore/stereoscope v0.0.0-20230522170632-e14bc4437b2e/go.mod h1:0LsgHgXO4QFnk2hsYwtqd3fR18PIZXlFLIl2qb9tu3g=
-github.com/anchore/syft v0.81.0 h1:J8IdsmQQWWlpGQuuM8Cktvxqxhq5CFJbA2FMgHAJB00=
-github.com/anchore/syft v0.81.0/go.mod h1:Uw5lOR89QheYGPHHAxr6YIqF6w6NkoCbX7N2zryV6Hc=
 github.com/anchore/syft v0.82.0 h1:s8uHBCB3Q3d0Q8yTg7zRklLQnuYfveCdveNhwlOPwT8=
 github.com/anchore/syft v0.82.0/go.mod h1:J1LbCDkCqu16DkG5CkFq1SQaMkQ+7ucsJZD9SjDmXzs=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
@@ -324,8 +321,7 @@ github.com/docker/cli v23.0.5+incompatible h1:ufWmAOuD3Vmr7JP2G5K3cyuNC4YZWiAsuD
 github.com/docker/cli v23.0.5+incompatible/go.mod h1:JLrzqnKDaYBop7H2jaqPtU4hHvMKP+vjCwu2uszcLI8=
 github.com/docker/distribution v2.8.2+incompatible h1:T3de5rq0dB1j30rp0sA2rER+m322EBzniBPB6ZIzuh8=
 github.com/docker/distribution v2.8.2+incompatible/go.mod h1:J2gT2udsDAN96Uj4KfcMRqY0/ypR+oyYUYmja8H+y+w=
-github.com/docker/docker v24.0.0+incompatible h1:z4bf8HvONXX9Tde5lGBMQ7yCJgNahmJumdrStZAbeY4=
-github.com/docker/docker v24.0.0+incompatible/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
+github.com/docker/docker v24.0.1+incompatible h1:NxN81beIxDlUaVt46iUQrYHD9/W3u9EGl52r86O/IGw=
 github.com/docker/docker v24.0.1+incompatible/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/docker-credential-helpers v0.7.0 h1:xtCHsjxogADNZcdv1pKUHXryefjlVRqWqIhk/uXJp0A=
 github.com/docker/docker-credential-helpers v0.7.0/go.mod h1:rETQfLdHNT3foU5kuNkFR1R1V12OJRRO5lzt2D1b5X0=
