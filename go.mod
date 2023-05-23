@@ -10,7 +10,7 @@ require (
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/packageurl-go v0.1.1-0.20230104203445-02e0a6721501
-	github.com/anchore/stereoscope v0.0.0-20230508133058-5543439b749f
+	github.com/anchore/stereoscope v0.0.0-20230522170632-e14bc4437b2e
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/docker/docker v24.0.1+incompatible
 	github.com/dustin/go-humanize v1.0.1
@@ -53,7 +53,7 @@ require (
 require (
 	github.com/anchore/go-logger v0.0.0-20220728155337-03b66a5207d8
 	github.com/anchore/sqlite v1.4.6-0.20220607210448-bcc6ee5c4963
-	github.com/anchore/syft v0.81.0
+	github.com/anchore/syft v0.82.0
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/mitchellh/mapstructure v1.5.0
 )
