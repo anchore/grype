@@ -1,0 +1,107 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.4.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "serialNumber": "urn:uuid:f701dea7-2715-48eb-8d63-878377007e65",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2023-05-04T09:41:30-04:00",
+    "tools": [
+      {
+        "vendor": "anchore",
+        "name": "griffon",
+        "version": "[not provided]"
+      }
+    ]
+  },
+  "components": [
+    {
+      "bom-ref": "76bd1479d016ce8f",
+      "type": "library",
+      "name": "package-1",
+      "version": "1.1.1",
+      "cpe": "cpe:2.3:a:anchore:engine:0.9.2:*:*:python:*:*:*:*",
+      "properties": [
+        {
+          "name": "syft:package:type",
+          "value": "rpm"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/foo/bar/somefile-1.txt"
+        }
+      ]
+    },
+    {
+      "bom-ref": "3199ef19b28ce437",
+      "type": "library",
+      "name": "package-2",
+      "version": "2.2.2",
+      "cpe": "cpe:2.3:a:anchore:engine:2.2.2:*:*:python:*:*:*:*",
+      "properties": [
+        {
+          "name": "syft:package:type",
+          "value": "deb"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/foo/bar/somefile-2.txt"
+        }
+      ]
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "bom-ref": "urn:uuid:befb74e5-738d-4b2c-adf2-03d276553bca",
+      "id": "CVE-1999-0001",
+      "source": {},
+      "references": [
+        {
+          "id": "CVE-1999-0001",
+          "source": {}
+        }
+      ],
+      "ratings": [
+        {
+          "score": 4,
+          "severity": "low",
+          "method": "CVSSv3",
+          "vector": "another vector"
+        }
+      ],
+      "description": "1999-01 description",
+      "advisories": [],
+      "affects": [
+        {
+          "ref": "96699b00fe3004b4"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:uuid:9cf43de2-c92a-4f29-add6-29bdd71a0285",
+      "id": "CVE-1999-0002",
+      "source": {},
+      "references": [
+        {
+          "id": "CVE-1999-0002",
+          "source": {}
+        }
+      ],
+      "ratings": [
+        {
+          "score": 1,
+          "severity": "critical",
+          "method": "CVSSv2",
+          "vector": "vector"
+        }
+      ],
+      "description": "1999-02 description",
+      "advisories": [],
+      "affects": [
+        {
+          "ref": "b4013a965511376c"
+        }
+      ]
+    }
+  ]
+}

@@ -23,8 +23,8 @@ See `make help` for all the current make tasks.
 
 This depends on Docker and Docker Compose
 
-1. run `docker-compose build grype` to build the local development container
-2. run `docker-compose run --rm grype bash` to enter into the container with all the bootstrapped dependencies installed.
+1. run `docker-compose build griffon` to build the local development container
+2. run `docker-compose run --rm griffon bash` to enter into the container with all the bootstrapped dependencies installed.
 3. run `make` to verify everything is installed and working properly
 
 ## Relationship to Syft
@@ -38,11 +38,11 @@ to a released version (e.g. `go get github.com/anchore/syft@v<semantic-version>`
 
 ## Inspecting the database
 
-The currently supported database format is Sqlite3. Install `sqlite3` in your system and ensure that the `sqlite3` executable is available in your path. Ask `grype` about the location of the database, which will be different depending on the operating system:
+The currently supported database format is Sqlite3. Install `sqlite3` in your system and ensure that the `sqlite3` executable is available in your path. Ask `griffon` about the location of the database, which will be different depending on the operating system:
 
 ```
 $ go run main.go db status
-Location:  /Users/alfredo/Library/Caches/grype/db
+Location:  /Users/alfredo/Library/Caches/griffon/db
 Built:  2020-07-31 08:18:29 +0000 UTC
 Current DB Version:  1
 Require DB Version:  1
@@ -53,7 +53,7 @@ The database is located within the XDG_CACHE_HOME path. To verify the database f
 
 ```
 # OSX-specific path
-$ ls -alh  /Users/alfredo/Library/Caches/grype/db
+$ ls -alh  /Users/alfredo/Library/Caches/griffon/db
 total 445392
 drwxr-xr-x  4 alfredo  staff   128B Jul 31 09:27 .
 drwxr-xr-x  3 alfredo  staff    96B Jul 31 09:27 ..
@@ -64,7 +64,7 @@ drwxr-xr-x  3 alfredo  staff    96B Jul 31 09:27 ..
 Next, open the `vulnerability.db` with `sqlite3`:
 
 ```
-$ sqlite3 /Users/alfredo/Library/Caches/grype/db/vulnerability.db
+$ sqlite3 /Users/alfredo/Library/Caches/griffon/db/vulnerability.db
 ```
 
 To make the reporting from Sqlite3 easier to read, enable the following:

@@ -9,7 +9,7 @@ env:
 
 builds:
   - id: linux-build
-    binary: grype
+    binary: griffon
     goos:
       - linux
     goarch:
@@ -23,13 +23,13 @@ builds:
       -w
       -s
       -extldflags '-static'
-      -X github.com/anchore/grype/internal/version.version={{.Version}}
-      -X github.com/anchore/grype/internal/version.gitCommit={{.Commit}}
-      -X github.com/anchore/grype/internal/version.buildDate={{.Date}}
-      -X github.com/anchore/grype/internal/version.gitDescription={{.Summary}}
+      -X github.com/nextlinux/griffon/internal/version.version={{.Version}}
+      -X github.com/nextlinux/griffon/internal/version.gitCommit={{.Commit}}
+      -X github.com/nextlinux/griffon/internal/version.buildDate={{.Date}}
+      -X github.com/nextlinux/griffon/internal/version.gitDescription={{.Summary}}
 
   - id: darwin-build
-    binary: grype
+    binary: griffon
     goos:
       - darwin
     goarch:
@@ -44,7 +44,7 @@ builds:
             - QUILL_LOG_FILE=/tmp/quill-{{ .Target }}.log
 
   - id: windows-build
-    binary: grype
+    binary: griffon
     goos:
       - windows
     goarch:
@@ -69,7 +69,7 @@ archives:
 nfpms:
   - license: "Apache 2.0"
     maintainer: "Anchore, Inc"
-    homepage: &website "https://github.com/anchore/grype"
+    homepage: &website "https://github.com/nextlinux/griffon"
     description: &description "A vulnerability scanner for container images and filesystems"
     formats:
       - rpm
@@ -78,7 +78,7 @@ nfpms:
 brews:
   - tap:
       owner: anchore
-      name: homebrew-grype
+      name: homebrew-griffon
       token: "{{.Env.GITHUB_BREW_TOKEN}}"
     ids:
       - darwin-archives
@@ -89,10 +89,10 @@ brews:
 
 dockers:
   - image_templates:
-      - anchore/grype:debug
-      - anchore/grype:{{.Tag}}-debug
-      - ghcr.io/anchore/grype:debug
-      - ghcr.io/anchore/grype:{{.Tag}}-debug
+      - nextlinux/griffon:debug
+      - nextlinux/griffon:{{.Tag}}-debug
+      - ghcr.io/nextlinux/griffon:debug
+      - ghcr.io/nextlinux/griffon:{{.Tag}}-debug
     goarch: amd64
     dockerfile: Dockerfile.debug
     use: buildx
@@ -104,10 +104,10 @@ dockers:
       - "--build-arg=VCS_URL={{.GitURL}}"
 
   - image_templates:
-      - anchore/grype:debug-arm64v8
-      - anchore/grype:{{.Tag}}-debug-arm64v8
-      - ghcr.io/anchore/grype:debug-arm64v8
-      - ghcr.io/anchore/grype:{{.Tag}}-debug-arm64v8
+      - nextlinux/griffon:debug-arm64v8
+      - nextlinux/griffon:{{.Tag}}-debug-arm64v8
+      - ghcr.io/nextlinux/griffon:debug-arm64v8
+      - ghcr.io/nextlinux/griffon:{{.Tag}}-debug-arm64v8
     goarch: arm64
     dockerfile: Dockerfile.debug
     use: buildx
@@ -119,10 +119,10 @@ dockers:
       - "--build-arg=VCS_URL={{.GitURL}}"
 
   - image_templates:
-      - anchore/grype:debug-ppc64le
-      - anchore/grype:{{.Tag}}-debug-ppc64le
-      - ghcr.io/anchore/grype:debug-ppc64le
-      - ghcr.io/anchore/grype:{{.Tag}}-debug-ppc64le
+      - nextlinux/griffon:debug-ppc64le
+      - nextlinux/griffon:{{.Tag}}-debug-ppc64le
+      - ghcr.io/nextlinux/griffon:debug-ppc64le
+      - ghcr.io/nextlinux/griffon:{{.Tag}}-debug-ppc64le
     goarch: ppc64le
     dockerfile: Dockerfile.debug
     use: buildx
@@ -134,10 +134,10 @@ dockers:
       - "--build-arg=VCS_URL={{.GitURL}}"
 
   - image_templates:
-      - anchore/grype:debug-s390x
-      - anchore/grype:{{.Tag}}-debug-s390x
-      - ghcr.io/anchore/grype:debug-s390x
-      - ghcr.io/anchore/grype:{{.Tag}}-debug-s390x
+      - nextlinux/griffon:debug-s390x
+      - nextlinux/griffon:{{.Tag}}-debug-s390x
+      - ghcr.io/nextlinux/griffon:debug-s390x
+      - ghcr.io/nextlinux/griffon:{{.Tag}}-debug-s390x
     goarch: s390x
     dockerfile: Dockerfile.debug
     use: buildx
@@ -149,10 +149,10 @@ dockers:
       - "--build-arg=VCS_URL={{.GitURL}}"
 
   - image_templates:
-      - anchore/grype:latest
-      - anchore/grype:{{.Tag}}
-      - ghcr.io/anchore/grype:latest
-      - ghcr.io/anchore/grype:{{.Tag}}
+      - nextlinux/griffon:latest
+      - nextlinux/griffon:{{.Tag}}
+      - ghcr.io/nextlinux/griffon:latest
+      - ghcr.io/nextlinux/griffon:{{.Tag}}
     goarch: amd64
     dockerfile: Dockerfile
     use: buildx
@@ -164,8 +164,8 @@ dockers:
       - "--build-arg=VCS_URL={{.GitURL}}"
 
   - image_templates:
-      - anchore/grype:{{.Tag}}-arm64v8
-      - ghcr.io/anchore/grype:{{.Tag}}-arm64v8
+      - nextlinux/griffon:{{.Tag}}-arm64v8
+      - ghcr.io/nextlinux/griffon:{{.Tag}}-arm64v8
     goarch: arm64
     dockerfile: Dockerfile
     use: buildx
@@ -177,8 +177,8 @@ dockers:
       - "--build-arg=VCS_URL={{.GitURL}}"
 
   - image_templates:
-      - anchore/grype:{{.Tag}}-ppc64le
-      - ghcr.io/anchore/grype:{{.Tag}}-ppc64le
+      - nextlinux/griffon:{{.Tag}}-ppc64le
+      - ghcr.io/nextlinux/griffon:{{.Tag}}-ppc64le
     goarch: ppc64le
     dockerfile: Dockerfile
     use: buildx
@@ -190,8 +190,8 @@ dockers:
       - "--build-arg=VCS_URL={{.GitURL}}"
 
   - image_templates:
-      - anchore/grype:{{.Tag}}-s390x
-      - ghcr.io/anchore/grype:{{.Tag}}-s390x
+      - nextlinux/griffon:{{.Tag}}-s390x
+      - ghcr.io/nextlinux/griffon:{{.Tag}}-s390x
     goarch: s390x
     dockerfile: Dockerfile
     use: buildx
@@ -203,44 +203,44 @@ dockers:
       - "--build-arg=VCS_URL={{.GitURL}}"
 
 docker_manifests:
-  - name_template: anchore/grype:latest
+  - name_template: nextlinux/griffon:latest
     image_templates:
-      - anchore/grype:{{.Tag}}
-      - anchore/grype:{{.Tag}}-arm64v8
-      - anchore/grype:{{.Tag}}-ppc64le
-      - anchore/grype:{{.Tag}}-s390x
+      - nextlinux/griffon:{{.Tag}}
+      - nextlinux/griffon:{{.Tag}}-arm64v8
+      - nextlinux/griffon:{{.Tag}}-ppc64le
+      - nextlinux/griffon:{{.Tag}}-s390x
 
-  - name_template: anchore/grype:debug
-      - anchore/grype:{{.Tag}}-debug
-      - anchore/grype:{{.Tag}}-debug-arm64v8
-      - anchore/grype:{{.Tag}}-debug-ppc64le
-      - anchore/grype:{{.Tag}}-debug-s390x
+  - name_template: nextlinux/griffon:debug
+      - nextlinux/griffon:{{.Tag}}-debug
+      - nextlinux/griffon:{{.Tag}}-debug-arm64v8
+      - nextlinux/griffon:{{.Tag}}-debug-ppc64le
+      - nextlinux/griffon:{{.Tag}}-debug-s390x
 
-  - name_template: anchore/grype:{{.Tag}}
+  - name_template: nextlinux/griffon:{{.Tag}}
     image_templates:
-      - anchore/grype:{{.Tag}}
-      - anchore/grype:{{.Tag}}-arm64v8
-      - anchore/grype:{{.Tag}}-ppc64le
-      - anchore/grype:{{.Tag}}-s390x
+      - nextlinux/griffon:{{.Tag}}
+      - nextlinux/griffon:{{.Tag}}-arm64v8
+      - nextlinux/griffon:{{.Tag}}-ppc64le
+      - nextlinux/griffon:{{.Tag}}-s390x
 
-  - name_template: ghcr.io/anchore/grype:latest
+  - name_template: ghcr.io/nextlinux/griffon:latest
     image_templates:
-      - ghcr.io/anchore/grype:{{.Tag}}
-      - ghcr.io/anchore/grype:{{.Tag}}-arm64v8
-      - ghcr.io/anchore/grype:{{.Tag}}-ppc64le
-      - ghcr.io/anchore/grype:{{.Tag}}-s390x
+      - ghcr.io/nextlinux/griffon:{{.Tag}}
+      - ghcr.io/nextlinux/griffon:{{.Tag}}-arm64v8
+      - ghcr.io/nextlinux/griffon:{{.Tag}}-ppc64le
+      - ghcr.io/nextlinux/griffon:{{.Tag}}-s390x
 
-  - name_template: ghcr.io/anchore/grype:debug
+  - name_template: ghcr.io/nextlinux/griffon:debug
     image_templates:
-      - ghcr.io/anchore/grype:{{.Tag}}-debug
-      - ghcr.io/anchore/grype:{{.Tag}}-debug-arm64v8
-      - ghcr.io/anchore/grype:{{.Tag}}-debug-ppc64le
-      - ghcr.io/anchore/grype:{{.Tag}}-debug-s390x
+      - ghcr.io/nextlinux/griffon:{{.Tag}}-debug
+      - ghcr.io/nextlinux/griffon:{{.Tag}}-debug-arm64v8
+      - ghcr.io/nextlinux/griffon:{{.Tag}}-debug-ppc64le
+      - ghcr.io/nextlinux/griffon:{{.Tag}}-debug-s390x
 
-  - name_template: ghcr.io/anchore/grype:{{.Tag}}
+  - name_template: ghcr.io/nextlinux/griffon:{{.Tag}}
     image_templates:
-      - ghcr.io/anchore/grype:{{.Tag}}
-      - ghcr.io/anchore/grype:{{.Tag}}-arm64v8
-      - ghcr.io/anchore/grype:{{.Tag}}-ppc64le
-      - ghcr.io/anchore/grype:{{.Tag}}-s390x
+      - ghcr.io/nextlinux/griffon:{{.Tag}}
+      - ghcr.io/nextlinux/griffon:{{.Tag}}-arm64v8
+      - ghcr.io/nextlinux/griffon:{{.Tag}}-ppc64le
+      - ghcr.io/nextlinux/griffon:{{.Tag}}-s390x
 

@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/internal/config"
+	"github.com/nextlinux/griffon/griffon/pkg"
+	"github.com/nextlinux/griffon/internal/config"
 )
 
 func Test_applyDistroHint(t *testing.T) {

@@ -17,7 +17,7 @@ from yardstick.cli import display, config
 
 # see the .yardstick.yaml configuration for details
 default_result_set = "pr_vs_latest_via_sbom"
-yardstick.utils.grype_db.raise_on_failure(False)
+yardstick.utils.griffon_db.raise_on_failure(False)
 
 @dataclass
 class Gate:

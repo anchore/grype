@@ -1,4 +1,4 @@
-NAME=grype
+NAME=griffon
 
 IMAGE_NAME=$(NAME)-install.sh-env
 UBUNTU_IMAGE=$(IMAGE_NAME):ubuntu-20.04
@@ -12,10 +12,10 @@ UNIT=make unit-local
 # acceptance testing is running the current install.sh against the latest release. Note: this could be a problem down
 # the line if there are breaking changes made that don't align with the latest release (but will be OK with the next
 # release)
-ACCEPTANCE_CMD=sh -c '../../install.sh -b /usr/local/bin  && grype version'
+ACCEPTANCE_CMD=sh -c '../../install.sh -b /usr/local/bin  && griffon version'
 # we also want to test against a previous release to ensure that install.sh defers execution to a former install.sh
 PREVIOUS_RELEASE=v0.24.0
-ACCEPTANCE_PREVIOUS_RELEASE_CMD=sh -c "../../install.sh -b /usr/local/bin $(PREVIOUS_RELEASE) && grype version"
+ACCEPTANCE_PREVIOUS_RELEASE_CMD=sh -c "../../install.sh -b /usr/local/bin $(PREVIOUS_RELEASE) && griffon version"
 
 # CI cache busting values; change these if you want CI to not use previous stored cache
 INSTALL_TEST_CACHE_BUSTER=894d8ca
@@ -52,7 +52,7 @@ acceptance-current-release-local:
 .PHONY: acceptance-previous-release-local
 acceptance-previous-release-local:
 	$(ACCEPTANCE_PREVIOUS_RELEASE_CMD)
-	grype version | grep $(shell echo $(PREVIOUS_RELEASE)| tr -d "v")
+	griffon version | grep $(shell echo $(PREVIOUS_RELEASE)| tr -d "v")
 
 .PHONY: save
 save: ubuntu-20.04 alpine-3.6 busybox-1.35
@@ -112,7 +112,7 @@ acceptance-busybox-1.35: busybox-1.35
 	$(call title,busybox-1.35 - acceptance)
 	$(DOCKER_RUN) $(BUSYBOX_IMAGE) \
 		$(ACCEPTANCE_CMD)
-	@echo "\n*** test note: you should see grype spit out a 'x509: certificate signed by unknown authority' error --this is expected ***"
+	@echo "\n*** test note: you should see griffon spit out a 'x509: certificate signed by unknown authority' error --this is expected ***"
 
 .PHONY: busybox-1.35
 busybox-1.35:

@@ -13,9 +13,9 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/anchore/go-logger"
-	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal"
+	"github.com/nextlinux/griffon/griffon/match"
+	"github.com/nextlinux/griffon/griffon/vulnerability"
+	"github.com/nextlinux/griffon/internal"
 )
 
 var ErrApplicationConfigNotFound = fmt.Errorf("application config not found")

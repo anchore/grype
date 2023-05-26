@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/anchore/grype/grype/db"
+	"github.com/nextlinux/griffon/griffon/db"
 )
 
 var dbCheckCmd = &cobra.Command{
@@ -42,7 +42,7 @@ func runDBCheckCmd(_ *cobra.Command, _ []string) error {
 
 	fmt.Printf("Updated DB version %d was built on %s\n", updateDBEntry.Version, updateDBEntry.Built.String())
 	fmt.Printf("Updated DB URL: %s\n", updateDBEntry.URL.String())
-	fmt.Println("You can run 'grype db update' to update to the latest db")
+	fmt.Println("You can run 'griffon db update' to update to the latest db")
 
 	return nil
 }

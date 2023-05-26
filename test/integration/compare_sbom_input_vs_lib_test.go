@@ -8,13 +8,13 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/db"
-	"github.com/anchore/grype/internal"
 	"github.com/anchore/syft/syft"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
+	"github.com/nextlinux/griffon/griffon"
+	"github.com/nextlinux/griffon/griffon/db"
+	"github.com/nextlinux/griffon/internal"
 )
 
 var imagesWithVulnerabilities = []string{
@@ -42,9 +42,9 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		syft.SPDXTagValueFormatID,
 	}
 
-	// get a grype DB
-	store, _, closer, err := grype.LoadVulnerabilityDB(db.Config{
-		DBRootDir:           "test-fixtures/grype-db",
+	// get a griffon DB
+	store, _, closer, err := griffon.LoadVulnerabilityDB(db.Config{
+		DBRootDir:           "test-fixtures/griffon-db",
 		ListingURL:          getListingURL(),
 		ValidateByHashOnGet: false,
 	}, true)
@@ -101,11 +101,11 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 				assert.NoError(t, sbomFile.Close())
 
 				// get vulns (sbom)
-				matchesFromSbom, _, pkgsFromSbom, err := grype.FindVulnerabilities(*store, fmt.Sprintf("sbom:%s", sbomFile.Name()), source.SquashedScope, nil)
+				matchesFromSbom, _, pkgsFromSbom, err := griffon.FindVulnerabilities(*store, fmt.Sprintf("sbom:%s", sbomFile.Name()), source.SquashedScope, nil)
 				assert.NoError(t, err)
 
 				// get vulns (image)
-				matchesFromImage, _, _, err := grype.FindVulnerabilities(*store, imageSource, source.SquashedScope, nil)
+				matchesFromImage, _, _, err := griffon.FindVulnerabilities(*store, imageSource, source.SquashedScope, nil)
 				assert.NoError(t, err)
 
 				// compare packages (shallow)

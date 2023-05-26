@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/go-getter/helper/url"
 	"github.com/wagoodman/go-progress"
 
-	"github.com/anchore/grype/internal"
+	"github.com/nextlinux/griffon/internal"
 )
 
 var (

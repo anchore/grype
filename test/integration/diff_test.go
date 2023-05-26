@@ -7,8 +7,8 @@ import (
 var update = flag.Bool("update", false, "update the *.golden files for diff presenter")
 
 const (
-	baseURL   = "https://toolbox-data.anchore.io/grype/staging-databases/vulnerability-db_v5_2022-10-14T08:22:01Z_69c99aa5917dea969f2d.tar.gz"
-	targetURL = "https://toolbox-data.anchore.io/grype/staging-databases/vulnerability-db_v5_2022-10-17T08:14:57Z_10e4086061ab36cfa900.tar.gz"
+	baseURL   = "https://toolbox-data.anchore.io/griffon/staging-databases/vulnerability-db_v5_2022-10-14T08:22:01Z_69c99aa5917dea969f2d.tar.gz"
+	targetURL = "https://toolbox-data.anchore.io/griffon/staging-databases/vulnerability-db_v5_2022-10-17T08:14:57Z_10e4086061ab36cfa900.tar.gz"
 )
 
 // TODO: Rework this test to not be dependent on hosted DBs.  Disabling to get around failures while bumping schema
@@ -16,7 +16,7 @@ const (
 //func TestDatabaseDiff(t *testing.T) {
 //	//GIVEN
 //	differ, err := differ.NewDiffer(db.Config{
-//		DBRootDir:           "test-fixtures/grype-db",
+//		DBRootDir:           "test-fixtures/griffon-db",
 //		ListingURL:          getListingURL(),
 //		ValidateByHashOnGet: false,
 //	})

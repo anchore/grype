@@ -152,34 +152,34 @@ snapshot_checksums_path() {
 snapshot_assets_count() {
   # example output before wc -l:
 
-  #  ../../snapshot/grype_0.32.0-SNAPSHOT-e5e847a_linux_arm64.deb
-  #  ../../snapshot/grype_0.32.0-SNAPSHOT-e5e847a_linux_arm64.tar.gz
-  #  ../../snapshot/grype_0.32.0-SNAPSHOT-e5e847a_linux_amd64.rpm
-  #  ../../snapshot/grype_0.32.0-SNAPSHOT-e5e847a_darwin_arm64.tar.gz
-  #  ../../snapshot/grype_0.32.0-SNAPSHOT-e5e847a_linux_amd64.deb
-  #  ../../snapshot/grype_0.32.0-SNAPSHOT-e5e847a_linux_arm64.rpm
-  #  ../../snapshot/grype_0.32.0-SNAPSHOT-e5e847a_darwin_amd64.zip
-  #  ../../snapshot/grype_0.32.0-SNAPSHOT-e5e847a_windows_amd64.zip
-  #  ../../snapshot/grype_0.32.0-SNAPSHOT-e5e847a_darwin_arm64.zip
-  #  ../../snapshot/grype_0.32.0-SNAPSHOT-e5e847a_linux_amd64.tar.gz
-  #  ../../snapshot/grype_0.32.0-SNAPSHOT-e5e847a_darwin_amd64.tar.gz
+  #  ../../snapshot/griffon_0.32.0-SNAPSHOT-e5e847a_linux_arm64.deb
+  #  ../../snapshot/griffon_0.32.0-SNAPSHOT-e5e847a_linux_arm64.tar.gz
+  #  ../../snapshot/griffon_0.32.0-SNAPSHOT-e5e847a_linux_amd64.rpm
+  #  ../../snapshot/griffon_0.32.0-SNAPSHOT-e5e847a_darwin_arm64.tar.gz
+  #  ../../snapshot/griffon_0.32.0-SNAPSHOT-e5e847a_linux_amd64.deb
+  #  ../../snapshot/griffon_0.32.0-SNAPSHOT-e5e847a_linux_arm64.rpm
+  #  ../../snapshot/griffon_0.32.0-SNAPSHOT-e5e847a_darwin_amd64.zip
+  #  ../../snapshot/griffon_0.32.0-SNAPSHOT-e5e847a_windows_amd64.zip
+  #  ../../snapshot/griffon_0.32.0-SNAPSHOT-e5e847a_darwin_arm64.zip
+  #  ../../snapshot/griffon_0.32.0-SNAPSHOT-e5e847a_linux_amd64.tar.gz
+  #  ../../snapshot/griffon_0.32.0-SNAPSHOT-e5e847a_darwin_amd64.tar.gz
 
-  echo "$(find ../../snapshot -maxdepth 1 -type f | grep 'grype_' | grep -v checksums | wc -l | tr -d '[:space:]')"
+  echo "$(find ../../snapshot -maxdepth 1 -type f | grep 'griffon_' | grep -v checksums | wc -l | tr -d '[:space:]')"
 }
 
 
 snapshot_assets_archive_count() {
   # example output before wc -l:
 
-  #  ../../snapshot/grype_0.32.0-SNAPSHOT-e5e847a_linux_arm64.tar.gz
-  #  ../../snapshot/grype_0.32.0-SNAPSHOT-e5e847a_darwin_arm64.tar.gz
-  #  ../../snapshot/grype_0.32.0-SNAPSHOT-e5e847a_darwin_amd64.zip
-  #  ../../snapshot/grype_0.32.0-SNAPSHOT-e5e847a_windows_amd64.zip
-  #  ../../snapshot/grype_0.32.0-SNAPSHOT-e5e847a_darwin_arm64.zip
-  #  ../../snapshot/grype_0.32.0-SNAPSHOT-e5e847a_linux_amd64.tar.gz
-  #  ../../snapshot/grype_0.32.0-SNAPSHOT-e5e847a_darwin_amd64.tar.gz
+  #  ../../snapshot/griffon_0.32.0-SNAPSHOT-e5e847a_linux_arm64.tar.gz
+  #  ../../snapshot/griffon_0.32.0-SNAPSHOT-e5e847a_darwin_arm64.tar.gz
+  #  ../../snapshot/griffon_0.32.0-SNAPSHOT-e5e847a_darwin_amd64.zip
+  #  ../../snapshot/griffon_0.32.0-SNAPSHOT-e5e847a_windows_amd64.zip
+  #  ../../snapshot/griffon_0.32.0-SNAPSHOT-e5e847a_darwin_arm64.zip
+  #  ../../snapshot/griffon_0.32.0-SNAPSHOT-e5e847a_linux_amd64.tar.gz
+  #  ../../snapshot/griffon_0.32.0-SNAPSHOT-e5e847a_darwin_amd64.tar.gz
 
-  echo "$(find ../../snapshot -maxdepth 1  -type f | grep 'grype_' | grep 'tar\|zip' | wc -l | tr -d '[:space:]')"
+  echo "$(find ../../snapshot -maxdepth 1  -type f | grep 'griffon_' | grep 'tar\|zip' | wc -l | tr -d '[:space:]')"
 }
 
 

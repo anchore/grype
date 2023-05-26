@@ -285,7 +285,7 @@
   },
   {
    "id": "2268071f-cb45-4f99-82d3-87ac2ad0f1cc",
-   "name": "github.com/anchore/grype-db",
+   "name": "github.com/nextlinux/griffon-db",
    "version": "v0.0.0-20210928194208-f146397d6cd0",
    "type": "go-module",
    "foundBy": "go-cataloger",
@@ -297,10 +297,10 @@
    "licenses": [],
    "language": "go",
    "cpes": [
-    "cpe:2.3:a:anchore:grype-db:v0.0.0-20210928194208-f146397d6cd0:*:*:*:*:*:*:*",
-    "cpe:2.3:a:anchore:grype_db:v0.0.0-20210928194208-f146397d6cd0:*:*:*:*:*:*:*"
+    "cpe:2.3:a:anchore:griffon-db:v0.0.0-20210928194208-f146397d6cd0:*:*:*:*:*:*:*",
+    "cpe:2.3:a:anchore:griffon_db:v0.0.0-20210928194208-f146397d6cd0:*:*:*:*:*:*:*"
    ],
-   "purl": "pkg:golang/github.com/anchore/grype-db@v0.0.0-20210928194208-f146397d6cd0",
+   "purl": "pkg:golang/github.com/nextlinux/griffon-db@v0.0.0-20210928194208-f146397d6cd0",
    "metadataType": "",
    "metadata": null
   },

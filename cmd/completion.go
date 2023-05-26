@@ -19,13 +19,13 @@ var completionCmd = &cobra.Command{
 
 Bash:
 
-$ source <(grype completion bash)
+$ source <(griffon completion bash)
 
 # To load completions for each session, execute once:
 Linux:
-  $ grype completion bash > /etc/bash_completion.d/grype
+  $ griffon completion bash > /etc/bash_completion.d/griffon
 MacOS:
-  $ grype completion bash > /usr/local/etc/bash_completion.d/grype
+  $ griffon completion bash > /usr/local/etc/bash_completion.d/griffon
 
 Zsh:
 
@@ -35,16 +35,16 @@ Zsh:
 $ echo "autoload -U compinit; compinit" >> ~/.zshrc
 
 # To load completions for each session, execute once:
-$ grype completion zsh > "${fpath[1]}/_grype"
+$ griffon completion zsh > "${fpath[1]}/_griffon"
 
 # You will need to start a new shell for this setup to take effect.
 
 Fish:
 
-$ grype completion fish | source
+$ griffon completion fish | source
 
 # To load completions for each session, execute once:
-$ grype completion fish > ~/.config/fish/completions/grype.fish
+$ griffon completion fish > ~/.config/fish/completions/griffon.fish
 `,
 	DisableFlagsInUseLine: true,
 	ValidArgs:             []string{"bash", "fish", "zsh"},

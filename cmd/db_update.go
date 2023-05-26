@@ -6,12 +6,12 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/wagoodman/go-partybus"
 
-	"github.com/anchore/grype/grype/db"
-	"github.com/anchore/grype/grype/event"
-	"github.com/anchore/grype/internal/bus"
-	"github.com/anchore/grype/internal/log"
-	"github.com/anchore/grype/internal/ui"
 	"github.com/anchore/stereoscope"
+	"github.com/nextlinux/griffon/griffon/db"
+	"github.com/nextlinux/griffon/griffon/event"
+	"github.com/nextlinux/griffon/internal/bus"
+	"github.com/nextlinux/griffon/internal/log"
+	"github.com/nextlinux/griffon/internal/ui"
 )
 
 var dbUpdateCmd = &cobra.Command{

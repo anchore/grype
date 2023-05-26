@@ -12,11 +12,11 @@ import (
 
 	"github.com/scylladb/go-set/strset"
 
-	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/pkg/cataloger"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
+	"github.com/nextlinux/griffon/griffon/match"
 )
 
 const cacheDirRelativePath string = "./test-fixtures/cache"

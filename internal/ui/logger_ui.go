@@ -5,8 +5,8 @@ import (
 
 	"github.com/wagoodman/go-partybus"
 
-	grypeEvent "github.com/anchore/grype/grype/event"
-	"github.com/anchore/grype/internal/log"
+	griffonEvent "github.com/nextlinux/griffon/griffon/event"
+	"github.com/nextlinux/griffon/internal/log"
 )
 
 type loggerUI struct {
@@ -28,11 +28,11 @@ func (l *loggerUI) Setup(unsubscribe func() error) error {
 
 func (l loggerUI) Handle(event partybus.Event) error {
 	switch event.Type {
-	case grypeEvent.VulnerabilityScanningFinished:
+	case griffonEvent.VulnerabilityScanningFinished:
 		if err := handleVulnerabilityScanningFinished(event, l.reportOutput); err != nil {
 			log.Warnf("unable to show catalog image finished event: %+v", err)
 		}
-	case grypeEvent.NonRootCommandFinished:
+	case griffonEvent.NonRootCommandFinished:
 		if err := handleNonRootCommandFinished(event, l.reportOutput); err != nil {
 			log.Warnf("unable to show command finished event: %+v", err)
 		}

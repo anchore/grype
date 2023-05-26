@@ -30,7 +30,7 @@ test_download_release_asset() {
 # always test against the latest release
 release=$(get_release_tag "${OWNER}" "${REPO}" "latest" )
 
-# exercise all possible assets against a real github release (based on asset listing from https://github.com/anchore/grype/releases/tag/v0.32.0)
+# exercise all possible assets against a real github release (based on asset listing from https://github.com/nextlinux/griffon/releases/tag/v0.32.0)
 run_test_case test_download_release_asset "${release}" "darwin" "amd64" "tar.gz" "application/gzip"
 run_test_case test_download_release_asset "${release}" "darwin" "arm64" "tar.gz" "application/gzip"
 run_test_case test_download_release_asset "${release}" "linux" "amd64" "tar.gz" "application/gzip"

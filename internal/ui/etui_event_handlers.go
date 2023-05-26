@@ -13,13 +13,13 @@ import (
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/jotframe/pkg/frame"
 
-	grypeEventParsers "github.com/anchore/grype/grype/event/parsers"
-	"github.com/anchore/grype/internal"
-	"github.com/anchore/grype/internal/version"
+	griffonEventParsers "github.com/nextlinux/griffon/griffon/event/parsers"
+	"github.com/nextlinux/griffon/internal"
+	"github.com/nextlinux/griffon/internal/version"
 )
 
 func handleAppUpdateAvailable(_ context.Context, fr *frame.Frame, event partybus.Event, _ *sync.WaitGroup) error {
-	newVersion, err := grypeEventParsers.ParseAppUpdateAvailable(event)
+	newVersion, err := griffonEventParsers.ParseAppUpdateAvailable(event)
 	if err != nil {
 		return fmt.Errorf("bad %s event: %w", event.Type, err)
 	}

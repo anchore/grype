@@ -4,11 +4,11 @@ x-ref:
     - docker.io/cloudbees/cloudbees-core-agent:2.289.2.2@sha256:d48f0546b4cf5ef4626136242ce302f94a42751156b7be42f4b1b75a66608880
     - docker.io/cloudbees/cloudbees-core-mm:2.277.3.1@sha256:4c564f473d38f23da1caa48c4ef53b958ef03d279232007ad3319b1f38584bdb
     - docker.io/cloudbees/cloudbees-core-oc:2.289.2.2@sha256:9cd85ee84e401dc27e3a8268aae67b594a651b2f4c7fc056ca14c7b0a0a6b82d
-    - docker.io/anchore/test_images:grype-quality-node-d89207b@sha256:f56164678054e5eb59ab838367373a49df723b324617b1ba6de775749d7f91d4
-    - docker.io/anchore/test_images:grype-quality-python-d89207b@sha256:b2b58a55c0b03c1626d2aaae2add9832208b02124dda7b7b41811e14f0fb272c
-    - docker.io/anchore/test_images:grype-quality-java-d89207b@sha256:b3534fc2e37943136d5b54e3a58b55d4ccd4363d926cf7aa5bf55a524cf8275b
-    - docker.io/anchore/test_images:grype-quality-golang-d89207b@sha256:7536ee345532f674ec9e448e3768db4e546c48220ba2b6ec9bc9cfbfb3b7b74a
-    - docker.io/anchore/test_images:grype-quality-ruby-d89207b@sha256:1a5a5f870924e88a6f0f2b8089cf276ef0a79b5244a052cdfe4a47bb9e5a2c10
+    - docker.io/anchore/test_images:griffon-quality-node-d89207b@sha256:f56164678054e5eb59ab838367373a49df723b324617b1ba6de775749d7f91d4
+    - docker.io/anchore/test_images:griffon-quality-python-d89207b@sha256:b2b58a55c0b03c1626d2aaae2add9832208b02124dda7b7b41811e14f0fb272c
+    - docker.io/anchore/test_images:griffon-quality-java-d89207b@sha256:b3534fc2e37943136d5b54e3a58b55d4ccd4363d926cf7aa5bf55a524cf8275b
+    - docker.io/anchore/test_images:griffon-quality-golang-d89207b@sha256:7536ee345532f674ec9e448e3768db4e546c48220ba2b6ec9bc9cfbfb3b7b74a
+    - docker.io/anchore/test_images:griffon-quality-ruby-d89207b@sha256:1a5a5f870924e88a6f0f2b8089cf276ef0a79b5244a052cdfe4a47bb9e5a2c10
     - docker.io/anchore/test_images:vulnerabilities-package-name-normalization@sha256:92f1981518e92bf3712ff95cf342f7f4d5fc83fb93a30a36d7d1204e64342199
     - docker.io/anchore/test_images:appstreams-centos-stream-8-1a287dd@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9
     - docker.io/anchore/test_images:appstreams-oraclelinux-8-1a287dd@sha256:c8d664b0e728d52f57eeb98ed1899c16d3b265f02ddfb41303d7a16c31e0b0f1
@@ -59,7 +59,7 @@ default_max_year: 2021
 
 result-sets:
   pr_vs_latest_via_sbom:
-    description: "latest released grype vs grype from the current build (via SBOM ingestion)"
+    description: "latest released griffon vs griffon from the current build (via SBOM ingestion)"
     matrix:
       images: *images
 
@@ -71,10 +71,10 @@ result-sets:
           produces: SBOM
           refresh: false
 
-        - name: grype
+        - name: griffon
           version: git:current-commit
           takes: SBOM
 
-        - name: grype
+        - name: griffon
           version: latest
           takes: SBOM

@@ -7,8 +7,8 @@ import (
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/jotframe/pkg/frame"
 
-	grypeEvent "github.com/anchore/grype/grype/event"
 	syftUI "github.com/anchore/syft/ui"
+	griffonEvent "github.com/nextlinux/griffon/griffon/event"
 )
 
 type Handler struct {
@@ -23,9 +23,9 @@ func NewHandler() *Handler {
 
 func (r *Handler) RespondsTo(event partybus.Event) bool {
 	switch event.Type {
-	case grypeEvent.VulnerabilityScanningStarted,
-		grypeEvent.UpdateVulnerabilityDatabase,
-		grypeEvent.DatabaseDiffingStarted:
+	case griffonEvent.VulnerabilityScanningStarted,
+		griffonEvent.UpdateVulnerabilityDatabase,
+		griffonEvent.DatabaseDiffingStarted:
 		return true
 	default:
 		return r.syftHandler.RespondsTo(event)
@@ -34,11 +34,11 @@ func (r *Handler) RespondsTo(event partybus.Event) bool {
 
 func (r *Handler) Handle(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
 	switch event.Type {
-	case grypeEvent.VulnerabilityScanningStarted:
+	case griffonEvent.VulnerabilityScanningStarted:
 		return r.VulnerabilityScanningStartedHandler(ctx, fr, event, wg)
-	case grypeEvent.UpdateVulnerabilityDatabase:
+	case griffonEvent.UpdateVulnerabilityDatabase:
 		return r.UpdateVulnerabilityDatabaseHandler(ctx, fr, event, wg)
-	case grypeEvent.DatabaseDiffingStarted:
+	case griffonEvent.DatabaseDiffingStarted:
 		return r.DatabaseDiffingStartedHandler(ctx, fr, event, wg)
 	default:
 		return r.syftHandler.Handle(ctx, fr, event, wg)

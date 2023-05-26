@@ -16,11 +16,11 @@ import (
 	"github.com/wagoodman/go-progress/format"
 	"github.com/wagoodman/jotframe/pkg/frame"
 
-	grypeEventParsers "github.com/anchore/grype/grype/event/parsers"
-	"github.com/anchore/grype/grype/matcher"
-	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal/ui/components"
 	syftUI "github.com/anchore/syft/ui"
+	griffonEventParsers "github.com/nextlinux/griffon/griffon/event/parsers"
+	"github.com/nextlinux/griffon/griffon/matcher"
+	"github.com/nextlinux/griffon/griffon/vulnerability"
+	"github.com/nextlinux/griffon/internal/ui/components"
 )
 
 const maxBarWidth = 50
@@ -46,7 +46,7 @@ func startProcess() (format.Simple, *components.Spinner) {
 }
 
 func (r *Handler) UpdateVulnerabilityDatabaseHandler(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
-	prog, err := grypeEventParsers.ParseUpdateVulnerabilityDatabase(event)
+	prog, err := griffonEventParsers.ParseUpdateVulnerabilityDatabase(event)
 	if err != nil {
 		return fmt.Errorf("bad FetchImage event: %w", err)
 	}
@@ -134,7 +134,7 @@ func assembleProgressMonitors(m *matcher.Monitor) []progress.Monitorable {
 
 //nolint:funlen
 func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
-	monitor, err := grypeEventParsers.ParseVulnerabilityScanningStarted(event)
+	monitor, err := griffonEventParsers.ParseVulnerabilityScanningStarted(event)
 	if err != nil {
 		return fmt.Errorf("bad %s event: %w", event.Type, err)
 	}
@@ -209,7 +209,7 @@ func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *f
 }
 
 func (r *Handler) DatabaseDiffingStartedHandler(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
-	monitor, err := grypeEventParsers.ParseDatabaseDiffingStarted(event)
+	monitor, err := griffonEventParsers.ParseDatabaseDiffingStarted(event)
 	if err != nil {
 		return fmt.Errorf("bad %s event: %w", event.Type, err)
 	}

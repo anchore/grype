@@ -33,7 +33,7 @@ coverage.txt
 *.dll
 *.so
 *.dylib
-/grype/grype
+/griffon/griffon
 main
 
 # Test binary, build with `go test -c`

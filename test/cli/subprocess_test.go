@@ -30,7 +30,7 @@ func TestSubprocessStdin(t *testing.T) {
 			},
 		},
 		{
-			// regression: https://github.com/anchore/grype/issues/267
+			// regression: https://github.com/nextlinux/griffon/issues/267
 			name: "ensure can be used by java subprocess (without hanging)",
 			args: []string{"-v", fmt.Sprintf("%s:%s:ro", binDir, "/app/bin"), imagetest.LoadFixtureImageIntoDocker(t, "image-java-subprocess"), "java", "/app.java"},
 			env: map[string]string{

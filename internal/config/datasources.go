@@ -3,7 +3,7 @@ package config
 import (
 	"github.com/spf13/viper"
 
-	"github.com/anchore/grype/grype/matcher/java"
+	"github.com/nextlinux/griffon/griffon/matcher/java"
 )
 
 const (

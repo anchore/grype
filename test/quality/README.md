@@ -1,6 +1,6 @@
 # Match quality testing
 
-This form of testing compares the results from various releases of grype using a
+This form of testing compares the results from various releases of griffon using a
 static set of reference container images. The kinds of comparisons made are:
 
 1) "relative": find the vulnerability matching differences between both tools
@@ -36,10 +36,10 @@ listed explicitly.
 The label comparison results are used to determine a pass/fail result,
 specifically with the following criteria:
 
- - fail when current grype F1 score drops below last grype release F1 score (or
+ - fail when current griffon F1 score drops below last griffon release F1 score (or
    F1 score is indeterminate)
- - fail when the indeterminate matches % > 10% in the current grype results
- - fail when there is a rise in FNs relative to the results from the last grype
+ - fail when the indeterminate matches % > 10% in the current griffon results
+ - fail when there is a rise in FNs relative to the results from the last griffon
    release
  - otherwise, pass
 
@@ -58,18 +58,18 @@ changing.
 
 False negatives represent matches that should have been made by the tool but
 were missed. We should always make certain that this value does not increase
-between releases of grype.
+between releases of griffon.
 
 ## Assumptions
 
 1. **Comparing vulnerability results taken at different times is invalid**.
    We leverage the yardstick result-set feature to capture all vulnerability
-   results at one time for a specific image and tool set. Why? If we use grype
-   at version `a` on monday and grype at version `b` on tuesday and attempt to
+   results at one time for a specific image and tool set. Why? If we use griffon
+   at version `a` on monday and griffon at version `b` on tuesday and attempt to
    compare the results, if differences are found it will not be immediately
    clear why the results are different. That is, it is entirely possible that
    the vulnerability databases from the run of `b` simply had more up to date
-   information, and if `grype@a` were run at the same time (on tuesday) this
+   information, and if `griffon@a` were run at the same time (on tuesday) this
    reason can be almost entirely eliminated.
 
 2. **Comparing vulnerability results across images with different digests is invalid**.
@@ -79,7 +79,7 @@ between releases of grype.
    are for the same tag, but the publisher may have pushed a new image with
    differing content. Any change could lead to different vulnerability matching
    results but we are only interested in vulnerability match differences that
-   are due to actionable reasons (grype matcher logic problems or [SBOM] input
+   are due to actionable reasons (griffon matcher logic problems or [SBOM] input
    data into matchers).
 
 ## Approach
@@ -108,9 +108,9 @@ targets into fixed targets as possible:
   allows for <= 2020). Though there are still retroactive CVEs created, this
   helps a lot in terms of keeping vulnerability results relatively stable.
 
-- SBOMs are used as input into grype instead of the raw container images. This
+- SBOMs are used as input into griffon instead of the raw container images. This
   allows the artifacts under test to remain truly fixed and saves a lot of time
-  when capturing grype results (as the container image is no longer needed
+  when capturing griffon results (as the container image is no longer needed
   during analysis).
 
 - For the captured SBOMs, container images referenced must be with a digest, not
@@ -131,7 +131,7 @@ to keep in mind:
   comes to migrating labels from one image to another no matter how "similar"
   the images may be. There is also no value in updating the image; these images
   are not being executed and their only purpose is to survey the matching
-  performance of grype. In the philosophy of "maximizing fixed points" it
+  performance of griffon. In the philosophy of "maximizing fixed points" it
   doesn't make sense to change these assets. Over time it may be that we remove
   assets that are no longer useful for comparison, but this should rarely be
   done.
@@ -170,14 +170,14 @@ or after running `./gate.py`):
 ```
 Running comparison against labels... 
    Results used:
-    ├── f4fb4e6e-c911-41b6-9a10-f90b3954a41a : grype@v0.53.1-19-g8900767 against docker.io/anchore/test_images@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9
-    └── fcebdd0b-d80a-4fe2-b81a-802c7b98d83b : grype@v0.53.1 against docker.io/anchore/test_images@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9
+    ├── f4fb4e6e-c911-41b6-9a10-f90b3954a41a : griffon@v0.53.1-19-g8900767 against docker.io/anchore/test_images@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9
+    └── fcebdd0b-d80a-4fe2-b81a-802c7b98d83b : griffon@v0.53.1 against docker.io/anchore/test_images@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9
 
 Match differences between tooling (with labels):
    TOOL PARTITION      PACKAGE       VULNERABILITY   LABEL         COMMENTARY
-   grype@v0.53.1 ONLY  node@14.18.2  CVE-2021-44531  TruePositive  (this is a new FN 😱)
-   grype@v0.53.1 ONLY  node@14.18.2  CVE-2021-44532  TruePositive  (this is a new FN 😱)
-   grype@v0.53.1 ONLY  node@14.18.2  CVE-2021-44533  TruePositive  (this is a new FN 😱)
+   griffon@v0.53.1 ONLY  node@14.18.2  CVE-2021-44531  TruePositive  (this is a new FN 😱)
+   griffon@v0.53.1 ONLY  node@14.18.2  CVE-2021-44532  TruePositive  (this is a new FN 😱)
+   griffon@v0.53.1 ONLY  node@14.18.2  CVE-2021-44533  TruePositive  (this is a new FN 😱)
 
 Failed quality gate
    - current F1 score is lower than the latest release F1 score: current=0.80 latest=0.80 image=docker.io/anchore/test_images@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9
@@ -192,12 +192,12 @@ Using the SHA above, we can run `yardstick` to see which results are available:
 ```shell
 $ yardstick result list --result-set pr_vs_latest_via_sbom | grep 808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9
 
-5bf0611b-183f-4525-a1ab-f268f62f48b6  docker.io/anchore/test_images:appstreams-centos-stream-8-1a287dd@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9          grype@v0.53.1              2022-12-09 20:49:56+00:00
-43a9650a-d5de-4687-b3ba-459105e32cb8  docker.io/anchore/test_images:appstreams-centos-stream-8-1a287dd@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9          grype@v0.53.1-15-gf29a32b  2022-12-09 20:49:53+00:00
+5bf0611b-183f-4525-a1ab-f268f62f48b6  docker.io/anchore/test_images:appstreams-centos-stream-8-1a287dd@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9          griffon@v0.53.1              2022-12-09 20:49:56+00:00
+43a9650a-d5de-4687-b3ba-459105e32cb8  docker.io/anchore/test_images:appstreams-centos-stream-8-1a287dd@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9          griffon@v0.53.1-15-gf29a32b  2022-12-09 20:49:53+00:00
 67913f57-690f-4f35-a2d9-ffccd2a0b2a1  docker.io/anchore/test_images:appstreams-centos-stream-8-1a287dd@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9          syft@v0.60.1               2022-11-01 20:30:52+00:00
 ```
 
-We'll need to use the UUIDs to explore the labels, so copy the first UUID, which we can see was run against the last Grype release (`grype@v0.53.1`). Use the UUID to explore and edit the results with
+We'll need to use the UUIDs to explore the labels, so copy the first UUID, which we can see was run against the last Grype release (`griffon@v0.53.1`). Use the UUID to explore and edit the results with
 `yardstick label explore`:
 ```shell
 yardstick label explore 5bf0611b-183f-4525-a1ab-f268f62f48b6
@@ -310,13 +310,13 @@ the default macOS 3.8 version, you will likely see an error similar to:
 Traceback (most recent call last):
   File "./vulnerability-match-labels/sboms.py", line 12, in <module>
     import yardstick
-  File "/grype/test/quality/vulnerability-match-labels/venv/lib/python3.8/site-packages/yardstick/__init__.py", line 4, in <module>
+  File "/griffon/test/quality/vulnerability-match-labels/venv/lib/python3.8/site-packages/yardstick/__init__.py", line 4, in <module>
     from . import arrange, artifact, capture, cli, comparison, label, store, tool, utils
-  File "/grype/test/quality/vulnerability-match-labels/venv/lib/python3.8/site-packages/yardstick/arrange.py", line 4, in <module>
+  File "/griffon/test/quality/vulnerability-match-labels/venv/lib/python3.8/site-packages/yardstick/arrange.py", line 4, in <module>
     from yardstick import artifact
-  File "/grype/test/quality/vulnerability-match-labels/venv/lib/python3.8/site-packages/yardstick/artifact.py", line 482, in <module>
+  File "/griffon/test/quality/vulnerability-match-labels/venv/lib/python3.8/site-packages/yardstick/artifact.py", line 482, in <module>
     class ResultSet:
-  File "/grype/test/quality/vulnerability-match-labels/venv/lib/python3.8/site-packages/yardstick/artifact.py", line 484, in ResultSet
+  File "/griffon/test/quality/vulnerability-match-labels/venv/lib/python3.8/site-packages/yardstick/artifact.py", line 484, in ResultSet
     state: list[ResultState] = field(default_factory=list)
 TypeError: 'type' object is not subscriptable
 ```

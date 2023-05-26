@@ -2,14 +2,14 @@
     <img alt="Grype logo" src="https://user-images.githubusercontent.com/5199289/136855393-d0a9eef9-ccf1-4e2b-9d7c-7aad16a567e5.png" width="234">
 </p>
 
-[![Static Analysis + Unit + Integration](https://github.com/anchore/grype/workflows/Static%20Analysis%20+%20Unit%20+%20Integration/badge.svg)](https://github.com/anchore/grype/actions?query=workflow%3A%22Static+Analysis+%2B+Unit+%2B+Integration%22)
-[![Acceptance](https://github.com/anchore/grype/workflows/Acceptance/badge.svg)](https://github.com/anchore/grype/actions?query=workflow%3AAcceptance)
-[![Go Report Card](https://goreportcard.com/badge/github.com/anchore/grype)](https://goreportcard.com/report/github.com/anchore/grype)
-[![GitHub release](https://img.shields.io/github/release/anchore/grype.svg)](https://github.com/anchore/grype/releases/latest)
-[![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/anchore/grype.svg)](https://github.com/anchore/grype)
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/anchore/grype/blob/main/LICENSE)
+[![Static Analysis + Unit + Integration](https://github.com/nextlinux/griffon/workflows/Static%20Analysis%20+%20Unit%20+%20Integration/badge.svg)](https://github.com/nextlinux/griffon/actions?query=workflow%3A%22Static+Analysis+%2B+Unit+%2B+Integration%22)
+[![Acceptance](https://github.com/nextlinux/griffon/workflows/Acceptance/badge.svg)](https://github.com/nextlinux/griffon/actions?query=workflow%3AAcceptance)
+[![Go Report Card](https://goreportcard.com/badge/github.com/nextlinux/griffon)](https://goreportcard.com/report/github.com/nextlinux/griffon)
+[![GitHub release](https://img.shields.io/github/release/nextlinux/griffon.svg)](https://github.com/nextlinux/griffon/releases/latest)
+[![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/nextlinux/griffon.svg)](https://github.com/nextlinux/griffon)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/nextlinux/griffon/blob/main/LICENSE)
 [![Slack Invite](https://img.shields.io/badge/Slack-Join-blue?logo=slack)](https://anchore.com/slack)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/anchore/grype/badge)](https://api.securityscorecards.dev/projects/github.com/anchore/grype)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/nextlinux/griffon/badge)](https://api.securityscorecards.dev/projects/github.com/nextlinux/griffon)
 
 A vulnerability scanner for container images and filesystems. Easily [install the binary](#installation) to try it out. Works with [Syft](https://github.com/anchore/syft), the powerful SBOM (software bill of materials) tool for container images and filesystems.
 
@@ -21,7 +21,7 @@ A vulnerability scanner for container images and filesystems. Easily [install th
 
 For commercial support options with Syft or Grype, please [contact Anchore](https://get.anchore.com/contact/)
 
-![grype-demo](https://user-images.githubusercontent.com/590471/90276236-9868f300-de31-11ea-8068-4268b6b68529.gif)
+![griffon-demo](https://user-images.githubusercontent.com/590471/90276236-9868f300-de31-11ea-8068-4268b6b68529.gif)
 
 ## Features
 
@@ -47,35 +47,35 @@ For commercial support options with Syft or Grype, please [contact Anchore](http
   - Rust (Cargo)
 - Supports Docker, OCI and [Singularity](https://github.com/sylabs/singularity) image formats.
 
-If you encounter an issue, please [let us know using the issue tracker](https://github.com/anchore/grype/issues).
+If you encounter an issue, please [let us know using the issue tracker](https://github.com/nextlinux/griffon/issues).
 
 ## Installation
 
 ### Recommended
 
 ```bash
-curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+curl -sSfL https://raw.githubusercontent.com/nextlinux/griffon/main/install.sh | sh -s -- -b /usr/local/bin
 ```
 
 You can also choose another destination directory and release version for the installation. The destination directory doesn't need to be `/usr/local/bin`, it just needs to be a location found in the user's PATH and writable by the user that's installing Grype.
 
 ```
-curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b <DESTINATION_DIR> <RELEASE_VERSION>
+curl -sSfL https://raw.githubusercontent.com/nextlinux/griffon/main/install.sh | sh -s -- -b <DESTINATION_DIR> <RELEASE_VERSION>
 ```
 
 ### Homebrew
 
 ```bash
-brew tap anchore/grype
-brew install grype
+brew tap nextlinux/griffon
+brew install griffon
 ```
 
 ### MacPorts
 
-On macOS, Grype can additionally be installed from the [community maintained port](https://ports.macports.org/port/grype/) via MacPorts:
+On macOS, Grype can additionally be installed from the [community maintained port](https://ports.macports.org/port/griffon/) via MacPorts:
 
 ```bash
-sudo port install grype
+sudo port install griffon
 ```
 
 **Note**: Currently, Grype is built only for macOS and Linux.
@@ -90,24 +90,24 @@ If you're using GitHub Actions, you can simply use our [Grype-based action](http
 
 ## Getting started
 
-[Install the binary](#installation), and make sure that `grype` is available in your path. To scan for vulnerabilities in an image:
+[Install the binary](#installation), and make sure that `griffon` is available in your path. To scan for vulnerabilities in an image:
 
 ```
-grype <image>
+griffon <image>
 ```
 
 The above command scans for vulnerabilities that are visible in the container (i.e., the squashed representation of the image). To include software from all image layers in the vulnerability scan, regardless of its presence in the final image, provide `--scope all-layers`:
 
 ```
-grype <image> --scope all-layers
+griffon <image> --scope all-layers
 ```
 
-To run grype from a Docker container so it can scan a running container, use the following command:
+To run griffon from a Docker container so it can scan a running container, use the following command:
 
 ```yml
 docker run --rm \
 --volume /var/run/docker.sock:/var/run/docker.sock \
---name Grype anchore/grype:latest \
+--name Grype nextlinux/griffon:latest \
 $(ImageName):$(ImageTag)
 ```
 
@@ -117,13 +117,13 @@ Grype can scan a variety of sources beyond those found in Docker.
 
 ```
 # scan a container image archive (from the result of `docker image save ...`, `podman save ...`, or `skopeo copy` commands)
-grype path/to/image.tar
+griffon path/to/image.tar
 
 # scan a Singularity Image Format (SIF) container
-grype path/to/image.sif
+griffon path/to/image.sif
 
 # scan a directory
-grype dir:path/to/dir
+griffon dir:path/to/dir
 ```
 
 Sources can be explicitly provided with a scheme:
@@ -144,16 +144,16 @@ If an image source is not provided and cannot be detected from the given referen
 If docker is not present, then the Podman daemon is attempted next, followed by reaching out directly to the image registry last.
 
 
-This default behavior can be overridden with the `default-image-pull-source` configuration option (See [Configuration](https://github.com/anchore/grype#configuration) for more details).
+This default behavior can be overridden with the `default-image-pull-source` configuration option (See [Configuration](https://github.com/nextlinux/griffon#configuration) for more details).
 
 Use SBOMs for even faster vulnerability scanning in Grype:
 
 ```
 # Then scan for new vulnerabilities as frequently as needed
-grype sbom:./sbom.json
+griffon sbom:./sbom.json
 
 # (You can also pipe the SBOM into Grype)
-cat ./sbom.json | grype
+cat ./sbom.json | griffon
 ```
 
 Grype supports input of [Syft](https://github.com/anchore/syft), [SPDX](https://spdx.dev/), and [CycloneDX](https://cyclonedx.org/)
@@ -164,7 +164,7 @@ is possible to generate these based on package information using the `--add-cpes
 use the `--distro <distro>:<version>` flag. A full example is:
 
 ```
-grype --add-cpes-if-none --distro alpine:3.10 sbom:some-apline-3.10.spdx.json
+griffon --add-cpes-if-none --distro alpine:3.10 sbom:some-apline-3.10.spdx.json
 ```
 
 ### Working with attestations
@@ -175,7 +175,7 @@ COSIGN_EXPERIMENTAL=1 cosign verify-attestation caphill4/java-spdx-tools:latest 
 | jq -r .payload \
 | base64 --decode \
 | jq -r .predicate.Data \
-| grype
+| griffon
 ```
 
 ### Vulnerability Summary
@@ -211,7 +211,7 @@ Grype can exclude files and paths from being scanned within a source by using gl
 with one or more `--exclude` parameters:
 
 ```
-grype <source> --exclude './out/**/*.json' --exclude /etc
+griffon <source> --exclude './out/**/*.json' --exclude /etc
 ```
 
 **Note:** in the case of _image scanning_, since the entire filesystem is scanned it is
@@ -227,7 +227,7 @@ may attempt to expand wildcards, so put those parameters in single quotes, like:
 ### External Sources
 
 Grype can be configured to incorporate external data sources for added fidelity in vulnerability matching. This
-feature is currently disabled by default. To enable this feature add the following to the grype config:
+feature is currently disabled by default. To enable this feature add the following to the griffon config:
 
 ```yaml
 external-sources:
@@ -244,7 +244,7 @@ You can also configure the base-url if you're using another registry as your mav
 The output format for Grype is configurable as well:
 
 ```
-grype <image> -o <format>
+griffon <image> -o <format>
 ```
 
 Where the formats available are:
@@ -265,9 +265,9 @@ Grype lets you define custom output formats, using [Go templates](https://golang
 
 - Specify the path to the template file (`-t ./path/to/custom.template`).
 
-- Grype's template processing uses the same data models as the `json` output format — so if you're wondering what data is available as you author a template, you can use the output from `grype <image> -o json` as a reference.
+- Grype's template processing uses the same data models as the `json` output format — so if you're wondering what data is available as you author a template, you can use the output from `griffon <image> -o json` as a reference.
 
-**Example:** You could make Grype output data in CSV format by writing a Go template that renders CSV data and then running `grype <image> -o template -t ~/path/to/csv.tmpl`.
+**Example:** You could make Grype output data in CSV format by writing a Go template that renders CSV data and then running `griffon <image> -o template -t ~/path/to/csv.tmpl`.
 
 **Please note:** Templates can access information about the system they are running on, such as environment variables. You should never run untrusted templates.
 
@@ -299,12 +299,12 @@ You can have Grype exit with an error if any vulnerabilities are reported at or 
 For example, here's how you could trigger a CI pipeline failure if any vulnerabilities are found in the `ubuntu:latest` image with a severity of "medium" or higher:
 
 ```
-grype ubuntu:latest --fail-on medium
+griffon ubuntu:latest --fail-on medium
 ```
 
 ### Specifying matches to ignore
 
-If you're seeing Grype report **false positives** or any other vulnerability matches that you just don't want to see, you can tell Grype to **ignore** matches by specifying one or more _"ignore rules"_ in your Grype configuration file (e.g. `~/.grype.yaml`). This causes Grype not to report any vulnerability matches that meet the criteria specified by any of your ignore rules.
+If you're seeing Grype report **false positives** or any other vulnerability matches that you just don't want to see, you can tell Grype to **ignore** matches by specifying one or more _"ignore rules"_ in your Grype configuration file (e.g. `~/.griffon.yaml`). This causes Grype not to report any vulnerability matches that meet the criteria specified by any of your ignore rules.
 
 Each rule can specify any combination of the following criteria:
 
@@ -317,7 +317,7 @@ Each rule can specify any combination of the following criteria:
 - package type (e.g. `"npm"`; these values are defined [here](https://github.com/anchore/syft/blob/main/syft/pkg/type.go#L10-L24))
 - package location (e.g. `"/usr/local/lib/node_modules/**"`; supports glob patterns)
 
-Here's an example `~/.grype.yaml` that demonstrates the expected format for ignore rules:
+Here's an example `~/.griffon.yaml` that demonstrates the expected format for ignore rules:
 
 ```yaml
 ignore:
@@ -346,7 +346,7 @@ When you run Grype while specifying ignore rules, the following happens to the v
 
 - Ignored matches **do not** factor into Grype's exit status decision when using `--fail-on <severity>`. For instance, if a user specifies `--fail-on critical`, and all of the vulnerability matches found with a "critical" severity have been _ignored_, Grype will exit zero.
 
-**Note:** Please continue to **[report](https://github.com/anchore/grype/issues/new/choose)** any false positives you see! Even if you can reliably filter out false positives using ignore rules, it's very helpful to the Grype community if we have as much knowledge about Grype's false positives as possible. This helps us continuously improve Grype!
+**Note:** Please continue to **[report](https://github.com/nextlinux/griffon/issues/new/choose)** any false positives you see! Even if you can reliably filter out false positives using ignore rules, it's very helpful to the Grype community if we have as much knowledge about Grype's false positives as possible. This helps us continuously improve Grype!
 
 ### Showing only "fixed" vulnerabilities
 
@@ -387,7 +387,7 @@ When Grype performs a scan for vulnerabilities, it does so using a vulnerability
 - Suse Linux OVAL: https://ftp.suse.com/pub/projects/security/oval/
 - Ubuntu Linux Security: https://people.canonical.com/~ubuntu-security/
 
-By default, Grype automatically manages this database for you. Grype checks for new updates to the vulnerability database to make sure that every scan uses up-to-date vulnerability information. This behavior is configurable. For more information, see the [Managing Grype's database](#managing-grypes-database) section.
+By default, Grype automatically manages this database for you. Grype checks for new updates to the vulnerability database to make sure that every scan uses up-to-date vulnerability information. This behavior is configurable. For more information, see the [Managing Grype's database](#managing-griffons-database) section.
 
 ### How database updates work
 
@@ -395,7 +395,7 @@ Grype's vulnerability database is a SQLite file, named `vulnerability.db`. Updat
 
 Grype's first step in a database update is discovering databases that are available for retrieval. Grype does this by requesting a "listing file" from a public endpoint:
 
-`https://toolbox-data.anchore.io/grype/databases/listing.json`
+`https://toolbox-data.anchore.io/griffon/databases/listing.json`
 
 The listing file contains entries for every database that's available for download.
 
@@ -405,7 +405,7 @@ Here's an example of an entry in the listing file:
 {
   "built": "2021-10-21T08:13:41Z",
   "version": 3,
-  "url": "https://toolbox-data.anchore.io/grype/databases/vulnerability-db_v3_2021-10-21T08:13:41Z.tar.gz",
+  "url": "https://toolbox-data.anchore.io/griffon/databases/vulnerability-db_v3_2021-10-21T08:13:41Z.tar.gz",
   "checksum": "sha256:8c99fb4e516f10b304f026267c2a73a474e2df878a59bf688cfb0f094bfe7a91"
 }
 ```
@@ -418,7 +418,7 @@ With this information, Grype can select the correct database (the most recently 
 
 #### Local database cache directory
 
-By default, the database is cached on the local filesystem in the directory `$XDG_CACHE_HOME/grype/db/<SCHEMA-VERSION>/`. For example, on macOS, the database would be stored in `~/Library/Caches/grype/db/3/`. (For more information on XDG paths, refer to the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html).)
+By default, the database is cached on the local filesystem in the directory `$XDG_CACHE_HOME/griffon/db/<SCHEMA-VERSION>/`. For example, on macOS, the database would be stored in `~/Library/Caches/griffon/db/3/`. (For more information on XDG paths, refer to the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html).)
 
 You can set the cache directory path using the environment variable `GRYPE_DB_CACHE_DIR`.
 
@@ -430,31 +430,31 @@ Grype needs up-to-date vulnerability information to provide accurate matches. By
 
 By default, Grype checks for a new database on every run, by making a network call over the Internet. You can tell Grype not to perform this check by setting the environment variable `GRYPE_DB_AUTO_UPDATE` to `false`.
 
-As long as you place Grype's `vulnerability.db` and `metadata.json` files in the cache directory for the expected schema version, Grype has no need to access the network. Additionally, you can get a listing of the database archives available for download from the `grype db list` command in an online environment, download the database archive, transfer it to your offline environment, and use `grype db import <db-archive-path>` to use the given database in an offline capacity.
+As long as you place Grype's `vulnerability.db` and `metadata.json` files in the cache directory for the expected schema version, Grype has no need to access the network. Additionally, you can get a listing of the database archives available for download from the `griffon db list` command in an online environment, download the database archive, transfer it to your offline environment, and use `griffon db import <db-archive-path>` to use the given database in an offline capacity.
 
-If you would like to distribute your own Grype databases internally without needing to use `db import` manually you can leverage Grype's DB update mechanism. To do this you can craft your own `listing.json` file similar to the one found publically (see `grype db list -o raw` for an example of our public `listing.json` file) and change the download URL to point to an internal endpoint (e.g. a private S3 bucket, an internal file server, etc). Any internal installation of Grype can receive database updates automatically by configuring the `db.update-url` (same as the `GRYPE_DB_UPDATE_URL` environment variable) to point to the hosted `listing.json` file you've crafted.
+If you would like to distribute your own Grype databases internally without needing to use `db import` manually you can leverage Grype's DB update mechanism. To do this you can craft your own `listing.json` file similar to the one found publically (see `griffon db list -o raw` for an example of our public `listing.json` file) and change the download URL to point to an internal endpoint (e.g. a private S3 bucket, an internal file server, etc). Any internal installation of Grype can receive database updates automatically by configuring the `db.update-url` (same as the `GRYPE_DB_UPDATE_URL` environment variable) to point to the hosted `listing.json` file you've crafted.
 
 #### CLI commands for database management
 
 Grype provides database-specific CLI commands for users that want to control the database from the command line. Here are some of the useful commands provided:
 
-`grype db status` — report the current status of Grype's database (such as its location, build date, and checksum)
+`griffon db status` — report the current status of Grype's database (such as its location, build date, and checksum)
 
-`grype db check` — see if updates are available for the database
+`griffon db check` — see if updates are available for the database
 
-`grype db update` — ensure the latest database has been downloaded to the cache directory (Grype performs this operation at the beginning of every scan by default)
+`griffon db update` — ensure the latest database has been downloaded to the cache directory (Grype performs this operation at the beginning of every scan by default)
 
-`grype db list` — download the listing file configured at `db.update-url` and show databases that are available for download
+`griffon db list` — download the listing file configured at `db.update-url` and show databases that are available for download
 
-`grype db import` — provide grype with a database archive to explicitly use (useful for offline DB updates)
+`griffon db import` — provide griffon with a database archive to explicitly use (useful for offline DB updates)
 
-Find complete information on Grype's database commands by running `grype db --help`.
+Find complete information on Grype's database commands by running `griffon db --help`.
 
 ## Shell completion
 
 Grype supplies shell completion through its CLI implementation ([cobra](https://github.com/spf13/cobra/blob/master/shell_completions.md)). Generate the completion code for your shell by running one of the following commands:
 
-- `grype completion <bash|zsh|fish>`
+- `griffon completion <bash|zsh|fish>`
 - `go run main.go completion <bash|zsh|fish>`
 
 This will output a shell script to STDOUT, which can then be used as a completion script for Grype. Running one of the above commands with the
@@ -464,7 +464,7 @@ This will output a shell script to STDOUT, which can then be used as a completio
 
 ### Local Docker Credentials
 
-When a container runtime is not present, grype can still utilize credentials configured in common credential sources (such as `~/.docker/config.json`).
+When a container runtime is not present, griffon can still utilize credentials configured in common credential sources (such as `~/.docker/config.json`).
 It will pull images from private registries using these credentials. The config file is where your credentials are stored when authenticating with private registries via some command like `docker login`.
 For more information see the `go-containerregistry` [documentation](https://github.com/google/go-containerregistry/tree/main/pkg/authn).
 
@@ -484,7 +484,7 @@ An example `config.json` looks something like this:
 
 You can run the following command as an example. It details the mount/environment configuration a container needs to access a private registry:
 
-`docker run -v ./config.json:/config/config.json -e "DOCKER_CONFIG=/config" anchore/grype:latest <private_image>`
+`docker run -v ./config.json:/config/config.json -e "DOCKER_CONFIG=/config" nextlinux/griffon:latest <private_image>`
 
 ### Docker Credentials in Kubernetes
 
@@ -499,15 +499,15 @@ The below section shows a simple workflow on how to mount this config file as a 
         kind: Secret
         metadata:
           name: registry-config
-          namespace: grype
+          namespace: griffon
         data:
           config.json: <base64 encoded config.json>
         ```
 
         `kubectl apply -f secret.yaml`
 
-2.  Create your pod running grype. The env `DOCKER_CONFIG` is important because it advertises where to look for the credential file.
-    In the below example, setting `DOCKER_CONFIG=/config` informs grype that credentials can be found at `/config/config.json`.
+2.  Create your pod running griffon. The env `DOCKER_CONFIG` is important because it advertises where to look for the credential file.
+    In the below example, setting `DOCKER_CONFIG=/config` informs griffon that credentials can be found at `/config/config.json`.
     This is why we used `config.json` as the key for our secret. When mounted into containers the secrets' key is used as the filename.
     The `volumeMounts` section mounts our secret to `/config`. The `volumes` section names our volume and leverages the secret we created in step one.
     ``` # pod.yaml
@@ -516,8 +516,8 @@ The below section shows a simple workflow on how to mount this config file as a 
         kind: Pod
         spec:
           containers:
-            - image: anchore/grype:latest
-              name: grype-private-registry-demo
+            - image: nextlinux/griffon:latest
+              name: griffon-private-registry-demo
               env:
                 - name: DOCKER_CONFIG
                   value: /config
@@ -535,24 +535,24 @@ The below section shows a simple workflow on how to mount this config file as a 
 
         `kubectl apply -f pod.yaml`
 
-3.  The user can now run `kubectl logs grype-private-registry-demo`. The logs should show the grype analysis for the `<private_image>` provided in the pod configuration.
+3.  The user can now run `kubectl logs griffon-private-registry-demo`. The logs should show the griffon analysis for the `<private_image>` provided in the pod configuration.
 
-Using the above information, users should be able to configure private registry access without having to do so in the `grype` or `syft` configuration files.
+Using the above information, users should be able to configure private registry access without having to do so in the `griffon` or `syft` configuration files.
 They will also not be dependent on a docker daemon, (or some other runtime software) for registry configuration and access.
 
 ## Configuration
 
 Default configuration search paths:
 
-- `.grype.yaml`
-- `.grype/config.yaml`
-- `~/.grype.yaml`
-- `<XDG_CONFIG_HOME>/grype/config.yaml`
+- `.griffon.yaml`
+- `.griffon/config.yaml`
+- `~/.griffon.yaml`
+- `<XDG_CONFIG_HOME>/griffon/config.yaml`
 
 You can also use the `--config` / `-c` flag to provide your own configuration file/path:
 
 ```
-grype <image> -c /path/to/config.yaml
+griffon <image> -c /path/to/config.yaml
 ```
 
 Configuration options (example values are the default):
@@ -617,11 +617,11 @@ db:
 
   # location to write the vulnerability database cache
   # same as GRYPE_DB_CACHE_DIR env var
-  cache-dir: "$XDG_CACHE_HOME/grype/db"
+  cache-dir: "$XDG_CACHE_HOME/griffon/db"
 
   # URL of the vulnerability database
   # same as GRYPE_DB_UPDATE_URL env var
-  update-url: "https://toolbox-data.anchore.io/grype/databases/listing.json"
+  update-url: "https://toolbox-data.anchore.io/griffon/databases/listing.json"
 
   # it ensures db build is no older than the max-allowed-built-age
   # set to false to disable check

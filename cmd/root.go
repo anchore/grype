@@ -13,49 +13,49 @@ import (
 	"github.com/spf13/viper"
 	"github.com/wagoodman/go-partybus"
 
-	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/db"
-	grypeDb "github.com/anchore/grype/grype/db/v5"
-	"github.com/anchore/grype/grype/event"
-	"github.com/anchore/grype/grype/grypeerr"
-	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/matcher"
-	"github.com/anchore/grype/grype/matcher/dotnet"
-	"github.com/anchore/grype/grype/matcher/golang"
-	"github.com/anchore/grype/grype/matcher/java"
-	"github.com/anchore/grype/grype/matcher/javascript"
-	"github.com/anchore/grype/grype/matcher/python"
-	"github.com/anchore/grype/grype/matcher/ruby"
-	"github.com/anchore/grype/grype/matcher/stock"
-	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/presenter"
-	"github.com/anchore/grype/grype/presenter/models"
-	"github.com/anchore/grype/grype/store"
-	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal"
-	"github.com/anchore/grype/internal/bus"
-	"github.com/anchore/grype/internal/config"
-	"github.com/anchore/grype/internal/format"
-	"github.com/anchore/grype/internal/log"
-	"github.com/anchore/grype/internal/ui"
-	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
+	"github.com/nextlinux/griffon/griffon"
+	"github.com/nextlinux/griffon/griffon/db"
+	griffonDb "github.com/nextlinux/griffon/griffon/db/v5"
+	"github.com/nextlinux/griffon/griffon/event"
+	"github.com/nextlinux/griffon/griffon/griffonerr"
+	"github.com/nextlinux/griffon/griffon/match"
+	"github.com/nextlinux/griffon/griffon/matcher"
+	"github.com/nextlinux/griffon/griffon/matcher/dotnet"
+	"github.com/nextlinux/griffon/griffon/matcher/golang"
+	"github.com/nextlinux/griffon/griffon/matcher/java"
+	"github.com/nextlinux/griffon/griffon/matcher/javascript"
+	"github.com/nextlinux/griffon/griffon/matcher/python"
+	"github.com/nextlinux/griffon/griffon/matcher/ruby"
+	"github.com/nextlinux/griffon/griffon/matcher/stock"
+	"github.com/nextlinux/griffon/griffon/pkg"
+	"github.com/nextlinux/griffon/griffon/presenter"
+	"github.com/nextlinux/griffon/griffon/presenter/models"
+	"github.com/nextlinux/griffon/griffon/store"
+	"github.com/nextlinux/griffon/griffon/vulnerability"
+	"github.com/nextlinux/griffon/internal"
+	"github.com/nextlinux/griffon/internal/bus"
+	"github.com/nextlinux/griffon/internal/config"
+	"github.com/nextlinux/griffon/internal/format"
+	"github.com/nextlinux/griffon/internal/log"
+	"github.com/nextlinux/griffon/internal/ui"
+	"github.com/nextlinux/griffon/internal/version"
 )
 
 var persistentOpts = config.CliOnlyOptions{}
 
 var ignoreNonFixedMatches = []match.IgnoreRule{
-	{FixState: string(grypeDb.NotFixedState)},
-	{FixState: string(grypeDb.WontFixState)},
-	{FixState: string(grypeDb.UnknownFixState)},
+	{FixState: string(griffonDb.NotFixedState)},
+	{FixState: string(griffonDb.WontFixState)},
+	{FixState: string(griffonDb.UnknownFixState)},
 }
 
 var ignoreFixedMatches = []match.IgnoreRule{
-	{FixState: string(grypeDb.FixedState)},
+	{FixState: string(griffonDb.FixedState)},
 }
 
 var (
@@ -321,7 +321,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		go func() {
 			defer wg.Done()
 			log.Debug("loading DB")
-			str, status, dbCloser, err = grype.LoadVulnerabilityDB(appConfig.DB.ToCuratorConfig(), appConfig.DB.AutoUpdate)
+			str, status, dbCloser, err = griffon.LoadVulnerabilityDB(appConfig.DB.ToCuratorConfig(), appConfig.DB.AutoUpdate)
 			if err = validateDBLoad(err, status); err != nil {
 				errs <- err
 				return
@@ -332,9 +332,9 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		go func() {
 			defer wg.Done()
 			log.Debugf("gathering packages")
-			// packages are grype.Pacakge, not syft.Package
+			// packages are griffon.Pacakge, not syft.Package
 			// the SBOM is returned for downstream formatting concerns
-			// grype uses the SBOM in combination with syft formatters to produce cycloneDX
+			// griffon uses the SBOM in combination with syft formatters to produce cycloneDX
 			// with vulnerability information appended
 			packages, pkgContext, sbom, err = pkg.Provide(userInput, getProviderConfig())
 			if err != nil {
@@ -363,7 +363,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 
 		applyDistroHint(packages, &pkgContext, appConfig)
 
-		vulnMatcher := grype.VulnerabilityMatcher{
+		vulnMatcher := griffon.VulnerabilityMatcher{
 			Store:          *str,
 			IgnoreRules:    appConfig.Ignore,
 			NormalizeByCVE: appConfig.ByCVE,
@@ -374,7 +374,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		remainingMatches, ignoredMatches, err := vulnMatcher.FindMatches(packages, pkgContext)
 		if err != nil {
 			errs <- err
-			if !errors.Is(err, grypeerr.ErrAboveSeverityThreshold) {
+			if !errors.Is(err, griffonerr.ErrAboveSeverityThreshold) {
 				return
 			}
 		}

@@ -13,12 +13,12 @@ import (
 	"github.com/wagoodman/go-partybus"
 
 	"github.com/anchore/go-logger/adapter/logrus"
-	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/internal/config"
-	"github.com/anchore/grype/internal/log"
-	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/syft/syft"
+	"github.com/nextlinux/griffon/griffon"
+	"github.com/nextlinux/griffon/internal/config"
+	"github.com/nextlinux/griffon/internal/log"
+	"github.com/nextlinux/griffon/internal/version"
 )
 
 var (
@@ -83,7 +83,7 @@ func initLogging() {
 		log.Error("unable to initialize logger: %+v", err)
 		return
 	}
-	grype.SetLogger(logWrapper)
+	griffon.SetLogger(logWrapper)
 	syft.SetLogger(logWrapper.Nested("from-lib", "syft"))
 	stereoscope.SetLogger(logWrapper.Nested("from-lib", "stereoscope"))
 }
@@ -94,7 +94,7 @@ func logAppConfig() {
 
 func logAppVersion() {
 	versionInfo := version.FromBuild()
-	log.Infof("grype version: %s", versionInfo.Version)
+	log.Infof("griffon version: %s", versionInfo.Version)
 
 	var fields map[string]interface{}
 	bytes, err := json.Marshal(versionInfo)
@@ -128,5 +128,5 @@ func initEventBus() {
 
 	stereoscope.SetBus(eventBus)
 	syft.SetBus(eventBus)
-	grype.SetBus(eventBus)
+	griffon.SetBus(eventBus)
 }

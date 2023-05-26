@@ -81,8 +81,8 @@ jobs:
     # ✏️ If the Autobuild fails above, remove it and uncomment the following three lines
     #    and modify them (or add more) to build your code if your project
     #    uses a compiled language
-    - name: Build grype for CodeQL
-      run: make grype
+    - name: Build griffon for CodeQL
+      run: make griffon
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@29b1f65c5e92e24fe6b6647da1eaabe529cec70f # v2.3.3

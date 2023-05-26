@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -ue
 
-BIN="grype"
+BIN="griffon"
 DISTDIR=$1
 VERSION=$2
 

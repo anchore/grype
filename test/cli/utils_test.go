@@ -31,7 +31,7 @@ func getGrypeCommand(tb testing.TB, args ...string) *exec.Cmd {
 	return exec.Command(
 		getGrypeSnapshotLocation(tb, runtime.GOOS),
 		append(
-			[]string{"-c", "../grype-test-config.yaml"},
+			[]string{"-c", "../griffon-test-config.yaml"},
 			args...,
 		)...,
 	)
@@ -52,7 +52,7 @@ func getGrypeSnapshotLocation(tb testing.TB, goOS string) string {
 
 	switch goOS {
 	case "darwin", "linux":
-		return path.Join(repoRoot(tb), fmt.Sprintf("snapshot/%s-build_%s_%s/grype", goOS, goOS, archPath))
+		return path.Join(repoRoot(tb), fmt.Sprintf("snapshot/%s-build_%s_%s/griffon", goOS, goOS, archPath))
 	default:
 		tb.Fatalf("unsupported OS: %s", runtime.GOOS)
 	}

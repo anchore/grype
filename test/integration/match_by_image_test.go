@@ -9,19 +9,19 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/db"
-	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/matcher"
-	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/store"
-	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal"
 	"github.com/anchore/stereoscope/pkg/imagetest"
 	"github.com/anchore/syft/syft"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/pkg/cataloger"
 	"github.com/anchore/syft/syft/source"
+	"github.com/nextlinux/griffon/griffon"
+	"github.com/nextlinux/griffon/griffon/db"
+	"github.com/nextlinux/griffon/griffon/match"
+	"github.com/nextlinux/griffon/griffon/matcher"
+	"github.com/nextlinux/griffon/griffon/pkg"
+	"github.com/nextlinux/griffon/griffon/store"
+	"github.com/nextlinux/griffon/griffon/vulnerability"
+	"github.com/nextlinux/griffon/internal"
 )
 
 func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore *mockStore, theResult *match.Matches) {
@@ -608,7 +608,7 @@ func TestMatchByImage(t *testing.T) {
 				ExclusionProvider: ep,
 			}
 
-			actualResults := grype.FindVulnerabilitiesForPackage(str, theDistro, matchers, pkg.FromCollection(collection, pkg.SynthesisConfig{}))
+			actualResults := griffon.FindVulnerabilitiesForPackage(str, theDistro, matchers, pkg.FromCollection(collection, pkg.SynthesisConfig{}))
 
 			for _, m := range actualResults.Sorted() {
 				for _, d := range m.Details {

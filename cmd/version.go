@@ -7,9 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal"
-	"github.com/anchore/grype/internal/version"
+	"github.com/nextlinux/griffon/griffon/vulnerability"
+	"github.com/nextlinux/griffon/internal"
+	"github.com/nextlinux/griffon/internal/version"
 )
 
 var versionOutputFormat string

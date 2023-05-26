@@ -1,4 +1,4 @@
-BIN := grype
+BIN := griffon
 TEMP_DIR := ./.tmp
 
 # Command templates #################################
@@ -85,19 +85,19 @@ all: static-analysis test ## Run all checks (linting, license check, unit, integ
 	@printf '$(SUCCESS)All checks pass!$(RESET)\n'
 
 .PHONY: static-analysis
-static-analysis: check-go-mod-tidy lint check-licenses validate-grype-db-schema
+static-analysis: check-go-mod-tidy lint check-licenses validate-griffon-db-schema
 
 .PHONY: test
-test: unit integration validate-cyclonedx-schema validate-grype-db-schema cli ## Run all tests (unit, integration, linux acceptance, and CLI tests)
+test: unit integration validate-cyclonedx-schema validate-griffon-db-schema cli ## Run all tests (unit, integration, linux acceptance, and CLI tests)
 
 .PHONY: validate-cyclonedx-schema
 validate-cyclonedx-schema:
 	cd schema/cyclonedx && make
 
-.PHONY: validate-grype-db-schema
-validate-grype-db-schema:
-	# ensure the codebase is only referencing a single grype-db schema version, multiple is not allowed
-	python test/validate-grype-db-schema.py
+.PHONY: validate-griffon-db-schema
+validate-griffon-db-schema:
+	# ensure the codebase is only referencing a single griffon-db schema version, multiple is not allowed
+	python test/validate-griffon-db-schema.py
 
 
 ## Bootstrapping targets #################################
@@ -170,7 +170,7 @@ check-go-mod-tidy:
 .PHONY: unit
 unit: $(TEMP_DIR) ## Run unit tests (with coverage)
 	$(call title,Running unit tests)
-	go test -coverprofile $(TEMP_DIR)/unit-coverage-details.txt $(shell go list ./... | grep -v anchore/grype/test)
+	go test -coverprofile $(TEMP_DIR)/unit-coverage-details.txt $(shell go list ./... | grep -v nextlinux/griffon/test)
 	@.github/scripts/coverage.py $(COVERAGE_THRESHOLD) $(TEMP_DIR)/unit-coverage-details.txt
 
 .PHONY: integration
@@ -259,7 +259,7 @@ compare-test-rpm-package-install: $(TEMP_DIR) $(SNAPSHOT_DIR)
 			$(TEMP_DIR)
 
 ## Code generation targets #################################
-## TODO (cphillips) what does grype have here?
+## TODO (cphillips) what does griffon have here?
 
 ## Build-related targets #################################
 
@@ -338,11 +338,11 @@ help:  ## Display this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(BOLD)$(CYAN)%-25s$(RESET)%s\n", $$1, $$2}'
 
 
-.PHONY: validate-grype-test-config
-validate-grype-test-config:
+.PHONY: validate-griffon-test-config
+validate-griffon-test-config:
 	# ensure the update URL is not overridden (not pointing to staging)
 	@bash -c '\
-		grep -q "update-url" test/grype-test-config.yaml; \
+		grep -q "update-url" test/griffon-test-config.yaml; \
 		if [ $$? -eq 0 ]; then \
 			echo "Found \"update-url\" in CLI testing config. Cannot release if previous CLI testing did not use production (default) values"; \
 		fi'

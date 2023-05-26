@@ -10,12 +10,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/db"
-	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/syft/syft/source"
+	"github.com/nextlinux/griffon/griffon"
+	"github.com/nextlinux/griffon/griffon/db"
+	"github.com/nextlinux/griffon/griffon/match"
+	"github.com/nextlinux/griffon/griffon/pkg"
+	"github.com/nextlinux/griffon/griffon/store"
 )
 
 func TestMatchBySBOMDocument(t *testing.T) {
@@ -86,7 +86,7 @@ func TestMatchBySBOMDocument(t *testing.T) {
 				MetadataProvider:  mp,
 				ExclusionProvider: ep,
 			}
-			matches, _, _, err := grype.FindVulnerabilities(str, fmt.Sprintf("sbom:%s", test.fixture), source.SquashedScope, nil)
+			matches, _, _, err := griffon.FindVulnerabilities(str, fmt.Sprintf("sbom:%s", test.fixture), source.SquashedScope, nil)
 			assert.NoError(t, err)
 			details := make([]match.Detail, 0)
 			ids := strset.New()

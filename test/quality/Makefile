@@ -1,5 +1,5 @@
 SBOM_STORE_TAG = md5-$(shell md5sum .yardstick.yaml | cut -d' ' -f1)
-SBOM_STORE_IMAGE = ghcr.io/anchore/grype/quality-test-sbom-store:$(SBOM_STORE_TAG)
+SBOM_STORE_IMAGE = ghcr.io/nextlinux/griffon/quality-test-sbom-store:$(SBOM_STORE_TAG)
 ACTIVATE_VENV = . venv/bin/activate &&
 YARDSTICK = $(ACTIVATE_VENV) yardstick -v
 YARDSTICK_RESULT_DIR = .yardstick/result
@@ -25,10 +25,10 @@ validate: venv $(VULNERABILITY_LABELS) ## Run all quality checks against already
 	$(ACTIVATE_VENV) ./gate.py
 
 .PHONY: capture
-capture: sboms vulns ## Collect and store all syft and grype results
+capture: sboms vulns ## Collect and store all syft and griffon results
 
 .PHONY: capture
-vulns: venv ## Collect and store all grype results
+vulns: venv ## Collect and store all griffon results
 	$(YARDSTICK) -v result capture -r $(RESULT_SET)
 
 .PHONY: sboms

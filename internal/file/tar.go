@@ -16,7 +16,7 @@ const (
 	MB
 	GB
 	// limit the tar reader to 5GB per file to prevent decompression bomb attacks. Why 5GB? This is somewhat of an
-	// arbitrary threshold, however, we need to keep this at at minimum 2GB to accommodate possible grype DB sizes.
+	// arbitrary threshold, however, we need to keep this at at minimum 2GB to accommodate possible griffon DB sizes.
 	decompressionByteReadLimit = 5 * GB
 )
 

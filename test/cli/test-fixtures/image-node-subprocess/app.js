@@ -1,4 +1,4 @@
-require("child_process").spawn("grype", [
+require("child_process").spawn("griffon", [
     "-vv",
     "registry:busybox:latest",
 ], {

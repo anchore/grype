@@ -30,7 +30,7 @@ func TestSBOMInput_AsArgument(t *testing.T) {
 		},
 		{
 			"directory scan",
-			"./test-fixtures/sbom-grype-source.json",
+			"./test-fixtures/sbom-griffon-source.json",
 		},
 	}
 
@@ -68,14 +68,14 @@ func TestSBOMInput_FromStdin(t *testing.T) {
 		{
 			name:       "empty file",
 			input:      "./test-fixtures/empty.json",
-			args:       []string{"-c", "../grype-test-config.yaml"},
+			args:       []string{"-c", "../griffon-test-config.yaml"},
 			wantErr:    require.Error,
 			wantOutput: "unable to decode sbom: unable to identify format",
 		},
 		{
 			name:    "sbom",
 			input:   "./test-fixtures/sbom-ubuntu-20.04--pruned.json",
-			args:    []string{"-c", "../grype-test-config.yaml"},
+			args:    []string{"-c", "../griffon-test-config.yaml"},
 			wantErr: require.NoError,
 		},
 	}

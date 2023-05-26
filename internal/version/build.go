@@ -6,7 +6,7 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/anchore/grype/internal/log"
+	"github.com/nextlinux/griffon/internal/log"
 )
 
 const valueNotProvided = "[not provided]"
@@ -21,7 +21,7 @@ var platform = fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
 // Version defines the application version details (generally from build information)
 type Version struct {
 	Version        string `json:"version"`        // application semantic version
-	SyftVersion    string `json:"syftVersion"`    // the version of syft being used by grype
+	SyftVersion    string `json:"syftVersion"`    // the version of syft being used by griffon
 	GitCommit      string `json:"gitCommit"`      // git SHA at build-time
 	GitDescription string `json:"gitDescription"` // output of 'git describe --dirty --always --tags'
 	BuildDate      string `json:"buildDate"`      // date of the build
