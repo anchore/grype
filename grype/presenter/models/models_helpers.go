@@ -74,7 +74,6 @@ func generateMatches(t *testing.T, p, p2, p3 pkg.Package) match.Matches {
 
 	matches := []match.Match{
 		{
-
 			Vulnerability: vulnerability.Vulnerability{
 				ID:        "CVE-1999-0001",
 				Namespace: "source-1",
@@ -94,14 +93,11 @@ func generateMatches(t *testing.T, p, p2, p3 pkg.Package) match.Matches {
 							"version": "20.04",
 						},
 					},
-					Found: map[string]interface{}{
-						"constraint": ">= 20",
-					},
+					Found: map[string]interface{}{"constraint": ">= 20"},
 				},
 			},
 		},
 		{
-
 			Vulnerability: vulnerability.Vulnerability{
 				ID:        "CVE-1999-0002",
 				Namespace: "source-2",
@@ -109,19 +105,14 @@ func generateMatches(t *testing.T, p, p2, p3 pkg.Package) match.Matches {
 			Package: p2,
 			Details: []match.Detail{
 				{
-					Type:    match.ExactIndirectMatch,
-					Matcher: match.DpkgMatcher,
-					SearchedBy: map[string]interface{}{
-						"cpe": "somecpe",
-					},
-					Found: map[string]interface{}{
-						"constraint": "somecpe",
-					},
+					Type:       match.ExactIndirectMatch,
+					Matcher:    match.DpkgMatcher,
+					SearchedBy: map[string]interface{}{"cpe": "somecpe"},
+					Found:      map[string]interface{}{"constraint": "somecpe"},
 				},
 			},
 		},
 		{
-
 			Vulnerability: vulnerability.Vulnerability{
 				ID:        "CVE-1999-0003",
 				Namespace: "source-3",
@@ -129,14 +120,10 @@ func generateMatches(t *testing.T, p, p2, p3 pkg.Package) match.Matches {
 			Package: p3,
 			Details: []match.Detail{
 				{
-					Type:    match.ExactIndirectMatch,
-					Matcher: match.JavascriptMatcher,
-					SearchedBy: map[string]interface{}{
-						"cpe": "somecpe",
-					},
-					Found: map[string]interface{}{
-						"constraint": "somecpe",
-					},
+					Type:       match.ExactIndirectMatch,
+					Matcher:    match.JavascriptMatcher,
+					SearchedBy: map[string]interface{}{"cpe": "somecpe"},
+					Found:      map[string]interface{}{"constraint": "somecpe"},
 				},
 			},
 		},
@@ -168,14 +155,11 @@ func generatePackages(t *testing.T) []pkg.Package {
 			},
 			Upstreams: []pkg.UpstreamPackage{
 				{
-					Name:    "nothing",
-					Version: "3.2",
+					Name: "nothing", Version: "3.2",
 				},
 			},
 			MetadataType: pkg.RpmMetadataType,
-			Metadata: pkg.RpmMetadata{
-				Epoch: &epoch,
-			},
+			Metadata:     pkg.RpmMetadata{Epoch: &epoch},
 		},
 		{
 			Name:      "package-2",
@@ -216,7 +200,6 @@ func generatePackages(t *testing.T) []pkg.Package {
 	for _, p := range pkgs {
 		id, err := artifact.IDByHash(p)
 		require.NoError(t, err)
-
 		p.ID = pkg.ID(id)
 		updatedPkgs = append(updatedPkgs, p)
 	}
