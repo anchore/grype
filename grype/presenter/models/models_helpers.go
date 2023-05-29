@@ -29,6 +29,17 @@ func GenerateAnalysis(t *testing.T, scheme syftSource.Scheme) (match.Matches, []
 	return matches, packages, context, NewMetadataMock(), nil, nil
 }
 
+func GenerateAnalysisWithIgnoredMatches(t *testing.T, scheme syftSource.Scheme) (match.Matches, []match.IgnoredMatch, []pkg.Package, pkg.Context, vulnerability.MetadataProvider, interface{}, interface{}) {
+	t.Helper()
+
+	packages := generatePackages(t)
+	matches := generateMatches(t, packages[0], packages[0])
+	ignoredMatches := generateIgnoredMatches(t, packages[1])
+	context := generateContext(t, scheme)
+
+	return matches, ignoredMatches, packages, context, NewMetadataMock(), nil, nil
+}
+
 func SBOMFromPackages(t *testing.T, packages []pkg.Package) *sbom.SBOM {
 	t.Helper()
 
@@ -125,6 +136,66 @@ func generateMatches(t *testing.T, p, p2 pkg.Package) match.Matches {
 	collection := match.NewMatches(matches...)
 
 	return collection
+}
+
+func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
+	t.Helper()
+
+	matches := []match.Match{
+		{
+
+			Vulnerability: vulnerability.Vulnerability{
+				ID:        "CVE-1999-0001",
+				Namespace: "source-1",
+			},
+			Package: p,
+			Details: []match.Detail{
+				{
+					Type:    match.ExactDirectMatch,
+					Matcher: match.DpkgMatcher,
+					SearchedBy: map[string]interface{}{
+						"distro": map[string]string{
+							"type":    "ubuntu",
+							"version": "20.04",
+						},
+					},
+					Found: map[string]interface{}{
+						"constraint": ">= 20",
+					},
+				},
+			},
+		},
+		{
+
+			Vulnerability: vulnerability.Vulnerability{
+				ID:        "CVE-1999-0002",
+				Namespace: "source-2",
+			},
+			Package: p,
+			Details: []match.Detail{
+				{
+					Type:    match.ExactDirectMatch,
+					Matcher: match.DpkgMatcher,
+					SearchedBy: map[string]interface{}{
+						"cpe": "somecpe",
+					},
+					Found: map[string]interface{}{
+						"constraint": "somecpe",
+					},
+				},
+			},
+		},
+	}
+
+	var ignoredMatches []match.IgnoredMatch
+	for _, m := range matches {
+		ignoredMatches = append(ignoredMatches, match.IgnoredMatch{
+			Match:              m,
+			AppliedIgnoreRules: []match.IgnoreRule{},
+		})
+	}
+
+	return ignoredMatches
 }
 
 func generatePackages(t *testing.T) []pkg.Package {
