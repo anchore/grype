@@ -25,15 +25,17 @@ type Presenter struct {
 	ignoredMatches   []match.IgnoredMatch
 	packages         []pkg.Package
 	metadataProvider vulnerability.MetadataProvider
+	showSuppressed   bool
 }
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter(pb models.PresenterConfig) *Presenter {
+func NewPresenter(pb models.PresenterConfig, showSuppressed bool) *Presenter {
 	return &Presenter{
 		results:          pb.Matches,
 		ignoredMatches:   pb.IgnoredMatches,
 		packages:         pb.Packages,
 		metadataProvider: pb.MetadataProvider,
+		showSuppressed:   showSuppressed,
 	}
 }
 
@@ -53,13 +55,15 @@ func (pres *Presenter) Present(output io.Writer) error {
 	}
 
 	// Generate rows for suppressed vulnerabilities
-	for _, m := range pres.ignoredMatches {
-		row, err := createRow(m.Match, pres.metadataProvider, appendSuppressed)
+	if pres.showSuppressed {
+		for _, m := range pres.ignoredMatches {
+			row, err := createRow(m.Match, pres.metadataProvider, appendSuppressed)
 
-		if err != nil {
-			return err
+			if err != nil {
+				return err
+			}
+			rows = append(rows, row)
 		}
-		rows = append(rows, row)
 	}
 
 	if len(rows) == 0 {

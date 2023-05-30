@@ -84,7 +84,7 @@ func TestTablePresenter(t *testing.T) {
 		MetadataProvider: metadataProvider,
 	}
 
-	pres := NewPresenter(pb)
+	pres := NewPresenter(pb, false)
 
 	// run presenter
 	err := pres.Present(&buffer)
@@ -121,7 +121,7 @@ func TestEmptyTablePresenter(t *testing.T) {
 		MetadataProvider: nil,
 	}
 
-	pres := NewPresenter(pb)
+	pres := NewPresenter(pb, false)
 
 	// run presenter
 	err := pres.Present(&buffer)
@@ -170,4 +170,66 @@ func TestRemoveDuplicateRows(t *testing.T) {
 		}
 	}
 
+}
+
+func TestHidesIgnoredMatches(t *testing.T) {
+	var buffer bytes.Buffer
+	matches, ignoredMatches, packages, _, metadataProvider, _, _ := models.GenerateAnalysisWithIgnoredMatches(t, source.ImageScheme)
+
+	pb := models.PresenterConfig{
+		Matches:          matches,
+		IgnoredMatches:   ignoredMatches,
+		Packages:         packages,
+		MetadataProvider: metadataProvider,
+	}
+
+	pres := NewPresenter(pb, false)
+
+	err := pres.Present(&buffer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	actual := buffer.Bytes()
+	if *update {
+		testutils.UpdateGoldenFileContents(t, actual)
+	}
+
+	var expected = testutils.GetGoldenFileContents(t)
+
+	if !bytes.Equal(expected, actual) {
+		dmp := diffmatchpatch.New()
+		diffs := dmp.DiffMain(string(expected), string(actual), true)
+		t.Errorf("mismatched output:\n%s", dmp.DiffPrettyText(diffs))
+	}
+}
+
+func TestDisplaysIgnoredMatches(t *testing.T) {
+	var buffer bytes.Buffer
+	matches, ignoredMatches, packages, _, metadataProvider, _, _ := models.GenerateAnalysisWithIgnoredMatches(t, source.ImageScheme)
+
+	pb := models.PresenterConfig{
+		Matches:          matches,
+		IgnoredMatches:   ignoredMatches,
+		Packages:         packages,
+		MetadataProvider: metadataProvider,
+	}
+
+	pres := NewPresenter(pb, true)
+
+	err := pres.Present(&buffer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	actual := buffer.Bytes()
+	if *update {
+		testutils.UpdateGoldenFileContents(t, actual)
+	}
+
+	var expected = testutils.GetGoldenFileContents(t)
+
+	if !bytes.Equal(expected, actual) {
+		dmp := diffmatchpatch.New()
+		diffs := dmp.DiffMain(string(expected), string(actual), true)
+		t.Errorf("mismatched output:\n%s", dmp.DiffPrettyText(diffs))
+	}
 }
