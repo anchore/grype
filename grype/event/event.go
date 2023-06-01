@@ -9,4 +9,5 @@ const (
 	VulnerabilityScanningFinished partybus.EventType = "grype-vulnerability-scanning-finished"
 	NonRootCommandFinished        partybus.EventType = "grype-non-root-command-finished"
 	DatabaseDiffingStarted        partybus.EventType = "grype-database-diffing-started"
+	PresentationStarted           partybus.EventType = "grype-presentation-started"
 )

@@ -6,6 +6,7 @@ import (
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
 
+	"github.com/anchore/grype/grype"
 	diffEvents "github.com/anchore/grype/grype/differ/events"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/matcher"
@@ -76,8 +77,21 @@ func ParseVulnerabilityScanningStarted(e partybus.Event) (*matcher.Monitor, erro
 	return &monitor, nil
 }
 
-func ParseVulnerabilityScanningFinished(e partybus.Event) (presenter.Presenter, error) {
+func ParseVulnerabilityScanningFinished(e partybus.Event) (*grype.MatcherResults, error) {
 	if err := checkEventType(e.Type, event.VulnerabilityScanningFinished); err != nil {
+		return nil, err
+	}
+
+	matcherResults, ok := e.Value.(grype.MatcherResults)
+	if !ok {
+		return nil, newPayloadErr(e.Type, "Value", e.Value)
+	}
+
+	return &matcherResults, nil
+}
+
+func ParsePresentationStarted(e partybus.Event) (presenter.Presenter, error) {
+	if err := checkEventType(e.Type, event.PresentationStarted); err != nil {
 		return nil, err
 	}
 

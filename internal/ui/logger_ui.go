@@ -28,9 +28,9 @@ func (l *loggerUI) Setup(unsubscribe func() error) error {
 
 func (l loggerUI) Handle(event partybus.Event) error {
 	switch event.Type {
-	case grypeEvent.VulnerabilityScanningFinished:
-		if err := handleVulnerabilityScanningFinished(event, l.reportOutput); err != nil {
-			log.Warnf("unable to show catalog image finished event: %+v", err)
+	case grypeEvent.PresentationStarted:
+		if err := handlePresentationStarted(event, l.reportOutput); err != nil {
+			log.Warnf("unable to show presentation started event: %+v", err)
 		}
 	case grypeEvent.NonRootCommandFinished:
 		if err := handleNonRootCommandFinished(event, l.reportOutput); err != nil {

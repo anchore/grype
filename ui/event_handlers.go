@@ -16,6 +16,7 @@ import (
 	"github.com/wagoodman/go-progress/format"
 	"github.com/wagoodman/jotframe/pkg/frame"
 
+	grypeDb "github.com/anchore/grype/grype/db/v5"
 	grypeEventParsers "github.com/anchore/grype/grype/event/parsers"
 	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -98,8 +99,8 @@ func (r *Handler) UpdateVulnerabilityDatabaseHandler(ctx context.Context, fr *fr
 	return err
 }
 
-func scanningAndSummaryLines(fr *frame.Frame) (scanningLine, summaryLine, fixedLine *frame.Line, err error) {
-	scanningLine, err = fr.Append()
+func vulnSummaryAndFixLines(fr *frame.Frame) (vulnLine, summaryLine, fixedLine *frame.Line, err error) {
+	vulnLine, err = fr.Append()
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -113,23 +114,14 @@ func scanningAndSummaryLines(fr *frame.Frame) (scanningLine, summaryLine, fixedL
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	return scanningLine, summaryLine, fixedLine, nil
+	return vulnLine, summaryLine, fixedLine, nil
 }
 
 func assembleProgressMonitors(m *matcher.Monitor) []progress.Monitorable {
-	ret := []progress.Monitorable{
+	return []progress.Monitorable{
 		m.PackagesProcessed,
 		m.VulnerabilitiesDiscovered,
 	}
-
-	allSeverities := append([]vulnerability.Severity{vulnerability.UnknownSeverity}, vulnerability.AllSeverities()...)
-	for _, sev := range allSeverities {
-		ret = append(ret, m.BySeverity[sev])
-	}
-
-	ret = append(ret, m.Fixed)
-
-	return ret
 }
 
 //nolint:funlen
@@ -139,7 +131,7 @@ func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *f
 		return fmt.Errorf("bad %s event: %w", event.Type, err)
 	}
 
-	scanningLine, summaryLine, fixLine, err := scanningAndSummaryLines(fr)
+	scanningLine, err := fr.Append()
 	if err != nil {
 		return err
 	}
@@ -152,10 +144,6 @@ func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *f
 	stream := progress.StreamMonitors(ctx, monitors, 50*time.Millisecond)
 
 	title := tileFormat.Sprint("Scanning image...")
-	branch := "├──"
-	end := "└──"
-
-	fixTempl := "%d fixed"
 
 	formatFn := func(m *matcher.Monitor, complete bool) {
 		var spin string
@@ -165,34 +153,8 @@ func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *f
 			spin = color.Magenta.Sprint(spinner.Next())
 		}
 
-		auxInfo := auxInfoFormat.Sprintf("[%d vulnerabilities]", m.VulnerabilitiesDiscovered.Current())
-		_, _ = io.WriteString(scanningLine, fmt.Sprintf(statusTitleTemplate+"%s", spin, title, auxInfo))
+		_, _ = io.WriteString(scanningLine, fmt.Sprintf(statusTitleTemplate, spin, title))
 
-		var unknownStr string
-		unknown := m.BySeverity[vulnerability.UnknownSeverity].Current()
-		if unknown > 0 {
-			unknownStr = fmt.Sprintf(" (%d unknown)", unknown)
-		}
-
-		allSeverities := vulnerability.AllSeverities()
-		sort.Sort(sort.Reverse(vulnerability.Severities(allSeverities)))
-
-		var builder strings.Builder
-		for idx, sev := range allSeverities {
-			count := m.BySeverity[sev].Current()
-			builder.WriteString(fmt.Sprintf("%d %s", count, sev))
-			if idx < len(allSeverities)-1 {
-				builder.WriteString(", ")
-			}
-		}
-		builder.WriteString(unknownStr)
-
-		status := builder.String()
-		auxInfo2 := auxInfoFormat.Sprintf("   %s %s", branch, status)
-		_, _ = io.WriteString(summaryLine, auxInfo2)
-
-		fixStatus := fmt.Sprintf(fixTempl, m.Fixed.Current())
-		_, _ = io.WriteString(fixLine, auxInfoFormat.Sprintf("   %s %s", end, fixStatus))
 	}
 
 	go func() {
@@ -206,6 +168,80 @@ func (r *Handler) VulnerabilityScanningStartedHandler(ctx context.Context, fr *f
 	}()
 
 	return nil
+}
+
+func (r *Handler) VulnerabilityScanningFinishedHandler(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {
+
+	matcherResults, err := grypeEventParsers.ParseVulnerabilityScanningFinished(event)
+	if err != nil {
+		return fmt.Errorf("bad VulnerabilityScanningFinished event: %w", err)
+	}
+
+	vulnLine, summaryLine, fixLine, err := vulnSummaryAndFixLines(fr)
+	if err != nil {
+		return err
+	}
+
+	branch := "├──"
+	end := "└──"
+
+	fixTempl := "%d fixed"
+
+	auxInfo := auxInfoFormat.Sprintf("   %s %d vulnerabilities, %d suppressed", branch, matcherResults.Matches.Count(), len(matcherResults.IgnoredMatches))
+	_, _ = io.WriteString(vulnLine, auxInfo)
+
+	allSeverities := vulnerability.AllSeverities()
+
+	s := make(map[vulnerability.Severity]int)
+	fixedCount := 0
+
+	for _, sev := range allSeverities {
+		s[sev] = 0
+	}
+
+	for m := range matcherResults.Matches.Enumerate() {
+		// panic(33)
+
+		metadata, err := matcherResults.Store.MetadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.Namespace)
+		if err != nil || metadata == nil {
+			s[vulnerability.UnknownSeverity]++
+			continue
+		}
+
+		s[vulnerability.ParseSeverity(metadata.Severity)]++
+
+		if m.Vulnerability.Fix.State == grypeDb.FixedState {
+			fixedCount++
+		}
+	}
+
+	var unknownStr string
+
+	if s[vulnerability.UnknownSeverity] > 0 {
+		unknownStr = fmt.Sprintf(" (%d unknown)", s[vulnerability.UnknownSeverity])
+	}
+
+	sort.Sort(sort.Reverse(vulnerability.Severities(allSeverities)))
+
+	var builder strings.Builder
+	for idx, sev := range allSeverities {
+		count := s[sev]
+		builder.WriteString(fmt.Sprintf("%d %s", count, sev))
+		if idx < len(allSeverities)-1 {
+			builder.WriteString(", ")
+		}
+	}
+	builder.WriteString(unknownStr)
+
+	summary := builder.String()
+	auxInfo2 := auxInfoFormat.Sprintf("   %s %s", branch, summary)
+	_, _ = io.WriteString(summaryLine, auxInfo2)
+
+	fixStatus := fmt.Sprintf(fixTempl, fixedCount)
+	_, _ = io.WriteString(fixLine, auxInfoFormat.Sprintf("   %s %s", end, fixStatus))
+
+	return nil
+
 }
 
 func (r *Handler) DatabaseDiffingStartedHandler(ctx context.Context, fr *frame.Frame, event partybus.Event, wg *sync.WaitGroup) error {

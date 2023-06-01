@@ -24,6 +24,7 @@ func NewHandler() *Handler {
 func (r *Handler) RespondsTo(event partybus.Event) bool {
 	switch event.Type {
 	case grypeEvent.VulnerabilityScanningStarted,
+		grypeEvent.VulnerabilityScanningFinished,
 		grypeEvent.UpdateVulnerabilityDatabase,
 		grypeEvent.DatabaseDiffingStarted:
 		return true
@@ -36,6 +37,8 @@ func (r *Handler) Handle(ctx context.Context, fr *frame.Frame, event partybus.Ev
 	switch event.Type {
 	case grypeEvent.VulnerabilityScanningStarted:
 		return r.VulnerabilityScanningStartedHandler(ctx, fr, event, wg)
+	case grypeEvent.VulnerabilityScanningFinished:
+		return r.VulnerabilityScanningFinishedHandler(ctx, fr, event, wg)
 	case grypeEvent.UpdateVulnerabilityDatabase:
 		return r.UpdateVulnerabilityDatabaseHandler(ctx, fr, event, wg)
 	case grypeEvent.DatabaseDiffingStarted:

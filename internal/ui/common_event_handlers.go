@@ -9,11 +9,11 @@ import (
 	grypeEventParsers "github.com/anchore/grype/grype/event/parsers"
 )
 
-func handleVulnerabilityScanningFinished(event partybus.Event, reportOutput io.Writer) error {
+func handlePresentationStarted(event partybus.Event, reportOutput io.Writer) error {
 	// show the report to stdout
-	pres, err := grypeEventParsers.ParseVulnerabilityScanningFinished(event)
+	pres, err := grypeEventParsers.ParsePresentationStarted(event)
 	if err != nil {
-		return fmt.Errorf("bad CatalogerFinished event: %w", err)
+		return fmt.Errorf("bad PresentationStarted event: %w", err)
 	}
 
 	if err := pres.Present(reportOutput); err != nil {

@@ -83,12 +83,12 @@ func (h *ephemeralTerminalUI) Handle(event partybus.Event) error {
 			log.Errorf("unable to show %s event: %+v", event.Type, err)
 		}
 
-	case event.Type == grypeEvent.VulnerabilityScanningFinished:
+	case event.Type == grypeEvent.PresentationStarted:
 		// we need to close the screen now since signaling the the presenter is ready means that we
 		// are about to write bytes to stdout, so we should reset the terminal state first
 		h.closeScreen(false)
 
-		if err := handleVulnerabilityScanningFinished(event, h.reportOutput); err != nil {
+		if err := handlePresentationStarted(event, h.reportOutput); err != nil {
 			log.Errorf("unable to show %s event: %+v", event.Type, err)
 		}
 

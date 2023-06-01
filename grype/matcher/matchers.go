@@ -4,7 +4,6 @@ import (
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
 
-	grypeDb "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/match"
@@ -31,51 +30,29 @@ import (
 type Monitor struct {
 	PackagesProcessed         progress.Monitorable
 	VulnerabilitiesDiscovered progress.Monitorable
-	Fixed                     progress.Monitorable
-	BySeverity                map[vulnerability.Severity]progress.Monitorable
 }
 
 type monitor struct {
 	PackagesProcessed         *progress.Manual
 	VulnerabilitiesDiscovered *progress.Manual
-	Fixed                     *progress.Manual
-	BySeverity                map[vulnerability.Severity]*progress.Manual
 }
 
 func newMonitor() (monitor, Monitor) {
-	manualBySev := make(map[vulnerability.Severity]*progress.Manual)
-	for _, severity := range vulnerability.AllSeverities() {
-		manualBySev[severity] = progress.NewManual(-1)
-	}
-	manualBySev[vulnerability.UnknownSeverity] = progress.NewManual(-1)
 
 	m := monitor{
 		PackagesProcessed:         progress.NewManual(-1),
 		VulnerabilitiesDiscovered: progress.NewManual(-1),
-		Fixed:                     progress.NewManual(-1),
-		BySeverity:                manualBySev,
-	}
-
-	monitorableBySev := make(map[vulnerability.Severity]progress.Monitorable)
-	for sev, manual := range manualBySev {
-		monitorableBySev[sev] = manual
 	}
 
 	return m, Monitor{
 		PackagesProcessed:         m.PackagesProcessed,
 		VulnerabilitiesDiscovered: m.VulnerabilitiesDiscovered,
-		Fixed:                     m.Fixed,
-		BySeverity:                monitorableBySev,
 	}
 }
 
 func (m *monitor) SetCompleted() {
 	m.PackagesProcessed.SetCompleted()
 	m.VulnerabilitiesDiscovered.SetCompleted()
-	m.Fixed.SetCompleted()
-	for _, v := range m.BySeverity {
-		v.SetCompleted()
-	}
 }
 
 // Config contains values used by individual matcher structs for advanced configuration
@@ -180,61 +157,16 @@ func FindMatches(store interface {
 				logMatches(p, matches)
 				res.Add(matches...)
 				progressMonitor.VulnerabilitiesDiscovered.Add(int64(len(matches)))
-				updateVulnerabilityList(progressMonitor, matches, store)
 			}
 		}
 	}
 
 	progressMonitor.SetCompleted()
 
-	logListSummary(progressMonitor)
-
 	// Filter out matches based off of the records in the exclusion table in the database or from the old hard-coded rules
 	res = match.ApplyExplicitIgnoreRules(store, res)
 
 	return res
-}
-
-func logListSummary(vl *monitor) {
-	log.Infof("found %d vulnerabilities for %d packages", vl.VulnerabilitiesDiscovered.Current(), vl.PackagesProcessed.Current())
-	log.Debugf("  ├── fixed: %d", vl.Fixed.Current())
-	log.Debugf("  └── matched: %d", vl.VulnerabilitiesDiscovered.Current())
-
-	var unknownCount int64
-	if count, ok := vl.BySeverity[vulnerability.UnknownSeverity]; ok {
-		unknownCount = count.Current()
-	}
-	log.Debugf("      ├── %s: %d", vulnerability.UnknownSeverity.String(), unknownCount)
-
-	allSeverities := vulnerability.AllSeverities()
-	for idx, sev := range allSeverities {
-		branch := "├"
-		if idx == len(allSeverities)-1 {
-			branch = "└"
-		}
-		log.Debugf("      %s── %s: %d", branch, sev.String(), vl.BySeverity[sev].Current())
-	}
-}
-
-func updateVulnerabilityList(list *monitor, matches []match.Match, metadataProvider vulnerability.MetadataProvider) {
-	for _, m := range matches {
-		metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.Namespace)
-		if err != nil || metadata == nil {
-			list.BySeverity[vulnerability.UnknownSeverity].Increment()
-			continue
-		}
-
-		sevManualProgress, ok := list.BySeverity[vulnerability.ParseSeverity(metadata.Severity)]
-		if !ok {
-			list.BySeverity[vulnerability.UnknownSeverity].Increment()
-			continue
-		}
-		sevManualProgress.Increment()
-
-		if m.Vulnerability.Fix.State == grypeDb.FixedState {
-			list.Fixed.Increment()
-		}
-	}
 }
 
 func logMatches(p pkg.Package, matches []match.Match) {

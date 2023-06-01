@@ -391,7 +391,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		}
 
 		bus.Publish(partybus.Event{
-			Type:  event.VulnerabilityScanningFinished,
+			Type:  event.PresentationStarted,
 			Value: presenter.GetPresenter(presenterConfig, pb),
 		})
 	}()
