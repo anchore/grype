@@ -107,6 +107,10 @@ func addJavascriptMatches(t *testing.T, theSource source.Source, catalog *syftPk
 				SearchedBy: map[string]interface{}{
 					"language":  "javascript",
 					"namespace": "github:language:javascript",
+					"package": map[string]string{
+						"name":    thePkg.Name,
+						"version": thePkg.Version,
+					},
 				},
 				Found: map[string]interface{}{
 					"versionConstraint": "> 5, < 7.2.1 (unknown)",
@@ -144,6 +148,10 @@ func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 				SearchedBy: map[string]interface{}{
 					"language":  "python",
 					"namespace": "github:language:python",
+					"package": map[string]string{
+						"name":    thePkg.Name,
+						"version": thePkg.Version,
+					},
 				},
 				Found: map[string]interface{}{
 					"versionConstraint": "< 2.6.2 (python)",
@@ -181,6 +189,10 @@ func addDotnetMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 				SearchedBy: map[string]interface{}{
 					"language":  "dotnet",
 					"namespace": "github:language:dotnet",
+					"package": map[string]string{
+						"name":    thePkg.Name,
+						"version": thePkg.Version,
+					},
 				},
 				Found: map[string]interface{}{
 					"versionConstraint": ">= 3.7.0.0, < 3.7.12.0 (unknown)",
@@ -214,6 +226,10 @@ func addRubyMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 				SearchedBy: map[string]interface{}{
 					"language":  "ruby",
 					"namespace": "github:language:ruby",
+					"package": map[string]string{
+						"name":    thePkg.Name,
+						"version": thePkg.Version,
+					},
 				},
 				Found: map[string]interface{}{
 					"versionConstraint": "> 2.0.0, <= 2.1.4 (unknown)",
@@ -263,6 +279,10 @@ func addGolangMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 					SearchedBy: map[string]interface{}{
 						"language":  "go",
 						"namespace": "github:language:go",
+						"package": map[string]string{
+							"name":    thePkg.Name,
+							"version": thePkg.Version,
+						},
 					},
 					Found: map[string]interface{}{
 						"versionConstraint": "< 1.4.0 (unknown)",
@@ -306,6 +326,10 @@ func addJavaMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 				SearchedBy: map[string]interface{}{
 					"language":  "java",
 					"namespace": "github:language:java",
+					"package": map[string]string{
+						"name":    thePkg.Name,
+						"version": thePkg.Version,
+					},
 				},
 				Found: map[string]interface{}{
 					"versionConstraint": ">= 0.0.1, < 1.2.0 (unknown)",
@@ -498,6 +522,10 @@ func addHaskellMatches(t *testing.T, theSource source.Source, catalog *syftPkg.C
 				SearchedBy: map[string]any{
 					"language":  "haskell",
 					"namespace": "github:language:haskell",
+					"package": map[string]string{
+						"name":    thePkg.Name,
+						"version": thePkg.Version,
+					},
 				},
 				Found: map[string]any{
 					"versionConstraint": "< 0.9.0 (unknown)",
