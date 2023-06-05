@@ -9,9 +9,9 @@ import (
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/cpe"
+	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/pkg"
 	cpes "github.com/anchore/syft/syft/pkg/cataloger/common/cpe"
-	"github.com/anchore/syft/syft/source"
 )
 
 // the source-rpm field has something akin to "util-linux-ng-2.17.2-12.28.el6_9.2.src.rpm"
@@ -29,10 +29,10 @@ type ID string
 // Package represents an application or library that has been bundled into a distributable format.
 type Package struct {
 	ID           ID
-	Name         string             // the package name
-	Version      string             // the version of the package
-	Locations    source.LocationSet // the locations that lead to the discovery of this package (note: this is not necessarily the locations that make up this package)
-	Language     pkg.Language       // the language ecosystem this package belongs to (e.g. JavaScript, Python, etc)
+	Name         string           // the package name
+	Version      string           // the version of the package
+	Locations    file.LocationSet // the locations that lead to the discovery of this package (note: this is not necessarily the locations that make up this package)
+	Language     pkg.Language     // the language ecosystem this package belongs to (e.g. JavaScript, Python, etc)
 	Licenses     []string
 	Type         pkg.Type  // the package type (e.g. Npm, Yarn, Python, Rpm, Deb, etc)
 	CPEs         []cpe.CPE // all possible Common Platform Enumerators

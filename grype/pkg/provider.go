@@ -6,8 +6,8 @@ import (
 
 	"github.com/bmatcuk/doublestar/v2"
 
+	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/sbom"
-	"github.com/anchore/syft/syft/source"
 )
 
 var errDoesNotProvide = fmt.Errorf("cannot provide packages from the given source")
@@ -25,9 +25,9 @@ func Provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom
 		return packages, ctx, s, err
 	}
 
-	packages, ctx, err = purlProvider(userInput)
+	packages, err = purlProvider(userInput)
 	if !errors.Is(err, errDoesNotProvide) {
-		return packages, ctx, s, err
+		return packages, Context{}, s, err
 	}
 
 	return syftProvider(userInput, config)
@@ -70,7 +70,7 @@ func filterPackageExclusions(packages []Package, exclusions []string) ([]Package
 // Test a location RealPath and VirtualPath for a match against the exclusion parameter.
 // The exclusion allows glob expressions such as `/usr/**` or `**/*.json`. If the exclusion
 // is an invalid pattern, an error is returned; otherwise, the resulting boolean indicates a match.
-func locationMatches(location source.Location, exclusion string) (bool, error) {
+func locationMatches(location file.Location, exclusion string) (bool, error) {
 	matchesRealPath, err := doublestar.Match(exclusion, location.RealPath)
 	if err != nil {
 		return false, err
