@@ -28,9 +28,9 @@ func (e errEmptyPurlFile) Error() string {
 	return fmt.Sprintf("purl file is empty: %s", e.purlFilepath)
 }
 
-func purlProvider(userInput string) ([]Package, Context, error) {
+func purlProvider(userInput string) ([]Package, error) {
 	p, err := getPurlPackages(userInput)
-	return p, Context{}, err
+	return p, err
 }
 
 func getPurlPackages(userInput string) ([]Package, error) {

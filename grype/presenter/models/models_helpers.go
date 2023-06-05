@@ -13,6 +13,7 @@ import (
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/cpe"
+	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/sbom"
@@ -207,7 +208,7 @@ func generatePackages(t *testing.T) []pkg.Package {
 			Name:      "package-1",
 			Version:   "1.1.1",
 			Type:      syftPkg.RpmPkg,
-			Locations: syftSource.NewLocationSet(syftSource.NewVirtualLocation("/foo/bar/somefile-1.txt", "somefile-1.txt")),
+			Locations: file.NewLocationSet(file.NewVirtualLocation("/foo/bar/somefile-1.txt", "somefile-1.txt")),
 			CPEs: []cpe.CPE{
 				{
 					Part:     "a",
@@ -232,7 +233,7 @@ func generatePackages(t *testing.T) []pkg.Package {
 			Name:      "package-2",
 			Version:   "2.2.2",
 			Type:      syftPkg.DebPkg,
-			Locations: syftSource.NewLocationSet(syftSource.NewVirtualLocation("/foo/bar/somefile-2.txt", "somefile-2.txt")),
+			Locations: file.NewLocationSet(file.NewVirtualLocation("/foo/bar/somefile-2.txt", "somefile-2.txt")),
 			CPEs: []cpe.CPE{
 				{
 					Part:     "a",

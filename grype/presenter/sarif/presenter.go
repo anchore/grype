@@ -14,6 +14,7 @@ import (
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/version"
+	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -173,7 +174,7 @@ func (pres *Presenter) inputPath() string {
 }
 
 // locationPath returns a path for the location, relative to the cwd
-func (pres *Presenter) locationPath(l source.Location) string {
+func (pres *Presenter) locationPath(l file.Location) string {
 	path := l.RealPath
 	if l.VirtualPath != "" {
 		path = l.VirtualPath
