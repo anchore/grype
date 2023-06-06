@@ -17,9 +17,15 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
+type CPEPackageParameter struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+}
+
 type CPEParameters struct {
 	Namespace string   `json:"namespace"`
 	CPEs      []string `json:"cpes"`
+	Package   CPEPackageParameter
 }
 
 func (i *CPEParameters) Merge(other CPEParameters) error {
@@ -146,6 +152,10 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 				Namespace: vuln.Namespace,
 				CPEs: []string{
 					searchedByCPE.BindToFmtString(),
+				},
+				Package: CPEPackageParameter{
+					Name:    p.Name,
+					Version: p.Version,
 				},
 			},
 			Found: CPEResult{

@@ -79,6 +79,7 @@ func expectedMatch(p pkg.Package, constraint string) []match.Match {
 					SearchedBy: map[string]interface{}{
 						"language":  "ruby",
 						"namespace": "github:ruby",
+						"package":   map[string]string{"name": p.Name, "version": p.Version},
 					},
 					Found: map[string]interface{}{
 						"versionConstraint": constraint,

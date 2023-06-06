@@ -350,6 +350,10 @@ func TestNvdOnlyMatches(t *testing.T) {
 					SearchedBy: search.CPEParameters{
 						CPEs:      []string{"cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"},
 						Namespace: "nvd:cpe",
+						Package: search.CPEPackageParameter{
+							Name:    "libvncserver",
+							Version: "0.9.9",
+						},
 					},
 					Found: search.CPEResult{
 						CPEs:              []string{vulnFound.CPEs[0].BindToFmtString()},
@@ -425,6 +429,10 @@ func TestNvdMatchesProperVersionFiltering(t *testing.T) {
 					SearchedBy: search.CPEParameters{
 						CPEs:      []string{"cpe:2.3:a:*:libvncserver:0.9.11:*:*:*:*:*:*:*"},
 						Namespace: "nvd:cpe",
+						Package: search.CPEPackageParameter{
+							Name:    "libvncserver",
+							Version: "0.9.11-r10",
+						},
 					},
 					Found: search.CPEResult{
 						CPEs:              []string{vulnFound.CPEs[0].BindToFmtString()},
@@ -679,6 +687,10 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 					SearchedBy: search.CPEParameters{
 						CPEs:      []string{"cpe:2.3:a:musl:musl:*:*:*:*:*:*:*:*"},
 						Namespace: "nvd:cpe",
+						Package: search.CPEPackageParameter{
+							Name:    "musl",
+							Version: "1.3.2-r0",
+						},
 					},
 					Found: search.CPEResult{
 						CPEs:              []string{vulnFound.CPEs[0].BindToFmtString()},
