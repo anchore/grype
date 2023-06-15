@@ -31,7 +31,7 @@ type parser interface {
 type Application struct {
 	ConfigPath             string                  `yaml:",omitempty" json:"configPath"` // the location where the application config was read from (either from -c or discovered while loading)
 	Verbosity              uint                    `yaml:"verbosity,omitempty" json:"verbosity" mapstructure:"verbosity"`
-	Output                 string                  `yaml:"output" json:"output" mapstructure:"output"`                                           // -o, the Presenter hint string to use for report formatting
+	Outputs                []string                `yaml:"output" json:"output" mapstructure:"output"`                                           // -o, <presenter>=<file> the Presenter hint string to use for report formatting and the output file
 	File                   string                  `yaml:"file" json:"file" mapstructure:"file"`                                                 // --file, the file to write report output to
 	Distro                 string                  `yaml:"distro" json:"distro" mapstructure:"distro"`                                           // --distro, specify a distro to explicitly use
 	GenerateMissingCPEs    bool                    `yaml:"add-cpes-if-none" json:"add-cpes-if-none" mapstructure:"add-cpes-if-none"`             // --add-cpes-if-none, automatically generate CPEs if they are not present in import (e.g. from a 3rd party SPDX document)

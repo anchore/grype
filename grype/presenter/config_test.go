@@ -9,7 +9,7 @@ import (
 func TestValidatedConfig(t *testing.T) {
 	cases := []struct {
 		name                    string
-		outputValue             string
+		outputValue             []string
 		includeSuppressed       bool
 		outputTemplateFileValue string
 		expectedConfig          Config
@@ -17,18 +17,18 @@ func TestValidatedConfig(t *testing.T) {
 	}{
 		{
 			"valid template config",
-			"template",
+			[]string{"template"},
 			false,
 			"./template/test-fixtures/test.valid.template",
 			Config{
-				format:           "template",
+				formats:          []format{{id: templateFormat}},
 				templateFilePath: "./template/test-fixtures/test.valid.template",
 			},
 			assert.NoError,
 		},
 		{
 			"template file with non-template format",
-			"json",
+			[]string{"json"},
 			false,
 			"./some/path/to/a/custom.template",
 			Config{},
@@ -36,7 +36,7 @@ func TestValidatedConfig(t *testing.T) {
 		},
 		{
 			"unknown format",
-			"some-made-up-format",
+			[]string{"some-made-up-format"},
 			false,
 			"",
 			Config{},
@@ -45,11 +45,11 @@ func TestValidatedConfig(t *testing.T) {
 
 		{
 			"table format",
-			"table",
+			[]string{"table"},
 			true,
 			"",
 			Config{
-				format:         tableFormat,
+				formats:        []format{{id: tableFormat}},
 				showSuppressed: true,
 			},
 			assert.NoError,
@@ -58,7 +58,7 @@ func TestValidatedConfig(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			actualConfig, actualErr := ValidatedConfig(tc.outputValue, tc.outputTemplateFileValue, tc.includeSuppressed)
+			actualConfig, actualErr := ValidatedConfig(tc.outputValue, "", tc.outputTemplateFileValue, tc.includeSuppressed)
 
 			assert.Equal(t, tc.expectedConfig, actualConfig)
 			tc.assertErrExpectation(t, actualErr)

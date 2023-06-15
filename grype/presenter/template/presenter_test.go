@@ -35,7 +35,7 @@ func TestPresenter_Present(t *testing.T) {
 		DBStatus:         dbStatus,
 	}
 
-	templatePresenter := NewPresenter(pb, templateFilePath)
+	templatePresenter := NewPresenter(pb, "", templateFilePath)
 
 	var buffer bytes.Buffer
 	if err := templatePresenter.Present(&buffer); err != nil {
@@ -69,7 +69,7 @@ func TestPresenter_SprigDate_Fails(t *testing.T) {
 		DBStatus:         dbStatus,
 	}
 
-	templatePresenter := NewPresenter(pb, templateFilePath)
+	templatePresenter := NewPresenter(pb, "", templateFilePath)
 
 	var buffer bytes.Buffer
 	err = templatePresenter.Present(&buffer)

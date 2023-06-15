@@ -13,19 +13,19 @@ func TestParse(t *testing.T) {
 	}{
 		{
 			"",
-			tableFormat,
+			format{id: "table"},
 		},
 		{
 			"table",
-			tableFormat,
+			format{id: "table"},
 		},
 		{
 			"jSOn",
-			jsonFormat,
+			format{id: "json"},
 		},
 		{
 			"booboodepoopoo",
-			unknownFormat,
+			format{id: "unknown"},
 		},
 	}
 

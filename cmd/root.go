@@ -130,14 +130,14 @@ func setRootFlags(flags *pflag.FlagSet) {
 		fmt.Sprintf("selection of layers to analyze, options=%v", source.AllScopes),
 	)
 
-	flags.StringP(
-		"output", "o", "",
+	flags.StringArrayP(
+		"output", "o", nil,
 		fmt.Sprintf("report output formatter, formats=%v, deprecated formats=%v", presenter.AvailableFormats, presenter.DeprecatedFormats),
 	)
 
 	flags.StringP(
 		"file", "", "",
-		"file to write the report output to (default is STDOUT)",
+		"file to write the default report output to (default is STDOUT)",
 	)
 
 	flags.StringP(
@@ -299,7 +299,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 	go func() {
 		defer close(errs)
 
-		presenterConfig, err := presenter.ValidatedConfig(appConfig.Output, appConfig.OutputTemplateFile, appConfig.ShowSuppressed)
+		presenterConfig, err := presenter.ValidatedConfig(appConfig.Outputs, appConfig.File, appConfig.OutputTemplateFile, appConfig.ShowSuppressed)
 		if err != nil {
 			errs <- err
 			return
@@ -389,11 +389,12 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			AppConfig:        appConfig,
 			DBStatus:         status,
 		}
-
-		bus.Publish(partybus.Event{
-			Type:  event.VulnerabilityScanningFinished,
-			Value: presenter.GetPresenter(presenterConfig, pb),
-		})
+		for _, presenter := range presenter.GetPresenters(presenterConfig, pb) {
+			bus.Publish(partybus.Event{
+				Type:  event.VulnerabilityScanningFinished,
+				Value: presenter,
+			})
+		}
 	}()
 	return errs
 }

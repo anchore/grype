@@ -5,24 +5,29 @@ import (
 )
 
 const (
-	unknownFormat   format = "unknown"
-	jsonFormat      format = "json"
-	tableFormat     format = "table"
-	cycloneDXFormat format = "cyclonedx"
-	cycloneDXJSON   format = "cyclonedx-json"
-	cycloneDXXML    format = "cyclonedx-xml"
-	sarifFormat     format = "sarif"
-	templateFormat  format = "template"
+	unknownFormat   id = "unknown"
+	jsonFormat      id = "json"
+	tableFormat     id = "table"
+	cycloneDXFormat id = "cyclonedx"
+	cycloneDXJSON   id = "cyclonedx-json"
+	cycloneDXXML    id = "cyclonedx-xml"
+	sarifFormat     id = "sarif"
+	templateFormat  id = "template"
 
 	// DEPRECATED <-- TODO: remove in v1.0
-	embeddedVEXJSON format = "embedded-cyclonedx-vex-json"
-	embeddedVEXXML  format = "embedded-cyclonedx-vex-xml"
+	embeddedVEXJSON id = "embedded-cyclonedx-vex-json"
+	embeddedVEXXML  id = "embedded-cyclonedx-vex-xml"
 )
 
 // format is a dedicated type to represent a specific kind of presenter output format.
-type format string
+type id string
 
-func (f format) String() string {
+type format struct {
+	id             id
+	outputFilePath string
+}
+
+func (f id) String() string {
 	return string(f)
 }
 
@@ -30,32 +35,32 @@ func (f format) String() string {
 func parse(userInput string) format {
 	switch strings.ToLower(userInput) {
 	case "":
-		return tableFormat
+		return format{id: tableFormat}
 	case strings.ToLower(jsonFormat.String()):
-		return jsonFormat
+		return format{id: jsonFormat}
 	case strings.ToLower(tableFormat.String()):
-		return tableFormat
+		return format{id: tableFormat}
 	case strings.ToLower(sarifFormat.String()):
-		return sarifFormat
+		return format{id: sarifFormat}
 	case strings.ToLower(templateFormat.String()):
-		return templateFormat
+		return format{id: templateFormat}
 	case strings.ToLower(cycloneDXFormat.String()):
-		return cycloneDXFormat
+		return format{id: cycloneDXFormat}
 	case strings.ToLower(cycloneDXJSON.String()):
-		return cycloneDXJSON
+		return format{id: cycloneDXJSON}
 	case strings.ToLower(cycloneDXXML.String()):
-		return cycloneDXXML
+		return format{id: cycloneDXXML}
 	case strings.ToLower(embeddedVEXJSON.String()):
-		return cycloneDXJSON
+		return format{id: cycloneDXJSON}
 	case strings.ToLower(embeddedVEXXML.String()):
-		return cycloneDXFormat
+		return format{id: cycloneDXFormat}
 	default:
-		return unknownFormat
+		return format{id: unknownFormat}
 	}
 }
 
 // AvailableFormats is a list of presenter format options available to users.
-var AvailableFormats = []format{
+var AvailableFormats = []id{
 	jsonFormat,
 	tableFormat,
 	cycloneDXFormat,
@@ -65,7 +70,7 @@ var AvailableFormats = []format{
 }
 
 // DeprecatedFormats TODO: remove in v1.0
-var DeprecatedFormats = []format{
+var DeprecatedFormats = []id{
 	embeddedVEXJSON,
 	embeddedVEXXML,
 }
