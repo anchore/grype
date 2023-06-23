@@ -69,7 +69,7 @@ func init() {
 }
 
 // ApplyExplicitIgnoreRules Filters out matches meeting the criteria defined above and those within the grype database
-func ApplyExplicitIgnoreRules(provider ExclusionProvider, matches Matches) Matches {
+func ApplyExplicitIgnoreRules(provider ExclusionProvider, matches Matches) (Matches, []IgnoredMatch) {
 	var ignoreRules []IgnoreRule
 	ignoreRules = append(ignoreRules, explicitIgnoreRules...)
 
@@ -84,18 +84,5 @@ func ApplyExplicitIgnoreRules(provider ExclusionProvider, matches Matches) Match
 		ignoreRules = append(ignoreRules, r...)
 	}
 
-	matches, ignored := ApplyIgnoreRules(matches, ignoreRules)
-
-	if len(ignored) > 0 {
-		log.Debugf("Removed %d explicit vulnerability matches:", len(ignored))
-		for idx, i := range ignored {
-			branch := "├──"
-			if idx == len(ignored)-1 {
-				branch = "└──"
-			}
-			log.Debugf("  %s %s : %s", branch, i.Match.Vulnerability.ID, i.Package.PURL)
-		}
-	}
-
-	return matches
+	return ApplyIgnoreRules(matches, ignoreRules)
 }
