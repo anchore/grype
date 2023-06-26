@@ -184,8 +184,8 @@ func sourcePackageNameAndVersion(md MatchDetails) (string, string) {
 }
 
 func formatCPEExplanation(m Match) string {
-	found := m.MatchDetails[0].Found
-	if mapResult, ok := found.(map[string]interface{}); ok {
+	searchedBy := m.MatchDetails[0].SearchedBy
+	if mapResult, ok := searchedBy.(map[string]interface{}); ok {
 		if cpes, ok := mapResult["cpes"]; ok {
 			if cpeSlice, ok := cpes.([]interface{}); ok {
 				if len(cpeSlice) > 0 {
