@@ -87,11 +87,10 @@ func (e *vulnerabilityExplainer) ExplainAll() error {
 
 // NewExplainedVulnerability creates a new explained vulnerability.
 func NewExplainedVulnerability(vulnerabilityID string, doc Document) *ExplainedVulnerability {
-	var specificMatches []Match
 	var relatedMatches []Match
 	for _, m := range doc.Matches {
 		if m.Vulnerability.ID == vulnerabilityID {
-			specificMatches = append(specificMatches, m)
+			relatedMatches = append(relatedMatches, m)
 		} else {
 			for _, r := range m.RelatedVulnerabilities {
 				if r.ID == vulnerabilityID {
@@ -100,19 +99,19 @@ func NewExplainedVulnerability(vulnerabilityID string, doc Document) *ExplainedV
 			}
 		}
 	}
-	if len(specificMatches) == 0 {
+	if len(relatedMatches) == 0 {
 		return nil
 	}
-	packages := make([]MatchedPackage, len(specificMatches))
-	for i, m := range specificMatches {
+	packages := make([]MatchedPackage, len(relatedMatches))
+	for i, m := range relatedMatches {
 		packages[i] = ToMatchedPackage(m)
 	}
 	var URLs []string
-	for _, m := range specificMatches {
+	for _, m := range relatedMatches {
 		URLs = append(URLs, m.Vulnerability.VulnerabilityMetadata.URLs...)
 	}
 	var versionConstraint string
-	for _, m := range specificMatches {
+	for _, m := range relatedMatches {
 		for _, d := range m.MatchDetails {
 			if mapResult, ok := d.Found.(map[string]interface{}); ok {
 				if version, ok := mapResult["versionConstraint"]; ok {
@@ -126,13 +125,26 @@ func NewExplainedVulnerability(vulnerabilityID string, doc Document) *ExplainedV
 
 	return &ExplainedVulnerability{
 		VulnerabilityID:   vulnerabilityID,
-		Severity:          specificMatches[0].Vulnerability.Severity,
-		Namespace:         specificMatches[0].Vulnerability.Namespace,
-		Description:       specificMatches[0].Vulnerability.Description,
+		Severity:          relatedMatches[0].Vulnerability.Severity,
+		Namespace:         relatedMatches[0].Vulnerability.Namespace,
+		Description:       relatedMatches[0].Vulnerability.Description,
 		VersionConstraint: versionConstraint,
 		MatchedPackages:   packages,
-		URLs:              append([]string{specificMatches[0].Vulnerability.DataSource}, URLs...),
+		URLs:              dedupeURLs(relatedMatches[0].Vulnerability.DataSource, URLs),
 	}
+}
+
+func dedupeURLs(showFirst string, rest []string) []string {
+	var result []string
+	result = append(result, showFirst)
+	deduplicate := make(map[string]bool)
+	for _, u := range rest {
+		if _, ok := deduplicate[u]; !ok && u != showFirst {
+			result = append(result, u)
+			deduplicate[u] = true
+		}
+	}
+	return result
 }
 
 func ToMatchedPackage(m Match) MatchedPackage {
