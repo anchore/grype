@@ -147,6 +147,8 @@ func FindMatches(store interface {
 	res := match.NewMatches()
 	matcherIndex, defaultMatcher := newMatcherIndex(matchers)
 
+	var ignored []match.IgnoredMatch
+
 	var d *distro.Distro
 	if release != nil {
 		d, err = distro.NewFromRelease(*release)
@@ -177,6 +179,10 @@ func FindMatches(store interface {
 			if err != nil {
 				log.Warnf("matcher failed for pkg=%s: %+v", p, err)
 			} else {
+				// Filter out matches based on records in the database exclusion table and hard-coded rules
+				filtered, ignores := match.ApplyExplicitIgnoreRules(store, match.NewMatches(matches...))
+				ignored = append(ignored, ignores...)
+				matches := filtered.Sorted()
 				logMatches(p, matches)
 				res.Add(matches...)
 				progressMonitor.VulnerabilitiesDiscovered.Add(int64(len(matches)))
@@ -189,8 +195,7 @@ func FindMatches(store interface {
 
 	logListSummary(progressMonitor)
 
-	// Filter out matches based off of the records in the exclusion table in the database or from the old hard-coded rules
-	res = match.ApplyExplicitIgnoreRules(store, res)
+	logIgnoredMatches(ignored)
 
 	return res
 }
@@ -213,6 +218,19 @@ func logListSummary(vl *monitor) {
 			branch = "└"
 		}
 		log.Debugf("      %s── %s: %d", branch, sev.String(), vl.BySeverity[sev].Current())
+	}
+}
+
+func logIgnoredMatches(ignored []match.IgnoredMatch) {
+	if len(ignored) > 0 {
+		log.Debugf("Removed %d explicit vulnerability matches:", len(ignored))
+		for idx, i := range ignored {
+			branch := "├──"
+			if idx == len(ignored)-1 {
+				branch = "└──"
+			}
+			log.Debugf("  %s %s : %s", branch, i.Match.Vulnerability.ID, i.Package.PURL)
+		}
 	}
 }
 
