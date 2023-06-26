@@ -16,12 +16,13 @@ var templ string
 // It includes details about all matched artifacts and how they were
 // matched.
 type ExplainedVulnerability struct {
-	VulnerabilityID string
-	Severity        string
-	Namespace       string
-	Description     string
-	MatchedPackages []MatchedPackage
-	URLs            []string
+	VulnerabilityID   string
+	Severity          string
+	Namespace         string
+	Description       string
+	VersionConstraint string
+	MatchedPackages   []MatchedPackage
+	URLs              []string
 }
 
 // TODO: this is basically a slice of matches. Is it needed?
@@ -86,36 +87,51 @@ func (e *vulnerabilityExplainer) ExplainAll() error {
 
 // NewExplainedVulnerability creates a new explained vulnerability.
 func NewExplainedVulnerability(vulnerabilityID string, doc Document) *ExplainedVulnerability {
-	relevantMatches := make([]Match, 0)
+	var specificMatches []Match
+	var relatedMatches []Match
 	for _, m := range doc.Matches {
 		if m.Vulnerability.ID == vulnerabilityID {
-			relevantMatches = append(relevantMatches, m)
+			specificMatches = append(specificMatches, m)
 		} else {
 			for _, r := range m.RelatedVulnerabilities {
 				if r.ID == vulnerabilityID {
-					relevantMatches = append(relevantMatches, m)
+					relatedMatches = append(relatedMatches, m)
 				}
 			}
 		}
 	}
-	if len(relevantMatches) == 0 {
+	if len(specificMatches) == 0 {
 		return nil
 	}
-	packages := make([]MatchedPackage, len(relevantMatches))
-	for i, m := range relevantMatches {
+	packages := make([]MatchedPackage, len(specificMatches))
+	for i, m := range specificMatches {
 		packages[i] = ToMatchedPackage(m)
 	}
 	var URLs []string
-	for _, m := range relevantMatches {
+	for _, m := range specificMatches {
 		URLs = append(URLs, m.Vulnerability.VulnerabilityMetadata.URLs...)
 	}
+	var versionConstraint string
+	for _, m := range specificMatches {
+		for _, d := range m.MatchDetails {
+			if mapResult, ok := d.Found.(map[string]interface{}); ok {
+				if version, ok := mapResult["versionConstraint"]; ok {
+					if stringVersion, ok := version.(string); ok {
+						versionConstraint = stringVersion
+					}
+				}
+			}
+		}
+	}
+
 	return &ExplainedVulnerability{
-		VulnerabilityID: vulnerabilityID,
-		Severity:        relevantMatches[0].Vulnerability.Severity,
-		Namespace:       relevantMatches[0].Vulnerability.Namespace,
-		Description:     relevantMatches[0].Vulnerability.Description,
-		MatchedPackages: packages,
-		URLs:            append([]string{relevantMatches[0].Vulnerability.DataSource}, URLs...),
+		VulnerabilityID:   vulnerabilityID,
+		Severity:          specificMatches[0].Vulnerability.Severity,
+		Namespace:         specificMatches[0].Vulnerability.Namespace,
+		Description:       specificMatches[0].Vulnerability.Description,
+		VersionConstraint: versionConstraint,
+		MatchedPackages:   packages,
+		URLs:              append([]string{specificMatches[0].Vulnerability.DataSource}, URLs...),
 	}
 }
 
@@ -126,7 +142,8 @@ func ToMatchedPackage(m Match) MatchedPackage {
 		case string(match.CPEMatch):
 			explanation = formatCPEExplanation(m)
 		case string(match.ExactIndirectMatch):
-			explanation = fmt.Sprintf("This CVE is reported against %s, the %s of this %s package.", m.Artifact.Upstreams[0].Name, nameForUpstream(string(m.Artifact.Type)), m.Artifact.Type)
+			sourceName, sourceVersion := sourcePackageNameAndVersion(m.MatchDetails[0])
+			explanation = fmt.Sprintf("Indirect match on source package: This CVE is reported against %s (version %s), the %s of this %s package.", sourceName, sourceVersion, nameForUpstream(string(m.Artifact.Type)), m.Artifact.Type)
 		}
 	}
 	return MatchedPackage{
@@ -134,6 +151,24 @@ func ToMatchedPackage(m Match) MatchedPackage {
 		Details:     m.MatchDetails,
 		Explanation: explanation,
 	}
+}
+
+func sourcePackageNameAndVersion(md MatchDetails) (string, string) {
+	var name string
+	var version string
+	if mapResult, ok := md.SearchedBy.(map[string]interface{}); ok {
+		if sourcePackage, ok := mapResult["package"]; ok {
+			if sourceMap, ok := sourcePackage.(map[string]interface{}); ok {
+				if maybeName, ok := sourceMap["name"]; ok {
+					name, _ = maybeName.(string)
+				}
+				if maybeVersion, ok := sourceMap["version"]; ok {
+					version, _ = maybeVersion.(string)
+				}
+			}
+		}
+	}
+	return name, version
 }
 
 func formatCPEExplanation(m Match) string {
