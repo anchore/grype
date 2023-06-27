@@ -21,19 +21,35 @@ type ExplainedVulnerability struct {
 	Namespace         string
 	Description       string
 	VersionConstraint string
-	MatchedPackages   []MatchedPackage
-	URLs              []string
+	// MatchedPackages   map[string][]MatchedPackage // map of PURL to MatchedPackage
+	MatchedPackages []*ExplainedPackageMatch
+	URLs            []string
 }
 
 // TODO: this is basically a slice of matches. Is it needed?
 // Maybe I need a different way to orient the slice of matches?
 // having nice map/reduce functions is the thing that
 // trips me up most writing Go code.
+// Actually what we will do is build a slice of artifacts with
+// the same PURL and then group them by PURL.
 
 type MatchedPackage struct {
 	Package     Package
 	Details     []MatchDetails
 	Explanation string
+}
+
+type ExplainedPackageMatch struct {
+	PURL        string
+	Name        string
+	Version     string
+	Explanation string
+	Locations   []LocatedArtifact
+}
+
+type LocatedArtifact struct {
+	Location   string
+	ArtifactId string
 }
 
 type VulnerabilityExplainer interface {
@@ -57,6 +73,8 @@ func NewVulnerabilityExplainer(doc Document, w io.Writer) VulnerabilityExplainer
 }
 
 func (e *vulnerabilityExplainer) ExplainByID(IDs []string) error {
+	// TODO: consider grouping all vulnerabilities by CVE ID
+	// and then doing this stuff
 	toExplain := make(map[string]ExplainedVulnerability)
 	for _, id := range IDs {
 		explained := NewExplainedVulnerability(id, e.doc)
@@ -102,9 +120,22 @@ func NewExplainedVulnerability(vulnerabilityID string, doc Document) *ExplainedV
 	if len(relatedMatches) == 0 {
 		return nil
 	}
-	packages := make([]MatchedPackage, len(relatedMatches))
-	for i, m := range relatedMatches {
-		packages[i] = ToMatchedPackage(m)
+	packages := make(map[string]*ExplainedPackageMatch)
+	for _, m := range relatedMatches {
+		if m.Artifact.PURL == "" {
+			continue
+		}
+		if explained, ok := packages[m.Artifact.PURL]; ok {
+			for _, location := range m.Artifact.Locations {
+				explained.Locations = append(explained.Locations, LocatedArtifact{
+					Location:   location.RealPath,
+					ArtifactId: m.Artifact.ID,
+				})
+			}
+		} else {
+			explained := startExplainedPackageMatch(m)
+			packages[m.Artifact.PURL] = &explained
+		}
 	}
 	var URLs []string
 	for _, m := range relatedMatches {
@@ -122,6 +153,10 @@ func NewExplainedVulnerability(vulnerabilityID string, doc Document) *ExplainedV
 			}
 		}
 	}
+	var matchedPackages []*ExplainedPackageMatch
+	for _, explained := range packages {
+		matchedPackages = append(matchedPackages, explained)
+	}
 
 	return &ExplainedVulnerability{
 		VulnerabilityID:   vulnerabilityID,
@@ -129,8 +164,35 @@ func NewExplainedVulnerability(vulnerabilityID string, doc Document) *ExplainedV
 		Namespace:         relatedMatches[0].Vulnerability.Namespace,
 		Description:       relatedMatches[0].Vulnerability.Description,
 		VersionConstraint: versionConstraint,
-		MatchedPackages:   packages,
+		MatchedPackages:   matchedPackages,
 		URLs:              dedupeURLs(relatedMatches[0].Vulnerability.DataSource, URLs),
+	}
+}
+
+func startExplainedPackageMatch(m Match) ExplainedPackageMatch {
+	explanation := ""
+	if len(m.MatchDetails) > 0 {
+		switch m.MatchDetails[0].Type {
+		case string(match.CPEMatch):
+			explanation = formatCPEExplanation(m)
+		case string(match.ExactIndirectMatch):
+			sourceName, sourceVersion := sourcePackageNameAndVersion(m.MatchDetails[0])
+			explanation = fmt.Sprintf("Indirect match on source package: This CVE is reported against %s (version %s), the %s of this %s package.", sourceName, sourceVersion, nameForUpstream(string(m.Artifact.Type)), m.Artifact.Type)
+		}
+	}
+	var locatedArtifacts []LocatedArtifact
+	for _, location := range m.Artifact.Locations {
+		locatedArtifacts = append(locatedArtifacts, LocatedArtifact{
+			Location:   location.RealPath,
+			ArtifactId: m.Artifact.ID,
+		})
+	}
+	return ExplainedPackageMatch{
+		PURL:        m.Artifact.PURL,
+		Name:        m.Artifact.Name,
+		Version:     m.Artifact.Version,
+		Explanation: explanation,
+		Locations:   locatedArtifacts,
 	}
 }
 
