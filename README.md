@@ -271,7 +271,7 @@ Grype lets you define custom output formats, using [Go templates](https://golang
 
 **Please note:** Templates can access information about the system they are running on, such as environment variables. You should never run untrusted templates.
 
-Here's what the `csv.tmpl` file might look like:
+There are several example templates in the [templates/](https://github.com/anchore/grype/tree/main/templates) directory. Here's what the `(csv.tmpl)[https://github.com/anchore/grype/blob/main/templates/csv.tmpl]` file looks like:
 
 ```gotemplate
 "Package","Version Installed","Vulnerability ID","Severity"
@@ -280,7 +280,7 @@ Here's what the `csv.tmpl` file might look like:
 {{- end}}
 ```
 
-Which would produce output like:
+Which would produce output formatted with comma-separated values:
 
 ```text
 "Package","Version Installed","Vulnerability ID","Severity"
