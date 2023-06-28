@@ -96,21 +96,41 @@ func (e *vulnerabilityExplainer) ExplainByID(IDs []string) error {
 	return nil
 }
 
-func (e *vulnerabilityExplainer) ExplainBySeverity(severity string) error {
-	// TODO: implement
-	return nil
+func (e *vulnerabilityExplainer) ExplainBySeverity(minSeverity string) error {
+	uniqueSevereIDs := make(map[string]bool)
+	severity := vulnerability.ParseSeverity(minSeverity)
+	for _, m := range e.doc.Matches {
+		if vulnerability.ParseSeverity(metadata.Severity) >= severity {
+			uniqueSevereIDs[m.Vulnerability.ID] = true
+		}
+	}
+	var IDs []string
+	for id := range uniqueSevereIDs {
+		IDs = append(IDs, id)
+	}
+	return e.ExplainByID(IDs)
 }
 
 func (e *vulnerabilityExplainer) ExplainAll() error {
-	return nil
+	uniqueIDs := make(map[string]bool)
+	for _, m := range e.doc.Matches {
+		uniqueIDs[m.Vulnerability.ID] = true
+	}
+	var IDs []string
+	for id := range uniqueIDs {
+		IDs = append(IDs, id)
+	}
+	return e.ExplainByID(IDs)
 }
 
 // NewExplainedVulnerability creates a new explained vulnerability.
 func NewExplainedVulnerability(vulnerabilityID string, doc Document) *ExplainedVulnerability {
+	var directMatches []Match
 	var relatedMatches []Match
 	for _, m := range doc.Matches {
+		// TODO: make the one that matches on the ID always be first?
 		if m.Vulnerability.ID == vulnerabilityID {
-			relatedMatches = append(relatedMatches, m)
+			directMatches = append(directMatches, m)
 		} else {
 			for _, r := range m.RelatedVulnerabilities {
 				if r.ID == vulnerabilityID {
@@ -119,11 +139,12 @@ func NewExplainedVulnerability(vulnerabilityID string, doc Document) *ExplainedV
 			}
 		}
 	}
-	if len(relatedMatches) == 0 {
+	if len(directMatches) == 0 {
 		return nil
 	}
 	packages := make(map[string]*ExplainedPackageMatch)
-	for _, m := range relatedMatches {
+	directAndRelatedMatches := append(directMatches, relatedMatches...)
+	for _, m := directAndRelatedMatches {
 		if m.Artifact.PURL == "" {
 			continue
 		}
@@ -145,11 +166,11 @@ func NewExplainedVulnerability(vulnerabilityID string, doc Document) *ExplainedV
 		}
 	}
 	var URLs []string
-	for _, m := range relatedMatches {
+	for _, m := range directAndRelatedMatches {
 		URLs = append(URLs, m.Vulnerability.VulnerabilityMetadata.URLs...)
 	}
 	var versionConstraint string
-	for _, m := range relatedMatches {
+	for _, m := range directMatches {
 		// TODO: which version constraint should we use?
 		// in other words, which match should win?
 		if len(m.Vulnerability.Fix.Versions) == 0 {
@@ -168,12 +189,12 @@ func NewExplainedVulnerability(vulnerabilityID string, doc Document) *ExplainedV
 		VulnerabilityID: vulnerabilityID,
 		// TODO: which severity should we use?
 		// in other words, which match should win?
-		Severity:          relatedMatches[0].Vulnerability.Severity,
-		Namespace:         relatedMatches[0].Vulnerability.Namespace,
-		Description:       strings.TrimSpace(relatedMatches[0].Vulnerability.Description),
+		Severity:          directMatches[0].Vulnerability.Severity,
+		Namespace:         directMatches[0].Vulnerability.Namespace,
+		Description:       strings.TrimSpace(directMatches[0].Vulnerability.Description),
 		VersionConstraint: versionConstraint,
 		MatchedPackages:   matchedPackages,
-		URLs:              dedupeURLs(relatedMatches[0].Vulnerability.DataSource, URLs),
+		URLs:              dedupeURLs(directMatches[0].Vulnerability.DataSource, URLs),
 	}
 }
 

@@ -3,9 +3,9 @@
 
 URLs:  {{ range .URLs }}
         - {{ . }}{{ end }}{{ if .VersionConstraint }}
-Versions Affected: {{ .VersionConstraint }}{{ end }}
-    matched packages: {{ range .MatchedPackages }}
-        package: {{ .Name }}, version: {{ .Version }}
+Versions affected: {{ .VersionConstraint }}{{ end }}
+    Matched packages: {{ range .MatchedPackages }}
+        Package: {{ .Name }}, version: {{ .Version }}
         PURL: {{ .PURL }}{{if .Explanation }}
         {{ .Explanation }}{{end}}
         Evidenced by: {{ range .Locations }}
