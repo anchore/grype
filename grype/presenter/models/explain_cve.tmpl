@@ -1,11 +1,12 @@
 {{ .VulnerabilityID }} ({{ .Severity }}) for namespace "{{ .Namespace }}":
-{{ .Description }}{{ if .VersionConstraint }}
-Version Constraint: {{ .VersionConstraint }}{{ end }}
+{{ .Description }}
+
+URLs:  {{ range .URLs }}
+        - {{ . }}{{ end }}{{ if .VersionConstraint }}
+Versions Affected: {{ .VersionConstraint }}{{ end }}
     matched packages: {{ range .MatchedPackages }}
         package: {{ .Name }}, version: {{ .Version }}
-        PURL: {{ .PURL }} 
-        {{if .Explanation }}{{ .Explanation }}{{end}}
+        PURL: {{ .PURL }}{{if .Explanation }}
+        {{ .Explanation }}{{end}}
         Evidenced by: {{ range .Locations }}
-            - (artifact ID: {{.ArtifactId}}): {{ .Location }}{{ end }}{{ end }}
-    URLs:  {{ range .URLs }}
-        - {{ . }}{{ end }}
+            - (artifact ID: {{.ArtifactId}}): {{ .Location }}{{ if .ViaVulnID }}(via {{ .ViaVulnID }}){{ end }}{{ end }}{{ end }}

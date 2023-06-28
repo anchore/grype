@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 	"io"
+	"strings"
 	"text/template"
 
 	"github.com/anchore/grype/grype/match"
@@ -50,6 +51,7 @@ type ExplainedPackageMatch struct {
 type LocatedArtifact struct {
 	Location   string
 	ArtifactId string
+	ViaVulnID  string
 }
 
 type VulnerabilityExplainer interface {
@@ -127,9 +129,14 @@ func NewExplainedVulnerability(vulnerabilityID string, doc Document) *ExplainedV
 		}
 		if explained, ok := packages[m.Artifact.PURL]; ok {
 			for _, location := range m.Artifact.Locations {
+				via := ""
+				if m.Vulnerability.ID != vulnerabilityID {
+					via = m.Vulnerability.ID
+				}
 				explained.Locations = append(explained.Locations, LocatedArtifact{
 					Location:   location.RealPath,
 					ArtifactId: m.Artifact.ID,
+					ViaVulnID:  via,
 				})
 			}
 		} else {
@@ -143,14 +150,13 @@ func NewExplainedVulnerability(vulnerabilityID string, doc Document) *ExplainedV
 	}
 	var versionConstraint string
 	for _, m := range relatedMatches {
-		for _, d := range m.MatchDetails {
-			if mapResult, ok := d.Found.(map[string]interface{}); ok {
-				if version, ok := mapResult["versionConstraint"]; ok {
-					if stringVersion, ok := version.(string); ok {
-						versionConstraint = stringVersion
-					}
-				}
-			}
+		// TODO: which version constraint should we use?
+		// in other words, which match should win?
+		if len(m.Vulnerability.Fix.Versions) == 0 {
+			versionConstraint = "all versions"
+		}
+		if len(m.Vulnerability.Fix.Versions) == 1 {
+			versionConstraint = fmt.Sprintf("< %s", m.Vulnerability.Fix.Versions[0])
 		}
 	}
 	var matchedPackages []*ExplainedPackageMatch
@@ -159,10 +165,12 @@ func NewExplainedVulnerability(vulnerabilityID string, doc Document) *ExplainedV
 	}
 
 	return &ExplainedVulnerability{
-		VulnerabilityID:   vulnerabilityID,
+		VulnerabilityID: vulnerabilityID,
+		// TODO: which severity should we use?
+		// in other words, which match should win?
 		Severity:          relatedMatches[0].Vulnerability.Severity,
 		Namespace:         relatedMatches[0].Vulnerability.Namespace,
-		Description:       relatedMatches[0].Vulnerability.Description,
+		Description:       strings.TrimSpace(relatedMatches[0].Vulnerability.Description),
 		VersionConstraint: versionConstraint,
 		MatchedPackages:   matchedPackages,
 		URLs:              dedupeURLs(relatedMatches[0].Vulnerability.DataSource, URLs),
@@ -177,7 +185,7 @@ func startExplainedPackageMatch(m Match) ExplainedPackageMatch {
 			explanation = formatCPEExplanation(m)
 		case string(match.ExactIndirectMatch):
 			sourceName, sourceVersion := sourcePackageNameAndVersion(m.MatchDetails[0])
-			explanation = fmt.Sprintf("Indirect match on source package: This CVE is reported against %s (version %s), the %s of this %s package.", sourceName, sourceVersion, nameForUpstream(string(m.Artifact.Type)), m.Artifact.Type)
+			explanation = fmt.Sprintf("Note: This CVE is reported against %s (version %s), the %s of this %s package.", sourceName, sourceVersion, nameForUpstream(string(m.Artifact.Type)), m.Artifact.Type)
 		}
 	}
 	var locatedArtifacts []LocatedArtifact
