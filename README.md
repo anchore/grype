@@ -267,20 +267,9 @@ Grype lets you define custom output formats, using [Go templates](https://golang
 
 - Grype's template processing uses the same data models as the `json` output format — so if you're wondering what data is available as you author a template, you can use the output from `grype <image> -o json` as a reference.
 
-**Example:** You could make Grype output data in CSV format by writing a Go template that renders CSV data and then running `grype <image> -o template -t ~/path/to/csv.tmpl`.
-
 **Please note:** Templates can access information about the system they are running on, such as environment variables. You should never run untrusted templates.
 
-Here's what the `csv.tmpl` file might look like:
-
-```gotemplate
-"Package","Version Installed","Vulnerability ID","Severity"
-{{- range .Matches}}
-"{{.Artifact.Name}}","{{.Artifact.Version}}","{{.Vulnerability.ID}}","{{.Vulnerability.Severity}}"
-{{- end}}
-```
-
-Which would produce output like:
+There are several example templates in the [templates](https://github.com/anchore/grype/tree/main/templates) directory in the Grype source which can serve a starting point for a custom output format. For example, [csv.tmpl](https://github.com/anchore/grype/blob/main/templates/csv.tmpl) produces a vulnerability report in CSV (comma separated value) format:
 
 ```text
 "Package","Version Installed","Vulnerability ID","Severity"
@@ -289,6 +278,8 @@ Which would produce output like:
 "libc-bin","2.31-0ubuntu9","CVE-2020-6096","Low"
 ...
 ```
+
+You can also find the template for the default "table" output format in the same place.
 
 Grype also includes a vast array of utility templating functions from [sprig](http://masterminds.github.io/sprig/) apart from the default golang [text/template](https://pkg.go.dev/text/template#hdr-Functions) to allow users to customize the output from Grype.
 
