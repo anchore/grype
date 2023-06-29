@@ -47,7 +47,7 @@ require (
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
 	golang.org/x/term v0.9.0
 	gopkg.in/yaml.v2 v2.4.0
-	gorm.io/gorm v1.23.10
+	gorm.io/gorm v1.25.2
 )
 
 require (
