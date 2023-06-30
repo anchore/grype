@@ -1,0 +1,19 @@
+{{ .PrimaryVulnerability.ID }} ({{ .PrimaryVulnerability.Severity }}
+
+{{ .PrimaryVulnerability.Description }}
+{{ if .RelatedVulnerabilities }}Related vulnerabilities:
+{{ range .RelatedVulnerabilities }}
+    - {{.Namespace}}: {{ .ID }} {{ .Severity }}{{end}}{{end}}
+    
+URLs:  {{ range .URLs }}
+        - {{ . }}{{ end }}
+
+# can be from one or more matches...
+
+Matched packages: {{ range .MatchedPackages }}
+    Package: {{ .Name }}, version: {{ .Version }}
+    Matched on <Namespace>:<ID> by version criteria <matchDetails.Found.Version>
+    PURL: {{ .PURL }}{{if .Explanation }}
+    {{ .Explanation }}{{end}}
+    Evidenced by: {{ range .Locations }}
+        - (artifact ID: {{.ArtifactId}}): {{ .Location }}{{ if .ViaVulnID }}(via {{ .ViaVulnID }}){{ end }}{{ end }}{{ end }}
