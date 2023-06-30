@@ -8,6 +8,7 @@ import (
 	"text/template"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/vulnerability"
 )
 
 //go:embed explain_cve.tmpl
@@ -47,7 +48,6 @@ type ExplainedPackageMatch struct {
 	Explanation string
 	Locations   []LocatedArtifact
 }
-
 type LocatedArtifact struct {
 	Location   string
 	ArtifactId string
@@ -100,7 +100,7 @@ func (e *vulnerabilityExplainer) ExplainBySeverity(minSeverity string) error {
 	uniqueSevereIDs := make(map[string]bool)
 	severity := vulnerability.ParseSeverity(minSeverity)
 	for _, m := range e.doc.Matches {
-		if vulnerability.ParseSeverity(metadata.Severity) >= severity {
+		if vulnerability.ParseSeverity(m.Vulnerability.Severity) >= severity {
 			uniqueSevereIDs[m.Vulnerability.ID] = true
 		}
 	}
@@ -144,7 +144,7 @@ func NewExplainedVulnerability(vulnerabilityID string, doc Document) *ExplainedV
 	}
 	packages := make(map[string]*ExplainedPackageMatch)
 	directAndRelatedMatches := append(directMatches, relatedMatches...)
-	for _, m := directAndRelatedMatches {
+	for _, m := range directAndRelatedMatches {
 		if m.Artifact.PURL == "" {
 			continue
 		}
