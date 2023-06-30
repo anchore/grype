@@ -280,6 +280,8 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 		key := fmt.Sprintf("%s:%s", m.Vulnerability.Namespace, m.Vulnerability.ID)
 		dedupeRelatedVulnerabilities[key] = m.Vulnerability
 	}
+	// delete the primary vulnerability from the related vulnerabilities
+	delete(dedupeRelatedVulnerabilities, fmt.Sprintf("%s:%s", b.PrimaryMatch.Vulnerability.Namespace, b.PrimaryMatch.Vulnerability.ID))
 
 	for k := range dedupeRelatedVulnerabilities {
 		sortDedupedRelatedVulnerabilities = append(sortDedupedRelatedVulnerabilities, k)

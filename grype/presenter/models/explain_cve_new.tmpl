@@ -1,9 +1,9 @@
-{{ .PrimaryVulnerability.ID }} ({{ .PrimaryVulnerability.Severity }})
+{{ .PrimaryVulnerability.ID }} from {{ .PrimaryVulnerability.Namespace }} ({{ .PrimaryVulnerability.Severity }})
 {{ trim .PrimaryVulnerability.Description }}{{ if .RelatedVulnerabilities }}
 Related vulnerabilities:{{ range .RelatedVulnerabilities }}
     - {{.Namespace}} {{ .ID }} {{ .Severity }}{{end}}{{end}}
 URLs:  {{ range .URLs }}
-        - {{ . }}{{ end }}
+    - {{ . }}{{ end }}
 Matched packages: {{ range .MatchedPackages }}
     Package: {{ .Name }}, version: {{ .Version }}
     PURL: {{ .PURL }}{{ if .CPEExplanation }}
