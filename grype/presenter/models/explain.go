@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 	"text/template"
 
 	"github.com/anchore/grype/grype/match"
@@ -36,17 +37,18 @@ type ExplainViewModelBuilder struct {
 type ExplainedFindings map[string]ExplainViewModel
 
 type ExplainedPackage struct {
-	PURL               string
-	Name               string
-	Version            string // TODO: is there only going to be one of these?
-	MatchedOnID        string
-	MatchedOnNamespace string
-	Locations          []ExplainedEvidence
+	PURL                string
+	Name                string
+	Version             string // TODO: is there only going to be one of these?
+	MatchedOnID         string
+	MatchedOnNamespace  string
+	IndirectExplanation string
+	CPEExplanation      string
+	Locations           []ExplainedEvidence
 }
 
 type ExplainedEvidence struct {
 	Location     string
-	Explanation  string
 	ArtifactId   string
 	ViaVulnID    string
 	ViaNamespace string
@@ -64,13 +66,17 @@ func NewBetterVulnerabilityExplainer(w io.Writer, doc *Document) VulnerabilityEx
 	}
 }
 
+var funcs = template.FuncMap{
+	"trim": strings.TrimSpace,
+}
+
 func (e *betterVulnerabilityExplainer) ExplainByID(IDs []string) error {
 	// TODO: requested ID is always the primary match
 	findings, err := ExplainDoc(e.doc, IDs)
 	if err != nil {
 		return err
 	}
-	t := template.Must(template.New("explanation").Parse(explainTemplate))
+	t := template.Must(template.New("explanation").Funcs(funcs).Parse(explainTemplate))
 	for _, id := range IDs {
 		finding, ok := findings[id]
 		if !ok {
@@ -92,7 +98,7 @@ func (e *betterVulnerabilityExplainer) ExplainAll() error {
 	if err != nil {
 		return err
 	}
-	t := template.Must(template.New("explanation").Parse(explainTemplate))
+	t := template.Must(template.New("explanation").Funcs(funcs).Parse(explainTemplate))
 
 	return t.Execute(e.w, findings)
 }
@@ -215,27 +221,41 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 		}
 		// TODO: how can match details explain locations?
 		// Like, I have N matchDetails, and N locations, but I don't know which matchDetail explains which location
-		var newExplanations []string
-		for i := range m.MatchDetails {
+		var indirectExplanation string
+		var cpeExplanation string
+		for i, md := range m.MatchDetails {
 			explanation := explainMatchDetail(m, i)
 			if explanation != "" {
-				newExplanations = append(newExplanations, explanation)
+				if md.Type == string(match.CPEMatch) {
+					cpeExplanation = explanation
+				}
+				if md.Type == string(match.ExactIndirectMatch) {
+					indirectExplanation = explanation
+				}
 			}
 		}
 		e, ok := pURLsToMatchDetails[key]
 		if !ok {
 			e = &ExplainedPackage{
-				PURL:               m.Artifact.PURL,
-				Name:               m.Artifact.Name,
-				Version:            m.Artifact.Version,
-				MatchedOnID:        m.Vulnerability.ID,
-				MatchedOnNamespace: m.Vulnerability.Namespace,
-				Locations:          newLocations,
+				PURL:                m.Artifact.PURL,
+				Name:                m.Artifact.Name,
+				Version:             m.Artifact.Version,
+				MatchedOnID:         m.Vulnerability.ID,
+				MatchedOnNamespace:  m.Vulnerability.Namespace,
+				IndirectExplanation: indirectExplanation,
+				CPEExplanation:      cpeExplanation,
+				Locations:           newLocations,
 			}
 			pURLsToMatchDetails[key] = e
 		} else {
 			// TODO: what if MatchedOnID and MatchedOnNamespace are different?
 			e.Locations = append(e.Locations, newLocations...)
+			if e.CPEExplanation == "" {
+				e.CPEExplanation = cpeExplanation
+			}
+			if e.IndirectExplanation == "" {
+				e.IndirectExplanation = indirectExplanation
+			}
 			// e.Explanations = append(e.Explanations, newExplanations...)
 			// if e.MatchedOnID != m.Vulnerability.ID || e.MatchedOnNamespace != m.Vulnerability.Namespace {
 			// 	// TODO: do something smart.

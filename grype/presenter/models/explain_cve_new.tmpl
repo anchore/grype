@@ -1,13 +1,13 @@
 {{ .PrimaryVulnerability.ID }} ({{ .PrimaryVulnerability.Severity }})
-{{ .PrimaryVulnerability.Description }}
-{{ if .RelatedVulnerabilities }}Related vulnerabilities:
-{{ range .RelatedVulnerabilities }}
+{{ trim .PrimaryVulnerability.Description }}{{ if .RelatedVulnerabilities }}
+Related vulnerabilities:{{ range .RelatedVulnerabilities }}
     - {{.Namespace}} {{ .ID }} {{ .Severity }}{{end}}{{end}}
 URLs:  {{ range .URLs }}
         - {{ . }}{{ end }}
 Matched packages: {{ range .MatchedPackages }}
     Package: {{ .Name }}, version: {{ .Version }}
-    PURL: {{ .PURL }}
+    PURL: {{ .PURL }}{{ if .CPEExplanation }}
+    {{ .CPEExplanation }}{{ end }}{{ if .IndirectExplanation }}
+    {{ .IndirectExplanation }}{{ end }}
     Evidenced by: {{ range .Locations }}:
-        - {{ .ViaNamespace }}:{{ .ViaVulnID }} found {{ .ArtifactId }} at {{ .Location }}{{ if .Explanation }}
-          {{ .Explanation }}{{ end }}{{ end }}{{ end }}
+        - {{ .ViaNamespace }}:{{ .ViaVulnID }} evidence at {{ .Location }} (artifact ID: {{.ArtifactId}}){{ end }}{{ end }}
