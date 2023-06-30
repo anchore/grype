@@ -23,15 +23,16 @@ var explainTemplate string
 // render it either as JSON or as the template.
 
 type ExplainViewModel struct {
-	PrimaryVulnerability   Vulnerability
-	RelatedVulnerabilities []Vulnerability
+	PrimaryVulnerability   VulnerabilityMetadata
+	RelatedVulnerabilities []VulnerabilityMetadata
 	MatchedPackages        []*ExplainedPackage
 	URLs                   []string
 }
 
 type ExplainViewModelBuilder struct {
-	PrimaryMatch   Match
-	RelatedMatches []Match
+	PrimaryVulnerability Vulnerability // this is the vulnerability we're trying to explain
+	PrimaryMatch         Match
+	RelatedMatches       []Match
 }
 
 type ExplainedFindings map[string]ExplainViewModel
@@ -139,9 +140,8 @@ func NewExplainedVulnerabilityBuilder() *ExplainViewModelBuilder {
 // WithMatch adds a match to the builder
 // accepting enough information to determine whether the match is a primary match or a related match
 func (b *ExplainViewModelBuilder) WithMatch(m Match, userRequestedIDs []string, graphIsByCVE bool) {
-	// TODO: check if primary match
-	// First match is always primary
-	// Next match is "more primary" if it has the nvd:cpe namespace and no related vulnerabilities
+	// TODO: check if it's a primary vulnerability
+	// (the below checks if it's a primary _match_, which is wrong)
 	if b.isPrimaryAdd(m, userRequestedIDs, graphIsByCVE) {
 		// Demote the current primary match to related match
 		// if it exists
@@ -155,6 +155,7 @@ func (b *ExplainViewModelBuilder) WithMatch(m Match, userRequestedIDs []string, 
 }
 
 func (b *ExplainViewModelBuilder) isPrimaryAdd(candidate Match, userRequestedIDs []string, graphIsByCVE bool) bool {
+	// TODO: "primary" is a property of a vulnerability, not a match
 	// if there's not currently any match, make this one primary since we don't know any better
 	if b.PrimaryMatch.Vulnerability.ID == "" {
 		return true
@@ -214,7 +215,7 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 		for _, l := range m.Artifact.Locations {
 			newLocations = append(newLocations, ExplainedEvidence{
 				Location:     l.RealPath,
-				ArtifactId:   m.Artifact.ID,
+				ArtifactId:   m.Artifact.ID, // TODO: this is sometimes blank. Why?
 				ViaVulnID:    m.Vulnerability.ID,
 				ViaNamespace: m.Vulnerability.Namespace,
 			})
@@ -273,16 +274,31 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 		explainedPackages = append(explainedPackages, pURLsToMatchDetails[k])
 	}
 
-	var relatedVulnerabilities []Vulnerability
-	var dedupeRelatedVulnerabilities = make(map[string]Vulnerability)
+	// TODO: this isn't right at all.
+	// We need to be able to add related vulnerabilities
+	var relatedVulnerabilities []VulnerabilityMetadata
+	var dedupeRelatedVulnerabilities = make(map[string]VulnerabilityMetadata)
 	var sortDedupedRelatedVulnerabilities []string
-	for _, m := range b.RelatedMatches {
+	for _, m := range append(b.RelatedMatches, b.PrimaryMatch) {
 		key := fmt.Sprintf("%s:%s", m.Vulnerability.Namespace, m.Vulnerability.ID)
-		dedupeRelatedVulnerabilities[key] = m.Vulnerability
+		dedupeRelatedVulnerabilities[key] = m.Vulnerability.VulnerabilityMetadata
+		for _, r := range m.RelatedVulnerabilities {
+			key := fmt.Sprintf("%s:%s", r.Namespace, r.ID)
+			dedupeRelatedVulnerabilities[key] = r
+		}
 	}
-	// delete the primary vulnerability from the related vulnerabilities
-	delete(dedupeRelatedVulnerabilities, fmt.Sprintf("%s:%s", b.PrimaryMatch.Vulnerability.Namespace, b.PrimaryMatch.Vulnerability.ID))
+	var primaryVulnerability VulnerabilityMetadata
+	for _, r := range dedupeRelatedVulnerabilities {
+		if r.ID == b.PrimaryMatch.Vulnerability.ID && r.Namespace == "nvd:cpe" {
+			primaryVulnerability = r
+		}
+	}
+	if primaryVulnerability.ID == "" {
+		primaryVulnerability = b.PrimaryMatch.Vulnerability.VulnerabilityMetadata
+	}
 
+	// delete the primary vulnerability from the related vulnerabilities
+	delete(dedupeRelatedVulnerabilities, fmt.Sprintf("%s:%s", primaryVulnerability.Namespace, primaryVulnerability.ID))
 	for k := range dedupeRelatedVulnerabilities {
 		sortDedupedRelatedVulnerabilities = append(sortDedupedRelatedVulnerabilities, k)
 	}
@@ -291,13 +307,8 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 		relatedVulnerabilities = append(relatedVulnerabilities, dedupeRelatedVulnerabilities[k])
 	}
 
-	// var explainedPackages []*ExplainedPackage
-	// for k, v := range pURLsToMatchDetails {
-
-	// }
-
 	return ExplainViewModel{
-		PrimaryVulnerability:   b.PrimaryMatch.Vulnerability,
+		PrimaryVulnerability:   primaryVulnerability,
 		RelatedVulnerabilities: relatedVulnerabilities,
 		MatchedPackages:        explainedPackages,
 		URLs:                   dedupeURLs(primaryURL, URLs),
