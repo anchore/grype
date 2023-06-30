@@ -201,10 +201,18 @@ func (b *ExplainViewModelBuilder) WithRelatedMatch(m Match) *ExplainViewModelBui
 }
 
 func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
-	primaryURL := b.PrimaryMatch.Vulnerability.DataSource
 	URLs := b.PrimaryMatch.Vulnerability.URLs
+	URLs = append(URLs, b.PrimaryMatch.Vulnerability.DataSource)
+	for _, v := range b.PrimaryMatch.RelatedVulnerabilities {
+		URLs = append(URLs, v.URLs...)
+		URLs = append(URLs, v.DataSource)
+	}
 	for _, m := range b.RelatedMatches {
 		URLs = append(URLs, m.Vulnerability.URLs...)
+		for _, v := range m.RelatedVulnerabilities {
+			URLs = append(URLs, v.URLs...)
+			URLs = append(URLs, v.DataSource)
+		}
 	}
 
 	pURLsToMatchDetails := make(map[string]*ExplainedPackage)
@@ -296,6 +304,7 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 	if primaryVulnerability.ID == "" {
 		primaryVulnerability = b.PrimaryMatch.Vulnerability.VulnerabilityMetadata
 	}
+	primaryURL := primaryVulnerability.DataSource
 
 	// delete the primary vulnerability from the related vulnerabilities
 	delete(dedupeRelatedVulnerabilities, fmt.Sprintf("%s:%s", primaryVulnerability.Namespace, primaryVulnerability.ID))
