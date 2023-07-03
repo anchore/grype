@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/go-testutils"
@@ -31,7 +32,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 		MetadataProvider: metadataProvider,
 	}
 
-	pres := NewPresenter(pb, "")
+	pres := NewPresenter(afero.NewMemMapFs(), pb, "")
 
 	// run presenter
 	if err := pres.Present(&buffer); err != nil {
@@ -64,7 +65,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 		MetadataProvider: metadataProvider,
 	}
 
-	pres := NewPresenter(pb, "")
+	pres := NewPresenter(afero.NewMemMapFs(), pb, "")
 
 	// run presenter
 	if err := pres.Present(&buffer); err != nil {
@@ -107,7 +108,7 @@ func TestEmptyJsonPresenter(t *testing.T) {
 		MetadataProvider: nil,
 	}
 
-	pres := NewPresenter(pb, "")
+	pres := NewPresenter(afero.NewMemMapFs(), pb, "")
 
 	// run presenter
 	if err := pres.Present(&buffer); err != nil {
@@ -128,4 +129,45 @@ func TestEmptyJsonPresenter(t *testing.T) {
 
 func redact(content []byte) []byte {
 	return timestampRegexp.ReplaceAll(content, []byte(`"timestamp":""`))
+}
+
+func TestJsonPresentWithOutputFile(t *testing.T) {
+	var buffer bytes.Buffer
+
+	matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, source.DirectoryScheme)
+
+	pb := models.PresenterConfig{
+		Matches:          matches,
+		Packages:         packages,
+		Context:          context,
+		MetadataProvider: metadataProvider,
+	}
+
+	outputFilePath := "/tmp/report.test.txt"
+	fs := afero.NewMemMapFs()
+	pres := NewPresenter(fs, pb, outputFilePath)
+
+	// run presenter
+	if err := pres.Present(&buffer); err != nil {
+		t.Fatal(err)
+	}
+
+	f, err := fs.Open(outputFilePath)
+	if err != nil {
+		t.Fatalf("no output file: %+v", err)
+	}
+
+	outputContent, err := afero.ReadAll(f)
+	if err != nil {
+		t.Fatalf("could not file: %+v", err)
+	}
+	outputContent = redact(outputContent)
+
+	if *update {
+		testutils.UpdateGoldenFileContents(t, outputContent)
+	}
+
+	var expected = testutils.GetGoldenFileContents(t)
+
+	assert.Equal(t, string(expected), string(outputContent))
 }

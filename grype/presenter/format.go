@@ -69,6 +69,8 @@ var AvailableFormats = []id{
 	templateFormat,
 }
 
+var DefaultFormat = tableFormat
+
 // DeprecatedFormats TODO: remove in v1.0
 var DeprecatedFormats = []id{
 	embeddedVEXJSON,

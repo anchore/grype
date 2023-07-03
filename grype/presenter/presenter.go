@@ -3,6 +3,8 @@ package presenter
 import (
 	"io"
 
+	"github.com/spf13/afero"
+
 	"github.com/anchore/grype/grype/presenter/cyclonedx"
 	"github.com/anchore/grype/grype/presenter/json"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -20,10 +22,11 @@ type Presenter interface {
 // GetPresenter retrieves a Presenter that matches a CLI option
 // TODO dependency cycle with presenter package to sub formats
 func GetPresenters(c Config, pb models.PresenterConfig) (presenters []Presenter) {
+	fs := afero.NewOsFs()
 	for _, f := range c.formats {
 		switch f.id {
 		case jsonFormat:
-			presenters = append(presenters, json.NewPresenter(pb, f.outputFilePath))
+			presenters = append(presenters, json.NewPresenter(fs, pb, f.outputFilePath))
 		case tableFormat:
 			presenters = append(presenters, table.NewPresenter(pb, c.showSuppressed))
 
@@ -39,7 +42,7 @@ func GetPresenters(c Config, pb models.PresenterConfig) (presenters []Presenter)
 		case sarifFormat:
 			presenters = append(presenters, sarif.NewPresenter(pb))
 		case templateFormat:
-			presenters = append(presenters, template.NewPresenter(pb, f.outputFilePath, c.templateFilePath))
+			presenters = append(presenters, template.NewPresenter(fs, pb, f.outputFilePath, c.templateFilePath))
 		// DEPRECATED TODO: remove in v1.0
 		case embeddedVEXJSON:
 			log.Warn("embedded-cyclonedx-vex-json format is deprecated and will be removed in v1.0")

@@ -10,6 +10,7 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/mitchellh/go-homedir"
+	"github.com/spf13/afero"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -30,10 +31,11 @@ type Presenter struct {
 	dbStatus           interface{}
 	outputFilePath     string
 	pathToTemplateFile string
+	fs                 afero.Fs
 }
 
 // NewPresenter returns a new template.Presenter.
-func NewPresenter(pb models.PresenterConfig, outputFilePath string, templateFile string) *Presenter {
+func NewPresenter(fs afero.Fs, pb models.PresenterConfig, outputFilePath string, templateFile string) *Presenter {
 	return &Presenter{
 		matches:            pb.Matches,
 		ignoredMatches:     pb.IgnoredMatches,
@@ -44,12 +46,13 @@ func NewPresenter(pb models.PresenterConfig, outputFilePath string, templateFile
 		dbStatus:           pb.DBStatus,
 		outputFilePath:     outputFilePath,
 		pathToTemplateFile: templateFile,
+		fs:                 fs,
 	}
 }
 
 // Present creates output using a user-supplied Go template.
 func (pres *Presenter) Present(defaultOutput io.Writer) error {
-	output, closer, err := file.GetWriter(defaultOutput, pres.outputFilePath)
+	output, closer, err := file.GetWriter(pres.fs, defaultOutput, pres.outputFilePath)
 	defer func() {
 		if closer != nil {
 			err := closer()

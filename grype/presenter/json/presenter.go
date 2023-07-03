@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"io"
 
+	"github.com/spf13/afero"
+
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -22,10 +24,11 @@ type Presenter struct {
 	appConfig        interface{}
 	dbStatus         interface{}
 	outputFilePath   string
+	fs               afero.Fs
 }
 
 // NewPresenter creates a new JSON presenter
-func NewPresenter(pb models.PresenterConfig, outputFilePath string) *Presenter {
+func NewPresenter(fs afero.Fs, pb models.PresenterConfig, outputFilePath string) *Presenter {
 	return &Presenter{
 		matches:          pb.Matches,
 		ignoredMatches:   pb.IgnoredMatches,
@@ -35,12 +38,13 @@ func NewPresenter(pb models.PresenterConfig, outputFilePath string) *Presenter {
 		appConfig:        pb.AppConfig,
 		dbStatus:         pb.DBStatus,
 		outputFilePath:   outputFilePath,
+		fs:               fs,
 	}
 }
 
 // Present creates a JSON-based reporting
 func (pres *Presenter) Present(defaultOutput io.Writer) error {
-	output, closer, err := file.GetWriter(defaultOutput, pres.outputFilePath)
+	output, closer, err := file.GetWriter(pres.fs, defaultOutput, pres.outputFilePath)
 	defer func() {
 		if closer != nil {
 			err := closer()
