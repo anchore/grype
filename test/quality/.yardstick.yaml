@@ -32,7 +32,6 @@ x-ref:
     - docker.io/anchore/test_images:alpine-package-cpe-vuln-match-bd0aaef@sha256:0825acea611c7c5cc792bc7cc20de44d7413fd287dc5afc4aab9c1891d037b4f
     - docker.io/alpine:3.2@sha256:ddac200f3ebc9902fb8cfcd599f41feb2151f1118929da21bcef57dc276975f9
     - docker.io/centos:6@sha256:3688aa867eb84332460e172b9250c9c198fdfd8d987605fd53f246f498c60bcf
-    - docker.io/ubuntu:16.10@sha256:8dc9652808dc091400d7d5983949043a9f9c7132b15c14814275d25f94bca18a
     - docker.io/almalinux:8@sha256:cd49d7250ed7bb194d502d8a3e50bd775055ca275d1d9c2785aea72b890afe6a
     - docker.io/rockylinux:8@sha256:72afc2e1a20c9ddf56a81c51148ebcbe927c0a879849efe813bee77d69df1dd8
     - docker.io/oraclelinux:6@sha256:a06327c0f1d18d753f2a60bb17864c84a850bb6dcbcf5946dd1a8123f6e75495
@@ -42,7 +41,7 @@ x-ref:
     - registry.access.redhat.com/ubi8@sha256:68fecea0d255ee253acbf0c860eaebb7017ef5ef007c25bee9eeffd29ce85b29
     - docker.io/python:3.8.0-slim@sha256:5e96e03a493a54904aa8be573fc0414431afb4f47ac58fbffd03b2a725005364
     - docker.io/ghost:5.2.4@sha256:42137b9bd1faf4cdea5933279c48a912d010ef614551aeb0e44308600aa3e69f
-    - docker.io/node:14.1.0-slim@sha256:d8a88e8e15fd26eee7734c9f60531b5ad2abdc3d663be0d818ed26159db80512
+    - docker.io/node:4.2.1-slim@sha256:af31633b87d0dc58c306b04ad9f6ca88104626363c5c085e9962832628eb09ce
     - docker.io/elastic/kibana:8.5.0@sha256:b9e3e52f61e0a347e38eabe80ba0859f859023bc0cc8836410320aa7eb5d3e02
     - docker.io/jenkins/jenkins:2.361.4-lts-jdk11@sha256:6fd5699ab182b5d23d0e3936de6047edc30955a3a92e01c392d5a2fd583efac0
     - docker.io/neo4j:4.4.14-community@sha256:fcfcbb026e0e538bf66f5fe5c4b2db3dd4931c3aae07f13a5a8c10e979596256
@@ -52,6 +51,33 @@ x-ref:
     - docker.io/postgres:13.2@sha256:1a67ab960138c479d66834cd6bcb5b5582c53869e6052dbf4ff48d4a94c13da3
     - ghcr.io/chainguard-images/scanner-test@sha256:59bddc101fba0c45d5c093575c6bc5bfee7f0e46ff127e6bb4e5acaaafb525f9
     - docker.io/keycloak/keycloak:21.0.2@sha256:347a0d748d05a050dc64b92de2246d2240db6eb38afbc17c3c08d0acb0db1b50
+    - docker.io/datawire/aes:3.6.0@sha256:86a072278135462b6cbef70e89894df8f9b20f428b361fda2132fbb442ef257b
+    - docker.io/bitnami/spark:3.2.4-debian-11-r8@sha256:267d5a6345636710b4b57b7fe981c9760203e7e092c705416310ea30a9806d74
+    - mcr.microsoft.com/cbl-mariner/base/core:2.0.20220731-arm64@sha256:51101e635f56032d5afd3fb56d66c7b93b34d5a39ddac01695d62b94473cc34e
+    - docker.io/grafana/grafana:9.2.4@sha256:a11c6829cdfe7fd791e48ba5b511f3562384361fb4c568ec2d8a5041ac52babe
+    - docker.io/hashicorp/vault:1.12.0@sha256:09354ca0891f7cee8fbfe8db08c62d2d757fad8ae6c91f2b6cce7a34440e3fae
+    - docker.io/ubuntu:12.04@sha256:18305429afa14ea462f810146ba44d4363ae76e4c8dfc38288cf73aa07485005
+    - docker.io/ubuntu:12.10@sha256:002fba3e3255af10be97ea26e476692a7ebed0bb074a9ab960b2e7a1526b15d7
+    - docker.io/ubuntu:13.04@sha256:bc48dd7075ce920ebbaa4581d3200e9fb3aaec31591061d7e3a280a04ef0248c
+    - docker.io/ubuntu:14.04@sha256:881afbae521c910f764f7187dbfbca3cc10c26f8bafa458c76dda009a901c29d
+    - docker.io/ubuntu:14.10@sha256:6341c688b4b0b82ec735389b3c97df8cf2831b8cb8bd1856779130a86574ac5c
+    - docker.io/ubuntu:15.04@sha256:2fb27e433b3ecccea2a14e794875b086711f5d49953ef173d8a03e8707f1510f
+    - docker.io/ubuntu:15.10@sha256:02521a2d079595241c6793b2044f02eecf294034f31d6e235ac4b2b54ffc41f3
+    - docker.io/ubuntu:16.10@sha256:8dc9652808dc091400d7d5983949043a9f9c7132b15c14814275d25f94bca18a
+    - docker.io/ubuntu:17.04@sha256:213e05583a7cb8756a3f998e6dd65204ddb6b4c128e2175dcdf174cdf1877459
+    - docker.io/ubuntu:17.10@sha256:9c4bf7dbb981591d4a1169138471afe4bf5ff5418841d00e30a7ba372e38d6c1
+    - docker.io/ubuntu:18.04@sha256:971a12d7e92a23183dead8bfc415aa650e7deb1cc5fed11a3d21f759a891fde9
+    - docker.io/ubuntu:18.10@sha256:c95b7b93ccd48c3bfd97f8cac6d5ca8053ced584c9e8e6431861ca30b0d73114
+    - docker.io/ubuntu:19.04@sha256:3db17bfc30b41cc18552578f4a66d7010050eb9fdc42bf6c3d82bb0dcdf88d58
+    - docker.io/ubuntu:19.10@sha256:6852f9e05c5bce8aa77173fa83ce611f69f271ee3a16503c5f80c199969fd1eb
+    - docker.io/ubuntu:20.04@sha256:9d42d0e3e57bc067d10a75ee33bdd1a5298e95e5fc3c5d1fce98b455cb879249
+    - docker.io/ubuntu:20.10@sha256:754eb641a1ba98a8b483c3595a14164fa4ed7f4b457e1aa05f13ce06f8151723
+    - docker.io/ubuntu:21.04@sha256:cb92f03e258f965442b883f5402b310dd7a5ea0a661a865ad02a42bc21234bf7
+    - docker.io/ubuntu:21.10@sha256:253908b2844746ab3f3a08fc8a44b9b9fc1efc408d5969b093ab9ffa11eb1894
+    - docker.io/ubuntu:22.04@sha256:aa6c2c047467afc828e77e306041b7fa4a65734fe3449a54aa9c280822b0d87d
+    - docker.io/ubuntu:22.10@sha256:80fb4ea0c0a384a3072a6be1879c342bb636b0d105209535ba893ba75ab38ede
+    - docker.io/ubuntu:23.04@sha256:09f035f46361d193ded647342903b413d57d05cc06acff8285f9dda9f2d269d5
+    - gcr.io/distroless/python3-debian11@sha256:69ae7f133d33faab720af28e78fb45707b623bcbc94ae02a07c633bf053f4b40
 
 # new vulnerabilities are added all of the time, instead of keeping up it's easier to ignore newer entries.
 # This approach helps tremendously with keeping the analysis relatively stable.
