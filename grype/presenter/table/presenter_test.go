@@ -12,10 +12,10 @@ import (
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/presenter/internal"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
-	"github.com/anchore/syft/syft/source"
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for table presenters")
@@ -76,7 +76,7 @@ func TestCreateRow(t *testing.T) {
 func TestTablePresenter(t *testing.T) {
 
 	var buffer bytes.Buffer
-	matches, packages, _, metadataProvider, _, _ := models.GenerateAnalysis(t, source.ImageScheme)
+	matches, packages, _, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.ImageSource)
 
 	pb := models.PresenterConfig{
 		Matches:          matches,
@@ -174,7 +174,7 @@ func TestRemoveDuplicateRows(t *testing.T) {
 
 func TestHidesIgnoredMatches(t *testing.T) {
 	var buffer bytes.Buffer
-	matches, ignoredMatches, packages, _, metadataProvider, _, _ := models.GenerateAnalysisWithIgnoredMatches(t, source.ImageScheme)
+	matches, ignoredMatches, packages, _, metadataProvider, _, _ := internal.GenerateAnalysisWithIgnoredMatches(t, internal.ImageSource)
 
 	pb := models.PresenterConfig{
 		Matches:          matches,
@@ -205,7 +205,7 @@ func TestHidesIgnoredMatches(t *testing.T) {
 
 func TestDisplaysIgnoredMatches(t *testing.T) {
 	var buffer bytes.Buffer
-	matches, ignoredMatches, packages, _, metadataProvider, _, _ := models.GenerateAnalysisWithIgnoredMatches(t, source.ImageScheme)
+	matches, ignoredMatches, packages, _, metadataProvider, _, _ := internal.GenerateAnalysisWithIgnoredMatches(t, internal.ImageSource)
 
 	pb := models.PresenterConfig{
 		Matches:          matches,

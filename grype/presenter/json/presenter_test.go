@@ -11,6 +11,7 @@ import (
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/presenter/internal"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/source"
@@ -21,7 +22,7 @@ var timestampRegexp = regexp.MustCompile(`"timestamp":\s*"[^"]+"`)
 
 func TestJsonImgsPresenter(t *testing.T) {
 	var buffer bytes.Buffer
-	matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, source.ImageScheme)
+	matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.ImageSource)
 
 	pb := models.PresenterConfig{
 		Matches:          matches,
@@ -54,7 +55,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 func TestJsonDirsPresenter(t *testing.T) {
 	var buffer bytes.Buffer
 
-	matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, source.DirectoryScheme)
+	matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.DirectorySource)
 
 	pb := models.PresenterConfig{
 		Matches:          matches,
@@ -91,7 +92,7 @@ func TestEmptyJsonPresenter(t *testing.T) {
 	matches := match.NewMatches()
 
 	ctx := pkg.Context{
-		Source: &source.Metadata{},
+		Source: &source.Description{},
 		Distro: &linux.Release{
 			ID:      "centos",
 			IDLike:  []string{"rhel"},

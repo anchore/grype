@@ -45,7 +45,7 @@ require (
 	github.com/wagoodman/go-progress v0.0.0-20230301185719-21920a456ad5
 	github.com/wagoodman/jotframe v0.0.0-20211129225309-56b0d0a4aebb
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
-	golang.org/x/term v0.9.0
+	golang.org/x/term v0.10.0
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/gorm v1.23.10
 )
@@ -53,7 +53,7 @@ require (
 require (
 	github.com/anchore/go-logger v0.0.0-20220728155337-03b66a5207d8
 	github.com/anchore/sqlite v1.4.6-0.20220607210448-bcc6ee5c4963
-	github.com/anchore/syft v0.84.1
+	github.com/anchore/syft v0.84.2-0.20230705174713-cfbb9f703bd7
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/mitchellh/mapstructure v1.5.0
 )
@@ -170,11 +170,11 @@ require (
 	go.uber.org/goleak v1.2.0 // indirect
 	golang.org/x/crypto v0.10.0 // indirect
 	golang.org/x/exp v0.0.0-20230202163644-54bba9f4231b // indirect
-	golang.org/x/mod v0.11.0 // indirect
+	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/net v0.11.0 // indirect
 	golang.org/x/oauth2 v0.7.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.9.0 // indirect
+	golang.org/x/sys v0.10.0 // indirect
 	golang.org/x/text v0.10.0 // indirect
 	golang.org/x/time v0.2.0 // indirect
 	golang.org/x/tools v0.8.0 // indirect
