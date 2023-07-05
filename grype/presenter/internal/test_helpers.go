@@ -269,6 +269,7 @@ func generatePackages(t *testing.T) []pkg.Package {
 	return updatedPkgs
 }
 
+//nolint:funlen
 func generateContext(t *testing.T, scheme SyftSource) pkg.Context {
 	var (
 		src  syftSource.Source

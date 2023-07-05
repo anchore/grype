@@ -8,35 +8,10 @@ import (
 )
 
 func syftProvider(userInput string, config ProviderConfig) ([]Package, Context, *sbom.SBOM, error) {
-	if config.CatalogingOptions.Search.Scope == "" {
-		return nil, Context{}, nil, errDoesNotProvide
-	}
-
-	detection, err := source.Detect(userInput, source.DetectConfig{
-		DefaultImageSource: config.DefaultImagePullSource,
-	})
+	src, err := getSource(userInput, config)
 	if err != nil {
 		return nil, Context{}, nil, err
 	}
-
-	var platform *image.Platform
-	if config.Platform != "" {
-		platform, err = image.NewPlatform(config.Platform)
-		if err != nil {
-			return nil, Context{}, nil, err
-		}
-	}
-
-	src, err := detection.NewSource(source.DetectionSourceConfig{
-		Alias: source.Alias{
-			Name: config.Name,
-		},
-		RegistryOptions: config.RegistryOptions,
-		Platform:        platform,
-		Exclude: source.ExcludeConfig{
-			Paths: config.Exclusions,
-		},
-	})
 
 	defer src.Close()
 
@@ -64,4 +39,36 @@ func syftProvider(userInput string, config ProviderConfig) ([]Package, Context, 
 	}
 
 	return packages, context, sbom, nil
+}
+
+func getSource(userInput string, config ProviderConfig) (source.Source, error) {
+	if config.CatalogingOptions.Search.Scope == "" {
+		return nil, errDoesNotProvide
+	}
+
+	detection, err := source.Detect(userInput, source.DetectConfig{
+		DefaultImageSource: config.DefaultImagePullSource,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var platform *image.Platform
+	if config.Platform != "" {
+		platform, err = image.NewPlatform(config.Platform)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return detection.NewSource(source.DetectionSourceConfig{
+		Alias: source.Alias{
+			Name: config.Name,
+		},
+		RegistryOptions: config.RegistryOptions,
+		Platform:        platform,
+		Exclude: source.ExcludeConfig{
+			Paths: config.Exclusions,
+		},
+	})
 }
