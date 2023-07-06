@@ -14,7 +14,6 @@ import (
 	"github.com/anchore/syft/syft/file"
 	syftFile "github.com/anchore/syft/syft/file"
 	syftPkg "github.com/anchore/syft/syft/pkg"
-	"github.com/anchore/syft/syft/source"
 )
 
 func TestNew(t *testing.T) {
@@ -550,8 +549,8 @@ func TestFromCollection_DoesNotPanic(t *testing.T) {
 	examplePackage := syftPkg.Package{
 		Name:    "test",
 		Version: "1.2.3",
-		Locations: source.NewLocationSet(
-			source.NewLocation("/test-path"),
+		Locations: file.NewLocationSet(
+			file.NewLocation("/test-path"),
 		),
 		Type: syftPkg.NpmPkg,
 	}

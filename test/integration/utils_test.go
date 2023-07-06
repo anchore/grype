@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/scylladb/go-set/strset"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/syft/syft"
@@ -70,16 +71,18 @@ func saveImage(t testing.TB, imageName string, destPath string) {
 }
 
 func getSyftSBOM(t testing.TB, image string, format sbom.Format) string {
-	sourceInput, err := source.ParseInput(image, "")
+	detection, err := source.Detect(image, source.DetectConfig{})
 	if err != nil {
 		t.Fatalf("could not generate source input for packages command: %+v", err)
 	}
 
-	src, cleanup, err := source.New(*sourceInput, nil, nil)
+	src, err := detection.NewSource(source.DetectionSourceConfig{})
 	if err != nil {
 		t.Fatalf("can't get the source: %+v", err)
 	}
-	t.Cleanup(cleanup)
+	t.Cleanup(func() {
+		require.NoError(t, src.Close())
+	})
 
 	config := cataloger.DefaultConfig()
 	config.Search.Scope = source.SquashedScope
@@ -91,7 +94,7 @@ func getSyftSBOM(t testing.TB, image string, format sbom.Format) string {
 			Packages:          collection,
 			LinuxDistribution: distro,
 		},
-		Source: src.Metadata,
+		Source: src.Describe(),
 	}
 
 	bytes, err := syft.Encode(s, format)

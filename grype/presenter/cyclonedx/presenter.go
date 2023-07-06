@@ -20,7 +20,7 @@ import (
 type Presenter struct {
 	results          match.Matches
 	packages         []pkg.Package
-	srcMetadata      *source.Metadata
+	src              *source.Description
 	metadataProvider vulnerability.MetadataProvider
 	format           cyclonedx.BOMFileFormat
 	sbom             *sbom.SBOM
@@ -32,7 +32,7 @@ func NewJSONPresenter(pb models.PresenterConfig) *Presenter {
 		results:          pb.Matches,
 		packages:         pb.Packages,
 		metadataProvider: pb.MetadataProvider,
-		srcMetadata:      pb.Context.Source,
+		src:              pb.Context.Source,
 		sbom:             pb.SBOM,
 		format:           cyclonedx.BOMFileFormatJSON,
 	}
@@ -44,7 +44,7 @@ func NewXMLPresenter(pb models.PresenterConfig) *Presenter {
 		results:          pb.Matches,
 		packages:         pb.Packages,
 		metadataProvider: pb.MetadataProvider,
-		srcMetadata:      pb.Context.Source,
+		src:              pb.Context.Source,
 		sbom:             pb.SBOM,
 		format:           cyclonedx.BOMFileFormatXML,
 	}

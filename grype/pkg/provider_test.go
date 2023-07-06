@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/stereoscope/pkg/imagetest"
+	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/pkg/cataloger"
-	"github.com/anchore/syft/syft/source"
 )
 
 func TestProviderLocationExcludes(t *testing.T) {
@@ -158,10 +158,10 @@ func Test_filterPackageExclusions(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			var packages []Package
 			for _, pkg := range test.locations {
-				locations := source.NewLocationSet()
+				locations := file.NewLocationSet()
 				for _, l := range pkg {
 					locations.Add(
-						source.NewVirtualLocation(l, l),
+						file.NewVirtualLocation(l, l),
 					)
 				}
 				packages = append(packages, Package{Locations: locations})
@@ -221,7 +221,7 @@ func Test_matchesLocation(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			matches, err := locationMatches(source.NewVirtualLocation(test.realPath, test.virtualPath), test.match)
+			matches, err := locationMatches(file.NewVirtualLocation(test.realPath, test.virtualPath), test.match)
 			assert.NoError(t, err)
 			assert.Equal(t, test.expected, matches)
 		})

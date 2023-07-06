@@ -606,13 +606,15 @@ func TestMatchByImage(t *testing.T) {
 
 			userImage := "docker-archive:" + tarPath
 
-			sourceInput, err := source.ParseInput(userImage, "")
+			detection, err := source.Detect(userImage, source.DetectConfig{})
 			require.NoError(t, err)
 
 			// this is purely done to help setup mocks
-			theSource, cleanup, err := source.New(*sourceInput, nil, nil)
+			theSource, err := detection.NewSource(source.DetectionSourceConfig{})
 			require.NoError(t, err)
-			defer cleanup()
+			t.Cleanup(func() {
+				require.NoError(t, theSource.Close())
+			})
 
 			// TODO: relationships are not verified at this time
 			config := cataloger.DefaultConfig()
@@ -645,7 +647,7 @@ func TestMatchByImage(t *testing.T) {
 			}
 
 			// build expected matches from what's discovered from the catalog
-			expectedMatches := test.expectedFn(*theSource, collection, theStore)
+			expectedMatches := test.expectedFn(theSource, collection, theStore)
 
 			assertMatches(t, expectedMatches.Sorted(), actualResults.Sorted())
 		})
