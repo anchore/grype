@@ -393,7 +393,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		}
 
 		noColor := persistentOpts.NoColor
-		if !noColor && termenv.ColorProfile() == termenv.Ascii {
+		if !noColor && termenv.EnvColorProfile() == termenv.Ascii {
 			noColor = true
 		}
 
