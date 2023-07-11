@@ -1,4 +1,4 @@
-package models
+package internal
 
 import (
 	"regexp"
@@ -9,6 +9,7 @@ import (
 	grypeDb "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft/artifact"
@@ -20,17 +21,25 @@ import (
 	syftSource "github.com/anchore/syft/syft/source"
 )
 
-func GenerateAnalysis(t *testing.T, scheme syftSource.Scheme) (match.Matches, []pkg.Package, pkg.Context, vulnerability.MetadataProvider, interface{}, interface{}) {
+const (
+	DirectorySource SyftSource = "directory"
+	ImageSource     SyftSource = "image"
+	FileSource      SyftSource = "file"
+)
+
+type SyftSource string
+
+func GenerateAnalysis(t *testing.T, scheme SyftSource) (match.Matches, []pkg.Package, pkg.Context, vulnerability.MetadataProvider, interface{}, interface{}) {
 	t.Helper()
 
 	packages := generatePackages(t)
 	matches := generateMatches(t, packages[0], packages[1])
 	context := generateContext(t, scheme)
 
-	return matches, packages, context, NewMetadataMock(), nil, nil
+	return matches, packages, context, models.NewMetadataMock(), nil, nil
 }
 
-func GenerateAnalysisWithIgnoredMatches(t *testing.T, scheme syftSource.Scheme) (match.Matches, []match.IgnoredMatch, []pkg.Package, pkg.Context, vulnerability.MetadataProvider, interface{}, interface{}) {
+func GenerateAnalysisWithIgnoredMatches(t *testing.T, scheme SyftSource) (match.Matches, []match.IgnoredMatch, []pkg.Package, pkg.Context, vulnerability.MetadataProvider, interface{}, interface{}) {
 	t.Helper()
 
 	packages := generatePackages(t)
@@ -38,7 +47,7 @@ func GenerateAnalysisWithIgnoredMatches(t *testing.T, scheme syftSource.Scheme) 
 	ignoredMatches := generateIgnoredMatches(t, packages[1])
 	context := generateContext(t, scheme)
 
-	return matches, ignoredMatches, packages, context, NewMetadataMock(), nil, nil
+	return matches, ignoredMatches, packages, context, models.NewMetadataMock(), nil, nil
 }
 
 func SBOMFromPackages(t *testing.T, packages []pkg.Package) *sbom.SBOM {
@@ -260,59 +269,84 @@ func generatePackages(t *testing.T) []pkg.Package {
 	return updatedPkgs
 }
 
-func generateContext(t *testing.T, scheme syftSource.Scheme) pkg.Context {
-	var src syftSource.Source
-	img := image.Image{
-		Metadata: image.Metadata{
-			ID:             "sha256:ab5608d634db2716a297adbfa6a5dd5d8f8f5a7d0cab73649ea7fbb8c8da544f",
-			ManifestDigest: "sha256:ca738abb87a8d58f112d3400ebb079b61ceae7dc290beb34bda735be4b1941d5",
-			MediaType:      "application/vnd.docker.distribution.manifest.v2+json",
-			Size:           65,
-		},
-		Layers: []*image.Layer{
-			{
-				Metadata: image.LayerMetadata{
-					Digest:    "sha256:ca738abb87a8d58f112d3400ebb079b61ceae7dc290beb34bda735be4b1941d5",
-					MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
-					Size:      22,
-				},
-			},
-			{
-				Metadata: image.LayerMetadata{
-					Digest:    "sha256:a05cd9ebf88af96450f1e25367281ab232ac0645f314124fe01af759b93f3006",
-					MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
-					Size:      16,
-				},
-			},
-			{
-				Metadata: image.LayerMetadata{
-					Digest:    "sha256:ab5608d634db2716a297adbfa6a5dd5d8f8f5a7d0cab73649ea7fbb8c8da544f",
-					MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
-					Size:      27,
-				},
-			},
-		},
-	}
+//nolint:funlen
+func generateContext(t *testing.T, scheme SyftSource) pkg.Context {
+	var (
+		src  syftSource.Source
+		desc syftSource.Description
+	)
 
 	switch scheme {
-	case syftSource.ImageScheme:
+	case FileSource:
 		var err error
-		src, err = syftSource.NewFromImage(&img, "user-input")
+		src, err = syftSource.NewFromFile(syftSource.FileConfig{
+			Path: "user-input",
+		})
+		if err != nil {
+			t.Fatalf("failed to generate mock file source from mock image: %+v", err)
+		}
+		desc = src.Describe()
+	case ImageSource:
+		img := image.Image{
+			Metadata: image.Metadata{
+				ID:             "sha256:ab5608d634db2716a297adbfa6a5dd5d8f8f5a7d0cab73649ea7fbb8c8da544f",
+				ManifestDigest: "sha256:ca738abb87a8d58f112d3400ebb079b61ceae7dc290beb34bda735be4b1941d5",
+				MediaType:      "application/vnd.docker.distribution.manifest.v2+json",
+				Size:           65,
+			},
+			Layers: []*image.Layer{
+				{
+					Metadata: image.LayerMetadata{
+						Digest:    "sha256:ca738abb87a8d58f112d3400ebb079b61ceae7dc290beb34bda735be4b1941d5",
+						MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
+						Size:      22,
+					},
+				},
+				{
+					Metadata: image.LayerMetadata{
+						Digest:    "sha256:a05cd9ebf88af96450f1e25367281ab232ac0645f314124fe01af759b93f3006",
+						MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
+						Size:      16,
+					},
+				},
+				{
+					Metadata: image.LayerMetadata{
+						Digest:    "sha256:ab5608d634db2716a297adbfa6a5dd5d8f8f5a7d0cab73649ea7fbb8c8da544f",
+						MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
+						Size:      27,
+					},
+				},
+			},
+		}
+
+		var err error
+		src, err = syftSource.NewFromStereoscopeImageObject(&img, "user-input", nil)
 		if err != nil {
 			t.Fatalf("failed to generate mock image source from mock image: %+v", err)
 		}
-	case syftSource.DirectoryScheme:
+		desc = src.Describe()
+	case DirectorySource:
+		// note: the dir must exist for the source to be created
+		d := t.TempDir()
 		var err error
-		src, err = syftSource.NewFromDirectory("/some/path")
+		src, err = syftSource.NewFromDirectory(syftSource.DirectoryConfig{
+			Path: d,
+		})
+
 		if err != nil {
 			t.Fatalf("failed to generate mock directory source from mock dir: %+v", err)
+		}
+		desc = src.Describe()
+		if m, ok := desc.Metadata.(syftSource.DirectorySourceMetadata); ok {
+			m.Path = "/some/path"
+			desc.Metadata = m
 		}
 	default:
 		t.Fatalf("unknown scheme: %s", scheme)
 	}
 
 	return pkg.Context{
-		Source: &src.Metadata,
+		Source: &desc,
 		Distro: &linux.Release{
 			Name: "centos",
 			IDLike: []string{

@@ -1,0 +1,16 @@
+name: Add to OSS board
+
+on:
+  issues:
+    types:
+      - opened
+      - reopened
+      - transferred
+      - labeled
+
+jobs:
+
+  run:
+    uses: "anchore/workflows/.github/workflows/oss-project-board-add.yaml@main"
+    secrets:
+      token: ${{ secrets.OSS_PROJECT_GH_TOKEN }}

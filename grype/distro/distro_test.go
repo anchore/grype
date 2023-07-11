@@ -227,7 +227,7 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.fixture, func(t *testing.T) {
-			s, err := source.NewFromDirectory(test.fixture)
+			s, err := source.NewFromDirectory(source.DirectoryConfig{Path: test.fixture})
 			require.NoError(t, err)
 
 			resolver, err := s.FileResolver(source.SquashedScope)
