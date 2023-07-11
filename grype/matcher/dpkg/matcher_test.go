@@ -10,7 +10,7 @@ import (
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/stringutil"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -39,7 +39,7 @@ func TestMatcherDpkg_matchBySourceIndirection(t *testing.T) {
 
 	assert.Len(t, actual, 2, "unexpected indirect matches count")
 
-	foundCVEs := internal.NewStringSet()
+	foundCVEs := stringutil.NewStringSet()
 	for _, a := range actual {
 		foundCVEs.Add(a.Vulnerability.ID)
 

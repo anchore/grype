@@ -9,7 +9,6 @@ import (
 	diffEvents "github.com/anchore/grype/grype/differ/events"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/matcher"
-	"github.com/anchore/grype/grype/presenter"
 )
 
 type ErrBadPayload struct {
@@ -35,19 +34,6 @@ func checkEventType(actual, expected partybus.EventType) error {
 		return newPayloadErr(expected, "Type", actual)
 	}
 	return nil
-}
-
-func ParseAppUpdateAvailable(e partybus.Event) (string, error) {
-	if err := checkEventType(e.Type, event.AppUpdateAvailable); err != nil {
-		return "", err
-	}
-
-	newVersion, ok := e.Value.(string)
-	if !ok {
-		return "", newPayloadErr(e.Type, "Value", e.Value)
-	}
-
-	return newVersion, nil
 }
 
 func ParseUpdateVulnerabilityDatabase(e partybus.Event) (progress.StagedProgressable, error) {
@@ -76,32 +62,6 @@ func ParseVulnerabilityScanningStarted(e partybus.Event) (*matcher.Monitor, erro
 	return &monitor, nil
 }
 
-func ParseVulnerabilityScanningFinished(e partybus.Event) (presenter.Presenter, error) {
-	if err := checkEventType(e.Type, event.VulnerabilityScanningFinished); err != nil {
-		return nil, err
-	}
-
-	pres, ok := e.Value.(presenter.Presenter)
-	if !ok {
-		return nil, newPayloadErr(e.Type, "Value", e.Value)
-	}
-
-	return pres, nil
-}
-
-func ParseNonRootCommandFinished(e partybus.Event) (*string, error) {
-	if err := checkEventType(e.Type, event.NonRootCommandFinished); err != nil {
-		return nil, err
-	}
-
-	result, ok := e.Value.(string)
-	if !ok {
-		return nil, newPayloadErr(e.Type, "Value", e.Value)
-	}
-
-	return &result, nil
-}
-
 func ParseDatabaseDiffingStarted(e partybus.Event) (*diffEvents.Monitor, error) {
 	if err := checkEventType(e.Type, event.DatabaseDiffingStarted); err != nil {
 		return nil, err
@@ -113,4 +73,36 @@ func ParseDatabaseDiffingStarted(e partybus.Event) (*diffEvents.Monitor, error) 
 	}
 
 	return &monitor, nil
+}
+
+func ParseCLIAppUpdateAvailable(e partybus.Event) (string, error) {
+	if err := checkEventType(e.Type, event.CLIAppUpdateAvailable); err != nil {
+		return "", err
+	}
+
+	newVersion, ok := e.Value.(string)
+	if !ok {
+		return "", newPayloadErr(e.Type, "Value", e.Value)
+	}
+
+	return newVersion, nil
+}
+
+func ParseCLIReport(e partybus.Event) (string, string, error) {
+	if err := checkEventType(e.Type, event.CLIReport); err != nil {
+		return "", "", err
+	}
+
+	context, ok := e.Source.(string)
+	if !ok {
+		// this is optional
+		context = ""
+	}
+
+	report, ok := e.Value.(string)
+	if !ok {
+		return "", "", newPayloadErr(e.Type, "Value", e.Value)
+	}
+
+	return context, report, nil
 }

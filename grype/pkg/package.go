@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/grype/internal/stringutil"
 	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/file"
@@ -231,7 +231,7 @@ func rpmDataFromPkg(p pkg.Package) (metadata *RpmMetadata, upstreams []UpstreamP
 }
 
 func getNameAndELVersion(sourceRpm string) (string, string) {
-	groupMatches := internal.MatchCaptureGroups(rpmPackageNamePattern, sourceRpm)
+	groupMatches := stringutil.MatchCaptureGroups(rpmPackageNamePattern, sourceRpm)
 	version := groupMatches["version"] + "-" + groupMatches["release"]
 	return groupMatches["name"], version
 }

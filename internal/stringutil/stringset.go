@@ -1,4 +1,4 @@
-package internal
+package stringutil
 
 type StringSet map[string]struct{}
 

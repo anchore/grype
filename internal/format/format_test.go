@@ -1,4 +1,4 @@
-package presenter
+package format
 
 import (
 	"testing"
@@ -9,29 +9,29 @@ import (
 func TestParse(t *testing.T) {
 	cases := []struct {
 		input    string
-		expected format
+		expected Format
 	}{
 		{
 			"",
-			tableFormat,
+			TableFormat,
 		},
 		{
 			"table",
-			tableFormat,
+			TableFormat,
 		},
 		{
 			"jSOn",
-			jsonFormat,
+			JSONFormat,
 		},
 		{
 			"booboodepoopoo",
-			unknownFormat,
+			UnknownFormat,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {
-			actual := parse(tc.input)
+			actual := Parse(tc.input)
 			assert.Equal(t, tc.expected, actual, "unexpected result for input %q", tc.input)
 		})
 	}

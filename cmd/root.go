@@ -28,7 +28,6 @@ import (
 	"github.com/anchore/grype/grype/matcher/ruby"
 	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/presenter"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -37,6 +36,7 @@ import (
 	"github.com/anchore/grype/internal/config"
 	"github.com/anchore/grype/internal/format"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/grype/internal/stringutil"
 	"github.com/anchore/grype/internal/ui"
 	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/stereoscope"
@@ -62,7 +62,7 @@ var (
 	rootCmd = &cobra.Command{
 		Use:   fmt.Sprintf("%s [IMAGE]", internal.ApplicationName),
 		Short: "A vulnerability scanner for container images, filesystems, and SBOMs",
-		Long: format.Tprintf(`A vulnerability scanner for container images, filesystems, and SBOMs.
+		Long: stringutil.Tprintf(`A vulnerability scanner for container images, filesystems, and SBOMs.
 
 Supports the following image sources:
     {{.appName}} yourrepo/yourimage:tag             defaults to using images from a Docker daemon
@@ -130,14 +130,14 @@ func setRootFlags(flags *pflag.FlagSet) {
 		fmt.Sprintf("selection of layers to analyze, options=%v", source.AllScopes),
 	)
 
-	flags.StringP(
-		"output", "o", "",
-		fmt.Sprintf("report output formatter, formats=%v, deprecated formats=%v", presenter.AvailableFormats, presenter.DeprecatedFormats),
+	flags.StringArrayP(
+		"output", "o", nil,
+		fmt.Sprintf("report output formatter, formats=%v, deprecated formats=%v", format.AvailableFormats, format.DeprecatedFormats),
 	)
 
 	flags.StringP(
 		"file", "", "",
-		"file to write the report output to (default is STDOUT)",
+		"file to write the default report output to (default is STDOUT)",
 	)
 
 	flags.StringP(
@@ -298,8 +298,13 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 	errs := make(chan error)
 	go func() {
 		defer close(errs)
+		defer bus.Exit()
 
-		presenterConfig, err := presenter.ValidatedConfig(appConfig.Output, appConfig.OutputTemplateFile, appConfig.ShowSuppressed)
+		// TODO: appConfig.File
+		writer, err := format.MakeScanResultWriter(appConfig.Outputs, appConfig.OutputTemplateFile, format.PresentationConfig{
+			TemplateFilePath: appConfig.OutputTemplateFile,
+			ShowSuppressed:   appConfig.ShowSuppressed,
+		})
 		if err != nil {
 			errs <- err
 			return
@@ -332,7 +337,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		go func() {
 			defer wg.Done()
 			log.Debugf("gathering packages")
-			// packages are grype.Pacakge, not syft.Package
+			// packages are grype.Package, not syft.Package
 			// the SBOM is returned for downstream formatting concerns
 			// grype uses the SBOM in combination with syft formatters to produce cycloneDX
 			// with vulnerability information appended
@@ -379,7 +384,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			}
 		}
 
-		pb := models.PresenterConfig{
+		if err := writer.Write(models.PresenterConfig{
 			Matches:          *remainingMatches,
 			IgnoredMatches:   ignoredMatches,
 			Packages:         packages,
@@ -388,12 +393,9 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 			SBOM:             sbom,
 			AppConfig:        appConfig,
 			DBStatus:         status,
+		}); err != nil {
+			errs <- err
 		}
-
-		bus.Publish(partybus.Event{
-			Type:  event.VulnerabilityScanningFinished,
-			Value: presenter.GetPresenter(presenterConfig, pb),
-		})
 	}()
 	return errs
 }
@@ -447,7 +449,7 @@ func checkForAppUpdate() {
 		log.Infof("new version of %s is available: %s (currently running: %s)", internal.ApplicationName, newVersion, version.FromBuild().Version)
 
 		bus.Publish(partybus.Event{
-			Type:  event.AppUpdateAvailable,
+			Type:  event.CLIAppUpdateAvailable,
 			Value: newVersion,
 		})
 	} else {

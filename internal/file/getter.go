@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/go-getter/helper/url"
 	"github.com/wagoodman/go-progress"
 
-	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/stringutil"
 )
 
 var (
@@ -62,7 +62,7 @@ func (g HashiGoGetter) GetToDir(dst, src string, monitors ...*progress.Manual) e
 
 func validateHTTPSource(src string) error {
 	// we are ignoring any sources that are not destined to use the http getter object
-	if !internal.HasAnyOfPrefixes(src, "http://", "https://") {
+	if !stringutil.HasAnyOfPrefixes(src, "http://", "https://") {
 		return nil
 	}
 
@@ -71,7 +71,7 @@ func validateHTTPSource(src string) error {
 		return fmt.Errorf("bad URL provided %q: %w", src, err)
 	}
 	// only allow for sources with archive extensions
-	if !internal.HasAnyOfSuffixes(u.Path, archiveExtensions...) {
+	if !stringutil.HasAnyOfSuffixes(u.Path, archiveExtensions...) {
 		return ErrNonArchiveSource
 	}
 	return nil

@@ -5,11 +5,9 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/wagoodman/go-partybus"
 
 	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/differ"
-	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/ui"
@@ -38,6 +36,7 @@ func startDBDiffCmd(base string, target string, deleteDatabases bool) <-chan err
 	errs := make(chan error)
 	go func() {
 		defer close(errs)
+		defer bus.Exit()
 		d, err := differ.NewDiffer(appConfig.DB.ToCuratorConfig())
 		if err != nil {
 			errs <- err
@@ -72,11 +71,6 @@ func startDBDiffCmd(base string, target string, deleteDatabases bool) <-chan err
 		if deleteDatabases {
 			errs <- d.DeleteDatabases()
 		}
-
-		bus.Publish(partybus.Event{
-			Type:  event.NonRootCommandFinished,
-			Value: "",
-		})
 	}()
 	return errs
 }
