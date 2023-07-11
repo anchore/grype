@@ -4,8 +4,6 @@ There are a few useful things to know before diving into the codebase. This proj
 
 ## Getting started
 
-### Native Development
-
 After cloning do the following:
 
 1. run `go build main.go` to get a binary named `main` from the source (use `-o <name>` to get a differently named binary), or optionally `go run main.go` to run from source.
@@ -18,14 +16,6 @@ In order to run tests and build all artifacts:
 The main make tasks for common static analysis and testing are `lint`, `format`, `lint-fix`, `unit`, and `integration`.
 
 See `make help` for all the current make tasks.
-
-### Docker Development
-
-This depends on Docker and Docker Compose
-
-1. run `docker-compose build grype` to build the local development container
-2. run `docker-compose run --rm grype bash` to enter into the container with all the bootstrapped dependencies installed.
-3. run `make` to verify everything is installed and working properly
 
 ## Relationship to Syft
 
