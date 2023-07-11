@@ -16,6 +16,7 @@ import (
 
 	"github.com/anchore/go-logger"
 	grypeEvent "github.com/anchore/grype/grype/event"
+	"github.com/anchore/grype/grype/event/parsers"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/ui"
 )
@@ -44,6 +45,7 @@ type ephemeralTerminalUI struct {
 	logBuffer    *bytes.Buffer
 	uiOutput     *os.File
 	reportOutput io.Writer
+	reports      []string
 }
 
 // NewEphemeralTerminalUI writes all events to a TUI and writes the final report to the given writer.
@@ -78,29 +80,21 @@ func (h *ephemeralTerminalUI) Handle(event partybus.Event) error {
 			log.Errorf("unable to show %s event: %+v", event.Type, err)
 		}
 
-	case event.Type == grypeEvent.AppUpdateAvailable:
-		if err := handleAppUpdateAvailable(ctx, h.frame, event, h.waitGroup); err != nil {
+	case event.Type == grypeEvent.CLIAppUpdateAvailable:
+		if err := handleCLIAppUpdateAvailable(ctx, h.frame, event, h.waitGroup); err != nil {
 			log.Errorf("unable to show %s event: %+v", event.Type, err)
 		}
 
-	case event.Type == grypeEvent.VulnerabilityScanningFinished:
-		// we need to close the screen now since signaling the the presenter is ready means that we
-		// are about to write bytes to stdout, so we should reset the terminal state first
+	case event.Type == grypeEvent.CLIReport:
+		_, report, err := parsers.ParseCLIReport(event)
+		if err != nil {
+			log.Errorf("unable to show %s event: %+v", event.Type, err)
+			break
+		}
+		h.reports = append(h.reports, report)
+
+	case event.Type == grypeEvent.CLIExit:
 		h.closeScreen(false)
-
-		if err := handleVulnerabilityScanningFinished(event, h.reportOutput); err != nil {
-			log.Errorf("unable to show %s event: %+v", event.Type, err)
-		}
-
-		// this is the last expected event, stop listening to events
-		return h.unsubscribe()
-
-	case event.Type == grypeEvent.NonRootCommandFinished:
-		h.closeScreen(false)
-
-		if err := handleNonRootCommandFinished(event, h.reportOutput); err != nil {
-			log.Errorf("unable to show %s event: %+v", event.Type, err)
-		}
 
 		// this is the last expected event, stop listening to events
 		return h.unsubscribe()
@@ -154,6 +148,11 @@ func (h *ephemeralTerminalUI) flushLog() {
 func (h *ephemeralTerminalUI) Teardown(force bool) error {
 	h.closeScreen(force)
 	showCursor(h.uiOutput)
+	for _, report := range h.reports {
+		if _, err := fmt.Fprintln(h.reportOutput, report); err != nil {
+			return fmt.Errorf("failed to write report: %w", err)
+		}
+	}
 	return nil
 }
 

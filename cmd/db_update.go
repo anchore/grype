@@ -4,10 +4,8 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/wagoodman/go-partybus"
 
 	"github.com/anchore/grype/grype/db"
-	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/ui"
@@ -29,6 +27,8 @@ func startDBUpdateCmd() <-chan error {
 	errs := make(chan error)
 	go func() {
 		defer close(errs)
+		defer bus.Exit()
+
 		dbCurator, err := db.NewCurator(appConfig.DB.ToCuratorConfig())
 		if err != nil {
 			errs <- err
@@ -44,10 +44,7 @@ func startDBUpdateCmd() <-chan error {
 			result = "Vulnerability database updated to latest version!\n"
 		}
 
-		bus.Publish(partybus.Event{
-			Type:  event.NonRootCommandFinished,
-			Value: result,
-		})
+		bus.Report(result)
 	}()
 	return errs
 }

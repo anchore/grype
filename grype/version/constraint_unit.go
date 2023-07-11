@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/stringutil"
 )
 
 // operator group only matches on range operators (GT, LT, GTE, LTE, E)
@@ -19,7 +19,7 @@ type constraintUnit struct {
 }
 
 func parseUnit(phrase string) (*constraintUnit, error) {
-	match := internal.MatchCaptureGroups(constraintPartPattern, phrase)
+	match := stringutil.MatchCaptureGroups(constraintPartPattern, phrase)
 	version, exists := match["version"]
 	if !exists {
 		return nil, nil

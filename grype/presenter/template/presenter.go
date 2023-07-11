@@ -10,14 +10,11 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/mitchellh/go-homedir"
-	"github.com/spf13/afero"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal/file"
-	"github.com/anchore/grype/internal/log"
 )
 
 // Presenter is an implementation of presenter.Presenter that formats output according to a user-provided Go text template.
@@ -29,13 +26,11 @@ type Presenter struct {
 	metadataProvider   vulnerability.MetadataProvider
 	appConfig          interface{}
 	dbStatus           interface{}
-	outputFilePath     string
 	pathToTemplateFile string
-	fs                 afero.Fs
 }
 
 // NewPresenter returns a new template.Presenter.
-func NewPresenter(fs afero.Fs, pb models.PresenterConfig, outputFilePath string, templateFile string) *Presenter {
+func NewPresenter(pb models.PresenterConfig, templateFile string) *Presenter {
 	return &Presenter{
 		matches:            pb.Matches,
 		ignoredMatches:     pb.IgnoredMatches,
@@ -44,26 +39,12 @@ func NewPresenter(fs afero.Fs, pb models.PresenterConfig, outputFilePath string,
 		context:            pb.Context,
 		appConfig:          pb.AppConfig,
 		dbStatus:           pb.DBStatus,
-		outputFilePath:     outputFilePath,
 		pathToTemplateFile: templateFile,
-		fs:                 fs,
 	}
 }
 
 // Present creates output using a user-supplied Go template.
-func (pres *Presenter) Present(defaultOutput io.Writer) error {
-	output, closer, err := file.GetWriter(pres.fs, defaultOutput, pres.outputFilePath)
-	defer func() {
-		if closer != nil {
-			err := closer()
-			if err != nil {
-				log.Warnf("unable to write to report destination: %+v", err)
-			}
-		}
-	}()
-	if err != nil {
-		return err
-	}
+func (pres *Presenter) Present(output io.Writer) error {
 	expandedPathToTemplateFile, err := homedir.Expand(pres.pathToTemplateFile)
 	if err != nil {
 		return fmt.Errorf("unable to expand path %q", pres.pathToTemplateFile)

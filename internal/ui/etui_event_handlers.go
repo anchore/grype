@@ -18,8 +18,8 @@ import (
 	"github.com/anchore/grype/internal/version"
 )
 
-func handleAppUpdateAvailable(_ context.Context, fr *frame.Frame, event partybus.Event, _ *sync.WaitGroup) error {
-	newVersion, err := grypeEventParsers.ParseAppUpdateAvailable(event)
+func handleCLIAppUpdateAvailable(_ context.Context, fr *frame.Frame, event partybus.Event, _ *sync.WaitGroup) error {
+	newVersion, err := grypeEventParsers.ParseCLIAppUpdateAvailable(event)
 	if err != nil {
 		return fmt.Errorf("bad %s event: %w", event.Type, err)
 	}

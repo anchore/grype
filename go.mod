@@ -56,6 +56,7 @@ require (
 	github.com/anchore/syft v0.84.2-0.20230705174713-cfbb9f703bd7
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/mitchellh/mapstructure v1.5.0
+	github.com/wagoodman/go-presenter v0.0.0-20211015174752-f9c01afc824b
 )
 
 require (

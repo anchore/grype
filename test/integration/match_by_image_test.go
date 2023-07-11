@@ -16,7 +16,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/stringutil"
 	"github.com/anchore/stereoscope/pkg/imagetest"
 	"github.com/anchore/syft/syft"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -538,8 +538,8 @@ func addHaskellMatches(t *testing.T, theSource source.Source, catalog *syftPkg.C
 }
 
 func TestMatchByImage(t *testing.T) {
-	observedMatchers := internal.NewStringSet()
-	definedMatchers := internal.NewStringSet()
+	observedMatchers := stringutil.NewStringSet()
+	definedMatchers := stringutil.NewStringSet()
 	for _, l := range match.AllMatcherTypes {
 		definedMatchers.Add(string(l))
 	}

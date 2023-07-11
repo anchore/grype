@@ -4,14 +4,10 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/spf13/afero"
-
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal/file"
-	"github.com/anchore/grype/internal/log"
 )
 
 // Presenter is a generic struct for holding fields needed for reporting
@@ -23,12 +19,10 @@ type Presenter struct {
 	metadataProvider vulnerability.MetadataProvider
 	appConfig        interface{}
 	dbStatus         interface{}
-	outputFilePath   string
-	fs               afero.Fs
 }
 
 // NewPresenter creates a new JSON presenter
-func NewPresenter(fs afero.Fs, pb models.PresenterConfig, outputFilePath string) *Presenter {
+func NewPresenter(pb models.PresenterConfig) *Presenter {
 	return &Presenter{
 		matches:          pb.Matches,
 		ignoredMatches:   pb.IgnoredMatches,
@@ -37,25 +31,11 @@ func NewPresenter(fs afero.Fs, pb models.PresenterConfig, outputFilePath string)
 		context:          pb.Context,
 		appConfig:        pb.AppConfig,
 		dbStatus:         pb.DBStatus,
-		outputFilePath:   outputFilePath,
-		fs:               fs,
 	}
 }
 
 // Present creates a JSON-based reporting
-func (pres *Presenter) Present(defaultOutput io.Writer) error {
-	output, closer, err := file.GetWriter(pres.fs, defaultOutput, pres.outputFilePath)
-	defer func() {
-		if closer != nil {
-			err := closer()
-			if err != nil {
-				log.Warnf("unable to write to report destination: %+v", err)
-			}
-		}
-	}()
-	if err != nil {
-		return err
-	}
+func (pres *Presenter) Present(output io.Writer) error {
 	doc, err := models.NewDocument(pres.packages, pres.context, pres.matches, pres.ignoredMatches, pres.metadataProvider,
 		pres.appConfig, pres.dbStatus)
 	if err != nil {

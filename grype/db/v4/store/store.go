@@ -10,7 +10,7 @@ import (
 	"github.com/anchore/grype/grype/db/internal/gormadapter"
 	v4 "github.com/anchore/grype/grype/db/v4"
 	"github.com/anchore/grype/grype/db/v4/store/model"
-	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/stringutil"
 	_ "github.com/anchore/sqlite" // provide the sqlite dialect to gorm via import
 )
 
@@ -189,7 +189,7 @@ func (s *store) AddVulnerabilityMetadata(metadata ...v4.VulnerabilityMetadata) e
 				existing.Cvss = append(existing.Cvss, incomingCvss)
 			}
 
-			links := internal.NewStringSetFromSlice(existing.URLs)
+			links := stringutil.NewStringSetFromSlice(existing.URLs)
 			for _, l := range m.URLs {
 				links.Add(l)
 			}
