@@ -385,7 +385,6 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		}); err != nil {
 			errs <- err
 		}
-
 	}()
 	return errs
 }
