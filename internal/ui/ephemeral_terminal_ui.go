@@ -64,7 +64,7 @@ func (h *ephemeralTerminalUI) Setup(unsubscribe func() error) error {
 
 	// prep the logger to not clobber the screen from now on (logrus only)
 	h.logBuffer = bytes.NewBufferString("")
-	logController, ok := log.Log.(logger.Controller)
+	logController, ok := log.Get().(logger.Controller)
 	if ok {
 		logController.SetOutput(h.logBuffer)
 	}
@@ -136,7 +136,7 @@ func (h *ephemeralTerminalUI) closeScreen(force bool) {
 
 func (h *ephemeralTerminalUI) flushLog() {
 	// flush any errors to the screen before the report
-	logController, ok := log.Log.(logger.Controller)
+	logController, ok := log.Get().(logger.Controller)
 	if ok {
 		fmt.Fprint(logController.GetOutput(), h.logBuffer.String())
 		logController.SetOutput(h.uiOutput)

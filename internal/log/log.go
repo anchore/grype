@@ -5,65 +5,73 @@ import (
 	"github.com/anchore/go-logger/adapter/discard"
 )
 
-// Log is the singleton used to facilitate logging internally within syft
-var Log logger.Logger = discard.New()
+// log is the singleton used to facilitate logging internally within syft
+var log logger.Logger = discard.New()
+
+func Set(l logger.Logger) {
+	log = l
+}
+
+func Get() logger.Logger {
+	return log
+}
 
 // Errorf takes a formatted template string and template arguments for the error logging level.
 func Errorf(format string, args ...interface{}) {
-	Log.Errorf(format, args...)
+	log.Errorf(format, args...)
 }
 
 // Error logs the given arguments at the error logging level.
 func Error(args ...interface{}) {
-	Log.Error(args...)
+	log.Error(args...)
 }
 
 // Warnf takes a formatted template string and template arguments for the warning logging level.
 func Warnf(format string, args ...interface{}) {
-	Log.Warnf(format, args...)
+	log.Warnf(format, args...)
 }
 
 // Warn logs the given arguments at the warning logging level.
 func Warn(args ...interface{}) {
-	Log.Warn(args...)
+	log.Warn(args...)
 }
 
 // Infof takes a formatted template string and template arguments for the info logging level.
 func Infof(format string, args ...interface{}) {
-	Log.Infof(format, args...)
+	log.Infof(format, args...)
 }
 
 // Info logs the given arguments at the info logging level.
 func Info(args ...interface{}) {
-	Log.Info(args...)
+	log.Info(args...)
 }
 
 // Debugf takes a formatted template string and template arguments for the debug logging level.
 func Debugf(format string, args ...interface{}) {
-	Log.Debugf(format, args...)
+	log.Debugf(format, args...)
 }
 
 // Debug logs the given arguments at the debug logging level.
 func Debug(args ...interface{}) {
-	Log.Debug(args...)
+	log.Debug(args...)
 }
 
 // Tracef takes a formatted template string and template arguments for the trace logging level.
 func Tracef(format string, args ...interface{}) {
-	Log.Tracef(format, args...)
+	log.Tracef(format, args...)
 }
 
 // Trace logs the given arguments at the trace logging level.
 func Trace(args ...interface{}) {
-	Log.Trace(args...)
+	log.Trace(args...)
 }
 
 // WithFields returns a message logger with multiple key-value fields.
 func WithFields(fields ...interface{}) logger.MessageLogger {
-	return Log.WithFields(fields...)
+	return log.WithFields(fields...)
 }
 
 // Nested returns a new logger with hard coded key-value pairs
 func Nested(fields ...interface{}) logger.Logger {
-	return Log.Nested(fields...)
+	return log.Nested(fields...)
 }

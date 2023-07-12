@@ -1,4 +1,4 @@
-package cmd
+package legacy
 
 import (
 	"fmt"
@@ -11,39 +11,42 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/wagoodman/go-partybus"
 
+	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/event"
-	"github.com/anchore/grype/internal/ui"
 )
 
-var _ ui.UI = (*uiMock)(nil)
+var _ clio.UI = (*uiMock)(nil)
 
 type uiMock struct {
-	t           *testing.T
-	finalEvent  partybus.Event
-	unsubscribe func() error
+	t            *testing.T
+	finalEvent   partybus.Event
+	subscription partybus.Unsubscribable
 	mock.Mock
 }
 
-func (u *uiMock) Setup(unsubscribe func() error) error {
+func (u *uiMock) Setup(unsubscribe partybus.Unsubscribable) error {
+	u.t.Helper()
 	u.t.Logf("UI Setup called")
-	u.unsubscribe = unsubscribe
-	return u.Called(unsubscribe).Error(0)
+	u.subscription = unsubscribe
+	return u.Called(unsubscribe.Unsubscribe).Error(0)
 }
 
 func (u *uiMock) Handle(event partybus.Event) error {
+	u.t.Helper()
 	u.t.Logf("UI Handle called: %+v", event.Type)
 	if event == u.finalEvent {
-		assert.NoError(u.t, u.unsubscribe())
+		assert.NoError(u.t, u.subscription.Unsubscribe())
 	}
 	return u.Called(event).Error(0)
 }
 
 func (u *uiMock) Teardown(_ bool) error {
+	u.t.Helper()
 	u.t.Logf("UI Teardown called")
 	return u.Called().Error(0)
 }
 
-func Test_eventLoop_gracefulExit(t *testing.T) {
+func Test_EventLoop_gracefulExit(t *testing.T) {
 	test := func(t *testing.T) {
 
 		testBus := partybus.NewBus()
@@ -110,7 +113,7 @@ func Test_eventLoop_gracefulExit(t *testing.T) {
 	testWithTimeout(t, 5*time.Second, test)
 }
 
-func Test_eventLoop_workerError(t *testing.T) {
+func Test_EventLoop_workerError(t *testing.T) {
 	test := func(t *testing.T) {
 
 		testBus := partybus.NewBus()
@@ -175,7 +178,7 @@ func Test_eventLoop_workerError(t *testing.T) {
 	testWithTimeout(t, 5*time.Second, test)
 }
 
-func Test_eventLoop_unsubscribeError(t *testing.T) {
+func Test_EventLoop_unsubscribeError(t *testing.T) {
 	test := func(t *testing.T) {
 
 		testBus := partybus.NewBus()
@@ -244,7 +247,7 @@ func Test_eventLoop_unsubscribeError(t *testing.T) {
 	testWithTimeout(t, 5*time.Second, test)
 }
 
-func Test_eventLoop_handlerError(t *testing.T) {
+func Test_EventLoop_handlerError(t *testing.T) {
 	test := func(t *testing.T) {
 
 		testBus := partybus.NewBus()
@@ -253,7 +256,7 @@ func Test_eventLoop_handlerError(t *testing.T) {
 
 		finalEvent := partybus.Event{
 			Type:  event.CLIExit,
-			Error: fmt.Errorf("unable to create presenter"),
+			Error: fmt.Errorf("an exit error occured"),
 		}
 
 		worker := func() <-chan error {
@@ -316,7 +319,7 @@ func Test_eventLoop_handlerError(t *testing.T) {
 	testWithTimeout(t, 5*time.Second, test)
 }
 
-func Test_eventLoop_signalsStopExecution(t *testing.T) {
+func Test_EventLoop_signalsStopExecution(t *testing.T) {
 	test := func(t *testing.T) {
 
 		testBus := partybus.NewBus()
@@ -369,7 +372,7 @@ func Test_eventLoop_signalsStopExecution(t *testing.T) {
 	testWithTimeout(t, 5*time.Second, test)
 }
 
-func Test_eventLoop_uiTeardownError(t *testing.T) {
+func Test_EventLoop_uiTeardownError(t *testing.T) {
 	test := func(t *testing.T) {
 
 		testBus := partybus.NewBus()

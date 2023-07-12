@@ -31,7 +31,7 @@ to a released version (e.g. `go get github.com/anchore/syft@v<semantic-version>`
 The currently supported database format is Sqlite3. Install `sqlite3` in your system and ensure that the `sqlite3` executable is available in your path. Ask `grype` about the location of the database, which will be different depending on the operating system:
 
 ```
-$ go run main.go db status
+$ go run ./cmd/grype db status
 Location:  /Users/alfredo/Library/Caches/grype/db
 Built:  2020-07-31 08:18:29 +0000 UTC
 Current DB Version:  1

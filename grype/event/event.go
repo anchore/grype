@@ -10,9 +10,11 @@ const (
 	typePrefix    = internal.ApplicationName
 	cliTypePrefix = typePrefix + "-cli"
 
-	UpdateVulnerabilityDatabase  partybus.EventType = "grype-update-vulnerability-database"
-	VulnerabilityScanningStarted partybus.EventType = "grype-vulnerability-scanning-started"
-	DatabaseDiffingStarted       partybus.EventType = "grype-database-diffing-started"
+	// Events from the grype library
+
+	UpdateVulnerabilityDatabase  partybus.EventType = typePrefix + "-update-vulnerability-database"
+	VulnerabilityScanningStarted partybus.EventType = typePrefix + "-vulnerability-scanning-started"
+	DatabaseDiffingStarted       partybus.EventType = typePrefix + "-database-diffing-started"
 
 	// Events exclusively for the CLI
 
@@ -21,6 +23,9 @@ const (
 
 	// CLIReport is a partybus event that occurs when an analysis result is ready for final presentation to stdout
 	CLIReport partybus.EventType = cliTypePrefix + "-report"
+
+	// CLINotification is a partybus event that occurs when auxiliary information is ready for presentation to stderr
+	CLINotification partybus.EventType = cliTypePrefix + "-notification"
 
 	// CLIExit is a partybus event that occurs when an analysis result is ready for final presentation
 	CLIExit partybus.EventType = cliTypePrefix + "-exit-event"

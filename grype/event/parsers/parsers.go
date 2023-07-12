@@ -6,9 +6,8 @@ import (
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
 
-	diffEvents "github.com/anchore/grype/grype/differ/events"
 	"github.com/anchore/grype/grype/event"
-	"github.com/anchore/grype/grype/matcher"
+	"github.com/anchore/grype/grype/event/monitor"
 )
 
 type ErrBadPayload struct {
@@ -49,30 +48,30 @@ func ParseUpdateVulnerabilityDatabase(e partybus.Event) (progress.StagedProgress
 	return prog, nil
 }
 
-func ParseVulnerabilityScanningStarted(e partybus.Event) (*matcher.Monitor, error) {
+func ParseVulnerabilityScanningStarted(e partybus.Event) (*monitor.Matching, error) {
 	if err := checkEventType(e.Type, event.VulnerabilityScanningStarted); err != nil {
 		return nil, err
 	}
 
-	monitor, ok := e.Value.(matcher.Monitor)
+	mon, ok := e.Value.(monitor.Matching)
 	if !ok {
 		return nil, newPayloadErr(e.Type, "Value", e.Value)
 	}
 
-	return &monitor, nil
+	return &mon, nil
 }
 
-func ParseDatabaseDiffingStarted(e partybus.Event) (*diffEvents.Monitor, error) {
+func ParseDatabaseDiffingStarted(e partybus.Event) (*monitor.DBDiff, error) {
 	if err := checkEventType(e.Type, event.DatabaseDiffingStarted); err != nil {
 		return nil, err
 	}
 
-	monitor, ok := e.Value.(diffEvents.Monitor)
+	mon, ok := e.Value.(monitor.DBDiff)
 	if !ok {
 		return nil, newPayloadErr(e.Type, "Value", e.Value)
 	}
 
-	return &monitor, nil
+	return &mon, nil
 }
 
 func ParseCLIAppUpdateAvailable(e partybus.Event) (string, error) {
@@ -105,4 +104,23 @@ func ParseCLIReport(e partybus.Event) (string, string, error) {
 	}
 
 	return context, report, nil
+}
+
+func ParseCLINotification(e partybus.Event) (string, string, error) {
+	if err := checkEventType(e.Type, event.CLINotification); err != nil {
+		return "", "", err
+	}
+
+	context, ok := e.Source.(string)
+	if !ok {
+		// this is optional
+		context = ""
+	}
+
+	notification, ok := e.Value.(string)
+	if !ok {
+		return "", "", newPayloadErr(e.Type, "Value", e.Value)
+	}
+
+	return context, notification, nil
 }

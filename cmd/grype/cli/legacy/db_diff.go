@@ -1,16 +1,15 @@
-package cmd
+package legacy
 
 import (
-	"fmt"
-	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
+	"github.com/anchore/grype/cmd/grype/internal/ui"
 	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/differ"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
-	"github.com/anchore/grype/internal/ui"
 	"github.com/anchore/stereoscope"
 )
 
@@ -59,14 +58,18 @@ func startDBDiffCmd(base string, target string, deleteDatabases bool) <-chan err
 			return
 		}
 
+		sb := &strings.Builder{}
+
 		if len(*diff) == 0 {
-			fmt.Println("Databases are identical!")
+			sb.WriteString("Databases are identical!\n")
 		} else {
-			err := d.Present(dbDiffOutputFormat, diff, os.Stdout)
+			err := d.Present(dbDiffOutputFormat, diff, sb)
 			if err != nil {
 				errs <- err
 			}
 		}
+
+		bus.Report(sb.String())
 
 		if deleteDatabases {
 			errs <- d.DeleteDatabases()
@@ -76,16 +79,6 @@ func startDBDiffCmd(base string, target string, deleteDatabases bool) <-chan err
 }
 
 func runDBDiffCmd(cmd *cobra.Command, args []string) error {
-	reporter, closer, err := reportWriter()
-	defer func() {
-		if err := closer(); err != nil {
-			log.Warnf("unable to write to report destination: %+v", err)
-		}
-	}()
-	if err != nil {
-		return err
-	}
-
 	deleteDatabases, err := cmd.Flags().GetBool(deleteFlag)
 	if err != nil {
 		return err
@@ -117,7 +110,7 @@ func runDBDiffCmd(cmd *cobra.Command, args []string) error {
 		setupSignals(),
 		eventSubscription,
 		stereoscope.Cleanup,
-		ui.Select(isVerbose(), appConfig.Quiet, reporter)...,
+		ui.Select(isVerbose(), appConfig.Quiet)...,
 	)
 }
 

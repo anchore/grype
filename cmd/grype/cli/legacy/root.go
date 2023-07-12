@@ -1,4 +1,4 @@
-package cmd
+package legacy
 
 import (
 	"errors"
@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/wagoodman/go-partybus"
 
+	"github.com/anchore/grype/cmd/grype/internal/ui"
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db"
 	grypeDb "github.com/anchore/grype/grype/db/v5"
@@ -37,7 +38,6 @@ import (
 	"github.com/anchore/grype/internal/format"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/stringutil"
-	"github.com/anchore/grype/internal/ui"
 	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/syft/syft/linux"
@@ -262,23 +262,12 @@ func rootExec(_ *cobra.Command, args []string) error {
 		userInput = args[0]
 	}
 
-	reporter, closer, err := reportWriter()
-	defer func() {
-		if err := closer(); err != nil {
-			log.Warnf("unable to write to report destination: %+v", err)
-		}
-	}()
-
-	if err != nil {
-		return err
-	}
-
 	return eventLoop(
 		startWorker(userInput, appConfig.FailOnSeverity),
 		setupSignals(),
 		eventSubscription,
 		stereoscope.Cleanup,
-		ui.Select(isVerbose(), appConfig.Quiet, reporter)...,
+		ui.Select(isVerbose(), appConfig.Quiet)...,
 	)
 }
 
@@ -396,6 +385,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		}); err != nil {
 			errs <- err
 		}
+
 	}()
 	return errs
 }

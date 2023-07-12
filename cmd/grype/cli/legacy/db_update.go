@@ -1,14 +1,13 @@
-package cmd
+package legacy
 
 import (
 	"fmt"
 
 	"github.com/spf13/cobra"
 
+	"github.com/anchore/grype/cmd/grype/internal/ui"
 	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/internal/bus"
-	"github.com/anchore/grype/internal/log"
-	"github.com/anchore/grype/internal/ui"
 	"github.com/anchore/stereoscope"
 )
 
@@ -50,20 +49,11 @@ func startDBUpdateCmd() <-chan error {
 }
 
 func runDBUpdateCmd(_ *cobra.Command, _ []string) error {
-	reporter, closer, err := reportWriter()
-	defer func() {
-		if err := closer(); err != nil {
-			log.Warnf("unable to write to report destination: %+v", err)
-		}
-	}()
-	if err != nil {
-		return err
-	}
 	return eventLoop(
 		startDBUpdateCmd(),
 		setupSignals(),
 		eventSubscription,
 		stereoscope.Cleanup,
-		ui.Select(isVerbose(), appConfig.Quiet, reporter)...,
+		ui.Select(isVerbose(), appConfig.Quiet)...,
 	)
 }

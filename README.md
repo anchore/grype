@@ -446,7 +446,7 @@ Find complete information on Grype's database commands by running `grype db --he
 Grype supplies shell completion through its CLI implementation ([cobra](https://github.com/spf13/cobra/blob/master/shell_completions.md)). Generate the completion code for your shell by running one of the following commands:
 
 - `grype completion <bash|zsh|fish>`
-- `go run main.go completion <bash|zsh|fish>`
+- `go run ./cmd/grype completion <bash|zsh|fish>`
 
 This will output a shell script to STDOUT, which can then be used as a completion script for Grype. Running one of the above commands with the
 `-h` or `--help` flags will provide instructions on how to do that for your chosen shell.

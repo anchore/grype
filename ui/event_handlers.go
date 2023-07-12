@@ -222,7 +222,7 @@ func (r *Handler) DatabaseDiffingStartedHandler(ctx context.Context, fr *frame.F
 	wg.Add(1)
 
 	_, spinner := startProcess()
-	stream := progress.StreamMonitors(ctx, []progress.Monitorable{monitor.RowsProcessed, monitor.DifferencesDiscovered}, 50*time.Millisecond)
+	stream := progress.StreamMonitors(ctx, []progress.Monitorable{monitor.StageProgress, monitor.DifferencesDiscovered}, 50*time.Millisecond)
 	title := tileFormat.Sprint("Diffing databases...")
 
 	formatFn := func(val int64) {

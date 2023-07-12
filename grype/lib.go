@@ -8,8 +8,8 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-func SetLogger(logger logger.Logger) {
-	log.Log = logger
+func SetLogger(l logger.Logger) {
+	log.Set(l)
 }
 
 func SetBus(b *partybus.Bus) {
