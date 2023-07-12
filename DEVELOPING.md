@@ -6,7 +6,7 @@ There are a few useful things to know before diving into the codebase. This proj
 
 After cloning do the following:
 
-1. run `go build main.go` to get a binary named `main` from the source (use `-o <name>` to get a differently named binary), or optionally `go run main.go` to run from source.
+1. run `go build ./cmd/grype` to get a binary named `main` from the source (use `-o <name>` to get a differently named binary), or optionally `go run ./cmd/grype` to run from source.
 
 In order to run tests and build all artifacts:
 

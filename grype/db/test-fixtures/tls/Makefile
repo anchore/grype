@@ -9,14 +9,14 @@ serve: www/listing.json www/db.tar.gz server.crt
 grype-test-fail: clean-dbdir dbdir
 	GRYPE_DB_CACHE_DIR=$(shell pwd)/dbdir \
 	GRYPE_DB_UPDATE_URL=https://$(shell hostname).local/listing.json \
-		go run ../../../../main.go -vv alpine:latest
+		go run ../../../../cmd/grype -vv alpine:latest
 
 .PHONY: grype-test-pass
 grype-test-pass: clean-dbdir dbdir
 	GRYPE_DB_CA_CERT=$(shell pwd)/server.crt \
 	GRYPE_DB_CACHE_DIR=$(shell pwd)/dbdir \
 	GRYPE_DB_UPDATE_URL=https://$(shell hostname).local/listing.json \
-		go run ../../../../main.go -vv alpine:latest
+		go run ../../../../cmd/grype -vv alpine:latest
 
 dbdir:
 	mkdir -p dbdir
