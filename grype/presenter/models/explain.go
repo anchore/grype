@@ -273,8 +273,20 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 		}
 	}
 	var sortPURLs []string
-	for k := range pURLsToMatchDetails {
+	for k, v := range pURLsToMatchDetails {
 		sortPURLs = append(sortPURLs, k)
+		dedupeLocations := make(map[string]ExplainedEvidence)
+		for _, l := range v.Locations {
+			dedupeLocations[l.Location] = l
+		}
+		var uniqueLocations []ExplainedEvidence
+		for _, l := range dedupeLocations {
+			uniqueLocations = append(uniqueLocations, l)
+		}
+		sort.Slice(uniqueLocations, func(i, j int) bool {
+			return uniqueLocations[i].Location < uniqueLocations[j].Location
+		})
+		v.Locations = uniqueLocations
 	}
 	sort.Strings(sortPURLs)
 	var explainedPackages []*ExplainedPackage
@@ -285,7 +297,7 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 	// TODO: this isn't right at all.
 	// We need to be able to add related vulnerabilities
 	var relatedVulnerabilities []VulnerabilityMetadata
-	var dedupeRelatedVulnerabilities = make(map[string]VulnerabilityMetadata)
+	dedupeRelatedVulnerabilities := make(map[string]VulnerabilityMetadata)
 	var sortDedupedRelatedVulnerabilities []string
 	for _, m := range append(b.RelatedMatches, b.PrimaryMatch) {
 		key := fmt.Sprintf("%s:%s", m.Vulnerability.Namespace, m.Vulnerability.ID)
