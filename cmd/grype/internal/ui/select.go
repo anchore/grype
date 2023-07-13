@@ -1,6 +1,3 @@
-//go:build linux || darwin || netbsd
-// +build linux darwin netbsd
-
 package ui
 
 import (
