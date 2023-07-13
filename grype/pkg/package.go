@@ -135,12 +135,27 @@ func excludePackage(p pkg.Package, parent pkg.Package) bool {
 		return false
 	}
 
+	// If the parent is an OS package and the child is not, exclude the child
+	if isOSPackage(parent) && !isOSPackage(p) {
+		return true
+	}
+
 	// filter out only binary pkg
 	if p.Type != pkg.BinaryPkg {
+		// when I fix the version info, I think this one will exclude it.
 		return false
 	}
 
 	return true
+}
+
+func isOSPackage(p pkg.Package) bool {
+	switch p.Type {
+	case pkg.DebPkg, pkg.RpmPkg, pkg.ApkPkg:
+		return true
+	default:
+		return false
+	}
 }
 
 func dataFromPkg(p pkg.Package) (MetadataType, interface{}, []UpstreamPackage) {

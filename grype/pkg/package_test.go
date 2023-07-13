@@ -704,6 +704,13 @@ func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
 				[]string{"rpm:node@19.2-r1 -> apk:node@19.2"}),
 			expectedPackages: []string{"apk:node@19.2", "rpm:node@19.2-r1"},
 		},
+		{
+			name: "python bindings for system RPM install",
+			sbom: catalogWithOverlaps(
+				[]string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
+				[]string{"rpm:python3-rpm@4.14.3-26.el8 -> python:rpm@4.14.3"}),
+			expectedPackages: []string{"rpm:python3-rpm@4.14.3-26.el8"},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
