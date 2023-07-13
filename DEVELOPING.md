@@ -6,7 +6,7 @@ There are a few useful things to know before diving into the codebase. This proj
 
 After cloning do the following:
 
-1. run `go build main.go` to get a binary named `main` from the source (use `-o <name>` to get a differently named binary), or optionally `go run main.go` to run from source.
+1. run `go build ./cmd/grype` to get a binary named `main` from the source (use `-o <name>` to get a differently named binary), or optionally `go run ./cmd/grype` to run from source.
 
 In order to run tests and build all artifacts:
 
@@ -31,7 +31,7 @@ to a released version (e.g. `go get github.com/anchore/syft@v<semantic-version>`
 The currently supported database format is Sqlite3. Install `sqlite3` in your system and ensure that the `sqlite3` executable is available in your path. Ask `grype` about the location of the database, which will be different depending on the operating system:
 
 ```
-$ go run main.go db status
+$ go run ./cmd/grype db status
 Location:  /Users/alfredo/Library/Caches/grype/db
 Built:  2020-07-31 08:18:29 +0000 UTC
 Current DB Version:  1

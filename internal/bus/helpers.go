@@ -18,3 +18,10 @@ func Report(report string) {
 		Value: report,
 	})
 }
+
+func Notify(message string) {
+	Publish(partybus.Event{
+		Type:  event.CLINotification,
+		Value: message,
+	})
+}
