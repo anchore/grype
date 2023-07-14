@@ -5,5 +5,6 @@ import (
 )
 
 func main() {
-	legacy.Execute()
+	cli := legacy.NewCli()
+	cli.Execute()
 }
