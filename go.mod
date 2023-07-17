@@ -57,7 +57,7 @@ require (
 	github.com/anchore/syft v0.85.0
 	github.com/charmbracelet/bubbletea v0.24.2
 	github.com/charmbracelet/lipgloss v0.7.1
-	github.com/gkampitakis/go-snaps v0.4.7
+	github.com/gkampitakis/go-snaps v0.4.8
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/wagoodman/go-presenter v0.0.0-20211015174752-f9c01afc824b
