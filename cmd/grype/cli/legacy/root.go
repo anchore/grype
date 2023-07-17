@@ -289,8 +289,7 @@ func startWorker(userInput string, failOnSeverity *vulnerability.Severity) <-cha
 		defer close(errs)
 		defer bus.Exit()
 
-		// TODO: appConfig.File
-		writer, err := format.MakeScanResultWriter(appConfig.Outputs, appConfig.OutputTemplateFile, format.PresentationConfig{
+		writer, err := format.MakeScanResultWriter(appConfig.Outputs, appConfig.File, format.PresentationConfig{
 			TemplateFilePath: appConfig.OutputTemplateFile,
 			ShowSuppressed:   appConfig.ShowSuppressed,
 		})
