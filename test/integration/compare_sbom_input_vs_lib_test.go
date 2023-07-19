@@ -74,9 +74,10 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 	)
 	observedPkgTypes := strset.New()
 	testCases := []struct {
-		name   string
-		image  string
-		format sbom.FormatID
+		name                 string
+		image                string
+		format               sbom.FormatID
+		allowedExtraPackages []string
 	}{
 		{
 			image:  "anchore/test_images:vulnerabilities-alpine",
@@ -157,15 +158,17 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		},
 
 		{
-			image:  "anchore/test_images:npm",
-			format: syft.SPDXJSONFormatID,
-			name:   "npm-spdx-json",
+			image:                "anchore/test_images:npm",
+			format:               syft.SPDXJSONFormatID,
+			name:                 "npm-spdx-json",
+			allowedExtraPackages: []string{"GHSA-hj9c-8jmm-8c52-npm-7.17.0"},
 		},
 
 		{
-			image:  "anchore/test_images:npm",
-			format: syft.SPDXTagValueFormatID,
-			name:   "npm-spdx-tag-value",
+			image:                "anchore/test_images:npm",
+			format:               syft.SPDXTagValueFormatID,
+			name:                 "npm-spdx-tag-value",
+			allowedExtraPackages: []string{"GHSA-hj9c-8jmm-8c52-npm-7.17.0"},
 		},
 
 		{
@@ -252,9 +255,16 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 			// compare packages (shallow)
 			matchSetFromSbom := getMatchSet(matchesFromSbom)
 			matchSetFromImage := getMatchSet(matchesFromImage)
+			sbomButNotDirect := strset.Difference(matchSetFromSbom, matchSetFromImage)
+			directButNotSbom := strset.Difference(matchSetFromImage, matchSetFromSbom)
 
-			assert.Empty(t, strset.Difference(matchSetFromSbom, matchSetFromImage).List(), "vulnerabilities present only in results when using sbom as input")
-			assert.Empty(t, strset.Difference(matchSetFromImage, matchSetFromSbom).List(), "vulnerabilities present only in results when using image as input")
+			for _, allowed := range tc.allowedExtraPackages {
+				sbomButNotDirect.Remove(allowed)
+				directButNotSbom.Remove(allowed)
+			}
+
+			assert.Empty(t, sbomButNotDirect.List(), "vulnerabilities present only in results when using sbom as input")
+			assert.Empty(t, directButNotSbom.List(), "vulnerabilities present only in results when using image as input")
 
 			// track all covered package types (for use after the test)
 			for _, p := range pkgsFromSbom {
