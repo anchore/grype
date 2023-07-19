@@ -56,9 +56,9 @@ func TestCmd(t *testing.T) {
 		},
 		{
 			name: "vulnerabilities in output on -f with failure",
-			args: strings.Split("alpine:3.12.11 -f critical --only-fixed --platform linux/amd64", " "),
+			args: []string{"registry:busybox:1.31", "-f", "high", "--platform", "linux/amd64"},
 			assertions: []traitAssertion{
-				assertInOutput("CVE-2022-37434"), // a known vulnerability in the alpine:3.12.11 image
+				assertInOutput("CVE-2021-42379"),
 			},
 		},
 	}
