@@ -16,7 +16,7 @@ import (
 // eventLoop listens to worker errors (from execution path), worker events (from a partybus subscription), and
 // signal interrupts. Is responsible for handling each event relative to a given UI an to coordinate eventing until
 // an eventual graceful exit.
-func eventLoop(workerErrs <-chan error, signals <-chan os.Signal, subscription *partybus.Subscription, cleanupFn func(), uxs ...clio.UI) error {
+func eventLoop(workerErrs <-chan error, signals <-chan os.Signal, subscription *partybus.Subscription, cleanupFn func(), uxs ...clio.UI) error { //nolint:gocognit
 	defer cleanupFn()
 	events := subscription.Events()
 	var err error
