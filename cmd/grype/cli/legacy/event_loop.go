@@ -9,6 +9,7 @@ import (
 	"github.com/wagoodman/go-partybus"
 
 	"github.com/anchore/clio"
+	"github.com/anchore/grype/grype/grypeerr"
 	"github.com/anchore/grype/internal/log"
 )
 
@@ -39,12 +40,15 @@ func eventLoop(workerErrs <-chan error, signals <-chan os.Signal, subscription *
 				continue
 			}
 			if err != nil {
-				// capture the error from the worker and unsubscribe to complete a graceful shutdown
-				retErr = multierror.Append(retErr, err)
-				_ = subscription.Unsubscribe()
-				// the worker has exited, we may have been mid-handling events for the UI which should now be
-				// ignored, in which case forcing a teardown of the UI irregardless of the state is required.
-				forceTeardown = true
+				// if the error is not a severity threshold error, then it is unexpected and we should start to tear down the UI
+				if !errors.Is(err, grypeerr.ErrAboveSeverityThreshold) {
+					// capture the error from the worker and unsubscribe to complete a graceful shutdown
+					retErr = multierror.Append(retErr, err)
+					_ = subscription.Unsubscribe()
+					// the worker has exited, we may have been mid-handling events for the UI which should now be
+					// ignored, in which case forcing a teardown of the UI irregardless of the state is required.
+					forceTeardown = true
+				}
 			}
 		case e, isOpen := <-events:
 			if !isOpen {
