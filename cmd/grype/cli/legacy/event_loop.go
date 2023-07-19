@@ -43,12 +43,12 @@ func eventLoop(workerErrs <-chan error, signals <-chan os.Signal, subscription *
 				// if the error is not a severity threshold error, then it is unexpected and we should start to tear down the UI
 				if !errors.Is(err, grypeerr.ErrAboveSeverityThreshold) {
 					// capture the error from the worker and unsubscribe to complete a graceful shutdown
-					retErr = multierror.Append(retErr, err)
 					_ = subscription.Unsubscribe()
 					// the worker has exited, we may have been mid-handling events for the UI which should now be
 					// ignored, in which case forcing a teardown of the UI irregardless of the state is required.
 					forceTeardown = true
 				}
+				retErr = multierror.Append(retErr, err)
 			}
 		case e, isOpen := <-events:
 			if !isOpen {
