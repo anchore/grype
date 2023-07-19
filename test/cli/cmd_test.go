@@ -54,6 +54,14 @@ func TestCmd(t *testing.T) {
 				assertInOutput("scope: all-layers"),
 			},
 		},
+		{
+			name: "vulnerabilities in output on -f with failure",
+			args: []string{"registry:busybox:1.31", "-f", "high", "--platform", "linux/amd64"},
+			assertions: []traitAssertion{
+				assertInOutput("CVE-2021-42379"),
+				assertFailingReturnCode,
+			},
+		},
 	}
 
 	for _, test := range tests {
