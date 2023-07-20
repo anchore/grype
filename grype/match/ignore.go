@@ -90,6 +90,12 @@ func shouldIgnore(match Match, rule IgnoreRule) bool {
 	return true
 }
 
+// HasConditions returns true if the ignore rule has conditions
+// that can cause a match to be ignored
+func (ir IgnoreRule) HasConditions() bool {
+	return len(getIgnoreConditionsForRule(ir)) == 0
+}
+
 // An ignoreCondition is a function that returns a boolean indicating whether
 // the given Match should be ignored.
 type ignoreCondition func(match Match) bool
