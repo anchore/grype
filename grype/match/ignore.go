@@ -20,6 +20,7 @@ type IgnoreRule struct {
 	Vulnerability string            `yaml:"vulnerability" json:"vulnerability" mapstructure:"vulnerability"`
 	Namespace     string            `yaml:"namespace" json:"namespace" mapstructure:"namespace"`
 	FixState      string            `yaml:"fix-state" json:"fix-state" mapstructure:"fix-state"`
+	VexStatus     string            `yaml:"vex-status" json:"vex-status" mapstructure:"vex-status"`
 	Package       IgnoreRulePackage `yaml:"package" json:"package" mapstructure:"package"`
 }
 
@@ -67,6 +68,11 @@ func ApplyIgnoreRules(matches Matches, rules []IgnoreRule) (Matches, []IgnoredMa
 }
 
 func shouldIgnore(match Match, rule IgnoreRule) bool {
+	// VEX rules are handled by the vex processor
+	if rule.VexStatus != "" {
+		return false
+	}
+
 	ignoreConditions := getIgnoreConditionsForRule(rule)
 	if len(ignoreConditions) == 0 {
 		// this rule specifies no criteria, so it doesn't apply to the Match
