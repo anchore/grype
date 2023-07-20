@@ -195,6 +195,13 @@ func matchingRule(ignoreRules []match.IgnoreRule, m match.Match, statement *open
 			continue
 		}
 
+		// If the rule applies to a VEX justification it needs to match the
+		// statement, note that justifications only apply to not_affected:
+		if statement.Status == openvex.StatusNotAffected && rule.VexJustification != "" &&
+			rule.VexJustification != string(statement.Justification) {
+			continue
+		}
+
 		// If the vulnerability is blank in the rule it means we will honor
 		// any status with any vulnerability.
 		if rule.Vulnerability == "" {

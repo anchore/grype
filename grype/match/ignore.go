@@ -17,11 +17,12 @@ type IgnoredMatch struct {
 // specified criteria must be met by the vulnerability match in order for the
 // rule to apply.
 type IgnoreRule struct {
-	Vulnerability string            `yaml:"vulnerability" json:"vulnerability" mapstructure:"vulnerability"`
-	Namespace     string            `yaml:"namespace" json:"namespace" mapstructure:"namespace"`
-	FixState      string            `yaml:"fix-state" json:"fix-state" mapstructure:"fix-state"`
-	VexStatus     string            `yaml:"vex-status" json:"vex-status" mapstructure:"vex-status"`
-	Package       IgnoreRulePackage `yaml:"package" json:"package" mapstructure:"package"`
+	Vulnerability    string            `yaml:"vulnerability" json:"vulnerability" mapstructure:"vulnerability"`
+	Namespace        string            `yaml:"namespace" json:"namespace" mapstructure:"namespace"`
+	FixState         string            `yaml:"fix-state" json:"fix-state" mapstructure:"fix-state"`
+	VexStatus        string            `yaml:"vex-status" json:"vex-status" mapstructure:"vex-status"`
+	VexJustification string            `yaml:"vex-justification" json:"vex-justification" mapstructure:"vex-justification"`
+	Package          IgnoreRulePackage `yaml:"package" json:"package" mapstructure:"package"`
 }
 
 // IgnoreRulePackage describes the Package-specific fields that comprise the IgnoreRule.
