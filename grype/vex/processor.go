@@ -3,9 +3,20 @@ package vex
 import (
 	"fmt"
 
+	gopenvex "github.com/openvex/go-vex/pkg/vex"
+
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vex/openvex"
+)
+
+type Status string
+
+const (
+	StatusNotAffected        Status = Status(gopenvex.StatusNotAffected)
+	StatusAffected           Status = Status(gopenvex.StatusAffected)
+	StatusFixed              Status = Status(gopenvex.StatusFixed)
+	StatusUnderInvestigation Status = Status(gopenvex.StatusUnderInvestigation)
 )
 
 type Processor struct {
