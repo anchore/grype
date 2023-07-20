@@ -5,6 +5,7 @@ import (
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/vex/openvex"
 )
 
 type Processor struct {
@@ -27,7 +28,7 @@ type vexProcessorImplementation interface {
 // getVexImplementation this function returns the vex processor implementation
 // at some point it can read the options and choose a user configured implementation.
 func getVexImplementation() vexProcessorImplementation {
-	return nil
+	return openvex.New()
 }
 
 // NewProcessor returns a new VEX processor. For now, it defaults to the only vex
