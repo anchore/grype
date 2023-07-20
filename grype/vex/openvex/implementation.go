@@ -111,7 +111,7 @@ func subcomponentIdentifiersFromMatch(m *match.Match) []string {
 // FilterMatches takes a set of scanning results and moves any results marked in
 // the VEX data as fixed or not_affected to the ignored list.
 func (ovm *Processor) FilterMatches(
-	docRaw interface{}, pkgContext *pkg.Context, matches *match.Matches, ignoredMatches []match.IgnoredMatch,
+	docRaw interface{}, ignoreRules []match.IgnoreRule, pkgContext *pkg.Context, matches *match.Matches, ignoredMatches []match.IgnoredMatch,
 ) (*match.Matches, []match.IgnoredMatch, error) {
 	doc, ok := docRaw.(*openvex.VEX)
 	if !ok {
@@ -145,29 +145,67 @@ func (ovm *Processor) FilterMatches(
 			continue
 		}
 
+		rule := matchingRule(ignoreRules, sorted[i], statement)
+		if rule == nil {
+			remainingMatches.Add(sorted[i])
+			continue
+		}
+
 		// Filtering only applies to not_affected and fixed statuses
 		if statement.Status != openvex.StatusNotAffected && statement.Status != openvex.StatusFixed {
 			remainingMatches.Add(sorted[i])
 			continue
 		}
 
+		rule.Package = match.IgnoreRulePackage{
+			Name:     sorted[i].Package.Name,
+			Version:  sorted[i].Package.Version,
+			Language: sorted[i].Package.Language.String(),
+			Type:     string(sorted[i].Package.Type),
+		}
+
 		ignoredMatches = append(ignoredMatches, match.IgnoredMatch{
-			Match: sorted[i],
-			AppliedIgnoreRules: []match.IgnoreRule{
-				{
-					Vulnerability: sorted[i].Vulnerability.ID,
-					Namespace:     "vex",
-					FixState:      string(statement.Status),
-					Package: match.IgnoreRulePackage{
-						Name:     sorted[i].Package.Name,
-						Version:  sorted[i].Package.Version,
-						Language: sorted[i].Package.Language.String(),
-						Type:     string(sorted[i].Package.Type),
-						Location: "",
-					},
-				},
-			},
+			Match:              sorted[i],
+			AppliedIgnoreRules: []match.IgnoreRule{*rule},
 		})
 	}
 	return &remainingMatches, ignoredMatches, nil
+}
+
+// matchingRule cycles through a set of ignore rules and returns the first
+// one that matches the statement and the match. Returns nil if none match.
+func matchingRule(ignoreRules []match.IgnoreRule, m match.Match, statement *openvex.Statement) *match.IgnoreRule {
+	ms := match.NewMatches()
+	ms.Add(m)
+
+	for _, rule := range ignoreRules {
+		// If the rule has more conditions than just the VEX statement, check if
+		// it applies to the current match.
+		if rule.HasConditions() {
+			r := rule
+			r.VexStatus = ""
+			if _, ignored := match.ApplyIgnoreRules(ms, []match.IgnoreRule{r}); len(ignored) == 0 {
+				continue
+			}
+		}
+
+		// If the status in the statement is not the same in the rule
+		// and the vex statement, it does not apply
+		if string(statement.Status) != string(rule.VexStatus) {
+			continue
+		}
+
+		// If the vulnerability is blank in the rule it means we will honor
+		// any status with any vulnerability.
+		if rule.Vulnerability == "" {
+			return &rule
+		}
+
+		// If the vulnerability is set, the rule applies if it is the same
+		// in the statment and the rule.
+		if statement.Vulnerability.Matches(rule.Vulnerability) {
+			return &rule
+		}
+	}
+	return nil
 }
