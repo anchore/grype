@@ -161,14 +161,17 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 			image:                "anchore/test_images:npm",
 			format:               syft.SPDXJSONFormatID,
 			name:                 "npm-spdx-json",
-			allowedExtraPackages: []string{"GHSA-hj9c-8jmm-8c52-npm-7.17.0"},
+			allowedExtraPackages: []string{"GHSA-hj9c-8jmm-8c52-npm-7.17.0"}, // see note below
 		},
 
 		{
 			image:                "anchore/test_images:npm",
 			format:               syft.SPDXTagValueFormatID,
 			name:                 "npm-spdx-tag-value",
-			allowedExtraPackages: []string{"GHSA-hj9c-8jmm-8c52-npm-7.17.0"},
+			allowedExtraPackages: []string{"GHSA-hj9c-8jmm-8c52-npm-7.17.0"}, // npm itself is found
+			// both by the javascript cataloger and the APK cataloger, since it's installed
+			// as an apk package in this image. In Syft JSON, the we have enough information
+			// to prefer the APK cataloger, but in other formats, this information is lost.
 		},
 
 		{
