@@ -151,7 +151,7 @@ func excludePackage(p pkg.Package, parent pkg.Package) bool {
 
 func isOSPackage(p pkg.Package) bool {
 	switch p.Type {
-	case pkg.DebPkg, pkg.RpmPkg, pkg.ApkPkg:
+	case pkg.DebPkg, pkg.RpmPkg, pkg.PortagePkg, pkg.AlpmPkg:
 		return true
 	default:
 		return false
