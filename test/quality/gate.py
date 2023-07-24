@@ -90,6 +90,17 @@ class bcolors:
     UNDERLINE = '\033[4m'
     RESET = '\033[0m'
 
+if not sys.stdout.isatty():
+    bcolors.HEADER = ""
+    bcolors.OKBLUE = ""
+    bcolors.OKCYAN = ""
+    bcolors.OKGREEN = ""
+    bcolors.WARNING = ""
+    bcolors.FAIL = ""
+    bcolors.BOLD = ""
+    bcolors.UNDERLINE = ""
+    bcolors.RESET = ""
+
 def show_results_used(results: list[artifact.ScanResult]):
     print(f"   Results used:")
     for idx, result in enumerate(results):
