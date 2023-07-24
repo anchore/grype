@@ -136,8 +136,8 @@ func excludePackage(p pkg.Package, parent pkg.Package) bool {
 	}
 
 	// If the parent is an OS package and the child is not, exclude the child
-	// APK packages intentionally excluded, because the APK feed
-	// has fix but not vulnerability data, grype may be relying on the
+	// Except if the parent is an APK package, because the APK feed
+	// has fix but not vulnerability data, so grype may be relying on the
 	// related package to provide vulnerability data.
 	if isOSPackage(parent) && parent.Type != pkg.ApkPkg && !isOSPackage(p) {
 		return true
