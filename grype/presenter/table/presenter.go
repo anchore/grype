@@ -47,7 +47,6 @@ func (pres *Presenter) Present(output io.Writer) error {
 	// Generate rows for matching vulnerabilities
 	for m := range pres.results.Enumerate() {
 		row, err := createRow(m, pres.metadataProvider, "")
-
 		if err != nil {
 			return err
 		}
@@ -71,8 +70,30 @@ func (pres *Presenter) Present(output io.Writer) error {
 		return err
 	}
 
-	rows = removeDuplicateRows(rows)
+	rows = sortRows(removeDuplicateRows(rows))
 
+	table := tablewriter.NewWriter(output)
+	table.SetHeader(columns)
+	table.SetAutoWrapText(false)
+	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
+	table.SetAlignment(tablewriter.ALIGN_LEFT)
+
+	table.SetHeaderLine(false)
+	table.SetBorder(false)
+	table.SetAutoFormatHeaders(true)
+	table.SetCenterSeparator("")
+	table.SetColumnSeparator("")
+	table.SetRowSeparator("")
+	table.SetTablePadding("  ")
+	table.SetNoWhiteSpace(true)
+
+	table.AppendBulk(rows)
+	table.Render()
+
+	return nil
+}
+
+func sortRows(rows [][]string) [][]string {
 	// sort
 	sort.SliceStable(rows, func(i, j int) bool {
 		var (
@@ -102,26 +123,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 		return rows[i][name] < rows[j][name]
 	})
 
-	table := tablewriter.NewWriter(output)
-
-	table.SetHeader(columns)
-	table.SetAutoWrapText(false)
-	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
-
-	table.SetHeaderLine(false)
-	table.SetBorder(false)
-	table.SetAutoFormatHeaders(true)
-	table.SetCenterSeparator("")
-	table.SetColumnSeparator("")
-	table.SetRowSeparator("")
-	table.SetTablePadding("  ")
-	table.SetNoWhiteSpace(true)
-
-	table.AppendBulk(rows)
-	table.Render()
-
-	return nil
+	return rows
 }
 
 func sevScore(sev string) int {

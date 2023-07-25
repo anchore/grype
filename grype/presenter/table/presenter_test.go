@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
+	"github.com/google/go-cmp/cmp"
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
 
@@ -18,7 +19,7 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-var update = flag.Bool("update", false, "update the *.golden files for table presenters")
+var update = flag.Bool("update", true, "update the *.golden files for table presenters")
 
 func TestCreateRow(t *testing.T) {
 	pkg1 := pkg.Package{
@@ -74,7 +75,6 @@ func TestCreateRow(t *testing.T) {
 }
 
 func TestTablePresenter(t *testing.T) {
-
 	var buffer bytes.Buffer
 	matches, packages, _, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.ImageSource)
 
@@ -169,7 +169,36 @@ func TestRemoveDuplicateRows(t *testing.T) {
 			t.Errorf("   diff: %+v", d)
 		}
 	}
+}
 
+func TestSortRows(t *testing.T) {
+	data := [][]string{
+		{"a", "v0.1.0", "", "deb", "CVE-2019-9996", "Critical"},
+		{"a", "v0.1.0", "", "deb", "CVE-2018-9996", "Critical"},
+		{"a", "v0.2.0", "", "deb", "CVE-2010-9996", "High"},
+		{"b", "v0.2.0", "", "deb", "CVE-2010-9996", "Medium"},
+		{"b", "v0.2.0", "", "deb", "CVE-2019-9996", "High"},
+		{"d", "v0.4.0", "", "node", "CVE-2011-9996", "Low"},
+		{"d", "v0.4.0", "", "node", "CVE-2012-9996", "Negligible"},
+		{"c", "v0.6.0", "", "node", "CVE-2013-9996", "Critical"},
+	}
+
+	expected := [][]string{
+		{"a", "v0.1.0", "", "deb", "CVE-2019-9996", "Critical"},
+		{"a", "v0.1.0", "", "deb", "CVE-2018-9996", "Critical"},
+		{"a", "v0.2.0", "", "deb", "CVE-2010-9996", "High"},
+		{"b", "v0.2.0", "", "deb", "CVE-2019-9996", "High"},
+		{"b", "v0.2.0", "", "deb", "CVE-2010-9996", "Medium"},
+		{"c", "v0.6.0", "", "node", "CVE-2013-9996", "Critical"},
+		{"d", "v0.4.0", "", "node", "CVE-2011-9996", "Low"},
+		{"d", "v0.4.0", "", "node", "CVE-2012-9996", "Negligible"},
+	}
+
+	actual := sortRows(data)
+
+	if diff := cmp.Diff(expected, actual); diff != "" {
+		t.Errorf("sortRows() mismatch (-want +got):\n%s", diff)
+	}
 }
 
 func TestHidesIgnoredMatches(t *testing.T) {
