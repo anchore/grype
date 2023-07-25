@@ -19,7 +19,7 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-var update = flag.Bool("update", true, "update the *.golden files for table presenters")
+var update = flag.Bool("update", false, "update the *.golden files for table presenters")
 
 func TestCreateRow(t *testing.T) {
 	pkg1 := pkg.Package{
