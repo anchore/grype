@@ -109,12 +109,12 @@ func sortRows(rows [][]string) [][]string {
 		if rows[i][name] == rows[j][name] {
 			if rows[i][ver] == rows[j][ver] {
 				if rows[i][packageType] == rows[j][packageType] {
-					if sevScore(rows[i][sev]) == sevScore(rows[j][sev]) {
+					if models.SeverityScore(rows[i][sev]) == models.SeverityScore(rows[j][sev]) {
 						// we use > here to get the most recently filed vulnerabilities
 						// to show at the top of the severity
 						return rows[i][vuln] > rows[j][vuln]
 					}
-					return sevScore(rows[i][sev]) > sevScore(rows[j][sev])
+					return models.SeverityScore(rows[i][sev]) > models.SeverityScore(rows[j][sev])
 				}
 				return rows[i][packageType] < rows[j][packageType]
 			}
@@ -124,25 +124,6 @@ func sortRows(rows [][]string) [][]string {
 	})
 
 	return rows
-}
-
-func sevScore(sev string) int {
-	switch sev {
-	case "Unknown":
-		return 0
-	case "Negligible":
-		return 1
-	case "Low":
-		return 2
-	case "Medium":
-		return 3
-	case "High":
-		return 4
-	case "Critical":
-		return 5
-	default:
-		return 0
-	}
 }
 
 func removeDuplicateRows(items [][]string) [][]string {
