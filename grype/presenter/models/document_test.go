@@ -91,7 +91,7 @@ func TestPackagesAreSorted(t *testing.T) {
 		actualVulnerabilities = append(actualVulnerabilities, m.Vulnerability.ID)
 	}
 
-	assert.Equal(t, []string{"CVE-1999-0001", "CVE-1999-0002", "CVE-1999-0003"}, actualVulnerabilities)
+	assert.Equal(t, []string{"CVE-1999-0003", "CVE-1999-0002", "CVE-1999-0001"}, actualVulnerabilities)
 }
 
 func TestTimestampValidFormat(t *testing.T) {

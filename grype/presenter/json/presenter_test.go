@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"flag"
 	"regexp"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -124,6 +125,18 @@ func TestEmptyJsonPresenter(t *testing.T) {
 
 	assert.JSONEq(t, string(expected), string(actual))
 
+}
+
+func TestPresenter_Present_NewDocumentSorted(t *testing.T) {
+	matches, packages, context, metadataProvider, appConfig, dbStatus := internal.GenerateAnalysis(t, internal.ImageSource)
+	doc, err := models.NewDocument(packages, context, matches, nil, metadataProvider, appConfig, dbStatus)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !sort.IsSorted(models.MatchSort(doc.Matches)) {
+		t.Errorf("expected matches to be sorted")
+	}
 }
 
 func redact(content []byte) []byte {

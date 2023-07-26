@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/anchore/grype/grype/match"
@@ -42,6 +43,8 @@ func NewDocument(packages []pkg.Package, context pkg.Context, matches match.Matc
 
 		findings = append(findings, *matchModel)
 	}
+
+	sort.Sort(MatchSort(findings))
 
 	var src *source
 	if context.Source != nil {

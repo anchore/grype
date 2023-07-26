@@ -60,30 +60,36 @@ func newMatch(m match.Match, p pkg.Package, metadataProvider vulnerability.Metad
 	}, nil
 }
 
-var _ sort.Interface = (*ByName)(nil)
+var _ sort.Interface = (*MatchSort)(nil)
 
-type ByName []Match
+type MatchSort []Match
 
 // Len is the number of elements in the collection.
-func (m ByName) Len() int {
+func (m MatchSort) Len() int {
 	return len(m)
 }
 
 // Less reports whether the element with index i should sort before the element with index j.
-func (m ByName) Less(i, j int) bool {
-	if m[i].Artifact.Name == m[j].Artifact.Name {
-		if m[i].Vulnerability.ID == m[j].Vulnerability.ID {
-			if m[i].Artifact.Version == m[j].Artifact.Version {
-				return m[i].Artifact.Type < m[j].Artifact.Type
+// sort should consistent across presenters: name, version, type, severity, vulnerability
+func (m MatchSort) Less(i, j int) bool {
+	matchI := m[i]
+	matchJ := m[j]
+	if matchI.Artifact.Name == matchJ.Artifact.Name {
+		if matchI.Artifact.Version == matchJ.Artifact.Version {
+			if matchI.Artifact.Type == matchJ.Artifact.Type {
+				if SeverityScore(matchI.Vulnerability.Severity) == SeverityScore(matchJ.Vulnerability.Severity) {
+					return matchI.Vulnerability.ID > matchJ.Vulnerability.ID
+				}
+				return SeverityScore(matchI.Vulnerability.Severity) > SeverityScore(matchJ.Vulnerability.Severity)
 			}
-			return m[i].Artifact.Version < m[j].Artifact.Version
+			return matchI.Artifact.Type < matchJ.Artifact.Type
 		}
-		return m[i].Vulnerability.ID < m[j].Vulnerability.ID
+		return matchI.Artifact.Version < matchJ.Artifact.Version
 	}
-	return m[i].Artifact.Name < m[j].Artifact.Name
+	return matchI.Artifact.Name < matchJ.Artifact.Name
 }
 
 // Swap swaps the elements with indexes i and j.
-func (m ByName) Swap(i, j int) {
+func (m MatchSort) Swap(i, j int) {
 	m[i], m[j] = m[j], m[i]
 }
