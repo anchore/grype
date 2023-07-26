@@ -47,7 +47,6 @@ func (pres *Presenter) Present(output io.Writer) error {
 	// Generate rows for matching vulnerabilities
 	for m := range pres.results.Enumerate() {
 		row, err := createRow(m, pres.metadataProvider, "")
-
 		if err != nil {
 			return err
 		}
@@ -71,19 +70,9 @@ func (pres *Presenter) Present(output io.Writer) error {
 		return err
 	}
 
-	// sort by name, version, then type
-	sort.SliceStable(rows, func(i, j int) bool {
-		for col := 0; col < len(columns); col++ {
-			if rows[i][col] != rows[j][col] {
-				return rows[i][col] < rows[j][col]
-			}
-		}
-		return false
-	})
-	rows = removeDuplicateRows(rows)
+	rows = sortRows(removeDuplicateRows(rows))
 
 	table := tablewriter.NewWriter(output)
-
 	table.SetHeader(columns)
 	table.SetAutoWrapText(false)
 	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
@@ -102,6 +91,58 @@ func (pres *Presenter) Present(output io.Writer) error {
 	table.Render()
 
 	return nil
+}
+
+func sortRows(rows [][]string) [][]string {
+	// sort
+	sort.SliceStable(rows, func(i, j int) bool {
+		var (
+			name        = 0
+			ver         = 1
+			packageType = 3
+			vuln        = 4
+			sev         = 5
+		)
+		// name, version, type, severity, vulnerability
+		// > is for numeric sorting like severity or year/number of vulnerability
+		// < is for alphabetical sorting like name, version, type
+		if rows[i][name] == rows[j][name] {
+			if rows[i][ver] == rows[j][ver] {
+				if rows[i][packageType] == rows[j][packageType] {
+					if sevScore(rows[i][sev]) == sevScore(rows[j][sev]) {
+						// we use > here to get the most recently filed vulnerabilities
+						// to show at the top of the severity
+						return rows[i][vuln] > rows[j][vuln]
+					}
+					return sevScore(rows[i][sev]) > sevScore(rows[j][sev])
+				}
+				return rows[i][packageType] < rows[j][packageType]
+			}
+			return rows[i][ver] < rows[j][ver]
+		}
+		return rows[i][name] < rows[j][name]
+	})
+
+	return rows
+}
+
+func sevScore(sev string) int {
+	switch sev {
+	case "Unknown":
+		return 0
+	case "Negligible":
+		return 1
+	case "Low":
+		return 2
+	case "Medium":
+		return 3
+	case "High":
+		return 4
+	case "Critical":
+		return 5
+	default:
+		return 0
+	}
 }
 
 func removeDuplicateRows(items [][]string) [][]string {
