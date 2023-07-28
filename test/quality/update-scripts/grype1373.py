@@ -96,21 +96,25 @@ def main(images: list[str], verbosity: int, result_set: str, no_dry_run: bool):
                         # delete the label
                         affected_images.add(image_str)
                         delete_label(label_manager, tp_labels, dry_run)
+                        # add_new_fp_label(image_str, unique_match, dry_run)
                     else:
                         print(f"  >>> Labeling {result.ID} as FP: FP all along: we were tricked into labeling this a TP (non CVE branch)")
                         affected_images.add(image_str)
                         # label as FP to protect against future regressions
+                        delete_label(label_manager, tp_labels, dry_run)
                         add_new_fp_label(image_str, unique_match, dry_run)
                 elif unique_match.vulnerability.id in all_ids:
                     print(f"  >>> Deleting {result.ID} Redundant TP: we found this ID in another package")
                     affected_images.add(image_str)
                     delete_label(label_manager, tp_labels, dry_run)
+                    # add_new_fp_label(image_str, unique_match, dry_run)
                     # delete the label
                 elif any(label.label == artifact.Label.TruePositive for label in labels):
                     # this is no longer present in the results at all;
                     # so removing the reundant package corrected this FP.
                     affected_images.add(image_str)
                     print(f"  >>> Relabeling {result.ID} as FP: FP all along: we were tricked into labeling this a TP")
+                    delete_label(label_manager, tp_labels, dry_run)
                     add_new_fp_label(image_str, unique_match, dry_run)
                     # label as FP to protect against future regressions
                 else:
@@ -137,7 +141,7 @@ def add_new_fp_label(image: str, match: artifact.Match, dry_run: bool):
     new_label = artifact.LabelEntry(
         vulnerability_id=match.vulnerability.id,
         image=artifact.ImageSpecifier(exact=image),
-        package=match.package.name,
+        package=match.package,
         label=artifact.Label.FalsePositive,
         note="Flagged as FP during grype1373 update",
         lookup_effective_cve=True,
