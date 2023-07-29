@@ -19,7 +19,7 @@ import (
 func Select(verbose, quiet bool) (uis []clio.UI) {
 	isStdoutATty := term.IsTerminal(int(os.Stdout.Fd()))
 	isStderrATty := term.IsTerminal(int(os.Stderr.Fd()))
-	notATerminal := !isStderrATty && !isStdoutATty
+	notATerminal := !isStderrATty || !isStdoutATty
 
 	switch {
 	case runtime.GOOS == "windows" || verbose || quiet || notATerminal || !isStderrATty:
