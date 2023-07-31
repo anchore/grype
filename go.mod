@@ -54,7 +54,7 @@ require (
 	github.com/anchore/clio v0.0.0-20230630162005-9535e9dc2817
 	github.com/anchore/go-logger v0.0.0-20230531193951-db5ae83e7dbe
 	github.com/anchore/sqlite v1.4.6-0.20220607210448-bcc6ee5c4963
-	github.com/anchore/syft v0.86.0
+	github.com/anchore/syft v0.86.1-0.20230731172918-e2f7befbfbf8
 	github.com/charmbracelet/bubbletea v0.24.2
 	github.com/charmbracelet/lipgloss v0.7.1
 	github.com/gkampitakis/go-snaps v0.4.8
