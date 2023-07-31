@@ -423,7 +423,7 @@ func TestNew(t *testing.T) {
 					Extras:            []string{"a"},
 					VersionConstraint: "a",
 					URL:               "a",
-					Markers:           map[string]string{"a": "a"},
+					Markers:           "a",
 				},
 			},
 		},
