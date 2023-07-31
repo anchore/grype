@@ -423,7 +423,7 @@ func TestNew(t *testing.T) {
 					Extras:            []string{"a"},
 					VersionConstraint: "a",
 					URL:               "a",
-					Markers:           map[string]string{"a": "a"},
+					Markers:           "a",
 				},
 			},
 		},
@@ -511,6 +511,30 @@ func TestNew(t *testing.T) {
 					Imports:          []string{"a"},
 					Depends:          []string{"a"},
 					Suggests:         []string{"a"},
+				},
+			},
+		},
+		{
+			name: "dotnet-portable-executable-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.DotnetPortableExecutableMetadataType,
+				Metadata: syftPkg.DotnetPortableExecutableMetadata{
+					AssemblyVersion: "a",
+					LegalCopyright:  "a",
+					Comments:        "a",
+					InternalName:    "a",
+					CompanyName:     "a",
+					ProductName:     "a",
+					ProductVersion:  "a",
+				},
+			},
+		},
+		{
+			name: "dotnet-portable-executable-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.SwiftPackageManagerMetadataType,
+				Metadata: syftPkg.SwiftPackageManagerMetadata{
+					Revision: "a",
 				},
 			},
 		},
