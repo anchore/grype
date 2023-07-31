@@ -514,6 +514,30 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "dotnet-portable-executable-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.DotnetPortableExecutableMetadataType,
+				Metadata: syftPkg.DotnetPortableExecutableMetadata{
+					AssemblyVersion: "a",
+					LegalCopyright:  "a",
+					Comments:        "a",
+					InternalName:    "a",
+					CompanyName:     "a",
+					ProductName:     "a",
+					ProductVersion:  "a",
+				},
+			},
+		},
+		{
+			name: "dotnet-portable-executable-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.SwiftPackageManagerMetadataType,
+				Metadata: syftPkg.SwiftPackageManagerMetadata{
+					Revision: "a",
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
