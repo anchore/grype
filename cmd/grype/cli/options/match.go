@@ -8,6 +8,7 @@ type matchConfig struct {
 	Javascript matcherConfig `yaml:"javascript" json:"javascript" mapstructure:"javascript"` // settings for the javascript matcher
 	Python     matcherConfig `yaml:"python" json:"python" mapstructure:"python"`             // settings for the python matcher
 	Ruby       matcherConfig `yaml:"ruby" json:"ruby" mapstructure:"ruby"`                   // settings for the ruby matcher
+	Rust       matcherConfig `yaml:"rust" json:"rust" mapstructure:"rust"`                   // settings for the rust matcher
 	Stock      matcherConfig `yaml:"stock" json:"stock" mapstructure:"stock"`                // settings for the default/stock matcher
 }
 
@@ -17,13 +18,15 @@ type matcherConfig struct {
 
 func defaultMatchConfig() matchConfig {
 	useCpe := matcherConfig{UseCPEs: true}
+	dontUseCpe := matcherConfig{UseCPEs: false}
 	return matchConfig{
-		Java:       useCpe,
-		Dotnet:     useCpe,
-		Golang:     useCpe,
-		Javascript: useCpe,
-		Python:     useCpe,
-		Ruby:       useCpe,
+		Java:       dontUseCpe,
+		Dotnet:     dontUseCpe,
+		Golang:     dontUseCpe,
+		Javascript: dontUseCpe,
+		Python:     dontUseCpe,
+		Ruby:       dontUseCpe,
+		Rust:       dontUseCpe,
 		Stock:      useCpe,
 	}
 }
