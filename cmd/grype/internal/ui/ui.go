@@ -82,11 +82,14 @@ func (m *UI) Teardown(force bool) error {
 	if !force {
 		m.handler.Wait()
 		m.program.Quit()
+		// typically in all cases we would want to wait for the UI to finish. However there are still error cases
+		// that are not accounted for, resulting in hangs. For now, we'll just wait for the UI to finish in the
+		// happy path only. There will always be an indication of the problem to the user via reporting the error
+		// string from the worker (outside of the UI after teardown).
+		m.running.Wait()
 	} else {
 		m.program.Kill()
 	}
-
-	m.running.Wait()
 
 	// TODO: allow for writing out the full log output to the screen (only a partial log is shown currently)
 	// this needs coordination to know what the last frame event is to change the state accordingly (which isn't possible now)
