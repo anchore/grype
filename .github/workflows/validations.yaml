@@ -53,6 +53,7 @@ jobs:
         run: make quality
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GRYPE_BY_CVE: "true"
 
   Integration-Test:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
