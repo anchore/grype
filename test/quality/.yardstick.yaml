@@ -93,7 +93,7 @@ result-sets:
 
         - name: syft
           # note: we want to use a fixed version of syft for capturing all results (NOT "latest")
-          version: v0.74.1
+          version: v0.86.1
           produces: SBOM
           refresh: false
 
