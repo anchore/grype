@@ -42,6 +42,14 @@ jobs:
     name: "Quality tests"
     runs-on: ubuntu-20.04
     steps:
+      - name: Maximize runner disk space
+        run: |
+          # Removes .NET runtime and libraries. (frees ~17 GB)
+          sudo rm -rf /usr/share/dotnet
+          # Removes Android SDKs and Tools. (frees ~11 GB)
+          sudo rm -rf /usr/local/lib/android
+          # Removes GHC (Haskell) artifacts. (frees ~2.7 GB)
+          sudo rm -rf /opt/ghc
       - uses: actions/checkout@v3
         with:
           submodules: true
