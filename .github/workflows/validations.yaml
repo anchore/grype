@@ -40,7 +40,7 @@ jobs:
   Quality-Test:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Quality tests"
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04-4core-16gb
     steps:
       - uses: actions/checkout@v3
         with:
