@@ -233,7 +233,6 @@ func generatePackages(t *testing.T) []pkg.Package {
 					Version: "3.2",
 				},
 			},
-			MetadataType: pkg.RpmMetadataType,
 			Metadata: pkg.RpmMetadata{
 				Epoch: &epoch,
 			},

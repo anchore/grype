@@ -16,11 +16,10 @@ import (
 
 func TestMatcherGolang_DropMainPackage(t *testing.T) {
 	p := pkg.Package{
-		ID:           pkg.ID(uuid.NewString()),
-		Name:         "istio.io/istio",
-		Version:      "v0.0.0-20220606222826-f59ce19ec6b6",
-		Type:         syftPkg.GoModulePkg,
-		MetadataType: pkg.GolangBinMetadataType,
+		ID:      pkg.ID(uuid.NewString()),
+		Name:    "istio.io/istio",
+		Version: "v0.0.0-20220606222826-f59ce19ec6b6",
+		Type:    syftPkg.GoModulePkg,
 		Metadata: pkg.GolangBinMetadata{
 			MainModule: "istio.io/istio",
 		},
