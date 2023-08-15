@@ -45,6 +45,12 @@ func Execute() {
 	}
 }
 
+func ExecuteNoExit() {
+	if err := rootCmd.Execute(); err != nil {
+		_ = stderrPrintLnf(err.Error())
+	}
+}
+
 func initRootCmdConfigOptions() {
 	if err := bindRootConfigOptions(rootCmd.Flags()); err != nil {
 		panic(err)
