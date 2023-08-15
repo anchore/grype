@@ -113,12 +113,12 @@ func removePackagesByOverlap(SBOM *sbom.SBOM) *pkg.Collection {
 	}
 
 	out := pkg.NewCollection()
-
+	comprehensiveDistroFeed := distroFeedIsComprehensive(SBOM.Artifacts.LinuxDistribution)
 	for p := range catalog.Enumerate() {
 		r, ok := byOverlap[p.ID()]
 		if ok {
 			from, ok := r.From.(pkg.Package)
-			if ok && excludePackage(SBOM.Artifacts.LinuxDistribution, p, from) {
+			if ok && excludePackage(comprehensiveDistroFeed, p, from) {
 				continue
 			}
 		}
@@ -128,7 +128,7 @@ func removePackagesByOverlap(SBOM *sbom.SBOM) *pkg.Collection {
 	return out
 }
 
-func excludePackage(disto *linux.Release, p pkg.Package, parent pkg.Package) bool {
+func excludePackage(comprehensiveDistroFeed bool, p pkg.Package, parent pkg.Package) bool {
 	// NOTE: we are not checking the name because we have mismatches like:
 	// python      3.9.2      binary
 	// python3.9   3.9.2-1    deb
@@ -142,7 +142,7 @@ func excludePackage(disto *linux.Release, p pkg.Package, parent pkg.Package) boo
 	// Except if the parent is an APK package, because the APK feed
 	// has fix but not vulnerability data, so grype may be relying on the
 	// related package to provide vulnerability data.
-	if isOSPackage(parent) && parent.Type != pkg.ApkPkg && !isOSPackage(p) {
+	if comprehensiveDistroFeed && isOSPackage(parent) && !isOSPackage(p) {
 		return true
 	}
 
@@ -153,6 +153,37 @@ func excludePackage(disto *linux.Release, p pkg.Package, parent pkg.Package) boo
 	}
 
 	return true
+}
+
+// distroFeedIsComprehensive returns true if the distro feed
+// is comprehensive enough that we can drop packages owned by distro packages
+// before matching.
+func distroFeedIsComprehensive(distro *linux.Release) bool {
+	// TODO: this mechanism should be re-examined once https://github.com/anchore/grype/issues/1426
+	// is addressed
+	if distro == nil {
+		return false
+	}
+	for _, d := range comprehensiveDistros {
+		if strings.EqualFold(d, distro.ID) {
+			return true
+		}
+		for _, n := range distro.IDLike {
+			if strings.EqualFold(d, n) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// computed by:
+// sqlite3 vulnerability.db 'select distinct namespace from vulnerability where fix_state in ("wont-fix", "not-fixed") order by namespace;' | cut -d ':' -f 1 | sort | uniq
+var comprehensiveDistros = []string{
+	"debian",
+	"mariner",
+	"rhel",
+	"ubuntu",
 }
 
 func isOSPackage(p pkg.Package) bool {

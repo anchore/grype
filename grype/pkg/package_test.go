@@ -13,6 +13,7 @@ import (
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/file"
 	syftFile "github.com/anchore/syft/syft/file"
+	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/sbom"
 )
@@ -707,9 +708,9 @@ func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
 		},
 		{
 			name: "python bindings for system RPM install",
-			sbom: catalogWithOverlaps(
+			sbom: withDistro(catalogWithOverlaps(
 				[]string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
-				[]string{"rpm:python3-rpm@4.14.3-26.el8 -> python:rpm@4.14.3"}),
+				[]string{"rpm:python3-rpm@4.14.3-26.el8 -> python:rpm@4.14.3"}), "rhel"),
 			expectedPackages: []string{"rpm:python3-rpm@4.14.3-26.el8"},
 		},
 	}
@@ -724,11 +725,6 @@ func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
 			assert.EqualValues(t, test.expectedPackages, pkgNames)
 		})
 	}
-}
-
-type catalogRelationships struct {
-	collection    *syftPkg.Collection
-	relationships []artifact.Relationship
 }
 
 func catalogWithOverlaps(packages []string, overlaps []string) *sbom.SBOM {
@@ -786,4 +782,11 @@ func catalogWithOverlaps(packages []string, overlaps []string) *sbom.SBOM {
 		},
 		Relationships: relationships,
 	}
+}
+
+func withDistro(s *sbom.SBOM, id string) *sbom.SBOM {
+	s.Artifacts.LinuxDistribution = &linux.Release{
+		ID: id,
+	}
+	return s
 }
