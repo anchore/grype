@@ -295,12 +295,6 @@ func TestFuzzyConstraintSatisfaction(t *testing.T) {
 			satisfied:  false,
 		},
 		{
-			name:       "candidates are greater than their a versions",
-			version:    "1.0.2",
-			constraint: "> 1.0.2a",
-			satisfied:  true,
-		},
-		{
 			name:       "candidates with letter suffix are alphabetically greater than their versions",
 			version:    "1.0.2a",
 			constraint: " < 1.0.2w",
@@ -334,6 +328,18 @@ func TestFuzzyConstraintSatisfaction(t *testing.T) {
 			name:       "foobar",
 			version:    "1.0.2k-r0",
 			constraint: ">= 1.0.2, < 1.0.2m",
+			satisfied:  true,
+		},
+		{
+			name:       "foobar",
+			version:    "1.1.1-pre2",
+			constraint: "> 1.1.1-pre1, < 1.1.1",
+			satisfied:  true,
+		},
+		{
+			name:       "foobar",
+			version:    "1.1.1",
+			constraint: "> 1.1.1-a",
 			satisfied:  true,
 		},
 	}
