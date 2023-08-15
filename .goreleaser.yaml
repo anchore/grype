@@ -24,10 +24,10 @@ builds:
       -w
       -s
       -extldflags '-static'
-      -X github.com/anchore/grype/internal/version.version={{.Version}}
-      -X github.com/anchore/grype/internal/version.gitCommit={{.Commit}}
-      -X github.com/anchore/grype/internal/version.buildDate={{.Date}}
-      -X github.com/anchore/grype/internal/version.gitDescription={{.Summary}}
+      -X main.version={{.Version}}
+      -X main.gitCommit={{.Commit}}
+      -X main.buildDate={{.Date}}
+      -X main.gitDescription={{.Summary}}
 
   - id: darwin-build
     dir: ./cmd/grype

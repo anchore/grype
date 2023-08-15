@@ -1,8 +1,4 @@
-package config
-
-import (
-	"github.com/spf13/viper"
-)
+package options
 
 // matchConfig contains all matching-related configuration options available to the user via the application config.
 type matchConfig struct {
@@ -19,12 +15,15 @@ type matcherConfig struct {
 	UseCPEs bool `yaml:"using-cpes" json:"using-cpes" mapstructure:"using-cpes"` // if CPEs should be used during matching
 }
 
-func (cfg matchConfig) loadDefaultValues(v *viper.Viper) {
-	v.SetDefault("match.java.using-cpes", true)
-	v.SetDefault("match.dotnet.using-cpes", true)
-	v.SetDefault("match.golang.using-cpes", true)
-	v.SetDefault("match.javascript.using-cpes", false)
-	v.SetDefault("match.python.using-cpes", true)
-	v.SetDefault("match.ruby.using-cpes", true)
-	v.SetDefault("match.stock.using-cpes", true)
+func matchConfigDefault() matchConfig {
+	useCpe := matcherConfig{UseCPEs: true}
+	return matchConfig{
+		Java:       useCpe,
+		Dotnet:     useCpe,
+		Golang:     useCpe,
+		Javascript: useCpe,
+		Python:     useCpe,
+		Ruby:       useCpe,
+		Stock:      useCpe,
+	}
 }

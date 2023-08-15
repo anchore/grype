@@ -2,12 +2,10 @@ package event
 
 import (
 	"github.com/wagoodman/go-partybus"
-
-	"github.com/anchore/grype/internal"
 )
 
 const (
-	typePrefix    = internal.ApplicationName
+	typePrefix    = "grype"
 	cliTypePrefix = typePrefix + "-cli"
 
 	// Events from the grype library

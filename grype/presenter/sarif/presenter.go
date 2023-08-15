@@ -8,18 +8,19 @@ import (
 
 	"github.com/owenrumney/go-sarif/sarif"
 
+	"github.com/anchore/clio"
 	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal/version"
 	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/source"
 )
 
 // Presenter holds the data for generating a report and implements the presenter.Presenter interface
 type Presenter struct {
+	id               clio.Identification
 	results          match.Matches
 	packages         []pkg.Package
 	src              *source.Description
@@ -29,6 +30,7 @@ type Presenter struct {
 // NewPresenter is a *Presenter constructor
 func NewPresenter(pb models.PresenterConfig) *Presenter {
 	return &Presenter{
+		id:               pb.ID,
 		results:          pb.Matches,
 		packages:         pb.Packages,
 		metadataProvider: pb.MetadataProvider,
@@ -53,7 +55,7 @@ func (pres *Presenter) toSarifReport() (*sarif.Report, error) {
 		return nil, err
 	}
 
-	v := version.FromBuild().Version
+	v := pres.id.Version
 	if v == "[not provided]" {
 		// Need a semver to pass the MS SARIF validator
 		v = "0.0.0-dev"
@@ -62,7 +64,7 @@ func (pres *Presenter) toSarifReport() (*sarif.Report, error) {
 	doc.AddRun(&sarif.Run{
 		Tool: sarif.Tool{
 			Driver: &sarif.ToolComponent{
-				Name:           "Grype",
+				Name:           pres.id.Name,
 				Version:        sp(v),
 				InformationURI: sp("https://github.com/anchore/grype"),
 				Rules:          pres.sarifRules(),

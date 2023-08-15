@@ -1,4 +1,4 @@
-package version
+package commands
 
 import (
 	"net/http"
@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	hashiVersion "github.com/anchore/go-version"
+	"github.com/anchore/grype/cmd/grype/internal"
 )
 
 func TestIsUpdateAvailable(t *testing.T) {
@@ -74,7 +75,7 @@ func TestIsUpdateAvailable(t *testing.T) {
 		},
 		{
 			name:          "NoBuildVersion",
-			buildVersion:  valueNotProvided,
+			buildVersion:  internal.NotProvided,
 			latestVersion: "1.0.0",
 			code:          200,
 			isAvailable:   false,
@@ -96,7 +97,7 @@ func TestIsUpdateAvailable(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			// setup mocks
 			// local...
-			version = test.buildVersion
+			version := test.buildVersion
 			// remote...
 			handler := http.NewServeMux()
 			handler.HandleFunc(latestAppVersionURL.path, func(w http.ResponseWriter, r *http.Request) {
@@ -107,7 +108,7 @@ func TestIsUpdateAvailable(t *testing.T) {
 			latestAppVersionURL.host = mockSrv.URL
 			defer mockSrv.Close()
 
-			isAvailable, newVersion, err := IsUpdateAvailable()
+			isAvailable, newVersion, err := isUpdateAvailable(version)
 			if err != nil && !test.err {
 				t.Fatalf("got error but expected none: %+v", err)
 			} else if err == nil && test.err {

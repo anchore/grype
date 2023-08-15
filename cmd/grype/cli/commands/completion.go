@@ -1,4 +1,4 @@
-package legacy
+package commands
 
 import (
 	"context"
@@ -11,11 +11,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// completionCmd represents the completion command
-var completionCmd = &cobra.Command{
-	Use:   "completion [bash|zsh|fish]",
-	Short: "Generate a shell completion for Grype (listing local docker images)",
-	Long: `To load completions (docker image list):
+// Completion returns a command to provide completion to various terminal shells
+func Completion() *cobra.Command {
+	return &cobra.Command{
+		Use:   "completion [bash|zsh|fish]",
+		Short: "Generate a shell completion for Grype (listing local docker images)",
+		Long: `To load completions (docker image list):
 
 Bash:
 
@@ -46,40 +47,22 @@ $ grype completion fish | source
 # To load completions for each session, execute once:
 $ grype completion fish > ~/.config/fish/completions/grype.fish
 `,
-	DisableFlagsInUseLine: true,
-	ValidArgs:             []string{"bash", "fish", "zsh"},
-	Args:                  cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		var err error
-		switch args[0] {
-		case "zsh":
-			err = cmd.Root().GenZshCompletion(os.Stdout)
-		case "bash":
-			err = cmd.Root().GenBashCompletion(os.Stdout)
-		case "fish":
-			err = cmd.Root().GenFishCompletion(os.Stdout, true)
-		}
-		return err
-	},
-}
-
-func init() {
-	rootCmd.AddCommand(completionCmd)
-}
-
-func dockerImageValidArgsFunction(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	// Since we use ValidArgsFunction, Cobra will call this AFTER having parsed all flags and arguments provided
-	dockerImageRepoTags, err := listLocalDockerImages(toComplete)
-	if err != nil {
-		// Indicates that an error occurred and completions should be ignored
-		return []string{"completion failed"}, cobra.ShellCompDirectiveError
+		DisableFlagsInUseLine: true,
+		ValidArgs:             []string{"bash", "fish", "zsh"},
+		Args:                  cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var err error
+			switch args[0] {
+			case "zsh":
+				err = cmd.Root().GenZshCompletion(os.Stdout)
+			case "bash":
+				err = cmd.Root().GenBashCompletion(os.Stdout)
+			case "fish":
+				err = cmd.Root().GenFishCompletion(os.Stdout, true)
+			}
+			return err
+		},
 	}
-	if len(dockerImageRepoTags) == 0 {
-		return []string{"no docker images found"}, cobra.ShellCompDirectiveError
-	}
-	// ShellCompDirectiveDefault indicates that the shell will perform its default behavior after completions have
-	// been provided (without implying other possible directives)
-	return dockerImageRepoTags, cobra.ShellCompDirectiveDefault
 }
 
 func listLocalDockerImages(prefix string) ([]string, error) {
@@ -107,4 +90,19 @@ func listLocalDockerImages(prefix string) ([]string, error) {
 		}
 	}
 	return repoTags, nil
+}
+
+func dockerImageValidArgsFunction(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	// Since we use ValidArgsFunction, Cobra will call this AFTER having parsed all flags and arguments provided
+	dockerImageRepoTags, err := listLocalDockerImages(toComplete)
+	if err != nil {
+		// Indicates that an error occurred and completions should be ignored
+		return []string{"completion failed"}, cobra.ShellCompDirectiveError
+	}
+	if len(dockerImageRepoTags) == 0 {
+		return []string{"no docker images found"}, cobra.ShellCompDirectiveError
+	}
+	// ShellCompDirectiveDefault indicates that the shell will perform its default behavior after completions have
+	// been provided (without implying other possible directives)
+	return dockerImageRepoTags, cobra.ShellCompDirectiveDefault
 }

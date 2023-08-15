@@ -1,4 +1,4 @@
-package version
+package commands
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	hashiVersion "github.com/anchore/go-version"
-	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/cmd/grype/internal"
 )
 
 var latestAppVersionURL = struct {
@@ -15,16 +15,22 @@ var latestAppVersionURL = struct {
 	path string
 }{
 	host: "https://toolbox-data.anchore.io",
-	path: fmt.Sprintf("/%s/releases/latest/VERSION", internal.ApplicationName),
+	path: fmt.Sprintf("/%s/releases/latest/VERSION", internal.Grype),
 }
 
-func IsUpdateAvailable() (bool, string, error) {
-	currentBuildInfo := FromBuild()
-	if !currentBuildInfo.isProductionBuild() {
+func isProductionBuild(version string) bool {
+	if strings.Contains(version, "SNAPSHOT") || strings.Contains(version, internal.NotProvided) {
+		return false
+	}
+	return true
+}
+
+func isUpdateAvailable(version string) (bool, string, error) {
+	if !isProductionBuild(version) {
 		// don't allow for non-production builds to check for a version.
 		return false, "", nil
 	}
-	currentVersion, err := hashiVersion.NewVersion(currentBuildInfo.Version)
+	currentVersion, err := hashiVersion.NewVersion(version)
 	if err != nil {
 		return false, "", fmt.Errorf("failed to parse current application version: %w", err)
 	}

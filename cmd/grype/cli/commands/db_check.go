@@ -1,26 +1,30 @@
-package legacy
+package commands
 
 import (
 	"fmt"
 
 	"github.com/spf13/cobra"
 
+	"github.com/anchore/clio"
+	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype/db"
 )
 
-var dbCheckCmd = &cobra.Command{
-	Use:   "check",
-	Short: "check to see if there is a database update available",
-	Args:  cobra.ExactArgs(0),
-	RunE:  runDBCheckCmd,
+func DBCheck(app clio.Application) *cobra.Command {
+	opts := dbOptionsDefault(app.ID())
+
+	return app.SetupCommand(&cobra.Command{
+		Use:   "check",
+		Short: "check to see if there is a database update available",
+		Args:  cobra.ExactArgs(0),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runDBCheckCmd(opts.DB)
+		},
+	}, opts)
 }
 
-func init() {
-	dbCmd.AddCommand(dbCheckCmd)
-}
-
-func runDBCheckCmd(_ *cobra.Command, _ []string) error {
-	dbCurator, err := db.NewCurator(appConfig.DB.ToCuratorConfig())
+func runDBCheckCmd(opts options.Database) error {
+	dbCurator, err := db.NewCurator(opts.ToCuratorConfig())
 	if err != nil {
 		return err
 	}

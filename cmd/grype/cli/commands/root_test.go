@@ -1,17 +1,17 @@
-package legacy
+package commands
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/internal/config"
 )
 
 func Test_applyDistroHint(t *testing.T) {
 	ctx := pkg.Context{}
-	cfg := config.Application{}
+	cfg := options.Grype{}
 
 	applyDistroHint([]pkg.Package{}, &ctx, &cfg)
 	assert.Nil(t, ctx.Distro)

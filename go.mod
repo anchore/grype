@@ -31,28 +31,27 @@ require (
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/owenrumney/go-sarif v1.1.1
-	github.com/pkg/profile v1.7.0
+	github.com/pkg/profile v1.7.0 // indirect
 	// pinned to pull in 386 arch fix: https://github.com/scylladb/go-set/commit/cc7b2070d91ebf40d233207b633e28f5bd8f03a5
 	github.com/scylladb/go-set v1.0.3-0.20200225121959-cc7b2070d91e
 	github.com/sergi/go-diff v1.3.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/afero v1.9.5
 	github.com/spf13/cobra v1.7.0
-	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.16.0
+	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/spf13/viper v1.16.0 // indirect
 	github.com/stretchr/testify v1.8.4
 	github.com/wagoodman/go-partybus v0.0.0-20230516145632-8ccac152c651
 	github.com/wagoodman/go-progress v0.0.0-20230301185719-21920a456ad5
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
-	golang.org/x/term v0.11.0
-	gopkg.in/yaml.v2 v2.4.0
+	golang.org/x/term v0.11.0 // indirect
 	gorm.io/gorm v1.23.10
 )
 
 require (
 	github.com/anchore/bubbly v0.0.0-20230712165553-812110ab0a10
-	github.com/anchore/clio v0.0.0-20230630162005-9535e9dc2817
-	github.com/anchore/go-logger v0.0.0-20230531193951-db5ae83e7dbe
+	github.com/anchore/clio v0.0.0-20230807174420-8b6f1b04adc8
+	github.com/anchore/go-logger v0.0.0-20230725134548-c21dafa1ec5a
 	github.com/anchore/sqlite v1.4.6-0.20220607210448-bcc6ee5c4963
 	github.com/anchore/syft v0.86.1
 	github.com/charmbracelet/bubbletea v0.24.2
@@ -61,6 +60,7 @@ require (
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/wagoodman/go-presenter v0.0.0-20211015174752-f9c01afc824b
+	modernc.org/sqlite v1.24.0
 )
 
 require (
@@ -78,7 +78,7 @@ require (
 	github.com/ProtonMail/go-crypto v0.0.0-20230717121422-5aa5874ade95 // indirect
 	github.com/acobaugh/osrelease v0.1.0 // indirect
 	github.com/acomagu/bufpipe v1.0.4 // indirect
-	github.com/anchore/fangs v0.0.0-20230628163043-a51c5a39b097 // indirect
+	github.com/anchore/fangs v0.0.0-20230810180116-21c6393efab9 // indirect
 	github.com/anchore/go-macholibre v0.0.0-20220308212642-53e6d0aaf6fb // indirect
 	github.com/anchore/go-struct-converter v0.0.0-20221118182256-c68fdcfa2092 // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
@@ -128,6 +128,7 @@ require (
 	github.com/hashicorp/go-safetemp v1.0.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/huandu/xstrings v1.3.3 // indirect
+	github.com/iancoleman/strcase v0.3.0 // indirect
 	github.com/imdario/mergo v0.3.15 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
@@ -180,7 +181,6 @@ require (
 	github.com/spdx/tools-golang v0.5.3 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
-	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
 	github.com/sylabs/sif/v2 v2.11.5 // indirect
 	github.com/sylabs/squashfs v0.6.1 // indirect
@@ -197,7 +197,6 @@ require (
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
 	github.com/zclconf/go-cty v1.10.0 // indirect
-	github.com/zyedidia/generic v1.2.2-0.20230320175451-4410d2372cb1 // indirect
 	go.mozilla.org/pkcs7 v0.0.0-20210826202110-33d05740a352 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.uber.org/goleak v1.2.0 // indirect
@@ -227,7 +226,10 @@ require (
 	modernc.org/mathutil v1.5.0 // indirect
 	modernc.org/memory v1.5.0 // indirect
 	modernc.org/opt v0.1.3 // indirect
-	modernc.org/sqlite v1.24.0 // indirect
 	modernc.org/strutil v1.1.3 // indirect
 	modernc.org/token v1.1.0 // indirect
 )
+
+replace github.com/anchore/clio => github.com/anchore/clio v0.0.0-20230815195447-4352f31dbdab
+
+replace github.com/anchore/fangs => github.com/kzantow-anchore/fangs v0.0.0-20230815200609-708a32466329

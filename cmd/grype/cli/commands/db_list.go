@@ -1,4 +1,4 @@
-package legacy
+package commands
 
 import (
 	"encoding/json"
@@ -7,26 +7,39 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/db"
 )
 
-var dbListOutputFormat string
-
-var dbListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "list all DBs available according to the listing URL",
-	Args:  cobra.ExactArgs(0),
-	RunE:  runDBListCmd,
+type dbListOptions struct {
+	Output    string
+	DBOptions `yaml:",inline" mapstructure:",squash"`
 }
 
-func init() {
-	dbListCmd.Flags().StringVarP(&dbListOutputFormat, "output", "o", "text", "format to display results (available=[text, raw, json])")
+var _ clio.FlagAdder = (*dbListOptions)(nil)
 
-	dbCmd.AddCommand(dbListCmd)
+func (d *dbListOptions) AddFlags(flags clio.FlagSet) {
+	flags.StringVarP(&d.Output, "output", "o", "format to display results (available=[text, raw, json])")
 }
 
-func runDBListCmd(_ *cobra.Command, _ []string) error {
-	dbCurator, err := db.NewCurator(appConfig.DB.ToCuratorConfig())
+func DBList(app clio.Application) *cobra.Command {
+	opts := &dbListOptions{
+		Output:    "text",
+		DBOptions: *dbOptionsDefault(app.ID()),
+	}
+
+	return app.SetupCommand(&cobra.Command{
+		Use:   "list",
+		Short: "list all DBs available according to the listing URL",
+		Args:  cobra.ExactArgs(0),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runDBListCmd(opts)
+		},
+	}, opts)
+}
+
+func runDBListCmd(opts *dbListOptions) error {
+	dbCurator, err := db.NewCurator(opts.DB.ToCuratorConfig())
 	if err != nil {
 		return err
 	}
@@ -43,7 +56,7 @@ func runDBListCmd(_ *cobra.Command, _ []string) error {
 		return stderrPrintLnf("No databases available for the current schema (%d)", supportedSchema)
 	}
 
-	switch dbListOutputFormat {
+	switch opts.Output {
 	case "text":
 		// summarize each listing entry for the current DB schema
 		for _, l := range available {
@@ -70,7 +83,7 @@ func runDBListCmd(_ *cobra.Command, _ []string) error {
 			return fmt.Errorf("failed to db listing information: %+v", err)
 		}
 	default:
-		return fmt.Errorf("unsupported output format: %s", dbListOutputFormat)
+		return fmt.Errorf("unsupported output format: %s", opts.Output)
 	}
 
 	return nil

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -8,6 +9,7 @@ import (
 )
 
 type PresenterConfig struct {
+	ID               clio.Identification
 	Matches          match.Matches
 	IgnoredMatches   []match.IgnoredMatch
 	Packages         []pkg.Package

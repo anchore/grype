@@ -1,21 +1,18 @@
-package config
+package options
 
 import (
 	"os"
 
-	"github.com/spf13/viper"
-
+	"github.com/anchore/clio"
 	"github.com/anchore/stereoscope/pkg/image"
 )
 
 type RegistryCredentials struct {
 	Authority string `yaml:"authority" json:"authority" mapstructure:"authority"`
-	// IMPORTANT: do not show the username in any YAML/JSON output (sensitive information)
-	Username string `yaml:"-" json:"-" mapstructure:"username"`
-	// IMPORTANT: do not show the password in any YAML/JSON output (sensitive information)
-	Password string `yaml:"-" json:"-" mapstructure:"password"`
-	// IMPORTANT: do not show the token in any YAML/JSON output (sensitive information)
-	Token string `yaml:"-" json:"-" mapstructure:"token"`
+	// IMPORTANT: do not show the username, password, or token in any output (sensitive information)
+	Username secret `yaml:"username" json:"username" mapstructure:"username"`
+	Password secret `yaml:"password" json:"password" mapstructure:"password"`
+	Token    secret `yaml:"token" json:"token" mapstructure:"token"`
 }
 
 type registry struct {
@@ -24,14 +21,9 @@ type registry struct {
 	Auth                  []RegistryCredentials `yaml:"auth" json:"auth" mapstructure:"auth"`
 }
 
-func (cfg registry) loadDefaultValues(v *viper.Viper) {
-	v.SetDefault("registry.insecure-skip-tls-verify", false)
-	v.SetDefault("registry.insecure-use-http", false)
-	v.SetDefault("registry.auth", []RegistryCredentials{})
-}
+var _ clio.PostLoader = (*registry)(nil)
 
-//nolint:unparam
-func (cfg *registry) parseConfigValues() error {
+func (cfg *registry) PostLoad() error {
 	// there may be additional credentials provided by env var that should be appended to the set of credentials
 	authority, username, password, token :=
 		os.Getenv("GRYPE_REGISTRY_AUTH_AUTHORITY"),
@@ -44,9 +36,9 @@ func (cfg *registry) parseConfigValues() error {
 		cfg.Auth = append([]RegistryCredentials{
 			{
 				Authority: authority,
-				Username:  username,
-				Password:  password,
-				Token:     token,
+				Username:  secret(username),
+				Password:  secret(password),
+				Token:     secret(token),
 			},
 		}, cfg.Auth...)
 	}
@@ -62,9 +54,9 @@ func (cfg *registry) ToOptions() *image.RegistryOptions {
 	for i, a := range cfg.Auth {
 		auth[i] = image.RegistryCredentials{
 			Authority: a.Authority,
-			Username:  a.Username,
-			Password:  a.Password,
-			Token:     a.Token,
+			Username:  a.Username.String(),
+			Password:  a.Password.String(),
+			Token:     a.Token.String(),
 		}
 	}
 	return &image.RegistryOptions{
