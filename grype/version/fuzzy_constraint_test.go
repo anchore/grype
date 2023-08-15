@@ -264,6 +264,12 @@ func TestFuzzyConstraintSatisfaction(t *testing.T) {
 			constraint: "> v1.5",
 			satisfied:  true,
 		},
+		{
+			name:       "rc candidates with no '-' can match semver pattern",
+			version:    "1.20rc1",
+			constraint: " = 1.20.0-rc1",
+			satisfied:  true,
+		},
 	}
 
 	for _, test := range tests {
@@ -272,6 +278,23 @@ func TestFuzzyConstraintSatisfaction(t *testing.T) {
 			assert.NoError(t, err, "unexpected error from newFuzzyConstraint: %v", err)
 
 			test.assertVersionConstraint(t, UnknownFormat, constraint)
+		})
+	}
+}
+
+func TestPseudoSemverPattern(t *testing.T) {
+	tests := []struct {
+		name    string
+		version string
+		valid   bool
+	}{
+		{name: "rc candidates are valid semver", version: "1.2.3-rc1", valid: true},
+		{name: "rc candidates with no dash are valid semver", version: "1.2.3rc1", valid: true},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.valid, pseudoSemverPattern.MatchString(test.version))
 		})
 	}
 }
