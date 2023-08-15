@@ -85,7 +85,7 @@ func TestVersionSemantic(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
+		t.Run(test.tName(), func(t *testing.T) {
 			constraint, err := newSemanticConstraint(test.constraint)
 			assert.NoError(t, err, "unexpected error from newSemanticConstraint: %v", err)
 
