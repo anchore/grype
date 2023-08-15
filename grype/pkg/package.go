@@ -10,8 +10,10 @@ import (
 	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/file"
+	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/pkg"
 	cpes "github.com/anchore/syft/syft/pkg/cataloger/common/cpe"
+	"github.com/anchore/syft/syft/sbom"
 )
 
 // the source-rpm field has something akin to "util-linux-ng-2.17.2-12.28.el6_9.2.src.rpm"
@@ -101,9 +103,10 @@ func (p Package) String() string {
 	return fmt.Sprintf("Pkg(type=%s, name=%s, version=%s, upstreams=%d)", p.Type, p.Name, p.Version, len(p.Upstreams))
 }
 
-func removePackagesByOverlap(catalog *pkg.Collection, relationships []artifact.Relationship) *pkg.Collection {
+func removePackagesByOverlap(SBOM *sbom.SBOM) *pkg.Collection {
+	catalog := SBOM.Artifacts.Packages
 	byOverlap := map[artifact.ID]artifact.Relationship{}
-	for _, r := range relationships {
+	for _, r := range SBOM.Relationships {
 		if r.Type == artifact.OwnershipByFileOverlapRelationship {
 			byOverlap[r.To.ID()] = r
 		}
@@ -115,7 +118,7 @@ func removePackagesByOverlap(catalog *pkg.Collection, relationships []artifact.R
 		r, ok := byOverlap[p.ID()]
 		if ok {
 			from, ok := r.From.(pkg.Package)
-			if ok && excludePackage(p, from) {
+			if ok && excludePackage(SBOM.Artifacts.LinuxDistribution, p, from) {
 				continue
 			}
 		}
@@ -125,7 +128,7 @@ func removePackagesByOverlap(catalog *pkg.Collection, relationships []artifact.R
 	return out
 }
 
-func excludePackage(p pkg.Package, parent pkg.Package) bool {
+func excludePackage(disto *linux.Release, p pkg.Package, parent pkg.Package) bool {
 	// NOTE: we are not checking the name because we have mismatches like:
 	// python      3.9.2      binary
 	// python3.9   3.9.2-1    deb

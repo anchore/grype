@@ -14,6 +14,7 @@ import (
 	"github.com/anchore/syft/syft/file"
 	syftFile "github.com/anchore/syft/syft/file"
 	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/sbom"
 )
 
 func TestNew(t *testing.T) {
@@ -659,7 +660,7 @@ func intRef(i int) *int {
 func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
 	tests := []struct {
 		name             string
-		sbom             catalogRelationships
+		sbom             *sbom.SBOM
 		expectedPackages []string
 	}{
 		{
@@ -714,7 +715,7 @@ func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			catalog := removePackagesByOverlap(test.sbom.collection, test.sbom.relationships)
+			catalog := removePackagesByOverlap(test.sbom)
 			pkgs := FromCollection(catalog, SynthesisConfig{})
 			var pkgNames []string
 			for _, p := range pkgs {
@@ -730,7 +731,7 @@ type catalogRelationships struct {
 	relationships []artifact.Relationship
 }
 
-func catalogWithOverlaps(packages []string, overlaps []string) catalogRelationships {
+func catalogWithOverlaps(packages []string, overlaps []string) *sbom.SBOM {
 	var pkgs []syftPkg.Package
 	var relationships []artifact.Relationship
 
@@ -779,8 +780,10 @@ func catalogWithOverlaps(packages []string, overlaps []string) catalogRelationsh
 
 	catalog := syftPkg.NewCollection(pkgs...)
 
-	return catalogRelationships{
-		collection:    catalog,
-		relationships: relationships,
+	return &sbom.SBOM{
+		Artifacts: sbom.Artifacts{
+			Packages: catalog,
+		},
+		Relationships: relationships,
 	}
 }

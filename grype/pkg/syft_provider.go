@@ -26,8 +26,15 @@ func syftProvider(userInput string, config ProviderConfig) ([]Package, Context, 
 	if err != nil {
 		return nil, Context{}, nil, err
 	}
+	s := &sbom.SBOM{
+		Artifacts: sbom.Artifacts{
+			Packages:          catalog,
+			LinuxDistribution: theDistro,
+		},
+		Relationships: relationships,
+	}
 
-	catalog = removePackagesByOverlap(catalog, relationships)
+	catalog = removePackagesByOverlap(s)
 
 	srcDescription := src.Describe()
 
