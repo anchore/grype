@@ -3,6 +3,7 @@ package json
 import (
 	"bytes"
 	"flag"
+	"github.com/anchore/clio"
 	"regexp"
 	"sort"
 	"testing"
@@ -129,7 +130,7 @@ func TestEmptyJsonPresenter(t *testing.T) {
 
 func TestPresenter_Present_NewDocumentSorted(t *testing.T) {
 	matches, packages, context, metadataProvider, appConfig, dbStatus := internal.GenerateAnalysis(t, internal.ImageSource)
-	doc, err := models.NewDocument(packages, context, matches, nil, metadataProvider, appConfig, dbStatus)
+	doc, err := models.NewDocument(clio.Identification{}, packages, context, matches, nil, metadataProvider, appConfig, dbStatus)
 	if err != nil {
 		t.Fatal(err)
 	}
