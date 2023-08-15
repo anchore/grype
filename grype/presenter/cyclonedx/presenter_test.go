@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/clio"
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/presenter/internal"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -20,6 +21,10 @@ func TestCycloneDxPresenterImage(t *testing.T) {
 	matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.ImageSource)
 	sbom := internal.SBOMFromPackages(t, packages)
 	pb := models.PresenterConfig{
+		ID: clio.Identification{
+			Name:    "grype",
+			Version: "[not provided]",
+		},
 		Matches:          matches,
 		Packages:         packages,
 		Context:          context,
@@ -53,6 +58,10 @@ func TestCycloneDxPresenterDir(t *testing.T) {
 	matches, packages, ctx, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.DirectorySource)
 	sbom := internal.SBOMFromPackages(t, packages)
 	pb := models.PresenterConfig{
+		ID: clio.Identification{
+			Name:    "grype",
+			Version: "[not provided]",
+		},
 		Matches:          matches,
 		Packages:         packages,
 		Context:          ctx,
