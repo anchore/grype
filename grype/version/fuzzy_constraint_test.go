@@ -270,6 +270,54 @@ func TestFuzzyConstraintSatisfaction(t *testing.T) {
 			constraint: " = 1.20.0-rc1",
 			satisfied:  true,
 		},
+		{
+			name:       "candidates ahead of alpha are satisfied",
+			version:    "3.11.0",
+			constraint: "> 3.11.0-alpha1",
+			satisfied:  true,
+		},
+		{
+			name:       "candidates ahead of beta are satisfied",
+			version:    "3.11.0",
+			constraint: "> 3.11.0-beta1",
+			satisfied:  true,
+		},
+		{
+			name:       "candidates ahead of same alpha versions are satisfied",
+			version:    "3.11.0-alpha5",
+			constraint: "> 3.11.0-alpha1",
+			satisfied:  true,
+		},
+		{
+			name:       "candidates between alpha and release are not satisfied",
+			version:    "3.11.0-beta5",
+			constraint: "3.11.0 || = 3.11.0-alpha1",
+			satisfied:  false,
+		},
+		{
+			name:       "candidates are greater than their a versions and satisfied",
+			version:    "1.0.2",
+			constraint: "> 1.0.2a",
+			satisfied:  true,
+		},
+		{
+			name:       "candidates with letter suffix are alphabetically greater than their versions and satisfied",
+			version:    "1.0.2a",
+			constraint: " < 1.0.2w",
+			satisfied:  true,
+		},
+		{
+			name:       "candidates with multiple letter suffix are alphabetically greater than their versions and satisfied",
+			version:    "1.0.2zg",
+			constraint: " < 1.0.2zh",
+			satisfied:  true,
+		},
+		{
+			name:       "candidates with pre suffix are sorted numerically and satisfied",
+			version:    "1.0.2pre1",
+			constraint: " < 1.0.2pre2",
+			satisfied:  true,
+		},
 	}
 
 	for _, test := range tests {
