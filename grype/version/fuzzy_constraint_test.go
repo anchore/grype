@@ -325,19 +325,19 @@ func TestFuzzyConstraintSatisfaction(t *testing.T) {
 			satisfied:  true,
 		},
 		{
-			name:       "foobar",
+			name:       "openssl versions with letter suffix and r0 are alphabetically greater than their versions and compared equally to other lettered versions",
 			version:    "1.0.2k-r0",
 			constraint: ">= 1.0.2, < 1.0.2m",
 			satisfied:  true,
 		},
 		{
-			name:       "foobar",
+			name:       "openssl pre2 is still considered less than release",
 			version:    "1.1.1-pre2",
 			constraint: "> 1.1.1-pre1, < 1.1.1",
 			satisfied:  true,
 		},
 		{
-			name:       "foobar",
+			name:       "major version releases are less than their subsequent patch releases with letter suffixes",
 			version:    "1.1.1",
 			constraint: "> 1.1.1-a",
 			satisfied:  true,
