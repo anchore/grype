@@ -56,7 +56,7 @@ func (pres *Presenter) toSarifReport() (*sarif.Report, error) {
 	}
 
 	v := pres.id.Version
-	if v == "[not provided]" {
+	if v == "[not provided]" || v == "" {
 		// Need a semver to pass the MS SARIF validator
 		v = "0.0.0-dev"
 	}
