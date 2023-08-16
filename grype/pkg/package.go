@@ -139,9 +139,9 @@ func excludePackage(comprehensiveDistroFeed bool, p pkg.Package, parent pkg.Pack
 	}
 
 	// If the parent is an OS package and the child is not, exclude the child
-	// Except if the parent is an APK package, because the APK feed
-	// has fix but not vulnerability data, so grype may be relying on the
-	// related package to provide vulnerability data.
+  // for distros that have a comprehensive feed. That is, distros that list
+  // vulnerabilities that aren't fixed. Otherwise, the child package might
+  // be needed for matching.
 	if comprehensiveDistroFeed && isOSPackage(parent) && !isOSPackage(p) {
 		return true
 	}
