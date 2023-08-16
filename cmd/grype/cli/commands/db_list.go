@@ -9,6 +9,7 @@ import (
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/db"
+	"github.com/anchore/grype/internal/bus"
 )
 
 type dbListOptions struct {
@@ -33,12 +34,14 @@ func DBList(app clio.Application) *cobra.Command {
 		Short: "list all DBs available according to the listing URL",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runDBListCmd(opts)
+			return runDBList(opts)
 		},
 	}, opts)
 }
 
-func runDBListCmd(opts *dbListOptions) error {
+func runDBList(opts *dbListOptions) error {
+	defer bus.Exit()
+
 	dbCurator, err := db.NewCurator(opts.DB.ToCuratorConfig())
 	if err != nil {
 		return err

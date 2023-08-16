@@ -8,6 +8,7 @@ import (
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype/db"
+	"github.com/anchore/grype/internal/bus"
 )
 
 func DBDelete(app clio.Application) *cobra.Command {
@@ -18,12 +19,14 @@ func DBDelete(app clio.Application) *cobra.Command {
 		Short: "delete the vulnerability database",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runDBDeleteCmd(opts.DB)
+			return runDBDelete(opts.DB)
 		},
 	}, opts)
 }
 
-func runDBDeleteCmd(opts options.Database) error {
+func runDBDelete(opts options.Database) error {
+	defer bus.Exit()
+
 	dbCurator, err := db.NewCurator(opts.ToCuratorConfig())
 	if err != nil {
 		return err

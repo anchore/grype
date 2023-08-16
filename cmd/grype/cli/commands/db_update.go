@@ -9,6 +9,7 @@ import (
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/internal/bus"
+	"github.com/anchore/grype/internal/log"
 )
 
 func DBUpdate(app clio.Application) *cobra.Command {
@@ -19,12 +20,14 @@ func DBUpdate(app clio.Application) *cobra.Command {
 		Short: "download the latest vulnerability database",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runDBUpdateCmd(opts.DB)
+			return runDBUpdate(opts.DB)
 		},
 	}, opts)
 }
 
-func runDBUpdateCmd(opts options.Database) error {
+func runDBUpdate(opts options.Database) error {
+	defer bus.Exit()
+
 	dbCurator, err := db.NewCurator(opts.ToCuratorConfig())
 	if err != nil {
 		return err
@@ -38,6 +41,8 @@ func runDBUpdateCmd(opts options.Database) error {
 	if updated {
 		result = "Vulnerability database updated to latest version!\n"
 	}
+
+	log.Debugf("completed db update check with result: %s", result)
 
 	bus.Report(result)
 

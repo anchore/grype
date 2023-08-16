@@ -9,6 +9,7 @@ import (
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/bus"
 )
 
 func DBImport(app clio.Application) *cobra.Command {
@@ -20,12 +21,14 @@ func DBImport(app clio.Application) *cobra.Command {
 		Long:  fmt.Sprintf("import a vulnerability database archive from a local FILE.\nDB archives can be obtained from %q.", internal.DBUpdateURL),
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runDBImportCmd(opts.DB, args[0])
+			return runDBImport(opts.DB, args[0])
 		},
 	}, opts)
 }
 
-func runDBImportCmd(opts options.Database, dbArchivePath string) error {
+func runDBImport(opts options.Database, dbArchivePath string) error {
+	defer bus.Exit()
+
 	dbCurator, err := db.NewCurator(opts.ToCuratorConfig())
 	if err != nil {
 		return err

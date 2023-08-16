@@ -8,6 +8,7 @@ import (
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype/db"
+	"github.com/anchore/grype/internal/bus"
 )
 
 func DBCheck(app clio.Application) *cobra.Command {
@@ -18,12 +19,14 @@ func DBCheck(app clio.Application) *cobra.Command {
 		Short: "check to see if there is a database update available",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runDBCheckCmd(opts.DB)
+			return runDBCheck(opts.DB)
 		},
 	}, opts)
 }
 
-func runDBCheckCmd(opts options.Database) error {
+func runDBCheck(opts options.Database) error {
+	defer bus.Exit()
+
 	dbCurator, err := db.NewCurator(opts.ToCuratorConfig())
 	if err != nil {
 		return err
