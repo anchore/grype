@@ -21,12 +21,12 @@ yardstick.utils.grype_db.raise_on_failure(False)
 
 @dataclass
 class Gate:
-    label_comparisons: InitVar[Optional[dict[str, comparison.AgainstLabels]]]
+    label_comparisons: InitVar[Optional[list[comparison.AgainstLabels]]]
     label_comparison_stats: InitVar[Optional[comparison.ImageToolLabelStats]]
 
     reasons: list[str] = field(default_factory=list)
 
-    def __post_init__(self, label_comparisons: Optional[dict[str, comparison.AgainstLabels]], label_comparison_stats: Optional[comparison.ImageToolLabelStats]):
+    def __post_init__(self, label_comparisons: Optional[list[comparison.AgainstLabels]], label_comparison_stats: Optional[comparison.ImageToolLabelStats]):
         if not label_comparisons and not label_comparison_stats:
             return 
     
@@ -37,24 +37,22 @@ class Gate:
         # - fail when there is a rise in FNs
         latest_release_tool, current_tool = guess_tool_orientation(label_comparison_stats.tools)
 
-        latest_release_comparisons_by_image = {comp.config.image: (id, comp) for id, comp in label_comparisons.items() if comp.config.tool == latest_release_tool }
-        current_comparisons_by_image = {comp.config.image: (id, comp) for id, comp in label_comparisons.items() if comp.config.tool == current_tool }
+        latest_release_comparisons_by_image = {comp.config.image: comp for comp in label_comparisons if comp.config.tool == latest_release_tool }
+        current_comparisons_by_image = {comp.config.image: comp for comp in label_comparisons if comp.config.tool == current_tool }
 
-        for image, id_and_comp in current_comparisons_by_image.items():
-            id = id_and_comp[0]
-            comp = id_and_comp[1]
-            latest_f1_score = latest_release_comparisons_by_image[image][1].summary.f1_score
+        for image, comp in current_comparisons_by_image.items():
+            latest_f1_score = latest_release_comparisons_by_image[image].summary.f1_score
             current_f1_score = comp.summary.f1_score
             if current_f1_score < latest_f1_score:
-                reasons.append(f"({id}) current F1 score is lower than the latest release F1 score: {bcolors.BOLD+bcolors.UNDERLINE}current={current_f1_score:0.2f} latest={latest_f1_score:0.2f}{bcolors.RESET} image={image}")
+                reasons.append(f"current F1 score is lower than the latest release F1 score: {bcolors.BOLD+bcolors.UNDERLINE}current={current_f1_score:0.2f} latest={latest_f1_score:0.2f}{bcolors.RESET} image={image}")
 
             if comp.summary.indeterminate_percent > 10:
-                reasons.append(f"({id}) current indeterminate matches % is greater than 10%: {bcolors.BOLD+bcolors.UNDERLINE}current={comp.summary.indeterminate_percent:0.2f}%{bcolors.RESET} image={image}")
+                reasons.append(f"current indeterminate matches % is greater than 10%: {bcolors.BOLD+bcolors.UNDERLINE}current={comp.summary.indeterminate_percent:0.2f}%{bcolors.RESET} image={image}")
     
-            latest_fns = latest_release_comparisons_by_image[image][1].summary.false_negatives
+            latest_fns = latest_release_comparisons_by_image[image].summary.false_negatives
             current_fns = comp.summary.false_negatives
             if current_fns > latest_fns:
-                reasons.append(f"({id}) current false negatives is greater than the latest release false negatives: {bcolors.BOLD+bcolors.UNDERLINE}current={current_fns} latest={latest_fns}{bcolors.RESET} image={image}")
+                reasons.append(f"current false negatives is greater than the latest release false negatives: {bcolors.BOLD+bcolors.UNDERLINE}current={current_fns} latest={latest_fns}{bcolors.RESET} image={image}")
 
         self.reasons = reasons
 
@@ -72,13 +70,6 @@ def guess_tool_orientation(tools: list[str]):
             latest_release_tool = tool
             continue
         current_tool = tool
-
-    if latest_release_tool is None:
-        for tool in tools:
-            if "@path:" in tool:
-                current_tool = tool
-                continue
-            latest_release_tool = tool
 
     if latest_release_tool is None:
         # "latest" value isn't accessible, so we do a best guess at which version is latest
@@ -249,7 +240,7 @@ def validate_image(cfg: config.Application, descriptions: list[str], always_run_
 
 
     # populate the quality gate with data that can evaluate pass/fail conditions
-    return Gate(label_comparisons=comparisons_by_result_id, label_comparison_stats=stats_by_image_tool_pair)
+    return Gate(label_comparisons=comparisons_by_result_id.values(), label_comparison_stats=stats_by_image_tool_pair)
 
 @click.command()
 @click.option("--image", "-i", "images", multiple=True, help="filter down to one or more images to validate with (don't use the full result set)")
