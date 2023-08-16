@@ -142,7 +142,7 @@ lint:  ## Run gofmt + golangci lint checks
 	@[ -z "$(shell $(GOIMPORTS_CMD) -d .)" ] || (echo "goimports needs to be fixed" && false)
 
 	# go tooling does not play well with certain filename characters, ensure the common cases don't result in future "go get" failures
-	$(eval MALFORMED_FILENAMES := $(shell find . | grep -e ':'))
+	$(eval MALFORMED_FILENAMES := $(shell find . | grep -e ':' | grep -v -e "test/quality/.yardstick" -e "test/quality/vulnerability-match-labels"))
 	@bash -c "[[ '$(MALFORMED_FILENAMES)' == '' ]] || (printf '\nfound unsupported filename characters:\n$(MALFORMED_FILENAMES)\n\n' && false)"
 
 .PHONY: format
