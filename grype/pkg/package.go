@@ -103,17 +103,17 @@ func (p Package) String() string {
 	return fmt.Sprintf("Pkg(type=%s, name=%s, version=%s, upstreams=%d)", p.Type, p.Name, p.Version, len(p.Upstreams))
 }
 
-func removePackagesByOverlap(SBOM *sbom.SBOM) *pkg.Collection {
-	catalog := SBOM.Artifacts.Packages
+func removePackagesByOverlap(sbm *sbom.SBOM) *pkg.Collection {
+	catalog := sbm.Artifacts.Packages
 	byOverlap := map[artifact.ID]artifact.Relationship{}
-	for _, r := range SBOM.Relationships {
+	for _, r := range sbm.Relationships {
 		if r.Type == artifact.OwnershipByFileOverlapRelationship {
 			byOverlap[r.To.ID()] = r
 		}
 	}
 
 	out := pkg.NewCollection()
-	comprehensiveDistroFeed := distroFeedIsComprehensive(SBOM.Artifacts.LinuxDistribution)
+	comprehensiveDistroFeed := distroFeedIsComprehensive(sbm.Artifacts.LinuxDistribution)
 	for p := range catalog.Enumerate() {
 		r, ok := byOverlap[p.ID()]
 		if ok {
