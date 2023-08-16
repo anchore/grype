@@ -164,6 +164,11 @@ func distroFeedIsComprehensive(distro *linux.Release) bool {
 	if distro == nil {
 		return false
 	}
+	if distro.ID == "amzn" {
+		// AmazonLinux shows "like rhel" but is not an rhel clone
+		// and does not have an exhaustive vulnerability feed.
+		return false
+	}
 	for _, d := range comprehensiveDistros {
 		if strings.EqualFold(d, distro.ID) {
 			return true
@@ -179,6 +184,7 @@ func distroFeedIsComprehensive(distro *linux.Release) bool {
 
 // computed by:
 // sqlite3 vulnerability.db 'select distinct namespace from vulnerability where fix_state in ("wont-fix", "not-fixed") order by namespace;' | cut -d ':' -f 1 | sort | uniq
+// then removing 'github' and replacing 'redhat' with 'rhel'
 var comprehensiveDistros = []string{
 	"debian",
 	"mariner",
