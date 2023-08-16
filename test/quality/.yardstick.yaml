@@ -99,6 +99,8 @@ result-sets:
 
         - name: grype
           version: git:current-commit
+          # for local build of grype, use for example:
+          # version: path:../../
           takes: SBOM
 
         - name: grype
