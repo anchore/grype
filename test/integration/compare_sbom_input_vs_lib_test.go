@@ -54,6 +54,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 	}
 	// exceptions: rust, php, dart, msrc (kb), etc. are not under test
 	definedPkgTypes.Remove(
+		string(syftPkg.BinaryPkg), // these are removed due to overlap-by-file-ownership
 		string(syftPkg.RustPkg),
 		string(syftPkg.KbPkg),
 		string(syftPkg.DartPubPkg),
