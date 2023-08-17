@@ -707,11 +707,32 @@ func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
 			expectedPackages: []string{"apk:node@19.2", "rpm:node@19.2-r1"},
 		},
 		{
+			name: "does not exclude if OS package owns OS package",
+			sbom: catalogWithOverlaps(
+				[]string{"rpm:perl@19.2-r1", "rpm:libperl@19.2"},
+				[]string{"rpm:perl@19.2-r1 -> rpm:libperl@19.2"}),
+			expectedPackages: []string{"apk:node@19.2", "rpm:node@19.2-r1"},
+		},
+		{
+			name: "does not exclude if owning package is non-OS",
+			sbom: catalogWithOverlaps(
+				[]string{"python:urllib3@1.2.3", "python:otherlib@1.2.3"},
+				[]string{"python:urllib3@1.2.3 -> python:otherlib@1.2.3"}),
+			expectedPackages: []string{"apk:node@19.2", "rpm:node@19.2-r1"},
+		},
+		{
 			name: "python bindings for system RPM install",
 			sbom: withDistro(catalogWithOverlaps(
 				[]string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
 				[]string{"rpm:python3-rpm@4.14.3-26.el8 -> python:rpm@4.14.3"}), "rhel"),
 			expectedPackages: []string{"rpm:python3-rpm@4.14.3-26.el8"},
+		},
+		{
+			name: "amzn linux doesn't remove packages in this way",
+			sbom: withDistro(catalogWithOverlaps(
+				[]string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
+				[]string{"rpm:python3-rpm@4.14.3-26.el8 -> python:rpm@4.14.3"}), "amzn"),
+			expectedPackages: []string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
 		},
 	}
 	for _, test := range tests {
