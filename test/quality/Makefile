@@ -21,7 +21,7 @@ SUCCESS := $(BOLD)$(GREEN)
 all: capture validate ## Fetch or capture all data and run all quality checks
 
 .PHONY: validate
-validate: venv $(VULNERABILITY_LABELS) ## Run all quality checks against already collected data
+validate: venv $(VULNERABILITY_LABELS)/Makefile ## Run all quality checks against already collected data
 	$(ACTIVATE_VENV) ./gate.py
 
 .PHONY: capture
@@ -36,7 +36,7 @@ sboms: $(YARDSTICK_RESULT_DIR) venv clear-results ## Collect and store all syft 
 	bash -c "make download-sboms || ($(YARDSTICK) -v result capture -r $(RESULT_SET) --only-producers)"
 
 .PHONY: download-sboms
-download-sboms:
+download-sboms: $(VULNERABILITY_LABELS)/Makefile
 	cd vulnerability-match-labels && make venv
 	bash -c "export ORAS_CACHE=$(shell pwd)/.oras-cache && make venv && . vulnerability-match-labels/venv/bin/activate && ./vulnerability-match-labels/sboms.py download -r $(RESULT_SET)"
 
@@ -51,8 +51,8 @@ venv/touchfile: requirements.txt
 $(YARDSTICK_RESULT_DIR):
 	mkdir -p $(YARDSTICK_RESULT_DIR)
 
-$(VULNERABILITY_LABELS):
-	git submodule update vulnerability-match-labels
+$(VULNERABILITY_LABELS)/Makefile:
+	git submodule update --init
 
 .PHONY: clear-results
 clear-results: venv ## Clear all existing yardstick results
