@@ -658,7 +658,7 @@ func intRef(i int) *int {
 	return &i
 }
 
-func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
+func Test_RemovePackagesByOverlap(t *testing.T) {
 	tests := []struct {
 		name             string
 		sbom             *sbom.SBOM
@@ -709,16 +709,16 @@ func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
 		{
 			name: "does not exclude if OS package owns OS package",
 			sbom: catalogWithOverlaps(
-				[]string{"rpm:perl@19.2-r1", "rpm:libperl@19.2"},
-				[]string{"rpm:perl@19.2-r1 -> rpm:libperl@19.2"}),
-			expectedPackages: []string{"apk:node@19.2", "rpm:node@19.2-r1"},
+				[]string{"rpm:perl@5.3-r1", "rpm:libperl@5.3"},
+				[]string{"rpm:perl@5.3-r1 -> rpm:libperl@5.3"}),
+			expectedPackages: []string{"rpm:libperl@5.3", "rpm:perl@5.3-r1"},
 		},
 		{
 			name: "does not exclude if owning package is non-OS",
 			sbom: catalogWithOverlaps(
 				[]string{"python:urllib3@1.2.3", "python:otherlib@1.2.3"},
 				[]string{"python:urllib3@1.2.3 -> python:otherlib@1.2.3"}),
-			expectedPackages: []string{"apk:node@19.2", "rpm:node@19.2-r1"},
+			expectedPackages: []string{"python:otherlib@1.2.3", "python:urllib3@1.2.3"},
 		},
 		{
 			name: "python bindings for system RPM install",
@@ -737,7 +737,7 @@ func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			catalog := removePackagesByOverlap(test.sbom)
+			catalog := removePackagesByOverlap(test.sbom.Artifacts.Packages, test.sbom.Relationships, test.sbom.Artifacts.LinuxDistribution)
 			pkgs := FromCollection(catalog, SynthesisConfig{})
 			var pkgNames []string
 			for _, p := range pkgs {

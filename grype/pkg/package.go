@@ -13,7 +13,6 @@ import (
 	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/pkg"
 	cpes "github.com/anchore/syft/syft/pkg/cataloger/common/cpe"
-	"github.com/anchore/syft/syft/sbom"
 )
 
 // the source-rpm field has something akin to "util-linux-ng-2.17.2-12.28.el6_9.2.src.rpm"
@@ -103,17 +102,16 @@ func (p Package) String() string {
 	return fmt.Sprintf("Pkg(type=%s, name=%s, version=%s, upstreams=%d)", p.Type, p.Name, p.Version, len(p.Upstreams))
 }
 
-func removePackagesByOverlap(sbm *sbom.SBOM) *pkg.Collection {
-	catalog := sbm.Artifacts.Packages
+func removePackagesByOverlap(catalog *pkg.Collection, relationships []artifact.Relationship, distro *linux.Release) *pkg.Collection {
 	byOverlap := map[artifact.ID]artifact.Relationship{}
-	for _, r := range sbm.Relationships {
+	for _, r := range relationships {
 		if r.Type == artifact.OwnershipByFileOverlapRelationship {
 			byOverlap[r.To.ID()] = r
 		}
 	}
 
 	out := pkg.NewCollection()
-	comprehensiveDistroFeed := distroFeedIsComprehensive(sbm.Artifacts.LinuxDistribution)
+	comprehensiveDistroFeed := distroFeedIsComprehensive(distro)
 	for p := range catalog.Enumerate() {
 		r, ok := byOverlap[p.ID()]
 		if ok {
