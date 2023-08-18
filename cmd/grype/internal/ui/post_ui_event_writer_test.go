@@ -35,7 +35,7 @@ func Test_postUIEventWriter_write(t *testing.T) {
 				},
 				{
 					Type:  event.CLIAppUpdateAvailable,
-					Value: "\n\n<my app can be updated!!\n...to this version>\n\n",
+					Value: "v0.33.0",
 				},
 				{
 					Type:  event.CLINotification,
