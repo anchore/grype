@@ -1,7 +1,6 @@
 package openvex
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -11,7 +10,6 @@ import (
 	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/source"
 	openvex "github.com/openvex/go-vex/pkg/vex"
-	vexctl "github.com/openvex/vexctl/pkg/ctl"
 )
 
 type Processor struct{}
@@ -23,7 +21,7 @@ func New() *Processor {
 // ReadVexDocuments reads and merges VEX documents
 func (ovm *Processor) ReadVexDocuments(docs []string) (interface{}, error) {
 	// Combine all VEX documents into a single VEX document
-	vexdata, err := vexctl.New().MergeFiles(context.Background(), &vexctl.MergeOptions{}, docs)
+	vexdata, err := openvex.MergeFiles(docs)
 	if err != nil {
 		return nil, fmt.Errorf("merging vex documents: %w", err)
 	}
