@@ -27,7 +27,7 @@ func syftProvider(userInput string, config ProviderConfig) ([]Package, Context, 
 		return nil, Context{}, nil, err
 	}
 
-	catalog = removePackagesByOverlap(catalog, relationships)
+	catalog = removePackagesByOverlap(catalog, relationships, theDistro)
 
 	srcDescription := src.Describe()
 
