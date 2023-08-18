@@ -677,10 +677,24 @@ func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
 			expectedPackages: []string{"apk:go@1.18", "apk:node@19.2-r1"},
 		},
 		{
+			name: "does not exclude if OS package owns OS package",
+			sbom: catalogWithOverlaps(
+				[]string{"rpm:perl@5.3-r1", "rpm:libperl@5.3"},
+				[]string{"rpm:perl@5.3-r1 -> rpm:libperl@5.3"}),
+			expectedPackages: []string{"rpm:libperl@5.3", "rpm:perl@5.3-r1"},
+		},
+		{
+			name: "does not exclude if owning package is non-OS",
+			sbom: catalogWithOverlaps(
+				[]string{"python:urllib3@1.2.3", "python:otherlib@1.2.3"},
+				[]string{"python:urllib3@1.2.3 -> python:otherlib@1.2.3"}),
+			expectedPackages: []string{"python:otherlib@1.2.3", "python:urllib3@1.2.3"},
+		},
+		{
 			name: "excludes multiple package by overlap",
 			sbom: catalogWithOverlaps(
-				[]string{"apk:go@1.18", "apk:node@19.2-r1", "binary:node@19.2", "apk:python@3.9-r9", ":python@3.9"},
-				[]string{"apk:node@19.2-r1 -> binary:node@19.2", "apk:python@3.9-r9 -> :python@3.9"}),
+				[]string{"apk:go@1.18", "apk:node@19.2-r1", "binary:node@19.2", "apk:python@3.9-r9", "binary:python@3.9"},
+				[]string{"apk:node@19.2-r1 -> binary:node@19.2", "apk:python@3.9-r9 -> binary:python@3.9"}),
 			expectedPackages: []string{"apk:go@1.18", "apk:node@19.2-r1", "apk:python@3.9-r9"},
 		},
 		{
