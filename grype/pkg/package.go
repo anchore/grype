@@ -135,8 +135,8 @@ func excludePackage(p pkg.Package, parent pkg.Package) bool {
 		return false
 	}
 
-	// filter out only binary pkg, empty types, or equal types
-	if p.Type != pkg.BinaryPkg && p.Type != "" && p.Type != parent.Type {
+	// filter out only binary pkg
+	if p.Type != pkg.BinaryPkg {
 		return false
 	}
 
