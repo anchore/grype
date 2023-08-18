@@ -144,9 +144,8 @@ func excludePackage(comprehensiveDistroFeed bool, p pkg.Package, parent pkg.Pack
 		return true
 	}
 
-	// filter out only binary pkg
+	// filter out binary packages, even for non-comprehensive distros
 	if p.Type != pkg.BinaryPkg {
-		// when I fix the version info, I think this one will exclude it.
 		return false
 	}
 
