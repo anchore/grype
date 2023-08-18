@@ -50,7 +50,7 @@ require (
 
 require (
 	github.com/anchore/bubbly v0.0.0-20230712165553-812110ab0a10
-	github.com/anchore/clio v0.0.0-20230807174420-8b6f1b04adc8
+	github.com/anchore/clio v0.0.0-20230815213839-de8921cba269
 	github.com/anchore/go-logger v0.0.0-20230725134548-c21dafa1ec5a
 	github.com/anchore/sqlite v1.4.6-0.20220607210448-bcc6ee5c4963
 	github.com/anchore/syft v0.86.1
@@ -78,7 +78,7 @@ require (
 	github.com/ProtonMail/go-crypto v0.0.0-20230717121422-5aa5874ade95 // indirect
 	github.com/acobaugh/osrelease v0.1.0 // indirect
 	github.com/acomagu/bufpipe v1.0.4 // indirect
-	github.com/anchore/fangs v0.0.0-20230810180116-21c6393efab9 // indirect
+	github.com/anchore/fangs v0.0.0-20230818131516-2186b10924fe // indirect
 	github.com/anchore/go-macholibre v0.0.0-20220308212642-53e6d0aaf6fb // indirect
 	github.com/anchore/go-struct-converter v0.0.0-20221118182256-c68fdcfa2092 // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
@@ -229,7 +229,3 @@ require (
 	modernc.org/strutil v1.1.3 // indirect
 	modernc.org/token v1.1.0 // indirect
 )
-
-replace github.com/anchore/clio => github.com/anchore/clio v0.0.0-20230815195447-4352f31dbdab
-
-replace github.com/anchore/fangs => github.com/kzantow-anchore/fangs v0.0.0-20230815200609-708a32466329
