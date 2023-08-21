@@ -163,6 +163,22 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
+			"github:language:rust": {
+				"hello-auditable": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-rust-sample-1",
+						VersionConstraint: "< 0.2.0",
+						VersionFormat:     "unknown",
+					},
+				},
+				"auditable": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-rust-sample-2",
+						VersionConstraint: "< 0.2.0",
+						VersionFormat:     "unknown",
+					},
+				},
+			},
 			"debian:distro:debian:8": {
 				"apt-dev": []grypeDB.Vulnerability{
 					{
