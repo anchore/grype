@@ -31,13 +31,3 @@ func (cfg search) loadDefaultValues(v *viper.Viper) {
 	v.SetDefault("search.unindexed-archives", c.IncludeUnindexedArchives)
 	v.SetDefault("search.indexed-archives", c.IncludeIndexedArchives)
 }
-
-func (cfg search) ToConfig() cataloger.Config {
-	return cataloger.Config{
-		Search: cataloger.SearchConfig{
-			IncludeIndexedArchives:   cfg.IncludeIndexedArchives,
-			IncludeUnindexedArchives: cfg.IncludeUnindexedArchives,
-			Scope:                    cfg.ScopeOpt,
-		},
-	}
-}
