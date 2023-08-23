@@ -3,13 +3,16 @@ package openvex
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
+
+	"github.com/google/go-containerregistry/pkg/name"
+	openvex "github.com/openvex/go-vex/pkg/vex"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/source"
-	openvex "github.com/openvex/go-vex/pkg/vex"
 )
 
 type Processor struct{}
@@ -75,40 +78,42 @@ func identifiersFromDigests(digests []string) []string {
 		// The first identifier is the original image reference:
 		identifiers = append(identifiers, d)
 
-		// Now, parse the digest
-		parts := strings.SplitN(d, "@", 2)
-		if len(parts) != 2 {
+		// Not an image reference, skip
+		ref, err := name.ParseReference(d)
+		if err != nil {
 			continue
 		}
 
-		name := ""
-		repoURL := ""
-		digestString := strings.TrimPrefix(parts[1], "sha256:")
-		subparts := strings.Split(parts[0], "/")
-		switch len(subparts) {
-		case 1:
-			name = subparts[0]
-			repoURL = ""
-		default:
-			name = subparts[(len(subparts) - 1)]
-			repoURL = strings.Join(subparts[0:len(subparts)-1], "/")
-		}
+		var digestString, repoURL string
+		shaString := ref.Identifier()
 
-		if name == "" {
+		// If not a digest, we can't form a purl, so skip it
+		if !strings.HasPrefix(shaString, "sha256:") {
 			continue
 		}
+
+		digestString = url.QueryEscape(shaString)
+
+		pts := strings.Split(ref.Context().RepositoryStr(), "/")
+		name := pts[len(pts)-1]
+		repoURL = strings.TrimSuffix(
+			ref.Context().RegistryStr()+"/"+ref.Context().RepositoryStr(),
+			fmt.Sprintf("/%s", name),
+		)
+
 		qMap := map[string]string{}
-		// Add
+
 		if repoURL != "" {
 			qMap["repository_url"] = repoURL
 		}
 		qs := packageurl.QualifiersFromMap(qMap)
 		identifiers = append(identifiers, packageurl.NewPackageURL(
-			"oci", "", name, fmt.Sprintf("sha256%%3A%s", digestString), qs, "",
+			"oci", "", name, digestString, qs, "",
 		).String())
 
-		// TODO(puerco): Should also pass the digests only? They could be listed
-		// in the openvex document an foks may choose to vex on the hash.
+		// Add a hash to the identifier list in case people want to vex
+		// using the value of the image digest
+		identifiers = append(identifiers, strings.TrimPrefix(shaString, "sha256:"))
 	}
 	return identifiers
 }
