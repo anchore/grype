@@ -34,6 +34,11 @@ type vexProcessorImplementation interface {
 	// the scanning context and matching results and filters the fixed and
 	// not_affected results,moving them to the list of ignored matches.
 	FilterMatches(interface{}, []match.IgnoreRule, *pkg.Context, *match.Matches, []match.IgnoredMatch) (*match.Matches, []match.IgnoredMatch, error)
+
+	// AugmentMatches reads known affected VEX products from loaded documents and
+	// adds new results to the scanner results when the product is marked as
+	// affected in the VEX data.
+	AugmentMatches(interface{}, []match.IgnoreRule, *pkg.Context, *match.Matches, []match.IgnoredMatch) (*match.Matches, []match.IgnoredMatch, error)
 }
 
 // getVexImplementation this function returns the vex processor implementation
@@ -79,6 +84,13 @@ func (vm *Processor) ApplyVEX(pkgContext *pkg.Context, remainingMatches *match.M
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("checking matches against VEX data: %w", err)
+	}
+
+	remainingMatches, ignoredMatches, err = vm.impl.AugmentMatches(
+		rawVexData, extractVexRules(vm.Options.IgnoreRules), pkgContext, remainingMatches, ignoredMatches,
+	)
+	if err != nil {
+		return nil, nil, fmt.Errorf("checking matches to augment from VEX data: %w", err)
 	}
 
 	return remainingMatches, ignoredMatches, nil

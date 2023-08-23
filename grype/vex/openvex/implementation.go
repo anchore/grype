@@ -18,6 +18,30 @@ func New() *Processor {
 	return &Processor{}
 }
 
+// Match captures the criteria that caused a vulnerability to match
+type Match struct {
+	Statement openvex.Statement
+}
+
+// SearchedBy captures the prameters used to search through the VEX data
+type SearchedBy struct {
+	Vulnerability string
+	Product       string
+	Subcomponents []string
+}
+
+// augmentStatuses are the VEX statuses that augment results
+var augmentStatuses = []openvex.Status{
+	openvex.StatusAffected,
+	openvex.StatusUnderInvestigation,
+}
+
+// filterStatuses are the VEX statuses that filter matched to the ignore list
+var ignoreStatuses = []openvex.Status{
+	openvex.StatusNotAffected,
+	openvex.StatusFixed,
+}
+
 // ReadVexDocuments reads and merges VEX documents
 func (ovm *Processor) ReadVexDocuments(docs []string) (interface{}, error) {
 	// Combine all VEX documents into a single VEX document
@@ -143,7 +167,7 @@ func (ovm *Processor) FilterMatches(
 			continue
 		}
 
-		rule := matchingRule(ignoreRules, sorted[i], statement)
+		rule := matchingRule(ignoreRules, sorted[i], statement, ignoreStatuses)
 		if rule == nil {
 			remainingMatches.Add(sorted[i])
 			continue
@@ -172,9 +196,14 @@ func (ovm *Processor) FilterMatches(
 
 // matchingRule cycles through a set of ignore rules and returns the first
 // one that matches the statement and the match. Returns nil if none match.
-func matchingRule(ignoreRules []match.IgnoreRule, m match.Match, statement *openvex.Statement) *match.IgnoreRule {
+func matchingRule(ignoreRules []match.IgnoreRule, m match.Match, statement *openvex.Statement, allowedStatuses []openvex.Status) *match.IgnoreRule {
 	ms := match.NewMatches()
 	ms.Add(m)
+
+	revStatuses := map[string]struct{}{}
+	for _, s := range allowedStatuses {
+		revStatuses[string(s)] = struct{}{}
+	}
 
 	for _, rule := range ignoreRules {
 		// If the rule has more conditions than just the VEX statement, check if
@@ -189,8 +218,15 @@ func matchingRule(ignoreRules []match.IgnoreRule, m match.Match, statement *open
 
 		// If the status in the statement is not the same in the rule
 		// and the vex statement, it does not apply
-		if string(statement.Status) != string(rule.VexStatus) {
+		if string(statement.Status) != rule.VexStatus {
 			continue
+		}
+
+		// If the rule has a statement other than the allowed ones, skip:
+		if len(revStatuses) > 0 && rule.VexStatus != "" {
+			if _, ok := revStatuses[rule.VexStatus]; !ok {
+				continue
+			}
 		}
 
 		// If the rule applies to a VEX justification it needs to match the
@@ -207,10 +243,81 @@ func matchingRule(ignoreRules []match.IgnoreRule, m match.Match, statement *open
 		}
 
 		// If the vulnerability is set, the rule applies if it is the same
-		// in the statment and the rule.
+		// in the statement and the rule.
 		if statement.Vulnerability.Matches(rule.Vulnerability) {
 			return &rule
 		}
 	}
 	return nil
+}
+
+// AugmentMatches adds results to the match.Matches array when matching data
+// about an affected VEX product is found on loaded VEX documents. Matches
+// are moved from the ignore list or synthesized when no previous data is found.
+func (ovm *Processor) AugmentMatches(
+	docRaw interface{}, ignoreRules []match.IgnoreRule, pkgContext *pkg.Context, remainingMatches *match.Matches, ignoredMatches []match.IgnoredMatch,
+) (*match.Matches, []match.IgnoredMatch, error) {
+	doc, ok := docRaw.(*openvex.VEX)
+	if !ok {
+		return nil, nil, errors.New("unable to cast vex document as openvex")
+	}
+
+	nignoredMatches := []match.IgnoredMatch{}
+
+	products, err := productIDentifiersFromContext(pkgContext)
+	if err != nil {
+		return nil, nil, fmt.Errorf("reading product identifiers from context: %w", err)
+	}
+
+	// Now, let's go through grype's matches
+	for i := range ignoredMatches {
+		var statement *openvex.Statement
+		var searchedBy *SearchedBy
+		subcmp := subcomponentIdentifiersFromMatch(&ignoredMatches[i].Match)
+
+		// Range through the product's different names to see if they match the
+		// statement data
+		for _, product := range products {
+			if matchingStatements := doc.Matches(ignoredMatches[i].Vulnerability.ID, product, subcmp); len(matchingStatements) != 0 {
+				if matchingStatements[0].Status != openvex.StatusAffected &&
+					matchingStatements[0].Status != openvex.StatusUnderInvestigation {
+					break
+				}
+				statement = &matchingStatements[0]
+				searchedBy = &SearchedBy{
+					Vulnerability: ignoredMatches[i].Vulnerability.ID,
+					Product:       product,
+					Subcomponents: subcmp,
+				}
+				break
+			}
+		}
+
+		// No data about this match's component. Next.
+		if statement == nil {
+			nignoredMatches = append(nignoredMatches, ignoredMatches[i])
+			continue
+		}
+
+		// Only match if rules to augment are configured
+		rule := matchingRule(ignoreRules, ignoredMatches[i].Match, statement, augmentStatuses)
+		if rule == nil {
+			nignoredMatches = append(nignoredMatches, ignoredMatches[i])
+			continue
+		}
+
+		newMatch := ignoredMatches[i].Match
+		newMatch.Details = append(newMatch.Details, match.Detail{
+			Type:       match.ExactDirectMatch,
+			SearchedBy: searchedBy,
+			Found: Match{
+				Statement: *statement,
+			},
+			Matcher: match.OpenVexMatcher,
+		})
+
+		remainingMatches.Add(newMatch)
+	}
+
+	return remainingMatches, nignoredMatches, nil
 }
