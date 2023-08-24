@@ -2,10 +2,15 @@ package legacy
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/grype/grype/db"
+)
+
+const (
+	exitCodeOnDBUpgradeAvailable = 100
 )
 
 var dbCheckCmd = &cobra.Command{
@@ -43,6 +48,7 @@ func runDBCheckCmd(_ *cobra.Command, _ []string) error {
 	fmt.Printf("Updated DB version %d was built on %s\n", updateDBEntry.Version, updateDBEntry.Built.String())
 	fmt.Printf("Updated DB URL: %s\n", updateDBEntry.URL.String())
 	fmt.Println("You can run 'grype db update' to update to the latest db")
+	os.Exit(exitCodeOnDBUpgradeAvailable)
 
 	return nil
 }
