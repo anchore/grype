@@ -167,6 +167,13 @@ use the `--distro <distro>:<version>` flag. A full example is:
 grype --add-cpes-if-none --distro alpine:3.10 sbom:some-apline-3.10.spdx.json
 ```
 
+### Supported versions
+
+Any version of Grype before v0.40.1 is not supported. Unsupported releases will not receive any software updates or
+vulnerability database updates. You can still build vulnerability databases for unsupported Grype releases by using previous
+releases of [vunnel](https://github.com/anchore/vunnel) to gather the upstream data and [grype-db](https://github.com/anchore/grype-db)
+to build databases for unsupported schemas.
+
 ### Working with attestations
 Grype supports scanning SBOMs as input via stdin. Users can use [cosign](https://github.com/sigstore/cosign) to verify attestations
 with an SBOM as its content to scan an image for vulnerabilities:
