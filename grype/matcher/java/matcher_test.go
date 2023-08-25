@@ -9,7 +9,7 @@ import (
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/stringutil"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -40,11 +40,11 @@ func TestMatcherJava_matchUpstreamMavenPackage(t *testing.T) {
 		MavenSearcher: newMockSearcher(p),
 	}
 	store := newMockProvider()
-	actual, _ := matcher.matchUpstreamMavenPackages(store, p)
+	actual, _ := matcher.matchUpstreamMavenPackages(store, nil, p)
 
 	assert.Len(t, actual, 2, "unexpected matches count")
 
-	foundCVEs := internal.NewStringSet()
+	foundCVEs := stringutil.NewStringSet()
 	for _, v := range actual {
 		foundCVEs.Add(v.Vulnerability.ID)
 

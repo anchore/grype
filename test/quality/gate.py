@@ -72,6 +72,13 @@ def guess_tool_orientation(tools: list[str]):
         current_tool = tool
 
     if latest_release_tool is None:
+        for tool in tools:
+            if "@path:" in tool:
+                current_tool = tool
+                continue
+            latest_release_tool = tool
+
+    if latest_release_tool is None:
         # "latest" value isn't accessible, so we do a best guess at which version is latest
         latest_release_tool, current_tool = sorted(tools)
 
@@ -89,6 +96,17 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
     RESET = '\033[0m'
+
+if not sys.stdout.isatty():
+    bcolors.HEADER = ""
+    bcolors.OKBLUE = ""
+    bcolors.OKCYAN = ""
+    bcolors.OKGREEN = ""
+    bcolors.WARNING = ""
+    bcolors.FAIL = ""
+    bcolors.BOLD = ""
+    bcolors.UNDERLINE = ""
+    bcolors.RESET = ""
 
 def show_results_used(results: list[artifact.ScanResult]):
     print(f"   Results used:")

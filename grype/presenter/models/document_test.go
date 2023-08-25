@@ -2,6 +2,7 @@ package models
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -71,9 +72,8 @@ func TestPackagesAreSorted(t *testing.T) {
 	packages := []pkg.Package{pkg1, pkg2}
 
 	ctx := pkg.Context{
-		Source: &syftSource.Metadata{
-			Scheme:        syftSource.DirectoryScheme,
-			ImageMetadata: syftSource.ImageMetadata{},
+		Source: &syftSource.Description{
+			Metadata: syftSource.DirectorySourceMetadata{},
 		},
 		Distro: &linux.Release{
 			ID:      "centos",
@@ -91,5 +91,28 @@ func TestPackagesAreSorted(t *testing.T) {
 		actualVulnerabilities = append(actualVulnerabilities, m.Vulnerability.ID)
 	}
 
-	assert.Equal(t, []string{"CVE-1999-0001", "CVE-1999-0002", "CVE-1999-0003"}, actualVulnerabilities)
+	assert.Equal(t, []string{"CVE-1999-0003", "CVE-1999-0002", "CVE-1999-0001"}, actualVulnerabilities)
+}
+
+func TestTimestampValidFormat(t *testing.T) {
+
+	matches := match.NewMatches()
+
+	ctx := pkg.Context{
+		Source: nil,
+		Distro: nil,
+	}
+
+	doc, err := NewDocument(nil, ctx, matches, nil, nil, nil, nil)
+	if err != nil {
+		t.Fatalf("unable to get document: %+v", err)
+	}
+
+	assert.NotEmpty(t, doc.Descriptor.Timestamp)
+	// Check format is RFC3339 compatible e.g. 2023-04-21T00:22:06.491137+01:00
+	_, timeErr := time.Parse(time.RFC3339, doc.Descriptor.Timestamp)
+	if timeErr != nil {
+		t.Fatalf("unable to parse time: %+v", timeErr)
+	}
+
 }

@@ -9,6 +9,7 @@ env:
 
 builds:
   - id: linux-build
+    dir: ./cmd/grype
     binary: grype
     goos:
       - linux
@@ -29,6 +30,7 @@ builds:
       -X github.com/anchore/grype/internal/version.gitDescription={{.Summary}}
 
   - id: darwin-build
+    dir: ./cmd/grype
     binary: grype
     goos:
       - darwin
@@ -44,6 +46,7 @@ builds:
             - QUILL_LOG_FILE=/tmp/quill-{{ .Target }}.log
 
   - id: windows-build
+    dir: ./cmd/grype
     binary: grype
     goos:
       - windows

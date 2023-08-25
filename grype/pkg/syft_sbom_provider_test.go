@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -11,15 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/syft/syft/cpe"
+	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/source"
 )
-
-func assertAs(expected string) assert.ErrorAssertionFunc {
-	return func(t assert.TestingT, err error, i ...interface{}) bool {
-		return assert.ErrorContains(t, errors.New(expected), err.Error())
-	}
-}
 
 func TestParseSyftJSON(t *testing.T) {
 	tests := []struct {
@@ -33,8 +27,8 @@ func TestParseSyftJSON(t *testing.T) {
 				{
 					Name:    "alpine-baselayout",
 					Version: "3.2.0-r6",
-					Locations: source.NewLocationSet(
-						source.NewLocationFromCoordinates(source.Coordinates{
+					Locations: file.NewLocationSet(
+						file.NewLocationFromCoordinates(file.Coordinates{
 							RealPath:     "/lib/apk/db/installed",
 							FileSystemID: "sha256:8d3ac3489996423f53d6087c81180006263b79f206d3fdec9e66f0e27ceb8759",
 						}),
@@ -57,8 +51,8 @@ func TestParseSyftJSON(t *testing.T) {
 				{
 					Name:    "fake",
 					Version: "1.2.0",
-					Locations: source.NewLocationSet(
-						source.NewLocationFromCoordinates(source.Coordinates{
+					Locations: file.NewLocationSet(
+						file.NewLocationFromCoordinates(file.Coordinates{
 							RealPath:     "/lib/apk/db/installed",
 							FileSystemID: "sha256:93cf4cfb673c7e16a9e74f731d6767b70b92a0b7c9f59d06efd72fbff535371c",
 						}),
@@ -83,8 +77,8 @@ func TestParseSyftJSON(t *testing.T) {
 				{
 					Name:    "gmp",
 					Version: "6.2.0-r0",
-					Locations: source.NewLocationSet(
-						source.NewLocationFromCoordinates(source.Coordinates{
+					Locations: file.NewLocationSet(
+						file.NewLocationFromCoordinates(file.Coordinates{
 							RealPath:     "/lib/apk/db/installed",
 							FileSystemID: "sha256:93cf4cfb673c7e16a9e74f731d6767b70b92a0b7c9f59d06efd72fbff535371c",
 						}),
@@ -108,11 +102,10 @@ func TestParseSyftJSON(t *testing.T) {
 				},
 			},
 			Context: Context{
-				Source: &source.Metadata{
-					Scheme: source.ImageScheme,
-					ImageMetadata: source.ImageMetadata{
+				Source: &source.Description{
+					Metadata: source.StereoscopeImageSourceMetadata{
 						UserInput: "alpine:fake",
-						Layers: []source.LayerMetadata{
+						Layers: []source.StereoscopeLayerMetadata{
 							{
 								MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
 								Digest:    "sha256:50644c29ef5a27c9a40c393a73ece2479de78325cae7d762ef3cdc19bf42dd0a",
@@ -127,7 +120,6 @@ func TestParseSyftJSON(t *testing.T) {
 							"alpine:fake",
 						},
 					},
-					Path: "",
 				},
 				Distro: &linux.Release{
 					Name:    "alpine",
@@ -145,12 +137,16 @@ func TestParseSyftJSON(t *testing.T) {
 				t.Fatalf("unable to parse: %+v", err)
 			}
 
-			context.Source.ImageMetadata.RawConfig = nil
-			context.Source.ImageMetadata.RawManifest = nil
+			if m, ok := context.Source.Metadata.(source.StereoscopeImageSourceMetadata); ok {
+				m.RawConfig = nil
+				m.RawManifest = nil
+
+				context.Source.Metadata = m
+			}
 
 			for _, d := range deep.Equal(test.Packages, pkgs) {
 				if strings.Contains(d, ".ID: ") {
-					// today ID's get assigned by the catalog, which will change in the future. But in the meantime
+					// today ID's get assigned by the collection, which will change in the future. But in the meantime
 					// that means that these IDs are random and should not be counted as a difference we care about in
 					// this test.
 					continue
@@ -186,8 +182,8 @@ var springImageTestCase = struct {
 		{
 			Name:    "charsets",
 			Version: "",
-			Locations: source.NewLocationSet(
-				source.NewLocationFromCoordinates(source.Coordinates{
+			Locations: file.NewLocationSet(
+				file.NewLocationFromCoordinates(file.Coordinates{
 					RealPath:     "/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/charsets.jar",
 					FileSystemID: "sha256:a1a6ceadb701ab4e6c93b243dc2a0daedc8cee23a24203845ecccd5784cd1393",
 				}),
@@ -206,8 +202,8 @@ var springImageTestCase = struct {
 		{
 			Name:    "tomcat-embed-el",
 			Version: "9.0.27",
-			Locations: source.NewLocationSet(
-				source.NewLocationFromCoordinates(source.Coordinates{
+			Locations: file.NewLocationSet(
+				file.NewLocationFromCoordinates(file.Coordinates{
 					RealPath:     "/app/libs/tomcat-embed-el-9.0.27.jar",
 					FileSystemID: "sha256:89504f083d3f15322f97ae240df44650203f24427860db1b3d32e66dd05940e4",
 				}),
@@ -225,11 +221,10 @@ var springImageTestCase = struct {
 		},
 	},
 	Context: Context{
-		Source: &source.Metadata{
-			Scheme: source.ImageScheme,
-			ImageMetadata: source.ImageMetadata{
+		Source: &source.Description{
+			Metadata: source.StereoscopeImageSourceMetadata{
 				UserInput: "springio/gs-spring-boot-docker:latest",
-				Layers: []source.LayerMetadata{
+				Layers: []source.StereoscopeLayerMetadata{
 					{
 						MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
 						Digest:    "sha256:42a3027eaac150d2b8f516100921f4bd83b3dbc20bfe64124f686c072b49c602",
@@ -245,7 +240,6 @@ var springImageTestCase = struct {
 				},
 				RepoDigests: []string{"springio/gs-spring-boot-docker@sha256:39c2ffc784f5f34862e22c1f2ccdbcb62430736114c13f60111eabdb79decb08"},
 			},
-			Path: "",
 		},
 		Distro: &linux.Release{
 			Name:    "debian",

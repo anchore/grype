@@ -36,12 +36,6 @@ func getListingURL() string {
 }
 
 func TestCompareSBOMInputToLibResults(t *testing.T) {
-	formats := []sbom.FormatID{
-		syft.JSONFormatID,
-		syft.SPDXJSONFormatID,
-		syft.SPDXTagValueFormatID,
-	}
-
 	// get a grype DB
 	store, _, closer, err := grype.LoadVulnerabilityDB(db.Config{
 		DBRootDir:           "test-fixtures/grype-db",
@@ -60,6 +54,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 	}
 	// exceptions: rust, php, dart, msrc (kb), etc. are not under test
 	definedPkgTypes.Remove(
+		string(syftPkg.BinaryPkg), // these are removed due to overlap-by-file-ownership
 		string(syftPkg.RustPkg),
 		string(syftPkg.KbPkg),
 		string(syftPkg.DartPubPkg),
@@ -70,56 +65,203 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		string(syftPkg.PortagePkg),
 		string(syftPkg.CocoapodsPkg),
 		string(syftPkg.HackagePkg),
+		string(syftPkg.NixPkg),
 		string(syftPkg.JenkinsPluginPkg), // package type cannot be inferred for all formats
-		string(syftPkg.Elixir),
-		string(syftPkg.Erlang),
+		string(syftPkg.LinuxKernelPkg),
+		string(syftPkg.LinuxKernelModulePkg),
+		string(syftPkg.Rpkg),
+		string(syftPkg.SwiftPkg),
 	)
 	observedPkgTypes := strset.New()
+	testCases := []struct {
+		name   string
+		image  string
+		format sbom.FormatID
+	}{
+		{
+			image:  "anchore/test_images:vulnerabilities-alpine",
+			format: syft.JSONFormatID,
+			name:   "alpine-syft-json",
+		},
 
-	for _, image := range imagesWithVulnerabilities {
-		imageArchive := PullThroughImageCache(t, image)
+		{
+			image:  "anchore/test_images:vulnerabilities-alpine",
+			format: syft.SPDXJSONFormatID,
+			name:   "alpine-spdx-json",
+		},
+
+		{
+			image:  "anchore/test_images:vulnerabilities-alpine",
+			format: syft.SPDXTagValueFormatID,
+			name:   "alpine-spdx-tag-value",
+		},
+
+		{
+			image:  "anchore/test_images:gems",
+			format: syft.JSONFormatID,
+			name:   "gems-syft-json",
+		},
+
+		{
+			image:  "anchore/test_images:gems",
+			format: syft.SPDXJSONFormatID,
+			name:   "gems-spdx-json",
+		},
+
+		{
+			image:  "anchore/test_images:gems",
+			format: syft.SPDXTagValueFormatID,
+			name:   "gems-spdx-tag-value",
+		},
+
+		{
+			image:  "anchore/test_images:vulnerabilities-debian",
+			format: syft.JSONFormatID,
+			name:   "debian-syft-json",
+		},
+
+		{
+			image:  "anchore/test_images:vulnerabilities-debian",
+			format: syft.SPDXJSONFormatID,
+			name:   "debian-spdx-json",
+		},
+
+		{
+			image:  "anchore/test_images:vulnerabilities-debian",
+			format: syft.SPDXTagValueFormatID,
+			name:   "debian-spdx-tag-value",
+		},
+
+		{
+			image:  "anchore/test_images:vulnerabilities-centos",
+			format: syft.JSONFormatID,
+			name:   "centos-syft-json",
+		},
+
+		{
+			image:  "anchore/test_images:vulnerabilities-centos",
+			format: syft.SPDXJSONFormatID,
+			name:   "centos-spdx-json",
+		},
+
+		{
+			image:  "anchore/test_images:vulnerabilities-centos",
+			format: syft.SPDXTagValueFormatID,
+			name:   "centos-spdx-tag-value",
+		},
+
+		{
+			image:  "anchore/test_images:npm",
+			format: syft.JSONFormatID,
+			name:   "npm-syft-json",
+		},
+
+		{
+			image:  "anchore/test_images:npm",
+			format: syft.SPDXJSONFormatID,
+			name:   "npm-spdx-json",
+		},
+
+		{
+			image:  "anchore/test_images:npm",
+			format: syft.SPDXTagValueFormatID,
+			name:   "npm-spdx-tag-value",
+		},
+
+		{
+			image:  "anchore/test_images:java",
+			format: syft.JSONFormatID,
+			name:   "java-syft-json",
+		},
+
+		{
+			image:  "anchore/test_images:java",
+			format: syft.SPDXJSONFormatID,
+			name:   "java-spdx-json",
+		},
+
+		{
+			image:  "anchore/test_images:java",
+			format: syft.SPDXTagValueFormatID,
+			name:   "java-spdx-tag-value",
+		},
+
+		{
+			image:  "anchore/test_images:golang-56d52bc",
+			format: syft.JSONFormatID,
+			name:   "go-syft-json",
+		},
+
+		{
+			image:  "anchore/test_images:golang-56d52bc",
+			format: syft.SPDXJSONFormatID,
+			name:   "go-spdx-json",
+		},
+
+		{
+			image:  "anchore/test_images:golang-56d52bc",
+			format: syft.SPDXTagValueFormatID,
+			name:   "go-spdx-tag-value",
+		},
+
+		{
+			image:  "anchore/test_images:arch",
+			format: syft.JSONFormatID,
+			name:   "arch-syft-json",
+		},
+
+		{
+			image:  "anchore/test_images:arch",
+			format: syft.SPDXJSONFormatID,
+			name:   "arch-spdx-json",
+		},
+
+		{
+			image:  "anchore/test_images:arch",
+			format: syft.SPDXTagValueFormatID,
+			name:   "arch-spdx-tag-value",
+		},
+	}
+	for _, tc := range testCases {
+		imageArchive := PullThroughImageCache(t, tc.image)
 		imageSource := fmt.Sprintf("docker-archive:%s", imageArchive)
-
-		for _, formatID := range formats {
-			f := syft.FormatByID(formatID)
-			if f == nil {
-				t.Errorf("Invalid formatID: %s", formatID)
-			}
-			t.Run(fmt.Sprintf("%s/%s", image, formatID), func(t *testing.T) {
-
-				// get SBOM from syft, write to temp file
-				sbomBytes := getSyftSBOM(t, imageSource, f)
-				sbomFile, err := os.CreateTemp("", "")
-				assert.NoError(t, err)
-				t.Cleanup(func() {
-					assert.NoError(t, os.Remove(sbomFile.Name()))
-				})
-				_, err = sbomFile.WriteString(sbomBytes)
-				assert.NoError(t, err)
-				assert.NoError(t, sbomFile.Close())
-
-				// get vulns (sbom)
-				matchesFromSbom, _, pkgsFromSbom, err := grype.FindVulnerabilities(*store, fmt.Sprintf("sbom:%s", sbomFile.Name()), source.SquashedScope, nil)
-				assert.NoError(t, err)
-
-				// get vulns (image)
-				matchesFromImage, _, _, err := grype.FindVulnerabilities(*store, imageSource, source.SquashedScope, nil)
-				assert.NoError(t, err)
-
-				// compare packages (shallow)
-				matchSetFromSbom := getMatchSet(matchesFromSbom)
-				matchSetFromImage := getMatchSet(matchesFromImage)
-
-				assert.Empty(t, strset.Difference(matchSetFromSbom, matchSetFromImage).List(), "vulnerabilities present only in results when using sbom as input")
-				assert.Empty(t, strset.Difference(matchSetFromImage, matchSetFromSbom).List(), "vulnerabilities present only in results when using image as input")
-
-				// track all covered package types (for use after the test)
-				for _, p := range pkgsFromSbom {
-					observedPkgTypes.Add(string(p.Type))
-				}
-
-			})
+		f := syft.FormatByID(tc.format)
+		if f == nil {
+			t.Errorf("Invalid formatID: %s", tc.format)
 		}
+		t.Run(tc.name, func(t *testing.T) {
+			// get SBOM from syft, write to temp file
+			sbomBytes := getSyftSBOM(t, imageSource, f)
+			sbomFile, err := os.CreateTemp("", "")
+			assert.NoError(t, err)
+			t.Cleanup(func() {
+				assert.NoError(t, os.Remove(sbomFile.Name()))
+			})
+			_, err = sbomFile.WriteString(sbomBytes)
+			assert.NoError(t, err)
+			assert.NoError(t, sbomFile.Close())
+
+			// get vulns (sbom)
+			matchesFromSbom, _, pkgsFromSbom, err := grype.FindVulnerabilities(*store, fmt.Sprintf("sbom:%s", sbomFile.Name()), source.SquashedScope, nil)
+			assert.NoError(t, err)
+
+			// get vulns (image)
+			matchesFromImage, _, _, err := grype.FindVulnerabilities(*store, imageSource, source.SquashedScope, nil)
+			assert.NoError(t, err)
+
+			// compare packages (shallow)
+			matchSetFromSbom := getMatchSet(matchesFromSbom)
+			matchSetFromImage := getMatchSet(matchesFromImage)
+
+			assert.Empty(t, strset.Difference(matchSetFromSbom, matchSetFromImage).List(), "vulnerabilities present only in results when using sbom as input")
+			assert.Empty(t, strset.Difference(matchSetFromImage, matchSetFromSbom).List(), "vulnerabilities present only in results when using image as input")
+
+			// track all covered package types (for use after the test)
+			for _, p := range pkgsFromSbom {
+				observedPkgTypes.Add(string(p.Type))
+			}
+
+		})
 	}
 
 	// ensure we've covered all package types (-rust, -kb)

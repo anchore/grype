@@ -14,6 +14,7 @@ import (
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/version"
+	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -21,7 +22,7 @@ import (
 type Presenter struct {
 	results          match.Matches
 	packages         []pkg.Package
-	srcMetadata      *source.Metadata
+	src              *source.Description
 	metadataProvider vulnerability.MetadataProvider
 }
 
@@ -31,7 +32,7 @@ func NewPresenter(pb models.PresenterConfig) *Presenter {
 		results:          pb.Matches,
 		packages:         pb.Packages,
 		metadataProvider: pb.MetadataProvider,
-		srcMetadata:      pb.Context.Source,
+		src:              pb.Context.Source,
 	}
 }
 
@@ -162,10 +163,19 @@ func (pres *Presenter) packagePath(p pkg.Package) string {
 
 // inputPath returns a friendlier relative path or absolute path depending on the input, not prefixed by . or ./
 func (pres *Presenter) inputPath() string {
-	if pres.srcMetadata == nil {
+	if pres.src == nil {
 		return ""
 	}
-	inputPath := strings.TrimPrefix(pres.srcMetadata.Path, "./")
+	var inputPath string
+	switch m := pres.src.Metadata.(type) {
+	case source.FileSourceMetadata:
+		inputPath = m.Path
+	case source.DirectorySourceMetadata:
+		inputPath = m.Path
+	default:
+		return ""
+	}
+	inputPath = strings.TrimPrefix(inputPath, "./")
 	if inputPath == "." {
 		return ""
 	}
@@ -173,7 +183,7 @@ func (pres *Presenter) inputPath() string {
 }
 
 // locationPath returns a path for the location, relative to the cwd
-func (pres *Presenter) locationPath(l source.Location) string {
+func (pres *Presenter) locationPath(l file.Location) string {
 	path := l.RealPath
 	if l.VirtualPath != "" {
 		path = l.VirtualPath
@@ -181,13 +191,17 @@ func (pres *Presenter) locationPath(l source.Location) string {
 	in := pres.inputPath()
 	path = strings.TrimPrefix(path, "./")
 	// trimmed off any ./ and accounted for dir:. for both path and input path
-	if pres.srcMetadata != nil && pres.srcMetadata.Scheme == source.DirectoryScheme {
-		if filepath.IsAbs(path) || in == "" {
-			return path
+	if pres.src != nil {
+		_, ok := pres.src.Metadata.(source.DirectorySourceMetadata)
+		if ok {
+			if filepath.IsAbs(path) || in == "" {
+				return path
+			}
+			// return a path relative to the cwd, if it's not absolute
+			return fmt.Sprintf("%s/%s", in, path)
 		}
-		// return a path relative to the cwd, if it's not absolute
-		return fmt.Sprintf("%s/%s", in, path)
 	}
+
 	return path
 }
 
@@ -197,9 +211,9 @@ func (pres *Presenter) locations(m match.Match) []*sarif.Location {
 
 	var logicalLocations []*sarif.LogicalLocation
 
-	switch pres.srcMetadata.Scheme {
-	case source.ImageScheme:
-		img := pres.srcMetadata.ImageMetadata.UserInput
+	switch metadata := pres.src.Metadata.(type) {
+	case source.StereoscopeImageSourceMetadata:
+		img := metadata.UserInput
 		locations := m.Package.Locations.ToSlice()
 		for _, l := range locations {
 			trimmedPath := strings.TrimPrefix(pres.locationPath(l), "/")
@@ -214,15 +228,15 @@ func (pres *Presenter) locations(m match.Match) []*sarif.Location {
 		// TODO we could add configuration to specify the prefix, a user might want to specify an image name and architecture
 		// in the case of multiple vuln scans, for example
 		physicalLocation = fmt.Sprintf("image/%s", physicalLocation)
-	case source.FileScheme:
+	case source.FileSourceMetadata:
 		locations := m.Package.Locations.ToSlice()
 		for _, l := range locations {
 			logicalLocations = append(logicalLocations, &sarif.LogicalLocation{
-				FullyQualifiedName: sp(fmt.Sprintf("%s:/%s", pres.srcMetadata.Path, pres.locationPath(l))),
+				FullyQualifiedName: sp(fmt.Sprintf("%s:/%s", metadata.Path, pres.locationPath(l))),
 				Name:               sp(l.RealPath),
 			})
 		}
-	case source.DirectoryScheme:
+	case source.DirectorySourceMetadata:
 		// DirectoryScheme is already handled, with input prepended if needed
 	}
 
@@ -398,7 +412,7 @@ func (pres *Presenter) resultMessage(m match.Match) sarif.Message {
 	path := pres.packagePath(m.Package)
 	message := fmt.Sprintf("The path %s reports %s at version %s ", path, m.Package.Name, m.Package.Version)
 
-	if pres.srcMetadata.Scheme == source.DirectoryScheme {
+	if _, ok := pres.src.Metadata.(source.DirectorySourceMetadata); ok {
 		message = fmt.Sprintf("%s which would result in a vulnerable (%s) package installed", message, m.Package.Type)
 	} else {
 		message = fmt.Sprintf("%s which is a vulnerable (%s) package installed in the container", message, m.Package.Type)

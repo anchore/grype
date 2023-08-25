@@ -13,8 +13,9 @@ import (
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/file"
 	syftFile "github.com/anchore/syft/syft/file"
+	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
-	"github.com/anchore/syft/syft/source"
+	"github.com/anchore/syft/syft/sbom"
 )
 
 func TestNew(t *testing.T) {
@@ -82,7 +83,6 @@ func TestNew(t *testing.T) {
 					Release:   "release-info",
 					SourceRpm: "sqlite-3.26.0-6.el8.src.rpm",
 					Size:      40,
-					License:   "license-info",
 					Vendor:    "vendor-info",
 					Files: []syftPkg.RpmdbFileRecord{
 						{
@@ -185,7 +185,6 @@ func TestNew(t *testing.T) {
 					OriginPackage: "libcurl",
 					Maintainer:    "somone",
 					Version:       "1.2.3",
-					License:       "Apache",
 					Architecture:  "a",
 					URL:           "a",
 					Description:   "a",
@@ -219,7 +218,6 @@ func TestNew(t *testing.T) {
 				Metadata: syftPkg.PythonPackageMetadata{
 					Name:                 "a",
 					Version:              "a",
-					License:              "a",
 					Author:               "a",
 					AuthorEmail:          "a",
 					Platform:             "a",
@@ -419,6 +417,19 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
+			name: "python-requirements-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.PythonRequirementsMetadataType,
+				Metadata: syftPkg.PythonRequirementsMetadata{
+					Name:              "a",
+					Extras:            []string{"a"},
+					VersionConstraint: "a",
+					URL:               "a",
+					Markers:           "a",
+				},
+			},
+		},
+		{
 			name: "binary-metadata",
 			syftPkg: syftPkg.Package{
 				MetadataType: syftPkg.BinaryMetadataType,
@@ -428,6 +439,104 @@ func TestNew(t *testing.T) {
 							Classifier: "node",
 						},
 					},
+				},
+			},
+		},
+		{
+			name: "nix-store-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.NixStoreMetadataType,
+				Metadata: syftPkg.NixStoreMetadata{
+					OutputHash: "a",
+					Output:     "a",
+					Files: []string{
+						"a",
+					},
+				},
+			},
+		},
+		{
+			name: "linux-kernel-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.LinuxKernelMetadataType,
+				Metadata: syftPkg.LinuxKernelMetadata{
+					Name:            "a",
+					Architecture:    "a",
+					Version:         "a",
+					ExtendedVersion: "a",
+					BuildTime:       "a",
+					Author:          "a",
+					Format:          "a",
+					RWRootFS:        true,
+					SwapDevice:      10,
+					RootDevice:      11,
+					VideoMode:       "a",
+				},
+			},
+		},
+		{
+			name: "linux-kernel-module-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.LinuxKernelModuleMetadataType,
+				Metadata: syftPkg.LinuxKernelModuleMetadata{
+					Name:          "a",
+					Version:       "a",
+					SourceVersion: "a",
+					Path:          "a",
+					Description:   "a",
+					Author:        "a",
+					License:       "a",
+					KernelVersion: "a",
+					VersionMagic:  "a",
+					Parameters: map[string]syftPkg.LinuxKernelModuleParameter{
+						"a": {
+							Type:        "a",
+							Description: "a",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "r-description-file-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.RDescriptionFileMetadataType,
+				Metadata: syftPkg.RDescriptionFileMetadata{
+					Title:            "a",
+					Description:      "a",
+					Author:           "a",
+					Maintainer:       "a",
+					URL:              []string{"a"},
+					Repository:       "a",
+					Built:            "a",
+					NeedsCompilation: true,
+					Imports:          []string{"a"},
+					Depends:          []string{"a"},
+					Suggests:         []string{"a"},
+				},
+			},
+		},
+		{
+			name: "dotnet-portable-executable-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.DotnetPortableExecutableMetadataType,
+				Metadata: syftPkg.DotnetPortableExecutableMetadata{
+					AssemblyVersion: "a",
+					LegalCopyright:  "a",
+					Comments:        "a",
+					InternalName:    "a",
+					CompanyName:     "a",
+					ProductName:     "a",
+					ProductVersion:  "a",
+				},
+			},
+		},
+		{
+			name: "dotnet-portable-executable-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.SwiftPackageManagerMetadataType,
+				Metadata: syftPkg.SwiftPackageManagerMetadata{
+					Revision: "a",
 				},
 			},
 		},
@@ -460,31 +569,31 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestFromCatalog_DoesNotPanic(t *testing.T) {
-	catalog := syftPkg.NewCatalog()
+func TestFromCollection_DoesNotPanic(t *testing.T) {
+	collection := syftPkg.NewCollection()
 
 	examplePackage := syftPkg.Package{
 		Name:    "test",
 		Version: "1.2.3",
-		Locations: source.NewLocationSet(
-			source.NewLocation("/test-path"),
+		Locations: file.NewLocationSet(
+			file.NewLocation("/test-path"),
 		),
 		Type: syftPkg.NpmPkg,
 	}
 
-	catalog.Add(examplePackage)
+	collection.Add(examplePackage)
 	// add it again!
-	catalog.Add(examplePackage)
+	collection.Add(examplePackage)
 
 	assert.NotPanics(t, func() {
-		_ = FromCatalog(catalog, SynthesisConfig{})
+		_ = FromCollection(collection, SynthesisConfig{})
 	})
 }
 
-func TestFromCatalog_GeneratesCPEs(t *testing.T) {
-	catalog := syftPkg.NewCatalog()
+func TestFromCollection_GeneratesCPEs(t *testing.T) {
+	collection := syftPkg.NewCollection()
 
-	catalog.Add(syftPkg.Package{
+	collection.Add(syftPkg.Package{
 		Name:    "first",
 		Version: "1",
 		CPEs: []cpe.CPE{
@@ -492,18 +601,18 @@ func TestFromCatalog_GeneratesCPEs(t *testing.T) {
 		},
 	})
 
-	catalog.Add(syftPkg.Package{
+	collection.Add(syftPkg.Package{
 		Name:    "second",
 		Version: "2",
 	})
 
 	// doesn't generate cpes when no flag
-	pkgs := FromCatalog(catalog, SynthesisConfig{})
+	pkgs := FromCollection(collection, SynthesisConfig{})
 	assert.Len(t, pkgs[0].CPEs, 1)
 	assert.Len(t, pkgs[1].CPEs, 0)
 
 	// does generate cpes with the flag
-	pkgs = FromCatalog(catalog, SynthesisConfig{
+	pkgs = FromCollection(collection, SynthesisConfig{
 		GenerateMissingCPEs: true,
 	})
 	assert.Len(t, pkgs[0].CPEs, 1)
@@ -549,10 +658,10 @@ func intRef(i int) *int {
 	return &i
 }
 
-func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
+func Test_RemovePackagesByOverlap(t *testing.T) {
 	tests := []struct {
 		name             string
-		sbom             catalogRelationships
+		sbom             *sbom.SBOM
 		expectedPackages []string
 	}{
 		{
@@ -570,10 +679,24 @@ func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
 			expectedPackages: []string{"apk:go@1.18", "apk:node@19.2-r1"},
 		},
 		{
+			name: "does not exclude if OS package owns OS package",
+			sbom: catalogWithOverlaps(
+				[]string{"rpm:perl@5.3-r1", "rpm:libperl@5.3"},
+				[]string{"rpm:perl@5.3-r1 -> rpm:libperl@5.3"}),
+			expectedPackages: []string{"rpm:libperl@5.3", "rpm:perl@5.3-r1"},
+		},
+		{
+			name: "does not exclude if owning package is non-OS",
+			sbom: catalogWithOverlaps(
+				[]string{"python:urllib3@1.2.3", "python:otherlib@1.2.3"},
+				[]string{"python:urllib3@1.2.3 -> python:otherlib@1.2.3"}),
+			expectedPackages: []string{"python:otherlib@1.2.3", "python:urllib3@1.2.3"},
+		},
+		{
 			name: "excludes multiple package by overlap",
 			sbom: catalogWithOverlaps(
-				[]string{"apk:go@1.18", "apk:node@19.2-r1", "binary:node@19.2", "apk:python@3.9-r9", ":python@3.9"},
-				[]string{"apk:node@19.2-r1 -> binary:node@19.2", "apk:python@3.9-r9 -> :python@3.9"}),
+				[]string{"apk:go@1.18", "apk:node@19.2-r1", "binary:node@19.2", "apk:python@3.9-r9", "binary:python@3.9"},
+				[]string{"apk:node@19.2-r1 -> binary:node@19.2", "apk:python@3.9-r9 -> binary:python@3.9"}),
 			expectedPackages: []string{"apk:go@1.18", "apk:node@19.2-r1", "apk:python@3.9-r9"},
 		},
 		{
@@ -583,11 +706,39 @@ func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
 				[]string{"rpm:node@19.2-r1 -> apk:node@19.2"}),
 			expectedPackages: []string{"apk:node@19.2", "rpm:node@19.2-r1"},
 		},
+		{
+			name: "does not exclude if OS package owns OS package",
+			sbom: catalogWithOverlaps(
+				[]string{"rpm:perl@5.3-r1", "rpm:libperl@5.3"},
+				[]string{"rpm:perl@5.3-r1 -> rpm:libperl@5.3"}),
+			expectedPackages: []string{"rpm:libperl@5.3", "rpm:perl@5.3-r1"},
+		},
+		{
+			name: "does not exclude if owning package is non-OS",
+			sbom: catalogWithOverlaps(
+				[]string{"python:urllib3@1.2.3", "python:otherlib@1.2.3"},
+				[]string{"python:urllib3@1.2.3 -> python:otherlib@1.2.3"}),
+			expectedPackages: []string{"python:otherlib@1.2.3", "python:urllib3@1.2.3"},
+		},
+		{
+			name: "python bindings for system RPM install",
+			sbom: withDistro(catalogWithOverlaps(
+				[]string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
+				[]string{"rpm:python3-rpm@4.14.3-26.el8 -> python:rpm@4.14.3"}), "rhel"),
+			expectedPackages: []string{"rpm:python3-rpm@4.14.3-26.el8"},
+		},
+		{
+			name: "amzn linux doesn't remove packages in this way",
+			sbom: withDistro(catalogWithOverlaps(
+				[]string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
+				[]string{"rpm:python3-rpm@4.14.3-26.el8 -> python:rpm@4.14.3"}), "amzn"),
+			expectedPackages: []string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			catalog := removePackagesByOverlap(test.sbom.catalog, test.sbom.relationships)
-			pkgs := FromCatalog(catalog, SynthesisConfig{})
+			catalog := removePackagesByOverlap(test.sbom.Artifacts.Packages, test.sbom.Relationships, test.sbom.Artifacts.LinuxDistribution)
+			pkgs := FromCollection(catalog, SynthesisConfig{})
 			var pkgNames []string
 			for _, p := range pkgs {
 				pkgNames = append(pkgNames, fmt.Sprintf("%s:%s@%s", p.Type, p.Name, p.Version))
@@ -597,12 +748,7 @@ func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
 	}
 }
 
-type catalogRelationships struct {
-	catalog       *syftPkg.Catalog
-	relationships []artifact.Relationship
-}
-
-func catalogWithOverlaps(packages []string, overlaps []string) catalogRelationships {
+func catalogWithOverlaps(packages []string, overlaps []string) *sbom.SBOM {
 	var pkgs []syftPkg.Package
 	var relationships []artifact.Relationship
 
@@ -649,10 +795,19 @@ func catalogWithOverlaps(packages []string, overlaps []string) catalogRelationsh
 		})
 	}
 
-	catalog := syftPkg.NewCatalog(pkgs...)
+	catalog := syftPkg.NewCollection(pkgs...)
 
-	return catalogRelationships{
-		catalog:       catalog,
-		relationships: relationships,
+	return &sbom.SBOM{
+		Artifacts: sbom.Artifacts{
+			Packages: catalog,
+		},
+		Relationships: relationships,
 	}
+}
+
+func withDistro(s *sbom.SBOM, id string) *sbom.SBOM {
+	s.Artifacts.LinuxDistribution = &linux.Release{
+		ID: id,
+	}
+	return s
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/anchore/grype/grype/db/internal/gormadapter"
 	v4 "github.com/anchore/grype/grype/db/v4"
 	"github.com/anchore/grype/grype/db/v4/store/model"
-	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/stringutil"
 	_ "github.com/anchore/sqlite" // provide the sqlite dialect to gorm via import
 )
 
@@ -189,7 +189,7 @@ func (s *store) AddVulnerabilityMetadata(metadata ...v4.VulnerabilityMetadata) e
 				existing.Cvss = append(existing.Cvss, incomingCvss)
 			}
 
-			links := internal.NewStringSetFromSlice(existing.URLs)
+			links := stringutil.NewStringSetFromSlice(existing.URLs)
 			for _, l := range m.URLs {
 				links.Add(l)
 			}
@@ -307,37 +307,45 @@ func (s *store) GetAllVulnerabilityMetadata() (*[]v4.VulnerabilityMetadata, erro
 
 // DiffStore creates a diff between the current sql database and the given store
 func (s *store) DiffStore(targetStore v4.StoreReader) (*[]v4.Diff, error) {
-	rowsProgress, diffItems := trackDiff()
+	// 7 stages, one for each step of the diff process (stages)
+	rowsProgress, diffItems, stager := trackDiff(7)
 
+	stager.Current = "reading target vulnerabilities"
 	targetVulns, err := targetStore.GetAllVulnerabilities()
 	rowsProgress.Increment()
 	if err != nil {
 		return nil, err
 	}
 
+	stager.Current = "reading base vulnerabilities"
 	baseVulns, err := s.GetAllVulnerabilities()
 	rowsProgress.Increment()
 	if err != nil {
 		return nil, err
 	}
 
+	stager.Current = "preparing"
 	baseVulnPkgMap := buildVulnerabilityPkgsMap(baseVulns)
 	targetVulnPkgMap := buildVulnerabilityPkgsMap(targetVulns)
 
+	stager.Current = "comparing vulnerabilities"
 	allDiffsMap := diffVulnerabilities(baseVulns, targetVulns, baseVulnPkgMap, targetVulnPkgMap, diffItems)
 
+	stager.Current = "reading base metadata"
 	baseMetadata, err := s.GetAllVulnerabilityMetadata()
 	if err != nil {
 		return nil, err
 	}
 	rowsProgress.Increment()
 
+	stager.Current = "reading target metadata"
 	targetMetadata, err := targetStore.GetAllVulnerabilityMetadata()
 	if err != nil {
 		return nil, err
 	}
 	rowsProgress.Increment()
 
+	stager.Current = "comparing metadata"
 	metaDiffsMap := diffVulnerabilityMetadata(baseMetadata, targetMetadata, baseVulnPkgMap, targetVulnPkgMap, diffItems)
 	for k, diff := range *metaDiffsMap {
 		(*allDiffsMap)[k] = diff

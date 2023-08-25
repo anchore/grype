@@ -91,7 +91,7 @@ var FuncMap = func() template.FuncMap {
 			return collection
 		}
 
-		sort.Sort(models.ByName(matches))
+		sort.Sort(models.MatchSort(matches))
 		return matches
 	}
 	return f

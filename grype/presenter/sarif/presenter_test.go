@@ -10,8 +10,10 @@ import (
 
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/presenter/internal"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -20,15 +22,15 @@ var update = flag.Bool("update", false, "update .golden files for sarif presente
 func TestSarifPresenter(t *testing.T) {
 	tests := []struct {
 		name   string
-		scheme source.Scheme
+		scheme internal.SyftSource
 	}{
 		{
 			name:   "directory",
-			scheme: source.DirectoryScheme,
+			scheme: internal.DirectorySource,
 		},
 		{
 			name:   "image",
-			scheme: source.ImageScheme,
+			scheme: internal.ImageSource,
 		},
 	}
 
@@ -36,7 +38,7 @@ func TestSarifPresenter(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			var buffer bytes.Buffer
-			matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, tc.scheme)
+			matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, tc.scheme)
 
 			pb := models.PresenterConfig{
 				Matches:          matches,
@@ -57,8 +59,8 @@ func TestSarifPresenter(t *testing.T) {
 			}
 
 			var expected = testutils.GetGoldenFileContents(t)
-			actual = models.Redact(actual)
-			expected = models.Redact(expected)
+			actual = internal.Redact(actual)
+			expected = internal.Redact(expected)
 
 			if !bytes.Equal(expected, actual) {
 				assert.JSONEq(t, string(expected), string(actual))
@@ -70,83 +72,92 @@ func TestSarifPresenter(t *testing.T) {
 func Test_locationPath(t *testing.T) {
 	tests := []struct {
 		name     string
-		path     string
-		scheme   source.Scheme
+		metadata any
 		real     string
 		virtual  string
 		expected string
 	}{
 		{
-			name:     "dir:.",
-			scheme:   source.DirectoryScheme,
-			path:     ".",
+			name: "dir:.",
+			metadata: source.DirectorySourceMetadata{
+				Path: ".",
+			},
 			real:     "/home/usr/file",
 			virtual:  "file",
 			expected: "file",
 		},
 		{
-			name:     "dir:./",
-			scheme:   source.DirectoryScheme,
-			path:     "./",
+			name: "dir:./",
+			metadata: source.DirectorySourceMetadata{
+				Path: "./",
+			},
 			real:     "/home/usr/file",
 			virtual:  "file",
 			expected: "file",
 		},
 		{
-			name:     "dir:./someplace",
-			scheme:   source.DirectoryScheme,
-			path:     "./someplace",
+			name: "dir:./someplace",
+			metadata: source.DirectorySourceMetadata{
+				Path: "./someplace",
+			},
 			real:     "/home/usr/file",
 			virtual:  "file",
 			expected: "someplace/file",
 		},
 		{
-			name:     "dir:/someplace",
-			scheme:   source.DirectoryScheme,
-			path:     "/someplace",
+			name: "dir:/someplace",
+			metadata: source.DirectorySourceMetadata{
+				Path: "/someplace",
+			},
 			real:     "file",
 			expected: "/someplace/file",
 		},
 		{
-			name:     "dir:/someplace symlink",
-			scheme:   source.DirectoryScheme,
-			path:     "/someplace",
+			name: "dir:/someplace symlink",
+			metadata: source.DirectorySourceMetadata{
+				Path: "/someplace",
+			},
 			real:     "/someplace/usr/file",
 			virtual:  "file",
 			expected: "/someplace/file",
 		},
 		{
-			name:     "dir:/someplace absolute",
-			scheme:   source.DirectoryScheme,
-			path:     "/someplace",
+			name: "dir:/someplace absolute",
+			metadata: source.DirectorySourceMetadata{
+				Path: "/someplace",
+			},
 			real:     "/usr/file",
 			expected: "/usr/file",
 		},
 		{
-			name:     "file:/someplace/file",
-			scheme:   source.FileScheme,
-			path:     "/someplace/file",
+			name: "file:/someplace/file",
+			metadata: source.FileSourceMetadata{
+				Path: "/someplace/file",
+			},
 			real:     "/usr/file",
 			expected: "/usr/file",
 		},
 		{
-			name:     "file:/someplace/file relative",
-			scheme:   source.FileScheme,
-			path:     "/someplace/file",
+			name: "file:/someplace/file relative",
+			metadata: source.FileSourceMetadata{
+				Path: "/someplace/file",
+			},
 			real:     "file",
 			expected: "file",
 		},
 		{
-			name:     "image",
-			scheme:   source.ImageScheme,
-			path:     "alpine:latest",
+			name: "image",
+			metadata: source.StereoscopeImageSourceMetadata{
+				UserInput: "alpine:latest",
+			},
 			real:     "/etc/file",
 			expected: "/etc/file",
 		},
 		{
-			name:     "image symlink",
-			scheme:   source.ImageScheme,
-			path:     "alpine:latest",
+			name: "image symlink",
+			metadata: source.StereoscopeImageSourceMetadata{
+				UserInput: "alpine:latest",
+			},
 			real:     "/etc/elsewhere/file",
 			virtual:  "/etc/file",
 			expected: "/etc/file",
@@ -155,20 +166,14 @@ func Test_locationPath(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			pres := createDirPresenter(t, test.path)
-			pres.srcMetadata = &source.Metadata{
-				Scheme: test.scheme,
-				Path:   test.path,
+			pres := createDirPresenter(t)
+			pres.src = &source.Description{
+				Metadata: test.metadata,
 			}
 
 			path := pres.packagePath(pkg.Package{
-				Locations: source.NewLocationSet(
-					source.Location{
-						Coordinates: source.Coordinates{
-							RealPath: test.real,
-						},
-						VirtualPath: test.virtual,
-					},
+				Locations: file.NewLocationSet(
+					file.NewVirtualLocation(test.real, test.virtual),
 				),
 			})
 
@@ -177,19 +182,21 @@ func Test_locationPath(t *testing.T) {
 	}
 }
 
-func createDirPresenter(t *testing.T, path string) *Presenter {
-	matches, packages, _, metadataProvider, _, _ := models.GenerateAnalysis(t, source.DirectoryScheme)
-	s, err := source.NewFromDirectory(path)
+func createDirPresenter(t *testing.T) *Presenter {
+	matches, packages, _, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.DirectorySource)
+	d := t.TempDir()
+	s, err := source.NewFromDirectory(source.DirectoryConfig{Path: d})
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	desc := s.Describe()
 	pb := models.PresenterConfig{
 		Matches:          matches,
 		Packages:         packages,
 		MetadataProvider: metadataProvider,
 		Context: pkg.Context{
-			Source: &s.Metadata,
+			Source: &desc,
 		},
 	}
 
@@ -201,12 +208,12 @@ func createDirPresenter(t *testing.T, path string) *Presenter {
 func TestToSarifReport(t *testing.T) {
 	tt := []struct {
 		name      string
-		scheme    source.Scheme
+		scheme    internal.SyftSource
 		locations map[string]string
 	}{
 		{
 			name:   "directory",
-			scheme: source.DirectoryScheme,
+			scheme: internal.DirectorySource,
 			locations: map[string]string{
 				"CVE-1999-0001-package-1": "/some/path/somefile-1.txt",
 				"CVE-1999-0002-package-2": "/some/path/somefile-2.txt",
@@ -214,7 +221,7 @@ func TestToSarifReport(t *testing.T) {
 		},
 		{
 			name:   "image",
-			scheme: source.ImageScheme,
+			scheme: internal.ImageSource,
 			locations: map[string]string{
 				"CVE-1999-0001-package-1": "image/somefile-1.txt",
 				"CVE-1999-0002-package-2": "image/somefile-2.txt",
@@ -227,7 +234,7 @@ func TestToSarifReport(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			matches, packages, context, metadataProvider, _, _ := models.GenerateAnalysis(t, tc.scheme)
+			matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, tc.scheme)
 
 			pb := models.PresenterConfig{
 				Matches:          matches,

@@ -28,9 +28,9 @@ func (e errEmptyPurlFile) Error() string {
 	return fmt.Sprintf("purl file is empty: %s", e.purlFilepath)
 }
 
-func purlProvider(userInput string) ([]Package, Context, error) {
+func purlProvider(userInput string) ([]Package, error) {
 	p, err := getPurlPackages(userInput)
-	return p, Context{}, err
+	return p, err
 }
 
 func getPurlPackages(userInput string) ([]Package, error) {
@@ -54,6 +54,7 @@ func decodePurlFile(reader io.Reader) ([]Package, error) {
 		}
 
 		cpes := []wfn.Attributes{}
+		epoch := "0"
 		for _, qualifier := range purl.Qualifiers {
 			if qualifier.Key == cpesQualifierKey {
 				rawCpes := strings.Split(qualifier.Value, ",")
@@ -65,6 +66,14 @@ func decodePurlFile(reader io.Reader) ([]Package, error) {
 					cpes = append(cpes, c)
 				}
 			}
+
+			if qualifier.Key == "epoch" {
+				epoch = qualifier.Value
+			}
+		}
+
+		if purl.Type == packageurl.TypeRPM && !strings.HasPrefix(purl.Version, fmt.Sprintf("%s:", epoch)) {
+			purl.Version = fmt.Sprintf("%s:%s", epoch, purl.Version)
 		}
 
 		packages = append(packages, Package{

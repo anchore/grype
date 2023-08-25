@@ -7,9 +7,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/scylladb/go-set/strset"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/syft/syft"
@@ -46,8 +48,15 @@ func PullThroughImageCache(t testing.TB, imageName string) string {
 func saveImage(t testing.TB, imageName string, destPath string) {
 	sourceImage := fmt.Sprintf("docker://docker.io/%s", imageName)
 	destinationString := fmt.Sprintf("docker-archive:%s", destPath)
+	skopeoPath := filepath.Join(repoRoot(t), ".tmp", "skopeo")
+	policyPath := filepath.Join(repoRoot(t), "test", "integration", "test-fixtures", "skopeo-policy.json")
 
-	cmd := exec.Command("skopeo", "copy", "--override-os", "linux", sourceImage, destinationString)
+	skopeoCommand := []string{
+		"--policy", policyPath,
+		"copy", "--override-os", "linux", sourceImage, destinationString,
+	}
+
+	cmd := exec.Command(skopeoPath, skopeoCommand...)
 
 	out, err := cmd.Output()
 	if err != nil {
@@ -62,28 +71,31 @@ func saveImage(t testing.TB, imageName string, destPath string) {
 }
 
 func getSyftSBOM(t testing.TB, image string, format sbom.Format) string {
-	sourceInput, err := source.ParseInput(image, "")
+	detection, err := source.Detect(image, source.DetectConfig{})
 	if err != nil {
 		t.Fatalf("could not generate source input for packages command: %+v", err)
 	}
 
-	src, cleanup, err := source.New(*sourceInput, nil, nil)
+	src, err := detection.NewSource(source.DetectionSourceConfig{})
 	if err != nil {
 		t.Fatalf("can't get the source: %+v", err)
 	}
-	t.Cleanup(cleanup)
+	t.Cleanup(func() {
+		require.NoError(t, src.Close())
+	})
 
 	config := cataloger.DefaultConfig()
 	config.Search.Scope = source.SquashedScope
 	// TODO: relationships are not verified at this time
-	catalog, _, distro, err := syft.CatalogPackages(src, config)
+	collection, relationships, distro, err := syft.CatalogPackages(src, config)
 
 	s := sbom.SBOM{
 		Artifacts: sbom.Artifacts{
-			PackageCatalog:    catalog,
+			Packages:          collection,
 			LinuxDistribution: distro,
 		},
-		Source: src.Metadata,
+		Relationships: relationships,
+		Source:        src.Describe(),
 	}
 
 	bytes, err := syft.Encode(s, format)
@@ -100,4 +112,17 @@ func getMatchSet(matches match.Matches) *strset.Set {
 		s.Add(fmt.Sprintf("%s-%s-%s", m.Vulnerability.ID, m.Package.Name, m.Package.Version))
 	}
 	return s
+}
+
+func repoRoot(tb testing.TB) string {
+	tb.Helper()
+	root, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
+	if err != nil {
+		tb.Fatalf("unable to find repo root dir: %+v", err)
+	}
+	absRepoRoot, err := filepath.Abs(strings.TrimSpace(string(root)))
+	if err != nil {
+		tb.Fatal("unable to get abs path to repo root:", err)
+	}
+	return absRepoRoot
 }

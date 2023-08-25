@@ -5,8 +5,8 @@ import (
 	"github.com/wagoodman/go-progress"
 
 	v5 "github.com/anchore/grype/grype/db/v5"
-	diffEvents "github.com/anchore/grype/grype/differ/events"
 	"github.com/anchore/grype/grype/event"
+	"github.com/anchore/grype/grype/event/monitor"
 	"github.com/anchore/grype/internal/bus"
 )
 
@@ -32,18 +32,21 @@ type storeMetadata struct {
 }
 
 // create manual progress bars for tracking the database diff's progress
-func trackDiff() (*progress.Manual, *progress.Manual) {
-	rowsProcessed := progress.Manual{}
-	differencesDiscovered := progress.Manual{}
+func trackDiff(total int64) (*progress.Manual, *progress.Manual, *progress.Stage) {
+	stageProgress := &progress.Manual{}
+	stageProgress.SetTotal(total)
+	differencesDiscovered := &progress.Manual{}
+	stager := &progress.Stage{}
 
 	bus.Publish(partybus.Event{
 		Type: event.DatabaseDiffingStarted,
-		Value: diffEvents.Monitor{
-			RowsProcessed:         progress.Monitorable(&rowsProcessed),
-			DifferencesDiscovered: progress.Monitorable(&differencesDiscovered),
+		Value: monitor.DBDiff{
+			Stager:                stager,
+			StageProgress:         progress.Progressable(stageProgress),
+			DifferencesDiscovered: progress.Monitorable(differencesDiscovered),
 		},
 	})
-	return &rowsProcessed, &differencesDiscovered
+	return stageProgress, differencesDiscovered, stager
 }
 
 // creates a map from an unpackaged key to a list of all packages associated with it

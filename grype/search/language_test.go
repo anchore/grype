@@ -79,6 +79,7 @@ func expectedMatch(p pkg.Package, constraint string) []match.Match {
 					SearchedBy: map[string]interface{}{
 						"language":  "ruby",
 						"namespace": "github:ruby",
+						"package":   map[string]string{"name": p.Name, "version": p.Version},
 					},
 					Found: map[string]interface{}{
 						"versionConstraint": constraint,
@@ -121,7 +122,7 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 	store := newMockProviderByLanguage()
 	for _, c := range cases {
 		t.Run(c.p.Name, func(t *testing.T) {
-			actual, err := ByPackageLanguage(store, c.p, match.RubyGemMatcher)
+			actual, err := ByPackageLanguage(store, nil, c.p, match.RubyGemMatcher)
 			assert.NoError(t, err)
 			assertMatchesUsingIDsForVulnerabilities(t, expectedMatch(c.p, c.constraint), actual)
 		})

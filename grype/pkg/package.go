@@ -5,13 +5,14 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/grype/internal/stringutil"
 	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/cpe"
+	"github.com/anchore/syft/syft/file"
+	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/pkg"
 	cpes "github.com/anchore/syft/syft/pkg/cataloger/common/cpe"
-	"github.com/anchore/syft/syft/source"
 )
 
 // the source-rpm field has something akin to "util-linux-ng-2.17.2-12.28.el6_9.2.src.rpm"
@@ -23,16 +24,16 @@ import (
 //	arch = "src"
 var rpmPackageNamePattern = regexp.MustCompile(`^(?P<name>.*)-(?P<version>.*)-(?P<release>.*)\.(?P<arch>[a-zA-Z][^.]+)(\.rpm)$`)
 
-// ID represents a unique value for each package added to a package catalog.
+// ID represents a unique value for each package added to a package collection.
 type ID string
 
 // Package represents an application or library that has been bundled into a distributable format.
 type Package struct {
 	ID           ID
-	Name         string             // the package name
-	Version      string             // the version of the package
-	Locations    source.LocationSet // the locations that lead to the discovery of this package (note: this is not necessarily the locations that make up this package)
-	Language     pkg.Language       // the language ecosystem this package belongs to (e.g. JavaScript, Python, etc)
+	Name         string           // the package name
+	Version      string           // the version of the package
+	Locations    file.LocationSet // the locations that lead to the discovery of this package (note: this is not necessarily the locations that make up this package)
+	Language     pkg.Language     // the language ecosystem this package belongs to (e.g. JavaScript, Python, etc)
 	Licenses     []string
 	Type         pkg.Type  // the package type (e.g. Npm, Yarn, Python, Rpm, Deb, etc)
 	CPEs         []cpe.CPE // all possible Common Platform Enumerators
@@ -45,12 +46,22 @@ type Package struct {
 func New(p pkg.Package) Package {
 	metadataType, metadata, upstreams := dataFromPkg(p)
 
+	licenseObjs := p.Licenses.ToSlice()
+	// note: this is used for presentation downstream and is a collection, thus should always be allocated
+	licenses := make([]string, 0, len(licenseObjs))
+	for _, l := range licenseObjs {
+		licenses = append(licenses, l.Value)
+	}
+	if licenses == nil {
+		licenses = []string{}
+	}
+
 	return Package{
 		ID:           ID(p.ID()),
 		Name:         p.Name,
 		Version:      p.Version,
 		Locations:    p.Locations,
-		Licenses:     p.Licenses,
+		Licenses:     licenses,
 		Language:     p.Language,
 		Type:         p.Type,
 		CPEs:         p.CPEs,
@@ -61,7 +72,7 @@ func New(p pkg.Package) Package {
 	}
 }
 
-func FromCatalog(catalog *pkg.Catalog, config SynthesisConfig) []Package {
+func FromCollection(catalog *pkg.Collection, config SynthesisConfig) []Package {
 	return FromPackages(catalog.Sorted(), config)
 }
 
@@ -91,7 +102,7 @@ func (p Package) String() string {
 	return fmt.Sprintf("Pkg(type=%s, name=%s, version=%s, upstreams=%d)", p.Type, p.Name, p.Version, len(p.Upstreams))
 }
 
-func removePackagesByOverlap(catalog *pkg.Catalog, relationships []artifact.Relationship) *pkg.Catalog {
+func removePackagesByOverlap(catalog *pkg.Collection, relationships []artifact.Relationship, distro *linux.Release) *pkg.Collection {
 	byOverlap := map[artifact.ID]artifact.Relationship{}
 	for _, r := range relationships {
 		if r.Type == artifact.OwnershipByFileOverlapRelationship {
@@ -99,13 +110,13 @@ func removePackagesByOverlap(catalog *pkg.Catalog, relationships []artifact.Rela
 		}
 	}
 
-	out := pkg.NewCatalog()
-
+	out := pkg.NewCollection()
+	comprehensiveDistroFeed := distroFeedIsComprehensive(distro)
 	for p := range catalog.Enumerate() {
 		r, ok := byOverlap[p.ID()]
 		if ok {
 			from, ok := r.From.(pkg.Package)
-			if ok && excludePackage(p, from) {
+			if ok && excludePackage(comprehensiveDistroFeed, p, from) {
 				continue
 			}
 		}
@@ -115,7 +126,7 @@ func removePackagesByOverlap(catalog *pkg.Catalog, relationships []artifact.Rela
 	return out
 }
 
-func excludePackage(p pkg.Package, parent pkg.Package) bool {
+func excludePackage(comprehensiveDistroFeed bool, p pkg.Package, parent pkg.Package) bool {
 	// NOTE: we are not checking the name because we have mismatches like:
 	// python      3.9.2      binary
 	// python3.9   3.9.2-1    deb
@@ -125,12 +136,66 @@ func excludePackage(p pkg.Package, parent pkg.Package) bool {
 		return false
 	}
 
-	// filter out only binary pkg, empty types, or equal types
-	if p.Type != pkg.BinaryPkg && p.Type != "" && p.Type != parent.Type {
+	// If the parent is an OS package and the child is not, exclude the child
+	// for distros that have a comprehensive feed. That is, distros that list
+	// vulnerabilities that aren't fixed. Otherwise, the child package might
+	// be needed for matching.
+	if comprehensiveDistroFeed && isOSPackage(parent) && !isOSPackage(p) {
+		return true
+	}
+
+	// filter out binary packages, even for non-comprehensive distros
+	if p.Type != pkg.BinaryPkg {
 		return false
 	}
 
 	return true
+}
+
+// distroFeedIsComprehensive returns true if the distro feed
+// is comprehensive enough that we can drop packages owned by distro packages
+// before matching.
+func distroFeedIsComprehensive(distro *linux.Release) bool {
+	// TODO: this mechanism should be re-examined once https://github.com/anchore/grype/issues/1426
+	// is addressed
+	if distro == nil {
+		return false
+	}
+	if distro.ID == "amzn" {
+		// AmazonLinux shows "like rhel" but is not an rhel clone
+		// and does not have an exhaustive vulnerability feed.
+		return false
+	}
+	for _, d := range comprehensiveDistros {
+		if strings.EqualFold(d, distro.ID) {
+			return true
+		}
+		for _, n := range distro.IDLike {
+			if strings.EqualFold(d, n) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// computed by:
+// sqlite3 vulnerability.db 'select distinct namespace from vulnerability where fix_state in ("wont-fix", "not-fixed") order by namespace;' | cut -d ':' -f 1 | sort | uniq
+// then removing 'github' and replacing 'redhat' with 'rhel'
+var comprehensiveDistros = []string{
+	"debian",
+	"mariner",
+	"rhel",
+	"ubuntu",
+}
+
+func isOSPackage(p pkg.Package) bool {
+	switch p.Type {
+	case pkg.DebPkg, pkg.RpmPkg, pkg.PortagePkg, pkg.AlpmPkg, pkg.ApkPkg:
+		return true
+	default:
+		return false
+	}
 }
 
 func dataFromPkg(p pkg.Package) (MetadataType, interface{}, []UpstreamPackage) {
@@ -221,7 +286,7 @@ func rpmDataFromPkg(p pkg.Package) (metadata *RpmMetadata, upstreams []UpstreamP
 }
 
 func getNameAndELVersion(sourceRpm string) (string, string) {
-	groupMatches := internal.MatchCaptureGroups(rpmPackageNamePattern, sourceRpm)
+	groupMatches := stringutil.MatchCaptureGroups(rpmPackageNamePattern, sourceRpm)
 	version := groupMatches["version"] + "-" + groupMatches["release"]
 	return groupMatches["name"], version
 }

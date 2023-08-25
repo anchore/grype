@@ -25,15 +25,17 @@ type Presenter struct {
 	ignoredMatches   []match.IgnoredMatch
 	packages         []pkg.Package
 	metadataProvider vulnerability.MetadataProvider
+	showSuppressed   bool
 }
 
 // NewPresenter is a *Presenter constructor
-func NewPresenter(pb models.PresenterConfig) *Presenter {
+func NewPresenter(pb models.PresenterConfig, showSuppressed bool) *Presenter {
 	return &Presenter{
 		results:          pb.Matches,
 		ignoredMatches:   pb.IgnoredMatches,
 		packages:         pb.Packages,
 		metadataProvider: pb.MetadataProvider,
+		showSuppressed:   showSuppressed,
 	}
 }
 
@@ -45,7 +47,6 @@ func (pres *Presenter) Present(output io.Writer) error {
 	// Generate rows for matching vulnerabilities
 	for m := range pres.results.Enumerate() {
 		row, err := createRow(m, pres.metadataProvider, "")
-
 		if err != nil {
 			return err
 		}
@@ -53,13 +54,15 @@ func (pres *Presenter) Present(output io.Writer) error {
 	}
 
 	// Generate rows for suppressed vulnerabilities
-	for _, m := range pres.ignoredMatches {
-		row, err := createRow(m.Match, pres.metadataProvider, appendSuppressed)
+	if pres.showSuppressed {
+		for _, m := range pres.ignoredMatches {
+			row, err := createRow(m.Match, pres.metadataProvider, appendSuppressed)
 
-		if err != nil {
-			return err
+			if err != nil {
+				return err
+			}
+			rows = append(rows, row)
 		}
-		rows = append(rows, row)
 	}
 
 	if len(rows) == 0 {
@@ -67,19 +70,9 @@ func (pres *Presenter) Present(output io.Writer) error {
 		return err
 	}
 
-	// sort by name, version, then type
-	sort.SliceStable(rows, func(i, j int) bool {
-		for col := 0; col < len(columns); col++ {
-			if rows[i][col] != rows[j][col] {
-				return rows[i][col] < rows[j][col]
-			}
-		}
-		return false
-	})
-	rows = removeDuplicateRows(rows)
+	rows = sortRows(removeDuplicateRows(rows))
 
 	table := tablewriter.NewWriter(output)
-
 	table.SetHeader(columns)
 	table.SetAutoWrapText(false)
 	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
@@ -98,6 +91,39 @@ func (pres *Presenter) Present(output io.Writer) error {
 	table.Render()
 
 	return nil
+}
+
+func sortRows(rows [][]string) [][]string {
+	// sort
+	sort.SliceStable(rows, func(i, j int) bool {
+		var (
+			name        = 0
+			ver         = 1
+			packageType = 3
+			vuln        = 4
+			sev         = 5
+		)
+		// name, version, type, severity, vulnerability
+		// > is for numeric sorting like severity or year/number of vulnerability
+		// < is for alphabetical sorting like name, version, type
+		if rows[i][name] == rows[j][name] {
+			if rows[i][ver] == rows[j][ver] {
+				if rows[i][packageType] == rows[j][packageType] {
+					if models.SeverityScore(rows[i][sev]) == models.SeverityScore(rows[j][sev]) {
+						// we use > here to get the most recently filed vulnerabilities
+						// to show at the top of the severity
+						return rows[i][vuln] > rows[j][vuln]
+					}
+					return models.SeverityScore(rows[i][sev]) > models.SeverityScore(rows[j][sev])
+				}
+				return rows[i][packageType] < rows[j][packageType]
+			}
+			return rows[i][ver] < rows[j][ver]
+		}
+		return rows[i][name] < rows[j][name]
+	})
+
+	return rows
 }
 
 func removeDuplicateRows(items [][]string) [][]string {

@@ -1,3 +1,6 @@
+/go.work
+/go.work.sum
+
 CHANGELOG.md
 VERSION
 /snapshot/
@@ -14,6 +17,7 @@ VERSION
 *.tar
 *tar.gz
 .idea/
+*.iml
 *.log
 .images
 .tmp/
@@ -30,7 +34,7 @@ coverage.txt
 *.so
 *.dylib
 /grype/grype
-
+main
 
 # Test binary, build with `go test -c`
 *.test

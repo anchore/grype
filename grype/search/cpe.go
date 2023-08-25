@@ -8,6 +8,7 @@ import (
 	"github.com/facebookincubator/nvdtools/wfn"
 	"github.com/scylladb/go-set/strset"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
@@ -16,9 +17,15 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
+type CPEPackageParameter struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+}
+
 type CPEParameters struct {
 	Namespace string   `json:"namespace"`
 	CPEs      []string `json:"cpes"`
+	Package   CPEPackageParameter
 }
 
 func (i *CPEParameters) Merge(other CPEParameters) error {
@@ -75,7 +82,7 @@ func alpineCPEComparableVersion(version string) string {
 }
 
 // ByPackageCPE retrieves all vulnerabilities that match the generated CPE
-func ByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
+func ByPackageCPE(store vulnerability.ProviderByCPE, d *distro.Distro, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
 	// we attempt to merge match details within the same matcher when searching by CPEs, in this way there are fewer duplicated match
 	// objects (and fewer duplicated match details).
 	matchesByFingerprint := make(map[match.Fingerprint]match.Match)
@@ -101,7 +108,7 @@ func ByPackageCPE(store vulnerability.ProviderByCPE, p pkg.Package, upstreamMatc
 			return nil, fmt.Errorf("matcher failed to fetch by CPE pkg=%q: %w", p.Name, err)
 		}
 
-		applicableVulns, err := onlyQualifiedPackages(p, allPkgVulns)
+		applicableVulns, err := onlyQualifiedPackages(d, p, allPkgVulns)
 		if err != nil {
 			return nil, fmt.Errorf("unable to filter cpe-related vulnerabilities: %w", err)
 		}
@@ -145,6 +152,10 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 				Namespace: vuln.Namespace,
 				CPEs: []string{
 					searchedByCPE.BindToFmtString(),
+				},
+				Package: CPEPackageParameter{
+					Name:    p.Name,
+					Version: p.Version,
 				},
 			},
 			Found: CPEResult{

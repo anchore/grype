@@ -7,6 +7,7 @@ import (
 	grypeDb "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/event"
+	"github.com/anchore/grype/grype/event/monitor"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/apk"
 	"github.com/anchore/grype/grype/matcher/dotnet"
@@ -28,28 +29,21 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-type Monitor struct {
-	PackagesProcessed         progress.Monitorable
-	VulnerabilitiesDiscovered progress.Monitorable
-	Fixed                     progress.Monitorable
-	BySeverity                map[vulnerability.Severity]progress.Monitorable
-}
-
-type monitor struct {
+type monitorWriter struct {
 	PackagesProcessed         *progress.Manual
 	VulnerabilitiesDiscovered *progress.Manual
 	Fixed                     *progress.Manual
 	BySeverity                map[vulnerability.Severity]*progress.Manual
 }
 
-func newMonitor() (monitor, Monitor) {
+func newMonitor() (monitorWriter, monitor.Matching) {
 	manualBySev := make(map[vulnerability.Severity]*progress.Manual)
 	for _, severity := range vulnerability.AllSeverities() {
 		manualBySev[severity] = progress.NewManual(-1)
 	}
 	manualBySev[vulnerability.UnknownSeverity] = progress.NewManual(-1)
 
-	m := monitor{
+	m := monitorWriter{
 		PackagesProcessed:         progress.NewManual(-1),
 		VulnerabilitiesDiscovered: progress.NewManual(-1),
 		Fixed:                     progress.NewManual(-1),
@@ -61,7 +55,7 @@ func newMonitor() (monitor, Monitor) {
 		monitorableBySev[sev] = manual
 	}
 
-	return m, Monitor{
+	return m, monitor.Matching{
 		PackagesProcessed:         m.PackagesProcessed,
 		VulnerabilitiesDiscovered: m.VulnerabilitiesDiscovered,
 		Fixed:                     m.Fixed,
@@ -69,7 +63,7 @@ func newMonitor() (monitor, Monitor) {
 	}
 }
 
-func (m *monitor) SetCompleted() {
+func (m *monitorWriter) SetCompleted() {
 	m.PackagesProcessed.SetCompleted()
 	m.VulnerabilitiesDiscovered.SetCompleted()
 	m.Fixed.SetCompleted()
@@ -106,7 +100,7 @@ func NewDefaultMatchers(mc Config) []Matcher {
 	}
 }
 
-func trackMatcher() *monitor {
+func trackMatcher() *monitorWriter {
 	writer, reader := newMonitor()
 
 	bus.Publish(partybus.Event{
@@ -147,6 +141,8 @@ func FindMatches(store interface {
 	res := match.NewMatches()
 	matcherIndex, defaultMatcher := newMatcherIndex(matchers)
 
+	var ignored []match.IgnoredMatch
+
 	var d *distro.Distro
 	if release != nil {
 		d, err = distro.NewFromRelease(*release)
@@ -177,6 +173,10 @@ func FindMatches(store interface {
 			if err != nil {
 				log.Warnf("matcher failed for pkg=%s: %+v", p, err)
 			} else {
+				// Filter out matches based on records in the database exclusion table and hard-coded rules
+				filtered, ignores := match.ApplyExplicitIgnoreRules(store, match.NewMatches(matches...))
+				ignored = append(ignored, ignores...)
+				matches := filtered.Sorted()
 				logMatches(p, matches)
 				res.Add(matches...)
 				progressMonitor.VulnerabilitiesDiscovered.Add(int64(len(matches)))
@@ -189,13 +189,12 @@ func FindMatches(store interface {
 
 	logListSummary(progressMonitor)
 
-	// Filter out matches based off of the records in the exclusion table in the database or from the old hard-coded rules
-	res = match.ApplyExplicitIgnoreRules(store, res)
+	logIgnoredMatches(ignored)
 
 	return res
 }
 
-func logListSummary(vl *monitor) {
+func logListSummary(vl *monitorWriter) {
 	log.Infof("found %d vulnerabilities for %d packages", vl.VulnerabilitiesDiscovered.Current(), vl.PackagesProcessed.Current())
 	log.Debugf("  ├── fixed: %d", vl.Fixed.Current())
 	log.Debugf("  └── matched: %d", vl.VulnerabilitiesDiscovered.Current())
@@ -216,7 +215,20 @@ func logListSummary(vl *monitor) {
 	}
 }
 
-func updateVulnerabilityList(list *monitor, matches []match.Match, metadataProvider vulnerability.MetadataProvider) {
+func logIgnoredMatches(ignored []match.IgnoredMatch) {
+	if len(ignored) > 0 {
+		log.Debugf("Removed %d explicit vulnerability matches:", len(ignored))
+		for idx, i := range ignored {
+			branch := "├──"
+			if idx == len(ignored)-1 {
+				branch = "└──"
+			}
+			log.Debugf("  %s %s : %s", branch, i.Match.Vulnerability.ID, i.Package.PURL)
+		}
+	}
+}
+
+func updateVulnerabilityList(list *monitorWriter, matches []match.Match, metadataProvider vulnerability.MetadataProvider) {
 	for _, m := range matches {
 		metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.Namespace)
 		if err != nil || metadata == nil {

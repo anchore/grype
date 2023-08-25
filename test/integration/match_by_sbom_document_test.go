@@ -62,6 +62,7 @@ func TestMatchBySBOMDocument(t *testing.T) {
 					SearchedBy: map[string]interface{}{
 						"language":  "python",
 						"namespace": "github:language:python",
+						"package":   map[string]string{"name": "my-package", "version": "1.0.5"},
 					},
 					Found: map[string]interface{}{
 						"versionConstraint": "< 2.0 (python)",
