@@ -101,6 +101,20 @@ func Test_registry_ToOptions(t *testing.T) {
 				Credentials:           []image.RegistryCredentials{},
 			},
 		},
+		{
+			name: "provide tls configuration",
+			input: registry{
+				CACert:  "ca.crt",
+				TLSCert: "client.crt",
+				TLSKey:  "client.key",
+			},
+			expected: image.RegistryOptions{
+				CAFile:      "ca.crt",
+				ClientCert:  "client.crt",
+				ClientKey:   "client.key",
+				Credentials: []image.RegistryCredentials{},
+			},
+		},
 	}
 
 	for _, test := range tests {

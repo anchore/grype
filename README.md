@@ -651,9 +651,22 @@ registry:
   # skip TLS verification when communicating with the registry
   # same as GRYPE_REGISTRY_INSECURE_SKIP_TLS_VERIFY env var
   insecure-skip-tls-verify: false
+
   # use http instead of https when connecting to the registry
   # same as GRYPE_REGISTRY_INSECURE_USE_HTTP env var
   insecure-use-http: false
+
+  # filepath to a CA certificate used to generate the client certificate
+  # GRYPE_REGISTRY_CA_CERT env var
+  ca-cert: ""
+
+  # filepath to the client certificate used for TLS authentication to the registry
+  # GRYPE_REGISTRY_TLS_CERT env var
+  tls-cert: ""
+
+  # filepath to the client key used for TLS authentication to the registry
+  # GRYPE_REGISTRY_TLS_KEY env var
+  tls-key: ""
 
   # credentials for specific registries
   auth:
