@@ -467,7 +467,7 @@ func getProviderConfig() pkg.ProviderConfig {
 		SyftProviderConfig: pkg.SyftProviderConfig{
 			RegistryOptions:        appConfig.Registry.ToOptions(),
 			Exclusions:             appConfig.Exclusions,
-			CatalogingOptions:      appConfig.ToCatalogerConfig(),
+			CatalogingOptions:      appConfig.Search.ToConfig(),
 			Platform:               appConfig.Platform,
 			Name:                   appConfig.Name,
 			DefaultImagePullSource: appConfig.DefaultImagePullSource,
