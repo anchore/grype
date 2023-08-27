@@ -175,7 +175,7 @@ func comparePortageVersions(a, b string) int {
 	}
 	r2 := big.NewInt(0)
 	if match2[9] != "" {
-		r1.SetString(match2[9], 10)
+		r2.SetString(match2[9], 10)
 	}
 
 	return r1.Cmp(r2)
