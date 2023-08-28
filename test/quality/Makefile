@@ -7,6 +7,11 @@ YARDSTICK_LABELS_DIR = .yardstick/labels
 VULNERABILITY_LABELS = ./vulnerability-labels
 RESULT_SET = pr_vs_latest_via_sbom
 
+# update periodically with values from "grype db list"
+TEST_DB_URL = https://toolbox-data.anchore.io/grype/databases/vulnerability-db_v5_2023-08-24T01:23:40Z_fd07204627d474f68f90.tar.gz
+TEST_DB = db.tar.gz
+LISTING_FILE = https://toolbox-data.anchore.io/grype/databases/listing.json
+
 # formatting variables
 BOLD := $(shell tput -T linux bold)
 PURPLE := $(shell tput -T linux setaf 5)
@@ -28,8 +33,17 @@ validate: venv $(VULNERABILITY_LABELS)/Makefile ## Run all quality checks agains
 capture: sboms vulns ## Collect and store all syft and grype results
 
 .PHONY: capture
-vulns: venv ## Collect and store all grype results
+vulns: venv $(TEST_DB) check-db ## Collect and store all grype results
 	$(YARDSTICK) -v result capture -r $(RESULT_SET)
+
+.PHONY: check-db
+check-db:
+	@echo "Looking for test DB within the hosted listing file (which prunes DBs older that 90 days or the last 90 objects)"
+	@curl -sSL $(LISTING_FILE) | jq '.available[][] | select(.url == "$(TEST_DB_URL)") ' --exit-status || (echo "$(RED)DB is too stale to be used for testing. Please re-pin with a more up-to-date version.$(RESET)" && false)
+	@echo "DB is fresh enough to be used for testing!"
+
+$(TEST_DB):
+	curl -o $(TEST_DB) -SsL $(TEST_DB_URL)
 
 .PHONY: sboms
 sboms: $(YARDSTICK_RESULT_DIR) venv clear-results ## Collect and store all syft results (deletes all existing results)
@@ -46,7 +60,6 @@ venv/touchfile: requirements.txt
 	test -d venv || python3 -m venv venv
 	$(ACTIVATE_VENV) pip install -Ur requirements.txt
 	touch venv/touchfile
-
 
 $(YARDSTICK_RESULT_DIR):
 	mkdir -p $(YARDSTICK_RESULT_DIR)
