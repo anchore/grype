@@ -16,6 +16,9 @@ type RegistryCredentials struct {
 	Password string `yaml:"-" json:"-" mapstructure:"password"`
 	// IMPORTANT: do not show the token in any YAML/JSON output (sensitive information)
 	Token string `yaml:"-" json:"-" mapstructure:"token"`
+
+	TLSCert string `yaml:"tls-cert,omitempty" json:"tls-cert,omitempty" mapstructure:"tls-cert"`
+	TLSKey  string `yaml:"tls-key,omitempty" json:"tls-key,omitempty" mapstructure:"tls-key"`
 }
 
 type registry struct {
@@ -23,8 +26,6 @@ type registry struct {
 	InsecureUseHTTP       bool                  `yaml:"insecure-use-http" json:"insecure-use-http" mapstructure:"insecure-use-http"`
 	Auth                  []RegistryCredentials `yaml:"auth" json:"auth" mapstructure:"auth"`
 	CACert                string                `yaml:"ca-cert" json:"ca-cert" mapstructure:"ca-cert"`
-	TLSCert               string                `yaml:"tls-cert" json:"tls-cert" mapstructure:"tls-cert"`
-	TLSKey                string                `yaml:"tls-key" json:"tls-key" mapstructure:"tls-key"`
 }
 
 func (cfg registry) loadDefaultValues(v *viper.Viper) {
@@ -32,20 +33,20 @@ func (cfg registry) loadDefaultValues(v *viper.Viper) {
 	v.SetDefault("registry.insecure-use-http", false)
 	v.SetDefault("registry.auth", []RegistryCredentials{})
 	v.SetDefault("registry.ca-cert", "")
-	v.SetDefault("registry.tls-cert", "")
-	v.SetDefault("registry.tls-key", "")
 }
 
 //nolint:unparam
 func (cfg *registry) parseConfigValues() error {
 	// there may be additional credentials provided by env var that should be appended to the set of credentials
-	authority, username, password, token :=
+	authority, username, password, token, tlsCert, tlsKey :=
 		os.Getenv("GRYPE_REGISTRY_AUTH_AUTHORITY"),
 		os.Getenv("GRYPE_REGISTRY_AUTH_USERNAME"),
 		os.Getenv("GRYPE_REGISTRY_AUTH_PASSWORD"),
-		os.Getenv("GRYPE_REGISTRY_AUTH_TOKEN")
+		os.Getenv("GRYPE_REGISTRY_AUTH_TOKEN"),
+		os.Getenv("GRYPE_REGISTRY_AUTH_TLS_CERT"),
+		os.Getenv("GRYPE_REGISTRY_AUTH_TLS_KEY")
 
-	if hasNonEmptyCredentials(username, password, token) {
+	if hasNonEmptyCredentials(username, password, token, tlsCert, tlsKey) {
 		// note: we prepend the credentials such that the environment variables take precedence over on-disk configuration.
 		cfg.Auth = append([]RegistryCredentials{
 			{
@@ -53,32 +54,38 @@ func (cfg *registry) parseConfigValues() error {
 				Username:  username,
 				Password:  password,
 				Token:     token,
+				TLSCert:   tlsCert,
+				TLSKey:    tlsKey,
 			},
 		}, cfg.Auth...)
 	}
 	return nil
 }
 
-func hasNonEmptyCredentials(username, password, token string) bool {
-	return password != "" && username != "" || token != ""
+func hasNonEmptyCredentials(username, password, token, tlsCert, tlsKey string) bool {
+	hasUserPass := username != "" && password != ""
+	hasToken := token != ""
+	hasTLSMaterial := tlsCert != "" && tlsKey != ""
+	return hasUserPass || hasToken || hasTLSMaterial
 }
 
 func (cfg *registry) ToOptions() *image.RegistryOptions {
 	var auth = make([]image.RegistryCredentials, len(cfg.Auth))
 	for i, a := range cfg.Auth {
 		auth[i] = image.RegistryCredentials{
-			Authority: a.Authority,
-			Username:  a.Username,
-			Password:  a.Password,
-			Token:     a.Token,
+			Authority:  a.Authority,
+			Username:   a.Username,
+			Password:   a.Password,
+			Token:      a.Token,
+			ClientCert: a.TLSCert,
+			ClientKey:  a.TLSKey,
 		}
 	}
+
 	return &image.RegistryOptions{
 		InsecureSkipTLSVerify: cfg.InsecureSkipTLSVerify,
 		InsecureUseHTTP:       cfg.InsecureUseHTTP,
 		Credentials:           auth,
-		CAFile:                cfg.CACert,
-		ClientCert:            cfg.TLSCert,
-		ClientKey:             cfg.TLSKey,
+		CAFileOrDir:           cfg.CACert,
 	}
 }

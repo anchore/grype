@@ -249,8 +249,8 @@ github.com/anchore/packageurl-go v0.1.1-0.20230104203445-02e0a6721501 h1:AV7qjwM
 github.com/anchore/packageurl-go v0.1.1-0.20230104203445-02e0a6721501/go.mod h1:Blo6OgJNiYF41ufcgHKkbCKF2MDOMlrqhXv/ij6ocR4=
 github.com/anchore/sqlite v1.4.6-0.20220607210448-bcc6ee5c4963 h1:vrf2PYH77vqVJoNR15ZuFJ63qwBMqrmGIt/7VsBhLF8=
 github.com/anchore/sqlite v1.4.6-0.20220607210448-bcc6ee5c4963/go.mod h1:AVRyXOUP0hTz9Cb8OlD1XnwA8t4lBPfTuwPHmEUuiLc=
-github.com/anchore/stereoscope v0.0.0-20230824220544-9f5db43398e8 h1:e2UL5frhUD+U8QKw3oCXOljcRruYYLB4BaPKzTjt2t0=
-github.com/anchore/stereoscope v0.0.0-20230824220544-9f5db43398e8/go.mod h1:jkylrnuv++srUa2rsqCnG0n1ShD+0k2Xa6YtoNoRjAY=
+github.com/anchore/stereoscope v0.0.0-20230829142608-334c2222e137 h1:ZuiAV3lYKbGPkZR42UpoKecp/9aFU38CZSjaxjXCMYc=
+github.com/anchore/stereoscope v0.0.0-20230829142608-334c2222e137/go.mod h1:jkylrnuv++srUa2rsqCnG0n1ShD+0k2Xa6YtoNoRjAY=
 github.com/anchore/syft v0.88.0 h1:QRPcXwbQnxcOIfSZ5Sd6psfVQ756VICvx/HUMsIJEBw=
 github.com/anchore/syft v0.88.0/go.mod h1:6GgbZflKWC7ph2Zjb5wgq0ORKhwDaHG3xcjG84FSMPo=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=

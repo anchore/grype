@@ -1,5 +1,6 @@
 /go.work
 /go.work.sum
+/.grype.yaml
 
 CHANGELOG.md
 VERSION

@@ -11,47 +11,60 @@ import (
 
 func TestHasNonEmptyCredentials(t *testing.T) {
 	tests := []struct {
-		username, password, token string
-		expected                  bool
+		username, password, token, cert, key string
+		expected                             bool
 	}{
+
 		{
-			"", "", "",
+			"", "", "", "", "",
 			false,
 		},
 		{
-			"user", "", "",
+			"user", "", "", "", "",
 			false,
 		},
 		{
-			"", "pass", "",
+			"", "pass", "", "", "",
 			false,
 		},
 		{
-			"", "pass", "tok",
+			"", "pass", "tok", "", "",
 			true,
 		},
 		{
-			"user", "", "tok",
+			"user", "", "tok", "", "",
 			true,
 		},
 		{
-			"", "", "tok",
+			"", "", "tok", "", "",
 			true,
 		},
 		{
-			"user", "pass", "tok",
+			"user", "pass", "tok", "", "",
 			true,
 		},
 
 		{
-			"user", "pass", "",
+			"user", "pass", "", "", "",
 			true,
+		},
+		{
+			"", "", "", "cert", "key",
+			true,
+		},
+		{
+			"", "", "", "cert", "",
+			false,
+		},
+		{
+			"", "", "", "", "key",
+			false,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%+v", test), func(t *testing.T) {
-			assert.Equal(t, test.expected, hasNonEmptyCredentials(test.username, test.password, test.token))
+			assert.Equal(t, test.expected, hasNonEmptyCredentials(test.username, test.password, test.token, test.cert, test.key))
 		})
 	}
 }
@@ -102,17 +115,26 @@ func Test_registry_ToOptions(t *testing.T) {
 			},
 		},
 		{
-			name: "provide tls configuration",
+			name: "provide all tls configuration",
 			input: registry{
-				CACert:  "ca.crt",
-				TLSCert: "client.crt",
-				TLSKey:  "client.key",
+				CACert:                "ca.crt",
+				InsecureSkipTLSVerify: true,
+				Auth: []RegistryCredentials{
+					{
+						TLSCert: "client.crt",
+						TLSKey:  "client.key",
+					},
+				},
 			},
 			expected: image.RegistryOptions{
-				CAFile:      "ca.crt",
-				ClientCert:  "client.crt",
-				ClientKey:   "client.key",
-				Credentials: []image.RegistryCredentials{},
+				CAFileOrDir:           "ca.crt",
+				InsecureSkipTLSVerify: true,
+				Credentials: []image.RegistryCredentials{
+					{
+						ClientCert: "client.crt",
+						ClientKey:  "client.key",
+					},
+				},
 			},
 		},
 	}
