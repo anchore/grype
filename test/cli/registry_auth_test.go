@@ -74,8 +74,8 @@ func TestRegistryAuth(t *testing.T) {
 			name: "use tls configuration",
 			args: []string{"-vvv", "registry:localhost:5000/something:latest"},
 			env: map[string]string{
-				"SYFT_REGISTRY_AUTH_TLS_CERT": "place.crt",
-				"SYFT_REGISTRY_AUTH_TLS_KEY":  "place.key",
+				"GRYPE_REGISTRY_AUTH_TLS_CERT": "place.crt",
+				"GRYPE_REGISTRY_AUTH_TLS_KEY":  "place.key",
 			},
 			assertions: []traitAssertion{
 				assertInOutput("using custom TLS credentials from"),
