@@ -651,23 +651,41 @@ registry:
   # skip TLS verification when communicating with the registry
   # same as GRYPE_REGISTRY_INSECURE_SKIP_TLS_VERIFY env var
   insecure-skip-tls-verify: false
+
   # use http instead of https when connecting to the registry
   # same as GRYPE_REGISTRY_INSECURE_USE_HTTP env var
   insecure-use-http: false
 
+  # filepath to a CA certificate (or directory containing *.crt, *.cert, *.pem) used to generate the client certificate
+  # GRYPE_REGISTRY_CA_CERT env var
+  ca-cert: ""
+
   # credentials for specific registries
   auth:
-    - # the URL to the registry (e.g. "docker.io", "localhost:5000", etc.)
-      # same as GRYPE_REGISTRY_AUTH_AUTHORITY env var
-      authority: ""
-      # same as GRYPE_REGISTRY_AUTH_USERNAME env var
+    # the URL to the registry (e.g. "docker.io", "localhost:5000", etc.)
+    # GRYPE_REGISTRY_AUTH_AUTHORITY env var
+    - authority: ""
+
+      # GRYPE_REGISTRY_AUTH_USERNAME env var
       username: ""
-      # same as GRYPE_REGISTRY_AUTH_PASSWORD env var
+
+      # GRYPE_REGISTRY_AUTH_PASSWORD env var
       password: ""
+
       # note: token and username/password are mutually exclusive
-      # same as GRYPE_REGISTRY_AUTH_TOKEN env var
+      # GRYPE_REGISTRY_AUTH_TOKEN env var
       token: ""
-    - ... # note, more credentials can be provided via config file only
+
+      # filepath to the client certificate used for TLS authentication to the registry
+      # GRYPE_REGISTRY_AUTH_TLS_CERT env var
+      tls-cert: ""
+
+      # filepath to the client key used for TLS authentication to the registry
+      # GRYPE_REGISTRY_AUTH_TLS_KEY env var
+      tls-key: ""
+
+    # - ... # note, more credentials can be provided via config file only (not env vars)
+
 
 log:
   # use structured logging

@@ -7,19 +7,28 @@ require (
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 	github.com/adrg/xdg v0.4.0
+	github.com/anchore/bubbly v0.0.0-20230801194016-acdb4981b461
+	github.com/anchore/clio v0.0.0-20230630162005-9535e9dc2817
+	github.com/anchore/go-logger v0.0.0-20230531193951-db5ae83e7dbe
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/packageurl-go v0.1.1-0.20230104203445-02e0a6721501
-	github.com/anchore/stereoscope v0.0.0-20230727211946-d1f3d766295e
+	github.com/anchore/sqlite v1.4.6-0.20220607210448-bcc6ee5c4963
+	github.com/anchore/stereoscope v0.0.0-20230829142608-334c2222e137
+	github.com/anchore/syft v0.88.0
 	github.com/bmatcuk/doublestar/v2 v2.0.4
+	github.com/charmbracelet/bubbletea v0.24.2
+	github.com/charmbracelet/lipgloss v0.8.0
 	github.com/docker/docker v24.0.5+incompatible
 	github.com/dustin/go-humanize v1.0.1
 	github.com/facebookincubator/nvdtools v0.1.5
 	github.com/gabriel-vasile/mimetype v1.4.2
+	github.com/gkampitakis/go-snaps v0.4.8
 	github.com/go-test/deep v1.1.0
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.1
 	github.com/gookit/color v1.5.4
+	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-getter v1.7.2
 	github.com/hashicorp/go-multierror v1.1.1
@@ -29,6 +38,7 @@ require (
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/hashstructure/v2 v2.0.2
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/owenrumney/go-sarif v1.1.1
 	github.com/pkg/profile v1.7.0
@@ -42,25 +52,12 @@ require (
 	github.com/spf13/viper v1.16.0
 	github.com/stretchr/testify v1.8.4
 	github.com/wagoodman/go-partybus v0.0.0-20230516145632-8ccac152c651
+	github.com/wagoodman/go-presenter v0.0.0-20211015174752-f9c01afc824b
 	github.com/wagoodman/go-progress v0.0.0-20230301185719-21920a456ad5
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
 	golang.org/x/term v0.11.0
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/gorm v1.23.10
-)
-
-require (
-	github.com/anchore/bubbly v0.0.0-20230801194016-acdb4981b461
-	github.com/anchore/clio v0.0.0-20230630162005-9535e9dc2817
-	github.com/anchore/go-logger v0.0.0-20230531193951-db5ae83e7dbe
-	github.com/anchore/sqlite v1.4.6-0.20220607210448-bcc6ee5c4963
-	github.com/anchore/syft v0.88.0
-	github.com/charmbracelet/bubbletea v0.24.2
-	github.com/charmbracelet/lipgloss v0.8.0
-	github.com/gkampitakis/go-snaps v0.4.8
-	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
-	github.com/mitchellh/mapstructure v1.5.0
-	github.com/wagoodman/go-presenter v0.0.0-20211015174752-f9c01afc824b
 )
 
 require (
