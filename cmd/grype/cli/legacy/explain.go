@@ -11,12 +11,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var vulnIDs []string
+var cveIDs []string
 
 var explainCmd = &cobra.Command{
 	Use:   "explain --id [VULNERABILITY ID]",
 	Short: "Ask grype to explain a set of findings",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		log.Warn("grype explain is a prototype feature and is subject to change")
 		isStdinPipeOrRedirect, err := internal.IsStdinPipeOrRedirect()
 		if err != nil {
 			log.Warnf("unable to determine if there is piped input: %+v", err)
@@ -31,11 +32,11 @@ var explainCmd = &cobra.Command{
 				return fmt.Errorf("unable to parse piped input: %+v", err)
 			}
 			explainer := models.NewBetterVulnerabilityExplainer(os.Stdout, &parseResult)
-			return explainer.ExplainByID(vulnIDs)
+			return explainer.ExplainByID(cveIDs)
 		}
 		// perform a scan, then explain requested CVEs
 		// TODO: implement
-		return fmt.Errorf("not implemented")
+		return fmt.Errorf("requires grype json on stdin, please run 'grype -o json ... | grype explain ...'")
 	},
 }
 
@@ -44,5 +45,5 @@ func init() {
 }
 
 func setExplainFlags(cmd *cobra.Command) {
-	cmd.Flags().StringArrayVarP(&vulnIDs, "id", "", nil, "CVE ID to explain")
+	cmd.Flags().StringArrayVarP(&cveIDs, "id", "", nil, "CVE ID to explain")
 }
