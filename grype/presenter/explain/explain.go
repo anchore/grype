@@ -1,4 +1,4 @@
-package models
+package explain
 
 import (
 	_ "embed"
@@ -9,6 +9,7 @@ import (
 	"text/template"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/presenter/models"
 )
 
 //go:embed explain_cve_new.tmpl
@@ -23,16 +24,16 @@ var explainTemplate string
 // render it either as JSON or as the template.
 
 type ExplainViewModel struct {
-	PrimaryVulnerability   VulnerabilityMetadata
-	RelatedVulnerabilities []VulnerabilityMetadata
+	PrimaryVulnerability   models.VulnerabilityMetadata
+	RelatedVulnerabilities []models.VulnerabilityMetadata
 	MatchedPackages        []*ExplainedPackage
 	URLs                   []string
 }
 
 type ExplainViewModelBuilder struct {
-	PrimaryVulnerability Vulnerability // this is the vulnerability we're trying to explain
-	PrimaryMatch         Match
-	RelatedMatches       []Match
+	PrimaryVulnerability models.Vulnerability // this is the vulnerability we're trying to explain
+	PrimaryMatch         models.Match
+	RelatedMatches       []models.Match
 }
 
 type ExplainedFindings map[string]ExplainViewModel
@@ -57,10 +58,10 @@ type ExplainedEvidence struct {
 
 type betterVulnerabilityExplainer struct {
 	w   io.Writer
-	doc *Document
+	doc *models.Document
 }
 
-func NewBetterVulnerabilityExplainer(w io.Writer, doc *Document) VulnerabilityExplainer {
+func NewBetterVulnerabilityExplainer(w io.Writer, doc *models.Document) VulnerabilityExplainer {
 	return &betterVulnerabilityExplainer{
 		w:   w,
 		doc: doc,
@@ -104,7 +105,7 @@ func (e *betterVulnerabilityExplainer) ExplainAll() error {
 	return t.Execute(e.w, findings)
 }
 
-func ExplainDoc(doc *Document, requestedIDs []string) (ExplainedFindings, error) {
+func ExplainDoc(doc *models.Document, requestedIDs []string) (ExplainedFindings, error) {
 	result := make(ExplainedFindings)
 	builders := make(map[string]*ExplainViewModelBuilder)
 	for _, m := range doc.Matches {
@@ -139,7 +140,7 @@ func NewExplainedVulnerabilityBuilder() *ExplainViewModelBuilder {
 
 // WithMatch adds a match to the builder
 // accepting enough information to determine whether the match is a primary match or a related match
-func (b *ExplainViewModelBuilder) WithMatch(m Match, userRequestedIDs []string, graphIsByCVE bool) {
+func (b *ExplainViewModelBuilder) WithMatch(m models.Match, userRequestedIDs []string, graphIsByCVE bool) {
 	// TODO: check if it's a primary vulnerability
 	// (the below checks if it's a primary _match_, which is wrong)
 	if b.isPrimaryAdd(m, userRequestedIDs, graphIsByCVE) {
@@ -154,7 +155,7 @@ func (b *ExplainViewModelBuilder) WithMatch(m Match, userRequestedIDs []string, 
 	}
 }
 
-func (b *ExplainViewModelBuilder) isPrimaryAdd(candidate Match, userRequestedIDs []string, graphIsByCVE bool) bool {
+func (b *ExplainViewModelBuilder) isPrimaryAdd(candidate models.Match, userRequestedIDs []string, graphIsByCVE bool) bool {
 	// TODO: "primary" is a property of a vulnerability, not a match
 	// if there's not currently any match, make this one primary since we don't know any better
 	if b.PrimaryMatch.Vulnerability.ID == "" {
@@ -190,12 +191,12 @@ func (b *ExplainViewModelBuilder) isPrimaryAdd(candidate Match, userRequestedIDs
 	return false
 }
 
-func (b *ExplainViewModelBuilder) WithPrimaryMatch(m Match) *ExplainViewModelBuilder {
+func (b *ExplainViewModelBuilder) WithPrimaryMatch(m models.Match) *ExplainViewModelBuilder {
 	b.PrimaryMatch = m
 	return b
 }
 
-func (b *ExplainViewModelBuilder) WithRelatedMatch(m Match) *ExplainViewModelBuilder {
+func (b *ExplainViewModelBuilder) WithRelatedMatch(m models.Match) *ExplainViewModelBuilder {
 	b.RelatedMatches = append(b.RelatedMatches, m)
 	return b
 }
@@ -296,8 +297,8 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 
 	// TODO: this isn't right at all.
 	// We need to be able to add related vulnerabilities
-	var relatedVulnerabilities []VulnerabilityMetadata
-	dedupeRelatedVulnerabilities := make(map[string]VulnerabilityMetadata)
+	var relatedVulnerabilities []models.VulnerabilityMetadata
+	dedupeRelatedVulnerabilities := make(map[string]models.VulnerabilityMetadata)
 	var sortDedupedRelatedVulnerabilities []string
 	for _, m := range append(b.RelatedMatches, b.PrimaryMatch) {
 		key := fmt.Sprintf("%s:%s", m.Vulnerability.Namespace, m.Vulnerability.ID)
@@ -307,7 +308,7 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 			dedupeRelatedVulnerabilities[key] = r
 		}
 	}
-	var primaryVulnerability VulnerabilityMetadata
+	var primaryVulnerability models.VulnerabilityMetadata
 	for _, r := range dedupeRelatedVulnerabilities {
 		if r.ID == b.PrimaryMatch.Vulnerability.ID && r.Namespace == "nvd:cpe" {
 			primaryVulnerability = r
@@ -336,7 +337,7 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 	}
 }
 
-func explainMatchDetail(m Match, index int) string {
+func explainMatchDetail(m models.Match, index int) string {
 	if len(m.MatchDetails) <= index {
 		return ""
 	}

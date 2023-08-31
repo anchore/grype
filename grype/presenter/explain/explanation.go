@@ -1,4 +1,4 @@
-package models
+package explain
 
 import (
 	_ "embed"
@@ -8,6 +8,7 @@ import (
 	"text/template"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
@@ -36,8 +37,8 @@ type ExplainedVulnerability struct {
 // the same PURL and then group them by PURL.
 
 type MatchedPackage struct {
-	Package     Package
-	Details     []MatchDetails
+	Package     models.Package
+	Details     []models.MatchDetails
 	Explanation string
 }
 
@@ -61,12 +62,12 @@ type VulnerabilityExplainer interface {
 }
 
 type vulnerabilityExplainer struct {
-	doc   Document
+	doc   models.Document
 	w     io.Writer
 	templ *template.Template
 }
 
-func NewVulnerabilityExplainer(doc Document, w io.Writer) VulnerabilityExplainer {
+func NewVulnerabilityExplainer(doc models.Document, w io.Writer) VulnerabilityExplainer {
 	return &vulnerabilityExplainer{
 		doc:   doc,
 		w:     w,
@@ -124,9 +125,9 @@ func (e *vulnerabilityExplainer) ExplainAll() error {
 }
 
 // NewExplainedVulnerability creates a new explained vulnerability.
-func NewExplainedVulnerability(vulnerabilityID string, doc Document) *ExplainedVulnerability {
-	var directMatches []Match
-	var relatedMatches []Match
+func NewExplainedVulnerability(vulnerabilityID string, doc models.Document) *ExplainedVulnerability {
+	var directMatches []models.Match
+	var relatedMatches []models.Match
 	for _, m := range doc.Matches {
 		// TODO: make the one that matches on the ID always be first?
 		if m.Vulnerability.ID == vulnerabilityID {
@@ -198,7 +199,7 @@ func NewExplainedVulnerability(vulnerabilityID string, doc Document) *ExplainedV
 	}
 }
 
-func startExplainedPackageMatch(m Match) ExplainedPackageMatch {
+func startExplainedPackageMatch(m models.Match) ExplainedPackageMatch {
 	explanation := ""
 	if len(m.MatchDetails) > 0 {
 		switch m.MatchDetails[0].Type {
@@ -238,7 +239,7 @@ func dedupeURLs(showFirst string, rest []string) []string {
 	return result
 }
 
-func ToMatchedPackage(m Match) MatchedPackage {
+func ToMatchedPackage(m models.Match) MatchedPackage {
 	explanation := ""
 	if len(m.MatchDetails) > 0 {
 		switch m.MatchDetails[0].Type {
@@ -256,7 +257,7 @@ func ToMatchedPackage(m Match) MatchedPackage {
 	}
 }
 
-func sourcePackageNameAndVersion(md MatchDetails) (string, string) {
+func sourcePackageNameAndVersion(md models.MatchDetails) (string, string) {
 	var name string
 	var version string
 	if mapResult, ok := md.SearchedBy.(map[string]interface{}); ok {
@@ -274,7 +275,7 @@ func sourcePackageNameAndVersion(md MatchDetails) (string, string) {
 	return name, version
 }
 
-func formatCPEExplanation(m Match) string {
+func formatCPEExplanation(m models.Match) string {
 	searchedBy := m.MatchDetails[0].SearchedBy
 	if mapResult, ok := searchedBy.(map[string]interface{}); ok {
 		if cpes, ok := mapResult["cpes"]; ok {
