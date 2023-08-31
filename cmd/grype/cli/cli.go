@@ -24,7 +24,7 @@ func New(id clio.Identification) clio.Application {
 			// select a UI based on the logging configuration and state of stdin (if stdin is a tty)
 			func(cfg clio.Config) ([]clio.UI, error) {
 				noUI := ui.None(cfg.Log.Quiet)
-				if !cfg.Log.AllowUI(os.Stdin) {
+				if !cfg.Log.AllowUI(os.Stdin) || cfg.Log.Quiet {
 					return []clio.UI{noUI}, nil
 				}
 

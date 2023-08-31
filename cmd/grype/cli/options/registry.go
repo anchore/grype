@@ -23,7 +23,6 @@ type registry struct {
 	InsecureUseHTTP       bool                  `yaml:"insecure-use-http" json:"insecure-use-http" mapstructure:"insecure-use-http"`
 	Auth                  []RegistryCredentials `yaml:"auth" json:"auth" mapstructure:"auth"`
 	CACert                string                `yaml:"ca-cert" json:"ca-cert" mapstructure:"ca-cert"`
-	CACert                string                `yaml:"ca-cert" json:"ca-cert" mapstructure:"ca-cert"`
 }
 
 var _ clio.PostLoader = (*registry)(nil)
@@ -66,9 +65,9 @@ func (cfg *registry) ToOptions() *image.RegistryOptions {
 	for i, a := range cfg.Auth {
 		auth[i] = image.RegistryCredentials{
 			Authority:  a.Authority,
-			Username:  a.Username.String(),
-			Password:  a.Password.String(),
-			Token:     a.Token.String(),
+			Username:   a.Username.String(),
+			Password:   a.Password.String(),
+			Token:      a.Token.String(),
 			ClientCert: a.TLSCert,
 			ClientKey:  a.TLSKey,
 		}

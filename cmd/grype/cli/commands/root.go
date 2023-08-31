@@ -16,6 +16,7 @@ import (
 	"github.com/anchore/grype/grype/db"
 	grypeDb "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/event"
+	"github.com/anchore/grype/grype/event/parsers"
 	"github.com/anchore/grype/grype/grypeerr"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
@@ -109,7 +110,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) error
 			return
 		}
 
-		checkForAppUpdate(app, opts)
+		checkForAppUpdate(app.ID(), opts)
 
 		var str *store.Store
 		var status *db.Status
@@ -253,25 +254,28 @@ func applyDistroHint(pkgs []pkg.Package, context *pkg.Context, opts *options.Gry
 	}
 }
 
-func checkForAppUpdate(app clio.Application, opts *options.Grype) {
+func checkForAppUpdate(id clio.Identification, opts *options.Grype) {
 	if !opts.CheckForAppUpdate {
 		return
 	}
 
-	version := app.ID().Version
+	version := id.Version
 	isAvailable, newVersion, err := isUpdateAvailable(version)
 	if err != nil {
 		log.Errorf(err.Error())
 	}
 	if isAvailable {
-		log.Infof("new version of %s is available: %s (currently running: %s)", app.ID().Name, newVersion, version)
+		log.Infof("new version of %s is available: %s (currently running: %s)", id.Name, newVersion, version)
 
 		bus.Publish(partybus.Event{
-			Type:  event.CLIAppUpdateAvailable,
-			Value: newVersion,
+			Type: event.CLIAppUpdateAvailable,
+			Value: parsers.UpdateCheck{
+				New:     newVersion,
+				Current: id.Version,
+			},
 		})
 	} else {
-		log.Debugf("no new %s update available", app.ID().Name)
+		log.Debugf("no new %s update available", id.Name)
 	}
 }
 

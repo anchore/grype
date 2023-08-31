@@ -59,20 +59,7 @@ require (
 	gorm.io/gorm v1.23.10
 )
 
-require (
-	github.com/anchore/bubbly v0.0.0-20230801194016-acdb4981b461
-	github.com/anchore/clio v0.0.0-20230815213839-de8921cba269
-	github.com/anchore/go-logger v0.0.0-20230725134548-c21dafa1ec5a
-	github.com/anchore/sqlite v1.4.6-0.20220607210448-bcc6ee5c4963
-	github.com/anchore/syft v0.87.1
-	github.com/charmbracelet/bubbletea v0.24.2
-	github.com/charmbracelet/lipgloss v0.7.1
-	github.com/gkampitakis/go-snaps v0.4.8
-	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
-	github.com/mitchellh/mapstructure v1.5.0
-	github.com/wagoodman/go-presenter v0.0.0-20211015174752-f9c01afc824b
-	modernc.org/sqlite v1.25.0
-)
+require modernc.org/sqlite v1.25.0
 
 require (
 	cloud.google.com/go v0.110.0 // indirect
