@@ -289,6 +289,7 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 		})
 		v.Locations = uniqueLocations
 	}
+	// TODO: put the primary match first
 	sort.Strings(sortPURLs)
 	var explainedPackages []*ExplainedPackage
 	for _, k := range sortPURLs {

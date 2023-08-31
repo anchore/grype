@@ -1,10 +1,10 @@
 {{ .PrimaryVulnerability.ID }} from {{ .PrimaryVulnerability.Namespace }} ({{ .PrimaryVulnerability.Severity }})
 {{ trim .PrimaryVulnerability.Description }}{{ if .RelatedVulnerabilities }}
 Related vulnerabilities:{{ range .RelatedVulnerabilities }}
-    - {{.Namespace}} {{ .ID }} {{ .Severity }}{{end}}{{end}}
+    - {{.Namespace}} {{ .ID }} ({{ .Severity }}){{end}}{{end}}
 Matched packages: {{ range .MatchedPackages }}
-    Package: {{ .Name }}, version: {{ .Version }}
-    PURL: {{ .PURL }}{{ if .CPEExplanation }}
+    Package: {{ .Name }}, version: {{ .Version }}{{ if .PURL }}
+    PURL: {{ .PURL }}{{ end }}{{ if .CPEExplanation }}
     {{ .CPEExplanation }}{{ end }}{{ if .IndirectExplanation }}
     {{ .IndirectExplanation }}{{ end }}
     Evidenced by: {{ range .Locations }}
