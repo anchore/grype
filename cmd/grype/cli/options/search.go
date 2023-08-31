@@ -44,5 +44,6 @@ func (cfg search) ToConfig() cataloger.Config {
 			IncludeUnindexedArchives: cfg.IncludeUnindexedArchives,
 			Scope:                    cfg.GetScope(),
 		},
+		ExcludeBinaryOverlapByOwnership: true,
 	}
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/file"
+	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/pkg"
 	cpes "github.com/anchore/syft/syft/pkg/cataloger/common/cpe"
 )
@@ -101,7 +102,7 @@ func (p Package) String() string {
 	return fmt.Sprintf("Pkg(type=%s, name=%s, version=%s, upstreams=%d)", p.Type, p.Name, p.Version, len(p.Upstreams))
 }
 
-func removePackagesByOverlap(catalog *pkg.Collection, relationships []artifact.Relationship) *pkg.Collection {
+func removePackagesByOverlap(catalog *pkg.Collection, relationships []artifact.Relationship, distro *linux.Release) *pkg.Collection {
 	byOverlap := map[artifact.ID]artifact.Relationship{}
 	for _, r := range relationships {
 		if r.Type == artifact.OwnershipByFileOverlapRelationship {
@@ -110,12 +111,12 @@ func removePackagesByOverlap(catalog *pkg.Collection, relationships []artifact.R
 	}
 
 	out := pkg.NewCollection()
-
+	comprehensiveDistroFeed := distroFeedIsComprehensive(distro)
 	for p := range catalog.Enumerate() {
 		r, ok := byOverlap[p.ID()]
 		if ok {
 			from, ok := r.From.(pkg.Package)
-			if ok && excludePackage(p, from) {
+			if ok && excludePackage(comprehensiveDistroFeed, p, from) {
 				continue
 			}
 		}
@@ -125,7 +126,7 @@ func removePackagesByOverlap(catalog *pkg.Collection, relationships []artifact.R
 	return out
 }
 
-func excludePackage(p pkg.Package, parent pkg.Package) bool {
+func excludePackage(comprehensiveDistroFeed bool, p pkg.Package, parent pkg.Package) bool {
 	// NOTE: we are not checking the name because we have mismatches like:
 	// python      3.9.2      binary
 	// python3.9   3.9.2-1    deb
@@ -135,12 +136,66 @@ func excludePackage(p pkg.Package, parent pkg.Package) bool {
 		return false
 	}
 
-	// filter out only binary pkg, empty types, or equal types
-	if p.Type != pkg.BinaryPkg && p.Type != "" && p.Type != parent.Type {
+	// If the parent is an OS package and the child is not, exclude the child
+	// for distros that have a comprehensive feed. That is, distros that list
+	// vulnerabilities that aren't fixed. Otherwise, the child package might
+	// be needed for matching.
+	if comprehensiveDistroFeed && isOSPackage(parent) && !isOSPackage(p) {
+		return true
+	}
+
+	// filter out binary packages, even for non-comprehensive distros
+	if p.Type != pkg.BinaryPkg {
 		return false
 	}
 
 	return true
+}
+
+// distroFeedIsComprehensive returns true if the distro feed
+// is comprehensive enough that we can drop packages owned by distro packages
+// before matching.
+func distroFeedIsComprehensive(distro *linux.Release) bool {
+	// TODO: this mechanism should be re-examined once https://github.com/anchore/grype/issues/1426
+	// is addressed
+	if distro == nil {
+		return false
+	}
+	if distro.ID == "amzn" {
+		// AmazonLinux shows "like rhel" but is not an rhel clone
+		// and does not have an exhaustive vulnerability feed.
+		return false
+	}
+	for _, d := range comprehensiveDistros {
+		if strings.EqualFold(d, distro.ID) {
+			return true
+		}
+		for _, n := range distro.IDLike {
+			if strings.EqualFold(d, n) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// computed by:
+// sqlite3 vulnerability.db 'select distinct namespace from vulnerability where fix_state in ("wont-fix", "not-fixed") order by namespace;' | cut -d ':' -f 1 | sort | uniq
+// then removing 'github' and replacing 'redhat' with 'rhel'
+var comprehensiveDistros = []string{
+	"debian",
+	"mariner",
+	"rhel",
+	"ubuntu",
+}
+
+func isOSPackage(p pkg.Package) bool {
+	switch p.Type {
+	case pkg.DebPkg, pkg.RpmPkg, pkg.PortagePkg, pkg.AlpmPkg, pkg.ApkPkg:
+		return true
+	default:
+		return false
+	}
 }
 
 func dataFromPkg(p pkg.Package) (MetadataType, interface{}, []UpstreamPackage) {

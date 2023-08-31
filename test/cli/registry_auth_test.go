@@ -18,7 +18,7 @@ func TestRegistryAuth(t *testing.T) {
 			assertions: []traitAssertion{
 				assertInOutput("source=OciRegistry"),
 				assertInOutput("localhost:5000/something:latest"),
-				assertInOutput("no registry credentials configured, using the default keychain"),
+				assertInOutput(`no registry credentials configured for "localhost:5000", using the default keychain`),
 			},
 		},
 		{
@@ -57,7 +57,7 @@ func TestRegistryAuth(t *testing.T) {
 			assertions: []traitAssertion{
 				assertInOutput("source=OciRegistry"),
 				assertInOutput("localhost:5000/something:latest"),
-				assertInOutput(`no registry credentials configured, using the default keychain`),
+				assertInOutput(`no registry credentials configured for "localhost:5000", using the default keychain`),
 			},
 		},
 		{
@@ -68,6 +68,17 @@ func TestRegistryAuth(t *testing.T) {
 			},
 			assertions: []traitAssertion{
 				assertInOutput("insecure-use-http: true"),
+			},
+		},
+		{
+			name: "use tls configuration",
+			args: []string{"-vvv", "registry:localhost:5000/something:latest"},
+			env: map[string]string{
+				"GRYPE_REGISTRY_AUTH_TLS_CERT": "place.crt",
+				"GRYPE_REGISTRY_AUTH_TLS_KEY":  "place.key",
+			},
+			assertions: []traitAssertion{
+				assertInOutput("using custom TLS credentials from"),
 			},
 		},
 	}
