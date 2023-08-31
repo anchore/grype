@@ -2,6 +2,7 @@ package ui
 
 import (
 	"bytes"
+	"github.com/anchore/grype/grype/event/parsers"
 	"testing"
 
 	"github.com/gkampitakis/go-snaps/snaps"
@@ -34,8 +35,11 @@ func Test_postUIEventWriter_write(t *testing.T) {
 					Value: "<notification 2>",
 				},
 				{
-					Type:  event.CLIAppUpdateAvailable,
-					Value: "v0.33.0",
+					Type: event.CLIAppUpdateAvailable,
+					Value: parsers.UpdateCheck{
+						New:     "v0.33.0",
+						Current: "[not provided]",
+					},
 				},
 				{
 					Type:  event.CLINotification,
@@ -61,8 +65,11 @@ func Test_postUIEventWriter_write(t *testing.T) {
 					Value: "<notification 1>",
 				},
 				{
-					Type:  event.CLIAppUpdateAvailable,
-					Value: "<app update>",
+					Type: event.CLIAppUpdateAvailable,
+					Value: parsers.UpdateCheck{
+						New:     "<new version>",
+						Current: "<current version>",
+					},
 				},
 				{
 					Type:  event.CLIReport,
