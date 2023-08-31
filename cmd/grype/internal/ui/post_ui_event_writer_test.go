@@ -2,7 +2,6 @@ package ui
 
 import (
 	"bytes"
-	"github.com/anchore/grype/grype/event/parsers"
 	"testing"
 
 	"github.com/gkampitakis/go-snaps/snaps"
@@ -10,6 +9,7 @@ import (
 	"github.com/wagoodman/go-partybus"
 
 	"github.com/anchore/grype/grype/event"
+	"github.com/anchore/grype/grype/event/parsers"
 )
 
 func Test_postUIEventWriter_write(t *testing.T) {
