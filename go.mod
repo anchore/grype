@@ -15,7 +15,7 @@ require (
 	github.com/anchore/packageurl-go v0.1.1-0.20230104203445-02e0a6721501
 	github.com/anchore/sqlite v1.4.6-0.20220607210448-bcc6ee5c4963
 	github.com/anchore/stereoscope v0.0.0-20230829142608-334c2222e137
-	github.com/anchore/syft v0.88.1-0.20230831145032-b454160549bb
+	github.com/anchore/syft v0.89.0
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/charmbracelet/bubbletea v0.24.2
 	github.com/charmbracelet/lipgloss v0.8.0
