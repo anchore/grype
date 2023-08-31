@@ -8,14 +8,14 @@ require (
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 	github.com/adrg/xdg v0.4.0
 	github.com/anchore/bubbly v0.0.0-20230801194016-acdb4981b461
-	github.com/anchore/clio v0.0.0-20230630162005-9535e9dc2817
-	github.com/anchore/go-logger v0.0.0-20230531193951-db5ae83e7dbe
+	github.com/anchore/clio v0.0.0-20230823172630-c42d666061af
+	github.com/anchore/go-logger v0.0.0-20230725134548-c21dafa1ec5a
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/packageurl-go v0.1.1-0.20230104203445-02e0a6721501
 	github.com/anchore/sqlite v1.4.6-0.20220607210448-bcc6ee5c4963
 	github.com/anchore/stereoscope v0.0.0-20230829142608-334c2222e137
-	github.com/anchore/syft v0.88.0
+	github.com/anchore/syft v0.89.0
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/charmbracelet/bubbletea v0.24.2
 	github.com/charmbracelet/lipgloss v0.8.0
@@ -75,7 +75,7 @@ require (
 	github.com/ProtonMail/go-crypto v0.0.0-20230717121422-5aa5874ade95 // indirect
 	github.com/acobaugh/osrelease v0.1.0 // indirect
 	github.com/acomagu/bufpipe v1.0.4 // indirect
-	github.com/anchore/fangs v0.0.0-20230628163043-a51c5a39b097 // indirect
+	github.com/anchore/fangs v0.0.0-20230818131516-2186b10924fe // indirect
 	github.com/anchore/go-macholibre v0.0.0-20220308212642-53e6d0aaf6fb // indirect
 	github.com/anchore/go-struct-converter v0.0.0-20221118182256-c68fdcfa2092 // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
@@ -125,6 +125,7 @@ require (
 	github.com/hashicorp/go-safetemp v1.0.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/huandu/xstrings v1.3.3 // indirect
+	github.com/iancoleman/strcase v0.3.0 // indirect
 	github.com/imdario/mergo v0.3.15 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
