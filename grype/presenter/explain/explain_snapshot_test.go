@@ -1,7 +1,6 @@
 package explain_test
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"os"
@@ -25,12 +24,11 @@ func TestExplainSnapshot(t *testing.T) {
 	err = decoder.Decode(&doc)
 	require.NoError(t, err)
 	// create explain.VulnerabilityExplainer
-	var b bytes.Buffer
-	w := bufio.NewWriter(&b)
+	w := bytes.NewBufferString("")
 	explainer := explain.NewVulnerabilityExplainer(w, &doc)
 	// call ExplainByID
 	err = explainer.ExplainByID([]string{"CVE-2020-12413"})
 	require.NoError(t, err)
 	// assert output
-	snaps.MatchSnapshot(t, b.Bytes())
+	snaps.MatchSnapshot(t, w.String())
 }

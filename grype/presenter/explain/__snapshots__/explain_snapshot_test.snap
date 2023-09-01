@@ -1,4 +1,43 @@
 
 [TestExplainSnapshot - 1]
-[]uint8(nil)
+CVE-2020-12413 from nvd:cpe (Medium)
+The Raccoon attack is a timing attack on DHE ciphersuites inherit in the TLS specification. To mitigate this vulnerability, Firefox disabled support for DHE ciphersuites.
+Related vulnerabilities:
+    - redhat:distro:redhat:9 CVE-2020-12413 (Low)
+Matched packages:
+    - Package: nspr, version: 4.34.0-17.el9_1
+      PURL: pkg:rpm/rhel/nspr@4.34.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1
+      Note: This CVE is reported against nss (version 3.79.0-17.el9_1), the source RPM of this rpm package.
+      Evidenced by:
+          - redhat:distro:redhat:9:CVE-2020-12413 evidence at /var/lib/rpm/rpmdb.sqlite (artifact ID: ff2aefb138ebd4bf)
+    - Package: nss, version: 3.79.0-17.el9_1
+      PURL: pkg:rpm/rhel/nss@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1
+      Evidenced by:
+          - redhat:distro:redhat:9:CVE-2020-12413 evidence at /var/lib/rpm/rpmdb.sqlite (artifact ID: 840f8a931c86688f)
+    - Package: nss-softokn, version: 3.79.0-17.el9_1
+      PURL: pkg:rpm/rhel/nss-softokn@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1
+      Note: This CVE is reported against nss (version 3.79.0-17.el9_1), the source RPM of this rpm package.
+      Evidenced by:
+          - redhat:distro:redhat:9:CVE-2020-12413 evidence at /var/lib/rpm/rpmdb.sqlite (artifact ID: 7d1c659d9eb00024)
+    - Package: nss-softokn-freebl, version: 3.79.0-17.el9_1
+      PURL: pkg:rpm/rhel/nss-softokn-freebl@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1
+      Note: This CVE is reported against nss (version 3.79.0-17.el9_1), the source RPM of this rpm package.
+      Evidenced by:
+          - redhat:distro:redhat:9:CVE-2020-12413 evidence at /var/lib/rpm/rpmdb.sqlite (artifact ID: cb1f96627e29924e)
+    - Package: nss-sysinit, version: 3.79.0-17.el9_1
+      PURL: pkg:rpm/rhel/nss-sysinit@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1
+      Note: This CVE is reported against nss (version 3.79.0-17.el9_1), the source RPM of this rpm package.
+      Evidenced by:
+          - redhat:distro:redhat:9:CVE-2020-12413 evidence at /var/lib/rpm/rpmdb.sqlite (artifact ID: d096d490e4fccf36)
+    - Package: nss-util, version: 3.79.0-17.el9_1
+      PURL: pkg:rpm/rhel/nss-util@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1
+      Note: This CVE is reported against nss (version 3.79.0-17.el9_1), the source RPM of this rpm package.
+      Evidenced by:
+          - redhat:distro:redhat:9:CVE-2020-12413 evidence at /var/lib/rpm/rpmdb.sqlite (artifact ID: 641950c22b3f5035)
+URLs:
+    - https://nvd.nist.gov/vuln/detail/CVE-2020-12413
+    - https://access.redhat.com/security/cve/CVE-2020-12413
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=CVE-2020-12413
+    - https://raccoon-attack.com/
+
 ---

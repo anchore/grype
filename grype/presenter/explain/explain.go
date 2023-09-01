@@ -53,6 +53,7 @@ type ExplainedPackage struct {
 	IndirectExplanation string
 	CPEExplanation      string
 	Locations           []ExplainedEvidence
+	displayRank         int // how early in output should this appear?
 }
 
 type ExplainedEvidence struct {
@@ -241,14 +242,18 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 		// Like, I have N matchDetails, and N locations, but I don't know which matchDetail explains which location
 		var indirectExplanation string
 		var cpeExplanation string
+		var displayRank int
 		for i, md := range m.MatchDetails {
 			explanation := explainMatchDetail(m, i)
 			if explanation != "" {
 				if md.Type == string(match.CPEMatch) {
 					cpeExplanation = explanation
-				}
-				if md.Type == string(match.ExactIndirectMatch) {
+					displayRank = 1
+				} else if md.Type == string(match.ExactIndirectMatch) {
 					indirectExplanation = explanation
+					displayRank = 0 // display indirect explanations explanations of main matched packages
+				} else {
+					displayRank = 2
 				}
 			}
 		}
@@ -263,17 +268,20 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 				IndirectExplanation: indirectExplanation,
 				CPEExplanation:      cpeExplanation,
 				Locations:           newLocations,
+				displayRank:         displayRank,
 			}
 			idsToMatchDetails[key] = e
 		} else {
 			// TODO: what if MatchedOnID and MatchedOnNamespace are different?
 			e.Locations = append(e.Locations, newLocations...)
+			// TODO: why are these checks needed? What if a package is matched by more than one way?
 			if e.CPEExplanation == "" {
 				e.CPEExplanation = cpeExplanation
 			}
 			if e.IndirectExplanation == "" {
 				e.IndirectExplanation = indirectExplanation
 			}
+			e.displayRank += displayRank
 			// e.Explanations = append(e.Explanations, newExplanations...)
 			// if e.MatchedOnID != m.Vulnerability.ID || e.MatchedOnNamespace != m.Vulnerability.Namespace {
 			// 	// TODO: do something smart.
@@ -297,16 +305,18 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 		})
 		v.Locations = uniqueLocations
 	}
-	// TODO: put the primary match first
-	// sort.Slice(sortIDs, func(i, j int) bool {
-	// 	iKey := sortIDs[i]
-	// 	jKey := sortIDs[j]
-	// 	iMatch := idsToMatchDetails[iKey]
-	// 	jMatch := idsToMatchDetails[jKey]
-	// 	// Sort by type, exact-direct < cpe < exact-indirect
 
-	// 	// if same type, sort alpha by PURL
-	// })
+	sort.Slice(sortIDs, func(i, j int) bool {
+		iKey := sortIDs[i]
+		jKey := sortIDs[j]
+		iMatch := idsToMatchDetails[iKey]
+		jMatch := idsToMatchDetails[jKey]
+		// reverse by display rank
+		if iMatch.displayRank != jMatch.displayRank {
+			return jMatch.displayRank < iMatch.displayRank
+		}
+		return iMatch.Name < jMatch.Name
+	})
 	var explainedPackages []*ExplainedPackage
 	for _, k := range sortIDs {
 		explainedPackages = append(explainedPackages, idsToMatchDetails[k])
