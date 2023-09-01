@@ -58,7 +58,7 @@ type ExplainedPackage struct {
 
 type ExplainedEvidence struct {
 	Location     string
-	ArtifactId   string
+	ArtifactID   string
 	ViaVulnID    string
 	ViaNamespace string
 }
@@ -79,14 +79,14 @@ var funcs = template.FuncMap{
 	"trim": strings.TrimSpace,
 }
 
-func (e *vulnerabilityExplainer) ExplainByID(IDs []string) error {
+func (e *vulnerabilityExplainer) ExplainByID(ids []string) error {
 	// TODO: requested ID is always the primary match
-	findings, err := ExplainDoc(e.doc, IDs)
+	findings, err := Doc(e.doc, ids)
 	if err != nil {
 		return err
 	}
 	t := template.Must(template.New("explanation").Funcs(funcs).Parse(explainTemplate))
-	for _, id := range IDs {
+	for _, id := range ids {
 		finding, ok := findings[id]
 		if !ok {
 			continue
@@ -103,7 +103,7 @@ func (e *vulnerabilityExplainer) ExplainBySeverity(severity string) error {
 }
 
 func (e *vulnerabilityExplainer) ExplainAll() error {
-	findings, err := ExplainDoc(e.doc, nil)
+	findings, err := Doc(e.doc, nil)
 	if err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ func (e *vulnerabilityExplainer) ExplainAll() error {
 	return t.Execute(e.w, findings)
 }
 
-func ExplainDoc(doc *models.Document, requestedIDs []string) (ExplainedFindings, error) {
+func Doc(doc *models.Document, requestedIDs []string) (ExplainedFindings, error) {
 	result := make(ExplainedFindings)
 	builders := make(map[string]*ExplainViewModelBuilder)
 	for _, m := range doc.Matches {
@@ -185,15 +185,10 @@ func (b *ExplainViewModelBuilder) isPrimaryAdd(candidate models.Match, userReque
 		return false
 	}
 	// Either the user didn't ask for specific IDs, or the candidate has an ID the user asked for.
-	currentPrimaryIsChildOfCandidate := false
 	for _, related := range b.PrimaryMatch.RelatedVulnerabilities {
 		if related.ID == candidate.Vulnerability.ID {
-			currentPrimaryIsChildOfCandidate = true
-			break
+			return true
 		}
-	}
-	if currentPrimaryIsChildOfCandidate {
-		return true
 	}
 	return false
 }
@@ -233,7 +228,7 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 		for _, l := range m.Artifact.Locations {
 			newLocations = append(newLocations, ExplainedEvidence{
 				Location:     l.RealPath,
-				ArtifactId:   m.Artifact.ID, // TODO: this is sometimes blank. Why?
+				ArtifactID:   m.Artifact.ID, // TODO: this is sometimes blank. Why?
 				ViaVulnID:    m.Vulnerability.ID,
 				ViaNamespace: m.Vulnerability.Namespace,
 			})

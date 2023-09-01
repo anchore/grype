@@ -8,6 +8,6 @@ Matched packages:{{ range .MatchedPackages }}
       {{ .CPEExplanation }}{{ end }}{{ if .IndirectExplanation }}
       {{ .IndirectExplanation }}{{ end }}
       Evidenced by:{{ range .Locations }}
-          - {{ .ViaNamespace }}:{{ .ViaVulnID }} evidence at {{ .Location }} (artifact ID: {{.ArtifactId}}){{ end }}{{ end }}
+          - {{ .ViaNamespace }}:{{ .ViaVulnID }} evidence at {{ .Location }} (artifact ID: {{.ArtifactID}}){{ end }}{{ end }}
 URLs:{{ range .URLs }}
     - {{ . }}{{ end }}
