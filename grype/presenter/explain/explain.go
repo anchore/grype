@@ -201,22 +201,84 @@ func (b *viewModelBuilder) WithRelatedMatch(m models.Match) *viewModelBuilder {
 }
 
 func (b *viewModelBuilder) Build() ViewModel {
-	URLs := b.PrimaryMatch.Vulnerability.URLs
-	URLs = append(URLs, b.PrimaryMatch.Vulnerability.DataSource)
-	for _, v := range b.PrimaryMatch.RelatedVulnerabilities {
-		URLs = append(URLs, v.URLs...)
-		URLs = append(URLs, v.DataSource)
-	}
-	for _, m := range b.RelatedMatches {
-		URLs = append(URLs, m.Vulnerability.URLs...)
-		for _, v := range m.RelatedVulnerabilities {
-			URLs = append(URLs, v.URLs...)
-			URLs = append(URLs, v.DataSource)
+	idsToMatchDetails := groupEvidence(append(b.RelatedMatches, b.PrimaryMatch))
+	var sortIDs []string
+	for k, v := range idsToMatchDetails {
+		sortIDs = append(sortIDs, k)
+		dedupeLocations := make(map[string]explainedEvidence)
+		for _, l := range v.Locations {
+			dedupeLocations[l.Location] = l
 		}
+		var uniqueLocations []explainedEvidence
+		for _, l := range dedupeLocations {
+			uniqueLocations = append(uniqueLocations, l)
+		}
+		sort.Slice(uniqueLocations, func(i, j int) bool {
+			return uniqueLocations[i].Location < uniqueLocations[j].Location
+		})
+		v.Locations = uniqueLocations
 	}
 
-	idsToMatchDetails := make(map[string]*explainedPackage)
+	sort.Slice(sortIDs, func(i, j int) bool {
+		iKey := sortIDs[i]
+		jKey := sortIDs[j]
+		iMatch := idsToMatchDetails[iKey]
+		jMatch := idsToMatchDetails[jKey]
+		// reverse by display rank
+		if iMatch.displayRank != jMatch.displayRank {
+			return jMatch.displayRank < iMatch.displayRank
+		}
+		return iMatch.Name < jMatch.Name
+	})
+	var explainedPackages []*explainedPackage
+	for _, k := range sortIDs {
+		explainedPackages = append(explainedPackages, idsToMatchDetails[k])
+	}
+
+	// TODO: this isn't right at all.
+	// We need to be able to add related vulnerabilities
+	var relatedVulnerabilities []models.VulnerabilityMetadata
+	dedupeRelatedVulnerabilities := make(map[string]models.VulnerabilityMetadata)
+	var sortDedupedRelatedVulnerabilities []string
 	for _, m := range append(b.RelatedMatches, b.PrimaryMatch) {
+		key := fmt.Sprintf("%s:%s", m.Vulnerability.Namespace, m.Vulnerability.ID)
+		dedupeRelatedVulnerabilities[key] = m.Vulnerability.VulnerabilityMetadata
+		for _, r := range m.RelatedVulnerabilities {
+			key := fmt.Sprintf("%s:%s", r.Namespace, r.ID)
+			dedupeRelatedVulnerabilities[key] = r
+		}
+	}
+	var primaryVulnerability models.VulnerabilityMetadata
+	for _, r := range dedupeRelatedVulnerabilities {
+		if r.ID == b.PrimaryMatch.Vulnerability.ID && r.Namespace == "nvd:cpe" {
+			primaryVulnerability = r
+		}
+	}
+	if primaryVulnerability.ID == "" {
+		primaryVulnerability = b.PrimaryMatch.Vulnerability.VulnerabilityMetadata
+	}
+
+	// delete the primary vulnerability from the related vulnerabilities
+	delete(dedupeRelatedVulnerabilities, fmt.Sprintf("%s:%s", primaryVulnerability.Namespace, primaryVulnerability.ID))
+	for k := range dedupeRelatedVulnerabilities {
+		sortDedupedRelatedVulnerabilities = append(sortDedupedRelatedVulnerabilities, k)
+	}
+	sort.Strings(sortDedupedRelatedVulnerabilities)
+	for _, k := range sortDedupedRelatedVulnerabilities {
+		relatedVulnerabilities = append(relatedVulnerabilities, dedupeRelatedVulnerabilities[k])
+	}
+
+	return ViewModel{
+		PrimaryVulnerability:   primaryVulnerability,
+		RelatedVulnerabilities: relatedVulnerabilities,
+		MatchedPackages:        explainedPackages,
+		URLs:                   b.dedupeAndSortURLs(primaryVulnerability),
+	}
+}
+
+func groupEvidence(matches []models.Match) map[string]*explainedPackage {
+	idsToMatchDetails := make(map[string]*explainedPackage)
+	for _, m := range matches {
 		// key := m.Artifact.PURL
 		key := m.Artifact.ID
 		// TODO: match details can match multiple packages
@@ -281,79 +343,7 @@ func (b *viewModelBuilder) Build() ViewModel {
 			// }
 		}
 	}
-	var sortIDs []string
-	for k, v := range idsToMatchDetails {
-		sortIDs = append(sortIDs, k)
-		dedupeLocations := make(map[string]explainedEvidence)
-		for _, l := range v.Locations {
-			dedupeLocations[l.Location] = l
-		}
-		var uniqueLocations []explainedEvidence
-		for _, l := range dedupeLocations {
-			uniqueLocations = append(uniqueLocations, l)
-		}
-		sort.Slice(uniqueLocations, func(i, j int) bool {
-			return uniqueLocations[i].Location < uniqueLocations[j].Location
-		})
-		v.Locations = uniqueLocations
-	}
-
-	sort.Slice(sortIDs, func(i, j int) bool {
-		iKey := sortIDs[i]
-		jKey := sortIDs[j]
-		iMatch := idsToMatchDetails[iKey]
-		jMatch := idsToMatchDetails[jKey]
-		// reverse by display rank
-		if iMatch.displayRank != jMatch.displayRank {
-			return jMatch.displayRank < iMatch.displayRank
-		}
-		return iMatch.Name < jMatch.Name
-	})
-	var explainedPackages []*explainedPackage
-	for _, k := range sortIDs {
-		explainedPackages = append(explainedPackages, idsToMatchDetails[k])
-	}
-
-	// TODO: this isn't right at all.
-	// We need to be able to add related vulnerabilities
-	var relatedVulnerabilities []models.VulnerabilityMetadata
-	dedupeRelatedVulnerabilities := make(map[string]models.VulnerabilityMetadata)
-	var sortDedupedRelatedVulnerabilities []string
-	for _, m := range append(b.RelatedMatches, b.PrimaryMatch) {
-		key := fmt.Sprintf("%s:%s", m.Vulnerability.Namespace, m.Vulnerability.ID)
-		dedupeRelatedVulnerabilities[key] = m.Vulnerability.VulnerabilityMetadata
-		for _, r := range m.RelatedVulnerabilities {
-			key := fmt.Sprintf("%s:%s", r.Namespace, r.ID)
-			dedupeRelatedVulnerabilities[key] = r
-		}
-	}
-	var primaryVulnerability models.VulnerabilityMetadata
-	for _, r := range dedupeRelatedVulnerabilities {
-		if r.ID == b.PrimaryMatch.Vulnerability.ID && r.Namespace == "nvd:cpe" {
-			primaryVulnerability = r
-		}
-	}
-	if primaryVulnerability.ID == "" {
-		primaryVulnerability = b.PrimaryMatch.Vulnerability.VulnerabilityMetadata
-	}
-	primaryURL := primaryVulnerability.DataSource
-
-	// delete the primary vulnerability from the related vulnerabilities
-	delete(dedupeRelatedVulnerabilities, fmt.Sprintf("%s:%s", primaryVulnerability.Namespace, primaryVulnerability.ID))
-	for k := range dedupeRelatedVulnerabilities {
-		sortDedupedRelatedVulnerabilities = append(sortDedupedRelatedVulnerabilities, k)
-	}
-	sort.Strings(sortDedupedRelatedVulnerabilities)
-	for _, k := range sortDedupedRelatedVulnerabilities {
-		relatedVulnerabilities = append(relatedVulnerabilities, dedupeRelatedVulnerabilities[k])
-	}
-
-	return ViewModel{
-		PrimaryVulnerability:   primaryVulnerability,
-		RelatedVulnerabilities: relatedVulnerabilities,
-		MatchedPackages:        explainedPackages,
-		URLs:                   dedupeURLs(primaryURL, URLs),
-	}
+	return idsToMatchDetails
 }
 
 func explainMatchDetail(m models.Match, index int) string {
@@ -372,12 +362,29 @@ func explainMatchDetail(m models.Match, index int) string {
 	return explanation
 }
 
-func dedupeURLs(showFirst string, rest []string) []string {
+// dedupeAndSortURLs returns a list of URLs with the datasource of the primary vu8lnerability first,
+// followed by data source for related vulnerabilities, followed by other URLs, but with no duplicates.
+func (b *viewModelBuilder) dedupeAndSortURLs(primaryVulnerability models.VulnerabilityMetadata) []string {
+	showFirst := primaryVulnerability.DataSource
+	URLs := b.PrimaryMatch.Vulnerability.URLs
+	URLs = append(URLs, b.PrimaryMatch.Vulnerability.DataSource)
+	for _, v := range b.PrimaryMatch.RelatedVulnerabilities {
+		URLs = append(URLs, v.URLs...)
+		URLs = append(URLs, v.DataSource)
+	}
+	for _, m := range b.RelatedMatches {
+		URLs = append(URLs, m.Vulnerability.URLs...)
+		for _, v := range m.RelatedVulnerabilities {
+			URLs = append(URLs, v.URLs...)
+			URLs = append(URLs, v.DataSource)
+		}
+	}
 	var result []string
-	result = append(result, showFirst)
 	deduplicate := make(map[string]bool)
-	for _, u := range rest {
-		if _, ok := deduplicate[u]; !ok && u != showFirst {
+	result = append(result, showFirst)
+	deduplicate[showFirst] = true
+	for _, u := range URLs {
+		if _, ok := deduplicate[u]; !ok {
 			result = append(result, u)
 			deduplicate[u] = true
 		}
