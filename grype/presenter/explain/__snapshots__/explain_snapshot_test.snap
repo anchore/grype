@@ -1,5 +1,4 @@
-
-[TestExplainSnapshot - 1]
+[TestExplainSnapshot/keycloak-CVE-2020-12413 - 1]
 CVE-2020-12413 from nvd:cpe (Medium)
 The Raccoon attack is a timing attack on DHE ciphersuites inherit in the TLS specification. To mitigate this vulnerability, Firefox disabled support for DHE ciphersuites.
 Related vulnerabilities:
@@ -39,5 +38,34 @@ URLs:
     - https://access.redhat.com/security/cve/CVE-2020-12413
     - https://bugzilla.mozilla.org/show_bug.cgi?id=CVE-2020-12413
     - https://raccoon-attack.com/
+
+---
+
+[TestExplainSnapshot/chainguard-ruby-CVE-2023-28755 - 1]
+CVE-2023-28755 from nvd:cpe (High)
+A ReDoS issue was discovered in the URI component through 0.12.0 in Ruby through 3.2.1. The URI parser mishandles invalid URLs that have specific characters. It causes an increase in execution time for parsing strings to URI objects. The fixed versions are 0.12.1, 0.11.1, 0.10.2 and 0.10.0.1.
+Related vulnerabilities:
+    - github:language:ruby GHSA-hv5j-3h9f-99c2 (High)
+    - wolfi:distro:wolfi:rolling CVE-2023-28755 (High)
+Matched packages:
+    - Package: ruby-3.0, version: 3.0.4-r1
+      PURL: pkg:apk/wolfi/ruby-3.0@3.0.4-r1?arch=aarch64&distro=wolfi-20221118
+      CPE match on `cpe:2.3:a:ruby-lang:uri:0.10.1:*:*:*:*:*:*:*`
+      Note: This CVE is reported against ruby-3.0 (version 3.0.4-r1), the upstream of this apk package.
+      Evidenced by:
+          - wolfi:distro:wolfi:rolling:CVE-2023-28755 evidence at /lib/apk/db/installed (artifact ID: )
+          - nvd:cpe:CVE-2023-28755 evidence at /usr/lib/ruby/gems/3.0.0/specifications/default/uri-0.10.1.gemspec (artifact ID: )
+URLs:
+    - https://nvd.nist.gov/vuln/detail/CVE-2023-28755
+    - https://github.com/ruby/uri/releases/
+    - https://lists.debian.org/debian-lts-announce/2023/04/msg00033.html
+    - https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/FFZANOQA4RYX7XCB42OO3P24DQKWHEKA/
+    - https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/G76GZG3RAGYF4P75YY7J7TGYAU7Z5E2T/
+    - https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/WMIOPLBAAM3FEQNAXA2L7BDKOGSVUT5Z/
+    - https://www.ruby-lang.org/en/downloads/releases/
+    - https://www.ruby-lang.org/en/news/2022/12/25/ruby-3-2-0-released/
+    - https://www.ruby-lang.org/en/news/2023/03/28/redos-in-uri-cve-2023-28755/
+    - http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-28755
+    - https://github.com/advisories/GHSA-hv5j-3h9f-99c2
 
 ---
