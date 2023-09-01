@@ -29,22 +29,22 @@ type VulnerabilityExplainer interface {
 // of artifacts we matched and why, and then
 // render it either as JSON or as the template.
 
-type ExplainViewModel struct {
+type ViewModel struct {
 	PrimaryVulnerability   models.VulnerabilityMetadata
 	RelatedVulnerabilities []models.VulnerabilityMetadata
-	MatchedPackages        []*ExplainedPackage
+	MatchedPackages        []*explainedPackage
 	URLs                   []string
 }
 
-type ExplainViewModelBuilder struct {
+type viewModelBuilder struct {
 	PrimaryVulnerability models.Vulnerability // this is the vulnerability we're trying to explain
 	PrimaryMatch         models.Match
 	RelatedMatches       []models.Match
 }
 
-type ExplainedFindings map[string]ExplainViewModel
+type Findings map[string]ViewModel
 
-type ExplainedPackage struct {
+type explainedPackage struct {
 	PURL                string
 	Name                string
 	Version             string // TODO: is there only going to be one of these?
@@ -52,11 +52,11 @@ type ExplainedPackage struct {
 	MatchedOnNamespace  string
 	IndirectExplanation string
 	CPEExplanation      string
-	Locations           []ExplainedEvidence
+	Locations           []explainedEvidence
 	displayRank         int // how early in output should this appear?
 }
 
-type ExplainedEvidence struct {
+type explainedEvidence struct {
 	Location     string
 	ArtifactID   string
 	ViaVulnID    string
@@ -98,7 +98,7 @@ func (e *vulnerabilityExplainer) ExplainByID(ids []string) error {
 	return nil
 }
 
-func (e *vulnerabilityExplainer) ExplainBySeverity(severity string) error {
+func (e *vulnerabilityExplainer) ExplainBySeverity(_ string) error {
 	return fmt.Errorf("not implemented")
 }
 
@@ -112,14 +112,14 @@ func (e *vulnerabilityExplainer) ExplainAll() error {
 	return t.Execute(e.w, findings)
 }
 
-func Doc(doc *models.Document, requestedIDs []string) (ExplainedFindings, error) {
-	result := make(ExplainedFindings)
-	builders := make(map[string]*ExplainViewModelBuilder)
+func Doc(doc *models.Document, requestedIDs []string) (Findings, error) {
+	result := make(Findings)
+	builders := make(map[string]*viewModelBuilder)
 	for _, m := range doc.Matches {
 		key := m.Vulnerability.ID
 		existing, ok := builders[key]
 		if !ok {
-			existing = NewExplainedVulnerabilityBuilder()
+			existing = newBuilder()
 			builders[m.Vulnerability.ID] = existing
 		}
 		existing.WithMatch(m, requestedIDs, false)
@@ -129,7 +129,7 @@ func Doc(doc *models.Document, requestedIDs []string) (ExplainedFindings, error)
 			key := related.ID
 			existing, ok := builders[key]
 			if !ok {
-				existing = NewExplainedVulnerabilityBuilder()
+				existing = newBuilder()
 				builders[key] = existing
 			}
 			existing.WithMatch(m, requestedIDs, false)
@@ -141,13 +141,13 @@ func Doc(doc *models.Document, requestedIDs []string) (ExplainedFindings, error)
 	return result, nil
 }
 
-func NewExplainedVulnerabilityBuilder() *ExplainViewModelBuilder {
-	return &ExplainViewModelBuilder{}
+func newBuilder() *viewModelBuilder {
+	return &viewModelBuilder{}
 }
 
 // WithMatch adds a match to the builder
 // accepting enough information to determine whether the match is a primary match or a related match
-func (b *ExplainViewModelBuilder) WithMatch(m models.Match, userRequestedIDs []string, graphIsByCVE bool) {
+func (b *viewModelBuilder) WithMatch(m models.Match, userRequestedIDs []string, graphIsByCVE bool) {
 	// TODO: check if it's a primary vulnerability
 	// (the below checks if it's a primary _match_, which is wrong)
 	if b.isPrimaryAdd(m, userRequestedIDs, graphIsByCVE) {
@@ -162,7 +162,7 @@ func (b *ExplainViewModelBuilder) WithMatch(m models.Match, userRequestedIDs []s
 	}
 }
 
-func (b *ExplainViewModelBuilder) isPrimaryAdd(candidate models.Match, userRequestedIDs []string, graphIsByCVE bool) bool {
+func (b *viewModelBuilder) isPrimaryAdd(candidate models.Match, userRequestedIDs []string, graphIsByCVE bool) bool {
 	// TODO: "primary" is a property of a vulnerability, not a match
 	// if there's not currently any match, make this one primary since we don't know any better
 	if b.PrimaryMatch.Vulnerability.ID == "" {
@@ -193,17 +193,17 @@ func (b *ExplainViewModelBuilder) isPrimaryAdd(candidate models.Match, userReque
 	return false
 }
 
-func (b *ExplainViewModelBuilder) WithPrimaryMatch(m models.Match) *ExplainViewModelBuilder {
+func (b *viewModelBuilder) WithPrimaryMatch(m models.Match) *viewModelBuilder {
 	b.PrimaryMatch = m
 	return b
 }
 
-func (b *ExplainViewModelBuilder) WithRelatedMatch(m models.Match) *ExplainViewModelBuilder {
+func (b *viewModelBuilder) WithRelatedMatch(m models.Match) *viewModelBuilder {
 	b.RelatedMatches = append(b.RelatedMatches, m)
 	return b
 }
 
-func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
+func (b *viewModelBuilder) Build() ViewModel {
 	URLs := b.PrimaryMatch.Vulnerability.URLs
 	URLs = append(URLs, b.PrimaryMatch.Vulnerability.DataSource)
 	for _, v := range b.PrimaryMatch.RelatedVulnerabilities {
@@ -218,15 +218,14 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 		}
 	}
 
-	// TODO: use package ID
-	idsToMatchDetails := make(map[string]*ExplainedPackage)
+	idsToMatchDetails := make(map[string]*explainedPackage)
 	for _, m := range append(b.RelatedMatches, b.PrimaryMatch) {
 		// key := m.Artifact.PURL
 		key := m.Artifact.ID
 		// TODO: match details can match multiple packages
-		var newLocations []ExplainedEvidence
+		var newLocations []explainedEvidence
 		for _, l := range m.Artifact.Locations {
-			newLocations = append(newLocations, ExplainedEvidence{
+			newLocations = append(newLocations, explainedEvidence{
 				Location:     l.RealPath,
 				ArtifactID:   m.Artifact.ID, // TODO: this is sometimes blank. Why?
 				ViaVulnID:    m.Vulnerability.ID,
@@ -254,7 +253,7 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 		}
 		e, ok := idsToMatchDetails[key]
 		if !ok {
-			e = &ExplainedPackage{
+			e = &explainedPackage{
 				PURL:                m.Artifact.PURL,
 				Name:                m.Artifact.Name,
 				Version:             m.Artifact.Version,
@@ -287,11 +286,11 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 	var sortIDs []string
 	for k, v := range idsToMatchDetails {
 		sortIDs = append(sortIDs, k)
-		dedupeLocations := make(map[string]ExplainedEvidence)
+		dedupeLocations := make(map[string]explainedEvidence)
 		for _, l := range v.Locations {
 			dedupeLocations[l.Location] = l
 		}
-		var uniqueLocations []ExplainedEvidence
+		var uniqueLocations []explainedEvidence
 		for _, l := range dedupeLocations {
 			uniqueLocations = append(uniqueLocations, l)
 		}
@@ -312,7 +311,7 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 		}
 		return iMatch.Name < jMatch.Name
 	})
-	var explainedPackages []*ExplainedPackage
+	var explainedPackages []*explainedPackage
 	for _, k := range sortIDs {
 		explainedPackages = append(explainedPackages, idsToMatchDetails[k])
 	}
@@ -351,7 +350,7 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 		relatedVulnerabilities = append(relatedVulnerabilities, dedupeRelatedVulnerabilities[k])
 	}
 
-	return ExplainViewModel{
+	return ViewModel{
 		PrimaryVulnerability:   primaryVulnerability,
 		RelatedVulnerabilities: relatedVulnerabilities,
 		MatchedPackages:        explainedPackages,
