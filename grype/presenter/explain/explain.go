@@ -222,9 +222,11 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 		}
 	}
 
-	pURLsToMatchDetails := make(map[string]*ExplainedPackage)
+	// TODO: use package ID
+	idsToMatchDetails := make(map[string]*ExplainedPackage)
 	for _, m := range append(b.RelatedMatches, b.PrimaryMatch) {
-		key := m.Artifact.PURL
+		// key := m.Artifact.PURL
+		key := m.Artifact.ID
 		// TODO: match details can match multiple packages
 		var newLocations []ExplainedEvidence
 		for _, l := range m.Artifact.Locations {
@@ -250,7 +252,7 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 				}
 			}
 		}
-		e, ok := pURLsToMatchDetails[key]
+		e, ok := idsToMatchDetails[key]
 		if !ok {
 			e = &ExplainedPackage{
 				PURL:                m.Artifact.PURL,
@@ -262,7 +264,7 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 				CPEExplanation:      cpeExplanation,
 				Locations:           newLocations,
 			}
-			pURLsToMatchDetails[key] = e
+			idsToMatchDetails[key] = e
 		} else {
 			// TODO: what if MatchedOnID and MatchedOnNamespace are different?
 			e.Locations = append(e.Locations, newLocations...)
@@ -279,9 +281,9 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 			// }
 		}
 	}
-	var sortPURLs []string
-	for k, v := range pURLsToMatchDetails {
-		sortPURLs = append(sortPURLs, k)
+	var sortIDs []string
+	for k, v := range idsToMatchDetails {
+		sortIDs = append(sortIDs, k)
 		dedupeLocations := make(map[string]ExplainedEvidence)
 		for _, l := range v.Locations {
 			dedupeLocations[l.Location] = l
@@ -296,10 +298,18 @@ func (b *ExplainViewModelBuilder) Build() ExplainViewModel {
 		v.Locations = uniqueLocations
 	}
 	// TODO: put the primary match first
-	sort.Strings(sortPURLs)
+	// sort.Slice(sortIDs, func(i, j int) bool {
+	// 	iKey := sortIDs[i]
+	// 	jKey := sortIDs[j]
+	// 	iMatch := idsToMatchDetails[iKey]
+	// 	jMatch := idsToMatchDetails[jKey]
+	// 	// Sort by type, exact-direct < cpe < exact-indirect
+
+	// 	// if same type, sort alpha by PURL
+	// })
 	var explainedPackages []*ExplainedPackage
-	for _, k := range sortPURLs {
-		explainedPackages = append(explainedPackages, pURLsToMatchDetails[k])
+	for _, k := range sortIDs {
+		explainedPackages = append(explainedPackages, idsToMatchDetails[k])
 	}
 
 	// TODO: this isn't right at all.
