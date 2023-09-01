@@ -32,7 +32,7 @@ var explainCmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("unable to parse piped input: %+v", err)
 			}
-			explainer := explain.NewBetterVulnerabilityExplainer(os.Stdout, &parseResult)
+			explainer := explain.NewVulnerabilityExplainer(os.Stdout, &parseResult)
 			return explainer.ExplainByID(cveIDs)
 		}
 		// perform a scan, then explain requested CVEs

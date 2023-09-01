@@ -62,13 +62,13 @@ type ExplainedEvidence struct {
 	ViaNamespace string
 }
 
-type betterVulnerabilityExplainer struct {
+type vulnerabilityExplainer struct {
 	w   io.Writer
 	doc *models.Document
 }
 
-func NewBetterVulnerabilityExplainer(w io.Writer, doc *models.Document) VulnerabilityExplainer {
-	return &betterVulnerabilityExplainer{
+func NewVulnerabilityExplainer(w io.Writer, doc *models.Document) VulnerabilityExplainer {
+	return &vulnerabilityExplainer{
 		w:   w,
 		doc: doc,
 	}
@@ -78,7 +78,7 @@ var funcs = template.FuncMap{
 	"trim": strings.TrimSpace,
 }
 
-func (e *betterVulnerabilityExplainer) ExplainByID(IDs []string) error {
+func (e *vulnerabilityExplainer) ExplainByID(IDs []string) error {
 	// TODO: requested ID is always the primary match
 	findings, err := ExplainDoc(e.doc, IDs)
 	if err != nil {
@@ -97,11 +97,11 @@ func (e *betterVulnerabilityExplainer) ExplainByID(IDs []string) error {
 	return nil
 }
 
-func (e *betterVulnerabilityExplainer) ExplainBySeverity(severity string) error {
+func (e *vulnerabilityExplainer) ExplainBySeverity(severity string) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (e *betterVulnerabilityExplainer) ExplainAll() error {
+func (e *vulnerabilityExplainer) ExplainAll() error {
 	findings, err := ExplainDoc(e.doc, nil)
 	if err != nil {
 		return err
