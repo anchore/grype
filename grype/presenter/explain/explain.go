@@ -237,13 +237,14 @@ func (b *viewModelBuilder) Build() ViewModel {
 		for i, md := range m.MatchDetails {
 			explanation := explainMatchDetail(m, i)
 			if explanation != "" {
-				if md.Type == string(match.CPEMatch) {
+				switch md.Type {
+				case string(match.CPEMatch):
 					cpeExplanation = explanation
 					displayRank = 1
-				} else if md.Type == string(match.ExactIndirectMatch) {
+				case string(match.ExactIndirectMatch):
 					indirectExplanation = explanation
 					displayRank = 0 // display indirect explanations explanations of main matched packages
-				} else {
+				default:
 					displayRank = 2
 				}
 			}
