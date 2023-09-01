@@ -19,6 +19,7 @@ type Grype struct {
 	CheckForAppUpdate      bool               `yaml:"check-for-app-update" json:"check-for-app-update" mapstructure:"check-for-app-update"` // whether to check for an application update on start up or not
 	OnlyFixed              bool               `yaml:"only-fixed" json:"only-fixed" mapstructure:"only-fixed"`                               // only fail if detected vulns have a fix
 	OnlyNotFixed           bool               `yaml:"only-notfixed" json:"only-notfixed" mapstructure:"only-notfixed"`                      // only fail if detected vulns don't have a fix
+	IgnoreStates           []string           `yaml:"ignore-states" json:"ignore-wontfix" mapstructure:"ignore-wontfix"`                    // ignore detections for vulnerabilities matching these fix states
 	Platform               string             `yaml:"platform" json:"platform" mapstructure:"platform"`                                     // --platform, override the target platform for a container image
 	Search                 search             `yaml:"search" json:"search" mapstructure:"search"`
 	Ignore                 []match.IgnoreRule `yaml:"ignore" json:"ignore" mapstructure:"ignore"`
@@ -101,6 +102,11 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 	flags.BoolVarP(&o.OnlyNotFixed,
 		"only-notfixed", "",
 		"ignore matches for vulnerabilities that are fixed",
+	)
+
+	flags.StringArrayVarP(&o.IgnoreStates,
+		"ignore-states", "",
+		fmt.Sprintf("ignore matches for vulnerabilities with specified fix states, options=%v", vulnerability.AllFixStates()),
 	)
 
 	flags.BoolVarP(&o.ByCVE,

@@ -155,6 +155,15 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		opts.Ignore = append(opts.Ignore, ignoreFixedMatches...)
 	}
 
+	for _, ignoreState := range opts.IgnoreStates {
+		switch grypeDb.FixState(ignoreState) {
+		case grypeDb.UnknownFixState, grypeDb.FixedState, grypeDb.NotFixedState, grypeDb.WontFixState:
+			opts.Ignore = append(opts.Ignore, match.IgnoreRule{FixState: ignoreState})
+		default:
+			log.Warnf("ignoring unknown fix state %s for --ignore-states", ignoreState)
+		}
+	}
+
 	if err = applyVexRules(opts); err != nil {
 		return fmt.Errorf("applying vex rules: %w", err)
 	}
