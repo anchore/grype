@@ -15,6 +15,12 @@ import (
 //go:embed explain_cve_new.tmpl
 var explainTemplate string
 
+type VulnerabilityExplainer interface {
+	ExplainByID(IDs []string) error
+	ExplainBySeverity(severity string) error
+	ExplainAll() error
+}
+
 // TODO: basically re-write a lot of this
 // Build a structure where an ExplainedVulnerability
 // is basically the nvd:cpe record, plus a list of
@@ -352,4 +358,59 @@ func explainMatchDetail(m models.Match, index int) string {
 		explanation = fmt.Sprintf("Note: This CVE is reported against %s (version %s), the %s of this %s package.", sourceName, sourceVersion, nameForUpstream(string(m.Artifact.Type)), m.Artifact.Type)
 	}
 	return explanation
+}
+
+func dedupeURLs(showFirst string, rest []string) []string {
+	var result []string
+	result = append(result, showFirst)
+	deduplicate := make(map[string]bool)
+	for _, u := range rest {
+		if _, ok := deduplicate[u]; !ok && u != showFirst {
+			result = append(result, u)
+			deduplicate[u] = true
+		}
+	}
+	return result
+}
+
+func formatCPEExplanation(m models.Match) string {
+	searchedBy := m.MatchDetails[0].SearchedBy
+	if mapResult, ok := searchedBy.(map[string]interface{}); ok {
+		if cpes, ok := mapResult["cpes"]; ok {
+			if cpeSlice, ok := cpes.([]interface{}); ok {
+				if len(cpeSlice) > 0 {
+					return fmt.Sprintf("CPE match on `%s`", cpeSlice[0])
+				}
+			}
+		}
+	}
+	return ""
+}
+
+func sourcePackageNameAndVersion(md models.MatchDetails) (string, string) {
+	var name string
+	var version string
+	if mapResult, ok := md.SearchedBy.(map[string]interface{}); ok {
+		if sourcePackage, ok := mapResult["package"]; ok {
+			if sourceMap, ok := sourcePackage.(map[string]interface{}); ok {
+				if maybeName, ok := sourceMap["name"]; ok {
+					name, _ = maybeName.(string)
+				}
+				if maybeVersion, ok := sourceMap["version"]; ok {
+					version, _ = maybeVersion.(string)
+				}
+			}
+		}
+	}
+	return name, version
+}
+
+func nameForUpstream(typ string) string {
+	switch typ {
+	case "deb":
+		return "origin"
+	case "rpm":
+		return "source RPM"
+	}
+	return "upstream"
 }
