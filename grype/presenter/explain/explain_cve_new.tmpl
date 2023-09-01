@@ -3,11 +3,11 @@
 Related vulnerabilities:{{ range .RelatedVulnerabilities }}
     - {{.Namespace}} {{ .ID }} ({{ .Severity }}){{end}}{{end}}
 Matched packages: {{ range .MatchedPackages }}
-    Package: {{ .Name }}, version: {{ .Version }}{{ if .PURL }}
-    PURL: {{ .PURL }}{{ end }}{{ if .CPEExplanation }}
-    {{ .CPEExplanation }}{{ end }}{{ if .IndirectExplanation }}
-    {{ .IndirectExplanation }}{{ end }}
-    Evidenced by: {{ range .Locations }}
-        - {{ .ViaNamespace }}:{{ .ViaVulnID }} evidence at {{ .Location }} (artifact ID: {{.ArtifactId}}){{ end }}{{ end }}
+    - Package: {{ .Name }}, version: {{ .Version }}{{ if .PURL }}
+      PURL: {{ .PURL }}{{ end }}{{ if .CPEExplanation }}
+      {{ .CPEExplanation }}{{ end }}{{ if .IndirectExplanation }}
+      {{ .IndirectExplanation }}{{ end }}
+      Evidenced by: {{ range .Locations }}
+          - {{ .ViaNamespace }}:{{ .ViaVulnID }} evidence at {{ .Location }} (artifact ID: {{.ArtifactId}}){{ end }}{{ end }}
 URLs:  {{ range .URLs }}
     - {{ . }}{{ end }}
