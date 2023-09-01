@@ -201,39 +201,7 @@ func (b *viewModelBuilder) WithRelatedMatch(m models.Match) *viewModelBuilder {
 }
 
 func (b *viewModelBuilder) Build() ViewModel {
-	idsToMatchDetails := groupEvidence(append(b.RelatedMatches, b.PrimaryMatch))
-	var sortIDs []string
-	for k, v := range idsToMatchDetails {
-		sortIDs = append(sortIDs, k)
-		dedupeLocations := make(map[string]explainedEvidence)
-		for _, l := range v.Locations {
-			dedupeLocations[l.Location] = l
-		}
-		var uniqueLocations []explainedEvidence
-		for _, l := range dedupeLocations {
-			uniqueLocations = append(uniqueLocations, l)
-		}
-		sort.Slice(uniqueLocations, func(i, j int) bool {
-			return uniqueLocations[i].Location < uniqueLocations[j].Location
-		})
-		v.Locations = uniqueLocations
-	}
-
-	sort.Slice(sortIDs, func(i, j int) bool {
-		iKey := sortIDs[i]
-		jKey := sortIDs[j]
-		iMatch := idsToMatchDetails[iKey]
-		jMatch := idsToMatchDetails[jKey]
-		// reverse by display rank
-		if iMatch.displayRank != jMatch.displayRank {
-			return jMatch.displayRank < iMatch.displayRank
-		}
-		return iMatch.Name < jMatch.Name
-	})
-	var explainedPackages []*explainedPackage
-	for _, k := range sortIDs {
-		explainedPackages = append(explainedPackages, idsToMatchDetails[k])
-	}
+	explainedPackages := groupAndSortEvidence(append(b.RelatedMatches, b.PrimaryMatch))
 
 	// TODO: this isn't right at all.
 	// We need to be able to add related vulnerabilities
@@ -276,7 +244,7 @@ func (b *viewModelBuilder) Build() ViewModel {
 	}
 }
 
-func groupEvidence(matches []models.Match) map[string]*explainedPackage {
+func groupAndSortEvidence(matches []models.Match) []*explainedPackage {
 	idsToMatchDetails := make(map[string]*explainedPackage)
 	for _, m := range matches {
 		// key := m.Artifact.PURL
@@ -343,7 +311,39 @@ func groupEvidence(matches []models.Match) map[string]*explainedPackage {
 			// }
 		}
 	}
-	return idsToMatchDetails
+	var sortIDs []string
+	for k, v := range idsToMatchDetails {
+		sortIDs = append(sortIDs, k)
+		dedupeLocations := make(map[string]explainedEvidence)
+		for _, l := range v.Locations {
+			dedupeLocations[l.Location] = l
+		}
+		var uniqueLocations []explainedEvidence
+		for _, l := range dedupeLocations {
+			uniqueLocations = append(uniqueLocations, l)
+		}
+		sort.Slice(uniqueLocations, func(i, j int) bool {
+			return uniqueLocations[i].Location < uniqueLocations[j].Location
+		})
+		v.Locations = uniqueLocations
+	}
+
+	sort.Slice(sortIDs, func(i, j int) bool {
+		iKey := sortIDs[i]
+		jKey := sortIDs[j]
+		iMatch := idsToMatchDetails[iKey]
+		jMatch := idsToMatchDetails[jKey]
+		// reverse by display rank
+		if iMatch.displayRank != jMatch.displayRank {
+			return jMatch.displayRank < iMatch.displayRank
+		}
+		return iMatch.Name < jMatch.Name
+	})
+	var explainedPackages []*explainedPackage
+	for _, k := range sortIDs {
+		explainedPackages = append(explainedPackages, idsToMatchDetails[k])
+	}
+	return explainedPackages
 }
 
 func explainMatchDetail(m models.Match, index int) string {
