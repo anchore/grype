@@ -122,7 +122,7 @@ func Doc(doc *models.Document, requestedIDs []string) (Findings, error) {
 			existing = newBuilder()
 			builders[m.Vulnerability.ID] = existing
 		}
-		existing.WithMatch(m, requestedIDs, false)
+		existing.WithMatch(m, requestedIDs)
 	}
 	for _, m := range doc.Matches {
 		for _, related := range m.RelatedVulnerabilities {
@@ -132,7 +132,7 @@ func Doc(doc *models.Document, requestedIDs []string) (Findings, error) {
 				existing = newBuilder()
 				builders[key] = existing
 			}
-			existing.WithMatch(m, requestedIDs, false)
+			existing.WithMatch(m, requestedIDs)
 		}
 	}
 	for k, v := range builders {
@@ -147,10 +147,10 @@ func newBuilder() *viewModelBuilder {
 
 // WithMatch adds a match to the builder
 // accepting enough information to determine whether the match is a primary match or a related match
-func (b *viewModelBuilder) WithMatch(m models.Match, userRequestedIDs []string, graphIsByCVE bool) {
+func (b *viewModelBuilder) WithMatch(m models.Match, userRequestedIDs []string) {
 	// TODO: check if it's a primary vulnerability
 	// (the below checks if it's a primary _match_, which is wrong)
-	if b.isPrimaryAdd(m, userRequestedIDs, graphIsByCVE) {
+	if b.isPrimaryAdd(m, userRequestedIDs) {
 		// Demote the current primary match to related match
 		// if it exists
 		if b.PrimaryMatch.Vulnerability.ID != "" {
@@ -162,16 +162,13 @@ func (b *viewModelBuilder) WithMatch(m models.Match, userRequestedIDs []string, 
 	}
 }
 
-func (b *viewModelBuilder) isPrimaryAdd(candidate models.Match, userRequestedIDs []string, graphIsByCVE bool) bool {
+func (b *viewModelBuilder) isPrimaryAdd(candidate models.Match, userRequestedIDs []string) bool {
 	// TODO: "primary" is a property of a vulnerability, not a match
 	// if there's not currently any match, make this one primary since we don't know any better
 	if b.PrimaryMatch.Vulnerability.ID == "" {
 		return true
 	}
-	// There is a primary match, so we need to determine if the candidate is "more primary"
-	if graphIsByCVE {
-		panic("not implemented") // by-cve graphs are upside down.
-	}
+
 	idWasRequested := false
 	for _, id := range userRequestedIDs {
 		if candidate.Vulnerability.ID == id {
