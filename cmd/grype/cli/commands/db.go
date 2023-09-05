@@ -13,7 +13,7 @@ type DBOptions struct {
 
 func dbOptionsDefault(id clio.Identification) *DBOptions {
 	return &DBOptions{
-		DB: options.DatabaseDefault(id),
+		DB: options.DefaultDatabase(id),
 	}
 }
 

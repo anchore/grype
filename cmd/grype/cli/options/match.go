@@ -15,7 +15,7 @@ type matcherConfig struct {
 	UseCPEs bool `yaml:"using-cpes" json:"using-cpes" mapstructure:"using-cpes"` // if CPEs should be used during matching
 }
 
-func matchConfigDefault() matchConfig {
+func defaultMatchConfig() matchConfig {
 	useCpe := matcherConfig{UseCPEs: true}
 	return matchConfig{
 		Java:       useCpe,

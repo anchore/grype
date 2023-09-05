@@ -16,7 +16,7 @@ type search struct {
 
 var _ clio.PostLoader = (*search)(nil)
 
-func searchDefault(scope source.Scope) search {
+func defaultSearch(scope source.Scope) search {
 	c := cataloger.DefaultSearchConfig()
 	return search{
 		Scope:                    scope.String(),

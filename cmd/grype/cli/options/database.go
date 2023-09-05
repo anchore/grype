@@ -21,7 +21,7 @@ type Database struct {
 	MaxAllowedBuiltAge    time.Duration `yaml:"max-allowed-built-age" json:"max-allowed-built-age" mapstructure:"max-allowed-built-age"`
 }
 
-func DatabaseDefault(id clio.Identification) Database {
+func DefaultDatabase(id clio.Identification) Database {
 	return Database{
 		Dir:         path.Join(xdg.CacheHome, id.Name, "db"),
 		UpdateURL:   internal.DBUpdateURL,

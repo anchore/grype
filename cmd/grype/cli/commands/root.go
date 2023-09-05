@@ -41,7 +41,7 @@ import (
 )
 
 func Root(app clio.Application) *cobra.Command {
-	opts := options.GrypeDefault(app.ID())
+	opts := options.DefaultGrype(app.ID())
 
 	return app.SetupRootCommand(&cobra.Command{
 		Use:   fmt.Sprintf("%s [IMAGE]", app.ID().Name),

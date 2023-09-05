@@ -39,12 +39,12 @@ var _ interface {
 	clio.PostLoader
 } = (*Grype)(nil)
 
-func GrypeDefault(id clio.Identification) *Grype {
+func DefaultGrype(id clio.Identification) *Grype {
 	return &Grype{
-		Search:            searchDefault(source.SquashedScope),
-		DB:                DatabaseDefault(id),
-		Match:             matchConfigDefault(),
-		ExternalSources:   externalSourcesDefault(),
+		Search:            defaultSearch(source.SquashedScope),
+		DB:                DefaultDatabase(id),
+		Match:             defaultMatchConfig(),
+		ExternalSources:   defaultExternalSources(),
 		CheckForAppUpdate: true,
 	}
 }

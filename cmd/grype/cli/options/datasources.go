@@ -18,7 +18,7 @@ type maven struct {
 	BaseURL              string `yaml:"base-url" json:"baseUrl" mapstructure:"base-url"`
 }
 
-func externalSourcesDefault() externalSources {
+func defaultExternalSources() externalSources {
 	return externalSources{
 		Maven: maven{
 			SearchUpstreamBySha1: true,
