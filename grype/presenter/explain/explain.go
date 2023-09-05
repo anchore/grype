@@ -329,21 +329,20 @@ func groupAndSortEvidence(matches []models.Match) []*explainedPackage {
 	}
 
 	sort.Slice(sortIDs, func(i, j int) bool {
-		iKey := sortIDs[i]
-		jKey := sortIDs[j]
-		iMatch := idsToMatchDetails[iKey]
-		jMatch := idsToMatchDetails[jKey]
-		// reverse by display rank
-		if iMatch.displayRank != jMatch.displayRank {
-			return jMatch.displayRank < iMatch.displayRank
-		}
-		return iMatch.Name < jMatch.Name
+		return explainedPackageIsLess(idsToMatchDetails[sortIDs[i]], idsToMatchDetails[sortIDs[j]])
 	})
 	var explainedPackages []*explainedPackage
 	for _, k := range sortIDs {
 		explainedPackages = append(explainedPackages, idsToMatchDetails[k])
 	}
 	return explainedPackages
+}
+
+func explainedPackageIsLess(i, j *explainedPackage) bool {
+	if i.displayRank != j.displayRank {
+		return i.displayRank < j.displayRank
+	}
+	return i.Name < j.Name
 }
 
 func explainMatchDetail(m models.Match, index int) string {
