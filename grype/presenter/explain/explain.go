@@ -325,6 +325,7 @@ func groupAndSortEvidence(matches []models.Match) []*explainedPackage {
 		}
 	}
 	var sortIDs []string
+	// TODO: why are artifact IDs sometimes blank?
 	for k, v := range idsToMatchDetails {
 		sortIDs = append(sortIDs, k)
 		dedupeLocations := make(map[string]explainedEvidence)
@@ -337,7 +338,10 @@ func groupAndSortEvidence(matches []models.Match) []*explainedPackage {
 			uniqueLocations = append(uniqueLocations, l)
 		}
 		sort.Slice(uniqueLocations, func(i, j int) bool {
-			return uniqueLocations[i].Location < uniqueLocations[j].Location
+			if uniqueLocations[i].ViaNamespace == uniqueLocations[j].ViaNamespace {
+				return uniqueLocations[i].Location < uniqueLocations[j].Location
+			}
+			return uniqueLocations[i].ViaNamespace < uniqueLocations[j].ViaNamespace
 		})
 		v.Locations = uniqueLocations
 	}

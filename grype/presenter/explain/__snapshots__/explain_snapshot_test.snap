@@ -54,9 +54,9 @@ Matched packages:
       CPE match on `cpe:2.3:a:ruby-lang:uri:0.10.1:*:*:*:*:*:*:*`
       Note: This CVE is reported against ruby-3.0 (version 3.0.4-r1), the upstream of this apk package.
       Evidenced by:
-          - wolfi:distro:wolfi:rolling:CVE-2023-28755 evidence at /lib/apk/db/installed (artifact ID: )
-          - nvd:cpe:CVE-2023-28755 evidence at /usr/lib/ruby/gems/3.0.0/specifications/default/uri-0.10.1.gemspec (artifact ID: )
-          - github:language:ruby:GHSA-hv5j-3h9f-99c2 evidence at /usr/lib/ruby/gems/3.0.0/specifications/default/uri-0.10.1.gemspec (artifact ID: )
+          - github:language:ruby:GHSA-hv5j-3h9f-99c2 evidence at /usr/lib/ruby/gems/3.0.0/specifications/default/uri-0.10.1.gemspec
+          - nvd:cpe:CVE-2023-28755 evidence at /usr/lib/ruby/gems/3.0.0/specifications/default/uri-0.10.1.gemspec
+          - wolfi:distro:wolfi:rolling:CVE-2023-28755 evidence at /lib/apk/db/installed
 URLs:
     - https://nvd.nist.gov/vuln/detail/CVE-2023-28755
     - https://github.com/ruby/uri/releases/
