@@ -69,3 +69,63 @@ URLs:
     - https://github.com/advisories/GHSA-hv5j-3h9f-99c2
 
 ---
+
+[TestExplainSnapshot/test_a_GHSA - 1]
+GHSA-cfh5-3ghh-wfjx from github:language:java (Medium)
+Moderate severity vulnerability that affects org.apache.httpcomponents:httpclient
+Related vulnerabilities:
+    - nvd:cpe CVE-2014-3577 (Medium)
+Matched packages:
+    - Package: httpclient, version: 4.1.1
+      PURL: pkg:maven/org.apache.httpcomponents/httpclient@4.1.1
+      Evidenced by:
+          - github:language:java:GHSA-cfh5-3ghh-wfjx evidence at /TwilioNotifier.hpi (artifact ID: f09cdae46b001bc5)
+URLs:
+    - https://github.com/advisories/GHSA-cfh5-3ghh-wfjx
+    - http://lists.opensuse.org/opensuse-security-announce/2020-11/msg00032.html
+    - http://lists.opensuse.org/opensuse-security-announce/2020-11/msg00033.html
+    - http://packetstormsecurity.com/files/127913/Apache-HttpComponents-Man-In-The-Middle.html
+    - http://rhn.redhat.com/errata/RHSA-2014-1146.html
+    - http://rhn.redhat.com/errata/RHSA-2014-1166.html
+    - http://rhn.redhat.com/errata/RHSA-2014-1833.html
+    - http://rhn.redhat.com/errata/RHSA-2014-1834.html
+    - http://rhn.redhat.com/errata/RHSA-2014-1835.html
+    - http://rhn.redhat.com/errata/RHSA-2014-1836.html
+    - http://rhn.redhat.com/errata/RHSA-2014-1891.html
+    - http://rhn.redhat.com/errata/RHSA-2014-1892.html
+    - http://rhn.redhat.com/errata/RHSA-2015-0125.html
+    - http://rhn.redhat.com/errata/RHSA-2015-0158.html
+    - http://rhn.redhat.com/errata/RHSA-2015-0675.html
+    - http://rhn.redhat.com/errata/RHSA-2015-0720.html
+    - http://rhn.redhat.com/errata/RHSA-2015-0765.html
+    - http://rhn.redhat.com/errata/RHSA-2015-0850.html
+    - http://rhn.redhat.com/errata/RHSA-2015-0851.html
+    - http://rhn.redhat.com/errata/RHSA-2015-1176.html
+    - http://rhn.redhat.com/errata/RHSA-2015-1177.html
+    - http://rhn.redhat.com/errata/RHSA-2015-1888.html
+    - http://rhn.redhat.com/errata/RHSA-2016-1773.html
+    - http://rhn.redhat.com/errata/RHSA-2016-1931.html
+    - http://seclists.org/fulldisclosure/2014/Aug/48
+    - http://secunia.com/advisories/60466
+    - http://www.openwall.com/lists/oss-security/2021/10/06/1
+    - http://www.oracle.com/technetwork/security-advisory/cpujul2018-4258247.html
+    - http://www.osvdb.org/110143
+    - http://www.securityfocus.com/bid/69258
+    - http://www.securitytracker.com/id/1030812
+    - http://www.ubuntu.com/usn/USN-2769-1
+    - https://access.redhat.com/solutions/1165533
+    - https://exchange.xforce.ibmcloud.com/vulnerabilities/95327
+    - https://h20566.www2.hpe.com/portal/site/hpsc/public/kb/docDisplay?docId=emr_na-c05103564
+    - https://h20566.www2.hpe.com/portal/site/hpsc/public/kb/docDisplay?docId=emr_na-c05363782
+    - https://lists.apache.org/thread.html/519eb0fd45642dcecd9ff74cb3e71c20a4753f7d82e2f07864b5108f@%3Cdev.drill.apache.org%3E
+    - https://lists.apache.org/thread.html/b0656d359c7d40ec9f39c8cc61bca66802ef9a2a12ee199f5b0c1442@%3Cdev.drill.apache.org%3E
+    - https://lists.apache.org/thread.html/f9bc3e55f4e28d1dcd1a69aae6d53e609a758e34d2869b4d798e13cc@%3Cissues.drill.apache.org%3E
+    - https://lists.apache.org/thread.html/r36e44ffc1a9b365327df62cdfaabe85b9a5637de102cea07d79b2dbf@%3Ccommits.cxf.apache.org%3E
+    - https://lists.apache.org/thread.html/rc774278135816e7afc943dc9fc78eb0764f2c84a2b96470a0187315c@%3Ccommits.cxf.apache.org%3E
+    - https://lists.apache.org/thread.html/rd49aabd984ed540c8ff7916d4d79405f3fa311d2fdbcf9ed307839a6@%3Ccommits.cxf.apache.org%3E
+    - https://lists.apache.org/thread.html/rec7160382badd3ef4ad017a22f64a266c7188b9ba71394f0d321e2d4@%3Ccommits.cxf.apache.org%3E
+    - https://lists.apache.org/thread.html/rfb87e0bf3995e7d560afeed750fac9329ff5f1ad49da365129b7f89e@%3Ccommits.cxf.apache.org%3E
+    - https://lists.apache.org/thread.html/rff42cfa5e7d75b7c1af0e37589140a8f1999e578a75738740b244bd4@%3Ccommits.cxf.apache.org%3E
+    - https://nvd.nist.gov/vuln/detail/CVE-2014-3577
+
+---

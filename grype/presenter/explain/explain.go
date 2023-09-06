@@ -37,9 +37,11 @@ type ViewModel struct {
 }
 
 type viewModelBuilder struct {
+	// TODO: this field is unused. Need think a bit more here.
 	PrimaryVulnerability models.Vulnerability // this is the vulnerability we're trying to explain
-	PrimaryMatch         models.Match
+	PrimaryMatch         models.Match         // The primary vulnerability
 	RelatedMatches       []models.Match
+	requestedIDs         []string // the vulnerability IDs the user requested explanations of
 }
 
 type Findings map[string]ViewModel
@@ -119,7 +121,7 @@ func Doc(doc *models.Document, requestedIDs []string) (Findings, error) {
 		key := m.Vulnerability.ID
 		existing, ok := builders[key]
 		if !ok {
-			existing = newBuilder()
+			existing = newBuilder(requestedIDs)
 			builders[m.Vulnerability.ID] = existing
 		}
 		existing.WithMatch(m, requestedIDs)
@@ -129,9 +131,10 @@ func Doc(doc *models.Document, requestedIDs []string) (Findings, error) {
 			key := related.ID
 			existing, ok := builders[key]
 			if !ok {
-				existing = newBuilder()
+				existing = newBuilder(requestedIDs)
 				builders[key] = existing
 			}
+			// TODO: need to pass in info about the related vulnerability
 			existing.WithMatch(m, requestedIDs)
 		}
 	}
@@ -141,8 +144,10 @@ func Doc(doc *models.Document, requestedIDs []string) (Findings, error) {
 	return result, nil
 }
 
-func newBuilder() *viewModelBuilder {
-	return &viewModelBuilder{}
+func newBuilder(requestedIDs []string) *viewModelBuilder {
+	return &viewModelBuilder{
+		requestedIDs: requestedIDs,
+	}
 }
 
 // WithMatch adds a match to the builder
@@ -162,6 +167,7 @@ func (b *viewModelBuilder) WithMatch(m models.Match, userRequestedIDs []string) 
 	}
 }
 
+// TODO: is this still needed?
 func (b *viewModelBuilder) isPrimaryAdd(candidate models.Match, userRequestedIDs []string) bool {
 	// TODO: "primary" is a property of a vulnerability, not a match
 	// if there's not currently any match, make this one primary since we don't know any better
@@ -181,7 +187,13 @@ func (b *viewModelBuilder) isPrimaryAdd(candidate models.Match, userRequestedIDs
 	if !idWasRequested && len(userRequestedIDs) > 0 {
 		return false
 	}
+	// NVD CPEs are somewhat canonical IDs for vulnerabilities, so if the user asked about CVE-YYYY-ID
+	// type number, and we have a record from NVD, consider that the primary record.
+	if candidate.Vulnerability.Namespace == "nvd:cpe" {
+		return true
+	}
 	// Either the user didn't ask for specific IDs, or the candidate has an ID the user asked for.
+	// TODO: this is the property
 	for _, related := range b.PrimaryMatch.RelatedVulnerabilities {
 		if related.ID == candidate.Vulnerability.ID {
 			return true
@@ -216,18 +228,10 @@ func (b *viewModelBuilder) Build() ViewModel {
 			dedupeRelatedVulnerabilities[key] = r
 		}
 	}
-	var primaryVulnerability models.VulnerabilityMetadata
-	for _, r := range dedupeRelatedVulnerabilities {
-		if r.ID == b.PrimaryMatch.Vulnerability.ID && r.Namespace == "nvd:cpe" {
-			primaryVulnerability = r
-		}
-	}
-	if primaryVulnerability.ID == "" {
-		primaryVulnerability = b.PrimaryMatch.Vulnerability.VulnerabilityMetadata
-	}
 
-	// delete the primary vulnerability from the related vulnerabilities
-	delete(dedupeRelatedVulnerabilities, fmt.Sprintf("%s:%s", primaryVulnerability.Namespace, primaryVulnerability.ID))
+	// delete the primary vulnerability from the related vulnerabilities so it isn't listed twice
+	primary := b.primaryVulnerability()
+	delete(dedupeRelatedVulnerabilities, fmt.Sprintf("%s:%s", primary.Namespace, primary.ID))
 	for k := range dedupeRelatedVulnerabilities {
 		sortDedupedRelatedVulnerabilities = append(sortDedupedRelatedVulnerabilities, k)
 	}
@@ -237,14 +241,34 @@ func (b *viewModelBuilder) Build() ViewModel {
 	}
 
 	return ViewModel{
-		PrimaryVulnerability:   primaryVulnerability,
+		PrimaryVulnerability:   primary,
 		RelatedVulnerabilities: relatedVulnerabilities,
 		MatchedPackages:        explainedPackages,
-		URLs:                   b.dedupeAndSortURLs(primaryVulnerability),
+		URLs:                   b.dedupeAndSortURLs(primary),
 	}
 }
 
+func (b *viewModelBuilder) primaryVulnerability() models.VulnerabilityMetadata {
+	var primaryVulnerability models.VulnerabilityMetadata
+	for _, m := range append(b.RelatedMatches, b.PrimaryMatch) {
+		for _, r := range append(m.RelatedVulnerabilities, m.Vulnerability.VulnerabilityMetadata) {
+			if r.ID == b.PrimaryMatch.Vulnerability.ID && r.Namespace == "nvd:cpe" {
+				primaryVulnerability = r
+			}
+		}
+	}
+	if primaryVulnerability.ID == "" {
+		primaryVulnerability = b.PrimaryMatch.Vulnerability.VulnerabilityMetadata
+	}
+	return primaryVulnerability
+}
+
 func groupAndSortEvidence(matches []models.Match) []*explainedPackage {
+	// These are artifact IDs.
+	// I think grouping by artifact ID is wrong, but I'm not sure what do to instead.
+	// Specifically, repeat artifact IDs could be something like the RPM DB
+	// which is the evidence that a package has been installd pretty often.
+	// So what should I group on besides artifact ID?
 	idsToMatchDetails := make(map[string]*explainedPackage)
 	for _, m := range matches {
 		// key := m.Artifact.PURL
@@ -312,11 +336,42 @@ func groupAndSortEvidence(matches []models.Match) []*explainedPackage {
 		}
 	}
 	var sortIDs []string
+	// TODO: this loses evidence if the same location is matched in multiple ways
+	// Extract a method to rotate match details.
+	// Should be a map of evidence to match details.
+	// concrete example:
+	// `cat willtmp/ghsa-check-json.json| go run cmd/grype/main.go explain --id GHSA-cfh5-3ghh-wfjx`
+	// reports
+	// - Package: httpclient, version: 4.1.1
+	// PURL: pkg:maven/org.apache.httpcomponents/httpclient@4.1.1
+	// Evidenced by:
+	// 	- github:language:java:GHSA-cfh5-3ghh-wfjx evidence at /TwilioNotifier.hpi (artifact ID: f09cdae46b001bc5)
+	// but `cat willtmp/ghsa-check-json.json| go run cmd/grype/main.go explain --id CVE-2014-3577`
+	// reports
+	/*
+			Matched packages:
+		    - Package: httpclient, version: 4.1.1
+		      PURL: pkg:maven/org.apache.httpcomponents/httpclient@4.1.1
+		      CPE match on `cpe:2.3:a:apache:httpclient:4.1.1:*:*:*:*:*:*:*`
+		      Evidenced by:
+		          - nvd:cpe:CVE-2014-3577 evidence at /TwilioNotifier.hpi (artifact ID: f09cdae46b001bc5)
+	*/
+	// but these are both true; both should be in explain?
+	/*
+		❯ grype anchore/test_images@sha256:10008791acbc5866de04108746a02a0c4029ce3a4400a9b3dad45d7f2245f9da | rg -e GHSA-cfh5 -e CVE-2014-3577
+		httpclient               4.1.1           4.3.5           java-archive    GHSA-cfh5-3ghh-wfjx  Medium
+		httpclient               4.1.1                           java-archive    CVE-2014-3577        Medium
+	*/
 	for k, v := range idsToMatchDetails {
+		// If I deduplicate these, than
+		// some additional evidence doesn't get reported,
+		// for example if the same package matched via CPE and via direct match.
+		// If I _don't_ deduplicate them, they get weird extra stuff in them.
 		sortIDs = append(sortIDs, k)
 		dedupeLocations := make(map[string]explainedEvidence)
 		for _, l := range v.Locations {
-			dedupeLocations[l.Location] = l
+			key := fmt.Sprintf("%s:%s:%s:%s:%s", l.ArtifactID, l.Location, l.ViaNamespace, l.ViaVulnID, v.MatchedOnID)
+			dedupeLocations[key] = l
 		}
 		var uniqueLocations []explainedEvidence
 		for _, l := range dedupeLocations {
@@ -365,6 +420,8 @@ func explainMatchDetail(m models.Match, index int) string {
 // followed by data source for related vulnerabilities, followed by other URLs, but with no duplicates.
 func (b *viewModelBuilder) dedupeAndSortURLs(primaryVulnerability models.VulnerabilityMetadata) []string {
 	showFirst := primaryVulnerability.DataSource
+	nvdURL := ""
+	// TODO: totally remove primary match?
 	URLs := b.PrimaryMatch.Vulnerability.URLs
 	URLs = append(URLs, b.PrimaryMatch.Vulnerability.DataSource)
 	for _, v := range b.PrimaryMatch.RelatedVulnerabilities {
@@ -382,6 +439,16 @@ func (b *viewModelBuilder) dedupeAndSortURLs(primaryVulnerability models.Vulnera
 	deduplicate := make(map[string]bool)
 	result = append(result, showFirst)
 	deduplicate[showFirst] = true
+	for _, u := range URLs {
+		if strings.HasPrefix(u, "https://nvd.nist.gov/vuln/detail") {
+			nvdURL = u
+		}
+	}
+	if nvdURL != "" && nvdURL != showFirst {
+		result = append(result, nvdURL)
+		deduplicate[nvdURL] = true
+	}
+
 	for _, u := range URLs {
 		if _, ok := deduplicate[u]; !ok {
 			result = append(result, u)
