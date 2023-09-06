@@ -23,7 +23,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/facebookincubator/nvdtools v0.1.5
 	github.com/gabriel-vasile/mimetype v1.4.2
-	github.com/gkampitakis/go-snaps v0.4.8
+	github.com/gkampitakis/go-snaps v0.4.10
 	github.com/go-test/deep v1.1.0
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.1
@@ -105,7 +105,7 @@ require (
 	github.com/felixge/fgprof v0.9.3 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/github/go-spdx/v2 v2.1.2 // indirect
-	github.com/gkampitakis/ciinfo v0.2.4 // indirect
+	github.com/gkampitakis/ciinfo v0.2.5 // indirect
 	github.com/gkampitakis/go-diff v1.3.2 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.4.1 // indirect
@@ -171,7 +171,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
-	github.com/rogpeppe/go-internal v1.9.0 // indirect
+	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/saferwall/pe v1.4.4 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
 	github.com/sassoftware/go-rpmutils v0.2.0 // indirect
@@ -185,7 +185,7 @@ require (
 	github.com/sylabs/sif/v2 v2.11.5 // indirect
 	github.com/sylabs/squashfs v0.6.1 // indirect
 	github.com/therootcompany/xz v1.0.1 // indirect
-	github.com/tidwall/gjson v1.14.4 // indirect
+	github.com/tidwall/gjson v1.16.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
