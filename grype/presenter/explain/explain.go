@@ -264,14 +264,8 @@ func (b *viewModelBuilder) primaryVulnerability() models.VulnerabilityMetadata {
 }
 
 func groupAndSortEvidence(matches []models.Match) []*explainedPackage {
-	// These are artifact IDs.
-	// I think grouping by artifact ID is wrong, but I'm not sure what do to instead.
-	// Specifically, repeat artifact IDs could be something like the RPM DB
-	// which is the evidence that a package has been installd pretty often.
-	// So what should I group on besides artifact ID?
 	idsToMatchDetails := make(map[string]*explainedPackage)
 	for _, m := range matches {
-		// key := m.Artifact.PURL
 		key := m.Artifact.ID
 		// TODO: match details can match multiple packages
 		var newLocations []explainedEvidence
@@ -328,45 +322,10 @@ func groupAndSortEvidence(matches []models.Match) []*explainedPackage {
 				e.IndirectExplanation = indirectExplanation
 			}
 			e.displayRank += displayRank
-			// e.Explanations = append(e.Explanations, newExplanations...)
-			// if e.MatchedOnID != m.Vulnerability.ID || e.MatchedOnNamespace != m.Vulnerability.Namespace {
-			// 	// TODO: do something smart.
-			// 	panic("matched on different vulnerabilities")
-			// }
 		}
 	}
 	var sortIDs []string
-	// TODO: this loses evidence if the same location is matched in multiple ways
-	// Extract a method to rotate match details.
-	// Should be a map of evidence to match details.
-	// concrete example:
-	// `cat willtmp/ghsa-check-json.json| go run cmd/grype/main.go explain --id GHSA-cfh5-3ghh-wfjx`
-	// reports
-	// - Package: httpclient, version: 4.1.1
-	// PURL: pkg:maven/org.apache.httpcomponents/httpclient@4.1.1
-	// Evidenced by:
-	// 	- github:language:java:GHSA-cfh5-3ghh-wfjx evidence at /TwilioNotifier.hpi (artifact ID: f09cdae46b001bc5)
-	// but `cat willtmp/ghsa-check-json.json| go run cmd/grype/main.go explain --id CVE-2014-3577`
-	// reports
-	/*
-			Matched packages:
-		    - Package: httpclient, version: 4.1.1
-		      PURL: pkg:maven/org.apache.httpcomponents/httpclient@4.1.1
-		      CPE match on `cpe:2.3:a:apache:httpclient:4.1.1:*:*:*:*:*:*:*`
-		      Evidenced by:
-		          - nvd:cpe:CVE-2014-3577 evidence at /TwilioNotifier.hpi (artifact ID: f09cdae46b001bc5)
-	*/
-	// but these are both true; both should be in explain?
-	/*
-		❯ grype anchore/test_images@sha256:10008791acbc5866de04108746a02a0c4029ce3a4400a9b3dad45d7f2245f9da | rg -e GHSA-cfh5 -e CVE-2014-3577
-		httpclient               4.1.1           4.3.5           java-archive    GHSA-cfh5-3ghh-wfjx  Medium
-		httpclient               4.1.1                           java-archive    CVE-2014-3577        Medium
-	*/
 	for k, v := range idsToMatchDetails {
-		// If I deduplicate these, than
-		// some additional evidence doesn't get reported,
-		// for example if the same package matched via CPE and via direct match.
-		// If I _don't_ deduplicate them, they get weird extra stuff in them.
 		sortIDs = append(sortIDs, k)
 		dedupeLocations := make(map[string]explainedEvidence)
 		for _, l := range v.Locations {
@@ -421,7 +380,6 @@ func explainMatchDetail(m models.Match, index int) string {
 func (b *viewModelBuilder) dedupeAndSortURLs(primaryVulnerability models.VulnerabilityMetadata) []string {
 	showFirst := primaryVulnerability.DataSource
 	nvdURL := ""
-	// TODO: totally remove primary match?
 	URLs := b.PrimaryMatch.Vulnerability.URLs
 	URLs = append(URLs, b.PrimaryMatch.Vulnerability.DataSource)
 	for _, v := range b.PrimaryMatch.RelatedVulnerabilities {
