@@ -268,26 +268,15 @@ func (b *viewModelBuilder) primaryVulnerability() models.VulnerabilityMetadata {
 	return primaryVulnerability
 }
 
+// nolint:funlen
 func groupAndSortEvidence(matches []models.Match) []*explainedPackage {
-	// TODO: group by PURL, then by artifact ID, then explain each match type on the
-	// artifact ID.
-	// question: does the type have the right shape for this?
-	// question: does the proposed explanation help folks remediate?
-	/*
-			   Proposed return type would be
-			   map[PURL]map[location][]evidence
-		     except we want deterministict traversal, so we'll use sorted maps.
-	*/
 	idsToMatchDetails := make(map[string]*explainedPackage)
 	for _, m := range matches {
 		key := m.Artifact.ID
-		// TODO: match details can match multiple packages
 		var newLocations []explainedEvidence
 		for _, l := range m.Artifact.Locations {
 			newLocations = append(newLocations, explainLocation(m, l))
 		}
-		// TODO: how can match details explain locations?
-		// Like, I have N matchDetails, and N locations, but I don't know which matchDetail explains which location
 		var directExplanation string
 		var indirectExplanation string
 		var cpeExplanation string
@@ -297,14 +286,14 @@ func groupAndSortEvidence(matches []models.Match) []*explainedPackage {
 			if explanation != "" {
 				switch md.Type {
 				case string(match.CPEMatch):
-          cpeExplanation = fmt.Sprintf("%s:%s %s", m.Vulnerability.Namespace, m.Vulnerability.ID, explanation)
-					matchTypePriority = 1
+					cpeExplanation = fmt.Sprintf("%s:%s %s", m.Vulnerability.Namespace, m.Vulnerability.ID, explanation)
+					matchTypePriority = 1 // cpes are a type of direct match
 				case string(match.ExactIndirectMatch):
 					indirectExplanation = fmt.Sprintf("%s:%s %s", m.Vulnerability.Namespace, m.Vulnerability.ID, explanation)
-					matchTypePriority = 0 // display indirect explanations explanations of main matched packages
+					matchTypePriority = 0 // display indirect matches after direct matches
 				case string(match.ExactDirectMatch):
 					directExplanation = fmt.Sprintf("%s:%s %s", m.Vulnerability.Namespace, m.Vulnerability.ID, explanation)
-					matchTypePriority = 2
+					matchTypePriority = 2 // exact-direct-matches are high confidence, direct matches; display them first.
 				}
 			}
 		}
@@ -324,9 +313,7 @@ func groupAndSortEvidence(matches []models.Match) []*explainedPackage {
 			}
 			idsToMatchDetails[key] = e
 		} else {
-			// TODO: what if MatchedOnID and MatchedOnNamespace are different?
 			e.Locations = append(e.Locations, newLocations...)
-			// TODO: why are these checks needed? What if a package is matched by more than one way?
 			if e.CPEExplanation == "" {
 				e.CPEExplanation = cpeExplanation
 			}
@@ -337,7 +324,6 @@ func groupAndSortEvidence(matches []models.Match) []*explainedPackage {
 		}
 	}
 	var sortIDs []string
-	// TODO: why are artifact IDs sometimes blank?
 	for k, v := range idsToMatchDetails {
 		sortIDs = append(sortIDs, k)
 		dedupeLocations := make(map[string]explainedEvidence)
@@ -392,11 +378,12 @@ func explainMatchDetail(m models.Match, index int) string {
 	return explanation
 }
 
-// dedupeAndSortURLs returns a list of URLs with the datasource of the primary vu8lnerability first,
-// followed by data source for related vulnerabilities, followed by other URLs, but with no duplicates.
+// dedupeAndSortURLs returns a slice of the DataSource fields, deduplicated and sorted
+// the NVD and GHSA URL are given special treatment; they return first and second if present
+// and the rest are sorted by string sort.
 func (b *viewModelBuilder) dedupeAndSortURLs(primaryVulnerability models.VulnerabilityMetadata) []string {
 	showFirst := primaryVulnerability.DataSource
-  var URLs []string
+	var URLs []string
 	URLs = append(URLs, b.PrimaryMatch.Vulnerability.DataSource)
 	for _, v := range b.PrimaryMatch.RelatedVulnerabilities {
 		URLs = append(URLs, v.DataSource)
