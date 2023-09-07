@@ -9,7 +9,9 @@ import (
 	"text/template"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
+	"github.com/anchore/syft/syft/file"
 )
 
 //go:embed explain_cve_new.tmpl
@@ -32,7 +34,7 @@ type VulnerabilityExplainer interface {
 type ViewModel struct {
 	PrimaryVulnerability   models.VulnerabilityMetadata
 	RelatedVulnerabilities []models.VulnerabilityMetadata
-	MatchedPackages        []*explainedPackage
+	MatchedPackages        []*explainedPackage // I think this needs a map of artifacts to explained evidence
 	URLs                   []string
 }
 
@@ -46,6 +48,8 @@ type viewModelBuilder struct {
 
 type Findings map[string]ViewModel
 
+// It looks like an explained package
+// should really be a single location and a slice of evidence?
 type explainedPackage struct {
 	PURL                string
 	Name                string
@@ -53,6 +57,7 @@ type explainedPackage struct {
 	MatchedOnID         string
 	MatchedOnNamespace  string
 	IndirectExplanation string
+	DirectExplanation   string
 	CPEExplanation      string
 	Locations           []explainedEvidence
 	displayRank         int // how early in output should this appear?
@@ -264,21 +269,26 @@ func (b *viewModelBuilder) primaryVulnerability() models.VulnerabilityMetadata {
 }
 
 func groupAndSortEvidence(matches []models.Match) []*explainedPackage {
+	// TODO: group by PURL, then by artifact ID, then explain each match type on the
+	// artifact ID.
+	// question: does the type have the right shape for this?
+	// question: does the proposed explanation help folks remediate?
+	/*
+			   Proposed return type would be
+			   map[PURL]map[location][]evidence
+		     except we want deterministict traversal, so we'll use sorted maps.
+	*/
 	idsToMatchDetails := make(map[string]*explainedPackage)
 	for _, m := range matches {
 		key := m.Artifact.ID
 		// TODO: match details can match multiple packages
 		var newLocations []explainedEvidence
 		for _, l := range m.Artifact.Locations {
-			newLocations = append(newLocations, explainedEvidence{
-				Location:     l.RealPath,
-				ArtifactID:   m.Artifact.ID, // TODO: this is sometimes blank. Why?
-				ViaVulnID:    m.Vulnerability.ID,
-				ViaNamespace: m.Vulnerability.Namespace,
-			})
+			newLocations = append(newLocations, explainLocation(m, l))
 		}
 		// TODO: how can match details explain locations?
 		// Like, I have N matchDetails, and N locations, but I don't know which matchDetail explains which location
+		var directExplanation string
 		var indirectExplanation string
 		var cpeExplanation string
 		var displayRank int
@@ -292,7 +302,8 @@ func groupAndSortEvidence(matches []models.Match) []*explainedPackage {
 				case string(match.ExactIndirectMatch):
 					indirectExplanation = explanation
 					displayRank = 0 // display indirect explanations explanations of main matched packages
-				default:
+				case string(match.ExactDirectMatch):
+					directExplanation = explanation
 					displayRank = 2
 				}
 			}
@@ -305,6 +316,7 @@ func groupAndSortEvidence(matches []models.Match) []*explainedPackage {
 				Version:             m.Artifact.Version,
 				MatchedOnID:         m.Vulnerability.ID,
 				MatchedOnNamespace:  m.Vulnerability.Namespace,
+				DirectExplanation:   directExplanation,
 				IndirectExplanation: indirectExplanation,
 				CPEExplanation:      cpeExplanation,
 				Locations:           newLocations,
@@ -375,6 +387,8 @@ func explainMatchDetail(m models.Match, index int) string {
 	case string(match.ExactIndirectMatch):
 		sourceName, sourceVersion := sourcePackageNameAndVersion(md)
 		explanation = fmt.Sprintf("Note: This CVE is reported against %s (version %s), the %s of this %s package.", sourceName, sourceVersion, nameForUpstream(string(m.Artifact.Type)), m.Artifact.Type)
+	case string(match.ExactDirectMatch):
+		explanation = fmt.Sprintf("Direct match against %s (version %s).", m.Artifact.Name, m.Artifact.Version)
 	}
 	return explanation
 }
@@ -420,13 +434,32 @@ func (b *viewModelBuilder) dedupeAndSortURLs(primaryVulnerability models.Vulnera
 	return result
 }
 
+func explainLocation(match models.Match, location file.Coordinates) explainedEvidence {
+	path := location.RealPath
+	// TODO: try casting metadata as java metadata
+	switch match.Artifact.MetadataType {
+	case pkg.JavaMetadataType:
+		if javaMeta, ok := match.Artifact.Metadata.(map[string]any); ok {
+			if virtPath, ok := javaMeta["virtualPath"].(string); ok {
+				path = virtPath
+			}
+		}
+	}
+	return explainedEvidence{
+		Location:     path,
+		ArtifactID:   match.Artifact.ID,
+		ViaVulnID:    match.Vulnerability.ID,
+		ViaNamespace: match.Vulnerability.Namespace,
+	}
+}
+
 func formatCPEExplanation(m models.Match) string {
 	searchedBy := m.MatchDetails[0].SearchedBy
 	if mapResult, ok := searchedBy.(map[string]interface{}); ok {
 		if cpes, ok := mapResult["cpes"]; ok {
 			if cpeSlice, ok := cpes.([]interface{}); ok {
 				if len(cpeSlice) > 0 {
-					return fmt.Sprintf("CPE match on `%s`", cpeSlice[0])
+					return fmt.Sprintf("CPE match on `%s`.", cpeSlice[0])
 				}
 			}
 		}

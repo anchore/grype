@@ -134,18 +134,19 @@ URLs:
 
 [TestExplainSnapshot/test_a_CVE_alias_of_a_GHSA - 1]
 CVE-2014-3577 from nvd:cpe (Medium)
-org.apache.http.conn.ssl.AbstractVerifier in Apache HttpComponents HttpClient before 4.3.5 and HttpAsyncClient before 4.0.2 does not properly verify that the server hostname matches a domain name in the subject's Common Name (CN) or subjectAltName field of the X.509 certificate, which allows man-in-the-middle attackers to spoof SSL servers via a "CN=" string in a field in the distinguished name (DN) of a certificate, as demonstrated by the "foo,CN=www.apache.org" string in the O field.
-Related vulnerabilities:
-    - github:language:java GHSA-cfh5-3ghh-wfjx (Medium)
+Aliases:
+    - GHSA-cfh5-3ghh-wfjx from github:language:java (Medium)
 Matched packages:
-    - Package: httpclient, version: 4.1.1
-      PURL: pkg:maven/org.apache.httpcomponents/httpclient@4.1.1
-      CPE match on `cpe:2.3:a:apache:httpclient:4.1.1:*:*:*:*:*:*:*`
-      Evidenced by:
-          - github:language:java:GHSA-cfh5-3ghh-wfjx evidence at /TwilioNotifier.hpi (artifact ID: f09cdae46b001bc5)
-          - nvd:cpe:CVE-2014-3577 evidence at /TwilioNotifier.hpi (artifact ID: f09cdae46b001bc5)
+    - httpclient 4.1.1 (PURL: pkg:maven/org.apache.httpcomponents/httpclient@4.1.1, artifact ID: f09cdae46b001bc5)
+      Locations and evidence:
+        - /TwilioNotifier.hpi:WEB-INF/lib/sdk-3.0.jar:org.apache.httpcomponents:httpclient
+          - github:language:java:GHSA-cfh5-3ghh-wfjx matched directly by package name, version, and ecosystem
+          - nvd:cpe:CVE-2014-3577 matched on CPE `cpe:2.3:a:apache:httpclient:4.1.1:*:*:*:*:*:*:*`
+Description:
+    org.apache.http.conn.ssl.AbstractVerifier in Apache HttpComponents HttpClient before 4.3.5 and HttpAsyncClient before 4.0.2 does not properly verify that the server hostname matches a domain name in the subject's Common Name (CN) or subjectAltName field of the X.509 certificate, which allows man-in-the-middle attackers to spoof SSL servers via a "CN=" string in a field in the distinguished name (DN) of a certificate, as demonstrated by the "foo,CN=www.apache.org" string in the O field.
 URLs:
     - https://nvd.nist.gov/vuln/detail/CVE-2014-3577
+    - https://github.com/advisories/GHSA-cfh5-3ghh-wfjx
     - http://lists.opensuse.org/opensuse-security-announce/2020-11/msg00032.html
     - http://lists.opensuse.org/opensuse-security-announce/2020-11/msg00033.html
     - http://packetstormsecurity.com/files/127913/Apache-HttpComponents-Man-In-The-Middle.html
@@ -190,6 +191,5 @@ URLs:
     - https://lists.apache.org/thread.html/rec7160382badd3ef4ad017a22f64a266c7188b9ba71394f0d321e2d4@%3Ccommits.cxf.apache.org%3E
     - https://lists.apache.org/thread.html/rfb87e0bf3995e7d560afeed750fac9329ff5f1ad49da365129b7f89e@%3Ccommits.cxf.apache.org%3E
     - https://lists.apache.org/thread.html/rff42cfa5e7d75b7c1af0e37589140a8f1999e578a75738740b244bd4@%3Ccommits.cxf.apache.org%3E
-    - https://github.com/advisories/GHSA-cfh5-3ghh-wfjx
 
 ---
