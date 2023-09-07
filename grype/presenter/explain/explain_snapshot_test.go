@@ -31,7 +31,14 @@ func TestExplainSnapshot(t *testing.T) {
 			vulnerabilityIDs: []string{"CVE-2023-28755"},
 		},
 		{
-			name:             "test a GHSA",
+			name: "test a GHSA",
+			/*
+				fixture created by:
+				Saving output of
+				grype anchore/test_images@sha256:10008791acbc5866de04108746a02a0c4029ce3a4400a9b3dad45d7f2245f9da -o json
+				Then filtering matches to relevant ones:
+				jq -c '.matches[]' | rg -e GHSA-cfh5-3ghh-wfjx -e CVE-2014-3577 | jq -s .
+			*/
 			fixture:          "test-fixtures/ghsa-test.json",
 			vulnerabilityIDs: []string{"GHSA-cfh5-3ghh-wfjx"},
 		},
@@ -61,5 +68,4 @@ func TestExplainSnapshot(t *testing.T) {
 			snaps.MatchSnapshot(t, w.String())
 		})
 	}
-
 }

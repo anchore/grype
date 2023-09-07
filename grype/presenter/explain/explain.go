@@ -370,7 +370,7 @@ func groupAndSortEvidence(matches []models.Match) []*explainedPackage {
 
 func explainedPackageIsLess(i, j *explainedPackage) bool {
 	if i.displayRank != j.displayRank {
-		return i.displayRank < j.displayRank
+		return i.displayRank > j.displayRank
 	}
 	return i.Name < j.Name
 }
@@ -397,7 +397,6 @@ func explainMatchDetail(m models.Match, index int) string {
 // followed by data source for related vulnerabilities, followed by other URLs, but with no duplicates.
 func (b *viewModelBuilder) dedupeAndSortURLs(primaryVulnerability models.VulnerabilityMetadata) []string {
 	showFirst := primaryVulnerability.DataSource
-	nvdURL := ""
 	URLs := b.PrimaryMatch.Vulnerability.URLs
 	URLs = append(URLs, b.PrimaryMatch.Vulnerability.DataSource)
 	for _, v := range b.PrimaryMatch.RelatedVulnerabilities {
@@ -415,14 +414,23 @@ func (b *viewModelBuilder) dedupeAndSortURLs(primaryVulnerability models.Vulnera
 	deduplicate := make(map[string]bool)
 	result = append(result, showFirst)
 	deduplicate[showFirst] = true
+	nvdURL := ""
+	ghsaURL := ""
 	for _, u := range URLs {
 		if strings.HasPrefix(u, "https://nvd.nist.gov/vuln/detail") {
 			nvdURL = u
+		}
+		if strings.HasPrefix(u, "https://github.com/advisories") {
+			ghsaURL = u
 		}
 	}
 	if nvdURL != "" && nvdURL != showFirst {
 		result = append(result, nvdURL)
 		deduplicate[nvdURL] = true
+	}
+	if ghsaURL != "" && ghsaURL != showFirst {
+		result = append(result, ghsaURL)
+		deduplicate[ghsaURL] = true
 	}
 
 	for _, u := range URLs {

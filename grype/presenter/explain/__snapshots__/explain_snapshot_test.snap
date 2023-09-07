@@ -5,15 +5,16 @@ The Raccoon attack is a timing attack on DHE ciphersuites inherit in the TLS spe
 Related vulnerabilities:
     - redhat:distro:redhat:9 CVE-2020-12413 (Low)
 Matched packages:
+    - Package: nss, version: 3.79.0-17.el9_1
+      PURL: pkg:rpm/rhel/nss@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1
+      Direct match against nss (version 3.79.0-17.el9_1).
+      Evidenced by:
+          - redhat:distro:redhat:9:CVE-2020-12413 evidence at /var/lib/rpm/rpmdb.sqlite (artifact ID: 840f8a931c86688f)
     - Package: nspr, version: 4.34.0-17.el9_1
       PURL: pkg:rpm/rhel/nspr@4.34.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1
       Note: This CVE is reported against nss (version 3.79.0-17.el9_1), the source RPM of this rpm package.
       Evidenced by:
           - redhat:distro:redhat:9:CVE-2020-12413 evidence at /var/lib/rpm/rpmdb.sqlite (artifact ID: ff2aefb138ebd4bf)
-    - Package: nss, version: 3.79.0-17.el9_1
-      PURL: pkg:rpm/rhel/nss@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1
-      Evidenced by:
-          - redhat:distro:redhat:9:CVE-2020-12413 evidence at /var/lib/rpm/rpmdb.sqlite (artifact ID: 840f8a931c86688f)
     - Package: nss-softokn, version: 3.79.0-17.el9_1
       PURL: pkg:rpm/rhel/nss-softokn@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1
       Note: This CVE is reported against nss (version 3.79.0-17.el9_1), the source RPM of this rpm package.
@@ -51,7 +52,8 @@ Related vulnerabilities:
 Matched packages:
     - Package: ruby-3.0, version: 3.0.4-r1
       PURL: pkg:apk/wolfi/ruby-3.0@3.0.4-r1?arch=aarch64&distro=wolfi-20221118
-      CPE match on `cpe:2.3:a:ruby-lang:uri:0.10.1:*:*:*:*:*:*:*`
+      Direct match against ruby-3.0 (version 3.0.4-r1).
+      CPE match on `cpe:2.3:a:ruby-lang:uri:0.10.1:*:*:*:*:*:*:*`.
       Note: This CVE is reported against ruby-3.0 (version 3.0.4-r1), the upstream of this apk package.
       Evidenced by:
           - github:language:ruby:GHSA-hv5j-3h9f-99c2 evidence at /usr/lib/ruby/gems/3.0.0/specifications/default/uri-0.10.1.gemspec
@@ -59,6 +61,7 @@ Matched packages:
           - wolfi:distro:wolfi:rolling:CVE-2023-28755 evidence at /lib/apk/db/installed
 URLs:
     - https://nvd.nist.gov/vuln/detail/CVE-2023-28755
+    - https://github.com/advisories/GHSA-hv5j-3h9f-99c2
     - https://github.com/ruby/uri/releases/
     - https://lists.debian.org/debian-lts-announce/2023/04/msg00033.html
     - https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/FFZANOQA4RYX7XCB42OO3P24DQKWHEKA/
@@ -68,7 +71,6 @@ URLs:
     - https://www.ruby-lang.org/en/news/2022/12/25/ruby-3-2-0-released/
     - https://www.ruby-lang.org/en/news/2023/03/28/redos-in-uri-cve-2023-28755/
     - http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-28755
-    - https://github.com/advisories/GHSA-hv5j-3h9f-99c2
 
 ---
 
@@ -80,8 +82,9 @@ Related vulnerabilities:
 Matched packages:
     - Package: httpclient, version: 4.1.1
       PURL: pkg:maven/org.apache.httpcomponents/httpclient@4.1.1
+      Direct match against httpclient (version 4.1.1).
       Evidenced by:
-          - github:language:java:GHSA-cfh5-3ghh-wfjx evidence at /TwilioNotifier.hpi (artifact ID: f09cdae46b001bc5)
+          - github:language:java:GHSA-cfh5-3ghh-wfjx evidence at /TwilioNotifier.hpi:WEB-INF/lib/sdk-3.0.jar:httpclient (artifact ID: f09cdae46b001bc5)
 URLs:
     - https://github.com/advisories/GHSA-cfh5-3ghh-wfjx
     - https://nvd.nist.gov/vuln/detail/CVE-2014-3577
@@ -134,16 +137,17 @@ URLs:
 
 [TestExplainSnapshot/test_a_CVE_alias_of_a_GHSA - 1]
 CVE-2014-3577 from nvd:cpe (Medium)
-Aliases:
-    - GHSA-cfh5-3ghh-wfjx from github:language:java (Medium)
+org.apache.http.conn.ssl.AbstractVerifier in Apache HttpComponents HttpClient before 4.3.5 and HttpAsyncClient before 4.0.2 does not properly verify that the server hostname matches a domain name in the subject's Common Name (CN) or subjectAltName field of the X.509 certificate, which allows man-in-the-middle attackers to spoof SSL servers via a "CN=" string in a field in the distinguished name (DN) of a certificate, as demonstrated by the "foo,CN=www.apache.org" string in the O field.
+Related vulnerabilities:
+    - github:language:java GHSA-cfh5-3ghh-wfjx (Medium)
 Matched packages:
-    - httpclient 4.1.1 (PURL: pkg:maven/org.apache.httpcomponents/httpclient@4.1.1, artifact ID: f09cdae46b001bc5)
-      Locations and evidence:
-        - /TwilioNotifier.hpi:WEB-INF/lib/sdk-3.0.jar:org.apache.httpcomponents:httpclient
-          - github:language:java:GHSA-cfh5-3ghh-wfjx matched directly by package name, version, and ecosystem
-          - nvd:cpe:CVE-2014-3577 matched on CPE `cpe:2.3:a:apache:httpclient:4.1.1:*:*:*:*:*:*:*`
-Description:
-    org.apache.http.conn.ssl.AbstractVerifier in Apache HttpComponents HttpClient before 4.3.5 and HttpAsyncClient before 4.0.2 does not properly verify that the server hostname matches a domain name in the subject's Common Name (CN) or subjectAltName field of the X.509 certificate, which allows man-in-the-middle attackers to spoof SSL servers via a "CN=" string in a field in the distinguished name (DN) of a certificate, as demonstrated by the "foo,CN=www.apache.org" string in the O field.
+    - Package: httpclient, version: 4.1.1
+      PURL: pkg:maven/org.apache.httpcomponents/httpclient@4.1.1
+      Direct match against httpclient (version 4.1.1).
+      CPE match on `cpe:2.3:a:apache:httpclient:4.1.1:*:*:*:*:*:*:*`.
+      Evidenced by:
+          - github:language:java:GHSA-cfh5-3ghh-wfjx evidence at /TwilioNotifier.hpi:WEB-INF/lib/sdk-3.0.jar:httpclient (artifact ID: f09cdae46b001bc5)
+          - nvd:cpe:CVE-2014-3577 evidence at /TwilioNotifier.hpi:WEB-INF/lib/sdk-3.0.jar:httpclient (artifact ID: f09cdae46b001bc5)
 URLs:
     - https://nvd.nist.gov/vuln/detail/CVE-2014-3577
     - https://github.com/advisories/GHSA-cfh5-3ghh-wfjx
