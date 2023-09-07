@@ -14,7 +14,7 @@ import (
 	"github.com/anchore/syft/syft/file"
 )
 
-//go:embed explain_cve_new.tmpl
+//go:embed explain_cve.tmpl
 var explainTemplate string
 
 type VulnerabilityExplainer interface {
