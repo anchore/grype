@@ -7,39 +7,43 @@ Related vulnerabilities:
 Matched packages:
     - Package: nss, version: 3.79.0-17.el9_1
       PURL: pkg:rpm/rhel/nss@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1
-      Direct match against nss (version 3.79.0-17.el9_1).
-      Evidenced by:
-          - redhat:distro:redhat:9:CVE-2020-12413 evidence at /var/lib/rpm/rpmdb.sqlite (artifact ID: 840f8a931c86688f)
+      Match explanation(s):
+          - redhat:distro:redhat:9:CVE-2020-12413 Direct match (package name, version, and ecosystem) against nss (version 3.79.0-17.el9_1).
+      Locations:
+          - /var/lib/rpm/rpmdb.sqlite
     - Package: nspr, version: 4.34.0-17.el9_1
       PURL: pkg:rpm/rhel/nspr@4.34.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1
-      Note: This CVE is reported against nss (version 3.79.0-17.el9_1), the source RPM of this rpm package.
-      Evidenced by:
-          - redhat:distro:redhat:9:CVE-2020-12413 evidence at /var/lib/rpm/rpmdb.sqlite (artifact ID: ff2aefb138ebd4bf)
+      Match explanation(s):
+          - redhat:distro:redhat:9:CVE-2020-12413 Indirect match; this CVE is reported against nss (version 3.79.0-17.el9_1), the source RPM of this rpm package.
+      Locations:
+          - /var/lib/rpm/rpmdb.sqlite
     - Package: nss-softokn, version: 3.79.0-17.el9_1
       PURL: pkg:rpm/rhel/nss-softokn@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1
-      Note: This CVE is reported against nss (version 3.79.0-17.el9_1), the source RPM of this rpm package.
-      Evidenced by:
-          - redhat:distro:redhat:9:CVE-2020-12413 evidence at /var/lib/rpm/rpmdb.sqlite (artifact ID: 7d1c659d9eb00024)
+      Match explanation(s):
+          - redhat:distro:redhat:9:CVE-2020-12413 Indirect match; this CVE is reported against nss (version 3.79.0-17.el9_1), the source RPM of this rpm package.
+      Locations:
+          - /var/lib/rpm/rpmdb.sqlite
     - Package: nss-softokn-freebl, version: 3.79.0-17.el9_1
       PURL: pkg:rpm/rhel/nss-softokn-freebl@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1
-      Note: This CVE is reported against nss (version 3.79.0-17.el9_1), the source RPM of this rpm package.
-      Evidenced by:
-          - redhat:distro:redhat:9:CVE-2020-12413 evidence at /var/lib/rpm/rpmdb.sqlite (artifact ID: cb1f96627e29924e)
+      Match explanation(s):
+          - redhat:distro:redhat:9:CVE-2020-12413 Indirect match; this CVE is reported against nss (version 3.79.0-17.el9_1), the source RPM of this rpm package.
+      Locations:
+          - /var/lib/rpm/rpmdb.sqlite
     - Package: nss-sysinit, version: 3.79.0-17.el9_1
       PURL: pkg:rpm/rhel/nss-sysinit@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1
-      Note: This CVE is reported against nss (version 3.79.0-17.el9_1), the source RPM of this rpm package.
-      Evidenced by:
-          - redhat:distro:redhat:9:CVE-2020-12413 evidence at /var/lib/rpm/rpmdb.sqlite (artifact ID: d096d490e4fccf36)
+      Match explanation(s):
+          - redhat:distro:redhat:9:CVE-2020-12413 Indirect match; this CVE is reported against nss (version 3.79.0-17.el9_1), the source RPM of this rpm package.
+      Locations:
+          - /var/lib/rpm/rpmdb.sqlite
     - Package: nss-util, version: 3.79.0-17.el9_1
       PURL: pkg:rpm/rhel/nss-util@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1
-      Note: This CVE is reported against nss (version 3.79.0-17.el9_1), the source RPM of this rpm package.
-      Evidenced by:
-          - redhat:distro:redhat:9:CVE-2020-12413 evidence at /var/lib/rpm/rpmdb.sqlite (artifact ID: 641950c22b3f5035)
+      Match explanation(s):
+          - redhat:distro:redhat:9:CVE-2020-12413 Indirect match; this CVE is reported against nss (version 3.79.0-17.el9_1), the source RPM of this rpm package.
+      Locations:
+          - /var/lib/rpm/rpmdb.sqlite
 URLs:
     - https://nvd.nist.gov/vuln/detail/CVE-2020-12413
     - https://access.redhat.com/security/cve/CVE-2020-12413
-    - https://bugzilla.mozilla.org/show_bug.cgi?id=CVE-2020-12413
-    - https://raccoon-attack.com/
 
 ---
 
@@ -52,24 +56,16 @@ Related vulnerabilities:
 Matched packages:
     - Package: ruby-3.0, version: 3.0.4-r1
       PURL: pkg:apk/wolfi/ruby-3.0@3.0.4-r1?arch=aarch64&distro=wolfi-20221118
-      Direct match against ruby-3.0 (version 3.0.4-r1).
-      CPE match on `cpe:2.3:a:ruby-lang:uri:0.10.1:*:*:*:*:*:*:*`.
-      Note: This CVE is reported against ruby-3.0 (version 3.0.4-r1), the upstream of this apk package.
-      Evidenced by:
-          - github:language:ruby:GHSA-hv5j-3h9f-99c2 evidence at /usr/lib/ruby/gems/3.0.0/specifications/default/uri-0.10.1.gemspec
-          - nvd:cpe:CVE-2023-28755 evidence at /usr/lib/ruby/gems/3.0.0/specifications/default/uri-0.10.1.gemspec
-          - wolfi:distro:wolfi:rolling:CVE-2023-28755 evidence at /lib/apk/db/installed
+      Match explanation(s):
+          - wolfi:distro:wolfi:rolling:CVE-2023-28755 Direct match (package name, version, and ecosystem) against ruby-3.0 (version 3.0.4-r1).
+          - nvd:cpe:CVE-2023-28755 CPE match on `cpe:2.3:a:ruby-lang:uri:0.10.1:*:*:*:*:*:*:*`.
+          - wolfi:distro:wolfi:rolling:CVE-2023-28755 Indirect match; this CVE is reported against ruby-3.0 (version 3.0.4-r1), the upstream of this apk package.
+      Locations:
+          - /usr/lib/ruby/gems/3.0.0/specifications/default/uri-0.10.1.gemspec
+          - /lib/apk/db/installed
 URLs:
     - https://nvd.nist.gov/vuln/detail/CVE-2023-28755
     - https://github.com/advisories/GHSA-hv5j-3h9f-99c2
-    - https://github.com/ruby/uri/releases/
-    - https://lists.debian.org/debian-lts-announce/2023/04/msg00033.html
-    - https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/FFZANOQA4RYX7XCB42OO3P24DQKWHEKA/
-    - https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/G76GZG3RAGYF4P75YY7J7TGYAU7Z5E2T/
-    - https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/WMIOPLBAAM3FEQNAXA2L7BDKOGSVUT5Z/
-    - https://www.ruby-lang.org/en/downloads/releases/
-    - https://www.ruby-lang.org/en/news/2022/12/25/ruby-3-2-0-released/
-    - https://www.ruby-lang.org/en/news/2023/03/28/redos-in-uri-cve-2023-28755/
     - http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-28755
 
 ---
@@ -82,56 +78,13 @@ Related vulnerabilities:
 Matched packages:
     - Package: httpclient, version: 4.1.1
       PURL: pkg:maven/org.apache.httpcomponents/httpclient@4.1.1
-      Direct match against httpclient (version 4.1.1).
-      Evidenced by:
-          - github:language:java:GHSA-cfh5-3ghh-wfjx evidence at /TwilioNotifier.hpi:WEB-INF/lib/sdk-3.0.jar:httpclient (artifact ID: f09cdae46b001bc5)
+      Match explanation(s):
+          - github:language:java:GHSA-cfh5-3ghh-wfjx Direct match (package name, version, and ecosystem) against httpclient (version 4.1.1).
+      Locations:
+          - /TwilioNotifier.hpi:WEB-INF/lib/sdk-3.0.jar:httpclient
 URLs:
     - https://github.com/advisories/GHSA-cfh5-3ghh-wfjx
     - https://nvd.nist.gov/vuln/detail/CVE-2014-3577
-    - http://lists.opensuse.org/opensuse-security-announce/2020-11/msg00032.html
-    - http://lists.opensuse.org/opensuse-security-announce/2020-11/msg00033.html
-    - http://packetstormsecurity.com/files/127913/Apache-HttpComponents-Man-In-The-Middle.html
-    - http://rhn.redhat.com/errata/RHSA-2014-1146.html
-    - http://rhn.redhat.com/errata/RHSA-2014-1166.html
-    - http://rhn.redhat.com/errata/RHSA-2014-1833.html
-    - http://rhn.redhat.com/errata/RHSA-2014-1834.html
-    - http://rhn.redhat.com/errata/RHSA-2014-1835.html
-    - http://rhn.redhat.com/errata/RHSA-2014-1836.html
-    - http://rhn.redhat.com/errata/RHSA-2014-1891.html
-    - http://rhn.redhat.com/errata/RHSA-2014-1892.html
-    - http://rhn.redhat.com/errata/RHSA-2015-0125.html
-    - http://rhn.redhat.com/errata/RHSA-2015-0158.html
-    - http://rhn.redhat.com/errata/RHSA-2015-0675.html
-    - http://rhn.redhat.com/errata/RHSA-2015-0720.html
-    - http://rhn.redhat.com/errata/RHSA-2015-0765.html
-    - http://rhn.redhat.com/errata/RHSA-2015-0850.html
-    - http://rhn.redhat.com/errata/RHSA-2015-0851.html
-    - http://rhn.redhat.com/errata/RHSA-2015-1176.html
-    - http://rhn.redhat.com/errata/RHSA-2015-1177.html
-    - http://rhn.redhat.com/errata/RHSA-2015-1888.html
-    - http://rhn.redhat.com/errata/RHSA-2016-1773.html
-    - http://rhn.redhat.com/errata/RHSA-2016-1931.html
-    - http://seclists.org/fulldisclosure/2014/Aug/48
-    - http://secunia.com/advisories/60466
-    - http://www.openwall.com/lists/oss-security/2021/10/06/1
-    - http://www.oracle.com/technetwork/security-advisory/cpujul2018-4258247.html
-    - http://www.osvdb.org/110143
-    - http://www.securityfocus.com/bid/69258
-    - http://www.securitytracker.com/id/1030812
-    - http://www.ubuntu.com/usn/USN-2769-1
-    - https://access.redhat.com/solutions/1165533
-    - https://exchange.xforce.ibmcloud.com/vulnerabilities/95327
-    - https://h20566.www2.hpe.com/portal/site/hpsc/public/kb/docDisplay?docId=emr_na-c05103564
-    - https://h20566.www2.hpe.com/portal/site/hpsc/public/kb/docDisplay?docId=emr_na-c05363782
-    - https://lists.apache.org/thread.html/519eb0fd45642dcecd9ff74cb3e71c20a4753f7d82e2f07864b5108f@%3Cdev.drill.apache.org%3E
-    - https://lists.apache.org/thread.html/b0656d359c7d40ec9f39c8cc61bca66802ef9a2a12ee199f5b0c1442@%3Cdev.drill.apache.org%3E
-    - https://lists.apache.org/thread.html/f9bc3e55f4e28d1dcd1a69aae6d53e609a758e34d2869b4d798e13cc@%3Cissues.drill.apache.org%3E
-    - https://lists.apache.org/thread.html/r36e44ffc1a9b365327df62cdfaabe85b9a5637de102cea07d79b2dbf@%3Ccommits.cxf.apache.org%3E
-    - https://lists.apache.org/thread.html/rc774278135816e7afc943dc9fc78eb0764f2c84a2b96470a0187315c@%3Ccommits.cxf.apache.org%3E
-    - https://lists.apache.org/thread.html/rd49aabd984ed540c8ff7916d4d79405f3fa311d2fdbcf9ed307839a6@%3Ccommits.cxf.apache.org%3E
-    - https://lists.apache.org/thread.html/rec7160382badd3ef4ad017a22f64a266c7188b9ba71394f0d321e2d4@%3Ccommits.cxf.apache.org%3E
-    - https://lists.apache.org/thread.html/rfb87e0bf3995e7d560afeed750fac9329ff5f1ad49da365129b7f89e@%3Ccommits.cxf.apache.org%3E
-    - https://lists.apache.org/thread.html/rff42cfa5e7d75b7c1af0e37589140a8f1999e578a75738740b244bd4@%3Ccommits.cxf.apache.org%3E
 
 ---
 
@@ -143,57 +96,13 @@ Related vulnerabilities:
 Matched packages:
     - Package: httpclient, version: 4.1.1
       PURL: pkg:maven/org.apache.httpcomponents/httpclient@4.1.1
-      Direct match against httpclient (version 4.1.1).
-      CPE match on `cpe:2.3:a:apache:httpclient:4.1.1:*:*:*:*:*:*:*`.
-      Evidenced by:
-          - github:language:java:GHSA-cfh5-3ghh-wfjx evidence at /TwilioNotifier.hpi:WEB-INF/lib/sdk-3.0.jar:httpclient (artifact ID: f09cdae46b001bc5)
-          - nvd:cpe:CVE-2014-3577 evidence at /TwilioNotifier.hpi:WEB-INF/lib/sdk-3.0.jar:httpclient (artifact ID: f09cdae46b001bc5)
+      Match explanation(s):
+          - github:language:java:GHSA-cfh5-3ghh-wfjx Direct match (package name, version, and ecosystem) against httpclient (version 4.1.1).
+          - nvd:cpe:CVE-2014-3577 CPE match on `cpe:2.3:a:apache:httpclient:4.1.1:*:*:*:*:*:*:*`.
+      Locations:
+          - /TwilioNotifier.hpi:WEB-INF/lib/sdk-3.0.jar:httpclient
 URLs:
     - https://nvd.nist.gov/vuln/detail/CVE-2014-3577
     - https://github.com/advisories/GHSA-cfh5-3ghh-wfjx
-    - http://lists.opensuse.org/opensuse-security-announce/2020-11/msg00032.html
-    - http://lists.opensuse.org/opensuse-security-announce/2020-11/msg00033.html
-    - http://packetstormsecurity.com/files/127913/Apache-HttpComponents-Man-In-The-Middle.html
-    - http://rhn.redhat.com/errata/RHSA-2014-1146.html
-    - http://rhn.redhat.com/errata/RHSA-2014-1166.html
-    - http://rhn.redhat.com/errata/RHSA-2014-1833.html
-    - http://rhn.redhat.com/errata/RHSA-2014-1834.html
-    - http://rhn.redhat.com/errata/RHSA-2014-1835.html
-    - http://rhn.redhat.com/errata/RHSA-2014-1836.html
-    - http://rhn.redhat.com/errata/RHSA-2014-1891.html
-    - http://rhn.redhat.com/errata/RHSA-2014-1892.html
-    - http://rhn.redhat.com/errata/RHSA-2015-0125.html
-    - http://rhn.redhat.com/errata/RHSA-2015-0158.html
-    - http://rhn.redhat.com/errata/RHSA-2015-0675.html
-    - http://rhn.redhat.com/errata/RHSA-2015-0720.html
-    - http://rhn.redhat.com/errata/RHSA-2015-0765.html
-    - http://rhn.redhat.com/errata/RHSA-2015-0850.html
-    - http://rhn.redhat.com/errata/RHSA-2015-0851.html
-    - http://rhn.redhat.com/errata/RHSA-2015-1176.html
-    - http://rhn.redhat.com/errata/RHSA-2015-1177.html
-    - http://rhn.redhat.com/errata/RHSA-2015-1888.html
-    - http://rhn.redhat.com/errata/RHSA-2016-1773.html
-    - http://rhn.redhat.com/errata/RHSA-2016-1931.html
-    - http://seclists.org/fulldisclosure/2014/Aug/48
-    - http://secunia.com/advisories/60466
-    - http://www.openwall.com/lists/oss-security/2021/10/06/1
-    - http://www.oracle.com/technetwork/security-advisory/cpujul2018-4258247.html
-    - http://www.osvdb.org/110143
-    - http://www.securityfocus.com/bid/69258
-    - http://www.securitytracker.com/id/1030812
-    - http://www.ubuntu.com/usn/USN-2769-1
-    - https://access.redhat.com/solutions/1165533
-    - https://exchange.xforce.ibmcloud.com/vulnerabilities/95327
-    - https://h20566.www2.hpe.com/portal/site/hpsc/public/kb/docDisplay?docId=emr_na-c05103564
-    - https://h20566.www2.hpe.com/portal/site/hpsc/public/kb/docDisplay?docId=emr_na-c05363782
-    - https://lists.apache.org/thread.html/519eb0fd45642dcecd9ff74cb3e71c20a4753f7d82e2f07864b5108f@%3Cdev.drill.apache.org%3E
-    - https://lists.apache.org/thread.html/b0656d359c7d40ec9f39c8cc61bca66802ef9a2a12ee199f5b0c1442@%3Cdev.drill.apache.org%3E
-    - https://lists.apache.org/thread.html/f9bc3e55f4e28d1dcd1a69aae6d53e609a758e34d2869b4d798e13cc@%3Cissues.drill.apache.org%3E
-    - https://lists.apache.org/thread.html/r36e44ffc1a9b365327df62cdfaabe85b9a5637de102cea07d79b2dbf@%3Ccommits.cxf.apache.org%3E
-    - https://lists.apache.org/thread.html/rc774278135816e7afc943dc9fc78eb0764f2c84a2b96470a0187315c@%3Ccommits.cxf.apache.org%3E
-    - https://lists.apache.org/thread.html/rd49aabd984ed540c8ff7916d4d79405f3fa311d2fdbcf9ed307839a6@%3Ccommits.cxf.apache.org%3E
-    - https://lists.apache.org/thread.html/rec7160382badd3ef4ad017a22f64a266c7188b9ba71394f0d321e2d4@%3Ccommits.cxf.apache.org%3E
-    - https://lists.apache.org/thread.html/rfb87e0bf3995e7d560afeed750fac9329ff5f1ad49da365129b7f89e@%3Ccommits.cxf.apache.org%3E
-    - https://lists.apache.org/thread.html/rff42cfa5e7d75b7c1af0e37589140a8f1999e578a75738740b244bd4@%3Ccommits.cxf.apache.org%3E
 
 ---
