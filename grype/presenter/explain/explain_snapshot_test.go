@@ -30,6 +30,16 @@ func TestExplainSnapshot(t *testing.T) {
 			fixture:          "test-fixtures/chainguard-ruby-test.json",
 			vulnerabilityIDs: []string{"CVE-2023-28755"},
 		},
+		{
+			name:             "test a GHSA",
+			fixture:          "test-fixtures/ghsa-test.json",
+			vulnerabilityIDs: []string{"GHSA-cfh5-3ghh-wfjx"},
+		},
+		{
+			name:             "test a CVE alias of a GHSA",
+			fixture:          "test-fixtures/ghsa-test.json",
+			vulnerabilityIDs: []string{"CVE-2014-3577"},
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
