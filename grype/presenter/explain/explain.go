@@ -60,7 +60,7 @@ type explainedPackage struct {
 	DirectExplanation   string
 	CPEExplanation      string
 	Locations           []explainedEvidence
-	displayRank         int // how early in output should this appear?
+	displayPriority     int // how early in output should this appear?
 }
 
 type explainedEvidence struct {
@@ -291,20 +291,20 @@ func groupAndSortEvidence(matches []models.Match) []*explainedPackage {
 		var directExplanation string
 		var indirectExplanation string
 		var cpeExplanation string
-		var displayRank int
+		var matchTypePriority int
 		for i, md := range m.MatchDetails {
 			explanation := explainMatchDetail(m, i)
 			if explanation != "" {
 				switch md.Type {
 				case string(match.CPEMatch):
-					cpeExplanation = explanation
-					displayRank = 1
+          cpeExplanation = fmt.Sprintf("%s:%s %s", m.Vulnerability.Namespace, m.Vulnerability.ID, explanation)
+					matchTypePriority = 1
 				case string(match.ExactIndirectMatch):
-					indirectExplanation = explanation
-					displayRank = 0 // display indirect explanations explanations of main matched packages
+					indirectExplanation = fmt.Sprintf("%s:%s %s", m.Vulnerability.Namespace, m.Vulnerability.ID, explanation)
+					matchTypePriority = 0 // display indirect explanations explanations of main matched packages
 				case string(match.ExactDirectMatch):
-					directExplanation = explanation
-					displayRank = 2
+					directExplanation = fmt.Sprintf("%s:%s %s", m.Vulnerability.Namespace, m.Vulnerability.ID, explanation)
+					matchTypePriority = 2
 				}
 			}
 		}
@@ -320,7 +320,7 @@ func groupAndSortEvidence(matches []models.Match) []*explainedPackage {
 				IndirectExplanation: indirectExplanation,
 				CPEExplanation:      cpeExplanation,
 				Locations:           newLocations,
-				displayRank:         displayRank,
+				displayPriority:     matchTypePriority,
 			}
 			idsToMatchDetails[key] = e
 		} else {
@@ -333,7 +333,7 @@ func groupAndSortEvidence(matches []models.Match) []*explainedPackage {
 			if e.IndirectExplanation == "" {
 				e.IndirectExplanation = indirectExplanation
 			}
-			e.displayRank += displayRank
+			e.displayPriority += matchTypePriority
 		}
 	}
 	var sortIDs []string
@@ -342,8 +342,7 @@ func groupAndSortEvidence(matches []models.Match) []*explainedPackage {
 		sortIDs = append(sortIDs, k)
 		dedupeLocations := make(map[string]explainedEvidence)
 		for _, l := range v.Locations {
-			key := fmt.Sprintf("%s:%s:%s:%s:%s", l.ArtifactID, l.Location, l.ViaNamespace, l.ViaVulnID, v.MatchedOnID)
-			dedupeLocations[key] = l
+			dedupeLocations[l.Location] = l
 		}
 		var uniqueLocations []explainedEvidence
 		for _, l := range dedupeLocations {
@@ -369,8 +368,8 @@ func groupAndSortEvidence(matches []models.Match) []*explainedPackage {
 }
 
 func explainedPackageIsLess(i, j *explainedPackage) bool {
-	if i.displayRank != j.displayRank {
-		return i.displayRank > j.displayRank
+	if i.displayPriority != j.displayPriority {
+		return i.displayPriority > j.displayPriority
 	}
 	return i.Name < j.Name
 }
@@ -386,9 +385,9 @@ func explainMatchDetail(m models.Match, index int) string {
 		explanation = formatCPEExplanation(m)
 	case string(match.ExactIndirectMatch):
 		sourceName, sourceVersion := sourcePackageNameAndVersion(md)
-		explanation = fmt.Sprintf("Note: This CVE is reported against %s (version %s), the %s of this %s package.", sourceName, sourceVersion, nameForUpstream(string(m.Artifact.Type)), m.Artifact.Type)
+		explanation = fmt.Sprintf("Indirect match; this CVE is reported against %s (version %s), the %s of this %s package.", sourceName, sourceVersion, nameForUpstream(string(m.Artifact.Type)), m.Artifact.Type)
 	case string(match.ExactDirectMatch):
-		explanation = fmt.Sprintf("Direct match against %s (version %s).", m.Artifact.Name, m.Artifact.Version)
+		explanation = fmt.Sprintf("Direct match (package name, version, and ecosystem) against %s (version %s).", m.Artifact.Name, m.Artifact.Version)
 	}
 	return explanation
 }
@@ -397,16 +396,14 @@ func explainMatchDetail(m models.Match, index int) string {
 // followed by data source for related vulnerabilities, followed by other URLs, but with no duplicates.
 func (b *viewModelBuilder) dedupeAndSortURLs(primaryVulnerability models.VulnerabilityMetadata) []string {
 	showFirst := primaryVulnerability.DataSource
-	URLs := b.PrimaryMatch.Vulnerability.URLs
+  var URLs []string
 	URLs = append(URLs, b.PrimaryMatch.Vulnerability.DataSource)
 	for _, v := range b.PrimaryMatch.RelatedVulnerabilities {
-		URLs = append(URLs, v.URLs...)
 		URLs = append(URLs, v.DataSource)
 	}
 	for _, m := range b.RelatedMatches {
-		URLs = append(URLs, m.Vulnerability.URLs...)
+		URLs = append(URLs, m.Vulnerability.DataSource)
 		for _, v := range m.RelatedVulnerabilities {
-			URLs = append(URLs, v.URLs...)
 			URLs = append(URLs, v.DataSource)
 		}
 	}
@@ -444,9 +441,7 @@ func (b *viewModelBuilder) dedupeAndSortURLs(primaryVulnerability models.Vulnera
 
 func explainLocation(match models.Match, location file.Coordinates) explainedEvidence {
 	path := location.RealPath
-	// TODO: try casting metadata as java metadata
-	switch match.Artifact.MetadataType {
-	case pkg.JavaMetadataType:
+	if match.Artifact.MetadataType == pkg.JavaMetadataType {
 		if javaMeta, ok := match.Artifact.Metadata.(map[string]any); ok {
 			if virtPath, ok := javaMeta["virtualPath"].(string); ok {
 				path = virtPath

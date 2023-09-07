@@ -4,11 +4,12 @@ Related vulnerabilities:{{ range .RelatedVulnerabilities }}
     - {{.Namespace}} {{ .ID }} ({{ .Severity }}){{end}}{{end}}
 Matched packages:{{ range .MatchedPackages }}
     - Package: {{ .Name }}, version: {{ .Version }}{{ if .PURL }}
-      PURL: {{ .PURL }}{{ end }}{{ if .DirectExplanation }}
-      {{ .DirectExplanation }}{{ end }}{{ if .CPEExplanation }}
-      {{ .CPEExplanation }}{{ end }}{{ if .IndirectExplanation }}
-      {{ .IndirectExplanation }}{{ end }}
-      Evidenced by:{{ range .Locations }}
-          - {{ .ViaNamespace }}:{{ .ViaVulnID }} evidence at {{ .Location }}{{ if .ArtifactID }} (artifact ID: {{.ArtifactID}}){{ end }}{{ end }}{{ end }}
+      PURL: {{ .PURL }}{{ end }}
+      Match explanation(s):{{ if .DirectExplanation }}
+          - {{ .DirectExplanation }}{{ end }}{{ if .CPEExplanation }}
+          - {{ .CPEExplanation }}{{ end }}{{ if .IndirectExplanation }}
+          - {{ .IndirectExplanation }}{{ end }}
+      Locations:{{ range .Locations }}
+          - {{ .Location }}{{ end }}{{ end }}
 URLs:{{ range .URLs }}
     - {{ . }}{{ end }}
