@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  GO_VERSION: "1.19.x"
+  GO_VERSION: "1.21.x"
   GO_STABLE_VERSION: true
 
 permissions:
