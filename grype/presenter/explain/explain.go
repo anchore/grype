@@ -23,14 +23,6 @@ type VulnerabilityExplainer interface {
 	ExplainAll() error
 }
 
-// TODO: basically re-write a lot of this
-// Build a structure where an ExplainedVulnerability
-// is basically the nvd:cpe record, plus a list of
-// records that relate up to it. The convert that
-// record to the ExplainViewModel building a list
-// of artifacts we matched and why, and then
-// render it either as JSON or as the template.
-
 type ViewModel struct {
 	PrimaryVulnerability   models.VulnerabilityMetadata
 	RelatedVulnerabilities []models.VulnerabilityMetadata
@@ -48,8 +40,6 @@ type viewModelBuilder struct {
 
 type Findings map[string]ViewModel
 
-// It looks like an explained package
-// should really be a single location and a slice of evidence?
 type explainedPackage struct {
 	PURL                string
 	Name                string
@@ -60,7 +50,7 @@ type explainedPackage struct {
 	DirectExplanation   string
 	CPEExplanation      string
 	Locations           []explainedEvidence
-	displayPriority     int // how early in output should this appear?
+	displayPriority     int // shows how early it should be displayed; direct matches first
 }
 
 type explainedEvidence struct {
@@ -87,7 +77,6 @@ var funcs = template.FuncMap{
 }
 
 func (e *vulnerabilityExplainer) ExplainByID(ids []string) error {
-	// TODO: requested ID is always the primary match
 	findings, err := Doc(e.doc, ids)
 	if err != nil {
 		return err
@@ -158,8 +147,6 @@ func newBuilder(requestedIDs []string) *viewModelBuilder {
 // WithMatch adds a match to the builder
 // accepting enough information to determine whether the match is a primary match or a related match
 func (b *viewModelBuilder) WithMatch(m models.Match, userRequestedIDs []string) {
-	// TODO: check if it's a primary vulnerability
-	// (the below checks if it's a primary _match_, which is wrong)
 	if b.isPrimaryAdd(m, userRequestedIDs) {
 		// Demote the current primary match to related match
 		// if it exists
@@ -174,8 +161,6 @@ func (b *viewModelBuilder) WithMatch(m models.Match, userRequestedIDs []string) 
 
 // TODO: is this still needed?
 func (b *viewModelBuilder) isPrimaryAdd(candidate models.Match, userRequestedIDs []string) bool {
-	// TODO: "primary" is a property of a vulnerability, not a match
-	// if there's not currently any match, make this one primary since we don't know any better
 	if b.PrimaryMatch.Vulnerability.ID == "" {
 		return true
 	}
@@ -187,8 +172,7 @@ func (b *viewModelBuilder) isPrimaryAdd(candidate models.Match, userRequestedIDs
 			break
 		}
 	}
-	// We're making graphs of specifically requested IDs, and the user didn't ask about
-	// this ID, so it can't be primary
+	// the user didn't ask about this ID, so it's not the primary one
 	if !idWasRequested && len(userRequestedIDs) > 0 {
 		return false
 	}
@@ -198,7 +182,6 @@ func (b *viewModelBuilder) isPrimaryAdd(candidate models.Match, userRequestedIDs
 		return true
 	}
 	// Either the user didn't ask for specific IDs, or the candidate has an ID the user asked for.
-	// TODO: this is the property
 	for _, related := range b.PrimaryMatch.RelatedVulnerabilities {
 		if related.ID == candidate.Vulnerability.ID {
 			return true
@@ -220,8 +203,6 @@ func (b *viewModelBuilder) WithRelatedMatch(m models.Match) *viewModelBuilder {
 func (b *viewModelBuilder) Build() ViewModel {
 	explainedPackages := groupAndSortEvidence(append(b.RelatedMatches, b.PrimaryMatch))
 
-	// TODO: this isn't right at all.
-	// We need to be able to add related vulnerabilities
 	var relatedVulnerabilities []models.VulnerabilityMetadata
 	dedupeRelatedVulnerabilities := make(map[string]models.VulnerabilityMetadata)
 	var sortDedupedRelatedVulnerabilities []string
