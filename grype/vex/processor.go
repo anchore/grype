@@ -25,12 +25,12 @@ type Processor struct {
 }
 
 type vexProcessorImplementation interface {
-	// Read ReadVexDocuments takes a list of vex filenames and returns a single
+	// ReadVexDocuments takes a list of vex filenames and returns a single
 	// value representing the VEX information in the underlying implementation's
 	// format. Returns an error if the files cannot be processed.
 	ReadVexDocuments(docs []string) (interface{}, error)
 
-	// Filter matches receives the underlying VEX implementation VEX data and
+	// FilterMatches matches receives the underlying VEX implementation VEX data and
 	// the scanning context and matching results and filters the fixed and
 	// not_affected results,moving them to the list of ignored matches.
 	FilterMatches(interface{}, []match.IgnoreRule, *pkg.Context, *match.Matches, []match.IgnoredMatch) (*match.Matches, []match.IgnoredMatch, error)
@@ -79,15 +79,17 @@ func (vm *Processor) ApplyVEX(pkgContext *pkg.Context, remainingMatches *match.M
 		return nil, nil, fmt.Errorf("parsing vex document: %w", err)
 	}
 
+	vexRules := extractVexRules(vm.Options.IgnoreRules)
+
 	remainingMatches, ignoredMatches, err = vm.impl.FilterMatches(
-		rawVexData, extractVexRules(vm.Options.IgnoreRules), pkgContext, remainingMatches, ignoredMatches,
+		rawVexData, vexRules, pkgContext, remainingMatches, ignoredMatches,
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("checking matches against VEX data: %w", err)
 	}
 
 	remainingMatches, ignoredMatches, err = vm.impl.AugmentMatches(
-		rawVexData, extractVexRules(vm.Options.IgnoreRules), pkgContext, remainingMatches, ignoredMatches,
+		rawVexData, vexRules, pkgContext, remainingMatches, ignoredMatches,
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("checking matches to augment from VEX data: %w", err)
@@ -96,7 +98,7 @@ func (vm *Processor) ApplyVEX(pkgContext *pkg.Context, remainingMatches *match.M
 	return remainingMatches, ignoredMatches, nil
 }
 
-// extractVexRules is autility function that takes a set of ignore rules and
+// extractVexRules is a utility function that takes a set of ignore rules and
 // extracts those that act on VEX statuses.
 func extractVexRules(rules []match.IgnoreRule) []match.IgnoreRule {
 	newRules := []match.IgnoreRule{}
