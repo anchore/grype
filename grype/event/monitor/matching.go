@@ -7,8 +7,10 @@ import (
 )
 
 type Matching struct {
-	PackagesProcessed         progress.Monitorable
-	VulnerabilitiesDiscovered progress.Monitorable
-	Fixed                     progress.Monitorable
-	BySeverity                map[vulnerability.Severity]progress.Monitorable
+	PackagesProcessed progress.Progressable
+	MatchesDiscovered progress.Monitorable
+	Fixed             progress.Monitorable
+	Ignored           progress.Monitorable
+	Dropped           progress.Monitorable
+	BySeverity        map[vulnerability.Severity]progress.Monitorable
 }
