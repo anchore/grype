@@ -152,6 +152,9 @@ func (ovm *Processor) FilterMatches(
 		return nil, nil, fmt.Errorf("reading product identifiers from context: %w", err)
 	}
 
+	// TODO(alex): should we apply the vex ignore rules to the already ignored matches?
+	// that way the end user sees all of the reasons a match was ignored in case multiple apply
+
 	// Now, let's go through grype's matches
 	sorted := matches.Sorted()
 	for i := range sorted {
@@ -267,7 +270,7 @@ func (ovm *Processor) AugmentMatches(
 		return nil, nil, errors.New("unable to cast vex document as openvex")
 	}
 
-	nignoredMatches := []match.IgnoredMatch{}
+	additionalIgnoredMatches := []match.IgnoredMatch{}
 
 	products, err := productIdentifiersFromContext(pkgContext)
 	if err != nil {
@@ -300,14 +303,14 @@ func (ovm *Processor) AugmentMatches(
 
 		// No data about this match's component. Next.
 		if statement == nil {
-			nignoredMatches = append(nignoredMatches, ignoredMatches[i])
+			additionalIgnoredMatches = append(additionalIgnoredMatches, ignoredMatches[i])
 			continue
 		}
 
 		// Only match if rules to augment are configured
 		rule := matchingRule(ignoreRules, ignoredMatches[i].Match, statement, augmentStatuses)
 		if rule == nil {
-			nignoredMatches = append(nignoredMatches, ignoredMatches[i])
+			additionalIgnoredMatches = append(additionalIgnoredMatches, ignoredMatches[i])
 			continue
 		}
 
@@ -324,5 +327,5 @@ func (ovm *Processor) AugmentMatches(
 		remainingMatches.Add(newMatch)
 	}
 
-	return remainingMatches, nignoredMatches, nil
+	return remainingMatches, additionalIgnoredMatches, nil
 }
