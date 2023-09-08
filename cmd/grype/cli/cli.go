@@ -4,6 +4,8 @@ import (
 	"os"
 	"runtime/debug"
 
+	"github.com/spf13/cobra"
+
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/commands"
 	handler "github.com/anchore/grype/cmd/grype/cli/ui"
@@ -15,7 +17,17 @@ import (
 	"github.com/anchore/syft/syft"
 )
 
-func New(id clio.Identification) clio.Application {
+func Application(id clio.Identification) clio.Application {
+	app, _ := create(id)
+	return app
+}
+
+func Command(id clio.Identification) *cobra.Command {
+	_, cmd := create(id)
+	return cmd
+}
+
+func create(id clio.Identification) (clio.Application, *cobra.Command) {
 	clioCfg := clio.NewSetupConfig(id).
 		WithGlobalConfigFlag().   // add persistent -c <path> for reading an application config from
 		WithGlobalLoggingFlags(). // add persistent -v and -q flags tied to the logging config
@@ -65,7 +77,7 @@ func New(id clio.Identification) clio.Application {
 		clio.VersionCommand(id, syftVersion),
 	)
 
-	return app
+	return app, rootCmd
 }
 
 func syftVersion() (string, string) {

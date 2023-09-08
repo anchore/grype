@@ -20,7 +20,7 @@ var (
 )
 
 func main() {
-	app := cli.New(
+	app := cli.Application(
 		clio.Identification{
 			Name:           applicationName,
 			Version:        version,
