@@ -20,9 +20,9 @@ type IgnoreRule struct {
 	Vulnerability    string            `yaml:"vulnerability" json:"vulnerability" mapstructure:"vulnerability"`
 	Namespace        string            `yaml:"namespace" json:"namespace" mapstructure:"namespace"`
 	FixState         string            `yaml:"fix-state" json:"fix-state" mapstructure:"fix-state"`
+	Package          IgnoreRulePackage `yaml:"package" json:"package" mapstructure:"package"`
 	VexStatus        string            `yaml:"vex-status" json:"vex-status" mapstructure:"vex-status"`
 	VexJustification string            `yaml:"vex-justification" json:"vex-justification" mapstructure:"vex-justification"`
-	Package          IgnoreRulePackage `yaml:"package" json:"package" mapstructure:"package"`
 }
 
 // IgnoreRulePackage describes the Package-specific fields that comprise the IgnoreRule.

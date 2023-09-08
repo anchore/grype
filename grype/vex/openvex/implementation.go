@@ -56,9 +56,9 @@ func (ovm *Processor) ReadVexDocuments(docs []string) (interface{}, error) {
 	return vexdata, nil
 }
 
-// productIDentifiersFromContext reads the package context and returns software
+// productIdentifiersFromContext reads the package context and returns software
 // identifiers identifying the scanned image.
-func productIDentifiersFromContext(pkgContext *pkg.Context) ([]string, error) {
+func productIdentifiersFromContext(pkgContext *pkg.Context) ([]string, error) {
 	switch v := pkgContext.Source.Metadata.(type) {
 	case source.StereoscopeImageSourceMetadata:
 		// TODO(puerco): We can create a wider definition here. This effectively
@@ -147,7 +147,7 @@ func (ovm *Processor) FilterMatches(
 
 	remainingMatches := match.NewMatches()
 
-	products, err := productIDentifiersFromContext(pkgContext)
+	products, err := productIdentifiersFromContext(pkgContext)
 	if err != nil {
 		return nil, nil, fmt.Errorf("reading product identifiers from context: %w", err)
 	}
@@ -269,7 +269,7 @@ func (ovm *Processor) AugmentMatches(
 
 	nignoredMatches := []match.IgnoredMatch{}
 
-	products, err := productIDentifiersFromContext(pkgContext)
+	products, err := productIdentifiersFromContext(pkgContext)
 	if err != nil {
 		return nil, nil, fmt.Errorf("reading product identifiers from context: %w", err)
 	}
