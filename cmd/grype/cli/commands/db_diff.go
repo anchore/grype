@@ -15,8 +15,8 @@ import (
 )
 
 type dbDiffOptions struct {
-	Output    string
-	Delete    bool
+	Output    string `yaml:"output" json:"output" mapstructure:"output"`
+	Delete    bool   `yaml:"delete" json:"delete" mapstructure:"delete"`
 	DBOptions `yaml:",inline" mapstructure:",squash"`
 }
 

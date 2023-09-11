@@ -13,7 +13,7 @@ import (
 )
 
 type dbListOptions struct {
-	Output    string
+	Output    string `yaml:"output" json:"output" mapstructure:"output"`
 	DBOptions `yaml:",inline" mapstructure:",squash"`
 }
 
