@@ -10,7 +10,7 @@ const (
 
 type externalSources struct {
 	Enable bool  `yaml:"enable" json:"enable" mapstructure:"enable"`
-	Maven  maven `yaml:"maven" json:"maven" mapsructure:"maven"`
+	Maven  maven `yaml:"maven" json:"maven" mapstructure:"maven"`
 }
 
 type maven struct {
