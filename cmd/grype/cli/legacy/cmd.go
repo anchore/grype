@@ -38,6 +38,11 @@ func init() {
 	)
 }
 
+func NewCli() *cobra.Command {
+	rootCmd.AddCommand(explainCmd)
+	return rootCmd
+}
+
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		_ = stderrPrintLnf(err.Error())
