@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/anchore/clio"
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/internal"
@@ -17,7 +18,7 @@ import (
 	"github.com/anchore/syft/syft/source"
 )
 
-var update = flag.Bool("update", false, "update .golden files for sarif presenters")
+var updateSnapshot = flag.Bool("update-sarif", false, "update .golden files for sarif presenters")
 
 func TestSarifPresenter(t *testing.T) {
 	tests := []struct {
@@ -41,6 +42,9 @@ func TestSarifPresenter(t *testing.T) {
 			matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, tc.scheme)
 
 			pb := models.PresenterConfig{
+				ID: clio.Identification{
+					Name: "grype",
+				},
 				Matches:          matches,
 				Packages:         packages,
 				Context:          context,
@@ -54,7 +58,7 @@ func TestSarifPresenter(t *testing.T) {
 			}
 
 			actual := buffer.Bytes()
-			if *update {
+			if *updateSnapshot {
 				testutils.UpdateGoldenFileContents(t, actual)
 			}
 

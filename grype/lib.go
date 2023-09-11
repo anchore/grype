@@ -13,5 +13,5 @@ func SetLogger(l logger.Logger) {
 }
 
 func SetBus(b *partybus.Bus) {
-	bus.SetPublisher(b)
+	bus.Set(b)
 }

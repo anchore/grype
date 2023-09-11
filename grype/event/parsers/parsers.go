@@ -74,17 +74,22 @@ func ParseDatabaseDiffingStarted(e partybus.Event) (*monitor.DBDiff, error) {
 	return &mon, nil
 }
 
-func ParseCLIAppUpdateAvailable(e partybus.Event) (string, error) {
+type UpdateCheck struct {
+	New     string
+	Current string
+}
+
+func ParseCLIAppUpdateAvailable(e partybus.Event) (*UpdateCheck, error) {
 	if err := checkEventType(e.Type, event.CLIAppUpdateAvailable); err != nil {
-		return "", err
+		return nil, err
 	}
 
-	newVersion, ok := e.Value.(string)
+	updateCheck, ok := e.Value.(UpdateCheck)
 	if !ok {
-		return "", newPayloadErr(e.Type, "Value", e.Value)
+		return nil, newPayloadErr(e.Type, "Value", e.Value)
 	}
 
-	return newVersion, nil
+	return &updateCheck, nil
 }
 
 func ParseCLIReport(e partybus.Event) (string, string, error) {

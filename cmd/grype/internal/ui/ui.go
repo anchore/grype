@@ -33,7 +33,7 @@ type UI struct {
 	frame   tea.Model
 }
 
-func New(_, quiet bool, hs ...bubbly.EventHandler) *UI {
+func New(quiet bool, hs ...bubbly.EventHandler) *UI {
 	return &UI{
 		handler: bubbly.NewHandlerCollection(hs...),
 		frame:   frame.New(),

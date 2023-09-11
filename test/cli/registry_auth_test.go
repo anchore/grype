@@ -40,7 +40,7 @@ func TestRegistryAuth(t *testing.T) {
 			args: []string{"-vv", "registry:localhost:5000/something:latest"},
 			env: map[string]string{
 				"GRYPE_REGISTRY_AUTH_AUTHORITY": "localhost:5000",
-				"GRYPE_REGISTRY_AUTH_TOKEN":     "token",
+				"GRYPE_REGISTRY_AUTH_TOKEN":     "my-token",
 			},
 			assertions: []traitAssertion{
 				assertInOutput("source=OciRegistry"),

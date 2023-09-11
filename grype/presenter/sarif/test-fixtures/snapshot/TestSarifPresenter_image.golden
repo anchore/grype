@@ -5,7 +5,7 @@
     {
       "tool": {
         "driver": {
-          "name": "Grype",
+          "name": "grype",
           "version": "0.0.0-dev",
           "informationUri": "https://github.com/anchore/grype",
           "rules": [
