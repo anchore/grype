@@ -74,6 +74,7 @@ func create(id clio.Identification) (clio.Application, *cobra.Command) {
 	rootCmd.AddCommand(
 		commands.DB(app),
 		commands.Completion(),
+		commands.Explain(app),
 		clio.VersionCommand(id, syftVersion),
 	)
 
