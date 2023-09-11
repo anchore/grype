@@ -31,11 +31,9 @@ type ViewModel struct {
 }
 
 type viewModelBuilder struct {
-	// TODO: this field is unused. Need think a bit more here.
-	PrimaryVulnerability models.Vulnerability // this is the vulnerability we're trying to explain
-	PrimaryMatch         models.Match         // The primary vulnerability
-	RelatedMatches       []models.Match
-	requestedIDs         []string // the vulnerability IDs the user requested explanations of
+	PrimaryMatch   models.Match // The match that seems to be the one we're trying to explain
+	RelatedMatches []models.Match
+	requestedIDs   []string // the vulnerability IDs the user requested explanations of
 }
 
 type Findings map[string]ViewModel
@@ -43,7 +41,7 @@ type Findings map[string]ViewModel
 type explainedPackage struct {
 	PURL                string
 	Name                string
-	Version             string // TODO: is there only going to be one of these?
+	Version             string
 	MatchedOnID         string
 	MatchedOnNamespace  string
 	IndirectExplanation string
@@ -128,7 +126,6 @@ func Doc(doc *models.Document, requestedIDs []string) (Findings, error) {
 				existing = newBuilder(requestedIDs)
 				builders[key] = existing
 			}
-			// TODO: need to pass in info about the related vulnerability
 			existing.WithMatch(m, requestedIDs)
 		}
 	}
@@ -159,7 +156,6 @@ func (b *viewModelBuilder) WithMatch(m models.Match, userRequestedIDs []string) 
 	}
 }
 
-// TODO: is this still needed?
 func (b *viewModelBuilder) isPrimaryAdd(candidate models.Match, userRequestedIDs []string) bool {
 	if b.PrimaryMatch.Vulnerability.ID == "" {
 		return true
