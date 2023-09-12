@@ -187,13 +187,6 @@ func (ovm *Processor) FilterMatches(
 			continue
 		}
 
-		rule.Package = match.IgnoreRulePackage{
-			Name:     sorted[i].Package.Name,
-			Version:  sorted[i].Package.Version,
-			Language: sorted[i].Package.Language.String(),
-			Type:     string(sorted[i].Package.Type),
-		}
-
 		ignoredMatches = append(ignoredMatches, match.IgnoredMatch{
 			Match:              sorted[i],
 			AppliedIgnoreRules: []match.IgnoreRule{*rule},
