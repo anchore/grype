@@ -30,6 +30,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/store"
+	"github.com/anchore/grype/grype/vex"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/format"
@@ -92,6 +93,11 @@ var ignoreNonFixedMatches = []match.IgnoreRule{
 
 var ignoreFixedMatches = []match.IgnoreRule{
 	{FixState: string(grypeDb.FixedState)},
+}
+
+var ignoreVEXFixedNotAffected = []match.IgnoreRule{
+	{VexStatus: string(vex.StatusNotAffected)},
+	{VexStatus: string(vex.StatusFixed)},
 }
 
 //nolint:funlen
@@ -166,6 +172,11 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) error
 			opts.Ignore = append(opts.Ignore, ignoreFixedMatches...)
 		}
 
+		if err := applyVexRules(opts); err != nil {
+			errs <- fmt.Errorf("applying vex rules: %w", err)
+			return
+		}
+
 		applyDistroHint(packages, &pkgContext, opts)
 
 		vulnMatcher := grype.VulnerabilityMatcher{
@@ -175,8 +186,8 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) error
 			FailSeverity:   opts.FailOnServerity(),
 			Matchers:       getMatchers(opts),
 			VexProcessor: vex.NewProcessor(vex.ProcessorOptions{
-				Documents:   appConfig.VexDocuments,
-				IgnoreRules: appConfig.Ignore,
+				Documents:   opts.VexDocuments,
+				IgnoreRules: opts.Ignore,
 			}),
 		}
 
@@ -345,4 +356,27 @@ func validateRootArgs(cmd *cobra.Command, args []string) error {
 	}
 
 	return cobra.MaximumNArgs(1)(cmd, args)
+}
+
+func applyVexRules(opts *options.Grype) error {
+	if len(opts.Ignore) == 0 && len(opts.VexDocuments) > 0 {
+		opts.Ignore = append(opts.Ignore, ignoreVEXFixedNotAffected...)
+	}
+
+	for _, vexStatus := range opts.VexAdd {
+		switch vexStatus {
+		case string(vex.StatusAffected):
+			opts.Ignore = append(
+				opts.Ignore, match.IgnoreRule{VexStatus: string(vex.StatusAffected)},
+			)
+		case string(vex.StatusUnderInvestigation):
+			opts.Ignore = append(
+				opts.Ignore, match.IgnoreRule{VexStatus: string(vex.StatusUnderInvestigation)},
+			)
+		default:
+			return fmt.Errorf("invalid VEX status in vex-add setting: %s", vexStatus)
+		}
+	}
+
+	return nil
 }

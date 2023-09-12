@@ -32,6 +32,8 @@ type Grype struct {
 	ByCVE                  bool               `yaml:"by-cve" json:"by-cve" mapstructure:"by-cve"` // --by-cve, indicates if the original match vulnerability IDs should be preserved or the CVE should be used instead
 	Name                   string             `yaml:"name" json:"name" mapstructure:"name"`
 	DefaultImagePullSource string             `yaml:"default-image-pull-source" json:"default-image-pull-source" mapstructure:"default-image-pull-source"`
+	VexDocuments           []string           `yaml:"vex-documents" json:"vex-documents" mapstructure:"vex-documents"`
+	VexAdd                 []string           `yaml:"vex-add" json:"vex-add" mapstructure:"vex-add"` // GRYPE_VEX_ADD
 }
 
 var _ interface {
@@ -46,6 +48,7 @@ func DefaultGrype(id clio.Identification) *Grype {
 		Match:             defaultMatchConfig(),
 		ExternalSources:   defaultExternalSources(),
 		CheckForAppUpdate: true,
+		VexAdd:            []string{},
 	}
 }
 
@@ -117,6 +120,11 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 	flags.StringVarP(&o.Platform,
 		"platform", "",
 		"an optional platform specifier for container image sources (e.g. 'linux/arm64', 'linux/arm64/v8', 'arm64', 'linux')",
+	)
+
+	flags.StringArrayVarP(&o.VexDocuments,
+		"vex", "",
+		"a list of VEX documents to consider when producing scanning results",
 	)
 }
 
