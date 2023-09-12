@@ -174,6 +174,10 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) error
 			NormalizeByCVE: opts.ByCVE,
 			FailSeverity:   opts.FailOnServerity(),
 			Matchers:       getMatchers(opts),
+			VexProcessor: vex.NewProcessor(vex.ProcessorOptions{
+				Documents:   appConfig.VexDocuments,
+				IgnoreRules: appConfig.Ignore,
+			}),
 		}
 
 		remainingMatches, ignoredMatches, err := vulnMatcher.FindMatches(packages, pkgContext)
