@@ -931,8 +931,8 @@ github.com/wagoodman/go-partybus v0.0.0-20230516145632-8ccac152c651 h1:jIVmlAFIq
 github.com/wagoodman/go-partybus v0.0.0-20230516145632-8ccac152c651/go.mod h1:b26F2tHLqaoRQf8DywqzVaV1MQ9yvjb0OMcNl7Nxu20=
 github.com/wagoodman/go-presenter v0.0.0-20211015174752-f9c01afc824b h1:uWNQ0khA6RdFzODOMwKo9XXu7fuewnnkHykUtuKru8s=
 github.com/wagoodman/go-presenter v0.0.0-20211015174752-f9c01afc824b/go.mod h1:ewlIKbKV8l+jCj8rkdXIs361ocR5x3qGyoCSca47Gx8=
-github.com/wagoodman/go-progress v0.0.0-20230301185719-21920a456ad5 h1:lwgTsTy18nYqASnH58qyfRW/ldj7Gt2zzBvgYPzdA4s=
-github.com/wagoodman/go-progress v0.0.0-20230301185719-21920a456ad5/go.mod h1:jLXFoL31zFaHKAAyZUh+sxiTDFe1L1ZHrcK2T1itVKA=
+github.com/wagoodman/go-progress v0.0.0-20230911172108-cf810b7e365c h1:mM8T8YhiD19d2wYv3vqZn8xpe1ZFJrUJCGlK4IV05xM=
+github.com/wagoodman/go-progress v0.0.0-20230911172108-cf810b7e365c/go.mod h1:jLXFoL31zFaHKAAyZUh+sxiTDFe1L1ZHrcK2T1itVKA=
 github.com/x-cray/logrus-prefixed-formatter v0.5.2 h1:00txxvfBM9muc0jiLIEAkAcIMJzfthRT6usrui8uGmg=
 github.com/x-cray/logrus-prefixed-formatter v0.5.2/go.mod h1:2duySbKsL6M18s5GU7VPsoEPHyzalCE06qoARUCeBBE=
 github.com/xanzy/ssh-agent v0.3.3 h1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=
