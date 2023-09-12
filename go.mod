@@ -26,6 +26,7 @@ require (
 	github.com/gkampitakis/go-snaps v0.4.10
 	github.com/go-test/deep v1.1.0
 	github.com/google/go-cmp v0.5.9
+	github.com/google/go-containerregistry v0.16.1
 	github.com/google/uuid v1.3.1
 	github.com/gookit/color v1.5.4
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
@@ -40,6 +41,7 @@ require (
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/olekukonko/tablewriter v0.0.5
+	github.com/openvex/go-vex v0.2.5
 	github.com/owenrumney/go-sarif v1.1.1
 	github.com/pkg/profile v1.7.0 // indirect
 	// pinned to pull in 386 arch fix: https://github.com/scylladb/go-set/commit/cc7b2070d91ebf40d233207b633e28f5bd8f03a5
@@ -57,13 +59,7 @@ require (
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
 	golang.org/x/term v0.12.0 // indirect
 	gorm.io/gorm v1.23.10
-)
-
-require modernc.org/sqlite v1.25.0
-
-require (
-	github.com/google/go-containerregistry v0.16.1
-	github.com/openvex/go-vex v0.2.5
+	modernc.org/sqlite v1.25.0
 )
 
 require (

@@ -52,6 +52,7 @@ func DefaultGrype(id clio.Identification) *Grype {
 	}
 }
 
+// nolint:funlen
 func (o *Grype) AddFlags(flags clio.FlagSet) {
 	flags.StringVarP(&o.Search.Scope,
 		"scope", "s",
