@@ -233,5 +233,3 @@ require (
 	modernc.org/strutil v1.1.3 // indirect
 	modernc.org/token v1.1.0 // indirect
 )
-
-replace google.golang.org/grpc@latest => google.golang.org/grpc v1.29.1
