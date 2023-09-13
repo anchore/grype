@@ -1,3 +1,4 @@
+/.tool-versions
 /go.work
 /go.work.sum
 /.grype.yaml

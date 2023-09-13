@@ -17,10 +17,12 @@ type IgnoredMatch struct {
 // specified criteria must be met by the vulnerability match in order for the
 // rule to apply.
 type IgnoreRule struct {
-	Vulnerability string            `yaml:"vulnerability" json:"vulnerability" mapstructure:"vulnerability"`
-	Namespace     string            `yaml:"namespace" json:"namespace" mapstructure:"namespace"`
-	FixState      string            `yaml:"fix-state" json:"fix-state" mapstructure:"fix-state"`
-	Package       IgnoreRulePackage `yaml:"package" json:"package" mapstructure:"package"`
+	Vulnerability    string            `yaml:"vulnerability" json:"vulnerability" mapstructure:"vulnerability"`
+	Namespace        string            `yaml:"namespace" json:"namespace" mapstructure:"namespace"`
+	FixState         string            `yaml:"fix-state" json:"fix-state" mapstructure:"fix-state"`
+	Package          IgnoreRulePackage `yaml:"package" json:"package" mapstructure:"package"`
+	VexStatus        string            `yaml:"vex-status" json:"vex-status" mapstructure:"vex-status"`
+	VexJustification string            `yaml:"vex-justification" json:"vex-justification" mapstructure:"vex-justification"`
 }
 
 // IgnoreRulePackage describes the Package-specific fields that comprise the IgnoreRule.
@@ -67,6 +69,11 @@ func ApplyIgnoreRules(matches Matches, rules []IgnoreRule) (Matches, []IgnoredMa
 }
 
 func shouldIgnore(match Match, rule IgnoreRule) bool {
+	// VEX rules are handled by the vex processor
+	if rule.VexStatus != "" {
+		return false
+	}
+
 	ignoreConditions := getIgnoreConditionsForRule(rule)
 	if len(ignoreConditions) == 0 {
 		// this rule specifies no criteria, so it doesn't apply to the Match
@@ -82,6 +89,12 @@ func shouldIgnore(match Match, rule IgnoreRule) bool {
 
 	// all criteria specified in the rule apply to this Match
 	return true
+}
+
+// HasConditions returns true if the ignore rule has conditions
+// that can cause a match to be ignored
+func (ir IgnoreRule) HasConditions() bool {
+	return len(getIgnoreConditionsForRule(ir)) == 0
 }
 
 // An ignoreCondition is a function that returns a boolean indicating whether

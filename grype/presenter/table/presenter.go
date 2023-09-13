@@ -16,7 +16,8 @@ import (
 )
 
 const (
-	appendSuppressed = " (suppressed)"
+	appendSuppressed    = " (suppressed)"
+	appendSuppressedVEX = " (suppressed by VEX)"
 )
 
 // Presenter is a generic struct for holding fields needed for reporting
@@ -56,7 +57,15 @@ func (pres *Presenter) Present(output io.Writer) error {
 	// Generate rows for suppressed vulnerabilities
 	if pres.showSuppressed {
 		for _, m := range pres.ignoredMatches {
-			row, err := createRow(m.Match, pres.metadataProvider, appendSuppressed)
+			msg := appendSuppressed
+			if m.AppliedIgnoreRules != nil {
+				for i := range m.AppliedIgnoreRules {
+					if m.AppliedIgnoreRules[i].Namespace == "vex" {
+						msg = appendSuppressedVEX
+					}
+				}
+			}
+			row, err := createRow(m.Match, pres.metadataProvider, msg)
 
 			if err != nil {
 				return err
