@@ -58,7 +58,7 @@ require (
 	github.com/wagoodman/go-progress v0.0.0-20230911172108-cf810b7e365c
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
 	golang.org/x/term v0.12.0 // indirect
-	gorm.io/gorm v1.23.10
+	gorm.io/gorm v1.25.4
 	modernc.org/sqlite v1.25.0
 )
 
