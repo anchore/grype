@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -9,6 +10,10 @@ import (
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/internal/bus"
+)
+
+const (
+	exitCodeOnDBUpgradeAvailable = 100
 )
 
 func DBCheck(app clio.Application) *cobra.Command {
@@ -50,6 +55,8 @@ func runDBCheck(opts options.Database) error {
 	fmt.Printf("Updated DB version %d was built on %s\n", updateDBEntry.Version, updateDBEntry.Built.String())
 	fmt.Printf("Updated DB URL: %s\n", updateDBEntry.URL.String())
 	fmt.Println("You can run 'grype db update' to update to the latest db")
+
+	os.Exit(exitCodeOnDBUpgradeAvailable) //nolint:gocritic
 
 	return nil
 }
