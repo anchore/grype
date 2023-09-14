@@ -1,0 +1,89 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://openvex.dev/docs/public/vex-d4e9020b6d0d26f131d535e055902dd6ccf3e2088bce3079a8cd3588a4b14c78",
+  "author": "The OpenVEX Project <openvex@openssf.org>",
+  "role": "Demo Writer",
+  "timestamp": "2023-07-17T18:28:47.696004345-06:00",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2023-1255"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/alpine@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
+          "subcomponents": [
+            { "@id": "pkg:apk/alpine/libssl3@3.0.8-r3" },
+            { "@id": "pkg:apk/alpine/libcrypto3@3.0.8-r3" }
+          ]
+        }
+      ],
+      "status": "fixed"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2023-2650"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/alpine@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
+          "subcomponents": [
+            { "@id": "pkg:apk/alpine/libssl3@3.0.8-r3" },
+            { "@id": "pkg:apk/alpine/libcrypto3@3.0.8-r3" }
+          ]
+        }
+      ],
+      "status": "fixed"
+    },
+    {
+        "vulnerability": {
+          "name": "CVE-2023-2975"
+        },
+        "products": [
+          {
+            "@id": "pkg:oci/alpine@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
+            "subcomponents": [
+              { "@id": "pkg:apk/alpine/libssl3@3.0.8-r3" },
+              { "@id": "pkg:apk/alpine/libcrypto3@3.0.8-r3" }
+            ]
+          }
+        ],
+        "status": "fixed"
+      },
+      {
+        "vulnerability": {
+          "name": "CVE-2023-3446"
+        },
+        "products": [
+          {
+            "@id": "pkg:oci/alpine@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
+            "subcomponents": [
+              { "@id": "pkg:apk/alpine/libssl3@3.0.8-r3" },
+              { "@id": "pkg:apk/alpine/libcrypto3@3.0.8-r3" }
+            ]
+          }
+        ],
+        "status": "not_affected",
+        "justification": "vulnerable_code_not_present",
+        "impact_statement": "affected functions were removed before packaging"
+      },
+      {
+        "vulnerability": {
+          "name": "CVE-2023-3817"
+        },
+        "products": [
+          {
+            "@id": "pkg:oci/alpine@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
+            "subcomponents": [
+              { "@id": "pkg:apk/alpine/libssl3@3.0.8-r3" },
+              { "@id": "pkg:apk/alpine/libcrypto3@3.0.8-r3" }
+            ]
+          }
+        ],
+        "status": "not_affected",
+        "justification": "vulnerable_code_not_present",
+        "impact_statement": "affected functions were removed before packaging"
+      }
+  ]
+}

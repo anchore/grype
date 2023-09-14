@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/facebookincubator/nvdtools/wfn"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
@@ -15,10 +16,12 @@ import (
 	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/store"
+	"github.com/anchore/grype/grype/vex"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/stringutil"
 	"github.com/anchore/stereoscope/pkg/imagetest"
 	"github.com/anchore/syft/syft"
+	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/pkg/cataloger"
 	"github.com/anchore/syft/syft/source"
@@ -653,6 +656,49 @@ func TestMatchByImage(t *testing.T) {
 		})
 	}
 
+	// Test that VEX matchers produce matches when fed documents with "affected"
+	// statuses.
+	for n, tc := range map[string]struct {
+		vexStatus    vex.Status
+		vexDocuments []string
+	}{
+		"openvex-affected":            {vex.StatusAffected, []string{"test-fixtures/vex/openvex/affected.openvex.json"}},
+		"openvex-under_investigation": {vex.StatusUnderInvestigation, []string{"test-fixtures/vex/openvex/under_investigation.openvex.json"}},
+	} {
+		t.Run(n, func(t *testing.T) {
+			ignoredMatches := testIgnoredMatches()
+			vexedResults := vexMatches(t, ignoredMatches, tc.vexStatus, tc.vexDocuments)
+			if len(vexedResults.Sorted()) != 1 {
+				t.Errorf("expected one vexed result, got none")
+			}
+
+			expectedMatches := match.NewMatches()
+
+			// The single match in the actual results is the same in ignoredMatched
+			// but must the details of the VEX matcher appended
+			result := vexedResults.Sorted()[0]
+			if len(result.Details) != len(ignoredMatches[0].Match.Details)+1 {
+				t.Errorf(
+					"Details in VEXed results don't match (expected %d, got %d)",
+					len(ignoredMatches[0].Match.Details)+1, len(result.Details),
+				)
+			}
+
+			result.Details = result.Details[:len(result.Details)-1]
+			actualResults := match.NewMatches()
+			actualResults.Add(result)
+
+			expectedMatches.Add(ignoredMatches[0].Match)
+			assertMatches(t, expectedMatches.Sorted(), actualResults.Sorted())
+
+			for _, m := range vexedResults.Sorted() {
+				for _, d := range m.Details {
+					observedMatchers.Add(string(d.Matcher))
+				}
+			}
+		})
+	}
+
 	// ensure that integration test cases stay in sync with the implemented matchers
 	observedMatchers.Remove(string(match.StockMatcher))
 	definedMatchers.Remove(string(match.StockMatcher))
@@ -668,6 +714,95 @@ func TestMatchByImage(t *testing.T) {
 		t.Log(cmp.Diff(defs, obs))
 	}
 
+}
+
+// testIgnoredMatches returns an list of ignored matches to test the vex
+// matchers
+func testIgnoredMatches() []match.IgnoredMatch {
+	return []match.IgnoredMatch{
+		{
+			Match: match.Match{
+				Vulnerability: vulnerability.Vulnerability{
+					ID:        "CVE-alpine-libvncserver",
+					Namespace: "alpine:distro:alpine:3.12",
+				},
+				Package: pkg.Package{
+					ID:       "44fa3691ae360cac",
+					Name:     "libvncserver",
+					Version:  "0.9.9",
+					Licenses: []string{"GPL-2.0-or-later"},
+					Type:     "apk",
+					CPEs: []wfn.Attributes{
+						{
+							Part:    "a",
+							Vendor:  "libvncserver",
+							Product: "libvncserver",
+							Version: "0.9.9",
+						},
+					},
+					PURL:      "pkg:apk/alpine/libvncserver@0.9.9?arch=x86_64&distro=alpine-3.12.0",
+					Upstreams: []pkg.UpstreamPackage{{Name: "libvncserver"}},
+				},
+				Details: []match.Detail{
+					{
+						Type: "exact-indirect-match",
+						SearchedBy: map[string]any{
+							"distro": map[string]string{
+								"type":    "alpine",
+								"version": "3.12.0",
+							},
+							"namespace": "alpine:distro:alpine:3.12",
+							"package": map[string]string{
+								"name":    "libvncserver",
+								"version": "0.9.9",
+							},
+						},
+						Found: map[string]any{
+							"versionConstraint": "< 0.9.10 (unknown)",
+							"vulnerabilityID":   "CVE-alpine-libvncserver",
+						},
+						Matcher:    "apk-matcher",
+						Confidence: 1,
+					},
+				},
+			},
+			AppliedIgnoreRules: []match.IgnoreRule{},
+		},
+	}
+}
+
+// vexMatches moves the first match of a matches list to an ignore list and
+// applies a VEX "affected" document to it to move it to the matches list.
+func vexMatches(t *testing.T, ignoredMatches []match.IgnoredMatch, vexStatus vex.Status, vexDocuments []string) match.Matches {
+	matches := match.NewMatches()
+	vexMatcher := vex.NewProcessor(vex.ProcessorOptions{
+		Documents: vexDocuments,
+		IgnoreRules: []match.IgnoreRule{
+			{VexStatus: string(vexStatus)},
+		},
+	})
+
+	pctx := &pkg.Context{
+		Source: &source.Description{
+			Metadata: source.StereoscopeImageSourceMetadata{
+				RepoDigests: []string{
+					"alpine@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+				},
+			},
+		},
+		Distro: &linux.Release{},
+	}
+
+	vexedMatches, ignoredMatches, err := vexMatcher.ApplyVEX(pctx, &matches, ignoredMatches)
+	if err != nil {
+		t.Errorf("applying VEX data: %s", err)
+	}
+
+	if len(ignoredMatches) != 0 {
+		t.Errorf("VEX text fixture %s must affect all ignored matches (%d left)", vexDocuments, len(ignoredMatches))
+	}
+
+	return *vexedMatches
 }
 
 func assertMatches(t *testing.T, expected, actual []match.Match) {

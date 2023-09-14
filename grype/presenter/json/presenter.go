@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
+	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -12,6 +13,7 @@ import (
 
 // Presenter is a generic struct for holding fields needed for reporting
 type Presenter struct {
+	id               clio.Identification
 	matches          match.Matches
 	ignoredMatches   []match.IgnoredMatch
 	packages         []pkg.Package
@@ -24,6 +26,7 @@ type Presenter struct {
 // NewPresenter creates a new JSON presenter
 func NewPresenter(pb models.PresenterConfig) *Presenter {
 	return &Presenter{
+		id:               pb.ID,
 		matches:          pb.Matches,
 		ignoredMatches:   pb.IgnoredMatches,
 		packages:         pb.Packages,
@@ -36,7 +39,7 @@ func NewPresenter(pb models.PresenterConfig) *Presenter {
 
 // Present creates a JSON-based reporting
 func (pres *Presenter) Present(output io.Writer) error {
-	doc, err := models.NewDocument(pres.packages, pres.context, pres.matches, pres.ignoredMatches, pres.metadataProvider,
+	doc, err := models.NewDocument(pres.id, pres.packages, pres.context, pres.matches, pres.ignoredMatches, pres.metadataProvider,
 		pres.appConfig, pres.dbStatus)
 	if err != nil {
 		return err

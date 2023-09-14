@@ -21,8 +21,8 @@ type Match struct {
 type MatchDetails struct {
 	Type       string      `json:"type"`
 	Matcher    string      `json:"matcher"`
-	SearchedBy interface{} `json:"searchedBy"`
-	Found      interface{} `json:"found"`
+	SearchedBy interface{} `json:"searchedBy"` // The specific attributes that were used to search (other than package name and version) --this indicates "how" the match was made.
+	Found      interface{} `json:"found"`      // The specific attributes on the vulnerability object that were matched with --this indicates "what" was matched on / within.
 }
 
 func newMatch(m match.Match, p pkg.Package, metadataProvider vulnerability.MetadataProvider) (*Match, error) {

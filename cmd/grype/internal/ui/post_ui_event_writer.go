@@ -12,7 +12,6 @@ import (
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/event/parsers"
 	"github.com/anchore/grype/internal/log"
-	"github.com/anchore/grype/internal/version"
 )
 
 type postUIEventWriter struct {
@@ -119,17 +118,17 @@ func writeAppUpdate(writer io.Writer, events ...partybus.Event) error {
 	style := lipgloss.NewStyle().Foreground(lipgloss.Color("13")).Italic(true)
 
 	for _, e := range events {
-		newVersion, err := parsers.ParseCLIAppUpdateAvailable(e)
+		version, err := parsers.ParseCLIAppUpdateAvailable(e)
 		if err != nil {
 			log.WithFields("error", err).Warn("failed to parse app update notification")
 			continue
 		}
 
-		if newVersion == "" {
+		if version.New == "" {
 			continue
 		}
 
-		notice := fmt.Sprintf("A newer version of grype is available for download: %s (installed version is %s)", newVersion, version.FromBuild().Version)
+		notice := fmt.Sprintf("A newer version of grype is available for download: %s (installed version is %s)", version.New, version.Current)
 
 		if _, err := fmt.Fprintln(writer, style.Render(notice)); err != nil {
 			// don't let this be fatal

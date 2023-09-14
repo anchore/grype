@@ -39,7 +39,7 @@ func TestCmd(t *testing.T) {
 		},
 		{
 			name: "responds-to-search-options",
-			args: []string{"-vv"},
+			args: []string{"--help"},
 			env: map[string]string{
 				"GRYPE_SEARCH_UNINDEXED_ARCHIVES": "true",
 				"GRYPE_SEARCH_INDEXED_ARCHIVES":   "false",
@@ -51,7 +51,7 @@ func TestCmd(t *testing.T) {
 				// package-cataloger-level options.
 				assertInOutput("unindexed-archives: true"),
 				assertInOutput("indexed-archives: false"),
-				assertInOutput("scope: all-layers"),
+				assertInOutput("scope: 'all-layers'"),
 			},
 		},
 		{

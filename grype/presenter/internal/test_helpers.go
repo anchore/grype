@@ -10,6 +10,7 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
+	"github.com/anchore/grype/grype/vex"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft/artifact"
@@ -148,64 +149,89 @@ func generateMatches(t *testing.T, p, p2 pkg.Package) match.Matches {
 	return collection
 }
 
+// nolint: funlen
 func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 	t.Helper()
 
-	matches := []match.Match{
+	return []match.IgnoredMatch{
 		{
-
-			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-1999-0001",
-				Namespace: "source-1",
-			},
-			Package: p,
-			Details: []match.Detail{
-				{
-					Type:    match.ExactDirectMatch,
-					Matcher: match.DpkgMatcher,
-					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    "ubuntu",
-							"version": "20.04",
+			Match: match.Match{
+				Vulnerability: vulnerability.Vulnerability{
+					ID:        "CVE-1999-0001",
+					Namespace: "source-1",
+				},
+				Package: p,
+				Details: []match.Detail{
+					{
+						Type:    match.ExactDirectMatch,
+						Matcher: match.DpkgMatcher,
+						SearchedBy: map[string]interface{}{
+							"distro": map[string]string{
+								"type":    "ubuntu",
+								"version": "20.04",
+							},
+						},
+						Found: map[string]interface{}{
+							"constraint": ">= 20",
 						},
 					},
-					Found: map[string]interface{}{
-						"constraint": ">= 20",
-					},
 				},
 			},
+			AppliedIgnoreRules: []match.IgnoreRule{},
 		},
 		{
-
-			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-1999-0002",
-				Namespace: "source-2",
+			Match: match.Match{
+				Vulnerability: vulnerability.Vulnerability{
+					ID:        "CVE-1999-0002",
+					Namespace: "source-2",
+				},
+				Package: p,
+				Details: []match.Detail{
+					{
+						Type:    match.ExactDirectMatch,
+						Matcher: match.DpkgMatcher,
+						SearchedBy: map[string]interface{}{
+							"cpe": "somecpe",
+						},
+						Found: map[string]interface{}{
+							"constraint": "somecpe",
+						},
+					},
+				},
 			},
-			Package: p,
-			Details: []match.Detail{
+			AppliedIgnoreRules: []match.IgnoreRule{},
+		},
+		{
+			Match: match.Match{
+				Vulnerability: vulnerability.Vulnerability{
+					ID:        "CVE-1999-0004",
+					Namespace: "source-2",
+				},
+				Package: p,
+				Details: []match.Detail{
+					{
+						Type:    match.ExactDirectMatch,
+						Matcher: match.DpkgMatcher,
+						SearchedBy: map[string]interface{}{
+							"cpe": "somecpe",
+						},
+						Found: map[string]interface{}{
+							"constraint": "somecpe",
+						},
+					},
+				},
+			},
+			AppliedIgnoreRules: []match.IgnoreRule{
 				{
-					Type:    match.ExactDirectMatch,
-					Matcher: match.DpkgMatcher,
-					SearchedBy: map[string]interface{}{
-						"cpe": "somecpe",
-					},
-					Found: map[string]interface{}{
-						"constraint": "somecpe",
-					},
+					Vulnerability:    "CVE-1999-0004",
+					Namespace:        "vex",
+					Package:          match.IgnoreRulePackage{},
+					VexStatus:        string(vex.StatusNotAffected),
+					VexJustification: "this isn't the vulnerability match you're looking for... *waves hand*",
 				},
 			},
 		},
 	}
-
-	var ignoredMatches []match.IgnoredMatch
-	for _, m := range matches {
-		ignoredMatches = append(ignoredMatches, match.IgnoredMatch{
-			Match:              m,
-			AppliedIgnoreRules: []match.IgnoreRule{},
-		})
-	}
-
-	return ignoredMatches
 }
 
 func generatePackages(t *testing.T) []pkg.Package {

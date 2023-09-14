@@ -170,13 +170,14 @@ check-go-mod-tidy:
 .PHONY: unit
 unit: $(TEMP_DIR) ## Run unit tests (with coverage)
 	$(call title,Running unit tests)
-	go test -coverprofile $(TEMP_DIR)/unit-coverage-details.txt $(shell go list ./... | grep -v anchore/grype/test)
+	go test -race -coverprofile $(TEMP_DIR)/unit-coverage-details.txt $(shell go list ./... | grep -v anchore/grype/test)
 	@.github/scripts/coverage.py $(COVERAGE_THRESHOLD) $(TEMP_DIR)/unit-coverage-details.txt
 
 .PHONY: integration
 integration:  ## Run integration tests
 	$(call title,Running integration tests)
 	go test -v ./test/integration
+	go run cmd/grype/main.go alpine:latest
 
 .PHONY: quality
 quality: ## Run quality tests

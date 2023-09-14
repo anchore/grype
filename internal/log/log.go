@@ -1,14 +1,27 @@
+/*
+Package log contains the singleton object and helper functions for facilitating logging within the syft library.
+*/
 package log
 
 import (
 	"github.com/anchore/go-logger"
 	"github.com/anchore/go-logger/adapter/discard"
+	"github.com/anchore/go-logger/adapter/redact"
+	red "github.com/anchore/grype/internal/redact"
 )
 
-// log is the singleton used to facilitate logging internally within syft
-var log logger.Logger = discard.New()
+// log is the singleton used to facilitate logging internally within
+var log = discard.New()
 
 func Set(l logger.Logger) {
+	// though the application will automatically have a redaction logger, library consumers may not be doing this.
+	// for this reason we additionally ensure there is a redaction logger configured for any logger passed. The
+	// source of truth for redaction values is still in the internal redact package. If the passed logger is already
+	// redacted, then this is a no-op.
+	store := red.Get()
+	if store != nil {
+		l = redact.New(l, store)
+	}
 	log = l
 }
 

@@ -46,6 +46,7 @@ For commercial support options with Syft or Grype, please [contact Anchore](http
   - PHP (Composer)
   - Rust (Cargo)
 - Supports Docker, OCI and [Singularity](https://github.com/sylabs/singularity) image formats.
+- [OpenVEX](https://github.com/openvex) support for filtering and augmenting scanning results.
 
 If you encounter an issue, please [let us know using the issue tracker](https://github.com/anchore/grype/issues).
 
@@ -322,6 +323,9 @@ ignore:
   # This is the full set of supported rule fields:
   - vulnerability: CVE-2008-4318
     fix-state: unknown
+    # VEX fields apply when Grype reads vex data:
+    vex-status: not_affected
+    vex-justification: vulnerable_code_not_present
     package:
       name: libcurl
       version: 1.5.1
@@ -369,6 +373,78 @@ apk-tools  2.10.6-r0  2.10.7-r0  CVE-2021-36159  Critical
 ```
 
 If you want Grype to only report vulnerabilities **that do not have a confirmed fix**, you can use the `--only-notfixed` flag. (This automatically adds [ignore rules](#specifying-matches-to-ignore) into Grype's configuration, such that vulnerabilities that are fixed will be ignored.)
+
+## VEX Support
+
+Grype can use VEX (Vulnerability Exploitability Exchange) data to filter false
+positives or provide additional context, augmenting matches. When scanning a 
+container image, you can use the `--vex` flag to point to one or more 
+[OpenVEX](https://github.com/openvex) documents.
+
+VEX statements relate a product (a container image), a vulnerability, and a VEX
+status to express an assertion of the vulnerability's impact. There are four
+[VEX statuses](https://github.com/openvex/spec/blob/main/OPENVEX-SPEC.md#status-labels): 
+`not_affected`, `affected`, `fixed` and `under_investigation`.
+
+Here is an example of a simple OpenVEX document. (tip: use 
+[`vexctl`](https://github.com/openvex/vexctl) to generate your own documents).
+
+```json
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://openvex.dev/docs/public/vex-d4e9020b6d0d26f131d535e055902dd6ccf3e2088bce3079a8cd3588a4b14c78",
+  "author": "A Grype User <jdoe@example.com>",
+  "timestamp": "2023-07-17T18:28:47.696004345-06:00",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2023-1255"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/alpine@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
+          "subcomponents": [
+            { "@id": "pkg:apk/alpine/libssl3@3.0.8-r3" },
+            { "@id": "pkg:apk/alpine/libcrypto3@3.0.8-r3" }
+          ]
+        }
+      ],
+      "status": "fixed"
+    }
+  ]
+}
+```
+
+By default, Grype will use any statements in specified VEX documents with a
+status of `not_affected` or `fixed` to move matches to the ignore set.
+
+Any matches ignored as a result of VEX statements are flagged when using
+`--show-suppreessed`:
+
+```
+libcrypto3  3.0.8-r3   3.0.8-r4   apk   CVE-2023-1255  Medium (suppressed by VEX)  
+```
+
+Statements with an `affected` or `under_investigation` status will only be 
+considered to augment the result set when specifically requested using the
+`GRYPE_VEX_ADD` environment variable or in a configuration file.
+
+
+### VEX Ignore Rules
+
+Ignore rules can be written to control how Grype honors VEX statements. For
+example, to configure Grype to only act on VEX statements when the justification is `vulnerable_code_not_present`, you can write a rule like this:
+
+```yaml
+---
+ignore:
+  - vex-status: not_affected
+    vex-justification: vulnerable_code_not_present
+```
+
+See the [list of justifications](https://github.com/openvex/spec/blob/main/OPENVEX-SPEC.md#status-justifications) for details. You can mix `vex-status` and `vex-justification`
+with other ignore rule parameters.
 
 ## Grype's database
 
