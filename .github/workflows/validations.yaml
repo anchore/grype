@@ -68,7 +68,7 @@ jobs:
         run: make validate-cyclonedx-schema
 
       - name: Restore integration test cache
-        uses: actions/cache@v3
+        uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 #v3.3.2
         with:
           path: ${{ github.workspace }}/test/integration/test-fixtures/cache
           key: ${{ runner.os }}-integration-test-cache-${{ hashFiles('test/integration/test-fixtures/cache.fingerprint') }}
@@ -99,7 +99,7 @@ jobs:
       # why not use actions/upload-artifact? It is very slow (3 minutes to upload ~600MB of data, vs 10 seconds with this approach).
       # see https://github.com/actions/upload-artifact/issues/199 for more info
       - name: Upload snapshot artifacts
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@704facf57e6136b1bc63b828d79edcd491f0ee84 #v3.3.2
         with:
           path: snapshot
           key: snapshot-build-${{ github.run_id }}
