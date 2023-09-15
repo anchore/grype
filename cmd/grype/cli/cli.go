@@ -10,6 +10,7 @@ import (
 	"github.com/anchore/grype/cmd/grype/cli/commands"
 	handler "github.com/anchore/grype/cmd/grype/cli/ui"
 	"github.com/anchore/grype/cmd/grype/internal/ui"
+	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/redact"
@@ -75,13 +76,13 @@ func create(id clio.Identification) (clio.Application, *cobra.Command) {
 		commands.DB(app),
 		commands.Completion(),
 		commands.Explain(app),
-		clio.VersionCommand(id, syftVersion),
+		clio.VersionCommand(id, syftVersion, dbVersion),
 	)
 
 	return app, rootCmd
 }
 
-func syftVersion() (string, string) {
+func syftVersion() (string, any) {
 	buildInfo, ok := debug.ReadBuildInfo()
 	if !ok {
 		log.Debug("unable to find the buildinfo section of the binary (syft version is unknown)")
@@ -90,10 +91,14 @@ func syftVersion() (string, string) {
 
 	for _, d := range buildInfo.Deps {
 		if d.Path == "github.com/anchore/syft" {
-			return "SyftVersion", d.Version
+			return "Syft Version", d.Version
 		}
 	}
 
 	log.Debug("unable to find 'github.com/anchore/syft' from the buildinfo section of the binary")
 	return "", ""
+}
+
+func dbVersion() (string, any) {
+	return "Supported DB Schema", vulnerability.SchemaVersion
 }
