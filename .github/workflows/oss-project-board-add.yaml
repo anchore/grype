@@ -1,5 +1,8 @@
 name: Add to OSS board
 
+permissions:
+  contents: read
+
 on:
   issues:
     types:
