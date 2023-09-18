@@ -11,7 +11,7 @@ import (
 	v1 "github.com/anchore/grype/grype/db/v1"
 	"github.com/anchore/grype/grype/db/v1/store/model"
 	"github.com/anchore/grype/internal/stringutil"
-	_ "github.com/anchore/sqlite" // provide the sqlite dialect to gorm via import
+	_ "github.com/glebarez/sqlite" // provide the sqlite dialect to gorm via import
 )
 
 // store holds an instance of the database connection

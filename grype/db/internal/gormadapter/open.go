@@ -6,7 +6,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/anchore/sqlite"
+	"github.com/glebarez/sqlite"
 )
 
 var writerStatements = []string{
