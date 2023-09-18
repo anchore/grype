@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 
+	_ "github.com/glebarez/sqlite" // provide the sqlite dialect to gorm via import
 	"github.com/go-test/deep"
 	"gorm.io/gorm"
 
@@ -11,7 +12,6 @@ import (
 	v3 "github.com/anchore/grype/grype/db/v3"
 	"github.com/anchore/grype/grype/db/v3/store/model"
 	"github.com/anchore/grype/internal/stringutil"
-	_ "github.com/anchore/sqlite" // provide the sqlite dialect to gorm via import
 )
 
 // store holds an instance of the database connection
