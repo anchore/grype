@@ -420,7 +420,7 @@ By default, Grype will use any statements in specified VEX documents with a
 status of `not_affected` or `fixed` to move matches to the ignore set.
 
 Any matches ignored as a result of VEX statements are flagged when using
-`--show-suppreessed`:
+`--show-suppressed`:
 
 ```
 libcrypto3  3.0.8-r3   3.0.8-r4   apk   CVE-2023-1255  Medium (suppressed by VEX)  
