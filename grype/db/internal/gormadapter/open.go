@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"gorm.io/gorm"
-
 	"github.com/glebarez/sqlite"
+	"gorm.io/gorm"
 )
 
 var writerStatements = []string{
