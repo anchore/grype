@@ -1,7 +1,7 @@
 package main
 
 import (
-	_ "modernc.org/sqlite"
+	_ "github.com/glebarez/sqlite"
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli"
