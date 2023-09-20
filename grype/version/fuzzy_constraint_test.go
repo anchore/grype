@@ -342,6 +342,11 @@ func TestFuzzyConstraintSatisfaction(t *testing.T) {
 			constraint: "> 1.1.1-a",
 			satisfied:  true,
 		},
+		{
+			name:       "certifi keeps being a false positive",
+			version:    "2022.12.7",
+			constraint: ">=2017.11.05,<2022.12.07",
+		},
 	}
 
 	for _, test := range tests {
