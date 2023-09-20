@@ -14,13 +14,14 @@ type Version struct {
 }
 
 type rich struct {
-	cpeVers []cpe.CPE
-	semVer  *semanticVersion
-	apkVer  *apkVersion
-	debVer  *debVersion
-	rpmVer  *rpmVersion
-	kbVer   *kbVersion
-	portVer *portageVersion
+	cpeVers       []cpe.CPE
+	semVer        *semanticVersion
+	apkVer        *apkVersion
+	debVer        *debVersion
+	rpmVer        *rpmVersion
+	kbVer         *kbVersion
+	portVer       *portageVersion
+	pep440version *pep440Version
 }
 
 func NewVersion(raw string, format Format) (*Version, error) {
@@ -66,8 +67,9 @@ func (v *Version) populate() error {
 		v.rich.rpmVer = &ver
 		return err
 	case PythonFormat:
-		// use the fuzzy constraint
-		return nil
+		ver, err := newPep440Version(v.Raw)
+		v.rich.pep440version = &ver
+		return err
 	case KBFormat:
 		ver := newKBVersion(v.Raw)
 		v.rich.kbVer = &ver

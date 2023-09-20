@@ -25,7 +25,7 @@ func GetConstraint(constStr string, format Format) (Constraint, error) {
 		// Although this will work in most cases, some oddities aren't supported, like:
 		// 1.0b2.post345.dev456 which is allowed by the spec. In that case (a dev release of a post release)
 		// the comparator will fail. See https://www.python.org/dev/peps/pep-0440
-		return newFuzzyConstraint(constStr, "python")
+		return newPep440Constraint(constStr)
 	case KBFormat:
 		return newKBConstraint(constStr)
 	case PortageFormat:

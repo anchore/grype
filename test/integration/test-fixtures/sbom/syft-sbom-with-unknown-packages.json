@@ -5,7 +5,7 @@
       "name": "my-package",
       "version": "1.0.5",
       "type": "binary",
-      "language": "python",
+      "language": "",
       "cpes": [
         "cpe:2.3:a:my-package:my-package:1.0.5:*:*:*:*:*:*:*",
         "cpe:2.3:a:bogus:my-package:1.0.5:*:*:*:*:*:*:*"
