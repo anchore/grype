@@ -71,6 +71,8 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		string(syftPkg.LinuxKernelModulePkg),
 		string(syftPkg.Rpkg),
 		string(syftPkg.SwiftPkg),
+		string(syftPkg.GithubActionPkg),
+		string(syftPkg.GithubActionWorkflowPkg),
 	)
 	observedPkgTypes := strset.New()
 	testCases := []struct {
