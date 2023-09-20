@@ -6,9 +6,6 @@ on:
         description: tag the latest commit on main with the given version (prefixed with v)
         required: true
 
-env:
-  GO_VERSION: "1.21.x"
-
 permissions:
   contents: read
 
@@ -121,7 +118,9 @@ jobs:
 
       - name: Tag release
         run: |
-          git tag ${{ github.event.inputs.version }}
+          git config user.name "anchoreci"
+          git config user.email "anchoreci@users.noreply.github.com"
+          git tag -a ${{ github.event.inputs.version }} -m "Release ${{ github.event.inputs.version }}"
           git push origin --tags
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
