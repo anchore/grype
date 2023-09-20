@@ -14,7 +14,7 @@ require (
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/packageurl-go v0.1.1-0.20230104203445-02e0a6721501
 	github.com/anchore/stereoscope v0.0.0-20230919183137-5841b53a0375
-	github.com/anchore/syft v0.90.1-0.20230920183837-b7fa75d7f82a
+	github.com/anchore/syft v0.91.0
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/charmbracelet/bubbletea v0.24.2
 	github.com/charmbracelet/lipgloss v0.8.0
@@ -57,12 +57,11 @@ require (
 	github.com/wagoodman/go-presenter v0.0.0-20211015174752-f9c01afc824b
 	github.com/wagoodman/go-progress v0.0.0-20230911172108-cf810b7e365c
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
+	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
 	golang.org/x/term v0.12.0 // indirect
 	gorm.io/gorm v1.25.4
 	modernc.org/sqlite v1.25.0 // indirect
 )
-
-require golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
 
 require (
 	cloud.google.com/go v0.110.2 // indirect
