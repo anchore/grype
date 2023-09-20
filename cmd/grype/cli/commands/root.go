@@ -4,9 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/spf13/cobra"
 	"github.com/wagoodman/go-partybus"
 
@@ -101,47 +99,33 @@ var ignoreVEXFixedNotAffected = []match.IgnoreRule{
 }
 
 //nolint:funlen
-func runGrype(app clio.Application, opts *options.Grype, userInput string) error {
-	errs := make(chan error)
-	go func() {
-		defer close(errs)
-		defer bus.Exit()
+func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs error) {
+	writer, err := format.MakeScanResultWriter(opts.Outputs, opts.File, format.PresentationConfig{
+		TemplateFilePath: opts.OutputTemplateFile,
+		ShowSuppressed:   opts.ShowSuppressed,
+	})
+	if err != nil {
+		return err
+	}
 
-		writer, err := format.MakeScanResultWriter(opts.Outputs, opts.File, format.PresentationConfig{
-			TemplateFilePath: opts.OutputTemplateFile,
-			ShowSuppressed:   opts.ShowSuppressed,
-		})
-		if err != nil {
-			errs <- err
-			return
-		}
+	var str *store.Store
+	var status *db.Status
+	var dbCloser *db.Closer
+	var packages []pkg.Package
+	var s *sbom.SBOM
+	var pkgContext pkg.Context
 
-		checkForAppUpdate(app.ID(), opts)
-
-		var str *store.Store
-		var status *db.Status
-		var dbCloser *db.Closer
-		var packages []pkg.Package
-		var s *sbom.SBOM
-		var pkgContext pkg.Context
-		var wg = &sync.WaitGroup{}
-		var loadedDB, gatheredPackages bool
-
-		wg.Add(2)
-
-		go func() {
-			defer wg.Done()
+	err = parallel(
+		func() error {
+			checkForAppUpdate(app.ID(), opts)
+			return nil
+		},
+		func() (err error) {
 			log.Debug("loading DB")
 			str, status, dbCloser, err = grype.LoadVulnerabilityDB(opts.DB.ToCuratorConfig(), opts.DB.AutoUpdate)
-			if err = validateDBLoad(err, status); err != nil {
-				errs <- err
-				return
-			}
-			loadedDB = true
-		}()
-
-		go func() {
-			defer wg.Done()
+			return validateDBLoad(err, status)
+		},
+		func() (err error) {
 			log.Debugf("gathering packages")
 			// packages are grype.Package, not syft.Package
 			// the SBOM is returned for downstream formatting concerns
@@ -149,88 +133,68 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) error
 			// with vulnerability information appended
 			packages, pkgContext, s, err = pkg.Provide(userInput, getProviderConfig(opts))
 			if err != nil {
-				errs <- fmt.Errorf("failed to catalog: %w", err)
-				return
+				return fmt.Errorf("failed to catalog: %w", err)
 			}
-			gatheredPackages = true
-		}()
+			return nil
+		},
+	)
 
-		wg.Wait()
-		if !loadedDB || !gatheredPackages {
-			return
-		}
-
-		if dbCloser != nil {
-			defer dbCloser.Close()
-		}
-
-		if opts.OnlyFixed {
-			opts.Ignore = append(opts.Ignore, ignoreNonFixedMatches...)
-		}
-
-		if opts.OnlyNotFixed {
-			opts.Ignore = append(opts.Ignore, ignoreFixedMatches...)
-		}
-
-		if err := applyVexRules(opts); err != nil {
-			errs <- fmt.Errorf("applying vex rules: %w", err)
-			return
-		}
-
-		applyDistroHint(packages, &pkgContext, opts)
-
-		vulnMatcher := grype.VulnerabilityMatcher{
-			Store:          *str,
-			IgnoreRules:    opts.Ignore,
-			NormalizeByCVE: opts.ByCVE,
-			FailSeverity:   opts.FailOnServerity(),
-			Matchers:       getMatchers(opts),
-			VexProcessor: vex.NewProcessor(vex.ProcessorOptions{
-				Documents:   opts.VexDocuments,
-				IgnoreRules: opts.Ignore,
-			}),
-		}
-
-		remainingMatches, ignoredMatches, err := vulnMatcher.FindMatches(packages, pkgContext)
-		if err != nil {
-			errs <- err
-			if !errors.Is(err, grypeerr.ErrAboveSeverityThreshold) {
-				return
-			}
-		}
-
-		if err := writer.Write(models.PresenterConfig{
-			Matches:          *remainingMatches,
-			IgnoredMatches:   ignoredMatches,
-			Packages:         packages,
-			Context:          pkgContext,
-			MetadataProvider: str,
-			SBOM:             s,
-			AppConfig:        opts,
-			DBStatus:         status,
-		}); err != nil {
-			errs <- err
-		}
-	}()
-
-	return readAllErrors(errs)
-}
-
-func readAllErrors(errs <-chan error) (out error) {
-	for {
-		if errs == nil {
-			break
-		}
-		err, isOpen := <-errs
-		if !isOpen {
-			errs = nil
-			continue
-		}
-		if err != nil {
-			out = multierror.Append(out, err)
-		}
+	if err != nil {
+		return err
 	}
-	return out
+
+	if dbCloser != nil {
+		defer dbCloser.Close()
+	}
+
+	if opts.OnlyFixed {
+		opts.Ignore = append(opts.Ignore, ignoreNonFixedMatches...)
+	}
+
+	if opts.OnlyNotFixed {
+		opts.Ignore = append(opts.Ignore, ignoreFixedMatches...)
+	}
+
+	if err = applyVexRules(opts); err != nil {
+		return fmt.Errorf("applying vex rules: %w", err)
+	}
+
+	applyDistroHint(packages, &pkgContext, opts)
+
+	vulnMatcher := grype.VulnerabilityMatcher{
+		Store:          *str,
+		IgnoreRules:    opts.Ignore,
+		NormalizeByCVE: opts.ByCVE,
+		FailSeverity:   opts.FailOnServerity(),
+		Matchers:       getMatchers(opts),
+		VexProcessor: vex.NewProcessor(vex.ProcessorOptions{
+			Documents:   opts.VexDocuments,
+			IgnoreRules: opts.Ignore,
+		}),
+	}
+
+	remainingMatches, ignoredMatches, err := vulnMatcher.FindMatches(packages, pkgContext)
+	if err != nil {
+		if !errors.Is(err, grypeerr.ErrAboveSeverityThreshold) {
+			return err
+		}
+		errs = appendErrors(errs, err)
+	}
+
+	if err = writer.Write(models.PresenterConfig{
+		Matches:          *remainingMatches,
+		IgnoredMatches:   ignoredMatches,
+		Packages:         packages,
+		Context:          pkgContext,
+		MetadataProvider: str,
+		SBOM:             s,
+		AppConfig:        opts,
+		DBStatus:         status,
+	}); err != nil {
+		errs = appendErrors(errs, err)
+	}
+
+	return errs
 }
 
 func applyDistroHint(pkgs []pkg.Package, context *pkg.Context, opts *options.Grype) {

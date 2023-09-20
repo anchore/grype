@@ -9,7 +9,7 @@ import (
 )
 
 // applicationName is the non-capitalized name of the application (do not change this)
-const applicationName = internal.Grype
+const applicationName = "grype"
 
 // all variables here are provided as build-time arguments, with clear default values
 var (

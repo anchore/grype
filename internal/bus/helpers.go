@@ -3,14 +3,17 @@ package bus
 import (
 	"github.com/wagoodman/go-partybus"
 
+	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/internal/redact"
 )
 
 func Exit() {
-	Publish(partybus.Event{
-		Type: event.CLIExit,
-	})
+	Publish(clio.ExitEvent(false))
+}
+
+func ExitWithInterrupt() {
+	Publish(clio.ExitEvent(true))
 }
 
 func Report(report string) {

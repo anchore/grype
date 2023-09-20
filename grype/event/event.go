@@ -24,7 +24,4 @@ const (
 
 	// CLINotification is a partybus event that occurs when auxiliary information is ready for presentation to stderr
 	CLINotification partybus.EventType = cliTypePrefix + "-notification"
-
-	// CLIExit is a partybus event that occurs when an analysis result is ready for final presentation
-	CLIExit partybus.EventType = cliTypePrefix + "-exit-event"
 )

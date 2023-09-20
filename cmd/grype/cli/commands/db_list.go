@@ -9,7 +9,6 @@ import (
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/db"
-	"github.com/anchore/grype/internal/bus"
 )
 
 type dbListOptions struct {
@@ -40,8 +39,6 @@ func DBList(app clio.Application) *cobra.Command {
 }
 
 func runDBList(opts *dbListOptions) error {
-	defer bus.Exit()
-
 	dbCurator, err := db.NewCurator(opts.DB.ToCuratorConfig())
 	if err != nil {
 		return err

@@ -8,7 +8,6 @@ import (
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype/db"
-	"github.com/anchore/grype/internal/bus"
 )
 
 func DBStatus(app clio.Application) *cobra.Command {
@@ -25,8 +24,6 @@ func DBStatus(app clio.Application) *cobra.Command {
 }
 
 func runDBStatus(opts options.Database) error {
-	defer bus.Exit()
-
 	dbCurator, err := db.NewCurator(opts.ToCuratorConfig())
 	if err != nil {
 		return err
