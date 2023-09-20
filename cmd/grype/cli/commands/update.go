@@ -15,7 +15,7 @@ var latestAppVersionURL = struct {
 	path string
 }{
 	host: "https://toolbox-data.anchore.io",
-	path: fmt.Sprintf("/%s/releases/latest/VERSION", internal.Grype),
+	path: "/grype/releases/latest/VERSION",
 }
 
 func isProductionBuild(version string) bool {

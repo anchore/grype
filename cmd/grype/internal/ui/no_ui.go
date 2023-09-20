@@ -33,8 +33,6 @@ func (n *NoUI) Handle(e partybus.Event) error {
 	case event.CLIReport, event.CLINotification:
 		// keep these for when the UI is terminated to show to the screen (or perform other events)
 		n.finalizeEvents = append(n.finalizeEvents, e)
-	case event.CLIExit:
-		return n.subscription.Unsubscribe()
 	}
 	return nil
 }

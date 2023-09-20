@@ -9,7 +9,6 @@ import (
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/internal"
-	"github.com/anchore/grype/internal/bus"
 )
 
 func DBImport(app clio.Application) *cobra.Command {
@@ -27,8 +26,6 @@ func DBImport(app clio.Application) *cobra.Command {
 }
 
 func runDBImport(opts options.Database, dbArchivePath string) error {
-	defer bus.Exit()
-
 	dbCurator, err := db.NewCurator(opts.ToCuratorConfig())
 	if err != nil {
 		return err

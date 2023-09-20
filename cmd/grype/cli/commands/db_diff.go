@@ -65,8 +65,6 @@ func DBDiff(app clio.Application) *cobra.Command {
 }
 
 func runDBDiff(opts *dbDiffOptions, base string, target string) (errs error) {
-	defer bus.Exit()
-
 	d, err := differ.NewDiffer(opts.DB.ToCuratorConfig())
 	if err != nil {
 		return err

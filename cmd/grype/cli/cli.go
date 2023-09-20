@@ -8,13 +8,14 @@ import (
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/commands"
-	handler "github.com/anchore/grype/cmd/grype/cli/ui"
+	grypeHandler "github.com/anchore/grype/cmd/grype/cli/ui"
 	"github.com/anchore/grype/cmd/grype/internal/ui"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/redact"
 	"github.com/anchore/stereoscope"
+	syftHandler "github.com/anchore/syft/cmd/syft/cli/ui"
 	"github.com/anchore/syft/syft"
 )
 
@@ -41,10 +42,11 @@ func create(id clio.Identification) (clio.Application, *cobra.Command) {
 					return []clio.UI{noUI}, nil
 				}
 
-				h := handler.New(handler.DefaultHandlerConfig())
-
 				return []clio.UI{
-					ui.New(cfg.Log.Quiet, h),
+					ui.New(cfg.Log.Quiet,
+						grypeHandler.New(grypeHandler.DefaultHandlerConfig()),
+						syftHandler.New(syftHandler.DefaultHandlerConfig()),
+					),
 					noUI,
 				}, nil
 			},
@@ -59,13 +61,16 @@ func create(id clio.Identification) (clio.Application, *cobra.Command) {
 
 				redact.Set(state.RedactStore)
 
-				stereoscope.SetLogger(state.Logger)
-				syft.SetLogger(state.Logger)
 				log.Set(state.Logger)
+				syft.SetLogger(state.Logger)
+				stereoscope.SetLogger(state.Logger)
 
 				return nil
 			},
-		)
+		).
+		WithPostRuns(func(state *clio.State, err error) {
+			stereoscope.Cleanup()
+		})
 
 	app := clio.New(*clioCfg)
 
