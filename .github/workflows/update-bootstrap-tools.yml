@@ -55,7 +55,7 @@ jobs:
           echo "GLOW=GLOW_LATEST_VERSION" >> $GITHUB_OUTPUT
         id: latest-versions
 
-      - uses: tibdex/github-app-token@0914d50df753bbc42180d982a6550f195390069f # v2.0.0
+      - uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a # v2.1.0
         id: generate-token
         with:
           app_id: ${{ secrets.TOKEN_APP_ID }}
