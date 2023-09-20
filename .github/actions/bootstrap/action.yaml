@@ -63,9 +63,9 @@ runs:
       with:
         path: |
           ~/go/pkg/mod
-        key: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-go-${{ inputs.go-version }}-${{ hashFiles('**/go.sum') }}
+        key: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-go-mod-${{ inputs.go-version }}-${{ hashFiles('**/go.sum') }}
         restore-keys: |
-          ${{ inputs.cache-key-prefix }}-${{ runner.os }}-go-${{ inputs.go-version }}-
+          ${{ inputs.cache-key-prefix }}-${{ runner.os }}-go-mod-${{ inputs.go-version }}-
 
     - name: (cache-miss) Bootstrap project tools
       shell: bash
@@ -79,9 +79,9 @@ runs:
       with:
         path: |
           ~/.cache/go-build
-        key: ${{ inputs.cache-key-prefix }}-${{ inputs.build-cache-key-prefix }}-${{ runner.os }}-go-${{ inputs.go-version }}-${{ hashFiles('**/go.sum') }}
+        key: ${{ inputs.cache-key-prefix }}-${{ inputs.build-cache-key-prefix }}-${{ runner.os }}-go-build-${{ inputs.go-version }}-${{ hashFiles('**/go.sum') }}
         restore-keys: |
-          ${{ inputs.cache-key-prefix }}-${{ inputs.build-cache-key-prefix }}-${{ runner.os }}-go-${{ inputs.go-version }}-
+          ${{ inputs.cache-key-prefix }}-${{ inputs.build-cache-key-prefix }}-${{ runner.os }}-go-build-${{ inputs.go-version }}-
 
     - name: (cache-miss) Bootstrap go dependencies
       shell: bash
