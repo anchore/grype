@@ -2,6 +2,7 @@ package version
 
 import (
 	"fmt"
+
 	goPepVersion "github.com/aquasecurity/go-pep440-version"
 )
 
