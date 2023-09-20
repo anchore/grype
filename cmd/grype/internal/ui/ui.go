@@ -72,20 +72,6 @@ func (m *UI) Handle(e partybus.Event) error {
 	return nil
 }
 
-func runWithTimeout(timeout time.Duration, fn func() error) (err error) {
-	c := make(chan struct{}, 1)
-	go func() {
-		err = fn()
-		c <- struct{}{}
-	}()
-	select {
-	case <-c:
-	case <-time.After(timeout):
-		return fmt.Errorf("timed out after %v", timeout)
-	}
-	return err
-}
-
 func (m *UI) Teardown(force bool) error {
 	if !force {
 		m.handler.Wait()
@@ -184,4 +170,18 @@ func (m *UI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m UI) View() string {
 	return m.frame.View()
+}
+
+func runWithTimeout(timeout time.Duration, fn func() error) (err error) {
+	c := make(chan struct{}, 1)
+	go func() {
+		err = fn()
+		c <- struct{}{}
+	}()
+	select {
+	case <-c:
+	case <-time.After(timeout):
+		return fmt.Errorf("timed out after %v", timeout)
+	}
+	return err
 }
