@@ -102,7 +102,7 @@ func (pr *mockVulnStore) stub() {
 			{
 				PackageName:       "funfun",
 				VersionConstraint: "= 5.2.1",
-				VersionFormat:     version.PythonFormat.String(),
+				VersionFormat:     version.UnknownFormat.String(),
 				ID:                "CVE-2017-fake-6",
 				CPEs: []string{
 					"cpe:2.3:*:funfun:funfun:5.2.1:*:*:*:*:python:*:*",
@@ -574,7 +574,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 									"cpe:2.3:*:funfun:funfun:*:*:*:*:*:python:*:*",
 									"cpe:2.3:*:funfun:funfun:5.2.1:*:*:*:*:python:*:*",
 								},
-								VersionConstraint: "= 5.2.1 (python)",
+								VersionConstraint: "= 5.2.1 (unknown)",
 								VulnerabilityID:   "CVE-2017-fake-6",
 							},
 							Matcher: matcher,

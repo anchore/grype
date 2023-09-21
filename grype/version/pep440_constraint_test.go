@@ -3,6 +3,7 @@ package version
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,18 +37,6 @@ func TestItWorks(t *testing.T) {
 			name:       "version not within compound range",
 			constraint: ">1.0, <2.0 || > 3.0",
 			version:    "2.2+beta-3",
-			satisfied:  false,
-		},
-		{
-			name:       "version range within (prerelease)",
-			constraint: ">1.0, <2.0",
-			version:    "1.2.0-beta-prerelease",
-			satisfied:  true,
-		},
-		{
-			name:       "version range within (prerelease)",
-			constraint: ">=1.0, <2.0",
-			version:    "1.0.0-beta-prerelease",
 			satisfied:  false,
 		},
 		{
@@ -97,36 +86,6 @@ func TestItWorks(t *testing.T) {
 			constraint: ">1.0, <=2.0",
 			version:    "2.0.0",
 			satisfied:  true,
-		},
-		{
-			name:       "version range not within range (prefix)",
-			constraint: ">1.0, <2.0",
-			version:    "5-1.2+beta-3",
-			satisfied:  false,
-		},
-		{
-			name:       "odd major prefix wide constraint range",
-			constraint: ">4, <6",
-			version:    "5-1.2+beta-3",
-			satisfied:  true,
-		},
-		{
-			name:       "odd major prefix narrow constraint",
-			constraint: ">5-1.15",
-			version:    "5-1.16",
-			satisfied:  true,
-		},
-		{
-			name:       "odd major prefix narrow constraint range",
-			constraint: ">5-1.15, <=5-1.16",
-			version:    "5-1.16",
-			satisfied:  true,
-		},
-		{
-			name:       "odd major prefix narrow constraint range (excluding)",
-			constraint: ">4, <5-1.16",
-			version:    "5-1.16",
-			satisfied:  false,
 		},
 		{
 			name:       "bad semver (eq)",
@@ -190,30 +149,6 @@ func TestItWorks(t *testing.T) {
 			satisfied:  true,
 		},
 		{
-			name:       "strip unbalanced v from left side <",
-			version:    "v17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible",
-			constraint: "< 1.5",
-			satisfied:  false,
-		},
-		{
-			name:       "strip unbalanced v from left side >",
-			version:    "v17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible",
-			constraint: "> 1.5",
-			satisfied:  true,
-		},
-		{
-			name:       "strip unbalanced v from right side <",
-			version:    "17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible",
-			constraint: "< v1.5",
-			satisfied:  false,
-		},
-		{
-			name:       "strip unbalanced v from right side >",
-			version:    "17.12.0-ce-rc1.0.20200309214505-aa6a9891b09c+incompatible",
-			constraint: "> v1.5",
-			satisfied:  true,
-		},
-		{
 			name:       "rc candidates with no '-' can match semver pattern",
 			version:    "1.20rc1",
 			constraint: " = 1.20.0-rc1",
@@ -244,39 +179,9 @@ func TestItWorks(t *testing.T) {
 			satisfied:  false,
 		},
 		{
-			name:       "candidates with letter suffix are alphabetically greater than their versions",
-			version:    "1.0.2a",
-			constraint: " < 1.0.2w",
-			satisfied:  true,
-		},
-		{
-			name:       "candidates with multiple letter suffix are alphabetically greater than their versions",
-			version:    "1.0.2zg",
-			constraint: " < 1.0.2zh",
-			satisfied:  true,
-		},
-		{
 			name:       "candidates with pre suffix are sorted numerically",
 			version:    "1.0.2pre1",
 			constraint: " < 1.0.2pre2",
-			satisfied:  true,
-		},
-		{
-			name:       "candidates with letter suffix and r0 are alphabetically greater than their versions",
-			version:    "1.0.2k-r0",
-			constraint: " < 1.0.2l-r0",
-			satisfied:  true,
-		},
-		{
-			name:       "openssl version with letter suffix and r0 are alphabetically greater than their versions",
-			version:    "1.0.2k-r0",
-			constraint: ">= 1.0.2",
-			satisfied:  true,
-		},
-		{
-			name:       "openssl versions with letter suffix and r0 are alphabetically greater than their versions and compared equally to other lettered versions",
-			version:    "1.0.2k-r0",
-			constraint: ">= 1.0.2, < 1.0.2m",
 			satisfied:  true,
 		},
 		{
@@ -296,11 +201,21 @@ func TestItWorks(t *testing.T) {
 			version:    "2022.12.7",
 			constraint: ">=2017.11.05,<2022.12.07",
 		},
+		{
+			name:       "certifi false positive is fixed",
+			version:    "2022.12.7",
+			constraint: ">=2017.11.05,<2022.12.07",
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := newPep440Constraint(tc.constraint)
+			c, err := newPep440Constraint(tc.constraint)
 			require.NoError(t, err)
+			v, err := NewVersion(tc.version, PythonFormat)
+			require.NoError(t, err)
+			sat, err := c.Satisfied(v)
+			require.NoError(t, err)
+			assert.Equal(t, tc.satisfied, sat)
 		})
 	}
 }
