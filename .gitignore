@@ -4,7 +4,7 @@
 /.grype.yaml
 
 CHANGELOG.md
-VERSION
+/VERSION
 /snapshot/
 /dist/
 *.profile
