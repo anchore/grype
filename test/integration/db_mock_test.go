@@ -100,6 +100,15 @@ func newMockDbStore() *mockStore {
 					},
 				},
 			},
+			"github:language:idris": {
+				"my-package": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-bogus-my-package-2-idris",
+						VersionConstraint: "< 2.0",
+						VersionFormat:     "unknown",
+					},
+				},
+			},
 			"github:language:javascript": {
 				"npm": []grypeDB.Vulnerability{
 					{
@@ -114,13 +123,6 @@ func newMockDbStore() *mockStore {
 					{
 						ID:                "CVE-python-pygments",
 						VersionConstraint: "< 2.6.2",
-						VersionFormat:     "python",
-					},
-				},
-				"my-package": []grypeDB.Vulnerability{
-					{
-						ID:                "CVE-bogus-my-package-2-python",
-						VersionConstraint: "< 2.0",
 						VersionFormat:     "python",
 					},
 				},
