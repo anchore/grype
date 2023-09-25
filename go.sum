@@ -254,8 +254,8 @@ github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4 h1:rmZG77uXgE
 github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4/go.mod h1:Bkc+JYWjMCF8OyZ340IMSIi2Ebf3uwByOk6ho4wne1E=
 github.com/anchore/packageurl-go v0.1.1-0.20230104203445-02e0a6721501 h1:AV7qjwMcM4r8wFhJq3jLRztew3ywIyPTRapl2T1s9o8=
 github.com/anchore/packageurl-go v0.1.1-0.20230104203445-02e0a6721501/go.mod h1:Blo6OgJNiYF41ufcgHKkbCKF2MDOMlrqhXv/ij6ocR4=
-github.com/anchore/stereoscope v0.0.0-20230919183137-5841b53a0375 h1:lpeR4D5PMFXg80QVJgwlJs0QyS8FTBVuFW45Y+3Tat0=
-github.com/anchore/stereoscope v0.0.0-20230919183137-5841b53a0375/go.mod h1:75uRHom5WV5ENe3iSK2B37BQvB+47o9HYjpCYaSwlPQ=
+github.com/anchore/stereoscope v0.0.0-20230925132944-bf05af58eb44 h1:dKMvcpgqsRrX1ZWyqG53faVW+BahlaAO1RUEc7/rOjA=
+github.com/anchore/stereoscope v0.0.0-20230925132944-bf05af58eb44/go.mod h1:RtbeDCho0pxkPqrB1QNf/Jlxfc9juLmtYZAf2UbpJfk=
 github.com/anchore/syft v0.91.0 h1:pAZ3QwxY7orDWBLktbgOpXufHyb4EYGA/uZUAWfydmA=
 github.com/anchore/syft v0.91.0/go.mod h1:wLO4ucIMsTUSpRGvrdC+sYNT9aLE6R9rKhaMlnKFNdA=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
@@ -989,8 +989,8 @@ github.com/wagoodman/go-partybus v0.0.0-20230516145632-8ccac152c651 h1:jIVmlAFIq
 github.com/wagoodman/go-partybus v0.0.0-20230516145632-8ccac152c651/go.mod h1:b26F2tHLqaoRQf8DywqzVaV1MQ9yvjb0OMcNl7Nxu20=
 github.com/wagoodman/go-presenter v0.0.0-20211015174752-f9c01afc824b h1:uWNQ0khA6RdFzODOMwKo9XXu7fuewnnkHykUtuKru8s=
 github.com/wagoodman/go-presenter v0.0.0-20211015174752-f9c01afc824b/go.mod h1:ewlIKbKV8l+jCj8rkdXIs361ocR5x3qGyoCSca47Gx8=
-github.com/wagoodman/go-progress v0.0.0-20230911172108-cf810b7e365c h1:mM8T8YhiD19d2wYv3vqZn8xpe1ZFJrUJCGlK4IV05xM=
-github.com/wagoodman/go-progress v0.0.0-20230911172108-cf810b7e365c/go.mod h1:jLXFoL31zFaHKAAyZUh+sxiTDFe1L1ZHrcK2T1itVKA=
+github.com/wagoodman/go-progress v0.0.0-20230925121702-07e42b3cdba0 h1:0KGbf+0SMg+UFy4e1A/CPVvXn21f1qtWdeJwxZFoQG8=
+github.com/wagoodman/go-progress v0.0.0-20230925121702-07e42b3cdba0/go.mod h1:jLXFoL31zFaHKAAyZUh+sxiTDFe1L1ZHrcK2T1itVKA=
 github.com/x-cray/logrus-prefixed-formatter v0.5.2 h1:00txxvfBM9muc0jiLIEAkAcIMJzfthRT6usrui8uGmg=
 github.com/x-cray/logrus-prefixed-formatter v0.5.2/go.mod h1:2duySbKsL6M18s5GU7VPsoEPHyzalCE06qoARUCeBBE=
 github.com/xanzy/ssh-agent v0.3.3 h1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=
