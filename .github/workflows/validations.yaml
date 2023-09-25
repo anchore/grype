@@ -16,7 +16,7 @@ jobs:
     name: "Static analysis"
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
@@ -29,7 +29,7 @@ jobs:
     name: "Unit tests"
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
+      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
@@ -42,7 +42,7 @@ jobs:
     name: "Quality tests"
     runs-on: ubuntu-22.04-4core-16gb
     steps:
-      - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
         with:
           submodules: true
 
@@ -59,7 +59,7 @@ jobs:
     name: "Integration tests"
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
@@ -80,7 +80,7 @@ jobs:
     name: "Build snapshot artifacts"
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
@@ -110,7 +110,7 @@ jobs:
     needs: [Build-Snapshot-Artifacts]
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac #v4.0.0
+      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 #v4.1.0
 
       - name: Download snapshot build
         uses: actions/cache/restore@704facf57e6136b1bc63b828d79edcd491f0ee84 #v3.3.2
@@ -142,7 +142,7 @@ jobs:
     needs: [Build-Snapshot-Artifacts]
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac #v4.0.0
+      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 #v4.1.0
 
       - name: Download snapshot build
         uses: actions/cache/restore@704facf57e6136b1bc63b828d79edcd491f0ee84 #v3.3.2
@@ -167,7 +167,7 @@ jobs:
     needs: [Build-Snapshot-Artifacts]
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac #v4.0.0
+      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 #v4.1.0
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
