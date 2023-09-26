@@ -342,6 +342,24 @@ func TestFuzzyConstraintSatisfaction(t *testing.T) {
 			constraint: "> 1.1.1-a",
 			satisfied:  true,
 		},
+		{
+			name:       "go pseudoversion vulnerable: version is less, want less",
+			version:    "0.0.0-20230716120725-531d2d74bc12",
+			constraint: "<0.0.0-20230922105210-14b16010c2ee",
+			satisfied:  true,
+		},
+		{
+			name:       "go pseudoversion not vulnerable: same version but constraint is less",
+			version:    "0.0.0-20230922105210-14b16010c2ee",
+			constraint: "<0.0.0-20230922105210-14b16010c2ee",
+			satisfied:  false,
+		},
+		{
+			name:       "go pseudoversion not vulnerable: greater version",
+			version:    "0.0.0-20230922112808-5421fefb8386",
+			constraint: "<0.0.0-20230922105210-14b16010c2ee",
+			satisfied:  false,
+		},
 	}
 
 	for _, test := range tests {
