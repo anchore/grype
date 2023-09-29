@@ -13,7 +13,6 @@ import (
 	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/pkg"
-
 	cpes "github.com/anchore/syft/syft/pkg/cataloger/common/cpe"
 )
 
