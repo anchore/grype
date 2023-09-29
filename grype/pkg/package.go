@@ -7,11 +7,13 @@ import (
 
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/stringutil"
+	packageurl "github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/pkg"
+
 	cpes "github.com/anchore/syft/syft/pkg/cataloger/common/cpe"
 )
 
@@ -100,6 +102,22 @@ func FromPackages(syftpkgs []pkg.Package, config SynthesisConfig) []Package {
 // Stringer to represent a package.
 func (p Package) String() string {
 	return fmt.Sprintf("Pkg(type=%s, name=%s, version=%s, upstreams=%d)", p.Type, p.Name, p.Version, len(p.Upstreams))
+}
+
+func (p Package) DistroFragmentFromPURL() string {
+	if p.PURL == "" {
+		return ""
+	}
+	purl, err := packageurl.FromString(p.PURL)
+	if err != nil {
+		return ""
+	}
+	for k, v := range purl.Qualifiers.Map() {
+		if k == "distro" && v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 func removePackagesByOverlap(catalog *pkg.Collection, relationships []artifact.Relationship, distro *linux.Release) *pkg.Collection {
