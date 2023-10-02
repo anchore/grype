@@ -428,8 +428,8 @@ github.com/gkampitakis/ciinfo v0.2.5 h1:K0mac90lGguc1conc46l0YEsB7/nioWCqSnJp/6z
 github.com/gkampitakis/ciinfo v0.2.5/go.mod h1:1NIwaOcFChN4fa/B0hEBdAb6npDlFL8Bwx4dfRLRqAo=
 github.com/gkampitakis/go-diff v1.3.2 h1:Qyn0J9XJSDTgnsgHRdz9Zp24RaJeKMUHg2+PDZZdC4M=
 github.com/gkampitakis/go-diff v1.3.2/go.mod h1:LLgOrpqleQe26cte8s36HTWcTmMEur6OPYerdAAS9tk=
-github.com/gkampitakis/go-snaps v0.4.10 h1:rUcTH4k6+rzw6ylDALMifzw2c/f9cG3NZe/n+7Ygdr4=
-github.com/gkampitakis/go-snaps v0.4.10/go.mod h1:N4TpqxI4CqKUfHzDFqrqZ5UP0I0ESz2g2NMslh7MiJw=
+github.com/gkampitakis/go-snaps v0.4.11 h1:7qKaozbTQEvHeG0bt6osdjdTDTnWYdIrLx43a7DEDu4=
+github.com/gkampitakis/go-snaps v0.4.11/go.mod h1:N4TpqxI4CqKUfHzDFqrqZ5UP0I0ESz2g2NMslh7MiJw=
 github.com/glebarez/go-sqlite v1.21.2 h1:3a6LFC4sKahUunAmynQKLZceZCOzUthkRkEAl9gAXWo=
 github.com/glebarez/go-sqlite v1.21.2/go.mod h1:sfxdZyhQjTM2Wry3gVYWaW072Ri1WMdWJi0k6+3382k=
 github.com/glebarez/sqlite v1.9.0 h1:Aj6bPA12ZEx5GbSF6XADmCkYXlljPNUY+Zf1EQxynXs=
