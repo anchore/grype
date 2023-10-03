@@ -90,6 +90,34 @@ See [DEVELOPING.md](DEVELOPING.md#native-development) for instructions to build 
 
 If you're using GitHub Actions, you can simply use our [Grype-based action](https://github.com/marketplace/actions/anchore-container-scan) to run vulnerability scans on your code or container images during your CI workflows.
 
+## Verifying the artifacts
+
+Checksums are applied to all artifacts, and the resulting checksum file is signed using cosign.
+
+You need the following tool to verify signature:
+
+- [Cosign](https://docs.sigstore.dev/cosign/installation/)
+
+Verification steps are as follow:
+
+1. Download the files you want, and the checksums.txt, checksums.txt.pem and checksums.txt.sig files from the [releases](https://github.com/anchore/grype/releases) page:
+
+2. Verify the signature:
+
+```shell
+cosign verify-blob <path to checksum.txt> \
+--certificate <path to checksums.txt.pem> \
+--signature <path to checksums.txt.sig> \
+--certificate-identity-regexp 'https://github\.com/anchore/grype/\.github/workflows/.+' \
+--certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
+
+3. Once the signature is confirmed as valid, you can proceed to validate that the SHA256 sums align with the downloaded artifact:
+
+```shell
+sha256sum --ignore-missing -c checksums.txt
+```
+
 ## Getting started
 
 [Install the binary](#installation), and make sure that `grype` is available in your path. To scan for vulnerabilities in an image:
