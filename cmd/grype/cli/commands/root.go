@@ -182,6 +182,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 	}
 
 	if err = writer.Write(models.PresenterConfig{
+		ID:               app.ID(),
 		Matches:          *remainingMatches,
 		IgnoredMatches:   ignoredMatches,
 		Packages:         packages,
