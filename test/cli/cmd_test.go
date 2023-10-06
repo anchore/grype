@@ -1,8 +1,11 @@
 package cli
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestCmd(t *testing.T) {
@@ -77,4 +80,21 @@ func TestCmd(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_descriptorNameAndVersionSet(t *testing.T) {
+	_, output, _ := runGrype(t, nil, "-o", "json", getFixtureImage(t, "image-bare"))
+
+	parsed := map[string]any{}
+	err := json.Unmarshal([]byte(output), &parsed)
+	require.NoError(t, err)
+
+	desc, _ := parsed["descriptor"].(map[string]any)
+	require.NotNil(t, desc)
+
+	name := desc["name"]
+	require.Equal(t, "grype", name)
+
+	version := desc["version"]
+	require.NotEmpty(t, version)
 }
