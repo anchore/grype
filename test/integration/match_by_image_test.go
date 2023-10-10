@@ -252,7 +252,8 @@ func addGolangMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 	}
 
 	binPackages := catalog.PackagesByPath("/go-app")
-	if len(binPackages) != 2 {
+	// contains 2 package + a single stdlib package
+	if len(binPackages) != 3 {
 		t.Logf("Golang Bin Packages: %+v", binPackages)
 		t.Fatalf("problem with upstream syft cataloger (golang)")
 	}
@@ -264,6 +265,10 @@ func addGolangMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 	for _, p := range packages {
 		// no vuln match supported for main module
 		if p.Name == "github.com/anchore/coverage" {
+			continue
+		}
+
+		if p.Name == "stdlib" {
 			continue
 		}
 
