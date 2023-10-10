@@ -60,7 +60,7 @@ require (
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
 	golang.org/x/term v0.12.0 // indirect
-	gorm.io/gorm v1.25.4
+	gorm.io/gorm v1.25.5
 	modernc.org/sqlite v1.25.0 // indirect
 )
 
