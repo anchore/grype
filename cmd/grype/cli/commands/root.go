@@ -115,6 +115,23 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 	var s *sbom.SBOM
 	var pkgContext pkg.Context
 
+	if opts.OnlyFixed {
+		opts.Ignore = append(opts.Ignore, ignoreNonFixedMatches...)
+	}
+
+	if opts.OnlyNotFixed {
+		opts.Ignore = append(opts.Ignore, ignoreFixedMatches...)
+	}
+
+	for _, ignoreState := range stringutil.SplitCommaSeparatedString(opts.IgnoreStates) {
+		switch grypeDb.FixState(ignoreState) {
+		case grypeDb.UnknownFixState, grypeDb.FixedState, grypeDb.NotFixedState, grypeDb.WontFixState:
+			opts.Ignore = append(opts.Ignore, match.IgnoreRule{FixState: ignoreState})
+		default:
+			return fmt.Errorf("unknown fix state %s was supplied for --ignore-states", ignoreState)
+		}
+	}
+
 	err = parallel(
 		func() error {
 			checkForAppUpdate(app.ID(), opts)
@@ -145,23 +162,6 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 
 	if dbCloser != nil {
 		defer dbCloser.Close()
-	}
-
-	if opts.OnlyFixed {
-		opts.Ignore = append(opts.Ignore, ignoreNonFixedMatches...)
-	}
-
-	if opts.OnlyNotFixed {
-		opts.Ignore = append(opts.Ignore, ignoreFixedMatches...)
-	}
-
-	for _, ignoreState := range opts.IgnoreStates {
-		switch grypeDb.FixState(ignoreState) {
-		case grypeDb.UnknownFixState, grypeDb.FixedState, grypeDb.NotFixedState, grypeDb.WontFixState:
-			opts.Ignore = append(opts.Ignore, match.IgnoreRule{FixState: ignoreState})
-		default:
-			log.Warnf("ignoring unknown fix state %s for --ignore-states", ignoreState)
-		}
 	}
 
 	if err = applyVexRules(opts); err != nil {

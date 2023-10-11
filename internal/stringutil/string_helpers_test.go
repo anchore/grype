@@ -120,3 +120,37 @@ func TestHasAnyOfPrefixes(t *testing.T) {
 		})
 	}
 }
+
+func TestSplitCommaSeparatedString(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected []string
+	}{
+		{
+			input:    "testing",
+			expected: []string{"testing"},
+		},
+		{
+			input:    "",
+			expected: []string{},
+		},
+		{
+			input:    "testing1,testing2",
+			expected: []string{"testing1", "testing2"},
+		},
+		{
+			input:    "testing1,,testing2,testing3",
+			expected: []string{"testing1", "testing2", "testing3"},
+		},
+		{
+			input:    "testing1,testing2,,",
+			expected: []string{"testing1", "testing2"},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.input, func(t *testing.T) {
+			assert.Equal(t, test.expected, SplitCommaSeparatedString(test.input))
+		})
+	}
+}
