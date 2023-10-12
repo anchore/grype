@@ -18,7 +18,7 @@ require (
 	github.com/aquasecurity/go-pep440-version v0.0.0-20210121094942-22b2f8951d46
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/charmbracelet/bubbletea v0.24.2
-	github.com/charmbracelet/lipgloss v0.9.0
+	github.com/charmbracelet/lipgloss v0.9.1
 	github.com/docker/docker v24.0.6+incompatible
 	github.com/dustin/go-humanize v1.0.1
 	github.com/facebookincubator/nvdtools v0.1.5
