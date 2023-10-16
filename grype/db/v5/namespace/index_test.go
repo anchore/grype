@@ -30,6 +30,8 @@ func TestFromStringSlice(t *testing.T) {
 				"nvd:cpe",
 				"github:language:ruby",
 				"abc.xyz:language:ruby",
+				"github:language:rust",
+				"something:language:rust",
 				"1234.4567:language:unknown",
 				"---:cpe",
 				"another-provider:distro:alpine:3.15",
@@ -43,6 +45,10 @@ func TestFromStringSlice(t *testing.T) {
 				syftPkg.Ruby: {
 					language.NewNamespace("github", syftPkg.Ruby, ""),
 					language.NewNamespace("abc.xyz", syftPkg.Ruby, ""),
+				},
+				syftPkg.Rust: {
+					language.NewNamespace("github", syftPkg.Rust, ""),
+					language.NewNamespace("something", syftPkg.Rust, ""),
 				},
 				syftPkg.Language("unknown"): {
 					language.NewNamespace("1234.4567", syftPkg.Language("unknown"), ""),
