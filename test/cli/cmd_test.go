@@ -65,6 +65,32 @@ func TestCmd(t *testing.T) {
 				assertFailingReturnCode,
 			},
 		},
+		{
+			name: "ignore-states wired up",
+			args: []string{"./test-fixtures/sbom-grype-source.json", "--ignore-states", "unknown"},
+			assertions: []traitAssertion{
+				assertSucceedingReturnCode,
+				assertRowInStdOut([]string{"Pygments", "2.6.1", "2.7.4", "python", "GHSA-pq64-v7f5-gqh8", "High"}),
+				assertNotInOutput("CVE-2014-6052"),
+			},
+		},
+		{
+			name: "ignore-states wired up - ignore fixed",
+			args: []string{"./test-fixtures/sbom-grype-source.json", "--ignore-states", "fixed"},
+			assertions: []traitAssertion{
+				assertSucceedingReturnCode,
+				assertRowInStdOut([]string{"libvncserver", "0.9.9", "apk", "CVE-2014-6052", "High"}),
+				assertNotInOutput("GHSA-pq64-v7f5-gqh8"),
+			},
+		},
+		{
+			name: "ignore-states wired up - ignore fixed, show suppressed",
+			args: []string{"./test-fixtures/sbom-grype-source.json", "--ignore-states", "fixed", "--show-suppressed"},
+			assertions: []traitAssertion{
+				assertSucceedingReturnCode,
+				assertRowInStdOut([]string{"Pygments", "2.6.1", "2.7.4", "python", "GHSA-pq64-v7f5-gqh8", "High", "(suppressed)"}),
+			},
+		},
 	}
 
 	for _, test := range tests {
