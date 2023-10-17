@@ -401,7 +401,7 @@ NAME       INSTALLED  FIXED-IN   VULNERABILITY   SEVERITY
 apk-tools  2.10.6-r0  2.10.7-r0  CVE-2021-36159  Critical
 ```
 
-If you want Grype to only report vulnerabilities **that do not have a confirmed fix**, you can use the `--only-notfixed` flag. (This automatically adds [ignore rules](#specifying-matches-to-ignore) into Grype's configuration, such that vulnerabilities that are fixed will be ignored.)
+If you want Grype to only report vulnerabilities **that do not have a confirmed fix**, you can use the `--only-notfixed` flag. Alternatively, you can use the `--ignore-states` flag to filter results for vulnerabilities with specific states such as `wont-fix` (see `--help` for a list of valid fix states). These flags automatically add [ignore rules](#specifying-matches-to-ignore) into Grype's configuration, such that vulnerabilities which are fixed, or will not be fixed, will be ignored.
 
 ## VEX Support
 
