@@ -1,0 +1,41 @@
+
+[Test_postUIEventWriter_write/no_events/stdout - 1]
+
+---
+
+[Test_postUIEventWriter_write/no_events/stderr - 1]
+
+---
+
+[Test_postUIEventWriter_write/all_events/stdout - 1]
+
+
+<my --
+-
+-
+report 1!!>
+<report 2>
+
+---
+
+[Test_postUIEventWriter_write/all_events/stderr - 1]
+                    
+                    
+<my notification 1!!
+...still notifying> 
+                    
+                    
+<notification 2>
+<notification 3>
+A newer version of grype is available for download: v0.33.0 (installed version is [not provided])
+
+---
+
+[Test_postUIEventWriter_write/quiet_only_shows_report/stdout - 1]
+<report 1>
+
+---
+
+[Test_postUIEventWriter_write/quiet_only_shows_report/stderr - 1]
+
+---

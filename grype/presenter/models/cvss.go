@@ -3,6 +3,8 @@ package models
 import "github.com/anchore/grype/grype/vulnerability"
 
 type Cvss struct {
+	Source         string      `json:"source,omitempty"`
+	Type           string      `json:"type,omitempty"`
 	Version        string      `json:"version"`
 	Vector         string      `json:"vector"`
 	Metrics        CvssMetrics `json:"metrics"`
@@ -23,6 +25,8 @@ func NewCVSS(metadata *vulnerability.Metadata) []Cvss {
 			vendorMetadata = make(map[string]interface{})
 		}
 		cvss = append(cvss, Cvss{
+			Source:  score.Source,
+			Type:    score.Type,
 			Version: score.Version,
 			Vector:  score.Vector,
 			Metrics: CvssMetrics{

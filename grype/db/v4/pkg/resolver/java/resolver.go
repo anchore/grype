@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	grypePkg "github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/grype/internal/stringutil"
 	"github.com/anchore/packageurl-go"
 )
 
@@ -18,7 +18,7 @@ func (r *Resolver) Normalize(name string) string {
 }
 
 func (r *Resolver) Resolve(p grypePkg.Package) []string {
-	names := internal.NewStringSet()
+	names := stringutil.NewStringSet()
 
 	// The current default for the Java ecosystem is to use a Maven-like identifier of the form
 	// "<group-name>:<artifact-name>"

@@ -13,8 +13,9 @@ import (
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/file"
 	syftFile "github.com/anchore/syft/syft/file"
+	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
-	"github.com/anchore/syft/syft/source"
+	"github.com/anchore/syft/syft/sbom"
 )
 
 func TestNew(t *testing.T) {
@@ -424,7 +425,7 @@ func TestNew(t *testing.T) {
 					Extras:            []string{"a"},
 					VersionConstraint: "a",
 					URL:               "a",
-					Markers:           map[string]string{"a": "a"},
+					Markers:           "a",
 				},
 			},
 		},
@@ -515,6 +516,30 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "dotnet-portable-executable-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.DotnetPortableExecutableMetadataType,
+				Metadata: syftPkg.DotnetPortableExecutableMetadata{
+					AssemblyVersion: "a",
+					LegalCopyright:  "a",
+					Comments:        "a",
+					InternalName:    "a",
+					CompanyName:     "a",
+					ProductName:     "a",
+					ProductVersion:  "a",
+				},
+			},
+		},
+		{
+			name: "dotnet-portable-executable-metadata",
+			syftPkg: syftPkg.Package{
+				MetadataType: syftPkg.SwiftPackageManagerMetadataType,
+				Metadata: syftPkg.SwiftPackageManagerMetadata{
+					Revision: "a",
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
@@ -550,8 +575,8 @@ func TestFromCollection_DoesNotPanic(t *testing.T) {
 	examplePackage := syftPkg.Package{
 		Name:    "test",
 		Version: "1.2.3",
-		Locations: source.NewLocationSet(
-			source.NewLocation("/test-path"),
+		Locations: file.NewLocationSet(
+			file.NewLocation("/test-path"),
 		),
 		Type: syftPkg.NpmPkg,
 	}
@@ -633,10 +658,10 @@ func intRef(i int) *int {
 	return &i
 }
 
-func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
+func Test_RemovePackagesByOverlap(t *testing.T) {
 	tests := []struct {
 		name             string
-		sbom             catalogRelationships
+		sbom             *sbom.SBOM
 		expectedPackages []string
 	}{
 		{
@@ -654,10 +679,24 @@ func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
 			expectedPackages: []string{"apk:go@1.18", "apk:node@19.2-r1"},
 		},
 		{
+			name: "does not exclude if OS package owns OS package",
+			sbom: catalogWithOverlaps(
+				[]string{"rpm:perl@5.3-r1", "rpm:libperl@5.3"},
+				[]string{"rpm:perl@5.3-r1 -> rpm:libperl@5.3"}),
+			expectedPackages: []string{"rpm:libperl@5.3", "rpm:perl@5.3-r1"},
+		},
+		{
+			name: "does not exclude if owning package is non-OS",
+			sbom: catalogWithOverlaps(
+				[]string{"python:urllib3@1.2.3", "python:otherlib@1.2.3"},
+				[]string{"python:urllib3@1.2.3 -> python:otherlib@1.2.3"}),
+			expectedPackages: []string{"python:otherlib@1.2.3", "python:urllib3@1.2.3"},
+		},
+		{
 			name: "excludes multiple package by overlap",
 			sbom: catalogWithOverlaps(
-				[]string{"apk:go@1.18", "apk:node@19.2-r1", "binary:node@19.2", "apk:python@3.9-r9", ":python@3.9"},
-				[]string{"apk:node@19.2-r1 -> binary:node@19.2", "apk:python@3.9-r9 -> :python@3.9"}),
+				[]string{"apk:go@1.18", "apk:node@19.2-r1", "binary:node@19.2", "apk:python@3.9-r9", "binary:python@3.9"},
+				[]string{"apk:node@19.2-r1 -> binary:node@19.2", "apk:python@3.9-r9 -> binary:python@3.9"}),
 			expectedPackages: []string{"apk:go@1.18", "apk:node@19.2-r1", "apk:python@3.9-r9"},
 		},
 		{
@@ -667,10 +706,38 @@ func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
 				[]string{"rpm:node@19.2-r1 -> apk:node@19.2"}),
 			expectedPackages: []string{"apk:node@19.2", "rpm:node@19.2-r1"},
 		},
+		{
+			name: "does not exclude if OS package owns OS package",
+			sbom: catalogWithOverlaps(
+				[]string{"rpm:perl@5.3-r1", "rpm:libperl@5.3"},
+				[]string{"rpm:perl@5.3-r1 -> rpm:libperl@5.3"}),
+			expectedPackages: []string{"rpm:libperl@5.3", "rpm:perl@5.3-r1"},
+		},
+		{
+			name: "does not exclude if owning package is non-OS",
+			sbom: catalogWithOverlaps(
+				[]string{"python:urllib3@1.2.3", "python:otherlib@1.2.3"},
+				[]string{"python:urllib3@1.2.3 -> python:otherlib@1.2.3"}),
+			expectedPackages: []string{"python:otherlib@1.2.3", "python:urllib3@1.2.3"},
+		},
+		{
+			name: "python bindings for system RPM install",
+			sbom: withDistro(catalogWithOverlaps(
+				[]string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
+				[]string{"rpm:python3-rpm@4.14.3-26.el8 -> python:rpm@4.14.3"}), "rhel"),
+			expectedPackages: []string{"rpm:python3-rpm@4.14.3-26.el8"},
+		},
+		{
+			name: "amzn linux doesn't remove packages in this way",
+			sbom: withDistro(catalogWithOverlaps(
+				[]string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
+				[]string{"rpm:python3-rpm@4.14.3-26.el8 -> python:rpm@4.14.3"}), "amzn"),
+			expectedPackages: []string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			catalog := removePackagesByOverlap(test.sbom.collection, test.sbom.relationships)
+			catalog := removePackagesByOverlap(test.sbom.Artifacts.Packages, test.sbom.Relationships, test.sbom.Artifacts.LinuxDistribution)
 			pkgs := FromCollection(catalog, SynthesisConfig{})
 			var pkgNames []string
 			for _, p := range pkgs {
@@ -681,12 +748,7 @@ func Test_RemoveBinaryPackagesByOverlap(t *testing.T) {
 	}
 }
 
-type catalogRelationships struct {
-	collection    *syftPkg.Collection
-	relationships []artifact.Relationship
-}
-
-func catalogWithOverlaps(packages []string, overlaps []string) catalogRelationships {
+func catalogWithOverlaps(packages []string, overlaps []string) *sbom.SBOM {
 	var pkgs []syftPkg.Package
 	var relationships []artifact.Relationship
 
@@ -735,8 +797,17 @@ func catalogWithOverlaps(packages []string, overlaps []string) catalogRelationsh
 
 	catalog := syftPkg.NewCollection(pkgs...)
 
-	return catalogRelationships{
-		collection:    catalog,
-		relationships: relationships,
+	return &sbom.SBOM{
+		Artifacts: sbom.Artifacts{
+			Packages: catalog,
+		},
+		Relationships: relationships,
 	}
+}
+
+func withDistro(s *sbom.SBOM, id string) *sbom.SBOM {
+	s.Artifacts.LinuxDistribution = &linux.Release{
+		ID: id,
+	}
+	return s
 }

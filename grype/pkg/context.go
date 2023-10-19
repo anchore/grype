@@ -6,6 +6,6 @@ import (
 )
 
 type Context struct {
-	Source *source.Metadata
+	Source *source.Description
 	Distro *linux.Release
 }

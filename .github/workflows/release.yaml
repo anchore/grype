@@ -6,16 +6,15 @@ on:
         description: tag the latest commit on main with the given version (prefixed with v)
         required: true
 
-env:
-  GO_VERSION: "1.19.x"
+permissions:
+  contents: read
 
 jobs:
   quality-gate:
     environment: release
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
-
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
       - name: Check if tag already exists
         # note: this will fail if the tag already exists
         run: |
@@ -93,8 +92,9 @@ jobs:
     permissions:
       contents: write
       packages: write
+      id-token: write
     steps:
-      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v2.5.0
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
         with:
           fetch-depth: 0
 
@@ -105,21 +105,26 @@ jobs:
           build-cache-key-prefix: "snapshot"
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d  #v3.0.0
         with:
           username: ${{ secrets.TOOLBOX_DOCKER_USER }}
           password: ${{ secrets.TOOLBOX_DOCKER_PASS }}
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d  #v3.0.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Cosign install
+        uses: sigstore/cosign-installer@11086d25041f77fe8fe7b9ea4e48e3b9192b8f19 #v3.1.2
+
       - name: Tag release
         run: |
-          git tag ${{ github.event.inputs.version }}
+          git config user.name "anchoreci"
+          git config user.email "anchoreci@users.noreply.github.com"
+          git tag -a ${{ github.event.inputs.version }} -m "Release ${{ github.event.inputs.version }}"
           git push origin --tags
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -142,7 +147,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.TOOLBOX_AWS_SECRET_ACCESS_KEY }}
 
 
-      - uses: anchore/sbom-action@4d571ad1038a9cc29d676154ef265ab8f9027042 # v0.14.2
+      - uses: anchore/sbom-action@78fc58e266e87a38d4194b2137a3d4e9bcaf7ca1 # v0.14.3
         continue-on-error: true
         with:
           artifact-name: sbom.spdx.json
@@ -156,8 +161,3 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_TOOLBOX_WEBHOOK_URL }}
         if: ${{ success() }}
-
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
-        with:
-          path: dist/**/*
-          name: artifacts

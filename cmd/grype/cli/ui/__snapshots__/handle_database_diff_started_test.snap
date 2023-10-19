@@ -1,0 +1,8 @@
+
+[TestHandler_handleDatabaseDiffStarted/DB_diff_started - 1]
+ ⠋ Comparing Vulnerability DBs     ━━━━━━━━━━━━━━━━━━━━  [current]  
+---
+
+[TestHandler_handleDatabaseDiffStarted/DB_diff_complete - 1]
+ ✔ Compared Vulnerability DBs      [20 differences found]  
+---

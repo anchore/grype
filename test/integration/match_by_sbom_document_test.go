@@ -55,17 +55,18 @@ func TestMatchBySBOMDocument(t *testing.T) {
 		{
 			name:        "unknown package type",
 			fixture:     "test-fixtures/sbom/syft-sbom-with-unknown-packages.json",
-			expectedIDs: []string{"CVE-bogus-my-package-2-python"},
+			expectedIDs: []string{"CVE-bogus-my-package-2-idris"},
 			expectedDetails: []match.Detail{
 				{
 					Type: match.ExactDirectMatch,
 					SearchedBy: map[string]interface{}{
-						"language":  "python",
-						"namespace": "github:language:python",
+						"language":  "idris",
+						"namespace": "github:language:idris",
+						"package":   map[string]string{"name": "my-package", "version": "1.0.5"},
 					},
 					Found: map[string]interface{}{
-						"versionConstraint": "< 2.0 (python)",
-						"vulnerabilityID":   "CVE-bogus-my-package-2-python",
+						"versionConstraint": "< 2.0 (unknown)",
+						"vulnerabilityID":   "CVE-bogus-my-package-2-idris",
 					},
 					Matcher:    match.StockMatcher,
 					Confidence: 1,

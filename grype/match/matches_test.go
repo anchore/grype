@@ -290,3 +290,67 @@ func assertIgnoredMatchOrder(t *testing.T, expected, actual []IgnoredMatch) {
 	// make certain the fields are what you'd expect
 	assert.Equal(t, expected, actual)
 }
+
+func TestMatches_Diff(t *testing.T) {
+	a := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID:        "vuln-a",
+			Namespace: "name-a",
+		},
+		Package: pkg.Package{
+			ID: "package-a",
+		},
+	}
+
+	b := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID:        "vuln-b",
+			Namespace: "name-b",
+		},
+		Package: pkg.Package{
+			ID: "package-b",
+		},
+	}
+
+	c := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID:        "vuln-c",
+			Namespace: "name-c",
+		},
+		Package: pkg.Package{
+			ID: "package-c",
+		},
+	}
+
+	tests := []struct {
+		name    string
+		subject Matches
+		other   Matches
+		want    Matches
+	}{
+		{
+			name:    "no diff",
+			subject: NewMatches(a, b, c),
+			other:   NewMatches(a, b, c),
+			want:    newMatches(),
+		},
+		{
+			name:    "extra items in subject",
+			subject: NewMatches(a, b, c),
+			other:   NewMatches(a, b),
+			want:    NewMatches(c),
+		},
+		{
+			// this demonstrates that this is not meant to implement a symmetric diff
+			name:    "extra items in other (results in no diff)",
+			subject: NewMatches(a, b),
+			other:   NewMatches(a, b, c),
+			want:    NewMatches(),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, &tt.want, tt.subject.Diff(tt.other), "Diff(%v)", tt.other)
+		})
+	}
+}

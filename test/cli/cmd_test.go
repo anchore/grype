@@ -1,8 +1,11 @@
 package cli
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestCmd(t *testing.T) {
@@ -39,7 +42,7 @@ func TestCmd(t *testing.T) {
 		},
 		{
 			name: "responds-to-search-options",
-			args: []string{"-vv"},
+			args: []string{"--help"},
 			env: map[string]string{
 				"GRYPE_SEARCH_UNINDEXED_ARCHIVES": "true",
 				"GRYPE_SEARCH_INDEXED_ARCHIVES":   "false",
@@ -51,7 +54,41 @@ func TestCmd(t *testing.T) {
 				// package-cataloger-level options.
 				assertInOutput("unindexed-archives: true"),
 				assertInOutput("indexed-archives: false"),
-				assertInOutput("scope: all-layers"),
+				assertInOutput("scope: 'all-layers'"),
+			},
+		},
+		{
+			name: "vulnerabilities in output on -f with failure",
+			args: []string{"registry:busybox:1.31", "-f", "high", "--platform", "linux/amd64"},
+			assertions: []traitAssertion{
+				assertInOutput("CVE-2021-42379"),
+				assertFailingReturnCode,
+			},
+		},
+		{
+			name: "ignore-states wired up",
+			args: []string{"./test-fixtures/sbom-grype-source.json", "--ignore-states", "unknown"},
+			assertions: []traitAssertion{
+				assertSucceedingReturnCode,
+				assertRowInStdOut([]string{"Pygments", "2.6.1", "2.7.4", "python", "GHSA-pq64-v7f5-gqh8", "High"}),
+				assertNotInOutput("CVE-2014-6052"),
+			},
+		},
+		{
+			name: "ignore-states wired up - ignore fixed",
+			args: []string{"./test-fixtures/sbom-grype-source.json", "--ignore-states", "fixed"},
+			assertions: []traitAssertion{
+				assertSucceedingReturnCode,
+				assertRowInStdOut([]string{"libvncserver", "0.9.9", "apk", "CVE-2014-6052", "High"}),
+				assertNotInOutput("GHSA-pq64-v7f5-gqh8"),
+			},
+		},
+		{
+			name: "ignore-states wired up - ignore fixed, show suppressed",
+			args: []string{"./test-fixtures/sbom-grype-source.json", "--ignore-states", "fixed", "--show-suppressed"},
+			assertions: []traitAssertion{
+				assertSucceedingReturnCode,
+				assertRowInStdOut([]string{"Pygments", "2.6.1", "2.7.4", "python", "GHSA-pq64-v7f5-gqh8", "High", "(suppressed)"}),
 			},
 		},
 	}
@@ -69,4 +106,21 @@ func TestCmd(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_descriptorNameAndVersionSet(t *testing.T) {
+	_, output, _ := runGrype(t, nil, "-o", "json", getFixtureImage(t, "image-bare"))
+
+	parsed := map[string]any{}
+	err := json.Unmarshal([]byte(output), &parsed)
+	require.NoError(t, err)
+
+	desc, _ := parsed["descriptor"].(map[string]any)
+	require.NotNil(t, desc)
+
+	name := desc["name"]
+	require.Equal(t, "grype", name)
+
+	version := desc["version"]
+	require.NotEmpty(t, version)
 }
