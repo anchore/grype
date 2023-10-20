@@ -168,14 +168,14 @@ func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 
 func addDotnetMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore *mockStore, theResult *match.Matches) {
 	packages := catalog.PackagesByPath("/dotnet/TestLibrary.deps.json")
-	if len(packages) != 1 {
+	if len(packages) != 2 { // TestLibrary + AWSSDK.Core
 		for _, p := range packages {
 			t.Logf("Dotnet Package: %s %+v", p.ID(), p)
 		}
 
 		t.Fatalf("problem with upstream syft cataloger (dotnet)")
 	}
-	thePkg := pkg.New(packages[0])
+	thePkg := pkg.New(packages[1])
 	normalizedName := theStore.normalizedPackageNames["github:language:dotnet"][thePkg.Name]
 	theVuln := theStore.backend["github:language:dotnet"][normalizedName][0]
 	vulnObj, err := vulnerability.NewVulnerability(theVuln)
