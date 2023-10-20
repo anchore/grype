@@ -279,8 +279,11 @@ func getMatchers(opts *options.Grype) []matcher.Matcher {
 			Python:     python.MatcherConfig(opts.Match.Python),
 			Dotnet:     dotnet.MatcherConfig(opts.Match.Dotnet),
 			Javascript: javascript.MatcherConfig(opts.Match.Javascript),
-			Golang:     golang.MatcherConfig(opts.Match.Golang),
-			Stock:      stock.MatcherConfig(opts.Match.Stock),
+			Golang: golang.MatcherConfig{
+				UseCPEs:               opts.Match.Golang.UseCPEs,
+				AlwaysUseCPEForStdlib: opts.Match.Golang.AlwaysUseCPEForStdlib,
+			},
+			Stock: stock.MatcherConfig(opts.Match.Stock),
 		},
 	)
 }
