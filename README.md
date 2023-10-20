@@ -809,19 +809,21 @@ log:
 match:
   # sets the matchers below to use cpes when trying to find 
   # vulnerability matches. The stock matcher is the default
-  # when no primary matcher can be identified 
+  # when no primary matcher can be identified.
   java:
-    using-cpes: true
+    using-cpes: false
   python:
-    using-cpes: true
+    using-cpes: false
   javascript:
-    using-cpes: true
+    using-cpes: false
   ruby:
-    using-cpes: true
+    using-cpes: false
   dotnet:
-    using-cpes: true
+    using-cpes: false
   golang:
-    using-cpes: true
+    using-cpes: false
+    # even if CPE matching is disabled, make an exception when scanning for "stdlib".
+    always-use-cpe-for-stdlib: true
   stock:
     using-cpes: true
 ```
