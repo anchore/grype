@@ -50,85 +50,14 @@ func (s *mockStore) GetVulnerabilityNamespaces() ([]string, error) {
 	return keys, nil
 }
 
-func TestSecDBOnlyMatch(t *testing.T) {
-
-	secDbVuln := grypeDB.Vulnerability{
-		// ID doesn't match - this is the key for comparison in the matcher
-		ID:                "CVE-2020-2",
-		VersionConstraint: "<= 0.9.11",
-		VersionFormat:     "apk",
-		Namespace:         "secdb:distro:alpine:3.12",
-	}
-	store := mockStore{
-		backend: map[string]map[string][]grypeDB.Vulnerability{
-			"secdb:distro:alpine:3.12": {
-				"libvncserver": []grypeDB.Vulnerability{secDbVuln},
-			},
-		},
-	}
-
-	provider, err := db.NewVulnerabilityProvider(&store)
-	require.NoError(t, err)
-
-	m := Matcher{}
-	d, err := distro.New(distro.Alpine, "3.12.0", "")
-	if err != nil {
-		t.Fatalf("failed to create a new distro: %+v", err)
-	}
-
-	p := pkg.Package{
-		ID:      pkg.ID(uuid.NewString()),
-		Name:    "libvncserver",
-		Version: "0.9.9",
-		Type:    syftPkg.ApkPkg,
-		CPEs: []cpe.CPE{
-			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"),
-		},
-	}
-
-	vulnFound, err := vulnerability.NewVulnerability(secDbVuln)
-	assert.NoError(t, err)
-
-	expected := []match.Match{
-		{
-
-			Vulnerability: *vulnFound,
-			Package:       p,
-			Details: []match.Detail{
-				{
-					Type:       match.ExactDirectMatch,
-					Confidence: 1.0,
-					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    d.Type.String(),
-							"version": d.RawVersion,
-						},
-						"package": map[string]string{
-							"name":    "libvncserver",
-							"version": "0.9.9",
-						},
-						"namespace": "secdb:distro:alpine:3.12",
-					},
-					Found: map[string]interface{}{
-						"versionConstraint": vulnFound.Constraint.String(),
-						"vulnerabilityID":   "CVE-2020-2",
-					},
-					Matcher: match.ApkMatcher,
-				},
-			},
-		},
-	}
-
-	actual, err := m.Match(provider, d, p)
-	assert.NoError(t, err)
-
-	assertMatches(t, expected, actual)
-}
-
-func TestBothSecdbAndNvdMatches(t *testing.T) {
+// TODO include case where fixed version don't match and it's not fixed
+func TestSecdbFixesNvdMatches(t *testing.T) {
 	// NVD and Alpine's secDB both have the same CVE ID for the package
+	// NVD represents the presence of a vulnerability
+	// SECDB data represents that for a given version that CVE has been fixed
 	nvdVuln := grypeDB.Vulnerability{
 		ID:                "CVE-2020-1",
+		PackageName:       "libvncserver",
 		VersionConstraint: "<= 0.9.11",
 		VersionFormat:     "unknown",
 		CPEs:              []string{`cpe:2.3:a:lib_vnc_project-\(server\):libvncserver:*:*:*:*:*:*:*:*`},
@@ -136,11 +65,12 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 	}
 
 	secDbVuln := grypeDB.Vulnerability{
-		// ID *does* match - this is the key for comparison in the matcher
-		ID:                "CVE-2020-1",
-		VersionConstraint: "<= 0.9.11",
-		VersionFormat:     "apk",
-		Namespace:         "secdb:distro:alpine:3.12",
+		ID: "CVE-2020-1",
+		Fix: grypeDB.Fix{
+			Versions: []string{"0.9.11"},
+		},
+		VersionFormat: "apk",
+		Namespace:     "distro:alpine:3.12",
 	}
 	store := mockStore{
 		backend: map[string]map[string][]grypeDB.Vulnerability{
@@ -157,7 +87,7 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 	require.NoError(t, err)
 
 	m := Matcher{}
-	d, err := distro.New(distro.Alpine, "3.12.0", "")
+	d, err := distro.New(distro.Alpine, "3.12", "")
 	if err != nil {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
@@ -165,46 +95,17 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 	p := pkg.Package{
 		ID:      pkg.ID(uuid.NewString()),
 		Name:    "libvncserver",
-		Version: "0.9.9",
+		Version: "0.9.11", // has to match the fixed version of secDB to be turned off
 		Type:    syftPkg.ApkPkg,
 		CPEs: []cpe.CPE{
 			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"),
 		},
 	}
 
-	// ensure the SECDB record is preferred over the NVD record
-	vulnFound, err := vulnerability.NewVulnerability(secDbVuln)
 	assert.NoError(t, err)
 
-	expected := []match.Match{
-		{
-
-			Vulnerability: *vulnFound,
-			Package:       p,
-			Details: []match.Detail{
-				{
-					Type:       match.ExactDirectMatch,
-					Confidence: 1.0,
-					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    d.Type.String(),
-							"version": d.RawVersion,
-						},
-						"package": map[string]string{
-							"name":    "libvncserver",
-							"version": "0.9.9",
-						},
-						"namespace": "secdb:distro:alpine:3.12",
-					},
-					Found: map[string]interface{}{
-						"versionConstraint": vulnFound.Constraint.String(),
-						"vulnerabilityID":   "CVE-2020-1",
-					},
-					Matcher: match.ApkMatcher,
-				},
-			},
-		},
-	}
+	// We expect the secdb entry to remove the match
+	expected := []match.Match{}
 
 	actual, err := m.Match(provider, d, p)
 	assert.NoError(t, err)
@@ -212,7 +113,8 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 	assertMatches(t, expected, actual)
 }
 
-func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
+// TODO include case where fixed version don't match and it's not fixed
+func TestNvdMatches_DifferentPackageName_Removed(t *testing.T) {
 	// NVD and Alpine's secDB both have the same CVE ID for the package
 	nvdVuln := grypeDB.Vulnerability{
 		ID:                "CVE-2020-1",
@@ -225,10 +127,12 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 
 	secDbVuln := grypeDB.Vulnerability{
 		// ID *does* match - this is the key for comparison in the matcher
-		ID:                "CVE-2020-1",
-		VersionConstraint: "<= 0.9.11",
-		VersionFormat:     "apk",
-		Namespace:         "secdb:distro:alpine:3.12",
+		ID: "CVE-2020-1",
+		Fix: grypeDB.Fix{
+			Versions: []string{"0.9.11"},
+		},
+		VersionFormat: "apk",
+		Namespace:     "secdb:distro:alpine:3.12",
 	}
 	store := mockStore{
 		backend: map[string]map[string][]grypeDB.Vulnerability{
@@ -252,7 +156,7 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 	p := pkg.Package{
 		ID:      pkg.ID(uuid.NewString()),
 		Name:    "libvncserver",
-		Version: "0.9.9",
+		Version: "0.9.11",
 		Type:    syftPkg.ApkPkg,
 		CPEs: []cpe.CPE{
 			// Note: the product name is NOT the same as the package name
@@ -260,39 +164,12 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 		},
 	}
 
-	// ensure the SECDB record is preferred over the NVD record
-	vulnFound, err := vulnerability.NewVulnerability(secDbVuln)
+	// when a related vulnerability fix is found in secdb
+	// ensure the SECDB record is included with the NVD record
+	_, err = vulnerability.NewVulnerability(secDbVuln)
 	assert.NoError(t, err)
 
-	expected := []match.Match{
-		{
-
-			Vulnerability: *vulnFound,
-			Package:       p,
-			Details: []match.Detail{
-				{
-					Type:       match.ExactDirectMatch,
-					Confidence: 1.0,
-					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    d.Type.String(),
-							"version": d.RawVersion,
-						},
-						"package": map[string]string{
-							"name":    "libvncserver",
-							"version": "0.9.9",
-						},
-						"namespace": "secdb:distro:alpine:3.12",
-					},
-					Found: map[string]interface{}{
-						"versionConstraint": vulnFound.Constraint.String(),
-						"vulnerabilityID":   "CVE-2020-1",
-					},
-					Matcher: match.ApkMatcher,
-				},
-			},
-		},
-	}
+	expected := []match.Match{}
 
 	actual, err := m.Match(provider, d, p)
 	assert.NoError(t, err)
@@ -451,7 +328,7 @@ func TestNvdMatchesProperVersionFiltering(t *testing.T) {
 	assertMatches(t, expected, actual)
 }
 
-func TestNvdMatchesWithSecDBFix(t *testing.T) {
+func TestNvdMatchesRemovedWithSecDBFix(t *testing.T) {
 	nvdVuln := grypeDB.Vulnerability{
 		ID:                "CVE-2020-1",
 		VersionConstraint: "> 0.9.0, < 0.10.0", // note: this is not normal NVD configuration, but has the desired effect of a "wide net" for vulnerable indication
@@ -461,9 +338,13 @@ func TestNvdMatchesWithSecDBFix(t *testing.T) {
 	}
 
 	secDbVuln := grypeDB.Vulnerability{
-		ID:                "CVE-2020-1",
-		VersionConstraint: "< 0.9.11", // note: this does NOT include 0.9.11, so NVD and SecDB mismatch here... secDB should trump in this case
-		VersionFormat:     "apk",
+		// ID *does* match - this is the key for comparison in the matcher
+		ID: "CVE-2020-1",
+		Fix: grypeDB.Fix{
+			Versions: []string{"0.9.11"},
+		},
+		VersionFormat: "apk",
+		Namespace:     "secdb:distro:alpine:3.12",
 	}
 
 	store := mockStore{
@@ -515,8 +396,11 @@ func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
 	secDbVuln := grypeDB.Vulnerability{
 		ID:                "CVE-2020-1",
 		VersionConstraint: "< 0.9.11",
-		VersionFormat:     "apk",
-		Namespace:         "secdb:distro:alpine:3.12",
+		Fix: grypeDB.Fix{
+			Versions: []string{"0.9.11"},
+		},
+		VersionFormat: "apk",
+		Namespace:     "secdb:distro:alpine:3.12",
 	}
 
 	store := mockStore{
@@ -549,82 +433,6 @@ func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
 	}
 
 	expected := []match.Match{}
-
-	actual, err := m.Match(provider, d, p)
-	assert.NoError(t, err)
-
-	assertMatches(t, expected, actual)
-}
-
-func TestDistroMatchBySourceIndirection(t *testing.T) {
-
-	secDbVuln := grypeDB.Vulnerability{
-		// ID doesn't match - this is the key for comparison in the matcher
-		ID:                "CVE-2020-2",
-		VersionConstraint: "<= 1.3.3-r0",
-		VersionFormat:     "apk",
-		Namespace:         "secdb:distro:alpine:3.12",
-	}
-	store := mockStore{
-		backend: map[string]map[string][]grypeDB.Vulnerability{
-			"secdb:distro:alpine:3.12": {
-				"musl": []grypeDB.Vulnerability{secDbVuln},
-			},
-		},
-	}
-
-	provider, err := db.NewVulnerabilityProvider(&store)
-	require.NoError(t, err)
-
-	m := Matcher{}
-	d, err := distro.New(distro.Alpine, "3.12.0", "")
-	if err != nil {
-		t.Fatalf("failed to create a new distro: %+v", err)
-	}
-	p := pkg.Package{
-		ID:      pkg.ID(uuid.NewString()),
-		Name:    "musl-utils",
-		Version: "1.3.2-r0",
-		Type:    syftPkg.ApkPkg,
-		Upstreams: []pkg.UpstreamPackage{
-			{
-				Name: "musl",
-			},
-		},
-	}
-
-	vulnFound, err := vulnerability.NewVulnerability(secDbVuln)
-	assert.NoError(t, err)
-
-	expected := []match.Match{
-		{
-
-			Vulnerability: *vulnFound,
-			Package:       p,
-			Details: []match.Detail{
-				{
-					Type:       match.ExactIndirectMatch,
-					Confidence: 1.0,
-					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    d.Type.String(),
-							"version": d.RawVersion,
-						},
-						"package": map[string]string{
-							"name":    "musl",
-							"version": p.Version,
-						},
-						"namespace": "secdb:distro:alpine:3.12",
-					},
-					Found: map[string]interface{}{
-						"versionConstraint": vulnFound.Constraint.String(),
-						"vulnerabilityID":   "CVE-2020-2",
-					},
-					Matcher: match.ApkMatcher,
-				},
-			},
-		},
-	}
 
 	actual, err := m.Match(provider, d, p)
 	assert.NoError(t, err)
