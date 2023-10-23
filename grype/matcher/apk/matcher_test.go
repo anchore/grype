@@ -50,70 +50,119 @@ func (s *mockStore) GetVulnerabilityNamespaces() ([]string, error) {
 	return keys, nil
 }
 
-// TODO include case where fixed version don't match and it's not fixed
 func TestSecdbFixesNvdMatches(t *testing.T) {
-	// NVD and Alpine's secDB both have the same CVE ID for the package
-	// NVD represents the presence of a vulnerability
-	// SECDB data represents that for a given version that CVE has been fixed
-	nvdVuln := grypeDB.Vulnerability{
-		ID:                "CVE-2020-1",
-		PackageName:       "libvncserver",
-		VersionConstraint: "<= 0.9.11",
-		VersionFormat:     "unknown",
-		CPEs:              []string{`cpe:2.3:a:lib_vnc_project-\(server\):libvncserver:*:*:*:*:*:*:*:*`},
-		Namespace:         "nvd:cpe",
-	}
-
-	secDbVuln := grypeDB.Vulnerability{
-		ID: "CVE-2020-1",
-		Fix: grypeDB.Fix{
-			Versions: []string{"0.9.11"},
+	tests := []struct {
+		name           string
+		packageVersion string
+		fixedVersion   string
+		expectedMatchs bool
+	}{
+		{
+			name:           "SecDB eliminates an nvd match given the same package and fixed versions",
+			packageVersion: "0.9.11",
+			fixedVersion:   "0.9.11",
+			expectedMatchs: false,
 		},
-		VersionFormat: "apk",
-		Namespace:     "distro:alpine:3.12",
-	}
-	store := mockStore{
-		backend: map[string]map[string][]grypeDB.Vulnerability{
-			"nvd:cpe": {
-				"libvncserver": []grypeDB.Vulnerability{nvdVuln},
-			},
-			"secdb:distro:alpine:3.12": {
-				"libvncserver": []grypeDB.Vulnerability{secDbVuln},
-			},
+		{
+			name:           "SecDB retains an nvd match given the different package and fixed versions",
+			packageVersion: "0.9.10",
+			fixedVersion:   "0.9.11",
+			expectedMatchs: true,
 		},
 	}
 
-	provider, err := db.NewVulnerabilityProvider(&store)
-	require.NoError(t, err)
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			// NVD and Alpine's secDB both have the same CVE ID for the package
+			// NVD represents the presence of a vulnerability
+			// SECDB data represents that for a given version that CVE has been fixed
+			nvdVuln := grypeDB.Vulnerability{
+				ID:                "CVE-2020-1",
+				PackageName:       "libvncserver",
+				VersionConstraint: "<= 0.9.11",
+				VersionFormat:     "unknown",
+				CPEs:              []string{`cpe:2.3:a:lib_vnc_project-\(server\):libvncserver:*:*:*:*:*:*:*:*`},
+				Namespace:         "nvd:cpe",
+			}
 
-	m := Matcher{}
-	d, err := distro.New(distro.Alpine, "3.12", "")
-	if err != nil {
-		t.Fatalf("failed to create a new distro: %+v", err)
+			secDbFix := grypeDB.Vulnerability{
+				ID: "CVE-2020-1",
+				Fix: grypeDB.Fix{
+					Versions: []string{tc.fixedVersion},
+				},
+				VersionFormat: "apk",
+				Namespace:     "distro:alpine:3.12",
+			}
+
+			nvdFoundVuln, err := vulnerability.NewVulnerability(nvdVuln)
+
+			store := mockStore{
+				backend: map[string]map[string][]grypeDB.Vulnerability{
+					"nvd:cpe": {
+						"libvncserver": []grypeDB.Vulnerability{nvdVuln},
+					},
+					"secdb:distro:alpine:3.12": {
+						"libvncserver": []grypeDB.Vulnerability{secDbFix},
+					},
+				},
+			}
+
+			provider, err := db.NewVulnerabilityProvider(&store)
+			require.NoError(t, err)
+
+			m := Matcher{}
+			d, err := distro.New(distro.Alpine, "3.12", "")
+			if err != nil {
+				t.Fatalf("failed to create a new distro: %+v", err)
+			}
+
+			p := pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "libvncserver",
+				Version: tc.packageVersion,
+				Type:    syftPkg.ApkPkg,
+				CPEs: []cpe.CPE{
+					cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"),
+				},
+			}
+
+			assert.NoError(t, err)
+			matches := []match.Match{}
+			if tc.expectedMatchs {
+				matches = append(matches, match.Match{
+					Vulnerability: *nvdFoundVuln,
+					Package:       p,
+					Details: []match.Detail{
+						{
+							Type:       match.CPEMatch,
+							Confidence: 0.9,
+							SearchedBy: search.CPEParameters{
+								Namespace: "nvd:cpe",
+								CPEs:      []string{"cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"},
+								Package:   search.CPEPackageParameter{Name: "libvncserver", Version: "0.9.10"},
+							},
+							Found: search.CPEResult{
+								VulnerabilityID:   "CVE-2020-1",
+								VersionConstraint: "<= 0.9.11 (unknown)",
+								CPEs: []string{
+									"cpe:2.3:a:lib_vnc_project-(server):libvncserver:*:*:*:*:*:*:*:*",
+								},
+							},
+							Matcher: match.ApkMatcher,
+						},
+					}})
+			}
+
+			actual, err := m.Match(provider, d, p)
+			assert.NoError(t, err)
+
+			assertMatches(t, matches, actual)
+		})
 	}
 
-	p := pkg.Package{
-		ID:      pkg.ID(uuid.NewString()),
-		Name:    "libvncserver",
-		Version: "0.9.11", // has to match the fixed version of secDB to be turned off
-		Type:    syftPkg.ApkPkg,
-		CPEs: []cpe.CPE{
-			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"),
-		},
-	}
-
-	assert.NoError(t, err)
-
-	// We expect the secdb entry to remove the match
-	expected := []match.Match{}
-
-	actual, err := m.Match(provider, d, p)
-	assert.NoError(t, err)
-
-	assertMatches(t, expected, actual)
 }
 
-// TODO include case where fixed version don't match and it's not fixed
 func TestNvdMatches_DifferentPackageName_Removed(t *testing.T) {
 	// NVD and Alpine's secDB both have the same CVE ID for the package
 	nvdVuln := grypeDB.Vulnerability{
