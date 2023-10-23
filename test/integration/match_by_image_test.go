@@ -15,6 +15,7 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/grype/grype/vex"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -34,56 +35,40 @@ func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 		t.Fatalf("problem with upstream syft cataloger (alpine)")
 	}
 	thePkg := pkg.New(packages[0])
-	theVuln := theStore.backend["alpine:distro:alpine:3.12"][thePkg.Name][0]
+	theVuln := theStore.backend["nvd:cpe"][thePkg.Name][0]
 	vulnObj, err := vulnerability.NewVulnerability(theVuln)
 	require.NoError(t, err)
 
 	theResult.Add(match.Match{
-		// note: we are matching on the secdb record, not NVD primarily
-
+		// note: we should not be directly matching on the secdb record
+		// we should match on NVD and only removing the match if secdb informs us to
+		// this match should be reported since the mock store has a fix for 0.9.10
+		// this pacakge has a version of 0.9.9
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
 		Details: []match.Detail{
 			{
 				// note: the input pURL has an upstream reference (redundant)
-				Type: "exact-indirect-match",
-				SearchedBy: map[string]any{
-					"distro": map[string]string{
-						"type":    "alpine",
-						"version": "3.12.0",
+				Type: match.CPEMatch,
+				SearchedBy: search.CPEParameters{
+					Namespace: "nvd:cpe",
+					CPEs: []string{
+						"cpe:2.3:a:libvncserver:libvncserver:0.9.9:*:*:*:*:*:*:*",
 					},
-					"namespace": "alpine:distro:alpine:3.12",
-					"package": map[string]string{
-						"name":    "libvncserver",
-						"version": "0.9.9",
+					Package: search.CPEPackageParameter{
+						Name:    "libvncserver",
+						Version: "0.9.9",
 					},
 				},
-				Found: map[string]any{
-					"versionConstraint": "< 0.9.10 (unknown)",
-					"vulnerabilityID":   "CVE-alpine-libvncserver",
+				Found: search.CPEResult{
+					VersionConstraint: "< 0.9.10 (unknown)",
+					VulnerabilityID:   "CVE-alpine-libvncserver",
+					CPEs: []string{
+						"cpe:2.3:a:libvncserver:libvncserver:*:*:*:*:*:*:*:*",
+					},
 				},
 				Matcher:    "apk-matcher",
-				Confidence: 1,
-			},
-			{
-				Type:       match.ExactDirectMatch,
-				Confidence: 1.0,
-				SearchedBy: map[string]interface{}{
-					"distro": map[string]string{
-						"type":    "alpine",
-						"version": "3.12.0",
-					},
-					"namespace": "alpine:distro:alpine:3.12",
-					"package": map[string]string{
-						"name":    "libvncserver",
-						"version": "0.9.9",
-					},
-				},
-				Found: map[string]interface{}{
-					"versionConstraint": "< 0.9.10 (unknown)",
-					"vulnerabilityID":   vulnObj.ID,
-				},
-				Matcher: match.ApkMatcher,
+				Confidence: 0.9,
 			},
 		},
 	})

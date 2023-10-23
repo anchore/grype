@@ -97,8 +97,10 @@ cveLoop:
 			}
 
 			// ...is the current package vulnerable?
-			var vulnerable bool
+			vulnerable := true
 			for _, fixedVersion := range vuln.Fix.Versions {
+				// we found that the packages version is the same
+				// as the fixed version for the given CVE in secdb
 				if fixedVersion == p.Version {
 					vulnerable = false
 					break

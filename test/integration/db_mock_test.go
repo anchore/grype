@@ -48,7 +48,9 @@ func newMockDbStore() *mockStore {
 						ID:                "CVE-alpine-libvncserver",
 						VersionConstraint: "< 0.9.10",
 						VersionFormat:     "unknown",
-						CPEs:              []string{"cpe:2.3:a:lib_vnc_project-(server):libvncserver:*:*:*:*:*:*:*:*"},
+						CPEs: []string{
+							"cpe:2.3:a:libvncserver:libvncserver:*:*:*:*:*:*:*:*",
+						},
 					},
 				},
 				"my-package": []grypeDB.Vulnerability{
@@ -71,7 +73,12 @@ func newMockDbStore() *mockStore {
 					{
 						ID:                "CVE-alpine-libvncserver",
 						VersionConstraint: "< 0.9.10",
-						VersionFormat:     "unknown",
+						Fix: grypeDB.Fix{
+							Versions: []string{
+								"0.9.10",
+							},
+						},
+						VersionFormat: "unknown",
 					},
 				},
 			},
