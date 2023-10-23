@@ -14,7 +14,7 @@ import (
 // used to turn off a vulnerability. The contraint is a lie. Only the "fixed_in_versions"
 // Column shows the true match to turn off...
 //
-//Example....
+// Example....
 /*
 -----------------------------
 Package Match in NVD:
@@ -76,7 +76,7 @@ func (m *Matcher) cpeMatchesWithoutSecDBFixes(store vulnerability.Provider, d *d
 	secDBFixesByID := fixesByID(secDBVulnFixes)
 
 	// remove cpe matches where there is an entry in the secDB for the particular package-vulnerability pairing
-	//and the installed package version should match the fixed in version for the secDB record.
+	// and the installed package version should match the fixed in version for the secDB record.
 	var finalCpeMatches []match.Match
 
 cveLoop:
