@@ -18,7 +18,7 @@ func GetConstraint(constStr string, format Format) (Constraint, error) {
 	case DebFormat:
 		return newDebConstraint(constStr)
 	case JavaFormat:
-		return newJavaConstraint()
+		return newJavaConstraint(constStr)
 	case RpmFormat:
 		return newRpmConstraint(constStr)
 	case PythonFormat:
