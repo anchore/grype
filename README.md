@@ -32,6 +32,7 @@ For commercial support options with Syft or Grype, please [contact Anchore](http
   - Amazon Linux
   - BusyBox
   - CentOS
+  - CBL-Mariner
   - Debian
   - Distroless
   - Oracle Linux
