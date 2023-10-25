@@ -21,7 +21,7 @@ func newJavaVersion(raw string) (*javaVersion, error) {
 	}, nil
 }
 
-// Compare returns 0 if j == j2, -1 if j < j2, and +1 if j > j2.
+// Compare returns 0 if j == j2, 1 if j < j2, and -1 if j > j2.
 // If an error returns the int value is -1
 func (j *javaVersion) Compare(j2 *Version) (int, error) {
 	if j2.Format != JavaFormat {
@@ -36,10 +36,10 @@ func (j *javaVersion) Compare(j2 *Version) (int, error) {
 		return 0, nil
 	}
 	if j.version.LessThan(submittedVersion) {
-		return -1, nil
+		return 1, nil
 	}
 	if j.version.GreaterThan(submittedVersion) {
-		return 1, nil
+		return -1, nil
 	}
 
 	return -1, fmt.Errorf(

@@ -16,25 +16,25 @@ func TestVersionConstraintJava(t *testing.T) {
 		{version: "1.1", constraint: "> 1.2.0", satisfied: false},
 		{version: "1.0-alpha-1", constraint: "> 1.0", satisfied: false},
 		{version: "1.0-alpha-1", constraint: "> 1.0-alpha-2", satisfied: false},
-		{version: "1.0-alpha-1", constraint: "< 1.0-beta-1", satisfied: false},
-		{version: "1.0-beta-1", constraint: "< 1.0-SNAPSHOT", satisfied: false},
-		{version: "1.0-SNAPSHOT", constraint: "< 1.0", satisfied: false},
+		{version: "1.0-alpha-1", constraint: "< 1.0-beta-1", satisfied: true},
+		{version: "1.0-beta-1", constraint: "< 1.0-SNAPSHOT", satisfied: true},
+		{version: "1.0-SNAPSHOT", constraint: "< 1.0", satisfied: true},
 		{version: "1.0-alpha-1-SNAPSHOT", constraint: "> 1.0-alpha-1", satisfied: false},
 		{version: "1.0", constraint: "< 1.0-1", satisfied: true},
 		{version: "1.0-1", constraint: "< 1.0-2", satisfied: true},
 		{version: "1.0.0", constraint: "< 1.0-1", satisfied: true},
 		{version: "2.0-1", constraint: "> 2.0.1", satisfied: false},
 		{version: "2.0.1-klm", constraint: "> 2.0.1-lmn", satisfied: false},
-		{version: "2.0.1", constraint: "< 2.0.1-xyz", satisfied: false},
-		{version: "2.0.1", constraint: "< 2.0.1-123", satisfied: false},
-		{version: "2.0.1-xyz", constraint: "< 2.0.1-123", satisfied: false},
+		{version: "2.0.1", constraint: "< 2.0.1-xyz", satisfied: true},
+		{version: "2.0.1", constraint: "< 2.0.1-123", satisfied: true},
+		{version: "2.0.1-xyz", constraint: "< 2.0.1-123", satisfied: true},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			constraint, err := newJavaConstraint(test.constraint)
 
-			assert.NoError(t, err, "unexpected error from newJavaConstraint: %v", err)
+			assert.NoError(t, err, "unexpected error from newJavaConstraint %s: %v", test.version, err)
 			test.assertVersionConstraint(t, JavaFormat, constraint)
 
 		})
@@ -96,7 +96,7 @@ func TestVersionEqualityJava(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			constraint, err := newJavaConstraint(test.constraint)
 
-			assert.NoError(t, err, "unexpected error from newJavaConstraint: %v", err)
+			assert.NoError(t, err, "unexpected error from newJavaConstraint %s: %v", test.version, err)
 			test.assertVersionConstraint(t, JavaFormat, constraint)
 		})
 	}

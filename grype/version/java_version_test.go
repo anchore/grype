@@ -15,7 +15,7 @@ func Test_javaVersion_Compare(t *testing.T) {
 		{
 			name:    "1",
 			compare: "2",
-			want:    -1,
+			want:    1,
 		},
 		{
 			name:    "1.8.0_282",
@@ -25,12 +25,12 @@ func Test_javaVersion_Compare(t *testing.T) {
 		{
 			name:    "2.5",
 			compare: "2.0",
-			want:    1,
+			want:    -1,
 		},
 		{
 			name:    "2.414.2-cb-5",
 			compare: "2.414.2",
-			want:    1,
+			want:    -1,
 		},
 	}
 	for _, tt := range tests {
