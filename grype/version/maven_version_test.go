@@ -35,13 +35,13 @@ func Test_javaVersion_Compare(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			j, err := NewVersion(tt.name, JavaFormat)
+			j, err := NewVersion(tt.name, MavenFormat)
 			assert.NoError(t, err)
 
-			j2, err := NewVersion(tt.compare, JavaFormat)
+			j2, err := NewVersion(tt.compare, MavenFormat)
 			assert.NoError(t, err)
 
-			if got, _ := j2.rich.javaVer.Compare(j); got != tt.want {
+			if got, _ := j2.rich.mavenVer.Compare(j); got != tt.want {
 				t.Errorf("Compare() = %v, want %v", got, tt.want)
 			}
 		})

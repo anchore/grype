@@ -11,7 +11,7 @@ const (
 	SemanticFormat
 	ApkFormat
 	DebFormat
-	JavaFormat
+	MavenFormat
 	RpmFormat
 	PythonFormat
 	KBFormat
@@ -26,7 +26,7 @@ var formatStr = []string{
 	"Semantic",
 	"Apk",
 	"Deb",
-	"Java",
+	"Maven",
 	"RPM",
 	"Python",
 	"KB",
@@ -38,7 +38,7 @@ var Formats = []Format{
 	SemanticFormat,
 	ApkFormat,
 	DebFormat,
-	JavaFormat,
+	MavenFormat,
 	RpmFormat,
 	PythonFormat,
 	KBFormat,
@@ -54,8 +54,8 @@ func ParseFormat(userStr string) Format {
 		return ApkFormat
 	case strings.ToLower(DebFormat.String()), "dpkg":
 		return DebFormat
-	case strings.ToLower(JavaFormat.String()), "java":
-		return JavaFormat
+	case strings.ToLower(MavenFormat.String()), "maven":
+		return MavenFormat
 	case strings.ToLower(RpmFormat.String()), "rpm":
 		return RpmFormat
 	case strings.ToLower(PythonFormat.String()), "python":
@@ -78,7 +78,7 @@ func FormatFromPkgType(t pkg.Type) Format {
 	case pkg.DebPkg:
 		format = DebFormat
 	case pkg.JavaPkg:
-		format = JavaFormat
+		format = MavenFormat
 	case pkg.RpmPkg:
 		format = RpmFormat
 	case pkg.GemPkg:

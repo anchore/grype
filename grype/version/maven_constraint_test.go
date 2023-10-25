@@ -33,10 +33,10 @@ func TestVersionConstraintJava(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			constraint, err := newJavaConstraint(test.constraint)
+			constraint, err := newMavenConstraint(test.constraint)
 
-			assert.NoError(t, err, "unexpected error from newJavaConstraint %s: %v", test.version, err)
-			test.assertVersionConstraint(t, JavaFormat, constraint)
+			assert.NoError(t, err, "unexpected error from newMavenConstraint %s: %v", test.version, err)
+			test.assertVersionConstraint(t, MavenFormat, constraint)
 
 		})
 	}
@@ -95,10 +95,10 @@ func TestVersionEqualityJava(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			constraint, err := newJavaConstraint(test.constraint)
+			constraint, err := newMavenConstraint(test.constraint)
 
-			assert.NoError(t, err, "unexpected error from newJavaConstraint %s: %v", test.version, err)
-			test.assertVersionConstraint(t, JavaFormat, constraint)
+			assert.NoError(t, err, "unexpected error from newMavenConstraint %s: %v", test.version, err)
+			test.assertVersionConstraint(t, MavenFormat, constraint)
 		})
 	}
 }
