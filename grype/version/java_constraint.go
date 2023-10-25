@@ -53,10 +53,10 @@ func (c javaConstraint) Satisfied(version *Version) (satisfied bool, err error) 
 	}
 
 	if !c.supported(version.Format) {
-		return false, fmt.Errorf("(apk) unsupported format: %s", version.Format)
+		return false, fmt.Errorf("(java) unsupported format: %s", version.Format)
 	}
 
-	if version.rich.apkVer == nil {
+	if version.rich.javaVer == nil {
 		return false, fmt.Errorf("no rich apk version given: %+v", version)
 	}
 
