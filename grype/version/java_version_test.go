@@ -15,7 +15,7 @@ func Test_javaVersion_Compare(t *testing.T) {
 		{
 			name:    "1",
 			compare: "2",
-			want:    1,
+			want:    -1,
 		},
 		{
 			name:    "1.8.0_282",
@@ -25,12 +25,12 @@ func Test_javaVersion_Compare(t *testing.T) {
 		{
 			name:    "2.5",
 			compare: "2.0",
-			want:    -1,
+			want:    1,
 		},
 		{
 			name:    "2.414.2-cb-5",
 			compare: "2.414.2",
-			want:    -1,
+			want:    1,
 		},
 	}
 	for _, tt := range tests {
@@ -41,7 +41,7 @@ func Test_javaVersion_Compare(t *testing.T) {
 			j2, err := NewVersion(tt.compare, JavaFormat)
 			assert.NoError(t, err)
 
-			if got, _ := j.rich.javaVer.Compare(j2); got != tt.want {
+			if got, _ := j2.rich.javaVer.Compare(j); got != tt.want {
 				t.Errorf("Compare() = %v, want %v", got, tt.want)
 			}
 		})

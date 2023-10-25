@@ -28,6 +28,7 @@ func TestVersionConstraintJava(t *testing.T) {
 		{version: "2.0.1", constraint: "< 2.0.1-xyz", satisfied: true},
 		{version: "2.0.1", constraint: "< 2.0.1-123", satisfied: true},
 		{version: "2.0.1-xyz", constraint: "< 2.0.1-123", satisfied: true},
+		{version: "2.414.2-cb-5", constraint: "> 2.414.2", satisfied: true},
 	}
 
 	for _, test := range tests {

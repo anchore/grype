@@ -7,6 +7,7 @@ import (
 )
 
 type javaVersion struct {
+	raw     string
 	version mvnv.Version
 }
 
@@ -17,11 +18,12 @@ func newJavaVersion(raw string) (*javaVersion, error) {
 	}
 
 	return &javaVersion{
+		raw:     raw,
 		version: ver,
 	}, nil
 }
 
-// Compare returns 0 if j == j2, 1 if j < j2, and -1 if j > j2.
+// Compare returns 0 if j2 == j, 1 if j2 > j, and -1 if j2 < j.
 // If an error returns the int value is -1
 func (j *javaVersion) Compare(j2 *Version) (int, error) {
 	if j2.Format != JavaFormat {
@@ -32,14 +34,14 @@ func (j *javaVersion) Compare(j2 *Version) (int, error) {
 	}
 
 	submittedVersion := j2.rich.javaVer.version
-	if j.version.Equal(submittedVersion) {
+	if submittedVersion.Equal(j.version) {
 		return 0, nil
 	}
-	if j.version.LessThan(submittedVersion) {
-		return 1, nil
-	}
-	if j.version.GreaterThan(submittedVersion) {
+	if submittedVersion.LessThan(j.version) {
 		return -1, nil
+	}
+	if submittedVersion.GreaterThan(j.version) {
+		return 1, nil
 	}
 
 	return -1, fmt.Errorf(
