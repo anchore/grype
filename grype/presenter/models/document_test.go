@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -81,7 +82,7 @@ func TestPackagesAreSorted(t *testing.T) {
 			Version: "8.0",
 		},
 	}
-	doc, err := NewDocument(packages, ctx, matches, nil, NewMetadataMock(), nil, nil)
+	doc, err := NewDocument(clio.Identification{}, packages, ctx, matches, nil, NewMetadataMock(), nil, nil)
 	if err != nil {
 		t.Fatalf("unable to get document: %+v", err)
 	}
@@ -91,7 +92,7 @@ func TestPackagesAreSorted(t *testing.T) {
 		actualVulnerabilities = append(actualVulnerabilities, m.Vulnerability.ID)
 	}
 
-	assert.Equal(t, []string{"CVE-1999-0001", "CVE-1999-0002", "CVE-1999-0003"}, actualVulnerabilities)
+	assert.Equal(t, []string{"CVE-1999-0003", "CVE-1999-0002", "CVE-1999-0001"}, actualVulnerabilities)
 }
 
 func TestTimestampValidFormat(t *testing.T) {
@@ -103,7 +104,7 @@ func TestTimestampValidFormat(t *testing.T) {
 		Distro: nil,
 	}
 
-	doc, err := NewDocument(nil, ctx, matches, nil, nil, nil, nil)
+	doc, err := NewDocument(clio.Identification{}, nil, ctx, matches, nil, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("unable to get document: %+v", err)
 	}

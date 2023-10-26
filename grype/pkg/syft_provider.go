@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/sbom"
@@ -13,14 +14,20 @@ func syftProvider(userInput string, config ProviderConfig) ([]Package, Context, 
 		return nil, Context{}, nil, err
 	}
 
-	defer src.Close()
+	defer func() {
+		if src != nil {
+			if err := src.Close(); err != nil {
+				log.Tracef("unable to close source: %+v", err)
+			}
+		}
+	}()
 
 	catalog, relationships, theDistro, err := syft.CatalogPackages(src, config.CatalogingOptions)
 	if err != nil {
 		return nil, Context{}, nil, err
 	}
 
-	catalog = removePackagesByOverlap(catalog, relationships)
+	catalog = removePackagesByOverlap(catalog, relationships, theDistro)
 
 	srcDescription := src.Describe()
 

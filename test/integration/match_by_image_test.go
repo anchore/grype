@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/facebookincubator/nvdtools/wfn"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
@@ -15,10 +16,12 @@ import (
 	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/store"
+	"github.com/anchore/grype/grype/vex"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/stringutil"
 	"github.com/anchore/stereoscope/pkg/imagetest"
 	"github.com/anchore/syft/syft"
+	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/pkg/cataloger"
 	"github.com/anchore/syft/syft/source"
@@ -165,14 +168,14 @@ func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 
 func addDotnetMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore *mockStore, theResult *match.Matches) {
 	packages := catalog.PackagesByPath("/dotnet/TestLibrary.deps.json")
-	if len(packages) != 1 {
+	if len(packages) != 2 { // TestLibrary + AWSSDK.Core
 		for _, p := range packages {
 			t.Logf("Dotnet Package: %s %+v", p.ID(), p)
 		}
 
 		t.Fatalf("problem with upstream syft cataloger (dotnet)")
 	}
-	thePkg := pkg.New(packages[0])
+	thePkg := pkg.New(packages[1])
 	normalizedName := theStore.normalizedPackageNames["github:language:dotnet"][thePkg.Name]
 	theVuln := theStore.backend["github:language:dotnet"][normalizedName][0]
 	vulnObj, err := vulnerability.NewVulnerability(theVuln)
@@ -249,7 +252,8 @@ func addGolangMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 	}
 
 	binPackages := catalog.PackagesByPath("/go-app")
-	if len(binPackages) != 2 {
+	// contains 2 package + a single stdlib package
+	if len(binPackages) != 3 {
 		t.Logf("Golang Bin Packages: %+v", binPackages)
 		t.Fatalf("problem with upstream syft cataloger (golang)")
 	}
@@ -261,6 +265,10 @@ func addGolangMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 	for _, p := range packages {
 		// no vuln match supported for main module
 		if p.Name == "github.com/anchore/coverage" {
+			continue
+		}
+
+		if p.Name == "stdlib" {
 			continue
 		}
 
@@ -537,9 +545,48 @@ func addHaskellMatches(t *testing.T, theSource source.Source, catalog *syftPkg.C
 	})
 }
 
+func addRustMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore *mockStore, theResult *match.Matches) {
+	packages := catalog.PackagesByPath("/hello-auditable")
+	if len(packages) < 1 {
+		t.Logf("Rust Packages: %+v", packages)
+		t.Fatalf("problem with upstream syft cataloger (cargo-auditable-binary-cataloger)")
+	}
+
+	for _, p := range packages {
+		thePkg := pkg.New(p)
+		theVuln := theStore.backend["github:language:rust"][strings.ToLower(thePkg.Name)][0]
+		vulnObj, err := vulnerability.NewVulnerability(theVuln)
+		require.NoError(t, err)
+
+		theResult.Add(match.Match{
+			Vulnerability: *vulnObj,
+			Package:       thePkg,
+			Details: []match.Detail{
+				{
+					Type:       match.ExactDirectMatch,
+					Confidence: 1.0,
+					SearchedBy: map[string]any{
+						"language":  "rust",
+						"namespace": "github:language:rust",
+						"package": map[string]string{
+							"name":    thePkg.Name,
+							"version": thePkg.Version,
+						},
+					},
+					Found: map[string]any{
+						"versionConstraint": vulnObj.Constraint.String(),
+						"vulnerabilityID":   vulnObj.ID,
+					},
+					Matcher: match.RustMatcher,
+				},
+			},
+		})
+	}
+}
+
 func TestMatchByImage(t *testing.T) {
-	observedMatchers := internal.NewStringSet()
-	definedMatchers := internal.NewStringSet()
+	observedMatchers := stringutil.NewStringSet()
+	definedMatchers := stringutil.NewStringSet()
 	for _, l := range match.AllMatcherTypes {
 		definedMatchers.Add(string(l))
 	}
@@ -595,6 +642,14 @@ func TestMatchByImage(t *testing.T) {
 				return expectedMatches
 			},
 		},
+		{
+			fixtureImage: "image-rust-auditable-match-coverage",
+			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore *mockStore) match.Matches {
+				expectedMatches := match.NewMatches()
+				addRustMatches(t, theSource, catalog, theStore, &expectedMatches)
+				return expectedMatches
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -639,7 +694,6 @@ func TestMatchByImage(t *testing.T) {
 			}
 
 			actualResults := grype.FindVulnerabilitiesForPackage(str, theDistro, matchers, pkg.FromCollection(collection, pkg.SynthesisConfig{}))
-
 			for _, m := range actualResults.Sorted() {
 				for _, d := range m.Details {
 					observedMatchers.Add(string(d.Matcher))
@@ -650,6 +704,49 @@ func TestMatchByImage(t *testing.T) {
 			expectedMatches := test.expectedFn(theSource, collection, theStore)
 
 			assertMatches(t, expectedMatches.Sorted(), actualResults.Sorted())
+		})
+	}
+
+	// Test that VEX matchers produce matches when fed documents with "affected"
+	// statuses.
+	for n, tc := range map[string]struct {
+		vexStatus    vex.Status
+		vexDocuments []string
+	}{
+		"openvex-affected":            {vex.StatusAffected, []string{"test-fixtures/vex/openvex/affected.openvex.json"}},
+		"openvex-under_investigation": {vex.StatusUnderInvestigation, []string{"test-fixtures/vex/openvex/under_investigation.openvex.json"}},
+	} {
+		t.Run(n, func(t *testing.T) {
+			ignoredMatches := testIgnoredMatches()
+			vexedResults := vexMatches(t, ignoredMatches, tc.vexStatus, tc.vexDocuments)
+			if len(vexedResults.Sorted()) != 1 {
+				t.Errorf("expected one vexed result, got none")
+			}
+
+			expectedMatches := match.NewMatches()
+
+			// The single match in the actual results is the same in ignoredMatched
+			// but must the details of the VEX matcher appended
+			result := vexedResults.Sorted()[0]
+			if len(result.Details) != len(ignoredMatches[0].Match.Details)+1 {
+				t.Errorf(
+					"Details in VEXed results don't match (expected %d, got %d)",
+					len(ignoredMatches[0].Match.Details)+1, len(result.Details),
+				)
+			}
+
+			result.Details = result.Details[:len(result.Details)-1]
+			actualResults := match.NewMatches()
+			actualResults.Add(result)
+
+			expectedMatches.Add(ignoredMatches[0].Match)
+			assertMatches(t, expectedMatches.Sorted(), actualResults.Sorted())
+
+			for _, m := range vexedResults.Sorted() {
+				for _, d := range m.Details {
+					observedMatchers.Add(string(d.Matcher))
+				}
+			}
 		})
 	}
 
@@ -668,6 +765,95 @@ func TestMatchByImage(t *testing.T) {
 		t.Log(cmp.Diff(defs, obs))
 	}
 
+}
+
+// testIgnoredMatches returns an list of ignored matches to test the vex
+// matchers
+func testIgnoredMatches() []match.IgnoredMatch {
+	return []match.IgnoredMatch{
+		{
+			Match: match.Match{
+				Vulnerability: vulnerability.Vulnerability{
+					ID:        "CVE-alpine-libvncserver",
+					Namespace: "alpine:distro:alpine:3.12",
+				},
+				Package: pkg.Package{
+					ID:       "44fa3691ae360cac",
+					Name:     "libvncserver",
+					Version:  "0.9.9",
+					Licenses: []string{"GPL-2.0-or-later"},
+					Type:     "apk",
+					CPEs: []wfn.Attributes{
+						{
+							Part:    "a",
+							Vendor:  "libvncserver",
+							Product: "libvncserver",
+							Version: "0.9.9",
+						},
+					},
+					PURL:      "pkg:apk/alpine/libvncserver@0.9.9?arch=x86_64&distro=alpine-3.12.0",
+					Upstreams: []pkg.UpstreamPackage{{Name: "libvncserver"}},
+				},
+				Details: []match.Detail{
+					{
+						Type: "exact-indirect-match",
+						SearchedBy: map[string]any{
+							"distro": map[string]string{
+								"type":    "alpine",
+								"version": "3.12.0",
+							},
+							"namespace": "alpine:distro:alpine:3.12",
+							"package": map[string]string{
+								"name":    "libvncserver",
+								"version": "0.9.9",
+							},
+						},
+						Found: map[string]any{
+							"versionConstraint": "< 0.9.10 (unknown)",
+							"vulnerabilityID":   "CVE-alpine-libvncserver",
+						},
+						Matcher:    "apk-matcher",
+						Confidence: 1,
+					},
+				},
+			},
+			AppliedIgnoreRules: []match.IgnoreRule{},
+		},
+	}
+}
+
+// vexMatches moves the first match of a matches list to an ignore list and
+// applies a VEX "affected" document to it to move it to the matches list.
+func vexMatches(t *testing.T, ignoredMatches []match.IgnoredMatch, vexStatus vex.Status, vexDocuments []string) match.Matches {
+	matches := match.NewMatches()
+	vexMatcher := vex.NewProcessor(vex.ProcessorOptions{
+		Documents: vexDocuments,
+		IgnoreRules: []match.IgnoreRule{
+			{VexStatus: string(vexStatus)},
+		},
+	})
+
+	pctx := &pkg.Context{
+		Source: &source.Description{
+			Metadata: source.StereoscopeImageSourceMetadata{
+				RepoDigests: []string{
+					"alpine@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+				},
+			},
+		},
+		Distro: &linux.Release{},
+	}
+
+	vexedMatches, ignoredMatches, err := vexMatcher.ApplyVEX(pctx, &matches, ignoredMatches)
+	if err != nil {
+		t.Errorf("applying VEX data: %s", err)
+	}
+
+	if len(ignoredMatches) != 0 {
+		t.Errorf("VEX text fixture %s must affect all ignored matches (%d left)", vexDocuments, len(ignoredMatches))
+	}
+
+	return *vexedMatches
 }
 
 func assertMatches(t *testing.T, expected, actual []match.Match) {

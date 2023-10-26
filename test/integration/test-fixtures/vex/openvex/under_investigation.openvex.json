@@ -1,0 +1,24 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://openvex.dev/docs/public/vex-d4e9020b6d0d26f131d535e055902dd6ccf3e2088bce3079a8cd3588a4b14c78",
+  "author": "The OpenVEX Project <openvex@openssf.org>",
+  "timestamp": "2023-07-17T18:28:47.696004345-06:00",
+  "version": 1,
+  "statements": [
+    {
+      "timestamp": "2023-07-16T18:28:47.696004345-06:00",
+      "vulnerability": {
+        "name": "CVE-alpine-libvncserver"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/alpine@sha256%3Affffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "subcomponents": [
+            { "@id": "pkg:apk/alpine/libvncserver@0.9.9?arch=x86_64&distro=alpine-3.12.0" }
+          ]
+        }
+      ],
+      "status": "under_investigation"
+    }
+  ]
+}

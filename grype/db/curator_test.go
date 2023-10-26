@@ -21,14 +21,14 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/wagoodman/go-progress"
 
-	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/file"
+	"github.com/anchore/grype/internal/stringutil"
 )
 
 type testGetter struct {
 	file  map[string]string
 	dir   map[string]string
-	calls internal.StringSet
+	calls stringutil.StringSet
 	fs    afero.Fs
 }
 
@@ -36,7 +36,7 @@ func newTestGetter(fs afero.Fs, f, d map[string]string) *testGetter {
 	return &testGetter{
 		file:  f,
 		dir:   d,
-		calls: internal.NewStringSet(),
+		calls: stringutil.NewStringSet(),
 		fs:    fs,
 	}
 }
