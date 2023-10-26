@@ -8,7 +8,7 @@ inputs:
   python-version:
     description: "Python version to install"
     required: true
-    default: "3.10"
+    default: "3.11"
   cache-key-prefix:
     description: "Prefix all cache keys with this value"
     required: true
