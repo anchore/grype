@@ -55,6 +55,44 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GRYPE_BY_CVE: "true"
 
+      - name: Archive the provider state
+        if: ${{ failure() }}
+        run: tar -czvf qg-capture-state.tar.gz -C tests/quality --exclude tools --exclude labels .yardstick.yaml .yardstick
+
+      - name: Upload the provider state archive
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: qg-capture-state
+          path: qg-capture-state.tar.gz
+
+      - name: Show instructions to debug
+        if: ${{ failure() }}
+        run: |
+          ARCHIVE_BASENAME=qg-capture-state
+          ARCHIVE_NAME=$ARCHIVE_BASENAME.zip
+
+          cat << EOF >> $GITHUB_STEP_SUMMARY
+          ## Troubleshooting failed run
+
+          Download the artifact from this workflow run: \`$ARCHIVE_NAME\`
+
+          Then run the following commands to debug:
+          \`\`\`bash
+          # copy the archive to the tests/quality directory
+          cd tests/quality
+          unzip $ARCHIVE_NAME && tar -xzf $ARCHIVE_BASENAME.tar.gz
+          \`\`\`
+
+          Now you can debug the with yardstick:
+          \`\`\`bash
+          poetry shell
+          yardstick result list
+          yardstick label explore
+          \`\`\`
+          EOF
+
+
   Integration-Test:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Integration tests"
