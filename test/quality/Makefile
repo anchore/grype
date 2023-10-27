@@ -65,7 +65,7 @@ $(YARDSTICK_RESULT_DIR):
 	mkdir -p $(YARDSTICK_RESULT_DIR)
 
 $(VULNERABILITY_LABELS)/Makefile:
-	git submodule update --init
+	git submodule update vulnerability-match-labels
 
 .PHONY: clear-results
 clear-results: venv ## Clear all existing yardstick results
