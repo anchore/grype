@@ -79,6 +79,19 @@ func (f *fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
 
 	version := verObj.Raw
 
+	// rebuild temp constraint based off of ver obj
+	if verObj.Format != UnknownFormat {
+		newConstaint, err := GetConstraint(f.rawPhrase, verObj.Format)
+		// check if constraint is not fuzzyConstraint
+		_, ok := newConstaint.(*fuzzyConstraint)
+		if err == nil && !ok {
+			satisfied, err := newConstaint.Satisfied(verObj)
+			if err == nil {
+				return satisfied, nil
+			}
+		}
+	}
+
 	// attempt semver first, then fallback to fuzzy part matching...
 	if f.semanticConstraint != nil {
 		if pseudoSemverPattern.Match([]byte(version)) {

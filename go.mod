@@ -63,7 +63,10 @@ require (
 	modernc.org/sqlite v1.26.0 // indirect
 )
 
-require github.com/owenrumney/go-sarif v1.1.2-0.20231003122901-1000f5e05554
+require (
+	github.com/masahiro331/go-mvn-version v0.0.0-20210429150710-d3157d602a08
+	github.com/owenrumney/go-sarif v1.1.2-0.20231003122901-1000f5e05554
+)
 
 require (
 	cloud.google.com/go v0.110.2 // indirect

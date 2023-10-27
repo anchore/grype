@@ -53,7 +53,6 @@ jobs:
         run: make quality
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GRYPE_BY_CVE: "true"
 
       - name: Archive the provider state
         if: ${{ failure() }}

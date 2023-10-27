@@ -8,7 +8,7 @@ VULNERABILITY_LABELS = ./vulnerability-labels
 RESULT_SET = pr_vs_latest_via_sbom
 
 # update periodically with values from "grype db list"
-TEST_DB_URL = https://toolbox-data.anchore.io/grype/databases/vulnerability-db_v5_2023-08-24T01:23:40Z_fd07204627d474f68f90.tar.gz
+TEST_DB_URL = https://toolbox-data.anchore.io/grype/databases/vulnerability-db_v5_2023-10-25T01:27:28Z_fd5a911f9285633c57e3.tar.gz
 TEST_DB = db.tar.gz
 LISTING_FILE = https://toolbox-data.anchore.io/grype/databases/listing.json
 
@@ -65,7 +65,7 @@ $(YARDSTICK_RESULT_DIR):
 	mkdir -p $(YARDSTICK_RESULT_DIR)
 
 $(VULNERABILITY_LABELS)/Makefile:
-	git submodule update --init
+	git submodule update vulnerability-match-labels
 
 .PHONY: clear-results
 clear-results: venv ## Clear all existing yardstick results
