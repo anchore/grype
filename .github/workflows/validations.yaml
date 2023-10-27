@@ -49,6 +49,12 @@ jobs:
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
 
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 60
+        with:
+          limit-access-to-actor: true
+
       - name: Run quality tests
         run: make quality
         env:
