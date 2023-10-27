@@ -57,7 +57,7 @@ jobs:
 
       - name: Archive the provider state
         if: ${{ failure() }}
-        run: tar -czvf qg-capture-state.tar.gz -C tests/quality --exclude tools --exclude labels .yardstick.yaml .yardstick
+        run: tar -czvf qg-capture-state.tar.gz -C test/quality --exclude tools --exclude labels .yardstick.yaml .yardstick
 
       - name: Upload the provider state archive
         if: ${{ failure() }}
@@ -80,7 +80,7 @@ jobs:
           Then run the following commands to debug:
           \`\`\`bash
           # copy the archive to the tests/quality directory
-          cd tests/quality
+          cd test/quality
           unzip $ARCHIVE_NAME && tar -xzf $ARCHIVE_BASENAME.tar.gz
           \`\`\`
 
