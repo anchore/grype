@@ -9,6 +9,7 @@ type IgnoredMatch struct {
 
 type IgnoreRule struct {
 	Vulnerability    string             `json:"vulnerability,omitempty"`
+	Reason           string             `json:"reason,omitempty"`
 	FixState         string             `json:"fix-state,omitempty"`
 	Package          *IgnoreRulePackage `json:"package,omitempty"`
 	VexStatus        string             `json:"vex-status,omitempty"`
@@ -37,6 +38,7 @@ func newIgnoreRule(r match.IgnoreRule) IgnoreRule {
 
 	return IgnoreRule{
 		Vulnerability:    r.Vulnerability,
+		Reason:           r.Reason,
 		FixState:         r.FixState,
 		Package:          ignoreRulePackage,
 		VexStatus:        r.VexStatus,
