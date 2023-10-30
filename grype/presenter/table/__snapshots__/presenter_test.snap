@@ -1,5 +1,15 @@
 
-[TestTablePresenter - 1]
+[TestTablePresenter/no_color - 1]
+NAME       INSTALLED  FIXED-IN          TYPE  VULNERABILITY  SEVERITY 
+package-1  1.1.1      the-next-version  rpm   CVE-1999-0001  [0;32mLow[0m       
+package-2  2.2.2                        deb   CVE-1999-0002  [1;31mCritical[0m  
+
+---
+
+[TestTablePresenter/with_color - 1]
+NAME       INSTALLED  FIXED-IN          TYPE  VULNERABILITY  SEVERITY 
+package-1  1.1.1      the-next-version  rpm   CVE-1999-0001  [0;32mLow[0m       
+package-2  2.2.2                        deb   CVE-1999-0002  [1;31mCritical[0m  
 NAME       INSTALLED  FIXED-IN          TYPE  VULNERABILITY  SEVERITY 
 package-1  1.1.1      the-next-version  rpm   CVE-1999-0001  Low       
 package-2  2.2.2                        deb   CVE-1999-0002  Critical  
