@@ -10,7 +10,7 @@ type apkConstraint struct {
 
 func newApkConstraint(raw string) (apkConstraint, error) {
 	if raw == "" {
-		// empy constraints are always satisfied
+		// empty constraints are always satisfied
 		return apkConstraint{}, nil
 	}
 
