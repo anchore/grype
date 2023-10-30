@@ -2,11 +2,11 @@ package table
 
 import (
 	"fmt"
-	"github.com/charmbracelet/lipgloss"
 	"io"
 	"sort"
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/olekukonko/tablewriter"
 
 	grypeDb "github.com/anchore/grype/grype/db/v5"
