@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/olekukonko/tablewriter"
 
 	grypeDb "github.com/anchore/grype/grype/db/v5"
@@ -27,6 +28,7 @@ type Presenter struct {
 	packages         []pkg.Package
 	metadataProvider vulnerability.MetadataProvider
 	showSuppressed   bool
+	withColor        bool
 }
 
 // NewPresenter is a *Presenter constructor
@@ -37,6 +39,7 @@ func NewPresenter(pb models.PresenterConfig, showSuppressed bool) *Presenter {
 		packages:         pb.Packages,
 		metadataProvider: pb.MetadataProvider,
 		showSuppressed:   showSuppressed,
+		withColor:        supportsColor(),
 	}
 }
 
@@ -96,10 +99,22 @@ func (pres *Presenter) Present(output io.Writer) error {
 	table.SetTablePadding("  ")
 	table.SetNoWhiteSpace(true)
 
-	table.AppendBulk(rows)
+	if pres.withColor {
+		for _, row := range rows {
+			severityColor := getSeverityColor(row[len(row)-1])
+			table.Rich(row, []tablewriter.Colors{{}, {}, {}, {}, {}, severityColor})
+		}
+	} else {
+		table.AppendBulk(rows)
+	}
+
 	table.Render()
 
 	return nil
+}
+
+func supportsColor() bool {
+	return lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Render("") != ""
 }
 
 func sortRows(rows [][]string) [][]string {
@@ -173,4 +188,24 @@ func createRow(m match.Match, metadataProvider vulnerability.MetadataProvider, s
 	}
 
 	return []string{m.Package.Name, m.Package.Version, fixVersion, string(m.Package.Type), m.Vulnerability.ID, severity}, nil
+}
+
+func getSeverityColor(severity string) tablewriter.Colors {
+	severityFontType, severityColor := tablewriter.Normal, tablewriter.Normal
+
+	switch strings.ToLower(severity) {
+	case "critical":
+		severityFontType = tablewriter.Bold
+		severityColor = tablewriter.FgRedColor
+	case "high":
+		severityColor = tablewriter.FgRedColor
+	case "medium":
+		severityColor = tablewriter.FgYellowColor
+	case "low":
+		severityColor = tablewriter.FgGreenColor
+	case "negligible":
+		severityColor = tablewriter.FgBlueColor
+	}
+
+	return tablewriter.Colors{severityFontType, severityColor}
 }

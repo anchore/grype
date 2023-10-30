@@ -12,6 +12,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/python"
 	"github.com/anchore/grype/grype/matcher/rpm"
 	"github.com/anchore/grype/grype/matcher/ruby"
+	"github.com/anchore/grype/grype/matcher/rust"
 	"github.com/anchore/grype/grype/matcher/stock"
 )
 
@@ -23,6 +24,7 @@ type Config struct {
 	Dotnet     dotnet.MatcherConfig
 	Javascript javascript.MatcherConfig
 	Golang     golang.MatcherConfig
+	Rust       rust.MatcherConfig
 	Stock      stock.MatcherConfig
 }
 
@@ -39,6 +41,7 @@ func NewDefaultMatchers(mc Config) []Matcher {
 		golang.NewGolangMatcher(mc.Golang),
 		&msrc.Matcher{},
 		&portage.Matcher{},
+		rust.NewRustMatcher(mc.Rust),
 		stock.NewStockMatcher(mc.Stock),
 	}
 }

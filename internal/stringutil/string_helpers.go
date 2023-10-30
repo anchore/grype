@@ -23,3 +23,14 @@ func HasAnyOfPrefixes(input string, prefixes ...string) bool {
 
 	return false
 }
+
+// SplitCommaSeparatedString returns a slice of strings separated from the input string by commas
+func SplitCommaSeparatedString(input string) []string {
+	output := make([]string, 0)
+	for _, inputItem := range strings.Split(input, ",") {
+		if len(inputItem) > 0 {
+			output = append(output, inputItem)
+		}
+	}
+	return output
+}

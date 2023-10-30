@@ -12,7 +12,7 @@ inputs:
   cache-key-prefix:
     description: "Prefix all cache keys with this value"
     required: true
-    default: "831180ac25"
+    default: "831180ac26"
   build-cache-key-prefix:
     description: "Prefix build cache key with this value"
     required: true
@@ -40,9 +40,7 @@ runs:
         path: |
           test/quality/venv
           test/quality/vulnerability-match-labels/venv
-        key: ${{ runner.os }}-python-${{ inputs.python-version }}-${{ hashFiles('**/test/quality/**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-python-${{ env.python-version }}-
+        key: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-python-${{ inputs.python-version }}-${{ hashFiles('**/test/quality/**/requirements.txt') }}
 
     - name: Restore tool cache
       id: tool-cache

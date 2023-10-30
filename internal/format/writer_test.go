@@ -172,11 +172,7 @@ func Test_newSBOMMultiWriter(t *testing.T) {
 				switch w := mw.writers[i].(type) {
 				case *scanResultStreamWriter:
 					assert.Equal(t, string(w.format), e.format)
-					if e.file != "" {
-						assert.NotNil(t, w.out)
-					} else {
-						assert.NotNil(t, w.out)
-					}
+					assert.NotNil(t, w.out)
 					if e.file != "" {
 						assert.FileExists(t, tmp+e.file)
 					}

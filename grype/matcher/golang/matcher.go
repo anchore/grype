@@ -16,7 +16,8 @@ type Matcher struct {
 }
 
 type MatcherConfig struct {
-	UseCPEs bool
+	UseCPEs               bool
+	AlwaysUseCPEForStdlib bool
 }
 
 func NewGolangMatcher(cfg MatcherConfig) *Matcher {
@@ -51,8 +52,17 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 	}
 
 	criteria := search.CommonCriteria
-	if m.cfg.UseCPEs {
+	if searchByCPE(p.Name, m.cfg) {
 		criteria = append(criteria, search.ByCPE)
 	}
+
 	return search.ByCriteria(store, d, p, m.Type(), criteria...)
+}
+
+func searchByCPE(name string, cfg MatcherConfig) bool {
+	if cfg.UseCPEs {
+		return true
+	}
+
+	return cfg.AlwaysUseCPEForStdlib && (name == "stdlib")
 }

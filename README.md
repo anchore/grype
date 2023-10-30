@@ -32,6 +32,7 @@ For commercial support options with Syft or Grype, please [contact Anchore](http
   - Amazon Linux
   - BusyBox
   - CentOS
+  - CBL-Mariner
   - Debian
   - Distroless
   - Oracle Linux
@@ -89,6 +90,34 @@ See [DEVELOPING.md](DEVELOPING.md#native-development) for instructions to build 
 ### GitHub Actions
 
 If you're using GitHub Actions, you can simply use our [Grype-based action](https://github.com/marketplace/actions/anchore-container-scan) to run vulnerability scans on your code or container images during your CI workflows.
+
+## Verifying the artifacts
+
+Checksums are applied to all artifacts, and the resulting checksum file is signed using cosign.
+
+You need the following tool to verify signature:
+
+- [Cosign](https://docs.sigstore.dev/cosign/installation/)
+
+Verification steps are as follow:
+
+1. Download the files you want, and the checksums.txt, checksums.txt.pem and checksums.txt.sig files from the [releases](https://github.com/anchore/grype/releases) page:
+
+2. Verify the signature:
+
+```shell
+cosign verify-blob <path to checksum.txt> \
+--certificate <path to checksums.txt.pem> \
+--signature <path to checksums.txt.sig> \
+--certificate-identity-regexp 'https://github\.com/anchore/grype/\.github/workflows/.+' \
+--certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
+
+3. Once the signature is confirmed as valid, you can proceed to validate that the SHA256 sums align with the downloaded artifact:
+
+```shell
+sha256sum --ignore-missing -c checksums.txt
+```
 
 ## Getting started
 
@@ -373,7 +402,7 @@ NAME       INSTALLED  FIXED-IN   VULNERABILITY   SEVERITY
 apk-tools  2.10.6-r0  2.10.7-r0  CVE-2021-36159  Critical
 ```
 
-If you want Grype to only report vulnerabilities **that do not have a confirmed fix**, you can use the `--only-notfixed` flag. (This automatically adds [ignore rules](#specifying-matches-to-ignore) into Grype's configuration, such that vulnerabilities that are fixed will be ignored.)
+If you want Grype to only report vulnerabilities **that do not have a confirmed fix**, you can use the `--only-notfixed` flag. Alternatively, you can use the `--ignore-states` flag to filter results for vulnerabilities with specific states such as `wont-fix` (see `--help` for a list of valid fix states). These flags automatically add [ignore rules](#specifying-matches-to-ignore) into Grype's configuration, such that vulnerabilities which are fixed, or will not be fixed, will be ignored.
 
 ## VEX Support
 
@@ -781,19 +810,21 @@ log:
 match:
   # sets the matchers below to use cpes when trying to find 
   # vulnerability matches. The stock matcher is the default
-  # when no primary matcher can be identified 
+  # when no primary matcher can be identified.
   java:
-    using-cpes: true
+    using-cpes: false
   python:
-    using-cpes: true
+    using-cpes: false
   javascript:
-    using-cpes: true
+    using-cpes: false
   ruby:
-    using-cpes: true
+    using-cpes: false
   dotnet:
-    using-cpes: true
+    using-cpes: false
   golang:
-    using-cpes: true
+    using-cpes: false
+    # even if CPE matching is disabled, make an exception when scanning for "stdlib".
+    always-use-cpe-for-stdlib: true
   stock:
     using-cpes: true
 ```

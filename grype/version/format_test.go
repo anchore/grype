@@ -17,6 +17,10 @@ func TestParseFormat(t *testing.T) {
 			format: DebFormat,
 		},
 		{
+			input:  "maven",
+			format: MavenFormat,
+		},
+		{
 			input:  "gem",
 			format: GemFormat,
 		},
@@ -53,6 +57,10 @@ func TestFormatFromPkgType(t *testing.T) {
 		{
 			pkgType: pkg.DebPkg,
 			format:  DebFormat,
+		},
+		{
+			pkgType: pkg.JavaPkg,
+			format:  MavenFormat,
 		},
 		{
 			pkgType: pkg.GemPkg,
