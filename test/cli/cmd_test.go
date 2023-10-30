@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -60,6 +61,19 @@ func TestCmd(t *testing.T) {
 			assertions: []traitAssertion{
 				assertInOutput("CVE-2021-42379"),
 				assertFailingReturnCode,
+			},
+		},
+		{
+			name: "reason for ignored vulnerabilities is available in the template",
+			args: []string{
+				"sbom:" + filepath.Join("test-fixtures", "test-ignore-reason", "sbom.json"),
+				"-c", filepath.Join("test-fixtures", "test-ignore-reason", "config-with-ignore.yaml"),
+				"-o", "template",
+				"-t", filepath.Join("test-fixtures", "test-ignore-reason", "template-with-ignore-reasons"),
+			},
+			assertions: []traitAssertion{
+				assertInOutput("CVE-2021-42385 (test reason for vulnerability being ignored)"),
+				assertSucceedingReturnCode,
 			},
 		},
 	}
