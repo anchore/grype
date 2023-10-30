@@ -5,8 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/scylladb/go-set"
-	"github.com/scylladb/go-set/strset"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/syft/syft/artifact"
@@ -18,7 +16,7 @@ import (
 	"github.com/anchore/syft/syft/sbom"
 )
 
-func TestNew(t *testing.T) {
+func TestNew_UpstreamFromMetadata(t *testing.T) {
 	tests := []struct {
 		name      string
 		syftPkg   syftPkg.Package
@@ -28,8 +26,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "alpm package with source info",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.AlpmMetadataType,
-				Metadata: syftPkg.AlpmMetadata{
+				Metadata: syftPkg.AlpmDBEntry{
 					BasePackage:  "base-pkg-info",
 					Package:      "pkg-info",
 					Version:      "version-info",
@@ -43,8 +40,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "dpkg with source info",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.DpkgMetadataType,
-				Metadata: syftPkg.DpkgMetadata{
+				Metadata: syftPkg.DpkgDBEntry{
 					Package:       "pkg-info",
 					Source:        "src-info",
 					Version:       "version-info",
@@ -72,10 +68,9 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
-			name: "rpm with source info",
+			name: "rpm archive with source info",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.RpmMetadataType,
-				Metadata: syftPkg.RpmMetadata{
+				Metadata: syftPkg.RpmArchive{
 					Name:      "name-info",
 					Version:   "version-info",
 					Epoch:     intRef(30),
@@ -84,7 +79,7 @@ func TestNew(t *testing.T) {
 					SourceRpm: "sqlite-3.26.0-6.el8.src.rpm",
 					Size:      40,
 					Vendor:    "vendor-info",
-					Files: []syftPkg.RpmdbFileRecord{
+					Files: []syftPkg.RpmFileRecord{
 						{
 							Path: "path-info",
 							Mode: 20,
@@ -111,22 +106,58 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
-			name: "rpm with source info that matches the package info",
+			name: "rpm db entry with source info",
 			syftPkg: syftPkg.Package{
-				Name:         "sqlite",
-				MetadataType: syftPkg.RpmMetadataType,
-				Metadata: syftPkg.RpmMetadata{
+				Metadata: syftPkg.RpmDBEntry{
+					Name:      "name-info",
+					Version:   "version-info",
+					Epoch:     intRef(30),
+					Arch:      "arch-info",
+					Release:   "release-info",
+					SourceRpm: "sqlite-3.26.0-6.el8.src.rpm",
+					Size:      40,
+					Vendor:    "vendor-info",
+					Files: []syftPkg.RpmFileRecord{
+						{
+							Path: "path-info",
+							Mode: 20,
+							Size: 10,
+							Digest: file.Digest{
+								Algorithm: "algo-info",
+								Value:     "digest-info",
+							},
+							UserName:  "user-info",
+							GroupName: "group-info",
+							Flags:     "flag-info",
+						},
+					},
+				},
+			},
+			metadata: RpmMetadata{
+				Epoch: intRef(30),
+			},
+			upstreams: []UpstreamPackage{
+				{
+					Name:    "sqlite",
+					Version: "3.26.0-6.el8",
+				},
+			},
+		},
+		{
+			name: "rpm archove with source info that matches the package info",
+			syftPkg: syftPkg.Package{
+				Name: "sqlite",
+				Metadata: syftPkg.RpmArchive{
 					SourceRpm: "sqlite-3.26.0-6.el8.src.rpm",
 				},
 			},
 			metadata: RpmMetadata{},
 		},
 		{
-			name: "rpm with modularity label",
+			name: "rpm archive with modularity label",
 			syftPkg: syftPkg.Package{
-				Name:         "sqlite",
-				MetadataType: syftPkg.RpmMetadataType,
-				Metadata: syftPkg.RpmMetadata{
+				Name: "sqlite",
+				Metadata: syftPkg.RpmArchive{
 					SourceRpm:       "sqlite-3.26.0-6.el8.src.rpm",
 					ModularityLabel: "abc:2",
 				},
@@ -136,8 +167,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "java pkg",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.JavaMetadataType,
-				Metadata: syftPkg.JavaMetadata{
+				Metadata: syftPkg.JavaArchive{
 					VirtualPath: "virtual-path-info",
 					Manifest: &syftPkg.JavaManifest{
 						Main: map[string]string{
@@ -149,7 +179,7 @@ func TestNew(t *testing.T) {
 							},
 						},
 					},
-					PomProperties: &syftPkg.PomProperties{
+					PomProperties: &syftPkg.JavaPomProperties{
 						Path:       "pom-path-info",
 						Name:       "pom-name-info",
 						GroupID:    "pom-group-ID-info",
@@ -179,8 +209,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "apk with source info",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.ApkMetadataType,
-				Metadata: syftPkg.ApkMetadata{
+				Metadata: syftPkg.ApkDBEntry{
 					Package:       "libcurl-tools",
 					OriginPackage: "libcurl",
 					Maintainer:    "somone",
@@ -198,374 +227,13 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
-		// the below packages are those that have no metadata or upstream info to parse out
-		{
-			name: "npm-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.NpmPackageJSONMetadataType,
-				Metadata: syftPkg.NpmPackageJSONMetadata{
-					Author:      "a",
-					Homepage:    "a",
-					Description: "a",
-					URL:         "a",
-				},
-			},
-		},
-		{
-			name: "python-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.PythonPackageMetadataType,
-				Metadata: syftPkg.PythonPackageMetadata{
-					Name:                 "a",
-					Version:              "a",
-					Author:               "a",
-					AuthorEmail:          "a",
-					Platform:             "a",
-					SitePackagesRootPath: "a",
-				},
-			},
-		},
-		{
-			name: "gem-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.GemMetadataType,
-				Metadata: syftPkg.GemMetadata{
-					Name:     "a",
-					Version:  "a",
-					Homepage: "a",
-				},
-			},
-		},
-		{
-			name: "kb-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.KbPackageMetadataType,
-				Metadata: syftPkg.KbPackageMetadata{
-					ProductID: "a",
-					Kb:        "a",
-				},
-			},
-		},
-		{
-			name: "rust-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.RustCargoPackageMetadataType,
-				Metadata: syftPkg.CargoPackageMetadata{
-					Name:     "a",
-					Version:  "a",
-					Source:   "a",
-					Checksum: "a",
-				},
-			},
-		},
-		{
-			name: "golang-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.GolangBinMetadataType,
-				Metadata: syftPkg.GolangBinMetadata{
-					BuildSettings:     map[string]string{},
-					GoCompiledVersion: "1.0.0",
-					H1Digest:          "a",
-					MainModule:        "myMainModule",
-				},
-			},
-			metadata: GolangBinMetadata{
-				BuildSettings:     map[string]string{},
-				GoCompiledVersion: "1.0.0",
-				H1Digest:          "a",
-				MainModule:        "myMainModule",
-			},
-		},
-		{
-			name: "golang-mod-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.GolangModMetadataType,
-				Metadata: syftPkg.GolangModMetadata{
-					H1Digest: "h1:as234NweNNTNWEtt13nwNENTt",
-				},
-			},
-			metadata: GolangModMetadata{
-				H1Digest: "h1:as234NweNNTNWEtt13nwNENTt",
-			},
-		},
-		{
-			name: "php-composer-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.PhpComposerJSONMetadataType,
-				Metadata: syftPkg.PhpComposerJSONMetadata{
-					Name:    "a",
-					Version: "a",
-				},
-			},
-		},
-		{
-			name: "dart-pub-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.DartPubMetadataType,
-				Metadata: syftPkg.DartPubMetadata{
-					Name:    "a",
-					Version: "a",
-				},
-			},
-		},
-		{
-			name: "dotnet-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.DotnetDepsMetadataType,
-				Metadata: syftPkg.DotnetDepsMetadata{
-					Name:     "a",
-					Version:  "a",
-					Path:     "a",
-					Sha512:   "a",
-					HashPath: "a",
-				},
-			},
-		},
-		{
-			name: "cpp conan-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.ConanMetadataType,
-				Metadata: syftPkg.ConanMetadata{
-					Ref: "catch2/2.13.8",
-				},
-			},
-		},
-		{
-			name: "cpp conan lock metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.ConanLockMetadataType,
-				Metadata: syftPkg.ConanLockMetadata{
-					Ref: "zlib/1.2.12",
-					Options: map[string]string{
-						"fPIC":   "True",
-						"shared": "False",
-					},
-					Path:    "all/conanfile.py",
-					Context: "host",
-				},
-			},
-		},
-		{
-			name: "cocoapods cocoapods-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.CocoapodsMetadataType,
-				Metadata: syftPkg.CocoapodsMetadata{
-					Checksum: "123eere234",
-				},
-			},
-		},
-		{
-			name: "portage-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.PortageMetadataType,
-				Metadata: syftPkg.PortageMetadata{
-					InstalledSize: 1,
-					Files:         []syftPkg.PortageFileRecord{},
-				},
-			},
-		},
-		{
-			name: "hackage-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.HackageMetadataType,
-				Metadata: syftPkg.HackageMetadata{
-					Name:    "hackage",
-					Version: "v0.0.1",
-				},
-			},
-		},
-		{
-			name: "rebar-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.RebarLockMetadataType,
-				Metadata: syftPkg.RebarLockMetadata{
-					Name:    "rebar",
-					Version: "v0.1.1",
-				},
-			},
-		},
-		{
-			name: "npm-package-lock-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.NpmPackageLockJSONMetadataType,
-				Metadata: syftPkg.NpmPackageLockJSONMetadata{
-					Resolved:  "resolved",
-					Integrity: "sha1:ab7d8979989b7a98d97",
-				},
-			},
-		},
-		{
-			name: "mix-lock-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.MixLockMetadataType,
-				Metadata: syftPkg.MixLockMetadata{
-					Name:    "mix-lock",
-					Version: "v0.1.2",
-				},
-			},
-		},
-		{
-			name: "pipfile-lock-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.PythonPipfileLockMetadataType,
-				Metadata: syftPkg.PythonPipfileLockMetadata{
-					Hashes: []string{
-						"sha1:ab8v88a8b88d8d8c88b8s765s47",
-					},
-					Index: "1",
-				},
-			},
-		},
-		{
-			name: "python-requirements-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.PythonRequirementsMetadataType,
-				Metadata: syftPkg.PythonRequirementsMetadata{
-					Name:              "a",
-					Extras:            []string{"a"},
-					VersionConstraint: "a",
-					URL:               "a",
-					Markers:           "a",
-				},
-			},
-		},
-		{
-			name: "binary-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.BinaryMetadataType,
-				Metadata: syftPkg.BinaryMetadata{
-					Matches: []syftPkg.ClassifierMatch{
-						{
-							Classifier: "node",
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "nix-store-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.NixStoreMetadataType,
-				Metadata: syftPkg.NixStoreMetadata{
-					OutputHash: "a",
-					Output:     "a",
-					Files: []string{
-						"a",
-					},
-				},
-			},
-		},
-		{
-			name: "linux-kernel-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.LinuxKernelMetadataType,
-				Metadata: syftPkg.LinuxKernelMetadata{
-					Name:            "a",
-					Architecture:    "a",
-					Version:         "a",
-					ExtendedVersion: "a",
-					BuildTime:       "a",
-					Author:          "a",
-					Format:          "a",
-					RWRootFS:        true,
-					SwapDevice:      10,
-					RootDevice:      11,
-					VideoMode:       "a",
-				},
-			},
-		},
-		{
-			name: "linux-kernel-module-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.LinuxKernelModuleMetadataType,
-				Metadata: syftPkg.LinuxKernelModuleMetadata{
-					Name:          "a",
-					Version:       "a",
-					SourceVersion: "a",
-					Path:          "a",
-					Description:   "a",
-					Author:        "a",
-					License:       "a",
-					KernelVersion: "a",
-					VersionMagic:  "a",
-					Parameters: map[string]syftPkg.LinuxKernelModuleParameter{
-						"a": {
-							Type:        "a",
-							Description: "a",
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "r-description-file-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.RDescriptionFileMetadataType,
-				Metadata: syftPkg.RDescriptionFileMetadata{
-					Title:            "a",
-					Description:      "a",
-					Author:           "a",
-					Maintainer:       "a",
-					URL:              []string{"a"},
-					Repository:       "a",
-					Built:            "a",
-					NeedsCompilation: true,
-					Imports:          []string{"a"},
-					Depends:          []string{"a"},
-					Suggests:         []string{"a"},
-				},
-			},
-		},
-		{
-			name: "dotnet-portable-executable-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.DotnetPortableExecutableMetadataType,
-				Metadata: syftPkg.DotnetPortableExecutableMetadata{
-					AssemblyVersion: "a",
-					LegalCopyright:  "a",
-					Comments:        "a",
-					InternalName:    "a",
-					CompanyName:     "a",
-					ProductName:     "a",
-					ProductVersion:  "a",
-				},
-			},
-		},
-		{
-			name: "dotnet-portable-executable-metadata",
-			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.SwiftPackageManagerMetadataType,
-				Metadata: syftPkg.SwiftPackageManagerMetadata{
-					Revision: "a",
-				},
-			},
-		},
 	}
 
-	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
-	expectedMetadataTypes := set.NewStringSet()
-	for _, ty := range syftPkg.AllMetadataTypes {
-		expectedMetadataTypes.Add(string(ty))
-	}
-
-	// run all of our cases
-	observedMetadataTypes := set.NewStringSet()
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			if string(test.syftPkg.MetadataType) != "" {
-				observedMetadataTypes.Add(string(test.syftPkg.MetadataType))
-			}
 			assert.Equal(t, test.metadata, New(test.syftPkg).Metadata, "unexpected metadata")
 			assert.Equal(t, test.upstreams, New(test.syftPkg).Upstreams, "unexpected upstream")
 		})
-	}
-
-	// did we see all possible metadata types? if not, then there is an uncovered case and this test should error out
-	if !expectedMetadataTypes.IsEqual(observedMetadataTypes) {
-		t.Errorf("did not observe all possible package metadata types: missing: %+v extra: %+v",
-			strset.Difference(expectedMetadataTypes, observedMetadataTypes),
-			strset.Difference(observedMetadataTypes, expectedMetadataTypes),
-		)
 	}
 }
 

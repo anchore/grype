@@ -203,24 +203,24 @@ func dataFromPkg(p pkg.Package) (MetadataType, interface{}, []UpstreamPackage) {
 	var upstreams []UpstreamPackage
 	var metadataType MetadataType
 
-	switch p.MetadataType {
-	case pkg.GolangBinMetadataType, pkg.GolangModMetadataType:
+	switch p.Metadata.(type) {
+	case pkg.GolangModuleEntry, pkg.GolangBinaryBuildinfoEntry:
 		metadataType, metadata = golangMetadataFromPkg(p)
-	case pkg.DpkgMetadataType:
+	case pkg.DpkgDBEntry:
 		upstreams = dpkgDataFromPkg(p)
-	case pkg.RpmMetadataType:
+	case pkg.RpmArchive, pkg.RpmDBEntry:
 		m, u := rpmDataFromPkg(p)
 		upstreams = u
 		if m != nil {
 			metadata = *m
 			metadataType = RpmMetadataType
 		}
-	case pkg.JavaMetadataType:
+	case pkg.JavaArchive:
 		if m := javaDataFromPkg(p); m != nil {
 			metadata = *m
 			metadataType = JavaMetadataType
 		}
-	case pkg.ApkMetadataType:
+	case pkg.ApkDBEntry:
 		upstreams = apkDataFromPkg(p)
 	}
 	return metadataType, metadata, upstreams
@@ -228,7 +228,7 @@ func dataFromPkg(p pkg.Package) (MetadataType, interface{}, []UpstreamPackage) {
 
 func golangMetadataFromPkg(p pkg.Package) (MetadataType, interface{}) {
 	switch value := p.Metadata.(type) {
-	case pkg.GolangBinMetadata:
+	case pkg.GolangBinaryBuildinfoEntry:
 		metadata := GolangBinMetadata{}
 		if value.BuildSettings != nil {
 			metadata.BuildSettings = value.BuildSettings
@@ -238,7 +238,7 @@ func golangMetadataFromPkg(p pkg.Package) (MetadataType, interface{}) {
 		metadata.H1Digest = value.H1Digest
 		metadata.MainModule = value.MainModule
 		return GolangBinMetadataType, metadata
-	case pkg.GolangModMetadata:
+	case pkg.GolangModuleEntry:
 		metadata := GolangModMetadata{}
 		metadata.H1Digest = value.H1Digest
 		return GolangModMetadataType, metadata
@@ -247,7 +247,7 @@ func golangMetadataFromPkg(p pkg.Package) (MetadataType, interface{}) {
 }
 
 func dpkgDataFromPkg(p pkg.Package) (upstreams []UpstreamPackage) {
-	if value, ok := p.Metadata.(pkg.DpkgMetadata); ok {
+	if value, ok := p.Metadata.(pkg.DpkgDBEntry); ok {
 		if value.Source != "" {
 			upstreams = append(upstreams, UpstreamPackage{
 				Name:    value.Source,
@@ -261,7 +261,8 @@ func dpkgDataFromPkg(p pkg.Package) (upstreams []UpstreamPackage) {
 }
 
 func rpmDataFromPkg(p pkg.Package) (metadata *RpmMetadata, upstreams []UpstreamPackage) {
-	if value, ok := p.Metadata.(pkg.RpmMetadata); ok {
+	switch value := p.Metadata.(type) {
+	case pkg.RpmDBEntry:
 		if value.SourceRpm != "" {
 			name, version := getNameAndELVersion(value.SourceRpm)
 			if name == "" && version == "" {
@@ -274,14 +275,31 @@ func rpmDataFromPkg(p pkg.Package) (metadata *RpmMetadata, upstreams []UpstreamP
 				})
 			}
 		}
-
 		metadata = &RpmMetadata{
 			Epoch:           value.Epoch,
 			ModularityLabel: value.ModularityLabel,
 		}
-	} else {
+	case pkg.RpmArchive:
+		if value.SourceRpm != "" {
+			name, version := getNameAndELVersion(value.SourceRpm)
+			if name == "" && version == "" {
+				log.Warnf("unable to extract name and version from SourceRPM=%q ", value.SourceRpm)
+			} else if name != p.Name {
+				// don't include matches if the source package name matches the current package name
+				upstreams = append(upstreams, UpstreamPackage{
+					Name:    name,
+					Version: version,
+				})
+			}
+		}
+		metadata = &RpmMetadata{
+			Epoch:           value.Epoch,
+			ModularityLabel: value.ModularityLabel,
+		}
+	default:
 		log.Warnf("unable to extract RPM metadata for %s", p)
 	}
+
 	return metadata, upstreams
 }
 
@@ -292,11 +310,11 @@ func getNameAndELVersion(sourceRpm string) (string, string) {
 }
 
 func javaDataFromPkg(p pkg.Package) (metadata *JavaMetadata) {
-	if value, ok := p.Metadata.(pkg.JavaMetadata); ok {
-		var artifact, group, name string
+	if value, ok := p.Metadata.(pkg.JavaArchive); ok {
+		var artifactID, groupID, name string
 		if value.PomProperties != nil {
-			artifact = value.PomProperties.ArtifactID
-			group = value.PomProperties.GroupID
+			artifactID = value.PomProperties.ArtifactID
+			groupID = value.PomProperties.GroupID
 		}
 		if value.Manifest != nil {
 			if n, ok := value.Manifest.Main["Name"]; ok {
@@ -316,8 +334,8 @@ func javaDataFromPkg(p pkg.Package) (metadata *JavaMetadata) {
 
 		metadata = &JavaMetadata{
 			VirtualPath:    value.VirtualPath,
-			PomArtifactID:  artifact,
-			PomGroupID:     group,
+			PomArtifactID:  artifactID,
+			PomGroupID:     groupID,
 			ManifestName:   name,
 			ArchiveDigests: archiveDigests,
 		}
@@ -328,7 +346,7 @@ func javaDataFromPkg(p pkg.Package) (metadata *JavaMetadata) {
 }
 
 func apkDataFromPkg(p pkg.Package) (upstreams []UpstreamPackage) {
-	if value, ok := p.Metadata.(pkg.ApkMetadata); ok {
+	if value, ok := p.Metadata.(pkg.ApkDBEntry); ok {
 		if value.OriginPackage != "" {
 			upstreams = append(upstreams, UpstreamPackage{
 				Name: value.OriginPackage,

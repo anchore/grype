@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -70,7 +71,7 @@ func saveImage(t testing.TB, imageName string, destPath string) {
 	t.Logf("Stdout: %s\n", out)
 }
 
-func getSyftSBOM(t testing.TB, image string, format sbom.Format) string {
+func getSyftSBOM(t testing.TB, image string, encoder sbom.FormatEncoder) string {
 	detection, err := source.Detect(image, source.DetectConfig{})
 	if err != nil {
 		t.Fatalf("could not generate source input for packages command: %+v", err)
@@ -98,12 +99,12 @@ func getSyftSBOM(t testing.TB, image string, format sbom.Format) string {
 		Source:        src.Describe(),
 	}
 
-	bytes, err := syft.Encode(s, format)
-	if err != nil {
-		t.Fatalf("presenter failed: %+v", err)
-	}
+	var buf bytes.Buffer
 
-	return string(bytes)
+	err = encoder.Encode(&buf, s)
+	require.NoError(t, err)
+
+	return buf.String()
 }
 
 func getMatchSet(matches match.Matches) *strset.Set {
