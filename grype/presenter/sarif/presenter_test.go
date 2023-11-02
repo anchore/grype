@@ -39,7 +39,7 @@ func TestSarifPresenter(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			var buffer bytes.Buffer
-			matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, tc.scheme)
+			_, matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, tc.scheme)
 
 			pb := models.PresenterConfig{
 				ID: clio.Identification{
@@ -187,7 +187,7 @@ func Test_locationPath(t *testing.T) {
 }
 
 func createDirPresenter(t *testing.T) *Presenter {
-	matches, packages, _, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.DirectorySource)
+	_, matches, packages, _, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.DirectorySource)
 	d := t.TempDir()
 	s, err := source.NewFromDirectory(source.DirectoryConfig{Path: d})
 	if err != nil {
@@ -238,7 +238,7 @@ func TestToSarifReport(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, tc.scheme)
+			_, matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, tc.scheme)
 
 			pb := models.PresenterConfig{
 				Matches:          matches,
