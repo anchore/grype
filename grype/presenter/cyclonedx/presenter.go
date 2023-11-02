@@ -10,7 +10,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/syft/syft/formats/common/cyclonedxhelpers"
+	"github.com/anchore/syft/syft/format/common/cyclonedxhelpers"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
 )

@@ -315,7 +315,7 @@ func addJavaMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 	}
 	theSyftPkg := packages[0]
 
-	groupId := theSyftPkg.Metadata.(syftPkg.JavaMetadata).PomProperties.GroupID
+	groupId := theSyftPkg.Metadata.(syftPkg.JavaArchive).PomProperties.GroupID
 	lookup := groupId + ":" + theSyftPkg.Name
 
 	thePkg := pkg.New(theSyftPkg)

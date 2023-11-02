@@ -73,7 +73,7 @@ func TestCreateRow(t *testing.T) {
 
 func TestTablePresenter(t *testing.T) {
 	var buffer bytes.Buffer
-	matches, packages, _, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.ImageSource)
+	_, matches, packages, _, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.ImageSource)
 
 	pb := models.PresenterConfig{
 		Matches:          matches,

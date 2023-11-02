@@ -70,7 +70,7 @@ func TestSBOMInput_FromStdin(t *testing.T) {
 			input:      "./test-fixtures/empty.json",
 			args:       []string{"-c", "../grype-test-config.yaml"},
 			wantErr:    require.Error,
-			wantOutput: "unable to decode sbom: unable to identify format",
+			wantOutput: "unable to decode sbom: sbom format not recognized",
 		},
 		{
 			name:    "sbom",

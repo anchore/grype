@@ -11,7 +11,9 @@ import (
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/internal"
-	"github.com/anchore/syft/syft"
+	"github.com/anchore/syft/syft/format/spdxjson"
+	"github.com/anchore/syft/syft/format/spdxtagvalue"
+	"github.com/anchore/syft/syft/format/syftjson"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
@@ -33,6 +35,13 @@ func getListingURL() string {
 		return value
 	}
 	return internal.DBUpdateURL
+}
+
+func must(e sbom.FormatEncoder, err error) sbom.FormatEncoder {
+	if err != nil {
+		panic(err)
+	}
+	return e
 }
 
 func TestCompareSBOMInputToLibResults(t *testing.T) {
@@ -78,162 +87,159 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 	testCases := []struct {
 		name   string
 		image  string
-		format sbom.FormatID
+		format sbom.FormatEncoder
 	}{
 		{
 			image:  "anchore/test_images:vulnerabilities-alpine",
-			format: syft.JSONFormatID,
+			format: syftjson.NewFormatEncoder(),
 			name:   "alpine-syft-json",
 		},
 
 		{
 			image:  "anchore/test_images:vulnerabilities-alpine",
-			format: syft.SPDXJSONFormatID,
+			format: must(spdxjson.NewFormatEncoderWithConfig(spdxjson.DefaultEncoderConfig())),
 			name:   "alpine-spdx-json",
 		},
 
 		{
 			image:  "anchore/test_images:vulnerabilities-alpine",
-			format: syft.SPDXTagValueFormatID,
+			format: must(spdxtagvalue.NewFormatEncoderWithConfig(spdxtagvalue.DefaultEncoderConfig())),
 			name:   "alpine-spdx-tag-value",
 		},
 
 		{
 			image:  "anchore/test_images:gems",
-			format: syft.JSONFormatID,
+			format: syftjson.NewFormatEncoder(),
 			name:   "gems-syft-json",
 		},
 
 		{
 			image:  "anchore/test_images:gems",
-			format: syft.SPDXJSONFormatID,
+			format: must(spdxjson.NewFormatEncoderWithConfig(spdxjson.DefaultEncoderConfig())),
 			name:   "gems-spdx-json",
 		},
 
 		{
 			image:  "anchore/test_images:gems",
-			format: syft.SPDXTagValueFormatID,
+			format: must(spdxtagvalue.NewFormatEncoderWithConfig(spdxtagvalue.DefaultEncoderConfig())),
 			name:   "gems-spdx-tag-value",
 		},
 
 		{
 			image:  "anchore/test_images:vulnerabilities-debian",
-			format: syft.JSONFormatID,
+			format: syftjson.NewFormatEncoder(),
 			name:   "debian-syft-json",
 		},
 
 		{
 			image:  "anchore/test_images:vulnerabilities-debian",
-			format: syft.SPDXJSONFormatID,
+			format: must(spdxjson.NewFormatEncoderWithConfig(spdxjson.DefaultEncoderConfig())),
 			name:   "debian-spdx-json",
 		},
 
 		{
 			image:  "anchore/test_images:vulnerabilities-debian",
-			format: syft.SPDXTagValueFormatID,
+			format: must(spdxtagvalue.NewFormatEncoderWithConfig(spdxtagvalue.DefaultEncoderConfig())),
 			name:   "debian-spdx-tag-value",
 		},
 
 		{
 			image:  "anchore/test_images:vulnerabilities-centos",
-			format: syft.JSONFormatID,
+			format: syftjson.NewFormatEncoder(),
 			name:   "centos-syft-json",
 		},
 
 		{
 			image:  "anchore/test_images:vulnerabilities-centos",
-			format: syft.SPDXJSONFormatID,
+			format: must(spdxjson.NewFormatEncoderWithConfig(spdxjson.DefaultEncoderConfig())),
 			name:   "centos-spdx-json",
 		},
 
 		{
 			image:  "anchore/test_images:vulnerabilities-centos",
-			format: syft.SPDXTagValueFormatID,
+			format: must(spdxtagvalue.NewFormatEncoderWithConfig(spdxtagvalue.DefaultEncoderConfig())),
 			name:   "centos-spdx-tag-value",
 		},
 
 		{
 			image:  "anchore/test_images:npm",
-			format: syft.JSONFormatID,
+			format: syftjson.NewFormatEncoder(),
 			name:   "npm-syft-json",
 		},
 
 		{
 			image:  "anchore/test_images:npm",
-			format: syft.SPDXJSONFormatID,
+			format: must(spdxjson.NewFormatEncoderWithConfig(spdxjson.DefaultEncoderConfig())),
 			name:   "npm-spdx-json",
 		},
 
 		{
 			image:  "anchore/test_images:npm",
-			format: syft.SPDXTagValueFormatID,
+			format: must(spdxtagvalue.NewFormatEncoderWithConfig(spdxtagvalue.DefaultEncoderConfig())),
 			name:   "npm-spdx-tag-value",
 		},
 
 		{
 			image:  "anchore/test_images:java",
-			format: syft.JSONFormatID,
+			format: syftjson.NewFormatEncoder(),
 			name:   "java-syft-json",
 		},
 
 		{
 			image:  "anchore/test_images:java",
-			format: syft.SPDXJSONFormatID,
+			format: must(spdxjson.NewFormatEncoderWithConfig(spdxjson.DefaultEncoderConfig())),
 			name:   "java-spdx-json",
 		},
 
 		{
 			image:  "anchore/test_images:java",
-			format: syft.SPDXTagValueFormatID,
+			format: must(spdxtagvalue.NewFormatEncoderWithConfig(spdxtagvalue.DefaultEncoderConfig())),
 			name:   "java-spdx-tag-value",
 		},
 
 		{
 			image:  "anchore/test_images:golang-56d52bc",
-			format: syft.JSONFormatID,
+			format: syftjson.NewFormatEncoder(),
 			name:   "go-syft-json",
 		},
 
 		{
 			image:  "anchore/test_images:golang-56d52bc",
-			format: syft.SPDXJSONFormatID,
+			format: must(spdxjson.NewFormatEncoderWithConfig(spdxjson.DefaultEncoderConfig())),
 			name:   "go-spdx-json",
 		},
 
 		{
 			image:  "anchore/test_images:golang-56d52bc",
-			format: syft.SPDXTagValueFormatID,
+			format: must(spdxtagvalue.NewFormatEncoderWithConfig(spdxtagvalue.DefaultEncoderConfig())),
 			name:   "go-spdx-tag-value",
 		},
 
 		{
 			image:  "anchore/test_images:arch",
-			format: syft.JSONFormatID,
+			format: syftjson.NewFormatEncoder(),
 			name:   "arch-syft-json",
 		},
 
 		{
 			image:  "anchore/test_images:arch",
-			format: syft.SPDXJSONFormatID,
+			format: must(spdxjson.NewFormatEncoderWithConfig(spdxjson.DefaultEncoderConfig())),
 			name:   "arch-spdx-json",
 		},
 
 		{
 			image:  "anchore/test_images:arch",
-			format: syft.SPDXTagValueFormatID,
+			format: must(spdxtagvalue.NewFormatEncoderWithConfig(spdxtagvalue.DefaultEncoderConfig())),
 			name:   "arch-spdx-tag-value",
 		},
 	}
 	for _, tc := range testCases {
 		imageArchive := PullThroughImageCache(t, tc.image)
 		imageSource := fmt.Sprintf("docker-archive:%s", imageArchive)
-		f := syft.FormatByID(tc.format)
-		if f == nil {
-			t.Errorf("Invalid formatID: %s", tc.format)
-		}
+
 		t.Run(tc.name, func(t *testing.T) {
 			// get SBOM from syft, write to temp file
-			sbomBytes := getSyftSBOM(t, imageSource, f)
+			sbomBytes := getSyftSBOM(t, imageSource, tc.format)
 			sbomFile, err := os.CreateTemp("", "")
 			assert.NoError(t, err)
 			t.Cleanup(func() {
