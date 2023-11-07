@@ -22,13 +22,12 @@ func TestMatcher_DropMainPackage(t *testing.T) {
 	}
 
 	subjectWithoutMainModule := pkg.Package{
-		ID:           pkg.ID(uuid.NewString()),
-		Name:         "istio.io/istio",
-		Version:      "v0.0.0-20220606222826-f59ce19ec6b6",
-		Type:         syftPkg.GoModulePkg,
-		Language:     syftPkg.Go,
-		MetadataType: pkg.GolangBinMetadataType,
-		Metadata:     pkg.GolangBinMetadata{},
+		ID:       pkg.ID(uuid.NewString()),
+		Name:     "istio.io/istio",
+		Version:  "v0.0.0-20220606222826-f59ce19ec6b6",
+		Type:     syftPkg.GoModulePkg,
+		Language: syftPkg.Go,
+		Metadata: pkg.GolangBinMetadata{},
 	}
 
 	subjectWithMainModule := subjectWithoutMainModule
@@ -65,8 +64,7 @@ func TestMatcher_SearchForStdlib(t *testing.T) {
 		CPEs: []cpe.CPE{
 			cpe.Must("cpe:2.3:a:golang:go:1.18.3:-:*:*:*:*:*:*"),
 		},
-		MetadataType: pkg.GolangBinMetadataType,
-		Metadata:     pkg.GolangBinMetadata{},
+		Metadata: pkg.GolangBinMetadata{},
 	}
 
 	cases := []struct {

@@ -14,9 +14,10 @@ import (
 	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/sbom"
+	"github.com/anchore/syft/syft/testutil"
 )
 
-func TestNew_UpstreamFromMetadata(t *testing.T) {
+func TestNew(t *testing.T) {
 	tests := []struct {
 		name      string
 		syftPkg   syftPkg.Package
@@ -144,7 +145,7 @@ func TestNew_UpstreamFromMetadata(t *testing.T) {
 			},
 		},
 		{
-			name: "rpm archove with source info that matches the package info",
+			name: "rpm archive with source info that matches the package info",
 			syftPkg: syftPkg.Package{
 				Name: "sqlite",
 				Metadata: syftPkg.RpmArchive{
@@ -227,12 +228,368 @@ func TestNew_UpstreamFromMetadata(t *testing.T) {
 				},
 			},
 		},
+		// the below packages are those that have no metadata or upstream info to parse out
+		{
+			name: "npm-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.NpmPackage{
+					Author:      "a",
+					Homepage:    "a",
+					Description: "a",
+					URL:         "a",
+				},
+			},
+		},
+		{
+			name: "python-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.PythonPackage{
+					Name:                 "a",
+					Version:              "a",
+					Author:               "a",
+					AuthorEmail:          "a",
+					Platform:             "a",
+					SitePackagesRootPath: "a",
+				},
+			},
+		},
+		{
+			name: "gem-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.RubyGemspec{
+					Name:     "a",
+					Version:  "a",
+					Homepage: "a",
+				},
+			},
+		},
+		{
+			name: "kb-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.MicrosoftKbPatch{
+					ProductID: "a",
+					Kb:        "a",
+				},
+			},
+		},
+		{
+			name: "rust-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.RustCargoLockEntry{
+					Name:     "a",
+					Version:  "a",
+					Source:   "a",
+					Checksum: "a",
+				},
+			},
+		},
+		{
+			name: "golang-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.GolangBinaryBuildinfoEntry{
+					BuildSettings:     map[string]string{},
+					GoCompiledVersion: "1.0.0",
+					H1Digest:          "a",
+					MainModule:        "myMainModule",
+				},
+			},
+			metadata: GolangBinMetadata{
+				BuildSettings:     map[string]string{},
+				GoCompiledVersion: "1.0.0",
+				H1Digest:          "a",
+				MainModule:        "myMainModule",
+			},
+		},
+		{
+			name: "golang-mod-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.GolangModuleEntry{
+					H1Digest: "h1:as234NweNNTNWEtt13nwNENTt",
+				},
+			},
+			metadata: GolangModMetadata{
+				H1Digest: "h1:as234NweNNTNWEtt13nwNENTt",
+			},
+		},
+		{
+			name: "php-composer-lock-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.PhpComposerLockEntry{
+					Name:    "a",
+					Version: "a",
+				},
+			},
+		},
+		{
+			name: "php-composer-installed-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.PhpComposerInstalledEntry{
+					Name:    "a",
+					Version: "a",
+				},
+			},
+		},
+		{
+			name: "dart-pub-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.DartPubspecLockEntry{
+					Name:    "a",
+					Version: "a",
+				},
+			},
+		},
+		{
+			name: "dotnet-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.DotnetDepsEntry{
+					Name:     "a",
+					Version:  "a",
+					Path:     "a",
+					Sha512:   "a",
+					HashPath: "a",
+				},
+			},
+		},
+		{
+			name: "cpp conan-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.ConanfileEntry{
+					Ref: "catch2/2.13.8",
+				},
+			},
+		},
+		{
+			name: "cpp conan lock metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.ConanLockEntry{
+					Ref: "zlib/1.2.12",
+					Options: map[string]string{
+						"fPIC":   "True",
+						"shared": "False",
+					},
+					Path:    "all/conanfile.py",
+					Context: "host",
+				},
+			},
+		},
+		{
+			name: "cocoapods cocoapods-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.CocoaPodfileLockEntry{
+					Checksum: "123eere234",
+				},
+			},
+		},
+		{
+			name: "portage-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.PortageEntry{
+					InstalledSize: 1,
+					Files:         []syftPkg.PortageFileRecord{},
+				},
+			},
+		},
+		{
+			name: "hackage-stack-lock-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.HackageStackYamlLockEntry{
+					PkgHash: "some-hash",
+				},
+			},
+		},
+		{
+			name: "hackage-stack-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.HackageStackYamlEntry{
+					PkgHash: "some-hash",
+				},
+			},
+		},
+		{
+			name: "rebar-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.ErlangRebarLockEntry{
+					Name:    "rebar",
+					Version: "v0.1.1",
+				},
+			},
+		},
+		{
+			name: "npm-package-lock-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.NpmPackageLockEntry{
+					Resolved:  "resolved",
+					Integrity: "sha1:ab7d8979989b7a98d97",
+				},
+			},
+		},
+		{
+			name: "mix-lock-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.ElixirMixLockEntry{
+					Name:    "mix-lock",
+					Version: "v0.1.2",
+				},
+			},
+		},
+		{
+			name: "pipfile-lock-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.PythonPipfileLockEntry{
+					Hashes: []string{
+						"sha1:ab8v88a8b88d8d8c88b8s765s47",
+					},
+					Index: "1",
+				},
+			},
+		},
+		{
+			name: "python-requirements-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.PythonRequirementsEntry{
+					Name:              "a",
+					Extras:            []string{"a"},
+					VersionConstraint: "a",
+					URL:               "a",
+					Markers:           "a",
+				},
+			},
+		},
+		{
+			name: "binary-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.BinarySignature{
+					Matches: []syftPkg.ClassifierMatch{
+						{
+							Classifier: "node",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "nix-store-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.NixStoreEntry{
+					OutputHash: "a",
+					Output:     "a",
+					Files: []string{
+						"a",
+					},
+				},
+			},
+		},
+		{
+			name: "linux-kernel-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.LinuxKernel{
+					Name:            "a",
+					Architecture:    "a",
+					Version:         "a",
+					ExtendedVersion: "a",
+					BuildTime:       "a",
+					Author:          "a",
+					Format:          "a",
+					RWRootFS:        true,
+					SwapDevice:      10,
+					RootDevice:      11,
+					VideoMode:       "a",
+				},
+			},
+		},
+		{
+			name: "linux-kernel-module-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.LinuxKernelModule{
+					Name:          "a",
+					Version:       "a",
+					SourceVersion: "a",
+					Path:          "a",
+					Description:   "a",
+					Author:        "a",
+					License:       "a",
+					KernelVersion: "a",
+					VersionMagic:  "a",
+					Parameters: map[string]syftPkg.LinuxKernelModuleParameter{
+						"a": {
+							Type:        "a",
+							Description: "a",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "r-description-file-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.RDescription{
+					Title:            "a",
+					Description:      "a",
+					Author:           "a",
+					Maintainer:       "a",
+					URL:              []string{"a"},
+					Repository:       "a",
+					Built:            "a",
+					NeedsCompilation: true,
+					Imports:          []string{"a"},
+					Depends:          []string{"a"},
+					Suggests:         []string{"a"},
+				},
+			},
+		},
+		{
+			name: "dotnet-portable-executable-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.DotnetPortableExecutableEntry{
+					AssemblyVersion: "a",
+					LegalCopyright:  "a",
+					Comments:        "a",
+					InternalName:    "a",
+					CompanyName:     "a",
+					ProductName:     "a",
+					ProductVersion:  "a",
+				},
+			},
+		},
+		{
+			name: "swift-package-manager-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.SwiftPackageManagerResolvedEntry{
+					Revision: "a",
+				},
+			},
+		},
+		{
+			name: "conaninfo-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.ConaninfoEntry{
+					Ref:       "a",
+					PackageID: "a",
+				},
+			},
+		},
+		{
+			name: "rust-binary-audit-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.RustBinaryAuditEntry{
+					Name:    "a",
+					Version: "a",
+					Source:  "a",
+				},
+			},
+		},
 	}
 
+	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
+	tester := testutil.NewPackageMetadataCompletionTester(t)
+
+	// run all of our cases
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert.Equal(t, test.metadata, New(test.syftPkg).Metadata, "unexpected metadata")
-			assert.Equal(t, test.upstreams, New(test.syftPkg).Upstreams, "unexpected upstream")
+			tester.Tested(t, test.syftPkg.Metadata)
+			p := New(test.syftPkg)
+			assert.Equal(t, test.metadata, p.Metadata, "unexpected metadata")
+			assert.Equal(t, test.upstreams, p.Upstreams, "unexpected upstream")
 		})
 	}
 }

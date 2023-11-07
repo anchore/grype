@@ -60,6 +60,8 @@ require (
 	gorm.io/gorm v1.25.5
 )
 
+require github.com/dave/jennifer v1.7.0
+
 require (
 	cloud.google.com/go v0.110.7 // indirect
 	cloud.google.com/go/compute v1.23.0 // indirect

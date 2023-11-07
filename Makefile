@@ -259,8 +259,11 @@ compare-test-rpm-package-install: $(TEMP_DIR) $(SNAPSHOT_DIR)
 			$(COMPARE_TEST_IMAGE) \
 			$(TEMP_DIR)
 
-## Code generation targets #################################
-## TODO (cphillips) what does grype have here?
+## Code and data generation targets #################################
+
+.PHONY: generate
+generate:  ## Generate any code or data required by the project
+	cd grype/internal && go generate .
 
 ## Build-related targets #################################
 
