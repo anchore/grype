@@ -559,6 +559,25 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "conaninfo-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.ConaninfoEntry{
+					Ref:       "a",
+					PackageID: "a",
+				},
+			},
+		},
+		{
+			name: "rust-binary-audit-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.RustBinaryAuditEntry{
+					Name:    "a",
+					Version: "a",
+					Source:  "a",
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
