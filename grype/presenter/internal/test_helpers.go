@@ -237,12 +237,6 @@ func generatePackages(t *testing.T) []syftPkg.Package {
 					Language: "python",
 				},
 			},
-			Upstreams: []pkg.UpstreamPackage{
-				{
-					Name:    "nothing",
-					Version: "3.2",
-				},
-			},
 			Metadata: syftPkg.RpmDBEntry{
 				Epoch:     &epoch,
 				SourceRpm: "some-source-rpm",

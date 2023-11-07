@@ -19,6 +19,7 @@ var jsonNameFromType = map[reflect.Type][]string{
 	reflect.TypeOf(pkg.RpmMetadata{}):       nameList("RpmMetadata"),
 }
 
+//nolint:unparam
 func nameList(id string, others ...string) []string {
 	names := []string{id}
 	for _, o := range others {
