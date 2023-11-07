@@ -27,9 +27,7 @@ func TestMatcher_DropMainPackage(t *testing.T) {
 		Version:  "v0.0.0-20220606222826-f59ce19ec6b6",
 		Type:     syftPkg.GoModulePkg,
 		Language: syftPkg.Go,
-		Metadata: pkg.GolangBinMetadata{
-			MainModule: "istio.io/istio",
-		},
+		Metadata: pkg.GolangBinMetadata{},
 	}
 
 	subjectWithMainModule := subjectWithoutMainModule
