@@ -57,12 +57,7 @@
      "cpe:2.3:a:anchore:engine:0.9.2:*:*:python:*:*:*:*"
     ],
     "purl": "",
-    "upstreams": [
-     {
-      "name": "",
-      "version": "-"
-     }
-    ],
+    "upstreams": [],
     "metadataType": "RpmMetadata",
     "metadata": {
      "epoch": 2,
