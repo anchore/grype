@@ -9,6 +9,7 @@ import (
 	"github.com/wagoodman/go-partybus"
 
 	"github.com/anchore/grype/grype/event"
+	"github.com/anchore/grype/grype/event/parsers"
 )
 
 func Test_postUIEventWriter_write(t *testing.T) {
@@ -34,8 +35,11 @@ func Test_postUIEventWriter_write(t *testing.T) {
 					Value: "<notification 2>",
 				},
 				{
-					Type:  event.CLIAppUpdateAvailable,
-					Value: "\n\n<my app can be updated!!\n...to this version>\n\n",
+					Type: event.CLIAppUpdateAvailable,
+					Value: parsers.UpdateCheck{
+						New:     "v0.33.0",
+						Current: "[not provided]",
+					},
 				},
 				{
 					Type:  event.CLINotification,
@@ -61,8 +65,11 @@ func Test_postUIEventWriter_write(t *testing.T) {
 					Value: "<notification 1>",
 				},
 				{
-					Type:  event.CLIAppUpdateAvailable,
-					Value: "<app update>",
+					Type: event.CLIAppUpdateAvailable,
+					Value: parsers.UpdateCheck{
+						New:     "<new version>",
+						Current: "<current version>",
+					},
 				},
 				{
 					Type:  event.CLIReport,

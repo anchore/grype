@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  GO_VERSION: "1.19.x"
+  GO_VERSION: "1.21.x"
   GO_STABLE_VERSION: true
 
 permissions:
@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository == 'anchore/grype' # only run for main repo
     steps:
-      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v2.5.0
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
         with:
@@ -38,7 +38,7 @@ jobs:
           # export the version for use with create-pull-request
           echo "LATEST_VERSION=$LATEST_VERSION" >> $GITHUB_OUTPUT
 
-      - uses: tibdex/github-app-token@b62528385c34dbc9f38e5f4225ac829252d1ea92 # v1.8.0
+      - uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a # v2.1.0
         id: generate-token
         with:
           app_id: ${{ secrets.TOKEN_APP_ID }}

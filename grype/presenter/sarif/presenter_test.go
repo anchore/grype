@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/anchore/clio"
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/internal"
@@ -17,7 +18,7 @@ import (
 	"github.com/anchore/syft/syft/source"
 )
 
-var update = flag.Bool("update", false, "update .golden files for sarif presenters")
+var updateSnapshot = flag.Bool("update-sarif", false, "update .golden files for sarif presenters")
 
 func TestSarifPresenter(t *testing.T) {
 	tests := []struct {
@@ -38,9 +39,12 @@ func TestSarifPresenter(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			var buffer bytes.Buffer
-			matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, tc.scheme)
+			_, matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, tc.scheme)
 
 			pb := models.PresenterConfig{
+				ID: clio.Identification{
+					Name: "grype",
+				},
 				Matches:          matches,
 				Packages:         packages,
 				Context:          context,
@@ -54,7 +58,7 @@ func TestSarifPresenter(t *testing.T) {
 			}
 
 			actual := buffer.Bytes()
-			if *update {
+			if *updateSnapshot {
 				testutils.UpdateGoldenFileContents(t, actual)
 			}
 
@@ -183,7 +187,7 @@ func Test_locationPath(t *testing.T) {
 }
 
 func createDirPresenter(t *testing.T) *Presenter {
-	matches, packages, _, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.DirectorySource)
+	_, matches, packages, _, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.DirectorySource)
 	d := t.TempDir()
 	s, err := source.NewFromDirectory(source.DirectoryConfig{Path: d})
 	if err != nil {
@@ -234,7 +238,7 @@ func TestToSarifReport(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, tc.scheme)
+			_, matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, tc.scheme)
 
 			pb := models.PresenterConfig{
 				Matches:          matches,

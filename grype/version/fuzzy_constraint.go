@@ -9,7 +9,7 @@ import (
 )
 
 // derived from https://semver.org/, but additionally matches partial versions (e.g. "2.0")
-var pseudoSemverPattern = regexp.MustCompile(`^(0|[1-9]\d*)(\.(0|[1-9]\d*))?(\.(0|[1-9]\d*))?(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$`)
+var pseudoSemverPattern = regexp.MustCompile(`^(0|[1-9]\d*)(\.(0|[1-9]\d*))?(\.(0|[1-9]\d*))?(?:(-|alpha|beta|rc)((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$`)
 
 type fuzzyConstraint struct {
 	rawPhrase          string
@@ -78,6 +78,19 @@ func (f *fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
 	}
 
 	version := verObj.Raw
+
+	// rebuild temp constraint based off of ver obj
+	if verObj.Format != UnknownFormat {
+		newConstaint, err := GetConstraint(f.rawPhrase, verObj.Format)
+		// check if constraint is not fuzzyConstraint
+		_, ok := newConstaint.(*fuzzyConstraint)
+		if err == nil && !ok {
+			satisfied, err := newConstaint.Satisfied(verObj)
+			if err == nil {
+				return satisfied, nil
+			}
+		}
+	}
 
 	// attempt semver first, then fallback to fuzzy part matching...
 	if f.semanticConstraint != nil {

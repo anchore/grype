@@ -4,8 +4,8 @@
       "id": "eeb36c1c-c03a-425b-901f-df918cc3757e",
       "name": "my-package",
       "version": "1.0.5",
-      "type": "binary",
-      "language": "python",
+      "type": "idris",
+      "language": "idris",
       "cpes": [
         "cpe:2.3:a:my-package:my-package:1.0.5:*:*:*:*:*:*:*",
         "cpe:2.3:a:bogus:my-package:1.0.5:*:*:*:*:*:*:*"

@@ -1,0 +1,4 @@
+check-for-app-update: false
+ignore:
+  - vulnerability: CVE-2021-42385
+    reason: test reason for vulnerability being ignored

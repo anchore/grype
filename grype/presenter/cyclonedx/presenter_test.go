@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/clio"
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/presenter/internal"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -17,9 +18,12 @@ var update = flag.Bool("update", false, "update the *.golden files for cyclonedx
 func TestCycloneDxPresenterImage(t *testing.T) {
 	var buffer bytes.Buffer
 
-	matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.ImageSource)
-	sbom := internal.SBOMFromPackages(t, packages)
+	sbom, matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.ImageSource)
 	pb := models.PresenterConfig{
+		ID: clio.Identification{
+			Name:    "grype",
+			Version: "[not provided]",
+		},
 		Matches:          matches,
 		Packages:         packages,
 		Context:          context,
@@ -50,9 +54,12 @@ func TestCycloneDxPresenterImage(t *testing.T) {
 
 func TestCycloneDxPresenterDir(t *testing.T) {
 	var buffer bytes.Buffer
-	matches, packages, ctx, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.DirectorySource)
-	sbom := internal.SBOMFromPackages(t, packages)
+	sbom, matches, packages, ctx, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.DirectorySource)
 	pb := models.PresenterConfig{
+		ID: clio.Identification{
+			Name:    "grype",
+			Version: "[not provided]",
+		},
 		Matches:          matches,
 		Packages:         packages,
 		Context:          ctx,

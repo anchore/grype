@@ -93,14 +93,26 @@ result-sets:
 
         - name: syft
           # note: we want to use a fixed version of syft for capturing all results (NOT "latest")
-          version: v0.86.1
+          version: v0.89.0
           produces: SBOM
           refresh: false
 
         - name: grype
-          version: git:current-commit
+          # note: we import a static (pinned) DB as to prevent changes in the DB from affecting the results. The
+          # point of this test is to ensure the correctness of the logic in grype itself with real production data.
+          # By pinning the DB the grype code itself becomes the independent variable under test (and not the
+          # every-changing DB). That being said, we should be updating this DB periodically to ensure what we
+          # are testing with is not too stale.
+          # version: git:current-commit+import-db=db.tar.gz
+          # for local build of grype, use for example:
+          version: path:../../+import-db=db.tar.gz
           takes: SBOM
 
         - name: grype
-          version: latest
+          # note: we import a static (pinned) DB as to prevent changes in the DB from affecting the results. The
+          # point of this test is to ensure the correctness of the logic in grype itself with real production data.
+          # By pinning the DB the grype code itself becomes the independent variable under test (and not the
+          # every-changing DB). That being said, we should be updating this DB periodically to ensure what we
+          # are testing with is not too stale.
+          version: latest+import-db=db.tar.gz
           takes: SBOM

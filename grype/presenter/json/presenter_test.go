@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/anchore/clio"
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -23,9 +24,13 @@ var timestampRegexp = regexp.MustCompile(`"timestamp":\s*"[^"]+"`)
 
 func TestJsonImgsPresenter(t *testing.T) {
 	var buffer bytes.Buffer
-	matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.ImageSource)
+	_, matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.ImageSource)
 
 	pb := models.PresenterConfig{
+		ID: clio.Identification{
+			Name:    "grype",
+			Version: "[not provided]",
+		},
 		Matches:          matches,
 		Packages:         packages,
 		Context:          context,
@@ -56,9 +61,13 @@ func TestJsonImgsPresenter(t *testing.T) {
 func TestJsonDirsPresenter(t *testing.T) {
 	var buffer bytes.Buffer
 
-	matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.DirectorySource)
+	_, matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.DirectorySource)
 
 	pb := models.PresenterConfig{
+		ID: clio.Identification{
+			Name:    "grype",
+			Version: "[not provided]",
+		},
 		Matches:          matches,
 		Packages:         packages,
 		Context:          context,
@@ -102,6 +111,10 @@ func TestEmptyJsonPresenter(t *testing.T) {
 	}
 
 	pb := models.PresenterConfig{
+		ID: clio.Identification{
+			Name:    "grype",
+			Version: "[not provided]",
+		},
 		Matches:          matches,
 		Packages:         nil,
 		Context:          ctx,
@@ -128,8 +141,8 @@ func TestEmptyJsonPresenter(t *testing.T) {
 }
 
 func TestPresenter_Present_NewDocumentSorted(t *testing.T) {
-	matches, packages, context, metadataProvider, appConfig, dbStatus := internal.GenerateAnalysis(t, internal.ImageSource)
-	doc, err := models.NewDocument(packages, context, matches, nil, metadataProvider, appConfig, dbStatus)
+	_, matches, packages, context, metadataProvider, appConfig, dbStatus := internal.GenerateAnalysis(t, internal.ImageSource)
+	doc, err := models.NewDocument(clio.Identification{}, packages, context, matches, nil, metadataProvider, appConfig, dbStatus)
 	if err != nil {
 		t.Fatal(err)
 	}

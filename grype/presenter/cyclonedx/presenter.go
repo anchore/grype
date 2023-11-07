@@ -5,19 +5,19 @@ import (
 
 	"github.com/CycloneDX/cyclonedx-go"
 
+	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal"
-	"github.com/anchore/grype/internal/version"
-	"github.com/anchore/syft/syft/formats/common/cyclonedxhelpers"
+	"github.com/anchore/syft/syft/format/common/cyclonedxhelpers"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
 )
 
 // Presenter writes a CycloneDX report from the given Matches and Scope contents
 type Presenter struct {
+	id               clio.Identification
 	results          match.Matches
 	packages         []pkg.Package
 	src              *source.Description
@@ -29,6 +29,7 @@ type Presenter struct {
 // NewPresenter is a *Presenter constructor
 func NewJSONPresenter(pb models.PresenterConfig) *Presenter {
 	return &Presenter{
+		id:               pb.ID,
 		results:          pb.Matches,
 		packages:         pb.Packages,
 		metadataProvider: pb.MetadataProvider,
@@ -41,6 +42,7 @@ func NewJSONPresenter(pb models.PresenterConfig) *Presenter {
 // NewPresenter is a *Presenter constructor
 func NewXMLPresenter(pb models.PresenterConfig) *Presenter {
 	return &Presenter{
+		id:               pb.ID,
 		results:          pb.Matches,
 		packages:         pb.Packages,
 		metadataProvider: pb.MetadataProvider,
@@ -57,12 +59,11 @@ func (pres *Presenter) Present(output io.Writer) error {
 	cyclonedxBOM := cyclonedxhelpers.ToFormatModel(*pres.sbom)
 
 	// empty the tool metadata and add grype metadata
-	versionInfo := version.FromBuild()
 	cyclonedxBOM.Metadata.Tools = &[]cyclonedx.Tool{
 		{
 			Vendor:  "anchore",
-			Name:    internal.ApplicationName,
-			Version: versionInfo.Version,
+			Name:    pres.id.Name,
+			Version: pres.id.Version,
 		},
 	}
 

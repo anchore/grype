@@ -119,9 +119,7 @@ func (c *Curator) Delete() error {
 func (c *Curator) Update() (bool, error) {
 	// let consumers know of a monitorable event (download + import stages)
 	importProgress := progress.NewManual(1)
-	stage := &progress.Stage{
-		Current: "checking for update",
-	}
+	stage := progress.NewAtomicStage("checking for update")
 	downloadProgress := progress.NewManual(1)
 	aggregateProgress := progress.NewAggregator(progress.DefaultStrategy, downloadProgress, importProgress)
 
@@ -171,7 +169,7 @@ func (c *Curator) Update() (bool, error) {
 		return true, nil
 	}
 
-	stage.Current = "no update available"
+	stage.Set("no update available")
 	return false, nil
 }
 
@@ -207,26 +205,26 @@ func (c *Curator) IsUpdateAvailable() (bool, *Metadata, *ListingEntry, error) {
 }
 
 // UpdateTo updates the existing DB with the specific other version provided from a listing entry.
-func (c *Curator) UpdateTo(listing *ListingEntry, downloadProgress, importProgress *progress.Manual, stage *progress.Stage) error {
-	stage.Current = "downloading"
+func (c *Curator) UpdateTo(listing *ListingEntry, downloadProgress, importProgress *progress.Manual, stage *progress.AtomicStage) error {
+	stage.Set("downloading")
 	// note: the temp directory is persisted upon download/validation/activation failure to allow for investigation
 	tempDir, err := c.download(listing, downloadProgress)
 	if err != nil {
 		return err
 	}
 
-	stage.Current = "validating integrity"
+	stage.Set("validating integrity")
 	_, err = c.validateIntegrity(tempDir)
 	if err != nil {
 		return err
 	}
 
-	stage.Current = "importing"
+	stage.Set("importing")
 	err = c.activate(tempDir)
 	if err != nil {
 		return err
 	}
-	stage.Current = "updated"
+	stage.Set("updated")
 	importProgress.Set(importProgress.Size())
 	importProgress.SetCompleted()
 
