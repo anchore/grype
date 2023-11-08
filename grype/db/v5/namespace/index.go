@@ -151,7 +151,7 @@ func (i *Index) NamespacesForDistro(d *grypeDistro.Distro) []*distro.Namespace {
 
 func getAlpineNamespace(i *Index, d *grypeDistro.Distro, versionSegments []int) []*distro.Namespace {
 	// check if distro version matches x.y.z
-	if alpineVersionRegularExpression.Match([]byte(d.RawVersion)) {
+	if alpineVersionRegularExpression.MatchString(d.RawVersion) {
 		// Get the first two version components
 		// TODO: should we update the namespaces in db generation to match x.y.z here?
 		distroKey := fmt.Sprintf("%s:%d.%d", strings.ToLower(d.Type.String()), versionSegments[0], versionSegments[1])

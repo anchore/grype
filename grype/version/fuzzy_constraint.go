@@ -38,7 +38,7 @@ func newFuzzyConstraint(phrase, hint string) (*fuzzyConstraint, error) {
 check:
 	for _, units := range constraints.units {
 		for _, unit := range units {
-			if !pseudoSemverPattern.Match([]byte(unit.version)) {
+			if !pseudoSemverPattern.MatchString(unit.version) {
 				valid = false
 				break check
 			}
@@ -94,7 +94,7 @@ func (f *fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
 
 	// attempt semver first, then fallback to fuzzy part matching...
 	if f.semanticConstraint != nil {
-		if pseudoSemverPattern.Match([]byte(version)) {
+		if pseudoSemverPattern.MatchString(version) {
 			if semver, err := newSemanticVersion(version); err == nil && semver != nil {
 				return f.semanticConstraint.Check(semver.verObj), nil
 			}
