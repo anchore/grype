@@ -146,6 +146,13 @@ func (i *Index) NamespacesForDistro(d *grypeDistro.Distro) []*distro.Namespace {
 		}
 	}
 
+	if versionSegments == nil && d.Type == grypeDistro.Debian && d.RawVersion == "unstable" {
+		distroKey := fmt.Sprintf("%s:%s", strings.ToLower(d.Type.String()), "unstable")
+		if v, ok := i.byDistroKey[distroKey]; ok {
+			return v
+		}
+	}
+
 	return nil
 }
 
