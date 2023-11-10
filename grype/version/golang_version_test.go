@@ -60,3 +60,79 @@ func TestNewGolangVersion(t *testing.T) {
 		})
 	}
 }
+
+func TestCompareGolangVersions(t *testing.T) {
+	tests := []struct {
+		name         string
+		thisVersion  string
+		otherVersion string
+		want         int
+	}{
+		{
+			name:         "semver this version less",
+			thisVersion:  "v1.2.3",
+			otherVersion: "v1.2.4",
+			want:         -1,
+		},
+		{
+			name:         "semver this version more",
+			thisVersion:  "v1.3.4",
+			otherVersion: "v1.2.4",
+			want:         1,
+		},
+		{
+			name:         "semver equal",
+			thisVersion:  "v1.2.4",
+			otherVersion: "v1.2.4",
+			want:         0,
+		},
+		{
+			name:         "commit-sha this version less",
+			thisVersion:  "v0.0.0-20180116102854-5a71ef0e047d",
+			otherVersion: "v0.0.0-20190116102854-somehash",
+			want:         -1,
+		},
+		{
+			name:         "commit-sha this version more",
+			thisVersion:  "v0.0.0-20180216102854-5a71ef0e047d",
+			otherVersion: "v0.0.0-20180116102854-somehash",
+			want:         1,
+		},
+		{
+			name:         "commit-sha this version equal",
+			thisVersion:  "v0.0.0-20180116102854-5a71ef0e047d",
+			otherVersion: "v0.0.0-20180116102854-5a71ef0e047d",
+			want:         0,
+		},
+		{
+			name:         "this pre-semver is less than any semver",
+			thisVersion:  "v0.0.0-20180116102854-5a71ef0e047d",
+			otherVersion: "v0.0.1",
+			want:         -1,
+		},
+		{
+			name:         "semver is greater than timestamp",
+			thisVersion:  "v2.1.0",
+			otherVersion: "v0.0.0-20180116102854-5a71ef0e047d",
+			want:         1,
+		},
+		{
+			name:         "+incompatible doesn't break equality",
+			thisVersion:  "v3.2.0",
+			otherVersion: "v3.2.0+incompatible",
+			want:         0,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			a, err := newGolangVersion(tc.thisVersion)
+			require.NoError(t, err)
+			other, err := NewVersion(tc.otherVersion, GolangFormat)
+			require.NoError(t, err)
+			got, err := a.Compare(other)
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}

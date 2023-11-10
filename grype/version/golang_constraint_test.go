@@ -1,9 +1,10 @@
 package version
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestIncompatibleFlagIsSameVersion(t *testing.T) {
@@ -12,7 +13,32 @@ func TestIncompatibleFlagIsSameVersion(t *testing.T) {
 		version    string
 		constraint string
 		satisfied  bool
-	}{}
+	}{
+		{
+			name:       "regular semantic version satisfied",
+			version:    "v1.2.3",
+			constraint: "< 1.2.4",
+			satisfied:  true,
+		},
+		{
+			name:       "regular semantic version unsatisfied",
+			version:    "v1.2.3",
+			constraint: "> 1.2.4",
+			satisfied:  false,
+		},
+		{
+			name:       "+incompatible added to version", // see grype#1581
+			version:    "v3.2.0+incompatible",
+			constraint: "<=3.2.0",
+			satisfied:  true,
+		},
+		{
+			name:       "the empty constraint is always satisfied",
+			version:    "v1.0.0",
+			constraint: "",
+			satisfied:  true,
+		},
+	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -25,5 +51,20 @@ func TestIncompatibleFlagIsSameVersion(t *testing.T) {
 			assert.Equal(t, tc.satisfied, sat)
 		})
 	}
+}
 
+func TestString(t *testing.T) {
+	tests := []struct {
+		name       string
+		constraint string
+		expected   string
+	}{}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			c, err := newGolangConstraint(tc.constraint)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expected, c.String())
+		})
+	}
 }
