@@ -12,7 +12,7 @@ type golangConstraint struct {
 func newGolangConstraint(raw string) (golangConstraint, error) {
 	constraints, err := newConstraintExpression(raw, newGolangComparator)
 	if err != nil {
-		return golangConstraint{}, nil
+		return golangConstraint{}, err
 	}
 	return golangConstraint{
 		expression: constraints,
