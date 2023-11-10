@@ -43,6 +43,21 @@ func TestNewGolangVersion(t *testing.T) {
 			},
 		},
 		{
+			name:  "standard library",
+			input: "go1.21.4",
+			expected: golangVersion{
+				raw:    "go1.21.4",
+				semVer: hashiVer.Must(hashiVer.NewSemver("1.21.4")),
+			},
+		},
+		{
+			name:  "devel",
+			input: "(devel)",
+			expected: golangVersion{
+				raw: "(devel)",
+			},
+		},
+		{
 			name:    "invalid input",
 			input:   "some nonsense",
 			wantErr: true,

@@ -48,6 +48,9 @@ func (g golangVersion) compare(o golangVersion) int {
 var startsWithSemver = regexp.MustCompile(`(v|go){0,1}\d+\.\d+\.\d+`)
 
 func newGolangVersion(v string) (*golangVersion, error) {
+	if v == "(devel)" {
+		return &golangVersion{raw: v}, nil
+	}
 	if !startsWithSemver.MatchString(v) {
 		return nil, fmt.Errorf("%s is not a go version", v)
 	}
@@ -69,7 +72,13 @@ func newGolangVersion(v string) (*golangVersion, error) {
 
 	if semver, err := hashiVer.NewSemver(strings.TrimPrefix(version, "v")); err == nil {
 		result.semVer = semver
+		return result, nil
 	}
 
+	// go stdlib is reported by syft as a go package with version like "go1.24.1"
+	if semver, err := hashiVer.NewSemver(strings.TrimPrefix(version, "go")); err == nil {
+		result.semVer = semver
+		return result, nil
+	}
 	return result, nil
 }
