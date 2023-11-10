@@ -28,20 +28,21 @@ func (g golangVersion) Compare(version *Version) (int, error) {
 	if version.rich.golangVersion.raw == g.raw {
 		return 0, nil
 	}
-	if version.rich.golangVersion.semVer != nil && g.semVer != nil {
-		return g.semVer.Compare(version.rich.golangVersion.semVer), nil
+
+	return version.rich.golangVersion.compare(g), nil
+}
+
+func (g golangVersion) compare(o golangVersion) int {
+	switch {
+	case g.semVer != nil && o.semVer != nil:
+		return g.semVer.Compare(o.semVer)
+	case g.semVer != nil && o.semVer == nil:
+		return 1
+	case g.semVer == nil && o.semVer != nil:
+		return -1
+	default:
+		return strings.Compare(g.timestamp, o.timestamp)
 	}
-	if version.rich.golangVersion.semVer != nil && g.semVer == nil {
-		// semvers are greater than tag versions
-		return -1, nil
-	}
-	if g.semVer != nil && version.rich.golangVersion.semVer == nil {
-		return 1, nil
-	}
-	if version.rich.golangVersion.timestamp != "" && g.timestamp != "" {
-		return strings.Compare(g.timestamp, version.rich.golangVersion.timestamp), nil
-	}
-	return 0, nil
 }
 
 var startsWithSemver = regexp.MustCompile(`v\d+\.\d+\.\d+`)

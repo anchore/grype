@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestIncompatibleFlagIsSameVersion(t *testing.T) {
+func TestGolangConstraints(t *testing.T) {
 	tests := []struct {
 		name       string
 		version    string
@@ -58,7 +58,18 @@ func TestString(t *testing.T) {
 		name       string
 		constraint string
 		expected   string
-	}{}
+	}{
+		{
+			name:       "empty string",
+			constraint: "",
+			expected:   "none (go)",
+		},
+		{
+			name:       "basic constraint",
+			constraint: "< 1.3.4",
+			expected:   "< 1.3.4 (go)",
+		},
+	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

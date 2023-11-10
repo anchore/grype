@@ -128,10 +128,9 @@ func TestCompareGolangVersions(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a, err := newGolangVersion(tc.thisVersion)
 			require.NoError(t, err)
-			other, err := NewVersion(tc.otherVersion, GolangFormat)
+			other, err := newGolangVersion(tc.otherVersion)
 			require.NoError(t, err)
-			got, err := a.Compare(other)
-			require.NoError(t, err)
+			got := a.compare(*other)
 			assert.Equal(t, tc.want, got)
 		})
 	}

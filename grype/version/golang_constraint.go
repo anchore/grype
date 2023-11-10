@@ -21,7 +21,10 @@ func newGolangConstraint(raw string) (golangConstraint, error) {
 }
 
 func (g golangConstraint) String() string {
-	panic("implement me")
+	if g.raw == "" {
+		return "none (go)"
+	}
+	return fmt.Sprintf("%s (go)", g.raw)
 }
 
 func (g golangConstraint) Satisfied(version *Version) (bool, error) {
