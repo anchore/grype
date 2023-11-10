@@ -45,7 +45,7 @@ func (g golangVersion) compare(o golangVersion) int {
 	}
 }
 
-var startsWithSemver = regexp.MustCompile(`v\d+\.\d+\.\d+`)
+var startsWithSemver = regexp.MustCompile(`(v|go){0,1}\d+\.\d+\.\d+`)
 
 func newGolangVersion(v string) (*golangVersion, error) {
 	if !startsWithSemver.MatchString(v) {

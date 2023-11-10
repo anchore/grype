@@ -33,6 +33,7 @@ var formatStr = []string{
 	"KB",
 	"Gem",
 	"Portage",
+	"Go",
 }
 
 var Formats = []Format{
