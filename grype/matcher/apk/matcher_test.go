@@ -25,7 +25,7 @@ type mockStore struct {
 }
 
 func (s *mockStore) GetVulnerability(namespace, id string) ([]grypeDB.Vulnerability, error) {
-	//TODO implement me
+	// TODO implement me
 	panic("implement me")
 }
 
@@ -545,6 +545,62 @@ func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
 		Type:    syftPkg.ApkPkg,
 		CPEs: []cpe.CPE{
 			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*", ""),
+		},
+	}
+
+	expected := []match.Match{}
+
+	actual, err := m.Match(provider, d, p)
+	assert.NoError(t, err)
+
+	assertMatches(t, expected, actual)
+}
+
+func TestNVDMatchCanceledByOriginPackageInSecDB(t *testing.T) {
+	nvdVuln := grypeDB.Vulnerability{
+		ID:            "CVE-2015-3211",
+		VersionFormat: "unknown",
+		CPEs:          []string{"cpe:2.3:a:php-fpm:php-fpm:-:*:*:*:*:*:*:*"},
+		Namespace:     "nvd:cpe",
+	}
+	secDBVuln := grypeDB.Vulnerability{
+		ID:                "CVE-2015-3211",
+		VersionConstraint: "< 0",
+		VersionFormat:     "apk",
+		Namespace:         "wolfi:distro:wolfi:rolling",
+	}
+	store := mockStore{
+		backend: map[string]map[string][]grypeDB.Vulnerability{
+			"nvd:cpe": {
+				"php-fpm": []grypeDB.Vulnerability{nvdVuln},
+			},
+			"wolfi:distro:wolfi:rolling": {
+				"php-8.3": []grypeDB.Vulnerability{secDBVuln},
+			},
+		},
+	}
+
+	provider, err := db.NewVulnerabilityProvider(&store)
+	require.NoError(t, err)
+
+	m := Matcher{}
+	d, err := distro.New(distro.Wolfi, "")
+	if err != nil {
+		t.Fatalf("failed to create a new distro: %+v", err)
+	}
+	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
+		Name:    "php-8.3-fpm",
+		Version: "8.3.11-r0",
+		Type:    syftPkg.ApkPkg,
+		CPEs: []cpe.CPE{
+			cpe.Must("cpe:2.3:a:php-fpm:php-fpm:8.3.11-r0:*:*:*:*:*:*:*", ""),
+		},
+		Upstreams: []pkg.UpstreamPackage{
+			{
+				Name:    "php-8.3",
+				Version: "8.3.11-r0",
+			},
 		},
 	}
 
