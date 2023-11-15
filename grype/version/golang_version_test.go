@@ -21,25 +21,23 @@ func TestNewGolangVersion(t *testing.T) {
 			input: "v1.8.0",
 			expected: golangVersion{
 				raw:    "v1.8.0",
-				semVer: hashiVer.Must(hashiVer.NewSemver("1.8.0")),
+				semVer: hashiVer.Must(hashiVer.NewSemver("v1.8.0")),
 			},
 		},
 		{
 			name:  "v0.0.0 date and hash version",
 			input: "v0.0.0-20180116102854-5a71ef0e047d",
 			expected: golangVersion{
-				raw:       "v0.0.0-20180116102854-5a71ef0e047d",
-				timestamp: "20180116102854",
-				commitSHA: "5a71ef0e047d",
+				raw:    "v0.0.0-20180116102854-5a71ef0e047d",
+				semVer: hashiVer.Must(hashiVer.NewSemver("v0.0.0-20180116102854-5a71ef0e047d")),
 			},
 		},
 		{
 			name:  "semver with +incompatible",
 			input: "v24.0.7+incompatible",
 			expected: golangVersion{
-				raw:              "v24.0.7+incompatible",
-				semVer:           hashiVer.Must(hashiVer.NewSemver("24.0.7")),
-				incompatibleFlag: true,
+				raw:    "v24.0.7+incompatible",
+				semVer: hashiVer.Must(hashiVer.NewSemver("v24.0.7+incompatible")),
 			},
 		},
 		{
@@ -51,11 +49,9 @@ func TestNewGolangVersion(t *testing.T) {
 			},
 		},
 		{
-			name:  "devel",
-			input: "(devel)",
-			expected: golangVersion{
-				raw: "(devel)",
-			},
+			name:    "devel",
+			input:   "(devel)",
+			wantErr: true,
 		},
 		{
 			name:    "invalid input",
