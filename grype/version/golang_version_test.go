@@ -49,6 +49,10 @@ func TestNewGolangVersion(t *testing.T) {
 			},
 		},
 		{
+			// "(devel)" is the main module of a go program.
+			// If we get a package with this version, it means the SBOM
+			// doesn't have a real version number for the built package, so
+			// we can't compare it and should just return an error.
 			name:    "devel",
 			input:   "(devel)",
 			wantErr: true,
