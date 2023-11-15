@@ -35,7 +35,7 @@ func (g golangConstraint) Satisfied(version *Version) (bool, error) {
 }
 
 func newGolangComparator(unit constraintUnit) (Comparator, error) {
-	ver, err := newGolangVersion("v" + unit.version)
+	ver, err := newGolangVersion(unit.version)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse constraint version (%s): %w", unit.version, err)
 	}
