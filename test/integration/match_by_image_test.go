@@ -29,7 +29,7 @@ import (
 
 func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore *mockStore, theResult *match.Matches) {
 	packages := catalog.PackagesByPath("/lib/apk/db/installed")
-	if len(packages) != 1 {
+	if len(packages) != 2 {
 		t.Logf("Alpine Packages: %+v", packages)
 		t.Fatalf("problem with upstream syft cataloger (alpine)")
 	}

@@ -227,6 +227,7 @@ func TestNew(t *testing.T) {
 					Name: "libcurl",
 				},
 			},
+			metadata: ApkMetadata{Files: []ApkFileRecord{}},
 		},
 		// the below packages are those that have no metadata or upstream info to parse out
 		{

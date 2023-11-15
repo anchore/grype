@@ -216,9 +216,28 @@ func dataFromPkg(p pkg.Package) (interface{}, []UpstreamPackage) {
 			metadata = *m
 		}
 	case pkg.ApkDBEntry:
+		metadata = apkMetadataFromPkg(p)
 		upstreams = apkDataFromPkg(p)
 	}
 	return metadata, upstreams
+}
+
+func apkMetadataFromPkg(p pkg.Package) interface{} {
+	if m, ok := p.Metadata.(pkg.ApkDBEntry); ok {
+		metadata := ApkMetadata{}
+
+		fileRecords := make([]ApkFileRecord, 0, len(m.Files))
+		for _, record := range m.Files {
+			r := ApkFileRecord{Path: record.Path}
+			fileRecords = append(fileRecords, r)
+		}
+
+		metadata.Files = fileRecords
+
+		return metadata
+	}
+
+	return nil
 }
 
 func golangMetadataFromPkg(p pkg.Package) interface{} {

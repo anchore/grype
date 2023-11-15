@@ -6,5 +6,5 @@ import "github.com/anchore/grype/grype/pkg"
 
 // AllTypes returns a list of all pkg metadata types that grype supports (that are represented in the pkg.Package.Metadata field).
 func AllTypes() []any {
-	return []any{pkg.GolangBinMetadata{}, pkg.GolangModMetadata{}, pkg.JavaMetadata{}, pkg.RpmMetadata{}}
+	return []any{pkg.ApkMetadata{}, pkg.GolangBinMetadata{}, pkg.GolangModMetadata{}, pkg.JavaMetadata{}, pkg.RpmMetadata{}}
 }
