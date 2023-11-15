@@ -484,8 +484,8 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				},
 				Name:     "sw",
 				Version:  "0.1",
-				Language: syftPkg.Go,
-				Type:     syftPkg.GoModulePkg,
+				Language: syftPkg.Erlang,
+				Type:     syftPkg.HexPkg,
 			},
 			expected: []match.Match{
 				{
@@ -498,8 +498,8 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 						},
 						Name:     "sw",
 						Version:  "0.1",
-						Language: syftPkg.Go,
-						Type:     syftPkg.GoModulePkg,
+						Language: syftPkg.Erlang,
+						Type:     syftPkg.HexPkg,
 					},
 					Details: []match.Detail{
 						{

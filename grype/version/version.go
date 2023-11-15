@@ -18,6 +18,7 @@ type rich struct {
 	semVer        *semanticVersion
 	apkVer        *apkVersion
 	debVer        *debVersion
+	golangVersion *golangVersion
 	mavenVer      *mavenVersion
 	rpmVer        *rpmVersion
 	kbVer         *kbVersion
@@ -62,6 +63,10 @@ func (v *Version) populate() error {
 	case DebFormat:
 		ver, err := newDebVersion(v.Raw)
 		v.rich.debVer = ver
+		return err
+	case GolangFormat:
+		ver, err := newGolangVersion(v.Raw)
+		v.rich.golangVersion = ver
 		return err
 	case MavenFormat:
 		ver, err := newMavenVersion(v.Raw)
