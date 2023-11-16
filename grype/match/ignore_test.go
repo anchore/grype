@@ -412,7 +412,7 @@ func TestShouldIgnore(t *testing.T) {
 			match: exampleMatch,
 			rule: IgnoreRule{
 				Package: IgnoreRulePackage{
-					Location: exampleMatch.Package.Locations.ToSlice()[1].VirtualPath,
+					Location: exampleMatch.Package.Locations.ToSlice()[1].AccessPath,
 				},
 			},
 			expected: true,

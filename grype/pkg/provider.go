@@ -75,7 +75,7 @@ func locationMatches(location file.Location, exclusion string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	matchesVirtualPath, err := doublestar.Match(exclusion, location.VirtualPath)
+	matchesVirtualPath, err := doublestar.Match(exclusion, location.AccessPath)
 	if err != nil {
 		return false, err
 	}

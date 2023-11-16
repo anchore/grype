@@ -194,7 +194,7 @@ func ruleLocationAppliesToMatch(location string, match Match) bool {
 			return true
 		}
 
-		if ruleLocationAppliesToPath(location, packageLocation.VirtualPath) {
+		if ruleLocationAppliesToPath(location, packageLocation.AccessPath) {
 			return true
 		}
 	}
