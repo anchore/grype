@@ -186,10 +186,7 @@ func (pres *Presenter) inputPath() string {
 
 // locationPath returns a path for the location, relative to the cwd
 func (pres *Presenter) locationPath(l file.Location) string {
-	path := l.RealPath
-	if l.VirtualPath != "" {
-		path = l.VirtualPath
-	}
+	path := l.Path()
 	in := pres.inputPath()
 	path = strings.TrimPrefix(path, "./")
 	// trimmed off any ./ and accounted for dir:. for both path and input path
