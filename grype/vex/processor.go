@@ -30,6 +30,11 @@ type vexProcessorImplementation interface {
 	// format. Returns an error if the files cannot be processed.
 	ReadVexDocuments(docs []string) (interface{}, error)
 
+	// DiscoverVexDocuments calls asks vex driver to find documents associated
+	// to the scanned object. Autodiscovered documents are added to any that
+	// are specified in the command line
+	DiscoverVexDocuments(*pkg.Context, interface{}) (interface{}, error)
+
 	// FilterMatches matches receives the underlying VEX implementation VEX data and
 	// the scanning context and matching results and filters the fixed and
 	// not_affected results,moving them to the list of ignored matches.
@@ -58,7 +63,13 @@ func NewProcessor(opts ProcessorOptions) *Processor {
 
 // ProcessorOptions captures the optiones of the VEX processor.
 type ProcessorOptions struct {
-	Documents   []string
+	// Documents is a list of paths of VEX documents to consider when computing matches
+	Documents []string
+
+	// Autodiscover will attempt to autodetect VEX documents when set to true
+	Autodiscover bool
+
+	// Configured ignore rules
 	IgnoreRules []match.IgnoreRule
 }
 
@@ -68,8 +79,8 @@ type ProcessorOptions struct {
 func (vm *Processor) ApplyVEX(pkgContext *pkg.Context, remainingMatches *match.Matches, ignoredMatches []match.IgnoredMatch) (*match.Matches, []match.IgnoredMatch, error) {
 	var err error
 
-	// If no VEX documents are loaded, just pass through the matches, effectivle NOOP
-	if len(vm.Options.Documents) == 0 {
+	// If no VEX documents are loaded, just pass through the matches, effectivly NOOP
+	if len(vm.Options.Documents) == 0 && !vm.Options.Autodiscover {
 		return remainingMatches, ignoredMatches, nil
 	}
 
@@ -77,6 +88,15 @@ func (vm *Processor) ApplyVEX(pkgContext *pkg.Context, remainingMatches *match.M
 	rawVexData, err := vm.impl.ReadVexDocuments(vm.Options.Documents)
 	if err != nil {
 		return nil, nil, fmt.Errorf("parsing vex document: %w", err)
+	}
+
+	// If VEX autodiscover is enabled, run call the implementation's discovery
+	// function to augment the known VEX data
+	if vm.Options.Autodiscover {
+		rawVexData, err = vm.impl.DiscoverVexDocuments(pkgContext, rawVexData)
+		if err != nil {
+			return nil, nil, fmt.Errorf("probing for VEX data: %w", err)
+		}
 	}
 
 	vexRules := extractVexRules(vm.Options.IgnoreRules)
