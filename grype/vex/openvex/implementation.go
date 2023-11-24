@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/openvex/discovery/pkg/discovery"
-	"github.com/openvex/go-vex/pkg/vex"
+	"github.com/openvex/go-vex/pkg/oci"
 	openvex "github.com/openvex/go-vex/pkg/vex"
 
 	"github.com/anchore/grype/grype/match"
@@ -67,12 +67,16 @@ func (ovm *Processor) ReadVexDocuments(docs []string) (interface{}, error) {
 func productIdentifiersFromContext(pkgContext *pkg.Context) ([]string, error) {
 	switch v := pkgContext.Source.Metadata.(type) {
 	case source.ImageMetadata:
-		// TODO(puerco): We can create a wider definition here. This effectively
-		// adds the multiarch image and the image of the OS running grype. We
-		// could generate more identifiers to match better.
-		return identifiersFromDigests(v.RepoDigests), nil
+		// Call the OpenVEX OCI module to generate the identifiers from the
+		// image reference specified by the user.
+		bundle, err := oci.GenerateReferenceIdentifiers(v.UserInput, v.OS, v.Architecture)
+		if err != nil {
+			return nil, fmt.Errorf("generating identifiers from image reference: %w", err)
+		}
+
+		return bundle.ToStringSlice(), nil
 	default:
-		// Fail for now
+		// Fail as we only support VEXing container images for now
 		return nil, errors.New("source type not supported for VEX")
 	}
 }
@@ -339,11 +343,11 @@ func (ovm *Processor) DiscoverVexDocuments(pkgContext *pkg.Context, rawVexData i
 		return nil, fmt.Errorf("extracting identifiers from context")
 	}
 
-	allDocs := []*vex.VEX{}
+	allDocs := []*openvex.VEX{}
 
 	// If we already have some vex data, add it
 	if _, ok := rawVexData.(*openvex.VEX); ok {
-		allDocs = []*vex.VEX{rawVexData.(*openvex.VEX)}
+		allDocs = []*openvex.VEX{rawVexData.(*openvex.VEX)}
 	}
 
 	agent := discovery.NewAgent()
