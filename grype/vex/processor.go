@@ -79,7 +79,7 @@ type ProcessorOptions struct {
 func (vm *Processor) ApplyVEX(pkgContext *pkg.Context, remainingMatches *match.Matches, ignoredMatches []match.IgnoredMatch) (*match.Matches, []match.IgnoredMatch, error) {
 	var err error
 
-	// If no VEX documents are loaded, just pass through the matches, effectivly NOOP
+	// If no VEX documents are loaded, just pass through the matches, effectively NOOP
 	if len(vm.Options.Documents) == 0 && !vm.Options.Autodiscover {
 		return remainingMatches, ignoredMatches, nil
 	}

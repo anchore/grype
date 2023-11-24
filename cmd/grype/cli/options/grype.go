@@ -36,6 +36,7 @@ type Grype struct {
 	VexDocuments               []string           `yaml:"vex-documents" json:"vex-documents" mapstructure:"vex-documents"`
 	VexAdd                     []string           `yaml:"vex-add" json:"vex-add" mapstructure:"vex-add"`                                                                   // GRYPE_VEX_ADD
 	MatchUpstreamKernelHeaders bool               `yaml:"match-upstream-kernel-headers" json:"match-upstream-kernel-headers" mapstructure:"match-upstream-kernel-headers"` // Show matches on kernel-headers packages where the match is on kernel upstream instead of marking them as ignored, default=false
+	VexAutodiscover            bool               `yaml:"vex-autodiscover" json:"vex-vex-autodiscover" mapstructure:"vex-autodiscover"`                                    // GRYPE_VEX_ADD
 }
 
 var _ interface {
@@ -135,6 +136,11 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 	flags.StringArrayVarP(&o.VexDocuments,
 		"vex", "",
 		"a list of VEX documents to consider when producing scanning results",
+	)
+
+	flags.BoolVarP(&o.VexAutodiscover,
+		"vex-autodiscover", "",
+		"attempt to automatically locate relevant VEX data",
 	)
 }
 

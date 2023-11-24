@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/openvex/discovery/pkg/discovery"
+	"github.com/openvex/go-vex/pkg/vex"
 	openvex "github.com/openvex/go-vex/pkg/vex"
 
 	"github.com/anchore/grype/grype/match"
@@ -47,6 +49,10 @@ var ignoreStatuses = []openvex.Status{
 
 // ReadVexDocuments reads and merges VEX documents
 func (ovm *Processor) ReadVexDocuments(docs []string) (interface{}, error) {
+	if len(docs) == 0 {
+		return &openvex.VEX{}, nil
+	}
+
 	// Combine all VEX documents into a single VEX document
 	vexdata, err := openvex.MergeFiles(docs)
 	if err != nil {
@@ -321,4 +327,43 @@ func (ovm *Processor) AugmentMatches(
 	}
 
 	return remainingMatches, additionalIgnoredMatches, nil
+}
+
+// DiscoverVexDocuments uses the OpenVEX discovery module to look for vex data
+// associated to the scanned object. If any data is found, the data will be
+// added to the existing vex data
+func (ovm *Processor) DiscoverVexDocuments(pkgContext *pkg.Context, rawVexData interface{}) (interface{}, error) {
+	// Extract the identifiers from the package context
+	identifiers, err := productIdentifiersFromContext(pkgContext)
+	if err != nil {
+		return nil, fmt.Errorf("extracting identifiers from context")
+	}
+
+	allDocs := []*vex.VEX{}
+
+	// If we already have some vex data, add it
+	if _, ok := rawVexData.(*openvex.VEX); ok {
+		allDocs = []*vex.VEX{rawVexData.(*openvex.VEX)}
+	}
+
+	agent := discovery.NewAgent()
+
+	for _, i := range identifiers {
+		if !strings.HasPrefix(i, "pkg:") {
+			continue
+		}
+		discoveredDocs, err := agent.ProbePurl(i)
+		if err != nil {
+			return nil, fmt.Errorf("probing package url or vex data: %w", err)
+		}
+
+		allDocs = append(allDocs, discoveredDocs...)
+	}
+
+	vexdata, err := openvex.MergeDocuments(allDocs)
+	if err != nil {
+		return nil, fmt.Errorf("merging vex documents: %w", err)
+	}
+
+	return vexdata, nil
 }
