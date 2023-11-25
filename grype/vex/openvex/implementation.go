@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/openvex/discovery/pkg/discovery"
-	"github.com/openvex/go-vex/pkg/oci"
+	"github.com/openvex/discovery/pkg/oci"
 	openvex "github.com/openvex/go-vex/pkg/vex"
 
 	"github.com/anchore/grype/grype/match"
