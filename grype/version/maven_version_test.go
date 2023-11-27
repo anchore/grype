@@ -32,6 +32,36 @@ func Test_javaVersion_Compare(t *testing.T) {
 			compare: "2.414.2",
 			want:    1,
 		},
+		{
+			name:    "5.2.25.RELEASE", // see https://mvnrepository.com/artifact/org.springframework/spring-web
+			compare: "5.2.25",
+			want:    0,
+		},
+		{
+			name:    "5.2.25.release",
+			compare: "5.2.25",
+			want:    0,
+		},
+		{
+			name:    "5.2.25.FINAL",
+			compare: "5.2.25",
+			want:    0,
+		},
+		{
+			name:    "5.2.25.final",
+			compare: "5.2.25",
+			want:    0,
+		},
+		{
+			name:    "5.2.25.GA",
+			compare: "5.2.25",
+			want:    0,
+		},
+		{
+			name:    "5.2.25.ga",
+			compare: "5.2.25",
+			want:    0,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
