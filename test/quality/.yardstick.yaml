@@ -97,6 +97,11 @@ result-sets:
           produces: SBOM
           refresh: false
 
+        - name: syft
+          version: v0.98.0
+          produces: SBOM-new
+          refresh: false
+
         - name: grype
           # note: we import a static (pinned) DB as to prevent changes in the DB from affecting the results. The
           # point of this test is to ensure the correctness of the logic in grype itself with real production data.
@@ -106,7 +111,7 @@ result-sets:
           # version: git:current-commit+import-db=db.tar.gz
           # for local build of grype, use for example:
           version: path:../../+import-db=db.tar.gz
-          takes: SBOM
+          takes: SBOM-new
 
         - name: grype
           # note: we import a static (pinned) DB as to prevent changes in the DB from affecting the results. The
