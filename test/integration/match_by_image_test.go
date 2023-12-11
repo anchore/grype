@@ -836,9 +836,7 @@ func vexMatches(t *testing.T, ignoredMatches []match.IgnoredMatch, vexStatus vex
 	pctx := &pkg.Context{
 		Source: &source.Description{
 			Metadata: source.StereoscopeImageSourceMetadata{
-				RepoDigests: []string{
-					"alpine@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-				},
+				UserInput: "alpine@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
 			},
 		},
 		Distro: &linux.Release{},

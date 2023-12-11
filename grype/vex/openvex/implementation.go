@@ -3,15 +3,14 @@ package openvex
 import (
 	"errors"
 	"fmt"
-	"net/url"
 	"strings"
 
-	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/openvex/discovery/pkg/discovery"
+	"github.com/openvex/discovery/pkg/oci"
 	openvex "github.com/openvex/go-vex/pkg/vex"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -47,6 +46,10 @@ var ignoreStatuses = []openvex.Status{
 
 // ReadVexDocuments reads and merges VEX documents
 func (ovm *Processor) ReadVexDocuments(docs []string) (interface{}, error) {
+	if len(docs) == 0 {
+		return &openvex.VEX{}, nil
+	}
+
 	// Combine all VEX documents into a single VEX document
 	vexdata, err := openvex.MergeFiles(docs)
 	if err != nil {
@@ -61,61 +64,18 @@ func (ovm *Processor) ReadVexDocuments(docs []string) (interface{}, error) {
 func productIdentifiersFromContext(pkgContext *pkg.Context) ([]string, error) {
 	switch v := pkgContext.Source.Metadata.(type) {
 	case source.StereoscopeImageSourceMetadata:
-		// TODO(puerco): We can create a wider definition here. This effectively
-		// adds the multiarch image and the image of the OS running grype. We
-		// could generate more identifiers to match better.
-		return identifiersFromDigests(v.RepoDigests), nil
+		// Call the OpenVEX OCI module to generate the identifiers from the
+		// image reference specified by the user.
+		bundle, err := oci.GenerateReferenceIdentifiers(v.UserInput, v.OS, v.Architecture)
+		if err != nil {
+			return nil, fmt.Errorf("generating identifiers from image reference: %w", err)
+		}
+
+		return bundle.ToStringSlice(), nil
 	default:
-		// Fail for now
+		// Fail as we only support VEXing container images for now
 		return nil, errors.New("source type not supported for VEX")
 	}
-}
-
-func identifiersFromDigests(digests []string) []string {
-	identifiers := []string{}
-
-	for _, d := range digests {
-		// The first identifier is the original image reference:
-		identifiers = append(identifiers, d)
-
-		// Not an image reference, skip
-		ref, err := name.ParseReference(d)
-		if err != nil {
-			continue
-		}
-
-		var digestString, repoURL string
-		shaString := ref.Identifier()
-
-		// If not a digest, we can't form a purl, so skip it
-		if !strings.HasPrefix(shaString, "sha256:") {
-			continue
-		}
-
-		digestString = url.QueryEscape(shaString)
-
-		pts := strings.Split(ref.Context().RepositoryStr(), "/")
-		name := pts[len(pts)-1]
-		repoURL = strings.TrimSuffix(
-			ref.Context().RegistryStr()+"/"+ref.Context().RepositoryStr(),
-			fmt.Sprintf("/%s", name),
-		)
-
-		qMap := map[string]string{}
-
-		if repoURL != "" {
-			qMap["repository_url"] = repoURL
-		}
-		qs := packageurl.QualifiersFromMap(qMap)
-		identifiers = append(identifiers, packageurl.NewPackageURL(
-			"oci", "", name, digestString, qs, "",
-		).String())
-
-		// Add a hash to the identifier list in case people want to vex
-		// using the value of the image digest
-		identifiers = append(identifiers, strings.TrimPrefix(shaString, "sha256:"))
-	}
-	return identifiers
 }
 
 // subcomponentIdentifiersFromMatch returns the list of identifiers from the
@@ -321,4 +281,43 @@ func (ovm *Processor) AugmentMatches(
 	}
 
 	return remainingMatches, additionalIgnoredMatches, nil
+}
+
+// DiscoverVexDocuments uses the OpenVEX discovery module to look for vex data
+// associated to the scanned object. If any data is found, the data will be
+// added to the existing vex data
+func (ovm *Processor) DiscoverVexDocuments(pkgContext *pkg.Context, rawVexData interface{}) (interface{}, error) {
+	// Extract the identifiers from the package context
+	identifiers, err := productIdentifiersFromContext(pkgContext)
+	if err != nil {
+		return nil, fmt.Errorf("extracting identifiers from context")
+	}
+
+	allDocs := []*openvex.VEX{}
+
+	// If we already have some vex data, add it
+	if _, ok := rawVexData.(*openvex.VEX); ok {
+		allDocs = []*openvex.VEX{rawVexData.(*openvex.VEX)}
+	}
+
+	agent := discovery.NewAgent()
+
+	for _, i := range identifiers {
+		if !strings.HasPrefix(i, "pkg:") {
+			continue
+		}
+		discoveredDocs, err := agent.ProbePurl(i)
+		if err != nil {
+			return nil, fmt.Errorf("probing package url or vex data: %w", err)
+		}
+
+		allDocs = append(allDocs, discoveredDocs...)
+	}
+
+	vexdata, err := openvex.MergeDocuments(allDocs)
+	if err != nil {
+		return nil, fmt.Errorf("merging vex documents: %w", err)
+	}
+
+	return vexdata, nil
 }

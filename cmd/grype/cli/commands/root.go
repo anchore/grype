@@ -177,8 +177,9 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		FailSeverity:   opts.FailOnServerity(),
 		Matchers:       getMatchers(opts),
 		VexProcessor: vex.NewProcessor(vex.ProcessorOptions{
-			Documents:   opts.VexDocuments,
-			IgnoreRules: opts.Ignore,
+			Documents:    opts.VexDocuments,
+			Autodiscover: opts.VexAutodiscover,
+			IgnoreRules:  opts.Ignore,
 		}),
 	}
 
@@ -336,7 +337,7 @@ func validateRootArgs(cmd *cobra.Command, args []string) error {
 }
 
 func applyVexRules(opts *options.Grype) error {
-	if len(opts.Ignore) == 0 && len(opts.VexDocuments) > 0 {
+	if (len(opts.Ignore) == 0 && len(opts.VexDocuments) > 0) || opts.VexAutodiscover {
 		opts.Ignore = append(opts.Ignore, ignoreVEXFixedNotAffected...)
 	}
 

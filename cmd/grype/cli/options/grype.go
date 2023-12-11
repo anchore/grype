@@ -34,7 +34,8 @@ type Grype struct {
 	Name                   string             `yaml:"name" json:"name" mapstructure:"name"`
 	DefaultImagePullSource string             `yaml:"default-image-pull-source" json:"default-image-pull-source" mapstructure:"default-image-pull-source"`
 	VexDocuments           []string           `yaml:"vex-documents" json:"vex-documents" mapstructure:"vex-documents"`
-	VexAdd                 []string           `yaml:"vex-add" json:"vex-add" mapstructure:"vex-add"` // GRYPE_VEX_ADD
+	VexAdd                 []string           `yaml:"vex-add" json:"vex-add" mapstructure:"vex-add"`                                // GRYPE_VEX_ADD
+	VexAutodiscover        bool               `yaml:"vex-autodiscover" json:"vex-vex-autodiscover" mapstructure:"vex-autodiscover"` // GRYPE_VEX_ADD
 }
 
 var _ interface {
@@ -132,6 +133,11 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 	flags.StringArrayVarP(&o.VexDocuments,
 		"vex", "",
 		"a list of VEX documents to consider when producing scanning results",
+	)
+
+	flags.BoolVarP(&o.VexAutodiscover,
+		"vex-autodiscover", "",
+		"attempt to automatically locate relevant VEX data",
 	)
 }
 
