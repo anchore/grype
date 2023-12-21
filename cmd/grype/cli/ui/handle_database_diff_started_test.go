@@ -77,7 +77,7 @@ func TestHandler_handleDatabaseDiffStarted(t *testing.T) {
 				Height: 80,
 			}
 
-			models := handler.Handle(e)
+			models, _ := handler.Handle(e)
 			require.Len(t, models, 1)
 			model := models[0]
 

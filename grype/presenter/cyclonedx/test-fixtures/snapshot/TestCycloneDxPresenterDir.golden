@@ -2,17 +2,20 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:3df5094c-0ff3-4ea7-8a41-cefb6ddfb21c",
+  "serialNumber": "urn:uuid:dfdbfccb-092f-4781-a9a5-d540cea853eb",
   "version": 1,
   "metadata": {
-    "timestamp": "2023-11-02T14:44:49-04:00",
-    "tools": [
-      {
-        "vendor": "anchore",
-        "name": "grype",
-        "version": "[not provided]"
-      }
-    ]
+    "timestamp": "2023-12-21T10:32:04-05:00",
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "author": "anchore",
+          "name": "grype",
+          "version": "[not provided]"
+        }
+      ]
+    }
   },
   "components": [
     {
@@ -80,7 +83,7 @@
   ],
   "vulnerabilities": [
     {
-      "bom-ref": "urn:uuid:504f525b-a290-4e00-9b99-19e210d1d2f4",
+      "bom-ref": "urn:uuid:f775cf47-8b13-4185-aa36-4f16eaca83f2",
       "id": "CVE-1999-0001",
       "source": {},
       "references": [
@@ -106,7 +109,7 @@
       ]
     },
     {
-      "bom-ref": "urn:uuid:6d3b670e-31ec-408d-b292-4b9d43865b23",
+      "bom-ref": "urn:uuid:66db3cb0-66f4-4dbc-9ced-d04c6d9ea614",
       "id": "CVE-1999-0002",
       "source": {},
       "references": [

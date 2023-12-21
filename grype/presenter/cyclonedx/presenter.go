@@ -59,11 +59,14 @@ func (pres *Presenter) Present(output io.Writer) error {
 	cyclonedxBOM := cyclonedxhelpers.ToFormatModel(*pres.sbom)
 
 	// empty the tool metadata and add grype metadata
-	cyclonedxBOM.Metadata.Tools = &[]cyclonedx.Tool{
-		{
-			Vendor:  "anchore",
-			Name:    pres.id.Name,
-			Version: pres.id.Version,
+	cyclonedxBOM.Metadata.Tools = &cyclonedx.ToolsChoice{
+		Components: &[]cyclonedx.Component{
+			{
+				Type:    cyclonedx.ComponentTypeApplication,
+				Author:  "anchore",
+				Name:    pres.id.Name,
+				Version: pres.id.Version,
+			},
 		},
 	}
 
