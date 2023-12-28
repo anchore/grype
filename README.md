@@ -683,10 +683,6 @@ fail-on-severity: ""
 # same as -o ; GRYPE_OUTPUT env var
 output: "table"
 
-# suppress all output (except for the vulnerability list)
-# same as -q ; GRYPE_QUIET env var
-quiet: false
-
 # write output report to a file (default is to write to stdout)
 # same as --file; GRYPE_FILE env var
 file: ""
@@ -794,9 +790,13 @@ registry:
 
 
 log:
-  # use structured logging
-  # same as GRYPE_LOG_STRUCTURED env var
-  structured: false
+	# suppress all output (except for the vulnerability list)
+	# same as -q ; GRYPE_LOG_QUIET env var
+	quiet: false
+
+  # increase verbosity
+  # same as GRYPE_LOG_VERBOSITY env var
+  verbosity: 0
 
   # the log level; note: detailed logging suppress the ETUI
   # same as GRYPE_LOG_LEVEL env var
