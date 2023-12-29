@@ -577,12 +577,12 @@ An example `config.json` looks something like this:
 ```
 // config.json
 {
-	"auths": {
-		"registry.example.com": {
-			"username": "AzureDiamond",
-			"password": "hunter2"
-		}
-	}
+  "auths": {
+    "registry.example.com": {
+      "username": "AzureDiamond",
+      "password": "hunter2"
+    }
+  }
 }
 ```
 
@@ -790,9 +790,9 @@ registry:
 
 
 log:
-	# suppress all output (except for the vulnerability list)
-	# same as -q ; GRYPE_LOG_QUIET env var
-	quiet: false
+  # suppress all output (except for the vulnerability list)
+  # same as -q ; GRYPE_LOG_QUIET env var
+  quiet: false
 
   # increase verbosity
   # same as GRYPE_LOG_VERBOSITY env var
