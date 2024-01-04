@@ -13,7 +13,7 @@ type mockStore struct {
 }
 
 func (s *mockStore) GetVulnerability(namespace, id string) ([]grypeDB.Vulnerability, error) {
-	//TODO implement me
+	// TODO implement me
 	panic("implement me")
 }
 
@@ -74,6 +74,20 @@ func newMockDbStore() *mockStore {
 						VersionFormat:     "unknown",
 					},
 				},
+				"ko": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-azure-autorest-vuln-false-positive",
+						VersionConstraint: "< 0",
+						VersionFormat:     "apk",
+					},
+				},
+				"npm-apk-package-with-false-positive": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-npm-false-positive-in-apk-subpackage",
+						VersionConstraint: "< 0",
+						VersionFormat:     "apk",
+					},
+				},
 			},
 			"gentoo:distro:gentoo:2.8": {
 				"app-containers/skopeo": []grypeDB.Vulnerability{
@@ -99,6 +113,13 @@ func newMockDbStore() *mockStore {
 						VersionFormat:     "unknown",
 					},
 				},
+				"github.com/azure/go-autorest/autorest": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-azure-autorest-vuln-false-positive",
+						VersionConstraint: "< 0.11.30",
+						VersionFormat:     "unknown",
+					},
+				},
 			},
 			"github:language:idris": {
 				"my-package": []grypeDB.Vulnerability{
@@ -114,6 +135,13 @@ func newMockDbStore() *mockStore {
 					{
 						ID:                "CVE-javascript-validator",
 						VersionConstraint: "> 5, < 7.2.1",
+						VersionFormat:     "unknown",
+					},
+				},
+				"npm-apk-subpackage-with-false-positive": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-npm-false-positive-in-apk-subpackage",
+						VersionConstraint: "< 2.0.0",
 						VersionFormat:     "unknown",
 					},
 				},
