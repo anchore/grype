@@ -12,6 +12,16 @@ type IgnoredMatch struct {
 	AppliedIgnoreRules []IgnoreRule
 }
 
+type IgnoredMatches []IgnoredMatch
+
+func (m IgnoredMatches) Fingerprints() []Fingerprint {
+	var fingerprints []Fingerprint
+	for _, match := range m {
+		fingerprints = append(fingerprints, match.Fingerprint())
+	}
+	return fingerprints
+}
+
 // An IgnoreRule specifies criteria for a vulnerability match to meet in order
 // to be ignored. Not all criteria (fields) need to be specified, but all
 // specified criteria must be met by the vulnerability match in order for the
@@ -148,7 +158,11 @@ func ifFixStateApplies(fs string) ignoreCondition {
 
 func ifVulnerabilityApplies(vulnerability string) ignoreCondition {
 	return func(match Match) bool {
-		return vulnerability == match.Vulnerability.ID
+		result := vulnerability == match.Vulnerability.ID
+		for _, vuln := range match.Vulnerability.RelatedVulnerabilities {
+			result = result || vulnerability == vuln.ID
+		}
+		return result
 	}
 }
 

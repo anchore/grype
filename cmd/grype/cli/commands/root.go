@@ -268,7 +268,7 @@ func checkForAppUpdate(id clio.Identification, opts *options.Grype) {
 	}
 }
 
-func getMatchers(opts *options.Grype) []matcher.Matcher {
+func getMatchers(opts *options.Grype) []match.Matcher {
 	return matcher.NewDefaultMatchers(
 		matcher.Config{
 			Java: java.MatcherConfig{

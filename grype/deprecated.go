@@ -33,7 +33,7 @@ func FindVulnerabilities(store store.Store, userImageStr string, scopeOpt source
 }
 
 // TODO: deprecated, will remove before v1.0.0
-func FindVulnerabilitiesForPackage(store store.Store, d *linux.Release, matchers []matcher.Matcher, packages []pkg.Package) match.Matches {
+func FindVulnerabilitiesForPackage(store store.Store, d *linux.Release, matchers []match.Matcher, packages []pkg.Package) match.Matches {
 	runner := VulnerabilityMatcher{
 		Store:          store,
 		Matchers:       matchers,

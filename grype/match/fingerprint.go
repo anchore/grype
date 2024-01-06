@@ -30,3 +30,58 @@ func (m Fingerprint) ID() string {
 
 	return fmt.Sprintf("%x", f)
 }
+
+type FingerprintSet struct {
+	order        []Fingerprint
+	fingerprints map[Fingerprint]struct{}
+}
+
+func NewFingerprintSet(fs ...Fingerprint) FingerprintSet {
+	set := FingerprintSet{
+		fingerprints: make(map[Fingerprint]struct{}),
+	}
+
+	set.Add(fs...)
+
+	return set
+}
+
+func (s FingerprintSet) Add(fs ...Fingerprint) {
+	for _, f := range fs {
+		if _, ok := s.fingerprints[f]; ok {
+			continue
+		}
+		s.order = append(s.order, f)
+		s.fingerprints[f] = struct{}{}
+	}
+}
+
+func (s FingerprintSet) Remove(fs ...Fingerprint) {
+	for _, f := range fs {
+		if _, ok := s.fingerprints[f]; !ok {
+			continue
+		}
+		for i, f2 := range s.order {
+			if f2 == f {
+				s.order = append(s.order[:i], s.order[i+1:]...)
+				break
+			}
+		}
+		delete(s.fingerprints, f)
+	}
+}
+
+func (s FingerprintSet) Contains(f Fingerprint) bool {
+	_, ok := s.fingerprints[f]
+	return ok
+}
+
+func (s FingerprintSet) Len() int {
+	return len(s.fingerprints)
+}
+
+func (s FingerprintSet) ToSlice() []Fingerprint {
+	cpy := make([]Fingerprint, len(s.order))
+	copy(cpy, s.order)
+	return cpy
+}

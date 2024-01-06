@@ -1,6 +1,7 @@
 package matcher
 
 import (
+	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/apk"
 	"github.com/anchore/grype/grype/matcher/dotnet"
 	"github.com/anchore/grype/grype/matcher/dpkg"
@@ -28,8 +29,8 @@ type Config struct {
 	Stock      stock.MatcherConfig
 }
 
-func NewDefaultMatchers(mc Config) []Matcher {
-	return []Matcher{
+func NewDefaultMatchers(mc Config) []match.Matcher {
+	return []match.Matcher{
 		&dpkg.Matcher{},
 		ruby.NewRubyMatcher(mc.Ruby),
 		python.NewPythonMatcher(mc.Python),
