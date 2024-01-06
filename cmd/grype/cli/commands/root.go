@@ -36,6 +36,7 @@ import (
 	"github.com/anchore/grype/internal/stringutil"
 	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/pkg/cataloger"
 	"github.com/anchore/syft/syft/sbom"
 )
 
@@ -289,11 +290,14 @@ func getMatchers(opts *options.Grype) []matcher.Matcher {
 }
 
 func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
+	cfg := cataloger.DefaultConfig()
+	cfg.Search = opts.Search.ToConfig()
+
 	return pkg.ProviderConfig{
 		SyftProviderConfig: pkg.SyftProviderConfig{
 			RegistryOptions:        opts.Registry.ToOptions(),
 			Exclusions:             opts.Exclusions,
-			CatalogingOptions:      opts.Search.ToConfig(),
+			CatalogingOptions:      cfg,
 			Platform:               opts.Platform,
 			Name:                   opts.Name,
 			DefaultImagePullSource: opts.DefaultImagePullSource,
