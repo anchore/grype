@@ -37,13 +37,10 @@ func (cfg search) GetScope() source.Scope {
 	return source.ParseScope(cfg.Scope)
 }
 
-func (cfg search) ToConfig() cataloger.Config {
-	return cataloger.Config{
-		Search: cataloger.SearchConfig{
-			IncludeIndexedArchives:   cfg.IncludeIndexedArchives,
-			IncludeUnindexedArchives: cfg.IncludeUnindexedArchives,
-			Scope:                    cfg.GetScope(),
-		},
-		ExcludeBinaryOverlapByOwnership: true,
+func (cfg search) ToConfig() cataloger.SearchConfig {
+	return cataloger.SearchConfig{
+		IncludeIndexedArchives:   cfg.IncludeIndexedArchives,
+		IncludeUnindexedArchives: cfg.IncludeUnindexedArchives,
+		Scope:                    cfg.GetScope(),
 	}
 }

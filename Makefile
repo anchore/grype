@@ -10,11 +10,11 @@ CHRONICLE_CMD = $(TEMP_DIR)/chronicle
 GLOW_CMD = $(TEMP_DIR)/glow
 
 # Tool versions #################################
-GOLANGCILINT_VERSION := v1.54.2
+GOLANGCILINT_VERSION := v1.55.2
 GOSIMPORTS_VERSION := v0.3.8
 BOUNCER_VERSION := v0.4.0
 CHRONICLE_VERSION := v0.8.0
-GORELEASER_VERSION := v1.21.1
+GORELEASER_VERSION := v1.23.0
 YAJSV_VERSION := v1.4.1
 QUILL_VERSION := v0.4.1
 GLOW_VERSION := v1.5.1
@@ -259,8 +259,11 @@ compare-test-rpm-package-install: $(TEMP_DIR) $(SNAPSHOT_DIR)
 			$(COMPARE_TEST_IMAGE) \
 			$(TEMP_DIR)
 
-## Code generation targets #################################
-## TODO (cphillips) what does grype have here?
+## Code and data generation targets #################################
+
+.PHONY: generate
+generate:  ## Generate any code or data required by the project
+	cd grype/internal && go generate .
 
 ## Build-related targets #################################
 

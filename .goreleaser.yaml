@@ -247,3 +247,16 @@ docker_manifests:
       - ghcr.io/anchore/grype:{{.Tag}}-ppc64le
       - ghcr.io/anchore/grype:{{.Tag}}-s390x
 
+
+signs:
+  - cmd: cosign
+    signature: "${artifact}.sig"
+    certificate: "${artifact}.pem"
+    args: 
+      - "sign-blob"
+      - "--oidc-issuer=https://token.actions.githubusercontent.com"
+      - "--output-certificate=${certificate}"
+      - "--output-signature=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: checksum

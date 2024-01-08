@@ -36,6 +36,7 @@ import (
 	"github.com/anchore/grype/internal/stringutil"
 	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/pkg/cataloger"
 	"github.com/anchore/syft/syft/sbom"
 )
 
@@ -115,6 +116,23 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 	var s *sbom.SBOM
 	var pkgContext pkg.Context
 
+	if opts.OnlyFixed {
+		opts.Ignore = append(opts.Ignore, ignoreNonFixedMatches...)
+	}
+
+	if opts.OnlyNotFixed {
+		opts.Ignore = append(opts.Ignore, ignoreFixedMatches...)
+	}
+
+	for _, ignoreState := range stringutil.SplitCommaSeparatedString(opts.IgnoreStates) {
+		switch grypeDb.FixState(ignoreState) {
+		case grypeDb.UnknownFixState, grypeDb.FixedState, grypeDb.NotFixedState, grypeDb.WontFixState:
+			opts.Ignore = append(opts.Ignore, match.IgnoreRule{FixState: ignoreState})
+		default:
+			return fmt.Errorf("unknown fix state %s was supplied for --ignore-states", ignoreState)
+		}
+	}
+
 	err = parallel(
 		func() error {
 			checkForAppUpdate(app.ID(), opts)
@@ -147,14 +165,6 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		defer dbCloser.Close()
 	}
 
-	if opts.OnlyFixed {
-		opts.Ignore = append(opts.Ignore, ignoreNonFixedMatches...)
-	}
-
-	if opts.OnlyNotFixed {
-		opts.Ignore = append(opts.Ignore, ignoreFixedMatches...)
-	}
-
 	if err = applyVexRules(opts); err != nil {
 		return fmt.Errorf("applying vex rules: %w", err)
 	}
@@ -182,6 +192,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 	}
 
 	if err = writer.Write(models.PresenterConfig{
+		ID:               app.ID(),
 		Matches:          *remainingMatches,
 		IgnoredMatches:   ignoredMatches,
 		Packages:         packages,
@@ -269,18 +280,24 @@ func getMatchers(opts *options.Grype) []matcher.Matcher {
 			Python:     python.MatcherConfig(opts.Match.Python),
 			Dotnet:     dotnet.MatcherConfig(opts.Match.Dotnet),
 			Javascript: javascript.MatcherConfig(opts.Match.Javascript),
-			Golang:     golang.MatcherConfig(opts.Match.Golang),
-			Stock:      stock.MatcherConfig(opts.Match.Stock),
+			Golang: golang.MatcherConfig{
+				UseCPEs:               opts.Match.Golang.UseCPEs,
+				AlwaysUseCPEForStdlib: opts.Match.Golang.AlwaysUseCPEForStdlib,
+			},
+			Stock: stock.MatcherConfig(opts.Match.Stock),
 		},
 	)
 }
 
 func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
+	cfg := cataloger.DefaultConfig()
+	cfg.Search = opts.Search.ToConfig()
+
 	return pkg.ProviderConfig{
 		SyftProviderConfig: pkg.SyftProviderConfig{
 			RegistryOptions:        opts.Registry.ToOptions(),
 			Exclusions:             opts.Exclusions,
-			CatalogingOptions:      opts.Search.ToConfig(),
+			CatalogingOptions:      cfg,
 			Platform:               opts.Platform,
 			Name:                   opts.Name,
 			DefaultImagePullSource: opts.DefaultImagePullSource,

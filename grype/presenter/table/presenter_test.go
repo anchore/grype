@@ -73,7 +73,7 @@ func TestCreateRow(t *testing.T) {
 
 func TestTablePresenter(t *testing.T) {
 	var buffer bytes.Buffer
-	matches, packages, _, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.ImageSource)
+	_, matches, packages, _, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.ImageSource)
 
 	pb := models.PresenterConfig{
 		Matches:          matches,
@@ -83,12 +83,25 @@ func TestTablePresenter(t *testing.T) {
 
 	pres := NewPresenter(pb, false)
 
-	// run presenter
-	err := pres.Present(&buffer)
-	require.NoError(t, err)
+	t.Run("no color", func(t *testing.T) {
+		pres.withColor = true
 
-	actual := buffer.String()
-	snaps.MatchSnapshot(t, actual)
+		err := pres.Present(&buffer)
+		require.NoError(t, err)
+
+		actual := buffer.String()
+		snaps.MatchSnapshot(t, actual)
+	})
+
+	t.Run("with color", func(t *testing.T) {
+		pres.withColor = false
+
+		err := pres.Present(&buffer)
+		require.NoError(t, err)
+
+		actual := buffer.String()
+		snaps.MatchSnapshot(t, actual)
+	})
 
 	// TODO: add me back in when there is a JSON schema
 	// validateAgainstDbSchema(t, string(actual))

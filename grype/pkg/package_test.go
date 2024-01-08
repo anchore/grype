@@ -5,8 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/scylladb/go-set"
-	"github.com/scylladb/go-set/strset"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/syft/syft/artifact"
@@ -16,6 +14,7 @@ import (
 	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/sbom"
+	"github.com/anchore/syft/syft/testutil"
 )
 
 func TestNew(t *testing.T) {
@@ -28,8 +27,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "alpm package with source info",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.AlpmMetadataType,
-				Metadata: syftPkg.AlpmMetadata{
+				Metadata: syftPkg.AlpmDBEntry{
 					BasePackage:  "base-pkg-info",
 					Package:      "pkg-info",
 					Version:      "version-info",
@@ -43,8 +41,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "dpkg with source info",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.DpkgMetadataType,
-				Metadata: syftPkg.DpkgMetadata{
+				Metadata: syftPkg.DpkgDBEntry{
 					Package:       "pkg-info",
 					Source:        "src-info",
 					Version:       "version-info",
@@ -72,10 +69,9 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
-			name: "rpm with source info",
+			name: "rpm archive with source info",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.RpmMetadataType,
-				Metadata: syftPkg.RpmMetadata{
+				Metadata: syftPkg.RpmArchive{
 					Name:      "name-info",
 					Version:   "version-info",
 					Epoch:     intRef(30),
@@ -84,7 +80,7 @@ func TestNew(t *testing.T) {
 					SourceRpm: "sqlite-3.26.0-6.el8.src.rpm",
 					Size:      40,
 					Vendor:    "vendor-info",
-					Files: []syftPkg.RpmdbFileRecord{
+					Files: []syftPkg.RpmFileRecord{
 						{
 							Path: "path-info",
 							Mode: 20,
@@ -111,22 +107,58 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
-			name: "rpm with source info that matches the package info",
+			name: "rpm db entry with source info",
 			syftPkg: syftPkg.Package{
-				Name:         "sqlite",
-				MetadataType: syftPkg.RpmMetadataType,
-				Metadata: syftPkg.RpmMetadata{
+				Metadata: syftPkg.RpmDBEntry{
+					Name:      "name-info",
+					Version:   "version-info",
+					Epoch:     intRef(30),
+					Arch:      "arch-info",
+					Release:   "release-info",
+					SourceRpm: "sqlite-3.26.0-6.el8.src.rpm",
+					Size:      40,
+					Vendor:    "vendor-info",
+					Files: []syftPkg.RpmFileRecord{
+						{
+							Path: "path-info",
+							Mode: 20,
+							Size: 10,
+							Digest: file.Digest{
+								Algorithm: "algo-info",
+								Value:     "digest-info",
+							},
+							UserName:  "user-info",
+							GroupName: "group-info",
+							Flags:     "flag-info",
+						},
+					},
+				},
+			},
+			metadata: RpmMetadata{
+				Epoch: intRef(30),
+			},
+			upstreams: []UpstreamPackage{
+				{
+					Name:    "sqlite",
+					Version: "3.26.0-6.el8",
+				},
+			},
+		},
+		{
+			name: "rpm archive with source info that matches the package info",
+			syftPkg: syftPkg.Package{
+				Name: "sqlite",
+				Metadata: syftPkg.RpmArchive{
 					SourceRpm: "sqlite-3.26.0-6.el8.src.rpm",
 				},
 			},
 			metadata: RpmMetadata{},
 		},
 		{
-			name: "rpm with modularity label",
+			name: "rpm archive with modularity label",
 			syftPkg: syftPkg.Package{
-				Name:         "sqlite",
-				MetadataType: syftPkg.RpmMetadataType,
-				Metadata: syftPkg.RpmMetadata{
+				Name: "sqlite",
+				Metadata: syftPkg.RpmArchive{
 					SourceRpm:       "sqlite-3.26.0-6.el8.src.rpm",
 					ModularityLabel: "abc:2",
 				},
@@ -136,8 +168,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "java pkg",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.JavaMetadataType,
-				Metadata: syftPkg.JavaMetadata{
+				Metadata: syftPkg.JavaArchive{
 					VirtualPath: "virtual-path-info",
 					Manifest: &syftPkg.JavaManifest{
 						Main: map[string]string{
@@ -149,7 +180,7 @@ func TestNew(t *testing.T) {
 							},
 						},
 					},
-					PomProperties: &syftPkg.PomProperties{
+					PomProperties: &syftPkg.JavaPomProperties{
 						Path:       "pom-path-info",
 						Name:       "pom-name-info",
 						GroupID:    "pom-group-ID-info",
@@ -179,8 +210,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "apk with source info",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.ApkMetadataType,
-				Metadata: syftPkg.ApkMetadata{
+				Metadata: syftPkg.ApkDBEntry{
 					Package:       "libcurl-tools",
 					OriginPackage: "libcurl",
 					Maintainer:    "somone",
@@ -197,13 +227,13 @@ func TestNew(t *testing.T) {
 					Name: "libcurl",
 				},
 			},
+			metadata: ApkMetadata{Files: []ApkFileRecord{}},
 		},
 		// the below packages are those that have no metadata or upstream info to parse out
 		{
 			name: "npm-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.NpmPackageJSONMetadataType,
-				Metadata: syftPkg.NpmPackageJSONMetadata{
+				Metadata: syftPkg.NpmPackage{
 					Author:      "a",
 					Homepage:    "a",
 					Description: "a",
@@ -214,8 +244,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "python-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.PythonPackageMetadataType,
-				Metadata: syftPkg.PythonPackageMetadata{
+				Metadata: syftPkg.PythonPackage{
 					Name:                 "a",
 					Version:              "a",
 					Author:               "a",
@@ -228,8 +257,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "gem-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.GemMetadataType,
-				Metadata: syftPkg.GemMetadata{
+				Metadata: syftPkg.RubyGemspec{
 					Name:     "a",
 					Version:  "a",
 					Homepage: "a",
@@ -239,8 +267,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "kb-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.KbPackageMetadataType,
-				Metadata: syftPkg.KbPackageMetadata{
+				Metadata: syftPkg.MicrosoftKbPatch{
 					ProductID: "a",
 					Kb:        "a",
 				},
@@ -249,8 +276,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "rust-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.RustCargoPackageMetadataType,
-				Metadata: syftPkg.CargoPackageMetadata{
+				Metadata: syftPkg.RustCargoLockEntry{
 					Name:     "a",
 					Version:  "a",
 					Source:   "a",
@@ -261,8 +287,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "golang-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.GolangBinMetadataType,
-				Metadata: syftPkg.GolangBinMetadata{
+				Metadata: syftPkg.GolangBinaryBuildinfoEntry{
 					BuildSettings:     map[string]string{},
 					GoCompiledVersion: "1.0.0",
 					H1Digest:          "a",
@@ -279,8 +304,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "golang-mod-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.GolangModMetadataType,
-				Metadata: syftPkg.GolangModMetadata{
+				Metadata: syftPkg.GolangModuleEntry{
 					H1Digest: "h1:as234NweNNTNWEtt13nwNENTt",
 				},
 			},
@@ -289,10 +313,18 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
-			name: "php-composer-metadata",
+			name: "php-composer-lock-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.PhpComposerJSONMetadataType,
-				Metadata: syftPkg.PhpComposerJSONMetadata{
+				Metadata: syftPkg.PhpComposerLockEntry{
+					Name:    "a",
+					Version: "a",
+				},
+			},
+		},
+		{
+			name: "php-composer-installed-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.PhpComposerInstalledEntry{
 					Name:    "a",
 					Version: "a",
 				},
@@ -301,8 +333,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "dart-pub-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.DartPubMetadataType,
-				Metadata: syftPkg.DartPubMetadata{
+				Metadata: syftPkg.DartPubspecLockEntry{
 					Name:    "a",
 					Version: "a",
 				},
@@ -311,8 +342,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "dotnet-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.DotnetDepsMetadataType,
-				Metadata: syftPkg.DotnetDepsMetadata{
+				Metadata: syftPkg.DotnetDepsEntry{
 					Name:     "a",
 					Version:  "a",
 					Path:     "a",
@@ -324,8 +354,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "cpp conan-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.ConanMetadataType,
-				Metadata: syftPkg.ConanMetadata{
+				Metadata: syftPkg.ConanfileEntry{
 					Ref: "catch2/2.13.8",
 				},
 			},
@@ -333,8 +362,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "cpp conan lock metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.ConanLockMetadataType,
-				Metadata: syftPkg.ConanLockMetadata{
+				Metadata: syftPkg.ConanLockEntry{
 					Ref: "zlib/1.2.12",
 					Options: map[string]string{
 						"fPIC":   "True",
@@ -348,8 +376,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "cocoapods cocoapods-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.CocoapodsMetadataType,
-				Metadata: syftPkg.CocoapodsMetadata{
+				Metadata: syftPkg.CocoaPodfileLockEntry{
 					Checksum: "123eere234",
 				},
 			},
@@ -357,28 +384,32 @@ func TestNew(t *testing.T) {
 		{
 			name: "portage-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.PortageMetadataType,
-				Metadata: syftPkg.PortageMetadata{
+				Metadata: syftPkg.PortageEntry{
 					InstalledSize: 1,
 					Files:         []syftPkg.PortageFileRecord{},
 				},
 			},
 		},
 		{
-			name: "hackage-metadata",
+			name: "hackage-stack-lock-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.HackageMetadataType,
-				Metadata: syftPkg.HackageMetadata{
-					Name:    "hackage",
-					Version: "v0.0.1",
+				Metadata: syftPkg.HackageStackYamlLockEntry{
+					PkgHash: "some-hash",
+				},
+			},
+		},
+		{
+			name: "hackage-stack-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.HackageStackYamlEntry{
+					PkgHash: "some-hash",
 				},
 			},
 		},
 		{
 			name: "rebar-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.RebarLockMetadataType,
-				Metadata: syftPkg.RebarLockMetadata{
+				Metadata: syftPkg.ErlangRebarLockEntry{
 					Name:    "rebar",
 					Version: "v0.1.1",
 				},
@@ -387,8 +418,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "npm-package-lock-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.NpmPackageLockJSONMetadataType,
-				Metadata: syftPkg.NpmPackageLockJSONMetadata{
+				Metadata: syftPkg.NpmPackageLockEntry{
 					Resolved:  "resolved",
 					Integrity: "sha1:ab7d8979989b7a98d97",
 				},
@@ -397,8 +427,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "mix-lock-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.MixLockMetadataType,
-				Metadata: syftPkg.MixLockMetadata{
+				Metadata: syftPkg.ElixirMixLockEntry{
 					Name:    "mix-lock",
 					Version: "v0.1.2",
 				},
@@ -407,8 +436,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "pipfile-lock-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.PythonPipfileLockMetadataType,
-				Metadata: syftPkg.PythonPipfileLockMetadata{
+				Metadata: syftPkg.PythonPipfileLockEntry{
 					Hashes: []string{
 						"sha1:ab8v88a8b88d8d8c88b8s765s47",
 					},
@@ -419,8 +447,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "python-requirements-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.PythonRequirementsMetadataType,
-				Metadata: syftPkg.PythonRequirementsMetadata{
+				Metadata: syftPkg.PythonRequirementsEntry{
 					Name:              "a",
 					Extras:            []string{"a"},
 					VersionConstraint: "a",
@@ -432,8 +459,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "binary-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.BinaryMetadataType,
-				Metadata: syftPkg.BinaryMetadata{
+				Metadata: syftPkg.BinarySignature{
 					Matches: []syftPkg.ClassifierMatch{
 						{
 							Classifier: "node",
@@ -445,8 +471,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "nix-store-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.NixStoreMetadataType,
-				Metadata: syftPkg.NixStoreMetadata{
+				Metadata: syftPkg.NixStoreEntry{
 					OutputHash: "a",
 					Output:     "a",
 					Files: []string{
@@ -458,8 +483,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "linux-kernel-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.LinuxKernelMetadataType,
-				Metadata: syftPkg.LinuxKernelMetadata{
+				Metadata: syftPkg.LinuxKernel{
 					Name:            "a",
 					Architecture:    "a",
 					Version:         "a",
@@ -477,8 +501,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "linux-kernel-module-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.LinuxKernelModuleMetadataType,
-				Metadata: syftPkg.LinuxKernelModuleMetadata{
+				Metadata: syftPkg.LinuxKernelModule{
 					Name:          "a",
 					Version:       "a",
 					SourceVersion: "a",
@@ -500,8 +523,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "r-description-file-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.RDescriptionFileMetadataType,
-				Metadata: syftPkg.RDescriptionFileMetadata{
+				Metadata: syftPkg.RDescription{
 					Title:            "a",
 					Description:      "a",
 					Author:           "a",
@@ -519,8 +541,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "dotnet-portable-executable-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.DotnetPortableExecutableMetadataType,
-				Metadata: syftPkg.DotnetPortableExecutableMetadata{
+				Metadata: syftPkg.DotnetPortableExecutableEntry{
 					AssemblyVersion: "a",
 					LegalCopyright:  "a",
 					Comments:        "a",
@@ -532,40 +553,45 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
-			name: "dotnet-portable-executable-metadata",
+			name: "swift-package-manager-metadata",
 			syftPkg: syftPkg.Package{
-				MetadataType: syftPkg.SwiftPackageManagerMetadataType,
-				Metadata: syftPkg.SwiftPackageManagerMetadata{
+				Metadata: syftPkg.SwiftPackageManagerResolvedEntry{
 					Revision: "a",
+				},
+			},
+		},
+		{
+			name: "conaninfo-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.ConaninfoEntry{
+					Ref:       "a",
+					PackageID: "a",
+				},
+			},
+		},
+		{
+			name: "rust-binary-audit-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.RustBinaryAuditEntry{
+					Name:    "a",
+					Version: "a",
+					Source:  "a",
 				},
 			},
 		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
-	expectedMetadataTypes := set.NewStringSet()
-	for _, ty := range syftPkg.AllMetadataTypes {
-		expectedMetadataTypes.Add(string(ty))
-	}
+	tester := testutil.NewPackageMetadataCompletionTester(t)
 
 	// run all of our cases
-	observedMetadataTypes := set.NewStringSet()
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			if string(test.syftPkg.MetadataType) != "" {
-				observedMetadataTypes.Add(string(test.syftPkg.MetadataType))
-			}
-			assert.Equal(t, test.metadata, New(test.syftPkg).Metadata, "unexpected metadata")
-			assert.Equal(t, test.upstreams, New(test.syftPkg).Upstreams, "unexpected upstream")
+			tester.Tested(t, test.syftPkg.Metadata)
+			p := New(test.syftPkg)
+			assert.Equal(t, test.metadata, p.Metadata, "unexpected metadata")
+			assert.Equal(t, test.upstreams, p.Upstreams, "unexpected upstream")
 		})
-	}
-
-	// did we see all possible metadata types? if not, then there is an uncovered case and this test should error out
-	if !expectedMetadataTypes.IsEqual(observedMetadataTypes) {
-		t.Errorf("did not observe all possible package metadata types: missing: %+v extra: %+v",
-			strset.Difference(expectedMetadataTypes, observedMetadataTypes),
-			strset.Difference(observedMetadataTypes, expectedMetadataTypes),
-		)
 	}
 }
 

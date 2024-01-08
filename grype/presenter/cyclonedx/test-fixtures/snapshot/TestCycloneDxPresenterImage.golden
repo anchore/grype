@@ -2,21 +2,24 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:c0486275-53fa-4ae3-81c3-71558e96fe56",
+  "serialNumber": "urn:uuid:64003f04-3050-46ad-9491-0c5205dae86c",
   "version": 1,
   "metadata": {
-    "timestamp": "2023-09-20T15:03:10-04:00",
-    "tools": [
-      {
-        "vendor": "anchore",
-        "name": "grype",
-        "version": "[not provided]"
-      }
-    ]
+    "timestamp": "2023-12-21T10:32:04-05:00",
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "author": "anchore",
+          "name": "grype",
+          "version": "[not provided]"
+        }
+      ]
+    }
   },
   "components": [
     {
-      "bom-ref": "76bd1479d016ce8f",
+      "bom-ref": "848a0f3b0d2402eb",
       "type": "library",
       "name": "package-1",
       "version": "1.1.1",
@@ -27,16 +30,44 @@
           "value": "rpm"
         },
         {
+          "name": "syft:package:metadataType",
+          "value": "rpm-db-entry"
+        },
+        {
           "name": "syft:location:0:path",
           "value": "/foo/bar/somefile-1.txt"
+        },
+        {
+          "name": "syft:metadata:epoch",
+          "value": "2"
+        },
+        {
+          "name": "syft:metadata:size",
+          "value": "0"
+        },
+        {
+          "name": "syft:metadata:sourceRpm",
+          "value": "some-source-rpm"
         }
       ]
     },
     {
-      "bom-ref": "3199ef19b28ce437",
+      "bom-ref": "7bb53d560434bc7f",
       "type": "library",
       "name": "package-2",
       "version": "2.2.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        },
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
       "cpe": "cpe:2.3:a:anchore:engine:2.2.2:*:*:python:*:*:*:*",
       "properties": [
         {
@@ -52,7 +83,7 @@
   ],
   "vulnerabilities": [
     {
-      "bom-ref": "urn:uuid:847eae89-a879-450e-9405-e3827f38c4e8",
+      "bom-ref": "urn:uuid:dbdc8fe0-9c9c-4111-ba0f-d2d5db801efe",
       "id": "CVE-1999-0001",
       "source": {},
       "references": [
@@ -73,12 +104,12 @@
       "advisories": [],
       "affects": [
         {
-          "ref": "96699b00fe3004b4"
+          "ref": "848a0f3b0d2402eb"
         }
       ]
     },
     {
-      "bom-ref": "urn:uuid:de9a3c25-e55c-4357-8d0f-b12d31756c30",
+      "bom-ref": "urn:uuid:85a1d6c4-b3be-4e19-8dde-2763651282ec",
       "id": "CVE-1999-0002",
       "source": {},
       "references": [
@@ -99,7 +130,7 @@
       "advisories": [],
       "affects": [
         {
-          "ref": "b4013a965511376c"
+          "ref": "7bb53d560434bc7f"
         }
       ]
     }

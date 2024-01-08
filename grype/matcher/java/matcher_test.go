@@ -15,12 +15,11 @@ import (
 
 func TestMatcherJava_matchUpstreamMavenPackage(t *testing.T) {
 	p := pkg.Package{
-		ID:           pkg.ID(uuid.NewString()),
-		Name:         "org.springframework.spring-webmvc",
-		Version:      "5.1.5.RELEASE",
-		Language:     syftPkg.Java,
-		Type:         syftPkg.JavaPkg,
-		MetadataType: pkg.JavaMetadataType,
+		ID:       pkg.ID(uuid.NewString()),
+		Name:     "org.springframework.spring-webmvc",
+		Version:  "5.1.5.RELEASE",
+		Language: syftPkg.Java,
+		Type:     syftPkg.JavaPkg,
 		Metadata: pkg.JavaMetadata{
 			ArchiveDigests: []pkg.Digest{
 				{

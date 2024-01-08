@@ -66,6 +66,21 @@ func Test_NewDistroFromRelease(t *testing.T) {
 			},
 			expectErr: true,
 		},
+		{
+			// syft -o json debian:testing | jq .distro
+			name: "unstable debian",
+			release: linux.Release{
+				ID:              "debian",
+				VersionID:       "",
+				Version:         "",
+				PrettyName:      "Debian GNU/Linux trixie/sid",
+				VersionCodename: "trixie",
+				Name:            "Debian GNU/Linux",
+			},
+			expectedType:       Debian,
+			expectedRawVersion: "unstable",
+			expectedVersion:    "",
+		},
 	}
 
 	for _, test := range tests {

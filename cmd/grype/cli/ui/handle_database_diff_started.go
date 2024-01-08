@@ -36,11 +36,11 @@ func (p dbDiffProgressStager) Size() int64 {
 	return p.monitor.StageProgress.Size()
 }
 
-func (m *Handler) handleDatabaseDiffStarted(e partybus.Event) []tea.Model {
+func (m *Handler) handleDatabaseDiffStarted(e partybus.Event) ([]tea.Model, tea.Cmd) {
 	mon, err := parsers.ParseDatabaseDiffingStarted(e)
 	if err != nil {
 		log.WithFields("error", err).Warn("unable to parse event")
-		return nil
+		return nil, nil
 	}
 
 	tsk := m.newTaskProgress(
@@ -54,5 +54,5 @@ func (m *Handler) handleDatabaseDiffStarted(e partybus.Event) []tea.Model {
 
 	tsk.HideStageOnSuccess = false
 
-	return []tea.Model{tsk}
+	return []tea.Model{tsk}, nil
 }

@@ -19,37 +19,27 @@ func TestRpmModularity_Satisfied(t *testing.T) {
 		{
 			name:          "non rpm metadata",
 			rpmModularity: New("test:1"),
-			pkg:           pkg.Package{MetadataType: pkg.UnknownMetadataType},
-			satisfied:     false,
-		},
-		{
-			name:          "invalid rpm metadata",
-			rpmModularity: New("test:1"),
-			pkg: pkg.Package{MetadataType: pkg.RpmMetadataType, Metadata: pkg.GolangBinMetadata{
-				BuildSettings:     nil,
-				GoCompiledVersion: "",
-				Architecture:      "",
-				H1Digest:          "",
-				MainModule:        "",
-			}},
-			satisfied: true,
+			pkg: pkg.Package{
+				Metadata: pkg.JavaMetadata{},
+			},
+			satisfied: false,
 		},
 		{
 			name:          "module with package rpm metadata lacking actual metadata 1",
 			rpmModularity: New("test:1"),
-			pkg:           pkg.Package{MetadataType: pkg.RpmMetadataType, Metadata: nil},
+			pkg:           pkg.Package{Metadata: nil},
 			satisfied:     true,
 		},
 		{
 			name:          "empty module with rpm metadata lacking actual metadata 2",
 			rpmModularity: New(""),
-			pkg:           pkg.Package{MetadataType: pkg.RpmMetadataType, Metadata: nil},
+			pkg:           pkg.Package{Metadata: nil},
 			satisfied:     true,
 		},
 		{
 			name:          "no modularity label with no module",
 			rpmModularity: New(""),
-			pkg: pkg.Package{MetadataType: pkg.RpmMetadataType, Metadata: pkg.RpmMetadata{
+			pkg: pkg.Package{Metadata: pkg.RpmMetadata{
 				Epoch: nil,
 			}},
 			satisfied: true,
@@ -57,7 +47,7 @@ func TestRpmModularity_Satisfied(t *testing.T) {
 		{
 			name:          "no modularity label with module",
 			rpmModularity: New("abc"),
-			pkg: pkg.Package{MetadataType: pkg.RpmMetadataType, Metadata: pkg.RpmMetadata{
+			pkg: pkg.Package{Metadata: pkg.RpmMetadata{
 				Epoch: nil,
 			}},
 			satisfied: true,
@@ -65,7 +55,7 @@ func TestRpmModularity_Satisfied(t *testing.T) {
 		{
 			name:          "modularity label with no module",
 			rpmModularity: New(""),
-			pkg: pkg.Package{MetadataType: pkg.RpmMetadataType, Metadata: pkg.RpmMetadata{
+			pkg: pkg.Package{Metadata: pkg.RpmMetadata{
 				Epoch:           nil,
 				ModularityLabel: "x:3:1234567:abcd",
 			}},
@@ -74,7 +64,7 @@ func TestRpmModularity_Satisfied(t *testing.T) {
 		{
 			name:          "modularity label in module",
 			rpmModularity: New("x:3"),
-			pkg: pkg.Package{MetadataType: pkg.RpmMetadataType, Metadata: pkg.RpmMetadata{
+			pkg: pkg.Package{Metadata: pkg.RpmMetadata{
 				Epoch:           nil,
 				ModularityLabel: "x:3:1234567:abcd",
 			}},
@@ -83,7 +73,7 @@ func TestRpmModularity_Satisfied(t *testing.T) {
 		{
 			name:          "modularity label not in module",
 			rpmModularity: New("x:3"),
-			pkg: pkg.Package{MetadataType: pkg.RpmMetadataType, Metadata: pkg.RpmMetadata{
+			pkg: pkg.Package{Metadata: pkg.RpmMetadata{
 				Epoch:           nil,
 				ModularityLabel: "x:1:1234567:abcd",
 			}},

@@ -18,7 +18,7 @@ import (
 var update = flag.Bool("update", false, "update the *.golden files for template presenters")
 
 func TestPresenter_Present(t *testing.T) {
-	matches, packages, context, metadataProvider, appConfig, dbStatus := internal.GenerateAnalysis(t, internal.ImageSource)
+	_, matches, packages, context, metadataProvider, appConfig, dbStatus := internal.GenerateAnalysis(t, internal.ImageSource)
 
 	workingDirectory, err := os.Getwd()
 	if err != nil {
@@ -53,7 +53,7 @@ func TestPresenter_Present(t *testing.T) {
 }
 
 func TestPresenter_SprigDate_Fails(t *testing.T) {
-	matches, packages, context, metadataProvider, appConfig, dbStatus := internal.GenerateAnalysis(t, internal.ImageSource)
+	_, matches, packages, context, metadataProvider, appConfig, dbStatus := internal.GenerateAnalysis(t, internal.ImageSource)
 	workingDirectory, err := os.Getwd()
 	require.NoError(t, err)
 

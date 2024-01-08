@@ -3,13 +3,14 @@
 </p>
 
 [![Static Analysis + Unit + Integration](https://github.com/anchore/grype/workflows/Static%20Analysis%20+%20Unit%20+%20Integration/badge.svg)](https://github.com/anchore/grype/actions?query=workflow%3A%22Static+Analysis+%2B+Unit+%2B+Integration%22)
-[![Acceptance](https://github.com/anchore/grype/workflows/Acceptance/badge.svg)](https://github.com/anchore/grype/actions?query=workflow%3AAcceptance)
+![Validations](https://github.com/anchore/grype/workflows/Validations/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/anchore/grype)](https://goreportcard.com/report/github.com/anchore/grype)
 [![GitHub release](https://img.shields.io/github/release/anchore/grype.svg)](https://github.com/anchore/grype/releases/latest)
 [![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/anchore/grype.svg)](https://github.com/anchore/grype)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/anchore/grype/blob/main/LICENSE)
 [![Slack Invite](https://img.shields.io/badge/Slack-Join-blue?logo=slack)](https://anchore.com/slack)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/anchore/grype/badge)](https://api.securityscorecards.dev/projects/github.com/anchore/grype)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/6708/badge)](https://www.bestpractices.dev/projects/6708)
 
 A vulnerability scanner for container images and filesystems. Easily [install the binary](#installation) to try it out. Works with [Syft](https://github.com/anchore/syft), the powerful SBOM (software bill of materials) tool for container images and filesystems.
 
@@ -31,6 +32,7 @@ For commercial support options with Syft or Grype, please [contact Anchore](http
   - Amazon Linux
   - BusyBox
   - CentOS
+  - CBL-Mariner
   - Debian
   - Distroless
   - Oracle Linux
@@ -88,6 +90,34 @@ See [DEVELOPING.md](DEVELOPING.md#native-development) for instructions to build 
 ### GitHub Actions
 
 If you're using GitHub Actions, you can simply use our [Grype-based action](https://github.com/marketplace/actions/anchore-container-scan) to run vulnerability scans on your code or container images during your CI workflows.
+
+## Verifying the artifacts
+
+Checksums are applied to all artifacts, and the resulting checksum file is signed using cosign.
+
+You need the following tool to verify signature:
+
+- [Cosign](https://docs.sigstore.dev/cosign/installation/)
+
+Verification steps are as follow:
+
+1. Download the files you want, and the checksums.txt, checksums.txt.pem and checksums.txt.sig files from the [releases](https://github.com/anchore/grype/releases) page:
+
+2. Verify the signature:
+
+```shell
+cosign verify-blob <path to checksum.txt> \
+--certificate <path to checksums.txt.pem> \
+--signature <path to checksums.txt.sig> \
+--certificate-identity-regexp 'https://github\.com/anchore/grype/\.github/workflows/.+' \
+--certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
+
+3. Once the signature is confirmed as valid, you can proceed to validate that the SHA256 sums align with the downloaded artifact:
+
+```shell
+sha256sum --ignore-missing -c checksums.txt
+```
 
 ## Getting started
 
@@ -372,7 +402,7 @@ NAME       INSTALLED  FIXED-IN   VULNERABILITY   SEVERITY
 apk-tools  2.10.6-r0  2.10.7-r0  CVE-2021-36159  Critical
 ```
 
-If you want Grype to only report vulnerabilities **that do not have a confirmed fix**, you can use the `--only-notfixed` flag. (This automatically adds [ignore rules](#specifying-matches-to-ignore) into Grype's configuration, such that vulnerabilities that are fixed will be ignored.)
+If you want Grype to only report vulnerabilities **that do not have a confirmed fix**, you can use the `--only-notfixed` flag. Alternatively, you can use the `--ignore-states` flag to filter results for vulnerabilities with specific states such as `wont-fix` (see `--help` for a list of valid fix states). These flags automatically add [ignore rules](#specifying-matches-to-ignore) into Grype's configuration, such that vulnerabilities which are fixed, or will not be fixed, will be ignored.
 
 ## VEX Support
 
@@ -547,12 +577,12 @@ An example `config.json` looks something like this:
 ```
 // config.json
 {
-	"auths": {
-		"registry.example.com": {
-			"username": "AzureDiamond",
-			"password": "hunter2"
-		}
-	}
+  "auths": {
+    "registry.example.com": {
+      "username": "AzureDiamond",
+      "password": "hunter2"
+    }
+  }
 }
 ```
 
@@ -652,10 +682,6 @@ fail-on-severity: ""
 # the output format of the vulnerability report (options: table, json, cyclonedx)
 # same as -o ; GRYPE_OUTPUT env var
 output: "table"
-
-# suppress all output (except for the vulnerability list)
-# same as -q ; GRYPE_QUIET env var
-quiet: false
 
 # write output report to a file (default is to write to stdout)
 # same as --file; GRYPE_FILE env var
@@ -764,9 +790,13 @@ registry:
 
 
 log:
-  # use structured logging
-  # same as GRYPE_LOG_STRUCTURED env var
-  structured: false
+  # suppress all output (except for the vulnerability list)
+  # same as -q ; GRYPE_LOG_QUIET env var
+  quiet: false
+
+  # increase verbosity
+  # same as GRYPE_LOG_VERBOSITY env var
+  verbosity: 0
 
   # the log level; note: detailed logging suppress the ETUI
   # same as GRYPE_LOG_LEVEL env var
@@ -780,19 +810,21 @@ log:
 match:
   # sets the matchers below to use cpes when trying to find 
   # vulnerability matches. The stock matcher is the default
-  # when no primary matcher can be identified 
+  # when no primary matcher can be identified.
   java:
-    using-cpes: true
+    using-cpes: false
   python:
-    using-cpes: true
+    using-cpes: false
   javascript:
-    using-cpes: true
+    using-cpes: false
   ruby:
-    using-cpes: true
+    using-cpes: false
   dotnet:
-    using-cpes: true
+    using-cpes: false
   golang:
-    using-cpes: true
+    using-cpes: false
+    # even if CPE matching is disabled, make an exception when scanning for "stdlib".
+    always-use-cpe-for-stdlib: true
   stock:
     using-cpes: true
 ```

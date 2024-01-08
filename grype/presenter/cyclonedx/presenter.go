@@ -10,7 +10,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/syft/syft/formats/common/cyclonedxhelpers"
+	"github.com/anchore/syft/syft/format/common/cyclonedxhelpers"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
 )
@@ -59,11 +59,14 @@ func (pres *Presenter) Present(output io.Writer) error {
 	cyclonedxBOM := cyclonedxhelpers.ToFormatModel(*pres.sbom)
 
 	// empty the tool metadata and add grype metadata
-	cyclonedxBOM.Metadata.Tools = &[]cyclonedx.Tool{
-		{
-			Vendor:  "anchore",
-			Name:    pres.id.Name,
-			Version: pres.id.Version,
+	cyclonedxBOM.Metadata.Tools = &cyclonedx.ToolsChoice{
+		Components: &[]cyclonedx.Component{
+			{
+				Type:    cyclonedx.ComponentTypeApplication,
+				Author:  "anchore",
+				Name:    pres.id.Name,
+				Version: pres.id.Version,
+			},
 		},
 	}
 

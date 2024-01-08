@@ -18,8 +18,7 @@ var update = flag.Bool("update", false, "update the *.golden files for cyclonedx
 func TestCycloneDxPresenterImage(t *testing.T) {
 	var buffer bytes.Buffer
 
-	matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.ImageSource)
-	sbom := internal.SBOMFromPackages(t, packages)
+	sbom, matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.ImageSource)
 	pb := models.PresenterConfig{
 		ID: clio.Identification{
 			Name:    "grype",
@@ -55,8 +54,7 @@ func TestCycloneDxPresenterImage(t *testing.T) {
 
 func TestCycloneDxPresenterDir(t *testing.T) {
 	var buffer bytes.Buffer
-	matches, packages, ctx, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.DirectorySource)
-	sbom := internal.SBOMFromPackages(t, packages)
+	sbom, matches, packages, ctx, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.DirectorySource)
 	pb := models.PresenterConfig{
 		ID: clio.Identification{
 			Name:    "grype",

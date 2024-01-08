@@ -16,7 +16,7 @@ jobs:
     name: "Static analysis"
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
@@ -29,7 +29,7 @@ jobs:
     name: "Unit tests"
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
@@ -42,7 +42,7 @@ jobs:
     name: "Quality tests"
     runs-on: ubuntu-22.04-4core-16gb
     steps:
-      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           submodules: true
 
@@ -54,12 +54,50 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Archive the provider state
+        if: ${{ failure() }}
+        run: tar -czvf qg-capture-state.tar.gz -C test/quality --exclude tools --exclude labels .yardstick.yaml .yardstick
+
+      - name: Upload the provider state archive
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        with:
+          name: qg-capture-state
+          path: qg-capture-state.tar.gz
+
+      - name: Show instructions to debug
+        if: ${{ failure() }}
+        run: |
+          ARCHIVE_BASENAME=qg-capture-state
+          ARCHIVE_NAME=$ARCHIVE_BASENAME.zip
+
+          cat << EOF >> $GITHUB_STEP_SUMMARY
+          ## Troubleshooting failed run
+
+          Download the artifact from this workflow run: \`$ARCHIVE_NAME\`
+
+          Then run the following commands to debug:
+          \`\`\`bash
+          # copy the archive to the tests/quality directory
+          cd test/quality
+          unzip $ARCHIVE_NAME && tar -xzf $ARCHIVE_BASENAME.tar.gz
+          \`\`\`
+
+          Now you can debug the with yardstick:
+          \`\`\`bash
+          poetry shell
+          yardstick result list
+          yardstick label explore
+          \`\`\`
+          EOF
+
+
   Integration-Test:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Integration tests"
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
@@ -80,7 +118,7 @@ jobs:
     name: "Build snapshot artifacts"
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
@@ -110,7 +148,7 @@ jobs:
     needs: [Build-Snapshot-Artifacts]
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 #v4.1.0
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
 
       - name: Download snapshot build
         uses: actions/cache/restore@704facf57e6136b1bc63b828d79edcd491f0ee84 #v3.3.2
@@ -142,7 +180,7 @@ jobs:
     needs: [Build-Snapshot-Artifacts]
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 #v4.1.0
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
 
       - name: Download snapshot build
         uses: actions/cache/restore@704facf57e6136b1bc63b828d79edcd491f0ee84 #v3.3.2
@@ -167,7 +205,7 @@ jobs:
     needs: [Build-Snapshot-Artifacts]
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 #v4.1.0
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap

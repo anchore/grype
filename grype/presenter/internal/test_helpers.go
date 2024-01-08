@@ -4,8 +4,6 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	grypeDb "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -13,7 +11,6 @@ import (
 	"github.com/anchore/grype/grype/vex"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/stereoscope/pkg/image"
-	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/linux"
@@ -30,52 +27,39 @@ const (
 
 type SyftSource string
 
-func GenerateAnalysis(t *testing.T, scheme SyftSource) (match.Matches, []pkg.Package, pkg.Context, vulnerability.MetadataProvider, interface{}, interface{}) {
+func GenerateAnalysis(t *testing.T, scheme SyftSource) (*sbom.SBOM, match.Matches, []pkg.Package, pkg.Context, vulnerability.MetadataProvider, interface{}, interface{}) {
 	t.Helper()
 
-	packages := generatePackages(t)
-	matches := generateMatches(t, packages[0], packages[1])
+	s := &sbom.SBOM{
+		Artifacts: sbom.Artifacts{
+			Packages: syftPkg.NewCollection(generatePackages(t)...),
+		},
+	}
+
+	grypePackages := pkg.FromCollection(s.Artifacts.Packages, pkg.SynthesisConfig{})
+
+	matches := generateMatches(t, grypePackages[0], grypePackages[1])
 	context := generateContext(t, scheme)
 
-	return matches, packages, context, models.NewMetadataMock(), nil, nil
+	return s, matches, grypePackages, context, models.NewMetadataMock(), nil, nil
 }
 
 func GenerateAnalysisWithIgnoredMatches(t *testing.T, scheme SyftSource) (match.Matches, []match.IgnoredMatch, []pkg.Package, pkg.Context, vulnerability.MetadataProvider, interface{}, interface{}) {
 	t.Helper()
 
-	packages := generatePackages(t)
-	matches := generateMatches(t, packages[0], packages[0])
-	ignoredMatches := generateIgnoredMatches(t, packages[1])
-	context := generateContext(t, scheme)
-
-	return matches, ignoredMatches, packages, context, models.NewMetadataMock(), nil, nil
-}
-
-func SBOMFromPackages(t *testing.T, packages []pkg.Package) *sbom.SBOM {
-	t.Helper()
-
-	sbom := &sbom.SBOM{
+	s := &sbom.SBOM{
 		Artifacts: sbom.Artifacts{
-			Packages: syftPkg.NewCollection(),
+			Packages: syftPkg.NewCollection(generatePackages(t)...),
 		},
 	}
 
-	for _, p := range packages {
-		sbom.Artifacts.Packages.Add(toSyftPkg(p))
-	}
+	grypePackages := pkg.FromCollection(s.Artifacts.Packages, pkg.SynthesisConfig{})
 
-	return sbom
-}
+	matches := generateMatches(t, grypePackages[0], grypePackages[1])
+	ignoredMatches := generateIgnoredMatches(t, grypePackages[1])
+	context := generateContext(t, scheme)
 
-func toSyftPkg(p pkg.Package) syftPkg.Package {
-	return syftPkg.Package{
-		Name:      p.Name,
-		Version:   p.Version,
-		Type:      p.Type,
-		Metadata:  p.Metadata,
-		Locations: p.Locations,
-		CPEs:      p.CPEs,
-	}
+	return matches, ignoredMatches, grypePackages, context, models.NewMetadataMock(), nil, nil
 }
 
 func Redact(s []byte) []byte {
@@ -91,7 +75,7 @@ func Redact(s []byte) []byte {
 	return s
 }
 
-func generateMatches(t *testing.T, p, p2 pkg.Package) match.Matches {
+func generateMatches(t *testing.T, p1, p2 pkg.Package) match.Matches {
 	t.Helper()
 
 	matches := []match.Match{
@@ -105,7 +89,7 @@ func generateMatches(t *testing.T, p, p2 pkg.Package) match.Matches {
 					State:    grypeDb.FixedState,
 				},
 			},
-			Package: p,
+			Package: p1,
 			Details: []match.Detail{
 				{
 					Type:    match.ExactDirectMatch,
@@ -234,11 +218,11 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 	}
 }
 
-func generatePackages(t *testing.T) []pkg.Package {
+func generatePackages(t *testing.T) []syftPkg.Package {
 	t.Helper()
 	epoch := 2
 
-	pkgs := []pkg.Package{
+	pkgs := []syftPkg.Package{
 		{
 			Name:      "package-1",
 			Version:   "1.1.1",
@@ -253,15 +237,9 @@ func generatePackages(t *testing.T) []pkg.Package {
 					Language: "python",
 				},
 			},
-			Upstreams: []pkg.UpstreamPackage{
-				{
-					Name:    "nothing",
-					Version: "3.2",
-				},
-			},
-			MetadataType: pkg.RpmMetadataType,
-			Metadata: pkg.RpmMetadata{
-				Epoch: &epoch,
+			Metadata: syftPkg.RpmDBEntry{
+				Epoch:     &epoch,
+				SourceRpm: "some-source-rpm",
 			},
 		},
 		{
@@ -278,21 +256,19 @@ func generatePackages(t *testing.T) []pkg.Package {
 					Language: "python",
 				},
 			},
-			Licenses: []string{"MIT", "Apache-2.0"},
+			Licenses: syftPkg.NewLicenseSet(
+				syftPkg.NewLicense("MIT"),
+				syftPkg.NewLicense("Apache-2.0"),
+			),
 		},
 	}
 
-	updatedPkgs := make([]pkg.Package, 0, len(pkgs))
-
-	for _, p := range pkgs {
-		id, err := artifact.IDByHash(p)
-		require.NoError(t, err)
-
-		p.ID = pkg.ID(id)
-		updatedPkgs = append(updatedPkgs, p)
+	for i := range pkgs {
+		p := pkgs[i]
+		p.SetID()
 	}
 
-	return updatedPkgs
+	return pkgs
 }
 
 //nolint:funlen

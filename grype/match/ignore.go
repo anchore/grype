@@ -18,6 +18,7 @@ type IgnoredMatch struct {
 // rule to apply.
 type IgnoreRule struct {
 	Vulnerability    string            `yaml:"vulnerability" json:"vulnerability" mapstructure:"vulnerability"`
+	Reason           string            `yaml:"reason" json:"reason" mapstructure:"reason"`
 	Namespace        string            `yaml:"namespace" json:"namespace" mapstructure:"namespace"`
 	FixState         string            `yaml:"fix-state" json:"fix-state" mapstructure:"fix-state"`
 	Package          IgnoreRulePackage `yaml:"package" json:"package" mapstructure:"package"`
@@ -193,7 +194,7 @@ func ruleLocationAppliesToMatch(location string, match Match) bool {
 			return true
 		}
 
-		if ruleLocationAppliesToPath(location, packageLocation.VirtualPath) {
+		if ruleLocationAppliesToPath(location, packageLocation.AccessPath) {
 			return true
 		}
 	}

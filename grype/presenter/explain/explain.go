@@ -9,7 +9,6 @@ import (
 	"text/template"
 
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/syft/syft/file"
 )
@@ -405,11 +404,9 @@ func (b *viewModelBuilder) dedupeAndSortURLs(primaryVulnerability models.Vulnera
 
 func explainLocation(match models.Match, location file.Coordinates) explainedEvidence {
 	path := location.RealPath
-	if match.Artifact.MetadataType == pkg.JavaMetadataType {
-		if javaMeta, ok := match.Artifact.Metadata.(map[string]any); ok {
-			if virtPath, ok := javaMeta["virtualPath"].(string); ok {
-				path = virtPath
-			}
+	if javaMeta, ok := match.Artifact.Metadata.(map[string]any); ok {
+		if virtPath, ok := javaMeta["virtualPath"].(string); ok {
+			path = virtPath
 		}
 	}
 	return explainedEvidence{

@@ -27,14 +27,27 @@ func getFixtureImage(tb testing.TB, fixtureImageName string) string {
 
 func getGrypeCommand(tb testing.TB, args ...string) *exec.Cmd {
 	tb.Helper()
+	argsWithConfig := args
+	if !grypeCommandHasConfigArg(argsWithConfig...) {
+		argsWithConfig = append(
+			[]string{"-c", "../grype-test-config.yaml"},
+			args...,
+		)
+	}
 
 	return exec.Command(
 		getGrypeSnapshotLocation(tb, runtime.GOOS),
-		append(
-			[]string{"-c", "../grype-test-config.yaml"},
-			args...,
-		)...,
+		argsWithConfig...,
 	)
+}
+
+func grypeCommandHasConfigArg(args ...string) bool {
+	for _, arg := range args {
+		if arg == "-c" || arg == "--config" {
+			return true
+		}
+	}
+	return false
 }
 
 func getGrypeSnapshotLocation(tb testing.TB, goOS string) string {
