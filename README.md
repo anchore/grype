@@ -679,9 +679,15 @@ name: ""
 # same as --fail-on ; GRYPE_FAIL_ON_SEVERITY env var
 fail-on-severity: ""
 
-# the output format of the vulnerability report (options: table, json, cyclonedx)
+# the output format of the vulnerability report (options: table, template, json, cyclonedx)
+# when using template as the output type, you must also provide a value for 'output-template-file'
 # same as -o ; GRYPE_OUTPUT env var
 output: "table"
+
+# if using template output, you must provide a path to a Go template file
+# see https://github.com/anchore/grype#using-templates for more information on template output
+# the default path to the template file is the current working directory
+# output-template-file: .grype/html.tmpl
 
 # write output report to a file (default is to write to stdout)
 # same as --file; GRYPE_FILE env var
