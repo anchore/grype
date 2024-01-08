@@ -205,6 +205,60 @@ dockers:
       - "--build-arg=VCS_REF={{.FullCommit}}"
       - "--build-arg=VCS_URL={{.GitURL}}"
 
+  - image_templates:
+      - anchore/grype:packaged
+      - anchore/grype:{{.Tag}}-packaged
+      - ghcr.io/anchore/grype:packaged
+      - ghcr.io/anchore/grype:{{.Tag}}-packaged
+    goarch: amd64
+    dockerfile: Dockerfile.packaged
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--build-arg=BUILD_DATE={{.Date}}"
+      - "--build-arg=BUILD_VERSION={{.Version}}"
+      - "--build-arg=VCS_REF={{.FullCommit}}"
+      - "--build-arg=VCS_URL={{.GitURL}}"
+
+  - image_templates:
+      - anchore/grype:{{.Tag}}-packaged-arm64v8
+      - ghcr.io/anchore/grype:{{.Tag}}-packaged-arm64v8
+    goarch: arm64
+    dockerfile: Dockerfile.packaged
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/arm64/v8"
+      - "--build-arg=BUILD_DATE={{.Date}}"
+      - "--build-arg=BUILD_VERSION={{.Version}}"
+      - "--build-arg=VCS_REF={{.FullCommit}}"
+      - "--build-arg=VCS_URL={{.GitURL}}"
+
+  - image_templates:
+      - anchore/grype:{{.Tag}}-packaged-ppc64le
+      - ghcr.io/anchore/grype:{{.Tag}}-packaged-ppc64le
+    goarch: ppc64le
+    dockerfile: Dockerfile.packaged
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/ppc64le"
+      - "--build-arg=BUILD_DATE={{.Date}}"
+      - "--build-arg=BUILD_VERSION={{.Version}}"
+      - "--build-arg=VCS_REF={{.FullCommit}}"
+      - "--build-arg=VCS_URL={{.GitURL}}"
+
+  - image_templates:
+      - anchore/grype:{{.Tag}}-packaged-s390x
+      - ghcr.io/anchore/grype:{{.Tag}}-packaged-s390x
+    goarch: s390x
+    dockerfile: Dockerfile.packaged
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/s390x"
+      - "--build-arg=BUILD_DATE={{.Date}}"
+      - "--build-arg=BUILD_VERSION={{.Version}}"
+      - "--build-arg=VCS_REF={{.FullCommit}}"
+      - "--build-arg=VCS_URL={{.GitURL}}"
+
 docker_manifests:
   - name_template: anchore/grype:latest
     image_templates:
@@ -218,6 +272,12 @@ docker_manifests:
       - anchore/grype:{{.Tag}}-debug-arm64v8
       - anchore/grype:{{.Tag}}-debug-ppc64le
       - anchore/grype:{{.Tag}}-debug-s390x
+
+  - name_template: anchore/grype:packaged
+      - anchore/grype:{{.Tag}}-packaged
+      - anchore/grype:{{.Tag}}-packaged-arm64v8
+      - anchore/grype:{{.Tag}}-packaged-ppc64le
+      - anchore/grype:{{.Tag}}-packaged-s390x
 
   - name_template: anchore/grype:{{.Tag}}
     image_templates:
@@ -239,6 +299,13 @@ docker_manifests:
       - ghcr.io/anchore/grype:{{.Tag}}-debug-arm64v8
       - ghcr.io/anchore/grype:{{.Tag}}-debug-ppc64le
       - ghcr.io/anchore/grype:{{.Tag}}-debug-s390x
+
+  - name_template: ghcr.io/anchore/grype:packaged
+    image_templates:
+      - ghcr.io/anchore/grype:{{.Tag}}-packaged
+      - ghcr.io/anchore/grype:{{.Tag}}-packaged-arm64v8
+      - ghcr.io/anchore/grype:{{.Tag}}-packaged-ppc64le
+      - ghcr.io/anchore/grype:{{.Tag}}-packaged-s390x
 
   - name_template: ghcr.io/anchore/grype:{{.Tag}}
     image_templates:
