@@ -3,11 +3,15 @@ package openvex
 import (
 	"errors"
 	"fmt"
-	"strings"
-
+	"github.com/anchore/grype/grype/event"
+	"github.com/anchore/grype/internal/bus"
 	"github.com/openvex/discovery/pkg/discovery"
 	"github.com/openvex/discovery/pkg/oci"
 	openvex "github.com/openvex/go-vex/pkg/vex"
+	"github.com/scylladb/go-set/strset"
+	"github.com/wagoodman/go-partybus"
+	"github.com/wagoodman/go-progress"
+	"strings"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -293,6 +297,8 @@ func (ovm *Processor) DiscoverVexDocuments(pkgContext *pkg.Context, rawVexData i
 		return nil, fmt.Errorf("extracting identifiers from context")
 	}
 
+	prog, stage := trackVexDiscovery(identifiers)
+
 	allDocs := []*openvex.VEX{}
 
 	// If we already have some vex data, add it
@@ -301,18 +307,34 @@ func (ovm *Processor) DiscoverVexDocuments(pkgContext *pkg.Context, rawVexData i
 	}
 
 	agent := discovery.NewAgent()
+	ids := strset.New()
 
 	for _, i := range identifiers {
 		if !strings.HasPrefix(i, "pkg:") {
 			continue
 		}
+
+		stage.Set(fmt.Sprintf("searching %s", i))
+
 		discoveredDocs, err := agent.ProbePurl(i)
 		if err != nil {
+			prog.SetError(err)
 			return nil, fmt.Errorf("probing package url or vex data: %w", err)
+		}
+
+		// prune any existing documents so they are not applied multiple times
+		for j, doc := range discoveredDocs {
+			if ids.Has(doc.ID) {
+				discoveredDocs = append(discoveredDocs[:j], discoveredDocs[j+1:]...)
+			}
+			ids.Add(doc.ID)
 		}
 
 		allDocs = append(allDocs, discoveredDocs...)
 	}
+	stage.Set(fmt.Sprintf("%d documents", len(allDocs)))
+
+	prog.SetCompleted()
 
 	vexdata, err := openvex.MergeDocuments(allDocs)
 	if err != nil {
@@ -320,4 +342,24 @@ func (ovm *Processor) DiscoverVexDocuments(pkgContext *pkg.Context, rawVexData i
 	}
 
 	return vexdata, nil
+}
+
+func trackVexDiscovery(identifiers []string) (*progress.Manual, *progress.AtomicStage) {
+	stage := progress.NewAtomicStage("")
+	prog := progress.NewManual(-1)
+
+	bus.Publish(partybus.Event{
+		Type:   event.VexDocumentDiscoveryStarted,
+		Source: identifiers,
+		Value: progress.StagedProgressable(struct {
+			progress.Stager
+			progress.Progressable
+		}{
+			Stager:       stage,
+			Progressable: prog,
+		}),
+		Error: nil,
+	})
+
+	return prog, stage
 }
