@@ -755,7 +755,6 @@
    "distro": "",
    "add-cpes-if-none": false,
    "output-template-file": "",
-   "quiet": true,
    "check-for-app-update": true,
    "only-fixed": false,
    "only-notfixed": false,
@@ -818,7 +817,8 @@
     "ca-cert": ""
    },
    "log": {
-    "structured": false,
+    "quiet": true,
+    "verbosity": 0,
     "level": "",
     "file": ""
    },
