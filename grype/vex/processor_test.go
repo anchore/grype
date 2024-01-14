@@ -92,7 +92,7 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 		return &s
 	}
 
-	metchesRef := func(ms ...match.Match) *match.Matches {
+	matchesRef := func(ms ...match.Match) *match.Matches {
 		m := match.NewMatches(ms...)
 		return &m
 	}
@@ -127,7 +127,7 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 				pkgContext: pkgContext,
 				matches:    getSubject(),
 			},
-			wantMatches: metchesRef(libCryptoCVE_2023_3817, libCryptoCVE_2023_2975),
+			wantMatches: matchesRef(libCryptoCVE_2023_3817, libCryptoCVE_2023_2975),
 			wantIgnoredMatches: []match.IgnoredMatch{
 				{
 					Match: libCryptoCVE_2023_1255,
@@ -157,7 +157,7 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 				pkgContext: pkgContext,
 				matches:    getSubject(),
 			},
-			wantMatches: metchesRef(libCryptoCVE_2023_3817, libCryptoCVE_2023_2975),
+			wantMatches: matchesRef(libCryptoCVE_2023_3817, libCryptoCVE_2023_2975),
 			wantIgnoredMatches: []match.IgnoredMatch{
 				{
 					Match: libCryptoCVE_2023_1255,
@@ -187,7 +187,7 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 				pkgContext: pkgContext,
 				matches:    getSubject(),
 			},
-			wantMatches: metchesRef(libCryptoCVE_2023_3817),
+			wantMatches: matchesRef(libCryptoCVE_2023_3817),
 			wantIgnoredMatches: []match.IgnoredMatch{
 				{
 					Match: libCryptoCVE_2023_1255,
@@ -226,7 +226,7 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 				pkgContext: pkgContext,
 				matches:    getSubject(),
 			},
-			wantMatches: metchesRef(libCryptoCVE_2023_3817, libCryptoCVE_2023_2975),
+			wantMatches: matchesRef(libCryptoCVE_2023_3817, libCryptoCVE_2023_2975),
 			wantIgnoredMatches: []match.IgnoredMatch{
 				{
 					Match: libCryptoCVE_2023_1255,
@@ -258,7 +258,7 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 				matches:    getSubject(),
 			},
 			// nothing gets ignored!
-			wantMatches:        metchesRef(libCryptoCVE_2023_3817, libCryptoCVE_2023_2975, libCryptoCVE_2023_1255),
+			wantMatches:        matchesRef(libCryptoCVE_2023_3817, libCryptoCVE_2023_2975, libCryptoCVE_2023_1255),
 			wantIgnoredMatches: []match.IgnoredMatch{},
 		},
 		{
@@ -278,7 +278,7 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 				pkgContext: pkgContext,
 				matches:    getSubject(),
 			},
-			wantMatches: metchesRef(libCryptoCVE_2023_2975, libCryptoCVE_2023_1255),
+			wantMatches: matchesRef(libCryptoCVE_2023_2975, libCryptoCVE_2023_1255),
 			wantIgnoredMatches: []match.IgnoredMatch{
 				{
 					Match: libCryptoCVE_2023_3817,

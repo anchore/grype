@@ -175,7 +175,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		Store:          *str,
 		IgnoreRules:    opts.Ignore,
 		NormalizeByCVE: opts.ByCVE,
-		FailSeverity:   opts.FailOnServerity(),
+		FailSeverity:   opts.FailOnSeverity(),
 		Matchers:       getMatchers(opts),
 		VexProcessor: vex.NewProcessor(vex.ProcessorOptions{
 			Documents:   opts.VexDocuments,
