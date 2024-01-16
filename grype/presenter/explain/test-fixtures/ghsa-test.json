@@ -313,7 +313,6 @@
    "distro": "",
    "add-cpes-if-none": false,
    "output-template-file": "",
-   "quiet": true,
    "check-for-app-update": true,
    "only-fixed": false,
    "only-notfixed": false,
@@ -375,7 +374,8 @@
     "auth": []
    },
    "log": {
-    "structured": false,
+    "quiet": true,
+    "verbosity": 0,
     "level": "",
     "file": ""
    },
