@@ -7,8 +7,8 @@ import (
 	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/stereoscope/pkg/image"
+	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/linux"
-	"github.com/anchore/syft/syft/pkg/cataloger"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -16,11 +16,11 @@ import (
 func FindVulnerabilities(store store.Store, userImageStr string, scopeOpt source.Scope, registryOptions *image.RegistryOptions) (match.Matches, pkg.Context, []pkg.Package, error) {
 	providerConfig := pkg.ProviderConfig{
 		SyftProviderConfig: pkg.SyftProviderConfig{
-			RegistryOptions:   registryOptions,
-			CatalogingOptions: cataloger.DefaultConfig(),
+			RegistryOptions: registryOptions,
+			SBOMOptions:     syft.DefaultCreateSBOMConfig(),
 		},
 	}
-	providerConfig.CatalogingOptions.Search.Scope = scopeOpt
+	providerConfig.SBOMOptions.Search.Scope = scopeOpt
 
 	packages, context, _, err := pkg.Provide(userImageStr, providerConfig)
 	if err != nil {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/anchore/clio"
-	"github.com/anchore/syft/syft/pkg/cataloger"
+	"github.com/anchore/syft/syft/cataloging"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -17,7 +17,7 @@ type search struct {
 var _ clio.PostLoader = (*search)(nil)
 
 func defaultSearch(scope source.Scope) search {
-	c := cataloger.DefaultSearchConfig()
+	c := cataloging.DefaultArchiveSearchConfig()
 	return search{
 		Scope:                    scope.String(),
 		IncludeUnindexedArchives: c.IncludeUnindexedArchives,
@@ -35,12 +35,4 @@ func (cfg *search) PostLoad() error {
 
 func (cfg search) GetScope() source.Scope {
 	return source.ParseScope(cfg.Scope)
-}
-
-func (cfg search) ToConfig() cataloger.SearchConfig {
-	return cataloger.SearchConfig{
-		IncludeIndexedArchives:   cfg.IncludeIndexedArchives,
-		IncludeUnindexedArchives: cfg.IncludeUnindexedArchives,
-		Scope:                    cfg.GetScope(),
-	}
 }

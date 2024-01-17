@@ -11,7 +11,7 @@ import (
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/stereoscope/pkg/image"
-	"github.com/anchore/syft/syft/pkg/cataloger"
+	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/pkg/cataloger/binary"
 )
 
@@ -61,7 +61,7 @@ func Test_getProviderConfig(t *testing.T) {
 			}),
 			want: pkg.ProviderConfig{
 				SyftProviderConfig: pkg.SyftProviderConfig{
-					CatalogingOptions: cataloger.DefaultConfig(),
+					SBOMOptions: syft.DefaultCreateSBOMConfig(),
 					RegistryOptions: &image.RegistryOptions{
 						Credentials: []image.RegistryCredentials{},
 					},
@@ -71,8 +71,11 @@ func Test_getProviderConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			opts := cmpopts.IgnoreFields(binary.Classifier{}, "EvidenceMatcher")
-			if d := cmp.Diff(tt.want, getProviderConfig(tt.opts), opts); d != "" {
+			opts := cmp.Options{
+				cmpopts.IgnoreFields(binary.Classifier{}, "EvidenceMatcher"),
+				cmpopts.IgnoreUnexported(syft.CreateSBOMConfig{}),
+			}
+			if d := cmp.Diff(tt.want, getProviderConfig(tt.opts), opts...); d != "" {
 				t.Errorf("getProviderConfig() mismatch (-want +got):\n%s", d)
 			}
 		})

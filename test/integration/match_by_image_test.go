@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"sort"
 	"strings"
 	"testing"
@@ -21,9 +22,9 @@ import (
 	"github.com/anchore/grype/internal/stringutil"
 	"github.com/anchore/stereoscope/pkg/imagetest"
 	"github.com/anchore/syft/syft"
+	"github.com/anchore/syft/syft/cataloging/pkgcataloging"
 	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
-	"github.com/anchore/syft/syft/pkg/cataloger"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -672,14 +673,13 @@ func TestMatchByImage(t *testing.T) {
 			})
 
 			// TODO: relationships are not verified at this time
-			config := cataloger.DefaultConfig()
+			// enable all catalogers to cover non default cases
+			config := syft.DefaultCreateSBOMConfig().WithCatalogerSelection(pkgcataloging.NewSelectionRequest().WithDefaults("all"))
 			config.Search.Scope = source.SquashedScope
 
-			// enable all catalogers to cover non default cases
-			config.Catalogers = []string{"all"}
-
-			collection, _, theDistro, err := syft.CatalogPackages(theSource, config)
+			s, err := syft.CreateSBOM(context.Background(), theSource, config)
 			require.NoError(t, err)
+			require.NotNil(t, s)
 
 			matchers := matcher.NewDefaultMatchers(matcher.Config{})
 
@@ -693,7 +693,7 @@ func TestMatchByImage(t *testing.T) {
 				ExclusionProvider: ep,
 			}
 
-			actualResults := grype.FindVulnerabilitiesForPackage(str, theDistro, matchers, pkg.FromCollection(collection, pkg.SynthesisConfig{}))
+			actualResults := grype.FindVulnerabilitiesForPackage(str, s.Artifacts.LinuxDistribution, matchers, pkg.FromCollection(s.Artifacts.Packages, pkg.SynthesisConfig{}))
 			for _, m := range actualResults.Sorted() {
 				for _, d := range m.Details {
 					observedMatchers.Add(string(d.Matcher))
@@ -701,7 +701,7 @@ func TestMatchByImage(t *testing.T) {
 			}
 
 			// build expected matches from what's discovered from the catalog
-			expectedMatches := test.expectedFn(theSource, collection, theStore)
+			expectedMatches := test.expectedFn(theSource, s.Artifacts.Packages, theStore)
 
 			assertMatches(t, expectedMatches.Sorted(), actualResults.Sorted())
 		})

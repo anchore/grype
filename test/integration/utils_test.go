@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -16,7 +17,6 @@ import (
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/syft/syft"
-	"github.com/anchore/syft/syft/pkg/cataloger"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
 )
@@ -73,35 +73,26 @@ func saveImage(t testing.TB, imageName string, destPath string) {
 
 func getSyftSBOM(t testing.TB, image string, encoder sbom.FormatEncoder) string {
 	detection, err := source.Detect(image, source.DetectConfig{})
-	if err != nil {
-		t.Fatalf("could not generate source input for packages command: %+v", err)
-	}
+	require.NoError(t, err)
 
 	src, err := detection.NewSource(source.DetectionSourceConfig{})
-	if err != nil {
-		t.Fatalf("can't get the source: %+v", err)
-	}
+	require.NoError(t, err)
+
 	t.Cleanup(func() {
 		require.NoError(t, src.Close())
 	})
 
-	config := cataloger.DefaultConfig()
+	config := syft.DefaultCreateSBOMConfig()
+
 	config.Search.Scope = source.SquashedScope
 	// TODO: relationships are not verified at this time
-	collection, relationships, distro, err := syft.CatalogPackages(src, config)
-
-	s := sbom.SBOM{
-		Artifacts: sbom.Artifacts{
-			Packages:          collection,
-			LinuxDistribution: distro,
-		},
-		Relationships: relationships,
-		Source:        src.Describe(),
-	}
+	s, err := syft.CreateSBOM(context.Background(), src, config)
+	require.NoError(t, err)
+	require.NotNil(t, s)
 
 	var buf bytes.Buffer
 
-	err = encoder.Encode(&buf, s)
+	err = encoder.Encode(&buf, *s)
 	require.NoError(t, err)
 
 	return buf.String()
