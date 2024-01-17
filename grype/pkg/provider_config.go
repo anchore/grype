@@ -2,7 +2,7 @@ package pkg
 
 import (
 	"github.com/anchore/stereoscope/pkg/image"
-	"github.com/anchore/syft/syft/pkg/cataloger"
+	"github.com/anchore/syft/syft"
 )
 
 type ProviderConfig struct {
@@ -11,7 +11,7 @@ type ProviderConfig struct {
 }
 
 type SyftProviderConfig struct {
-	CatalogingOptions      cataloger.Config
+	SBOMOptions            *syft.CreateSBOMConfig
 	RegistryOptions        *image.RegistryOptions
 	Platform               string
 	Exclusions             []string

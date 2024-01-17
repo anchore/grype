@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/stereoscope/pkg/imagetest"
+	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/file"
-	"github.com/anchore/syft/syft/pkg/cataloger"
 )
 
 func TestProviderLocationExcludes(t *testing.T) {
@@ -47,8 +47,8 @@ func TestProviderLocationExcludes(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			cfg := ProviderConfig{
 				SyftProviderConfig: SyftProviderConfig{
-					Exclusions:        test.excludes,
-					CatalogingOptions: cataloger.DefaultConfig(),
+					Exclusions:  test.excludes,
+					SBOMOptions: syft.DefaultCreateSBOMConfig(),
 				},
 			}
 			pkgs, _, _, _ := Provide(test.fixture, cfg)
@@ -102,8 +102,8 @@ func TestSyftLocationExcludes(t *testing.T) {
 			userInput := imagetest.GetFixtureImageTarPath(t, test.fixture)
 			cfg := ProviderConfig{
 				SyftProviderConfig: SyftProviderConfig{
-					Exclusions:        test.excludes,
-					CatalogingOptions: cataloger.DefaultConfig(),
+					Exclusions:  test.excludes,
+					SBOMOptions: syft.DefaultCreateSBOMConfig(),
 				},
 			}
 			pkgs, _, _, err := Provide(userInput, cfg)

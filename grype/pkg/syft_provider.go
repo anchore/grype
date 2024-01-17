@@ -1,6 +1,9 @@
 package pkg
 
 import (
+	"context"
+	"errors"
+
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft"
@@ -22,34 +25,30 @@ func syftProvider(userInput string, config ProviderConfig) ([]Package, Context, 
 		}
 	}()
 
-	catalog, relationships, theDistro, err := syft.CatalogPackages(src, config.CatalogingOptions)
+	s, err := syft.CreateSBOM(context.Background(), src, config.SBOMOptions)
 	if err != nil {
 		return nil, Context{}, nil, err
 	}
 
-	catalog = removePackagesByOverlap(catalog, relationships, theDistro)
+	if s == nil {
+		return nil, Context{}, nil, errors.New("no SBOM provided")
+	}
+
+	pkgCatalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, s.Artifacts.LinuxDistribution)
 
 	srcDescription := src.Describe()
 
-	packages := FromCollection(catalog, config.SynthesisConfig)
-	context := Context{
+	packages := FromCollection(pkgCatalog, config.SynthesisConfig)
+	pkgCtx := Context{
 		Source: &srcDescription,
-		Distro: theDistro,
+		Distro: s.Artifacts.LinuxDistribution,
 	}
 
-	sbom := &sbom.SBOM{
-		Source:        srcDescription,
-		Relationships: relationships,
-		Artifacts: sbom.Artifacts{
-			Packages: catalog,
-		},
-	}
-
-	return packages, context, sbom, nil
+	return packages, pkgCtx, s, nil
 }
 
 func getSource(userInput string, config ProviderConfig) (source.Source, error) {
-	if config.CatalogingOptions.Search.Scope == "" {
+	if config.SBOMOptions.Search.Scope == "" {
 		return nil, errDoesNotProvide
 	}
 
