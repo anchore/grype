@@ -251,8 +251,8 @@ github.com/anchore/packageurl-go v0.1.1-0.20230104203445-02e0a6721501 h1:AV7qjwM
 github.com/anchore/packageurl-go v0.1.1-0.20230104203445-02e0a6721501/go.mod h1:Blo6OgJNiYF41ufcgHKkbCKF2MDOMlrqhXv/ij6ocR4=
 github.com/anchore/stereoscope v0.0.0-20231220161148-590920dabc54 h1:i2YK5QEs9H2YB3B2zv+AGR44ves0nmAGOD07lMphH14=
 github.com/anchore/stereoscope v0.0.0-20231220161148-590920dabc54/go.mod h1:IylG7ofLoUKHwS1XDF6rPhOmaE3GgpAgsMdvvYfooTU=
-github.com/anchore/syft v0.100.1-0.20240117170637-297ece69045d h1:Lbb5ljfx0g3uYBY11wF2oHYbdE2Nh5mmtQhZlhOI8C0=
-github.com/anchore/syft v0.100.1-0.20240117170637-297ece69045d/go.mod h1:oRQuHODu6IYHhb9SDw9kmNhAmdZngVbTU1kR2jVq48E=
+github.com/anchore/syft v0.101.0 h1:1CI6dHS8Kd1F4/LzJFRvaMTswZnJELBdWd9sIlHw5s4=
+github.com/anchore/syft v0.101.0/go.mod h1:oRQuHODu6IYHhb9SDw9kmNhAmdZngVbTU1kR2jVq48E=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/brotli v1.0.1/go.mod h1:loMXtMfwqflxFJPmdbJO0a3KNoPuLBgiu3qAvBg8x/Y=
 github.com/andybalholm/brotli v1.0.4 h1:V7DdXeJtZscaqfNuAdSRuRFzuiKlHSC/Zh3zl9qY3JY=
