@@ -147,7 +147,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.TOOLBOX_AWS_SECRET_ACCESS_KEY }}
 
 
-      - uses: anchore/sbom-action@c7f031d9249a826a082ea14c79d3b686a51d485a # v0.15.3
+      - uses: anchore/sbom-action@41f7a6c033dbcdf78917f23b652c8b8146298c85 # v0.15.4
         continue-on-error: true
         with:
           artifact-name: sbom.spdx.json
