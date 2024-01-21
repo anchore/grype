@@ -617,7 +617,7 @@ download_asset() (
     if is_command "${COSIGN_BINARY}"; then
       log_trace "${COSIGN_BINARY} binary is installed"
     else
-      log_err "${COSIGN_BINARY} binary is not installed. Follow steps from https://docs.sigstore.dev/system_config/installation/ to install it."
+      log_err "Signature verification is requested but ${COSIGN_BINARY} binary is not installed. Follow steps from https://docs.sigstore.dev/system_config/installation/ to install it."
       return 1
     fi
     
