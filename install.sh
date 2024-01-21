@@ -8,6 +8,10 @@ REPO="${PROJECT_NAME}"
 GITHUB_DOWNLOAD_PREFIX=https://github.com/${OWNER}/${REPO}/releases/download
 INSTALL_SH_BASE_URL=https://raw.githubusercontent.com/${OWNER}/${PROJECT_NAME}
 PROGRAM_ARGS=$@
+COSIGN_BINARY=cosign
+VERIFY_SIGN=false
+CERT_FORMAT=pem
+SIG_FORMAT=sig
 
 # do not change the name of this parameter (this must always be backwards compatible)
 DOWNLOAD_TAG_INSTALL_SCRIPT=${DOWNLOAD_TAG_INSTALL_SCRIPT:-true}
@@ -24,6 +28,7 @@ Usage: $this [-b] dir [-d] [tag]
   -b  the installation directory (dDefaults to ./bin)
   -d  turns on debug logging
   -dd turns on trace logging
+  -v verify checksum signature. Require cosign binary to be installed.
   [tag] the specific release to use (if missing, then the latest will be used)
 EOF
   exit 2
@@ -358,28 +363,53 @@ github_release_tag() (
   echo "$tag"
 )
 
+# download_github_release_checksums_files [release-url-prefix] [name] [version] [output-dir] [filename]
+#
+# outputs path to the downloaded checksums related file
+#
+download_github_release_checksums_files() (
+  download_url="$1"
+  name="$2"
+  version="$3"
+  output_dir="$4"
+  filename="$5"
+
+  log_trace "download_github_release_checksums_files(url=${download_url}, name=${name}, version=${version}, output_dir=${output_dir}, filename=${filename})"
+
+  complete_filename="${name}_${version}_${filename}"
+  complete_url="${download_url}/${complete_filename}"
+  output_path="${output_dir}/${complete_filename}"
+
+  http_download "${output_path}" "${complete_url}" ""
+  asset_file_exists "${output_path}"
+
+  log_trace "download_github_release_checksums_files() returned '${output_path}' for file '${complete_filename}'"
+
+  echo "${output_path}"
+)
+
 # download_github_release_checksums [release-url-prefix] [name] [version] [output-dir]
 #
 # outputs path to the downloaded checksums file
 #
 download_github_release_checksums() (
-  download_url="$1"
-  name="$2"
-  version="$3"
-  output_dir="$4"
+  echo "$(download_github_release_checksums_files "$@" "checksums.txt")"
+)
 
-  log_trace "download_github_release_checksums(url=${download_url}, name=${name}, version=${version}, output_dir=${output_dir})"
+# download_github_release_checksums_sig [release-url-prefix] [name] [version] [output-dir]
+#
+# outputs path to the downloaded checksums signature file
+#
+download_github_release_checksums_sig() (
+  echo "$(download_github_release_checksums_files "$@" "checksums.txt.sig")"
+)
 
-  checksum_filename=${name}_${version}_checksums.txt
-  checksum_url=${download_url}/${checksum_filename}
-  output_path="${output_dir}/${checksum_filename}"
-
-  http_download "${output_path}" "${checksum_url}" ""
-  asset_file_exists "${output_path}"
-
-  log_trace "download_github_release_checksums() returned '${output_path}'"
-
-  echo "${output_path}"
+# download_github_release_checksums_cert [release-url-prefix] [name] [version] [output-dir]
+#
+# outputs path to the downloaded checksums certificate file
+#
+download_github_release_checksums_cert() (
+  echo "$(download_github_release_checksums_files "$@" "checksums.txt.pem")"
 )
 
 # search_for_asset [checksums-file-path] [name] [os] [arch] [format]
@@ -546,6 +576,16 @@ download_and_install_asset() (
   install_asset "${asset_filepath}" "${install_path}" "${binary}"
 )
 
+verify_sign() {
+  log_trace "Verifying artifact $1"
+  ${COSIGN_BINARY} verify-blob "$1" \
+  --certificate "$2" \
+  --signature "$3" \
+  --certificate-identity-regexp "https://github\.com/${OWNER}/${REPO}/\.github/workflows/.+" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+}
+
+
 # download_asset [release-url-prefix] [download-path] [name] [os] [arch] [version] [format] [binary]
 #
 # outputs the path to the downloaded asset asset_filepath
@@ -570,6 +610,29 @@ download_asset() (
   # don't continue if we couldn't find a matching asset from the checksums file
   if [ -z "${asset_filename}" ]; then
       return 1
+  fi
+
+  if [ "$VERIFY_SIGN" = true ]; then
+    log_trace "checking for ${COSIGN_BINARY} binary"
+    if is_command "${COSIGN_BINARY}"; then
+      log_trace "${COSIGN_BINARY} binary is installed"
+    else
+      log_err "${COSIGN_BINARY} binary is not installed. Follow steps from https://docs.sigstore.dev/system_config/installation/ to install it."
+      return 1
+    fi
+    
+    checksum_sig_file_path=$(download_github_release_checksums_sig "${download_url}" "${name}" "${version}" "${destination}")
+    log_info "downloaded checksums signature file: ${checksum_sig_file_path}"
+
+    checksums_cert_file_path=$(download_github_release_checksums_cert "${download_url}" "${name}" "${version}" "${destination}")
+    log_info "downloaded checksums certificate file: ${checksums_cert_file_path}"
+
+    verify_sign "${checksums_filepath}" "${checksums_cert_file_path}" "${checksum_sig_file_path}"
+    if [ $? -ne 0 ]; then
+      log_err "checksum signature verification failed"
+      return 1
+    fi
+    log_info "checksum signature verification succeeded"
   fi
 
   asset_url="${download_url}/${asset_filename}"
@@ -616,7 +679,7 @@ main() (
   install_dir=${install_dir:-./bin}
 
   # note: never change the program flags or arguments (this must always be backwards compatible)
-  while getopts "b:dh?x" arg; do
+  while getopts "b:dvh?x" arg; do
     case "$arg" in
       b) install_dir="$OPTARG" ;;
       d)
@@ -628,6 +691,7 @@ main() (
           log_set_priority $log_trace_priority
         fi
         ;;
+      v) VERIFY_SIGN=true;;
       h | \?) usage "$0" ;;
       x) set -x ;;
     esac
