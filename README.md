@@ -67,6 +67,13 @@ You can also choose another destination directory and release version for the in
 curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b <DESTINATION_DIR> <RELEASE_VERSION>
 ```
 
+#### Signature verification
+
+To verify artifact signature before installation, pass `-v` flag to script execution as follow:
+```bash
+curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin -v
+```
+
 ### Chocolatey
 
 The chocolatey distribution of grype is community maintained and not distributed by the anchore team
