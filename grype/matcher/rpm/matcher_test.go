@@ -253,7 +253,7 @@ func TestMatcherRpm(t *testing.T) {
 				Version: "0.1",
 				Type:    syftPkg.RpmPkg,
 				Metadata: pkg.RpmMetadata{
-					ModularityLabel: "containertools:3:1234:5678",
+					ModularityLabel: strRef("containertools:3:1234:5678"),
 				},
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
@@ -280,7 +280,7 @@ func TestMatcherRpm(t *testing.T) {
 				Version: "0.1",
 				Type:    syftPkg.RpmPkg,
 				Metadata: pkg.RpmMetadata{
-					ModularityLabel: "containertools:1:abc:123",
+					ModularityLabel: strRef("containertools:1:abc:123"),
 				},
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
@@ -380,4 +380,8 @@ func Test_addZeroEpicIfApplicable(t *testing.T) {
 			assert.Equal(t, test.expected, actualVersion)
 		})
 	}
+}
+
+func strRef(s string) *string {
+	return &s
 }
