@@ -56,8 +56,7 @@ func TestRpmModularity_Satisfied(t *testing.T) {
 			name:          "modularity label with no module",
 			rpmModularity: New(""),
 			pkg: pkg.Package{Metadata: pkg.RpmMetadata{
-				Epoch:           nil,
-				ModularityLabel: "x:3:1234567:abcd",
+				ModularityLabel: strRef("x:3:1234567:abcd"),
 			}},
 			satisfied: false,
 		},
@@ -65,8 +64,7 @@ func TestRpmModularity_Satisfied(t *testing.T) {
 			name:          "modularity label in module",
 			rpmModularity: New("x:3"),
 			pkg: pkg.Package{Metadata: pkg.RpmMetadata{
-				Epoch:           nil,
-				ModularityLabel: "x:3:1234567:abcd",
+				ModularityLabel: strRef("x:3:1234567:abcd"),
 			}},
 			satisfied: true,
 		},
@@ -74,10 +72,25 @@ func TestRpmModularity_Satisfied(t *testing.T) {
 			name:          "modularity label not in module",
 			rpmModularity: New("x:3"),
 			pkg: pkg.Package{Metadata: pkg.RpmMetadata{
-				Epoch:           nil,
-				ModularityLabel: "x:1:1234567:abcd",
+				ModularityLabel: strRef("x:1:1234567:abcd"),
 			}},
 			satisfied: false,
+		},
+		{
+			name:          "modularity label is positively blank",
+			rpmModularity: New(""),
+			pkg: pkg.Package{Metadata: pkg.RpmMetadata{
+				ModularityLabel: strRef(""),
+			}},
+			satisfied: false,
+		},
+		{
+			name:          "modularity label is missing (assume we cannot verify that capability)",
+			rpmModularity: New(""),
+			pkg: pkg.Package{Metadata: pkg.RpmMetadata{
+				ModularityLabel: nil,
+			}},
+			satisfied: true,
 		},
 	}
 
@@ -88,4 +101,8 @@ func TestRpmModularity_Satisfied(t *testing.T) {
 			assert.Equal(t, test.satisfied, s)
 		})
 	}
+}
+
+func strRef(s string) *string {
+	return &s
 }
