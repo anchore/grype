@@ -137,7 +137,7 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 
 func (o *Grype) PostLoad() error {
 	if o.FailOn != "" {
-		failOnSeverity := *o.FailOnServerity()
+		failOnSeverity := *o.FailOnSeverity()
 		if failOnSeverity == vulnerability.UnknownSeverity {
 			return fmt.Errorf("bad --fail-on severity value '%s'", o.FailOn)
 		}
@@ -145,7 +145,7 @@ func (o *Grype) PostLoad() error {
 	return nil
 }
 
-func (o Grype) FailOnServerity() *vulnerability.Severity {
+func (o Grype) FailOnSeverity() *vulnerability.Severity {
 	severity := vulnerability.ParseSeverity(o.FailOn)
 	return &severity
 }
