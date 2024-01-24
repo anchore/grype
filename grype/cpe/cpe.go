@@ -3,6 +3,7 @@ package cpe
 import (
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/cpe"
+	"github.com/facebookincubator/nvdtools/wfn"
 )
 
 func NewSlice(cpeStrs ...string) ([]cpe.CPE, error) {
@@ -21,9 +22,10 @@ func NewSlice(cpeStrs ...string) ([]cpe.CPE, error) {
 
 func MatchWithoutVersion(c cpe.CPE, candidates []cpe.CPE) []cpe.CPE {
 	matches := make([]cpe.CPE, 0)
+	a := wfn.Attributes(c)
 	for _, candidate := range candidates {
-		canCopy := candidate
-		if c.MatchWithoutVersion(&canCopy) {
+		canCopy := wfn.Attributes(candidate)
+		if a.MatchWithoutVersion(&canCopy) {
 			matches = append(matches, candidate)
 		}
 	}
