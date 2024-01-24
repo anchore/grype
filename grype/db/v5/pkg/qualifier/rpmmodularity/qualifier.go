@@ -8,8 +8,8 @@ import (
 )
 
 type Qualifier struct {
-	Kind   string `json:"kind" mapstructure:"kind"`                         // Kind of qualifier
-	Module string `json:"module,omitempty" mapstructure:"module,omitempty"` // Modularity label
+	Kind   string `json:"kind" mapstructure:"kind"`     // Kind of qualifier
+	Module string `json:"module" mapstructure:"module"` // Modularity label
 }
 
 func (q Qualifier) Parse() qualifier.Qualifier {
