@@ -23,9 +23,9 @@ func NewSlice(cpeStrs ...string) ([]cpe.CPE, error) {
 
 func MatchWithoutVersion(c cpe.CPE, candidates []cpe.CPE) []cpe.CPE {
 	matches := make([]cpe.CPE, 0)
-	a := wfn.Attributes(c) // nolint:unconvert // TODO: remove nolint when syft upgrade in grype
+	a := wfn.Attributes(c)
 	for _, candidate := range candidates {
-		canCopy := wfn.Attributes(candidate) // nolint:unconvert // TODO: remove nolint when syft upgrade in grype
+		canCopy := wfn.Attributes(candidate)
 		if a.MatchWithoutVersion(&canCopy) {
 			matches = append(matches, candidate)
 		}
