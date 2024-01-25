@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/facebookincubator/nvdtools/wfn"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
@@ -23,6 +22,7 @@ import (
 	"github.com/anchore/stereoscope/pkg/imagetest"
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/cataloging/pkgcataloging"
+	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
@@ -142,7 +142,6 @@ func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 	require.NoError(t, err)
 
 	theResult.Add(match.Match{
-
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
 		Details: []match.Detail{
@@ -183,7 +182,6 @@ func addDotnetMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 	require.NoError(t, err)
 
 	theResult.Add(match.Match{
-
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
 		Details: []match.Detail{
@@ -220,7 +218,6 @@ func addRubyMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 	require.NoError(t, err)
 
 	theResult.Add(match.Match{
-
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
 		Details: []match.Detail{
@@ -363,7 +360,6 @@ func addDpkgMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 	require.NoError(t, err)
 
 	theResult.Add(match.Match{
-
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
 		Details: []match.Detail{
@@ -442,7 +438,6 @@ func addRhelMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 	require.NoError(t, err)
 
 	theResult.Add(match.Match{
-
 		Vulnerability: *vulnObj,
 		Package:       thePkg,
 		Details: []match.Detail{
@@ -764,7 +759,6 @@ func TestMatchByImage(t *testing.T) {
 
 		t.Log(cmp.Diff(defs, obs))
 	}
-
 }
 
 // testIgnoredMatches returns an list of ignored matches to test the vex
@@ -783,7 +777,7 @@ func testIgnoredMatches() []match.IgnoredMatch {
 					Version:  "0.9.9",
 					Licenses: []string{"GPL-2.0-or-later"},
 					Type:     "apk",
-					CPEs: []wfn.Attributes{
+					CPEs: []cpe.CPE{
 						{
 							Part:    "a",
 							Vendor:  "libvncserver",
@@ -858,7 +852,7 @@ func vexMatches(t *testing.T, ignoredMatches []match.IgnoredMatch, vexStatus vex
 
 func assertMatches(t *testing.T, expected, actual []match.Match) {
 	t.Helper()
-	var opts = []cmp.Option{
+	opts := []cmp.Option{
 		cmpopts.IgnoreFields(vulnerability.Vulnerability{}, "Constraint"),
 		cmpopts.IgnoreFields(pkg.Package{}, "Locations"),
 		cmpopts.SortSlices(func(a, b match.Match) bool {

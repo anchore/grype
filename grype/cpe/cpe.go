@@ -1,6 +1,8 @@
 package cpe
 
 import (
+	"github.com/facebookincubator/nvdtools/wfn"
+
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/cpe"
 )
@@ -21,9 +23,10 @@ func NewSlice(cpeStrs ...string) ([]cpe.CPE, error) {
 
 func MatchWithoutVersion(c cpe.CPE, candidates []cpe.CPE) []cpe.CPE {
 	matches := make([]cpe.CPE, 0)
+	a := wfn.Attributes(c) // nolint:unconvert // TODO: remove nolint when syft upgrade in grype
 	for _, candidate := range candidates {
-		canCopy := candidate
-		if c.MatchWithoutVersion(&canCopy) {
+		canCopy := wfn.Attributes(candidate) // nolint:unconvert // TODO: remove nolint when syft upgrade in grype
+		if a.MatchWithoutVersion(&canCopy) {
 			matches = append(matches, candidate)
 		}
 	}
