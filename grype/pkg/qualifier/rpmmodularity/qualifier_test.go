@@ -82,7 +82,7 @@ func TestRpmModularity_Satisfied(t *testing.T) {
 			pkg: pkg.Package{Metadata: pkg.RpmMetadata{
 				ModularityLabel: strRef(""),
 			}},
-			satisfied: false,
+			satisfied: true,
 		},
 		{
 			name:          "modularity label is missing (assume we cannot verify that capability)",
