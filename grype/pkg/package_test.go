@@ -160,10 +160,10 @@ func TestNew(t *testing.T) {
 				Name: "sqlite",
 				Metadata: syftPkg.RpmArchive{
 					SourceRpm:       "sqlite-3.26.0-6.el8.src.rpm",
-					ModularityLabel: "abc:2",
+					ModularityLabel: strRef("abc:2"),
 				},
 			},
-			metadata: RpmMetadata{ModularityLabel: "abc:2"},
+			metadata: RpmMetadata{ModularityLabel: strRef("abc:2")},
 		},
 		{
 			name: "java pkg",
@@ -836,4 +836,8 @@ func withDistro(s *sbom.SBOM, id string) *sbom.SBOM {
 		ID: id,
 	}
 	return s
+}
+
+func strRef(s string) *string {
+	return &s
 }

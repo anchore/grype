@@ -61,7 +61,7 @@
     "metadataType": "RpmMetadata",
     "metadata": {
      "epoch": 2,
-     "modularityLabel": ""
+     "modularityLabel": null
     }
    }
   },
