@@ -15,6 +15,10 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
+
+      - name: Check if pinned syft is a release version
+        run: .github/scripts/check-syft-version-is-release.sh
+
       - name: Check if tag already exists
         # note: this will fail if the tag already exists
         run: |
