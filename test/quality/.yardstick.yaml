@@ -13,6 +13,8 @@ x-ref:
     - docker.io/anchore/test_images:appstreams-centos-stream-8-1a287dd@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9
     - docker.io/anchore/test_images:appstreams-oraclelinux-8-1a287dd@sha256:c8d664b0e728d52f57eeb98ed1899c16d3b265f02ddfb41303d7a16c31e0b0f1
     - docker.io/anchore/test_images:appstreams-rhel-8-1a287dd@sha256:524ff8a75f21fd886ec7ed82387766df386671e8b77e898d05786118d5b7880b
+    - docker.io/anchore/test_images:appstreams-nodejs-base-rhel-9-1b0b1b4@sha256:fc6f7a37d7e320f6ff3643d4ec9a208adb1462cd16027f045b56563e12bb0461
+    - docker.io/anchore/test_images:appstreams-nodejs-18-rhel-9-1b0b1b4@sha256:08dbfad2d6af9afe47f7647b0b8f38fd29fc9e89306cfc39c9509981f9388b7f
     - docker.io/anchore/test_images:java-56d52bc@sha256:10008791acbc5866de04108746a02a0c4029ce3a4400a9b3dad45d7f2245f9da
     - docker.io/anchore/test_images:npm-56d52bc@sha256:ba42ded8613fc643d407a050faf5ab48cfb405ad3ef2015bf6feeb5dff44738d
     - docker.io/anchore/test_images:gems-56d52bc@sha256:5763c8a225f950961bf01ddec68e36f18e236130e182f2b9290a6e03b9777bfe
