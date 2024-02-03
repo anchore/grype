@@ -73,6 +73,8 @@ To verify artifact signature before installation, pass `-v` flag to script execu
 ```bash
 curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin -v
 ```
+> ![NOTE] 
+> This requires `cosign` to be installed.
 
 ### Chocolatey
 
