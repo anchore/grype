@@ -28,7 +28,7 @@ Usage: $this [-b] dir [-d] [tag]
   -b  the installation directory (dDefaults to ./bin)
   -d  turns on debug logging
   -dd turns on trace logging
-  -v verify checksum signature. Require cosign binary to be installed.
+  -v verify checksum signature. Requires cosign binary to be installed.
   [tag] the specific release to use (if missing, then the latest will be used)
 EOF
   exit 2
