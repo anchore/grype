@@ -31,7 +31,7 @@ type UpstreamPackage struct {
 func newPackage(p pkg.Package) Package {
 	var cpes = make([]string, 0)
 	for _, c := range p.CPEs {
-		cpes = append(cpes, c.BindToFmtString())
+		cpes = append(cpes, c.Attributes.BindToFmtString())
 	}
 
 	licenses := p.Licenses
