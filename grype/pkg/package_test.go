@@ -591,6 +591,21 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "python-poetry-lock-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.PythonPoetryLockEntry{Index: "some-index"},
+			},
+		},
+		{
+			name: "yarn-lock-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.YarnLockEntry{
+					Resolved:  "some-resolution",
+					Integrity: "some-digest",
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
