@@ -51,7 +51,8 @@ func TestProviderLocationExcludes(t *testing.T) {
 					SBOMOptions: syft.DefaultCreateSBOMConfig(),
 				},
 			}
-			pkgs, _, _, _ := Provide(test.fixture, cfg)
+			pkgs, _, _, err := Provide(test.fixture, cfg)
+			assert.NoError(t, err)
 
 			var pkgNames []string
 

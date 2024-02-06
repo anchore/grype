@@ -230,11 +230,13 @@ func generatePackages(t *testing.T) []syftPkg.Package {
 			Locations: file.NewLocationSet(file.NewVirtualLocation("/foo/bar/somefile-1.txt", "somefile-1.txt")),
 			CPEs: []cpe.CPE{
 				{
-					Part:     "a",
-					Vendor:   "anchore",
-					Product:  "engine",
-					Version:  "0.9.2",
-					Language: "python",
+					Attributes: cpe.Attributes{
+						Part:     "a",
+						Vendor:   "anchore",
+						Product:  "engine",
+						Version:  "0.9.2",
+						Language: "python",
+					},
 				},
 			},
 			Metadata: syftPkg.RpmDBEntry{

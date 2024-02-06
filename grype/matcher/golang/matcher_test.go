@@ -62,7 +62,7 @@ func TestMatcher_SearchForStdlib(t *testing.T) {
 		Type:     syftPkg.GoModulePkg,
 		Language: syftPkg.Go,
 		CPEs: []cpe.CPE{
-			cpe.Must("cpe:2.3:a:golang:go:1.18.3:-:*:*:*:*:*:*"),
+			cpe.Must("cpe:2.3:a:golang:go:1.18.3:-:*:*:*:*:*:*", ""),
 		},
 		Metadata: pkg.GolangBinMetadata{},
 	}
@@ -201,7 +201,7 @@ func (mp *mockProvider) populateData() {
 }
 
 func (mp *mockProvider) GetByCPE(p cpe.CPE) ([]vulnerability.Vulnerability, error) {
-	return mp.data["nvd:cpe"][p.BindToFmtString()], nil
+	return mp.data["nvd:cpe"][p.Attributes.BindToFmtString()], nil
 }
 
 func (mp *mockProvider) GetByDistro(d *distro.Distro, p pkg.Package) ([]vulnerability.Vulnerability, error) {

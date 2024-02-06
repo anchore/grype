@@ -119,7 +119,7 @@ func TestMatchWithoutVersion(t *testing.T) {
 				if a.Attributes.BindToFmtString() != e.Attributes.BindToFmtString() {
 					dmp := diffmatchpatch.New()
 					diffs := dmp.DiffMain(a.Attributes.BindToFmtString(), e.Attributes.BindToFmtString(), true)
-					t.Errorf("mismatched entries @ %d:\n\texpected:%+v\n\t  actual:%+v\n\t    diff:%+v\n", idx, e.Attributes.BindToFmtString(), a.BindToFmtString(), dmp.DiffPrettyText(diffs))
+					t.Errorf("mismatched entries @ %d:\n\texpected:%+v\n\t  actual:%+v\n\t    diff:%+v\n", idx, e.Attributes.BindToFmtString(), a.Attributes.BindToFmtString(), dmp.DiffPrettyText(diffs))
 				}
 			}
 		})

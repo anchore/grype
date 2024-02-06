@@ -171,12 +171,18 @@ func TestNew(t *testing.T) {
 				Metadata: syftPkg.JavaArchive{
 					VirtualPath: "virtual-path-info",
 					Manifest: &syftPkg.JavaManifest{
-						Main: map[string]string{
-							"Name": "main-section-name-info",
+						Main: syftPkg.KeyValues{
+							{
+								Key:   "Name",
+								Value: "main-section-name-info",
+							},
 						},
-						NamedSections: map[string]map[string]string{
-							"named-section": {
-								"named-section-key": "named-section-value",
+						Sections: []syftPkg.KeyValues{
+							{
+								{
+									Key:   "named-section-key",
+									Value: "named-section-value",
+								},
 							},
 						},
 					},
@@ -288,14 +294,14 @@ func TestNew(t *testing.T) {
 			name: "golang-metadata",
 			syftPkg: syftPkg.Package{
 				Metadata: syftPkg.GolangBinaryBuildinfoEntry{
-					BuildSettings:     map[string]string{},
+					BuildSettings:     syftPkg.KeyValues{},
 					GoCompiledVersion: "1.0.0",
 					H1Digest:          "a",
 					MainModule:        "myMainModule",
 				},
 			},
 			metadata: GolangBinMetadata{
-				BuildSettings:     map[string]string{},
+				BuildSettings:     syftPkg.KeyValues{},
 				GoCompiledVersion: "1.0.0",
 				H1Digest:          "a",
 				MainModule:        "myMainModule",
@@ -364,9 +370,15 @@ func TestNew(t *testing.T) {
 			syftPkg: syftPkg.Package{
 				Metadata: syftPkg.ConanLockEntry{
 					Ref: "zlib/1.2.12",
-					Options: map[string]string{
-						"fPIC":   "True",
-						"shared": "False",
+					Options: syftPkg.KeyValues{
+						{
+							Key:   "fPIC",
+							Value: "True",
+						},
+						{
+							Key:   "shared",
+							Value: "false",
+						},
 					},
 					Path:    "all/conanfile.py",
 					Context: "host",
