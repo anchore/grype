@@ -91,7 +91,8 @@ func (s *store) SetID(id v5.ID) error {
 // GetVulnerabilityNamespaces retrieves all possible namespaces from the database.
 func (s *store) GetVulnerabilityNamespaces() ([]string, error) {
 	var names []string
-	result := s.db.Model(&model.VulnerabilityMetadataModel{}).Distinct().Pluck("namespace", &names)
+	// TODO: WILL: revert back to metadata? Or what?
+	result := s.db.Model(&model.VulnerabilityModel{}).Distinct().Pluck("namespace", &names)
 	return names, result.Error
 }
 
