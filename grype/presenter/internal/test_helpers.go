@@ -249,11 +249,13 @@ func generatePackages(t *testing.T) []syftPkg.Package {
 			Locations: file.NewLocationSet(file.NewVirtualLocation("/foo/bar/somefile-2.txt", "somefile-2.txt")),
 			CPEs: []cpe.CPE{
 				{
-					Part:     "a",
-					Vendor:   "anchore",
-					Product:  "engine",
-					Version:  "2.2.2",
-					Language: "python",
+					Attributes: cpe.Attributes{
+						Part:     "a",
+						Vendor:   "anchore",
+						Product:  "engine",
+						Version:  "2.2.2",
+						Language: "python",
+					},
 				},
 			},
 			Licenses: syftPkg.NewLicenseSet(
