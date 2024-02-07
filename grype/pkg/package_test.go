@@ -366,9 +366,9 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
-			name: "cpp conan lock metadata",
+			name: "cpp conan v1 lock metadata",
 			syftPkg: syftPkg.Package{
-				Metadata: syftPkg.ConanLockEntry{
+				Metadata: syftPkg.ConanV1LockEntry{
 					Ref: "zlib/1.2.12",
 					Options: syftPkg.KeyValues{
 						{
@@ -382,6 +382,15 @@ func TestNew(t *testing.T) {
 					},
 					Path:    "all/conanfile.py",
 					Context: "host",
+				},
+			},
+		},
+		{
+			name: "cpp conan v2 lock metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.ConanV2LockEntry{
+					Ref:       "zlib/1.2.12",
+					PackageID: "some-id",
 				},
 			},
 		},
