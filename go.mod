@@ -14,7 +14,7 @@ require (
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/packageurl-go v0.1.1-0.20240202171727-877e1747d426
 	github.com/anchore/stereoscope v0.0.2-0.20240202153536-bfa15e446f06
-	github.com/anchore/syft v0.103.2-0.20240206154801-00d6269e3c6e
+	github.com/anchore/syft v0.103.2-0.20240207132837-bbd34f61fdbf
 	github.com/aquasecurity/go-pep440-version v0.0.0-20210121094942-22b2f8951d46
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/charmbracelet/bubbletea v0.25.0
