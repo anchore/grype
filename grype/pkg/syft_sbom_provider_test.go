@@ -39,7 +39,7 @@ func TestParseSyftJSON(t *testing.T) {
 					},
 					Type: "apk",
 					CPEs: []cpe.CPE{
-						cpe.Must("cpe:2.3:a:alpine:alpine_baselayout:3.2.0-r6:*:*:*:*:*:*:*"),
+						cpe.Must("cpe:2.3:a:alpine:alpine_baselayout:3.2.0-r6:*:*:*:*:*:*:*", ""),
 					},
 					PURL: "pkg:alpine/alpine-baselayout@3.2.0-r6?arch=x86_64",
 					Upstreams: []UpstreamPackage{
@@ -164,8 +164,8 @@ func TestParseSyftJSON(t *testing.T) {
 					},
 					Type: "dpkg",
 					CPEs: []cpe.CPE{
-						cpe.Must("cpe:2.3:a:*:fake:1.2.0:*:*:*:*:*:*:*"),
-						cpe.Must("cpe:2.3:a:fake:fake:1.2.0:*:*:*:*:*:*:*"),
+						cpe.Must("cpe:2.3:a:*:fake:1.2.0:*:*:*:*:*:*:*", ""),
+						cpe.Must("cpe:2.3:a:fake:fake:1.2.0:*:*:*:*:*:*:*", ""),
 					},
 					PURL: "pkg:deb/debian/fake@1.2.0?arch=x86_64",
 					Upstreams: []UpstreamPackage{
@@ -190,8 +190,8 @@ func TestParseSyftJSON(t *testing.T) {
 					},
 					Type: "java-archive",
 					CPEs: []cpe.CPE{
-						cpe.Must("cpe:2.3:a:*:gmp:6.2.0-r0:*:*:*:*:*:*:*"),
-						cpe.Must("cpe:2.3:a:gmp:gmp:6.2.0-r0:*:*:*:*:*:*:*"),
+						cpe.Must("cpe:2.3:a:*:gmp:6.2.0-r0:*:*:*:*:*:*:*", ""),
+						cpe.Must("cpe:2.3:a:gmp:gmp:6.2.0-r0:*:*:*:*:*:*:*", ""),
 					},
 					PURL: "pkg:alpine/gmp@6.2.0-r0?arch=x86_64",
 					Metadata: JavaMetadata{
@@ -292,8 +292,8 @@ var springImageTestCase = struct {
 			Licenses: []string{},
 			Type:     "java-archive",
 			CPEs: []cpe.CPE{
-				cpe.Must("cpe:2.3:a:charsets:charsets:*:*:*:*:*:java:*:*"),
-				cpe.Must("cpe:2.3:a:charsets:charsets:*:*:*:*:*:maven:*:*"),
+				cpe.Must("cpe:2.3:a:charsets:charsets:*:*:*:*:*:java:*:*", ""),
+				cpe.Must("cpe:2.3:a:charsets:charsets:*:*:*:*:*:maven:*:*", ""),
 			},
 			PURL:     "",
 			Metadata: JavaMetadata{VirtualPath: "/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/charsets.jar"},
@@ -311,8 +311,8 @@ var springImageTestCase = struct {
 			Licenses: []string{},
 			Type:     "java-archive",
 			CPEs: []cpe.CPE{
-				cpe.Must("cpe:2.3:a:tomcat_embed_el:tomcat-embed-el:9.0.27:*:*:*:*:java:*:*"),
-				cpe.Must("cpe:2.3:a:tomcat-embed-el:tomcat_embed_el:9.0.27:*:*:*:*:maven:*:*"),
+				cpe.Must("cpe:2.3:a:tomcat_embed_el:tomcat-embed-el:9.0.27:*:*:*:*:java:*:*", ""),
+				cpe.Must("cpe:2.3:a:tomcat-embed-el:tomcat_embed_el:9.0.27:*:*:*:*:maven:*:*", ""),
 			},
 			PURL:     "",
 			Metadata: JavaMetadata{VirtualPath: "/app/libs/tomcat-embed-el-9.0.27.jar"},

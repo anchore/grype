@@ -58,7 +58,7 @@ func decodePurlFile(reader io.Reader) ([]Package, error) {
 			if qualifier.Key == cpesQualifierKey {
 				rawCpes := strings.Split(qualifier.Value, ",")
 				for _, rawCpe := range rawCpes {
-					c, err := cpe.New(rawCpe)
+					c, err := cpe.New(rawCpe, "")
 					if err != nil {
 						return nil, fmt.Errorf("unable to decode cpe %s in purl %s: %w", rawCpe, rawLine, err)
 					}

@@ -18,15 +18,15 @@ func New(cpe string) qualifier.Qualifier {
 }
 
 func isWindowsPlatformCPE(c cpe.CPE) bool {
-	return c.Vendor == "microsoft" && strings.HasPrefix(c.Product, "windows")
+	return c.Attributes.Vendor == "microsoft" && strings.HasPrefix(c.Attributes.Product, "windows")
 }
 
 func isUbuntuPlatformCPE(c cpe.CPE) bool {
-	if c.Vendor == "canonical" && c.Product == "ubuntu_linux" {
+	if c.Attributes.Vendor == "canonical" && c.Attributes.Product == "ubuntu_linux" {
 		return true
 	}
 
-	if c.Vendor == "ubuntu" {
+	if c.Attributes.Vendor == "ubuntu" {
 		return true
 	}
 
@@ -34,11 +34,11 @@ func isUbuntuPlatformCPE(c cpe.CPE) bool {
 }
 
 func isDebianPlatformCPE(c cpe.CPE) bool {
-	return c.Vendor == "debian" && (c.Product == "debian_linux" || c.Product == "linux")
+	return c.Attributes.Vendor == "debian" && (c.Attributes.Product == "debian_linux" || c.Attributes.Product == "linux")
 }
 
 func isWordpressPlatformCPE(c cpe.CPE) bool {
-	return c.Vendor == "wordpress" && c.Product == "wordpress"
+	return c.Attributes.Vendor == "wordpress" && c.Attributes.Product == "wordpress"
 }
 
 func (p platformCPE) Satisfied(d *distro.Distro, _ pkg.Package) (bool, error) {
@@ -46,7 +46,7 @@ func (p platformCPE) Satisfied(d *distro.Distro, _ pkg.Package) (bool, error) {
 		return true, nil
 	}
 
-	c, err := cpe.New(p.cpe)
+	c, err := cpe.New(p.cpe, "")
 
 	if err != nil {
 		return true, err
