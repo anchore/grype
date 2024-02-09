@@ -9,6 +9,13 @@ import (
 
 type traitAssertion func(tb testing.TB, stdout, stderr string, rc int)
 
+func assertNoStderr(tb testing.TB, _, stderr string, _ int) {
+	tb.Helper()
+	if len(stderr) > 0 {
+		tb.Errorf("expected stderr to be empty, but wasn't")
+	}
+}
+
 func assertInOutput(data string) traitAssertion {
 	return func(tb testing.TB, stdout, stderr string, _ int) {
 		tb.Helper()
