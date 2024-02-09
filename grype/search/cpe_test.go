@@ -1,6 +1,7 @@
 package search
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -161,6 +162,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 		name     string
 		p        pkg.Package
 		expected []match.Match
+		wantErr  require.ErrorAssertionFunc
 	}{
 		{
 			name: "match from range",
@@ -361,6 +363,9 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				Version:  "4.0.1",
 				Language: syftPkg.Ruby,
 				Type:     syftPkg.GemPkg,
+				CPEs: []cpe.CPE{
+					cpe.Must("cpe:2.3:a:no_match:no_match:0.9.9:*:*:*:*:*:*:*", cpe.GeneratedSource),
+				},
 			},
 			expected: []match.Match{},
 		},
@@ -683,6 +688,19 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "package without CPEs returns error",
+			p: pkg.Package{
+				Name: "some-package",
+			},
+			expected: nil,
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				if !errors.Is(err, ErrEmptyCPEMatch) {
+					t.Errorf("expected %v but got %v", ErrEmptyCPEMatch, err)
+					t.FailNow()
+				}
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -690,7 +708,10 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 			p, err := db.NewVulnerabilityProvider(newMockStore())
 			require.NoError(t, err)
 			actual, err := ByPackageCPE(p, nil, test.p, matcher)
-			assert.NoError(t, err)
+			if test.wantErr == nil {
+				test.wantErr = require.NoError
+			}
+			test.wantErr(t, err)
 			assertMatchesUsingIDsForVulnerabilities(t, test.expected, actual)
 			for idx, e := range test.expected {
 				if d := cmp.Diff(e.Details, actual[idx].Details); d != "" {

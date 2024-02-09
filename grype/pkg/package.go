@@ -76,7 +76,6 @@ func FromCollection(catalog *pkg.Collection, config SynthesisConfig) []Package {
 
 func FromPackages(syftpkgs []pkg.Package, config SynthesisConfig) []Package {
 	var pkgs []Package
-	var missingCPEs bool
 	for _, p := range syftpkgs {
 		if len(p.CPEs) == 0 {
 			// For SPDX (or any format, really) we may have no CPEs
@@ -84,14 +83,11 @@ func FromPackages(syftpkgs []pkg.Package, config SynthesisConfig) []Package {
 				p.CPEs = cpes.Generate(p)
 			} else {
 				log.Debugf("no CPEs for package: %s", p)
-				missingCPEs = true
 			}
 		}
 		pkgs = append(pkgs, New(p))
 	}
-	if missingCPEs {
-		log.Warnf("some package(s) are missing CPEs. This may result in missing vulnerabilities. You may autogenerate these using: --add-cpes-if-none")
-	}
+
 	return pkgs
 }
 
