@@ -235,8 +235,8 @@ github.com/anchore/archiver/v3 v3.5.2 h1:Bjemm2NzuRhmHy3m0lRe5tNoClB9A4zYyDV58Pa
 github.com/anchore/archiver/v3 v3.5.2/go.mod h1:e3dqJ7H78uzsRSEACH1joayhuSyhnonssnDhppzS1L4=
 github.com/anchore/bubbly v0.0.0-20231115134915-def0aba654a9 h1:p0ZIe0htYOX284Y4axJaGBvXHU0VCCzLN5Wf5XbKStU=
 github.com/anchore/bubbly v0.0.0-20231115134915-def0aba654a9/go.mod h1:3ZsFB9tzW3vl4gEiUeuSOMDnwroWxIxJelOOHUp8dSw=
-github.com/anchore/clio v0.0.0-20240209191000-1e2e1c5d7050 h1:Edh572jd+zntYOop8Q4Nx6pYtCHwxz5sLeMP0XkFkog=
-github.com/anchore/clio v0.0.0-20240209191000-1e2e1c5d7050/go.mod h1:8Jr7CjmwFVcBPtkJdTpaAGHimoGJGfbExypjzOu87Og=
+github.com/anchore/clio v0.0.0-20240209204744-cb94e40a4f65 h1:u9XrEabKlGPsrmRvAER+kUKkwXiJfLyqGhmOTFsXjX4=
+github.com/anchore/clio v0.0.0-20240209204744-cb94e40a4f65/go.mod h1:8Jr7CjmwFVcBPtkJdTpaAGHimoGJGfbExypjzOu87Og=
 github.com/anchore/fangs v0.0.0-20231201140849-5075d28d6d8b h1:L/djgY7ZbZ/38+wUtdkk398W3PIBJLkt1N8nU/7e47A=
 github.com/anchore/fangs v0.0.0-20231201140849-5075d28d6d8b/go.mod h1:TLcE0RE5+8oIx2/NPWem/dq1DeaMoC+fPEH7hoSzPLo=
 github.com/anchore/go-logger v0.0.0-20230725134548-c21dafa1ec5a h1:nJ2G8zWKASyVClGVgG7sfM5mwoZlZ2zYpIzN2OhjWkw=
