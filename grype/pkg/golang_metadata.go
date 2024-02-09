@@ -1,11 +1,14 @@
 package pkg
 
+import "github.com/anchore/syft/syft/pkg"
+
 type GolangBinMetadata struct {
-	BuildSettings     map[string]string `json:"goBuildSettings,omitempty"`
-	GoCompiledVersion string            `json:"goCompiledVersion"`
-	Architecture      string            `json:"architecture"`
-	H1Digest          string            `json:"h1Digest,omitempty"`
-	MainModule        string            `json:"mainModule,omitempty"`
+	BuildSettings     pkg.KeyValues `json:"goBuildSettings,omitempty" cyclonedx:"goBuildSettings"`
+	GoCompiledVersion string        `json:"goCompiledVersion" cyclonedx:"goCompiledVersion"`
+	Architecture      string        `json:"architecture" cyclonedx:"architecture"`
+	H1Digest          string        `json:"h1Digest,omitempty" cyclonedx:"h1Digest"`
+	MainModule        string        `json:"mainModule,omitempty" cyclonedx:"mainModule"`
+	GoCryptoSettings  []string      `json:"goCryptoSettings,omitempty" cyclonedx:"goCryptoSettings"`
 }
 
 type GolangModMetadata struct {

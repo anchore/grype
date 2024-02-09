@@ -331,8 +331,10 @@ func javaDataFromPkg(p pkg.Package) (metadata *JavaMetadata) {
 			groupID = value.PomProperties.GroupID
 		}
 		if value.Manifest != nil {
-			if n, ok := value.Manifest.Main["Name"]; ok {
-				name = n
+			for _, kv := range value.Manifest.Main {
+				if kv.Key == "Name" {
+					name = kv.Value
+				}
 			}
 		}
 

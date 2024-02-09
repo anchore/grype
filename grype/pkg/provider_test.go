@@ -16,6 +16,7 @@ func TestProviderLocationExcludes(t *testing.T) {
 		fixture  string
 		excludes []string
 		expected []string
+		wantErr  assert.ErrorAssertionFunc
 	}{
 		{
 			name:     "exclude everything",
@@ -41,6 +42,12 @@ func TestProviderLocationExcludes(t *testing.T) {
 			excludes: []string{},
 			expected: []string{"charsets", "tomcat-embed-el"},
 		},
+		{
+			name:     "exclusions must not hide parsing error",
+			fixture:  "test-fixtures/bad-sbom.json",
+			excludes: []string{"**/some-glob/*"},
+			wantErr:  assert.Error,
+		},
 	}
 
 	for _, test := range tests {
@@ -51,7 +58,14 @@ func TestProviderLocationExcludes(t *testing.T) {
 					SBOMOptions: syft.DefaultCreateSBOMConfig(),
 				},
 			}
-			pkgs, _, _, _ := Provide(test.fixture, cfg)
+			if test.wantErr == nil {
+				test.wantErr = assert.NoError
+			}
+			pkgs, _, _, err := Provide(test.fixture, cfg)
+			test.wantErr(t, err)
+			if err != nil {
+				return
+			}
 
 			var pkgNames []string
 

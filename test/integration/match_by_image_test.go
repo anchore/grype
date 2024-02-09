@@ -779,10 +779,12 @@ func testIgnoredMatches() []match.IgnoredMatch {
 					Type:     "apk",
 					CPEs: []cpe.CPE{
 						{
-							Part:    "a",
-							Vendor:  "libvncserver",
-							Product: "libvncserver",
-							Version: "0.9.9",
+							Attributes: cpe.Attributes{
+								Part:    "a",
+								Vendor:  "libvncserver",
+								Product: "libvncserver",
+								Version: "0.9.9",
+							},
 						},
 					},
 					PURL:      "pkg:apk/alpine/libvncserver@0.9.9?arch=x86_64&distro=alpine-3.12.0",
