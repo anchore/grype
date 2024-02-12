@@ -591,6 +591,9 @@ func TestDistroMatchBySourceIndirection(t *testing.T) {
 				Name: "musl",
 			},
 		},
+		CPEs: []cpe.CPE{
+			cpe.Must("cpe:2.3:a:musl-utils:musl-utils:*:*:*:*:*:*:*:*", cpe.GeneratedSource),
+		},
 	}
 
 	vulnFound, err := vulnerability.NewVulnerability(secDbVuln)

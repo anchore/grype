@@ -1,6 +1,7 @@
 package search
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -81,10 +82,17 @@ func alpineCPEComparableVersion(version string) string {
 	return cpeComparableVersion
 }
 
+var ErrEmptyCPEMatch = errors.New("attempted CPE match against package with no CPEs")
+
 // ByPackageCPE retrieves all vulnerabilities that match the generated CPE
 func ByPackageCPE(store vulnerability.ProviderByCPE, d *distro.Distro, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
 	// we attempt to merge match details within the same matcher when searching by CPEs, in this way there are fewer duplicated match
 	// objects (and fewer duplicated match details).
+
+	// Warn the user if they are matching by CPE, but there are no CPEs available.
+	if len(p.CPEs) == 0 {
+		return nil, ErrEmptyCPEMatch
+	}
 	matchesByFingerprint := make(map[match.Fingerprint]match.Match)
 	for _, c := range p.CPEs {
 		// prefer the CPE version, but if npt specified use the package version
