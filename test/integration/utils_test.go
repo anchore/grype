@@ -1,6 +1,8 @@
 package integration
 
 import (
+	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -11,10 +13,10 @@ import (
 	"testing"
 
 	"github.com/scylladb/go-set/strset"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/syft/syft"
-	"github.com/anchore/syft/syft/pkg/cataloger"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
 )
@@ -69,37 +71,31 @@ func saveImage(t testing.TB, imageName string, destPath string) {
 	t.Logf("Stdout: %s\n", out)
 }
 
-func getSyftSBOM(t testing.TB, image string, format sbom.Format) string {
-	sourceInput, err := source.ParseInput(image, "")
-	if err != nil {
-		t.Fatalf("could not generate source input for packages command: %+v", err)
-	}
+func getSyftSBOM(t testing.TB, image string, encoder sbom.FormatEncoder) string {
+	detection, err := source.Detect(image, source.DetectConfig{})
+	require.NoError(t, err)
 
-	src, cleanup, err := source.New(*sourceInput, nil, nil)
-	if err != nil {
-		t.Fatalf("can't get the source: %+v", err)
-	}
-	t.Cleanup(cleanup)
+	src, err := detection.NewSource(source.DetectionSourceConfig{})
+	require.NoError(t, err)
 
-	config := cataloger.DefaultConfig()
+	t.Cleanup(func() {
+		require.NoError(t, src.Close())
+	})
+
+	config := syft.DefaultCreateSBOMConfig()
+
 	config.Search.Scope = source.SquashedScope
 	// TODO: relationships are not verified at this time
-	collection, _, distro, err := syft.CatalogPackages(src, config)
+	s, err := syft.CreateSBOM(context.Background(), src, config)
+	require.NoError(t, err)
+	require.NotNil(t, s)
 
-	s := sbom.SBOM{
-		Artifacts: sbom.Artifacts{
-			Packages:          collection,
-			LinuxDistribution: distro,
-		},
-		Source: src.Metadata,
-	}
+	var buf bytes.Buffer
 
-	bytes, err := syft.Encode(s, format)
-	if err != nil {
-		t.Fatalf("presenter failed: %+v", err)
-	}
+	err = encoder.Encode(&buf, *s)
+	require.NoError(t, err)
 
-	return string(bytes)
+	return buf.String()
 }
 
 func getMatchSet(matches match.Matches) *strset.Set {

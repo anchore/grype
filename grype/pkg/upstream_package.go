@@ -32,10 +32,10 @@ func UpstreamPackages(p Package) (pkgs []Package) {
 		cpeStrings := strset.New()
 		for _, c := range tmp.CPEs {
 			if u.Version != "" {
-				c.Version = u.Version
+				c.Attributes.Version = u.Version
 			}
 
-			updatedCPEString := strings.ReplaceAll(c.BindToFmtString(), p.Name, u.Name)
+			updatedCPEString := strings.ReplaceAll(c.Attributes.BindToFmtString(), p.Name, u.Name)
 
 			cpeStrings.Add(updatedCPEString)
 		}
@@ -43,7 +43,7 @@ func UpstreamPackages(p Package) (pkgs []Package) {
 		// with each entry in set, convert string to CPE and update the new CPEs
 		var updatedCPEs []cpe.CPE
 		for _, cpeString := range cpeStrings.List() {
-			updatedCPE, _ := cpe.New(cpeString)
+			updatedCPE, _ := cpe.New(cpeString, "")
 			updatedCPEs = append(updatedCPEs, updatedCPE)
 		}
 		tmp.CPEs = updatedCPEs

@@ -53,10 +53,9 @@ func TestResolver_Resolve(t *testing.T) {
 		{
 			name: "both artifact and manifest 1",
 			pkg: grypePkg.Package{
-				Name:         "ABCD",
-				Version:      "1.2.3.4",
-				Language:     "java",
-				MetadataType: "",
+				Name:     "ABCD",
+				Version:  "1.2.3.4",
+				Language: "java",
 				Metadata: grypePkg.JavaMetadata{
 					VirtualPath:   "virtual-path-info",
 					PomArtifactID: "pom-ARTIFACT-ID-info",

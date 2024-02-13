@@ -11,6 +11,7 @@ import (
 	"github.com/Masterminds/sprig/v3"
 	"github.com/mitchellh/go-homedir"
 
+	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -19,6 +20,7 @@ import (
 
 // Presenter is an implementation of presenter.Presenter that formats output according to a user-provided Go text template.
 type Presenter struct {
+	id                 clio.Identification
 	matches            match.Matches
 	ignoredMatches     []match.IgnoredMatch
 	packages           []pkg.Package
@@ -32,6 +34,7 @@ type Presenter struct {
 // NewPresenter returns a new template.Presenter.
 func NewPresenter(pb models.PresenterConfig, templateFile string) *Presenter {
 	return &Presenter{
+		id:                 pb.ID,
 		matches:            pb.Matches,
 		ignoredMatches:     pb.IgnoredMatches,
 		packages:           pb.Packages,
@@ -61,7 +64,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 		return fmt.Errorf("unable to parse template: %w", err)
 	}
 
-	document, err := models.NewDocument(pres.packages, pres.context, pres.matches, pres.ignoredMatches, pres.metadataProvider,
+	document, err := models.NewDocument(pres.id, pres.packages, pres.context, pres.matches, pres.ignoredMatches, pres.metadataProvider,
 		pres.appConfig, pres.dbStatus)
 	if err != nil {
 		return err
@@ -91,7 +94,7 @@ var FuncMap = func() template.FuncMap {
 			return collection
 		}
 
-		sort.Sort(models.ByName(matches))
+		sort.Sort(models.MatchSort(matches))
 		return matches
 	}
 	return f

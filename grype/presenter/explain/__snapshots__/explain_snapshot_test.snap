@@ -1,0 +1,108 @@
+
+[TestExplainSnapshot/keycloak-CVE-2020-12413 - 1]
+CVE-2020-12413 from nvd:cpe (Medium)
+The Raccoon attack is a timing attack on DHE ciphersuites inherit in the TLS specification. To mitigate this vulnerability, Firefox disabled support for DHE ciphersuites.
+Related vulnerabilities:
+    - redhat:distro:redhat:9 CVE-2020-12413 (Low)
+Matched packages:
+    - Package: nss, version: 3.79.0-17.el9_1
+      PURL: pkg:rpm/rhel/nss@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1
+      Match explanation(s):
+          - redhat:distro:redhat:9:CVE-2020-12413 Direct match (package name, version, and ecosystem) against nss (version 3.79.0-17.el9_1).
+      Locations:
+          - /var/lib/rpm/rpmdb.sqlite
+    - Package: nspr, version: 4.34.0-17.el9_1
+      PURL: pkg:rpm/rhel/nspr@4.34.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1
+      Match explanation(s):
+          - redhat:distro:redhat:9:CVE-2020-12413 Indirect match; this CVE is reported against nss (version 3.79.0-17.el9_1), the source RPM of this rpm package.
+      Locations:
+          - /var/lib/rpm/rpmdb.sqlite
+    - Package: nss-softokn, version: 3.79.0-17.el9_1
+      PURL: pkg:rpm/rhel/nss-softokn@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1
+      Match explanation(s):
+          - redhat:distro:redhat:9:CVE-2020-12413 Indirect match; this CVE is reported against nss (version 3.79.0-17.el9_1), the source RPM of this rpm package.
+      Locations:
+          - /var/lib/rpm/rpmdb.sqlite
+    - Package: nss-softokn-freebl, version: 3.79.0-17.el9_1
+      PURL: pkg:rpm/rhel/nss-softokn-freebl@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1
+      Match explanation(s):
+          - redhat:distro:redhat:9:CVE-2020-12413 Indirect match; this CVE is reported against nss (version 3.79.0-17.el9_1), the source RPM of this rpm package.
+      Locations:
+          - /var/lib/rpm/rpmdb.sqlite
+    - Package: nss-sysinit, version: 3.79.0-17.el9_1
+      PURL: pkg:rpm/rhel/nss-sysinit@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1
+      Match explanation(s):
+          - redhat:distro:redhat:9:CVE-2020-12413 Indirect match; this CVE is reported against nss (version 3.79.0-17.el9_1), the source RPM of this rpm package.
+      Locations:
+          - /var/lib/rpm/rpmdb.sqlite
+    - Package: nss-util, version: 3.79.0-17.el9_1
+      PURL: pkg:rpm/rhel/nss-util@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1
+      Match explanation(s):
+          - redhat:distro:redhat:9:CVE-2020-12413 Indirect match; this CVE is reported against nss (version 3.79.0-17.el9_1), the source RPM of this rpm package.
+      Locations:
+          - /var/lib/rpm/rpmdb.sqlite
+URLs:
+    - https://nvd.nist.gov/vuln/detail/CVE-2020-12413
+    - https://access.redhat.com/security/cve/CVE-2020-12413
+
+---
+
+[TestExplainSnapshot/chainguard-ruby-CVE-2023-28755 - 1]
+CVE-2023-28755 from nvd:cpe (High)
+A ReDoS issue was discovered in the URI component through 0.12.0 in Ruby through 3.2.1. The URI parser mishandles invalid URLs that have specific characters. It causes an increase in execution time for parsing strings to URI objects. The fixed versions are 0.12.1, 0.11.1, 0.10.2 and 0.10.0.1.
+Related vulnerabilities:
+    - github:language:ruby GHSA-hv5j-3h9f-99c2 (High)
+    - wolfi:distro:wolfi:rolling CVE-2023-28755 (High)
+Matched packages:
+    - Package: ruby-3.0, version: 3.0.4-r1
+      PURL: pkg:apk/wolfi/ruby-3.0@3.0.4-r1?arch=aarch64&distro=wolfi-20221118
+      Match explanation(s):
+          - wolfi:distro:wolfi:rolling:CVE-2023-28755 Direct match (package name, version, and ecosystem) against ruby-3.0 (version 3.0.4-r1).
+          - nvd:cpe:CVE-2023-28755 CPE match on `cpe:2.3:a:ruby-lang:uri:0.10.1:*:*:*:*:*:*:*`.
+          - wolfi:distro:wolfi:rolling:CVE-2023-28755 Indirect match; this CVE is reported against ruby-3.0 (version 3.0.4-r1), the upstream of this apk package.
+      Locations:
+          - /usr/lib/ruby/gems/3.0.0/specifications/default/uri-0.10.1.gemspec
+          - /lib/apk/db/installed
+URLs:
+    - https://nvd.nist.gov/vuln/detail/CVE-2023-28755
+    - https://github.com/advisories/GHSA-hv5j-3h9f-99c2
+    - http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-28755
+
+---
+
+[TestExplainSnapshot/test_a_GHSA - 1]
+GHSA-cfh5-3ghh-wfjx from github:language:java (Medium)
+Moderate severity vulnerability that affects org.apache.httpcomponents:httpclient
+Related vulnerabilities:
+    - nvd:cpe CVE-2014-3577 (Medium)
+Matched packages:
+    - Package: httpclient, version: 4.1.1
+      PURL: pkg:maven/org.apache.httpcomponents/httpclient@4.1.1
+      Match explanation(s):
+          - github:language:java:GHSA-cfh5-3ghh-wfjx Direct match (package name, version, and ecosystem) against httpclient (version 4.1.1).
+      Locations:
+          - /TwilioNotifier.hpi:WEB-INF/lib/sdk-3.0.jar:httpclient
+URLs:
+    - https://github.com/advisories/GHSA-cfh5-3ghh-wfjx
+    - https://nvd.nist.gov/vuln/detail/CVE-2014-3577
+
+---
+
+[TestExplainSnapshot/test_a_CVE_alias_of_a_GHSA - 1]
+CVE-2014-3577 from nvd:cpe (Medium)
+org.apache.http.conn.ssl.AbstractVerifier in Apache HttpComponents HttpClient before 4.3.5 and HttpAsyncClient before 4.0.2 does not properly verify that the server hostname matches a domain name in the subject's Common Name (CN) or subjectAltName field of the X.509 certificate, which allows man-in-the-middle attackers to spoof SSL servers via a "CN=" string in a field in the distinguished name (DN) of a certificate, as demonstrated by the "foo,CN=www.apache.org" string in the O field.
+Related vulnerabilities:
+    - github:language:java GHSA-cfh5-3ghh-wfjx (Medium)
+Matched packages:
+    - Package: httpclient, version: 4.1.1
+      PURL: pkg:maven/org.apache.httpcomponents/httpclient@4.1.1
+      Match explanation(s):
+          - github:language:java:GHSA-cfh5-3ghh-wfjx Direct match (package name, version, and ecosystem) against httpclient (version 4.1.1).
+          - nvd:cpe:CVE-2014-3577 CPE match on `cpe:2.3:a:apache:httpclient:4.1.1:*:*:*:*:*:*:*`.
+      Locations:
+          - /TwilioNotifier.hpi:WEB-INF/lib/sdk-3.0.jar:httpclient
+URLs:
+    - https://nvd.nist.gov/vuln/detail/CVE-2014-3577
+    - https://github.com/advisories/GHSA-cfh5-3ghh-wfjx
+
+---

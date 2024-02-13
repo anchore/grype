@@ -1,0 +1,429 @@
+{
+ "matches": [
+    {
+      "vulnerability": {
+        "id": "CVE-2023-28755",
+        "dataSource": "http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-28755",
+        "namespace": "wolfi:distro:wolfi:rolling",
+        "severity": "High",
+        "urls": [
+          "http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-28755"
+        ],
+        "cvss": [],
+        "fix": {
+          "versions": [
+            "3.0.6-r0"
+          ],
+          "state": "fixed"
+        },
+        "advisories": []
+      },
+      "relatedVulnerabilities": [
+        {
+          "id": "CVE-2023-28755",
+          "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2023-28755",
+          "namespace": "nvd:cpe",
+          "severity": "High",
+          "urls": [
+            "https://github.com/ruby/uri/releases/",
+            "https://lists.debian.org/debian-lts-announce/2023/04/msg00033.html",
+            "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/FFZANOQA4RYX7XCB42OO3P24DQKWHEKA/",
+            "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/G76GZG3RAGYF4P75YY7J7TGYAU7Z5E2T/",
+            "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/WMIOPLBAAM3FEQNAXA2L7BDKOGSVUT5Z/",
+            "https://www.ruby-lang.org/en/downloads/releases/",
+            "https://www.ruby-lang.org/en/news/2022/12/25/ruby-3-2-0-released/",
+            "https://www.ruby-lang.org/en/news/2023/03/28/redos-in-uri-cve-2023-28755/"
+          ],
+          "description": "A ReDoS issue was discovered in the URI component through 0.12.0 in Ruby through 3.2.1. The URI parser mishandles invalid URLs that have specific characters. It causes an increase in execution time for parsing strings to URI objects. The fixed versions are 0.12.1, 0.11.1, 0.10.2 and 0.10.0.1.",
+          "cvss": [
+            {
+              "version": "3.1",
+              "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+              "metrics": {
+                "baseScore": 7.5,
+                "exploitabilityScore": 3.9,
+                "impactScore": 3.6
+              },
+              "vendorMetadata": {}
+            }
+          ]
+        }
+      ],
+      "matchDetails": [
+        {
+          "type": "exact-indirect-match",
+          "matcher": "apk-matcher",
+          "searchedBy": {
+            "distro": {
+              "type": "wolfi",
+              "version": "20221118"
+            },
+            "namespace": "wolfi:distro:wolfi:rolling",
+            "package": {
+              "name": "ruby-3.0",
+              "version": "3.0.4-r1"
+            }
+          },
+          "found": {
+            "versionConstraint": "< 3.0.6-r0 (apk)",
+            "vulnerabilityID": "CVE-2023-28755"
+          }
+        },
+        {
+          "type": "exact-direct-match",
+          "matcher": "apk-matcher",
+          "searchedBy": {
+            "distro": {
+              "type": "wolfi",
+              "version": "20221118"
+            },
+            "namespace": "wolfi:distro:wolfi:rolling",
+            "package": {
+              "name": "ruby-3.0",
+              "version": "3.0.4-r1"
+            }
+          },
+          "found": {
+            "versionConstraint": "< 3.0.6-r0 (apk)",
+            "vulnerabilityID": "CVE-2023-28755"
+          }
+        }
+      ],
+      "artifact": {
+        "name": "ruby-3.0",
+        "version": "3.0.4-r1",
+        "type": "apk",
+        "locations": [
+          {
+            "path": "/lib/apk/db/installed",
+            "layerID": "sha256:ed905fc06ed3176315bd1e33075ca5b09cd768ad78142fb45439350469556880"
+          }
+        ],
+        "language": "",
+        "licenses": [
+          "PSF-2.0"
+        ],
+        "cpes": [
+          "cpe:2.3:a:ruby-lang:ruby-3.0:3.0.4-r1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:ruby-lang:ruby_3.0:3.0.4-r1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:ruby_lang:ruby-3.0:3.0.4-r1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:ruby_lang:ruby_3.0:3.0.4-r1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:ruby-3.0:ruby-3.0:3.0.4-r1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:ruby-3.0:ruby_3.0:3.0.4-r1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:ruby_3.0:ruby-3.0:3.0.4-r1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:ruby_3.0:ruby_3.0:3.0.4-r1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:ruby-lang:ruby:3.0.4-r1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:ruby_lang:ruby:3.0.4-r1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:ruby-3.0:ruby:3.0.4-r1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:ruby:ruby-3.0:3.0.4-r1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:ruby:ruby_3.0:3.0.4-r1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:ruby_3.0:ruby:3.0.4-r1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:ruby:ruby:3.0.4-r1:*:*:*:*:*:*:*"
+        ],
+        "purl": "pkg:apk/wolfi/ruby-3.0@3.0.4-r1?arch=aarch64&distro=wolfi-20221118",
+        "upstreams": [
+          {
+            "name": "ruby-3.0"
+          }
+        ]
+      }
+    },
+    {
+      "vulnerability": {
+        "id": "CVE-2023-28755",
+        "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2023-28755",
+        "namespace": "nvd:cpe",
+        "severity": "High",
+        "urls": [
+          "https://github.com/ruby/uri/releases/",
+          "https://lists.debian.org/debian-lts-announce/2023/04/msg00033.html",
+          "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/FFZANOQA4RYX7XCB42OO3P24DQKWHEKA/",
+          "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/G76GZG3RAGYF4P75YY7J7TGYAU7Z5E2T/",
+          "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/WMIOPLBAAM3FEQNAXA2L7BDKOGSVUT5Z/",
+          "https://www.ruby-lang.org/en/downloads/releases/",
+          "https://www.ruby-lang.org/en/news/2022/12/25/ruby-3-2-0-released/",
+          "https://www.ruby-lang.org/en/news/2023/03/28/redos-in-uri-cve-2023-28755/"
+        ],
+        "description": "A ReDoS issue was discovered in the URI component through 0.12.0 in Ruby through 3.2.1. The URI parser mishandles invalid URLs that have specific characters. It causes an increase in execution time for parsing strings to URI objects. The fixed versions are 0.12.1, 0.11.1, 0.10.2 and 0.10.0.1.",
+        "cvss": [
+          {
+            "version": "3.1",
+            "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+            "metrics": {
+              "baseScore": 7.5,
+              "exploitabilityScore": 3.9,
+              "impactScore": 3.6
+            },
+            "vendorMetadata": {}
+          }
+        ],
+        "fix": {
+          "versions": [],
+          "state": "unknown"
+        },
+        "advisories": []
+      },
+      "relatedVulnerabilities": [],
+      "matchDetails": [
+        {
+          "type": "cpe-match",
+          "matcher": "ruby-gem-matcher",
+          "searchedBy": {
+            "namespace": "nvd:cpe",
+            "cpes": [
+              "cpe:2.3:a:ruby-lang:uri:0.10.1:*:*:*:*:*:*:*"
+            ]
+          },
+          "found": {
+            "vulnerabilityID": "CVE-2023-28755",
+            "versionConstraint": "<= 0.10.0 || = 0.10.1 || = 0.11.0 || = 0.12.0 (unknown)",
+            "cpes": [
+              "cpe:2.3:a:ruby-lang:uri:*:*:*:*:*:ruby:*:*",
+              "cpe:2.3:a:ruby-lang:uri:0.10.1:*:*:*:*:ruby:*:*"
+            ]
+          }
+        }
+      ],
+      "artifact": {
+        "name": "uri",
+        "version": "0.10.1",
+        "type": "gem",
+        "locations": [
+          {
+            "path": "/usr/lib/ruby/gems/3.0.0/specifications/default/uri-0.10.1.gemspec",
+            "layerID": "sha256:ed905fc06ed3176315bd1e33075ca5b09cd768ad78142fb45439350469556880"
+          }
+        ],
+        "language": "ruby",
+        "licenses": [
+          "Ruby",
+          "BSD-2-Clause"
+        ],
+        "cpes": [
+          "cpe:2.3:a:akira-yamada:uri:0.10.1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:akira_yamada:uri:0.10.1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:ruby-lang:uri:0.10.1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:ruby_lang:uri:0.10.1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:ruby:uri:0.10.1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:uri:uri:0.10.1:*:*:*:*:*:*:*"
+        ],
+        "purl": "pkg:gem/uri@0.10.1",
+        "upstreams": []
+      }
+    },
+    {
+      "vulnerability": {
+        "id": "GHSA-hv5j-3h9f-99c2",
+        "dataSource": "https://github.com/advisories/GHSA-hv5j-3h9f-99c2",
+        "namespace": "github:language:ruby",
+        "severity": "High",
+        "urls": [
+          "https://github.com/advisories/GHSA-hv5j-3h9f-99c2"
+        ],
+        "description": "Ruby URI component ReDoS issue",
+        "cvss": [],
+        "fix": {
+          "versions": [
+            "0.10.2"
+          ],
+          "state": "fixed"
+        },
+        "advisories": []
+      },
+      "relatedVulnerabilities": [
+        {
+          "id": "CVE-2023-28755",
+          "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2023-28755",
+          "namespace": "nvd:cpe",
+          "severity": "High",
+          "urls": [
+            "https://github.com/ruby/uri/releases/",
+            "https://lists.debian.org/debian-lts-announce/2023/04/msg00033.html",
+            "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/FFZANOQA4RYX7XCB42OO3P24DQKWHEKA/",
+            "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/G76GZG3RAGYF4P75YY7J7TGYAU7Z5E2T/",
+            "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/WMIOPLBAAM3FEQNAXA2L7BDKOGSVUT5Z/",
+            "https://www.ruby-lang.org/en/downloads/releases/",
+            "https://www.ruby-lang.org/en/news/2022/12/25/ruby-3-2-0-released/",
+            "https://www.ruby-lang.org/en/news/2023/03/28/redos-in-uri-cve-2023-28755/"
+          ],
+          "description": "A ReDoS issue was discovered in the URI component through 0.12.0 in Ruby through 3.2.1. The URI parser mishandles invalid URLs that have specific characters. It causes an increase in execution time for parsing strings to URI objects. The fixed versions are 0.12.1, 0.11.1, 0.10.2 and 0.10.0.1.",
+          "cvss": [
+            {
+              "version": "3.1",
+              "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+              "metrics": {
+                "baseScore": 7.5,
+                "exploitabilityScore": 3.9,
+                "impactScore": 3.6
+              },
+              "vendorMetadata": {}
+            }
+          ]
+        }
+      ],
+      "matchDetails": [
+        {
+          "type": "exact-direct-match",
+          "matcher": "ruby-gem-matcher",
+          "searchedBy": {
+            "language": "ruby",
+            "namespace": "github:language:ruby"
+          },
+          "found": {
+            "versionConstraint": "=0.10.1 (unknown)",
+            "vulnerabilityID": "GHSA-hv5j-3h9f-99c2"
+          }
+        }
+      ],
+      "artifact": {
+        "name": "uri",
+        "version": "0.10.1",
+        "type": "gem",
+        "locations": [
+          {
+            "path": "/usr/lib/ruby/gems/3.0.0/specifications/default/uri-0.10.1.gemspec",
+            "layerID": "sha256:ed905fc06ed3176315bd1e33075ca5b09cd768ad78142fb45439350469556880"
+          }
+        ],
+        "language": "ruby",
+        "licenses": [
+          "Ruby",
+          "BSD-2-Clause"
+        ],
+        "cpes": [
+          "cpe:2.3:a:akira-yamada:uri:0.10.1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:akira_yamada:uri:0.10.1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:ruby-lang:uri:0.10.1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:ruby_lang:uri:0.10.1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:ruby:uri:0.10.1:*:*:*:*:*:*:*",
+          "cpe:2.3:a:uri:uri:0.10.1:*:*:*:*:*:*:*"
+        ],
+        "purl": "pkg:gem/uri@0.10.1",
+        "upstreams": []
+      }
+    }
+  ],
+ "source": {
+  "type": "image",
+  "target": {
+   "userInput": "cgr.dev/chainguard/ruby:latest-3.0",
+   "imageID": "sha256:2f88265cfbc43ca35cd327347a9f59375b9f29ef998b8a54a882e31111266640",
+   "manifestDigest": "sha256:86abe662dfa3746038eea6b0db91092b0767d78b8b8938a343d614cd1579adc2",
+   "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+   "tags": [
+    "cgr.dev/chainguard/ruby:latest-3.0"
+   ],
+   "imageSize": 38865264,
+   "layers": [
+    {
+     "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+     "digest": "sha256:ed905fc06ed3176315bd1e33075ca5b09cd768ad78142fb45439350469556880",
+     "size": 38865264
+    }
+   ],
+   "manifest": "eyJzY2hlbWFWZXJzaW9uIjoyLCJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQuZG9ja2VyLmRpc3RyaWJ1dGlvbi5tYW5pZmVzdC52Mitqc29uIiwiY29uZmlnIjp7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5kb2NrZXIuY29udGFpbmVyLmltYWdlLnYxK2pzb24iLCJzaXplIjo1NTMsImRpZ2VzdCI6InNoYTI1NjoyZjg4MjY1Y2ZiYzQzY2EzNWNkMzI3MzQ3YTlmNTkzNzViOWYyOWVmOTk4YjhhNTRhODgyZTMxMTExMjY2NjQwIn0sImxheWVycyI6W3sibWVkaWFUeXBlIjoiYXBwbGljYXRpb24vdm5kLmRvY2tlci5pbWFnZS5yb290ZnMuZGlmZi50YXIuZ3ppcCIsInNpemUiOjQxMTYxNzI4LCJkaWdlc3QiOiJzaGEyNTY6ZWQ5MDVmYzA2ZWQzMTc2MzE1YmQxZTMzMDc1Y2E1YjA5Y2Q3NjhhZDc4MTQyZmI0NTQzOTM1MDQ2OTU1Njg4MCJ9XX0=",
+   "config": "eyJhcmNoaXRlY3R1cmUiOiJhcm02NCIsImF1dGhvciI6ImdpdGh1Yi5jb20vY2hhaW5ndWFyZC1kZXYvYXBrbyIsImNyZWF0ZWQiOiIyMDIzLTAxLTEzVDAwOjExOjI2WiIsImhpc3RvcnkiOlt7ImF1dGhvciI6ImFwa28iLCJjcmVhdGVkIjoiMjAyMy0wMS0xM1QwMDoxMToyNloiLCJjcmVhdGVkX2J5IjoiYXBrbyIsImNvbW1lbnQiOiJUaGlzIGlzIGFuIGFwa28gc2luZ2xlLWxheWVyIGltYWdlIn1dLCJvcyI6ImxpbnV4Iiwicm9vdGZzIjp7InR5cGUiOiJsYXllcnMiLCJkaWZmX2lkcyI6WyJzaGEyNTY6ZWQ5MDVmYzA2ZWQzMTc2MzE1YmQxZTMzMDc1Y2E1YjA5Y2Q3NjhhZDc4MTQyZmI0NTQzOTM1MDQ2OTU1Njg4MCJdfSwiY29uZmlnIjp7IkNtZCI6WyIvdXNyL2Jpbi9pcmIiXSwiRW52IjpbIlBBVEg9L3Vzci9sb2NhbC9zYmluOi91c3IvbG9jYWwvYmluOi91c3Ivc2JpbjovdXNyL2Jpbjovc2JpbjovYmluIiwiU1NMX0NFUlRfRklMRT0vZXRjL3NzbC9jZXJ0cy9jYS1jZXJ0aWZpY2F0ZXMuY3J0Il0sIlVzZXIiOiI2NTUzMiIsIldvcmtpbmdEaXIiOiIvd29yayJ9fQ==",
+   "repoDigests": [
+    "cgr.dev/chainguard/ruby@sha256:3c9afb4f188827ea1062ec3b8acea32893236a0d7df31e0498df93486cff0978"
+   ],
+   "architecture": "arm64",
+   "os": "linux"
+  }
+ },
+ "distro": {
+  "name": "wolfi",
+  "version": "20221118",
+  "idLike": []
+ },
+ "descriptor": {
+  "name": "grype",
+  "version": "0.61.1",
+  "configuration": {
+   "configPath": "",
+   "verbosity": 0,
+   "output": "json",
+   "file": "",
+   "distro": "",
+   "add-cpes-if-none": false,
+   "output-template-file": "",
+   "check-for-app-update": true,
+   "only-fixed": false,
+   "only-notfixed": false,
+   "platform": "",
+   "search": {
+    "scope": "Squashed",
+    "unindexed-archives": false,
+    "indexed-archives": true
+   },
+   "ignore": null,
+   "exclude": [],
+   "db": {
+    "cache-dir": "/Users/willmurphy/Library/Caches/grype/db",
+    "update-url": "https://toolbox-data.anchore.io/grype/databases/listing.json",
+    "ca-cert": "",
+    "auto-update": true,
+    "validate-by-hash-on-start": false,
+    "validate-age": true,
+    "max-allowed-built-age": 432000000000000
+   },
+   "externalSources": {
+    "enable": false,
+    "maven": {
+     "searchUpstreamBySha1": true,
+     "baseUrl": "https://search.maven.org/solrsearch/select"
+    }
+   },
+   "match": {
+    "java": {
+     "using-cpes": true
+    },
+    "dotnet": {
+     "using-cpes": true
+    },
+    "golang": {
+     "using-cpes": true
+    },
+    "javascript": {
+     "using-cpes": false
+    },
+    "python": {
+     "using-cpes": true
+    },
+    "ruby": {
+     "using-cpes": true
+    },
+    "stock": {
+     "using-cpes": true
+    }
+   },
+   "dev": {
+    "profile-cpu": false,
+    "profile-mem": false
+   },
+   "fail-on-severity": "",
+   "registry": {
+    "insecure-skip-tls-verify": false,
+    "insecure-use-http": false,
+    "auth": []
+   },
+   "log": {
+    "quiet": false,
+    "verbosity": 0,
+    "level": "warn",
+    "file": ""
+   },
+   "show-suppressed": false,
+   "by-cve": false,
+   "name": "",
+   "default-image-pull-source": ""
+  },
+  "db": {
+   "built": "2023-05-17T01:32:43Z",
+   "schemaVersion": 5,
+   "location": "/Users/willmurphy/Library/Caches/grype/db/5",
+   "checksum": "sha256:84ebb8325f426565e7a0cd00b2ea265a0ee0ec69db158a65541a42fddd1e15b0",
+   "error": null
+  },
+  "timestamp": "2023-05-17T21:00:56.783213-04:00"
+ }
+}

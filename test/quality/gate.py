@@ -60,24 +60,32 @@ class Gate:
         return len(self.reasons) == 0
 
 def guess_tool_orientation(tools: list[str]):
+    """
+    Given a pair of tools, guess which is latest version, and which is the one
+    being compared to the latest version.
+    Returns (latest_tool, current_tool)
+    """
     if len(tools) != 2:
         raise RuntimeError("expected 2 tools, got %s" % tools)
+    tool_a, tool_b = sorted(tools)
+    if tool_a == tool_b:
+        raise ValueError("latest release tool and current tool are the same")
+    if tool_a.endswith("latest"):
+        return tool_a, tool_b
+    elif tool_b.endswith("latest"):
+        return tool_b, tool_a
 
-    current_tool = None
-    latest_release_tool = None
-    for tool in tools:
-        if tool.endswith("latest"):
-            latest_release_tool = tool
-            continue
-        current_tool = tool
+    if "@path:" in tool_a and "@path:" not in tool_b:
+        # tool_a is a local build, so compare it against tool_b
+        return tool_b, tool_a
 
-    if latest_release_tool is None:
-        # "latest" value isn't accessible, so we do a best guess at which version is latest
-        latest_release_tool, current_tool = sorted(tools)
+    if "@path:" in tool_b and "@path:" not in tool_a:
+        # tool_b is a local build, so compare it against tool_a
+        return tool_a, tool_b
 
-    if current_tool is None:
-        raise ValueError("current tool not found")
-    return latest_release_tool, current_tool
+    return tool_a, tool_b
+
+
 
 class bcolors:
     HEADER = '\033[95m'
@@ -89,6 +97,17 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
     RESET = '\033[0m'
+
+if not sys.stdout.isatty():
+    bcolors.HEADER = ""
+    bcolors.OKBLUE = ""
+    bcolors.OKCYAN = ""
+    bcolors.OKGREEN = ""
+    bcolors.WARNING = ""
+    bcolors.FAIL = ""
+    bcolors.BOLD = ""
+    bcolors.UNDERLINE = ""
+    bcolors.RESET = ""
 
 def show_results_used(results: list[artifact.ScanResult]):
     print(f"   Results used:")

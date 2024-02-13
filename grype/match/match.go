@@ -26,10 +26,6 @@ func (m Match) String() string {
 	return fmt.Sprintf("Match(pkg=%s vuln=%q types=%q)", m.Package, m.Vulnerability.String(), m.Details.Types())
 }
 
-func (m Match) Summary() string {
-	return fmt.Sprintf("vuln=%q matchers=%s", m.Vulnerability.ID, m.Details.Matchers())
-}
-
 func (m Match) Fingerprint() Fingerprint {
 	return Fingerprint{
 		vulnerabilityID:        m.Vulnerability.ID,

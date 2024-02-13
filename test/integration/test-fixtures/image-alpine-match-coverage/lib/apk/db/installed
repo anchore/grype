@@ -27,3 +27,32 @@ Z:Q184HrHsxEBqnsH4QNxeU5w8alhKI=
 R:libvncclient.so.1.0.0
 a:0:0:755
 Z:Q1IEjCrEwVlQt2GjIsb3o39vcgqMg=
+
+C:Q1z0MwWQKfva+S+q7XmOBYFfQgW/k=
+P:ko
+V:0.15.1
+A:x86_64
+S:166239
+I:389120
+T:Build and deploy Go applications
+o:ko
+t:1572818861
+R:ko
+a:0:0:755
+Z:Q16Pd1AqyqQRMwiFfbUt9XkYnkapw=
+
+C:Q1z0MwWQKfva+S+q7XmOBYFfQgW/k=
+P:npm-apk-subpackage-with-false-positive
+V:7.0.0
+A:x86_64
+S:166239
+I:389120
+T:NPM package, in an APK subpackage, that has a false positive
+o:npm-apk-package-with-false-positive
+t:1572818861
+F:lib
+F:lib/node_modules
+F:lib/node_modules/npm-apk-subpackage-with-false-positive
+R:package.json
+a:0:0:755
+Z:Q16Pd1AqyqQRMwiFfbUt9XkYnkapw=

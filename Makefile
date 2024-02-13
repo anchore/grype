@@ -10,13 +10,13 @@ CHRONICLE_CMD = $(TEMP_DIR)/chronicle
 GLOW_CMD = $(TEMP_DIR)/glow
 
 # Tool versions #################################
-GOLANGCILINT_VERSION := v1.53.2
+GOLANGCILINT_VERSION := v1.56.0
 GOSIMPORTS_VERSION := v0.3.8
 BOUNCER_VERSION := v0.4.0
-CHRONICLE_VERSION := v0.6.0
-GORELEASER_VERSION := v1.18.2
+CHRONICLE_VERSION := v0.8.0
+GORELEASER_VERSION := v1.24.0
 YAJSV_VERSION := v1.4.1
-QUILL_VERSION := v0.2.0
+QUILL_VERSION := v0.4.1
 GLOW_VERSION := v1.5.1
 SKOPEO_VERSION := v1.12.0
 
@@ -142,7 +142,7 @@ lint:  ## Run gofmt + golangci lint checks
 	@[ -z "$(shell $(GOIMPORTS_CMD) -d .)" ] || (echo "goimports needs to be fixed" && false)
 
 	# go tooling does not play well with certain filename characters, ensure the common cases don't result in future "go get" failures
-	$(eval MALFORMED_FILENAMES := $(shell find . | grep -e ':'))
+	$(eval MALFORMED_FILENAMES := $(shell find . | grep -e ':' | grep -v -e "test/quality/.yardstick" -e "test/quality/vulnerability-match-labels"))
 	@bash -c "[[ '$(MALFORMED_FILENAMES)' == '' ]] || (printf '\nfound unsupported filename characters:\n$(MALFORMED_FILENAMES)\n\n' && false)"
 
 .PHONY: format
@@ -170,13 +170,14 @@ check-go-mod-tidy:
 .PHONY: unit
 unit: $(TEMP_DIR) ## Run unit tests (with coverage)
 	$(call title,Running unit tests)
-	go test -coverprofile $(TEMP_DIR)/unit-coverage-details.txt $(shell go list ./... | grep -v anchore/grype/test)
+	go test -race -coverprofile $(TEMP_DIR)/unit-coverage-details.txt $(shell go list ./... | grep -v anchore/grype/test)
 	@.github/scripts/coverage.py $(COVERAGE_THRESHOLD) $(TEMP_DIR)/unit-coverage-details.txt
 
 .PHONY: integration
 integration:  ## Run integration tests
 	$(call title,Running integration tests)
 	go test -v ./test/integration
+	go run cmd/grype/main.go alpine:latest
 
 .PHONY: quality
 quality: ## Run quality tests
@@ -258,8 +259,11 @@ compare-test-rpm-package-install: $(TEMP_DIR) $(SNAPSHOT_DIR)
 			$(COMPARE_TEST_IMAGE) \
 			$(TEMP_DIR)
 
-## Code generation targets #################################
-## TODO (cphillips) what does grype have here?
+## Code and data generation targets #################################
+
+.PHONY: generate
+generate:  ## Generate any code or data required by the project
+	cd grype/internal && go generate .
 
 ## Build-related targets #################################
 

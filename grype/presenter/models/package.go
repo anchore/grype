@@ -1,6 +1,7 @@
 package models
 
 import (
+	"github.com/anchore/grype/grype/internal/packagemetadata"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/syft/syft/file"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -18,7 +19,7 @@ type Package struct {
 	CPEs         []string           `json:"cpes"`
 	PURL         string             `json:"purl"`
 	Upstreams    []UpstreamPackage  `json:"upstreams"`
-	MetadataType pkg.MetadataType   `json:"metadataType,omitempty"`
+	MetadataType string             `json:"metadataType,omitempty"`
 	Metadata     interface{}        `json:"metadata,omitempty"`
 }
 
@@ -30,7 +31,7 @@ type UpstreamPackage struct {
 func newPackage(p pkg.Package) Package {
 	var cpes = make([]string, 0)
 	for _, c := range p.CPEs {
-		cpes = append(cpes, c.BindToFmtString())
+		cpes = append(cpes, c.Attributes.BindToFmtString())
 	}
 
 	licenses := p.Licenses
@@ -63,7 +64,7 @@ func newPackage(p pkg.Package) Package {
 		CPEs:         cpes,
 		PURL:         p.PURL,
 		Upstreams:    upstreams,
-		MetadataType: p.MetadataType,
+		MetadataType: packagemetadata.JSONName(p.Metadata),
 		Metadata:     p.Metadata,
 	}
 }

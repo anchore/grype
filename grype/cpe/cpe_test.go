@@ -17,88 +17,88 @@ func TestMatchWithoutVersion(t *testing.T) {
 	}{
 		{
 			name:    "GoCase",
-			compare: cpe.Must("cpe:2.3:*:python-requests:requests:2.3.0:*:*:*:*:python:*:*"),
+			compare: cpe.Must("cpe:2.3:*:python-requests:requests:2.3.0:*:*:*:*:python:*:*", ""),
 			candidates: []cpe.CPE{
-				cpe.Must("cpe:2.3:a:python-requests:requests:2.2.1:*:*:*:*:*:*:*"),
+				cpe.Must("cpe:2.3:a:python-requests:requests:2.2.1:*:*:*:*:*:*:*", ""),
 			},
 			expected: []cpe.CPE{
-				cpe.Must("cpe:2.3:a:python-requests:requests:2.2.1:*:*:*:*:*:*:*"),
+				cpe.Must("cpe:2.3:a:python-requests:requests:2.2.1:*:*:*:*:*:*:*", ""),
 			},
 		},
 		{
 			name:    "IgnoreVersion",
-			compare: cpe.Must("cpe:2.3:*:name:name:3.2:*:*:*:*:java:*:*"),
+			compare: cpe.Must("cpe:2.3:*:name:name:3.2:*:*:*:*:java:*:*", ""),
 			candidates: []cpe.CPE{
-				cpe.Must("cpe:2.3:*:name:name:3.2:*:*:*:*:java:*:*"),
-				cpe.Must("cpe:2.3:*:name:name:3.3:*:*:*:*:java:*:*"),
-				cpe.Must("cpe:2.3:*:name:name:5.5:*:*:*:*:java:*:*"),
+				cpe.Must("cpe:2.3:*:name:name:3.2:*:*:*:*:java:*:*", ""),
+				cpe.Must("cpe:2.3:*:name:name:3.3:*:*:*:*:java:*:*", ""),
+				cpe.Must("cpe:2.3:*:name:name:5.5:*:*:*:*:java:*:*", ""),
 			},
 			expected: []cpe.CPE{
-				cpe.Must("cpe:2.3:*:name:name:3.2:*:*:*:*:java:*:*"),
-				cpe.Must("cpe:2.3:*:name:name:3.3:*:*:*:*:java:*:*"),
-				cpe.Must("cpe:2.3:*:name:name:5.5:*:*:*:*:java:*:*"),
+				cpe.Must("cpe:2.3:*:name:name:3.2:*:*:*:*:java:*:*", ""),
+				cpe.Must("cpe:2.3:*:name:name:3.3:*:*:*:*:java:*:*", ""),
+				cpe.Must("cpe:2.3:*:name:name:5.5:*:*:*:*:java:*:*", ""),
 			},
 		},
 		{
 			name:    "MatchByTargetSW",
-			compare: cpe.Must("cpe:2.3:*:name:name:3.2:*:*:*:*:java:*:*"),
+			compare: cpe.Must("cpe:2.3:*:name:name:3.2:*:*:*:*:java:*:*", ""),
 			candidates: []cpe.CPE{
-				cpe.Must("cpe:2.3:*:name:name:3.2:*:*:*:*:java:*:*"),
-				cpe.Must("cpe:2.3:*:name:name:3.2:*:*:*:*:maven:*:*"),
-				cpe.Must("cpe:2.3:*:name:name:3.2:*:*:*:*:jenkins:*:*"),
-				cpe.Must("cpe:2.3:*:name:name:3.2:*:*:*:*:cloudbees_jenkins:*:*"),
-				cpe.Must("cpe:2.3:*:name:name:3.2:*:*:*:*:*:*:*"),
+				cpe.Must("cpe:2.3:*:name:name:3.2:*:*:*:*:java:*:*", ""),
+				cpe.Must("cpe:2.3:*:name:name:3.2:*:*:*:*:maven:*:*", ""),
+				cpe.Must("cpe:2.3:*:name:name:3.2:*:*:*:*:jenkins:*:*", ""),
+				cpe.Must("cpe:2.3:*:name:name:3.2:*:*:*:*:cloudbees_jenkins:*:*", ""),
+				cpe.Must("cpe:2.3:*:name:name:3.2:*:*:*:*:*:*:*", ""),
 			},
 			expected: []cpe.CPE{
-				cpe.Must("cpe:2.3:*:name:name:3.2:*:*:*:*:java:*:*"),
-				cpe.Must("cpe:2.3:*:name:name:3.2:*:*:*:*:*:*:*"),
+				cpe.Must("cpe:2.3:*:name:name:3.2:*:*:*:*:java:*:*", ""),
+				cpe.Must("cpe:2.3:*:name:name:3.2:*:*:*:*:*:*:*", ""),
 			},
 		},
 		{
 			name:    "MatchByName",
-			compare: cpe.Must("cpe:2.3:*:name:name5:3.2:*:*:*:*:java:*:*"),
+			compare: cpe.Must("cpe:2.3:*:name:name5:3.2:*:*:*:*:java:*:*", ""),
 			candidates: []cpe.CPE{
-				cpe.Must("cpe:2.3:*:name:name1:3.2:*:*:*:*:java:*:*"),
-				cpe.Must("cpe:2.3:*:name:name2:3.2:*:*:*:*:java:*:*"),
-				cpe.Must("cpe:2.3:*:name:name3:3.2:*:*:*:*:java:*:*"),
-				cpe.Must("cpe:2.3:*:name:name4:3.2:*:*:*:*:java:*:*"),
-				cpe.Must("cpe:2.3:*:name:name5:3.2:*:*:*:*:*:*:*"),
+				cpe.Must("cpe:2.3:*:name:name1:3.2:*:*:*:*:java:*:*", ""),
+				cpe.Must("cpe:2.3:*:name:name2:3.2:*:*:*:*:java:*:*", ""),
+				cpe.Must("cpe:2.3:*:name:name3:3.2:*:*:*:*:java:*:*", ""),
+				cpe.Must("cpe:2.3:*:name:name4:3.2:*:*:*:*:java:*:*", ""),
+				cpe.Must("cpe:2.3:*:name:name5:3.2:*:*:*:*:*:*:*", ""),
 			},
 			expected: []cpe.CPE{
-				cpe.Must("cpe:2.3:*:name:name5:3.2:*:*:*:*:*:*:*"),
+				cpe.Must("cpe:2.3:*:name:name5:3.2:*:*:*:*:*:*:*", ""),
 			},
 		},
 		{
 			name:    "MatchByVendor",
-			compare: cpe.Must("cpe:2.3:*:name3:name:3.2:*:*:*:*:java:*:*"),
+			compare: cpe.Must("cpe:2.3:*:name3:name:3.2:*:*:*:*:java:*:*", ""),
 			candidates: []cpe.CPE{
-				cpe.Must("cpe:2.3:*:name1:name:3.2:*:*:*:*:java:*:*"),
-				cpe.Must("cpe:2.3:*:name3:name:3.2:*:*:*:*:jaba-no-bother:*:*"),
-				cpe.Must("cpe:2.3:*:name3:name:3.2:*:*:*:*:java:*:*"),
-				cpe.Must("cpe:2.3:*:name4:name:3.2:*:*:*:*:java:*:*"),
-				cpe.Must("cpe:2.3:*:name5:name:3.2:*:*:*:*:*:*:*"),
+				cpe.Must("cpe:2.3:*:name1:name:3.2:*:*:*:*:java:*:*", ""),
+				cpe.Must("cpe:2.3:*:name3:name:3.2:*:*:*:*:jaba-no-bother:*:*", ""),
+				cpe.Must("cpe:2.3:*:name3:name:3.2:*:*:*:*:java:*:*", ""),
+				cpe.Must("cpe:2.3:*:name4:name:3.2:*:*:*:*:java:*:*", ""),
+				cpe.Must("cpe:2.3:*:name5:name:3.2:*:*:*:*:*:*:*", ""),
 			},
 			expected: []cpe.CPE{
-				cpe.Must("cpe:2.3:*:name3:name:3.2:*:*:*:*:java:*:*"),
+				cpe.Must("cpe:2.3:*:name3:name:3.2:*:*:*:*:java:*:*", ""),
 			},
 		},
 		{
 			name:    "MatchAnyVendorOrTargetSW",
-			compare: cpe.Must("cpe:2.3:*:*:name:3.2:*:*:*:*:*:*:*"),
+			compare: cpe.Must("cpe:2.3:*:*:name:3.2:*:*:*:*:*:*:*", ""),
 			candidates: []cpe.CPE{
-				cpe.Must("cpe:2.3:*:name1:name:3.2:*:*:*:*:java:*:*"),
-				cpe.Must("cpe:2.3:*:name3:name:3.2:*:*:*:*:jaba-no-bother:*:*"),
-				cpe.Must("cpe:2.3:*:name3:name:3.2:*:*:*:*:java:*:*"),
-				cpe.Must("cpe:2.3:*:name4:name:3.2:*:*:*:*:java:*:*"),
-				cpe.Must("cpe:2.3:*:name5:name:3.2:*:*:*:*:*:*:*"),
-				cpe.Must("cpe:2.3:*:name5:NOMATCH:3.2:*:*:*:*:*:*:*"),
+				cpe.Must("cpe:2.3:*:name1:name:3.2:*:*:*:*:java:*:*", ""),
+				cpe.Must("cpe:2.3:*:name3:name:3.2:*:*:*:*:jaba-no-bother:*:*", ""),
+				cpe.Must("cpe:2.3:*:name3:name:3.2:*:*:*:*:java:*:*", ""),
+				cpe.Must("cpe:2.3:*:name4:name:3.2:*:*:*:*:java:*:*", ""),
+				cpe.Must("cpe:2.3:*:name5:name:3.2:*:*:*:*:*:*:*", ""),
+				cpe.Must("cpe:2.3:*:name5:NOMATCH:3.2:*:*:*:*:*:*:*", ""),
 			},
 			expected: []cpe.CPE{
-				cpe.Must("cpe:2.3:*:name1:name:3.2:*:*:*:*:java:*:*"),
-				cpe.Must("cpe:2.3:*:name3:name:3.2:*:*:*:*:jaba-no-bother:*:*"),
-				cpe.Must("cpe:2.3:*:name3:name:3.2:*:*:*:*:java:*:*"),
-				cpe.Must("cpe:2.3:*:name4:name:3.2:*:*:*:*:java:*:*"),
-				cpe.Must("cpe:2.3:*:name5:name:3.2:*:*:*:*:*:*:*"),
+				cpe.Must("cpe:2.3:*:name1:name:3.2:*:*:*:*:java:*:*", ""),
+				cpe.Must("cpe:2.3:*:name3:name:3.2:*:*:*:*:jaba-no-bother:*:*", ""),
+				cpe.Must("cpe:2.3:*:name3:name:3.2:*:*:*:*:java:*:*", ""),
+				cpe.Must("cpe:2.3:*:name4:name:3.2:*:*:*:*:java:*:*", ""),
+				cpe.Must("cpe:2.3:*:name5:name:3.2:*:*:*:*:*:*:*", ""),
 			},
 		},
 	}
@@ -109,17 +109,17 @@ func TestMatchWithoutVersion(t *testing.T) {
 
 			if len(actual) != len(test.expected) {
 				for _, e := range actual {
-					t.Errorf("   unexpected entry: %+v", e.BindToFmtString())
+					t.Errorf("   unexpected entry: %+v", e.Attributes.BindToFmtString())
 				}
 				t.Fatalf("unexpected number of entries: %d", len(actual))
 			}
 
 			for idx, a := range actual {
 				e := test.expected[idx]
-				if a.BindToFmtString() != e.BindToFmtString() {
+				if a.Attributes.BindToFmtString() != e.Attributes.BindToFmtString() {
 					dmp := diffmatchpatch.New()
-					diffs := dmp.DiffMain(a.BindToFmtString(), e.BindToFmtString(), true)
-					t.Errorf("mismatched entries @ %d:\n\texpected:%+v\n\t  actual:%+v\n\t    diff:%+v\n", idx, e.BindToFmtString(), a.BindToFmtString(), dmp.DiffPrettyText(diffs))
+					diffs := dmp.DiffMain(a.Attributes.BindToFmtString(), e.Attributes.BindToFmtString(), true)
+					t.Errorf("mismatched entries @ %d:\n\texpected:%+v\n\t  actual:%+v\n\t    diff:%+v\n", idx, e.Attributes.BindToFmtString(), a.Attributes.BindToFmtString(), dmp.DiffPrettyText(diffs))
 				}
 			}
 		})

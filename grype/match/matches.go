@@ -52,6 +52,16 @@ func (r *Matches) Merge(other Matches) {
 	}
 }
 
+func (r *Matches) Diff(other Matches) *Matches {
+	diff := newMatches()
+	for fingerprint := range r.byFingerprint {
+		if _, exists := other.byFingerprint[fingerprint]; !exists {
+			diff.Add(r.byFingerprint[fingerprint])
+		}
+	}
+	return &diff
+}
+
 func (r *Matches) Add(matches ...Match) {
 	if len(matches) == 0 {
 		return

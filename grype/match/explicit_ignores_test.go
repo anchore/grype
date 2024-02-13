@@ -39,6 +39,7 @@ func Test_ApplyExplicitIgnoreRules(t *testing.T) {
 		typ      syftPkg.Type
 		matches  []cvePkg
 		expected []string
+		ignored  []string
 	}{
 		// some explicit log4j-related data:
 		// "CVE-2021-44228", "CVE-2021-45046", "GHSA-jfh8-c2jp-5v3q", "GHSA-7rjr-3q55-vv33",
@@ -69,6 +70,7 @@ func Test_ApplyExplicitIgnoreRules(t *testing.T) {
 				{"CVE-2021-44228", "log4j-core"},
 			},
 			expected: []string{"log4j-core"},
+			ignored:  []string{"log4j-api"},
 		},
 		{
 			name: "filters all matching CVEs and packages",
@@ -78,6 +80,7 @@ func Test_ApplyExplicitIgnoreRules(t *testing.T) {
 				{"GHSA-jfh8-c2jp-5v3q", "log4j-slf4j-impl"},
 			},
 			expected: []string{},
+			ignored:  []string{"log4j-api", "log4j-slf4j-impl"},
 		},
 		{
 			name: "filters invalid CVEs for protobuf Go module",
@@ -87,6 +90,7 @@ func Test_ApplyExplicitIgnoreRules(t *testing.T) {
 				{"CVE-2021-22570", "google.golang.org/protobuf"},
 			},
 			expected: []string{},
+			ignored:  []string{"google.golang.org/protobuf", "google.golang.org/protobuf"},
 		},
 		{
 			name: "keeps valid CVEs for protobuf Go module",
@@ -118,7 +122,7 @@ func Test_ApplyExplicitIgnoreRules(t *testing.T) {
 				})
 			}
 
-			filtered := ApplyExplicitIgnoreRules(p, matches)
+			filtered, ignores := ApplyExplicitIgnoreRules(p, matches)
 
 			var found []string
 			for match := range filtered.Enumerate() {
@@ -126,6 +130,16 @@ func Test_ApplyExplicitIgnoreRules(t *testing.T) {
 
 			}
 			assert.ElementsMatch(t, test.expected, found)
+
+			if len(test.ignored) > 0 {
+				var ignored []string
+				for _, i := range ignores {
+					ignored = append(ignored, i.Package.Name)
+				}
+				assert.ElementsMatch(t, test.ignored, ignored)
+			} else {
+				assert.Empty(t, ignores)
+			}
 		})
 	}
 }

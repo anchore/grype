@@ -1,6 +1,7 @@
 package search
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -81,14 +82,21 @@ func alpineCPEComparableVersion(version string) string {
 	return cpeComparableVersion
 }
 
+var ErrEmptyCPEMatch = errors.New("attempted CPE match against package with no CPEs")
+
 // ByPackageCPE retrieves all vulnerabilities that match the generated CPE
 func ByPackageCPE(store vulnerability.ProviderByCPE, d *distro.Distro, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
 	// we attempt to merge match details within the same matcher when searching by CPEs, in this way there are fewer duplicated match
 	// objects (and fewer duplicated match details).
+
+	// Warn the user if they are matching by CPE, but there are no CPEs available.
+	if len(p.CPEs) == 0 {
+		return nil, ErrEmptyCPEMatch
+	}
 	matchesByFingerprint := make(map[match.Fingerprint]match.Match)
 	for _, c := range p.CPEs {
 		// prefer the CPE version, but if npt specified use the package version
-		searchVersion := c.Version
+		searchVersion := c.Attributes.Version
 
 		if p.Type == syftPkg.ApkPkg {
 			searchVersion = alpineCPEComparableVersion(searchVersion)
@@ -151,7 +159,7 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 			SearchedBy: CPEParameters{
 				Namespace: vuln.Namespace,
 				CPEs: []string{
-					searchedByCPE.BindToFmtString(),
+					searchedByCPE.Attributes.BindToFmtString(),
 				},
 				Package: CPEPackageParameter{
 					Name:    p.Name,
@@ -210,12 +218,12 @@ func addMatchDetails(existingDetails []match.Detail, newDetails match.Detail) []
 
 func filterCPEsByVersion(pkgVersion version.Version, allCPEs []cpe.CPE) (matchedCPEs []cpe.CPE) {
 	for _, c := range allCPEs {
-		if c.Version == wfn.Any || c.Version == wfn.NA {
+		if c.Attributes.Version == wfn.Any || c.Attributes.Version == wfn.NA {
 			matchedCPEs = append(matchedCPEs, c)
 			continue
 		}
 
-		constraint, err := version.GetConstraint(c.Version, version.UnknownFormat)
+		constraint, err := version.GetConstraint(c.Attributes.Version, version.UnknownFormat)
 		if err != nil {
 			// if we can't get a version constraint, don't filter out the CPE
 			matchedCPEs = append(matchedCPEs, c)
@@ -244,7 +252,7 @@ func toMatches(matchesByFingerprint map[match.Fingerprint]match.Match) (matches 
 func cpesToString(cpes []cpe.CPE) []string {
 	var strs = make([]string, len(cpes))
 	for idx, c := range cpes {
-		strs[idx] = c.BindToFmtString()
+		strs[idx] = c.Attributes.BindToFmtString()
 	}
 	sort.Strings(strs)
 	return strs

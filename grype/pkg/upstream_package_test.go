@@ -28,7 +28,7 @@ func TestUpstreamPackages(t *testing.T) {
 				Name:    "name",
 				Version: "version",
 				CPEs: []cpe.CPE{
-					cpe.Must("cpe:2.3:*:name:name:version:*:*:*:*:*:*:*"),
+					cpe.Must("cpe:2.3:*:name:name:version:*:*:*:*:*:*:*", ""),
 				},
 				Upstreams: []UpstreamPackage{
 					{
@@ -42,7 +42,7 @@ func TestUpstreamPackages(t *testing.T) {
 					Version: "version",  // original
 					CPEs: []cpe.CPE{
 						// name and vendor replaced
-						cpe.Must("cpe:2.3:*:new-name:new-name:version:*:*:*:*:*:*:*"),
+						cpe.Must("cpe:2.3:*:new-name:new-name:version:*:*:*:*:*:*:*", ""),
 					},
 					// no upstreams
 				},
@@ -54,7 +54,7 @@ func TestUpstreamPackages(t *testing.T) {
 				Name:    "name",
 				Version: "version",
 				CPEs: []cpe.CPE{
-					cpe.Must("cpe:2.3:*:name:name:version:*:*:*:*:*:*:*"),
+					cpe.Must("cpe:2.3:*:name:name:version:*:*:*:*:*:*:*", ""),
 				},
 				Upstreams: []UpstreamPackage{
 					{
@@ -69,7 +69,7 @@ func TestUpstreamPackages(t *testing.T) {
 					Version: "new-version", // new
 					CPEs: []cpe.CPE{
 						// name, vendor, and version replaced
-						cpe.Must("cpe:2.3:*:new-name:new-name:new-version:*:*:*:*:*:*:*"),
+						cpe.Must("cpe:2.3:*:new-name:new-name:new-version:*:*:*:*:*:*:*", ""),
 					},
 					// no upstreams
 				},
@@ -81,7 +81,7 @@ func TestUpstreamPackages(t *testing.T) {
 				Name:    "name",
 				Version: "version",
 				CPEs: []cpe.CPE{
-					cpe.Must("cpe:2.3:*:name:name:version:*:*:*:*:*:*:*"),
+					cpe.Must("cpe:2.3:*:name:name:version:*:*:*:*:*:*:*", ""),
 				},
 				Upstreams: []UpstreamPackage{
 					{

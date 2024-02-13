@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"sort"
 
+	_ "github.com/glebarez/sqlite" // provide the sqlite dialect to gorm via import
 	"github.com/go-test/deep"
 	"gorm.io/gorm"
 
 	"github.com/anchore/grype/grype/db/internal/gormadapter"
 	v2 "github.com/anchore/grype/grype/db/v2"
 	"github.com/anchore/grype/grype/db/v2/store/model"
-	"github.com/anchore/grype/internal"
-	_ "github.com/anchore/sqlite" // provide the sqlite dialect to gorm via import
+	"github.com/anchore/grype/internal/stringutil"
 )
 
 // store holds an instance of the database connection
@@ -171,7 +171,7 @@ func (s *store) AddVulnerabilityMetadata(metadata ...v2.VulnerabilityMetadata) e
 				existing.CvssV3 = m.CvssV3
 			}
 
-			links := internal.NewStringSetFromSlice(existing.Links)
+			links := stringutil.NewStringSetFromSlice(existing.Links)
 			for _, l := range m.Links {
 				links.Add(l)
 			}

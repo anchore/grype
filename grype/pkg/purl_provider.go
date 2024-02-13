@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/facebookincubator/nvdtools/wfn"
 	"github.com/mitchellh/go-homedir"
 
 	"github.com/anchore/packageurl-go"
@@ -53,13 +52,13 @@ func decodePurlFile(reader io.Reader) ([]Package, error) {
 			return nil, fmt.Errorf("unable to decode purl %s: %w", rawLine, err)
 		}
 
-		cpes := []wfn.Attributes{}
+		cpes := []cpe.CPE{}
 		epoch := "0"
 		for _, qualifier := range purl.Qualifiers {
 			if qualifier.Key == cpesQualifierKey {
 				rawCpes := strings.Split(qualifier.Value, ",")
 				for _, rawCpe := range rawCpes {
-					c, err := cpe.New(rawCpe)
+					c, err := cpe.New(rawCpe, "")
 					if err != nil {
 						return nil, fmt.Errorf("unable to decode cpe %s in purl %s: %w", rawCpe, rawLine, err)
 					}

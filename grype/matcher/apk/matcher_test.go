@@ -82,7 +82,7 @@ func TestSecDBOnlyMatch(t *testing.T) {
 		Version: "0.9.9",
 		Type:    syftPkg.ApkPkg,
 		CPEs: []cpe.CPE{
-			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"),
+			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*", ""),
 		},
 	}
 
@@ -168,7 +168,7 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 		Version: "0.9.9",
 		Type:    syftPkg.ApkPkg,
 		CPEs: []cpe.CPE{
-			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"),
+			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*", ""),
 		},
 	}
 
@@ -256,7 +256,7 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 		Type:    syftPkg.ApkPkg,
 		CPEs: []cpe.CPE{
 			// Note: the product name is NOT the same as the package name
-			cpe.Must("cpe:2.3:a:*:libvncumbrellaproject:0.9.9:*:*:*:*:*:*:*"),
+			cpe.Must("cpe:2.3:a:*:libvncumbrellaproject:0.9.9:*:*:*:*:*:*:*", ""),
 		},
 	}
 
@@ -330,13 +330,13 @@ func TestNvdOnlyMatches(t *testing.T) {
 		Version: "0.9.9",
 		Type:    syftPkg.ApkPkg,
 		CPEs: []cpe.CPE{
-			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"),
+			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*", ""),
 		},
 	}
 
 	vulnFound, err := vulnerability.NewVulnerability(nvdVuln)
 	assert.NoError(t, err)
-	vulnFound.CPEs = []cpe.CPE{cpe.Must(nvdVuln.CPEs[0])}
+	vulnFound.CPEs = []cpe.CPE{cpe.Must(nvdVuln.CPEs[0], "")}
 
 	expected := []match.Match{
 		{
@@ -356,7 +356,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 						},
 					},
 					Found: search.CPEResult{
-						CPEs:              []string{vulnFound.CPEs[0].BindToFmtString()},
+						CPEs:              []string{vulnFound.CPEs[0].Attributes.BindToFmtString()},
 						VersionConstraint: vulnFound.Constraint.String(),
 						VulnerabilityID:   "CVE-2020-1",
 					},
@@ -409,13 +409,13 @@ func TestNvdMatchesProperVersionFiltering(t *testing.T) {
 		Version: "0.9.11-r10",
 		Type:    syftPkg.ApkPkg,
 		CPEs: []cpe.CPE{
-			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.11:*:*:*:*:*:*:*"),
+			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.11:*:*:*:*:*:*:*", ""),
 		},
 	}
 
 	vulnFound, err := vulnerability.NewVulnerability(nvdVulnMatch)
 	assert.NoError(t, err)
-	vulnFound.CPEs = []cpe.CPE{cpe.Must(nvdVulnMatch.CPEs[0])}
+	vulnFound.CPEs = []cpe.CPE{cpe.Must(nvdVulnMatch.CPEs[0], "")}
 
 	expected := []match.Match{
 		{
@@ -435,7 +435,7 @@ func TestNvdMatchesProperVersionFiltering(t *testing.T) {
 						},
 					},
 					Found: search.CPEResult{
-						CPEs:              []string{vulnFound.CPEs[0].BindToFmtString()},
+						CPEs:              []string{vulnFound.CPEs[0].Attributes.BindToFmtString()},
 						VersionConstraint: vulnFound.Constraint.String(),
 						VulnerabilityID:   "CVE-2020-1",
 					},
@@ -491,7 +491,7 @@ func TestNvdMatchesWithSecDBFix(t *testing.T) {
 		Version: "0.9.11",
 		Type:    syftPkg.ApkPkg,
 		CPEs: []cpe.CPE{
-			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"),
+			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*", ""),
 		},
 	}
 
@@ -544,7 +544,7 @@ func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
 		Version: "0.9.11",
 		Type:    syftPkg.ApkPkg,
 		CPEs: []cpe.CPE{
-			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"),
+			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*", ""),
 		},
 	}
 
@@ -590,6 +590,9 @@ func TestDistroMatchBySourceIndirection(t *testing.T) {
 			{
 				Name: "musl",
 			},
+		},
+		CPEs: []cpe.CPE{
+			cpe.Must("cpe:2.3:a:musl-utils:musl-utils:*:*:*:*:*:*:*:*", cpe.GeneratedSource),
 		},
 	}
 
@@ -662,8 +665,8 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 		Version: "1.3.2-r0",
 		Type:    syftPkg.ApkPkg,
 		CPEs: []cpe.CPE{
-			cpe.Must("cpe:2.3:a:musl-utils:musl-utils:*:*:*:*:*:*:*:*"),
-			cpe.Must("cpe:2.3:a:musl-utils:musl-utils:*:*:*:*:*:*:*:*"),
+			cpe.Must("cpe:2.3:a:musl-utils:musl-utils:*:*:*:*:*:*:*:*", ""),
+			cpe.Must("cpe:2.3:a:musl-utils:musl-utils:*:*:*:*:*:*:*:*", ""),
 		},
 		Upstreams: []pkg.UpstreamPackage{
 			{
@@ -674,7 +677,7 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 
 	vulnFound, err := vulnerability.NewVulnerability(nvdVuln)
 	assert.NoError(t, err)
-	vulnFound.CPEs = []cpe.CPE{cpe.Must(nvdVuln.CPEs[0])}
+	vulnFound.CPEs = []cpe.CPE{cpe.Must(nvdVuln.CPEs[0], "")}
 
 	expected := []match.Match{
 		{
@@ -693,7 +696,7 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 						},
 					},
 					Found: search.CPEResult{
-						CPEs:              []string{vulnFound.CPEs[0].BindToFmtString()},
+						CPEs:              []string{vulnFound.CPEs[0].Attributes.BindToFmtString()},
 						VersionConstraint: vulnFound.Constraint.String(),
 						VulnerabilityID:   "CVE-2020-1",
 					},

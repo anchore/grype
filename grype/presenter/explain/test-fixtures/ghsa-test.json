@@ -1,0 +1,396 @@
+{
+ "matches": [
+    {
+      "vulnerability": {
+        "id": "GHSA-cfh5-3ghh-wfjx",
+        "dataSource": "https://github.com/advisories/GHSA-cfh5-3ghh-wfjx",
+        "namespace": "github:language:java",
+        "severity": "Medium",
+        "urls": [
+          "https://github.com/advisories/GHSA-cfh5-3ghh-wfjx"
+        ],
+        "description": "Moderate severity vulnerability that affects org.apache.httpcomponents:httpclient",
+        "cvss": [],
+        "fix": {
+          "versions": [
+            "4.3.5"
+          ],
+          "state": "fixed"
+        },
+        "advisories": []
+      },
+      "relatedVulnerabilities": [
+        {
+          "id": "CVE-2014-3577",
+          "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2014-3577",
+          "namespace": "nvd:cpe",
+          "severity": "Medium",
+          "urls": [
+            "http://lists.opensuse.org/opensuse-security-announce/2020-11/msg00032.html",
+            "http://lists.opensuse.org/opensuse-security-announce/2020-11/msg00033.html",
+            "http://packetstormsecurity.com/files/127913/Apache-HttpComponents-Man-In-The-Middle.html",
+            "http://rhn.redhat.com/errata/RHSA-2014-1146.html",
+            "http://rhn.redhat.com/errata/RHSA-2014-1166.html",
+            "http://rhn.redhat.com/errata/RHSA-2014-1833.html",
+            "http://rhn.redhat.com/errata/RHSA-2014-1834.html",
+            "http://rhn.redhat.com/errata/RHSA-2014-1835.html",
+            "http://rhn.redhat.com/errata/RHSA-2014-1836.html",
+            "http://rhn.redhat.com/errata/RHSA-2014-1891.html",
+            "http://rhn.redhat.com/errata/RHSA-2014-1892.html",
+            "http://rhn.redhat.com/errata/RHSA-2015-0125.html",
+            "http://rhn.redhat.com/errata/RHSA-2015-0158.html",
+            "http://rhn.redhat.com/errata/RHSA-2015-0675.html",
+            "http://rhn.redhat.com/errata/RHSA-2015-0720.html",
+            "http://rhn.redhat.com/errata/RHSA-2015-0765.html",
+            "http://rhn.redhat.com/errata/RHSA-2015-0850.html",
+            "http://rhn.redhat.com/errata/RHSA-2015-0851.html",
+            "http://rhn.redhat.com/errata/RHSA-2015-1176.html",
+            "http://rhn.redhat.com/errata/RHSA-2015-1177.html",
+            "http://rhn.redhat.com/errata/RHSA-2015-1888.html",
+            "http://rhn.redhat.com/errata/RHSA-2016-1773.html",
+            "http://rhn.redhat.com/errata/RHSA-2016-1931.html",
+            "http://seclists.org/fulldisclosure/2014/Aug/48",
+            "http://secunia.com/advisories/60466",
+            "http://www.openwall.com/lists/oss-security/2021/10/06/1",
+            "http://www.oracle.com/technetwork/security-advisory/cpujul2018-4258247.html",
+            "http://www.osvdb.org/110143",
+            "http://www.securityfocus.com/bid/69258",
+            "http://www.securitytracker.com/id/1030812",
+            "http://www.ubuntu.com/usn/USN-2769-1",
+            "https://access.redhat.com/solutions/1165533",
+            "https://exchange.xforce.ibmcloud.com/vulnerabilities/95327",
+            "https://h20566.www2.hpe.com/portal/site/hpsc/public/kb/docDisplay?docId=emr_na-c05103564",
+            "https://h20566.www2.hpe.com/portal/site/hpsc/public/kb/docDisplay?docId=emr_na-c05363782",
+            "https://lists.apache.org/thread.html/519eb0fd45642dcecd9ff74cb3e71c20a4753f7d82e2f07864b5108f@%3Cdev.drill.apache.org%3E",
+            "https://lists.apache.org/thread.html/b0656d359c7d40ec9f39c8cc61bca66802ef9a2a12ee199f5b0c1442@%3Cdev.drill.apache.org%3E",
+            "https://lists.apache.org/thread.html/f9bc3e55f4e28d1dcd1a69aae6d53e609a758e34d2869b4d798e13cc@%3Cissues.drill.apache.org%3E",
+            "https://lists.apache.org/thread.html/r36e44ffc1a9b365327df62cdfaabe85b9a5637de102cea07d79b2dbf@%3Ccommits.cxf.apache.org%3E",
+            "https://lists.apache.org/thread.html/rc774278135816e7afc943dc9fc78eb0764f2c84a2b96470a0187315c@%3Ccommits.cxf.apache.org%3E",
+            "https://lists.apache.org/thread.html/rd49aabd984ed540c8ff7916d4d79405f3fa311d2fdbcf9ed307839a6@%3Ccommits.cxf.apache.org%3E",
+            "https://lists.apache.org/thread.html/rec7160382badd3ef4ad017a22f64a266c7188b9ba71394f0d321e2d4@%3Ccommits.cxf.apache.org%3E",
+            "https://lists.apache.org/thread.html/rfb87e0bf3995e7d560afeed750fac9329ff5f1ad49da365129b7f89e@%3Ccommits.cxf.apache.org%3E",
+            "https://lists.apache.org/thread.html/rff42cfa5e7d75b7c1af0e37589140a8f1999e578a75738740b244bd4@%3Ccommits.cxf.apache.org%3E"
+          ],
+          "description": "org.apache.http.conn.ssl.AbstractVerifier in Apache HttpComponents HttpClient before 4.3.5 and HttpAsyncClient before 4.0.2 does not properly verify that the server hostname matches a domain name in the subject's Common Name (CN) or subjectAltName field of the X.509 certificate, which allows man-in-the-middle attackers to spoof SSL servers via a \"CN=\" string in a field in the distinguished name (DN) of a certificate, as demonstrated by the \"foo,CN=www.apache.org\" string in the O field.",
+          "cvss": [
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "version": "2.0",
+              "vector": "AV:N/AC:M/Au:N/C:P/I:P/A:N",
+              "metrics": {
+                "baseScore": 5.8,
+                "exploitabilityScore": 8.6,
+                "impactScore": 4.9
+              },
+              "vendorMetadata": {}
+            }
+          ]
+        }
+      ],
+      "matchDetails": [
+        {
+          "type": "exact-direct-match",
+          "matcher": "java-matcher",
+          "searchedBy": {
+            "language": "java",
+            "namespace": "github:language:java",
+            "package": {
+              "name": "httpclient",
+              "version": "4.1.1"
+            }
+          },
+          "found": {
+            "versionConstraint": "<4.3.5 (unknown)",
+            "vulnerabilityID": "GHSA-cfh5-3ghh-wfjx"
+          }
+        }
+      ],
+      "artifact": {
+        "id": "f09cdae46b001bc5",
+        "name": "httpclient",
+        "version": "4.1.1",
+        "type": "java-archive",
+        "locations": [
+          {
+            "path": "/TwilioNotifier.hpi",
+            "layerID": "sha256:6cc6db176440e3dc3218d2e325716c1922ea9d900b61d7ad6f388fd0ed2b4ef9"
+          }
+        ],
+        "language": "java",
+        "licenses": [],
+        "cpes": [
+          "cpe:2.3:a:apache:httpclient:4.1.1:*:*:*:*:*:*:*"
+        ],
+        "purl": "pkg:maven/org.apache.httpcomponents/httpclient@4.1.1",
+        "upstreams": [],
+        "metadataType": "JavaMetadata",
+        "metadata": {
+          "virtualPath": "/TwilioNotifier.hpi:WEB-INF/lib/sdk-3.0.jar:httpclient",
+          "pomArtifactID": "httpclient",
+          "pomGroupID": "org.apache.httpcomponents",
+          "manifestName": "",
+          "archiveDigests": null
+        }
+      }
+    },
+    {
+      "vulnerability": {
+        "id": "CVE-2014-3577",
+        "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2014-3577",
+        "namespace": "nvd:cpe",
+        "severity": "Medium",
+        "urls": [
+          "http://lists.opensuse.org/opensuse-security-announce/2020-11/msg00032.html",
+          "http://lists.opensuse.org/opensuse-security-announce/2020-11/msg00033.html",
+          "http://packetstormsecurity.com/files/127913/Apache-HttpComponents-Man-In-The-Middle.html",
+          "http://rhn.redhat.com/errata/RHSA-2014-1146.html",
+          "http://rhn.redhat.com/errata/RHSA-2014-1166.html",
+          "http://rhn.redhat.com/errata/RHSA-2014-1833.html",
+          "http://rhn.redhat.com/errata/RHSA-2014-1834.html",
+          "http://rhn.redhat.com/errata/RHSA-2014-1835.html",
+          "http://rhn.redhat.com/errata/RHSA-2014-1836.html",
+          "http://rhn.redhat.com/errata/RHSA-2014-1891.html",
+          "http://rhn.redhat.com/errata/RHSA-2014-1892.html",
+          "http://rhn.redhat.com/errata/RHSA-2015-0125.html",
+          "http://rhn.redhat.com/errata/RHSA-2015-0158.html",
+          "http://rhn.redhat.com/errata/RHSA-2015-0675.html",
+          "http://rhn.redhat.com/errata/RHSA-2015-0720.html",
+          "http://rhn.redhat.com/errata/RHSA-2015-0765.html",
+          "http://rhn.redhat.com/errata/RHSA-2015-0850.html",
+          "http://rhn.redhat.com/errata/RHSA-2015-0851.html",
+          "http://rhn.redhat.com/errata/RHSA-2015-1176.html",
+          "http://rhn.redhat.com/errata/RHSA-2015-1177.html",
+          "http://rhn.redhat.com/errata/RHSA-2015-1888.html",
+          "http://rhn.redhat.com/errata/RHSA-2016-1773.html",
+          "http://rhn.redhat.com/errata/RHSA-2016-1931.html",
+          "http://seclists.org/fulldisclosure/2014/Aug/48",
+          "http://secunia.com/advisories/60466",
+          "http://www.openwall.com/lists/oss-security/2021/10/06/1",
+          "http://www.oracle.com/technetwork/security-advisory/cpujul2018-4258247.html",
+          "http://www.osvdb.org/110143",
+          "http://www.securityfocus.com/bid/69258",
+          "http://www.securitytracker.com/id/1030812",
+          "http://www.ubuntu.com/usn/USN-2769-1",
+          "https://access.redhat.com/solutions/1165533",
+          "https://exchange.xforce.ibmcloud.com/vulnerabilities/95327",
+          "https://h20566.www2.hpe.com/portal/site/hpsc/public/kb/docDisplay?docId=emr_na-c05103564",
+          "https://h20566.www2.hpe.com/portal/site/hpsc/public/kb/docDisplay?docId=emr_na-c05363782",
+          "https://lists.apache.org/thread.html/519eb0fd45642dcecd9ff74cb3e71c20a4753f7d82e2f07864b5108f@%3Cdev.drill.apache.org%3E",
+          "https://lists.apache.org/thread.html/b0656d359c7d40ec9f39c8cc61bca66802ef9a2a12ee199f5b0c1442@%3Cdev.drill.apache.org%3E",
+          "https://lists.apache.org/thread.html/f9bc3e55f4e28d1dcd1a69aae6d53e609a758e34d2869b4d798e13cc@%3Cissues.drill.apache.org%3E",
+          "https://lists.apache.org/thread.html/r36e44ffc1a9b365327df62cdfaabe85b9a5637de102cea07d79b2dbf@%3Ccommits.cxf.apache.org%3E",
+          "https://lists.apache.org/thread.html/rc774278135816e7afc943dc9fc78eb0764f2c84a2b96470a0187315c@%3Ccommits.cxf.apache.org%3E",
+          "https://lists.apache.org/thread.html/rd49aabd984ed540c8ff7916d4d79405f3fa311d2fdbcf9ed307839a6@%3Ccommits.cxf.apache.org%3E",
+          "https://lists.apache.org/thread.html/rec7160382badd3ef4ad017a22f64a266c7188b9ba71394f0d321e2d4@%3Ccommits.cxf.apache.org%3E",
+          "https://lists.apache.org/thread.html/rfb87e0bf3995e7d560afeed750fac9329ff5f1ad49da365129b7f89e@%3Ccommits.cxf.apache.org%3E",
+          "https://lists.apache.org/thread.html/rff42cfa5e7d75b7c1af0e37589140a8f1999e578a75738740b244bd4@%3Ccommits.cxf.apache.org%3E"
+        ],
+        "description": "org.apache.http.conn.ssl.AbstractVerifier in Apache HttpComponents HttpClient before 4.3.5 and HttpAsyncClient before 4.0.2 does not properly verify that the server hostname matches a domain name in the subject's Common Name (CN) or subjectAltName field of the X.509 certificate, which allows man-in-the-middle attackers to spoof SSL servers via a \"CN=\" string in a field in the distinguished name (DN) of a certificate, as demonstrated by the \"foo,CN=www.apache.org\" string in the O field.",
+        "cvss": [
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "version": "2.0",
+            "vector": "AV:N/AC:M/Au:N/C:P/I:P/A:N",
+            "metrics": {
+              "baseScore": 5.8,
+              "exploitabilityScore": 8.6,
+              "impactScore": 4.9
+            },
+            "vendorMetadata": {}
+          }
+        ],
+        "fix": {
+          "versions": [],
+          "state": "unknown"
+        },
+        "advisories": []
+      },
+      "relatedVulnerabilities": [],
+      "matchDetails": [
+        {
+          "type": "cpe-match",
+          "matcher": "java-matcher",
+          "searchedBy": {
+            "namespace": "nvd:cpe",
+            "cpes": [
+              "cpe:2.3:a:apache:httpclient:4.1.1:*:*:*:*:*:*:*"
+            ],
+            "Package": {
+              "name": "httpclient",
+              "version": "4.1.1"
+            }
+          },
+          "found": {
+            "vulnerabilityID": "CVE-2014-3577",
+            "versionConstraint": ">= 4.0, <= 4.3.4 (unknown)",
+            "cpes": [
+              "cpe:2.3:a:apache:httpclient:*:*:*:*:*:*:*:*"
+            ]
+          }
+        }
+      ],
+      "artifact": {
+        "id": "f09cdae46b001bc5",
+        "name": "httpclient",
+        "version": "4.1.1",
+        "type": "java-archive",
+        "locations": [
+          {
+            "path": "/TwilioNotifier.hpi",
+            "layerID": "sha256:6cc6db176440e3dc3218d2e325716c1922ea9d900b61d7ad6f388fd0ed2b4ef9"
+          }
+        ],
+        "language": "java",
+        "licenses": [],
+        "cpes": [
+          "cpe:2.3:a:apache:httpclient:4.1.1:*:*:*:*:*:*:*"
+        ],
+        "purl": "pkg:maven/org.apache.httpcomponents/httpclient@4.1.1",
+        "upstreams": [],
+        "metadataType": "JavaMetadata",
+        "metadata": {
+          "virtualPath": "/TwilioNotifier.hpi:WEB-INF/lib/sdk-3.0.jar:httpclient",
+          "pomArtifactID": "httpclient",
+          "pomGroupID": "org.apache.httpcomponents",
+          "manifestName": "",
+          "archiveDigests": null
+        }
+      }
+    }
+  ],
+ "source": {
+  "type": "image",
+  "target": {
+   "userInput": "anchore/test_images@sha256:10008791acbc5866de04108746a02a0c4029ce3a4400a9b3dad45d7f2245f9da",
+   "imageID": "sha256:e1a0913e5e6eb346f15791e9627842ae80b14564f9c7a4f2e0910a9433673d8b",
+   "manifestDigest": "sha256:1212e7636ec0b1a7b90eb354e761e67163c2256de127036f086876e190631b43",
+   "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+   "tags": [],
+   "imageSize": 42104079,
+   "layers": [
+    {
+     "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+     "digest": "sha256:e2eb06d8af8218cfec8210147357a68b7e13f7c485b991c288c2d01dc228bb68",
+     "size": 5590942
+    },
+    {
+     "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+     "digest": "sha256:6cc6db176440e3dc3218d2e325716c1922ea9d900b61d7ad6f388fd0ed2b4ef9",
+     "size": 36511427
+    },
+    {
+     "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+     "digest": "sha256:5d5007f009bb615228db4046d5cae910563859d1e3a37cadb2d691ea783ad8a7",
+     "size": 1710
+    }
+   ],
+   "manifest": "eyJzY2hlbWFWZXJzaW9uIjoyLCJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQuZG9ja2VyLmRpc3RyaWJ1dGlvbi5tYW5pZmVzdC52Mitqc29uIiwiY29uZmlnIjp7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5kb2NrZXIuY29udGFpbmVyLmltYWdlLnYxK2pzb24iLCJzaXplIjoyMTU5LCJkaWdlc3QiOiJzaGEyNTY6ZTFhMDkxM2U1ZTZlYjM0NmYxNTc5MWU5NjI3ODQyYWU4MGIxNDU2NGY5YzdhNGYyZTA5MTBhOTQzMzY3M2Q4YiJ9LCJsYXllcnMiOlt7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5kb2NrZXIuaW1hZ2Uucm9vdGZzLmRpZmYudGFyLmd6aXAiLCJzaXplIjo1ODY1NDcyLCJkaWdlc3QiOiJzaGEyNTY6ZTJlYjA2ZDhhZjgyMThjZmVjODIxMDE0NzM1N2E2OGI3ZTEzZjdjNDg1Yjk5MWMyODhjMmQwMWRjMjI4YmI2OCJ9LHsibWVkaWFUeXBlIjoiYXBwbGljYXRpb24vdm5kLmRvY2tlci5pbWFnZS5yb290ZnMuZGlmZi50YXIuZ3ppcCIsInNpemUiOjM2NTE1MzI4LCJkaWdlc3QiOiJzaGEyNTY6NmNjNmRiMTc2NDQwZTNkYzMyMThkMmUzMjU3MTZjMTkyMmVhOWQ5MDBiNjFkN2FkNmYzODhmZDBlZDJiNGVmOSJ9LHsibWVkaWFUeXBlIjoiYXBwbGljYXRpb24vdm5kLmRvY2tlci5pbWFnZS5yb290ZnMuZGlmZi50YXIuZ3ppcCIsInNpemUiOjM1ODQsImRpZ2VzdCI6InNoYTI1Njo1ZDUwMDdmMDA5YmI2MTUyMjhkYjQwNDZkNWNhZTkxMDU2Mzg1OWQxZTNhMzdjYWRiMmQ2OTFlYTc4M2FkOGE3In1dfQ==",
+   "config": "eyJhcmNoaXRlY3R1cmUiOiJhbWQ2NCIsImNvbmZpZyI6eyJIb3N0bmFtZSI6IiIsIkRvbWFpbm5hbWUiOiIiLCJVc2VyIjoiIiwiQXR0YWNoU3RkaW4iOmZhbHNlLCJBdHRhY2hTdGRvdXQiOmZhbHNlLCJBdHRhY2hTdGRlcnIiOmZhbHNlLCJUdHkiOmZhbHNlLCJPcGVuU3RkaW4iOmZhbHNlLCJTdGRpbk9uY2UiOmZhbHNlLCJFbnYiOlsiUEFUSD0vdXNyL2xvY2FsL3NiaW46L3Vzci9sb2NhbC9iaW46L3Vzci9zYmluOi91c3IvYmluOi9zYmluOi9iaW4iXSwiQ21kIjpbIi9iaW4vc2giXSwiSW1hZ2UiOiJzaGEyNTY6YTUyNzg0NzAxODkzMmE0ZWZlMWYxM2U4MzY3NTE4YzQ0MmI2MzE1OTA3YTE2MDRiZWJhYTJhZjg1NjgwMTc1MSIsIlZvbHVtZXMiOm51bGwsIldvcmtpbmdEaXIiOiIiLCJFbnRyeXBvaW50IjpudWxsLCJPbkJ1aWxkIjpudWxsLCJMYWJlbHMiOm51bGx9LCJjb250YWluZXJfY29uZmlnIjp7Ikhvc3RuYW1lIjoiIiwiRG9tYWlubmFtZSI6IiIsIlVzZXIiOiIiLCJBdHRhY2hTdGRpbiI6ZmFsc2UsIkF0dGFjaFN0ZG91dCI6ZmFsc2UsIkF0dGFjaFN0ZGVyciI6ZmFsc2UsIlR0eSI6ZmFsc2UsIk9wZW5TdGRpbiI6ZmFsc2UsIlN0ZGluT25jZSI6ZmFsc2UsIkVudiI6WyJQQVRIPS91c3IvbG9jYWwvc2JpbjovdXNyL2xvY2FsL2JpbjovdXNyL3NiaW46L3Vzci9iaW46L3NiaW46L2JpbiJdLCJDbWQiOlsiL2Jpbi9zaCIsIi1jIiwiIyhub3ApIENPUFkgZmlsZTo4ZTY2YzA3MmFjYjU4ZTVjN2ViZWU5MGI0ZGVhNjc1YjdjM2VmOTA5MTQ0Yjk3MzA4MzYwMGU3N2NkNDIyNzY5IGluIC8gIl0sIkltYWdlIjoic2hhMjU2OmE1Mjc4NDcwMTg5MzJhNGVmZTFmMTNlODM2NzUxOGM0NDJiNjMxNTkwN2ExNjA0YmViYWEyYWY4NTY4MDE3NTEiLCJWb2x1bWVzIjpudWxsLCJXb3JraW5nRGlyIjoiIiwiRW50cnlwb2ludCI6bnVsbCwiT25CdWlsZCI6bnVsbCwiTGFiZWxzIjpudWxsfSwiY3JlYXRlZCI6IjIwMjEtMTAtMjJUMTc6MDY6MzIuOTIxOTkxNjI5WiIsImRvY2tlcl92ZXJzaW9uIjoiMjAuMTAuNyIsImhpc3RvcnkiOlt7ImNyZWF0ZWQiOiIyMDIxLTA4LTI3VDE3OjE5OjQ1LjU1MzA5MjM2M1oiLCJjcmVhdGVkX2J5IjoiL2Jpbi9zaCAtYyAjKG5vcCkgQUREIGZpbGU6YWFkNDI5MGQyNzU4MGNjMWEwOTRmZmFmOThjM2NhMmZjNWQ2OTlmZTY5NWRmYjhlNmU5ZmFjMjBmMTEyOTQ1MCBpbiAvICJ9LHsiY3JlYXRlZCI6IjIwMjEtMDgtMjdUMTc6MTk6NDUuNzU4NjExNTIzWiIsImNyZWF0ZWRfYnkiOiIvYmluL3NoIC1jICMobm9wKSAgQ01EIFtcIi9iaW4vc2hcIl0iLCJlbXB0eV9sYXllciI6dHJ1ZX0seyJjcmVhdGVkIjoiMjAyMS0xMC0yMlQxNzowNjozMi43MTI3NTA5MjRaIiwiY3JlYXRlZF9ieSI6Ii9iaW4vc2ggLWMgd2dldCAtbnYgaHR0cHM6Ly9yZXBvMS5tYXZlbi5vcmcvbWF2ZW4yL2p1bml0L2p1bml0LzQuMTMuMS9qdW5pdC00LjEzLjEuamFyIFx1MDAyNlx1MDAyNiAgICAgd2dldCAtbnYgaHR0cHM6Ly9nZXQuamVua2lucy5pby9wbHVnaW5zL1R3aWxpb05vdGlmaWVyLzAuMi4xL1R3aWxpb05vdGlmaWVyLmhwaSBcdTAwMjZcdTAwMjYgICAgIHdnZXQgLW52IGh0dHBzOi8vdXBkYXRlcy5qZW5raW5zLWNpLm9yZy9kb3dubG9hZC93YXIvMS4zOTAvaHVkc29uLndhciBcdTAwMjZcdTAwMjYgICAgIHdnZXQgLW52IGh0dHBzOi8vZ2V0LmplbmtpbnMuaW8vcGx1Z2lucy9ub21hZC8wLjcuNC9ub21hZC5ocGkifSx7ImNyZWF0ZWQiOiIyMDIxLTEwLTIyVDE3OjA2OjMyLjkyMTk5MTYyOVoiLCJjcmVhdGVkX2J5IjoiL2Jpbi9zaCAtYyAjKG5vcCkgQ09QWSBmaWxlOjhlNjZjMDcyYWNiNThlNWM3ZWJlZTkwYjRkZWE2NzViN2MzZWY5MDkxNDRiOTczMDgzNjAwZTc3Y2Q0MjI3NjkgaW4gLyAifV0sIm9zIjoibGludXgiLCJyb290ZnMiOnsidHlwZSI6ImxheWVycyIsImRpZmZfaWRzIjpbInNoYTI1NjplMmViMDZkOGFmODIxOGNmZWM4MjEwMTQ3MzU3YTY4YjdlMTNmN2M0ODViOTkxYzI4OGMyZDAxZGMyMjhiYjY4Iiwic2hhMjU2OjZjYzZkYjE3NjQ0MGUzZGMzMjE4ZDJlMzI1NzE2YzE5MjJlYTlkOTAwYjYxZDdhZDZmMzg4ZmQwZWQyYjRlZjkiLCJzaGEyNTY6NWQ1MDA3ZjAwOWJiNjE1MjI4ZGI0MDQ2ZDVjYWU5MTA1NjM4NTlkMWUzYTM3Y2FkYjJkNjkxZWE3ODNhZDhhNyJdfX0=",
+   "repoDigests": [
+    "anchore/test_images@sha256:10008791acbc5866de04108746a02a0c4029ce3a4400a9b3dad45d7f2245f9da"
+   ],
+   "architecture": "amd64",
+   "os": "linux"
+  }
+ },
+ "distro": {
+  "name": "alpine",
+  "version": "3.14.2",
+  "idLike": []
+ },
+ "descriptor": {
+  "name": "grype",
+  "version": "0.65.1",
+  "configuration": {
+   "configPath": "",
+   "verbosity": 0,
+   "output": [
+    "json"
+   ],
+   "file": "",
+   "distro": "",
+   "add-cpes-if-none": false,
+   "output-template-file": "",
+   "check-for-app-update": true,
+   "only-fixed": false,
+   "only-notfixed": false,
+   "platform": "",
+   "search": {
+    "scope": "Squashed",
+    "unindexed-archives": false,
+    "indexed-archives": true
+   },
+   "ignore": null,
+   "exclude": [],
+   "db": {
+    "cache-dir": "/Users/willmurphy/Library/Caches/grype/db",
+    "update-url": "https://toolbox-data.anchore.io/grype/databases/listing.json",
+    "ca-cert": "",
+    "auto-update": true,
+    "validate-by-hash-on-start": false,
+    "validate-age": true,
+    "max-allowed-built-age": 432000000000000
+   },
+   "externalSources": {
+    "enable": false,
+    "maven": {
+     "searchUpstreamBySha1": true,
+     "baseUrl": "https://search.maven.org/solrsearch/select"
+    }
+   },
+   "match": {
+    "java": {
+     "using-cpes": true
+    },
+    "dotnet": {
+     "using-cpes": true
+    },
+    "golang": {
+     "using-cpes": true
+    },
+    "javascript": {
+     "using-cpes": false
+    },
+    "python": {
+     "using-cpes": true
+    },
+    "ruby": {
+     "using-cpes": true
+    },
+    "stock": {
+     "using-cpes": true
+    }
+   },
+   "dev": {
+    "profile-cpu": false,
+    "profile-mem": false
+   },
+   "fail-on-severity": "",
+   "registry": {
+    "insecure-skip-tls-verify": false,
+    "insecure-use-http": false,
+    "auth": []
+   },
+   "log": {
+    "quiet": true,
+    "verbosity": 0,
+    "level": "",
+    "file": ""
+   },
+   "show-suppressed": false,
+   "by-cve": false,
+   "name": "",
+   "default-image-pull-source": ""
+  },
+  "db": {
+   "built": "2023-08-31T01:24:19Z",
+   "schemaVersion": 5,
+   "location": "/Users/willmurphy/Library/Caches/grype/db/5",
+   "checksum": "sha256:911c05ea7c2a5f993758e5428c614914384c2a8265d7e2b0edb843799d62626c",
+   "error": null
+  },
+  "timestamp": "2023-08-31T15:13:32.377177-04:00"
+ }
+}

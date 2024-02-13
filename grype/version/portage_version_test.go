@@ -18,6 +18,8 @@ func TestVersionPortage(t *testing.T) {
 		{"1_p1", "1_p0", 1},
 		{"1_p0", "1", 1},
 		{"1-r1", "1", 1},
+		{"1.2.3-r2", "1.2.3-r1", 1},
+		{"1.2.3-r1", "1.2.3-r2", -1},
 	}
 
 	for _, test := range tests {

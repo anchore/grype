@@ -17,9 +17,10 @@ func Provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom
 	packages, ctx, s, err := syftSBOMProvider(userInput, config)
 	if !errors.Is(err, errDoesNotProvide) {
 		if len(config.Exclusions) > 0 {
-			packages, err = filterPackageExclusions(packages, config.Exclusions)
-			if err != nil {
-				return nil, ctx, s, err
+			var exclusionsErr error
+			packages, exclusionsErr = filterPackageExclusions(packages, config.Exclusions)
+			if exclusionsErr != nil {
+				return nil, ctx, s, exclusionsErr
 			}
 		}
 		return packages, ctx, s, err
@@ -75,7 +76,7 @@ func locationMatches(location file.Location, exclusion string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	matchesVirtualPath, err := doublestar.Match(exclusion, location.VirtualPath)
+	matchesVirtualPath, err := doublestar.Match(exclusion, location.AccessPath)
 	if err != nil {
 		return false, err
 	}

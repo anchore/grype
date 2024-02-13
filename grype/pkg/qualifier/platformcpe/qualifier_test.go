@@ -22,7 +22,7 @@ func TestPlatformCPE_Satisfied(t *testing.T) {
 		{
 			name:        "no filter on nil distro",
 			platformCPE: New("cpe:2.3:o:microsoft:windows:-:*:*:*:*:*:*:*"),
-			pkg:         pkg.Package{MetadataType: pkg.UnknownMetadataType},
+			pkg:         pkg.Package{},
 			distro:      nil,
 			satisfied:   true,
 			hasError:    false,
@@ -30,7 +30,7 @@ func TestPlatformCPE_Satisfied(t *testing.T) {
 		{
 			name:        "no filter when platform CPE is empty",
 			platformCPE: New(""),
-			pkg:         pkg.Package{MetadataType: pkg.UnknownMetadataType},
+			pkg:         pkg.Package{},
 			distro:      &distro.Distro{Type: distro.Windows},
 			satisfied:   true,
 			hasError:    false,
@@ -38,7 +38,7 @@ func TestPlatformCPE_Satisfied(t *testing.T) {
 		{
 			name:        "no filter when platform CPE is invalid",
 			platformCPE: New(";;;"),
-			pkg:         pkg.Package{MetadataType: pkg.UnknownMetadataType},
+			pkg:         pkg.Package{},
 			distro:      &distro.Distro{Type: distro.Windows},
 			satisfied:   true,
 			hasError:    true,
@@ -47,7 +47,7 @@ func TestPlatformCPE_Satisfied(t *testing.T) {
 		{
 			name:        "filter windows platform vuln when distro is not windows",
 			platformCPE: New("cpe:2.3:o:microsoft:windows:-:*:*:*:*:*:*:*"),
-			pkg:         pkg.Package{MetadataType: pkg.UnknownMetadataType},
+			pkg:         pkg.Package{},
 			distro:      &distro.Distro{Type: distro.Debian},
 			satisfied:   false,
 			hasError:    false,
@@ -55,7 +55,7 @@ func TestPlatformCPE_Satisfied(t *testing.T) {
 		{
 			name:        "filter windows server platform vuln when distro is not windows",
 			platformCPE: New("cpe:2.3:o:microsoft:windows_server_2022:-:*:*:*:*:*:*:*"),
-			pkg:         pkg.Package{MetadataType: pkg.UnknownMetadataType},
+			pkg:         pkg.Package{},
 			distro:      &distro.Distro{Type: distro.Debian},
 			satisfied:   false,
 			hasError:    false,
@@ -63,7 +63,7 @@ func TestPlatformCPE_Satisfied(t *testing.T) {
 		{
 			name:        "no filter windows platform vuln when distro is windows",
 			platformCPE: New("cpe:2.3:o:microsoft:windows:-:*:*:*:*:*:*:*"),
-			pkg:         pkg.Package{MetadataType: pkg.UnknownMetadataType},
+			pkg:         pkg.Package{},
 			distro:      &distro.Distro{Type: distro.Windows},
 			satisfied:   true,
 			hasError:    false,
@@ -71,7 +71,7 @@ func TestPlatformCPE_Satisfied(t *testing.T) {
 		{
 			name:        "no filter windows server platform vuln when distro is windows",
 			platformCPE: New("cpe:2.3:o:microsoft:windows_server_2022:-:*:*:*:*:*:*:*"),
-			pkg:         pkg.Package{MetadataType: pkg.UnknownMetadataType},
+			pkg:         pkg.Package{},
 			distro:      &distro.Distro{Type: distro.Windows},
 			satisfied:   true,
 			hasError:    false,
@@ -80,7 +80,7 @@ func TestPlatformCPE_Satisfied(t *testing.T) {
 		{
 			name:        "filter debian platform vuln when distro is not debian",
 			platformCPE: New("cpe:2.3:o:debian:debian_linux:-:*:*:*:*:*:*:*"),
-			pkg:         pkg.Package{MetadataType: pkg.UnknownMetadataType},
+			pkg:         pkg.Package{},
 			distro:      &distro.Distro{Type: distro.Ubuntu},
 			satisfied:   false,
 			hasError:    false,
@@ -88,7 +88,7 @@ func TestPlatformCPE_Satisfied(t *testing.T) {
 		{
 			name:        "filter debian platform vuln when distro is not debian (alternate encountered cpe)",
 			platformCPE: New("cpe:2.3:o:debian:linux:-:*:*:*:*:*:*:*"),
-			pkg:         pkg.Package{MetadataType: pkg.UnknownMetadataType},
+			pkg:         pkg.Package{},
 			distro:      &distro.Distro{Type: distro.SLES},
 			satisfied:   false,
 			hasError:    false,
@@ -96,7 +96,7 @@ func TestPlatformCPE_Satisfied(t *testing.T) {
 		{
 			name:        "no filter debian platform vuln when distro is debian",
 			platformCPE: New("cpe:2.3:o:debian:debian_linux:-:*:*:*:*:*:*:*"),
-			pkg:         pkg.Package{MetadataType: pkg.UnknownMetadataType},
+			pkg:         pkg.Package{},
 			distro:      &distro.Distro{Type: distro.Debian},
 			satisfied:   true,
 			hasError:    false,
@@ -104,7 +104,7 @@ func TestPlatformCPE_Satisfied(t *testing.T) {
 		{
 			name:        "no filter debian platform vuln when distro is debian (alternate encountered cpe)",
 			platformCPE: New("cpe:2.3:o:debian:linux:-:*:*:*:*:*:*:*"),
-			pkg:         pkg.Package{MetadataType: pkg.UnknownMetadataType},
+			pkg:         pkg.Package{},
 			distro:      &distro.Distro{Type: distro.Debian},
 			satisfied:   true,
 			hasError:    false,
@@ -113,7 +113,7 @@ func TestPlatformCPE_Satisfied(t *testing.T) {
 		{
 			name:        "filter ubuntu platform vuln when distro is not ubuntu",
 			platformCPE: New("cpe:2.3:o:canonical:ubuntu_linux:-:*:*:*:*:*:*:*"),
-			pkg:         pkg.Package{MetadataType: pkg.UnknownMetadataType},
+			pkg:         pkg.Package{},
 			distro:      &distro.Distro{Type: distro.SLES},
 			satisfied:   false,
 			hasError:    false,
@@ -121,7 +121,7 @@ func TestPlatformCPE_Satisfied(t *testing.T) {
 		{
 			name:        "filter ubuntu platform vuln when distro is not ubuntu (alternate encountered cpe)",
 			platformCPE: New("cpe:2.3:o:ubuntu:vivid:-:*:*:*:*:*:*:*"),
-			pkg:         pkg.Package{MetadataType: pkg.UnknownMetadataType},
+			pkg:         pkg.Package{},
 			distro:      &distro.Distro{Type: distro.Alpine},
 			satisfied:   false,
 			hasError:    false,
@@ -129,7 +129,7 @@ func TestPlatformCPE_Satisfied(t *testing.T) {
 		{
 			name:        "no filter ubuntu platform vuln when distro is ubuntu",
 			platformCPE: New("cpe:2.3:o:canonical:ubuntu_linux:-:*:*:*:*:*:*:*"),
-			pkg:         pkg.Package{MetadataType: pkg.UnknownMetadataType},
+			pkg:         pkg.Package{},
 			distro:      &distro.Distro{Type: distro.Ubuntu},
 			satisfied:   true,
 			hasError:    false,
@@ -137,7 +137,7 @@ func TestPlatformCPE_Satisfied(t *testing.T) {
 		{
 			name:        "no filter ubuntu platform vuln when distro is ubuntu (alternate encountered cpe)",
 			platformCPE: New("cpe:2.3:o:ubuntu:vivid:-:*:*:*:*:*:*:*"),
-			pkg:         pkg.Package{MetadataType: pkg.UnknownMetadataType},
+			pkg:         pkg.Package{},
 			distro:      &distro.Distro{Type: distro.Ubuntu},
 			satisfied:   true,
 			hasError:    false,
@@ -146,7 +146,7 @@ func TestPlatformCPE_Satisfied(t *testing.T) {
 		{
 			name:        "always filter wordpress platform vulns (no known distro)",
 			platformCPE: New("cpe:2.3:o:wordpress:wordpress:-:*:*:*:*:*:*:*"),
-			pkg:         pkg.Package{MetadataType: pkg.UnknownMetadataType},
+			pkg:         pkg.Package{},
 			distro:      nil,
 			satisfied:   false,
 			hasError:    false,
@@ -154,7 +154,7 @@ func TestPlatformCPE_Satisfied(t *testing.T) {
 		{
 			name:        "always filter wordpress platform vulns (known distro)",
 			platformCPE: New("cpe:2.3:o:ubuntu:vivid:-:*:*:*:*:*:*:*"),
-			pkg:         pkg.Package{MetadataType: pkg.UnknownMetadataType},
+			pkg:         pkg.Package{},
 			distro:      &distro.Distro{Type: distro.Alpine},
 			satisfied:   false,
 			hasError:    false,
