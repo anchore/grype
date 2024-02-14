@@ -30,7 +30,7 @@ func Explain(app clio.Application) *cobra.Command {
 	return app.SetupCommand(&cobra.Command{
 		Use:   "explain --id [VULNERABILITY ID]",
 		Short: "Ask grype to explain a set of findings",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			log.Warn("grype explain is a prototype feature and is subject to change")
 			isStdinPipeOrRedirect, err := internal.IsStdinPipeOrRedirect()
 			if err != nil {

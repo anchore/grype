@@ -73,7 +73,7 @@ You can also pipe in Syft JSON directly:
 		Args:          validateRootArgs,
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			userInput := ""
 			if len(args) > 0 {
 				userInput = args[0]

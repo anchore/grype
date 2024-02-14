@@ -1,6 +1,8 @@
 package search
 
 import (
+	"errors"
+
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -25,7 +27,10 @@ func ByCriteria(store vulnerability.Provider, d *distro.Distro, p pkg.Package, u
 		switch c {
 		case ByCPE:
 			m, err := ByPackageCPE(store, d, p, upstreamMatcher)
-			if err != nil {
+			if errors.Is(err, ErrEmptyCPEMatch) {
+				log.Warnf("attempted CPE search on %s, which has no CPEs. Consider re-running with --add-cpes-if-none", p.Name)
+				continue
+			} else if err != nil {
 				log.Warnf("could not match by package CPE (package=%+v): %v", p, err)
 				continue
 			}

@@ -17,7 +17,7 @@ func DBStatus(app clio.Application) *cobra.Command {
 		Use:   "status",
 		Short: "display database status",
 		Args:  cobra.ExactArgs(0),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			return runDBStatus(opts.DB)
 		},
 	}, opts)
