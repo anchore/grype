@@ -68,7 +68,7 @@ func create(id clio.Identification) (clio.Application, *cobra.Command) {
 				return nil
 			},
 		).
-		WithPostRuns(func(state *clio.State, err error) {
+		WithPostRuns(func(_ *clio.State, _ error) {
 			stereoscope.Cleanup()
 		})
 
