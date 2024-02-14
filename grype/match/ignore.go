@@ -24,7 +24,7 @@ type IgnoreRule struct {
 	Namespace        string            `yaml:"namespace" json:"namespace" mapstructure:"namespace"`
 	FixState         string            `yaml:"fix-state" json:"fix-state" mapstructure:"fix-state"`
 	Package          IgnoreRulePackage `yaml:"package" json:"package" mapstructure:"package"`
-	Pom           IgnoreRulePom     `yaml:"pom" json:"pom" mapstructure:"pom"`
+	Pom              IgnoreRulePom     `yaml:"pom" json:"pom" mapstructure:"pom"`
 	VexStatus        string            `yaml:"vex-status" json:"vex-status" mapstructure:"vex-status"`
 	VexJustification string            `yaml:"vex-justification" json:"vex-justification" mapstructure:"vex-justification"`
 }
