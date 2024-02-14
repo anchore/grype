@@ -18,7 +18,7 @@ func init() {
 		// https://github.com/mergebase/log4j-samples collection, we want to filter these explicitly:
 		{
 			typ:             "java-archive",
-			vulnerabilities: []string{"CVE-2021-44228", "CVE-2021-45046", "GHSA-jfh8-c2jp-5v3q", "GHSA-7rjr-3q55-vv33"},
+			vulnerabilities: []string{"CVE-2021-44228", "CVE-2021-45046", "GHSA-jfh8-c2jp-5v3q", "GHSA-7rjr-3q55-vv33", "CVE-2020-9493", "CVE-2022-23307", "CVE-2023-26464"},
 			packages:        []string{"log4j-api", "log4j-slf4j-impl", "log4j-to-slf4j", "log4j-1.2-api", "log4j-detector", "log4j-over-slf4j", "slf4j-log4j12"},
 		},
 		// Based on https://github.com/anchore/grype/issues/558:
@@ -69,7 +69,7 @@ func init() {
 }
 
 // ApplyExplicitIgnoreRules Filters out matches meeting the criteria defined above and those within the grype database
-func ApplyExplicitIgnoreRules(provider ExclusionProvider, matches Matches) Matches {
+func ApplyExplicitIgnoreRules(provider ExclusionProvider, matches Matches) (Matches, []IgnoredMatch) {
 	var ignoreRules []IgnoreRule
 	ignoreRules = append(ignoreRules, explicitIgnoreRules...)
 
@@ -84,18 +84,5 @@ func ApplyExplicitIgnoreRules(provider ExclusionProvider, matches Matches) Match
 		ignoreRules = append(ignoreRules, r...)
 	}
 
-	matches, ignored := ApplyIgnoreRules(matches, ignoreRules)
-
-	if len(ignored) > 0 {
-		log.Debugf("Removed %d explicit vulnerability matches:", len(ignored))
-		for idx, i := range ignored {
-			branch := "├──"
-			if idx == len(ignored)-1 {
-				branch = "└──"
-			}
-			log.Debugf("  %s %s : %s", branch, i.Match.Vulnerability.ID, i.Package.PURL)
-		}
-	}
-
-	return matches
+	return ApplyIgnoreRules(matches, ignoreRules)
 }

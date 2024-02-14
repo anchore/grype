@@ -9,8 +9,8 @@ import (
 	grypeDb "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/syft/syft/file"
 	syftPkg "github.com/anchore/syft/syft/pkg"
-	"github.com/anchore/syft/syft/source"
 )
 
 var (
@@ -28,7 +28,7 @@ var (
 				Name:      "dive",
 				Version:   "0.5.2",
 				Type:      "deb",
-				Locations: source.NewLocationSet(source.NewLocation("/path/that/has/dive")),
+				Locations: file.NewLocationSet(file.NewLocation("/path/that/has/dive")),
 			},
 		},
 		{
@@ -45,7 +45,7 @@ var (
 				Version:  "100.0.50",
 				Language: syftPkg.Ruby,
 				Type:     syftPkg.GemPkg,
-				Locations: source.NewLocationSet(source.NewVirtualLocation("/real/path/with/reach",
+				Locations: file.NewLocationSet(file.NewVirtualLocation("/real/path/with/reach",
 					"/virtual/path/that/has/reach")),
 			},
 		},
@@ -63,7 +63,7 @@ var (
 				Version:  "100.0.51",
 				Language: syftPkg.Ruby,
 				Type:     syftPkg.GemPkg,
-				Locations: source.NewLocationSet(source.NewVirtualLocation("/real/path/with/beach",
+				Locations: file.NewLocationSet(file.NewVirtualLocation("/real/path/with/beach",
 					"/virtual/path/that/has/beach")),
 			},
 		},
@@ -81,7 +81,7 @@ var (
 				Version:  "100.0.52",
 				Language: syftPkg.Ruby,
 				Type:     syftPkg.GemPkg,
-				Locations: source.NewLocationSet(source.NewVirtualLocation("/real/path/with/speach",
+				Locations: file.NewLocationSet(file.NewVirtualLocation("/real/path/with/speach",
 					"/virtual/path/that/has/speach")),
 			},
 		},
@@ -337,9 +337,9 @@ var (
 			ID:      pkg.ID(uuid.NewString()),
 			Name:    "a-pkg",
 			Version: "1.0",
-			Locations: source.NewLocationSet(
-				source.NewLocation("/some/path"),
-				source.NewVirtualLocation("/some/path", "/some/virtual/path"),
+			Locations: file.NewLocationSet(
+				file.NewLocation("/some/path"),
+				file.NewVirtualLocation("/some/path", "/some/virtual/path"),
 			),
 			Type: "rpm",
 		},
@@ -412,7 +412,7 @@ func TestShouldIgnore(t *testing.T) {
 			match: exampleMatch,
 			rule: IgnoreRule{
 				Package: IgnoreRulePackage{
-					Location: exampleMatch.Package.Locations.ToSlice()[1].VirtualPath,
+					Location: exampleMatch.Package.Locations.ToSlice()[1].AccessPath,
 				},
 			},
 			expected: true,

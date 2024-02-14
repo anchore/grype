@@ -4,11 +4,9 @@ There are a few useful things to know before diving into the codebase. This proj
 
 ## Getting started
 
-### Native Development
-
 After cloning do the following:
 
-1. run `go build main.go` to get a binary named `main` from the source (use `-o <name>` to get a differently named binary), or optionally `go run main.go` to run from source.
+1. run `go build ./cmd/grype` to get a binary named `main` from the source (use `-o <name>` to get a differently named binary), or optionally `go run ./cmd/grype` to run from source.
 
 In order to run tests and build all artifacts:
 
@@ -18,14 +16,6 @@ In order to run tests and build all artifacts:
 The main make tasks for common static analysis and testing are `lint`, `format`, `lint-fix`, `unit`, and `integration`.
 
 See `make help` for all the current make tasks.
-
-### Docker Development
-
-This depends on Docker and Docker Compose
-
-1. run `docker-compose build grype` to build the local development container
-2. run `docker-compose run --rm grype bash` to enter into the container with all the bootstrapped dependencies installed.
-3. run `make` to verify everything is installed and working properly
 
 ## Relationship to Syft
 
@@ -41,7 +31,7 @@ to a released version (e.g. `go get github.com/anchore/syft@v<semantic-version>`
 The currently supported database format is Sqlite3. Install `sqlite3` in your system and ensure that the `sqlite3` executable is available in your path. Ask `grype` about the location of the database, which will be different depending on the operating system:
 
 ```
-$ go run main.go db status
+$ go run ./cmd/grype db status
 Location:  /Users/alfredo/Library/Caches/grype/db
 Built:  2020-07-31 08:18:29 +0000 UTC
 Current DB Version:  1

@@ -1,0 +1,20 @@
+{
+    "@context": "https://openvex.dev/ns/v0.2.0",
+    "@id": "https://openvex.dev/docs/public/vex-d4e9020b6d0d26f131d535e055902dd6ccf3e2088bce3079a8cd3588a4b14c78",
+    "author": "The OpenVEX Project <openvex@openssf.org>",
+    "timestamp": "2023-07-17T18:28:47.696004345-06:00",
+    "version": 1,
+    "statements": [
+      {
+        "vulnerability": {
+          "name": "CVE-2014-fake-1"
+        },
+        "products": [
+          {
+            "@id": "pkg:oci/debian@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126?repository_url=index.docker.io/library"
+          }
+        ],
+        "status": "fixed"
+      }
+    ]
+  }

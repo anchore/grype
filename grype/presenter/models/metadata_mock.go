@@ -75,6 +75,27 @@ func NewMetadataMock() *MetadataMock {
 					},
 				},
 			},
+			"CVE-1999-0004": {
+				"source-2": {
+					Description: "1999-04 description",
+					Severity:    "Critical",
+					Cvss: []vulnerability.Cvss{
+						{
+							Metrics: vulnerability.NewCvssMetrics(
+								1,
+								2,
+								3,
+							),
+							Vector:  "vector",
+							Version: "2.0",
+							VendorMetadata: MockVendorMetadata{
+								BaseSeverity: "Low",
+								Status:       "verified",
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 }

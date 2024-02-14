@@ -43,7 +43,7 @@ func FromJSON(data []byte) ([]Qualifier, error) {
 			}
 			qualifiers = append(qualifiers, q)
 		default:
-			log.Warn("Skipping unsupported package qualifier: %s", k)
+			log.Debug("Skipping unsupported package qualifier: %s", k)
 			continue
 		}
 	}

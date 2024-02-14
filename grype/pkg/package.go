@@ -5,13 +5,14 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/grype/internal/stringutil"
 	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/cpe"
+	"github.com/anchore/syft/syft/file"
+	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/pkg"
 	cpes "github.com/anchore/syft/syft/pkg/cataloger/common/cpe"
-	"github.com/anchore/syft/syft/source"
 )
 
 // the source-rpm field has something akin to "util-linux-ng-2.17.2-12.28.el6_9.2.src.rpm"
@@ -28,22 +29,21 @@ type ID string
 
 // Package represents an application or library that has been bundled into a distributable format.
 type Package struct {
-	ID           ID
-	Name         string             // the package name
-	Version      string             // the version of the package
-	Locations    source.LocationSet // the locations that lead to the discovery of this package (note: this is not necessarily the locations that make up this package)
-	Language     pkg.Language       // the language ecosystem this package belongs to (e.g. JavaScript, Python, etc)
-	Licenses     []string
-	Type         pkg.Type  // the package type (e.g. Npm, Yarn, Python, Rpm, Deb, etc)
-	CPEs         []cpe.CPE // all possible Common Platform Enumerators
-	PURL         string    // the Package URL (see https://github.com/package-url/purl-spec)
-	Upstreams    []UpstreamPackage
-	MetadataType MetadataType
-	Metadata     interface{} // This is NOT 1-for-1 the syft metadata! Only the select data needed for vulnerability matching
+	ID        ID
+	Name      string           // the package name
+	Version   string           // the version of the package
+	Locations file.LocationSet // the locations that lead to the discovery of this package (note: this is not necessarily the locations that make up this package)
+	Language  pkg.Language     // the language ecosystem this package belongs to (e.g. JavaScript, Python, etc)
+	Licenses  []string
+	Type      pkg.Type  // the package type (e.g. Npm, Yarn, Python, Rpm, Deb, etc)
+	CPEs      []cpe.CPE // all possible Common Platform Enumerators
+	PURL      string    // the Package URL (see https://github.com/package-url/purl-spec)
+	Upstreams []UpstreamPackage
+	Metadata  interface{} // This is NOT 1-for-1 the syft metadata! Only the select data needed for vulnerability matching
 }
 
 func New(p pkg.Package) Package {
-	metadataType, metadata, upstreams := dataFromPkg(p)
+	metadata, upstreams := dataFromPkg(p)
 
 	licenseObjs := p.Licenses.ToSlice()
 	// note: this is used for presentation downstream and is a collection, thus should always be allocated
@@ -56,18 +56,17 @@ func New(p pkg.Package) Package {
 	}
 
 	return Package{
-		ID:           ID(p.ID()),
-		Name:         p.Name,
-		Version:      p.Version,
-		Locations:    p.Locations,
-		Licenses:     licenses,
-		Language:     p.Language,
-		Type:         p.Type,
-		CPEs:         p.CPEs,
-		PURL:         p.PURL,
-		Upstreams:    upstreams,
-		MetadataType: metadataType,
-		Metadata:     metadata,
+		ID:        ID(p.ID()),
+		Name:      p.Name,
+		Version:   p.Version,
+		Locations: p.Locations,
+		Licenses:  licenses,
+		Language:  p.Language,
+		Type:      p.Type,
+		CPEs:      p.CPEs,
+		PURL:      p.PURL,
+		Upstreams: upstreams,
+		Metadata:  metadata,
 	}
 }
 
@@ -77,7 +76,6 @@ func FromCollection(catalog *pkg.Collection, config SynthesisConfig) []Package {
 
 func FromPackages(syftpkgs []pkg.Package, config SynthesisConfig) []Package {
 	var pkgs []Package
-	var missingCPEs bool
 	for _, p := range syftpkgs {
 		if len(p.CPEs) == 0 {
 			// For SPDX (or any format, really) we may have no CPEs
@@ -85,14 +83,11 @@ func FromPackages(syftpkgs []pkg.Package, config SynthesisConfig) []Package {
 				p.CPEs = cpes.Generate(p)
 			} else {
 				log.Debugf("no CPEs for package: %s", p)
-				missingCPEs = true
 			}
 		}
 		pkgs = append(pkgs, New(p))
 	}
-	if missingCPEs {
-		log.Warnf("some package(s) are missing CPEs. This may result in missing vulnerabilities. You may autogenerate these using: --add-cpes-if-none")
-	}
+
 	return pkgs
 }
 
@@ -101,7 +96,7 @@ func (p Package) String() string {
 	return fmt.Sprintf("Pkg(type=%s, name=%s, version=%s, upstreams=%d)", p.Type, p.Name, p.Version, len(p.Upstreams))
 }
 
-func removePackagesByOverlap(catalog *pkg.Collection, relationships []artifact.Relationship) *pkg.Collection {
+func removePackagesByOverlap(catalog *pkg.Collection, relationships []artifact.Relationship, distro *linux.Release) *pkg.Collection {
 	byOverlap := map[artifact.ID]artifact.Relationship{}
 	for _, r := range relationships {
 		if r.Type == artifact.OwnershipByFileOverlapRelationship {
@@ -110,12 +105,12 @@ func removePackagesByOverlap(catalog *pkg.Collection, relationships []artifact.R
 	}
 
 	out := pkg.NewCollection()
-
+	comprehensiveDistroFeed := distroFeedIsComprehensive(distro)
 	for p := range catalog.Enumerate() {
 		r, ok := byOverlap[p.ID()]
 		if ok {
 			from, ok := r.From.(pkg.Package)
-			if ok && excludePackage(p, from) {
+			if ok && excludePackage(comprehensiveDistroFeed, p, from) {
 				continue
 			}
 		}
@@ -125,7 +120,7 @@ func removePackagesByOverlap(catalog *pkg.Collection, relationships []artifact.R
 	return out
 }
 
-func excludePackage(p pkg.Package, parent pkg.Package) bool {
+func excludePackage(comprehensiveDistroFeed bool, p pkg.Package, parent pkg.Package) bool {
 	// NOTE: we are not checking the name because we have mismatches like:
 	// python      3.9.2      binary
 	// python3.9   3.9.2-1    deb
@@ -135,45 +130,115 @@ func excludePackage(p pkg.Package, parent pkg.Package) bool {
 		return false
 	}
 
-	// filter out only binary pkg, empty types, or equal types
-	if p.Type != pkg.BinaryPkg && p.Type != "" && p.Type != parent.Type {
+	// If the parent is an OS package and the child is not, exclude the child
+	// for distros that have a comprehensive feed. That is, distros that list
+	// vulnerabilities that aren't fixed. Otherwise, the child package might
+	// be needed for matching.
+	if comprehensiveDistroFeed && isOSPackage(parent) && !isOSPackage(p) {
+		return true
+	}
+
+	// filter out binary packages, even for non-comprehensive distros
+	if p.Type != pkg.BinaryPkg {
 		return false
 	}
 
 	return true
 }
 
-func dataFromPkg(p pkg.Package) (MetadataType, interface{}, []UpstreamPackage) {
+// distroFeedIsComprehensive returns true if the distro feed
+// is comprehensive enough that we can drop packages owned by distro packages
+// before matching.
+func distroFeedIsComprehensive(distro *linux.Release) bool {
+	// TODO: this mechanism should be re-examined once https://github.com/anchore/grype/issues/1426
+	// is addressed
+	if distro == nil {
+		return false
+	}
+	if distro.ID == "amzn" {
+		// AmazonLinux shows "like rhel" but is not an rhel clone
+		// and does not have an exhaustive vulnerability feed.
+		return false
+	}
+	for _, d := range comprehensiveDistros {
+		if strings.EqualFold(d, distro.ID) {
+			return true
+		}
+		for _, n := range distro.IDLike {
+			if strings.EqualFold(d, n) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// computed by:
+// sqlite3 vulnerability.db 'select distinct namespace from vulnerability where fix_state in ("wont-fix", "not-fixed") order by namespace;' | cut -d ':' -f 1 | sort | uniq
+// then removing 'github' and replacing 'redhat' with 'rhel'
+var comprehensiveDistros = []string{
+	"debian",
+	"mariner",
+	"rhel",
+	"ubuntu",
+}
+
+func isOSPackage(p pkg.Package) bool {
+	switch p.Type {
+	case pkg.DebPkg, pkg.RpmPkg, pkg.PortagePkg, pkg.AlpmPkg, pkg.ApkPkg:
+		return true
+	default:
+		return false
+	}
+}
+
+func dataFromPkg(p pkg.Package) (interface{}, []UpstreamPackage) {
 	var metadata interface{}
 	var upstreams []UpstreamPackage
-	var metadataType MetadataType
 
-	switch p.MetadataType {
-	case pkg.GolangBinMetadataType, pkg.GolangModMetadataType:
-		metadataType, metadata = golangMetadataFromPkg(p)
-	case pkg.DpkgMetadataType:
+	switch p.Metadata.(type) {
+	case pkg.GolangModuleEntry, pkg.GolangBinaryBuildinfoEntry:
+		metadata = golangMetadataFromPkg(p)
+	case pkg.DpkgDBEntry:
 		upstreams = dpkgDataFromPkg(p)
-	case pkg.RpmMetadataType:
+	case pkg.RpmArchive, pkg.RpmDBEntry:
 		m, u := rpmDataFromPkg(p)
 		upstreams = u
 		if m != nil {
 			metadata = *m
-			metadataType = RpmMetadataType
 		}
-	case pkg.JavaMetadataType:
+	case pkg.JavaArchive:
 		if m := javaDataFromPkg(p); m != nil {
 			metadata = *m
-			metadataType = JavaMetadataType
 		}
-	case pkg.ApkMetadataType:
+	case pkg.ApkDBEntry:
+		metadata = apkMetadataFromPkg(p)
 		upstreams = apkDataFromPkg(p)
 	}
-	return metadataType, metadata, upstreams
+	return metadata, upstreams
 }
 
-func golangMetadataFromPkg(p pkg.Package) (MetadataType, interface{}) {
+func apkMetadataFromPkg(p pkg.Package) interface{} {
+	if m, ok := p.Metadata.(pkg.ApkDBEntry); ok {
+		metadata := ApkMetadata{}
+
+		fileRecords := make([]ApkFileRecord, 0, len(m.Files))
+		for _, record := range m.Files {
+			r := ApkFileRecord{Path: record.Path}
+			fileRecords = append(fileRecords, r)
+		}
+
+		metadata.Files = fileRecords
+
+		return metadata
+	}
+
+	return nil
+}
+
+func golangMetadataFromPkg(p pkg.Package) interface{} {
 	switch value := p.Metadata.(type) {
-	case pkg.GolangBinMetadata:
+	case pkg.GolangBinaryBuildinfoEntry:
 		metadata := GolangBinMetadata{}
 		if value.BuildSettings != nil {
 			metadata.BuildSettings = value.BuildSettings
@@ -182,17 +247,17 @@ func golangMetadataFromPkg(p pkg.Package) (MetadataType, interface{}) {
 		metadata.Architecture = value.Architecture
 		metadata.H1Digest = value.H1Digest
 		metadata.MainModule = value.MainModule
-		return GolangBinMetadataType, metadata
-	case pkg.GolangModMetadata:
+		return metadata
+	case pkg.GolangModuleEntry:
 		metadata := GolangModMetadata{}
 		metadata.H1Digest = value.H1Digest
-		return GolangModMetadataType, metadata
+		return metadata
 	}
-	return "", nil
+	return nil
 }
 
 func dpkgDataFromPkg(p pkg.Package) (upstreams []UpstreamPackage) {
-	if value, ok := p.Metadata.(pkg.DpkgMetadata); ok {
+	if value, ok := p.Metadata.(pkg.DpkgDBEntry); ok {
 		if value.Source != "" {
 			upstreams = append(upstreams, UpstreamPackage{
 				Name:    value.Source,
@@ -206,46 +271,66 @@ func dpkgDataFromPkg(p pkg.Package) (upstreams []UpstreamPackage) {
 }
 
 func rpmDataFromPkg(p pkg.Package) (metadata *RpmMetadata, upstreams []UpstreamPackage) {
-	if value, ok := p.Metadata.(pkg.RpmMetadata); ok {
-		if value.SourceRpm != "" {
-			name, version := getNameAndELVersion(value.SourceRpm)
-			if name == "" && version == "" {
-				log.Warnf("unable to extract name and version from SourceRPM=%q ", value.SourceRpm)
-			} else if name != p.Name {
-				// don't include matches if the source package name matches the current package name
-				upstreams = append(upstreams, UpstreamPackage{
-					Name:    name,
-					Version: version,
-				})
-			}
+	switch m := p.Metadata.(type) {
+	case pkg.RpmDBEntry:
+		if m.SourceRpm != "" {
+			upstreams = handleSourceRPM(p.Name, m.SourceRpm)
 		}
 
 		metadata = &RpmMetadata{
-			Epoch:           value.Epoch,
-			ModularityLabel: value.ModularityLabel,
+			Epoch:           m.Epoch,
+			ModularityLabel: m.ModularityLabel,
 		}
-	} else {
-		log.Warnf("unable to extract RPM metadata for %s", p)
+	case pkg.RpmArchive:
+		if m.SourceRpm != "" {
+			upstreams = handleSourceRPM(p.Name, m.SourceRpm)
+		}
+
+		metadata = &RpmMetadata{
+			Epoch:           m.Epoch,
+			ModularityLabel: m.ModularityLabel,
+		}
 	}
 	return metadata, upstreams
 }
 
+func handleSourceRPM(pkgName, sourceRpm string) []UpstreamPackage {
+	var upstreams []UpstreamPackage
+	name, version := getNameAndELVersion(sourceRpm)
+	if name == "" && version == "" {
+		log.Warnf("unable to extract name and version from SourceRPM=%q ", sourceRpm)
+	} else if name != pkgName {
+		// don't include matches if the source package name matches the current package name
+		if name != "" && version != "" {
+			upstreams = append(upstreams,
+				UpstreamPackage{
+					Name:    name,
+					Version: version,
+				},
+			)
+		}
+	}
+	return upstreams
+}
+
 func getNameAndELVersion(sourceRpm string) (string, string) {
-	groupMatches := internal.MatchCaptureGroups(rpmPackageNamePattern, sourceRpm)
+	groupMatches := stringutil.MatchCaptureGroups(rpmPackageNamePattern, sourceRpm)
 	version := groupMatches["version"] + "-" + groupMatches["release"]
 	return groupMatches["name"], version
 }
 
 func javaDataFromPkg(p pkg.Package) (metadata *JavaMetadata) {
-	if value, ok := p.Metadata.(pkg.JavaMetadata); ok {
-		var artifact, group, name string
+	if value, ok := p.Metadata.(pkg.JavaArchive); ok {
+		var artifactID, groupID, name string
 		if value.PomProperties != nil {
-			artifact = value.PomProperties.ArtifactID
-			group = value.PomProperties.GroupID
+			artifactID = value.PomProperties.ArtifactID
+			groupID = value.PomProperties.GroupID
 		}
 		if value.Manifest != nil {
-			if n, ok := value.Manifest.Main["Name"]; ok {
-				name = n
+			for _, kv := range value.Manifest.Main {
+				if kv.Key == "Name" {
+					name = kv.Value
+				}
 			}
 		}
 
@@ -261,8 +346,8 @@ func javaDataFromPkg(p pkg.Package) (metadata *JavaMetadata) {
 
 		metadata = &JavaMetadata{
 			VirtualPath:    value.VirtualPath,
-			PomArtifactID:  artifact,
-			PomGroupID:     group,
+			PomArtifactID:  artifactID,
+			PomGroupID:     groupID,
 			ManifestName:   name,
 			ArchiveDigests: archiveDigests,
 		}
@@ -273,7 +358,7 @@ func javaDataFromPkg(p pkg.Package) (metadata *JavaMetadata) {
 }
 
 func apkDataFromPkg(p pkg.Package) (upstreams []UpstreamPackage) {
-	if value, ok := p.Metadata.(pkg.ApkMetadata); ok {
+	if value, ok := p.Metadata.(pkg.ApkDBEntry); ok {
 		if value.OriginPackage != "" {
 			upstreams = append(upstreams, UpstreamPackage{
 				Name: value.OriginPackage,

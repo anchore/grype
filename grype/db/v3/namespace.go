@@ -6,8 +6,8 @@ import (
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/grype/internal/stringutil"
 	packageurl "github.com/anchore/packageurl-go"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
@@ -110,7 +110,7 @@ func defaultPackageNamer(p pkg.Package) []string {
 }
 
 func githubJavaPackageNamer(p pkg.Package) []string {
-	names := internal.NewStringSet()
+	names := stringutil.NewStringSet()
 
 	// all github advisories are stored by "<group-name>:<artifact-name>"
 	if metadata, ok := p.Metadata.(pkg.JavaMetadata); ok {

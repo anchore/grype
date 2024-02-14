@@ -1,0 +1,39 @@
+
+[TestTablePresenter/no_color - 1]
+NAME       INSTALLED  FIXED-IN          TYPE  VULNERABILITY  SEVERITY 
+package-1  1.1.1      the-next-version  rpm   CVE-1999-0001  [0;32mLow[0m       
+package-2  2.2.2                        deb   CVE-1999-0002  [1;31mCritical[0m  
+
+---
+
+[TestTablePresenter/with_color - 1]
+NAME       INSTALLED  FIXED-IN          TYPE  VULNERABILITY  SEVERITY 
+package-1  1.1.1      the-next-version  rpm   CVE-1999-0001  [0;32mLow[0m       
+package-2  2.2.2                        deb   CVE-1999-0002  [1;31mCritical[0m  
+NAME       INSTALLED  FIXED-IN          TYPE  VULNERABILITY  SEVERITY 
+package-1  1.1.1      the-next-version  rpm   CVE-1999-0001  Low       
+package-2  2.2.2                        deb   CVE-1999-0002  Critical  
+
+---
+
+[TestEmptyTablePresenter - 1]
+No vulnerabilities found
+
+---
+
+[TestHidesIgnoredMatches - 1]
+NAME       INSTALLED  FIXED-IN          TYPE  VULNERABILITY  SEVERITY 
+package-1  1.1.1      the-next-version  rpm   CVE-1999-0001  Low       
+package-2  2.2.2                        deb   CVE-1999-0002  Critical  
+
+---
+
+[TestDisplaysIgnoredMatches - 1]
+NAME       INSTALLED  FIXED-IN          TYPE  VULNERABILITY  SEVERITY                     
+package-1  1.1.1      the-next-version  rpm   CVE-1999-0001  Low                           
+package-2  2.2.2                        deb   CVE-1999-0002  Critical                      
+package-2  2.2.2                        deb   CVE-1999-0004  Critical (suppressed by VEX)  
+package-2  2.2.2                        deb   CVE-1999-0002  Critical (suppressed)         
+package-2  2.2.2                        deb   CVE-1999-0001  Low (suppressed)              
+
+---

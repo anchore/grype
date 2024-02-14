@@ -11,14 +11,14 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/go-testutils"
+	"github.com/anchore/grype/grype/presenter/internal"
 	"github.com/anchore/grype/grype/presenter/models"
-	"github.com/anchore/syft/syft/source"
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for template presenters")
 
 func TestPresenter_Present(t *testing.T) {
-	matches, packages, context, metadataProvider, appConfig, dbStatus := models.GenerateAnalysis(t, source.ImageScheme)
+	_, matches, packages, context, metadataProvider, appConfig, dbStatus := internal.GenerateAnalysis(t, internal.ImageSource)
 
 	workingDirectory, err := os.Getwd()
 	if err != nil {
@@ -53,7 +53,7 @@ func TestPresenter_Present(t *testing.T) {
 }
 
 func TestPresenter_SprigDate_Fails(t *testing.T) {
-	matches, packages, context, metadataProvider, appConfig, dbStatus := models.GenerateAnalysis(t, source.ImageScheme)
+	_, matches, packages, context, metadataProvider, appConfig, dbStatus := internal.GenerateAnalysis(t, internal.ImageSource)
 	workingDirectory, err := os.Getwd()
 	require.NoError(t, err)
 

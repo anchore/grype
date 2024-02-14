@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/stringutil"
 	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/source"
 )
@@ -65,6 +65,21 @@ func Test_NewDistroFromRelease(t *testing.T) {
 				VersionID: "8",
 			},
 			expectErr: true,
+		},
+		{
+			// syft -o json debian:testing | jq .distro
+			name: "unstable debian",
+			release: linux.Release{
+				ID:              "debian",
+				VersionID:       "",
+				Version:         "",
+				PrettyName:      "Debian GNU/Linux trixie/sid",
+				VersionCodename: "trixie",
+				Name:            "Debian GNU/Linux",
+			},
+			expectedType:       Debian,
+			expectedRawVersion: "unstable",
+			expectedVersion:    "",
 		},
 	}
 
@@ -214,8 +229,8 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 		},
 	}
 
-	observedDistros := internal.NewStringSet()
-	definedDistros := internal.NewStringSet()
+	observedDistros := stringutil.NewStringSet()
+	definedDistros := stringutil.NewStringSet()
 
 	for _, distroType := range All {
 		definedDistros.Add(string(distroType))
@@ -227,7 +242,7 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.fixture, func(t *testing.T) {
-			s, err := source.NewFromDirectory(test.fixture)
+			s, err := source.NewFromDirectory(source.DirectoryConfig{Path: test.fixture})
 			require.NoError(t, err)
 
 			resolver, err := s.FileResolver(source.SquashedScope)

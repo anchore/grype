@@ -42,7 +42,7 @@
     }
    ],
    "artifact": {
-    "id": "96699b00fe3004b4",
+    "id": "848a0f3b0d2402eb",
     "name": "package-1",
     "version": "1.1.1",
     "type": "rpm",
@@ -57,16 +57,11 @@
      "cpe:2.3:a:anchore:engine:0.9.2:*:*:python:*:*:*:*"
     ],
     "purl": "",
-    "upstreams": [
-     {
-      "name": "nothing",
-      "version": "3.2"
-     }
-    ],
+    "upstreams": [],
     "metadataType": "RpmMetadata",
     "metadata": {
      "epoch": 2,
-     "modularityLabel": ""
+     "modularityLabel": null
     }
    }
   },
@@ -112,7 +107,7 @@
     }
    ],
    "artifact": {
-    "id": "b4013a965511376c",
+    "id": "7bb53d560434bc7f",
     "name": "package-2",
     "version": "2.2.2",
     "type": "deb",
@@ -123,8 +118,8 @@
     ],
     "language": "",
     "licenses": [
-     "MIT",
-     "Apache-2.0"
+     "Apache-2.0",
+     "MIT"
     ],
     "cpes": [
      "cpe:2.3:a:anchore:engine:2.2.2:*:*:python:*:*:*:*"

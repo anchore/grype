@@ -1,8 +1,10 @@
+/.tool-versions
 /go.work
 /go.work.sum
+/.grype.yaml
 
 CHANGELOG.md
-VERSION
+/VERSION
 /snapshot/
 /dist/
 *.profile

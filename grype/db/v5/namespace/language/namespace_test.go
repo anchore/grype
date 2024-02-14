@@ -26,6 +26,10 @@ func TestFromString(t *testing.T) {
 			result:          NewNamespace("github", syftPkg.Java, ""),
 		},
 		{
+			namespaceString: "github:language:rust",
+			result:          NewNamespace("github", syftPkg.Rust, ""),
+		},
+		{
 			namespaceString: "abc.xyz:language:something",
 			result:          NewNamespace("abc.xyz", syftPkg.Language("something"), ""),
 		},

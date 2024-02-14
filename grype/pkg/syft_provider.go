@@ -1,47 +1,80 @@
 package pkg
 
 import (
+	"context"
+	"errors"
+
+	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
 )
 
 func syftProvider(userInput string, config ProviderConfig) ([]Package, Context, *sbom.SBOM, error) {
-	if config.CatalogingOptions.Search.Scope == "" {
-		return nil, Context{}, nil, errDoesNotProvide
-	}
-
-	sourceInput, err := source.ParseInputWithName(userInput, config.Platform, config.Name, config.DefaultImagePullSource)
+	src, err := getSource(userInput, config)
 	if err != nil {
 		return nil, Context{}, nil, err
 	}
 
-	src, cleanup, err := source.New(*sourceInput, config.RegistryOptions, config.Exclusions)
+	defer func() {
+		if src != nil {
+			if err := src.Close(); err != nil {
+				log.Tracef("unable to close source: %+v", err)
+			}
+		}
+	}()
+
+	s, err := syft.CreateSBOM(context.Background(), src, config.SBOMOptions)
 	if err != nil {
 		return nil, Context{}, nil, err
 	}
-	defer cleanup()
 
-	catalog, relationships, theDistro, err := syft.CatalogPackages(src, config.CatalogingOptions)
+	if s == nil {
+		return nil, Context{}, nil, errors.New("no SBOM provided")
+	}
+
+	pkgCatalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, s.Artifacts.LinuxDistribution)
+
+	srcDescription := src.Describe()
+
+	packages := FromCollection(pkgCatalog, config.SynthesisConfig)
+	pkgCtx := Context{
+		Source: &srcDescription,
+		Distro: s.Artifacts.LinuxDistribution,
+	}
+
+	return packages, pkgCtx, s, nil
+}
+
+func getSource(userInput string, config ProviderConfig) (source.Source, error) {
+	if config.SBOMOptions.Search.Scope == "" {
+		return nil, errDoesNotProvide
+	}
+
+	detection, err := source.Detect(userInput, source.DetectConfig{
+		DefaultImageSource: config.DefaultImagePullSource,
+	})
 	if err != nil {
-		return nil, Context{}, nil, err
+		return nil, err
 	}
 
-	catalog = removePackagesByOverlap(catalog, relationships)
-
-	packages := FromCollection(catalog, config.SynthesisConfig)
-	context := Context{
-		Source: &src.Metadata,
-		Distro: theDistro,
+	var platform *image.Platform
+	if config.Platform != "" {
+		platform, err = image.NewPlatform(config.Platform)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	sbom := &sbom.SBOM{
-		Source:        src.Metadata,
-		Relationships: relationships,
-		Artifacts: sbom.Artifacts{
-			Packages: catalog,
+	return detection.NewSource(source.DetectionSourceConfig{
+		Alias: source.Alias{
+			Name: config.Name,
 		},
-	}
-
-	return packages, context, sbom, nil
+		RegistryOptions: config.RegistryOptions,
+		Platform:        platform,
+		Exclude: source.ExcludeConfig{
+			Paths: config.Exclusions,
+		},
+	})
 }

@@ -12,7 +12,6 @@ linters:
   enable:
     - asciicheck
     - bodyclose
-    - depguard
     - dogsled
     - dupl
     - errcheck
@@ -57,6 +56,7 @@ run:
 
 # do not enable...
 #    - deadcode          # The owner seems to have abandoned the linter. Replaced by "unused".
+#    - depguard          # we need to setup a configuration for this
 #    - goprintffuncname  # does not catch all cases and there are exceptions
 #    - nakedret          # does not catch all cases and should not fail a build
 #    - gochecknoglobals
