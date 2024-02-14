@@ -15,6 +15,8 @@ type MockVendorMetadata struct {
 }
 
 // NewMetadataMock returns a new instance of MetadataMock.
+//
+//nolint:funlen
 func NewMetadataMock() *MetadataMock {
 	return &MetadataMock{
 		store: map[string]map[string]vulnerability.Metadata{

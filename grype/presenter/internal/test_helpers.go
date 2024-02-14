@@ -233,6 +233,7 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 	}
 }
 
+//nolint:funlen
 func generatePackages(t *testing.T) []syftPkg.Package {
 	t.Helper()
 	epoch := 2
