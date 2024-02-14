@@ -70,6 +70,7 @@ func FromStrings(namespaces []string) (*Index, error) {
 }
 
 func (i *Index) NamespacesForLanguage(l syftPkg.Language) []*language.Namespace {
+	// TODO: WILL: why no nvd:language:java namespace?
 	if _, ok := i.byLanguage[l]; ok {
 		return i.byLanguage[l]
 	}
