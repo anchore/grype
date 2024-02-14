@@ -83,6 +83,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		string(syftPkg.GithubActionPkg),
 		string(syftPkg.GithubActionWorkflowPkg),
 		string(syftPkg.ErlangOTPPkg),
+		string(syftPkg.WordpressPluginPkg), // TODO: remove me when there is a matcher for this merged in https://github.com/anchore/grype/pull/1553
 	)
 	observedPkgTypes := strset.New()
 	testCases := []struct {
