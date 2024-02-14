@@ -22,7 +22,7 @@ func DBCheck(app clio.Application) *cobra.Command {
 		Use:   "check",
 		Short: "check to see if there is a database update available",
 		Args:  cobra.ExactArgs(0),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			return runDBCheck(opts.DB)
 		},
 	}, opts)
