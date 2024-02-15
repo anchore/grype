@@ -66,6 +66,14 @@ You can also choose another destination directory and release version for the in
 curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b <DESTINATION_DIR> <RELEASE_VERSION>
 ```
 
+### Chocolatey
+
+The chocolatey distribution of grype is community maintained and not distributed by the anchore team
+
+```bash
+choco install grype -y
+```
+
 ### Homebrew
 
 ```bash
