@@ -3,6 +3,7 @@ package store
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	_ "github.com/glebarez/sqlite" // provide the sqlite dialect to gorm via import
 	"github.com/go-test/deep"
@@ -41,6 +42,9 @@ func New(dbFilePath string, overwrite bool) (v5.Store, error) {
 		}
 		if err := db.AutoMigrate(&model.VulnerabilityMatchExclusionModel{}); err != nil {
 			return nil, fmt.Errorf("unable to migrate Vulnerability Match Exclusion model: %w", err)
+		}
+		if err := db.AutoMigrate(&model.CisaKnownExploitedVulnerabilityModel{}); err != nil {
+			return nil, fmt.Errorf("unable to migrate CISA Known Exploited Vulnerability model: %w", err)
 		}
 	}
 
@@ -148,6 +152,48 @@ func (s *store) AddVulnerability(vulnerabilities ...v5.Vulnerability) error {
 	return nil
 }
 
+func (s *store) getCisaKnownExploitedVulnerabilities(cveId str) (*v5.VulnerabilityMetadata, error) {
+	if !s.db.Migrator().HasTable(model.CisaKnownExploitedVulnerabilityTableName) {
+		return nil, nil
+	}
+
+	if !strings.HasPrefix(cveId, "CVE-") {
+		return nil, nil
+	}
+
+	var model model.CisaKnownExploitedVulnerability
+
+	result := s.db.First(&model, "cveId = ?", cveId)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return result
+}
+
+func (s *store) addCisaKnownExploitedVulnerabilities(c v5.CisaKnownExploitedVulnerability) error {
+	if !s.db.Migrator().HasTable(model.CisaKnownExploitedVulnerabilityTableName) {
+		return nil
+	}
+
+	existing, err := s.getCisaKnownExploitedVulnerabilities(c.CveId)
+	if err != nil {
+		return fmt.Errorf("failed to verify existing CISA Known Exploited Vulnerability entry: %w", err)
+	}
+
+	if existing != nil {
+		return nil
+	}
+
+	model := model.NewCisaKnownExploitedVulnerabilityModel(c)
+	result := s.db.Create(&model)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
+}
+
 // GetVulnerabilityMetadata retrieves metadata for the given vulnerability ID relative to a specific record source.
 func (s *store) GetVulnerabilityMetadata(id, namespace string) (*v5.VulnerabilityMetadata, error) {
 	var models []model.VulnerabilityMetadataModel
@@ -165,6 +211,13 @@ func (s *store) GetVulnerabilityMetadata(id, namespace string) (*v5.Vulnerabilit
 		if err != nil {
 			return nil, err
 		}
+
+		knownExploitedVulns, err := s.getCisaKnownExploitedVulnerabilities(metadata.ID)
+		if err != nil {
+			return &metadata, nil
+		}
+
+		metadata.Cisa = knownExploitedVulns.Inflate()
 
 		return &metadata, nil
 	}
@@ -235,6 +288,13 @@ func (s *store) AddVulnerabilityMetadata(metadata ...v5.VulnerabilityMetadata) e
 
 			if result.RowsAffected != 1 {
 				return fmt.Errorf("unable to add vulnerability metadata (%d rows affected)", result.RowsAffected)
+			}
+
+			if m.Cisa != nil {
+				err := s.addCisaKnownExploitedVulnerabilities(m.Cisa)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
