@@ -2,6 +2,7 @@ package store
 
 import (
 	"fmt"
+	"github.com/anchore/grype/grype/db/v5/purlvulnerability"
 	"sort"
 
 	_ "github.com/glebarez/sqlite" // provide the sqlite dialect to gorm via import
@@ -378,4 +379,12 @@ func (s *store) DiffStore(targetStore v5.StoreReader) (*[]v5.Diff, error) {
 	diffItems.SetCompleted()
 
 	return &allDiffs, nil
+}
+
+func (s *store) WriteGeneric(g purlvulnerability.Generic) {
+	panic("implement")
+}
+
+func (s *store) WriteMaven(g purlvulnerability.Maven) {
+	panic("implement")
 }
