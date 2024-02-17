@@ -103,14 +103,14 @@ func FuncMap(tpl **template.Template) template.FuncMap {
 		sort.Sort(models.MatchSort(matches))
 		return matches
 	}
-	f["csvToTable"] = csvToTable(tpl)
-	f["inline"] = inlineLines(tpl)
-	f["uniqueLines"] = uniqueLines(tpl)
+	f["templateCsvToTable"] = templateCsvToTable(tpl)
+	f["templateRemoveNewlines"] = templateRemoveNewlines(tpl)
+	f["templateUniqueLines"] = templateUniqueLines(tpl)
 	return f
 }
 
-// csvToTable removes any whitespace-only lines, and renders a table based csv from the rendered template
-func csvToTable(tpl **template.Template) func(templateName string, data any) (string, error) {
+// templateCsvToTable removes any whitespace-only lines and renders a table based csv from the named template
+func templateCsvToTable(tpl **template.Template) func(templateName string, data any) (string, error) {
 	return func(templateName string, data any) (string, error) {
 		in, err := evalTemplate(tpl, templateName, data)
 		if err != nil {
@@ -164,8 +164,8 @@ func csvToTable(tpl **template.Template) func(templateName string, data any) (st
 	}
 }
 
-// inlineLines take a multi-line rendered template string and remove newlines
-func inlineLines(tpl **template.Template) func(templateName string, data any) (string, error) {
+// templateRemoveNewlines remove all newlines from the rendered template
+func templateRemoveNewlines(tpl **template.Template) func(templateName string, data any) (string, error) {
 	return func(templateName string, data any) (string, error) {
 		text, err := evalTemplate(tpl, templateName, data)
 		if err != nil {
@@ -176,8 +176,8 @@ func inlineLines(tpl **template.Template) func(templateName string, data any) (s
 	}
 }
 
-// uniqueLines remove any duplicate lines, leaving only one copy from a rendered template
-func uniqueLines(tpl **template.Template) func(templateName string, data any) (string, error) {
+// templateUniqueLines remove any duplicate lines from the rendered template
+func templateUniqueLines(tpl **template.Template) func(templateName string, data any) (string, error) {
 	return func(templateName string, data any) (string, error) {
 		text, err := evalTemplate(tpl, templateName, data)
 		if err != nil {

@@ -10,13 +10,13 @@
 
 {{- define "matches"}}
   {{range .Matches}}
-    {{inline "line" .}}
+    {{templateRemoveNewlines "line" .}}
   {{end}}
 {{end}}
 
 {{- define "table"}}
-Name, Version, Fixed-in, Type, Vulnerability, Severity,Location
-{{uniqueLines "matches" .}}
+Name, Version, Fixed-in, Type, Vulnerability, Severity, Location
+{{templateUniqueLines "matches" .}}
 {{end}}
 
-{{- csvToTable "table" .}}
+{{- templateCsvToTable "table" .}}
