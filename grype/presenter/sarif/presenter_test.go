@@ -227,8 +227,8 @@ func TestToSarifReport(t *testing.T) {
 			name:   "image",
 			scheme: internal.ImageSource,
 			locations: map[string]string{
-				"CVE-1999-0001-package-1": "image/somefile-1.txt",
-				"CVE-1999-0002-package-2": "image/somefile-2.txt",
+				"CVE-1999-0001-package-1": "user-input somefile-1.txt",
+				"CVE-1999-0002-package-2": "user-input somefile-2.txt",
 			},
 		},
 	}

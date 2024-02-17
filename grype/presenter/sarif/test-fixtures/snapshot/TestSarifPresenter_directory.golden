@@ -52,7 +52,7 @@
         {
           "ruleId": "CVE-1999-0001-package-1",
           "message": {
-            "text": "The path /some/path/somefile-1.txt reports package-1 at version 1.1.1  which would result in a vulnerable (rpm) package installed"
+            "text": "A low vulnerability in rpm package: package-1, version 1.1.1 was found at: /some/path/somefile-1.txt"
           },
           "locations": [
             {
@@ -68,12 +68,15 @@
                 }
               }
             }
-          ]
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "10042ee410e5436e32faadfdddc8b578ed580feb0f234972babdd58b051eac94:1"
+          }
         },
         {
           "ruleId": "CVE-1999-0002-package-2",
           "message": {
-            "text": "The path /some/path/somefile-2.txt reports package-2 at version 2.2.2  which would result in a vulnerable (deb) package installed"
+            "text": "A critical vulnerability in deb package: package-2, version 2.2.2 was found at: /some/path/somefile-2.txt"
           },
           "locations": [
             {
@@ -89,7 +92,10 @@
                 }
               }
             }
-          ]
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "b4f7108e5957a87e4b52740601a12cba7e81435f76c4f3b93f3ea1087adf22e6:1"
+          }
         }
       ]
     }

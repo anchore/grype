@@ -1,6 +1,7 @@
 package sarif
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -215,18 +216,18 @@ func (pres *Presenter) locations(m match.Match) []*sarif.Location {
 		img := metadata.UserInput
 		locations := m.Package.Locations.ToSlice()
 		for _, l := range locations {
-			trimmedPath := strings.TrimPrefix(pres.locationPath(l), "/")
+			trimmedPath := strings.TrimLeft(pres.locationPath(l), "/")
 			logicalLocations = append(logicalLocations, &sarif.LogicalLocation{
 				FullyQualifiedName: sp(fmt.Sprintf("%s@%s:/%s", img, l.FileSystemID, trimmedPath)),
 				Name:               sp(l.RealPath),
 			})
 		}
 
-		// this is a hack to get results to show up in GitHub, as it requires relative paths for the location
-		// but we really won't have any information about what Dockerfile on the filesystem was used to build the image
-		// TODO we could add configuration to specify the prefix, a user might want to specify an image name and architecture
-		// in the case of multiple vuln scans, for example
-		physicalLocation = fmt.Sprintf("image/%s", physicalLocation)
+		// GitHub requires relative paths for the location, but we really don't have any information about what
+		// file(s) these originated from in the repository. e.g. which Dockerfile was used to build an image
+		// just use the image name here, the user input may be sha-based, tags updating, but we
+		// want to track effectively the same built artifact
+		physicalLocation = fmt.Sprintf("%s %s", pres.src.Name, physicalLocation)
 	case source.FileSourceMetadata:
 		locations := m.Package.Locations.ToSlice()
 		for _, l := range locations {
@@ -387,11 +388,12 @@ func (pres *Presenter) sarifResults() []*sarif.Result {
 		out = append(out, &sarif.Result{
 			RuleID:  sp(pres.ruleID(m)),
 			Message: pres.resultMessage(m),
-			// According to the SARIF spec, I believe we should be using AnalysisTarget.URI to indicate a logical
+			// According to the SARIF spec, it may be correct to use AnalysisTarget.URI to indicate a logical
 			// file such as a "Dockerfile" but GitHub does not work well with this
-			// FIXME github "requires" partialFingerprints
-			// PartialFingerprints: ???
-			Locations: pres.locations(m),
+			// GitHub requires partialFingerprints to upload to the API; these are automatically filled in
+			// when using the CodeQL upload action. See: https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning#providing-data-to-track-code-scanning-alerts-across-runs
+			PartialFingerprints: pres.partialFingerprints(m),
+			Locations:           pres.locations(m),
 		})
 	}
 	return out
@@ -409,16 +411,33 @@ func sp(sarif string) *string {
 
 func (pres *Presenter) resultMessage(m match.Match) sarif.Message {
 	path := pres.packagePath(m.Package)
-	message := fmt.Sprintf("The path %s reports %s at version %s ", path, m.Package.Name, m.Package.Version)
-
-	if _, ok := pres.src.Metadata.(source.DirectorySourceMetadata); ok {
-		message = fmt.Sprintf("%s which would result in a vulnerable (%s) package installed", message, m.Package.Type)
-	} else {
-		message = fmt.Sprintf("%s which is a vulnerable (%s) package installed in the container", message, m.Package.Type)
+	src := pres.inputPath()
+	switch meta := pres.src.Metadata.(type) {
+	case source.StereoscopeImageSourceMetadata:
+		src = fmt.Sprintf("in image %s at: %s", meta.UserInput, path)
+	case source.FileSourceMetadata, source.DirectorySourceMetadata:
+		src = fmt.Sprintf("at: %s", path)
 	}
+	message := fmt.Sprintf("A %s vulnerability in %s package: %s, version %s was found %s",
+		pres.severityText(m), m.Package.Type, m.Package.Name, m.Package.Version, src)
 
 	return sarif.Message{
 		Text: &message,
+	}
+}
+
+func (pres *Presenter) partialFingerprints(m match.Match) map[string]any {
+	prefix := ""
+	if meta, ok := pres.src.Metadata.(source.StereoscopeImageSourceMetadata); ok {
+		prefix = fmt.Sprintf("%s/%s/%s", pres.src.Name, meta.Architecture, meta.OS)
+	}
+	p := m.Package
+	path := pres.packagePath(p)
+	line := 1
+	hash := fmt.Sprintf("%s/%s/%s/%s/%s:%d", prefix, path, p.Type, p.Name, p.Version, line)
+	hash = fmt.Sprintf("%x", sha256.Sum256([]byte(hash)))
+	return map[string]any{
+		"primaryLocationLineHash": fmt.Sprintf("%s:%v", hash, line),
 	}
 }
 

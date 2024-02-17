@@ -52,13 +52,13 @@
         {
           "ruleId": "CVE-1999-0001-package-1",
           "message": {
-            "text": "The path somefile-1.txt reports package-1 at version 1.1.1  which is a vulnerable (rpm) package installed in the container"
+            "text": "A low vulnerability in rpm package: package-1, version 1.1.1 was found in image user-input at: somefile-1.txt"
           },
           "locations": [
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "image/somefile-1.txt"
+                  "uri": "user-input somefile-1.txt"
                 },
                 "region": {
                   "startLine": 1,
@@ -74,18 +74,21 @@
                 }
               ]
             }
-          ]
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "7ad58f20b703f8b1b77a242dfb07964ef7c99177eb1dec53141120c274519b5a:1"
+          }
         },
         {
           "ruleId": "CVE-1999-0002-package-2",
           "message": {
-            "text": "The path somefile-2.txt reports package-2 at version 2.2.2  which is a vulnerable (deb) package installed in the container"
+            "text": "A critical vulnerability in deb package: package-2, version 2.2.2 was found in image user-input at: somefile-2.txt"
           },
           "locations": [
             {
               "physicalLocation": {
                 "artifactLocation": {
-                  "uri": "image/somefile-2.txt"
+                  "uri": "user-input somefile-2.txt"
                 },
                 "region": {
                   "startLine": 1,
@@ -101,7 +104,10 @@
                 }
               ]
             }
-          ]
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "4fed3aeadddb35b91dfbd7ebe10ab463c9198c207348ff26374f4a7c2c9f38b0:1"
+          }
         }
       ]
     }
