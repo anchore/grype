@@ -6,6 +6,7 @@ import (
 	"hash"
 	"io"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/owenrumney/go-sarif/sarif"
@@ -224,11 +225,12 @@ func (pres *Presenter) locations(m match.Match) []*sarif.Location {
 			})
 		}
 
-		// GitHub requires relative paths for the location, but we really don't have any information about what
-		// file(s) these originated from in the repository. e.g. which Dockerfile was used to build an image
-		// just use the image name here, the user input may be sha-based, tags updating, but we
-		// want to track effectively the same built artifact
-		physicalLocation = fmt.Sprintf("%s %s", pres.src.Name, physicalLocation)
+		// GitHub requires paths for the location, but we really don't have any information about what
+		// file(s) these originated from in the repository. e.g. which Dockerfile was used to build an image,
+		// so we just use a short path-compatible image name here, not the entire user input as it may include
+		// sha and/or tags which are likely to change between runs and aren't really necessary for a general
+		// path to find file where the package originated
+		physicalLocation = fmt.Sprintf("%s %s", imageShortPathName(pres.src), physicalLocation)
 	case source.FileSourceMetadata:
 		locations := m.Package.Locations.ToSlice()
 		for _, l := range locations {
@@ -459,4 +461,16 @@ func ruleName(m match.Match) string {
 		return buf.String()
 	}
 	return m.Vulnerability.ID
+}
+
+var nonPathChars = regexp.MustCompile("[^a-zA-Z0-9-_.]")
+
+// imageShortPathName returns path-compatible text describing the image. if the image name is the form
+// some/path/to/image, it will return the image portion of the name.
+func imageShortPathName(s *source.Description) string {
+	imageName := s.Name
+	parts := strings.Split(imageName, "/")
+	imageName = parts[len(parts)-1]
+	imageName = nonPathChars.ReplaceAllString(imageName, "")
+	return imageName
 }
