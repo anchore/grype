@@ -66,6 +66,15 @@ You can also choose another destination directory and release version for the in
 curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b <DESTINATION_DIR> <RELEASE_VERSION>
 ```
 
+#### Signature verification
+
+To verify artifact signature before installation, pass `-v` flag to script execution as follow:
+```bash
+curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin -v
+```
+> ![NOTE] 
+> This requires `cosign` to be installed.
+
 ### Homebrew
 
 ```bash
