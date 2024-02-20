@@ -3,6 +3,7 @@ package sarif
 import (
 	"crypto/sha256"
 	"fmt"
+	"hash"
 	"io"
 	"path/filepath"
 	"strings"
@@ -427,17 +428,21 @@ func (pres *Presenter) resultMessage(m match.Match) sarif.Message {
 }
 
 func (pres *Presenter) partialFingerprints(m match.Match) map[string]any {
-	prefix := ""
-	if meta, ok := pres.src.Metadata.(source.StereoscopeImageSourceMetadata); ok {
-		prefix = fmt.Sprintf("%s/%s/%s", pres.src.Name, meta.Architecture, meta.OS)
-	}
 	p := m.Package
-	path := pres.packagePath(p)
-	line := 1
-	hash := fmt.Sprintf("%s/%s/%s/%s/%s:%d", prefix, path, p.Type, p.Name, p.Version, line)
-	hash = fmt.Sprintf("%x", sha256.Sum256([]byte(hash)))
+	hasher := sha256.New()
+	if meta, ok := pres.src.Metadata.(source.StereoscopeImageSourceMetadata); ok {
+		hashWrite(hasher, pres.src.Name, meta.Architecture, meta.OS)
+	}
+	hashWrite(hasher, string(p.Type), p.Name, p.Version, pres.packagePath(p))
 	return map[string]any{
-		"primaryLocationLineHash": fmt.Sprintf("%s:%v", hash, line),
+		// this is meant to include <hash>:<line>, but there isn't line information here, so just include :1
+		"primaryLocationLineHash": fmt.Sprintf("%x:1", hasher.Sum([]byte{})),
+	}
+}
+
+func hashWrite(hasher hash.Hash, values ...string) {
+	for _, value := range values {
+		_, _ = hasher.Write([]byte(value))
 	}
 }
 
