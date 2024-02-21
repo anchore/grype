@@ -614,6 +614,15 @@ func TestNew(t *testing.T) {
 					Integrity: "some-digest",
 				},
 			},
+		}, {
+			name: "wordpress-plugin-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.WordpressPluginEntry{
+					PluginInstallDirectory: "a",
+					Author:                 "a",
+					AuthorURI:              "a",
+				},
+			},
 		},
 	}
 
