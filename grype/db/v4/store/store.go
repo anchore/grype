@@ -218,7 +218,6 @@ func (s *store) AddVulnerabilityMetadata(metadata ...v4.VulnerabilityMetadata) e
 			if result.RowsAffected != 1 {
 				return fmt.Errorf("unable to add vulnerability metadata (%d rows affected)", result.RowsAffected)
 			}
-
 		}
 	}
 	return nil
