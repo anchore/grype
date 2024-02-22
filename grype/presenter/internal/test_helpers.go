@@ -38,7 +38,7 @@ func GenerateAnalysis(t *testing.T, scheme SyftSource) (*sbom.SBOM, match.Matche
 
 	grypePackages := pkg.FromCollection(s.Artifacts.Packages, pkg.SynthesisConfig{})
 
-	matches := generateMatches(t, grypePackages[0], grypePackages[1])
+	matches := generateMatches(t, grypePackages[0], grypePackages[1], grypePackages[2])
 	context := generateContext(t, scheme)
 
 	return s, matches, grypePackages, context, models.NewMetadataMock(), nil, nil
@@ -55,7 +55,7 @@ func GenerateAnalysisWithIgnoredMatches(t *testing.T, scheme SyftSource) (match.
 
 	grypePackages := pkg.FromCollection(s.Artifacts.Packages, pkg.SynthesisConfig{})
 
-	matches := generateMatches(t, grypePackages[0], grypePackages[1])
+	matches := generateMatches(t, grypePackages[0], grypePackages[1], grypePackages[2])
 	ignoredMatches := generateIgnoredMatches(t, grypePackages[1])
 	context := generateContext(t, scheme)
 
@@ -75,7 +75,7 @@ func Redact(s []byte) []byte {
 	return s
 }
 
-func generateMatches(t *testing.T, p1, p2 pkg.Package) match.Matches {
+func generateMatches(t *testing.T, p1, p2, p3 pkg.Package) match.Matches {
 	t.Helper()
 
 	matches := []match.Match{
@@ -120,6 +120,21 @@ func generateMatches(t *testing.T, p1, p2 pkg.Package) match.Matches {
 					SearchedBy: map[string]interface{}{
 						"cpe": "somecpe",
 					},
+					Found: map[string]interface{}{"constraint": "somecpe"},
+				},
+			},
+		},
+		{
+			Vulnerability: vulnerability.Vulnerability{
+				ID:        "CVE-1999-0003",
+				Namespace: "source-3",
+			},
+			Package: p3,
+			Details: []match.Detail{
+				{
+					Type:       match.ExactIndirectMatch,
+					Matcher:    match.JavascriptMatcher,
+					SearchedBy: map[string]interface{}{"cpe": "somecpe"},
 					Found: map[string]interface{}{
 						"constraint": "somecpe",
 					},
@@ -218,6 +233,7 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 	}
 }
 
+//nolint:funlen
 func generatePackages(t *testing.T) []syftPkg.Package {
 	t.Helper()
 	epoch := 2
@@ -256,6 +272,27 @@ func generatePackages(t *testing.T) []syftPkg.Package {
 						Vendor:   "anchore",
 						Product:  "engine",
 						Version:  "2.2.2",
+						Language: "python",
+					},
+				},
+			},
+			Licenses: syftPkg.NewLicenseSet(
+				syftPkg.NewLicense("MIT"),
+				syftPkg.NewLicense("Apache-2.0"),
+			),
+		},
+		{
+			Name:      "package-3",
+			Version:   "3.3.3",
+			Type:      syftPkg.NpmPkg,
+			Locations: file.NewLocationSet(file.NewVirtualLocation("/foo/bar/somefile-3.txt", "somefile-3.txt")),
+			CPEs: []cpe.CPE{
+				{
+					Attributes: cpe.Attributes{
+						Part:     "a",
+						Vendor:   "anchore",
+						Product:  "engine",
+						Version:  "3.3.3",
 						Language: "python",
 					},
 				},

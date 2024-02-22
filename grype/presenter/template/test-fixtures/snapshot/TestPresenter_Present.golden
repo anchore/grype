@@ -9,4 +9,9 @@ Identified distro as centos version 8.0.
     Package: package-2 version 2.2.2 (deb)
     CPEs: ["cpe:2.3:a:anchore:engine:2.2.2:*:*:python:*:*:*:*"]
     Matched by: dpkg-matcher
+    Vulnerability: CVE-1999-0003
+    Severity: High
+    Package: package-3 version 3.3.3 (npm)
+    CPEs: ["cpe:2.3:a:anchore:engine:3.3.3:*:*:python:*:*:*:*"]
+    Matched by: javascript-matcher
 

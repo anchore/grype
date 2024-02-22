@@ -31,14 +31,21 @@ func TestPackagesAreSorted(t *testing.T) {
 		Type:    syftPkg.DebPkg,
 	}
 
+	var pkg3 = pkg.Package{
+		ID:      "package-3-id",
+		Name:    "package-3",
+		Version: "3.3.3",
+		Type:    syftPkg.NpmPkg,
+	}
+
 	var match1 = match.Match{
 		Vulnerability: vulnerability.Vulnerability{
 			ID: "CVE-1999-0003",
 		},
-		Package: pkg1,
+		Package: pkg3,
 		Details: match.Details{
 			{
-				Type: match.ExactDirectMatch,
+				Type: match.ExactIndirectMatch,
 			},
 		},
 	}
@@ -47,7 +54,7 @@ func TestPackagesAreSorted(t *testing.T) {
 		Vulnerability: vulnerability.Vulnerability{
 			ID: "CVE-1999-0002",
 		},
-		Package: pkg1,
+		Package: pkg2,
 		Details: match.Details{
 			{
 				Type: match.ExactIndirectMatch,
@@ -70,7 +77,7 @@ func TestPackagesAreSorted(t *testing.T) {
 	matches := match.NewMatches()
 	matches.Add(match1, match2, match3)
 
-	packages := []pkg.Package{pkg1, pkg2}
+	packages := []pkg.Package{pkg1, pkg2, pkg3}
 
 	ctx := pkg.Context{
 		Source: &syftSource.Description{

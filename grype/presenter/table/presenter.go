@@ -14,6 +14,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 const (
@@ -29,6 +30,13 @@ type Presenter struct {
 	metadataProvider vulnerability.MetadataProvider
 	showSuppressed   bool
 	withColor        bool
+}
+
+// Set the package type to true to not display the location information for that type
+var suppressLocation map[syftPkg.Type]bool = map[syftPkg.Type]bool{
+	syftPkg.ApkPkg: true,
+	syftPkg.DebPkg: true,
+	syftPkg.RpmPkg: true,
 }
 
 // NewPresenter is a *Presenter constructor
@@ -47,7 +55,7 @@ func NewPresenter(pb models.PresenterConfig, showSuppressed bool) *Presenter {
 func (pres *Presenter) Present(output io.Writer) error {
 	rows := make([][]string, 0)
 
-	columns := []string{"Name", "Installed", "Fixed-In", "Type", "Vulnerability", "Severity"}
+	columns := []string{"Name", "Installed", "Fixed-In", "Type", "Vulnerability", "Severity", "Location"}
 	// Generate rows for matching vulnerabilities
 	for m := range pres.results.Enumerate() {
 		row, err := createRow(m, pres.metadataProvider, "")
@@ -187,7 +195,12 @@ func createRow(m match.Match, metadataProvider vulnerability.MetadataProvider, s
 		fixVersion = ""
 	}
 
-	return []string{m.Package.Name, m.Package.Version, fixVersion, string(m.Package.Type), m.Vulnerability.ID, severity}, nil
+	var locationPaths string
+	if !suppressLocation[m.Package.Type] {
+		locationPaths = strings.Join(m.Package.Locations.CoordinateSet().Paths(), ",")
+	}
+
+	return []string{m.Package.Name, m.Package.Version, fixVersion, string(m.Package.Type), m.Vulnerability.ID, severity, locationPaths}, nil
 }
 
 func getSeverityColor(severity string) tablewriter.Colors {

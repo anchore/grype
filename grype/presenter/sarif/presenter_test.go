@@ -221,6 +221,7 @@ func TestToSarifReport(t *testing.T) {
 			locations: map[string]string{
 				"CVE-1999-0001-package-1": "/some/path/somefile-1.txt",
 				"CVE-1999-0002-package-2": "/some/path/somefile-2.txt",
+				"CVE-1999-0003-package-3": "/some/path/somefile-3.txt",
 			},
 		},
 		{
@@ -229,6 +230,7 @@ func TestToSarifReport(t *testing.T) {
 			locations: map[string]string{
 				"CVE-1999-0001-package-1": "image/somefile-1.txt",
 				"CVE-1999-0002-package-2": "image/somefile-2.txt",
+				"CVE-1999-0003-package-3": "image/somefile-3.txt",
 			},
 		},
 	}
@@ -260,11 +262,12 @@ func TestToSarifReport(t *testing.T) {
 
 			// Sorted by vulnID, pkg name, ...
 			run := report.Runs[0]
-			assert.Len(t, run.Tool.Driver.Rules, 2)
+			assert.Len(t, run.Tool.Driver.Rules, 3)
 			assert.Equal(t, "CVE-1999-0001-package-1", run.Tool.Driver.Rules[0].ID)
 			assert.Equal(t, "CVE-1999-0002-package-2", run.Tool.Driver.Rules[1].ID)
+			assert.Equal(t, "CVE-1999-0003-package-3", run.Tool.Driver.Rules[2].ID)
 
-			assert.Len(t, run.Results, 2)
+			assert.Len(t, run.Results, 3)
 			result := run.Results[0]
 			assert.Equal(t, "CVE-1999-0001-package-1", *result.RuleID)
 			assert.Len(t, result.Locations, 1)
@@ -277,6 +280,16 @@ func TestToSarifReport(t *testing.T) {
 
 			result = run.Results[1]
 			assert.Equal(t, "CVE-1999-0002-package-2", *result.RuleID)
+			assert.Len(t, result.Locations, 1)
+			location = result.Locations[0]
+			expectedLocation, ok = tc.locations[*result.RuleID]
+			if !ok {
+				t.Fatalf("no expected location for %s", *result.RuleID)
+			}
+			assert.Equal(t, expectedLocation, *location.PhysicalLocation.ArtifactLocation.URI)
+
+			result = run.Results[2]
+			assert.Equal(t, "CVE-1999-0003-package-3", *result.RuleID)
 			assert.Len(t, result.Locations, 1)
 			location = result.Locations[0]
 			expectedLocation, ok = tc.locations[*result.RuleID]

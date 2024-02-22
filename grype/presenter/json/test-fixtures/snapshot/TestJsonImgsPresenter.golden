@@ -127,6 +127,69 @@
     "purl": "",
     "upstreams": []
    }
+  },
+  {
+   "vulnerability": {
+    "id": "CVE-1999-0003",
+    "dataSource": "",
+    "severity": "High",
+    "urls": [],
+    "description": "1999-03 description",
+    "cvss": [
+     {
+      "version": "3.0",
+      "vector": "vector",
+      "metrics": {
+       "baseScore": 1,
+       "exploitabilityScore": 2,
+       "impactScore": 3
+      },
+      "vendorMetadata": {
+       "BaseSeverity": "Low",
+       "Status": "verified"
+      }
+     }
+    ],
+    "fix": {
+     "versions": [],
+     "state": ""
+    },
+    "advisories": []
+   },
+   "relatedVulnerabilities": [],
+   "matchDetails": [
+    {
+     "type": "exact-indirect-match",
+     "matcher": "javascript-matcher",
+     "searchedBy": {
+      "cpe": "somecpe"
+     },
+     "found": {
+      "constraint": "somecpe"
+     }
+    }
+   ],
+   "artifact": {
+    "id": "f45d1ab14d63730d",
+    "name": "package-3",
+    "version": "3.3.3",
+    "type": "npm",
+    "locations": [
+     {
+      "path": "/foo/bar/somefile-3.txt"
+     }
+    ],
+    "language": "",
+    "licenses": [
+     "MIT",
+     "Apache-2.0"
+    ],
+    "cpes": [
+     "cpe:2.3:a:anchore:engine:3.3.3:*:*:python:*:*:*:*"
+    ],
+    "purl": "",
+    "upstreams": []
+   }
   }
  ],
  "source": {
