@@ -1,7 +1,5 @@
 package v5
 
-import "github.com/anchore/grype/grype/db/v5/purlvulnerability"
-
 type Store interface {
 	StoreReader
 	StoreWriter
@@ -21,8 +19,6 @@ type StoreWriter interface {
 	VulnerabilityStoreWriter
 	VulnerabilityMetadataStoreWriter
 	VulnerabilityMatchExclusionStoreWriter
-	// TODO: DATA OVERRIDES: ability to write new vuln types
-	purlvulnerability.Writer
 }
 
 type DiffReader interface {
