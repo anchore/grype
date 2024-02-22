@@ -170,7 +170,7 @@ func removeDuplicateRows(items [][]string) [][]string {
 func createRow(m match.Match, metadataProvider vulnerability.MetadataProvider, severitySuffix string) ([]string, error) {
 	var severity string
 
-	metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.Namespace)
+	metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.Namespace, m.Vulnerability.MetadataNamespace)
 	if err != nil {
 		return nil, fmt.Errorf("unable to fetch vuln=%q metadata: %+v", m.Vulnerability.ID, err)
 	}

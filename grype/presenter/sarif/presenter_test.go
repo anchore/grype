@@ -291,13 +291,13 @@ func TestToSarifReport(t *testing.T) {
 
 type NilMetadataProvider struct{}
 
-func (m *NilMetadataProvider) GetMetadata(_, _ string) (*vulnerability.Metadata, error) {
+func (m *NilMetadataProvider) GetMetadata(id, namespace, metadataNamespace string) (*vulnerability.Metadata, error) {
 	return nil, nil
 }
 
 type MockMetadataProvider struct{}
 
-func (m *MockMetadataProvider) GetMetadata(id, namespace string) (*vulnerability.Metadata, error) {
+func (m *MockMetadataProvider) GetMetadata(id, namespace, metadataNamespace string) (*vulnerability.Metadata, error) {
 	cvss := func(id string, namespace string, scores ...float64) vulnerability.Metadata {
 		values := make([]vulnerability.Cvss, len(scores))
 		for _, score := range scores {
