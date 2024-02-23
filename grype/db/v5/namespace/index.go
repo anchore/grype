@@ -2,6 +2,7 @@ package namespace
 
 import (
 	"fmt"
+	"github.com/anchore/grype/grype/db/v5/namespace/generic"
 	"regexp"
 	"strings"
 
@@ -154,6 +155,16 @@ func (i *Index) NamespacesForDistro(d *grypeDistro.Distro) []*distro.Namespace {
 	}
 
 	return nil
+}
+
+func (i *Index) NamaspacesForPURLType(purl string) []*generic.Namespace {
+	var results []*generic.Namespace
+	for _, ns := range i.all {
+		if strings.Contains(ns.String(), ":generic") {
+			results = append(results, ns.(*generic.Namespace))
+		}
+	}
+	return results
 }
 
 func getAlpineNamespace(i *Index, d *grypeDistro.Distro, versionSegments []int) []*distro.Namespace {

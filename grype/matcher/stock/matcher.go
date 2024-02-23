@@ -7,6 +7,7 @@ import (
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
+	"strings"
 )
 
 type Matcher struct {
@@ -35,6 +36,9 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 	criteria := search.CommonCriteria
 	if m.cfg.UseCPEs {
 		criteria = append(criteria, search.ByCPE)
+	}
+	if strings.HasPrefix(p.PURL, "pkg:generic") {
+		criteria = append(criteria, search.ForGenericPackage)
 	}
 	return search.ByCriteria(store, d, p, m.Type(), criteria...)
 }

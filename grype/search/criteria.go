@@ -11,10 +11,11 @@ import (
 )
 
 var (
-	ByCPE          Criteria = "by-cpe"
-	ByLanguage     Criteria = "by-language"
-	ByDistro       Criteria = "by-distro"
-	CommonCriteria          = []Criteria{
+	ByCPE             Criteria = "by-cpe"
+	ByLanguage        Criteria = "by-language"
+	ByDistro          Criteria = "by-distro"
+	ForGenericPackage Criteria = "for-generic"
+	CommonCriteria             = []Criteria{
 		ByLanguage,
 	}
 )
@@ -44,6 +45,13 @@ func ByCriteria(store vulnerability.Provider, d *distro.Distro, p pkg.Package, u
 			matches = append(matches, m...)
 		case ByDistro:
 			m, err := ByPackageDistro(store, d, p, upstreamMatcher)
+			if err != nil {
+				log.Warnf("could not match by package distro (package=%+v): %v", p, err)
+				continue
+			}
+			matches = append(matches, m...)
+		case ForGenericPackage:
+			m, err := GenericPackage(store, d, p, upstreamMatcher)
 			if err != nil {
 				log.Warnf("could not match by package distro (package=%+v): %v", p, err)
 				continue
