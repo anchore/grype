@@ -3,6 +3,7 @@ package namespace
 import (
 	"errors"
 	"fmt"
+	"github.com/anchore/grype/grype/db/v5/namespace/generic"
 	"strings"
 
 	"github.com/anchore/grype/grype/db/v5/namespace/cpe"
@@ -28,6 +29,8 @@ func FromString(namespaceStr string) (Namespace, error) {
 		return distro.FromString(namespaceStr)
 	case language.ID:
 		return language.FromString(namespaceStr)
+	case generic.ID:
+		return generic.FromString(namespaceStr)
 	default:
 		return nil, fmt.Errorf("unable to create namespace from %s: unknown type %s", namespaceStr, components[1])
 	}
