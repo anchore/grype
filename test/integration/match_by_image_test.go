@@ -26,6 +26,7 @@ import (
 	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
+	"github.com/anchore/syft/syft/source/stereoscopesource"
 )
 
 func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore *mockStore, theResult *match.Matches) {
@@ -655,13 +656,8 @@ func TestMatchByImage(t *testing.T) {
 			imagetest.GetFixtureImage(t, "docker-archive", test.fixtureImage)
 			tarPath := imagetest.GetFixtureImageTarPath(t, test.fixtureImage)
 
-			userImage := "docker-archive:" + tarPath
-
-			detection, err := source.Detect(userImage, source.DetectConfig{})
-			require.NoError(t, err)
-
 			// this is purely done to help setup mocks
-			theSource, err := detection.NewSource(source.DetectionSourceConfig{})
+			theSource, err := syft.GetSource(context.Background(), tarPath, syft.DefaultGetSourceConfig().WithFromSource("docker-archive"))
 			require.NoError(t, err)
 			t.Cleanup(func() {
 				require.NoError(t, theSource.Close())
@@ -831,7 +827,7 @@ func vexMatches(t *testing.T, ignoredMatches []match.IgnoredMatch, vexStatus vex
 
 	pctx := &pkg.Context{
 		Source: &source.Description{
-			Metadata: source.StereoscopeImageSourceMetadata{
+			Metadata: stereoscopesource.ImageMetadata{
 				RepoDigests: []string{
 					"alpine@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
 				},

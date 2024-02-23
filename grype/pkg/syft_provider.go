@@ -52,13 +52,7 @@ func getSource(userInput string, config ProviderConfig) (source.Source, error) {
 		return nil, errDoesNotProvide
 	}
 
-	detection, err := source.Detect(userInput, source.DetectConfig{
-		DefaultImageSource: config.DefaultImagePullSource,
-	})
-	if err != nil {
-		return nil, err
-	}
-
+	var err error
 	var platform *image.Platform
 	if config.Platform != "" {
 		platform, err = image.NewPlatform(config.Platform)
@@ -67,14 +61,10 @@ func getSource(userInput string, config ProviderConfig) (source.Source, error) {
 		}
 	}
 
-	return detection.NewSource(source.DetectionSourceConfig{
-		Alias: source.Alias{
-			Name: config.Name,
-		},
-		RegistryOptions: config.RegistryOptions,
-		Platform:        platform,
-		Exclude: source.ExcludeConfig{
-			Paths: config.Exclusions,
-		},
-	})
+	return syft.GetSource(context.Background(), userInput, syft.DefaultGetSourceConfig().
+		WithDefaultImageSource(config.DefaultImagePullSource).
+		WithAlias(source.Alias{Name: config.Name}).
+		WithRegistryOptions(config.RegistryOptions).
+		WithPlatform(platform).
+		WithExcludeConfig(source.ExcludeConfig{Paths: config.Exclusions}))
 }

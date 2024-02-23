@@ -4,6 +4,9 @@ import (
 	"fmt"
 
 	syftSource "github.com/anchore/syft/syft/source"
+	"github.com/anchore/syft/syft/source/directorysource"
+	"github.com/anchore/syft/syft/source/filesource"
+	"github.com/anchore/syft/syft/source/stereoscopesource"
 )
 
 type source struct {
@@ -14,7 +17,7 @@ type source struct {
 // newSource creates a new source object to be represented into JSON.
 func newSource(src syftSource.Description) (source, error) {
 	switch m := src.Metadata.(type) {
-	case syftSource.StereoscopeImageSourceMetadata:
+	case stereoscopesource.ImageMetadata:
 		// ensure that empty collections are not shown as null
 		if m.RepoDigests == nil {
 			m.RepoDigests = []string{}
@@ -27,12 +30,12 @@ func newSource(src syftSource.Description) (source, error) {
 			Type:   "image",
 			Target: m,
 		}, nil
-	case syftSource.DirectorySourceMetadata:
+	case directorysource.Metadata:
 		return source{
 			Type:   "directory",
 			Target: m.Path,
 		}, nil
-	case syftSource.FileSourceMetadata:
+	case filesource.Metadata:
 		return source{
 			Type:   "file",
 			Target: m.Path,
