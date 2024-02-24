@@ -227,8 +227,8 @@ func TestToSarifReport(t *testing.T) {
 			name:   "image",
 			scheme: internal.ImageSource,
 			locations: map[string]string{
-				"CVE-1999-0001-package-1": "image/somefile-1.txt",
-				"CVE-1999-0002-package-2": "image/somefile-2.txt",
+				"CVE-1999-0001-package-1": "user-input somefile-1.txt",
+				"CVE-1999-0002-package-2": "user-input somefile-2.txt",
 			},
 		},
 	}
@@ -415,6 +415,41 @@ func Test_cvssScore(t *testing.T) {
 			}
 			score := pres.cvssScore(test.vulnerability)
 			assert.Equal(t, test.expected, score)
+		})
+	}
+}
+
+func Test_imageShortPathName(t *testing.T) {
+	tests := []struct {
+		name     string
+		in       string
+		expected string
+	}{
+		{
+			name:     "valid single name",
+			in:       "simple.-_name",
+			expected: "simple.-_name",
+		},
+		{
+			name:     "valid name in org",
+			in:       "some-org/some-image",
+			expected: "some-image",
+		},
+		{
+			name:     "name and org with many invalid chars",
+			in:       "some/*^&$#%$#@*(}{<><./,valid-()(#)@!(~@#$#%^&**[]{-chars",
+			expected: "valid--chars",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := imageShortPathName(&source.Description{
+				Name:     test.in,
+				Metadata: nil,
+			})
+
+			assert.Equal(t, test.expected, got)
 		})
 	}
 }

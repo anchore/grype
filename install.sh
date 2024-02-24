@@ -695,5 +695,6 @@ set +u
 if [ -z "${TEST_INSTALL_SH}" ]; then
   set -u
   main "$@"
+  exit $?
 fi
 set -u
