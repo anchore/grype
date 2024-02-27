@@ -7,9 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	syftSource "github.com/anchore/syft/syft/source"
-	"github.com/anchore/syft/syft/source/directorysource"
-	"github.com/anchore/syft/syft/source/filesource"
-	"github.com/anchore/syft/syft/source/stereoscopesource"
 )
 
 func TestNewSource(t *testing.T) {
@@ -21,7 +18,7 @@ func TestNewSource(t *testing.T) {
 		{
 			name: "image",
 			metadata: syftSource.Description{
-				Metadata: stereoscopesource.ImageMetadata{
+				Metadata: syftSource.ImageMetadata{
 					UserInput:      "abc",
 					ID:             "def",
 					ManifestDigest: "abcdef",
@@ -30,7 +27,7 @@ func TestNewSource(t *testing.T) {
 			},
 			expected: source{
 				Type: "image",
-				Target: stereoscopesource.ImageMetadata{
+				Target: syftSource.ImageMetadata{
 					UserInput:      "abc",
 					ID:             "def",
 					ManifestDigest: "abcdef",
@@ -43,7 +40,7 @@ func TestNewSource(t *testing.T) {
 		{
 			name: "directory",
 			metadata: syftSource.Description{
-				Metadata: directorysource.Metadata{
+				Metadata: syftSource.DirectoryMetadata{
 					Path: "/foo/bar",
 				},
 			},
@@ -55,7 +52,7 @@ func TestNewSource(t *testing.T) {
 		{
 			name: "file",
 			metadata: syftSource.Description{
-				Metadata: filesource.Metadata{
+				Metadata: syftSource.FileMetadata{
 					Path: "/foo/bar/test.zip",
 				},
 			},

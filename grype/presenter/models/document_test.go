@@ -13,7 +13,6 @@ import (
 	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	syftSource "github.com/anchore/syft/syft/source"
-	"github.com/anchore/syft/syft/source/directorysource"
 )
 
 func TestPackagesAreSorted(t *testing.T) {
@@ -75,7 +74,7 @@ func TestPackagesAreSorted(t *testing.T) {
 
 	ctx := pkg.Context{
 		Source: &syftSource.Description{
-			Metadata: directorysource.Metadata{},
+			Metadata: syftSource.DirectoryMetadata{},
 		},
 		Distro: &linux.Release{
 			ID:      "centos",

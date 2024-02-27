@@ -62,7 +62,7 @@ func getSource(userInput string, config ProviderConfig) (source.Source, error) {
 	}
 
 	return syft.GetSource(context.Background(), userInput, syft.DefaultGetSourceConfig().
-		WithDefaultImageSource(config.DefaultImagePullSource).
+		WithDefaultImagePullSource(config.DefaultImagePullSource).
 		WithAlias(source.Alias{Name: config.Name}).
 		WithRegistryOptions(config.RegistryOptions).
 		WithPlatform(platform).

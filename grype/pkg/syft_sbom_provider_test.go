@@ -13,7 +13,6 @@ import (
 	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/source"
-	"github.com/anchore/syft/syft/source/stereoscopesource"
 )
 
 func TestParseSyftJSON(t *testing.T) {
@@ -204,9 +203,9 @@ func TestParseSyftJSON(t *testing.T) {
 			},
 			Context: Context{
 				Source: &source.Description{
-					Metadata: stereoscopesource.ImageMetadata{
+					Metadata: source.ImageMetadata{
 						UserInput: "alpine:fake",
-						Layers: []stereoscopesource.LayerMetadata{
+						Layers: []source.LayerMetadata{
 							{
 								MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
 								Digest:    "sha256:50644c29ef5a27c9a40c393a73ece2479de78325cae7d762ef3cdc19bf42dd0a",
@@ -238,7 +237,7 @@ func TestParseSyftJSON(t *testing.T) {
 				t.Fatalf("unable to parse: %+v", err)
 			}
 
-			if m, ok := context.Source.Metadata.(stereoscopesource.ImageMetadata); ok {
+			if m, ok := context.Source.Metadata.(source.ImageMetadata); ok {
 				m.RawConfig = nil
 				m.RawManifest = nil
 
@@ -321,9 +320,9 @@ var springImageTestCase = struct {
 	},
 	Context: Context{
 		Source: &source.Description{
-			Metadata: stereoscopesource.ImageMetadata{
+			Metadata: source.ImageMetadata{
 				UserInput: "springio/gs-spring-boot-docker:latest",
-				Layers: []stereoscopesource.LayerMetadata{
+				Layers: []source.LayerMetadata{
 					{
 						MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
 						Digest:    "sha256:42a3027eaac150d2b8f516100921f4bd83b3dbc20bfe64124f686c072b49c602",

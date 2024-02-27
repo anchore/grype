@@ -340,7 +340,7 @@ func generateContext(t *testing.T, scheme SyftSource) pkg.Context {
 			t.Fatalf("failed to generate mock directory source from mock dir: %+v", err)
 		}
 		desc = src.Describe()
-		if m, ok := desc.Metadata.(directorysource.Metadata); ok {
+		if m, ok := desc.Metadata.(syftSource.DirectoryMetadata); ok {
 			m.Path = "/some/path"
 			desc.Metadata = m
 		}
