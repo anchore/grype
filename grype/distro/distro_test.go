@@ -9,6 +9,7 @@ import (
 	"github.com/anchore/grype/internal/stringutil"
 	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/source"
+	"github.com/anchore/syft/syft/source/directorysource"
 )
 
 func Test_NewDistroFromRelease(t *testing.T) {
@@ -242,7 +243,7 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.fixture, func(t *testing.T) {
-			s, err := source.NewFromDirectory(source.DirectoryConfig{Path: test.fixture})
+			s, err := directorysource.NewFromPath(test.fixture)
 			require.NoError(t, err)
 
 			resolver, err := s.FileResolver(source.SquashedScope)

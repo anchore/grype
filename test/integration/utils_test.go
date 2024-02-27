@@ -72,10 +72,7 @@ func saveImage(t testing.TB, imageName string, destPath string) {
 }
 
 func getSyftSBOM(t testing.TB, image string, encoder sbom.FormatEncoder) string {
-	detection, err := source.Detect(image, source.DetectConfig{})
-	require.NoError(t, err)
-
-	src, err := detection.NewSource(source.DetectionSourceConfig{})
+	src, err := syft.GetSource(context.Background(), image, nil)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
