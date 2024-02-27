@@ -71,8 +71,8 @@ func saveImage(t testing.TB, imageName string, destPath string) {
 	t.Logf("Stdout: %s\n", out)
 }
 
-func getSyftSBOM(t testing.TB, image string, encoder sbom.FormatEncoder) string {
-	src, err := syft.GetSource(context.Background(), image, nil)
+func getSyftSBOM(t testing.TB, image, from string, encoder sbom.FormatEncoder) string {
+	src, err := syft.GetSource(context.Background(), image, syft.DefaultGetSourceConfig().WithSources(from))
 	require.NoError(t, err)
 
 	t.Cleanup(func() {

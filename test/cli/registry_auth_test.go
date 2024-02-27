@@ -16,7 +16,7 @@ func TestRegistryAuth(t *testing.T) {
 			name: "fallback to keychain",
 			args: []string{"-vv", "registry:localhost:5000/something:latest"},
 			assertions: []traitAssertion{
-				assertInOutput("source=OciRegistry"),
+				assertInOutput("from registry"),
 				assertInOutput("localhost:5000/something:latest"),
 				assertInOutput(`no registry credentials configured for "localhost:5000", using the default keychain`),
 			},
@@ -30,7 +30,7 @@ func TestRegistryAuth(t *testing.T) {
 				"GRYPE_REGISTRY_AUTH_PASSWORD":  "password",
 			},
 			assertions: []traitAssertion{
-				assertInOutput("source=OciRegistry"),
+				assertInOutput("from registry"),
 				assertInOutput("localhost:5000/something:latest"),
 				assertInOutput(`using basic auth for registry "localhost:5000"`),
 			},
@@ -43,7 +43,7 @@ func TestRegistryAuth(t *testing.T) {
 				"GRYPE_REGISTRY_AUTH_TOKEN":     "my-token",
 			},
 			assertions: []traitAssertion{
-				assertInOutput("source=OciRegistry"),
+				assertInOutput("from registry"),
 				assertInOutput("localhost:5000/something:latest"),
 				assertInOutput(`using token for registry "localhost:5000"`),
 			},
@@ -55,7 +55,7 @@ func TestRegistryAuth(t *testing.T) {
 				"GRYPE_REGISTRY_AUTH_AUTHORITY": "localhost:5000",
 			},
 			assertions: []traitAssertion{
-				assertInOutput("source=OciRegistry"),
+				assertInOutput("from registry"),
 				assertInOutput("localhost:5000/something:latest"),
 				assertInOutput(`no registry credentials configured for "localhost:5000", using the default keychain`),
 			},
