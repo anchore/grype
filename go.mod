@@ -13,8 +13,8 @@ require (
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/packageurl-go v0.1.1-0.20240202171727-877e1747d426
-	github.com/anchore/stereoscope v0.0.2-0.20240216182029-6171ee21e1d5
-	github.com/anchore/syft v0.105.1
+	github.com/anchore/stereoscope v0.0.2-0.20240221144950-cf0e754f5b56
+	github.com/anchore/syft v0.105.2-0.20240227214437-a978966cadfc
 	github.com/aquasecurity/go-pep440-version v0.0.0-20210121094942-22b2f8951d46
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/charmbracelet/bubbletea v0.25.0
@@ -59,6 +59,8 @@ require (
 	golang.org/x/exp v0.0.0-20231108232855-2478ac86f678
 	gorm.io/gorm v1.25.7
 )
+
+require github.com/anchore/go-collections v0.0.0-20240216171411-9321230ce537
 
 require (
 	cloud.google.com/go v0.110.10 // indirect

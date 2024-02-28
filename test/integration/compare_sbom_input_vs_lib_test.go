@@ -237,11 +237,10 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		imageArchive := PullThroughImageCache(t, tc.image)
-		imageSource := fmt.Sprintf("docker-archive:%s", imageArchive)
 
 		t.Run(tc.name, func(t *testing.T) {
 			// get SBOM from syft, write to temp file
-			sbomBytes := getSyftSBOM(t, imageSource, tc.format)
+			sbomBytes := getSyftSBOM(t, imageArchive, "docker-archive", tc.format)
 			sbomFile, err := os.CreateTemp("", "")
 			assert.NoError(t, err)
 			t.Cleanup(func() {
@@ -256,6 +255,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 			assert.NoError(t, err)
 
 			// get vulns (image)
+			imageSource := fmt.Sprintf("docker-archive:%s", imageArchive)
 			matchesFromImage, _, _, err := grype.FindVulnerabilities(*store, imageSource, source.SquashedScope, nil)
 			assert.NoError(t, err)
 

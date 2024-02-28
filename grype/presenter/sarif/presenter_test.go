@@ -16,6 +16,7 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/source"
+	"github.com/anchore/syft/syft/source/directorysource"
 )
 
 var updateSnapshot = flag.Bool("update-sarif", false, "update .golden files for sarif presenters")
@@ -83,7 +84,7 @@ func Test_locationPath(t *testing.T) {
 	}{
 		{
 			name: "dir:.",
-			metadata: source.DirectorySourceMetadata{
+			metadata: source.DirectoryMetadata{
 				Path: ".",
 			},
 			real:     "/home/usr/file",
@@ -92,7 +93,7 @@ func Test_locationPath(t *testing.T) {
 		},
 		{
 			name: "dir:./",
-			metadata: source.DirectorySourceMetadata{
+			metadata: source.DirectoryMetadata{
 				Path: "./",
 			},
 			real:     "/home/usr/file",
@@ -101,7 +102,7 @@ func Test_locationPath(t *testing.T) {
 		},
 		{
 			name: "dir:./someplace",
-			metadata: source.DirectorySourceMetadata{
+			metadata: source.DirectoryMetadata{
 				Path: "./someplace",
 			},
 			real:     "/home/usr/file",
@@ -110,7 +111,7 @@ func Test_locationPath(t *testing.T) {
 		},
 		{
 			name: "dir:/someplace",
-			metadata: source.DirectorySourceMetadata{
+			metadata: source.DirectoryMetadata{
 				Path: "/someplace",
 			},
 			real:     "file",
@@ -118,7 +119,7 @@ func Test_locationPath(t *testing.T) {
 		},
 		{
 			name: "dir:/someplace symlink",
-			metadata: source.DirectorySourceMetadata{
+			metadata: source.DirectoryMetadata{
 				Path: "/someplace",
 			},
 			real:     "/someplace/usr/file",
@@ -127,7 +128,7 @@ func Test_locationPath(t *testing.T) {
 		},
 		{
 			name: "dir:/someplace absolute",
-			metadata: source.DirectorySourceMetadata{
+			metadata: source.DirectoryMetadata{
 				Path: "/someplace",
 			},
 			real:     "/usr/file",
@@ -135,7 +136,7 @@ func Test_locationPath(t *testing.T) {
 		},
 		{
 			name: "file:/someplace/file",
-			metadata: source.FileSourceMetadata{
+			metadata: source.FileMetadata{
 				Path: "/someplace/file",
 			},
 			real:     "/usr/file",
@@ -143,7 +144,7 @@ func Test_locationPath(t *testing.T) {
 		},
 		{
 			name: "file:/someplace/file relative",
-			metadata: source.FileSourceMetadata{
+			metadata: source.FileMetadata{
 				Path: "/someplace/file",
 			},
 			real:     "file",
@@ -151,7 +152,7 @@ func Test_locationPath(t *testing.T) {
 		},
 		{
 			name: "image",
-			metadata: source.StereoscopeImageSourceMetadata{
+			metadata: source.ImageMetadata{
 				UserInput: "alpine:latest",
 			},
 			real:     "/etc/file",
@@ -159,7 +160,7 @@ func Test_locationPath(t *testing.T) {
 		},
 		{
 			name: "image symlink",
-			metadata: source.StereoscopeImageSourceMetadata{
+			metadata: source.ImageMetadata{
 				UserInput: "alpine:latest",
 			},
 			real:     "/etc/elsewhere/file",
@@ -189,7 +190,7 @@ func Test_locationPath(t *testing.T) {
 func createDirPresenter(t *testing.T) *Presenter {
 	_, matches, packages, _, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.DirectorySource)
 	d := t.TempDir()
-	s, err := source.NewFromDirectory(source.DirectoryConfig{Path: d})
+	s, err := directorysource.NewFromPath(d)
 	if err != nil {
 		t.Fatal(err)
 	}

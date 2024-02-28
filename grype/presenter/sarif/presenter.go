@@ -173,9 +173,9 @@ func (pres *Presenter) inputPath() string {
 	}
 	var inputPath string
 	switch m := pres.src.Metadata.(type) {
-	case source.FileSourceMetadata:
+	case source.FileMetadata:
 		inputPath = m.Path
-	case source.DirectorySourceMetadata:
+	case source.DirectoryMetadata:
 		inputPath = m.Path
 	default:
 		return ""
@@ -194,7 +194,7 @@ func (pres *Presenter) locationPath(l file.Location) string {
 	path = strings.TrimPrefix(path, "./")
 	// trimmed off any ./ and accounted for dir:. for both path and input path
 	if pres.src != nil {
-		_, ok := pres.src.Metadata.(source.DirectorySourceMetadata)
+		_, ok := pres.src.Metadata.(source.DirectoryMetadata)
 		if ok {
 			if filepath.IsAbs(path) || in == "" {
 				return path
@@ -214,7 +214,7 @@ func (pres *Presenter) locations(m match.Match) []*sarif.Location {
 	var logicalLocations []*sarif.LogicalLocation
 
 	switch metadata := pres.src.Metadata.(type) {
-	case source.StereoscopeImageSourceMetadata:
+	case source.ImageMetadata:
 		img := metadata.UserInput
 		locations := m.Package.Locations.ToSlice()
 		for _, l := range locations {
@@ -231,7 +231,7 @@ func (pres *Presenter) locations(m match.Match) []*sarif.Location {
 		// sha and/or tags which are likely to change between runs and aren't really necessary for a general
 		// path to find file where the package originated
 		physicalLocation = fmt.Sprintf("%s %s", imageShortPathName(pres.src), physicalLocation)
-	case source.FileSourceMetadata:
+	case source.FileMetadata:
 		locations := m.Package.Locations.ToSlice()
 		for _, l := range locations {
 			logicalLocations = append(logicalLocations, &sarif.LogicalLocation{
@@ -239,7 +239,7 @@ func (pres *Presenter) locations(m match.Match) []*sarif.Location {
 				Name:               sp(l.RealPath),
 			})
 		}
-	case source.DirectorySourceMetadata:
+	case source.DirectoryMetadata:
 		// DirectoryScheme is already handled, with input prepended if needed
 	}
 
@@ -416,9 +416,9 @@ func (pres *Presenter) resultMessage(m match.Match) sarif.Message {
 	path := pres.packagePath(m.Package)
 	src := pres.inputPath()
 	switch meta := pres.src.Metadata.(type) {
-	case source.StereoscopeImageSourceMetadata:
+	case source.ImageMetadata:
 		src = fmt.Sprintf("in image %s at: %s", meta.UserInput, path)
-	case source.FileSourceMetadata, source.DirectorySourceMetadata:
+	case source.FileMetadata, source.DirectoryMetadata:
 		src = fmt.Sprintf("at: %s", path)
 	}
 	message := fmt.Sprintf("A %s vulnerability in %s package: %s, version %s was found %s",
@@ -432,7 +432,7 @@ func (pres *Presenter) resultMessage(m match.Match) sarif.Message {
 func (pres *Presenter) partialFingerprints(m match.Match) map[string]any {
 	p := m.Package
 	hasher := sha256.New()
-	if meta, ok := pres.src.Metadata.(source.StereoscopeImageSourceMetadata); ok {
+	if meta, ok := pres.src.Metadata.(source.ImageMetadata); ok {
 		hashWrite(hasher, pres.src.Name, meta.Architecture, meta.OS)
 	}
 	hashWrite(hasher, string(p.Type), p.Name, p.Version, pres.packagePath(p))

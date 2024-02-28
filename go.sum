@@ -239,6 +239,8 @@ github.com/anchore/clio v0.0.0-20240209204744-cb94e40a4f65 h1:u9XrEabKlGPsrmRvAE
 github.com/anchore/clio v0.0.0-20240209204744-cb94e40a4f65/go.mod h1:8Jr7CjmwFVcBPtkJdTpaAGHimoGJGfbExypjzOu87Og=
 github.com/anchore/fangs v0.0.0-20231201140849-5075d28d6d8b h1:L/djgY7ZbZ/38+wUtdkk398W3PIBJLkt1N8nU/7e47A=
 github.com/anchore/fangs v0.0.0-20231201140849-5075d28d6d8b/go.mod h1:TLcE0RE5+8oIx2/NPWem/dq1DeaMoC+fPEH7hoSzPLo=
+github.com/anchore/go-collections v0.0.0-20240216171411-9321230ce537 h1:GjNGuwK5jWjJMyVppBjYS54eOiiSNv4Ba869k4wh72Q=
+github.com/anchore/go-collections v0.0.0-20240216171411-9321230ce537/go.mod h1:1aiktV46ATCkuVg0O573ZrH56BUawTECPETbZyBcqT8=
 github.com/anchore/go-logger v0.0.0-20230725134548-c21dafa1ec5a h1:nJ2G8zWKASyVClGVgG7sfM5mwoZlZ2zYpIzN2OhjWkw=
 github.com/anchore/go-logger v0.0.0-20230725134548-c21dafa1ec5a/go.mod h1:ubLFmlsv8/DFUQrZwY5syT5/8Er3ugSr4rDFwHsE3hg=
 github.com/anchore/go-macholibre v0.0.0-20220308212642-53e6d0aaf6fb h1:iDMnx6LIjtjZ46C0akqveX83WFzhpTD3eqOthawb5vU=
@@ -251,10 +253,10 @@ github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4 h1:rmZG77uXgE
 github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4/go.mod h1:Bkc+JYWjMCF8OyZ340IMSIi2Ebf3uwByOk6ho4wne1E=
 github.com/anchore/packageurl-go v0.1.1-0.20240202171727-877e1747d426 h1:agoiZchSf1Nnnos1azwIg5hk5Ao9TzZNBD9++AChGEg=
 github.com/anchore/packageurl-go v0.1.1-0.20240202171727-877e1747d426/go.mod h1:Blo6OgJNiYF41ufcgHKkbCKF2MDOMlrqhXv/ij6ocR4=
-github.com/anchore/stereoscope v0.0.2-0.20240216182029-6171ee21e1d5 h1:o//fhRcSpOYHC/xG/HiI6ddtSMiRgHlB96xJQXZawZM=
-github.com/anchore/stereoscope v0.0.2-0.20240216182029-6171ee21e1d5/go.mod h1:o0TqYkefad6kIPtmbigFKss7P48z4bjd8Vp5Wklbf3Y=
-github.com/anchore/syft v0.105.1 h1:l4rRZGLQoWUr6FmuZU1smlMiVKM2YYAsdFK64YK5sCQ=
-github.com/anchore/syft v0.105.1/go.mod h1:zntgjdKXqx5RM/GpSoDctnsGwUksLXWSsv9W0Is1YhM=
+github.com/anchore/stereoscope v0.0.2-0.20240221144950-cf0e754f5b56 h1:iHvTXZA+qEozPGRRuW1Mv7r7w2fHeJdzWDx+YsSIbyg=
+github.com/anchore/stereoscope v0.0.2-0.20240221144950-cf0e754f5b56/go.mod h1:evQiJMQG56Z7/L5uhA8kfhhjF6ESJUZzUH9ms6bQ2Co=
+github.com/anchore/syft v0.105.2-0.20240227214437-a978966cadfc h1:DAKhgqCcFUxDdhbnt5oha3ffKB0HTrUYCWsnAnD0Vmc=
+github.com/anchore/syft v0.105.2-0.20240227214437-a978966cadfc/go.mod h1:0YmPZeyOLJUmFPOsu3vLm0fERmvW5bQTmodzThMv89U=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/brotli v1.0.1/go.mod h1:loMXtMfwqflxFJPmdbJO0a3KNoPuLBgiu3qAvBg8x/Y=
 github.com/andybalholm/brotli v1.0.4 h1:V7DdXeJtZscaqfNuAdSRuRFzuiKlHSC/Zh3zl9qY3JY=

@@ -60,7 +60,7 @@ func (ovm *Processor) ReadVexDocuments(docs []string) (interface{}, error) {
 // identifiers identifying the scanned image.
 func productIdentifiersFromContext(pkgContext *pkg.Context) ([]string, error) {
 	switch v := pkgContext.Source.Metadata.(type) {
-	case source.StereoscopeImageSourceMetadata:
+	case source.ImageMetadata:
 		// TODO(puerco): We can create a wider definition here. This effectively
 		// adds the multiarch image and the image of the OS running grype. We
 		// could generate more identifiers to match better.
