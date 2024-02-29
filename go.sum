@@ -255,8 +255,8 @@ github.com/anchore/packageurl-go v0.1.1-0.20240202171727-877e1747d426 h1:agoiZch
 github.com/anchore/packageurl-go v0.1.1-0.20240202171727-877e1747d426/go.mod h1:Blo6OgJNiYF41ufcgHKkbCKF2MDOMlrqhXv/ij6ocR4=
 github.com/anchore/stereoscope v0.0.2-0.20240221144950-cf0e754f5b56 h1:iHvTXZA+qEozPGRRuW1Mv7r7w2fHeJdzWDx+YsSIbyg=
 github.com/anchore/stereoscope v0.0.2-0.20240221144950-cf0e754f5b56/go.mod h1:evQiJMQG56Z7/L5uhA8kfhhjF6ESJUZzUH9ms6bQ2Co=
-github.com/anchore/syft v0.105.2-0.20240227214437-a978966cadfc h1:DAKhgqCcFUxDdhbnt5oha3ffKB0HTrUYCWsnAnD0Vmc=
-github.com/anchore/syft v0.105.2-0.20240227214437-a978966cadfc/go.mod h1:0YmPZeyOLJUmFPOsu3vLm0fERmvW5bQTmodzThMv89U=
+github.com/anchore/syft v1.0.0 h1:gREo7jCEo5Qrk3ras2Qh7A/hFSUrCUkUlPLEOfNy66k=
+github.com/anchore/syft v1.0.0/go.mod h1:yYqogA+EVSeXFGntGpGDGa1sPMNbYGez3ni4m6FemlM=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/brotli v1.0.1/go.mod h1:loMXtMfwqflxFJPmdbJO0a3KNoPuLBgiu3qAvBg8x/Y=
 github.com/andybalholm/brotli v1.0.4 h1:V7DdXeJtZscaqfNuAdSRuRFzuiKlHSC/Zh3zl9qY3JY=
@@ -764,8 +764,8 @@ github.com/mitchellh/reflectwalk v1.0.2 h1:G2LzWKi524PWgd3mLHV8Y5k7s6XUvT0Gef6zx
 github.com/mitchellh/reflectwalk v1.0.2/go.mod h1:mSTlrgnPZtwu0c4WaC2kGObEpuNDbx0jmZXqmk4esnw=
 github.com/moby/locker v1.0.1 h1:fOXqR41zeveg4fFODix+1Ch4mj/gT0NE1XJbp/epuBg=
 github.com/moby/locker v1.0.1/go.mod h1:S7SDdo5zpBK84bzzVlKr2V0hz+7x9hWbYC/kq7oQppc=
-github.com/moby/sys/mountinfo v0.6.2 h1:BzJjoreD5BMFNmD9Rus6gdd1pLuecOFPt8wC+Vygl78=
-github.com/moby/sys/mountinfo v0.6.2/go.mod h1:IJb6JQeOklcdMU9F5xQ8ZALD+CUr5VlGpwtX+VE0rpI=
+github.com/moby/sys/mountinfo v0.7.1 h1:/tTvQaSJRr2FshkhXiIpux6fQ2Zvc4j7tAhMTStAG2g=
+github.com/moby/sys/mountinfo v0.7.1/go.mod h1:IJb6JQeOklcdMU9F5xQ8ZALD+CUr5VlGpwtX+VE0rpI=
 github.com/moby/sys/sequential v0.5.0 h1:OPvI35Lzn9K04PBbCLW0g4LcFAJgHsvXsRyewg5lXtc=
 github.com/moby/sys/sequential v0.5.0/go.mod h1:tH2cOOs5V9MlPiXcQzRC+eEyab644PWKGRYaaV5ZZlo=
 github.com/moby/sys/signal v0.7.0 h1:25RW3d5TnQEoKvRbEKUGay6DCQ46IxAVTT9CUMgmsSI=
