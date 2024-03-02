@@ -74,7 +74,7 @@ func TestPackagesAreSorted(t *testing.T) {
 
 	ctx := pkg.Context{
 		Source: &syftSource.Description{
-			Metadata: syftSource.DirectorySourceMetadata{},
+			Metadata: syftSource.DirectoryMetadata{},
 		},
 		Distro: &linux.Release{
 			ID:      "centos",

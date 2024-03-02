@@ -18,7 +18,7 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 		Source: &source.Description{
 			Name:    "alpine",
 			Version: "3.17",
-			Metadata: source.StereoscopeImageSourceMetadata{
+			Metadata: source.ImageMetadata{
 				RepoDigests: []string{
 					"alpine@sha256:124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
 				},

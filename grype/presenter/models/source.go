@@ -14,7 +14,7 @@ type source struct {
 // newSource creates a new source object to be represented into JSON.
 func newSource(src syftSource.Description) (source, error) {
 	switch m := src.Metadata.(type) {
-	case syftSource.StereoscopeImageSourceMetadata:
+	case syftSource.ImageMetadata:
 		// ensure that empty collections are not shown as null
 		if m.RepoDigests == nil {
 			m.RepoDigests = []string{}
@@ -27,12 +27,12 @@ func newSource(src syftSource.Description) (source, error) {
 			Type:   "image",
 			Target: m,
 		}, nil
-	case syftSource.DirectorySourceMetadata:
+	case syftSource.DirectoryMetadata:
 		return source{
 			Type:   "directory",
 			Target: m.Path,
 		}, nil
-	case syftSource.FileSourceMetadata:
+	case syftSource.FileMetadata:
 		return source{
 			Type:   "file",
 			Target: m.Path,

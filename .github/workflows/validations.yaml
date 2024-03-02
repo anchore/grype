@@ -106,7 +106,7 @@ jobs:
         run: make validate-cyclonedx-schema
 
       - name: Restore integration test cache
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 #v4.0.0
+        uses: actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319 #v4.0.1
         with:
           path: ${{ github.workspace }}/test/integration/test-fixtures/cache
           key: ${{ runner.os }}-integration-test-cache-${{ hashFiles('test/integration/test-fixtures/cache.fingerprint') }}
@@ -137,7 +137,7 @@ jobs:
       # why not use actions/upload-artifact? It is very slow (3 minutes to upload ~600MB of data, vs 10 seconds with this approach).
       # see https://github.com/actions/upload-artifact/issues/199 for more info
       - name: Upload snapshot artifacts
-        uses: actions/cache/save@13aacd865c20de90d75de3b17ebe84f7a17d57d2 #v4.0.0
+        uses: actions/cache/save@ab5e6d0c87105b4c9c2047343972218f562e4319 #v4.0.1
         with:
           path: snapshot
           key: snapshot-build-${{ github.run_id }}
@@ -151,14 +151,14 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
 
       - name: Download snapshot build
-        uses: actions/cache/restore@13aacd865c20de90d75de3b17ebe84f7a17d57d2 #v4.0.0
+        uses: actions/cache/restore@ab5e6d0c87105b4c9c2047343972218f562e4319 #v4.0.1
         with:
           path: snapshot
           key: snapshot-build-${{ github.run_id }}
 
       - name: Restore install.sh test image cache
         id: install-test-image-cache
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 #v4.0.0
+        uses: actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319 #v4.0.1
         with:
           path: ${{ github.workspace }}/test/install/cache
           key: ${{ runner.os }}-install-test-image-cache-${{ hashFiles('test/install/cache.fingerprint') }}
@@ -183,14 +183,14 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
 
       - name: Download snapshot build
-        uses: actions/cache/restore@13aacd865c20de90d75de3b17ebe84f7a17d57d2 #v4.0.0
+        uses: actions/cache/restore@ab5e6d0c87105b4c9c2047343972218f562e4319 #v4.0.1
         with:
           path: snapshot
           key: snapshot-build-${{ github.run_id }}
 
       - name: Restore docker image cache for compare testing
         id: mac-compare-testing-cache
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 #v4.0.0
+        uses: actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319 #v4.0.1
         with:
           path: image.tar
           key: ${{ runner.os }}-${{ hashFiles('test/compare/mac.sh') }}
@@ -211,13 +211,13 @@ jobs:
         uses: ./.github/actions/bootstrap
 
       - name: Restore CLI test-fixture cache
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 #v4.0.0
+        uses: actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319 #v4.0.1
         with:
           path: ${{ github.workspace }}/test/cli/test-fixtures/cache
           key: ${{ runner.os }}-cli-test-cache-${{ hashFiles('test/cli/test-fixtures/cache.fingerprint') }}
 
       - name: Download snapshot build
-        uses: actions/cache/restore@13aacd865c20de90d75de3b17ebe84f7a17d57d2 #v4.0.0
+        uses: actions/cache/restore@ab5e6d0c87105b4c9c2047343972218f562e4319 #v4.0.1
         with:
           path: snapshot
           key: snapshot-build-${{ github.run_id }}
