@@ -96,9 +96,7 @@ func TestUpstreamPackages(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var actual []Package
-			for _, upstream := range UpstreamPackages(tt.pkg) {
-				actual = append(actual, upstream)
-			}
+			actual = append(actual, UpstreamPackages(tt.pkg)...)
 			assert.Equalf(t, tt.expected, actual, "UpstreamPackages(%v)", tt.pkg)
 		})
 	}
