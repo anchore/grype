@@ -59,7 +59,7 @@ func (p platformCPE) Satisfied(d *distro.Distro, _ pkg.Package) (bool, error) {
 	}
 
 	// The remaining checks are on distro, so if the distro is unknown the condition should
-	// be considered to be satisified and avoid filtering matches
+	// be considered to be satisfied and avoid filtering matches
 	if d == nil {
 		return true, nil
 	}
