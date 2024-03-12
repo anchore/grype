@@ -2,6 +2,8 @@ package match
 
 import (
 	"github.com/bmatcuk/doublestar/v2"
+
+	"github.com/anchore/grype/grype/pkg"
 )
 
 // An IgnoredMatch is a vulnerability Match that has been ignored because one or more IgnoreRules applied to the match.
@@ -22,6 +24,7 @@ type IgnoreRule struct {
 	Namespace        string            `yaml:"namespace" json:"namespace" mapstructure:"namespace"`
 	FixState         string            `yaml:"fix-state" json:"fix-state" mapstructure:"fix-state"`
 	Package          IgnoreRulePackage `yaml:"package" json:"package" mapstructure:"package"`
+	Pom              IgnoreRulePom     `yaml:"pom" json:"pom" mapstructure:"pom"`
 	VexStatus        string            `yaml:"vex-status" json:"vex-status" mapstructure:"vex-status"`
 	VexJustification string            `yaml:"vex-justification" json:"vex-justification" mapstructure:"vex-justification"`
 }
@@ -33,6 +36,13 @@ type IgnoreRulePackage struct {
 	Language string `yaml:"language" json:"language" mapstructure:"language"`
 	Type     string `yaml:"type" json:"type" mapstructure:"type"`
 	Location string `yaml:"location" json:"location" mapstructure:"location"`
+}
+
+// IgnoreRulePom describes the Pom-specific fields that comprise the IgnoreRule.
+type IgnoreRulePom struct {
+	Scope      string `yaml:"scope" json:"scope" mapstructure:"scope"`
+	GroupID    string `yaml:"group-id" json:"group-id" mapstructure:"group-id"`
+	ArtifactID string `yaml:"artifact-id" json:"artifact-id" mapstructure:"artifact-id"`
 }
 
 // ApplyIgnoreRules iterates through the provided matches and, for each match,
@@ -137,6 +147,18 @@ func getIgnoreConditionsForRule(rule IgnoreRule) []ignoreCondition {
 		ignoreConditions = append(ignoreConditions, ifFixStateApplies(fs))
 	}
 
+	if s := rule.Pom.Scope; s != "" {
+		ignoreConditions = append(ignoreConditions, ifPomScopeApplies(s))
+	}
+
+	if gi := rule.Pom.GroupID; gi != "" {
+		ignoreConditions = append(ignoreConditions, ifPomGroupIDApplies(gi))
+	}
+
+	if ai := rule.Pom.ArtifactID; ai != "" {
+		ignoreConditions = append(ignoreConditions, ifPomArtifactIDApplies(ai))
+	}
+
 	return ignoreConditions
 }
 
@@ -185,6 +207,33 @@ func ifPackageTypeApplies(t string) ignoreCondition {
 func ifPackageLocationApplies(location string) ignoreCondition {
 	return func(match Match) bool {
 		return ruleLocationAppliesToMatch(location, match)
+	}
+}
+
+func ifPomScopeApplies(scope string) ignoreCondition {
+	return func(match Match) bool {
+		if metadata, ok := match.Package.Metadata.(pkg.JavaMetadata); ok {
+			return scope == metadata.PomScope
+		}
+		return false
+	}
+}
+
+func ifPomGroupIDApplies(groupID string) ignoreCondition {
+	return func(match Match) bool {
+		if metadata, ok := match.Package.Metadata.(pkg.JavaMetadata); ok {
+			return groupID == metadata.PomGroupID
+		}
+		return false
+	}
+}
+
+func ifPomArtifactIDApplies(artifactID string) ignoreCondition {
+	return func(match Match) bool {
+		if metadata, ok := match.Package.Metadata.(pkg.JavaMetadata); ok {
+			return artifactID == metadata.PomArtifactID
+		}
+		return false
 	}
 }
 

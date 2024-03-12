@@ -70,19 +70,22 @@ var (
 		{
 			Vulnerability: vulnerability.Vulnerability{
 				ID:        "CVE-458",
-				Namespace: "ruby-vulns",
+				Namespace: "java-vulns",
 				Fix: vulnerability.Fix{
 					State: grypeDb.UnknownFixState,
 				},
 			},
 			Package: pkg.Package{
 				ID:       pkg.ID(uuid.NewString()),
-				Name:     "speach",
-				Version:  "100.0.52",
-				Language: syftPkg.Ruby,
-				Type:     syftPkg.GemPkg,
-				Locations: file.NewLocationSet(file.NewVirtualLocation("/real/path/with/speach",
-					"/virtual/path/that/has/speach")),
+				Name:     "log4j",
+				Version:  "1.1.1",
+				Language: syftPkg.Java,
+				Type:     syftPkg.JavaPkg,
+				Metadata: pkg.JavaMetadata{
+					PomGroupID:    "log4j",
+					PomArtifactID: "log4j-core",
+					PomScope:      "test",
+				},
 			},
 		},
 	}
@@ -235,6 +238,7 @@ func TestApplyIgnoreRules(t *testing.T) {
 			},
 			expectedRemainingMatches: []Match{
 				allMatches[0],
+				allMatches[3],
 			},
 			expectedIgnoredMatches: []IgnoredMatch{
 				{
@@ -247,14 +251,6 @@ func TestApplyIgnoreRules(t *testing.T) {
 				},
 				{
 					Match: allMatches[2],
-					AppliedIgnoreRules: []IgnoreRule{
-						{
-							Namespace: "ruby-vulns",
-						},
-					},
-				},
-				{
-					Match: allMatches[3],
 					AppliedIgnoreRules: []IgnoreRule{
 						{
 							Namespace: "ruby-vulns",
@@ -275,6 +271,7 @@ func TestApplyIgnoreRules(t *testing.T) {
 			},
 			expectedRemainingMatches: []Match{
 				allMatches[0],
+				allMatches[3],
 			},
 			expectedIgnoredMatches: []IgnoredMatch{
 				{
@@ -297,12 +294,86 @@ func TestApplyIgnoreRules(t *testing.T) {
 						},
 					},
 				},
+			},
+		},
+		{
+			name:       "ignore matches on pom scope",
+			allMatches: allMatches,
+			ignoreRules: []IgnoreRule{
+				{
+					Pom: IgnoreRulePom{
+						Scope: "test",
+					},
+				},
+			},
+			expectedRemainingMatches: []Match{
+				allMatches[0],
+				allMatches[1],
+				allMatches[2],
+			},
+			expectedIgnoredMatches: []IgnoredMatch{
 				{
 					Match: allMatches[3],
 					AppliedIgnoreRules: []IgnoreRule{
 						{
-							Package: IgnoreRulePackage{
-								Language: string(syftPkg.Ruby),
+							Pom: IgnoreRulePom{
+								Scope: "test",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:       "ignore matches on pom group id",
+			allMatches: allMatches,
+			ignoreRules: []IgnoreRule{
+				{
+					Pom: IgnoreRulePom{
+						GroupID: "log4j",
+					},
+				},
+			},
+			expectedRemainingMatches: []Match{
+				allMatches[0],
+				allMatches[1],
+				allMatches[2],
+			},
+			expectedIgnoredMatches: []IgnoredMatch{
+				{
+					Match: allMatches[3],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							Pom: IgnoreRulePom{
+								GroupID: "log4j",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:       "ignore matches on pom artifact id",
+			allMatches: allMatches,
+			ignoreRules: []IgnoreRule{
+				{
+					Pom: IgnoreRulePom{
+						ArtifactID: "log4j-core",
+					},
+				},
+			},
+			expectedRemainingMatches: []Match{
+				allMatches[0],
+				allMatches[1],
+				allMatches[2],
+			},
+			expectedIgnoredMatches: []IgnoredMatch{
+				{
+					Match: allMatches[3],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							Pom: IgnoreRulePom{
+								ArtifactID: "log4j-core",
 							},
 						},
 					},
@@ -342,6 +413,25 @@ var (
 				file.NewVirtualLocation("/some/path", "/some/virtual/path"),
 			),
 			Type: "rpm",
+		},
+	}
+)
+
+var (
+	exampleJavaMatch = Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID: "CVE-2000-1234",
+		},
+		Package: pkg.Package{
+			ID:      pkg.ID(uuid.NewString()),
+			Name:    "a-pkg",
+			Version: "1.0",
+			Type:    "java-archive",
+			Metadata: pkg.JavaMetadata{
+				PomGroupID:    "example-group",
+				PomArtifactID: "example-artifact",
+				PomScope:      "test",
+			},
 		},
 	}
 )
@@ -449,6 +539,36 @@ func TestShouldIgnore(t *testing.T) {
 				},
 			},
 			expected: false,
+		},
+		{
+			name:  "rule applies via pom scope",
+			match: exampleJavaMatch,
+			rule: IgnoreRule{
+				Pom: IgnoreRulePom{
+					Scope: exampleJavaMatch.Package.Metadata.(pkg.JavaMetadata).PomScope,
+				},
+			},
+			expected: true,
+		},
+		{
+			name:  "rule applies via pom group id",
+			match: exampleJavaMatch,
+			rule: IgnoreRule{
+				Pom: IgnoreRulePom{
+					GroupID: exampleJavaMatch.Package.Metadata.(pkg.JavaMetadata).PomGroupID,
+				},
+			},
+			expected: true,
+		},
+		{
+			name:  "rule applies via pom artifact id",
+			match: exampleJavaMatch,
+			rule: IgnoreRule{
+				Pom: IgnoreRulePom{
+					ArtifactID: exampleJavaMatch.Package.Metadata.(pkg.JavaMetadata).PomArtifactID,
+				},
+			},
+			expected: true,
 		},
 	}
 

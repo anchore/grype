@@ -321,10 +321,11 @@ func getNameAndELVersion(sourceRpm string) (string, string) {
 
 func javaDataFromPkg(p pkg.Package) (metadata *JavaMetadata) {
 	if value, ok := p.Metadata.(pkg.JavaArchive); ok {
-		var artifactID, groupID, name string
+		var artifactID, groupID, name, scope string
 		if value.PomProperties != nil {
 			artifactID = value.PomProperties.ArtifactID
 			groupID = value.PomProperties.GroupID
+			scope = value.PomProperties.Scope
 		}
 		if value.Manifest != nil {
 			for _, kv := range value.Manifest.Main {
@@ -348,6 +349,7 @@ func javaDataFromPkg(p pkg.Package) (metadata *JavaMetadata) {
 			VirtualPath:    value.VirtualPath,
 			PomArtifactID:  artifactID,
 			PomGroupID:     groupID,
+			PomScope:       scope,
 			ManifestName:   name,
 			ArchiveDigests: archiveDigests,
 		}
