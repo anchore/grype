@@ -26,7 +26,7 @@ jobs:
           git tag ${{ github.event.inputs.version }}
 
       - name: Check static analysis results
-        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
+        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be # v1.2.0
         id: static-analysis
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -35,7 +35,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check unit test results
-        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
+        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be # v1.2.0
         id: unit
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -44,7 +44,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check integration test results
-        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
+        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be # v1.2.0
         id: integration
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -53,7 +53,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check acceptance test results (linux)
-        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
+        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be # v1.2.0
         id: acceptance-linux
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -62,7 +62,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check acceptance test results (mac)
-        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
+        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be # v1.2.0
         id: acceptance-mac
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -71,7 +71,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check cli test results (linux)
-        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
+        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be # v1.2.0
         id: cli-linux
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
