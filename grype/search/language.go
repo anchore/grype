@@ -1,6 +1,7 @@
 package search
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/anchore/grype/grype/distro"
@@ -8,11 +9,16 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal/log"
 )
 
 func ByPackageLanguage(store vulnerability.ProviderByLanguage, d *distro.Distro, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
 	verObj, err := version.NewVersionFromPkg(p)
 	if err != nil {
+		if errors.Is(err, version.ErrUnsupportedVersion) {
+			log.WithFields("error", err).Tracef("skipping package '%s@%s'", p.Name, p.Version)
+			return nil, nil
+		}
 		return nil, fmt.Errorf("matcher failed to parse version pkg=%q ver=%q: %w", p.Name, p.Version, err)
 	}
 

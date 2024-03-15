@@ -1,6 +1,7 @@
 package apk
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/anchore/grype/grype/distro"
@@ -9,6 +10,7 @@ import (
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal/log"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -63,6 +65,10 @@ func (m *Matcher) cpeMatchesWithoutSecDBFixes(store vulnerability.Provider, d *d
 
 	verObj, err := version.NewVersionFromPkg(p)
 	if err != nil {
+		if errors.Is(err, version.ErrUnsupportedVersion) {
+			log.WithFields("error", err).Tracef("skipping package '%s@%s'", p.Name, p.Version)
+			return nil, nil
+		}
 		return nil, fmt.Errorf("matcher failed to parse version pkg='%s' ver='%s': %w", p.Name, p.Version, err)
 	}
 

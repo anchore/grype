@@ -150,3 +150,42 @@ func TestCompareGolangVersions(t *testing.T) {
 		})
 	}
 }
+
+func Test_newGolangVersion_UnsupportedVersion(t *testing.T) {
+	tests := []struct {
+		name    string
+		v       string
+		want    *golangVersion
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{
+			name: "devel",
+			v:    "(devel)",
+			wantErr: func(t assert.TestingT, err error, msgAndArgs ...interface{}) bool {
+				return assert.ErrorIs(t, err, ErrUnsupportedVersion)
+			},
+		},
+		{
+			name:    "invalid",
+			v:       "invalid",
+			wantErr: assert.Error,
+		},
+		{
+			name: "valid",
+			v:    "v1.2.3",
+			want: &golangVersion{
+				raw:    "v1.2.3",
+				semVer: hashiVer.Must(hashiVer.NewSemver("v1.2.3")),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := newGolangVersion(tt.v)
+			if tt.wantErr != nil {
+				tt.wantErr(t, err)
+			}
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}

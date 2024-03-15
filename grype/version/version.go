@@ -7,6 +7,10 @@ import (
 	"github.com/anchore/syft/syft/cpe"
 )
 
+// ErrUnsupportedVersion is returned when a version string cannot be parsed into a rich version object
+// for a known unsupported case (e.g. golang "devel" version).
+var ErrUnsupportedVersion = fmt.Errorf("unsupported version value")
+
 type Version struct {
 	Raw    string
 	Format Format
