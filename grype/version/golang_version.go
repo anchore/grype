@@ -45,6 +45,9 @@ func (g golangVersion) compare(o golangVersion) int {
 }
 
 func newGolangVersion(v string) (*golangVersion, error) {
+	if v == "(devel)" {
+		return nil, ErrUnsupportedVersion
+	}
 	// go stdlib is reported by syft as a go package with version like "go1.24.1"
 	// other versions have "v" as a prefix, which the semver lib handles automatically
 	semver, err := hashiVer.NewSemver(strings.TrimPrefix(v, "go"))
