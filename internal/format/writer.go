@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
@@ -138,7 +138,7 @@ func newMultiWriter(options ...scanResultWriterDescription) (_ *scanResultMultiW
 			})
 		default:
 			// create any missing subdirectories
-			dir := path.Dir(option.Path)
+			dir := filepath.Dir(option.Path)
 			if dir != "" {
 				s, err := os.Stat(dir)
 				if err != nil {
