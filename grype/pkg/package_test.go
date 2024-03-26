@@ -614,13 +614,26 @@ func TestNew(t *testing.T) {
 					Integrity: "some-digest",
 				},
 			},
-		}, {
+		},
+		{
 			name: "wordpress-plugin-entry",
 			syftPkg: syftPkg.Package{
 				Metadata: syftPkg.WordpressPluginEntry{
 					PluginInstallDirectory: "a",
 					Author:                 "a",
 					AuthorURI:              "a",
+				},
+			},
+		},
+		{
+			name: "elf-binary-package",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.ELFBinaryPackageNoteJSONPayload{
+					Type:       "a",
+					Vendor:     "a",
+					System:     "a",
+					SourceRepo: "a",
+					Commit:     "a",
 				},
 			},
 		},
