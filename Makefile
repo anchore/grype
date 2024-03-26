@@ -109,7 +109,7 @@ bootstrap: $(TEMP_DIR) bootstrap-go bootstrap-tools ## Download and install all 
 .PHONY: bootstrap-tools
 bootstrap-tools: $(TEMP_DIR)
 	curl -sSfL https://raw.githubusercontent.com/anchore/quill/main/install.sh | sh -s -- -b $(TEMP_DIR)/ $(QUILL_VERSION)
-	GO111MODULE=off GOBIN=$(realpath $(TEMP_DIR)) go get -u golang.org/x/perf/cmd/benchstat
+	GO111MODULE=off GOBIN=$(realpath $(TEMP_DIR)) go get -u golang.org/x/perf/cmd/benchstat || GOBIN=$(realpath $(TEMP_DIR)) go get -u golang.org/x/perf/cmd/benchstat
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(TEMP_DIR)/ $(GOLANGCILINT_VERSION)
 	curl -sSfL https://raw.githubusercontent.com/wagoodman/go-bouncer/master/bouncer.sh | sh -s -- -b $(TEMP_DIR)/ $(BOUNCER_VERSION)
 	curl -sSfL https://raw.githubusercontent.com/anchore/chronicle/main/install.sh | sh -s -- -b $(TEMP_DIR)/ $(CHRONICLE_VERSION)
