@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
 )
@@ -76,7 +76,7 @@ func listLocalDockerImages(prefix string) ([]string, error) {
 	// Only want to return tagged images
 	imageListArgs := filters.NewArgs()
 	imageListArgs.Add("dangling", "false")
-	images, err := cli.ImageList(ctx, types.ImageListOptions{All: false, Filters: imageListArgs})
+	images, err := cli.ImageList(ctx, image.ListOptions{All: false, Filters: imageListArgs})
 	if err != nil {
 		return repoTags, err
 	}
