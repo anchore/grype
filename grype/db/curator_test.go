@@ -74,7 +74,7 @@ func newTestCurator(tb testing.TB, fs afero.Fs, getter file.Getter, dbDir, metad
 	return c
 }
 
-func Test_defaultHTTPClient(t *testing.T) {
+func Test_defaultHTTPClientHasCert(t *testing.T) {
 	tests := []struct {
 		name    string
 		hasCert bool
@@ -105,9 +105,14 @@ func Test_defaultHTTPClient(t *testing.T) {
 			} else {
 				assert.Nil(t, httpClient.Transport.(*http.Transport).TLSClientConfig)
 			}
-
 		})
 	}
+}
+
+func Test_defaultHTTPClientTimeout(t *testing.T) {
+	c, err := defaultHTTPClient(afero.NewMemMapFs(), "")
+	require.NoError(t, err)
+	assert.Equal(t, 30*time.Second, c.Timeout)
 }
 
 func generateCertFixture(t *testing.T) string {

@@ -390,6 +390,7 @@ func (c Curator) ListingFromURL() (Listing, error) {
 
 func defaultHTTPClient(fs afero.Fs, caCertPath string) (*http.Client, error) {
 	httpClient := cleanhttp.DefaultClient()
+	httpClient.Timeout = 30 * time.Second
 	if caCertPath != "" {
 		rootCAs := x509.NewCertPool()
 
