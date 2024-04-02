@@ -68,7 +68,8 @@ func newTestCurator(tb testing.TB, fs afero.Fs, getter file.Getter, dbDir, metad
 
 	require.NoError(tb, err)
 
-	c.downloader = getter
+	c.listingDownloader = getter
+	c.updateDownloader = getter
 	c.fs = fs
 
 	return c
