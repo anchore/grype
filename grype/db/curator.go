@@ -59,16 +59,16 @@ func NewCurator(cfg Config) (Curator, error) {
 
 	fs := afero.NewOsFs()
 	listingClient, err := defaultHTTPClient(fs, cfg.CACert)
-	listingClient.Timeout = cfg.ListingFileTimeout
 	if err != nil {
 		return Curator{}, err
 	}
+	listingClient.Timeout = cfg.ListingFileTimeout
 
 	dbClient, err := defaultHTTPClient(fs, cfg.CACert)
-	dbClient.Timeout = cfg.UpdateTimeout
 	if err != nil {
 		return Curator{}, err
 	}
+	dbClient.Timeout = cfg.UpdateTimeout
 
 	return Curator{
 		fs:                  fs,
