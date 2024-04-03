@@ -24,15 +24,17 @@ type IgnoreRule struct {
 	Package          IgnoreRulePackage `yaml:"package" json:"package" mapstructure:"package"`
 	VexStatus        string            `yaml:"vex-status" json:"vex-status" mapstructure:"vex-status"`
 	VexJustification string            `yaml:"vex-justification" json:"vex-justification" mapstructure:"vex-justification"`
+	MatchType        Type              `yaml:"match-type" json:"match-type" mapstructure:"match-type"`
 }
 
 // IgnoreRulePackage describes the Package-specific fields that comprise the IgnoreRule.
 type IgnoreRulePackage struct {
-	Name     string `yaml:"name" json:"name" mapstructure:"name"`
-	Version  string `yaml:"version" json:"version" mapstructure:"version"`
-	Language string `yaml:"language" json:"language" mapstructure:"language"`
-	Type     string `yaml:"type" json:"type" mapstructure:"type"`
-	Location string `yaml:"location" json:"location" mapstructure:"location"`
+	Name         string `yaml:"name" json:"name" mapstructure:"name"`
+	Version      string `yaml:"version" json:"version" mapstructure:"version"`
+	Language     string `yaml:"language" json:"language" mapstructure:"language"`
+	Type         string `yaml:"type" json:"type" mapstructure:"type"`
+	Location     string `yaml:"location" json:"location" mapstructure:"location"`
+	UpstreamName string `yaml:"upstream-name" json:"upstream-name" mapstructure:"upstream-name"`
 }
 
 // ApplyIgnoreRules iterates through the provided matches and, for each match,
@@ -137,6 +139,13 @@ func getIgnoreConditionsForRule(rule IgnoreRule) []ignoreCondition {
 		ignoreConditions = append(ignoreConditions, ifFixStateApplies(fs))
 	}
 
+	if upstreamName := rule.Package.UpstreamName; upstreamName != "" {
+		ignoreConditions = append(ignoreConditions, ifUpstreamPackageNameApplies(upstreamName))
+	}
+
+	if matchType := rule.MatchType; matchType != "" {
+		ignoreConditions = append(ignoreConditions, ifMatchTypeApplies(matchType))
+	}
 	return ignoreConditions
 }
 
@@ -185,6 +194,28 @@ func ifPackageTypeApplies(t string) ignoreCondition {
 func ifPackageLocationApplies(location string) ignoreCondition {
 	return func(match Match) bool {
 		return ruleLocationAppliesToMatch(location, match)
+	}
+}
+
+func ifUpstreamPackageNameApplies(name string) ignoreCondition {
+	return func(match Match) bool {
+		for _, upstream := range match.Package.Upstreams {
+			if name == upstream.Name {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+func ifMatchTypeApplies(matchType Type) ignoreCondition {
+	return func(match Match) bool {
+		for _, mType := range match.Details.Types() {
+			if mType == matchType {
+				return true
+			}
+		}
+		return false
 	}
 }
 
