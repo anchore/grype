@@ -637,6 +637,16 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Php-pecl-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.PhpPeclEntry{
+					Name:    "a",
+					Version: "a",
+					License: []string{"a"},
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
