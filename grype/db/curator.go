@@ -37,11 +37,14 @@ type Config struct {
 	ValidateByHashOnGet bool
 	ValidateAge         bool
 	MaxAllowedBuiltAge  time.Duration
+	ListingFileTimeout  time.Duration
+	UpdateTimeout       time.Duration
 }
 
 type Curator struct {
 	fs                  afero.Fs
-	downloader          file.Getter
+	listingDownloader   file.Getter
+	updateDownloader    file.Getter
 	targetSchema        int
 	dbDir               string
 	dbPath              string
@@ -55,15 +58,23 @@ func NewCurator(cfg Config) (Curator, error) {
 	dbDir := path.Join(cfg.DBRootDir, strconv.Itoa(vulnerability.SchemaVersion))
 
 	fs := afero.NewOsFs()
-	httpClient, err := defaultHTTPClient(fs, cfg.CACert)
+	listingClient, err := defaultHTTPClient(fs, cfg.CACert)
 	if err != nil {
 		return Curator{}, err
 	}
+	listingClient.Timeout = cfg.ListingFileTimeout
+
+	dbClient, err := defaultHTTPClient(fs, cfg.CACert)
+	if err != nil {
+		return Curator{}, err
+	}
+	dbClient.Timeout = cfg.UpdateTimeout
 
 	return Curator{
 		fs:                  fs,
 		targetSchema:        vulnerability.SchemaVersion,
-		downloader:          file.NewGetter(httpClient),
+		listingDownloader:   file.NewGetter(listingClient),
+		updateDownloader:    file.NewGetter(dbClient),
 		dbDir:               dbDir,
 		dbPath:              path.Join(dbDir, FileName),
 		listingURL:          cfg.ListingURL,
@@ -283,7 +294,7 @@ func (c *Curator) download(listing *ListingEntry, downloadProgress *progress.Man
 	url.RawQuery = query.Encode()
 
 	// go-getter will automatically extract all files within the archive to the temp dir
-	err = c.downloader.GetToDir(tempDir, listing.URL.String(), downloadProgress)
+	err = c.updateDownloader.GetToDir(tempDir, listing.URL.String(), downloadProgress)
 	if err != nil {
 		return "", fmt.Errorf("unable to download db: %w", err)
 	}
@@ -375,7 +386,7 @@ func (c Curator) ListingFromURL() (Listing, error) {
 	}()
 
 	// download the listing file
-	err = c.downloader.GetFile(tempFile.Name(), c.listingURL)
+	err = c.listingDownloader.GetFile(tempFile.Name(), c.listingURL)
 	if err != nil {
 		return Listing{}, fmt.Errorf("unable to download listing: %w", err)
 	}
@@ -390,6 +401,7 @@ func (c Curator) ListingFromURL() (Listing, error) {
 
 func defaultHTTPClient(fs afero.Fs, caCertPath string) (*http.Client, error) {
 	httpClient := cleanhttp.DefaultClient()
+	httpClient.Timeout = 30 * time.Second
 	if caCertPath != "" {
 		rootCAs := x509.NewCertPool()
 
