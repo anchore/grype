@@ -299,6 +299,7 @@ Where the formats available are:
 - `cyclonedx`: An XML report conforming to the [CycloneDX 1.4 specification](https://cyclonedx.org/specification/overview/).
 - `cyclonedx-json`: A JSON report conforming to the [CycloneDX 1.4 specification](https://cyclonedx.org/specification/overview/).
 - `json`: Use this to get as much information out of Grype as possible!
+- `sarif`: Use this option to get a [SARIF](https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html) report (Static Analysis Results Interchange Format)
 - `template`: Lets the user specify the output format. See ["Using templates"](#using-templates) below.
 
 ### Using templates
