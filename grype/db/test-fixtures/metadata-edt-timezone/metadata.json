@@ -3,5 +3,9 @@
     "updated": "2020-06-15T14:02:36-04:00",
     "last-check": "2020-06-15T14:02:36-04:00",
     "version": 2,
-    "checksum": "sha256:dcd6a285c839a7c65939e20c251202912f64826be68609dfc6e48df7f853ddc8"
+    "checksum": "sha256:dcd6a285c839a7c65939e20c251202912f64826be68609dfc6e48df7f853ddc8",
+    "providers": [
+        {"name":  "nvd", "lastSuccessfulRun": "2020-05-15T12:02:45Z"},
+        {"name":  "alpine", "lastSuccessfulRun":  "2020-05-15T13:02:55Z"}
+    ]
 }

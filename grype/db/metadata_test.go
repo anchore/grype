@@ -20,6 +20,16 @@ func TestMetadataParse(t *testing.T) {
 				Built:    time.Date(2020, 06, 15, 14, 02, 36, 0, time.UTC),
 				Version:  2,
 				Checksum: "sha256:dcd6a285c839a7c65939e20c251202912f64826be68609dfc6e48df7f853ddc8",
+				Providers: []Provider{
+					{
+						Name:              "nvd",
+						LastSuccessfulRun: time.Date(2020, 05, 15, 12, 02, 45, 0, time.UTC),
+					},
+					{
+						Name:              "alpine",
+						LastSuccessfulRun: time.Date(2020, 05, 15, 13, 02, 55, 0, time.UTC),
+					},
+				},
 			},
 		},
 		{
@@ -28,6 +38,16 @@ func TestMetadataParse(t *testing.T) {
 				Built:    time.Date(2020, 06, 15, 18, 02, 36, 0, time.UTC),
 				Version:  2,
 				Checksum: "sha256:dcd6a285c839a7c65939e20c251202912f64826be68609dfc6e48df7f853ddc8",
+				Providers: []Provider{
+					{
+						Name:              "nvd",
+						LastSuccessfulRun: time.Date(2020, 05, 15, 12, 02, 45, 0, time.UTC),
+					},
+					{
+						Name:              "alpine",
+						LastSuccessfulRun: time.Date(2020, 05, 15, 13, 02, 55, 0, time.UTC),
+					},
+				},
 			},
 		},
 		{
