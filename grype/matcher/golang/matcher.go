@@ -42,11 +42,14 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 		mainModule = m.MainModule
 	}
 
-	// Golang currently does not have a standard way of incorporating the vcs version
-	// into the compiled binary: https://github.com/golang/go/issues/50603
-	// current version information for the main module is incomplete leading to multiple FP
-	// TODO: remove this exclusion when vcs information is included in future go version
-	isNotCorrected := strings.HasPrefix(p.Version, "v0.0.0-") || strings.HasPrefix(p.Version, "(devel)")
+	// Golang currently does not have a standard way of incorporating the main
+	// module's version into the compiled binary:
+	// https://github.com/golang/go/issues/50603.
+	//
+	// Syft has some fallback mechanisms to come up with a more sane version value
+	// depending on the scenario. But if none of these apply, the Go-set value of
+	// "(devel)" is used, which is altogether unhelpful for vulnerability matching.
+	isNotCorrected := strings.HasPrefix(p.Version, "(devel)")
 	if p.Name == mainModule && isNotCorrected {
 		return matches, nil
 	}
