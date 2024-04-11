@@ -38,7 +38,7 @@ func NamespaceForFeedGroup(feed, group string) (string, error) {
 	return "", fmt.Errorf("feed=%q group=%q has no namespace mappings", feed, group)
 }
 
-// NamespaceFromDistro returns the correct Feed Service namespace for the given
+// NamespaceForDistro returns the correct Feed Service namespace for the given
 // distro. A namespace is a distinct identifier from the Feed Service, and it
 // can be a combination of distro name and version(s), for example "amzn:8".
 // This is critical to query the database and correlate the distro version with
