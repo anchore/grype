@@ -703,6 +703,10 @@ file: ""
 # same as --exclude ; GRYPE_EXCLUDE env var
 exclude: []
 
+# include matches on kernel-headers packages that are matched against upstream kernel package
+# if 'false' any such matches are marked as ignored
+match-upstream-kernel-headers: false
+
 # os and/or architecture to use when referencing container images (e.g. "windows/armv6" or "arm64")
 # same as --platform; GRYPE_PLATFORM env var
 platform: ""
