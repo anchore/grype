@@ -99,6 +99,10 @@ var ignoreVEXFixedNotAffected = []match.IgnoreRule{
 	{VexStatus: string(vex.StatusFixed)},
 }
 
+var ignoreLinuxKernelHeaders = []match.IgnoreRule{
+	{Package: match.IgnoreRulePackage{Name: "kernel-headers", UpstreamName: "kernel", Type: "rpm"}, MatchType: match.ExactIndirectMatch},
+}
+
 //nolint:funlen
 func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs error) {
 	writer, err := format.MakeScanResultWriter(opts.Outputs, opts.File, format.PresentationConfig{
@@ -122,6 +126,10 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 
 	if opts.OnlyNotFixed {
 		opts.Ignore = append(opts.Ignore, ignoreFixedMatches...)
+	}
+
+	if !opts.MatchUpstreamKernelHeaders {
+		opts.Ignore = append(opts.Ignore, ignoreLinuxKernelHeaders...)
 	}
 
 	for _, ignoreState := range stringutil.SplitCommaSeparatedString(opts.IgnoreStates) {
