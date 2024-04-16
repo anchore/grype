@@ -15,7 +15,7 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-func TestMatcher_DropMainPackage(t *testing.T) {
+func TestMatcher_DropMainPackageIfNoVersion(t *testing.T) {
 
 	mainModuleMetadata := pkg.GolangBinMetadata{
 		MainModule: "istio.io/istio",
@@ -43,7 +43,7 @@ func TestMatcher_DropMainPackage(t *testing.T) {
 	assert.Len(t, preTest, 1, "should have matched the package when there is not a main module")
 
 	actual, _ := matcher.Match(store, nil, subjectWithMainModule)
-	assert.Len(t, actual, 0, "unexpected match count; should not match main module")
+	assert.Len(t, actual, 1, "should match the main module (i.e. 1 match)")
 
 	actual, _ = matcher.Match(store, nil, subjectWithMainModuleAsDevel)
 	assert.Len(t, actual, 0, "unexpected match count; should not match main module (devel)")
@@ -174,13 +174,13 @@ type mockProvider struct {
 }
 
 func (mp *mockProvider) Get(id, namespace string) ([]vulnerability.Vulnerability, error) {
-	//TODO implement me
+	// TODO implement me
 	panic("implement me")
 }
 
 func (mp *mockProvider) populateData() {
 	mp.data[syftPkg.Go] = map[string][]vulnerability.Vulnerability{
-		// for TestMatcher_DropMainPackage
+		// for TestMatcher_DropMainPackageIfNoVersion
 		"istio.io/istio": {
 			{
 				Constraint: version.MustGetConstraint("< 5.0.7", version.UnknownFormat),
