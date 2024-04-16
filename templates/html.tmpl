@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Vulnerability Report</title>
+
+    <!-- Template Metadata-->
+    <meta name="author" content="grype">
+    <meta name="version" content="1.0.0">
+
+    <!-- Source datatables.js and its dependencies -->
+    <link
+        href="https://cdn.datatables.net/v/dt/jq-3.7.0/jszip-3.10.1/dt-2.0.3/b-3.0.1/b-html5-3.0.1/b-print-3.0.1/r-3.0.1/datatables.min.css"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+    <script
+        src="https://cdn.datatables.net/v/dt/jq-3.7.0/jszip-3.10.1/dt-2.0.3/b-3.0.1/b-html5-3.0.1/b-print-3.0.1/r-3.0.1/datatables.min.js"></script>
+
+    <!-- Page & Main Container -->
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+
+        .main-container {
+            width: 90%;
+            max-width: 1200px;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            margin: 20px;
+        }
+    </style>
+    <!-- Header Container -->
+    <style>
+        .heading {
+            display: flex;
+            justify-content: space-between;
+            /* Aligns children to the far left and far right */
+            align-items: center;
+            /* Centers children vertically within the container */
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            background-color: #e8f0fe;
+            /* Muted blue background */
+            color: #495057;
+            /* Dark gray text color */
+        }
+
+        .heading-left,
+        .heading-right {
+            display: flex;
+            flex-direction: column;
+            /* Organizes children vertically */
+            align-items: flex-start;
+            /* Aligns text and other content to the start */
+        }
+
+        .heading-right {
+            align-items: flex-end;
+            /* Aligns the image to the far right */
+            padding-right: 20px;
+            /* Adds padding to the right of the .heading-right container */
+        }
+
+        .heading-right img {
+            width: 70px;
+            height: auto;
+        }
+
+        .heading-left h1,
+        .heading-left p {
+            padding-left: 20px;
+            margin: 4px 0;
+            /* Reduces the vertical margin to tighten the spacing */
+        }
+    </style>
+    <!-- Severity Information Container -->
+    <style>
+        .severity-info {
+            display: flex;
+            justify-content: space-around;
+            /* Evenly spaces the severity boxes */
+            align-items: center;
+            padding: 10px;
+            background-color: #f8f9fa;
+        }
+
+        .severity-box {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            /* Stack children vertically */
+            justify-content: space-between;
+            /* Space between the title and count */
+            align-items: center;
+            /* Center align items horizontally */
+            text-align: center;
+            padding: 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            position: relative;
+            /* Necessary for absolute positioning of children */
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            /* Smooth transitions for interactive effects */
+        }
+
+        .severity-title {
+            font-size: 0.8em;
+            position: absolute;
+            /* Positioning it absolutely to stick to the bottom */
+            bottom: 10px;
+            /* Distance from the bottom of the container */
+            width: 100%;
+            /* Ensure it spans the width of the box */
+            color: rgba(255, 255, 255, 0.9);
+            /* Light color for visibility */
+        }
+
+        .severity-count {
+            font-size: 3em;
+            /* Increasing font size for better visibility and impact */
+            margin-bottom: 20px;
+            /* Ensures space between the count and the bottom-positioned title */
+            color: #fff;
+            /* Ensuring text is always white for visibility */
+        }
+
+        .severity-box.active {
+            border: 2px solid #007bff;
+            /* Highlight active box */
+        }
+
+        /* Example ID-based styles, ensure to add similar styles for each severity level */
+        #critical {
+            background-color: #d9534f;
+        }
+
+        #high {
+            background-color: #f0ad4e;
+        }
+
+        #medium {
+            background-color: #5bc0de;
+        }
+
+        #low {
+            background-color: #5cb85c;
+        }
+
+        #unknown {
+            background-color: #777;
+        }
+
+        .severity-box:hover {
+            transform: translateY(-5px);
+            /* Creates a subtle "pop" effect */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            /* Adds depth on hover */
+        }
+    </style>
+    <!-- Table Control & Datatables Wrapper -->
+    <style>
+        .dataTables_wrapper {
+            display: flex;
+            justify-content: space-between;
+            /* Ensures maximum space between items */
+            align-items: center;
+            /* Vertically centers items in the container */
+            padding: 10px;
+            background: #f8f9fa;
+            margin-top: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Apply order properties to reposition elements visually */
+        .dt-buttons {
+            order: 2;
+            /* Places buttons on the right */
+            flex-grow: 1;
+            display: flex;
+            justify-content: flex-end;
+            /* Aligns buttons to the right */
+        }
+
+        .dataTables_filter {
+            order: 1;
+            /* Places search on the left */
+            flex-grow: 1;
+        }
+
+        .dataTables_filter label {
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+
+        .dataTables_filter input {
+            width: 100%;
+            /* Allows the input to take full width of its container */
+            padding: 8px;
+            margin-left: 5px;
+            /* Provides a little space after the label */
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .button {
+            padding: 8px 16px;
+            font-size: 14px;
+            color: white;
+            background-color: #007bff;
+            /* Primary blue */
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            background-color: #0056b3;
+        }
+
+        @media screen and (max-width: 768px) {
+
+            .dataTables_wrapper .dt-buttons,
+            .dataTables_wrapper .dataTables_filter {
+                float: none;
+                text-align: center;
+                margin: 10px auto;
+                /* Centers and adds margin */
+                display: block;
+                /* each takes full width */
+                width: 90%;
+                /* less than full width for padding */
+            }
+        }
+    </style>
+    <!-- Table Container -->
+    <style>
+        .data-table {
+            background-color: #f8f9fa;
+            /* Light grey background for consistency with other sections */
+            padding: 20px;
+            /* Padding around the DataTable for spacing */
+            margin: 10px 0;
+            /* Margin to separate it from other elements */
+            border-radius: 5px;
+            /* Rounded corners for the container */
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            /* Subtle shadow for depth */
+            overflow-x: auto;
+            /* Allows horizontal scrolling for overflow */
+        }
+
+        table.display {
+            width: 100%;
+            /* Ensures the table fills its container */
+            border-collapse: collapse;
+            /* Neat borders */
+            table-layout: fixed;
+            /* Uniform column sizing */
+        }
+
+        th,
+        td {
+            padding: 12px 15px;
+            /* Adequate padding for content */
+            text-align: left;
+            /* Align text to the left */
+            border-bottom: 1px solid #ddd;
+            /* Light grey border for each row */
+        }
+
+        th {
+            background-color: #e2e3e5;
+            /* Lighter grey for headers to stand out */
+            font-weight: bold;
+            /* Bold text for headers */
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+            /* Highlight for rows on hover */
+        }
+
+        /* Dont use a list format for the fixed-in column */
+        .fixed-in ul {
+            list-style-type: none;
+            /* Removes bullet points */
+            padding: 0;
+            /* Removes padding */
+            margin: 0;
+            /* Removes margin */
+        }
+
+        .fixed-in li {
+            padding: 0;
+            margin: 0;
+        }
+    </style>
+    <!-- Severity Coloring -->
+    <style>
+        .severity-pill {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            /* make the pill shape */
+            color: white;
+            /* Text color */
+            text-align: center;
+        }
+
+        .critical {
+            background-color: #d9534f;
+        }
+
+        .high {
+            background-color: #f0ad4e;
+        }
+
+        .medium {
+            background-color: #5bc0de;
+        }
+
+        .low {
+            background-color: #5cb85c;
+        }
+
+        .unknown {
+            background-color: #777;
+        }
+    </style>
+    <!-- State Coloring -->
+    <style>
+        .state-pill {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            /* make the pill shape */
+            color: white;
+            /* Text color */
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .fixed {
+            background-color: #d9534f;
+        }
+
+        .not-fixed {
+            background-color: #f0ad4e;
+        }
+
+        .unknown {
+            background-color: #6c757d;
+        }
+
+        .wont-fix {
+            background-color: #5cb85c;
+        }
+    </style>
+
+</head>
+{{/* Initialize counters */}}
+{{- $CountCritical := 0 }}
+{{- $CountHigh := 0 }}
+{{- $CountMedium := 0 }}
+{{- $CountLow := 0}}
+{{- $CountUnknown := 0 }}
+
+{{/* Create a list */}}
+{{- $FilteredMatches := list }}
+
+{{/* Loop through all vulns limit output and set count*/}}
+{{- range $vuln := .Matches }}
+    {{/* Use this filter to exclude severity if needed */}}
+    {{- if or (eq $vuln.Vulnerability.Severity "Critical") (eq $vuln.Vulnerability.Severity "High") (eq $vuln.Vulnerability.Severity "Medium") (eq $vuln.Vulnerability.Severity "Low") (eq $vuln.Vulnerability.Severity "Unknown") }}
+        {{- $FilteredMatches = append $FilteredMatches $vuln }}
+        {{- if eq $vuln.Vulnerability.Severity "Critical" }}
+            {{- $CountCritical = add $CountCritical 1 }}
+        {{- else if eq $vuln.Vulnerability.Severity "High" }}
+            {{- $CountHigh = add $CountHigh 1 }}
+        {{- else if eq $vuln.Vulnerability.Severity "Medium" }}
+            {{- $CountMedium = add $CountMedium 1 }}
+        {{- else if eq $vuln.Vulnerability.Severity "Low" }}
+            {{- $CountLow = add $CountLow 1 }}
+        {{- else }}
+            {{- $CountUnknown = add $CountUnknown 1 }}
+        {{- end }}
+    {{- end }}
+{{- end }}
+
+<body>
+    <div class="main-container">
+        <div class="heading">
+            <div class="heading-left">
+                <h1>Container Vulnerability Report</h1>
+                <p><strong>Name:</strong> {{- if eq (.Source.Type) "image" -}} {{.Source.Target.UserInput}}
+                    {{- else if eq (.Source.Type) "directory" -}} {{.Source.Target}}
+                    {{- else if eq (.Source.Type) "file" -}} {{.Source.Target}}
+                    {{- else -}} unknown
+                    {{- end -}}</p>
+                <p><strong>Type:</strong> {{ .Source.Type }}</p>
+                <p><strong>Date:</strong> <span id="dateElement">{{.Descriptor.Timestamp}}</span></p>
+            </div>
+            <div class="heading-right">
+                <img src="https://user-images.githubusercontent.com/5199289/136855393-d0a9eef9-ccf1-4e2b-9d7c-7aad16a567e5.png"
+                    alt="Grype Logo">
+            </div>
+        </div>
+        <div class="severity-info">
+            <div class="severity-box" id="critical">
+                <div class="severity-title">Critical</div>
+                <div class="severity-count" id="criticalCount">{{ $CountCritical }}</div>
+            </div>
+            <div class="severity-box" id="high">
+                <div class="severity-title">High</div>
+                <div class="severity-count" id="highCount">{{ $CountHigh }}</div>
+            </div>
+            <div class="severity-box" id="medium">
+                <div class="severity-title">Medium</div>
+                <div class="severity-count" id="mediumCount">{{ $CountMedium }}</div>
+            </div>
+            <div class="severity-box" id="low">
+                <div class="severity-title">Low</div>
+                <div class="severity-count" id="lowCount">{{ $CountLow }}</div>
+            </div>
+            <div class="severity-box" id="unknown">
+                <div class="severity-title">Unknown</div>
+                <div class="severity-count" id="unknownCount">{{ $CountUnknown }}</div>
+            </div>
+        </div>
+        <div class="data-table">
+            <table id="vulnerabilityTable" class="display" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Version</th>
+                        <th>Type</th>
+                        <th>Vulnerability</th>
+                        <th>Severity</th>
+                        <th>Description</th>
+                        <th>State</th>
+                        <th>Fixed In</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{- range $FilteredMatches }}
+                    <tr>
+                        <td>{{.Artifact.Name}}</td>
+                        <td>{{.Artifact.Version}}</td>
+                        <td>{{.Artifact.Type}}</td>
+                        <td>
+                            <a href="{{.Vulnerability.DataSource}}">{{.Vulnerability.ID}}</a>
+                        </td>
+                        <td>{{.Vulnerability.Severity}}</td>
+                        <td>{{html .Vulnerability.Description}}</td>
+                        <td>{{.Vulnerability.Fix.State}}</td>
+                        <td>
+                            {{- if .Vulnerability.Fix.Versions }}
+                            <ul>
+                                {{- range .Vulnerability.Fix.Versions }}
+                                <li>{{ . }}</li>
+                                {{- end }}
+                            </ul>
+                            {{- else }}
+                            N/A
+                            {{- end }}
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            initializeDataTable();
+            prettyTimestamp();
+        });
+
+        function prettyTimestamp() {
+            var dateString = document.getElementById("dateElement").textContent;
+            var date = new Date(dateString);
+
+            // Format date to a more human-readable form
+            var formattedDate = date.toLocaleDateString("en-US", {
+                weekday: "long", // "Monday"
+                year: "numeric", // "2024"
+                month: "long", // "April"
+                day: "numeric", // "12"
+            });
+
+            var formattedTime = date.toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true, // Use AM/PM
+            });
+
+            // Update the content of the div with formatted date and time
+            document.getElementById("dateElement").textContent =
+                formattedDate + " at " + formattedTime;
+        }
+        function initializeDataTable() {
+            var table = $('#vulnerabilityTable').DataTable({
+                responsive: true,
+                dom: '<"dataTables_wrapper"Bf>t<"dataTables_control"ip>',
+                buttons: [
+                    { extend: 'pdfHtml5', text: 'Export to PDF' }
+                ],
+                columnDefs: getColumnDefs()
+            });
+
+            setupSeverityClickHandler(table);
+        }
+
+        function getColumnDefs() {
+            return [
+                {
+                    targets: 5,
+                    className: 'none'
+                },
+                {
+                    targets: 4, // Index of 'Severity' Column
+                    render: function (data, type, row) {
+                        const severityClasses = {
+                            'Critical': 'critical',
+                            'High': 'high',
+                            'Medium': 'medium',
+                            'Low': 'low',
+                            'Unknown': 'unknown'
+                        };
+                        var className = severityClasses[data] || 'unknown';
+                        return '<span class="severity-pill ' + className + '">' + data + '</span>';
+                    }
+                },
+                {
+                    targets: 6, // Index of 'State' Column
+                    render: function (data, type, row) {
+                        const stateClasses = {
+                            'fixed': 'fixed',
+                            'not-fixed': 'not-fixed',
+                            'unknown': 'unknown',
+                            'wont-fix': 'wont-fix'
+                        };
+                        var className = stateClasses[data] || data; // Default to data if no match
+                        return '<span class="state-pill ' + className + '">' + data + '</span>';
+                    }
+                },
+                {
+                    targets: 7, // Index of 'Fixed In'
+                    createdCell: function (td, cellData, rowData, row, col) {
+                        $(td).addClass('fixed-in'); // Adds a class to support styling
+                    }
+                }
+            ];
+        }
+
+        function setupSeverityClickHandler(table) {
+            var currentFilter = '';
+            $('.severity-box').on('click', function () {
+                var severity = $(this).find('.severity-title').text().trim();
+                if (severity === currentFilter) {
+                    table.search('').columns().search('').draw();
+                    currentFilter = '';
+                    $('.severity-box').removeClass('active');
+                } else {
+                    $('.severity-box').removeClass('active');
+                    $(this).addClass('active');
+                    table.search('').columns().search('');
+                    table.column(4).search(severity).draw();
+                    currentFilter = severity;
+                }
+            });
+        }
+
+    </script>
+
+
+
+</body>
+
+</html>
