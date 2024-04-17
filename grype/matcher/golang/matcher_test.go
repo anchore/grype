@@ -183,7 +183,7 @@ func (mp *mockProvider) populateData() {
 		// for TestMatcher_DropMainPackageIfNoVersion
 		"istio.io/istio": {
 			{
-				Constraint: version.MustGetConstraint("< 5.0.7", version.UnknownFormat),
+				Constraint: version.MustGetConstraint("< v0.0.0-20230606222826-f59ce19ec6b6", version.UnknownFormat),
 				ID:         "CVE-2013-fake-BAD",
 			},
 		},

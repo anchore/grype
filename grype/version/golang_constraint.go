@@ -36,16 +36,26 @@ func (g golangConstraint) Satisfied(version *Version) (bool, error) {
 		return true, nil // the empty constraint is always satisfied
 	}
 
-	// when we get a pseudo version from the package and the constraint is not a pseudo version, we should not consider it as satisfied
-	// ex: constraint = ">=v1.0.0", version = "v0.0.0-0.20210101000000-abcdef123456"
-	if isPseudoVersion(version.String()) && !isPseudoVersion(g.raw) {
+	var constraintContainsPseudoVersion bool
+	for _, units := range g.expression.units {
+		for _, unit := range units {
+			if isPseudoVersion(unit.version) {
+				constraintContainsPseudoVersion = true
+				break
+			}
+		}
+	}
+	// when we get a pseudo version from a package, and the constraint being compared against is not a pseudo version,
+	// we should not consider it as satisfied
+	// ex: constraint of type ">=v1.0.0", should not be compared to version = "v0.0.0-0.20210101000000-abcdef123456"
+	if isPseudoVersion(version.String()) && !constraintContainsPseudoVersion {
 		return false, nil
 	}
 
 	return g.expression.satisfied(version)
 }
 
-// Define a regular expression pattern to match pseudo versions
+// PseudoVersionPattern is a regular expression pattern to match pseudo versions
 const PseudoVersionPattern = `^v0\.0\.0[-+].*$`
 
 // Check if a version string is a pseudo version
