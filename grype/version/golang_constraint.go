@@ -56,14 +56,14 @@ func (g golangConstraint) Satisfied(version *Version) (bool, error) {
 }
 
 // PseudoVersionPattern is a regular expression pattern to match pseudo versions
-const PseudoVersionPattern = `^v0\.0\.0[-+].*$`
+const pseudoVersionPattern = `^v0\.0\.0[-+].*$`
+
+var pseudoVersionRegex = regexp.MustCompile(pseudoVersionPattern)
 
 // Check if a version string is a pseudo version
 func isPseudoVersion(version string) bool {
 	// List of prefixes commonly used for pseudo versions
-	regex := regexp.MustCompile(PseudoVersionPattern)
-
-	return regex.MatchString(strings.TrimSpace(version))
+	return pseudoVersionRegex.MatchString(strings.TrimSpace(version))
 }
 
 func newGolangComparator(unit constraintUnit) (Comparator, error) {
