@@ -1,6 +1,8 @@
 package match
 
 import (
+	"regexp"
+
 	"github.com/bmatcuk/doublestar/v2"
 )
 
@@ -167,9 +169,22 @@ func ifNamespaceApplies(namespace string) ignoreCondition {
 	}
 }
 
+func packageNameRegex(packageName string) (*regexp.Regexp, error) {
+	pattern := packageName
+	if packageName[0] != '$' || packageName[len(packageName)-1] != '^' {
+		pattern = "^" + packageName + "$"
+	}
+	return regexp.Compile(pattern)
+}
+
 func ifPackageNameApplies(name string) ignoreCondition {
+	pattern, err := packageNameRegex(name)
+	if err != nil {
+		return func(Match) bool { return false }
+	}
+
 	return func(match Match) bool {
-		return name == match.Package.Name
+		return pattern.MatchString(match.Package.Name)
 	}
 }
 
