@@ -1,6 +1,10 @@
 package version
 
-import "fmt"
+import (
+	"fmt"
+	"regexp"
+	"strings"
+)
 
 var _ Constraint = (*golangConstraint)(nil)
 
@@ -31,7 +35,25 @@ func (g golangConstraint) Satisfied(version *Version) (bool, error) {
 	if g.raw == "" {
 		return true, nil // the empty constraint is always satisfied
 	}
+
+	// when we get a pseudo version from the package and the constraint is not a pseudo version, we should not consider it as satisfied
+	// ex: constraint = ">=v1.0.0", version = "v0.0.0-0.20210101000000-abcdef123456"
+	if isPseudoVersion(version.String()) && !isPseudoVersion(g.raw) {
+		return false, nil
+	}
+
 	return g.expression.satisfied(version)
+}
+
+// Define a regular expression pattern to match pseudo versions
+const PseudoVersionPattern = `^v0\.0\.0[-+].*$`
+
+// Check if a version string is a pseudo version
+func isPseudoVersion(version string) bool {
+	// List of prefixes commonly used for pseudo versions
+	regex := regexp.MustCompile(PseudoVersionPattern)
+
+	return regex.MatchString(strings.TrimSpace(version))
 }
 
 func newGolangComparator(unit constraintUnit) (Comparator, error) {
