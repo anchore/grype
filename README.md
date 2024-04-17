@@ -738,6 +738,14 @@ db:
   # Default max age is 120h (or five days)
   max-allowed-built-age: "120h"
 
+  # Timeout for downloading GRYPE_DB_UPDATE_URL to see if the database needs to be downloaded
+  # This file is ~156KiB as of 2024-04-17 so the download should be quick; adjust as needed
+  update-available-timeout: "30s"
+
+  # Timeout for downloading actual vulnerability DB
+  # The DB is ~156MB as of 2024-04-17 so slower connections may exceed the default timeout; adjust as needed
+  update-download-timeout: "120s"
+
 search:
   # the search space to look for packages (options: all-layers, squashed)
   # same as -s ; GRYPE_SEARCH_SCOPE env var
