@@ -36,7 +36,9 @@ func TestMatcher_DropMainPackageIfNoVersion(t *testing.T) {
 	subjectWithMainModuleAsDevel := subjectWithMainModule
 	subjectWithMainModuleAsDevel.Version = "(devel)"
 
-	matcher := NewGolangMatcher(MatcherConfig{})
+	matcher := NewGolangMatcher(MatcherConfig{
+		AllowMainModulePseudoVersionComparison: true,
+	})
 	store := newMockProvider()
 
 	preTest, _ := matcher.Match(store, nil, subjectWithoutMainModule)
