@@ -16,8 +16,9 @@ type Matcher struct {
 }
 
 type MatcherConfig struct {
-	UseCPEs               bool
-	AlwaysUseCPEForStdlib bool
+	UseCPEs                                bool
+	AlwaysUseCPEForStdlib                  bool
+	AllowMainModulePseudoVersionComparison bool
 }
 
 func NewGolangMatcher(cfg MatcherConfig) *Matcher {
@@ -49,7 +50,13 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 	// Syft has some fallback mechanisms to come up with a more sane version value
 	// depending on the scenario. But if none of these apply, the Go-set value of
 	// "(devel)" is used, which is altogether unhelpful for vulnerability matching.
-	isNotCorrected := strings.HasPrefix(p.Version, "(devel)")
+	var isNotCorrected bool
+	if m.cfg.AllowMainModulePseudoVersionComparison {
+		isNotCorrected = strings.HasPrefix(p.Version, "(devel)")
+	} else {
+		// when AllowPseudoVersionComparison is false
+		isNotCorrected = strings.HasPrefix(p.Version, "v0.0.0-") || strings.HasPrefix(p.Version, "(devel)")
+	}
 	if p.Name == mainModule && isNotCorrected {
 		return matches, nil
 	}
