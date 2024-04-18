@@ -2,8 +2,10 @@ package java
 
 import (
 	"context"
-	"errors"
+	"fmt"
+	"time"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
