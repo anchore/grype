@@ -838,6 +838,7 @@ match:
     using-cpes: false
     # even if CPE matching is disabled, make an exception when scanning for "stdlib".
     always-use-cpe-for-stdlib: true
+    allow-main-module-pseudo-version-comparison: true
   stock:
     using-cpes: true
 ```

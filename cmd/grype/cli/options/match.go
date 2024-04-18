@@ -17,8 +17,9 @@ type matcherConfig struct {
 }
 
 type golangConfig struct {
-	matcherConfig         `yaml:",inline" mapstructure:",squash"`
-	AlwaysUseCPEForStdlib bool `yaml:"always-use-cpe-for-stdlib" json:"always-use-cpe-for-stdlib" mapstructure:"always-use-cpe-for-stdlib"` // if CPEs should be used during matching
+	matcherConfig                          `yaml:",inline" mapstructure:",squash"`
+	AlwaysUseCPEForStdlib                  bool `yaml:"always-use-cpe-for-stdlib" json:"always-use-cpe-for-stdlib" mapstructure:"always-use-cpe-for-stdlib"`                                                       // if CPEs should be used during matching
+	AllowMainModulePseudoVersionComparison bool `yaml:"allow-main-module-pseudo-version-comparison" json:"allow-main-module-pseudo-version-comparison" mapstructure:"allow-main-module-pseudo-version-comparison"` // if pseudo versions should be compared
 }
 
 func defaultGolangConfig() golangConfig {
@@ -26,7 +27,8 @@ func defaultGolangConfig() golangConfig {
 		matcherConfig: matcherConfig{
 			UseCPEs: false,
 		},
-		AlwaysUseCPEForStdlib: true,
+		AlwaysUseCPEForStdlib:                  true,
+		AllowMainModulePseudoVersionComparison: true,
 	}
 }
 
