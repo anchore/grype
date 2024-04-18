@@ -15,40 +15,74 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-func TestMatcher_DropMainPackageIfNoVersion(t *testing.T) {
-
-	mainModuleMetadata := pkg.GolangBinMetadata{
-		MainModule: "istio.io/istio",
+func TestMatcher_DropMainPackageGivenVersionInfo(t *testing.T) {
+	tests := []struct {
+		name                         string
+		subjectWithoutMainModule     pkg.Package
+		mainModuleData               pkg.GolangBinMetadata
+		allowPsuedoVersionComparison bool
+		expectedMatchCount           int
+	}{
+		{
+			name: "main module with version is matched when pseudo version comparison is allowed",
+			subjectWithoutMainModule: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "istio.io/istio",
+				Version:  "v0.0.0-20220606222826-f59ce19ec6b6",
+				Type:     syftPkg.GoModulePkg,
+				Language: syftPkg.Go,
+				Metadata: pkg.GolangBinMetadata{},
+			},
+			mainModuleData: pkg.GolangBinMetadata{
+				MainModule: "istio.io/istio",
+			},
+			allowPsuedoVersionComparison: true,
+			expectedMatchCount:           1,
+		},
+		{
+			name: "main module with version is NOT matched when pseudo version comparison is disabled",
+			subjectWithoutMainModule: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "istio.io/istio",
+				Version:  "v0.0.0-20220606222826-f59ce19ec6b6",
+				Type:     syftPkg.GoModulePkg,
+				Language: syftPkg.Go,
+				Metadata: pkg.GolangBinMetadata{},
+			},
+			mainModuleData: pkg.GolangBinMetadata{
+				MainModule: "istio.io/istio",
+			},
+			allowPsuedoVersionComparison: false,
+			expectedMatchCount:           0,
+		},
 	}
 
-	subjectWithoutMainModule := pkg.Package{
-		ID:       pkg.ID(uuid.NewString()),
-		Name:     "istio.io/istio",
-		Version:  "v0.0.0-20220606222826-f59ce19ec6b6",
-		Type:     syftPkg.GoModulePkg,
-		Language: syftPkg.Go,
-		Metadata: pkg.GolangBinMetadata{},
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			mainModuleMetadata := test.mainModuleData
+			subjectWithoutMainModule := test.subjectWithoutMainModule
+
+			subjectWithMainModule := subjectWithoutMainModule
+			subjectWithMainModule.Metadata = mainModuleMetadata
+
+			subjectWithMainModuleAsDevel := subjectWithMainModule
+			subjectWithMainModuleAsDevel.Version = "(devel)"
+
+			matcher := NewGolangMatcher(MatcherConfig{
+				AllowMainModulePseudoVersionComparison: test.allowPsuedoVersionComparison,
+			})
+			store := newMockProvider()
+
+			preTest, _ := matcher.Match(store, nil, subjectWithoutMainModule)
+			assert.Len(t, preTest, 1, "should have matched the package when there is not a main module")
+
+			actual, _ := matcher.Match(store, nil, subjectWithMainModule)
+			assert.Len(t, actual, test.expectedMatchCount, "should match the main module depending on config (i.e. 1 match)")
+
+			actual, _ = matcher.Match(store, nil, subjectWithMainModuleAsDevel)
+			assert.Len(t, actual, 0, "unexpected match count; should never match main module (devel)")
+		})
 	}
-
-	subjectWithMainModule := subjectWithoutMainModule
-	subjectWithMainModule.Metadata = mainModuleMetadata
-
-	subjectWithMainModuleAsDevel := subjectWithMainModule
-	subjectWithMainModuleAsDevel.Version = "(devel)"
-
-	matcher := NewGolangMatcher(MatcherConfig{
-		AllowMainModulePseudoVersionComparison: true,
-	})
-	store := newMockProvider()
-
-	preTest, _ := matcher.Match(store, nil, subjectWithoutMainModule)
-	assert.Len(t, preTest, 1, "should have matched the package when there is not a main module")
-
-	actual, _ := matcher.Match(store, nil, subjectWithMainModule)
-	assert.Len(t, actual, 1, "should match the main module (i.e. 1 match)")
-
-	actual, _ = matcher.Match(store, nil, subjectWithMainModuleAsDevel)
-	assert.Len(t, actual, 0, "unexpected match count; should not match main module (devel)")
 }
 
 func TestMatcher_SearchForStdlib(t *testing.T) {
