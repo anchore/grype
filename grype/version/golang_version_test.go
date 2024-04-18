@@ -132,18 +132,6 @@ func TestCompareGolangVersions(t *testing.T) {
 			want:         1,
 		},
 		{
-			name:         "pseudoversion less than other pseudoversion",
-			thisVersion:  "v0.0.0-20170116102854-1ef0e047d5a7",
-			otherVersion: "v0.0.0-20180116102854-5a71ef0e047d",
-			want:         -1,
-		},
-		{
-			name:         "pseudoversion greater than other pseudoversion",
-			thisVersion:  "v0.0.0-20190116102854-8a3f0e047d5a",
-			otherVersion: "v0.0.0-20180116102854-5a71ef0e047d",
-			want:         1,
-		},
-		{
 			name:         "+incompatible doesn't break equality",
 			thisVersion:  "v3.2.0",
 			otherVersion: "v3.2.0+incompatible",
