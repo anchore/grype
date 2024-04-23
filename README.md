@@ -38,6 +38,7 @@ For commercial support options with Syft or Grype, please [contact Anchore](http
   - Oracle Linux
   - Red Hat (RHEL)
   - Ubuntu
+  - Wolfi
 - Find vulnerabilities for language-specific packages:
   - Ruby (Gems)
   - Java (JAR, WAR, EAR, JPI, HPI)
