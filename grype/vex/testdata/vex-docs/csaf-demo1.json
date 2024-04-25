@@ -1,0 +1,86 @@
+{
+  "document": {
+    "category": "csaf_vex",
+    "csaf_version": "2.0",
+    "notes": [
+      {
+        "category": "summary",
+        "text": "Example Company VEX document. Unofficial content for demonstration purposes only.",
+        "title": "Author comment"
+      }
+    ],
+    "publisher": {
+      "category": "vendor",
+      "name": "Example Company ProductCERT",
+      "namespace": "https://psirt.example.com"
+    },
+    "title": "AquaSecurity example VEX document",
+    "tracking": {
+      "current_release_date": "2022-03-03T11:00:00.000Z",
+      "generator": {
+        "date": "2022-03-03T11:00:00.000Z",
+        "engine": {
+          "name": "Secvisogram",
+          "version": "1.11.0"
+        }
+      },
+      "id": "2022-EVD-UC-01-A-001",
+      "initial_release_date": "2022-03-03T11:00:00.000Z",
+      "revision_history": [
+        {
+          "date": "2022-03-03T11:00:00.000Z",
+          "number": "1",
+          "summary": "Initial version."
+        }
+      ],
+      "status": "final",
+      "version": "1"
+    }
+  },
+  "product_tree": {
+    "branches": [
+      {
+        "branches": [
+          {
+            "branches": [
+              {
+                "category": "product_version",
+                "name": "2.6.0",
+                "product": {
+                  "name": "Spring Boot 2.6.0",
+                  "product_id": "SPB-00260",
+                  "product_identification_helper": {
+                    "purl": "pkg:apk/alpine/libcrypto3@3.0.8-r3?arch=x86_64&upstream=openssl&distro=alpine-3.17.3"
+                  }
+                }
+              }
+            ],
+            "category": "product_name",
+            "name": "Spring Boot"
+          }
+        ],
+        "category": "vendor",
+        "name": "Spring"
+      }
+    ]
+  },
+  "vulnerabilities": [
+    {
+      "cve": "CVE-2023-1255",
+      "product_status": {
+        "fixed": [
+          "SPB-00260"
+        ]
+      },
+      "threats": [
+        {
+          "category": "impact",
+          "details": "Class with vulnerable code was removed before shipping.",
+          "product_ids": [
+            "SPB-00260"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -9,6 +9,7 @@ import (
 	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/vex/status"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/source"
 )
@@ -112,33 +113,100 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 		wantErr            require.ErrorAssertionFunc
 	}{
 		{
-			name: "openvex-demo1 - ignore by fixed status",
+			name: "csaf-demo1 - ignore by fixed status",
 			options: ProcessorOptions{
 				Documents: []string{
-					"testdata/vex-docs/openvex-demo1.json",
+					"testdata/vex-docs/csaf-demo1.json",
 				},
-				IgnoreRules: []match.IgnoreRule{
-					{
-						VexStatus: "fixed",
-					},
-				},
+				IgnoreRules: []match.IgnoreRule{{
+					VexStatus: string(status.Fixed),
+				}},
 			},
 			args: args{
 				pkgContext: pkgContext,
 				matches:    getSubject(),
 			},
 			wantMatches: matchesRef(libCryptoCVE_2023_3817, libCryptoCVE_2023_2975),
-			wantIgnoredMatches: []match.IgnoredMatch{
-				{
-					Match: libCryptoCVE_2023_1255,
-					AppliedIgnoreRules: []match.IgnoreRule{
-						{
-							Namespace: "vex", // note: an additional namespace was added
-							VexStatus: "fixed",
-						},
-					},
+			wantIgnoredMatches: []match.IgnoredMatch{{
+				Match: libCryptoCVE_2023_1255,
+				AppliedIgnoreRules: []match.IgnoreRule{{
+					Namespace: "vex",
+					VexStatus: string(status.Fixed),
+				}},
+			}},
+		},
+		{
+			name: "csaf-demo1 - ignore by fixed status and CVE",
+			options: ProcessorOptions{
+				Documents: []string{
+					"testdata/vex-docs/csaf-demo1.json",
 				},
+				IgnoreRules: []match.IgnoreRule{{
+					VexStatus:     string(status.Fixed),
+					Vulnerability: "CVE-2023-1255", // note: and previous tests
+				}},
 			},
+			args: args{
+				pkgContext: pkgContext,
+				matches:    getSubject(),
+			},
+			wantMatches: matchesRef(libCryptoCVE_2023_3817, libCryptoCVE_2023_2975),
+			wantIgnoredMatches: []match.IgnoredMatch{{
+				Match: libCryptoCVE_2023_1255,
+				AppliedIgnoreRules: []match.IgnoreRule{{
+					Namespace:     "vex",
+					Vulnerability: "CVE-2023-1255",
+					VexStatus:     string(status.Fixed),
+				}},
+			}},
+		},
+		{
+			name: "csaf-demo2 - ignore by not_affected status and vulnerable_code_not_present justification",
+			options: ProcessorOptions{
+				Documents: []string{
+					"testdata/vex-docs/csaf-demo2.json",
+				},
+				IgnoreRules: []match.IgnoreRule{{
+					VexStatus:        string(status.NotAffected),
+					VexJustification: "vulnerable_code_not_present", // note: this is the difference between this test and previous tests
+				}},
+			},
+			args: args{
+				pkgContext: pkgContext,
+				matches:    getSubject(),
+			},
+			wantMatches: matchesRef(libCryptoCVE_2023_1255, libCryptoCVE_2023_2975),
+			wantIgnoredMatches: []match.IgnoredMatch{{
+				Match: libCryptoCVE_2023_3817,
+				AppliedIgnoreRules: []match.IgnoreRule{{
+					Namespace:        "vex",
+					VexJustification: "vulnerable_code_not_present",
+					VexStatus:        string(status.NotAffected),
+				}},
+			}},
+		},
+		{
+			name: "openvex-demo1 - ignore by fixed status",
+			options: ProcessorOptions{
+				Documents: []string{
+					"testdata/vex-docs/openvex-demo1.json",
+				},
+				IgnoreRules: []match.IgnoreRule{{
+					VexStatus: string(status.Fixed),
+				}},
+			},
+			args: args{
+				pkgContext: pkgContext,
+				matches:    getSubject(),
+			},
+			wantMatches: matchesRef(libCryptoCVE_2023_3817, libCryptoCVE_2023_2975),
+			wantIgnoredMatches: []match.IgnoredMatch{{
+				Match: libCryptoCVE_2023_1255,
+				AppliedIgnoreRules: []match.IgnoreRule{{
+					Namespace: "vex",
+					VexStatus: string(status.Fixed),
+				}},
+			}},
 		},
 		{
 			name: "openvex-demo1 - ignore by fixed status and CVE", // no real difference from the first test other than the AppliedIgnoreRules
@@ -146,30 +214,24 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 				Documents: []string{
 					"testdata/vex-docs/openvex-demo1.json",
 				},
-				IgnoreRules: []match.IgnoreRule{
-					{
-						Vulnerability: "CVE-2023-1255", // note: this is the difference between this test and the last test
-						VexStatus:     "fixed",
-					},
-				},
+				IgnoreRules: []match.IgnoreRule{{
+					Vulnerability: "CVE-2023-1255", // note: this is the difference between this test and the last test
+					VexStatus:     string(status.Fixed),
+				}},
 			},
 			args: args{
 				pkgContext: pkgContext,
 				matches:    getSubject(),
 			},
 			wantMatches: matchesRef(libCryptoCVE_2023_3817, libCryptoCVE_2023_2975),
-			wantIgnoredMatches: []match.IgnoredMatch{
-				{
-					Match: libCryptoCVE_2023_1255,
-					AppliedIgnoreRules: []match.IgnoreRule{
-						{
-							Namespace:     "vex",
-							Vulnerability: "CVE-2023-1255", // note: this is the difference between this test and the last test
-							VexStatus:     "fixed",
-						},
-					},
-				},
-			},
+			wantIgnoredMatches: []match.IgnoredMatch{{
+				Match: libCryptoCVE_2023_1255,
+				AppliedIgnoreRules: []match.IgnoreRule{{
+					Namespace:     "vex",
+					Vulnerability: "CVE-2023-1255", // note: this is the difference between this test and the last test
+					VexStatus:     string(status.Fixed),
+				}},
+			}},
 		},
 		{
 			name: "openvex-demo2 - ignore by fixed status",
@@ -177,37 +239,28 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 				Documents: []string{
 					"testdata/vex-docs/openvex-demo2.json",
 				},
-				IgnoreRules: []match.IgnoreRule{
-					{
-						VexStatus: "fixed",
-					},
-				},
+				IgnoreRules: []match.IgnoreRule{{
+					VexStatus: string(status.Fixed),
+				}},
 			},
 			args: args{
 				pkgContext: pkgContext,
 				matches:    getSubject(),
 			},
 			wantMatches: matchesRef(libCryptoCVE_2023_3817),
-			wantIgnoredMatches: []match.IgnoredMatch{
-				{
-					Match: libCryptoCVE_2023_1255,
-					AppliedIgnoreRules: []match.IgnoreRule{
-						{
-							Namespace: "vex",
-							VexStatus: "fixed",
-						},
-					},
-				},
-				{
-					Match: libCryptoCVE_2023_2975,
-					AppliedIgnoreRules: []match.IgnoreRule{
-						{
-							Namespace: "vex",
-							VexStatus: "fixed",
-						},
-					},
-				},
-			},
+			wantIgnoredMatches: []match.IgnoredMatch{{
+				Match: libCryptoCVE_2023_1255,
+				AppliedIgnoreRules: []match.IgnoreRule{{
+					Namespace: "vex",
+					VexStatus: string(status.Fixed),
+				}},
+			}, {
+				Match: libCryptoCVE_2023_2975,
+				AppliedIgnoreRules: []match.IgnoreRule{{
+					Namespace: "vex",
+					VexStatus: string(status.Fixed),
+				}},
+			}},
 		},
 		{
 			name: "openvex-demo2 - ignore by fixed status and CVE",
@@ -215,30 +268,24 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 				Documents: []string{
 					"testdata/vex-docs/openvex-demo2.json",
 				},
-				IgnoreRules: []match.IgnoreRule{
-					{
-						Vulnerability: "CVE-2023-1255", // note: this is the difference between this test and the last test
-						VexStatus:     "fixed",
-					},
-				},
+				IgnoreRules: []match.IgnoreRule{{
+					Vulnerability: "CVE-2023-1255", // note: this is the difference between this test and the last test
+					VexStatus:     string(status.Fixed),
+				}},
 			},
 			args: args{
 				pkgContext: pkgContext,
 				matches:    getSubject(),
 			},
 			wantMatches: matchesRef(libCryptoCVE_2023_3817, libCryptoCVE_2023_2975),
-			wantIgnoredMatches: []match.IgnoredMatch{
-				{
-					Match: libCryptoCVE_2023_1255,
-					AppliedIgnoreRules: []match.IgnoreRule{
-						{
-							Namespace:     "vex",
-							Vulnerability: "CVE-2023-1255", // note: this is the difference between this test and the last test
-							VexStatus:     "fixed",
-						},
-					},
-				},
-			},
+			wantIgnoredMatches: []match.IgnoredMatch{{
+				Match: libCryptoCVE_2023_1255,
+				AppliedIgnoreRules: []match.IgnoreRule{{
+					Namespace:     "vex",
+					Vulnerability: "CVE-2023-1255", // note: this is the difference between this test and the last test
+					VexStatus:     string(status.Fixed),
+				}},
+			}},
 		},
 		{
 			name: "openvex-demo1 - ignore by not_affected status and vulnerable_code_not_present justification",
@@ -246,12 +293,10 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 				Documents: []string{
 					"testdata/vex-docs/openvex-demo1.json",
 				},
-				IgnoreRules: []match.IgnoreRule{
-					{
-						VexStatus:        "not_affected",
-						VexJustification: "vulnerable_code_not_present",
-					},
-				},
+				IgnoreRules: []match.IgnoreRule{{
+					VexStatus:        "not_affected",
+					VexJustification: "vulnerable_code_not_present",
+				}},
 			},
 			args: args{
 				pkgContext: pkgContext,
@@ -267,30 +312,24 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 				Documents: []string{
 					"testdata/vex-docs/openvex-demo2.json",
 				},
-				IgnoreRules: []match.IgnoreRule{
-					{
-						VexStatus:        "not_affected",
-						VexJustification: "vulnerable_code_not_present",
-					},
-				},
+				IgnoreRules: []match.IgnoreRule{{
+					VexStatus:        "not_affected",
+					VexJustification: "vulnerable_code_not_present",
+				}},
 			},
 			args: args{
 				pkgContext: pkgContext,
 				matches:    getSubject(),
 			},
 			wantMatches: matchesRef(libCryptoCVE_2023_2975, libCryptoCVE_2023_1255),
-			wantIgnoredMatches: []match.IgnoredMatch{
-				{
-					Match: libCryptoCVE_2023_3817,
-					AppliedIgnoreRules: []match.IgnoreRule{
-						{
-							Namespace:        "vex",
-							VexStatus:        "not_affected",
-							VexJustification: "vulnerable_code_not_present",
-						},
-					},
-				},
-			},
+			wantIgnoredMatches: []match.IgnoredMatch{{
+				Match: libCryptoCVE_2023_3817,
+				AppliedIgnoreRules: []match.IgnoreRule{{
+					Namespace:        "vex",
+					VexStatus:        "not_affected",
+					VexJustification: "vulnerable_code_not_present",
+				}},
+			}},
 		},
 	}
 	for _, tt := range tests {

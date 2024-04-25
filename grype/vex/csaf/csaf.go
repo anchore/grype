@@ -47,8 +47,16 @@ func (m *advisoryMatch) statement() string {
 		if th == nil || th.Category == nil || th.Details == nil {
 			continue
 		}
-		if *th.Category == csaf.CSAFThreatCategoryImpact {
-			return string(*th.Details)
+		if *th.Category != csaf.CSAFThreatCategoryImpact {
+			continue
+		}
+		for _, pID := range *th.ProductIds {
+			if pID == nil {
+				continue
+			}
+			if *pID == m.ProductID {
+				return string(*th.Details)
+			}
 		}
 	}
 
@@ -59,6 +67,7 @@ type advisories []*csaf.Advisory
 
 // Matches returns the first CSAF advisory to match for a given vulnerability ID and package URL
 func (advisories advisories) matches(vulnID, purl string) *advisoryMatch {
+
 	for _, adv := range advisories {
 		if adv == nil || adv.Vulnerabilities == nil {
 			continue

@@ -169,26 +169,26 @@ func matchingRule(ignoreRules []match.IgnoreRule, m match.Match, advMatch *advis
 			}
 		}
 
-		// If the status in the statement is not the same in the rule
-		// and the vex statement, it does not apply
+		// If the advisory match status is not the same as the rule status,
+		// it does not apply
 		if !matchesVexStatus(advMatch.Status, vexStatus.Status(rule.VexStatus)) {
 			continue
 		}
 
-		// If the rule has a statement other than the allowed ones, skip:
+		// If the rule has a status other than the allowed ones, skip:
 		if rule.VexStatus != "" && !slices.Contains(allowedStatuses, vexStatus.Status(rule.VexStatus)) {
 			continue
 		}
 
 		// If the vulnerability is blank in the rule it means we will honor
 		// any status with any vulnerability. Alternatively, if the vulnerability
-		// is set, the rule applies if it is the same in the statement and the rule.
+		// is set, the rule applies if it is the same in the advisory match and the rule.
 		if rule.Vulnerability == "" || advMatch.cve() == rule.Vulnerability {
 			return &rule
 		}
 
 		// If the rule applies to a VEX justification it needs to match the
-		// statement, note that justifications only apply to not_affected:
+		// advisory match statement, note that justifications only apply to not_affected:
 		if matchesVexStatus(advMatch.Status, vexStatus.NotAffected) && rule.VexJustification != "" &&
 			rule.VexJustification != advMatch.statement() {
 			continue
