@@ -14,7 +14,8 @@ UNIT=make unit-local
 # release)
 ACCEPTANCE_CMD=sh -c '../../install.sh -b /usr/local/bin  && grype version'
 # we also want to test against a previous release to ensure that install.sh defers execution to a former install.sh
-PREVIOUS_RELEASE=v0.24.0
+# this version should be at least as recent as when grype was publishing for darwin arm64 as that is what the github runner uses for osx validation
+PREVIOUS_RELEASE=v0.60.0
 ACCEPTANCE_PREVIOUS_RELEASE_CMD=sh -c "../../install.sh -b /usr/local/bin $(PREVIOUS_RELEASE) && grype version"
 
 # CI cache busting values; change these if you want CI to not use previous stored cache
