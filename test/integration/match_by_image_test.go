@@ -17,6 +17,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/grype/grype/vex"
+	vexStatus "github.com/anchore/grype/grype/vex/status"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/stringutil"
 	"github.com/anchore/stereoscope/pkg/imagetest"
@@ -700,11 +701,11 @@ func TestMatchByImage(t *testing.T) {
 	// Test that VEX matchers produce matches when fed documents with "affected"
 	// statuses.
 	for n, tc := range map[string]struct {
-		vexStatus    vex.Status
+		vexStatus    vexStatus.Status
 		vexDocuments []string
 	}{
-		"openvex-affected":            {vex.StatusAffected, []string{"test-fixtures/vex/openvex/affected.openvex.json"}},
-		"openvex-under_investigation": {vex.StatusUnderInvestigation, []string{"test-fixtures/vex/openvex/under_investigation.openvex.json"}},
+		"openvex-affected":            {vexStatus.Affected, []string{"test-fixtures/vex/openvex/affected.openvex.json"}},
+		"openvex-under_investigation": {vexStatus.UnderInvestigation, []string{"test-fixtures/vex/openvex/under_investigation.openvex.json"}},
 	} {
 		t.Run(n, func(t *testing.T) {
 			ignoredMatches := testIgnoredMatches()
@@ -815,14 +816,17 @@ func testIgnoredMatches() []match.IgnoredMatch {
 
 // vexMatches moves the first match of a matches list to an ignore list and
 // applies a VEX "affected" document to it to move it to the matches list.
-func vexMatches(t *testing.T, ignoredMatches []match.IgnoredMatch, vexStatus vex.Status, vexDocuments []string) match.Matches {
+func vexMatches(t *testing.T, ignoredMatches []match.IgnoredMatch, vexStatus vexStatus.Status, vexDocuments []string) match.Matches {
 	matches := match.NewMatches()
-	vexMatcher := vex.NewProcessor(vex.ProcessorOptions{
+	vexMatcher, err := vex.NewProcessor(vex.ProcessorOptions{
 		Documents: vexDocuments,
 		IgnoreRules: []match.IgnoreRule{
 			{VexStatus: string(vexStatus)},
 		},
 	})
+	if err != nil {
+		t.Errorf("creating VEX processor: %s", err)
+	}
 
 	pctx := &pkg.Context{
 		Source: &source.Description{

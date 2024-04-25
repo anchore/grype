@@ -3,20 +3,10 @@ package vex
 import (
 	"fmt"
 
-	gopenvex "github.com/openvex/go-vex/pkg/vex"
-
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/vex/csaf"
 	"github.com/anchore/grype/grype/vex/openvex"
-)
-
-type Status string
-
-const (
-	StatusNotAffected        Status = Status(gopenvex.StatusNotAffected)
-	StatusAffected           Status = Status(gopenvex.StatusAffected)
-	StatusFixed              Status = Status(gopenvex.StatusFixed)
-	StatusUnderInvestigation Status = Status(gopenvex.StatusUnderInvestigation)
 )
 
 type Processor struct {
@@ -43,20 +33,38 @@ type vexProcessorImplementation interface {
 
 // getVexImplementation this function returns the vex processor implementation
 // at some point it can read the options and choose a user configured implementation.
-func getVexImplementation() vexProcessorImplementation {
-	return openvex.New()
+func getVexImplementation(documents []string) (vexProcessorImplementation, error) {
+	// No documents, no implementation
+	if len(documents) == 0 {
+		return nil, nil
+	}
+
+	// We assume that, even N documents are provided, all of them use the same format
+	// so we can use the first one to determine the implementation to use.
+	if csaf.IsCSAF(documents[0]) {
+		return csaf.New(), nil
+	}
+	if openvex.IsOpenVex(documents[0]) {
+		return openvex.New(), nil
+	}
+
+	return nil, fmt.Errorf("unsupported VEX document format")
 }
 
-// NewProcessor returns a new VEX processor. For now, it defaults to the only vex
-// implementation: OpenVEX
-func NewProcessor(opts ProcessorOptions) *Processor {
+// NewProcessor returns a new VEX processor
+func NewProcessor(opts ProcessorOptions) (*Processor, error) {
+	implementation, err := getVexImplementation(opts.Documents)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create VEX processor: %w", err)
+	}
+
 	return &Processor{
 		Options: opts,
-		impl:    getVexImplementation(),
-	}
+		impl:    implementation,
+	}, nil
 }
 
-// ProcessorOptions captures the optiones of the VEX processor.
+// ProcessorOptions captures the options of the VEX processor.
 type ProcessorOptions struct {
 	Documents   []string
 	IgnoreRules []match.IgnoreRule
@@ -68,7 +76,7 @@ type ProcessorOptions struct {
 func (vm *Processor) ApplyVEX(pkgContext *pkg.Context, remainingMatches *match.Matches, ignoredMatches []match.IgnoredMatch) (*match.Matches, []match.IgnoredMatch, error) {
 	var err error
 
-	// If no VEX documents are loaded, just pass through the matches, effectivle NOOP
+	// If no VEX documents are loaded, just pass through the matches, effectively NOOP
 	if len(vm.Options.Documents) == 0 {
 		return remainingMatches, ignoredMatches, nil
 	}
@@ -108,5 +116,6 @@ func extractVexRules(rules []match.IgnoreRule) []match.IgnoreRule {
 			newRules[len(newRules)-1].Namespace = "vex"
 		}
 	}
+
 	return newRules
 }

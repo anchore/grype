@@ -299,7 +299,11 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 				tt.wantErr = require.NoError
 			}
 
-			p := NewProcessor(tt.options)
+			p, err := NewProcessor(tt.options)
+			tt.wantErr(t, err)
+			if err != nil {
+				return
+			}
 			actualMatches, actualIgnoredMatches, err := p.ApplyVEX(tt.args.pkgContext, tt.args.matches, tt.args.ignoredMatches)
 			tt.wantErr(t, err)
 			if err != nil {
