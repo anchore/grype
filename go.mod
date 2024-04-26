@@ -57,7 +57,7 @@ require (
 	github.com/wagoodman/go-presenter v0.0.0-20211015174752-f9c01afc824b
 	github.com/wagoodman/go-progress v0.0.0-20230925121702-07e42b3cdba0
 	golang.org/x/exp v0.0.0-20231108232855-2478ac86f678
-	gorm.io/gorm v1.25.9
+	gorm.io/gorm v1.25.10
 )
 
 require github.com/anchore/go-collections v0.0.0-20240216171411-9321230ce537
