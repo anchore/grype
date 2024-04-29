@@ -48,7 +48,7 @@ func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 		Details: []match.Detail{
 			{
 				// note: the input pURL has an upstream reference (redundant)
-				Type: "exact-indirect-match",
+				Type: match.ExactIndirectMatch,
 				SearchedBy: map[string]any{
 					"distro": map[string]string{
 						"type":    "alpine",
@@ -62,7 +62,7 @@ func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 				},
 				Found: map[string]any{
 					"versionConstraint": "< 0.9.10 (unknown)",
-					"vulnerabilityID":   "CVE-alpine-libvncserver",
+					"vulnerabilityID":   "CVE-2024-0000",
 				},
 				Matcher:    "apk-matcher",
 				Confidence: 1,
@@ -699,11 +699,13 @@ func TestMatchByImage(t *testing.T) {
 	}
 
 	// Test that VEX matchers produce matches when fed documents with "affected"
-	// statuses.
+	// or "under investigation" statuses.
 	for n, tc := range map[string]struct {
 		vexStatus    vexStatus.Status
 		vexDocuments []string
 	}{
+		"csaf-affected":               {vexStatus.Affected, []string{"test-fixtures/vex/csaf/affected.csaf.json"}},
+		"csaf-under_investigation":    {vexStatus.UnderInvestigation, []string{"test-fixtures/vex/csaf/under_investigation.csaf.json"}},
 		"openvex-affected":            {vexStatus.Affected, []string{"test-fixtures/vex/openvex/affected.openvex.json"}},
 		"openvex-under_investigation": {vexStatus.UnderInvestigation, []string{"test-fixtures/vex/openvex/under_investigation.openvex.json"}},
 	} {
@@ -764,7 +766,7 @@ func testIgnoredMatches() []match.IgnoredMatch {
 		{
 			Match: match.Match{
 				Vulnerability: vulnerability.Vulnerability{
-					ID:        "CVE-alpine-libvncserver",
+					ID:        "CVE-2024-0000",
 					Namespace: "alpine:distro:alpine:3.12",
 				},
 				Package: pkg.Package{
@@ -788,7 +790,7 @@ func testIgnoredMatches() []match.IgnoredMatch {
 				},
 				Details: []match.Detail{
 					{
-						Type: "exact-indirect-match",
+						Type: match.ExactIndirectMatch,
 						SearchedBy: map[string]any{
 							"distro": map[string]string{
 								"type":    "alpine",
@@ -802,7 +804,7 @@ func testIgnoredMatches() []match.IgnoredMatch {
 						},
 						Found: map[string]any{
 							"versionConstraint": "< 0.9.10 (unknown)",
-							"vulnerabilityID":   "CVE-alpine-libvncserver",
+							"vulnerabilityID":   "CVE-2024-0000",
 						},
 						Matcher:    "apk-matcher",
 						Confidence: 1,

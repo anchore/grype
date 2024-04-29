@@ -45,7 +45,7 @@ func newMockDbStore() *mockStore {
 			"nvd:cpe": {
 				"libvncserver": []grypeDB.Vulnerability{
 					{
-						ID:                "CVE-alpine-libvncserver",
+						ID:                "CVE-2024-0000",
 						VersionConstraint: "< 0.9.10",
 						VersionFormat:     "unknown",
 						CPEs:              []string{"cpe:2.3:a:lib_vnc_project-(server):libvncserver:*:*:*:*:*:*:*:*"},
@@ -69,7 +69,7 @@ func newMockDbStore() *mockStore {
 			"alpine:distro:alpine:3.12": {
 				"libvncserver": []grypeDB.Vulnerability{
 					{
-						ID:                "CVE-alpine-libvncserver",
+						ID:                "CVE-2024-0000",
 						VersionConstraint: "< 0.9.10",
 						VersionFormat:     "unknown",
 					},

@@ -1,0 +1,93 @@
+{
+  "document": {
+    "category": "csaf_vex",
+    "csaf_version": "2.0",
+    "notes": [
+      {
+        "category": "summary",
+        "text": "Example Company VEX document. Unofficial content for demonstration purposes only.",
+        "title": "Author comment"
+      }
+    ],
+    "publisher": {
+      "category": "vendor",
+      "name": "Example Company ProductCERT",
+      "namespace": "https://psirt.example.com"
+    },
+    "title": "Example VEX Document",
+    "tracking": {
+      "current_release_date": "2024-04-25T11:00:00.000Z",
+      "generator": {
+        "date": "2024-04-25T11:00:00.000Z",
+        "engine": {
+          "name": "Secvisogram",
+          "version": "1.11.0"
+        }
+      },
+      "id": "2022-EVD-UC-01-A-001",
+      "initial_release_date": "2024-04-25T11:00:00.000Z",
+      "revision_history": [
+        {
+          "date": "2024-04-25T11:00:00.000Z",
+          "number": "1",
+          "summary": "Initial version."
+        }
+      ],
+      "status": "final",
+      "version": "1"
+    }
+  },
+  "product_tree": {
+    "branches": [
+      {
+        "branches": [
+          {
+            "branches": [
+              {
+                "category": "product_version",
+                "name": "0.9.9",
+                "product": {
+                  "name": "LibVNCServer 0.9.9",
+                  "product_id": "CSAFPID-0001",
+                  "product_identification_helper": {
+                    "purl": "pkg:apk/alpine/libvncserver@0.9.9?arch=x86_64&distro=alpine-3.12.0"
+                  }
+                }
+              }
+            ],
+            "category": "product_name",
+            "name": "LibVNCServer"
+          }
+        ],
+        "category": "vendor",
+        "name": "Example Company"
+      }
+    ]
+  },
+  "vulnerabilities": [
+    {
+      "cve": "CVE-2024-0000",
+      "notes": [
+        {
+          "category": "description",
+          "text": "A CVE affecting libvncserver.",
+          "title": "CVE description"
+        }
+      ],
+      "product_status": {
+        "known_affected": [
+          "CSAFPID-0001"
+        ]
+      },
+      "remediations": [
+        {
+          "category": "vendor_fix",
+          "details": "Customers should update to version 1.1 of product DEF which fixes the issue.",
+          "product_ids": [
+            "CSAFPID-0001"
+          ]
+        }
+      ]
+    }
+  ]
+}
