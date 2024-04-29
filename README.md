@@ -38,6 +38,7 @@ For commercial support options with Syft or Grype, please [contact Anchore](http
   - Oracle Linux
   - Red Hat (RHEL)
   - Ubuntu
+  - Wolfi
 - Find vulnerabilities for language-specific packages:
   - Ruby (Gems)
   - Java (JAR, WAR, EAR, JPI, HPI)
@@ -491,14 +492,16 @@ When Grype performs a scan for vulnerabilities, it does so using a vulnerability
 
 - Alpine Linux SecDB: https://secdb.alpinelinux.org/
 - Amazon Linux ALAS: https://alas.aws.amazon.com/AL2/alas.rss
-- RedHat RHSAs: https://www.redhat.com/security/data/oval/
+- Chainguard SecDB: https://packages.cgr.dev/chainguard/security.json
 - Debian Linux CVE Tracker: https://security-tracker.debian.org/tracker/data/json
-- Github GHSAs: https://github.com/advisories
+- GitHub Security Advisories (GHSAs): https://github.com/advisories
 - National Vulnerability Database (NVD): https://nvd.nist.gov/vuln/data-feeds
 - Oracle Linux OVAL: https://linux.oracle.com/security/oval/
 - RedHat Linux Security Data: https://access.redhat.com/hydra/rest/securitydata/
-- Suse Linux OVAL: https://ftp.suse.com/pub/projects/security/oval/
+- RedHat RHSAs: https://www.redhat.com/security/data/oval/
+- SUSE Linux OVAL: https://ftp.suse.com/pub/projects/security/oval/
 - Ubuntu Linux Security: https://people.canonical.com/~ubuntu-security/
+- Wolfi SecDB: https://packages.wolfi.dev/os/security.json
 
 By default, Grype automatically manages this database for you. Grype checks for new updates to the vulnerability database to make sure that every scan uses up-to-date vulnerability information. This behavior is configurable. For more information, see the [Managing Grype's database](#managing-grypes-database) section.
 
@@ -688,9 +691,15 @@ name: ""
 # same as --fail-on ; GRYPE_FAIL_ON_SEVERITY env var
 fail-on-severity: ""
 
-# the output format of the vulnerability report (options: table, json, cyclonedx)
+# the output format of the vulnerability report (options: table, template, json, cyclonedx)
+# when using template as the output type, you must also provide a value for 'output-template-file'
 # same as -o ; GRYPE_OUTPUT env var
 output: "table"
+
+# if using template output, you must provide a path to a Go template file
+# see https://github.com/anchore/grype#using-templates for more information on template output
+# the default path to the template file is the current working directory
+# output-template-file: .grype/html.tmpl
 
 # write output report to a file (default is to write to stdout)
 # same as --file; GRYPE_FILE env var
@@ -744,6 +753,14 @@ db:
   # age being the time since it was built
   # Default max age is 120h (or five days)
   max-allowed-built-age: "120h"
+
+  # Timeout for downloading GRYPE_DB_UPDATE_URL to see if the database needs to be downloaded
+  # This file is ~156KiB as of 2024-04-17 so the download should be quick; adjust as needed
+  update-available-timeout: "30s"
+
+  # Timeout for downloading actual vulnerability DB
+  # The DB is ~156MB as of 2024-04-17 so slower connections may exceed the default timeout; adjust as needed
+  update-download-timeout: "120s"
 
 search:
   # the search space to look for packages (options: all-layers, squashed)
