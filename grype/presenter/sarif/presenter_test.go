@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"os/exec"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/clio"
 	"github.com/anchore/go-testutils"
@@ -20,6 +22,7 @@ import (
 )
 
 var updateSnapshot = flag.Bool("update-sarif", false, "update .golden files for sarif presenters")
+var validatorImage = "ghcr.io/anchore/sarif-validator:0.1.0@sha256:a0729d695e023740f5df6bcb50d134e88149bea59c63a896a204e88f62b564c6"
 
 func TestSarifPresenter(t *testing.T) {
 	tests := []struct {
@@ -69,6 +72,58 @@ func TestSarifPresenter(t *testing.T) {
 
 			if !bytes.Equal(expected, actual) {
 				assert.JSONEq(t, string(expected), string(actual))
+			}
+		})
+	}
+}
+
+func Test_SarifIsValid(t *testing.T) {
+	tests := []struct {
+		name   string
+		scheme internal.SyftSource
+	}{
+		{
+			name:   "directory",
+			scheme: internal.DirectorySource,
+		},
+		{
+			name:   "image",
+			scheme: internal.ImageSource,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var buffer bytes.Buffer
+			_, matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, tc.scheme)
+
+			pb := models.PresenterConfig{
+				ID: clio.Identification{
+					Name: "grype",
+				},
+				Matches:          matches,
+				Packages:         packages,
+				Context:          context,
+				MetadataProvider: metadataProvider,
+			}
+
+			pres := NewPresenter(pb)
+			err := pres.Present(&buffer)
+			require.NoError(t, err)
+
+			cmd := exec.Command("docker", "run", "--rm", "-i", validatorImage)
+
+			out := bytes.Buffer{}
+			cmd.Stdout = &out
+			cmd.Stderr = &out
+
+			// pipe to the docker command
+			cmd.Stdin = &buffer
+
+			err = cmd.Run()
+			if err != nil || cmd.ProcessState.ExitCode() != 0 {
+				// valid
+				t.Fatalf("error validating SARIF document: %s", out.String())
 			}
 		})
 	}
@@ -228,8 +283,8 @@ func TestToSarifReport(t *testing.T) {
 			name:   "image",
 			scheme: internal.ImageSource,
 			locations: map[string]string{
-				"CVE-1999-0001-package-1": "user-input somefile-1.txt",
-				"CVE-1999-0002-package-2": "user-input somefile-2.txt",
+				"CVE-1999-0001-package-1": "user-input/somefile-1.txt",
+				"CVE-1999-0002-package-2": "user-input/somefile-2.txt",
 			},
 		},
 	}

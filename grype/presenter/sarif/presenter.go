@@ -230,7 +230,7 @@ func (pres *Presenter) locations(m match.Match) []*sarif.Location {
 		// so we just use a short path-compatible image name here, not the entire user input as it may include
 		// sha and/or tags which are likely to change between runs and aren't really necessary for a general
 		// path to find file where the package originated
-		physicalLocation = fmt.Sprintf("%s %s", imageShortPathName(pres.src), physicalLocation)
+		physicalLocation = fmt.Sprintf("%s/%s", imageShortPathName(pres.src), physicalLocation)
 	case source.FileMetadata:
 		locations := m.Package.Locations.ToSlice()
 		for _, l := range locations {
