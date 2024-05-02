@@ -1,0 +1,415 @@
+
+version: "3"
+vars:
+  OWNER: anchore
+  PROJECT: grype
+
+  # static file dirs
+  TOOL_DIR: .tool
+  TMP_DIR: .tmp
+
+  # used for changelog generation
+  CHANGELOG: CHANGELOG.md
+  NEXT_VERSION: VERSION
+
+  # used for snapshot builds
+  OS:
+    sh: uname -s | tr '[:upper:]' '[:lower:]'
+  ARCH:
+    sh: |
+      [ "$(uname -m)" = "x86_64" ] && echo "amd64_v1" || echo $(uname -m)
+  PROJECT_ROOT:
+    sh: echo $PWD
+  # note: the snapshot dir must be a relative path starting with ./
+  SNAPSHOT_DIR: ./snapshot
+  SNAPSHOT_BIN: "{{ .PROJECT_ROOT }}/{{ .SNAPSHOT_DIR }}/{{ .OS }}-build_{{ .OS }}_{{ .ARCH }}/{{ .PROJECT }}"
+  SNAPSHOT_CMD: "{{ .TOOL_DIR }}/goreleaser release --config {{ .TMP_DIR }}/goreleaser.yaml --clean --snapshot --skip=publish --skip=sign"
+  BUILD_CMD:    "{{ .TOOL_DIR }}/goreleaser build   --config {{ .TMP_DIR }}/goreleaser.yaml --clean --snapshot --single-target"
+  RELEASE_CMD:  "{{ .TOOL_DIR }}/goreleaser release --clean --release-notes {{ .CHANGELOG }}"
+  VERSION:
+    sh: git describe --dirty --always --tags
+
+  # used for install and acceptance testing
+  COMPARE_DIR: ./test/compare
+  COMPARE_TEST_IMAGE: centos:8.2.2004
+
+env:
+  SYFT_CHECK_FOR_APP_UPDATE: false
+  GRYPE_CHECK_FOR_APP_UPDATE: false
+
+tasks:
+
+  ## High-level tasks #################################
+
+  default:
+    desc: Run all validation tasks
+    aliases:
+      - pr-validations
+      - validations
+    cmds:
+      - task: static-analysis
+      - task: test
+      - task: install-test
+
+  static-analysis:
+    desc: Run all static analysis tasks
+    cmds:
+      - task: check-go-mod-tidy
+      - task: check-licenses
+      - task: lint
+      - task: validate-cyclonedx-schema
+      - task: validate-grype-db-schema
+
+  test:
+    desc: Run all levels of test
+    cmds:
+      - task: unit
+      - task: integration
+      - task: cli
+
+  ## Bootstrap tasks #################################
+
+  binny:
+    internal: true
+    # desc: Get the binny tool
+    generates:
+      - "{{ .TOOL_DIR }}/binny"
+    status:
+      - "test -f {{ .TOOL_DIR }}/binny"
+    cmd: "curl -sSfL https://raw.githubusercontent.com/anchore/binny/main/install.sh | sh -s -- -b .tool"
+    silent: true
+
+  tools:
+    desc: Install all tools needed for CI and local development
+    deps: [binny]
+    aliases:
+      - bootstrap
+    generates:
+      - ".binny.yaml"
+      - "{{ .TOOL_DIR }}/*"
+    status:
+      - "{{ .TOOL_DIR }}/binny check -v"
+    cmd: "{{ .TOOL_DIR }}/binny install -v"
+    silent: true
+
+  update-tools:
+    desc: Update pinned versions of all tools to their latest available versions
+    deps: [binny]
+    generates:
+      - ".binny.yaml"
+      - "{{ .TOOL_DIR }}/*"
+    cmd: "{{ .TOOL_DIR }}/binny update -v"
+    silent: true
+
+  list-tools:
+    desc: List all tools needed for CI and local development
+    deps: [binny]
+    cmd: "{{ .TOOL_DIR }}/binny list"
+    silent: true
+
+  list-tool-updates:
+    desc: List all tools that are not up to date relative to the binny config
+    deps: [binny]
+    cmd: "{{ .TOOL_DIR }}/binny list --updates"
+    silent: true
+
+  tmpdir:
+    silent: true
+    generates:
+      - "{{ .TMP_DIR }}"
+    cmd: "mkdir -p {{ .TMP_DIR }}"
+
+  ## Static analysis tasks #################################
+
+  format:
+    desc: Auto-format all source code
+    deps: [tools]
+    cmds:
+      - gofmt -w -s .
+      - "{{ .TOOL_DIR }}/gosimports -local github.com/anchore -w ."
+      - go mod tidy
+
+  lint-fix:
+    desc: Auto-format all source code + run golangci lint fixers
+    deps: [tools]
+    cmds:
+      - task: format
+      - "{{ .TOOL_DIR }}/golangci-lint run --tests=false --fix"
+
+  lint:
+    desc: Run gofmt + golangci lint checks
+    vars:
+      BAD_FMT_FILES:
+        sh: gofmt -l -s .
+      BAD_FILE_NAMES:
+        sh: "find . | grep -e ':' | grep -v -e 'test/quality/.yardstick' -e 'test/quality/vulnerability-match-labels' || true"
+    deps: [tools]
+    cmds:
+      # ensure there are no go fmt differences
+      - cmd: 'test -z "{{ .BAD_FMT_FILES }}" || (echo "files with gofmt issues: [{{ .BAD_FMT_FILES }}]"; exit 1)'
+        silent: true
+      # ensure there are no files with ":" in it (a known back case in the go ecosystem)
+      - cmd: 'test -z "{{ .BAD_FILE_NAMES }}" || (echo "files with bad names: [{{ .BAD_FILE_NAMES }}]"; exit 1)'
+        silent: true
+      # run linting
+      - "{{ .TOOL_DIR }}/golangci-lint run --tests=false"
+
+  check-licenses:
+    # desc: Ensure transitive dependencies are compliant with the current license policy
+    deps: [tools]
+    cmd: "{{ .TOOL_DIR }}/bouncer check ./..."
+
+  check-go-mod-tidy:
+    # desc: Ensure go.mod and go.sum are up to date
+    cmds:
+      - cmd: .github/scripts/go-mod-tidy-check.sh && echo "go.mod and go.sum are tidy!"
+        silent: true
+
+  validate-cyclonedx-schema:
+    desc: Run integration tests
+    cmds:
+      - "cd schema/cyclonedx && make"
+
+  validate-grype-db-schema:
+    desc: Ensure the codebase is only referencing a single grype-db schema version (multiple is not allowed)
+    cmds:
+      - python test/validate-grype-db-schema.py
+
+
+  ## Testing tasks #################################
+
+  unit:
+    desc: Run unit tests
+    deps:
+      - tmpdir
+    vars:
+      TEST_PKGS:
+        sh: "go list ./... | grep -v {{ .OWNER }}/{{ .PROJECT }}/test | grep -v {{ .OWNER }}/{{ .PROJECT }}/internal/test | tr '\n' ' '"
+
+      # unit test coverage threshold (in % coverage)
+      COVERAGE_THRESHOLD: 47
+    cmds:
+      - "go test -coverprofile {{ .TMP_DIR }}/unit-coverage-details.txt {{ .TEST_PKGS }}"
+      - cmd: ".github/scripts/coverage.py {{ .COVERAGE_THRESHOLD }} {{ .TMP_DIR }}/unit-coverage-details.txt"
+        silent: true
+
+  integration:
+    desc: Run integration tests
+    cmds:
+      - "go test -v ./test/integration"
+      # exercise most of the CLI with the data race detector
+      - "go run -race cmd/{{ .PROJECT }}/main.go alpine:latest"
+
+  cli:
+    desc: Run CLI tests
+    # note: we don't want to regenerate the snapshot unless we have to. In CI it's probable
+    # that the cache being restored with the correct binary will be rebuilt since the timestamps
+    # and local checksums will not line up.
+    deps: [tools, snapshot]
+    sources:
+      - "{{ .SNAPSHOT_BIN }}"
+      - ./test/cli/**
+      - ./**/*.go
+    cmds:
+      - cmd: "echo 'testing binary: {{ .SNAPSHOT_BIN }}'"
+        silent: true
+
+      - cmd: "test -f {{ .SNAPSHOT_BIN }} || (find {{ .SNAPSHOT_DIR }} && echo '\nno snapshot found' && false)"
+        silent: true
+
+      - "go test -count=1 -timeout=15m -v ./test/cli"
+
+  quality:
+    desc: Run quality tests
+    cmds:
+      - "cd test/quality && make"
+
+
+  ## Test-fixture-related targets #################################
+
+  fingerprints:
+    desc: Generate test fixture fingerprints
+    generates:
+      - test/integration/test-fixtures/cache.fingerprint
+      - test/install/cache.fingerprint
+      - test/cli/test-fixtures/cache.fingerprint
+    cmds:
+      # for IMAGE integration test fixtures
+      - "cd test/integration/test-fixtures && make cache.fingerprint"
+      # for INSTALL integration test fixtures
+      - "cd test/install && make cache.fingerprint"
+      # for CLI test fixtures
+      - "cd test/cli/test-fixtures && make cache.fingerprint"
+
+  show-test-image-cache:
+    silent: true
+    cmds:
+      - "echo '\nDocker daemon cache:'"
+      - "docker images --format '{{`{{.ID}}`}} {{`{{.Repository}}`}}:{{`{{.Tag}}`}}' | grep stereoscope-fixture- | sort"
+      - "echo '\nTar cache:'"
+      - 'find . -type f -wholename "**/test-fixtures/snapshot/*" | sort'
+
+
+  ## install.sh testing targets #################################
+
+  install-test:
+    cmds:
+      - "cd test/install && make"
+
+  install-test-cache-save:
+    cmds:
+      - "cd test/install && make save"
+
+  install-test-cache-load:
+    cmds:
+      - "cd test/install && make load"
+
+  install-test-ci-mac:
+    cmds:
+      - "cd test/install && make ci-test-mac"
+
+  generate-compare-file:
+    cmd: "go run ./cmd/{{ .PROJECT }} {{ .COMPARE_TEST_IMAGE }} -o json > {{ .COMPARE_DIR }}/test-fixtures/acceptance-{{ .COMPARE_TEST_IMAGE }}.json"
+
+  compare-mac:
+    deps: [tmpdir]
+    cmd: |
+      {{ .COMPARE_DIR }}/mac.sh \
+        {{ .SNAPSHOT_DIR }} \
+        {{ .COMPARE_DIR }} \
+        {{ .COMPARE_TEST_IMAGE }} \
+        {{ .TMP_DIR }}
+
+  compare-linux:
+    cmds:
+      - task: compare-test-deb-package-install
+      - task: compare-test-rpm-package-install
+
+  compare-test-deb-package-install:
+    deps: [tmpdir]
+    cmd: |
+      {{ .COMPARE_DIR }}/deb.sh \
+        {{ .SNAPSHOT_DIR }} \
+        {{ .COMPARE_DIR }} \
+        {{ .COMPARE_TEST_IMAGE }} \
+        {{ .TMP_DIR }}
+
+  compare-test-rpm-package-install:
+    deps: [tmpdir]
+    cmd: |
+      {{ .COMPARE_DIR }}/rpm.sh \
+        {{ .SNAPSHOT_DIR }} \
+        {{ .COMPARE_DIR }} \
+        {{ .COMPARE_TEST_IMAGE }} \
+        {{ .TMP_DIR }}
+
+
+  ## Code and data generation targets #################################
+
+  generate:
+    desc: Run data generation tasks
+    cmds:
+      - "cd grype/internal && go generate"
+
+
+  ## Build-related targets #################################
+
+  build:
+    desc: Build the project
+    deps: [tools, tmpdir]
+    generates:
+      - "{{ .PROJECT }}"
+    cmds:
+      - silent: true
+        cmd: |
+          echo "dist: {{ .SNAPSHOT_DIR }}" > {{ .TMP_DIR }}/goreleaser.yaml
+          cat .goreleaser.yaml >> {{ .TMP_DIR }}/goreleaser.yaml
+
+      - "{{ .BUILD_CMD }}"
+
+  snapshot:
+    desc: Create a snapshot release
+    aliases:
+      - build
+    deps: [tools, tmpdir]
+    sources:
+      - cmd/**/*.go
+      - "{{ .PROJECT }}/**/*.go"
+      - internal/**/*.go
+    method: checksum
+    generates:
+      - "{{ .SNAPSHOT_BIN }}"
+    cmds:
+      - silent: true
+        cmd: |
+          echo "dist: {{ .SNAPSHOT_DIR }}" > {{ .TMP_DIR }}/goreleaser.yaml
+          cat .goreleaser.yaml >> {{ .TMP_DIR }}/goreleaser.yaml
+
+      - "{{ .SNAPSHOT_CMD }}"
+
+  changelog:
+    desc: Generate a changelog
+    deps: [tools]
+    generates:
+      - "{{ .CHANGELOG }}"
+      - "{{ .NEXT_VERSION }}"
+    cmds:
+      - "{{ .TOOL_DIR }}/chronicle -vv -n --version-file {{ .NEXT_VERSION }} > {{ .CHANGELOG }}"
+      - "{{ .TOOL_DIR }}/glow {{ .CHANGELOG }}"
+
+
+  ## Release targets #################################
+
+  release:
+    desc: Create a release
+    interactive: true
+    deps: [tools]
+    cmds:
+      - cmd: .github/scripts/trigger-release.sh
+        silent: true
+
+
+  ## CI-only targets #################################
+
+  ci-check:
+    # desc: "[CI only] Are you in CI?"
+    cmds:
+      - cmd: .github/scripts/ci-check.sh
+        silent: true
+
+  ci-release:
+    # desc: "[CI only] Create a release"
+    deps: [tools]
+    cmds:
+      - task: ci-check
+      - "{{ .TOOL_DIR }}/chronicle -vvv > CHANGELOG.md"
+      - cmd: "cat CHANGELOG.md"
+        silent: true
+      - "{{ .RELEASE_CMD }}"
+
+  ci-validate-test-config:
+    # desc: "[CI only] Ensure the update URL is not overridden (not pointing to staging)"
+    silent: true
+    cmd: |
+      bash -c '\
+        grep -q "update-url" test/grype-test-config.yaml; \
+        if [ $? -eq 0 ]; then \
+          echo "Found \"update-url\" in CLI testing config. Cannot release if previous CLI testing did not use production (default) values"; \
+        else
+          echo "Test configuration valid"
+        fi'
+
+
+  ## Cleanup targets #################################
+
+  clean-snapshot:
+    desc: Remove any snapshot builds
+    cmds:
+      - "rm -rf {{ .SNAPSHOT_DIR }}"
+      - "rm -rf {{ .TMP_DIR }}/goreleaser.yaml"
+
+  clean-cache:
+    desc: Remove all docker cache and local image tar cache
+    cmds:
+      - 'find . -type f -wholename "**/test-fixtures/cache/stereoscope-fixture-*.tar" -delete'
+      - "docker images --format '{{`{{.ID}}`}} {{`{{.Repository}}`}}' | grep stereoscope-fixture- | awk '{print $$1}' | uniq | xargs -r docker rmi --force"
