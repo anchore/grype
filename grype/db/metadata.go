@@ -18,23 +18,16 @@ const MetadataFileName = "metadata.json"
 // Metadata represents the basic identifying information of a database flat file (built/version) and a way to
 // verify the contents (checksum).
 type Metadata struct {
-	Built     time.Time
-	Version   int
-	Checksum  string
-	Providers []Provider
-}
-
-type Provider struct {
-	Name              string    `json:"name"`
-	LastSuccessfulRun time.Time `json:"lastSuccessfulRun"`
+	Built    time.Time
+	Version  int
+	Checksum string
 }
 
 // MetadataJSON is a helper struct for parsing and assembling Metadata objects to and from JSON.
 type MetadataJSON struct {
-	Built     string     `json:"built"` // RFC 3339
-	Version   int        `json:"version"`
-	Checksum  string     `json:"checksum"`
-	Providers []Provider `json:"providers,omitempty"`
+	Built    string `json:"built"` // RFC 3339
+	Version  int    `json:"version"`
+	Checksum string `json:"checksum"`
 }
 
 // ToMetadata converts a MetadataJSON object to a Metadata object.
@@ -45,10 +38,9 @@ func (m MetadataJSON) ToMetadata() (Metadata, error) {
 	}
 
 	metadata := Metadata{
-		Built:     build.UTC(),
-		Version:   m.Version,
-		Checksum:  m.Checksum,
-		Providers: m.Providers,
+		Built:    build.UTC(),
+		Version:  m.Version,
+		Checksum: m.Checksum,
 	}
 
 	return metadata, nil
@@ -127,10 +119,9 @@ func (m Metadata) String() string {
 // Write out a Metadata object to the given path.
 func (m Metadata) Write(toPath string) error {
 	metadata := MetadataJSON{
-		Built:     m.Built.UTC().Format(time.RFC3339),
-		Version:   m.Version,
-		Checksum:  m.Checksum,
-		Providers: m.Providers,
+		Built:    m.Built.UTC().Format(time.RFC3339),
+		Version:  m.Version,
+		Checksum: m.Checksum,
 	}
 
 	contents, err := json.MarshalIndent(&metadata, "", " ")
