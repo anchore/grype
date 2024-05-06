@@ -387,6 +387,16 @@ tasks:
         silent: true
       - "{{ .RELEASE_CMD }}"
 
+  ci-release-version-file:
+    # desc: "[CI only] Update the version file"
+    deps: [tools]
+    cmds:
+      - task: ci-check
+      - ".github/scripts/update-version-file.sh {{ .RELEASE_VERSION }}"
+    requires:
+      vars:
+        - RELEASE_VERSION
+
   ci-validate-test-config:
     # desc: "[CI only] Ensure the update URL is not overridden (not pointing to staging)"
     silent: true

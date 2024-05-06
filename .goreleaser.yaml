@@ -249,7 +249,7 @@ docker_manifests:
 
 
 signs:
-  - cmd: cosign
+  - cmd: .tool/cosign
     signature: "${artifact}.sig"
     certificate: "${artifact}.pem"
     args: 
