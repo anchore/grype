@@ -8,7 +8,7 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
-	"github.com/anchore/grype/grype/vex"
+	vexStatus "github.com/anchore/grype/grype/vex/status"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft/cpe"
@@ -213,7 +213,7 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 					Vulnerability:    "CVE-1999-0004",
 					Namespace:        "vex",
 					Package:          match.IgnoreRulePackage{},
-					VexStatus:        string(vex.StatusNotAffected),
+					VexStatus:        string(vexStatus.NotAffected),
 					VexJustification: "this isn't the vulnerability match you're looking for... *waves hand*",
 				},
 			},
