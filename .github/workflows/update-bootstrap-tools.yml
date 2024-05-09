@@ -1,13 +1,9 @@
-name: PR for latest versions of bootstrap tools
+name: PR for latest versions of tools
 on:
   schedule:
     - cron: "0 8 * * *" # 3 AM EST
 
   workflow_dispatch:
-
-env:
-  GO_VERSION: "1.21.x"
-  GO_STABLE_VERSION: true
 
 permissions:
   contents: read
@@ -17,66 +13,54 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository == 'anchore/grype' # only run for main repo
     steps:
-      - uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b #v4.1.4
 
-      - uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
+      - name: Bootstrap environment
+        uses: ./.github/actions/bootstrap
         with:
-          go-version: ${{ env.GO_VERSION }}
-          stable: ${{ env.GO_STABLE_VERSION }}
+          bootstrap-apt-packages: ""
+          compute-fingerprints: "false"
+          go-dependencies: false
 
-      - run: |
-          GOLANGCILINT_LATEST_VERSION=$(go list -m -json github.com/golangci/golangci-lint@latest 2>/dev/null | jq -r '.Version')
-          BOUNCER_LATEST_VERSION=$(go list -m -json github.com/wagoodman/go-bouncer@latest 2>/dev/null | jq -r '.Version')
-          CHRONICLE_LATEST_VERSION=$(go list -m -json github.com/anchore/chronicle@latest 2>/dev/null | jq -r '.Version')
-          GORELEASER_LATEST_VERSION=$(go list -m -json github.com/goreleaser/goreleaser@latest 2>/dev/null | jq -r '.Version')
-          GOSIMPORTS_LATEST_VERSION=$(go list -m -json github.com/rinchsan/gosimports@latest 2>/dev/null | jq -r '.Version')
-          YAJSV_LATEST_VERSION=$(go list -m -json github.com/neilpa/yajsv@latest 2>/dev/null | jq -r '.Version')
-          QUILL_LATEST_VERSION=$(go list -m -json github.com/anchore/quill@latest 2>/dev/null | jq -r '.Version')
-          GLOW_LATEST_VERSION=$(go list -m -json github.com/charmbracelet/glow@latest 2>/dev/null | jq -r '.Version')
-
-          # update version variables in the Makefile
-          sed -r -i -e 's/^(GOLANGCILINT_VERSION := ).*/\1'${GOLANGCILINT_LATEST_VERSION}'/' Makefile
-          sed -r -i -e 's/^(BOUNCER_VERSION := ).*/\1'${BOUNCER_LATEST_VERSION}'/' Makefile
-          sed -r -i -e 's/^(CHRONICLE_VERSION := ).*/\1'${CHRONICLE_LATEST_VERSION}'/' Makefile
-          sed -r -i -e 's/^(GORELEASER_VERSION := ).*/\1'${GORELEASER_LATEST_VERSION}'/' Makefile
-          sed -r -i -e 's/^(GOSIMPORTS_VERSION := ).*/\1'${GOSIMPORTS_LATEST_VERSION}'/' Makefile
-          sed -r -i -e 's/^(YAJSV_VERSION := ).*/\1'${YAJSV_LATEST_VERSION}'/' Makefile
-          sed -r -i -e 's/^(QUILL_VERSION := ).*/\1'${QUILL_LATEST_VERSION}'/' Makefile
-          sed -r -i -e 's/^(GLOW_VERSION := ).*/\1'${GLOW_LATEST_VERSION}'/' Makefile
-
-          # export the versions for use with create-pull-request
-          echo "GOLANGCILINT=$GOLANGCILINT_LATEST_VERSION" >> $GITHUB_OUTPUT
-          echo "BOUNCER=$BOUNCER_LATEST_VERSION" >> $GITHUB_OUTPUT
-          echo "CHRONICLE=$CHRONICLE_LATEST_VERSION" >> $GITHUB_OUTPUT
-          echo "GORELEASER=$GORELEASER_LATEST_VERSION" >> $GITHUB_OUTPUT
-          echo "GOSIMPORTS=$GOSIMPORTS_LATEST_VERSION" >> $GITHUB_OUTPUT
-          echo "YAJSV=$YAJSV_LATEST_VERSION" >> $GITHUB_OUTPUT
-          echo "QUILL=$QUILL_LATEST_VERSION" >> $GITHUB_OUTPUT
-          echo "GLOW=$GLOW_LATEST_VERSION" >> $GITHUB_OUTPUT
+      - name: "Update tool versions"
         id: latest-versions
+        run: |
+          make update-tools
+          make list-tools
+          
+          export NO_COLOR=1
+          delimiter="$(openssl rand -hex 8)"
+          
+          {
+            echo "status<<${delimiter}"
+            make list-tool-updates
+            echo "${delimiter}"
+          } >> $GITHUB_OUTPUT
+          
+          {
+            echo "### Tool version status"
+            echo "\`\`\`"
+            make list-tool-updates
+            echo "\`\`\`"
+          } >> $GITHUB_STEP_SUMMARY
 
-      - uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a # v2.1.0
+      - uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a #v2.1.0
         id: generate-token
         with:
           app_id: ${{ secrets.TOKEN_APP_ID }}
           private_key: ${{ secrets.TOKEN_APP_PRIVATE_KEY }}
 
-      - uses: peter-evans/create-pull-request@6d6857d36972b65feb161a90e484f2984215f83e # v6.0.5
+      - uses: peter-evans/create-pull-request@6d6857d36972b65feb161a90e484f2984215f83e #v6.0.5
         with:
           signoff: true
           delete-branch: true
-          branch: auto/latest-bootstrap-tools
+          branch: auto/latest-tools
           labels: dependencies
-          commit-message: 'chore(deps): update bootstrap tools to latest versions'
-          title: 'chore(deps): update bootstrap tools to latest versions'
+          commit-message: 'chore(deps): update tools to latest versions'
+          title: 'chore(deps): update tools to latest versions'
           body: |
-            - [golangci-lint ${{ steps.latest-versions.outputs.GOLANGCILINT }}](https://github.com/golangci/golangci-lint/releases/tag/${{ steps.latest-versions.outputs.GOLANGCILINT }})
-            - [bouncer ${{ steps.latest-versions.outputs.BOUNCER }}](https://github.com/wagoodman/go-bouncer/releases/tag/${{ steps.latest-versions.outputs.BOUNCER }})
-            - [chronicle ${{ steps.latest-versions.outputs.CHRONICLE }}](https://github.com/anchore/chronicle/releases/tag/${{ steps.latest-versions.outputs.CHRONICLE }})
-            - [goreleaser ${{ steps.latest-versions.outputs.GORELEASER }}](https://github.com/goreleaser/goreleaser/releases/tag/${{ steps.latest-versions.outputs.GORELEASER }})
-            - [gosimports ${{ steps.latest-versions.outputs.GOSIMPORTS }}](https://github.com/rinchsan/gosimports/releases/tag/${{ steps.latest-versions.outputs.GOSIMPORTS }})
-            - [yajsv ${{ steps.latest-versions.outputs.YAJSV }}](https://github.com/neilpa/yajsv/releases/tag/${{ steps.latest-versions.outputs.YAJSV }})
-            - [quill ${{ steps.latest-versions.outputs.QUILL }}](https://github.com/anchore/quill/releases/tag/${{ steps.latest-versions.outputs.QUILL }})  
-            - [glow ${{ steps.latest-versions.outputs.GLOW }}](https://github.com/charmbracelet/glow/releases/tag/${{ steps.latest-versions.outputs.GLOW }})  
-            This is an auto-generated pull request to update all of the bootstrap tools to the latest versions.
+            ```
+            ${{ steps.latest-versions.outputs.status }}
+            ```
+            This is an auto-generated pull request to update all of the tools to the latest versions.
           token: ${{ steps.generate-token.outputs.token }}

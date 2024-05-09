@@ -90,6 +90,10 @@ jobs:
           echo "CLI Test (Linux) Status: ${{ steps.cli-linux.outputs.conclusion }}"
           false
 
+  # only release core assets within the "release" job. Any other assets not already under the purview of the
+  # goreleaser configuration should be added as separate jobs to allow for debugging separately from the release workflow
+  # as well as not accidentally be re-run as a step multiple times (as could be done within the release workflow) as
+  # not all actions are guaranteed to be idempotent.
   release:
     needs: [quality-gate]
     runs-on: ubuntu-20.04
@@ -121,9 +125,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Cosign install
-        uses: sigstore/cosign-installer@59acb6260d9c0ba8f4a2f9d9b48431a222b68e20 #v3.5.0
-
       - name: Tag release
         run: |
           git config user.name "anchoreci"
@@ -146,10 +147,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # for updating brew formula in anchore/homebrew-syft
           GITHUB_BREW_TOKEN: ${{ secrets.ANCHOREOPS_GITHUB_OSS_WRITE_TOKEN }}
-          # for updating the VERSION file in S3...
-          AWS_ACCESS_KEY_ID: ${{ secrets.TOOLBOX_AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.TOOLBOX_AWS_SECRET_ACCESS_KEY }}
-
 
       - uses: anchore/sbom-action@7ccf588e3cf3cc2611714c2eeae48550fbc17552 # v0.15.11
         continue-on-error: true
@@ -165,3 +162,10 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_TOOLBOX_WEBHOOK_URL }}
         if: ${{ success() }}
+
+  release-version-file:
+    needs: [release]
+    uses: ./.github/workflows/release-version-file.yaml
+    with:
+      version: ${{ github.event.inputs.version }}
+    secrets: inherit

@@ -41,7 +41,7 @@ builds:
     ldflags: *build-ldflags
     hooks:
       post:
-        - cmd: .tmp/quill sign-and-notarize "{{ .Path }}" --dry-run={{ .IsSnapshot }} --ad-hoc={{ .IsSnapshot }} -vv
+        - cmd: .tool/quill sign-and-notarize "{{ .Path }}" --dry-run={{ .IsSnapshot }} --ad-hoc={{ .IsSnapshot }} -vv
           env:
             - QUILL_LOG_FILE=/tmp/quill-{{ .Target }}.log
 
@@ -249,7 +249,7 @@ docker_manifests:
 
 
 signs:
-  - cmd: cosign
+  - cmd: .tool/cosign
     signature: "${artifact}.sig"
     certificate: "${artifact}.pem"
     args: 

@@ -11,4 +11,4 @@ validate-schema-xml:
 .PHONY: validate-schema-json
 validate-schema-json:
 	go run ../../cmd/grype -c ../../test/grype-test-config.yaml ubuntu:latest -v -o cyclonedx-json > bom.json
-	../../.tmp/yajsv -s cyclonedx.json bom.json
+	../../.tool/yajsv -s cyclonedx.json bom.json

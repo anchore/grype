@@ -102,9 +102,6 @@ jobs:
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
 
-      - name: Validate grype output against the CycloneDX schema
-        run: make validate-cyclonedx-schema
-
       - name: Restore integration test cache
         uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 #v4.0.2
         with:
