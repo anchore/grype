@@ -874,7 +874,7 @@ func catalogWithOverlaps(packages []string, overlaps []string) *sbom.SBOM {
 		pkgs = append(pkgs, p)
 	}
 
-	for _, overlap := range overlaps {
+	for i, overlap := range overlaps {
 		parts := strings.Split(overlap, "->")
 		if len(parts) < 2 {
 			panic("invalid overlap, use -> to specify, e.g.: pkg1->pkg2")
@@ -882,11 +882,24 @@ func catalogWithOverlaps(packages []string, overlaps []string) *sbom.SBOM {
 		from := toPkg(parts[0])
 		to := toPkg(parts[1])
 
-		relationships = append(relationships, artifact.Relationship{
-			From: from,
-			To:   to,
-			Type: artifact.OwnershipByFileOverlapRelationship,
-		})
+		// The catalog will type check whether To or From is a pkg.Package or a *pkg.Package.
+		// Previously, there was a bug where Grype assumed that From was always a pkg.Package.
+		// Therefore, intentionally mix pointer and non-pointer packages to prevent Grype from
+		// assuming which is which again. (The correct usage, calling catalog.Package, always
+		// returns a *pkg.Package, and doesn't rely on any type assertion.)
+		if i%2 == 0 {
+			relationships = append(relationships, artifact.Relationship{
+				From: &from,
+				To:   &to,
+				Type: artifact.OwnershipByFileOverlapRelationship,
+			})
+		} else {
+			relationships = append(relationships, artifact.Relationship{
+				From: from,
+				To:   to,
+				Type: artifact.OwnershipByFileOverlapRelationship,
+			})
+		}
 	}
 
 	catalog := syftPkg.NewCollection(pkgs...)

@@ -109,8 +109,8 @@ func removePackagesByOverlap(catalog *pkg.Collection, relationships []artifact.R
 	for p := range catalog.Enumerate() {
 		r, ok := byOverlap[p.ID()]
 		if ok {
-			from, ok := r.From.(pkg.Package)
-			if ok && excludePackage(comprehensiveDistroFeed, p, from) {
+			from := catalog.Package(r.From.ID())
+			if from != nil && excludePackage(comprehensiveDistroFeed, p, *from) {
 				continue
 			}
 		}
