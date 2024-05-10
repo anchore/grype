@@ -113,6 +113,11 @@ func removePackagesByOverlap(catalog *pkg.Collection, relationships []artifact.R
 			if ok && excludePackage(comprehensiveDistroFeed, p, from) {
 				continue
 			}
+
+			fromPtr, ok := r.From.(*pkg.Package)
+			if ok && excludePackage(comprehensiveDistroFeed, p, *fromPtr) {
+				continue
+			}
 		}
 		out.Add(p)
 	}
