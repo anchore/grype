@@ -883,8 +883,8 @@ func catalogWithOverlaps(packages []string, overlaps []string) *sbom.SBOM {
 		to := toPkg(parts[1])
 
 		relationships = append(relationships, artifact.Relationship{
-			From: from,
-			To:   to,
+			From: &from,
+			To:   &to,
 			Type: artifact.OwnershipByFileOverlapRelationship,
 		})
 	}
