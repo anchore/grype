@@ -2,7 +2,7 @@ package java
 
 import (
 	"context"
-	"fmt"
+	"testing"
 	"time"
 
 	"github.com/anchore/grype/grype/distro"
@@ -35,8 +35,25 @@ func newMockProvider() vulnerability.Provider {
 }
 
 type mockMavenSearcher struct {
-	pkg                  pkg.Package
-	simulateRateLimiting bool
+	tb   testing.TB
+	pkg  *pkg.Package
+	work *time.Duration
+}
+
+func newMockSearcher(tb testing.TB) mockMavenSearcher {
+	return mockMavenSearcher{
+		tb: tb,
+	}
+}
+
+func (m mockMavenSearcher) WithPackage(p pkg.Package) mockMavenSearcher {
+	m.pkg = &p
+	return m
+}
+
+func (m mockMavenSearcher) WithWorkDuration(duration time.Duration) mockMavenSearcher {
+	m.work = &duration
+	return m
 }
 
 func (m mockMavenSearcher) GetMavenPackageBySha(context.Context, string) (*pkg.Package, error) {

@@ -9,13 +9,13 @@ import (
 
 const (
 	defaultMavenBaseURL = "https://search.maven.org/solrsearch/select"
-	defaultAbortAfter   = "10m"
+	defaultAbortAfter   = 10 * time.Minute
 )
 
 type externalSources struct {
-	Enable     bool   `yaml:"enable" json:"enable" mapstructure:"enable"`
-	AbortAfter string `yaml:"abort-after" json:"abortAfter" mapstructure:"abort-after"`
-	Maven      maven  `yaml:"maven" json:"maven" mapstructure:"maven"`
+	Enable     bool           `yaml:"enable" json:"enable" mapstructure:"enable"`
+	AbortAfter *time.Duration `yaml:"abort-after" json:"abortAfter" mapstructure:"abort-after"`
+	Maven      maven          `yaml:"maven" json:"maven" mapstructure:"maven"`
 }
 
 var _ interface {
@@ -23,15 +23,14 @@ var _ interface {
 } = (*externalSources)(nil)
 
 type maven struct {
-	SearchUpstreamBySha1 bool    `yaml:"search-upstream" json:"searchUpstreamBySha1" mapstructure:"search-maven-upstream"`
-	BaseURL              string  `yaml:"base-url" json:"baseUrl" mapstructure:"base-url"`
-	AbortAfter           *string `yaml:"abort-after" json:"abortAfter" mapstructure:"abort-after"`
+	SearchUpstreamBySha1 bool           `yaml:"search-upstream" json:"searchUpstreamBySha1" mapstructure:"search-maven-upstream"`
+	BaseURL              string         `yaml:"base-url" json:"baseUrl" mapstructure:"base-url"`
+	AbortAfter           *time.Duration `yaml:"abort-after" json:"abortAfter" mapstructure:"abort-after"`
 	RateLimit            time.Duration `yaml:"rate-limit" json:"rateLimit" mapstructure:"rate-limit"`
 }
 
 func defaultExternalSources() externalSources {
 	return externalSources{
-		AbortAfter: defaultAbortAfter,
 		Maven: maven{
 			SearchUpstreamBySha1: true,
 			BaseURL:              defaultMavenBaseURL,
@@ -47,17 +46,27 @@ func (cfg externalSources) ToJavaMatcherConfig() java.ExternalSearchConfig {
 		smu = cfg.Enable
 	}
 
-	abortAfter := cfg.AbortAfter
-	if cfg.Maven.AbortAfter != nil {
-		abortAfter = *cfg.Maven.AbortAfter
-	}
+	cfg.Maven.AbortAfter = multiLevelOption[time.Duration](defaultAbortAfter, cfg.AbortAfter, cfg.Maven.AbortAfter)
+
+	return nil
+}
 
 	return java.ExternalSearchConfig{
 		SearchMavenUpstream: smu,
 		MavenBaseURL:        cfg.Maven.BaseURL,
-		AbortAfter:          abortAfter,
+		AbortAfter:          *cfg.Maven.AbortAfter,
 		MavenRateLimit:      cfg.Maven.RateLimit,
 	}
+}
+
+func multiLevelOption[T any](defaultValue T, option ...*T) *T {
+	result := defaultValue
+	for _, opt := range option {
+		if opt != nil {
+			result = *opt
+		}
+	}
+	return &result
 }
 
 func (cfg *externalSources) DescribeFields(descriptions clio.FieldDescriptionSet) {

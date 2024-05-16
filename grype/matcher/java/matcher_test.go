@@ -2,8 +2,6 @@ package java
 
 import (
 	"context"
-	"errors"
-	"strings"
 	"testing"
 	"time"
 
