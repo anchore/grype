@@ -14,9 +14,10 @@ func DBDelete(app clio.Application) *cobra.Command {
 	opts := dbOptionsDefault(app.ID())
 
 	return app.SetupCommand(&cobra.Command{
-		Use:   "delete",
-		Short: "delete the vulnerability database",
-		Args:  cobra.ExactArgs(0),
+		Use:     "delete",
+		Short:   "delete the vulnerability database",
+		Args:    cobra.ExactArgs(0),
+		PreRunE: disableUI(app),
 		RunE: func(_ *cobra.Command, _ []string) error {
 			return runDBDelete(opts.DB)
 		},

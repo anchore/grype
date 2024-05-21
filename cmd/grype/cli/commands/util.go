@@ -7,8 +7,25 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/spf13/cobra"
 	"golang.org/x/exp/maps"
+
+	"github.com/anchore/clio"
+	"github.com/anchore/grype/cmd/grype/internal/ui"
 )
+
+func disableUI(app clio.Application) func(*cobra.Command, []string) error {
+	return func(_ *cobra.Command, _ []string) error {
+		type Stater interface {
+			State() *clio.State
+		}
+
+		state := app.(Stater).State()
+		state.UIs = []clio.UI{ui.None(state.Config.Log.Quiet)}
+
+		return nil
+	}
+}
 
 func stderrPrintLnf(message string, args ...interface{}) error {
 	if !strings.HasSuffix(message, "\n") {
