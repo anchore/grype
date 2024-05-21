@@ -14,9 +14,10 @@ func DBStatus(app clio.Application) *cobra.Command {
 	opts := dbOptionsDefault(app.ID())
 
 	return app.SetupCommand(&cobra.Command{
-		Use:   "status",
-		Short: "display database status",
-		Args:  cobra.ExactArgs(0),
+		Use:      "status",
+		Short:    "display database status",
+		Args:     cobra.ExactArgs(0),
+		PostRunE: disableUI(app),
 		RunE: func(_ *cobra.Command, _ []string) error {
 			return runDBStatus(opts.DB)
 		},

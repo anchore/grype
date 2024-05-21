@@ -28,8 +28,9 @@ func Explain(app clio.Application) *cobra.Command {
 	opts := &explainOptions{}
 
 	return app.SetupCommand(&cobra.Command{
-		Use:   "explain --id [VULNERABILITY ID]",
-		Short: "Ask grype to explain a set of findings",
+		Use:     "explain --id [VULNERABILITY ID]",
+		Short:   "Ask grype to explain a set of findings",
+		PreRunE: disableUI(app),
 		RunE: func(_ *cobra.Command, _ []string) error {
 			log.Warn("grype explain is a prototype feature and is subject to change")
 			isStdinPipeOrRedirect, err := internal.IsStdinPipeOrRedirect()
