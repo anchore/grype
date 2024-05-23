@@ -1,6 +1,7 @@
 package options
 
 import (
+	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/matcher/java"
 )
 
@@ -12,6 +13,10 @@ type externalSources struct {
 	Enable bool  `yaml:"enable" json:"enable" mapstructure:"enable"`
 	Maven  maven `yaml:"maven" json:"maven" mapstructure:"maven"`
 }
+
+var _ interface {
+	clio.FieldDescriber
+} = (*externalSources)(nil)
 
 type maven struct {
 	SearchUpstreamBySha1 bool   `yaml:"search-upstream" json:"searchUpstreamBySha1" mapstructure:"search-maven-upstream"`
@@ -37,4 +42,10 @@ func (cfg externalSources) ToJavaMatcherConfig() java.ExternalSearchConfig {
 		SearchMavenUpstream: smu,
 		MavenBaseURL:        cfg.Maven.BaseURL,
 	}
+}
+
+func (cfg *externalSources) DescribeFields(descriptions clio.FieldDescriptionSet) {
+	descriptions.Add(&cfg.Enable, `enable Grype searching network source for additional information`)
+	descriptions.Add(&cfg.Maven.SearchUpstreamBySha1, `search for Maven artifacts by SHA1`)
+	descriptions.Add(&cfg.Maven.BaseURL, `base URL of the Maven repository to search`)
 }

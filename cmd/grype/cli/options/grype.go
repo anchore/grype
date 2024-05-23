@@ -41,6 +41,7 @@ type Grype struct {
 var _ interface {
 	clio.FlagAdder
 	clio.PostLoader
+	clio.FieldDescriber
 } = (*Grype)(nil)
 
 func DefaultGrype(id clio.Identification) *Grype {
@@ -145,6 +146,43 @@ func (o *Grype) PostLoad() error {
 		}
 	}
 	return nil
+}
+
+func (o *Grype) DescribeFields(descriptions clio.FieldDescriptionSet) {
+	descriptions.Add(&o.CheckForAppUpdate, `enable/disable checking for application updates on startup`)
+	descriptions.Add(&o.DefaultImagePullSource, `allows users to specify which image source should be used to generate the sbom
+valid values are: registry, docker, podman`)
+	descriptions.Add(&o.Name, `same as --name; set the name of the target being analyzed`)
+	descriptions.Add(&o.Exclusions, `a list of globs to exclude from scanning, for example:
+  - '/etc/**'
+  - './out/**/*.json'
+same as --exclude`)
+	descriptions.Add(&o.File, `if using template output, you must provide a path to a Go template file
+see https://github.com/anchore/grype#using-templates for more information on template output
+the default path to the template file is the current working directory
+output-template-file: .grype/html.tmpl
+
+write output report to a file (default is to write to stdout)`)
+	descriptions.Add(&o.Outputs, `the output format of the vulnerability report (options: table, template, json, cyclonedx)
+when using template as the output type, you must also provide a value for 'output-template-file'`)
+	descriptions.Add(&o.FailOn, `upon scanning, if a severity is found at or above the given severity then the return code will be 1
+default is unset which will skip this validation (options: negligible, low, medium, high, critical)`)
+	descriptions.Add(&o.Ignore, `A list of vulnerability ignore rules, one or more property may be specified and all matching vulnerabilities will be ignored.
+This is the full set of supported rule fields:
+  - vulnerability: CVE-2008-4318
+    fix-state: unknown
+    package:
+      name: libcurl
+      version: 1.5.1
+      type: npm
+      location: "/usr/local/lib/node_modules/**"
+
+VEX fields apply when Grype reads vex data:
+  - vex-status: not_affected
+    vex-justification: vulnerable_code_not_present
+`)
+	descriptions.Add(&o.VexAdd, `VEX statuses to consider as ignored rules`)
+	descriptions.Add(&o.MatchUpstreamKernelHeaders, `match kernel-header packages with upstream kernel as kernel vulnerabilities`)
 }
 
 func (o Grype) FailOnSeverity() *vulnerability.Severity {
