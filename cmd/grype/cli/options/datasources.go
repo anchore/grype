@@ -1,6 +1,7 @@
 package options
 
 import (
+	"github.com/anchore/clio"
 	"time"
 
 	"github.com/anchore/clio"
