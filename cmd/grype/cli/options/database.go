@@ -23,6 +23,10 @@ type Database struct {
 	UpdateDownloadTimeout  time.Duration `yaml:"update-download-timeout" json:"update-download-timeout" mapstructure:"update-download-timeout"`
 }
 
+var _ interface {
+	clio.FieldDescriber
+} = (*Database)(nil)
+
 const (
 	defaultMaxDBAge               time.Duration = time.Hour * 24 * 5
 	defaultUpdateAvailableTimeout               = time.Second * 30
@@ -53,4 +57,20 @@ func (cfg Database) ToCuratorConfig() db.Config {
 		ListingFileTimeout:  cfg.UpdateAvailableTimeout,
 		UpdateTimeout:       cfg.UpdateDownloadTimeout,
 	}
+}
+
+func (cfg *Database) DescribeFields(descriptions clio.FieldDescriptionSet) {
+	descriptions.Add(&cfg.Dir, `location to write the vulnerability database cache`)
+	descriptions.Add(&cfg.UpdateURL, `URL of the vulnerability database`)
+	descriptions.Add(&cfg.CACert, `certificate to trust download the database and listing file`)
+	descriptions.Add(&cfg.AutoUpdate, `check for database updates on execution`)
+	descriptions.Add(&cfg.ValidateAge, `ensure db build is no older than the max-allowed-built-age`)
+	descriptions.Add(&cfg.ValidateByHashOnStart, `validate the database matches the known hash each execution`)
+	descriptions.Add(&cfg.MaxAllowedBuiltAge, `Max allowed age for vulnerability database,
+age being the time since it was built
+Default max age is 120h (or five days)`)
+	descriptions.Add(&cfg.UpdateAvailableTimeout, `Timeout for downloading GRYPE_DB_UPDATE_URL to see if the database needs to be downloaded
+This file is ~156KiB as of 2024-04-17 so the download should be quick; adjust as needed`)
+	descriptions.Add(&cfg.UpdateDownloadTimeout, `Timeout for downloading actual vulnerability DB
+The DB is ~156MB as of 2024-04-17 so slower connections may exceed the default timeout; adjust as needed`)
 }
