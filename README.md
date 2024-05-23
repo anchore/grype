@@ -536,7 +536,7 @@ With this information, Grype can select the correct database (the most recently 
 
 By default, the database is cached on the local filesystem in the directory `$XDG_CACHE_HOME/grype/db/<SCHEMA-VERSION>/`. For example, on macOS, the database would be stored in `~/Library/Caches/grype/db/3/`. (For more information on XDG paths, refer to the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html).)
 
-You can set the cache directory path using the environment variable `GRYPE_DB_CACHE_DIR`.
+You can set the cache directory path using the environment variable `GRYPE_DB_CACHE_DIR`. If setting that variable alone does not work, then the `TMPDIR` environment variable might also need to be set.
 
 #### Data staleness
 
