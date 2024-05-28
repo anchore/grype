@@ -34,7 +34,7 @@ func defaultGolangConfig() golangConfig {
 			UseCPEs: false,
 		},
 		AlwaysUseCPEForStdlib:                  true,
-		AllowMainModulePseudoVersionComparison: true,
+		AllowMainModulePseudoVersionComparison: false,
 	}
 }
 
