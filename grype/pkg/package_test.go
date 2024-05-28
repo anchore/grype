@@ -647,6 +647,20 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "lua-rocks-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.LuaRocksPackage{
+					Name:         "a",
+					Version:      "a",
+					License:      "a",
+					Homepage:     "a",
+					Description:  "a",
+					URL:          "a",
+					Dependencies: map[string]string{"b": "c"},
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing

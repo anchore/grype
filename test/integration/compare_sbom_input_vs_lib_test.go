@@ -19,17 +19,6 @@ import (
 	"github.com/anchore/syft/syft/source"
 )
 
-var imagesWithVulnerabilities = []string{
-	"anchore/test_images:vulnerabilities-alpine",
-	"anchore/test_images:gems",
-	"anchore/test_images:vulnerabilities-debian",
-	"anchore/test_images:vulnerabilities-centos",
-	"anchore/test_images:npm",
-	"anchore/test_images:java",
-	"anchore/test_images:golang-56d52bc",
-	"anchore/test_images:arch",
-}
-
 func getListingURL() string {
 	if value, ok := os.LookupEnv("GRYPE_DB_UPDATE_URL"); ok {
 		return value
@@ -85,6 +74,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		string(syftPkg.GithubActionWorkflowPkg),
 		string(syftPkg.ErlangOTPPkg),
 		string(syftPkg.WordpressPluginPkg), // TODO: remove me when there is a matcher for this merged in https://github.com/anchore/grype/pull/1553
+		string(syftPkg.LuaRocksPkg),
 	)
 	observedPkgTypes := strset.New()
 	testCases := []struct {
