@@ -855,7 +855,8 @@ match:
     using-cpes: false
     # even if CPE matching is disabled, make an exception when scanning for "stdlib".
     always-use-cpe-for-stdlib: true
-    allow-main-module-pseudo-version-comparison: true
+    # allow main module pseudo versions, which may have only been "guessed at" by Syft, to be used in vulnerability matching
+    allow-main-module-pseudo-version-comparison: false
   stock:
     using-cpes: true
 ```
