@@ -24,9 +24,9 @@ type CPEPackageParameter struct {
 }
 
 type CPEParameters struct {
-	Namespace string   `json:"namespace"`
-	CPEs      []string `json:"cpes"`
-	Package   CPEPackageParameter
+	Namespace string              `json:"namespace"`
+	CPEs      []string            `json:"cpes"`
+	Package   CPEPackageParameter `json:"package"`
 }
 
 func (i *CPEParameters) Merge(other CPEParameters) error {
