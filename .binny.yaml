@@ -58,7 +58,7 @@ tools:
   # used to release all artifacts
   - name: goreleaser
     version:
-      want: v1.26.2
+      want: v2.0.0
     method: github-release
     with:
       repo: goreleaser/goreleaser
