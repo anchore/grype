@@ -14,6 +14,16 @@ jobs:
     environment: release
     runs-on: ubuntu-20.04
     steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 #v4.1.1
+
+      - name: Check if running on main
+        if: github.ref != 'refs/heads/main'
+        # we are using the following flag when running `cosign blob-verify` for checksum signature verification:
+        #   --certificate-identity-regexp "https://github.com/anchore/.github/workflows/release.yaml@refs/heads/main"
+        # if we are not on the main branch, the signature will not be verifiable since the suffix requires the main branch
+        # at the time of when the OIDC token was issued on the Github Actions runner.
+        run: echo "This can only be run on the main branch otherwise releases produced will not be verifiable with cosign" && exit 1
+
       - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 #v4.1.6
 
       - name: Check if pinned syft is a release version
