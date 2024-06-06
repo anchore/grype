@@ -759,7 +759,7 @@ main() (
       v) VERIFY_SIGN=true;;
       h | \?)
         cat <<EOF
-Download and install released binary for ${OWNER}/${REPO} from the github releases page
+Download and install a released binary for ${OWNER}/${REPO} from the github releases page
 
 Usage: $0 [-v] [-b DIR] [-d] [TAG]
   -b DIR  the installation directory (defaults to ./bin)
