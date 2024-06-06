@@ -2,7 +2,7 @@ tools:
   # we want to use a pinned version of binny to manage the toolchain (so binny manages itself!)
   - name: binny
     version:
-      want: v0.7.0
+      want: v0.8.0
     method: github-release
     with:
       repo: anchore/binny
@@ -102,3 +102,18 @@ tools:
     method: github-release
     with:
       repo: cli/cli
+
+  # used for integration tests
+  - name: skopeo
+    version:
+      want: v1.12.0
+    method: go-install
+    with:
+      module: github.com/containers/skopeo
+      entrypoint: cmd/skopeo
+      args:
+        - "-tags"
+        - containers_image_openpgp
+      env:
+        - CGO_ENABLED=0
+        - GO_DYN_FLAGS=""
