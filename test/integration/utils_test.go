@@ -49,7 +49,7 @@ func PullThroughImageCache(t testing.TB, imageName string) string {
 func saveImage(t testing.TB, imageName string, destPath string) {
 	sourceImage := fmt.Sprintf("docker://docker.io/%s", imageName)
 	destinationString := fmt.Sprintf("docker-archive:%s", destPath)
-	skopeoPath := filepath.Join(repoRoot(t), ".tmp", "skopeo")
+	skopeoPath := filepath.Join(repoRoot(t), ".tool", "skopeo")
 	policyPath := filepath.Join(repoRoot(t), "test", "integration", "test-fixtures", "skopeo-policy.json")
 
 	skopeoCommand := []string{
