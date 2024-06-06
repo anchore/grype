@@ -693,36 +693,11 @@ install_asset() (
 # Note: pre-release (-) and metadata (+) are not supported.
 compare_semver() {
     # remove leading 'v' if present
-    version1=$(echo "$1" | sed 's/^v//')
-    version2=$(echo "$2" | sed 's/^v//')
-
-    IFS=. read -r major1 minor1 patch1 <<EOF
-$version1
-EOF
-    IFS=. read -r major2 minor2 patch2 <<EOF
-$version2
-EOF
-
-    if [ "$major1" -gt "$major2" ]; then
-        return 0
-    elif [ "$major1" -lt "$major2" ]; then
-        return 1
-    fi
-
-    if [ "$minor1" -gt "$minor2" ]; then
-        return 0
-    elif [ "$minor1" -lt "$minor2" ]; then
-        return 1
-    fi
-
-    if [ "$patch1" -gt "$patch2" ]; then
-        return 0
-    elif [ "$patch1" -lt "$patch2" ]; then
-        return 1
-    fi
-
-    # versions are equal
-    return 0
+    local version1=${1#v}
+    local version2=${2#v}
+    
+    # this checks $2 <= $1, so returns 0 if first argument <= second
+    printf "%s\n" "$version2" "$version1" | sort -Vc 2>/dev/null
 }
 
 prep_signature_verification() {
