@@ -60,12 +60,10 @@ If you encounter an issue, please [let us know using the issue tracker](https://
 ```bash
 curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
 ```
-
-You can also choose another destination directory and release version for the installation. The destination directory doesn't need to be `/usr/local/bin`, it just needs to be a location found in the user's PATH and writable by the user that's installing Grype.
-
-```
-curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b <DESTINATION_DIR> <RELEASE_VERSION>
-```
+Install script options:
+-	`-b`: Specify a custom installation directory (defaults to `./bin`)
+-	`-d`: More verbose logging levels (`-d` for debug, `-dd` for trace)
+-	`-v`: Verify the signature of the downloaded artifact before installation (requires [`cosign`](https://github.com/sigstore/cosign) to be installed)
 
 ### Chocolatey
 
