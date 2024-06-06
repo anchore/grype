@@ -61,7 +61,7 @@ If you encounter an issue, please [let us know using the issue tracker](https://
 curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
 ```
 Install script options:
--	`-b`: Specify a custom installation directory
+-	`-b`: Specify a custom installation directory (defaults to `./bin`)
 -	`-d`: More verbose logging levels (`-d` for debug, `-dd` for trace)
 -	`-v`: Verify the signature of the downloaded artifact before installation (requires [`cosign`](https://github.com/sigstore/cosign) to be installed)
 
