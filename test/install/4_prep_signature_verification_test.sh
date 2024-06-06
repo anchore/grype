@@ -13,6 +13,12 @@ test_compare_semver() {
   compare_semver "0.33.0" "0.32.0"
   assertEquals "0" "$?" "+ minor version should be greater"
 
+  compare_semver "0.333.0" "0.32.0"
+  assertEquals "0" "$?" "+ minor version should be greater (different length)"
+
+  compare_semver "00.33.00" "0.032.0"
+  assertEquals "0" "$?" "+ minor version should be greater (different length reversed)"
+
   compare_semver "1.0.0" "0.9.9"
   assertEquals "0" "$?" "+ major version should be greater"
 
@@ -25,6 +31,12 @@ test_compare_semver() {
 
   compare_semver "0.32.7" "0.33.0"
   assertEquals "1" "$?" "- minor version should be less"
+
+  compare_semver "00.00032.070" "0.33.0"
+  assertEquals "1" "$?" "- minor version should be less (different length)"
+
+  compare_semver "0.32.7" "00.0033.000"
+  assertEquals "1" "$?" "- minor version should be less (different length reversed)"
 
   compare_semver "1.9.9" "2.0.1"
   assertEquals "1" "$?" "- major version should be less"
