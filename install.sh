@@ -599,7 +599,7 @@ verify_sign() {
     verify-blob "$checksums_file" \
       --certificate "$cert_reference" \
       --signature "$sig_reference" \
-      --certificate-identity-regexp "https://github\.com/${OWNER}/${REPO}/\.github/workflows/release.yaml@refs/heads/main" \
+      --certificate-identity "https://github.com/${OWNER}/${REPO}/.github/workflows/release.yaml@refs/heads/main" \
       --certificate-oidc-issuer "https://token.actions.githubusercontent.com" > "${log_file}" 2>&1
 
   if [ $? -ne 0 ]; then
