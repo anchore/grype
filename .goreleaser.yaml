@@ -1,3 +1,5 @@
+version: 2
+
 release:
   prerelease: auto
   draft: false
@@ -79,7 +81,7 @@ nfpms:
       - deb
 
 brews:
-  - tap:
+  - repository:
       owner: anchore
       name: homebrew-grype
       token: "{{.Env.GITHUB_BREW_TOKEN}}"
