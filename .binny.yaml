@@ -58,7 +58,7 @@ tools:
   # used to release all artifacts
   - name: goreleaser
     version:
-      want: v1.26.2
+      want: v2.0.0
     method: github-release
     with:
       repo: goreleaser/goreleaser
@@ -106,7 +106,7 @@ tools:
   # used for integration tests
   - name: skopeo
     version:
-      want: v1.12.0
+      want: v1.15.1
     method: go-install
     with:
       module: github.com/containers/skopeo
