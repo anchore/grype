@@ -19,24 +19,24 @@ type IgnoredMatch struct {
 // specified criteria must be met by the vulnerability match in order for the
 // rule to apply.
 type IgnoreRule struct {
-	Vulnerability    string            `yaml:"vulnerability" json:"vulnerability" mapstructure:"vulnerability"`
-	Reason           string            `yaml:"reason" json:"reason" mapstructure:"reason"`
-	Namespace        string            `yaml:"namespace" json:"namespace" mapstructure:"namespace"`
-	FixState         string            `yaml:"fix-state" json:"fix-state" mapstructure:"fix-state"`
-	Package          IgnoreRulePackage `yaml:"package" json:"package" mapstructure:"package"`
-	VexStatus        string            `yaml:"vex-status" json:"vex-status" mapstructure:"vex-status"`
-	VexJustification string            `yaml:"vex-justification" json:"vex-justification" mapstructure:"vex-justification"`
-	MatchType        Type              `yaml:"match-type" json:"match-type" mapstructure:"match-type"`
+	Vulnerability    string            `yaml:"vulnerability,omitempty" json:"vulnerability,omitempty" mapstructure:"vulnerability"`
+	Reason           string            `yaml:"reason,omitempty" json:"reason,omitempty" mapstructure:"reason"`
+	Namespace        string            `yaml:"namespace,omitempty" json:"namespace,omitempty" mapstructure:"namespace"`
+	FixState         string            `yaml:"fix-state,omitempty" json:"fix-state,omitempty" mapstructure:"fix-state"`
+	Package          IgnoreRulePackage `yaml:"package,omitempty" json:"package,omitempty" mapstructure:"package"`
+	VexStatus        string            `yaml:"vex-status,omitempty" json:"vex-status,omitempty" mapstructure:"vex-status"`
+	VexJustification string            `yaml:"vex-justification,omitempty" json:"vex-justification,omitempty" mapstructure:"vex-justification"`
+	MatchType        Type              `yaml:"match-type,omitempty" json:"match-type,omitempty" mapstructure:"match-type"`
 }
 
 // IgnoreRulePackage describes the Package-specific fields that comprise the IgnoreRule.
 type IgnoreRulePackage struct {
-	Name         string `yaml:"name" json:"name" mapstructure:"name"`
-	Version      string `yaml:"version" json:"version" mapstructure:"version"`
-	Language     string `yaml:"language" json:"language" mapstructure:"language"`
-	Type         string `yaml:"type" json:"type" mapstructure:"type"`
-	Location     string `yaml:"location" json:"location" mapstructure:"location"`
-	UpstreamName string `yaml:"upstream-name" json:"upstream-name" mapstructure:"upstream-name"`
+	Name         string `yaml:"name,omitempty" json:"name,omitempty" mapstructure:"name"`
+	Version      string `yaml:"version,omitempty" json:"version,omitempty" mapstructure:"version"`
+	Language     string `yaml:"language,omitempty" json:"language,omitempty" mapstructure:"language"`
+	Type         string `yaml:"type,omitempty" json:"type,omitempty" mapstructure:"type"`
+	Location     string `yaml:"location,omitempty" json:"location,omitempty" mapstructure:"location"`
+	UpstreamName string `yaml:"upstream-name,omitempty" json:"upstream-name,omitempty" mapstructure:"upstream-name"`
 }
 
 // ApplyIgnoreRules iterates through the provided matches and, for each match,

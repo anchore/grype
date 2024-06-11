@@ -151,6 +151,12 @@ func (ovm *Processor) FilterMatches(
 		return nil, nil, err
 	}
 
+	if len(products) == 0 {
+		log.Trace("no product identifiers found to use for filtering with vex data")
+		return matches, ignoredMatches, nil
+	}
+	log.WithFields("products", len(products)).Trace("using product identifiers to filter with vex data")
+
 	// TODO(alex): should we apply the vex ignore rules to the already ignored matches?
 	// that way the end user sees all of the reasons a match was ignored in case multiple apply
 
@@ -158,11 +164,13 @@ func (ovm *Processor) FilterMatches(
 	sorted := matches.Sorted()
 	for i := range sorted {
 		var statement *openvex.Statement
-		subcmp := subcomponentIdentifiersFromMatch(&sorted[i])
+		mat := sorted[i]
+
+		subcmp := subcomponentIdentifiersFromMatch(&mat)
 
 		// Range through the product's different names
 		for _, product := range products {
-			if matchingStatements := doc.Matches(sorted[i].Vulnerability.ID, product, subcmp); len(matchingStatements) != 0 {
+			if matchingStatements := doc.Matches(mat.Vulnerability.ID, product, subcmp); len(matchingStatements) != 0 {
 				statement = &matchingStatements[0]
 				break
 			}
@@ -170,24 +178,26 @@ func (ovm *Processor) FilterMatches(
 
 		// No data about this match's component. Next.
 		if statement == nil {
-			remainingMatches.Add(sorted[i])
+			remainingMatches.Add(mat)
 			continue
 		}
 
-		rule := matchingRule(ignoreRules, sorted[i], statement, ignoreStatuses)
+		rule := matchingRule(ignoreRules, mat, statement, ignoreStatuses)
 		if rule == nil {
-			remainingMatches.Add(sorted[i])
+			remainingMatches.Add(mat)
 			continue
 		}
 
 		// Filtering only applies to not_affected and fixed statuses
 		if statement.Status != openvex.StatusNotAffected && statement.Status != openvex.StatusFixed {
-			remainingMatches.Add(sorted[i])
+			remainingMatches.Add(mat)
 			continue
 		}
 
+		log.WithFields("vulnerability", mat.Vulnerability.ID, "package", mat.Package.String(), "vex-status", statement.Status).Debug("filtered out match")
+
 		ignoredMatches = append(ignoredMatches, match.IgnoredMatch{
-			Match:              sorted[i],
+			Match:              mat,
 			AppliedIgnoreRules: []match.IgnoreRule{*rule},
 		})
 	}

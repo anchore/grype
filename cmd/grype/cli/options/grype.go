@@ -4,11 +4,35 @@ import (
 	"fmt"
 
 	"github.com/anchore/clio"
+	grypeDb "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/vex"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/format"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
 )
+
+var ignoreNonFixedMatches = []match.IgnoreRule{
+	{FixState: string(grypeDb.NotFixedState)},
+	{FixState: string(grypeDb.WontFixState)},
+	{FixState: string(grypeDb.UnknownFixState)},
+}
+
+var ignoreFixedMatches = []match.IgnoreRule{
+	{FixState: string(grypeDb.FixedState)},
+}
+
+var ignoreVEXFixedNotAffected = []match.IgnoreRule{
+	{VexStatus: string(vex.StatusNotAffected)},
+	{VexStatus: string(vex.StatusFixed)},
+}
+
+var ignoreLinuxKernelHeaders = []match.IgnoreRule{
+	{Package: match.IgnoreRulePackage{Name: "kernel-headers", UpstreamName: "kernel", Type: string(syftPkg.RpmPkg)}, MatchType: match.ExactIndirectMatch},
+	{Package: match.IgnoreRulePackage{Name: "linux-headers-.*", UpstreamName: "linux", Type: string(syftPkg.DebPkg)}, MatchType: match.ExactIndirectMatch},
+	{Package: match.IgnoreRulePackage{Name: "linux-libc-dev", UpstreamName: "linux", Type: string(syftPkg.DebPkg)}, MatchType: match.ExactIndirectMatch},
+}
 
 type Grype struct {
 	Outputs                    []string           `yaml:"output" json:"output" mapstructure:"output"`                                           // -o, <presenter>=<file> the Presenter hint string to use for report formatting and the output file
@@ -151,6 +175,46 @@ func (o *Grype) PostLoad() error {
 			return fmt.Errorf("bad --fail-on severity value '%s'", o.FailOn)
 		}
 	}
+
+	if err := o.applyVexRules(); err != nil {
+		return fmt.Errorf("failed to apply VEX rules: %w", err)
+	}
+
+	if o.OnlyFixed {
+		o.Ignore = append(o.Ignore, ignoreNonFixedMatches...)
+	}
+
+	if o.OnlyNotFixed {
+		o.Ignore = append(o.Ignore, ignoreFixedMatches...)
+	}
+
+	if !o.MatchUpstreamKernelHeaders {
+		o.Ignore = append(o.Ignore, ignoreLinuxKernelHeaders...)
+	}
+
+	return nil
+}
+
+func (o *Grype) applyVexRules() error {
+	if (len(o.Ignore) == 0 && len(o.VexDocuments) > 0) || o.VexAutodiscover {
+		o.Ignore = append(o.Ignore, ignoreVEXFixedNotAffected...)
+	}
+
+	for _, vexStatus := range o.VexAdd {
+		switch vexStatus {
+		case string(vex.StatusAffected):
+			o.Ignore = append(
+				o.Ignore, match.IgnoreRule{VexStatus: string(vex.StatusAffected)},
+			)
+		case string(vex.StatusUnderInvestigation):
+			o.Ignore = append(
+				o.Ignore, match.IgnoreRule{VexStatus: string(vex.StatusUnderInvestigation)},
+			)
+		default:
+			return fmt.Errorf("invalid VEX status in vex-add setting: %s", vexStatus)
+		}
+	}
+
 	return nil
 }
 
