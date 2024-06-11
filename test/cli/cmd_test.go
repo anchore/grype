@@ -41,24 +41,23 @@ func TestCmd(t *testing.T) {
 				assertInOutput("sha256:1ee006886991ad4689838d3a288e0dd3fd29b70e276622f16b67a8922831a853"), // linux/arm64 image digest
 			},
 		},
-		// TODO: uncomment this test when we can use `grype config`
-		//{
-		//	name: "responds-to-search-options",
-		//	args: []string{"--help"},
-		//	env: map[string]string{
-		//		"GRYPE_SEARCH_UNINDEXED_ARCHIVES": "true",
-		//		"GRYPE_SEARCH_INDEXED_ARCHIVES":   "false",
-		//		"GRYPE_SEARCH_SCOPE":              "all-layers",
-		//	},
-		//	assertions: []traitAssertion{
-		//		// the application config in the log matches that of what we expect to have been configured. Note:
-		//		// we are not testing further wiring of this option, only that the config responds to
-		//		// package-cataloger-level options.
-		//		assertInOutput("unindexed-archives: true"),
-		//		assertInOutput("indexed-archives: false"),
-		//		assertInOutput("scope: 'all-layers'"),
-		//	},
-		//},
+		{
+			name: "responds-to-search-options",
+			args: []string{"config", "--load"},
+			env: map[string]string{
+				"GRYPE_SEARCH_UNINDEXED_ARCHIVES": "true",
+				"GRYPE_SEARCH_INDEXED_ARCHIVES":   "false",
+				"GRYPE_SEARCH_SCOPE":              "all-layers",
+			},
+			assertions: []traitAssertion{
+				// the application config in the log matches that of what we expect to have been configured. Note:
+				// we are not testing further wiring of this option, only that the config responds to
+				// package-cataloger-level options.
+				assertInOutput("unindexed-archives: true"),
+				assertInOutput("indexed-archives: false"),
+				assertInOutput("scope: 'all-layers'"),
+			},
+		},
 		{
 			name: "vulnerabilities in output on -f with failure",
 			args: []string{"registry:busybox:1.31", "-f", "high", "--platform", "linux/amd64"},

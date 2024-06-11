@@ -1,0 +1,83 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://openvex.dev/docs/public/vex-5052083e68a4b14c89035ebcedd6d0da6f131d533079ad3e9020b8cd357ccf49",
+  "author": "Alex Goodman <alex.goodman@anchore.com>",
+  "timestamp": "2024-06-17T13:17:48.760049345-05:00",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2016-2781"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/vex-oci-attach@sha256%3A8b95adbdf01ad43043ea9b63d6ac56abbe0e81b67fe40a27c39b6b83488f70ce?repository_url=ghcr.io/anchore/test-images",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/coreutils@9.4-3ubuntu6?arch=amd64"
+            }
+          ]
+        }
+      ],
+      "status": "fixed"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2022-3219"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/vex-oci-attach@sha256%3A8b95adbdf01ad43043ea9b63d6ac56abbe0e81b67fe40a27c39b6b83488f70ce?repository_url=ghcr.io/anchore/test-images",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/gpgv@2.4.4-2ubuntu17?arch=amd64"
+            }
+          ]
+        }
+      ],
+      "status": "fixed"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2016-20013"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/vex-oci-attach@sha256%3A8b95adbdf01ad43043ea9b63d6ac56abbe0e81b67fe40a27c39b6b83488f70ce?repository_url=ghcr.io/anchore/test-images",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libc-bin@2.39-0ubuntu8.2?arch=amd64"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libc6@2.39-0ubuntu8.2?arch=amd64"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "affected functions were removed before packaging"
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2023-7008"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/vex-oci-attach@sha256%3A8b95adbdf01ad43043ea9b63d6ac56abbe0e81b67fe40a27c39b6b83488f70ce?repository_url=ghcr.io/anchore/test-images",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/ubuntu/libsystemd0@255.4-1ubuntu8?arch=amd64&distro=ubuntu-24.04"
+            },
+            {
+              "@id": "pkg:deb/ubuntu/libudev1@255.4-1ubuntu8?arch=amd64&distro=ubuntu-24.04"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "affected functions were removed before packaging"
+    }
+  ]
+}
