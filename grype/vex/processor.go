@@ -23,6 +23,7 @@ const (
 type Processor struct {
 	Options ProcessorOptions
 	impl    vexProcessorImplementation
+	loaded  bool
 }
 
 type vexProcessorImplementation interface {
@@ -79,6 +80,10 @@ func (vm *Processor) LoadVEXDocuments(ctx context.Context, pkgContext pkg.Contex
 		return nil
 	}
 
+	defer func() {
+		vm.loaded = true
+	}()
+
 	// read VEX data from all passed documents
 	if len(vm.Options.Documents) > 0 {
 		err := vm.impl.ReadVexDocuments(vm.Options.Documents)
@@ -104,6 +109,10 @@ func (vm *Processor) LoadVEXDocuments(ctx context.Context, pkgContext pkg.Contex
 // be moved to the ignored matches slice.
 func (vm *Processor) ApplyVEX(pkgContext pkg.Context, remainingMatches *match.Matches, ignoredMatches []match.IgnoredMatch) (*match.Matches, []match.IgnoredMatch, error) {
 	var err error
+
+	if !vm.loaded {
+		return nil, nil, fmt.Errorf("never attempted to load VEX data")
+	}
 
 	// If no VEX documents are loaded, just pass through the matches, effectively NOOP
 	if len(vm.Options.Documents) == 0 && !vm.Options.Autodiscover {
