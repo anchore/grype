@@ -11,6 +11,7 @@ import (
 
 	"github.com/openvex/discovery/pkg/discovery"
 	"github.com/openvex/discovery/pkg/oci"
+	ociprober "github.com/openvex/discovery/pkg/probers/oci"
 	openvex "github.com/openvex/go-vex/pkg/vex"
 	"github.com/scylladb/go-set/strset"
 	"github.com/wagoodman/go-partybus"
@@ -22,6 +23,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -384,6 +386,10 @@ func findVexDocuments(ctx context.Context, identifiers []string) (map[string]*op
 	prog, stage := trackVexDiscovery(identifiers)
 	defer prog.SetCompleted()
 
+	// we only want to ever allow the single OCI driver to be used. This defends against another lib loading
+	// a prober globally that we don't want to use.
+	discovery.UnregisterDrivers()
+	discovery.RegisterDriver(packageurl.TypeOCI, ociprober.New())
 	agent := discovery.NewAgent()
 
 	grp, ctx := errgroup.WithContext(ctx)
