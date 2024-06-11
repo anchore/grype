@@ -1,6 +1,8 @@
 package grype
 
 import (
+	"context"
+
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/pkg"
@@ -40,7 +42,7 @@ func FindVulnerabilitiesForPackage(store store.Store, d *linux.Release, matchers
 		NormalizeByCVE: false,
 	}
 
-	actualResults, _, err := runner.FindMatches(packages, pkg.Context{
+	actualResults, _, err := runner.FindMatches(context.Background(), packages, pkg.Context{
 		Distro: d,
 	})
 	if err != nil || actualResults == nil {

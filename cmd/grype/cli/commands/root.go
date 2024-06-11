@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -73,12 +74,12 @@ You can also pipe in Syft JSON directly:
 		Args:          validateRootArgs,
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		RunE: func(_ *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			userInput := ""
 			if len(args) > 0 {
 				userInput = args[0]
 			}
-			return runGrype(app, opts, userInput)
+			return runGrype(cmd.Context(), app, opts, userInput)
 		},
 		ValidArgsFunction: dockerImageValidArgsFunction,
 	}, opts)
@@ -106,7 +107,7 @@ var ignoreLinuxKernelHeaders = []match.IgnoreRule{
 }
 
 //nolint:funlen
-func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs error) {
+func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, userInput string) (errs error) {
 	writer, err := format.MakeScanResultWriter(opts.Outputs, opts.File, format.PresentationConfig{
 		TemplateFilePath: opts.OutputTemplateFile,
 		ShowSuppressed:   opts.ShowSuppressed,
@@ -194,7 +195,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		}),
 	}
 
-	remainingMatches, ignoredMatches, err := vulnMatcher.FindMatches(packages, pkgContext)
+	remainingMatches, ignoredMatches, err := vulnMatcher.FindMatches(ctx, packages, pkgContext)
 	if err != nil {
 		if !errors.Is(err, grypeerr.ErrAboveSeverityThreshold) {
 			return err

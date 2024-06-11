@@ -1,6 +1,7 @@
 package vex
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,7 +15,7 @@ import (
 )
 
 func TestProcessor_ApplyVEX(t *testing.T) {
-	pkgContext := &pkg.Context{
+	pkgContext := pkg.Context{
 		Source: &source.Description{
 			Name:    "alpine",
 			Version: "3.17",
@@ -96,7 +97,7 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 	}
 
 	type args struct {
-		pkgContext     *pkg.Context
+		pkgContext     pkg.Context
 		matches        *match.Matches
 		ignoredMatches []match.IgnoredMatch
 	}
@@ -298,6 +299,7 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 			}
 
 			p := NewProcessor(tt.options)
+			require.NoError(t, p.LoadVEXDocuments(context.TODO(), pkgContext))
 			actualMatches, actualIgnoredMatches, err := p.ApplyVEX(tt.args.pkgContext, tt.args.matches, tt.args.ignoredMatches)
 			tt.wantErr(t, err)
 			if err != nil {

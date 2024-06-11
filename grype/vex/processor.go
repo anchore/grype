@@ -1,6 +1,7 @@
 package vex
 
 import (
+	"context"
 	"fmt"
 
 	gopenvex "github.com/openvex/go-vex/pkg/vex"
@@ -28,22 +29,22 @@ type vexProcessorImplementation interface {
 	// ReadVexDocuments takes a list of vex filenames and returns a single
 	// value representing the VEX information in the underlying implementation's
 	// format. Returns an error if the files cannot be processed.
-	ReadVexDocuments(docs []string) (interface{}, error)
+	ReadVexDocuments(docs []string) error
 
 	// DiscoverVexDocuments calls asks vex driver to find documents associated
 	// to the scanned object. Autodiscovered documents are added to any that
 	// are specified in the command line
-	DiscoverVexDocuments(*pkg.Context, interface{}) (interface{}, error)
+	DiscoverVexDocuments(context.Context, pkg.Context) error
 
 	// FilterMatches matches receives the underlying VEX implementation VEX data and
 	// the scanning context and matching results and filters the fixed and
 	// not_affected results,moving them to the list of ignored matches.
-	FilterMatches(interface{}, []match.IgnoreRule, *pkg.Context, *match.Matches, []match.IgnoredMatch) (*match.Matches, []match.IgnoredMatch, error)
+	FilterMatches([]match.IgnoreRule, pkg.Context, *match.Matches, []match.IgnoredMatch) (*match.Matches, []match.IgnoredMatch, error)
 
 	// AugmentMatches reads known affected VEX products from loaded documents and
 	// adds new results to the scanner results when the product is marked as
 	// affected in the VEX data.
-	AugmentMatches(interface{}, []match.IgnoreRule, *pkg.Context, *match.Matches, []match.IgnoredMatch) (*match.Matches, []match.IgnoredMatch, error)
+	AugmentMatches([]match.IgnoreRule, pkg.Context, *match.Matches, []match.IgnoredMatch) (*match.Matches, []match.IgnoredMatch, error)
 }
 
 // getVexImplementation this function returns the vex processor implementation
@@ -73,10 +74,35 @@ type ProcessorOptions struct {
 	IgnoreRules []match.IgnoreRule
 }
 
+func (vm *Processor) LoadVEXDocuments(ctx context.Context, pkgContext pkg.Context) error {
+	if vm == nil {
+		return nil
+	}
+
+	// read VEX data from all passed documents
+	if len(vm.Options.Documents) > 0 {
+		err := vm.impl.ReadVexDocuments(vm.Options.Documents)
+		if err != nil {
+			return fmt.Errorf("parsing vex document: %w", err)
+		}
+	}
+
+	// if VEX autodiscover is enabled, run call the implementation's discovery
+	// function to augment the known VEX data
+	if vm.Options.Autodiscover {
+		err := vm.impl.DiscoverVexDocuments(ctx, pkgContext)
+		if err != nil {
+			return fmt.Errorf("probing for VEX data: %w", err)
+		}
+	}
+
+	return nil
+}
+
 // ApplyVEX receives the results from a scan run and applies any VEX information
 // in the files specified in the grype invocation. Any filtered results will
 // be moved to the ignored matches slice.
-func (vm *Processor) ApplyVEX(pkgContext *pkg.Context, remainingMatches *match.Matches, ignoredMatches []match.IgnoredMatch) (*match.Matches, []match.IgnoredMatch, error) {
+func (vm *Processor) ApplyVEX(pkgContext pkg.Context, remainingMatches *match.Matches, ignoredMatches []match.IgnoredMatch) (*match.Matches, []match.IgnoredMatch, error) {
 	var err error
 
 	// If no VEX documents are loaded, just pass through the matches, effectively NOOP
@@ -84,35 +110,20 @@ func (vm *Processor) ApplyVEX(pkgContext *pkg.Context, remainingMatches *match.M
 		return remainingMatches, ignoredMatches, nil
 	}
 
-	// Read VEX data from all passed documents
-	rawVexData, err := vm.impl.ReadVexDocuments(vm.Options.Documents)
-	if err != nil {
-		return nil, nil, fmt.Errorf("parsing vex document: %w", err)
-	}
-
-	// If VEX autodiscover is enabled, run call the implementation's discovery
-	// function to augment the known VEX data
-	if vm.Options.Autodiscover {
-		rawVexData, err = vm.impl.DiscoverVexDocuments(pkgContext, rawVexData)
-		if err != nil {
-			return nil, nil, fmt.Errorf("probing for VEX data: %w", err)
-		}
-	}
-
 	vexRules := extractVexRules(vm.Options.IgnoreRules)
 
 	remainingMatches, ignoredMatches, err = vm.impl.FilterMatches(
-		rawVexData, vexRules, pkgContext, remainingMatches, ignoredMatches,
+		vexRules, pkgContext, remainingMatches, ignoredMatches,
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("checking matches against VEX data: %w", err)
+		return nil, nil, fmt.Errorf("unable to filter matches against VEX data: %w", err)
 	}
 
 	remainingMatches, ignoredMatches, err = vm.impl.AugmentMatches(
-		rawVexData, vexRules, pkgContext, remainingMatches, ignoredMatches,
+		vexRules, pkgContext, remainingMatches, ignoredMatches,
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("checking matches to augment from VEX data: %w", err)
+		return nil, nil, fmt.Errorf("unable to augment matches with VEX data: %w", err)
 	}
 
 	return remainingMatches, ignoredMatches, nil

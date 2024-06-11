@@ -29,7 +29,7 @@ require (
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-test/deep v1.1.0
 	github.com/google/go-cmp v0.6.0
-	github.com/google/go-containerregistry v0.19.1
+	github.com/google/go-containerregistry v0.19.1 // indirect
 	github.com/google/uuid v1.6.0
 	github.com/gookit/color v1.5.4
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
@@ -61,7 +61,10 @@ require (
 	gorm.io/gorm v1.25.10
 )
 
-require github.com/openvex/discovery v0.1.0
+require (
+	github.com/openvex/discovery v0.1.0
+	golang.org/x/sync v0.7.0
+)
 
 require (
 	cloud.google.com/go v0.110.10 // indirect
@@ -285,7 +288,6 @@ require (
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.25.0 // indirect
 	golang.org/x/oauth2 v0.19.0 // indirect
-	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/term v0.20.0 // indirect
 	golang.org/x/text v0.15.0 // indirect

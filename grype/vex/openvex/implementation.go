@@ -1,24 +1,34 @@
 package openvex
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"github.com/anchore/grype/grype/event"
-	"github.com/anchore/grype/internal/bus"
+	"runtime"
+	"sort"
+	"strings"
+	"sync/atomic"
+
 	"github.com/openvex/discovery/pkg/discovery"
 	"github.com/openvex/discovery/pkg/oci"
 	openvex "github.com/openvex/go-vex/pkg/vex"
 	"github.com/scylladb/go-set/strset"
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
-	"strings"
+	"golang.org/x/sync/errgroup"
 
+	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/internal/bus"
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/source"
 )
 
-type Processor struct{}
+type Processor struct {
+	// we always merge all discovered / read vex documents into a single document
+	documents *openvex.VEX
+}
 
 func New() *Processor {
 	return &Processor{}
@@ -49,43 +59,67 @@ var ignoreStatuses = []openvex.Status{
 }
 
 // ReadVexDocuments reads and merges VEX documents
-func (ovm *Processor) ReadVexDocuments(docs []string) (interface{}, error) {
-	if len(docs) == 0 {
-		return &openvex.VEX{}, nil
+func (ovm *Processor) ReadVexDocuments(docRefs []string) error {
+	if len(docRefs) == 0 {
+		return nil
 	}
 
-	// Combine all VEX documents into a single VEX document
-	vexdata, err := openvex.MergeFiles(docs)
+	// combine all VEX documents into a single VEX document
+	vexdata, err := openvex.MergeFiles(docRefs)
 	if err != nil {
-		return nil, fmt.Errorf("merging vex documents: %w", err)
+		return fmt.Errorf("merging vex documents: %w", err)
 	}
 
-	return vexdata, nil
+	ovm.documents = vexdata
+
+	return nil
 }
 
 // productIdentifiersFromContext reads the package context and returns software
 // identifiers identifying the scanned image.
-func productIdentifiersFromContext(pkgContext *pkg.Context) ([]string, error) {
+func productIdentifiersFromContext(pkgContext pkg.Context) ([]string, error) {
+	if pkgContext.Source == nil || pkgContext.Source.Metadata == nil {
+		return nil, nil
+	}
+
+	var ret []string
+
 	switch v := pkgContext.Source.Metadata.(type) {
 	case source.ImageMetadata:
-		// Call the OpenVEX OCI module to generate the identifiers from the
+		// call the OpenVEX OCI module to generate the identifiers from the
 		// image reference specified by the user.
-		bundle, err := oci.GenerateReferenceIdentifiers(v.UserInput, v.OS, v.Architecture)
-		if err != nil {
-			return nil, fmt.Errorf("generating identifiers from image reference: %w", err)
+		refs := []string{v.UserInput}
+		refs = append(refs, v.RepoDigests...)
+
+		set := strset.New()
+		for _, ref := range refs {
+			bundle, err := oci.GenerateReferenceIdentifiers(ref, v.OS, v.Architecture)
+			if err != nil {
+				log.WithFields("error", err).Trace("unable to generate OCI identifiers from image reference")
+				continue
+			}
+			set.Add(bundle.ToStringSlice()...)
 		}
 
-		return bundle.ToStringSlice(), nil
+		ret = set.List()
+
 	default:
 		// Fail as we only support VEXing container images for now
 		return nil, errors.New("source type not supported for VEX")
 	}
+
+	sort.Strings(ret)
+	return ret, nil
 }
 
 // subcomponentIdentifiersFromMatch returns the list of identifiers from the
 // package where grype did the match.
 func subcomponentIdentifiersFromMatch(m *match.Match) []string {
-	ret := []string{}
+	if m == nil {
+		return nil
+	}
+
+	var ret []string
 	if m.Package.PURL != "" {
 		ret = append(ret, m.Package.PURL)
 	}
@@ -102,18 +136,19 @@ func subcomponentIdentifiersFromMatch(m *match.Match) []string {
 // FilterMatches takes a set of scanning results and moves any results marked in
 // the VEX data as fixed or not_affected to the ignored list.
 func (ovm *Processor) FilterMatches(
-	docRaw interface{}, ignoreRules []match.IgnoreRule, pkgContext *pkg.Context, matches *match.Matches, ignoredMatches []match.IgnoredMatch,
+	ignoreRules []match.IgnoreRule, pkgContext pkg.Context, matches *match.Matches, ignoredMatches []match.IgnoredMatch,
 ) (*match.Matches, []match.IgnoredMatch, error) {
-	doc, ok := docRaw.(*openvex.VEX)
-	if !ok {
-		return nil, nil, errors.New("unable to cast vex document as openvex")
+	if ovm.documents == nil {
+		return matches, ignoredMatches, nil
 	}
+
+	doc := ovm.documents
 
 	remainingMatches := match.NewMatches()
 
 	products, err := productIdentifiersFromContext(pkgContext)
 	if err != nil {
-		return nil, nil, fmt.Errorf("reading product identifiers from context: %w", err)
+		return nil, nil, err
 	}
 
 	// TODO(alex): should we apply the vex ignore rules to the already ignored matches?
@@ -220,12 +255,13 @@ func matchingRule(ignoreRules []match.IgnoreRule, m match.Match, statement *open
 // about an affected VEX product is found on loaded VEX documents. Matches
 // are moved from the ignore list or synthesized when no previous data is found.
 func (ovm *Processor) AugmentMatches(
-	docRaw interface{}, ignoreRules []match.IgnoreRule, pkgContext *pkg.Context, remainingMatches *match.Matches, ignoredMatches []match.IgnoredMatch,
+	ignoreRules []match.IgnoreRule, pkgContext pkg.Context, remainingMatches *match.Matches, ignoredMatches []match.IgnoredMatch,
 ) (*match.Matches, []match.IgnoredMatch, error) {
-	doc, ok := docRaw.(*openvex.VEX)
-	if !ok {
-		return nil, nil, errors.New("unable to cast vex document as openvex")
+	if ovm.documents == nil {
+		return remainingMatches, ignoredMatches, nil
 	}
+
+	doc := ovm.documents
 
 	additionalIgnoredMatches := []match.IgnoredMatch{}
 
@@ -290,63 +326,174 @@ func (ovm *Processor) AugmentMatches(
 // DiscoverVexDocuments uses the OpenVEX discovery module to look for vex data
 // associated to the scanned object. If any data is found, the data will be
 // added to the existing vex data
-func (ovm *Processor) DiscoverVexDocuments(pkgContext *pkg.Context, rawVexData interface{}) (interface{}, error) {
+func (ovm *Processor) DiscoverVexDocuments(ctx context.Context, pkgContext pkg.Context) error {
 	// Extract the identifiers from the package context
 	identifiers, err := productIdentifiersFromContext(pkgContext)
 	if err != nil {
-		return nil, fmt.Errorf("extracting identifiers from context")
+		return fmt.Errorf("extracting identifiers from context")
 	}
+
+	searchTargets := searchableIdentifiers(identifiers)
+	log.WithFields("identifiers", len(identifiers), "usable", searchTargets).Debug("searching remotely for vex documents")
+
+	discoveredDocs, err := findVexDocuments(ctx, searchTargets)
+	if err != nil {
+		return err
+	}
+
+	var allDocs []*openvex.VEX
+	for _, doc := range discoveredDocs {
+		allDocs = append(allDocs, doc)
+	}
+
+	if len(allDocs) == 0 {
+		return nil
+	}
+
+	vexdata, err := openvex.MergeDocuments(allDocs)
+	if err != nil {
+		return fmt.Errorf("unable to merge discovered vex documents: %w", err)
+	}
+
+	if ovm.documents != nil {
+		vexdata, err := openvex.MergeDocuments([]*openvex.VEX{ovm.documents, vexdata})
+		if err != nil {
+			return fmt.Errorf("unable to merge existing vex documents with discovered documents: %w", err)
+		}
+		ovm.documents = vexdata
+	} else {
+		ovm.documents = vexdata
+	}
+
+	return nil
+}
+
+func findVexDocuments(ctx context.Context, identifiers []string) (map[string]*openvex.VEX, error) {
+	allDiscoveredDocs := make(chan *openvex.VEX)
 
 	prog, stage := trackVexDiscovery(identifiers)
-
-	allDocs := []*openvex.VEX{}
-
-	// If we already have some vex data, add it
-	if _, ok := rawVexData.(*openvex.VEX); ok {
-		allDocs = []*openvex.VEX{rawVexData.(*openvex.VEX)}
-	}
+	defer prog.SetCompleted()
 
 	agent := discovery.NewAgent()
-	ids := strset.New()
 
+	grp, ctx := errgroup.WithContext(ctx)
+
+	identifierQueue := produceSearchableIdentifiers(ctx, grp, identifiers)
+
+	workers := int32(maxParallelism())
+	for workerNum := int32(0); workerNum < workers; workerNum++ {
+		grp.Go(func() error {
+			defer func() {
+				if atomic.AddInt32(&workers, -1) == 0 {
+					close(allDiscoveredDocs)
+				}
+			}()
+
+			for i := range identifierQueue {
+				stage.Set(fmt.Sprintf("searching %s", i))
+				log.WithFields("identifier", i).Trace("searching remotely for vex documents")
+
+				discoveredDocs, err := agent.ProbePurl(i)
+				if err != nil {
+					prog.SetError(err)
+					return fmt.Errorf("probing package url or vex data: %w", err)
+				}
+
+				prog.Add(1)
+
+				if len(discoveredDocs) > 0 {
+					log.WithFields("documents", len(discoveredDocs), "identifier", i).Debug("discovered vex documents")
+				}
+
+				for _, doc := range discoveredDocs {
+					select {
+					case <-ctx.Done():
+						return ctx.Err()
+					case allDiscoveredDocs <- doc:
+					}
+				}
+			}
+			return nil
+		})
+	}
+
+	return reduceVexDocuments(grp, stage, allDiscoveredDocs)
+}
+
+func reduceVexDocuments(grp *errgroup.Group, stage *progress.AtomicStage, allDiscoveredDocs <-chan *openvex.VEX) (map[string]*openvex.VEX, error) {
+	finalDiscoveredDocs := make(map[string]*openvex.VEX)
+	grp.Go(func() error {
+		for doc := range allDiscoveredDocs {
+			if _, ok := finalDiscoveredDocs[doc.ID]; ok {
+				continue
+			}
+			finalDiscoveredDocs[doc.ID] = doc
+		}
+		return nil
+	})
+
+	if err := grp.Wait(); err != nil {
+		return nil, fmt.Errorf("searching remotely for vex documents: %w", err)
+	}
+
+	if len(finalDiscoveredDocs) > 0 {
+		log.WithFields("documents", len(finalDiscoveredDocs)).Debug("total vex documents discovered remotely")
+	} else {
+		log.Debug("no vex documents discovered remotely")
+	}
+
+	stage.Set(fmt.Sprintf("%d documents discovered", len(finalDiscoveredDocs)))
+
+	return finalDiscoveredDocs, nil
+}
+
+func maxParallelism() int {
+	// from docs: "If n < 1, it does not change the current setting."
+	maxProcs := runtime.GOMAXPROCS(0)
+	numCPU := runtime.NumCPU()
+	if maxProcs < numCPU {
+		return maxProcs
+	}
+	return numCPU
+}
+
+func produceSearchableIdentifiers(ctx context.Context, g *errgroup.Group, identifiers []string) chan string {
+	ids := make(chan string)
+
+	g.Go(func() error {
+		defer close(ids)
+		for _, i := range identifiers {
+			i := i
+
+			if !strings.HasPrefix(i, "pkg:") {
+				continue
+			}
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case ids <- i:
+			}
+		}
+
+		return nil
+	})
+	return ids
+}
+
+func searchableIdentifiers(identifiers []string) []string {
+	var ids []string
 	for _, i := range identifiers {
 		if !strings.HasPrefix(i, "pkg:") {
 			continue
 		}
-
-		stage.Set(fmt.Sprintf("searching %s", i))
-
-		discoveredDocs, err := agent.ProbePurl(i)
-		if err != nil {
-			prog.SetError(err)
-			return nil, fmt.Errorf("probing package url or vex data: %w", err)
-		}
-
-		// prune any existing documents so they are not applied multiple times
-		for j, doc := range discoveredDocs {
-			if ids.Has(doc.ID) {
-				discoveredDocs = append(discoveredDocs[:j], discoveredDocs[j+1:]...)
-			}
-			ids.Add(doc.ID)
-		}
-
-		allDocs = append(allDocs, discoveredDocs...)
+		ids = append(ids, i)
 	}
-	stage.Set(fmt.Sprintf("%d documents", len(allDocs)))
-
-	prog.SetCompleted()
-
-	vexdata, err := openvex.MergeDocuments(allDocs)
-	if err != nil {
-		return nil, fmt.Errorf("merging vex documents: %w", err)
-	}
-
-	return vexdata, nil
+	return ids
 }
 
 func trackVexDiscovery(identifiers []string) (*progress.Manual, *progress.AtomicStage) {
 	stage := progress.NewAtomicStage("")
-	prog := progress.NewManual(-1)
+	prog := progress.NewManual(int64(len(identifiers)))
 
 	bus.Publish(partybus.Event{
 		Type:   event.VexDocumentDiscoveryStarted,
