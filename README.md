@@ -279,7 +279,7 @@ external-sources:
   enable: true
   maven:
     search-upstream-by-sha1: true
-    base-url: https://search.maven.org/solrsearch/select
+    base-url: https://repo1.maven.org/maven2
 ```
 
 You can also configure the base-url if you're using another registry as your maven endpoint.
@@ -728,7 +728,7 @@ external-sources:
   enable: false
   maven:
     search-upstream-by-sha1: true
-    base-url: https://search.maven.org/solrsearch/select
+    base-url: https://repo1.maven.org/maven2
 
 db:
   # check for database updates on execution
