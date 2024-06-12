@@ -68,14 +68,56 @@ func TestMatchesSortMixedDimensions(t *testing.T) {
 			Type:    syftPkg.RpmPkg,
 		},
 	}
+	sixth := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID: "CVE-2020-0020",
+			Fix: vulnerability.Fix{
+				Versions: []string{"2.0.0", "1.0.0"},
+			},
+		},
+		Package: pkg.Package{
+			ID:      pkg.ID(uuid.NewString()),
+			Name:    "package-d",
+			Version: "2.0.0",
+			Type:    syftPkg.RpmPkg,
+		},
+	}
+	seventh := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID: "CVE-2020-0020",
+			Fix: vulnerability.Fix{
+				Versions: []string{"2.0.1"},
+			},
+		},
+		Package: pkg.Package{
+			ID:      pkg.ID(uuid.NewString()),
+			Name:    "package-d",
+			Version: "2.0.0",
+			Type:    syftPkg.RpmPkg,
+		},
+	}
+	eighth := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID: "CVE-2020-0020",
+			Fix: vulnerability.Fix{
+				Versions: []string{"3.0.0"},
+			},
+		},
+		Package: pkg.Package{
+			ID:      pkg.ID(uuid.NewString()),
+			Name:    "package-d",
+			Version: "2.0.0",
+			Type:    syftPkg.RpmPkg,
+		},
+	}
 
 	input := []Match{
 		// shuffle vulnerability id, package name, package version, and package type
-		fifth, third, first, second, fourth,
+		fifth, eighth, third, seventh, first, sixth, second, fourth,
 	}
 	matches := NewMatches(input...)
 
-	assertMatchOrder(t, []Match{first, second, third, fourth, fifth}, matches.Sorted())
+	assertMatchOrder(t, []Match{first, second, third, fourth, fifth, sixth, seventh, eighth}, matches.Sorted())
 
 }
 
