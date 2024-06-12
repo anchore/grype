@@ -123,6 +123,7 @@ func sortRows(rows [][]string) [][]string {
 		var (
 			name        = 0
 			ver         = 1
+			fix         = 2
 			packageType = 3
 			vuln        = 4
 			sev         = 5
@@ -134,6 +135,9 @@ func sortRows(rows [][]string) [][]string {
 			if rows[i][ver] == rows[j][ver] {
 				if rows[i][packageType] == rows[j][packageType] {
 					if models.SeverityScore(rows[i][sev]) == models.SeverityScore(rows[j][sev]) {
+						if rows[i][vuln] == rows[j][vuln] {
+							return rows[i][fix] < rows[j][fix]
+						}
 						// we use > here to get the most recently filed vulnerabilities
 						// to show at the top of the severity
 						return rows[i][vuln] > rows[j][vuln]
