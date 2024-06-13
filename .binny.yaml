@@ -117,3 +117,11 @@ tools:
       env:
         - CGO_ENABLED=0
         - GO_DYN_FLAGS=""
+
+  # used for db v6 schema management
+  - name: sqlc
+    version:
+      want: v1.26.0
+    method: github-release
+    with:
+      repo: sqlc-dev/sqlc
