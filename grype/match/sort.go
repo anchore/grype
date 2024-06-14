@@ -28,6 +28,21 @@ func (m ByElements) Less(i, j int) bool {
 					sort.Strings(fixVersions2)
 					fixStr1 := strings.Join(fixVersions1, ",")
 					fixStr2 := strings.Join(fixVersions2, ",")
+
+					if fixStr1 == fixStr2 {
+						loc1 := m[i].Package.Locations.ToSlice()
+						loc2 := m[j].Package.Locations.ToSlice()
+						var locStr1 string
+						for _, location := range loc1 {
+							locStr1 += location.String()
+						}
+						var locStr2 string
+						for _, location := range loc2 {
+							locStr2 += location.String()
+						}
+
+						return locStr1 < locStr2
+					}
 					return fixStr1 < fixStr2
 				}
 				return m[i].Package.Type < m[j].Package.Type

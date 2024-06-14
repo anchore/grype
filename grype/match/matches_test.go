@@ -3,6 +3,7 @@ package match
 import (
 	"testing"
 
+	"github.com/anchore/syft/syft/file"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -104,20 +105,36 @@ func TestMatchesSortMixedDimensions(t *testing.T) {
 			},
 		},
 		Package: pkg.Package{
-			ID:      pkg.ID(uuid.NewString()),
-			Name:    "package-d",
-			Version: "2.0.0",
-			Type:    syftPkg.RpmPkg,
+			ID:        pkg.ID(uuid.NewString()),
+			Name:      "package-d",
+			Version:   "2.0.0",
+			Type:      syftPkg.RpmPkg,
+			Locations: file.NewLocationSet(file.NewLocation("/some/first-path")),
+		},
+	}
+	ninth := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID: "CVE-2020-0020",
+			Fix: vulnerability.Fix{
+				Versions: []string{"3.0.0"},
+			},
+		},
+		Package: pkg.Package{
+			ID:        pkg.ID(uuid.NewString()),
+			Name:      "package-d",
+			Version:   "2.0.0",
+			Type:      syftPkg.RpmPkg,
+			Locations: file.NewLocationSet(file.NewLocation("/some/other-path")),
 		},
 	}
 
 	input := []Match{
 		// shuffle vulnerability id, package name, package version, and package type
-		fifth, eighth, third, seventh, first, sixth, second, fourth,
+		ninth, fifth, eighth, third, seventh, first, sixth, second, fourth,
 	}
 	matches := NewMatches(input...)
 
-	assertMatchOrder(t, []Match{first, second, third, fourth, fifth, sixth, seventh, eighth}, matches.Sorted())
+	assertMatchOrder(t, []Match{first, second, third, fourth, fifth, sixth, seventh, eighth, ninth}, matches.Sorted())
 
 }
 
