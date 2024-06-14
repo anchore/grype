@@ -50,6 +50,7 @@ func New(cfg HandlerConfig) *Handler {
 		event.UpdateVulnerabilityDatabase:  h.handleUpdateVulnerabilityDatabase,
 		event.VulnerabilityScanningStarted: h.handleVulnerabilityScanningStarted,
 		event.DatabaseDiffingStarted:       h.handleDatabaseDiffStarted,
+		event.VexDocumentDiscoveryStarted:  h.handleVexDocumentDiscoveryStarted,
 	})
 
 	return h

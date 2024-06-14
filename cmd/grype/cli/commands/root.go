@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -73,40 +74,19 @@ You can also pipe in Syft JSON directly:
 		Args:          validateRootArgs,
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		RunE: func(_ *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			userInput := ""
 			if len(args) > 0 {
 				userInput = args[0]
 			}
-			return runGrype(app, opts, userInput)
+			return runGrype(cmd.Context(), app, opts, userInput)
 		},
 		ValidArgsFunction: dockerImageValidArgsFunction,
 	}, opts)
 }
 
-var ignoreNonFixedMatches = []match.IgnoreRule{
-	{FixState: string(grypeDb.NotFixedState)},
-	{FixState: string(grypeDb.WontFixState)},
-	{FixState: string(grypeDb.UnknownFixState)},
-}
-
-var ignoreFixedMatches = []match.IgnoreRule{
-	{FixState: string(grypeDb.FixedState)},
-}
-
-var ignoreVEXFixedNotAffected = []match.IgnoreRule{
-	{VexStatus: string(vex.StatusNotAffected)},
-	{VexStatus: string(vex.StatusFixed)},
-}
-
-var ignoreLinuxKernelHeaders = []match.IgnoreRule{
-	{Package: match.IgnoreRulePackage{Name: "kernel-headers", UpstreamName: "kernel", Type: string(syftPkg.RpmPkg)}, MatchType: match.ExactIndirectMatch},
-	{Package: match.IgnoreRulePackage{Name: "linux-headers-.*", UpstreamName: "linux", Type: string(syftPkg.DebPkg)}, MatchType: match.ExactIndirectMatch},
-	{Package: match.IgnoreRulePackage{Name: "linux-libc-dev", UpstreamName: "linux", Type: string(syftPkg.DebPkg)}, MatchType: match.ExactIndirectMatch},
-}
-
 //nolint:funlen
-func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs error) {
+func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, userInput string) (errs error) {
 	writer, err := format.MakeScanResultWriter(opts.Outputs, opts.File, format.PresentationConfig{
 		TemplateFilePath: opts.OutputTemplateFile,
 		ShowSuppressed:   opts.ShowSuppressed,
@@ -121,18 +101,6 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 	var packages []pkg.Package
 	var s *sbom.SBOM
 	var pkgContext pkg.Context
-
-	if opts.OnlyFixed {
-		opts.Ignore = append(opts.Ignore, ignoreNonFixedMatches...)
-	}
-
-	if opts.OnlyNotFixed {
-		opts.Ignore = append(opts.Ignore, ignoreFixedMatches...)
-	}
-
-	if !opts.MatchUpstreamKernelHeaders {
-		opts.Ignore = append(opts.Ignore, ignoreLinuxKernelHeaders...)
-	}
 
 	for _, ignoreState := range stringutil.SplitCommaSeparatedString(opts.IgnoreStates) {
 		switch grypeDb.FixState(ignoreState) {
@@ -175,10 +143,6 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		defer dbCloser.Close()
 	}
 
-	if err = applyVexRules(opts); err != nil {
-		return fmt.Errorf("applying vex rules: %w", err)
-	}
-
 	applyDistroHint(packages, &pkgContext, opts)
 
 	vulnMatcher := grype.VulnerabilityMatcher{
@@ -188,12 +152,13 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		FailSeverity:   opts.FailOnSeverity(),
 		Matchers:       getMatchers(opts),
 		VexProcessor: vex.NewProcessor(vex.ProcessorOptions{
-			Documents:   opts.VexDocuments,
-			IgnoreRules: opts.Ignore,
+			Documents:    opts.VexDocuments,
+			Autodiscover: opts.VexAutodiscover,
+			IgnoreRules:  opts.Ignore,
 		}),
 	}
 
-	remainingMatches, ignoredMatches, err := vulnMatcher.FindMatches(packages, pkgContext)
+	remainingMatches, ignoredMatches, err := vulnMatcher.FindMatches(ctx, packages, pkgContext)
 	if err != nil {
 		if !errors.Is(err, grypeerr.ErrAboveSeverityThreshold) {
 			return err
@@ -349,27 +314,4 @@ func validateRootArgs(cmd *cobra.Command, args []string) error {
 	}
 
 	return cobra.MaximumNArgs(1)(cmd, args)
-}
-
-func applyVexRules(opts *options.Grype) error {
-	if len(opts.Ignore) == 0 && len(opts.VexDocuments) > 0 {
-		opts.Ignore = append(opts.Ignore, ignoreVEXFixedNotAffected...)
-	}
-
-	for _, vexStatus := range opts.VexAdd {
-		switch vexStatus {
-		case string(vex.StatusAffected):
-			opts.Ignore = append(
-				opts.Ignore, match.IgnoreRule{VexStatus: string(vex.StatusAffected)},
-			)
-		case string(vex.StatusUnderInvestigation):
-			opts.Ignore = append(
-				opts.Ignore, match.IgnoreRule{VexStatus: string(vex.StatusUnderInvestigation)},
-			)
-		default:
-			return fmt.Errorf("invalid VEX status in vex-add setting: %s", vexStatus)
-		}
-	}
-
-	return nil
 }

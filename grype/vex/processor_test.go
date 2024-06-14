@@ -1,6 +1,7 @@
 package vex
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,14 +15,12 @@ import (
 )
 
 func TestProcessor_ApplyVEX(t *testing.T) {
-	pkgContext := &pkg.Context{
+	pkgContext := pkg.Context{
 		Source: &source.Description{
 			Name:    "alpine",
 			Version: "3.17",
 			Metadata: source.ImageMetadata{
-				RepoDigests: []string{
-					"alpine@sha256:124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
-				},
+				UserInput: "alpine@sha256:124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
 			},
 		},
 		Distro: nil,
@@ -98,7 +97,7 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 	}
 
 	type args struct {
-		pkgContext     *pkg.Context
+		pkgContext     pkg.Context
 		matches        *match.Matches
 		ignoredMatches []match.IgnoredMatch
 	}
@@ -300,6 +299,7 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 			}
 
 			p := NewProcessor(tt.options)
+			require.NoError(t, p.LoadVEXDocuments(context.TODO(), pkgContext))
 			actualMatches, actualIgnoredMatches, err := p.ApplyVEX(tt.args.pkgContext, tt.args.matches, tt.args.ignoredMatches)
 			tt.wantErr(t, err)
 			if err != nil {
@@ -311,4 +311,19 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 
 		})
 	}
+}
+
+func TestProcessor_LoadRequired(t *testing.T) {
+	pkgContext := pkg.Context{}
+
+	p := NewProcessor(ProcessorOptions{})
+
+	// applying without loading first will result in an error
+	_, _, err := p.ApplyVEX(pkgContext, nil, nil)
+	require.Error(t, err)
+
+	// loading then applying will function
+	require.NoError(t, p.LoadVEXDocuments(context.TODO(), pkgContext))
+	_, _, err = p.ApplyVEX(pkgContext, nil, nil)
+	require.NoError(t, err)
 }

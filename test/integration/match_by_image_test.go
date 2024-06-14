@@ -709,15 +709,16 @@ func TestMatchByImage(t *testing.T) {
 		t.Run(n, func(t *testing.T) {
 			ignoredMatches := testIgnoredMatches()
 			vexedResults := vexMatches(t, ignoredMatches, tc.vexStatus, tc.vexDocuments)
-			if len(vexedResults.Sorted()) != 1 {
-				t.Errorf("expected one vexed result, got none")
+			sortedVexResults := vexedResults.Sorted()
+			if len(sortedVexResults) != 1 {
+				t.Fatalf("expected exactly one vexed result, got %d", len(sortedVexResults))
 			}
 
 			expectedMatches := match.NewMatches()
 
 			// The single match in the actual results is the same in ignoredMatched
 			// but must the details of the VEX matcher appended
-			result := vexedResults.Sorted()[0]
+			result := sortedVexResults[0]
 			if len(result.Details) != len(ignoredMatches[0].Match.Details)+1 {
 				t.Errorf(
 					"Details in VEXed results don't match (expected %d, got %d)",
@@ -824,17 +825,16 @@ func vexMatches(t *testing.T, ignoredMatches []match.IgnoredMatch, vexStatus vex
 		},
 	})
 
-	pctx := &pkg.Context{
+	pctx := pkg.Context{
 		Source: &source.Description{
 			Metadata: source.ImageMetadata{
-				RepoDigests: []string{
-					"alpine@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-				},
+				UserInput: "alpine@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
 			},
 		},
 		Distro: &linux.Release{},
 	}
 
+	require.NoError(t, vexMatcher.LoadVEXDocuments(context.Background(), pctx))
 	vexedMatches, ignoredMatches, err := vexMatcher.ApplyVEX(pctx, &matches, ignoredMatches)
 	if err != nil {
 		t.Errorf("applying VEX data: %s", err)

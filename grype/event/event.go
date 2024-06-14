@@ -13,6 +13,7 @@ const (
 	UpdateVulnerabilityDatabase  partybus.EventType = typePrefix + "-update-vulnerability-database"
 	VulnerabilityScanningStarted partybus.EventType = typePrefix + "-vulnerability-scanning-started"
 	DatabaseDiffingStarted       partybus.EventType = typePrefix + "-database-diffing-started"
+	VexDocumentDiscoveryStarted  partybus.EventType = typePrefix + "-vex-document-discovery-started"
 
 	// Events exclusively for the CLI
 
