@@ -1,6 +1,7 @@
 package apk
 
 import (
+	"github.com/anchore/grype/grype/db/search"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -14,7 +15,6 @@ import (
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"

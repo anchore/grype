@@ -1,12 +1,12 @@
 package golang
 
 import (
+	"github.com/anchore/grype/grype/db/search"
 	"strings"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )

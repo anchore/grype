@@ -3,11 +3,11 @@ package apk
 import (
 	"errors"
 	"fmt"
+	search2 "github.com/anchore/grype/grype/db/search"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
@@ -47,7 +47,7 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 
 func (m *Matcher) cpeMatchesWithoutSecDBFixes(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	// find CPE-indexed vulnerability matches specific to the given package name and version
-	cpeMatches, err := search.ByPackageCPE(store, d, p, m.Type())
+	cpeMatches, err := search2.ByPackageCPE(store, d, p, m.Type())
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func vulnerabilitiesByID(vulns []vulnerability.Vulnerability) map[string][]vulne
 
 func (m *Matcher) findApkPackage(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	// find Alpine SecDB matches for the given package name and version
-	secDBMatches, err := search.ByPackageDistro(store, d, p, m.Type())
+	secDBMatches, err := search2.ByPackageDistro(store, d, p, m.Type())
 	if err != nil {
 		return nil, err
 	}

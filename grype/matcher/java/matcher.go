@@ -2,12 +2,12 @@ package java
 
 import (
 	"fmt"
+	search2 "github.com/anchore/grype/grype/db/search"
 	"net/http"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -60,11 +60,11 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 			matches = append(matches, upstreamMatches...)
 		}
 	}
-	criteria := search.CommonCriteria
+	criteria := search2.CommonCriteria
 	if m.cfg.UseCPEs {
-		criteria = append(criteria, search.ByCPE)
+		criteria = append(criteria, search2.ByCPE)
 	}
-	criteriaMatches, err := search.ByCriteria(store, d, p, m.Type(), criteria...)
+	criteriaMatches, err := search2.ByCriteria(store, d, p, m.Type(), criteria...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to match by exact package: %w", err)
 	}
@@ -83,7 +83,7 @@ func (m *Matcher) matchUpstreamMavenPackages(store vulnerability.Provider, d *di
 				if err != nil {
 					return nil, err
 				}
-				indirectMatches, err := search.ByPackageLanguage(store, d, *indirectPackage, m.Type())
+				indirectMatches, err := search2.ByPackageLanguage(store, d, *indirectPackage, m.Type())
 				if err != nil {
 					return nil, err
 				}
