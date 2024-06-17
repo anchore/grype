@@ -34,11 +34,11 @@ func (m ByElements) Less(i, j int) bool {
 						loc2 := m[j].Package.Locations.ToSlice()
 						var locStr1 string
 						for _, location := range loc1 {
-							locStr1 += location.String()
+							locStr1 += location.RealPath
 						}
 						var locStr2 string
 						for _, location := range loc2 {
-							locStr2 += location.String()
+							locStr2 += location.RealPath
 						}
 
 						return locStr1 < locStr2
