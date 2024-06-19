@@ -1,6 +1,9 @@
 package v6
 
-import "time"
+import (
+	"gorm.io/gorm"
+	"time"
+)
 
 func All() []any {
 	return []any{
@@ -293,10 +296,11 @@ type Package struct {
 	ID int64 `gorm:"column:id;primaryKey"`
 
 	// TODO: break purl out into fields here
-	Ecosystem         string `gorm:"column:ecosystem"`
-	PackageName       string `gorm:"column:package_name;index:package_name"`
-	OperatingSystemID *int64 `gorm:"column:operating_system_id"`
-	OperatingSystem   *OperatingSystem
+	Ecosystem   string `gorm:"column:ecosystem"`
+	PackageName string `gorm:"column:package_name;index:package_name"`
+
+	OperatingSystemID *int64           `gorm:"column:operating_system_id"`
+	OperatingSystem   *OperatingSystem `gorm:"foreignKey:OperatingSystemID"`
 
 	Purls *[]Purl `gorm:"many2many:package_purls"`
 	Cpes  *[]Cpe  `gorm:"many2many:package_cpes"`
@@ -334,10 +338,21 @@ type Qualifier struct {
 type OperatingSystem struct {
 	ID int64 `gorm:"column:id;primaryKey"`
 
-	Name         string `gorm:"column:name;not null;index:idx_os"`
-	MajorVersion string `gorm:"column:major_version;not null;index:idx_os"`
-	MinorVersion string `gorm:"column:minor_version;index:idx_os"`
+	Name         string `gorm:"column:name;index:os_idx,unique"`
+	MajorVersion string `gorm:"column:major_version;index:os_idx,unique"`
+	MinorVersion string `gorm:"column:minor_version;index:os_idx,unique"`
 	Codename     string `gorm:"column:codename"`
+}
+
+func (os *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
+	// if the name, major version, and minor version already exist in the table then we should not insert a new record
+	var existingOs OperatingSystem
+	result := tx.Where("name = ? AND major_version = ? AND minor_version = ?", os.Name, os.MajorVersion, os.MinorVersion).First(&existingOs)
+	if result.Error == nil {
+		// if the record already exists, then we should use the existing record
+		*os = existingOs
+	}
+	return nil
 }
 
 type PackageQualifierPlatformCpe struct {
