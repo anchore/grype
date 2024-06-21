@@ -56,8 +56,8 @@ func populateFixture1(store v6.Store) error {
 			Affected: &[]v6.Affected{
 				{
 					Package: &v6.Package{
-						Ecosystem:   "python",
-						PackageName: "example-python-package1",
+						Ecosystem: "python",
+						Name:      "example-python-package1",
 						Purls: &[]v6.Purl{
 							{
 								Scheme: "pkg",
@@ -92,8 +92,8 @@ func populateFixture1(store v6.Store) error {
 			Affected: &[]v6.Affected{
 				{
 					Package: &v6.Package{
-						Ecosystem:   "golang",
-						PackageName: "example-golang-package1",
+						Ecosystem: "golang",
+						Name:      "example-golang-package1",
 						Purls: &[]v6.Purl{
 							{
 								Scheme: "pkg",
@@ -133,8 +133,8 @@ func populateFixture1(store v6.Store) error {
 			Affected: &[]v6.Affected{
 				{
 					Package: &v6.Package{
-						Ecosystem:   "python",
-						PackageName: "example-python-package2",
+						Ecosystem: "python",
+						Name:      "example-python-package2",
 						Purls: &[]v6.Purl{
 							{
 								Scheme: "pkg",
@@ -177,8 +177,8 @@ func populateFixture1(store v6.Store) error {
 			Affected: &[]v6.Affected{
 				{
 					Package: &v6.Package{
-						Ecosystem:   "python",
-						PackageName: fmt.Sprintf("example-python-package%d", i+3),
+						Ecosystem: "python",
+						Name:      fmt.Sprintf("example-python-package%d", i+3),
 						Purls: &[]v6.Purl{
 							{
 								Scheme: "pkg",

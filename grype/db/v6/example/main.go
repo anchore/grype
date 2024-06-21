@@ -188,7 +188,7 @@ func (v affectedPackageStringer) String() string {
 	if v.Package == nil {
 		return "Package=<nil>"
 	}
-	return fmt.Sprintf("Package[%d]{Ecosystem=%q, PackageName=%q, %v}", v.ID, v.Ecosystem, v.PackageName, operatingSystemStringer{v.OperatingSystem})
+	return fmt.Sprintf("Package[%d]{Ecosystem=%q, Name=%q, %v}", v.ID, v.Ecosystem, v.Name, operatingSystemStringer{v.OperatingSystem})
 }
 
 type operatingSystemStringer struct {

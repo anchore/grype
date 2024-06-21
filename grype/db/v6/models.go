@@ -1,6 +1,7 @@
 package v6
 
 import (
+	"fmt"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"time"
@@ -85,6 +86,46 @@ type Vulnerability struct {
 
 	// Affected is a list of affected entries related to this vulnerability
 	Affected *[]Affected `gorm:"foreignKey:VulnerabilityID"`
+
+	affected *[]Affected `gorm:"-"`
+}
+
+func (c *Vulnerability) BeforeCreate(tx *gorm.DB) error {
+	// if the len of Affected is > 500, then create those in batches and then attach those to the Vulnerability
+	if c.Affected != nil && len(*c.Affected) > 500 {
+		c.affected = c.Affected
+		c.Affected = nil
+	}
+
+	return nil
+}
+
+func (c *Vulnerability) AfterCreate(tx *gorm.DB) error {
+	if c.affected == nil {
+		return nil
+	}
+
+	// create in batches...
+
+	var affecteds []*Affected
+	affs := *c.affected
+	for i := range affs {
+		a := affs[i]
+		a.VulnerabilityID = c.ID
+		affecteds = append(affecteds, &a)
+	}
+
+	if err := tx.CreateInBatches(affecteds, 500).Error; err != nil {
+		return fmt.Errorf("failed to create affecteds in batches: %w", err)
+	}
+	affs = make([]Affected, len(affecteds))
+	for i := range affecteds {
+		affs[i] = *affecteds[i]
+	}
+	c.Affected = &affs
+	c.affected = nil
+
+	return nil
 }
 
 // TODO: can I do this?
@@ -192,10 +233,10 @@ type Affected struct {
 	Severities       *datatypes.JSONSlice[AffectedSeverity]       `gorm:"column:severities"`
 	PackageQualifier *datatypes.JSON                              `gorm:"column:package_qualifier"`
 
-	Range    *[]Range   `gorm:"foreignKey:AffectedID"`
-	Packages *[]Package `gorm:"many2many:affected_packages"`
-	Digests  *[]Digest  `gorm:"many2many:affected_digests"`
-	Cpes     *[]Cpe     `gorm:"many2many:affected_cpes"`
+	Range   *[]Range                  `gorm:"foreignKey:AffectedID"`
+	Package *Package                  `gorm:"embedded;embeddedPrefix:package_"`
+	Digest  *Digest                   `gorm:"embedded;embeddedPrefix:digest_"`
+	Cpes    *datatypes.JSONSlice[Cpe] `gorm:"column:cpes"`
 }
 
 // TODO: add later and reuse existing similar tables with many2many
@@ -291,8 +332,6 @@ func (re *RangeEvent) BeforeCreate(tx *gorm.DB) (err error) {
 type Cpe struct {
 	// TODO: what about different CPE versions?
 
-	ID int64 `gorm:"column:id;primaryKey"`
-
 	Schema         string  `gorm:"column:schema;not null;index:idx_cpe"` // effectively the CPE version
 	Type           string  `gorm:"column:type;not null;index:idx_cpe"`
 	Vendor         *string `gorm:"column:vendor;index:idx_cpe"`
@@ -304,33 +343,29 @@ type Cpe struct {
 	// TODO: should we also have the remaining CPE fields here?
 }
 
-func (c *Cpe) BeforeCreate(tx *gorm.DB) (err error) {
-	// if the name, major version, and minor version already exist in the table then we should not insert a new record
-	var existing Cpe
-	result := tx.Where("schema = ? AND type = ? AND vendor = ? AND product = ? AND version = ? AND version_update = ? AND target_software = ?", c.Schema, c.Type, c.Vendor, c.Product, c.Version, c.Update, c.TargetSoftware).First(&existing)
-	if result.Error == nil {
-		// if the record already exists, then we should use the existing record
-		*c = existing
-	}
-	return nil
-}
+//func (c *Cpe) BeforeCreate(tx *gorm.DB) (err error) {
+//	// if the name, major version, and minor version already exist in the table then we should not insert a new record
+//	var existing Cpe
+//	result := tx.Where("schema = ? AND type = ? AND vendor = ? AND product = ? AND version = ? AND version_update = ? AND target_software = ?", c.Schema, c.Type, c.Vendor, c.Product, c.Version, c.Update, c.TargetSoftware).First(&existing)
+//	if result.Error == nil {
+//		// if the record already exists, then we should use the existing record
+//		*c = existing
+//	}
+//	return nil
+//}
 
 // Digest represents arbitrary digests that can be associated with a vulnerability such that if found the material can be considered to be affected by this vulnerability
 type Digest struct {
-	ID int64 `gorm:"column:id;primaryKey"`
-
-	Algorithm string `gorm:"column:algorithm;not null"`
-	Value     string `gorm:"column:value;not null"`
+	Algorithm string `gorm:"column:algorithm"`
+	Value     string `gorm:"column:value"`
 }
 
 type Package struct {
 	// TODO: setup unique indexes only for writing and drop before shipping for the best size tradeoff
 
-	ID int64 `gorm:"column:id;primaryKey"`
-
 	// TODO: break purl out into fields here
-	Ecosystem   *string `gorm:"column:ecosystem;index:idx_package,unique"` // TODO: NVD doesn't have this, should this be nullable?
-	PackageName string  `gorm:"column:package_name;index:idx_package,unique"`
+	Ecosystem *string `gorm:"column:ecosystem;index:idx_package"` // TODO: NVD doesn't have this, should this be nullable?
+	Name      string  `gorm:"column:name;index:idx_package"`
 
 	//OperatingSystemID *int64           `gorm:"column:operating_system_id"`
 	//OperatingSystem   *OperatingSystem `gorm:"foreignKey:OperatingSystemID"`
@@ -340,16 +375,16 @@ type Package struct {
 
 }
 
-func (c *Package) BeforeCreate(tx *gorm.DB) (err error) {
-	// if the name, major version, and minor version already exist in the table then we should not insert a new record
-	var existing Package
-	result := tx.Where("package_name = ? AND ecosystem = ?", c.PackageName, c.Ecosystem).First(&existing)
-	if result.Error == nil {
-		// if the record already exists, then we should use the existing record
-		*c = existing
-	}
-	return nil
-}
+//func (c *Package) BeforeCreate(tx *gorm.DB) (err error) {
+//	// if the name, major version, and minor version already exist in the table then we should not insert a new record
+//	var existing Package
+//	result := tx.Where("name = ? AND ecosystem = ?", c.Name, c.Ecosystem).First(&existing)
+//	if result.Error == nil {
+//		// if the record already exists, then we should use the existing record
+//		*c = existing
+//	}
+//	return nil
+//}
 
 //type Purl struct {
 //	ID int64 `gorm:"column:id;primaryKey"`
