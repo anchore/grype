@@ -19,12 +19,12 @@ func All() []any {
 		&DbSpecificNvd{},
 		&Epss{},
 		&KnownExploitedVulnerability{},
-		&LogicalPackage{},
+		//&LogicalPackage{},
 		&AffectedExcludeVersion{},
 		&OperatingSystem{},
 		&PackageQualifierPlatformCpe{},
 		&PackageQualifierRpmModularity{},
-		&Package{},
+		//&Package{},
 		&Provider{},
 		&RangeEvent{},
 		//&RangeEventMetadata{},
@@ -177,16 +177,33 @@ type Affected struct {
 	ID              int64 `gorm:"column:id;primaryKey"`
 	VulnerabilityID int64 `gorm:"column:vulnerability_id,not null"`
 
-	PackageID *int64 `gorm:"column:package_id"`
-	Package   *Package
+	//PackageID *int64 `gorm:"column:package_id"`
+	//Package   *Package
+
+	OperatingSystemID *int64           `gorm:"column:operating_system_id"`
+	OperatingSystem   *OperatingSystem `gorm:"foreignKey:OperatingSystemID"`
 
 	Versions        *[]AffectedVersion        `gorm:"foreignKey:AffectedID"`
 	ExcludeVersions *[]AffectedExcludeVersion `gorm:"foreignKey:AffectedID"`
 	Severities      *[]AffectedSeverity       `gorm:"foreignKey:AffectedID"`
 	Range           *[]Range                  `gorm:"foreignKey:AffectedID"`
 
+	Packages *[]Package `gorm:"many2many:affected_packages"`
+
 	// Digests that are known to correspond to this vulnerability, but cannot be closely associated with a package
 	Digests *[]Digest `gorm:"many2many:affected_digests"`
+
+	//Purls *[]Purl `gorm:"many2many:package_purls"`
+	Cpes *[]Cpe `gorm:"many2many:affected_cpes"`
+
+	//Purls *[]Purl `gorm:"many2many:affected_packages"`
+
+	// Digests that are known to correspond to this package, either contained within, packaged for distribution, or normalized to a single file
+	//Digests *[]Digest `gorm:"many2many:package_digests"`
+
+	// package qualifier info
+	PackageQualifierPlatformCpes    *[]PackageQualifierPlatformCpe   `gorm:"foreignKey:PackageID"`
+	PackageQualifierRpmModularities *[]PackageQualifierRpmModularity `gorm:"foreignKey:PackageID"` // TODO: shouldn't this be 1:1 (only a single module for a single package)
 }
 
 // TODO: add later and reuse existing similar tables with many2many
@@ -320,44 +337,49 @@ type Package struct {
 	ID int64 `gorm:"column:id;primaryKey"`
 
 	// TODO: break purl out into fields here
-	Ecosystem   string `gorm:"column:ecosystem"` // TODO: NVD doesn't have this, should this be nullable?
-	PackageName string `gorm:"column:package_name;index:package_name"`
+	Ecosystem   *string `gorm:"column:ecosystem;index:idx_package,unique"` // TODO: NVD doesn't have this, should this be nullable?
+	PackageName string  `gorm:"column:package_name;index:idx_package,unique"`
 
-	OperatingSystemID *int64           `gorm:"column:operating_system_id"`
-	OperatingSystem   *OperatingSystem `gorm:"foreignKey:OperatingSystemID"`
+	//OperatingSystemID *int64           `gorm:"column:operating_system_id"`
+	//OperatingSystem   *OperatingSystem `gorm:"foreignKey:OperatingSystemID"`
+	//
+	//Purls *[]Purl `gorm:"many2many:package_purls"`
+	//Cpes  *[]Cpe  `gorm:"many2many:package_cpes"`
 
-	Purls *[]Purl `gorm:"many2many:package_purls"`
-	Cpes  *[]Cpe  `gorm:"many2many:package_cpes"`
-
-	// Digests that are known to correspond to this package, either contained within, packaged for distribution, or normalized to a single file
-	Digests *[]Digest `gorm:"many2many:package_digests"`
-
-	// package qualifier info
-	PackageQualifierPlatformCpes    *[]PackageQualifierPlatformCpe   `gorm:"foreignKey:PackageID"`
-	PackageQualifierRpmModularities *[]PackageQualifierRpmModularity `gorm:"foreignKey:PackageID"` // TODO: shouldn't this be 1:1 (only a single module for a single package)
 }
 
-type Purl struct {
-	ID int64 `gorm:"column:id;primaryKey"`
-
-	Scheme    string  `gorm:"column:scheme"`
-	Type      string  `gorm:"column:type"`
-	Namespace *string `gorm:"column:namespace"`
-	Name      string  `gorm:"column:name"`
-	Version   string  `gorm:"column:version"`
-	SubPath   *string `gorm:"column:subpath"`
-
-	Qualifiers *[]Qualifier `gorm:"many2many:purl_qualifiers"`
+func (c *Package) BeforeCreate(tx *gorm.DB) (err error) {
+	// if the name, major version, and minor version already exist in the table then we should not insert a new record
+	var existing Package
+	result := tx.Where("package_name = ? AND ecosystem = ?", c.PackageName, c.Ecosystem).First(&existing)
+	if result.Error == nil {
+		// if the record already exists, then we should use the existing record
+		*c = existing
+	}
+	return nil
 }
+
+//type Purl struct {
+//	ID int64 `gorm:"column:id;primaryKey"`
+//
+//	//Schema    *string `gorm:"column:schema"`
+//	Type      string  `gorm:"column:type"`
+//	//Namespace *string `gorm:"column:namespace"`
+//	Name      string  `gorm:"column:name"`
+//	//Version   *string `gorm:"column:version"`
+//	//SubPath   *string `gorm:"column:subpath"`
+//	//
+//	//Qualifiers *[]Qualifier `gorm:"many2many:purl_qualifiers"`
+//}
 
 // secondary package identifier information
-
-type Qualifier struct {
-	ID int64 `gorm:"column:id;primaryKey"`
-
-	Key   string `gorm:"column:key"`
-	Value string `gorm:"column:value"`
-}
+//
+//type Qualifier struct {
+//	ID int64 `gorm:"column:id;primaryKey"`
+//
+//	Key   string `gorm:"column:key"`
+//	Value string `gorm:"column:value"`
+//}
 
 type OperatingSystem struct {
 	ID int64 `gorm:"column:id;primaryKey"`
@@ -395,11 +417,11 @@ type PackageQualifierRpmModularity struct {
 
 // logical package info
 
-type LogicalPackage struct {
-	ID int64 `gorm:"column:id;primaryKey"`
-
-	Packages []Package `gorm:"many2many:logical_package_packages"`
-}
+//type LogicalPackage struct {
+//	ID int64 `gorm:"column:id;primaryKey"`
+//
+//	Packages []Package `gorm:"many2many:logical_package_packages"`
+//}
 
 // aux
 
