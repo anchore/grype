@@ -1,6 +1,7 @@
 package v6
 
 import (
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"time"
 )
@@ -71,20 +72,26 @@ type Vulnerability struct {
 	References *[]Reference `gorm:"foreignKey:VulnerabilityID"`
 
 	// Related is s a list of IDs of closely related vulnerabilities but are not aliases for the vulnerability (mirrors the OSV field)
-	Related *[]Related `gorm:"many2many:vulnerability_related"`
+	//Related *[]Related `gorm:"many2many:vulnerability_related"`
 
 	// Aliases is a list of IDs of the same vulnerability in other databases, in the form of the Name field. This allows one database to claim that its own entry describes the same vulnerability as one or more entries in other databases. (mirrors the OSV field)
 	Aliases *[]Alias `gorm:"many2many:vulnerability_aliases"`
 
 	// Severities is a list of severity indications (quantitative or qualitative) for the vulnerability (mirrors the OSV field, but the semantics are different. We allow for qualitative string severity, where OSV does not)
-	Severities *[]Severity `gorm:"many2many:vulnerability_severities"`
+	Severities *datatypes.JSONSlice[Severity] `gorm:"column:severities"`
 
 	// DB specific info
-	DbSpecificNvd *[]DbSpecificNvd `gorm:"foreignKey:VulnerabilityID"`
+	DbSpecific *datatypes.JSON `gorm:"column:db_specific"`
 
 	// Affected is a list of affected entries related to this vulnerability
 	Affected *[]Affected `gorm:"foreignKey:VulnerabilityID"`
 }
+
+// TODO: can I do this?
+//type DBSpecific[T any] struct {
+//	Kind string `json:"kind"`
+//	Data T      `json:"data"`
+//}
 
 // Provider is the upstream data processor (usually Vunnel) that is responsible for vulnerability records. Each provider
 // should be scoped to a specific vulnerability dataset, for instance, a "ubuntu" provider for all records from
@@ -160,14 +167,11 @@ type Reference struct {
 // DB specific info
 
 type DbSpecificNvd struct {
-	ID              int64 `gorm:"column:id;primaryKey"`
-	VulnerabilityID int64 `gorm:"column:vulnerability_id;not null"`
-
-	VulnStatus            string `gorm:"column:vulnStatus"`
-	CisaExploitAdd        string `gorm:"column:cisaExploitAdd"`
-	CisaActionDue         string `gorm:"column:cisaActionDue"`
-	CisaRequiredAction    string `gorm:"column:cisaRequiredAction"`
-	CisaVulnerabilityName string `gorm:"column:cisaVulnerabilityName"`
+	VulnStatus            string
+	CisaExploitAdd        string
+	CisaActionDue         string
+	CisaRequiredAction    string
+	CisaVulnerabilityName string
 }
 
 // affected package info
@@ -183,27 +187,15 @@ type Affected struct {
 	OperatingSystemID *int64           `gorm:"column:operating_system_id"`
 	OperatingSystem   *OperatingSystem `gorm:"foreignKey:OperatingSystemID"`
 
-	Versions        *[]AffectedVersion        `gorm:"foreignKey:AffectedID"`
-	ExcludeVersions *[]AffectedExcludeVersion `gorm:"foreignKey:AffectedID"`
-	Severities      *[]AffectedSeverity       `gorm:"foreignKey:AffectedID"`
-	Range           *[]Range                  `gorm:"foreignKey:AffectedID"`
+	Versions         *datatypes.JSONSlice[AffectedVersion]        `gorm:"column:versions"`
+	ExcludeVersions  *datatypes.JSONSlice[AffectedExcludeVersion] `gorm:"column:excluded_versions"`
+	Severities       *datatypes.JSONSlice[AffectedSeverity]       `gorm:"column:severities"`
+	PackageQualifier *datatypes.JSON                              `gorm:"column:package_qualifier"`
 
+	Range    *[]Range   `gorm:"foreignKey:AffectedID"`
 	Packages *[]Package `gorm:"many2many:affected_packages"`
-
-	// Digests that are known to correspond to this vulnerability, but cannot be closely associated with a package
-	Digests *[]Digest `gorm:"many2many:affected_digests"`
-
-	//Purls *[]Purl `gorm:"many2many:package_purls"`
-	Cpes *[]Cpe `gorm:"many2many:affected_cpes"`
-
-	//Purls *[]Purl `gorm:"many2many:affected_packages"`
-
-	// Digests that are known to correspond to this package, either contained within, packaged for distribution, or normalized to a single file
-	//Digests *[]Digest `gorm:"many2many:package_digests"`
-
-	// package qualifier info
-	PackageQualifierPlatformCpes    *[]PackageQualifierPlatformCpe   `gorm:"foreignKey:PackageID"`
-	PackageQualifierRpmModularities *[]PackageQualifierRpmModularity `gorm:"foreignKey:PackageID"` // TODO: shouldn't this be 1:1 (only a single module for a single package)
+	Digests  *[]Digest  `gorm:"many2many:affected_digests"`
+	Cpes     *[]Cpe     `gorm:"many2many:affected_cpes"`
 }
 
 // TODO: add later and reuse existing similar tables with many2many
