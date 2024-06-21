@@ -1,6 +1,8 @@
 package v6
 
 import (
+	"fmt"
+	"github.com/anchore/grype/internal/log"
 	"io"
 	"path/filepath"
 )
@@ -55,6 +57,7 @@ func (c *StoreConfig) DBFilePath() string {
 // New creates a new instance of the Store.
 func New(cfg StoreConfig) (Store, error) {
 	return &store{
+		cfg:                  &cfg,
 		ProviderStore:        NewProviderStore(&cfg),
 		OperatingSystemStore: NewOperatingSystemStore(&cfg),
 		AffectedStore:        NewAffectedStore(&cfg),
@@ -64,5 +67,7 @@ func New(cfg StoreConfig) (Store, error) {
 }
 
 func (s store) Close() error {
-	return nil
+	log.Debug("closing store")
+	st := s.cfg.state()
+	return st.db.Exec(fmt.Sprintf("VACUUM main into %q", st.destination)).Error
 }

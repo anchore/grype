@@ -4,14 +4,41 @@ import (
 	"fmt"
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+	"log"
+	"os"
 	"reflect"
 	"sync"
+	"time"
 )
 
 type state struct {
 	db           *gorm.DB
 	preloadCache *preloadCache
+	destination  string
+	write        bool
+	useMem       bool
 }
+
+//type loggerIgnoreRecordNotFound struct {
+//	logger.Interface
+//}
+//
+//func (c loggerIgnoreRecordNotFound) Error(ctx context.Context, msg string, data ...interface{}) {
+//	if msg == "record not found" {
+//		// Suppress "record not found" messages
+//		return
+//	}
+//	c.Interface.Error(ctx, msg, data...)
+//}
+//
+//func (c loggerIgnoreRecordNotFound) Warn(ctx context.Context, msg string, data ...interface{}) {
+//	if msg == "record not found" {
+//		// Suppress "record not found" messages
+//		return
+//	}
+//	c.Interface.Warn(ctx, msg, data...)
+//}
 
 func newState(dbFilePath string, overwrite bool) (*state, error) {
 	//db, err := gormadapter.Open(dbFilePath, overwrite)
@@ -19,7 +46,22 @@ func newState(dbFilePath string, overwrite bool) (*state, error) {
 	//	return nil, err
 	//}
 
-	db, err := gorm.Open(sqlite.Open(dbFilePath), &gorm.Config{})
+	lgr := logger.New(log.New(os.Stdout, "\r\n", log.LstdFlags), logger.Config{
+		SlowThreshold:             200 * time.Millisecond,
+		LogLevel:                  logger.Warn,
+		IgnoreRecordNotFoundError: true,
+		Colorful:                  true,
+	})
+
+	useMem := true
+	location := dbFilePath
+	if useMem {
+		location = "file::memory:?cache=shared"
+	}
+
+	db, err := gorm.Open(sqlite.Open(location), &gorm.Config{
+		Logger: lgr,
+	})
 	if err != nil {
 		fmt.Println("Failed to connect to database:", err)
 		return nil, err
@@ -31,19 +73,32 @@ func newState(dbFilePath string, overwrite bool) (*state, error) {
 		if err := db.AutoMigrate(All()...); err != nil {
 			return nil, fmt.Errorf("unable to migrate: %w", err)
 		}
-	} else {
-		// optimize read-only access
-		db.Exec("PRAGMA synchronous = OFF")
-		db.Exec("PRAGMA journal_mode = OFF")
-		db.Exec("PRAGMA temp_store = MEMORY")
-		db.Exec("PRAGMA cache_size = 100000")
-		db.Exec("PRAGMA mmap_size = 268435456") // 256 MB
 	}
+
+	db.Exec("PRAGMA synchronous = OFF")
+	db.Exec("PRAGMA journal_mode = OFF")
+	db.Exec("PRAGMA temp_store = MEMORY")
+	db.Exec("PRAGMA cache_size = 100000")
+	db.Exec("PRAGMA mmap_size = 268435456") // 256 MB
+	db.Exec("PRAGMA auto_vacuum = NONE")
 
 	return &state{
 		db:           db,
 		preloadCache: newPreloadCache(),
+		destination:  dbFilePath,
+		write:        overwrite,
+		useMem:       useMem,
 	}, nil
+}
+
+func (s *state) close() error {
+	if s.write {
+		if s.useMem {
+			return s.db.Exec(fmt.Sprintf("VACUUM main into %q", s.destination)).Error
+		}
+		return s.db.Exec("VACUUM").Error
+	}
+	return nil
 }
 
 func (s *state) getPreloadableFields(model interface{}) []string {

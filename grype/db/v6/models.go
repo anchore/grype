@@ -27,7 +27,7 @@ func All() []any {
 		&Package{},
 		&Provider{},
 		&RangeEvent{},
-		&RangeEventMetadata{},
+		//&RangeEventMetadata{},
 		&Range{},
 		&Reference{},
 		&Related{},
@@ -53,19 +53,19 @@ type Vulnerability struct {
 	Name string `gorm:"column:name;not null;index;index:idx_vulnerability_provider"`
 
 	// Modified is the time the entry was last modified, as an RFC3339-formatted timestamp in UTC (ending in “Z”) (mirrors the OSV field)
-	Modified string `gorm:"column:modified"`
+	Modified *string `gorm:"column:modified"`
 
 	// Published is the time the entry should be considered to have been published, as an RFC3339-formatted time stamp in UTC (ending in “Z”) (mirrors the OSV field)
-	Published string `gorm:"column:published"`
+	Published *string `gorm:"column:published"`
 
 	// Withdrawn is the time the entry should be considered to have been withdrawn, as an RFC3339-formatted timestamp in UTC (ending in “Z”) (mirrors the OSV field)
-	Withdrawn string `gorm:"column:withdrawn"`
+	Withdrawn *string `gorm:"column:withdrawn"`
 
 	// SummaryDigest is a self describing hash (e.g. sha256:123... not 123...) of the summary field from the OSV summary field. This digest is searched against the Blob table/DB.
-	SummaryDigest string `gorm:"column:summary_digest"`
+	SummaryDigest *string `gorm:"column:summary_digest"`
 
 	// DetailDigest is a self describing hash (e.g. sha256:123... not 123...) of the detail field from the OSV summary field. This digest is searched against the Blob table/DB.
-	DetailDigest string `gorm:"column:detail_digest"`
+	DetailDigest *string `gorm:"column:detail_digest"`
 
 	// References are URLs to external resources that provide more information about the vulnerability (mirrors the OSV field)
 	References *[]Reference `gorm:"foreignKey:VulnerabilityID"`
@@ -117,7 +117,7 @@ type Alias struct {
 	ID int64 `gorm:"column:id;primaryKey"`
 	//VulnerabilityID int64 `gorm:"column:vulnerability_id;not null"`
 
-	Alias string `gorm:"column:alias;not null,index:idx_alias"`
+	Alias string `gorm:"column:alias;not null,index:idx_alias,unique"`
 }
 
 // Related represents a single related vulnerability name
@@ -126,7 +126,7 @@ type Related struct {
 	//VulnerabilityID int64 `gorm:"column:vulnerability_id;not null"`
 
 	// Name of the related vulnerability (e.g. CVE-2024-34102 or GHSA-85rg-8m6h-825p)
-	Name string `gorm:"column:name;not null,index:idx_related"`
+	Name string `gorm:"column:name;not null,index:idx_related,unique"`
 
 	//// Reason is a free-form text field that describes the relationship between the two vulnerabilities ("CVE-2022-12345 might be related to CVE-2022-54321 because both affect the same software library but are distinct issues")
 	//Reason string `gorm:"column:reason"`
@@ -143,10 +143,10 @@ type Severity struct {
 	Score string `gorm:"column:score;not null"`
 
 	// Source is the name of the source of the severity score (e.g. "nvd@nist.gov" or "security-advisories@github.com")
-	Source string `gorm:"column:source"`
+	Source *string `gorm:"column:source"`
 
 	// Priority is a free-form organizational field to convey priority over other severities (e.g. primary vs secondary or authoritative vs unverified)
-	Priority string `gorm:"column:priority"` // TODO: naming is hard...
+	Priority *string `gorm:"column:priority"` // TODO: naming is hard...
 }
 
 type Reference struct {
@@ -210,10 +210,10 @@ type AffectedSeverity struct {
 	ID         int64 `gorm:"column:id;primaryKey"`
 	AffectedID int64 `gorm:"column:affected_id;not null"`
 
-	Type   string `gorm:"column:type;not null"`
-	Score  string `gorm:"column:score;not null"`
-	Source string `gorm:"column:source"`
-	Tag    string `gorm:"column:tag"`
+	Type     string  `gorm:"column:type;not null"`
+	Score    string  `gorm:"column:score;not null"`
+	Source   *string `gorm:"column:source"`
+	Priority *string `gorm:"column:priority"` // TODO: naming is hard...
 }
 
 type AffectedVersion struct {
@@ -235,34 +235,47 @@ type Range struct {
 	AffectedID int64 `gorm:"column:affected_id;not null"`
 
 	Type   string        `gorm:"column:type;not null"`
-	Repo   string        `gorm:"column:repo"`
-	Events *[]RangeEvent `gorm:"foreignKey:RangeID"`
+	Repo   *string       `gorm:"column:repo"`
+	Events *[]RangeEvent `gorm:"many2many:range_range_events"`
 }
 
 type RangeEvent struct {
-	ID      int64 `gorm:"primaryKey"`
-	RangeID int64 `gorm:"column:range_id;not null"`
+	ID int64 `gorm:"primaryKey"`
 
-	Introduced   string `gorm:"column:introduced"`
-	Fixed        string `gorm:"column:fixed"`
-	LastAffected string `gorm:"column:last_affected"`
-	Limit        string `gorm:"column:limit"`
+	Introduced   *string `gorm:"column:introduced;index:idx_range_event,unique"`
+	Fixed        *string `gorm:"column:fixed;index:idx_range_event,unique"`
+	LastAffected *string `gorm:"column:last_affected;index:idx_range_event,unique"`
+	Limit        *string `gorm:"column:range_limit;index:idx_range_event,unique"` // limit is a keyword in sql, so it's easier to just use range_limit instead
 
 	// non OSV...
-	State string `gorm:"column:state"` // TODO: this could be db specific since there will be multiple ways to represent/interpret this
+	State string `gorm:"column:state;index:idx_range_event,unique"` // TODO: this could be db specific since there will be multiple ways to represent/interpret this
 
-	RangeEventMetadata []RangeEventMetadata `gorm:"foreignKey:RangeEventID"`
+	// if deduplicating these, then this can't be associated
+	//RangeEventMetadata *[]RangeEventMetadata `gorm:"foreignKey:RangeEventID"`
 }
 
-type RangeEventMetadata struct {
-	ID           int64 `gorm:"primaryKey"`
-	RangeEventID int64 `gorm:"column:range_event_id;not null"`
+func (re *RangeEvent) BeforeCreate(tx *gorm.DB) (err error) {
+	//tx = tx.Session(&gorm.Session{Logger: loggerIgnoreRecordNotFound{tx.Logger}})
 
-	GitCommit      string `gorm:"column:git_commit"`
-	PullRequestURL string `gorm:"column:pull_request_url"`
-	Timestamp      string `gorm:"column:timestamp"`
-	// TODO: what else here?
+	// if the event already exist in the table then we should not insert a new record
+	var existing RangeEvent
+	result := tx.Where("introduced = ? AND fixed = ? AND last_affected = ? AND range_limit = ? AND state = ?", re.Introduced, re.Fixed, re.LastAffected, re.Limit, re.State).First(&existing)
+	if result.Error == nil {
+		// if the record already exists, then we should use the existing record
+		*re = existing
+	}
+	return nil
 }
+
+//type RangeEventMetadata struct {
+//	ID           int64 `gorm:"primaryKey"`
+//	RangeEventID int64 `gorm:"column:range_event_id;not null"`
+//
+//	GitCommit      *string `gorm:"column:git_commit"`
+//	PullRequestURL *string `gorm:"column:pull_request_url"`
+//	Timestamp      *string `gorm:"column:timestamp"`
+//	// TODO: what else here?
+//}
 
 // primary package identifiers (search entrypoints)
 
@@ -271,15 +284,26 @@ type Cpe struct {
 
 	ID int64 `gorm:"column:id;primaryKey"`
 
-	Schema         string `gorm:"column:schema;not null"` // effectively the CPE version
-	Type           string `gorm:"column:type;not null"`
-	Vendor         string `gorm:"column:vendor"`
-	Product        string `gorm:"column:product;not null"`
-	Version        string `gorm:"column:version"`
-	Update         string `gorm:"column:update"`
-	TargetSoftware string `gorm:"column:target_software"`
+	Schema         string  `gorm:"column:schema;not null;index:idx_cpe"` // effectively the CPE version
+	Type           string  `gorm:"column:type;not null;index:idx_cpe"`
+	Vendor         *string `gorm:"column:vendor;index:idx_cpe"`
+	Product        string  `gorm:"column:product;not null;index:idx_cpe"`
+	Version        *string `gorm:"column:version;index:idx_cpe"`
+	Update         *string `gorm:"column:version_update;index:idx_cpe"` // update is a SQL keyword
+	TargetSoftware *string `gorm:"column:target_software;index:idx_cpe"`
 
 	// TODO: should we also have the remaining CPE fields here?
+}
+
+func (c *Cpe) BeforeCreate(tx *gorm.DB) (err error) {
+	// if the name, major version, and minor version already exist in the table then we should not insert a new record
+	var existing Cpe
+	result := tx.Where("schema = ? AND type = ? AND vendor = ? AND product = ? AND version = ? AND version_update = ? AND target_software = ?", c.Schema, c.Type, c.Vendor, c.Product, c.Version, c.Update, c.TargetSoftware).First(&existing)
+	if result.Error == nil {
+		// if the record already exists, then we should use the existing record
+		*c = existing
+	}
+	return nil
 }
 
 // Digest represents arbitrary digests that can be associated with a vulnerability such that if found the material can be considered to be affected by this vulnerability
@@ -296,7 +320,7 @@ type Package struct {
 	ID int64 `gorm:"column:id;primaryKey"`
 
 	// TODO: break purl out into fields here
-	Ecosystem   string `gorm:"column:ecosystem"`
+	Ecosystem   string `gorm:"column:ecosystem"` // TODO: NVD doesn't have this, should this be nullable?
 	PackageName string `gorm:"column:package_name;index:package_name"`
 
 	OperatingSystemID *int64           `gorm:"column:operating_system_id"`
@@ -316,12 +340,12 @@ type Package struct {
 type Purl struct {
 	ID int64 `gorm:"column:id;primaryKey"`
 
-	Scheme    string `gorm:"column:scheme"`
-	Type      string `gorm:"column:type"`
-	Namespace string `gorm:"column:namespace"`
-	Name      string `gorm:"column:name"`
-	Version   string `gorm:"column:version"`
-	SubPath   string `gorm:"column:subpath"`
+	Scheme    string  `gorm:"column:scheme"`
+	Type      string  `gorm:"column:type"`
+	Namespace *string `gorm:"column:namespace"`
+	Name      string  `gorm:"column:name"`
+	Version   string  `gorm:"column:version"`
+	SubPath   *string `gorm:"column:subpath"`
 
 	Qualifiers *[]Qualifier `gorm:"many2many:purl_qualifiers"`
 }
@@ -346,11 +370,11 @@ type OperatingSystem struct {
 
 func (os *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
 	// if the name, major version, and minor version already exist in the table then we should not insert a new record
-	var existingOs OperatingSystem
-	result := tx.Where("name = ? AND major_version = ? AND minor_version = ?", os.Name, os.MajorVersion, os.MinorVersion).First(&existingOs)
+	var existing OperatingSystem
+	result := tx.Where("name = ? AND major_version = ? AND minor_version = ?", os.Name, os.MajorVersion, os.MinorVersion).First(&existing)
 	if result.Error == nil {
 		// if the record already exists, then we should use the existing record
-		*os = existingOs
+		*os = existing
 	}
 	return nil
 }
