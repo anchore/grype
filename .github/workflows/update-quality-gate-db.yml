@@ -3,9 +3,7 @@ on:
   schedule:
     - cron: "0 16 1 * *" # first day of each month @ 11 AM EST
 
-  push:
-    branches:
-      - workflow-update-test-db
+  workflow-dispatch:
 
 permissions:
   contents: read
