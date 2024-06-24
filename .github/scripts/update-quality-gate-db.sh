@@ -10,4 +10,4 @@ url=$(echo "$output" | grep -m 1 -o 'URL: .*' | cut -d' ' -f2- | sed 's/^[[:spac
 escaped_url=$(printf '%s\n' "$url" | sed -e 's/[\/&]/\\&/g')
 
 # Replace TEST_DB_URL in specific Makefile using sed
-sed -i '' -e "s|^TEST_DB_URL = .*|TEST_DB_URL = $escaped_url|" ./test/quality/Makefile
+sed -i '' -e "s|^TEST_DB_URL = .*|TEST_DB_URL = $escaped_url|" test/quality/Makefile
