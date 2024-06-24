@@ -101,6 +101,14 @@ tasks:
     cmd: "{{ .TOOL_DIR }}/binny update -v"
     silent: true
 
+  update-quality-gate-db:
+    desc: Update pinned version of quality
+    vars:
+      LATEST_DB: # use grype to get the first (latest) URL from list command and store it as LATEST_DB
+        sh: "go run cmd/grype/main.go db list | grep -m 1 -o 'URL:.*' | cut -d' ' -f2- | sed 's/^[[:space:]]*//'"
+    cmds:
+      - cmd: "sed -i 's|TEST_DB_URL = .*|TEST_DB_URL = $LATEST_DB|' test/quality/Makefile"
+
   list-tools:
     desc: List all tools needed for CI and local development
     deps: [binny]
