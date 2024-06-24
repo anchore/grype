@@ -8,7 +8,7 @@ VULNERABILITY_LABELS = ./vulnerability-labels
 RESULT_SET = pr_vs_latest_via_sbom
 
 # update periodically with values from "grype db list"
-TEST_DB_URL = https://toolbox-data.anchore.io/grype/databases/vulnerability-db_v5_2024-06-24T01:29:58Z_1719202889.tar.gz
+TEST_DB_URL_FILE = ./test-db-url
 TEST_DB = db.tar.gz
 LISTING_FILE = https://toolbox-data.anchore.io/grype/databases/listing.json
 
@@ -43,7 +43,7 @@ check-db:
 	@echo "DB is fresh enough to be used for testing!"
 
 $(TEST_DB):
-	curl -o $(TEST_DB) -SsL $(TEST_DB_URL)
+	@curl -o $(TEST_DB) -SsL `cat $(TEST_DB_URL_FILE)`
 
 .PHONY: sboms
 sboms: $(YARDSTICK_RESULT_DIR) venv clear-results ## Collect and store all syft results (deletes all existing results)
