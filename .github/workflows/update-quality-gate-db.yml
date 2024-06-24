@@ -32,7 +32,7 @@ jobs:
           signoff: true
           delete-branch: true
           branch: auto/update-quality-test-db
-          labels: dependencies
+          labels: test, changelog-ignore
           commit-message: 'chore(deps): update quality db to latest version'
           title: 'chore(deps): update quality db to latest version'
           body: |
