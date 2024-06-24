@@ -8,7 +8,7 @@ VULNERABILITY_LABELS = ./vulnerability-labels
 RESULT_SET = pr_vs_latest_via_sbom
 
 # update periodically with values from "grype db list"
-TEST_DB_URL = https://toolbox-data.anchore.io/grype/databases/vulnerability-db_v5_2024-02-23T01:23:09Z_d8fbe227a9343b20a702.tar.gz
+TEST_DB_URL = https://toolbox-data.anchore.io/grype/databases/vulnerability-db_v5_2024-06-24T01:29:58Z_1719202889.tar.gz
 TEST_DB = db.tar.gz
 LISTING_FILE = https://toolbox-data.anchore.io/grype/databases/listing.json
 
