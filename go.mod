@@ -26,7 +26,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.4
 	github.com/gkampitakis/go-snaps v0.5.4
 	github.com/glebarez/sqlite v1.11.0
-	github.com/go-test/deep v1.1.0
+	github.com/go-test/deep v1.1.1
 	github.com/google/go-cmp v0.6.0
 	github.com/google/go-containerregistry v0.19.2
 	github.com/google/uuid v1.6.0
