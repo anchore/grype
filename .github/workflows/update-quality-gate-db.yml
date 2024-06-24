@@ -31,8 +31,8 @@ jobs:
           delete-branch: true
           branch: auto/update-quality-test-db
           labels: test, changelog-ignore
-          commit-message: 'chore(deps): update quality db to latest version'
-          title: 'chore(deps): update quality db to latest version'
+          commit-message: 'test: update quality gate db to latest version'
+          title: 'test: update quality gate db to latest version'
           body: |
             This is an auto-generated pull request to update the quality gate db to latest version
           token: ${{ steps.generate-token.outputs.token }}
