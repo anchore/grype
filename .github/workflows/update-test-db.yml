@@ -1,0 +1,17 @@
+name: PR for upgrading quality gate test DB
+on:
+  schedule:
+    - cron: "0 16 1 * *" # first day of each month @ 11 AM EST
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  update-test-db-url:
+    runs-on: ubuntu-latest
+    if: github.repository == 'anchore/grype' # only run for main repo
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.1.7
+
