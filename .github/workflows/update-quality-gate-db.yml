@@ -1,0 +1,38 @@
+name: PR for upgrading quality gate test DB
+on:
+  schedule:
+    - cron: "0 16 1 * *" # first day of each month @ 11 AM EST
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  update-test-db-url:
+    runs-on: ubuntu-latest
+    if: github.repository == 'anchore/grype' # only run for main repo
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.1.7
+
+      - name: "Update quality DB"
+        run: |
+          make update-quality-gate-db
+
+      - uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a #v2.1.0
+        id: generate-token
+        with:
+          app_id: ${{ secrets.TOKEN_APP_ID }}
+          private_key: ${{ secrets.TOKEN_APP_PRIVATE_KEY }}
+
+      - uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c #v6.1.0
+        with:
+          signoff: true
+          delete-branch: true
+          branch: auto/update-quality-test-db
+          labels: test, changelog-ignore
+          commit-message: 'test: update quality gate db to latest version'
+          title: 'test: update quality gate db to latest version'
+          body: |
+            This is an auto-generated pull request to update the quality gate db to latest version
+          token: ${{ steps.generate-token.outputs.token }}
