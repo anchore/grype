@@ -48,7 +48,7 @@ func populateFixture1(store v6.Store) error {
 				{Alias: "CVE-2024-12341"},
 			},
 			Severities: &[]v6.Severity{
-				{Type: "CVSS_V3", Score: "5.0", Source: sp("nvd@nist.gov"), Priority: sp("secondary")},
+				{Type: "CVSS_V3", Score: "5.0", Source: sp("nvd@nist.gov"), Rank: sp("secondary")},
 			},
 			References: &[]v6.Reference{
 				{Type: "ADVISORY", URL: "https://example.com/GHSA-xxxx-xxxx-xxxx1"},
@@ -84,7 +84,7 @@ func populateFixture1(store v6.Store) error {
 				{Alias: "CVE-2024-12342"},
 			},
 			Severities: &[]v6.Severity{
-				{Type: "CVSS_V3", Score: "7.5", Source: sp("nvd@nist.gov"), Priority: sp("primary")},
+				{Type: "CVSS_V3", Score: "7.5", Source: sp("nvd@nist.gov"), Rank: sp("primary")},
 			},
 			References: &[]v6.Reference{
 				{Type: "ADVISORY", URL: "https://example.com/GHSA-xxxx-xxxx-xxxx2"},
@@ -125,7 +125,7 @@ func populateFixture1(store v6.Store) error {
 				{Alias: "GHSA-xxxx-xxxx-xxxx3"},
 			},
 			Severities: &[]v6.Severity{
-				{Type: "CVSS_V3", Score: "6.0", Source: sp("nvd@nist.gov"), Priority: sp("primary")},
+				{Type: "CVSS_V3", Score: "6.0", Source: sp("nvd@nist.gov"), Rank: sp("primary")},
 			},
 			References: &[]v6.Reference{
 				{Type: "ADVISORY", URL: "https://example.com/CVE-2024-12343"},
@@ -169,7 +169,7 @@ func populateFixture1(store v6.Store) error {
 				{Alias: fmt.Sprintf("CVE-2024-1234%d", i+3)},
 			},
 			Severities: &[]v6.Severity{
-				{Type: "CVSS_V3", Score: "4.0", Source: sp("nvd@nist.gov"), Priority: sp("primary")},
+				{Type: "CVSS_V3", Score: "4.0", Source: sp("nvd@nist.gov"), Rank: sp("primary")},
 			},
 			References: &[]v6.Reference{
 				{Type: "ADVISORY", URL: fmt.Sprintf("https://example.com/GHSA-xxxx-xxxx-xxxx%d", i+3)},

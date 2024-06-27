@@ -88,7 +88,7 @@ func run() error {
 //					Type:     "something",
 //					Score:    "2.0",
 //					Source:   "nvd",
-//					Priority: "something-else",
+//					Rank: "something-else",
 //				},
 //			},
 //		},
@@ -100,7 +100,7 @@ func run() error {
 //					Type:     "something",
 //					Score:    "2.0",
 //					Source:   "nvd",
-//					Priority: "something-else",
+//					Rank: "something-else",
 //				},
 //			},
 //		},
@@ -161,7 +161,7 @@ func severityStringer(vs *[]v6.Severity) string {
 	}
 
 	stringer := func(v v6.Severity) string {
-		return fmt.Sprintf("{Type=%q, Score=%q, Source=%q, Priority=%q}", v.Type, v.Score, v.Source, v.Priority)
+		return fmt.Sprintf("{Type=%q, Score=%q, Source=%q, Rank=%q}", v.Type, v.Score, v.Source, v.Rank)
 	}
 
 	var strs []string

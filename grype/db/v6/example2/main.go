@@ -300,7 +300,7 @@ func InsertVulnerabilities(db *gorm.DB, vulns []*Vulnerability) error {
 //	Type     string `gorm:"<-:create;column:type;not null;index:idx_severity,unique"`
 //	Score    string `gorm:"<-:create;column:score;not null;index:idx_severity,unique"`
 //	Source   string `gorm:"<-:create;column:source;index:idx_severity,unique"`
-//	Priority string `gorm:"<-:create;column:priority;index:idx_severity,unique"`
+//	Rank string `gorm:"<-:create;column:priority;index:idx_severity,unique"`
 //}
 //
 //func main() {
@@ -332,19 +332,19 @@ func InsertVulnerabilities(db *gorm.DB, vulns []*Vulnerability) error {
 //					Type:     "string",
 //					Score:    "high",
 //					Source:   "nvd",
-//					Priority: "primary",
+//					Rank: "primary",
 //				},
 //				{
 //					Type:     "string",
 //					Score:    "high",
 //					Source:   "nvd",
-//					Priority: "primary",
+//					Rank: "primary",
 //				},
 //				{
 //					Type:     "string",
 //					Score:    "medium",
 //					Source:   "cve",
-//					Priority: "secondary",
+//					Rank: "secondary",
 //				},
 //			},
 //		},
@@ -358,19 +358,19 @@ func InsertVulnerabilities(db *gorm.DB, vulns []*Vulnerability) error {
 //					Type:     "string",
 //					Score:    "high",
 //					Source:   "nvd",
-//					Priority: "primary",
+//					Rank: "primary",
 //				},
 //				{
 //					Type:     "string",
 //					Score:    "medium",
 //					Source:   "cve",
-//					Priority: "secondary",
+//					Rank: "secondary",
 //				},
 //				{
 //					Type:     "string",
 //					Score:    "medium",
 //					Source:   "somewhere-else",
-//					Priority: "secondary",
+//					Rank: "secondary",
 //				},
 //			},
 //		},
@@ -388,7 +388,7 @@ func InsertVulnerabilities(db *gorm.DB, vulns []*Vulnerability) error {
 //		}
 //
 //		for _, sev := range *vuln.Severities {
-//			//if err := db.Where("type = ? AND score = ? AND source = ? AND priority = ?", sev.Type, sev.Score, sev.Source, sev.Priority).FirstOrCreate(&sev).Error; err != nil {
+//			//if err := db.Where("type = ? AND score = ? AND source = ? AND priority = ?", sev.Type, sev.Score, sev.Source, sev.Rank).FirstOrCreate(&sev).Error; err != nil {
 //			//	fmt.Println("Failed to create severity:", err)
 //			//	return
 //			//}

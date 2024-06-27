@@ -9,36 +9,30 @@ import (
 
 func All() []any {
 	return []any{
-		&Cpe{},
+		&CpeWithoutVersion{},
 		&Digest{},
-		&AffectedSeverity{},
-		&AffectedVersion{},
 		&Affected{},
 		&Alias{},
 		&Blob{},
-		//&Comment{},
 		&DbMetadata{},
 		&DbSpecificNvd{},
 		&Epss{},
 		&KnownExploitedVulnerability{},
-		//&LogicalPackage{},
-		&AffectedExcludeVersion{},
 		&OperatingSystem{},
-		&PackageQualifierPlatformCpe{},
-		&PackageQualifierRpmModularity{},
-		//&Package{},
 		&Provider{},
-		&RangeEvent{},
-		//&RangeEventMetadata{},
-		&Range{},
 		&Reference{},
-		&Related{},
 		&Severity{},
 		&Vulnerability{},
 	}
 }
 
 // core vulnerability types
+
+type Advisory struct {
+	ID string
+
+	VulnerabilityIDs []string
+}
 
 // Vulnerability represents the core advisory record for a single known vulnerability from a specific provider. There
 // may be multiple vulnerabilities with the same name.
@@ -48,6 +42,9 @@ type Vulnerability struct {
 	// ProviderID is the foreign key to the Provider table which indicates the upstream data source for this vulnerability.
 	ProviderID string `gorm:"column:provider_id;not null;index:idx_vulnerability_provider"`
 
+	//// ProviderNamespace is an optional field reserved for logical grouping of vulnerabilities from the same provider (e.g. OS version number)
+	//ProviderNamespace string `gorm:"column:provider_namespace;not null;index:idx_vulnerability_provider"`
+
 	// Provider is the result of a join with the Provider table, which represents all information about where this vulnerability record came from.
 	Provider *Provider
 
@@ -55,19 +52,18 @@ type Vulnerability struct {
 	Name string `gorm:"column:name;not null;index;index:idx_vulnerability_provider"`
 
 	// Modified is the time the entry was last modified, as an RFC3339-formatted timestamp in UTC (ending in “Z”) (mirrors the OSV field)
-	Modified *string `gorm:"column:modified"`
+	Modified string `gorm:"column:modified"`
 
 	// Published is the time the entry should be considered to have been published, as an RFC3339-formatted time stamp in UTC (ending in “Z”) (mirrors the OSV field)
-	Published *string `gorm:"column:published"`
+	Published string `gorm:"column:published"`
 
 	// Withdrawn is the time the entry should be considered to have been withdrawn, as an RFC3339-formatted timestamp in UTC (ending in “Z”) (mirrors the OSV field)
-	Withdrawn *string `gorm:"column:withdrawn"`
+	Withdrawn string `gorm:"column:withdrawn"`
 
-	// SummaryDigest is a self describing hash (e.g. sha256:123... not 123...) of the summary field from the OSV summary field. This digest is searched against the Blob table/DB.
-	SummaryDigest *string `gorm:"column:summary_digest"`
+	Status string `gorm:"column:status"` // example: "active, withdrawn, rejected, ..." could be an enum
 
-	// DetailDigest is a self describing hash (e.g. sha256:123... not 123...) of the detail field from the OSV summary field. This digest is searched against the Blob table/DB.
-	DetailDigest *string `gorm:"column:detail_digest"`
+	Summary string `gorm:"column:summary"`
+	Detail  string `gorm:"column:detail;index,unique"`
 
 	// References are URLs to external resources that provide more information about the vulnerability (mirrors the OSV field)
 	References *[]Reference `gorm:"foreignKey:VulnerabilityID"`
@@ -87,13 +83,13 @@ type Vulnerability struct {
 	// Affected is a list of affected entries related to this vulnerability
 	Affected *[]Affected `gorm:"foreignKey:VulnerabilityID"`
 
-	affected *[]Affected `gorm:"-"`
+	batchWriteAffected *[]Affected `gorm:"-"`
 }
 
 func (c *Vulnerability) BeforeCreate(tx *gorm.DB) error {
 	// if the len of Affected is > 500, then create those in batches and then attach those to the Vulnerability
 	if c.Affected != nil && len(*c.Affected) > 500 {
-		c.affected = c.Affected
+		c.batchWriteAffected = c.Affected
 		c.Affected = nil
 	}
 
@@ -101,14 +97,14 @@ func (c *Vulnerability) BeforeCreate(tx *gorm.DB) error {
 }
 
 func (c *Vulnerability) AfterCreate(tx *gorm.DB) error {
-	if c.affected == nil {
+	if c.batchWriteAffected == nil {
 		return nil
 	}
 
 	// create in batches...
 
 	var affecteds []*Affected
-	affs := *c.affected
+	affs := *c.batchWriteAffected
 	for i := range affs {
 		a := affs[i]
 		a.VulnerabilityID = c.ID
@@ -123,7 +119,7 @@ func (c *Vulnerability) AfterCreate(tx *gorm.DB) error {
 		affs[i] = *affecteds[i]
 	}
 	c.Affected = &affs
-	c.affected = nil
+	c.batchWriteAffected = nil
 
 	return nil
 }
@@ -168,17 +164,17 @@ type Alias struct {
 	Alias string `gorm:"column:alias;not null,index:idx_alias,unique"`
 }
 
-// Related represents a single related vulnerability name
-type Related struct {
-	ID int64 `gorm:"column:id;primaryKey"`
-	//VulnerabilityID int64 `gorm:"column:vulnerability_id;not null"`
-
-	// Name of the related vulnerability (e.g. CVE-2024-34102 or GHSA-85rg-8m6h-825p)
-	Name string `gorm:"column:name;not null,index:idx_related,unique"`
-
-	//// Reason is a free-form text field that describes the relationship between the two vulnerabilities ("CVE-2022-12345 might be related to CVE-2022-54321 because both affect the same software library but are distinct issues")
-	//Reason string `gorm:"column:reason"`
-}
+//type CVSS struct {
+//	Vector string `gorm:"column:vector"`
+//
+//	// Source is the name of the source of the severity score (e.g. "nvd@nist.gov" or "security-advisories@github.com")
+//	Source string `gorm:"column:source"`
+//
+//	Vendor datatypes.JSON `gorm:"column:vendor"`
+//
+//	// Rank is a free-form organizational field to convey priority over other severities
+//	Rank int `gorm:"column:priority"`
+//}
 
 // Severity represents a single severity record for a vulnerability
 type Severity struct {
@@ -191,10 +187,10 @@ type Severity struct {
 	Score string `gorm:"column:score;not null"`
 
 	// Source is the name of the source of the severity score (e.g. "nvd@nist.gov" or "security-advisories@github.com")
-	Source *string `gorm:"column:source"`
+	Source string `gorm:"column:source"`
 
-	// Priority is a free-form organizational field to convey priority over other severities (e.g. primary vs secondary or authoritative vs unverified)
-	Priority *string `gorm:"column:priority"` // TODO: naming is hard...
+	// Rank is a free-form organizational field to convey priority over other severities
+	Rank int `gorm:"column:priority"`
 }
 
 type Reference struct {
@@ -222,21 +218,30 @@ type Affected struct {
 	ID              int64 `gorm:"column:id;primaryKey"`
 	VulnerabilityID int64 `gorm:"column:vulnerability_id,not null"`
 
-	//PackageID *int64 `gorm:"column:package_id"`
-	//Package   *Package
-
 	OperatingSystemID *int64           `gorm:"column:operating_system_id"`
 	OperatingSystem   *OperatingSystem `gorm:"foreignKey:OperatingSystemID"`
 
-	Versions         *datatypes.JSONSlice[AffectedVersion]        `gorm:"column:versions"`
-	ExcludeVersions  *datatypes.JSONSlice[AffectedExcludeVersion] `gorm:"column:excluded_versions"`
-	Severities       *datatypes.JSONSlice[AffectedSeverity]       `gorm:"column:severities"`
-	PackageQualifier *datatypes.JSON                              `gorm:"column:package_qualifier"`
+	VersionConstraint string `gorm:"column:version_constraint"`
+	VersionFormat     string `gorm:"column:version_format"`
 
-	Range   *[]Range                  `gorm:"foreignKey:AffectedID"`
-	Package *Package                  `gorm:"embedded;embeddedPrefix:package_"`
-	Digest  *Digest                   `gorm:"embedded;embeddedPrefix:digest_"`
-	Cpes    *datatypes.JSONSlice[Cpe] `gorm:"column:cpes"`
+	// package qualifiers
+
+	PlatformCpeID *int64             `gorm:"column:platform_cpe_id"`
+	PlatformCpe   *CpeWithoutVersion `gorm:"foreignKey:PlatformCpeID"`
+
+	RpmModularity string `gorm:"column:rpm_modularity"`
+
+	// identifiers
+
+	Package *Package `gorm:"embedded;embeddedPrefix:package_"`
+	Digest  *Digest  `gorm:"embedded;embeddedPrefix:digest_"`
+	//Cpe     *Cpe     `gorm:"embedded;embeddedPrefix:cpe_"`
+	CpeID *int64             `gorm:"column:cpe_id"`
+	Cpe   *CpeWithoutVersion `gorm:"foreignKey:CpeID"`
+
+	// fix
+
+	Fix *Fix `gorm:"embedded;embeddedPrefix:fix_"`
 }
 
 // TODO: add later and reuse existing similar tables with many2many
@@ -255,71 +260,14 @@ type Affected struct {
 //	Digests *[]Digest `gorm:"many2many:not_affected_digests"`
 //}
 
-// TODO: reuse existing Severities tables with many2many
-type AffectedSeverity struct {
-	ID         int64 `gorm:"column:id;primaryKey"`
-	AffectedID int64 `gorm:"column:affected_id;not null"`
-
-	Type     string  `gorm:"column:type;not null"`
-	Score    string  `gorm:"column:score;not null"`
-	Source   *string `gorm:"column:source"`
-	Priority *string `gorm:"column:priority"` // TODO: naming is hard...
+type Fix struct {
+	Version string `gorm:"column:version"`
+	State   string `gorm:"column:state"`
+	//Detail  *FixDetail
 }
 
-type AffectedVersion struct {
-	ID         int64 `gorm:"column:id;primaryKey"`
-	AffectedID int64 `gorm:"column:affected_id;not null"`
-
-	Version string `gorm:"column:version;not null"`
-}
-
-type AffectedExcludeVersion struct {
-	ID         int64 `gorm:"column:id;primaryKey"`
-	AffectedID int64 `gorm:"column:affected_id;not null"`
-
-	Version string `gorm:"column:version;not null"`
-}
-
-type Range struct {
-	ID         int64 `gorm:"primaryKey"`
-	AffectedID int64 `gorm:"column:affected_id;not null"`
-
-	Type   string        `gorm:"column:type;not null"`
-	Repo   *string       `gorm:"column:repo"`
-	Events *[]RangeEvent `gorm:"many2many:range_range_events"`
-}
-
-type RangeEvent struct {
-	ID int64 `gorm:"primaryKey"`
-
-	Introduced   *string `gorm:"column:introduced;index:idx_range_event,unique"`
-	Fixed        *string `gorm:"column:fixed;index:idx_range_event,unique"`
-	LastAffected *string `gorm:"column:last_affected;index:idx_range_event,unique"`
-	Limit        *string `gorm:"column:range_limit;index:idx_range_event,unique"` // limit is a keyword in sql, so it's easier to just use range_limit instead
-
-	// non OSV...
-	State string `gorm:"column:state;index:idx_range_event,unique"` // TODO: this could be db specific since there will be multiple ways to represent/interpret this
-
-	// if deduplicating these, then this can't be associated
-	//RangeEventMetadata *[]RangeEventMetadata `gorm:"foreignKey:RangeEventID"`
-}
-
-func (re *RangeEvent) BeforeCreate(tx *gorm.DB) (err error) {
-	//tx = tx.Session(&gorm.Session{Logger: loggerIgnoreRecordNotFound{tx.Logger}})
-
-	// if the event already exist in the table then we should not insert a new record
-	var existing RangeEvent
-	result := tx.Where("introduced = ? AND fixed = ? AND last_affected = ? AND range_limit = ? AND state = ?", re.Introduced, re.Fixed, re.LastAffected, re.Limit, re.State).First(&existing)
-	if result.Error == nil {
-		// if the record already exists, then we should use the existing record
-		*re = existing
-	}
-	return nil
-}
-
-//type RangeEventMetadata struct {
-//	ID           int64 `gorm:"primaryKey"`
-//	RangeEventID int64 `gorm:"column:range_event_id;not null"`
+//type FixDetail struct {
+//	ID int64 `gorm:"primaryKey"`
 //
 //	GitCommit      *string `gorm:"column:git_commit"`
 //	PullRequestURL *string `gorm:"column:pull_request_url"`
@@ -329,18 +277,23 @@ func (re *RangeEvent) BeforeCreate(tx *gorm.DB) (err error) {
 
 // primary package identifiers (search entrypoints)
 
-type Cpe struct {
+type CpeWithoutVersion struct {
 	// TODO: what about different CPE versions?
+	ID int64 `gorm:"primaryKey"`
 
-	Schema         string  `gorm:"column:schema;not null;index:idx_cpe"` // effectively the CPE version
-	Type           string  `gorm:"column:type;not null;index:idx_cpe"`
-	Vendor         *string `gorm:"column:vendor;index:idx_cpe"`
-	Product        string  `gorm:"column:product;not null;index:idx_cpe"`
-	Version        *string `gorm:"column:version;index:idx_cpe"`
-	Update         *string `gorm:"column:version_update;index:idx_cpe"` // update is a SQL keyword
-	TargetSoftware *string `gorm:"column:target_software;index:idx_cpe"`
+	Type            string `gorm:"column:type;not null;index:idx_cpe,unique"`
+	Vendor          string `gorm:"column:vendor;index:idx_cpe,unique"`
+	Product         string `gorm:"column:product;not null;index:idx_cpe,unique"`
+	Edition         string `gorm:"column:edition;index:idx_cpe,unique"`
+	Language        string `gorm:"column:language;index:idx_cpe,unique"`
+	SoftwareEdition string `gorm:"column:software_edition;index:idx_cpe,unique"`
+	TargetHardware  string `gorm:"column:target_hardware;index:idx_cpe,unique"`
+	TargetSoftware  string `gorm:"column:target_software;index:idx_cpe,unique"`
+	Other           string `gorm:"column:other;index:idx_cpe,unique"`
+}
 
-	// TODO: should we also have the remaining CPE fields here?
+func (c CpeWithoutVersion) String() string {
+	return fmt.Sprintf("%s:%s:%s:%s:%s:%s:%s:%s:%s", c.Type, c.Vendor, c.Product, c.Edition, c.Language, c.SoftwareEdition, c.TargetHardware, c.TargetSoftware, c.Other)
 }
 
 //func (c *Cpe) BeforeCreate(tx *gorm.DB) (err error) {
@@ -364,8 +317,8 @@ type Package struct {
 	// TODO: setup unique indexes only for writing and drop before shipping for the best size tradeoff
 
 	// TODO: break purl out into fields here
-	Ecosystem *string `gorm:"column:ecosystem;index:idx_package"` // TODO: NVD doesn't have this, should this be nullable?
-	Name      string  `gorm:"column:name;index:idx_package"`
+	Type string `gorm:"column:type;index:idx_package"` // TODO: NVD doesn't have this, should this be nullable?
+	Name string `gorm:"column:name;index:idx_package"`
 
 	//OperatingSystemID *int64           `gorm:"column:operating_system_id"`
 	//OperatingSystem   *OperatingSystem `gorm:"foreignKey:OperatingSystemID"`
@@ -427,30 +380,6 @@ func (os *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
 	}
 	return nil
 }
-
-type PackageQualifierPlatformCpe struct {
-	ID        int64 `gorm:"column:id;primaryKey"`
-	PackageID int64 `gorm:"column:package_id;not null"`
-
-	Cpe string `gorm:"column:cpe;not null"`
-}
-
-type PackageQualifierRpmModularity struct {
-	ID        int64 `gorm:"column:id;primaryKey"`
-	PackageID int64 `gorm:"column:package_id;not null"`
-
-	Module string `gorm:"column:module;not null"`
-}
-
-// logical package info
-
-//type LogicalPackage struct {
-//	ID int64 `gorm:"column:id;primaryKey"`
-//
-//	Packages []Package `gorm:"many2many:logical_package_packages"`
-//}
-
-// aux
 
 type DbMetadata struct {
 	BuildTimestamp *time.Time `gorm:"column:build_timestamp;not null"`
