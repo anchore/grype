@@ -24,6 +24,7 @@ type Store interface {
 	AffectedPackageStore
 	ProviderStore
 	OperatingSystemStore
+	BlobStore
 	io.Closer
 }
 
@@ -36,6 +37,7 @@ type store struct {
 	AffectedPackageStore
 	ProviderStore
 	OperatingSystemStore
+	BlobStore
 }
 
 func (c *StoreConfig) state() *state {
@@ -63,6 +65,7 @@ func New(cfg StoreConfig) (Store, error) {
 		AffectedStore:        NewAffectedStore(&cfg),
 		VulnerabilityStore:   NewVulnerabilityStore(&cfg),
 		AffectedPackageStore: NewAffectedPackageStore(&cfg),
+		BlobStore:            NewBlobStore(&cfg),
 	}, nil
 }
 

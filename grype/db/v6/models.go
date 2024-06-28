@@ -2,36 +2,47 @@ package v6
 
 import (
 	"fmt"
-	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"time"
 )
 
 func All() []any {
 	return []any{
-		&CpeWithoutVersion{},
+		&Cpe{},
+		&PlatformCpe{},
 		&Digest{},
-		&Affected{},
 		&Alias{},
 		&Blob{},
 		&DbMetadata{},
-		&DbSpecificNvd{},
+		//&DbSpecificNvd{},
 		&Epss{},
 		&KnownExploitedVulnerability{},
 		&OperatingSystem{},
 		&Provider{},
 		&Reference{},
 		&Severity{},
+		&Affected{},
 		&Vulnerability{},
 	}
 }
 
 // core vulnerability types
 
-type Advisory struct {
-	ID string
+// TODO: this will probably be shipped as another DB and attached on as-needed basis
+type Blob struct {
+	Digest string `gorm:"column:digest;primaryKey"`
+	Value  string `gorm:"column:value;not null"`
+}
 
-	VulnerabilityIDs []string
+func (b *Blob) BeforeCreate(tx *gorm.DB) (err error) {
+	// if the name, major version, and minor version already exist in the table then we should not insert a new record
+	var existing Blob
+	result := tx.Where("digest = ?", b.Digest).First(&existing)
+	if result.Error == nil {
+		// if the record already exists, then we should use the existing record
+		*b = existing
+	}
+	return nil
 }
 
 // Vulnerability represents the core advisory record for a single known vulnerability from a specific provider. There
@@ -62,8 +73,10 @@ type Vulnerability struct {
 
 	Status string `gorm:"column:status"` // example: "active, withdrawn, rejected, ..." could be an enum
 
-	Summary string `gorm:"column:summary"`
-	Detail  string `gorm:"column:detail;index,unique"`
+	//Summary string `gorm:"column:summary"`
+	//Detail string `gorm:"column:detail;index,unique"`
+	DetailDigest string `gorm:"column:detail_digest;index,unique"`
+	//Detail       *Blob  `gorm:"foreignKey:DetailDigest"`
 
 	// References are URLs to external resources that provide more information about the vulnerability (mirrors the OSV field)
 	References *[]Reference `gorm:"foreignKey:VulnerabilityID"`
@@ -75,15 +88,45 @@ type Vulnerability struct {
 	Aliases *[]Alias `gorm:"many2many:vulnerability_aliases"`
 
 	// Severities is a list of severity indications (quantitative or qualitative) for the vulnerability (mirrors the OSV field, but the semantics are different. We allow for qualitative string severity, where OSV does not)
-	Severities *datatypes.JSONSlice[Severity] `gorm:"column:severities"`
+	Severities *[]Severity `gorm:"many2many:vulnerability_severities"`
 
 	// DB specific info
-	DbSpecific *datatypes.JSON `gorm:"column:db_specific"`
+	//DbSpecific *datatypes.JSON `gorm:"many2many:vulnerability_db_specific"`
 
 	// Affected is a list of affected entries related to this vulnerability
 	Affected *[]Affected `gorm:"foreignKey:VulnerabilityID"`
 
 	batchWriteAffected *[]Affected `gorm:"-"`
+}
+
+func (a *Vulnerability) BeforeSave(tx *gorm.DB) (err error) {
+	if a.Severities != nil {
+		uniqueSevs, err := a.uniqueSevs(tx)
+		if err != nil {
+			return err
+		}
+		a.Severities = uniqueSevs
+	}
+
+	return nil
+}
+
+func (a *Vulnerability) uniqueSevs(tx *gorm.DB) (*[]Severity, error) {
+	var uniqueSevs []Severity
+	for _, sev := range *a.Severities {
+		var existing Severity
+		result := tx.Where("type = ? AND score = ? AND source = ? AND rank = ?", sev.Type, sev.Score, sev.Source, sev.Rank).First(&existing)
+		if result.Error == nil {
+			uniqueSevs = append(uniqueSevs, existing)
+		} else {
+			err := tx.Create(&sev).Error
+			if err != nil {
+				return nil, err
+			}
+			uniqueSevs = append(uniqueSevs, sev)
+		}
+	}
+	return &uniqueSevs, nil
 }
 
 func (c *Vulnerability) BeforeCreate(tx *gorm.DB) error {
@@ -181,17 +224,28 @@ type Severity struct {
 	ID int64 `gorm:"column:id;primaryKey"`
 
 	// Type describes the quantitative method used to determine the Score, such as "CVSS_V3". Alternatively this makes claim that Score is qualitative, such as just simply "string"
-	Type string `gorm:"column:type;not null"`
+	Type string `gorm:"column:type;index:idx_severity,unique"`
 
 	// Score is the quantitative or qualitative severity score (e.g. "CVSS:4.0/AV:N/AC:L/AT:N/PR:H/UI:N/VC:L/VI:L/VA:N/SC:N/SI:N/SA:N" or "high")
-	Score string `gorm:"column:score;not null"`
+	Score string `gorm:"column:score;not null;index:idx_severity,unique"`
 
 	// Source is the name of the source of the severity score (e.g. "nvd@nist.gov" or "security-advisories@github.com")
-	Source string `gorm:"column:source"`
+	Source string `gorm:"column:source;index:idx_severity,unique"`
 
 	// Rank is a free-form organizational field to convey priority over other severities
-	Rank int `gorm:"column:priority"`
+	Rank int `gorm:"column:rank;index:idx_severity,unique"`
 }
+
+//func (c *Severity) BeforeCreate(tx *gorm.DB) (err error) {
+//	// if the name, major version, and minor version already exist in the table then we should not insert a new record
+//	var existing Severity
+//	result := tx.Where("type = ? AND score = ? AND source = ? AND rank = ?", c.Type, c.Score, c.Source, c.Rank).First(&existing)
+//	if result.Error == nil {
+//		// if the record already exists, then we should use the existing record
+//		*c = existing
+//	}
+//	return nil
+//}
 
 type Reference struct {
 	ID              int64 `gorm:"column:id;primaryKey"`
@@ -226,22 +280,88 @@ type Affected struct {
 
 	// package qualifiers
 
-	PlatformCpeID *int64             `gorm:"column:platform_cpe_id"`
-	PlatformCpe   *CpeWithoutVersion `gorm:"foreignKey:PlatformCpeID"`
+	PlatformCpes *[]PlatformCpe `gorm:"many2many:affected_platform_cpes"`
 
 	RpmModularity string `gorm:"column:rpm_modularity"`
 
 	// identifiers
 
 	Package *Package `gorm:"embedded;embeddedPrefix:package_"`
-	Digest  *Digest  `gorm:"embedded;embeddedPrefix:digest_"`
-	//Cpe     *Cpe     `gorm:"embedded;embeddedPrefix:cpe_"`
-	CpeID *int64             `gorm:"column:cpe_id"`
-	Cpe   *CpeWithoutVersion `gorm:"foreignKey:CpeID"`
+	//Digests *[]Digest `gorm:"many2many:affected_digests"`
+	Cpes *[]Cpe `gorm:"many2many:affected_cpes"`
 
 	// fix
 
 	Fix *Fix `gorm:"embedded;embeddedPrefix:fix_"`
+}
+
+func (a *Affected) BeforeSave(tx *gorm.DB) (err error) {
+	if a.Cpes != nil {
+		uniqueCpes, err := a.uniqueCpes(tx)
+		if err != nil {
+			return err
+		}
+		a.Cpes = uniqueCpes
+	}
+
+	if a.PlatformCpes != nil {
+		uniqueCpes, err := a.uniquePlatformCpes(tx)
+		if err != nil {
+			return err
+		}
+		a.PlatformCpes = uniqueCpes
+	}
+
+	if a.OperatingSystem != nil {
+		result := tx.Where("name = ? AND major_version = ? AND minor_version = ?", a.OperatingSystem.Name, a.OperatingSystem.MajorVersion, a.OperatingSystem.MinorVersion).First(&a.OperatingSystem)
+		if result.Error != nil {
+			err := tx.Create(&a.OperatingSystem).Error
+			if err != nil {
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (a *Affected) uniquePlatformCpes(tx *gorm.DB) (*[]PlatformCpe, error) {
+	var uniqueCpes []PlatformCpe
+	for _, cpe := range *a.PlatformCpes {
+		var existing PlatformCpe
+		result := tx.Where("type = ? AND vendor = ? AND product = ? AND edition = ? AND language = ? AND version = ? AND version_update = ? AND software_edition = ? AND target_hardware = ? AND target_software = ? AND other = ?",
+			cpe.Type, cpe.Vendor, cpe.Product, cpe.Edition, cpe.Language, cpe.Version, cpe.VersionUpdate, cpe.SoftwareEdition, cpe.TargetHardware, cpe.TargetSoftware, cpe.Other).First(&existing)
+		if result.Error == nil {
+			uniqueCpes = append(uniqueCpes, existing)
+		} else {
+			err := tx.Create(&cpe).Error
+			if err != nil {
+				return nil, err
+			}
+			uniqueCpes = append(uniqueCpes, cpe)
+		}
+	}
+	return &uniqueCpes, nil
+}
+
+func (a *Affected) uniqueCpes(tx *gorm.DB) (*[]Cpe, error) {
+	var uniqueCpes []Cpe
+	for _, cpe := range *a.Cpes {
+		var existing Cpe
+		result := tx.Where("type = ? AND vendor = ? AND product = ? AND edition = ? AND language = ? AND software_edition = ? AND target_hardware = ? AND target_software = ? AND other = ?",
+			cpe.Type, cpe.Vendor, cpe.Product, cpe.Edition, cpe.Language, cpe.SoftwareEdition, cpe.TargetHardware, cpe.TargetSoftware, cpe.Other).First(&existing)
+		if result.Error == nil {
+			uniqueCpes = append(uniqueCpes, existing)
+		} else {
+			err := tx.Create(&cpe).Error
+			if err != nil {
+				return nil, err
+			}
+			uniqueCpes = append(uniqueCpes, cpe)
+		}
+	}
+	return &uniqueCpes, nil
 }
 
 // TODO: add later and reuse existing similar tables with many2many
@@ -257,7 +377,7 @@ type Affected struct {
 //	Range           *[]Range                  `gorm:"foreignKey:AffectedID"`
 //
 //	// Digests that are known to correspond to this vulnerability, but cannot be closely associated with a package
-//	Digests *[]Digest `gorm:"many2many:not_affected_digests"`
+//	Digests *[]Digests `gorm:"many2many:not_affected_digests"`
 //}
 
 type Fix struct {
@@ -277,7 +397,7 @@ type Fix struct {
 
 // primary package identifiers (search entrypoints)
 
-type CpeWithoutVersion struct {
+type Cpe struct {
 	// TODO: what about different CPE versions?
 	ID int64 `gorm:"primaryKey"`
 
@@ -292,14 +412,46 @@ type CpeWithoutVersion struct {
 	Other           string `gorm:"column:other;index:idx_cpe,unique"`
 }
 
-func (c CpeWithoutVersion) String() string {
+func (c Cpe) String() string {
 	return fmt.Sprintf("%s:%s:%s:%s:%s:%s:%s:%s:%s", c.Type, c.Vendor, c.Product, c.Edition, c.Language, c.SoftwareEdition, c.TargetHardware, c.TargetSoftware, c.Other)
 }
 
 //func (c *Cpe) BeforeCreate(tx *gorm.DB) (err error) {
 //	// if the name, major version, and minor version already exist in the table then we should not insert a new record
 //	var existing Cpe
-//	result := tx.Where("schema = ? AND type = ? AND vendor = ? AND product = ? AND version = ? AND version_update = ? AND target_software = ?", c.Schema, c.Type, c.Vendor, c.Product, c.Version, c.Update, c.TargetSoftware).First(&existing)
+//	result := tx.Where("type = ? AND vendor = ? AND product = ? AND edition = ? AND language = ? AND software_edition = ? AND target_hardware = ? AND target_software = ? AND other = ?", c.Type, c.Vendor, c.Product, c.Edition, c.Language, c.SoftwareEdition, c.TargetHardware, c.TargetSoftware, c.Other).First(&existing)
+//	if result.Error == nil {
+//		// if the record already exists, then we should use the existing record
+//		*c = existing
+//	}
+//	return nil
+//}
+
+type PlatformCpe struct {
+	// TODO: what about different CPE versions?
+	ID int64 `gorm:"primaryKey"`
+
+	Type            string `gorm:"column:type;not null;index:idx_platform_cpe,unique"`
+	Vendor          string `gorm:"column:vendor;index:idx_platform_cpe,unique"`
+	Product         string `gorm:"column:product;not null;index:idx_platform_cpe,unique"`
+	Edition         string `gorm:"column:edition;index:idx_platform_cpe,unique"`
+	Language        string `gorm:"column:language;index:idx_platform_cpe,unique"`
+	Version         string `gorm:"column:version;index:idx_platform_cpe,unique"`
+	VersionUpdate   string `gorm:"column:version_update;index:idx_platform_cpe,unique"`
+	SoftwareEdition string `gorm:"column:software_edition;index:idx_platform_cpe,unique"`
+	TargetHardware  string `gorm:"column:target_hardware;index:idx_platform_cpe,unique"`
+	TargetSoftware  string `gorm:"column:target_software;index:idx_platform_cpe,unique"`
+	Other           string `gorm:"column:other;index:idx_platform_cpe,unique"`
+}
+
+func (c PlatformCpe) String() string {
+	return fmt.Sprintf("%s:%s:%s:%s:%s:%s:%s:%s:%s:%s:%s", c.Type, c.Vendor, c.Product, c.Edition, c.Language, c.Version, c.VersionUpdate, c.SoftwareEdition, c.TargetHardware, c.TargetSoftware, c.Other)
+}
+
+//func (c *PlatformCpe) BeforeCreate(tx *gorm.DB) (err error) {
+//	// if the name, major version, and minor version already exist in the table then we should not insert a new record
+//	var existing PlatformCpe
+//	result := tx.Where("type = ? AND vendor = ? AND product = ? AND edition = ? AND language = ? AND version = ? AND version_update = ? AND software_edition = ? AND target_hardware = ? AND target_software = ? AND other = ?", c.Type, c.Vendor, c.Product, c.Edition, c.Language, c.Version, c.VersionUpdate, c.SoftwareEdition, c.TargetHardware, c.TargetSoftware, c.Other).First(&existing)
 //	if result.Error == nil {
 //		// if the record already exists, then we should use the existing record
 //		*c = existing
@@ -324,7 +476,7 @@ type Package struct {
 	//OperatingSystem   *OperatingSystem `gorm:"foreignKey:OperatingSystemID"`
 	//
 	//Purls *[]Purl `gorm:"many2many:package_purls"`
-	//Cpes  *[]Cpe  `gorm:"many2many:package_cpes"`
+	//Cpes  *[]Cpes  `gorm:"many2many:package_cpes"`
 
 }
 
@@ -386,12 +538,6 @@ type DbMetadata struct {
 	Model          int        `gorm:"column:model;not null"`
 	Revision       int        `gorm:"column:revision;not null"`
 	Addition       int        `gorm:"column:addition;not null"`
-}
-
-// TODO: this will probably be shipped as another DB and attached on as-needed basis
-type Blob struct {
-	Digest string `gorm:"column:digest;primaryKey"`
-	Value  string `gorm:"column:value;not null"`
 }
 
 // TODO: not clear that we need this...
