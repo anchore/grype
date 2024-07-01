@@ -19,7 +19,7 @@ func All() []any {
 		&KnownExploitedVulnerability{},
 		&OperatingSystem{},
 		&Provider{},
-		&Reference{},
+		//&Reference{},
 		&Severity{},
 		&Affected{},
 		&Vulnerability{},
@@ -79,7 +79,7 @@ type Vulnerability struct {
 	//Detail       *Blob  `gorm:"foreignKey:DetailDigest"`
 
 	// References are URLs to external resources that provide more information about the vulnerability (mirrors the OSV field)
-	References *[]Reference `gorm:"foreignKey:VulnerabilityID"`
+	ReferencesDigest string `column:"references_digest"`
 
 	// Related is s a list of IDs of closely related vulnerabilities but are not aliases for the vulnerability (mirrors the OSV field)
 	//Related *[]Related `gorm:"many2many:vulnerability_related"`
@@ -270,7 +270,7 @@ type DbSpecificNvd struct {
 // Affected represents a single package or set of digests that are affected by a vulnerability
 type Affected struct {
 	ID              int64 `gorm:"column:id;primaryKey"`
-	VulnerabilityID int64 `gorm:"column:vulnerability_id,not null"`
+	VulnerabilityID int64 `gorm:"column:vulnerability_id;not null"`
 
 	OperatingSystemID *int64           `gorm:"column:operating_system_id"`
 	OperatingSystem   *OperatingSystem `gorm:"foreignKey:OperatingSystemID"`
