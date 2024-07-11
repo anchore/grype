@@ -6,21 +6,21 @@ require (
 	github.com/CycloneDX/cyclonedx-go v0.9.0
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
-	github.com/adrg/xdg v0.4.0
+	github.com/adrg/xdg v0.5.0
 	github.com/anchore/bubbly v0.0.0-20231115134915-def0aba654a9
 	github.com/anchore/clio v0.0.0-20240522144804-d81e109008aa
 	github.com/anchore/go-logger v0.0.0-20230725134548-c21dafa1ec5a
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/packageurl-go v0.1.1-0.20240507183024-848e011fc24f
-	github.com/anchore/stereoscope v0.0.3-0.20240501181043-2e9894674185
-	github.com/anchore/syft v1.8.0
+	github.com/anchore/stereoscope v0.0.3-0.20240705165118-e46739e21796
+	github.com/anchore/syft v1.9.0
 	github.com/aquasecurity/go-pep440-version v0.0.0-20210121094942-22b2f8951d46
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/charmbracelet/bubbletea v0.26.6
-	github.com/charmbracelet/lipgloss v0.11.0
+	github.com/charmbracelet/lipgloss v0.11.1
 	github.com/dave/jennifer v1.7.0
-	github.com/docker/docker v26.1.4+incompatible
+	github.com/docker/docker v27.0.3+incompatible
 	github.com/dustin/go-humanize v1.0.1
 	github.com/facebookincubator/nvdtools v0.1.5
 	github.com/gabriel-vasile/mimetype v1.4.4
@@ -28,7 +28,7 @@ require (
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-test/deep v1.1.1
 	github.com/google/go-cmp v0.6.0
-	github.com/google/go-containerregistry v0.19.2
+	github.com/google/go-containerregistry v0.20.0
 	github.com/google/uuid v1.6.0
 	github.com/gookit/color v1.5.4
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
@@ -93,7 +93,7 @@ require (
 	github.com/bmatcuk/doublestar/v4 v4.6.1 // indirect
 	github.com/charmbracelet/bubbles v0.18.0 // indirect
 	github.com/charmbracelet/harmonica v0.2.0 // indirect
-	github.com/charmbracelet/x/ansi v0.1.2 // indirect
+	github.com/charmbracelet/x/ansi v0.1.3 // indirect
 	github.com/charmbracelet/x/input v0.1.0 // indirect
 	github.com/charmbracelet/x/term v0.1.1 // indirect
 	github.com/charmbracelet/x/windows v0.1.0 // indirect
@@ -110,7 +110,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/deitch/magic v0.0.0-20230404182410-1ff89d7342da // indirect
 	github.com/distribution/reference v0.6.0 // indirect
-	github.com/docker/cli v24.0.0+incompatible // indirect
+	github.com/docker/cli v27.0.3+incompatible // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.7.0 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
@@ -188,7 +188,7 @@ require (
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/nwaples/rardecode v1.1.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
-	github.com/opencontainers/image-spec v1.1.0-rc3 // indirect
+	github.com/opencontainers/image-spec v1.1.0 // indirect
 	github.com/opencontainers/runc v1.1.12 // indirect
 	github.com/opencontainers/runtime-spec v1.1.0-rc.1 // indirect
 	github.com/opencontainers/selinux v1.11.0 // indirect
@@ -204,7 +204,7 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
-	github.com/saferwall/pe v1.5.3 // indirect
+	github.com/saferwall/pe v1.5.4 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
@@ -213,12 +213,12 @@ require (
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/skeema/knownhosts v1.2.2 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
-	github.com/spdx/tools-golang v0.5.4 // indirect
+	github.com/spdx/tools-golang v0.5.5 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.18.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/sylabs/sif/v2 v2.11.5 // indirect
+	github.com/sylabs/sif/v2 v2.17.1 // indirect
 	github.com/sylabs/squashfs v0.6.1 // indirect
 	github.com/therootcompany/xz v1.0.1 // indirect
 	github.com/tidwall/gjson v1.17.0 // indirect
@@ -241,13 +241,13 @@ require (
 	go.opentelemetry.io/otel/trace v1.19.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
-	golang.org/x/crypto v0.24.0 // indirect
-	golang.org/x/mod v0.18.0 // indirect
-	golang.org/x/net v0.26.0 // indirect
+	golang.org/x/crypto v0.25.0 // indirect
+	golang.org/x/mod v0.19.0 // indirect
+	golang.org/x/net v0.27.0 // indirect
 	golang.org/x/oauth2 v0.19.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/sys v0.21.0 // indirect
-	golang.org/x/term v0.21.0 // indirect
+	golang.org/x/sys v0.22.0 // indirect
+	golang.org/x/term v0.22.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
