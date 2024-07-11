@@ -56,8 +56,8 @@ func onlyVulnerableTargets(p pkg.Package, allVulns []vulnerability.Vulnerability
 		isPackageVulnerable := len(vuln.CPEs) == 0
 		for _, cpe := range vuln.CPEs {
 			targetSW := cpe.Attributes.TargetSW
-			mismatchWithUnknownLanguage := targetSW != string(p.Language) && isUnknownTarget(targetSW)
-			if targetSW == wfn.Any || targetSW == wfn.NA || targetSW == string(p.Language) || mismatchWithUnknownLanguage {
+			mismatchWithUnknownLanguage := syftPkg.LanguageByName(targetSW) != p.Language && isUnknownTarget(targetSW)
+			if targetSW == wfn.Any || targetSW == wfn.NA || syftPkg.LanguageByName(targetSW) == p.Language || mismatchWithUnknownLanguage {
 				isPackageVulnerable = true
 			}
 		}

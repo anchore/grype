@@ -701,6 +701,56 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "Ensure match is kept for target software that matches the syft package language type",
+			p: pkg.Package{
+				CPEs: []cpe.CPE{
+					cpe.Must("cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:*:*:*", ""),
+				},
+				Name:     "handlebars",
+				Version:  "0.1",
+				Language: syftPkg.JavaScript,
+				Type:     syftPkg.NpmPkg,
+			},
+			expected: []match.Match{
+				{
+					Vulnerability: vulnerability.Vulnerability{
+						ID: "CVE-2021-23369",
+					},
+					Package: pkg.Package{
+						CPEs: []cpe.CPE{
+							cpe.Must("cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:*:*:*", ""),
+						},
+						Name:     "handlebars",
+						Version:  "0.1",
+						Language: syftPkg.JavaScript,
+						Type:     syftPkg.NpmPkg,
+					},
+					Details: []match.Detail{
+						{
+							Type:       match.CPEMatch,
+							Confidence: 0.9,
+							SearchedBy: CPEParameters{
+								CPEs:      []string{"cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:*:*:*"},
+								Namespace: "nvd:cpe",
+								Package: CPEPackageParameter{
+									Name:    "handlebars",
+									Version: "0.1",
+								},
+							},
+							Found: CPEResult{
+								CPEs: []string{
+									"cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:node.js:*:*",
+								},
+								VersionConstraint: "< 4.7.7 (unknown)",
+								VulnerabilityID:   "CVE-2021-23369",
+							},
+							Matcher: matcher,
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, test := range tests {
