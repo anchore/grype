@@ -18,7 +18,7 @@ tools:
   # used to sign mac binaries at release
   - name: quill
     version:
-      want: v0.4.1
+      want: v0.4.2
     method: github-release
     with:
       repo: anchore/quill
@@ -58,7 +58,7 @@ tools:
   # used to release all artifacts
   - name: goreleaser
     version:
-      want: v2.0.1
+      want: v2.1.0
     method: github-release
     with:
       repo: goreleaser/goreleaser
@@ -106,7 +106,7 @@ tools:
   # used for integration tests
   - name: skopeo
     version:
-      want: v1.15.1
+      want: v1.15.2
     method: go-install
     with:
       module: github.com/containers/skopeo
