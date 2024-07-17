@@ -13,6 +13,17 @@ assignees: ''
 
 **How to reproduce it (as minimally and precisely as possible)**:
 
+Please include a link to an artifact grype can scan, or instructions to make
+one. Some suggestions:
+
+1. Link to Dockerhub, GitHub, GitLab, maven central, quay.io, etc to a public
+   artifact we can try scanning
+2. A Dockerfile that we can build and scan
+3. A simple script that creates a directory exhibiting the issue, for example a
+   list of `npm install` commands
+
+Please also include the grype command that was run.
+
 **Anything else we need to know?**:
 
 **Environment**:
