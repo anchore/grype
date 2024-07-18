@@ -13,8 +13,8 @@ assignees: ''
 
 **How to reproduce it (as minimally and precisely as possible)**:
 
-Please include a link to an artifact grype can scan, or instructions to make
-one. Some suggestions:
+If possible, please include a link to an artifact grype can scan, instructions to make
+one, or upload it on this issue. Some suggestions:
 
 1. Link to Dockerhub, GitHub, GitLab, maven central, quay.io, etc to a public
    artifact we can try scanning
@@ -22,7 +22,7 @@ one. Some suggestions:
 3. A simple script that creates a directory exhibiting the issue, for example a
    list of `npm install` commands
 
-Please also include the grype command that was run.
+Please also include the grype command and any configuration used.
 
 **Anything else we need to know?**:
 
