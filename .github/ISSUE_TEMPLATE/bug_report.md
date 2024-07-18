@@ -13,6 +13,7 @@ assignees: ''
 
 **How to reproduce it (as minimally and precisely as possible)**:
 
+<!--
 If possible, please include a link to an artifact grype can scan, instructions to make
 one, or upload it on this issue. Some suggestions:
 
@@ -23,7 +24,7 @@ one, or upload it on this issue. Some suggestions:
    list of `npm install` commands
 
 Please also include the grype command and any configuration used.
-
+-->
 **Anything else we need to know?**:
 
 **Environment**:
