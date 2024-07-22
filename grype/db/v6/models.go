@@ -96,7 +96,7 @@ func (b *Blob) BeforeCreate(tx *gorm.DB) (err error) {
 // AffectedPackageHandle represents a single package affected by the specified vulnerability.
 type AffectedPackageHandle struct {
 	ID              int64 `gorm:"column:id;primaryKey"`
-	VulnerabilityID int64 `gorm:"column:vulnerability_id,not null"`
+	VulnerabilityID int64 `gorm:"column:vulnerability_id;not null"`
 
 	OperatingSystemID *int64           `gorm:"column:operating_system_id"`
 	OperatingSystem   *OperatingSystem `gorm:"foreignKey:OperatingSystemID"`
@@ -112,7 +112,7 @@ type AffectedPackageHandle struct {
 // NotAffectedPackageHandle represents a single package that is positively not affected by the specified vulnerability.
 type NotAffectedPackageHandle struct {
 	ID              int64 `gorm:"column:id;primaryKey"`
-	VulnerabilityID int64 `gorm:"column:vulnerability_id,not null"`
+	VulnerabilityID int64 `gorm:"column:vulnerability_id;not null"`
 
 	OperatingSystemID *int64           `gorm:"column:operating_system_id"`
 	OperatingSystem   *OperatingSystem `gorm:"foreignKey:OperatingSystemID"`
@@ -167,7 +167,7 @@ func (os *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
 // AffectedCPEHandle represents a single CPE affected by the specified vulnerability
 type AffectedCPEHandle struct {
 	ID              int64 `gorm:"column:id;primaryKey"`
-	VulnerabilityID int64 `gorm:"column:vulnerability_id,not null"`
+	VulnerabilityID int64 `gorm:"column:vulnerability_id;not null"`
 
 	CpeID int64 `gorm:"column:cpe_id"`
 	CPE   *Cpe  `gorm:"foreignKey:CpeID"`
@@ -180,7 +180,7 @@ type AffectedCPEHandle struct {
 // NotAffectedCPEHandle represents a single CPE affected by the specified vulnerability
 type NotAffectedCPEHandle struct {
 	ID              int64 `gorm:"column:id;primaryKey"`
-	VulnerabilityID int64 `gorm:"column:vulnerability_id,not null"`
+	VulnerabilityID int64 `gorm:"column:vulnerability_id;not null"`
 
 	CpeID int64 `gorm:"column:cpe_id"`
 	CPE   *Cpe  `gorm:"foreignKey:CpeID"`
