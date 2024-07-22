@@ -2,10 +2,11 @@ package v6
 
 import (
 	"fmt"
+	"github.com/anchore/grype/internal/log"
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"log"
+	stdlog "log"
 	"os"
 	"reflect"
 	"sync"
@@ -40,13 +41,13 @@ type state struct {
 //	c.Interface.Warn(ctx, msg, data...)
 //}
 
-func newState(dbFilePath string, overwrite bool) (*state, error) {
-	//db, err := gormadapter.Open(dbFilePath, overwrite)
+func newState(dbFilePath string, write bool) (*state, error) {
+	//db, err := gormadapter.Open(dbFilePath, write)
 	//if err != nil {
 	//	return nil, err
 	//}
 
-	lgr := logger.New(log.New(os.Stdout, "\r\n", log.LstdFlags), logger.Config{
+	lgr := logger.New(stdlog.New(os.Stdout, "\r\n", stdlog.LstdFlags), logger.Config{
 		SlowThreshold:             200 * time.Millisecond,
 		LogLevel:                  logger.Warn,
 		IgnoreRecordNotFoundError: true,
@@ -69,11 +70,17 @@ func newState(dbFilePath string, overwrite bool) (*state, error) {
 
 	db.Exec("PRAGMA foreign_keys = ON")
 
-	if overwrite {
-		if err := db.AutoMigrate(All()...); err != nil {
+	if write {
+		if err := db.AutoMigrate(WriteModels()...); err != nil {
 			return nil, fmt.Errorf("unable to migrate: %w", err)
 		}
 	}
+	//else {
+	//	// TODO: do we need the migrate line at all?
+	//	if err := db.AutoMigrate(ReadModels()...); err != nil {
+	//		return nil, fmt.Errorf("unable to migrate: %w", err)
+	//	}
+	//}
 
 	db.Exec("PRAGMA synchronous = OFF")
 	db.Exec("PRAGMA journal_mode = OFF")
@@ -86,17 +93,56 @@ func newState(dbFilePath string, overwrite bool) (*state, error) {
 		db:           db,
 		preloadCache: newPreloadCache(),
 		destination:  dbFilePath,
-		write:        overwrite,
+		write:        write,
 		useMem:       useMem,
 	}, nil
 }
 
 func (s *state) close() error {
+	log.Debug("closing store")
 	if s.write {
+		if err := s.finalizeBlobsTable(); err != nil {
+			return fmt.Errorf("unable to finalize blobs table: %w", err)
+		}
+
 		if s.useMem {
 			return s.db.Exec(fmt.Sprintf("VACUUM main into %q", s.destination)).Error
 		}
 		return s.db.Exec("VACUUM").Error
+	}
+	return nil
+}
+
+func (s state) finalizeBlobsTable() error {
+	log.Debug("finalizing blobs table")
+	// create a temporary table without the 'digest' column
+	tempTable := `
+		CREATE TABLE temp_blobs (
+			id INTEGER PRIMARY KEY,
+			value TEXT NOT NULL
+		);
+	`
+	if err := s.db.Exec(tempTable).Error; err != nil {
+		return fmt.Errorf("unable to create temporary table: %w", err)
+	}
+
+	// copy data from the original table to the temporary table
+	copyData := `
+		INSERT INTO temp_blobs (id, value)
+		SELECT id, value FROM blob_with_digests;
+	`
+	if err := s.db.Exec(copyData).Error; err != nil {
+		return fmt.Errorf("unable to copy data to temporary table: %w", err)
+	}
+
+	// drop the original table
+	if err := s.db.Migrator().DropTable("blob_with_digests"); err != nil {
+		return fmt.Errorf("unable to drop original table: %w", err)
+	}
+
+	// rename the temporary table to the original table name
+	if err := s.db.Migrator().RenameTable("temp_blobs", "blobs"); err != nil {
+		return fmt.Errorf("unable to rename temporary table: %w", err)
 	}
 	return nil
 }

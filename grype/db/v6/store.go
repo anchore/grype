@@ -1,8 +1,6 @@
 package v6
 
 import (
-	"fmt"
-	"github.com/anchore/grype/internal/log"
 	"io"
 )
 
@@ -13,6 +11,7 @@ type Store interface {
 	AffectedPackageStore
 	AffectedCPEStore
 	VulnerabilityStore
+	ProviderStore
 	io.Closer
 }
 
@@ -21,6 +20,7 @@ type store struct {
 	*affectedPackageStore
 	*vulnerabilityStore
 	*affectedCPEStore
+	*providerStore
 	cfg *StoreConfig
 }
 
@@ -32,12 +32,10 @@ func New(cfg StoreConfig) (Store, error) {
 		affectedPackageStore: newAffectedPackageStore(&cfg, bs),
 		affectedCPEStore:     newAffectedCPEStore(&cfg, bs),
 		vulnerabilityStore:   newVulnerabilityStore(&cfg, bs),
+		providerStore:        newProviderStore(&cfg),
 	}, nil
 }
 
 func (s store) Close() error {
-	log.Debug("closing store")
-	// TODO: this is NOT what we want to do on read only things.... just on writes
-	st := s.cfg.state()
-	return st.db.Exec(fmt.Sprintf("VACUUM main into %q", st.destination)).Error
+	return s.cfg.state().close()
 }

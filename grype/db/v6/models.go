@@ -6,16 +6,25 @@ import (
 	"time"
 )
 
-func All() []any {
+func ReadModels() []any {
+	models := commonModels()
+	models = append(models, &Blob{})
+	return models
+}
+
+func WriteModels() []any {
+	models := commonModels()
+	models = append(models, &BlobWithDigest{})
+	return models
+}
+
+func commonModels() []any {
 	return []any{
 		// non-domain info
 		&DbMetadata{},
 
 		// data source info
 		&Provider{},
-
-		// core data store
-		&Blob{},
 
 		// package related search tables
 		&AffectedPackageHandle{},    // join on package, operating system
@@ -35,7 +44,20 @@ func All() []any {
 	}
 }
 
-// Non-domain info //////////////////////////////////////////////////////
+// core data store //////////////////////////////////////////////////////
+
+type BlobWithDigest struct {
+	ID     int64  `gorm:"column:id;primaryKey"`
+	Digest string `gorm:"column:digest;not null;unique"`
+	Value  string `gorm:"column:value;not null"`
+}
+
+type Blob struct {
+	ID    int64  `gorm:"column:id;primaryKey"`
+	Value string `gorm:"column:value;not null"`
+}
+
+// non-domain info //////////////////////////////////////////////////////
 
 type DbMetadata struct {
 	BuildTimestamp *time.Time `gorm:"column:build_timestamp;not null"`
@@ -51,7 +73,7 @@ type DbMetadata struct {
 // Canonicals' Ubuntu Security Notices (for all Ubuntu distro versions).
 type Provider struct {
 	// Name of the Vunnel provider (or sub processor responsible for data records from a single specific source, e.g. "ubuntu")
-	ID string `gorm:"column:name;primaryKey"`
+	ID string `gorm:"column:id;primaryKey"`
 
 	// Version of the Vunnel provider (or sub processor equivalent)
 	Version string `gorm:"column:version"`
@@ -72,31 +94,13 @@ type Provider struct {
 	SourceURL string `gorm:"column:source_url"` // TODO: multiple...
 }
 
-// core data store //////////////////////////////////////////////////////
-
-type Blob struct {
-	ID     int64  `gorm:"column:id;primaryKey"`
-	Digest string `gorm:"column:digest;not null;unique"` // TODO: drop this after finalizing the DB
-	Value  string `gorm:"column:value;not null"`
-}
-
-func (b *Blob) BeforeCreate(tx *gorm.DB) (err error) {
-	// if the name, major version, and minor version already exist in the table then we should not insert a new record
-	var existing Blob
-	result := tx.Where("digest = ?", b.Digest).First(&existing)
-	if result.Error == nil {
-		// if the record already exists, then we should use the existing record
-		*b = existing
-	}
-	return nil
-}
-
 // package related search tables //////////////////////////////////////////////////////
 
 // AffectedPackageHandle represents a single package affected by the specified vulnerability.
 type AffectedPackageHandle struct {
 	ID              int64 `gorm:"column:id;primaryKey"`
 	VulnerabilityID int64 `gorm:"column:vulnerability_id;not null"`
+	//Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
 
 	OperatingSystemID *int64           `gorm:"column:operating_system_id"`
 	OperatingSystem   *OperatingSystem `gorm:"foreignKey:OperatingSystemID"`
@@ -105,7 +109,6 @@ type AffectedPackageHandle struct {
 	Package   *Package `gorm:"foreignKey:PackageID"`
 
 	BlobID    int64         `gorm:"column:blob_id"`
-	Blob      *Blob         `gorm:"foreignKey:BlobID"`
 	BlobValue *AffectedBlob `gorm:"-"`
 }
 
@@ -113,6 +116,7 @@ type AffectedPackageHandle struct {
 type NotAffectedPackageHandle struct {
 	ID              int64 `gorm:"column:id;primaryKey"`
 	VulnerabilityID int64 `gorm:"column:vulnerability_id;not null"`
+	//Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
 
 	OperatingSystemID *int64           `gorm:"column:operating_system_id"`
 	OperatingSystem   *OperatingSystem `gorm:"foreignKey:OperatingSystemID"`
@@ -121,7 +125,6 @@ type NotAffectedPackageHandle struct {
 	Package   *Package `gorm:"column:package;foreignKey:PackageID"`
 
 	BlobID    int64            `gorm:"column:blob_id"`
-	Blob      *Blob            `gorm:"foreignKey:BlobID"`
 	BlobValue *NotAffectedBlob `gorm:"-"`
 }
 
@@ -129,17 +132,6 @@ type Package struct {
 	ID   int64  `gorm:"column:id;primaryKey"`
 	Type string `gorm:"column:type;index:idx_package,unique"`
 	Name string `gorm:"column:name;index:idx_package,unique"`
-}
-
-func (p *Package) BeforeCreate(tx *gorm.DB) (err error) {
-	// if the name and version exists, then use the existing Package
-	var existing Package
-	result := tx.Where("type = ? AND name = ?", p.Type, p.Name).First(&existing)
-	if result.Error == nil {
-		// if the record already exists, then we should use the existing record
-		*p = existing
-	}
-	return nil
 }
 
 type OperatingSystem struct {
@@ -168,12 +160,12 @@ func (os *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
 type AffectedCPEHandle struct {
 	ID              int64 `gorm:"column:id;primaryKey"`
 	VulnerabilityID int64 `gorm:"column:vulnerability_id;not null"`
+	//Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
 
 	CpeID int64 `gorm:"column:cpe_id"`
 	CPE   *Cpe  `gorm:"foreignKey:CpeID"`
 
 	BlobID    int64         `gorm:"column:blob_id"`
-	Blob      *Blob         `gorm:"foreignKey:BlobID"`
 	BlobValue *AffectedBlob `gorm:"-"`
 }
 
@@ -181,12 +173,12 @@ type AffectedCPEHandle struct {
 type NotAffectedCPEHandle struct {
 	ID              int64 `gorm:"column:id;primaryKey"`
 	VulnerabilityID int64 `gorm:"column:vulnerability_id;not null"`
+	//Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
 
 	CpeID int64 `gorm:"column:cpe_id"`
 	CPE   *Cpe  `gorm:"foreignKey:CpeID"`
 
 	BlobID    int64            `gorm:"column:blob_id"`
-	Blob      *Blob            `gorm:"foreignKey:BlobID"`
 	BlobValue *NotAffectedBlob `gorm:"-"`
 }
 
@@ -227,8 +219,8 @@ type VulnerabilityHandle struct {
 	ID   int64  `gorm:"column:id;primaryKey"`
 	Name string `gorm:"column:name;not null;index"`
 
-	BlobID    int64              `gorm:"column:blob_id"`
-	Blob      *Blob              `gorm:"foreignKey:BlobID"`
+	BlobID int64 `gorm:"column:blob_id;index,unique"`
+	//Blob      *Blob              `gorm:"foreignKey:BlobID"`
 	BlobValue *VulnerabilityBlob `gorm:"-"`
 }
 
@@ -237,8 +229,8 @@ type KnownExploitedVulnerabilityHandle struct {
 	ID   int64  `gorm:"column:id;primaryKey"`
 	Name string `gorm:"column:name;not null;index"`
 
-	BlobID    int64                            `gorm:"column:blob_id"`
-	Blob      *Blob                            `gorm:"foreignKey:BlobID"`
+	BlobID int64 `gorm:"column:blob_id"`
+	//Blob      *Blob                            `gorm:"foreignKey:BlobID"`
 	BlobValue *KnownExploitedVulnerabilityBlob `gorm:"-"`
 }
 
@@ -247,7 +239,7 @@ type EpssHandle struct {
 	ID   int64  `gorm:"column:id;primaryKey"`
 	Name string `gorm:"column:name;not null;index"`
 
-	BlobID    int64     `gorm:"column:blob_id"`
-	Blob      *Blob     `gorm:"foreignKey:BlobID"`
+	BlobID int64 `gorm:"column:blob_id"`
+	//Blob      *Blob     `gorm:"foreignKey:BlobID"`
 	BlobValue *EpssBlob `gorm:"-"`
 }

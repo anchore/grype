@@ -27,6 +27,16 @@ func newAffectedPackageStore(cfg *StoreConfig, bs *blobStore) *affectedPackageSt
 
 func (s *affectedPackageStore) AddAffectedPackages(packages ...*AffectedPackageHandle) error {
 	for _, v := range packages {
+		if v.Package != nil {
+			var existingPackage Package
+			result := s.db.Where("name = ? AND type = ?", v.Package.Name, v.Package.Type).FirstOrCreate(&existingPackage, v.Package)
+			if result.Error != nil {
+				return fmt.Errorf("failed to create package (name=%q type=%q): %w", v.Package.Name, v.Package.Type, result.Error)
+			} else {
+				v.Package = &existingPackage
+			}
+		}
+
 		if err := s.blobStore.AddAffectedPackageBlob(v); err != nil {
 			return fmt.Errorf("unable to add affected blob: %w", err)
 		}

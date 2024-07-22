@@ -29,9 +29,13 @@ func (s *blobStore) AddVulnerabilityBlob(vulnerabilities ...*VulnerabilityHandle
 		if v.BlobValue == nil {
 			continue
 		}
-		v.Blob = newBlob(v.BlobValue)
-		return s.AddBlobs(v.Blob)
+		bl := newBlob(v.BlobValue)
 
+		if err := s.AddBlobs(bl); err != nil {
+			return err
+		}
+
+		v.BlobID = bl.ID
 	}
 	return nil
 }
@@ -41,9 +45,13 @@ func (s *blobStore) AddAffectedPackageBlob(affected ...*AffectedPackageHandle) e
 		if v.BlobValue == nil {
 			continue
 		}
-		v.Blob = newBlob(v.BlobValue)
-		return s.AddBlobs(v.Blob)
+		bl := newBlob(v.BlobValue)
 
+		if err := s.AddBlobs(bl); err != nil {
+			return err
+		}
+
+		v.BlobID = bl.ID
 	}
 	return nil
 }
@@ -53,14 +61,18 @@ func (s *blobStore) AddAffectedCPEBlob(affected ...*AffectedCPEHandle) error {
 		if v.BlobValue == nil {
 			continue
 		}
-		v.Blob = newBlob(v.BlobValue)
-		return s.AddBlobs(v.Blob)
+		bl := newBlob(v.BlobValue)
 
+		if err := s.AddBlobs(bl); err != nil {
+			return err
+		}
+
+		v.BlobID = bl.ID
 	}
 	return nil
 }
 
-func (s *blobStore) AddBlobs(blobs ...*Blob) error {
+func (s *blobStore) AddBlobs(blobs ...*BlobWithDigest) error {
 	for _, v := range blobs {
 		if err := s.db.Where("digest = ?", v.Digest).FirstOrCreate(v).Error; err != nil {
 			return err
@@ -70,12 +82,12 @@ func (s *blobStore) AddBlobs(blobs ...*Blob) error {
 	return nil
 }
 
-func newBlob(obj any) *Blob {
+func newBlob(obj any) *BlobWithDigest {
 	by, err := json.Marshal(obj)
 	if err != nil {
 		panic("could not marshal object to json")
 	}
-	return &Blob{
+	return &BlobWithDigest{
 		Digest: blobDigest(string(by)),
 		Value:  string(by),
 	}
