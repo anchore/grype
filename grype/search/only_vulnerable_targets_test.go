@@ -13,7 +13,7 @@ func Test_isUnknownTarget(t *testing.T) {
 		expected bool
 	}{
 		{name: "supported syft language", targetSW: "python", expected: false},
-		{name: "supported non-syft language CPE component", targetSW: "wordpress", expected: false},
+		{name: "supported non-syft language CPE component", targetSW: "joomla", expected: false},
 		{name: "unknown component", targetSW: "abc", expected: true},
 	}
 
