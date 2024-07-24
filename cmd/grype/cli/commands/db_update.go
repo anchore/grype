@@ -19,6 +19,11 @@ func DBUpdate(app clio.Application) *cobra.Command {
 		Use:   "update",
 		Short: "download the latest vulnerability database",
 		Args:  cobra.ExactArgs(0),
+		PreRunE: func(_ *cobra.Command, _ []string) error {
+			// `grype db update` should _always_ check for updates, regardless of config
+			opts.DB.MinAgeToCheckForUpdate = 0
+			return nil
+		},
 		RunE: func(_ *cobra.Command, _ []string) error {
 			return runDBUpdate(opts.DB)
 		},
@@ -26,8 +31,6 @@ func DBUpdate(app clio.Application) *cobra.Command {
 }
 
 func runDBUpdate(opts options.Database) error {
-	// `grype db update` should _always_ check for updates, regardless of config
-	opts.MinAgeToCheckForUpdate = 0
 	dbCurator, err := db.NewCurator(opts.ToCuratorConfig())
 	if err != nil {
 		return err

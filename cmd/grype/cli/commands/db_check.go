@@ -19,10 +19,15 @@ func DBCheck(app clio.Application) *cobra.Command {
 	opts := dbOptionsDefault(app.ID())
 
 	return app.SetupCommand(&cobra.Command{
-		Use:     "check",
-		Short:   "check to see if there is a database update available",
-		PreRunE: disableUI(app),
-		Args:    cobra.ExactArgs(0),
+		Use:   "check",
+		Short: "check to see if there is a database update available",
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			// `grype db check` should _always_ check for updates, regardless of config
+			opts.DB.MinAgeToCheckForUpdate = 0
+
+			return disableUI(app)(cmd, args)
+		},
+		Args: cobra.ExactArgs(0),
 		RunE: func(_ *cobra.Command, _ []string) error {
 			return runDBCheck(opts.DB)
 		},
@@ -30,8 +35,6 @@ func DBCheck(app clio.Application) *cobra.Command {
 }
 
 func runDBCheck(opts options.Database) error {
-	// `grype db check` should _always_ check for updates, regardless of config
-	opts.MinAgeToCheckForUpdate = 0
 	dbCurator, err := db.NewCurator(opts.ToCuratorConfig())
 	if err != nil {
 		return err
