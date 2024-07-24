@@ -1,8 +1,10 @@
 package v6
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+
 	"github.com/OneOfOne/xxhash"
 )
 
@@ -83,13 +85,18 @@ func (s *blobStore) AddBlobs(blobs ...*BlobWithDigest) error {
 }
 
 func newBlob(obj any) *BlobWithDigest {
-	by, err := json.Marshal(obj)
+	buf := new(bytes.Buffer)
+	enc := json.NewEncoder(buf)
+	// prevent > and < from being escaped in the payload
+	enc.SetEscapeHTML(false)
+	err := enc.Encode(obj)
 	if err != nil {
-		panic("could not marshal object to json")
+		panic("could not encode object as json")
 	}
+	value := buf.String()
 	return &BlobWithDigest{
-		Digest: blobDigest(string(by)),
-		Value:  string(by),
+		Digest: blobDigest(value),
+		Value:  value,
 	}
 }
 

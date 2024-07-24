@@ -121,10 +121,10 @@ type FixDetail struct {
 
 type AffectedVersion struct {
 	// Type is the type of version range, such as "semver", "rpm", "pypi", etc
-	Type string
+	Type string `json:"type"`
 
 	// Constraint allows for a version range expression, such as ">=1.0.0", "1.0.0", ">= 1.0, <2.0", etc
-	Constraint string
+	Constraint string `json:"constraint"`
 }
 
 type EpssBlob struct {
