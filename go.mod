@@ -60,10 +60,7 @@ require (
 	gorm.io/gorm v1.25.11
 )
 
-require (
-	github.com/anchore/go-collections v0.0.0-20240216171411-9321230ce537
-	github.com/magiconair/properties v1.8.7
-)
+require github.com/anchore/go-collections v0.0.0-20240216171411-9321230ce537
 
 require (
 	cloud.google.com/go v0.110.10 // indirect
@@ -167,6 +164,7 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/logrusorgru/aurora v0.0.0-20200102142835-e9ef32dff381 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
+	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/maruel/natural v1.1.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
