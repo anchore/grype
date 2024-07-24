@@ -18,6 +18,7 @@ type Database struct {
 	AutoUpdate             bool          `yaml:"auto-update" json:"auto-update" mapstructure:"auto-update"`
 	ValidateByHashOnStart  bool          `yaml:"validate-by-hash-on-start" json:"validate-by-hash-on-start" mapstructure:"validate-by-hash-on-start"`
 	ValidateAge            bool          `yaml:"validate-age" json:"validate-age" mapstructure:"validate-age"`
+	MinAgeToCheckForUpdate time.Duration `yaml:"min-age-to-check-for-update" json:"min-age-to-check-for-update" mapstructure:"min-age-to-check-for-update"`
 	MaxAllowedBuiltAge     time.Duration `yaml:"max-allowed-built-age" json:"max-allowed-built-age" mapstructure:"max-allowed-built-age"`
 	UpdateAvailableTimeout time.Duration `yaml:"update-available-timeout" json:"update-available-timeout" mapstructure:"update-available-timeout"`
 	UpdateDownloadTimeout  time.Duration `yaml:"update-download-timeout" json:"update-download-timeout" mapstructure:"update-download-timeout"`
@@ -28,9 +29,10 @@ var _ interface {
 } = (*Database)(nil)
 
 const (
-	defaultMaxDBAge               time.Duration = time.Hour * 24 * 5
-	defaultUpdateAvailableTimeout               = time.Second * 30
-	defaultUpdateDownloadTimeout                = time.Second * 120
+	defaultMinBuiltAgeToCheckForUpdate               = time.Hour * 12
+	defaultMaxDBAge                    time.Duration = time.Hour * 24 * 5
+	defaultUpdateAvailableTimeout                    = time.Second * 30
+	defaultUpdateDownloadTimeout                     = time.Second * 120
 )
 
 func DefaultDatabase(id clio.Identification) Database {
@@ -40,6 +42,7 @@ func DefaultDatabase(id clio.Identification) Database {
 		AutoUpdate:  true,
 		ValidateAge: true,
 		// After this period (5 days) the db data is considered stale
+		MinAgeToCheckForUpdate: defaultMinBuiltAgeToCheckForUpdate,
 		MaxAllowedBuiltAge:     defaultMaxDBAge,
 		UpdateAvailableTimeout: defaultUpdateAvailableTimeout,
 		UpdateDownloadTimeout:  defaultUpdateDownloadTimeout,
@@ -53,6 +56,7 @@ func (cfg Database) ToCuratorConfig() db.Config {
 		CACert:              cfg.CACert,
 		ValidateByHashOnGet: cfg.ValidateByHashOnStart,
 		ValidateAge:         cfg.ValidateAge,
+		MinBuiltAgeToCheck:  cfg.MinAgeToCheckForUpdate,
 		MaxAllowedBuiltAge:  cfg.MaxAllowedBuiltAge,
 		ListingFileTimeout:  cfg.UpdateAvailableTimeout,
 		UpdateTimeout:       cfg.UpdateDownloadTimeout,

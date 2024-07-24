@@ -30,6 +30,8 @@ func DBCheck(app clio.Application) *cobra.Command {
 }
 
 func runDBCheck(opts options.Database) error {
+	// `grype db check` should _always_ check for updates, regardless of config
+	opts.MinAgeToCheckForUpdate = 0
 	dbCurator, err := db.NewCurator(opts.ToCuratorConfig())
 	if err != nil {
 		return err

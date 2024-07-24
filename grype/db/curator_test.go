@@ -2,6 +2,7 @@ package db
 
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -62,10 +63,10 @@ func (g *testGetter) GetToDir(dst, src string, _ ...*progress.Manual) error {
 	return afero.WriteFile(g.fs, dst, []byte(g.dir[src]), 0755)
 }
 
-func newTestCurator(tb testing.TB, fs afero.Fs, getter file.Getter, dbDir, metadataUrl string, validateDbHash bool) Curator {
+func newTestCurator(tb testing.TB, fs afero.Fs, getter file.Getter, dbDir, listingFileURL string, validateDbHash bool) Curator {
 	c, err := NewCurator(Config{
 		DBRootDir:           dbDir,
-		ListingURL:          metadataUrl,
+		ListingURL:          listingFileURL,
 		ValidateByHashOnGet: validateDbHash,
 	})
 
@@ -446,4 +447,108 @@ func TestCuratorTimeoutBehavior(t *testing.T) {
 	case <-timeout:
 		t.Fatalf("timeout exceeded (%v)", failAfter)
 	}
+}
+
+func TestCuratorIsUpdateAvailable(t *testing.T) {
+	testDir := "/tmp/dbDir"
+	listingURL := "http://example.com/metadata/listing.json"
+	tests := []struct {
+		name              string
+		existingMetadata  Metadata
+		listing           Listing
+		forceListingCheck bool
+		wantListingCheck  bool
+		wantUpdate        bool
+		wantErr           bool
+	}{
+		{
+			name:             "skip update check; too soon",
+			existingMetadata: metadataBuiltAt(time.Now().Add(-10 * time.Minute)),
+			wantListingCheck: false,
+			wantUpdate:       false,
+			wantErr:          false,
+		},
+		{
+			name:              "force causes check even if local metadata is very new",
+			existingMetadata:  metadataBuiltAt(time.Now().Add(-10 * time.Minute)),
+			listing:           listingWithEntryBuiltAt(time.Time{}, "http://example.com/payload.tar.gz"),
+			forceListingCheck: true,
+			wantListingCheck:  true,
+			wantUpdate:        false,
+			wantErr:           false,
+		},
+		{
+			name:             "check for update but not needed",
+			existingMetadata: metadataBuiltAt(time.Now().Add(-50 * time.Hour)), // old listing file
+			listing:          listingWithEntryBuiltAt(time.Time{}, "http://example.com/payload.tar.gz"),
+			wantListingCheck: true,
+			wantUpdate:       false,
+			wantErr:          false,
+		},
+		{
+			name:             "update needed",
+			wantListingCheck: true,
+			wantUpdate:       true,
+			wantErr:          false,
+			existingMetadata: metadataBuiltAt(time.Now().Add(-50 * time.Hour)), // old listing file
+			listing:          listingWithEntryBuiltAt(time.Now().Add(-1*time.Hour), "http://example.com/payload.tar.gz"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			files := map[string]string{}
+			b, err := json.Marshal(tt.listing)
+			require.NoError(t, err)
+			files[listingURL] = string(b)
+			dirs := map[string]string{}
+			fs := afero.NewMemMapFs()
+			fs.MkdirAll(path.Join(testDir, "5"), 0755)
+			f, err := fs.Create(path.Join(testDir, "5", "metadata.json"))
+			require.NoError(t, err)
+			defer f.Close()
+			err = json.NewEncoder(f).Encode(tt.existingMetadata)
+			require.NoError(t, err)
+			getter := newTestGetter(fs, files, dirs)
+			cur := newTestCurator(t, fs, getter, testDir, listingURL, false)
+			cur.minBuildAgeToCheck = 12 * time.Hour
+			if tt.forceListingCheck {
+				cur.minBuildAgeToCheck = 0
+			}
+			gotUpdate, _, _, gotErr := cur.IsUpdateAvailable()
+			if tt.wantErr {
+				require.Error(t, gotErr)
+				return
+			}
+			if !tt.wantListingCheck {
+				assert.Empty(t, getter.calls)
+			} else {
+				assert.True(t, getter.calls.Contains(listingURL))
+			}
+			require.NoError(t, gotErr)
+			assert.Equal(t, tt.wantUpdate, gotUpdate)
+		})
+	}
+}
+
+func metadataBuiltAt(t time.Time) Metadata {
+	return Metadata{
+		Built:    t,
+		Version:  5,
+		Checksum: "sha256:972d0f51e180d424f3fff2637a1559e06940f35eda6bd03593be2a3db8f28971",
+	}
+}
+
+func listingWithEntryBuiltAt(t time.Time, u string) Listing {
+	return Listing{Available: map[int][]ListingEntry{
+		5: {
+			ListingEntry{
+				Built:    t,
+				URL:      mustUrl(url.Parse(u)),
+				Version:  5,
+				Checksum: "sha256:0123456789abcdef",
+			},
+		},
+	}}
+
 }

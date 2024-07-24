@@ -36,6 +36,7 @@ type Config struct {
 	CACert              string
 	ValidateByHashOnGet bool
 	ValidateAge         bool
+	MinBuiltAgeToCheck  time.Duration
 	MaxAllowedBuiltAge  time.Duration
 	ListingFileTimeout  time.Duration
 	UpdateTimeout       time.Duration
@@ -52,6 +53,7 @@ type Curator struct {
 	validateByHashOnGet bool
 	validateAge         bool
 	maxAllowedBuiltAge  time.Duration
+	minBuildAgeToCheck  time.Duration
 }
 
 func NewCurator(cfg Config) (Curator, error) {
@@ -81,6 +83,7 @@ func NewCurator(cfg Config) (Curator, error) {
 		validateByHashOnGet: cfg.ValidateByHashOnGet,
 		validateAge:         cfg.ValidateAge,
 		maxAllowedBuiltAge:  cfg.MaxAllowedBuiltAge,
+		minBuildAgeToCheck:  cfg.MinBuiltAgeToCheck,
 	}, nil
 }
 
@@ -189,6 +192,20 @@ func (c *Curator) Update() (bool, error) {
 func (c *Curator) IsUpdateAvailable() (bool, *Metadata, *ListingEntry, error) {
 	log.Debugf("checking for available database updates")
 
+	// compare created data to current db date
+	current, err := NewMetadataFromDir(c.fs, c.dbDir)
+	if err != nil {
+		return false, nil, nil, fmt.Errorf("current metadata corrupt: %w", err)
+	}
+
+	// There is very little chance a new DB is available so soon
+	// Do nothing to reduce traffic on CDN that serves listing file.
+	if current != nil && time.Since(current.Built) < c.minBuildAgeToCheck {
+		log.Debugf("skipping db update check because current db is less than %0.2f hours old", c.minBuildAgeToCheck.Hours())
+		log.Debugf("run 'grype db update' to force a check")
+		return false, nil, nil, nil
+	}
+
 	listing, err := c.ListingFromURL()
 	if err != nil {
 		return false, nil, nil, err
@@ -199,12 +216,6 @@ func (c *Curator) IsUpdateAvailable() (bool, *Metadata, *ListingEntry, error) {
 		return false, nil, nil, fmt.Errorf("no db candidates with correct version available (maybe there is an application update available?)")
 	}
 	log.Debugf("found database update candidate: %s", updateEntry)
-
-	// compare created data to current db date
-	current, err := NewMetadataFromDir(c.fs, c.dbDir)
-	if err != nil {
-		return false, nil, nil, fmt.Errorf("current metadata corrupt: %w", err)
-	}
 
 	if current.IsSupersededBy(updateEntry) {
 		log.Debugf("database update available: %s", updateEntry)
