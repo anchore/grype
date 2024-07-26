@@ -3,6 +3,7 @@ package match
 import (
 	"testing"
 
+	"github.com/anchore/syft/syft/file"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -68,14 +69,72 @@ func TestMatchesSortMixedDimensions(t *testing.T) {
 			Type:    syftPkg.RpmPkg,
 		},
 	}
+	sixth := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID: "CVE-2020-0020",
+			Fix: vulnerability.Fix{
+				Versions: []string{"2.0.0", "1.0.0"},
+			},
+		},
+		Package: pkg.Package{
+			ID:      pkg.ID(uuid.NewString()),
+			Name:    "package-d",
+			Version: "2.0.0",
+			Type:    syftPkg.RpmPkg,
+		},
+	}
+	seventh := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID: "CVE-2020-0020",
+			Fix: vulnerability.Fix{
+				Versions: []string{"2.0.1"},
+			},
+		},
+		Package: pkg.Package{
+			ID:      pkg.ID(uuid.NewString()),
+			Name:    "package-d",
+			Version: "2.0.0",
+			Type:    syftPkg.RpmPkg,
+		},
+	}
+	eighth := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID: "CVE-2020-0020",
+			Fix: vulnerability.Fix{
+				Versions: []string{"3.0.0"},
+			},
+		},
+		Package: pkg.Package{
+			ID:        pkg.ID(uuid.NewString()),
+			Name:      "package-d",
+			Version:   "2.0.0",
+			Type:      syftPkg.RpmPkg,
+			Locations: file.NewLocationSet(file.NewLocation("/some/first-path")),
+		},
+	}
+	ninth := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID: "CVE-2020-0020",
+			Fix: vulnerability.Fix{
+				Versions: []string{"3.0.0"},
+			},
+		},
+		Package: pkg.Package{
+			ID:        pkg.ID(uuid.NewString()),
+			Name:      "package-d",
+			Version:   "2.0.0",
+			Type:      syftPkg.RpmPkg,
+			Locations: file.NewLocationSet(file.NewLocation("/some/other-path")),
+		},
+	}
 
 	input := []Match{
 		// shuffle vulnerability id, package name, package version, and package type
-		fifth, third, first, second, fourth,
+		ninth, fifth, eighth, third, seventh, first, sixth, second, fourth,
 	}
 	matches := NewMatches(input...)
 
-	assertMatchOrder(t, []Match{first, second, third, fourth, fifth}, matches.Sorted())
+	assertMatchOrder(t, []Match{first, second, third, fourth, fifth, sixth, seventh, eighth, ninth}, matches.Sorted())
 
 }
 
@@ -289,4 +348,68 @@ func assertIgnoredMatchOrder(t *testing.T, expected, actual []IgnoredMatch) {
 
 	// make certain the fields are what you'd expect
 	assert.Equal(t, expected, actual)
+}
+
+func TestMatches_Diff(t *testing.T) {
+	a := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID:        "vuln-a",
+			Namespace: "name-a",
+		},
+		Package: pkg.Package{
+			ID: "package-a",
+		},
+	}
+
+	b := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID:        "vuln-b",
+			Namespace: "name-b",
+		},
+		Package: pkg.Package{
+			ID: "package-b",
+		},
+	}
+
+	c := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID:        "vuln-c",
+			Namespace: "name-c",
+		},
+		Package: pkg.Package{
+			ID: "package-c",
+		},
+	}
+
+	tests := []struct {
+		name    string
+		subject Matches
+		other   Matches
+		want    Matches
+	}{
+		{
+			name:    "no diff",
+			subject: NewMatches(a, b, c),
+			other:   NewMatches(a, b, c),
+			want:    newMatches(),
+		},
+		{
+			name:    "extra items in subject",
+			subject: NewMatches(a, b, c),
+			other:   NewMatches(a, b),
+			want:    NewMatches(c),
+		},
+		{
+			// this demonstrates that this is not meant to implement a symmetric diff
+			name:    "extra items in other (results in no diff)",
+			subject: NewMatches(a, b),
+			other:   NewMatches(a, b, c),
+			want:    NewMatches(),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, &tt.want, tt.subject.Diff(tt.other), "Diff(%v)", tt.other)
+		})
+	}
 }

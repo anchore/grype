@@ -378,6 +378,32 @@ func Test_NamespacesForLanguage(t *testing.T) {
 				"2-name",
 			},
 		},
+		{
+			language: syftPkg.Swift,
+			namerInput: &pkg.Package{
+				ID:   pkg.ID(uuid.NewString()),
+				Name: "2-name",
+			},
+			expectedNamespaces: []string{
+				"github:swift",
+			},
+			expectedNames: []string{
+				"2-name",
+			},
+		},
+		{
+			language: syftPkg.PHP,
+			namerInput: &pkg.Package{
+				ID:   pkg.ID(uuid.NewString()),
+				Name: "2-name",
+			},
+			expectedNamespaces: []string{
+				"github:php",
+			},
+			expectedNames: []string{
+				"2-name",
+			},
+		},
 	}
 
 	observedLanguages := strset.New()
@@ -387,10 +413,10 @@ func Test_NamespacesForLanguage(t *testing.T) {
 		allLanguages.Add(string(l))
 	}
 
-	// remove PHP, CPP for coverage as feed has not been updated
-	allLanguages.Remove(string(syftPkg.PHP))
+	// remove for types that do not have specific namespaces to search within
 	allLanguages.Remove(string(syftPkg.CPP))
-	allLanguages.Remove(string(syftPkg.Swift))
+	allLanguages.Remove(string(syftPkg.R))
+	allLanguages.Remove(string(syftPkg.Lua))
 
 	for _, test := range tests {
 		t.Run(string(test.language), func(t *testing.T) {

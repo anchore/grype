@@ -6,8 +6,8 @@ import (
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/grype/internal/stringutil"
 	packageurl "github.com/anchore/packageurl-go"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
@@ -38,7 +38,7 @@ func NamespaceForFeedGroup(feed, group string) (string, error) {
 	return "", fmt.Errorf("feed=%q group=%q has no namespace mappings", feed, group)
 }
 
-// NamespaceFromDistro returns the correct Feed Service namespace for the given
+// NamespaceForDistro returns the correct Feed Service namespace for the given
 // distro. A namespace is a distinct identifier from the Feed Service, and it
 // can be a combination of distro name and version(s), for example "amzn:8".
 // This is critical to query the database and correlate the distro version with
@@ -110,7 +110,7 @@ func defaultPackageNamer(p pkg.Package) []string {
 }
 
 func githubJavaPackageNamer(p pkg.Package) []string {
-	names := internal.NewStringSet()
+	names := stringutil.NewStringSet()
 
 	// all github advisories are stored by "<group-name>:<artifact-name>"
 	if metadata, ok := p.Metadata.(pkg.JavaMetadata); ok {

@@ -37,11 +37,14 @@ type Config struct {
 	ValidateByHashOnGet bool
 	ValidateAge         bool
 	MaxAllowedBuiltAge  time.Duration
+	ListingFileTimeout  time.Duration
+	UpdateTimeout       time.Duration
 }
 
 type Curator struct {
 	fs                  afero.Fs
-	downloader          file.Getter
+	listingDownloader   file.Getter
+	updateDownloader    file.Getter
 	targetSchema        int
 	dbDir               string
 	dbPath              string
@@ -55,15 +58,23 @@ func NewCurator(cfg Config) (Curator, error) {
 	dbDir := path.Join(cfg.DBRootDir, strconv.Itoa(vulnerability.SchemaVersion))
 
 	fs := afero.NewOsFs()
-	httpClient, err := defaultHTTPClient(fs, cfg.CACert)
+	listingClient, err := defaultHTTPClient(fs, cfg.CACert)
 	if err != nil {
 		return Curator{}, err
 	}
+	listingClient.Timeout = cfg.ListingFileTimeout
+
+	dbClient, err := defaultHTTPClient(fs, cfg.CACert)
+	if err != nil {
+		return Curator{}, err
+	}
+	dbClient.Timeout = cfg.UpdateTimeout
 
 	return Curator{
 		fs:                  fs,
 		targetSchema:        vulnerability.SchemaVersion,
-		downloader:          file.NewGetter(httpClient),
+		listingDownloader:   file.NewGetter(listingClient),
+		updateDownloader:    file.NewGetter(dbClient),
 		dbDir:               dbDir,
 		dbPath:              path.Join(dbDir, FileName),
 		listingURL:          cfg.ListingURL,
@@ -119,9 +130,7 @@ func (c *Curator) Delete() error {
 func (c *Curator) Update() (bool, error) {
 	// let consumers know of a monitorable event (download + import stages)
 	importProgress := progress.NewManual(1)
-	stage := &progress.Stage{
-		Current: "checking for update",
-	}
+	stage := progress.NewAtomicStage("checking for update")
 	downloadProgress := progress.NewManual(1)
 	aggregateProgress := progress.NewAggregator(progress.DefaultStrategy, downloadProgress, importProgress)
 
@@ -171,7 +180,7 @@ func (c *Curator) Update() (bool, error) {
 		return true, nil
 	}
 
-	stage.Current = "no update available"
+	stage.Set("no update available")
 	return false, nil
 }
 
@@ -207,26 +216,26 @@ func (c *Curator) IsUpdateAvailable() (bool, *Metadata, *ListingEntry, error) {
 }
 
 // UpdateTo updates the existing DB with the specific other version provided from a listing entry.
-func (c *Curator) UpdateTo(listing *ListingEntry, downloadProgress, importProgress *progress.Manual, stage *progress.Stage) error {
-	stage.Current = "downloading"
+func (c *Curator) UpdateTo(listing *ListingEntry, downloadProgress, importProgress *progress.Manual, stage *progress.AtomicStage) error {
+	stage.Set("downloading")
 	// note: the temp directory is persisted upon download/validation/activation failure to allow for investigation
 	tempDir, err := c.download(listing, downloadProgress)
 	if err != nil {
 		return err
 	}
 
-	stage.Current = "validating integrity"
+	stage.Set("validating integrity")
 	_, err = c.validateIntegrity(tempDir)
 	if err != nil {
 		return err
 	}
 
-	stage.Current = "importing"
+	stage.Set("importing")
 	err = c.activate(tempDir)
 	if err != nil {
 		return err
 	}
-	stage.Current = "updated"
+	stage.Set("updated")
 	importProgress.Set(importProgress.Size())
 	importProgress.SetCompleted()
 
@@ -285,7 +294,7 @@ func (c *Curator) download(listing *ListingEntry, downloadProgress *progress.Man
 	url.RawQuery = query.Encode()
 
 	// go-getter will automatically extract all files within the archive to the temp dir
-	err = c.downloader.GetToDir(tempDir, listing.URL.String(), downloadProgress)
+	err = c.updateDownloader.GetToDir(tempDir, listing.URL.String(), downloadProgress)
 	if err != nil {
 		return "", fmt.Errorf("unable to download db: %w", err)
 	}
@@ -377,7 +386,7 @@ func (c Curator) ListingFromURL() (Listing, error) {
 	}()
 
 	// download the listing file
-	err = c.downloader.GetFile(tempFile.Name(), c.listingURL)
+	err = c.listingDownloader.GetFile(tempFile.Name(), c.listingURL)
 	if err != nil {
 		return Listing{}, fmt.Errorf("unable to download listing: %w", err)
 	}
@@ -392,6 +401,7 @@ func (c Curator) ListingFromURL() (Listing, error) {
 
 func defaultHTTPClient(fs afero.Fs, caCertPath string) (*http.Client, error) {
 	httpClient := cleanhttp.DefaultClient()
+	httpClient.Timeout = 30 * time.Second
 	if caCertPath != "" {
 		rootCAs := x509.NewCertPool()
 

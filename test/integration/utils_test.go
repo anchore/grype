@@ -1,19 +1,22 @@
 package integration
 
 import (
+	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/scylladb/go-set/strset"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/syft/syft"
-	"github.com/anchore/syft/syft/pkg/cataloger"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
 )
@@ -46,8 +49,15 @@ func PullThroughImageCache(t testing.TB, imageName string) string {
 func saveImage(t testing.TB, imageName string, destPath string) {
 	sourceImage := fmt.Sprintf("docker://docker.io/%s", imageName)
 	destinationString := fmt.Sprintf("docker-archive:%s", destPath)
+	skopeoPath := filepath.Join(repoRoot(t), ".tool", "skopeo")
+	policyPath := filepath.Join(repoRoot(t), "test", "integration", "test-fixtures", "skopeo-policy.json")
 
-	cmd := exec.Command("skopeo", "copy", "--override-os", "linux", sourceImage, destinationString)
+	skopeoCommand := []string{
+		"--policy", policyPath,
+		"copy", "--override-os", "linux", sourceImage, destinationString,
+	}
+
+	cmd := exec.Command(skopeoPath, skopeoCommand...)
 
 	out, err := cmd.Output()
 	if err != nil {
@@ -61,37 +71,28 @@ func saveImage(t testing.TB, imageName string, destPath string) {
 	t.Logf("Stdout: %s\n", out)
 }
 
-func getSyftSBOM(t testing.TB, image string, format sbom.Format) string {
-	sourceInput, err := source.ParseInput(image, "")
-	if err != nil {
-		t.Fatalf("could not generate source input for packages command: %+v", err)
-	}
+func getSyftSBOM(t testing.TB, image, from string, encoder sbom.FormatEncoder) string {
+	src, err := syft.GetSource(context.Background(), image, syft.DefaultGetSourceConfig().WithSources(from))
+	require.NoError(t, err)
 
-	src, cleanup, err := source.New(*sourceInput, nil, nil)
-	if err != nil {
-		t.Fatalf("can't get the source: %+v", err)
-	}
-	t.Cleanup(cleanup)
+	t.Cleanup(func() {
+		require.NoError(t, src.Close())
+	})
 
-	config := cataloger.DefaultConfig()
+	config := syft.DefaultCreateSBOMConfig()
+
 	config.Search.Scope = source.SquashedScope
 	// TODO: relationships are not verified at this time
-	catalog, _, distro, err := syft.CatalogPackages(src, config)
+	s, err := syft.CreateSBOM(context.Background(), src, config)
+	require.NoError(t, err)
+	require.NotNil(t, s)
 
-	s := sbom.SBOM{
-		Artifacts: sbom.Artifacts{
-			PackageCatalog:    catalog,
-			LinuxDistribution: distro,
-		},
-		Source: src.Metadata,
-	}
+	var buf bytes.Buffer
 
-	bytes, err := syft.Encode(s, format)
-	if err != nil {
-		t.Fatalf("presenter failed: %+v", err)
-	}
+	err = encoder.Encode(&buf, *s)
+	require.NoError(t, err)
 
-	return string(bytes)
+	return buf.String()
 }
 
 func getMatchSet(matches match.Matches) *strset.Set {
@@ -100,4 +101,17 @@ func getMatchSet(matches match.Matches) *strset.Set {
 		s.Add(fmt.Sprintf("%s-%s-%s", m.Vulnerability.ID, m.Package.Name, m.Package.Version))
 	}
 	return s
+}
+
+func repoRoot(tb testing.TB) string {
+	tb.Helper()
+	root, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
+	if err != nil {
+		tb.Fatalf("unable to find repo root dir: %+v", err)
+	}
+	absRepoRoot, err := filepath.Abs(strings.TrimSpace(string(root)))
+	if err != nil {
+		tb.Fatal("unable to get abs path to repo root:", err)
+	}
+	return absRepoRoot
 }

@@ -1,0 +1,35 @@
+name: "Release"
+
+permissions:
+  contents: read
+
+on:
+
+  workflow_dispatch:
+    inputs:
+      version:
+        description: release version to update the version file with (prefixed with v)
+        required: true
+
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        description: release version to update the version file with (prefixed with v)
+        required: true
+
+jobs:
+
+  release:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.1.7
+
+      - name: Update version file
+        run: make ci-release-version-file
+        env:
+          RELEASE_VERSION: ${{ github.event.inputs.version }}
+          # for updating the VERSION file in S3...
+          AWS_ACCESS_KEY_ID: ${{ secrets.TOOLBOX_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.TOOLBOX_AWS_SECRET_ACCESS_KEY }}
+

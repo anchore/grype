@@ -1,11 +1,11 @@
 {
   "version": "2.1.0",
-  "$schema": "https://json.schemastore.org/sarif-2.1.0-rtm.5.json",
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
   "runs": [
     {
       "tool": {
         "driver": {
-          "name": "Grype",
+          "name": "grype",
           "version": "0.0.0-dev",
           "informationUri": "https://github.com/anchore/grype",
           "rules": [
@@ -52,7 +52,7 @@
         {
           "ruleId": "CVE-1999-0001-package-1",
           "message": {
-            "text": "The path /some/path/somefile-1.txt reports package-1 at version 1.1.1  which would result in a vulnerable (rpm) package installed"
+            "text": "A low vulnerability in rpm package: package-1, version 1.1.1 was found at: /some/path/somefile-1.txt"
           },
           "locations": [
             {
@@ -68,12 +68,15 @@
                 }
               }
             }
-          ]
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "0eefd3962fe456b80e5ddad4ec777c7f75b3c0586db887eff1c98f376fff60ba:1"
+          }
         },
         {
           "ruleId": "CVE-1999-0002-package-2",
           "message": {
-            "text": "The path /some/path/somefile-2.txt reports package-2 at version 2.2.2  which would result in a vulnerable (deb) package installed"
+            "text": "A critical vulnerability in deb package: package-2, version 2.2.2 was found at: /some/path/somefile-2.txt"
           },
           "locations": [
             {
@@ -89,7 +92,10 @@
                 }
               }
             }
-          ]
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "0d4ef10dce50e71641e9314195020cea18febe4c6a4a8145a485154383d4fe0b:1"
+          }
         }
       ]
     }

@@ -11,11 +11,13 @@ const (
 	SemanticFormat
 	ApkFormat
 	DebFormat
+	MavenFormat
 	RpmFormat
 	PythonFormat
 	KBFormat
 	GemFormat
 	PortageFormat
+	GolangFormat
 )
 
 type Format int
@@ -25,17 +27,20 @@ var formatStr = []string{
 	"Semantic",
 	"Apk",
 	"Deb",
+	"Maven",
 	"RPM",
 	"Python",
 	"KB",
 	"Gem",
 	"Portage",
+	"Go",
 }
 
 var Formats = []Format{
 	SemanticFormat,
 	ApkFormat,
 	DebFormat,
+	MavenFormat,
 	RpmFormat,
 	PythonFormat,
 	KBFormat,
@@ -51,6 +56,10 @@ func ParseFormat(userStr string) Format {
 		return ApkFormat
 	case strings.ToLower(DebFormat.String()), "dpkg":
 		return DebFormat
+	case strings.ToLower(GolangFormat.String()), "go":
+		return GolangFormat
+	case strings.ToLower(MavenFormat.String()), "maven":
+		return MavenFormat
 	case strings.ToLower(RpmFormat.String()), "rpm":
 		return RpmFormat
 	case strings.ToLower(PythonFormat.String()), "python":
@@ -72,6 +81,8 @@ func FormatFromPkgType(t pkg.Type) Format {
 		format = ApkFormat
 	case pkg.DebPkg:
 		format = DebFormat
+	case pkg.JavaPkg:
+		format = MavenFormat
 	case pkg.RpmPkg:
 		format = RpmFormat
 	case pkg.GemPkg:
@@ -82,6 +93,8 @@ func FormatFromPkgType(t pkg.Type) Format {
 		format = KBFormat
 	case pkg.PortagePkg:
 		format = PortageFormat
+	case pkg.GoModulePkg:
+		format = GolangFormat
 	default:
 		format = UnknownFormat
 	}

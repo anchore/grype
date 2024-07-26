@@ -16,7 +16,9 @@ type Matcher struct {
 }
 
 type MatcherConfig struct {
-	UseCPEs bool
+	UseCPEs                                bool
+	AlwaysUseCPEForStdlib                  bool
+	AllowMainModulePseudoVersionComparison bool
 }
 
 func NewGolangMatcher(cfg MatcherConfig) *Matcher {
@@ -41,18 +43,36 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 		mainModule = m.MainModule
 	}
 
-	// Golang currently does not have a standard way of incorporating the vcs version
-	// into the compiled binary: https://github.com/golang/go/issues/50603
-	// current version information for the main module is incomplete leading to multiple FP
-	// TODO: remove this exclusion when vcs information is included in future go version
-	isNotCorrected := strings.HasPrefix(p.Version, "v0.0.0-") || strings.HasPrefix(p.Version, "(devel)")
+	// Golang currently does not have a standard way of incorporating the main
+	// module's version into the compiled binary:
+	// https://github.com/golang/go/issues/50603.
+	//
+	// Syft has some fallback mechanisms to come up with a more sane version value
+	// depending on the scenario. But if none of these apply, the Go-set value of
+	// "(devel)" is used, which is altogether unhelpful for vulnerability matching.
+	var isNotCorrected bool
+	if m.cfg.AllowMainModulePseudoVersionComparison {
+		isNotCorrected = strings.HasPrefix(p.Version, "(devel)")
+	} else {
+		// when AllowPseudoVersionComparison is false
+		isNotCorrected = strings.HasPrefix(p.Version, "v0.0.0-") || strings.HasPrefix(p.Version, "(devel)")
+	}
 	if p.Name == mainModule && isNotCorrected {
 		return matches, nil
 	}
 
 	criteria := search.CommonCriteria
-	if m.cfg.UseCPEs {
+	if searchByCPE(p.Name, m.cfg) {
 		criteria = append(criteria, search.ByCPE)
 	}
+
 	return search.ByCriteria(store, d, p, m.Type(), criteria...)
+}
+
+func searchByCPE(name string, cfg MatcherConfig) bool {
+	if cfg.UseCPEs {
+		return true
+	}
+
+	return cfg.AlwaysUseCPEForStdlib && (name == "stdlib")
 }

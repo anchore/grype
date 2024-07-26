@@ -9,6 +9,9 @@ if ! [ -x "$(command -v gh)" ]; then
     exit 1
 fi
 
+# we want to stop the release as early as possible if the version is not a release version
+./.github/scripts/check-syft-version-is-release.sh
+
 gh auth status
 
 # we need all of the git state to determine the next version. Since tagging is done by

@@ -1,37 +1,43 @@
 package sarif
 
 import (
+	"crypto/sha256"
 	"fmt"
+	"hash"
 	"io"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/owenrumney/go-sarif/sarif"
 
+	"github.com/anchore/clio"
 	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal/version"
+	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/source"
 )
 
 // Presenter holds the data for generating a report and implements the presenter.Presenter interface
 type Presenter struct {
+	id               clio.Identification
 	results          match.Matches
 	packages         []pkg.Package
-	srcMetadata      *source.Metadata
+	src              *source.Description
 	metadataProvider vulnerability.MetadataProvider
 }
 
 // NewPresenter is a *Presenter constructor
 func NewPresenter(pb models.PresenterConfig) *Presenter {
 	return &Presenter{
+		id:               pb.ID,
 		results:          pb.Matches,
 		packages:         pb.Packages,
 		metadataProvider: pb.MetadataProvider,
-		srcMetadata:      pb.Context.Source,
+		src:              pb.Context.Source,
 	}
 }
 
@@ -52,8 +58,8 @@ func (pres *Presenter) toSarifReport() (*sarif.Report, error) {
 		return nil, err
 	}
 
-	v := version.FromBuild().Version
-	if v == "[not provided]" {
+	v := pres.id.Version
+	if v == "[not provided]" || v == "" {
 		// Need a semver to pass the MS SARIF validator
 		v = "0.0.0-dev"
 	}
@@ -61,7 +67,7 @@ func (pres *Presenter) toSarifReport() (*sarif.Report, error) {
 	doc.AddRun(&sarif.Run{
 		Tool: sarif.Tool{
 			Driver: &sarif.ToolComponent{
-				Name:           "Grype",
+				Name:           pres.id.Name,
 				Version:        sp(v),
 				InformationURI: sp("https://github.com/anchore/grype"),
 				Rules:          pres.sarifRules(),
@@ -162,10 +168,19 @@ func (pres *Presenter) packagePath(p pkg.Package) string {
 
 // inputPath returns a friendlier relative path or absolute path depending on the input, not prefixed by . or ./
 func (pres *Presenter) inputPath() string {
-	if pres.srcMetadata == nil {
+	if pres.src == nil {
 		return ""
 	}
-	inputPath := strings.TrimPrefix(pres.srcMetadata.Path, "./")
+	var inputPath string
+	switch m := pres.src.Metadata.(type) {
+	case source.FileMetadata:
+		inputPath = m.Path
+	case source.DirectoryMetadata:
+		inputPath = m.Path
+	default:
+		return ""
+	}
+	inputPath = strings.TrimPrefix(inputPath, "./")
 	if inputPath == "." {
 		return ""
 	}
@@ -173,21 +188,22 @@ func (pres *Presenter) inputPath() string {
 }
 
 // locationPath returns a path for the location, relative to the cwd
-func (pres *Presenter) locationPath(l source.Location) string {
-	path := l.RealPath
-	if l.VirtualPath != "" {
-		path = l.VirtualPath
-	}
+func (pres *Presenter) locationPath(l file.Location) string {
+	path := l.Path()
 	in := pres.inputPath()
 	path = strings.TrimPrefix(path, "./")
 	// trimmed off any ./ and accounted for dir:. for both path and input path
-	if pres.srcMetadata != nil && pres.srcMetadata.Scheme == source.DirectoryScheme {
-		if filepath.IsAbs(path) || in == "" {
-			return path
+	if pres.src != nil {
+		_, ok := pres.src.Metadata.(source.DirectoryMetadata)
+		if ok {
+			if filepath.IsAbs(path) || in == "" {
+				return path
+			}
+			// return a path relative to the cwd, if it's not absolute
+			return fmt.Sprintf("%s/%s", in, path)
 		}
-		// return a path relative to the cwd, if it's not absolute
-		return fmt.Sprintf("%s/%s", in, path)
 	}
+
 	return path
 }
 
@@ -197,32 +213,33 @@ func (pres *Presenter) locations(m match.Match) []*sarif.Location {
 
 	var logicalLocations []*sarif.LogicalLocation
 
-	switch pres.srcMetadata.Scheme {
-	case source.ImageScheme:
-		img := pres.srcMetadata.ImageMetadata.UserInput
+	switch metadata := pres.src.Metadata.(type) {
+	case source.ImageMetadata:
+		img := metadata.UserInput
 		locations := m.Package.Locations.ToSlice()
 		for _, l := range locations {
-			trimmedPath := strings.TrimPrefix(pres.locationPath(l), "/")
+			trimmedPath := strings.TrimLeft(pres.locationPath(l), "/")
 			logicalLocations = append(logicalLocations, &sarif.LogicalLocation{
 				FullyQualifiedName: sp(fmt.Sprintf("%s@%s:/%s", img, l.FileSystemID, trimmedPath)),
 				Name:               sp(l.RealPath),
 			})
 		}
 
-		// this is a hack to get results to show up in GitHub, as it requires relative paths for the location
-		// but we really won't have any information about what Dockerfile on the filesystem was used to build the image
-		// TODO we could add configuration to specify the prefix, a user might want to specify an image name and architecture
-		// in the case of multiple vuln scans, for example
-		physicalLocation = fmt.Sprintf("image/%s", physicalLocation)
-	case source.FileScheme:
+		// GitHub requires paths for the location, but we really don't have any information about what
+		// file(s) these originated from in the repository. e.g. which Dockerfile was used to build an image,
+		// so we just use a short path-compatible image name here, not the entire user input as it may include
+		// sha and/or tags which are likely to change between runs and aren't really necessary for a general
+		// path to find file where the package originated
+		physicalLocation = fmt.Sprintf("%s/%s", imageShortPathName(pres.src), physicalLocation)
+	case source.FileMetadata:
 		locations := m.Package.Locations.ToSlice()
 		for _, l := range locations {
 			logicalLocations = append(logicalLocations, &sarif.LogicalLocation{
-				FullyQualifiedName: sp(fmt.Sprintf("%s:/%s", pres.srcMetadata.Path, pres.locationPath(l))),
+				FullyQualifiedName: sp(fmt.Sprintf("%s:/%s", metadata.Path, pres.locationPath(l))),
 				Name:               sp(l.RealPath),
 			})
 		}
-	case source.DirectoryScheme:
+	case source.DirectoryMetadata:
 		// DirectoryScheme is already handled, with input prepended if needed
 	}
 
@@ -374,11 +391,12 @@ func (pres *Presenter) sarifResults() []*sarif.Result {
 		out = append(out, &sarif.Result{
 			RuleID:  sp(pres.ruleID(m)),
 			Message: pres.resultMessage(m),
-			// According to the SARIF spec, I believe we should be using AnalysisTarget.URI to indicate a logical
+			// According to the SARIF spec, it may be correct to use AnalysisTarget.URI to indicate a logical
 			// file such as a "Dockerfile" but GitHub does not work well with this
-			// FIXME github "requires" partialFingerprints
-			// PartialFingerprints: ???
-			Locations: pres.locations(m),
+			// GitHub requires partialFingerprints to upload to the API; these are automatically filled in
+			// when using the CodeQL upload action. See: https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning#providing-data-to-track-code-scanning-alerts-across-runs
+			PartialFingerprints: pres.partialFingerprints(m),
+			Locations:           pres.locations(m),
 		})
 	}
 	return out
@@ -396,16 +414,37 @@ func sp(sarif string) *string {
 
 func (pres *Presenter) resultMessage(m match.Match) sarif.Message {
 	path := pres.packagePath(m.Package)
-	message := fmt.Sprintf("The path %s reports %s at version %s ", path, m.Package.Name, m.Package.Version)
-
-	if pres.srcMetadata.Scheme == source.DirectoryScheme {
-		message = fmt.Sprintf("%s which would result in a vulnerable (%s) package installed", message, m.Package.Type)
-	} else {
-		message = fmt.Sprintf("%s which is a vulnerable (%s) package installed in the container", message, m.Package.Type)
+	src := pres.inputPath()
+	switch meta := pres.src.Metadata.(type) {
+	case source.ImageMetadata:
+		src = fmt.Sprintf("in image %s at: %s", meta.UserInput, path)
+	case source.FileMetadata, source.DirectoryMetadata:
+		src = fmt.Sprintf("at: %s", path)
 	}
+	message := fmt.Sprintf("A %s vulnerability in %s package: %s, version %s was found %s",
+		pres.severityText(m), m.Package.Type, m.Package.Name, m.Package.Version, src)
 
 	return sarif.Message{
 		Text: &message,
+	}
+}
+
+func (pres *Presenter) partialFingerprints(m match.Match) map[string]any {
+	p := m.Package
+	hasher := sha256.New()
+	if meta, ok := pres.src.Metadata.(source.ImageMetadata); ok {
+		hashWrite(hasher, pres.src.Name, meta.Architecture, meta.OS)
+	}
+	hashWrite(hasher, string(p.Type), p.Name, p.Version, pres.packagePath(p))
+	return map[string]any{
+		// this is meant to include <hash>:<line>, but there isn't line information here, so just include :1
+		"primaryLocationLineHash": fmt.Sprintf("%x:1", hasher.Sum([]byte{})),
+	}
+}
+
+func hashWrite(hasher hash.Hash, values ...string) {
+	for _, value := range values {
+		_, _ = hasher.Write([]byte(value))
 	}
 }
 
@@ -422,4 +461,16 @@ func ruleName(m match.Match) string {
 		return buf.String()
 	}
 	return m.Vulnerability.ID
+}
+
+var nonPathChars = regexp.MustCompile("[^a-zA-Z0-9-_.]")
+
+// imageShortPathName returns path-compatible text describing the image. if the image name is the form
+// some/path/to/image, it will return the image portion of the name.
+func imageShortPathName(s *source.Description) string {
+	imageName := s.Name
+	parts := strings.Split(imageName, "/")
+	imageName = parts[len(parts)-1]
+	imageName = nonPathChars.ReplaceAllString(imageName, "")
+	return imageName
 }

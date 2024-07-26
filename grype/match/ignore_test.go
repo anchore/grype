@@ -9,8 +9,8 @@ import (
 	grypeDb "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/syft/syft/file"
 	syftPkg "github.com/anchore/syft/syft/pkg"
-	"github.com/anchore/syft/syft/source"
 )
 
 var (
@@ -28,7 +28,7 @@ var (
 				Name:      "dive",
 				Version:   "0.5.2",
 				Type:      "deb",
-				Locations: source.NewLocationSet(source.NewLocation("/path/that/has/dive")),
+				Locations: file.NewLocationSet(file.NewLocation("/path/that/has/dive")),
 			},
 		},
 		{
@@ -45,7 +45,7 @@ var (
 				Version:  "100.0.50",
 				Language: syftPkg.Ruby,
 				Type:     syftPkg.GemPkg,
-				Locations: source.NewLocationSet(source.NewVirtualLocation("/real/path/with/reach",
+				Locations: file.NewLocationSet(file.NewVirtualLocation("/real/path/with/reach",
 					"/virtual/path/that/has/reach")),
 			},
 		},
@@ -63,7 +63,7 @@ var (
 				Version:  "100.0.51",
 				Language: syftPkg.Ruby,
 				Type:     syftPkg.GemPkg,
-				Locations: source.NewLocationSet(source.NewVirtualLocation("/real/path/with/beach",
+				Locations: file.NewLocationSet(file.NewVirtualLocation("/real/path/with/beach",
 					"/virtual/path/that/has/beach")),
 			},
 		},
@@ -81,8 +81,165 @@ var (
 				Version:  "100.0.52",
 				Language: syftPkg.Ruby,
 				Type:     syftPkg.GemPkg,
-				Locations: source.NewLocationSet(source.NewVirtualLocation("/real/path/with/speach",
+				Locations: file.NewLocationSet(file.NewVirtualLocation("/real/path/with/speach",
 					"/virtual/path/that/has/speach")),
+			},
+		},
+	}
+
+	// For testing the match-type rules
+	matchTypesMatches = []Match{
+		// Direct match, not like a normal kernel header match
+		{
+			Vulnerability: vulnerability.Vulnerability{
+				ID:        "CVE-1",
+				Namespace: "fake-redhat-vulns",
+				Fix: vulnerability.Fix{
+					State: grypeDb.UnknownFixState,
+				},
+			},
+			Package: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "kernel-headers1",
+				Version: "5.1.0",
+				Type:    syftPkg.RpmPkg,
+				Upstreams: []pkg.UpstreamPackage{
+					{Name: "kernel2"},
+				},
+			},
+			Details: []Detail{
+				{
+					Type: ExactDirectMatch,
+				},
+			},
+		},
+		{
+			Vulnerability: vulnerability.Vulnerability{
+				ID:        "CVE-2",
+				Namespace: "fake-deb-vulns",
+				Fix: vulnerability.Fix{
+					State: grypeDb.UnknownFixState,
+				},
+			},
+			Package: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "kernel-headers2",
+				Version: "5.1.0",
+				Type:    syftPkg.DebPkg,
+				Upstreams: []pkg.UpstreamPackage{
+					{Name: "kernel2"},
+				},
+			},
+			Details: []Detail{
+				{
+					Type: ExactIndirectMatch,
+				},
+			},
+		},
+		{
+			Vulnerability: vulnerability.Vulnerability{
+				ID:        "CVE-1",
+				Namespace: "npm-vulns",
+				Fix: vulnerability.Fix{
+					State: grypeDb.UnknownFixState,
+				},
+			},
+			Package: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "npm1",
+				Version: "5.1.0",
+				Type:    syftPkg.NpmPkg,
+			},
+			Details: []Detail{
+				{
+					Type: CPEMatch,
+				},
+			},
+		},
+	}
+
+	// For testing the match-type and upstream ignore rules
+	kernelHeadersMatches = []Match{
+		// RPM-like match similar to what we see from RedHat
+		{
+			Vulnerability: vulnerability.Vulnerability{
+				ID:        "CVE-2",
+				Namespace: "fake-redhat-vulns",
+				Fix: vulnerability.Fix{
+					State: grypeDb.UnknownFixState,
+				},
+			},
+			Package: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "kernel-headers",
+				Version: "5.1.0",
+				Type:    syftPkg.RpmPkg,
+				Upstreams: []pkg.UpstreamPackage{
+					{Name: "kernel"},
+				},
+			},
+			Details: []Detail{
+				{
+					Type: ExactIndirectMatch,
+				},
+			},
+		},
+		// debian-like match, showing the kernel header package name w/embedded version
+		{
+			Vulnerability: vulnerability.Vulnerability{
+				ID:        "CVE-2",
+				Namespace: "fake-debian-vulns",
+				Fix: vulnerability.Fix{
+					State: grypeDb.UnknownFixState,
+				},
+			},
+			Package: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "linux-headers-5.2.0",
+				Version: "5.2.1",
+				Type:    syftPkg.DebPkg,
+				Upstreams: []pkg.UpstreamPackage{
+					{Name: "linux"},
+				},
+			},
+			Details: []Detail{
+				{
+					Type: ExactIndirectMatch,
+				},
+			},
+		},
+	}
+
+	// For testing the match-type and upstream ignore rules
+	packageTypeMatches = []Match{
+		{
+			Vulnerability: vulnerability.Vulnerability{
+				ID:        "CVE-2",
+				Namespace: "fake-redhat-vulns",
+				Fix: vulnerability.Fix{
+					State: grypeDb.UnknownFixState,
+				},
+			},
+			Package: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "kernel-headers",
+				Version: "5.1.0",
+				Type:    syftPkg.RpmPkg,
+			},
+		},
+		{
+			Vulnerability: vulnerability.Vulnerability{
+				ID:        "CVE-2",
+				Namespace: "fake-debian-vulns",
+				Fix: vulnerability.Fix{
+					State: grypeDb.UnknownFixState,
+				},
+			},
+			Package: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "linux-headers-5.2.0",
+				Version: "5.2.1",
+				Type:    syftPkg.DebPkg,
 			},
 		},
 	}
@@ -309,6 +466,210 @@ func TestApplyIgnoreRules(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:       "ignore matches on indirect match-type",
+			allMatches: matchTypesMatches,
+			ignoreRules: []IgnoreRule{
+				{
+					MatchType: ExactIndirectMatch,
+				},
+			},
+			expectedRemainingMatches: []Match{
+				matchTypesMatches[0], matchTypesMatches[2],
+			},
+			expectedIgnoredMatches: []IgnoredMatch{
+				{
+					Match: matchTypesMatches[1],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							MatchType: ExactIndirectMatch,
+						},
+					},
+				},
+			},
+		},
+		{
+			name:       "ignore matches on cpe match-type",
+			allMatches: matchTypesMatches,
+			ignoreRules: []IgnoreRule{
+				{
+					MatchType: CPEMatch,
+				},
+			},
+			expectedRemainingMatches: []Match{
+				matchTypesMatches[0], matchTypesMatches[1],
+			},
+			expectedIgnoredMatches: []IgnoredMatch{
+				{
+					Match: matchTypesMatches[2],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							MatchType: CPEMatch,
+						},
+					},
+				},
+			},
+		},
+		{
+			name:       "ignore matches on upstream name",
+			allMatches: kernelHeadersMatches,
+			ignoreRules: []IgnoreRule{
+				{
+					Package: IgnoreRulePackage{
+						UpstreamName: "kernel",
+					},
+				},
+			},
+			expectedRemainingMatches: []Match{
+				kernelHeadersMatches[1],
+			},
+			expectedIgnoredMatches: []IgnoredMatch{
+				{
+					Match: kernelHeadersMatches[0],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							Package: IgnoreRulePackage{
+								UpstreamName: "kernel",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:       "ignore matches on package type",
+			allMatches: packageTypeMatches,
+			ignoreRules: []IgnoreRule{
+				{
+					Package: IgnoreRulePackage{
+						Type: string(syftPkg.RpmPkg),
+					},
+				},
+			},
+			expectedRemainingMatches: []Match{
+				packageTypeMatches[1],
+			},
+			expectedIgnoredMatches: []IgnoredMatch{
+				{
+					Match: packageTypeMatches[0],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							Package: IgnoreRulePackage{
+								Type: string(syftPkg.RpmPkg),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:       "ignore matches rpms for kernel-headers with kernel upstream",
+			allMatches: kernelHeadersMatches,
+			ignoreRules: []IgnoreRule{
+				{
+					Package: IgnoreRulePackage{
+						Name:         "kernel-headers",
+						UpstreamName: "kernel",
+						Type:         string(syftPkg.RpmPkg),
+					},
+					MatchType: ExactIndirectMatch,
+				},
+			},
+			expectedRemainingMatches: []Match{
+				kernelHeadersMatches[1],
+			},
+			expectedIgnoredMatches: []IgnoredMatch{
+				{
+					Match: kernelHeadersMatches[0],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							Package: IgnoreRulePackage{
+								Name:         "kernel-headers",
+								UpstreamName: "kernel",
+								Type:         string(syftPkg.RpmPkg),
+							},
+							MatchType: ExactIndirectMatch,
+						},
+					},
+				},
+			},
+		},
+		{
+			name:       "ignore on name regex",
+			allMatches: kernelHeadersMatches,
+			ignoreRules: []IgnoreRule{
+				{
+					Package: IgnoreRulePackage{
+						Name: "kernel-headers.*",
+					},
+				},
+			},
+			expectedRemainingMatches: []Match{
+				kernelHeadersMatches[1],
+			},
+			expectedIgnoredMatches: []IgnoredMatch{
+				{
+					Match: kernelHeadersMatches[0],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							Package: IgnoreRulePackage{
+								Name: "kernel-headers.*",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:       "ignore on name regex, no matches",
+			allMatches: kernelHeadersMatches,
+			ignoreRules: []IgnoreRule{
+				{
+					Package: IgnoreRulePackage{
+						Name: "foo.*",
+					},
+				},
+			},
+			expectedRemainingMatches: kernelHeadersMatches,
+			expectedIgnoredMatches:   nil,
+		},
+		{
+			name:       "ignore on name regex, line termination verification",
+			allMatches: kernelHeadersMatches,
+			ignoreRules: []IgnoreRule{
+				{
+					Package: IgnoreRulePackage{
+						Name: "^kernel-header$",
+					},
+				},
+			},
+			expectedRemainingMatches: kernelHeadersMatches,
+			expectedIgnoredMatches:   nil,
+		},
+		{
+			name:       "ignore on name regex, line termination test match",
+			allMatches: kernelHeadersMatches,
+			ignoreRules: []IgnoreRule{
+				{
+					Package: IgnoreRulePackage{
+						Name: "^kernel-headers$",
+					},
+				},
+			},
+			expectedRemainingMatches: []Match{kernelHeadersMatches[1]},
+			expectedIgnoredMatches: []IgnoredMatch{
+				{
+					Match: kernelHeadersMatches[0],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							Package: IgnoreRulePackage{
+								Name: "^kernel-headers$",
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, testCase := range cases {
@@ -337,9 +698,9 @@ var (
 			ID:      pkg.ID(uuid.NewString()),
 			Name:    "a-pkg",
 			Version: "1.0",
-			Locations: source.NewLocationSet(
-				source.NewLocation("/some/path"),
-				source.NewVirtualLocation("/some/path", "/some/virtual/path"),
+			Locations: file.NewLocationSet(
+				file.NewLocation("/some/path"),
+				file.NewVirtualLocation("/some/path", "/some/virtual/path"),
 			),
 			Type: "rpm",
 		},
@@ -412,7 +773,7 @@ func TestShouldIgnore(t *testing.T) {
 			match: exampleMatch,
 			rule: IgnoreRule{
 				Package: IgnoreRulePackage{
-					Location: exampleMatch.Package.Locations.ToSlice()[1].VirtualPath,
+					Location: exampleMatch.Package.Locations.ToSlice()[1].AccessPath,
 				},
 			},
 			expected: true,

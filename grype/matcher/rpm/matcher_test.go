@@ -248,13 +248,12 @@ func TestMatcherRpm(t *testing.T) {
 		{
 			name: "package with modularity label 1",
 			p: pkg.Package{
-				ID:           pkg.ID(uuid.NewString()),
-				Name:         "maniac",
-				Version:      "0.1",
-				Type:         syftPkg.RpmPkg,
-				MetadataType: pkg.RpmMetadataType,
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "maniac",
+				Version: "0.1",
+				Type:    syftPkg.RpmPkg,
 				Metadata: pkg.RpmMetadata{
-					ModularityLabel: "containertools:3:1234:5678",
+					ModularityLabel: strRef("containertools:3:1234:5678"),
 				},
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
@@ -276,13 +275,12 @@ func TestMatcherRpm(t *testing.T) {
 		{
 			name: "package with modularity label 2",
 			p: pkg.Package{
-				ID:           pkg.ID(uuid.NewString()),
-				Name:         "maniac",
-				Version:      "0.1",
-				Type:         syftPkg.RpmPkg,
-				MetadataType: pkg.RpmMetadataType,
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "maniac",
+				Version: "0.1",
+				Type:    syftPkg.RpmPkg,
 				Metadata: pkg.RpmMetadata{
-					ModularityLabel: "containertools:1:abc:123",
+					ModularityLabel: strRef("containertools:1:abc:123"),
 				},
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
@@ -303,11 +301,10 @@ func TestMatcherRpm(t *testing.T) {
 		{
 			name: "package without modularity label",
 			p: pkg.Package{
-				ID:           pkg.ID(uuid.NewString()),
-				Name:         "maniac",
-				Version:      "0.1",
-				Type:         syftPkg.RpmPkg,
-				MetadataType: pkg.RpmMetadataType,
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "maniac",
+				Version: "0.1",
+				Type:    syftPkg.RpmPkg,
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
@@ -383,4 +380,8 @@ func Test_addZeroEpicIfApplicable(t *testing.T) {
 			assert.Equal(t, test.expected, actualVersion)
 		})
 	}
+}
+
+func strRef(s string) *string {
+	return &s
 }

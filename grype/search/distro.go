@@ -1,6 +1,7 @@
 package search
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/anchore/grype/grype/distro"
@@ -8,6 +9,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal/log"
 )
 
 func ByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
@@ -17,6 +19,10 @@ func ByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p p
 
 	verObj, err := version.NewVersionFromPkg(p)
 	if err != nil {
+		if errors.Is(err, version.ErrUnsupportedVersion) {
+			log.WithFields("error", err).Tracef("skipping package '%s@%s'", p.Name, p.Version)
+			return nil, nil
+		}
 		return nil, fmt.Errorf("matcher failed to parse version pkg=%q ver=%q: %w", p.Name, p.Version, err)
 	}
 
@@ -25,7 +31,7 @@ func ByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p p
 		return nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", d, p.Name, err)
 	}
 
-	applicableVulns, err := onlyQualifiedPackages(p, allPkgVulns)
+	applicableVulns, err := onlyQualifiedPackages(d, p, allPkgVulns)
 	if err != nil {
 		return nil, fmt.Errorf("unable to filter distro-related vulnerabilities: %w", err)
 	}

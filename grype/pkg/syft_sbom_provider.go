@@ -12,7 +12,7 @@ import (
 
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
-	"github.com/anchore/syft/syft"
+	"github.com/anchore/syft/syft/format"
 	"github.com/anchore/syft/syft/sbom"
 )
 
@@ -30,10 +30,9 @@ func syftSBOMProvider(userInput string, config ProviderConfig) ([]Package, Conte
 		return nil, Context{}, nil, err
 	}
 
-	catalog := s.Artifacts.PackageCatalog
-	catalog = removePackagesByOverlap(catalog, s.Relationships)
+	catalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, s.Artifacts.LinuxDistribution)
 
-	return FromCatalog(catalog, config.SynthesisConfig), Context{
+	return FromCollection(catalog, config.SynthesisConfig), Context{
 		Source: &s.Source,
 		Distro: s.Artifacts.LinuxDistribution,
 	}, s, nil
@@ -57,19 +56,19 @@ func getSBOM(userInput string) (*sbom.SBOM, error) {
 		return nil, err
 	}
 
-	s, format, err := syft.Decode(reader)
+	s, fmtID, _, err := format.Decode(reader)
 	if err != nil {
 		return nil, fmt.Errorf("unable to decode sbom: %w", err)
 	}
 
-	if format == nil {
+	if fmtID == "" || s == nil {
 		return nil, errDoesNotProvide
 	}
 
 	return s, nil
 }
 
-func getSBOMReader(userInput string) (r io.Reader, err error) {
+func getSBOMReader(userInput string) (r io.ReadSeeker, err error) {
 	r, _, err = extractReaderAndInfo(userInput)
 	if err != nil {
 		return nil, err
@@ -78,7 +77,7 @@ func getSBOMReader(userInput string) (r io.Reader, err error) {
 	return r, nil
 }
 
-func extractReaderAndInfo(userInput string) (io.Reader, *inputInfo, error) {
+func extractReaderAndInfo(userInput string) (io.ReadSeeker, *inputInfo, error) {
 	switch {
 	// the order of cases matter
 	case userInput == "":
@@ -98,7 +97,7 @@ func extractReaderAndInfo(userInput string) (io.Reader, *inputInfo, error) {
 	}
 }
 
-func parseSBOM(scheme, path string) (io.Reader, *inputInfo, error) {
+func parseSBOM(scheme, path string) (io.ReadSeeker, *inputInfo, error) {
 	r, err := openFile(path)
 	if err != nil {
 		return nil, nil, err
@@ -107,7 +106,7 @@ func parseSBOM(scheme, path string) (io.Reader, *inputInfo, error) {
 	return r, info, nil
 }
 
-func decodeStdin(r io.Reader) (io.Reader, *inputInfo, error) {
+func decodeStdin(r io.Reader) (io.ReadSeeker, *inputInfo, error) {
 	b, err := io.ReadAll(r)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed reading stdin: %w", err)
@@ -142,13 +141,13 @@ func fileHasContent(f *os.File) bool {
 }
 
 func stdinReader() io.Reader {
-	isPipedInput, err := internal.IsPipedInput()
+	isStdinPipeOrRedirect, err := internal.IsStdinPipeOrRedirect()
 	if err != nil {
 		log.Warnf("unable to determine if there is piped input: %+v", err)
 		return nil
 	}
 
-	if !isPipedInput {
+	if !isStdinPipeOrRedirect {
 		return nil
 	}
 

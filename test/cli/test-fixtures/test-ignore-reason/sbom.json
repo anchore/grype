@@ -1,0 +1,188 @@
+{
+  "artifacts": [
+    {
+      "id": "20a169629a73fdbd",
+      "name": "busybox",
+      "version": "1.31.1",
+      "type": "binary",
+      "foundBy": "binary-cataloger",
+      "locations": [
+        {
+          "path": "/bin/[",
+          "layerID": "sha256:7ce37844ca75600dbcbe085858845c5b92b6109db3c8c1ae6eb887aab91ad04f",
+          "annotations": {
+            "evidence": "primary"
+          }
+        }
+      ],
+      "licenses": [],
+      "language": "",
+      "cpes": [
+        "cpe:2.3:a:busybox:busybox:1.31.1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:busybox:busybox:1.31.1:*:*:*:*:*:*:*"
+      ],
+      "purl": "",
+      "metadataType": "BinaryMetadata",
+      "metadata": {
+        "matches": [
+          {
+            "classifier": "busybox-binary",
+            "location": {
+              "path": "/bin/[",
+              "layerID": "sha256:7ce37844ca75600dbcbe085858845c5b92b6109db3c8c1ae6eb887aab91ad04f",
+              "annotations": {
+                "evidence": "primary"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "artifactRelationships": [
+    {
+      "parent": "1ee006886991ad4689838d3a288e0dd3fd29b70e276622f16b67a8922831a853",
+      "child": "20a169629a73fdbd",
+      "type": "contains"
+    },
+    {
+      "parent": "20a169629a73fdbd",
+      "child": "1c3ded193f8808da",
+      "type": "evident-by"
+    }
+  ],
+  "files": [
+    {
+      "id": "1c3ded193f8808da",
+      "location": {
+        "path": "/bin/[",
+        "layerID": "sha256:7ce37844ca75600dbcbe085858845c5b92b6109db3c8c1ae6eb887aab91ad04f"
+      }
+    }
+  ],
+  "source": {
+    "id": "1ee006886991ad4689838d3a288e0dd3fd29b70e276622f16b67a8922831a853",
+    "name": "busybox",
+    "version": "1.31",
+    "type": "image",
+    "metadata": {
+      "userInput": "busybox:1.31",
+      "imageID": "sha256:19d689bc58fd64da6a46d46512ea965a12b6bfb5b030400e21bc0a04c4ff155e",
+      "manifestDigest": "sha256:1ee006886991ad4689838d3a288e0dd3fd29b70e276622f16b67a8922831a853",
+      "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+      "tags": [],
+      "imageSize": 1384134,
+      "layers": [
+        {
+          "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+          "digest": "sha256:7ce37844ca75600dbcbe085858845c5b92b6109db3c8c1ae6eb887aab91ad04f",
+          "size": 1384134
+        }
+      ],
+      "manifest": "ewogICAic2NoZW1hVmVyc2lvbiI6IDIsCiAgICJtZWRpYVR5cGUiOiAiYXBwbGljYXRpb24vdm5kLmRvY2tlci5kaXN0cmlidXRpb24ubWFuaWZlc3QudjIranNvbiIsCiAgICJjb25maWciOiB7CiAgICAgICJtZWRpYVR5cGUiOiAiYXBwbGljYXRpb24vdm5kLmRvY2tlci5jb250YWluZXIuaW1hZ2UudjEranNvbiIsCiAgICAgICJzaXplIjogMTQ5NCwKICAgICAgImRpZ2VzdCI6ICJzaGEyNTY6MTlkNjg5YmM1OGZkNjRkYTZhNDZkNDY1MTJlYTk2NWExMmI2YmZiNWIwMzA0MDBlMjFiYzBhMDRjNGZmMTU1ZSIKICAgfSwKICAgImxheWVycyI6IFsKICAgICAgewogICAgICAgICAibWVkaWFUeXBlIjogImFwcGxpY2F0aW9uL3ZuZC5kb2NrZXIuaW1hZ2Uucm9vdGZzLmRpZmYudGFyLmd6aXAiLAogICAgICAgICAic2l6ZSI6IDgxNTQwMCwKICAgICAgICAgImRpZ2VzdCI6ICJzaGEyNTY6ZmQ0NDAxNmUzZDNlZGI4ZDFkOGIxYTMzNTdmNzcwOGE4Mzg4ZTQ2MjI1MDBkMzZmZGUzYThjZGZiMjNmYmFjOCIKICAgICAgfQogICBdCn0=",
+      "config": "eyJhcmNoaXRlY3R1cmUiOiJhcm02NCIsImNvbmZpZyI6eyJIb3N0bmFtZSI6IiIsIkRvbWFpbm5hbWUiOiIiLCJVc2VyIjoiIiwiQXR0YWNoU3RkaW4iOmZhbHNlLCJBdHRhY2hTdGRvdXQiOmZhbHNlLCJBdHRhY2hTdGRlcnIiOmZhbHNlLCJUdHkiOmZhbHNlLCJPcGVuU3RkaW4iOmZhbHNlLCJTdGRpbk9uY2UiOmZhbHNlLCJFbnYiOlsiUEFUSD0vdXNyL2xvY2FsL3NiaW46L3Vzci9sb2NhbC9iaW46L3Vzci9zYmluOi91c3IvYmluOi9zYmluOi9iaW4iXSwiQ21kIjpbInNoIl0sIkFyZ3NFc2NhcGVkIjp0cnVlLCJJbWFnZSI6InNoYTI1NjpmNDFmZmIxYWI1MWNhMDg3YzdkN2E3MWM5NDUzMGNmOWM4MjFkZDM3Zjc2ZGU0NjY2NTZmNjM1NDE0NGQzYmQyIiwiVm9sdW1lcyI6bnVsbCwiV29ya2luZ0RpciI6IiIsIkVudHJ5cG9pbnQiOm51bGwsIk9uQnVpbGQiOm51bGwsIkxhYmVscyI6bnVsbH0sImNvbnRhaW5lciI6IjBlY2U0NzFlM2MyMGFmYTQyYWM2ZTRhNzBlYTc0MDFmM2ViNGNiNzUzZmQ0MzYyZDA3ZDNmNWI1ZjFlODhhZDEiLCJjb250YWluZXJfY29uZmlnIjp7Ikhvc3RuYW1lIjoiMGVjZTQ3MWUzYzIwIiwiRG9tYWlubmFtZSI6IiIsIlVzZXIiOiIiLCJBdHRhY2hTdGRpbiI6ZmFsc2UsIkF0dGFjaFN0ZG91dCI6ZmFsc2UsIkF0dGFjaFN0ZGVyciI6ZmFsc2UsIlR0eSI6ZmFsc2UsIk9wZW5TdGRpbiI6ZmFsc2UsIlN0ZGluT25jZSI6ZmFsc2UsIkVudiI6WyJQQVRIPS91c3IvbG9jYWwvc2JpbjovdXNyL2xvY2FsL2JpbjovdXNyL3NiaW46L3Vzci9iaW46L3NiaW46L2JpbiJdLCJDbWQiOlsiL2Jpbi9zaCIsIi1jIiwiIyhub3ApICIsIkNNRCBbXCJzaFwiXSJdLCJBcmdzRXNjYXBlZCI6dHJ1ZSwiSW1hZ2UiOiJzaGEyNTY6ZjQxZmZiMWFiNTFjYTA4N2M3ZDdhNzFjOTQ1MzBjZjljODIxZGQzN2Y3NmRlNDY2NjU2ZjYzNTQxNDRkM2JkMiIsIlZvbHVtZXMiOm51bGwsIldvcmtpbmdEaXIiOiIiLCJFbnRyeXBvaW50IjpudWxsLCJPbkJ1aWxkIjpudWxsLCJMYWJlbHMiOnt9fSwiY3JlYXRlZCI6IjIwMjAtMDYtMDJUMjE6Mzk6NDUuMzc0Mjg5MDQxWiIsImRvY2tlcl92ZXJzaW9uIjoiMTguMDkuNyIsImhpc3RvcnkiOlt7ImNyZWF0ZWQiOiIyMDIwLTA2LTAyVDIxOjM5OjQ0LjUzMDIwOTg5MVoiLCJjcmVhdGVkX2J5IjoiL2Jpbi9zaCAtYyAjKG5vcCkgQUREIGZpbGU6MDdkOTQ2NmVkMWExMDkxNmY0ODIzZGI2OWY0YzU4NDg0Y2U3MDIyMWMzYzk0YTBmMmE4MDRmNTM3MWE2Mjc2NSBpbiAvICJ9LHsiY3JlYXRlZCI6IjIwMjAtMDYtMDJUMjE6Mzk6NDUuMzc0Mjg5MDQxWiIsImNyZWF0ZWRfYnkiOiIvYmluL3NoIC1jICMobm9wKSAgQ01EIFtcInNoXCJdIiwiZW1wdHlfbGF5ZXIiOnRydWV9XSwib3MiOiJsaW51eCIsInJvb3RmcyI6eyJ0eXBlIjoibGF5ZXJzIiwiZGlmZl9pZHMiOlsic2hhMjU2OjdjZTM3ODQ0Y2E3NTYwMGRiY2JlMDg1ODU4ODQ1YzViOTJiNjEwOWRiM2M4YzFhZTZlYjg4N2FhYjkxYWQwNGYiXX19",
+      "repoDigests": [
+        "index.docker.io/library/busybox@sha256:95cf004f559831017cdf4628aaf1bb30133677be8702a8c5f2994629f637a209"
+      ],
+      "architecture": "arm64",
+      "os": "linux"
+    }
+  },
+  "distro": {
+    "prettyName": "BusyBox v1.31.1",
+    "name": "busybox",
+    "id": "busybox",
+    "idLike": [
+      "busybox"
+    ],
+    "version": "1.31.1",
+    "versionID": "1.31.1"
+  },
+  "descriptor": {
+    "name": "syft",
+    "version": "0.94.0",
+    "configuration": {
+      "catalogers": null,
+      "package": {
+        "cataloger": {
+          "enabled": true,
+          "scope": "Squashed"
+        },
+        "search-unindexed-archives": false,
+        "search-indexed-archives": true
+      },
+      "golang": {
+        "search-local-mod-cache-licenses": false,
+        "local-mod-cache-dir": "",
+        "search-remote-licenses": false,
+        "proxy": "",
+        "no-proxy": ""
+      },
+      "linux-kernel": {
+        "catalog-modules": true
+      },
+      "python": {
+        "guess-unpinned-requirements": false
+      },
+      "file-metadata": {
+        "cataloger": {
+          "enabled": false,
+          "scope": "Squashed"
+        },
+        "digests": [
+          "sha256"
+        ]
+      },
+      "file-classification": {
+        "cataloger": {
+          "enabled": false,
+          "scope": "Squashed"
+        }
+      },
+      "file-contents": {
+        "cataloger": {
+          "enabled": false,
+          "scope": "Squashed"
+        },
+        "skip-files-above-size": 1048576,
+        "globs": null
+      },
+      "secrets": {
+        "cataloger": {
+          "enabled": false,
+          "scope": "AllLayers"
+        },
+        "additional-patterns": null,
+        "exclude-pattern-names": null,
+        "reveal-values": false,
+        "skip-files-above-size": 1048576
+      },
+      "registry": {
+        "insecure-skip-tls-verify": false,
+        "insecure-use-http": false,
+        "auth": null,
+        "ca-cert": ""
+      },
+      "exclude": [],
+      "platform": "",
+      "name": "",
+      "source": {
+        "name": "",
+        "version": "",
+        "file": {
+          "digests": [
+            "sha256"
+          ]
+        }
+      },
+      "parallelism": 1,
+      "default-image-pull-source": "",
+      "base-path": "",
+      "exclude-binary-overlap-by-ownership": true
+    }
+  },
+  "schema": {
+    "version": "11.0.1",
+    "url": "https://raw.githubusercontent.com/anchore/syft/main/schema/json/schema-11.0.1.json"
+  }
+}

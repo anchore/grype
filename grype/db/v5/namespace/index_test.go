@@ -30,6 +30,8 @@ func TestFromStringSlice(t *testing.T) {
 				"nvd:cpe",
 				"github:language:ruby",
 				"abc.xyz:language:ruby",
+				"github:language:rust",
+				"something:language:rust",
 				"1234.4567:language:unknown",
 				"---:cpe",
 				"another-provider:distro:alpine:3.15",
@@ -43,6 +45,10 @@ func TestFromStringSlice(t *testing.T) {
 				syftPkg.Ruby: {
 					language.NewNamespace("github", syftPkg.Ruby, ""),
 					language.NewNamespace("abc.xyz", syftPkg.Ruby, ""),
+				},
+				syftPkg.Rust: {
+					language.NewNamespace("github", syftPkg.Rust, ""),
+					language.NewNamespace("something", syftPkg.Rust, ""),
 				},
 				syftPkg.Language("unknown"): {
 					language.NewNamespace("1234.4567", syftPkg.Language("unknown"), ""),
@@ -122,6 +128,7 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 		"alpine:distro:alpine:3.16",
 		"alpine:distro:alpine:edge",
 		"debian:distro:debian:8",
+		"debian:distro:debian:unstable",
 		"amazon:distro:amazonlinux:2",
 		"amazon:distro:amazonlinux:2022",
 		"abc.xyz:distro:unknown:123.456",
@@ -339,6 +346,17 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 			name:       "Busybox minor semvar matches no namespace",
 			distro:     newDistro(t, osDistro.Busybox, "20.1", []string{}),
 			namespaces: nil,
+		},
+		{
+			name: "debian unstable",
+			distro: &osDistro.Distro{
+				Type:       osDistro.Debian,
+				RawVersion: "unstable",
+				Version:    nil,
+			},
+			namespaces: []*distro.Namespace{
+				distro.NewNamespace("debian", osDistro.Debian, "unstable"),
+			},
 		},
 	}
 

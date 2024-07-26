@@ -2,23 +2,21 @@ package table
 
 import (
 	"bytes"
-	"flag"
 	"testing"
 
+	"github.com/gkampitakis/go-snaps/snaps"
 	"github.com/go-test/deep"
-	"github.com/sergi/go-diff/diffmatchpatch"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/presenter/internal"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
-	"github.com/anchore/syft/syft/source"
 )
-
-var update = flag.Bool("update", false, "update the *.golden files for table presenters")
 
 func TestCreateRow(t *testing.T) {
 	pkg1 := pkg.Package{
@@ -74,9 +72,8 @@ func TestCreateRow(t *testing.T) {
 }
 
 func TestTablePresenter(t *testing.T) {
-
 	var buffer bytes.Buffer
-	matches, packages, _, metadataProvider, _, _ := models.GenerateAnalysis(t, source.ImageScheme)
+	_, matches, packages, _, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.ImageSource)
 
 	pb := models.PresenterConfig{
 		Matches:          matches,
@@ -84,25 +81,27 @@ func TestTablePresenter(t *testing.T) {
 		MetadataProvider: metadataProvider,
 	}
 
-	pres := NewPresenter(pb)
+	pres := NewPresenter(pb, false)
 
-	// run presenter
-	err := pres.Present(&buffer)
-	if err != nil {
-		t.Fatal(err)
-	}
-	actual := buffer.Bytes()
-	if *update {
-		testutils.UpdateGoldenFileContents(t, actual)
-	}
+	t.Run("no color", func(t *testing.T) {
+		pres.withColor = true
 
-	var expected = testutils.GetGoldenFileContents(t)
+		err := pres.Present(&buffer)
+		require.NoError(t, err)
 
-	if !bytes.Equal(expected, actual) {
-		dmp := diffmatchpatch.New()
-		diffs := dmp.DiffMain(string(expected), string(actual), true)
-		t.Errorf("mismatched output:\n%s", dmp.DiffPrettyText(diffs))
-	}
+		actual := buffer.String()
+		snaps.MatchSnapshot(t, actual)
+	})
+
+	t.Run("with color", func(t *testing.T) {
+		pres.withColor = false
+
+		err := pres.Present(&buffer)
+		require.NoError(t, err)
+
+		actual := buffer.String()
+		snaps.MatchSnapshot(t, actual)
+	})
 
 	// TODO: add me back in when there is a JSON schema
 	// validateAgainstDbSchema(t, string(actual))
@@ -121,26 +120,14 @@ func TestEmptyTablePresenter(t *testing.T) {
 		MetadataProvider: nil,
 	}
 
-	pres := NewPresenter(pb)
+	pres := NewPresenter(pb, false)
 
 	// run presenter
 	err := pres.Present(&buffer)
-	if err != nil {
-		t.Fatal(err)
-	}
-	actual := buffer.Bytes()
-	if *update {
-		testutils.UpdateGoldenFileContents(t, actual)
-	}
+	require.NoError(t, err)
 
-	var expected = testutils.GetGoldenFileContents(t)
-
-	if !bytes.Equal(expected, actual) {
-		dmp := diffmatchpatch.New()
-		diffs := dmp.DiffMain(string(expected), string(actual), true)
-		t.Errorf("mismatched output:\n%s", dmp.DiffPrettyText(diffs))
-	}
-
+	actual := buffer.String()
+	snaps.MatchSnapshot(t, actual)
 }
 
 func TestRemoveDuplicateRows(t *testing.T) {
@@ -169,5 +156,76 @@ func TestRemoveDuplicateRows(t *testing.T) {
 			t.Errorf("   diff: %+v", d)
 		}
 	}
+}
 
+func TestSortRows(t *testing.T) {
+	data := [][]string{
+		{"a", "v0.1.0", "", "deb", "CVE-2019-9996", "Critical"},
+		{"a", "v0.1.0", "", "deb", "CVE-2018-9996", "Critical"},
+		{"a", "v0.2.0", "", "deb", "CVE-2010-9996", "High"},
+		{"b", "v0.2.0", "", "deb", "CVE-2010-9996", "Medium"},
+		{"b", "v0.2.0", "2.0.0", "deb", "CVE-2019-9996", "High"},
+		{"b", "v0.2.0", "1.0.0", "deb", "CVE-2019-9996", "High"},
+		{"d", "v0.4.0", "", "node", "CVE-2011-9996", "Low"},
+		{"d", "v0.4.0", "", "node", "CVE-2012-9996", "Negligible"},
+		{"c", "v0.6.0", "", "node", "CVE-2013-9996", "Critical"},
+	}
+
+	expected := [][]string{
+		{"a", "v0.1.0", "", "deb", "CVE-2019-9996", "Critical"},
+		{"a", "v0.1.0", "", "deb", "CVE-2018-9996", "Critical"},
+		{"a", "v0.2.0", "", "deb", "CVE-2010-9996", "High"},
+		{"b", "v0.2.0", "1.0.0", "deb", "CVE-2019-9996", "High"},
+		{"b", "v0.2.0", "2.0.0", "deb", "CVE-2019-9996", "High"},
+		{"b", "v0.2.0", "", "deb", "CVE-2010-9996", "Medium"},
+		{"c", "v0.6.0", "", "node", "CVE-2013-9996", "Critical"},
+		{"d", "v0.4.0", "", "node", "CVE-2011-9996", "Low"},
+		{"d", "v0.4.0", "", "node", "CVE-2012-9996", "Negligible"},
+	}
+
+	actual := sortRows(data)
+
+	if diff := cmp.Diff(expected, actual); diff != "" {
+		t.Errorf("sortRows() mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestHidesIgnoredMatches(t *testing.T) {
+	var buffer bytes.Buffer
+	matches, ignoredMatches, packages, _, metadataProvider, _, _ := internal.GenerateAnalysisWithIgnoredMatches(t, internal.ImageSource)
+
+	pb := models.PresenterConfig{
+		Matches:          matches,
+		IgnoredMatches:   ignoredMatches,
+		Packages:         packages,
+		MetadataProvider: metadataProvider,
+	}
+
+	pres := NewPresenter(pb, false)
+
+	err := pres.Present(&buffer)
+	require.NoError(t, err)
+
+	actual := buffer.String()
+	snaps.MatchSnapshot(t, actual)
+}
+
+func TestDisplaysIgnoredMatches(t *testing.T) {
+	var buffer bytes.Buffer
+	matches, ignoredMatches, packages, _, metadataProvider, _, _ := internal.GenerateAnalysisWithIgnoredMatches(t, internal.ImageSource)
+
+	pb := models.PresenterConfig{
+		Matches:          matches,
+		IgnoredMatches:   ignoredMatches,
+		Packages:         packages,
+		MetadataProvider: metadataProvider,
+	}
+
+	pres := NewPresenter(pb, true)
+
+	err := pres.Present(&buffer)
+	require.NoError(t, err)
+
+	actual := buffer.String()
+	snaps.MatchSnapshot(t, actual)
 }

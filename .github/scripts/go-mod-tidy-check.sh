@@ -4,19 +4,18 @@ set -eu
 ORIGINAL_STATE_DIR=$(mktemp -d "TEMP-original-state-XXXXXXXXX")
 TIDY_STATE_DIR=$(mktemp -d "TEMP-tidy-state-XXXXXXXXX")
 
-trap "cp -v ${ORIGINAL_STATE_DIR}/* ./ && rm -fR ${ORIGINAL_STATE_DIR} ${TIDY_STATE_DIR}" EXIT
+trap "cp -p ${ORIGINAL_STATE_DIR}/* ./ && git update-index -q --refresh && rm -fR ${ORIGINAL_STATE_DIR} ${TIDY_STATE_DIR}" EXIT
 
-echo "Capturing original state of files..."
-cp -v go.mod go.sum "${ORIGINAL_STATE_DIR}"
+# capturing original state of files...
+cp go.mod go.sum "${ORIGINAL_STATE_DIR}"
 
-echo "Capturing state of go.mod and go.sum after running go mod tidy..."
+# capturing state of go.mod and go.sum after running go mod tidy...
 go mod tidy
-cp -v go.mod go.sum "${TIDY_STATE_DIR}"
-echo ""
+cp go.mod go.sum "${TIDY_STATE_DIR}"
 
 set +e
 
-# Detect difference between the git HEAD state and the go mod tidy state
+# detect difference between the git HEAD state and the go mod tidy state
 DIFF_MOD=$(diff -u "${ORIGINAL_STATE_DIR}/go.mod" "${TIDY_STATE_DIR}/go.mod")
 DIFF_SUM=$(diff -u "${ORIGINAL_STATE_DIR}/go.sum" "${TIDY_STATE_DIR}/go.sum")
 

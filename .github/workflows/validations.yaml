@@ -16,7 +16,7 @@ jobs:
     name: "Static analysis"
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
@@ -29,7 +29,7 @@ jobs:
     name: "Unit tests"
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
@@ -40,9 +40,9 @@ jobs:
   Quality-Test:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Quality tests"
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04-4core-16gb
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           submodules: true
 
@@ -54,21 +54,56 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Archive the provider state
+        if: ${{ failure() }}
+        run: tar -czvf qg-capture-state.tar.gz -C test/quality --exclude tools --exclude labels .yardstick.yaml .yardstick
+
+      - name: Upload the provider state archive
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+        with:
+          name: qg-capture-state
+          path: qg-capture-state.tar.gz
+
+      - name: Show instructions to debug
+        if: ${{ failure() }}
+        run: |
+          ARCHIVE_BASENAME=qg-capture-state
+          ARCHIVE_NAME=$ARCHIVE_BASENAME.zip
+
+          cat << EOF >> $GITHUB_STEP_SUMMARY
+          ## Troubleshooting failed run
+
+          Download the artifact from this workflow run: \`$ARCHIVE_NAME\`
+
+          Then run the following commands to debug:
+          \`\`\`bash
+          # copy the archive to the tests/quality directory
+          cd test/quality
+          unzip $ARCHIVE_NAME && tar -xzf $ARCHIVE_BASENAME.tar.gz
+          \`\`\`
+
+          Now you can debug the with yardstick:
+          \`\`\`bash
+          poetry shell
+          yardstick result list
+          yardstick label explore
+          \`\`\`
+          EOF
+
+
   Integration-Test:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Integration tests"
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
 
-      - name: Validate grype output against the CycloneDX schema
-        run: make validate-cyclonedx-schema
-
       - name: Restore integration test cache
-        uses: actions/cache@v3
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 #v4.0.2
         with:
           path: ${{ github.workspace }}/test/integration/test-fixtures/cache
           key: ${{ runner.os }}-integration-test-cache-${{ hashFiles('test/integration/test-fixtures/cache.fingerprint') }}
@@ -80,7 +115,7 @@ jobs:
     name: "Build snapshot artifacts"
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
@@ -99,7 +134,7 @@ jobs:
       # why not use actions/upload-artifact? It is very slow (3 minutes to upload ~600MB of data, vs 10 seconds with this approach).
       # see https://github.com/actions/upload-artifact/issues/199 for more info
       - name: Upload snapshot artifacts
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 #v4.0.2
         with:
           path: snapshot
           key: snapshot-build-${{ github.run_id }}
@@ -110,17 +145,17 @@ jobs:
     needs: [Build-Snapshot-Artifacts]
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.1.7
 
       - name: Download snapshot build
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 #v4.0.2
         with:
           path: snapshot
           key: snapshot-build-${{ github.run_id }}
 
       - name: Restore install.sh test image cache
         id: install-test-image-cache
-        uses: actions/cache@v3
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 #v4.0.2
         with:
           path: ${{ github.workspace }}/test/install/cache
           key: ${{ runner.os }}-install-test-image-cache-${{ hashFiles('test/install/cache.fingerprint') }}
@@ -142,17 +177,20 @@ jobs:
     needs: [Build-Snapshot-Artifacts]
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@59acb6260d9c0ba8f4a2f9d9b48431a222b68e20 #v3.5.0
+
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.1.7
 
       - name: Download snapshot build
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 #v4.0.2
         with:
           path: snapshot
           key: snapshot-build-${{ github.run_id }}
 
       - name: Restore docker image cache for compare testing
         id: mac-compare-testing-cache
-        uses: actions/cache@v3
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 #v4.0.2
         with:
           path: image.tar
           key: ${{ runner.os }}-${{ hashFiles('test/compare/mac.sh') }}
@@ -167,19 +205,19 @@ jobs:
     needs: [Build-Snapshot-Artifacts]
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.1.7
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
 
       - name: Restore CLI test-fixture cache
-        uses: actions/cache@v3
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 #v4.0.2
         with:
           path: ${{ github.workspace }}/test/cli/test-fixtures/cache
           key: ${{ runner.os }}-cli-test-cache-${{ hashFiles('test/cli/test-fixtures/cache.fingerprint') }}
 
       - name: Download snapshot build
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 #v4.0.2
         with:
           path: snapshot
           key: snapshot-build-${{ github.run_id }}

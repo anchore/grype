@@ -1,3 +1,5 @@
+version: 2
+
 release:
   prerelease: auto
   draft: false
@@ -9,6 +11,7 @@ env:
 
 builds:
   - id: linux-build
+    dir: ./cmd/grype
     binary: grype
     goos:
       - linux
@@ -23,12 +26,13 @@ builds:
       -w
       -s
       -extldflags '-static'
-      -X github.com/anchore/grype/internal/version.version={{.Version}}
-      -X github.com/anchore/grype/internal/version.gitCommit={{.Commit}}
-      -X github.com/anchore/grype/internal/version.buildDate={{.Date}}
-      -X github.com/anchore/grype/internal/version.gitDescription={{.Summary}}
+      -X main.version={{.Version}}
+      -X main.gitCommit={{.Commit}}
+      -X main.buildDate={{.Date}}
+      -X main.gitDescription={{.Summary}}
 
   - id: darwin-build
+    dir: ./cmd/grype
     binary: grype
     goos:
       - darwin
@@ -39,11 +43,12 @@ builds:
     ldflags: *build-ldflags
     hooks:
       post:
-        - cmd: .tmp/quill sign-and-notarize "{{ .Path }}" --dry-run={{ .IsSnapshot }} --ad-hoc={{ .IsSnapshot }} -vv
+        - cmd: .tool/quill sign-and-notarize "{{ .Path }}" --dry-run={{ .IsSnapshot }} --ad-hoc={{ .IsSnapshot }} -vv
           env:
             - QUILL_LOG_FILE=/tmp/quill-{{ .Target }}.log
 
   - id: windows-build
+    dir: ./cmd/grype
     binary: grype
     goos:
       - windows
@@ -76,7 +81,7 @@ nfpms:
       - deb
 
 brews:
-  - tap:
+  - repository:
       owner: anchore
       name: homebrew-grype
       token: "{{.Env.GITHUB_BREW_TOKEN}}"
@@ -244,3 +249,16 @@ docker_manifests:
       - ghcr.io/anchore/grype:{{.Tag}}-ppc64le
       - ghcr.io/anchore/grype:{{.Tag}}-s390x
 
+
+signs:
+  - cmd: .tool/cosign
+    signature: "${artifact}.sig"
+    certificate: "${artifact}.pem"
+    args: 
+      - "sign-blob"
+      - "--oidc-issuer=https://token.actions.githubusercontent.com"
+      - "--output-certificate=${certificate}"
+      - "--output-signature=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: checksum

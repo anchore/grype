@@ -7,6 +7,10 @@ import (
 	"github.com/anchore/syft/syft/cpe"
 )
 
+// ErrUnsupportedVersion is returned when a version string cannot be parsed into a rich version object
+// for a known unsupported case (e.g. golang "devel" version).
+var ErrUnsupportedVersion = fmt.Errorf("unsupported version value")
+
 type Version struct {
 	Raw    string
 	Format Format
@@ -14,13 +18,16 @@ type Version struct {
 }
 
 type rich struct {
-	cpeVers []cpe.CPE
-	semVer  *semanticVersion
-	apkVer  *apkVersion
-	debVer  *debVersion
-	rpmVer  *rpmVersion
-	kbVer   *kbVersion
-	portVer *portageVersion
+	cpeVers       []cpe.CPE
+	semVer        *semanticVersion
+	apkVer        *apkVersion
+	debVer        *debVersion
+	golangVersion *golangVersion
+	mavenVer      *mavenVersion
+	rpmVer        *rpmVersion
+	kbVer         *kbVersion
+	portVer       *portageVersion
+	pep440version *pep440Version
 }
 
 func NewVersion(raw string, format Format) (*Version, error) {
@@ -61,13 +68,22 @@ func (v *Version) populate() error {
 		ver, err := newDebVersion(v.Raw)
 		v.rich.debVer = ver
 		return err
+	case GolangFormat:
+		ver, err := newGolangVersion(v.Raw)
+		v.rich.golangVersion = ver
+		return err
+	case MavenFormat:
+		ver, err := newMavenVersion(v.Raw)
+		v.rich.mavenVer = ver
+		return err
 	case RpmFormat:
 		ver, err := newRpmVersion(v.Raw)
 		v.rich.rpmVer = &ver
 		return err
 	case PythonFormat:
-		// use the fuzzy constraint
-		return nil
+		ver, err := newPep440Version(v.Raw)
+		v.rich.pep440version = &ver
+		return err
 	case KBFormat:
 		ver := newKBVersion(v.Raw)
 		v.rich.kbVer = &ver

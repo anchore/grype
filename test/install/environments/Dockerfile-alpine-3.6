@@ -1,2 +1,5 @@
 FROM alpine:3.6
-RUN apk update && apk add python3 wget unzip make ca-certificates
+RUN apk update && apk add python3 wget curl unzip make ca-certificates
+RUN curl -O -L "https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64" && \
+    mv cosign-linux-amd64 /usr/local/bin/cosign && \
+    chmod +x /usr/local/bin/cosign

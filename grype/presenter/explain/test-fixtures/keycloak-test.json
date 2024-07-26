@@ -1,0 +1,839 @@
+{
+ "matches": [{
+    "vulnerability": {
+      "id": "CVE-2020-12413",
+      "dataSource": "https://access.redhat.com/security/cve/CVE-2020-12413",
+      "namespace": "redhat:distro:redhat:9",
+      "severity": "Low",
+      "urls": [
+        "https://access.redhat.com/security/cve/CVE-2020-12413"
+      ],
+      "description": "A flaw was found in Mozilla nss. A raccoon attack exploits a flaw in the TLS specification which can lead to an attacker being able to compute the pre-master secret in connections which have used a Diffie-Hellman(DH) based ciphersuite. In such a case this would result in the attacker being able to eavesdrop on all encrypted communications sent over that TLS connection. The highest threat from this vulnerability is to data confidentiality.",
+      "cvss": [
+        {
+          "version": "3.1",
+          "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+          "metrics": {
+            "baseScore": 5.9,
+            "exploitabilityScore": 2.2,
+            "impactScore": 3.6
+          },
+          "vendorMetadata": {
+            "base_severity": "Medium",
+            "status": "draft"
+          }
+        }
+      ],
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "advisories": []
+    },
+    "relatedVulnerabilities": [
+      {
+        "id": "CVE-2020-12413",
+        "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2020-12413",
+        "namespace": "nvd:cpe",
+        "severity": "Medium",
+        "urls": [
+          "https://bugzilla.mozilla.org/show_bug.cgi?id=CVE-2020-12413",
+          "https://raccoon-attack.com/"
+        ],
+        "description": "The Raccoon attack is a timing attack on DHE ciphersuites inherit in the TLS specification. To mitigate this vulnerability, Firefox disabled support for DHE ciphersuites.",
+        "cvss": [
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "version": "3.1",
+            "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+            "metrics": {
+              "baseScore": 5.9,
+              "exploitabilityScore": 2.2,
+              "impactScore": 3.6
+            },
+            "vendorMetadata": {}
+          }
+        ]
+      }
+    ],
+    "matchDetails": [
+      {
+        "type": "exact-indirect-match",
+        "matcher": "rpm-matcher",
+        "searchedBy": {
+          "distro": {
+            "type": "redhat",
+            "version": "9.1"
+          },
+          "namespace": "redhat:distro:redhat:9",
+          "package": {
+            "name": "nss",
+            "version": "3.79.0-17.el9_1"
+          }
+        },
+        "found": {
+          "versionConstraint": "none (rpm)",
+          "vulnerabilityID": "CVE-2020-12413"
+        }
+      }
+    ],
+    "artifact": {
+      "id": "ff2aefb138ebd4bf",
+      "name": "nspr",
+      "version": "4.34.0-17.el9_1",
+      "type": "rpm",
+      "locations": [
+        {
+          "path": "/var/lib/rpm/rpmdb.sqlite",
+          "layerID": "sha256:798d91f89858e63627a98d3a196c9ee4d0899259c0f64b68b1e0260a67c9cd2b"
+        }
+      ],
+      "language": "",
+      "licenses": [
+        "MPLv2.0"
+      ],
+      "cpes": [
+        "cpe:2.3:a:redhat:nspr:4.34.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nspr:nspr:4.34.0-17.el9_1:*:*:*:*:*:*:*"
+      ],
+      "purl": "pkg:rpm/rhel/nspr@4.34.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1",
+      "upstreams": [
+        {
+          "name": "nss",
+          "version": "3.79.0-17.el9_1"
+        }
+      ],
+      "metadataType": "RpmMetadata",
+      "metadata": {
+        "epoch": null,
+        "modularityLabel": ""
+      }
+    }
+  },
+  {
+    "vulnerability": {
+      "id": "CVE-2020-12413",
+      "dataSource": "https://access.redhat.com/security/cve/CVE-2020-12413",
+      "namespace": "redhat:distro:redhat:9",
+      "severity": "Low",
+      "urls": [
+        "https://access.redhat.com/security/cve/CVE-2020-12413"
+      ],
+      "description": "A flaw was found in Mozilla nss. A raccoon attack exploits a flaw in the TLS specification which can lead to an attacker being able to compute the pre-master secret in connections which have used a Diffie-Hellman(DH) based ciphersuite. In such a case this would result in the attacker being able to eavesdrop on all encrypted communications sent over that TLS connection. The highest threat from this vulnerability is to data confidentiality.",
+      "cvss": [
+        {
+          "version": "3.1",
+          "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+          "metrics": {
+            "baseScore": 5.9,
+            "exploitabilityScore": 2.2,
+            "impactScore": 3.6
+          },
+          "vendorMetadata": {
+            "base_severity": "Medium",
+            "status": "draft"
+          }
+        }
+      ],
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "advisories": []
+    },
+    "relatedVulnerabilities": [
+      {
+        "id": "CVE-2020-12413",
+        "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2020-12413",
+        "namespace": "nvd:cpe",
+        "severity": "Medium",
+        "urls": [
+          "https://bugzilla.mozilla.org/show_bug.cgi?id=CVE-2020-12413",
+          "https://raccoon-attack.com/"
+        ],
+        "description": "The Raccoon attack is a timing attack on DHE ciphersuites inherit in the TLS specification. To mitigate this vulnerability, Firefox disabled support for DHE ciphersuites.",
+        "cvss": [
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "version": "3.1",
+            "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+            "metrics": {
+              "baseScore": 5.9,
+              "exploitabilityScore": 2.2,
+              "impactScore": 3.6
+            },
+            "vendorMetadata": {}
+          }
+        ]
+      }
+    ],
+    "matchDetails": [
+      {
+        "type": "exact-direct-match",
+        "matcher": "rpm-matcher",
+        "searchedBy": {
+          "distro": {
+            "type": "redhat",
+            "version": "9.1"
+          },
+          "namespace": "redhat:distro:redhat:9",
+          "package": {
+            "name": "nss",
+            "version": "0:3.79.0-17.el9_1"
+          }
+        },
+        "found": {
+          "versionConstraint": "none (rpm)",
+          "vulnerabilityID": "CVE-2020-12413"
+        }
+      }
+    ],
+    "artifact": {
+      "id": "840f8a931c86688f",
+      "name": "nss",
+      "version": "3.79.0-17.el9_1",
+      "type": "rpm",
+      "locations": [
+        {
+          "path": "/var/lib/rpm/rpmdb.sqlite",
+          "layerID": "sha256:798d91f89858e63627a98d3a196c9ee4d0899259c0f64b68b1e0260a67c9cd2b"
+        }
+      ],
+      "language": "",
+      "licenses": [
+        "MPLv2.0"
+      ],
+      "cpes": [
+        "cpe:2.3:a:redhat:nss:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss:nss:3.79.0-17.el9_1:*:*:*:*:*:*:*"
+      ],
+      "purl": "pkg:rpm/rhel/nss@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1",
+      "upstreams": [],
+      "metadataType": "RpmMetadata",
+      "metadata": {
+        "epoch": null,
+        "modularityLabel": ""
+      }
+    }
+  },
+  {
+    "vulnerability": {
+      "id": "CVE-2020-12413",
+      "dataSource": "https://access.redhat.com/security/cve/CVE-2020-12413",
+      "namespace": "redhat:distro:redhat:9",
+      "severity": "Low",
+      "urls": [
+        "https://access.redhat.com/security/cve/CVE-2020-12413"
+      ],
+      "description": "A flaw was found in Mozilla nss. A raccoon attack exploits a flaw in the TLS specification which can lead to an attacker being able to compute the pre-master secret in connections which have used a Diffie-Hellman(DH) based ciphersuite. In such a case this would result in the attacker being able to eavesdrop on all encrypted communications sent over that TLS connection. The highest threat from this vulnerability is to data confidentiality.",
+      "cvss": [
+        {
+          "version": "3.1",
+          "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+          "metrics": {
+            "baseScore": 5.9,
+            "exploitabilityScore": 2.2,
+            "impactScore": 3.6
+          },
+          "vendorMetadata": {
+            "base_severity": "Medium",
+            "status": "draft"
+          }
+        }
+      ],
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "advisories": []
+    },
+    "relatedVulnerabilities": [
+      {
+        "id": "CVE-2020-12413",
+        "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2020-12413",
+        "namespace": "nvd:cpe",
+        "severity": "Medium",
+        "urls": [
+          "https://bugzilla.mozilla.org/show_bug.cgi?id=CVE-2020-12413",
+          "https://raccoon-attack.com/"
+        ],
+        "description": "The Raccoon attack is a timing attack on DHE ciphersuites inherit in the TLS specification. To mitigate this vulnerability, Firefox disabled support for DHE ciphersuites.",
+        "cvss": [
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "version": "3.1",
+            "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+            "metrics": {
+              "baseScore": 5.9,
+              "exploitabilityScore": 2.2,
+              "impactScore": 3.6
+            },
+            "vendorMetadata": {}
+          }
+        ]
+      }
+    ],
+    "matchDetails": [
+      {
+        "type": "exact-indirect-match",
+        "matcher": "rpm-matcher",
+        "searchedBy": {
+          "distro": {
+            "type": "redhat",
+            "version": "9.1"
+          },
+          "namespace": "redhat:distro:redhat:9",
+          "package": {
+            "name": "nss",
+            "version": "3.79.0-17.el9_1"
+          }
+        },
+        "found": {
+          "versionConstraint": "none (rpm)",
+          "vulnerabilityID": "CVE-2020-12413"
+        }
+      }
+    ],
+    "artifact": {
+      "id": "7d1c659d9eb00024",
+      "name": "nss-softokn",
+      "version": "3.79.0-17.el9_1",
+      "type": "rpm",
+      "locations": [
+        {
+          "path": "/var/lib/rpm/rpmdb.sqlite",
+          "layerID": "sha256:798d91f89858e63627a98d3a196c9ee4d0899259c0f64b68b1e0260a67c9cd2b"
+        }
+      ],
+      "language": "",
+      "licenses": [
+        "MPLv2.0"
+      ],
+      "cpes": [
+        "cpe:2.3:a:nss-softokn:nss-softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss-softokn:nss_softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss_softokn:nss-softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss_softokn:nss_softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:nss-softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:nss_softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss:nss-softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss:nss_softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*"
+      ],
+      "purl": "pkg:rpm/rhel/nss-softokn@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1",
+      "upstreams": [
+        {
+          "name": "nss",
+          "version": "3.79.0-17.el9_1"
+        }
+      ],
+      "metadataType": "RpmMetadata",
+      "metadata": {
+        "epoch": null,
+        "modularityLabel": ""
+      }
+    }
+  },
+  {
+    "vulnerability": {
+      "id": "CVE-2020-12413",
+      "dataSource": "https://access.redhat.com/security/cve/CVE-2020-12413",
+      "namespace": "redhat:distro:redhat:9",
+      "severity": "Low",
+      "urls": [
+        "https://access.redhat.com/security/cve/CVE-2020-12413"
+      ],
+      "description": "A flaw was found in Mozilla nss. A raccoon attack exploits a flaw in the TLS specification which can lead to an attacker being able to compute the pre-master secret in connections which have used a Diffie-Hellman(DH) based ciphersuite. In such a case this would result in the attacker being able to eavesdrop on all encrypted communications sent over that TLS connection. The highest threat from this vulnerability is to data confidentiality.",
+      "cvss": [
+        {
+          "version": "3.1",
+          "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+          "metrics": {
+            "baseScore": 5.9,
+            "exploitabilityScore": 2.2,
+            "impactScore": 3.6
+          },
+          "vendorMetadata": {
+            "base_severity": "Medium",
+            "status": "draft"
+          }
+        }
+      ],
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "advisories": []
+    },
+    "relatedVulnerabilities": [
+      {
+        "id": "CVE-2020-12413",
+        "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2020-12413",
+        "namespace": "nvd:cpe",
+        "severity": "Medium",
+        "urls": [
+          "https://bugzilla.mozilla.org/show_bug.cgi?id=CVE-2020-12413",
+          "https://raccoon-attack.com/"
+        ],
+        "description": "The Raccoon attack is a timing attack on DHE ciphersuites inherit in the TLS specification. To mitigate this vulnerability, Firefox disabled support for DHE ciphersuites.",
+        "cvss": [
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "version": "3.1",
+            "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+            "metrics": {
+              "baseScore": 5.9,
+              "exploitabilityScore": 2.2,
+              "impactScore": 3.6
+            },
+            "vendorMetadata": {}
+          }
+        ]
+      }
+    ],
+    "matchDetails": [
+      {
+        "type": "exact-indirect-match",
+        "matcher": "rpm-matcher",
+        "searchedBy": {
+          "distro": {
+            "type": "redhat",
+            "version": "9.1"
+          },
+          "namespace": "redhat:distro:redhat:9",
+          "package": {
+            "name": "nss",
+            "version": "3.79.0-17.el9_1"
+          }
+        },
+        "found": {
+          "versionConstraint": "none (rpm)",
+          "vulnerabilityID": "CVE-2020-12413"
+        }
+      }
+    ],
+    "artifact": {
+      "id": "cb1f96627e29924e",
+      "name": "nss-softokn-freebl",
+      "version": "3.79.0-17.el9_1",
+      "type": "rpm",
+      "locations": [
+        {
+          "path": "/var/lib/rpm/rpmdb.sqlite",
+          "layerID": "sha256:798d91f89858e63627a98d3a196c9ee4d0899259c0f64b68b1e0260a67c9cd2b"
+        }
+      ],
+      "language": "",
+      "licenses": [
+        "MPLv2.0"
+      ],
+      "cpes": [
+        "cpe:2.3:a:nss-softokn-freebl:nss-softokn-freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss-softokn-freebl:nss_softokn_freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss_softokn_freebl:nss-softokn-freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss_softokn_freebl:nss_softokn_freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss-softokn:nss-softokn-freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss-softokn:nss_softokn_freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss_softokn:nss-softokn-freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss_softokn:nss_softokn_freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:nss-softokn-freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:nss_softokn_freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss:nss-softokn-freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss:nss_softokn_freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*"
+      ],
+      "purl": "pkg:rpm/rhel/nss-softokn-freebl@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1",
+      "upstreams": [
+        {
+          "name": "nss",
+          "version": "3.79.0-17.el9_1"
+        }
+      ],
+      "metadataType": "RpmMetadata",
+      "metadata": {
+        "epoch": null,
+        "modularityLabel": ""
+      }
+    }
+  },
+  {
+    "vulnerability": {
+      "id": "CVE-2020-12413",
+      "dataSource": "https://access.redhat.com/security/cve/CVE-2020-12413",
+      "namespace": "redhat:distro:redhat:9",
+      "severity": "Low",
+      "urls": [
+        "https://access.redhat.com/security/cve/CVE-2020-12413"
+      ],
+      "description": "A flaw was found in Mozilla nss. A raccoon attack exploits a flaw in the TLS specification which can lead to an attacker being able to compute the pre-master secret in connections which have used a Diffie-Hellman(DH) based ciphersuite. In such a case this would result in the attacker being able to eavesdrop on all encrypted communications sent over that TLS connection. The highest threat from this vulnerability is to data confidentiality.",
+      "cvss": [
+        {
+          "version": "3.1",
+          "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+          "metrics": {
+            "baseScore": 5.9,
+            "exploitabilityScore": 2.2,
+            "impactScore": 3.6
+          },
+          "vendorMetadata": {
+            "base_severity": "Medium",
+            "status": "draft"
+          }
+        }
+      ],
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "advisories": []
+    },
+    "relatedVulnerabilities": [
+      {
+        "id": "CVE-2020-12413",
+        "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2020-12413",
+        "namespace": "nvd:cpe",
+        "severity": "Medium",
+        "urls": [
+          "https://bugzilla.mozilla.org/show_bug.cgi?id=CVE-2020-12413",
+          "https://raccoon-attack.com/"
+        ],
+        "description": "The Raccoon attack is a timing attack on DHE ciphersuites inherit in the TLS specification. To mitigate this vulnerability, Firefox disabled support for DHE ciphersuites.",
+        "cvss": [
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "version": "3.1",
+            "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+            "metrics": {
+              "baseScore": 5.9,
+              "exploitabilityScore": 2.2,
+              "impactScore": 3.6
+            },
+            "vendorMetadata": {}
+          }
+        ]
+      }
+    ],
+    "matchDetails": [
+      {
+        "type": "exact-indirect-match",
+        "matcher": "rpm-matcher",
+        "searchedBy": {
+          "distro": {
+            "type": "redhat",
+            "version": "9.1"
+          },
+          "namespace": "redhat:distro:redhat:9",
+          "package": {
+            "name": "nss",
+            "version": "3.79.0-17.el9_1"
+          }
+        },
+        "found": {
+          "versionConstraint": "none (rpm)",
+          "vulnerabilityID": "CVE-2020-12413"
+        }
+      }
+    ],
+    "artifact": {
+      "id": "d096d490e4fccf36",
+      "name": "nss-sysinit",
+      "version": "3.79.0-17.el9_1",
+      "type": "rpm",
+      "locations": [
+        {
+          "path": "/var/lib/rpm/rpmdb.sqlite",
+          "layerID": "sha256:798d91f89858e63627a98d3a196c9ee4d0899259c0f64b68b1e0260a67c9cd2b"
+        }
+      ],
+      "language": "",
+      "licenses": [
+        "MPLv2.0"
+      ],
+      "cpes": [
+        "cpe:2.3:a:nss-sysinit:nss-sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss-sysinit:nss_sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss_sysinit:nss-sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss_sysinit:nss_sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:nss-sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:nss_sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss:nss-sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss:nss_sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*"
+      ],
+      "purl": "pkg:rpm/rhel/nss-sysinit@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1",
+      "upstreams": [
+        {
+          "name": "nss",
+          "version": "3.79.0-17.el9_1"
+        }
+      ],
+      "metadataType": "RpmMetadata",
+      "metadata": {
+        "epoch": null,
+        "modularityLabel": ""
+      }
+    }
+  },
+  {
+    "vulnerability": {
+      "id": "CVE-2020-12413",
+      "dataSource": "https://access.redhat.com/security/cve/CVE-2020-12413",
+      "namespace": "redhat:distro:redhat:9",
+      "severity": "Low",
+      "urls": [
+        "https://access.redhat.com/security/cve/CVE-2020-12413"
+      ],
+      "description": "A flaw was found in Mozilla nss. A raccoon attack exploits a flaw in the TLS specification which can lead to an attacker being able to compute the pre-master secret in connections which have used a Diffie-Hellman(DH) based ciphersuite. In such a case this would result in the attacker being able to eavesdrop on all encrypted communications sent over that TLS connection. The highest threat from this vulnerability is to data confidentiality.",
+      "cvss": [
+        {
+          "version": "3.1",
+          "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+          "metrics": {
+            "baseScore": 5.9,
+            "exploitabilityScore": 2.2,
+            "impactScore": 3.6
+          },
+          "vendorMetadata": {
+            "base_severity": "Medium",
+            "status": "draft"
+          }
+        }
+      ],
+      "fix": {
+        "versions": [],
+        "state": "wont-fix"
+      },
+      "advisories": []
+    },
+    "relatedVulnerabilities": [
+      {
+        "id": "CVE-2020-12413",
+        "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2020-12413",
+        "namespace": "nvd:cpe",
+        "severity": "Medium",
+        "urls": [
+          "https://bugzilla.mozilla.org/show_bug.cgi?id=CVE-2020-12413",
+          "https://raccoon-attack.com/"
+        ],
+        "description": "The Raccoon attack is a timing attack on DHE ciphersuites inherit in the TLS specification. To mitigate this vulnerability, Firefox disabled support for DHE ciphersuites.",
+        "cvss": [
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "version": "3.1",
+            "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+            "metrics": {
+              "baseScore": 5.9,
+              "exploitabilityScore": 2.2,
+              "impactScore": 3.6
+            },
+            "vendorMetadata": {}
+          }
+        ]
+      }
+    ],
+    "matchDetails": [
+      {
+        "type": "exact-indirect-match",
+        "matcher": "rpm-matcher",
+        "searchedBy": {
+          "distro": {
+            "type": "redhat",
+            "version": "9.1"
+          },
+          "namespace": "redhat:distro:redhat:9",
+          "package": {
+            "name": "nss",
+            "version": "3.79.0-17.el9_1"
+          }
+        },
+        "found": {
+          "versionConstraint": "none (rpm)",
+          "vulnerabilityID": "CVE-2020-12413"
+        }
+      }
+    ],
+    "artifact": {
+      "id": "641950c22b3f5035",
+      "name": "nss-util",
+      "version": "3.79.0-17.el9_1",
+      "type": "rpm",
+      "locations": [
+        {
+          "path": "/var/lib/rpm/rpmdb.sqlite",
+          "layerID": "sha256:798d91f89858e63627a98d3a196c9ee4d0899259c0f64b68b1e0260a67c9cd2b"
+        }
+      ],
+      "language": "",
+      "licenses": [
+        "MPLv2.0"
+      ],
+      "cpes": [
+        "cpe:2.3:a:nss-util:nss-util:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss-util:nss_util:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss_util:nss-util:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss_util:nss_util:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:nss-util:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:redhat:nss_util:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss:nss-util:3.79.0-17.el9_1:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nss:nss_util:3.79.0-17.el9_1:*:*:*:*:*:*:*"
+      ],
+      "purl": "pkg:rpm/rhel/nss-util@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1",
+      "upstreams": [
+        {
+          "name": "nss",
+          "version": "3.79.0-17.el9_1"
+        }
+      ],
+      "metadataType": "RpmMetadata",
+      "metadata": {
+        "epoch": null,
+        "modularityLabel": ""
+      }
+    }
+  }
+ ],
+ "source": {
+  "type": "image",
+  "target": {
+   "userInput": "docker.io/keycloak/keycloak:21.0.2@sha256:347a0d748d05a050dc64b92de2246d2240db6eb38afbc17c3c08d0acb0db1b50",
+   "imageID": "sha256:8cf8fd2be2ded92962d52adff75ad06a4c30f69c66facbdf223364c6c9e33b8c",
+   "manifestDigest": "sha256:d1630d3eb8285a978301bcefc5b223e564ae300750af2fc9ea3f413c5376a47e",
+   "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+   "tags": [],
+   "imageSize": 433836339,
+   "layers": [
+    {
+     "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+     "digest": "sha256:4e37aeaccb4c8016e381d6e2b2a0f22ea59985a7b9b8eca674726e8c60f2f51d",
+     "size": 24302817
+    },
+    {
+     "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+     "digest": "sha256:798d91f89858e63627a98d3a196c9ee4d0899259c0f64b68b1e0260a67c9cd2b",
+     "size": 222622091
+    },
+    {
+     "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+     "digest": "sha256:8329e422b4fd63ffd06518346e5f1f7b33e8190a79e5c321f9c50aba8651d30c",
+     "size": 186910556
+    },
+    {
+     "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+     "digest": "sha256:987fd030ab2cd62944cb487df846c312b64dbb2a6a3131a81253c15a9da2a26c",
+     "size": 875
+    }
+   ],
+   "manifest": "eyJzY2hlbWFWZXJzaW9uIjoyLCJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQuZG9ja2VyLmRpc3RyaWJ1dGlvbi5tYW5pZmVzdC52Mitqc29uIiwiY29uZmlnIjp7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5kb2NrZXIuY29udGFpbmVyLmltYWdlLnYxK2pzb24iLCJzaXplIjo2NTY5LCJkaWdlc3QiOiJzaGEyNTY6OGNmOGZkMmJlMmRlZDkyOTYyZDUyYWRmZjc1YWQwNmE0YzMwZjY5YzY2ZmFjYmRmMjIzMzY0YzZjOWUzM2I4YyJ9LCJsYXllcnMiOlt7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5kb2NrZXIuaW1hZ2Uucm9vdGZzLmRpZmYudGFyLmd6aXAiLCJzaXplIjoyNjEyNzg3MiwiZGlnZXN0Ijoic2hhMjU2OjRlMzdhZWFjY2I0YzgwMTZlMzgxZDZlMmIyYTBmMjJlYTU5OTg1YTdiOWI4ZWNhNjc0NzI2ZThjNjBmMmY1MWQifSx7Im1lZGlhVHlwZSI6ImFwcGxpY2F0aW9uL3ZuZC5kb2NrZXIuaW1hZ2Uucm9vdGZzLmRpZmYudGFyLmd6aXAiLCJzaXplIjoyMjUxMTI1NzYsImRpZ2VzdCI6InNoYTI1Njo3OThkOTFmODk4NThlNjM2MjdhOThkM2ExOTZjOWVlNGQwODk5MjU5YzBmNjRiNjhiMWUwMjYwYTY3YzljZDJiIn0seyJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQuZG9ja2VyLmltYWdlLnJvb3Rmcy5kaWZmLnRhci5nemlwIiwic2l6ZSI6MTg3MzE1MjAwLCJkaWdlc3QiOiJzaGEyNTY6ODMyOWU0MjJiNGZkNjNmZmQwNjUxODM0NmU1ZjFmN2IzM2U4MTkwYTc5ZTVjMzIxZjljNTBhYmE4NjUxZDMwYyJ9LHsibWVkaWFUeXBlIjoiYXBwbGljYXRpb24vdm5kLmRvY2tlci5pbWFnZS5yb290ZnMuZGlmZi50YXIuZ3ppcCIsInNpemUiOjQwOTYsImRpZ2VzdCI6InNoYTI1Njo5ODdmZDAzMGFiMmNkNjI5NDRjYjQ4N2RmODQ2YzMxMmI2NGRiYjJhNmEzMTMxYTgxMjUzYzE1YTlkYTJhMjZjIn1dfQ==",
+   "config": "eyJhcmNoaXRlY3R1cmUiOiJhbWQ2NCIsImNvbmZpZyI6eyJVc2VyIjoiMTAwMCIsIkV4cG9zZWRQb3J0cyI6eyI4MDgwL3RjcCI6e30sIjg0NDMvdGNwIjp7fX0sIkVudiI6WyJQQVRIPS91c3IvbG9jYWwvc2JpbjovdXNyL2xvY2FsL2JpbjovdXNyL3NiaW46L3Vzci9iaW46L3NiaW46L2JpbiIsIkxBTkc9ZW5fVVMuVVRGLTgiXSwiRW50cnlwb2ludCI6WyIvb3B0L2tleWNsb2FrL2Jpbi9rYy5zaCJdLCJMYWJlbHMiOnsiYXJjaGl0ZWN0dXJlIjoieDg2XzY0IiwiYnVpbGQtZGF0ZSI6IjIwMjMtMDItMjJUMTM6NTQ6MjUiLCJjb20ucmVkaGF0LmNvbXBvbmVudCI6InViaTktbWljcm8tY29udGFpbmVyIiwiY29tLnJlZGhhdC5saWNlbnNlX3Rlcm1zIjoiaHR0cHM6Ly93d3cucmVkaGF0LmNvbS9lbi9hYm91dC9yZWQtaGF0LWVuZC11c2VyLWxpY2Vuc2UtYWdyZWVtZW50cyNVQkkiLCJkZXNjcmlwdGlvbiI6IlZlcnkgc21hbGwgaW1hZ2Ugd2hpY2ggZG9lc24ndCBpbnN0YWxsIHRoZSBwYWNrYWdlIG1hbmFnZXIuIiwiZGlzdHJpYnV0aW9uLXNjb3BlIjoicHVibGljIiwiaW8uYnVpbGRhaC52ZXJzaW9uIjoiMS4yNy4zIiwiaW8uazhzLmRlc2NyaXB0aW9uIjoiVmVyeSBzbWFsbCBpbWFnZSB3aGljaCBkb2Vzbid0IGluc3RhbGwgdGhlIHBhY2thZ2UgbWFuYWdlci4iLCJpby5rOHMuZGlzcGxheS1uYW1lIjoiVWJpOS1taWNybyIsImlvLm9wZW5zaGlmdC5leHBvc2Utc2VydmljZXMiOiIiLCJtYWludGFpbmVyIjoiUmVkIEhhdCwgSW5jLiIsIm5hbWUiOiJ1Ymk5L3ViaS1taWNybyIsIm9yZy5vcGVuY29udGFpbmVycy5pbWFnZS5jcmVhdGVkIjoiMjAyMy0wMy0zMFQxMToxMjoxOC45ODVaIiwib3JnLm9wZW5jb250YWluZXJzLmltYWdlLmRlc2NyaXB0aW9uIjoiIiwib3JnLm9wZW5jb250YWluZXJzLmltYWdlLmxpY2Vuc2VzIjoiQXBhY2hlLTIuMCIsIm9yZy5vcGVuY29udGFpbmVycy5pbWFnZS5yZXZpc2lvbiI6ImIzNTJhMWY2ZThiYTkyYTA0NWI1OWNjOGRlZDE4NWUzYjFkMjYxNTUiLCJvcmcub3BlbmNvbnRhaW5lcnMuaW1hZ2Uuc291cmNlIjoiaHR0cHM6Ly9naXRodWIuY29tL2tleWNsb2FrLXJlbC9rZXljbG9hay1yZWwiLCJvcmcub3BlbmNvbnRhaW5lcnMuaW1hZ2UudGl0bGUiOiJrZXljbG9hay1yZWwiLCJvcmcub3BlbmNvbnRhaW5lcnMuaW1hZ2UudXJsIjoiaHR0cHM6Ly9naXRodWIuY29tL2tleWNsb2FrLXJlbC9rZXljbG9hay1yZWwiLCJvcmcub3BlbmNvbnRhaW5lcnMuaW1hZ2UudmVyc2lvbiI6IjIxLjAuMiIsInJlbGVhc2UiOiIxNSIsInN1bW1hcnkiOiJ1Ymk5IG1pY3JvIGltYWdlIiwidXJsIjoiaHR0cHM6Ly9hY2Nlc3MucmVkaGF0LmNvbS9jb250YWluZXJzLyMvcmVnaXN0cnkuYWNjZXNzLnJlZGhhdC5jb20vdWJpOS91YmktbWljcm8vaW1hZ2VzLzkuMS4wLTE1IiwidmNzLXJlZiI6ImM1NjNlMDkxZTBjN2JkNWE2OWIyYTQ2OTkwZGRhNGY1OTU5NWFhMzciLCJ2Y3MtdHlwZSI6ImdpdCIsInZlbmRvciI6IlJlZCBIYXQsIEluYy4iLCJ2ZXJzaW9uIjoiOS4xLjAifSwiT25CdWlsZCI6bnVsbH0sImNyZWF0ZWQiOiIyMDIzLTAzLTMwVDExOjEzOjE0LjYyOTk2NjA5NFoiLCJoaXN0b3J5IjpbeyJjcmVhdGVkIjoiMjAyMy0wMi0yMlQxMzo1NjowMy45Mzc2NTUxODNaIiwiY3JlYXRlZF9ieSI6Ii9iaW4vc2ggLWMgIyhub3ApIExBQkVMIG1haW50YWluZXI9XCJSZWQgSGF0LCBJbmMuXCIiLCJlbXB0eV9sYXllciI6dHJ1ZX0seyJjcmVhdGVkIjoiMjAyMy0wMi0yMlQxMzo1NjowMy45Mzc3ODIxNDlaIiwiY3JlYXRlZF9ieSI6Ii9iaW4vc2ggLWMgIyhub3ApIExBQkVMIGNvbS5yZWRoYXQuY29tcG9uZW50PVwidWJpOS1taWNyby1jb250YWluZXJcIiIsImVtcHR5X2xheWVyIjp0cnVlfSx7ImNyZWF0ZWQiOiIyMDIzLTAyLTIyVDEzOjU2OjAzLjkzNzgwODc4M1oiLCJjcmVhdGVkX2J5IjoiL2Jpbi9zaCAtYyAjKG5vcCkgTEFCRUwgbmFtZT1cInViaTkvdWJpLW1pY3JvXCIiLCJlbXB0eV9sYXllciI6dHJ1ZX0seyJjcmVhdGVkIjoiMjAyMy0wMi0yMlQxMzo1NjowMy45Mzc4NTM2MzVaIiwiY3JlYXRlZF9ieSI6Ii9iaW4vc2ggLWMgIyhub3ApIExBQkVMIHZlcnNpb249XCI5LjEuMFwiIiwiZW1wdHlfbGF5ZXIiOnRydWV9LHsiY3JlYXRlZCI6IjIwMjMtMDItMjJUMTM6NTY6MDMuOTM3OTMwMjE1WiIsImNyZWF0ZWRfYnkiOiIvYmluL3NoIC1jICMobm9wKSBMQUJFTCBjb20ucmVkaGF0LmxpY2Vuc2VfdGVybXM9XCJodHRwczovL3d3dy5yZWRoYXQuY29tL2VuL2Fib3V0L3JlZC1oYXQtZW5kLXVzZXItbGljZW5zZS1hZ3JlZW1lbnRzI1VCSVwiIiwiZW1wdHlfbGF5ZXIiOnRydWV9LHsiY3JlYXRlZCI6IjIwMjMtMDItMjJUMTM6NTY6MDMuOTM3OTY5MTY5WiIsImNyZWF0ZWRfYnkiOiIvYmluL3NoIC1jICMobm9wKSBMQUJFTCBzdW1tYXJ5PVwidWJpOSBtaWNybyBpbWFnZVwiIiwiZW1wdHlfbGF5ZXIiOnRydWV9LHsiY3JlYXRlZCI6IjIwMjMtMDItMjJUMTM6NTY6MDMuOTM4MDAzNDAyWiIsImNyZWF0ZWRfYnkiOiIvYmluL3NoIC1jICMobm9wKSBMQUJFTCBkZXNjcmlwdGlvbj1cIlZlcnkgc21hbGwgaW1hZ2Ugd2hpY2ggZG9lc24ndCBpbnN0YWxsIHRoZSBwYWNrYWdlIG1hbmFnZXIuXCIiLCJlbXB0eV9sYXllciI6dHJ1ZX0seyJjcmVhdGVkIjoiMjAyMy0wMi0yMlQxMzo1NjowMy45MzgyMjU4ODRaIiwiY3JlYXRlZF9ieSI6Ii9iaW4vc2ggLWMgIyhub3ApIExBQkVMIGlvLms4cy5kaXNwbGF5LW5hbWU9XCJVYmk5LW1pY3JvXCIiLCJlbXB0eV9sYXllciI6dHJ1ZX0seyJjcmVhdGVkIjoiMjAyMy0wMi0yMlQxMzo1NjowMy45MzgzMjAxOTlaIiwiY3JlYXRlZF9ieSI6Ii9iaW4vc2ggLWMgIyhub3ApIExBQkVMIGlvLm9wZW5zaGlmdC5leHBvc2Utc2VydmljZXM9XCJcIiIsImVtcHR5X2xheWVyIjp0cnVlfSx7ImNyZWF0ZWQiOiIyMDIzLTAyLTIyVDEzOjU2OjA0LjkxOTA1OTE2OFoiLCJjcmVhdGVkX2J5IjoiL2Jpbi9zaCAtYyAjKG5vcCkgQ09QWSBkaXI6MWMzNjc0ODA2NTg5ZWRhYmNiNTg1NGIxOThhMjlkZGU3ODZhYmI3MmU4YTU5NTA4OGRmNTI3Mjg1MzVjMTk5ZiBpbiAvICIsImVtcHR5X2xheWVyIjp0cnVlfSx7ImNyZWF0ZWQiOiIyMDIzLTAyLTIyVDEzOjU2OjA1LjE4OTA4MTIyM1oiLCJjcmVhdGVkX2J5IjoiL2Jpbi9zaCAtYyAjKG5vcCkgQ09QWSBmaWxlOmVlYzczZjg1OWM2ZTdmNmM4YTk0MjdlY2M1MjQ5NTA0ZmU4OWFlNTRkYzNhMTUyMWI0NDI2NzRhOTA0OTdkMzIgaW4gL2V0Yy95dW0ucmVwb3MuZC91YmkucmVwbyAiLCJlbXB0eV9sYXllciI6dHJ1ZX0seyJjcmVhdGVkIjoiMjAyMy0wMi0yMlQxMzo1NjowNS4xODkxMTM0MDRaIiwiY3JlYXRlZF9ieSI6Ii9iaW4vc2ggLWMgIyhub3ApIENNRCAvYmluL3NoIiwiZW1wdHlfbGF5ZXIiOnRydWV9LHsiY3JlYXRlZCI6IjIwMjMtMDItMjJUMTM6NTY6MDUuMTg5MTkyNDZaIiwiY3JlYXRlZF9ieSI6Ii9iaW4vc2ggLWMgIyhub3ApIExBQkVMIHJlbGVhc2U9MTUiLCJlbXB0eV9sYXllciI6dHJ1ZX0seyJjcmVhdGVkIjoiMjAyMy0wMi0yMlQxMzo1NjowNS40NTY0OTQ0MjRaIiwiY3JlYXRlZF9ieSI6Ii9iaW4vc2ggLWMgIyhub3ApIEFERCBmaWxlOjI0ODgwMDQ4ZTQ5YzMwZDJlNWQ2ZGQ3M2VmNzg5NGU2OTIyMTczN2M5MmM0YWNjNDgxYWMxNmY1NDZjZWE3OTEgaW4gL3Jvb3QvYnVpbGRpbmZvL2NvbnRlbnRfbWFuaWZlc3RzL3ViaTktbWljcm8tY29udGFpbmVyLTkuMS4wLTE1Lmpzb24gIiwiZW1wdHlfbGF5ZXIiOnRydWV9LHsiY3JlYXRlZCI6IjIwMjMtMDItMjJUMTM6NTY6MDUuNzM0NTA1MjUyWiIsImNyZWF0ZWRfYnkiOiIvYmluL3NoIC1jICMobm9wKSBBREQgZmlsZTpjYTYxZjYyNzUwMTQ4MWFlZjYyNzcwZjM4ZmY0NjQyNzY2MzcwZDBiYjE2ZjM0MzBlZjI4NzkyNzcxMDAwYjE0IGluIC9yb290L2J1aWxkaW5mby9Eb2NrZXJmaWxlLXViaTktdWJpLW1pY3JvLTkuMS4wLTE1ICIsImVtcHR5X2xheWVyIjp0cnVlfSx7ImNyZWF0ZWQiOiIyMDIzLTAyLTIyVDEzOjU2OjA1Ljk3NjcyMjE4OFoiLCJjcmVhdGVkX2J5IjoiL2Jpbi9zaCAtYyAjKG5vcCkgTEFCRUwgXCJkaXN0cmlidXRpb24tc2NvcGVcIj1cInB1YmxpY1wiIFwidmVuZG9yXCI9XCJSZWQgSGF0LCBJbmMuXCIgXCJidWlsZC1kYXRlXCI9XCIyMDIzLTAyLTIyVDEzOjU0OjI1XCIgXCJhcmNoaXRlY3R1cmVcIj1cIng4Nl82NFwiIFwidmNzLXR5cGVcIj1cImdpdFwiIFwidmNzLXJlZlwiPVwiYzU2M2UwOTFlMGM3YmQ1YTY5YjJhNDY5OTBkZGE0ZjU5NTk1YWEzN1wiIFwiaW8uazhzLmRlc2NyaXB0aW9uXCI9XCJWZXJ5IHNtYWxsIGltYWdlIHdoaWNoIGRvZXNuJ3QgaW5zdGFsbCB0aGUgcGFja2FnZSBtYW5hZ2VyLlwiIFwidXJsXCI9XCJodHRwczovL2FjY2Vzcy5yZWRoYXQuY29tL2NvbnRhaW5lcnMvIy9yZWdpc3RyeS5hY2Nlc3MucmVkaGF0LmNvbS91Ymk5L3ViaS1taWNyby9pbWFnZXMvOS4xLjAtMTVcIiJ9LHsiY3JlYXRlZCI6IjIwMjMtMDMtMzBUMTE6MTM6MTMuNjYwNjQ3MjY5WiIsImNyZWF0ZWRfYnkiOiJFTlYgTEFORz1lbl9VUy5VVEYtOCIsImNvbW1lbnQiOiJidWlsZGtpdC5kb2NrZXJmaWxlLnYwIiwiZW1wdHlfbGF5ZXIiOnRydWV9LHsiY3JlYXRlZCI6IjIwMjMtMDMtMzBUMTE6MTM6MTMuNjYwNjQ3MjY5WiIsImNyZWF0ZWRfYnkiOiJDT1BZIC90bXAvbnVsbC9yb290ZnMvIC8gIyBidWlsZGtpdCIsImNvbW1lbnQiOiJidWlsZGtpdC5kb2NrZXJmaWxlLnYwIn0seyJjcmVhdGVkIjoiMjAyMy0wMy0zMFQxMToxMzoxNC41NDg0MDQ5NzZaIiwiY3JlYXRlZF9ieSI6IkNPUFkgL29wdC9rZXljbG9hayAvb3B0L2tleWNsb2FrICMgYnVpbGRraXQiLCJjb21tZW50IjoiYnVpbGRraXQuZG9ja2VyZmlsZS52MCJ9LHsiY3JlYXRlZCI6IjIwMjMtMDMtMzBUMTE6MTM6MTQuNjI5OTY2MDk0WiIsImNyZWF0ZWRfYnkiOiJSVU4gL2Jpbi9zaCAtYyBlY2hvIFwia2V5Y2xvYWs6eDowOnJvb3RcIiBcdTAwM2VcdTAwM2UgL2V0Yy9ncm91cCBcdTAwMjZcdTAwMjYgICAgIGVjaG8gXCJrZXljbG9hazp4OjEwMDA6MDprZXljbG9hayB1c2VyOi9vcHQva2V5Y2xvYWs6L3NiaW4vbm9sb2dpblwiIFx1MDAzZVx1MDAzZSAvZXRjL3Bhc3N3ZCAjIGJ1aWxka2l0IiwiY29tbWVudCI6ImJ1aWxka2l0LmRvY2tlcmZpbGUudjAifSx7ImNyZWF0ZWQiOiIyMDIzLTAzLTMwVDExOjEzOjE0LjYyOTk2NjA5NFoiLCJjcmVhdGVkX2J5IjoiVVNFUiAxMDAwIiwiY29tbWVudCI6ImJ1aWxka2l0LmRvY2tlcmZpbGUudjAiLCJlbXB0eV9sYXllciI6dHJ1ZX0seyJjcmVhdGVkIjoiMjAyMy0wMy0zMFQxMToxMzoxNC42Mjk5NjYwOTRaIiwiY3JlYXRlZF9ieSI6IkVYUE9TRSBtYXBbODA4MC90Y3A6e31dIiwiY29tbWVudCI6ImJ1aWxka2l0LmRvY2tlcmZpbGUudjAiLCJlbXB0eV9sYXllciI6dHJ1ZX0seyJjcmVhdGVkIjoiMjAyMy0wMy0zMFQxMToxMzoxNC42Mjk5NjYwOTRaIiwiY3JlYXRlZF9ieSI6IkVYUE9TRSBtYXBbODQ0My90Y3A6e31dIiwiY29tbWVudCI6ImJ1aWxka2l0LmRvY2tlcmZpbGUudjAiLCJlbXB0eV9sYXllciI6dHJ1ZX0seyJjcmVhdGVkIjoiMjAyMy0wMy0zMFQxMToxMzoxNC42Mjk5NjYwOTRaIiwiY3JlYXRlZF9ieSI6IkVOVFJZUE9JTlQgW1wiL29wdC9rZXljbG9hay9iaW4va2Muc2hcIl0iLCJjb21tZW50IjoiYnVpbGRraXQuZG9ja2VyZmlsZS52MCIsImVtcHR5X2xheWVyIjp0cnVlfV0sIm1vYnkuYnVpbGRraXQuYnVpbGRpbmZvLnYxIjoiZXlKbWNtOXVkR1Z1WkNJNkltUnZZMnRsY21acGJHVXVkakFpTENKemIzVnlZMlZ6SWpwYmV5SjBlWEJsSWpvaVpHOWphMlZ5TFdsdFlXZGxJaXdpY21WbUlqb2ljbVZuYVhOMGNua3VZV05qWlhOekxuSmxaR2hoZEM1amIyMHZkV0pwT1MxdGFXTnlienBzWVhSbGMzUWlMQ0p3YVc0aU9pSnphR0V5TlRZNk5UTTJOemszTVRRNVlqSmxOakUwWXpFMll6RTRaRE00WVdVM1pqVXdPRGc1TWprM1pUa3lZVGRqWXpSaE5qQXlORGt4TkRjM1pHUmpNMkppTURZeFppSjlMSHNpZEhsd1pTSTZJbVJ2WTJ0bGNpMXBiV0ZuWlNJc0luSmxaaUk2SW5KbFoybHpkSEo1TG1GalkyVnpjeTV5WldSb1lYUXVZMjl0TDNWaWFUazZiR0YwWlhOMElpd2ljR2x1SWpvaWMyaGhNalUyT21OaU16QXpOREEwWlRVM05tWm1OVFV5T0dRMFpqQTRZakV5WVdRNE5XWmhZamhtTmpGbVlUbGxOV1JpWVRZM1lqTTNZakV4T1dSaU1qUTROalZrWmpNaWZWMTkiLCJvcyI6ImxpbnV4Iiwicm9vdGZzIjp7InR5cGUiOiJsYXllcnMiLCJkaWZmX2lkcyI6WyJzaGEyNTY6NGUzN2FlYWNjYjRjODAxNmUzODFkNmUyYjJhMGYyMmVhNTk5ODVhN2I5YjhlY2E2NzQ3MjZlOGM2MGYyZjUxZCIsInNoYTI1Njo3OThkOTFmODk4NThlNjM2MjdhOThkM2ExOTZjOWVlNGQwODk5MjU5YzBmNjRiNjhiMWUwMjYwYTY3YzljZDJiIiwic2hhMjU2OjgzMjllNDIyYjRmZDYzZmZkMDY1MTgzNDZlNWYxZjdiMzNlODE5MGE3OWU1YzMyMWY5YzUwYWJhODY1MWQzMGMiLCJzaGEyNTY6OTg3ZmQwMzBhYjJjZDYyOTQ0Y2I0ODdkZjg0NmMzMTJiNjRkYmIyYTZhMzEzMWE4MTI1M2MxNWE5ZGEyYTI2YyJdfX0=",
+   "repoDigests": [
+    "keycloak/keycloak@sha256:347a0d748d05a050dc64b92de2246d2240db6eb38afbc17c3c08d0acb0db1b50"
+   ],
+   "architecture": "amd64",
+   "os": "linux"
+  }
+ },
+ "distro": {
+  "name": "redhat",
+  "version": "9.1",
+  "idLike": [
+   "fedora"
+  ]
+ },
+ "descriptor": {
+  "name": "grype",
+  "version": "0.66.0",
+  "configuration": {
+   "configPath": "",
+   "verbosity": 0,
+   "output": [
+    "json"
+   ],
+   "file": "",
+   "distro": "",
+   "add-cpes-if-none": false,
+   "output-template-file": "",
+   "check-for-app-update": true,
+   "only-fixed": false,
+   "only-notfixed": false,
+   "platform": "",
+   "search": {
+    "scope": "Squashed",
+    "unindexed-archives": false,
+    "indexed-archives": true
+   },
+   "ignore": null,
+   "exclude": [],
+   "db": {
+    "cache-dir": "/Users/willmurphy/Library/Caches/grype/db",
+    "update-url": "https://toolbox-data.anchore.io/grype/databases/listing.json",
+    "ca-cert": "",
+    "auto-update": true,
+    "validate-by-hash-on-start": false,
+    "validate-age": true,
+    "max-allowed-built-age": 432000000000000
+   },
+   "externalSources": {
+    "enable": false,
+    "maven": {
+     "searchUpstreamBySha1": true,
+     "baseUrl": "https://search.maven.org/solrsearch/select"
+    }
+   },
+   "match": {
+    "java": {
+     "using-cpes": true
+    },
+    "dotnet": {
+     "using-cpes": true
+    },
+    "golang": {
+     "using-cpes": true
+    },
+    "javascript": {
+     "using-cpes": false
+    },
+    "python": {
+     "using-cpes": true
+    },
+    "ruby": {
+     "using-cpes": true
+    },
+    "stock": {
+     "using-cpes": true
+    }
+   },
+   "dev": {
+    "profile-cpu": false,
+    "profile-mem": false
+   },
+   "fail-on-severity": "",
+   "registry": {
+    "insecure-skip-tls-verify": false,
+    "insecure-use-http": false,
+    "auth": [],
+    "ca-cert": ""
+   },
+   "log": {
+    "quiet": true,
+    "verbosity": 0,
+    "level": "",
+    "file": ""
+   },
+   "show-suppressed": false,
+   "by-cve": false,
+   "name": "",
+   "default-image-pull-source": ""
+  },
+  "db": {
+   "built": "2023-09-01T01:26:55Z",
+   "schemaVersion": 5,
+   "location": "/Users/willmurphy/Library/Caches/grype/db/5",
+   "checksum": "sha256:5db8bddae95f375db7186527c7554311e9ddc41e815ef2dbc28dc5d206ef2c7b",
+   "error": null
+  },
+  "timestamp": "2023-09-01T08:13:42.20194-04:00"
+ }
+}

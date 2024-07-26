@@ -1,27 +1,71 @@
+# local development tailoring
+go.work
+go.work.sum
+.tool-versions
+
+# app configuration
+/.grype.yaml
+
+# tool and bin directories
+.tmp/
+bin/
+/bin
+/.bin
+/build
+/dist
+/snapshot
+/.tool
+/.task
+
+# changelog generation
 CHANGELOG.md
 VERSION
-/snapshot/
-/dist/
-*.profile
-.server
+
+# IDE configuration
+.vscode/
+.idea/
+.server/
+.history/
+
+# test related
 *.fingerprint
+/test/results
+coverage.txt
+*.log
+.server
+
+# grype-db related
 /metadata.json
 /listing.json
-.vscode/
 *.db
 *.db-journal
 !**/test-fixtures/**/*.db
-*.tar
-*tar.gz
-.idea/
-*.log
+
+# probable archives
 .images
-.tmp/
-*.tmp
-coverage.txt
+*.tar
+*.jar
+*.war
+*.ear
+*.jpi
+*.hpi
+*.zip
+*.iml
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, build with `go test -c`
+*.test
 
 # OS files
 .DS_Store
+
+*.profile
 
 # Binaries for programs and plugins
 *.exe
@@ -30,7 +74,7 @@ coverage.txt
 *.so
 *.dylib
 /grype/grype
-
+main
 
 # Test binary, build with `go test -c`
 *.test

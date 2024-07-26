@@ -47,6 +47,18 @@ func TestSmartVerCmp(t *testing.T) {
 		{"10.0", "1.000.0.1", 1},
 		{"1.0.4", "1.0.4+metadata", -1}, // this is also somewhat wrong, however, there is a semver parser that can handle this case (which should be leveraged when possible)
 		{"1.3.2-r0", "1.3.3-r0", -1},    // regression: regression for https://github.com/anchore/go-version/pull/2
+		// Java JRE/JDK versioning prior to the implementing https://openjdk.org/jeps/223 for >= version 9
+		{"1.8.0_456", "1.8.0", 1},
+		{"1.8.0_456", "1.8.0_234", 1},
+		{"1.8.0_456", "1.8.0_457", -1},
+		{"1.8.0_456-b1", "1.8.0_456-b2", -1},
+		{"1.8.0_456", "1.8.0_456-b1", -1},
+		// Also check the semver equivalents of pre java version 9 work as expected:
+		{"8.0.456", "8.0", 1},
+		{"8.0.456", "8.0.234", 1},
+		{"8.0.456", "8.0.457", -1},
+		{"8.0.456+1", "8.0.456+2", -1},
+		{"8.0.456", "8.0.456+1", -1},
 	}
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("%q vs %q", c.v1, c.v2), func(t *testing.T) {
@@ -264,6 +276,102 @@ func TestFuzzyConstraintSatisfaction(t *testing.T) {
 			constraint: "> v1.5",
 			satisfied:  true,
 		},
+		{
+			name:       "rc candidates with no '-' can match semver pattern",
+			version:    "1.20rc1",
+			constraint: " = 1.20.0-rc1",
+			satisfied:  true,
+		},
+		{
+			name:       "candidates ahead of alpha",
+			version:    "3.11.0",
+			constraint: "> 3.11.0-alpha1",
+			satisfied:  true,
+		},
+		{
+			name:       "candidates ahead of beta",
+			version:    "3.11.0",
+			constraint: "> 3.11.0-beta1",
+			satisfied:  true,
+		},
+		{
+			name:       "candidates ahead of same alpha versions",
+			version:    "3.11.0-alpha5",
+			constraint: "> 3.11.0-alpha1",
+			satisfied:  true,
+		},
+		{
+			name:       "candidates are placed correctly between alpha and release",
+			version:    "3.11.0-beta5",
+			constraint: "3.11.0 || = 3.11.0-alpha1",
+			satisfied:  false,
+		},
+		{
+			name:       "candidates with letter suffix are alphabetically greater than their versions",
+			version:    "1.0.2a",
+			constraint: " < 1.0.2w",
+			satisfied:  true,
+		},
+		{
+			name:       "candidates with multiple letter suffix are alphabetically greater than their versions",
+			version:    "1.0.2zg",
+			constraint: " < 1.0.2zh",
+			satisfied:  true,
+		},
+		{
+			name:       "candidates with pre suffix are sorted numerically",
+			version:    "1.0.2pre1",
+			constraint: " < 1.0.2pre2",
+			satisfied:  true,
+		},
+		{
+			name:       "candidates with letter suffix and r0 are alphabetically greater than their versions",
+			version:    "1.0.2k-r0",
+			constraint: " < 1.0.2l-r0",
+			satisfied:  true,
+		},
+		{
+			name:       "openssl version with letter suffix and r0 are alphabetically greater than their versions",
+			version:    "1.0.2k-r0",
+			constraint: ">= 1.0.2",
+			satisfied:  true,
+		},
+		{
+			name:       "openssl versions with letter suffix and r0 are alphabetically greater than their versions and compared equally to other lettered versions",
+			version:    "1.0.2k-r0",
+			constraint: ">= 1.0.2, < 1.0.2m",
+			satisfied:  true,
+		},
+		{
+			name:       "openssl pre2 is still considered less than release",
+			version:    "1.1.1-pre2",
+			constraint: "> 1.1.1-pre1, < 1.1.1",
+			satisfied:  true,
+		},
+		{
+			name:       "major version releases are less than their subsequent patch releases with letter suffixes",
+			version:    "1.1.1",
+			constraint: "> 1.1.1-a",
+			satisfied:  true,
+		},
+		{
+			name:       "go pseudoversion vulnerable: version is less, want less",
+			version:    "0.0.0-20230716120725-531d2d74bc12",
+			constraint: "<0.0.0-20230922105210-14b16010c2ee",
+			satisfied:  true,
+		},
+		{
+			name:       "go pseudoversion not vulnerable: same version but constraint is less",
+			version:    "0.0.0-20230922105210-14b16010c2ee",
+			constraint: "<0.0.0-20230922105210-14b16010c2ee",
+			satisfied:  false,
+		},
+		{
+			name:       "go pseudoversion not vulnerable: greater version",
+			version:    "0.0.0-20230922112808-5421fefb8386",
+			constraint: "<0.0.0-20230922105210-14b16010c2ee",
+			satisfied:  false,
+		},
 	}
 
 	for _, test := range tests {
@@ -272,6 +380,23 @@ func TestFuzzyConstraintSatisfaction(t *testing.T) {
 			assert.NoError(t, err, "unexpected error from newFuzzyConstraint: %v", err)
 
 			test.assertVersionConstraint(t, UnknownFormat, constraint)
+		})
+	}
+}
+
+func TestPseudoSemverPattern(t *testing.T) {
+	tests := []struct {
+		name    string
+		version string
+		valid   bool
+	}{
+		{name: "rc candidates are valid semver", version: "1.2.3-rc1", valid: true},
+		{name: "rc candidates with no dash are valid semver", version: "1.2.3rc1", valid: true},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.valid, pseudoSemverPattern.MatchString(test.version))
 		})
 	}
 }

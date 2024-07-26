@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/facebookincubator/nvdtools/wfn"
 	"github.com/mitchellh/go-homedir"
 
 	"github.com/anchore/packageurl-go"
@@ -28,9 +27,9 @@ func (e errEmptyPurlFile) Error() string {
 	return fmt.Sprintf("purl file is empty: %s", e.purlFilepath)
 }
 
-func purlProvider(userInput string) ([]Package, Context, error) {
+func purlProvider(userInput string) ([]Package, error) {
 	p, err := getPurlPackages(userInput)
-	return p, Context{}, err
+	return p, err
 }
 
 func getPurlPackages(userInput string) ([]Package, error) {
@@ -53,18 +52,27 @@ func decodePurlFile(reader io.Reader) ([]Package, error) {
 			return nil, fmt.Errorf("unable to decode purl %s: %w", rawLine, err)
 		}
 
-		cpes := []wfn.Attributes{}
+		cpes := []cpe.CPE{}
+		epoch := "0"
 		for _, qualifier := range purl.Qualifiers {
 			if qualifier.Key == cpesQualifierKey {
 				rawCpes := strings.Split(qualifier.Value, ",")
 				for _, rawCpe := range rawCpes {
-					c, err := cpe.New(rawCpe)
+					c, err := cpe.New(rawCpe, "")
 					if err != nil {
 						return nil, fmt.Errorf("unable to decode cpe %s in purl %s: %w", rawCpe, rawLine, err)
 					}
 					cpes = append(cpes, c)
 				}
 			}
+
+			if qualifier.Key == "epoch" {
+				epoch = qualifier.Value
+			}
+		}
+
+		if purl.Type == packageurl.TypeRPM && !strings.HasPrefix(purl.Version, fmt.Sprintf("%s:", epoch)) {
+			purl.Version = fmt.Sprintf("%s:%s", epoch, purl.Version)
 		}
 
 		packages = append(packages, Package{

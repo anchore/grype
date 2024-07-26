@@ -57,6 +57,14 @@ func NewFromRelease(release linux.Release) (*Distro, error) {
 		}
 	}
 
+	if t == Debian && release.VersionID == "" && release.Version == "" && strings.Contains(release.PrettyName, "sid") {
+		return &Distro{
+			Type:       t,
+			RawVersion: "unstable",
+			IDLike:     release.IDLike,
+		}, nil
+	}
+
 	return New(t, selectedVersion, release.IDLike...)
 }
 

@@ -1,8 +1,6 @@
 package store
 
 import (
-	"io/ioutil"
-	"os"
 	"sort"
 	"testing"
 
@@ -13,13 +11,8 @@ import (
 
 func Test_GetAllVulnerabilities(t *testing.T) {
 	//GIVEN
-	dbTempFile, err := ioutil.TempFile("", "grype-db-test-store")
-	if err != nil {
-		t.Fatalf("could not create temp file: %+v", err)
-	}
-	defer os.Remove(dbTempFile.Name())
-
-	s, err := New(dbTempFile.Name(), true)
+	dbTempFile := t.TempDir()
+	s, err := New(dbTempFile, true)
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
@@ -34,13 +27,8 @@ func Test_GetAllVulnerabilities(t *testing.T) {
 
 func Test_GetAllVulnerabilityMetadata(t *testing.T) {
 	//GIVEN
-	dbTempFile, err := ioutil.TempFile("", "grype-db-test-store")
-	if err != nil {
-		t.Fatalf("could not create temp file: %+v", err)
-	}
-	defer os.Remove(dbTempFile.Name())
-
-	s, err := New(dbTempFile.Name(), true)
+	dbTempFile := t.TempDir()
+	s, err := New(dbTempFile, true)
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
@@ -55,23 +43,14 @@ func Test_GetAllVulnerabilityMetadata(t *testing.T) {
 
 func Test_Diff_Vulnerabilities(t *testing.T) {
 	//GIVEN
-	dbTempFile, err := ioutil.TempFile("", "grype-db-test-store")
-	if err != nil {
-		t.Fatalf("could not create temp file: %+v", err)
-	}
-	defer os.Remove(dbTempFile.Name())
+	dbTempFile := t.TempDir()
 
-	s1, err := New(dbTempFile.Name(), true)
+	s1, err := New(dbTempFile, true)
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
-	dbTempFile, err = ioutil.TempFile("", "grype-db-test-store")
-	if err != nil {
-		t.Fatalf("could not create temp file: %+v", err)
-	}
-	defer os.Remove(dbTempFile.Name())
-
-	s2, err := New(dbTempFile.Name(), true)
+	dbTempFile = t.TempDir()
+	s2, err := New(dbTempFile, true)
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
@@ -169,23 +148,15 @@ func Test_Diff_Vulnerabilities(t *testing.T) {
 
 func Test_Diff_Metadata(t *testing.T) {
 	//GIVEN
-	dbTempFile, err := ioutil.TempFile("", "grype-db-test-store")
-	if err != nil {
-		t.Fatalf("could not create temp file: %+v", err)
-	}
-	defer os.Remove(dbTempFile.Name())
+	dbTempFile := t.TempDir()
 
-	s1, err := New(dbTempFile.Name(), true)
+	s1, err := New(dbTempFile, true)
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
-	dbTempFile, err = ioutil.TempFile("", "grype-db-test-store")
-	if err != nil {
-		t.Fatalf("could not create temp file: %+v", err)
-	}
-	defer os.Remove(dbTempFile.Name())
+	dbTempFile = t.TempDir()
 
-	s2, err := New(dbTempFile.Name(), true)
+	s2, err := New(dbTempFile, true)
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}

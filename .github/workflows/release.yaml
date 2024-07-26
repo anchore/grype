@@ -6,15 +6,28 @@ on:
         description: tag the latest commit on main with the given version (prefixed with v)
         required: true
 
-env:
-  GO_VERSION: "1.19.x"
+permissions:
+  contents: read
 
 jobs:
   quality-gate:
     environment: release
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.1.7
+
+      - name: Check if running on main
+        if: github.ref != 'refs/heads/main'
+        # we are using the following flag when running `cosign blob-verify` for checksum signature verification:
+        #   --certificate-identity-regexp "https://github.com/anchore/.github/workflows/release.yaml@refs/heads/main"
+        # if we are not on the main branch, the signature will not be verifiable since the suffix requires the main branch
+        # at the time of when the OIDC token was issued on the Github Actions runner.
+        run: echo "This can only be run on the main branch otherwise releases produced will not be verifiable with cosign" && exit 1
+
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.1.7
+
+      - name: Check if pinned syft is a release version
+        run: .github/scripts/check-syft-version-is-release.sh
 
       - name: Check if tag already exists
         # note: this will fail if the tag already exists
@@ -23,7 +36,7 @@ jobs:
           git tag ${{ github.event.inputs.version }}
 
       - name: Check static analysis results
-        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
+        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be # v1.2.0
         id: static-analysis
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -32,7 +45,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check unit test results
-        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
+        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be # v1.2.0
         id: unit
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -41,7 +54,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check integration test results
-        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
+        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be # v1.2.0
         id: integration
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -50,7 +63,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check acceptance test results (linux)
-        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
+        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be # v1.2.0
         id: acceptance-linux
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -59,7 +72,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check acceptance test results (mac)
-        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
+        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be # v1.2.0
         id: acceptance-mac
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -68,7 +81,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check cli test results (linux)
-        uses: fountainhead/action-wait-for-check@297be350cf8393728ea4d4b39435c7d7ae167c93 # v1.1.0
+        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be # v1.2.0
         id: cli-linux
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -87,14 +100,19 @@ jobs:
           echo "CLI Test (Linux) Status: ${{ steps.cli-linux.outputs.conclusion }}"
           false
 
+  # only release core assets within the "release" job. Any other assets not already under the purview of the
+  # goreleaser configuration should be added as separate jobs to allow for debugging separately from the release workflow
+  # as well as not accidentally be re-run as a step multiple times (as could be done within the release workflow) as
+  # not all actions are guaranteed to be idempotent.
   release:
     needs: [quality-gate]
     runs-on: ubuntu-20.04
     permissions:
       contents: write
       packages: write
+      id-token: write
     steps:
-      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v2.5.0
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.1.7
         with:
           fetch-depth: 0
 
@@ -105,13 +123,13 @@ jobs:
           build-cache-key-prefix: "snapshot"
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567  #v3.3.0
         with:
-          username: ${{ secrets.TOOLBOX_DOCKER_USER }}
-          password: ${{ secrets.TOOLBOX_DOCKER_PASS }}
+          username: ${{ secrets.ANCHOREOSSWRITE_DH_USERNAME }}
+          password: ${{ secrets.ANCHOREOSSWRITE_DH_PAT }}
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567  #v3.3.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -119,7 +137,9 @@ jobs:
 
       - name: Tag release
         run: |
-          git tag ${{ github.event.inputs.version }}
+          git config user.name "anchoreci"
+          git config user.email "anchoreci@users.noreply.github.com"
+          git tag -a ${{ github.event.inputs.version }} -m "Release ${{ github.event.inputs.version }}"
           git push origin --tags
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -136,18 +156,14 @@ jobs:
           # for creating the release (requires write access to packages and content)
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # for updating brew formula in anchore/homebrew-syft
-          GITHUB_BREW_TOKEN: ${{ secrets.ANCHORE_GIT_READ_TOKEN }}
-          # for updating the VERSION file in S3...
-          AWS_ACCESS_KEY_ID: ${{ secrets.TOOLBOX_AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.TOOLBOX_AWS_SECRET_ACCESS_KEY }}
+          GITHUB_BREW_TOKEN: ${{ secrets.ANCHOREOPS_GITHUB_OSS_WRITE_TOKEN }}
 
-
-      - uses: anchore/sbom-action@422cb34a0f8b599678c41b21163ea6088edb2624 # v0.14.1
+      - uses: anchore/sbom-action@d94f46e13c6c62f59525ac9a1e147a99dc0b9bf5 # v0.17.0
         continue-on-error: true
         with:
           artifact-name: sbom.spdx.json
 
-      - uses: 8398a7/action-slack@fbd6aa58ba854a740e11a35d0df80cb5d12101d8 # v3.15.1
+      - uses: 8398a7/action-slack@28ba43ae48961b90635b50953d216767a6bea486 # v3.16.2
         continue-on-error: true
         with:
           status: ${{ job.status }}
@@ -157,7 +173,9 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_TOOLBOX_WEBHOOK_URL }}
         if: ${{ success() }}
 
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
-        with:
-          path: dist/**/*
-          name: artifacts
+  release-version-file:
+    needs: [release]
+    uses: ./.github/workflows/release-version-file.yaml
+    with:
+      version: ${{ github.event.inputs.version }}
+    secrets: inherit
