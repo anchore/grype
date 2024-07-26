@@ -1,7 +1,13 @@
 package db
 
 import (
+	"archive/tar"
 	"bufio"
+	"bytes"
+	"compress/gzip"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -370,6 +376,171 @@ func TestCurator_validateStaleness(t *testing.T) {
 				maxAllowedBuiltAge: tt.fields.maxAllowedDBAge,
 			}
 			tt.wantErr(t, c.validateStaleness(tt.fields.md), fmt.Sprintf("validateStaleness(%v)", tt.fields.md))
+		})
+	}
+}
+
+func Test_requireUpdateCheck(t *testing.T) {
+	toJson := func(listing any) []byte {
+		listingContents := bytes.Buffer{}
+		enc := json.NewEncoder(&listingContents)
+		_ = enc.Encode(listing)
+		return listingContents.Bytes()
+	}
+	checksum := func(b []byte) string {
+		h := sha256.New()
+		h.Write(b)
+		return hex.EncodeToString(h.Sum(nil))
+	}
+	makeTarGz := func(mod time.Time, contents []byte) []byte {
+		metadata := toJson(MetadataJSON{
+			Built:    mod.Format(time.RFC3339),
+			Version:  5,
+			Checksum: "sha256:" + checksum(contents),
+		})
+		tgz := bytes.Buffer{}
+		gz := gzip.NewWriter(&tgz)
+		w := tar.NewWriter(gz)
+		_ = w.WriteHeader(&tar.Header{
+			Name: "metadata.json",
+			Size: int64(len(metadata)),
+			Mode: 0600,
+		})
+		_, _ = w.Write(metadata)
+		_ = w.WriteHeader(&tar.Header{
+			Name: "vulnerability.db",
+			Size: int64(len(contents)),
+			Mode: 0600,
+		})
+		_, _ = w.Write(contents)
+		_ = w.Close()
+		_ = gz.Close()
+		return tgz.Bytes()
+	}
+
+	newTime := time.Date(2024, 06, 13, 17, 13, 13, 0, time.UTC)
+	midTime := time.Date(2022, 06, 13, 17, 13, 13, 0, time.UTC)
+	oldTime := time.Date(2020, 06, 13, 17, 13, 13, 0, time.UTC)
+
+	newDB := makeTarGz(newTime, []byte("some-good-contents"))
+
+	midMetadata := toJson(MetadataJSON{
+		Built:    midTime.Format(time.RFC3339),
+		Version:  5,
+		Checksum: "sha256:deadbeefcafe",
+	})
+
+	var handlerFunc http.HandlerFunc
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handlerFunc(w, r)
+	}))
+	defer srv.Close()
+
+	newDbURI := "/db.tar.gz"
+
+	newListing := toJson(Listing{Available: map[int][]ListingEntry{5: {ListingEntry{
+		Built:    newTime,
+		URL:      mustUrl(url.Parse(srv.URL + newDbURI)),
+		Checksum: "sha256:" + checksum(newDB),
+	}}}})
+
+	oldListing := toJson(Listing{Available: map[int][]ListingEntry{5: {ListingEntry{
+		Built:    oldTime,
+		URL:      mustUrl(url.Parse(srv.URL + newDbURI)),
+		Checksum: "sha256:" + checksum(newDB),
+	}}}})
+
+	newListingURI := "/listing.json"
+	oldListingURI := "/oldlisting.json"
+	badListingURI := "/badlisting.json"
+
+	handlerFunc = func(response http.ResponseWriter, request *http.Request) {
+		switch request.RequestURI {
+		case newListingURI:
+			response.WriteHeader(http.StatusOK)
+			_, _ = response.Write(newListing)
+		case oldListingURI:
+			response.WriteHeader(http.StatusOK)
+			_, _ = response.Write(oldListing)
+		case newDbURI:
+			response.WriteHeader(http.StatusOK)
+			_, _ = response.Write(newDB)
+		default:
+			http.Error(response, "not found", http.StatusNotFound)
+		}
+	}
+
+	tests := []struct {
+		name       string
+		config     Config
+		dbDir      map[string][]byte
+		wantResult bool
+		wantErr    require.ErrorAssertionFunc
+	}{
+		{
+			name: "listing with update",
+			config: Config{
+				ListingURL:         srv.URL + newListingURI,
+				RequireUpdateCheck: true,
+			},
+			dbDir: map[string][]byte{
+				"5/metadata.json": midMetadata,
+			},
+			wantResult: true,
+			wantErr:    require.NoError,
+		},
+		{
+			name: "no update",
+			config: Config{
+				ListingURL:         srv.URL + oldListingURI,
+				RequireUpdateCheck: false,
+			},
+			dbDir: map[string][]byte{
+				"5/metadata.json": midMetadata,
+			},
+			wantResult: false,
+			wantErr:    require.NoError,
+		},
+		{
+			name: "update error fail",
+			config: Config{
+				ListingURL:         srv.URL + badListingURI,
+				RequireUpdateCheck: true,
+			},
+			wantResult: false,
+			wantErr:    require.Error,
+		},
+		{
+			name: "update error continue",
+			config: Config{
+				ListingURL:         srv.URL + badListingURI,
+				RequireUpdateCheck: false,
+			},
+			wantResult: false,
+			wantErr:    require.NoError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dbTmpDir := t.TempDir()
+			tt.config.DBRootDir = dbTmpDir
+			tt.config.ListingFileTimeout = 1 * time.Minute
+			tt.config.UpdateTimeout = 1 * time.Minute
+			for filePath, contents := range tt.dbDir {
+				fullPath := filepath.Join(dbTmpDir, filepath.FromSlash(filePath))
+				err := os.MkdirAll(filepath.Dir(fullPath), 0700|os.ModeDir)
+				require.NoError(t, err)
+				err = os.WriteFile(fullPath, contents, 0700)
+				require.NoError(t, err)
+			}
+			c, err := NewCurator(tt.config)
+			require.NoError(t, err)
+
+			result, err := c.Update()
+			require.Equal(t, tt.wantResult, result)
+			tt.wantErr(t, err)
 		})
 	}
 }
