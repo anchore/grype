@@ -14,9 +14,8 @@ const (
 	VulnerabilityNoStatus  VulnerabilityStatus = "?"
 	VulnerabilityActive    VulnerabilityStatus = "active" // empty also means active
 	VulnerabilityAnalyzing VulnerabilityStatus = "analyzing"
-	// VulnerabilityWithdrawn VulnerabilityStatus = "withdrawn" // TODO: I can't seem to be able to find how to determine this vs rejected?
-	VulnerabilityRejected VulnerabilityStatus = "rejected"
-	VulnerabilityDisputed VulnerabilityStatus = "disputed"
+	VulnerabilityRejected  VulnerabilityStatus = "rejected"
+	VulnerabilityDisputed  VulnerabilityStatus = "disputed"
 )
 
 type SeverityScheme string
@@ -49,7 +48,7 @@ type VulnerabilityBlob struct {
 	PublishedDate *time.Time `json:"published,omitempty"`
 
 	// WithdrawnDate is the date the vulnerability record was withdrawn
-	//WithdrawnDate *time.Time `json:"withdrawn,omitempty"` // TOOD: can't seem to be able to find this... only modified and published
+	WithdrawnDate *time.Time `json:"withdrawn,omitempty"`
 
 	// Status convey the current status of the vulnerability
 	Status VulnerabilityStatus `json:"status"`
