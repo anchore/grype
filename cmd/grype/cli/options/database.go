@@ -42,7 +42,7 @@ func DefaultDatabase(id clio.Identification) Database {
 		ValidateAge: true,
 		// After this period (5 days) the db data is considered stale
 		MaxAllowedBuiltAge:     defaultMaxDBAge,
-		RequireUpdateCheck:     true,
+		RequireUpdateCheck:     false,
 		UpdateAvailableTimeout: defaultUpdateAvailableTimeout,
 		UpdateDownloadTimeout:  defaultUpdateDownloadTimeout,
 	}
