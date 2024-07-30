@@ -26,9 +26,7 @@ func DBUpdate(app clio.Application) *cobra.Command {
 }
 
 func runDBUpdate(opts options.Database) error {
-	cfg := opts.ToCuratorConfig()
-	cfg.RequireUpdateCheck = true // always consider an update check failure a db update failure
-	dbCurator, err := db.NewCurator(cfg)
+	dbCurator, err := db.NewCurator(opts.ToCuratorConfig())
 	if err != nil {
 		return err
 	}
