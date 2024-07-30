@@ -34,7 +34,7 @@ func newMockDbStore() *mockStore {
 	return &mockStore{
 		normalizedPackageNames: map[string]map[string]string{
 			"github:language:python": {
-				"Pygments":   "pygments",
+				"pygments":   "pygments",
 				"my-package": "my-package",
 			},
 			"github:language:dotnet": {
@@ -154,6 +154,7 @@ func newMockDbStore() *mockStore {
 						VersionFormat:     "python",
 					},
 				},
+				"my-package": []grypeDB.Vulnerability{},
 			},
 			"github:language:ruby": {
 				"bundler": []grypeDB.Vulnerability{
