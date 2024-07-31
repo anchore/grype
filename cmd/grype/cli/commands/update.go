@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/anchore/clio"
 	hashiVersion "github.com/anchore/go-version"
 	"github.com/anchore/grype/cmd/grype/internal"
 )
@@ -25,17 +26,17 @@ func isProductionBuild(version string) bool {
 	return true
 }
 
-func isUpdateAvailable(version string) (bool, string, error) {
-	if !isProductionBuild(version) {
+func isUpdateAvailable(id clio.Identification) (bool, string, error) {
+	if !isProductionBuild(id.Version) {
 		// don't allow for non-production builds to check for a version.
 		return false, "", nil
 	}
-	currentVersion, err := hashiVersion.NewVersion(version)
+	currentVersion, err := hashiVersion.NewVersion(id.Version)
 	if err != nil {
 		return false, "", fmt.Errorf("failed to parse current application version: %w", err)
 	}
 
-	latestVersion, err := fetchLatestApplicationVersion()
+	latestVersion, err := fetchLatestApplicationVersion(id)
 	if err != nil {
 		return false, "", err
 	}
@@ -47,11 +48,13 @@ func isUpdateAvailable(version string) (bool, string, error) {
 	return false, "", nil
 }
 
-func fetchLatestApplicationVersion() (*hashiVersion.Version, error) {
+func fetchLatestApplicationVersion(id clio.Identification) (*hashiVersion.Version, error) {
 	req, err := http.NewRequest(http.MethodGet, latestAppVersionURL.host+latestAppVersionURL.path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request for latest version: %w", err)
 	}
+
+	req.Header.Add("User-Agent", fmt.Sprintf("%v %v", id.Name, id.Version))
 
 	client := http.Client{}
 	resp, err := client.Do(req)
