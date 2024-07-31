@@ -9,6 +9,8 @@ import (
 )
 
 func TestMetadataParse(t *testing.T) {
+	timeUTC := time.Date(2020, 06, 15, 14, 02, 36, 0, time.UTC)
+	timeEDT := time.Date(2020, 06, 15, 18, 02, 36, 0, time.UTC)
 	tests := []struct {
 		fixture  string
 		expected *Metadata
@@ -17,7 +19,8 @@ func TestMetadataParse(t *testing.T) {
 		{
 			fixture: "test-fixtures/metadata-gocase",
 			expected: &Metadata{
-				Built:    time.Date(2020, 06, 15, 14, 02, 36, 0, time.UTC),
+				Built:    timeUTC,
+				Updated:  timeUTC.Add(1 * time.Hour),
 				Version:  2,
 				Checksum: "sha256:dcd6a285c839a7c65939e20c251202912f64826be68609dfc6e48df7f853ddc8",
 			},
@@ -25,7 +28,17 @@ func TestMetadataParse(t *testing.T) {
 		{
 			fixture: "test-fixtures/metadata-edt-timezone",
 			expected: &Metadata{
-				Built:    time.Date(2020, 06, 15, 18, 02, 36, 0, time.UTC),
+				Built:    timeEDT,
+				Updated:  timeEDT,
+				Version:  2,
+				Checksum: "sha256:dcd6a285c839a7c65939e20c251202912f64826be68609dfc6e48df7f853ddc8",
+			},
+		},
+		{
+			fixture: "test-fixtures/metadata-updated",
+			expected: &Metadata{
+				Built:    timeEDT,
+				Updated:  timeUTC,
 				Version:  2,
 				Checksum: "sha256:dcd6a285c839a7c65939e20c251202912f64826be68609dfc6e48df7f853ddc8",
 			},

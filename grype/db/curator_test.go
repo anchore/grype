@@ -415,7 +415,7 @@ func TestCuratorTimeoutBehavior(t *testing.T) {
 	stage := progress.NewAtomicStage("some-stage")
 
 	runTheTest := func(success chan struct{}, errs chan error) {
-		_, _, _, err = curator.IsUpdateAvailable()
+		_, err = curator.GetUpdate(curator.GetMetadata())
 		if err == nil {
 			errs <- errors.New("expected timeout error but got nil")
 			return

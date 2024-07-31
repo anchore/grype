@@ -19,13 +19,15 @@ const MetadataFileName = "metadata.json"
 // verify the contents (checksum).
 type Metadata struct {
 	Built    time.Time
+	Updated  time.Time
 	Version  int
 	Checksum string
 }
 
 // MetadataJSON is a helper struct for parsing and assembling Metadata objects to and from JSON.
 type MetadataJSON struct {
-	Built    string `json:"built"` // RFC 3339
+	Built    string `json:"built"`   // RFC 3339
+	Updated  string `json:"updated"` // RFC 3339
 	Version  int    `json:"version"`
 	Checksum string `json:"checksum"`
 }
@@ -37,8 +39,16 @@ func (m MetadataJSON) ToMetadata() (Metadata, error) {
 		return Metadata{}, fmt.Errorf("cannot convert built time (%s): %+v", m.Built, err)
 	}
 
+	updated, err := time.Parse(time.RFC3339, m.Updated)
+	if err != nil {
+		// database build + delay to update when last modified time occurs is ~1 hour,
+		// so we can use the build time as a reasonable default
+		updated = build.Add(1 * time.Hour)
+	}
+
 	metadata := Metadata{
 		Built:    build.UTC(),
+		Updated:  updated.UTC(),
 		Version:  m.Version,
 		Checksum: m.Checksum,
 	}
@@ -71,6 +81,7 @@ func NewMetadataFromDir(fs afero.Fs, dir string) (*Metadata, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse DB metadata (%s): %w", metadataFilePath, err)
 	}
+
 	return &m, nil
 }
 
@@ -120,6 +131,7 @@ func (m Metadata) String() string {
 func (m Metadata) Write(toPath string) error {
 	metadata := MetadataJSON{
 		Built:    m.Built.UTC().Format(time.RFC3339),
+		Updated:  m.Updated.UTC().Format(time.RFC3339),
 		Version:  m.Version,
 		Checksum: m.Checksum,
 	}

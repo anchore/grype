@@ -3,6 +3,7 @@ package db
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"sort"
 
@@ -48,8 +49,13 @@ func NewListingFromFile(fs afero.Fs, path string) (Listing, error) {
 	}
 	defer f.Close()
 
+	return NewListingFromReader(f)
+}
+
+// NewListingFromReader loads a Listing from a given filepath.
+func NewListingFromReader(reader io.Reader) (Listing, error) {
 	var l Listing
-	err = json.NewDecoder(f).Decode(&l)
+	err := json.NewDecoder(reader).Decode(&l)
 	if err != nil {
 		return Listing{}, fmt.Errorf("unable to parse DB listing: %w", err)
 	}

@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"strconv"
@@ -43,6 +44,7 @@ type Config struct {
 
 type Curator struct {
 	fs                  afero.Fs
+	listingClient       *http.Client
 	listingDownloader   file.Getter
 	updateDownloader    file.Getter
 	targetSchema        int
@@ -73,6 +75,7 @@ func NewCurator(cfg Config) (Curator, error) {
 	return Curator{
 		fs:                  fs,
 		targetSchema:        vulnerability.SchemaVersion,
+		listingClient:       listingClient,
 		listingDownloader:   file.NewGetter(listingClient),
 		updateDownloader:    file.NewGetter(dbClient),
 		dbDir:               dbDir,
@@ -114,6 +117,7 @@ func (c *Curator) Status() Status {
 
 	return Status{
 		Built:         metadata.Built,
+		Updated:       metadata.Updated,
 		SchemaVersion: metadata.Version,
 		Location:      c.dbDir,
 		Checksum:      metadata.Checksum,
@@ -148,13 +152,14 @@ func (c *Curator) Update() (bool, error) {
 	defer downloadProgress.SetCompleted()
 	defer importProgress.SetCompleted()
 
-	updateAvailable, metadata, updateEntry, err := c.IsUpdateAvailable()
+	metadata := c.GetMetadata()
+	updateEntry, err := c.GetUpdate(metadata)
 	if err != nil {
 		// we want to continue if possible even if we can't check for an update
 		log.Warnf("unable to check for vulnerability database update")
 		log.Debugf("check for vulnerability update failed: %+v", err)
 	}
-	if updateAvailable {
+	if updateEntry != nil {
 		log.Infof("downloading new vulnerability DB")
 		err = c.UpdateTo(updateEntry, downloadProgress, importProgress, stage)
 		if err != nil {
@@ -184,35 +189,82 @@ func (c *Curator) Update() (bool, error) {
 	return false, nil
 }
 
-// IsUpdateAvailable indicates if there is a new update available as a boolean, and returns the latest listing information
-// available for this schema.
-func (c *Curator) IsUpdateAvailable() (bool, *Metadata, *ListingEntry, error) {
+// GetMetadata returns the current metadata or nil if unable to find or read metadata
+func (c *Curator) GetMetadata() *Metadata {
+	metadata, err := NewMetadataFromDir(c.fs, c.dbDir)
+	if err != nil {
+		log.Debugf("current metadata corrupt: %w", err)
+	}
+	return metadata
+}
+
+// UpdateMetadataTimestamp updates the metadata file with the current timestamp
+func (c *Curator) updateMetadataTimestamp() error {
+	metadata, err := NewMetadataFromDir(c.fs, c.dbDir)
+	if err != nil || metadata == nil {
+		return err
+	}
+	// update the check time
+	metadata.Updated = time.Now()
+	return metadata.Write(metadataPath(c.dbDir))
+}
+
+// GetUpdate returns an available update if one is available or an error if an error occurred while checking
+func (c *Curator) GetUpdate(current *Metadata) (*ListingEntry, error) {
 	log.Debugf("checking for available database updates")
 
-	listing, err := c.ListingFromURL()
+	u, err := url.Parse(c.listingURL)
 	if err != nil {
-		return false, nil, nil, err
+		return nil, fmt.Errorf("invalid URL: %v %v", c.listingURL, err)
+	}
+
+	headers := http.Header{}
+
+	s := c.Status()
+	if s.Err == nil {
+		// valid status, get the db update time
+		headers.Add("If-Modified-Since", s.Updated.UTC().Format(http.TimeFormat))
+	}
+
+	req := http.Request{
+		Method: http.MethodGet,
+		URL:    u,
+		Header: headers,
+	}
+
+	resp, err := c.listingClient.Do(&req)
+	if err != nil {
+		return nil, fmt.Errorf("error attempting to check for update: %w", err)
+	}
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			log.Debug(err)
+		}
+	}()
+
+	if s.Err == nil && resp.StatusCode == http.StatusNotModified {
+		return nil, nil
+	}
+
+	listing, err := NewListingFromReader(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse db listing: %v", err)
 	}
 
 	updateEntry := listing.BestUpdate(c.targetSchema)
 	if updateEntry == nil {
-		return false, nil, nil, fmt.Errorf("no db candidates with correct version available (maybe there is an application update available?)")
+		return nil, fmt.Errorf("no db candidates with correct version available (maybe there is an application update available?)")
 	}
 	log.Debugf("found database update candidate: %s", updateEntry)
 
-	// compare created data to current db date
-	current, err := NewMetadataFromDir(c.fs, c.dbDir)
-	if err != nil {
-		return false, nil, nil, fmt.Errorf("current metadata corrupt: %w", err)
-	}
-
-	if current.IsSupersededBy(updateEntry) {
+	if current == nil || current.IsSupersededBy(updateEntry) {
 		log.Debugf("database update available: %s", updateEntry)
-		return true, current, updateEntry, nil
+		return updateEntry, nil
 	}
 	log.Debugf("no database update available")
 
-	return false, nil, nil, nil
+	return nil, nil
 }
 
 // UpdateTo updates the existing DB with the specific other version provided from a listing entry.
@@ -369,7 +421,18 @@ func (c *Curator) activate(dbDirPath string) error {
 	}
 
 	// activate the new db cache
-	return file.CopyDir(c.fs, dbDirPath, c.dbDir)
+	err = file.CopyDir(c.fs, dbDirPath, c.dbDir)
+	if err != nil {
+		return err
+	}
+
+	// update the timestamp indicating when this db was downloaded
+	err = c.updateMetadataTimestamp()
+	if err != nil {
+		log.Debugf("unable to update metadata: %v", err)
+	}
+
+	return nil
 }
 
 // ListingFromURL loads a Listing from a URL.

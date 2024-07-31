@@ -35,12 +35,13 @@ func runDBCheck(opts options.Database) error {
 		return err
 	}
 
-	updateAvailable, currentDBMetadata, updateDBEntry, err := dbCurator.IsUpdateAvailable()
+	currentDBMetadata := dbCurator.GetMetadata()
+	updateDBEntry, err := dbCurator.GetUpdate(currentDBMetadata)
 	if err != nil {
 		return fmt.Errorf("unable to check for vulnerability database update: %+v", err)
 	}
 
-	if !updateAvailable {
+	if updateDBEntry == nil {
 		return stderrPrintLnf("No update available")
 	}
 
