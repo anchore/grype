@@ -35,10 +35,11 @@ const (
 
 func DefaultDatabase(id clio.Identification) Database {
 	return Database{
-		Dir:         path.Join(xdg.CacheHome, id.Name, "db"),
-		UpdateURL:   internal.DBUpdateURL,
-		AutoUpdate:  true,
-		ValidateAge: true,
+		Dir:                   path.Join(xdg.CacheHome, id.Name, "db"),
+		UpdateURL:             internal.DBUpdateURL,
+		AutoUpdate:            true,
+		ValidateByHashOnStart: true,
+		ValidateAge:           true,
 		// After this period (5 days) the db data is considered stale
 		MaxAllowedBuiltAge:     defaultMaxDBAge,
 		UpdateAvailableTimeout: defaultUpdateAvailableTimeout,
