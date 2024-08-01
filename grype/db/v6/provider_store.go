@@ -5,8 +5,11 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-type ProviderStore interface {
+type ProviderStoreWriter interface {
 	AddProvider(p *Provider) error
+}
+
+type ProviderStoreReader interface {
 	// TODO add getters
 }
 

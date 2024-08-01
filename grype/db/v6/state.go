@@ -68,12 +68,12 @@ func newState(dbFilePath string, write bool) (*state, error) {
 		return nil, err
 	}
 
-	db.Exec("PRAGMA foreign_keys = ON")
-
 	if write {
-		if err := db.AutoMigrate(WriteModels()...); err != nil {
+		if err := migrate(db, WriteModels()...); err != nil {
 			return nil, fmt.Errorf("unable to migrate: %w", err)
 		}
+	} else {
+		db.Exec("PRAGMA foreign_keys = ON")
 	}
 	//else {
 	//	// TODO: do we need the migrate line at all?
@@ -97,6 +97,55 @@ func newState(dbFilePath string, write bool) (*state, error) {
 		useMem:       useMem,
 	}, nil
 }
+
+func migrate(db *gorm.DB, models ...any) error {
+	//db.Exec("PRAGMA foreign_keys=off;")
+	//defer db.Exec("PRAGMA foreign_keys=on;")
+
+	db.Exec("PRAGMA foreign_keys=on;")
+
+	if err := db.AutoMigrate(models...); err != nil {
+		return fmt.Errorf("unable to migrate: %w", err)
+	}
+
+	//for _, model := range models {
+	//
+	//	switch model.(type) {
+	//	case *AffectedPackageHandle, *NotAffectedPackageHandle, *AffectedCPEHandle, *NotAffectedCPEHandle:
+	//		// Retrieve the table creation SQL
+	//		var createTableSQL string
+	//		db.Raw(fmt.Sprintf("SELECT sql FROM sqlite_master WHERE type='table' AND name='%s'", tableName(model))).Scan(&createTableSQL)
+	//
+	//		if createTableSQL == "" {
+	//			continue
+	//		}
+	//
+	//		// Modify the SQL to include "WITHOUT ROWID"
+	//		createTableSQL += " WITHOUT ROWID"
+	//
+	//		fmt.Println("Modified Create Table SQL:", createTableSQL)
+	//
+	//		// Drop the existing table
+	//		if err := db.Migrator().DropTable(model); err != nil {
+	//			return fmt.Errorf("unable to drop table %s: %w", tableName, err)
+	//		}
+	//
+	//		// Create the table with the modified SQL
+	//		if err := db.Exec(createTableSQL).Error; err != nil {
+	//			return fmt.Errorf("failed to create table %s without rowid: %w", tableName, err)
+	//		}
+	//
+	//	}
+	//
+	//}
+
+	return nil
+}
+
+//
+//func tableName(any interface{}) string {
+//	return strcase.ToSnake(reflect.TypeOf(any).Elem().Name()) + "s"
+//}
 
 func (s *state) close() error {
 	log.Debug("closing store")

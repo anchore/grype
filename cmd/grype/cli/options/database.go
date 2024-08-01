@@ -1,13 +1,13 @@
 package options
 
 import (
+	"github.com/anchore/grype/grype/db/legacy/distribution"
 	"path"
 	"time"
 
 	"github.com/adrg/xdg"
 
 	"github.com/anchore/clio"
-	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/internal"
 )
 
@@ -46,8 +46,8 @@ func DefaultDatabase(id clio.Identification) Database {
 	}
 }
 
-func (cfg Database) ToCuratorConfig() db.Config {
-	return db.Config{
+func (cfg Database) ToCuratorConfig() distribution.Config {
+	return distribution.Config{
 		DBRootDir:           cfg.Dir,
 		ListingURL:          cfg.UpdateURL,
 		CACert:              cfg.CACert,

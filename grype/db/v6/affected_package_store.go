@@ -5,8 +5,11 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-type AffectedPackageStore interface {
+type AffectedPackageStoreWriter interface {
 	AddAffectedPackages(packages ...*AffectedPackageHandle) error
+}
+
+type AffectedPackageStoreReader interface {
 	GetPackageByName(packageName string) (*AffectedPackageHandle, error)
 	GetPackageByNameAndDistro(packageName, distroName, majorVersion string, minorVersion *string) (*AffectedPackageHandle, error)
 }

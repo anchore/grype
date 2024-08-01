@@ -18,7 +18,7 @@ const (
 //	differ, err := differ.NewDiffer(db.Config{
 //		DBRootDir:           "test-fixtures/grype-db",
 //		ListingURL:          getListingURL(),
-//		ValidateByHashOnGet: false,
+//		ValidateChecksum: false,
 //	})
 //	var buffer bytes.Buffer
 //	base, err := url.Parse(baseURL)

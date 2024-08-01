@@ -1,4 +1,4 @@
-package db
+package distribution
 
 import v5 "github.com/anchore/grype/grype/db/v5"
 

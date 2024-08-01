@@ -3,6 +3,7 @@ package differ
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/anchore/grype/grype/db/legacy/distribution"
 	"io"
 	"net/url"
 	"path"
@@ -11,19 +12,18 @@ import (
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
 
-	"github.com/anchore/grype/grype/db"
 	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/internal/bus"
 )
 
 type Differ struct {
-	baseCurator   db.Curator
-	targetCurator db.Curator
+	baseCurator   distribution.Curator
+	targetCurator distribution.Curator
 }
 
-func NewDiffer(config db.Config) (*Differ, error) {
-	baseCurator, err := db.NewCurator(db.Config{
+func NewDiffer(config distribution.Config) (*Differ, error) {
+	baseCurator, err := distribution.NewCurator(distribution.Config{
 		DBRootDir:           path.Join(config.DBRootDir, "diff", "base"),
 		ListingURL:          config.ListingURL,
 		CACert:              config.CACert,
@@ -33,7 +33,7 @@ func NewDiffer(config db.Config) (*Differ, error) {
 		return nil, err
 	}
 
-	targetCurator, err := db.NewCurator(db.Config{
+	targetCurator, err := distribution.NewCurator(distribution.Config{
 		DBRootDir:           path.Join(config.DBRootDir, "diff", "target"),
 		ListingURL:          config.ListingURL,
 		CACert:              config.CACert,
@@ -57,11 +57,11 @@ func (d *Differ) SetTargetDB(target string) error {
 	return d.setOrDownload(&d.targetCurator, target)
 }
 
-func (d *Differ) setOrDownload(curator *db.Curator, filenameOrURL string) error {
+func (d *Differ) setOrDownload(curator *distribution.Curator, filenameOrURL string) error {
 	u, err := url.ParseRequestURI(filenameOrURL)
 
 	if err != nil || u.Scheme == "" {
-		*curator, err = db.NewCurator(db.Config{
+		*curator, err = distribution.NewCurator(distribution.Config{
 			DBRootDir: filenameOrURL,
 		})
 		if err != nil {
@@ -76,7 +76,7 @@ func (d *Differ) setOrDownload(curator *db.Curator, filenameOrURL string) error 
 		available := listings.Available
 		dbs := available[v5.SchemaVersion]
 
-		var listing *db.ListingEntry
+		var listing *distribution.ListingEntry
 
 		for _, d := range dbs {
 			database := d
@@ -97,7 +97,7 @@ func (d *Differ) setOrDownload(curator *db.Curator, filenameOrURL string) error 
 	return nil
 }
 
-func download(curator *db.Curator, listing *db.ListingEntry) error {
+func download(curator *distribution.Curator, listing *distribution.ListingEntry) error {
 	// let consumers know of a monitorable event (download + import stages)
 	importProgress := progress.NewManual(1)
 	stage := progress.NewAtomicStage("checking available databases")

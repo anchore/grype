@@ -3,6 +3,7 @@ package differ
 import (
 	"bytes"
 	"flag"
+	"github.com/anchore/grype/grype/db/legacy/distribution"
 	"strconv"
 	"testing"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/go-testutils"
-	"github.com/anchore/grype/grype/db"
 	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/vulnerability"
 )
@@ -19,7 +19,7 @@ var update = flag.Bool("update", false, "update the *.golden files for diff pres
 
 func TestNewDiffer(t *testing.T) {
 	//GIVEN
-	config := db.Config{}
+	config := distribution.Config{}
 
 	//WHEN
 	differ, err := NewDiffer(config)
@@ -30,7 +30,7 @@ func TestNewDiffer(t *testing.T) {
 }
 
 func Test_DifferDirectory(t *testing.T) {
-	d, err := NewDiffer(db.Config{
+	d, err := NewDiffer(distribution.Config{
 		DBRootDir: "root-dir",
 	})
 	require.NoError(t, err)

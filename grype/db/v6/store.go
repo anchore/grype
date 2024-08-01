@@ -8,10 +8,22 @@ import (
 const vulnerabilityStoreFileName = "vulnerability.db"
 
 type Store interface {
-	AffectedPackageStore
-	AffectedCPEStore
-	VulnerabilityStore
-	ProviderStore
+	StoreReader
+	StoreWriter
+}
+
+type StoreReader interface {
+	AffectedPackageStoreReader
+	AffectedCPEStoreReader
+	VulnerabilityStoreReader
+	ProviderStoreReader
+}
+
+type StoreWriter interface {
+	AffectedPackageStoreWriter
+	AffectedCPEStoreWriter
+	VulnerabilityStoreWriter
+	ProviderStoreWriter
 	io.Closer
 }
 

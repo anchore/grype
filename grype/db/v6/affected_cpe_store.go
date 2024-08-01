@@ -5,8 +5,11 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-type AffectedCPEStore interface {
+type AffectedCPEStoreWriter interface {
 	AddAffectedCPEs(packages ...*AffectedCPEHandle) error
+}
+
+type AffectedCPEStoreReader interface {
 	GetCPEsByProduct(packageName string) (*AffectedCPEHandle, error)
 }
 

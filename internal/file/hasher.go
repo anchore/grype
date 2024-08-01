@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/OneOfOne/xxhash"
 	"hash"
 	"io"
 	"strings"
@@ -15,6 +16,9 @@ func ValidateByHash(fs afero.Fs, path, hashStr string) (bool, string, error) {
 	var hasher hash.Hash
 	var hashFn string
 	switch {
+	case strings.HasPrefix(hashStr, "xxh64:"):
+		hashFn = "xxh64"
+		hasher = xxhash.NewHash64()
 	case strings.HasPrefix(hashStr, "sha256:"):
 		hashFn = "sha256"
 		hasher = sha256.New()

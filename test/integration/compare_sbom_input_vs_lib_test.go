@@ -2,6 +2,7 @@ package integration
 
 import (
 	"fmt"
+	"github.com/anchore/grype/grype/db/legacy/distribution"
 	"os"
 	"testing"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/syft/syft/format/spdxjson"
 	"github.com/anchore/syft/syft/format/spdxtagvalue"
@@ -35,7 +35,7 @@ func must(e sbom.FormatEncoder, err error) sbom.FormatEncoder {
 
 func TestCompareSBOMInputToLibResults(t *testing.T) {
 	// get a grype DB
-	store, _, closer, err := grype.LoadVulnerabilityDB(db.Config{
+	store, _, closer, err := grype.LoadVulnerabilityDB(distribution.Config{
 		DBRootDir:           "test-fixtures/grype-db",
 		ListingURL:          getListingURL(),
 		ValidateByHashOnGet: false,

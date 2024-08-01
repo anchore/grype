@@ -3,6 +3,7 @@ package commands
 import (
 	"errors"
 	"fmt"
+	"github.com/anchore/grype/grype/db/legacy/distribution"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -11,7 +12,6 @@ import (
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/db"
 	grypeDb "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/event/parsers"
@@ -116,8 +116,8 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 	}
 
 	var str *store.Store
-	var status *db.Status
-	var dbCloser *db.Closer
+	var status *distribution.Status
+	var dbCloser *distribution.Closer
 	var packages []pkg.Package
 	var s *sbom.SBOM
 	var pkgContext pkg.Context
@@ -320,7 +320,7 @@ func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
 	}
 }
 
-func validateDBLoad(loadErr error, status *db.Status) error {
+func validateDBLoad(loadErr error, status *distribution.Status) error {
 	if loadErr != nil {
 		return fmt.Errorf("failed to load vulnerability db: %w", loadErr)
 	}
