@@ -259,13 +259,12 @@ func checkForAppUpdate(id clio.Identification, opts *options.Grype) {
 		return
 	}
 
-	version := id.Version
-	isAvailable, newVersion, err := isUpdateAvailable(version)
+	isAvailable, newVersion, err := isUpdateAvailable(id)
 	if err != nil {
 		log.Errorf(err.Error())
 	}
 	if isAvailable {
-		log.Infof("new version of %s is available: %s (currently running: %s)", id.Name, newVersion, version)
+		log.Infof("new version of %s is available: %s (currently running: %s)", id.Name, newVersion, id.Version)
 
 		bus.Publish(partybus.Event{
 			Type: event.CLIAppUpdateAvailable,
