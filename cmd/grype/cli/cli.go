@@ -31,9 +31,9 @@ func Command(id clio.Identification) *cobra.Command {
 
 func create(id clio.Identification) (clio.Application, *cobra.Command) {
 	clioCfg := clio.NewSetupConfig(id).
-		WithGlobalConfigFlag().   // add persistent -c <path> for reading an application config from
+		WithGlobalConfigFlag(). // add persistent -c <path> for reading an application config from
 		WithGlobalLoggingFlags(). // add persistent -v and -q flags tied to the logging config
-		WithConfigInRootHelp().   // --help on the root command renders the full application config in the help text
+		WithConfigInRootHelp(). // --help on the root command renders the full application config in the help text
 		WithUIConstructor(
 			// select a UI based on the logging configuration and state of stdin (if stdin is a tty)
 			func(cfg clio.Config) ([]clio.UI, error) {
@@ -81,6 +81,7 @@ func create(id clio.Identification) (clio.Application, *cobra.Command) {
 		commands.DB(app),
 		commands.Completion(app),
 		commands.Explain(app),
+		commands.Explore(app),
 		clio.VersionCommand(id, syftVersion, dbVersion),
 		clio.ConfigCommand(app, nil),
 	)
