@@ -16,7 +16,6 @@ func onlyQualifiedPackages(d *distro.Distro, p pkg.Package, allVulns []vulnerabi
 
 		for _, q := range vuln.PackageQualifiers {
 			v, err := q.Satisfied(d, p)
-
 			if err != nil {
 				return nil, fmt.Errorf("failed to check package qualifier=%q for distro=%q package=%q: %w", q, d, p, err)
 			}

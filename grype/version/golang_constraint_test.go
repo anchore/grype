@@ -38,6 +38,19 @@ func TestGolangConstraints(t *testing.T) {
 			constraint: "",
 			satisfied:  true,
 		},
+		{
+			name:       "pseudo version from package should not be considered as satisfied against semver constraint",
+			version:    "v0.0.0-0.20210101000000-abcdef123456",
+			constraint: "<v1.0.0",
+			satisfied:  false,
+		},
+		// https://github.com/anchore/grype/pull/1797
+		{
+			name:       "pseudo version from package should be considered as satisfied against pseudo version constraint",
+			version:    "0.0.0-20230131185645-0ae4915a9391",
+			constraint: "< 0.0.0-20240131185645-0ae4915a9391",
+			satisfied:  true,
+		},
 	}
 
 	for _, tc := range tests {
