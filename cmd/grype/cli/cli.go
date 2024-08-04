@@ -81,6 +81,7 @@ func create(id clio.Identification) (clio.Application, *cobra.Command) {
 		commands.DB(app),
 		commands.Completion(app),
 		commands.Explain(app),
+		commands.Explore(app),
 		clio.VersionCommand(id, syftVersion, dbVersion),
 		clio.ConfigCommand(app, nil),
 	)
