@@ -38,7 +38,7 @@ func ExploreCVE(app clio.Application) *cobra.Command {
 	}
 
 	return app.SetupCommand(&cobra.Command{
-		Use:   "cve [flags] cve_id",
+		Use:   "cve [flags] vulnerability_id",
 		Short: "explore a vulnerability and display information",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) (err error) {
