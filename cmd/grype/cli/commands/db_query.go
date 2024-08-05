@@ -28,7 +28,7 @@ var _ clio.FlagAdder = (*dbQueryOptions)(nil)
 
 func (c *dbQueryOptions) AddFlags(flags clio.FlagSet) {
 	flags.StringVarP(&c.Output, "output", "o", "format to display results (available=[table, json])")
-	flags.StringVarP(&c.ID, "id", "i", "get information on vulnerability id")
+	flags.StringVarP(&c.ID, "id", "", "get information on vulnerability id")
 }
 
 func ExploreCVE(app clio.Application) *cobra.Command {
@@ -38,14 +38,18 @@ func ExploreCVE(app clio.Application) *cobra.Command {
 	}
 
 	return app.SetupCommand(&cobra.Command{
-		Use:   "query [flags] vulnerability_id",
+		Use:   "query vulnerability_id",
 		Short: "query the db and display information",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) (err error) {
-			if opts.ID == "" {
-				return fmt.Errorf("requires --id or -i to specify the vulnerability ID")
+			id := opts.ID
+			if len(id) == 0 {
+				id = args[0]
 			}
-			return runQueryDB(opts, opts.ID)
+			if id == "" {
+				return fmt.Errorf("requires --id to specify the vulnerability ID")
+			}
+			return runQueryDB(opts, id)
 		},
 	}, opts)
 }
