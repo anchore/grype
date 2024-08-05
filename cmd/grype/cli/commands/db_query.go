@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/anchore/clio"
-	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/store"
@@ -19,40 +18,39 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type cveExploreOptions struct {
-	Output string           `yaml:"output" json:"output" mapstructure:"output"`
-	cveID  string           `yaml:"cveID" json:"cveID" mapstructure:"cveID"`
-	DB     options.Database `yaml:"db" json:"db" mapstructure:"db"`
+type dbQueryOptions struct {
+	Output    string `yaml:"output" json:"output" mapstructure:"output"`
+	DBOptions `yaml:",inline" mapstructure:",squash"`
+	ID        string `yaml:"id" json:"id" mapstructure:"id"`
 }
 
-var _ clio.FlagAdder = (*cveExploreOptions)(nil)
+var _ clio.FlagAdder = (*dbQueryOptions)(nil)
 
-func (c *cveExploreOptions) AddFlags(flags clio.FlagSet) {
+func (c *dbQueryOptions) AddFlags(flags clio.FlagSet) {
 	flags.StringVarP(&c.Output, "output", "o", "format to display results (available=[table, json])")
+	flags.StringVarP(&c.ID, "id", "i", "get information on vulnerability id")
 }
 
 func ExploreCVE(app clio.Application) *cobra.Command {
-	opts := &cveExploreOptions{
-		Output: "table",
-		DB:     options.DefaultDatabase(app.ID()),
+	opts := &dbQueryOptions{
+		Output:    "table",
+		DBOptions: *dbOptionsDefault(app.ID()),
 	}
 
 	return app.SetupCommand(&cobra.Command{
-		Use:   "cve [flags] cve_id",
-		Short: "explore a vulnerability and display information",
+		Use:   "query [flags] vulnerability_id",
+		Short: "query the db and display information",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) (err error) {
-			switch len(args) {
-			case 1:
-				return runExploreCVE(opts, args[0])
-			default:
-				return fmt.Errorf("requires a single vulnerability ID'")
+			if opts.ID == "" {
+				return fmt.Errorf("requires --id or -i to specify the vulnerability ID")
 			}
+			return runQueryDB(opts, opts.ID)
 		},
 	}, opts)
 }
 
-func runExploreCVE(opts *cveExploreOptions, cveID string) (errs error) {
+func runQueryDB(opts *dbQueryOptions, cveID string) (errs error) {
 	var str *store.Store
 	var status *db.Status
 	var dbCloser *db.Closer
