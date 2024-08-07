@@ -82,6 +82,16 @@ func Test_NewDistroFromRelease(t *testing.T) {
 			expectedRawVersion: "unstable",
 			expectedVersion:    "",
 		},
+		{
+			name: "azure linux 3",
+			release: linux.Release{
+				ID:        "azurelinux",
+				Version:   "3.0.20240417",
+				VersionID: "3.0",
+			},
+			expectedType:       Azure,
+			expectedRawVersion: "3.0",
+		},
 	}
 
 	for _, test := range tests {

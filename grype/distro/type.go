@@ -25,6 +25,7 @@ const (
 	Photon       Type = "photon"
 	Windows      Type = "windows"
 	Mariner      Type = "mariner"
+	Azure        Type = "azurelinux"
 	RockyLinux   Type = "rockylinux"
 	AlmaLinux    Type = "almalinux"
 	Gentoo       Type = "gentoo"
@@ -74,6 +75,7 @@ var IDMapping = map[string]Type{
 	"photon":        Photon,
 	"windows":       Windows,
 	"mariner":       Mariner,
+	"azurelinux":    Azure,
 	"rocky":         RockyLinux,
 	"almalinux":     AlmaLinux,
 	"gentoo":        Gentoo,
