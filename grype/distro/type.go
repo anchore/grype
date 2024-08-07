@@ -50,6 +50,7 @@ var All = []Type{
 	Photon,
 	Windows,
 	Mariner,
+	Azure,
 	RockyLinux,
 	AlmaLinux,
 	Gentoo,
