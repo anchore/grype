@@ -199,8 +199,9 @@ func Test_NamespaceForDistro(t *testing.T) {
 		allDistros.Add(d.String())
 	}
 
-	// TODO: what do we do with mariner
+	// v3 and older schemas don't include these newer distros:
 	allDistros.Remove(distro.Mariner.String())
+	allDistros.Remove(distro.Azure.String())
 
 	for _, test := range tests {
 		name := fmt.Sprintf("%s:%s", test.dist, test.version)

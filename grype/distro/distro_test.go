@@ -217,6 +217,11 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			Version: "1.0.0",
 		},
 		{
+			fixture: "test-fixtures/os/azurelinux",
+			Type:    Azure,
+			Version: "3.0.0",
+		},
+		{
 			fixture: "test-fixtures/os/rockylinux",
 			Type:    RockyLinux,
 			Version: "8.4.0",
