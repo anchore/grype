@@ -138,7 +138,7 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 		"other-provider:distro:redhat:9",
 		"suse:distro:sles:12.5",
 		"mariner:distro:mariner:2.0",
-		"mariner:distro:mariner:3.0",
+		"mariner:distro:azurelinux:3.0",
 		"msrc:distro:windows:471816",
 		"ubuntu:distro:ubuntu:18.04",
 		"oracle:distro:oraclelinux:8",
@@ -308,7 +308,7 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 			name:   "azurelinux 3 is matched by mariner 3 namespace",
 			distro: newDistro(t, osDistro.Azure, "3.0", []string{}),
 			namespaces: []*distro.Namespace{
-				distro.NewNamespace("mariner", "mariner", "3.0"),
+				distro.NewNamespace("mariner", osDistro.Azure, "3.0"),
 			},
 		},
 		{

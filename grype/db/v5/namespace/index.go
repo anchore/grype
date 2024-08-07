@@ -134,11 +134,6 @@ func (i *Index) NamespacesForDistro(d *grypeDistro.Distro) []*distro.Namespace {
 			if v, ok := i.byDistroKey[distroKey]; ok {
 				return v
 			}
-		case grypeDistro.Azure, grypeDistro.Mariner: // mariner was pre-release name for azure
-			distroKey = fmt.Sprintf("%s:%s", strings.ToLower(string(grypeDistro.Mariner)), d.FullVersion())
-			if v, ok := i.byDistroKey[distroKey]; ok {
-				return v
-			}
 		}
 	}
 
