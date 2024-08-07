@@ -64,6 +64,7 @@ var IDMapping = map[string]Type{
 	"centos":        CentOS,
 	"fedora":        Fedora,
 	"alpine":        Alpine,
+	"Alpine Linux":  Alpine,
 	"busybox":       Busybox,
 	"amzn":          AmazonLinux,
 	"ol":            OracleLinux,
