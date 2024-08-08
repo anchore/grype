@@ -14,8 +14,6 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-var errNoCPEs = fmt.Errorf("attempted CPE match against package with no CPEs")
-
 type Matcher struct {
 }
 
@@ -149,7 +147,7 @@ func (m *Matcher) findApkPackage(store vulnerability.Provider, d *distro.Distro,
 	}
 
 	cpeMatches, err := m.cpeMatchesWithoutSecDBFixes(store, d, p)
-	if err != nil && err.Error() != errNoCPEs.Error() {
+	if err != nil && !errors.Is(err, search.ErrEmptyCPEMatch) {
 		return nil, err
 	}
 
