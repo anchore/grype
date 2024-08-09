@@ -31,6 +31,7 @@ func DB(app clio.Application) *cobra.Command {
 		DBList(app),
 		DBStatus(app),
 		DBUpdate(app),
+		DBGetCVE(app),
 	)
 
 	return db
