@@ -12,8 +12,11 @@ type DBOptions struct {
 }
 
 func dbOptionsDefault(id clio.Identification) *DBOptions {
+	dbDefaults := options.DefaultDatabase(id)
+	// by default, require update check success for db operations which check for updates
+	dbDefaults.RequireUpdateCheck = true
 	return &DBOptions{
-		DB: options.DefaultDatabase(id),
+		DB: dbDefaults,
 	}
 }
 

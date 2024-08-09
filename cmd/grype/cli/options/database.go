@@ -19,6 +19,7 @@ type Database struct {
 	ValidateByHashOnStart  bool          `yaml:"validate-by-hash-on-start" json:"validate-by-hash-on-start" mapstructure:"validate-by-hash-on-start"`
 	ValidateAge            bool          `yaml:"validate-age" json:"validate-age" mapstructure:"validate-age"`
 	MaxAllowedBuiltAge     time.Duration `yaml:"max-allowed-built-age" json:"max-allowed-built-age" mapstructure:"max-allowed-built-age"`
+	RequireUpdateCheck     bool          `yaml:"require-update-check" json:"require-update-check" mapstructure:"require-update-check"`
 	UpdateAvailableTimeout time.Duration `yaml:"update-available-timeout" json:"update-available-timeout" mapstructure:"update-available-timeout"`
 	UpdateDownloadTimeout  time.Duration `yaml:"update-download-timeout" json:"update-download-timeout" mapstructure:"update-download-timeout"`
 }
@@ -41,6 +42,7 @@ func DefaultDatabase(id clio.Identification) Database {
 		ValidateAge: true,
 		// After this period (5 days) the db data is considered stale
 		MaxAllowedBuiltAge:     defaultMaxDBAge,
+		RequireUpdateCheck:     false,
 		UpdateAvailableTimeout: defaultUpdateAvailableTimeout,
 		UpdateDownloadTimeout:  defaultUpdateDownloadTimeout,
 	}
@@ -54,6 +56,7 @@ func (cfg Database) ToCuratorConfig() db.Config {
 		ValidateByHashOnGet: cfg.ValidateByHashOnStart,
 		ValidateAge:         cfg.ValidateAge,
 		MaxAllowedBuiltAge:  cfg.MaxAllowedBuiltAge,
+		RequireUpdateCheck:  cfg.RequireUpdateCheck,
 		ListingFileTimeout:  cfg.UpdateAvailableTimeout,
 		UpdateTimeout:       cfg.UpdateDownloadTimeout,
 	}
@@ -69,6 +72,7 @@ func (cfg *Database) DescribeFields(descriptions clio.FieldDescriptionSet) {
 	descriptions.Add(&cfg.MaxAllowedBuiltAge, `Max allowed age for vulnerability database,
 age being the time since it was built
 Default max age is 120h (or five days)`)
+	descriptions.Add(&cfg.RequireUpdateCheck, `fail the scan if unable to check for database updates`)
 	descriptions.Add(&cfg.UpdateAvailableTimeout, `Timeout for downloading GRYPE_DB_UPDATE_URL to see if the database needs to be downloaded
 This file is ~156KiB as of 2024-04-17 so the download should be quick; adjust as needed`)
 	descriptions.Add(&cfg.UpdateDownloadTimeout, `Timeout for downloading actual vulnerability DB
