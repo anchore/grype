@@ -582,6 +582,23 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
+			name: "swipl-pack-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.SwiplPackEntry{
+					Name:          "a",
+					Version:       "a",
+					Author:        "a",
+					AuthorEmail:   "a",
+					Packager:      "a",
+					PackagerEmail: "a",
+					Homepage:      "a",
+					Dependencies: []string{
+						"a",
+					},
+				},
+			},
+		},
+		{
 			name: "conaninfo-entry",
 			syftPkg: syftPkg.Package{
 				Metadata: syftPkg.ConaninfoEntry{

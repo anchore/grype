@@ -69,6 +69,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		string(syftPkg.LinuxKernelPkg),
 		string(syftPkg.LinuxKernelModulePkg),
 		string(syftPkg.Rpkg),
+		string(syftPkg.SwiplPackPkg),
 		string(syftPkg.SwiftPkg),
 		string(syftPkg.GithubActionPkg),
 		string(syftPkg.GithubActionWorkflowPkg),
