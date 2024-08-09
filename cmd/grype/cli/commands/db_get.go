@@ -21,40 +21,35 @@ import (
 type dbQueryOptions struct {
 	Output    string `yaml:"output" json:"output" mapstructure:"output"`
 	DBOptions `yaml:",inline" mapstructure:",squash"`
-	ID        string `yaml:"id" json:"id" mapstructure:"id"`
 }
 
 var _ clio.FlagAdder = (*dbQueryOptions)(nil)
 
 func (c *dbQueryOptions) AddFlags(flags clio.FlagSet) {
 	flags.StringVarP(&c.Output, "output", "o", "format to display results (available=[table, json])")
-	flags.StringVarP(&c.ID, "id", "", "get information on vulnerability id")
 }
 
-func ExploreCVE(app clio.Application) *cobra.Command {
+func DBGetCVE(app clio.Application) *cobra.Command {
 	opts := &dbQueryOptions{
 		Output:    "table",
 		DBOptions: *dbOptionsDefault(app.ID()),
 	}
 
 	return app.SetupCommand(&cobra.Command{
-		Use:   "query vulnerability_id",
-		Short: "query the db and display information",
+		Use:   "get vulnerability_id",
+		Short: "get information on a vulnerability from the db",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) (err error) {
-			id := opts.ID
-			if len(id) == 0 {
-				id = args[0]
-			}
+			id := args[0]
 			if id == "" {
-				return fmt.Errorf("requires --id to specify the vulnerability ID")
+				return fmt.Errorf("specify the vulnerability ID")
 			}
-			return runQueryDB(opts, id)
+			return runGetCVE(opts, id)
 		},
 	}, opts)
 }
 
-func runQueryDB(opts *dbQueryOptions, cveID string) (errs error) {
+func runGetCVE(opts *dbQueryOptions, cveID string) (errs error) {
 	var str *store.Store
 	var status *db.Status
 	var dbCloser *db.Closer
