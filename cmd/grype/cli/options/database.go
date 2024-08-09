@@ -30,7 +30,7 @@ var _ interface {
 const (
 	defaultMaxDBAge               time.Duration = time.Hour * 24 * 5
 	defaultUpdateAvailableTimeout               = time.Second * 30
-	defaultUpdateDownloadTimeout                = time.Second * 120
+	defaultUpdateDownloadTimeout                = time.Second * 300
 )
 
 func DefaultDatabase(id clio.Identification) Database {
