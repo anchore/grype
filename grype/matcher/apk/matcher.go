@@ -60,6 +60,13 @@ func (m *Matcher) cpeMatchesWithoutSecDBFixes(store vulnerability.Provider, d *d
 	if err != nil {
 		return nil, err
 	}
+	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
+		secDBVulnerabilitiesForUpstream, err := store.GetByDistro(d, upstreamPkg)
+		if err != nil {
+			return nil, err
+		}
+		secDBVulnerabilities = append(secDBVulnerabilities, secDBVulnerabilitiesForUpstream...)
+	}
 
 	secDBVulnerabilitiesByID := vulnerabilitiesByID(secDBVulnerabilities)
 
