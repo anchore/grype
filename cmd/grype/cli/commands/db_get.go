@@ -6,13 +6,14 @@ import (
 	"io"
 	"strings"
 
+	"github.com/olekukonko/tablewriter"
+	"github.com/spf13/cobra"
+
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
-	"github.com/olekukonko/tablewriter"
-	"github.com/spf13/cobra"
 )
 
 type dbQueryOptions struct {
@@ -38,12 +39,12 @@ func DBSearch(app clio.Application) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) (err error) {
 			id := args[0]
-			return runDbSearch(opts, id)
+			return runDBSearch(opts, id)
 		},
 	}, opts)
 }
 
-func runDbSearch(opts *dbQueryOptions, vulnerabilityID string) error {
+func runDBSearch(opts *dbQueryOptions, vulnerabilityID string) error {
 	log.Debug("loading DB")
 	str, status, dbCloser, err := grype.LoadVulnerabilityDB(opts.DB.ToCuratorConfig(), opts.DB.AutoUpdate)
 	err = validateDBLoad(err, status)
@@ -61,7 +62,7 @@ func runDbSearch(opts *dbQueryOptions, vulnerabilityID string) error {
 
 	sb := &strings.Builder{}
 	if len(vulnerabilities) == 0 {
-		return fmt.Errorf("Vulnerability doesn't exist in the DB: %s", vulnerabilityID)
+		return fmt.Errorf("vulnerability doesn't exist in the DB: %s", vulnerabilityID)
 	}
 
 	err = present(opts.Output, vulnerabilities, sb)
