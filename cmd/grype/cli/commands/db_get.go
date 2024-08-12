@@ -36,7 +36,7 @@ func DBSearch(app clio.Application) *cobra.Command {
 	}
 
 	return app.SetupCommand(&cobra.Command{
-		Use:   "grype db search [vulnerability_id]",
+		Use:   "search [vulnerability_id]",
 		Short: "get information on a vulnerability from the db",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) (err error) {
