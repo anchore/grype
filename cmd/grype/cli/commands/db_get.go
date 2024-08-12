@@ -41,9 +41,6 @@ func DBSearch(app clio.Application) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) (err error) {
 			id := args[0]
-			if id == "" {
-				return fmt.Errorf("specify the vulnerability ID")
-			}
 			return runDbSearch(opts, id)
 		},
 	}, opts)
