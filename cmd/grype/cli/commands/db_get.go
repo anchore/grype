@@ -29,27 +29,27 @@ func (c *dbQueryOptions) AddFlags(flags clio.FlagSet) {
 	flags.StringVarP(&c.Output, "output", "o", "format to display results (available=[table, json])")
 }
 
-func DBGetCVE(app clio.Application) *cobra.Command {
+func DBSearch(app clio.Application) *cobra.Command {
 	opts := &dbQueryOptions{
 		Output:    "table",
 		DBOptions: *dbOptionsDefault(app.ID()),
 	}
 
 	return app.SetupCommand(&cobra.Command{
-		Use:   "get vulnerability_id",
+		Use:   "grype db search [vulnerability_id]",
 		Short: "get information on a vulnerability from the db",
-		Args:  cobra.MaximumNArgs(1),
+		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) (err error) {
 			id := args[0]
 			if id == "" {
 				return fmt.Errorf("specify the vulnerability ID")
 			}
-			return runGetCVE(opts, id)
+			return runDbSearch(opts, id)
 		},
 	}, opts)
 }
 
-func runGetCVE(opts *dbQueryOptions, cveID string) (errs error) {
+func runDbSearch(opts *dbQueryOptions, cveID string) (errs error) {
 	var str *store.Store
 	var status *db.Status
 	var dbCloser *db.Closer
