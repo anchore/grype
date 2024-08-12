@@ -8,12 +8,9 @@ import (
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/db"
-	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
-	"github.com/hashicorp/go-multierror"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
@@ -46,45 +43,31 @@ func DBSearch(app clio.Application) *cobra.Command {
 	}, opts)
 }
 
-func runDbSearch(opts *dbQueryOptions, cveID string) (errs error) {
-	var str *store.Store
-	var status *db.Status
-	var dbCloser *db.Closer
-
-	err := parallel(
-		func() (err error) {
-			log.Debug("loading DB")
-			str, status, dbCloser, err = grype.LoadVulnerabilityDB(opts.DB.ToCuratorConfig(), opts.DB.AutoUpdate)
-			return validateDBLoad(err, status)
-		},
-	)
-
+func runDbSearch(opts *dbQueryOptions, vulnerabilityID string) error {
+	log.Debug("loading DB")
+	str, status, dbCloser, err := grype.LoadVulnerabilityDB(opts.DB.ToCuratorConfig(), opts.DB.AutoUpdate)
+	err = validateDBLoad(err, status)
 	if err != nil {
 		return err
 	}
-
 	if dbCloser != nil {
 		defer dbCloser.Close()
 	}
 
-	vulnerabilities, err := str.Get(cveID, "")
+	vulnerabilities, err := str.Get(vulnerabilityID, "")
 	if err != nil {
 		return err
 	}
 
 	sb := &strings.Builder{}
 	if len(vulnerabilities) == 0 {
-		sb.WriteString("CVE doesn't exist in the DB\n")
-	} else {
-		err := present(opts.Output, vulnerabilities, sb)
-		if err != nil {
-			errs = multierror.Append(errs, err)
-		}
+		return fmt.Errorf("Vulnerability doesn't exist in the DB: %s", vulnerabilityID)
 	}
 
+	err = present(opts.Output, vulnerabilities, sb)
 	bus.Report(sb.String())
 
-	return errs
+	return err
 }
 
 func present(outputFormat string, vulnerabilities []vulnerability.Vulnerability, output io.Writer) error {

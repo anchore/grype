@@ -99,13 +99,13 @@ func (s *store) GetVulnerabilityNamespaces() ([]string, error) {
 func (s *store) GetVulnerability(namespace, id string) ([]v5.Vulnerability, error) {
 	var models []model.VulnerabilityModel
 
-	var query = s.db
+	query := s.db.Where("id = ?", id)
 
 	if namespace != "" {
 		query = query.Where("namespace = ?", namespace)
 	}
 
-	result := query.Where("id = ?", id).Find(&models)
+	result := query.Find(&models)
 
 	var vulnerabilities = make([]v5.Vulnerability, len(models))
 	for idx, m := range models {
