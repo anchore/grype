@@ -37,6 +37,7 @@ type Config struct {
 	ValidateByHashOnGet bool
 	ValidateAge         bool
 	MaxAllowedBuiltAge  time.Duration
+	RequireUpdateCheck  bool
 	ListingFileTimeout  time.Duration
 	UpdateTimeout       time.Duration
 }
@@ -52,6 +53,7 @@ type Curator struct {
 	validateByHashOnGet bool
 	validateAge         bool
 	maxAllowedBuiltAge  time.Duration
+	requireUpdateCheck  bool
 }
 
 func NewCurator(cfg Config) (Curator, error) {
@@ -81,6 +83,7 @@ func NewCurator(cfg Config) (Curator, error) {
 		validateByHashOnGet: cfg.ValidateByHashOnGet,
 		validateAge:         cfg.ValidateAge,
 		maxAllowedBuiltAge:  cfg.MaxAllowedBuiltAge,
+		requireUpdateCheck:  cfg.RequireUpdateCheck,
 	}, nil
 }
 
@@ -150,7 +153,9 @@ func (c *Curator) Update() (bool, error) {
 
 	updateAvailable, metadata, updateEntry, err := c.IsUpdateAvailable()
 	if err != nil {
-		// we want to continue if possible even if we can't check for an update
+		if c.requireUpdateCheck {
+			return false, fmt.Errorf("check for vulnerability database update failed: %+v", err)
+		}
 		log.Warnf("unable to check for vulnerability database update")
 		log.Debugf("check for vulnerability update failed: %+v", err)
 	}
