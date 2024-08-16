@@ -146,8 +146,9 @@ func (m *Matcher) findApkPackage(store vulnerability.Provider, d *distro.Distro,
 		return nil, err
 	}
 
+	// TODO: are there other errors that we should handle here that causes this to short circuit
 	cpeMatches, err := m.cpeMatchesWithoutSecDBFixes(store, d, p)
-	if err != nil {
+	if err != nil && !errors.Is(err, search.ErrEmptyCPEMatch) {
 		return nil, err
 	}
 

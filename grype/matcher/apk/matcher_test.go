@@ -635,6 +635,86 @@ func TestDistroMatchBySourceIndirection(t *testing.T) {
 	assertMatches(t, expected, actual)
 }
 
+func TestSecDBMatchesStillCountedWithCpeErrors(t *testing.T) {
+	// this should match the test package
+	// the test package will have no CPE causing an error,
+	// but the error should not cause the secDB matches to fail
+	secDbVuln := grypeDB.Vulnerability{
+		ID:                "CVE-2020-2",
+		VersionConstraint: "<= 1.3.3-r0",
+		VersionFormat:     "apk",
+		Namespace:         "secdb:distro:alpine:3.12",
+	}
+
+	store := mockStore{
+		backend: map[string]map[string][]grypeDB.Vulnerability{
+			"secdb:distro:alpine:3.12": {
+				"musl": []grypeDB.Vulnerability{secDbVuln},
+			},
+		},
+	}
+
+	provider, err := db.NewVulnerabilityProvider(&store)
+	require.NoError(t, err)
+
+	m := Matcher{}
+	d, err := distro.New(distro.Alpine, "3.12.0", "")
+	if err != nil {
+		t.Fatalf("failed to create a new distro: %+v", err)
+	}
+
+	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
+		Name:    "musl-utils",
+		Version: "1.3.2-r0",
+		Type:    syftPkg.ApkPkg,
+		Upstreams: []pkg.UpstreamPackage{
+			{
+				Name: "musl",
+			},
+		},
+		CPEs: []cpe.CPE{},
+	}
+
+	vulnFound, err := vulnerability.NewVulnerability(secDbVuln)
+	assert.NoError(t, err)
+
+	expected := []match.Match{
+		{
+
+			Vulnerability: *vulnFound,
+			Package:       p,
+			Details: []match.Detail{
+				{
+					Type:       match.ExactIndirectMatch,
+					Confidence: 1.0,
+					SearchedBy: map[string]interface{}{
+						"distro": map[string]string{
+							"type":    d.Type.String(),
+							"version": d.RawVersion,
+						},
+						"package": map[string]string{
+							"name":    "musl",
+							"version": p.Version,
+						},
+						"namespace": "secdb:distro:alpine:3.12",
+					},
+					Found: map[string]interface{}{
+						"versionConstraint": vulnFound.Constraint.String(),
+						"vulnerabilityID":   "CVE-2020-2",
+					},
+					Matcher: match.ApkMatcher,
+				},
+			},
+		},
+	}
+
+	actual, err := m.Match(provider, d, p)
+	assert.NoError(t, err)
+
+	assertMatches(t, expected, actual)
+}
+
 func TestNVDMatchBySourceIndirection(t *testing.T) {
 	nvdVuln := grypeDB.Vulnerability{
 		ID:                "CVE-2020-1",
