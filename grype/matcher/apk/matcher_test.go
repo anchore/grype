@@ -640,7 +640,7 @@ func TestSecDBMatchesStillCountedWithCpeErrors(t *testing.T) {
 	// the test package will have no CPE causing an error,
 	// but the error should not cause the secDB matches to fail
 	secDbVuln := grypeDB.Vulnerability{
-		ID:                "CVE-2020-3",
+		ID:                "CVE-2020-2",
 		VersionConstraint: "<= 1.3.3-r0",
 		VersionFormat:     "apk",
 		Namespace:         "secdb:distro:alpine:3.12",
