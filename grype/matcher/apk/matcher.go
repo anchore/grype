@@ -147,7 +147,7 @@ func (m *Matcher) findApkPackage(store vulnerability.Provider, d *distro.Distro,
 	}
 
 	cpeMatches, err := m.cpeMatchesWithoutSecDBFixes(store, d, p)
-	if err != nil && !errors.Is(err, search.ErrEmptyCPEMatch) {
+	if err != nil {
 		return nil, err
 	}
 
