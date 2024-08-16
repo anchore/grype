@@ -17,6 +17,7 @@ import (
 	partybus "github.com/wagoodman/go-partybus"
 	progress "github.com/wagoodman/go-progress"
 
+	"github.com/anchore/clio"
 	grypeDB "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/db/v5/store"
 	"github.com/anchore/grype/grype/event"
@@ -31,6 +32,7 @@ const (
 )
 
 type Config struct {
+	ID                  clio.Identification
 	DBRootDir           string
 	ListingURL          string
 	CACert              string
@@ -75,8 +77,8 @@ func NewCurator(cfg Config) (Curator, error) {
 	return Curator{
 		fs:                  fs,
 		targetSchema:        vulnerability.SchemaVersion,
-		listingDownloader:   file.NewGetter(listingClient),
-		updateDownloader:    file.NewGetter(dbClient),
+		listingDownloader:   file.NewGetter(cfg.ID, listingClient),
+		updateDownloader:    file.NewGetter(cfg.ID, dbClient),
 		dbDir:               dbDir,
 		dbPath:              path.Join(dbDir, FileName),
 		listingURL:          cfg.ListingURL,
