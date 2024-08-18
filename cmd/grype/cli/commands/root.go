@@ -347,6 +347,14 @@ func validateRootArgs(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("an image/directory argument is required")
 	}
 
+	// in the case that a single empty string argument ("") is given and there is no piped input we want to show the help text and return with a non-0 return code.
+	if len(args) != 0 && args[0] == "" && !isStdinPipeOrRedirect {
+		if err := cmd.Help(); err != nil {
+			return fmt.Errorf("unable to display help: %w", err)
+		}
+		return fmt.Errorf("an image/directory argument is required")
+	}
+
 	return cobra.MaximumNArgs(1)(cmd, args)
 }
 

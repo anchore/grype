@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -83,7 +84,11 @@ func extractReaderAndInfo(userInput string) (io.ReadSeeker, *inputInfo, error) {
 	case userInput == "":
 		// we only want to attempt reading in from stdin if the user has not specified other
 		// options from the CLI, otherwise we should not assume there is any valid input from stdin.
-		return decodeStdin(stdinReader())
+		r, err := stdinReader()
+		if err != nil {
+			return nil, nil, err
+		}
+		return decodeStdin(r)
 
 	case explicitlySpecifyingSBOM(userInput):
 		filepath := strings.TrimPrefix(userInput, "sbom:")
@@ -140,18 +145,17 @@ func fileHasContent(f *os.File) bool {
 	return false
 }
 
-func stdinReader() io.Reader {
+func stdinReader() (io.Reader, error) {
 	isStdinPipeOrRedirect, err := internal.IsStdinPipeOrRedirect()
 	if err != nil {
-		log.Warnf("unable to determine if there is piped input: %+v", err)
-		return nil
+		return nil, fmt.Errorf("unable to determine if there is piped input: %w", err)
 	}
 
 	if !isStdinPipeOrRedirect {
-		return nil
+		return nil, errors.New("no input was provided via stdin")
 	}
 
-	return os.Stdin
+	return os.Stdin, nil
 }
 
 func closeFile(f *os.File) {
