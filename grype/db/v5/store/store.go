@@ -289,8 +289,8 @@ func (s *store) AddVulnerabilityMatchExclusion(exclusions ...v5.VulnerabilityMat
 func (s *store) Close() {
 	s.db.Exec("VACUUM;")
 
-	sqlDB, err := s.db.DB()
-	if err != nil {
+	sqlDB, _ := s.db.DB()
+	if sqlDB != nil {
 		_ = sqlDB.Close()
 	}
 }
