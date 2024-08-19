@@ -26,6 +26,15 @@ func TestCmd(t *testing.T) {
 			},
 		},
 		{
+			name: "empty-string-arg-shows-help",
+			args: []string{""},
+			assertions: []traitAssertion{
+				assertInOutput("an image/directory argument is required"),                              // specific error that should be shown
+				assertInOutput("A vulnerability scanner for container images, filesystems, and SBOMs"), // excerpt from help description
+				assertFailingReturnCode,
+			},
+		},
+		{
 			name: "ensure valid descriptor",
 			args: []string{getFixtureImage(t, "image-bare"), "-o", "json"},
 			assertions: []traitAssertion{
