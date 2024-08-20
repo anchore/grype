@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/go-getter/helper/url"
 	"github.com/wagoodman/go-progress"
 
+	"github.com/anchore/clio"
 	"github.com/anchore/grype/internal/stringutil"
 )
 
@@ -32,10 +33,13 @@ type HashiGoGetter struct {
 
 // NewGetter creates and returns a new Getter. Providing an http.Client is optional. If one is provided,
 // it will be used for all HTTP(S) getting; otherwise, go-getter's default getters will be used.
-func NewGetter(httpClient *http.Client) *HashiGoGetter {
+func NewGetter(id clio.Identification, httpClient *http.Client) *HashiGoGetter {
 	return &HashiGoGetter{
 		httpGetter: getter.HttpGetter{
 			Client: httpClient,
+			Header: http.Header{
+				"User-Agent": []string{fmt.Sprintf("%v %v", id.Name, id.Version)},
+			},
 		},
 	}
 }

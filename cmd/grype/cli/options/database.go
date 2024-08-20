@@ -12,16 +12,17 @@ import (
 )
 
 type Database struct {
-	Dir                    string        `yaml:"cache-dir" json:"cache-dir" mapstructure:"cache-dir"`
-	UpdateURL              string        `yaml:"update-url" json:"update-url" mapstructure:"update-url"`
-	CACert                 string        `yaml:"ca-cert" json:"ca-cert" mapstructure:"ca-cert"`
-	AutoUpdate             bool          `yaml:"auto-update" json:"auto-update" mapstructure:"auto-update"`
-	ValidateByHashOnStart  bool          `yaml:"validate-by-hash-on-start" json:"validate-by-hash-on-start" mapstructure:"validate-by-hash-on-start"`
-	ValidateAge            bool          `yaml:"validate-age" json:"validate-age" mapstructure:"validate-age"`
-	MaxAllowedBuiltAge     time.Duration `yaml:"max-allowed-built-age" json:"max-allowed-built-age" mapstructure:"max-allowed-built-age"`
-	RequireUpdateCheck     bool          `yaml:"require-update-check" json:"require-update-check" mapstructure:"require-update-check"`
-	UpdateAvailableTimeout time.Duration `yaml:"update-available-timeout" json:"update-available-timeout" mapstructure:"update-available-timeout"`
-	UpdateDownloadTimeout  time.Duration `yaml:"update-download-timeout" json:"update-download-timeout" mapstructure:"update-download-timeout"`
+	ID                     clio.Identification `yaml:"-" json:"-" mapstructure:"-"`
+	Dir                    string              `yaml:"cache-dir" json:"cache-dir" mapstructure:"cache-dir"`
+	UpdateURL              string              `yaml:"update-url" json:"update-url" mapstructure:"update-url"`
+	CACert                 string              `yaml:"ca-cert" json:"ca-cert" mapstructure:"ca-cert"`
+	AutoUpdate             bool                `yaml:"auto-update" json:"auto-update" mapstructure:"auto-update"`
+	ValidateByHashOnStart  bool                `yaml:"validate-by-hash-on-start" json:"validate-by-hash-on-start" mapstructure:"validate-by-hash-on-start"`
+	ValidateAge            bool                `yaml:"validate-age" json:"validate-age" mapstructure:"validate-age"`
+	MaxAllowedBuiltAge     time.Duration       `yaml:"max-allowed-built-age" json:"max-allowed-built-age" mapstructure:"max-allowed-built-age"`
+	RequireUpdateCheck     bool                `yaml:"require-update-check" json:"require-update-check" mapstructure:"require-update-check"`
+	UpdateAvailableTimeout time.Duration       `yaml:"update-available-timeout" json:"update-available-timeout" mapstructure:"update-available-timeout"`
+	UpdateDownloadTimeout  time.Duration       `yaml:"update-download-timeout" json:"update-download-timeout" mapstructure:"update-download-timeout"`
 }
 
 var _ interface {
@@ -36,6 +37,7 @@ const (
 
 func DefaultDatabase(id clio.Identification) Database {
 	return Database{
+		ID:          id,
 		Dir:         path.Join(xdg.CacheHome, id.Name, "db"),
 		UpdateURL:   internal.DBUpdateURL,
 		AutoUpdate:  true,
@@ -50,6 +52,7 @@ func DefaultDatabase(id clio.Identification) Database {
 
 func (cfg Database) ToCuratorConfig() db.Config {
 	return db.Config{
+		ID:                  cfg.ID,
 		DBRootDir:           cfg.Dir,
 		ListingURL:          cfg.UpdateURL,
 		CACert:              cfg.CACert,
