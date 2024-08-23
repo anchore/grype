@@ -10,8 +10,8 @@ type AffectedPackageStoreWriter interface {
 }
 
 type AffectedPackageStoreReader interface {
-	GetPackageByName(packageName string) (*AffectedPackageHandle, error)
-	GetPackageByNameAndDistro(packageName, distroName, majorVersion string, minorVersion *string) (*AffectedPackageHandle, error)
+	//GetPackageByName(packageName string) (*AffectedPackageHandle, error)
+	GetPackageByNameAndDistro(packageName, distroName, majorVersion string, minorVersion *string) ([]AffectedPackageHandle, error)
 }
 
 type affectedPackageStore struct {
@@ -50,29 +50,36 @@ func (s *affectedPackageStore) AddAffectedPackages(packages ...*AffectedPackageH
 	return nil
 }
 
-func (s *affectedPackageStore) GetPackageByName(packageName string) (*AffectedPackageHandle, error) {
-	log.WithFields("name", packageName).Trace("fetching Package record")
-	panic("not implemented")
-	//var pkg AffectedPackageHandle
-	//result := s.db.Where("package_name = ?", packageName).First(&pkg)
-	//if result.Error != nil {
-	//	return nil, result.Error
-	//}
-	//return &pkg, nil
-}
+//
+//func (s *affectedPackageStore) GetPackageByName(packageName string) (*AffectedPackageHandle, error) {
+//	log.WithFields("name", packageName).Trace("fetching Package record")
+//	panic("not implemented")
+//	//var pkg AffectedPackageHandle
+//	//result := s.db.Where("package_name = ?", packageName).First(&pkg)
+//	//if result.Error != nil {
+//	//	return nil, result.Error
+//	//}
+//	//return &pkg, nil
+//}
 
-func (s *affectedPackageStore) GetPackageByNameAndDistro(packageName, distroName, majorVersion string, minorVersion *string) (*AffectedPackageHandle, error) {
-	log.WithFields("name", packageName, "distro", distroName+"@"+majorVersion).Trace("fetching Package record")
+func (s *affectedPackageStore) GetPackageByNameAndDistro(packageName, distroName, majorVersion string, minorVersion *string) ([]AffectedPackageHandle, error) {
+	version := majorVersion
+	if minorVersion != nil {
+		version = majorVersion + "." + *minorVersion
+	}
+	log.WithFields("name", packageName, "distro", distroName+"@"+version).Trace("fetching Package record")
 
-	panic("not implemented")
-	//var pkg AffectedPackageHandle
-	//query := s.db.Where("package_name = ? AND operating_system.name = ? AND operating_system.major_version = ?", packageName, distroName, majorVersion)
-	//if minorVersion != nil {
-	//	query = query.Where("operating_system.minor_version = ?", *minorVersion)
-	//}
-	//result := query.Joins("OperatingSystem").First(&pkg)
-	//if result.Error != nil {
-	//	return nil, result.Error
-	//}
-	//return &pkg, nil
+	var pkgs []AffectedPackageHandle
+	query := s.db.Where("package_name = ? AND operating_system.name = ? AND operating_system.major_version = ?", packageName, distroName, majorVersion)
+	// TODO: can this be combined into a single query? does it honor null vars?
+	if minorVersion != nil {
+		query = query.Where("operating_system.minor_version = ?", *minorVersion)
+	} else {
+		query = query.Where("operating_system.minor_version = null")
+	}
+	result := query.Joins("OperatingSystem").Find(&pkgs)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return pkgs, nil
 }

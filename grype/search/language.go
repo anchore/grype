@@ -12,6 +12,13 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
+func ByLanguage(p pkg.Package) Criteria {
+	return func(r Resources) ([]match.Match, error) {
+		s.Language = language
+		return nil
+	}
+}
+
 func ByPackageLanguage(store vulnerability.ProviderByLanguage, d *distro.Distro, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
 	verObj, err := version.NewVersionFromPkg(p)
 	if err != nil {

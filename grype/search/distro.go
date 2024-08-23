@@ -3,16 +3,23 @@ package search
 import (
 	"errors"
 	"fmt"
+	v6 "github.com/anchore/grype/grype/db/v6"
+	"github.com/anchore/grype/grype/vulnerability"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
-	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
 )
 
-func ByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
+func ByDistro(p pkg.Package, d *distro.Distro) Criteria {
+	return func(r Resources) ([]match.Match, error) {
+		return byDistro(r, d, p)
+	}
+}
+
+func byDistro(r Resources, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	if d == nil {
 		return nil, nil
 	}
@@ -26,31 +33,41 @@ func ByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p p
 		return nil, fmt.Errorf("matcher failed to parse version pkg=%q ver=%q: %w", p.Name, p.Version, err)
 	}
 
-	allPkgVulns, err := store.GetByDistro(d, p)
+	d.MajorVersion()
+
+	affectedPkgHandles, err := r.Store.GetPackageByNameAndDistro(p.Name, d.Name(), d.MajorVersion(), d.MinorVersion())
 	if err != nil {
-		return nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", d, p.Name, err)
+		return nil, fmt.Errorf("unable to fetch affected package: %w", err)
 	}
 
-	applicableVulns, err := onlyQualifiedPackages(d, p, allPkgVulns)
+	affectedPkgHandles, err = onlyQualifiedAffectedPackages(d, p, affectedPkgHandles)
 	if err != nil {
-		return nil, fmt.Errorf("unable to filter distro-related vulnerabilities: %w", err)
+		return nil, fmt.Errorf("unable to filter distro-related vulnerabilities by package qualifier: %w", err)
 	}
 
 	// TODO: Port this over to a qualifier and remove
-	applicableVulns, err = onlyVulnerableVersions(verObj, applicableVulns)
+	affectedPkgHandles, err = onlyWithinAffectedVersionRange(verObj, affectedPkgHandles)
 	if err != nil {
-		return nil, fmt.Errorf("unable to filter distro-related vulnerabilities: %w", err)
+		return nil, fmt.Errorf("unable to filter distro-related vulnerabilities by version range: %w", err)
 	}
 
 	var matches []match.Match
-	for _, vuln := range applicableVulns {
+	for _, a := range affectedPkgHandles {
+
+		vuln, err := r.Store.GetVulnerability(a.VulnerabilityID)
+		if err != nil {
+			// TODO: this is exposing DB id's to the user, which is not ideal even for logging
+			return nil, fmt.Errorf("unable to fetch vulnerability %q: %w", a.VulnerabilityID, err)
+		}
+
 		matches = append(matches, match.Match{
 			Vulnerability: vuln,
 			Package:       p,
 			Details: []match.Detail{
 				{
 					Type:    match.ExactDirectMatch,
-					Matcher: upstreamMatcher,
+					Matcher: r.AttributedMatcher,
+					// TODO: codify these...
 					SearchedBy: map[string]interface{}{
 						"distro": map[string]string{
 							"type":    d.Type.String(),
@@ -76,4 +93,29 @@ func ByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p p
 	}
 
 	return matches, err
+}
+
+
+func toVulnerability(a v6.AffectedPackageHandle, h v6.VulnerabilityHandle) (*vulnerability.Vulnerability, error) {
+	if h.BlobValue == nil {
+		return nil, nil
+	}
+
+	if a.BlobValue == nil {
+		return nil, nil
+	}
+
+	b := h.BlobValue
+
+	return &vulnerability.Vulnerability{
+		Constraint:             a.,
+		PackageQualifiers:      nil,
+		CPEs:                   nil,
+		ID:                     "",
+		Namespace:              "",
+		Fix:                    vulnerability.Fix{},
+		Advisories:             nil,
+		RelatedVulnerabilities: nil,
+	}, nil
+
 }

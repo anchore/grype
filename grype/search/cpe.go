@@ -18,6 +18,13 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
+func ByCPE(p pkg.Package) Criteria {
+	return func(r Resources) ([]match.Match, error) {
+		s.CPE = cpe
+		return nil
+	}
+}
+
 type CPEPackageParameter struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
