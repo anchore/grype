@@ -34,7 +34,7 @@ tools:
   # used for showing the changelog at release
   - name: glow
     version:
-      want: v1.5.1
+      want: v2.0.0
     method: github-release
     with:
       repo: charmbracelet/glow
