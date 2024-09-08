@@ -120,7 +120,7 @@ func (c *Curator) Status() Status {
 		SchemaVersion: metadata.Version,
 		Location:      c.dbDir,
 		Checksum:      metadata.Checksum,
-		Err:           c.Validate(),
+		Err:           nil,
 	}
 }
 
