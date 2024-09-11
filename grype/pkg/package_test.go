@@ -678,6 +678,20 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "ocaml-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.OpamPackage{
+					Name:         "a",
+					Version:      "a",
+					Licenses:     []string{"a"},
+					URL:          "a",
+					Checksums:    []string{"a"},
+					Homepage:     "a",
+					Dependencies: []string{"a"},
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
