@@ -418,6 +418,7 @@ func Test_NamespacesForLanguage(t *testing.T) {
 	allLanguages.Remove(string(syftPkg.R))
 	allLanguages.Remove(string(syftPkg.Lua))
 	allLanguages.Remove(string(syftPkg.Swipl))
+	allLanguages.Remove(string(syftPkg.OCaml))
 
 	for _, test := range tests {
 		t.Run(string(test.language), func(t *testing.T) {
