@@ -68,6 +68,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		string(syftPkg.JenkinsPluginPkg), // package type cannot be inferred for all formats
 		string(syftPkg.LinuxKernelPkg),
 		string(syftPkg.LinuxKernelModulePkg),
+		string(syftPkg.OpamPkg),
 		string(syftPkg.Rpkg),
 		string(syftPkg.SwiplPackPkg),
 		string(syftPkg.SwiftPkg),
