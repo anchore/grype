@@ -1,4 +1,4 @@
 [submodule "test/quality/vulnerability-match-labels"]
 	path = test/quality/vulnerability-match-labels
-	url = git@github.com:anchore/vulnerability-match-labels.git
+	url = https://github.com/anchore/vulnerability-match-labels.git
 	branch = main
