@@ -265,5 +265,5 @@ require (
 
 replace github.com/mholt/archiver/v3 v3.5.1 => github.com/anchore/archiver/v3 v3.5.2
 
-// this is a breaking change, so we need to pin the version until glebarez/go-sqlite is updated to not reference internal/libc
+// this is a breaking change, so we need to pin the version until glebarez/go-sqlite is updated to use internal/libc
 replace modernc.org/sqlite v1.33.0 => modernc.org/sqlite v1.32.0
