@@ -2,11 +2,16 @@ package options
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher/java"
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/format"
+	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -25,6 +30,7 @@ type Grype struct {
 	Ignore                     []match.IgnoreRule `yaml:"ignore" json:"ignore" mapstructure:"ignore"`
 	Exclusions                 []string           `yaml:"exclude" json:"exclude" mapstructure:"exclude"`
 	DB                         Database           `yaml:"db" json:"db" mapstructure:"db"`
+	Enrich                     []string           `yaml:"enrich" json:"enrich" mapstructure:"enrich"`
 	ExternalSources            externalSources    `yaml:"external-sources" json:"externalSources" mapstructure:"external-sources"`
 	Match                      matchConfig        `yaml:"match" json:"match" mapstructure:"match"`
 	FailOn                     string             `yaml:"fail-on-severity" json:"fail-on-severity" mapstructure:"fail-on-severity"`
@@ -136,6 +142,9 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 		"vex", "",
 		"a list of VEX documents to consider when producing scanning results",
 	)
+
+	flags.StringArrayVarP(&o.Enrich, "enrich", "",
+		fmt.Sprintf("enable package data enrichment from local and online sources (options: %s)", strings.Join(publicisedEnrichmentOptions, ", ")))
 }
 
 func (o *Grype) PostLoad() error {
@@ -183,9 +192,106 @@ VEX fields apply when Grype reads vex data:
 `)
 	descriptions.Add(&o.VexAdd, `VEX statuses to consider as ignored rules`)
 	descriptions.Add(&o.MatchUpstreamKernelHeaders, `match kernel-header packages with upstream kernel as kernel vulnerabilities`)
+
+	descriptions.Add(&o.Enrich, fmt.Sprintf(`Enable data enrichment operations, which can utilize services such as Maven Central and NPM.
+Use: all to enable everything. Available options are: %s`, strings.Join(publicisedEnrichmentOptions, ", ")))
 }
 
 func (o Grype) FailOnSeverity() *vulnerability.Severity {
 	severity := vulnerability.ParseSeverity(o.FailOn)
 	return &severity
+}
+
+func (o *Grype) ToProviderConfig() pkg.ProviderConfig {
+	cfg := syft.DefaultCreateSBOMConfig()
+	cfg.Packages.JavaArchive.IncludeIndexedArchives = o.Search.IncludeIndexedArchives
+	cfg.Packages.JavaArchive.IncludeUnindexedArchives = o.Search.IncludeUnindexedArchives
+	cfg = cfg.WithPackagesConfig(cfg.Packages.
+		WithJavaArchiveConfig(cfg.Packages.JavaArchive.
+			WithUseNetwork(*multiLevelOption(false, enrichmentEnabled(o.Enrich, "java", "maven"))),
+		))
+
+	return pkg.ProviderConfig{
+		SyftProviderConfig: pkg.SyftProviderConfig{
+			RegistryOptions:        o.Registry.ToOptions(),
+			Exclusions:             o.Exclusions,
+			SBOMOptions:            cfg,
+			Platform:               o.Platform,
+			Name:                   o.Name,
+			DefaultImagePullSource: o.DefaultImagePullSource,
+		},
+		SynthesisConfig: pkg.SynthesisConfig{
+			GenerateMissingCPEs: o.GenerateMissingCPEs,
+		},
+	}
+}
+
+func (o Grype) ToJavaExternalSearchConfig() java.ExternalSearchConfig {
+	// always respect if global config is disabled
+	return java.ExternalSearchConfig{
+		SearchMavenUpstream: *multiLevelOption(false, enrichmentEnabled(o.Enrich, "java", "maven"), o.ExternalSources.Enable, o.ExternalSources.Maven.SearchUpstreamBySha1),
+		MavenBaseURL:        o.ExternalSources.Maven.BaseURL,
+	}
+}
+
+func multiLevelOption[T any](defaultValue T, option ...*T) *T {
+	result := defaultValue
+	for _, opt := range option {
+		if opt != nil {
+			result = *opt
+		}
+	}
+	return &result
+}
+
+var publicisedEnrichmentOptions = []string{
+	"all",
+	"java",
+}
+
+func enrichmentEnabled(enrichDirectives []string, features ...string) *bool {
+	if len(enrichDirectives) == 0 {
+		return nil
+	}
+
+	enabled := func(features ...string) *bool {
+		for _, directive := range enrichDirectives {
+			enable := true
+			directive = strings.TrimPrefix(directive, "+") // +java and java are equivalent
+			if strings.HasPrefix(directive, "-") {
+				directive = directive[1:]
+				enable = false
+			}
+			for _, feature := range features {
+				if directive == feature {
+					return &enable
+				}
+			}
+		}
+		return nil
+	}
+
+	enableAll := enabled("all")
+	disableAll := enabled("none")
+
+	if disableAll != nil && *disableAll {
+		if enableAll != nil {
+			log.Warn("you have specified to both enable and disable all enrichment functionality, defaulting to disabled")
+		}
+		enableAll = ptr(false)
+	}
+
+	// check for explicit enable/disable of feature names
+	for _, feat := range features {
+		enableFeature := enabled(feat)
+		if enableFeature != nil {
+			return enableFeature
+		}
+	}
+
+	return enableAll
+}
+
+func ptr[T any](val T) *T {
+	return &val
 }

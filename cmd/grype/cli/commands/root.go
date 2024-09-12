@@ -34,7 +34,6 @@ import (
 	"github.com/anchore/grype/internal/format"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/stringutil"
-	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/sbom"
@@ -159,7 +158,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 			// the SBOM is returned for downstream formatting concerns
 			// grype uses the SBOM in combination with syft formatters to produce cycloneDX
 			// with vulnerability information appended
-			packages, pkgContext, s, err = pkg.Provide(userInput, getProviderConfig(opts))
+			packages, pkgContext, s, err = pkg.Provide(userInput, opts.ToProviderConfig())
 			if err != nil {
 				return fmt.Errorf("failed to catalog: %w", err)
 			}
@@ -282,7 +281,7 @@ func getMatchers(opts *options.Grype) []matcher.Matcher {
 	return matcher.NewDefaultMatchers(
 		matcher.Config{
 			Java: java.MatcherConfig{
-				ExternalSearchConfig: opts.ExternalSources.ToJavaMatcherConfig(),
+				ExternalSearchConfig: opts.ToJavaExternalSearchConfig(),
 				UseCPEs:              opts.Match.Java.UseCPEs,
 			},
 			Ruby:       ruby.MatcherConfig(opts.Match.Ruby),
@@ -297,26 +296,6 @@ func getMatchers(opts *options.Grype) []matcher.Matcher {
 			Stock: stock.MatcherConfig(opts.Match.Stock),
 		},
 	)
-}
-
-func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
-	cfg := syft.DefaultCreateSBOMConfig()
-	cfg.Packages.JavaArchive.IncludeIndexedArchives = opts.Search.IncludeIndexedArchives
-	cfg.Packages.JavaArchive.IncludeUnindexedArchives = opts.Search.IncludeUnindexedArchives
-
-	return pkg.ProviderConfig{
-		SyftProviderConfig: pkg.SyftProviderConfig{
-			RegistryOptions:        opts.Registry.ToOptions(),
-			Exclusions:             opts.Exclusions,
-			SBOMOptions:            cfg,
-			Platform:               opts.Platform,
-			Name:                   opts.Name,
-			DefaultImagePullSource: opts.DefaultImagePullSource,
-		},
-		SynthesisConfig: pkg.SynthesisConfig{
-			GenerateMissingCPEs: opts.GenerateMissingCPEs,
-		},
-	}
 }
 
 func validateDBLoad(loadErr error, status *db.Status) error {

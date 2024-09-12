@@ -75,8 +75,8 @@ func Test_getProviderConfig(t *testing.T) {
 				cmpopts.IgnoreFields(binary.Classifier{}, "EvidenceMatcher"),
 				cmpopts.IgnoreUnexported(syft.CreateSBOMConfig{}),
 			}
-			if d := cmp.Diff(tt.want, getProviderConfig(tt.opts), opts...); d != "" {
-				t.Errorf("getProviderConfig() mismatch (-want +got):\n%s", d)
+			if d := cmp.Diff(tt.want, tt.opts.ToProviderConfig(), opts...); d != "" {
+				t.Errorf("opts.ToProviderConfig() mismatch (-want +got):\n%s", d)
 			}
 		})
 	}
