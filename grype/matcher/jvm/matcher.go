@@ -1,6 +1,8 @@
-package stock
+package jvm
 
 import (
+	"fmt"
+
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -9,30 +11,30 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-type Matcher struct {
-	cfg MatcherConfig
-}
-
 type MatcherConfig struct {
 	UseCPEs bool
 }
 
-func NewStockMatcher(cfg MatcherConfig) *Matcher {
+type Matcher struct {
+	cfg MatcherConfig
+}
+
+func NewJVMMatcher(cfg MatcherConfig) *Matcher {
 	return &Matcher{
 		cfg: cfg,
 	}
 }
 
 func (m *Matcher) PackageTypes() []syftPkg.Type {
-	return nil
+	return []syftPkg.Type{syftPkg.BinaryPkg}
 }
 
 func (m *Matcher) Type() match.MatcherType {
-	return match.StockMatcher
+	return match.JVMMatcher
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
-	if !inboundsForMatcher(p) {
+	if !pkg.IsJvmPackage(p) {
 		return nil, nil
 	}
 
@@ -40,9 +42,10 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 	if m.cfg.UseCPEs {
 		criteria = append(criteria, search.ByCPE)
 	}
-	return search.ByCriteria(store, d, p, m.Type(), criteria...)
-}
+	matches, err := search.ByCriteria(store, d, p, m.Type(), criteria...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to match by exact package: %w", err)
+	}
 
-func inboundsForMatcher(p pkg.Package) bool {
-	return !pkg.IsJvmPackage(p)
+	return matches, nil
 }

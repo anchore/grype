@@ -13,11 +13,12 @@ import (
 // not the same it may be important to select different names. This design decision has been deferred, for now
 // the same metadata types that have been used in the past should be used here.
 var jsonNameFromType = map[reflect.Type][]string{
-	reflect.TypeOf(pkg.ApkMetadata{}):       nameList("ApkMetadata"),
-	reflect.TypeOf(pkg.GolangBinMetadata{}): nameList("GolangBinMetadata"),
-	reflect.TypeOf(pkg.GolangModMetadata{}): nameList("GolangModMetadata"),
-	reflect.TypeOf(pkg.JavaMetadata{}):      nameList("JavaMetadata"),
-	reflect.TypeOf(pkg.RpmMetadata{}):       nameList("RpmMetadata"),
+	reflect.TypeOf(pkg.ApkMetadata{}):                nameList("ApkMetadata"),
+	reflect.TypeOf(pkg.GolangBinMetadata{}):          nameList("GolangBinMetadata"),
+	reflect.TypeOf(pkg.GolangModMetadata{}):          nameList("GolangModMetadata"),
+	reflect.TypeOf(pkg.JavaMetadata{}):               nameList("JavaMetadata"),
+	reflect.TypeOf(pkg.RpmMetadata{}):                nameList("RpmMetadata"),
+	reflect.TypeOf(pkg.JavaVMInstallationMetadata{}): nameList("JavaVMInstallationMetadata"),
 }
 
 //nolint:unparam

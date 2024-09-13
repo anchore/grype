@@ -29,6 +29,8 @@ func GetConstraint(constStr string, format Format) (Constraint, error) {
 		return newKBConstraint(constStr)
 	case PortageFormat:
 		return newPortageConstraint(constStr)
+	case JVMFormat:
+		return newJvmConstraint(constStr)
 	case UnknownFormat:
 		return newFuzzyConstraint(constStr, "unknown")
 	}

@@ -7,6 +7,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/golang"
 	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
+	"github.com/anchore/grype/grype/matcher/jvm"
 	"github.com/anchore/grype/grype/matcher/msrc"
 	"github.com/anchore/grype/grype/matcher/portage"
 	"github.com/anchore/grype/grype/matcher/python"
@@ -19,6 +20,7 @@ import (
 // Config contains values used by individual matcher structs for advanced configuration
 type Config struct {
 	Java       java.MatcherConfig
+	JVM        jvm.MatcherConfig
 	Ruby       ruby.MatcherConfig
 	Python     python.MatcherConfig
 	Dotnet     dotnet.MatcherConfig
@@ -36,6 +38,7 @@ func NewDefaultMatchers(mc Config) []Matcher {
 		dotnet.NewDotnetMatcher(mc.Dotnet),
 		&rpm.Matcher{},
 		java.NewJavaMatcher(mc.Java),
+		jvm.NewJVMMatcher(mc.JVM),
 		javascript.NewJavascriptMatcher(mc.Javascript),
 		&apk.Matcher{},
 		golang.NewGolangMatcher(mc.Golang),

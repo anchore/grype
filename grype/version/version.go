@@ -28,6 +28,7 @@ type rich struct {
 	kbVer         *kbVersion
 	portVer       *portageVersion
 	pep440version *pep440Version
+	jvmVersion    *jvmVersion
 }
 
 func NewVersion(raw string, format Format) (*Version, error) {
@@ -45,7 +46,9 @@ func NewVersion(raw string, format Format) (*Version, error) {
 }
 
 func NewVersionFromPkg(p pkg.Package) (*Version, error) {
-	ver, err := NewVersion(p.Version, FormatFromPkgType(p.Type))
+	format := FormatFromPkg(p)
+
+	ver, err := NewVersion(p.Version, format)
 	if err != nil {
 		return nil, err
 	}
@@ -96,6 +99,10 @@ func (v *Version) populate() error {
 		ver := newPortageVersion(v.Raw)
 		v.rich.portVer = &ver
 		return nil
+	case JVMFormat:
+		ver, err := newJvmVersion(v.Raw)
+		v.rich.jvmVersion = ver
+		return err
 	case UnknownFormat:
 		// use the raw string + fuzzy constraint
 		return nil

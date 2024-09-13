@@ -105,7 +105,14 @@ func ByPackageCPE(store vulnerability.ProviderByCPE, d *distro.Distro, p pkg.Pac
 		if searchVersion == wfn.NA || searchVersion == wfn.Any {
 			searchVersion = p.Version
 		}
-		verObj, err := version.NewVersion(searchVersion, version.FormatFromPkgType(p.Type))
+
+		format := version.FormatFromPkg(p)
+
+		if format == version.JVMFormat {
+			searchVersion = specificLegacyJvmVersion(searchVersion, c.Attributes.Update)
+		}
+
+		verObj, err := version.NewVersion(searchVersion, format)
 		if err != nil {
 			return nil, fmt.Errorf("matcher failed to parse version pkg=%q ver=%q: %w", p.Name, p.Version, err)
 		}
@@ -138,6 +145,14 @@ func ByPackageCPE(store vulnerability.ProviderByCPE, d *distro.Distro, p pkg.Pac
 	}
 
 	return toMatches(matchesByFingerprint), nil
+}
+
+func specificLegacyJvmVersion(searchVersion, updateCpeField string) string {
+	// we should take into consideration the CPE update field for JVM packages
+	if strings.HasPrefix(searchVersion, "1.") && !strings.Contains(searchVersion, "_") && updateCpeField != wfn.NA && updateCpeField != wfn.Any {
+		searchVersion = fmt.Sprintf("%s_%s", searchVersion, strings.TrimPrefix(updateCpeField, "update"))
+	}
+	return searchVersion
 }
 
 func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vulnerability.Vulnerability, p pkg.Package, searchVersion version.Version, upstreamMatcher match.MatcherType, searchedByCPE cpe.CPE) {
