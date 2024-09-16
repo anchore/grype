@@ -60,6 +60,7 @@ You can also explicitly specify the scheme to use:
     {{.appName}} oci-dir:path/to/yourimage              read directly from a path on disk for OCI layout directories (from Skopeo or otherwise)
     {{.appName}} singularity:path/to/yourimage.sif      read directly from a Singularity Image Format (SIF) container on disk
     {{.appName}} dir:path/to/yourproject                read directly from a path on disk (any directory)
+    {{.appName}} file:path/to/yourfile                  read directly from a file on disk
     {{.appName}} sbom:path/to/syft.json                 read Syft JSON from path on disk
     {{.appName}} registry:yourrepo/yourimage:tag        pull image directly from a registry (no container runtime required)
     {{.appName}} purl:path/to/purl/file                 read a newline separated file of purls from a path on disk
