@@ -28,15 +28,15 @@ func (m *Matcher) Type() match.MatcherType {
 func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	var matches = make([]match.Match, 0)
 
-	// direct matches with package
-	directMatches, err := m.findApkPackage(store, d, p)
+	// direct matches with package itself
+	directMatches, err := m.findMatchesForPackage(store, d, p)
 	if err != nil {
 		return nil, err
 	}
 	matches = append(matches, directMatches...)
 
-	// indirect matches with package source
-	indirectMatches, err := m.matchBySourceIndirection(store, d, p)
+	// indirect matches, via package's origin package
+	indirectMatches, err := m.findMatchesForOriginPackage(store, d, p)
 	if err != nil {
 		return nil, err
 	}
@@ -59,6 +59,14 @@ func (m *Matcher) cpeMatchesWithoutSecDBFixes(store vulnerability.Provider, d *d
 	secDBVulnerabilities, err := store.GetByDistro(d, p)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
+		secDBVulnerabilitiesForUpstream, err := store.GetByDistro(d, upstreamPkg)
+		if err != nil {
+			return nil, err
+		}
+		secDBVulnerabilities = append(secDBVulnerabilities, secDBVulnerabilitiesForUpstream...)
 	}
 
 	secDBVulnerabilitiesByID := vulnerabilitiesByID(secDBVulnerabilities)
@@ -139,8 +147,8 @@ func vulnerabilitiesByID(vulns []vulnerability.Vulnerability) map[string][]vulne
 	return results
 }
 
-func (m *Matcher) findApkPackage(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
-	// find Alpine SecDB matches for the given package name and version
+func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
+	// find SecDB matches for the given package name and version
 	secDBMatches, err := search.ByPackageDistro(store, d, p, m.Type())
 	if err != nil {
 		return nil, err
@@ -163,11 +171,11 @@ func (m *Matcher) findApkPackage(store vulnerability.Provider, d *distro.Distro,
 	return matches, nil
 }
 
-func (m *Matcher) matchBySourceIndirection(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	var matches []match.Match
 
 	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indirectMatches, err := m.findApkPackage(store, d, indirectPackage)
+		indirectMatches, err := m.findMatchesForPackage(store, d, indirectPackage)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find vulnerabilities for apk upstream source package: %w", err)
 		}
