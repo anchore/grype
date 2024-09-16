@@ -109,7 +109,7 @@ func ByPackageCPE(store vulnerability.ProviderByCPE, d *distro.Distro, p pkg.Pac
 		format := version.FormatFromPkg(p)
 
 		if format == version.JVMFormat {
-			searchVersion = specificLegacyJvmVersion(searchVersion, c.Attributes.Update)
+			searchVersion = transformJvmVersion(searchVersion, c.Attributes.Update)
 		}
 
 		verObj, err := version.NewVersion(searchVersion, format)
@@ -147,7 +147,7 @@ func ByPackageCPE(store vulnerability.ProviderByCPE, d *distro.Distro, p pkg.Pac
 	return toMatches(matchesByFingerprint), nil
 }
 
-func specificLegacyJvmVersion(searchVersion, updateCpeField string) string {
+func transformJvmVersion(searchVersion, updateCpeField string) string {
 	// we should take into consideration the CPE update field for JVM packages
 	if strings.HasPrefix(searchVersion, "1.") && !strings.Contains(searchVersion, "_") && updateCpeField != wfn.NA && updateCpeField != wfn.Any {
 		searchVersion = fmt.Sprintf("%s_%s", searchVersion, strings.TrimPrefix(updateCpeField, "update"))
@@ -238,7 +238,15 @@ func filterCPEsByVersion(pkgVersion version.Version, allCPEs []cpe.CPE) (matched
 			continue
 		}
 
-		constraint, err := version.GetConstraint(c.Attributes.Version, version.UnknownFormat)
+		ver := c.Attributes.Version
+
+		if pkgVersion.Format == version.JVMFormat {
+			if c.Attributes.Update != wfn.Any && c.Attributes.Update != wfn.NA {
+				ver = transformJvmVersion(ver, c.Attributes.Update)
+			}
+		}
+
+		constraint, err := version.GetConstraint(ver, pkgVersion.Format)
 		if err != nil {
 			// if we can't get a version constraint, don't filter out the CPE
 			matchedCPEs = append(matchedCPEs, c)

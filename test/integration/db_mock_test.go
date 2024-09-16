@@ -43,6 +43,15 @@ func newMockDbStore() *mockStore {
 		},
 		backend: map[string]map[string][]grypeDB.Vulnerability{
 			"nvd:cpe": {
+				"jdk": []grypeDB.Vulnerability{
+					{
+						ID:                "CVE-jdk",
+						PackageName:       "jdk",
+						VersionConstraint: "< 1.8.0_401",
+						VersionFormat:     "jvm",
+						CPEs:              []string{"cpe:2.3:a:oracle:jdk:*:*:*:*:*:*:*:*"},
+					},
+				},
 				"libvncserver": []grypeDB.Vulnerability{
 					{
 						ID:                "CVE-alpine-libvncserver",

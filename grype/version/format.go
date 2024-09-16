@@ -25,7 +25,7 @@ const (
 type Format int
 
 var formatStr = []string{
-	"UnknownFormat",
+	"Unknown",
 	"Semantic",
 	"Apk",
 	"Deb",

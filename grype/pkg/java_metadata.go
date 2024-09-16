@@ -1,7 +1,7 @@
 package pkg
 
 import (
-	"strings"
+	"github.com/scylladb/go-set/strset"
 
 	"github.com/anchore/syft/syft/pkg"
 )
@@ -31,15 +31,21 @@ type JavaVMReleaseMetadata struct {
 }
 
 func IsJvmPackage(p Package) bool {
-	if p.Type == pkg.BinaryPkg {
-		if strings.Contains(p.Name, "jdk") || strings.Contains(p.Name, "jre") || strings.Contains(p.Name, "java") {
-			return true
-		}
-	}
-
 	if _, ok := p.Metadata.(JavaVMInstallationMetadata); ok {
 		return true
 	}
 
+	if p.Type == pkg.BinaryPkg {
+		if HasJvmPackageName(p.Name) {
+			return true
+		}
+	}
+
 	return false
+}
+
+var jvmIndications = strset.New("java_se", "jre", "jdk", "zulu", "openjdk", "java")
+
+func HasJvmPackageName(name string) bool {
+	return jvmIndications.Has(name)
 }
