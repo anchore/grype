@@ -1,4 +1,4 @@
-package jvm
+package stock
 
 import (
 	"testing"
@@ -17,7 +17,7 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-func TestMatcher(t *testing.T) {
+func TestMatcher_JVMPackage(t *testing.T) {
 	p := pkg.Package{
 		ID:      pkg.ID(uuid.NewString()),
 		Name:    "java_se",
@@ -33,7 +33,8 @@ func TestMatcher(t *testing.T) {
 		},
 	}
 	store := newMockProvider()
-	actual, _ := matcher.Match(store, nil, p)
+	actual, err := matcher.Match(store, nil, p)
+	require.NoError(t, err)
 
 	foundCVEs := strset.New()
 	for _, v := range actual {

@@ -32,17 +32,9 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
-	if !inboundsForMatcher(p) {
-		return nil, nil
-	}
-
 	criteria := search.CommonCriteria
 	if m.cfg.UseCPEs {
 		criteria = append(criteria, search.ByCPE)
 	}
 	return search.ByCriteria(store, d, p, m.Type(), criteria...)
-}
-
-func inboundsForMatcher(p pkg.Package) bool {
-	return !pkg.IsJvmPackage(p)
 }

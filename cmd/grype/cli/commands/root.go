@@ -22,7 +22,6 @@ import (
 	"github.com/anchore/grype/grype/matcher/golang"
 	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
-	"github.com/anchore/grype/grype/matcher/jvm"
 	"github.com/anchore/grype/grype/matcher/python"
 	"github.com/anchore/grype/grype/matcher/ruby"
 	"github.com/anchore/grype/grype/matcher/stock"
@@ -285,9 +284,6 @@ func getMatchers(opts *options.Grype) []matcher.Matcher {
 			Java: java.MatcherConfig{
 				ExternalSearchConfig: opts.ExternalSources.ToJavaMatcherConfig(),
 				UseCPEs:              opts.Match.Java.UseCPEs,
-			},
-			JVM: jvm.MatcherConfig{
-				UseCPEs: opts.Match.JVM.UseCPEs,
 			},
 			Ruby:       ruby.MatcherConfig(opts.Match.Ruby),
 			Python:     python.MatcherConfig(opts.Match.Python),

@@ -16,7 +16,6 @@ const (
 	GoModuleMatcher    MatcherType = "go-module-matcher"
 	OpenVexMatcher     MatcherType = "openvex-matcher"
 	RustMatcher        MatcherType = "rust-matcher"
-	JVMMatcher         MatcherType = "jvm-matcher"
 )
 
 var AllMatcherTypes = []MatcherType{
@@ -33,7 +32,6 @@ var AllMatcherTypes = []MatcherType{
 	GoModuleMatcher,
 	OpenVexMatcher,
 	RustMatcher,
-	JVMMatcher,
 }
 
 type MatcherType string

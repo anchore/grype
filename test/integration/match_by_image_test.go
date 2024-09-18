@@ -18,7 +18,6 @@ import (
 	"github.com/anchore/grype/grype/matcher/golang"
 	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
-	"github.com/anchore/grype/grype/matcher/jvm"
 	"github.com/anchore/grype/grype/matcher/python"
 	"github.com/anchore/grype/grype/matcher/ruby"
 	"github.com/anchore/grype/grype/matcher/rust"
@@ -588,7 +587,7 @@ func addJvmMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Colle
 							"cpe:2.3:a:oracle:jdk:*:*:*:*:*:*:*:*",
 						},
 					},
-					Matcher: match.JVMMatcher,
+					Matcher: match.StockMatcher,
 				},
 			},
 		})
@@ -736,9 +735,6 @@ func TestMatchByImage(t *testing.T) {
 			// TODO: we need to use the API default configuration, not something hard coded here
 			matchers := matcher.NewDefaultMatchers(matcher.Config{
 				Java: java.MatcherConfig{
-					UseCPEs: true,
-				},
-				JVM: jvm.MatcherConfig{
 					UseCPEs: true,
 				},
 				Ruby: ruby.MatcherConfig{
