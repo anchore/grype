@@ -355,7 +355,7 @@ type MockMetadataProvider struct{}
 
 func (m *MockMetadataProvider) GetMetadata(id, namespace string) (*vulnerability.Metadata, error) {
 	cvss := func(id string, namespace string, scores ...float64) vulnerability.Metadata {
-		values := make([]vulnerability.Cvss, len(scores))
+		values := make([]vulnerability.Cvss, 0, len(scores))
 		for _, score := range scores {
 			values = append(values, vulnerability.Cvss{
 				Metrics: vulnerability.CvssMetrics{
