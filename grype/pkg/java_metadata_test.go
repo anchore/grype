@@ -55,6 +55,22 @@ func TestIsJvmPackage(t *testing.T) {
 			expected: true,
 		},
 		{
+			name: "binary package from syft (java/jdk",
+			pkg: Package{
+				Type: syftPkg.BinaryPkg,
+				Name: "java/jre",
+			},
+			expected: true,
+		},
+		{
+			name: "binary package from syft (java/jre)",
+			pkg: Package{
+				Type: syftPkg.BinaryPkg,
+				Name: "java/jdk",
+			},
+			expected: true,
+		},
+		{
 			name: "binary package without jvm-related name",
 			pkg: Package{
 				Type: syftPkg.BinaryPkg,

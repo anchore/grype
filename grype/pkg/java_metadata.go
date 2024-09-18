@@ -44,7 +44,7 @@ func IsJvmPackage(p Package) bool {
 	return false
 }
 
-var jvmIndications = strset.New("java_se", "jre", "jdk", "zulu", "openjdk", "java")
+var jvmIndications = strset.New("java_se", "jre", "jdk", "zulu", "openjdk", "java", "java/jre", "java/jdk")
 
 func HasJvmPackageName(name string) bool {
 	return jvmIndications.Has(name)
