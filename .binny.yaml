@@ -58,7 +58,7 @@ tools:
   # used to release all artifacts
   - name: goreleaser
     version:
-      want: v2.3.1
+      want: v2.3.2
     method: github-release
     with:
       repo: goreleaser/goreleaser
@@ -90,7 +90,7 @@ tools:
   # used for running all local and CI tasks
   - name: task
     version:
-      want: v3.39.0
+      want: v3.39.2
     method: github-release
     with:
       repo: go-task/task
@@ -98,7 +98,7 @@ tools:
   # used for triggering a release
   - name: gh
     version:
-      want: v2.56.0
+      want: v2.57.0
     method: github-release
     with:
       repo: cli/cli
