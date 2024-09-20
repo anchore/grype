@@ -115,7 +115,7 @@ result-sets:
           # are testing with is not too stale.
           # version: git:current-commit+import-db=db.tar.gz
           # for local build of grype, use for example:
-          version: v0.30.0+import-db=db.tar.gz
+          version: v0.30.0
           takes: SBOM
           label: candidate
 
