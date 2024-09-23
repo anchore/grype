@@ -91,6 +91,11 @@ default_max_year: 2021
 result-sets:
   pr_vs_latest_via_sbom:
     description: "latest released grype vs grype from the current build (via SBOM ingestion)"
+    validations:
+      - max-f1-regression: 0.0
+        max-new-false-negatives: 00
+        max-unlabeled-percent: 10
+        max_year: 2021
     matrix:
       images: *images
 
@@ -112,6 +117,7 @@ result-sets:
           # for local build of grype, use for example:
           version: path:../../+import-db=db.tar.gz
           takes: SBOM
+          label: candidate
 
         - name: grype
           # note: we import a static (pinned) DB as to prevent changes in the DB from affecting the results. The
@@ -121,3 +127,4 @@ result-sets:
           # are testing with is not too stale.
           version: latest+import-db=db.tar.gz
           takes: SBOM
+          label: reference

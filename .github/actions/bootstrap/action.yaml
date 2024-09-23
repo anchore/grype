@@ -8,7 +8,7 @@ inputs:
   python-version:
     description: "Python version to install"
     required: true
-    default: "3.10"
+    default: "3.11"
   go-dependencies:
     description: "Download go dependencies"
     required: true
