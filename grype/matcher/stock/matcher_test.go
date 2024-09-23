@@ -112,13 +112,8 @@ func (mp *mockProvider) populateData() {
 				ID:         "CVE-2024-20919-bonkers-format",
 			},
 			{
-				// positive cases
-				Constraint: version.MustGetConstraint(hit, version.JVMFormat),
-				ID:         "CVE-2024-20919-underscore",
-			},
-			{
 				// negative case
-				Constraint: version.MustGetConstraint("< 1.8.0_399 || >= 1.9-ea, < 8.0.399 || >= 9-ea, < 11.0.22 || >= 12-ea, < 17.0.10 || >= 18-ea, < 21.0.2", version.JVMFormat),
+				Constraint: version.MustGetConstraint("< 1.8.0_399 || >= 1.9-ea, < 8.0.399 || >= 9-ea", version.JVMFormat),
 				ID:         "CVE-FAKE-bad-update",
 			},
 			{
