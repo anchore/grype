@@ -6,6 +6,28 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestIdentifiersFromTags(t *testing.T) {
+	for _, tc := range []struct {
+		sut      string
+		name     string
+		expected []string
+	}{
+		{
+			"alpine:v1.2.3",
+			"alpine",
+			[]string{"alpine:v1.2.3", "pkg:oci/alpine?tag=v1.2.3"},
+		},
+		{
+			"alpine",
+			"alpine",
+			[]string{"alpine"},
+		},
+	} {
+		res := identifiersFromTags([]string{tc.sut}, tc.name)
+		require.Equal(t, tc.expected, res)
+	}
+}
+
 func TestIdentifiersFromDigests(t *testing.T) {
 	for _, tc := range []struct {
 		sut      string
