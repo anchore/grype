@@ -692,6 +692,45 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "jvm-installation-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.JavaVMInstallation{
+					Release: syftPkg.JavaVMRelease{
+						Implementor:        "a",
+						ImplementorVersion: "a",
+						JavaRuntimeVersion: "b",
+						JavaVersion:        "c",
+						JavaVersionDate:    "a",
+						Libc:               "a",
+						Modules:            []string{"a"},
+						OsArch:             "a",
+						OsName:             "a",
+						OsVersion:          "a",
+						Source:             "a",
+						BuildSource:        "a",
+						BuildSourceRepo:    "a",
+						SourceRepo:         "a",
+						FullVersion:        "d",
+						SemanticVersion:    "e",
+						BuildInfo:          "a",
+						JvmVariant:         "a",
+						JvmVersion:         "a",
+						ImageType:          "a",
+						BuildType:          "a",
+					},
+					Files: []string{"a"},
+				},
+			},
+			metadata: JavaVMInstallationMetadata{
+				Release: JavaVMReleaseMetadata{
+					JavaRuntimeVersion: "b",
+					JavaVersion:        "c",
+					FullVersion:        "d",
+					SemanticVersion:    "e",
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing

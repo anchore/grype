@@ -14,7 +14,16 @@ import (
 	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
+	"github.com/anchore/grype/grype/matcher/dotnet"
+	"github.com/anchore/grype/grype/matcher/golang"
+	"github.com/anchore/grype/grype/matcher/java"
+	"github.com/anchore/grype/grype/matcher/javascript"
+	"github.com/anchore/grype/grype/matcher/python"
+	"github.com/anchore/grype/grype/matcher/ruby"
+	"github.com/anchore/grype/grype/matcher/rust"
+	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/grype/grype/vex"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -541,6 +550,50 @@ func addHaskellMatches(t *testing.T, theSource source.Source, catalog *syftPkg.C
 	})
 }
 
+func addJvmMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore *mockStore, theResult *match.Matches) {
+	packages := catalog.PackagesByPath("/opt/java/openjdk/release")
+	if len(packages) < 1 {
+		t.Logf("JVM Packages: %+v", packages)
+		t.Fatalf("problem with upstream syft cataloger (java-jvm-cataloger)")
+	}
+
+	for _, p := range packages {
+		thePkg := pkg.New(p)
+		theVuln := theStore.backend["nvd:cpe"][strings.ToLower(thePkg.Name)][0]
+		vulnObj, err := vulnerability.NewVulnerability(theVuln)
+		vulnObj.CPEs = []cpe.CPE{
+			cpe.Must("cpe:2.3:a:oracle:jdk:*:*:*:*:*:*:*:*", ""),
+		}
+		require.NoError(t, err)
+
+		theResult.Add(match.Match{
+			Vulnerability: *vulnObj,
+			Package:       thePkg,
+			Details: []match.Detail{
+				{
+					Type:       match.CPEMatch,
+					Confidence: 0.9,
+					SearchedBy: search.CPEParameters{
+						Namespace: "nvd:cpe",
+						CPEs: []string{
+							"cpe:2.3:a:oracle:jdk:1.8.0:update400:*:*:*:*:*:*",
+						},
+						Package: search.CPEPackageParameter{Name: "jdk", Version: "1.8.0_400-b07"},
+					},
+					Found: search.CPEResult{
+						VulnerabilityID:   "CVE-jdk",
+						VersionConstraint: "< 1.8.0_401 (jvm)",
+						CPEs: []string{
+							"cpe:2.3:a:oracle:jdk:*:*:*:*:*:*:*:*",
+						},
+					},
+					Matcher: match.StockMatcher,
+				},
+			},
+		})
+	}
+}
+
 func addRustMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore *mockStore, theResult *match.Matches) {
 	packages := catalog.PackagesByPath("/hello-auditable")
 	if len(packages) < 1 {
@@ -588,11 +641,11 @@ func TestMatchByImage(t *testing.T) {
 	}
 
 	tests := []struct {
-		fixtureImage string
-		expectedFn   func(source.Source, *syftPkg.Collection, *mockStore) match.Matches
+		name       string
+		expectedFn func(source.Source, *syftPkg.Collection, *mockStore) match.Matches
 	}{
 		{
-			fixtureImage: "image-debian-match-coverage",
+			name: "image-debian-match-coverage",
 			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore *mockStore) match.Matches {
 				expectedMatches := match.NewMatches()
 				addPythonMatches(t, theSource, catalog, theStore, &expectedMatches)
@@ -607,7 +660,7 @@ func TestMatchByImage(t *testing.T) {
 			},
 		},
 		{
-			fixtureImage: "image-centos-match-coverage",
+			name: "image-centos-match-coverage",
 			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore *mockStore) match.Matches {
 				expectedMatches := match.NewMatches()
 				addRhelMatches(t, theSource, catalog, theStore, &expectedMatches)
@@ -615,7 +668,7 @@ func TestMatchByImage(t *testing.T) {
 			},
 		},
 		{
-			fixtureImage: "image-alpine-match-coverage",
+			name: "image-alpine-match-coverage",
 			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore *mockStore) match.Matches {
 				expectedMatches := match.NewMatches()
 				addAlpineMatches(t, theSource, catalog, theStore, &expectedMatches)
@@ -623,7 +676,7 @@ func TestMatchByImage(t *testing.T) {
 			},
 		},
 		{
-			fixtureImage: "image-sles-match-coverage",
+			name: "image-sles-match-coverage",
 			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore *mockStore) match.Matches {
 				expectedMatches := match.NewMatches()
 				addSlesMatches(t, theSource, catalog, theStore, &expectedMatches)
@@ -631,7 +684,7 @@ func TestMatchByImage(t *testing.T) {
 			},
 		},
 		{
-			fixtureImage: "image-portage-match-coverage",
+			name: "image-portage-match-coverage",
 			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore *mockStore) match.Matches {
 				expectedMatches := match.NewMatches()
 				addPortageMatches(t, theSource, catalog, theStore, &expectedMatches)
@@ -639,21 +692,29 @@ func TestMatchByImage(t *testing.T) {
 			},
 		},
 		{
-			fixtureImage: "image-rust-auditable-match-coverage",
+			name: "image-rust-auditable-match-coverage",
 			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore *mockStore) match.Matches {
 				expectedMatches := match.NewMatches()
 				addRustMatches(t, theSource, catalog, theStore, &expectedMatches)
 				return expectedMatches
 			},
 		},
+		{
+			name: "image-jvm-match-coverage",
+			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore *mockStore) match.Matches {
+				expectedMatches := match.NewMatches()
+				addJvmMatches(t, theSource, catalog, theStore, &expectedMatches)
+				return expectedMatches
+			},
+		},
 	}
 
 	for _, test := range tests {
-		t.Run(test.fixtureImage, func(t *testing.T) {
+		t.Run(test.name, func(t *testing.T) {
 			theStore := newMockDbStore()
 
-			imagetest.GetFixtureImage(t, "docker-archive", test.fixtureImage)
-			tarPath := imagetest.GetFixtureImageTarPath(t, test.fixtureImage)
+			imagetest.GetFixtureImage(t, "docker-archive", test.name)
+			tarPath := imagetest.GetFixtureImageTarPath(t, test.name)
 
 			// this is purely done to help setup mocks
 			theSource, err := syft.GetSource(context.Background(), tarPath, syft.DefaultGetSourceConfig().WithSources("docker-archive"))
@@ -671,7 +732,33 @@ func TestMatchByImage(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, s)
 
-			matchers := matcher.NewDefaultMatchers(matcher.Config{})
+			// TODO: we need to use the API default configuration, not something hard coded here
+			matchers := matcher.NewDefaultMatchers(matcher.Config{
+				Java: java.MatcherConfig{
+					UseCPEs: true,
+				},
+				Ruby: ruby.MatcherConfig{
+					UseCPEs: true,
+				},
+				Python: python.MatcherConfig{
+					UseCPEs: true,
+				},
+				Dotnet: dotnet.MatcherConfig{
+					UseCPEs: true,
+				},
+				Javascript: javascript.MatcherConfig{
+					UseCPEs: true,
+				},
+				Golang: golang.MatcherConfig{
+					UseCPEs: true,
+				},
+				Rust: rust.MatcherConfig{
+					UseCPEs: true,
+				},
+				Stock: stock.MatcherConfig{
+					UseCPEs: true,
+				},
+			})
 
 			vp, err := db.NewVulnerabilityProvider(theStore)
 			require.NoError(t, err)

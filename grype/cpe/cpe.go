@@ -24,8 +24,10 @@ func NewSlice(cpeStrs ...string) ([]cpe.CPE, error) {
 func MatchWithoutVersion(c cpe.CPE, candidates []cpe.CPE) []cpe.CPE {
 	matches := make([]cpe.CPE, 0)
 	a := wfn.Attributes(c.Attributes)
+	a.Update = wfn.Any
 	for _, candidate := range candidates {
 		canCopy := wfn.Attributes(candidate.Attributes)
+		canCopy.Update = wfn.Any
 		if a.MatchWithoutVersion(&canCopy) {
 			matches = append(matches, candidate)
 		}

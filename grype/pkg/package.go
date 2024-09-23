@@ -214,8 +214,25 @@ func dataFromPkg(p pkg.Package) (interface{}, []UpstreamPackage) {
 	case pkg.ApkDBEntry:
 		metadata = apkMetadataFromPkg(p)
 		upstreams = apkDataFromPkg(p)
+	case pkg.JavaVMInstallation:
+		metadata = javaVMDataFromPkg(p)
 	}
 	return metadata, upstreams
+}
+
+func javaVMDataFromPkg(p pkg.Package) any {
+	if value, ok := p.Metadata.(pkg.JavaVMInstallation); ok {
+		return JavaVMInstallationMetadata{
+			Release: JavaVMReleaseMetadata{
+				JavaRuntimeVersion: value.Release.JavaRuntimeVersion,
+				JavaVersion:        value.Release.JavaVersion,
+				FullVersion:        value.Release.FullVersion,
+				SemanticVersion:    value.Release.SemanticVersion,
+			},
+		}
+	}
+
+	return nil
 }
 
 func apkMetadataFromPkg(p pkg.Package) interface{} {
