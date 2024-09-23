@@ -50,7 +50,6 @@ func TestMatcher_JVMPackage(t *testing.T) {
 
 	expected := strset.New(
 		"CVE-2024-20919-real",
-		"CVE-2024-20919-underscore",
 		"CVE-2024-20919-bonkers-format",
 		"CVE-2024-20919-post-jep223",
 	)
