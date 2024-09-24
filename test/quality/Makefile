@@ -27,7 +27,7 @@ all: capture validate ## Fetch or capture all data and run all quality checks
 
 .PHONY: validate
 validate: venv $(VULNERABILITY_LABELS)/Makefile ## Run all quality checks against already collected data
-	$(YARDSTICK) -r $(RESULT_SET) -r $(RESULT_SET)_2022
+	$(YARDSTICK) validate -r $(RESULT_SET) -r $(RESULT_SET)_2022
 
 .PHONY: capture
 capture: sboms vulns ## Collect and store all syft and grype results
