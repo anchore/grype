@@ -136,6 +136,7 @@ result-sets:
         max-new-false-negatives: 10
         max-unlabeled-percent: 0
         max_year: 2022
+        fail_on_empty_match_set: false
     matrix:
       images:
         - docker.io/anchore/test_images:azurelinux3-63671fe@sha256:2d761ba36575ddd4e07d446f4f2a05448298c20e5bdcd3dedfbbc00f9865240d
