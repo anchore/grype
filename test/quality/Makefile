@@ -27,26 +27,27 @@ all: capture validate ## Fetch or capture all data and run all quality checks
 
 .PHONY: validate
 validate: venv $(VULNERABILITY_LABELS)/Makefile ## Run all quality checks against already collected data
-	$(ACTIVATE_VENV) yardstick validate -r $(RESULT_SET)
+	$(YARDSTICK) validate -r $(RESULT_SET) -r $(RESULT_SET)_2022
 
 .PHONY: capture
 capture: sboms vulns ## Collect and store all syft and grype results
 
-.PHONY: capture
+.PHONY: vulns
 vulns: venv $(TEST_DB) ## Collect and store all grype results
 	$(YARDSTICK) -v result capture -r $(RESULT_SET)
+	$(YARDSTICK) -v result capture -r $(RESULT_SET)_2022
 
 $(TEST_DB):
 	@curl -o $(TEST_DB) -SsL $(TEST_DB_URL)
 
 .PHONY: sboms
 sboms: $(YARDSTICK_RESULT_DIR) venv clear-results ## Collect and store all syft results (deletes all existing results)
-	bash -c "make download-sboms || ($(YARDSTICK) -v result capture -r $(RESULT_SET) --only-producers)"
+	bash -c "make download-sboms || ($(YARDSTICK) -v result capture -r $(RESULT_SET) --only-producers && $(YARDSTICK) -v result capture -r $(RESULT_SET)_2022 --only-producers)"
 
 .PHONY: download-sboms
 download-sboms: $(VULNERABILITY_LABELS)/Makefile
 	cd vulnerability-match-labels && make venv
-	bash -c "export ORAS_CACHE=$(shell pwd)/.oras-cache && make venv && . vulnerability-match-labels/venv/bin/activate && ./vulnerability-match-labels/sboms.py download -r $(RESULT_SET)"
+	bash -c "export ORAS_CACHE=$(shell pwd)/.oras-cache && make venv && . vulnerability-match-labels/venv/bin/activate && ./vulnerability-match-labels/sboms.py download -r $(RESULT_SET) && ./vulnerability-match-labels/sboms.py download -r $(RESULT_SET)_2022"
 
 venv: venv/touchfile
 
