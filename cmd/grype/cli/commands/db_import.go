@@ -7,7 +7,7 @@ import (
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
-	"github.com/anchore/grype/grype/db"
+	"github.com/anchore/grype/grype/db/legacy/distribution"
 	"github.com/anchore/grype/internal"
 )
 
@@ -27,7 +27,7 @@ func DBImport(app clio.Application) *cobra.Command {
 }
 
 func runDBImport(opts options.Database, dbArchivePath string) error {
-	dbCurator, err := db.NewCurator(opts.ToCuratorConfig())
+	dbCurator, err := distribution.NewCurator(opts.ToCuratorConfig())
 	if err != nil {
 		return err
 	}
