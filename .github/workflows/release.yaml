@@ -14,7 +14,7 @@ jobs:
     environment: release
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.1.7
+      - uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 #v4.2.0
 
       - name: Check if running on main
         if: github.ref != 'refs/heads/main'
@@ -24,7 +24,7 @@ jobs:
         # at the time of when the OIDC token was issued on the Github Actions runner.
         run: echo "This can only be run on the main branch otherwise releases produced will not be verifiable with cosign" && exit 1
 
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.1.7
+      - uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 #v4.2.0
 
       - name: Check if pinned syft is a release version
         run: .github/scripts/check-syft-version-is-release.sh
@@ -112,7 +112,7 @@ jobs:
       packages: write
       id-token: write
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.1.7
+      - uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 #v4.2.0
         with:
           fetch-depth: 0
 
