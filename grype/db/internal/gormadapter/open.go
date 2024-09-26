@@ -13,6 +13,8 @@ var writerStatements = []string{
 	// on my box it reduces the time to write from 10 minutes to 10 seconds (with ~1GB memory utilization spikes)
 	`PRAGMA synchronous = OFF`,
 	`PRAGMA journal_mode = MEMORY`,
+	`PRAGMA cache_size = 100000`,
+	`PRAGMA mmap_size = 268435456`, // 256 MB
 }
 
 var readOptions = []string{
@@ -23,9 +25,18 @@ var readOptions = []string{
 
 // Open a new connection to a sqlite3 database file
 func Open(path string, write bool) (*gorm.DB, error) {
-	if write {
-		// the file may or may not exist, so we ignore the error explicitly
-		_ = os.Remove(path)
+	memory := len(path) == 0
+
+	if write && !memory {
+		if _, err := os.Stat(path); err == nil {
+			if err := os.Remove(path); err != nil {
+				return nil, fmt.Errorf("unable to remove existing DB file: %w", err)
+			}
+		}
+	}
+
+	if memory {
+		path = ":memory:"
 	}
 
 	connStr, err := connectionString(path)
