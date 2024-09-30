@@ -8,7 +8,7 @@ import (
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
-	"github.com/anchore/grype/grype/db"
+	"github.com/anchore/grype/grype/db/legacy/distribution"
 )
 
 const (
@@ -30,7 +30,7 @@ func DBCheck(app clio.Application) *cobra.Command {
 }
 
 func runDBCheck(opts options.Database) error {
-	dbCurator, err := db.NewCurator(opts.ToCuratorConfig())
+	dbCurator, err := distribution.NewCurator(opts.ToCuratorConfig())
 	if err != nil {
 		return err
 	}

@@ -1,4 +1,4 @@
-package db
+package distribution
 
 import (
 	"testing"

@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
-	"github.com/anchore/grype/grype/db"
+	"github.com/anchore/grype/grype/db/legacy/distribution"
 )
 
 type dbListOptions struct {
@@ -40,7 +40,7 @@ func DBList(app clio.Application) *cobra.Command {
 }
 
 func runDBList(opts *dbListOptions) error {
-	dbCurator, err := db.NewCurator(opts.DB.ToCuratorConfig())
+	dbCurator, err := distribution.NewCurator(opts.DB.ToCuratorConfig())
 	if err != nil {
 		return err
 	}
