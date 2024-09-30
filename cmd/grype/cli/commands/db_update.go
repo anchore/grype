@@ -19,6 +19,11 @@ func DBUpdate(app clio.Application) *cobra.Command {
 		Use:   "update",
 		Short: "download the latest vulnerability database",
 		Args:  cobra.ExactArgs(0),
+		PreRunE: func(_ *cobra.Command, _ []string) error {
+			// DB commands should not opt into the low-pass check filter
+			opts.DB.MaxUpdateCheckFrequency = 0
+			return nil
+		},
 		RunE: func(_ *cobra.Command, _ []string) error {
 			return runDBUpdate(opts.DB)
 		},

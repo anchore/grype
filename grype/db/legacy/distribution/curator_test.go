@@ -27,6 +27,7 @@ import (
 	"github.com/gookit/color"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/wagoodman/go-progress"
 
@@ -617,4 +618,151 @@ func TestCuratorTimeoutBehavior(t *testing.T) {
 	case <-timeout:
 		t.Fatalf("timeout exceeded (%v)", failAfter)
 	}
+}
+
+func TestCurator_IsUpdateCheckAllowed(t *testing.T) {
+	fs := afero.NewOsFs()
+	tempDir := t.TempDir()
+
+	curator := Curator{
+		fs:                      fs,
+		updateCheckMaxFrequency: 10 * time.Minute,
+		dbDir:                   tempDir,
+	}
+
+	writeLastCheckTime := func(t *testing.T, lastCheckTime time.Time) {
+		err := afero.WriteFile(fs, path.Join(tempDir, lastUpdateCheckFileName), []byte(lastCheckTime.Format(time.RFC3339)), 0644)
+		require.NoError(t, err)
+	}
+
+	t.Run("first run check (no last check file)", func(t *testing.T) {
+		require.True(t, curator.isUpdateCheckAllowed())
+	})
+
+	t.Run("check not allowed due to frequency", func(t *testing.T) {
+		writeLastCheckTime(t, time.Now().Add(-5*time.Minute))
+
+		require.False(t, curator.isUpdateCheckAllowed())
+	})
+
+	t.Run("check allowed after the frequency period", func(t *testing.T) {
+		writeLastCheckTime(t, time.Now().Add(-20*time.Minute))
+
+		require.True(t, curator.isUpdateCheckAllowed())
+	})
+}
+
+func TestCurator_DurationSinceUpdateCheck(t *testing.T) {
+	fs := afero.NewOsFs()
+	tempDir := t.TempDir()
+
+	curator := Curator{
+		fs:    fs,
+		dbDir: tempDir,
+	}
+
+	writeLastCheckTime := func(t *testing.T, lastCheckTime time.Time) {
+		err := afero.WriteFile(fs, path.Join(tempDir, lastUpdateCheckFileName), []byte(lastCheckTime.Format(time.RFC3339)), 0644)
+		require.NoError(t, err)
+	}
+
+	t.Run("no last check file", func(t *testing.T) {
+		elapsed, err := curator.durationSinceUpdateCheck()
+		require.NoError(t, err)
+		require.Nil(t, elapsed)
+	})
+
+	t.Run("last check file does not exist", func(t *testing.T) {
+		// simulate a non-existing file
+		_, err := curator.durationSinceUpdateCheck()
+		require.NoError(t, err)
+	})
+
+	t.Run("valid last check file", func(t *testing.T) {
+		writeLastCheckTime(t, time.Now().Add(-5*time.Minute))
+
+		elapsed, err := curator.durationSinceUpdateCheck()
+		require.NoError(t, err)
+		require.NotNil(t, elapsed)
+		require.True(t, *elapsed >= 5*time.Minute)
+	})
+
+	t.Run("malformed last check file", func(t *testing.T) {
+		err := afero.WriteFile(fs, path.Join(tempDir, lastUpdateCheckFileName), []byte("not a timestamp"), 0644)
+		require.NoError(t, err)
+
+		_, err = curator.durationSinceUpdateCheck()
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "unable to parse last update check timestamp")
+	})
+}
+
+func TestCurator_SetLastSuccessfulUpdateCheck(t *testing.T) {
+	fs := afero.NewOsFs()
+	tempDir := t.TempDir()
+
+	curator := Curator{
+		fs:    fs,
+		dbDir: tempDir,
+	}
+
+	t.Run("set last successful update check", func(t *testing.T) {
+		curator.setLastSuccessfulUpdateCheck()
+
+		data, err := afero.ReadFile(fs, path.Join(tempDir, lastUpdateCheckFileName))
+		require.NoError(t, err)
+
+		lastCheckTime, err := time.Parse(time.RFC3339, string(data))
+		require.NoError(t, err)
+		require.WithinDuration(t, time.Now().UTC(), lastCheckTime, time.Second)
+	})
+
+	t.Run("error writing last successful update check", func(t *testing.T) {
+		invalidFs := afero.NewReadOnlyFs(fs) // make it read-only, which should simular a write error
+		curator.fs = invalidFs
+
+		curator.setLastSuccessfulUpdateCheck()
+	})
+}
+
+// Mock for the file.Getter interface
+type MockGetter struct {
+	mock.Mock
+}
+
+func (m *MockGetter) GetFile(dst, src string, monitor ...*progress.Manual) error {
+	args := m.Called(dst, src, monitor)
+	return args.Error(0)
+}
+
+func (m *MockGetter) GetToDir(dst, src string, monitor ...*progress.Manual) error {
+	args := m.Called(dst, src, monitor)
+	return args.Error(0)
+}
+
+func TestCurator_Update_setLastSuccessfulUpdateCheck_notCalled(t *testing.T) {
+
+	newCurator := func(t *testing.T) *Curator {
+		return &Curator{
+			fs:                      afero.NewOsFs(),
+			dbDir:                   t.TempDir(),
+			updateCheckMaxFrequency: 10 * time.Minute,
+			listingDownloader:       &MockGetter{},
+			updateDownloader:        &MockGetter{},
+			requireUpdateCheck:      true,
+		}
+	}
+
+	t.Run("error checking for update", func(t *testing.T) {
+		c := newCurator(t)
+
+		c.listingDownloader.(*MockGetter).On("GetFile", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("get listing failed"))
+
+		_, err := c.Update()
+		require.Error(t, err)
+		require.ErrorContains(t, err, "get listing failed")
+
+		require.NoFileExists(t, filepath.Join(t.TempDir(), lastUpdateCheckFileName))
+	})
+
 }

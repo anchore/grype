@@ -12,17 +12,18 @@ import (
 )
 
 type Database struct {
-	ID                     clio.Identification `yaml:"-" json:"-" mapstructure:"-"`
-	Dir                    string              `yaml:"cache-dir" json:"cache-dir" mapstructure:"cache-dir"`
-	UpdateURL              string              `yaml:"update-url" json:"update-url" mapstructure:"update-url"`
-	CACert                 string              `yaml:"ca-cert" json:"ca-cert" mapstructure:"ca-cert"`
-	AutoUpdate             bool                `yaml:"auto-update" json:"auto-update" mapstructure:"auto-update"`
-	ValidateByHashOnStart  bool                `yaml:"validate-by-hash-on-start" json:"validate-by-hash-on-start" mapstructure:"validate-by-hash-on-start"`
-	ValidateAge            bool                `yaml:"validate-age" json:"validate-age" mapstructure:"validate-age"`
-	MaxAllowedBuiltAge     time.Duration       `yaml:"max-allowed-built-age" json:"max-allowed-built-age" mapstructure:"max-allowed-built-age"`
-	RequireUpdateCheck     bool                `yaml:"require-update-check" json:"require-update-check" mapstructure:"require-update-check"`
-	UpdateAvailableTimeout time.Duration       `yaml:"update-available-timeout" json:"update-available-timeout" mapstructure:"update-available-timeout"`
-	UpdateDownloadTimeout  time.Duration       `yaml:"update-download-timeout" json:"update-download-timeout" mapstructure:"update-download-timeout"`
+	ID                      clio.Identification `yaml:"-" json:"-" mapstructure:"-"`
+	Dir                     string              `yaml:"cache-dir" json:"cache-dir" mapstructure:"cache-dir"`
+	UpdateURL               string              `yaml:"update-url" json:"update-url" mapstructure:"update-url"`
+	CACert                  string              `yaml:"ca-cert" json:"ca-cert" mapstructure:"ca-cert"`
+	AutoUpdate              bool                `yaml:"auto-update" json:"auto-update" mapstructure:"auto-update"`
+	ValidateByHashOnStart   bool                `yaml:"validate-by-hash-on-start" json:"validate-by-hash-on-start" mapstructure:"validate-by-hash-on-start"`
+	ValidateAge             bool                `yaml:"validate-age" json:"validate-age" mapstructure:"validate-age"`
+	MaxAllowedBuiltAge      time.Duration       `yaml:"max-allowed-built-age" json:"max-allowed-built-age" mapstructure:"max-allowed-built-age"`
+	RequireUpdateCheck      bool                `yaml:"require-update-check" json:"require-update-check" mapstructure:"require-update-check"`
+	UpdateAvailableTimeout  time.Duration       `yaml:"update-available-timeout" json:"update-available-timeout" mapstructure:"update-available-timeout"`
+	UpdateDownloadTimeout   time.Duration       `yaml:"update-download-timeout" json:"update-download-timeout" mapstructure:"update-download-timeout"`
+	MaxUpdateCheckFrequency time.Duration       `yaml:"max-update-check-frequency" json:"max-update-check-frequency" mapstructure:"max-update-check-frequency"`
 }
 
 var _ interface {
@@ -30,9 +31,10 @@ var _ interface {
 } = (*Database)(nil)
 
 const (
-	defaultMaxDBAge               time.Duration = time.Hour * 24 * 5
-	defaultUpdateAvailableTimeout               = time.Second * 30
-	defaultUpdateDownloadTimeout                = time.Second * 300
+	defaultMaxDBAge                time.Duration = time.Hour * 24 * 5
+	defaultUpdateAvailableTimeout                = time.Second * 30
+	defaultUpdateDownloadTimeout                 = time.Second * 300
+	defaultMaxUpdateCheckFrequency               = time.Hour * 2
 )
 
 func DefaultDatabase(id clio.Identification) Database {
@@ -43,25 +45,27 @@ func DefaultDatabase(id clio.Identification) Database {
 		AutoUpdate:  true,
 		ValidateAge: true,
 		// After this period (5 days) the db data is considered stale
-		MaxAllowedBuiltAge:     defaultMaxDBAge,
-		RequireUpdateCheck:     false,
-		UpdateAvailableTimeout: defaultUpdateAvailableTimeout,
-		UpdateDownloadTimeout:  defaultUpdateDownloadTimeout,
+		MaxAllowedBuiltAge:      defaultMaxDBAge,
+		RequireUpdateCheck:      false,
+		UpdateAvailableTimeout:  defaultUpdateAvailableTimeout,
+		UpdateDownloadTimeout:   defaultUpdateDownloadTimeout,
+		MaxUpdateCheckFrequency: defaultMaxUpdateCheckFrequency,
 	}
 }
 
 func (cfg Database) ToCuratorConfig() distribution.Config {
 	return distribution.Config{
-		ID:                  cfg.ID,
-		DBRootDir:           cfg.Dir,
-		ListingURL:          cfg.UpdateURL,
-		CACert:              cfg.CACert,
-		ValidateByHashOnGet: cfg.ValidateByHashOnStart,
-		ValidateAge:         cfg.ValidateAge,
-		MaxAllowedBuiltAge:  cfg.MaxAllowedBuiltAge,
-		RequireUpdateCheck:  cfg.RequireUpdateCheck,
-		ListingFileTimeout:  cfg.UpdateAvailableTimeout,
-		UpdateTimeout:       cfg.UpdateDownloadTimeout,
+		ID:                      cfg.ID,
+		DBRootDir:               cfg.Dir,
+		ListingURL:              cfg.UpdateURL,
+		CACert:                  cfg.CACert,
+		ValidateByHashOnGet:     cfg.ValidateByHashOnStart,
+		ValidateAge:             cfg.ValidateAge,
+		MaxAllowedBuiltAge:      cfg.MaxAllowedBuiltAge,
+		RequireUpdateCheck:      cfg.RequireUpdateCheck,
+		ListingFileTimeout:      cfg.UpdateAvailableTimeout,
+		UpdateTimeout:           cfg.UpdateDownloadTimeout,
+		UpdateCheckMaxFrequency: cfg.MaxUpdateCheckFrequency,
 	}
 }
 
@@ -80,4 +84,5 @@ Default max age is 120h (or five days)`)
 This file is ~156KiB as of 2024-04-17 so the download should be quick; adjust as needed`)
 	descriptions.Add(&cfg.UpdateDownloadTimeout, `Timeout for downloading actual vulnerability DB
 The DB is ~156MB as of 2024-04-17 so slower connections may exceed the default timeout; adjust as needed`)
+	descriptions.Add(&cfg.MaxUpdateCheckFrequency, `Maximum frequency to check for vulnerability database updates`)
 }
