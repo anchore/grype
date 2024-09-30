@@ -11,11 +11,11 @@ import (
 	"time"
 
 	"github.com/hako/durafmt"
-	cleanhttp "github.com/hashicorp/go-cleanhttp"
-	archiver "github.com/mholt/archiver/v3"
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/mholt/archiver/v3"
 	"github.com/spf13/afero"
-	partybus "github.com/wagoodman/go-partybus"
-	progress "github.com/wagoodman/go-progress"
+	"github.com/wagoodman/go-partybus"
+	"github.com/wagoodman/go-progress"
 
 	"github.com/anchore/clio"
 	grypeDB "github.com/anchore/grype/grype/db/v5"
@@ -28,34 +28,37 @@ import (
 )
 
 const (
-	FileName = grypeDB.VulnerabilityStoreFileName
+	FileName                = grypeDB.VulnerabilityStoreFileName
+	lastUpdateCheckFileName = "last_update_check"
 )
 
 type Config struct {
-	ID                  clio.Identification
-	DBRootDir           string
-	ListingURL          string
-	CACert              string
-	ValidateByHashOnGet bool
-	ValidateAge         bool
-	MaxAllowedBuiltAge  time.Duration
-	RequireUpdateCheck  bool
-	ListingFileTimeout  time.Duration
-	UpdateTimeout       time.Duration
+	ID                      clio.Identification
+	DBRootDir               string
+	ListingURL              string
+	CACert                  string
+	ValidateByHashOnGet     bool
+	ValidateAge             bool
+	MaxAllowedBuiltAge      time.Duration
+	RequireUpdateCheck      bool
+	ListingFileTimeout      time.Duration
+	UpdateTimeout           time.Duration
+	UpdateCheckMaxFrequency time.Duration
 }
 
 type Curator struct {
-	fs                  afero.Fs
-	listingDownloader   file.Getter
-	updateDownloader    file.Getter
-	targetSchema        int
-	dbDir               string
-	dbPath              string
-	listingURL          string
-	validateByHashOnGet bool
-	validateAge         bool
-	maxAllowedBuiltAge  time.Duration
-	requireUpdateCheck  bool
+	fs                      afero.Fs
+	listingDownloader       file.Getter
+	updateDownloader        file.Getter
+	targetSchema            int
+	dbDir                   string
+	dbPath                  string
+	listingURL              string
+	validateByHashOnGet     bool
+	validateAge             bool
+	maxAllowedBuiltAge      time.Duration
+	requireUpdateCheck      bool
+	updateCheckMaxFrequency time.Duration
 }
 
 func NewCurator(cfg Config) (Curator, error) {
@@ -75,17 +78,18 @@ func NewCurator(cfg Config) (Curator, error) {
 	dbClient.Timeout = cfg.UpdateTimeout
 
 	return Curator{
-		fs:                  fs,
-		targetSchema:        vulnerability.SchemaVersion,
-		listingDownloader:   file.NewGetter(cfg.ID, listingClient),
-		updateDownloader:    file.NewGetter(cfg.ID, dbClient),
-		dbDir:               dbDir,
-		dbPath:              path.Join(dbDir, FileName),
-		listingURL:          cfg.ListingURL,
-		validateByHashOnGet: cfg.ValidateByHashOnGet,
-		validateAge:         cfg.ValidateAge,
-		maxAllowedBuiltAge:  cfg.MaxAllowedBuiltAge,
-		requireUpdateCheck:  cfg.RequireUpdateCheck,
+		fs:                      fs,
+		targetSchema:            vulnerability.SchemaVersion,
+		listingDownloader:       file.NewGetter(cfg.ID, listingClient),
+		updateDownloader:        file.NewGetter(cfg.ID, dbClient),
+		dbDir:                   dbDir,
+		dbPath:                  path.Join(dbDir, FileName),
+		listingURL:              cfg.ListingURL,
+		validateByHashOnGet:     cfg.ValidateByHashOnGet,
+		validateAge:             cfg.ValidateAge,
+		maxAllowedBuiltAge:      cfg.MaxAllowedBuiltAge,
+		requireUpdateCheck:      cfg.RequireUpdateCheck,
+		updateCheckMaxFrequency: cfg.UpdateCheckMaxFrequency,
 	}, nil
 }
 
@@ -133,6 +137,13 @@ func (c *Curator) Delete() error {
 
 // Update the existing DB, returning an indication if any action was taken.
 func (c *Curator) Update() (bool, error) {
+	if !c.isUpdateCheckAllowed() {
+		// we should not notify the user of an update check if the current configuration and state
+		// indicates we're should be in a low-pass filter mode (and the check frequency is too high).
+		// this should appear to the user as if we never attempted to check for an update at all.
+		return false, nil
+	}
+
 	// let consumers know of a monitorable event (download + import stages)
 	importProgress := progress.NewManual(1)
 	stage := progress.NewAtomicStage("checking for update")
@@ -161,12 +172,16 @@ func (c *Curator) Update() (bool, error) {
 		log.Warnf("unable to check for vulnerability database update")
 		log.Debugf("check for vulnerability update failed: %+v", err)
 	}
+
 	if updateAvailable {
 		log.Infof("downloading new vulnerability DB")
 		err = c.UpdateTo(updateEntry, downloadProgress, importProgress, stage)
 		if err != nil {
 			return false, fmt.Errorf("unable to update vulnerability database: %w", err)
 		}
+
+		// only set the last successful update check if the update was successful
+		c.setLastSuccessfulUpdateCheck()
 
 		if metadata != nil {
 			log.Infof(
@@ -187,8 +202,84 @@ func (c *Curator) Update() (bool, error) {
 		return true, nil
 	}
 
+	// there was no update (or any issue while checking for an update)
+	c.setLastSuccessfulUpdateCheck()
+
 	stage.Set("no update available")
 	return false, nil
+}
+
+func (c Curator) isUpdateCheckAllowed() bool {
+	if c.updateCheckMaxFrequency == 0 {
+		log.Trace("no max-frequency set for update check")
+		return true
+	}
+
+	elapsed, err := c.durationSinceUpdateCheck()
+	if err != nil {
+		// we had an IO error (or similar) trying to read or parse the file, we should not block the update check.
+		log.WithFields("error", err).Trace("unable to determine if update check is allowed")
+		return true
+	}
+	if elapsed == nil {
+		// there was no last check (this is a first run case), we should not block the update check.
+		return true
+	}
+
+	return *elapsed > c.updateCheckMaxFrequency
+}
+
+func (c Curator) durationSinceUpdateCheck() (*time.Duration, error) {
+	// open `$dbDir/last_update_check` file and read the timestamp and do now() - timestamp
+
+	filePath := path.Join(c.dbDir, lastUpdateCheckFileName)
+
+	if _, err := c.fs.Stat(filePath); os.IsNotExist(err) {
+		log.Trace("first-run of DB update")
+		return nil, nil
+	}
+
+	fh, err := c.fs.OpenFile(filePath, os.O_RDONLY, 0)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read last update check timestamp: %w", err)
+	}
+
+	defer fh.Close()
+
+	// read and parse rfc3339 timestamp
+	var lastCheckStr string
+	_, err = fmt.Fscanf(fh, "%s", &lastCheckStr)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read last update check timestamp: %w", err)
+	}
+
+	lastCheck, err := time.Parse(time.RFC3339, lastCheckStr)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse last update check timestamp: %w", err)
+	}
+
+	if lastCheck.IsZero() {
+		return nil, fmt.Errorf("empty update check timestamp")
+	}
+
+	elapsed := time.Since(lastCheck)
+	return &elapsed, nil
+}
+
+func (c Curator) setLastSuccessfulUpdateCheck() {
+	// note: we should always assume the DB dir actually exists, otherwise let this operation fail (since having a DB
+	// is a prerequisite for a successful update).
+
+	filePath := path.Join(c.dbDir, lastUpdateCheckFileName)
+	fh, err := c.fs.OpenFile(filePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+	if err != nil {
+		log.WithFields("error", err).Trace("unable to write last update check timestamp")
+		return
+	}
+
+	defer fh.Close()
+
+	_, _ = fmt.Fprintf(fh, "%s", time.Now().UTC().Format(time.RFC3339))
 }
 
 // IsUpdateAvailable indicates if there is a new update available as a boolean, and returns the latest listing information

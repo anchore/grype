@@ -19,10 +19,14 @@ func DBCheck(app clio.Application) *cobra.Command {
 	opts := dbOptionsDefault(app.ID())
 
 	return app.SetupCommand(&cobra.Command{
-		Use:     "check",
-		Short:   "check to see if there is a database update available",
-		PreRunE: disableUI(app),
-		Args:    cobra.ExactArgs(0),
+		Use:   "check",
+		Short: "check to see if there is a database update available",
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			// DB commands should not opt into the low-pass check filter
+			opts.DB.MaxUpdateCheckFrequency = 0
+			return disableUI(app)(cmd, args)
+		},
+		Args: cobra.ExactArgs(0),
 		RunE: func(_ *cobra.Command, _ []string) error {
 			return runDBCheck(opts.DB)
 		},
