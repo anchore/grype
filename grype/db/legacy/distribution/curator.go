@@ -136,7 +136,7 @@ func (c *Curator) Delete() error {
 }
 
 // Update the existing DB, returning an indication if any action was taken.
-func (c *Curator) Update() (bool, error) {
+func (c *Curator) Update() (bool, error) { // nolint: funlen
 	if !c.isUpdateCheckAllowed() {
 		// we should not notify the user of an update check if the current configuration and state
 		// indicates we're should be in a low-pass filter mode (and the check frequency is too high).
@@ -164,18 +164,18 @@ func (c *Curator) Update() (bool, error) {
 	defer downloadProgress.SetCompleted()
 	defer importProgress.SetCompleted()
 
-	updateAvailable, metadata, updateEntry, err := c.IsUpdateAvailable()
-	if err != nil {
+	updateAvailable, metadata, updateEntry, checkErr := c.IsUpdateAvailable()
+	if checkErr != nil {
 		if c.requireUpdateCheck {
-			return false, fmt.Errorf("check for vulnerability database update failed: %+v", err)
+			return false, fmt.Errorf("check for vulnerability database update failed: %w", checkErr)
 		}
 		log.Warnf("unable to check for vulnerability database update")
-		log.Debugf("check for vulnerability update failed: %+v", err)
+		log.Debugf("check for vulnerability update failed: %+v", checkErr)
 	}
 
 	if updateAvailable {
 		log.Infof("downloading new vulnerability DB")
-		err = c.UpdateTo(updateEntry, downloadProgress, importProgress, stage)
+		err := c.UpdateTo(updateEntry, downloadProgress, importProgress, stage)
 		if err != nil {
 			return false, fmt.Errorf("unable to update vulnerability database: %w", err)
 		}
@@ -203,7 +203,9 @@ func (c *Curator) Update() (bool, error) {
 	}
 
 	// there was no update (or any issue while checking for an update)
-	c.setLastSuccessfulUpdateCheck()
+	if checkErr == nil {
+		c.setLastSuccessfulUpdateCheck()
+	}
 
 	stage.Set("no update available")
 	return false, nil
