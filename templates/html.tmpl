@@ -407,7 +407,7 @@
         <div class="heading">
             <div class="heading-left">
                 <h1>Container Vulnerability Report</h1>
-                <p><strong>Name:</strong> {{- if eq (.Source.Type) "image" -}} {{.Source.Target.UserInput}}
+                <p><strong>Name: </strong> {{- if eq (.Source.Type) "image" -}} {{.Source.Target.UserInput}}
                     {{- else if eq (.Source.Type) "directory" -}} {{.Source.Target}}
                     {{- else if eq (.Source.Type) "file" -}} {{.Source.Target}}
                     {{- else -}} unknown
