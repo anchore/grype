@@ -21,11 +21,9 @@ func isUnknownTarget(targetSW string) bool {
 	// supported by syft but are signifcant sources of false positives and should be
 	// considered known for the purposes of filtering here
 	known := map[string]bool{
-		"wordpress":  true,
-		"wordpress_": true,
-		"joomla":     true,
-		"joomla\\!":  true,
-		"drupal":     true,
+		"joomla":    true,
+		"joomla\\!": true,
+		"drupal":    true,
 	}
 
 	if _, ok := known[targetSW]; ok {
