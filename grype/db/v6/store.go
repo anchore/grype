@@ -17,16 +17,14 @@ type store struct {
 }
 
 func newStore(cfg Config, write bool) (*store, error) {
-	db, err := gormadapter.Open(cfg.DBFilePath(), write)
+	db, err := gormadapter.Open(cfg.DBFilePath(), gormadapter.WithTruncate(write))
 	if err != nil {
 		return nil, err
 	}
 
-	db.Exec("PRAGMA foreign_keys = ON")
-
 	if write {
-		if err := migrate(db, models()...); err != nil {
-			return nil, fmt.Errorf("unable to migrate: %w", err)
+		if err := db.AutoMigrate(models()...); err != nil {
+			return nil, fmt.Errorf("unable to create tables: %w", err)
 		}
 	}
 
@@ -36,14 +34,6 @@ func newStore(cfg Config, write bool) (*store, error) {
 		config:          cfg,
 		write:           write,
 	}, nil
-}
-
-func migrate(db *gorm.DB, models ...any) error {
-	if err := db.AutoMigrate(models...); err != nil {
-		return fmt.Errorf("unable to migrate: %w", err)
-	}
-
-	return nil
 }
 
 func (s *store) Close() error {

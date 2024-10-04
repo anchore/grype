@@ -21,7 +21,7 @@ type store struct {
 
 // New creates a new instance of the store.
 func New(dbFilePath string, overwrite bool) (v1.Store, error) {
-	db, err := gormadapter.Open(dbFilePath, overwrite)
+	db, err := gormadapter.Open(dbFilePath, gormadapter.WithTruncate(overwrite))
 	if err != nil {
 		return nil, err
 	}
