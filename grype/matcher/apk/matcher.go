@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	grypeDB "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -45,6 +46,7 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 	return matches, nil
 }
 
+//nolint:funlen
 func (m *Matcher) cpeMatchesWithoutSecDBFixes(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	// find CPE-indexed vulnerability matches specific to the given package name and version
 	cpeMatches, err := search.ByPackageCPE(store, d, p, m.Type())
@@ -91,7 +93,11 @@ cveLoop:
 
 			// remove fixed-in versions, since NVD doesn't know when Alpine will fix things
 			for _, nvdOnlyMatch := range cpeMatchesForID {
-				nvdOnlyMatch.Vulnerability.Fix = vulnerability.Fix{}
+				if len(nvdOnlyMatch.Vulnerability.Fix.Versions) > 0 {
+					nvdOnlyMatch.Vulnerability.Fix = vulnerability.Fix{
+						State: grypeDB.UnknownFixState,
+					}
+				}
 				finalCpeMatches = append(finalCpeMatches, nvdOnlyMatch)
 			}
 			continue

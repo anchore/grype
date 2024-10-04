@@ -415,7 +415,7 @@ func TestNvdOnlyMatches_FixInNvd(t *testing.T) {
 	vulnFound.CPEs = []cpe.CPE{cpe.Must(nvdVuln.CPEs[0], "")}
 	// Important: for alpine matcher, fix version can come from secDB but _not_ from
 	// NVD data.
-	vulnFound.Fix = vulnerability.Fix{}
+	vulnFound.Fix = vulnerability.Fix{State: grypeDB.UnknownFixState}
 
 	expected := []match.Match{
 		{
