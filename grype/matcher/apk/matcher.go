@@ -88,7 +88,12 @@ cveLoop:
 		secDBVulnerabilitiesForID, exists := secDBVulnerabilitiesByID[id]
 		if !exists {
 			// does not exist in secdb, so the CPE record(s) should be added to the final results
-			finalCpeMatches = append(finalCpeMatches, cpeMatchesForID...)
+
+			// remove fixed-in versions, since NVD doesn't know when Alpine will fix things
+			for _, nvdOnlyMatch := range cpeMatchesForID {
+				nvdOnlyMatch.Vulnerability.Fix = vulnerability.Fix{}
+				finalCpeMatches = append(finalCpeMatches, nvdOnlyMatch)
+			}
 			continue
 		}
 
