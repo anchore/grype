@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/wagoodman/go-progress"
@@ -184,16 +185,16 @@ func TestClient_IsUpdateAvailable(t *testing.T) {
 	}
 
 	tests := []struct {
-		name            string
-		candidate       *LatestDocument
-		expectedArchive *Archive
-		expectedErr     require.ErrorAssertionFunc
+		name      string
+		candidate *LatestDocument
+		archive   *Archive
+		message   string
 	}{
 		{
 			name: "update available",
 			candidate: &LatestDocument{
 				SchemaVersion: "1.0.0",
-				Status:        "active",
+				Status:        StatusActive,
 				Archive: Archive{
 					Description: db.Description{
 						SchemaVersion: "1.0.0",
@@ -204,7 +205,7 @@ func TestClient_IsUpdateAvailable(t *testing.T) {
 					Checksum: "checksum123",
 				},
 			},
-			expectedArchive: &Archive{
+			archive: &Archive{
 				Description: db.Description{
 					SchemaVersion: "1.0.0",
 					Built:         db.Time{Time: time.Date(2023, 9, 27, 12, 0, 0, 0, time.UTC)},
@@ -213,7 +214,6 @@ func TestClient_IsUpdateAvailable(t *testing.T) {
 				Path:     "path/to/archive.tar.gz",
 				Checksum: "checksum123",
 			},
-			expectedErr: nil,
 		},
 		{
 			name: "no update available",
@@ -230,35 +230,77 @@ func TestClient_IsUpdateAvailable(t *testing.T) {
 					Checksum: "checksum123",
 				},
 			},
-			expectedArchive: nil,
-			expectedErr:     nil,
+			archive: nil,
 		},
 		{
-			name:            "no candidate available",
-			candidate:       nil,
-			expectedArchive: nil,
-			expectedErr:     nil,
+			name:      "no candidate available",
+			candidate: nil,
+			archive:   nil,
+		},
+		{
+			name: "candidate deprecated",
+			candidate: &LatestDocument{
+				SchemaVersion: "1.0.0",
+				Status:        StatusDeprecated,
+				Archive: Archive{
+					Description: db.Description{
+						SchemaVersion: "1.0.0",
+						Built:         db.Time{Time: time.Date(2023, 9, 27, 12, 0, 0, 0, time.UTC)},
+						Checksum:      "xxh64:dummychecksum",
+					},
+					Path:     "path/to/archive.tar.gz",
+					Checksum: "checksum123",
+				},
+			},
+			archive: &Archive{
+				Description: db.Description{
+					SchemaVersion: "1.0.0",
+					Built:         db.Time{Time: time.Date(2023, 9, 27, 12, 0, 0, 0, time.UTC)},
+					Checksum:      "xxh64:dummychecksum",
+				},
+				Path:     "path/to/archive.tar.gz",
+				Checksum: "checksum123",
+			},
+			message: "this version of grype will soon stop receiving vulnerability database updates, please update grype",
+		},
+		{
+			name: "candidate end of life",
+			candidate: &LatestDocument{
+				SchemaVersion: "1.0.0",
+				Status:        StatusEndOfLife,
+				Archive: Archive{
+					Description: db.Description{
+						SchemaVersion: "1.0.0",
+						Built:         db.Time{Time: time.Date(2023, 9, 27, 12, 0, 0, 0, time.UTC)},
+						Checksum:      "xxh64:dummychecksum",
+					},
+					Path:     "path/to/archive.tar.gz",
+					Checksum: "checksum123",
+				},
+			},
+			archive: &Archive{
+				Description: db.Description{
+					SchemaVersion: "1.0.0",
+					Built:         db.Time{Time: time.Date(2023, 9, 27, 12, 0, 0, 0, time.UTC)},
+					Checksum:      "xxh64:dummychecksum",
+				},
+				Path:     "path/to/archive.tar.gz",
+				Checksum: "checksum123",
+			},
+			message: "this version of grype is no longer receiving vulnerability database updates, please update grype",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.expectedErr == nil {
-				tt.expectedErr = require.NoError
-			}
 			c, err := NewClient(Config{})
 			require.NoError(t, err)
 
 			cl := c.(client)
 
-			archive, err := cl.isUpdateAvailable(current, tt.candidate)
-
-			tt.expectedErr(t, err)
-			if err != nil {
-				return
-			}
-
-			require.Equal(t, tt.expectedArchive, archive)
+			archive, message := cl.isUpdateAvailable(current, tt.candidate)
+			assert.Equal(t, tt.message, message)
+			assert.Equal(t, tt.archive, archive)
 		})
 	}
 }

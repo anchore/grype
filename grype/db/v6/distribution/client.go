@@ -16,6 +16,7 @@ import (
 
 	"github.com/anchore/clio"
 	v6 "github.com/anchore/grype/grype/db/v6"
+	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/file"
 	"github.com/anchore/grype/internal/log"
 )
@@ -83,7 +84,7 @@ func NewClient(cfg Config) (Client, error) {
 func (c client) IsUpdateAvailable(current *v6.Description) (*Archive, error) {
 	log.Debugf("checking for available database updates")
 
-	updateEntry, err := c.latestFromURL()
+	latestDoc, err := c.latestFromURL()
 	if err != nil {
 		if c.config.RequireUpdateCheck {
 			return nil, fmt.Errorf("check for vulnerability database update failed: %+v", err)
@@ -91,22 +92,38 @@ func (c client) IsUpdateAvailable(current *v6.Description) (*Archive, error) {
 		log.Warnf("unable to check for vulnerability database update")
 		log.Debugf("check for vulnerability update failed: %+v", err)
 	}
-	return c.isUpdateAvailable(current, updateEntry)
+
+	archive, message := c.isUpdateAvailable(current, latestDoc)
+
+	if message != "" {
+		log.Warn(message)
+		bus.Notify(message)
+	}
+
+	return archive, err
 }
 
-func (c client) isUpdateAvailable(current *v6.Description, candidate *LatestDocument) (*Archive, error) {
+func (c client) isUpdateAvailable(current *v6.Description, candidate *LatestDocument) (*Archive, string) {
 	if candidate == nil {
-		return nil, nil
+		return nil, ""
+	}
+
+	var message string
+	switch candidate.Status {
+	case StatusDeprecated:
+		message = "this version of grype will soon stop receiving vulnerability database updates, please update grype"
+	case StatusEndOfLife:
+		message = "this version of grype is no longer receiving vulnerability database updates, please update grype"
 	}
 
 	// compare created data to current db date
 	if isSupersededBy(current, candidate.Archive.Description) {
 		log.Debugf("database update available: %s", candidate.Archive.Description)
-		return &candidate.Archive, nil
+		return &candidate.Archive, message
 	}
 
 	log.Debugf("no database update available")
-	return nil, nil
+	return nil, message
 }
 
 func (c client) Download(archive Archive, dest string, downloadProgress *progress.Manual) (string, error) {
