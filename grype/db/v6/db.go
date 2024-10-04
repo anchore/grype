@@ -35,6 +35,14 @@ type Writer interface {
 	io.Closer
 }
 
+type Curator interface {
+	Reader() (Reader, error)
+	Status() Status
+	Delete() error
+	Update() (bool, error)
+	Import(dbArchivePath string) error
+}
+
 type Config struct {
 	DBDirPath string
 }

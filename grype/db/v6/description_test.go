@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"strings"
 	"testing"
 	"time"
 
@@ -124,4 +125,25 @@ func TestTime_JSONUnmarshalling(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDatabaseDescription_Write(t *testing.T) {
+
+	validDescription := Description{
+		SchemaVersion: "1.0.0",
+		Built:         Time{Time: time.Date(2023, 9, 26, 12, 2, 3, 0, time.UTC)},
+		Checksum:      "xxh64:dummychecksum",
+	}
+
+	sb := strings.Builder{}
+
+	err := writeDescription(&sb, validDescription)
+	require.NoError(t, err)
+
+	expected := fmt.Sprintf(`{
+ "schemaVersion": "1.0.0",
+ "built": "2023-09-26T12:02:03Z",
+ "checksum": "xxh64:dummychecksum"
+}`)
+	assert.Equal(t, expected, sb.String())
 }

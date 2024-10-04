@@ -2,7 +2,10 @@ package v6
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
+	"github.com/spf13/afero"
 	"gorm.io/gorm"
 
 	"github.com/anchore/grype/grype/db/internal/gormadapter"
@@ -47,5 +50,21 @@ func (s *store) Close() error {
 		return fmt.Errorf("failed to vacuum: %w", err)
 	}
 
-	return nil
+	fs := afero.NewOsFs()
+
+	desc, err := NewDescriptionFromDir(fs, s.config.DBDirPath)
+	if err != nil {
+		return fmt.Errorf("failed to create description from dir: %w", err)
+	}
+
+	if desc == nil {
+		return fmt.Errorf("unable to describe the database")
+	}
+
+	fh, err := fs.OpenFile(filepath.Join(s.config.DBDirPath, DescriptionFileName), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open description file: %w", err)
+	}
+
+	return writeDescription(fh, *desc)
 }

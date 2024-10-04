@@ -1,7 +1,9 @@
 package v6
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"path"
 	"time"
 
@@ -84,4 +86,18 @@ func NewDescriptionFromDir(fs afero.Fs, dir string) (*Description, error) {
 
 func (m Description) String() string {
 	return fmt.Sprintf("DB(version=%s built=%s checksum=%s)", m.SchemaVersion, m.Built, m.Checksum)
+}
+
+func writeDescription(writer io.Writer, m Description) error {
+	if m.SchemaVersion == "" {
+		return fmt.Errorf("missing schema version")
+	}
+
+	contents, err := json.MarshalIndent(m, "", " ")
+	if err != nil {
+		return fmt.Errorf("failed to encode metadata file: %w", err)
+	}
+
+	_, err = writer.Write(contents)
+	return err
 }
