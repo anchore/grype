@@ -5,6 +5,7 @@ go 1.23.0
 require (
 	github.com/CycloneDX/cyclonedx-go v0.9.1
 	github.com/Masterminds/sprig/v3 v3.3.0
+	github.com/OneOfOne/xxhash v1.2.8
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 	github.com/adrg/xdg v0.5.0
 	github.com/anchore/bubbly v0.0.0-20231115134915-def0aba654a9
