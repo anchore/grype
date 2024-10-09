@@ -2,15 +2,19 @@
     <img alt="Grype logo" src="https://user-images.githubusercontent.com/5199289/136855393-d0a9eef9-ccf1-4e2b-9d7c-7aad16a567e5.png" width="234">
 </p>
 
-[![Static Analysis + Unit + Integration](https://github.com/anchore/grype/workflows/Static%20Analysis%20+%20Unit%20+%20Integration/badge.svg)](https://github.com/anchore/grype/actions?query=workflow%3A%22Static+Analysis+%2B+Unit+%2B+Integration%22)
-![Validations](https://github.com/anchore/grype/workflows/Validations/badge.svg)
-[![Go Report Card](https://goreportcard.com/badge/github.com/anchore/grype)](https://goreportcard.com/report/github.com/anchore/grype)
-[![GitHub release](https://img.shields.io/github/release/anchore/grype.svg)](https://github.com/anchore/grype/releases/latest)
-[![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/anchore/grype.svg)](https://github.com/anchore/grype)
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/anchore/grype/blob/main/LICENSE)
-[![Join our Discourse](https://img.shields.io/badge/Discourse-Join-blue?logo=discourse)](https://anchore.com/discourse)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/anchore/grype/badge)](https://scorecard.dev/viewer/?uri=github.com/anchore/grype)
-[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/6708/badge)](https://www.bestpractices.dev/projects/6708)
+<p align="center">
+    &nbsp;<a href="https://github.com/anchore/grype/actions?query=workflow%3A%22Static+Analysis+%2B+Unit+%2B+Integration%22"><img src="https://github.com/anchore/grype/workflows/Static%20Analysis%20+%20Unit%20+%20Integration/badge.svg" alt="Static Analysis + Unit + Integration"></a>&nbsp;
+    &nbsp;<a href="https://github.com/anchore/grype/actions/workflows/validations.yaml"><img src="https://github.com/anchore/grype/workflows/Validations/badge.svg" alt="Validations"></a>&nbsp;
+    &nbsp;<a href="https://goreportcard.com/report/github.com/anchore/grype"><img src="https://goreportcard.com/badge/github.com/anchore/grype" alt="Go Report Card"></a>&nbsp;
+    &nbsp;<a href="https://github.com/anchore/grype/releases/latest"><img src="https://img.shields.io/github/release/anchore/grype.svg" alt="GitHub release"></a>&nbsp;
+    &nbsp;<a href="https://github.com/anchore/grype"><img src="https://img.shields.io/github/go-mod/go-version/anchore/grype.svg" alt="GitHub go.mod Go version"></a>&nbsp;
+    <br>
+    &nbsp;<a href="https://github.com/anchore/grype/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License: Apache-2.0"></a>&nbsp;
+    &nbsp;<a href="https://anchore.com/discourse"><img src="https://img.shields.io/badge/Discourse-Join-blue?logo=discourse" alt="Join our Discourse"></a>&nbsp;
+    &nbsp;<a rel="me" href="https://fosstodon.org/@grype"><img src="https://img.shields.io/badge/Mastodon-Follow-blue?logoColor=white&amp;logo=mastodon" alt="Follow on Mastodon"></a>&nbsp;
+    &nbsp;<a href="https://scorecard.dev/viewer/?uri=github.com/anchore/grype"><img src="https://api.securityscorecards.dev/projects/github.com/anchore/grype/badge" alt="OpenSSF Scorecard"></a>&nbsp;
+    &nbsp;<a href="https://www.bestpractices.dev/projects/6708"><img src="https://www.bestpractices.dev/projects/6708/badge" alt="OpenSSF Best Practices"></a>&nbsp;
+<p>
 
 A vulnerability scanner for container images and filesystems. Easily [install the binary](#installation) to try it out. Works with [Syft](https://github.com/anchore/syft), the powerful SBOM (software bill of materials) tool for container images and filesystems.
 
