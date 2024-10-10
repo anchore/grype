@@ -35,6 +35,7 @@ func DB(app clio.Application) *cobra.Command {
 		DBStatus(app),
 		DBUpdate(app),
 		DBSearch(app),
+		DBProviders(app),
 	)
 
 	return db
