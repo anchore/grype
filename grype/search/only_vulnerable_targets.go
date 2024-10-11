@@ -42,6 +42,11 @@ func onlyVulnerableTargets(p pkg.Package, allVulns []vulnerability.Vulnerability
 		return allVulns
 	}
 
+	// Do not filter by target software for any binary type packages since the composition is unknown
+	if p.Type == syftPkg.BinaryPkg {
+		return allVulns
+	}
+
 	// There are quite a few cases within java where other ecosystem components (particularly javascript packages)
 	// are embedded directly within jar files, so we can't yet make this assumption with java as it will cause dropping
 	// of valid vulnerabilities that syft has specific logic https://github.com/anchore/syft/blob/main/syft/pkg/cataloger/common/cpe/candidate_by_package_type.go#L48-L75
