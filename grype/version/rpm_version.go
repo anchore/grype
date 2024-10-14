@@ -151,10 +151,11 @@ func compareRpmVersions(a, b string) int {
 	// get alpha/numeric segments
 	segsa := alphanumPattern.FindAllString(a, -1)
 	segsb := alphanumPattern.FindAllString(b, -1)
-	segs := int(math.Min(float64(len(segsa)), float64(len(segsb))))
+	maxSegs := int(math.Max(float64(len(segsa)), float64(len(segsb))))
+	minSegs := int(math.Min(float64(len(segsa)), float64(len(segsb))))
 
 	// compare each segment
-	for i := 0; i < segs; i++ {
+	for i := 0; i < minSegs; i++ {
 		a := segsa[i]
 		b := segsb[i]
 
@@ -204,10 +205,25 @@ func compareRpmVersions(a, b string) int {
 	}
 
 	// If there is a tilde in a segment past the min number of segments, find it.
-	if len(segsa) > segs && []rune(segsa[segs])[0] == '~' {
+	if len(segsa) > minSegs && []rune(segsa[minSegs])[0] == '~' {
 		return -1
-	} else if len(segsb) > segs && []rune(segsb[segs])[0] == '~' {
+	} else if len(segsb) > minSegs && []rune(segsb[minSegs])[0] == '~' {
 		return 1
+	}
+	// are the remaining segments 0s?
+	segaAll0s := true
+	segbAll0s := true
+	for i := minSegs; i < maxSegs; i++ {
+		if i < len(segsa) && segsa[i] != "0" {
+			segaAll0s = false
+		}
+		if i < len(segsb) && segsb[i] != "0" {
+			segbAll0s = false
+		}
+	}
+
+	if segaAll0s && segbAll0s {
+		return 0
 	}
 
 	// whoever has the most segments wins
