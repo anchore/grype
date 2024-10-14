@@ -360,24 +360,52 @@ func TestMatcherRpm(t *testing.T) {
 	}
 }
 
-func Test_addZeroEpicIfApplicable(t *testing.T) {
+func Test_addEpochIfApplicable(t *testing.T) {
 	tests := []struct {
-		version  string
+		name     string
+		pkg      pkg.Package
 		expected string
 	}{
 		{
-			version:  "3.26.0-6.el8",
+			name: "assume 0 epoch",
+			pkg: pkg.Package{
+				Version: "3.26.0-6.el8",
+			},
 			expected: "0:3.26.0-6.el8",
 		},
 		{
-			version:  "7:3.26.0-6.el8",
+			name: "epoch already exists in version string",
+			pkg: pkg.Package{
+				Version: "7:3.26.0-6.el8",
+			},
 			expected: "7:3.26.0-6.el8",
+		},
+		{
+			name: "epoch only exists in metadata",
+			pkg: pkg.Package{
+				Version: "3.26.0-6.el8",
+				Metadata: pkg.RpmMetadata{
+					Epoch: intRef(7),
+				},
+			},
+			expected: "7:3.26.0-6.el8",
+		},
+		{
+			name: "epoch does not exist in metadata",
+			pkg: pkg.Package{
+				Version: "3.26.0-6.el8",
+				Metadata: pkg.RpmMetadata{
+					Epoch: nil,
+				},
+			},
+			expected: "0:3.26.0-6.el8",
 		},
 	}
 	for _, test := range tests {
-		t.Run(test.version, func(t *testing.T) {
-			actualVersion := addZeroEpicIfApplicable(test.version)
-			assert.Equal(t, test.expected, actualVersion)
+		t.Run(test.name, func(t *testing.T) {
+			p := test.pkg
+			addEpochIfApplicable(&p)
+			assert.Equal(t, test.expected, p.Version)
 		})
 	}
 }

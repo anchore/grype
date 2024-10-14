@@ -126,7 +126,7 @@ func (m *Matcher) matchPackage(store vulnerability.ProviderByDistro, d *distro.D
 	// we want to ensure that the version ALWAYS has an epoch specified...
 	originalPkg := p
 
-	p.Version = addZeroEpicIfApplicable(p.Version)
+	addEpochIfApplicable(&p)
 
 	matches, err := search.ByPackageDistro(store, d, p, m.Type())
 	if err != nil {
@@ -141,9 +141,18 @@ func (m *Matcher) matchPackage(store vulnerability.ProviderByDistro, d *distro.D
 	return matches, nil
 }
 
-func addZeroEpicIfApplicable(version string) string {
-	if strings.Contains(version, ":") {
-		return version
+func addEpochIfApplicable(p *pkg.Package) {
+	meta, ok := p.Metadata.(pkg.RpmMetadata)
+	version := p.Version
+	switch {
+	case strings.Contains(version, ":"):
+		// we already have an epoch embedded in the version string
+		return
+	case ok && meta.Epoch != nil:
+		// we have an explicit epoch in the metadata
+		p.Version = fmt.Sprintf("%d:%s", *meta.Epoch, version)
+	default:
+		// no epoch was found, so we will add one
+		p.Version = "0:" + version
 	}
-	return "0:" + version
 }
