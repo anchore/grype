@@ -2,7 +2,6 @@ package version
 
 import (
 	"fmt"
-	"math"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -151,8 +150,8 @@ func compareRpmVersions(a, b string) int {
 	// get alpha/numeric segments
 	segsa := alphanumPattern.FindAllString(a, -1)
 	segsb := alphanumPattern.FindAllString(b, -1)
-	maxSegs := int(math.Max(float64(len(segsa)), float64(len(segsb))))
-	minSegs := int(math.Min(float64(len(segsa)), float64(len(segsb))))
+	maxSegs := max(len(segsa), len(segsb))
+	minSegs := min(len(segsa), len(segsb))
 
 	// compare each segment
 	for i := 0; i < minSegs; i++ {
