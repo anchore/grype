@@ -14,6 +14,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
@@ -102,9 +103,18 @@ func ByPackageCPE(store vulnerability.ProviderByCPE, d *distro.Distro, p pkg.Pac
 			searchVersion = alpineCPEComparableVersion(searchVersion)
 		}
 
-		if searchVersion == wfn.NA || searchVersion == wfn.Any {
+		if searchVersion == wfn.NA || searchVersion == wfn.Any || isUnknownVersion(searchVersion) {
 			searchVersion = p.Version
 		}
+
+		if isUnknownVersion(searchVersion) {
+			log.WithFields("package", p.Name).Trace("skipping package with unknown version")
+			continue
+		}
+
+		// we should always show the exact CPE we searched by, not just what's in the component analysis (since we
+		// may alter the version based on above processing)
+		c.Attributes.Version = searchVersion
 
 		format := version.FormatFromPkg(p)
 

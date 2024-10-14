@@ -36,6 +36,7 @@ import (
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/stringutil"
 	"github.com/anchore/syft/syft"
+	"github.com/anchore/syft/syft/cataloging"
 	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/sbom"
@@ -305,6 +306,11 @@ func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
 	cfg := syft.DefaultCreateSBOMConfig()
 	cfg.Packages.JavaArchive.IncludeIndexedArchives = opts.Search.IncludeIndexedArchives
 	cfg.Packages.JavaArchive.IncludeUnindexedArchives = opts.Search.IncludeUnindexedArchives
+
+	// when we run into a package with missing information like version, then this is not useful in the context
+	// of vulnerability matching. Though there will be downstream processing to handle this case, we can still
+	// save us the effort of ever attempting to match with these packages as early as possible.
+	cfg.Compliance.MissingVersion = cataloging.ComplianceActionDrop
 
 	return pkg.ProviderConfig{
 		SyftProviderConfig: pkg.SyftProviderConfig{

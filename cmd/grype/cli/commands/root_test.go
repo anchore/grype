@@ -12,6 +12,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft"
+	"github.com/anchore/syft/syft/cataloging"
 	"github.com/anchore/syft/syft/pkg/cataloger/binary"
 )
 
@@ -54,14 +55,18 @@ func Test_getProviderConfig(t *testing.T) {
 		want pkg.ProviderConfig
 	}{
 		{
-			name: "default-options-are-set",
+			name: "syft default api options are used",
 			opts: options.DefaultGrype(clio.Identification{
 				Name:    "test",
 				Version: "1.0",
 			}),
 			want: pkg.ProviderConfig{
 				SyftProviderConfig: pkg.SyftProviderConfig{
-					SBOMOptions: syft.DefaultCreateSBOMConfig(),
+					SBOMOptions: func() *syft.CreateSBOMConfig {
+						cfg := syft.DefaultCreateSBOMConfig()
+						cfg.Compliance.MissingVersion = cataloging.ComplianceActionDrop
+						return cfg
+					}(),
 					RegistryOptions: &image.RegistryOptions{
 						Credentials: []image.RegistryCredentials{},
 					},
