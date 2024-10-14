@@ -3,6 +3,7 @@ package search
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
@@ -14,6 +15,11 @@ import (
 
 func ByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
 	if d == nil {
+		return nil, nil
+	}
+
+	if isUnknownVersion(p.Version) {
+		log.WithFields("package", p).Warn("skipping package with unknown version")
 		return nil, nil
 	}
 
@@ -76,4 +82,8 @@ func ByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p p
 	}
 
 	return matches, err
+}
+
+func isUnknownVersion(v string) bool {
+	return v == "" || strings.ToLower(v) == "unknown"
 }

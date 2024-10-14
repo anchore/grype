@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
@@ -106,8 +107,15 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 
 	store := newMockProviderByDistro()
 	actual, err := ByPackageDistro(store, d, p, match.PythonMatcher)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assertMatchesUsingIDsForVulnerabilities(t, expected, actual)
+
+	// prove we do not search for unknown versions
+	p.Version = "unknown"
+	actual, err = ByPackageDistro(store, d, p, match.PythonMatcher)
+	require.NoError(t, err)
+	assert.Empty(t, actual)
+
 }
 
 func TestFindMatchesByPackageDistroSles(t *testing.T) {

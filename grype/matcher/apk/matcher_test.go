@@ -1003,7 +1003,7 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 					Type:       match.CPEMatch,
 					Confidence: 0.9,
 					SearchedBy: search.CPEParameters{
-						CPEs:      []string{"cpe:2.3:a:musl:musl:*:*:*:*:*:*:*:*"},
+						CPEs:      []string{"cpe:2.3:a:musl:musl:1.3.2-r0:*:*:*:*:*:*:*"},
 						Namespace: "nvd:cpe",
 						Package: search.CPEPackageParameter{
 							Name:    "musl",

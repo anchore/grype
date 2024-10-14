@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -94,8 +95,9 @@ func expectedMatch(p pkg.Package, constraint string) []match.Match {
 
 func TestFindMatchesByPackageLanguage(t *testing.T) {
 	cases := []struct {
-		p          pkg.Package
-		constraint string
+		p           pkg.Package
+		constraint  string
+		assertEmpty bool
 	}{
 		{
 			constraint: "< 3.7.6 (semver)",
@@ -117,13 +119,27 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 				Type:     syftPkg.GemPkg,
 			},
 		},
+		{
+			p: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "nokogiri",
+				Version:  "unknown",
+				Language: syftPkg.Ruby,
+				Type:     syftPkg.GemPkg,
+			},
+			assertEmpty: true,
+		},
 	}
 
 	store := newMockProviderByLanguage()
 	for _, c := range cases {
 		t.Run(c.p.Name, func(t *testing.T) {
 			actual, err := ByPackageLanguage(store, nil, c.p, match.RubyGemMatcher)
-			assert.NoError(t, err)
+			require.NoError(t, err)
+			if c.assertEmpty {
+				assert.Empty(t, actual)
+				return
+			}
 			assertMatchesUsingIDsForVulnerabilities(t, expectedMatch(c.p, c.constraint), actual)
 		})
 	}

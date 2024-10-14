@@ -13,6 +13,12 @@ import (
 )
 
 func ByPackageLanguage(store vulnerability.ProviderByLanguage, d *distro.Distro, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
+	if isUnknownVersion(p.Version) {
+		log.WithFields("package", p).Warn("skipping package with unknown version")
+
+		return nil, nil
+	}
+
 	verObj, err := version.NewVersionFromPkg(p)
 	if err != nil {
 		if errors.Is(err, version.ErrUnsupportedVersion) {
