@@ -108,7 +108,7 @@ func ByPackageCPE(store vulnerability.ProviderByCPE, d *distro.Distro, p pkg.Pac
 		}
 
 		if isUnknownVersion(searchVersion) {
-			log.WithFields("package", p).Warn("skipping package with unknown version")
+			log.WithFields("package", p.Name).Trace("skipping package with unknown version")
 			continue
 		}
 

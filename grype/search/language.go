@@ -14,7 +14,7 @@ import (
 
 func ByPackageLanguage(store vulnerability.ProviderByLanguage, d *distro.Distro, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
 	if isUnknownVersion(p.Version) {
-		log.WithFields("package", p).Warn("skipping package with unknown version")
+		log.WithFields("package", p.Name).Trace("skipping package with unknown version")
 
 		return nil, nil
 	}

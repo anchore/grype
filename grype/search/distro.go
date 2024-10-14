@@ -19,7 +19,7 @@ func ByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p p
 	}
 
 	if isUnknownVersion(p.Version) {
-		log.WithFields("package", p).Warn("skipping package with unknown version")
+		log.WithFields("package", p.Name).Trace("skipping package with unknown version")
 		return nil, nil
 	}
 
