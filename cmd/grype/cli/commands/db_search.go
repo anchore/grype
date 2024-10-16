@@ -12,6 +12,7 @@ import (
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
 )
@@ -29,7 +30,7 @@ func (c *dbQueryOptions) AddFlags(flags clio.FlagSet) {
 
 func DBSearch(app clio.Application) *cobra.Command {
 	opts := &dbQueryOptions{
-		Output:    "table",
+		Output:    internal.TableOutputFormat,
 		DBOptions: *dbOptionsDefault(app.ID()),
 	}
 
@@ -77,7 +78,7 @@ func present(outputFormat string, vulnerabilities []vulnerability.Vulnerability,
 	}
 
 	switch outputFormat {
-	case "table":
+	case internal.TableOutputFormat:
 		rows := [][]string{}
 		for _, v := range vulnerabilities {
 			rows = append(rows, []string{v.ID, v.PackageName, v.Namespace, v.Constraint.String()})
@@ -102,7 +103,7 @@ func present(outputFormat string, vulnerabilities []vulnerability.Vulnerability,
 
 		table.AppendBulk(rows)
 		table.Render()
-	case "json":
+	case internal.JSONOutputFormat:
 		enc := json.NewEncoder(output)
 		enc.SetEscapeHTML(false)
 		enc.SetIndent("", " ")

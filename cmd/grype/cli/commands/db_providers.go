@@ -8,11 +8,13 @@ import (
 	"path"
 	"strings"
 
-	"github.com/anchore/clio"
-	"github.com/anchore/grype/grype/db/legacy/distribution"
-	"github.com/anchore/grype/internal/bus"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
+
+	"github.com/anchore/clio"
+	"github.com/anchore/grype/grype/db/legacy/distribution"
+	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/bus"
 )
 
 const metadataFileName = "provider-metadata.json"
@@ -38,7 +40,7 @@ func (d *dbProvidersOptions) AddFlags(flags clio.FlagSet) {
 
 func DBProviders(app clio.Application) *cobra.Command {
 	opts := &dbProvidersOptions{
-		Output: "json",
+		Output: internal.JSONOutputFormat,
 	}
 
 	return app.SetupCommand(&cobra.Command{
@@ -52,7 +54,6 @@ func DBProviders(app clio.Application) *cobra.Command {
 }
 
 func runDBProviders(opts *dbProvidersOptions, app clio.Application) error {
-
 	providers, err := getDBProviders(app)
 	if err != nil {
 		return err
@@ -61,9 +62,9 @@ func runDBProviders(opts *dbProvidersOptions, app clio.Application) error {
 	sb := &strings.Builder{}
 
 	switch opts.Output {
-	case "table":
+	case internal.TableOutputFormat:
 		displayDBProvidersTable(providers.Providers, sb)
-	case "json":
+	case internal.JSONOutputFormat:
 		err = displayDBProvidersJSON(providers, sb)
 		if err != nil {
 			return err
@@ -77,7 +78,6 @@ func runDBProviders(opts *dbProvidersOptions, app clio.Application) error {
 }
 
 func getDBProviders(app clio.Application) (*dbProviders, error) {
-
 	dbCurator, err := distribution.NewCurator(dbOptionsDefault(app.ID()).DB.ToCuratorConfig())
 	if err != nil {
 		return nil, err
@@ -90,9 +90,8 @@ func getDBProviders(app clio.Application) (*dbProviders, error) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, fmt.Errorf("file not found: %v", err)
-		} else {
-			return nil, fmt.Errorf("Error opening file: %v", err)
 		}
+		return nil, fmt.Errorf("error opening file: %v", err)
 	}
 	defer file.Close()
 
@@ -107,11 +106,9 @@ func getDBProviders(app clio.Application) (*dbProviders, error) {
 	}
 
 	return &providers, nil
-
 }
 
 func displayDBProvidersTable(providers []dbProviderMetadata, output io.Writer) {
-
 	rows := [][]string{}
 	for _, provider := range providers {
 		rows = append(rows, []string{provider.Name, provider.LastSuccessfulRun})
@@ -122,11 +119,9 @@ func displayDBProvidersTable(providers []dbProviderMetadata, output io.Writer) {
 
 	table.AppendBulk(rows)
 	table.Render()
-
 }
 
 func displayDBProvidersJSON(providers *dbProviders, output io.Writer) error {
-
 	encoder := json.NewEncoder(output)
 	encoder.SetEscapeHTML(false)
 	encoder.SetIndent("", " ")
