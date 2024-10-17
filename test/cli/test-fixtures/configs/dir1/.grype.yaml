@@ -1,0 +1,12 @@
+ignore:
+  - vulnerability: 'dir1-vuln1'
+  - vulnerability: 'dir1-vuln2'
+
+profiles:
+  no-ignore:
+    ignore: []
+
+  alt-ignore:
+    ignore:
+      - vulnerability: 'dir1-alt-vuln1'
+      - vulnerability: 'dir1-alt-vuln2'

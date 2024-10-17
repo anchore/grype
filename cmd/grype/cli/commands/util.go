@@ -21,7 +21,7 @@ func disableUI(app clio.Application) func(*cobra.Command, []string) error {
 		}
 
 		state := app.(Stater).State()
-		state.UIs = []clio.UI{ui.None(state.Config.Log.Quiet)}
+		state.UI = clio.NewUICollection(ui.None(state.Config.Log.Quiet))
 
 		return nil
 	}

@@ -238,10 +238,10 @@ github.com/anchore/archiver/v3 v3.5.2 h1:Bjemm2NzuRhmHy3m0lRe5tNoClB9A4zYyDV58Pa
 github.com/anchore/archiver/v3 v3.5.2/go.mod h1:e3dqJ7H78uzsRSEACH1joayhuSyhnonssnDhppzS1L4=
 github.com/anchore/bubbly v0.0.0-20231115134915-def0aba654a9 h1:p0ZIe0htYOX284Y4axJaGBvXHU0VCCzLN5Wf5XbKStU=
 github.com/anchore/bubbly v0.0.0-20231115134915-def0aba654a9/go.mod h1:3ZsFB9tzW3vl4gEiUeuSOMDnwroWxIxJelOOHUp8dSw=
-github.com/anchore/clio v0.0.0-20240522144804-d81e109008aa h1:pwlAn4O9SBUnlgfa69YcqIynbUyobLVFYu8HxSoCffA=
-github.com/anchore/clio v0.0.0-20240522144804-d81e109008aa/go.mod h1:nD3H5uIvjxlfmakOBgtyFQbk5Zjp3l538kxfpHPslzI=
-github.com/anchore/fangs v0.0.0-20240903175602-e716ef12c23d h1:ZD4wdCBgJJzJybjTUIEiiupLF7B9H3WLuBTjspBO2Mc=
-github.com/anchore/fangs v0.0.0-20240903175602-e716ef12c23d/go.mod h1:Xh4ObY3fmoMzOEVXwDtS1uK44JC7+nRD0n29/1KYFYg=
+github.com/anchore/clio v0.0.0-20241015191535-f538a9016e10 h1:3xmanFdoQEH0REvPA+gLm3Km0/981F4z2a/7ADTlv8k=
+github.com/anchore/clio v0.0.0-20241015191535-f538a9016e10/go.mod h1:h6Ly2hlKjQoPtI3rA8oB5afSmB/XimhcY55xbuW4Dwo=
+github.com/anchore/fangs v0.0.0-20241014225144-4e1713cafd77 h1:h7+GCqazHVS5GDJYYS6wjjglYi8xFnVWMdSUukoImTM=
+github.com/anchore/fangs v0.0.0-20241014225144-4e1713cafd77/go.mod h1:qbev5czQeyDO74fPNThiEKYkgt0mx1axb+5wQcxDPFY=
 github.com/anchore/go-collections v0.0.0-20240216171411-9321230ce537 h1:GjNGuwK5jWjJMyVppBjYS54eOiiSNv4Ba869k4wh72Q=
 github.com/anchore/go-collections v0.0.0-20240216171411-9321230ce537/go.mod h1:1aiktV46ATCkuVg0O573ZrH56BUawTECPETbZyBcqT8=
 github.com/anchore/go-logger v0.0.0-20230725134548-c21dafa1ec5a h1:nJ2G8zWKASyVClGVgG7sfM5mwoZlZ2zYpIzN2OhjWkw=
