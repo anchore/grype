@@ -13,9 +13,9 @@ require (
 	github.com/anchore/go-logger v0.0.0-20230725134548-c21dafa1ec5a
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
-	github.com/anchore/packageurl-go v0.1.1-0.20240507183024-848e011fc24f
-	github.com/anchore/stereoscope v0.0.4
-	github.com/anchore/syft v1.14.1
+	github.com/anchore/packageurl-go v0.1.1-0.20241018175412-5c22e6360c4f
+	github.com/anchore/stereoscope v0.0.5-0.20241018131503-a38c93517fc7
+	github.com/anchore/syft v1.14.2-0.20241021161712-e4e985b9b05b
 	github.com/aquasecurity/go-pep440-version v0.0.0-20210121094942-22b2f8951d46
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/charmbracelet/bubbletea v1.1.1
