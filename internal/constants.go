@@ -5,5 +5,3 @@ const DBUpdateURL = "https://toolbox-data.anchore.io/grype/databases/listing.jso
 
 const JSONOutputFormat = "json"
 const TableOutputFormat = "table"
-const TextOutputFormat = "text"
-const RawOutputFormat = "raw"
