@@ -98,7 +98,7 @@ tools:
   # used for triggering a release
   - name: gh
     version:
-      want: v2.58.0
+      want: v2.59.0
     method: github-release
     with:
       repo: cli/cli

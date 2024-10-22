@@ -103,7 +103,7 @@ result-sets:
 
         - name: syft
           # note: we want to use a fixed version of syft for capturing all results (NOT "latest")
-          version: v0.98.0
+          version: v1.14.0
           produces: SBOM
           refresh: false
 
@@ -144,7 +144,7 @@ result-sets:
       tools:
         - name: syft
           # note: we want to use a fixed version of syft for capturing all results (NOT "latest")
-          version: v0.98.0
+          version: v1.14.0
           produces: SBOM
           refresh: false
 

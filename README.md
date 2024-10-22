@@ -71,7 +71,7 @@ Install script options:
 
 ### Chocolatey
 
-The chocolatey distribution of grype is community maintained and not distributed by the anchore team
+The chocolatey distribution of grype is community-maintained and not distributed by the anchore team.
 
 ```bash
 choco install grype -y
@@ -86,7 +86,7 @@ brew install grype
 
 ### MacPorts
 
-On macOS, Grype can additionally be installed from the [community maintained port](https://ports.macports.org/port/grype/) via MacPorts:
+On macOS, Grype can additionally be installed from the [community-maintained port](https://ports.macports.org/port/grype/) via MacPorts:
 
 ```bash
 sudo port install grype
@@ -100,7 +100,7 @@ See [DEVELOPING.md](DEVELOPING.md#native-development) for instructions to build 
 
 ### GitHub Actions
 
-If you're using GitHub Actions, you can simply use our [Grype-based action](https://github.com/marketplace/actions/anchore-container-scan) to run vulnerability scans on your code or container images during your CI workflows.
+If you're using GitHub Actions, you can use our [Grype-based action](https://github.com/marketplace/actions/anchore-container-scan) to run vulnerability scans on your code or container images during your CI workflows.
 
 ## Verifying the artifacts
 
@@ -138,7 +138,7 @@ sha256sum --ignore-missing -c checksums.txt
 grype <image>
 ```
 
-The above command scans for vulnerabilities that are visible in the container (i.e., the squashed representation of the image). To include software from all image layers in the vulnerability scan, regardless of its presence in the final image, provide `--scope all-layers`:
+The above command scans for vulnerabilities visible in the container (i.e., the squashed representation of the image). To include software from all image layers in the vulnerability scan, regardless of its presence in the final image, provide `--scope all-layers`:
 
 ```
 grype <image> --scope all-layers
