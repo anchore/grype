@@ -9,7 +9,6 @@ import (
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/db/legacy/distribution"
-	"github.com/anchore/grype/internal"
 )
 
 type dbListOptions struct {
@@ -25,7 +24,7 @@ func (d *dbListOptions) AddFlags(flags clio.FlagSet) {
 
 func DBList(app clio.Application) *cobra.Command {
 	opts := &dbListOptions{
-		Output:    internal.TextOutputFormat,
+		Output:    "text",
 		DBOptions: *dbOptionsDefault(app.ID()),
 	}
 
@@ -59,7 +58,7 @@ func runDBList(opts *dbListOptions) error {
 	}
 
 	switch opts.Output {
-	case internal.TextOutputFormat:
+	case "text":
 		// summarize each listing entry for the current DB schema
 		for _, l := range available {
 			fmt.Printf("Built:    %s\n", l.Built)
@@ -68,7 +67,7 @@ func runDBList(opts *dbListOptions) error {
 		}
 
 		fmt.Printf("%d databases available for schema %d\n", len(available), supportedSchema)
-	case internal.JSONOutputFormat:
+	case "json":
 		// show entries for the current schema
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetEscapeHTML(false)
@@ -76,7 +75,7 @@ func runDBList(opts *dbListOptions) error {
 		if err := enc.Encode(&available); err != nil {
 			return fmt.Errorf("failed to db listing information: %+v", err)
 		}
-	case internal.RawOutputFormat:
+	case "raw":
 		// show the entire listing file
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetEscapeHTML(false)

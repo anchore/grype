@@ -54,7 +54,6 @@ func DBProviders(app clio.Application) *cobra.Command {
 }
 
 func runDBProviders(opts *dbProvidersOptions, app clio.Application) error {
-
 	metadataFileLocation, err := getMetadataFileLocation(app)
 	if err != nil {
 		return nil
@@ -83,7 +82,6 @@ func runDBProviders(opts *dbProvidersOptions, app clio.Application) error {
 }
 
 func getMetadataFileLocation(app clio.Application) (*string, error) {
-
 	dbCurator, err := distribution.NewCurator(dbOptionsDefault(app.ID()).DB.ToCuratorConfig())
 	if err != nil {
 		return nil, err

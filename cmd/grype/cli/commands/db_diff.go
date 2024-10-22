@@ -10,7 +10,6 @@ import (
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype/db/legacy/distribution"
 	"github.com/anchore/grype/grype/differ"
-	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
 )
@@ -30,7 +29,7 @@ func (d *dbDiffOptions) AddFlags(flags clio.FlagSet) {
 
 func DBDiff(app clio.Application) *cobra.Command {
 	opts := &dbDiffOptions{
-		Output:    internal.TableOutputFormat,
+		Output:    "table",
 		DBOptions: *dbOptionsDefault(app.ID()),
 	}
 

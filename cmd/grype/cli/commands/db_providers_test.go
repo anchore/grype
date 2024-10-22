@@ -22,11 +22,11 @@ func TestGetDBProviders(t *testing.T) {
 			fileLocation: "./test-fixtures",
 			expectedProviders: dbProviders{
 				Providers: []dbProviderMetadata{
-					dbProviderMetadata{
+					{
 						Name:              "provider1",
 						LastSuccessfulRun: "2024-10-16T01:33:16.844201Z",
 					},
-					dbProviderMetadata{
+					{
 						Name:              "provider2",
 						LastSuccessfulRun: "2024-10-16T01:32:43.516596Z",
 					},
@@ -70,11 +70,11 @@ func TestDisplayDBProvidersTable(t *testing.T) {
 			name: "display providers table",
 			providers: dbProviders{
 				Providers: []dbProviderMetadata{
-					dbProviderMetadata{
+					{
 						Name:              "provider1",
 						LastSuccessfulRun: "2024-10-16T01:33:16.844201Z",
 					},
-					dbProviderMetadata{
+					{
 						Name:              "provider2",
 						LastSuccessfulRun: "2024-10-16T01:32:43.516596Z",
 					},
@@ -114,11 +114,11 @@ func TestDisplayDBProvidersJSON(t *testing.T) {
 			name: "display providers table",
 			providers: dbProviders{
 				Providers: []dbProviderMetadata{
-					dbProviderMetadata{
+					{
 						Name:              "provider1",
 						LastSuccessfulRun: "2024-10-16T01:33:16.844201Z",
 					},
-					dbProviderMetadata{
+					{
 						Name:              "provider2",
 						LastSuccessfulRun: "2024-10-16T01:32:43.516596Z",
 					},
