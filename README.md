@@ -567,6 +567,8 @@ Grype provides database-specific CLI commands for users that want to control the
 
 `grype db import` — provide grype with a database archive to explicitly use (useful for offline DB updates)
 
+`grype db providers` - provides a detailed list of database providers
+
 Find complete information on Grype's database commands by running `grype db --help`.
 
 ## Shell completion

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -68,5 +69,21 @@ func assertNotInOutput(notWanted string) traitAssertion {
 		if strings.Contains(stdout, notWanted) {
 			tb.Errorf("got unwanted %s in stdout %s", notWanted, stdout)
 		}
+	}
+}
+
+func assertJsonReport(tb testing.TB, stdout, _ string, _ int) {
+	tb.Helper()
+	var data interface{}
+
+	if err := json.Unmarshal([]byte(stdout), &data); err != nil {
+		tb.Errorf("expected to find a JSON report, but was unmarshalable: %+v", err)
+	}
+}
+
+func assertTableReport(tb testing.TB, stdout, _ string, _ int) {
+	tb.Helper()
+	if !strings.Contains(stdout, "NAME") || !strings.Contains(stdout, "LAST SUCCESSFUL RUN") {
+		tb.Errorf("expected to find a table report, but did not")
 	}
 }
