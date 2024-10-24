@@ -25,9 +25,10 @@ type CPEPackageParameter struct {
 }
 
 type CPEParameters struct {
-	Namespace string              `json:"namespace"`
-	CPEs      []string            `json:"cpes"`
-	Package   CPEPackageParameter `json:"package"`
+	Namespace  string              `json:"namespace"`
+	CPEs       []string            `json:"cpes"`
+	Package    CPEPackageParameter `json:"package"`
+	CPEDetails []CPEDetail         `json:"cpeDetails"`
 }
 
 func (i *CPEParameters) Merge(other CPEParameters) error {
@@ -47,6 +48,23 @@ type CPEResult struct {
 	VulnerabilityID   string   `json:"vulnerabilityID"`
 	VersionConstraint string   `json:"versionConstraint"`
 	CPEs              []string `json:"cpes"`
+}
+
+type CPEDetail struct {
+	CPE       string `json:"cpe"`
+	CPESource string `json:"cpeSource"`
+}
+
+func cpeToCpeDetail(cpes []cpe.CPE) []CPEDetail {
+	details := make([]CPEDetail, len(cpes))
+	cpeStrings := cpesToString(cpes)
+	for i, c := range cpes {
+		details[i] = CPEDetail{
+			CPE:       cpeStrings[i],
+			CPESource: string(c.Source),
+		}
+	}
+	return details
 }
 
 func (h CPEResult) Equals(other CPEResult) bool {
@@ -186,6 +204,7 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 				CPEs: []string{
 					searchedByCPE.Attributes.BindToFmtString(),
 				},
+				CPEDetails: cpeToCpeDetail([]cpe.CPE{searchedByCPE}),
 				Package: CPEPackageParameter{
 					Name:    p.Name,
 					Version: p.Version,
