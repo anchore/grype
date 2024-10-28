@@ -13,11 +13,12 @@ import (
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/db/legacy/distribution"
-	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/bus"
 )
 
 const metadataFileName = "provider-metadata.json"
+const jsonOutputFormat = "json"
+const tableOutputFormat = "table"
 
 type dbProviderMetadata struct {
 	Name              string `json:"name"`
@@ -40,7 +41,7 @@ func (d *dbProvidersOptions) AddFlags(flags clio.FlagSet) {
 
 func DBProviders(app clio.Application) *cobra.Command {
 	opts := &dbProvidersOptions{
-		Output: internal.TableOutputFormat,
+		Output: tableOutputFormat,
 	}
 
 	return app.SetupCommand(&cobra.Command{
@@ -66,9 +67,9 @@ func runDBProviders(opts *dbProvidersOptions, app clio.Application) error {
 	sb := &strings.Builder{}
 
 	switch opts.Output {
-	case internal.TableOutputFormat:
+	case tableOutputFormat:
 		displayDBProvidersTable(providers.Providers, sb)
-	case internal.JSONOutputFormat:
+	case jsonOutputFormat:
 		err = displayDBProvidersJSON(providers, sb)
 		if err != nil {
 			return err
