@@ -661,14 +661,17 @@ They will also not be dependent on a docker daemon, (or some other runtime softw
 
 ## Configuration
 
-Default configuration search paths:
+Default configuration search paths (see all with `grype config locations`):
 
 - `.grype.yaml`
 - `.grype/config.yaml`
 - `~/.grype.yaml`
 - `<XDG_CONFIG_HOME>/grype/config.yaml`
 
-You can also use the `--config` / `-c` flag to provide your own configuration file/path:
+Use `grype config` to print a sample config file to stdout.
+Use `grype config --load` to print the current config after loading all values to stdout.
+
+You can specify files directly using the `--config` / `-c` flags to provide your own configuration files/paths:
 
 ```
 grype <image> -c /path/to/config.yaml
@@ -740,9 +743,9 @@ db:
   # same as GRYPE_DB_AUTO_UPDATE env var
   auto-update: true
 
-  # location to write the vulnerability database cache
+  # location to write the vulnerability database cache; defaults to $XDG_CACHE_HOME/grype/db
   # same as GRYPE_DB_CACHE_DIR env var
-  cache-dir: "$XDG_CACHE_HOME/grype/db"
+  cache-dir: ""
 
   # URL of the vulnerability database
   # same as GRYPE_DB_UPDATE_URL env var
