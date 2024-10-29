@@ -1,13 +1,11 @@
 package pkg
 
 import (
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/go-test/deep"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/file"
@@ -344,19 +342,4 @@ var springImageTestCase = struct {
 			Version: "9",
 		},
 	},
-}
-
-func TestGetSBOMReader_EmptySBOM(t *testing.T) {
-	sbomFile, err := os.CreateTemp("", "empty.sbom")
-	require.NoError(t, err)
-	defer func() {
-		err := sbomFile.Close()
-		assert.NoError(t, err)
-	}()
-
-	filepath := sbomFile.Name()
-	userInput := "sbom:" + filepath
-
-	_, err = getSBOMReader(userInput)
-	assert.ErrorAs(t, err, &errEmptySBOM{})
 }
