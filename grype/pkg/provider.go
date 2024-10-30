@@ -26,9 +26,9 @@ func Provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom
 		return packages, ctx, s, err
 	}
 
-	packages, err = purlProvider(userInput)
+	packages, ctx, err = purlProvider(userInput)
 	if !errors.Is(err, errDoesNotProvide) {
-		return packages, Context{}, s, err
+		return packages, ctx, s, err
 	}
 
 	return syftProvider(userInput, config)

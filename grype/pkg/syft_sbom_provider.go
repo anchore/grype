@@ -17,14 +17,6 @@ import (
 	"github.com/anchore/syft/syft/sbom"
 )
 
-type errEmptySBOM struct {
-	sbomFilepath string
-}
-
-func (e errEmptySBOM) Error() string {
-	return fmt.Sprintf("SBOM file is empty: %s", e.sbomFilepath)
-}
-
 func syftSBOMProvider(userInput string, config ProviderConfig) ([]Package, Context, *sbom.SBOM, error) {
 	s, err := getSBOM(userInput)
 	if err != nil {
@@ -126,25 +118,6 @@ func decodeStdin(r io.Reader) (io.ReadSeeker, *inputInfo, error) {
 	return reader, newInputInfo("", "sbom"), nil
 }
 
-// fileHasContent returns a bool indicating whether the given file has data that could possibly be utilized in
-// downstream processing.
-func fileHasContent(f *os.File) bool {
-	if f == nil {
-		return false
-	}
-
-	info, err := f.Stat()
-	if err != nil {
-		return false
-	}
-
-	if size := info.Size(); size > 0 {
-		return true
-	}
-
-	return false
-}
-
 func stdinReader() (io.Reader, error) {
 	isStdinPipeOrRedirect, err := internal.IsStdinPipeOrRedirect()
 	if err != nil {
@@ -178,10 +151,6 @@ func openFile(path string) (*os.File, error) {
 	f, err := os.Open(expandedPath)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open file %s: %w", expandedPath, err)
-	}
-
-	if !fileHasContent(f) {
-		return nil, errEmptySBOM{path}
 	}
 
 	return f, nil
