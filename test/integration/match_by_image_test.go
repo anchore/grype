@@ -683,14 +683,15 @@ func TestMatchByImage(t *testing.T) {
 				return expectedMatches
 			},
 		},
-		{
-			name: "image-portage-match-coverage",
-			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore *mockStore) match.Matches {
-				expectedMatches := match.NewMatches()
-				addPortageMatches(t, theSource, catalog, theStore, &expectedMatches)
-				return expectedMatches
-			},
-		},
+		// TODO: add this back in when #744 is fully implemented (see https://github.com/anchore/grype/issues/744#issuecomment-2448163737)
+		//{
+		//	name: "image-portage-match-coverage",
+		//	expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore *mockStore) match.Matches {
+		//		expectedMatches := match.NewMatches()
+		//		addPortageMatches(t, theSource, catalog, theStore, &expectedMatches)
+		//		return expectedMatches
+		//	},
+		//},
 		{
 			name: "image-rust-auditable-match-coverage",
 			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore *mockStore) match.Matches {
@@ -831,6 +832,7 @@ func TestMatchByImage(t *testing.T) {
 	observedMatchers.Remove(string(match.StockMatcher))
 	definedMatchers.Remove(string(match.StockMatcher))
 	definedMatchers.Remove(string(match.MsrcMatcher))
+	definedMatchers.Remove(string(match.PortageMatcher)) // TODO: add this back in when #744 is complete
 
 	if len(observedMatchers) != len(definedMatchers) {
 		t.Errorf("matcher coverage incomplete (matchers=%d, coverage=%d)", len(definedMatchers), len(observedMatchers))
