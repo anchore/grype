@@ -66,7 +66,7 @@ You can also explicitly specify the scheme to use:
     {{.appName}} sbom:path/to/syft.json                 read Syft JSON from path on disk
     {{.appName}} registry:yourrepo/yourimage:tag        pull image directly from a registry (no container runtime required)
     {{.appName}} purl:path/to/purl/file                 read a newline separated file of package URLs from a path on disk
-    {{.appName}} pkg:PURL                               read a single package PURL directly (e.g. pkg:apk/openssl@3.2.1?distro=alpine-3.20.3)
+    {{.appName}} PURL                                   read a single package PURL directly (e.g. pkg:apk/openssl@3.2.1?distro=alpine-3.20.3)
 
 You can also pipe in Syft JSON directly:
 	syft yourimage:tag -o json | {{.appName}}

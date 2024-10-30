@@ -39,9 +39,15 @@ func decodePurlFile(reader io.Reader) ([]Package, Context, error) {
 	distros := make(map[string]*strset.Set)
 	for scanner.Scan() {
 		rawLine := scanner.Text()
-		p, err := purlToPackage(rawLine, distros)
+		p, distroName, distroVersion, err := purlToPackage(rawLine)
 		if err != nil {
 			return nil, Context{}, err
+		}
+		if distroName != "" {
+			if _, ok := distros[distroName]; !ok {
+				distros[distroName] = strset.New()
+			}
+			distros[distroName].Add(distroVersion)
 		}
 		if p != nil {
 			packages = append(packages, *p)
@@ -77,15 +83,16 @@ func decodePurlFile(reader io.Reader) ([]Package, Context, error) {
 	return packages, ctx, nil
 }
 
-func purlToPackage(rawLine string, distros map[string]*strset.Set) (*Package, error) {
+func purlToPackage(rawLine string) (*Package, string, string, error) {
 	purl, err := packageurl.FromString(rawLine)
 	if err != nil {
-		return nil, fmt.Errorf("unable to decode purl %s: %w", rawLine, err)
+		return nil, "", "", fmt.Errorf("unable to decode purl %s: %w", rawLine, err)
 	}
 
-	cpes := []cpe.CPE{}
-	epoch := "0"
+	var cpes []cpe.CPE
 	var upstreams []UpstreamPackage
+	var distroName, distroVersion string
+	epoch := "0"
 
 	pkgType := pkg.TypeByName(purl.Type)
 
@@ -96,7 +103,7 @@ func purlToPackage(rawLine string, distros map[string]*strset.Set) (*Package, er
 			for _, rawCpe := range rawCpes {
 				c, err := cpe.New(rawCpe, "")
 				if err != nil {
-					return nil, fmt.Errorf("unable to decode cpe %s in purl %s: %w", rawCpe, rawLine, err)
+					return nil, "", "", fmt.Errorf("unable to decode cpe %s in purl %s: %w", rawCpe, rawLine, err)
 				}
 				cpes = append(cpes, c)
 			}
@@ -106,29 +113,28 @@ func purlToPackage(rawLine string, distros map[string]*strset.Set) (*Package, er
 			upstreams = append(upstreams, parseUpstream(purl.Name, qualifier.Value, pkgType)...)
 		case pkg.PURLQualifierDistro:
 			name, version := parseDistroQualifier(qualifier.Value)
-			if name != "" {
-				if _, ok := distros[name]; !ok {
-					distros[name] = strset.New()
-				}
-				distros[name].Add(version)
+			if name != "" && version != "" {
+				distroName = name
+				distroVersion = version
 			}
 		}
 	}
 
+	version := purl.Version
 	if purl.Type == packageurl.TypeRPM && !strings.HasPrefix(purl.Version, fmt.Sprintf("%s:", epoch)) {
-		purl.Version = fmt.Sprintf("%s:%s", epoch, purl.Version)
+		version = fmt.Sprintf("%s:%s", epoch, purl.Version)
 	}
 
 	return &Package{
 		ID:        ID(purl.String()),
 		CPEs:      cpes,
 		Name:      purl.Name,
-		Version:   purl.Version,
+		Version:   version,
 		Type:      pkgType,
 		Language:  pkg.LanguageByName(purl.Type),
 		PURL:      purl.String(),
 		Upstreams: upstreams,
-	}, nil
+	}, distroName, distroVersion, nil
 }
 
 func parseDistroQualifier(value string) (string, string) {
@@ -143,16 +149,13 @@ func parseDistroQualifier(value string) (string, string) {
 }
 
 func parseUpstream(pkgName string, value string, pkgType pkg.Type) []UpstreamPackage {
-	switch pkgType {
-	case pkg.RpmPkg:
+	if pkgType == pkg.RpmPkg {
 		return handleSourceRPM(pkgName, value)
-	case pkg.DebPkg:
-		return handleDebianSource(pkgName, value)
 	}
-	return nil
+	return handleDefaultUpstream(pkgName, value)
 }
 
-func handleDebianSource(pkgName string, value string) []UpstreamPackage {
+func handleDefaultUpstream(pkgName string, value string) []UpstreamPackage {
 	fields := strings.Split(value, "@")
 	switch len(fields) {
 	case 2:

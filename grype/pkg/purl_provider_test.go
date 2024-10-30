@@ -58,6 +58,95 @@ func Test_PurlProvider(t *testing.T) {
 			},
 		},
 		{
+			name:      "default upstream",
+			userInput: "pkg:apk/libcrypto3@3.3.2?upstream=openssl",
+			context:   Context{},
+			pkgs: []Package{
+				{
+					Name:    "libcrypto3",
+					Version: "3.3.2",
+					Type:    pkg.ApkPkg,
+					PURL:    "pkg:apk/libcrypto3@3.3.2?upstream=openssl",
+					Upstreams: []UpstreamPackage{
+						{
+							Name: "openssl",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "upstream with version",
+			userInput: "pkg:apk/libcrypto3@3.3.2?upstream=openssl%403.2.1", // %40 is @
+			context:   Context{},
+			pkgs: []Package{
+				{
+					Name:    "libcrypto3",
+					Version: "3.3.2",
+					Type:    pkg.ApkPkg,
+					PURL:    "pkg:apk/libcrypto3@3.3.2?upstream=openssl%403.2.1",
+					Upstreams: []UpstreamPackage{
+						{
+							Name:    "openssl",
+							Version: "3.2.1",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "upstream for source RPM",
+			userInput: "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?arch=aarch64&distro=rhel-8.10&upstream=systemd-239-82.el8_10.2.src.rpm",
+			context: Context{
+				Distro: &linux.Release{
+					Name:    "rhel",
+					ID:      "rhel",
+					IDLike:  []string{"rhel"},
+					Version: "8.10",
+				},
+			},
+			pkgs: []Package{
+				{
+					Name:    "systemd-x",
+					Version: "0:239-82.el8_10.2",
+					Type:    pkg.RpmPkg,
+					PURL:    "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?arch=aarch64&distro=rhel-8.10&upstream=systemd-239-82.el8_10.2.src.rpm",
+					Upstreams: []UpstreamPackage{
+						{
+							Name:    "systemd",
+							Version: "239-82.el8_10.2",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "RPM with epoch",
+			userInput: "pkg:rpm/redhat/dbus-common@1.12.8-26.el8?arch=noarch&distro=rhel-8.10&epoch=1&upstream=dbus-1.12.8-26.el8.src.rpm",
+			context: Context{
+				Distro: &linux.Release{
+					Name:    "rhel",
+					ID:      "rhel",
+					IDLike:  []string{"rhel"},
+					Version: "8.10",
+				},
+			},
+			pkgs: []Package{
+				{
+					Name:    "dbus-common",
+					Version: "1:1.12.8-26.el8",
+					Type:    pkg.RpmPkg,
+					PURL:    "pkg:rpm/redhat/dbus-common@1.12.8-26.el8?arch=noarch&distro=rhel-8.10&epoch=1&upstream=dbus-1.12.8-26.el8.src.rpm",
+					Upstreams: []UpstreamPackage{
+						{
+							Name:    "dbus",
+							Version: "1.12.8-26.el8",
+						},
+					},
+				},
+			},
+		},
+		{
 			name:      "takes multiple purls",
 			userInput: "purl:test-fixtures/purl/valid-purl.txt",
 			context: Context{
