@@ -683,14 +683,15 @@ func TestMatchByImage(t *testing.T) {
 				return expectedMatches
 			},
 		},
-		{
-			name: "image-portage-match-coverage",
-			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore *mockStore) match.Matches {
-				expectedMatches := match.NewMatches()
-				addPortageMatches(t, theSource, catalog, theStore, &expectedMatches)
-				return expectedMatches
-			},
-		},
+		// TODO: add this back in when #744 is fully implemented (see https://github.com/anchore/grype/issues/744#issuecomment-2448163737)
+		//{
+		//	name: "image-portage-match-coverage",
+		//	expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore *mockStore) match.Matches {
+		//		expectedMatches := match.NewMatches()
+		//		addPortageMatches(t, theSource, catalog, theStore, &expectedMatches)
+		//		return expectedMatches
+		//	},
+		//},
 		{
 			name: "image-rust-auditable-match-coverage",
 			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore *mockStore) match.Matches {
