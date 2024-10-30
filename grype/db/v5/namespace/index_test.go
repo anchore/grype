@@ -117,15 +117,17 @@ func TestIndex_CPENamespaces(t *testing.T) {
 }
 
 func newDistro(t *testing.T, dt osDistro.Type, v string, idLikes []string) *osDistro.Distro {
-	distro, err := osDistro.New(dt, v, idLikes...)
+	d, err := osDistro.New(dt, v, idLikes...)
 	assert.NoError(t, err)
-	return distro
+	return d
 }
 
 func TestIndex_NamespacesForDistro(t *testing.T) {
 	namespaceIndex, err := FromStrings([]string{
+		"alpine:distro:alpine:2.17",
 		"alpine:distro:alpine:3.15",
 		"alpine:distro:alpine:3.16",
+		"alpine:distro:alpine:4.13",
 		"alpine:distro:alpine:edge",
 		"debian:distro:debian:8",
 		"debian:distro:debian:unstable",
@@ -141,6 +143,9 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 		"mariner:distro:azurelinux:3.0",
 		"msrc:distro:windows:471816",
 		"ubuntu:distro:ubuntu:18.04",
+		"ubuntu:distro:ubuntu:18.10",
+		"ubuntu:distro:ubuntu:20.04",
+		"ubuntu:distro:ubuntu:20.10",
 		"oracle:distro:oraclelinux:8",
 		"wolfi:distro:wolfi:rolling",
 		"chainguard:distro:chainguard:rolling",
@@ -162,10 +167,24 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 			},
 		},
 		{
-			name:   "alpine minor version with no patch should match edge",
+			name:   "alpine missing patch version matches with minor version",
 			distro: newDistro(t, osDistro.Alpine, "3.16", []string{}),
 			namespaces: []*distro.Namespace{
-				distro.NewNamespace("alpine", osDistro.Alpine, "edge"),
+				distro.NewNamespace("alpine", osDistro.Alpine, "3.16"),
+			},
+		},
+		{
+			name:   "alpine missing minor version uses latest minor version",
+			distro: newDistro(t, osDistro.Alpine, "3", []string{}),
+			namespaces: []*distro.Namespace{
+				distro.NewNamespace("alpine", osDistro.Alpine, "3.16"),
+			},
+		},
+		{
+			name:   "ubuntu missing minor version uses latest minor version",
+			distro: newDistro(t, osDistro.Ubuntu, "18", []string{}),
+			namespaces: []*distro.Namespace{
+				distro.NewNamespace("ubuntu", osDistro.Ubuntu, "18.10"),
 			},
 		},
 		{
@@ -206,10 +225,10 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 			},
 		},
 		{
-			name:   "alpine malformed version matches no namespace",
+			name:   "alpine malformed version matches with closest",
 			distro: newDistro(t, osDistro.Alpine, "3.16.4.5", []string{}),
 			namespaces: []*distro.Namespace{
-				distro.NewNamespace("alpine", osDistro.Alpine, "edge"),
+				distro.NewNamespace("alpine", osDistro.Alpine, "3.16"),
 			},
 		},
 		{
@@ -379,7 +398,7 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			namespaces := namespaceIndex.NamespacesForDistro(test.distro)
-			assert.Equal(t, test.namespaces, namespaces)
+			assert.ElementsMatch(t, test.namespaces, namespaces)
 		})
 	}
 }
