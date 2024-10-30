@@ -832,6 +832,7 @@ func TestMatchByImage(t *testing.T) {
 	observedMatchers.Remove(string(match.StockMatcher))
 	definedMatchers.Remove(string(match.StockMatcher))
 	definedMatchers.Remove(string(match.MsrcMatcher))
+	definedMatchers.Remove(string(match.PortageMatcher)) // TODO: add this back in when #744 is complete
 
 	if len(observedMatchers) != len(definedMatchers) {
 		t.Errorf("matcher coverage incomplete (matchers=%d, coverage=%d)", len(definedMatchers), len(observedMatchers))
