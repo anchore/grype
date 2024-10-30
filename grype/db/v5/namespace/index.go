@@ -3,17 +3,20 @@ package namespace
 import (
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 
+	hashiVer "github.com/anchore/go-version"
 	"github.com/anchore/grype/grype/db/v5/namespace/cpe"
 	"github.com/anchore/grype/grype/db/v5/namespace/distro"
 	"github.com/anchore/grype/grype/db/v5/namespace/language"
 	grypeDistro "github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-var alpineVersionRegularExpression = regexp.MustCompile(`^(\d+)\.(\d+)\.(\d+)$`)
+var simpleSemVer = regexp.MustCompile(`^(?P<major>\d+)(\.(?P<minor>\d+)(\.(?P<patch>\d+(?P<remaining>[^-_]+)*))?)?$`)
 
 type Index struct {
 	all         []Namespace
@@ -83,8 +86,10 @@ func (i *Index) NamespacesForDistro(d *grypeDistro.Distro) []*distro.Namespace {
 		return nil
 	}
 
+	dTy := distroTypeString(d.Type)
+
 	if d.IsRolling() {
-		distroKey := fmt.Sprintf("%s:%s", strings.ToLower(d.Type.String()), "rolling")
+		distroKey := fmt.Sprintf("%s:%s", dTy, "rolling")
 		if v, ok := i.byDistroKey[distroKey]; ok {
 			return v
 		}
@@ -95,89 +100,149 @@ func (i *Index) NamespacesForDistro(d *grypeDistro.Distro) []*distro.Namespace {
 		versionSegments = d.Version.Segments()
 	}
 
-	if len(versionSegments) > 0 {
-		// Alpine is a special case since we can only match on x.y.z
-		// after this things like x.y and x are valid namespace selections
-		if d.Type == grypeDistro.Alpine {
-			if v := getAlpineNamespace(i, d, versionSegments); v != nil {
-				return v
-			}
-		}
-
-		// Next attempt a direct match on distro full name and version
-		distroKey := fmt.Sprintf("%s:%s", strings.ToLower(d.Type.String()), d.FullVersion())
-
-		if v, ok := i.byDistroKey[distroKey]; ok {
+	switch d.Type {
+	case grypeDistro.Alpine:
+		if v := i.getAlpineMajorMinorNamespace(d, versionSegments); v != nil {
 			return v
 		}
 
-		if len(versionSegments) == 3 {
-			// Try with only first two version components
-			distroKey = fmt.Sprintf("%s:%d.%d", strings.ToLower(d.Type.String()), versionSegments[0], versionSegments[1])
-			if v, ok := i.byDistroKey[distroKey]; ok {
-				return v
-			}
-
-			// Try using only major version component
-			distroKey = fmt.Sprintf("%s:%d", strings.ToLower(d.Type.String()), versionSegments[0])
-			if v, ok := i.byDistroKey[distroKey]; ok {
-				return v
-			}
+		// Fall back to alpine:edge if no version segments found
+		// alpine:edge is labeled as alpine-x.x_alphaYYYYMMDD
+		distroKey := fmt.Sprintf("%s:%s", dTy, "edge")
+		if v, ok := i.byDistroKey[distroKey]; ok {
+			return v
+		}
+	case grypeDistro.Debian:
+		if v, ok := i.findClosestNamespace(d, versionSegments); ok {
+			return v
 		}
 
-		// Fall back into the manual mapping logic derived from
-		// https://github.com/anchore/enterprise/blob/eb71bc6686b9f4c92347a4e95bec828cee879197/anchore_engine/services/policy_engine/__init__.py#L127-L140
-		switch d.Type {
-		case grypeDistro.CentOS, grypeDistro.RedHat, grypeDistro.Fedora, grypeDistro.RockyLinux, grypeDistro.AlmaLinux, grypeDistro.Gentoo:
-			// TODO: there is no mapping of fedora version to RHEL latest version (only the name)
-			distroKey = fmt.Sprintf("%s:%d", strings.ToLower(string(grypeDistro.RedHat)), versionSegments[0])
+		if d.RawVersion == "unstable" {
+			distroKey := fmt.Sprintf("%s:%s", dTy, "unstable")
 			if v, ok := i.byDistroKey[distroKey]; ok {
 				return v
 			}
 		}
 	}
 
-	// Fall back to alpine:edge if no version segments found
-	// alpine:edge is labeled as alpine-x.x_alphaYYYYMMDD
-	if versionSegments == nil && d.Type == grypeDistro.Alpine {
-		distroKey := fmt.Sprintf("%s:%s", strings.ToLower(d.Type.String()), "edge")
-		if v, ok := i.byDistroKey[distroKey]; ok {
-			return v
-		}
-	}
-
-	if versionSegments == nil && d.Type == grypeDistro.Debian && d.RawVersion == "unstable" {
-		distroKey := fmt.Sprintf("%s:%s", strings.ToLower(d.Type.String()), "unstable")
-		if v, ok := i.byDistroKey[distroKey]; ok {
-			return v
-		}
-	}
-
-	return nil
-}
-
-func getAlpineNamespace(i *Index, d *grypeDistro.Distro, versionSegments []int) []*distro.Namespace {
-	// check if distro version matches x.y.z
-	if alpineVersionRegularExpression.MatchString(d.RawVersion) {
-		// Get the first two version components
-		// TODO: should we update the namespaces in db generation to match x.y.z here?
-		distroKey := fmt.Sprintf("%s:%d.%d", strings.ToLower(d.Type.String()), versionSegments[0], versionSegments[1])
-		if v, ok := i.byDistroKey[distroKey]; ok {
-			return v
-		}
-	}
-
-	// If the version does not match x.y.z then it is edge
-	// In this case it would have - or _ alpha,beta,etc
-	// https://github.com/anchore/grype/issues/964#issuecomment-1290888755
-	distroKey := fmt.Sprintf("%s:%s", strings.ToLower(d.Type.String()), "edge")
-	if v, ok := i.byDistroKey[distroKey]; ok {
+	if v, ok := i.findClosestNamespace(d, versionSegments); ok {
 		return v
 	}
 
 	return nil
 }
 
+func (i *Index) getAlpineMajorMinorNamespace(d *grypeDistro.Distro, versionSegments []int) []*distro.Namespace {
+	var hasPrerelease bool
+	if d.Version != nil {
+		hasPrerelease = d.Version.Prerelease() != ""
+	}
+
+	if !hasPrerelease {
+		namespaces, done := i.findClosestNamespace(d, versionSegments)
+		if done {
+			return namespaces
+		}
+	}
+	// If the version does not match x.y.z then it is edge
+	// In this case it would have - or _ alpha,beta,etc
+	// note: later in processing we handle the alpine:edge case
+	return nil
+}
+
+func (i *Index) findClosestNamespace(d *grypeDistro.Distro, versionSegments []int) ([]*distro.Namespace, bool) {
+	ty := distroTypeString(d.Type)
+
+	// look for exact match
+	distroKey := fmt.Sprintf("%s:%s", ty, d.FullVersion())
+	if v, ok := i.byDistroKey[distroKey]; ok {
+		return v, true
+	}
+
+	values := internal.MatchNamedCaptureGroups(simpleSemVer, d.RawVersion)
+
+	switch {
+	case values["major"] == "":
+		// use edge
+		break
+	case values["minor"] == "":
+		namespaces, done := i.findHighestMatchingMajorVersionNamespaces(d, versionSegments)
+		if done {
+			return namespaces, true
+		}
+
+	default:
+
+		if len(versionSegments) >= 2 {
+			// try with only first two version components
+			distroKey = fmt.Sprintf("%s:%d.%d", ty, versionSegments[0], versionSegments[1])
+			if v, ok := i.byDistroKey[distroKey]; ok {
+				return v, true
+			}
+		}
+
+		if len(versionSegments) >= 1 {
+			// try using only major version component
+			distroKey = fmt.Sprintf("%s:%d", ty, versionSegments[0])
+			if v, ok := i.byDistroKey[distroKey]; ok {
+				return v, true
+			}
+		}
+	}
+	return nil, false
+}
+
+func (i *Index) findHighestMatchingMajorVersionNamespaces(d *grypeDistro.Distro, versionSegments []int) ([]*distro.Namespace, bool) {
+	// find the highest version that matches the major version
+	majorVersion := versionSegments[0]
+
+	var all []*distro.Namespace
+	for _, vs := range i.byDistroKey {
+		for _, v := range vs {
+			if v.DistroType() == d.Type {
+				all = append(all, v)
+			}
+		}
+	}
+
+	type namespaceVersion struct {
+		version   *hashiVer.Version
+		namespace *distro.Namespace
+	}
+
+	var valid []namespaceVersion
+	for _, v := range all {
+		if strings.HasPrefix(v.Version(), fmt.Sprintf("%d.", majorVersion)) {
+			ver, err := hashiVer.NewVersion(v.Version())
+			if err != nil {
+				continue
+			}
+			valid = append(valid, namespaceVersion{
+				version:   ver,
+				namespace: v,
+			})
+		}
+	}
+
+	// return the highest version from valid
+	sort.Slice(valid, func(i, j int) bool {
+		return valid[i].version.GreaterThan(valid[j].version)
+	})
+
+	if len(valid) > 0 {
+		return []*distro.Namespace{valid[0].namespace}, true
+	}
+	return nil, false
+}
+
 func (i *Index) CPENamespaces() []*cpe.Namespace {
 	return i.cpe
+}
+
+func distroTypeString(ty grypeDistro.Type) string {
+	switch ty {
+	case grypeDistro.CentOS, grypeDistro.RedHat, grypeDistro.Fedora, grypeDistro.RockyLinux, grypeDistro.AlmaLinux, grypeDistro.Gentoo:
+		return strings.ToLower(string(grypeDistro.RedHat))
+	}
+	return strings.ToLower(string(ty))
 }
