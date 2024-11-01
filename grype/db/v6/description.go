@@ -12,7 +12,7 @@ import (
 	"github.com/anchore/grype/internal/file"
 )
 
-const DescriptionFileName = "metadata.json"
+const DescriptionFileName = "description.json"
 
 type Description struct {
 	// SchemaVersion is the version of the DB schema
