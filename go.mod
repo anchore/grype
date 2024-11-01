@@ -6,7 +6,7 @@ require (
 	github.com/CycloneDX/cyclonedx-go v0.9.1
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
-	github.com/adrg/xdg v0.5.2
+	github.com/adrg/xdg v0.5.3
 	github.com/anchore/bubbly v0.0.0-20231115134915-def0aba654a9
 	github.com/anchore/clio v0.0.0-20241015191535-f538a9016e10
 	github.com/anchore/go-collections v0.0.0-20240216171411-9321230ce537
