@@ -9,9 +9,13 @@ import (
 )
 
 type Fingerprint struct {
+	coreFingerprint
+	vulnerabilityFixes string
+}
+
+type coreFingerprint struct {
 	vulnerabilityID        string
 	vulnerabilityNamespace string
-	vulnerabilityFixes     string
 	packageID              pkg.ID // note: this encodes package name, version, type, location
 }
 

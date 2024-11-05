@@ -2,8 +2,10 @@ package match
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/mitchellh/hashstructure/v2"
+	"github.com/scylladb/go-set/strset"
 )
 
 type Details []Detail
@@ -51,4 +53,64 @@ func (m Detail) ID() string {
 	}
 
 	return fmt.Sprintf("%x", f)
+}
+
+func (m Details) Len() int {
+	return len(m)
+}
+
+func (m Details) Less(i, j int) bool {
+	a := m[i]
+	b := m[j]
+
+	if a.Type != b.Type {
+		// exact-direct-match < exact-indirect-match < cpe-match
+
+		at := typeOrder[a.Type]
+		bt := typeOrder[b.Type]
+		if at == 0 {
+			return false
+		} else if bt == 0 {
+			return true
+		}
+		return at < bt
+	}
+
+	// sort by confidence
+	if a.Confidence != b.Confidence {
+		// flipped comparison since we want higher confidence to be first
+		return a.Confidence > b.Confidence
+	}
+
+	// if the types are the same, then sort by the ID (costly, but deterministic)
+	return strings.Compare(a.ID(), b.ID()) < 0
+}
+
+func (m Details) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
+}
+
+func hasMatchType(details Details, ty Type) bool {
+	for _, d := range details {
+		if d.Type == ty {
+			return true
+		}
+	}
+	return false
+}
+
+func hasExclusivelyAnyMatchTypes(details Details, tys ...Type) bool {
+	allowed := strset.New()
+	for _, ty := range tys {
+		allowed.Add(string(ty))
+	}
+	var found bool
+	for _, d := range details {
+		if allowed.Has(string(d.Type)) {
+			found = true
+		} else {
+			return false
+		}
+	}
+	return found
 }
