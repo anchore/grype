@@ -5,6 +5,7 @@ go 1.23.0
 require (
 	github.com/CycloneDX/cyclonedx-go v0.9.1
 	github.com/Masterminds/sprig/v3 v3.3.0
+	github.com/OneOfOne/xxhash v1.2.8
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 	github.com/adrg/xdg v0.5.3
 	github.com/anchore/bubbly v0.0.0-20231115134915-def0aba654a9
@@ -59,10 +60,9 @@ require (
 	github.com/wagoodman/go-progress v0.0.0-20230925121702-07e42b3cdba0
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
+	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/gorm v1.25.12
 )
-
-require gopkg.in/yaml.v3 v3.0.1
 
 require (
 	cloud.google.com/go v0.112.1 // indirect

@@ -29,11 +29,13 @@ type ReadWriter interface {
 type Reader interface {
 	DBMetadataStoreReader
 	ProviderStoreReader
+	VulnerabilityStoreReader
 }
 
 type Writer interface {
 	DBMetadataStoreWriter
 	ProviderStoreWriter
+	VulnerabilityStoreWriter
 	io.Closer
 }
 

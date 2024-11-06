@@ -1,6 +1,8 @@
 package gormadapter
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -124,4 +126,42 @@ func TestConfigConnectionString(t *testing.T) {
 			require.Equal(t, tt.expectedConnStr, c.connectionString())
 		})
 	}
+}
+
+func TestPrepareWritableDB(t *testing.T) {
+
+	t.Run("creates new directory and file when path does not exist", func(t *testing.T) {
+		tempDir := t.TempDir()
+		dbPath := filepath.Join(tempDir, "newdir", "test.db")
+
+		err := prepareWritableDB(dbPath)
+		require.NoError(t, err)
+
+		_, err = os.Stat(filepath.Dir(dbPath))
+		require.NoError(t, err)
+	})
+
+	t.Run("removes existing file at path", func(t *testing.T) {
+		tempDir := t.TempDir()
+		dbPath := filepath.Join(tempDir, "test.db")
+
+		_, err := os.Create(dbPath)
+		require.NoError(t, err)
+
+		_, err = os.Stat(dbPath)
+		require.NoError(t, err)
+
+		err = prepareWritableDB(dbPath)
+		require.NoError(t, err)
+
+		_, err = os.Stat(dbPath)
+		require.True(t, os.IsNotExist(err))
+	})
+
+	t.Run("returns error if unable to create parent directory", func(t *testing.T) {
+		invalidDir := filepath.Join("/root", "invalidDir", "test.db")
+		err := prepareWritableDB(invalidDir)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "unable to create parent directory")
+	})
 }
