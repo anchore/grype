@@ -28,10 +28,12 @@ type ReadWriter interface {
 
 type Reader interface {
 	DBMetadataStoreReader
+	ProviderStoreReader
 }
 
 type Writer interface {
 	DBMetadataStoreWriter
+	ProviderStoreWriter
 	io.Closer
 }
 

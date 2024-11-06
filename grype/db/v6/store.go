@@ -11,6 +11,7 @@ import (
 
 type store struct {
 	*dbMetadataStore
+	*providerStore
 	db     *gorm.DB
 	config Config
 	write  bool
@@ -30,6 +31,7 @@ func newStore(cfg Config, write bool) (*store, error) {
 
 	return &store{
 		dbMetadataStore: newDBMetadataStore(db),
+		providerStore:   newProviderStore(db),
 		db:              db,
 		config:          cfg,
 		write:           write,
