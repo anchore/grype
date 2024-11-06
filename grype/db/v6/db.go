@@ -30,12 +30,14 @@ type Reader interface {
 	DBMetadataStoreReader
 	ProviderStoreReader
 	VulnerabilityStoreReader
+	AffectedPackageStoreReader
 }
 
 type Writer interface {
 	DBMetadataStoreWriter
 	ProviderStoreWriter
 	VulnerabilityStoreWriter
+	AffectedPackageStoreWriter
 	io.Closer
 }
 

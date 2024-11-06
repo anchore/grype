@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/OneOfOne/xxhash"
+	"gorm.io/gorm"
 
 	"github.com/anchore/grype/internal/log"
 )
@@ -23,6 +24,11 @@ func models() []any {
 
 		// vulnerability related search tables
 		&VulnerabilityHandle{},
+
+		// package related search tables
+		&AffectedPackageHandle{}, // join on package, operating system
+		&OperatingSystem{},
+		&Package{},
 	}
 }
 
@@ -100,4 +106,56 @@ func (v VulnerabilityHandle) getBlobValue() any {
 
 func (v *VulnerabilityHandle) setBlobID(id ID) {
 	v.BlobID = id
+}
+
+// package related search tables //////////////////////////////////////////////////////
+
+// AffectedPackageHandle represents a single package affected by the specified vulnerability.
+type AffectedPackageHandle struct {
+	ID              int64 `gorm:"column:id;primaryKey"`
+	VulnerabilityID int64 `gorm:"column:vulnerability_id;not null"`
+	// Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
+
+	OperatingSystemID *int64           `gorm:"column:operating_system_id"`
+	OperatingSystem   *OperatingSystem `gorm:"foreignKey:OperatingSystemID"`
+
+	PackageID int64    `gorm:"column:package_id"`
+	Package   *Package `gorm:"foreignKey:PackageID"`
+
+	BlobID    int64                `gorm:"column:blob_id"`
+	BlobValue *AffectedPackageBlob `gorm:"-"`
+}
+
+func (v AffectedPackageHandle) getBlobValue() any {
+	return v.BlobValue
+}
+
+func (v *AffectedPackageHandle) setBlobID(id int64) {
+	v.BlobID = id
+}
+
+type Package struct {
+	ID   int64  `gorm:"column:id;primaryKey"`
+	Type string `gorm:"column:type;index:idx_package,unique"`
+	Name string `gorm:"column:name;index:idx_package,unique"`
+}
+
+type OperatingSystem struct {
+	ID int64 `gorm:"column:id;primaryKey"`
+
+	Name         string `gorm:"column:name;index:os_idx,unique"`
+	MajorVersion string `gorm:"column:major_version;index:os_idx,unique"`
+	MinorVersion string `gorm:"column:minor_version;index:os_idx,unique"`
+	Codename     string `gorm:"column:codename"`
+}
+
+func (os *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
+	// if the name, major version, and minor version already exist in the table then we should not insert a new record
+	var existing OperatingSystem
+	result := tx.Where("name = ? AND major_version = ? AND minor_version = ?", os.Name, os.MajorVersion, os.MinorVersion).First(&existing)
+	if result.Error == nil {
+		// if the record already exists, then we should use the existing record
+		*os = existing
+	}
+	return nil
 }

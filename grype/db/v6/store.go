@@ -13,6 +13,7 @@ type store struct {
 	*dbMetadataStore
 	*providerStore
 	*vulnerabilityStore
+	*affectedPackageStore
 	blobStore *blobStore
 	db        *gorm.DB
 	config    Config
@@ -37,13 +38,14 @@ func newStore(cfg Config, write bool) (*store, error) {
 
 	bs := newBlobStore(db)
 	return &store{
-		dbMetadataStore:    newDBMetadataStore(db),
-		providerStore:      newProviderStore(db),
-		vulnerabilityStore: newVulnerabilityStore(db, bs),
-		blobStore:          bs,
-		db:                 db,
-		config:             cfg,
-		write:              write,
+		dbMetadataStore:      newDBMetadataStore(db),
+		providerStore:        newProviderStore(db),
+		vulnerabilityStore:   newVulnerabilityStore(db, bs),
+		affectedPackageStore: newAffectedPackageStore(db, bs),
+		blobStore:            bs,
+		db:                   db,
+		config:               cfg,
+		write:                write,
 	}, nil
 }
 
