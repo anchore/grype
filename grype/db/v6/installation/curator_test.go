@@ -1,8 +1,6 @@
 package installation
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"os"
 	"path"
@@ -10,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/OneOfOne/xxhash"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -19,7 +16,7 @@ import (
 	"github.com/anchore/grype/grype/db/internal/schemaver"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
-	"github.com/anchore/grype/internal/file"
+	"github.com/anchore/grype/grype/db/v6/internal"
 )
 
 type mockClient struct {
@@ -56,17 +53,10 @@ func newTestCurator(t *testing.T) curator {
 }
 
 type setupConfig struct {
-	badDbChecksum bool
 	workingUpdate bool
 }
 
 type setupOption func(*setupConfig)
-
-func withBadDBChecksum() setupOption {
-	return func(c *setupConfig) {
-		c.badDbChecksum = true
-	}
-}
 
 func withWorkingUpdateIntegrations() setupOption {
 	return func(c *setupConfig) {
@@ -84,7 +74,8 @@ func setupCuratorForUpdate(t *testing.T, opts ...setupOption) curator {
 	c := newTestCurator(t)
 
 	dbDir := c.config.DBDirectoryPath()
-	stageDir := filepath.Join(c.config.DBRootDir, "staged")
+	stageConfig := Config{DBRootDir: filepath.Join(c.config.DBRootDir, "staged")}
+	stageDir := stageConfig.DBDirectoryPath()
 
 	// populate metadata into the downloaded dir
 	oldDescription := db.Description{
@@ -96,12 +87,9 @@ func setupCuratorForUpdate(t *testing.T, opts ...setupOption) curator {
 	newDescription := oldDescription
 	newDescription.Built = db.Time{Time: time.Now()}
 	newDescription.Checksum = writeTestDB(t, c.fs, stageDir)
-	if cfg.badDbChecksum {
-		newDescription.Checksum = "xxh64:badchecksum"
-	}
 
-	writeTestMetadata(t, c.fs, dbDir, oldDescription)
-	writeTestMetadata(t, c.fs, stageDir, newDescription)
+	writeTestDescriptionToDB(t, dbDir, oldDescription)
+	writeTestDescriptionToDB(t, stageDir, newDescription)
 
 	if cfg.workingUpdate {
 		mc := c.client.(*mockClient)
@@ -114,25 +102,66 @@ func setupCuratorForUpdate(t *testing.T, opts ...setupOption) curator {
 	return c
 }
 
-func writeTestMetadata(t *testing.T, fs afero.Fs, dir string, description db.Description) {
+func writeTestChecksumsFile(t *testing.T, fs afero.Fs, dir string, checksums string) {
 	require.NoError(t, fs.MkdirAll(dir, 0755))
 
-	descriptionJSON, err := json.Marshal(description)
+	metadataFilePath := path.Join(dir, db.ChecksumFileName)
+	require.NoError(t, afero.WriteFile(fs, metadataFilePath, []byte(checksums), 0644))
+}
+
+func writeTestDescriptionToDB(t *testing.T, dir string, desc db.Description) string {
+	c := db.Config{DBDirPath: dir}
+	d, err := internal.NewDB(c.DBFilePath(), db.Models(), false)
 	require.NoError(t, err)
 
-	metadataFilePath := path.Join(dir, db.DescriptionFileName)
-	require.NoError(t, afero.WriteFile(fs, metadataFilePath, descriptionJSON, 0644))
+	if err := d.Unscoped().Where("true").Delete(&db.DBMetadata{}).Error; err != nil {
+		t.Fatalf("failed to delete existing DB metadata record: %v", err)
+	}
+
+	mod, ok := desc.SchemaVersion.ModelPart()
+	require.True(t, ok)
+
+	revision, ok := desc.SchemaVersion.RevisionPart()
+	require.True(t, ok)
+
+	addition, ok := desc.SchemaVersion.AdditionPart()
+	require.True(t, ok)
+
+	ts := time.Now().UTC()
+	instance := &db.DBMetadata{
+		BuildTimestamp: &ts,
+		Model:          mod,
+		Revision:       revision,
+		Addition:       addition,
+	}
+
+	require.NoError(t, d.Create(instance).Error)
+
+	require.NoError(t, d.Exec("VACUUM").Error)
+
+	digest, err := db.CalculateDigest(c.DBFilePath())
+	require.NoError(t, err)
+
+	// write the checksums file
+	writeTestChecksumsFile(t, afero.NewOsFs(), dir, digest)
+
+	return digest
 }
 
 func writeTestDB(t *testing.T, fs afero.Fs, dir string) string {
 	require.NoError(t, fs.MkdirAll(dir, 0755))
 
-	content := []byte(dir)
-	p := path.Join(dir, db.VulnerabilityDBFileName)
-	require.NoError(t, afero.WriteFile(fs, p, content, 0644))
-	h, err := file.HashReader(bytes.NewReader(content), xxhash.New64())
+	rw, err := db.NewWriter(db.Config{
+		DBDirPath: dir,
+	})
 	require.NoError(t, err)
-	return "xxh64:" + h
+
+	require.NoError(t, rw.SetDBMetadata())
+	require.NoError(t, rw.Close())
+
+	checksum, err := db.ReadDBChecksum(dir)
+
+	return checksum
 }
 
 func TestCurator_Update(t *testing.T) {
@@ -181,19 +210,6 @@ func TestCurator_Update(t *testing.T) {
 		mc.AssertExpectations(t)
 	})
 
-	t.Run("error during activation: bad checksum", func(t *testing.T) {
-		c := setupCuratorForUpdate(t, withBadDBChecksum(), withWorkingUpdateIntegrations())
-		mc := c.client.(*mockClient)
-
-		updated, err := c.Update()
-
-		require.ErrorContains(t, err, "bad db checksum")
-		require.False(t, updated)
-		require.NoFileExists(t, filepath.Join(c.config.DBDirectoryPath(), lastUpdateCheckFileName))
-
-		mc.AssertExpectations(t)
-	})
-
 	t.Run("error during activation: cannot move dir", func(t *testing.T) {
 		c := setupCuratorForUpdate(t, withWorkingUpdateIntegrations())
 		mc := c.client.(*mockClient)
@@ -209,35 +225,6 @@ func TestCurator_Update(t *testing.T) {
 
 		mc.AssertExpectations(t)
 	})
-}
-
-func TestReadDatabaseDescription(t *testing.T) {
-	fs := afero.NewMemMapFs()
-
-	description := db.Description{
-		SchemaVersion: "1.0.0",
-		Built:         db.Time{Time: time.Date(2021, 1, 2, 3, 4, 5, 6, time.UTC)},
-		Checksum:      "xxh64:dummychecksum",
-	}
-
-	descriptionJSON, err := json.Marshal(description)
-	require.NoError(t, err)
-
-	metadataFilePath := path.Join("someDir", db.DescriptionFileName)
-	require.NoError(t, afero.WriteFile(fs, metadataFilePath, descriptionJSON, 0644))
-
-	result, err := readDatabaseDescription(fs, "someDir")
-	require.NoError(t, err)
-
-	require.NotNil(t, result)
-	require.Equal(t,
-		db.Description{
-			SchemaVersion: "1.0.0",
-			Built:         db.Time{Time: description.Built.Time.Truncate(time.Second)},
-			Checksum:      "xxh64:dummychecksum",
-		},
-		*result,
-	)
 }
 
 func TestCurator_IsUpdateCheckAllowed(t *testing.T) {
@@ -486,6 +473,12 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 		cfg := DefaultConfig()
 		cfg.DBRootDir = tempDir
 
+		require.NoError(t, os.MkdirAll(cfg.DBDirectoryPath(), 0755))
+
+		s := setupTestDB(t, cfg.DBDirectoryPath())
+		require.NoError(t, s.SetDBMetadata())
+		require.NoError(t, s.Close())
+
 		ci, err := NewCurator(cfg, new(mockClient))
 		require.NoError(t, err)
 
@@ -496,39 +489,31 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 		c := newCurator(t)
 		dbDir := c.config.DBDirectoryPath()
 
-		metadata := db.Description{
-			SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
-			Built:         db.Time{Time: time.Now()},
-			Checksum:      writeTestDB(t, c.fs, dbDir),
-		}
-
-		writeTestMetadata(t, c.fs, dbDir, metadata)
-
 		result, err := c.validateIntegrity(dbDir)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
 
-	t.Run("invalid metadata (not found)", func(t *testing.T) {
+	t.Run("db does not exist", func(t *testing.T) {
 		c := newCurator(t)
 
 		_, err := c.validateIntegrity("non/existent/path")
-		require.ErrorContains(t, err, "database metadata not found")
+		require.ErrorContains(t, err, "database does not exist")
+	})
+
+	t.Run("checksum file does not exist", func(t *testing.T) {
+		c := newCurator(t)
+		dbDir := c.config.DBDirectoryPath()
+		require.NoError(t, os.Remove(filepath.Join(dbDir, db.ChecksumFileName)))
+		_, err := c.validateIntegrity(dbDir)
+		require.ErrorContains(t, err, "no such file or directory")
 	})
 
 	t.Run("invalid checksum", func(t *testing.T) {
 		c := newCurator(t)
 		dbDir := c.config.DBDirectoryPath()
 
-		metadata := db.Description{
-			SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
-			Built:         db.Time{Time: time.Now()},
-			Checksum:      "xxh64:invalidchecksum",
-		}
-
-		writeTestMetadata(t, c.fs, dbDir, metadata)
-
-		writeTestDB(t, c.fs, dbDir)
+		writeTestChecksumsFile(t, c.fs, dbDir, "xxh64:invalidchecksum")
 
 		_, err := c.validateIntegrity(dbDir)
 		require.ErrorContains(t, err, "bad db checksum")
@@ -538,15 +523,23 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 		c := newCurator(t)
 		dbDir := c.config.DBDirectoryPath()
 
-		metadata := db.Description{
-			SchemaVersion: schemaver.New(9999, 0, 0), // invalid version
-			Built:         db.Time{Time: time.Now()},
-			Checksum:      writeTestDB(t, c.fs, dbDir),
+		oldDescription := db.Description{
+			SchemaVersion: schemaver.New(db.ModelVersion-1, 0, 0),
+			Built:         db.Time{Time: time.Now().Add(-48 * time.Hour)},
 		}
 
-		writeTestMetadata(t, c.fs, dbDir, metadata)
+		writeTestDescriptionToDB(t, c.config.DBDirectoryPath(), oldDescription)
 
 		_, err := c.validateIntegrity(dbDir)
 		require.ErrorContains(t, err, "unsupported database version")
 	})
+}
+
+func setupTestDB(t *testing.T, dbDir string) db.ReadWriter {
+	s, err := db.NewWriter(db.Config{
+		DBDirPath: dbDir,
+	})
+	require.NoError(t, err)
+
+	return s
 }

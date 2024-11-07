@@ -52,7 +52,7 @@ func TestProviderStore(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := newProviderStore(setupTestDB(t))
+			s := newProviderStore(setupTestStore(t).db)
 			if tt.wantErr == nil {
 				tt.wantErr = require.NoError
 			}
@@ -87,7 +87,7 @@ func TestProviderStore(t *testing.T) {
 }
 
 func TestProviderStore_GetProvider(t *testing.T) {
-	s := newProviderStore(setupTestDB(t))
+	s := newProviderStore(setupTestStore(t).db)
 	p, err := s.GetProvider("fake")
 	require.Error(t, err)
 	assert.Nil(t, p)

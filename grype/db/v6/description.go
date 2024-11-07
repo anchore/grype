@@ -1,10 +1,13 @@
 package v6
 
 import (
-	"encoding/json"
+	"bytes"
+	"errors"
 	"fmt"
 	"io"
-	"path"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/OneOfOne/xxhash"
@@ -14,7 +17,7 @@ import (
 	"github.com/anchore/grype/internal/file"
 )
 
-const DescriptionFileName = "description.json"
+const ChecksumFileName = VulnerabilityDBFileName + ".checksum"
 
 type Description struct {
 	// SchemaVersion is the version of the DB schema
@@ -55,32 +58,92 @@ func (t Time) String() string {
 	return t.Time.UTC().Round(time.Second).Format(time.RFC3339)
 }
 
-func NewDescriptionFromDir(fs afero.Fs, dir string) (*Description, error) {
-	// checksum the DB file
-	dbFilePath := path.Join(dir, VulnerabilityDBFileName)
-	digest, err := file.HashFile(fs, dbFilePath, xxhash.New64())
-	if err != nil {
-		return nil, fmt.Errorf("failed to calculate checksum for DB file (%s): %w", dbFilePath, err)
-	}
-	namedDigest := fmt.Sprintf("xxh64:%s", digest)
+func ReadDescription(dir string) (*Description, error) {
+	dbFilePath := filepath.Join(dir, VulnerabilityDBFileName)
 
-	// access the DB to get the built time and schema version
-	r, err := NewReader(Config{
-		DBDirPath: dir,
-	})
+	// check if exists
+	if _, err := os.Stat(dbFilePath); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, fmt.Errorf("database does not exist")
+		}
+		return nil, fmt.Errorf("failed to access database file: %w", err)
+	}
+
+	desc, err := newPartialDescriptionFromDB(dbFilePath)
 	if err != nil {
 		return nil, err
+	}
+
+	// read checksums file value
+	checksum, err := ReadDBChecksum(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	desc.Checksum = checksum
+
+	return desc, nil
+}
+
+func ReadDBChecksum(dir string) (string, error) {
+	checksumsFilePath := filepath.Join(dir, ChecksumFileName)
+	checksums, err := os.ReadFile(checksumsFilePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read checksums file: %w", err)
+	}
+
+	if len(checksums) == 0 {
+		return "", fmt.Errorf("checksums file is empty")
+	}
+
+	if !bytes.HasPrefix(checksums, []byte("xxh64:")) {
+		return "", fmt.Errorf("checksums file is not in the expected format")
+	}
+
+	return string(checksums), nil
+}
+
+func CalculateDescription(dbFilePath string) (*Description, error) {
+	desc, err := newPartialDescriptionFromDB(dbFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	namedDigest, err := CalculateDigest(dbFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	desc.Checksum = namedDigest
+
+	return desc, nil
+}
+
+func CalculateDigest(dbFilePath string) (string, error) {
+	digest, err := file.HashFile(afero.NewOsFs(), dbFilePath, xxhash.New64())
+	if err != nil {
+		return "", fmt.Errorf("failed to calculate checksum for DB file: %w", err)
+	}
+	return fmt.Sprintf("xxh64:%s", digest), nil
+}
+
+func newPartialDescriptionFromDB(dbFilePath string) (*Description, error) {
+	// access the DB to get the built time and schema version
+	r, err := NewReader(Config{
+		DBDirPath: filepath.Dir(dbFilePath),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to read DB description: %w", err)
 	}
 
 	meta, err := r.GetDBMetadata()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read DB metadata: %w", err)
 	}
 
 	return &Description{
 		SchemaVersion: schemaver.New(meta.Model, meta.Revision, meta.Addition),
 		Built:         Time{Time: *meta.BuildTimestamp},
-		Checksum:      namedDigest,
 	}, nil
 }
 
@@ -88,16 +151,15 @@ func (m Description) String() string {
 	return fmt.Sprintf("DB(version=%s built=%s checksum=%s)", m.SchemaVersion, m.Built, m.Checksum)
 }
 
-func writeDescription(writer io.Writer, m Description) error {
-	if m.SchemaVersion == "" {
-		return fmt.Errorf("missing schema version")
+func WriteChecksums(writer io.Writer, m Description) error {
+	if m.Checksum == "" {
+		return fmt.Errorf("checksum is required")
 	}
 
-	contents, err := json.MarshalIndent(m, "", " ")
-	if err != nil {
-		return fmt.Errorf("failed to encode metadata file: %w", err)
+	if !strings.HasPrefix(m.Checksum, "xxh64:") {
+		return fmt.Errorf("checksum missing algorithm prefix")
 	}
 
-	_, err = writer.Write(contents)
+	_, err := writer.Write([]byte(m.Checksum))
 	return err
 }

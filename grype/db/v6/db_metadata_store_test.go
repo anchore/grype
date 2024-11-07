@@ -9,7 +9,7 @@ import (
 )
 
 func TestDbMetadataStore_empty(t *testing.T) {
-	s := newDBMetadataStore(setupTestDB(t))
+	s := newDBMetadataStore(setupTestStore(t).db)
 
 	// attempt to fetch a non-existent record
 	actualMetadata, err := s.GetDBMetadata()
@@ -18,7 +18,7 @@ func TestDbMetadataStore_empty(t *testing.T) {
 }
 
 func TestDbMetadataStore(t *testing.T) {
-	s := newDBMetadataStore(setupTestDB(t))
+	s := newDBMetadataStore(setupTestStore(t).db)
 
 	require.NoError(t, s.SetDBMetadata())
 
@@ -42,10 +42,22 @@ func TestDbMetadataStore(t *testing.T) {
 	}, *actualMetadata)
 }
 
-func setupTestDB(t *testing.T) *gorm.DB {
-	// note: empty path means in-memory db
-	s, err := newStore(Config{}, true)
+func setupTestStore(t testing.TB, d ...string) *store {
+	var dir string
+	switch len(d) {
+	case 0:
+		dir = t.TempDir()
+	case 1:
+		dir = d[0]
+	default:
+		t.Fatal("too many arguments")
+
+	}
+
+	s, err := newStore(Config{
+		DBDirPath: dir,
+	}, true)
 	require.NoError(t, err)
 
-	return s.db
+	return s
 }

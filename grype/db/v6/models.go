@@ -10,7 +10,7 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-func models() []any {
+func Models() []any {
 	return []any{
 		// core data store
 		&Blob{},

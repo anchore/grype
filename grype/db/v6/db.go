@@ -53,7 +53,7 @@ type Config struct {
 	DBDirPath string
 }
 
-func (c *Config) DBFilePath() string {
+func (c Config) DBFilePath() string {
 	return filepath.Join(c.DBDirPath, VulnerabilityDBFileName)
 }
 

@@ -5,10 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/spf13/afero"
 	"gorm.io/gorm"
 
-	"github.com/anchore/grype/grype/db/internal/gormadapter"
+	"github.com/anchore/grype/grype/db/v6/internal"
 	"github.com/anchore/grype/internal/log"
 )
 
@@ -28,15 +27,9 @@ func newStore(cfg Config, write bool) (*store, error) {
 	if cfg.DBDirPath != "" {
 		path = cfg.DBFilePath()
 	}
-	db, err := gormadapter.Open(path, gormadapter.WithTruncate(write))
+	db, err := internal.NewDB(path, Models(), write)
 	if err != nil {
-		return nil, err
-	}
-
-	if write {
-		if err := db.AutoMigrate(models()...); err != nil {
-			return nil, fmt.Errorf("unable to create tables: %w", err)
-		}
+		return nil, fmt.Errorf("failed to open db: %w", err)
 	}
 
 	bs := newBlobStore(db)
@@ -67,9 +60,7 @@ func (s *store) Close() error {
 		return fmt.Errorf("failed to vacuum: %w", err)
 	}
 
-	fs := afero.NewOsFs()
-
-	desc, err := NewDescriptionFromDir(fs, s.config.DBDirPath)
+	desc, err := CalculateDescription(filepath.Join(s.config.DBDirPath, VulnerabilityDBFileName))
 	if err != nil {
 		return fmt.Errorf("failed to create description from dir: %w", err)
 	}
@@ -78,10 +69,10 @@ func (s *store) Close() error {
 		return fmt.Errorf("unable to describe the database")
 	}
 
-	fh, err := fs.OpenFile(filepath.Join(s.config.DBDirPath, DescriptionFileName), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+	fh, err := os.OpenFile(filepath.Join(s.config.DBDirPath, ChecksumFileName), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to open description file: %w", err)
 	}
 
-	return writeDescription(fh, *desc)
+	return WriteChecksums(fh, *desc)
 }

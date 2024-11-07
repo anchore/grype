@@ -1,7 +1,6 @@
 package installation
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -90,15 +89,15 @@ func (c curator) Reader() (db.Reader, error) {
 func (c curator) Status() db.Status {
 	dbDir := c.config.DBDirectoryPath()
 
-	d, err := readDatabaseDescription(c.fs, dbDir)
+	d, err := db.ReadDescription(dbDir)
 	if err != nil {
 		return db.Status{
-			Err: fmt.Errorf("failed to parse database metadata (%s): %w", dbDir, err),
+			Err: err,
 		}
 	}
 	if d == nil {
 		return db.Status{
-			Err: fmt.Errorf("database metadata not found at %q", dbDir),
+			Err: fmt.Errorf("database not found at %q", dbDir),
 		}
 	}
 
@@ -128,17 +127,19 @@ func (c curator) Update() (bool, error) {
 	mon := newMonitor()
 	defer mon.SetCompleted()
 
-	current, err := readDatabaseDescription(c.fs, c.config.DBDirectoryPath())
+	current, err := db.ReadDescription(c.config.DBDirectoryPath())
 	if err != nil {
-		return false, fmt.Errorf("unable to read current database metadata: %w", err)
+		log.WithFields("error", err).Warn("unable to read current database metadata (continuing with update)")
+		// downstream any non-existent DB should always be replaced with any best-candidate found
+		current = nil
 	}
 
 	mon.Set("checking for update")
 	update, checkErr := c.client.IsUpdateAvailable(current)
 	if checkErr != nil {
-		// we want to continue if possible even if we can't check for an update
+		// we want to continue even if we can't check for an update
 		log.Warnf("unable to check for vulnerability database update")
-		log.Debugf("check for vulnerability update failed: %+v", checkErr)
+		log.WithFields("error", checkErr).Debug("check for vulnerability update failed")
 	}
 
 	if update == nil {
@@ -296,16 +297,24 @@ func (c curator) Import(dbArchivePath string) error {
 func (c curator) activate(dbDirPath string, mon monitor) error {
 	defer mon.importProgress.SetCompleted()
 
-	mon.Set("validating")
+	mon.Set("hashing")
 
-	if _, err := c.validateIntegrity(dbDirPath); err != nil {
+	// overwrite the checksums file with the new checksums
+	dbFilePath := filepath.Join(dbDirPath, db.VulnerabilityDBFileName)
+	desc, err := db.CalculateDescription(dbFilePath)
+	if err != nil {
+		return err
+	}
+
+	checksumsFilePath := filepath.Join(dbDirPath, db.ChecksumFileName)
+	if err := afero.WriteFile(c.fs, checksumsFilePath, []byte(desc.Checksum), 0644); err != nil {
 		return err
 	}
 
 	mon.Set("activating")
 
 	dbDir := c.config.DBDirectoryPath()
-	_, err := c.fs.Stat(dbDir)
+	_, err = c.fs.Stat(dbDir)
 	if !os.IsNotExist(err) {
 		// remove any previous databases
 		err = c.Delete()
@@ -320,7 +329,7 @@ func (c curator) activate(dbDirPath string, mon monitor) error {
 
 func (c curator) validateIntegrity(dbDirPath string) (*db.Description, error) {
 	// check that the disk checksum still matches the db payload
-	metadata, err := readDatabaseDescription(c.fs, dbDirPath)
+	metadata, err := db.ReadDescription(dbDirPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse database metadata (%s): %w", dbDirPath, err)
 	}
@@ -343,8 +352,6 @@ func (c curator) validateIntegrity(dbDirPath string) (*db.Description, error) {
 	if !ok || gotModel != db.ModelVersion {
 		return nil, fmt.Errorf("unsupported database version: have=%d want=%d", gotModel, db.ModelVersion)
 	}
-
-	// TODO: add version checks here to ensure this version of the application can use this database version (relative to what the DB says, not JUST the metadata!)
 
 	return metadata, nil
 }
@@ -406,27 +413,4 @@ func newMonitor() monitor {
 func (m monitor) SetCompleted() {
 	m.downloadProgress.SetCompleted()
 	m.importProgress.SetCompleted()
-}
-
-func readDatabaseDescription(fs afero.Fs, dir string) (*db.Description, error) {
-	metadataFilePath := path.Join(dir, db.DescriptionFileName)
-	exists, err := file.Exists(fs, metadataFilePath)
-	if err != nil {
-		return nil, fmt.Errorf("unable to check if DB metadata path exists (%s): %w", metadataFilePath, err)
-	}
-	if !exists {
-		return nil, nil
-	}
-	f, err := fs.Open(metadataFilePath)
-	if err != nil {
-		return nil, fmt.Errorf("unable to open DB metadata path (%s): %w", metadataFilePath, err)
-	}
-	defer f.Close()
-
-	var m db.Description
-	err = json.NewDecoder(f).Decode(&m)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse DB metadata (%s): %w", metadataFilePath, err)
-	}
-	return &m, nil
 }
