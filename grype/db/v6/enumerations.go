@@ -28,14 +28,8 @@ type SeverityScheme string
 const (
 	UnknownSeverityScheme SeverityScheme = "?"
 
-	// SeveritySchemeCVSSV2 is the CVSS v2 severity scheme
-	SeveritySchemeCVSSV2 SeverityScheme = "CVSSv2"
-
-	// SeveritySchemeCVSSV3 is the CVSS v3 severity scheme
-	SeveritySchemeCVSSV3 SeverityScheme = "CVSSv3"
-
-	// SeveritySchemeCVSSV4 is the CVSS v4 severity scheme
-	SeveritySchemeCVSSV4 SeverityScheme = "CVSSv4"
+	// SeveritySchemeCVSS is the Common Vulnerability Scoring System severity scheme
+	SeveritySchemeCVSS SeverityScheme = "CVSS"
 
 	// SeveritySchemeHML is a string severity scheme (High, Medium, Low)
 	SeveritySchemeHML SeverityScheme = "HML"
@@ -80,12 +74,8 @@ func ParseVulnerabilityStatus(s string) VulnerabilityStatus {
 
 func ParseSeverityScheme(s string) SeverityScheme {
 	switch replaceAny(strings.TrimSpace(strings.ToLower(s)), "", "-", "_", " ") {
-	case strings.ToLower(string(SeveritySchemeCVSSV2)):
-		return SeveritySchemeCVSSV2
-	case strings.ToLower(string(SeveritySchemeCVSSV3)):
-		return SeveritySchemeCVSSV3
-	case strings.ToLower(string(SeveritySchemeCVSSV4)):
-		return SeveritySchemeCVSSV4
+	case strings.ToLower(string(SeveritySchemeCVSS)):
+		return SeveritySchemeCVSS
 	case strings.ToLower(string(SeveritySchemeHML)):
 		return SeveritySchemeHML
 	case strings.ToLower(string(SeveritySchemeCHMLN)):

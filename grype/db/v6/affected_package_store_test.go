@@ -108,6 +108,14 @@ func TestAffectedPackageStore_GetAffectedPackagesByName(t *testing.T) {
 			},
 			expected: []AffectedPackageHandle{*pkg2d1, *pkg2, *pkg2d2},
 		},
+		{
+			name:        "package type",
+			packageName: pkg2.Package.Name,
+			options: &GetAffectedOptions{
+				PackageType: "type2",
+			},
+			expected: []AffectedPackageHandle{*pkg2},
+		},
 	}
 
 	type preloadConfig struct {

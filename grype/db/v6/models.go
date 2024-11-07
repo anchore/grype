@@ -113,16 +113,16 @@ func (v *VulnerabilityHandle) setBlobID(id ID) {
 // AffectedPackageHandle represents a single package affected by the specified vulnerability.
 type AffectedPackageHandle struct {
 	ID              int64 `gorm:"column:id;primaryKey"`
-	VulnerabilityID int64 `gorm:"column:vulnerability_id;not null"`
+	VulnerabilityID ID    `gorm:"column:vulnerability_id;not null"`
 	// Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
 
-	OperatingSystemID *int64           `gorm:"column:operating_system_id"`
+	OperatingSystemID *ID              `gorm:"column:operating_system_id"`
 	OperatingSystem   *OperatingSystem `gorm:"foreignKey:OperatingSystemID"`
 
-	PackageID int64    `gorm:"column:package_id"`
+	PackageID ID       `gorm:"column:package_id"`
 	Package   *Package `gorm:"foreignKey:PackageID"`
 
-	BlobID    int64                `gorm:"column:blob_id"`
+	BlobID    ID                   `gorm:"column:blob_id"`
 	BlobValue *AffectedPackageBlob `gorm:"-"`
 }
 
@@ -130,7 +130,7 @@ func (v AffectedPackageHandle) getBlobValue() any {
 	return v.BlobValue
 }
 
-func (v *AffectedPackageHandle) setBlobID(id int64) {
+func (v *AffectedPackageHandle) setBlobID(id ID) {
 	v.BlobID = id
 }
 

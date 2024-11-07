@@ -67,7 +67,6 @@ type Severity struct {
 	Rank int `json:"rank"`
 }
 
-
 type severityAlias Severity
 
 type severityUnmarshalProxy struct {
@@ -117,14 +116,20 @@ type AffectedPackageBlob struct {
 	// CVEs is a list of Common Vulnerabilities and Exposures (CVE) identifiers related to this vulnerability.
 	CVEs []string `json:"cves"`
 
+	// Qualifiers are package attributes that confirm the package is affected by the vulnerability.
+	Qualifiers *AffectedPackageQualifiers `json:"qualifiers,omitempty"`
+
+	// Ranges specifies the affected version ranges and fixes if available.
+	Ranges []AffectedRange `json:"ranges,omitempty"`
+}
+
+// AffectedPackageQualifiers contains package attributes that confirm the package is affected by the vulnerability.
+type AffectedPackageQualifiers struct {
 	// RpmModularity indicates if the package follows RPM modularity for versioning.
 	RpmModularity string `json:"rpm_modularity,omitempty"`
 
 	// PlatformCPEs lists Common Platform Enumeration (CPE) identifiers for affected platforms.
 	PlatformCPEs []string `json:"platform_cpes,omitempty"`
-
-	// Ranges specifies the affected version ranges and fixes if available.
-	Ranges []AffectedRange `json:"ranges,omitempty"`
 }
 
 // AffectedRange defines a specific range of versions affected by a vulnerability.
@@ -168,4 +173,3 @@ type AffectedVersion struct {
 	// Constraint defines the version range constraint for affected versions.
 	Constraint string `json:"constraint"`
 }
-
