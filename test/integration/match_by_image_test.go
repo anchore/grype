@@ -55,6 +55,26 @@ func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 		Package:       thePkg,
 		Details: []match.Detail{
 			{
+				Type:       match.ExactDirectMatch,
+				Confidence: 1.0,
+				SearchedBy: map[string]any{
+					"distro": map[string]string{
+						"type":    "alpine",
+						"version": "3.12.0",
+					},
+					"namespace": "alpine:distro:alpine:3.12",
+					"package": map[string]string{
+						"name":    "libvncserver",
+						"version": "0.9.9",
+					},
+				},
+				Found: map[string]any{
+					"versionConstraint": "< 0.9.10 (unknown)",
+					"vulnerabilityID":   vulnObj.ID,
+				},
+				Matcher: match.ApkMatcher,
+			},
+			{
 				// note: the input pURL has an upstream reference (redundant)
 				Type: "exact-indirect-match",
 				SearchedBy: map[string]any{
@@ -74,26 +94,6 @@ func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 				},
 				Matcher:    "apk-matcher",
 				Confidence: 1,
-			},
-			{
-				Type:       match.ExactDirectMatch,
-				Confidence: 1.0,
-				SearchedBy: map[string]interface{}{
-					"distro": map[string]string{
-						"type":    "alpine",
-						"version": "3.12.0",
-					},
-					"namespace": "alpine:distro:alpine:3.12",
-					"package": map[string]string{
-						"name":    "libvncserver",
-						"version": "0.9.9",
-					},
-				},
-				Found: map[string]interface{}{
-					"versionConstraint": "< 0.9.10 (unknown)",
-					"vulnerabilityID":   vulnObj.ID,
-				},
-				Matcher: match.ApkMatcher,
 			},
 		},
 	})
@@ -117,7 +117,7 @@ func addJavascriptMatches(t *testing.T, theSource source.Source, catalog *syftPk
 			{
 				Type:       match.ExactDirectMatch,
 				Confidence: 1.0,
-				SearchedBy: map[string]interface{}{
+				SearchedBy: map[string]any{
 					"language":  "javascript",
 					"namespace": "github:language:javascript",
 					"package": map[string]string{
@@ -125,7 +125,7 @@ func addJavascriptMatches(t *testing.T, theSource source.Source, catalog *syftPk
 						"version": thePkg.Version,
 					},
 				},
-				Found: map[string]interface{}{
+				Found: map[string]any{
 					"versionConstraint": "> 5, < 7.2.1 (unknown)",
 					"vulnerabilityID":   vulnObj.ID,
 				},
@@ -157,7 +157,7 @@ func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 			{
 				Type:       match.ExactDirectMatch,
 				Confidence: 1.0,
-				SearchedBy: map[string]interface{}{
+				SearchedBy: map[string]any{
 					"language":  "python",
 					"namespace": "github:language:python",
 					"package": map[string]string{
@@ -165,7 +165,7 @@ func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 						"version": thePkg.Version,
 					},
 				},
-				Found: map[string]interface{}{
+				Found: map[string]any{
 					"versionConstraint": "< 2.6.2 (python)",
 					"vulnerabilityID":   vulnObj.ID,
 				},
@@ -197,7 +197,7 @@ func addDotnetMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 			{
 				Type:       match.ExactDirectMatch,
 				Confidence: 1.0,
-				SearchedBy: map[string]interface{}{
+				SearchedBy: map[string]any{
 					"language":  "dotnet",
 					"namespace": "github:language:dotnet",
 					"package": map[string]string{
@@ -205,7 +205,7 @@ func addDotnetMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 						"version": thePkg.Version,
 					},
 				},
-				Found: map[string]interface{}{
+				Found: map[string]any{
 					"versionConstraint": ">= 3.7.0.0, < 3.7.12.0 (unknown)",
 					"vulnerabilityID":   vulnObj.ID,
 				},
@@ -233,7 +233,7 @@ func addRubyMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 			{
 				Type:       match.ExactDirectMatch,
 				Confidence: 1.0,
-				SearchedBy: map[string]interface{}{
+				SearchedBy: map[string]any{
 					"language":  "ruby",
 					"namespace": "github:language:ruby",
 					"package": map[string]string{
@@ -241,7 +241,7 @@ func addRubyMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 						"version": thePkg.Version,
 					},
 				},
-				Found: map[string]interface{}{
+				Found: map[string]any{
 					"versionConstraint": "> 2.0.0, <= 2.1.4 (unknown)",
 					"vulnerabilityID":   vulnObj.ID,
 				},
@@ -291,7 +291,7 @@ func addGolangMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 				{
 					Type:       match.ExactDirectMatch,
 					Confidence: 1.0,
-					SearchedBy: map[string]interface{}{
+					SearchedBy: map[string]any{
 						"language":  "go",
 						"namespace": "github:language:go",
 						"package": map[string]string{
@@ -299,7 +299,7 @@ func addGolangMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 							"version": thePkg.Version,
 						},
 					},
-					Found: map[string]interface{}{
+					Found: map[string]any{
 						"versionConstraint": "< 1.4.0 (unknown)",
 						"vulnerabilityID":   vulnObj.ID,
 					},
@@ -338,7 +338,7 @@ func addJavaMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 			{
 				Type:       match.ExactDirectMatch,
 				Confidence: 1.0,
-				SearchedBy: map[string]interface{}{
+				SearchedBy: map[string]any{
 					"language":  "java",
 					"namespace": "github:language:java",
 					"package": map[string]string{
@@ -346,7 +346,7 @@ func addJavaMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 						"version": thePkg.Version,
 					},
 				},
-				Found: map[string]interface{}{
+				Found: map[string]any{
 					"versionConstraint": ">= 0.0.1, < 1.2.0 (unknown)",
 					"vulnerabilityID":   vulnObj.ID,
 				},
@@ -375,7 +375,7 @@ func addDpkgMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 			{
 				Type:       match.ExactIndirectMatch,
 				Confidence: 1.0,
-				SearchedBy: map[string]interface{}{
+				SearchedBy: map[string]any{
 					"distro": map[string]string{
 						"type":    "debian",
 						"version": "8",
@@ -386,7 +386,7 @@ func addDpkgMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 						"version": "1.8.2",
 					},
 				},
-				Found: map[string]interface{}{
+				Found: map[string]any{
 					"versionConstraint": "<= 1.8.2 (deb)",
 					"vulnerabilityID":   vulnObj.ID,
 				},
@@ -414,7 +414,7 @@ func addPortageMatches(t *testing.T, theSource source.Source, catalog *syftPkg.C
 			{
 				Type:       match.ExactDirectMatch,
 				Confidence: 1.0,
-				SearchedBy: map[string]interface{}{
+				SearchedBy: map[string]any{
 					"distro": map[string]string{
 						"type":    "gentoo",
 						"version": "2.8",
@@ -425,7 +425,7 @@ func addPortageMatches(t *testing.T, theSource source.Source, catalog *syftPkg.C
 						"version": "1.5.1",
 					},
 				},
-				Found: map[string]interface{}{
+				Found: map[string]any{
 					"versionConstraint": "< 1.6.0 (unknown)",
 					"vulnerabilityID":   vulnObj.ID,
 				},
@@ -453,7 +453,7 @@ func addRhelMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 			{
 				Type:       match.ExactDirectMatch,
 				Confidence: 1.0,
-				SearchedBy: map[string]interface{}{
+				SearchedBy: map[string]any{
 					"distro": map[string]string{
 						"type":    "centos",
 						"version": "8",
@@ -464,7 +464,7 @@ func addRhelMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 						"version": "0:0.9.2-1",
 					},
 				},
-				Found: map[string]interface{}{
+				Found: map[string]any{
 					"versionConstraint": "<= 1.0.42 (rpm)",
 					"vulnerabilityID":   vulnObj.ID,
 				},
@@ -493,7 +493,7 @@ func addSlesMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 			{
 				Type:       match.ExactDirectMatch,
 				Confidence: 1.0,
-				SearchedBy: map[string]interface{}{
+				SearchedBy: map[string]any{
 					"distro": map[string]string{
 						"type":    "sles",
 						"version": "12.5",
@@ -504,7 +504,7 @@ func addSlesMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 						"version": "0:0.9.2-1",
 					},
 				},
-				Found: map[string]interface{}{
+				Found: map[string]any{
 					"versionConstraint": "<= 1.0.42 (rpm)",
 					"vulnerabilityID":   vulnObj.ID,
 				},
