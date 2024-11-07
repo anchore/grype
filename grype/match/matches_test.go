@@ -626,6 +626,9 @@ func TestMatches_Add_Merge(t *testing.T) {
 		cmpopts.IgnoreUnexported(vulnerability.Vulnerability{}, pkg.Package{}, file.Location{}, file.LocationSet{}),
 		cmpopts.IgnoreFields(vulnerability.Vulnerability{}, "Constraint"),
 		cmpopts.EquateEmpty(),
+		cmpopts.SortSlices(func(a, b Match) bool {
+			return ByElements([]Match{a, b}).Less(0, 1)
+		}),
 	}
 
 	for _, tt := range tests {

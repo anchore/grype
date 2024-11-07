@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/mitchellh/hashstructure/v2"
-	"github.com/scylladb/go-set/strset"
 )
 
 type Details []Detail
@@ -88,29 +87,4 @@ func (m Details) Less(i, j int) bool {
 
 func (m Details) Swap(i, j int) {
 	m[i], m[j] = m[j], m[i]
-}
-
-func hasMatchType(details Details, ty Type) bool {
-	for _, d := range details {
-		if d.Type == ty {
-			return true
-		}
-	}
-	return false
-}
-
-func hasExclusivelyAnyMatchTypes(details Details, tys ...Type) bool {
-	allowed := strset.New()
-	for _, ty := range tys {
-		allowed.Add(string(ty))
-	}
-	var found bool
-	for _, d := range details {
-		if allowed.Has(string(d.Type)) {
-			found = true
-		} else {
-			return false
-		}
-	}
-	return found
 }

@@ -3,6 +3,8 @@ package match
 import (
 	"sort"
 
+	"github.com/scylladb/go-set/strset"
+
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/internal/log"
 )
@@ -185,4 +187,29 @@ func (r *Matches) Sorted() []Match {
 // Count returns the total number of matches in a result
 func (r *Matches) Count() int {
 	return len(r.byFingerprint)
+}
+
+func hasMatchType(details Details, ty Type) bool {
+	for _, d := range details {
+		if d.Type == ty {
+			return true
+		}
+	}
+	return false
+}
+
+func hasExclusivelyAnyMatchTypes(details Details, tys ...Type) bool {
+	allowed := strset.New()
+	for _, ty := range tys {
+		allowed.Add(string(ty))
+	}
+	var found bool
+	for _, d := range details {
+		if allowed.Has(string(d.Type)) {
+			found = true
+		} else {
+			return false
+		}
+	}
+	return found
 }
