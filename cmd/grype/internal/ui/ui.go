@@ -73,6 +73,13 @@ func (m *UI) Handle(e partybus.Event) error {
 }
 
 func (m *UI) Teardown(force bool) error {
+	defer func() {
+		// allow for traditional logging to resume now that the UI is shutting down
+		if logWrapper, ok := log.Get().(logger.Controller); ok {
+			logWrapper.SetOutput(os.Stderr)
+		}
+	}()
+
 	if !force {
 		m.handler.Wait()
 		m.program.Quit()
