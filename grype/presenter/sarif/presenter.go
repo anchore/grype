@@ -17,6 +17,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/source"
 )
@@ -122,6 +123,7 @@ func (pres *Presenter) sarifRules() (out []*sarif.ReportingDescriptor) {
 					// For GitHub reportingDescriptor object:
 					// https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning#reportingdescriptor-object
 					"security-severity": pres.securitySeverityValue(m),
+					"purls":             [...]string{deriveBomRef(m.Package)},
 				},
 			})
 		}
@@ -473,4 +475,17 @@ func imageShortPathName(s *source.Description) string {
 	imageName = parts[len(parts)-1]
 	imageName = nonPathChars.ReplaceAllString(imageName, "")
 	return imageName
+}
+
+func deriveBomRef(p pkg.Package) string {
+	// try and parse the PURL if possible and append syft id to it, to make
+	// the purl unique in the BOM.
+	// TODO: In the future we may want to dedupe by PURL and combine components with
+	// the same PURL while preserving their unique metadata.
+	if parsedPURL, err := packageurl.FromString(p.PURL); err == nil {
+		parsedPURL.Qualifiers = append(parsedPURL.Qualifiers, packageurl.Qualifier{Key: "package-id", Value: string(p.ID)})
+		return parsedPURL.ToString()
+	}
+	// fallback is to use strictly the ID if there is no valid pURL
+	return string(p.ID)
 }

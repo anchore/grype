@@ -24,6 +24,9 @@
                 "markdown": "**Vulnerability CVE-1999-0001**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| low  | package-1  | 1.1.1  | the-next-version  | rpm  | somefile-1.txt  | source-1  | CVE-1999-0001  |\n"
               },
               "properties": {
+                "purls": [
+                  "9baa2db122fea516"
+                ],
                 "security-severity": "4.0"
               }
             },
@@ -42,6 +45,9 @@
                 "markdown": "**Vulnerability CVE-1999-0002**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| critical  | package-2  | 2.2.2  |   | deb  | somefile-2.txt  | source-2  | CVE-1999-0002  |\n"
               },
               "properties": {
+                "purls": [
+                  "7bb53d560434bc7f"
+                ],
                 "security-severity": "1.0"
               }
             }
