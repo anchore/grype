@@ -29,6 +29,10 @@ func models() []any {
 		&AffectedPackageHandle{}, // join on package, operating system
 		&OperatingSystem{},
 		&Package{},
+
+		// CPE related search tables
+		&AffectedCPEHandle{}, // join on CPE
+		&Cpe{},
 	}
 }
 
@@ -91,7 +95,7 @@ type Provider struct {
 
 // VulnerabilityHandle represents the pointer to the core advisory record for a single known vulnerability from a specific provider.
 type VulnerabilityHandle struct {
-	ID int64 `gorm:"column:id;primaryKey"`
+	ID ID `gorm:"column:id;primaryKey"`
 
 	// Name is the unique name for the vulnerability (same as the decoded VulnerabilityBlob.ID)
 	Name string `gorm:"column:name;not null;index"`
@@ -112,8 +116,8 @@ func (v *VulnerabilityHandle) setBlobID(id ID) {
 
 // AffectedPackageHandle represents a single package affected by the specified vulnerability.
 type AffectedPackageHandle struct {
-	ID              int64 `gorm:"column:id;primaryKey"`
-	VulnerabilityID ID    `gorm:"column:vulnerability_id;not null"`
+	ID              ID `gorm:"column:id;primaryKey"`
+	VulnerabilityID ID `gorm:"column:vulnerability_id;not null"`
 	// Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
 
 	OperatingSystemID *ID              `gorm:"column:operating_system_id"`
@@ -135,13 +139,13 @@ func (v *AffectedPackageHandle) setBlobID(id ID) {
 }
 
 type Package struct {
-	ID   int64  `gorm:"column:id;primaryKey"`
+	ID   ID     `gorm:"column:id;primaryKey"`
 	Type string `gorm:"column:type;index:idx_package,unique"`
 	Name string `gorm:"column:name;index:idx_package,unique"`
 }
 
 type OperatingSystem struct {
-	ID int64 `gorm:"column:id;primaryKey"`
+	ID ID `gorm:"column:id;primaryKey"`
 
 	Name         string `gorm:"column:name;index:os_idx,unique"`
 	MajorVersion string `gorm:"column:major_version;index:os_idx,unique"`
@@ -156,6 +160,59 @@ func (os *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
 	if result.Error == nil {
 		// if the record already exists, then we should use the existing record
 		*os = existing
+	}
+	return nil
+}
+
+// CPE related search tables //////////////////////////////////////////////////////
+
+// AffectedCPEHandle represents a single CPE affected by the specified vulnerability
+type AffectedCPEHandle struct {
+	ID              ID `gorm:"column:id;primaryKey"`
+	VulnerabilityID ID `gorm:"column:vulnerability_id;not null"`
+	// Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
+
+	CpeID ID   `gorm:"column:cpe_id"`
+	CPE   *Cpe `gorm:"foreignKey:CpeID"`
+
+	BlobID    ID                   `gorm:"column:blob_id"`
+	BlobValue *AffectedPackageBlob `gorm:"-"`
+}
+
+func (v AffectedCPEHandle) getBlobValue() any {
+	return v.BlobValue
+}
+
+func (v *AffectedCPEHandle) setBlobID(id ID) {
+	v.BlobID = id
+}
+
+type Cpe struct {
+	// TODO: what about different CPE versions?
+	ID ID `gorm:"primaryKey"`
+
+	Type            string `gorm:"column:type;not null;index:idx_cpe,unique"`
+	Vendor          string `gorm:"column:vendor;index:idx_cpe,unique"`
+	Product         string `gorm:"column:product;not null;index:idx_cpe,unique"`
+	Edition         string `gorm:"column:edition;index:idx_cpe,unique"`
+	Language        string `gorm:"column:language;index:idx_cpe,unique"`
+	SoftwareEdition string `gorm:"column:software_edition;index:idx_cpe,unique"`
+	TargetHardware  string `gorm:"column:target_hardware;index:idx_cpe,unique"`
+	TargetSoftware  string `gorm:"column:target_software;index:idx_cpe,unique"`
+	Other           string `gorm:"column:other;index:idx_cpe,unique"`
+}
+
+func (c Cpe) String() string {
+	return fmt.Sprintf("%s:%s:%s:%s:%s:%s:%s:%s:%s", c.Type, c.Vendor, c.Product, c.Edition, c.Language, c.SoftwareEdition, c.TargetHardware, c.TargetSoftware, c.Other)
+}
+
+func (c *Cpe) BeforeCreate(tx *gorm.DB) (err error) {
+	// if the name, major version, and minor version already exist in the table then we should not insert a new record
+	var existing Cpe
+	result := tx.Where("type = ? AND vendor = ? AND product = ? AND edition = ? AND language = ? AND software_edition = ? AND target_hardware = ? AND target_software = ? AND other = ?", c.Type, c.Vendor, c.Product, c.Edition, c.Language, c.SoftwareEdition, c.TargetHardware, c.TargetSoftware, c.Other).First(&existing)
+	if result.Error == nil {
+		// if the record already exists, then we should use the existing record
+		*c = existing
 	}
 	return nil
 }
