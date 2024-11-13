@@ -8,7 +8,7 @@ import (
 )
 
 func TestBlobWriter_AddBlobs(t *testing.T) {
-	db := setupTestDB(t)
+	db := setupTestStore(t).db
 	writer := newBlobStore(db)
 
 	obj1 := map[string]string{"key": "value1"}
@@ -34,7 +34,7 @@ func TestBlobWriter_AddBlobs(t *testing.T) {
 }
 
 func TestBlobWriter_Close(t *testing.T) {
-	db := setupTestDB(t)
+	db := setupTestStore(t).db
 	writer := newBlobStore(db)
 
 	obj := map[string]string{"key": "value"}

@@ -10,7 +10,7 @@ import (
 )
 
 func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
-	db := setupTestDB(t)
+	db := setupTestStore(t).db
 	bs := newBlobStore(db)
 	s := newAffectedPackageStore(db, bs)
 
@@ -42,7 +42,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 }
 
 func TestAffectedPackageStore_GetAffectedPackagesByName(t *testing.T) {
-	db := setupTestDB(t)
+	db := setupTestStore(t).db
 	bs := newBlobStore(db)
 	s := newAffectedPackageStore(db, bs)
 
