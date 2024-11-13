@@ -91,6 +91,9 @@ func (s *blobStore) Close() error {
 
 	log.WithFields("records", count).Trace("finalizing blobs")
 
+	// we use the blob_digests table when writing entries to ensure we have unique blobs, but for distribution this
+	// is no longer needed and saves on space considerably. For this reason, we drop the table after we are
+	// done writing blobs so that the DB is always in a distributable state.
 	if err := s.db.Exec("DROP TABLE blob_digests").Error; err != nil {
 		return fmt.Errorf("failed to drop blob digests: %w", err)
 	}
