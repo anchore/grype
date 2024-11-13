@@ -26,10 +26,12 @@ func models() []any {
 	}
 }
 
+type ID int64
+
 // core data store //////////////////////////////////////////////////////
 
 type Blob struct {
-	ID    int64  `gorm:"column:id;primaryKey"`
+	ID    ID     `gorm:"column:id;primaryKey"`
 	Value string `gorm:"column:value;not null"`
 }
 
@@ -44,7 +46,7 @@ func (b Blob) computeDigest() string {
 
 type BlobDigest struct {
 	ID     string `gorm:"column:id;primaryKey"` // this is the digest
-	BlobID int64  `gorm:"column:blob_id"`
+	BlobID ID     `gorm:"column:blob_id"`
 	Blob   Blob   `gorm:"foreignKey:BlobID"`
 }
 
@@ -88,7 +90,7 @@ type VulnerabilityHandle struct {
 	// Name is the unique name for the vulnerability (same as the decoded VulnerabilityBlob.ID)
 	Name string `gorm:"column:name;not null;index"`
 
-	BlobID    int64              `gorm:"column:blob_id;index,unique"`
+	BlobID    ID                 `gorm:"column:blob_id;index,unique"`
 	BlobValue *VulnerabilityBlob `gorm:"-"`
 }
 
@@ -96,6 +98,6 @@ func (v VulnerabilityHandle) getBlobValue() any {
 	return v.BlobValue
 }
 
-func (v *VulnerabilityHandle) setBlobID(id int64) {
+func (v *VulnerabilityHandle) setBlobID(id ID) {
 	v.BlobID = id
 }

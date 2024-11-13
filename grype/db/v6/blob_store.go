@@ -13,7 +13,7 @@ import (
 
 type blobable interface {
 	getBlobValue() any
-	setBlobID(int64)
+	setBlobID(ID)
 }
 
 type blobStore struct {
@@ -75,7 +75,7 @@ func (s *blobStore) addBlobs(blobs ...*Blob) error {
 	return nil
 }
 
-func (s *blobStore) getBlobValue(id int64) (string, error) {
+func (s *blobStore) getBlobValue(id ID) (string, error) {
 	var blob Blob
 	if err := s.db.First(&blob, id).Error; err != nil {
 		return "", err
