@@ -1,6 +1,10 @@
 package v6
 
-import "time"
+import (
+	"encoding/json"
+	"fmt"
+	"time"
+)
 
 // VulnerabilityStatus is meant to convey the current point in the lifecycle for a vulnerability record.
 // This is roughly based on CVE status, NVD status, and vendor-specific status values (see https://nvd.nist.gov/vuln/vulnerability-status)
@@ -27,14 +31,8 @@ const (
 type SeverityScheme string
 
 const (
-	// SeveritySchemeCVSSV2 is the CVSS v2 severity scheme
-	SeveritySchemeCVSSV2 SeverityScheme = "CVSSv2"
-
-	// SeveritySchemeCVSSV3 is the CVSS v3 severity scheme
-	SeveritySchemeCVSSV3 SeverityScheme = "CVSSv3"
-
-	// SeveritySchemeCVSSV4 is the CVSS v4 severity scheme
-	SeveritySchemeCVSSV4 SeverityScheme = "CVSSv4"
+	// SeveritySchemeCVSS is the Common Vulnerability Scoring System severity scheme
+	SeveritySchemeCVSS SeverityScheme = "CVSS"
 
 	// SeveritySchemeHML is a string severity scheme (High, Medium, Low)
 	SeveritySchemeHML SeverityScheme = "HML"
@@ -95,11 +93,55 @@ type Severity struct {
 	Scheme SeverityScheme `json:"scheme"`
 
 	// Value is the severity score (e.g. "7.5", "CVSS:4.0/AV:N/AC:L/AT:N/PR:H/UI:N/VC:L/VI:L/VA:N/SC:N/SI:N/SA:N",  or "high" )
-	Value string `json:"value"`
+	Value any `json:"value"` // one of CVSSSeverity, HMLSeverity, CHMLNSeverity
 
 	// Source is the name of the source of the severity score (e.g. "nvd@nist.gov" or "security-advisories@github.com")
 	Source string `json:"source"`
 
 	// Rank is a free-form organizational field to convey priority over other severities
 	Rank int `json:"rank"`
+}
+
+type severityAlias Severity
+
+type severityUnmarshalProxy struct {
+	*severityAlias
+	Value json.RawMessage `json:"value"`
+}
+
+// UnmarshalJSON custom unmarshaller for Severity struct
+func (s *Severity) UnmarshalJSON(data []byte) error {
+	aux := &severityUnmarshalProxy{
+		severityAlias: (*severityAlias)(s),
+	}
+
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+
+	var cvss CVSSSeverity
+	if err := json.Unmarshal(aux.Value, &cvss); err == nil && cvss.Vector != "" {
+		s.Value = cvss
+		return nil
+	}
+
+	var strSeverity string
+	if err := json.Unmarshal(aux.Value, &strSeverity); err == nil {
+		s.Value = strSeverity
+		return nil
+	}
+
+	return fmt.Errorf("could not unmarshal severity value to known type: %s", aux.Value)
+}
+
+// CVSSSeverity represents a single Common Vulnerability Scoring System entry
+type CVSSSeverity struct {
+	// Vector is the CVSS assessment as a parameterized string
+	Vector string `json:"vector"`
+
+	// Version is the CVSS version (e.g. "3.0")
+	Version string `json:"version"`
+
+	// Score is the evaluated CVSS vector as a scalar between 0 and 10
+	Score float64 `json:"score"`
 }
