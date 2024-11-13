@@ -3,6 +3,7 @@ package gormadapter
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
@@ -77,10 +78,8 @@ func Open(path string, options ...Option) (*gorm.DB, error) {
 	cfg := newConfig(path, options)
 
 	if cfg.shouldTruncate() {
-		if _, err := os.Stat(path); err == nil {
-			if err := os.Remove(path); err != nil {
-				return nil, fmt.Errorf("unable to remove existing DB file: %w", err)
-			}
+		if err := prepareWritableDB(path); err != nil {
+			return nil, err
 		}
 	}
 
@@ -102,4 +101,19 @@ func Open(path string, options ...Option) (*gorm.DB, error) {
 	dbObj.Exec("PRAGMA foreign_keys = ON")
 
 	return dbObj, nil
+}
+
+func prepareWritableDB(path string) error {
+	if _, err := os.Stat(path); err == nil {
+		if err := os.Remove(path); err != nil {
+			return fmt.Errorf("unable to remove existing DB file: %w", err)
+		}
+	}
+
+	parent := filepath.Dir(path)
+	if err := os.MkdirAll(parent, 0700); err != nil {
+		return fmt.Errorf("unable to create parent directory %q for DB file: %w", parent, err)
+	}
+
+	return nil
 }

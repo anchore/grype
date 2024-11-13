@@ -12,13 +12,19 @@ import (
 type store struct {
 	*dbMetadataStore
 	*providerStore
-	db     *gorm.DB
-	config Config
-	write  bool
+	*vulnerabilityStore
+	blobStore *blobStore
+	db        *gorm.DB
+	config    Config
+	write     bool
 }
 
 func newStore(cfg Config, write bool) (*store, error) {
-	db, err := gormadapter.Open(cfg.DBFilePath(), gormadapter.WithTruncate(write))
+	var path string
+	if cfg.DBDirPath != "" {
+		path = cfg.DBFilePath()
+	}
+	db, err := gormadapter.Open(path, gormadapter.WithTruncate(write))
 	if err != nil {
 		return nil, err
 	}
@@ -29,12 +35,15 @@ func newStore(cfg Config, write bool) (*store, error) {
 		}
 	}
 
+	bs := newBlobStore(db)
 	return &store{
-		dbMetadataStore: newDBMetadataStore(db),
-		providerStore:   newProviderStore(db),
-		db:              db,
-		config:          cfg,
-		write:           write,
+		dbMetadataStore:    newDBMetadataStore(db),
+		providerStore:      newProviderStore(db),
+		vulnerabilityStore: newVulnerabilityStore(db, bs),
+		blobStore:          bs,
+		db:                 db,
+		config:             cfg,
+		write:              write,
 	}, nil
 }
 
@@ -42,6 +51,10 @@ func (s *store) Close() error {
 	log.Debug("closing store")
 	if !s.write {
 		return nil
+	}
+
+	if err := s.blobStore.Close(); err != nil {
+		return fmt.Errorf("failed to finalize blobs: %w", err)
 	}
 
 	err := s.db.Exec("VACUUM").Error

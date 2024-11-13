@@ -1,15 +1,53 @@
 package v6
 
-import "time"
+import (
+	"fmt"
+	"time"
+
+	"github.com/OneOfOne/xxhash"
+
+	"github.com/anchore/grype/internal/log"
+)
 
 func models() []any {
 	return []any{
+		// core data store
+		&Blob{},
+		&BlobDigest{}, // only needed in write case
+
 		// non-domain info
 		&DBMetadata{},
 
 		// data source info
 		&Provider{},
+
+		// vulnerability related search tables
+		&VulnerabilityHandle{},
 	}
+}
+
+type ID int64
+
+// core data store //////////////////////////////////////////////////////
+
+type Blob struct {
+	ID    ID     `gorm:"column:id;primaryKey"`
+	Value string `gorm:"column:value;not null"`
+}
+
+func (b Blob) computeDigest() string {
+	h := xxhash.New64()
+	if _, err := h.Write([]byte(b.Value)); err != nil {
+		log.Errorf("unable to hash blob: %v", err)
+		panic(err)
+	}
+	return fmt.Sprintf("xxh64:%x", h.Sum(nil))
+}
+
+type BlobDigest struct {
+	ID     string `gorm:"column:id;primaryKey"` // this is the digest
+	BlobID ID     `gorm:"column:blob_id"`
+	Blob   Blob   `gorm:"foreignKey:BlobID"`
 }
 
 // non-domain info //////////////////////////////////////////////////////
@@ -41,4 +79,25 @@ type Provider struct {
 
 	// InputDigest is a self describing hash (e.g. sha256:123... not 123...) of all data used by the provider to generate the vulnerability records
 	InputDigest string `gorm:"column:input_digest"`
+}
+
+// vulnerability related search tables //////////////////////////////////////////////////////
+
+// VulnerabilityHandle represents the pointer to the core advisory record for a single known vulnerability from a specific provider.
+type VulnerabilityHandle struct {
+	ID int64 `gorm:"column:id;primaryKey"`
+
+	// Name is the unique name for the vulnerability (same as the decoded VulnerabilityBlob.ID)
+	Name string `gorm:"column:name;not null;index"`
+
+	BlobID    ID                 `gorm:"column:blob_id;index,unique"`
+	BlobValue *VulnerabilityBlob `gorm:"-"`
+}
+
+func (v VulnerabilityHandle) getBlobValue() any {
+	return v.BlobValue
+}
+
+func (v *VulnerabilityHandle) setBlobID(id ID) {
+	v.BlobID = id
 }
