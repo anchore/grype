@@ -6,41 +6,6 @@ import (
 	"time"
 )
 
-// VulnerabilityStatus is meant to convey the current point in the lifecycle for a vulnerability record.
-// This is roughly based on CVE status, NVD status, and vendor-specific status values (see https://nvd.nist.gov/vuln/vulnerability-status)
-type VulnerabilityStatus string
-
-const (
-	// VulnerabilityNoStatus is the default status for a vulnerability record
-	VulnerabilityNoStatus VulnerabilityStatus = "?"
-
-	// VulnerabilityActive means that the information from the vulnerability record is actionable
-	VulnerabilityActive VulnerabilityStatus = "active" // empty also means active
-
-	// VulnerabilityAnalyzing means that the vulnerability record is being reviewed, it may or may not be actionable
-	VulnerabilityAnalyzing VulnerabilityStatus = "analyzing"
-
-	// VulnerabilityRejected means that data from the vulnerability record should not be acted upon
-	VulnerabilityRejected VulnerabilityStatus = "rejected"
-
-	// VulnerabilityDisputed means that the vulnerability record is in contention, it may or may not be actionable
-	VulnerabilityDisputed VulnerabilityStatus = "disputed"
-)
-
-// SeverityScheme represents how to interpret the string value for a vulnerability severity
-type SeverityScheme string
-
-const (
-	// SeveritySchemeCVSS is the Common Vulnerability Scoring System severity scheme
-	SeveritySchemeCVSS SeverityScheme = "CVSS"
-
-	// SeveritySchemeHML is a string severity scheme (High, Medium, Low)
-	SeveritySchemeHML SeverityScheme = "HML"
-
-	// SeveritySchemeCHMLN is a string severity scheme (Critical, High, Medium, Low, Negligible)
-	SeveritySchemeCHMLN SeverityScheme = "CHMLN"
-)
-
 // VulnerabilityBlob represents the core advisory record for a single known vulnerability from a specific provider.
 type VulnerabilityBlob struct {
 	// ID is the lowercase unique string identifier for the vulnerability relative to the provider
@@ -144,4 +109,67 @@ type CVSSSeverity struct {
 
 	// Score is the evaluated CVSS vector as a scalar between 0 and 10
 	Score float64 `json:"score"`
+}
+
+// AffectedPackageBlob represents a package affected by a vulnerability.
+type AffectedPackageBlob struct {
+	// CVEs is a list of Common Vulnerabilities and Exposures (CVE) identifiers related to this vulnerability.
+	CVEs []string `json:"cves"`
+
+	// Qualifiers are package attributes that confirm the package is affected by the vulnerability.
+	Qualifiers *AffectedPackageQualifiers `json:"qualifiers,omitempty"`
+
+	// Ranges specifies the affected version ranges and fixes if available.
+	Ranges []AffectedRange `json:"ranges,omitempty"`
+}
+
+// AffectedPackageQualifiers contains package attributes that confirm the package is affected by the vulnerability.
+type AffectedPackageQualifiers struct {
+	// RpmModularity indicates if the package follows RPM modularity for versioning.
+	RpmModularity string `json:"rpm_modularity,omitempty"`
+
+	// PlatformCPEs lists Common Platform Enumeration (CPE) identifiers for affected platforms.
+	PlatformCPEs []string `json:"platform_cpes,omitempty"`
+}
+
+// AffectedRange defines a specific range of versions affected by a vulnerability.
+type AffectedRange struct {
+	// Version defines the version constraints for affected software.
+	Version AffectedVersion `json:"version"`
+
+	// Fix provides details on the fix version and its state if available.
+	Fix *Fix `json:"fix,omitempty"`
+}
+
+// Fix conveys availability of a fix for a vulnerability.
+type Fix struct {
+	// Version is the version number of the fix.
+	Version string `json:"version"`
+
+	// State represents the status of the fix (e.g., "fixed", "unaffected").
+	State FixStatus `json:"state"`
+
+	// Detail provides additional fix information, such as commit details.
+	Detail *FixDetail `json:"detail,omitempty"`
+}
+
+// FixDetail is additional information about a fix, such as commit details and patch URLs.
+type FixDetail struct {
+	// GitCommit is the identifier for the Git commit associated with the fix.
+	GitCommit string `json:"git_commit"`
+
+	// Timestamp is the date and time when the fix was committed.
+	Timestamp *time.Time `json:"timestamp"`
+
+	// References contains URLs or identifiers for additional resources on the fix.
+	References []Reference `json:"references,omitempty"`
+}
+
+// AffectedVersion defines the versioning format and constraints.
+type AffectedVersion struct {
+	// Type specifies the versioning system used (e.g., "semver", "rpm").
+	Type string `json:"type"`
+
+	// Constraint defines the version range constraint for affected versions.
+	Constraint string `json:"constraint"`
 }
