@@ -31,6 +31,7 @@ type Reader interface {
 	ProviderStoreReader
 	VulnerabilityStoreReader
 	AffectedPackageStoreReader
+	AffectedCPEStoreReader
 }
 
 type Writer interface {
@@ -38,6 +39,7 @@ type Writer interface {
 	ProviderStoreWriter
 	VulnerabilityStoreWriter
 	AffectedPackageStoreWriter
+	AffectedCPEStoreWriter
 	io.Closer
 }
 
