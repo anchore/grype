@@ -29,8 +29,7 @@ type Config struct {
 	CACert    string
 
 	// validations
-	ValidateByHashOnGet bool
-	RequireUpdateCheck  bool
+	RequireUpdateCheck bool
 
 	// timeouts
 	CheckTimeout  time.Duration
@@ -51,11 +50,10 @@ type client struct {
 
 func DefaultConfig() Config {
 	return Config{
-		LatestURL:           "https://grype.anchore.io/databases/latest.json",
-		ValidateByHashOnGet: true,
-		RequireUpdateCheck:  false,
-		CheckTimeout:        30 * time.Second,
-		UpdateTimeout:       300 * time.Second,
+		LatestURL:          "https://grype.anchore.io/databases/latest.json",
+		RequireUpdateCheck: false,
+		CheckTimeout:       30 * time.Second,
+		UpdateTimeout:      300 * time.Second,
 	}
 }
 
@@ -214,15 +212,15 @@ func removeAllOrLog(fs afero.Fs, dir string) {
 	}
 }
 
-func isSupersededBy(m *v6.Description, other v6.Description) bool {
-	if m == nil {
+func isSupersededBy(current *v6.Description, candidate v6.Description) bool {
+	if current == nil {
 		log.Debug("cannot find existing metadata, using update...")
 		// any valid update beats no database, use it!
 		return true
 	}
 
-	otherModelPart, otherOk := other.SchemaVersion.ModelPart()
-	currentModelPart, currentOk := m.SchemaVersion.ModelPart()
+	otherModelPart, otherOk := candidate.SchemaVersion.ModelPart()
+	currentModelPart, currentOk := current.SchemaVersion.ModelPart()
 
 	if !otherOk {
 		log.Error("existing database has no schema version, doing nothing...")
@@ -239,8 +237,8 @@ func isSupersededBy(m *v6.Description, other v6.Description) bool {
 		return false
 	}
 
-	if other.Built.After(m.Built.Time) {
-		log.WithFields("existing", m.Built.String(), "candidate", other.Built.String()).Debug("existing database is older than candidate update, using update...")
+	if candidate.Built.After(current.Built.Time) {
+		log.WithFields("existing", current.Built.String(), "candidate", candidate.Built.String()).Debug("existing database is older than candidate update, using update...")
 		// the listing is newer than the existing db, use it!
 		return true
 	}
