@@ -31,7 +31,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, pkg1.PackageID, result1.PackageID)
 	assert.Equal(t, pkg1.BlobID, result1.BlobID)
-	assert.Nil(t, result1.BlobValue) // no preloading on fetch
+	require.Nil(t, result1.BlobValue) // no preloading on fetch
 
 	var result2 AffectedPackageHandle
 	err = db.Where("package_id = ?", pkg2.PackageID).First(&result2).Error
@@ -55,13 +55,13 @@ func TestAffectedPackageStore_GetAffectedPackagesByName(t *testing.T) {
 	tests := []struct {
 		name        string
 		packageName string
-		options     *GetAffectedOptions
+		options     *GetAffectedPackageOptions
 		expected    []AffectedPackageHandle
 	}{
 		{
 			name:        "specific distro",
 			packageName: pkg2d1.Package.Name,
-			options: &GetAffectedOptions{
+			options: &GetAffectedPackageOptions{
 				Distro: &DistroSpecifier{
 					Name:         "ubuntu",
 					MajorVersion: "20",
@@ -73,7 +73,7 @@ func TestAffectedPackageStore_GetAffectedPackagesByName(t *testing.T) {
 		{
 			name:        "distro major version",
 			packageName: pkg2d1.Package.Name,
-			options: &GetAffectedOptions{
+			options: &GetAffectedPackageOptions{
 				Distro: &DistroSpecifier{
 					Name:         "ubuntu",
 					MajorVersion: "20",
@@ -84,7 +84,7 @@ func TestAffectedPackageStore_GetAffectedPackagesByName(t *testing.T) {
 		{
 			name:        "distro codename",
 			packageName: pkg2d1.Package.Name,
-			options: &GetAffectedOptions{
+			options: &GetAffectedPackageOptions{
 				Distro: &DistroSpecifier{
 					Name:     "ubuntu",
 					Codename: "groovy",
@@ -95,7 +95,7 @@ func TestAffectedPackageStore_GetAffectedPackagesByName(t *testing.T) {
 		{
 			name:        "no distro",
 			packageName: pkg2.Package.Name,
-			options: &GetAffectedOptions{
+			options: &GetAffectedPackageOptions{
 				Distro: NoDistroSpecified,
 			},
 			expected: []AffectedPackageHandle{*pkg2},
@@ -103,7 +103,7 @@ func TestAffectedPackageStore_GetAffectedPackagesByName(t *testing.T) {
 		{
 			name:        "any distro",
 			packageName: pkg2d1.Package.Name,
-			options: &GetAffectedOptions{
+			options: &GetAffectedPackageOptions{
 				Distro: AnyDistroSpecified,
 			},
 			expected: []AffectedPackageHandle{*pkg2d1, *pkg2, *pkg2d2},
@@ -111,7 +111,7 @@ func TestAffectedPackageStore_GetAffectedPackagesByName(t *testing.T) {
 		{
 			name:        "package type",
 			packageName: pkg2.Package.Name,
-			options: &GetAffectedOptions{
+			options: &GetAffectedPackageOptions{
 				PackageType: "type2",
 			},
 			expected: []AffectedPackageHandle{*pkg2},

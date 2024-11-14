@@ -12,7 +12,7 @@ import (
 var NoDistroSpecified = &DistroSpecifier{}
 var AnyDistroSpecified *DistroSpecifier
 
-type GetAffectedOptions struct {
+type GetAffectedPackageOptions struct {
 	PreloadOS      bool
 	PreloadPackage bool
 	PreloadBlob    bool
@@ -32,7 +32,7 @@ type AffectedPackageStoreWriter interface {
 }
 
 type AffectedPackageStoreReader interface {
-	GetAffectedPackagesByName(packageName string, config *GetAffectedOptions) ([]AffectedPackageHandle, error)
+	GetAffectedPackagesByName(packageName string, config *GetAffectedPackageOptions) ([]AffectedPackageHandle, error)
 }
 
 type affectedPackageStore struct {
@@ -68,9 +68,9 @@ func (s *affectedPackageStore) AddAffectedPackages(packages ...*AffectedPackageH
 	return nil
 }
 
-func (s *affectedPackageStore) GetAffectedPackagesByName(packageName string, config *GetAffectedOptions) ([]AffectedPackageHandle, error) {
+func (s *affectedPackageStore) GetAffectedPackagesByName(packageName string, config *GetAffectedPackageOptions) ([]AffectedPackageHandle, error) {
 	if config == nil {
-		config = &GetAffectedOptions{}
+		config = &GetAffectedPackageOptions{}
 	}
 
 	log.WithFields("name", packageName, "distro", distroDisplay(config.Distro)).Trace("fetching AffectedPackage record")
@@ -82,7 +82,7 @@ func (s *affectedPackageStore) GetAffectedPackagesByName(packageName string, con
 	return s.getNonDistroPackageByName(packageName, *config)
 }
 
-func (s *affectedPackageStore) getNonDistroPackageByName(packageName string, config GetAffectedOptions) ([]AffectedPackageHandle, error) {
+func (s *affectedPackageStore) getNonDistroPackageByName(packageName string, config GetAffectedPackageOptions) ([]AffectedPackageHandle, error) {
 	var pkgs []AffectedPackageHandle
 	query := s.db.Joins("JOIN packages ON affected_package_handles.package_id = packages.id")
 
@@ -90,8 +90,8 @@ func (s *affectedPackageStore) getNonDistroPackageByName(packageName string, con
 		query = query.Where("operating_system_id IS NULL")
 	}
 
-	query = handlePacakge(query, packageName, config)
-	query = handlePreload(query, config)
+	query = s.handlePacakge(query, packageName, config)
+	query = s.handlePreload(query, config)
 
 	err := query.Find(&pkgs).Error
 
@@ -111,14 +111,14 @@ func (s *affectedPackageStore) getNonDistroPackageByName(packageName string, con
 	return pkgs, nil
 }
 
-func (s *affectedPackageStore) getPackageByNameAndDistro(packageName string, config GetAffectedOptions) ([]AffectedPackageHandle, error) {
+func (s *affectedPackageStore) getPackageByNameAndDistro(packageName string, config GetAffectedPackageOptions) ([]AffectedPackageHandle, error) {
 	var pkgs []AffectedPackageHandle
 	query := s.db.Joins("JOIN packages ON affected_package_handles.package_id = packages.id").
 		Joins("JOIN operating_systems ON affected_package_handles.operating_system_id = operating_systems.id")
 
-	query = handlePacakge(query, packageName, config)
-	query = handleDistro(query, config.Distro)
-	query = handlePreload(query, config)
+	query = s.handlePacakge(query, packageName, config)
+	query = s.handleDistro(query, config.Distro)
+	query = s.handlePreload(query, config)
 
 	err := query.Find(&pkgs).Error
 	if err != nil {
@@ -137,7 +137,7 @@ func (s *affectedPackageStore) getPackageByNameAndDistro(packageName string, con
 	return pkgs, nil
 }
 
-func handlePacakge(query *gorm.DB, packageName string, config GetAffectedOptions) *gorm.DB {
+func (s *affectedPackageStore) handlePacakge(query *gorm.DB, packageName string, config GetAffectedPackageOptions) *gorm.DB {
 	query = query.Where("packages.name = ?", packageName)
 
 	if config.PackageType != "" {
@@ -146,7 +146,7 @@ func handlePacakge(query *gorm.DB, packageName string, config GetAffectedOptions
 	return query
 }
 
-func handleDistro(query *gorm.DB, d *DistroSpecifier) *gorm.DB {
+func (s *affectedPackageStore) handleDistro(query *gorm.DB, d *DistroSpecifier) *gorm.DB {
 	if d == AnyDistroSpecified {
 		return query
 	}
@@ -169,7 +169,7 @@ func handleDistro(query *gorm.DB, d *DistroSpecifier) *gorm.DB {
 	return query
 }
 
-func handlePreload(query *gorm.DB, config GetAffectedOptions) *gorm.DB {
+func (s *affectedPackageStore) handlePreload(query *gorm.DB, config GetAffectedPackageOptions) *gorm.DB {
 	if config.PreloadPackage {
 		query = query.Preload("Package")
 	}
