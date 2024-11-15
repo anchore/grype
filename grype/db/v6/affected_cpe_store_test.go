@@ -9,7 +9,7 @@ import (
 )
 
 func TestAffectedCPEStore_AddAffectedCPEs(t *testing.T) {
-	db := setupTestDB(t)
+	db := setupTestStore(t).db
 	bw := newBlobStore(db)
 	s := newAffectedCPEStore(db, bw)
 
@@ -50,7 +50,7 @@ func TestAffectedCPEStore_AddAffectedCPEs(t *testing.T) {
 }
 
 func TestAffectedCPEStore_GetCPEsByProduct(t *testing.T) {
-	db := setupTestDB(t)
+	db := setupTestStore(t).db
 	bw := newBlobStore(db)
 	s := newAffectedCPEStore(db, bw)
 
