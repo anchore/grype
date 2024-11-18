@@ -28,6 +28,7 @@ func Models() []any {
 		// package related search tables
 		&AffectedPackageHandle{}, // join on package, operating system
 		&OperatingSystem{},
+		&OperatingSystemAlias{},
 		&Package{},
 
 		// CPE related search tables
@@ -150,10 +151,14 @@ type OperatingSystem struct {
 	Name         string `gorm:"column:name;index:os_idx,unique"`
 	MajorVersion string `gorm:"column:major_version;index:os_idx,unique"`
 	MinorVersion string `gorm:"column:minor_version;index:os_idx,unique"`
+	LabelVersion string `gorm:"column:label_version;index:os_idx,unique"`
 	Codename     string `gorm:"column:codename"`
 }
 
 func (os *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
+	if (os.MajorVersion != "" || os.MinorVersion != "") && os.LabelVersion != "" {
+		return fmt.Errorf("cannot have both label_version and major_version/minor_version set")
+	}
 	// if the name, major version, and minor version already exist in the table then we should not insert a new record
 	var existing OperatingSystem
 	result := tx.Where("name = ? AND major_version = ? AND minor_version = ?", os.Name, os.MajorVersion, os.MinorVersion).First(&existing)
@@ -161,6 +166,29 @@ func (os *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
 		// if the record already exists, then we should use the existing record
 		*os = existing
 	}
+	return nil
+}
+
+type OperatingSystemAlias struct {
+	// Name is the matching name as found in the ID field if the /etc/os-release file
+	Name string `gorm:"column:name;primaryKey;index:os_alias_idx"`
+
+	// Version is the matching version as found in the ID field if the /etc/os-release file
+	Version                 string  `gorm:"column:version;primaryKey"`
+	VersionPattern          string  `gorm:"column:version_pattern;primaryKey"`
+	Codename                string  `gorm:"column:codename"`
+	ReplacementName         *string `gorm:"column:replacement;primaryKey"`
+	ReplacementMajorVersion *string `gorm:"column:replacement_major_version;primaryKey"`
+	ReplacementMinorVersion *string `gorm:"column:replacement_minor_version;primaryKey"`
+	ReplacementLabelVersion *string `gorm:"column:replacement_label_version;primaryKey"`
+	Rolling                 bool    `gorm:"column:rolling;primaryKey"`
+}
+
+func (os *OperatingSystemAlias) BeforeCreate(_ *gorm.DB) (err error) {
+	if os.Version != "" && os.VersionPattern != "" {
+		return fmt.Errorf("cannot have both version and version_pattern set")
+	}
+
 	return nil
 }
 
