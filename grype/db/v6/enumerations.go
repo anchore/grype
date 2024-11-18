@@ -7,7 +7,7 @@ import "strings"
 type VulnerabilityStatus string
 
 const (
-	UnknownVulnerabilityStatus VulnerabilityStatus = "?"
+	UnknownVulnerabilityStatus VulnerabilityStatus = ""
 
 	// VulnerabilityActive means that the information from the vulnerability record is actionable
 	VulnerabilityActive VulnerabilityStatus = "active" // empty also means active
@@ -26,13 +26,16 @@ const (
 type SeverityScheme string
 
 const (
-	UnknownSeverityScheme SeverityScheme = "?"
+	UnknownSeverityScheme SeverityScheme = ""
 
 	// SeveritySchemeCVSS is the Common Vulnerability Scoring System severity scheme
 	SeveritySchemeCVSS SeverityScheme = "CVSS"
 
 	// SeveritySchemeHML is a string severity scheme (High, Medium, Low)
 	SeveritySchemeHML SeverityScheme = "HML"
+
+	// SeveritySchemeCHML is a string severity scheme (Critical, High, Medium, Low)
+	SeveritySchemeCHML SeverityScheme = "CHML"
 
 	// SeveritySchemeCHMLN is a string severity scheme (Critical, High, Medium, Low, Negligible)
 	SeveritySchemeCHMLN SeverityScheme = "CHMLN"
@@ -42,7 +45,7 @@ const (
 type FixStatus string
 
 const (
-	UnknownFixStatus FixStatus = "?"
+	UnknownFixStatus FixStatus = ""
 
 	// FixedStatus affirms the package is affected and a fix is available
 	FixedStatus FixStatus = "fixed"
@@ -55,6 +58,11 @@ const (
 
 	// NotAffectedFixStatus affirms the package is not affected by the vulnerability
 	NotAffectedFixStatus FixStatus = "not-affected"
+)
+
+const (
+	// AdvisoryReferenceTag is a reference to a vulnerability advisory
+	AdvisoryReferenceTag string = "advisory"
 )
 
 func ParseVulnerabilityStatus(s string) VulnerabilityStatus {
@@ -78,6 +86,8 @@ func ParseSeverityScheme(s string) SeverityScheme {
 		return SeveritySchemeCVSS
 	case strings.ToLower(string(SeveritySchemeHML)):
 		return SeveritySchemeHML
+	case strings.ToLower(string(SeveritySchemeCHML)):
+		return SeveritySchemeCHML
 	case strings.ToLower(string(SeveritySchemeCHMLN)):
 		return SeveritySchemeCHMLN
 	default:
@@ -98,6 +108,14 @@ func ParseFixStatus(s string) FixStatus {
 	default:
 		return UnknownFixStatus
 	}
+}
+
+func NormalizeReferenceTags(tags []string) []string {
+	var normalized []string
+	for _, tag := range tags {
+		normalized = append(normalized, replaceAny(strings.ToLower(strings.TrimSpace(tag)), "-", " ", "_"))
+	}
+	return normalized
 }
 
 func replaceAny(input string, newStr string, searchFor ...string) string {
