@@ -176,6 +176,34 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 		candidateMatch = existingMatch
 	}
 
+	// filter unrelated fixed versions in case fixed versions are larger than 1
+	if len(candidateMatch.Vulnerability.Fix.Versions) > 1 {
+		var filteredVersions []string
+		format := version.FormatFromPkg(p)
+		cons, err := version.GetConstraint(fmt.Sprintf("<=%s", candidateMatch.Package.Version), format)
+		if err != nil {
+			log.WithFields("package", p.Name).Trace("skipping filtering fixed versions")
+		}
+
+		for _, v := range candidateMatch.Vulnerability.Fix.Versions {
+			comparedVersion, err := version.NewVersion(v, format)
+			if err != nil {
+				log.WithFields("package", p.Name, "version", v).Trace("error while creating version in filtering fixed versions")
+			}
+			skip, err := cons.Satisfied(comparedVersion)
+			if err != nil {
+				log.WithFields("package", p.Name, "version", v).Trace("error while comparing version in filtering fixed versions")
+				continue
+			}
+			if skip {
+				continue
+			}
+			filteredVersions = append(filteredVersions, v)
+		}
+
+		candidateMatch.Vulnerability.Fix.Versions = filteredVersions
+	}
+
 	candidateMatch.Details = addMatchDetails(candidateMatch.Details,
 		match.Detail{
 			Type:       match.CPEMatch,
