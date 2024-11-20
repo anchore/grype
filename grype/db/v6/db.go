@@ -29,19 +29,33 @@ type ReadWriter interface {
 type Reader interface {
 	DBMetadataStoreReader
 	ProviderStoreReader
+	VulnerabilityStoreReader
+	AffectedPackageStoreReader
+	AffectedCPEStoreReader
 }
 
 type Writer interface {
 	DBMetadataStoreWriter
 	ProviderStoreWriter
+	VulnerabilityStoreWriter
+	AffectedPackageStoreWriter
+	AffectedCPEStoreWriter
 	io.Closer
+}
+
+type Curator interface {
+	Reader() (Reader, error)
+	Status() Status
+	Delete() error
+	Update() (bool, error)
+	Import(dbArchivePath string) error
 }
 
 type Config struct {
 	DBDirPath string
 }
 
-func (c *Config) DBFilePath() string {
+func (c Config) DBFilePath() string {
 	return filepath.Join(c.DBDirPath, VulnerabilityDBFileName)
 }
 
