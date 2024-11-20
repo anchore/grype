@@ -3,29 +3,28 @@ package distribution
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/mholt/archiver/v3"
 	"io"
+	"os"
+	"path/filepath"
 	"sort"
 
-	"github.com/anchore/grype/grype/db/internal/schemaver"
 	db "github.com/anchore/grype/grype/db/v6"
 )
 
 const LatestFileName = "latest.json"
 
 type LatestDocument struct {
-	// SchemaVersion is the version of the DB schema
-	SchemaVersion schemaver.SchemaVer `json:"schemaVersion"`
-
 	// Status indicates if the database is actively being maintained and distributed
 	Status Status `json:"status"`
 
 	// Archive is the most recent database that has been built and distributed, additionally annotated with provider-level information
-	Archive Archive `json:"archive"`
+	Archive `json:",inline"`
 }
 
 type Archive struct {
 	// Description contains details about the database contained within the distribution archive
-	Description db.Description `json:"database"`
+	db.Description `json:",inline"`
 
 	// Path is the path to a DB archive relative to the listing file hosted location.
 	// Note: this is NOT the absolute URL to download the database.
@@ -46,9 +45,8 @@ func NewLatestDocument(entries ...Archive) *LatestDocument {
 	})
 
 	return &LatestDocument{
-		SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
-		Archive:       entries[0],
-		Status:        LifecycleStatus,
+		Archive: entries[0],
+		Status:  LifecycleStatus,
 	}
 }
 
@@ -65,6 +63,43 @@ func NewLatestFromReader(reader io.Reader) (*LatestDocument, error) {
 	}
 
 	return &l, nil
+}
+
+func NewArchive(path string) (*Archive, error) {
+	tmpDir, err := os.MkdirTemp("", "grype-db-archive")
+	if err != nil {
+		return nil, fmt.Errorf("unable to create temp dir for grype-db archive: %w", err)
+	}
+
+	if err = archiver.Unarchive(path, tmpDir); err != nil {
+		return nil, fmt.Errorf("unable to extract archive: %w", err)
+	}
+
+	cfg := db.Config{
+		DBDirPath: tmpDir,
+	}
+
+	desc, err := db.ReadDescription(cfg.DBFilePath())
+	if err != nil {
+		return nil, fmt.Errorf("failed to calculate description: %w", err)
+	}
+
+	if desc == nil {
+		return nil, fmt.Errorf("unable to describe the database")
+	}
+
+	// calculate the sh256sum of the archive
+	checksum, err := db.CalculateArchiveDigest(cfg.DBFilePath())
+	if err != nil {
+		return nil, fmt.Errorf("failed to calculate archive checksum: %w", err)
+	}
+
+	return &Archive{
+		Description: *desc,
+		// this is not the path on disk, this is the path relative to the latest.json file when hosted
+		Path:     filepath.Base(path),
+		Checksum: checksum,
+	}, nil
 }
 
 func (l LatestDocument) Write(writer io.Writer) error {
@@ -87,13 +122,6 @@ func (l LatestDocument) Write(writer io.Writer) error {
 	if l.Archive.Description.Built.Time.IsZero() {
 		return fmt.Errorf("missing built time")
 	}
-
-	if l.Archive.Description.Checksum == "" {
-		return fmt.Errorf("missing database checksum")
-	}
-
-	// we don't need to store duplicate information from the archive section in the doc
-	l.Archive.Description.SchemaVersion = ""
 
 	contents, err := json.MarshalIndent(&l, "", " ")
 	if err != nil {

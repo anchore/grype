@@ -40,7 +40,7 @@ func DBList(app clio.Application) *cobra.Command {
 }
 
 func runDBList(opts *dbListOptions) error {
-	dbCurator, err := distribution.NewCurator(opts.DB.ToCuratorConfig())
+	dbCurator, err := distribution.NewCurator(opts.DB.ToLegacyCuratorConfig())
 	if err != nil {
 		return err
 	}

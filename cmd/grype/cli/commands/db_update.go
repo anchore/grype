@@ -31,7 +31,7 @@ func DBUpdate(app clio.Application) *cobra.Command {
 }
 
 func runDBUpdate(opts options.Database) error {
-	dbCurator, err := distribution.NewCurator(opts.ToCuratorConfig())
+	dbCurator, err := distribution.NewCurator(opts.ToLegacyCuratorConfig())
 	if err != nil {
 		return err
 	}

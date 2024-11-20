@@ -316,7 +316,7 @@ func TestCalculateDigest(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			digest, err := CalculateDigest(filePath)
+			digest, err := CalculateDBDigest(filePath)
 
 			if tt.expectedErr != "" {
 				require.ErrorContains(t, err, tt.expectedErr)

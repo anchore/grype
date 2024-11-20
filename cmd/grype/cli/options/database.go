@@ -1,13 +1,15 @@
 package options
 
 import (
+	"github.com/anchore/grype/grype/db/v6/distribution"
+	"github.com/anchore/grype/grype/db/v6/installation"
 	"path"
 	"time"
 
 	"github.com/adrg/xdg"
 
 	"github.com/anchore/clio"
-	"github.com/anchore/grype/grype/db/legacy/distribution"
+	legacyDistribution "github.com/anchore/grype/grype/db/legacy/distribution"
 	"github.com/anchore/grype/internal"
 )
 
@@ -53,8 +55,29 @@ func DefaultDatabase(id clio.Identification) Database {
 	}
 }
 
-func (cfg Database) ToCuratorConfig() distribution.Config {
+func (cfg Database) ToClientConfig() distribution.Config {
 	return distribution.Config{
+		ID:                 cfg.ID,
+		LatestURL:          cfg.UpdateURL,
+		CACert:             cfg.CACert,
+		RequireUpdateCheck: cfg.RequireUpdateCheck,
+		CheckTimeout:       cfg.UpdateAvailableTimeout, // TODO: is this right?
+		UpdateTimeout:      cfg.UpdateDownloadTimeout,
+	}
+}
+
+func (cfg Database) ToCuratorConfig() installation.Config {
+	return installation.Config{
+		DBRootDir:               cfg.Dir,
+		ValidateAge:             cfg.ValidateAge,
+		ValidateChecksum:        cfg.ValidateByHashOnStart,
+		MaxAllowedBuiltAge:      cfg.MaxAllowedBuiltAge,
+		UpdateCheckMaxFrequency: cfg.MaxUpdateCheckFrequency,
+	}
+}
+
+func (cfg Database) ToLegacyCuratorConfig() legacyDistribution.Config {
+	return legacyDistribution.Config{
 		ID:                      cfg.ID,
 		DBRootDir:               cfg.Dir,
 		ListingURL:              cfg.UpdateURL,

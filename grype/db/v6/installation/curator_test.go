@@ -139,7 +139,7 @@ func writeTestDescriptionToDB(t *testing.T, dir string, desc db.Description) str
 
 	require.NoError(t, d.Exec("VACUUM").Error)
 
-	digest, err := db.CalculateDigest(c.DBFilePath())
+	digest, err := db.CalculateDBDigest(c.DBFilePath())
 	require.NoError(t, err)
 
 	// write the checksums file
