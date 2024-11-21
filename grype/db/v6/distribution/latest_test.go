@@ -17,18 +17,42 @@ func TestNewLatestDocument(t *testing.T) {
 	t.Run("valid entries", func(t *testing.T) {
 		archive1 := Archive{
 			Description: db.Description{
-				Built: db.Time{Time: time.Now()},
+				SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
+				Built:         db.Time{Time: time.Now()},
 			},
 		}
 		archive2 := Archive{
 			Description: db.Description{
-				Built: db.Time{Time: time.Now().Add(-1 * time.Hour)},
+				SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
+				Built:         db.Time{Time: time.Now().Add(-1 * time.Hour)},
 			},
 		}
 
 		latestDoc := NewLatestDocument(archive1, archive2)
 		require.NotNil(t, latestDoc)
 		require.Equal(t, latestDoc.Archive, archive1) // most recent archive
+		actual, ok := latestDoc.SchemaVersion.ModelPart()
+		require.True(t, ok)
+		require.Equal(t, actual, db.ModelVersion)
+	})
+
+	t.Run("filter entries", func(t *testing.T) {
+		archive1 := Archive{
+			Description: db.Description{
+				SchemaVersion: schemaver.New(5, db.Revision, db.Addition), // old!
+				Built:         db.Time{Time: time.Now()},
+			},
+		}
+		archive2 := Archive{
+			Description: db.Description{
+				SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
+				Built:         db.Time{Time: time.Now().Add(-1 * time.Hour)},
+			},
+		}
+
+		latestDoc := NewLatestDocument(archive1, archive2)
+		require.NotNil(t, latestDoc)
+		require.Equal(t, latestDoc.Archive, archive2) // most recent archive with valid version
 		actual, ok := latestDoc.SchemaVersion.ModelPart()
 		require.True(t, ok)
 		require.Equal(t, actual, db.ModelVersion)
@@ -43,7 +67,6 @@ func TestNewLatestDocument(t *testing.T) {
 func TestNewLatestFromReader(t *testing.T) {
 	t.Run("valid JSON", func(t *testing.T) {
 		latestDoc := LatestDocument{
-			SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 			Archive: Archive{
 				Description: db.Description{
 					Built: db.Time{Time: time.Now().Truncate(time.Second).UTC()},
@@ -87,15 +110,13 @@ func TestLatestDocument_Write(t *testing.T) {
 		{
 			name: "valid document",
 			latestDoc: LatestDocument{
-				SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 				Archive: Archive{
 					Description: db.Description{
 						Built:         now,
-						Checksum:      "xxh64:validchecksum",
 						SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 					},
 					Path:     "valid/path/to/archive",
-					Checksum: "xxh64:validchecksum",
+					Checksum: "sha256:validchecksum",
 				},
 				// note: status not supplied, should assume to be active
 			},
@@ -104,11 +125,9 @@ func TestLatestDocument_Write(t *testing.T) {
 		{
 			name: "explicit status",
 			latestDoc: LatestDocument{
-				SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 				Archive: Archive{
 					Description: db.Description{
 						Built:         now,
-						Checksum:      "xxh64:validchecksum",
 						SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 					},
 					Path:     "valid/path/to/archive",
@@ -123,9 +142,7 @@ func TestLatestDocument_Write(t *testing.T) {
 			latestDoc: LatestDocument{
 				Archive: Archive{
 					Description: db.Description{
-						Built:         now,
-						Checksum:      "xxh64:validchecksum",
-						SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
+						Built: now,
 					},
 					Path:     "valid/path/to/archive",
 					Checksum: "xxh64:validchecksum",
@@ -137,11 +154,9 @@ func TestLatestDocument_Write(t *testing.T) {
 		{
 			name: "missing archive path",
 			latestDoc: LatestDocument{
-				SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 				Archive: Archive{
 					Description: db.Description{
 						Built:         now,
-						Checksum:      "xxh64:validchecksum",
 						SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 					},
 					Path:     "", // this!
@@ -154,11 +169,9 @@ func TestLatestDocument_Write(t *testing.T) {
 		{
 			name: "missing archive checksum",
 			latestDoc: LatestDocument{
-				SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 				Archive: Archive{
 					Description: db.Description{
 						Built:         now,
-						Checksum:      "xxh64:validchecksum",
 						SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 					},
 					Path:     "valid/path/to/archive",
@@ -171,11 +184,9 @@ func TestLatestDocument_Write(t *testing.T) {
 		{
 			name: "missing built time",
 			latestDoc: LatestDocument{
-				SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 				Archive: Archive{
 					Description: db.Description{
 						Built:         db.Time{}, // this!
-						Checksum:      "xxh64:validchecksum",
 						SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 					},
 					Path:     "valid/path/to/archive",
@@ -184,23 +195,6 @@ func TestLatestDocument_Write(t *testing.T) {
 				Status: "active",
 			},
 			expectedError: errContains("missing built time"),
-		},
-		{
-			name: "missing database checksum",
-			latestDoc: LatestDocument{
-				SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
-				Archive: Archive{
-					Description: db.Description{
-						Built:         now,
-						Checksum:      "", // this!
-						SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
-					},
-					Path:     "valid/path/to/archive",
-					Checksum: "xxh64:validchecksum",
-				},
-				Status: "active",
-			},
-			expectedError: errContains("missing database checksum"),
 		},
 	}
 
@@ -219,10 +213,8 @@ func TestLatestDocument_Write(t *testing.T) {
 			var result LatestDocument
 			assert.NoError(t, json.Unmarshal(buf.Bytes(), &result))
 			assert.Equal(t, tt.latestDoc.SchemaVersion, result.SchemaVersion, "schema version mismatch")
-			assert.Empty(t, result.Archive.Description.SchemaVersion, "nested schema version should be empty")
 			assert.Equal(t, tt.latestDoc.Archive.Checksum, result.Archive.Checksum, "archive checksum mismatch")
 			assert.Equal(t, tt.latestDoc.Archive.Description.Built.Time, result.Archive.Description.Built.Time, "built time mismatch")
-			assert.Equal(t, tt.latestDoc.Archive.Description.Checksum, result.Archive.Description.Checksum, "database checksum mismatch")
 			assert.Equal(t, tt.latestDoc.Archive.Path, result.Archive.Path, "path mismatch")
 			if tt.latestDoc.Status == "" {
 				assert.Equal(t, StatusActive, result.Status, "status mismatch")

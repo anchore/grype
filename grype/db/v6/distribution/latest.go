@@ -3,11 +3,12 @@ package distribution
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/mholt/archiver/v3"
 	"io"
 	"os"
 	"path/filepath"
 	"sort"
+
+	"github.com/mholt/archiver/v3"
 
 	db "github.com/anchore/grype/grype/db/v6"
 )
@@ -35,17 +36,24 @@ type Archive struct {
 }
 
 func NewLatestDocument(entries ...Archive) *LatestDocument {
-	if len(entries) == 0 {
+	var validEntries []Archive
+	for _, entry := range entries {
+		if modelPart, ok := entry.SchemaVersion.ModelPart(); ok && modelPart == db.ModelVersion {
+			validEntries = append(validEntries, entry)
+		}
+	}
+
+	if len(validEntries) == 0 {
 		return nil
 	}
 
 	// sort from most recent to the least recent
-	sort.SliceStable(entries, func(i, j int) bool {
-		return entries[i].Description.Built.After(entries[j].Description.Built.Time)
+	sort.SliceStable(validEntries, func(i, j int) bool {
+		return validEntries[i].Description.Built.After(entries[j].Description.Built.Time)
 	})
 
 	return &LatestDocument{
-		Archive: entries[0],
+		Archive: validEntries[0],
 		Status:  LifecycleStatus,
 	}
 }

@@ -2,8 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"github.com/anchore/grype/grype/db/v6/distribution"
-	"github.com/anchore/grype/grype/db/v6/installation"
 	"path/filepath"
 	"strings"
 
@@ -12,6 +10,8 @@ import (
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	legacyDistribution "github.com/anchore/grype/grype/db/legacy/distribution"
+	"github.com/anchore/grype/grype/db/v6/distribution"
+	"github.com/anchore/grype/grype/db/v6/installation"
 	"github.com/anchore/grype/internal"
 )
 

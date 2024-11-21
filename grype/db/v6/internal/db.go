@@ -14,7 +14,7 @@ func NewDB(dbFilePath string, models []any, truncate bool) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	if len(models) > 0 {
+	if len(models) > 0 && truncate {
 		if err := db.AutoMigrate(models...); err != nil {
 			return nil, fmt.Errorf("unable to create tables: %w", err)
 		}

@@ -1,8 +1,6 @@
 package options
 
 import (
-	"github.com/anchore/grype/grype/db/v6/distribution"
-	"github.com/anchore/grype/grype/db/v6/installation"
 	"path"
 	"time"
 
@@ -10,6 +8,8 @@ import (
 
 	"github.com/anchore/clio"
 	legacyDistribution "github.com/anchore/grype/grype/db/legacy/distribution"
+	"github.com/anchore/grype/grype/db/v6/distribution"
+	"github.com/anchore/grype/grype/db/v6/installation"
 	"github.com/anchore/grype/internal"
 )
 
@@ -61,7 +61,7 @@ func (cfg Database) ToClientConfig() distribution.Config {
 		LatestURL:          cfg.UpdateURL,
 		CACert:             cfg.CACert,
 		RequireUpdateCheck: cfg.RequireUpdateCheck,
-		CheckTimeout:       cfg.UpdateAvailableTimeout, // TODO: is this right?
+		CheckTimeout:       cfg.UpdateAvailableTimeout,
 		UpdateTimeout:      cfg.UpdateDownloadTimeout,
 	}
 }

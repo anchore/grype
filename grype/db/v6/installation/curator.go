@@ -2,7 +2,6 @@ package installation
 
 import (
 	"fmt"
-	"github.com/hashicorp/go-multierror"
 	"os"
 	"path"
 	"path/filepath"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/hako/durafmt"
+	"github.com/hashicorp/go-multierror"
 	"github.com/mholt/archiver/v3"
 	"github.com/spf13/afero"
 	"github.com/wagoodman/go-partybus"
@@ -105,11 +105,12 @@ func (c curator) Status() db.Status {
 	var persistentErr error
 	digest, persistentErr := db.CalculateDBDigest(c.config.DBFilePath())
 
-	if valiadateErr := c.validate(); valiadateErr != nil {
+	if validateErr := c.validate(); validateErr != nil {
 		if persistentErr != nil {
-			persistentErr = multierror.Append(persistentErr, valiadateErr)
+			persistentErr = multierror.Append(persistentErr, validateErr)
+		} else {
+			persistentErr = validateErr
 		}
-		persistentErr = valiadateErr
 	}
 
 	return db.Status{
@@ -348,7 +349,7 @@ func (c curator) validateIntegrity(dbFilePath string) (*db.Description, error) {
 		return nil, fmt.Errorf("database not found: %s", dbFilePath)
 	}
 
-	digest, err := db.CalculateDBDigest(c.config.DBFilePath())
+	digest, err := db.ReadDBChecksum(filepath.Dir(dbFilePath))
 	if err != nil {
 		return nil, err
 	}
