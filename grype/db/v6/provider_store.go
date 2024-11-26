@@ -3,6 +3,7 @@ package v6
 import (
 	"errors"
 	"fmt"
+	"sort"
 
 	"gorm.io/gorm"
 
@@ -74,6 +75,10 @@ func (s *providerStore) AllProviders() ([]Provider, error) {
 	if result.Error != nil {
 		return nil, fmt.Errorf("failed to fetch all providers: %w", result.Error)
 	}
+
+	sort.Slice(providers, func(i, j int) bool {
+		return providers[i].ID < providers[j].ID
+	})
 
 	return providers, nil
 }

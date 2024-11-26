@@ -489,15 +489,16 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 	t.Run("valid metadata with correct checksum", func(t *testing.T) {
 		c := newCurator(t)
 
-		result, err := c.validateIntegrity(c.config.DBFilePath())
+		result, digest, err := c.validateIntegrity(c.config.DBFilePath(), true)
 		require.NoError(t, err)
 		require.NotNil(t, result)
+		require.NotEmpty(t, digest)
 	})
 
 	t.Run("db does not exist", func(t *testing.T) {
 		c := newCurator(t)
 
-		_, err := c.validateIntegrity("non/existent/path")
+		_, _, err := c.validateIntegrity("non/existent/path", true)
 		require.ErrorContains(t, err, "database does not exist")
 	})
 
@@ -505,7 +506,7 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 		c := newCurator(t)
 		dbDir := c.config.DBDirectoryPath()
 		require.NoError(t, os.Remove(filepath.Join(dbDir, db.ChecksumFileName)))
-		_, err := c.validateIntegrity(c.config.DBFilePath())
+		_, _, err := c.validateIntegrity(c.config.DBFilePath(), true)
 		require.ErrorContains(t, err, "no such file or directory")
 	})
 
@@ -515,7 +516,7 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 
 		writeTestChecksumsFile(t, c.fs, dbDir, "xxh64:invalidchecksum")
 
-		_, err := c.validateIntegrity(c.config.DBFilePath())
+		_, _, err := c.validateIntegrity(c.config.DBFilePath(), true)
 		require.ErrorContains(t, err, "bad db checksum")
 	})
 
@@ -529,7 +530,7 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 
 		writeTestDescriptionToDB(t, c.config.DBDirectoryPath(), oldDescription)
 
-		_, err := c.validateIntegrity(c.config.DBFilePath())
+		_, _, err := c.validateIntegrity(c.config.DBFilePath(), true)
 		require.ErrorContains(t, err, "unsupported database version")
 	})
 }

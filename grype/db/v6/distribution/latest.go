@@ -4,12 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"sort"
+	"time"
 
-	"github.com/mholt/archiver/v3"
-
+	"github.com/anchore/grype/grype/db/internal/schemaver"
 	db "github.com/anchore/grype/grype/db/v6"
 )
 
@@ -73,37 +72,17 @@ func NewLatestFromReader(reader io.Reader) (*LatestDocument, error) {
 	return &l, nil
 }
 
-func NewArchive(path string) (*Archive, error) {
-	tmpDir, err := os.MkdirTemp("", "grype-db-archive")
-	if err != nil {
-		return nil, fmt.Errorf("unable to create temp dir for grype-db archive: %w", err)
-	}
-
-	if err = archiver.Unarchive(path, tmpDir); err != nil {
-		return nil, fmt.Errorf("unable to extract archive: %w", err)
-	}
-
-	cfg := db.Config{
-		DBDirPath: tmpDir,
-	}
-
-	desc, err := db.ReadDescription(cfg.DBFilePath())
-	if err != nil {
-		return nil, fmt.Errorf("failed to calculate description: %w", err)
-	}
-
-	if desc == nil {
-		return nil, fmt.Errorf("unable to describe the database")
-	}
-
-	// calculate the sh256sum of the archive
-	checksum, err := db.CalculateArchiveDigest(cfg.DBFilePath())
+func NewArchive(path string, t time.Time, model, revision, addition int) (*Archive, error) {
+	checksum, err := db.CalculateArchiveDigest(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate archive checksum: %w", err)
 	}
 
 	return &Archive{
-		Description: *desc,
+		Description: db.Description{
+			SchemaVersion: schemaver.New(model, revision, addition),
+			Built:         db.Time{Time: t},
+		},
 		// this is not the path on disk, this is the path relative to the latest.json file when hosted
 		Path:     filepath.Base(path),
 		Checksum: checksum,

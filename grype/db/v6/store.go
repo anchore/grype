@@ -47,6 +47,7 @@ func newStore(cfg Config, write bool) (*store, error) {
 	}, nil
 }
 
+// Close closes the store and finalizes the blobs when the DB is open for writing. If open for reading, it does nothing.
 func (s *store) Close() error {
 	log.Debug("closing store")
 	if !s.write {

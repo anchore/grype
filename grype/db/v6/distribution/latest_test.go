@@ -3,9 +3,12 @@ package distribution
 import (
 	"bytes"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -220,6 +223,56 @@ func TestLatestDocument_Write(t *testing.T) {
 				assert.Equal(t, StatusActive, result.Status, "status mismatch")
 			} else {
 				assert.Equal(t, tt.latestDoc.Status, result.Status, "status mismatch")
+			}
+		})
+	}
+}
+
+func TestNewArchive(t *testing.T) {
+	tests := []struct {
+		name      string
+		contents  string
+		time      time.Time
+		model     int
+		revision  int
+		addition  int
+		expectErr require.ErrorAssertionFunc
+		expected  *Archive
+	}{
+		{
+			name:      "valid input",
+			contents:  "test archive content",
+			time:      time.Date(2023, 11, 24, 12, 0, 0, 0, time.UTC),
+			model:     1,
+			revision:  0,
+			addition:  5,
+			expectErr: require.NoError,
+			expected: &Archive{
+				Description: db.Description{
+					SchemaVersion: schemaver.New(1, 0, 5),
+					Built:         db.Time{Time: time.Date(2023, 11, 24, 12, 0, 0, 0, time.UTC)},
+				},
+				Path:     "archive.tar.gz",
+				Checksum: "sha256:2a11c11d2c3803697c458a1f5f03c2b73235c101f93c88193cc8810003c40d87",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := t.TempDir()
+			tempFile, err := os.Create(filepath.Join(d, tt.expected.Path))
+			require.NoError(t, err)
+			_, err = tempFile.WriteString(tt.contents)
+			require.NoError(t, err)
+
+			archive, err := NewArchive(tempFile.Name(), tt.time, tt.model, tt.revision, tt.addition)
+			tt.expectErr(t, err)
+			if err != nil {
+				return
+			}
+			if diff := cmp.Diff(tt.expected, archive); diff != "" {
+				t.Errorf("unexpected archive (-want +got):\n%s", diff)
 			}
 		})
 	}

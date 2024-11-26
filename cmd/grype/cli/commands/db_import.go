@@ -33,10 +33,11 @@ func DBImport(app clio.Application) *cobra.Command {
 func runDBImport(opts options.Database, dbArchivePath string) error {
 	// TODO: tui update? better logging?
 
-	if isLegacy(dbArchivePath) {
-		return legacyDBImport(opts, dbArchivePath)
+	// TODO: we will only support v6 after development is complete
+	if isV6DB(dbArchivePath) {
+		return importDB(opts, dbArchivePath)
 	}
-	return importDB(opts, dbArchivePath)
+	return legacyDBImport(opts, dbArchivePath)
 }
 
 func importDB(opts options.Database, dbArchivePath string) error {
@@ -68,6 +69,6 @@ func legacyDBImport(opts options.Database, dbArchivePath string) error {
 	return stderrPrintLnf("Vulnerability database imported")
 }
 
-func isLegacy(path string) bool {
-	return !strings.Contains(filepath.Base(path), "vulnerability-db_v6")
+func isV6DB(path string) bool {
+	return strings.Contains(filepath.Base(path), "vulnerability-db_v6")
 }
