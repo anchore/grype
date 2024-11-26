@@ -19,7 +19,7 @@ require (
 	github.com/anchore/syft v1.17.0
 	github.com/aquasecurity/go-pep440-version v0.0.0-20210121094942-22b2f8951d46
 	github.com/bmatcuk/doublestar/v2 v2.0.4
-	github.com/charmbracelet/bubbletea v1.2.3
+	github.com/charmbracelet/bubbletea v1.2.4
 	github.com/charmbracelet/lipgloss v1.0.0
 	github.com/dave/jennifer v1.7.1
 	github.com/docker/docker v27.3.1+incompatible
