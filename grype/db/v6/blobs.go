@@ -14,8 +14,8 @@ type VulnerabilityBlob struct {
 	// ProviderName of the Vunnel provider (or sub processor responsible for data records from a single specific source, e.g. "ubuntu")
 	ProviderName string `json:"provider"`
 
-	// Assigner is a list of names, email, or organizations who submitted the vulnerability
-	Assigner []string `json:"assigner,omitempty"`
+	// Assigners is a list of names, email, or organizations who submitted the vulnerability
+	Assigners []string `json:"assigner,omitempty"`
 
 	// Status conveys the actionability of the current record
 	Status VulnerabilityStatus `json:"status"`

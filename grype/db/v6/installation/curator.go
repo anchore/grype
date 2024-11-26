@@ -83,13 +83,15 @@ func (c curator) Reader() (db.Reader, error) {
 		return nil, err
 	}
 
-	return s, c.validate()
+	_, err = c.validate(c.config.ValidateChecksum)
+
+	return s, err
 }
 
 func (c curator) Status() db.Status {
 	dbDir := c.config.DBDirectoryPath()
 
-	d, err := db.ReadDescription(dbDir)
+	d, err := db.ReadDescription(c.config.DBFilePath())
 	if err != nil {
 		return db.Status{
 			Err: err,
@@ -101,12 +103,15 @@ func (c curator) Status() db.Status {
 		}
 	}
 
+	// override the checksum validation setting to ensure the checksum is always validated
+	digest, validateErr := c.validate(true)
+
 	return db.Status{
 		Built:         db.Time{Time: d.Built.Time},
 		SchemaVersion: d.SchemaVersion.String(),
 		Location:      dbDir,
-		Checksum:      d.Checksum,
-		Err:           c.validate(),
+		Checksum:      digest,
+		Err:           validateErr,
 	}
 }
 
@@ -256,13 +261,13 @@ func (c curator) setLastSuccessfulUpdateCheck() {
 }
 
 // validate checks the current database to ensure file integrity and if it can be used by this version of the application.
-func (c curator) validate() error {
-	metadata, err := c.validateIntegrity(c.config.DBDirectoryPath())
+func (c curator) validate(validateChecksum bool) (string, error) {
+	metadata, digest, err := c.validateIntegrity(c.config.DBFilePath(), validateChecksum)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return c.ensureNotStale(metadata)
+	return digest, c.ensureNotStale(metadata)
 }
 
 // Import takes a DB archive file and imports it into the final DB location.
@@ -293,7 +298,7 @@ func (c curator) Import(dbArchivePath string) error {
 	return nil
 }
 
-// activate swaps over the downloaded db to the application directory
+// activate swaps over the downloaded db to the application directory, calculates the checksum, and records the checksums to a file.
 func (c curator) activate(dbDirPath string, mon monitor) error {
 	defer mon.importProgress.SetCompleted()
 
@@ -301,13 +306,13 @@ func (c curator) activate(dbDirPath string, mon monitor) error {
 
 	// overwrite the checksums file with the new checksums
 	dbFilePath := filepath.Join(dbDirPath, db.VulnerabilityDBFileName)
-	desc, err := db.CalculateDescription(dbFilePath)
+	digest, err := db.CalculateDBDigest(dbFilePath)
 	if err != nil {
 		return err
 	}
 
 	checksumsFilePath := filepath.Join(dbDirPath, db.ChecksumFileName)
-	if err := afero.WriteFile(c.fs, checksumsFilePath, []byte(desc.Checksum), 0644); err != nil {
+	if err := afero.WriteFile(c.fs, checksumsFilePath, []byte(digest), 0644); err != nil {
 		return err
 	}
 
@@ -327,33 +332,38 @@ func (c curator) activate(dbDirPath string, mon monitor) error {
 	return os.Rename(dbDirPath, dbDir)
 }
 
-func (c curator) validateIntegrity(dbDirPath string) (*db.Description, error) {
+func (c curator) validateIntegrity(dbFilePath string, validateChecksum bool) (*db.Description, string, error) {
 	// check that the disk checksum still matches the db payload
-	metadata, err := db.ReadDescription(dbDirPath)
+	metadata, err := db.ReadDescription(dbFilePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse database metadata (%s): %w", dbDirPath, err)
+		return nil, "", fmt.Errorf("failed to parse database metadata (%s): %w", dbFilePath, err)
 	}
 	if metadata == nil {
-		return nil, fmt.Errorf("database metadata not found: %s", dbDirPath)
-	}
-
-	if c.config.ValidateChecksum {
-		dbPath := path.Join(dbDirPath, db.VulnerabilityDBFileName)
-		valid, actualHash, err := file.ValidateByHash(c.fs, dbPath, metadata.Checksum)
-		if err != nil {
-			return nil, err
-		}
-		if !valid {
-			return nil, fmt.Errorf("bad db checksum (%s): %q vs %q", dbPath, metadata.Checksum, actualHash)
-		}
+		return nil, "", fmt.Errorf("database not found: %s", dbFilePath)
 	}
 
 	gotModel, ok := metadata.SchemaVersion.ModelPart()
 	if !ok || gotModel != db.ModelVersion {
-		return nil, fmt.Errorf("unsupported database version: have=%d want=%d", gotModel, db.ModelVersion)
+		return nil, "", fmt.Errorf("unsupported database version: have=%d want=%d", gotModel, db.ModelVersion)
 	}
 
-	return metadata, nil
+	var digest string
+	if validateChecksum {
+		digest, err = db.ReadDBChecksum(filepath.Dir(dbFilePath))
+		if err != nil {
+			return nil, "", err
+		}
+
+		valid, actualHash, err := file.ValidateByHash(c.fs, dbFilePath, digest)
+		if err != nil {
+			return nil, "", err
+		}
+		if !valid {
+			return nil, "", fmt.Errorf("bad db checksum (%s): %q vs %q", dbFilePath, digest, actualHash)
+		}
+	}
+
+	return metadata, digest, nil
 }
 
 // ensureNotStale ensures the vulnerability database has not passed

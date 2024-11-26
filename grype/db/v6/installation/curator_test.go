@@ -81,12 +81,13 @@ func setupCuratorForUpdate(t *testing.T, opts ...setupOption) curator {
 	oldDescription := db.Description{
 		SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 		Built:         db.Time{Time: time.Now().Add(-48 * time.Hour)},
-		Checksum:      writeTestDB(t, c.fs, dbDir),
 	}
+	writeTestDB(t, c.fs, dbDir)
 
 	newDescription := oldDescription
 	newDescription.Built = db.Time{Time: time.Now()}
-	newDescription.Checksum = writeTestDB(t, c.fs, stageDir)
+
+	writeTestDB(t, c.fs, stageDir)
 
 	writeTestDescriptionToDB(t, dbDir, oldDescription)
 	writeTestDescriptionToDB(t, stageDir, newDescription)
@@ -139,7 +140,7 @@ func writeTestDescriptionToDB(t *testing.T, dir string, desc db.Description) str
 
 	require.NoError(t, d.Exec("VACUUM").Error)
 
-	digest, err := db.CalculateDigest(c.DBFilePath())
+	digest, err := db.CalculateDBDigest(c.DBFilePath())
 	require.NoError(t, err)
 
 	// write the checksums file
@@ -487,17 +488,17 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 
 	t.Run("valid metadata with correct checksum", func(t *testing.T) {
 		c := newCurator(t)
-		dbDir := c.config.DBDirectoryPath()
 
-		result, err := c.validateIntegrity(dbDir)
+		result, digest, err := c.validateIntegrity(c.config.DBFilePath(), true)
 		require.NoError(t, err)
 		require.NotNil(t, result)
+		require.NotEmpty(t, digest)
 	})
 
 	t.Run("db does not exist", func(t *testing.T) {
 		c := newCurator(t)
 
-		_, err := c.validateIntegrity("non/existent/path")
+		_, _, err := c.validateIntegrity("non/existent/path", true)
 		require.ErrorContains(t, err, "database does not exist")
 	})
 
@@ -505,7 +506,7 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 		c := newCurator(t)
 		dbDir := c.config.DBDirectoryPath()
 		require.NoError(t, os.Remove(filepath.Join(dbDir, db.ChecksumFileName)))
-		_, err := c.validateIntegrity(dbDir)
+		_, _, err := c.validateIntegrity(c.config.DBFilePath(), true)
 		require.ErrorContains(t, err, "no such file or directory")
 	})
 
@@ -515,13 +516,12 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 
 		writeTestChecksumsFile(t, c.fs, dbDir, "xxh64:invalidchecksum")
 
-		_, err := c.validateIntegrity(dbDir)
+		_, _, err := c.validateIntegrity(c.config.DBFilePath(), true)
 		require.ErrorContains(t, err, "bad db checksum")
 	})
 
 	t.Run("unsupported database version", func(t *testing.T) {
 		c := newCurator(t)
-		dbDir := c.config.DBDirectoryPath()
 
 		oldDescription := db.Description{
 			SchemaVersion: schemaver.New(db.ModelVersion-1, 0, 0),
@@ -530,7 +530,7 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 
 		writeTestDescriptionToDB(t, c.config.DBDirectoryPath(), oldDescription)
 
-		_, err := c.validateIntegrity(dbDir)
+		_, _, err := c.validateIntegrity(c.config.DBFilePath(), true)
 		require.ErrorContains(t, err, "unsupported database version")
 	})
 }

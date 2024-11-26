@@ -83,7 +83,7 @@ func runDBProviders(opts *dbProvidersOptions, app clio.Application) error {
 }
 
 func getMetadataFileLocation(app clio.Application) (*string, error) {
-	dbCurator, err := distribution.NewCurator(dbOptionsDefault(app.ID()).DB.ToCuratorConfig())
+	dbCurator, err := distribution.NewCurator(dbOptionsDefault(app.ID()).DB.ToLegacyCuratorConfig())
 	if err != nil {
 		return nil, err
 	}

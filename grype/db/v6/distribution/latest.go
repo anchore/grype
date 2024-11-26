@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"path/filepath"
 	"sort"
+	"time"
 
 	"github.com/anchore/grype/grype/db/internal/schemaver"
 	db "github.com/anchore/grype/grype/db/v6"
@@ -13,19 +15,16 @@ import (
 const LatestFileName = "latest.json"
 
 type LatestDocument struct {
-	// SchemaVersion is the version of the DB schema
-	SchemaVersion schemaver.SchemaVer `json:"schemaVersion"`
-
 	// Status indicates if the database is actively being maintained and distributed
 	Status Status `json:"status"`
 
 	// Archive is the most recent database that has been built and distributed, additionally annotated with provider-level information
-	Archive Archive `json:"archive"`
+	Archive `json:",inline"`
 }
 
 type Archive struct {
 	// Description contains details about the database contained within the distribution archive
-	Description db.Description `json:"database"`
+	db.Description `json:",inline"`
 
 	// Path is the path to a DB archive relative to the listing file hosted location.
 	// Note: this is NOT the absolute URL to download the database.
@@ -36,19 +35,25 @@ type Archive struct {
 }
 
 func NewLatestDocument(entries ...Archive) *LatestDocument {
-	if len(entries) == 0 {
+	var validEntries []Archive
+	for _, entry := range entries {
+		if modelPart, ok := entry.SchemaVersion.ModelPart(); ok && modelPart == db.ModelVersion {
+			validEntries = append(validEntries, entry)
+		}
+	}
+
+	if len(validEntries) == 0 {
 		return nil
 	}
 
 	// sort from most recent to the least recent
-	sort.SliceStable(entries, func(i, j int) bool {
-		return entries[i].Description.Built.After(entries[j].Description.Built.Time)
+	sort.SliceStable(validEntries, func(i, j int) bool {
+		return validEntries[i].Description.Built.After(entries[j].Description.Built.Time)
 	})
 
 	return &LatestDocument{
-		SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
-		Archive:       entries[0],
-		Status:        LifecycleStatus,
+		Archive: validEntries[0],
+		Status:  LifecycleStatus,
 	}
 }
 
@@ -65,6 +70,23 @@ func NewLatestFromReader(reader io.Reader) (*LatestDocument, error) {
 	}
 
 	return &l, nil
+}
+
+func NewArchive(path string, t time.Time, model, revision, addition int) (*Archive, error) {
+	checksum, err := db.CalculateArchiveDigest(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to calculate archive checksum: %w", err)
+	}
+
+	return &Archive{
+		Description: db.Description{
+			SchemaVersion: schemaver.New(model, revision, addition),
+			Built:         db.Time{Time: t},
+		},
+		// this is not the path on disk, this is the path relative to the latest.json file when hosted
+		Path:     filepath.Base(path),
+		Checksum: checksum,
+	}, nil
 }
 
 func (l LatestDocument) Write(writer io.Writer) error {
@@ -87,13 +109,6 @@ func (l LatestDocument) Write(writer io.Writer) error {
 	if l.Archive.Description.Built.Time.IsZero() {
 		return fmt.Errorf("missing built time")
 	}
-
-	if l.Archive.Description.Checksum == "" {
-		return fmt.Errorf("missing database checksum")
-	}
-
-	// we don't need to store duplicate information from the archive section in the doc
-	l.Archive.Description.SchemaVersion = ""
 
 	contents, err := json.MarshalIndent(&l, "", " ")
 	if err != nil {

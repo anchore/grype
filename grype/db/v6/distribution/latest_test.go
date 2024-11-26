@@ -3,9 +3,12 @@ package distribution
 import (
 	"bytes"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -17,18 +20,42 @@ func TestNewLatestDocument(t *testing.T) {
 	t.Run("valid entries", func(t *testing.T) {
 		archive1 := Archive{
 			Description: db.Description{
-				Built: db.Time{Time: time.Now()},
+				SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
+				Built:         db.Time{Time: time.Now()},
 			},
 		}
 		archive2 := Archive{
 			Description: db.Description{
-				Built: db.Time{Time: time.Now().Add(-1 * time.Hour)},
+				SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
+				Built:         db.Time{Time: time.Now().Add(-1 * time.Hour)},
 			},
 		}
 
 		latestDoc := NewLatestDocument(archive1, archive2)
 		require.NotNil(t, latestDoc)
 		require.Equal(t, latestDoc.Archive, archive1) // most recent archive
+		actual, ok := latestDoc.SchemaVersion.ModelPart()
+		require.True(t, ok)
+		require.Equal(t, actual, db.ModelVersion)
+	})
+
+	t.Run("filter entries", func(t *testing.T) {
+		archive1 := Archive{
+			Description: db.Description{
+				SchemaVersion: schemaver.New(5, db.Revision, db.Addition), // old!
+				Built:         db.Time{Time: time.Now()},
+			},
+		}
+		archive2 := Archive{
+			Description: db.Description{
+				SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
+				Built:         db.Time{Time: time.Now().Add(-1 * time.Hour)},
+			},
+		}
+
+		latestDoc := NewLatestDocument(archive1, archive2)
+		require.NotNil(t, latestDoc)
+		require.Equal(t, latestDoc.Archive, archive2) // most recent archive with valid version
 		actual, ok := latestDoc.SchemaVersion.ModelPart()
 		require.True(t, ok)
 		require.Equal(t, actual, db.ModelVersion)
@@ -43,7 +70,6 @@ func TestNewLatestDocument(t *testing.T) {
 func TestNewLatestFromReader(t *testing.T) {
 	t.Run("valid JSON", func(t *testing.T) {
 		latestDoc := LatestDocument{
-			SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 			Archive: Archive{
 				Description: db.Description{
 					Built: db.Time{Time: time.Now().Truncate(time.Second).UTC()},
@@ -87,15 +113,13 @@ func TestLatestDocument_Write(t *testing.T) {
 		{
 			name: "valid document",
 			latestDoc: LatestDocument{
-				SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 				Archive: Archive{
 					Description: db.Description{
 						Built:         now,
-						Checksum:      "xxh64:validchecksum",
 						SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 					},
 					Path:     "valid/path/to/archive",
-					Checksum: "xxh64:validchecksum",
+					Checksum: "sha256:validchecksum",
 				},
 				// note: status not supplied, should assume to be active
 			},
@@ -104,11 +128,9 @@ func TestLatestDocument_Write(t *testing.T) {
 		{
 			name: "explicit status",
 			latestDoc: LatestDocument{
-				SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 				Archive: Archive{
 					Description: db.Description{
 						Built:         now,
-						Checksum:      "xxh64:validchecksum",
 						SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 					},
 					Path:     "valid/path/to/archive",
@@ -123,9 +145,7 @@ func TestLatestDocument_Write(t *testing.T) {
 			latestDoc: LatestDocument{
 				Archive: Archive{
 					Description: db.Description{
-						Built:         now,
-						Checksum:      "xxh64:validchecksum",
-						SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
+						Built: now,
 					},
 					Path:     "valid/path/to/archive",
 					Checksum: "xxh64:validchecksum",
@@ -137,11 +157,9 @@ func TestLatestDocument_Write(t *testing.T) {
 		{
 			name: "missing archive path",
 			latestDoc: LatestDocument{
-				SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 				Archive: Archive{
 					Description: db.Description{
 						Built:         now,
-						Checksum:      "xxh64:validchecksum",
 						SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 					},
 					Path:     "", // this!
@@ -154,11 +172,9 @@ func TestLatestDocument_Write(t *testing.T) {
 		{
 			name: "missing archive checksum",
 			latestDoc: LatestDocument{
-				SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 				Archive: Archive{
 					Description: db.Description{
 						Built:         now,
-						Checksum:      "xxh64:validchecksum",
 						SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 					},
 					Path:     "valid/path/to/archive",
@@ -171,11 +187,9 @@ func TestLatestDocument_Write(t *testing.T) {
 		{
 			name: "missing built time",
 			latestDoc: LatestDocument{
-				SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 				Archive: Archive{
 					Description: db.Description{
 						Built:         db.Time{}, // this!
-						Checksum:      "xxh64:validchecksum",
 						SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 					},
 					Path:     "valid/path/to/archive",
@@ -184,23 +198,6 @@ func TestLatestDocument_Write(t *testing.T) {
 				Status: "active",
 			},
 			expectedError: errContains("missing built time"),
-		},
-		{
-			name: "missing database checksum",
-			latestDoc: LatestDocument{
-				SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
-				Archive: Archive{
-					Description: db.Description{
-						Built:         now,
-						Checksum:      "", // this!
-						SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
-					},
-					Path:     "valid/path/to/archive",
-					Checksum: "xxh64:validchecksum",
-				},
-				Status: "active",
-			},
-			expectedError: errContains("missing database checksum"),
 		},
 	}
 
@@ -219,15 +216,63 @@ func TestLatestDocument_Write(t *testing.T) {
 			var result LatestDocument
 			assert.NoError(t, json.Unmarshal(buf.Bytes(), &result))
 			assert.Equal(t, tt.latestDoc.SchemaVersion, result.SchemaVersion, "schema version mismatch")
-			assert.Empty(t, result.Archive.Description.SchemaVersion, "nested schema version should be empty")
 			assert.Equal(t, tt.latestDoc.Archive.Checksum, result.Archive.Checksum, "archive checksum mismatch")
 			assert.Equal(t, tt.latestDoc.Archive.Description.Built.Time, result.Archive.Description.Built.Time, "built time mismatch")
-			assert.Equal(t, tt.latestDoc.Archive.Description.Checksum, result.Archive.Description.Checksum, "database checksum mismatch")
 			assert.Equal(t, tt.latestDoc.Archive.Path, result.Archive.Path, "path mismatch")
 			if tt.latestDoc.Status == "" {
 				assert.Equal(t, StatusActive, result.Status, "status mismatch")
 			} else {
 				assert.Equal(t, tt.latestDoc.Status, result.Status, "status mismatch")
+			}
+		})
+	}
+}
+
+func TestNewArchive(t *testing.T) {
+	tests := []struct {
+		name      string
+		contents  string
+		time      time.Time
+		model     int
+		revision  int
+		addition  int
+		expectErr require.ErrorAssertionFunc
+		expected  *Archive
+	}{
+		{
+			name:      "valid input",
+			contents:  "test archive content",
+			time:      time.Date(2023, 11, 24, 12, 0, 0, 0, time.UTC),
+			model:     1,
+			revision:  0,
+			addition:  5,
+			expectErr: require.NoError,
+			expected: &Archive{
+				Description: db.Description{
+					SchemaVersion: schemaver.New(1, 0, 5),
+					Built:         db.Time{Time: time.Date(2023, 11, 24, 12, 0, 0, 0, time.UTC)},
+				},
+				Path:     "archive.tar.gz",
+				Checksum: "sha256:2a11c11d2c3803697c458a1f5f03c2b73235c101f93c88193cc8810003c40d87",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := t.TempDir()
+			tempFile, err := os.Create(filepath.Join(d, tt.expected.Path))
+			require.NoError(t, err)
+			_, err = tempFile.WriteString(tt.contents)
+			require.NoError(t, err)
+
+			archive, err := NewArchive(tempFile.Name(), tt.time, tt.model, tt.revision, tt.addition)
+			tt.expectErr(t, err)
+			if err != nil {
+				return
+			}
+			if diff := cmp.Diff(tt.expected, archive); diff != "" {
+				t.Errorf("unexpected archive (-want +got):\n%s", diff)
 			}
 		})
 	}

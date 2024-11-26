@@ -46,7 +46,7 @@ func DBSearch(app clio.Application) *cobra.Command {
 
 func runDBSearch(opts *dbQueryOptions, vulnerabilityID string) error {
 	log.Debug("loading DB")
-	str, status, dbCloser, err := grype.LoadVulnerabilityDB(opts.DB.ToCuratorConfig(), opts.DB.AutoUpdate)
+	str, status, dbCloser, err := grype.LoadVulnerabilityDB(opts.DB.ToLegacyCuratorConfig(), opts.DB.AutoUpdate)
 	err = validateDBLoad(err, status)
 	if err != nil {
 		return err
