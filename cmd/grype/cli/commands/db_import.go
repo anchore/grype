@@ -2,8 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"path/filepath"
-	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -25,22 +23,22 @@ func DBImport(app clio.Application) *cobra.Command {
 		Args:    cobra.ExactArgs(1),
 		PreRunE: disableUI(app),
 		RunE: func(_ *cobra.Command, args []string) error {
-			return runDBImport(opts.DB, args[0])
+			return runDBImport(*opts, args[0])
 		},
 	}, opts)
 }
 
-func runDBImport(opts options.Database, dbArchivePath string) error {
+func runDBImport(opts DBOptions, dbArchivePath string) error {
 	// TODO: tui update? better logging?
 
 	// TODO: we will only support v6 after development is complete
-	if isV6DB(dbArchivePath) {
-		return importDB(opts, dbArchivePath)
+	if opts.Experimental.DBv6 {
+		return newDBImport(opts.DB, dbArchivePath)
 	}
-	return legacyDBImport(opts, dbArchivePath)
+	return legacyDBImport(opts.DB, dbArchivePath)
 }
 
-func importDB(opts options.Database, dbArchivePath string) error {
+func newDBImport(opts options.Database, dbArchivePath string) error {
 	client, err := distribution.NewClient(opts.ToClientConfig())
 	if err != nil {
 		return fmt.Errorf("unable to create distribution client: %w", err)
@@ -67,8 +65,4 @@ func legacyDBImport(opts options.Database, dbArchivePath string) error {
 	}
 
 	return stderrPrintLnf("Vulnerability database imported")
-}
-
-func isV6DB(path string) bool {
-	return strings.Contains(filepath.Base(path), "vulnerability-db_v6")
 }

@@ -28,7 +28,7 @@ func newDBMetadataStore(db *gorm.DB) *dbMetadataStore {
 }
 
 func (s *dbMetadataStore) GetDBMetadata() (*DBMetadata, error) {
-	log.Trace("fetching DB metadata record")
+	log.Trace("fetching DB metadata")
 
 	var model DBMetadata
 
@@ -37,13 +37,17 @@ func (s *dbMetadataStore) GetDBMetadata() (*DBMetadata, error) {
 }
 
 func (s *dbMetadataStore) SetDBMetadata() error {
-	log.Trace("writing DB metadata record")
+	log.Trace("writing DB metadata")
 
 	if err := s.db.Unscoped().Where("true").Delete(&DBMetadata{}).Error; err != nil {
 		return fmt.Errorf("failed to delete existing DB metadata record: %w", err)
 	}
 
-	ts := time.Now().UTC()
+	// note: it is important to round the time to the second to avoid issues with the database update check.
+	// since we are comparing timestamps that are RFC3339 formatted, it's possible that milliseconds will
+	// be rounded up, causing a slight difference in candidate timestamps vs current DB timestamps.
+	ts := time.Now().UTC().Round(time.Second)
+
 	instance := &DBMetadata{
 		BuildTimestamp: &ts,
 		Model:          ModelVersion,

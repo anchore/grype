@@ -2,8 +2,6 @@ package v6
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"gorm.io/gorm"
 
@@ -63,15 +61,5 @@ func (s *store) Close() error {
 		return fmt.Errorf("failed to vacuum: %w", err)
 	}
 
-	digest, err := CalculateDBDigest(filepath.Join(s.config.DBDirPath, VulnerabilityDBFileName))
-	if err != nil {
-		return fmt.Errorf("failed to create description from dir: %w", err)
-	}
-
-	fh, err := os.OpenFile(filepath.Join(s.config.DBDirPath, ChecksumFileName), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to open description file: %w", err)
-	}
-
-	return WriteChecksums(fh, digest)
+	return nil
 }

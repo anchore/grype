@@ -14,8 +14,8 @@ import (
 	"github.com/OneOfOne/xxhash"
 	"github.com/spf13/afero"
 
-	"github.com/anchore/grype/grype/db/internal/schemaver"
 	"github.com/anchore/grype/internal/file"
+	"github.com/anchore/grype/internal/schemaver"
 )
 
 const ChecksumFileName = VulnerabilityDBFileName + ".checksum"
@@ -54,6 +54,16 @@ func (t *Time) UnmarshalJSON(data []byte) error {
 
 func (t Time) String() string {
 	return t.Time.UTC().Round(time.Second).Format(time.RFC3339)
+}
+
+func DescriptionFromMetadata(m *DBMetadata) *Description {
+	if m == nil {
+		return nil
+	}
+	return &Description{
+		SchemaVersion: schemaver.New(m.Model, m.Revision, m.Addition),
+		Built:         Time{Time: *m.BuildTimestamp},
+	}
 }
 
 func ReadDescription(dbFilePath string) (*Description, error) {

@@ -8,8 +8,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/anchore/grype/grype/db/internal/schemaver"
 	db "github.com/anchore/grype/grype/db/v6"
+	"github.com/anchore/grype/internal/schemaver"
 )
 
 const LatestFileName = "latest.json"

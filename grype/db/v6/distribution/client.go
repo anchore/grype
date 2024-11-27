@@ -37,6 +37,7 @@ type Config struct {
 }
 
 type Client interface {
+	Latest() (*LatestDocument, error)
 	IsUpdateAvailable(current *v6.Description) (*Archive, error)
 	Download(archive Archive, dest string, downloadProgress *progress.Manual) (string, error)
 }
@@ -59,12 +60,12 @@ func DefaultConfig() Config {
 
 func NewClient(cfg Config) (Client, error) {
 	fs := afero.NewOsFs()
-	latestClient, err := defaultHTTPClient(fs, cfg.CACert, withClientTimeout(cfg.CheckTimeout))
+	latestClient, err := defaultHTTPClient(fs, cfg.CACert, withClientTimeout(cfg.CheckTimeout), withUserAgent(cfg.ID))
 	if err != nil {
 		return client{}, err
 	}
 
-	dbClient, err := defaultHTTPClient(fs, cfg.CACert, withClientTimeout(cfg.UpdateTimeout))
+	dbClient, err := defaultHTTPClient(fs, cfg.CACert, withClientTimeout(cfg.UpdateTimeout), withUserAgent(cfg.ID))
 	if err != nil {
 		return client{}, err
 	}
@@ -82,7 +83,7 @@ func NewClient(cfg Config) (Client, error) {
 func (c client) IsUpdateAvailable(current *v6.Description) (*Archive, error) {
 	log.Debugf("checking for available database updates")
 
-	latestDoc, err := c.latestFromURL()
+	latestDoc, err := c.Latest()
 	if err != nil {
 		if c.config.RequireUpdateCheck {
 			return nil, fmt.Errorf("check for vulnerability database update failed: %+v", err)
@@ -160,8 +161,8 @@ func (c client) Download(archive Archive, dest string, downloadProgress *progres
 	return tempDir, nil
 }
 
-// latestFromURL loads a LatestDocument from a URL.
-func (c client) latestFromURL() (*LatestDocument, error) {
+// Latest loads a LatestDocument from the configured URL.
+func (c client) Latest() (*LatestDocument, error) {
 	resp, err := c.latestHTTPClient.Get(c.config.LatestURL)
 	if err != nil {
 		return nil, fmt.Errorf("unable to fetch latest.json: %w", err)
@@ -178,6 +179,12 @@ func (c client) latestFromURL() (*LatestDocument, error) {
 func withClientTimeout(timeout time.Duration) func(*http.Client) {
 	return func(c *http.Client) {
 		c.Timeout = timeout
+	}
+}
+
+func withUserAgent(id clio.Identification) func(*http.Client) {
+	return func(c *http.Client) {
+		*(c) = *newHTTPClientWithDefaultUserAgent(c.Transport, fmt.Sprintf("%s %s", id.Name, id.Version))
 	}
 }
 
@@ -238,11 +245,36 @@ func isSupersededBy(current *v6.Description, candidate v6.Description) bool {
 	}
 
 	if candidate.Built.After(current.Built.Time) {
-		log.WithFields("existing", current.Built.String(), "candidate", candidate.Built.String()).Debug("existing database is older than candidate update, using update...")
+		d := candidate.Built.Sub(current.Built.Time).String()
+		log.WithFields("existing", current.Built.String(), "candidate", candidate.Built.String(), "delta", d).Debug("existing database is older than candidate update, using update...")
 		// the listing is newer than the existing db, use it!
 		return true
 	}
 
 	log.Debugf("existing database is already up to date")
 	return false
+}
+
+func newHTTPClientWithDefaultUserAgent(baseTransport http.RoundTripper, userAgent string) *http.Client {
+	return &http.Client{
+		Transport: roundTripperWithUserAgent{
+			transport: baseTransport,
+			userAgent: userAgent,
+		},
+	}
+}
+
+type roundTripperWithUserAgent struct {
+	transport http.RoundTripper
+	userAgent string
+}
+
+func (r roundTripperWithUserAgent) RoundTrip(req *http.Request) (*http.Response, error) {
+	clonedReq := req.Clone(req.Context())
+
+	if clonedReq.Header.Get("User-Agent") == "" {
+		clonedReq.Header.Set("User-Agent", r.userAgent)
+	}
+
+	return r.transport.RoundTrip(clonedReq)
 }

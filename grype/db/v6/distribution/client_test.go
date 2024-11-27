@@ -104,7 +104,7 @@ func TestClient_LatestFromURL(t *testing.T) {
 
 			cl := c.(client)
 
-			doc, err := cl.latestFromURL()
+			doc, err := cl.Latest()
 			tt.expectedErr(t, err)
 			if err != nil {
 				return
