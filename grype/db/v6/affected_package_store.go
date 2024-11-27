@@ -197,14 +197,6 @@ func (s *affectedPackageStore) handlePackageCPE(query *gorm.DB, c cpe.Attributes
 		query = query.Where("cpes.product = ?", c.Product)
 	}
 
-	if c.Version != cpe.Any {
-		query = query.Where("cpes.version = ?", c.Version)
-	}
-
-	if c.Update != cpe.Any {
-		query = query.Where("cpes.update = ?", c.Update)
-	}
-
 	if c.Edition != cpe.Any {
 		query = query.Where("cpes.edition = ?", c.Edition)
 	}
