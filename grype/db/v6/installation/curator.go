@@ -83,15 +83,19 @@ func (c curator) Reader() (db.Reader, error) {
 		return nil, err
 	}
 
-	_, err = c.validate(c.config.ValidateChecksum)
+	m, err := s.GetDBMetadata()
+	if err != nil {
+		return nil, fmt.Errorf("unable to get vulnerability store metadata: %w", err)
+	}
+
+	_, err = c.validate(db.DescriptionFromMetadata(m), c.config.ValidateChecksum)
 
 	return s, err
 }
 
 func (c curator) Status() db.Status {
-	dbDir := c.config.DBDirectoryPath()
-
-	d, err := db.ReadDescription(c.config.DBFilePath())
+	dbFile := c.config.DBFilePath()
+	d, err := db.ReadDescription(dbFile)
 	if err != nil {
 		return db.Status{
 			Err: err,
@@ -99,17 +103,17 @@ func (c curator) Status() db.Status {
 	}
 	if d == nil {
 		return db.Status{
-			Err: fmt.Errorf("database not found at %q", dbDir),
+			Err: fmt.Errorf("database not found at %q", dbFile),
 		}
 	}
 
 	// override the checksum validation setting to ensure the checksum is always validated
-	digest, validateErr := c.validate(true)
+	digest, validateErr := c.validate(d, true)
 
 	return db.Status{
 		Built:         db.Time{Time: d.Built.Time},
 		SchemaVersion: d.SchemaVersion.String(),
-		Location:      dbDir,
+		Path:          dbFile,
 		Checksum:      digest,
 		Err:           validateErr,
 	}
@@ -122,7 +126,21 @@ func (c curator) Delete() error {
 
 // Update the existing DB, returning an indication if any action was taken.
 func (c curator) Update() (bool, error) {
-	if !c.isUpdateCheckAllowed() {
+	current, err := db.ReadDescription(c.config.DBFilePath())
+	if err != nil {
+		log.WithFields("error", err).Warn("unable to read current database metadata (continuing with update)")
+		// downstream any non-existent DB should always be replaced with any best-candidate found
+		current = nil
+	} else {
+		_, err := c.validate(current, true)
+		if err != nil {
+			// even if we are not allowed to check for an update, we should still attempt to update the DB if it is invalid
+			log.WithFields("error", err).Warn("current database is invalid")
+			current = nil
+		}
+	}
+
+	if current != nil && !c.isUpdateCheckAllowed() {
 		// we should not notify the user of an update check if the current configuration and state
 		// indicates we're should be in a low-pass filter mode (and the check frequency is too high).
 		// this should appear to the user as if we never attempted to check for an update at all.
@@ -131,13 +149,6 @@ func (c curator) Update() (bool, error) {
 
 	mon := newMonitor()
 	defer mon.SetCompleted()
-
-	current, err := db.ReadDescription(c.config.DBDirectoryPath())
-	if err != nil {
-		log.WithFields("error", err).Warn("unable to read current database metadata (continuing with update)")
-		// downstream any non-existent DB should always be replaced with any best-candidate found
-		current = nil
-	}
 
 	mon.Set("checking for update")
 	update, checkErr := c.client.IsUpdateAvailable(current)
@@ -261,8 +272,8 @@ func (c curator) setLastSuccessfulUpdateCheck() {
 }
 
 // validate checks the current database to ensure file integrity and if it can be used by this version of the application.
-func (c curator) validate(validateChecksum bool) (string, error) {
-	metadata, digest, err := c.validateIntegrity(c.config.DBFilePath(), validateChecksum)
+func (c curator) validate(current *db.Description, validateChecksum bool) (string, error) {
+	metadata, digest, err := c.validateIntegrity(current, c.config.DBFilePath(), validateChecksum)
 	if err != nil {
 		return "", err
 	}
@@ -312,7 +323,14 @@ func (c curator) activate(dbDirPath string, mon monitor) error {
 	}
 
 	checksumsFilePath := filepath.Join(dbDirPath, db.ChecksumFileName)
-	if err := afero.WriteFile(c.fs, checksumsFilePath, []byte(digest), 0644); err != nil {
+	fh, err := c.fs.OpenFile(checksumsFilePath, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open checksums file: %w", err)
+	}
+	if err := db.WriteChecksums(fh, digest); err != nil {
+		return fmt.Errorf("failed to write checksums file: %w", err)
+	}
+	if err := fh.Close(); err != nil {
 		return err
 	}
 
@@ -332,12 +350,8 @@ func (c curator) activate(dbDirPath string, mon monitor) error {
 	return os.Rename(dbDirPath, dbDir)
 }
 
-func (c curator) validateIntegrity(dbFilePath string, validateChecksum bool) (*db.Description, string, error) {
+func (c curator) validateIntegrity(metadata *db.Description, dbFilePath string, validateChecksum bool) (*db.Description, string, error) {
 	// check that the disk checksum still matches the db payload
-	metadata, err := db.ReadDescription(dbFilePath)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to parse database metadata (%s): %w", dbFilePath, err)
-	}
 	if metadata == nil {
 		return nil, "", fmt.Errorf("database not found: %s", dbFilePath)
 	}
@@ -347,8 +361,16 @@ func (c curator) validateIntegrity(dbFilePath string, validateChecksum bool) (*d
 		return nil, "", fmt.Errorf("unsupported database version: have=%d want=%d", gotModel, db.ModelVersion)
 	}
 
+	if _, err := c.fs.Stat(dbFilePath); err != nil {
+		if os.IsNotExist(err) {
+			return nil, "", fmt.Errorf("database does not exist: %s", dbFilePath)
+		}
+		return nil, "", fmt.Errorf("failed to access database file: %w", err)
+	}
+
 	var digest string
 	if validateChecksum {
+		var err error
 		digest, err = db.ReadDBChecksum(filepath.Dir(dbFilePath))
 		if err != nil {
 			return nil, "", err

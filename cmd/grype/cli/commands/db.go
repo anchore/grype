@@ -7,8 +7,15 @@ import (
 	"github.com/anchore/grype/cmd/grype/cli/options"
 )
 
+const (
+	jsonOutputFormat  = "json"
+	tableOutputFormat = "table"
+	textOutputFormat  = "text"
+)
+
 type DBOptions struct {
-	DB options.Database `yaml:"db" json:"db" mapstructure:"db"`
+	DB           options.Database     `yaml:"db" json:"db" mapstructure:"db"`
+	Experimental options.Experimental `yaml:"exp" json:"exp" mapstructure:"exp"`
 }
 
 func dbOptionsDefault(id clio.Identification) *DBOptions {

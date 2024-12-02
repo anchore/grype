@@ -29,7 +29,7 @@ func (d *dbDiffOptions) AddFlags(flags clio.FlagSet) {
 
 func DBDiff(app clio.Application) *cobra.Command {
 	opts := &dbDiffOptions{
-		Output:    "table",
+		Output:    tableOutputFormat,
 		DBOptions: *dbOptionsDefault(app.ID()),
 	}
 
