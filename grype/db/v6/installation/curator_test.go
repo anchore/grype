@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/spf13/afero"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/wagoodman/go-progress"
@@ -545,6 +546,114 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 		_, _, err := c.validateIntegrity(d, c.config.DBFilePath(), true)
 		require.ErrorContains(t, err, "unsupported database version")
 	})
+}
+
+func TestReplaceDB(t *testing.T) {
+	cases := []struct {
+		name     string
+		config   Config
+		expected map[string]string // expected file name to content mapping in the DB dir
+		init     func(t *testing.T, dir string, dbDir string) afero.Fs
+		wantErr  require.ErrorAssertionFunc
+		verify   func(t *testing.T, fs afero.Fs, config Config, expected map[string]string)
+	}{
+		{
+			name: "replace non-existent DB",
+			config: Config{
+				DBRootDir: "/test",
+			},
+			expected: map[string]string{
+				"file.txt": "new content",
+			},
+			init: func(t *testing.T, dir string, dbDir string) afero.Fs {
+				fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
+				require.NoError(t, fs.MkdirAll(dir, 0700))
+				require.NoError(t, afero.WriteFile(fs, filepath.Join(dir, "file.txt"), []byte("new content"), 0644))
+				return fs
+			},
+		},
+		{
+			name: "replace existing DB",
+			config: Config{
+				DBRootDir: "/test",
+			},
+			expected: map[string]string{
+				"new_file.txt": "new content",
+			},
+			init: func(t *testing.T, dir string, dbDir string) afero.Fs {
+				fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
+				require.NoError(t, fs.MkdirAll(dbDir, 0700))
+				require.NoError(t, afero.WriteFile(fs, filepath.Join(dbDir, "old_file.txt"), []byte("old content"), 0644))
+				require.NoError(t, fs.MkdirAll(dir, 0700))
+				require.NoError(t, afero.WriteFile(fs, filepath.Join(dir, "new_file.txt"), []byte("new content"), 0644))
+				return fs
+			},
+		},
+		{
+			name: "non-existent parent dir creation",
+			config: Config{
+				DBRootDir: "/dir/does/not/exist/db3",
+			},
+			expected: map[string]string{
+				"file.txt": "new content",
+			},
+			init: func(t *testing.T, dir string, dbDir string) afero.Fs {
+				fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
+				require.NoError(t, fs.MkdirAll(dir, 0700))
+				require.NoError(t, afero.WriteFile(fs, filepath.Join(dir, "file.txt"), []byte("new content"), 0644))
+				return fs
+			},
+		},
+		{
+			name: "error during rename",
+			config: Config{
+				DBRootDir: "/test",
+			},
+			expected: nil, // no files expected since operation fails
+			init: func(t *testing.T, dir string, dbDir string) afero.Fs {
+				fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
+				require.NoError(t, fs.MkdirAll(dir, 0700))
+				require.NoError(t, afero.WriteFile(fs, filepath.Join(dir, "file.txt"), []byte("content"), 0644))
+				return afero.NewReadOnlyFs(fs)
+			},
+			wantErr: require.Error,
+			verify: func(t *testing.T, fs afero.Fs, config Config, expected map[string]string) {
+				_, err := fs.Stat(config.DBDirectoryPath())
+				require.Error(t, err)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.wantErr == nil {
+				tc.wantErr = require.NoError
+			}
+			dbDir := tc.config.DBDirectoryPath()
+			candidateDir := "/temp/db"
+			fs := tc.init(t, candidateDir, dbDir)
+
+			c := curator{
+				fs:     fs,
+				config: tc.config,
+			}
+
+			err := c.replaceDB(candidateDir)
+			tc.wantErr(t, err)
+			if tc.verify != nil {
+				tc.verify(t, fs, tc.config, tc.expected)
+			}
+			if err != nil {
+				return
+			}
+			for fileName, expectedContent := range tc.expected {
+				filePath := filepath.Join(tc.config.DBDirectoryPath(), fileName)
+				actualContent, err := afero.ReadFile(fs, filePath)
+				assert.NoError(t, err)
+				assert.Equal(t, expectedContent, string(actualContent))
+			}
+		})
+	}
 }
 
 func setupTestDB(t *testing.T, dbDir string) db.ReadWriter {
