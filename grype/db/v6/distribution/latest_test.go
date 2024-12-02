@@ -68,6 +68,7 @@ func TestNewLatestDocument(t *testing.T) {
 }
 
 func TestNewLatestFromReader(t *testing.T) {
+
 	t.Run("valid JSON", func(t *testing.T) {
 		latestDoc := LatestDocument{
 			Archive: Archive{
@@ -87,11 +88,19 @@ func TestNewLatestFromReader(t *testing.T) {
 		require.Equal(t, latestDoc.Archive.Description.Built.Time, result.Archive.Description.Built.Time)
 	})
 
+	t.Run("empty", func(t *testing.T) {
+		emptyJSON := []byte("{}")
+		val, err := NewLatestFromReader(bytes.NewReader(emptyJSON))
+		require.NoError(t, err)
+		assert.Nil(t, val)
+	})
+
 	t.Run("invalid JSON", func(t *testing.T) {
 		invalidJSON := []byte("invalid json")
-		_, err := NewLatestFromReader(bytes.NewReader(invalidJSON))
+		val, err := NewLatestFromReader(bytes.NewReader(invalidJSON))
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "unable to parse DB latest.json")
+		assert.Nil(t, val)
 	})
 }
 
