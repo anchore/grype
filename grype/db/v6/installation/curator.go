@@ -287,10 +287,14 @@ func (c curator) Import(dbArchivePath string) error {
 	mon.Set("unarchiving")
 	defer mon.SetCompleted()
 
+	if err := os.MkdirAll(c.config.DBRootDir, 0700); err != nil {
+		return fmt.Errorf("unable to create db root dir: %w", err)
+	}
+
 	// note: the temp directory is persisted upon download/validation/activation failure to allow for investigation
 	tempDir, err := os.MkdirTemp(c.config.DBRootDir, fmt.Sprintf("tmp-v%v-import", db.ModelVersion))
 	if err != nil {
-		return fmt.Errorf("unable to create db temp dir: %w", err)
+		return fmt.Errorf("unable to create db import temp dir: %w", err)
 	}
 
 	err = archiver.Unarchive(dbArchivePath, tempDir)
@@ -336,8 +340,13 @@ func (c curator) activate(dbDirPath string, mon monitor) error {
 
 	mon.Set("activating")
 
+	return c.replaceDB(dbDirPath)
+}
+
+// replaceDB swaps over to using the given path.
+func (c curator) replaceDB(dbDirPath string) error {
 	dbDir := c.config.DBDirectoryPath()
-	_, err = c.fs.Stat(dbDir)
+	_, err := c.fs.Stat(dbDir)
 	if !os.IsNotExist(err) {
 		// remove any previous databases
 		err = c.Delete()
@@ -346,8 +355,13 @@ func (c curator) activate(dbDirPath string, mon monitor) error {
 		}
 	}
 
+	// ensure parent db directory exists
+	if err := c.fs.MkdirAll(filepath.Dir(dbDir), 0700); err != nil {
+		return fmt.Errorf("unable to create db parent directory: %w", err)
+	}
+
 	// activate the new db cache by moving the temp dir to final location
-	return os.Rename(dbDirPath, dbDir)
+	return c.fs.Rename(dbDirPath, dbDir)
 }
 
 func (c curator) validateIntegrity(metadata *db.Description, dbFilePath string, validateChecksum bool) (*db.Description, string, error) {

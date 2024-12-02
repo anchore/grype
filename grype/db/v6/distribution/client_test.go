@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -169,6 +170,18 @@ func TestClient_Download(t *testing.T) {
 		require.Error(t, err)
 		require.Empty(t, tempDir)
 		require.Contains(t, err.Error(), "unable to download db")
+
+		mg.AssertExpectations(t)
+	})
+
+	t.Run("nested into dir that does not exist", func(t *testing.T) {
+		c, mg := setup()
+		mg.On("GetToDir", mock.Anything, "http://localhost:8080/path/to/archive.tar.gz?checksum=checksum123", mock.Anything).Return(nil)
+
+		nestedPath := filepath.Join(destDir, "nested")
+		tempDir, err := c.Download(*archive, nestedPath, &progress.Manual{})
+		require.NoError(t, err)
+		require.True(t, len(tempDir) > 0)
 
 		mg.AssertExpectations(t)
 	})
