@@ -17,7 +17,7 @@ func TestAffectedCPEStore_AddAffectedCPEs(t *testing.T) {
 		VulnerabilityID: 1,
 		CpeID:           1,
 		CPE: &Cpe{
-			Type:    "a",
+			Part:    "a",
 			Vendor:  "vendor-1",
 			Product: "product-1",
 			Edition: "edition-1",
@@ -80,10 +80,69 @@ func TestAffectedCPEStore_GetCPEsByProduct(t *testing.T) {
 	}
 }
 
+func TestAffectedCPEStore_PreventDuplicateCPEs(t *testing.T) {
+	db := setupTestStore(t).db
+	bw := newBlobStore(db)
+	s := newAffectedCPEStore(db, bw)
+
+	cpe1 := &AffectedCPEHandle{
+		VulnerabilityID: 1,
+		CpeID:           1,
+		CPE: &Cpe{
+			Part:    "a",
+			Vendor:  "vendor-1",
+			Product: "product-1",
+			Edition: "edition-1",
+		},
+		BlobValue: &AffectedPackageBlob{
+			CVEs: []string{"CVE-2023-5678"},
+		},
+	}
+
+	err := s.AddAffectedCPEs(cpe1)
+	require.NoError(t, err)
+
+	// attempt to add a duplicate CPE with the same values
+	duplicateCPE := &AffectedCPEHandle{
+		VulnerabilityID: 2, // different VulnerabilityID for testing
+		CpeID:           2,
+		CPE: &Cpe{
+			Part:    "a",         // same
+			Vendor:  "vendor-1",  // same
+			Product: "product-1", // same
+			Edition: "edition-1", // same
+		},
+		BlobValue: &AffectedPackageBlob{
+			CVEs: []string{"CVE-2024-1234"},
+		},
+	}
+
+	err = s.AddAffectedCPEs(duplicateCPE)
+	require.NoError(t, err)
+
+	require.Equal(t, cpe1.CpeID, duplicateCPE.CpeID, "expected the CPE DB ID to be the same")
+
+	var existingCPEs []Cpe
+	err = db.Find(&existingCPEs).Error
+	require.NoError(t, err)
+	require.Len(t, existingCPEs, 1, "expected only one CPE to exist")
+
+	actualHandles, err := s.GetCPEsByProduct(cpe1.CPE.Product, &GetAffectedCPEOptions{
+		PreloadCPE:  true,
+		PreloadBlob: true,
+	})
+	require.NoError(t, err)
+	expected := []AffectedCPEHandle{*cpe1, *duplicateCPE}
+	require.Len(t, actualHandles, len(expected), "expected both handles to be stored")
+	if d := cmp.Diff(expected, actualHandles); d != "" {
+		t.Errorf("unexpected result (-want +got):\n%s", d)
+	}
+}
+
 func testAffectedCPEHandle() *AffectedCPEHandle {
 	return &AffectedCPEHandle{
 		CPE: &Cpe{
-			Type:            "application",
+			Part:            "application",
 			Vendor:          "vendor",
 			Product:         "product",
 			Edition:         "edition",

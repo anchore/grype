@@ -8,38 +8,431 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/anchore/syft/syft/cpe"
 )
 
+type affectedPackageHandlePreloadConfig struct {
+	name             string
+	PreloadOS        bool
+	PreloadPackage   bool
+	PreloadBlob      bool
+	prepExpectations func(*testing.T, []AffectedPackageHandle) []AffectedPackageHandle
+}
+
+func defaultAffectedPackageHandlePreloadCases() []affectedPackageHandlePreloadConfig {
+	return []affectedPackageHandlePreloadConfig{
+		{
+			name:           "preload-all",
+			PreloadOS:      true,
+			PreloadPackage: true,
+			PreloadBlob:    true,
+			prepExpectations: func(t *testing.T, in []AffectedPackageHandle) []AffectedPackageHandle {
+				for _, a := range in {
+					if a.OperatingSystemID != nil {
+						require.NotNil(t, a.OperatingSystem)
+					}
+					require.NotNil(t, a.Package)
+					require.NotNil(t, a.BlobValue)
+				}
+				return in
+			},
+		},
+		{
+			name: "preload-none",
+			prepExpectations: func(t *testing.T, in []AffectedPackageHandle) []AffectedPackageHandle {
+				var out []AffectedPackageHandle
+				for _, v := range in {
+					if v.OperatingSystem == nil && v.BlobValue == nil && v.Package == nil {
+						t.Skip("preload already matches expectation")
+					}
+					v.OperatingSystem = nil
+					v.Package = nil
+					v.BlobValue = nil
+					out = append(out, v)
+				}
+				return out
+			},
+		},
+		{
+			name:      "preload-os-only",
+			PreloadOS: true,
+			prepExpectations: func(t *testing.T, in []AffectedPackageHandle) []AffectedPackageHandle {
+				var out []AffectedPackageHandle
+				for _, a := range in {
+					if a.OperatingSystemID != nil {
+						require.NotNil(t, a.OperatingSystem)
+					}
+					if a.Package == nil && a.BlobValue == nil {
+						t.Skip("preload already matches expectation")
+					}
+					a.Package = nil
+					a.BlobValue = nil
+					out = append(out, a)
+				}
+				return out
+			},
+		},
+		{
+			name:           "preload-package-only",
+			PreloadPackage: true,
+			prepExpectations: func(t *testing.T, in []AffectedPackageHandle) []AffectedPackageHandle {
+				var out []AffectedPackageHandle
+				for _, a := range in {
+					require.NotNil(t, a.Package)
+					if a.OperatingSystem == nil && a.BlobValue == nil {
+						t.Skip("preload already matches expectation")
+					}
+					a.OperatingSystem = nil
+					a.BlobValue = nil
+					out = append(out, a)
+				}
+				return out
+			},
+		},
+		{
+			name:        "preload-blob-only",
+			PreloadBlob: true,
+			prepExpectations: func(t *testing.T, in []AffectedPackageHandle) []AffectedPackageHandle {
+				var out []AffectedPackageHandle
+				for _, a := range in {
+					if a.OperatingSystem == nil && a.Package == nil {
+						t.Skip("preload already matches expectation")
+					}
+					a.OperatingSystem = nil
+					a.Package = nil
+					out = append(out, a)
+				}
+				return out
+			},
+		},
+	}
+}
+
 func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
+	setupAffectedPackageStore := func(t *testing.T) *affectedPackageStore {
+		db := setupTestStore(t).db
+		return newAffectedPackageStore(db, newBlobStore(db))
+	}
+
+	setupTestStoreWithPackages := func(t *testing.T) (*AffectedPackageHandle, *AffectedPackageHandle, *affectedPackageStore) {
+		pkg1 := &AffectedPackageHandle{
+			Package: &Package{Name: "pkg1", Type: "type1"},
+			BlobValue: &AffectedPackageBlob{
+				CVEs: []string{"CVE-2023-1234"},
+			},
+		}
+
+		pkg2 := testDistro1AffectedPackage2Handle()
+
+		return pkg1, pkg2, setupAffectedPackageStore(t)
+	}
+
+	t.Run("no preloading", func(t *testing.T) {
+		pkg1, pkg2, s := setupTestStoreWithPackages(t)
+
+		err := s.AddAffectedPackages(pkg1, pkg2)
+		require.NoError(t, err)
+
+		var result1 AffectedPackageHandle
+		err = s.db.Where("package_id = ?", pkg1.PackageID).First(&result1).Error
+		require.NoError(t, err)
+		assert.Equal(t, pkg1.PackageID, result1.PackageID)
+		assert.Equal(t, pkg1.BlobID, result1.BlobID)
+		require.Nil(t, result1.BlobValue) // no preloading on fetch
+
+		var result2 AffectedPackageHandle
+		err = s.db.Where("package_id = ?", pkg2.PackageID).First(&result2).Error
+		require.NoError(t, err)
+		assert.Equal(t, pkg2.PackageID, result2.PackageID)
+		assert.Equal(t, pkg2.BlobID, result2.BlobID)
+		require.Nil(t, result2.BlobValue)
+	})
+
+	t.Run("preloading", func(t *testing.T) {
+		pkg1, pkg2, s := setupTestStoreWithPackages(t)
+
+		err := s.AddAffectedPackages(pkg1, pkg2)
+		require.NoError(t, err)
+
+		options := &GetAffectedPackageOptions{
+			PreloadOS:      true,
+			PreloadPackage: true,
+			PreloadBlob:    true,
+		}
+
+		results, err := s.GetAffectedPackagesByName(pkg1.Package.Name, options)
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+
+		result := results[0]
+		require.NotNil(t, result.Package)
+		require.NotNil(t, result.BlobValue)
+		assert.Nil(t, result.OperatingSystem) // pkg1 has no OS
+	})
+
+	t.Run("preload CPEs", func(t *testing.T) {
+		pkg1, _, s := setupTestStoreWithPackages(t)
+
+		cpe := Cpe{
+			Part:    "a",
+			Vendor:  "vendor1",
+			Product: "product1",
+		}
+		pkg1.Package.CPEs = []Cpe{cpe}
+
+		err := s.AddAffectedPackages(pkg1)
+		require.NoError(t, err)
+
+		options := &GetAffectedPackageOptions{
+			PreloadPackage:     true,
+			PreloadPackageCPEs: true,
+		}
+
+		results, err := s.GetAffectedPackagesByName(pkg1.Package.Name, options)
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+
+		result := results[0]
+		require.NotNil(t, result.Package)
+
+		// the IDs should have been set, and there is only one, so we know the correct values
+		cpe.ID = 1
+		cpe.PackageID = idRef(1)
+
+		if d := cmp.Diff([]Cpe{cpe}, result.Package.CPEs); d != "" {
+			t.Errorf("unexpected result (-want +got):\n%s", d)
+		}
+	})
+
+	t.Run("Package deduplication", func(t *testing.T) {
+		pkg1 := &AffectedPackageHandle{
+			Package: &Package{Name: "pkg1", Type: "type1"},
+			BlobValue: &AffectedPackageBlob{
+				CVEs: []string{"CVE-2023-1234"},
+			},
+		}
+
+		pkg2 := &AffectedPackageHandle{
+			Package: &Package{Name: "pkg1", Type: "type1"}, // same!
+			BlobValue: &AffectedPackageBlob{
+				CVEs: []string{"CVE-2023-56789"},
+			},
+		}
+
+		s := setupAffectedPackageStore(t)
+		err := s.AddAffectedPackages(pkg1, pkg2)
+		require.NoError(t, err)
+
+		var pkgs []Package
+		err = s.db.Find(&pkgs).Error
+		require.NoError(t, err)
+
+		expected := []Package{
+			*pkg1.Package,
+		}
+
+		if d := cmp.Diff(expected, pkgs); d != "" {
+			t.Errorf("unexpected result (-want +got):\n%s", d)
+		}
+	})
+
+	t.Run("same package with multiple CPEs", func(t *testing.T) {
+		cpe1 := Cpe{
+			Part:    "a",
+			Vendor:  "vendor1",
+			Product: "product1",
+		}
+
+		cpe2 := Cpe{
+			Part:    "a",
+			Vendor:  "vendor2",
+			Product: "product2",
+		}
+
+		pkg1 := &AffectedPackageHandle{
+			Package: &Package{Name: "pkg1", Type: "type1", CPEs: []Cpe{cpe1}},
+			BlobValue: &AffectedPackageBlob{
+				CVEs: []string{"CVE-2023-1234"},
+			},
+		}
+
+		pkg2 := &AffectedPackageHandle{
+			Package: &Package{Name: "pkg1", Type: "type1", CPEs: []Cpe{cpe1, cpe2}}, // duplicate CPE + additional CPE
+			BlobValue: &AffectedPackageBlob{
+				CVEs: []string{"CVE-2023-56789"},
+			},
+		}
+
+		s := setupAffectedPackageStore(t)
+		err := s.AddAffectedPackages(pkg1, pkg2)
+		require.NoError(t, err)
+
+		var pkgs []Package
+		err = s.db.Preload("CPEs").Find(&pkgs).Error
+		require.NoError(t, err)
+
+		expPkg := *pkg1.Package
+		expPkg.ID = 1
+		cpe1.ID = 1
+		cpe1.PackageID = idRef(1)
+		cpe2.ID = 2
+		cpe2.PackageID = idRef(1)
+		expPkg.CPEs = []Cpe{cpe1, cpe2}
+
+		expected := []Package{
+			expPkg,
+		}
+
+		if d := cmp.Diff(expected, pkgs); d != "" {
+			t.Errorf("unexpected result (-want +got):\n%s", d)
+		}
+
+		expectedCPEs := []Cpe{cpe1, cpe2}
+		var cpeResults []Cpe
+		err = s.db.Find(&cpeResults).Error
+		require.NoError(t, err)
+		if d := cmp.Diff(expectedCPEs, cpeResults); d != "" {
+			t.Errorf("unexpected result (-want +got):\n%s", d)
+		}
+
+	})
+
+	t.Run("dont allow same CPE to belong to multiple packages", func(t *testing.T) {
+		cpe1 := Cpe{
+			Part:    "a",
+			Vendor:  "vendor1",
+			Product: "product1",
+		}
+
+		cpe2 := Cpe{
+			Part:    "a",
+			Vendor:  "vendor2",
+			Product: "product2",
+		}
+
+		pkg1 := &AffectedPackageHandle{
+			Package: &Package{Name: "pkg1", Type: "type1", CPEs: []Cpe{cpe1}},
+			BlobValue: &AffectedPackageBlob{
+				CVEs: []string{"CVE-2023-1234"},
+			},
+		}
+
+		pkg2 := &AffectedPackageHandle{
+			Package: &Package{Name: "pkg2", Type: "type1", CPEs: []Cpe{cpe1, cpe2}}, // overlapping CPEs for different packages
+			BlobValue: &AffectedPackageBlob{
+				CVEs: []string{"CVE-2023-56789"},
+			},
+		}
+
+		s := setupAffectedPackageStore(t)
+		err := s.AddAffectedPackages(pkg1, pkg2)
+		require.ErrorContains(t, err, "CPE already exists for a different package")
+	})
+}
+
+func TestAffectedPackageStore_GetAffectedPackagesByCPE(t *testing.T) {
 	db := setupTestStore(t).db
 	bs := newBlobStore(db)
 	s := newAffectedPackageStore(db, bs)
 
+	cpe1 := Cpe{Part: "a", Vendor: "vendor1", Product: "product1"}
+	cpe2 := Cpe{Part: "a", Vendor: "vendor2", Product: "product2"}
 	pkg1 := &AffectedPackageHandle{
-		Package: &Package{Name: "pkg1", Type: "type1"},
+		Package: &Package{Name: "pkg1", Type: "type1", CPEs: []Cpe{cpe1}},
 		BlobValue: &AffectedPackageBlob{
 			CVEs: []string{"CVE-2023-1234"},
 		},
 	}
-
-	pkg2 := testDistro1AffectedPackage2Handle()
+	pkg2 := &AffectedPackageHandle{
+		Package: &Package{Name: "pkg2", Type: "type2", CPEs: []Cpe{cpe2}},
+		BlobValue: &AffectedPackageBlob{
+			CVEs: []string{"CVE-2023-5678"},
+		},
+	}
 
 	err := s.AddAffectedPackages(pkg1, pkg2)
 	require.NoError(t, err)
 
-	var result1 AffectedPackageHandle
-	err = db.Where("package_id = ?", pkg1.PackageID).First(&result1).Error
-	require.NoError(t, err)
-	assert.Equal(t, pkg1.PackageID, result1.PackageID)
-	assert.Equal(t, pkg1.BlobID, result1.BlobID)
-	require.Nil(t, result1.BlobValue) // no preloading on fetch
+	tests := []struct {
+		name     string
+		cpe      cpe.Attributes
+		options  *GetAffectedPackageOptions
+		expected []AffectedPackageHandle
+		wantErr  require.ErrorAssertionFunc
+	}{
+		{
+			name: "full match CPE",
+			cpe: cpe.Attributes{
+				Part:    "a",
+				Vendor:  "vendor1",
+				Product: "product1",
+			},
+			options: &GetAffectedPackageOptions{
+				PreloadPackageCPEs: true,
+				PreloadPackage:     true,
+				PreloadBlob:        true,
+			},
+			expected: []AffectedPackageHandle{*pkg1},
+		},
+		{
+			name: "partial match CPE",
+			cpe: cpe.Attributes{
+				Part:   "a",
+				Vendor: "vendor2",
+			},
+			options: &GetAffectedPackageOptions{
+				PreloadPackageCPEs: true,
+				PreloadPackage:     true,
+				PreloadBlob:        true,
+			},
+			expected: []AffectedPackageHandle{*pkg2},
+		},
+		{
+			name: "missing attributes",
+			cpe: cpe.Attributes{
+				Part: "a",
+			},
+			options: &GetAffectedPackageOptions{
+				PreloadPackageCPEs: true,
+				PreloadPackage:     true,
+				PreloadBlob:        true,
+			},
+			expected: []AffectedPackageHandle{*pkg1, *pkg2},
+		},
+		{
+			name: "no matches",
+			cpe: cpe.Attributes{
+				Part:    "a",
+				Vendor:  "unknown_vendor",
+				Product: "unknown_product",
+			},
+			options: &GetAffectedPackageOptions{
+				PreloadPackageCPEs: true,
+				PreloadPackage:     true,
+				PreloadBlob:        true,
+			},
+			expected: nil,
+		},
+	}
 
-	var result2 AffectedPackageHandle
-	err = db.Where("package_id = ?", pkg2.PackageID).First(&result2).Error
-	require.NoError(t, err)
-	assert.Equal(t, pkg2.PackageID, result2.PackageID)
-	assert.Equal(t, pkg2.BlobID, result2.BlobID)
-	assert.Nil(t, result2.BlobValue)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.wantErr == nil {
+				tt.wantErr = require.NoError
+			}
+
+			result, err := s.GetAffectedPackagesByCPE(tt.cpe, tt.options)
+			tt.wantErr(t, err)
+			if err != nil {
+				return
+			}
+			if d := cmp.Diff(tt.expected, result, cmpopts.EquateEmpty()); d != "" {
+				t.Errorf(fmt.Sprintf("unexpected result: %s", d))
+			}
+
+		})
+	}
 }
 
 func TestAffectedPackageStore_GetAffectedPackagesByName(t *testing.T) {
@@ -133,95 +526,12 @@ func TestAffectedPackageStore_GetAffectedPackagesByName(t *testing.T) {
 		},
 	}
 
-	type preloadConfig struct {
-		name             string
-		PreloadOS        bool
-		PreloadPackage   bool
-		PreloadBlob      bool
-		prepExpectations func(*testing.T, []AffectedPackageHandle) []AffectedPackageHandle
-	}
-
-	preloadCases := []preloadConfig{
-		{
-			name:           "preload-all",
-			PreloadOS:      true,
-			PreloadPackage: true,
-			PreloadBlob:    true,
-			prepExpectations: func(t *testing.T, in []AffectedPackageHandle) []AffectedPackageHandle {
-				for _, a := range in {
-					if a.OperatingSystemID != nil {
-						require.NotNil(t, a.OperatingSystem)
-					}
-					require.NotNil(t, a.Package)
-					require.NotNil(t, a.BlobValue)
-				}
-				return in
-			},
-		},
-		{
-			name: "preload-none",
-			prepExpectations: func(t *testing.T, in []AffectedPackageHandle) []AffectedPackageHandle {
-				var out []AffectedPackageHandle
-				for _, v := range in {
-					v.OperatingSystem = nil
-					v.Package = nil
-					v.BlobValue = nil
-					out = append(out, v)
-				}
-				return out
-			},
-		},
-		{
-			name:      "preload-os-only",
-			PreloadOS: true,
-			prepExpectations: func(t *testing.T, in []AffectedPackageHandle) []AffectedPackageHandle {
-				var out []AffectedPackageHandle
-				for _, a := range in {
-					if a.OperatingSystemID != nil {
-						require.NotNil(t, a.OperatingSystem)
-					}
-					a.Package = nil
-					a.BlobValue = nil
-					out = append(out, a)
-				}
-				return out
-			},
-		},
-		{
-			name:           "preload-package-only",
-			PreloadPackage: true,
-			prepExpectations: func(t *testing.T, in []AffectedPackageHandle) []AffectedPackageHandle {
-				var out []AffectedPackageHandle
-				for _, a := range in {
-					require.NotNil(t, a.Package)
-					a.OperatingSystem = nil
-					a.BlobValue = nil
-					out = append(out, a)
-				}
-				return out
-			},
-		},
-		{
-			name:        "preload-blob-only",
-			PreloadBlob: true,
-			prepExpectations: func(t *testing.T, in []AffectedPackageHandle) []AffectedPackageHandle {
-				var out []AffectedPackageHandle
-				for _, a := range in {
-					a.OperatingSystem = nil
-					a.Package = nil
-					out = append(out, a)
-				}
-				return out
-			},
-		},
-	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.wantErr == nil {
 				tt.wantErr = require.NoError
 			}
-			for _, pc := range preloadCases {
+			for _, pc := range defaultAffectedPackageHandlePreloadCases() {
 				t.Run(pc.name, func(t *testing.T) {
 
 					opts := tt.options
@@ -592,4 +902,9 @@ func expectErrIs(t *testing.T, expected error) require.ErrorAssertionFunc {
 
 func strRef(s string) *string {
 	return &s
+}
+
+func idRef(i int64) *ID {
+	v := ID(i)
+	return &v
 }
