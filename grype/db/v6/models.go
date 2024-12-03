@@ -1,6 +1,7 @@
 package v6
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -113,6 +114,20 @@ func (v *VulnerabilityHandle) setBlobID(id ID) {
 	v.BlobID = id
 }
 
+func (v VulnerabilityHandle) getBlobID() ID {
+	return v.BlobID
+}
+
+func (v *VulnerabilityHandle) setBlob(rawBlobValue []byte) error {
+	var blobValue VulnerabilityBlob
+	if err := json.Unmarshal(rawBlobValue, &blobValue); err != nil {
+		return fmt.Errorf("unable to unmarshal vulnerability blob value: %w", err)
+	}
+
+	v.BlobValue = &blobValue
+	return nil
+}
+
 // package related search tables //////////////////////////////////////////////////////
 
 // AffectedPackageHandle represents a single package affected by the specified vulnerability. A package here is a
@@ -121,9 +136,9 @@ func (v *VulnerabilityHandle) setBlobID(id ID) {
 // packages; for example, when we have a CPE but not a clear understanding of the package ecosystem and authoritative
 // name (which might or might not be the product name in the CPE), in which case AffectedCPEHandle should be used.
 type AffectedPackageHandle struct {
-	ID              ID `gorm:"column:id;primaryKey"`
-	VulnerabilityID ID `gorm:"column:vulnerability_id;not null"`
-	// Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
+	ID              ID                   `gorm:"column:id;primaryKey"`
+	VulnerabilityID *ID                  `gorm:"column:vulnerability_id"`
+	Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
 
 	OperatingSystemID *ID              `gorm:"column:operating_system_id"`
 	OperatingSystem   *OperatingSystem `gorm:"foreignKey:OperatingSystemID"`
@@ -141,6 +156,20 @@ func (v AffectedPackageHandle) getBlobValue() any {
 
 func (v *AffectedPackageHandle) setBlobID(id ID) {
 	v.BlobID = id
+}
+
+func (v AffectedPackageHandle) getBlobID() ID {
+	return v.BlobID
+}
+
+func (v *AffectedPackageHandle) setBlob(rawBlobValue []byte) error {
+	var blobValue AffectedPackageBlob
+	if err := json.Unmarshal(rawBlobValue, &blobValue); err != nil {
+		return fmt.Errorf("unable to unmarshal affected package blob value: %w", err)
+	}
+
+	v.BlobValue = &blobValue
+	return nil
 }
 
 type Package struct {
@@ -250,9 +279,9 @@ func (os *OperatingSystemAlias) BeforeCreate(_ *gorm.DB) (err error) {
 // but we do not have a clear understanding of the package ecosystem or authoritative name, so we can still
 // find vulnerabilities by these identifiers but not assert they are related to an entry in the Packages table.
 type AffectedCPEHandle struct {
-	ID              ID `gorm:"column:id;primaryKey"`
-	VulnerabilityID ID `gorm:"column:vulnerability_id;not null"`
-	// Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
+	ID              ID                   `gorm:"column:id;primaryKey"`
+	VulnerabilityID *ID                  `gorm:"column:vulnerability_id"`
+	Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
 
 	CpeID ID   `gorm:"column:cpe_id"`
 	CPE   *Cpe `gorm:"foreignKey:CpeID"`
@@ -261,12 +290,26 @@ type AffectedCPEHandle struct {
 	BlobValue *AffectedPackageBlob `gorm:"-"`
 }
 
+func (v AffectedCPEHandle) getBlobID() ID {
+	return v.BlobID
+}
+
 func (v AffectedCPEHandle) getBlobValue() any {
 	return v.BlobValue
 }
 
 func (v *AffectedCPEHandle) setBlobID(id ID) {
 	v.BlobID = id
+}
+
+func (v *AffectedCPEHandle) setBlob(rawBlobValue []byte) error {
+	var blobValue AffectedPackageBlob
+	if err := json.Unmarshal(rawBlobValue, &blobValue); err != nil {
+		return fmt.Errorf("unable to unmarshal affected cpe blob value: %w", err)
+	}
+
+	v.BlobValue = &blobValue
+	return nil
 }
 
 type Cpe struct {
@@ -286,7 +329,7 @@ type Cpe struct {
 }
 
 func (c Cpe) String() string {
-	return fmt.Sprintf("%s:%s:%s:%s:%s:%s:%s:%s:%s", c.Part, c.Vendor, c.Product, c.Edition, c.Language, c.SoftwareEdition, c.TargetHardware, c.TargetSoftware, c.Other)
+	return fmt.Sprintf("%s:%s:%s:::%s:%s:%s:%s:%s:%s", c.Part, c.Vendor, c.Product, c.Edition, c.Language, c.SoftwareEdition, c.TargetHardware, c.TargetSoftware, c.Other)
 }
 
 func (c *Cpe) BeforeCreate(tx *gorm.DB) (err error) {

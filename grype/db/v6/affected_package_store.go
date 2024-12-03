@@ -1,10 +1,10 @@
 package v6
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"gorm.io/gorm"
 
@@ -19,12 +19,44 @@ var ErrDistroNotPresent = errors.New("distro not present")
 var ErrMultipleOSMatches = errors.New("multiple OS matches found but not allowed")
 
 type GetAffectedPackageOptions struct {
-	PreloadOS          bool
-	PreloadPackage     bool
-	PreloadPackageCPEs bool
-	PreloadBlob        bool
-	PackageType        string
-	Distro             *DistroSpecifier
+	PreloadOS            bool
+	PreloadPackage       bool
+	PreloadPackageCPEs   bool
+	PreloadVulnerability bool
+	PreloadBlob          bool
+	Distro               *DistroSpecifier
+	Vulnerability        *VulnerabilitySpecifier
+}
+
+type PackageSpecifier struct {
+	Name string
+	Type string
+	CPE  *cpe.Attributes
+}
+
+func (p *PackageSpecifier) String() string {
+	if p == nil {
+		return "no-package-specified"
+	}
+
+	var args []string
+	if p.Name != "" {
+		args = append(args, fmt.Sprintf("name=%s", p.Name))
+	}
+
+	if p.Type != "" {
+		args = append(args, fmt.Sprintf("type=%s", p.Type))
+	}
+
+	if p.CPE != nil {
+		args = append(args, fmt.Sprintf("cpe=%s", p.CPE.String()))
+	}
+
+	if len(args) > 0 {
+		return fmt.Sprintf("pkg(%s)", strings.Join(args, ", "))
+	}
+
+	return "no-package-specified"
 }
 
 // DistroSpecifier is a struct that represents a distro in a way that can be used to query the affected package store.
@@ -69,6 +101,11 @@ func (d DistroSpecifier) version() string {
 	return ""
 }
 
+type VulnerabilitySpecifier struct {
+	// Name of the vulnerability (e.g. CVE-2020-1234)
+	Name string
+}
+
 func (d DistroSpecifier) matchesVersionPattern(pattern string) bool {
 	// check if version or version label matches the given regex
 	r, err := regexp.Compile(pattern)
@@ -92,8 +129,7 @@ type AffectedPackageStoreWriter interface {
 }
 
 type AffectedPackageStoreReader interface {
-	GetAffectedPackagesByName(packageName string, config *GetAffectedPackageOptions) ([]AffectedPackageHandle, error)
-	GetAffectedPackagesByCPE(cpe cpe.Attributes, config *GetAffectedPackageOptions) ([]AffectedPackageHandle, error)
+	GetAffectedPackages(pkg *PackageSpecifier, config *GetAffectedPackageOptions) ([]AffectedPackageHandle, error)
 }
 
 type affectedPackageStore struct {
@@ -120,40 +156,19 @@ func (s *affectedPackageStore) AddAffectedPackages(packages ...*AffectedPackageH
 	return nil
 }
 
-func (s *affectedPackageStore) GetAffectedPackagesByName(packageName string, config *GetAffectedPackageOptions) ([]AffectedPackageHandle, error) {
+func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config *GetAffectedPackageOptions) ([]AffectedPackageHandle, error) {
 	if config == nil {
 		config = &GetAffectedPackageOptions{}
 	}
 
-	log.WithFields("name", packageName, "distro", distroDisplay(config.Distro)).Trace("fetching AffectedPackage by name record")
+	log.WithFields("pkg", pkg.String(), "distro", distroDisplay(config.Distro)).Trace("fetching AffectedPackage record")
 
-	return s.getAffectedPackagesWithOptions(
-		s.handlePackageName(s.db, packageName),
-		config,
-	)
-}
+	query := s.handlePackage(s.db, pkg)
 
-func (s *affectedPackageStore) GetAffectedPackagesByCPE(cpe cpe.Attributes, config *GetAffectedPackageOptions) ([]AffectedPackageHandle, error) {
-	if config == nil {
-		config = &GetAffectedPackageOptions{}
-	}
-
-	log.WithFields("cpe", cpe.String(), "distro", distroDisplay(config.Distro)).Trace("fetching AffectedPackage by CPE record")
-
-	return s.getAffectedPackagesWithOptions(
-		s.handlePackageCPE(s.db, cpe),
-		config)
-}
-
-func (s *affectedPackageStore) getAffectedPackagesWithOptions(query *gorm.DB, config *GetAffectedPackageOptions) ([]AffectedPackageHandle, error) {
-	if config == nil {
-		config = &GetAffectedPackageOptions{}
-	}
-
-	query = s.handlePackageOptions(query, *config)
+	query = s.handleVulnerabilityOptions(query, config.Vulnerability)
 
 	var err error
-	query, err = s.handleDistroOptions(query, *config)
+	query, err = s.handleDistroOptions(query, config.Distro)
 	if err != nil {
 		return nil, err
 	}
@@ -168,9 +183,18 @@ func (s *affectedPackageStore) getAffectedPackagesWithOptions(query *gorm.DB, co
 
 	if config.PreloadBlob {
 		for i := range pkgs {
-			err := s.attachBlob(&pkgs[i])
+			err := s.blobStore.attachBlobValue(&pkgs[i])
 			if err != nil {
 				return nil, fmt.Errorf("unable to attach blob %#v: %w", pkgs[i], err)
+			}
+		}
+	}
+
+	if config.PreloadVulnerability {
+		for i := range pkgs {
+			err := s.blobStore.attachBlobValue(pkgs[i].Vulnerability)
+			if err != nil {
+				return nil, fmt.Errorf("unable to attach vulnerability blob %#v: %w", pkgs[i], err)
 			}
 		}
 	}
@@ -178,67 +202,80 @@ func (s *affectedPackageStore) getAffectedPackagesWithOptions(query *gorm.DB, co
 	return pkgs, nil
 }
 
-func (s *affectedPackageStore) handlePackageName(query *gorm.DB, packageName string) *gorm.DB {
-	return query.Joins("JOIN packages ON affected_package_handles.package_id = packages.id").Where("packages.name = ?", packageName)
-}
-
-func (s *affectedPackageStore) handlePackageCPE(query *gorm.DB, c cpe.Attributes) *gorm.DB {
-	query = query.Joins("JOIN packages ON affected_package_handles.package_id = packages.id").Joins("JOIN cpes ON packages.id = cpes.package_id")
-
-	if c.Part != cpe.Any {
-		query = query.Where("cpes.part = ?", c.Part)
+func (s *affectedPackageStore) handlePackage(query *gorm.DB, config *PackageSpecifier) *gorm.DB {
+	if config == nil {
+		return query
 	}
 
-	if c.Vendor != cpe.Any {
-		query = query.Where("cpes.vendor = ?", c.Vendor)
+	query = query.Joins("JOIN packages ON affected_package_handles.package_id = packages.id")
+
+	if config.Name != "" {
+		query = query.Where("packages.name = ?", config.Name)
+	}
+	if config.Type != "" {
+		query = query.Where("packages.type = ?", config.Type)
 	}
 
-	if c.Product != cpe.Any {
-		query = query.Where("cpes.product = ?", c.Product)
-	}
+	if config.CPE != nil {
+		query = query.Joins("JOIN cpes ON packages.id = cpes.package_id")
+		c := config.CPE
+		if c.Part != cpe.Any {
+			query = query.Where("cpes.part = ?", c.Part)
+		}
 
-	if c.Edition != cpe.Any {
-		query = query.Where("cpes.edition = ?", c.Edition)
-	}
+		if c.Vendor != cpe.Any {
+			query = query.Where("cpes.vendor = ?", c.Vendor)
+		}
 
-	if c.Language != cpe.Any {
-		query = query.Where("cpes.language = ?", c.Language)
-	}
+		if c.Product != cpe.Any {
+			query = query.Where("cpes.product = ?", c.Product)
+		}
 
-	if c.SWEdition != cpe.Any {
-		query = query.Where("cpes.sw_edition = ?", c.SWEdition)
-	}
+		if c.Edition != cpe.Any {
+			query = query.Where("cpes.edition = ?", c.Edition)
+		}
 
-	if c.TargetSW != cpe.Any {
-		query = query.Where("cpes.target_sw = ?", c.TargetSW)
-	}
+		if c.Language != cpe.Any {
+			query = query.Where("cpes.language = ?", c.Language)
+		}
 
-	if c.TargetHW != cpe.Any {
-		query = query.Where("cpes.target_hw = ?", c.TargetHW)
-	}
+		if c.SWEdition != cpe.Any {
+			query = query.Where("cpes.sw_edition = ?", c.SWEdition)
+		}
 
-	if c.Other != cpe.Any {
-		query = query.Where("cpes.other = ?", c.Other)
+		if c.TargetSW != cpe.Any {
+			query = query.Where("cpes.target_sw = ?", c.TargetSW)
+		}
+
+		if c.TargetHW != cpe.Any {
+			query = query.Where("cpes.target_hw = ?", c.TargetHW)
+		}
+
+		if c.Other != cpe.Any {
+			query = query.Where("cpes.other = ?", c.Other)
+		}
 	}
 
 	return query
 }
 
-func (s *affectedPackageStore) handlePackageOptions(query *gorm.DB, config GetAffectedPackageOptions) *gorm.DB {
-	if config.PackageType != "" {
-		query = query.Where("packages.type = ?", config.PackageType)
+func (s *affectedPackageStore) handleVulnerabilityOptions(query *gorm.DB, config *VulnerabilitySpecifier) *gorm.DB {
+	if config == nil {
+		return query
 	}
-
+	if config.Name != "" {
+		query = query.Joins("JOIN vulnerability_handles ON affected_package_handles.vulnerability_id = vulnerability_handles.id").Where("vulnerability_handles.name = ?", config.Name)
+	}
 	return query
 }
 
-func (s *affectedPackageStore) handleDistroOptions(query *gorm.DB, config GetAffectedPackageOptions) (*gorm.DB, error) {
+func (s *affectedPackageStore) handleDistroOptions(query *gorm.DB, config *DistroSpecifier) (*gorm.DB, error) {
 	var resolvedDistros []OperatingSystem
 	var err error
 
 	switch {
-	case hasDistroSpecified(config.Distro):
-		resolvedDistros, err = s.resolveDistro(*config.Distro)
+	case hasDistroSpecified(config):
+		resolvedDistros, err = s.resolveDistro(*config)
 		if err != nil {
 			return nil, fmt.Errorf("unable to resolve distro: %w", err)
 		}
@@ -246,13 +283,13 @@ func (s *affectedPackageStore) handleDistroOptions(query *gorm.DB, config GetAff
 		switch {
 		case len(resolvedDistros) == 0:
 			return nil, ErrDistroNotPresent
-		case len(resolvedDistros) > 1 && !config.Distro.AllowMultiple:
+		case len(resolvedDistros) > 1 && !config.AllowMultiple:
 			return nil, ErrMultipleOSMatches
 		}
-	case config.Distro == AnyDistroSpecified:
+	case config == AnyDistroSpecified:
 		// TODO: one enhancement we may want to do later is "has OS defined but is not specific" which this does NOT cover. This is "may or may not have an OS defined" which is different.
 		return query, nil
-	case *config.Distro == *NoDistroSpecified:
+	case *config == *NoDistroSpecified:
 		return query.Where("operating_system_id IS NULL"), nil
 	}
 
@@ -426,28 +463,14 @@ func (s *affectedPackageStore) handlePreload(query *gorm.DB, config GetAffectedP
 		}
 	}
 
+	if config.PreloadVulnerability {
+		query = query.Preload("Vulnerability")
+	}
+
 	if config.PreloadOS {
 		query = query.Preload("OperatingSystem")
 	}
 	return query
-}
-
-func (s *affectedPackageStore) attachBlob(vh *AffectedPackageHandle) error {
-	var blobValue *AffectedPackageBlob
-
-	rawValue, err := s.blobStore.getBlobValue(vh.BlobID)
-	if err != nil {
-		return fmt.Errorf("unable to fetch affected package blob value: %w", err)
-	}
-
-	err = json.Unmarshal([]byte(rawValue), &blobValue)
-	if err != nil {
-		return fmt.Errorf("unable to unmarshal affected package blob value: %w", err)
-	}
-
-	vh.BlobValue = blobValue
-
-	return nil
 }
 
 func distroDisplay(d *DistroSpecifier) string {

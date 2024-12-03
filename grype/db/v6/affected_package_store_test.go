@@ -13,20 +13,22 @@ import (
 )
 
 type affectedPackageHandlePreloadConfig struct {
-	name             string
-	PreloadOS        bool
-	PreloadPackage   bool
-	PreloadBlob      bool
-	prepExpectations func(*testing.T, []AffectedPackageHandle) []AffectedPackageHandle
+	name                 string
+	PreloadOS            bool
+	PreloadPackage       bool
+	PreloadBlob          bool
+	PreloadVulnerability bool
+	prepExpectations     func(*testing.T, []AffectedPackageHandle) []AffectedPackageHandle
 }
 
 func defaultAffectedPackageHandlePreloadCases() []affectedPackageHandlePreloadConfig {
 	return []affectedPackageHandlePreloadConfig{
 		{
-			name:           "preload-all",
-			PreloadOS:      true,
-			PreloadPackage: true,
-			PreloadBlob:    true,
+			name:                 "preload-all",
+			PreloadOS:            true,
+			PreloadPackage:       true,
+			PreloadBlob:          true,
+			PreloadVulnerability: true,
 			prepExpectations: func(t *testing.T, in []AffectedPackageHandle) []AffectedPackageHandle {
 				for _, a := range in {
 					if a.OperatingSystemID != nil {
@@ -34,6 +36,7 @@ func defaultAffectedPackageHandlePreloadCases() []affectedPackageHandlePreloadCo
 					}
 					require.NotNil(t, a.Package)
 					require.NotNil(t, a.BlobValue)
+					require.NotNil(t, a.Vulnerability)
 				}
 				return in
 			},
@@ -42,14 +45,15 @@ func defaultAffectedPackageHandlePreloadCases() []affectedPackageHandlePreloadCo
 			name: "preload-none",
 			prepExpectations: func(t *testing.T, in []AffectedPackageHandle) []AffectedPackageHandle {
 				var out []AffectedPackageHandle
-				for _, v := range in {
-					if v.OperatingSystem == nil && v.BlobValue == nil && v.Package == nil {
+				for _, a := range in {
+					if a.OperatingSystem == nil && a.BlobValue == nil && a.Package == nil && a.Vulnerability == nil {
 						t.Skip("preload already matches expectation")
 					}
-					v.OperatingSystem = nil
-					v.Package = nil
-					v.BlobValue = nil
-					out = append(out, v)
+					a.OperatingSystem = nil
+					a.Package = nil
+					a.BlobValue = nil
+					a.Vulnerability = nil
+					out = append(out, a)
 				}
 				return out
 			},
@@ -63,11 +67,12 @@ func defaultAffectedPackageHandlePreloadCases() []affectedPackageHandlePreloadCo
 					if a.OperatingSystemID != nil {
 						require.NotNil(t, a.OperatingSystem)
 					}
-					if a.Package == nil && a.BlobValue == nil {
+					if a.Package == nil && a.BlobValue == nil && a.Vulnerability == nil {
 						t.Skip("preload already matches expectation")
 					}
 					a.Package = nil
 					a.BlobValue = nil
+					a.Vulnerability = nil
 					out = append(out, a)
 				}
 				return out
@@ -80,11 +85,12 @@ func defaultAffectedPackageHandlePreloadCases() []affectedPackageHandlePreloadCo
 				var out []AffectedPackageHandle
 				for _, a := range in {
 					require.NotNil(t, a.Package)
-					if a.OperatingSystem == nil && a.BlobValue == nil {
+					if a.OperatingSystem == nil && a.BlobValue == nil && a.Vulnerability == nil {
 						t.Skip("preload already matches expectation")
 					}
 					a.OperatingSystem = nil
 					a.BlobValue = nil
+					a.Vulnerability = nil
 					out = append(out, a)
 				}
 				return out
@@ -96,11 +102,29 @@ func defaultAffectedPackageHandlePreloadCases() []affectedPackageHandlePreloadCo
 			prepExpectations: func(t *testing.T, in []AffectedPackageHandle) []AffectedPackageHandle {
 				var out []AffectedPackageHandle
 				for _, a := range in {
-					if a.OperatingSystem == nil && a.Package == nil {
+					if a.OperatingSystem == nil && a.Package == nil && a.Vulnerability == nil {
 						t.Skip("preload already matches expectation")
 					}
 					a.OperatingSystem = nil
 					a.Package = nil
+					a.Vulnerability = nil
+					out = append(out, a)
+				}
+				return out
+			},
+		},
+		{
+			name:                 "preload-vulnerability-only",
+			PreloadVulnerability: true,
+			prepExpectations: func(t *testing.T, in []AffectedPackageHandle) []AffectedPackageHandle {
+				var out []AffectedPackageHandle
+				for _, a := range in {
+					if a.OperatingSystem == nil && a.Package == nil && a.BlobValue == nil {
+						t.Skip("preload already matches expectation")
+					}
+					a.OperatingSystem = nil
+					a.Package = nil
+					a.BlobValue = nil
 					out = append(out, a)
 				}
 				return out
@@ -161,7 +185,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 			PreloadBlob:    true,
 		}
 
-		results, err := s.GetAffectedPackagesByName(pkg1.Package.Name, options)
+		results, err := s.GetAffectedPackages(pkgFromName(pkg1.Package.Name), options)
 		require.NoError(t, err)
 		require.Len(t, results, 1)
 
@@ -189,7 +213,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 			PreloadPackageCPEs: true,
 		}
 
-		results, err := s.GetAffectedPackagesByName(pkg1.Package.Name, options)
+		results, err := s.GetAffectedPackages(pkgFromName(pkg1.Package.Name), options)
 		require.NoError(t, err)
 		require.Len(t, results, 1)
 
@@ -331,7 +355,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 	})
 }
 
-func TestAffectedPackageStore_GetAffectedPackagesByCPE(t *testing.T) {
+func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 	db := setupTestStore(t).db
 	bs := newBlobStore(db)
 	s := newAffectedPackageStore(db, bs)
@@ -422,7 +446,7 @@ func TestAffectedPackageStore_GetAffectedPackagesByCPE(t *testing.T) {
 				tt.wantErr = require.NoError
 			}
 
-			result, err := s.GetAffectedPackagesByCPE(tt.cpe, tt.options)
+			result, err := s.GetAffectedPackages(&PackageSpecifier{CPE: &tt.cpe}, tt.options)
 			tt.wantErr(t, err)
 			if err != nil {
 				return
@@ -435,7 +459,7 @@ func TestAffectedPackageStore_GetAffectedPackagesByCPE(t *testing.T) {
 	}
 }
 
-func TestAffectedPackageStore_GetAffectedPackagesByName(t *testing.T) {
+func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 	db := setupTestStore(t).db
 	bs := newBlobStore(db)
 	s := newAffectedPackageStore(db, bs)
@@ -447,15 +471,15 @@ func TestAffectedPackageStore_GetAffectedPackagesByName(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name        string
-		packageName string
-		options     *GetAffectedPackageOptions
-		expected    []AffectedPackageHandle
-		wantErr     require.ErrorAssertionFunc
+		name     string
+		pkg      *PackageSpecifier
+		options  *GetAffectedPackageOptions
+		expected []AffectedPackageHandle
+		wantErr  require.ErrorAssertionFunc
 	}{
 		{
-			name:        "specific distro",
-			packageName: pkg2d1.Package.Name,
+			name: "specific distro",
+			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
 				Distro: &DistroSpecifier{
 					Name:         "ubuntu",
@@ -466,8 +490,8 @@ func TestAffectedPackageStore_GetAffectedPackagesByName(t *testing.T) {
 			expected: []AffectedPackageHandle{*pkg2d1},
 		},
 		{
-			name:        "distro major version only (allow multiple)",
-			packageName: pkg2d1.Package.Name,
+			name: "distro major version only (allow multiple)",
+			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
 				Distro: &DistroSpecifier{
 					Name:          "ubuntu",
@@ -478,8 +502,8 @@ func TestAffectedPackageStore_GetAffectedPackagesByName(t *testing.T) {
 			expected: []AffectedPackageHandle{*pkg2d1, *pkg2d2},
 		},
 		{
-			name:        "distro major version only (default)",
-			packageName: pkg2d1.Package.Name,
+			name: "distro major version only (default)",
+			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
 				Distro: &DistroSpecifier{
 					Name:          "ubuntu",
@@ -490,8 +514,8 @@ func TestAffectedPackageStore_GetAffectedPackagesByName(t *testing.T) {
 			wantErr: expectErrIs(t, ErrMultipleOSMatches),
 		},
 		{
-			name:        "distro codename",
-			packageName: pkg2d1.Package.Name,
+			name: "distro codename",
+			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
 				Distro: &DistroSpecifier{
 					Name:     "ubuntu",
@@ -501,27 +525,24 @@ func TestAffectedPackageStore_GetAffectedPackagesByName(t *testing.T) {
 			expected: []AffectedPackageHandle{*pkg2d2},
 		},
 		{
-			name:        "no distro",
-			packageName: pkg2.Package.Name,
+			name: "no distro",
+			pkg:  pkgFromName(pkg2.Package.Name),
 			options: &GetAffectedPackageOptions{
 				Distro: NoDistroSpecified,
 			},
 			expected: []AffectedPackageHandle{*pkg2},
 		},
 		{
-			name:        "any distro",
-			packageName: pkg2d1.Package.Name,
+			name: "any distro",
+			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
 				Distro: AnyDistroSpecified,
 			},
 			expected: []AffectedPackageHandle{*pkg2d1, *pkg2, *pkg2d2},
 		},
 		{
-			name:        "package type",
-			packageName: pkg2.Package.Name,
-			options: &GetAffectedPackageOptions{
-				PackageType: "type2",
-			},
+			name:     "package type",
+			pkg:      &PackageSpecifier{Name: pkg2.Package.Name, Type: "type2"},
 			expected: []AffectedPackageHandle{*pkg2},
 		},
 	}
@@ -533,16 +554,19 @@ func TestAffectedPackageStore_GetAffectedPackagesByName(t *testing.T) {
 			}
 			for _, pc := range defaultAffectedPackageHandlePreloadCases() {
 				t.Run(pc.name, func(t *testing.T) {
-
 					opts := tt.options
+					if opts == nil {
+						opts = &GetAffectedPackageOptions{}
+					}
 					opts.PreloadOS = pc.PreloadOS
 					opts.PreloadPackage = pc.PreloadPackage
 					opts.PreloadBlob = pc.PreloadBlob
+					opts.PreloadVulnerability = pc.PreloadVulnerability
 					expected := tt.expected
 					if pc.prepExpectations != nil {
 						expected = pc.prepExpectations(t, expected)
 					}
-					result, err := s.GetAffectedPackagesByName(tt.packageName, opts)
+					result, err := s.GetAffectedPackages(tt.pkg, opts)
 					tt.wantErr(t, err)
 					if err != nil {
 						return
@@ -850,6 +874,9 @@ func testDistro1AffectedPackage2Handle() *AffectedPackageHandle {
 			Name: "pkg2",
 			Type: "type2d",
 		},
+		Vulnerability: &VulnerabilityHandle{
+			Name: "CVE-2023-4567",
+		},
 		OperatingSystem: &OperatingSystem{
 			Name:         "ubuntu",
 			MajorVersion: "20",
@@ -868,6 +895,9 @@ func testDistro2AffectedPackage2Handle() *AffectedPackageHandle {
 			Name: "pkg2",
 			Type: "type2d",
 		},
+		Vulnerability: &VulnerabilityHandle{
+			Name: "CVE-2023-4567",
+		},
 		OperatingSystem: &OperatingSystem{
 			Name:         "ubuntu",
 			MajorVersion: "20",
@@ -885,6 +915,9 @@ func testNonDistroAffectedPackage2Handle() *AffectedPackageHandle {
 		Package: &Package{
 			Name: "pkg2",
 			Type: "type2",
+		},
+		Vulnerability: &VulnerabilityHandle{
+			Name: "CVE-2023-4567",
 		},
 		BlobValue: &AffectedPackageBlob{
 			CVEs: []string{"CVE-2023-4567"},
@@ -907,4 +940,8 @@ func strRef(s string) *string {
 func idRef(i int64) *ID {
 	v := ID(i)
 	return &v
+}
+
+func pkgFromName(name string) *PackageSpecifier {
+	return &PackageSpecifier{Name: name}
 }
