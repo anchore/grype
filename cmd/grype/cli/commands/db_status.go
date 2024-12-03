@@ -34,7 +34,7 @@ func DBStatus(app clio.Application) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "status",
-		Short:   "display database status",
+		Short:   "Display database status and metadata",
 		Args:    cobra.ExactArgs(0),
 		PreRunE: disableUI(app),
 		RunE: func(_ *cobra.Command, _ []string) error {

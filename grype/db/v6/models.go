@@ -3,6 +3,7 @@ package v6
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/OneOfOne/xxhash"
@@ -286,6 +287,32 @@ type OperatingSystem struct {
 	Codename     string `gorm:"column:codename;index"`
 }
 
+func (os *OperatingSystem) VersionNumber() string {
+	if os.MinorVersion != "" {
+		return fmt.Sprintf("%s.%s", os.MajorVersion, os.MinorVersion)
+	}
+	return os.MajorVersion
+}
+
+func (os *OperatingSystem) Version() string {
+	if os == nil {
+		return ""
+	}
+
+	if os.LabelVersion != "" {
+		return os.LabelVersion
+	}
+
+	if os.MajorVersion != "" {
+		if os.MinorVersion != "" {
+			return fmt.Sprintf("%s.%s", os.MajorVersion, os.MinorVersion)
+		}
+		return os.MajorVersion
+	}
+
+	return os.Codename
+}
+
 func (os *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
 	// if the name, major version, and minor version already exist in the table then we should not insert a new record
 	var existing OperatingSystem
@@ -424,7 +451,13 @@ type Cpe struct {
 }
 
 func (c Cpe) String() string {
-	return fmt.Sprintf("%s:%s:%s:::%s:%s:%s:%s:%s:%s", c.Part, c.Vendor, c.Product, c.Edition, c.Language, c.SoftwareEdition, c.TargetHardware, c.TargetSoftware, c.Other)
+	parts := []string{"cpe:2.3", c.Part, c.Vendor, c.Product, c.Edition, c.Language, c.SoftwareEdition, c.TargetHardware, c.TargetSoftware, c.Other}
+	for i, part := range parts {
+		if part == "" {
+			parts[i] = "*"
+		}
+	}
+	return strings.Join(parts, ":")
 }
 
 func (c *Cpe) BeforeCreate(tx *gorm.DB) (err error) {

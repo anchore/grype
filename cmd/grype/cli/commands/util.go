@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/maps"
 
@@ -82,4 +83,19 @@ func appendErrors(errs error, err ...error) error {
 		}
 	}
 	return multierror.Append(errs, err...)
+}
+
+func commonTableWriterOptions(table *tablewriter.Table) {
+	table.SetAutoWrapText(false)
+	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
+	table.SetAlignment(tablewriter.ALIGN_LEFT)
+
+	table.SetHeaderLine(false)
+	table.SetBorder(false)
+	table.SetAutoFormatHeaders(true)
+	table.SetCenterSeparator("")
+	table.SetColumnSeparator("")
+	table.SetRowSeparator("")
+	table.SetTablePadding("  ")
+	table.SetNoWhiteSpace(true)
 }
