@@ -25,6 +25,7 @@ func Models() []any {
 
 		// vulnerability related search tables
 		&VulnerabilityHandle{},
+		&VulnerabilityAlias{},
 
 		// package related search tables
 		&AffectedPackageHandle{}, // join on package, operating system
@@ -167,6 +168,14 @@ func (v *VulnerabilityHandle) setBlob(rawBlobValue []byte) error {
 
 	v.BlobValue = &blobValue
 	return nil
+}
+
+type VulnerabilityAlias struct {
+	// Name is the unique name for the vulnerability
+	Name string `gorm:"column:name;primaryKey;index"`
+
+	// Alias is an alternative name for the vulnerability that must be upstream from the Name (e.g if name is "RHSA-1234" then the upstream could be "CVE-1234-5678", but not the other way around)
+	Alias string `gorm:"column:alias;primaryKey;index;not null"`
 }
 
 // package related search tables //////////////////////////////////////////////////////

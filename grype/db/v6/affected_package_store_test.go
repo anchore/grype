@@ -3,6 +3,7 @@ package v6
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -603,6 +604,52 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			pkg:      &PackageSpecifier{Name: pkg2.Package.Name, Type: "type2"},
 			expected: []AffectedPackageHandle{*pkg2},
 		},
+		{
+			name: "specific CVE",
+			pkg:  pkgFromName(pkg2d1.Package.Name),
+			options: &GetAffectedPackageOptions{
+				Vulnerability: &VulnerabilitySpecifier{
+					Name: "CVE-2023-1234",
+				},
+			},
+			expected: []AffectedPackageHandle{*pkg2d1},
+		},
+		{
+			name: "any CVE published after a date",
+			pkg:  pkgFromName(pkg2d1.Package.Name),
+			options: &GetAffectedPackageOptions{
+				Vulnerability: &VulnerabilitySpecifier{
+					PublishedAfter: func() *time.Time {
+						now := time.Date(2020, 1, 1, 1, 1, 1, 0, time.UTC)
+						return &now
+					}(),
+				},
+			},
+			expected: []AffectedPackageHandle{*pkg2d1, *pkg2d2},
+		},
+		{
+			name: "any CVE modified after a date",
+			pkg:  pkgFromName(pkg2d1.Package.Name),
+			options: &GetAffectedPackageOptions{
+				Vulnerability: &VulnerabilitySpecifier{
+					ModifiedAfter: func() *time.Time {
+						now := time.Date(2023, 1, 1, 3, 4, 5, 0, time.UTC).Add(time.Hour * 2)
+						return &now
+					}(),
+				},
+			},
+			expected: []AffectedPackageHandle{*pkg2d1},
+		},
+		{
+			name: "any rejected CVE",
+			pkg:  pkgFromName(pkg2d1.Package.Name),
+			options: &GetAffectedPackageOptions{
+				Vulnerability: &VulnerabilitySpecifier{
+					Status: VulnerabilityRejected,
+				},
+			},
+			expected: []AffectedPackageHandle{*pkg2d1},
+		},
 	}
 
 	for _, tt := range tests {
@@ -927,13 +974,18 @@ func TestDistroDisplay(t *testing.T) {
 }
 
 func testDistro1AffectedPackage2Handle() *AffectedPackageHandle {
+	now := time.Date(2023, 1, 1, 3, 4, 5, 0, time.UTC)
+	later := now.Add(time.Hour * 200)
 	return &AffectedPackageHandle{
 		Package: &Package{
 			Name: "pkg2",
 			Type: "type2d",
 		},
 		Vulnerability: &VulnerabilityHandle{
-			Name: "CVE-2023-4567",
+			Name:          "CVE-2023-1234",
+			Status:        string(VulnerabilityRejected),
+			PublishedDate: &now,
+			ModifiedDate:  &later,
 			Provider: &Provider{
 				ID: "ubuntu",
 			},
@@ -945,19 +997,23 @@ func testDistro1AffectedPackage2Handle() *AffectedPackageHandle {
 			Codename:     "focal",
 		},
 		BlobValue: &AffectedPackageBlob{
-			CVEs: []string{"CVE-2023-4567"},
+			CVEs: []string{"CVE-2023-1234"},
 		},
 	}
 }
 
 func testDistro2AffectedPackage2Handle() *AffectedPackageHandle {
+	now := time.Date(2020, 1, 1, 3, 4, 5, 0, time.UTC)
+	later := now.Add(time.Hour * 200)
 	return &AffectedPackageHandle{
 		Package: &Package{
 			Name: "pkg2",
 			Type: "type2d",
 		},
 		Vulnerability: &VulnerabilityHandle{
-			Name: "CVE-2023-4567",
+			Name:          "CVE-2023-4567",
+			PublishedDate: &now,
+			ModifiedDate:  &later,
 			Provider: &Provider{
 				ID: "ubuntu",
 			},
@@ -975,13 +1031,17 @@ func testDistro2AffectedPackage2Handle() *AffectedPackageHandle {
 }
 
 func testNonDistroAffectedPackage2Handle() *AffectedPackageHandle {
+	now := time.Date(2005, 1, 1, 3, 4, 5, 0, time.UTC)
+	later := now.Add(time.Hour * 200)
 	return &AffectedPackageHandle{
 		Package: &Package{
 			Name: "pkg2",
 			Type: "type2",
 		},
 		Vulnerability: &VulnerabilityHandle{
-			Name: "CVE-2023-4567",
+			Name:          "CVE-2023-4567",
+			PublishedDate: &now,
+			ModifiedDate:  &later,
 			Provider: &Provider{
 				ID: "wolfi",
 			},

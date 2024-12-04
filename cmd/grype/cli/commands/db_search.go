@@ -70,7 +70,7 @@ func newDBSearch(opts dbQueryOptions, vulnerabilityID string) error {
 		return fmt.Errorf("unable to get providers: %w", err)
 	}
 
-	vh, err := reader.GetVulnerabilitiesByName(vulnerabilityID, &v6.GetVulnerabilityOptions{
+	vh, err := reader.GetVulnerabilities(&v6.VulnerabilitySpecifier{Name: vulnerabilityID}, &v6.GetVulnerabilityOptions{
 		Preload: true,
 	})
 	if err != nil {

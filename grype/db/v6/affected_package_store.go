@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"time"
 
 	"gorm.io/gorm"
 
@@ -100,14 +99,6 @@ func (d DistroSpecifier) version() string {
 	}
 
 	return ""
-}
-
-type VulnerabilitySpecifier struct {
-	// Name of the vulnerability (e.g. CVE-2020-1234)
-	Name string
-
-	PublishedAfter *time.Time
-	ModifiedAfter  *time.Time
 }
 
 func (d DistroSpecifier) matchesVersionPattern(pattern string) bool {
@@ -236,7 +227,7 @@ func (s *affectedPackageStore) handleVulnerabilityOptions(query *gorm.DB, config
 	}
 	query = query.Joins("JOIN vulnerability_handles ON affected_package_handles.vulnerability_id = vulnerability_handles.id")
 
-	return handleVulnerabilityOptions(s.db, query, config)
+	return handleVulnerabilityOptions(query, config)
 }
 
 func (s *affectedPackageStore) handleDistroOptions(query *gorm.DB, config *DistroSpecifier) (*gorm.DB, error) {
@@ -480,24 +471,6 @@ func handleCPEOptions(query *gorm.DB, c *cpe.Attributes) *gorm.DB {
 		query = query.Where("cpes.other = ?", c.Other)
 	}
 	return query
-}
-
-func handleVulnerabilityOptions(basis, query *gorm.DB, config *VulnerabilitySpecifier) (*gorm.DB, error) {
-	if config.ModifiedAfter != nil && config.PublishedAfter != nil {
-		return nil, fmt.Errorf("only one of ModifiedAfter or PublishedAfter can be specified for a vulnerability")
-	}
-
-	if config.Name != "" {
-		query.Where("vulnerability_handles.name = ?", config.Name)
-	}
-
-	if config.PublishedAfter != nil {
-		query = query.Where("vulnerability_handles.published_date > ?", *config.PublishedAfter)
-	} else if config.ModifiedAfter != nil {
-		query = query.Where(basis.Where("vulnerability_handles.published_date > ?", *config.ModifiedAfter).Or("vulnerability_handles.modified_date > ?", *config.ModifiedAfter))
-	}
-
-	return query, nil
 }
 
 func distroDisplay(d *DistroSpecifier) string {

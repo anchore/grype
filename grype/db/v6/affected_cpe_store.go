@@ -117,7 +117,7 @@ func (s *affectedCPEStore) handleVulnerabilityOptions(query *gorm.DB, config *Vu
 
 	query = query.Joins("JOIN vulnerability_handles ON affected_cpe_handles.vulnerability_id = vulnerability_handles.id")
 
-	return handleVulnerabilityOptions(s.db, query, config)
+	return handleVulnerabilityOptions(query, config)
 }
 
 func (s *affectedCPEStore) handlePreload(query *gorm.DB, config GetAffectedCPEOptions) *gorm.DB {
