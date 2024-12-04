@@ -12,7 +12,6 @@ import (
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/db/legacy/distribution"
 	v5 "github.com/anchore/grype/grype/db/v5"
-	"github.com/anchore/grype/grype/vulnerability"
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for diff presenter")
@@ -39,13 +38,13 @@ func Test_DifferDirectory(t *testing.T) {
 	require.NoError(t, err)
 
 	baseStatus := d.baseCurator.Status()
-	require.Equal(t, "test-fixtures/dbs/base/"+strconv.Itoa(vulnerability.SchemaVersion), baseStatus.Location)
+	require.Equal(t, "test-fixtures/dbs/base/"+strconv.Itoa(v5.SchemaVersion), baseStatus.Location)
 
 	err = d.SetTargetDB("test-fixtures/dbs/target")
 	require.NoError(t, err)
 
 	targetStatus := d.targetCurator.Status()
-	require.Equal(t, "test-fixtures/dbs/target/"+strconv.Itoa(vulnerability.SchemaVersion), targetStatus.Location)
+	require.Equal(t, "test-fixtures/dbs/target/"+strconv.Itoa(v5.SchemaVersion), targetStatus.Location)
 }
 
 func TestPresent_Json(t *testing.T) {

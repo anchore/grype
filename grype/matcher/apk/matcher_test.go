@@ -9,8 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/grype/grype/db"
-	grypeDB "github.com/anchore/grype/grype/db/v5"
+	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -21,15 +20,15 @@ import (
 )
 
 type mockStore struct {
-	backend map[string]map[string][]grypeDB.Vulnerability
+	backend map[string]map[string][]v5.Vulnerability
 }
 
-func (s *mockStore) GetVulnerability(namespace, id string) ([]grypeDB.Vulnerability, error) {
+func (s *mockStore) GetVulnerability(namespace, id string) ([]v5.Vulnerability, error) {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (s *mockStore) SearchForVulnerabilities(namespace, name string) ([]grypeDB.Vulnerability, error) {
+func (s *mockStore) SearchForVulnerabilities(namespace, name string) ([]v5.Vulnerability, error) {
 	namespaceMap := s.backend[namespace]
 	if namespaceMap == nil {
 		return nil, nil
@@ -37,7 +36,7 @@ func (s *mockStore) SearchForVulnerabilities(namespace, name string) ([]grypeDB.
 	return namespaceMap[name], nil
 }
 
-func (s *mockStore) GetAllVulnerabilities() (*[]grypeDB.Vulnerability, error) {
+func (s *mockStore) GetAllVulnerabilities() (*[]v5.Vulnerability, error) {
 	return nil, nil
 }
 
@@ -52,7 +51,7 @@ func (s *mockStore) GetVulnerabilityNamespaces() ([]string, error) {
 
 func TestSecDBOnlyMatch(t *testing.T) {
 
-	secDbVuln := grypeDB.Vulnerability{
+	secDbVuln := v5.Vulnerability{
 		// ID doesn't match - this is the key for comparison in the matcher
 		ID:                "CVE-2020-2",
 		VersionConstraint: "<= 0.9.11",
@@ -60,14 +59,14 @@ func TestSecDBOnlyMatch(t *testing.T) {
 		Namespace:         "secdb:distro:alpine:3.12",
 	}
 	store := mockStore{
-		backend: map[string]map[string][]grypeDB.Vulnerability{
+		backend: map[string]map[string][]v5.Vulnerability{
 			"secdb:distro:alpine:3.12": {
-				"libvncserver": []grypeDB.Vulnerability{secDbVuln},
+				"libvncserver": []v5.Vulnerability{secDbVuln},
 			},
 		},
 	}
 
-	provider, err := db.NewVulnerabilityProvider(&store)
+	provider, err := v5.NewVulnerabilityProvider(&store)
 	require.NoError(t, err)
 
 	m := Matcher{}
@@ -86,7 +85,7 @@ func TestSecDBOnlyMatch(t *testing.T) {
 		},
 	}
 
-	vulnFound, err := vulnerability.NewVulnerability(secDbVuln)
+	vulnFound, err := v5.NewVulnerability(secDbVuln)
 	assert.NoError(t, err)
 
 	expected := []match.Match{
@@ -127,7 +126,7 @@ func TestSecDBOnlyMatch(t *testing.T) {
 
 func TestBothSecdbAndNvdMatches(t *testing.T) {
 	// NVD and Alpine's secDB both have the same CVE ID for the package
-	nvdVuln := grypeDB.Vulnerability{
+	nvdVuln := v5.Vulnerability{
 		ID:                "CVE-2020-1",
 		VersionConstraint: "<= 0.9.11",
 		VersionFormat:     "unknown",
@@ -135,7 +134,7 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 		Namespace:         "nvd:cpe",
 	}
 
-	secDbVuln := grypeDB.Vulnerability{
+	secDbVuln := v5.Vulnerability{
 		// ID *does* match - this is the key for comparison in the matcher
 		ID:                "CVE-2020-1",
 		VersionConstraint: "<= 0.9.11",
@@ -143,17 +142,17 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 		Namespace:         "secdb:distro:alpine:3.12",
 	}
 	store := mockStore{
-		backend: map[string]map[string][]grypeDB.Vulnerability{
+		backend: map[string]map[string][]v5.Vulnerability{
 			"nvd:cpe": {
-				"libvncserver": []grypeDB.Vulnerability{nvdVuln},
+				"libvncserver": []v5.Vulnerability{nvdVuln},
 			},
 			"secdb:distro:alpine:3.12": {
-				"libvncserver": []grypeDB.Vulnerability{secDbVuln},
+				"libvncserver": []v5.Vulnerability{secDbVuln},
 			},
 		},
 	}
 
-	provider, err := db.NewVulnerabilityProvider(&store)
+	provider, err := v5.NewVulnerabilityProvider(&store)
 	require.NoError(t, err)
 
 	m := Matcher{}
@@ -173,7 +172,7 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 	}
 
 	// ensure the SECDB record is preferred over the NVD record
-	vulnFound, err := vulnerability.NewVulnerability(secDbVuln)
+	vulnFound, err := v5.NewVulnerability(secDbVuln)
 	assert.NoError(t, err)
 
 	expected := []match.Match{
@@ -214,42 +213,42 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 
 func TestBothSecdbAndNvdMatches_DifferentFixInfo(t *testing.T) {
 	// NVD and Alpine's secDB both have the same CVE ID for the package
-	nvdVuln := grypeDB.Vulnerability{
+	nvdVuln := v5.Vulnerability{
 		ID:                "CVE-2020-1",
 		VersionConstraint: "< 1.0.0",
 		VersionFormat:     "unknown",
 		CPEs:              []string{`cpe:2.3:a:lib_vnc_project-\(server\):libvncserver:*:*:*:*:*:*:*:*`},
 		Namespace:         "nvd:cpe",
-		Fix: grypeDB.Fix{
+		Fix: v5.Fix{
 			Versions: []string{"1.0.0"},
-			State:    grypeDB.FixedState,
+			State:    v5.FixedState,
 		},
 	}
 
-	secDbVuln := grypeDB.Vulnerability{
+	secDbVuln := v5.Vulnerability{
 		// ID *does* match - this is the key for comparison in the matcher
 		ID:                "CVE-2020-1",
 		VersionConstraint: "< 0.9.12",
 		VersionFormat:     "apk",
 		Namespace:         "secdb:distro:alpine:3.12",
 		// SecDB indicates Alpine have backported a fix to v0.9...
-		Fix: grypeDB.Fix{
+		Fix: v5.Fix{
 			Versions: []string{"0.9.12"},
-			State:    grypeDB.FixedState,
+			State:    v5.FixedState,
 		},
 	}
 	store := mockStore{
-		backend: map[string]map[string][]grypeDB.Vulnerability{
+		backend: map[string]map[string][]v5.Vulnerability{
 			"nvd:cpe": {
-				"libvncserver": []grypeDB.Vulnerability{nvdVuln},
+				"libvncserver": []v5.Vulnerability{nvdVuln},
 			},
 			"secdb:distro:alpine:3.12": {
-				"libvncserver": []grypeDB.Vulnerability{secDbVuln},
+				"libvncserver": []v5.Vulnerability{secDbVuln},
 			},
 		},
 	}
 
-	provider, err := db.NewVulnerabilityProvider(&store)
+	provider, err := v5.NewVulnerabilityProvider(&store)
 	require.NoError(t, err)
 
 	m := Matcher{}
@@ -269,11 +268,11 @@ func TestBothSecdbAndNvdMatches_DifferentFixInfo(t *testing.T) {
 	}
 
 	// ensure the SECDB record is preferred over the NVD record
-	vulnFound, err := vulnerability.NewVulnerability(secDbVuln)
+	vulnFound, err := v5.NewVulnerability(secDbVuln)
 	assert.NoError(t, err)
 	vulnFound.Fix = vulnerability.Fix{
 		Versions: secDbVuln.Fix.Versions,
-		State:    secDbVuln.Fix.State,
+		State:    vulnerability.FixState(secDbVuln.Fix.State),
 	}
 
 	expected := []match.Match{
@@ -314,7 +313,7 @@ func TestBothSecdbAndNvdMatches_DifferentFixInfo(t *testing.T) {
 
 func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 	// NVD and Alpine's secDB both have the same CVE ID for the package
-	nvdVuln := grypeDB.Vulnerability{
+	nvdVuln := v5.Vulnerability{
 		ID:                "CVE-2020-1",
 		VersionConstraint: "<= 0.9.11",
 		VersionFormat:     "unknown",
@@ -323,7 +322,7 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 		Namespace: "nvd:cpe",
 	}
 
-	secDbVuln := grypeDB.Vulnerability{
+	secDbVuln := v5.Vulnerability{
 		// ID *does* match - this is the key for comparison in the matcher
 		ID:                "CVE-2020-1",
 		VersionConstraint: "<= 0.9.11",
@@ -331,17 +330,17 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 		Namespace:         "secdb:distro:alpine:3.12",
 	}
 	store := mockStore{
-		backend: map[string]map[string][]grypeDB.Vulnerability{
+		backend: map[string]map[string][]v5.Vulnerability{
 			"nvd:cpe": {
-				"libvncumbrellaproject": []grypeDB.Vulnerability{nvdVuln},
+				"libvncumbrellaproject": []v5.Vulnerability{nvdVuln},
 			},
 			"secdb:distro:alpine:3.12": {
-				"libvncserver": []grypeDB.Vulnerability{secDbVuln},
+				"libvncserver": []v5.Vulnerability{secDbVuln},
 			},
 		},
 	}
 
-	provider, err := db.NewVulnerabilityProvider(&store)
+	provider, err := v5.NewVulnerabilityProvider(&store)
 	require.NoError(t, err)
 
 	m := Matcher{}
@@ -361,7 +360,7 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 	}
 
 	// ensure the SECDB record is preferred over the NVD record
-	vulnFound, err := vulnerability.NewVulnerability(secDbVuln)
+	vulnFound, err := v5.NewVulnerability(secDbVuln)
 	assert.NoError(t, err)
 
 	expected := []match.Match{
@@ -401,7 +400,7 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 }
 
 func TestNvdOnlyMatches(t *testing.T) {
-	nvdVuln := grypeDB.Vulnerability{
+	nvdVuln := v5.Vulnerability{
 		ID:                "CVE-2020-1",
 		VersionConstraint: "<= 0.9.11",
 		VersionFormat:     "unknown",
@@ -409,14 +408,14 @@ func TestNvdOnlyMatches(t *testing.T) {
 		Namespace:         "nvd:cpe",
 	}
 	store := mockStore{
-		backend: map[string]map[string][]grypeDB.Vulnerability{
+		backend: map[string]map[string][]v5.Vulnerability{
 			"nvd:cpe": {
-				"libvncserver": []grypeDB.Vulnerability{nvdVuln},
+				"libvncserver": []v5.Vulnerability{nvdVuln},
 			},
 		},
 	}
 
-	provider, err := db.NewVulnerabilityProvider(&store)
+	provider, err := v5.NewVulnerabilityProvider(&store)
 	require.NoError(t, err)
 
 	m := Matcher{}
@@ -434,7 +433,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 		},
 	}
 
-	vulnFound, err := vulnerability.NewVulnerability(nvdVuln)
+	vulnFound, err := v5.NewVulnerability(nvdVuln)
 	assert.NoError(t, err)
 	vulnFound.CPEs = []cpe.CPE{cpe.Must(nvdVuln.CPEs[0], "")}
 
@@ -473,26 +472,26 @@ func TestNvdOnlyMatches(t *testing.T) {
 }
 
 func TestNvdOnlyMatches_FixInNvd(t *testing.T) {
-	nvdVuln := grypeDB.Vulnerability{
+	nvdVuln := v5.Vulnerability{
 		ID:                "CVE-2020-1",
 		VersionConstraint: "< 0.9.11",
 		VersionFormat:     "unknown",
 		CPEs:              []string{`cpe:2.3:a:lib_vnc_project-\(server\):libvncserver:*:*:*:*:*:*:*:*`},
 		Namespace:         "nvd:cpe",
-		Fix: grypeDB.Fix{
+		Fix: v5.Fix{
 			Versions: []string{"0.9.12"},
-			State:    grypeDB.FixedState,
+			State:    v5.FixedState,
 		},
 	}
 	store := mockStore{
-		backend: map[string]map[string][]grypeDB.Vulnerability{
+		backend: map[string]map[string][]v5.Vulnerability{
 			"nvd:cpe": {
-				"libvncserver": []grypeDB.Vulnerability{nvdVuln},
+				"libvncserver": []v5.Vulnerability{nvdVuln},
 			},
 		},
 	}
 
-	provider, err := db.NewVulnerabilityProvider(&store)
+	provider, err := v5.NewVulnerabilityProvider(&store)
 	require.NoError(t, err)
 
 	m := Matcher{}
@@ -510,12 +509,12 @@ func TestNvdOnlyMatches_FixInNvd(t *testing.T) {
 		},
 	}
 
-	vulnFound, err := vulnerability.NewVulnerability(nvdVuln)
+	vulnFound, err := v5.NewVulnerability(nvdVuln)
 	assert.NoError(t, err)
 	vulnFound.CPEs = []cpe.CPE{cpe.Must(nvdVuln.CPEs[0], "")}
 	// Important: for alpine matcher, fix version can come from secDB but _not_ from
 	// NVD data.
-	vulnFound.Fix = vulnerability.Fix{State: grypeDB.UnknownFixState}
+	vulnFound.Fix = vulnerability.Fix{State: vulnerability.FixStateUnknown}
 
 	expected := []match.Match{
 		{
@@ -552,14 +551,14 @@ func TestNvdOnlyMatches_FixInNvd(t *testing.T) {
 }
 
 func TestNvdMatchesProperVersionFiltering(t *testing.T) {
-	nvdVulnMatch := grypeDB.Vulnerability{
+	nvdVulnMatch := v5.Vulnerability{
 		ID:                "CVE-2020-1",
 		VersionConstraint: "<= 0.9.11",
 		VersionFormat:     "unknown",
 		CPEs:              []string{`cpe:2.3:a:lib_vnc_project-\(server\):libvncserver:*:*:*:*:*:*:*:*`},
 		Namespace:         "nvd:cpe",
 	}
-	nvdVulnNoMatch := grypeDB.Vulnerability{
+	nvdVulnNoMatch := v5.Vulnerability{
 		ID:                "CVE-2020-2",
 		VersionConstraint: "< 0.9.11",
 		VersionFormat:     "unknown",
@@ -567,14 +566,14 @@ func TestNvdMatchesProperVersionFiltering(t *testing.T) {
 		Namespace:         "nvd:cpe",
 	}
 	store := mockStore{
-		backend: map[string]map[string][]grypeDB.Vulnerability{
+		backend: map[string]map[string][]v5.Vulnerability{
 			"nvd:cpe": {
-				"libvncserver": []grypeDB.Vulnerability{nvdVulnMatch, nvdVulnNoMatch},
+				"libvncserver": []v5.Vulnerability{nvdVulnMatch, nvdVulnNoMatch},
 			},
 		},
 	}
 
-	provider, err := db.NewVulnerabilityProvider(&store)
+	provider, err := v5.NewVulnerabilityProvider(&store)
 	require.NoError(t, err)
 
 	m := Matcher{}
@@ -592,7 +591,7 @@ func TestNvdMatchesProperVersionFiltering(t *testing.T) {
 		},
 	}
 
-	vulnFound, err := vulnerability.NewVulnerability(nvdVulnMatch)
+	vulnFound, err := v5.NewVulnerability(nvdVulnMatch)
 	assert.NoError(t, err)
 	vulnFound.CPEs = []cpe.CPE{cpe.Must(nvdVulnMatch.CPEs[0], "")}
 
@@ -631,7 +630,7 @@ func TestNvdMatchesProperVersionFiltering(t *testing.T) {
 }
 
 func TestNvdMatchesWithSecDBFix(t *testing.T) {
-	nvdVuln := grypeDB.Vulnerability{
+	nvdVuln := v5.Vulnerability{
 		ID:                "CVE-2020-1",
 		VersionConstraint: "> 0.9.0, < 0.10.0", // note: this is not normal NVD configuration, but has the desired effect of a "wide net" for vulnerable indication
 		VersionFormat:     "unknown",
@@ -639,24 +638,24 @@ func TestNvdMatchesWithSecDBFix(t *testing.T) {
 		Namespace:         "nvd:cpe",
 	}
 
-	secDbVuln := grypeDB.Vulnerability{
+	secDbVuln := v5.Vulnerability{
 		ID:                "CVE-2020-1",
 		VersionConstraint: "< 0.9.11", // note: this does NOT include 0.9.11, so NVD and SecDB mismatch here... secDB should trump in this case
 		VersionFormat:     "apk",
 	}
 
 	store := mockStore{
-		backend: map[string]map[string][]grypeDB.Vulnerability{
+		backend: map[string]map[string][]v5.Vulnerability{
 			"nvd:cpe": {
-				"libvncserver": []grypeDB.Vulnerability{nvdVuln},
+				"libvncserver": []v5.Vulnerability{nvdVuln},
 			},
 			"secdb:distro:alpine:3.12": {
-				"libvncserver": []grypeDB.Vulnerability{secDbVuln},
+				"libvncserver": []v5.Vulnerability{secDbVuln},
 			},
 		},
 	}
 
-	provider, err := db.NewVulnerabilityProvider(&store)
+	provider, err := v5.NewVulnerabilityProvider(&store)
 	require.NoError(t, err)
 
 	m := Matcher{}
@@ -683,7 +682,7 @@ func TestNvdMatchesWithSecDBFix(t *testing.T) {
 }
 
 func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
-	nvdVuln := grypeDB.Vulnerability{
+	nvdVuln := v5.Vulnerability{
 		ID:                "CVE-2020-1",
 		VersionConstraint: "", // note: empty value indicates that all versions are vulnerable
 		VersionFormat:     "unknown",
@@ -691,7 +690,7 @@ func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
 		Namespace:         "nvd:cpe",
 	}
 
-	secDbVuln := grypeDB.Vulnerability{
+	secDbVuln := v5.Vulnerability{
 		ID:                "CVE-2020-1",
 		VersionConstraint: "< 0.9.11",
 		VersionFormat:     "apk",
@@ -699,17 +698,17 @@ func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
 	}
 
 	store := mockStore{
-		backend: map[string]map[string][]grypeDB.Vulnerability{
+		backend: map[string]map[string][]v5.Vulnerability{
 			"nvd:cpe": {
-				"libvncserver": []grypeDB.Vulnerability{nvdVuln},
+				"libvncserver": []v5.Vulnerability{nvdVuln},
 			},
 			"secdb:distro:alpine:3.12": {
-				"libvncserver": []grypeDB.Vulnerability{secDbVuln},
+				"libvncserver": []v5.Vulnerability{secDbVuln},
 			},
 		},
 	}
 
-	provider, err := db.NewVulnerabilityProvider(&store)
+	provider, err := v5.NewVulnerabilityProvider(&store)
 	require.NoError(t, err)
 
 	m := Matcher{}
@@ -736,30 +735,30 @@ func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
 }
 
 func TestNVDMatchCanceledByOriginPackageInSecDB(t *testing.T) {
-	nvdVuln := grypeDB.Vulnerability{
+	nvdVuln := v5.Vulnerability{
 		ID:            "CVE-2015-3211",
 		VersionFormat: "unknown",
 		CPEs:          []string{"cpe:2.3:a:php-fpm:php-fpm:-:*:*:*:*:*:*:*"},
 		Namespace:     "nvd:cpe",
 	}
-	secDBVuln := grypeDB.Vulnerability{
+	secDBVuln := v5.Vulnerability{
 		ID:                "CVE-2015-3211",
 		VersionConstraint: "< 0",
 		VersionFormat:     "apk",
 		Namespace:         "wolfi:distro:wolfi:rolling",
 	}
 	store := mockStore{
-		backend: map[string]map[string][]grypeDB.Vulnerability{
+		backend: map[string]map[string][]v5.Vulnerability{
 			"nvd:cpe": {
-				"php-fpm": []grypeDB.Vulnerability{nvdVuln},
+				"php-fpm": []v5.Vulnerability{nvdVuln},
 			},
 			"wolfi:distro:wolfi:rolling": {
-				"php-8.3": []grypeDB.Vulnerability{secDBVuln},
+				"php-8.3": []v5.Vulnerability{secDBVuln},
 			},
 		},
 	}
 
-	provider, err := db.NewVulnerabilityProvider(&store)
+	provider, err := v5.NewVulnerabilityProvider(&store)
 	require.NoError(t, err)
 
 	m := Matcher{}
@@ -793,7 +792,7 @@ func TestNVDMatchCanceledByOriginPackageInSecDB(t *testing.T) {
 
 func TestDistroMatchBySourceIndirection(t *testing.T) {
 
-	secDbVuln := grypeDB.Vulnerability{
+	secDbVuln := v5.Vulnerability{
 		// ID doesn't match - this is the key for comparison in the matcher
 		ID:                "CVE-2020-2",
 		VersionConstraint: "<= 1.3.3-r0",
@@ -801,14 +800,14 @@ func TestDistroMatchBySourceIndirection(t *testing.T) {
 		Namespace:         "secdb:distro:alpine:3.12",
 	}
 	store := mockStore{
-		backend: map[string]map[string][]grypeDB.Vulnerability{
+		backend: map[string]map[string][]v5.Vulnerability{
 			"secdb:distro:alpine:3.12": {
-				"musl": []grypeDB.Vulnerability{secDbVuln},
+				"musl": []v5.Vulnerability{secDbVuln},
 			},
 		},
 	}
 
-	provider, err := db.NewVulnerabilityProvider(&store)
+	provider, err := v5.NewVulnerabilityProvider(&store)
 	require.NoError(t, err)
 
 	m := Matcher{}
@@ -831,7 +830,7 @@ func TestDistroMatchBySourceIndirection(t *testing.T) {
 		},
 	}
 
-	vulnFound, err := vulnerability.NewVulnerability(secDbVuln)
+	vulnFound, err := v5.NewVulnerability(secDbVuln)
 	assert.NoError(t, err)
 
 	expected := []match.Match{
@@ -874,7 +873,7 @@ func TestSecDBMatchesStillCountedWithCpeErrors(t *testing.T) {
 	// this should match the test package
 	// the test package will have no CPE causing an error,
 	// but the error should not cause the secDB matches to fail
-	secDbVuln := grypeDB.Vulnerability{
+	secDbVuln := v5.Vulnerability{
 		ID:                "CVE-2020-2",
 		VersionConstraint: "<= 1.3.3-r0",
 		VersionFormat:     "apk",
@@ -882,14 +881,14 @@ func TestSecDBMatchesStillCountedWithCpeErrors(t *testing.T) {
 	}
 
 	store := mockStore{
-		backend: map[string]map[string][]grypeDB.Vulnerability{
+		backend: map[string]map[string][]v5.Vulnerability{
 			"secdb:distro:alpine:3.12": {
-				"musl": []grypeDB.Vulnerability{secDbVuln},
+				"musl": []v5.Vulnerability{secDbVuln},
 			},
 		},
 	}
 
-	provider, err := db.NewVulnerabilityProvider(&store)
+	provider, err := v5.NewVulnerabilityProvider(&store)
 	require.NoError(t, err)
 
 	m := Matcher{}
@@ -911,7 +910,7 @@ func TestSecDBMatchesStillCountedWithCpeErrors(t *testing.T) {
 		CPEs: []cpe.CPE{},
 	}
 
-	vulnFound, err := vulnerability.NewVulnerability(secDbVuln)
+	vulnFound, err := v5.NewVulnerability(secDbVuln)
 	assert.NoError(t, err)
 
 	expected := []match.Match{
@@ -951,7 +950,7 @@ func TestSecDBMatchesStillCountedWithCpeErrors(t *testing.T) {
 }
 
 func TestNVDMatchBySourceIndirection(t *testing.T) {
-	nvdVuln := grypeDB.Vulnerability{
+	nvdVuln := v5.Vulnerability{
 		ID:                "CVE-2020-1",
 		VersionConstraint: "<= 1.3.3-r0",
 		VersionFormat:     "unknown",
@@ -959,14 +958,14 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 		Namespace:         "nvd:cpe",
 	}
 	store := mockStore{
-		backend: map[string]map[string][]grypeDB.Vulnerability{
+		backend: map[string]map[string][]v5.Vulnerability{
 			"nvd:cpe": {
-				"musl": []grypeDB.Vulnerability{nvdVuln},
+				"musl": []v5.Vulnerability{nvdVuln},
 			},
 		},
 	}
 
-	provider, err := db.NewVulnerabilityProvider(&store)
+	provider, err := v5.NewVulnerabilityProvider(&store)
 	require.NoError(t, err)
 
 	m := Matcher{}
@@ -990,7 +989,7 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 		},
 	}
 
-	vulnFound, err := vulnerability.NewVulnerability(nvdVuln)
+	vulnFound, err := v5.NewVulnerability(nvdVuln)
 	assert.NoError(t, err)
 	vulnFound.CPEs = []cpe.CPE{cpe.Must(nvdVuln.CPEs[0], "")}
 

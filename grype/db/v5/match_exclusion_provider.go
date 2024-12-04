@@ -1,25 +1,24 @@
-package db
+package v5
 
 import (
 	"fmt"
 
-	grypeDB "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 )
 
 var _ match.ExclusionProvider = (*MatchExclusionProvider)(nil)
 
 type MatchExclusionProvider struct {
-	reader grypeDB.VulnerabilityMatchExclusionStoreReader
+	reader VulnerabilityMatchExclusionStoreReader
 }
 
-func NewMatchExclusionProvider(reader grypeDB.VulnerabilityMatchExclusionStoreReader) *MatchExclusionProvider {
+func NewMatchExclusionProvider(reader VulnerabilityMatchExclusionStoreReader) *MatchExclusionProvider {
 	return &MatchExclusionProvider{
 		reader: reader,
 	}
 }
 
-func buildIgnoreRulesFromMatchExclusion(e grypeDB.VulnerabilityMatchExclusion) []match.IgnoreRule {
+func buildIgnoreRulesFromMatchExclusion(e VulnerabilityMatchExclusion) []match.IgnoreRule {
 	var ignoreRules []match.IgnoreRule
 
 	if len(e.Constraints) == 0 {

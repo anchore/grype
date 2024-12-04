@@ -9,8 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/grype/grype/db"
-	grypeDB "github.com/anchore/grype/grype/db/v5"
+	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
@@ -19,27 +18,27 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-var _ grypeDB.VulnerabilityStoreReader = (*mockVulnStore)(nil)
+var _ v5.VulnerabilityStoreReader = (*mockVulnStore)(nil)
 
 type mockVulnStore struct {
-	data map[string]map[string][]grypeDB.Vulnerability
+	data map[string]map[string][]v5.Vulnerability
 }
 
-func (pr *mockVulnStore) GetVulnerability(namespace, id string) ([]grypeDB.Vulnerability, error) {
+func (pr *mockVulnStore) GetVulnerability(namespace, id string) ([]v5.Vulnerability, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
 func newMockStore() *mockVulnStore {
 	pr := mockVulnStore{
-		data: make(map[string]map[string][]grypeDB.Vulnerability),
+		data: make(map[string]map[string][]v5.Vulnerability),
 	}
 	pr.stub()
 	return &pr
 }
 
 func (pr *mockVulnStore) stub() {
-	pr.data["nvd:cpe"] = map[string][]grypeDB.Vulnerability{
+	pr.data["nvd:cpe"] = map[string][]v5.Vulnerability{
 		"activerecord": {
 			{
 				PackageName:       "activerecord",
@@ -139,11 +138,11 @@ func (pr *mockVulnStore) stub() {
 	}
 }
 
-func (pr *mockVulnStore) SearchForVulnerabilities(namespace, pkg string) ([]grypeDB.Vulnerability, error) {
+func (pr *mockVulnStore) SearchForVulnerabilities(namespace, pkg string) ([]v5.Vulnerability, error) {
 	return pr.data[namespace][pkg], nil
 }
 
-func (pr *mockVulnStore) GetAllVulnerabilities() (*[]grypeDB.Vulnerability, error) {
+func (pr *mockVulnStore) GetAllVulnerabilities() (*[]v5.Vulnerability, error) {
 	return nil, nil
 }
 
@@ -870,7 +869,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			p, err := db.NewVulnerabilityProvider(newMockStore())
+			p, err := v5.NewVulnerabilityProvider(newMockStore())
 			require.NoError(t, err)
 			actual, err := ByPackageCPE(p, nil, test.p, matcher)
 			if test.wantErr == nil {

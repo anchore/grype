@@ -4,7 +4,6 @@ import (
 	"regexp"
 	"testing"
 
-	grypeDb "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -89,7 +88,7 @@ func generateMatches(t *testing.T, p1, p2 pkg.Package) match.Matches {
 				Namespace: "source-1",
 				Fix: vulnerability.Fix{
 					Versions: []string{"the-next-version"},
-					State:    grypeDb.FixedState,
+					State:    vulnerability.FixStateFixed,
 				},
 			},
 			Package: p1,

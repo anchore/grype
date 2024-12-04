@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	grypeDB "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -95,7 +94,7 @@ cveLoop:
 			for _, nvdOnlyMatch := range cpeMatchesForID {
 				if len(nvdOnlyMatch.Vulnerability.Fix.Versions) > 0 {
 					nvdOnlyMatch.Vulnerability.Fix = vulnerability.Fix{
-						State: grypeDB.UnknownFixState,
+						State: vulnerability.FixStateUnknown,
 					}
 				}
 				finalCpeMatches = append(finalCpeMatches, nvdOnlyMatch)

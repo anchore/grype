@@ -15,6 +15,7 @@ import (
 	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/internal/bus"
+	"github.com/anchore/grype/internal/log"
 )
 
 type Differ struct {
@@ -122,19 +123,19 @@ func download(curator *distribution.Curator, listing *distribution.ListingEntry)
 }
 
 func (d *Differ) DiffDatabases() (*[]v5.Diff, error) {
-	baseStore, baseDBCloser, err := d.baseCurator.GetStore()
+	baseStore, err := d.baseCurator.GetStore()
 	if err != nil {
 		return nil, err
 	}
 
-	defer baseDBCloser.Close()
+	defer log.CloseAndLogError(baseStore, d.baseCurator.Status().Location)
 
-	targetStore, targetDBCloser, err := d.targetCurator.GetStore()
+	targetStore, err := d.targetCurator.GetStore()
 	if err != nil {
 		return nil, err
 	}
 
-	defer targetDBCloser.Close()
+	defer log.CloseAndLogError(targetStore, d.targetCurator.Status().Location)
 
 	return baseStore.DiffStore(targetStore)
 }

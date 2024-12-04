@@ -12,7 +12,6 @@ import (
 	"github.com/owenrumney/go-sarif/sarif"
 
 	"github.com/anchore/clio"
-	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -375,7 +374,7 @@ func (pres *Presenter) subtitle(m match.Match) string {
 }
 
 func fixVersions(m match.Match) string {
-	if m.Vulnerability.Fix.State == v5.FixedState && len(m.Vulnerability.Fix.Versions) > 0 {
+	if m.Vulnerability.Fix.State == vulnerability.FixStateFixed && len(m.Vulnerability.Fix.Versions) > 0 {
 		return strings.Join(m.Vulnerability.Fix.Versions, ",")
 	}
 	return ""

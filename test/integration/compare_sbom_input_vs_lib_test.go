@@ -11,6 +11,7 @@ import (
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db/legacy/distribution"
 	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/format/spdxjson"
 	"github.com/anchore/syft/syft/format/spdxtagvalue"
 	"github.com/anchore/syft/syft/format/syftjson"
@@ -35,16 +36,13 @@ func must(e sbom.FormatEncoder, err error) sbom.FormatEncoder {
 
 func TestCompareSBOMInputToLibResults(t *testing.T) {
 	// get a grype DB
-	store, _, closer, err := grype.LoadVulnerabilityDB(distribution.Config{
+	store, status, err := grype.LoadVulnerabilityDB(distribution.Config{
 		DBRootDir:           "test-fixtures/grype-db",
 		ListingURL:          getListingURL(),
 		ValidateByHashOnGet: false,
 	}, true)
 	assert.NoError(t, err)
-
-	if closer != nil {
-		defer closer.Close()
-	}
+	defer log.CloseAndLogError(store, status.Location)
 
 	definedPkgTypes := strset.New()
 	for _, p := range syftPkg.AllPkgs {

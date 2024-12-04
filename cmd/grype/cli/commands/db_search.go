@@ -90,14 +90,12 @@ func newDBSearch(opts dbQueryOptions, vulnerabilityID string) error {
 
 func legacyDBSearch(opts dbQueryOptions, vulnerabilityID string) error {
 	log.Debug("loading DB")
-	str, status, dbCloser, err := grype.LoadVulnerabilityDB(opts.DB.ToLegacyCuratorConfig(), opts.DB.AutoUpdate)
+	str, status, err := grype.LoadVulnerabilityDB(opts.DB.ToLegacyCuratorConfig(), opts.DB.AutoUpdate)
 	err = validateDBLoad(err, status)
 	if err != nil {
 		return err
 	}
-	if dbCloser != nil {
-		defer dbCloser.Close()
-	}
+	defer log.CloseAndLogError(str, status.Location)
 
 	vulnerabilities, err := str.Get(vulnerabilityID, "")
 	if err != nil {

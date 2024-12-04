@@ -9,7 +9,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/olekukonko/tablewriter"
 
-	grypeDb "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -185,9 +184,9 @@ func createRow(m match.Match, metadataProvider vulnerability.MetadataProvider, s
 
 	fixVersion := strings.Join(m.Vulnerability.Fix.Versions, ", ")
 	switch m.Vulnerability.Fix.State {
-	case grypeDb.WontFixState:
+	case vulnerability.FixStateWontFix:
 		fixVersion = "(won't fix)"
-	case grypeDb.UnknownFixState:
+	case vulnerability.FixStateUnknown:
 		fixVersion = ""
 	}
 
