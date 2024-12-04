@@ -686,19 +686,10 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 }
 
 func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
+	// we always preload the OS aliases into the DB when staging for writing
 	db := setupTestStore(t).db
 	bs := newBlobStore(db)
 	s := newAffectedPackageStore(db, bs)
-
-	aliases := []OperatingSystemAlias{
-		{Name: "centos", ReplacementName: strRef("rhel")},
-		{Name: "rocky", ReplacementName: strRef("rhel")},
-		{Name: "alpine", VersionPattern: ".*_alpha.*", ReplacementLabelVersion: strRef("edge"), Rolling: true},
-		{Name: "wolfi", Rolling: true},
-		{Name: "arch", Rolling: true},
-		{Name: "debian", Codename: "trixie", Rolling: true}, // is currently sid, which is considered rolling
-	}
-	require.NoError(t, db.Create(&aliases).Error)
 
 	ubuntu2004 := &OperatingSystem{Name: "ubuntu", MajorVersion: "20", MinorVersion: "04", Codename: "focal"}
 	ubuntu2010 := &OperatingSystem{Name: "ubuntu", MajorVersion: "20", MinorVersion: "10", Codename: "groovy"}

@@ -31,6 +31,13 @@ func newStore(cfg Config, write bool) (*store, error) {
 		return nil, fmt.Errorf("failed to open db: %w", err)
 	}
 
+	if write {
+		// add hard-coded os aliases
+		if err := db.Create(KnownOperatingSystemAliases()).Error; err != nil {
+			return nil, fmt.Errorf("failed to add os aliases: %w", err)
+		}
+	}
+
 	bs := newBlobStore(db)
 	return &store{
 		dbMetadataStore:      newDBMetadataStore(db),
