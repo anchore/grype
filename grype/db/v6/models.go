@@ -314,6 +314,37 @@ type OperatingSystemAlias struct {
 	Rolling                 bool    `gorm:"column:rolling;primaryKey"`
 }
 
+func KnownOperatingSystemAliases() []OperatingSystemAlias {
+	strRef := func(s string) *string {
+		return &s
+	}
+	return []OperatingSystemAlias{
+		{Name: "centos", ReplacementName: strRef("rhel")},
+		{Name: "rocky", ReplacementName: strRef("rhel")},
+		{Name: "almalinux", ReplacementName: strRef("rhel")},
+		{Name: "gentoo", ReplacementName: strRef("rhel")},
+		{Name: "alpine", VersionPattern: ".*_alpha.*", ReplacementLabelVersion: strRef("edge"), Rolling: true},
+		{Name: "wolfi", Rolling: true},
+		{Name: "arch", Rolling: true},
+		// TODO: trixie is a placeholder for now, but should be updated to sid when the time comes
+		// this needs to be automated, but isn't clear how to do so since you'll see things like this:
+		//
+		// ❯ docker run --rm debian:sid cat /etc/os-release | grep VERSION_CODENAME
+		//   VERSION_CODENAME=trixie
+		// ❯ docker run --rm debian:testing cat /etc/os-release | grep VERSION_CODENAME
+		//   VERSION_CODENAME=trixie
+		//
+		// ❯ curl -s http://deb.debian.org/debian/dists/testing/Release | grep '^Codename:'
+		//   Codename: trixie
+		// ❯ curl -s http://deb.debian.org/debian/dists/sid/Release | grep '^Codename:'
+		//   Codename: sid
+		//
+		// depending where the team is during the development cycle you will see different behavior, making automating
+		// this a little challenging.
+		{Name: "debian", Codename: "trixie", Rolling: true}, // is currently sid, which is considered rolling
+	}
+}
+
 func (os *OperatingSystemAlias) BeforeCreate(_ *gorm.DB) (err error) {
 	if os.Version != "" && os.VersionPattern != "" {
 		return fmt.Errorf("cannot have both version and version_pattern set")
