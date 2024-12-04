@@ -6,7 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -47,7 +46,7 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 			Namespace: "alpine:distro:alpine:3.17",
 			Fix: vulnerability.Fix{
 				Versions: []string{"3.0.10-r0"},
-				State:    v5.FixedState,
+				State:    vulnerability.FixStateFixed,
 			},
 		},
 		Package: libCryptoPackage,
@@ -59,7 +58,7 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 			Namespace: "alpine:distro:alpine:3.17",
 			Fix: vulnerability.Fix{
 				Versions: []string{"3.0.8-r4"},
-				State:    v5.FixedState,
+				State:    vulnerability.FixStateFixed,
 			},
 		},
 		Package: libCryptoPackage,
@@ -71,7 +70,7 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 			Namespace: "alpine:distro:alpine:3.17",
 			Fix: vulnerability.Fix{
 				Versions: []string{"3.0.9-r2"},
-				State:    v5.FixedState,
+				State:    vulnerability.FixStateFixed,
 			},
 		},
 		Package: libCryptoPackage,

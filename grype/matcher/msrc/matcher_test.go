@@ -8,23 +8,22 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/grype/grype/db"
-	grypeDB "github.com/anchore/grype/grype/db/v5"
+	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 type mockStore struct {
-	backend map[string]map[string][]grypeDB.Vulnerability
+	backend map[string]map[string][]v5.Vulnerability
 }
 
-func (s *mockStore) GetVulnerability(namespace, id string) ([]grypeDB.Vulnerability, error) {
+func (s *mockStore) GetVulnerability(namespace, id string) ([]v5.Vulnerability, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *mockStore) SearchForVulnerabilities(namespace, name string) ([]grypeDB.Vulnerability, error) {
+func (s *mockStore) SearchForVulnerabilities(namespace, name string) ([]v5.Vulnerability, error) {
 	namespaceMap := s.backend[namespace]
 	if namespaceMap == nil {
 		return nil, nil
@@ -32,7 +31,7 @@ func (s *mockStore) SearchForVulnerabilities(namespace, name string) ([]grypeDB.
 	return namespaceMap[name], nil
 }
 
-func (s *mockStore) GetAllVulnerabilities() (*[]grypeDB.Vulnerability, error) {
+func (s *mockStore) GetAllVulnerabilities() (*[]v5.Vulnerability, error) {
 	return nil, nil
 }
 
@@ -50,12 +49,12 @@ func TestMatches(t *testing.T) {
 	assert.NoError(t, err)
 
 	store := mockStore{
-		backend: map[string]map[string][]grypeDB.Vulnerability{
+		backend: map[string]map[string][]v5.Vulnerability{
 
 			// TODO: it would be ideal to test against something that constructs the namespace based on grype-db
 			// and not break the adaption of grype-db
 			fmt.Sprintf("msrc:distro:windows:%s", d.RawVersion): {
-				d.RawVersion: []grypeDB.Vulnerability{
+				d.RawVersion: []v5.Vulnerability{
 					{
 						ID:                "CVE-2016-3333",
 						VersionConstraint: "3200970 || 878787 || base",
@@ -69,7 +68,7 @@ func TestMatches(t *testing.T) {
 					},
 				},
 				// Does not match the product ID
-				"something-else": []grypeDB.Vulnerability{
+				"something-else": []v5.Vulnerability{
 					{
 						ID:                "CVE-2020-also-made-up",
 						VersionConstraint: "3200970 || 878787 || base",
@@ -80,7 +79,7 @@ func TestMatches(t *testing.T) {
 		},
 	}
 
-	provider, err := db.NewVulnerabilityProvider(&store)
+	provider, err := v5.NewVulnerabilityProvider(&store)
 	require.NoError(t, err)
 
 	tests := []struct {

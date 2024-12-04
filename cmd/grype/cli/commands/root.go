@@ -11,9 +11,7 @@ import (
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/db/legacy/distribution"
-	grypeDb "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/event/parsers"
 	"github.com/anchore/grype/grype/grypeerr"
@@ -30,6 +28,7 @@ import (
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/grype/grype/vex"
+	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/format"
@@ -89,13 +88,13 @@ You can also pipe in Syft JSON directly:
 }
 
 var ignoreNonFixedMatches = []match.IgnoreRule{
-	{FixState: string(grypeDb.NotFixedState)},
-	{FixState: string(grypeDb.WontFixState)},
-	{FixState: string(grypeDb.UnknownFixState)},
+	{FixState: string(vulnerability.FixStateNotFixed)},
+	{FixState: string(vulnerability.FixStateWontFix)},
+	{FixState: string(vulnerability.FixStateUnknown)},
 }
 
 var ignoreFixedMatches = []match.IgnoreRule{
-	{FixState: string(grypeDb.FixedState)},
+	{FixState: string(vulnerability.FixStateFixed)},
 }
 
 var ignoreVEXFixedNotAffected = []match.IgnoreRule{
@@ -121,7 +120,6 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 
 	var str *store.Store
 	var status *distribution.Status
-	var dbCloser *db.Closer
 	var packages []pkg.Package
 	var s *sbom.SBOM
 	var pkgContext pkg.Context
@@ -139,8 +137,8 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 	}
 
 	for _, ignoreState := range stringutil.SplitCommaSeparatedString(opts.IgnoreStates) {
-		switch grypeDb.FixState(ignoreState) {
-		case grypeDb.UnknownFixState, grypeDb.FixedState, grypeDb.NotFixedState, grypeDb.WontFixState:
+		switch vulnerability.FixState(ignoreState) {
+		case vulnerability.FixStateUnknown, vulnerability.FixStateFixed, vulnerability.FixStateNotFixed, vulnerability.FixStateWontFix:
 			opts.Ignore = append(opts.Ignore, match.IgnoreRule{FixState: ignoreState})
 		default:
 			return fmt.Errorf("unknown fix state %s was supplied for --ignore-states", ignoreState)
@@ -154,7 +152,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		},
 		func() (err error) {
 			log.Debug("loading DB")
-			str, status, dbCloser, err = grype.LoadVulnerabilityDB(opts.DB.ToLegacyCuratorConfig(), opts.DB.AutoUpdate)
+			str, status, err = grype.LoadVulnerabilityDB(opts.DB.ToLegacyCuratorConfig(), opts.DB.AutoUpdate)
 			return validateDBLoad(err, status)
 		},
 		func() (err error) {
@@ -175,9 +173,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		return err
 	}
 
-	if dbCloser != nil {
-		defer dbCloser.Close()
-	}
+	defer log.CloseAndLogError(str, status.Location)
 
 	if err = applyVexRules(opts); err != nil {
 		return fmt.Errorf("applying vex rules: %w", err)
