@@ -59,14 +59,12 @@ func NewLatestDocument(entries ...Archive) *LatestDocument {
 
 func NewLatestFromReader(reader io.Reader) (*LatestDocument, error) {
 	var l LatestDocument
-
 	if err := json.NewDecoder(reader).Decode(&l); err != nil {
 		return nil, fmt.Errorf("unable to parse DB latest.json: %w", err)
 	}
 
-	// inflate entry data from parent
-	if l.Archive.Description.SchemaVersion != "" {
-		l.Archive.Description.SchemaVersion = l.SchemaVersion
+	if l == (LatestDocument{}) {
+		return nil, nil
 	}
 
 	return &l, nil
