@@ -126,7 +126,7 @@ func (pres *Presenter) sarifRules() (out []*sarif.ReportingDescriptor) {
 			}
 
 			if len(m.Package.PURL) != 0 {
-				descriptor.Properties["purls"] = [...]string{m.Package.PURL}
+				descriptor.Properties["purls"] = []string{m.Package.PURL}
 			}
 
 			out = append(out, &descriptor)

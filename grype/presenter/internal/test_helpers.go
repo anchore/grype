@@ -251,6 +251,7 @@ func generatePackages(t *testing.T) []syftPkg.Package {
 			Name:      "package-2",
 			Version:   "2.2.2",
 			Type:      syftPkg.DebPkg,
+			PURL:      "pkg:deb/package-2@2.2.2",
 			Locations: file.NewLocationSet(file.NewVirtualLocation("/foo/bar/somefile-2.txt", "somefile-2.txt")),
 			CPEs: []cpe.CPE{
 				{
