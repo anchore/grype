@@ -1,7 +1,6 @@
 package v6
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 
@@ -9,10 +8,6 @@ import (
 
 	"github.com/anchore/grype/internal/log"
 )
-
-type ProviderStoreWriter interface {
-	AddProvider(p *Provider) error
-}
 
 type ProviderStoreReader interface {
 	GetProvider(name string) (*Provider, error)
@@ -27,32 +22,6 @@ func newProviderStore(db *gorm.DB) *providerStore {
 	return &providerStore{
 		db: db,
 	}
-}
-
-func (s *providerStore) AddProvider(p *Provider) error {
-	log.WithFields("name", p.ID).Trace("writing provider record")
-
-	var existingProvider Provider
-	result := s.db.Where("id = ? AND version = ?", p.ID, p.Version).First(&existingProvider)
-	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return fmt.Errorf("failed to find provider (name=%q version=%q): %w", p.ID, p.Version, result.Error)
-	}
-
-	if result.Error == nil {
-		// overwrite the existing provider if found
-		existingProvider.Processor = p.Processor
-		existingProvider.DateCaptured = p.DateCaptured
-		existingProvider.InputDigest = p.InputDigest
-	} else {
-		// create a new provider record if not found
-		existingProvider = *p
-	}
-
-	if err := s.db.Save(&existingProvider).Error; err != nil {
-		return fmt.Errorf("failed to save provider (name=%q version=%q): %w", p.ID, p.Version, err)
-	}
-
-	return nil
 }
 
 func (s *providerStore) GetProvider(name string) (*Provider, error) {

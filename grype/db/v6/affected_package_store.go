@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -104,6 +105,9 @@ func (d DistroSpecifier) version() string {
 type VulnerabilitySpecifier struct {
 	// Name of the vulnerability (e.g. CVE-2020-1234)
 	Name string
+
+	PublishedAfter *time.Time
+	ModifiedAfter  *time.Time
 }
 
 func (d DistroSpecifier) matchesVersionPattern(pattern string) bool {
@@ -165,9 +169,12 @@ func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config
 
 	query := s.handlePackage(s.db, pkg)
 
-	query = s.handleVulnerabilityOptions(query, config.Vulnerability)
-
 	var err error
+	query, err = s.handleVulnerabilityOptions(query, config.Vulnerability)
+	if err != nil {
+		return nil, err
+	}
+
 	query, err = s.handleDistroOptions(query, config.Distro)
 	if err != nil {
 		return nil, err
@@ -176,8 +183,7 @@ func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config
 	query = s.handlePreload(query, *config)
 
 	var pkgs []AffectedPackageHandle
-	err = query.Find(&pkgs).Error
-	if err != nil {
+	if err = query.Find(&pkgs).Error; err != nil {
 		return nil, fmt.Errorf("unable to fetch non-distro affected package record: %w", err)
 	}
 
@@ -218,55 +224,19 @@ func (s *affectedPackageStore) handlePackage(query *gorm.DB, config *PackageSpec
 
 	if config.CPE != nil {
 		query = query.Joins("JOIN cpes ON packages.id = cpes.package_id")
-		c := config.CPE
-		if c.Part != cpe.Any {
-			query = query.Where("cpes.part = ?", c.Part)
-		}
-
-		if c.Vendor != cpe.Any {
-			query = query.Where("cpes.vendor = ?", c.Vendor)
-		}
-
-		if c.Product != cpe.Any {
-			query = query.Where("cpes.product = ?", c.Product)
-		}
-
-		if c.Edition != cpe.Any {
-			query = query.Where("cpes.edition = ?", c.Edition)
-		}
-
-		if c.Language != cpe.Any {
-			query = query.Where("cpes.language = ?", c.Language)
-		}
-
-		if c.SWEdition != cpe.Any {
-			query = query.Where("cpes.sw_edition = ?", c.SWEdition)
-		}
-
-		if c.TargetSW != cpe.Any {
-			query = query.Where("cpes.target_sw = ?", c.TargetSW)
-		}
-
-		if c.TargetHW != cpe.Any {
-			query = query.Where("cpes.target_hw = ?", c.TargetHW)
-		}
-
-		if c.Other != cpe.Any {
-			query = query.Where("cpes.other = ?", c.Other)
-		}
+		query = handleCPEOptions(query, config.CPE)
 	}
 
 	return query
 }
 
-func (s *affectedPackageStore) handleVulnerabilityOptions(query *gorm.DB, config *VulnerabilitySpecifier) *gorm.DB {
+func (s *affectedPackageStore) handleVulnerabilityOptions(query *gorm.DB, config *VulnerabilitySpecifier) (*gorm.DB, error) {
 	if config == nil {
-		return query
+		return query, nil
 	}
-	if config.Name != "" {
-		query = query.Joins("JOIN vulnerability_handles ON affected_package_handles.vulnerability_id = vulnerability_handles.id").Where("vulnerability_handles.name = ?", config.Name)
-	}
-	return query
+	query = query.Joins("JOIN vulnerability_handles ON affected_package_handles.vulnerability_id = vulnerability_handles.id")
+
+	return handleVulnerabilityOptions(s.db, query, config)
 }
 
 func (s *affectedPackageStore) handleDistroOptions(query *gorm.DB, config *DistroSpecifier) (*gorm.DB, error) {
@@ -464,13 +434,70 @@ func (s *affectedPackageStore) handlePreload(query *gorm.DB, config GetAffectedP
 	}
 
 	if config.PreloadVulnerability {
-		query = query.Preload("Vulnerability")
+		query = query.Preload("Vulnerability").Preload("Vulnerability.Provider")
 	}
 
 	if config.PreloadOS {
 		query = query.Preload("OperatingSystem")
 	}
 	return query
+}
+
+func handleCPEOptions(query *gorm.DB, c *cpe.Attributes) *gorm.DB {
+	if c.Part != cpe.Any {
+		query = query.Where("cpes.part = ?", c.Part)
+	}
+
+	if c.Vendor != cpe.Any {
+		query = query.Where("cpes.vendor = ?", c.Vendor)
+	}
+
+	if c.Product != cpe.Any {
+		query = query.Where("cpes.product = ?", c.Product)
+	}
+
+	if c.Edition != cpe.Any {
+		query = query.Where("cpes.edition = ?", c.Edition)
+	}
+
+	if c.Language != cpe.Any {
+		query = query.Where("cpes.language = ?", c.Language)
+	}
+
+	if c.SWEdition != cpe.Any {
+		query = query.Where("cpes.sw_edition = ?", c.SWEdition)
+	}
+
+	if c.TargetSW != cpe.Any {
+		query = query.Where("cpes.target_sw = ?", c.TargetSW)
+	}
+
+	if c.TargetHW != cpe.Any {
+		query = query.Where("cpes.target_hw = ?", c.TargetHW)
+	}
+
+	if c.Other != cpe.Any {
+		query = query.Where("cpes.other = ?", c.Other)
+	}
+	return query
+}
+
+func handleVulnerabilityOptions(basis, query *gorm.DB, config *VulnerabilitySpecifier) (*gorm.DB, error) {
+	if config.ModifiedAfter != nil && config.PublishedAfter != nil {
+		return nil, fmt.Errorf("only one of ModifiedAfter or PublishedAfter can be specified for a vulnerability")
+	}
+
+	if config.Name != "" {
+		query.Where("vulnerability_handles.name = ?", config.Name)
+	}
+
+	if config.PublishedAfter != nil {
+		query = query.Where("vulnerability_handles.published_date > ?", *config.PublishedAfter)
+	} else if config.ModifiedAfter != nil {
+		query = query.Where(basis.Where("vulnerability_handles.published_date > ?", *config.ModifiedAfter).Or("vulnerability_handles.modified_date > ?", *config.ModifiedAfter))
+	}
+
+	return query, nil
 }
 
 func distroDisplay(d *DistroSpecifier) string {

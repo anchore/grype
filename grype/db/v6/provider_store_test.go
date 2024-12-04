@@ -52,13 +52,20 @@ func TestProviderStore(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := newProviderStore(setupTestStore(t).db)
+			db := setupTestStore(t).db
+			s := newProviderStore(db)
 			if tt.wantErr == nil {
 				tt.wantErr = require.NoError
 			}
-			for i, p := range tt.providers {
+			for i := range tt.providers {
+				p := tt.providers[i]
+				// note: we always write providers via the vulnerability handle (there is no store adder)
+				vuln := VulnerabilityHandle{
+					Name:     "CVE-1234-5678",
+					Provider: &p,
+				}
 				isLast := i == len(tt.providers)-1
-				err := s.AddProvider(&p)
+				err := db.Create(&vuln).Error
 				if !isLast {
 					require.NoError(t, err)
 					continue

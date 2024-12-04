@@ -17,6 +17,9 @@ func TestAffectedCPEStore_AddAffectedCPEs(t *testing.T) {
 
 	cpe1 := &AffectedCPEHandle{
 		Vulnerability: &VulnerabilityHandle{ // vuln id = 1
+			Provider: &Provider{
+				ID: "nvd",
+			},
 			Name: "CVE-2023-5678",
 		},
 		CpeID: 1,
@@ -92,6 +95,9 @@ func TestAffectedCPEStore_PreventDuplicateCPEs(t *testing.T) {
 	cpe1 := &AffectedCPEHandle{
 		Vulnerability: &VulnerabilityHandle{ // vuln id = 1
 			Name: "CVE-2023-5678",
+			Provider: &Provider{
+				ID: "nvd",
+			},
 		},
 		CpeID: 1,
 		CPE: &Cpe{
@@ -112,6 +118,9 @@ func TestAffectedCPEStore_PreventDuplicateCPEs(t *testing.T) {
 	duplicateCPE := &AffectedCPEHandle{
 		Vulnerability: &VulnerabilityHandle{ // vuln id = 2, different VulnerabilityID for testing...
 			Name: "CVE-2024-1234",
+			Provider: &Provider{
+				ID: "nvd",
+			},
 		},
 		CpeID: 2,
 		CPE: &Cpe{
@@ -158,6 +167,9 @@ func testAffectedCPEHandle() *AffectedCPEHandle {
 	return &AffectedCPEHandle{
 		Vulnerability: &VulnerabilityHandle{
 			Name: "CVE-2024-4321",
+			Provider: &Provider{
+				ID: "nvd",
+			},
 		},
 		CPE: &Cpe{
 			Part:            "application",

@@ -141,6 +141,12 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 
 	setupTestStoreWithPackages := func(t *testing.T) (*AffectedPackageHandle, *AffectedPackageHandle, *affectedPackageStore) {
 		pkg1 := &AffectedPackageHandle{
+			Vulnerability: &VulnerabilityHandle{
+				Name: "CVE-2023-1234",
+				Provider: &Provider{
+					ID: "provider1",
+				},
+			},
 			Package: &Package{Name: "pkg1", Type: "type1"},
 			BlobValue: &AffectedPackageBlob{
 				CVEs: []string{"CVE-2023-1234"},
@@ -198,12 +204,12 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 	t.Run("preload CPEs", func(t *testing.T) {
 		pkg1, _, s := setupTestStoreWithPackages(t)
 
-		cpe := Cpe{
+		c := Cpe{
 			Part:    "a",
 			Vendor:  "vendor1",
 			Product: "product1",
 		}
-		pkg1.Package.CPEs = []Cpe{cpe}
+		pkg1.Package.CPEs = []Cpe{c}
 
 		err := s.AddAffectedPackages(pkg1)
 		require.NoError(t, err)
@@ -221,16 +227,22 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 		require.NotNil(t, result.Package)
 
 		// the IDs should have been set, and there is only one, so we know the correct values
-		cpe.ID = 1
-		cpe.PackageID = idRef(1)
+		c.ID = 1
+		c.PackageID = idRef(1)
 
-		if d := cmp.Diff([]Cpe{cpe}, result.Package.CPEs); d != "" {
+		if d := cmp.Diff([]Cpe{c}, result.Package.CPEs); d != "" {
 			t.Errorf("unexpected result (-want +got):\n%s", d)
 		}
 	})
 
 	t.Run("Package deduplication", func(t *testing.T) {
 		pkg1 := &AffectedPackageHandle{
+			Vulnerability: &VulnerabilityHandle{
+				Name: "CVE-2023-1234",
+				Provider: &Provider{
+					ID: "provider1",
+				},
+			},
 			Package: &Package{Name: "pkg1", Type: "type1"},
 			BlobValue: &AffectedPackageBlob{
 				CVEs: []string{"CVE-2023-1234"},
@@ -238,6 +250,12 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 		}
 
 		pkg2 := &AffectedPackageHandle{
+			Vulnerability: &VulnerabilityHandle{
+				Name: "CVE-2023-1234",
+				Provider: &Provider{
+					ID: "provider1",
+				},
+			},
 			Package: &Package{Name: "pkg1", Type: "type1"}, // same!
 			BlobValue: &AffectedPackageBlob{
 				CVEs: []string{"CVE-2023-56789"},
@@ -275,6 +293,12 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 		}
 
 		pkg1 := &AffectedPackageHandle{
+			Vulnerability: &VulnerabilityHandle{
+				Name: "CVE-2023-1234",
+				Provider: &Provider{
+					ID: "provider1",
+				},
+			},
 			Package: &Package{Name: "pkg1", Type: "type1", CPEs: []Cpe{cpe1}},
 			BlobValue: &AffectedPackageBlob{
 				CVEs: []string{"CVE-2023-1234"},
@@ -282,6 +306,12 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 		}
 
 		pkg2 := &AffectedPackageHandle{
+			Vulnerability: &VulnerabilityHandle{
+				Name: "CVE-2023-56789",
+				Provider: &Provider{
+					ID: "provider1",
+				},
+			},
 			Package: &Package{Name: "pkg1", Type: "type1", CPEs: []Cpe{cpe1, cpe2}}, // duplicate CPE + additional CPE
 			BlobValue: &AffectedPackageBlob{
 				CVEs: []string{"CVE-2023-56789"},
@@ -336,6 +366,12 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 		}
 
 		pkg1 := &AffectedPackageHandle{
+			Vulnerability: &VulnerabilityHandle{
+				Name: "CVE-2023-1234",
+				Provider: &Provider{
+					ID: "provider1",
+				},
+			},
 			Package: &Package{Name: "pkg1", Type: "type1", CPEs: []Cpe{cpe1}},
 			BlobValue: &AffectedPackageBlob{
 				CVEs: []string{"CVE-2023-1234"},
@@ -343,6 +379,12 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 		}
 
 		pkg2 := &AffectedPackageHandle{
+			Vulnerability: &VulnerabilityHandle{
+				Name: "CVE-2023-56789",
+				Provider: &Provider{
+					ID: "provider1",
+				},
+			},
 			Package: &Package{Name: "pkg2", Type: "type1", CPEs: []Cpe{cpe1, cpe2}}, // overlapping CPEs for different packages
 			BlobValue: &AffectedPackageBlob{
 				CVEs: []string{"CVE-2023-56789"},
@@ -363,12 +405,24 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 	cpe1 := Cpe{Part: "a", Vendor: "vendor1", Product: "product1"}
 	cpe2 := Cpe{Part: "a", Vendor: "vendor2", Product: "product2"}
 	pkg1 := &AffectedPackageHandle{
+		Vulnerability: &VulnerabilityHandle{
+			Name: "CVE-2023-1234",
+			Provider: &Provider{
+				ID: "provider1",
+			},
+		},
 		Package: &Package{Name: "pkg1", Type: "type1", CPEs: []Cpe{cpe1}},
 		BlobValue: &AffectedPackageBlob{
 			CVEs: []string{"CVE-2023-1234"},
 		},
 	}
 	pkg2 := &AffectedPackageHandle{
+		Vulnerability: &VulnerabilityHandle{
+			Name: "CVE-2023-5678",
+			Provider: &Provider{
+				ID: "provider1",
+			},
+		},
 		Package: &Package{Name: "pkg2", Type: "type2", CPEs: []Cpe{cpe2}},
 		BlobValue: &AffectedPackageBlob{
 			CVEs: []string{"CVE-2023-5678"},
@@ -393,9 +447,10 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 				Product: "product1",
 			},
 			options: &GetAffectedPackageOptions{
-				PreloadPackageCPEs: true,
-				PreloadPackage:     true,
-				PreloadBlob:        true,
+				PreloadPackageCPEs:   true,
+				PreloadPackage:       true,
+				PreloadBlob:          true,
+				PreloadVulnerability: true,
 			},
 			expected: []AffectedPackageHandle{*pkg1},
 		},
@@ -406,9 +461,10 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 				Vendor: "vendor2",
 			},
 			options: &GetAffectedPackageOptions{
-				PreloadPackageCPEs: true,
-				PreloadPackage:     true,
-				PreloadBlob:        true,
+				PreloadPackageCPEs:   true,
+				PreloadPackage:       true,
+				PreloadBlob:          true,
+				PreloadVulnerability: true,
 			},
 			expected: []AffectedPackageHandle{*pkg2},
 		},
@@ -418,9 +474,10 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 				Part: "a",
 			},
 			options: &GetAffectedPackageOptions{
-				PreloadPackageCPEs: true,
-				PreloadPackage:     true,
-				PreloadBlob:        true,
+				PreloadPackageCPEs:   true,
+				PreloadPackage:       true,
+				PreloadBlob:          true,
+				PreloadVulnerability: true,
 			},
 			expected: []AffectedPackageHandle{*pkg1, *pkg2},
 		},
@@ -432,9 +489,10 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 				Product: "unknown_product",
 			},
 			options: &GetAffectedPackageOptions{
-				PreloadPackageCPEs: true,
-				PreloadPackage:     true,
-				PreloadBlob:        true,
+				PreloadPackageCPEs:   true,
+				PreloadPackage:       true,
+				PreloadBlob:          true,
+				PreloadVulnerability: true,
 			},
 			expected: nil,
 		},
@@ -876,6 +934,9 @@ func testDistro1AffectedPackage2Handle() *AffectedPackageHandle {
 		},
 		Vulnerability: &VulnerabilityHandle{
 			Name: "CVE-2023-4567",
+			Provider: &Provider{
+				ID: "ubuntu",
+			},
 		},
 		OperatingSystem: &OperatingSystem{
 			Name:         "ubuntu",
@@ -897,6 +958,9 @@ func testDistro2AffectedPackage2Handle() *AffectedPackageHandle {
 		},
 		Vulnerability: &VulnerabilityHandle{
 			Name: "CVE-2023-4567",
+			Provider: &Provider{
+				ID: "ubuntu",
+			},
 		},
 		OperatingSystem: &OperatingSystem{
 			Name:         "ubuntu",
@@ -918,6 +982,9 @@ func testNonDistroAffectedPackage2Handle() *AffectedPackageHandle {
 		},
 		Vulnerability: &VulnerabilityHandle{
 			Name: "CVE-2023-4567",
+			Provider: &Provider{
+				ID: "wolfi",
+			},
 		},
 		BlobValue: &AffectedPackageBlob{
 			CVEs: []string{"CVE-2023-4567"},
