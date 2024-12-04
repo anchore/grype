@@ -67,13 +67,16 @@ func (s *affectedCPEStore) GetAffectedCPEs(cpe *cpe.Attributes, config *GetAffec
 
 	query := s.handleCPE(s.db, cpe)
 
-	query = s.handleVulnerabilityOptions(query, config.Vulnerability)
+	var err error
+	query, err = s.handleVulnerabilityOptions(query, config.Vulnerability)
+	if err != nil {
+		return nil, err
+	}
 
 	query = s.handlePreload(query, *config)
 
 	var pkgs []AffectedCPEHandle
-	err := query.Find(&pkgs).Error
-	if err != nil {
+	if err = query.Find(&pkgs).Error; err != nil {
 		return nil, fmt.Errorf("unable to fetch affected package record: %w", err)
 	}
 
@@ -104,53 +107,17 @@ func (s *affectedCPEStore) handleCPE(query *gorm.DB, c *cpe.Attributes) *gorm.DB
 	}
 	query = query.Joins("JOIN cpes ON cpes.id = affected_cpe_handles.cpe_id")
 
-	if c.Part != cpe.Any {
-		query = query.Where("cpes.part = ?", c.Part)
-	}
-
-	if c.Vendor != cpe.Any {
-		query = query.Where("cpes.vendor = ?", c.Vendor)
-	}
-
-	if c.Product != cpe.Any {
-		query = query.Where("cpes.product = ?", c.Product)
-	}
-
-	if c.Edition != cpe.Any {
-		query = query.Where("cpes.edition = ?", c.Edition)
-	}
-
-	if c.Language != cpe.Any {
-		query = query.Where("cpes.language = ?", c.Language)
-	}
-
-	if c.SWEdition != cpe.Any {
-		query = query.Where("cpes.sw_edition = ?", c.SWEdition)
-	}
-
-	if c.TargetSW != cpe.Any {
-		query = query.Where("cpes.target_sw = ?", c.TargetSW)
-	}
-
-	if c.TargetHW != cpe.Any {
-		query = query.Where("cpes.target_hw = ?", c.TargetHW)
-	}
-
-	if c.Other != cpe.Any {
-		query = query.Where("cpes.other = ?", c.Other)
-	}
-
-	return query
+	return handleCPEOptions(query, c)
 }
 
-func (s *affectedCPEStore) handleVulnerabilityOptions(query *gorm.DB, config *VulnerabilitySpecifier) *gorm.DB {
+func (s *affectedCPEStore) handleVulnerabilityOptions(query *gorm.DB, config *VulnerabilitySpecifier) (*gorm.DB, error) {
 	if config == nil {
-		return query
+		return query, nil
 	}
-	if config.Name != "" {
-		query = query.Joins("JOIN vulnerability_handles ON affected_cpe_handles.vulnerability_id = vulnerability_handles.id").Where("vulnerability_handles.name = ?", config.Name)
-	}
-	return query
+
+	query = query.Joins("JOIN vulnerability_handles ON affected_cpe_handles.vulnerability_id = vulnerability_handles.id")
+
+	return handleVulnerabilityOptions(query, config)
 }
 
 func (s *affectedCPEStore) handlePreload(query *gorm.DB, config GetAffectedCPEOptions) *gorm.DB {
@@ -159,7 +126,7 @@ func (s *affectedCPEStore) handlePreload(query *gorm.DB, config GetAffectedCPEOp
 	}
 
 	if config.PreloadVulnerability {
-		query = query.Preload("Vulnerability")
+		query = query.Preload("Vulnerability").Preload("Vulnerability.Provider")
 	}
 
 	return query

@@ -11,26 +11,11 @@ type VulnerabilityBlob struct {
 	// ID is the lowercase unique string identifier for the vulnerability relative to the provider
 	ID string `json:"id"`
 
-	// ProviderName of the Vunnel provider (or sub processor responsible for data records from a single specific source, e.g. "ubuntu")
-	ProviderName string `json:"provider"`
-
 	// Assigners is a list of names, email, or organizations who submitted the vulnerability
 	Assigners []string `json:"assigner,omitempty"`
 
-	// Status conveys the actionability of the current record
-	Status VulnerabilityStatus `json:"status"`
-
 	// Description of the vulnerability as provided by the source
-	Description string `json:"description"`
-
-	// PublishedDate is the date the vulnerability record was first published
-	PublishedDate *time.Time `json:"published,omitempty"`
-
-	// ModifiedDate is the date the vulnerability record was last modified
-	ModifiedDate *time.Time `json:"modified,omitempty"`
-
-	// WithdrawnDate is the date the vulnerability record was withdrawn
-	WithdrawnDate *time.Time `json:"withdrawn,omitempty"`
+	Description string `json:"description,omitempty"`
 
 	// References are URLs to external resources that provide more information about the vulnerability
 	References []Reference `json:"refs,omitempty"`

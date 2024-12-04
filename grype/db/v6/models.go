@@ -25,6 +25,7 @@ func Models() []any {
 
 		// vulnerability related search tables
 		&VulnerabilityHandle{},
+		&VulnerabilityAlias{},
 
 		// package related search tables
 		&AffectedPackageHandle{}, // join on package, operating system
@@ -93,6 +94,32 @@ type Provider struct {
 	InputDigest string `gorm:"column:input_digest"`
 }
 
+func (p *Provider) BeforeCreate(tx *gorm.DB) (err error) {
+	// if the name and version already exist in the table then we should not insert a new record
+	var existing Provider
+	result := tx.Where("id = ?", p.ID).First(&existing)
+	if result.Error == nil {
+		if existing.Processor == p.Processor && existing.DateCaptured == p.DateCaptured && existing.InputDigest == p.InputDigest && p.Version == existing.Version {
+			// record already exists
+			p.ID = existing.ID
+			return nil
+		}
+
+		// overwrite the existing provider if found
+		existing.Processor = p.Processor
+		existing.DateCaptured = p.DateCaptured
+		existing.InputDigest = p.InputDigest
+		existing.Version = p.Version
+		if err := tx.Save(&existing).Error; err != nil {
+			return fmt.Errorf("failed to update existing %q provider record: %w", p.ID, err)
+		}
+		return nil
+	}
+
+	// create a new provider record if not found
+	return nil
+}
+
 // vulnerability related search tables //////////////////////////////////////////////////////
 
 // VulnerabilityHandle represents the pointer to the core advisory record for a single known vulnerability from a specific provider.
@@ -101,6 +128,21 @@ type VulnerabilityHandle struct {
 
 	// Name is the unique name for the vulnerability (same as the decoded VulnerabilityBlob.ID)
 	Name string `gorm:"column:name;not null;index"`
+
+	// Status conveys the actionability of the current record
+	Status string `gorm:"column:status;not null;index"`
+
+	// PublishedDate is the date the vulnerability record was first published
+	PublishedDate *time.Time `gorm:"column:published_date;index"`
+
+	// ModifiedDate is the date the vulnerability record was last modified
+	ModifiedDate *time.Time `gorm:"column:modified_date;index"`
+
+	// WithdrawnDate is the date the vulnerability record was withdrawn
+	WithdrawnDate *time.Time `gorm:"column:withdrawn_date;index"`
+
+	ProviderID string    `gorm:"column:provider_id;not null;index"`
+	Provider   *Provider `gorm:"foreignKey:ProviderID"`
 
 	BlobID    ID                 `gorm:"column:blob_id;index,unique"`
 	BlobValue *VulnerabilityBlob `gorm:"-"`
@@ -128,6 +170,14 @@ func (v *VulnerabilityHandle) setBlob(rawBlobValue []byte) error {
 	return nil
 }
 
+type VulnerabilityAlias struct {
+	// Name is the unique name for the vulnerability
+	Name string `gorm:"column:name;primaryKey;index"`
+
+	// Alias is an alternative name for the vulnerability that must be upstream from the Name (e.g if name is "RHSA-1234" then the upstream could be "CVE-1234-5678", but not the other way around)
+	Alias string `gorm:"column:alias;primaryKey;index;not null"`
+}
+
 // package related search tables //////////////////////////////////////////////////////
 
 // AffectedPackageHandle represents a single package affected by the specified vulnerability. A package here is a
@@ -137,7 +187,7 @@ func (v *VulnerabilityHandle) setBlob(rawBlobValue []byte) error {
 // name (which might or might not be the product name in the CPE), in which case AffectedCPEHandle should be used.
 type AffectedPackageHandle struct {
 	ID              ID                   `gorm:"column:id;primaryKey"`
-	VulnerabilityID *ID                  `gorm:"column:vulnerability_id"`
+	VulnerabilityID ID                   `gorm:"column:vulnerability_id;not null"`
 	Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
 
 	OperatingSystemID *ID              `gorm:"column:operating_system_id"`
@@ -280,7 +330,7 @@ func (os *OperatingSystemAlias) BeforeCreate(_ *gorm.DB) (err error) {
 // find vulnerabilities by these identifiers but not assert they are related to an entry in the Packages table.
 type AffectedCPEHandle struct {
 	ID              ID                   `gorm:"column:id;primaryKey"`
-	VulnerabilityID *ID                  `gorm:"column:vulnerability_id"`
+	VulnerabilityID ID                   `gorm:"column:vulnerability_id;not null"`
 	Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
 
 	CpeID ID   `gorm:"column:cpe_id"`

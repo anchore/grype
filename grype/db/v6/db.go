@@ -36,7 +36,6 @@ type Reader interface {
 
 type Writer interface {
 	DBMetadataStoreWriter
-	ProviderStoreWriter
 	VulnerabilityStoreWriter
 	AffectedPackageStoreWriter
 	AffectedCPEStoreWriter
