@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -27,13 +28,11 @@ func TestClient_LatestFromURL(t *testing.T) {
 			name: "go case",
 			setupServer: func() *httptest.Server {
 				doc := LatestDocument{
-					SchemaVersion: "1.0.0",
-					Status:        "active",
+					Status: "active",
 					Archive: Archive{
 						Description: db.Description{
 							SchemaVersion: "1.0.0",
 							Built:         db.Time{Time: time.Date(2023, 9, 26, 12, 0, 0, 0, time.UTC)},
-							Checksum:      "xxh64:dummychecksum",
 						},
 						Path:     "path/to/archive",
 						Checksum: "checksum123",
@@ -49,13 +48,11 @@ func TestClient_LatestFromURL(t *testing.T) {
 				}))
 			},
 			expectedDoc: &LatestDocument{
-				SchemaVersion: "1.0.0",
-				Status:        "active",
+				Status: "active",
 				Archive: Archive{
 					Description: db.Description{
 						SchemaVersion: "1.0.0",
 						Built:         db.Time{Time: time.Date(2023, 9, 26, 12, 0, 0, 0, time.UTC)},
-						Checksum:      "xxh64:dummychecksum",
 					},
 					Path:     "path/to/archive",
 					Checksum: "checksum123",
@@ -108,7 +105,7 @@ func TestClient_LatestFromURL(t *testing.T) {
 
 			cl := c.(client)
 
-			doc, err := cl.latestFromURL()
+			doc, err := cl.Latest()
 			tt.expectedErr(t, err)
 			if err != nil {
 				return
@@ -176,6 +173,18 @@ func TestClient_Download(t *testing.T) {
 
 		mg.AssertExpectations(t)
 	})
+
+	t.Run("nested into dir that does not exist", func(t *testing.T) {
+		c, mg := setup()
+		mg.On("GetToDir", mock.Anything, "http://localhost:8080/path/to/archive.tar.gz?checksum=checksum123", mock.Anything).Return(nil)
+
+		nestedPath := filepath.Join(destDir, "nested")
+		tempDir, err := c.Download(*archive, nestedPath, &progress.Manual{})
+		require.NoError(t, err)
+		require.True(t, len(tempDir) > 0)
+
+		mg.AssertExpectations(t)
+	})
 }
 
 func TestClient_IsUpdateAvailable(t *testing.T) {
@@ -193,13 +202,11 @@ func TestClient_IsUpdateAvailable(t *testing.T) {
 		{
 			name: "update available",
 			candidate: &LatestDocument{
-				SchemaVersion: "1.0.0",
-				Status:        StatusActive,
+				Status: StatusActive,
 				Archive: Archive{
 					Description: db.Description{
 						SchemaVersion: "1.0.0",
 						Built:         db.Time{Time: time.Date(2023, 9, 27, 12, 0, 0, 0, time.UTC)},
-						Checksum:      "xxh64:dummychecksum",
 					},
 					Path:     "path/to/archive.tar.gz",
 					Checksum: "checksum123",
@@ -209,7 +216,6 @@ func TestClient_IsUpdateAvailable(t *testing.T) {
 				Description: db.Description{
 					SchemaVersion: "1.0.0",
 					Built:         db.Time{Time: time.Date(2023, 9, 27, 12, 0, 0, 0, time.UTC)},
-					Checksum:      "xxh64:dummychecksum",
 				},
 				Path:     "path/to/archive.tar.gz",
 				Checksum: "checksum123",
@@ -218,13 +224,11 @@ func TestClient_IsUpdateAvailable(t *testing.T) {
 		{
 			name: "no update available",
 			candidate: &LatestDocument{
-				SchemaVersion: "1.0.0",
-				Status:        "active",
+				Status: "active",
 				Archive: Archive{
 					Description: db.Description{
 						SchemaVersion: "1.0.0",
 						Built:         db.Time{Time: time.Date(2023, 9, 26, 12, 0, 0, 0, time.UTC)},
-						Checksum:      "xxh64:dummychecksum",
 					},
 					Path:     "path/to/archive.tar.gz",
 					Checksum: "checksum123",
@@ -240,13 +244,11 @@ func TestClient_IsUpdateAvailable(t *testing.T) {
 		{
 			name: "candidate deprecated",
 			candidate: &LatestDocument{
-				SchemaVersion: "1.0.0",
-				Status:        StatusDeprecated,
+				Status: StatusDeprecated,
 				Archive: Archive{
 					Description: db.Description{
 						SchemaVersion: "1.0.0",
 						Built:         db.Time{Time: time.Date(2023, 9, 27, 12, 0, 0, 0, time.UTC)},
-						Checksum:      "xxh64:dummychecksum",
 					},
 					Path:     "path/to/archive.tar.gz",
 					Checksum: "checksum123",
@@ -256,7 +258,6 @@ func TestClient_IsUpdateAvailable(t *testing.T) {
 				Description: db.Description{
 					SchemaVersion: "1.0.0",
 					Built:         db.Time{Time: time.Date(2023, 9, 27, 12, 0, 0, 0, time.UTC)},
-					Checksum:      "xxh64:dummychecksum",
 				},
 				Path:     "path/to/archive.tar.gz",
 				Checksum: "checksum123",
@@ -266,13 +267,11 @@ func TestClient_IsUpdateAvailable(t *testing.T) {
 		{
 			name: "candidate end of life",
 			candidate: &LatestDocument{
-				SchemaVersion: "1.0.0",
-				Status:        StatusEndOfLife,
+				Status: StatusEndOfLife,
 				Archive: Archive{
 					Description: db.Description{
 						SchemaVersion: "1.0.0",
 						Built:         db.Time{Time: time.Date(2023, 9, 27, 12, 0, 0, 0, time.UTC)},
-						Checksum:      "xxh64:dummychecksum",
 					},
 					Path:     "path/to/archive.tar.gz",
 					Checksum: "checksum123",
@@ -282,7 +281,6 @@ func TestClient_IsUpdateAvailable(t *testing.T) {
 				Description: db.Description{
 					SchemaVersion: "1.0.0",
 					Built:         db.Time{Time: time.Date(2023, 9, 27, 12, 0, 0, 0, time.UTC)},
-					Checksum:      "xxh64:dummychecksum",
 				},
 				Path:     "path/to/archive.tar.gz",
 				Checksum: "checksum123",

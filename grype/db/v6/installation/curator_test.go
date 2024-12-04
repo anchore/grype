@@ -9,14 +9,15 @@ import (
 	"time"
 
 	"github.com/spf13/afero"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/wagoodman/go-progress"
 
-	"github.com/anchore/grype/grype/db/internal/schemaver"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/db/v6/internal"
+	"github.com/anchore/grype/internal/schemaver"
 )
 
 type mockClient struct {
@@ -38,6 +39,11 @@ func (m *mockClient) IsUpdateAvailable(current *db.Description) (*distribution.A
 func (m *mockClient) Download(archive distribution.Archive, dest string, downloadProgress *progress.Manual) (string, error) {
 	args := m.Called(archive, dest, downloadProgress)
 	return args.String(0), args.Error(1)
+}
+
+func (m *mockClient) Latest() (*distribution.LatestDocument, error) {
+	args := m.Called()
+	return args.Get(0).(*distribution.LatestDocument), args.Error(1)
 }
 
 func newTestCurator(t *testing.T) curator {
@@ -81,12 +87,13 @@ func setupCuratorForUpdate(t *testing.T, opts ...setupOption) curator {
 	oldDescription := db.Description{
 		SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 		Built:         db.Time{Time: time.Now().Add(-48 * time.Hour)},
-		Checksum:      writeTestDB(t, c.fs, dbDir),
 	}
+	writeTestDB(t, c.fs, dbDir)
 
 	newDescription := oldDescription
 	newDescription.Built = db.Time{Time: time.Now()}
-	newDescription.Checksum = writeTestDB(t, c.fs, stageDir)
+
+	writeTestDB(t, c.fs, stageDir)
 
 	writeTestDescriptionToDB(t, dbDir, oldDescription)
 	writeTestDescriptionToDB(t, stageDir, newDescription)
@@ -139,7 +146,7 @@ func writeTestDescriptionToDB(t *testing.T, dir string, desc db.Description) str
 
 	require.NoError(t, d.Exec("VACUUM").Error)
 
-	digest, err := db.CalculateDigest(c.DBFilePath())
+	digest, err := db.CalculateDBDigest(c.DBFilePath())
 	require.NoError(t, err)
 
 	// write the checksums file
@@ -468,7 +475,7 @@ func TestCurator_EnsureNotStale(t *testing.T) {
 }
 
 func TestCurator_ValidateIntegrity(t *testing.T) {
-	newCurator := func(t *testing.T) curator {
+	newCurator := func(t *testing.T) (curator, *db.Description) {
 		tempDir := t.TempDir()
 		cfg := DefaultConfig()
 		cfg.DBRootDir = tempDir
@@ -479,60 +486,174 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 		require.NoError(t, s.SetDBMetadata())
 		require.NoError(t, s.Close())
 
+		// assume that we already have a valid checksum file
+		digest, err := db.CalculateDBDigest(cfg.DBFilePath())
+		require.NoError(t, err)
+
+		checksumsFilePath := filepath.Join(cfg.DBDirectoryPath(), db.ChecksumFileName)
+		require.NoError(t, os.WriteFile(checksumsFilePath, []byte(digest), 0644))
+
 		ci, err := NewCurator(cfg, new(mockClient))
 		require.NoError(t, err)
 
-		return ci.(curator)
+		m, err := s.GetDBMetadata()
+		require.NoError(t, err)
+
+		return ci.(curator), db.DescriptionFromMetadata(m)
 	}
 
 	t.Run("valid metadata with correct checksum", func(t *testing.T) {
-		c := newCurator(t)
-		dbDir := c.config.DBDirectoryPath()
+		c, d := newCurator(t)
 
-		result, err := c.validateIntegrity(dbDir)
+		result, digest, err := c.validateIntegrity(d, c.config.DBFilePath(), true)
 		require.NoError(t, err)
 		require.NotNil(t, result)
+		require.NotEmpty(t, digest)
 	})
 
 	t.Run("db does not exist", func(t *testing.T) {
-		c := newCurator(t)
+		c, d := newCurator(t)
 
-		_, err := c.validateIntegrity("non/existent/path")
+		require.NoError(t, os.Remove(c.config.DBFilePath()))
+
+		_, _, err := c.validateIntegrity(d, c.config.DBFilePath(), true)
 		require.ErrorContains(t, err, "database does not exist")
 	})
 
 	t.Run("checksum file does not exist", func(t *testing.T) {
-		c := newCurator(t)
+		c, d := newCurator(t)
 		dbDir := c.config.DBDirectoryPath()
 		require.NoError(t, os.Remove(filepath.Join(dbDir, db.ChecksumFileName)))
-		_, err := c.validateIntegrity(dbDir)
+		_, _, err := c.validateIntegrity(d, c.config.DBFilePath(), true)
 		require.ErrorContains(t, err, "no such file or directory")
 	})
 
 	t.Run("invalid checksum", func(t *testing.T) {
-		c := newCurator(t)
+		c, d := newCurator(t)
 		dbDir := c.config.DBDirectoryPath()
 
 		writeTestChecksumsFile(t, c.fs, dbDir, "xxh64:invalidchecksum")
 
-		_, err := c.validateIntegrity(dbDir)
+		_, _, err := c.validateIntegrity(d, c.config.DBFilePath(), true)
 		require.ErrorContains(t, err, "bad db checksum")
 	})
 
 	t.Run("unsupported database version", func(t *testing.T) {
-		c := newCurator(t)
-		dbDir := c.config.DBDirectoryPath()
+		c, d := newCurator(t)
 
-		oldDescription := db.Description{
-			SchemaVersion: schemaver.New(db.ModelVersion-1, 0, 0),
-			Built:         db.Time{Time: time.Now().Add(-48 * time.Hour)},
-		}
+		d.SchemaVersion = schemaver.New(db.ModelVersion-1, 0, 0)
 
-		writeTestDescriptionToDB(t, c.config.DBDirectoryPath(), oldDescription)
-
-		_, err := c.validateIntegrity(dbDir)
+		_, _, err := c.validateIntegrity(d, c.config.DBFilePath(), true)
 		require.ErrorContains(t, err, "unsupported database version")
 	})
+}
+
+func TestReplaceDB(t *testing.T) {
+	cases := []struct {
+		name     string
+		config   Config
+		expected map[string]string // expected file name to content mapping in the DB dir
+		init     func(t *testing.T, dir string, dbDir string) afero.Fs
+		wantErr  require.ErrorAssertionFunc
+		verify   func(t *testing.T, fs afero.Fs, config Config, expected map[string]string)
+	}{
+		{
+			name: "replace non-existent DB",
+			config: Config{
+				DBRootDir: "/test",
+			},
+			expected: map[string]string{
+				"file.txt": "new content",
+			},
+			init: func(t *testing.T, dir string, dbDir string) afero.Fs {
+				fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
+				require.NoError(t, fs.MkdirAll(dir, 0700))
+				require.NoError(t, afero.WriteFile(fs, filepath.Join(dir, "file.txt"), []byte("new content"), 0644))
+				return fs
+			},
+		},
+		{
+			name: "replace existing DB",
+			config: Config{
+				DBRootDir: "/test",
+			},
+			expected: map[string]string{
+				"new_file.txt": "new content",
+			},
+			init: func(t *testing.T, dir string, dbDir string) afero.Fs {
+				fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
+				require.NoError(t, fs.MkdirAll(dbDir, 0700))
+				require.NoError(t, afero.WriteFile(fs, filepath.Join(dbDir, "old_file.txt"), []byte("old content"), 0644))
+				require.NoError(t, fs.MkdirAll(dir, 0700))
+				require.NoError(t, afero.WriteFile(fs, filepath.Join(dir, "new_file.txt"), []byte("new content"), 0644))
+				return fs
+			},
+		},
+		{
+			name: "non-existent parent dir creation",
+			config: Config{
+				DBRootDir: "/dir/does/not/exist/db3",
+			},
+			expected: map[string]string{
+				"file.txt": "new content",
+			},
+			init: func(t *testing.T, dir string, dbDir string) afero.Fs {
+				fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
+				require.NoError(t, fs.MkdirAll(dir, 0700))
+				require.NoError(t, afero.WriteFile(fs, filepath.Join(dir, "file.txt"), []byte("new content"), 0644))
+				return fs
+			},
+		},
+		{
+			name: "error during rename",
+			config: Config{
+				DBRootDir: "/test",
+			},
+			expected: nil, // no files expected since operation fails
+			init: func(t *testing.T, dir string, dbDir string) afero.Fs {
+				fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
+				require.NoError(t, fs.MkdirAll(dir, 0700))
+				require.NoError(t, afero.WriteFile(fs, filepath.Join(dir, "file.txt"), []byte("content"), 0644))
+				return afero.NewReadOnlyFs(fs)
+			},
+			wantErr: require.Error,
+			verify: func(t *testing.T, fs afero.Fs, config Config, expected map[string]string) {
+				_, err := fs.Stat(config.DBDirectoryPath())
+				require.Error(t, err)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.wantErr == nil {
+				tc.wantErr = require.NoError
+			}
+			dbDir := tc.config.DBDirectoryPath()
+			candidateDir := "/temp/db"
+			fs := tc.init(t, candidateDir, dbDir)
+
+			c := curator{
+				fs:     fs,
+				config: tc.config,
+			}
+
+			err := c.replaceDB(candidateDir)
+			tc.wantErr(t, err)
+			if tc.verify != nil {
+				tc.verify(t, fs, tc.config, tc.expected)
+			}
+			if err != nil {
+				return
+			}
+			for fileName, expectedContent := range tc.expected {
+				filePath := filepath.Join(tc.config.DBDirectoryPath(), fileName)
+				actualContent, err := afero.ReadFile(fs, filePath)
+				assert.NoError(t, err)
+				assert.Equal(t, expectedContent, string(actualContent))
+			}
+		})
+	}
 }
 
 func setupTestDB(t *testing.T, dbDir string) db.ReadWriter {

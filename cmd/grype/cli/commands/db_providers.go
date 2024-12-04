@@ -7,30 +7,22 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
-	"github.com/anchore/grype/grype/db/legacy/distribution"
+	legacyDistribution "github.com/anchore/grype/grype/db/legacy/distribution"
+	v6 "github.com/anchore/grype/grype/db/v6"
+	"github.com/anchore/grype/grype/db/v6/distribution"
+	"github.com/anchore/grype/grype/db/v6/installation"
 	"github.com/anchore/grype/internal/bus"
 )
 
-const metadataFileName = "provider-metadata.json"
-const jsonOutputFormat = "json"
-const tableOutputFormat = "table"
-
-type dbProviderMetadata struct {
-	Name              string `json:"name"`
-	LastSuccessfulRun string `json:"lastSuccessfulRun"`
-}
-
-type dbProviders struct {
-	Providers []dbProviderMetadata `json:"providers"`
-}
-
 type dbProvidersOptions struct {
-	Output string `yaml:"output" json:"output"`
+	Output    string `yaml:"output" json:"output"`
+	DBOptions `yaml:",inline" mapstructure:",squash"`
 }
 
 var _ clio.FlagAdder = (*dbProvidersOptions)(nil)
@@ -41,7 +33,8 @@ func (d *dbProvidersOptions) AddFlags(flags clio.FlagSet) {
 
 func DBProviders(app clio.Application) *cobra.Command {
 	opts := &dbProvidersOptions{
-		Output: tableOutputFormat,
+		Output:    tableOutputFormat,
+		DBOptions: *dbOptionsDefault(app.ID()),
 	}
 
 	return app.SetupCommand(&cobra.Command{
@@ -55,22 +48,39 @@ func DBProviders(app clio.Application) *cobra.Command {
 }
 
 func runDBProviders(opts *dbProvidersOptions, app clio.Application) error {
-	metadataFileLocation, err := getMetadataFileLocation(app)
-	if err != nil {
-		return nil
+	if opts.Experimental.DBv6 {
+		return newDBProviders(opts)
 	}
-	providers, err := getDBProviders(*metadataFileLocation)
+	return legacyDBProviders(opts, app)
+}
+
+func newDBProviders(opts *dbProvidersOptions) error {
+	client, err := distribution.NewClient(opts.DB.ToClientConfig())
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to create distribution client: %w", err)
+	}
+	c, err := installation.NewCurator(opts.DB.ToCuratorConfig(), client)
+	if err != nil {
+		return fmt.Errorf("unable to create curator: %w", err)
+	}
+
+	reader, err := c.Reader()
+	if err != nil {
+		return fmt.Errorf("unable to get providers: %w", err)
+	}
+
+	providerModels, err := reader.AllProviders()
+	if err != nil {
+		return fmt.Errorf("unable to get providers: %w", err)
 	}
 
 	sb := &strings.Builder{}
 
 	switch opts.Output {
-	case tableOutputFormat:
-		displayDBProvidersTable(providers.Providers, sb)
+	case tableOutputFormat, textOutputFormat:
+		displayDBProvidersTable(toProviders(providerModels), sb)
 	case jsonOutputFormat:
-		err = displayDBProvidersJSON(providers, sb)
+		err = displayDBProvidersJSON(toProviders(providerModels), sb)
 		if err != nil {
 			return err
 		}
@@ -82,8 +92,106 @@ func runDBProviders(opts *dbProvidersOptions, app clio.Application) error {
 	return nil
 }
 
-func getMetadataFileLocation(app clio.Application) (*string, error) {
-	dbCurator, err := distribution.NewCurator(dbOptionsDefault(app.ID()).DB.ToCuratorConfig())
+type provider struct {
+	Name         string     `json:"name"`
+	Version      string     `json:"version"`
+	Processor    string     `json:"processor"`
+	DateCaptured *time.Time `json:"dateCaptured"`
+	InputDigest  string     `json:"inputDigest"`
+}
+
+func toProviders(providers []v6.Provider) []provider {
+	var res []provider
+	for _, p := range providers {
+		res = append(res, provider{
+			Name:         p.ID,
+			Version:      p.Version,
+			Processor:    p.Processor,
+			DateCaptured: p.DateCaptured,
+			InputDigest:  p.InputDigest,
+		})
+	}
+	return res
+}
+
+func displayDBProvidersTable(providers []provider, output io.Writer) {
+	rows := [][]string{}
+	for _, provider := range providers {
+		rows = append(rows, []string{provider.Name, provider.Version, provider.Processor, provider.DateCaptured.String(), provider.InputDigest})
+	}
+
+	table := tablewriter.NewWriter(output)
+	table.SetHeader([]string{"Name", "Version", "Processor", "Date Captured", "Input Digest"})
+
+	table.SetHeaderLine(false)
+	table.SetBorder(false)
+	table.SetAutoWrapText(false)
+	table.SetAutoFormatHeaders(true)
+	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
+	table.SetAlignment(tablewriter.ALIGN_LEFT)
+	table.SetCenterSeparator("")
+	table.SetColumnSeparator("")
+	table.SetRowSeparator("")
+	table.SetTablePadding("  ")
+	table.SetNoWhiteSpace(true)
+
+	table.AppendBulk(rows)
+	table.Render()
+}
+
+func displayDBProvidersJSON(providers []provider, output io.Writer) error {
+	encoder := json.NewEncoder(output)
+	encoder.SetEscapeHTML(false)
+	encoder.SetIndent("", " ")
+	err := encoder.Encode(providers)
+	if err != nil {
+		return fmt.Errorf("cannot display json: %w", err)
+	}
+	return nil
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// all legacy processing below ////////////////////////////////////////////////////////////////////////////////////////
+
+type legacyProviderMetadata struct {
+	Name              string `json:"name"`
+	LastSuccessfulRun string `json:"lastSuccessfulRun"`
+}
+
+type dbProviders struct {
+	Providers []legacyProviderMetadata `json:"providers"`
+}
+
+func legacyDBProviders(opts *dbProvidersOptions, app clio.Application) error {
+	metadataFileLocation, err := getLegacyMetadataFileLocation(app)
+	if err != nil {
+		return nil
+	}
+	providers, err := getLegacyProviders(*metadataFileLocation)
+	if err != nil {
+		return err
+	}
+
+	sb := &strings.Builder{}
+
+	switch opts.Output {
+	case tableOutputFormat, textOutputFormat:
+		displayLegacyProvidersTable(providers.Providers, sb)
+	case jsonOutputFormat:
+		err = displayLegacyProvidersJSON(providers, sb)
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("unsupported output format: %s", opts.Output)
+	}
+	bus.Report(sb.String())
+
+	return nil
+}
+
+func getLegacyMetadataFileLocation(app clio.Application) (*string, error) {
+	dbCurator, err := legacyDistribution.NewCurator(dbOptionsDefault(app.ID()).DB.ToLegacyCuratorConfig())
 	if err != nil {
 		return nil, err
 	}
@@ -93,8 +201,8 @@ func getMetadataFileLocation(app clio.Application) (*string, error) {
 	return &location, nil
 }
 
-func getDBProviders(metadataFileLocation string) (*dbProviders, error) {
-	metadataFile := path.Join(metadataFileLocation, metadataFileName)
+func getLegacyProviders(metadataFileLocation string) (*dbProviders, error) {
+	metadataFile := path.Join(metadataFileLocation, "provider-metadata.json")
 
 	file, err := os.Open(metadataFile)
 	if err != nil {
@@ -118,7 +226,7 @@ func getDBProviders(metadataFileLocation string) (*dbProviders, error) {
 	return &providers, nil
 }
 
-func displayDBProvidersTable(providers []dbProviderMetadata, output io.Writer) {
+func displayLegacyProvidersTable(providers []legacyProviderMetadata, output io.Writer) {
 	rows := [][]string{}
 	for _, provider := range providers {
 		rows = append(rows, []string{provider.Name, provider.LastSuccessfulRun})
@@ -143,7 +251,7 @@ func displayDBProvidersTable(providers []dbProviderMetadata, output io.Writer) {
 	table.Render()
 }
 
-func displayDBProvidersJSON(providers *dbProviders, output io.Writer) error {
+func displayLegacyProvidersJSON(providers *dbProviders, output io.Writer) error {
 	encoder := json.NewEncoder(output)
 	encoder.SetEscapeHTML(false)
 	encoder.SetIndent("", " ")

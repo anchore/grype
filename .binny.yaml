@@ -18,7 +18,7 @@ tools:
   # used to sign mac binaries at release
   - name: quill
     version:
-      want: v0.4.2
+      want: v0.5.0
     method: github-release
     with:
       repo: anchore/quill
@@ -26,7 +26,7 @@ tools:
   # used for linting
   - name: golangci-lint
     version:
-      want: v1.61.0
+      want: v1.62.2
     method: github-release
     with:
       repo: golangci/golangci-lint
@@ -58,7 +58,7 @@ tools:
   # used to release all artifacts
   - name: goreleaser
     version:
-      want: v2.3.2
+      want: v2.4.8
     method: github-release
     with:
       repo: goreleaser/goreleaser
@@ -90,7 +90,7 @@ tools:
   # used for running all local and CI tasks
   - name: task
     version:
-      want: v3.39.2
+      want: v3.40.0
     method: github-release
     with:
       repo: go-task/task
@@ -98,7 +98,7 @@ tools:
   # used for triggering a release
   - name: gh
     version:
-      want: v2.60.1
+      want: v2.63.0
     method: github-release
     with:
       repo: cli/cli
@@ -106,7 +106,7 @@ tools:
   # used for integration tests
   - name: skopeo
     version:
-      want: v1.16.1
+      want: v1.17.0
     method: go-install
     with:
       module: github.com/containers/skopeo

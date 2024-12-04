@@ -14,8 +14,8 @@ type VulnerabilityBlob struct {
 	// ProviderName of the Vunnel provider (or sub processor responsible for data records from a single specific source, e.g. "ubuntu")
 	ProviderName string `json:"provider"`
 
-	// Assigner is a list of names, email, or organizations who submitted the vulnerability
-	Assigner []string `json:"assigner,omitempty"`
+	// Assigners is a list of names, email, or organizations who submitted the vulnerability
+	Assigners []string `json:"assigner,omitempty"`
 
 	// Status conveys the actionability of the current record
 	Status VulnerabilityStatus `json:"status"`
@@ -61,7 +61,7 @@ type Severity struct {
 	Value any `json:"value"` // one of CVSSSeverity, HMLSeverity, CHMLNSeverity
 
 	// Source is the name of the source of the severity score (e.g. "nvd@nist.gov" or "security-advisories@github.com")
-	Source string `json:"source"`
+	Source string `json:"source,omitempty"`
 
 	// Rank is a free-form organizational field to convey priority over other severities
 	Rank int `json:"rank"`
@@ -105,7 +105,7 @@ type CVSSSeverity struct {
 	Vector string `json:"vector"`
 
 	// Version is the CVSS version (e.g. "3.0")
-	Version string `json:"version"`
+	Version string `json:"version,omitempty"`
 
 	// Score is the evaluated CVSS vector as a scalar between 0 and 10
 	Score float64 `json:"score"`
@@ -114,7 +114,7 @@ type CVSSSeverity struct {
 // AffectedPackageBlob represents a package affected by a vulnerability.
 type AffectedPackageBlob struct {
 	// CVEs is a list of Common Vulnerabilities and Exposures (CVE) identifiers related to this vulnerability.
-	CVEs []string `json:"cves"`
+	CVEs []string `json:"cves,omitempty"`
 
 	// Qualifiers are package attributes that confirm the package is affected by the vulnerability.
 	Qualifiers *AffectedPackageQualifiers `json:"qualifiers,omitempty"`
@@ -156,10 +156,10 @@ type Fix struct {
 // FixDetail is additional information about a fix, such as commit details and patch URLs.
 type FixDetail struct {
 	// GitCommit is the identifier for the Git commit associated with the fix.
-	GitCommit string `json:"git_commit"`
+	GitCommit string `json:"git_commit,omitempty"`
 
 	// Timestamp is the date and time when the fix was committed.
-	Timestamp *time.Time `json:"timestamp"`
+	Timestamp *time.Time `json:"timestamp,omitempty"`
 
 	// References contains URLs or identifiers for additional resources on the fix.
 	References []Reference `json:"references,omitempty"`
