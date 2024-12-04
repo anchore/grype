@@ -104,7 +104,7 @@ func (pres *Presenter) sarifRules() (out []*sarif.ReportingDescriptor) {
 				}
 			}
 
-			out = append(out, &sarif.ReportingDescriptor{
+			descriptor := sarif.ReportingDescriptor{
 				ID:      ruleID,
 				Name:    sp(ruleName(m)),
 				HelpURI: sp("https://github.com/anchore/grype"),
@@ -122,7 +122,13 @@ func (pres *Presenter) sarifRules() (out []*sarif.ReportingDescriptor) {
 					// https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning#reportingdescriptor-object
 					"security-severity": pres.securitySeverityValue(m),
 				},
-			})
+			}
+
+			if len(m.Package.PURL) != 0 {
+				descriptor.Properties["purls"] = []string{m.Package.PURL}
+			}
+
+			out = append(out, &descriptor)
 		}
 	}
 	return out
