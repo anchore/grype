@@ -1,7 +1,9 @@
 package java
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -36,10 +38,12 @@ func TestMatcherJava_matchUpstreamMavenPackage(t *testing.T) {
 			},
 			UseCPEs: false,
 		},
-		MavenSearcher: newMockSearcher(p),
+		// no duration will return immediately with the mock data
+		MavenSearcher: newMockSearcher(t).WithPackage(p),
 	}
 	store := newMockProvider()
-	actual, _ := matcher.matchUpstreamMavenPackages(store, nil, p)
+	ctx := context.Background()
+	actual, _ := matcher.matchUpstreamMavenPackages(ctx, store, nil, p)
 
 	assert.Len(t, actual, 2, "unexpected matches count")
 
@@ -63,4 +67,39 @@ func TestMatcherJava_matchUpstreamMavenPackage(t *testing.T) {
 	if t.Failed() {
 		t.Logf("discovered CVES: %+v", foundCVEs)
 	}
+}
+func TestMatcherJava_TestMatchUpstreamMavenPackagesTimeout(t *testing.T) {
+	p := pkg.Package{
+		ID:       pkg.ID(uuid.NewString()),
+		Name:     "org.springframework.spring-webmvc",
+		Version:  "5.1.5.RELEASE",
+		Language: syftPkg.Java,
+		Type:     syftPkg.JavaPkg,
+		Metadata: pkg.JavaMetadata{
+			ArchiveDigests: []pkg.Digest{
+				{
+					Algorithm: "sha1",
+					Value:     "236e3bfdbdc6c86629237a74f0f11414adb4e211",
+				},
+			},
+		},
+	}
+	matcher := Matcher{
+		cfg: MatcherConfig{
+			ExternalSearchConfig: ExternalSearchConfig{
+				SearchMavenUpstream: true,
+			},
+			UseCPEs: false,
+		},
+		MavenSearcher: newMockSearcher(t).WithPackage(p).WithWorkDuration(10 * time.Second),
+	}
+	store := newMockProvider()
+
+	// Create a context with a very short timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
+	defer cancel()
+
+	_, err := matcher.matchUpstreamMavenPackages(ctx, store, nil, p)
+
+	require.ErrorIs(t, err, context.DeadlineExceeded)
 }
