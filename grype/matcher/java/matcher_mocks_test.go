@@ -1,6 +1,10 @@
 package java
 
 import (
+	"context"
+	"testing"
+	"time"
+
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
@@ -49,16 +53,42 @@ func newMockProvider() *mockProvider {
 }
 
 type mockMavenSearcher struct {
-	pkg pkg.Package
+	tb   testing.TB
+	pkg  *pkg.Package
+	work *time.Duration
 }
 
-func (m mockMavenSearcher) GetMavenPackageBySha(string) (*pkg.Package, error) {
-	return &m.pkg, nil
-}
-
-func newMockSearcher(pkg pkg.Package) MavenSearcher {
+func newMockSearcher(tb testing.TB) mockMavenSearcher {
 	return mockMavenSearcher{
-		pkg,
+		tb: tb,
+	}
+}
+
+func (m mockMavenSearcher) WithPackage(p pkg.Package) mockMavenSearcher {
+	m.pkg = &p
+	return m
+}
+
+func (m mockMavenSearcher) WithWorkDuration(duration time.Duration) mockMavenSearcher {
+	m.work = &duration
+	return m
+}
+
+func (m mockMavenSearcher) GetMavenPackageBySha(ctx context.Context, sha1 string) (*pkg.Package, error) {
+	deadline, ok := ctx.Deadline()
+
+	m.tb.Log("GetMavenPackageBySha called with deadline:", deadline, "deadline set:", ok)
+
+	if m.work != nil {
+		select {
+		case <-time.After(*m.work):
+			return m.pkg, nil
+		case <-ctx.Done():
+			// If the context is done before the sleep is over, return a context.DeadlineExceeded error
+			return m.pkg, ctx.Err()
+		}
+	} else {
+		return m.pkg, ctx.Err()
 	}
 }
 
