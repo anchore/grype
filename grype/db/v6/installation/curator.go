@@ -10,7 +10,6 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/hako/durafmt"
-	"github.com/mholt/archiver/v3"
 	"github.com/spf13/afero"
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
@@ -21,6 +20,7 @@ import (
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/file"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/archiver/v3"
 )
 
 const lastUpdateCheckFileName = "last_update_check"

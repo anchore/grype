@@ -12,11 +12,11 @@ import (
 
 	"github.com/hako/durafmt"
 	"github.com/hashicorp/go-cleanhttp"
-	"github.com/mholt/archiver/v3"
 	"github.com/spf13/afero"
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
 
+	"github.com/anchore/archiver/v3"
 	"github.com/anchore/clio"
 	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/db/v5/store"
