@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -13,6 +14,7 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
+//nolint:funlen
 func ByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
 	if d == nil {
 		return nil, nil
@@ -32,7 +34,13 @@ func ByPackageDistro(store vulnerability.ProviderByDistro, d *distro.Distro, p p
 		return nil, fmt.Errorf("matcher failed to parse version pkg=%q ver=%q: %w", p.Name, p.Version, err)
 	}
 
-	allPkgVulns, err := store.GetByDistro(d, p)
+	var allPkgVulns []vulnerability.Vulnerability
+	if v6provider, ok := store.(db.VulnerabilityProvider); ok {
+		allPkgVulns, err = v6provider.FindVulnerabilities(db.DistroCriteria(p, d))
+	} else {
+		allPkgVulns, err = store.GetByDistro(d, p)
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", d, p.Name, err)
 	}
