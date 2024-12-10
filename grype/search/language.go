@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -28,7 +29,13 @@ func ByPackageLanguage(store vulnerability.ProviderByLanguage, d *distro.Distro,
 		return nil, fmt.Errorf("matcher failed to parse version pkg=%q ver=%q: %w", p.Name, p.Version, err)
 	}
 
-	allPkgVulns, err := store.GetByLanguage(p.Language, p)
+	var allPkgVulns []vulnerability.Vulnerability
+	if v6provider, ok := store.(db.VulnerabilityProvider); ok {
+		allPkgVulns, err = v6provider.FindVulnerabilities(db.LanguageCriteria(p))
+	} else {
+		allPkgVulns, err = store.GetByLanguage(p.Language, p)
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("matcher failed to fetch language=%q pkg=%q: %w", p.Language, p.Name, err)
 	}

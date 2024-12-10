@@ -9,6 +9,7 @@ import (
 	"github.com/facebookincubator/nvdtools/wfn"
 	"github.com/scylladb/go-set/strset"
 
+	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -86,6 +87,8 @@ func alpineCPEComparableVersion(version string) string {
 var ErrEmptyCPEMatch = errors.New("attempted CPE match against package with no CPEs")
 
 // ByPackageCPE retrieves all vulnerabilities that match the generated CPE
+//
+//nolint:funlen
 func ByPackageCPE(store vulnerability.ProviderByCPE, d *distro.Distro, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
 	// we attempt to merge match details within the same matcher when searching by CPEs, in this way there are fewer duplicated match
 	// objects (and fewer duplicated match details).
@@ -96,7 +99,7 @@ func ByPackageCPE(store vulnerability.ProviderByCPE, d *distro.Distro, p pkg.Pac
 	}
 	matchesByFingerprint := make(map[match.Fingerprint]match.Match)
 	for _, c := range p.CPEs {
-		// prefer the CPE version, but if npt specified use the package version
+		// prefer the CPE version, but if not specified use the package version
 		searchVersion := c.Attributes.Version
 
 		if p.Type == syftPkg.ApkPkg {
@@ -127,8 +130,14 @@ func ByPackageCPE(store vulnerability.ProviderByCPE, d *distro.Distro, p pkg.Pac
 			return nil, fmt.Errorf("matcher failed to parse version pkg=%q ver=%q: %w", p.Name, p.Version, err)
 		}
 
-		// find all vulnerability records in the DB for the given CPE (not including version comparisons)
-		allPkgVulns, err := store.GetByCPE(c)
+		var allPkgVulns []vulnerability.Vulnerability
+		if v6provider, ok := store.(db.VulnerabilityProvider); ok {
+			allPkgVulns, err = v6provider.FindVulnerabilities(db.CPECriteria(p, c))
+		} else {
+			// find all vulnerability records in the DB for the given CPE (not including version comparisons)
+			allPkgVulns, err = store.GetByCPE(c)
+		}
+
 		if err != nil {
 			return nil, fmt.Errorf("matcher failed to fetch by CPE pkg=%q: %w", p.Name, err)
 		}

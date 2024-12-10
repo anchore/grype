@@ -21,6 +21,10 @@ type store struct {
 	write     bool
 }
 
+func (s *store) GetDB() *gorm.DB {
+	return s.db
+}
+
 func newStore(cfg Config, write bool) (*store, error) {
 	var path string
 	if cfg.DBDirPath != "" {

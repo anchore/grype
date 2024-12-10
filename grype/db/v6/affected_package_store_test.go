@@ -229,7 +229,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 
 		// the IDs should have been set, and there is only one, so we know the correct values
 		c.ID = 1
-		c.PackageID = idRef(1)
+		c.PackageID = ref(ID(1))
 
 		if d := cmp.Diff([]Cpe{c}, result.Package.CPEs); d != "" {
 			t.Errorf("unexpected result (-want +got):\n%s", d)
@@ -330,9 +330,9 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 		expPkg := *pkg1.Package
 		expPkg.ID = 1
 		cpe1.ID = 1
-		cpe1.PackageID = idRef(1)
+		cpe1.PackageID = ref(ID(1))
 		cpe2.ID = 2
-		cpe2.PackageID = idRef(1)
+		cpe2.PackageID = ref(ID(1))
 		expPkg.CPEs = []Cpe{cpe1, cpe2}
 
 		expected := []Package{
@@ -1051,12 +1051,7 @@ func expectErrIs(t *testing.T, expected error) require.ErrorAssertionFunc {
 	}
 }
 
-func strRef(s string) *string {
-	return &s
-}
-
-func idRef(i int64) *ID {
-	v := ID(i)
+func ref[T any](v T) *T {
 	return &v
 }
 
