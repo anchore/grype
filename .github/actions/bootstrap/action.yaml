@@ -21,6 +21,9 @@ inputs:
     description: "Compute test fixture fingerprints"
     required: true
     default: "true"
+  tools:
+    description: "whether to install tools"
+    default: "true"
   bootstrap-apt-packages:
     description: "Space delimited list of tools to install via apt"
     default: "libxml2-utils"
@@ -41,11 +44,13 @@ runs:
     - name: Restore tool cache
       id: tool-cache
       uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+      if: inputs.tools == 'true'
       with:
         path: ${{ github.workspace }}/.tool
         key: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-tool-${{ hashFiles('.binny.yaml') }}
 
     - name: Install project tools
+      if: inputs.tools == 'true'
       shell: bash
       run: make tools
 
