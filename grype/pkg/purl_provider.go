@@ -14,6 +14,7 @@ import (
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/sbom"
 )
 
 const (
@@ -22,26 +23,27 @@ const (
 	cpesQualifierKey      = "cpes"
 )
 
-func purlProvider(userInput string) ([]Package, Context, error) {
+func purlProvider(userInput string) ([]Package, Context, *sbom.SBOM, error) {
 	reader, err := getPurlReader(userInput)
 	if err != nil {
-		return nil, Context{}, err
+		return nil, Context{}, nil, err
 	}
 
 	return decodePurlFile(reader)
 }
 
-func decodePurlFile(reader io.Reader) ([]Package, Context, error) {
+func decodePurlFile(reader io.Reader) ([]Package, Context, *sbom.SBOM, error) {
 	scanner := bufio.NewScanner(reader)
 	var packages []Package
+	var syftPkgs []pkg.Package
 	var ctx Context
 
 	distros := make(map[string]*strset.Set)
 	for scanner.Scan() {
 		rawLine := scanner.Text()
-		p, distroName, distroVersion, err := purlToPackage(rawLine)
+		p, syftPkg, distroName, distroVersion, err := purlToPackage(rawLine)
 		if err != nil {
-			return nil, Context{}, err
+			return nil, Context{}, nil, err
 		}
 		if distroName != "" {
 			if _, ok := distros[distroName]; !ok {
@@ -52,10 +54,19 @@ func decodePurlFile(reader io.Reader) ([]Package, Context, error) {
 		if p != nil {
 			packages = append(packages, *p)
 		}
+		if syftPkg != nil {
+			syftPkgs = append(syftPkgs, *syftPkg)
+		}
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, ctx, err
+		return nil, Context{}, nil, err
+	}
+
+	s := &sbom.SBOM{
+		Artifacts: sbom.Artifacts{
+			Packages: pkg.NewCollection(syftPkgs...),
+		},
 	}
 
 	// if there is one distro (with one version) represented, use that
@@ -76,17 +87,24 @@ func decodePurlFile(reader io.Reader) ([]Package, Context, error) {
 					Version:         version,
 					VersionCodename: codename,
 				}
+				s.Artifacts.LinuxDistribution = &linux.Release{
+					Name:            name,
+					ID:              name,
+					IDLike:          []string{name},
+					Version:         version,
+					VersionCodename: codename,
+				}
 			}
 		}
 	}
 
-	return packages, ctx, nil
+	return packages, ctx, s, nil
 }
 
-func purlToPackage(rawLine string) (*Package, string, string, error) {
+func purlToPackage(rawLine string) (*Package, *pkg.Package, string, string, error) {
 	purl, err := packageurl.FromString(rawLine)
 	if err != nil {
-		return nil, "", "", fmt.Errorf("unable to decode purl %s: %w", rawLine, err)
+		return nil, nil, "", "", fmt.Errorf("unable to decode purl %s: %w", rawLine, err)
 	}
 
 	var cpes []cpe.CPE
@@ -103,7 +121,7 @@ func purlToPackage(rawLine string) (*Package, string, string, error) {
 			for _, rawCpe := range rawCpes {
 				c, err := cpe.New(rawCpe, "")
 				if err != nil {
-					return nil, "", "", fmt.Errorf("unable to decode cpe %s in purl %s: %w", rawCpe, rawLine, err)
+					return nil, nil, "", "", fmt.Errorf("unable to decode cpe %s in purl %s: %w", rawCpe, rawLine, err)
 				}
 				cpes = append(cpes, c)
 			}
@@ -125,6 +143,16 @@ func purlToPackage(rawLine string) (*Package, string, string, error) {
 		version = fmt.Sprintf("%s:%s", epoch, purl.Version)
 	}
 
+	syftPkg := pkg.Package{
+		Name:     purl.Name,
+		Version:  version,
+		Type:     pkgType,
+		CPEs:     cpes,
+		PURL:     purl.String(),
+		Language: pkg.LanguageByName(purl.Type),
+	}
+
+	syftPkg.SetID()
 	return &Package{
 		ID:        ID(purl.String()),
 		CPEs:      cpes,
@@ -134,7 +162,7 @@ func purlToPackage(rawLine string) (*Package, string, string, error) {
 		Language:  pkg.LanguageByName(purl.Type),
 		PURL:      purl.String(),
 		Upstreams: upstreams,
-	}, distroName, distroVersion, nil
+	}, &syftPkg, distroName, distroVersion, nil
 }
 
 func parseDistroQualifier(value string) (string, string) {
