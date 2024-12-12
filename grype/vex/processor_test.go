@@ -42,8 +42,10 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 
 	libCryptoCVE_2023_3817 := match.Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID:        "CVE-2023-3817",
-			Namespace: "alpine:distro:alpine:3.17",
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2023-3817",
+				Namespace: "alpine:distro:alpine:3.17",
+			},
 			Fix: vulnerability.Fix{
 				Versions: []string{"3.0.10-r0"},
 				State:    vulnerability.FixStateFixed,
@@ -54,8 +56,10 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 
 	libCryptoCVE_2023_1255 := match.Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID:        "CVE-2023-1255",
-			Namespace: "alpine:distro:alpine:3.17",
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2023-1255",
+				Namespace: "alpine:distro:alpine:3.17",
+			},
 			Fix: vulnerability.Fix{
 				Versions: []string{"3.0.8-r4"},
 				State:    vulnerability.FixStateFixed,
@@ -66,8 +70,10 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 
 	libCryptoCVE_2023_2975 := match.Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID:        "CVE-2023-2975",
-			Namespace: "alpine:distro:alpine:3.17",
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2023-2975",
+				Namespace: "alpine:distro:alpine:3.17",
+			},
 			Fix: vulnerability.Fix{
 				Versions: []string{"3.0.9-r2"},
 				State:    vulnerability.FixStateFixed,

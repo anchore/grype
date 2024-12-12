@@ -16,8 +16,10 @@ var (
 	allMatches = []Match{
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-123",
-				Namespace: "debian-vulns",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-123",
+					Namespace: "debian-vulns",
+				},
 				Fix: vulnerability.Fix{
 					State: vulnerability.FixStateFixed,
 				},
@@ -32,8 +34,10 @@ var (
 		},
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-456",
-				Namespace: "ruby-vulns",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-456",
+					Namespace: "ruby-vulns",
+				},
 				Fix: vulnerability.Fix{
 					State: vulnerability.FixStateNotFixed,
 				},
@@ -50,8 +54,10 @@ var (
 		},
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-457",
-				Namespace: "ruby-vulns",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-457",
+					Namespace: "ruby-vulns",
+				},
 				Fix: vulnerability.Fix{
 					State: vulnerability.FixStateWontFix,
 				},
@@ -68,8 +74,10 @@ var (
 		},
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-458",
-				Namespace: "ruby-vulns",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-458",
+					Namespace: "ruby-vulns",
+				},
 				Fix: vulnerability.Fix{
 					State: vulnerability.FixStateUnknown,
 				},
@@ -91,8 +99,10 @@ var (
 		// Direct match, not like a normal kernel header match
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-1",
-				Namespace: "fake-redhat-vulns",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-1",
+					Namespace: "fake-redhat-vulns",
+				},
 				Fix: vulnerability.Fix{
 					State: vulnerability.FixStateUnknown,
 				},
@@ -114,8 +124,10 @@ var (
 		},
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-2",
-				Namespace: "fake-deb-vulns",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-2",
+					Namespace: "fake-deb-vulns",
+				},
 				Fix: vulnerability.Fix{
 					State: vulnerability.FixStateUnknown,
 				},
@@ -137,8 +149,10 @@ var (
 		},
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-1",
-				Namespace: "npm-vulns",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-1",
+					Namespace: "npm-vulns",
+				},
 				Fix: vulnerability.Fix{
 					State: vulnerability.FixStateUnknown,
 				},
@@ -162,8 +176,10 @@ var (
 		// RPM-like match similar to what we see from RedHat
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-2",
-				Namespace: "fake-redhat-vulns",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-2",
+					Namespace: "fake-redhat-vulns",
+				},
 				Fix: vulnerability.Fix{
 					State: vulnerability.FixStateUnknown,
 				},
@@ -186,8 +202,10 @@ var (
 		// debian-like match, showing the kernel header package name w/embedded version
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-2",
-				Namespace: "fake-debian-vulns",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-2",
+					Namespace: "fake-debian-vulns",
+				},
 				Fix: vulnerability.Fix{
 					State: vulnerability.FixStateUnknown,
 				},
@@ -213,8 +231,10 @@ var (
 	packageTypeMatches = []Match{
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-2",
-				Namespace: "fake-redhat-vulns",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-2",
+					Namespace: "fake-redhat-vulns",
+				},
 				Fix: vulnerability.Fix{
 					State: vulnerability.FixStateUnknown,
 				},
@@ -228,8 +248,10 @@ var (
 		},
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-2",
-				Namespace: "fake-debian-vulns",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-2",
+					Namespace: "fake-debian-vulns",
+				},
 				Fix: vulnerability.Fix{
 					State: vulnerability.FixStateUnknown,
 				},
@@ -691,7 +713,7 @@ func sliceToMatches(s []Match) Matches {
 var (
 	exampleMatch = Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-2000-1234",
+			Reference: vulnerability.Reference{ID: "CVE-2000-1234"},
 		},
 		Package: pkg.Package{
 			ID:      pkg.ID(uuid.NewString()),

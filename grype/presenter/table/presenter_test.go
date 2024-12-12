@@ -27,8 +27,10 @@ func TestCreateRow(t *testing.T) {
 	}
 	match1 := match.Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID:        "CVE-1999-0001",
-			Namespace: "source-1",
+			Reference: vulnerability.Reference{
+				ID:        "CVE-1999-0001",
+				Namespace: "source-1",
+			},
 		},
 		Package: pkg1,
 		Details: []match.Detail{
