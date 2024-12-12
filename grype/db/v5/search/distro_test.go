@@ -34,8 +34,10 @@ func (pr *mockDistroProvider) stub() {
 		"neutron": {
 			{
 				Constraint: version.MustGetConstraint("< 2014.1.5-6", version.DebFormat),
-				ID:         "CVE-2014-fake-1",
-				Namespace:  "debian:8",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-2014-fake-1",
+					Namespace: "debian:8",
+				},
 			},
 		},
 	}
@@ -44,8 +46,10 @@ func (pr *mockDistroProvider) stub() {
 		"sles_test_package": {
 			{
 				Constraint: version.MustGetConstraint("< 2014.1.5-6", version.RpmFormat),
-				ID:         "CVE-2014-fake-4",
-				Namespace:  "sles:12.5",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-2014-fake-4",
+					Namespace: "sles:12.5",
+				},
 			},
 		},
 	}
@@ -77,7 +81,9 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 		{
 
 			Vulnerability: vulnerability.Vulnerability{
-				ID: "CVE-2014-fake-1",
+				Reference: vulnerability.Reference{
+					ID: "CVE-2014-fake-1",
+				},
 			},
 			Package: p,
 			Details: []match.Detail{
@@ -140,7 +146,9 @@ func TestFindMatchesByPackageDistroSles(t *testing.T) {
 		{
 
 			Vulnerability: vulnerability.Vulnerability{
-				ID: "CVE-2014-fake-4",
+				Reference: vulnerability.Reference{
+					ID: "CVE-2014-fake-4",
+				},
 			},
 			Package: p,
 			Details: []match.Detail{

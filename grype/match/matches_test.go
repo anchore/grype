@@ -19,7 +19,9 @@ import (
 func TestMatchesSortMixedDimensions(t *testing.T) {
 	first := Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-2020-0010",
+			Reference: vulnerability.Reference{
+				ID: "CVE-2020-0010",
+			},
 		},
 		Package: pkg.Package{
 			ID:      pkg.ID(uuid.NewString()),
@@ -30,7 +32,9 @@ func TestMatchesSortMixedDimensions(t *testing.T) {
 	}
 	second := Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-2020-0020",
+			Reference: vulnerability.Reference{
+				ID: "CVE-2020-0020",
+			},
 		},
 		Package: pkg.Package{
 			ID:      pkg.ID(uuid.NewString()),
@@ -41,7 +45,9 @@ func TestMatchesSortMixedDimensions(t *testing.T) {
 	}
 	third := Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-2020-0020",
+			Reference: vulnerability.Reference{
+				ID: "CVE-2020-0020",
+			},
 		},
 		Package: pkg.Package{
 			ID:      pkg.ID(uuid.NewString()),
@@ -52,7 +58,9 @@ func TestMatchesSortMixedDimensions(t *testing.T) {
 	}
 	fourth := Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-2020-0020",
+			Reference: vulnerability.Reference{
+				ID: "CVE-2020-0020",
+			},
 		},
 		Package: pkg.Package{
 			ID:      pkg.ID(uuid.NewString()),
@@ -63,7 +71,9 @@ func TestMatchesSortMixedDimensions(t *testing.T) {
 	}
 	fifth := Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-2020-0020",
+			Reference: vulnerability.Reference{
+				ID: "CVE-2020-0020",
+			},
 		},
 		Package: pkg.Package{
 			ID:      pkg.ID(uuid.NewString()),
@@ -74,7 +84,9 @@ func TestMatchesSortMixedDimensions(t *testing.T) {
 	}
 	sixth := Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-2020-0020",
+			Reference: vulnerability.Reference{
+				ID: "CVE-2020-0020",
+			},
 			Fix: vulnerability.Fix{
 				Versions: []string{"2.0.0", "1.0.0"},
 			},
@@ -88,7 +100,9 @@ func TestMatchesSortMixedDimensions(t *testing.T) {
 	}
 	seventh := Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-2020-0020",
+			Reference: vulnerability.Reference{
+				ID: "CVE-2020-0020",
+			},
 			Fix: vulnerability.Fix{
 				Versions: []string{"2.0.1"},
 			},
@@ -102,7 +116,9 @@ func TestMatchesSortMixedDimensions(t *testing.T) {
 	}
 	eighth := Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-2020-0020",
+			Reference: vulnerability.Reference{
+				ID: "CVE-2020-0020",
+			},
 			Fix: vulnerability.Fix{
 				Versions: []string{"3.0.0"},
 			},
@@ -117,7 +133,9 @@ func TestMatchesSortMixedDimensions(t *testing.T) {
 	}
 	ninth := Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-2020-0020",
+			Reference: vulnerability.Reference{
+				ID: "CVE-2020-0020",
+			},
 			Fix: vulnerability.Fix{
 				Versions: []string{"3.0.0"},
 			},
@@ -144,7 +162,9 @@ func TestMatchesSortMixedDimensions(t *testing.T) {
 func TestMatchesSortByVulnerability(t *testing.T) {
 	first := Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-2020-0010",
+			Reference: vulnerability.Reference{
+				ID: "CVE-2020-0010",
+			},
 		},
 		Package: pkg.Package{
 			ID:      pkg.ID(uuid.NewString()),
@@ -155,7 +175,9 @@ func TestMatchesSortByVulnerability(t *testing.T) {
 	}
 	second := Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-2020-0020",
+			Reference: vulnerability.Reference{
+				ID: "CVE-2020-0020",
+			},
 		},
 		Package: pkg.Package{
 			ID:      pkg.ID(uuid.NewString()),
@@ -177,7 +199,9 @@ func TestMatchesSortByVulnerability(t *testing.T) {
 func TestMatches_AllByPkgID(t *testing.T) {
 	first := Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-2020-0010",
+			Reference: vulnerability.Reference{
+				ID: "CVE-2020-0010",
+			},
 		},
 		Package: pkg.Package{
 			ID:      pkg.ID(uuid.NewString()),
@@ -188,7 +212,9 @@ func TestMatches_AllByPkgID(t *testing.T) {
 	}
 	second := Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-2020-0010",
+			Reference: vulnerability.Reference{
+				ID: "CVE-2020-0010",
+			},
 		},
 		Package: pkg.Package{
 			ID:      pkg.ID(uuid.NewString()),
@@ -219,7 +245,9 @@ func TestMatches_AllByPkgID(t *testing.T) {
 func TestMatchesSortByPackage(t *testing.T) {
 	first := Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-2020-0010",
+			Reference: vulnerability.Reference{
+				ID: "CVE-2020-0010",
+			},
 		},
 		Package: pkg.Package{
 			ID:      pkg.ID(uuid.NewString()),
@@ -230,7 +258,9 @@ func TestMatchesSortByPackage(t *testing.T) {
 	}
 	second := Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-2020-0010",
+			Reference: vulnerability.Reference{
+				ID: "CVE-2020-0010",
+			},
 		},
 		Package: pkg.Package{
 			ID:      pkg.ID(uuid.NewString()),
@@ -252,7 +282,9 @@ func TestMatchesSortByPackage(t *testing.T) {
 func TestMatchesSortByPackageVersion(t *testing.T) {
 	first := Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-2020-0010",
+			Reference: vulnerability.Reference{
+				ID: "CVE-2020-0010",
+			},
 		},
 		Package: pkg.Package{
 			ID:      pkg.ID(uuid.NewString()),
@@ -263,7 +295,9 @@ func TestMatchesSortByPackageVersion(t *testing.T) {
 	}
 	second := Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-2020-0010",
+			Reference: vulnerability.Reference{
+				ID: "CVE-2020-0010",
+			},
 		},
 		Package: pkg.Package{
 			ID:      pkg.ID(uuid.NewString()),
@@ -285,7 +319,9 @@ func TestMatchesSortByPackageVersion(t *testing.T) {
 func TestMatchesSortByPackageType(t *testing.T) {
 	first := Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-2020-0010",
+			Reference: vulnerability.Reference{
+				ID: "CVE-2020-0010",
+			},
 		},
 		Package: pkg.Package{
 			ID:      pkg.ID(uuid.NewString()),
@@ -296,7 +332,9 @@ func TestMatchesSortByPackageType(t *testing.T) {
 	}
 	second := Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-2020-0010",
+			Reference: vulnerability.Reference{
+				ID: "CVE-2020-0010",
+			},
 		},
 		Package: pkg.Package{
 			ID:      pkg.ID(uuid.NewString()),
@@ -356,8 +394,10 @@ func assertIgnoredMatchOrder(t *testing.T, expected, actual []IgnoredMatch) {
 func TestMatches_Diff(t *testing.T) {
 	a := Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID:        "vuln-a",
-			Namespace: "name-a",
+			Reference: vulnerability.Reference{
+				ID:        "vuln-a",
+				Namespace: "name-a",
+			},
 		},
 		Package: pkg.Package{
 			ID: "package-a",
@@ -366,8 +406,10 @@ func TestMatches_Diff(t *testing.T) {
 
 	b := Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID:        "vuln-b",
-			Namespace: "name-b",
+			Reference: vulnerability.Reference{
+				ID:        "vuln-b",
+				Namespace: "name-b",
+			},
 		},
 		Package: pkg.Package{
 			ID: "package-b",
@@ -376,8 +418,10 @@ func TestMatches_Diff(t *testing.T) {
 
 	c := Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID:        "vuln-c",
-			Namespace: "name-c",
+			Reference: vulnerability.Reference{
+				ID:        "vuln-c",
+				Namespace: "name-c",
+			},
 		},
 		Package: pkg.Package{
 			ID: "package-c",
@@ -421,8 +465,10 @@ func TestMatches_Add_Merge(t *testing.T) {
 	commonVuln := "CVE-2023-0001"
 	commonNamespace := "namespace1"
 	commonVulnerability := vulnerability.Vulnerability{
-		ID:        commonVuln,
-		Namespace: commonNamespace,
+		Reference: vulnerability.Reference{
+			ID:        commonVuln,
+			Namespace: commonNamespace,
+		},
 		Constraint: func() version.Constraint {
 			c, err := version.GetConstraint("< 1.0.0", version.SemanticFormat)
 			require.NoError(t, err)
@@ -522,8 +568,10 @@ func TestMatches_Add_Merge(t *testing.T) {
 			matches: []Match{
 				{
 					Vulnerability: vulnerability.Vulnerability{
-						ID:        commonVuln,
-						Namespace: commonNamespace,
+						Reference: vulnerability.Reference{
+							ID:        commonVuln,
+							Namespace: commonNamespace,
+						},
 						Constraint: func() version.Constraint { // different!
 							c, err := version.GetConstraint("< 3.2.12", version.SemanticFormat)
 							require.NoError(t, err)
@@ -568,8 +616,10 @@ func TestMatches_Add_Merge(t *testing.T) {
 			matches: []Match{
 				{
 					Vulnerability: vulnerability.Vulnerability{
-						ID:        commonVuln,
-						Namespace: commonNamespace,
+						Reference: vulnerability.Reference{
+							ID:        commonVuln,
+							Namespace: commonNamespace,
+						},
 						Constraint: func() version.Constraint { // different!
 							c, err := version.GetConstraint("< 3.2.12", version.SemanticFormat)
 							require.NoError(t, err)
@@ -595,8 +645,10 @@ func TestMatches_Add_Merge(t *testing.T) {
 				"pkg1": {
 					{
 						Vulnerability: vulnerability.Vulnerability{
-							ID:        commonVuln,
-							Namespace: commonNamespace,
+							Reference: vulnerability.Reference{
+								ID:        commonVuln,
+								Namespace: commonNamespace,
+							},
 							Constraint: func() version.Constraint { // different!
 								c, err := version.GetConstraint("< 3.2.12", version.SemanticFormat)
 								require.NoError(t, err)
