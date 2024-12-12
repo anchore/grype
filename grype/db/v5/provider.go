@@ -28,5 +28,6 @@ type ProviderByCPE interface {
 }
 
 type VulnerabilityMetadataProvider interface {
+	vulnerability.MetadataProvider
 	GetMetadata(id, namespace string) (*vulnerability.Metadata, error)
 }

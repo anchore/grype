@@ -1,13 +1,12 @@
 package models
 
 import (
-	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
-var _ v5.VulnerabilityMetadataProvider = (*MetadataMock)(nil)
+var _ vulnerability.MetadataProvider = (*MetadataMock)(nil)
 
-// MetadataMock provides the behavior required for a v5.VulnerabilityMetadataProvider for the purpose of testing.
+// MetadataMock provides the behavior required for a vulnerability.Provider for the purpose of testing.
 type MetadataMock struct {
 	store map[string]map[string]vulnerability.Metadata
 }
@@ -88,8 +87,8 @@ func NewMetadataMock() *MetadataMock {
 	}
 }
 
-// GetMetadata returns vulnerability metadata for a given id and recordSource.
-func (m *MetadataMock) GetMetadata(id, namespace string) (*vulnerability.Metadata, error) {
-	value := m.store[id][namespace]
+// VulnerabilityMetadata returns vulnerability metadata for a given id and recordSource.
+func (m *MetadataMock) VulnerabilityMetadata(vuln vulnerability.Reference) (*vulnerability.Metadata, error) {
+	value := m.store[vuln.ID][vuln.Namespace]
 	return &value, nil
 }

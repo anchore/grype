@@ -12,7 +12,6 @@ import (
 	"github.com/owenrumney/go-sarif/sarif"
 
 	"github.com/anchore/clio"
-	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -27,7 +26,7 @@ type Presenter struct {
 	results          match.Matches
 	packages         []pkg.Package
 	src              *source.Description
-	metadataProvider v5.VulnerabilityMetadataProvider
+	metadataProvider vulnerability.MetadataProvider
 }
 
 // NewPresenter is a *Presenter constructor
@@ -289,13 +288,13 @@ func (pres *Presenter) severityText(m match.Match) string {
 func (pres *Presenter) cvssScore(v vulnerability.Vulnerability) float64 {
 	var all []*vulnerability.Metadata
 
-	meta, err := pres.metadataProvider.GetMetadata(v.ID, v.Namespace)
+	meta, err := pres.metadataProvider.VulnerabilityMetadata(v.Reference)
 	if err == nil && meta != nil {
 		all = append(all, meta)
 	}
 
 	for _, related := range v.RelatedVulnerabilities {
-		meta, err = pres.metadataProvider.GetMetadata(related.ID, related.Namespace)
+		meta, err = pres.metadataProvider.VulnerabilityMetadata(related)
 		if err == nil && meta != nil {
 			all = append(all, meta)
 		}
@@ -358,7 +357,7 @@ func (pres *Presenter) securitySeverityValue(m match.Match) string {
 
 // metadata returns the matching *vulnerability.Metadata from the provider or nil if not found / error
 func (pres *Presenter) metadata(m match.Match) *vulnerability.Metadata {
-	meta, _ := pres.metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.Namespace)
+	meta, _ := pres.metadataProvider.VulnerabilityMetadata(m.Vulnerability.Reference)
 	return meta
 }
 

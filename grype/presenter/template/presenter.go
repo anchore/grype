@@ -12,10 +12,10 @@ import (
 	"github.com/mitchellh/go-homedir"
 
 	"github.com/anchore/clio"
-	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
+	"github.com/anchore/grype/grype/vulnerability"
 )
 
 // Presenter is an implementation of presenter.Presenter that formats output according to a user-provided Go text template.
@@ -25,7 +25,7 @@ type Presenter struct {
 	ignoredMatches     []match.IgnoredMatch
 	packages           []pkg.Package
 	context            pkg.Context
-	metadataProvider   v5.VulnerabilityMetadataProvider
+	metadataProvider   vulnerability.MetadataProvider
 	appConfig          interface{}
 	dbStatus           interface{}
 	pathToTemplateFile string

@@ -9,7 +9,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/olekukonko/tablewriter"
 
-	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -26,7 +25,7 @@ type Presenter struct {
 	results          match.Matches
 	ignoredMatches   []match.IgnoredMatch
 	packages         []pkg.Package
-	metadataProvider v5.VulnerabilityMetadataProvider
+	metadataProvider vulnerability.MetadataProvider
 	showSuppressed   bool
 	withColor        bool
 }
@@ -171,10 +170,10 @@ func removeDuplicateRows(items [][]string) [][]string {
 	return result
 }
 
-func createRow(m match.Match, metadataProvider v5.VulnerabilityMetadataProvider, severitySuffix string) ([]string, error) {
+func createRow(m match.Match, metadataProvider vulnerability.MetadataProvider, severitySuffix string) ([]string, error) {
 	var severity string
 
-	metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.Namespace)
+	metadata, err := metadataProvider.VulnerabilityMetadata(m.Vulnerability.Reference)
 	if err != nil {
 		return nil, fmt.Errorf("unable to fetch vuln=%q metadata: %+v", m.Vulnerability.ID, err)
 	}

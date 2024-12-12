@@ -5,10 +5,10 @@ import (
 	"io"
 
 	"github.com/anchore/clio"
-	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
+	"github.com/anchore/grype/grype/vulnerability"
 )
 
 // Presenter is a generic struct for holding fields needed for reporting
@@ -18,7 +18,7 @@ type Presenter struct {
 	ignoredMatches   []match.IgnoredMatch
 	packages         []pkg.Package
 	context          pkg.Context
-	metadataProvider v5.VulnerabilityMetadataProvider
+	metadataProvider vulnerability.MetadataProvider
 	appConfig        interface{}
 	dbStatus         interface{}
 }

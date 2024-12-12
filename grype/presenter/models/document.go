@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/anchore/clio"
-	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/vulnerability"
 )
 
 // Document represents the JSON document to be presented
@@ -21,7 +21,7 @@ type Document struct {
 }
 
 // NewDocument creates and populates a new Document struct, representing the populated JSON document.
-func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Context, matches match.Matches, ignoredMatches []match.IgnoredMatch, metadataProvider v5.VulnerabilityMetadataProvider, appConfig interface{}, dbStatus interface{}) (Document, error) {
+func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Context, matches match.Matches, ignoredMatches []match.IgnoredMatch, metadataProvider vulnerability.MetadataProvider, appConfig interface{}, dbStatus interface{}) (Document, error) {
 	timestamp, timestampErr := time.Now().Local().MarshalText()
 	if timestampErr != nil {
 		return Document{}, timestampErr

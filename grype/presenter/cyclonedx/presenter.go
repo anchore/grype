@@ -6,10 +6,10 @@ import (
 	"github.com/CycloneDX/cyclonedx-go"
 
 	"github.com/anchore/clio"
-	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
+	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/format/common/cyclonedxhelpers"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
@@ -21,12 +21,12 @@ type Presenter struct {
 	results          match.Matches
 	packages         []pkg.Package
 	src              *source.Description
-	metadataProvider v5.VulnerabilityMetadataProvider
+	metadataProvider vulnerability.MetadataProvider
 	format           cyclonedx.BOMFileFormat
 	sbom             *sbom.SBOM
 }
 
-// NewPresenter is a *Presenter constructor
+// NewJSONPresenter is a *Presenter constructor
 func NewJSONPresenter(pb models.PresenterConfig) *Presenter {
 	return &Presenter{
 		id:               pb.ID,
@@ -39,7 +39,7 @@ func NewJSONPresenter(pb models.PresenterConfig) *Presenter {
 	}
 }
 
-// NewPresenter is a *Presenter constructor
+// NewXMLPresenter is a *Presenter constructor
 func NewXMLPresenter(pb models.PresenterConfig) *Presenter {
 	return &Presenter{
 		id:               pb.ID,
