@@ -1,8 +1,10 @@
 package java
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
@@ -25,6 +27,7 @@ type Matcher struct {
 type ExternalSearchConfig struct {
 	SearchMavenUpstream bool
 	MavenBaseURL        string
+	AbortAfter          time.Duration
 }
 
 type MatcherConfig struct {
@@ -53,7 +56,15 @@ func (m *Matcher) Type() match.MatcherType {
 func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	var matches []match.Match
 	if m.cfg.SearchMavenUpstream {
-		upstreamMatches, err := m.matchUpstreamMavenPackages(store, d, p)
+		timeout := m.cfg.AbortAfter
+		ctx := context.Background()
+		if timeout > 0 {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, m.cfg.AbortAfter)
+			defer cancel()
+		}
+
+		upstreamMatches, err := m.matchUpstreamMavenPackages(ctx, store, d, p)
 		if err != nil {
 			log.Debugf("failed to match against upstream data for %s: %v", p.Name, err)
 		} else {
@@ -73,13 +84,13 @@ func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Pa
 	return matches, nil
 }
 
-func (m *Matcher) matchUpstreamMavenPackages(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) matchUpstreamMavenPackages(ctx context.Context, store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
 	var matches []match.Match
 
 	if metadata, ok := p.Metadata.(pkg.JavaMetadata); ok {
 		for _, digest := range metadata.ArchiveDigests {
 			if digest.Algorithm == "sha1" {
-				indirectPackage, err := m.GetMavenPackageBySha(digest.Value)
+				indirectPackage, err := m.GetMavenPackageBySha(ctx, digest.Value)
 				if err != nil {
 					return nil, err
 				}
