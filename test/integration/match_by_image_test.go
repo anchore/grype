@@ -851,8 +851,10 @@ func testIgnoredMatches() []match.IgnoredMatch {
 		{
 			Match: match.Match{
 				Vulnerability: vulnerability.Vulnerability{
-					ID:        "CVE-alpine-libvncserver",
-					Namespace: "alpine:distro:alpine:3.12",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-alpine-libvncserver",
+						Namespace: "alpine:distro:alpine:3.12",
+					},
 				},
 				Package: pkg.Package{
 					ID:       "44fa3691ae360cac",

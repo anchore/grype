@@ -103,32 +103,32 @@ func (mp *mockProvider) populateData() {
 			{
 				// positive cases
 				Constraint: version.MustGetConstraint(hit, version.JVMFormat),
-				ID:         "CVE-2024-20919-real",
+				Reference:  vulnerability.Reference{ID: "CVE-2024-20919-real"},
 			},
 			{
 				// positive cases
 				Constraint: version.MustGetConstraint("< 22.22.22", version.UnknownFormat),
-				ID:         "CVE-2024-20919-bonkers-format",
+				Reference:  vulnerability.Reference{ID: "CVE-2024-20919-bonkers-format"},
 			},
 			{
 				// negative case
 				Constraint: version.MustGetConstraint("< 1.8.0_399 || >= 1.9-ea, < 8.0.399 || >= 9-ea", version.JVMFormat),
-				ID:         "CVE-FAKE-bad-update",
+				Reference:  vulnerability.Reference{ID: "CVE-FAKE-bad-update"},
 			},
 			{
 				// positive case
 				Constraint: version.MustGetConstraint("< 8.0.401", version.JVMFormat),
-				ID:         "CVE-2024-20919-post-jep223",
+				Reference:  vulnerability.Reference{ID: "CVE-2024-20919-post-jep223"},
 			},
 			{
 				// negative case
 				Constraint: version.MustGetConstraint("< 8.0.399", version.JVMFormat),
-				ID:         "CVE-FAKE-bad-range-post-jep223",
+				Reference:  vulnerability.Reference{ID: "CVE-FAKE-bad-range-post-jep223"},
 			},
 			{
 				// negative case
 				Constraint: version.MustGetConstraint("< 7.0.0", version.JVMFormat),
-				ID:         "CVE-FAKE-bad-range-post-jep223",
+				Reference:  vulnerability.Reference{ID: "CVE-FAKE-bad-range-post-jep223"},
 			},
 		},
 	}

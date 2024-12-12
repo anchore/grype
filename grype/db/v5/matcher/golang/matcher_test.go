@@ -220,7 +220,7 @@ func (mp *mockProvider) populateData() {
 		"istio.io/istio": {
 			{
 				Constraint: version.MustGetConstraint("< 5.0.7", version.UnknownFormat),
-				ID:         "CVE-2013-fake-BAD",
+				Reference:  vulnerability.Reference{ID: "CVE-2013-fake-BAD"},
 			},
 		},
 	}
@@ -230,7 +230,7 @@ func (mp *mockProvider) populateData() {
 		"cpe:2.3:a:golang:go:1.18.3:-:*:*:*:*:*:*": {
 			{
 				Constraint: version.MustGetConstraint("< 1.18.6 || = 1.19.0", version.UnknownFormat),
-				ID:         "CVE-2022-27664",
+				Reference:  vulnerability.Reference{ID: "CVE-2022-27664"},
 			},
 		},
 	}

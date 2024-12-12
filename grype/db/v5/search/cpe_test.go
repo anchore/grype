@@ -179,7 +179,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				{
 
 					Vulnerability: vulnerability.Vulnerability{
-						ID: "CVE-2017-fake-1",
+						Reference: vulnerability.Reference{ID: "CVE-2017-fake-1"},
 					},
 					Package: pkg.Package{
 						CPEs: []cpe.CPE{
@@ -230,7 +230,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				{
 
 					Vulnerability: vulnerability.Vulnerability{
-						ID: "CVE-2017-fake-1",
+						Reference: vulnerability.Reference{ID: "CVE-2017-fake-1"},
 					},
 					Package: pkg.Package{
 						CPEs: []cpe.CPE{
@@ -295,7 +295,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				{
 
 					Vulnerability: vulnerability.Vulnerability{
-						ID: "CVE-2017-fake-1",
+						Reference: vulnerability.Reference{ID: "CVE-2017-fake-1"},
 					},
 					Package: pkg.Package{
 						CPEs: []cpe.CPE{
@@ -334,7 +334,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				{
 
 					Vulnerability: vulnerability.Vulnerability{
-						ID: "CVE-2017-fake-2",
+						Reference: vulnerability.Reference{ID: "CVE-2017-fake-2"},
 					},
 					Package: pkg.Package{
 						CPEs: []cpe.CPE{
@@ -385,7 +385,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				{
 
 					Vulnerability: vulnerability.Vulnerability{
-						ID: "CVE-2017-fake-3",
+						Reference: vulnerability.Reference{ID: "CVE-2017-fake-3"},
 					},
 					Package: pkg.Package{
 						CPEs: []cpe.CPE{
@@ -446,7 +446,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				{
 
 					Vulnerability: vulnerability.Vulnerability{
-						ID: "CVE-2017-fake-4",
+						Reference: vulnerability.Reference{ID: "CVE-2017-fake-4"},
 					},
 					Package: pkg.Package{
 						CPEs: []cpe.CPE{
@@ -494,7 +494,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				{
 
 					Vulnerability: vulnerability.Vulnerability{
-						ID: "CVE-2017-fake-5",
+						Reference: vulnerability.Reference{ID: "CVE-2017-fake-5"},
 					},
 					Package: pkg.Package{
 						CPEs: []cpe.CPE{
@@ -559,7 +559,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 			expected: []match.Match{
 				{
 					Vulnerability: vulnerability.Vulnerability{
-						ID: "CVE-2017-fake-7",
+						Reference: vulnerability.Reference{ID: "CVE-2017-fake-7"},
 					},
 					Package: pkg.Package{
 						CPEs: []cpe.CPE{
@@ -612,7 +612,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 			expected: []match.Match{
 				{
 					Vulnerability: vulnerability.Vulnerability{
-						ID: "CVE-2017-fake-6",
+						Reference: vulnerability.Reference{ID: "CVE-2017-fake-6"},
 					},
 					Package: pkg.Package{
 						CPEs: []cpe.CPE{
@@ -666,7 +666,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 			expected: []match.Match{
 				{
 					Vulnerability: vulnerability.Vulnerability{
-						ID: "CVE-2021-23369",
+						Reference: vulnerability.Reference{ID: "CVE-2021-23369"},
 					},
 					Package: pkg.Package{
 						CPEs: []cpe.CPE{
@@ -716,7 +716,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 			expected: []match.Match{
 				{
 					Vulnerability: vulnerability.Vulnerability{
-						ID: "CVE-2021-23369",
+						Reference: vulnerability.Reference{ID: "CVE-2021-23369"},
 					},
 					Package: pkg.Package{
 						CPEs: []cpe.CPE{
@@ -766,7 +766,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 			expected: []match.Match{
 				{
 					Vulnerability: vulnerability.Vulnerability{
-						ID: "CVE-2021-23369",
+						Reference: vulnerability.Reference{ID: "CVE-2021-23369"},
 					},
 					Package: pkg.Package{
 						CPEs: []cpe.CPE{
@@ -829,7 +829,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 			expected: []match.Match{
 				{
 					Vulnerability: vulnerability.Vulnerability{
-						ID: "CVE-2021-23369",
+						Reference: vulnerability.Reference{ID: "CVE-2021-23369"},
 					},
 					Package: pkg.Package{
 						CPEs: []cpe.CPE{

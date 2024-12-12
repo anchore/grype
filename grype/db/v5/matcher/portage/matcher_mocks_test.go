@@ -34,11 +34,11 @@ func (pr *mockProvider) stub() {
 		"app-misc/neutron": {
 			{
 				Constraint: version.MustGetConstraint("< 2014.1.3", version.PortageFormat),
-				ID:         "CVE-2014-fake-1",
+				Reference:  vulnerability.Reference{ID: "CVE-2014-fake-1"},
 			},
 			{
 				Constraint: version.MustGetConstraint("< 2014.1.4", version.PortageFormat),
-				ID:         "CVE-2014-fake-2",
+				Reference:  vulnerability.Reference{ID: "CVE-2014-fake-2"},
 			},
 		},
 	}

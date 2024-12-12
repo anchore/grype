@@ -43,7 +43,7 @@ func (pr *mockProvider) stub(packageName, indirectName string) {
 		packageName: {
 			{
 				Constraint: version.MustGetConstraint("<= 7.1.3-6", version.RpmFormat),
-				ID:         "CVE-2014-fake-1",
+				Reference:  vulnerability.Reference{ID: "CVE-2014-fake-1"},
 			},
 		},
 		// indirect...
@@ -51,16 +51,16 @@ func (pr *mockProvider) stub(packageName, indirectName string) {
 			// expected...
 			{
 				Constraint: version.MustGetConstraint("< 7.1.4-5", version.RpmFormat),
-				ID:         "CVE-2014-fake-2",
+				Reference:  vulnerability.Reference{ID: "CVE-2014-fake-2"},
 			},
 			{
 				Constraint: version.MustGetConstraint("< 8.0.2-0", version.RpmFormat),
-				ID:         "CVE-2013-fake-3",
+				Reference:  vulnerability.Reference{ID: "CVE-2013-fake-3"},
 			},
 			// unexpected...
 			{
 				Constraint: version.MustGetConstraint("< 7.0.4-1", version.RpmFormat),
-				ID:         "CVE-2013-fake-BAD",
+				Reference:  vulnerability.Reference{ID: "CVE-2013-fake-BAD"},
 			},
 		},
 	}
@@ -72,23 +72,23 @@ func (pr *mockProvider) stubWithEpoch(packageName, indirectName string) {
 		packageName: {
 			{
 				Constraint: version.MustGetConstraint("<= 0:1.0-419.el8.", version.RpmFormat),
-				ID:         "CVE-2021-1",
+				Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
 			},
 			{
 				Constraint: version.MustGetConstraint("<= 0:2.28-419.el8.", version.RpmFormat),
-				ID:         "CVE-2021-2",
+				Reference:  vulnerability.Reference{ID: "CVE-2021-2"},
 			},
 		},
 		// indirect...
 		indirectName: {
 			{
 				Constraint: version.MustGetConstraint("< 5.28.3-420.el8", version.RpmFormat),
-				ID:         "CVE-2021-3",
+				Reference:  vulnerability.Reference{ID: "CVE-2021-3"},
 			},
 			// unexpected...
 			{
 				Constraint: version.MustGetConstraint("< 4:5.26.3-419.el8", version.RpmFormat),
-				ID:         "CVE-2021-4",
+				Reference:  vulnerability.Reference{ID: "CVE-2021-4"},
 			},
 		},
 	}
@@ -100,25 +100,25 @@ func (pr *mockProvider) stubWithPackageQualifiers(packageName string) {
 		packageName: {
 			{
 				Constraint: version.MustGetConstraint("<= 0:1.0-419.el8.", version.RpmFormat),
-				ID:         "CVE-2021-1",
+				Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
 				PackageQualifiers: []qualifier.Qualifier{
 					rpmmodularity.New("containertools:3"),
 				},
 			},
 			{
 				Constraint: version.MustGetConstraint("<= 0:1.0-419.el8.", version.RpmFormat),
-				ID:         "CVE-2021-2",
+				Reference:  vulnerability.Reference{ID: "CVE-2021-2"},
 				PackageQualifiers: []qualifier.Qualifier{
 					rpmmodularity.New(""),
 				},
 			},
 			{
 				Constraint: version.MustGetConstraint("<= 0:1.0-419.el8.", version.RpmFormat),
-				ID:         "CVE-2021-3",
+				Reference:  vulnerability.Reference{ID: "CVE-2021-3"},
 			},
 			{
 				Constraint: version.MustGetConstraint("<= 0:1.0-419.el8.", version.RpmFormat),
-				ID:         "CVE-2021-4",
+				Reference:  vulnerability.Reference{ID: "CVE-2021-4"},
 				PackageQualifiers: []qualifier.Qualifier{
 					rpmmodularity.New("containertools:4"),
 				},

@@ -23,16 +23,16 @@ func (mp *mockProvider) populateData() {
 		"org.springframework.spring-webmvc": {
 			{
 				Constraint: version.MustGetConstraint(">=5.0.0,<5.1.7", version.UnknownFormat),
-				ID:         "CVE-2014-fake-2",
+				Reference:  vulnerability.Reference{ID: "CVE-2014-fake-2"},
 			},
 			{
 				Constraint: version.MustGetConstraint(">=5.0.1,<5.1.7", version.UnknownFormat),
-				ID:         "CVE-2013-fake-3",
+				Reference:  vulnerability.Reference{ID: "CVE-2013-fake-3"},
 			},
 			// unexpected...
 			{
 				Constraint: version.MustGetConstraint(">=5.0.0,<5.0.7", version.UnknownFormat),
-				ID:         "CVE-2013-fake-BAD",
+				Reference:  vulnerability.Reference{ID: "CVE-2013-fake-BAD"},
 			},
 		},
 	}
