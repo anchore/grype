@@ -1,10 +1,13 @@
 package models
 
-import "github.com/anchore/grype/grype/vulnerability"
+import (
+	v5 "github.com/anchore/grype/grype/db/v5"
+	"github.com/anchore/grype/grype/vulnerability"
+)
 
-var _ vulnerability.MetadataProvider = (*MetadataMock)(nil)
+var _ v5.VulnerabilityMetadataProvider = (*MetadataMock)(nil)
 
-// MetadataMock provides the behavior required for a vulnerability.MetadataProvider for the purpose of testing.
+// MetadataMock provides the behavior required for a v5.VulnerabilityMetadataProvider for the purpose of testing.
 type MetadataMock struct {
 	store map[string]map[string]vulnerability.Metadata
 }

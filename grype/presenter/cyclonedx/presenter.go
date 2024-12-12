@@ -6,10 +6,10 @@ import (
 	"github.com/CycloneDX/cyclonedx-go"
 
 	"github.com/anchore/clio"
+	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
-	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/format/common/cyclonedxhelpers"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
@@ -21,7 +21,7 @@ type Presenter struct {
 	results          match.Matches
 	packages         []pkg.Package
 	src              *source.Description
-	metadataProvider vulnerability.MetadataProvider
+	metadataProvider v5.VulnerabilityMetadataProvider
 	format           cyclonedx.BOMFileFormat
 	sbom             *sbom.SBOM
 }

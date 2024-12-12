@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"testing"
 
+	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -29,7 +30,7 @@ const (
 
 type SyftSource string
 
-func GenerateAnalysis(t *testing.T, scheme SyftSource) (*sbom.SBOM, match.Matches, []pkg.Package, pkg.Context, vulnerability.MetadataProvider, interface{}, interface{}) {
+func GenerateAnalysis(t *testing.T, scheme SyftSource) (*sbom.SBOM, match.Matches, []pkg.Package, pkg.Context, v5.VulnerabilityMetadataProvider, interface{}, interface{}) {
 	t.Helper()
 
 	s := &sbom.SBOM{
@@ -46,7 +47,7 @@ func GenerateAnalysis(t *testing.T, scheme SyftSource) (*sbom.SBOM, match.Matche
 	return s, matches, grypePackages, context, models.NewMetadataMock(), nil, nil
 }
 
-func GenerateAnalysisWithIgnoredMatches(t *testing.T, scheme SyftSource) (match.Matches, []match.IgnoredMatch, []pkg.Package, pkg.Context, vulnerability.MetadataProvider, interface{}, interface{}) {
+func GenerateAnalysisWithIgnoredMatches(t *testing.T, scheme SyftSource) (match.Matches, []match.IgnoredMatch, []pkg.Package, pkg.Context, v5.VulnerabilityMetadataProvider, interface{}, interface{}) {
 	t.Helper()
 
 	s := &sbom.SBOM{

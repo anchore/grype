@@ -12,6 +12,7 @@ import (
 	"github.com/owenrumney/go-sarif/sarif"
 
 	"github.com/anchore/clio"
+	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -26,7 +27,7 @@ type Presenter struct {
 	results          match.Matches
 	packages         []pkg.Package
 	src              *source.Description
-	metadataProvider vulnerability.MetadataProvider
+	metadataProvider v5.VulnerabilityMetadataProvider
 }
 
 // NewPresenter is a *Presenter constructor

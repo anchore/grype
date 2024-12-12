@@ -12,21 +12,21 @@ import (
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db/legacy/distribution"
+	v5 "github.com/anchore/grype/grype/db/v5"
+	"github.com/anchore/grype/grype/db/v5/matcher"
+	"github.com/anchore/grype/grype/db/v5/matcher/dotnet"
+	"github.com/anchore/grype/grype/db/v5/matcher/golang"
+	"github.com/anchore/grype/grype/db/v5/matcher/java"
+	"github.com/anchore/grype/grype/db/v5/matcher/javascript"
+	"github.com/anchore/grype/grype/db/v5/matcher/python"
+	"github.com/anchore/grype/grype/db/v5/matcher/ruby"
+	"github.com/anchore/grype/grype/db/v5/matcher/stock"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/event/parsers"
 	"github.com/anchore/grype/grype/grypeerr"
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/matcher"
-	"github.com/anchore/grype/grype/matcher/dotnet"
-	"github.com/anchore/grype/grype/matcher/golang"
-	"github.com/anchore/grype/grype/matcher/java"
-	"github.com/anchore/grype/grype/matcher/javascript"
-	"github.com/anchore/grype/grype/matcher/python"
-	"github.com/anchore/grype/grype/matcher/ruby"
-	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
-	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/grype/grype/vex"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
@@ -118,7 +118,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		return err
 	}
 
-	var str *store.Store
+	var str *v5.ProviderStore
 	var status *distribution.Status
 	var packages []pkg.Package
 	var s *sbom.SBOM
