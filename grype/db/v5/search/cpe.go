@@ -206,58 +206,53 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 }
 
 func sortFixedVersions(candidateMatch match.Match, p pkg.Package) {
-	// sort fixed versions (higher values than the package version will be at the beginning of the array)
-	if len(candidateMatch.Vulnerability.Fix.Versions) > 1 {
-		checkSatisfaction := func(constraint version.Constraint, v *version.Version) (bool, error) {
-			satisfied, err := constraint.Satisfied(v)
-			if err != nil {
-				log.WithFields("package", p.Name).Trace("error while checking version satisfaction for sorting")
-			}
-			return satisfied, err
-		}
-		parseConstraint := func(constStr string, format version.Format) (version.Constraint, error) {
-			packageConstraint, err := version.GetConstraint(constStr, format)
-			if err != nil {
-				log.WithFields("package", p.Name).Trace("skipping sgit orting fixed versions")
-				return nil, err
-			}
-			return packageConstraint, nil
-		}
-		format := version.FormatFromPkg(p)
-		sort.SliceStable(candidateMatch.Vulnerability.Fix.Versions, func(i, j int) bool {
-			v1, err1 := version.NewVersion(candidateMatch.Vulnerability.Fix.Versions[i], format)
-			v2, err2 := version.NewVersion(candidateMatch.Vulnerability.Fix.Versions[j], format)
-			if err1 != nil || err2 != nil {
-				log.WithFields("package", p.Name).Trace("error while parsing version for sorting")
-				return false // keep original order if version cannot be parsed
-			}
-			packageConstraint, err := parseConstraint(fmt.Sprintf("<=%s", candidateMatch.Package.Version), format)
-			if err != nil {
-				return false
-			}
-			v1Satisfied, err1 := checkSatisfaction(packageConstraint, v1)
-			v2Satisfied, err2 := checkSatisfaction(packageConstraint, v2)
-			if err1 != nil || err2 != nil {
-				log.WithFields("package", p.Name).Trace("error while checking version satisfaction for sorting")
-				return false
-			}
-			if !v1Satisfied && !v2Satisfied {
-				internalConstraint, err := parseConstraint(fmt.Sprintf("<=%s", v1.Raw), format)
-				if err != nil {
-					return false
-				}
-				internalSatisfied, err := checkSatisfaction(internalConstraint, v2)
-				if err != nil {
-					return false
-				}
-				return !internalSatisfied
-			}
-			if v1Satisfied && v2Satisfied {
-				return false
-			}
-			return !v1Satisfied
-		})
+	if len(candidateMatch.Vulnerability.Fix.Versions) <= 1 {
+		return
 	}
+
+	format := version.FormatFromPkg(p)
+	parseConstraint := func(constStr string) (version.Constraint, error) {
+		constraint, err := version.GetConstraint(constStr, format)
+		if err != nil {
+			log.WithFields("package", p.Name).Trace("skipping sorting fixed versions")
+		}
+		return constraint, err
+	}
+
+	checkSatisfaction := func(constraint version.Constraint, v *version.Version) bool {
+		satisfied, err := constraint.Satisfied(v)
+		if err != nil {
+			log.WithFields("package", p.Name).Trace("error while checking version satisfaction for sorting")
+		}
+		return satisfied && err == nil
+	}
+
+	sort.SliceStable(candidateMatch.Vulnerability.Fix.Versions, func(i, j int) bool {
+		v1, err1 := version.NewVersion(candidateMatch.Vulnerability.Fix.Versions[i], format)
+		v2, err2 := version.NewVersion(candidateMatch.Vulnerability.Fix.Versions[j], format)
+		if err1 != nil || err2 != nil {
+			log.WithFields("package", p.Name).Trace("error while parsing version for sorting")
+			return false
+		}
+
+		packageConstraint, err := parseConstraint(fmt.Sprintf("<=%s", candidateMatch.Package.Version))
+		if err != nil {
+			return false
+		}
+
+		v1Satisfied := checkSatisfaction(packageConstraint, v1)
+		v2Satisfied := checkSatisfaction(packageConstraint, v2)
+
+		if v1Satisfied != v2Satisfied {
+			return !v1Satisfied
+		}
+
+		internalConstraint, err := parseConstraint(fmt.Sprintf("<=%s", v1.Raw))
+		if err != nil {
+			return false
+		}
+		return !checkSatisfaction(internalConstraint, v2)
+	})
 }
 
 func addMatchDetails(existingDetails []match.Detail, newDetails match.Detail) []match.Detail {
