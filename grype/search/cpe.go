@@ -176,32 +176,39 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 		candidateMatch = existingMatch
 	}
 
-	// filter unrelated fixed versions in case fixed versions are larger than 1
+	// sort fixed versions (higher values than the package version will be at the beginning of the array)
 	if len(candidateMatch.Vulnerability.Fix.Versions) > 1 {
-		var filteredVersions []string
 		format := version.FormatFromPkg(p)
 		cons, err := version.GetConstraint(fmt.Sprintf("<=%s", candidateMatch.Package.Version), format)
 		if err != nil {
 			log.WithFields("package", p.Name).Trace("skipping filtering fixed versions")
 		}
 
-		for _, v := range candidateMatch.Vulnerability.Fix.Versions {
-			comparedVersion, err := version.NewVersion(v, format)
-			if err != nil {
-				log.WithFields("package", p.Name, "version", v).Trace("error while creating version in filtering fixed versions")
-			}
-			skip, err := cons.Satisfied(comparedVersion)
-			if err != nil {
-				log.WithFields("package", p.Name, "version", v).Trace("error while comparing version in filtering fixed versions")
-				continue
-			}
-			if skip {
-				continue
-			}
-			filteredVersions = append(filteredVersions, v)
-		}
+		sort.SliceStable(candidateMatch.Vulnerability.Fix.Versions, func(i, j int) bool {
+			v1, err1 := version.NewVersion(candidateMatch.Vulnerability.Fix.Versions[i], format)
+			v2, err2 := version.NewVersion(candidateMatch.Vulnerability.Fix.Versions[j], format)
 
-		candidateMatch.Vulnerability.Fix.Versions = filteredVersions
+			if err1 != nil || err2 != nil {
+				log.WithFields("package", p.Name).Trace("error while parsing version for sorting")
+				return false // keep original order if version cannot be parsed
+			}
+
+			// Check if v1 and v2 are less than or equal to the package version
+			v1Satisfied, err1 := cons.Satisfied(v1)
+			v2Satisfied, err2 := cons.Satisfied(v2)
+
+			if err1 != nil || err2 != nil {
+				log.WithFields("package", p.Name).Trace("error while checking version satisfaction for sorting")
+				return false // maintain original order
+			}
+			if !v1Satisfied && !v2Satisfied {
+				return true
+			}
+			if v1Satisfied && v2Satisfied {
+				return false
+			}
+			return !v1Satisfied
+		})
 	}
 
 	candidateMatch.Details = addMatchDetails(candidateMatch.Details,
