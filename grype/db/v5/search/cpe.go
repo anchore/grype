@@ -177,6 +177,35 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 		candidateMatch = existingMatch
 	}
 
+	sortFixedVersions(candidateMatch, p)
+
+	candidateMatch.Details = addMatchDetails(candidateMatch.Details,
+		match.Detail{
+			Type:       match.CPEMatch,
+			Confidence: 0.9, // TODO: this is hard coded for now
+			Matcher:    upstreamMatcher,
+			SearchedBy: CPEParameters{
+				Namespace: vuln.Namespace,
+				CPEs: []string{
+					searchedByCPE.Attributes.BindToFmtString(),
+				},
+				Package: CPEPackageParameter{
+					Name:    p.Name,
+					Version: p.Version,
+				},
+			},
+			Found: CPEResult{
+				VulnerabilityID:   vuln.ID,
+				VersionConstraint: vuln.Constraint.String(),
+				CPEs:              cpesToString(filterCPEsByVersion(searchVersion, vuln.CPEs)),
+			},
+		},
+	)
+
+	matchesByFingerprint[candidateMatch.Fingerprint()] = candidateMatch
+}
+
+func sortFixedVersions(candidateMatch match.Match, p pkg.Package) {
 	// sort fixed versions (higher values than the package version will be at the beginning of the array)
 	if len(candidateMatch.Vulnerability.Fix.Versions) > 1 {
 		checkSatisfaction := func(constraint version.Constraint, v *version.Version) (bool, error) {
@@ -236,31 +265,6 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 			return !v1Satisfied
 		})
 	}
-
-	candidateMatch.Details = addMatchDetails(candidateMatch.Details,
-		match.Detail{
-			Type:       match.CPEMatch,
-			Confidence: 0.9, // TODO: this is hard coded for now
-			Matcher:    upstreamMatcher,
-			SearchedBy: CPEParameters{
-				Namespace: vuln.Namespace,
-				CPEs: []string{
-					searchedByCPE.Attributes.BindToFmtString(),
-				},
-				Package: CPEPackageParameter{
-					Name:    p.Name,
-					Version: p.Version,
-				},
-			},
-			Found: CPEResult{
-				VulnerabilityID:   vuln.ID,
-				VersionConstraint: vuln.Constraint.String(),
-				CPEs:              cpesToString(filterCPEsByVersion(searchVersion, vuln.CPEs)),
-			},
-		},
-	)
-
-	matchesByFingerprint[candidateMatch.Fingerprint()] = candidateMatch
 }
 
 func addMatchDetails(existingDetails []match.Detail, newDetails match.Detail) []match.Detail {
