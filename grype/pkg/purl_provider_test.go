@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"github.com/anchore/syft/syft/source"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -12,6 +11,7 @@ import (
 	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/sbom"
+	"github.com/anchore/syft/syft/source"
 )
 
 func Test_PurlProvider(t *testing.T) {

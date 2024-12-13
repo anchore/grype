@@ -3,7 +3,6 @@ package pkg
 import (
 	"bufio"
 	"fmt"
-	"github.com/anchore/syft/syft/source"
 	"io"
 	"os"
 	"strings"
@@ -16,6 +15,7 @@ import (
 	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/sbom"
+	"github.com/anchore/syft/syft/source"
 )
 
 const (
