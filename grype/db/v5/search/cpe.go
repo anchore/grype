@@ -179,11 +179,24 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 
 	// sort fixed versions (higher values than the package version will be at the beginning of the array)
 	if len(candidateMatch.Vulnerability.Fix.Versions) > 1 {
-		format := version.FormatFromPkg(p)
-		cons, err := version.GetConstraint(fmt.Sprintf("<=%s", candidateMatch.Package.Version), format)
-		if err != nil {
-			log.WithFields("package", p.Name).Trace("skipping filtering fixed versions")
+		checkSatisfaction := func(constraint version.Constraint, v *version.Version) (bool, error) {
+			satisfied, err := constraint.Satisfied(v)
+			if err != nil {
+				log.WithFields("package", p.Name).Trace("error while checking version satisfaction for sorting")
+			}
+			return satisfied, err
 		}
+
+		parseConstraint := func(constStr string, format version.Format) (version.Constraint, error) {
+			packageConstraint, err := version.GetConstraint(constStr, format)
+			if err != nil {
+				log.WithFields("package", p.Name).Trace("skipping sgit orting fixed versions")
+				return nil, err
+			}
+			return packageConstraint, nil
+		}
+
+		format := version.FormatFromPkg(p)
 
 		sort.SliceStable(candidateMatch.Vulnerability.Fix.Versions, func(i, j int) bool {
 			v1, err1 := version.NewVersion(candidateMatch.Vulnerability.Fix.Versions[i], format)
@@ -194,16 +207,28 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 				return false // keep original order if version cannot be parsed
 			}
 
-			// Check if v1 and v2 are less than or equal to the package version
-			v1Satisfied, err1 := cons.Satisfied(v1)
-			v2Satisfied, err2 := cons.Satisfied(v2)
+			packageConstraint, err := parseConstraint(fmt.Sprintf("<=%s", candidateMatch.Package.Version), format)
+			if err != nil {
+				return false
+			}
+
+			v1Satisfied, err1 := checkSatisfaction(packageConstraint, v1)
+			v2Satisfied, err2 := checkSatisfaction(packageConstraint, v2)
 
 			if err1 != nil || err2 != nil {
 				log.WithFields("package", p.Name).Trace("error while checking version satisfaction for sorting")
-				return false // maintain original order
+				return false
 			}
 			if !v1Satisfied && !v2Satisfied {
-				return true
+				internalConstraint, err := parseConstraint(fmt.Sprintf("<=%s", v1.Raw), format)
+				if err != nil {
+					return false
+				}
+				internalSatisfied, err := checkSatisfaction(internalConstraint, v2)
+				if err != nil {
+					return false
+				}
+				return !internalSatisfied
 			}
 			if v1Satisfied && v2Satisfied {
 				return false
