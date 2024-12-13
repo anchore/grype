@@ -12,8 +12,10 @@ import (
 )
 
 type blobable interface {
+	getBlobID() ID
 	getBlobValue() any
 	setBlobID(ID)
+	setBlob([]byte) error
 }
 
 type blobStore struct {
@@ -81,6 +83,19 @@ func (s *blobStore) getBlobValue(id ID) (string, error) {
 		return "", err
 	}
 	return blob.Value, nil
+}
+
+func (s *blobStore) attachBlobValue(b blobable) error {
+	id := b.getBlobID()
+	if id == 0 {
+		return nil
+	}
+	v, err := s.getBlobValue(id)
+	if err != nil {
+		return fmt.Errorf("failed to get blob value: %w", err)
+	}
+
+	return b.setBlob([]byte(v))
 }
 
 func (s *blobStore) Close() error {

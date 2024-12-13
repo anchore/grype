@@ -108,7 +108,7 @@ Checksums are applied to all artifacts, and the resulting checksum file is signe
 
 You need the following tool to verify signature:
 
-- [Cosign](https://docs.sigstore.dev/cosign/installation/)
+- [Cosign](https://docs.sigstore.dev/cosign/system_config/installation/)
 
 Verification steps are as follow:
 
@@ -212,7 +212,7 @@ grype --add-cpes-if-none --distro alpine:3.10 sbom:some-alpine-3.10.spdx.json
 
 ### Supported versions
 
-Any version of Grype before v0.40.1 is not supported. Unsupported releases will not receive any software updates or
+Any version of Grype before v0.51.0 (Oct 2022) is not supported. Unsupported releases will not receive any software updates or
 vulnerability database updates. You can still build vulnerability databases for unsupported Grype releases by using previous
 releases of [vunnel](https://github.com/anchore/vunnel) to gather the upstream data and [grype-db](https://github.com/anchore/grype-db)
 to build databases for unsupported schemas.

@@ -1,0 +1,49 @@
+name: PR to update Anchore dependencies
+on:
+  workflow_dispatch:
+    inputs:
+      repos:
+        description: "List of dependencies to update"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'anchore' # only run for main repo (not forks)
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
+
+      - name: Bootstrap environment
+        uses: ./.github/actions/bootstrap
+        with:
+          tools: false
+          bootstrap-apt-packages: ""
+
+      - name: Update dependencies
+        id: update
+        uses: anchore/workflows/.github/actions/update-go-dependencies@main
+        with:
+          repos: ${{ github.event.inputs.repos }}
+
+      - uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a #v2.1.0
+        id: generate-token
+        with:
+          app_id: ${{ secrets.TOKEN_APP_ID }}
+          private_key: ${{ secrets.TOKEN_APP_PRIVATE_KEY }}
+
+      - uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f #v7.0.5
+        with:
+          signoff: true
+          delete-branch: true
+          draft: ${{ steps.update.outputs.draft }}
+          # do not change this branch, as other workflows depend on it
+          branch: auto/integration
+          labels: dependencies,pre-release
+          commit-message: "chore(deps): update anchore dependencies"
+          title: "chore(deps): update anchore dependencies"
+          body: ${{ steps.update.outputs.summary }}
+          token: ${{ steps.generate-token.outputs.token }}

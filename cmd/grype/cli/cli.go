@@ -10,7 +10,7 @@ import (
 	"github.com/anchore/grype/cmd/grype/cli/commands"
 	grypeHandler "github.com/anchore/grype/cmd/grype/cli/ui"
 	"github.com/anchore/grype/cmd/grype/internal/ui"
-	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/redact"
@@ -106,5 +106,5 @@ func syftVersion() (string, any) {
 }
 
 func dbVersion() (string, any) {
-	return "Supported DB Schema", vulnerability.SchemaVersion
+	return "Supported DB Schema", db.SchemaVersion
 }

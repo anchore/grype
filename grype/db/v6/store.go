@@ -2,8 +2,6 @@ package v6
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"gorm.io/gorm"
 
@@ -33,6 +31,13 @@ func newStore(cfg Config, write bool) (*store, error) {
 		return nil, fmt.Errorf("failed to open db: %w", err)
 	}
 
+	if write {
+		// add hard-coded os aliases
+		if err := db.Create(KnownOperatingSystemAliases()).Error; err != nil {
+			return nil, fmt.Errorf("failed to add os aliases: %w", err)
+		}
+	}
+
 	bs := newBlobStore(db)
 	return &store{
 		dbMetadataStore:      newDBMetadataStore(db),
@@ -47,6 +52,7 @@ func newStore(cfg Config, write bool) (*store, error) {
 	}, nil
 }
 
+// Close closes the store and finalizes the blobs when the DB is open for writing. If open for reading, it does nothing.
 func (s *store) Close() error {
 	log.Debug("closing store")
 	if !s.write {
@@ -62,19 +68,5 @@ func (s *store) Close() error {
 		return fmt.Errorf("failed to vacuum: %w", err)
 	}
 
-	desc, err := CalculateDescription(filepath.Join(s.config.DBDirPath, VulnerabilityDBFileName))
-	if err != nil {
-		return fmt.Errorf("failed to create description from dir: %w", err)
-	}
-
-	if desc == nil {
-		return fmt.Errorf("unable to describe the database")
-	}
-
-	fh, err := os.OpenFile(filepath.Join(s.config.DBDirPath, ChecksumFileName), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to open description file: %w", err)
-	}
-
-	return WriteChecksums(fh, *desc)
+	return nil
 }

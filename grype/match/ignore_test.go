@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	grypeDb "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/file"
@@ -17,10 +16,12 @@ var (
 	allMatches = []Match{
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-123",
-				Namespace: "debian-vulns",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-123",
+					Namespace: "debian-vulns",
+				},
 				Fix: vulnerability.Fix{
-					State: grypeDb.FixedState,
+					State: vulnerability.FixStateFixed,
 				},
 			},
 			Package: pkg.Package{
@@ -33,10 +34,12 @@ var (
 		},
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-456",
-				Namespace: "ruby-vulns",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-456",
+					Namespace: "ruby-vulns",
+				},
 				Fix: vulnerability.Fix{
-					State: grypeDb.NotFixedState,
+					State: vulnerability.FixStateNotFixed,
 				},
 			},
 			Package: pkg.Package{
@@ -51,10 +54,12 @@ var (
 		},
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-457",
-				Namespace: "ruby-vulns",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-457",
+					Namespace: "ruby-vulns",
+				},
 				Fix: vulnerability.Fix{
-					State: grypeDb.WontFixState,
+					State: vulnerability.FixStateWontFix,
 				},
 			},
 			Package: pkg.Package{
@@ -69,10 +74,12 @@ var (
 		},
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-458",
-				Namespace: "ruby-vulns",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-458",
+					Namespace: "ruby-vulns",
+				},
 				Fix: vulnerability.Fix{
-					State: grypeDb.UnknownFixState,
+					State: vulnerability.FixStateUnknown,
 				},
 			},
 			Package: pkg.Package{
@@ -92,10 +99,12 @@ var (
 		// Direct match, not like a normal kernel header match
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-1",
-				Namespace: "fake-redhat-vulns",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-1",
+					Namespace: "fake-redhat-vulns",
+				},
 				Fix: vulnerability.Fix{
-					State: grypeDb.UnknownFixState,
+					State: vulnerability.FixStateUnknown,
 				},
 			},
 			Package: pkg.Package{
@@ -115,10 +124,12 @@ var (
 		},
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-2",
-				Namespace: "fake-deb-vulns",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-2",
+					Namespace: "fake-deb-vulns",
+				},
 				Fix: vulnerability.Fix{
-					State: grypeDb.UnknownFixState,
+					State: vulnerability.FixStateUnknown,
 				},
 			},
 			Package: pkg.Package{
@@ -138,10 +149,12 @@ var (
 		},
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-1",
-				Namespace: "npm-vulns",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-1",
+					Namespace: "npm-vulns",
+				},
 				Fix: vulnerability.Fix{
-					State: grypeDb.UnknownFixState,
+					State: vulnerability.FixStateUnknown,
 				},
 			},
 			Package: pkg.Package{
@@ -163,10 +176,12 @@ var (
 		// RPM-like match similar to what we see from RedHat
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-2",
-				Namespace: "fake-redhat-vulns",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-2",
+					Namespace: "fake-redhat-vulns",
+				},
 				Fix: vulnerability.Fix{
-					State: grypeDb.UnknownFixState,
+					State: vulnerability.FixStateUnknown,
 				},
 			},
 			Package: pkg.Package{
@@ -187,10 +202,12 @@ var (
 		// debian-like match, showing the kernel header package name w/embedded version
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-2",
-				Namespace: "fake-debian-vulns",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-2",
+					Namespace: "fake-debian-vulns",
+				},
 				Fix: vulnerability.Fix{
-					State: grypeDb.UnknownFixState,
+					State: vulnerability.FixStateUnknown,
 				},
 			},
 			Package: pkg.Package{
@@ -214,10 +231,12 @@ var (
 	packageTypeMatches = []Match{
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-2",
-				Namespace: "fake-redhat-vulns",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-2",
+					Namespace: "fake-redhat-vulns",
+				},
 				Fix: vulnerability.Fix{
-					State: grypeDb.UnknownFixState,
+					State: vulnerability.FixStateUnknown,
 				},
 			},
 			Package: pkg.Package{
@@ -229,10 +248,12 @@ var (
 		},
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-2",
-				Namespace: "fake-debian-vulns",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-2",
+					Namespace: "fake-debian-vulns",
+				},
 				Fix: vulnerability.Fix{
-					State: grypeDb.UnknownFixState,
+					State: vulnerability.FixStateUnknown,
 				},
 			},
 			Package: pkg.Package{
@@ -350,9 +371,9 @@ func TestApplyIgnoreRules(t *testing.T) {
 			name:       "ignore matches without fix",
 			allMatches: allMatches,
 			ignoreRules: []IgnoreRule{
-				{FixState: string(grypeDb.NotFixedState)},
-				{FixState: string(grypeDb.WontFixState)},
-				{FixState: string(grypeDb.UnknownFixState)},
+				{FixState: string(vulnerability.FixStateNotFixed)},
+				{FixState: string(vulnerability.FixStateWontFix)},
+				{FixState: string(vulnerability.FixStateUnknown)},
 			},
 			expectedRemainingMatches: []Match{
 				allMatches[0],
@@ -692,7 +713,7 @@ func sliceToMatches(s []Match) Matches {
 var (
 	exampleMatch = Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-2000-1234",
+			Reference: vulnerability.Reference{ID: "CVE-2000-1234"},
 		},
 		Package: pkg.Package{
 			ID:      pkg.ID(uuid.NewString()),

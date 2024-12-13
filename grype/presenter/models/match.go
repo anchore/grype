@@ -28,7 +28,7 @@ type MatchDetails struct {
 func newMatch(m match.Match, p pkg.Package, metadataProvider vulnerability.MetadataProvider) (*Match, error) {
 	relatedVulnerabilities := make([]VulnerabilityMetadata, 0)
 	for _, r := range m.Vulnerability.RelatedVulnerabilities {
-		relatedMetadata, err := metadataProvider.GetMetadata(r.ID, r.Namespace)
+		relatedMetadata, err := metadataProvider.VulnerabilityMetadata(r)
 		if err != nil {
 			return nil, fmt.Errorf("unable to fetch related vuln=%q metadata: %+v", r, err)
 		}
@@ -37,7 +37,7 @@ func newMatch(m match.Match, p pkg.Package, metadataProvider vulnerability.Metad
 		}
 	}
 
-	metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.Namespace)
+	metadata, err := metadataProvider.VulnerabilityMetadata(m.Vulnerability.Reference)
 	if err != nil {
 		return nil, fmt.Errorf("unable to fetch vuln=%q metadata: %+v", m.Vulnerability.ID, err)
 	}

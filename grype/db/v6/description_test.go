@@ -2,8 +2,6 @@ package v6
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -11,17 +9,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/OneOfOne/xxhash"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/grype/grype/db/internal/schemaver"
+	"github.com/anchore/grype/internal/schemaver"
 )
 
-func TestNewDatabaseDescriptionFromDir(t *testing.T) {
+func TestReadDescription(t *testing.T) {
 	tempDir := t.TempDir()
 
-	// make a test DB
 	s, err := NewWriter(Config{DBDirPath: tempDir})
 	require.NoError(t, err)
 	require.NoError(t, s.SetDBMetadata())
@@ -29,26 +25,15 @@ func TestNewDatabaseDescriptionFromDir(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, s.Close())
 
-	// get the xxhash of the db file
-	hasher := xxhash.New64()
 	dbFilePath := path.Join(tempDir, VulnerabilityDBFileName)
-	f, err := os.Open(dbFilePath)
-	require.NoError(t, err)
-	_, err = io.Copy(hasher, f)
-	require.NoError(t, err)
-	require.NoError(t, f.Close())
-	expectedHash := fmt.Sprintf("xxh64:%x", hasher.Sum(nil))
 
-	// run the test subject
-	description, err := CalculateDescription(dbFilePath)
+	description, err := ReadDescription(dbFilePath)
 	require.NoError(t, err)
 	require.NotNil(t, description)
 
-	// did it work?
 	assert.Equal(t, Description{
 		SchemaVersion: schemaver.New(expected.Model, expected.Revision, expected.Addition),
 		Built:         Time{*expected.BuildTimestamp},
-		Checksum:      expectedHash,
 	}, *description)
 }
 
@@ -131,30 +116,23 @@ func TestTime_JSONUnmarshalling(t *testing.T) {
 func TestWriteChecksums(t *testing.T) {
 
 	cases := []struct {
-		name        string
-		description Description
-		expected    string
-		wantErr     require.ErrorAssertionFunc
+		name     string
+		digest   string
+		expected string
+		wantErr  require.ErrorAssertionFunc
 	}{
 		{
-			name: "go case",
-			description: Description{
-				SchemaVersion: "1.0.0",
-				Built:         Time{Time: time.Date(2023, 9, 26, 12, 2, 3, 0, time.UTC)},
-				Checksum:      "xxh64:dummychecksum",
-			},
+			name:     "go case",
+			digest:   "xxh64:dummychecksum",
 			expected: "xxh64:dummychecksum",
 		},
 		{
-			name:        "empty checksum",
-			description: Description{},
-			wantErr:     require.Error,
+			name:    "empty checksum",
+			wantErr: require.Error,
 		},
 		{
-			name: "missing prefix",
-			description: Description{
-				Checksum: "dummychecksum",
-			},
+			name:    "missing prefix",
+			digest:  "dummychecksum",
 			wantErr: require.Error,
 		},
 	}
@@ -165,78 +143,10 @@ func TestWriteChecksums(t *testing.T) {
 				tc.wantErr = require.NoError
 			}
 			sb := strings.Builder{}
-			err := WriteChecksums(&sb, tc.description)
+			err := WriteChecksums(&sb, tc.digest)
 			tc.wantErr(t, err)
 			if err == nil {
 				assert.Equal(t, tc.expected, sb.String())
-			}
-		})
-	}
-}
-
-func TestReadDescriptionAndCalculateDescription(t *testing.T) {
-	tests := []struct {
-		name        string
-		setupFiles  func(t testing.TB, dir string) error
-		expectedErr string
-	}{
-		{
-			name: "database file missing",
-			setupFiles: func(t testing.TB, dir string) error {
-				return nil
-			},
-			expectedErr: "database does not exist",
-		},
-		{
-			name: "checksum file missing",
-			setupFiles: func(t testing.TB, dir string) error {
-				s := setupTestStore(t, dir)
-				require.NoError(t, s.SetDBMetadata())
-				// since we don't close, there is no checksums
-				return nil
-			},
-			expectedErr: "failed to read checksums file",
-		},
-		{
-			name: "checksum file empty",
-			setupFiles: func(t testing.TB, dir string) error {
-				s := setupTestStore(t, dir)
-				require.NoError(t, s.SetDBMetadata())
-				require.NoError(t, s.Close())
-				// truncate the checksums file
-				require.NoError(t, os.Truncate(filepath.Join(dir, ChecksumFileName), 0))
-				return nil
-			},
-			expectedErr: "checksums file is empty",
-		},
-		{
-			name: "valid database",
-			setupFiles: func(t testing.TB, dir string) error {
-				s := setupTestStore(t, dir)
-				require.NoError(t, s.SetDBMetadata())
-				require.NoError(t, s.Close())
-				return nil
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			dir := t.TempDir()
-			err := tt.setupFiles(t, dir)
-			require.NoError(t, err)
-
-			desc, err := ReadDescription(dir)
-
-			if tt.expectedErr != "" {
-				require.ErrorContains(t, err, tt.expectedErr)
-				require.Nil(t, desc)
-			} else {
-				require.NoError(t, err)
-				require.NotNil(t, desc)
-				calcDesc, err := CalculateDescription(filepath.Join(dir, VulnerabilityDBFileName))
-				require.NoError(t, err)
-				assert.Equal(t, calcDesc, desc)
 			}
 		})
 	}
@@ -316,7 +226,7 @@ func TestCalculateDigest(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			digest, err := CalculateDigest(filePath)
+			digest, err := CalculateDBDigest(filePath)
 
 			if tt.expectedErr != "" {
 				require.ErrorContains(t, err, tt.expectedErr)

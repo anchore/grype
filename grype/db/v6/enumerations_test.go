@@ -35,6 +35,7 @@ func TestParseSeverityScheme(t *testing.T) {
 	}{
 		{"CVSS scheme", "Cvss", SeveritySchemeCVSS},
 		{"HML scheme", "H-M-l", SeveritySchemeHML},
+		{"CHML scheme", "ChmL", SeveritySchemeCHML},
 		{"CHMLN scheme", "CHmLN", SeveritySchemeCHMLN},
 		{"Unknown scheme", "unknown", UnknownSeverityScheme},
 	}

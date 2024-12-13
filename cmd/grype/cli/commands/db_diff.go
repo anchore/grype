@@ -9,7 +9,7 @@ import (
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype/db/legacy/distribution"
-	"github.com/anchore/grype/grype/differ"
+	"github.com/anchore/grype/grype/db/v5/differ"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
 )
@@ -29,7 +29,7 @@ func (d *dbDiffOptions) AddFlags(flags clio.FlagSet) {
 
 func DBDiff(app clio.Application) *cobra.Command {
 	opts := &dbDiffOptions{
-		Output:    "table",
+		Output:    tableOutputFormat,
 		DBOptions: *dbOptionsDefault(app.ID()),
 	}
 
@@ -65,7 +65,7 @@ func DBDiff(app clio.Application) *cobra.Command {
 }
 
 func runDBDiff(opts *dbDiffOptions, base string, target string) (errs error) {
-	d, err := differ.NewDiffer(opts.DB.ToCuratorConfig())
+	d, err := differ.NewDiffer(opts.DB.ToLegacyCuratorConfig())
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func runDBDiff(opts *dbDiffOptions, base string, target string) (errs error) {
 }
 
 func getDefaultURLs(opts options.Database) (baseURL string, targetURL string, err error) {
-	dbCurator, err := distribution.NewCurator(opts.ToCuratorConfig())
+	dbCurator, err := distribution.NewCurator(opts.ToLegacyCuratorConfig())
 	if err != nil {
 		return "", "", err
 	}

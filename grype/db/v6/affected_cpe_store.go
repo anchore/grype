@@ -1,12 +1,13 @@
 package v6
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"gorm.io/gorm"
 
+	"github.com/anchore/go-logger"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/syft/syft/cpe"
 )
 
 type AffectedCPEStoreWriter interface {
@@ -14,12 +15,14 @@ type AffectedCPEStoreWriter interface {
 }
 
 type AffectedCPEStoreReader interface {
-	GetCPEsByProduct(packageName string, config *GetAffectedCPEOptions) ([]AffectedCPEHandle, error)
+	GetAffectedCPEs(cpe *cpe.Attributes, config *GetAffectedCPEOptions) ([]AffectedCPEHandle, error)
 }
 
 type GetAffectedCPEOptions struct {
-	PreloadCPE  bool
-	PreloadBlob bool
+	PreloadCPE           bool
+	PreloadVulnerability bool
+	PreloadBlob          bool
+	Vulnerability        *VulnerabilitySpecifier
 }
 
 type affectedCPEStore struct {
@@ -48,31 +51,49 @@ func (s *affectedCPEStore) AddAffectedCPEs(packages ...*AffectedCPEHandle) error
 	return nil
 }
 
-// GetCPEsByProduct retrieves a single AffectedCPEHandle by product name
-func (s *affectedCPEStore) GetCPEsByProduct(packageName string, config *GetAffectedCPEOptions) ([]AffectedCPEHandle, error) {
+// GetAffectedCPEs retrieves a single AffectedCPEHandle by one or more CPE fields (not including version and update fields, which are ignored)
+func (s *affectedCPEStore) GetAffectedCPEs(cpe *cpe.Attributes, config *GetAffectedCPEOptions) ([]AffectedCPEHandle, error) {
 	if config == nil {
 		config = &GetAffectedCPEOptions{}
 	}
 
-	log.WithFields("product", packageName).Trace("fetching AffectedCPE record")
+	fields := make(logger.Fields)
+	if cpe == nil {
+		fields["cpe"] = "any"
+	} else {
+		fields["cpe"] = cpe.String()
+	}
+	log.WithFields(fields).Trace("fetching AffectedCPE record")
 
-	var pkgs []AffectedCPEHandle
-	query := s.db.
-		Joins("JOIN cpes ON cpes.id = affected_cpe_handles.cpe_id").
-		Where("cpes.product = ?", packageName)
+	query := s.handleCPE(s.db, cpe)
+
+	var err error
+	query, err = s.handleVulnerabilityOptions(query, config.Vulnerability)
+	if err != nil {
+		return nil, err
+	}
 
 	query = s.handlePreload(query, *config)
 
-	err := query.Find(&pkgs).Error
-	if err != nil {
+	var pkgs []AffectedCPEHandle
+	if err = query.Find(&pkgs).Error; err != nil {
 		return nil, fmt.Errorf("unable to fetch affected package record: %w", err)
 	}
 
 	if config.PreloadBlob {
 		for i := range pkgs {
-			err := s.attachBlob(&pkgs[i])
+			err := s.blobStore.attachBlobValue(&pkgs[i])
 			if err != nil {
 				return nil, fmt.Errorf("unable to attach blob %#v: %w", pkgs[i], err)
+			}
+		}
+	}
+
+	if config.PreloadVulnerability {
+		for i := range pkgs {
+			err := s.blobStore.attachBlobValue(pkgs[i].Vulnerability)
+			if err != nil {
+				return nil, fmt.Errorf("unable to attach vulnerability blob %#v: %w", pkgs[i], err)
 			}
 		}
 	}
@@ -80,27 +101,33 @@ func (s *affectedCPEStore) GetCPEsByProduct(packageName string, config *GetAffec
 	return pkgs, nil
 }
 
+func (s *affectedCPEStore) handleCPE(query *gorm.DB, c *cpe.Attributes) *gorm.DB {
+	if c == nil {
+		return query
+	}
+	query = query.Joins("JOIN cpes ON cpes.id = affected_cpe_handles.cpe_id")
+
+	return handleCPEOptions(query, c)
+}
+
+func (s *affectedCPEStore) handleVulnerabilityOptions(query *gorm.DB, config *VulnerabilitySpecifier) (*gorm.DB, error) {
+	if config == nil {
+		return query, nil
+	}
+
+	query = query.Joins("JOIN vulnerability_handles ON affected_cpe_handles.vulnerability_id = vulnerability_handles.id")
+
+	return handleVulnerabilityOptions(query, config)
+}
+
 func (s *affectedCPEStore) handlePreload(query *gorm.DB, config GetAffectedCPEOptions) *gorm.DB {
 	if config.PreloadCPE {
 		query = query.Preload("CPE")
 	}
 
+	if config.PreloadVulnerability {
+		query = query.Preload("Vulnerability").Preload("Vulnerability.Provider")
+	}
+
 	return query
-}
-
-// attachBlob attaches the BlobValue to the AffectedCPEHandle
-func (s *affectedCPEStore) attachBlob(cpe *AffectedCPEHandle) error {
-	var blobValue *AffectedPackageBlob
-
-	rawValue, err := s.blobStore.getBlobValue(cpe.BlobID)
-	if err != nil {
-		return fmt.Errorf("unable to fetch blob value for affected CPE: %w", err)
-	}
-
-	if err := json.Unmarshal([]byte(rawValue), &blobValue); err != nil {
-		return fmt.Errorf("unable to unmarshal blob value: %w", err)
-	}
-
-	cpe.BlobValue = blobValue
-	return nil
 }

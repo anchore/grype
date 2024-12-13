@@ -57,7 +57,8 @@ tasks:
       - task: check-licenses
       - task: lint
       - task: validate-cyclonedx-schema
-      - task: validate-grype-db-schema
+# TODO: while developing v6, we need to disable this check (since v5 and v6 are imported in the same codebase)
+#      - task: validate-grype-db-schema
 
   test:
     desc: Run all levels of test

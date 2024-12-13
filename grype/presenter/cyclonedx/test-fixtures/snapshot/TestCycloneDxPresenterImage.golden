@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:d5ea5aa8-ad1d-42c9-aecd-2268354ba41e",
+  "serialNumber": "urn:uuid:596cd775-e2a5-4932-a807-d1abfe4d804c",
   "version": 1,
   "metadata": {
-    "timestamp": "2024-06-14T16:07:15-04:00",
+    "timestamp": "2024-12-04T15:30:43+02:00",
     "tools": {
       "components": [
         {
@@ -52,7 +52,7 @@
       ]
     },
     {
-      "bom-ref": "7bb53d560434bc7f",
+      "bom-ref": "pkg:deb/package-2@2.2.2?package-id=7bb53d560434bc7f",
       "type": "library",
       "name": "package-2",
       "version": "2.2.2",
@@ -69,6 +69,7 @@
         }
       ],
       "cpe": "cpe:2.3:a:anchore:engine:2.2.2:*:*:python:*:*:*:*",
+      "purl": "pkg:deb/package-2@2.2.2",
       "properties": [
         {
           "name": "syft:package:type",
@@ -83,7 +84,7 @@
   ],
   "vulnerabilities": [
     {
-      "bom-ref": "urn:uuid:a0e2f18d-c2d0-4099-ba11-20fdb4745a19",
+      "bom-ref": "urn:uuid:2fe19024-858a-4864-9a9b-b52f105e992c",
       "id": "CVE-1999-0001",
       "source": {},
       "references": [
@@ -109,7 +110,7 @@
       ]
     },
     {
-      "bom-ref": "urn:uuid:3c0d9460-1919-43aa-ae5a-d60f269bac64",
+      "bom-ref": "urn:uuid:1082956b-2ee6-48e4-9d92-183d492a3be8",
       "id": "CVE-1999-0002",
       "source": {},
       "references": [
@@ -130,7 +131,7 @@
       "advisories": [],
       "affects": [
         {
-          "ref": "7bb53d560434bc7f"
+          "ref": "pkg:deb/package-2@2.2.2?package-id=7bb53d560434bc7f"
         }
       ]
     }

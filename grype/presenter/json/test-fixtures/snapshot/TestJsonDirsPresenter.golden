@@ -124,7 +124,7 @@
     "cpes": [
      "cpe:2.3:a:anchore:engine:2.2.2:*:*:python:*:*:*:*"
     ],
-    "purl": "",
+    "purl": "pkg:deb/package-2@2.2.2",
     "upstreams": []
    }
   }

@@ -12,23 +12,22 @@ import (
 
 	"github.com/hako/durafmt"
 	"github.com/hashicorp/go-cleanhttp"
-	"github.com/mholt/archiver/v3"
 	"github.com/spf13/afero"
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
 
+	"github.com/anchore/archiver/v3"
 	"github.com/anchore/clio"
-	grypeDB "github.com/anchore/grype/grype/db/v5"
+	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/db/v5/store"
 	"github.com/anchore/grype/grype/event"
-	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/file"
 	"github.com/anchore/grype/internal/log"
 )
 
 const (
-	FileName                = grypeDB.VulnerabilityStoreFileName
+	FileName                = v5.VulnerabilityStoreFileName
 	lastUpdateCheckFileName = "last_update_check"
 )
 
@@ -62,7 +61,7 @@ type Curator struct {
 }
 
 func NewCurator(cfg Config) (Curator, error) {
-	dbDir := path.Join(cfg.DBRootDir, strconv.Itoa(vulnerability.SchemaVersion))
+	dbDir := path.Join(cfg.DBRootDir, strconv.Itoa(v5.SchemaVersion))
 
 	fs := afero.NewOsFs()
 	listingClient, err := defaultHTTPClient(fs, cfg.CACert)
@@ -79,7 +78,7 @@ func NewCurator(cfg Config) (Curator, error) {
 
 	return Curator{
 		fs:                      fs,
-		targetSchema:            vulnerability.SchemaVersion,
+		targetSchema:            v5.SchemaVersion,
 		listingDownloader:       file.NewGetter(cfg.ID, listingClient),
 		updateDownloader:        file.NewGetter(cfg.ID, dbClient),
 		dbDir:                   dbDir,
@@ -97,15 +96,14 @@ func (c Curator) SupportedSchema() int {
 	return c.targetSchema
 }
 
-func (c *Curator) GetStore() (grypeDB.StoreReader, grypeDB.DBCloser, error) {
+func (c *Curator) GetStore() (v5.StoreReader, error) {
 	// ensure the DB is ok
 	_, err := c.validateIntegrity(c.dbDir)
 	if err != nil {
-		return nil, nil, fmt.Errorf("vulnerability database is invalid (run db update to correct): %+v", err)
+		return nil, fmt.Errorf("vulnerability database is invalid (run db update to correct): %+v", err)
 	}
 
-	s, err := store.New(c.dbPath, false)
-	return s, s, err
+	return store.New(c.dbPath, false)
 }
 
 func (c *Curator) Status() Status {

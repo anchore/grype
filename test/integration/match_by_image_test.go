@@ -11,20 +11,19 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/db"
+	v5 "github.com/anchore/grype/grype/db/v5"
+	"github.com/anchore/grype/grype/db/v5/matcher"
+	"github.com/anchore/grype/grype/db/v5/matcher/dotnet"
+	"github.com/anchore/grype/grype/db/v5/matcher/golang"
+	"github.com/anchore/grype/grype/db/v5/matcher/java"
+	"github.com/anchore/grype/grype/db/v5/matcher/javascript"
+	"github.com/anchore/grype/grype/db/v5/matcher/python"
+	"github.com/anchore/grype/grype/db/v5/matcher/ruby"
+	"github.com/anchore/grype/grype/db/v5/matcher/rust"
+	"github.com/anchore/grype/grype/db/v5/matcher/stock"
+	"github.com/anchore/grype/grype/db/v5/search"
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/matcher"
-	"github.com/anchore/grype/grype/matcher/dotnet"
-	"github.com/anchore/grype/grype/matcher/golang"
-	"github.com/anchore/grype/grype/matcher/java"
-	"github.com/anchore/grype/grype/matcher/javascript"
-	"github.com/anchore/grype/grype/matcher/python"
-	"github.com/anchore/grype/grype/matcher/ruby"
-	"github.com/anchore/grype/grype/matcher/rust"
-	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/search"
-	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/grype/grype/vex"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/stringutil"
@@ -45,7 +44,7 @@ func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 	}
 	thePkg := pkg.New(packages[0])
 	theVuln := theStore.backend["alpine:distro:alpine:3.12"][thePkg.Name][0]
-	vulnObj, err := vulnerability.NewVulnerability(theVuln)
+	vulnObj, err := v5.NewVulnerability(theVuln)
 	require.NoError(t, err)
 
 	theResult.Add(match.Match{
@@ -107,7 +106,7 @@ func addJavascriptMatches(t *testing.T, theSource source.Source, catalog *syftPk
 	}
 	thePkg := pkg.New(packages[0])
 	theVuln := theStore.backend["github:language:javascript"][thePkg.Name][0]
-	vulnObj, err := vulnerability.NewVulnerability(theVuln)
+	vulnObj, err := v5.NewVulnerability(theVuln)
 	require.NoError(t, err)
 
 	theResult.Add(match.Match{
@@ -147,7 +146,7 @@ func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 	thePkg := pkg.New(packages[0])
 	normalizedName := theStore.normalizedPackageNames["github:language:python"][thePkg.Name]
 	theVuln := theStore.backend["github:language:python"][normalizedName][0]
-	vulnObj, err := vulnerability.NewVulnerability(theVuln)
+	vulnObj, err := v5.NewVulnerability(theVuln)
 	require.NoError(t, err)
 
 	theResult.Add(match.Match{
@@ -187,7 +186,7 @@ func addDotnetMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 	thePkg := pkg.New(packages[1])
 	normalizedName := theStore.normalizedPackageNames["github:language:dotnet"][thePkg.Name]
 	theVuln := theStore.backend["github:language:dotnet"][normalizedName][0]
-	vulnObj, err := vulnerability.NewVulnerability(theVuln)
+	vulnObj, err := v5.NewVulnerability(theVuln)
 	require.NoError(t, err)
 
 	theResult.Add(match.Match{
@@ -223,7 +222,7 @@ func addRubyMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 	}
 	thePkg := pkg.New(packages[0])
 	theVuln := theStore.backend["github:language:ruby"][thePkg.Name][0]
-	vulnObj, err := vulnerability.NewVulnerability(theVuln)
+	vulnObj, err := v5.NewVulnerability(theVuln)
 	require.NoError(t, err)
 
 	theResult.Add(match.Match{
@@ -281,7 +280,7 @@ func addGolangMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 
 		thePkg := pkg.New(p)
 		theVuln := theStore.backend["github:language:go"][thePkg.Name][0]
-		vulnObj, err := vulnerability.NewVulnerability(theVuln)
+		vulnObj, err := v5.NewVulnerability(theVuln)
 		require.NoError(t, err)
 
 		theResult.Add(match.Match{
@@ -328,7 +327,7 @@ func addJavaMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 	thePkg := pkg.New(theSyftPkg)
 
 	theVuln := theStore.backend["github:language:java"][lookup][0]
-	vulnObj, err := vulnerability.NewVulnerability(theVuln)
+	vulnObj, err := v5.NewVulnerability(theVuln)
 	require.NoError(t, err)
 
 	theResult.Add(match.Match{
@@ -365,7 +364,7 @@ func addDpkgMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 	thePkg := pkg.New(packages[0])
 	// NOTE: this is an indirect match, in typical debian style
 	theVuln := theStore.backend["debian:distro:debian:8"][thePkg.Name+"-dev"][0]
-	vulnObj, err := vulnerability.NewVulnerability(theVuln)
+	vulnObj, err := v5.NewVulnerability(theVuln)
 	require.NoError(t, err)
 
 	theResult.Add(match.Match{
@@ -404,7 +403,7 @@ func addPortageMatches(t *testing.T, theSource source.Source, catalog *syftPkg.C
 	}
 	thePkg := pkg.New(packages[0])
 	theVuln := theStore.backend["gentoo:distro:gentoo:2.8"][thePkg.Name][0]
-	vulnObj, err := vulnerability.NewVulnerability(theVuln)
+	vulnObj, err := v5.NewVulnerability(theVuln)
 	require.NoError(t, err)
 
 	theResult.Add(match.Match{
@@ -443,7 +442,7 @@ func addRhelMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 	}
 	thePkg := pkg.New(packages[0])
 	theVuln := theStore.backend["redhat:distro:redhat:8"][thePkg.Name][0]
-	vulnObj, err := vulnerability.NewVulnerability(theVuln)
+	vulnObj, err := v5.NewVulnerability(theVuln)
 	require.NoError(t, err)
 
 	theResult.Add(match.Match{
@@ -482,7 +481,7 @@ func addSlesMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 	}
 	thePkg := pkg.New(packages[0])
 	theVuln := theStore.backend["redhat:distro:redhat:8"][thePkg.Name][0]
-	vulnObj, err := vulnerability.NewVulnerability(theVuln)
+	vulnObj, err := v5.NewVulnerability(theVuln)
 	require.NoError(t, err)
 
 	vulnObj.Namespace = "sles:distro:sles:12.5"
@@ -522,7 +521,7 @@ func addHaskellMatches(t *testing.T, theSource source.Source, catalog *syftPkg.C
 	}
 	thePkg := pkg.New(packages[0])
 	theVuln := theStore.backend["github:language:haskell"][strings.ToLower(thePkg.Name)][0]
-	vulnObj, err := vulnerability.NewVulnerability(theVuln)
+	vulnObj, err := v5.NewVulnerability(theVuln)
 	require.NoError(t, err)
 
 	theResult.Add(match.Match{
@@ -560,7 +559,7 @@ func addJvmMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Colle
 	for _, p := range packages {
 		thePkg := pkg.New(p)
 		theVuln := theStore.backend["nvd:cpe"][strings.ToLower(thePkg.Name)][0]
-		vulnObj, err := vulnerability.NewVulnerability(theVuln)
+		vulnObj, err := v5.NewVulnerability(theVuln)
 		vulnObj.CPEs = []cpe.CPE{
 			cpe.Must("cpe:2.3:a:oracle:jdk:*:*:*:*:*:*:*:*", ""),
 		}
@@ -604,7 +603,7 @@ func addRustMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 	for _, p := range packages {
 		thePkg := pkg.New(p)
 		theVuln := theStore.backend["github:language:rust"][strings.ToLower(thePkg.Name)][0]
-		vulnObj, err := vulnerability.NewVulnerability(theVuln)
+		vulnObj, err := v5.NewVulnerability(theVuln)
 		require.NoError(t, err)
 
 		theResult.Add(match.Match{
@@ -761,14 +760,14 @@ func TestMatchByImage(t *testing.T) {
 				},
 			})
 
-			vp, err := db.NewVulnerabilityProvider(theStore)
+			vp, err := v5.NewVulnerabilityProvider(theStore)
 			require.NoError(t, err)
-			mp := db.NewVulnerabilityMetadataProvider(theStore)
-			ep := db.NewMatchExclusionProvider(theStore)
-			str := store.Store{
-				Provider:          vp,
-				MetadataProvider:  mp,
-				ExclusionProvider: ep,
+			mp := v5.NewVulnerabilityMetadataProvider(theStore)
+			ep := v5.NewMatchExclusionProvider(theStore)
+			str := v5.ProviderStore{
+				VulnerabilityProvider:         vp,
+				VulnerabilityMetadataProvider: mp,
+				ExclusionProvider:             ep,
 			}
 
 			actualResults := grype.FindVulnerabilitiesForPackage(str, s.Artifacts.LinuxDistribution, matchers, pkg.FromCollection(s.Artifacts.Packages, pkg.SynthesisConfig{}))
@@ -852,8 +851,10 @@ func testIgnoredMatches() []match.IgnoredMatch {
 		{
 			Match: match.Match{
 				Vulnerability: vulnerability.Vulnerability{
-					ID:        "CVE-alpine-libvncserver",
-					Namespace: "alpine:distro:alpine:3.12",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-alpine-libvncserver",
+						Namespace: "alpine:distro:alpine:3.12",
+					},
 				},
 				Package: pkg.Package{
 					ID:       "44fa3691ae360cac",

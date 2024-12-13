@@ -42,6 +42,9 @@
                 "markdown": "**Vulnerability CVE-1999-0002**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| critical  | package-2  | 2.2.2  |   | deb  | somefile-2.txt  | source-2  | CVE-1999-0002  |\n"
               },
               "properties": {
+                "purls": [
+                  "pkg:deb/package-2@2.2.2"
+                ],
                 "security-severity": "1.0"
               }
             }

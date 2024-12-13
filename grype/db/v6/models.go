@@ -1,6 +1,7 @@
 package v6
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -24,6 +25,7 @@ func Models() []any {
 
 		// vulnerability related search tables
 		&VulnerabilityHandle{},
+		&VulnerabilityAlias{},
 
 		// package related search tables
 		&AffectedPackageHandle{}, // join on package, operating system
@@ -92,6 +94,32 @@ type Provider struct {
 	InputDigest string `gorm:"column:input_digest"`
 }
 
+func (p *Provider) BeforeCreate(tx *gorm.DB) (err error) {
+	// if the name and version already exist in the table then we should not insert a new record
+	var existing Provider
+	result := tx.Where("id = ?", p.ID).First(&existing)
+	if result.Error == nil {
+		if existing.Processor == p.Processor && existing.DateCaptured == p.DateCaptured && existing.InputDigest == p.InputDigest && p.Version == existing.Version {
+			// record already exists
+			p.ID = existing.ID
+			return nil
+		}
+
+		// overwrite the existing provider if found
+		existing.Processor = p.Processor
+		existing.DateCaptured = p.DateCaptured
+		existing.InputDigest = p.InputDigest
+		existing.Version = p.Version
+		if err := tx.Save(&existing).Error; err != nil {
+			return fmt.Errorf("failed to update existing %q provider record: %w", p.ID, err)
+		}
+		return nil
+	}
+
+	// create a new provider record if not found
+	return nil
+}
+
 // vulnerability related search tables //////////////////////////////////////////////////////
 
 // VulnerabilityHandle represents the pointer to the core advisory record for a single known vulnerability from a specific provider.
@@ -100,6 +128,21 @@ type VulnerabilityHandle struct {
 
 	// Name is the unique name for the vulnerability (same as the decoded VulnerabilityBlob.ID)
 	Name string `gorm:"column:name;not null;index"`
+
+	// Status conveys the actionability of the current record
+	Status string `gorm:"column:status;not null;index"`
+
+	// PublishedDate is the date the vulnerability record was first published
+	PublishedDate *time.Time `gorm:"column:published_date;index"`
+
+	// ModifiedDate is the date the vulnerability record was last modified
+	ModifiedDate *time.Time `gorm:"column:modified_date;index"`
+
+	// WithdrawnDate is the date the vulnerability record was withdrawn
+	WithdrawnDate *time.Time `gorm:"column:withdrawn_date;index"`
+
+	ProviderID string    `gorm:"column:provider_id;not null;index"`
+	Provider   *Provider `gorm:"foreignKey:ProviderID"`
 
 	BlobID    ID                 `gorm:"column:blob_id;index,unique"`
 	BlobValue *VulnerabilityBlob `gorm:"-"`
@@ -113,13 +156,39 @@ func (v *VulnerabilityHandle) setBlobID(id ID) {
 	v.BlobID = id
 }
 
+func (v VulnerabilityHandle) getBlobID() ID {
+	return v.BlobID
+}
+
+func (v *VulnerabilityHandle) setBlob(rawBlobValue []byte) error {
+	var blobValue VulnerabilityBlob
+	if err := json.Unmarshal(rawBlobValue, &blobValue); err != nil {
+		return fmt.Errorf("unable to unmarshal vulnerability blob value: %w", err)
+	}
+
+	v.BlobValue = &blobValue
+	return nil
+}
+
+type VulnerabilityAlias struct {
+	// Name is the unique name for the vulnerability
+	Name string `gorm:"column:name;primaryKey;index"`
+
+	// Alias is an alternative name for the vulnerability that must be upstream from the Name (e.g if name is "RHSA-1234" then the upstream could be "CVE-1234-5678", but not the other way around)
+	Alias string `gorm:"column:alias;primaryKey;index;not null"`
+}
+
 // package related search tables //////////////////////////////////////////////////////
 
-// AffectedPackageHandle represents a single package affected by the specified vulnerability.
+// AffectedPackageHandle represents a single package affected by the specified vulnerability. A package here is a
+// name within a known ecosystem, such as "python" or "golang". It is important to note that this table relates
+// vulnerabilities to resolved packages. There are cases when we have package identifiers but are not resolved to
+// packages; for example, when we have a CPE but not a clear understanding of the package ecosystem and authoritative
+// name (which might or might not be the product name in the CPE), in which case AffectedCPEHandle should be used.
 type AffectedPackageHandle struct {
-	ID              ID `gorm:"column:id;primaryKey"`
-	VulnerabilityID ID `gorm:"column:vulnerability_id;not null"`
-	// Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
+	ID              ID                   `gorm:"column:id;primaryKey"`
+	VulnerabilityID ID                   `gorm:"column:vulnerability_id;not null"`
+	Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
 
 	OperatingSystemID *ID              `gorm:"column:operating_system_id"`
 	OperatingSystem   *OperatingSystem `gorm:"foreignKey:OperatingSystemID"`
@@ -139,10 +208,71 @@ func (v *AffectedPackageHandle) setBlobID(id ID) {
 	v.BlobID = id
 }
 
+func (v AffectedPackageHandle) getBlobID() ID {
+	return v.BlobID
+}
+
+func (v *AffectedPackageHandle) setBlob(rawBlobValue []byte) error {
+	var blobValue AffectedPackageBlob
+	if err := json.Unmarshal(rawBlobValue, &blobValue); err != nil {
+		return fmt.Errorf("unable to unmarshal affected package blob value: %w", err)
+	}
+
+	v.BlobValue = &blobValue
+	return nil
+}
+
 type Package struct {
 	ID   ID     `gorm:"column:id;primaryKey"`
 	Type string `gorm:"column:type;index:idx_package,unique"`
 	Name string `gorm:"column:name;index:idx_package,unique"`
+
+	CPEs []Cpe `gorm:"foreignKey:PackageID;constraint:OnDelete:CASCADE;"`
+}
+
+func (p *Package) BeforeCreate(tx *gorm.DB) (err error) {
+	var existingPackage Package
+	result := tx.Where("type = ? AND name = ?", p.Type, p.Name).First(&existingPackage)
+	if result.Error == nil {
+		// package exists; merge CPEs
+		for i, newCPE := range p.CPEs {
+			// if the CPE already exists, then we should use the existing record
+			var existingCPE Cpe
+			cpeResult := cpeWhereClause(tx, &newCPE).First(&existingCPE)
+			if cpeResult.Error == nil {
+				// if the record already exists, then we should use the existing record
+				newCPE = existingCPE
+				p.CPEs[i] = newCPE
+
+				if existingCPE.PackageID == nil {
+					log.WithFields("cpe", existingCPE, "pkg", existingPackage).Warn("CPE exists but was not associated with an already existing package until now")
+					continue
+				}
+
+				if *existingCPE.PackageID != existingPackage.ID {
+					return fmt.Errorf("CPE already exists for a different package (pkg=%q, existing_pkg=%q): %q", p, existingPackage, newCPE)
+				}
+				continue
+			}
+
+			// if the CPE does not exist, proceed with creating it
+			newCPE.PackageID = &existingPackage.ID
+			p.CPEs[i] = newCPE
+
+			if err := tx.Create(&newCPE).Error; err != nil {
+				return fmt.Errorf("failed to create CPE %q for package %q: %w", newCPE, existingPackage, err)
+			}
+		}
+		// use the existing package instead of creating a new one
+		*p = existingPackage
+		return nil
+	}
+
+	// if the package does not exist, proceed with creating it
+	for i := range p.CPEs {
+		p.CPEs[i].PackageID = &p.ID
+	}
+	return nil
 }
 
 type OperatingSystem struct {
@@ -184,6 +314,37 @@ type OperatingSystemAlias struct {
 	Rolling                 bool    `gorm:"column:rolling;primaryKey"`
 }
 
+func KnownOperatingSystemAliases() []OperatingSystemAlias {
+	strRef := func(s string) *string {
+		return &s
+	}
+	return []OperatingSystemAlias{
+		{Name: "centos", ReplacementName: strRef("rhel")},
+		{Name: "rocky", ReplacementName: strRef("rhel")},
+		{Name: "almalinux", ReplacementName: strRef("rhel")},
+		{Name: "gentoo", ReplacementName: strRef("rhel")},
+		{Name: "alpine", VersionPattern: ".*_alpha.*", ReplacementLabelVersion: strRef("edge"), Rolling: true},
+		{Name: "wolfi", Rolling: true},
+		{Name: "arch", Rolling: true},
+		// TODO: trixie is a placeholder for now, but should be updated to sid when the time comes
+		// this needs to be automated, but isn't clear how to do so since you'll see things like this:
+		//
+		// ❯ docker run --rm debian:sid cat /etc/os-release | grep VERSION_CODENAME
+		//   VERSION_CODENAME=trixie
+		// ❯ docker run --rm debian:testing cat /etc/os-release | grep VERSION_CODENAME
+		//   VERSION_CODENAME=trixie
+		//
+		// ❯ curl -s http://deb.debian.org/debian/dists/testing/Release | grep '^Codename:'
+		//   Codename: trixie
+		// ❯ curl -s http://deb.debian.org/debian/dists/sid/Release | grep '^Codename:'
+		//   Codename: sid
+		//
+		// depending where the team is during the development cycle you will see different behavior, making automating
+		// this a little challenging.
+		{Name: "debian", Codename: "trixie", Rolling: true}, // is currently sid, which is considered rolling
+	}
+}
+
 func (os *OperatingSystemAlias) BeforeCreate(_ *gorm.DB) (err error) {
 	if os.Version != "" && os.VersionPattern != "" {
 		return fmt.Errorf("cannot have both version and version_pattern set")
@@ -194,17 +355,24 @@ func (os *OperatingSystemAlias) BeforeCreate(_ *gorm.DB) (err error) {
 
 // CPE related search tables //////////////////////////////////////////////////////
 
-// AffectedCPEHandle represents a single CPE affected by the specified vulnerability
+// AffectedCPEHandle represents a single CPE affected by the specified vulnerability. Note the CPEs in this table
+// must NOT be resolvable to Packages (use AffectedPackageHandle for that). This table is used when the CPE is known,
+// but we do not have a clear understanding of the package ecosystem or authoritative name, so we can still
+// find vulnerabilities by these identifiers but not assert they are related to an entry in the Packages table.
 type AffectedCPEHandle struct {
-	ID              ID `gorm:"column:id;primaryKey"`
-	VulnerabilityID ID `gorm:"column:vulnerability_id;not null"`
-	// Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
+	ID              ID                   `gorm:"column:id;primaryKey"`
+	VulnerabilityID ID                   `gorm:"column:vulnerability_id;not null"`
+	Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
 
 	CpeID ID   `gorm:"column:cpe_id"`
 	CPE   *Cpe `gorm:"foreignKey:CpeID"`
 
 	BlobID    ID                   `gorm:"column:blob_id"`
 	BlobValue *AffectedPackageBlob `gorm:"-"`
+}
+
+func (v AffectedCPEHandle) getBlobID() ID {
+	return v.BlobID
 }
 
 func (v AffectedCPEHandle) getBlobValue() any {
@@ -215,11 +383,22 @@ func (v *AffectedCPEHandle) setBlobID(id ID) {
 	v.BlobID = id
 }
 
+func (v *AffectedCPEHandle) setBlob(rawBlobValue []byte) error {
+	var blobValue AffectedPackageBlob
+	if err := json.Unmarshal(rawBlobValue, &blobValue); err != nil {
+		return fmt.Errorf("unable to unmarshal affected cpe blob value: %w", err)
+	}
+
+	v.BlobValue = &blobValue
+	return nil
+}
+
 type Cpe struct {
 	// TODO: what about different CPE versions?
-	ID ID `gorm:"primaryKey"`
+	ID        ID  `gorm:"primaryKey"`
+	PackageID *ID `gorm:"column:package_id;index"`
 
-	Type            string `gorm:"column:type;not null;index:idx_cpe,unique"`
+	Part            string `gorm:"column:part;not null;index:idx_cpe,unique"`
 	Vendor          string `gorm:"column:vendor;index:idx_cpe,unique"`
 	Product         string `gorm:"column:product;not null;index:idx_cpe,unique"`
 	Edition         string `gorm:"column:edition;index:idx_cpe,unique"`
@@ -231,16 +410,27 @@ type Cpe struct {
 }
 
 func (c Cpe) String() string {
-	return fmt.Sprintf("%s:%s:%s:%s:%s:%s:%s:%s:%s", c.Type, c.Vendor, c.Product, c.Edition, c.Language, c.SoftwareEdition, c.TargetHardware, c.TargetSoftware, c.Other)
+	return fmt.Sprintf("%s:%s:%s:::%s:%s:%s:%s:%s:%s", c.Part, c.Vendor, c.Product, c.Edition, c.Language, c.SoftwareEdition, c.TargetHardware, c.TargetSoftware, c.Other)
 }
 
 func (c *Cpe) BeforeCreate(tx *gorm.DB) (err error) {
 	// if the name, major version, and minor version already exist in the table then we should not insert a new record
 	var existing Cpe
-	result := tx.Where("type = ? AND vendor = ? AND product = ? AND edition = ? AND language = ? AND software_edition = ? AND target_hardware = ? AND target_software = ? AND other = ?", c.Type, c.Vendor, c.Product, c.Edition, c.Language, c.SoftwareEdition, c.TargetHardware, c.TargetSoftware, c.Other).First(&existing)
+	result := cpeWhereClause(tx, c).First(&existing)
 	if result.Error == nil {
+		if c.PackageID != nil && c.PackageID != existing.PackageID {
+			return fmt.Errorf("CPE already exists for a different package (pkg=%d, existing_pkg=%d): %q", c.PackageID, existing.PackageID, c)
+		}
+
 		// if the record already exists, then we should use the existing record
 		*c = existing
 	}
 	return nil
+}
+
+func cpeWhereClause(tx *gorm.DB, c *Cpe) *gorm.DB {
+	if c == nil {
+		return tx
+	}
+	return tx.Where("part = ? AND vendor = ? AND product = ? AND edition = ? AND language = ? AND software_edition = ? AND target_hardware = ? AND target_software = ? AND other = ?", c.Part, c.Vendor, c.Product, c.Edition, c.Language, c.SoftwareEdition, c.TargetHardware, c.TargetSoftware, c.Other)
 }

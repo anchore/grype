@@ -12,7 +12,6 @@ import (
 	"github.com/owenrumney/go-sarif/sarif"
 
 	"github.com/anchore/clio"
-	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -105,7 +104,7 @@ func (pres *Presenter) sarifRules() (out []*sarif.ReportingDescriptor) {
 				}
 			}
 
-			out = append(out, &sarif.ReportingDescriptor{
+			descriptor := sarif.ReportingDescriptor{
 				ID:      ruleID,
 				Name:    sp(ruleName(m)),
 				HelpURI: sp("https://github.com/anchore/grype"),
@@ -123,7 +122,13 @@ func (pres *Presenter) sarifRules() (out []*sarif.ReportingDescriptor) {
 					// https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning#reportingdescriptor-object
 					"security-severity": pres.securitySeverityValue(m),
 				},
-			})
+			}
+
+			if len(m.Package.PURL) != 0 {
+				descriptor.Properties["purls"] = []string{m.Package.PURL}
+			}
+
+			out = append(out, &descriptor)
 		}
 	}
 	return out
@@ -283,13 +288,13 @@ func (pres *Presenter) severityText(m match.Match) string {
 func (pres *Presenter) cvssScore(v vulnerability.Vulnerability) float64 {
 	var all []*vulnerability.Metadata
 
-	meta, err := pres.metadataProvider.GetMetadata(v.ID, v.Namespace)
+	meta, err := pres.metadataProvider.VulnerabilityMetadata(v.Reference)
 	if err == nil && meta != nil {
 		all = append(all, meta)
 	}
 
 	for _, related := range v.RelatedVulnerabilities {
-		meta, err = pres.metadataProvider.GetMetadata(related.ID, related.Namespace)
+		meta, err = pres.metadataProvider.VulnerabilityMetadata(related)
 		if err == nil && meta != nil {
 			all = append(all, meta)
 		}
@@ -352,7 +357,7 @@ func (pres *Presenter) securitySeverityValue(m match.Match) string {
 
 // metadata returns the matching *vulnerability.Metadata from the provider or nil if not found / error
 func (pres *Presenter) metadata(m match.Match) *vulnerability.Metadata {
-	meta, _ := pres.metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.Namespace)
+	meta, _ := pres.metadataProvider.VulnerabilityMetadata(m.Vulnerability.Reference)
 	return meta
 }
 
@@ -375,7 +380,7 @@ func (pres *Presenter) subtitle(m match.Match) string {
 }
 
 func fixVersions(m match.Match) string {
-	if m.Vulnerability.Fix.State == v5.FixedState && len(m.Vulnerability.Fix.Versions) > 0 {
+	if m.Vulnerability.Fix.State == vulnerability.FixStateFixed && len(m.Vulnerability.Fix.Versions) > 0 {
 		return strings.Join(m.Vulnerability.Fix.Versions, ",")
 	}
 	return ""

@@ -1,14 +1,15 @@
 package v6
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"gorm.io/gorm"
 
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/syft/syft/cpe"
 )
 
 var NoDistroSpecified = &DistroSpecifier{}
@@ -18,11 +19,44 @@ var ErrDistroNotPresent = errors.New("distro not present")
 var ErrMultipleOSMatches = errors.New("multiple OS matches found but not allowed")
 
 type GetAffectedPackageOptions struct {
-	PreloadOS      bool
-	PreloadPackage bool
-	PreloadBlob    bool
-	PackageType    string
-	Distro         *DistroSpecifier
+	PreloadOS            bool
+	PreloadPackage       bool
+	PreloadPackageCPEs   bool
+	PreloadVulnerability bool
+	PreloadBlob          bool
+	Distro               *DistroSpecifier
+	Vulnerability        *VulnerabilitySpecifier
+}
+
+type PackageSpecifier struct {
+	Name string
+	Type string
+	CPE  *cpe.Attributes
+}
+
+func (p *PackageSpecifier) String() string {
+	if p == nil {
+		return "no-package-specified"
+	}
+
+	var args []string
+	if p.Name != "" {
+		args = append(args, fmt.Sprintf("name=%s", p.Name))
+	}
+
+	if p.Type != "" {
+		args = append(args, fmt.Sprintf("type=%s", p.Type))
+	}
+
+	if p.CPE != nil {
+		args = append(args, fmt.Sprintf("cpe=%s", p.CPE.String()))
+	}
+
+	if len(args) > 0 {
+		return fmt.Sprintf("pkg(%s)", strings.Join(args, ", "))
+	}
+
+	return "no-package-specified"
 }
 
 // DistroSpecifier is a struct that represents a distro in a way that can be used to query the affected package store.
@@ -90,7 +124,7 @@ type AffectedPackageStoreWriter interface {
 }
 
 type AffectedPackageStoreReader interface {
-	GetAffectedPackagesByName(packageName string, config *GetAffectedPackageOptions) ([]AffectedPackageHandle, error)
+	GetAffectedPackages(pkg *PackageSpecifier, config *GetAffectedPackageOptions) ([]AffectedPackageHandle, error)
 }
 
 type affectedPackageStore struct {
@@ -107,15 +141,6 @@ func newAffectedPackageStore(db *gorm.DB, bs *blobStore) *affectedPackageStore {
 
 func (s *affectedPackageStore) AddAffectedPackages(packages ...*AffectedPackageHandle) error {
 	for _, v := range packages {
-		if v.Package != nil {
-			var existingPackage Package
-			result := s.db.Where("name = ? AND type = ?", v.Package.Name, v.Package.Type).FirstOrCreate(&existingPackage, v.Package)
-			if result.Error != nil {
-				return fmt.Errorf("failed to create package (name=%q type=%q): %w", v.Package.Name, v.Package.Type, result.Error)
-			}
-			v.Package = &existingPackage
-		}
-
 		if err := s.blobStore.addBlobable(v); err != nil {
 			return fmt.Errorf("unable to add affected blob: %w", err)
 		}
@@ -126,42 +151,47 @@ func (s *affectedPackageStore) AddAffectedPackages(packages ...*AffectedPackageH
 	return nil
 }
 
-func (s *affectedPackageStore) GetAffectedPackagesByName(packageName string, config *GetAffectedPackageOptions) ([]AffectedPackageHandle, error) {
+func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config *GetAffectedPackageOptions) ([]AffectedPackageHandle, error) {
 	if config == nil {
 		config = &GetAffectedPackageOptions{}
 	}
 
-	log.WithFields("name", packageName, "distro", distroDisplay(config.Distro)).Trace("fetching AffectedPackage record")
+	log.WithFields("pkg", pkg.String(), "distro", distroDisplay(config.Distro)).Trace("fetching AffectedPackage record")
 
-	if hasDistroSpecified(config.Distro) {
-		return s.getPackageByNameAndDistro(packageName, *config)
-	}
+	query := s.handlePackage(s.db, pkg)
 
-	return s.getNonDistroPackageByName(packageName, *config)
-}
-
-func (s *affectedPackageStore) getNonDistroPackageByName(packageName string, config GetAffectedPackageOptions) ([]AffectedPackageHandle, error) {
-	var pkgs []AffectedPackageHandle
-	query := s.db.Joins("JOIN packages ON affected_package_handles.package_id = packages.id")
-
-	if config.Distro != AnyDistroSpecified {
-		query = query.Where("operating_system_id IS NULL")
-	}
-
-	query = s.handlePackage(query, packageName, config)
-	query = s.handlePreload(query, config)
-
-	err := query.Find(&pkgs).Error
-
+	var err error
+	query, err = s.handleVulnerabilityOptions(query, config.Vulnerability)
 	if err != nil {
+		return nil, err
+	}
+
+	query, err = s.handleDistroOptions(query, config.Distro)
+	if err != nil {
+		return nil, err
+	}
+
+	query = s.handlePreload(query, *config)
+
+	var pkgs []AffectedPackageHandle
+	if err = query.Find(&pkgs).Error; err != nil {
 		return nil, fmt.Errorf("unable to fetch non-distro affected package record: %w", err)
 	}
 
 	if config.PreloadBlob {
 		for i := range pkgs {
-			err := s.attachBlob(&pkgs[i])
+			err := s.blobStore.attachBlobValue(&pkgs[i])
 			if err != nil {
 				return nil, fmt.Errorf("unable to attach blob %#v: %w", pkgs[i], err)
+			}
+		}
+	}
+
+	if config.PreloadVulnerability {
+		for i := range pkgs {
+			err := s.blobStore.attachBlobValue(pkgs[i].Vulnerability)
+			if err != nil {
+				return nil, fmt.Errorf("unable to attach vulnerability blob %#v: %w", pkgs[i], err)
 			}
 		}
 	}
@@ -169,11 +199,44 @@ func (s *affectedPackageStore) getNonDistroPackageByName(packageName string, con
 	return pkgs, nil
 }
 
-func (s *affectedPackageStore) getPackageByNameAndDistro(packageName string, config GetAffectedPackageOptions) ([]AffectedPackageHandle, error) {
+func (s *affectedPackageStore) handlePackage(query *gorm.DB, config *PackageSpecifier) *gorm.DB {
+	if config == nil {
+		return query
+	}
+
+	query = query.Joins("JOIN packages ON affected_package_handles.package_id = packages.id")
+
+	if config.Name != "" {
+		query = query.Where("packages.name = ?", config.Name)
+	}
+	if config.Type != "" {
+		query = query.Where("packages.type = ?", config.Type)
+	}
+
+	if config.CPE != nil {
+		query = query.Joins("JOIN cpes ON packages.id = cpes.package_id")
+		query = handleCPEOptions(query, config.CPE)
+	}
+
+	return query
+}
+
+func (s *affectedPackageStore) handleVulnerabilityOptions(query *gorm.DB, config *VulnerabilitySpecifier) (*gorm.DB, error) {
+	if config == nil {
+		return query, nil
+	}
+	query = query.Joins("JOIN vulnerability_handles ON affected_package_handles.vulnerability_id = vulnerability_handles.id")
+
+	return handleVulnerabilityOptions(query, config)
+}
+
+func (s *affectedPackageStore) handleDistroOptions(query *gorm.DB, config *DistroSpecifier) (*gorm.DB, error) {
 	var resolvedDistros []OperatingSystem
 	var err error
-	if config.Distro != NoDistroSpecified || config.Distro != AnyDistroSpecified {
-		resolvedDistros, err = s.resolveDistro(*config.Distro)
+
+	switch {
+	case hasDistroSpecified(config):
+		resolvedDistros, err = s.resolveDistro(*config)
 		if err != nil {
 			return nil, fmt.Errorf("unable to resolve distro: %w", err)
 		}
@@ -181,34 +244,31 @@ func (s *affectedPackageStore) getPackageByNameAndDistro(packageName string, con
 		switch {
 		case len(resolvedDistros) == 0:
 			return nil, ErrDistroNotPresent
-		case len(resolvedDistros) > 1 && !config.Distro.AllowMultiple:
+		case len(resolvedDistros) > 1 && !config.AllowMultiple:
 			return nil, ErrMultipleOSMatches
 		}
+	case config == AnyDistroSpecified:
+		// TODO: one enhancement we may want to do later is "has OS defined but is not specific" which this does NOT cover. This is "may or may not have an OS defined" which is different.
+		return query, nil
+	case *config == *NoDistroSpecified:
+		return query.Where("operating_system_id IS NULL"), nil
 	}
 
-	var pkgs []AffectedPackageHandle
-	query := s.db.Joins("JOIN packages ON affected_package_handles.package_id = packages.id").
-		Joins("JOIN operating_systems ON affected_package_handles.operating_system_id = operating_systems.id")
+	query = query.Joins("JOIN operating_systems ON affected_package_handles.operating_system_id = operating_systems.id")
 
-	query = s.handlePackage(query, packageName, config)
-	query = s.handleDistros(query, resolvedDistros)
-	query = s.handlePreload(query, config)
-
-	err = query.Find(&pkgs).Error
-	if err != nil {
-		return nil, fmt.Errorf("unable to fetch affected package record: %w", err)
-	}
-
-	if config.PreloadBlob {
-		for i := range pkgs {
-			err := s.attachBlob(&pkgs[i])
-			if err != nil {
-				return nil, fmt.Errorf("unable to attach blob %#v: %w", pkgs[i], err)
+	var count int
+	for _, o := range resolvedDistros {
+		if o.ID != 0 {
+			if count == 0 {
+				query = query.Where("operating_systems.id = ?", o.ID)
+			} else {
+				query = query.Or("operating_systems.id = ?", o.ID)
 			}
+			count++
 		}
 	}
 
-	return pkgs, nil
+	return query, nil
 }
 
 func (s *affectedPackageStore) resolveDistro(d DistroSpecifier) ([]OperatingSystem, error) {
@@ -355,33 +415,17 @@ func (s *affectedPackageStore) applyAlias(d *DistroSpecifier) error {
 	return nil
 }
 
-func (s *affectedPackageStore) handlePackage(query *gorm.DB, packageName string, config GetAffectedPackageOptions) *gorm.DB {
-	query = query.Where("packages.name = ?", packageName)
-
-	if config.PackageType != "" {
-		query = query.Where("packages.type = ?", config.PackageType)
-	}
-	return query
-}
-
-func (s *affectedPackageStore) handleDistros(query *gorm.DB, resolvedDistros []OperatingSystem) *gorm.DB {
-	var count int
-	for _, o := range resolvedDistros {
-		if o.ID != 0 {
-			if count == 0 {
-				query = query.Where("operating_systems.id = ?", o.ID)
-			} else {
-				query = query.Or("operating_systems.id = ?", o.ID)
-			}
-			count++
-		}
-	}
-	return query
-}
-
 func (s *affectedPackageStore) handlePreload(query *gorm.DB, config GetAffectedPackageOptions) *gorm.DB {
 	if config.PreloadPackage {
 		query = query.Preload("Package")
+
+		if config.PreloadPackageCPEs {
+			query = query.Preload("Package.CPEs")
+		}
+	}
+
+	if config.PreloadVulnerability {
+		query = query.Preload("Vulnerability").Preload("Vulnerability.Provider")
 	}
 
 	if config.PreloadOS {
@@ -390,22 +434,43 @@ func (s *affectedPackageStore) handlePreload(query *gorm.DB, config GetAffectedP
 	return query
 }
 
-func (s *affectedPackageStore) attachBlob(vh *AffectedPackageHandle) error {
-	var blobValue *AffectedPackageBlob
-
-	rawValue, err := s.blobStore.getBlobValue(vh.BlobID)
-	if err != nil {
-		return fmt.Errorf("unable to fetch affected package blob value: %w", err)
+func handleCPEOptions(query *gorm.DB, c *cpe.Attributes) *gorm.DB {
+	if c.Part != cpe.Any {
+		query = query.Where("cpes.part = ?", c.Part)
 	}
 
-	err = json.Unmarshal([]byte(rawValue), &blobValue)
-	if err != nil {
-		return fmt.Errorf("unable to unmarshal affected package blob value: %w", err)
+	if c.Vendor != cpe.Any {
+		query = query.Where("cpes.vendor = ?", c.Vendor)
 	}
 
-	vh.BlobValue = blobValue
+	if c.Product != cpe.Any {
+		query = query.Where("cpes.product = ?", c.Product)
+	}
 
-	return nil
+	if c.Edition != cpe.Any {
+		query = query.Where("cpes.edition = ?", c.Edition)
+	}
+
+	if c.Language != cpe.Any {
+		query = query.Where("cpes.language = ?", c.Language)
+	}
+
+	if c.SWEdition != cpe.Any {
+		query = query.Where("cpes.sw_edition = ?", c.SWEdition)
+	}
+
+	if c.TargetSW != cpe.Any {
+		query = query.Where("cpes.target_sw = ?", c.TargetSW)
+	}
+
+	if c.TargetHW != cpe.Any {
+		query = query.Where("cpes.target_hw = ?", c.TargetHW)
+	}
+
+	if c.Other != cpe.Any {
+		query = query.Where("cpes.other = ?", c.Other)
+	}
+	return query
 }
 
 func distroDisplay(d *DistroSpecifier) string {

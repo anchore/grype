@@ -11,6 +11,9 @@ import (
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype"
+	v6 "github.com/anchore/grype/grype/db/v6"
+	"github.com/anchore/grype/grype/db/v6/distribution"
+	"github.com/anchore/grype/grype/db/v6/installation"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
@@ -29,7 +32,7 @@ func (c *dbQueryOptions) AddFlags(flags clio.FlagSet) {
 
 func DBSearch(app clio.Application) *cobra.Command {
 	opts := &dbQueryOptions{
-		Output:    "table",
+		Output:    tableOutputFormat,
 		DBOptions: *dbOptionsDefault(app.ID()),
 	}
 
@@ -39,45 +42,84 @@ func DBSearch(app clio.Application) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) (err error) {
 			id := args[0]
-			return runDBSearch(opts, id)
+			return runDBSearch(*opts, id)
 		},
 	}, opts)
 }
 
-func runDBSearch(opts *dbQueryOptions, vulnerabilityID string) error {
+func runDBSearch(opts dbQueryOptions, vulnerabilityID string) error {
+	if opts.Experimental.DBv6 {
+		return newDBSearch(opts, vulnerabilityID)
+	}
+	return legacyDBSearch(opts, vulnerabilityID)
+}
+
+func newDBSearch(opts dbQueryOptions, vulnerabilityID string) error {
+	client, err := distribution.NewClient(opts.DB.ToClientConfig())
+	if err != nil {
+		return fmt.Errorf("unable to create distribution client: %w", err)
+	}
+
+	c, err := installation.NewCurator(opts.DB.ToCuratorConfig(), client)
+	if err != nil {
+		return fmt.Errorf("unable to create curator: %w", err)
+	}
+
+	reader, err := c.Reader()
+	if err != nil {
+		return fmt.Errorf("unable to get providers: %w", err)
+	}
+
+	vh, err := reader.GetVulnerabilities(&v6.VulnerabilitySpecifier{Name: vulnerabilityID}, &v6.GetVulnerabilityOptions{
+		Preload: true,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to get vulnerability: %w", err)
+	}
+
+	if len(vh) == 0 {
+		return fmt.Errorf("vulnerability doesn't exist in the DB: %s", vulnerabilityID)
+	}
+
+	// TODO: we need to implement the functions that inflate models to the grype vulnerability.Vulnerability struct
+	panic("not implemented")
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// all legacy processing below ////////////////////////////////////////////////////////////////////////////////////////
+
+func legacyDBSearch(opts dbQueryOptions, vulnerabilityID string) error {
 	log.Debug("loading DB")
-	str, status, dbCloser, err := grype.LoadVulnerabilityDB(opts.DB.ToCuratorConfig(), opts.DB.AutoUpdate)
+	str, status, err := grype.LoadVulnerabilityDB(opts.DB.ToLegacyCuratorConfig(), opts.DB.AutoUpdate)
 	err = validateDBLoad(err, status)
 	if err != nil {
 		return err
 	}
-	if dbCloser != nil {
-		defer dbCloser.Close()
-	}
+	defer log.CloseAndLogError(str, status.Location)
 
 	vulnerabilities, err := str.Get(vulnerabilityID, "")
 	if err != nil {
 		return err
 	}
 
-	sb := &strings.Builder{}
 	if len(vulnerabilities) == 0 {
 		return fmt.Errorf("vulnerability doesn't exist in the DB: %s", vulnerabilityID)
 	}
 
-	err = present(opts.Output, vulnerabilities, sb)
+	sb := &strings.Builder{}
+	err = presentLegacy(opts.Output, vulnerabilities, sb)
 	bus.Report(sb.String())
 
 	return err
 }
 
-func present(outputFormat string, vulnerabilities []vulnerability.Vulnerability, output io.Writer) error {
+func presentLegacy(outputFormat string, vulnerabilities []vulnerability.Vulnerability, output io.Writer) error {
 	if vulnerabilities == nil {
 		return nil
 	}
 
 	switch outputFormat {
-	case "table":
+	case tableOutputFormat:
 		rows := [][]string{}
 		for _, v := range vulnerabilities {
 			rows = append(rows, []string{v.ID, v.PackageName, v.Namespace, v.Constraint.String()})
@@ -102,7 +144,7 @@ func present(outputFormat string, vulnerabilities []vulnerability.Vulnerability,
 
 		table.AppendBulk(rows)
 		table.Render()
-	case "json":
+	case jsonOutputFormat:
 		enc := json.NewEncoder(output)
 		enc.SetEscapeHTML(false)
 		enc.SetIndent("", " ")
