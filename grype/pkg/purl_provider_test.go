@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"github.com/anchore/syft/syft/source"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -25,7 +26,13 @@ func Test_PurlProvider(t *testing.T) {
 		{
 			name:      "takes a single purl",
 			userInput: "pkg:apk/curl@7.61.1",
-			context:   Context{},
+			context: Context{
+				Source: &source.Description{
+					Metadata: PURLLiteralMetadata{
+						PURL: "pkg:apk/curl@7.61.1",
+					},
+				},
+			},
 			pkgs: []Package{
 				{
 					Name:    "curl",
@@ -54,6 +61,11 @@ func Test_PurlProvider(t *testing.T) {
 					ID:              "debian",
 					IDLike:          []string{"debian"},
 					VersionCodename: "jessie", // important!
+				},
+				Source: &source.Description{
+					Metadata: PURLLiteralMetadata{
+						PURL: "pkg:deb/debian/sysv-rc@2.88dsf-59?arch=all&distro=debian-jessie&upstream=sysvinit",
+					},
 				},
 			},
 			pkgs: []Package{
@@ -89,7 +101,13 @@ func Test_PurlProvider(t *testing.T) {
 		{
 			name:      "default upstream",
 			userInput: "pkg:apk/libcrypto3@3.3.2?upstream=openssl",
-			context:   Context{},
+			context: Context{
+				Source: &source.Description{
+					Metadata: PURLLiteralMetadata{
+						PURL: "pkg:apk/libcrypto3@3.3.2?upstream=openssl",
+					},
+				},
+			},
 			pkgs: []Package{
 				{
 					Name:    "libcrypto3",
@@ -117,7 +135,13 @@ func Test_PurlProvider(t *testing.T) {
 		{
 			name:      "upstream with version",
 			userInput: "pkg:apk/libcrypto3@3.3.2?upstream=openssl%403.2.1", // %40 is @
-			context:   Context{},
+			context: Context{
+				Source: &source.Description{
+					Metadata: PURLLiteralMetadata{
+						PURL: "pkg:apk/libcrypto3@3.3.2?upstream=openssl%403.2.1",
+					},
+				},
+			},
 			pkgs: []Package{
 				{
 					Name:    "libcrypto3",
@@ -152,6 +176,11 @@ func Test_PurlProvider(t *testing.T) {
 					ID:      "rhel",
 					IDLike:  []string{"rhel"},
 					Version: "8.10",
+				},
+				Source: &source.Description{
+					Metadata: PURLLiteralMetadata{
+						PURL: "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?arch=aarch64&distro=rhel-8.10&upstream=systemd-239-82.el8_10.2.src.rpm",
+					},
 				},
 			},
 			pkgs: []Package{
@@ -195,6 +224,11 @@ func Test_PurlProvider(t *testing.T) {
 					IDLike:  []string{"rhel"},
 					Version: "8.10",
 				},
+				Source: &source.Description{
+					Metadata: PURLLiteralMetadata{
+						PURL: "pkg:rpm/redhat/dbus-common@1.12.8-26.el8?arch=noarch&distro=rhel-8.10&epoch=1&upstream=dbus-1.12.8-26.el8.src.rpm",
+					},
+				},
 			},
 			pkgs: []Package{
 				{
@@ -236,6 +270,11 @@ func Test_PurlProvider(t *testing.T) {
 					ID:      "debian",
 					IDLike:  []string{"debian"},
 					Version: "8",
+				},
+				Source: &source.Description{
+					Metadata: PURLFileMetadata{
+						Path: "test-fixtures/purl/valid-purl.txt",
+					},
 				},
 			},
 			pkgs: []Package{
@@ -305,6 +344,11 @@ func Test_PurlProvider(t *testing.T) {
 					IDLike:  []string{"alpine"},
 					Version: "3.20.3",
 				},
+				Source: &source.Description{
+					Metadata: PURLLiteralMetadata{
+						PURL: "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.3",
+					},
+				},
 			},
 			pkgs: []Package{
 				{
@@ -340,6 +384,11 @@ func Test_PurlProvider(t *testing.T) {
 					ID:      "alpine",
 					IDLike:  []string{"alpine"},
 					Version: "3.20.3",
+				},
+				Source: &source.Description{
+					Metadata: PURLFileMetadata{
+						Path: "test-fixtures/purl/homogeneous-os.txt",
+					},
 				},
 			},
 			pkgs: []Package{
@@ -382,8 +431,13 @@ func Test_PurlProvider(t *testing.T) {
 		{
 			name:      "different distro info in purls does not infer context",
 			userInput: "purl:test-fixtures/purl/different-os.txt",
-			context:   Context{
+			context: Context{
 				// important: no distro info inferred
+				Source: &source.Description{
+					Metadata: PURLFileMetadata{
+						Path: "test-fixtures/purl/different-os.txt",
+					},
+				},
 			},
 			pkgs: []Package{
 				{
@@ -430,6 +484,13 @@ func Test_PurlProvider(t *testing.T) {
 			name:      "allow empty purl file",
 			userInput: "purl:test-fixtures/purl/empty.json",
 			sbom:      &sbom.SBOM{},
+			context: Context{
+				Source: &source.Description{
+					Metadata: PURLFileMetadata{
+						Path: "test-fixtures/purl/empty.json",
+					},
+				},
+			},
 		},
 		{
 			name:      "fails on invalid purl in file",

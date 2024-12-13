@@ -3,6 +3,7 @@ package pkg
 import (
 	"bufio"
 	"fmt"
+	"github.com/anchore/syft/syft/source"
 	"io"
 	"os"
 	"strings"
@@ -23,20 +24,27 @@ const (
 	cpesQualifierKey      = "cpes"
 )
 
+type PURLLiteralMetadata struct {
+	PURL string
+}
+
+type PURLFileMetadata struct {
+	Path string
+}
+
 func purlProvider(userInput string) ([]Package, Context, *sbom.SBOM, error) {
-	reader, err := getPurlReader(userInput)
+	reader, ctx, err := getPurlReader(userInput)
 	if err != nil {
 		return nil, Context{}, nil, err
 	}
 
-	return decodePurlFile(reader)
+	return decodePurlFile(reader, ctx)
 }
 
-func decodePurlFile(reader io.Reader) ([]Package, Context, *sbom.SBOM, error) {
+func decodePurlFile(reader io.Reader, ctx Context) ([]Package, Context, *sbom.SBOM, error) {
 	scanner := bufio.NewScanner(reader)
 	var packages []Package
 	var syftPkgs []pkg.Package
-	var ctx Context
 
 	distros := make(map[string]*strset.Set)
 	for scanner.Scan() {
@@ -68,6 +76,9 @@ func decodePurlFile(reader io.Reader) ([]Package, Context, *sbom.SBOM, error) {
 			Packages: pkg.NewCollection(syftPkgs...),
 		},
 	}
+	// Do we have multiple purls
+	// purl litteral <--
+	// purl file <-- FileMetadata
 
 	// if there is one distro (with one version) represented, use that
 	if len(distros) == 1 {
@@ -209,15 +220,29 @@ func handleDefaultUpstream(pkgName string, value string) []UpstreamPackage {
 	return nil
 }
 
-func getPurlReader(userInput string) (r io.Reader, err error) {
+func getPurlReader(userInput string) (r io.Reader, ctx Context, err error) {
 	switch {
 	case strings.HasPrefix(userInput, purlInputPrefix):
 		path := strings.TrimPrefix(userInput, purlInputPrefix)
-		return openPurlFile(path)
+		ctx.Source = &source.Description{
+			Metadata: PURLFileMetadata{
+				Path: path,
+			},
+		}
+		file, err := openPurlFile(path)
+		if err != nil {
+			return nil, ctx, err
+		}
+		return file, ctx, nil
 	case strings.HasPrefix(userInput, singlePurlInputPrefix):
-		return strings.NewReader(userInput), nil
+		ctx.Source = &source.Description{
+			Metadata: PURLLiteralMetadata{
+				PURL: userInput,
+			},
+		}
+		return strings.NewReader(userInput), ctx, nil
 	}
-	return nil, errDoesNotProvide
+	return nil, ctx, errDoesNotProvide
 }
 
 func openPurlFile(path string) (*os.File, error) {
