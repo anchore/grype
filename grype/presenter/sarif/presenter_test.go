@@ -347,13 +347,13 @@ func TestToSarifReport(t *testing.T) {
 
 type NilMetadataProvider struct{}
 
-func (m *NilMetadataProvider) GetMetadata(_, _ string) (*vulnerability.Metadata, error) {
+func (m *NilMetadataProvider) VulnerabilityMetadata(_ vulnerability.Reference) (*vulnerability.Metadata, error) {
 	return nil, nil
 }
 
 type MockMetadataProvider struct{}
 
-func (m *MockMetadataProvider) GetMetadata(id, namespace string) (*vulnerability.Metadata, error) {
+func (m *MockMetadataProvider) VulnerabilityMetadata(ref vulnerability.Reference) (*vulnerability.Metadata, error) {
 	cvss := func(id string, namespace string, scores ...float64) vulnerability.Metadata {
 		values := make([]vulnerability.Cvss, 0, len(scores))
 		for _, score := range scores {
@@ -375,7 +375,7 @@ func (m *MockMetadataProvider) GetMetadata(id, namespace string) (*vulnerability
 		cvss("2", "not-nvd", 3, 4),
 	}
 	for _, v := range values {
-		if v.ID == id && v.Namespace == namespace {
+		if v.ID == ref.ID && v.Namespace == ref.Namespace {
 			return &v, nil
 		}
 	}
@@ -387,8 +387,10 @@ func Test_cvssScoreWithNilMetadata(t *testing.T) {
 		metadataProvider: &NilMetadataProvider{},
 	}
 	score := pres.cvssScore(vulnerability.Vulnerability{
-		ID:        "id",
-		Namespace: "namespace",
+		Reference: vulnerability.Reference{
+			ID:        "id",
+			Namespace: "namespace",
+		},
 	})
 	assert.Equal(t, float64(-1), score)
 }
@@ -402,7 +404,9 @@ func Test_cvssScore(t *testing.T) {
 		{
 			name: "none",
 			vulnerability: vulnerability.Vulnerability{
-				ID: "4",
+				Reference: vulnerability.Reference{
+					ID: "4",
+				},
 				RelatedVulnerabilities: []vulnerability.Reference{
 					{
 						ID:        "7",
@@ -415,8 +419,10 @@ func Test_cvssScore(t *testing.T) {
 		{
 			name: "direct",
 			vulnerability: vulnerability.Vulnerability{
-				ID:        "2",
-				Namespace: "not-nvd",
+				Reference: vulnerability.Reference{
+					ID:        "2",
+					Namespace: "not-nvd",
+				},
 				RelatedVulnerabilities: []vulnerability.Reference{
 					{
 						ID:        "1",
@@ -429,8 +435,10 @@ func Test_cvssScore(t *testing.T) {
 		{
 			name: "related not nvd",
 			vulnerability: vulnerability.Vulnerability{
-				ID:        "1",
-				Namespace: "nvd:cpe",
+				Reference: vulnerability.Reference{
+					ID:        "1",
+					Namespace: "nvd:cpe",
+				},
 				RelatedVulnerabilities: []vulnerability.Reference{
 					{
 						ID:        "1",
@@ -447,8 +455,10 @@ func Test_cvssScore(t *testing.T) {
 		{
 			name: "related nvd",
 			vulnerability: vulnerability.Vulnerability{
-				ID:        "4",
-				Namespace: "not-nvd",
+				Reference: vulnerability.Reference{
+					ID:        "4",
+					Namespace: "not-nvd",
+				},
 				RelatedVulnerabilities: []vulnerability.Reference{
 					{
 						ID:        "1",

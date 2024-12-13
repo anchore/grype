@@ -117,7 +117,7 @@ func Test_ApplyExplicitIgnoreRules(t *testing.T) {
 						Type: test.typ,
 					},
 					Vulnerability: vulnerability.Vulnerability{
-						ID: cp.cve,
+						Reference: vulnerability.Reference{ID: cp.cve},
 					},
 				})
 			}

@@ -22,8 +22,10 @@ func TestMatch_Merge(t *testing.T) {
 			name: "error on fingerprint mismatch",
 			m1: Match{
 				Vulnerability: vulnerability.Vulnerability{
-					ID:        "CVE-2023-0001",
-					Namespace: "namespace1",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2023-0001",
+						Namespace: "namespace1",
+					},
 				},
 				Package: pkg.Package{
 					ID: "pkg1",
@@ -31,8 +33,10 @@ func TestMatch_Merge(t *testing.T) {
 			},
 			m2: Match{
 				Vulnerability: vulnerability.Vulnerability{
-					ID:        "CVE-2023-0002",
-					Namespace: "namespace2",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2023-0002",
+						Namespace: "namespace2",
+					},
 				},
 				Package: pkg.Package{
 					ID: "pkg2",
@@ -44,8 +48,10 @@ func TestMatch_Merge(t *testing.T) {
 			name: "merge with unique values",
 			m1: Match{
 				Vulnerability: vulnerability.Vulnerability{
-					ID:        "CVE-2023-0001",
-					Namespace: "namespace",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2023-0001",
+						Namespace: "namespace",
+					},
 					RelatedVulnerabilities: []vulnerability.Reference{
 						{
 							Namespace: "ns1",
@@ -70,8 +76,10 @@ func TestMatch_Merge(t *testing.T) {
 			},
 			m2: Match{
 				Vulnerability: vulnerability.Vulnerability{
-					ID:        "CVE-2023-0001",
-					Namespace: "namespace",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2023-0001",
+						Namespace: "namespace",
+					},
 					RelatedVulnerabilities: []vulnerability.Reference{
 						{
 							Namespace: "ns2",
@@ -97,8 +105,10 @@ func TestMatch_Merge(t *testing.T) {
 			expectedErr: nil,
 			expected: Match{
 				Vulnerability: vulnerability.Vulnerability{
-					ID:        "CVE-2023-0001",
-					Namespace: "namespace",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2023-0001",
+						Namespace: "namespace",
+					},
 					RelatedVulnerabilities: []vulnerability.Reference{
 						{
 							Namespace: "ns1",
@@ -137,8 +147,10 @@ func TestMatch_Merge(t *testing.T) {
 			name: "merges with duplicate values",
 			m1: Match{
 				Vulnerability: vulnerability.Vulnerability{
-					ID:        "CVE-2023-0001",
-					Namespace: "namespace",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2023-0001",
+						Namespace: "namespace",
+					},
 					RelatedVulnerabilities: []vulnerability.Reference{
 						{
 							Namespace: "ns1",
@@ -163,8 +175,10 @@ func TestMatch_Merge(t *testing.T) {
 			},
 			m2: Match{
 				Vulnerability: vulnerability.Vulnerability{
-					ID:        "CVE-2023-0001",
-					Namespace: "namespace",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2023-0001",
+						Namespace: "namespace",
+					},
 					RelatedVulnerabilities: []vulnerability.Reference{
 						{
 							Namespace: "ns1",
@@ -190,8 +204,10 @@ func TestMatch_Merge(t *testing.T) {
 			expectedErr: nil,
 			expected: Match{
 				Vulnerability: vulnerability.Vulnerability{
-					ID:        "CVE-2023-0001",
-					Namespace: "namespace",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2023-0001",
+						Namespace: "namespace",
+					},
 					RelatedVulnerabilities: []vulnerability.Reference{
 						{
 							Namespace: "ns1",

@@ -84,8 +84,10 @@ func generateMatches(t *testing.T, p1, p2 pkg.Package) match.Matches {
 		{
 
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-1999-0001",
-				Namespace: "source-1",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-1999-0001",
+					Namespace: "source-1",
+				},
 				Fix: vulnerability.Fix{
 					Versions: []string{"the-next-version"},
 					State:    vulnerability.FixStateFixed,
@@ -111,8 +113,10 @@ func generateMatches(t *testing.T, p1, p2 pkg.Package) match.Matches {
 		{
 
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-1999-0002",
-				Namespace: "source-2",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-1999-0002",
+					Namespace: "source-2",
+				},
 			},
 			Package: p2,
 			Details: []match.Detail{
@@ -143,8 +147,10 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 		{
 			Match: match.Match{
 				Vulnerability: vulnerability.Vulnerability{
-					ID:        "CVE-1999-0001",
-					Namespace: "source-1",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-1999-0001",
+						Namespace: "source-1",
+					},
 				},
 				Package: p,
 				Details: []match.Detail{
@@ -168,8 +174,10 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 		{
 			Match: match.Match{
 				Vulnerability: vulnerability.Vulnerability{
-					ID:        "CVE-1999-0002",
-					Namespace: "source-2",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-1999-0002",
+						Namespace: "source-2",
+					},
 				},
 				Package: p,
 				Details: []match.Detail{
@@ -190,8 +198,10 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 		{
 			Match: match.Match{
 				Vulnerability: vulnerability.Vulnerability{
-					ID:        "CVE-1999-0004",
-					Namespace: "source-2",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-1999-0004",
+						Namespace: "source-2",
+					},
 				},
 				Package: p,
 				Details: []match.Detail{

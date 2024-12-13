@@ -9,7 +9,7 @@ import (
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype/db/legacy/distribution"
-	"github.com/anchore/grype/grype/differ"
+	"github.com/anchore/grype/grype/db/v5/differ"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
 )

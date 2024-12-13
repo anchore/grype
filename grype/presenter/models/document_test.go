@@ -33,7 +33,7 @@ func TestPackagesAreSorted(t *testing.T) {
 
 	var match1 = match.Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-1999-0003",
+			Reference: vulnerability.Reference{ID: "CVE-1999-0003"},
 		},
 		Package: pkg1,
 		Details: match.Details{
@@ -45,7 +45,7 @@ func TestPackagesAreSorted(t *testing.T) {
 
 	var match2 = match.Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-1999-0002",
+			Reference: vulnerability.Reference{ID: "CVE-1999-0002"},
 		},
 		Package: pkg1,
 		Details: match.Details{
@@ -57,7 +57,7 @@ func TestPackagesAreSorted(t *testing.T) {
 
 	var match3 = match.Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-1999-0001",
+			Reference: vulnerability.Reference{ID: "CVE-1999-0001"},
 		},
 		Package: pkg1,
 		Details: match.Details{
