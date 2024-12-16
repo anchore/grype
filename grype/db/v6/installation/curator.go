@@ -60,16 +60,18 @@ func (c Config) DBDirectoryPath() string {
 }
 
 type curator struct {
-	fs     afero.Fs
-	client distribution.Client
-	config Config
+	fs       afero.Fs
+	client   distribution.Client
+	config   Config
+	hydrator func(string) error
 }
 
 func NewCurator(cfg Config, downloader distribution.Client) (db.Curator, error) {
 	return curator{
-		fs:     afero.NewOsFs(),
-		client: downloader,
-		config: cfg,
+		fs:       afero.NewOsFs(),
+		client:   downloader,
+		config:   cfg,
+		hydrator: db.Hydrater(),
 	}, nil
 }
 
@@ -147,40 +149,14 @@ func (c curator) Update() (bool, error) {
 		return false, nil
 	}
 
-	mon := newMonitor()
-	defer mon.SetCompleted()
-
-	mon.Set("checking for update")
-	update, checkErr := c.client.IsUpdateAvailable(current)
-	if checkErr != nil {
-		// we want to continue even if we can't check for an update
-		log.Warnf("unable to check for vulnerability database update")
-		log.WithFields("error", checkErr).Debug("check for vulnerability update failed")
+	update, err := c.update(current)
+	if err != nil {
+		return false, err
 	}
 
 	if update == nil {
-		if checkErr == nil {
-			// there was no update (or any issue while checking for an update)
-			c.setLastSuccessfulUpdateCheck()
-		}
-
-		mon.Set("no update available")
 		return false, nil
 	}
-
-	log.Infof("downloading new vulnerability DB")
-	mon.Set("downloading")
-	dest, err := c.client.Download(*update, filepath.Dir(c.config.DBRootDir), mon.downloadProgress)
-	if err != nil {
-		return false, fmt.Errorf("unable to update vulnerability database: %w", err)
-	}
-
-	if err := c.activate(dest, mon); err != nil {
-		return false, fmt.Errorf("unable to activate new vulnerability database: %w", err)
-	}
-
-	// only set the last successful update check if the update was successful
-	c.setLastSuccessfulUpdateCheck()
 
 	if current != nil {
 		log.WithFields(
@@ -216,6 +192,47 @@ func (c curator) isUpdateCheckAllowed() bool {
 	}
 
 	return *elapsed > c.config.UpdateCheckMaxFrequency
+}
+
+func (c curator) update(current *db.Description) (*distribution.Archive, error) {
+	mon := newMonitor()
+	defer mon.SetCompleted()
+
+	mon.Set("checking for update")
+	update, checkErr := c.client.IsUpdateAvailable(current)
+	if checkErr != nil {
+		// we want to continue even if we can't check for an update
+		log.Warnf("unable to check for vulnerability database update")
+		log.WithFields("error", checkErr).Debug("check for vulnerability update failed")
+	}
+
+	if update == nil {
+		if checkErr == nil {
+			// there was no update (or any issue while checking for an update)
+			c.setLastSuccessfulUpdateCheck()
+		}
+
+		mon.Set("no update available")
+		return nil, nil
+	}
+
+	log.Infof("downloading new vulnerability DB")
+	mon.Set("downloading")
+	dest, err := c.client.Download(*update, filepath.Dir(c.config.DBRootDir), mon.downloadProgress)
+	if err != nil {
+		return nil, fmt.Errorf("unable to update vulnerability database: %w", err)
+	}
+
+	if err := c.activate(dest, mon); err != nil {
+		return nil, fmt.Errorf("unable to activate new vulnerability database: %w", err)
+	}
+
+	mon.Set("updated")
+
+	// only set the last successful update check if the update was successful
+	c.setLastSuccessfulUpdateCheck()
+
+	return update, nil
 }
 
 func (c curator) durationSinceUpdateCheck() (*time.Duration, error) {
@@ -310,6 +327,8 @@ func (c curator) Import(dbArchivePath string) error {
 		return err
 	}
 
+	mon.Set("imported")
+
 	return nil
 }
 
@@ -317,10 +336,18 @@ func (c curator) Import(dbArchivePath string) error {
 func (c curator) activate(dbDirPath string, mon monitor) error {
 	defer mon.importProgress.SetCompleted()
 
+	dbFilePath := filepath.Join(dbDirPath, db.VulnerabilityDBFileName)
+
+	if c.hydrator != nil {
+		mon.Set("hydrating")
+		if err := c.hydrator(dbDirPath); err != nil {
+			return err
+		}
+	}
+
 	mon.Set("hashing")
 
 	// overwrite the checksums file with the new checksums
-	dbFilePath := filepath.Join(dbDirPath, db.VulnerabilityDBFileName)
 	digest, err := db.CalculateDBDigest(dbFilePath)
 	if err != nil {
 		return err

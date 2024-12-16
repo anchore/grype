@@ -1,8 +1,13 @@
 package v6
 
 import (
+	"fmt"
 	"io"
 	"path/filepath"
+
+	"gorm.io/gorm"
+
+	"github.com/anchore/grype/grype/db/internal/gormadapter"
 )
 
 const (
@@ -59,9 +64,42 @@ func (c Config) DBFilePath() string {
 }
 
 func NewReader(cfg Config) (Reader, error) {
-	return newStore(cfg, false)
+	return newStore(cfg, false, false)
 }
 
 func NewWriter(cfg Config) (ReadWriter, error) {
-	return newStore(cfg, true)
+	return newStore(cfg, true, true)
+}
+
+func Hydrater() func(string) error {
+	return func(path string) error {
+		// this will auto-migrate any models, creating and populating indexes as needed
+		// we don't pass any data initialization here because the data is already in the db archive and we do not want
+		// to affect the entries themselves, only indexes and schema.
+		_, err := newStore(Config{DBDirPath: path}, false, true)
+		return err
+	}
+}
+
+// NewLowLevelDB creates a new empty DB for writing or opens an existing one for reading from the given path. This is
+// not recommended for typical interactions with the vulnerability DB, use NewReader and NewWriter instead.
+func NewLowLevelDB(dbFilePath string, empty, writable bool) (*gorm.DB, error) {
+	opts := []gormadapter.Option{
+		// 16 KB, useful for smaller DBs since ~85% of the DB is from the blobs table
+		gormadapter.WithStatements("PRAGMA page_size = 16384"),
+	}
+
+	if empty && !writable {
+		return nil, fmt.Errorf("cannot open an empty database for reading only")
+	}
+
+	if empty {
+		opts = append(opts, gormadapter.WithTruncate(true, Models(), InitialData()))
+	}
+
+	if writable {
+		opts = append(opts, gormadapter.WithWritable(true))
+	}
+
+	return gormadapter.Open(dbFilePath, opts...)
 }
