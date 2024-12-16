@@ -16,7 +16,6 @@ import (
 
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
-	"github.com/anchore/grype/grype/db/v6/internal"
 	"github.com/anchore/grype/internal/schemaver"
 )
 
@@ -118,7 +117,7 @@ func writeTestChecksumsFile(t *testing.T, fs afero.Fs, dir string, checksums str
 
 func writeTestDescriptionToDB(t *testing.T, dir string, desc db.Description) string {
 	c := db.Config{DBDirPath: dir}
-	d, err := internal.NewDB(c.DBFilePath(), db.Models(), false)
+	d, err := db.NewLowLevelDB(c.DBFilePath(), false, false)
 	require.NoError(t, err)
 
 	if err := d.Unscoped().Where("true").Delete(&db.DBMetadata{}).Error; err != nil {
@@ -176,6 +175,12 @@ func TestCurator_Update(t *testing.T) {
 	t.Run("happy path: successful update", func(t *testing.T) {
 		c := setupCuratorForUpdate(t, withWorkingUpdateIntegrations())
 		mc := c.client.(*mockClient)
+		// nop hydrator, assert error if NOT called
+		hydrateCalled := false
+		c.hydrator = func(string) error {
+			hydrateCalled = true
+			return nil
+		}
 
 		updated, err := c.Update()
 
@@ -184,6 +189,7 @@ func TestCurator_Update(t *testing.T) {
 		require.FileExists(t, filepath.Join(c.config.DBDirectoryPath(), lastUpdateCheckFileName))
 
 		mc.AssertExpectations(t)
+		assert.True(t, hydrateCalled, "expected hydrator to be called")
 	})
 
 	t.Run("error checking for updates", func(t *testing.T) {
@@ -220,6 +226,10 @@ func TestCurator_Update(t *testing.T) {
 	t.Run("error during activation: cannot move dir", func(t *testing.T) {
 		c := setupCuratorForUpdate(t, withWorkingUpdateIntegrations())
 		mc := c.client.(*mockClient)
+		// nop hydrator
+		c.hydrator = func(string) error {
+			return nil
+		}
 
 		// simulate not being able to move the staged dir to the db dir
 		c.fs = afero.NewReadOnlyFs(c.fs)
