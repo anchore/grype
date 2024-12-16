@@ -338,9 +338,11 @@ func (c curator) activate(dbDirPath string, mon monitor) error {
 
 	dbFilePath := filepath.Join(dbDirPath, db.VulnerabilityDBFileName)
 
-	mon.Set("hydrating")
-	if err := c.hydrator(dbDirPath); err != nil {
-		return err
+	if c.hydrator != nil {
+		mon.Set("hydrating")
+		if err := c.hydrator(dbDirPath); err != nil {
+			return err
+		}
 	}
 
 	mon.Set("hashing")

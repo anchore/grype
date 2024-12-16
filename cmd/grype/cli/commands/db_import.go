@@ -48,11 +48,13 @@ func newDBImport(opts options.Database, dbArchivePath string) error {
 		return fmt.Errorf("unable to create curator: %w", err)
 	}
 
-	log.WithFields("path", dbArchivePath).Infof("Importing vulnerability database archive")
+	log.WithFields("path", dbArchivePath).Infof("importing vulnerability database archive")
 	if err := c.Import(dbArchivePath); err != nil {
 		return fmt.Errorf("unable to import vulnerability database: %w", err)
 	}
-	log.Info("vulnerability database imported")
+
+	s := c.Status()
+	log.WithFields("built", s.Built.String(), "status", s.Status()).Info("vulnerability database imported")
 	return nil
 }
 

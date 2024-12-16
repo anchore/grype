@@ -70,18 +70,13 @@ func newDBStatus(opts dbStatusOptions) error {
 }
 
 func presentDBStatus(format string, writer io.Writer, status v6.Status) error {
-	statusStr := "valid"
-	if status.Err != nil {
-		statusStr = "invalid"
-	}
-
 	switch format {
 	case textOutputFormat:
 		fmt.Fprintln(writer, "Path:     ", status.Path)
 		fmt.Fprintln(writer, "Schema:   ", status.SchemaVersion)
 		fmt.Fprintln(writer, "Built:    ", status.Built.String())
 		fmt.Fprintln(writer, "Checksum: ", status.Checksum)
-		fmt.Fprintln(writer, "Status:   ", statusStr)
+		fmt.Fprintln(writer, "Status:   ", status.Status())
 	case jsonOutputFormat:
 		enc := json.NewEncoder(writer)
 		enc.SetEscapeHTML(false)
@@ -107,18 +102,13 @@ func legacyDBStatus(opts dbStatusOptions) error {
 
 	status := dbCurator.Status()
 
-	statusStr := "valid"
-	if status.Err != nil {
-		statusStr = "invalid"
-	}
-
 	switch opts.Output {
 	case textOutputFormat:
 		fmt.Println("Location: ", status.Location)
 		fmt.Println("Built:    ", status.Built.String())
 		fmt.Println("Schema:   ", status.SchemaVersion)
 		fmt.Println("Checksum: ", status.Checksum)
-		fmt.Println("Status:   ", statusStr)
+		fmt.Println("Status:   ", status.Status())
 	case jsonOutputFormat:
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetEscapeHTML(false)

@@ -227,9 +227,7 @@ func TestCurator_Update(t *testing.T) {
 		c := setupCuratorForUpdate(t, withWorkingUpdateIntegrations())
 		mc := c.client.(*mockClient)
 		// nop hydrator
-		c.hydrator = func(string) error {
-			return nil
-		}
+		c.hydrator = nil
 
 		// simulate not being able to move the staged dir to the db dir
 		c.fs = afero.NewReadOnlyFs(c.fs)

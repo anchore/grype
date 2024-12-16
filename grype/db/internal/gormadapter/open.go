@@ -64,9 +64,9 @@ func WithStatements(statements ...string) Option {
 	}
 }
 
-func WithMigrate(models []any) Option {
+func WithModels(models []any) Option {
 	return func(c *config) {
-		c.models = models
+		c.models = append(c.models, models...)
 	}
 }
 
