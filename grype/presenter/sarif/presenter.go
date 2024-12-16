@@ -425,6 +425,10 @@ func (pres *Presenter) resultMessage(m match.Match) sarif.Message {
 		src = fmt.Sprintf("in image %s at: %s", meta.UserInput, path)
 	case source.FileMetadata, source.DirectoryMetadata:
 		src = fmt.Sprintf("at: %s", path)
+	case pkg.PURLLiteralMetadata:
+		src = fmt.Sprintf("from purl literal %q", meta.PURL)
+	case pkg.PURLFileMetadata:
+		src = fmt.Sprintf("from purl file %s", meta.Path)
 	}
 	message := fmt.Sprintf("A %s vulnerability in %s package: %s, version %s was found %s",
 		pres.severityText(m), m.Package.Type, m.Package.Name, m.Package.Version, src)
