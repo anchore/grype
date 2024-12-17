@@ -7,33 +7,55 @@ import (
 	"gorm.io/gorm"
 )
 
-func fillAffectedCPEHandles(db *gorm.DB, handles []AffectedCPEHandle) error {
+func affectedCPEVulnerabilityHandles(affectedPackages []*AffectedCPEHandle) []*VulnerabilityHandle {
+	var out []*VulnerabilityHandle
+	for _, h := range affectedPackages {
+		if h == nil {
+			continue
+		}
+		out = append(out, h.Vulnerability)
+	}
+	return out
+}
+
+func affectedPackageVulnerabilityHandles(affectedPackages []*AffectedPackageHandle) []*VulnerabilityHandle {
+	var out []*VulnerabilityHandle
+	for _, h := range affectedPackages {
+		if h == nil {
+			continue
+		}
+		out = append(out, h.Vulnerability)
+	}
+	return out
+}
+
+func (s vulnerabilityProvider) fillAffectedCPEHandles(handles []*AffectedCPEHandle) error {
 	return errors.Join(
-		fillRefs(db, handles, affectedCPEVulnerabilityHandleRef, vulnerabilityHandleID),
-		fillRefs(db, handles, affectedCPECPERef, cpeHandleID),
-		fillBlobs(db, handles, affectedCPEBlobRef),
+		fillRefs(s.db, handles, affectedCPEVulnerabilityHandleRef, vulnerabilityHandleID),
+		fillRefs(s.db, handles, affectedCPECPERef, cpeHandleID),
+		fillBlobs(s.db, handles, affectedCPEBlobRef),
 	)
 }
 
-func fillAffectedPackageHandles(db *gorm.DB, handles []AffectedPackageHandle) error {
-	// pkgRefs := collectUniqueValues(handles, func(from v6.AffectedPackageHandle) idRef[v6.Package] {
-	//	return idRef[v6.Package]{
-	//		id:  &from.PackageID,
-	//		ref: &from.Package,
-	//	}
-	// })
-
+func fillAffectedPackageHandles(db *gorm.DB, handles []*AffectedPackageHandle) error {
 	return errors.Join(
+		fillBlobs(db, handles, affectedPackageBlobRef),
 		fillRefs(db, handles, affectedPackageVulnerabilityHandleRef, vulnerabilityHandleID),
 		fillRefs(db, handles, affectedPackageOperatingSystemHandleRef, operatingSystemID),
 		fillRefs(db, handles, affectedPackagePackageHandleRef, packageID),
-		fillBlobs(db, handles, affectedPackageBlobRef),
 	)
 }
 
-func fillBlobs[ContainingType, BlobType any](db *gorm.DB, handles []ContainingType, blobRef refProvider[ContainingType, BlobType]) error {
+func (s vulnerabilityProvider) fillVulnerabilityHandles(handles []*VulnerabilityHandle) error {
+	return errors.Join(
+		s.fillProviders(handles),
+		fillBlobs(s.db, handles, vulnerabilityHandleBlobRef),
+	)
+}
+
+func fillBlobs[ContainingType, BlobType any](db *gorm.DB, handles []*ContainingType, blobRef refProvider[ContainingType, BlobType]) error {
 	for i := range handles {
-		ref := blobRef(&handles[i])
+		ref := blobRef(handles[i])
 		// if no ID or if the blob is already set, do nothing
 		if ref.id == nil || *ref.ref != nil {
 			continue
@@ -96,6 +118,10 @@ func affectedPackagePackageHandleRef(t *AffectedPackageHandle) idRef[Package] {
 //	return h.ID
 //}
 
+// func vulnerabilityBlobID(h *VulnerabilityHandle) ID {
+//	return h.BlobID
+//}
+
 func vulnerabilityHandleID(h *VulnerabilityHandle) ID {
 	return h.ID
 }
@@ -126,9 +152,9 @@ func affectedPackageBlobRef(h *AffectedPackageHandle) idRef[AffectedPackageBlob]
 	}
 }
 
-// func vulnerabilityHandleBlobRef(h *VulnerabilityHandle) idRef[VulnerabilityBlob] {
-//	return idRef[VulnerabilityBlob]{
-//		id:  &h.BlobID,
-//		ref: &h.BlobValue,
-//	}
-//}
+func vulnerabilityHandleBlobRef(h *VulnerabilityHandle) idRef[VulnerabilityBlob] {
+	return idRef[VulnerabilityBlob]{
+		id:  &h.BlobID,
+		ref: &h.BlobValue,
+	}
+}

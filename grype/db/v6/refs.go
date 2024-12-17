@@ -15,7 +15,7 @@ type refProvider[T, R any] func(*T) idRef[R]
 
 type idProvider[T any] func(*T) ID
 
-func fillRefs[T, R any](db *gorm.DB, handles []T, getRef refProvider[T, R], refID idProvider[R]) error {
+func fillRefs[T, R any](db *gorm.DB, handles []*T, getRef refProvider[T, R], refID idProvider[R]) error {
 	if len(handles) == 0 {
 		return nil
 	}
@@ -24,8 +24,7 @@ func fillRefs[T, R any](db *gorm.DB, handles []T, getRef refProvider[T, R], refI
 	var refs []idRef[R]
 	var ids []ID
 	for i := range handles {
-		h := &handles[i]
-		ref := getRef(h)
+		ref := getRef(handles[i])
 		if ref.id == nil {
 			continue
 		}
@@ -62,6 +61,18 @@ func fillRefs[T, R any](db *gorm.DB, handles []T, getRef refProvider[T, R], refI
 	}
 
 	return nil
+}
+
+// ptrs returns a slice of pointers to each element in the provided slice
+func ptrs[T any](values []T) []*T {
+	if len(values) == 0 {
+		return nil
+	}
+	out := make([]*T, len(values))
+	for i := range values {
+		out[i] = &values[i]
+	}
+	return out
 }
 
 // func collectUniqueValues[From any, To comparable](values []From, mapFn func(From) To) []To {
