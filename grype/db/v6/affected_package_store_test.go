@@ -540,11 +540,11 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			name: "specific distro",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
-				Distro: &DistroSpecifier{
+				OSs: []*OSSpecifier{{
 					Name:         "ubuntu",
 					MajorVersion: "20",
 					MinorVersion: "04",
-				},
+				}},
 			},
 			expected: []AffectedPackageHandle{*pkg2d1},
 		},
@@ -552,11 +552,11 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			name: "distro major version only (allow multiple)",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
-				Distro: &DistroSpecifier{
+				OSs: []*OSSpecifier{{
 					Name:          "ubuntu",
 					MajorVersion:  "20",
 					AllowMultiple: true,
-				},
+				}},
 			},
 			expected: []AffectedPackageHandle{*pkg2d1, *pkg2d2},
 		},
@@ -564,11 +564,11 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			name: "distro major version only (default)",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
-				Distro: &DistroSpecifier{
+				OSs: []*OSSpecifier{{
 					Name:          "ubuntu",
 					MajorVersion:  "20",
 					AllowMultiple: false,
-				},
+				}},
 			},
 			wantErr: expectErrIs(t, ErrMultipleOSMatches),
 		},
@@ -576,10 +576,10 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			name: "distro codename",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
-				Distro: &DistroSpecifier{
+				OSs: []*OSSpecifier{{
 					Name:     "ubuntu",
 					Codename: "groovy",
-				},
+				}},
 			},
 			expected: []AffectedPackageHandle{*pkg2d2},
 		},
@@ -587,7 +587,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			name: "no distro",
 			pkg:  pkgFromName(pkg2.Package.Name),
 			options: &GetAffectedPackageOptions{
-				Distro: NoDistroSpecified,
+				OSs: []*OSSpecifier{NoOSSpecified},
 			},
 			expected: []AffectedPackageHandle{*pkg2},
 		},
@@ -595,7 +595,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			name: "any distro",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
-				Distro: AnyDistroSpecified,
+				OSs: []*OSSpecifier{AnyOSSpecified},
 			},
 			expected: []AffectedPackageHandle{*pkg2d1, *pkg2, *pkg2d2},
 		},
@@ -608,9 +608,9 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			name: "specific CVE",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
-				Vulnerability: &VulnerabilitySpecifier{
+				Vulnerabilities: []VulnerabilitySpecifier{{
 					Name: "CVE-2023-1234",
-				},
+				}},
 			},
 			expected: []AffectedPackageHandle{*pkg2d1},
 		},
@@ -618,12 +618,12 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			name: "any CVE published after a date",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
-				Vulnerability: &VulnerabilitySpecifier{
+				Vulnerabilities: []VulnerabilitySpecifier{{
 					PublishedAfter: func() *time.Time {
 						now := time.Date(2020, 1, 1, 1, 1, 1, 0, time.UTC)
 						return &now
 					}(),
-				},
+				}},
 			},
 			expected: []AffectedPackageHandle{*pkg2d1, *pkg2d2},
 		},
@@ -631,12 +631,12 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			name: "any CVE modified after a date",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
-				Vulnerability: &VulnerabilitySpecifier{
+				Vulnerabilities: []VulnerabilitySpecifier{{
 					ModifiedAfter: func() *time.Time {
 						now := time.Date(2023, 1, 1, 3, 4, 5, 0, time.UTC).Add(time.Hour * 2)
 						return &now
 					}(),
-				},
+				}},
 			},
 			expected: []AffectedPackageHandle{*pkg2d1},
 		},
@@ -644,9 +644,9 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			name: "any rejected CVE",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
-				Vulnerability: &VulnerabilitySpecifier{
+				Vulnerabilities: []VulnerabilitySpecifier{{
 					Status: VulnerabilityRejected,
-				},
+				}},
 			},
 			expected: []AffectedPackageHandle{*pkg2d1},
 		},
@@ -720,13 +720,13 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		distro    DistroSpecifier
+		distro    OSSpecifier
 		expected  []OperatingSystem
 		expectErr require.ErrorAssertionFunc
 	}{
 		{
 			name: "specific distro with major and minor version",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "ubuntu",
 				MajorVersion: "20",
 				MinorVersion: "04",
@@ -735,7 +735,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		},
 		{
 			name: "alias resolution with major version",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "centos",
 				MajorVersion: "8",
 			},
@@ -743,7 +743,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		},
 		{
 			name: "alias resolution with major and minor version",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "centos",
 				MajorVersion: "8",
 				MinorVersion: "1",
@@ -752,7 +752,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		},
 		{
 			name: "distro with major version only",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "debian",
 				MajorVersion: "10",
 			},
@@ -760,7 +760,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		},
 		{
 			name: "codename resolution",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:     "ubuntu",
 				Codename: "focal",
 			},
@@ -768,7 +768,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		},
 		{
 			name: "codename and version info",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "ubuntu",
 				MajorVersion: "20",
 				MinorVersion: "04",
@@ -778,7 +778,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		},
 		{
 			name: "conflicting codename and version info",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "ubuntu",
 				MajorVersion: "20",
 				MinorVersion: "04",
@@ -787,7 +787,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		},
 		{
 			name: "alpine edge version",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "alpine",
 				MajorVersion: "3",
 				MinorVersion: "21",
@@ -797,14 +797,14 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		},
 		{
 			name: "arch rolling variant",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name: "arch",
 			},
 			expected: []OperatingSystem{*arch},
 		},
 		{
 			name: "wolfi rolling variant",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "wolfi",
 				MajorVersion: "20221018",
 			},
@@ -812,7 +812,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		},
 		{
 			name: "debian by codename for rolling alias",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "debian",
 				MajorVersion: "13",
 				Codename:     "trixie", // TODO: what about sid status indication from pretty-name or /etc/debian_version?
@@ -821,7 +821,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		},
 		{
 			name: "debian by codename",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:     "debian",
 				Codename: "wheezy",
 			},
@@ -829,7 +829,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		},
 		{
 			name: "debian by major version",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "debian",
 				MajorVersion: "7",
 			},
@@ -837,7 +837,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		},
 		{
 			name: "debian by major.minor version",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "debian",
 				MajorVersion: "7",
 				MinorVersion: "2",
@@ -846,7 +846,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		},
 		{
 			name: "alpine with major and minor version",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "alpine",
 				MajorVersion: "3",
 				MinorVersion: "18",
@@ -855,14 +855,14 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		},
 		{
 			name: "missing distro name",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				MajorVersion: "8",
 			},
 			expectErr: expectErrIs(t, ErrMissingDistroIdentification),
 		},
 		{
 			name: "nonexistent distro",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "madeup",
 				MajorVersion: "99",
 			},
@@ -887,32 +887,32 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 	}
 }
 
-func TestDistroDisplay(t *testing.T) {
+func TestDistroSpecifier_String(t *testing.T) {
 	tests := []struct {
 		name     string
-		distro   *DistroSpecifier
+		distro   *OSSpecifier
 		expected string
 	}{
 		{
 			name:     "nil distro",
-			distro:   AnyDistroSpecified,
+			distro:   AnyOSSpecified,
 			expected: "any",
 		},
 		{
 			name:     "no distro specified",
-			distro:   NoDistroSpecified,
+			distro:   NoOSSpecified,
 			expected: "none",
 		},
 		{
 			name: "only name specified",
-			distro: &DistroSpecifier{
+			distro: &OSSpecifier{
 				Name: "ubuntu",
 			},
 			expected: "ubuntu",
 		},
 		{
 			name: "name and major version specified",
-			distro: &DistroSpecifier{
+			distro: &OSSpecifier{
 				Name:         "ubuntu",
 				MajorVersion: "20",
 			},
@@ -920,7 +920,7 @@ func TestDistroDisplay(t *testing.T) {
 		},
 		{
 			name: "name, major, and minor version specified",
-			distro: &DistroSpecifier{
+			distro: &OSSpecifier{
 				Name:         "ubuntu",
 				MajorVersion: "20",
 				MinorVersion: "04",
@@ -929,7 +929,7 @@ func TestDistroDisplay(t *testing.T) {
 		},
 		{
 			name: "name, major version, and codename specified",
-			distro: &DistroSpecifier{
+			distro: &OSSpecifier{
 				Name:         "ubuntu",
 				MajorVersion: "20",
 				Codename:     "focal",
@@ -938,7 +938,7 @@ func TestDistroDisplay(t *testing.T) {
 		},
 		{
 			name: "name and codename specified",
-			distro: &DistroSpecifier{
+			distro: &OSSpecifier{
 				Name:     "ubuntu",
 				Codename: "focal",
 			},
@@ -946,7 +946,7 @@ func TestDistroDisplay(t *testing.T) {
 		},
 		{
 			name: "name, major version, minor version, and codename specified",
-			distro: &DistroSpecifier{
+			distro: &OSSpecifier{
 				Name:         "ubuntu",
 				MajorVersion: "20",
 				MinorVersion: "04",
@@ -958,7 +958,7 @@ func TestDistroDisplay(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := distroDisplay(tt.distro)
+			result := tt.distro.String()
 			require.Equal(t, tt.expected, result)
 		})
 	}

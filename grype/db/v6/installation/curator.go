@@ -27,8 +27,9 @@ const lastUpdateCheckFileName = "last_update_check"
 
 type monitor struct {
 	*progress.AtomicStage
-	downloadProgress *progress.Manual
-	importProgress   *progress.Manual
+	downloadProgress dummyMonitor
+	importProgress   dummyMonitor
+	hydrateProgress  dummyMonitor
 }
 
 type Config struct {
@@ -218,11 +219,11 @@ func (c curator) update(current *db.Description) (*distribution.Archive, error) 
 
 	log.Infof("downloading new vulnerability DB")
 	mon.Set("downloading")
-	dest, err := c.client.Download(*update, filepath.Dir(c.config.DBRootDir), mon.downloadProgress)
+	dest, err := c.client.Download(*update, filepath.Dir(c.config.DBRootDir), mon.downloadProgress.Manual)
 	if err != nil {
 		return nil, fmt.Errorf("unable to update vulnerability database: %w", err)
 	}
-
+	mon.downloadProgress.SetCompleted()
 	if err := c.activate(dest, mon); err != nil {
 		return nil, fmt.Errorf("unable to activate new vulnerability database: %w", err)
 	}
@@ -314,6 +315,7 @@ func (c curator) Import(dbArchivePath string) error {
 		return fmt.Errorf("unable to create db import temp dir: %w", err)
 	}
 
+	log.Trace("unarchiving DB")
 	err = archiver.Unarchive(dbArchivePath, tempDir)
 	if err != nil {
 		return err
@@ -334,7 +336,7 @@ func (c curator) Import(dbArchivePath string) error {
 
 // activate swaps over the downloaded db to the application directory, calculates the checksum, and records the checksums to a file.
 func (c curator) activate(dbDirPath string, mon monitor) error {
-	defer mon.importProgress.SetCompleted()
+	defer mon.SetCompleted()
 
 	dbFilePath := filepath.Join(dbDirPath, db.VulnerabilityDBFileName)
 
@@ -344,6 +346,7 @@ func (c curator) activate(dbDirPath string, mon monitor) error {
 			return err
 		}
 	}
+	mon.hydrateProgress.SetCompleted()
 
 	mon.Set("hashing")
 
@@ -364,6 +367,7 @@ func (c curator) activate(dbDirPath string, mon monitor) error {
 	if err := fh.Close(); err != nil {
 		return err
 	}
+	log.WithFields("digest", digest).Trace("captured DB checksum")
 
 	mon.Set("activating")
 
@@ -463,7 +467,8 @@ func newMonitor() monitor {
 	importProgress := progress.NewManual(1)
 	stage := progress.NewAtomicStage("")
 	downloadProgress := progress.NewManual(1)
-	aggregateProgress := progress.NewAggregator(progress.DefaultStrategy, downloadProgress, importProgress)
+	hydrateProgress := progress.NewManual(1)
+	aggregateProgress := progress.NewAggregator(progress.DefaultStrategy, downloadProgress, hydrateProgress, importProgress)
 
 	bus.Publish(partybus.Event{
 		Type: event.UpdateVulnerabilityDatabase,
@@ -478,12 +483,23 @@ func newMonitor() monitor {
 
 	return monitor{
 		AtomicStage:      stage,
-		downloadProgress: downloadProgress,
-		importProgress:   importProgress,
+		downloadProgress: dummyMonitor{downloadProgress},
+		importProgress:   dummyMonitor{importProgress},
+		hydrateProgress:  dummyMonitor{hydrateProgress},
 	}
 }
 
 func (m monitor) SetCompleted() {
 	m.downloadProgress.SetCompleted()
 	m.importProgress.SetCompleted()
+	m.hydrateProgress.SetCompleted()
+}
+
+type dummyMonitor struct {
+	*progress.Manual
+}
+
+func (m dummyMonitor) SetCompleted() {
+	m.Set(m.Size())
+	m.Manual.SetCompleted()
 }

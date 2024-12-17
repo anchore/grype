@@ -187,13 +187,13 @@ type VulnerabilityAlias struct {
 // name (which might or might not be the product name in the CPE), in which case AffectedCPEHandle should be used.
 type AffectedPackageHandle struct {
 	ID              ID                   `gorm:"column:id;primaryKey"`
-	VulnerabilityID ID                   `gorm:"column:vulnerability_id;not null"`
+	VulnerabilityID ID                   `gorm:"column:vulnerability_id;index;not null"`
 	Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
 
-	OperatingSystemID *ID              `gorm:"column:operating_system_id"`
+	OperatingSystemID *ID              `gorm:"column:operating_system_id;index"`
 	OperatingSystem   *OperatingSystem `gorm:"foreignKey:OperatingSystemID"`
 
-	PackageID ID       `gorm:"column:package_id"`
+	PackageID ID       `gorm:"column:package_id;index"`
 	Package   *Package `gorm:"foreignKey:PackageID"`
 
 	BlobID    ID                   `gorm:"column:blob_id"`
@@ -225,7 +225,7 @@ func (v *AffectedPackageHandle) setBlob(rawBlobValue []byte) error {
 type Package struct {
 	ID   ID     `gorm:"column:id;primaryKey"`
 	Type string `gorm:"column:type;index:idx_package,unique"`
-	Name string `gorm:"column:name;index:idx_package,unique"`
+	Name string `gorm:"column:name;index:idx_package,unique;index:idx_package_name"`
 
 	CPEs []Cpe `gorm:"foreignKey:PackageID;constraint:OnDelete:CASCADE;"`
 }
@@ -282,7 +282,7 @@ type OperatingSystem struct {
 	MajorVersion string `gorm:"column:major_version;index:os_idx,unique"`
 	MinorVersion string `gorm:"column:minor_version;index:os_idx,unique"`
 	LabelVersion string `gorm:"column:label_version;index:os_idx,unique"`
-	Codename     string `gorm:"column:codename"`
+	Codename     string `gorm:"column:codename"` // TODO: should this be removed and use label-version instead?
 }
 
 func (os *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
@@ -399,8 +399,8 @@ type Cpe struct {
 	PackageID *ID `gorm:"column:package_id;index"`
 
 	Part            string `gorm:"column:part;not null;index:idx_cpe,unique"`
-	Vendor          string `gorm:"column:vendor;index:idx_cpe,unique"`
-	Product         string `gorm:"column:product;not null;index:idx_cpe,unique"`
+	Vendor          string `gorm:"column:vendor;index:idx_cpe,unique;index:idx_cpe_vendor"`
+	Product         string `gorm:"column:product;not null;index:idx_cpe,unique;index:idx_cpe_product"`
 	Edition         string `gorm:"column:edition;index:idx_cpe,unique"`
 	Language        string `gorm:"column:language;index:idx_cpe,unique"`
 	SoftwareEdition string `gorm:"column:software_edition;index:idx_cpe,unique"`
