@@ -9,3 +9,10 @@ type Status struct {
 	Checksum      string    `json:"checksum"`
 	Err           error     `json:"error"`
 }
+
+func (s Status) Status() string {
+	if s.Err != nil {
+		return "invalid"
+	}
+	return "valid"
+}

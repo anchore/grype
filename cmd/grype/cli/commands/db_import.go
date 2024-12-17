@@ -11,17 +11,17 @@ import (
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/db/v6/installation"
 	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/internal/log"
 )
 
 func DBImport(app clio.Application) *cobra.Command {
 	opts := dbOptionsDefault(app.ID())
 
 	return app.SetupCommand(&cobra.Command{
-		Use:     "import FILE",
-		Short:   "import a vulnerability database archive",
-		Long:    fmt.Sprintf("import a vulnerability database archive from a local FILE.\nDB archives can be obtained from %q.", internal.DBUpdateURL),
-		Args:    cobra.ExactArgs(1),
-		PreRunE: disableUI(app),
+		Use:   "import FILE",
+		Short: "import a vulnerability database archive",
+		Long:  fmt.Sprintf("import a vulnerability database archive from a local FILE.\nDB archives can be obtained from %q.", internal.DBUpdateURL),
+		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			return runDBImport(*opts, args[0])
 		},
@@ -48,10 +48,14 @@ func newDBImport(opts options.Database, dbArchivePath string) error {
 		return fmt.Errorf("unable to create curator: %w", err)
 	}
 
+	log.WithFields("path", dbArchivePath).Infof("importing vulnerability database archive")
 	if err := c.Import(dbArchivePath); err != nil {
 		return fmt.Errorf("unable to import vulnerability database: %w", err)
 	}
-	return stderrPrintLnf("Vulnerability database imported")
+
+	s := c.Status()
+	log.WithFields("built", s.Built.String(), "status", s.Status()).Info("vulnerability database imported")
+	return nil
 }
 
 func legacyDBImport(opts options.Database, dbArchivePath string) error {
