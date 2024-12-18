@@ -12,23 +12,44 @@ import (
 // Vulnerabilities is the JSON document for the `db search vuln` command
 type Vulnerabilities []Vulnerability
 
+// Vulnerability represents the core advisory record for a single known vulnerability from a specific provider.
 type Vulnerability struct {
 	VulnerabilityInfo `json:",inline"`
-	OperatingSystems  []OperatingSystem `json:"operating_systems"`
-	AffectedPackages  int               `json:"affected_packages"`
+
+	// OperatingSystems is a list of operating systems affected by the vulnerability
+	OperatingSystems []OperatingSystem `json:"operating_systems"`
+
+	// AffectedPackages is the number of packages affected by the vulnerability
+	AffectedPackages int `json:"affected_packages"`
 }
 
 type VulnerabilityInfo struct {
 	v6.VulnerabilityBlob `json:",inline"`
-	Provider             string     `json:"provider"`
-	Status               string     `json:"status"`
-	PublishedDate        *time.Time `json:"published_date,omitempty"`
-	ModifiedDate         *time.Time `json:"modified_date,omitempty"`
-	WithdrawnDate        *time.Time `json:"withdrawn_date,omitempty"`
+
+	// Provider is the upstream data processor (usually Vunnel) that is responsible for vulnerability records. Each provider
+	// should be scoped to a specific vulnerability dataset, for instance, the "ubuntu" provider for all records from
+	// Canonicals' Ubuntu Security Notices (for all Ubuntu distro versions).
+	Provider string `json:"provider"`
+
+	// Status conveys the actionability of the current record (one of "active", "analyzing", "rejected", "disputed")
+	Status string `json:"status"`
+
+	// PublishedDate is the date the vulnerability record was first published
+	PublishedDate *time.Time `json:"published_date,omitempty"`
+
+	// ModifiedDate is the date the vulnerability record was last modified
+	ModifiedDate *time.Time `json:"modified_date,omitempty"`
+
+	// WithdrawnDate is the date the vulnerability record was withdrawn
+	WithdrawnDate *time.Time `json:"withdrawn_date,omitempty"`
 }
 
+// OperatingSystem represents specific release of an operating system.
 type OperatingSystem struct {
-	Name    string `json:"name"`
+	// Name is the operating system family name (e.g. "debian")
+	Name string `json:"name"`
+
+	// Version is the semver-ish or codename for the release of the operating system
 	Version string `json:"version"`
 }
 
@@ -66,7 +87,7 @@ func newVulnerabilityInfo(vuln v6.VulnerabilityHandle) VulnerabilityInfo {
 	return VulnerabilityInfo{
 		VulnerabilityBlob: blob,
 		Provider:          vuln.Provider.ID,
-		Status:            vuln.Status,
+		Status:            string(vuln.Status),
 		PublishedDate:     vuln.PublishedDate,
 		ModifiedDate:      vuln.ModifiedDate,
 		WithdrawnDate:     vuln.WithdrawnDate,

@@ -19,6 +19,14 @@
       ]
     },
     "Reference": {
+      "$defs": {
+        "tags": {
+          "description": "is a free-form organizational field to convey additional information about the reference"
+        },
+        "url": {
+          "description": "is the external resource"
+        }
+      },
       "properties": {
         "url": {
           "type": "string"
@@ -36,6 +44,20 @@
       ]
     },
     "Severity": {
+      "$defs": {
+        "rank": {
+          "description": "is a free-form organizational field to convey priority over other severities"
+        },
+        "scheme": {
+          "description": "describes the quantitative method used to determine the Score, such as 'CVSS_V3'. Alternatively this makes\nclaim that Value is qualitative, for example 'HML' (High, Medium, Low), CHMLN (critical-high-medium-low-negligible)"
+        },
+        "source": {
+          "description": "is the name of the source of the severity score (e.g. 'nvd@nist.gov' or 'security-advisories@github.com')"
+        },
+        "value": {
+          "description": "is the severity score (e.g. '7.5', 'CVSS:4.0/AV:N/AC:L/AT:N/PR:H/UI:N/VC:L/VI:L/VA:N/SC:N/SI:N/SA:N',  or 'high' )"
+        }
+      },
       "properties": {
         "scheme": {
           "type": "string"
@@ -62,6 +84,14 @@
       "type": "array"
     },
     "Vulnerability": {
+      "$defs": {
+        "affected_packages": {
+          "description": "is the number of packages affected by the vulnerability"
+        },
+        "operating_systems": {
+          "description": "is a list of operating systems affected by the vulnerability"
+        }
+      },
       "properties": {
         "id": {
           "type": "string"

@@ -4,6 +4,17 @@
   "$ref": "#/$defs/Matches",
   "$defs": {
     "AffectedPackageBlob": {
+      "$defs": {
+        "cves": {
+          "description": "is a list of Common Vulnerabilities and Exposures (CVE) identifiers related to this vulnerability."
+        },
+        "qualifiers": {
+          "description": "are package attributes that confirm the package is affected by the vulnerability."
+        },
+        "ranges": {
+          "description": "specifies the affected version ranges and fixes if available."
+        }
+      },
       "properties": {
         "cves": {
           "items": {
@@ -24,9 +35,23 @@
       "type": "object"
     },
     "AffectedPackageInfo": {
+      "$defs": {
+        "cpe": {
+          "description": "is a Common Platform Enumeration that is affected by the vulnerability"
+        },
+        "detail": {
+          "description": "is the detailed information about the affected package"
+        },
+        "os": {
+          "description": "identifies the operating system release that the affected package is released for"
+        },
+        "package": {
+          "description": "identifies the name of the package in a specific ecosystem affected by the vulnerability"
+        }
+      },
       "properties": {
         "os": {
-          "$ref": "#/$defs/OS"
+          "$ref": "#/$defs/OperatingSystem"
         },
         "package": {
           "$ref": "#/$defs/Package"
@@ -44,6 +69,14 @@
       ]
     },
     "AffectedPackageQualifiers": {
+      "$defs": {
+        "platform_cpes": {
+          "description": "lists Common Platform Enumeration (CPE) identifiers for affected platforms."
+        },
+        "rpm_modularity": {
+          "description": "indicates if the package follows RPM modularity for versioning."
+        }
+      },
       "properties": {
         "rpm_modularity": {
           "type": "string"
@@ -58,6 +91,14 @@
       "type": "object"
     },
     "AffectedRange": {
+      "$defs": {
+        "fix": {
+          "description": "provides details on the fix version and its state if available."
+        },
+        "version": {
+          "description": "defines the version constraints for affected software."
+        }
+      },
       "properties": {
         "version": {
           "$ref": "#/$defs/AffectedVersion"
@@ -72,6 +113,14 @@
       ]
     },
     "AffectedVersion": {
+      "$defs": {
+        "constraint": {
+          "description": "defines the version range constraint for affected versions."
+        },
+        "type": {
+          "description": "specifies the versioning system used (e.g., 'semver', 'rpm')."
+        }
+      },
       "properties": {
         "type": {
           "type": "string"
@@ -137,6 +186,17 @@
       ]
     },
     "Fix": {
+      "$defs": {
+        "detail": {
+          "description": "provides additional fix information, such as commit details."
+        },
+        "state": {
+          "description": "represents the status of the fix (e.g., 'fixed', 'unaffected')."
+        },
+        "version": {
+          "description": "is the version number of the fix."
+        }
+      },
       "properties": {
         "version": {
           "type": "string"
@@ -154,6 +214,17 @@
       ]
     },
     "FixDetail": {
+      "$defs": {
+        "git_commit": {
+          "description": "is the identifier for the Git commit associated with the fix."
+        },
+        "references": {
+          "description": "contains URLs or identifiers for additional resources on the fix."
+        },
+        "timestamp": {
+          "description": "is the date and time when the fix was committed."
+        }
+      },
       "properties": {
         "git_commit": {
           "type": "string"
@@ -172,6 +243,14 @@
       "type": "object"
     },
     "Match": {
+      "$defs": {
+        "packages": {
+          "description": "is the list of packages affected by the vulnerability."
+        },
+        "vulnerability": {
+          "description": "is the core advisory record for a single known vulnerability from a specific provider."
+        }
+      },
       "properties": {
         "vulnerability": {
           "$ref": "#/$defs/VulnerabilityInfo"
@@ -195,9 +274,9 @@
       },
       "type": "array"
     },
-    "OS": {
+    "OperatingSystem": {
       "properties": {
-        "family": {
+        "name": {
           "type": "string"
         },
         "version": {
@@ -206,7 +285,7 @@
       },
       "type": "object",
       "required": [
-        "family",
+        "name",
         "version"
       ]
     },
@@ -226,6 +305,14 @@
       ]
     },
     "Reference": {
+      "$defs": {
+        "tags": {
+          "description": "is a free-form organizational field to convey additional information about the reference"
+        },
+        "url": {
+          "description": "is the external resource"
+        }
+      },
       "properties": {
         "url": {
           "type": "string"
@@ -243,6 +330,20 @@
       ]
     },
     "Severity": {
+      "$defs": {
+        "rank": {
+          "description": "is a free-form organizational field to convey priority over other severities"
+        },
+        "scheme": {
+          "description": "describes the quantitative method used to determine the Score, such as 'CVSS_V3'. Alternatively this makes\nclaim that Value is qualitative, for example 'HML' (High, Medium, Low), CHMLN (critical-high-medium-low-negligible)"
+        },
+        "source": {
+          "description": "is the name of the source of the severity score (e.g. 'nvd@nist.gov' or 'security-advisories@github.com')"
+        },
+        "value": {
+          "description": "is the severity score (e.g. '7.5', 'CVSS:4.0/AV:N/AC:L/AT:N/PR:H/UI:N/VC:L/VI:L/VA:N/SC:N/SI:N/SA:N',  or 'high' )"
+        }
+      },
       "properties": {
         "scheme": {
           "type": "string"
@@ -263,6 +364,23 @@
       ]
     },
     "VulnerabilityInfo": {
+      "$defs": {
+        "modified_date": {
+          "description": "is the date the vulnerability record was last modified"
+        },
+        "provider": {
+          "description": "is the upstream data processor (usually Vunnel) that is responsible for vulnerability records. Each provider\nshould be scoped to a specific vulnerability dataset, for instance, the 'ubuntu' provider for all records from\nCanonicals' Ubuntu Security Notices (for all Ubuntu distro versions)."
+        },
+        "published_date": {
+          "description": "is the date the vulnerability record was first published"
+        },
+        "status": {
+          "description": "conveys the actionability of the current record (one of 'active', 'analyzing', 'rejected', 'disputed')"
+        },
+        "withdrawn_date": {
+          "description": "is the date the vulnerability record was withdrawn"
+        }
+      },
       "properties": {
         "id": {
           "type": "string"
