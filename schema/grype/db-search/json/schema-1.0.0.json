@@ -1,0 +1,324 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "anchore.io/schema/grype/db-search/json/1.0.0/matches",
+  "$ref": "#/$defs/Matches",
+  "$defs": {
+    "AffectedPackageBlob": {
+      "properties": {
+        "cves": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "qualifiers": {
+          "$ref": "#/$defs/AffectedPackageQualifiers"
+        },
+        "ranges": {
+          "items": {
+            "$ref": "#/$defs/AffectedRange"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "AffectedPackageInfo": {
+      "properties": {
+        "os": {
+          "$ref": "#/$defs/OS"
+        },
+        "package": {
+          "$ref": "#/$defs/Package"
+        },
+        "cpe": {
+          "$ref": "#/$defs/CPE"
+        },
+        "detail": {
+          "$ref": "#/$defs/AffectedPackageBlob"
+        }
+      },
+      "type": "object",
+      "required": [
+        "detail"
+      ]
+    },
+    "AffectedPackageQualifiers": {
+      "properties": {
+        "rpm_modularity": {
+          "type": "string"
+        },
+        "platform_cpes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "AffectedRange": {
+      "properties": {
+        "version": {
+          "$ref": "#/$defs/AffectedVersion"
+        },
+        "fix": {
+          "$ref": "#/$defs/Fix"
+        }
+      },
+      "type": "object",
+      "required": [
+        "version"
+      ]
+    },
+    "AffectedVersion": {
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "constraint": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "constraint"
+      ]
+    },
+    "CPE": {
+      "properties": {
+        "ID": {
+          "type": "integer"
+        },
+        "PackageID": {
+          "type": "integer"
+        },
+        "Part": {
+          "type": "string"
+        },
+        "Vendor": {
+          "type": "string"
+        },
+        "Product": {
+          "type": "string"
+        },
+        "Edition": {
+          "type": "string"
+        },
+        "Language": {
+          "type": "string"
+        },
+        "SoftwareEdition": {
+          "type": "string"
+        },
+        "TargetHardware": {
+          "type": "string"
+        },
+        "TargetSoftware": {
+          "type": "string"
+        },
+        "Other": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "ID",
+        "PackageID",
+        "Part",
+        "Vendor",
+        "Product",
+        "Edition",
+        "Language",
+        "SoftwareEdition",
+        "TargetHardware",
+        "TargetSoftware",
+        "Other"
+      ]
+    },
+    "Fix": {
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "detail": {
+          "$ref": "#/$defs/FixDetail"
+        }
+      },
+      "type": "object",
+      "required": [
+        "state"
+      ]
+    },
+    "FixDetail": {
+      "properties": {
+        "git_commit": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "references": {
+          "items": {
+            "$ref": "#/$defs/Reference"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "Match": {
+      "properties": {
+        "vulnerability": {
+          "$ref": "#/$defs/VulnerabilityInfo"
+        },
+        "packages": {
+          "items": {
+            "$ref": "#/$defs/AffectedPackageInfo"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object",
+      "required": [
+        "vulnerability",
+        "packages"
+      ]
+    },
+    "Matches": {
+      "items": {
+        "$ref": "#/$defs/Match"
+      },
+      "type": "array"
+    },
+    "OS": {
+      "properties": {
+        "family": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "family",
+        "version"
+      ]
+    },
+    "Package": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "ecosystem": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "name",
+        "ecosystem"
+      ]
+    },
+    "Reference": {
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object",
+      "required": [
+        "url"
+      ]
+    },
+    "Severity": {
+      "properties": {
+        "scheme": {
+          "type": "string"
+        },
+        "value": true,
+        "source": {
+          "type": "string"
+        },
+        "rank": {
+          "type": "integer"
+        }
+      },
+      "type": "object",
+      "required": [
+        "scheme",
+        "value",
+        "rank"
+      ]
+    },
+    "VulnerabilityInfo": {
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "assigner": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "description": {
+          "type": "string"
+        },
+        "refs": {
+          "items": {
+            "$ref": "#/$defs/Reference"
+          },
+          "type": "array"
+        },
+        "aliases": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severities": {
+          "items": {
+            "$ref": "#/$defs/Severity"
+          },
+          "type": "array"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "published_date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "modified_date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "withdrawn_date": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "type": "object",
+      "required": [
+        "id",
+        "provider",
+        "status"
+      ]
+    }
+  }
+}
