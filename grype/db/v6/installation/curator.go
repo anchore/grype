@@ -1,6 +1,7 @@
 package installation
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -130,7 +131,11 @@ func (c curator) Delete() error {
 func (c curator) Update() (bool, error) {
 	current, err := db.ReadDescription(c.config.DBFilePath())
 	if err != nil {
-		log.WithFields("error", err).Warn("unable to read current database metadata (continuing with update)")
+		// we should not warn if the DB does not exist, as this is a common first-run case... but other cases we
+		// may care about, so warn in those cases.
+		if !errors.Is(err, db.ErrDBDoesNotExist) {
+			log.WithFields("error", err).Warn("unable to read current database metadata (continuing with update)")
+		}
 		// downstream any non-existent DB should always be replaced with any best-candidate found
 		current = nil
 	} else {
