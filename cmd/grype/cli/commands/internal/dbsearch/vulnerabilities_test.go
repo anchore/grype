@@ -30,7 +30,7 @@ func TestNewVulnerabilityRows(t *testing.T) {
 	}
 
 	rows := newVulnerabilityRows(vap)
-	expected := []VulnerabilityRow{
+	expected := []Vulnerability{
 		{
 			VulnerabilityInfo: VulnerabilityInfo{
 				VulnerabilityBlob: v6.VulnerabilityBlob{Description: "Test description"},
@@ -76,10 +76,10 @@ func TestVulnerabilities(t *testing.T) {
 		},
 	}, nil)
 
-	results, err := Vulnerabilities(mockReader, VulnerabilitiesOptions{Vulnerability: vulnSpecs})
+	results, err := FindVulnerabilities(mockReader, VulnerabilitiesOptions{Vulnerability: vulnSpecs})
 	require.NoError(t, err)
 
-	expected := []VulnerabilityRow{
+	expected := []Vulnerability{
 		{
 			VulnerabilityInfo: VulnerabilityInfo{
 				VulnerabilityBlob: v6.VulnerabilityBlob{Description: "Test description"},

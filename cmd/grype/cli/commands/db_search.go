@@ -111,7 +111,7 @@ func runDBSearchMatches(opts dbSearchMatchOptions) error {
 		return err
 	}
 
-	rows, queryErr := dbsearch.Matches(reader, dbsearch.AffectedPackagesOptions{
+	rows, queryErr := dbsearch.FindMatches(reader, dbsearch.AffectedPackagesOptions{
 		Vulnerability: opts.Vulnerability.Specs,
 		Package:       opts.Package.PkgSpecs,
 		CPE:           opts.Package.CPESpecs,
@@ -137,7 +137,7 @@ func runDBSearchMatches(opts dbSearchMatchOptions) error {
 	return queryErr
 }
 
-func presentDBSearchMatches(outputFormat string, structuredRows dbsearch.MatchTableRows, output io.Writer) error {
+func presentDBSearchMatches(outputFormat string, structuredRows dbsearch.Matches, output io.Writer) error {
 	if len(structuredRows) == 0 {
 		// TODO: show a message that no results were found?
 		return nil
@@ -229,7 +229,7 @@ func presentLegacyDBSearchPackages(outputFormat string, vulnerabilities []vulner
 	return nil
 }
 
-func renderDBSearchPackagesTableRows(structuredRows []dbsearch.AffectedPackageTableRow) [][]string {
+func renderDBSearchPackagesTableRows(structuredRows []dbsearch.AffectedPackage) [][]string {
 	var rows [][]string
 	for _, rr := range structuredRows {
 		var pkgOrCPE, ecosystem string
@@ -368,7 +368,7 @@ func renderDBSearchPackagesTableRows(structuredRows []dbsearch.AffectedPackageTa
 // | alpine:distro:alpine:3.2             |
 // | github:language:swift                |
 // +--------------------------------------+
-func v5Namespace(row dbsearch.AffectedPackageTableRow) string {
+func v5Namespace(row dbsearch.AffectedPackage) string {
 	switch row.Vulnerability.Provider {
 	case "nvd":
 		return "nvd:cpe"

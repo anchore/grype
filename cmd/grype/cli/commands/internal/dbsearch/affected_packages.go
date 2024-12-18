@@ -11,7 +11,7 @@ import (
 
 var ErrNoSearchCriteria = errors.New("must provide at least one of vulnerability or package to search for")
 
-type AffectedPackageTableRow struct {
+type AffectedPackage struct {
 	Vulnerability       VulnerabilityInfo `json:"vulnerability"`
 	AffectedPackageInfo `json:",inline"`
 }
@@ -41,7 +41,7 @@ type AffectedPackagesOptions struct {
 	RecordLimit   int
 }
 
-func newAffectedPackageRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPEs []v6.AffectedCPEHandle) (rows []AffectedPackageTableRow) {
+func newAffectedPackageRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPEs []v6.AffectedCPEHandle) (rows []AffectedPackage) {
 	for _, pkg := range affectedPkgs {
 		var detail v6.AffectedPackageBlob
 		if pkg.BlobValue != nil {
@@ -53,7 +53,7 @@ func newAffectedPackageRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPE
 			continue
 		}
 
-		rows = append(rows, AffectedPackageTableRow{
+		rows = append(rows, AffectedPackage{
 			Vulnerability: newVulnerabilityInfo(*pkg.Vulnerability),
 			AffectedPackageInfo: AffectedPackageInfo{
 				OS:      toOS(pkg.OperatingSystem),
@@ -80,7 +80,7 @@ func newAffectedPackageRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPE
 			c = &cv
 		}
 
-		rows = append(rows, AffectedPackageTableRow{
+		rows = append(rows, AffectedPackage{
 			Vulnerability: newVulnerabilityInfo(*ac.Vulnerability),
 			AffectedPackageInfo: AffectedPackageInfo{
 				CPE:    c,
@@ -116,11 +116,11 @@ func toOS(os *v6.OperatingSystem) *OS {
 	}
 }
 
-func AffectedPackages(reader interface {
+func FindAffectedPackages(reader interface {
 	v6.AffectedPackageStoreReader
 	v6.AffectedCPEStoreReader
-}, criteria AffectedPackagesOptions) ([]AffectedPackageTableRow, error) {
-	allAffectedPkgs, allAffectedCPEs, err := searchAffectedPackages(reader, criteria)
+}, criteria AffectedPackagesOptions) ([]AffectedPackage, error) {
+	allAffectedPkgs, allAffectedCPEs, err := findAffectedPackages(reader, criteria)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ func AffectedPackages(reader interface {
 	return newAffectedPackageRows(allAffectedPkgs, allAffectedCPEs), nil
 }
 
-func searchAffectedPackages(reader interface { //nolint:funlen
+func findAffectedPackages(reader interface { //nolint:funlen
 	v6.AffectedPackageStoreReader
 	v6.AffectedCPEStoreReader
 }, config AffectedPackagesOptions) ([]v6.AffectedPackageHandle, []v6.AffectedCPEHandle, error) {

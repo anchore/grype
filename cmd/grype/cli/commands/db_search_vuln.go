@@ -88,7 +88,7 @@ func runDBSearchVulnerabilities(opts dbSearchVulnerabilityOptions) error {
 		return err
 	}
 
-	rows, err := dbsearch.Vulnerabilities(reader, dbsearch.VulnerabilitiesOptions{
+	rows, err := dbsearch.FindVulnerabilities(reader, dbsearch.VulnerabilitiesOptions{
 		Vulnerability: opts.Vulnerability.Specs,
 		RecordLimit:   opts.Bounds.RecordLimit,
 	})
@@ -132,7 +132,7 @@ func validateProvidersFilter(reader v6.Reader, providers []string) error {
 	return errs
 }
 
-func presentDBSearchVulnerabilities(outputFormat string, structuredRows []dbsearch.VulnerabilityRow, output io.Writer) error {
+func presentDBSearchVulnerabilities(outputFormat string, structuredRows []dbsearch.Vulnerability, output io.Writer) error {
 	if len(structuredRows) == 0 {
 		// TODO: show a message that no results were found?
 		return nil
@@ -161,7 +161,7 @@ func presentDBSearchVulnerabilities(outputFormat string, structuredRows []dbsear
 	return nil
 }
 
-func renderDBSearchVulnerabilitiesTableRows(structuredRows []dbsearch.VulnerabilityRow) [][]string {
+func renderDBSearchVulnerabilitiesTableRows(structuredRows []dbsearch.Vulnerability) [][]string {
 	type row struct {
 		Vuln                    string
 		ProviderWithoutVersions string
