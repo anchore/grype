@@ -11,26 +11,51 @@ import (
 
 var ErrNoSearchCriteria = errors.New("must provide at least one of vulnerability or package to search for")
 
+// AffectedPackage represents a package affected by a vulnerability
 type AffectedPackage struct {
-	Vulnerability       VulnerabilityInfo `json:"vulnerability"`
+	// Vulnerability is the core advisory record for a single known vulnerability from a specific provider.
+	Vulnerability VulnerabilityInfo `json:"vulnerability"`
+
+	// AffectedPackageInfo is the detailed information about the affected package
 	AffectedPackageInfo `json:",inline"`
 }
 
 type AffectedPackageInfo struct {
-	OS      *OS                    `json:"os,omitempty"`
-	Package *Package               `json:"package,omitempty"`
-	CPE     *CPE                   `json:"cpe,omitempty"`
-	Detail  v6.AffectedPackageBlob `json:"detail"`
+	// OS identifies the operating system release that the affected package is released for
+	OS *OperatingSystem `json:"os,omitempty"`
+
+	// Package identifies the name of the package in a specific ecosystem affected by the vulnerability
+	Package *Package `json:"package,omitempty"`
+
+	// CPE is a Common Platform Enumeration that is affected by the vulnerability
+	CPE *CPE `json:"cpe,omitempty"`
+
+	// Detail is the detailed information about the affected package
+	Detail v6.AffectedPackageBlob `json:"detail"`
 }
 
+// Package represents a package name within a known ecosystem, such as "python" or "golang".
 type Package struct {
-	Name      string `json:"name"`
+
+	// Name is the name of the package within the ecosystem
+	Name string `json:"name"`
+
+	// Ecosystem is the tooling and language ecosystem that the package is released within
 	Ecosystem string `json:"ecosystem"`
 }
 
-type OS struct {
-	Family  string `json:"family"`
-	Version string `json:"version"`
+// CPE is a Common Platform Enumeration that identifies a package
+type CPE v6.Cpe
+
+func (c *CPE) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf("%q", c.String())), nil
+}
+
+func (c *CPE) String() string {
+	if c == nil {
+		return ""
+	}
+	return v6.Cpe(*c).String()
 }
 
 type AffectedPackagesOptions struct {
@@ -101,7 +126,7 @@ func toPackage(pkg *v6.Package) *Package {
 	}
 }
 
-func toOS(os *v6.OperatingSystem) *OS {
+func toOS(os *v6.OperatingSystem) *OperatingSystem {
 	if os == nil {
 		return nil
 	}
@@ -110,8 +135,8 @@ func toOS(os *v6.OperatingSystem) *OS {
 		version = os.Version()
 	}
 
-	return &OS{
-		Family:  os.Name,
+	return &OperatingSystem{
+		Name:    os.Name,
 		Version: version,
 	}
 }

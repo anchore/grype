@@ -10,8 +10,12 @@ import (
 // Matches is the JSON document for the `db search` command
 type Matches []Match
 
+// Match represents a pairing of a vulnerability advisory with the packages affected by the vulnerability.
 type Match struct {
-	Vulnerability    VulnerabilityInfo     `json:"vulnerability"`
+	// Vulnerability is the core advisory record for a single known vulnerability from a specific provider.
+	Vulnerability VulnerabilityInfo `json:"vulnerability"`
+
+	// AffectedPackages is the list of packages affected by the vulnerability.
 	AffectedPackages []AffectedPackageInfo `json:"packages"`
 }
 

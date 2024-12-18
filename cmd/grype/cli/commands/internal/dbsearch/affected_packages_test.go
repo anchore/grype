@@ -163,7 +163,7 @@ func TestNewAffectedPackageRows(t *testing.T) {
 				ModifiedDate:      ptrTime(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
 			},
 			AffectedPackageInfo: AffectedPackageInfo{
-				OS:      &OS{Family: "Linux", Version: "5.10"},
+				OS:      &OperatingSystem{Name: "Linux", Version: "5.10"},
 				Package: &Package{Name: "pkg1", Ecosystem: "ecosystem1"},
 				Detail: v6.AffectedPackageBlob{
 					CVEs: []string{"CVE-1234-5678"},
@@ -299,7 +299,7 @@ func TestAffectedPackages(t *testing.T) {
 				ModifiedDate:      ptrTime(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
 			},
 			AffectedPackageInfo: AffectedPackageInfo{
-				OS:      &OS{Family: "Linux", Version: "5.10"},
+				OS:      &OperatingSystem{Name: "Linux", Version: "5.10"},
 				Package: &Package{Name: "pkg1", Ecosystem: "ecosystem1"},
 				Detail: v6.AffectedPackageBlob{
 					CVEs: []string{"CVE-1234-5678"},

@@ -130,8 +130,8 @@ type VulnerabilityHandle struct {
 	// Name is the unique name for the vulnerability (same as the decoded VulnerabilityBlob.ID)
 	Name string `gorm:"column:name;not null;index"`
 
-	// Status conveys the actionability of the current record
-	Status string `gorm:"column:status;not null;index"`
+	// Status conveys the actionability of the current record (one of "active", "analyzing", "rejected", "disputed")
+	Status VulnerabilityStatus `gorm:"column:status;not null;index"`
 
 	// PublishedDate is the date the vulnerability record was first published
 	PublishedDate *time.Time `gorm:"column:published_date;index"`
@@ -223,11 +223,17 @@ func (v *AffectedPackageHandle) setBlob(rawBlobValue []byte) error {
 	return nil
 }
 
+// Package represents a package name within a known ecosystem, such as "python" or "golang".
 type Package struct {
-	ID   ID     `gorm:"column:id;primaryKey"`
+	ID ID `gorm:"column:id;primaryKey"`
+
+	// Type is the tooling and language ecosystem that the package is released within
 	Type string `gorm:"column:type;index:idx_package,unique"`
+
+	// Name is the name of the package within the ecosystem
 	Name string `gorm:"column:name;index:idx_package,unique;index:idx_package_name"`
 
+	// CPEs is the list of Common Platform Enumeration (CPE) identifiers that represent this package
 	CPEs []Cpe `gorm:"foreignKey:PackageID;constraint:OnDelete:CASCADE;"`
 }
 
@@ -276,15 +282,27 @@ func (p *Package) BeforeCreate(tx *gorm.DB) (err error) {
 	return nil
 }
 
+// OperatingSystem represents specific release of an operating system. The resolution of the version is
+// relative to the available data by the vulnerability data provider, so though there may be major.minor.patch OS
+// releases, there may only be data available for major.minor.
 type OperatingSystem struct {
 	ID ID `gorm:"column:id;primaryKey"`
 
-	Name         string `gorm:"column:name;index:os_idx,unique;index"`
+	// Name is the operating system family name (e.g. "debian")
+	Name string `gorm:"column:name;index:os_idx,unique;index"`
 	ReleaseID    string `gorm:"column:release_id;index:os_idx,unique;index"`
+
+	// MajorVersion is the major version of a specific release (e.g. "10" for debian 10)
 	MajorVersion string `gorm:"column:major_version;index:os_idx,unique;index"`
+
+	// MinorVersion is the minor version of a specific release (e.g. "1" for debian 10.1)
 	MinorVersion string `gorm:"column:minor_version;index:os_idx,unique;index"`
+
+	// LabelVersion is an optional non-codename string representation of the version (e.g. "unstable" or for debian:sid)
 	LabelVersion string `gorm:"column:label_version;index:os_idx,unique;index"`
-	Codename     string `gorm:"column:codename;index"`
+
+	// Codename is the codename of a specific release (e.g. "buster" for debian 10)
+	Codename string `gorm:"column:codename;index"`
 }
 
 func (os *OperatingSystem) VersionNumber() string {
