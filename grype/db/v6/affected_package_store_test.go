@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/scylladb/go-set/strset"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -516,6 +517,61 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 
 		})
 	}
+}
+
+func TestAffectedPackageStore_GetAffectedPackages_MultipleVulnerabilitySpecs(t *testing.T) {
+	db := setupTestStore(t).db
+	bs := newBlobStore(db)
+	s := newAffectedPackageStore(db, bs)
+
+	cpe1 := Cpe{Part: "a", Vendor: "vendor1", Product: "product1"}
+	cpe2 := Cpe{Part: "a", Vendor: "vendor2", Product: "product2"}
+	pkg1 := &AffectedPackageHandle{
+		Vulnerability: &VulnerabilityHandle{
+			Name: "CVE-2023-1234",
+			Provider: &Provider{
+				ID: "provider1",
+			},
+		},
+		Package: &Package{Name: "pkg1", Type: "type1", CPEs: []Cpe{cpe1}},
+		BlobValue: &AffectedPackageBlob{
+			CVEs: []string{"CVE-2023-1234"},
+		},
+	}
+	pkg2 := &AffectedPackageHandle{
+		Vulnerability: &VulnerabilityHandle{
+			Name: "CVE-2023-5678",
+			Provider: &Provider{
+				ID: "provider1",
+			},
+		},
+		Package: &Package{Name: "pkg2", Type: "type2", CPEs: []Cpe{cpe2}},
+		BlobValue: &AffectedPackageBlob{
+			CVEs: []string{"CVE-2023-5678"},
+		},
+	}
+
+	err := s.AddAffectedPackages(pkg1, pkg2)
+	require.NoError(t, err)
+
+	result, err := s.GetAffectedPackages(nil, &GetAffectedPackageOptions{
+		PreloadVulnerability: true,
+		Vulnerabilities: []VulnerabilitySpecifier{
+			{Name: "CVE-2023-1234"},
+			{Name: "CVE-2023-5678"},
+		},
+	})
+	require.NoError(t, err)
+
+	actualVulns := strset.New()
+	for _, r := range result {
+		actualVulns.Add(r.Vulnerability.Name)
+	}
+
+	expectedVulns := strset.New("CVE-2023-1234", "CVE-2023-5678")
+
+	assert.ElementsMatch(t, expectedVulns.List(), actualVulns.List())
+
 }
 
 func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
