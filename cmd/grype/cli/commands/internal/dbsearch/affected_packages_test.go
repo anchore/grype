@@ -15,7 +15,7 @@ import (
 )
 
 func TestAffectedPackageTableRowMarshalJSON(t *testing.T) {
-	row := AffectedPackageTableRow{
+	row := AffectedPackage{
 		Vulnerability: VulnerabilityInfo{
 			VulnerabilityBlob: v6.VulnerabilityBlob{
 				ID:          "CVE-1234-5678",
@@ -153,7 +153,7 @@ func TestNewAffectedPackageRows(t *testing.T) {
 	}
 
 	rows := newAffectedPackageRows(affectedPkgs, affectedCPEs)
-	expected := []AffectedPackageTableRow{
+	expected := []AffectedPackage{
 		{
 			Vulnerability: VulnerabilityInfo{
 				VulnerabilityBlob: v6.VulnerabilityBlob{Description: "Test vulnerability"},
@@ -286,10 +286,10 @@ func TestAffectedPackages(t *testing.T) {
 		},
 	}
 
-	results, err := AffectedPackages(mockReader, criteria)
+	results, err := FindAffectedPackages(mockReader, criteria)
 	require.NoError(t, err)
 
-	expected := []AffectedPackageTableRow{
+	expected := []AffectedPackage{
 		{
 			Vulnerability: VulnerabilityInfo{
 				VulnerabilityBlob: v6.VulnerabilityBlob{Description: "Test vulnerability"},

@@ -7,17 +7,18 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-type MatchTableRows []MatchTableRow
+// Matches is the JSON document for the `db search` command
+type Matches []Match
 
-type MatchTableRow struct {
+type Match struct {
 	Vulnerability    VulnerabilityInfo     `json:"vulnerability"`
 	AffectedPackages []AffectedPackageInfo `json:"packages"`
 }
 
-func (m MatchTableRow) Flatten() []AffectedPackageTableRow {
-	var rows []AffectedPackageTableRow
+func (m Match) Flatten() []AffectedPackage {
+	var rows []AffectedPackage
 	for _, pkg := range m.AffectedPackages {
-		rows = append(rows, AffectedPackageTableRow{
+		rows = append(rows, AffectedPackage{
 			Vulnerability:       m.Vulnerability,
 			AffectedPackageInfo: pkg,
 		})
@@ -25,15 +26,15 @@ func (m MatchTableRow) Flatten() []AffectedPackageTableRow {
 	return rows
 }
 
-func (m MatchTableRows) Flatten() []AffectedPackageTableRow {
-	var rows []AffectedPackageTableRow
+func (m Matches) Flatten() []AffectedPackage {
+	var rows []AffectedPackage
 	for _, r := range m {
 		rows = append(rows, r.Flatten()...)
 	}
 	return rows
 }
 
-func newMatchesRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPEs []v6.AffectedCPEHandle) (rows []MatchTableRow) {
+func newMatchesRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPEs []v6.AffectedCPEHandle) (rows []Match) {
 	var affectedPkgsByVuln = make(map[v6.ID][]AffectedPackageInfo)
 	var vulnsByID = make(map[v6.ID]v6.VulnerabilityHandle)
 
@@ -90,7 +91,7 @@ func newMatchesRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPEs []v6.A
 	}
 
 	for vulnID, vuln := range vulnsByID {
-		rows = append(rows, MatchTableRow{
+		rows = append(rows, Match{
 			Vulnerability:    newVulnerabilityInfo(vuln),
 			AffectedPackages: affectedPkgsByVuln[vulnID],
 		})
@@ -103,11 +104,11 @@ func newMatchesRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPEs []v6.A
 	return rows
 }
 
-func Matches(reader interface {
+func FindMatches(reader interface {
 	v6.AffectedPackageStoreReader
 	v6.AffectedCPEStoreReader
-}, criteria AffectedPackagesOptions) (MatchTableRows, error) {
-	allAffectedPkgs, allAffectedCPEs, err := searchAffectedPackages(reader, criteria)
+}, criteria AffectedPackagesOptions) (Matches, error) {
+	allAffectedPkgs, allAffectedCPEs, err := findAffectedPackages(reader, criteria)
 
 	return newMatchesRows(allAffectedPkgs, allAffectedCPEs), err
 }
