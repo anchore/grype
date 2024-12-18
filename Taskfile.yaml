@@ -56,6 +56,7 @@ tasks:
       - task: check-go-mod-tidy
       - task: check-licenses
       - task: lint
+      - task: check-json-schema-drift
       - task: validate-cyclonedx-schema
 # TODO: while developing v6, we need to disable this check (since v5 and v6 are imported in the same codebase)
 #      - task: validate-grype-db-schema
@@ -170,6 +171,11 @@ tasks:
     cmds:
       - cmd: .github/scripts/go-mod-tidy-check.sh && echo "go.mod and go.sum are tidy!"
         silent: true
+
+  check-json-schema-drift:
+    desc: Ensure there is no drift between the JSON schema and the code
+    cmds:
+      - .github/scripts/json-schema-drift-check.sh
 
   validate-cyclonedx-schema:
     desc: Run integration tests
@@ -313,9 +319,17 @@ tasks:
   ## Code and data generation targets #################################
 
   generate:
-    desc: Run data generation tasks
+    desc: Run code and data generation tasks
     cmds:
+      - task: generate-json-schema
+
+  generate-json-schema:
+    desc: Generate a new JSON schema
+    cmds:
+      # re-generate package metadata
       - "cd grype/internal && go generate"
+      # generate the JSON schema for the CLI output
+      - "cd cmd/grype/cli/commands/internal/jsonschema && go run ."
 
 
   ## Build-related targets #################################
