@@ -177,6 +177,8 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 		candidateMatch = existingMatch
 	}
 
+	sortFixedVersions(candidateMatch, p)
+
 	candidateMatch.Details = addMatchDetails(candidateMatch.Details,
 		match.Detail{
 			Type:       match.CPEMatch,
@@ -201,6 +203,56 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 	)
 
 	matchesByFingerprint[candidateMatch.Fingerprint()] = candidateMatch
+}
+
+func sortFixedVersions(candidateMatch match.Match, p pkg.Package) {
+	if len(candidateMatch.Vulnerability.Fix.Versions) <= 1 {
+		return
+	}
+
+	format := version.FormatFromPkg(p)
+	parseConstraint := func(constStr string) (version.Constraint, error) {
+		constraint, err := version.GetConstraint(constStr, format)
+		if err != nil {
+			log.WithFields("package", p.Name).Trace("skipping sorting fixed versions")
+		}
+		return constraint, err
+	}
+
+	checkSatisfaction := func(constraint version.Constraint, v *version.Version) bool {
+		satisfied, err := constraint.Satisfied(v)
+		if err != nil {
+			log.WithFields("package", p.Name).Trace("error while checking version satisfaction for sorting")
+		}
+		return satisfied && err == nil
+	}
+
+	sort.SliceStable(candidateMatch.Vulnerability.Fix.Versions, func(i, j int) bool {
+		v1, err1 := version.NewVersion(candidateMatch.Vulnerability.Fix.Versions[i], format)
+		v2, err2 := version.NewVersion(candidateMatch.Vulnerability.Fix.Versions[j], format)
+		if err1 != nil || err2 != nil {
+			log.WithFields("package", p.Name).Trace("error while parsing version for sorting")
+			return false
+		}
+
+		packageConstraint, err := parseConstraint(fmt.Sprintf("<=%s", candidateMatch.Package.Version))
+		if err != nil {
+			return false
+		}
+
+		v1Satisfied := checkSatisfaction(packageConstraint, v1)
+		v2Satisfied := checkSatisfaction(packageConstraint, v2)
+
+		if v1Satisfied != v2Satisfied {
+			return !v1Satisfied
+		}
+
+		internalConstraint, err := parseConstraint(fmt.Sprintf("<=%s", v1.Raw))
+		if err != nil {
+			return false
+		}
+		return !checkSatisfaction(internalConstraint, v2)
+	})
 }
 
 func addMatchDetails(existingDetails []match.Detail, newDetails match.Detail) []match.Detail {
