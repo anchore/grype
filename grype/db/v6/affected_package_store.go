@@ -242,7 +242,7 @@ func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config
 		log.WithFields("pkg", pkg.String(), "distro", config.OSs, "vulns", config.Vulnerabilities, "duration", time.Since(start)).Trace("fetched affected package record")
 	}()
 
-	query := s.handlePackage(s.db.Model(&AffectedPackageHandle{}), pkg)
+	query := s.handlePackage(s.db, pkg)
 
 	var err error
 	query, err = s.handleVulnerabilityOptions(query, config.Vulnerabilities)

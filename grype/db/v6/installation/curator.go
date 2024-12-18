@@ -27,9 +27,9 @@ const lastUpdateCheckFileName = "last_update_check"
 
 type monitor struct {
 	*progress.AtomicStage
-	downloadProgress dummyMonitor
-	importProgress   dummyMonitor
-	hydrateProgress  dummyMonitor
+	downloadProgress completionMonitor
+	importProgress   completionMonitor
+	hydrateProgress  completionMonitor
 }
 
 type Config struct {
@@ -483,9 +483,9 @@ func newMonitor() monitor {
 
 	return monitor{
 		AtomicStage:      stage,
-		downloadProgress: dummyMonitor{downloadProgress},
-		importProgress:   dummyMonitor{importProgress},
-		hydrateProgress:  dummyMonitor{hydrateProgress},
+		downloadProgress: completionMonitor{downloadProgress},
+		importProgress:   completionMonitor{importProgress},
+		hydrateProgress:  completionMonitor{hydrateProgress},
 	}
 }
 
@@ -495,11 +495,12 @@ func (m monitor) SetCompleted() {
 	m.hydrateProgress.SetCompleted()
 }
 
-type dummyMonitor struct {
+// completionMonitor is a progressable that, when SetComplete() is called, will set the progress to the total size
+type completionMonitor struct {
 	*progress.Manual
 }
 
-func (m dummyMonitor) SetCompleted() {
+func (m completionMonitor) SetCompleted() {
 	m.Set(m.Size())
 	m.Manual.SetCompleted()
 }
