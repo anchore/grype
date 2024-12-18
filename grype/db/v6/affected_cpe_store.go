@@ -2,6 +2,7 @@ package v6
 
 import (
 	"fmt"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -22,7 +23,8 @@ type GetAffectedCPEOptions struct {
 	PreloadCPE           bool
 	PreloadVulnerability bool
 	PreloadBlob          bool
-	Vulnerability        *VulnerabilitySpecifier
+	Vulnerabilities      []VulnerabilitySpecifier
+	Limit                int
 }
 
 type affectedCPEStore struct {
@@ -63,42 +65,62 @@ func (s *affectedCPEStore) GetAffectedCPEs(cpe *cpe.Attributes, config *GetAffec
 	} else {
 		fields["cpe"] = cpe.String()
 	}
-	log.WithFields(fields).Trace("fetching AffectedCPE record")
+	start := time.Now()
+	defer func() {
+		fields["duration"] = time.Since(start)
+		log.WithFields(fields).Trace("fetched affected CPE record")
+	}()
 
 	query := s.handleCPE(s.db, cpe)
 
 	var err error
-	query, err = s.handleVulnerabilityOptions(query, config.Vulnerability)
+	query, err = s.handleVulnerabilityOptions(query, config.Vulnerabilities)
 	if err != nil {
 		return nil, err
 	}
 
 	query = s.handlePreload(query, *config)
 
-	var pkgs []AffectedCPEHandle
-	if err = query.Find(&pkgs).Error; err != nil {
-		return nil, fmt.Errorf("unable to fetch affected package record: %w", err)
-	}
+	var models []AffectedCPEHandle
 
-	if config.PreloadBlob {
-		for i := range pkgs {
-			err := s.blobStore.attachBlobValue(&pkgs[i])
-			if err != nil {
-				return nil, fmt.Errorf("unable to attach blob %#v: %w", pkgs[i], err)
+	var results []*AffectedCPEHandle
+	if err := query.FindInBatches(&results, batchSize, func(_ *gorm.DB, _ int) error { // nolint:dupl
+		if config.PreloadBlob {
+			var blobs []blobable
+			for _, r := range results {
+				blobs = append(blobs, r)
+			}
+			if err := s.blobStore.attachBlobValue(blobs...); err != nil {
+				return fmt.Errorf("unable to attach blobs: %w", err)
 			}
 		}
-	}
 
-	if config.PreloadVulnerability {
-		for i := range pkgs {
-			err := s.blobStore.attachBlobValue(pkgs[i].Vulnerability)
-			if err != nil {
-				return nil, fmt.Errorf("unable to attach vulnerability blob %#v: %w", pkgs[i], err)
+		if config.PreloadVulnerability {
+			var vulns []blobable
+			for _, r := range results {
+				if r.Vulnerability != nil {
+					vulns = append(vulns, r.Vulnerability)
+				}
+			}
+			if err := s.blobStore.attachBlobValue(vulns...); err != nil {
+				return fmt.Errorf("unable to attach vulnerability blob: %w", err)
 			}
 		}
+
+		for _, r := range results {
+			models = append(models, *r)
+		}
+
+		if config.Limit > 0 && len(models) >= config.Limit {
+			return ErrLimitReached
+		}
+
+		return nil
+	}).Error; err != nil {
+		return models, fmt.Errorf("unable to fetch affected CPE records: %w", err)
 	}
 
-	return pkgs, nil
+	return models, nil
 }
 
 func (s *affectedCPEStore) handleCPE(query *gorm.DB, c *cpe.Attributes) *gorm.DB {
@@ -110,23 +132,31 @@ func (s *affectedCPEStore) handleCPE(query *gorm.DB, c *cpe.Attributes) *gorm.DB
 	return handleCPEOptions(query, c)
 }
 
-func (s *affectedCPEStore) handleVulnerabilityOptions(query *gorm.DB, config *VulnerabilitySpecifier) (*gorm.DB, error) {
-	if config == nil {
+func (s *affectedCPEStore) handleVulnerabilityOptions(query *gorm.DB, configs []VulnerabilitySpecifier) (*gorm.DB, error) {
+	if len(configs) == 0 {
 		return query, nil
 	}
 
 	query = query.Joins("JOIN vulnerability_handles ON affected_cpe_handles.vulnerability_id = vulnerability_handles.id")
 
-	return handleVulnerabilityOptions(query, config)
+	return handleVulnerabilityOptions(s.db, query, configs...)
 }
 
 func (s *affectedCPEStore) handlePreload(query *gorm.DB, config GetAffectedCPEOptions) *gorm.DB {
+	var limitArgs []interface{}
+	if config.Limit > 0 {
+		query = query.Limit(config.Limit)
+		limitArgs = append(limitArgs, func(db *gorm.DB) *gorm.DB {
+			return db.Limit(config.Limit)
+		})
+	}
+
 	if config.PreloadCPE {
-		query = query.Preload("CPE")
+		query = query.Preload("CPE", limitArgs...)
 	}
 
 	if config.PreloadVulnerability {
-		query = query.Preload("Vulnerability").Preload("Vulnerability.Provider")
+		query = query.Preload("Vulnerability", limitArgs...).Preload("Vulnerability.Provider", limitArgs...)
 	}
 
 	return query
