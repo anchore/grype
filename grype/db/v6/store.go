@@ -21,6 +21,10 @@ type store struct {
 	readOnly  bool
 }
 
+func (s *store) GetDB() *gorm.DB {
+	return s.db
+}
+
 func InitialData() []any {
 	d := KnownOperatingSystemAliases()
 	var data []any
