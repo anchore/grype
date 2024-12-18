@@ -65,7 +65,10 @@ require (
 	gorm.io/gorm v1.25.12
 )
 
-require github.com/invopop/jsonschema v0.7.0
+require (
+	github.com/invopop/jsonschema v0.7.0
+	golang.org/x/tools v0.23.0
+)
 
 require (
 	cloud.google.com/go v0.112.1 // indirect

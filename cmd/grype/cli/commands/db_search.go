@@ -400,8 +400,8 @@ func v5Namespace(row dbsearch.AffectedPackage) string {
 		return fmt.Sprintf("github:language:%s", language)
 	}
 	if row.OS != nil {
-		family := row.OS.Family
-		switch row.OS.Family {
+		family := row.OS.Name
+		switch row.OS.Name {
 		case "amazon":
 			family = "amazonlinux"
 		case "mariner":
