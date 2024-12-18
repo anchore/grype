@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "anchore.io/schema/grype/db-search-vuln/json/1.0.0/vulnerabilities",
+  "$ref": "#/$defs/Vulnerabilities",
+  "$defs": {
+    "OperatingSystem": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "name",
+        "version"
+      ]
+    },
+    "Reference": {
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object",
+      "required": [
+        "url"
+      ]
+    },
+    "Severity": {
+      "properties": {
+        "scheme": {
+          "type": "string"
+        },
+        "value": true,
+        "source": {
+          "type": "string"
+        },
+        "rank": {
+          "type": "integer"
+        }
+      },
+      "type": "object",
+      "required": [
+        "scheme",
+        "value",
+        "rank"
+      ]
+    },
+    "Vulnerabilities": {
+      "items": {
+        "$ref": "#/$defs/Vulnerability"
+      },
+      "type": "array"
+    },
+    "Vulnerability": {
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "assigner": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "description": {
+          "type": "string"
+        },
+        "refs": {
+          "items": {
+            "$ref": "#/$defs/Reference"
+          },
+          "type": "array"
+        },
+        "aliases": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severities": {
+          "items": {
+            "$ref": "#/$defs/Severity"
+          },
+          "type": "array"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "published_date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "modified_date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "withdrawn_date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "operating_systems": {
+          "items": {
+            "$ref": "#/$defs/OperatingSystem"
+          },
+          "type": "array"
+        },
+        "affected_packages": {
+          "type": "integer"
+        }
+      },
+      "type": "object",
+      "required": [
+        "id",
+        "provider",
+        "status",
+        "operating_systems",
+        "affected_packages"
+      ]
+    }
+  }
+}
