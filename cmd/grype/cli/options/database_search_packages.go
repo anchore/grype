@@ -24,9 +24,6 @@ func (o *DBSearchPackages) AddFlags(flags clio.FlagSet) {
 }
 
 func (o *DBSearchPackages) PostLoad() error {
-	if len(o.Packages) == 0 {
-		return nil
-	}
 	for _, p := range o.Packages {
 		switch {
 		case strings.HasPrefix(p, "cpe:"):
@@ -47,10 +44,10 @@ func (o *DBSearchPackages) PostLoad() error {
 				return fmt.Errorf("invalid package URL from %q: %w", o.Packages, err)
 			}
 
-			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Name: purl.Name, Type: purl.Type}) // TODO: map this to correct DB types
+			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Name: purl.Name, Ecosystem: purl.Type}) // TODO: map this to correct DB types
 
 		default:
-			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Name: p, Type: o.Ecosystem})
+			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Name: p, Ecosystem: o.Ecosystem})
 			o.CPESpecs = append(o.CPESpecs, &v6.PackageSpecifier{
 				CPE: &cpe.Attributes{Part: "a", Product: p},
 			})
@@ -59,7 +56,8 @@ func (o *DBSearchPackages) PostLoad() error {
 
 	if len(o.Packages) == 0 {
 		if o.Ecosystem != "" {
-			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Type: o.Ecosystem})
+			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Ecosystem: o.Ecosystem})
+			o.CPESpecs = append(o.CPESpecs, &v6.PackageSpecifier{CPE: &cpe.Attributes{TargetSW: o.Ecosystem}})
 		}
 	}
 
