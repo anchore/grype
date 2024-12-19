@@ -657,7 +657,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 		},
 		{
 			name:     "package type",
-			pkg:      &PackageSpecifier{Name: pkg2.Package.Name, Type: "type2"},
+			pkg:      &PackageSpecifier{Name: pkg2.Package.Name, Ecosystem: "type2"},
 			expected: []AffectedPackageHandle{*pkg2},
 		},
 		{
