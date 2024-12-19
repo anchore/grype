@@ -1,7 +1,9 @@
 package commands
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"sync"
@@ -85,7 +87,11 @@ func appendErrors(errs error, err ...error) error {
 	return multierror.Append(errs, err...)
 }
 
-func commonTableWriterOptions(table *tablewriter.Table) {
+func newTable(output io.Writer) *tablewriter.Table {
+	// we use a trimming writer to ensure that the table is not padded with spaces when there is a single long row
+	// and several short rows. AFAICT there is no table setting to control this behavior. Why do it as a writer? So
+	// we don't need to buffer the entire table in memory before writing it out.
+	table := tablewriter.NewWriter(newTrimmingWriter(output))
 	table.SetAutoWrapText(false)
 	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
 	table.SetAlignment(tablewriter.ALIGN_LEFT)
@@ -98,4 +104,48 @@ func commonTableWriterOptions(table *tablewriter.Table) {
 	table.SetRowSeparator("")
 	table.SetTablePadding("  ")
 	table.SetNoWhiteSpace(true)
+	return table
+}
+
+// trimmingWriter is a writer that trims whitespace from the end of each line. It is assumed that whole lines are
+// passed to Write() calls (no partial lines).
+type trimmingWriter struct {
+	output io.Writer
+	buffer bytes.Buffer
+}
+
+func newTrimmingWriter(w io.Writer) *trimmingWriter {
+	return &trimmingWriter{output: w}
+}
+
+func (tw *trimmingWriter) Write(p []byte) (int, error) {
+	for _, b := range p {
+		switch b {
+		case '\n':
+			// write a newline and discard any buffered spaces
+			_, err := tw.output.Write([]byte{'\n'})
+			if err != nil {
+				return 0, err
+			}
+			tw.buffer.Reset()
+		case ' ', '\t':
+			// buffer spaces and tabs
+			tw.buffer.WriteByte(b)
+		default:
+			// write any buffered spaces, then the non-whitespace character
+			if tw.buffer.Len() > 0 {
+				_, err := tw.output.Write(tw.buffer.Bytes())
+				if err != nil {
+					return 0, err
+				}
+				tw.buffer.Reset()
+			}
+			_, err := tw.output.Write([]byte{b})
+			if err != nil {
+				return 0, err
+			}
+		}
+	}
+
+	return len(p), nil
 }
