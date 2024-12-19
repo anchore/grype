@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/olekukonko/tablewriter"
 	"github.com/scylladb/go-set/strset"
 	"github.com/spf13/cobra"
 
@@ -142,8 +141,7 @@ func presentDBSearchVulnerabilities(outputFormat string, structuredRows []dbsear
 	case tableOutputFormat:
 		rows := renderDBSearchVulnerabilitiesTableRows(structuredRows)
 
-		table := tablewriter.NewWriter(output)
-		commonTableWriterOptions(table)
+		table := newTable(output)
 
 		table.SetHeader([]string{"ID", "Provider", "Published", "Severity", "Reference"})
 		table.AppendBulk(rows)

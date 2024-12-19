@@ -8,7 +8,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
@@ -147,8 +146,7 @@ func presentDBSearchMatches(outputFormat string, structuredRows dbsearch.Matches
 	case tableOutputFormat:
 		rows := renderDBSearchPackagesTableRows(structuredRows.Flatten())
 
-		table := tablewriter.NewWriter(output)
-		commonTableWriterOptions(table)
+		table := newTable(output)
 
 		table.SetHeader([]string{"Vulnerability", "Package", "Ecosystem", "Namespace", "Version Constraint"})
 		table.AppendBulk(rows)
@@ -210,8 +208,7 @@ func presentLegacyDBSearchPackages(outputFormat string, vulnerabilities []vulner
 			rows = append(rows, []string{v.ID, v.PackageName, v.Namespace, v.Constraint.String()})
 		}
 
-		table := tablewriter.NewWriter(output)
-		commonTableWriterOptions(table)
+		table := newTable(output)
 
 		table.SetHeader([]string{"ID", "Package Name", "Namespace", "Version Constraint"})
 		table.AppendBulk(rows)

@@ -87,6 +87,26 @@ func TestAffectedCPEStore_GetCPEs(t *testing.T) {
 	}
 }
 
+func TestAffectedCPEStore_GetExact(t *testing.T) {
+	db := setupTestStore(t).db
+	bw := newBlobStore(db)
+	s := newAffectedCPEStore(db, bw)
+
+	c := testAffectedCPEHandle()
+	err := s.AddAffectedCPEs(c)
+	require.NoError(t, err)
+
+	// we want to search by all fields to ensure that all are accounted for in the query (since there are string fields referenced in the where clauses)
+	results, err := s.GetAffectedCPEs(toCPE(c.CPE), nil)
+	require.NoError(t, err)
+
+	expected := []AffectedCPEHandle{*c}
+	require.Len(t, results, len(expected))
+	result := results[0]
+	assert.Equal(t, c.CpeID, result.CpeID)
+
+}
+
 func TestAffectedCPEStore_PreventDuplicateCPEs(t *testing.T) {
 	db := setupTestStore(t).db
 	bw := newBlobStore(db)
@@ -160,6 +180,20 @@ func TestAffectedCPEStore_PreventDuplicateCPEs(t *testing.T) {
 func cpeFromProduct(product string) *cpe.Attributes {
 	return &cpe.Attributes{
 		Product: product,
+	}
+}
+
+func toCPE(c *Cpe) *cpe.Attributes {
+	return &cpe.Attributes{
+		Part:      c.Part,
+		Vendor:    c.Vendor,
+		Product:   c.Product,
+		Edition:   c.Edition,
+		Language:  c.Language,
+		SWEdition: c.SoftwareEdition,
+		TargetSW:  c.TargetSoftware,
+		TargetHW:  c.TargetHardware,
+		Other:     c.Other,
 	}
 }
 
