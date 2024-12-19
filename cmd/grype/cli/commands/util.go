@@ -1,12 +1,15 @@
 package commands
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"golang.org/x/exp/maps"
 
@@ -82,4 +85,58 @@ func appendErrors(errs error, err ...error) error {
 		}
 	}
 	return multierror.Append(errs, err...)
+}
+
+func newTable(output io.Writer) *tablewriter.Table {
+	// we use a trimming writer to ensure that the table is not padded with spaces when there is a single long row
+	// and several short rows. AFAICT there is no table setting to control this behavior. Why do it as a writer? So
+	// we don't need to buffer the entire table in memory before writing it out.
+	table := tablewriter.NewWriter(newTrimmingWriter(output))
+	table.SetAutoWrapText(false)
+	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
+	table.SetAlignment(tablewriter.ALIGN_LEFT)
+
+	table.SetHeaderLine(false)
+	table.SetBorder(false)
+	table.SetAutoFormatHeaders(true)
+	table.SetCenterSeparator("")
+	table.SetColumnSeparator("")
+	table.SetRowSeparator("")
+	table.SetTablePadding("  ")
+	table.SetNoWhiteSpace(true)
+	return table
+}
+
+type trimmingWriter struct {
+	output io.Writer
+	buffer bytes.Buffer
+}
+
+func newTrimmingWriter(w io.Writer) *trimmingWriter {
+	return &trimmingWriter{output: w}
+}
+
+func (tw *trimmingWriter) Write(p []byte) (int, error) {
+	for _, b := range p {
+		if b == '\n' {
+			line := tw.buffer.String()
+			tw.buffer.Reset()
+
+			// trim trailing spaces from the line
+			trimmedLine := bytes.TrimRight([]byte(line), " \t")
+			trimmedLine = append(trimmedLine, '\n')
+
+			_, err := tw.output.Write(trimmedLine)
+			if err != nil {
+				return 0, err
+			}
+		} else {
+			tw.buffer.WriteByte(b)
+		}
+	}
+
+	_, err := tw.output.Write(tw.buffer.Bytes())
+	tw.buffer.Reset()
+
+	return len(p), err
 }

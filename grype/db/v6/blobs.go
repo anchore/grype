@@ -138,7 +138,7 @@ type AffectedRange struct {
 // Fix conveys availability of a fix for a vulnerability.
 type Fix struct {
 	// Version is the version number of the fix.
-	Version string `json:"version"`
+	Version string `json:"version,omitempty"`
 
 	// State represents the status of the fix (e.g., "fixed", "unaffected").
 	State FixStatus `json:"state"`
@@ -162,7 +162,7 @@ type FixDetail struct {
 // AffectedVersion defines the versioning format and constraints.
 type AffectedVersion struct {
 	// Type specifies the versioning system used (e.g., "semver", "rpm").
-	Type string `json:"type"`
+	Type string `json:"type,omitempty"`
 
 	// Constraint defines the version range constraint for affected versions.
 	Constraint string `json:"constraint"`
