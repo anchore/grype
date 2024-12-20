@@ -3,6 +3,7 @@ package v6
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -94,6 +95,14 @@ type CVSSSeverity struct {
 
 	// Score is the evaluated CVSS vector as a scalar between 0 and 10
 	Score float64 `json:"score"`
+}
+
+func (c CVSSSeverity) String() string {
+	vector := c.Vector
+	if !strings.HasPrefix(strings.ToLower(c.Vector), "cvss:") && c.Version != "" {
+		vector = fmt.Sprintf("CVSS:%s/%s", c.Version, c.Vector)
+	}
+	return fmt.Sprintf("%s (%1.1f)", vector, c.Score)
 }
 
 // AffectedPackageBlob represents a package affected by a vulnerability.
