@@ -10,6 +10,12 @@ type DBSearchBounds struct {
 	RecordLimit int `yaml:"limit" json:"limit" mapstructure:"limit"`
 }
 
+func DefaultDBSearchBounds() DBSearchBounds {
+	return DBSearchBounds{
+		RecordLimit: 5000,
+	}
+}
+
 func (o *DBSearchBounds) AddFlags(flags clio.FlagSet) {
 	flags.IntVarP(&o.RecordLimit, "limit", "", "limit the number of results returned (supports DB schema v6+ only)")
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -32,35 +33,67 @@ type dbSearchMatchOptions struct {
 	DBOptions `yaml:",inline" mapstructure:",squash"`
 }
 
+var alasPattern = regexp.MustCompile(`^alas[\w]*-\d+-\d+$`)
+
+func (o *dbSearchMatchOptions) applyArgs(args []string) error {
+	for _, arg := range args {
+		lowerArg := strings.ToLower(arg)
+		switch {
+		case hasAnyPrefix(lowerArg, "cpe:", "purl:"):
+			// this is explicitly a package...
+			log.WithFields("value", arg).Trace("assuming arg is a package specifier")
+			o.Package.Packages = append(o.Package.Packages, arg)
+		case hasAnyPrefix(lowerArg, "cve-", "ghsa-", "elsa-", "rhsa-") || alasPattern.MatchString(lowerArg):
+			// this is a vulnerability...
+			log.WithFields("value", arg).Trace("assuming arg is a vulnerability ID")
+			o.Vulnerability.VulnerabilityIDs = append(o.Vulnerability.VulnerabilityIDs, arg)
+		default:
+			// assume this is a package name
+			log.WithFields("value", arg).Trace("assuming arg is a package name")
+			o.Package.Packages = append(o.Package.Packages, arg)
+		}
+	}
+
+	if err := o.Vulnerability.PostLoad(); err != nil {
+		return err
+	}
+
+	if err := o.Package.PostLoad(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func hasAnyPrefix(s string, prefixes ...string) bool {
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(s, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
 func DBSearch(app clio.Application) *cobra.Command {
 	opts := &dbSearchMatchOptions{
-		Format: options.DBSearchFormat{
-			Output: tableOutputFormat,
-			Allowable: []string{
-				tableOutputFormat,
-				jsonOutputFormat,
-			},
-		},
+		Format: options.DefaultDBSearchFormat(),
 		Vulnerability: options.DBSearchVulnerabilities{
 			UseVulnIDFlag: true,
 		},
-		Bounds: options.DBSearchBounds{
-			RecordLimit: 1000,
-		},
+		Bounds:    options.DefaultDBSearchBounds(),
 		DBOptions: *dbOptionsDefault(app.ID()),
 	}
 
 	cmd := &cobra.Command{
 		// this is here to support v5 functionality today but will be removed when v6 is the default DB version
-		Use:     "search",
+		Use:     "search VULN|PKG...",
 		Short:   "Search the DB for vulnerabilities or affected packages",
 		PreRunE: disableUI(app),
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			if opts.Experimental.DBv6 {
 				if len(args) > 0 {
-					// try to stay backwards compatible with v5 search command
-					opts.Vulnerability.VulnerabilityIDs = append(opts.Vulnerability.VulnerabilityIDs, args...)
-					if err := opts.Vulnerability.PostLoad(); err != nil {
+					// try to stay backwards compatible with v5 search command (which takes args)
+					if err := opts.applyArgs(args); err != nil {
 						return err
 					}
 				}
@@ -82,6 +115,23 @@ func DBSearch(app clio.Application) *cobra.Command {
 			return legacyDBSearchPackages(*opts, args)
 		},
 	}
+
+	// TODO: remove me -- while v6 is still in development we should continue to show the v5 search command usage
+	cmd.SetUsageFunc(func(_ *cobra.Command) error {
+		fmt.Println(`Usage:
+  grype db search [vulnerability_id] [flags]
+
+Flags:
+  -h, --help            help for search
+  -o, --output string   format to display results (available=[table, json]) (default "table")
+
+Global Flags:
+  -c, --config stringArray    grype configuration file(s) to use
+      --profile stringArray   configuration profiles to use
+  -q, --quiet                 suppress all logging output
+  -v, --verbose count         increase verbosity (-v = info, -vv = debug)`)
+		return nil
+	})
 
 	cmd.AddCommand(
 		DBSearchVulnerabilities(app),
