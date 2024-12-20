@@ -137,7 +137,12 @@ Global Flags:
 		DBSearchVulnerabilities(app),
 	)
 
-	return app.SetupCommand(cmd, opts)
+	// prevent from being shown in the grype config
+	type configWrapper struct {
+		Opts *dbSearchMatchOptions `json:"-" yaml:"-" mapstructure:"-"`
+	}
+
+	return app.SetupCommand(cmd, &configWrapper{opts})
 }
 
 func runDBSearchMatches(opts dbSearchMatchOptions) error {
