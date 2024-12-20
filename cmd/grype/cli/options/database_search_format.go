@@ -14,6 +14,13 @@ type DBSearchFormat struct {
 	Allowable []string `yaml:"-" json:"-" mapstructure:"-"`
 }
 
+func DefaultDBSearchFormat() DBSearchFormat {
+	return DBSearchFormat{
+		Output:    "table",
+		Allowable: []string{"table", "json"},
+	}
+}
+
 func (c *DBSearchFormat) AddFlags(flags clio.FlagSet) {
 	available := strings.Join(c.Allowable, ", ")
 	flags.StringVarP(&c.Output, "output", "o", fmt.Sprintf("format to display results (available=[%s])", available))

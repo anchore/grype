@@ -31,19 +31,11 @@ type dbSearchVulnerabilityOptions struct {
 
 func DBSearchVulnerabilities(app clio.Application) *cobra.Command {
 	opts := &dbSearchVulnerabilityOptions{
-		Format: options.DBSearchFormat{
-			Output: tableOutputFormat,
-			Allowable: []string{
-				tableOutputFormat,
-				jsonOutputFormat,
-			},
-		},
+		Format: options.DefaultDBSearchFormat(),
 		Vulnerability: options.DBSearchVulnerabilities{
 			UseVulnIDFlag: false, // we input this through the args
 		},
-		Bounds: options.DBSearchBounds{
-			RecordLimit: 1000,
-		},
+		Bounds:    options.DefaultDBSearchBounds(),
 		DBOptions: *dbOptionsDefault(app.ID()),
 	}
 

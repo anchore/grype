@@ -19,11 +19,15 @@ type DBSearchPackages struct {
 }
 
 func (o *DBSearchPackages) AddFlags(flags clio.FlagSet) {
-	flags.StringArrayVarP(&o.Packages, "package", "p", "package name/CPE/PURL to search for (supports DB schema v6+ only)")
+	flags.StringArrayVarP(&o.Packages, "pkg", "", "package name/CPE/PURL to search for (supports DB schema v6+ only)")
 	flags.StringVarP(&o.Ecosystem, "ecosystem", "", "ecosystem of the package to search within (supports DB schema v6+ only)")
 }
 
 func (o *DBSearchPackages) PostLoad() error {
+	// note: this may be called multiple times, so we need to reset the specs each time
+	o.PkgSpecs = nil
+	o.CPESpecs = nil
+
 	for _, p := range o.Packages {
 		switch {
 		case strings.HasPrefix(p, "cpe:"):
