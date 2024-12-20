@@ -657,7 +657,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 		},
 		{
 			name:     "package type",
-			pkg:      &PackageSpecifier{Name: pkg2.Package.Name, Type: "type2"},
+			pkg:      &PackageSpecifier{Name: pkg2.Package.Name, Ecosystem: "type2"},
 			expected: []AffectedPackageHandle{*pkg2},
 		},
 		{
@@ -1030,7 +1030,7 @@ func testDistro1AffectedPackage2Handle() *AffectedPackageHandle {
 		},
 		Vulnerability: &VulnerabilityHandle{
 			Name:          "CVE-2023-1234",
-			Status:        string(VulnerabilityRejected),
+			Status:        VulnerabilityRejected,
 			PublishedDate: &now,
 			ModifiedDate:  &later,
 			Provider: &Provider{
