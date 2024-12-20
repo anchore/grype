@@ -36,7 +36,7 @@ func DBSearch(app clio.Application) *cobra.Command {
 		DBOptions: *dbOptionsDefault(app.ID()),
 	}
 
-	return app.SetupCommand(&cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "search [vulnerability_id]",
 		Short: "get information on a vulnerability from the db",
 		Args:  cobra.ExactArgs(1),
@@ -44,7 +44,14 @@ func DBSearch(app clio.Application) *cobra.Command {
 			id := args[0]
 			return runDBSearch(*opts, id)
 		},
-	}, opts)
+	}
+
+	// prevent from being shown in the grype config
+	type configWrapper struct {
+		Opts *dbQueryOptions `json:"-" yaml:"-" mapstructure:"-"`
+	}
+
+	return app.SetupCommand(cmd, &configWrapper{opts})
 }
 
 func runDBSearch(opts dbQueryOptions, vulnerabilityID string) error {

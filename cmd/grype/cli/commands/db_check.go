@@ -36,7 +36,7 @@ func DBCheck(app clio.Application) *cobra.Command {
 		DBOptions: *dbOptionsDefault(app.ID()),
 	}
 
-	return app.SetupCommand(&cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "check",
 		Short: "check to see if there is a database update available",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
@@ -48,7 +48,14 @@ func DBCheck(app clio.Application) *cobra.Command {
 		RunE: func(_ *cobra.Command, _ []string) error {
 			return runDBCheck(*opts)
 		},
-	}, opts)
+	}
+
+	// prevent from being shown in the grype config
+	type configWrapper struct {
+		Opts *dbCheckOptions `json:"-" yaml:"-" mapstructure:"-"`
+	}
+
+	return app.SetupCommand(cmd, &configWrapper{opts})
 }
 
 func runDBCheck(opts dbCheckOptions) error {

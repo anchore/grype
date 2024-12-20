@@ -15,7 +15,7 @@ import (
 func DBDelete(app clio.Application) *cobra.Command {
 	opts := dbOptionsDefault(app.ID())
 
-	return app.SetupCommand(&cobra.Command{
+	cmd := &cobra.Command{
 		Use:     "delete",
 		Short:   "delete the vulnerability database",
 		Args:    cobra.ExactArgs(0),
@@ -23,7 +23,14 @@ func DBDelete(app clio.Application) *cobra.Command {
 		RunE: func(_ *cobra.Command, _ []string) error {
 			return runDBDelete(*opts)
 		},
-	}, opts)
+	}
+
+	// prevent from being shown in the grype config
+	type configWrapper struct {
+		Opts *DBOptions `json:"-" yaml:"-" mapstructure:"-"`
+	}
+
+	return app.SetupCommand(cmd, &configWrapper{opts})
 }
 
 func runDBDelete(opts DBOptions) error {
