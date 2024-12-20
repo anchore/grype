@@ -289,8 +289,8 @@ type OperatingSystem struct {
 	ID ID `gorm:"column:id;primaryKey"`
 
 	// Name is the operating system family name (e.g. "debian")
-	Name string `gorm:"column:name;index:os_idx,unique;index"`
-	ReleaseID    string `gorm:"column:release_id;index:os_idx,unique;index"`
+	Name      string `gorm:"column:name;index:os_idx,unique;index"`
+	ReleaseID string `gorm:"column:release_id;index:os_idx,unique;index"`
 
 	// MajorVersion is the major version of a specific release (e.g. "10" for debian 10)
 	MajorVersion string `gorm:"column:major_version;index:os_idx,unique;index"`

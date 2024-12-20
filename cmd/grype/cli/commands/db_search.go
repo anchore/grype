@@ -116,28 +116,17 @@ func DBSearch(app clio.Application) *cobra.Command {
 		},
 	}
 
-	// TODO: remove me -- while v6 is still in development we should continue to show the v5 search command usage
-	cmd.SetUsageFunc(func(_ *cobra.Command) error {
-		fmt.Println(`Usage:
-  grype db search [vulnerability_id] [flags]
-
-Flags:
-  -h, --help            help for search
-  -o, --output string   format to display results (available=[table, json]) (default "table")
-
-Global Flags:
-  -c, --config stringArray    grype configuration file(s) to use
-      --profile stringArray   configuration profiles to use
-  -q, --quiet                 suppress all logging output
-  -v, --verbose count         increase verbosity (-v = info, -vv = debug)`)
-		return nil
-	})
-
 	cmd.AddCommand(
 		DBSearchVulnerabilities(app),
 	)
 
-	return app.SetupCommand(cmd, opts)
+	// prevent from being shown in the grype config
+	type configWrapper struct {
+		Hidden     *dbSearchMatchOptions `json:"-" yaml:"-" mapstructure:"-"`
+		*DBOptions `yaml:",inline" mapstructure:",squash"`
+	}
+
+	return app.SetupCommand(cmd, &configWrapper{Hidden: opts, DBOptions: &opts.DBOptions})
 }
 
 func runDBSearchMatches(opts dbSearchMatchOptions) error {

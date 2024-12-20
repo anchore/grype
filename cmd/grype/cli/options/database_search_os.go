@@ -90,8 +90,7 @@ func parseOSString(osValue string) (*v6.OSSpecifier, error) {
 		}
 
 		// is codename / label
-		// TODO: pick one! not both
-		return &v6.OSSpecifier{Name: name, Codename: version, LabelVersion: version}, nil
+		return &v6.OSSpecifier{Name: name, LabelVersion: version}, nil
 
 	default:
 		return nil, fmt.Errorf("invalid distro name@version: %q", osValue)

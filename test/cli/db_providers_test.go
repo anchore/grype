@@ -25,7 +25,7 @@ func TestDBProviders(t *testing.T) {
 			name: "db providers command help",
 			args: []string{"db", "providers", "-h"},
 			assertions: []traitAssertion{
-				assertInOutput("List vulnerability database providers"),
+				assertInOutput("List vulnerability providers that are in the database"),
 				assertNoStderr,
 			},
 		},
