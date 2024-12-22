@@ -278,17 +278,15 @@ func (p *Package) BeforeCreate(tx *gorm.DB) (err error) {
 type OperatingSystem struct {
 	ID ID `gorm:"column:id;primaryKey"`
 
-	Name         string `gorm:"column:name;index:os_idx,unique"`
-	MajorVersion string `gorm:"column:major_version;index:os_idx,unique"`
-	MinorVersion string `gorm:"column:minor_version;index:os_idx,unique"`
-	LabelVersion string `gorm:"column:label_version;index:os_idx,unique"`
-	Codename     string `gorm:"column:codename"` // TODO: should this be removed and use label-version instead?
+	Name         string `gorm:"column:name;index:os_idx,unique;index"`
+	ReleaseID    string `gorm:"column:release_id;index:os_idx,unique;index"`
+	MajorVersion string `gorm:"column:major_version;index:os_idx,unique;index"`
+	MinorVersion string `gorm:"column:minor_version;index:os_idx,unique;index"`
+	LabelVersion string `gorm:"column:label_version;index:os_idx,unique;index"`
+	Codename     string `gorm:"column:codename;index"`
 }
 
 func (os *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
-	if (os.MajorVersion != "" || os.MinorVersion != "") && os.LabelVersion != "" {
-		return fmt.Errorf("cannot have both label_version and major_version/minor_version set")
-	}
 	// if the name, major version, and minor version already exist in the table then we should not insert a new record
 	var existing OperatingSystem
 	result := tx.Where("name = ? AND major_version = ? AND minor_version = ?", os.Name, os.MajorVersion, os.MinorVersion).First(&existing)
@@ -303,10 +301,17 @@ type OperatingSystemAlias struct {
 	// Name is the matching name as found in the ID field if the /etc/os-release file
 	Name string `gorm:"column:name;primaryKey;index:os_alias_idx"`
 
-	// Version is the matching version as found in the ID field if the /etc/os-release file
-	Version                 string  `gorm:"column:version;primaryKey"`
-	VersionPattern          string  `gorm:"column:version_pattern;primaryKey"`
-	Codename                string  `gorm:"column:codename"`
+	// Version is the matching version as found in the VERSION_ID field if the /etc/os-release file
+	Version string `gorm:"column:version;primaryKey"`
+
+	// VersionPattern is a regex pattern to match against the VERSION_ID field if the /etc/os-release file
+	VersionPattern string `gorm:"column:version_pattern;primaryKey"`
+
+	// Codename is the matching codename as found in the VERSION_CODENAME field if the /etc/os-release file
+	Codename string `gorm:"column:codename"`
+
+	// below are the fields that should be used as replacement for fields in the OperatingSystem table
+
 	ReplacementName         *string `gorm:"column:replacement;primaryKey"`
 	ReplacementMajorVersion *string `gorm:"column:replacement_major_version;primaryKey"`
 	ReplacementMinorVersion *string `gorm:"column:replacement_minor_version;primaryKey"`
