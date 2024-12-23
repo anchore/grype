@@ -298,8 +298,8 @@ func (os *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 type OperatingSystemAlias struct {
-	// Name is the matching name as found in the ID field if the /etc/os-release file
-	Name string `gorm:"column:name;primaryKey;index:os_alias_idx"`
+	// Name is alias name for the operating system.
+	Alias string `gorm:"column:alias;primaryKey;index:os_alias_idx"`
 
 	// Version is the matching version as found in the VERSION_ID field if the /etc/os-release file
 	Version string `gorm:"column:version;primaryKey"`
@@ -319,18 +319,26 @@ type OperatingSystemAlias struct {
 	Rolling                 bool    `gorm:"column:rolling;primaryKey"`
 }
 
+// TODO: in a future iteration these should be raised up more explicitly by the vunnel providers
 func KnownOperatingSystemAliases() []OperatingSystemAlias {
 	strRef := func(s string) *string {
 		return &s
 	}
 	return []OperatingSystemAlias{
-		{Name: "centos", ReplacementName: strRef("rhel")},
-		{Name: "rocky", ReplacementName: strRef("rhel")},
-		{Name: "almalinux", ReplacementName: strRef("rhel")},
-		{Name: "gentoo", ReplacementName: strRef("rhel")},
-		{Name: "alpine", VersionPattern: ".*_alpha.*", ReplacementLabelVersion: strRef("edge"), Rolling: true},
-		{Name: "wolfi", Rolling: true},
-		{Name: "arch", Rolling: true},
+		{Alias: "centos", ReplacementName: strRef("rhel")},
+		{Alias: "rocky", ReplacementName: strRef("rhel")},
+		{Alias: "rockylinux", ReplacementName: strRef("rhel")}, // non-standard, but common (dockerhub uses "rockylinux")
+		{Alias: "alma", ReplacementName: strRef("rhel")},
+		{Alias: "almalinux", ReplacementName: strRef("rhel")}, // non-standard, but common (dockerhub uses "almalinux")
+		{Alias: "gentoo", ReplacementName: strRef("rhel")},
+		{Alias: "alpine", VersionPattern: ".*_alpha.*", ReplacementLabelVersion: strRef("edge"), Rolling: true},
+		{Alias: "wolfi", Rolling: true},
+		{Alias: "arch", Rolling: true},
+		{Alias: "archlinux", ReplacementName: strRef("arch"), Rolling: true}, // non-standard, but common (dockerhub uses "archlinux")
+		{Alias: "oracle", ReplacementName: strRef("ol")},                     // non-standard, but common
+		{Alias: "oraclelinux", ReplacementName: strRef("ol")},                // non-standard, but common (dockerhub uses "oraclelinux")
+		{Alias: "amazon", ReplacementName: strRef("amzn")},                   // non-standard, but common
+		{Alias: "amazonlinux", ReplacementName: strRef("amzn")},              // non-standard, but common (dockerhub uses "amazonlinux")
 		// TODO: trixie is a placeholder for now, but should be updated to sid when the time comes
 		// this needs to be automated, but isn't clear how to do so since you'll see things like this:
 		//
@@ -346,7 +354,7 @@ func KnownOperatingSystemAliases() []OperatingSystemAlias {
 		//
 		// depending where the team is during the development cycle you will see different behavior, making automating
 		// this a little challenging.
-		{Name: "debian", Codename: "trixie", Rolling: true}, // is currently sid, which is considered rolling
+		{Alias: "debian", Codename: "trixie", Rolling: true}, // is currently sid, which is considered rolling
 	}
 }
 
