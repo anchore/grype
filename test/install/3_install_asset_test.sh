@@ -37,6 +37,11 @@ test_positive_snapshot_install_asset() {
     local_suffix="_v8.0"
   fi
 
+  if [ "${arch}" == "ppc64le" ]; then
+    local_suffix="_power8"
+  fi
+
+
   assertFilesEqual \
     "$(snapshot_dir)/${os}-build_${os}_${arch}${local_suffix}/${binary}" \
     "${expected_path}" \
