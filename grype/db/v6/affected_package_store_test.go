@@ -633,8 +633,8 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
 				OSs: []*OSSpecifier{{
-					Name:     "ubuntu",
-					Codename: "groovy",
+					Name:         "ubuntu",
+					LabelVersion: "groovy",
 				}},
 			},
 			expected: []AffectedPackageHandle{*pkg2d2},
@@ -747,17 +747,19 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 	bs := newBlobStore(db)
 	s := newAffectedPackageStore(db, bs)
 
-	ubuntu2004 := &OperatingSystem{Name: "ubuntu", MajorVersion: "20", MinorVersion: "04", Codename: "focal"}
-	ubuntu2010 := &OperatingSystem{Name: "ubuntu", MajorVersion: "20", MinorVersion: "10", Codename: "groovy"}
-	rhel8 := &OperatingSystem{Name: "rhel", MajorVersion: "8"}
-	rhel81 := &OperatingSystem{Name: "rhel", MajorVersion: "8", MinorVersion: "1"}
-	debian10 := &OperatingSystem{Name: "debian", MajorVersion: "10"}
-	alpine318 := &OperatingSystem{Name: "alpine", MajorVersion: "3", MinorVersion: "18"}
-	alpineEdge := &OperatingSystem{Name: "alpine", LabelVersion: "edge"}
-	debianTrixie := &OperatingSystem{Name: "debian", Codename: "trixie"}
-	debian7 := &OperatingSystem{Name: "debian", MajorVersion: "7", Codename: "wheezy"}
-	wolfi := &OperatingSystem{Name: "wolfi", MajorVersion: "20230201"}
-	arch := &OperatingSystem{Name: "arch", MajorVersion: "20241110", MinorVersion: "0"}
+	ubuntu2004 := &OperatingSystem{Name: "ubuntu", ReleaseID: "ubuntu", MajorVersion: "20", MinorVersion: "04", LabelVersion: "focal"}
+	ubuntu2010 := &OperatingSystem{Name: "ubuntu", MajorVersion: "20", MinorVersion: "10", LabelVersion: "groovy"}
+	rhel8 := &OperatingSystem{Name: "rhel", ReleaseID: "rhel", MajorVersion: "8"}
+	rhel81 := &OperatingSystem{Name: "rhel", ReleaseID: "rhel", MajorVersion: "8", MinorVersion: "1"}
+	debian10 := &OperatingSystem{Name: "debian", ReleaseID: "debian", MajorVersion: "10"}
+	alpine318 := &OperatingSystem{Name: "alpine", ReleaseID: "alpine", MajorVersion: "3", MinorVersion: "18"}
+	alpineEdge := &OperatingSystem{Name: "alpine", ReleaseID: "alpine", LabelVersion: "edge"}
+	debianTrixie := &OperatingSystem{Name: "debian", ReleaseID: "debian", LabelVersion: "trixie"}
+	debian7 := &OperatingSystem{Name: "debian", ReleaseID: "debian", MajorVersion: "7", LabelVersion: "wheezy"}
+	wolfi := &OperatingSystem{Name: "wolfi", ReleaseID: "wolfi", MajorVersion: "20230201"}
+	arch := &OperatingSystem{Name: "arch", ReleaseID: "arch", MajorVersion: "20241110", MinorVersion: "0"}
+	oracle5 := &OperatingSystem{Name: "oracle", ReleaseID: "ol", MajorVersion: "5"}
+	oracle6 := &OperatingSystem{Name: "oracle", ReleaseID: "ol", MajorVersion: "6"}
 
 	operatingSystems := []*OperatingSystem{
 		ubuntu2004,
@@ -771,6 +773,8 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		debian7,
 		wolfi,
 		arch,
+		oracle5,
+		oracle6,
 	}
 	require.NoError(t, db.Create(&operatingSystems).Error)
 
@@ -817,8 +821,8 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		{
 			name: "codename resolution",
 			distro: OSSpecifier{
-				Name:     "ubuntu",
-				Codename: "focal",
+				Name:         "ubuntu",
+				LabelVersion: "focal",
 			},
 			expected: []OperatingSystem{*ubuntu2004},
 		},
@@ -828,7 +832,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 				Name:         "ubuntu",
 				MajorVersion: "20",
 				MinorVersion: "04",
-				Codename:     "focal",
+				LabelVersion: "focal",
 			},
 			expected: []OperatingSystem{*ubuntu2004},
 		},
@@ -838,7 +842,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 				Name:         "ubuntu",
 				MajorVersion: "20",
 				MinorVersion: "04",
-				Codename:     "fake",
+				LabelVersion: "fake",
 			},
 		},
 		{
@@ -871,15 +875,15 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 			distro: OSSpecifier{
 				Name:         "debian",
 				MajorVersion: "13",
-				Codename:     "trixie", // TODO: what about sid status indication from pretty-name or /etc/debian_version?
+				LabelVersion: "trixie",
 			},
 			expected: []OperatingSystem{*debianTrixie},
 		},
 		{
 			name: "debian by codename",
 			distro: OSSpecifier{
-				Name:     "debian",
-				Codename: "wheezy",
+				Name:         "debian",
+				LabelVersion: "wheezy",
 			},
 			expected: []OperatingSystem{*debian7},
 		},
@@ -908,6 +912,14 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 				MinorVersion: "18",
 			},
 			expected: []OperatingSystem{*alpine318},
+		},
+		{
+			name: "lookup by release ID (not name)",
+			distro: OSSpecifier{
+				Name:         "ol",
+				MajorVersion: "5",
+			},
+			expected: []OperatingSystem{*oracle5},
 		},
 		{
 			name: "missing distro name",
@@ -988,15 +1000,15 @@ func TestDistroSpecifier_String(t *testing.T) {
 			distro: &OSSpecifier{
 				Name:         "ubuntu",
 				MajorVersion: "20",
-				Codename:     "focal",
+				LabelVersion: "focal",
 			},
 			expected: "ubuntu@20 (focal)",
 		},
 		{
 			name: "name and codename specified",
 			distro: &OSSpecifier{
-				Name:     "ubuntu",
-				Codename: "focal",
+				Name:         "ubuntu",
+				LabelVersion: "focal",
 			},
 			expected: "ubuntu@focal",
 		},
@@ -1006,7 +1018,7 @@ func TestDistroSpecifier_String(t *testing.T) {
 				Name:         "ubuntu",
 				MajorVersion: "20",
 				MinorVersion: "04",
-				Codename:     "focal",
+				LabelVersion: "focal",
 			},
 			expected: "ubuntu@20.04",
 		},
@@ -1041,7 +1053,7 @@ func testDistro1AffectedPackage2Handle() *AffectedPackageHandle {
 			Name:         "ubuntu",
 			MajorVersion: "20",
 			MinorVersion: "04",
-			Codename:     "focal",
+			LabelVersion: "focal",
 		},
 		BlobValue: &AffectedPackageBlob{
 			CVEs: []string{"CVE-2023-1234"},
@@ -1069,7 +1081,7 @@ func testDistro2AffectedPackage2Handle() *AffectedPackageHandle {
 			Name:         "ubuntu",
 			MajorVersion: "20",
 			MinorVersion: "10",
-			Codename:     "groovy",
+			LabelVersion: "groovy",
 		},
 		BlobValue: &AffectedPackageBlob{
 			CVEs: []string{"CVE-2023-4567"},

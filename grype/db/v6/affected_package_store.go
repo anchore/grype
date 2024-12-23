@@ -91,7 +91,7 @@ type OSSpecifiers []*OSSpecifier
 
 // OSSpecifier is a struct that represents a distro in a way that can be used to query the affected package store.
 type OSSpecifier struct {
-	// Name of the distro as identified by the ID field in /etc/os-release
+	// Name of the distro as identified by the ID field in /etc/os-release (or similar normalized name, e.g. "oracle" instead of "ol")
 	Name string
 
 	// MajorVersion is the first field in the VERSION_ID field in /etc/os-release (e.g. 7 in "7.0.1406")
@@ -100,12 +100,8 @@ type OSSpecifier struct {
 	// MinorVersion is the second field in the VERSION_ID field in /etc/os-release (e.g. 0 in "7.0.1406")
 	MinorVersion string
 
-	// LabelVersion is mutually exclusive to MajorVersion and MinorVersion and tends to represent the
-	// VERSION_ID when it is not a version number (e.g. "edge" or "unstable")
+	// LabelVersion is a string that represents a floating version (e.g. "edge" or "unstable") or is the CODENAME field in /etc/os-release (e.g. "wheezy" for debian 7)
 	LabelVersion string
-
-	// Codename is the CODENAME field in /etc/os-release (e.g. "wheezy" for debian 7)
-	Codename string
 
 	// AllowMultiple specifies whether we intend to allow for multiple distro identities to be matched.
 	AllowMultiple bool
@@ -127,15 +123,15 @@ func (d *OSSpecifier) String() string {
 			version += "." + d.MinorVersion
 		}
 	} else {
-		version = d.Codename
+		version = d.LabelVersion
 	}
 
 	distroDisplayName := d.Name
 	if version != "" {
 		distroDisplayName += "@" + version
 	}
-	if version == d.MajorVersion && d.Codename != "" {
-		distroDisplayName += " (" + d.Codename + ")"
+	if version == d.MajorVersion && d.LabelVersion != "" {
+		distroDisplayName += " (" + d.LabelVersion + ")"
 	}
 
 	return distroDisplayName
@@ -152,10 +148,6 @@ func (d OSSpecifier) version() string {
 
 	if d.LabelVersion != "" {
 		return d.LabelVersion
-	}
-
-	if d.Codename != "" {
-		return d.Codename
 	}
 
 	return ""
@@ -397,7 +389,7 @@ func (s *affectedPackageStore) handleOSOptions(query *gorm.DB, configs []*OSSpec
 }
 
 func (s *affectedPackageStore) resolveDistro(d OSSpecifier) ([]OperatingSystem, error) {
-	if d.Name == "" && d.Codename == "" {
+	if d.Name == "" && d.LabelVersion == "" {
 		return nil, ErrMissingDistroIdentification
 	}
 
@@ -411,15 +403,11 @@ func (s *affectedPackageStore) resolveDistro(d OSSpecifier) ([]OperatingSystem, 
 	query := s.db.Model(&OperatingSystem{})
 
 	if d.Name != "" {
-		query = query.Where("name = ?", d.Name)
-	}
-
-	if d.Codename != "" {
-		query = query.Where("codename = ?", d.Codename)
+		query = query.Where("name = ? OR release_id = ?", d.Name, d.Name)
 	}
 
 	if d.LabelVersion != "" {
-		query = query.Where("label_version = ?", d.LabelVersion)
+		query = query.Where("codename = ? OR label_version = ?", d.LabelVersion, d.LabelVersion)
 	}
 
 	return s.searchForDistroVersionVariants(query, d)
@@ -496,7 +484,7 @@ func (s *affectedPackageStore) applyAlias(d *OSSpecifier) error {
 	var alias *OperatingSystemAlias
 
 	for _, a := range aliases {
-		if a.Codename != "" && a.Codename != d.Codename {
+		if a.Codename != "" && a.Codename != d.LabelVersion {
 			continue
 		}
 
