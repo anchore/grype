@@ -760,6 +760,9 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 	arch := &OperatingSystem{Name: "arch", ReleaseID: "arch", MajorVersion: "20241110", MinorVersion: "0"}
 	oracle5 := &OperatingSystem{Name: "oracle", ReleaseID: "ol", MajorVersion: "5"}
 	oracle6 := &OperatingSystem{Name: "oracle", ReleaseID: "ol", MajorVersion: "6"}
+	amazon2 := &OperatingSystem{Name: "amazon", ReleaseID: "amzn", MajorVersion: "2"}
+	rocky8 := &OperatingSystem{Name: "rocky", ReleaseID: "rocky", MajorVersion: "8"}        // should not be matched
+	alma8 := &OperatingSystem{Name: "almalinux", ReleaseID: "almalinux", MajorVersion: "8"} // should not be matched
 
 	operatingSystems := []*OperatingSystem{
 		ubuntu2004,
@@ -775,6 +778,9 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		arch,
 		oracle5,
 		oracle6,
+		amazon2,
+		rocky8,
+		alma8,
 	}
 	require.NoError(t, db.Create(&operatingSystems).Error)
 
@@ -920,6 +926,70 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 				MajorVersion: "5",
 			},
 			expected: []OperatingSystem{*oracle5},
+		},
+		{
+			name: "lookup by non-standard name (oraclelinux)",
+			distro: OSSpecifier{
+				Name:         "oraclelinux", // based on the grype distro names
+				MajorVersion: "5",
+			},
+			expected: []OperatingSystem{*oracle5},
+		},
+		{
+			name: "lookup by non-standard name (amazonlinux)",
+			distro: OSSpecifier{
+				Name:         "amazonlinux", // based on the grype distro names
+				MajorVersion: "2",
+			},
+			expected: []OperatingSystem{*amazon2},
+		},
+		{
+			name: "lookup by non-standard name (oracle)",
+			distro: OSSpecifier{
+				Name:         "oracle",
+				MajorVersion: "5",
+			},
+			expected: []OperatingSystem{*oracle5},
+		},
+		{
+			name: "lookup by non-standard name (amazon)",
+			distro: OSSpecifier{
+				Name:         "amazon",
+				MajorVersion: "2",
+			},
+			expected: []OperatingSystem{*amazon2},
+		},
+		{
+			name: "lookup by non-standard name (rocky)",
+			distro: OSSpecifier{
+				Name:         "rocky",
+				MajorVersion: "8",
+			},
+			expected: []OperatingSystem{*rhel8},
+		},
+		{
+			name: "lookup by non-standard name (rockylinux)",
+			distro: OSSpecifier{
+				Name:         "rockylinux",
+				MajorVersion: "8",
+			},
+			expected: []OperatingSystem{*rhel8},
+		},
+		{
+			name: "lookup by non-standard name (alma)",
+			distro: OSSpecifier{
+				Name:         "alma",
+				MajorVersion: "8",
+			},
+			expected: []OperatingSystem{*rhel8},
+		},
+		{
+			name: "lookup by non-standard name (almalinux)",
+			distro: OSSpecifier{
+				Name:         "almalinux",
+				MajorVersion: "8",
+			},
+			expected: []OperatingSystem{*rhel8},
 		},
 		{
 			name: "missing distro name",
