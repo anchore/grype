@@ -39,7 +39,6 @@ func fillRefs[T, R any](db *gorm.DB, handles []*T, getRef refProvider[T, R], ref
 	// load a map with all id -> ref results
 	var values []R
 	tx := db.Where("id IN (?)", ids)
-	LogQuery(tx, &values)
 	err := tx.Find(&values).Error
 	if err != nil {
 		return err

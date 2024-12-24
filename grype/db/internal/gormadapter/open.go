@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
@@ -34,6 +35,7 @@ var readConnectionOptions = []string{
 }
 
 type config struct {
+	debug                     bool
 	path                      string
 	writable                  bool
 	truncate                  bool
@@ -45,6 +47,12 @@ type config struct {
 }
 
 type Option func(*config)
+
+func WithDebug(debug bool) Option {
+	return func(c *config) {
+		c.debug = debug
+	}
+}
 
 func WithTruncate(truncate bool, models []any, initialData []any) Option {
 	return func(c *config) {
@@ -70,9 +78,10 @@ func WithModels(models []any) Option {
 	}
 }
 
-func WithWritable(write bool) Option {
+func WithWritable(write bool, models []any) Option {
 	return func(c *config) {
 		c.writable = write
+		c.models = models
 	}
 }
 
@@ -129,53 +138,62 @@ func Open(path string, options ...Option) (*gorm.DB, error) {
 		}
 	}
 
-	dbObj, err := gorm.Open(sqlite.Open(cfg.connectionString()), &gorm.Config{Logger: newLogger()})
+	dbObj, err := gorm.Open(sqlite.Open(cfg.connectionString()), &gorm.Config{Logger: &logAdapter{
+		debug:         cfg.debug,
+		slowThreshold: 400 * time.Millisecond,
+	}})
 	if err != nil {
 		return nil, fmt.Errorf("unable to connect to DB: %w", err)
 	}
 
+	return prepareDB(dbObj, cfg)
+}
+
+func prepareDB(dbObj *gorm.DB, cfg config) (*gorm.DB, error) {
 	if cfg.writable {
-		log.Trace("applying writable DB statements")
+		log.Trace("using writable DB statements")
 		if err := applyStatements(dbObj, writerStatements); err != nil {
 			return nil, fmt.Errorf("unable to apply DB writer statements: %w", err)
 		}
 	}
 
 	if cfg.truncate && cfg.allowLargeMemoryFootprint {
-		log.Trace("applying large memory footprint DB statements")
+		log.Trace("using large memory footprint DB statements")
 		if err := applyStatements(dbObj, heavyWriteStatements); err != nil {
 			return nil, fmt.Errorf("unable to apply DB heavy writer statements: %w", err)
 		}
 	}
 
 	if len(commonStatements) > 0 {
-		log.Trace("applying common DB statements")
 		if err := applyStatements(dbObj, commonStatements); err != nil {
 			return nil, fmt.Errorf("unable to apply DB common statements: %w", err)
 		}
 	}
 
 	if len(cfg.statements) > 0 {
-		log.Trace("applying custom DB statements")
 		if err := applyStatements(dbObj, cfg.statements); err != nil {
 			return nil, fmt.Errorf("unable to apply DB custom statements: %w", err)
 		}
 	}
 
-	if len(cfg.models) > 0 {
+	if len(cfg.models) > 0 && cfg.writable {
 		log.Trace("applying DB migrations")
 		if err := dbObj.AutoMigrate(cfg.models...); err != nil {
 			return nil, fmt.Errorf("unable to migrate: %w", err)
 		}
 	}
 
-	if len(cfg.initialData) > 0 {
-		log.Trace("applying initial data")
+	if len(cfg.initialData) > 0 && cfg.truncate {
+		log.Trace("writing initial data")
 		for _, d := range cfg.initialData {
 			if err := dbObj.Create(d).Error; err != nil {
 				return nil, fmt.Errorf("unable to create initial data: %w", err)
 			}
 		}
+	}
+
+	if cfg.debug {
+		dbObj = dbObj.Debug()
 	}
 
 	return dbObj, nil

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -77,25 +78,53 @@ func (s *blobStore) addBlobs(blobs ...*Blob) error {
 	return nil
 }
 
-func (s *blobStore) getBlobValue(id ID) (string, error) {
-	var blob Blob
-	if err := s.db.First(&blob, id).Error; err != nil {
-		return "", err
+func (s *blobStore) getBlobValues(ids ...ID) ([]Blob, error) {
+	if len(ids) == 0 {
+		return nil, nil
 	}
-	return blob.Value, nil
+	var blobs []Blob
+	if err := s.db.Where("id IN ?", ids).Find(&blobs).Error; err != nil {
+		return nil, fmt.Errorf("failed to get blob values: %w", err)
+	}
+	return blobs, nil
 }
 
-func (s *blobStore) attachBlobValue(b blobable) error {
-	id := b.getBlobID()
-	if id == 0 {
-		return nil
+func (s *blobStore) attachBlobValue(bs ...blobable) error {
+	start := time.Now()
+	defer func() {
+		log.WithFields("duration", time.Since(start), "count", len(bs)).Trace("attached blob values")
+	}()
+	var ids []ID
+	var setterByID = make(map[ID][]blobable)
+	for i := range bs {
+		b := bs[i]
+
+		id := b.getBlobID()
+		if id == 0 {
+			continue
+		}
+
+		ids = append(ids, id)
+		setterByID[id] = append(setterByID[id], b)
 	}
-	v, err := s.getBlobValue(id)
+
+	vs, err := s.getBlobValues(ids...)
 	if err != nil {
 		return fmt.Errorf("failed to get blob value: %w", err)
 	}
 
-	return b.setBlob([]byte(v))
+	for _, b := range vs {
+		if b.Value == "" {
+			continue
+		}
+		for _, setter := range setterByID[b.ID] {
+			if err := setter.setBlob([]byte(b.Value)); err != nil {
+				return fmt.Errorf("failed to set blob value: %w", err)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (s *blobStore) Close() error {

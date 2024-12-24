@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/scylladb/go-set/strset"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -518,6 +519,61 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 	}
 }
 
+func TestAffectedPackageStore_GetAffectedPackages_MultipleVulnerabilitySpecs(t *testing.T) {
+	db := setupTestStore(t).db
+	bs := newBlobStore(db)
+	s := newAffectedPackageStore(db, bs)
+
+	cpe1 := Cpe{Part: "a", Vendor: "vendor1", Product: "product1"}
+	cpe2 := Cpe{Part: "a", Vendor: "vendor2", Product: "product2"}
+	pkg1 := &AffectedPackageHandle{
+		Vulnerability: &VulnerabilityHandle{
+			Name: "CVE-2023-1234",
+			Provider: &Provider{
+				ID: "provider1",
+			},
+		},
+		Package: &Package{Name: "pkg1", Type: "type1", CPEs: []Cpe{cpe1}},
+		BlobValue: &AffectedPackageBlob{
+			CVEs: []string{"CVE-2023-1234"},
+		},
+	}
+	pkg2 := &AffectedPackageHandle{
+		Vulnerability: &VulnerabilityHandle{
+			Name: "CVE-2023-5678",
+			Provider: &Provider{
+				ID: "provider1",
+			},
+		},
+		Package: &Package{Name: "pkg2", Type: "type2", CPEs: []Cpe{cpe2}},
+		BlobValue: &AffectedPackageBlob{
+			CVEs: []string{"CVE-2023-5678"},
+		},
+	}
+
+	err := s.AddAffectedPackages(pkg1, pkg2)
+	require.NoError(t, err)
+
+	result, err := s.GetAffectedPackages(nil, &GetAffectedPackageOptions{
+		PreloadVulnerability: true,
+		Vulnerabilities: []VulnerabilitySpecifier{
+			{Name: "CVE-2023-1234"},
+			{Name: "CVE-2023-5678"},
+		},
+	})
+	require.NoError(t, err)
+
+	actualVulns := strset.New()
+	for _, r := range result {
+		actualVulns.Add(r.Vulnerability.Name)
+	}
+
+	expectedVulns := strset.New("CVE-2023-1234", "CVE-2023-5678")
+
+	assert.ElementsMatch(t, expectedVulns.List(), actualVulns.List())
+
+}
+
 func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 	db := setupTestStore(t).db
 	bs := newBlobStore(db)
@@ -540,11 +596,11 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			name: "specific distro",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
-				Distro: &DistroSpecifier{
+				OSs: []*OSSpecifier{{
 					Name:         "ubuntu",
 					MajorVersion: "20",
 					MinorVersion: "04",
-				},
+				}},
 			},
 			expected: []AffectedPackageHandle{*pkg2d1},
 		},
@@ -552,11 +608,11 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			name: "distro major version only (allow multiple)",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
-				Distro: &DistroSpecifier{
+				OSs: []*OSSpecifier{{
 					Name:          "ubuntu",
 					MajorVersion:  "20",
 					AllowMultiple: true,
-				},
+				}},
 			},
 			expected: []AffectedPackageHandle{*pkg2d1, *pkg2d2},
 		},
@@ -564,11 +620,11 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			name: "distro major version only (default)",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
-				Distro: &DistroSpecifier{
+				OSs: []*OSSpecifier{{
 					Name:          "ubuntu",
 					MajorVersion:  "20",
 					AllowMultiple: false,
-				},
+				}},
 			},
 			wantErr: expectErrIs(t, ErrMultipleOSMatches),
 		},
@@ -576,10 +632,10 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			name: "distro codename",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
-				Distro: &DistroSpecifier{
-					Name:     "ubuntu",
-					Codename: "groovy",
-				},
+				OSs: []*OSSpecifier{{
+					Name:         "ubuntu",
+					LabelVersion: "groovy",
+				}},
 			},
 			expected: []AffectedPackageHandle{*pkg2d2},
 		},
@@ -587,7 +643,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			name: "no distro",
 			pkg:  pkgFromName(pkg2.Package.Name),
 			options: &GetAffectedPackageOptions{
-				Distro: NoDistroSpecified,
+				OSs: []*OSSpecifier{NoOSSpecified},
 			},
 			expected: []AffectedPackageHandle{*pkg2},
 		},
@@ -595,7 +651,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			name: "any distro",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
-				Distro: AnyDistroSpecified,
+				OSs: []*OSSpecifier{AnyOSSpecified},
 			},
 			expected: []AffectedPackageHandle{*pkg2d1, *pkg2, *pkg2d2},
 		},
@@ -608,9 +664,9 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			name: "specific CVE",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
-				Vulnerability: &VulnerabilitySpecifier{
+				Vulnerabilities: []VulnerabilitySpecifier{{
 					Name: "CVE-2023-1234",
-				},
+				}},
 			},
 			expected: []AffectedPackageHandle{*pkg2d1},
 		},
@@ -618,12 +674,12 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			name: "any CVE published after a date",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
-				Vulnerability: &VulnerabilitySpecifier{
+				Vulnerabilities: []VulnerabilitySpecifier{{
 					PublishedAfter: func() *time.Time {
 						now := time.Date(2020, 1, 1, 1, 1, 1, 0, time.UTC)
 						return &now
 					}(),
-				},
+				}},
 			},
 			expected: []AffectedPackageHandle{*pkg2d1, *pkg2d2},
 		},
@@ -631,12 +687,12 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			name: "any CVE modified after a date",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
-				Vulnerability: &VulnerabilitySpecifier{
+				Vulnerabilities: []VulnerabilitySpecifier{{
 					ModifiedAfter: func() *time.Time {
 						now := time.Date(2023, 1, 1, 3, 4, 5, 0, time.UTC).Add(time.Hour * 2)
 						return &now
 					}(),
-				},
+				}},
 			},
 			expected: []AffectedPackageHandle{*pkg2d1},
 		},
@@ -644,9 +700,9 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			name: "any rejected CVE",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
-				Vulnerability: &VulnerabilitySpecifier{
+				Vulnerabilities: []VulnerabilitySpecifier{{
 					Status: VulnerabilityRejected,
-				},
+				}},
 			},
 			expected: []AffectedPackageHandle{*pkg2d1},
 		},
@@ -691,17 +747,22 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 	bs := newBlobStore(db)
 	s := newAffectedPackageStore(db, bs)
 
-	ubuntu2004 := &OperatingSystem{Name: "ubuntu", MajorVersion: "20", MinorVersion: "04", Codename: "focal"}
-	ubuntu2010 := &OperatingSystem{Name: "ubuntu", MajorVersion: "20", MinorVersion: "10", Codename: "groovy"}
-	rhel8 := &OperatingSystem{Name: "rhel", MajorVersion: "8"}
-	rhel81 := &OperatingSystem{Name: "rhel", MajorVersion: "8", MinorVersion: "1"}
-	debian10 := &OperatingSystem{Name: "debian", MajorVersion: "10"}
-	alpine318 := &OperatingSystem{Name: "alpine", MajorVersion: "3", MinorVersion: "18"}
-	alpineEdge := &OperatingSystem{Name: "alpine", LabelVersion: "edge"}
-	debianTrixie := &OperatingSystem{Name: "debian", Codename: "trixie"}
-	debian7 := &OperatingSystem{Name: "debian", MajorVersion: "7", Codename: "wheezy"}
-	wolfi := &OperatingSystem{Name: "wolfi", MajorVersion: "20230201"}
-	arch := &OperatingSystem{Name: "arch", MajorVersion: "20241110", MinorVersion: "0"}
+	ubuntu2004 := &OperatingSystem{Name: "ubuntu", ReleaseID: "ubuntu", MajorVersion: "20", MinorVersion: "04", LabelVersion: "focal"}
+	ubuntu2010 := &OperatingSystem{Name: "ubuntu", MajorVersion: "20", MinorVersion: "10", LabelVersion: "groovy"}
+	rhel8 := &OperatingSystem{Name: "rhel", ReleaseID: "rhel", MajorVersion: "8"}
+	rhel81 := &OperatingSystem{Name: "rhel", ReleaseID: "rhel", MajorVersion: "8", MinorVersion: "1"}
+	debian10 := &OperatingSystem{Name: "debian", ReleaseID: "debian", MajorVersion: "10"}
+	alpine318 := &OperatingSystem{Name: "alpine", ReleaseID: "alpine", MajorVersion: "3", MinorVersion: "18"}
+	alpineEdge := &OperatingSystem{Name: "alpine", ReleaseID: "alpine", LabelVersion: "edge"}
+	debianTrixie := &OperatingSystem{Name: "debian", ReleaseID: "debian", LabelVersion: "trixie"}
+	debian7 := &OperatingSystem{Name: "debian", ReleaseID: "debian", MajorVersion: "7", LabelVersion: "wheezy"}
+	wolfi := &OperatingSystem{Name: "wolfi", ReleaseID: "wolfi", MajorVersion: "20230201"}
+	arch := &OperatingSystem{Name: "arch", ReleaseID: "arch", MajorVersion: "20241110", MinorVersion: "0"}
+	oracle5 := &OperatingSystem{Name: "oracle", ReleaseID: "ol", MajorVersion: "5"}
+	oracle6 := &OperatingSystem{Name: "oracle", ReleaseID: "ol", MajorVersion: "6"}
+	amazon2 := &OperatingSystem{Name: "amazon", ReleaseID: "amzn", MajorVersion: "2"}
+	rocky8 := &OperatingSystem{Name: "rocky", ReleaseID: "rocky", MajorVersion: "8"}        // should not be matched
+	alma8 := &OperatingSystem{Name: "almalinux", ReleaseID: "almalinux", MajorVersion: "8"} // should not be matched
 
 	operatingSystems := []*OperatingSystem{
 		ubuntu2004,
@@ -715,18 +776,23 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		debian7,
 		wolfi,
 		arch,
+		oracle5,
+		oracle6,
+		amazon2,
+		rocky8,
+		alma8,
 	}
 	require.NoError(t, db.Create(&operatingSystems).Error)
 
 	tests := []struct {
 		name      string
-		distro    DistroSpecifier
+		distro    OSSpecifier
 		expected  []OperatingSystem
 		expectErr require.ErrorAssertionFunc
 	}{
 		{
 			name: "specific distro with major and minor version",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "ubuntu",
 				MajorVersion: "20",
 				MinorVersion: "04",
@@ -735,7 +801,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		},
 		{
 			name: "alias resolution with major version",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "centos",
 				MajorVersion: "8",
 			},
@@ -743,7 +809,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		},
 		{
 			name: "alias resolution with major and minor version",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "centos",
 				MajorVersion: "8",
 				MinorVersion: "1",
@@ -752,7 +818,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		},
 		{
 			name: "distro with major version only",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "debian",
 				MajorVersion: "10",
 			},
@@ -760,34 +826,34 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		},
 		{
 			name: "codename resolution",
-			distro: DistroSpecifier{
-				Name:     "ubuntu",
-				Codename: "focal",
+			distro: OSSpecifier{
+				Name:         "ubuntu",
+				LabelVersion: "focal",
 			},
 			expected: []OperatingSystem{*ubuntu2004},
 		},
 		{
 			name: "codename and version info",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "ubuntu",
 				MajorVersion: "20",
 				MinorVersion: "04",
-				Codename:     "focal",
+				LabelVersion: "focal",
 			},
 			expected: []OperatingSystem{*ubuntu2004},
 		},
 		{
 			name: "conflicting codename and version info",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "ubuntu",
 				MajorVersion: "20",
 				MinorVersion: "04",
-				Codename:     "fake",
+				LabelVersion: "fake",
 			},
 		},
 		{
 			name: "alpine edge version",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "alpine",
 				MajorVersion: "3",
 				MinorVersion: "21",
@@ -797,14 +863,14 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		},
 		{
 			name: "arch rolling variant",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name: "arch",
 			},
 			expected: []OperatingSystem{*arch},
 		},
 		{
 			name: "wolfi rolling variant",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "wolfi",
 				MajorVersion: "20221018",
 			},
@@ -812,24 +878,24 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		},
 		{
 			name: "debian by codename for rolling alias",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "debian",
 				MajorVersion: "13",
-				Codename:     "trixie", // TODO: what about sid status indication from pretty-name or /etc/debian_version?
+				LabelVersion: "trixie",
 			},
 			expected: []OperatingSystem{*debianTrixie},
 		},
 		{
 			name: "debian by codename",
-			distro: DistroSpecifier{
-				Name:     "debian",
-				Codename: "wheezy",
+			distro: OSSpecifier{
+				Name:         "debian",
+				LabelVersion: "wheezy",
 			},
 			expected: []OperatingSystem{*debian7},
 		},
 		{
 			name: "debian by major version",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "debian",
 				MajorVersion: "7",
 			},
@@ -837,7 +903,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		},
 		{
 			name: "debian by major.minor version",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "debian",
 				MajorVersion: "7",
 				MinorVersion: "2",
@@ -846,7 +912,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		},
 		{
 			name: "alpine with major and minor version",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "alpine",
 				MajorVersion: "3",
 				MinorVersion: "18",
@@ -854,15 +920,87 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 			expected: []OperatingSystem{*alpine318},
 		},
 		{
+			name: "lookup by release ID (not name)",
+			distro: OSSpecifier{
+				Name:         "ol",
+				MajorVersion: "5",
+			},
+			expected: []OperatingSystem{*oracle5},
+		},
+		{
+			name: "lookup by non-standard name (oraclelinux)",
+			distro: OSSpecifier{
+				Name:         "oraclelinux", // based on the grype distro names
+				MajorVersion: "5",
+			},
+			expected: []OperatingSystem{*oracle5},
+		},
+		{
+			name: "lookup by non-standard name (amazonlinux)",
+			distro: OSSpecifier{
+				Name:         "amazonlinux", // based on the grype distro names
+				MajorVersion: "2",
+			},
+			expected: []OperatingSystem{*amazon2},
+		},
+		{
+			name: "lookup by non-standard name (oracle)",
+			distro: OSSpecifier{
+				Name:         "oracle",
+				MajorVersion: "5",
+			},
+			expected: []OperatingSystem{*oracle5},
+		},
+		{
+			name: "lookup by non-standard name (amazon)",
+			distro: OSSpecifier{
+				Name:         "amazon",
+				MajorVersion: "2",
+			},
+			expected: []OperatingSystem{*amazon2},
+		},
+		{
+			name: "lookup by non-standard name (rocky)",
+			distro: OSSpecifier{
+				Name:         "rocky",
+				MajorVersion: "8",
+			},
+			expected: []OperatingSystem{*rhel8},
+		},
+		{
+			name: "lookup by non-standard name (rockylinux)",
+			distro: OSSpecifier{
+				Name:         "rockylinux",
+				MajorVersion: "8",
+			},
+			expected: []OperatingSystem{*rhel8},
+		},
+		{
+			name: "lookup by non-standard name (alma)",
+			distro: OSSpecifier{
+				Name:         "alma",
+				MajorVersion: "8",
+			},
+			expected: []OperatingSystem{*rhel8},
+		},
+		{
+			name: "lookup by non-standard name (almalinux)",
+			distro: OSSpecifier{
+				Name:         "almalinux",
+				MajorVersion: "8",
+			},
+			expected: []OperatingSystem{*rhel8},
+		},
+		{
 			name: "missing distro name",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				MajorVersion: "8",
 			},
 			expectErr: expectErrIs(t, ErrMissingDistroIdentification),
 		},
 		{
 			name: "nonexistent distro",
-			distro: DistroSpecifier{
+			distro: OSSpecifier{
 				Name:         "madeup",
 				MajorVersion: "99",
 			},
@@ -887,32 +1025,32 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 	}
 }
 
-func TestDistroDisplay(t *testing.T) {
+func TestDistroSpecifier_String(t *testing.T) {
 	tests := []struct {
 		name     string
-		distro   *DistroSpecifier
+		distro   *OSSpecifier
 		expected string
 	}{
 		{
 			name:     "nil distro",
-			distro:   AnyDistroSpecified,
+			distro:   AnyOSSpecified,
 			expected: "any",
 		},
 		{
 			name:     "no distro specified",
-			distro:   NoDistroSpecified,
+			distro:   NoOSSpecified,
 			expected: "none",
 		},
 		{
 			name: "only name specified",
-			distro: &DistroSpecifier{
+			distro: &OSSpecifier{
 				Name: "ubuntu",
 			},
 			expected: "ubuntu",
 		},
 		{
 			name: "name and major version specified",
-			distro: &DistroSpecifier{
+			distro: &OSSpecifier{
 				Name:         "ubuntu",
 				MajorVersion: "20",
 			},
@@ -920,7 +1058,7 @@ func TestDistroDisplay(t *testing.T) {
 		},
 		{
 			name: "name, major, and minor version specified",
-			distro: &DistroSpecifier{
+			distro: &OSSpecifier{
 				Name:         "ubuntu",
 				MajorVersion: "20",
 				MinorVersion: "04",
@@ -929,28 +1067,28 @@ func TestDistroDisplay(t *testing.T) {
 		},
 		{
 			name: "name, major version, and codename specified",
-			distro: &DistroSpecifier{
+			distro: &OSSpecifier{
 				Name:         "ubuntu",
 				MajorVersion: "20",
-				Codename:     "focal",
+				LabelVersion: "focal",
 			},
 			expected: "ubuntu@20 (focal)",
 		},
 		{
 			name: "name and codename specified",
-			distro: &DistroSpecifier{
-				Name:     "ubuntu",
-				Codename: "focal",
+			distro: &OSSpecifier{
+				Name:         "ubuntu",
+				LabelVersion: "focal",
 			},
 			expected: "ubuntu@focal",
 		},
 		{
 			name: "name, major version, minor version, and codename specified",
-			distro: &DistroSpecifier{
+			distro: &OSSpecifier{
 				Name:         "ubuntu",
 				MajorVersion: "20",
 				MinorVersion: "04",
-				Codename:     "focal",
+				LabelVersion: "focal",
 			},
 			expected: "ubuntu@20.04",
 		},
@@ -958,7 +1096,7 @@ func TestDistroDisplay(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := distroDisplay(tt.distro)
+			result := tt.distro.String()
 			require.Equal(t, tt.expected, result)
 		})
 	}
@@ -985,7 +1123,7 @@ func testDistro1AffectedPackage2Handle() *AffectedPackageHandle {
 			Name:         "ubuntu",
 			MajorVersion: "20",
 			MinorVersion: "04",
-			Codename:     "focal",
+			LabelVersion: "focal",
 		},
 		BlobValue: &AffectedPackageBlob{
 			CVEs: []string{"CVE-2023-1234"},
@@ -1013,7 +1151,7 @@ func testDistro2AffectedPackage2Handle() *AffectedPackageHandle {
 			Name:         "ubuntu",
 			MajorVersion: "20",
 			MinorVersion: "10",
-			Codename:     "groovy",
+			LabelVersion: "groovy",
 		},
 		BlobValue: &AffectedPackageBlob{
 			CVEs: []string{"CVE-2023-4567"},

@@ -1,6 +1,7 @@
 package installation
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -27,8 +28,9 @@ const lastUpdateCheckFileName = "last_update_check"
 
 type monitor struct {
 	*progress.AtomicStage
-	downloadProgress *progress.Manual
-	importProgress   *progress.Manual
+	downloadProgress completionMonitor
+	importProgress   completionMonitor
+	hydrateProgress  completionMonitor
 }
 
 type Config struct {
@@ -130,7 +132,11 @@ func (c curator) Delete() error {
 func (c curator) Update() (bool, error) {
 	current, err := db.ReadDescription(c.config.DBFilePath())
 	if err != nil {
-		log.WithFields("error", err).Warn("unable to read current database metadata (continuing with update)")
+		// we should not warn if the DB does not exist, as this is a common first-run case... but other cases we
+		// may care about, so warn in those cases.
+		if !errors.Is(err, db.ErrDBDoesNotExist) {
+			log.WithFields("error", err).Warn("unable to read current database metadata (continuing with update)")
+		}
 		// downstream any non-existent DB should always be replaced with any best-candidate found
 		current = nil
 	} else {
@@ -218,11 +224,11 @@ func (c curator) update(current *db.Description) (*distribution.Archive, error) 
 
 	log.Infof("downloading new vulnerability DB")
 	mon.Set("downloading")
-	dest, err := c.client.Download(*update, filepath.Dir(c.config.DBRootDir), mon.downloadProgress)
+	dest, err := c.client.Download(*update, filepath.Dir(c.config.DBRootDir), mon.downloadProgress.Manual)
 	if err != nil {
 		return nil, fmt.Errorf("unable to update vulnerability database: %w", err)
 	}
-
+	mon.downloadProgress.SetCompleted()
 	if err := c.activate(dest, mon); err != nil {
 		return nil, fmt.Errorf("unable to activate new vulnerability database: %w", err)
 	}
@@ -314,6 +320,7 @@ func (c curator) Import(dbArchivePath string) error {
 		return fmt.Errorf("unable to create db import temp dir: %w", err)
 	}
 
+	log.Trace("unarchiving DB")
 	err = archiver.Unarchive(dbArchivePath, tempDir)
 	if err != nil {
 		return err
@@ -334,7 +341,7 @@ func (c curator) Import(dbArchivePath string) error {
 
 // activate swaps over the downloaded db to the application directory, calculates the checksum, and records the checksums to a file.
 func (c curator) activate(dbDirPath string, mon monitor) error {
-	defer mon.importProgress.SetCompleted()
+	defer mon.SetCompleted()
 
 	dbFilePath := filepath.Join(dbDirPath, db.VulnerabilityDBFileName)
 
@@ -344,6 +351,7 @@ func (c curator) activate(dbDirPath string, mon monitor) error {
 			return err
 		}
 	}
+	mon.hydrateProgress.SetCompleted()
 
 	mon.Set("hashing")
 
@@ -364,6 +372,7 @@ func (c curator) activate(dbDirPath string, mon monitor) error {
 	if err := fh.Close(); err != nil {
 		return err
 	}
+	log.WithFields("digest", digest).Trace("captured DB checksum")
 
 	mon.Set("activating")
 
@@ -463,7 +472,8 @@ func newMonitor() monitor {
 	importProgress := progress.NewManual(1)
 	stage := progress.NewAtomicStage("")
 	downloadProgress := progress.NewManual(1)
-	aggregateProgress := progress.NewAggregator(progress.DefaultStrategy, downloadProgress, importProgress)
+	hydrateProgress := progress.NewManual(1)
+	aggregateProgress := progress.NewAggregator(progress.DefaultStrategy, downloadProgress, hydrateProgress, importProgress)
 
 	bus.Publish(partybus.Event{
 		Type: event.UpdateVulnerabilityDatabase,
@@ -478,12 +488,24 @@ func newMonitor() monitor {
 
 	return monitor{
 		AtomicStage:      stage,
-		downloadProgress: downloadProgress,
-		importProgress:   importProgress,
+		downloadProgress: completionMonitor{downloadProgress},
+		importProgress:   completionMonitor{importProgress},
+		hydrateProgress:  completionMonitor{hydrateProgress},
 	}
 }
 
 func (m monitor) SetCompleted() {
 	m.downloadProgress.SetCompleted()
 	m.importProgress.SetCompleted()
+	m.hydrateProgress.SetCompleted()
+}
+
+// completionMonitor is a progressable that, when SetComplete() is called, will set the progress to the total size
+type completionMonitor struct {
+	*progress.Manual
+}
+
+func (m completionMonitor) SetCompleted() {
+	m.Set(m.Size())
+	m.Manual.SetCompleted()
 }
