@@ -291,12 +291,6 @@ func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config
 	return models, nil
 }
 
-func LogQuery(tx *gorm.DB, findTarget any) {
-	log.Tracef("executing query: %v", tx.ToSQL(func(tx *gorm.DB) *gorm.DB {
-		return tx.Find(&findTarget)
-	}))
-}
-
 func (s *affectedPackageStore) handlePackage(query *gorm.DB, config *PackageSpecifier) *gorm.DB {
 	if config == nil {
 		return query
