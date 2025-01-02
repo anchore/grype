@@ -22,7 +22,7 @@ type store struct {
 }
 
 func InitialData() []any {
-	d := KnownOperatingSystemAliases()
+	d := KnownOperatingSystemSpecifierOverrides()
 	var data []any
 	for _, v := range d {
 		data = append(data, &v)

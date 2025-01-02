@@ -30,7 +30,7 @@ func Models() []any {
 		// package related search tables
 		&AffectedPackageHandle{}, // join on package, operating system
 		&OperatingSystem{},
-		&OperatingSystemAlias{},
+		&OperatingSystemSpecifierOverride{},
 		&Package{},
 
 		// CPE related search tables
@@ -297,8 +297,9 @@ func (os *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
 	return nil
 }
 
-type OperatingSystemAlias struct {
-	// Name is alias name for the operating system.
+// OperatingSystemSpecifierOverride is a table that allows for overriding fields on v6.OSSpecifier instances when searching for specific OperatingSystems.
+type OperatingSystemSpecifierOverride struct {
+	// Alias is an alternative name/ID for the operating system.
 	Alias string `gorm:"column:alias;primaryKey;index:os_alias_idx"`
 
 	// Version is the matching version as found in the VERSION_ID field if the /etc/os-release file
@@ -320,11 +321,11 @@ type OperatingSystemAlias struct {
 }
 
 // TODO: in a future iteration these should be raised up more explicitly by the vunnel providers
-func KnownOperatingSystemAliases() []OperatingSystemAlias {
+func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride {
 	strRef := func(s string) *string {
 		return &s
 	}
-	return []OperatingSystemAlias{
+	return []OperatingSystemSpecifierOverride{
 		{Alias: "centos", ReplacementName: strRef("rhel")},
 		{Alias: "rocky", ReplacementName: strRef("rhel")},
 		{Alias: "rockylinux", ReplacementName: strRef("rhel")}, // non-standard, but common (dockerhub uses "rockylinux")
@@ -358,7 +359,7 @@ func KnownOperatingSystemAliases() []OperatingSystemAlias {
 	}
 }
 
-func (os *OperatingSystemAlias) BeforeCreate(_ *gorm.DB) (err error) {
+func (os *OperatingSystemSpecifierOverride) BeforeCreate(_ *gorm.DB) (err error) {
 	if os.Version != "" && os.VersionPattern != "" {
 		return fmt.Errorf("cannot have both version and version_pattern set")
 	}

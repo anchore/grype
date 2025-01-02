@@ -14,12 +14,12 @@ func TestOperatingSystemAlias_VersionMutualExclusivity(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		input  *OperatingSystemAlias
+		input  *OperatingSystemSpecifierOverride
 		errMsg string
 	}{
 		{
 			name: "version and version_pattern are mutually exclusive",
-			input: &OperatingSystemAlias{
+			input: &OperatingSystemSpecifierOverride{
 				Alias:          "ubuntu",
 				Version:        "20.04",
 				VersionPattern: "20.*",
@@ -28,7 +28,7 @@ func TestOperatingSystemAlias_VersionMutualExclusivity(t *testing.T) {
 		},
 		{
 			name: "only version is set",
-			input: &OperatingSystemAlias{
+			input: &OperatingSystemSpecifierOverride{
 				Alias:   "ubuntu",
 				Version: "20.04",
 			},
@@ -36,7 +36,7 @@ func TestOperatingSystemAlias_VersionMutualExclusivity(t *testing.T) {
 		},
 		{
 			name: "only version_pattern is set",
-			input: &OperatingSystemAlias{
+			input: &OperatingSystemSpecifierOverride{
 				Alias:          "ubuntu",
 				VersionPattern: "20.*",
 			},

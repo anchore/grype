@@ -472,7 +472,7 @@ func (s *affectedPackageStore) applyAlias(d *OSSpecifier) error {
 		return nil
 	}
 
-	var aliases []OperatingSystemAlias
+	var aliases []OperatingSystemSpecifierOverride
 	err := s.db.Where("alias = ?", d.Name).Find(&aliases).Error
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -481,7 +481,7 @@ func (s *affectedPackageStore) applyAlias(d *OSSpecifier) error {
 		return nil
 	}
 
-	var alias *OperatingSystemAlias
+	var alias *OperatingSystemSpecifierOverride
 
 	for _, a := range aliases {
 		if a.Codename != "" && a.Codename != d.LabelVersion {
