@@ -33,7 +33,7 @@ func DBDiff(app clio.Application) *cobra.Command {
 		DBOptions: *dbOptionsDefault(app.ID()),
 	}
 
-	return app.SetupCommand(&cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "diff [flags] base_db_url target_db_url",
 		Short: "diff two DBs and display the result",
 		Args:  cobra.MaximumNArgs(2),
@@ -61,7 +61,14 @@ func DBDiff(app clio.Application) *cobra.Command {
 
 			return runDBDiff(opts, base, target)
 		},
-	}, opts)
+	}
+
+	// prevent from being shown in the grype config
+	type configWrapper struct {
+		Opts *dbDiffOptions `json:"-" yaml:"-" mapstructure:"-"`
+	}
+
+	return app.SetupCommand(cmd, &configWrapper{opts})
 }
 
 func runDBDiff(opts *dbDiffOptions, base string, target string) (errs error) {

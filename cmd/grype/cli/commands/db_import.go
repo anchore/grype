@@ -17,7 +17,7 @@ import (
 func DBImport(app clio.Application) *cobra.Command {
 	opts := dbOptionsDefault(app.ID())
 
-	return app.SetupCommand(&cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "import FILE",
 		Short: "import a vulnerability database archive",
 		Long:  fmt.Sprintf("import a vulnerability database archive from a local FILE.\nDB archives can be obtained from %q.", internal.DBUpdateURL),
@@ -25,7 +25,14 @@ func DBImport(app clio.Application) *cobra.Command {
 		RunE: func(_ *cobra.Command, args []string) error {
 			return runDBImport(*opts, args[0])
 		},
-	}, opts)
+	}
+
+	// prevent from being shown in the grype config
+	type configWrapper struct {
+		Opts *DBOptions `json:"-" yaml:"-" mapstructure:"-"`
+	}
+
+	return app.SetupCommand(cmd, &configWrapper{opts})
 }
 
 func runDBImport(opts DBOptions, dbArchivePath string) error {

@@ -32,7 +32,7 @@ func DBStatus(app clio.Application) *cobra.Command {
 		DBOptions: *dbOptionsDefault(app.ID()),
 	}
 
-	return app.SetupCommand(&cobra.Command{
+	cmd := &cobra.Command{
 		Use:     "status",
 		Short:   "display database status",
 		Args:    cobra.ExactArgs(0),
@@ -40,7 +40,14 @@ func DBStatus(app clio.Application) *cobra.Command {
 		RunE: func(_ *cobra.Command, _ []string) error {
 			return runDBStatus(*opts)
 		},
-	}, opts)
+	}
+
+	// prevent from being shown in the grype config
+	type configWrapper struct {
+		Opts *dbStatusOptions `json:"-" yaml:"-" mapstructure:"-"`
+	}
+
+	return app.SetupCommand(cmd, &configWrapper{opts})
 }
 
 func runDBStatus(opts dbStatusOptions) error {
