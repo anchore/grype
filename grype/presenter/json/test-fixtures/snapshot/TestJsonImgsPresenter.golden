@@ -38,7 +38,8 @@
      },
      "found": {
       "constraint": ">= 20"
-     }
+     },
+     "suggestedFixedVersion": "the-next-version"
     }
    ],
    "artifact": {
@@ -103,7 +104,8 @@
      },
      "found": {
       "constraint": "somecpe"
-     }
+     },
+     "suggestedFixedVersion": ""
     }
    ],
    "artifact": {
