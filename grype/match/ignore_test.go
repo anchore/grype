@@ -228,8 +228,10 @@ var (
 		// linux-like match, similar to what we see from debian\ubuntu
 		{
 			Vulnerability: vulnerability.Vulnerability{
-				ID:        "CVE-3",
-				Namespace: "fake-linux-vulns",
+				Reference: vulnerability.Reference{
+					ID:        "CVE-3",
+					Namespace: "fake-linux-vulns",
+				},
 				Fix: vulnerability.Fix{
 					State: vulnerability.FixStateUnknown,
 				},
