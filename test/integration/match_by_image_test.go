@@ -12,19 +12,18 @@ import (
 
 	"github.com/anchore/grype/grype"
 	v5 "github.com/anchore/grype/grype/db/v5"
+	"github.com/anchore/grype/grype/db/v5/matcher"
+	"github.com/anchore/grype/grype/db/v5/matcher/dotnet"
+	"github.com/anchore/grype/grype/db/v5/matcher/golang"
+	"github.com/anchore/grype/grype/db/v5/matcher/java"
+	"github.com/anchore/grype/grype/db/v5/matcher/javascript"
+	"github.com/anchore/grype/grype/db/v5/matcher/python"
+	"github.com/anchore/grype/grype/db/v5/matcher/ruby"
+	"github.com/anchore/grype/grype/db/v5/matcher/rust"
+	"github.com/anchore/grype/grype/db/v5/matcher/stock"
+	"github.com/anchore/grype/grype/db/v5/search"
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/matcher"
-	"github.com/anchore/grype/grype/matcher/dotnet"
-	"github.com/anchore/grype/grype/matcher/golang"
-	"github.com/anchore/grype/grype/matcher/java"
-	"github.com/anchore/grype/grype/matcher/javascript"
-	"github.com/anchore/grype/grype/matcher/python"
-	"github.com/anchore/grype/grype/matcher/ruby"
-	"github.com/anchore/grype/grype/matcher/rust"
-	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/search"
-	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/grype/grype/vex"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/stringutil"
@@ -765,10 +764,10 @@ func TestMatchByImage(t *testing.T) {
 			require.NoError(t, err)
 			mp := v5.NewVulnerabilityMetadataProvider(theStore)
 			ep := v5.NewMatchExclusionProvider(theStore)
-			str := store.Store{
-				Provider:          vp,
-				MetadataProvider:  mp,
-				ExclusionProvider: ep,
+			str := v5.ProviderStore{
+				VulnerabilityProvider:         vp,
+				VulnerabilityMetadataProvider: mp,
+				ExclusionProvider:             ep,
 			}
 
 			actualResults := grype.FindVulnerabilitiesForPackage(str, s.Artifacts.LinuxDistribution, matchers, pkg.FromCollection(s.Artifacts.Packages, pkg.SynthesisConfig{}))
@@ -852,8 +851,10 @@ func testIgnoredMatches() []match.IgnoredMatch {
 		{
 			Match: match.Match{
 				Vulnerability: vulnerability.Vulnerability{
-					ID:        "CVE-alpine-libvncserver",
-					Namespace: "alpine:distro:alpine:3.12",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-alpine-libvncserver",
+						Namespace: "alpine:distro:alpine:3.12",
+					},
 				},
 				Package: pkg.Package{
 					ID:       "44fa3691ae360cac",

@@ -26,7 +26,7 @@ type Presenter struct {
 	sbom             *sbom.SBOM
 }
 
-// NewPresenter is a *Presenter constructor
+// NewJSONPresenter is a *Presenter constructor
 func NewJSONPresenter(pb models.PresenterConfig) *Presenter {
 	return &Presenter{
 		id:               pb.ID,
@@ -39,7 +39,7 @@ func NewJSONPresenter(pb models.PresenterConfig) *Presenter {
 	}
 }
 
-// NewPresenter is a *Presenter constructor
+// NewXMLPresenter is a *Presenter constructor
 func NewXMLPresenter(pb models.PresenterConfig) *Presenter {
 	return &Presenter{
 		id:               pb.ID,

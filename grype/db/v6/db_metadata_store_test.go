@@ -56,7 +56,7 @@ func setupTestStore(t testing.TB, d ...string) *store {
 
 	s, err := newStore(Config{
 		DBDirPath: dir,
-	}, true)
+	}, true, true)
 	require.NoError(t, err)
 
 	return s

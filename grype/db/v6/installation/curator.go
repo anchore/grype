@@ -1,6 +1,7 @@
 package installation
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -27,8 +28,9 @@ const lastUpdateCheckFileName = "last_update_check"
 
 type monitor struct {
 	*progress.AtomicStage
-	downloadProgress *progress.Manual
-	importProgress   *progress.Manual
+	downloadProgress completionMonitor
+	importProgress   completionMonitor
+	hydrateProgress  completionMonitor
 }
 
 type Config struct {
@@ -60,16 +62,18 @@ func (c Config) DBDirectoryPath() string {
 }
 
 type curator struct {
-	fs     afero.Fs
-	client distribution.Client
-	config Config
+	fs       afero.Fs
+	client   distribution.Client
+	config   Config
+	hydrator func(string) error
 }
 
 func NewCurator(cfg Config, downloader distribution.Client) (db.Curator, error) {
 	return curator{
-		fs:     afero.NewOsFs(),
-		client: downloader,
-		config: cfg,
+		fs:       afero.NewOsFs(),
+		client:   downloader,
+		config:   cfg,
+		hydrator: db.Hydrater(),
 	}, nil
 }
 
@@ -128,7 +132,11 @@ func (c curator) Delete() error {
 func (c curator) Update() (bool, error) {
 	current, err := db.ReadDescription(c.config.DBFilePath())
 	if err != nil {
-		log.WithFields("error", err).Warn("unable to read current database metadata (continuing with update)")
+		// we should not warn if the DB does not exist, as this is a common first-run case... but other cases we
+		// may care about, so warn in those cases.
+		if !errors.Is(err, db.ErrDBDoesNotExist) {
+			log.WithFields("error", err).Warn("unable to read current database metadata (continuing with update)")
+		}
 		// downstream any non-existent DB should always be replaced with any best-candidate found
 		current = nil
 	} else {
@@ -147,40 +155,14 @@ func (c curator) Update() (bool, error) {
 		return false, nil
 	}
 
-	mon := newMonitor()
-	defer mon.SetCompleted()
-
-	mon.Set("checking for update")
-	update, checkErr := c.client.IsUpdateAvailable(current)
-	if checkErr != nil {
-		// we want to continue even if we can't check for an update
-		log.Warnf("unable to check for vulnerability database update")
-		log.WithFields("error", checkErr).Debug("check for vulnerability update failed")
+	update, err := c.update(current)
+	if err != nil {
+		return false, err
 	}
 
 	if update == nil {
-		if checkErr == nil {
-			// there was no update (or any issue while checking for an update)
-			c.setLastSuccessfulUpdateCheck()
-		}
-
-		mon.Set("no update available")
 		return false, nil
 	}
-
-	log.Infof("downloading new vulnerability DB")
-	mon.Set("downloading")
-	dest, err := c.client.Download(*update, filepath.Dir(c.config.DBRootDir), mon.downloadProgress)
-	if err != nil {
-		return false, fmt.Errorf("unable to update vulnerability database: %w", err)
-	}
-
-	if err := c.activate(dest, mon); err != nil {
-		return false, fmt.Errorf("unable to activate new vulnerability database: %w", err)
-	}
-
-	// only set the last successful update check if the update was successful
-	c.setLastSuccessfulUpdateCheck()
 
 	if current != nil {
 		log.WithFields(
@@ -216,6 +198,47 @@ func (c curator) isUpdateCheckAllowed() bool {
 	}
 
 	return *elapsed > c.config.UpdateCheckMaxFrequency
+}
+
+func (c curator) update(current *db.Description) (*distribution.Archive, error) {
+	mon := newMonitor()
+	defer mon.SetCompleted()
+
+	mon.Set("checking for update")
+	update, checkErr := c.client.IsUpdateAvailable(current)
+	if checkErr != nil {
+		// we want to continue even if we can't check for an update
+		log.Warnf("unable to check for vulnerability database update")
+		log.WithFields("error", checkErr).Debug("check for vulnerability update failed")
+	}
+
+	if update == nil {
+		if checkErr == nil {
+			// there was no update (or any issue while checking for an update)
+			c.setLastSuccessfulUpdateCheck()
+		}
+
+		mon.Set("no update available")
+		return nil, nil
+	}
+
+	log.Infof("downloading new vulnerability DB")
+	mon.Set("downloading")
+	dest, err := c.client.Download(*update, filepath.Dir(c.config.DBRootDir), mon.downloadProgress.Manual)
+	if err != nil {
+		return nil, fmt.Errorf("unable to update vulnerability database: %w", err)
+	}
+	mon.downloadProgress.SetCompleted()
+	if err := c.activate(dest, mon); err != nil {
+		return nil, fmt.Errorf("unable to activate new vulnerability database: %w", err)
+	}
+
+	mon.Set("updated")
+
+	// only set the last successful update check if the update was successful
+	c.setLastSuccessfulUpdateCheck()
+
+	return update, nil
 }
 
 func (c curator) durationSinceUpdateCheck() (*time.Duration, error) {
@@ -297,6 +320,7 @@ func (c curator) Import(dbArchivePath string) error {
 		return fmt.Errorf("unable to create db import temp dir: %w", err)
 	}
 
+	log.Trace("unarchiving DB")
 	err = archiver.Unarchive(dbArchivePath, tempDir)
 	if err != nil {
 		return err
@@ -310,17 +334,28 @@ func (c curator) Import(dbArchivePath string) error {
 		return err
 	}
 
+	mon.Set("imported")
+
 	return nil
 }
 
 // activate swaps over the downloaded db to the application directory, calculates the checksum, and records the checksums to a file.
 func (c curator) activate(dbDirPath string, mon monitor) error {
-	defer mon.importProgress.SetCompleted()
+	defer mon.SetCompleted()
+
+	dbFilePath := filepath.Join(dbDirPath, db.VulnerabilityDBFileName)
+
+	if c.hydrator != nil {
+		mon.Set("hydrating")
+		if err := c.hydrator(dbDirPath); err != nil {
+			return err
+		}
+	}
+	mon.hydrateProgress.SetCompleted()
 
 	mon.Set("hashing")
 
 	// overwrite the checksums file with the new checksums
-	dbFilePath := filepath.Join(dbDirPath, db.VulnerabilityDBFileName)
 	digest, err := db.CalculateDBDigest(dbFilePath)
 	if err != nil {
 		return err
@@ -337,6 +372,7 @@ func (c curator) activate(dbDirPath string, mon monitor) error {
 	if err := fh.Close(); err != nil {
 		return err
 	}
+	log.WithFields("digest", digest).Trace("captured DB checksum")
 
 	mon.Set("activating")
 
@@ -436,7 +472,8 @@ func newMonitor() monitor {
 	importProgress := progress.NewManual(1)
 	stage := progress.NewAtomicStage("")
 	downloadProgress := progress.NewManual(1)
-	aggregateProgress := progress.NewAggregator(progress.DefaultStrategy, downloadProgress, importProgress)
+	hydrateProgress := progress.NewManual(1)
+	aggregateProgress := progress.NewAggregator(progress.DefaultStrategy, downloadProgress, hydrateProgress, importProgress)
 
 	bus.Publish(partybus.Event{
 		Type: event.UpdateVulnerabilityDatabase,
@@ -451,12 +488,24 @@ func newMonitor() monitor {
 
 	return monitor{
 		AtomicStage:      stage,
-		downloadProgress: downloadProgress,
-		importProgress:   importProgress,
+		downloadProgress: completionMonitor{downloadProgress},
+		importProgress:   completionMonitor{importProgress},
+		hydrateProgress:  completionMonitor{hydrateProgress},
 	}
 }
 
 func (m monitor) SetCompleted() {
 	m.downloadProgress.SetCompleted()
 	m.importProgress.SetCompleted()
+	m.hydrateProgress.SetCompleted()
+}
+
+// completionMonitor is a progressable that, when SetComplete() is called, will set the progress to the total size
+type completionMonitor struct {
+	*progress.Manual
+}
+
+func (m completionMonitor) SetCompleted() {
+	m.Set(m.Size())
+	m.Manual.SetCompleted()
 }

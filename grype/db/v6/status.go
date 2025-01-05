@@ -10,6 +10,13 @@ type Status struct {
 	Err           error  `json:"error"`
 }
 
+func (s Status) Status() string {
+	if s.Err != nil {
+		return "invalid"
+	}
+	return "valid"
+}
+
 func (s Status) MarshalJSON() ([]byte, error) {
 	errStr := ""
 	if s.Err != nil {

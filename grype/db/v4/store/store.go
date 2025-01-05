@@ -19,29 +19,20 @@ type store struct {
 	db *gorm.DB
 }
 
+func models() []any {
+	return []any{
+		model.IDModel{},
+		model.VulnerabilityModel{},
+		model.VulnerabilityMetadataModel{},
+		model.VulnerabilityMatchExclusionModel{},
+	}
+}
+
 // New creates a new instance of the store.
 func New(dbFilePath string, overwrite bool) (v4.Store, error) {
-	db, err := gormadapter.Open(dbFilePath, gormadapter.WithTruncate(overwrite))
+	db, err := gormadapter.Open(dbFilePath, gormadapter.WithTruncate(overwrite, models(), nil))
 	if err != nil {
 		return nil, err
-	}
-
-	if overwrite {
-		// TODO: automigrate could write to the database,
-		//  we should be validating the database is the correct database based on the version in the ID table before
-		//  automigrating
-		if err := db.AutoMigrate(&model.IDModel{}); err != nil {
-			return nil, fmt.Errorf("unable to migrate ID model: %w", err)
-		}
-		if err := db.AutoMigrate(&model.VulnerabilityModel{}); err != nil {
-			return nil, fmt.Errorf("unable to migrate Vulnerability model: %w", err)
-		}
-		if err := db.AutoMigrate(&model.VulnerabilityMetadataModel{}); err != nil {
-			return nil, fmt.Errorf("unable to migrate Vulnerability Metadata model: %w", err)
-		}
-		if err := db.AutoMigrate(&model.VulnerabilityMatchExclusionModel{}); err != nil {
-			return nil, fmt.Errorf("unable to migrate Vulnerability Match Exclusion model: %w", err)
-		}
 	}
 
 	return &store{

@@ -33,7 +33,7 @@ func TestConfigApply(t *testing.T) {
 		{
 			name:           "apply with truncate option",
 			path:           "test.db",
-			options:        []Option{WithTruncate(true)},
+			options:        []Option{WithTruncate(true, nil, nil)}, // migration and initial data don't matter
 			expectedPath:   "test.db",
 			expectedMemory: false,
 		},
@@ -45,44 +45,6 @@ func TestConfigApply(t *testing.T) {
 
 			require.Equal(t, tt.expectedPath, c.path)
 			require.Equal(t, tt.expectedMemory, c.memory)
-		})
-	}
-}
-
-func TestConfigShouldTruncate(t *testing.T) {
-	tests := []struct {
-		name             string
-		write            bool
-		memory           bool
-		expectedTruncate bool
-	}{
-		{
-			name:             "should truncate when write is true and not memory",
-			write:            true,
-			memory:           false,
-			expectedTruncate: true,
-		},
-		{
-			name:             "should not truncate when write is false",
-			write:            false,
-			memory:           false,
-			expectedTruncate: false,
-		},
-		{
-			name:             "should not truncate when using in-memory DB",
-			write:            true,
-			memory:           true,
-			expectedTruncate: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := config{
-				write:  tt.write,
-				memory: tt.memory,
-			}
-			require.Equal(t, tt.expectedTruncate, c.shouldTruncate())
 		})
 	}
 }
@@ -105,7 +67,7 @@ func TestConfigConnectionString(t *testing.T) {
 			name:            "read-only path",
 			path:            "test.db",
 			write:           false,
-			expectedConnStr: "file:test.db?cache=shared&immutable=1&cache=shared&mode=ro",
+			expectedConnStr: "file:test.db?cache=shared&immutable=1&mode=ro&cache=shared",
 		},
 		{
 			name:            "in-memory mode",
@@ -119,9 +81,9 @@ func TestConfigConnectionString(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := config{
-				path:   tt.path,
-				write:  tt.write,
-				memory: tt.memory,
+				path:     tt.path,
+				writable: tt.write,
+				memory:   tt.memory,
 			}
 			require.Equal(t, tt.expectedConnStr, c.connectionString())
 		})
@@ -134,7 +96,7 @@ func TestPrepareWritableDB(t *testing.T) {
 		tempDir := t.TempDir()
 		dbPath := filepath.Join(tempDir, "newdir", "test.db")
 
-		err := prepareWritableDB(dbPath)
+		err := deleteDB(dbPath)
 		require.NoError(t, err)
 
 		_, err = os.Stat(filepath.Dir(dbPath))
@@ -151,7 +113,7 @@ func TestPrepareWritableDB(t *testing.T) {
 		_, err = os.Stat(dbPath)
 		require.NoError(t, err)
 
-		err = prepareWritableDB(dbPath)
+		err = deleteDB(dbPath)
 		require.NoError(t, err)
 
 		_, err = os.Stat(dbPath)
@@ -160,7 +122,7 @@ func TestPrepareWritableDB(t *testing.T) {
 
 	t.Run("returns error if unable to create parent directory", func(t *testing.T) {
 		invalidDir := filepath.Join("/root", "invalidDir", "test.db")
-		err := prepareWritableDB(invalidDir)
+		err := deleteDB(invalidDir)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "unable to create parent directory")
 	})

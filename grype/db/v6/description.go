@@ -18,6 +18,8 @@ import (
 	"github.com/anchore/grype/internal/schemaver"
 )
 
+var ErrDBDoesNotExist = errors.New("database does not exist")
+
 const ChecksumFileName = VulnerabilityDBFileName + ".checksum"
 
 type Description struct {
@@ -70,7 +72,7 @@ func ReadDescription(dbFilePath string) (*Description, error) {
 	// check if exists
 	if _, err := os.Stat(dbFilePath); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return nil, fmt.Errorf("database does not exist")
+			return nil, ErrDBDoesNotExist
 		}
 		return nil, fmt.Errorf("failed to access database file: %w", err)
 	}

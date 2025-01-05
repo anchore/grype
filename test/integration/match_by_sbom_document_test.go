@@ -14,7 +14,6 @@ import (
 	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -82,10 +81,10 @@ func TestMatchBySBOMDocument(t *testing.T) {
 			require.NoError(t, err)
 			mp := v5.NewVulnerabilityMetadataProvider(mkStr)
 			ep := v5.NewMatchExclusionProvider(mkStr)
-			str := store.Store{
-				Provider:          vp,
-				MetadataProvider:  mp,
-				ExclusionProvider: ep,
+			str := v5.ProviderStore{
+				VulnerabilityProvider:         vp,
+				VulnerabilityMetadataProvider: mp,
+				ExclusionProvider:             ep,
 			}
 			matches, _, _, err := grype.FindVulnerabilities(str, fmt.Sprintf("sbom:%s", test.fixture), source.SquashedScope, nil)
 			assert.NoError(t, err)
