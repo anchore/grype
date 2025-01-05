@@ -225,6 +225,30 @@ var (
 				},
 			},
 		},
+		// linux-like match, similar to what we see from debian\ubuntu
+		{
+			Vulnerability: vulnerability.Vulnerability{
+				ID:        "CVE-3",
+				Namespace: "fake-linux-vulns",
+				Fix: vulnerability.Fix{
+					State: vulnerability.FixStateUnknown,
+				},
+			},
+			Package: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "linux-azure-headers-generic",
+				Version: "5.2.1",
+				Type:    syftPkg.DebPkg,
+				Upstreams: []pkg.UpstreamPackage{
+					{Name: "linux-azure"},
+				},
+			},
+			Details: []Detail{
+				{
+					Type: ExactIndirectMatch,
+				},
+			},
+		},
 	}
 
 	// For testing the match-type and upstream ignore rules
@@ -540,6 +564,11 @@ func TestApplyIgnoreRules(t *testing.T) {
 						UpstreamName: "kernel",
 					},
 				},
+				{
+					Package: IgnoreRulePackage{
+						UpstreamName: "linux-.*",
+					},
+				},
 			},
 			expectedRemainingMatches: []Match{
 				kernelHeadersMatches[1],
@@ -551,6 +580,16 @@ func TestApplyIgnoreRules(t *testing.T) {
 						{
 							Package: IgnoreRulePackage{
 								UpstreamName: "kernel",
+							},
+						},
+					},
+				},
+				{
+					Match: kernelHeadersMatches[2],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							Package: IgnoreRulePackage{
+								UpstreamName: "linux-.*",
 							},
 						},
 					},
@@ -595,6 +634,14 @@ func TestApplyIgnoreRules(t *testing.T) {
 					},
 					MatchType: ExactIndirectMatch,
 				},
+				{
+					Package: IgnoreRulePackage{
+						Name:         "linux-.*-headers-.*",
+						UpstreamName: "linux.*",
+						Type:         string(syftPkg.DebPkg),
+					},
+					MatchType: ExactIndirectMatch,
+				},
 			},
 			expectedRemainingMatches: []Match{
 				kernelHeadersMatches[1],
@@ -608,6 +655,19 @@ func TestApplyIgnoreRules(t *testing.T) {
 								Name:         "kernel-headers",
 								UpstreamName: "kernel",
 								Type:         string(syftPkg.RpmPkg),
+							},
+							MatchType: ExactIndirectMatch,
+						},
+					},
+				},
+				{
+					Match: kernelHeadersMatches[2],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							Package: IgnoreRulePackage{
+								Name:         "linux-.*-headers-.*",
+								UpstreamName: "linux.*",
+								Type:         string(syftPkg.DebPkg),
 							},
 							MatchType: ExactIndirectMatch,
 						},
@@ -627,6 +687,7 @@ func TestApplyIgnoreRules(t *testing.T) {
 			},
 			expectedRemainingMatches: []Match{
 				kernelHeadersMatches[1],
+				kernelHeadersMatches[2],
 			},
 			expectedIgnoredMatches: []IgnoredMatch{
 				{
@@ -677,7 +738,10 @@ func TestApplyIgnoreRules(t *testing.T) {
 					},
 				},
 			},
-			expectedRemainingMatches: []Match{kernelHeadersMatches[1]},
+			expectedRemainingMatches: []Match{
+				kernelHeadersMatches[1],
+				kernelHeadersMatches[2],
+			},
 			expectedIgnoredMatches: []IgnoredMatch{
 				{
 					Match: kernelHeadersMatches[0],

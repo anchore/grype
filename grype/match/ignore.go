@@ -215,7 +215,11 @@ func ifPackageLocationApplies(location string) ignoreCondition {
 func ifUpstreamPackageNameApplies(name string) ignoreCondition {
 	return func(match Match) bool {
 		for _, upstream := range match.Package.Upstreams {
-			if name == upstream.Name {
+			pattern, err := packageNameRegex(name)
+			if err != nil {
+				continue
+			}
+			if pattern.MatchString(upstream.Name) {
 				return true
 			}
 		}
