@@ -44,10 +44,11 @@ func DBStatus(app clio.Application) *cobra.Command {
 
 	// prevent from being shown in the grype config
 	type configWrapper struct {
-		Opts *dbStatusOptions `json:"-" yaml:"-" mapstructure:"-"`
+		Hidden     *dbStatusOptions `json:"-" yaml:"-" mapstructure:"-"`
+		*DBOptions `yaml:",inline" mapstructure:",squash"`
 	}
 
-	return app.SetupCommand(cmd, &configWrapper{opts})
+	return app.SetupCommand(cmd, &configWrapper{Hidden: opts, DBOptions: &opts.DBOptions})
 }
 
 func runDBStatus(opts dbStatusOptions) error {

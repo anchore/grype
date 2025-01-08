@@ -48,10 +48,11 @@ func DBProviders(app clio.Application) *cobra.Command {
 
 	// prevent from being shown in the grype config
 	type configWrapper struct {
-		Opts *dbProvidersOptions `json:"-" yaml:"-" mapstructure:"-"`
+		Hidden     *dbProvidersOptions `json:"-" yaml:"-" mapstructure:"-"`
+		*DBOptions `yaml:",inline" mapstructure:",squash"`
 	}
 
-	return app.SetupCommand(cmd, &configWrapper{opts})
+	return app.SetupCommand(cmd, &configWrapper{Hidden: opts, DBOptions: &opts.DBOptions})
 }
 
 func runDBProviders(opts *dbProvidersOptions, app clio.Application) error {

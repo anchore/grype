@@ -27,7 +27,7 @@ func DBDelete(app clio.Application) *cobra.Command {
 
 	// prevent from being shown in the grype config
 	type configWrapper struct {
-		Opts *DBOptions `json:"-" yaml:"-" mapstructure:"-"`
+		*DBOptions `yaml:",inline" mapstructure:",squash"`
 	}
 
 	return app.SetupCommand(cmd, &configWrapper{opts})
