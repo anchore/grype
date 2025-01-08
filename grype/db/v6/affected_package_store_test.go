@@ -1112,7 +1112,7 @@ func testDistro1AffectedPackage2Handle() *AffectedPackageHandle {
 		},
 		Vulnerability: &VulnerabilityHandle{
 			Name:          "CVE-2023-1234",
-			Status:        string(VulnerabilityRejected),
+			Status:        VulnerabilityRejected,
 			PublishedDate: &now,
 			ModifiedDate:  &later,
 			Provider: &Provider{
