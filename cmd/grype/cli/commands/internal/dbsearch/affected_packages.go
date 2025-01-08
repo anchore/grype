@@ -173,12 +173,16 @@ func findAffectedPackages(reader interface { //nolint:funlen
 		return nil, nil, ErrNoSearchCriteria
 	}
 
-	if len(pkgSpecs) == 0 {
-		pkgSpecs = []*v6.PackageSpecifier{nil}
-	}
+	// don't allow for searching by any package AND any CPE AND any vulnerability AND any OS. Since these searches
+	// are oriented by primarily package, we only want to have ANY package/CPE when there is a vulnerability or OS specified.
+	if len(vulnSpecs) > 0 || !osSpecs.IsAny() {
+		if len(pkgSpecs) == 0 {
+			pkgSpecs = []*v6.PackageSpecifier{nil}
+		}
 
-	if len(cpeSpecs) == 0 {
-		cpeSpecs = []*v6.PackageSpecifier{nil}
+		if len(cpeSpecs) == 0 {
+			cpeSpecs = []*v6.PackageSpecifier{nil}
+		}
 	}
 
 	for i := range pkgSpecs {

@@ -1,10 +1,12 @@
 package dbsearch
 
 import (
+	"fmt"
 	"sort"
 
+	"github.com/hashicorp/go-multierror"
+
 	v6 "github.com/anchore/grype/grype/db/v6"
-	"github.com/anchore/grype/internal/log"
 )
 
 // Matches is the JSON document for the `db search` command
@@ -38,7 +40,7 @@ func (m Matches) Flatten() []AffectedPackage {
 	return rows
 }
 
-func newMatchesRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPEs []v6.AffectedCPEHandle) (rows []Match) {
+func newMatchesRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPEs []v6.AffectedCPEHandle) (rows []Match, retErr error) {
 	var affectedPkgsByVuln = make(map[v6.ID][]AffectedPackageInfo)
 	var vulnsByID = make(map[v6.ID]v6.VulnerabilityHandle)
 
@@ -48,8 +50,7 @@ func newMatchesRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPEs []v6.A
 			detail = *pkg.BlobValue
 		}
 		if pkg.Vulnerability == nil {
-			// TODO: handle better
-			log.Errorf("affected package record missing vulnerability: %+v", pkg)
+			retErr = multierror.Append(retErr, fmt.Errorf("affected package record missing vulnerability: %+v", pkg))
 			continue
 		}
 		if _, ok := vulnsByID[pkg.Vulnerability.ID]; !ok {
@@ -71,8 +72,7 @@ func newMatchesRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPEs []v6.A
 			detail = *ac.BlobValue
 		}
 		if ac.Vulnerability == nil {
-			// TODO: handle better
-			log.Errorf("affected CPE record missing vulnerability: %+v", ac)
+			retErr = multierror.Append(retErr, fmt.Errorf("affected CPE record missing vulnerability: %+v", ac))
 			continue
 		}
 
@@ -105,7 +105,7 @@ func newMatchesRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPEs []v6.A
 		return rows[i].Vulnerability.ID < rows[j].Vulnerability.ID
 	})
 
-	return rows
+	return rows, retErr
 }
 
 func FindMatches(reader interface {
@@ -114,5 +114,9 @@ func FindMatches(reader interface {
 }, criteria AffectedPackagesOptions) (Matches, error) {
 	allAffectedPkgs, allAffectedCPEs, err := findAffectedPackages(reader, criteria)
 
-	return newMatchesRows(allAffectedPkgs, allAffectedCPEs), err
+	if err != nil {
+		return nil, err
+	}
+
+	return newMatchesRows(allAffectedPkgs, allAffectedCPEs)
 }

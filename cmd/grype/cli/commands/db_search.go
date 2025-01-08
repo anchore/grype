@@ -207,6 +207,14 @@ func presentDBSearchMatches(outputFormat string, structuredRows dbsearch.Matches
 // legacy search functionality
 
 func legacyDBSearchPackages(opts dbSearchMatchOptions, vulnerabilityIDs []string) error {
+	if len(opts.Package.CPESpecs) > 0 {
+		return errors.New("CPE search is not supported with the v5 DB schema")
+	}
+
+	if len(opts.Package.PkgSpecs) > 0 {
+		return errors.New("package search is not supported with the v5 DB schema")
+	}
+
 	log.Debug("loading DB")
 	str, status, err := grype.LoadVulnerabilityDB(opts.DB.ToLegacyCuratorConfig(), opts.DB.AutoUpdate)
 	err = validateDBLoad(err, status)

@@ -349,6 +349,227 @@ func TestAffectedPackages(t *testing.T) {
 	}
 }
 
+func TestFindAffectedPackages(t *testing.T) {
+	// this test is not meant to check the correctness of the results relative to the reader but instead make certain
+	// that the correct calls are made to the reader based on the search criteria (we're wired up correctly).
+	// Additional verifications are made to check that the combinations of different specs are handled correctly.
+	type pkgCall struct {
+		pkg     *v6.PackageSpecifier
+		options *v6.GetAffectedPackageOptions
+	}
+
+	type cpeCall struct {
+		cpe     *cpe.Attributes
+		options *v6.GetAffectedCPEOptions
+	}
+
+	testCases := []struct {
+		name             string
+		config           AffectedPackagesOptions
+		expectedPkgCalls []pkgCall
+		expectedCPECalls []cpeCall
+		expectedErr      error
+	}{
+		{
+			name:        "no search criteria",
+			config:      AffectedPackagesOptions{},
+			expectedErr: ErrNoSearchCriteria,
+		},
+		{
+			name: "os spec alone is not enough",
+			config: AffectedPackagesOptions{
+				OS: v6.OSSpecifiers{
+					{Name: "ubuntu", MajorVersion: "20", MinorVersion: "04"},
+				},
+			},
+			expectedErr: ErrNoSearchCriteria,
+		},
+		{
+			name: "vuln spec provided",
+			config: AffectedPackagesOptions{
+				Vulnerability: v6.VulnerabilitySpecifiers{
+					{Name: "CVE-2023-0001"},
+				},
+			},
+			expectedPkgCalls: []pkgCall{
+				{
+					pkg: nil,
+					options: &v6.GetAffectedPackageOptions{
+						PreloadOS:            true,
+						PreloadPackage:       true,
+						PreloadVulnerability: true,
+						PreloadBlob:          true,
+						Vulnerabilities: v6.VulnerabilitySpecifiers{
+							{Name: "CVE-2023-0001"},
+						},
+						Limit: 0,
+					},
+				},
+			},
+			expectedCPECalls: []cpeCall{
+				{
+					cpe: nil,
+					options: &v6.GetAffectedCPEOptions{
+						PreloadCPE:           true,
+						PreloadVulnerability: true,
+						PreloadBlob:          true,
+						Vulnerabilities: v6.VulnerabilitySpecifiers{
+							{Name: "CVE-2023-0001"},
+						},
+						Limit: 0,
+					},
+				},
+			},
+		},
+		{
+			name: "only cpe spec provided",
+			config: AffectedPackagesOptions{
+				Package: v6.PackageSpecifiers{
+					{CPE: &cpe.Attributes{Part: "a", Vendor: "vendor1", Product: "product1"}},
+				},
+				CPE: v6.PackageSpecifiers{
+					{CPE: &cpe.Attributes{Part: "a", Vendor: "vendor2", Product: "product2"}},
+				},
+			},
+			expectedPkgCalls: []pkgCall{
+				{
+					pkg: &v6.PackageSpecifier{CPE: &cpe.Attributes{Part: "a", Vendor: "vendor1", Product: "product1"}},
+					options: &v6.GetAffectedPackageOptions{
+						PreloadOS:            true,
+						PreloadPackage:       true,
+						PreloadVulnerability: true,
+						PreloadBlob:          true,
+						Vulnerabilities:      nil,
+						Limit:                0,
+					},
+				},
+			},
+			expectedCPECalls: []cpeCall{
+				{
+					cpe: &cpe.Attributes{Part: "a", Vendor: "vendor2", Product: "product2"},
+					options: &v6.GetAffectedCPEOptions{
+						PreloadCPE:           true,
+						PreloadVulnerability: true,
+						PreloadBlob:          true,
+						Vulnerabilities:      nil,
+						Limit:                0,
+					},
+				},
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "cpe + os spec provided",
+			config: AffectedPackagesOptions{
+				Package: v6.PackageSpecifiers{
+					{CPE: &cpe.Attributes{Part: "a", Vendor: "vendor1", Product: "product1"}},
+				},
+				CPE: v6.PackageSpecifiers{
+					{CPE: &cpe.Attributes{Part: "a", Vendor: "vendor2", Product: "product2"}},
+				},
+				OS: v6.OSSpecifiers{
+					{Name: "debian", MajorVersion: "10"}, // this prevents an agnostic CPE search
+				},
+			},
+			expectedPkgCalls: []pkgCall{
+				{
+					pkg: &v6.PackageSpecifier{CPE: &cpe.Attributes{Part: "a", Vendor: "vendor1", Product: "product1"}},
+					options: &v6.GetAffectedPackageOptions{
+						PreloadOS:            true,
+						PreloadPackage:       true,
+						PreloadVulnerability: true,
+						PreloadBlob:          true,
+						Vulnerabilities:      nil,
+						OSs: v6.OSSpecifiers{
+							{Name: "debian", MajorVersion: "10"},
+						},
+						Limit: 0,
+					},
+				},
+			},
+			expectedCPECalls: nil,
+			expectedErr:      nil,
+		},
+		{
+			name: "pkg spec provided",
+			config: AffectedPackagesOptions{
+				Package: v6.PackageSpecifiers{
+					{Name: "test-package", Ecosystem: "npm"},
+				},
+			},
+			expectedPkgCalls: []pkgCall{
+				{
+					pkg: &v6.PackageSpecifier{Name: "test-package", Ecosystem: "npm"},
+					options: &v6.GetAffectedPackageOptions{
+						PreloadOS:            true,
+						PreloadPackage:       true,
+						PreloadVulnerability: true,
+						PreloadBlob:          true,
+						Vulnerabilities:      nil,
+						Limit:                0,
+					},
+				},
+			},
+			expectedCPECalls: nil,
+		},
+
+		{
+			name: "pkg and os specs provided",
+			config: AffectedPackagesOptions{
+				Package: v6.PackageSpecifiers{
+					{Name: "test-package", Ecosystem: "npm"},
+				},
+				OS: v6.OSSpecifiers{
+					{Name: "debian", MajorVersion: "10"},
+				},
+			},
+			expectedPkgCalls: []pkgCall{
+				{
+					pkg: &v6.PackageSpecifier{Name: "test-package", Ecosystem: "npm"},
+					options: &v6.GetAffectedPackageOptions{
+						PreloadOS:            true,
+						PreloadPackage:       true,
+						PreloadVulnerability: true,
+						PreloadBlob:          true,
+						OSs: v6.OSSpecifiers{
+							{Name: "debian", MajorVersion: "10"},
+						},
+						Limit: 0,
+					},
+				},
+			},
+			expectedCPECalls: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			m := new(affectedMockReader)
+			defer m.AssertExpectations(t)
+
+			for _, expected := range tc.expectedPkgCalls {
+				m.On("GetAffectedPackages", expected.pkg, mock.MatchedBy(func(actual *v6.GetAffectedPackageOptions) bool {
+					return cmp.Equal(actual, expected.options)
+				})).Return([]v6.AffectedPackageHandle{}, nil).Once()
+			}
+
+			for _, expected := range tc.expectedCPECalls {
+				m.On("GetAffectedCPEs", expected.cpe, mock.MatchedBy(func(actual *v6.GetAffectedCPEOptions) bool {
+					return cmp.Equal(actual, expected.options)
+				})).Return([]v6.AffectedCPEHandle{}, nil).Once()
+			}
+
+			_, _, err := findAffectedPackages(m, tc.config)
+
+			if tc.expectedErr != nil {
+				require.ErrorIs(t, err, tc.expectedErr)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 type affectedMockReader struct {
 	mock.Mock
 }
