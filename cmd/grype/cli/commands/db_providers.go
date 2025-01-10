@@ -37,14 +37,22 @@ func DBProviders(app clio.Application) *cobra.Command {
 		DBOptions: *dbOptionsDefault(app.ID()),
 	}
 
-	return app.SetupCommand(&cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "providers",
 		Short: "list vulnerability database providers",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(_ *cobra.Command, _ []string) error {
 			return runDBProviders(opts, app)
 		},
-	}, opts)
+	}
+
+	// prevent from being shown in the grype config
+	type configWrapper struct {
+		Hidden     *dbProvidersOptions `json:"-" yaml:"-" mapstructure:"-"`
+		*DBOptions `yaml:",inline" mapstructure:",squash"`
+	}
+
+	return app.SetupCommand(cmd, &configWrapper{Hidden: opts, DBOptions: &opts.DBOptions})
 }
 
 func runDBProviders(opts *dbProvidersOptions, app clio.Application) error {

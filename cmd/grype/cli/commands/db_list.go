@@ -32,7 +32,7 @@ func DBList(app clio.Application) *cobra.Command {
 		DBOptions: *dbOptionsDefault(app.ID()),
 	}
 
-	return app.SetupCommand(&cobra.Command{
+	cmd := &cobra.Command{
 		Use:     "list",
 		Short:   "list all DBs available according to the listing URL",
 		PreRunE: disableUI(app),
@@ -40,7 +40,15 @@ func DBList(app clio.Application) *cobra.Command {
 		RunE: func(_ *cobra.Command, _ []string) error {
 			return runDBList(*opts)
 		},
-	}, opts)
+	}
+
+	// prevent from being shown in the grype config
+	type configWrapper struct {
+		Hidden     *dbListOptions `json:"-" yaml:"-" mapstructure:"-"`
+		*DBOptions `yaml:",inline" mapstructure:",squash"`
+	}
+
+	return app.SetupCommand(cmd, &configWrapper{Hidden: opts, DBOptions: &opts.DBOptions})
 }
 
 func runDBList(opts dbListOptions) error {
