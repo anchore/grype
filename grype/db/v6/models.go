@@ -130,7 +130,7 @@ type VulnerabilityHandle struct {
 	Name string `gorm:"column:name;not null;index"`
 
 	// Status conveys the actionability of the current record
-	Status string `gorm:"column:status;not null;index"`
+	Status VulnerabilityStatus `gorm:"column:status;not null;index"`
 
 	// PublishedDate is the date the vulnerability record was first published
 	PublishedDate *time.Time `gorm:"column:published_date;index"`
