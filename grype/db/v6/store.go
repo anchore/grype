@@ -18,7 +18,8 @@ type store struct {
 	blobStore *blobStore
 	db        *gorm.DB
 	config    Config
-	readOnly  bool
+	empty     bool
+	writable  bool
 }
 
 func (s *store) GetDB() *gorm.DB {
@@ -55,20 +56,26 @@ func newStore(cfg Config, empty, writable bool) (*store, error) {
 		blobStore:            bs,
 		db:                   db,
 		config:               cfg,
-		readOnly:             !empty && !writable,
+		empty:                empty,
+		writable:             writable,
 	}, nil
 }
 
 // Close closes the store and finalizes the blobs when the DB is open for writing. If open for reading, it does nothing.
 func (s *store) Close() error {
 	log.Debug("closing store")
-	if s.readOnly {
+	if !s.writable {
 		return nil
 	}
 
 	// this will drop the digest blob table entirely
 	if err := s.blobStore.Close(); err != nil {
 		return fmt.Errorf("failed to finalize blobs: %w", err)
+	}
+
+	if !s.empty {
+		// if not empty, this writable execution created indexes
+		return nil
 	}
 
 	// drop all indexes, which saves a lot of space distribution-wise (these get re-created on running gorm auto-migrate)

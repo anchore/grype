@@ -1,11 +1,10 @@
 package python
 
 import (
-	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/db/v5/search"
-	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -31,10 +30,10 @@ func (m *Matcher) Type() match.MatcherType {
 	return match.PythonMatcher
 }
 
-func (m *Matcher) Match(store v5.VulnerabilityProvider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoredMatch, error) {
 	criteria := search.CommonCriteria
 	if m.cfg.UseCPEs {
 		criteria = append(criteria, search.ByCPE)
 	}
-	return search.ByCriteria(store, d, p, m.Type(), criteria...)
+	return search.ByCriteria(store, p, m.Type(), criteria...)
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/anchore/grype/grype/db/v5/matcher/dotnet"
 	"github.com/anchore/grype/grype/db/v5/matcher/dpkg"
 	"github.com/anchore/grype/grype/db/v5/matcher/golang"
+	"github.com/anchore/grype/grype/db/v5/matcher/internal"
 	"github.com/anchore/grype/grype/db/v5/matcher/java"
 	"github.com/anchore/grype/grype/db/v5/matcher/javascript"
 	"github.com/anchore/grype/grype/db/v5/matcher/msrc"
@@ -14,6 +15,7 @@ import (
 	"github.com/anchore/grype/grype/db/v5/matcher/ruby"
 	"github.com/anchore/grype/grype/db/v5/matcher/rust"
 	"github.com/anchore/grype/grype/db/v5/matcher/stock"
+	"github.com/anchore/grype/grype/match"
 )
 
 // Config contains values used by individual matcher structs for advanced configuration
@@ -28,8 +30,11 @@ type Config struct {
 	Stock      stock.MatcherConfig
 }
 
-func NewDefaultMatchers(mc Config) []Matcher {
-	return []Matcher{
+func NewDefaultMatchers(mc Config) []match.Matcher {
+	var out []match.Matcher
+
+	// add all typed matchers
+	for _, m := range []internal.TypedMatcher{
 		&dpkg.Matcher{},
 		ruby.NewRubyMatcher(mc.Ruby),
 		python.NewPythonMatcher(mc.Python),
@@ -42,6 +47,15 @@ func NewDefaultMatchers(mc Config) []Matcher {
 		&msrc.Matcher{},
 		&portage.Matcher{},
 		rust.NewRustMatcher(mc.Rust),
-		stock.NewStockMatcher(mc.Stock),
+	} {
+		out = append(out, internal.MatcherAdapter{
+			Matcher: m,
+		})
 	}
+
+	// append other Matcher implementations
+	out = append(out,
+		stock.NewMatchProvider(mc.Stock),
+	)
+	return out
 }

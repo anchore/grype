@@ -3,6 +3,7 @@ package search
 import (
 	"github.com/facebookincubator/nvdtools/wfn"
 
+	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -33,18 +34,23 @@ func isUnknownTarget(targetSW string) bool {
 	return true
 }
 
-// Determines if a vulnerability is an accurate match using the vulnerability's cpes' target software
-func onlyVulnerableTargets(p pkg.Package, allVulns []vulnerability.Vulnerability) []vulnerability.Vulnerability {
-	var vulns []vulnerability.Vulnerability
+// onlyVulnerableTargets returns a criteria object that tests vulnerability qualifiers against the package vulnerability rules
+func onlyVulnerableTargets(p pkg.Package) vulnerability.Criteria {
+	return db.NewFuncCriteria(func(v vulnerability.Vulnerability) (bool, error) {
+		return isVulnerableTarget(p, v), nil
+	})
+}
 
+// Determines if a vulnerability is an accurate match using the vulnerability's cpes' target software
+func isVulnerableTarget(p pkg.Package, vuln vulnerability.Vulnerability) bool {
 	// Exclude OS package types from this logic, since they could be embedding any type of ecosystem package
 	if isOSPackage(p) {
-		return allVulns
+		return true
 	}
 
 	// Do not filter by target software for any binary type packages since the composition is unknown
 	if p.Type == syftPkg.BinaryPkg {
-		return allVulns
+		return true
 	}
 
 	// There are quite a few cases within java where other ecosystem components (particularly javascript packages)
@@ -52,25 +58,16 @@ func onlyVulnerableTargets(p pkg.Package, allVulns []vulnerability.Vulnerability
 	// of valid vulnerabilities that syft has specific logic https://github.com/anchore/syft/blob/main/syft/pkg/cataloger/common/cpe/candidate_by_package_type.go#L48-L75
 	// to ensure will be surfaced
 	if p.Language == syftPkg.Java {
-		return allVulns
+		return true
 	}
 
-	for _, vuln := range allVulns {
-		isPackageVulnerable := len(vuln.CPEs) == 0
-		for _, cpe := range vuln.CPEs {
-			targetSW := cpe.Attributes.TargetSW
-			mismatchWithUnknownLanguage := syftPkg.LanguageByName(targetSW) != p.Language && isUnknownTarget(targetSW)
-			if targetSW == wfn.Any || targetSW == wfn.NA || syftPkg.LanguageByName(targetSW) == p.Language || mismatchWithUnknownLanguage {
-				isPackageVulnerable = true
-			}
+	isPackageVulnerable := len(vuln.CPEs) == 0
+	for _, cpe := range vuln.CPEs {
+		targetSW := cpe.Attributes.TargetSW
+		mismatchWithUnknownLanguage := syftPkg.LanguageByName(targetSW) != p.Language && isUnknownTarget(targetSW)
+		if targetSW == wfn.Any || targetSW == wfn.NA || syftPkg.LanguageByName(targetSW) == p.Language || mismatchWithUnknownLanguage {
+			isPackageVulnerable = true
 		}
-
-		if !isPackageVulnerable {
-			continue
-		}
-
-		vulns = append(vulns, vuln)
 	}
-
-	return vulns
+	return isPackageVulnerable
 }

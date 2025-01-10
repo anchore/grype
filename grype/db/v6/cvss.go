@@ -4,7 +4,7 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
-func NewCvss(severities ...Severity) []vulnerability.Cvss {
+func toCvss(severities ...Severity) []vulnerability.Cvss {
 	//nolint:prealloc
 	var out []vulnerability.Cvss
 	for _, sev := range severities {

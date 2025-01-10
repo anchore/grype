@@ -377,7 +377,7 @@ type AffectedCPEHandle struct {
 	VulnerabilityID ID                   `gorm:"column:vulnerability_id;not null"`
 	Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
 
-	CpeID ID   `gorm:"column:cpe_id"`
+	CpeID ID   `gorm:"column:cpe_id;index"`
 	CPE   *Cpe `gorm:"foreignKey:CpeID"`
 
 	BlobID    ID                   `gorm:"column:blob_id"`

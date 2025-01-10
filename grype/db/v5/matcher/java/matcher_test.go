@@ -38,8 +38,8 @@ func TestMatcherJava_matchUpstreamMavenPackage(t *testing.T) {
 		},
 		MavenSearcher: newMockSearcher(p),
 	}
-	store := newMockProvider()
-	actual, _ := matcher.matchUpstreamMavenPackages(store, nil, p)
+	store := newMockStore()
+	actual, _ := matcher.matchUpstreamMavenPackages(store, p)
 
 	assert.Len(t, actual, 2, "unexpected matches count")
 

@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/db/v5/search"
-	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
@@ -50,10 +49,10 @@ func (m *Matcher) Type() match.MatcherType {
 	return match.JavaMatcher
 }
 
-func (m *Matcher) Match(store v5.VulnerabilityProvider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoredMatch, error) {
 	var matches []match.Match
 	if m.cfg.SearchMavenUpstream {
-		upstreamMatches, err := m.matchUpstreamMavenPackages(store, d, p)
+		upstreamMatches, err := m.matchUpstreamMavenPackages(store, p)
 		if err != nil {
 			log.Debugf("failed to match against upstream data for %s: %v", p.Name, err)
 		} else {
@@ -64,16 +63,16 @@ func (m *Matcher) Match(store v5.VulnerabilityProvider, d *distro.Distro, p pkg.
 	if m.cfg.UseCPEs {
 		criteria = append(criteria, search.ByCPE)
 	}
-	criteriaMatches, err := search.ByCriteria(store, d, p, m.Type(), criteria...)
+	criteriaMatches, ignores, err := search.ByCriteria(store, p, m.Type(), criteria...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to match by exact package: %w", err)
+		return nil, nil, fmt.Errorf("failed to match by exact package: %w", err)
 	}
 
 	matches = append(matches, criteriaMatches...)
-	return matches, nil
+	return matches, ignores, nil
 }
 
-func (m *Matcher) matchUpstreamMavenPackages(store v5.VulnerabilityProvider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) matchUpstreamMavenPackages(store vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
 	var matches []match.Match
 
 	if metadata, ok := p.Metadata.(pkg.JavaMetadata); ok {
@@ -83,7 +82,7 @@ func (m *Matcher) matchUpstreamMavenPackages(store v5.VulnerabilityProvider, d *
 				if err != nil {
 					return nil, err
 				}
-				indirectMatches, err := search.ByPackageLanguage(store, d, *indirectPackage, m.Type())
+				indirectMatches, err := search.ByPackageLanguage(store, *indirectPackage, m.Type())
 				if err != nil {
 					return nil, err
 				}

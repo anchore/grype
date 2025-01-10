@@ -1,13 +1,13 @@
 package search
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
@@ -15,63 +15,43 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-type mockLanguageProvider struct {
-	data map[string]map[string][]vulnerability.Vulnerability
-}
-
-func newMockProviderByLanguage() *mockLanguageProvider {
-	pr := mockLanguageProvider{
-		data: make(map[string]map[string][]vulnerability.Vulnerability),
-	}
-	pr.stub()
-	return &pr
-}
-
-func (pr *mockLanguageProvider) stub() {
-	pr.data["github:gem"] = map[string][]vulnerability.Vulnerability{
-		// direct...
-		"activerecord": {
-			{
-				// make sure we find it with semVer constraint
-				Constraint: version.MustGetConstraint("< 3.7.6", version.SemanticFormat),
-				Reference: vulnerability.Reference{
-					ID:        "CVE-2017-fake-1",
-					Namespace: "github:ruby",
-				},
+func newMockProviderByLanguage() *db.MockProvider {
+	return db.NewMockProvider([]vulnerability.Vulnerability{
+		{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2017-fake-1",
+				Namespace: "github:language:ruby", // "github:gem" ??
 			},
-			{
-				Constraint: version.MustGetConstraint("< 3.7.4", version.GemFormat),
-				Reference: vulnerability.Reference{
-					ID:        "CVE-2017-fake-2",
-					Namespace: "github:ruby",
-				},
-			},
+			PackageName: "activerecord",
+			// make sure we find it with semVer constraint
+			Constraint: version.MustGetConstraint("< 3.7.6", version.SemanticFormat),
 		},
-		"nokogiri": {
-			{
-				// make sure we find it with gem version constraint
-				Constraint: version.MustGetConstraint("< 1.7.6", version.GemFormat),
-				Reference: vulnerability.Reference{
-					ID:        "CVE-2017-fake-1",
-					Namespace: "github:ruby",
-				},
+		{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2017-fake-2",
+				Namespace: "github:language:ruby",
 			},
-			{
-				Constraint: version.MustGetConstraint("< 1.7.4", version.SemanticFormat),
-				Reference: vulnerability.Reference{
-					ID:        "CVE-2017-fake-2",
-					Namespace: "github:ruby",
-				},
-			},
+			PackageName: "activerecord",
+			Constraint:  version.MustGetConstraint("< 3.7.4", version.GemFormat),
 		},
-	}
-}
-
-func (pr *mockLanguageProvider) GetByLanguage(l syftPkg.Language, p pkg.Package) ([]vulnerability.Vulnerability, error) {
-	if l != syftPkg.Ruby {
-		panic(fmt.Errorf("test mock only supports ruby"))
-	}
-	return pr.data["github:gem"][p.Name], nil
+		{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2017-fake-1",
+				Namespace: "github:language:ruby",
+			},
+			PackageName: "nokogiri",
+			// make sure we find it with gem version constraint
+			Constraint: version.MustGetConstraint("< 1.7.6", version.GemFormat),
+		},
+		{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2017-fake-2",
+				Namespace: "github:language:ruby",
+			},
+			PackageName: "nokogiri",
+			Constraint:  version.MustGetConstraint("< 1.7.4", version.SemanticFormat),
+		},
+	}...)
 }
 
 func expectedMatch(p pkg.Package, constraint string) []match.Match {
@@ -89,7 +69,7 @@ func expectedMatch(p pkg.Package, constraint string) []match.Match {
 					Confidence: 1,
 					SearchedBy: map[string]interface{}{
 						"language":  "ruby",
-						"namespace": "github:ruby",
+						"namespace": "github:language:ruby",
 						"package":   map[string]string{"name": p.Name, "version": p.Version},
 					},
 					Found: map[string]interface{}{
@@ -144,7 +124,7 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 	store := newMockProviderByLanguage()
 	for _, c := range cases {
 		t.Run(c.p.Name, func(t *testing.T) {
-			actual, err := ByPackageLanguage(store, nil, c.p, match.RubyGemMatcher)
+			actual, err := ByPackageLanguage(store, c.p, match.RubyGemMatcher)
 			require.NoError(t, err)
 			if c.assertEmpty {
 				assert.Empty(t, actual)

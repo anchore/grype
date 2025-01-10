@@ -3,11 +3,10 @@ package golang
 import (
 	"strings"
 
-	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/db/v5/search"
-	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -35,7 +34,7 @@ func (m *Matcher) Type() match.MatcherType {
 	return match.GoModuleMatcher
 }
 
-func (m *Matcher) Match(store v5.VulnerabilityProvider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoredMatch, error) {
 	matches := make([]match.Match, 0)
 
 	mainModule := ""
@@ -58,7 +57,7 @@ func (m *Matcher) Match(store v5.VulnerabilityProvider, d *distro.Distro, p pkg.
 		isNotCorrected = strings.HasPrefix(p.Version, "v0.0.0-") || strings.HasPrefix(p.Version, "(devel)")
 	}
 	if p.Name == mainModule && isNotCorrected {
-		return matches, nil
+		return matches, nil, nil
 	}
 
 	criteria := search.CommonCriteria
@@ -66,7 +65,7 @@ func (m *Matcher) Match(store v5.VulnerabilityProvider, d *distro.Distro, p pkg.
 		criteria = append(criteria, search.ByCPE)
 	}
 
-	return search.ByCriteria(store, d, p, m.Type(), criteria...)
+	return search.ByCriteria(store, p, m.Type(), criteria...)
 }
 
 func searchByCPE(name string, cfg MatcherConfig) bool {

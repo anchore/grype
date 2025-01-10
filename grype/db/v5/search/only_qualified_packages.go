@@ -1,38 +1,23 @@
 package search
 
 import (
-	"fmt"
-
-	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
-func onlyQualifiedPackages(d *distro.Distro, p pkg.Package, allVulns []vulnerability.Vulnerability) ([]vulnerability.Vulnerability, error) {
-	var vulns []vulnerability.Vulnerability
-
-	for _, vuln := range allVulns {
-		isVulnerable := true
-
-		for _, q := range vuln.PackageQualifiers {
-			v, err := q.Satisfied(d, p)
-
+// onlyQualifiedPackages returns a criteria object that tests vulnerability qualifiers against the provided package
+func onlyQualifiedPackages(p pkg.Package) vulnerability.Criteria {
+	return db.NewFuncCriteria(func(vuln vulnerability.Vulnerability) (bool, error) {
+		for _, qualifier := range vuln.PackageQualifiers {
+			satisfied, err := qualifier.Satisfied(p)
 			if err != nil {
-				return nil, fmt.Errorf("failed to check package qualifier=%q for distro=%q package=%q: %w", q, d, p, err)
+				return satisfied, err
 			}
-
-			isVulnerable = v
-			if !isVulnerable {
-				break
+			if !satisfied {
+				return false, nil
 			}
 		}
-
-		if !isVulnerable {
-			continue
-		}
-
-		vulns = append(vulns, vuln)
-	}
-
-	return vulns, nil
+		return true, nil // all qualifiers passed
+	})
 }

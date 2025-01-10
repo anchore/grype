@@ -9,8 +9,7 @@ import (
 	"github.com/facebookincubator/nvdtools/wfn"
 	"github.com/scylladb/go-set/strset"
 
-	v5 "github.com/anchore/grype/grype/db/v5"
-	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
@@ -87,7 +86,7 @@ func alpineCPEComparableVersion(version string) string {
 var ErrEmptyCPEMatch = errors.New("attempted CPE match against package with no CPEs")
 
 // ByPackageCPE retrieves all vulnerabilities that match the generated CPE
-func ByPackageCPE(store v5.ProviderByCPE, d *distro.Distro, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
+func ByPackageCPE(store vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
 	// we attempt to merge match details within the same matcher when searching by CPEs, in this way there are fewer duplicated match
 	// objects (and fewer duplicated match details).
 
@@ -129,28 +128,20 @@ func ByPackageCPE(store v5.ProviderByCPE, d *distro.Distro, p pkg.Package, upstr
 		}
 
 		// find all vulnerability records in the DB for the given CPE (not including version comparisons)
-		allPkgVulns, err := store.GetByCPE(c)
+		vulns, err := store.FindVulnerabilities(
+			db.ByCPE(c),
+			onlyVulnerableTargets(p),
+			onlyQualifiedPackages(p),
+			onlyVulnerableVersions(verObj),
+		)
 		if err != nil {
 			return nil, fmt.Errorf("matcher failed to fetch by CPE pkg=%q: %w", p.Name, err)
 		}
 
-		applicableVulns, err := onlyQualifiedPackages(d, p, allPkgVulns)
-		if err != nil {
-			return nil, fmt.Errorf("unable to filter cpe-related vulnerabilities: %w", err)
-		}
-
-		// TODO: Port this over to a qualifier and remove
-		applicableVulns, err = onlyVulnerableVersions(verObj, applicableVulns)
-		if err != nil {
-			return nil, fmt.Errorf("unable to filter cpe-related vulnerabilities: %w", err)
-		}
-
-		applicableVulns = onlyVulnerableTargets(p, applicableVulns)
-
 		// for each vulnerability record found, check the version constraint. If the constraint is satisfied
 		// relative to the current version information from the CPE (or the package) then the given package
 		// is vulnerable.
-		for _, vuln := range applicableVulns {
+		for _, vuln := range vulns {
 			addNewMatch(matchesByFingerprint, vuln, p, *verObj, upstreamMatcher, c)
 		}
 	}

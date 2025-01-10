@@ -1,11 +1,10 @@
 package msrc
 
 import (
-	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/db/v5/search"
-	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -23,9 +22,9 @@ func (m *Matcher) Type() match.MatcherType {
 	return match.MsrcMatcher
 }
 
-func (m *Matcher) Match(store v5.VulnerabilityProvider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoredMatch, error) {
 	// find KB matches for the MSFT version given in the package and version.
 	// The "distro" holds the information about the Windows version, and its
 	// patch (KB)
-	return search.ByCriteria(store, d, p, m.Type(), search.ByDistro)
+	return search.ByCriteria(store, p, m.Type(), search.ByDistro)
 }

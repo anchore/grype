@@ -3,10 +3,9 @@ package search
 import (
 	"errors"
 
-	v5 "github.com/anchore/grype/grype/db/v5"
-	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
 )
 
@@ -21,12 +20,12 @@ var (
 
 type Criteria string
 
-func ByCriteria(store v5.VulnerabilityProvider, d *distro.Distro, p pkg.Package, upstreamMatcher match.MatcherType, criteria ...Criteria) ([]match.Match, error) {
+func ByCriteria(store vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType, criteria ...Criteria) ([]match.Match, []match.IgnoredMatch, error) {
 	matches := make([]match.Match, 0)
 	for _, c := range criteria {
 		switch c {
 		case ByCPE:
-			m, err := ByPackageCPE(store, d, p, upstreamMatcher)
+			m, err := ByPackageCPE(store, p, upstreamMatcher)
 			if errors.Is(err, ErrEmptyCPEMatch) {
 				log.Warnf("attempted CPE search on %s, which has no CPEs. Consider re-running with --add-cpes-if-none", p.Name)
 				continue
@@ -36,14 +35,14 @@ func ByCriteria(store v5.VulnerabilityProvider, d *distro.Distro, p pkg.Package,
 			}
 			matches = append(matches, m...)
 		case ByLanguage:
-			m, err := ByPackageLanguage(store, d, p, upstreamMatcher)
+			m, err := ByPackageLanguage(store, p, upstreamMatcher)
 			if err != nil {
 				log.Warnf("could not match by package language (package=%+v): %v", p, err)
 				continue
 			}
 			matches = append(matches, m...)
 		case ByDistro:
-			m, err := ByPackageDistro(store, d, p, upstreamMatcher)
+			m, err := ByPackageDistro(store, p, upstreamMatcher)
 			if err != nil {
 				log.Warnf("could not match by package distro (package=%+v): %v", p, err)
 				continue
@@ -51,5 +50,5 @@ func ByCriteria(store v5.VulnerabilityProvider, d *distro.Distro, p pkg.Package,
 			matches = append(matches, m...)
 		}
 	}
-	return matches, nil
+	return matches, nil, nil
 }

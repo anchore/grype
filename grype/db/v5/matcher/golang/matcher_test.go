@@ -7,7 +7,7 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -73,13 +73,13 @@ func TestMatcher_DropMainPackageGivenVersionInfo(t *testing.T) {
 			})
 			store := newMockProvider()
 
-			preTest, _ := matcher.Match(store, nil, subjectWithoutMainModule)
+			preTest, _, _ := matcher.Match(store, subjectWithoutMainModule)
 			assert.Len(t, preTest, 1, "should have matched the package when there is not a main module")
 
-			actual, _ := matcher.Match(store, nil, subjectWithMainModule)
+			actual, _, _ := matcher.Match(store, subjectWithMainModule)
 			assert.Len(t, actual, test.expectedMatchCount, "should match the main module depending on config (i.e. 1 match)")
 
-			actual, _ = matcher.Match(store, nil, subjectWithMainModuleAsDevel)
+			actual, _, _ = matcher.Match(store, subjectWithMainModuleAsDevel)
 			assert.Len(t, actual, 0, "unexpected match count; should never match main module (devel)")
 		})
 	}
@@ -180,7 +180,7 @@ func TestMatcher_SearchForStdlib(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			matcher := NewGolangMatcher(c.cfg)
 
-			actual, _ := matcher.Match(store, nil, c.subject)
+			actual, _, _ := matcher.Match(store, c.subject)
 			actualCVEs := strset.New()
 			for _, m := range actual {
 				actualCVEs.Add(m.Vulnerability.ID)
@@ -192,58 +192,20 @@ func TestMatcher_SearchForStdlib(t *testing.T) {
 
 		})
 	}
-
 }
 
-func newMockProvider() *mockProvider {
-	mp := mockProvider{
-		data: make(map[syftPkg.Language]map[string][]vulnerability.Vulnerability),
-	}
-
-	mp.populateData()
-
-	return &mp
-}
-
-type mockProvider struct {
-	data map[syftPkg.Language]map[string][]vulnerability.Vulnerability
-}
-
-func (mp *mockProvider) Get(id, namespace string) ([]vulnerability.Vulnerability, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
-func (mp *mockProvider) populateData() {
-	mp.data[syftPkg.Go] = map[string][]vulnerability.Vulnerability{
+func newMockProvider() *db.MockProvider {
+	return db.NewMockProvider([]vulnerability.Vulnerability{
 		// for TestMatcher_DropMainPackageIfNoVersion
-		"istio.io/istio": {
-			{
-				Constraint: version.MustGetConstraint("< 5.0.7", version.UnknownFormat),
-				Reference:  vulnerability.Reference{ID: "CVE-2013-fake-BAD"},
-			},
+		{
+			PackageName: "istio.io/istio",
+			Constraint:  version.MustGetConstraint("< 5.0.7", version.UnknownFormat),
+			Reference:   vulnerability.Reference{ID: "CVE-2013-fake-BAD", Namespace: "github:language:" + syftPkg.Go.String()},
 		},
-	}
-
-	mp.data["nvd:cpe"] = map[string][]vulnerability.Vulnerability{
-		// for TestMatcher_SearchForStdlib
-		"cpe:2.3:a:golang:go:1.18.3:-:*:*:*:*:*:*": {
-			{
-				Constraint: version.MustGetConstraint("< 1.18.6 || = 1.19.0", version.UnknownFormat),
-				Reference:  vulnerability.Reference{ID: "CVE-2022-27664"},
-			},
+		{
+			CPEs:       []cpe.CPE{cpe.Must("cpe:2.3:a:golang:go:1.18.3:-:*:*:*:*:*:*", "test")},
+			Constraint: version.MustGetConstraint("< 1.18.6 || = 1.19.0", version.UnknownFormat),
+			Reference:  vulnerability.Reference{ID: "CVE-2022-27664", Namespace: "nvd:cpe"},
 		},
-	}
-}
-
-func (mp *mockProvider) GetByCPE(p cpe.CPE) ([]vulnerability.Vulnerability, error) {
-	return mp.data["nvd:cpe"][p.Attributes.BindToFmtString()], nil
-}
-
-func (mp *mockProvider) GetByDistro(d *distro.Distro, p pkg.Package) ([]vulnerability.Vulnerability, error) {
-	return []vulnerability.Vulnerability{}, nil
-}
-
-func (mp *mockProvider) GetByLanguage(l syftPkg.Language, p pkg.Package) ([]vulnerability.Vulnerability, error) {
-	return mp.data[l][p.Name], nil
+	}...)
 }

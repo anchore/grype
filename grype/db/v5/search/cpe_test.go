@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	v5 "github.com/anchore/grype/grype/db/v5"
+	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
@@ -18,141 +18,91 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-var _ v5.VulnerabilityStoreReader = (*mockVulnStore)(nil)
-
-type mockVulnStore struct {
-	data map[string]map[string][]v5.Vulnerability
-}
-
-func (pr *mockVulnStore) GetVulnerability(namespace, id string) ([]v5.Vulnerability, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func newMockStore() *mockVulnStore {
-	pr := mockVulnStore{
-		data: make(map[string]map[string][]v5.Vulnerability),
-	}
-	pr.stub()
-	return &pr
-}
-
-func (pr *mockVulnStore) stub() {
-	pr.data["nvd:cpe"] = map[string][]v5.Vulnerability{
-		"activerecord": {
-			{
-				PackageName:       "activerecord",
-				VersionConstraint: "< 3.7.6",
-				VersionFormat:     version.SemanticFormat.String(),
-				ID:                "CVE-2017-fake-1",
-				CPEs: []string{
-					"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*",
-				},
+func newCPETestStore() *db.MockProvider {
+	return db.NewMockProvider([]vulnerability.Vulnerability{
+		{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2017-fake-1",
 				Namespace: "nvd:cpe",
 			},
-			{
-				PackageName:       "activerecord",
-				VersionConstraint: "< 3.7.4",
-				VersionFormat:     version.SemanticFormat.String(),
-				ID:                "CVE-2017-fake-2",
-				CPEs: []string{
-					"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:ruby:*:*",
-				},
+			PackageName: "activerecord",
+			Constraint:  version.MustGetConstraint("< 3.7.6", version.SemanticFormat),
+			CPEs:        []cpe.CPE{cpe.Must("cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*", "")},
+		},
+		{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2017-fake-2",
 				Namespace: "nvd:cpe",
 			},
-			{
-				PackageName:       "activerecord",
-				VersionConstraint: "= 4.0.1",
-				VersionFormat:     version.GemFormat.String(),
-				ID:                "CVE-2017-fake-3",
-				CPEs: []string{
-					"cpe:2.3:*:activerecord:activerecord:4.0.1:*:*:*:*:*:*:*",
-				},
+			PackageName: "activerecord",
+			Constraint:  version.MustGetConstraint("< 3.7.4", version.SemanticFormat),
+			CPEs:        []cpe.CPE{cpe.Must("cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:ruby:*:*", "")},
+		},
+		{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2017-fake-3",
 				Namespace: "nvd:cpe",
+			},
+			PackageName: "activerecord",
+			Constraint:  version.MustGetConstraint("= 4.0.1", version.GemFormat),
+			CPEs:        []cpe.CPE{cpe.Must("cpe:2.3:*:activerecord:activerecord:4.0.1:*:*:*:*:*:*:*", "")},
+		},
+		{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2017-fake-4",
+				Namespace: "nvd:cpe",
+			},
+			PackageName: "awesome",
+			Constraint:  version.MustGetConstraint("< 98SP3", version.UnknownFormat),
+			CPEs: []cpe.CPE{
+				cpe.Must("cpe:2.3:*:awesome:awesome:*:*:*:*:*:*:*:*", ""),
 			},
 		},
-		"awesome": {
-			{
-				PackageName:       "awesome",
-				VersionConstraint: "< 98SP3",
-				VersionFormat:     version.UnknownFormat.String(),
-				ID:                "CVE-2017-fake-4",
-				CPEs: []string{
-					"cpe:2.3:*:awesome:awesome:*:*:*:*:*:*:*:*",
-				},
+		{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2017-fake-5",
 				Namespace: "nvd:cpe",
 			},
-		},
-		"multiple": {
-			{
-				PackageName:       "multiple",
-				VersionConstraint: "< 4.0",
-				VersionFormat:     version.UnknownFormat.String(),
-				ID:                "CVE-2017-fake-5",
-				CPEs: []string{
-					"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
-					"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
-					"cpe:2.3:*:multiple:multiple:2.0:*:*:*:*:*:*:*",
-					"cpe:2.3:*:multiple:multiple:3.0:*:*:*:*:*:*:*",
-				},
-				Namespace: "nvd:cpe",
+			PackageName: "multiple",
+			Constraint:  version.MustGetConstraint("< 4.0", version.UnknownFormat),
+			CPEs: []cpe.CPE{
+				cpe.Must("cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*", ""),
+				cpe.Must("cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*", ""),
+				cpe.Must("cpe:2.3:*:multiple:multiple:2.0:*:*:*:*:*:*:*", ""),
+				cpe.Must("cpe:2.3:*:multiple:multiple:3.0:*:*:*:*:*:*:*", ""),
 			},
 		},
-		"funfun": {
-			{
-				PackageName:       "funfun",
-				VersionConstraint: "= 5.2.1",
-				VersionFormat:     version.UnknownFormat.String(),
-				ID:                "CVE-2017-fake-6",
-				CPEs: []string{
-					"cpe:2.3:*:funfun:funfun:5.2.1:*:*:*:*:python:*:*",
-					"cpe:2.3:*:funfun:funfun:*:*:*:*:*:python:*:*",
-				},
+		{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2017-fake-6",
 				Namespace: "nvd:cpe",
 			},
-		},
-		"sw": {
-			{
-				PackageName:       "sw",
-				VersionConstraint: "< 1.0",
-				VersionFormat:     version.UnknownFormat.String(),
-				ID:                "CVE-2017-fake-7",
-				CPEs: []string{
-					"cpe:2.3:*:sw:sw:*:*:*:*:*:puppet:*:*",
-				},
-				Namespace: "nvd:cpe",
+			PackageName: "funfun",
+			Constraint:  version.MustGetConstraint("= 5.2.1", version.UnknownFormat),
+			CPEs: []cpe.CPE{
+				cpe.Must("cpe:2.3:*:funfun:funfun:5.2.1:*:*:*:*:python:*:*", ""),
+				cpe.Must("cpe:2.3:*:funfun:funfun:*:*:*:*:*:python:*:*", ""),
 			},
 		},
-		"handlebars": {
-			{
-				PackageName:       "handlebars",
-				VersionConstraint: "< 4.7.7",
-				VersionFormat:     version.UnknownFormat.String(),
-				ID:                "CVE-2021-23369",
-				CPEs: []string{
-					"cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:node.js:*:*",
-				},
+		{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2017-fake-7",
 				Namespace: "nvd:cpe",
 			},
+			PackageName: "sw",
+			Constraint:  version.MustGetConstraint("< 1.0", version.UnknownFormat),
+			CPEs:        []cpe.CPE{cpe.Must("cpe:2.3:*:sw:sw:*:*:*:*:*:puppet:*:*", "")},
 		},
-	}
-}
-
-func (pr *mockVulnStore) SearchForVulnerabilities(namespace, pkg string) ([]v5.Vulnerability, error) {
-	return pr.data[namespace][pkg], nil
-}
-
-func (pr *mockVulnStore) GetAllVulnerabilities() (*[]v5.Vulnerability, error) {
-	return nil, nil
-}
-
-func (pr *mockVulnStore) GetVulnerabilityNamespaces() ([]string, error) {
-	keys := make([]string, 0, len(pr.data))
-	for k := range pr.data {
-		keys = append(keys, k)
-	}
-
-	return keys, nil
+		{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2021-23369",
+				Namespace: "nvd:cpe",
+			},
+			PackageName: "handlebars",
+			Constraint:  version.MustGetConstraint("< 4.7.7", version.UnknownFormat),
+			CPEs:        []cpe.CPE{cpe.Must("cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:node.js:*:*", "")},
+		},
+	}...)
 }
 
 func TestFindMatchesByPackageCPE(t *testing.T) {
@@ -869,17 +819,19 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			p, err := v5.NewVulnerabilityProvider(newMockStore())
-			require.NoError(t, err)
-			actual, err := ByPackageCPE(p, nil, test.p, matcher)
+			actual, err := ByPackageCPE(newCPETestStore(), test.p, matcher)
 			if test.wantErr == nil {
 				test.wantErr = require.NoError
 			}
 			test.wantErr(t, err)
 			assertMatchesUsingIDsForVulnerabilities(t, test.expected, actual)
 			for idx, e := range test.expected {
-				if d := cmp.Diff(e.Details, actual[idx].Details); d != "" {
-					t.Errorf("unexpected match details (-want +got):\n%s", d)
+				if idx < len(actual) {
+					if d := cmp.Diff(e.Details, actual[idx].Details); d != "" {
+						t.Errorf("unexpected match details (-want +got):\n%s", d)
+					}
+				} else {
+					t.Errorf("expected match details (-want +got)\n%+v:\n", e.Details)
 				}
 			}
 		})

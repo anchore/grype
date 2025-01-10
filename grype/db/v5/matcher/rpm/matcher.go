@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/db/v5/search"
-	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -24,7 +23,7 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 //nolint:funlen
-func (m *Matcher) Match(store v5.VulnerabilityProvider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoredMatch, error) {
 	matches := make([]match.Match, 0)
 
 	// let's match with a synthetic package that doesn't exist. We will create a new
@@ -72,9 +71,9 @@ func (m *Matcher) Match(store v5.VulnerabilityProvider, d *distro.Distro, p pkg.
 	// really assume an epoch of 4 on the other side). This could still lead to
 	// problems since an epoch delimits potentially non-comparable version lineages.
 
-	sourceMatches, err := m.matchUpstreamPackages(store, d, p)
+	sourceMatches, err := m.matchUpstreamPackages(store, p)
 	if err != nil {
-		return nil, fmt.Errorf("failed to match by source indirection: %w", err)
+		return nil, nil, fmt.Errorf("failed to match by source indirection: %w", err)
 	}
 	matches = append(matches, sourceMatches...)
 
@@ -94,21 +93,21 @@ func (m *Matcher) Match(store v5.VulnerabilityProvider, d *distro.Distro, p pkg.
 	// case). To do this we fill in missing epoch values in the package versions with
 	// an explicit 0.
 
-	exactMatches, err := m.matchPackage(store, d, p)
+	exactMatches, err := m.matchPackage(store, p)
 	if err != nil {
-		return nil, fmt.Errorf("failed to match by exact package name: %w", err)
+		return nil, nil, fmt.Errorf("failed to match by exact package name: %w", err)
 	}
 
 	matches = append(matches, exactMatches...)
 
-	return matches, nil
+	return matches, nil, nil
 }
 
-func (m *Matcher) matchUpstreamPackages(store v5.ProviderByDistro, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) matchUpstreamPackages(store vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
 	var matches []match.Match
 
 	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indirectMatches, err := search.ByPackageDistro(store, d, indirectPackage, m.Type())
+		indirectMatches, err := search.ByPackageDistro(store, indirectPackage, m.Type())
 		if err != nil {
 			return nil, fmt.Errorf("failed to find vulnerabilities for rpm upstream source package: %w", err)
 		}
@@ -122,13 +121,13 @@ func (m *Matcher) matchUpstreamPackages(store v5.ProviderByDistro, d *distro.Dis
 	return matches, nil
 }
 
-func (m *Matcher) matchPackage(store v5.ProviderByDistro, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) matchPackage(store vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
 	// we want to ensure that the version ALWAYS has an epoch specified...
 	originalPkg := p
 
 	addEpochIfApplicable(&p)
 
-	matches, err := search.ByPackageDistro(store, d, p, m.Type())
+	matches, err := search.ByPackageDistro(store, p, m.Type())
 	if err != nil {
 		return nil, fmt.Errorf("failed to find vulnerabilities by dpkg source indirection: %w", err)
 	}

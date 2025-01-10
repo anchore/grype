@@ -12,7 +12,6 @@ import (
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db/legacy/distribution"
-	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/db/v5/matcher"
 	"github.com/anchore/grype/grype/db/v5/matcher/dotnet"
 	"github.com/anchore/grype/grype/db/v5/matcher/golang"
@@ -118,7 +117,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		return err
 	}
 
-	var str *v5.ProviderStore
+	var str vulnerability.Provider
 	var status *distribution.Status
 	var packages []pkg.Package
 	var s *sbom.SBOM
@@ -186,11 +185,11 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 	applyDistroHint(packages, &pkgContext, opts)
 
 	vulnMatcher := grype.VulnerabilityMatcher{
-		Store:          *str,
-		IgnoreRules:    opts.Ignore,
-		NormalizeByCVE: opts.ByCVE,
-		FailSeverity:   opts.FailOnSeverity(),
-		Matchers:       getMatchers(opts),
+		VulnerabilityProvider: str,
+		IgnoreRules:           opts.Ignore,
+		NormalizeByCVE:        opts.ByCVE,
+		FailSeverity:          opts.FailOnSeverity(),
+		Matchers:              getMatchers(opts),
 		VexProcessor: vex.NewProcessor(vex.ProcessorOptions{
 			Documents:   opts.VexDocuments,
 			IgnoreRules: opts.Ignore,
@@ -282,7 +281,7 @@ func checkForAppUpdate(id clio.Identification, opts *options.Grype) {
 	}
 }
 
-func getMatchers(opts *options.Grype) []matcher.Matcher {
+func getMatchers(opts *options.Grype) []match.Matcher {
 	return matcher.NewDefaultMatchers(
 		matcher.Config{
 			Java: java.MatcherConfig{

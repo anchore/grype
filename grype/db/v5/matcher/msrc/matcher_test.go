@@ -5,82 +5,52 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	v5 "github.com/anchore/grype/grype/db/v5"
+	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/version"
+	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-type mockStore struct {
-	backend map[string]map[string][]v5.Vulnerability
-}
-
-func (s *mockStore) GetVulnerability(namespace, id string) ([]v5.Vulnerability, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s *mockStore) SearchForVulnerabilities(namespace, name string) ([]v5.Vulnerability, error) {
-	namespaceMap := s.backend[namespace]
-	if namespaceMap == nil {
-		return nil, nil
-	}
-	return namespaceMap[name], nil
-}
-
-func (s *mockStore) GetAllVulnerabilities() (*[]v5.Vulnerability, error) {
-	return nil, nil
-}
-
-func (s *mockStore) GetVulnerabilityNamespaces() ([]string, error) {
-	keys := make([]string, 0, len(s.backend))
-	for k := range s.backend {
-		keys = append(keys, k)
-	}
-
-	return keys, nil
-}
-
 func TestMatches(t *testing.T) {
 	d, err := distro.New(distro.Windows, "10816", "Windows Server 2016")
-	assert.NoError(t, err)
-
-	store := mockStore{
-		backend: map[string]map[string][]v5.Vulnerability{
-
-			// TODO: it would be ideal to test against something that constructs the namespace based on grype-db
-			// and not break the adaption of grype-db
-			fmt.Sprintf("msrc:distro:windows:%s", d.RawVersion): {
-				d.RawVersion: []v5.Vulnerability{
-					{
-						ID:                "CVE-2016-3333",
-						VersionConstraint: "3200970 || 878787 || base",
-						VersionFormat:     "kb",
-					},
-					{
-						// Does not match, version constraints do not apply
-						ID:                "CVE-2020-made-up",
-						VersionConstraint: "778786 || 878787 || base",
-						VersionFormat:     "kb",
-					},
-				},
-				// Does not match the product ID
-				"something-else": []v5.Vulnerability{
-					{
-						ID:                "CVE-2020-also-made-up",
-						VersionConstraint: "3200970 || 878787 || base",
-						VersionFormat:     "kb",
-					},
-				},
-			},
-		},
-	}
-
-	provider, err := v5.NewVulnerabilityProvider(&store)
 	require.NoError(t, err)
+
+	// TODO: it would be ideal to test against something that constructs the namespace based on grype-db
+	// and not break the adaption of grype-db
+	msrcNamespace := fmt.Sprintf("msrc:distro:windows:%s", d.RawVersion)
+
+	vp := db.NewMockProvider([]vulnerability.Vulnerability{
+		{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2016-3333",
+				Namespace: msrcNamespace,
+			},
+			PackageName: d.RawVersion,
+			Constraint:  version.MustGetConstraint("3200970 || 878787 || base", version.KBFormat),
+		},
+		{
+			Reference: vulnerability.Reference{
+				// Does not match, version constraints do not apply
+				ID:        "CVE-2020-made-up",
+				Namespace: msrcNamespace,
+			},
+			PackageName: d.RawVersion,
+			Constraint:  version.MustGetConstraint("778786 || 878787 || base", version.KBFormat),
+		},
+		// Does not match the product ID
+		{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2020-also-made-up",
+				Namespace: msrcNamespace,
+			},
+			PackageName: "something-else",
+			Constraint:  version.MustGetConstraint("3200970 || 878787 || base", version.KBFormat),
+		},
+	}...)
 
 	tests := []struct {
 		name            string
@@ -94,6 +64,7 @@ func TestMatches(t *testing.T) {
 				Name:    d.RawVersion,
 				Version: "3200970",
 				Type:    syftPkg.KbPkg,
+				Distro:  d,
 			},
 			expectedVulnIDs: []string{
 				"CVE-2016-3333",
@@ -106,6 +77,7 @@ func TestMatches(t *testing.T) {
 				Name:    d.RawVersion,
 				Version: "878787",
 				Type:    syftPkg.KbPkg,
+				Distro:  d,
 			},
 			expectedVulnIDs: []string{
 				"CVE-2016-3333",
@@ -120,6 +92,7 @@ func TestMatches(t *testing.T) {
 				// this is the assumed version if no KBs are found
 				Version: "base",
 				Type:    syftPkg.KbPkg,
+				Distro:  d,
 			},
 			expectedVulnIDs: []string{
 				"CVE-2016-3333",
@@ -131,13 +104,13 @@ func TestMatches(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			m := Matcher{}
-			matches, err := m.Match(provider, d, test.pkg)
-			assert.NoError(t, err)
+			matches, _, err := m.Match(vp, test.pkg)
+			require.NoError(t, err)
 			var actualVulnIDs []string
 			for _, a := range matches {
 				actualVulnIDs = append(actualVulnIDs, a.Vulnerability.ID)
 			}
-			assert.ElementsMatch(t, test.expectedVulnIDs, actualVulnIDs)
+			require.ElementsMatch(t, test.expectedVulnIDs, actualVulnIDs)
 		})
 	}
 
