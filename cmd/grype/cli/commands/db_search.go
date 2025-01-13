@@ -320,112 +320,7 @@ func renderDBSearchPackagesTableRows(structuredRows []dbsearch.AffectedPackage) 
 	return rows
 }
 
-// mimic v5 behavior:
-// +--------------------------------------+
-// | namespace                            |
-// +--------------------------------------+
-// | nvd:cpe                              |
-// | github:language:javascript           |
-// | ubuntu:distro:ubuntu:14.04           |
-// | ubuntu:distro:ubuntu:16.04           |
-// | ubuntu:distro:ubuntu:18.04           |
-// | ubuntu:distro:ubuntu:20.04           |
-// | ubuntu:distro:ubuntu:22.04           |
-// | ubuntu:distro:ubuntu:22.10           |
-// | ubuntu:distro:ubuntu:23.04           |
-// | ubuntu:distro:ubuntu:23.10           |
-// | ubuntu:distro:ubuntu:24.10           |
-// | debian:distro:debian:8               |
-// | debian:distro:debian:9               |
-// | ubuntu:distro:ubuntu:12.04           |
-// | ubuntu:distro:ubuntu:15.04           |
-// | sles:distro:sles:15                  |
-// | sles:distro:sles:15.1                |
-// | sles:distro:sles:15.2                |
-// | sles:distro:sles:15.3                |
-// | sles:distro:sles:15.4                |
-// | sles:distro:sles:15.5                |
-// | sles:distro:sles:15.6                |
-// | amazon:distro:amazonlinux:2          |
-// | debian:distro:debian:10              |
-// | debian:distro:debian:11              |
-// | debian:distro:debian:12              |
-// | debian:distro:debian:unstable        |
-// | oracle:distro:oraclelinux:6          |
-// | oracle:distro:oraclelinux:7          |
-// | oracle:distro:oraclelinux:8          |
-// | oracle:distro:oraclelinux:9          |
-// | redhat:distro:redhat:6               |
-// | redhat:distro:redhat:7               |
-// | redhat:distro:redhat:8               |
-// | redhat:distro:redhat:9               |
-// | ubuntu:distro:ubuntu:12.10           |
-// | ubuntu:distro:ubuntu:13.04           |
-// | ubuntu:distro:ubuntu:14.10           |
-// | ubuntu:distro:ubuntu:15.10           |
-// | ubuntu:distro:ubuntu:16.10           |
-// | ubuntu:distro:ubuntu:17.04           |
-// | ubuntu:distro:ubuntu:17.10           |
-// | ubuntu:distro:ubuntu:18.10           |
-// | ubuntu:distro:ubuntu:19.04           |
-// | ubuntu:distro:ubuntu:19.10           |
-// | ubuntu:distro:ubuntu:20.10           |
-// | ubuntu:distro:ubuntu:21.04           |
-// | ubuntu:distro:ubuntu:21.10           |
-// | ubuntu:distro:ubuntu:24.04           |
-// | github:language:php                  |
-// | debian:distro:debian:13              |
-// | debian:distro:debian:7               |
-// | redhat:distro:redhat:5               |
-// | sles:distro:sles:11.1                |
-// | sles:distro:sles:11.3                |
-// | sles:distro:sles:11.4                |
-// | sles:distro:sles:11.2                |
-// | sles:distro:sles:12                  |
-// | sles:distro:sles:12.1                |
-// | sles:distro:sles:12.2                |
-// | sles:distro:sles:12.3                |
-// | sles:distro:sles:12.4                |
-// | sles:distro:sles:12.5                |
-// | chainguard:distro:chainguard:rolling |
-// | wolfi:distro:wolfi:rolling           |
-// | github:language:go                   |
-// | alpine:distro:alpine:3.20            |
-// | alpine:distro:alpine:3.21            |
-// | alpine:distro:alpine:edge            |
-// | github:language:rust                 |
-// | github:language:python               |
-// | sles:distro:sles:11                  |
-// | oracle:distro:oraclelinux:5          |
-// | github:language:ruby                 |
-// | github:language:dotnet               |
-// | alpine:distro:alpine:3.12            |
-// | alpine:distro:alpine:3.13            |
-// | alpine:distro:alpine:3.14            |
-// | alpine:distro:alpine:3.15            |
-// | alpine:distro:alpine:3.16            |
-// | alpine:distro:alpine:3.17            |
-// | alpine:distro:alpine:3.18            |
-// | alpine:distro:alpine:3.19            |
-// | mariner:distro:mariner:2.0           |
-// | github:language:java                 |
-// | github:language:dart                 |
-// | amazon:distro:amazonlinux:2023       |
-// | alpine:distro:alpine:3.10            |
-// | alpine:distro:alpine:3.11            |
-// | alpine:distro:alpine:3.4             |
-// | alpine:distro:alpine:3.5             |
-// | alpine:distro:alpine:3.7             |
-// | alpine:distro:alpine:3.8             |
-// | alpine:distro:alpine:3.9             |
-// | mariner:distro:azurelinux:3.0        |
-// | mariner:distro:mariner:1.0           |
-// | alpine:distro:alpine:3.3             |
-// | alpine:distro:alpine:3.6             |
-// | amazon:distro:amazonlinux:2022       |
-// | alpine:distro:alpine:3.2             |
-// | github:language:swift                |
-// +--------------------------------------+
+// v5Namespace returns the namespace for a given affected package based on what schema v5 did.
 func v5Namespace(row dbsearch.AffectedPackage) string {
 	switch row.Vulnerability.Provider {
 	case "nvd":
@@ -458,6 +353,7 @@ func v5Namespace(row dbsearch.AffectedPackage) string {
 		return fmt.Sprintf("github:language:%s", language)
 	}
 	if row.OS != nil {
+		// distro family fixes
 		family := row.OS.Name
 		switch row.OS.Name {
 		case "amazon":
@@ -473,7 +369,21 @@ func v5Namespace(row dbsearch.AffectedPackage) string {
 			family = "oraclelinux"
 		}
 
-		return fmt.Sprintf("%s:distro:%s:%s", row.Vulnerability.Provider, family, row.OS.Version)
+		// provider fixes
+		pr := row.Vulnerability.Provider
+		if pr == "rhel" {
+			pr = "redhat"
+		}
+
+		// version fixes
+		ver := row.OS.Version
+		switch row.Vulnerability.Provider {
+		case "rhel", "oracle":
+			// ensure we only keep the major version
+			ver = strings.Split(row.OS.Version, ".")[0]
+		}
+
+		return fmt.Sprintf("%s:distro:%s:%s", pr, family, ver)
 	}
 	return row.Vulnerability.Provider
 }
