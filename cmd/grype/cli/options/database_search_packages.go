@@ -7,6 +7,7 @@ import (
 
 	"github.com/anchore/clio"
 	v6 "github.com/anchore/grype/grype/db/v6"
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/cpe"
 )
@@ -35,6 +36,11 @@ func (o *DBSearchPackages) PostLoad() error {
 			if err != nil {
 				return fmt.Errorf("invalid CPE from %q: %w", o.Packages, err)
 			}
+
+			if c.Version != "" || c.Update != "" {
+				log.Warnf("ignoring version and update values for %q", p)
+			}
+
 			s := &v6.PackageSpecifier{CPE: &c}
 			o.CPESpecs = append(o.CPESpecs, s)
 			o.PkgSpecs = append(o.PkgSpecs, s)
@@ -48,7 +54,11 @@ func (o *DBSearchPackages) PostLoad() error {
 				return fmt.Errorf("invalid package URL from %q: %w", o.Packages, err)
 			}
 
-			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Name: purl.Name, Ecosystem: purl.Type}) // TODO: map this to correct DB types
+			if purl.Version != "" || len(purl.Qualifiers) > 0 {
+				log.Warnf("ignoring version and qualifiers for package URL %q", purl)
+			}
+
+			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Name: purl.Name, Ecosystem: purl.Type})
 
 		default:
 			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Name: p, Ecosystem: o.Ecosystem})

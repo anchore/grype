@@ -73,7 +73,6 @@ func newAffectedPackageRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPE
 			detail = *pkg.BlobValue
 		}
 		if pkg.Vulnerability == nil {
-			// TODO: handle better
 			log.Errorf("affected package record missing vulnerability: %+v", pkg)
 			continue
 		}
@@ -94,7 +93,6 @@ func newAffectedPackageRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPE
 			detail = *ac.BlobValue
 		}
 		if ac.Vulnerability == nil {
-			// TODO: handle better
 			log.Errorf("affected CPE record missing vulnerability: %+v", ac)
 			continue
 		}

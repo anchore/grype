@@ -60,10 +60,11 @@ func DBSearchVulnerabilities(app clio.Application) *cobra.Command {
 
 	// prevent from being shown in the grype config
 	type configWrapper struct {
-		Opts *dbSearchVulnerabilityOptions `json:"-" yaml:"-" mapstructure:"-"`
+		Hidden     *dbSearchVulnerabilityOptions `json:"-" yaml:"-" mapstructure:"-"`
+		*DBOptions `yaml:",inline" mapstructure:",squash"`
 	}
 
-	return app.SetupCommand(cmd, &configWrapper{opts})
+	return app.SetupCommand(cmd, &configWrapper{Hidden: opts, DBOptions: &opts.DBOptions})
 }
 
 func runDBSearchVulnerabilities(opts dbSearchVulnerabilityOptions) error {
@@ -94,13 +95,14 @@ func runDBSearchVulnerabilities(opts dbSearchVulnerabilityOptions) error {
 		return err
 	}
 
-	if len(rows) == 0 {
-		return errors.New("no vulnerabilities found")
+	if len(rows) != 0 {
+		sb := &strings.Builder{}
+		err = presentDBSearchVulnerabilities(opts.Format.Output, rows, sb)
+		bus.Report(sb.String())
+	} else {
+		bus.Notify("No results found")
 	}
 
-	sb := &strings.Builder{}
-	err = presentDBSearchVulnerabilities(opts.Format.Output, rows, sb)
-	bus.Report(sb.String())
 	return err
 }
 
@@ -132,7 +134,6 @@ func validateProvidersFilter(reader v6.Reader, providers []string) error {
 
 func presentDBSearchVulnerabilities(outputFormat string, structuredRows []dbsearch.Vulnerability, output io.Writer) error {
 	if len(structuredRows) == 0 {
-		// TODO: show a message that no results were found?
 		return nil
 	}
 

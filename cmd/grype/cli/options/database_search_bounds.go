@@ -17,7 +17,7 @@ func DefaultDBSearchBounds() DBSearchBounds {
 }
 
 func (o *DBSearchBounds) AddFlags(flags clio.FlagSet) {
-	flags.IntVarP(&o.RecordLimit, "limit", "", "limit the number of results returned (supports DB schema v6+ only)")
+	flags.IntVarP(&o.RecordLimit, "limit", "", "limit the number of results returned, use 0 for no limit (supports DB schema v6+ only)")
 }
 
 func (o *DBSearchBounds) PostLoad() error {

@@ -86,9 +86,29 @@ func DBSearch(app clio.Application) *cobra.Command {
 
 	cmd := &cobra.Command{
 		// this is here to support v5 functionality today but will be removed when v6 is the default DB version
-		Use:     "search VULN|PKG...",
-		Short:   "Search the DB for vulnerabilities or affected packages",
-		PreRunE: disableUI(app),
+		Use:   "search VULN|PKG...",
+		Short: "Search the DB for vulnerabilities or affected packages",
+		Example: `
+  Search for affected packages by vulnerability ID:
+
+    $ grype db search ELSA-2023-12205            # same as '--vuln ELSA-2023-12205'
+
+  Search for affected packages by package name:
+
+    $ grype db search log4j                      # same as '--pkg log4j'
+
+  Search for affected packages by package name, filtering down to a specific vulnerability:
+
+    $ grype db search log4j CVE-2021-44228       # same as '--pkg log4j --vuln CVE-2021-44228'
+
+  Search for affected packages by PURL (note: version is not considered):
+
+    $ grype db search 'pkg:rpm/redhat/openssl'   # same as '--ecosystem rpm --pkg openssl'
+
+  Search for affected packages by CPE (note: version/update is not considered):
+
+    $ grype db search 'cpe:2.3:a:jetty:jetty_http_server:*:*:*:*:*:*'
+    $ grype db search 'cpe:/a:jetty:jetty_http_server'`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			if opts.Experimental.DBv6 {
 				if len(args) > 0 {
@@ -162,25 +182,21 @@ func runDBSearchMatches(opts dbSearchMatchOptions) error {
 		}
 	}
 
-	if len(rows) == 0 {
-		return errors.New("no affected packages found")
+	if len(rows) != 0 {
+		sb := &strings.Builder{}
+		err = presentDBSearchMatches(opts.Format.Output, rows, sb)
+		bus.Report(sb.String())
+		if err != nil {
+			return fmt.Errorf("unable to present search results: %w", err)
+		}
+	} else {
+		bus.Notify("No results found")
 	}
 
-	sb := &strings.Builder{}
-	err = presentDBSearchMatches(opts.Format.Output, rows, sb)
-	bus.Report(sb.String())
-	if err != nil {
-		return fmt.Errorf("unable to present search results: %w", err)
-	}
 	return queryErr
 }
 
 func presentDBSearchMatches(outputFormat string, structuredRows dbsearch.Matches, output io.Writer) error {
-	if len(structuredRows) == 0 {
-		// TODO: show a message that no results were found?
-		return nil
-	}
-
 	switch outputFormat {
 	case tableOutputFormat:
 		rows := renderDBSearchPackagesTableRows(structuredRows.Flatten())
@@ -232,13 +248,11 @@ func legacyDBSearchPackages(opts dbSearchMatchOptions, vulnerabilityIDs []string
 		vulnerabilities = append(vulnerabilities, vulns...)
 	}
 
-	if len(vulnerabilities) == 0 {
-		return errors.New("no affected packages found")
+	if len(vulnerabilities) != 0 {
+		sb := &strings.Builder{}
+		err = presentLegacyDBSearchPackages(opts.Format.Output, vulnerabilities, sb)
+		bus.Report(sb.String())
 	}
-
-	sb := &strings.Builder{}
-	err = presentLegacyDBSearchPackages(opts.Format.Output, vulnerabilities, sb)
-	bus.Report(sb.String())
 
 	return err
 }
