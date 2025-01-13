@@ -86,7 +86,7 @@ func (i *Index) NamespacesForDistro(d *grypeDistro.Distro) []*distro.Namespace {
 		return nil
 	}
 
-	dTy := distroTypeString(d.Type)
+	dTy := DistroTypeString(d.Type)
 
 	if d.IsRolling() {
 		distroKey := fmt.Sprintf("%s:%s", dTy, "rolling")
@@ -151,7 +151,7 @@ func (i *Index) getAlpineMajorMinorNamespace(d *grypeDistro.Distro, versionSegme
 }
 
 func (i *Index) findClosestNamespace(d *grypeDistro.Distro, versionSegments []int) ([]*distro.Namespace, bool) {
-	ty := distroTypeString(d.Type)
+	ty := DistroTypeString(d.Type)
 
 	// look for exact match
 	distroKey := fmt.Sprintf("%s:%s", ty, d.FullVersion())
@@ -239,7 +239,7 @@ func (i *Index) CPENamespaces() []*cpe.Namespace {
 	return i.cpe
 }
 
-func distroTypeString(ty grypeDistro.Type) string {
+func DistroTypeString(ty grypeDistro.Type) string {
 	switch ty {
 	case grypeDistro.CentOS, grypeDistro.RedHat, grypeDistro.Fedora, grypeDistro.RockyLinux, grypeDistro.AlmaLinux, grypeDistro.Gentoo:
 		return strings.ToLower(string(grypeDistro.RedHat))

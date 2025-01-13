@@ -12,18 +12,18 @@ import (
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db/legacy/distribution"
-	"github.com/anchore/grype/grype/db/v5/matcher"
-	"github.com/anchore/grype/grype/db/v5/matcher/dotnet"
-	"github.com/anchore/grype/grype/db/v5/matcher/golang"
-	"github.com/anchore/grype/grype/db/v5/matcher/java"
-	"github.com/anchore/grype/grype/db/v5/matcher/javascript"
-	"github.com/anchore/grype/grype/db/v5/matcher/python"
-	"github.com/anchore/grype/grype/db/v5/matcher/ruby"
-	"github.com/anchore/grype/grype/db/v5/matcher/stock"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/event/parsers"
 	"github.com/anchore/grype/grype/grypeerr"
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher"
+	"github.com/anchore/grype/grype/matcher/dotnet"
+	"github.com/anchore/grype/grype/matcher/golang"
+	"github.com/anchore/grype/grype/matcher/java"
+	"github.com/anchore/grype/grype/matcher/javascript"
+	"github.com/anchore/grype/grype/matcher/python"
+	"github.com/anchore/grype/grype/matcher/ruby"
+	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vex"
@@ -117,7 +117,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		return err
 	}
 
-	var str vulnerability.Provider
+	var vp vulnerability.Provider
 	var status *distribution.Status
 	var packages []pkg.Package
 	var s *sbom.SBOM
@@ -152,10 +152,10 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		func() (err error) {
 			log.Debug("loading DB")
 			if opts.Experimental.DBv6 {
-				str, status, err = grype.LoadVulnerabilityDBv6(opts.DB.ToClientConfig(), opts.DB.ToCuratorConfig(), opts.DB.AutoUpdate)
+				vp, status, err = grype.LoadVulnerabilityDBv6(opts.DB.ToClientConfig(), opts.DB.ToCuratorConfig(), opts.DB.AutoUpdate)
 				return err
 			}
-			str, status, err = grype.LoadVulnerabilityDB(opts.DB.ToLegacyCuratorConfig(), opts.DB.AutoUpdate)
+			vp, status, err = grype.LoadVulnerabilityDB(opts.DB.ToLegacyCuratorConfig(), opts.DB.AutoUpdate)
 			return validateDBLoad(err, status)
 		},
 		func() (err error) {
@@ -176,7 +176,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		return err
 	}
 
-	defer log.CloseAndLogError(str, status.Location)
+	defer log.CloseAndLogError(vp, status.Location)
 
 	if err = applyVexRules(opts); err != nil {
 		return fmt.Errorf("applying vex rules: %w", err)
@@ -185,7 +185,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 	applyDistroHint(packages, &pkgContext, opts)
 
 	vulnMatcher := grype.VulnerabilityMatcher{
-		VulnerabilityProvider: str,
+		VulnerabilityProvider: vp,
 		IgnoreRules:           opts.Ignore,
 		NormalizeByCVE:        opts.ByCVE,
 		FailSeverity:          opts.FailOnSeverity(),
@@ -210,7 +210,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		IgnoredMatches:   ignoredMatches,
 		Packages:         packages,
 		Context:          pkgContext,
-		MetadataProvider: str,
+		MetadataProvider: vp,
 		SBOM:             s,
 		AppConfig:        opts,
 		DBStatus:         status,

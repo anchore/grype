@@ -11,10 +11,10 @@ import (
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/db"
 	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/db/v6/installation"
+	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
@@ -106,7 +106,7 @@ func legacyDBSearch(opts dbQueryOptions, vulnerabilityID string) error {
 	}
 	defer log.CloseAndLogError(str, status.Location)
 
-	vulnerabilities, err := str.FindVulnerabilities(db.ByID(vulnerabilityID))
+	vulnerabilities, err := str.FindVulnerabilities(search.ByID(vulnerabilityID))
 	if err != nil {
 		return err
 	}

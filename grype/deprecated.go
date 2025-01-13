@@ -1,8 +1,8 @@
 package grype
 
 import (
-	"github.com/anchore/grype/grype/db/v5/matcher"
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
@@ -34,7 +34,7 @@ func FindVulnerabilities(store vulnerability.Provider, userImageStr string, scop
 
 // TODO: deprecated, will remove before v1.0.0
 func FindVulnerabilitiesForPackage(store vulnerability.Provider, d *linux.Release, matchers []match.Matcher, packages []pkg.Package) match.Matches {
-	exclusionProvider, _ := store.(match.ExclusionProvider) // v5 is an exclusion provider, but v6 is not
+	exclusionProvider, _ := store.(match.ExclusionProvider) // TODO v5 is an exclusion provider, but v6 is not
 	runner := VulnerabilityMatcher{
 		VulnerabilityProvider: store,
 		ExclusionProvider:     exclusionProvider,

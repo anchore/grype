@@ -50,26 +50,48 @@ func grypeCommandHasConfigArg(args ...string) bool {
 	return false
 }
 
-func getGrypeSnapshotLocation(tb testing.TB, goOS string) string {
-	if os.Getenv("GRYPE_BINARY_LOCATION") != "" {
-		// GRYPE_BINARY_LOCATION is the absolute path to the snapshot binary
-		return os.Getenv("GRYPE_BINARY_LOCATION")
+func getGrypeSnapshotLocation(t testing.TB, goOS string) string {
+	// GRYPE_BINARY_LOCATION is the absolute path to the snapshot binary
+	const envKey = "GRYPE_BINARY_LOCATION"
+	if os.Getenv(envKey) != "" {
+		return os.Getenv(envKey)
 	}
+	loc := getGrypeBinaryLocationByOS(t, goOS)
+	buildBinary(t, loc)
+	_ = os.Setenv(envKey, loc)
+	return loc
+}
 
+func getGrypeBinaryLocationByOS(t testing.TB, goOS string) string {
 	// note: for amd64 we need to update the snapshot location with the v1 suffix
 	// see : https://goreleaser.com/customization/build/#why-is-there-a-_v1-suffix-on-amd64-builds
 	archPath := runtime.GOARCH
 	if runtime.GOARCH == "amd64" {
 		archPath = fmt.Sprintf("%s_v1", archPath)
 	}
-
+	// note: there is a subtle - vs _ difference between these versions
 	switch goOS {
 	case "darwin", "linux":
-		return path.Join(repoRoot(tb), fmt.Sprintf("snapshot/%s-build_%s_%s/grype", goOS, goOS, archPath))
+		return path.Join(repoRoot(t), fmt.Sprintf("snapshot/%s-build_%s_%s/grype", goOS, goOS, archPath))
 	default:
-		tb.Fatalf("unsupported OS: %s", runtime.GOOS)
+		t.Fatalf("unsupported OS: %s", runtime.GOOS)
 	}
 	return ""
+}
+
+func buildBinary(t testing.TB, loc string) {
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(repoRoot(t)))
+	defer func() {
+		require.NoError(t, os.Chdir(wd))
+	}()
+	t.Log("Building grype...")
+	c := exec.Command("go", "build", "-o", loc, "./cmd/grype")
+	c.Stdout = os.Stdout
+	c.Stderr = os.Stderr
+	c.Stdin = os.Stdin
+	require.NoError(t, c.Run())
 }
 
 func getDockerRunCommand(tb testing.TB, args ...string) *exec.Cmd {

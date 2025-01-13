@@ -2,7 +2,7 @@ package options
 
 import (
 	"github.com/anchore/clio"
-	"github.com/anchore/grype/grype/db/v5/matcher/java"
+	"github.com/anchore/grype/grype/matcher/java"
 )
 
 const (

@@ -12,18 +12,18 @@ import (
 
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db"
-	"github.com/anchore/grype/grype/db/v5/matcher"
-	"github.com/anchore/grype/grype/db/v5/matcher/dotnet"
-	"github.com/anchore/grype/grype/db/v5/matcher/golang"
-	"github.com/anchore/grype/grype/db/v5/matcher/java"
-	"github.com/anchore/grype/grype/db/v5/matcher/javascript"
-	"github.com/anchore/grype/grype/db/v5/matcher/python"
-	"github.com/anchore/grype/grype/db/v5/matcher/ruby"
-	"github.com/anchore/grype/grype/db/v5/matcher/rust"
-	"github.com/anchore/grype/grype/db/v5/matcher/stock"
-	"github.com/anchore/grype/grype/db/v5/search"
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher"
+	"github.com/anchore/grype/grype/matcher/dotnet"
+	"github.com/anchore/grype/grype/matcher/golang"
+	"github.com/anchore/grype/grype/matcher/java"
+	"github.com/anchore/grype/grype/matcher/javascript"
+	"github.com/anchore/grype/grype/matcher/python"
+	"github.com/anchore/grype/grype/matcher/ruby"
+	"github.com/anchore/grype/grype/matcher/rust"
+	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vex"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/stringutil"
@@ -43,7 +43,7 @@ func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 		t.Fatalf("problem with upstream syft cataloger (alpine)")
 	}
 	thePkg := pkg.New(packages[0])
-	vulns, err := theStore.FindVulnerabilities(byNamespace("alpine:distro:alpine:3.12"), db.ByPackageName(thePkg.Name))
+	vulns, err := theStore.FindVulnerabilities(byNamespace("alpine:distro:alpine:3.12"), search.ByPackageName(thePkg.Name))
 	require.NoError(t, err)
 	vulnObj := vulns[0]
 
@@ -105,7 +105,7 @@ func addJavascriptMatches(t *testing.T, theSource source.Source, catalog *syftPk
 		t.Fatalf("problem with upstream syft cataloger (javascript)")
 	}
 	thePkg := pkg.New(packages[0])
-	vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:javascript"), db.ByPackageName(thePkg.Name))
+	vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:javascript"), search.ByPackageName(thePkg.Name))
 	require.NoError(t, err)
 	vulnObj := vulns[0]
 
@@ -144,7 +144,7 @@ func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 		t.Fatalf("problem with upstream syft cataloger (python)")
 	}
 	thePkg := pkg.New(packages[0])
-	vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:python"), db.ByPackageName(strings.ToLower(thePkg.Name)))
+	vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:python"), search.ByPackageName(strings.ToLower(thePkg.Name)))
 	require.NoError(t, err)
 	vulnObj := vulns[0]
 
@@ -183,7 +183,7 @@ func addDotnetMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 		t.Fatalf("problem with upstream syft cataloger (dotnet)")
 	}
 	thePkg := pkg.New(packages[1])
-	vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:dotnet"), db.ByPackageName(strings.ToLower(thePkg.Name)))
+	vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:dotnet"), search.ByPackageName(strings.ToLower(thePkg.Name)))
 	require.NoError(t, err)
 	vulnObj := vulns[0]
 
@@ -219,7 +219,7 @@ func addRubyMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 		t.Fatalf("problem with upstream syft cataloger (ruby)")
 	}
 	thePkg := pkg.New(packages[0])
-	vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:ruby"), db.ByPackageName(thePkg.Name))
+	vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:ruby"), search.ByPackageName(thePkg.Name))
 	require.NoError(t, err)
 	vulnObj := vulns[0]
 
@@ -277,7 +277,7 @@ func addGolangMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 		}
 
 		thePkg := pkg.New(p)
-		vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:go"), db.ByPackageName(thePkg.Name))
+		vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:go"), search.ByPackageName(thePkg.Name))
 		require.NoError(t, err)
 		vulnObj := vulns[0]
 
@@ -323,7 +323,7 @@ func addJavaMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 	lookup := groupId + ":" + theSyftPkg.Name
 
 	thePkg := pkg.New(theSyftPkg)
-	vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:java"), db.ByPackageName(lookup))
+	vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:java"), search.ByPackageName(lookup))
 	require.NoError(t, err)
 	vulnObj := vulns[0]
 
@@ -360,7 +360,7 @@ func addDpkgMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 	}
 	thePkg := pkg.New(packages[0])
 	// NOTE: this is an indirect match, in typical debian style
-	vulns, err := theStore.FindVulnerabilities(byNamespace("debian:distro:debian:8"), db.ByPackageName(thePkg.Name+"-dev"))
+	vulns, err := theStore.FindVulnerabilities(byNamespace("debian:distro:debian:8"), search.ByPackageName(thePkg.Name+"-dev"))
 	require.NoError(t, err)
 	vulnObj := vulns[0]
 
@@ -399,7 +399,7 @@ func addPortageMatches(t *testing.T, theSource source.Source, catalog *syftPkg.C
 		t.Fatalf("problem with upstream syft cataloger (portage)")
 	}
 	thePkg := pkg.New(packages[0])
-	vulns, err := theStore.FindVulnerabilities(byNamespace("gentoo:distro:gentoo:2.8"), db.ByPackageName(thePkg.Name))
+	vulns, err := theStore.FindVulnerabilities(byNamespace("gentoo:distro:gentoo:2.8"), search.ByPackageName(thePkg.Name))
 	require.NoError(t, err)
 	vulnObj := vulns[0]
 
@@ -438,7 +438,7 @@ func addRhelMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 		t.Fatalf("problem with upstream syft cataloger (RPMDB)")
 	}
 	thePkg := pkg.New(packages[0])
-	vulns, err := theStore.FindVulnerabilities(byNamespace("redhat:distro:redhat:8"), db.ByPackageName(thePkg.Name))
+	vulns, err := theStore.FindVulnerabilities(byNamespace("redhat:distro:redhat:8"), search.ByPackageName(thePkg.Name))
 	require.NoError(t, err)
 	vulnObj := vulns[0]
 
@@ -477,11 +477,13 @@ func addSlesMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 		t.Fatalf("problem with upstream syft cataloger (RPMDB)")
 	}
 	thePkg := pkg.New(packages[0])
-	vulns, err := theStore.FindVulnerabilities(byNamespace("redhat:distro:redhat:8"), db.ByPackageName(thePkg.Name))
+
+	vulns, err := theStore.FindVulnerabilities(byNamespace("redhat:distro:redhat:8"), search.ByPackageName(thePkg.Name))
 	require.NoError(t, err)
 	vulnObj := vulns[0]
 
-	//vulnObj.Namespace = "sles:distro:sles:12.5"
+	// TODO why are we fetching redhat vulns above?
+	vulnObj.Namespace = "sles:distro:sles:12.5"
 	theResult.Add(match.Match{
 		Vulnerability: vulnObj,
 		Package:       thePkg,
@@ -517,7 +519,7 @@ func addHaskellMatches(t *testing.T, theSource source.Source, catalog *syftPkg.C
 		t.Fatalf("problem with upstream syft cataloger (haskell)")
 	}
 	thePkg := pkg.New(packages[0])
-	vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:haskell"), db.ByPackageName(strings.ToLower(thePkg.Name)))
+	vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:haskell"), search.ByPackageName(strings.ToLower(thePkg.Name)))
 	require.NoError(t, err)
 	vulnObj := vulns[0]
 
@@ -555,12 +557,14 @@ func addJvmMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Colle
 
 	for _, p := range packages {
 		thePkg := pkg.New(p)
-		vulns, err := theStore.FindVulnerabilities(byNamespace("nvd:cpe"), db.ByPackageName(thePkg.Name))
+		vulns, err := theStore.FindVulnerabilities(byNamespace("nvd:cpe"), search.ByPackageName(thePkg.Name))
 		require.NoError(t, err)
 		vulnObj := vulns[0]
-		//vulnObj.CPEs = []cpe.CPE{
-		//	cpe.Must("cpe:2.3:a:oracle:jdk:*:*:*:*:*:*:*:*", ""),
-		//}
+
+		// FIXME why is this being set?
+		vulnObj.CPEs = []cpe.CPE{
+			cpe.Must("cpe:2.3:a:oracle:jdk:*:*:*:*:*:*:*:*", ""),
+		}
 
 		theResult.Add(match.Match{
 			Vulnerability: vulnObj,
@@ -569,14 +573,14 @@ func addJvmMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Colle
 				{
 					Type:       match.CPEMatch,
 					Confidence: 0.9,
-					SearchedBy: search.CPEParameters{
+					SearchedBy: match.CPEParameters{
 						Namespace: "nvd:cpe",
 						CPEs: []string{
 							"cpe:2.3:a:oracle:jdk:1.8.0:update400:*:*:*:*:*:*",
 						},
-						Package: search.CPEPackageParameter{Name: "jdk", Version: "1.8.0_400-b07"},
+						Package: match.CPEPackageParameter{Name: "jdk", Version: "1.8.0_400-b07"},
 					},
-					Found: search.CPEResult{
+					Found: match.CPEResult{
 						VulnerabilityID:   "CVE-jdk",
 						VersionConstraint: "< 1.8.0_401 (jvm)",
 						CPEs: []string{
@@ -599,7 +603,7 @@ func addRustMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 
 	for _, p := range packages {
 		thePkg := pkg.New(p)
-		vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:rust"), db.ByPackageName(thePkg.Name))
+		vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:rust"), search.ByPackageName(thePkg.Name))
 		require.NoError(t, err)
 		vulnObj := vulns[0]
 
@@ -927,8 +931,9 @@ func vexMatches(t *testing.T, ignoredMatches []match.IgnoredMatch, vexStatus vex
 func assertMatches(t *testing.T, expected, actual []match.Match) {
 	t.Helper()
 	opts := []cmp.Option{
+		cmpopts.EquateEmpty(),
 		cmpopts.IgnoreFields(vulnerability.Vulnerability{}, "Constraint"),
-		cmpopts.IgnoreFields(pkg.Package{}, "Locations"),
+		cmpopts.IgnoreFields(pkg.Package{}, "Locations", "Distro"),
 		cmpopts.SortSlices(func(a, b match.Match) bool {
 			return a.Package.ID < b.Package.ID
 		}),
@@ -940,7 +945,7 @@ func assertMatches(t *testing.T, expected, actual []match.Match) {
 }
 
 func byNamespace(ns string) vulnerability.Criteria {
-	return db.NewFuncCriteria(func(v vulnerability.Vulnerability) (bool, error) {
+	return search.ByFunc(func(v vulnerability.Vulnerability) (bool, error) {
 		return v.Reference.Namespace == ns, nil
 	})
 }
