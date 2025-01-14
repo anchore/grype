@@ -1,6 +1,7 @@
 package dbsearch
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"time"
@@ -104,7 +105,7 @@ func newOperatingSystems(oss []v6.OperatingSystem) (os []OperatingSystem) {
 	return os
 }
 
-func FindVulnerabilities(reader interface {
+func FindVulnerabilities(reader interface { //nolint:funlen
 	v6.VulnerabilityStoreReader
 	v6.AffectedPackageStoreReader
 }, config VulnerabilitiesOptions) ([]Vulnerability, error) {
@@ -115,6 +116,7 @@ func FindVulnerabilities(reader interface {
 	}
 
 	var vulns []v6.VulnerabilityHandle
+	var limitReached bool
 	for i := range config.Vulnerability {
 		vulnSpec := config.Vulnerability[i]
 		vs, err := reader.GetVulnerabilities(&vulnSpec, &v6.GetVulnerabilityOptions{
@@ -122,7 +124,11 @@ func FindVulnerabilities(reader interface {
 			Limit:   config.RecordLimit,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("unable to get vulnerabilities: %w", err)
+			if !errors.Is(err, v6.ErrLimitReached) {
+				return nil, fmt.Errorf("unable to get vulnerabilities: %w", err)
+			}
+			limitReached = true
+			break
 		}
 
 		vulns = append(vulns, vs...)
@@ -133,7 +139,7 @@ func FindVulnerabilities(reader interface {
 	// find all affected packages for this vulnerability, so we can gather os information
 	var pairs []vulnerabilityAffectedPackageJoin
 	for _, vuln := range vulns {
-		affected, err := reader.GetAffectedPackages(nil, &v6.GetAffectedPackageOptions{
+		affected, fetchErr := reader.GetAffectedPackages(nil, &v6.GetAffectedPackageOptions{
 			PreloadOS: true,
 			Vulnerabilities: []v6.VulnerabilitySpecifier{
 				{
@@ -142,8 +148,11 @@ func FindVulnerabilities(reader interface {
 			},
 			Limit: config.RecordLimit,
 		})
-		if err != nil {
-			return nil, fmt.Errorf("unable to get affected packages: %w", err)
+		if fetchErr != nil {
+			if !errors.Is(fetchErr, v6.ErrLimitReached) {
+				return nil, fmt.Errorf("unable to get affected packages: %w", fetchErr)
+			}
+			limitReached = true
 		}
 
 		distros := make(map[v6.ID]v6.OperatingSystem)
@@ -169,7 +178,16 @@ func FindVulnerabilities(reader interface {
 			OperatingSystems: distrosSlice,
 			AffectedPackages: len(affected),
 		})
+
+		if errors.Is(fetchErr, v6.ErrLimitReached) {
+			break
+		}
 	}
 
-	return newVulnerabilityRows(pairs...), nil
+	var err error
+	if limitReached {
+		err = v6.ErrLimitReached
+	}
+
+	return newVulnerabilityRows(pairs...), err
 }

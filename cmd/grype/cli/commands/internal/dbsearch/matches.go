@@ -1,6 +1,7 @@
 package dbsearch
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 
@@ -112,11 +113,17 @@ func FindMatches(reader interface {
 	v6.AffectedPackageStoreReader
 	v6.AffectedCPEStoreReader
 }, criteria AffectedPackagesOptions) (Matches, error) {
-	allAffectedPkgs, allAffectedCPEs, err := findAffectedPackages(reader, criteria)
+	allAffectedPkgs, allAffectedCPEs, fetchErr := findAffectedPackages(reader, criteria)
 
-	if err != nil {
-		return nil, err
+	if fetchErr != nil {
+		if !errors.Is(fetchErr, v6.ErrLimitReached) {
+			return nil, fetchErr
+		}
 	}
 
-	return newMatchesRows(allAffectedPkgs, allAffectedCPEs)
+	rows, presErr := newMatchesRows(allAffectedPkgs, allAffectedCPEs)
+	if presErr != nil {
+		return nil, presErr
+	}
+	return rows, fetchErr
 }
