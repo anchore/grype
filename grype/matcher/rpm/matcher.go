@@ -107,7 +107,7 @@ func (m *Matcher) matchUpstreamPackages(store vulnerability.Provider, p pkg.Pack
 	var matches []match.Match
 
 	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indirectMatches, _, err := internal.MatchPackageByDistro(store, indirectPackage, internal.DirectName, m.Type())
+		indirectMatches, _, err := internal.MatchPackageByDistro(store, indirectPackage, m.Type())
 		if err != nil {
 			return nil, fmt.Errorf("failed to find vulnerabilities for rpm upstream source package: %w", err)
 		}
@@ -127,7 +127,7 @@ func (m *Matcher) matchPackage(store vulnerability.Provider, p pkg.Package) ([]m
 
 	addEpochIfApplicable(&p)
 
-	matches, _, err := internal.MatchPackageByDistro(store, p, internal.DirectName, m.Type())
+	matches, _, err := internal.MatchPackageByDistro(store, p, m.Type())
 	if err != nil {
 		return nil, fmt.Errorf("failed to find vulnerabilities by dpkg source indirection: %w", err)
 	}

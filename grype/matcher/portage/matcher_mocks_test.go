@@ -1,13 +1,12 @@
 package portage
 
 import (
-	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
-func newMockProvider() *db.MockProvider {
-	return db.NewMockProvider([]vulnerability.Vulnerability{
+func newMockProvider() vulnerability.Provider {
+	return vulnerability.NewMockProvider([]vulnerability.Vulnerability{
 		// direct...
 		{
 			PackageName: "app-misc/neutron",

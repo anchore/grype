@@ -45,35 +45,6 @@ type IgnoreRulePackage struct {
 	UpstreamName string `yaml:"upstream-name" json:"upstream-name" mapstructure:"upstream-name"`
 }
 
-func (r IgnoreRule) IgnoreMatch(match Match) []IgnoreRule {
-	// VEX rules are handled by the vex processor
-	if r.VexStatus != "" {
-		return nil
-	}
-
-	ignoreConditions := getIgnoreConditionsForRule(r)
-	if len(ignoreConditions) == 0 {
-		// this rule specifies no criteria, so it doesn't apply to the Match
-		return nil
-	}
-
-	for _, condition := range ignoreConditions {
-		if !condition(match) {
-			// as soon as one rule criterion doesn't apply, we know this rule doesn't apply to the Match
-			return nil
-		}
-	}
-
-	// all criteria specified in the rule apply to this Match
-	return []IgnoreRule{r}
-}
-
-// HasConditions returns true if the ignore rule has conditions
-// that can cause a match to be ignored
-func (r IgnoreRule) HasConditions() bool {
-	return len(getIgnoreConditionsForRule(r)) == 0
-}
-
 // ApplyIgnoreRules iterates through the provided matches and, for each match,
 // determines if the match should be ignored, by evaluating if any of the
 // provided IgnoreRules apply to the match. If any rules apply to the match, all
@@ -111,6 +82,35 @@ func ApplyIgnoreFilters[T IgnoreFilter](matches []Match, filters ...T) ([]Match,
 	}
 
 	return out, ignoredMatches
+}
+
+func (r IgnoreRule) IgnoreMatch(match Match) []IgnoreRule {
+	// VEX rules are handled by the vex processor
+	if r.VexStatus != "" {
+		return nil
+	}
+
+	ignoreConditions := getIgnoreConditionsForRule(r)
+	if len(ignoreConditions) == 0 {
+		// this rule specifies no criteria, so it doesn't apply to the Match
+		return nil
+	}
+
+	for _, condition := range ignoreConditions {
+		if !condition(match) {
+			// as soon as one rule criterion doesn't apply, we know this rule doesn't apply to the Match
+			return nil
+		}
+	}
+
+	// all criteria specified in the rule apply to this Match
+	return []IgnoreRule{r}
+}
+
+// HasConditions returns true if the ignore rule has conditions
+// that can cause a match to be ignored
+func (r IgnoreRule) HasConditions() bool {
+	return len(getIgnoreConditionsForRule(r)) == 0
 }
 
 // ignoreFilters implements match.IgnoreFilter on a slice of objects that implement the same interface

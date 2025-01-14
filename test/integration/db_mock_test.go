@@ -1,14 +1,13 @@
 package integration
 
 import (
-	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/cpe"
 )
 
-func newMockDbProvider() *db.MockProvider {
-	return db.NewMockProvider([]vulnerability.Vulnerability{
+func newMockDbProvider() vulnerability.Provider {
+	return vulnerability.NewMockProvider([]vulnerability.Vulnerability{
 		{
 			Reference: vulnerability.Reference{
 				ID:        "CVE-jdk",

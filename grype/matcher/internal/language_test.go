@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
@@ -15,8 +14,8 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-func newMockProviderByLanguage() *db.MockProvider {
-	return db.NewMockProvider([]vulnerability.Vulnerability{
+func newMockProviderByLanguage() vulnerability.Provider {
+	return vulnerability.NewMockProvider([]vulnerability.Vulnerability{
 		{
 			Reference: vulnerability.Reference{
 				ID:        "CVE-2017-fake-1",
@@ -124,7 +123,7 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 	store := newMockProviderByLanguage()
 	for _, c := range cases {
 		t.Run(c.p.Name, func(t *testing.T) {
-			actual, ignored, err := MatchPackageByLanguage(store, c.p, DirectName, match.RubyGemMatcher)
+			actual, ignored, err := MatchPackageByLanguage(store, c.p, match.RubyGemMatcher)
 			require.NoError(t, err)
 			require.Empty(t, ignored)
 			if c.assertEmpty {

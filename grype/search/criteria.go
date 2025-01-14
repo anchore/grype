@@ -74,7 +74,7 @@ func processRemainingItem(row, criteria []vulnerability.Criteria, item vulnerabi
 	return true // continue
 }
 
-// reduce is a simplistic reducer function
+// reduce a simplistic reducer function
 func reduce[Incoming any, Return any](values []Incoming, initial Return, reducer func(Return, Incoming) Return) Return {
 	for _, value := range values {
 		initial = reducer(initial, value)

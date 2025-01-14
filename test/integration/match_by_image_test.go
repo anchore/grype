@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/matcher/dotnet"
@@ -36,7 +35,7 @@ import (
 	"github.com/anchore/syft/syft/source"
 )
 
-func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore *db.MockProvider, theResult *match.Matches) {
+func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore vulnerability.Provider, theResult *match.Matches) {
 	packages := catalog.PackagesByPath("/lib/apk/db/installed")
 	if len(packages) != 3 {
 		t.Logf("Alpine Packages: %+v", packages)
@@ -98,7 +97,7 @@ func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 	})
 }
 
-func addJavascriptMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore *db.MockProvider, theResult *match.Matches) {
+func addJavascriptMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore vulnerability.Provider, theResult *match.Matches) {
 	packages := catalog.PackagesByPath("/javascript/pkg-json/package.json")
 	if len(packages) != 1 {
 		t.Logf("Javascript Packages: %+v", packages)
@@ -134,7 +133,7 @@ func addJavascriptMatches(t *testing.T, theSource source.Source, catalog *syftPk
 	})
 }
 
-func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore *db.MockProvider, theResult *match.Matches) {
+func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore vulnerability.Provider, theResult *match.Matches) {
 	packages := catalog.PackagesByPath("/python/dist-info/METADATA")
 	if len(packages) != 1 {
 		for _, p := range packages {
@@ -173,7 +172,7 @@ func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 	})
 }
 
-func addDotnetMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore *db.MockProvider, theResult *match.Matches) {
+func addDotnetMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore vulnerability.Provider, theResult *match.Matches) {
 	packages := catalog.PackagesByPath("/dotnet/TestLibrary.deps.json")
 	if len(packages) != 2 { // TestLibrary + AWSSDK.Core
 		for _, p := range packages {
@@ -212,7 +211,7 @@ func addDotnetMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 	})
 }
 
-func addRubyMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore *db.MockProvider, theResult *match.Matches) {
+func addRubyMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore vulnerability.Provider, theResult *match.Matches) {
 	packages := catalog.PackagesByPath("/ruby/specifications/bundler.gemspec")
 	if len(packages) != 1 {
 		t.Logf("Ruby Packages: %+v", packages)
@@ -248,7 +247,7 @@ func addRubyMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 	})
 }
 
-func addGolangMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore *db.MockProvider, theResult *match.Matches) {
+func addGolangMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore vulnerability.Provider, theResult *match.Matches) {
 	modPackages := catalog.PackagesByPath("/golang/go.mod")
 	if len(modPackages) != 1 {
 		t.Logf("Golang Mod Packages: %+v", modPackages)
@@ -308,7 +307,7 @@ func addGolangMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 	}
 }
 
-func addJavaMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore *db.MockProvider, theResult *match.Matches) {
+func addJavaMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore vulnerability.Provider, theResult *match.Matches) {
 	packages := make([]syftPkg.Package, 0)
 	for p := range catalog.Enumerate(syftPkg.JavaPkg) {
 		packages = append(packages, p)
@@ -352,7 +351,7 @@ func addJavaMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 	})
 }
 
-func addDpkgMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore *db.MockProvider, theResult *match.Matches) {
+func addDpkgMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore vulnerability.Provider, theResult *match.Matches) {
 	packages := catalog.PackagesByPath("/var/lib/dpkg/status")
 	if len(packages) != 1 {
 		t.Logf("Dpkg Packages: %+v", packages)
@@ -392,7 +391,7 @@ func addDpkgMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 	})
 }
 
-func addPortageMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore *db.MockProvider, theResult *match.Matches) {
+func addPortageMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore vulnerability.Provider, theResult *match.Matches) {
 	packages := catalog.PackagesByPath("/var/db/pkg/app-containers/skopeo-1.5.1/CONTENTS")
 	if len(packages) != 1 {
 		t.Logf("Portage Packages: %+v", packages)
@@ -431,7 +430,7 @@ func addPortageMatches(t *testing.T, theSource source.Source, catalog *syftPkg.C
 	})
 }
 
-func addRhelMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore *db.MockProvider, theResult *match.Matches) {
+func addRhelMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore vulnerability.Provider, theResult *match.Matches) {
 	packages := catalog.PackagesByPath("/var/lib/rpm/Packages")
 	if len(packages) != 1 {
 		t.Logf("RPMDB Packages: %+v", packages)
@@ -470,7 +469,7 @@ func addRhelMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 	})
 }
 
-func addSlesMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore *db.MockProvider, theResult *match.Matches) {
+func addSlesMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore vulnerability.Provider, theResult *match.Matches) {
 	packages := catalog.PackagesByPath("/var/lib/rpm/Packages")
 	if len(packages) != 1 {
 		t.Logf("Sles Packages: %+v", packages)
@@ -512,7 +511,7 @@ func addSlesMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 	})
 }
 
-func addHaskellMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore *db.MockProvider, theResult *match.Matches) {
+func addHaskellMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore vulnerability.Provider, theResult *match.Matches) {
 	packages := catalog.PackagesByPath("/haskell/stack.yaml")
 	if len(packages) < 1 {
 		t.Logf("Haskell Packages: %+v", packages)
@@ -548,7 +547,7 @@ func addHaskellMatches(t *testing.T, theSource source.Source, catalog *syftPkg.C
 	})
 }
 
-func addJvmMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore *db.MockProvider, theResult *match.Matches) {
+func addJvmMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore vulnerability.Provider, theResult *match.Matches) {
 	packages := catalog.PackagesByPath("/opt/java/openjdk/release")
 	if len(packages) < 1 {
 		t.Logf("JVM Packages: %+v", packages)
@@ -594,7 +593,7 @@ func addJvmMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Colle
 	}
 }
 
-func addRustMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore *db.MockProvider, theResult *match.Matches) {
+func addRustMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, theStore vulnerability.Provider, theResult *match.Matches) {
 	packages := catalog.PackagesByPath("/hello-auditable")
 	if len(packages) < 1 {
 		t.Logf("Rust Packages: %+v", packages)
@@ -642,11 +641,11 @@ func TestMatchByImage(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		expectedFn func(source.Source, *syftPkg.Collection, *db.MockProvider) match.Matches
+		expectedFn func(source.Source, *syftPkg.Collection, vulnerability.Provider) match.Matches
 	}{
 		{
 			name: "image-debian-match-coverage",
-			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore *db.MockProvider) match.Matches {
+			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore vulnerability.Provider) match.Matches {
 				expectedMatches := match.NewMatches()
 				addPythonMatches(t, theSource, catalog, theStore, &expectedMatches)
 				addRubyMatches(t, theSource, catalog, theStore, &expectedMatches)
@@ -661,7 +660,7 @@ func TestMatchByImage(t *testing.T) {
 		},
 		{
 			name: "image-centos-match-coverage",
-			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore *db.MockProvider) match.Matches {
+			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore vulnerability.Provider) match.Matches {
 				expectedMatches := match.NewMatches()
 				addRhelMatches(t, theSource, catalog, theStore, &expectedMatches)
 				return expectedMatches
@@ -669,7 +668,7 @@ func TestMatchByImage(t *testing.T) {
 		},
 		{
 			name: "image-alpine-match-coverage",
-			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore *db.MockProvider) match.Matches {
+			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore vulnerability.Provider) match.Matches {
 				expectedMatches := match.NewMatches()
 				addAlpineMatches(t, theSource, catalog, theStore, &expectedMatches)
 				return expectedMatches
@@ -677,7 +676,7 @@ func TestMatchByImage(t *testing.T) {
 		},
 		{
 			name: "image-sles-match-coverage",
-			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore *db.MockProvider) match.Matches {
+			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore vulnerability.Provider) match.Matches {
 				expectedMatches := match.NewMatches()
 				addSlesMatches(t, theSource, catalog, theStore, &expectedMatches)
 				return expectedMatches
@@ -686,7 +685,7 @@ func TestMatchByImage(t *testing.T) {
 		// TODO: add this back in when #744 is fully implemented (see https://github.com/anchore/grype/issues/744#issuecomment-2448163737)
 		//{
 		//	name: "image-portage-match-coverage",
-		//	expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore *db.MockProvider) match.Matches {
+		//	expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore vulnerability.Provider) match.Matches {
 		//		expectedMatches := match.NewMatches()
 		//		addPortageMatches(t, theSource, catalog, theStore, &expectedMatches)
 		//		return expectedMatches
@@ -694,7 +693,7 @@ func TestMatchByImage(t *testing.T) {
 		//},
 		{
 			name: "image-rust-auditable-match-coverage",
-			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore *db.MockProvider) match.Matches {
+			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore vulnerability.Provider) match.Matches {
 				expectedMatches := match.NewMatches()
 				addRustMatches(t, theSource, catalog, theStore, &expectedMatches)
 				return expectedMatches
@@ -702,7 +701,7 @@ func TestMatchByImage(t *testing.T) {
 		},
 		{
 			name: "image-jvm-match-coverage",
-			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore *db.MockProvider) match.Matches {
+			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, theStore vulnerability.Provider) match.Matches {
 				expectedMatches := match.NewMatches()
 				addJvmMatches(t, theSource, catalog, theStore, &expectedMatches)
 				return expectedMatches

@@ -26,5 +26,5 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	// find KB matches for the MSFT version given in the package and version.
 	// The "distro" holds the information about the Windows version, and its
 	// patch (KB)
-	return internal.MatchPackageByDistro(store, p, internal.DirectName, m.Type())
+	return internal.MatchPackageByDistro(store, p, m.Type())
 }

@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -16,8 +15,8 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-func newMockProviderByDistro() *db.MockProvider {
-	return db.NewMockProvider([]vulnerability.Vulnerability{
+func newMockProviderByDistro() vulnerability.Provider {
+	return vulnerability.NewMockProvider([]vulnerability.Vulnerability{
 		{
 			// direct...
 			PackageName: "neutron",
@@ -92,14 +91,14 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 	}
 
 	store := newMockProviderByDistro()
-	actual, ignored, err := MatchPackageByDistro(store, p, DirectName, match.PythonMatcher)
+	actual, ignored, err := MatchPackageByDistro(store, p, match.PythonMatcher)
 	require.NoError(t, err)
 	require.Empty(t, ignored)
 	assertMatchesUsingIDsForVulnerabilities(t, expected, actual)
 
 	// prove we do not search for unknown versions
 	p.Version = "unknown"
-	actual, ignored, err = MatchPackageByDistro(store, p, DirectName, match.PythonMatcher)
+	actual, ignored, err = MatchPackageByDistro(store, p, match.PythonMatcher)
 	require.NoError(t, err)
 	require.Empty(t, ignored)
 	assert.Empty(t, actual)
@@ -159,7 +158,7 @@ func TestFindMatchesByPackageDistroSles(t *testing.T) {
 	}
 
 	store := newMockProviderByDistro()
-	actual, ignored, err := MatchPackageByDistro(store, p, DirectName, match.PythonMatcher)
+	actual, ignored, err := MatchPackageByDistro(store, p, match.PythonMatcher)
 	assert.NoError(t, err)
 	require.Empty(t, ignored)
 	assertMatchesUsingIDsForVulnerabilities(t, expected, actual)

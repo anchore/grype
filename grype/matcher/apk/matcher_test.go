@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -29,7 +28,7 @@ func TestSecDBOnlyMatch(t *testing.T) {
 		Constraint:  version.MustGetConstraint("<= 0.9.11", version.ApkFormat),
 	}
 
-	vp := db.NewMockProvider(secDbVuln)
+	vp := vulnerability.NewMockProvider(secDbVuln)
 
 	m := Matcher{}
 	d, err := distro.New(distro.Alpine, "3.12.0", "")
@@ -108,7 +107,7 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 		Constraint:  version.MustGetConstraint("<= 0.9.11", version.ApkFormat),
 	}
 
-	vp := db.NewMockProvider(nvdVuln, secDbVuln)
+	vp := vulnerability.NewMockProvider(nvdVuln, secDbVuln)
 
 	m := Matcher{}
 	d, err := distro.New(distro.Alpine, "3.12.0", "")
@@ -195,7 +194,7 @@ func TestBothSecdbAndNvdMatches_DifferentFixInfo(t *testing.T) {
 			State:    vulnerability.FixStateFixed,
 		},
 	}
-	vp := db.NewMockProvider(nvdVuln, secDbVuln)
+	vp := vulnerability.NewMockProvider(nvdVuln, secDbVuln)
 	m := Matcher{}
 	d, err := distro.New(distro.Alpine, "3.12.0", "")
 	if err != nil {
@@ -274,7 +273,7 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 		Constraint:  version.MustGetConstraint("<= 0.9.11", version.ApkFormat),
 	}
 
-	vp := db.NewMockProvider(nvdVuln, secDbVuln)
+	vp := vulnerability.NewMockProvider(nvdVuln, secDbVuln)
 
 	m := Matcher{}
 	d, err := distro.New(distro.Alpine, "3.12.0", "")
@@ -341,7 +340,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 			cpe.Must(`cpe:2.3:a:lib_vnc_project-\(server\):libvncserver:*:*:*:*:*:*:*:*`, ""),
 		},
 	}
-	vp := db.NewMockProvider(nvdVuln)
+	vp := vulnerability.NewMockProvider(nvdVuln)
 
 	m := Matcher{}
 	d, err := distro.New(distro.Alpine, "3.12.0", "")
@@ -409,7 +408,7 @@ func TestNvdOnlyMatches_FixInNvd(t *testing.T) {
 			State:    vulnerability.FixStateFixed,
 		},
 	}
-	vp := db.NewMockProvider(nvdVuln)
+	vp := vulnerability.NewMockProvider(nvdVuln)
 
 	m := Matcher{}
 	d, err := distro.New(distro.Alpine, "3.12.0", "")
@@ -488,7 +487,7 @@ func TestNvdMatchesProperVersionFiltering(t *testing.T) {
 			cpe.Must(`cpe:2.3:a:lib_vnc_project-\(server\):libvncserver:*:*:*:*:*:*:*:*`, ""),
 		},
 	}
-	vp := db.NewMockProvider(nvdVulnMatch, nvdVulnNoMatch)
+	vp := vulnerability.NewMockProvider(nvdVulnMatch, nvdVulnNoMatch)
 
 	m := Matcher{}
 	d, err := distro.New(distro.Alpine, "3.12.0", "")
@@ -561,7 +560,7 @@ func TestNvdMatchesWithSecDBFix(t *testing.T) {
 		Constraint:  version.MustGetConstraint("< 0.9.11", version.ApkFormat), // note: this does NOT include 0.9.11, so NVD and SecDB mismatch here... secDB should trump in this case
 	}
 
-	vp := db.NewMockProvider(nvdVuln, secDbVuln)
+	vp := vulnerability.NewMockProvider(nvdVuln, secDbVuln)
 
 	m := Matcher{}
 	d, err := distro.New(distro.Alpine, "3.12.0", "")
@@ -609,7 +608,7 @@ func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
 		Constraint:  version.MustGetConstraint("< 0.9.11", version.ApkFormat),
 	}
 
-	vp := db.NewMockProvider(nvdVuln, secDbVuln)
+	vp := vulnerability.NewMockProvider(nvdVuln, secDbVuln)
 
 	m := Matcher{}
 	d, err := distro.New(distro.Alpine, "3.12.0", "")
@@ -655,7 +654,7 @@ func TestNVDMatchCanceledByOriginPackageInSecDB(t *testing.T) {
 		PackageName: "php-8.3",
 		Constraint:  version.MustGetConstraint("< 0", version.ApkFormat),
 	}
-	vp := db.NewMockProvider(nvdVuln, secDBVuln)
+	vp := vulnerability.NewMockProvider(nvdVuln, secDBVuln)
 
 	m := Matcher{}
 	d, err := distro.New(distro.Wolfi, "")
@@ -698,7 +697,7 @@ func TestDistroMatchBySourceIndirection(t *testing.T) {
 		PackageName: "musl",
 		Constraint:  version.MustGetConstraint("<= 1.3.3-r0", version.ApkFormat),
 	}
-	vp := db.NewMockProvider(secDbVuln)
+	vp := vulnerability.NewMockProvider(secDbVuln)
 
 	m := Matcher{}
 	d, err := distro.New(distro.Alpine, "3.12.0", "")
@@ -770,7 +769,7 @@ func TestSecDBMatchesStillCountedWithCpeErrors(t *testing.T) {
 		Constraint:  version.MustGetConstraint("<= 1.3.3-r0", version.ApkFormat),
 	}
 
-	vp := db.NewMockProvider(secDbVuln)
+	vp := vulnerability.NewMockProvider(secDbVuln)
 
 	m := Matcher{}
 	d, err := distro.New(distro.Alpine, "3.12.0", "")
@@ -840,7 +839,7 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 			cpe.Must("cpe:2.3:a:musl:musl:*:*:*:*:*:*:*:*", ""),
 		},
 	}
-	vp := db.NewMockProvider(nvdVuln)
+	vp := vulnerability.NewMockProvider(nvdVuln)
 
 	m := Matcher{}
 	d, err := distro.New(distro.Alpine, "3.12.0", "")

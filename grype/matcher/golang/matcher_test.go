@@ -7,7 +7,6 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -194,8 +193,8 @@ func TestMatcher_SearchForStdlib(t *testing.T) {
 	}
 }
 
-func newMockProvider() *db.MockProvider {
-	return db.NewMockProvider([]vulnerability.Vulnerability{
+func newMockProvider() vulnerability.Provider {
+	return vulnerability.NewMockProvider([]vulnerability.Vulnerability{
 		// for TestMatcher_DropMainPackageIfNoVersion
 		{
 			PackageName: "istio.io/istio",

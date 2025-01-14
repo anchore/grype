@@ -1,15 +1,14 @@
 package java
 
 import (
-	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-func newMockStore() *db.MockProvider {
-	return db.NewMockProvider([]vulnerability.Vulnerability{
+func newMockStore() vulnerability.Provider {
+	return vulnerability.NewMockProvider([]vulnerability.Vulnerability{
 		{
 			PackageName: "org.springframework.spring-webmvc",
 			Constraint:  version.MustGetConstraint(">=5.0.0,<5.1.7", version.UnknownFormat),

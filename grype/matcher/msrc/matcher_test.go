@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
@@ -23,7 +22,7 @@ func TestMatches(t *testing.T) {
 	// and not break the adaption of grype-db
 	msrcNamespace := fmt.Sprintf("msrc:distro:windows:%s", d.RawVersion)
 
-	vp := db.NewMockProvider([]vulnerability.Vulnerability{
+	vp := vulnerability.NewMockProvider([]vulnerability.Vulnerability{
 		{
 			Reference: vulnerability.Reference{
 				ID:        "CVE-2016-3333",

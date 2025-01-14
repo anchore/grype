@@ -10,39 +10,36 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-//
-// var (
-//	ByCPE          Criteria = "by-cpe"
-//	ByLanguage     Criteria = "by-language"
-//	ByDistro       Criteria = "by-distro"
-//	CommonCriteria          = []Criteria{
-//		ByLanguage,
-//	}
-//)
-//
-// type Criteria string
-//
-// func (m *Matcher) MatchByCriteria(store vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType, criteria ...Criteria) ([]match.Match, []match.IgnoredMatch, error) {
-//	matches := make([]match.Match, 0)
-//	for _, c := range criteria {
-//		switch c {
-//		case ByCPE:
-//		case ByLanguage:
-//			matches = append(matches, m...)
-//		case ByDistro:
-//			m, err := m.MatchPackageByDistro(store, p, upstreamMatcher)
-//			if err != nil {
-//				log.Warnf("could not match by package distro (package=%+v): %v", p, err)
-//				continue
-//			}
-//			matches = append(matches, m...)
-//		}
-//	}
-//	return matches, nil, nil
-//}
+func PackageNames(p pkg.Package) []string {
+	names := []string{p.Name}
+	r, _ := resolver.FromLanguage(p.Language)
+	if r != nil {
+		parts := r.Resolve(p)
+		if len(parts) > 0 {
+			names = parts
+		}
+	}
+	return names
+}
 
 func MatchPackageByLanguageAndCPEs(store vulnerability.Provider, p pkg.Package, matcher match.MatcherType, includeCPEs bool) ([]match.Match, []match.IgnoredMatch, error) {
-	matches, ignored, err := MatchPackageByLanguage(store, p, getPackageNames, matcher)
+	var matches []match.Match
+	var ignored []match.IgnoredMatch
+
+	for _, name := range PackageNames(p) {
+		nameMatches, nameIgnores, err := MatchPackageByLanguagePackageNameAndCPEs(store, p, name, matcher, includeCPEs)
+		if err != nil {
+			return nil, nil, err
+		}
+		matches = append(matches, nameMatches...)
+		ignored = append(ignored, nameIgnores...)
+	}
+
+	return matches, ignored, nil
+}
+
+func MatchPackageByLanguagePackageNameAndCPEs(store vulnerability.Provider, p pkg.Package, packageName string, matcher match.MatcherType, includeCPEs bool) ([]match.Match, []match.IgnoredMatch, error) {
+	matches, ignored, err := MatchPackageByLanguagePackageName(store, p, packageName, matcher)
 	if err != nil {
 		log.Debugf("could not match by package language (package=%+v): %v", p, err)
 	}
@@ -56,16 +53,4 @@ func MatchPackageByLanguageAndCPEs(store vulnerability.Provider, p pkg.Package, 
 		matches = append(matches, cpeMatches...)
 	}
 	return matches, ignored, nil
-}
-
-func getPackageNames(p pkg.Package) []string {
-	r, _ := resolver.FromLanguage(p.Language)
-	if r != nil {
-		return r.Resolve(p)
-	}
-	return []string{p.Name}
-}
-
-func DirectName(p pkg.Package) []string {
-	return []string{p.Name}
 }

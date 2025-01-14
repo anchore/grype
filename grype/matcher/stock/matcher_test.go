@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
@@ -74,13 +73,13 @@ func TestMatcher_JVMPackage(t *testing.T) {
 	}
 }
 
-func newMockProvider() *db.MockProvider {
+func newMockProvider() vulnerability.Provider {
 	// derived from vuln data found on CVE-2024-20919
 	hit := "< 1.8.0_401 || >= 1.9-ea, < 8.0.401 || >= 9-ea, < 11.0.22 || >= 12-ea, < 17.0.10 || >= 18-ea, < 21.0.2"
 
 	cpes := []cpe.CPE{cpe.Must("cpe:2.3:a:oracle:java_se:*:*:*:*:*:*:*:*", "")}
 
-	return db.NewMockProvider([]vulnerability.Vulnerability{
+	return vulnerability.NewMockProvider([]vulnerability.Vulnerability{
 		{
 			// positive cases
 			PackageName: "java_se",

@@ -1,20 +1,19 @@
 package rpm
 
 import (
-	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/pkg/qualifier"
 	"github.com/anchore/grype/grype/pkg/qualifier/rpmmodularity"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
-func newMockProvider(packageName, indirectName string, withEpoch bool, withPackageQualifiers bool) *db.MockProvider {
+func newMockProvider(packageName, indirectName string, withEpoch bool, withPackageQualifiers bool) vulnerability.Provider {
 	if withEpoch {
-		return db.NewMockProvider(vulnerabilitiesWithEpoch(packageName, indirectName)...)
+		return vulnerability.NewMockProvider(vulnerabilitiesWithEpoch(packageName, indirectName)...)
 	} else if withPackageQualifiers {
-		return db.NewMockProvider(vulnerabilitiesWithPackageQualifiers(packageName)...)
+		return vulnerability.NewMockProvider(vulnerabilitiesWithPackageQualifiers(packageName)...)
 	}
-	return db.NewMockProvider(vulnerabilitiesDefaults(packageName, indirectName)...)
+	return vulnerability.NewMockProvider(vulnerabilitiesDefaults(packageName, indirectName)...)
 }
 
 const namespace = "secdb:distro:centos:8"

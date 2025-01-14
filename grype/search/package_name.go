@@ -7,15 +7,10 @@ import (
 )
 
 // ByPackageName returns criteria restricting vulnerabilities to match the package name provided
-func ByPackageName(name string) vulnerability.Criteria {
+func ByPackageName(packageName string) vulnerability.Criteria {
 	return &PackageNameCriteria{
-		PackageName: name,
+		PackageName: packageName,
 	}
-}
-
-// ByPackageNames returns criteria restricting vulnerabilities to match any of the package names provided
-func ByPackageNames(names ...string) vulnerability.Criteria {
-	return byMany(ByPackageName, names...)
 }
 
 type PackageNameCriteria struct {

@@ -19,11 +19,6 @@ type LanguageCriteria struct {
 	Language syftPkg.Language
 }
 
-// func (c *LanguageCriteria) PackageSpecifier(specifier *PackageSpecifier) error {
-//	specifier.Type = string(v.Language)
-//	return nil
-//}
-
 func (c *LanguageCriteria) MatchesVulnerability(value vulnerability.Vulnerability) (bool, error) {
 	ns, err := namespace.FromString(value.Namespace)
 	if err != nil {
@@ -40,5 +35,4 @@ func (c *LanguageCriteria) MatchesVulnerability(value vulnerability.Vulnerabilit
 
 var _ interface {
 	vulnerability.Criteria
-	// queryPackageSpecifier
 } = (*LanguageCriteria)(nil)

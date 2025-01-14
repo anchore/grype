@@ -51,6 +51,7 @@ func (m *Matcher) Type() match.MatcherType {
 
 func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoredMatch, error) {
 	var matches []match.Match
+
 	if m.cfg.SearchMavenUpstream {
 		upstreamMatches, err := m.matchUpstreamMavenPackages(store, p)
 		if err != nil {
@@ -59,12 +60,14 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 			matches = append(matches, upstreamMatches...)
 		}
 	}
+
 	criteriaMatches, ignores, err := internal.MatchPackageByLanguageAndCPEs(store, p, m.Type(), m.cfg.UseCPEs)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to match by exact package: %w", err)
 	}
 
 	matches = append(matches, criteriaMatches...)
+
 	return matches, ignores, nil
 }
 
@@ -78,7 +81,7 @@ func (m *Matcher) matchUpstreamMavenPackages(store vulnerability.Provider, p pkg
 				if err != nil {
 					return nil, err
 				}
-				indirectMatches, _, err := internal.MatchPackageByLanguage(store, *indirectPackage, internal.DirectName, m.Type())
+				indirectMatches, _, err := internal.MatchPackageByLanguage(store, *indirectPackage, m.Type())
 				if err != nil {
 					return nil, err
 				}

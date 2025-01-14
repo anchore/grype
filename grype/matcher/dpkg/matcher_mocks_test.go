@@ -1,13 +1,12 @@
 package dpkg
 
 import (
-	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
-func newMockProvider() *db.MockProvider {
-	return db.NewMockProvider([]vulnerability.Vulnerability{
+func newMockProvider() vulnerability.Provider {
+	return vulnerability.NewMockProvider([]vulnerability.Vulnerability{
 		{
 			PackageName: "neutron",
 			Reference:   vulnerability.Reference{ID: "CVE-2014-fake-1", Namespace: "secdb:distro:debian:8"},
