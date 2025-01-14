@@ -297,6 +297,32 @@ func (os *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
 	return nil
 }
 
+func (os *OperatingSystem) VersionNumber() string {
+	if os.MinorVersion != "" {
+		return fmt.Sprintf("%s.%s", os.MajorVersion, os.MinorVersion)
+	}
+	return os.MajorVersion
+}
+
+func (os *OperatingSystem) Version() string {
+	if os == nil {
+		return ""
+	}
+
+	if os.LabelVersion != "" {
+		return os.LabelVersion
+	}
+
+	if os.MajorVersion != "" {
+		if os.MinorVersion != "" {
+			return fmt.Sprintf("%s.%s", os.MajorVersion, os.MinorVersion)
+		}
+		return os.MajorVersion
+	}
+
+	return os.Codename
+}
+
 // OperatingSystemSpecifierOverride is a table that allows for overriding fields on v6.OSSpecifier instances when searching for specific OperatingSystems.
 type OperatingSystemSpecifierOverride struct {
 	// Alias is an alternative name/ID for the operating system.
