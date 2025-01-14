@@ -109,6 +109,7 @@ func DBSearch(app clio.Application) *cobra.Command {
 
     $ grype db search 'cpe:2.3:a:jetty:jetty_http_server:*:*:*:*:*:*'
     $ grype db search 'cpe:/a:jetty:jetty_http_server'`,
+		PreRunE: disableUI(app),
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			if opts.Experimental.DBv6 {
 				if len(args) > 0 {

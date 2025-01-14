@@ -175,11 +175,11 @@ func findAffectedPackages(reader interface { //nolint:funlen
 	// are oriented by primarily package, we only want to have ANY package/CPE when there is a vulnerability or OS specified.
 	if len(vulnSpecs) > 0 || !osSpecs.IsAny() {
 		if len(pkgSpecs) == 0 {
-			pkgSpecs = []*v6.PackageSpecifier{nil}
+			pkgSpecs = []*v6.PackageSpecifier{v6.AnyPackageSpecified}
 		}
 
 		if len(cpeSpecs) == 0 {
-			cpeSpecs = []*v6.PackageSpecifier{nil}
+			cpeSpecs = []*v6.PackageSpecifier{v6.AnyPackageSpecified}
 		}
 	}
 

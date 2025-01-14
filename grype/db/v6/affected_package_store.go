@@ -26,6 +26,7 @@ const (
 
 var NoOSSpecified = &OSSpecifier{}
 var AnyOSSpecified *OSSpecifier
+var AnyPackageSpecified *PackageSpecifier
 var ErrMissingDistroIdentification = errors.New("missing os name or codename")
 var ErrDistroNotPresent = errors.New("distro not present")
 var ErrMultipleOSMatches = errors.New("multiple OS matches found but not allowed")
