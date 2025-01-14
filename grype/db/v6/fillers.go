@@ -29,12 +29,16 @@ func affectedPackageVulnerabilityHandles(affectedPackages []*AffectedPackageHand
 	return out
 }
 
-func (s vulnerabilityProvider) fillAffectedCPEHandles(handles []*AffectedCPEHandle) error {
+func fillAffectedCPEHandles(db *gorm.DB, handles []*AffectedCPEHandle) error {
 	return errors.Join(
-		fillRefs(s.db, handles, affectedCPEVulnerabilityHandleRef, vulnerabilityHandleID),
-		fillRefs(s.db, handles, affectedCPECPERef, cpeHandleID),
-		fillBlobs(s.db, handles, affectedCPEBlobRef),
+		fillRefs(db, handles, affectedCPEVulnerabilityHandleRef, vulnerabilityHandleID),
+		fillRefs(db, handles, affectedCPECPERef, cpeHandleID),
+		fillAffectedCPEBlobs(db, handles),
 	)
+}
+
+func fillAffectedCPEBlobs(db *gorm.DB, handles []*AffectedCPEHandle) error {
+	return fillBlobs(db, handles, affectedCPEBlobRef)
 }
 
 func fillAffectedPackageBlobs(db *gorm.DB, handles []*AffectedPackageHandle) error {
@@ -117,14 +121,6 @@ func affectedPackagePackageHandleRef(t *AffectedPackageHandle) idRef[Package] {
 		ref: &t.Package,
 	}
 }
-
-// func affectedCPEHandleID(h AffectedCPEHandle) ID {
-//	return h.ID
-//}
-
-// func vulnerabilityBlobID(h *VulnerabilityHandle) ID {
-//	return h.BlobID
-//}
 
 func vulnerabilityHandleID(h *VulnerabilityHandle) ID {
 	return h.ID

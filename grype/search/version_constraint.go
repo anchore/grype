@@ -31,7 +31,7 @@ func ByExactConstraint(constraint string) vulnerability.Criteria {
 // ByVersion returns criteria which constraints vulnerabilities to those with matching version constraints
 func ByVersion(v version.Version) vulnerability.Criteria {
 	return ByConstraintFunc(func(constraint version.Constraint) (bool, error) {
-		isPackageVulnerable, err := constraint.Satisfied(&v)
+		satisfied, err := constraint.Satisfied(&v)
 		if err != nil {
 			var e *version.NonFatalConstraintError
 			if errors.As(err, &e) {
@@ -40,7 +40,7 @@ func ByVersion(v version.Version) vulnerability.Criteria {
 				return false, fmt.Errorf("failed to check constraint=%v version=%v: %w", constraint, v, err)
 			}
 		}
-		return isPackageVulnerable, nil
+		return satisfied, nil
 	})
 }
 
