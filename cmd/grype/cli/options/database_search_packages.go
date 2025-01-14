@@ -39,6 +39,8 @@ func (o *DBSearchPackages) PostLoad() error {
 
 			if c.Version != "" || c.Update != "" {
 				log.Warnf("ignoring version and update values for %q", p)
+				c.Version = ""
+				c.Update = ""
 			}
 
 			s := &v6.PackageSpecifier{CPE: &c}
@@ -59,6 +61,7 @@ func (o *DBSearchPackages) PostLoad() error {
 			}
 
 			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Name: purl.Name, Ecosystem: purl.Type})
+			o.CPESpecs = append(o.CPESpecs, &v6.PackageSpecifier{CPE: &cpe.Attributes{Part: "a", Product: purl.Name, TargetSW: purl.Type}})
 
 		default:
 			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Name: p, Ecosystem: o.Ecosystem})

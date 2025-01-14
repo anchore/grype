@@ -24,10 +24,10 @@ func TestDBSearchPackagesPostLoad(t *testing.T) {
 				Packages: []string{"cpe:2.3:a:vendor:product:1.0:*:*:*:*:*:*:*"},
 			},
 			expectedPkg: v6.PackageSpecifiers{
-				{CPE: &cpe.Attributes{Part: "a", Vendor: "vendor", Product: "product", Version: "1.0"}},
+				{CPE: &cpe.Attributes{Part: "a", Vendor: "vendor", Product: "product"}},
 			},
 			expectedCPE: v6.PackageSpecifiers{
-				{CPE: &cpe.Attributes{Part: "a", Vendor: "vendor", Product: "product", Version: "1.0"}},
+				{CPE: &cpe.Attributes{Part: "a", Vendor: "vendor", Product: "product"}},
 			},
 		},
 		{
@@ -38,7 +38,9 @@ func TestDBSearchPackagesPostLoad(t *testing.T) {
 			expectedPkg: v6.PackageSpecifiers{
 				{Name: "package-name", Ecosystem: "npm"},
 			},
-			expectedCPE: nil,
+			expectedCPE: v6.PackageSpecifiers{
+				{CPE: &cpe.Attributes{Part: "a", Product: "package-name", TargetSW: "npm"}},
+			},
 		},
 		{
 			name: "plain package name",

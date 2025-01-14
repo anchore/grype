@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/anchore/clio"
 	v6 "github.com/anchore/grype/grype/db/v6"
@@ -46,7 +47,7 @@ func parseOSString(osValue string) (*v6.OSSpecifier, error) {
 	// version could be a codename, major version, major.minor version, or major.minior.patch version
 	switch strings.Count(osValue, ":") {
 	case 0:
-		// fallthrough
+		// no-op
 	case 1:
 		// be nice to folks that are close...
 		osValue = strings.ReplaceAll(osValue, ":", "@")
@@ -70,8 +71,7 @@ func parseOSString(osValue string) (*v6.OSSpecifier, error) {
 		// parse the version (major.minor.patch, major.minor, major, codename)
 
 		// if starts with a number, then it is a version
-		startVersion := version[0]
-		if startVersion >= '0' && startVersion <= '9' {
+		if unicode.IsDigit(rune(version[0])) {
 			versionParts := strings.Split(parts[1], ".")
 			var major, minor string
 			switch len(versionParts) {
