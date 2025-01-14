@@ -117,8 +117,7 @@ func FindVulnerabilities(reader interface { //nolint:funlen
 
 	var vulns []v6.VulnerabilityHandle
 	var limitReached bool
-	for i := range config.Vulnerability {
-		vulnSpec := config.Vulnerability[i]
+	for _, vulnSpec := range config.Vulnerability {
 		vs, err := reader.GetVulnerabilities(&vulnSpec, &v6.GetVulnerabilityOptions{
 			Preload: true,
 			Limit:   config.RecordLimit,
