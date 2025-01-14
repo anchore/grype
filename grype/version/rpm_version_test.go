@@ -25,12 +25,15 @@ func TestVersionRpm(t *testing.T) {
 		{"1:2", "1", 1},
 		{"0:4.19.1-1.el7_5", "2:4.19.1-1.el7_5", -1},
 		{"4:1.2.3-3-el7_5", "1.2.3-el7_5~snapshot1", 1},
-		//Non-standard comparisons that ignore epochs due to only one being available
+		// Non-standard comparisons that ignore epochs due to only one being available
 		{"1:0", "1", -1},
 		{"2:4.19.01-1.el7_5", "4.19.1-1.el7_5", 0},
 		{"4.19.01-1.el7_5", "2:4.19.1-1.el7_5", 0},
 		{"4.19.0-1.el7_5", "12:4.19.0-1.el7", 1},
 		{"3:4.19.0-1.el7_5", "4.21.0-1.el7", -1},
+		// centos and rhel build numbers differ on same version of same package
+		// ensure these are equal.
+		{"3:10.3.28-1.module_el8.3.0+757+d382997d", "3:10.3.28-1.module+el8.3.0+10472+7adc332a", 0},
 	}
 
 	for _, test := range tests {
