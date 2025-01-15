@@ -3,8 +3,9 @@ package match
 import (
 	"regexp"
 
-	"github.com/anchore/grype/internal/log"
 	"github.com/bmatcuk/doublestar/v2"
+
+	"github.com/anchore/grype/internal/log"
 )
 
 // IgnoreFilter implementations are used to filter matches, returning all applicable IgnoreRule(s) that applied,
