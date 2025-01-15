@@ -39,7 +39,7 @@ func DBProviders(app clio.Application) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "providers",
-		Short: "list vulnerability database providers",
+		Short: "List vulnerability providers that are in the database",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(_ *cobra.Command, _ []string) error {
 			return runDBProviders(opts, app)

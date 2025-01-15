@@ -17,7 +17,7 @@ func DBDelete(app clio.Application) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "delete",
-		Short:   "delete the vulnerability database",
+		Short:   "Delete the vulnerability database",
 		Args:    cobra.ExactArgs(0),
 		PreRunE: disableUI(app),
 		RunE: func(_ *cobra.Command, _ []string) error {

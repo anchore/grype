@@ -34,7 +34,7 @@ func DBList(app clio.Application) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "list",
-		Short:   "list all DBs available according to the listing URL",
+		Short:   "List all DBs available according to the listing URL",
 		PreRunE: disableUI(app),
 		Args:    cobra.ExactArgs(0),
 		RunE: func(_ *cobra.Command, _ []string) error {

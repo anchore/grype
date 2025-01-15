@@ -26,6 +26,7 @@ const (
 
 var NoOSSpecified = &OSSpecifier{}
 var AnyOSSpecified *OSSpecifier
+var AnyPackageSpecified *PackageSpecifier
 var ErrMissingDistroIdentification = errors.New("missing os name or codename")
 var ErrDistroNotPresent = errors.New("distro not present")
 var ErrMultipleOSMatches = errors.New("multiple OS matches found but not allowed")
@@ -45,9 +46,9 @@ type GetAffectedPackageOptions struct {
 type PackageSpecifiers []*PackageSpecifier
 
 type PackageSpecifier struct {
-	Name string
-	Type string
-	CPE  *cpe.Attributes
+	Name      string
+	Ecosystem string
+	CPE       *cpe.Attributes
 }
 
 func (p *PackageSpecifier) String() string {
@@ -60,8 +61,8 @@ func (p *PackageSpecifier) String() string {
 		args = append(args, fmt.Sprintf("name=%s", p.Name))
 	}
 
-	if p.Type != "" {
-		args = append(args, fmt.Sprintf("type=%s", p.Type))
+	if p.Ecosystem != "" {
+		args = append(args, fmt.Sprintf("ecosystem=%s", p.Ecosystem))
 	}
 
 	if p.CPE != nil {
@@ -301,8 +302,8 @@ func (s *affectedPackageStore) handlePackage(query *gorm.DB, config *PackageSpec
 	if config.Name != "" {
 		query = query.Where("packages.name = ?", config.Name)
 	}
-	if config.Type != "" {
-		query = query.Where("packages.type = ?", config.Type)
+	if config.Ecosystem != "" {
+		query = query.Where("packages.type = ?", config.Ecosystem)
 	}
 
 	if config.CPE != nil {
@@ -578,15 +579,15 @@ func handleCPEOptions(query *gorm.DB, c *cpe.Attributes) *gorm.DB {
 	}
 
 	if c.SWEdition != cpe.Any {
-		query = query.Where("cpes.sw_edition = ?", c.SWEdition)
+		query = query.Where("cpes.software_edition = ?", c.SWEdition)
 	}
 
 	if c.TargetSW != cpe.Any {
-		query = query.Where("cpes.target_sw = ?", c.TargetSW)
+		query = query.Where("cpes.target_software = ?", c.TargetSW)
 	}
 
 	if c.TargetHW != cpe.Any {
-		query = query.Where("cpes.target_hw = ?", c.TargetHW)
+		query = query.Where("cpes.target_hardware = ?", c.TargetHW)
 	}
 
 	if c.Other != cpe.Any {

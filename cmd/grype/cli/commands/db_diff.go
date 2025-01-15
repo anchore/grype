@@ -35,7 +35,7 @@ func DBDiff(app clio.Application) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "diff [flags] base_db_url target_db_url",
-		Short: "diff two DBs and display the result",
+		Short: "Diff two DBs and display the result",
 		Args:  cobra.MaximumNArgs(2),
 		RunE: func(_ *cobra.Command, args []string) (err error) {
 			var base, target string
