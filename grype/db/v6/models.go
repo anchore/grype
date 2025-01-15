@@ -306,6 +306,9 @@ type OperatingSystem struct {
 }
 
 func (os *OperatingSystem) VersionNumber() string {
+	if os == nil {
+		return ""
+	}
 	if os.MinorVersion != "" {
 		return fmt.Sprintf("%s.%s", os.MajorVersion, os.MinorVersion)
 	}
