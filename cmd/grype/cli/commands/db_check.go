@@ -38,7 +38,7 @@ func DBCheck(app clio.Application) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "check",
-		Short: "check to see if there is a database update available",
+		Short: "Check to see if there is a database update available",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			// DB commands should not opt into the low-pass check filter
 			opts.DB.MaxUpdateCheckFrequency = 0

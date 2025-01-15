@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "anchore.io/schema/grype/db-search-vuln/json/1.0.0/vulnerabilities",
+  "$ref": "#/$defs/Vulnerabilities",
+  "$defs": {
+    "OperatingSystem": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "name",
+        "version"
+      ]
+    },
+    "Reference": {
+      "$defs": {
+        "tags": {
+          "description": "is a free-form organizational field to convey additional information about the reference"
+        },
+        "url": {
+          "description": "is the external resource"
+        }
+      },
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object",
+      "required": [
+        "url"
+      ]
+    },
+    "Severity": {
+      "$defs": {
+        "rank": {
+          "description": "is a free-form organizational field to convey priority over other severities"
+        },
+        "scheme": {
+          "description": "describes the quantitative method used to determine the Score, such as 'CVSS_V3'. Alternatively this makes\nclaim that Value is qualitative, for example 'HML' (High, Medium, Low), CHMLN (critical-high-medium-low-negligible)"
+        },
+        "source": {
+          "description": "is the name of the source of the severity score (e.g. 'nvd@nist.gov' or 'security-advisories@github.com')"
+        },
+        "value": {
+          "description": "is the severity score (e.g. '7.5', 'CVSS:4.0/AV:N/AC:L/AT:N/PR:H/UI:N/VC:L/VI:L/VA:N/SC:N/SI:N/SA:N',  or 'high' )"
+        }
+      },
+      "properties": {
+        "scheme": {
+          "type": "string"
+        },
+        "value": true,
+        "source": {
+          "type": "string"
+        },
+        "rank": {
+          "type": "integer"
+        }
+      },
+      "type": "object",
+      "required": [
+        "scheme",
+        "value",
+        "rank"
+      ]
+    },
+    "Vulnerabilities": {
+      "items": {
+        "$ref": "#/$defs/Vulnerability"
+      },
+      "type": "array"
+    },
+    "Vulnerability": {
+      "$defs": {
+        "affected_packages": {
+          "description": "is the number of packages affected by the vulnerability"
+        },
+        "operating_systems": {
+          "description": "is a list of operating systems affected by the vulnerability"
+        }
+      },
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "assigner": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "description": {
+          "type": "string"
+        },
+        "refs": {
+          "items": {
+            "$ref": "#/$defs/Reference"
+          },
+          "type": "array"
+        },
+        "aliases": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severities": {
+          "items": {
+            "$ref": "#/$defs/Severity"
+          },
+          "type": "array"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "published_date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "modified_date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "withdrawn_date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "operating_systems": {
+          "items": {
+            "$ref": "#/$defs/OperatingSystem"
+          },
+          "type": "array"
+        },
+        "affected_packages": {
+          "type": "integer"
+        }
+      },
+      "type": "object",
+      "required": [
+        "id",
+        "provider",
+        "status",
+        "operating_systems",
+        "affected_packages"
+      ]
+    }
+  }
+}

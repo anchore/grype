@@ -3,6 +3,7 @@ package v6
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/OneOfOne/xxhash"
@@ -129,7 +130,7 @@ type VulnerabilityHandle struct {
 	// Name is the unique name for the vulnerability (same as the decoded VulnerabilityBlob.ID)
 	Name string `gorm:"column:name;not null;index"`
 
-	// Status conveys the actionability of the current record
+	// Status conveys the actionability of the current record (one of "active", "analyzing", "rejected", "disputed")
 	Status VulnerabilityStatus `gorm:"column:status;not null;index"`
 
 	// PublishedDate is the date the vulnerability record was first published
@@ -222,11 +223,17 @@ func (v *AffectedPackageHandle) setBlob(rawBlobValue []byte) error {
 	return nil
 }
 
+// Package represents a package name within a known ecosystem, such as "python" or "golang".
 type Package struct {
-	ID   ID     `gorm:"column:id;primaryKey"`
+	ID ID `gorm:"column:id;primaryKey"`
+
+	// Type is the tooling and language ecosystem that the package is released within
 	Type string `gorm:"column:type;index:idx_package,unique"`
+
+	// Name is the name of the package within the ecosystem
 	Name string `gorm:"column:name;index:idx_package,unique;index:idx_package_name"`
 
+	// CPEs is the list of Common Platform Enumeration (CPE) identifiers that represent this package
 	CPEs []Cpe `gorm:"foreignKey:PackageID;constraint:OnDelete:CASCADE;"`
 }
 
@@ -275,29 +282,33 @@ func (p *Package) BeforeCreate(tx *gorm.DB) (err error) {
 	return nil
 }
 
+// OperatingSystem represents specific release of an operating system. The resolution of the version is
+// relative to the available data by the vulnerability data provider, so though there may be major.minor.patch OS
+// releases, there may only be data available for major.minor.
 type OperatingSystem struct {
 	ID ID `gorm:"column:id;primaryKey"`
 
-	Name         string `gorm:"column:name;index:os_idx,unique;index"`
-	ReleaseID    string `gorm:"column:release_id;index:os_idx,unique;index"`
-	MajorVersion string `gorm:"column:major_version;index:os_idx,unique;index"`
-	MinorVersion string `gorm:"column:minor_version;index:os_idx,unique;index"`
-	LabelVersion string `gorm:"column:label_version;index:os_idx,unique;index"`
-	Codename     string `gorm:"column:codename;index"`
-}
+	// Name is the operating system family name (e.g. "debian")
+	Name      string `gorm:"column:name;index:os_idx,unique;index"`
+	ReleaseID string `gorm:"column:release_id;index:os_idx,unique;index"`
 
-func (os *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
-	// if the name, major version, and minor version already exist in the table then we should not insert a new record
-	var existing OperatingSystem
-	result := tx.Where("name = ? AND major_version = ? AND minor_version = ?", os.Name, os.MajorVersion, os.MinorVersion).First(&existing)
-	if result.Error == nil {
-		// if the record already exists, then we should use the existing record
-		*os = existing
-	}
-	return nil
+	// MajorVersion is the major version of a specific release (e.g. "10" for debian 10)
+	MajorVersion string `gorm:"column:major_version;index:os_idx,unique;index"`
+
+	// MinorVersion is the minor version of a specific release (e.g. "1" for debian 10.1)
+	MinorVersion string `gorm:"column:minor_version;index:os_idx,unique;index"`
+
+	// LabelVersion is an optional non-codename string representation of the version (e.g. "unstable" or for debian:sid)
+	LabelVersion string `gorm:"column:label_version;index:os_idx,unique;index"`
+
+	// Codename is the codename of a specific release (e.g. "buster" for debian 10)
+	Codename string `gorm:"column:codename;index"`
 }
 
 func (os *OperatingSystem) VersionNumber() string {
+	if os == nil {
+		return ""
+	}
 	if os.MinorVersion != "" {
 		return fmt.Sprintf("%s.%s", os.MajorVersion, os.MinorVersion)
 	}
@@ -321,6 +332,17 @@ func (os *OperatingSystem) Version() string {
 	}
 
 	return os.Codename
+}
+
+func (os *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
+	// if the name, major version, and minor version already exist in the table then we should not insert a new record
+	var existing OperatingSystem
+	result := tx.Where("name = ? AND major_version = ? AND minor_version = ?", os.Name, os.MajorVersion, os.MinorVersion).First(&existing)
+	if result.Error == nil {
+		// if the record already exists, then we should use the existing record
+		*os = existing
+	}
+	return nil
 }
 
 // OperatingSystemSpecifierOverride is a table that allows for overriding fields on v6.OSSpecifier instances when searching for specific OperatingSystems.
@@ -450,7 +472,13 @@ type Cpe struct {
 }
 
 func (c Cpe) String() string {
-	return fmt.Sprintf("%s:%s:%s:::%s:%s:%s:%s:%s:%s", c.Part, c.Vendor, c.Product, c.Edition, c.Language, c.SoftwareEdition, c.TargetHardware, c.TargetSoftware, c.Other)
+	parts := []string{"cpe:2.3", c.Part, c.Vendor, c.Product, c.Edition, c.Language, c.SoftwareEdition, c.TargetHardware, c.TargetSoftware, c.Other}
+	for i, part := range parts {
+		if part == "" {
+			parts[i] = "*"
+		}
+	}
+	return strings.Join(parts, ":")
 }
 
 func (c *Cpe) BeforeCreate(tx *gorm.DB) (err error) {
