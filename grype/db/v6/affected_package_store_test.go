@@ -850,6 +850,45 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 	}
 }
 
+func TestAffectedPackageStore_ApplyPackageAlias(t *testing.T) {
+	db := setupTestStore(t).db
+	bs := newBlobStore(db)
+	s := newAffectedPackageStore(db, bs)
+
+	tests := []struct {
+		name     string
+		input    *PackageSpecifier
+		expected string
+	}{
+		// positive cases
+		{name: "alias cocoapods", input: &PackageSpecifier{Ecosystem: "cocoapods"}, expected: "pod"},
+		{name: "alias pub", input: &PackageSpecifier{Ecosystem: "pub"}, expected: "dart-pub"},
+		{name: "alias otp", input: &PackageSpecifier{Ecosystem: "otp"}, expected: "erlang-otp"},
+		{name: "alias github", input: &PackageSpecifier{Ecosystem: "github"}, expected: "github-action"},
+		{name: "alias golang", input: &PackageSpecifier{Ecosystem: "golang"}, expected: "go-module"},
+		{name: "alias maven", input: &PackageSpecifier{Ecosystem: "maven"}, expected: "java-archive"},
+		{name: "alias composer", input: &PackageSpecifier{Ecosystem: "composer"}, expected: "php-composer"},
+		{name: "alias pecl", input: &PackageSpecifier{Ecosystem: "pecl"}, expected: "php-pecl"},
+		{name: "alias pypi", input: &PackageSpecifier{Ecosystem: "pypi"}, expected: "python"},
+		{name: "alias cran", input: &PackageSpecifier{Ecosystem: "cran"}, expected: "R-package"},
+		{name: "alias luarocks", input: &PackageSpecifier{Ecosystem: "luarocks"}, expected: "lua-rocks"},
+		{name: "alias cargo", input: &PackageSpecifier{Ecosystem: "cargo"}, expected: "rust-crate"},
+
+		// negative cases
+		{name: "generic type", input: &PackageSpecifier{Ecosystem: "generic/linux-kernel"}, expected: "generic/linux-kernel"},
+		{name: "empty ecosystem", input: &PackageSpecifier{Ecosystem: ""}, expected: ""},
+		{name: "matching type", input: &PackageSpecifier{Ecosystem: "python"}, expected: "python"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := s.applyPackageAlias(tt.input)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, tt.input.Ecosystem)
+		})
+	}
+}
+
 func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 	// we always preload the OS aliases into the DB when staging for writing
 	db := setupTestStore(t).db

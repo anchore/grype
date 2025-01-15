@@ -1,6 +1,10 @@
 package v6
 
-import "github.com/anchore/syft/syft/pkg"
+import (
+	"strings"
+
+	"github.com/anchore/syft/syft/pkg"
+)
 
 // TODO: in a future iteration these should be raised up more explicitly by the vunnel providers
 func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride {
@@ -49,7 +53,7 @@ func KnownPackageSpecifierOverrides() []PackageSpecifierOverride {
 	var ret []PackageSpecifierOverride
 	for _, t := range pkg.AllPkgs {
 		purlType := t.PackageURLType()
-		if purlType == "" || purlType == string(t) {
+		if purlType == "" || purlType == string(t) || strings.HasPrefix(purlType, "generic") {
 			continue
 		}
 
