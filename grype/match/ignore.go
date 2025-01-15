@@ -3,6 +3,7 @@ package match
 import (
 	"regexp"
 
+	"github.com/anchore/grype/internal/log"
 	"github.com/bmatcuk/doublestar/v2"
 )
 
@@ -239,9 +240,14 @@ func ifPackageLocationApplies(location string) ignoreCondition {
 }
 
 func ifUpstreamPackageNameApplies(name string) ignoreCondition {
+	pattern, err := packageNameRegex(name)
+	if err != nil {
+		log.WithFields("name", name, "error", err).Debug("unable to parse name expression")
+		return func(Match) bool { return false }
+	}
 	return func(match Match) bool {
 		for _, upstream := range match.Package.Upstreams {
-			if name == upstream.Name {
+			if pattern.MatchString(upstream.Name) {
 				return true
 			}
 		}
