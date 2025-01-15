@@ -149,7 +149,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 					ID: "provider1",
 				},
 			},
-			Package: &Package{Name: "pkg1", Type: "type1"},
+			Package: &Package{Name: "pkg1", Ecosystem: "type1"},
 			BlobValue: &AffectedPackageBlob{
 				CVEs: []string{"CVE-2023-1234"},
 			},
@@ -245,7 +245,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 					ID: "provider1",
 				},
 			},
-			Package: &Package{Name: "pkg1", Type: "type1"},
+			Package: &Package{Name: "pkg1", Ecosystem: "type1"},
 			BlobValue: &AffectedPackageBlob{
 				CVEs: []string{"CVE-2023-1234"},
 			},
@@ -258,7 +258,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 					ID: "provider1",
 				},
 			},
-			Package: &Package{Name: "pkg1", Type: "type1"}, // same!
+			Package: &Package{Name: "pkg1", Ecosystem: "type1"}, // same!
 			BlobValue: &AffectedPackageBlob{
 				CVEs: []string{"CVE-2023-56789"},
 			},
@@ -301,7 +301,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 					ID: "provider1",
 				},
 			},
-			Package: &Package{Name: "pkg1", Type: "type1", CPEs: []Cpe{cpe1}},
+			Package: &Package{Name: "pkg1", Ecosystem: "type1", CPEs: []Cpe{cpe1}},
 			BlobValue: &AffectedPackageBlob{
 				CVEs: []string{"CVE-2023-1234"},
 			},
@@ -314,7 +314,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 					ID: "provider1",
 				},
 			},
-			Package: &Package{Name: "pkg1", Type: "type1", CPEs: []Cpe{cpe1, cpe2}}, // duplicate CPE + additional CPE
+			Package: &Package{Name: "pkg1", Ecosystem: "type1", CPEs: []Cpe{cpe1, cpe2}}, // duplicate CPE + additional CPE
 			BlobValue: &AffectedPackageBlob{
 				CVEs: []string{"CVE-2023-56789"},
 			},
@@ -374,7 +374,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 					ID: "provider1",
 				},
 			},
-			Package: &Package{Name: "pkg1", Type: "type1", CPEs: []Cpe{cpe1}},
+			Package: &Package{Name: "pkg1", Ecosystem: "type1", CPEs: []Cpe{cpe1}},
 			BlobValue: &AffectedPackageBlob{
 				CVEs: []string{"CVE-2023-1234"},
 			},
@@ -387,7 +387,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 					ID: "provider1",
 				},
 			},
-			Package: &Package{Name: "pkg2", Type: "type1", CPEs: []Cpe{cpe1, cpe2}}, // overlapping CPEs for different packages
+			Package: &Package{Name: "pkg2", Ecosystem: "type1", CPEs: []Cpe{cpe1, cpe2}}, // overlapping CPEs for different packages
 			BlobValue: &AffectedPackageBlob{
 				CVEs: []string{"CVE-2023-56789"},
 			},
@@ -413,7 +413,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 				ID: "provider1",
 			},
 		},
-		Package: &Package{Name: "pkg1", Type: "type1", CPEs: []Cpe{cpe1}},
+		Package: &Package{Name: "pkg1", Ecosystem: "type1", CPEs: []Cpe{cpe1}},
 		BlobValue: &AffectedPackageBlob{
 			CVEs: []string{"CVE-2023-1234"},
 		},
@@ -425,7 +425,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 				ID: "provider1",
 			},
 		},
-		Package: &Package{Name: "pkg2", Type: "type2", CPEs: []Cpe{cpe2}},
+		Package: &Package{Name: "pkg2", Ecosystem: "type2", CPEs: []Cpe{cpe2}},
 		BlobValue: &AffectedPackageBlob{
 			CVEs: []string{"CVE-2023-5678"},
 		},
@@ -519,6 +519,115 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 	}
 }
 
+func TestAffectedPackageStore_GetAffectedPackages_CaseInsensitive(t *testing.T) {
+	db := setupTestStore(t).db
+	bs := newBlobStore(db)
+	s := newAffectedPackageStore(db, bs)
+
+	cpe1 := Cpe{Part: "a", Vendor: "Vendor1", Product: "Product1"} // capitalized
+	pkg1 := &AffectedPackageHandle{
+		Vulnerability: &VulnerabilityHandle{
+			Name: "CVE-2023-1234",
+			Provider: &Provider{
+				ID: "provider1",
+			},
+		},
+		OperatingSystem: &OperatingSystem{
+			Name:         "Ubuntu", // capitalized
+			ReleaseID:    "zubuntu",
+			MajorVersion: "20",
+			MinorVersion: "04",
+			Codename:     "focal",
+		},
+		Package: &Package{Name: "Pkg1", Ecosystem: "Type1", CPEs: []Cpe{cpe1}}, // capitalized
+		BlobValue: &AffectedPackageBlob{
+			CVEs: []string{"CVE-2023-1234"},
+		},
+	}
+
+	err := s.AddAffectedPackages(pkg1)
+	require.NoError(t, err)
+
+	tests := []struct {
+		name     string
+		pkgSpec  *PackageSpecifier
+		options  *GetAffectedPackageOptions
+		expected int
+	}{
+		{
+			name:     "sanity check: search miss",
+			pkgSpec:  pkgFromName("does not exist"),
+			expected: 0,
+		},
+		{
+			name:     "get by name",
+			pkgSpec:  pkgFromName("pKG1"),
+			expected: 1,
+		},
+		{
+			name: "get by CPE",
+			pkgSpec: &PackageSpecifier{
+				CPE: &cpe.Attributes{Part: "a", Vendor: "veNDor1", Product: "pRODuct1"},
+			},
+			expected: 1,
+		},
+		{
+			name: "get by ecosystem",
+			pkgSpec: &PackageSpecifier{
+				Ecosystem: "tYPE1",
+			},
+			expected: 1,
+		},
+		{
+			name: "get by OS name",
+			options: &GetAffectedPackageOptions{
+				OSs: []*OSSpecifier{{
+					Name:         "uBUNtu",
+					MajorVersion: "20",
+					MinorVersion: "04",
+				}},
+			},
+			expected: 1,
+		},
+		{
+			name: "get by OS release",
+			options: &GetAffectedPackageOptions{
+				OSs: []*OSSpecifier{{
+					Name: "zUBuntu",
+				}},
+			},
+			expected: 1,
+		},
+		{
+			name: "get by OS codename",
+			options: &GetAffectedPackageOptions{
+				OSs: []*OSSpecifier{{
+					LabelVersion: "fOCAL",
+				}},
+			},
+			expected: 1,
+		},
+		{
+			name: "get by vuln ID",
+			options: &GetAffectedPackageOptions{
+				Vulnerabilities: []VulnerabilitySpecifier{{Name: "cVe-2023-1234"}},
+			},
+			expected: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := s.GetAffectedPackages(tt.pkgSpec, tt.options)
+			require.NoError(t, err)
+			require.Len(t, result, tt.expected)
+			if tt.expected > 0 {
+				assert.Equal(t, pkg1.PackageID, result[0].PackageID)
+			}
+		})
+	}
+}
+
 func TestAffectedPackageStore_GetAffectedPackages_MultipleVulnerabilitySpecs(t *testing.T) {
 	db := setupTestStore(t).db
 	bs := newBlobStore(db)
@@ -533,7 +642,7 @@ func TestAffectedPackageStore_GetAffectedPackages_MultipleVulnerabilitySpecs(t *
 				ID: "provider1",
 			},
 		},
-		Package: &Package{Name: "pkg1", Type: "type1", CPEs: []Cpe{cpe1}},
+		Package: &Package{Name: "pkg1", Ecosystem: "type1", CPEs: []Cpe{cpe1}},
 		BlobValue: &AffectedPackageBlob{
 			CVEs: []string{"CVE-2023-1234"},
 		},
@@ -545,7 +654,7 @@ func TestAffectedPackageStore_GetAffectedPackages_MultipleVulnerabilitySpecs(t *
 				ID: "provider1",
 			},
 		},
-		Package: &Package{Name: "pkg2", Type: "type2", CPEs: []Cpe{cpe2}},
+		Package: &Package{Name: "pkg2", Ecosystem: "type2", CPEs: []Cpe{cpe2}},
 		BlobValue: &AffectedPackageBlob{
 			CVEs: []string{"CVE-2023-5678"},
 		},
@@ -1107,8 +1216,8 @@ func testDistro1AffectedPackage2Handle() *AffectedPackageHandle {
 	later := now.Add(time.Hour * 200)
 	return &AffectedPackageHandle{
 		Package: &Package{
-			Name: "pkg2",
-			Type: "type2d",
+			Name:      "pkg2",
+			Ecosystem: "type2d",
 		},
 		Vulnerability: &VulnerabilityHandle{
 			Name:          "CVE-2023-1234",
@@ -1136,8 +1245,8 @@ func testDistro2AffectedPackage2Handle() *AffectedPackageHandle {
 	later := now.Add(time.Hour * 200)
 	return &AffectedPackageHandle{
 		Package: &Package{
-			Name: "pkg2",
-			Type: "type2d",
+			Name:      "pkg2",
+			Ecosystem: "type2d",
 		},
 		Vulnerability: &VulnerabilityHandle{
 			Name:          "CVE-2023-4567",
@@ -1164,8 +1273,8 @@ func testNonDistroAffectedPackage2Handle() *AffectedPackageHandle {
 	later := now.Add(time.Hour * 200)
 	return &AffectedPackageHandle{
 		Package: &Package{
-			Name: "pkg2",
-			Type: "type2",
+			Name:      "pkg2",
+			Ecosystem: "type2",
 		},
 		Vulnerability: &VulnerabilityHandle{
 			Name:          "CVE-2023-4567",
@@ -1187,10 +1296,6 @@ func expectErrIs(t *testing.T, expected error) require.ErrorAssertionFunc {
 		require.Error(t, err, msgAndArgs...)
 		assert.ErrorIs(t, err, expected)
 	}
-}
-
-func strRef(s string) *string {
-	return &s
 }
 
 func idRef(i int64) *ID {

@@ -297,13 +297,17 @@ func (s *affectedPackageStore) handlePackage(query *gorm.DB, config *PackageSpec
 		return query
 	}
 
+	if err := s.applyPackageAlias(config); err != nil {
+		log.Errorf("failed to apply package alias: %v", err)
+	}
+
 	query = query.Joins("JOIN packages ON affected_package_handles.package_id = packages.id")
 
 	if config.Name != "" {
-		query = query.Where("packages.name = ?", config.Name)
+		query = query.Where("packages.name = ? collate nocase", config.Name)
 	}
 	if config.Ecosystem != "" {
-		query = query.Where("packages.type = ?", config.Ecosystem)
+		query = query.Where("packages.ecosystem = ? collate nocase", config.Ecosystem)
 	}
 
 	if config.CPE != nil {
@@ -312,6 +316,43 @@ func (s *affectedPackageStore) handlePackage(query *gorm.DB, config *PackageSpec
 	}
 
 	return query
+}
+
+func (s *affectedPackageStore) applyPackageAlias(d *PackageSpecifier) error {
+	if d.Ecosystem == "" {
+		return nil
+	}
+
+	// only ecosystem replacement is supported today
+	var aliases []PackageSpecifierOverride
+	err := s.db.Where("ecosystem = ? collate nocase", d.Ecosystem).Find(&aliases).Error
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return fmt.Errorf("failed to resolve alias for distro %q: %w", d.Name, err)
+		}
+		return nil
+	}
+
+	var alias *PackageSpecifierOverride
+
+	for _, a := range aliases {
+		if a.Ecosystem == "" {
+			continue
+		}
+
+		alias = &a
+		break
+	}
+
+	if alias == nil {
+		return nil
+	}
+
+	if alias.ReplacementEcosystem != nil {
+		d.Ecosystem = *alias.ReplacementEcosystem
+	}
+
+	return nil
 }
 
 func (s *affectedPackageStore) handleVulnerabilityOptions(query *gorm.DB, configs []VulnerabilitySpecifier) (*gorm.DB, error) {
@@ -397,21 +438,82 @@ func (s *affectedPackageStore) resolveDistro(d OSSpecifier) ([]OperatingSystem, 
 	// search for aliases for the given distro; we intentionally map some OSs to other OSs in terms of
 	// vulnerability (e.g. `centos` is an alias for `rhel`). If an alias is found always use that alias in
 	// searches (there will never be anything in the DB for aliased distros).
-	if err := s.applyAlias(&d); err != nil {
+	if err := s.applyOSAlias(&d); err != nil {
 		return nil, err
 	}
 
 	query := s.db.Model(&OperatingSystem{})
 
 	if d.Name != "" {
-		query = query.Where("name = ? OR release_id = ?", d.Name, d.Name)
+		query = query.Where("name = ? collate nocase OR release_id = ? collate nocase", d.Name, d.Name)
 	}
 
 	if d.LabelVersion != "" {
-		query = query.Where("codename = ? OR label_version = ?", d.LabelVersion, d.LabelVersion)
+		query = query.Where("codename = ? collate nocase OR label_version = ? collate nocase", d.LabelVersion, d.LabelVersion)
 	}
 
 	return s.searchForDistroVersionVariants(query, d)
+}
+
+func (s *affectedPackageStore) applyOSAlias(d *OSSpecifier) error {
+	if d.Name == "" {
+		return nil
+	}
+
+	var aliases []OperatingSystemSpecifierOverride
+	err := s.db.Where("alias = ? collate nocase", d.Name).Find(&aliases).Error
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return fmt.Errorf("failed to resolve alias for distro %q: %w", d.Name, err)
+		}
+		return nil
+	}
+
+	var alias *OperatingSystemSpecifierOverride
+
+	for _, a := range aliases {
+		if a.Codename != "" && a.Codename != d.LabelVersion {
+			continue
+		}
+
+		if a.Version != "" && a.Version != d.version() {
+			continue
+		}
+
+		if a.VersionPattern != "" && !d.matchesVersionPattern(a.VersionPattern) {
+			continue
+		}
+
+		alias = &a
+		break
+	}
+
+	if alias == nil {
+		return nil
+	}
+
+	if alias.ReplacementName != nil {
+		d.Name = *alias.ReplacementName
+	}
+
+	if alias.Rolling {
+		d.MajorVersion = ""
+		d.MinorVersion = ""
+	}
+
+	if alias.ReplacementMajorVersion != nil {
+		d.MajorVersion = *alias.ReplacementMajorVersion
+	}
+
+	if alias.ReplacementMinorVersion != nil {
+		d.MinorVersion = *alias.ReplacementMinorVersion
+	}
+
+	if alias.ReplacementLabelVersion != nil {
+		d.LabelVersion = *alias.ReplacementLabelVersion
+	}
+
+	return nil
 }
 
 func (s *affectedPackageStore) searchForDistroVersionVariants(query *gorm.DB, d OSSpecifier) ([]OperatingSystem, error) {
@@ -468,67 +570,6 @@ func (s *affectedPackageStore) searchForDistroVersionVariants(query *gorm.DB, d 
 	return allOs, nil
 }
 
-func (s *affectedPackageStore) applyAlias(d *OSSpecifier) error {
-	if d.Name == "" {
-		return nil
-	}
-
-	var aliases []OperatingSystemSpecifierOverride
-	err := s.db.Where("alias = ?", d.Name).Find(&aliases).Error
-	if err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return fmt.Errorf("failed to resolve alias for distro %q: %w", d.Name, err)
-		}
-		return nil
-	}
-
-	var alias *OperatingSystemSpecifierOverride
-
-	for _, a := range aliases {
-		if a.Codename != "" && a.Codename != d.LabelVersion {
-			continue
-		}
-
-		if a.Version != "" && a.Version != d.version() {
-			continue
-		}
-
-		if a.VersionPattern != "" && !d.matchesVersionPattern(a.VersionPattern) {
-			continue
-		}
-
-		alias = &a
-		break
-	}
-
-	if alias == nil {
-		return nil
-	}
-
-	if alias.ReplacementName != nil {
-		d.Name = *alias.ReplacementName
-	}
-
-	if alias.Rolling {
-		d.MajorVersion = ""
-		d.MinorVersion = ""
-	}
-
-	if alias.ReplacementMajorVersion != nil {
-		d.MajorVersion = *alias.ReplacementMajorVersion
-	}
-
-	if alias.ReplacementMinorVersion != nil {
-		d.MinorVersion = *alias.ReplacementMinorVersion
-	}
-
-	if alias.ReplacementLabelVersion != nil {
-		d.LabelVersion = *alias.ReplacementLabelVersion
-	}
-
-	return nil
-}
-
 func (s *affectedPackageStore) handlePreload(query *gorm.DB, config GetAffectedPackageOptions) *gorm.DB {
 	var limitArgs []interface{}
 	if config.Limit > 0 {
@@ -559,39 +600,39 @@ func (s *affectedPackageStore) handlePreload(query *gorm.DB, config GetAffectedP
 
 func handleCPEOptions(query *gorm.DB, c *cpe.Attributes) *gorm.DB {
 	if c.Part != cpe.Any {
-		query = query.Where("cpes.part = ?", c.Part)
+		query = query.Where("cpes.part = ? collate nocase", c.Part)
 	}
 
 	if c.Vendor != cpe.Any {
-		query = query.Where("cpes.vendor = ?", c.Vendor)
+		query = query.Where("cpes.vendor = ? collate nocase", c.Vendor)
 	}
 
 	if c.Product != cpe.Any {
-		query = query.Where("cpes.product = ?", c.Product)
+		query = query.Where("cpes.product = ? collate nocase", c.Product)
 	}
 
 	if c.Edition != cpe.Any {
-		query = query.Where("cpes.edition = ?", c.Edition)
+		query = query.Where("cpes.edition = ? collate nocase", c.Edition)
 	}
 
 	if c.Language != cpe.Any {
-		query = query.Where("cpes.language = ?", c.Language)
+		query = query.Where("cpes.language = ? collate nocase", c.Language)
 	}
 
 	if c.SWEdition != cpe.Any {
-		query = query.Where("cpes.software_edition = ?", c.SWEdition)
+		query = query.Where("cpes.software_edition = ? collate nocase", c.SWEdition)
 	}
 
 	if c.TargetSW != cpe.Any {
-		query = query.Where("cpes.target_software = ?", c.TargetSW)
+		query = query.Where("cpes.target_software = ? collate nocase", c.TargetSW)
 	}
 
 	if c.TargetHW != cpe.Any {
-		query = query.Where("cpes.target_hardware = ?", c.TargetHW)
+		query = query.Where("cpes.target_hardware = ? collate nocase", c.TargetHW)
 	}
 
 	if c.Other != cpe.Any {
-		query = query.Where("cpes.other = ?", c.Other)
+		query = query.Where("cpes.other = ? collate nocase", c.Other)
 	}
 	return query
 }

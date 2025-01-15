@@ -90,7 +90,7 @@ func TestAffectedPackageTableRowMarshalJSON(t *testing.T) {
 func TestNewAffectedPackageRows(t *testing.T) {
 	affectedPkgs := []v6.AffectedPackageHandle{
 		{
-			Package: &v6.Package{Name: "pkg1", Type: "ecosystem1"},
+			Package: &v6.Package{Name: "pkg1", Ecosystem: "ecosystem1"},
 			OperatingSystem: &v6.OperatingSystem{
 				Name:         "Linux",
 				MajorVersion: "5",
@@ -222,7 +222,7 @@ func TestAffectedPackages(t *testing.T) {
 
 	mockReader.On("GetAffectedPackages", mock.Anything, mock.Anything).Return([]v6.AffectedPackageHandle{
 		{
-			Package: &v6.Package{Name: "pkg1", Type: "ecosystem1"},
+			Package: &v6.Package{Name: "pkg1", Ecosystem: "ecosystem1"},
 			OperatingSystem: &v6.OperatingSystem{
 				Name:         "Linux",
 				MajorVersion: "5",

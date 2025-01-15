@@ -120,7 +120,7 @@ func toPackage(pkg *v6.Package) *Package {
 	}
 	return &Package{
 		Name:      pkg.Name,
-		Ecosystem: pkg.Type,
+		Ecosystem: pkg.Ecosystem,
 	}
 }
 
