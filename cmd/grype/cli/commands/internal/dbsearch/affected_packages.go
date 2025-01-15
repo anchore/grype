@@ -21,6 +21,9 @@ type AffectedPackage struct {
 }
 
 type AffectedPackageInfo struct {
+	// TODO: remove this when namespace is no longer used
+	Model *v6.AffectedPackageHandle `json:"-"` // tracking package handle info is necessary for namespace lookup (note CPE handles are not tracked)
+
 	// OS identifies the operating system release that the affected package is released for
 	OS *OperatingSystem `json:"os,omitempty"`
 
@@ -67,7 +70,8 @@ type AffectedPackagesOptions struct {
 }
 
 func newAffectedPackageRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPEs []v6.AffectedCPEHandle) (rows []AffectedPackage) {
-	for _, pkg := range affectedPkgs {
+	for i := range affectedPkgs {
+		pkg := affectedPkgs[i]
 		var detail v6.AffectedPackageBlob
 		if pkg.BlobValue != nil {
 			detail = *pkg.BlobValue
@@ -80,6 +84,7 @@ func newAffectedPackageRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPE
 		rows = append(rows, AffectedPackage{
 			Vulnerability: newVulnerabilityInfo(*pkg.Vulnerability),
 			AffectedPackageInfo: AffectedPackageInfo{
+				Model:   &pkg,
 				OS:      toOS(pkg.OperatingSystem),
 				Package: toPackage(pkg.Package),
 				Detail:  detail,
@@ -104,6 +109,7 @@ func newAffectedPackageRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPE
 		}
 
 		rows = append(rows, AffectedPackage{
+			// tracking model information is not possible with CPE handles
 			Vulnerability: newVulnerabilityInfo(*ac.Vulnerability),
 			AffectedPackageInfo: AffectedPackageInfo{
 				CPE:    c,
