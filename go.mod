@@ -67,7 +67,7 @@ require (
 
 require (
 	github.com/invopop/jsonschema v0.7.0
-	golang.org/x/tools v0.23.0
+	golang.org/x/tools v0.29.0
 )
 
 require (
