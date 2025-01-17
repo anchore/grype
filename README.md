@@ -420,16 +420,16 @@ If you want Grype to only report vulnerabilities **that do not have a confirmed 
 ## VEX Support
 
 Grype can use VEX (Vulnerability Exploitability Exchange) data to filter false
-positives or provide additional context, augmenting matches. When scanning a 
-container image, you can use the `--vex` flag to point to one or more 
+positives or provide additional context, augmenting matches. When scanning a
+container image, you can use the `--vex` flag to point to one or more
 [OpenVEX](https://github.com/openvex) documents.
 
 VEX statements relate a product (a container image), a vulnerability, and a VEX
 status to express an assertion of the vulnerability's impact. There are four
-[VEX statuses](https://github.com/openvex/spec/blob/main/OPENVEX-SPEC.md#status-labels): 
+[VEX statuses](https://github.com/openvex/spec/blob/main/OPENVEX-SPEC.md#status-labels):
 `not_affected`, `affected`, `fixed` and `under_investigation`.
 
-Here is an example of a simple OpenVEX document. (tip: use 
+Here is an example of a simple OpenVEX document. (tip: use
 [`vexctl`](https://github.com/openvex/vexctl) to generate your own documents).
 
 ```json
@@ -466,10 +466,10 @@ Any matches ignored as a result of VEX statements are flagged when using
 `--show-suppressed`:
 
 ```
-libcrypto3  3.0.8-r3   3.0.8-r4   apk   CVE-2023-1255  Medium (suppressed by VEX)  
+libcrypto3  3.0.8-r3   3.0.8-r4   apk   CVE-2023-1255  Medium (suppressed by VEX)
 ```
 
-Statements with an `affected` or `under_investigation` status will only be 
+Statements with an `affected` or `under_investigation` status will only be
 considered to augment the result set when specifically requested using the
 `GRYPE_VEX_ADD` environment variable or in a configuration file.
 
@@ -673,10 +673,13 @@ Default configuration search paths (see all with `grype config locations`):
 Use `grype config` to print a sample config file to stdout.
 Use `grype config --load` to print the current config after loading all values to stdout.
 
-You can specify files directly using the `--config` / `-c` flags to provide your own configuration files/paths:
+You can specify files directly using the environment variable `GRYPE_CONFIG` or the `--config` / `-c` flags to provide your own configuration files/paths:
 
-```
+```shell
+# Using the flag
 grype <image> -c /path/to/config.yaml
+# Or using the environment variable
+GRYPE_CONFIG=/path/to/config.yaml grype <image>
 ```
 
 Configuration options (example values are the default):
@@ -846,7 +849,7 @@ log:
   file: ""
 
 match:
-  # sets the matchers below to use cpes when trying to find 
+  # sets the matchers below to use cpes when trying to find
   # vulnerability matches. The stock matcher is the default
   # when no primary matcher can be identified.
   java:
@@ -879,5 +882,3 @@ The following areas of potential development are currently being investigated:
 ## Grype Logo
 
 <p xmlns:cc="http://creativecommons.org/ns#" xmlns:dct="http://purl.org/dc/terms/"><a property="dct:title" rel="cc:attributionURL" href="https://anchore.com/wp-content/uploads/2024/11/grype-logo.svg">Grype Logo</a> by <a rel="cc:attributionURL dct:creator" property="cc:attributionName" href="https://anchore.com/">Anchore</a> is licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="license noopener noreferrer" style="display:inline-block;">CC BY 4.0<img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" alt=""><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/by.svg" alt=""></a></p>
-
-
