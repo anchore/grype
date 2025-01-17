@@ -1,7 +1,6 @@
 package v6
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -512,9 +511,8 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 				return
 			}
 			if d := cmp.Diff(tt.expected, result, cmpopts.EquateEmpty()); d != "" {
-				t.Errorf(fmt.Sprintf("unexpected result: %s", d))
+				t.Errorf("unexpected result: %s", d)
 			}
-
 		})
 	}
 }
@@ -733,7 +731,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 						return
 					}
 					if d := cmp.Diff(expected, result); d != "" {
-						t.Errorf(fmt.Sprintf("unexpected result: %s", d))
+						t.Errorf("unexpected result: %s", d)
 					}
 				})
 			}
