@@ -22,10 +22,15 @@ type store struct {
 }
 
 func InitialData() []any {
-	d := KnownOperatingSystemSpecifierOverrides()
 	var data []any
-	for _, v := range d {
-		data = append(data, &v)
+	os := KnownOperatingSystemSpecifierOverrides()
+	for i := range os {
+		data = append(data, &os[i])
+	}
+
+	p := KnownPackageSpecifierOverrides()
+	for i := range p {
+		data = append(data, &p[i])
 	}
 	return data
 }

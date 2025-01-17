@@ -107,6 +107,35 @@ func TestAffectedCPEStore_GetExact(t *testing.T) {
 
 }
 
+func TestAffectedCPEStore_Get_CaseInsensitive(t *testing.T) {
+	db := setupTestStore(t).db
+	bw := newBlobStore(db)
+	s := newAffectedCPEStore(db, bw)
+
+	c := testAffectedCPEHandle()
+	err := s.AddAffectedCPEs(c)
+	require.NoError(t, err)
+
+	// we want to search by all fields to ensure that all are accounted for in the query (since there are string fields referenced in the where clauses)
+	results, err := s.GetAffectedCPEs(toCPE(&Cpe{
+		Part:            "Application",      // capitalized
+		Vendor:          "Vendor",           // capitalized
+		Product:         "Product",          // capitalized
+		Edition:         "Edition",          // capitalized
+		Language:        "Language",         // capitalized
+		SoftwareEdition: "Software_edition", // capitalized
+		TargetHardware:  "Target_hardware",  // capitalized
+		TargetSoftware:  "Target_software",  // capitalized
+		Other:           "Other",            // capitalized
+	}), nil)
+	require.NoError(t, err)
+
+	expected := []AffectedCPEHandle{*c}
+	require.Len(t, results, len(expected))
+	result := results[0]
+	assert.Equal(t, c.CpeID, result.CpeID)
+}
+
 func TestAffectedCPEStore_PreventDuplicateCPEs(t *testing.T) {
 	db := setupTestStore(t).db
 	bw := newBlobStore(db)

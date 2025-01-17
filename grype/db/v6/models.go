@@ -33,6 +33,7 @@ func Models() []any {
 		&OperatingSystem{},
 		&OperatingSystemSpecifierOverride{},
 		&Package{},
+		&PackageSpecifierOverride{},
 
 		// CPE related search tables
 		&AffectedCPEHandle{}, // join on CPE
@@ -128,10 +129,10 @@ type VulnerabilityHandle struct {
 	ID ID `gorm:"column:id;primaryKey"`
 
 	// Name is the unique name for the vulnerability (same as the decoded VulnerabilityBlob.ID)
-	Name string `gorm:"column:name;not null;index"`
+	Name string `gorm:"column:name;not null;index,collate:NOCASE"`
 
 	// Status conveys the actionability of the current record (one of "active", "analyzing", "rejected", "disputed")
-	Status VulnerabilityStatus `gorm:"column:status;not null;index"`
+	Status VulnerabilityStatus `gorm:"column:status;not null;index,collate:NOCASE"`
 
 	// PublishedDate is the date the vulnerability record was first published
 	PublishedDate *time.Time `gorm:"column:published_date;index"`
@@ -173,10 +174,10 @@ func (v *VulnerabilityHandle) setBlob(rawBlobValue []byte) error {
 
 type VulnerabilityAlias struct {
 	// Name is the unique name for the vulnerability
-	Name string `gorm:"column:name;primaryKey;index"`
+	Name string `gorm:"column:name;primaryKey;index,collate:NOCASE"`
 
 	// Alias is an alternative name for the vulnerability that must be upstream from the Name (e.g if name is "RHSA-1234" then the upstream could be "CVE-1234-5678", but not the other way around)
-	Alias string `gorm:"column:alias;primaryKey;index;not null"`
+	Alias string `gorm:"column:alias;primaryKey;index,collate:NOCASE;not null"`
 }
 
 // package related search tables //////////////////////////////////////////////////////
@@ -227,11 +228,11 @@ func (v *AffectedPackageHandle) setBlob(rawBlobValue []byte) error {
 type Package struct {
 	ID ID `gorm:"column:id;primaryKey"`
 
-	// Type is the tooling and language ecosystem that the package is released within
-	Type string `gorm:"column:type;index:idx_package,unique"`
+	// Ecosystem is the tooling and language ecosystem that the package is released within
+	Ecosystem string `gorm:"column:ecosystem;index:idx_package,unique,collate:NOCASE"`
 
 	// Name is the name of the package within the ecosystem
-	Name string `gorm:"column:name;index:idx_package,unique;index:idx_package_name"`
+	Name string `gorm:"column:name;index:idx_package,unique;index:idx_package_name,collate:NOCASE"`
 
 	// CPEs is the list of Common Platform Enumeration (CPE) identifiers that represent this package
 	CPEs []Cpe `gorm:"foreignKey:PackageID;constraint:OnDelete:CASCADE;"`
@@ -239,7 +240,7 @@ type Package struct {
 
 func (p *Package) BeforeCreate(tx *gorm.DB) (err error) {
 	var existingPackage Package
-	result := tx.Where("type = ? AND name = ?", p.Type, p.Name).First(&existingPackage)
+	result := tx.Where("ecosystem = ? collate nocase AND name = ? collate nocase", p.Ecosystem, p.Name).First(&existingPackage)
 	if result.Error == nil {
 		// package exists; merge CPEs
 		for i, newCPE := range p.CPEs {
@@ -282,6 +283,15 @@ func (p *Package) BeforeCreate(tx *gorm.DB) (err error) {
 	return nil
 }
 
+// PackageSpecifierOverride is a table that allows for overriding fields on v6.PackageSpecifier instances when searching for specific Packages.
+type PackageSpecifierOverride struct {
+	Ecosystem string `gorm:"column:ecosystem;primaryKey;index:pkg_ecosystem_idx,collate:NOCASE"`
+
+	// below are the fields that should be used as replacement for fields in the Packages table
+
+	ReplacementEcosystem *string `gorm:"column:replacement_ecosystem;primaryKey"`
+}
+
 // OperatingSystem represents specific release of an operating system. The resolution of the version is
 // relative to the available data by the vulnerability data provider, so though there may be major.minor.patch OS
 // releases, there may only be data available for major.minor.
@@ -289,8 +299,8 @@ type OperatingSystem struct {
 	ID ID `gorm:"column:id;primaryKey"`
 
 	// Name is the operating system family name (e.g. "debian")
-	Name      string `gorm:"column:name;index:os_idx,unique;index"`
-	ReleaseID string `gorm:"column:release_id;index:os_idx,unique;index"`
+	Name      string `gorm:"column:name;index:os_idx,unique;index,collate:NOCASE"`
+	ReleaseID string `gorm:"column:release_id;index:os_idx,unique;index,collate:NOCASE"`
 
 	// MajorVersion is the major version of a specific release (e.g. "10" for debian 10)
 	MajorVersion string `gorm:"column:major_version;index:os_idx,unique;index"`
@@ -299,10 +309,10 @@ type OperatingSystem struct {
 	MinorVersion string `gorm:"column:minor_version;index:os_idx,unique;index"`
 
 	// LabelVersion is an optional non-codename string representation of the version (e.g. "unstable" or for debian:sid)
-	LabelVersion string `gorm:"column:label_version;index:os_idx,unique;index"`
+	LabelVersion string `gorm:"column:label_version;index:os_idx,unique;index,collate:NOCASE"`
 
 	// Codename is the codename of a specific release (e.g. "buster" for debian 10)
-	Codename string `gorm:"column:codename;index"`
+	Codename string `gorm:"column:codename;index,collate:NOCASE"`
 }
 
 func (os *OperatingSystem) VersionNumber() string {
@@ -337,7 +347,7 @@ func (os *OperatingSystem) Version() string {
 func (os *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
 	// if the name, major version, and minor version already exist in the table then we should not insert a new record
 	var existing OperatingSystem
-	result := tx.Where("name = ? AND major_version = ? AND minor_version = ?", os.Name, os.MajorVersion, os.MinorVersion).First(&existing)
+	result := tx.Where("name = ? collate nocase AND major_version = ? AND minor_version = ?", os.Name, os.MajorVersion, os.MinorVersion).First(&existing)
 	if result.Error == nil {
 		// if the record already exists, then we should use the existing record
 		*os = existing
@@ -348,7 +358,7 @@ func (os *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
 // OperatingSystemSpecifierOverride is a table that allows for overriding fields on v6.OSSpecifier instances when searching for specific OperatingSystems.
 type OperatingSystemSpecifierOverride struct {
 	// Alias is an alternative name/ID for the operating system.
-	Alias string `gorm:"column:alias;primaryKey;index:os_alias_idx"`
+	Alias string `gorm:"column:alias;primaryKey;index:os_alias_idx,collate:NOCASE"`
 
 	// Version is the matching version as found in the VERSION_ID field if the /etc/os-release file
 	Version string `gorm:"column:version;primaryKey"`
@@ -366,45 +376,6 @@ type OperatingSystemSpecifierOverride struct {
 	ReplacementMinorVersion *string `gorm:"column:replacement_minor_version;primaryKey"`
 	ReplacementLabelVersion *string `gorm:"column:replacement_label_version;primaryKey"`
 	Rolling                 bool    `gorm:"column:rolling;primaryKey"`
-}
-
-// TODO: in a future iteration these should be raised up more explicitly by the vunnel providers
-func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride {
-	strRef := func(s string) *string {
-		return &s
-	}
-	return []OperatingSystemSpecifierOverride{
-		{Alias: "centos", ReplacementName: strRef("rhel")},
-		{Alias: "rocky", ReplacementName: strRef("rhel")},
-		{Alias: "rockylinux", ReplacementName: strRef("rhel")}, // non-standard, but common (dockerhub uses "rockylinux")
-		{Alias: "alma", ReplacementName: strRef("rhel")},
-		{Alias: "almalinux", ReplacementName: strRef("rhel")}, // non-standard, but common (dockerhub uses "almalinux")
-		{Alias: "gentoo", ReplacementName: strRef("rhel")},
-		{Alias: "alpine", VersionPattern: ".*_alpha.*", ReplacementLabelVersion: strRef("edge"), Rolling: true},
-		{Alias: "wolfi", Rolling: true},
-		{Alias: "arch", Rolling: true},
-		{Alias: "archlinux", ReplacementName: strRef("arch"), Rolling: true}, // non-standard, but common (dockerhub uses "archlinux")
-		{Alias: "oracle", ReplacementName: strRef("ol")},                     // non-standard, but common
-		{Alias: "oraclelinux", ReplacementName: strRef("ol")},                // non-standard, but common (dockerhub uses "oraclelinux")
-		{Alias: "amazon", ReplacementName: strRef("amzn")},                   // non-standard, but common
-		{Alias: "amazonlinux", ReplacementName: strRef("amzn")},              // non-standard, but common (dockerhub uses "amazonlinux")
-		// TODO: trixie is a placeholder for now, but should be updated to sid when the time comes
-		// this needs to be automated, but isn't clear how to do so since you'll see things like this:
-		//
-		// ❯ docker run --rm debian:sid cat /etc/os-release | grep VERSION_CODENAME
-		//   VERSION_CODENAME=trixie
-		// ❯ docker run --rm debian:testing cat /etc/os-release | grep VERSION_CODENAME
-		//   VERSION_CODENAME=trixie
-		//
-		// ❯ curl -s http://deb.debian.org/debian/dists/testing/Release | grep '^Codename:'
-		//   Codename: trixie
-		// ❯ curl -s http://deb.debian.org/debian/dists/sid/Release | grep '^Codename:'
-		//   Codename: sid
-		//
-		// depending where the team is during the development cycle you will see different behavior, making automating
-		// this a little challenging.
-		{Alias: "debian", Codename: "trixie", Rolling: true}, // is currently sid, which is considered rolling
-	}
 }
 
 func (os *OperatingSystemSpecifierOverride) BeforeCreate(_ *gorm.DB) (err error) {
@@ -460,15 +431,15 @@ type Cpe struct {
 	ID        ID  `gorm:"primaryKey"`
 	PackageID *ID `gorm:"column:package_id;index"`
 
-	Part            string `gorm:"column:part;not null;index:idx_cpe,unique"`
-	Vendor          string `gorm:"column:vendor;index:idx_cpe,unique;index:idx_cpe_vendor"`
-	Product         string `gorm:"column:product;not null;index:idx_cpe,unique;index:idx_cpe_product"`
-	Edition         string `gorm:"column:edition;index:idx_cpe,unique"`
-	Language        string `gorm:"column:language;index:idx_cpe,unique"`
-	SoftwareEdition string `gorm:"column:software_edition;index:idx_cpe,unique"`
-	TargetHardware  string `gorm:"column:target_hardware;index:idx_cpe,unique"`
-	TargetSoftware  string `gorm:"column:target_software;index:idx_cpe,unique"`
-	Other           string `gorm:"column:other;index:idx_cpe,unique"`
+	Part            string `gorm:"column:part;not null;index:idx_cpe,unique,collate:NOCASE"`
+	Vendor          string `gorm:"column:vendor;index:idx_cpe,unique,collate:NOCASE;index:idx_cpe_vendor,collate:NOCASE"`
+	Product         string `gorm:"column:product;not null;index:idx_cpe,unique,collate:NOCASE;index:idx_cpe_product,collate:NOCASE"`
+	Edition         string `gorm:"column:edition;index:idx_cpe,unique,collate:NOCASE"`
+	Language        string `gorm:"column:language;index:idx_cpe,unique,collate:NOCASE"`
+	SoftwareEdition string `gorm:"column:software_edition;index:idx_cpe,unique,collate:NOCASE"`
+	TargetHardware  string `gorm:"column:target_hardware;index:idx_cpe,unique,collate:NOCASE"`
+	TargetSoftware  string `gorm:"column:target_software;index:idx_cpe,unique,collate:NOCASE"`
+	Other           string `gorm:"column:other;index:idx_cpe,unique,collate:NOCASE"`
 }
 
 func (c Cpe) String() string {
@@ -500,5 +471,5 @@ func cpeWhereClause(tx *gorm.DB, c *Cpe) *gorm.DB {
 	if c == nil {
 		return tx
 	}
-	return tx.Where("part = ? AND vendor = ? AND product = ? AND edition = ? AND language = ? AND software_edition = ? AND target_hardware = ? AND target_software = ? AND other = ?", c.Part, c.Vendor, c.Product, c.Edition, c.Language, c.SoftwareEdition, c.TargetHardware, c.TargetSoftware, c.Other)
+	return tx.Where("part = ? AND vendor = ? AND product = ? AND edition = ? AND language = ? AND software_edition = ? AND target_hardware = ? AND target_software = ? AND other = ? collate nocase", c.Part, c.Vendor, c.Product, c.Edition, c.Language, c.SoftwareEdition, c.TargetHardware, c.TargetSoftware, c.Other)
 }
