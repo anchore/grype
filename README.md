@@ -673,7 +673,7 @@ Default configuration search paths (see all with `grype config locations`):
 Use `grype config` to print a sample config file to stdout.
 Use `grype config --load` to print the current config after loading all values to stdout.
 
-You can specify files directly using the environment variable `GRYPE_CONFIG` or the `--config` / `-c` flags to provide your own configuration files/paths:
+You can specify files directly using the `--config` / `-c` flags (or environment variable `GRYPE_CONFIG`) to provide your own configuration files/paths:
 
 ```shell
 # Using the flag
