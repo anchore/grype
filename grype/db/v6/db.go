@@ -87,8 +87,6 @@ func NewLowLevelDB(dbFilePath string, empty, writable bool) (*gorm.DB, error) {
 	opts := []gormadapter.Option{
 		// 16 KB, useful for smaller DBs since ~85% of the DB is from the blobs table
 		gormadapter.WithStatements("PRAGMA page_size = 16384"),
-		// TODO: this should be removed after initial development (or wired to a config option)
-		gormadapter.WithDebug(true),
 	}
 
 	if empty && !writable {
