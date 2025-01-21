@@ -1,5 +1,5 @@
-//go:build integration
-// +build integration
+//go:build api_limits
+// +build api_limits
 
 package java
 
