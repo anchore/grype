@@ -11,7 +11,7 @@
         },
         "products": [
           {
-            "@id": "pkg:oci/debian@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126"
+            "@id": "pkg:oci/debian@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126?repository_url=index.docker.io/library"
           }
         ],
         "status": "fixed"

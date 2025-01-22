@@ -12,7 +12,7 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/alpine@sha256%253Affffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff?repository_url=index.docker.io%2Flibrary",
+          "@id": "pkg:oci/alpine@sha256%3Affffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
           "subcomponents": [
             { "@id": "pkg:apk/alpine/libvncserver@0.9.9?arch=x86_64&distro=alpine-3.12.0" }
           ]
