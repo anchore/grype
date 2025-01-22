@@ -12,7 +12,7 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/alpine@sha256%253A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126?repository_url=index.docker.io%2Flibrary",
+          "@id": "pkg:oci/alpine@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
           "subcomponents": [
             { "@id": "pkg:apk/alpine/libssl3@3.0.8-r3" },
             { "@id": "pkg:apk/alpine/libcrypto3@3.0.8-r3" }
@@ -27,7 +27,7 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/alpine@sha256%253A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126?repository_url=index.docker.io%2Flibrary",
+          "@id": "pkg:oci/alpine@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
           "subcomponents": [
             { "@id": "pkg:apk/alpine/libssl3@3.0.8-r3" },
             { "@id": "pkg:apk/alpine/libcrypto3@3.0.8-r3" }
@@ -42,7 +42,7 @@
         },
         "products": [
           {
-            "@id": "pkg:oci/alpine@sha256%253A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126?repository_url=index.docker.io%2Flibrary",
+            "@id": "pkg:oci/alpine@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
             "subcomponents": [
               { "@id": "pkg:apk/alpine/libssl3@3.0.8-r3" },
               { "@id": "pkg:apk/alpine/libcrypto3@3.0.8-r3" }
@@ -57,7 +57,7 @@
         },
         "products": [
           {
-            "@id": "pkg:oci/alpine@sha256%253A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126?repository_url=index.docker.io%2Flibrary",
+            "@id": "pkg:oci/alpine@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
             "subcomponents": [
               { "@id": "pkg:apk/alpine/libssl3@3.0.8-r3" },
               { "@id": "pkg:apk/alpine/libcrypto3@3.0.8-r3" }
@@ -74,7 +74,7 @@
         },
         "products": [
           {
-            "@id": "pkg:oci/alpine@sha256%253A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126?repository_url=index.docker.io%2Flibrary",
+            "@id": "pkg:oci/alpine@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
             "subcomponents": [
               { "@id": "pkg:apk/alpine/libssl3@3.0.8-r3" },
               { "@id": "pkg:apk/alpine/libcrypto3@3.0.8-r3" }
