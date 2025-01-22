@@ -3,8 +3,9 @@ package match
 import (
 	"regexp"
 
-	"github.com/anchore/grype/internal/log"
 	"github.com/bmatcuk/doublestar/v2"
+
+	"github.com/anchore/grype/internal/log"
 )
 
 // An IgnoredMatch is a vulnerability Match that has been ignored because one or more IgnoreRules applied to the match.
