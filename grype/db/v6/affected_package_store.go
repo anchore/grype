@@ -214,12 +214,67 @@ func newAffectedPackageStore(db *gorm.DB, bs *blobStore) *affectedPackageStore {
 }
 
 func (s *affectedPackageStore) AddAffectedPackages(packages ...*AffectedPackageHandle) error {
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		return s.addAffectedPackages(tx, packages...)
+	})
+}
+
+func (s *affectedPackageStore) addAffectedPackages(tx *gorm.DB, packages ...*AffectedPackageHandle) error {
+	if err := s.addOs(tx, packages...); err != nil {
+		return fmt.Errorf("unable to add affected package OS: %w", err)
+	}
+
 	for _, v := range packages {
-		if err := s.blobStore.addBlobable(v); err != nil {
+		if err := s.blobStore.addBlobable(tx, v); err != nil {
 			return fmt.Errorf("unable to add affected blob: %w", err)
 		}
-		if err := s.db.Create(v).Error; err != nil {
+
+		if err := tx.Create(v).Error; err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+func (s *affectedPackageStore) addOs(tx *gorm.DB, packages ...*AffectedPackageHandle) error { // nolint:dupl
+	cacheInst, ok := cacheFromContext(tx.Statement.Context)
+	if !ok {
+		return fmt.Errorf("unable to fetch OS cache from context")
+	}
+
+	var final []*OperatingSystem
+	byCacheKey := make(map[string][]*OperatingSystem)
+	for _, p := range packages {
+		if p.OperatingSystem != nil {
+			key := p.OperatingSystem.cacheKey()
+			if existingID, ok := cacheInst.getID(p.OperatingSystem); ok {
+				// seen in a previous transaction...
+				p.OperatingSystemID = &existingID
+			} else if _, ok := byCacheKey[key]; !ok {
+				// not seen within this transaction
+				final = append(final, p.OperatingSystem)
+			}
+			byCacheKey[key] = append(byCacheKey[key], p.OperatingSystem)
+		}
+	}
+
+	if len(final) == 0 {
+		return nil
+	}
+
+	if err := tx.Create(final).Error; err != nil {
+		return fmt.Errorf("unable to create OS records: %w", err)
+	}
+
+	for _, refs := range byCacheKey {
+		for _, ref := range refs {
+			cacheInst.set(ref)
+		}
+	}
+
+	for _, p := range packages {
+		if p.OperatingSystem != nil {
+			p.OperatingSystemID = &p.OperatingSystem.ID
 		}
 	}
 	return nil
@@ -259,7 +314,7 @@ func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config
 			for _, r := range results {
 				blobs = append(blobs, r)
 			}
-			if err := s.blobStore.attachBlobValue(blobs...); err != nil {
+			if err := s.blobStore.attachBlobValue(s.db, blobs...); err != nil {
 				return fmt.Errorf("unable to attach blobs: %w", err)
 			}
 		}
@@ -271,7 +326,7 @@ func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config
 					vulns = append(vulns, r.Vulnerability)
 				}
 			}
-			if err := s.blobStore.attachBlobValue(vulns...); err != nil {
+			if err := s.blobStore.attachBlobValue(s.db, vulns...); err != nil {
 				return fmt.Errorf("unable to attach vulnerability blob: %w", err)
 			}
 		}

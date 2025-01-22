@@ -46,7 +46,7 @@ func newStore(cfg Config, empty, writable bool) (*store, error) {
 		return nil, fmt.Errorf("failed to open db: %w", err)
 	}
 
-	bs := newBlobStore(db)
+	bs := newBlobStore()
 	return &store{
 		dbMetadataStore:      newDBMetadataStore(db),
 		providerStore:        newProviderStore(db),
@@ -65,11 +65,6 @@ func (s *store) Close() error {
 	log.Debug("closing store")
 	if s.readOnly {
 		return nil
-	}
-
-	// this will drop the digest blob table entirely
-	if err := s.blobStore.Close(); err != nil {
-		return fmt.Errorf("failed to finalize blobs: %w", err)
 	}
 
 	// drop all indexes, which saves a lot of space distribution-wise (these get re-created on running gorm auto-migrate)

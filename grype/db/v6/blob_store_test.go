@@ -9,7 +9,7 @@ import (
 
 func TestBlobWriter_AddBlobs(t *testing.T) {
 	db := setupTestStore(t).db
-	writer := newBlobStore(db)
+	writer := newBlobStore()
 
 	obj1 := map[string]string{"key": "value1"}
 	obj2 := map[string]string{"key": "value2"}
@@ -18,7 +18,7 @@ func TestBlobWriter_AddBlobs(t *testing.T) {
 	blob2 := newBlob(obj2)
 	blob3 := newBlob(obj1) // same as blob1
 
-	err := writer.addBlobs(blob1, blob2, blob3)
+	err := writer.addBlobs(db, blob1, blob2, blob3)
 	require.NoError(t, err)
 
 	require.NotZero(t, blob1.ID)
@@ -31,27 +31,6 @@ func TestBlobWriter_AddBlobs(t *testing.T) {
 	var result2 Blob
 	require.NoError(t, db.Where("id = ?", blob2.ID).First(&result2).Error)
 	assert.Equal(t, blob2.Value, result2.Value)
-}
-
-func TestBlobWriter_Close(t *testing.T) {
-	db := setupTestStore(t).db
-	writer := newBlobStore(db)
-
-	obj := map[string]string{"key": "value"}
-	blob := newBlob(obj)
-	require.NoError(t, writer.addBlobs(blob))
-
-	// ensure the blob digest table is created
-	var blobDigest BlobDigest
-	require.NoError(t, db.First(&blobDigest).Error)
-	require.NotZero(t, blobDigest.ID)
-
-	err := writer.Close()
-	require.NoError(t, err)
-
-	// ensure the blob digest table is deleted
-	err = db.First(&blobDigest).Error
-	require.ErrorContains(t, err, "no such table: blob_digests")
 }
 
 func TestBlob_computeDigest(t *testing.T) {

@@ -129,7 +129,7 @@ type AffectedPackageQualifiers struct {
 // AffectedRange defines a specific range of versions affected by a vulnerability.
 type AffectedRange struct {
 	// Version defines the version constraints for affected software.
-	Version AffectedVersion `json:"version"`
+	Version AffectedVersion `json:"version,omitempty"`
 
 	// Fix provides details on the fix version and its state if available.
 	Fix *Fix `json:"fix,omitempty"`
@@ -141,7 +141,7 @@ type Fix struct {
 	Version string `json:"version,omitempty"`
 
 	// State represents the status of the fix (e.g., "fixed", "unaffected").
-	State FixStatus `json:"state"`
+	State FixStatus `json:"state,omitempty"`
 
 	// Detail provides additional fix information, such as commit details.
 	Detail *FixDetail `json:"detail,omitempty"`
@@ -165,5 +165,5 @@ type AffectedVersion struct {
 	Type string `json:"type,omitempty"`
 
 	// Constraint defines the version range constraint for affected versions.
-	Constraint string `json:"constraint"`
+	Constraint string `json:"constraint,omitempty"`
 }

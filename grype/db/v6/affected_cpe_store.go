@@ -41,13 +41,66 @@ func newAffectedCPEStore(db *gorm.DB, bs *blobStore) *affectedCPEStore {
 
 // AddAffectedCPEs adds one or more affected CPEs to the store
 func (s *affectedCPEStore) AddAffectedCPEs(packages ...*AffectedCPEHandle) error {
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		return s.addAffectedCPEs(tx, packages...)
+	})
+}
+
+func (s *affectedCPEStore) addAffectedCPEs(tx *gorm.DB, packages ...*AffectedCPEHandle) error {
+	if err := s.addCpes(tx, packages...); err != nil {
+		return fmt.Errorf("unable to add CPEs from affected package CPEs: %w", err)
+	}
 	for _, pkg := range packages {
-		if err := s.blobStore.addBlobable(pkg); err != nil {
+		if err := s.blobStore.addBlobable(tx, pkg); err != nil {
 			return fmt.Errorf("unable to add affected package blob: %w", err)
 		}
 
-		if err := s.db.Create(pkg).Error; err != nil {
-			return fmt.Errorf("unable to add affected CPE: %w", err)
+		if err := tx.Omit("CPE").Create(pkg).Error; err != nil {
+			return fmt.Errorf("unable to add affected CPEs: %w", err)
+		}
+	}
+	return nil
+}
+
+func (s *affectedCPEStore) addCpes(tx *gorm.DB, packages ...*AffectedCPEHandle) error { // nolint:dupl
+	cacheInst, ok := cacheFromContext(tx.Statement.Context)
+	if !ok {
+		return fmt.Errorf("unable to fetch CPE cache from context")
+	}
+
+	var final []*Cpe
+	byCacheKey := make(map[string][]*Cpe)
+	for _, p := range packages {
+		if p.CPE != nil {
+			key := p.CPE.cacheKey()
+			if existingID, ok := cacheInst.getID(p.CPE); ok {
+				// seen in a previous transaction...
+				p.CpeID = existingID
+			} else if _, ok := byCacheKey[key]; !ok {
+				// not seen within this transaction
+				final = append(final, p.CPE)
+			}
+			byCacheKey[key] = append(byCacheKey[key], p.CPE)
+		}
+	}
+
+	if len(final) == 0 {
+		return nil
+	}
+
+	if err := tx.Create(final).Error; err != nil {
+		return fmt.Errorf("unable to create CPE records: %w", err)
+	}
+
+	for _, refs := range byCacheKey {
+		for _, ref := range refs {
+			cacheInst.set(ref)
+		}
+	}
+
+	for _, p := range packages {
+		if p.CPE != nil {
+			p.CpeID = p.CPE.ID
 		}
 	}
 	return nil
@@ -90,7 +143,7 @@ func (s *affectedCPEStore) GetAffectedCPEs(cpe *cpe.Attributes, config *GetAffec
 			for _, r := range results {
 				blobs = append(blobs, r)
 			}
-			if err := s.blobStore.attachBlobValue(blobs...); err != nil {
+			if err := s.blobStore.attachBlobValue(s.db, blobs...); err != nil {
 				return fmt.Errorf("unable to attach blobs: %w", err)
 			}
 		}
@@ -102,7 +155,7 @@ func (s *affectedCPEStore) GetAffectedCPEs(cpe *cpe.Attributes, config *GetAffec
 					vulns = append(vulns, r.Vulnerability)
 				}
 			}
-			if err := s.blobStore.attachBlobValue(vulns...); err != nil {
+			if err := s.blobStore.attachBlobValue(s.db, vulns...); err != nil {
 				return fmt.Errorf("unable to attach vulnerability blob: %w", err)
 			}
 		}
