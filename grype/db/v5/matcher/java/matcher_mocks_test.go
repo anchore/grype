@@ -2,6 +2,7 @@ package java
 
 import (
 	"context"
+
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"

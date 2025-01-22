@@ -2,11 +2,12 @@ package java
 
 import (
 	"context"
-	"golang.org/x/time/rate"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 func TestNewMavenSearchRateLimiter(t *testing.T) {
