@@ -731,6 +731,32 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "dotnet-package-lock-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.DotnetPackagesLockEntry{
+					Name:        "AutoMapper",
+					Version:     "13.0.1",
+					ContentHash: "/Fx1SbJ16qS7dU4i604Sle+U9VLX+WSNVJggk6MupKVkYvvBm4XqYaeFuf67diHefHKHs50uQIS2YEDFhPCakQ==",
+					Type:        "Direct",
+				},
+			},
+		},
+		{
+			name: "terraform-lock-provider-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.TerraformLockProviderEntry{
+					URL:         "registry.terraform.io/hashicorp/aws",
+					Version:     "5.72.1",
+					Constraints: "> 5.72.0",
+					Hashes: []string{
+						"h1:jhd5O5o0CfZCNEwwN0EiDAzb7ApuFrtxJqa6HXW4EKE=",
+						"zh:0dea6843836e926d33469b48b948744079023816d16a2ff7666bcfb6aa3522d4",
+						"zh:195fa9513f75800a0d62797ebec75ee73e9b8c28d713fe9b63d3b1d1eec129b3",
+					},
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
