@@ -12,7 +12,7 @@ import (
 
 func TestAffectedCPEStore_AddAffectedCPEs(t *testing.T) {
 	db := setupTestStore(t).db
-	bw := newBlobStore()
+	bw := newBlobStore(db)
 	s := newAffectedCPEStore(db, bw)
 
 	cpe1 := &AffectedCPEHandle{
@@ -57,7 +57,7 @@ func TestAffectedCPEStore_AddAffectedCPEs(t *testing.T) {
 
 func TestAffectedCPEStore_GetCPEs(t *testing.T) {
 	db := setupTestStore(t).db
-	bw := newBlobStore()
+	bw := newBlobStore(db)
 	s := newAffectedCPEStore(db, bw)
 
 	c := testAffectedCPEHandle()
@@ -88,7 +88,7 @@ func TestAffectedCPEStore_GetCPEs(t *testing.T) {
 
 func TestAffectedCPEStore_GetExact(t *testing.T) {
 	db := setupTestStore(t).db
-	bw := newBlobStore()
+	bw := newBlobStore(db)
 	s := newAffectedCPEStore(db, bw)
 
 	c := testAffectedCPEHandle()
@@ -108,7 +108,7 @@ func TestAffectedCPEStore_GetExact(t *testing.T) {
 
 func TestAffectedCPEStore_Get_CaseInsensitive(t *testing.T) {
 	db := setupTestStore(t).db
-	bw := newBlobStore()
+	bw := newBlobStore(db)
 	s := newAffectedCPEStore(db, bw)
 
 	c := testAffectedCPEHandle()
@@ -137,7 +137,7 @@ func TestAffectedCPEStore_Get_CaseInsensitive(t *testing.T) {
 
 func TestAffectedCPEStore_PreventDuplicateCPEs(t *testing.T) {
 	db := setupTestStore(t).db
-	bw := newBlobStore()
+	bw := newBlobStore(db)
 	s := newAffectedCPEStore(db, bw)
 
 	cpe1 := &AffectedCPEHandle{

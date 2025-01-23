@@ -289,6 +289,44 @@ type Package struct {
 	CPEs []Cpe `gorm:"foreignKey:PackageID;constraint:OnDelete:CASCADE;"`
 }
 
+func (p Package) String() string {
+	var cpes []string
+	for _, cpe := range p.CPEs {
+		cpes = append(cpes, cpe.String())
+	}
+	if p.Ecosystem != "" && p.Name != "" {
+		base := fmt.Sprintf("%s/%s", p.Ecosystem, p.Name)
+		if len(cpes) == 0 {
+			return base
+		}
+
+		return fmt.Sprintf("%s (%s)", base, strings.Join(cpes, ", "))
+	}
+
+	return strings.Join(cpes, ", ")
+}
+
+func (p Package) cacheKey() string {
+	if p.Ecosystem == "" && p.Name == "" {
+		return ""
+	}
+	// we're intentionally not including anything about CPEs here, since there is potentially a merge operation for
+	// packages with CPEs we cannot reason about packages with CPEs in the cache, they must always pass through.
+	return strings.ToLower(fmt.Sprintf("%s/%s", p.Ecosystem, p.Name))
+}
+
+func (p Package) rowID() ID {
+	return p.ID
+}
+
+func (p *Package) tableName() string {
+	return packagesTableCacheKey
+}
+
+func (p *Package) setRowID(i ID) {
+	p.ID = i
+}
+
 func (p *Package) BeforeCreate(tx *gorm.DB) (err error) { // nolint:gocognit
 	cacheInst, ok := cacheFromContext(tx.Statement.Context)
 	if !ok {
@@ -296,10 +334,10 @@ func (p *Package) BeforeCreate(tx *gorm.DB) (err error) { // nolint:gocognit
 	}
 
 	var existingPackage Package
-	err = tx.Where("ecosystem = ? collate nocase AND name = ? collate nocase", p.Ecosystem, p.Name).First(&existingPackage).Error
+	err = tx.Preload("CPEs").Where("ecosystem = ? collate nocase AND name = ? collate nocase", p.Ecosystem, p.Name).First(&existingPackage).Error
 	if err == nil {
 		// package exists; merge CPEs
-		for i, newCPE := range p.CPEs {
+		for _, newCPE := range p.CPEs {
 			var existingCPE Cpe
 
 			if existingID, ok := cacheInst.getID(&newCPE); ok {
@@ -312,8 +350,6 @@ func (p *Package) BeforeCreate(tx *gorm.DB) (err error) { // nolint:gocognit
 
 			if existingCPE.ID != 0 {
 				// if the record already exists, then we should use the existing record
-				newCPE = existingCPE
-				p.CPEs[i] = newCPE
 
 				if existingCPE.PackageID == nil {
 					log.WithFields("cpe", existingCPE, "pkg", existingPackage).Warn("CPE exists but was not associated with an already existing package until now")
@@ -321,14 +357,14 @@ func (p *Package) BeforeCreate(tx *gorm.DB) (err error) { // nolint:gocognit
 				}
 
 				if *existingCPE.PackageID != existingPackage.ID {
-					return fmt.Errorf("CPE already exists for a different package (pkg=%v, existing_pkg=%v): %v", p, existingPackage, newCPE)
+					return fmt.Errorf("CPE already exists for a different package (pkg=%v, existing_pkg=%v): %s", p.ID, existingPackage.ID, existingCPE)
 				}
 				continue
 			}
 
 			// if the CPE does not exist, proceed with creating it
 			newCPE.PackageID = &existingPackage.ID
-			p.CPEs[i] = newCPE
+			existingPackage.CPEs = append(existingPackage.CPEs, newCPE)
 
 			if err := tx.Create(&newCPE).Error; err != nil {
 				return fmt.Errorf("failed to create CPE %v for package %v: %w", newCPE, existingPackage, err)
@@ -342,6 +378,16 @@ func (p *Package) BeforeCreate(tx *gorm.DB) (err error) { // nolint:gocognit
 	// if the package does not exist, proceed with creating it
 	for i := range p.CPEs {
 		p.CPEs[i].PackageID = &p.ID
+	}
+	return nil
+}
+
+func (p *Package) AfterCreate(tx *gorm.DB) (err error) {
+	if cacheInst, ok := cacheFromContext(tx.Statement.Context); ok {
+		cacheInst.set(p)
+		for _, cpe := range p.CPEs {
+			cacheInst.set(&cpe)
+		}
 	}
 	return nil
 }
@@ -567,8 +613,8 @@ func (c *Cpe) BeforeCreate(tx *gorm.DB) (err error) {
 		var existing Cpe
 		result := tx.Where("id = ?", existingID).First(&existing)
 		if result.Error == nil {
-			if c.PackageID != nil && c.PackageID != existing.PackageID {
-				return fmt.Errorf("CPE already exists for a different package (pkg=%d, existing_pkg=%d): %q", c.PackageID, existing.PackageID, c)
+			if c.PackageID != nil && existing.PackageID != nil && *c.PackageID != *existing.PackageID {
+				return fmt.Errorf("CPE already exists for a different package (pkg=%d, existing_pkg=%d): %q", *c.PackageID, *existing.PackageID, c)
 			}
 
 			// if the record already exists, then we should use the existing record

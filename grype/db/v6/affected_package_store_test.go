@@ -138,7 +138,7 @@ func defaultAffectedPackageHandlePreloadCases() []affectedPackageHandlePreloadCo
 func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 	setupAffectedPackageStore := func(t *testing.T) *affectedPackageStore {
 		db := setupTestStore(t).db
-		return newAffectedPackageStore(db, newBlobStore())
+		return newAffectedPackageStore(db, newBlobStore(db))
 	}
 
 	setupTestStoreWithPackages := func(t *testing.T) (*AffectedPackageHandle, *AffectedPackageHandle, *affectedPackageStore) {
@@ -401,7 +401,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 
 func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 	db := setupTestStore(t).db
-	bs := newBlobStore()
+	bs := newBlobStore(db)
 	s := newAffectedPackageStore(db, bs)
 
 	cpe1 := Cpe{Part: "a", Vendor: "vendor1", Product: "product1"}
@@ -521,7 +521,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 
 func TestAffectedPackageStore_GetAffectedPackages_CaseInsensitive(t *testing.T) {
 	db := setupTestStore(t).db
-	bs := newBlobStore()
+	bs := newBlobStore(db)
 	s := newAffectedPackageStore(db, bs)
 
 	cpe1 := Cpe{Part: "a", Vendor: "Vendor1", Product: "Product1"} // capitalized
@@ -630,7 +630,7 @@ func TestAffectedPackageStore_GetAffectedPackages_CaseInsensitive(t *testing.T) 
 
 func TestAffectedPackageStore_GetAffectedPackages_MultipleVulnerabilitySpecs(t *testing.T) {
 	db := setupTestStore(t).db
-	bs := newBlobStore()
+	bs := newBlobStore(db)
 	s := newAffectedPackageStore(db, bs)
 
 	cpe1 := Cpe{Part: "a", Vendor: "vendor1", Product: "product1"}
@@ -685,7 +685,7 @@ func TestAffectedPackageStore_GetAffectedPackages_MultipleVulnerabilitySpecs(t *
 
 func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 	db := setupTestStore(t).db
-	bs := newBlobStore()
+	bs := newBlobStore(db)
 	s := newAffectedPackageStore(db, bs)
 
 	pkg2d1 := testDistro1AffectedPackage2Handle()
@@ -852,7 +852,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 
 func TestAffectedPackageStore_ApplyPackageAlias(t *testing.T) {
 	db := setupTestStore(t).db
-	bs := newBlobStore()
+	bs := newBlobStore(db)
 	s := newAffectedPackageStore(db, bs)
 
 	tests := []struct {
@@ -892,7 +892,7 @@ func TestAffectedPackageStore_ApplyPackageAlias(t *testing.T) {
 func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 	// we always preload the OS aliases into the DB when staging for writing
 	db := setupTestStore(t).db
-	bs := newBlobStore()
+	bs := newBlobStore(db)
 	s := newAffectedPackageStore(db, bs)
 
 	ubuntu2004 := &OperatingSystem{Name: "ubuntu", ReleaseID: "ubuntu", MajorVersion: "20", MinorVersion: "04", LabelVersion: "focal"}

@@ -19,16 +19,18 @@ type blobable interface {
 }
 
 type blobStore struct {
+	db          *gorm.DB
 	idsByDigest map[string]ID
 }
 
-func newBlobStore() *blobStore {
+func newBlobStore(db *gorm.DB) *blobStore {
 	return &blobStore{
+		db:          db,
 		idsByDigest: make(map[string]ID),
 	}
 }
 
-func (s *blobStore) addBlobable(tx *gorm.DB, bs ...blobable) error {
+func (s *blobStore) addBlobable(bs ...blobable) error {
 	for i := range bs {
 		b := bs[i]
 		v := b.getBlobValue()
@@ -37,7 +39,7 @@ func (s *blobStore) addBlobable(tx *gorm.DB, bs ...blobable) error {
 		}
 		bl := newBlob(v)
 
-		if err := s.addBlobs(tx, bl); err != nil {
+		if err := s.addBlobs(bl); err != nil {
 			return err
 		}
 
@@ -46,7 +48,7 @@ func (s *blobStore) addBlobable(tx *gorm.DB, bs ...blobable) error {
 	return nil
 }
 
-func (s *blobStore) addBlobs(tx *gorm.DB, blobs ...*Blob) error {
+func (s *blobStore) addBlobs(blobs ...*Blob) error {
 	for i := range blobs {
 		v := blobs[i]
 		digest := v.computeDigest()
@@ -56,7 +58,7 @@ func (s *blobStore) addBlobs(tx *gorm.DB, blobs ...*Blob) error {
 			continue
 		}
 
-		if err := tx.Create(v).Error; err != nil {
+		if err := s.db.Create(v).Error; err != nil {
 			return fmt.Errorf("failed to create blob: %w", err)
 		}
 
@@ -67,18 +69,18 @@ func (s *blobStore) addBlobs(tx *gorm.DB, blobs ...*Blob) error {
 	return nil
 }
 
-func (s *blobStore) getBlobValues(tx *gorm.DB, ids ...ID) ([]Blob, error) {
+func (s *blobStore) getBlobValues(ids ...ID) ([]Blob, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
 	var blobs []Blob
-	if err := tx.Where("id IN ?", ids).Find(&blobs).Error; err != nil {
+	if err := s.db.Where("id IN ?", ids).Find(&blobs).Error; err != nil {
 		return nil, fmt.Errorf("failed to get blob values: %w", err)
 	}
 	return blobs, nil
 }
 
-func (s *blobStore) attachBlobValue(tx *gorm.DB, bs ...blobable) error {
+func (s *blobStore) attachBlobValue(bs ...blobable) error {
 	start := time.Now()
 	defer func() {
 		log.WithFields("duration", time.Since(start), "count", len(bs)).Trace("attached blob values")
@@ -97,7 +99,7 @@ func (s *blobStore) attachBlobValue(tx *gorm.DB, bs ...blobable) error {
 		setterByID[id] = append(setterByID[id], b)
 	}
 
-	vs, err := s.getBlobValues(tx, ids...)
+	vs, err := s.getBlobValues(ids...)
 	if err != nil {
 		return fmt.Errorf("failed to get blob value: %w", err)
 	}

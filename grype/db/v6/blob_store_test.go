@@ -9,7 +9,7 @@ import (
 
 func TestBlobWriter_AddBlobs(t *testing.T) {
 	db := setupTestStore(t).db
-	writer := newBlobStore()
+	writer := newBlobStore(db)
 
 	obj1 := map[string]string{"key": "value1"}
 	obj2 := map[string]string{"key": "value2"}
@@ -18,7 +18,7 @@ func TestBlobWriter_AddBlobs(t *testing.T) {
 	blob2 := newBlob(obj2)
 	blob3 := newBlob(obj1) // same as blob1
 
-	err := writer.addBlobs(db, blob1, blob2, blob3)
+	err := writer.addBlobs(blob1, blob2, blob3)
 	require.NoError(t, err)
 
 	require.NotZero(t, blob1.ID)

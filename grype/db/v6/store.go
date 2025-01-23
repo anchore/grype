@@ -46,7 +46,7 @@ func newStore(cfg Config, empty, writable bool) (*store, error) {
 		return nil, fmt.Errorf("failed to open db: %w", err)
 	}
 
-	bs := newBlobStore()
+	bs := newBlobStore(db)
 	return &store{
 		dbMetadataStore:      newDBMetadataStore(db),
 		providerStore:        newProviderStore(db),

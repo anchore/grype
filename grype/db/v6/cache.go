@@ -7,6 +7,7 @@ import (
 
 const (
 	cpesTableCacheKey             = "cpes"
+	packagesTableCacheKey         = "packages"
 	operatingSystemsTableCacheKey = "operating_systems"
 	vulnerabilitiesTableCacheKey  = "vulnerabilities"
 )

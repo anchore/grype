@@ -41,29 +41,23 @@ func newAffectedCPEStore(db *gorm.DB, bs *blobStore) *affectedCPEStore {
 
 // AddAffectedCPEs adds one or more affected CPEs to the store
 func (s *affectedCPEStore) AddAffectedCPEs(packages ...*AffectedCPEHandle) error {
-	return s.db.Transaction(func(tx *gorm.DB) error {
-		return s.addAffectedCPEs(tx, packages...)
-	})
-}
-
-func (s *affectedCPEStore) addAffectedCPEs(tx *gorm.DB, packages ...*AffectedCPEHandle) error {
-	if err := s.addCpes(tx, packages...); err != nil {
+	if err := s.addCpes(packages...); err != nil {
 		return fmt.Errorf("unable to add CPEs from affected package CPEs: %w", err)
 	}
 	for _, pkg := range packages {
-		if err := s.blobStore.addBlobable(tx, pkg); err != nil {
+		if err := s.blobStore.addBlobable(pkg); err != nil {
 			return fmt.Errorf("unable to add affected package blob: %w", err)
 		}
 
-		if err := tx.Omit("CPE").Create(pkg).Error; err != nil {
+		if err := s.db.Omit("CPE").Create(pkg).Error; err != nil {
 			return fmt.Errorf("unable to add affected CPEs: %w", err)
 		}
 	}
 	return nil
 }
 
-func (s *affectedCPEStore) addCpes(tx *gorm.DB, packages ...*AffectedCPEHandle) error { // nolint:dupl
-	cacheInst, ok := cacheFromContext(tx.Statement.Context)
+func (s *affectedCPEStore) addCpes(packages ...*AffectedCPEHandle) error { // nolint:dupl
+	cacheInst, ok := cacheFromContext(s.db.Statement.Context)
 	if !ok {
 		return fmt.Errorf("unable to fetch CPE cache from context")
 	}
@@ -88,16 +82,26 @@ func (s *affectedCPEStore) addCpes(tx *gorm.DB, packages ...*AffectedCPEHandle) 
 		return nil
 	}
 
-	if err := tx.Create(final).Error; err != nil {
+	if err := s.db.Create(final).Error; err != nil {
 		return fmt.Errorf("unable to create CPE records: %w", err)
 	}
 
+	// update the cache with the new records
+	for _, ref := range final {
+		cacheInst.set(ref)
+	}
+
+	// update all references with the IDs from the cache
 	for _, refs := range byCacheKey {
 		for _, ref := range refs {
-			cacheInst.set(ref)
+			id, ok := cacheInst.getID(ref)
+			if ok {
+				ref.setRowID(id)
+			}
 		}
 	}
 
+	// update the parent objects with the FK ID
 	for _, p := range packages {
 		if p.CPE != nil {
 			p.CpeID = p.CPE.ID
@@ -143,7 +147,7 @@ func (s *affectedCPEStore) GetAffectedCPEs(cpe *cpe.Attributes, config *GetAffec
 			for _, r := range results {
 				blobs = append(blobs, r)
 			}
-			if err := s.blobStore.attachBlobValue(s.db, blobs...); err != nil {
+			if err := s.blobStore.attachBlobValue(blobs...); err != nil {
 				return fmt.Errorf("unable to attach blobs: %w", err)
 			}
 		}
@@ -155,7 +159,7 @@ func (s *affectedCPEStore) GetAffectedCPEs(cpe *cpe.Attributes, config *GetAffec
 					vulns = append(vulns, r.Vulnerability)
 				}
 			}
-			if err := s.blobStore.attachBlobValue(s.db, vulns...); err != nil {
+			if err := s.blobStore.attachBlobValue(vulns...); err != nil {
 				return fmt.Errorf("unable to attach vulnerability blob: %w", err)
 			}
 		}

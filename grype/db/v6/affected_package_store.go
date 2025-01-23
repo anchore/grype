@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/cpe"
@@ -214,30 +215,99 @@ func newAffectedPackageStore(db *gorm.DB, bs *blobStore) *affectedPackageStore {
 }
 
 func (s *affectedPackageStore) AddAffectedPackages(packages ...*AffectedPackageHandle) error {
-	return s.db.Transaction(func(tx *gorm.DB) error {
-		return s.addAffectedPackages(tx, packages...)
-	})
-}
-
-func (s *affectedPackageStore) addAffectedPackages(tx *gorm.DB, packages ...*AffectedPackageHandle) error {
-	if err := s.addOs(tx, packages...); err != nil {
+	omit := []string{"OperatingSystem"}
+	if err := s.addOs(packages...); err != nil {
 		return fmt.Errorf("unable to add affected package OS: %w", err)
 	}
 
+	hasCpes, err := s.addPackages(packages...)
+	if err != nil {
+		return fmt.Errorf("unable to add affected packages: %w", err)
+	}
+
+	if !hasCpes {
+		omit = append(omit, "Package")
+	}
+
 	for _, v := range packages {
-		if err := s.blobStore.addBlobable(tx, v); err != nil {
+		if err := s.blobStore.addBlobable(v); err != nil {
 			return fmt.Errorf("unable to add affected blob: %w", err)
 		}
 
-		if err := tx.Create(v).Error; err != nil {
+		if err := s.db.Omit(omit...).Create(v).Error; err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (s *affectedPackageStore) addOs(tx *gorm.DB, packages ...*AffectedPackageHandle) error { // nolint:dupl
-	cacheInst, ok := cacheFromContext(tx.Statement.Context)
+func (s *affectedPackageStore) addPackages(packages ...*AffectedPackageHandle) (bool, error) { // nolint:dupl
+	cacheInst, ok := cacheFromContext(s.db.Statement.Context)
+	if !ok {
+		return false, fmt.Errorf("unable to fetch package cache from context")
+	}
+	var final []*Package
+	var hasCPEs bool
+	byCacheKey := make(map[string][]*Package)
+	for _, p := range packages {
+		if p.Package != nil {
+			if len(p.Package.CPEs) > 0 {
+				// never use the cache if there are CPEs involved
+				final = append(final, p.Package)
+				hasCPEs = true
+				continue
+			}
+			key := p.Package.cacheKey()
+			if existingID, ok := cacheInst.getID(p.Package); ok {
+				// seen in a previous transaction...
+				p.PackageID = existingID
+			} else if _, ok := byCacheKey[key]; !ok {
+				// not seen within this transaction
+				final = append(final, p.Package)
+			}
+			byCacheKey[key] = append(byCacheKey[key], p.Package)
+		}
+	}
+
+	if len(final) == 0 {
+		return false, nil
+	}
+
+	// since there is risk of needing to write through packages with conflicting CPEs we cannot write these in batches,
+	// and since the before hooks reason about previous entries within this loop (potentially) we must ensure that
+	// these are written in different transactions.
+	for _, p := range final {
+		if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(p).Error; err != nil {
+			return false, fmt.Errorf("unable to create package records: %w", err)
+		}
+	}
+
+	// update the cache with the new records
+	for _, ref := range final {
+		cacheInst.set(ref)
+	}
+
+	// update all references with the IDs from the cache
+	for _, refs := range byCacheKey {
+		for _, ref := range refs {
+			id, ok := cacheInst.getID(ref)
+			if ok {
+				ref.setRowID(id)
+			}
+		}
+	}
+
+	// update the parent objects with the FK ID
+	for _, p := range packages {
+		if p.Package != nil {
+			p.PackageID = p.Package.ID
+		}
+	}
+	return hasCPEs, nil
+}
+
+func (s *affectedPackageStore) addOs(packages ...*AffectedPackageHandle) error { // nolint:dupl
+	cacheInst, ok := cacheFromContext(s.db.Statement.Context)
 	if !ok {
 		return fmt.Errorf("unable to fetch OS cache from context")
 	}
@@ -262,16 +332,26 @@ func (s *affectedPackageStore) addOs(tx *gorm.DB, packages ...*AffectedPackageHa
 		return nil
 	}
 
-	if err := tx.Create(final).Error; err != nil {
+	if err := s.db.Create(final).Error; err != nil {
 		return fmt.Errorf("unable to create OS records: %w", err)
 	}
 
+	// update the cache with the new records
+	for _, ref := range final {
+		cacheInst.set(ref)
+	}
+
+	// update all references with the IDs from the cache
 	for _, refs := range byCacheKey {
 		for _, ref := range refs {
-			cacheInst.set(ref)
+			id, ok := cacheInst.getID(ref)
+			if ok {
+				ref.setRowID(id)
+			}
 		}
 	}
 
+	// update the parent objects with the FK ID
 	for _, p := range packages {
 		if p.OperatingSystem != nil {
 			p.OperatingSystemID = &p.OperatingSystem.ID
@@ -314,7 +394,7 @@ func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config
 			for _, r := range results {
 				blobs = append(blobs, r)
 			}
-			if err := s.blobStore.attachBlobValue(s.db, blobs...); err != nil {
+			if err := s.blobStore.attachBlobValue(blobs...); err != nil {
 				return fmt.Errorf("unable to attach blobs: %w", err)
 			}
 		}
@@ -326,7 +406,7 @@ func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config
 					vulns = append(vulns, r.Vulnerability)
 				}
 			}
-			if err := s.blobStore.attachBlobValue(s.db, vulns...); err != nil {
+			if err := s.blobStore.attachBlobValue(vulns...); err != nil {
 				return fmt.Errorf("unable to attach vulnerability blob: %w", err)
 			}
 		}
