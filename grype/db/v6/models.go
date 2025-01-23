@@ -2,6 +2,7 @@ package v6
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -16,7 +17,6 @@ func Models() []any {
 	return []any{
 		// core data store
 		&Blob{},
-		&BlobDigest{}, // only needed in write case
 
 		// non-domain info
 		&DBMetadata{},
@@ -59,12 +59,6 @@ func (b Blob) computeDigest() string {
 	return fmt.Sprintf("xxh64:%x", h.Sum(nil))
 }
 
-type BlobDigest struct {
-	ID     string `gorm:"column:id;primaryKey"` // this is the digest
-	BlobID ID     `gorm:"column:blob_id"`
-	Blob   Blob   `gorm:"foreignKey:BlobID"`
-}
-
 // non-domain info //////////////////////////////////////////////////////
 
 type DBMetadata struct {
@@ -80,7 +74,7 @@ type DBMetadata struct {
 // should be scoped to a specific vulnerability dataset, for instance, the "ubuntu" provider for all records from
 // Canonicals' Ubuntu Security Notices (for all Ubuntu distro versions).
 type Provider struct {
-	// Name of the Vunnel provider (or sub processor responsible for data records from a single specific source, e.g. "ubuntu")
+	// ID of the Vunnel provider (or sub processor responsible for data records from a single specific source, e.g. "ubuntu")
 	ID string `gorm:"column:id;primaryKey"`
 
 	// Version of the Vunnel provider (or sub processor equivalent)
@@ -96,29 +90,47 @@ type Provider struct {
 	InputDigest string `gorm:"column:input_digest"`
 }
 
-func (p *Provider) BeforeCreate(tx *gorm.DB) (err error) {
-	// if the name and version already exist in the table then we should not insert a new record
-	var existing Provider
-	result := tx.Where("id = ?", p.ID).First(&existing)
-	if result.Error == nil {
-		if existing.Processor == p.Processor && existing.DateCaptured == p.DateCaptured && existing.InputDigest == p.InputDigest && p.Version == existing.Version {
-			// record already exists
-			p.ID = existing.ID
-			return nil
-		}
+func (p *Provider) String() string {
+	if p == nil {
+		return ""
+	}
+	date := "?"
+	if p.DateCaptured != nil {
+		date = p.DateCaptured.UTC().Format(time.RFC3339)
+	}
+	return fmt.Sprintf("%s@v%s from %s using %q at %s", p.ID, p.Version, p.Processor, p.InputDigest, date)
+}
 
-		// overwrite the existing provider if found
-		existing.Processor = p.Processor
-		existing.DateCaptured = p.DateCaptured
-		existing.InputDigest = p.InputDigest
-		existing.Version = p.Version
-		if err := tx.Save(&existing).Error; err != nil {
-			return fmt.Errorf("failed to update existing %q provider record: %w", p.ID, err)
+func (p *Provider) cacheKey() string {
+	return strings.ToLower(p.String())
+}
+
+func (p *Provider) tableName() string {
+	return cpesTableCacheKey
+}
+
+func (p *Provider) rowID() string {
+	return p.ID
+}
+
+func (p *Provider) setRowID(i string) {
+	p.ID = i
+}
+
+func (p *Provider) BeforeCreate(tx *gorm.DB) (err error) {
+	if cacheInst, ok := cacheFromContext(tx.Statement.Context); ok {
+		if existingID, ok := cacheInst.getString(p); ok {
+			p.setRowID(existingID)
 		}
 		return nil
 	}
+	return fmt.Errorf("provider creation is not supported")
+}
 
-	// create a new provider record if not found
+func (p *Provider) AfterCreate(tx *gorm.DB) (err error) {
+	if cacheInst, ok := cacheFromContext(tx.Statement.Context); ok {
+		cacheInst.set(p)
+	}
 	return nil
 }
 
@@ -172,6 +184,45 @@ func (v *VulnerabilityHandle) setBlob(rawBlobValue []byte) error {
 	return nil
 }
 
+func (v *VulnerabilityHandle) cacheKey() string {
+	provider := "none"
+	if v.Provider != nil {
+		provider = v.Provider.ID
+	}
+	return strings.ToLower(fmt.Sprintf("%s from %s with %d", v.Name, provider, v.BlobID))
+}
+
+func (v *VulnerabilityHandle) rowID() ID {
+	return v.ID
+}
+
+func (v *VulnerabilityHandle) tableName() string {
+	return vulnerabilitiesTableCacheKey
+}
+
+func (v *VulnerabilityHandle) setRowID(i ID) {
+	v.ID = i
+}
+
+func (v *VulnerabilityHandle) BeforeCreate(tx *gorm.DB) (err error) {
+	if cacheInst, ok := cacheFromContext(tx.Statement.Context); ok {
+		if existing, ok := cacheInst.getID(v); ok {
+			v.setRowID(existing)
+		}
+
+		return nil
+	}
+
+	return fmt.Errorf("vulnerability creation is not supported")
+}
+
+func (v *VulnerabilityHandle) AfterCreate(tx *gorm.DB) (err error) {
+	if cacheInst, ok := cacheFromContext(tx.Statement.Context); ok {
+		cacheInst.set(v)
+	}
+	return nil
+}
+
 type VulnerabilityAlias struct {
 	// Name is the unique name for the vulnerability
 	Name string `gorm:"column:name;primaryKey;index,collate:NOCASE"`
@@ -202,25 +253,25 @@ type AffectedPackageHandle struct {
 	BlobValue *AffectedPackageBlob `gorm:"-"`
 }
 
-func (v AffectedPackageHandle) getBlobValue() any {
-	return v.BlobValue
+func (aph AffectedPackageHandle) getBlobValue() any {
+	return aph.BlobValue
 }
 
-func (v *AffectedPackageHandle) setBlobID(id ID) {
-	v.BlobID = id
+func (aph *AffectedPackageHandle) setBlobID(id ID) {
+	aph.BlobID = id
 }
 
-func (v AffectedPackageHandle) getBlobID() ID {
-	return v.BlobID
+func (aph AffectedPackageHandle) getBlobID() ID {
+	return aph.BlobID
 }
 
-func (v *AffectedPackageHandle) setBlob(rawBlobValue []byte) error {
+func (aph *AffectedPackageHandle) setBlob(rawBlobValue []byte) error {
 	var blobValue AffectedPackageBlob
 	if err := json.Unmarshal(rawBlobValue, &blobValue); err != nil {
 		return fmt.Errorf("unable to unmarshal affected package blob value: %w", err)
 	}
 
-	v.BlobValue = &blobValue
+	aph.BlobValue = &blobValue
 	return nil
 }
 
@@ -232,25 +283,73 @@ type Package struct {
 	Ecosystem string `gorm:"column:ecosystem;index:idx_package,unique,collate:NOCASE"`
 
 	// Name is the name of the package within the ecosystem
-	Name string `gorm:"column:name;index:idx_package,unique;index:idx_package_name,collate:NOCASE"`
+	Name string `gorm:"column:name;index:idx_package,unique,collate:NOCASE;index:idx_package_name,collate:NOCASE"`
 
 	// CPEs is the list of Common Platform Enumeration (CPE) identifiers that represent this package
 	CPEs []Cpe `gorm:"foreignKey:PackageID;constraint:OnDelete:CASCADE;"`
 }
 
-func (p *Package) BeforeCreate(tx *gorm.DB) (err error) {
+func (p Package) String() string {
+	var cpes []string
+	for _, cpe := range p.CPEs {
+		cpes = append(cpes, cpe.String())
+	}
+	if p.Ecosystem != "" && p.Name != "" {
+		base := fmt.Sprintf("%s/%s", p.Ecosystem, p.Name)
+		if len(cpes) == 0 {
+			return base
+		}
+
+		return fmt.Sprintf("%s (%s)", base, strings.Join(cpes, ", "))
+	}
+
+	return strings.Join(cpes, ", ")
+}
+
+func (p Package) cacheKey() string {
+	if p.Ecosystem == "" && p.Name == "" {
+		return ""
+	}
+	// we're intentionally not including anything about CPEs here, since there is potentially a merge operation for
+	// packages with CPEs we cannot reason about packages with CPEs in the cache, they must always pass through.
+	return strings.ToLower(fmt.Sprintf("%s/%s", p.Ecosystem, p.Name))
+}
+
+func (p Package) rowID() ID {
+	return p.ID
+}
+
+func (p *Package) tableName() string {
+	return packagesTableCacheKey
+}
+
+func (p *Package) setRowID(i ID) {
+	p.ID = i
+}
+
+func (p *Package) BeforeCreate(tx *gorm.DB) (err error) { // nolint:gocognit
+	cacheInst, ok := cacheFromContext(tx.Statement.Context)
+	if !ok {
+		return fmt.Errorf("cache not found in context")
+	}
+
 	var existingPackage Package
-	result := tx.Where("ecosystem = ? collate nocase AND name = ? collate nocase", p.Ecosystem, p.Name).First(&existingPackage)
-	if result.Error == nil {
+	err = tx.Preload("CPEs").Where("ecosystem = ? collate nocase AND name = ? collate nocase", p.Ecosystem, p.Name).First(&existingPackage).Error
+	if err == nil {
 		// package exists; merge CPEs
-		for i, newCPE := range p.CPEs {
-			// if the CPE already exists, then we should use the existing record
+		for _, newCPE := range p.CPEs {
 			var existingCPE Cpe
-			cpeResult := cpeWhereClause(tx, &newCPE).First(&existingCPE)
-			if cpeResult.Error == nil {
+
+			if existingID, ok := cacheInst.getID(&newCPE); ok {
+				if err := tx.Where("id = ?", existingID).First(&existingCPE).Error; err != nil {
+					if !errors.Is(err, gorm.ErrRecordNotFound) {
+						return fmt.Errorf("failed to find CPE by ID %d: %w", existingID, err)
+					}
+				}
+			}
+
+			if existingCPE.ID != 0 {
 				// if the record already exists, then we should use the existing record
-				newCPE = existingCPE
-				p.CPEs[i] = newCPE
 
 				if existingCPE.PackageID == nil {
 					log.WithFields("cpe", existingCPE, "pkg", existingPackage).Warn("CPE exists but was not associated with an already existing package until now")
@@ -258,17 +357,17 @@ func (p *Package) BeforeCreate(tx *gorm.DB) (err error) {
 				}
 
 				if *existingCPE.PackageID != existingPackage.ID {
-					return fmt.Errorf("CPE already exists for a different package (pkg=%q, existing_pkg=%q): %q", p, existingPackage, newCPE)
+					return fmt.Errorf("CPE already exists for a different package (pkg=%v, existing_pkg=%v): %s", p.ID, existingPackage.ID, existingCPE)
 				}
 				continue
 			}
 
 			// if the CPE does not exist, proceed with creating it
 			newCPE.PackageID = &existingPackage.ID
-			p.CPEs[i] = newCPE
+			existingPackage.CPEs = append(existingPackage.CPEs, newCPE)
 
 			if err := tx.Create(&newCPE).Error; err != nil {
-				return fmt.Errorf("failed to create CPE %q for package %q: %w", newCPE, existingPackage, err)
+				return fmt.Errorf("failed to create CPE %v for package %v: %w", newCPE, existingPackage, err)
 			}
 		}
 		// use the existing package instead of creating a new one
@@ -283,6 +382,16 @@ func (p *Package) BeforeCreate(tx *gorm.DB) (err error) {
 	return nil
 }
 
+func (p *Package) AfterCreate(tx *gorm.DB) (err error) {
+	if cacheInst, ok := cacheFromContext(tx.Statement.Context); ok {
+		cacheInst.set(p)
+		for _, cpe := range p.CPEs {
+			cacheInst.set(&cpe)
+		}
+	}
+	return nil
+}
+
 // PackageSpecifierOverride is a table that allows for overriding fields on v6.PackageSpecifier instances when searching for specific Packages.
 type PackageSpecifierOverride struct {
 	Ecosystem string `gorm:"column:ecosystem;primaryKey;index:pkg_ecosystem_idx,collate:NOCASE"`
@@ -292,7 +401,7 @@ type PackageSpecifierOverride struct {
 	ReplacementEcosystem *string `gorm:"column:replacement_ecosystem;primaryKey"`
 }
 
-// OperatingSystem represents specific release of an operating system. The resolution of the version is
+// OperatingSystem represents a specific release of an operating system. The resolution of the version is
 // relative to the available data by the vulnerability data provider, so though there may be major.minor.patch OS
 // releases, there may only be data available for major.minor.
 type OperatingSystem struct {
@@ -315,42 +424,76 @@ type OperatingSystem struct {
 	Codename string `gorm:"column:codename;index,collate:NOCASE"`
 }
 
-func (os *OperatingSystem) VersionNumber() string {
-	if os == nil {
+func (o *OperatingSystem) VersionNumber() string {
+	if o == nil {
 		return ""
 	}
-	if os.MinorVersion != "" {
-		return fmt.Sprintf("%s.%s", os.MajorVersion, os.MinorVersion)
+	if o.MinorVersion != "" {
+		return fmt.Sprintf("%s.%s", o.MajorVersion, o.MinorVersion)
 	}
-	return os.MajorVersion
+	return o.MajorVersion
 }
 
-func (os *OperatingSystem) Version() string {
-	if os == nil {
+func (o *OperatingSystem) Version() string {
+	if o == nil {
 		return ""
 	}
 
-	if os.LabelVersion != "" {
-		return os.LabelVersion
+	if o.LabelVersion != "" {
+		return o.LabelVersion
 	}
 
-	if os.MajorVersion != "" {
-		if os.MinorVersion != "" {
-			return fmt.Sprintf("%s.%s", os.MajorVersion, os.MinorVersion)
+	if o.MajorVersion != "" {
+		if o.MinorVersion != "" {
+			return fmt.Sprintf("%s.%s", o.MajorVersion, o.MinorVersion)
 		}
-		return os.MajorVersion
+		return o.MajorVersion
 	}
 
-	return os.Codename
+	return o.Codename
 }
 
-func (os *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
-	// if the name, major version, and minor version already exist in the table then we should not insert a new record
-	var existing OperatingSystem
-	result := tx.Where("name = ? collate nocase AND major_version = ? AND minor_version = ?", os.Name, os.MajorVersion, os.MinorVersion).First(&existing)
-	if result.Error == nil {
-		// if the record already exists, then we should use the existing record
-		*os = existing
+func (o OperatingSystem) String() string {
+	return fmt.Sprintf("%s@%s", o.Name, o.Version())
+}
+
+func (o OperatingSystem) cacheKey() string {
+	return strings.ToLower(o.String())
+}
+
+func (o OperatingSystem) rowID() ID {
+	return o.ID
+}
+
+func (o *OperatingSystem) tableName() string {
+	return operatingSystemsTableCacheKey
+}
+
+func (o *OperatingSystem) setRowID(i ID) {
+	o.ID = i
+}
+
+func (o *OperatingSystem) clean() {
+	o.MajorVersion = strings.TrimLeft(o.MajorVersion, "0")
+	o.MinorVersion = strings.TrimLeft(o.MinorVersion, "0")
+}
+
+func (o *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
+	o.clean()
+
+	if cacheInst, ok := cacheFromContext(tx.Statement.Context); ok {
+		if existing, ok := cacheInst.getID(o); ok {
+			o.setRowID(existing)
+		}
+		return nil
+	}
+
+	return fmt.Errorf("OS creation is not supported")
+}
+
+func (o *OperatingSystem) AfterCreate(tx *gorm.DB) (err error) {
+	if cacheInst, ok := cacheFromContext(tx.Statement.Context); ok {
+		cacheInst.set(o)
 	}
 	return nil
 }
@@ -452,24 +595,47 @@ func (c Cpe) String() string {
 	return strings.Join(parts, ":")
 }
 
+func (c *Cpe) cacheKey() string {
+	return strings.ToLower(c.String())
+}
+
+func (c *Cpe) tableName() string {
+	return cpesTableCacheKey
+}
+
+func (c *Cpe) rowID() ID {
+	return c.ID
+}
+
+func (c *Cpe) setRowID(i ID) {
+	c.ID = i
+}
+
 func (c *Cpe) BeforeCreate(tx *gorm.DB) (err error) {
-	// if the name, major version, and minor version already exist in the table then we should not insert a new record
-	var existing Cpe
-	result := cpeWhereClause(tx, c).First(&existing)
-	if result.Error == nil {
-		if c.PackageID != nil && c.PackageID != existing.PackageID {
-			return fmt.Errorf("CPE already exists for a different package (pkg=%d, existing_pkg=%d): %q", c.PackageID, existing.PackageID, c)
+	cacheInst, ok := cacheFromContext(tx.Statement.Context)
+	if !ok {
+		return fmt.Errorf("CPE creation is not supported")
+	}
+	if existingID, ok := cacheInst.getID(c); ok {
+		var existing Cpe
+		result := tx.Where("id = ?", existingID).First(&existing)
+		if result.Error == nil {
+			if c.PackageID != nil && existing.PackageID != nil && *c.PackageID != *existing.PackageID {
+				return fmt.Errorf("CPE already exists for a different package (pkg=%d, existing_pkg=%d): %q", *c.PackageID, *existing.PackageID, c)
+			}
+
+			// if the record already exists, then we should use the existing record
+			*c = existing
 		}
 
-		// if the record already exists, then we should use the existing record
-		*c = existing
+		c.setRowID(existingID)
 	}
 	return nil
 }
 
-func cpeWhereClause(tx *gorm.DB, c *Cpe) *gorm.DB {
-	if c == nil {
-		return tx
+func (c *Cpe) AfterCreate(tx *gorm.DB) (err error) {
+	if cacheInst, ok := cacheFromContext(tx.Statement.Context); ok {
+		cacheInst.set(c)
 	}
-	return tx.Where("part = ? AND vendor = ? AND product = ? AND edition = ? AND language = ? AND software_edition = ? AND target_hardware = ? AND target_software = ? AND other = ? collate nocase", c.Part, c.Vendor, c.Product, c.Edition, c.Language, c.SoftwareEdition, c.TargetHardware, c.TargetSoftware, c.Other)
+	return nil
 }

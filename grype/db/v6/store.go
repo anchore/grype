@@ -67,11 +67,6 @@ func (s *store) Close() error {
 		return nil
 	}
 
-	// this will drop the digest blob table entirely
-	if err := s.blobStore.Close(); err != nil {
-		return fmt.Errorf("failed to finalize blobs: %w", err)
-	}
-
 	// drop all indexes, which saves a lot of space distribution-wise (these get re-created on running gorm auto-migrate)
 	if err := dropAllIndexes(s.db); err != nil {
 		return err

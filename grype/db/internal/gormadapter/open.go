@@ -26,6 +26,7 @@ var writerStatements = []string{
 var heavyWriteStatements = []string{
 	`PRAGMA cache_size = -1073741824`, // ~1 GB (negative means treat as bytes not page count); one caveat is to not pick a value that risks swapping behavior, negating performance gains
 	`PRAGMA mmap_size = 1073741824`,   // ~1 GB; the maximum size of the memory-mapped I/O buffer (to access the database file as if it were a part of the process’s virtual memory)
+	`PRAGMA defer_foreign_keys = ON`,  // defer enforcement of foreign key constraints until the end of the transaction (to avoid the overhead of checking constraints for each row)
 }
 
 var readConnectionOptions = []string{
@@ -146,67 +147,123 @@ func Open(path string, options ...Option) (*gorm.DB, error) {
 		return nil, fmt.Errorf("unable to connect to DB: %w", err)
 	}
 
-	return prepareDB(dbObj, cfg)
+	return cfg.prepareDB(dbObj)
 }
 
-func prepareDB(dbObj *gorm.DB, cfg config) (*gorm.DB, error) {
-	if cfg.writable {
-		log.Trace("using writable DB statements")
-		if err := applyStatements(dbObj, writerStatements); err != nil {
+func (c config) prepareDB(dbObj *gorm.DB) (*gorm.DB, error) {
+	if c.writable {
+		log.Debug("using writable DB statements")
+		if err := c.applyStatements(dbObj, writerStatements); err != nil {
 			return nil, fmt.Errorf("unable to apply DB writer statements: %w", err)
 		}
 	}
 
-	if cfg.truncate && cfg.allowLargeMemoryFootprint {
-		log.Trace("using large memory footprint DB statements")
-		if err := applyStatements(dbObj, heavyWriteStatements); err != nil {
+	if c.truncate && c.allowLargeMemoryFootprint {
+		log.Debug("using large memory footprint DB statements")
+		if err := c.applyStatements(dbObj, heavyWriteStatements); err != nil {
 			return nil, fmt.Errorf("unable to apply DB heavy writer statements: %w", err)
 		}
 	}
 
 	if len(commonStatements) > 0 {
-		if err := applyStatements(dbObj, commonStatements); err != nil {
+		if err := c.applyStatements(dbObj, commonStatements); err != nil {
 			return nil, fmt.Errorf("unable to apply DB common statements: %w", err)
 		}
 	}
 
-	if len(cfg.statements) > 0 {
-		if err := applyStatements(dbObj, cfg.statements); err != nil {
+	if len(c.statements) > 0 {
+		if err := c.applyStatements(dbObj, c.statements); err != nil {
 			return nil, fmt.Errorf("unable to apply DB custom statements: %w", err)
 		}
 	}
 
-	if len(cfg.models) > 0 && cfg.writable {
-		log.Trace("applying DB migrations")
-		if err := dbObj.AutoMigrate(cfg.models...); err != nil {
+	if len(c.models) > 0 && c.writable {
+		log.Debug("applying DB migrations")
+		if err := dbObj.AutoMigrate(c.models...); err != nil {
 			return nil, fmt.Errorf("unable to migrate: %w", err)
+		}
+		// now that there are potentially new models and indexes, analyze the DB to ensure the query planner is up-to-date
+		if err := dbObj.Exec("ANALYZE").Error; err != nil {
+			return nil, fmt.Errorf("unable to analyze DB: %w", err)
 		}
 	}
 
-	if len(cfg.initialData) > 0 && cfg.truncate {
-		log.Trace("writing initial data")
-		for _, d := range cfg.initialData {
+	if len(c.initialData) > 0 && c.truncate {
+		log.Debug("writing initial data")
+		for _, d := range c.initialData {
 			if err := dbObj.Create(d).Error; err != nil {
 				return nil, fmt.Errorf("unable to create initial data: %w", err)
 			}
 		}
 	}
 
-	if cfg.debug {
+	if c.debug {
 		dbObj = dbObj.Debug()
 	}
 
 	return dbObj, nil
 }
 
-func applyStatements(db *gorm.DB, statements []string) error {
+func (c config) applyStatements(db *gorm.DB, statements []string) error {
 	for _, sqlStmt := range statements {
-		db.Exec(sqlStmt)
-		if db.Error != nil {
-			return fmt.Errorf("unable to execute (%s): %w", sqlStmt, db.Error)
+		if err := db.Exec(sqlStmt).Error; err != nil {
+			return fmt.Errorf("unable to execute (%s): %w", sqlStmt, err)
+		}
+		if strings.HasPrefix(sqlStmt, "PRAGMA") {
+			name, value, err := c.pragmaNameValue(sqlStmt)
+			if err != nil {
+				return fmt.Errorf("unable to parse PRAGMA statement: %w", err)
+			}
+
+			var result string
+			if err := db.Raw("PRAGMA " + name + ";").Scan(&result).Error; err != nil {
+				return fmt.Errorf("unable to verify PRAGMA %q: %w", name, err)
+			}
+
+			if !strings.EqualFold(result, value) {
+				if value == "ON" && result == "1" {
+					continue
+				}
+				if value == "OFF" && result == "0" {
+					continue
+				}
+				return fmt.Errorf("PRAGMA %q was not set to %q (%q)", name, value, result)
+			}
 		}
 	}
 	return nil
+}
+
+func (c config) pragmaNameValue(sqlStmt string) (string, string, error) {
+	sqlStmt = strings.TrimSuffix(strings.TrimSpace(sqlStmt), ";") // remove the trailing semicolon
+	if strings.Count(sqlStmt, ";") > 0 {
+		return "", "", fmt.Errorf("PRAGMA statements should not contain semicolons: %q", sqlStmt)
+	}
+
+	// check if the pragma was set, parse the pragma name and value from the statement. This is because
+	// sqlite will not return errors when there are issues with the pragma key or value, but it will
+	// be inconsistent with the expected value if you explicitly check
+	var name, value string
+
+	clean := strings.TrimPrefix(sqlStmt, "PRAGMA")
+	fields := strings.SplitN(clean, "=", 2)
+	if len(fields) == 2 {
+		name = strings.ToLower(strings.TrimSpace(fields[0]))
+		value = strings.TrimSpace(fields[1])
+	} else {
+		return "", "", fmt.Errorf("unable to parse PRAGMA statement: %q", sqlStmt)
+	}
+
+	if c.memory && name == "mmap_size" {
+		// memory only DBs do not have mmap capability
+		value = ""
+	}
+
+	if name == "" {
+		return "", "", fmt.Errorf("unable to parse name from PRAGMA statement: %q", sqlStmt)
+	}
+
+	return name, value, nil
 }
 
 func deleteDB(path string) error {

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/cpe"
@@ -214,12 +215,147 @@ func newAffectedPackageStore(db *gorm.DB, bs *blobStore) *affectedPackageStore {
 }
 
 func (s *affectedPackageStore) AddAffectedPackages(packages ...*AffectedPackageHandle) error {
+	omit := []string{"OperatingSystem"}
+	if err := s.addOs(packages...); err != nil {
+		return fmt.Errorf("unable to add affected package OS: %w", err)
+	}
+
+	hasCpes, err := s.addPackages(packages...)
+	if err != nil {
+		return fmt.Errorf("unable to add affected packages: %w", err)
+	}
+
+	if !hasCpes {
+		omit = append(omit, "Package")
+	}
+
 	for _, v := range packages {
 		if err := s.blobStore.addBlobable(v); err != nil {
 			return fmt.Errorf("unable to add affected blob: %w", err)
 		}
-		if err := s.db.Create(v).Error; err != nil {
+
+		if err := s.db.Omit(omit...).Create(v).Error; err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+func (s *affectedPackageStore) addPackages(packages ...*AffectedPackageHandle) (bool, error) { // nolint:dupl
+	cacheInst, ok := cacheFromContext(s.db.Statement.Context)
+	if !ok {
+		return false, fmt.Errorf("unable to fetch package cache from context")
+	}
+	var final []*Package
+	var hasCPEs bool
+	byCacheKey := make(map[string][]*Package)
+	for _, p := range packages {
+		if p.Package != nil {
+			if len(p.Package.CPEs) > 0 {
+				// never use the cache if there are CPEs involved
+				final = append(final, p.Package)
+				hasCPEs = true
+				continue
+			}
+			key := p.Package.cacheKey()
+			if existingID, ok := cacheInst.getID(p.Package); ok {
+				// seen in a previous transaction...
+				p.PackageID = existingID
+			} else if _, ok := byCacheKey[key]; !ok {
+				// not seen within this transaction
+				final = append(final, p.Package)
+			}
+			byCacheKey[key] = append(byCacheKey[key], p.Package)
+		}
+	}
+
+	if len(final) == 0 {
+		return false, nil
+	}
+
+	// since there is risk of needing to write through packages with conflicting CPEs we cannot write these in batches,
+	// and since the before hooks reason about previous entries within this loop (potentially) we must ensure that
+	// these are written in different transactions.
+	for _, p := range final {
+		if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(p).Error; err != nil {
+			return false, fmt.Errorf("unable to create package records: %w", err)
+		}
+	}
+
+	// update the cache with the new records
+	for _, ref := range final {
+		cacheInst.set(ref)
+	}
+
+	// update all references with the IDs from the cache
+	for _, refs := range byCacheKey {
+		for _, ref := range refs {
+			id, ok := cacheInst.getID(ref)
+			if ok {
+				ref.setRowID(id)
+			}
+		}
+	}
+
+	// update the parent objects with the FK ID
+	for _, p := range packages {
+		if p.Package != nil {
+			p.PackageID = p.Package.ID
+		}
+	}
+	return hasCPEs, nil
+}
+
+func (s *affectedPackageStore) addOs(packages ...*AffectedPackageHandle) error { // nolint:dupl
+	cacheInst, ok := cacheFromContext(s.db.Statement.Context)
+	if !ok {
+		return fmt.Errorf("unable to fetch OS cache from context")
+	}
+
+	var final []*OperatingSystem
+	byCacheKey := make(map[string][]*OperatingSystem)
+	for _, p := range packages {
+		if p.OperatingSystem != nil {
+			p.OperatingSystem.clean()
+			key := p.OperatingSystem.cacheKey()
+			if existingID, ok := cacheInst.getID(p.OperatingSystem); ok {
+				// seen in a previous transaction...
+				p.OperatingSystemID = &existingID
+			} else if _, ok := byCacheKey[key]; !ok {
+				// not seen within this transaction
+				final = append(final, p.OperatingSystem)
+			}
+			byCacheKey[key] = append(byCacheKey[key], p.OperatingSystem)
+		}
+	}
+
+	if len(final) == 0 {
+		return nil
+	}
+
+	if err := s.db.Create(final).Error; err != nil {
+		return fmt.Errorf("unable to create OS records: %w", err)
+	}
+
+	// update the cache with the new records
+	for _, ref := range final {
+		cacheInst.set(ref)
+	}
+
+	// update all references with the IDs from the cache
+	for _, refs := range byCacheKey {
+		for _, ref := range refs {
+			id, ok := cacheInst.getID(ref)
+			if ok {
+				ref.setRowID(id)
+			}
+		}
+	}
+
+	// update the parent objects with the FK ID
+	for _, p := range packages {
+		if p.OperatingSystem != nil {
+			p.OperatingSystemID = &p.OperatingSystem.ID
 		}
 	}
 	return nil
@@ -535,6 +671,8 @@ func (s *affectedPackageStore) searchForDistroVersionVariants(query *gorm.DB, d 
 	}
 
 	// search by the most specific criteria first, then fallback
+	d.MajorVersion = strings.TrimPrefix(d.MajorVersion, "0")
+	d.MinorVersion = strings.TrimPrefix(d.MinorVersion, "0")
 
 	var result []OperatingSystem
 	var err error

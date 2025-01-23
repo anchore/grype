@@ -41,13 +41,70 @@ func newAffectedCPEStore(db *gorm.DB, bs *blobStore) *affectedCPEStore {
 
 // AddAffectedCPEs adds one or more affected CPEs to the store
 func (s *affectedCPEStore) AddAffectedCPEs(packages ...*AffectedCPEHandle) error {
+	if err := s.addCpes(packages...); err != nil {
+		return fmt.Errorf("unable to add CPEs from affected package CPEs: %w", err)
+	}
 	for _, pkg := range packages {
 		if err := s.blobStore.addBlobable(pkg); err != nil {
 			return fmt.Errorf("unable to add affected package blob: %w", err)
 		}
 
-		if err := s.db.Create(pkg).Error; err != nil {
-			return fmt.Errorf("unable to add affected CPE: %w", err)
+		if err := s.db.Omit("CPE").Create(pkg).Error; err != nil {
+			return fmt.Errorf("unable to add affected CPEs: %w", err)
+		}
+	}
+	return nil
+}
+
+func (s *affectedCPEStore) addCpes(packages ...*AffectedCPEHandle) error { // nolint:dupl
+	cacheInst, ok := cacheFromContext(s.db.Statement.Context)
+	if !ok {
+		return fmt.Errorf("unable to fetch CPE cache from context")
+	}
+
+	var final []*Cpe
+	byCacheKey := make(map[string][]*Cpe)
+	for _, p := range packages {
+		if p.CPE != nil {
+			key := p.CPE.cacheKey()
+			if existingID, ok := cacheInst.getID(p.CPE); ok {
+				// seen in a previous transaction...
+				p.CpeID = existingID
+			} else if _, ok := byCacheKey[key]; !ok {
+				// not seen within this transaction
+				final = append(final, p.CPE)
+			}
+			byCacheKey[key] = append(byCacheKey[key], p.CPE)
+		}
+	}
+
+	if len(final) == 0 {
+		return nil
+	}
+
+	if err := s.db.Create(final).Error; err != nil {
+		return fmt.Errorf("unable to create CPE records: %w", err)
+	}
+
+	// update the cache with the new records
+	for _, ref := range final {
+		cacheInst.set(ref)
+	}
+
+	// update all references with the IDs from the cache
+	for _, refs := range byCacheKey {
+		for _, ref := range refs {
+			id, ok := cacheInst.getID(ref)
+			if ok {
+				ref.setRowID(id)
+			}
+		}
+	}
+
+	// update the parent objects with the FK ID
+	for _, p := range packages {
+		if p.CPE != nil {
+			p.CpeID = p.CPE.ID
 		}
 	}
 	return nil
