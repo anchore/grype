@@ -316,6 +316,7 @@ func (s *affectedPackageStore) addOs(packages ...*AffectedPackageHandle) error {
 	byCacheKey := make(map[string][]*OperatingSystem)
 	for _, p := range packages {
 		if p.OperatingSystem != nil {
+			p.OperatingSystem.clean()
 			key := p.OperatingSystem.cacheKey()
 			if existingID, ok := cacheInst.getID(p.OperatingSystem); ok {
 				// seen in a previous transaction...
@@ -670,6 +671,8 @@ func (s *affectedPackageStore) searchForDistroVersionVariants(query *gorm.DB, d 
 	}
 
 	// search by the most specific criteria first, then fallback
+	d.MajorVersion = strings.TrimPrefix(d.MajorVersion, "0")
+	d.MinorVersion = strings.TrimPrefix(d.MinorVersion, "0")
 
 	var result []OperatingSystem
 	var err error

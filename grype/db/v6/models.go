@@ -283,7 +283,7 @@ type Package struct {
 	Ecosystem string `gorm:"column:ecosystem;index:idx_package,unique,collate:NOCASE"`
 
 	// Name is the name of the package within the ecosystem
-	Name string `gorm:"column:name;index:idx_package,unique;index:idx_package_name,collate:NOCASE"`
+	Name string `gorm:"column:name;index:idx_package,unique,collate:NOCASE;index:idx_package_name,collate:NOCASE"`
 
 	// CPEs is the list of Common Platform Enumeration (CPE) identifiers that represent this package
 	CPEs []Cpe `gorm:"foreignKey:PackageID;constraint:OnDelete:CASCADE;"`
@@ -473,7 +473,14 @@ func (o *OperatingSystem) setRowID(i ID) {
 	o.ID = i
 }
 
+func (o *OperatingSystem) clean() {
+	o.MajorVersion = strings.TrimLeft(o.MajorVersion, "0")
+	o.MinorVersion = strings.TrimLeft(o.MinorVersion, "0")
+}
+
 func (o *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
+	o.clean()
+
 	if cacheInst, ok := cacheFromContext(tx.Statement.Context); ok {
 		if existing, ok := cacheInst.getID(o); ok {
 			o.setRowID(existing)
