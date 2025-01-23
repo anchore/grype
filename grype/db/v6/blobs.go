@@ -3,6 +3,7 @@ package v6
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -96,6 +97,14 @@ type CVSSSeverity struct {
 	Score float64 `json:"score"`
 }
 
+func (c CVSSSeverity) String() string {
+	vector := c.Vector
+	if !strings.HasPrefix(strings.ToLower(c.Vector), "cvss:") && c.Version != "" {
+		vector = fmt.Sprintf("CVSS:%s/%s", c.Version, c.Vector)
+	}
+	return fmt.Sprintf("%s (%1.1f)", vector, c.Score)
+}
+
 // AffectedPackageBlob represents a package affected by a vulnerability.
 type AffectedPackageBlob struct {
 	// CVEs is a list of Common Vulnerabilities and Exposures (CVE) identifiers related to this vulnerability.
@@ -129,7 +138,7 @@ type AffectedRange struct {
 // Fix conveys availability of a fix for a vulnerability.
 type Fix struct {
 	// Version is the version number of the fix.
-	Version string `json:"version"`
+	Version string `json:"version,omitempty"`
 
 	// State represents the status of the fix (e.g., "fixed", "unaffected").
 	State FixStatus `json:"state"`
@@ -153,7 +162,7 @@ type FixDetail struct {
 // AffectedVersion defines the versioning format and constraints.
 type AffectedVersion struct {
 	// Type specifies the versioning system used (e.g., "semver", "rpm").
-	Type string `json:"type"`
+	Type string `json:"type,omitempty"`
 
 	// Constraint defines the version range constraint for affected versions.
 	Constraint string `json:"constraint"`

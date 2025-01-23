@@ -75,6 +75,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		string(syftPkg.ErlangOTPPkg),
 		string(syftPkg.WordpressPluginPkg), // TODO: remove me when there is a matcher for this merged in https://github.com/anchore/grype/pull/1553
 		string(syftPkg.LuaRocksPkg),
+		string(syftPkg.TerraformPkg),
 	)
 	observedPkgTypes := strset.New()
 	testCases := []struct {

@@ -3,7 +3,7 @@ package openvex
 import (
 	"errors"
 	"fmt"
-	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/google/go-containerregistry/pkg/name"
@@ -61,14 +61,33 @@ func (ovm *Processor) ReadVexDocuments(docs []string) (interface{}, error) {
 func productIdentifiersFromContext(pkgContext *pkg.Context) ([]string, error) {
 	switch v := pkgContext.Source.Metadata.(type) {
 	case source.ImageMetadata:
-		// TODO(puerco): We can create a wider definition here. This effectively
-		// adds the multiarch image and the image of the OS running grype. We
-		// could generate more identifiers to match better.
-		return identifiersFromDigests(v.RepoDigests), nil
+		tagIdentifiers := identifiersFromTags(v.Tags, pkgContext.Source.Name)
+		digestIdentifiers := identifiersFromDigests(v.RepoDigests)
+		identifiers := slices.Concat(tagIdentifiers, digestIdentifiers)
+		return identifiers, nil
 	default:
 		// Fail for now
 		return nil, errors.New("source type not supported for VEX")
 	}
+}
+
+func identifiersFromTags(tags []string, name string) []string {
+	identifiers := []string{}
+
+	for _, tag := range tags {
+		identifiers = append(identifiers, tag)
+
+		tagMap := map[string]string{}
+		_, splitTag, found := strings.Cut(tag, ":")
+		if found {
+			tagMap["tag"] = splitTag
+			qualifiers := packageurl.QualifiersFromMap(tagMap)
+
+			identifiers = append(identifiers, packageurl.NewPackageURL("oci", "", name, "", qualifiers, "").String())
+		}
+	}
+
+	return identifiers
 }
 
 func identifiersFromDigests(digests []string) []string {
@@ -84,15 +103,13 @@ func identifiersFromDigests(digests []string) []string {
 			continue
 		}
 
-		var digestString, repoURL string
+		var repoURL string
 		shaString := ref.Identifier()
 
 		// If not a digest, we can't form a purl, so skip it
 		if !strings.HasPrefix(shaString, "sha256:") {
 			continue
 		}
-
-		digestString = url.QueryEscape(shaString)
 
 		pts := strings.Split(ref.Context().RepositoryStr(), "/")
 		name := pts[len(pts)-1]
@@ -108,7 +125,7 @@ func identifiersFromDigests(digests []string) []string {
 		}
 		qs := packageurl.QualifiersFromMap(qMap)
 		identifiers = append(identifiers, packageurl.NewPackageURL(
-			"oci", "", name, digestString, qs, "",
+			"oci", "", name, shaString, qs, "",
 		).String())
 
 		// Add a hash to the identifier list in case people want to vex

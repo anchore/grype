@@ -17,9 +17,9 @@ import (
 func DBUpdate(app clio.Application) *cobra.Command {
 	opts := dbOptionsDefault(app.ID())
 
-	return app.SetupCommand(&cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "update",
-		Short: "download the latest vulnerability database",
+		Short: "Download and install the latest vulnerability database",
 		Args:  cobra.ExactArgs(0),
 		PreRunE: func(_ *cobra.Command, _ []string) error {
 			// DB commands should not opt into the low-pass check filter
@@ -29,7 +29,14 @@ func DBUpdate(app clio.Application) *cobra.Command {
 		RunE: func(_ *cobra.Command, _ []string) error {
 			return runDBUpdate(opts.DB, opts.Experimental.DBv6)
 		},
-	}, opts)
+	}
+
+	// prevent from being shown in the grype config
+	type configWrapper struct {
+		*DBOptions `yaml:",inline" mapstructure:",squash"`
+	}
+
+	return app.SetupCommand(cmd, &configWrapper{opts})
 }
 
 func runDBUpdate(opts options.Database, expUseV6 bool) error {

@@ -32,15 +32,23 @@ func DBStatus(app clio.Application) *cobra.Command {
 		DBOptions: *dbOptionsDefault(app.ID()),
 	}
 
-	return app.SetupCommand(&cobra.Command{
+	cmd := &cobra.Command{
 		Use:     "status",
-		Short:   "display database status",
+		Short:   "Display database status and metadata",
 		Args:    cobra.ExactArgs(0),
 		PreRunE: disableUI(app),
 		RunE: func(_ *cobra.Command, _ []string) error {
 			return runDBStatus(*opts)
 		},
-	}, opts)
+	}
+
+	// prevent from being shown in the grype config
+	type configWrapper struct {
+		Hidden     *dbStatusOptions `json:"-" yaml:"-" mapstructure:"-"`
+		*DBOptions `yaml:",inline" mapstructure:",squash"`
+	}
+
+	return app.SetupCommand(cmd, &configWrapper{Hidden: opts, DBOptions: &opts.DBOptions})
 }
 
 func runDBStatus(opts dbStatusOptions) error {
@@ -70,18 +78,13 @@ func newDBStatus(opts dbStatusOptions) error {
 }
 
 func presentDBStatus(format string, writer io.Writer, status v6.Status) error {
-	statusStr := "valid"
-	if status.Err != nil {
-		statusStr = "invalid"
-	}
-
 	switch format {
 	case textOutputFormat:
 		fmt.Fprintln(writer, "Path:     ", status.Path)
 		fmt.Fprintln(writer, "Schema:   ", status.SchemaVersion)
 		fmt.Fprintln(writer, "Built:    ", status.Built.String())
 		fmt.Fprintln(writer, "Checksum: ", status.Checksum)
-		fmt.Fprintln(writer, "Status:   ", statusStr)
+		fmt.Fprintln(writer, "Status:   ", status.Status())
 	case jsonOutputFormat:
 		enc := json.NewEncoder(writer)
 		enc.SetEscapeHTML(false)
@@ -107,18 +110,13 @@ func legacyDBStatus(opts dbStatusOptions) error {
 
 	status := dbCurator.Status()
 
-	statusStr := "valid"
-	if status.Err != nil {
-		statusStr = "invalid"
-	}
-
 	switch opts.Output {
 	case textOutputFormat:
 		fmt.Println("Location: ", status.Location)
 		fmt.Println("Built:    ", status.Built.String())
 		fmt.Println("Schema:   ", status.SchemaVersion)
 		fmt.Println("Checksum: ", status.Checksum)
-		fmt.Println("Status:   ", statusStr)
+		fmt.Println("Status:   ", status.Status())
 	case jsonOutputFormat:
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetEscapeHTML(false)
