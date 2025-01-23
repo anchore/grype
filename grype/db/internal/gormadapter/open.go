@@ -181,6 +181,10 @@ func prepareDB(dbObj *gorm.DB, cfg config) (*gorm.DB, error) {
 		if err := dbObj.AutoMigrate(cfg.models...); err != nil {
 			return nil, fmt.Errorf("unable to migrate: %w", err)
 		}
+		// now that there are potentially new models and indexes, analyze the DB to ensure the query planner is up-to-date
+		if err := dbObj.Exec("ANALYZE").Error; err != nil {
+			return nil, fmt.Errorf("unable to analyze DB: %w", err)
+		}
 	}
 
 	if len(cfg.initialData) > 0 && cfg.truncate {
