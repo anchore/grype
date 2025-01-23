@@ -1,6 +1,7 @@
 package v6
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -86,12 +87,7 @@ func Hydrater() func(string) error {
 // NewLowLevelDB creates a new empty DB for writing or opens an existing one for reading from the given path. This is
 // not recommended for typical interactions with the vulnerability DB, use NewReader and NewWriter instead.
 func NewLowLevelDB(dbFilePath string, empty, writable bool) (*gorm.DB, error) {
-	opts := []gormadapter.Option{
-		// 16 KB, useful for smaller DBs since ~85% of the DB is from the blobs table
-		gormadapter.WithStatements("PRAGMA page_size = 16384"),
-		// TODO: this should be removed after initial development (or wired to a config option)
-		gormadapter.WithDebug(true),
-	}
+	var opts []gormadapter.Option
 
 	if empty && !writable {
 		return nil, fmt.Errorf("cannot open an empty database for reading only")
@@ -105,5 +101,15 @@ func NewLowLevelDB(dbFilePath string, empty, writable bool) (*gorm.DB, error) {
 		opts = append(opts, gormadapter.WithWritable(true, Models()))
 	}
 
-	return gormadapter.Open(dbFilePath, opts...)
+	dbObj, err := gormadapter.Open(dbFilePath, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	if empty {
+		// speed up writes by persisting key-to-ID lookups when writing to the DB
+		dbObj = dbObj.WithContext(withCacheContext(context.Background(), newCache()))
+	}
+
+	return dbObj, err
 }

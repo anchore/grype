@@ -717,8 +717,8 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 	s := newAffectedPackageStore(db, bs)
 
 	pkg2d1 := testDistro1AffectedPackage2Handle()
-	pkg2d2 := testDistro2AffectedPackage2Handle()
 	pkg2 := testNonDistroAffectedPackage2Handle()
+	pkg2d2 := testDistro2AffectedPackage2Handle()
 	err := s.AddAffectedPackages(pkg2d1, pkg2, pkg2d2)
 	require.NoError(t, err)
 

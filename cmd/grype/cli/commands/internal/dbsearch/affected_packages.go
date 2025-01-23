@@ -58,6 +58,7 @@ func (c *CPE) String() string {
 	if c == nil {
 		return ""
 	}
+
 	return v6.Cpe(*c).String()
 }
 

@@ -33,27 +33,6 @@ func TestBlobWriter_AddBlobs(t *testing.T) {
 	assert.Equal(t, blob2.Value, result2.Value)
 }
 
-func TestBlobWriter_Close(t *testing.T) {
-	db := setupTestStore(t).db
-	writer := newBlobStore(db)
-
-	obj := map[string]string{"key": "value"}
-	blob := newBlob(obj)
-	require.NoError(t, writer.addBlobs(blob))
-
-	// ensure the blob digest table is created
-	var blobDigest BlobDigest
-	require.NoError(t, db.First(&blobDigest).Error)
-	require.NotZero(t, blobDigest.ID)
-
-	err := writer.Close()
-	require.NoError(t, err)
-
-	// ensure the blob digest table is deleted
-	err = db.First(&blobDigest).Error
-	require.ErrorContains(t, err, "no such table: blob_digests")
-}
-
 func TestBlob_computeDigest(t *testing.T) {
 	assert.Equal(t, "xxh64:0e6882304e9adbd5", Blob{Value: "test content"}.computeDigest())
 

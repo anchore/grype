@@ -22,7 +22,6 @@ func TestAffectedCPEStore_AddAffectedCPEs(t *testing.T) {
 			},
 			Name: "CVE-2023-5678",
 		},
-		CpeID: 1,
 		CPE: &Cpe{
 			Part:    "a",
 			Vendor:  "vendor-1",
@@ -148,8 +147,7 @@ func TestAffectedCPEStore_PreventDuplicateCPEs(t *testing.T) {
 				ID: "nvd",
 			},
 		},
-		CpeID: 1,
-		CPE: &Cpe{
+		CPE: &Cpe{ // ID = 1
 			Part:    "a",
 			Vendor:  "vendor-1",
 			Product: "product-1",
@@ -171,8 +169,9 @@ func TestAffectedCPEStore_PreventDuplicateCPEs(t *testing.T) {
 				ID: "nvd",
 			},
 		},
-		CpeID: 2,
+		CpeID: 2, // for testing explicitly set to 2, but this is unrealistic
 		CPE: &Cpe{
+			ID:      2,           // different, again, unrealistic but useful for testing
 			Part:    "a",         // same
 			Vendor:  "vendor-1",  // same
 			Product: "product-1", // same
@@ -199,6 +198,11 @@ func TestAffectedCPEStore_PreventDuplicateCPEs(t *testing.T) {
 		PreloadVulnerability: true,
 	})
 	require.NoError(t, err)
+
+	// the CPEs should be the same, and the store should reconcile the IDs
+	duplicateCPE.CpeID = cpe1.CpeID
+	duplicateCPE.CPE.ID = cpe1.CPE.ID
+
 	expected := []AffectedCPEHandle{*cpe1, *duplicateCPE}
 	require.Len(t, actualHandles, len(expected), "expected both handles to be stored")
 	if d := cmp.Diff(expected, actualHandles); d != "" {

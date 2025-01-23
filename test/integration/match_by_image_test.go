@@ -794,6 +794,12 @@ func TestMatchByImage(t *testing.T) {
 
 			// The single match in the actual results is the same in ignoredMatched
 			// but must the details of the VEX matcher appended
+			if len(vexedResults.Sorted()) < 1 {
+				t.Errorf(
+					"Expected VEXed Results to produce an array of vexMatches but got none; len(vexedResults)=%d",
+					len(vexedResults.Sorted()),
+				)
+			}
 			result := vexedResults.Sorted()[0]
 			if len(result.Details) != len(ignoredMatches[0].Match.Details)+1 {
 				t.Errorf(

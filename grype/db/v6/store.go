@@ -69,16 +69,7 @@ func newStore(cfg Config, empty, writable bool) (*store, error) {
 // Close closes the store and finalizes the blobs when the DB is open for writing. If open for reading, it does nothing.
 func (s *store) Close() error {
 	log.Debug("closing store")
-	if !s.writable {
-		return nil
-	}
-
-	// this will drop the digest blob table entirely
-	if err := s.blobStore.Close(); err != nil {
-		return fmt.Errorf("failed to finalize blobs: %w", err)
-	}
-
-	if !s.empty {
+	if !s.writable || !s.empty {
 		// if not empty, this writable execution created indexes
 		return nil
 	}

@@ -3,7 +3,6 @@ package openvex
 import (
 	"errors"
 	"fmt"
-	"net/url"
 	"slices"
 	"strings"
 
@@ -104,15 +103,13 @@ func identifiersFromDigests(digests []string) []string {
 			continue
 		}
 
-		var digestString, repoURL string
+		var repoURL string
 		shaString := ref.Identifier()
 
 		// If not a digest, we can't form a purl, so skip it
 		if !strings.HasPrefix(shaString, "sha256:") {
 			continue
 		}
-
-		digestString = url.QueryEscape(shaString)
 
 		pts := strings.Split(ref.Context().RepositoryStr(), "/")
 		name := pts[len(pts)-1]
@@ -128,7 +125,7 @@ func identifiersFromDigests(digests []string) []string {
 		}
 		qs := packageurl.QualifiersFromMap(qMap)
 		identifiers = append(identifiers, packageurl.NewPackageURL(
-			"oci", "", name, digestString, qs, "",
+			"oci", "", name, shaString, qs, "",
 		).String())
 
 		// Add a hash to the identifier list in case people want to vex

@@ -107,10 +107,7 @@
           "$ref": "#/$defs/Fix"
         }
       },
-      "type": "object",
-      "required": [
-        "version"
-      ]
+      "type": "object"
     },
     "AffectedVersion": {
       "$defs": {
@@ -129,10 +126,7 @@
           "type": "string"
         }
       },
-      "type": "object",
-      "required": [
-        "constraint"
-      ]
+      "type": "object"
     },
     "CPE": {
       "properties": {
@@ -208,10 +202,7 @@
           "$ref": "#/$defs/FixDetail"
         }
       },
-      "type": "object",
-      "required": [
-        "state"
-      ]
+      "type": "object"
     },
     "FixDetail": {
       "$defs": {
