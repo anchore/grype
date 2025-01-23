@@ -232,7 +232,7 @@ type Package struct {
 	Ecosystem string `gorm:"column:ecosystem;index:idx_package,unique,collate:NOCASE"`
 
 	// Name is the name of the package within the ecosystem
-	Name string `gorm:"column:name;index:idx_package,unique;index:idx_package_name,collate:NOCASE"`
+	Name string `gorm:"column:name;index:idx_package,unique,collate:NOCASE;index:idx_package_name,collate:NOCASE"`
 
 	// CPEs is the list of Common Platform Enumeration (CPE) identifiers that represent this package
 	CPEs []Cpe `gorm:"foreignKey:PackageID;constraint:OnDelete:CASCADE;"`
@@ -345,6 +345,15 @@ func (os *OperatingSystem) Version() string {
 }
 
 func (os *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
+	// clean up the version fields
+	if strings.HasPrefix(os.MajorVersion, "0") {
+		os.MajorVersion = strings.TrimLeft(os.MajorVersion, "0")
+	}
+
+	if strings.HasPrefix(os.MinorVersion, "0") {
+		os.MinorVersion = strings.TrimLeft(os.MinorVersion, "0")
+	}
+
 	// if the name, major version, and minor version already exist in the table then we should not insert a new record
 	var existing OperatingSystem
 	result := tx.Where("name = ? collate nocase AND major_version = ? AND minor_version = ?", os.Name, os.MajorVersion, os.MinorVersion).First(&existing)

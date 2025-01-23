@@ -534,7 +534,7 @@ func TestAffectedPackageStore_GetAffectedPackages_CaseInsensitive(t *testing.T) 
 			Name:         "Ubuntu", // capitalized
 			ReleaseID:    "zubuntu",
 			MajorVersion: "20",
-			MinorVersion: "04",
+			MinorVersion: "04", // leading 0
 			Codename:     "focal",
 		},
 		Package: &Package{Name: "Pkg1", Ecosystem: "Type1", CPEs: []Cpe{cpe1}}, // capitalized
@@ -543,7 +543,26 @@ func TestAffectedPackageStore_GetAffectedPackages_CaseInsensitive(t *testing.T) 
 		},
 	}
 
-	err := s.AddAffectedPackages(pkg1)
+	pkg2 := &AffectedPackageHandle{ // this should never register as a match
+		Vulnerability: &VulnerabilityHandle{
+			Name: "CVE-2222-2222",
+			Provider: &Provider{
+				ID: "provider2",
+			},
+		},
+		OperatingSystem: &OperatingSystem{
+			Name:         "ubuntu",
+			ReleaseID:    "ubuntu",
+			MajorVersion: "20",
+			MinorVersion: "10",
+		},
+		Package: &Package{Name: "pkg2", Ecosystem: "type2"},
+		BlobValue: &AffectedPackageBlob{
+			CVEs: []string{"CVE-2222-2222"},
+		},
+	}
+
+	err := s.AddAffectedPackages(pkg1, pkg2)
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -577,12 +596,23 @@ func TestAffectedPackageStore_GetAffectedPackages_CaseInsensitive(t *testing.T) 
 			expected: 1,
 		},
 		{
-			name: "get by OS name",
+			name: "get by OS name and version (leading 0)",
 			options: &GetAffectedPackageOptions{
 				OSs: []*OSSpecifier{{
 					Name:         "uBUNtu",
 					MajorVersion: "20",
 					MinorVersion: "04",
+				}},
+			},
+			expected: 1,
+		},
+		{
+			name: "get by OS name and version",
+			options: &GetAffectedPackageOptions{
+				OSs: []*OSSpecifier{{
+					Name:         "uBUNtu",
+					MajorVersion: "20",
+					MinorVersion: "4",
 				}},
 			},
 			expected: 1,
@@ -942,6 +972,15 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 				Name:         "ubuntu",
 				MajorVersion: "20",
 				MinorVersion: "04",
+			},
+			expected: []OperatingSystem{*ubuntu2004},
+		},
+		{
+			name: "specific distro with major and minor version (missing left padding)",
+			distro: OSSpecifier{
+				Name:         "ubuntu",
+				MajorVersion: "20",
+				MinorVersion: "4",
 			},
 			expected: []OperatingSystem{*ubuntu2004},
 		},

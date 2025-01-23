@@ -535,6 +535,8 @@ func (s *affectedPackageStore) searchForDistroVersionVariants(query *gorm.DB, d 
 	}
 
 	// search by the most specific criteria first, then fallback
+	d.MajorVersion = strings.TrimPrefix(d.MajorVersion, "0")
+	d.MinorVersion = strings.TrimPrefix(d.MinorVersion, "0")
 
 	var result []OperatingSystem
 	var err error
