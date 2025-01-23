@@ -30,11 +30,11 @@ type mavenSearch struct {
 
 // newMavenSearch creates a new mavenSearch instance with rate limiting
 // rate is specified as 1 request per 300ms
-func newMavenSearch(client *http.Client, baseURL string) *mavenSearch {
+func newMavenSearch(client *http.Client, baseURL string, rateLimit time.Duration) *mavenSearch {
 	return &mavenSearch{
 		client:      client,
 		baseURL:     baseURL,
-		rateLimiter: rate.NewLimiter(rate.Every(300*time.Millisecond), 1), // 1 request per 300ms, using the integration test to determine the best rate.
+		rateLimiter: rate.NewLimiter(rate.Every(rateLimit), 1),
 	}
 }
 
