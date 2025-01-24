@@ -10,15 +10,15 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-// ByDistro returns criteria which will search based on the provided Distro
-func ByDistro(d distro.Distro) vulnerability.Criteria {
+// ByDistro returns criteria which will match vulnerabilities based on any of the provided Distros
+func ByDistro(d ...distro.Distro) vulnerability.Criteria {
 	return &DistroCriteria{
-		Distro: d,
+		Distros: d,
 	}
 }
 
 type DistroCriteria struct {
-	Distro distro.Distro
+	Distros []distro.Distro
 }
 
 func (c *DistroCriteria) MatchesVulnerability(value vulnerability.Vulnerability) (bool, error) {
@@ -27,12 +27,20 @@ func (c *DistroCriteria) MatchesVulnerability(value vulnerability.Vulnerability)
 		log.Debugf("unable to determine namespace for vulnerability %v: %v", value.Reference.ID, err)
 		return false, nil
 	}
-	d, ok := ns.(*distroNs.Namespace)
-	if !ok || d == nil {
+	dns, ok := ns.(*distroNs.Namespace)
+	if !ok || dns == nil {
 		// not a Distro-based vulnerability
 		return false, nil
 	}
-	return matchesDistro(&c.Distro, d), nil
+	if len(c.Distros) == 0 {
+		return true, nil
+	}
+	for _, d := range c.Distros {
+		if matchesDistro(&d, dns) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 var _ interface {
