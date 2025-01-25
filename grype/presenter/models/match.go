@@ -21,11 +21,16 @@ type Match struct {
 
 // MatchDetails contains all data that indicates how the result match was found
 type MatchDetails struct {
-	Type                  string      `json:"type"`
-	Matcher               string      `json:"matcher"`
-	SearchedBy            interface{} `json:"searchedBy"` // The specific attributes that were used to search (other than package name and version) --this indicates "how" the match was made.
-	Found                 interface{} `json:"found"`      // The specific attributes on the vulnerability object that were matched with --this indicates "what" was matched on / within.
-	SuggestedFixedVersion string      `json:"suggestedFixedVersion"`
+	Type       string      `json:"type"`
+	Matcher    string      `json:"matcher"`
+	SearchedBy interface{} `json:"searchedBy"` // The specific attributes that were used to search (other than package name and version) --this indicates "how" the match was made.
+	Found      interface{} `json:"found"`      // The specific attributes on the vulnerability object that were matched with --this indicates "what" was matched on / within.
+	Fix        FixDetails  `json:"fix"`
+}
+
+// FixDetails contains all data related to the fix
+type FixDetails struct {
+	SuggestedVersion string `json:"suggestedVersion"`
 }
 
 func newMatch(m match.Match, p pkg.Package, metadataProvider vulnerability.MetadataProvider) (*Match, error) {
@@ -46,14 +51,15 @@ func newMatch(m match.Match, p pkg.Package, metadataProvider vulnerability.Metad
 	}
 
 	details := make([]MatchDetails, len(m.Details))
-	suggestedFixedVersion := calculateSuggestedFixedVersion(p, m.Vulnerability.Fix.Versions)
 	for idx, d := range m.Details {
 		details[idx] = MatchDetails{
-			Type:                  string(d.Type),
-			Matcher:               string(d.Matcher),
-			SearchedBy:            d.SearchedBy,
-			Found:                 d.Found,
-			SuggestedFixedVersion: suggestedFixedVersion,
+			Type:       string(d.Type),
+			Matcher:    string(d.Matcher),
+			SearchedBy: d.SearchedBy,
+			Found:      d.Found,
+			Fix: FixDetails{
+				SuggestedVersion: calculateSuggestedFixedVersion(p, m.Vulnerability.Fix.Versions),
+			},
 		}
 	}
 
