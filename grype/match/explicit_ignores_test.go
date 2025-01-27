@@ -25,7 +25,7 @@ func newMockExclusionProvider() *mockExclusionProvider {
 func (d *mockExclusionProvider) stub() {
 }
 
-func (d *mockExclusionProvider) GetRules(vulnerabilityID string) ([]IgnoreRule, error) {
+func (d *mockExclusionProvider) IgnoreRules(vulnerabilityID string) ([]IgnoreRule, error) {
 	return d.data[vulnerabilityID], nil
 }
 

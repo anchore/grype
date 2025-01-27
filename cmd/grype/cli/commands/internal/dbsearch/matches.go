@@ -45,7 +45,8 @@ func newMatchesRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPEs []v6.A
 	var affectedPkgsByVuln = make(map[v6.ID][]AffectedPackageInfo)
 	var vulnsByID = make(map[v6.ID]v6.VulnerabilityHandle)
 
-	for _, pkg := range affectedPkgs {
+	for i := range affectedPkgs {
+		pkg := affectedPkgs[i]
 		var detail v6.AffectedPackageBlob
 		if pkg.BlobValue != nil {
 			detail = *pkg.BlobValue
@@ -59,6 +60,7 @@ func newMatchesRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPEs []v6.A
 		}
 
 		aff := AffectedPackageInfo{
+			Model:   &pkg,
 			OS:      toOS(pkg.OperatingSystem),
 			Package: toPackage(pkg.Package),
 			Detail:  detail,
@@ -88,6 +90,7 @@ func newMatchesRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPEs []v6.A
 		}
 
 		aff := AffectedPackageInfo{
+			// tracking model information is not possible with CPE handles
 			CPE:    c,
 			Detail: detail,
 		}

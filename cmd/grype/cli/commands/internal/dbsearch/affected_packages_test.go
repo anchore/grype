@@ -212,7 +212,7 @@ func TestNewAffectedPackageRows(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(expected, rows); diff != "" {
+	if diff := cmp.Diff(expected, rows, cmpOpts()...); diff != "" {
 		t.Errorf("unexpected rows (-want +got):\n%s", diff)
 	}
 }
@@ -344,7 +344,7 @@ func TestAffectedPackages(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(expected, results); diff != "" {
+	if diff := cmp.Diff(expected, results, cmpOpts()...); diff != "" {
 		t.Errorf("unexpected results (-want +got):\n%s", diff)
 	}
 }

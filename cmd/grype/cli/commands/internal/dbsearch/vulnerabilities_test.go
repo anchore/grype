@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -47,7 +48,7 @@ func TestNewVulnerabilityRows(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(expected, rows); diff != "" {
+	if diff := cmp.Diff(expected, rows, cmpOpts()...); diff != "" {
 		t.Errorf("unexpected rows (-want +got):\n%s", diff)
 	}
 }
@@ -96,7 +97,7 @@ func TestVulnerabilities(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(expected, results); diff != "" {
+	if diff := cmp.Diff(expected, results, cmpOpts()...); diff != "" {
 		t.Errorf("unexpected results (-want +got):\n%s", diff)
 	}
 }
@@ -117,4 +118,11 @@ func (m *mockVulnReader) GetAffectedPackages(pkg *v6.PackageSpecifier, config *v
 
 func ptrTime(t time.Time) *time.Time {
 	return &t
+}
+
+func cmpOpts() []cmp.Option {
+	return []cmp.Option{
+		cmpopts.IgnoreFields(AffectedPackageInfo{}, "Model"),
+		cmpopts.IgnoreFields(VulnerabilityInfo{}, "Model"),
+	}
 }

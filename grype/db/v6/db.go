@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 
 	"gorm.io/gorm"
@@ -65,7 +66,8 @@ func (c Config) DBFilePath() string {
 }
 
 func NewReader(cfg Config) (Reader, error) {
-	return newStore(cfg, false, false)
+	buildIndexes := os.Getenv("GRYPE_DB_BUILD_INDEXES") == "true"
+	return newStore(cfg, false, buildIndexes)
 }
 
 func NewWriter(cfg Config) (ReadWriter, error) {

@@ -17,17 +17,17 @@ func FromString(namespaceStr string) (Namespace, error) {
 
 	components := strings.Split(namespaceStr, ":")
 
-	if len(components) < 1 {
+	if len(components) < 2 {
 		return nil, fmt.Errorf("unable to create namespace from %s: incorrect number of components", namespaceStr)
 	}
 
 	switch components[1] {
 	case cpe.ID:
-		return cpe.FromString(namespaceStr)
+		return cpe.FromComponents(components)
 	case distro.ID:
-		return distro.FromString(namespaceStr)
+		return distro.FromComponents(components)
 	case language.ID:
-		return language.FromString(namespaceStr)
+		return language.FromComponents(components)
 	default:
 		return nil, fmt.Errorf("unable to create namespace from %s: unknown type %s", namespaceStr, components[1])
 	}

@@ -902,7 +902,7 @@ func TestShouldIgnore(t *testing.T) {
 
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
-			actual := shouldIgnore(testCase.match, testCase.rule)
+			actual := len(testCase.rule.IgnoreMatch(testCase.match)) > 0
 			assert.Equal(t, testCase.expected, actual)
 		})
 	}

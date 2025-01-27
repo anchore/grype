@@ -8,6 +8,12 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
+// IgnoreFilter implementations are used to filter matches, returning all applicable IgnoreRule(s) that applied,
+// these could include an IgnoreRule with only a Reason value filled in for synthetically generated rules
+type IgnoreFilter interface {
+	IgnoreMatch(match Match) []IgnoreRule
+}
+
 // An IgnoredMatch is a vulnerability Match that has been ignored because one or more IgnoreRules applied to the match.
 type IgnoredMatch struct {
 	Match
@@ -48,16 +54,21 @@ type IgnoreRulePackage struct {
 // ApplyIgnoreRules returns two collections: the matches that are not being
 // ignored, and the matches that are being ignored.
 func ApplyIgnoreRules(matches Matches, rules []IgnoreRule) (Matches, []IgnoredMatch) {
-	var ignoredMatches []IgnoredMatch
-	remainingMatches := NewMatches()
+	matched, ignored := ApplyIgnoreFilters(matches.Sorted(), rules...)
+	return NewMatches(matched...), ignored
+}
 
-	for _, match := range matches.Sorted() {
+// ApplyIgnoreFilters applies all the IgnoreFilter(s) to the provided set of matches,
+// splitting the results into a set of matched matches and ignored matches
+func ApplyIgnoreFilters[T IgnoreFilter](matches []Match, filters ...T) ([]Match, []IgnoredMatch) {
+	var out []Match
+	var ignoredMatches []IgnoredMatch
+
+	for _, match := range matches {
 		var applicableRules []IgnoreRule
 
-		for _, rule := range rules {
-			if shouldIgnore(match, rule) {
-				applicableRules = append(applicableRules, rule)
-			}
+		for _, filter := range filters {
+			applicableRules = append(applicableRules, filter.IgnoreMatch(match)...)
 		}
 
 		if len(applicableRules) > 0 {
@@ -69,40 +80,55 @@ func ApplyIgnoreRules(matches Matches, rules []IgnoreRule) (Matches, []IgnoredMa
 			continue
 		}
 
-		remainingMatches.Add(match)
+		out = append(out, match)
 	}
 
-	return remainingMatches, ignoredMatches
+	return out, ignoredMatches
 }
 
-func shouldIgnore(match Match, rule IgnoreRule) bool {
+func (r IgnoreRule) IgnoreMatch(match Match) []IgnoreRule {
 	// VEX rules are handled by the vex processor
-	if rule.VexStatus != "" {
-		return false
+	if r.VexStatus != "" {
+		return nil
 	}
 
-	ignoreConditions := getIgnoreConditionsForRule(rule)
+	ignoreConditions := getIgnoreConditionsForRule(r)
 	if len(ignoreConditions) == 0 {
 		// this rule specifies no criteria, so it doesn't apply to the Match
-		return false
+		return nil
 	}
 
 	for _, condition := range ignoreConditions {
 		if !condition(match) {
 			// as soon as one rule criterion doesn't apply, we know this rule doesn't apply to the Match
-			return false
+			return nil
 		}
 	}
 
 	// all criteria specified in the rule apply to this Match
-	return true
+	return []IgnoreRule{r}
 }
 
 // HasConditions returns true if the ignore rule has conditions
 // that can cause a match to be ignored
-func (ir IgnoreRule) HasConditions() bool {
-	return len(getIgnoreConditionsForRule(ir)) == 0
+func (r IgnoreRule) HasConditions() bool {
+	return len(getIgnoreConditionsForRule(r)) == 0
 }
+
+// ignoreFilters implements match.IgnoreFilter on a slice of objects that implement the same interface
+type ignoreFilters[T IgnoreFilter] []T
+
+func (r ignoreFilters[T]) IgnoreMatch(match Match) []IgnoreRule {
+	for _, rule := range r {
+		ignores := rule.IgnoreMatch(match)
+		if len(ignores) > 0 {
+			return ignores
+		}
+	}
+	return nil
+}
+
+var _ IgnoreFilter = (*ignoreFilters[IgnoreRule])(nil)
 
 // An ignoreCondition is a function that returns a boolean indicating whether
 // the given Match should be ignored.

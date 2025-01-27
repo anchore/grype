@@ -2,6 +2,7 @@ package options
 
 import (
 	"github.com/anchore/clio"
+	"github.com/anchore/grype/grype/db"
 )
 
 // Experimental options are opt-in features that are...
@@ -16,7 +17,15 @@ type Experimental struct {
 
 var _ interface {
 	clio.FieldDescriber
+	clio.PostLoader
 } = (*Experimental)(nil)
+
+func (cfg *Experimental) PostLoad() error {
+	if cfg.DBv6 {
+		db.SchemaVersion = 6 // FIXME -- v6.SchemaVersion
+	}
+	return nil
+}
 
 func (cfg *Experimental) DescribeFields(descriptions clio.FieldDescriptionSet) {
 	descriptions.Add(&cfg.DBv6, `use the v6 database schema`)

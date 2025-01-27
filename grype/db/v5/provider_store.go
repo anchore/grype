@@ -1,14 +1,11 @@
 package v5
 
 import (
-	"io"
-
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/vulnerability"
 )
 
 type ProviderStore struct {
-	VulnerabilityProvider
-	VulnerabilityMetadataProvider
+	vulnerability.Provider
 	match.ExclusionProvider
-	io.Closer
 }

@@ -35,13 +35,16 @@ func FromString(namespaceStr string) (*Namespace, error) {
 	}
 
 	components := strings.Split(namespaceStr, ":")
+	return FromComponents(components)
+}
 
+func FromComponents(components []string) (*Namespace, error) {
 	if len(components) != 3 && len(components) != 4 {
-		return nil, fmt.Errorf("unable to create language namespace from %s: incorrect number of components", namespaceStr)
+		return nil, fmt.Errorf("unable to create language namespace from %s: incorrect number of components", strings.Join(components, ":"))
 	}
 
 	if components[1] != ID {
-		return nil, fmt.Errorf("unable to create language namespace from %s: type %s is incorrect", namespaceStr, components[1])
+		return nil, fmt.Errorf("unable to create language namespace from %s: type %s is incorrect", strings.Join(components, ":"), components[1])
 	}
 
 	packageType := ""

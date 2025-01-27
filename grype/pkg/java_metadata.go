@@ -3,7 +3,7 @@ package pkg
 import (
 	"github.com/scylladb/go-set/strset"
 
-	"github.com/anchore/syft/syft/pkg"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 type JavaMetadata struct {
@@ -35,7 +35,7 @@ func IsJvmPackage(p Package) bool {
 		return true
 	}
 
-	if p.Type == pkg.BinaryPkg {
+	if p.Type == syftPkg.BinaryPkg {
 		if HasJvmPackageName(p.Name) {
 			return true
 		}
