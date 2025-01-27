@@ -21,10 +21,11 @@ type Presenter struct {
 	metadataProvider vulnerability.MetadataProvider
 	appConfig        interface{}
 	dbStatus         interface{}
+	pretty           bool
 }
 
 // NewPresenter creates a new JSON presenter
-func NewPresenter(pb models.PresenterConfig) *Presenter {
+func NewPresenter(pb models.PresenterConfig, pretty bool) *Presenter {
 	return &Presenter{
 		id:               pb.ID,
 		matches:          pb.Matches,
@@ -34,6 +35,7 @@ func NewPresenter(pb models.PresenterConfig) *Presenter {
 		context:          pb.Context,
 		appConfig:        pb.AppConfig,
 		dbStatus:         pb.DBStatus,
+		pretty:           pretty,
 	}
 }
 
@@ -48,6 +50,8 @@ func (pres *Presenter) Present(output io.Writer) error {
 	enc := json.NewEncoder(output)
 	// prevent > and < from being escaped in the payload
 	enc.SetEscapeHTML(false)
-	enc.SetIndent("", " ")
+	if pres.pretty {
+		enc.SetIndent("", " ")
+	}
 	return enc.Encode(&doc)
 }

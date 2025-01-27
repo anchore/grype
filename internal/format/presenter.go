@@ -15,13 +15,14 @@ import (
 type PresentationConfig struct {
 	TemplateFilePath string
 	ShowSuppressed   bool
+	Pretty           bool
 }
 
 // GetPresenter retrieves a Presenter that matches a CLI option
 func GetPresenter(format Format, c PresentationConfig, pb models.PresenterConfig) presenter.Presenter {
 	switch format {
 	case JSONFormat:
-		return json.NewPresenter(pb)
+		return json.NewPresenter(pb, c.Pretty)
 	case TableFormat:
 		return table.NewPresenter(pb, c.ShowSuppressed)
 

@@ -113,6 +113,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 	writer, err := format.MakeScanResultWriter(opts.Outputs, opts.File, format.PresentationConfig{
 		TemplateFilePath: opts.OutputTemplateFile,
 		ShowSuppressed:   opts.ShowSuppressed,
+		Pretty:           opts.Pretty,
 	})
 	if err != nil {
 		return err
