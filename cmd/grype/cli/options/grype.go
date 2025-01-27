@@ -11,8 +11,9 @@ import (
 )
 
 type Grype struct {
-	Outputs                    []string           `yaml:"output" json:"output" mapstructure:"output"`                                           // -o, <presenter>=<file> the Presenter hint string to use for report formatting and the output file
-	File                       string             `yaml:"file" json:"file" mapstructure:"file"`                                                 // --file, the file to write report output to
+	Outputs                    []string           `yaml:"output" json:"output" mapstructure:"output"` // -o, <presenter>=<file> the Presenter hint string to use for report formatting and the output file
+	File                       string             `yaml:"file" json:"file" mapstructure:"file"`       // --file, the file to write report output to
+	Pretty                     bool               `yaml:"pretty" json:"pretty" mapstructure:"pretty"`
 	Distro                     string             `yaml:"distro" json:"distro" mapstructure:"distro"`                                           // --distro, specify a distro to explicitly use
 	GenerateMissingCPEs        bool               `yaml:"add-cpes-if-none" json:"add-cpes-if-none" mapstructure:"add-cpes-if-none"`             // --add-cpes-if-none, automatically generate CPEs if they are not present in import (e.g. from a 3rd party SPDX document)
 	OutputTemplateFile         string             `yaml:"output-template-file" json:"output-template-file" mapstructure:"output-template-file"` // -t, the template file to use for formatting the final report
