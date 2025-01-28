@@ -284,10 +284,13 @@ external-sources:
   enable: true
   maven:
     search-upstream-by-sha1: true
-    base-url: https://repo1.maven.org/maven2
+    base-url: https://search.maven.org/solrsearch/select
+    rate-limit: 300ms # Time between Maven API requests
 ```
 
 You can also configure the base-url if you're using another registry as your maven endpoint.
+
+The rate at which Maven API requests are made can be configured to match your environment's requirements. The default is 300ms between requests.
 
 ### Output formats
 
@@ -738,7 +741,8 @@ external-sources:
   enable: false
   maven:
     search-upstream-by-sha1: true
-    base-url: https://repo1.maven.org/maven2
+    base-url: https://search.maven.org/solrsearch/select
+    rate-limit: 300ms
 
 db:
   # check for database updates on execution
