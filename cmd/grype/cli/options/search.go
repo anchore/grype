@@ -37,9 +37,9 @@ func (cfg *search) PostLoad() error {
 }
 
 func (cfg *search) DescribeFields(descriptions clio.FieldDescriptionSet) {
-	descriptions.Add(&cfg.IncludeUnindexedArchives, `search within archives that do contain a file index to search against (zip)
+	descriptions.Add(&cfg.IncludeIndexedArchives, `search within archives that do contain a file index to search against (zip)
 note: for now this only applies to the java package cataloger`)
-	descriptions.Add(&cfg.IncludeIndexedArchives, `search within archives that do not contain a file index to search against (tar, tar.gz, tar.bz2, etc)
+	descriptions.Add(&cfg.IncludeUnindexedArchives, `search within archives that do not contain a file index to search against (tar, tar.gz, tar.bz2, etc)
 note: enabling this may result in a performance impact since all discovered compressed tars will be decompressed
 note: for now this only applies to the java package cataloger`)
 }
