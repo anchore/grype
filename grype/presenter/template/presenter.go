@@ -1,15 +1,19 @@
 package template
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
 	"reflect"
+	"regexp"
 	"sort"
+	"strings"
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/mitchellh/go-homedir"
+	"github.com/olekukonko/tablewriter"
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/match"
@@ -59,7 +63,9 @@ func (pres *Presenter) Present(output io.Writer) error {
 	}
 
 	templateName := expandedPathToTemplateFile
-	tmpl, err := template.New(templateName).Funcs(FuncMap).Parse(string(templateContents))
+	var tmpl *template.Template
+	tmpl = template.New(templateName).Funcs(FuncMap(&tmpl))
+	tmpl, err = tmpl.Parse(string(templateContents))
 	if err != nil {
 		return fmt.Errorf("unable to parse template: %w", err)
 	}
@@ -79,7 +85,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 }
 
 // FuncMap is a function that returns template.FuncMap with custom functions available to template authors.
-var FuncMap = func() template.FuncMap {
+func FuncMap(tpl **template.Template) template.FuncMap {
 	f := sprig.HermeticTxtFuncMap()
 	f["getLastIndex"] = func(collection interface{}) int {
 		if v := reflect.ValueOf(collection); v.Kind() == reflect.Slice {
@@ -97,5 +103,113 @@ var FuncMap = func() template.FuncMap {
 		sort.Sort(models.MatchSort(matches))
 		return matches
 	}
+	f["templateCsvToTable"] = templateCsvToTable(tpl)
+	f["templateRemoveNewlines"] = templateRemoveNewlines(tpl)
+	f["templateUniqueLines"] = templateUniqueLines(tpl)
 	return f
-}()
+}
+
+// templateCsvToTable removes any whitespace-only lines and renders a table based csv from the named template
+func templateCsvToTable(tpl **template.Template) func(templateName string, data any) (string, error) {
+	return func(templateName string, data any) (string, error) {
+		in, err := evalTemplate(tpl, templateName, data)
+		if err != nil {
+			return "", err
+		}
+		lines := strings.Split(in, "\n")
+
+		// remove blank lines
+		for i := 0; i < len(lines); i++ {
+			line := strings.TrimSpace(lines[i])
+			if len(line) == 0 {
+				lines = append(lines[:i], lines[i+1:]...)
+				i--
+				continue
+			}
+			lines[i] = line
+		}
+
+		header := strings.TrimSpace(lines[0])
+		columns := strings.Split(header, ",")
+
+		out := bytes.Buffer{}
+
+		table := tablewriter.NewWriter(&out)
+		table.SetHeader(columns)
+		table.SetAutoWrapText(false)
+		table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
+		table.SetAlignment(tablewriter.ALIGN_LEFT)
+
+		table.SetHeaderLine(false)
+		table.SetBorder(false)
+		table.SetAutoFormatHeaders(true)
+		table.SetCenterSeparator("")
+		table.SetColumnSeparator("")
+		table.SetRowSeparator("")
+		table.SetTablePadding("  ")
+		table.SetNoWhiteSpace(true)
+
+		for _, line := range lines[1:] {
+			line = strings.TrimSpace(line)
+			row := strings.Split(line, ",")
+			for i := range row {
+				row[i] = strings.TrimSpace(row[i])
+			}
+			table.Append(row)
+		}
+
+		table.Render()
+
+		return out.String(), nil
+	}
+}
+
+// templateRemoveNewlines remove all newlines from the rendered template
+func templateRemoveNewlines(tpl **template.Template) func(templateName string, data any) (string, error) {
+	return func(templateName string, data any) (string, error) {
+		text, err := evalTemplate(tpl, templateName, data)
+		if err != nil {
+			return "", err
+		}
+		text = regexp.MustCompile(`[\r\n]`).ReplaceAllString(text, "")
+		return text, nil
+	}
+}
+
+// templateUniqueLines remove any duplicate lines from the rendered template
+func templateUniqueLines(tpl **template.Template) func(templateName string, data any) (string, error) {
+	return func(templateName string, data any) (string, error) {
+		text, err := evalTemplate(tpl, templateName, data)
+		if err != nil {
+			return "", err
+		}
+		allLines := strings.Split(text, "\n")
+		out := bytes.Buffer{}
+	nextLine:
+		for i := 0; i < len(allLines); i++ {
+			line := allLines[i]
+			for j := 0; j < i; j++ {
+				if allLines[j] == line {
+					continue nextLine
+				}
+			}
+			if out.Len() > 0 {
+				out.WriteRune('\n')
+			}
+			out.WriteString(line)
+		}
+		if strings.HasSuffix(text, "\n") {
+			out.WriteRune('\n')
+		}
+		return out.String(), nil
+	}
+}
+
+func evalTemplate(tpl **template.Template, templateName string, data any) (string, error) {
+	out := bytes.Buffer{}
+	err := (*tpl).ExecuteTemplate(&out, templateName, data)
+	if err != nil {
+		return "", err
+	}
+	return out.String(), nil
+}
