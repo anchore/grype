@@ -167,6 +167,7 @@ output-template-file: .grype/html.tmpl
 write output report to a file (default is to write to stdout)`)
 	descriptions.Add(&o.Outputs, `the output format of the vulnerability report (options: table, template, json, cyclonedx)
 when using template as the output type, you must also provide a value for 'output-template-file'`)
+	descriptions.Add(&o.Pretty, `pretty-print output`)
 	descriptions.Add(&o.FailOn, `upon scanning, if a severity is found at or above the given severity then the return code will be 1
 default is unset which will skip this validation (options: negligible, low, medium, high, critical)`)
 	descriptions.Add(&o.Ignore, `A list of vulnerability ignore rules, one or more property may be specified and all matching vulnerabilities will be ignored.
