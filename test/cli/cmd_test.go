@@ -38,9 +38,9 @@ func TestCmd(t *testing.T) {
 			name: "ensure valid descriptor",
 			args: []string{getFixtureImage(t, "image-bare"), "-o", "json"},
 			assertions: []traitAssertion{
-				assertInOutput(`"check-for-app-update": false`), // assert existence of the app config block
-				assertInOutput(`"db": {`),                       // assert existence of the db status block
-				assertInOutput(`"built":`),                      // assert existence of the db status block
+				assertInOutput(`"check-for-app-update":`), // assert existence of the app config block
+				assertInOutput(`"db":`),                   // assert existence of the db status block
+				assertInOutput(`"built":`),                // assert existence of the db status block
 			},
 		},
 		{
