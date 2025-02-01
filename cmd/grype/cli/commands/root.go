@@ -212,6 +212,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		SBOM:             s,
 		AppConfig:        opts,
 		DBStatus:         status,
+		Pretty:           opts.Pretty,
 	}); err != nil {
 		errs = appendErrors(errs, err)
 	}
