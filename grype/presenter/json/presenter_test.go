@@ -37,7 +37,7 @@ func TestJsonImgsPresenter(t *testing.T) {
 		MetadataProvider: metadataProvider,
 	}
 
-	pres := NewPresenter(pb, true)
+	pres := NewPresenter(pb)
 
 	// run presenter
 	if err := pres.Present(&buffer); err != nil {
@@ -74,7 +74,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 		MetadataProvider: metadataProvider,
 	}
 
-	pres := NewPresenter(pb, true)
+	pres := NewPresenter(pb)
 
 	// run presenter
 	if err := pres.Present(&buffer); err != nil {
@@ -121,7 +121,7 @@ func TestEmptyJsonPresenter(t *testing.T) {
 		MetadataProvider: nil,
 	}
 
-	pres := NewPresenter(pb, true)
+	pres := NewPresenter(pb)
 
 	// run presenter
 	if err := pres.Present(&buffer); err != nil {

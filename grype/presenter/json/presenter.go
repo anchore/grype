@@ -25,7 +25,7 @@ type Presenter struct {
 }
 
 // NewPresenter creates a new JSON presenter
-func NewPresenter(pb models.PresenterConfig, pretty bool) *Presenter {
+func NewPresenter(pb models.PresenterConfig) *Presenter {
 	return &Presenter{
 		id:               pb.ID,
 		matches:          pb.Matches,
@@ -35,7 +35,7 @@ func NewPresenter(pb models.PresenterConfig, pretty bool) *Presenter {
 		context:          pb.Context,
 		appConfig:        pb.AppConfig,
 		dbStatus:         pb.DBStatus,
-		pretty:           pretty,
+		pretty:           pb.Pretty,
 	}
 }
 

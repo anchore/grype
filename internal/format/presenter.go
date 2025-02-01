@@ -22,7 +22,7 @@ type PresentationConfig struct {
 func GetPresenter(format Format, c PresentationConfig, pb models.PresenterConfig) presenter.Presenter {
 	switch format {
 	case JSONFormat:
-		return json.NewPresenter(pb, c.Pretty)
+		return json.NewPresenter(pb)
 	case TableFormat:
 		return table.NewPresenter(pb, c.ShowSuppressed)
 
