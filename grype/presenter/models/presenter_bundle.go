@@ -18,4 +18,5 @@ type PresenterConfig struct {
 	SBOM             *sbom.SBOM
 	AppConfig        interface{}
 	DBStatus         interface{}
+	Pretty           bool
 }
