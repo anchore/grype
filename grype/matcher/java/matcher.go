@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal"
@@ -26,6 +27,7 @@ type Matcher struct {
 type ExternalSearchConfig struct {
 	SearchMavenUpstream bool
 	MavenBaseURL        string
+	MavenRateLimit      time.Duration
 }
 
 type MatcherConfig struct {
@@ -36,7 +38,7 @@ type MatcherConfig struct {
 func NewJavaMatcher(cfg MatcherConfig) *Matcher {
 	return &Matcher{
 		cfg:           cfg,
-		MavenSearcher: newMavenSearch(http.DefaultClient, cfg.MavenBaseURL),
+		MavenSearcher: newMavenSearch(http.DefaultClient, cfg.MavenBaseURL, cfg.MavenRateLimit),
 	}
 }
 
@@ -56,8 +58,9 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 		if err != nil {
 			if strings.Contains(err.Error(), "no artifact found") {
 				log.Debugf("no upstream maven artifact found for %s", p.Name)
+			} else {
+				log.WithFields("package", p.Name, "error", err).Warn("failed to resolve package details with maven")
 			}
-			log.WithFields("package", p.Name, "error", err).Warn("failed to resolve package details with maven")
 		} else {
 			matches = append(matches, upstreamMatches...)
 		}

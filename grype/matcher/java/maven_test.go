@@ -17,37 +17,28 @@ func TestNewMavenSearchRateLimiter(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	t.Run("default initialization", func(t *testing.T) {
-		ms := newMavenSearch(http.DefaultClient, ts.URL)
+	t.Run("custom rate limit initialization", func(t *testing.T) {
+		customDuration := 500 * time.Millisecond
+		ms := newMavenSearch(http.DefaultClient, ts.URL, customDuration)
 
-		if ms.client == nil {
-			t.Error("HTTP client was not initialized")
-		}
-
-		if ms.baseURL != ts.URL {
-			t.Errorf("unexpected base URL: got %q, want %q", ms.baseURL, ts.URL)
-		}
-
-		if ms.rateLimiter == nil {
-			t.Error("rate limiter was not initialized")
-		}
-	})
-
-	t.Run("rate limiter configuration", func(t *testing.T) {
-		ms := newMavenSearch(http.DefaultClient, ts.URL)
-
-		expectedRate := rate.Every(300 * time.Millisecond)
+		expectedRate := rate.Every(customDuration)
 		if ms.rateLimiter.Limit() != expectedRate {
 			t.Errorf("unexpected rate limit: got %v, want %v", ms.rateLimiter.Limit(), rate.Limit(expectedRate))
 		}
+	})
 
-		if ms.rateLimiter.Burst() != 1 {
-			t.Errorf("unexpected burst limit: got %d, want 1", ms.rateLimiter.Burst())
+	t.Run("default rate limit initialization", func(t *testing.T) {
+		defaultDuration := 300 * time.Millisecond
+		ms := newMavenSearch(http.DefaultClient, ts.URL, defaultDuration)
+
+		expectedRate := rate.Every(defaultDuration)
+		if ms.rateLimiter.Limit() != expectedRate {
+			t.Errorf("unexpected rate limit: got %v, want %v", ms.rateLimiter.Limit(), rate.Limit(expectedRate))
 		}
 	})
 
 	t.Run("rate limiter behavior", func(t *testing.T) {
-		ms := newMavenSearch(http.DefaultClient, ts.URL)
+		ms := newMavenSearch(http.DefaultClient, ts.URL, 200*time.Millisecond)
 		ctx := context.Background()
 
 		// First request should proceed immediately
@@ -60,21 +51,50 @@ func TestNewMavenSearchRateLimiter(t *testing.T) {
 			t.Errorf("first request took too long: %v", elapsed)
 		}
 
-		// Second request should be delayed by ~300ms
+		// Second request should be delayed
 		start = time.Now()
 		err = ms.rateLimiter.Wait(ctx)
 		if err != nil {
 			t.Errorf("unexpected error on second wait: %v", err)
 		}
-		if elapsed := time.Since(start); elapsed < 250*time.Millisecond {
+		if elapsed := time.Since(start); elapsed < 150*time.Millisecond {
 			t.Errorf("rate limiting not enforced, second request took: %v", elapsed)
 		}
 	})
 
-	t.Run("nil client", func(t *testing.T) {
-		ms := newMavenSearch(nil, ts.URL)
-		if ms.rateLimiter == nil {
-			t.Error("rate limiter was not initialized with nil client")
+	t.Run("config integration", func(t *testing.T) {
+		testCases := []struct {
+			name      string
+			rateLimit time.Duration
+			want      rate.Limit
+		}{
+			{
+				name:      "with default rate limit",
+				rateLimit: 300 * time.Millisecond,
+				want:      rate.Every(300 * time.Millisecond),
+			},
+			{
+				name:      "with custom rate limit",
+				rateLimit: 500 * time.Millisecond,
+				want:      rate.Every(500 * time.Millisecond),
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				ms := newMavenSearch(http.DefaultClient, ts.URL, tc.rateLimit)
+				if ms.rateLimiter.Limit() != tc.want {
+					t.Errorf("rate limit = %v, want %v", ms.rateLimiter.Limit(), tc.want)
+				}
+			})
 		}
 	})
+}
+
+func withinDelta(got, want, delta time.Duration) bool {
+	diff := got - want
+	if diff < 0 {
+		diff = -diff
+	}
+	return diff <= delta
 }

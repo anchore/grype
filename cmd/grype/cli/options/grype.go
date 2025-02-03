@@ -11,8 +11,9 @@ import (
 )
 
 type Grype struct {
-	Outputs                    []string           `yaml:"output" json:"output" mapstructure:"output"`                                           // -o, <presenter>=<file> the Presenter hint string to use for report formatting and the output file
-	File                       string             `yaml:"file" json:"file" mapstructure:"file"`                                                 // --file, the file to write report output to
+	Outputs                    []string           `yaml:"output" json:"output" mapstructure:"output"` // -o, <presenter>=<file> the Presenter hint string to use for report formatting and the output file
+	File                       string             `yaml:"file" json:"file" mapstructure:"file"`       // --file, the file to write report output to
+	Pretty                     bool               `yaml:"pretty" json:"pretty" mapstructure:"pretty"`
 	Distro                     string             `yaml:"distro" json:"distro" mapstructure:"distro"`                                           // --distro, specify a distro to explicitly use
 	GenerateMissingCPEs        bool               `yaml:"add-cpes-if-none" json:"add-cpes-if-none" mapstructure:"add-cpes-if-none"`             // --add-cpes-if-none, automatically generate CPEs if they are not present in import (e.g. from a 3rd party SPDX document)
 	OutputTemplateFile         string             `yaml:"output-template-file" json:"output-template-file" mapstructure:"output-template-file"` // -t, the template file to use for formatting the final report
@@ -166,6 +167,7 @@ output-template-file: .grype/html.tmpl
 write output report to a file (default is to write to stdout)`)
 	descriptions.Add(&o.Outputs, `the output format of the vulnerability report (options: table, template, json, cyclonedx)
 when using template as the output type, you must also provide a value for 'output-template-file'`)
+	descriptions.Add(&o.Pretty, `pretty-print output`)
 	descriptions.Add(&o.FailOn, `upon scanning, if a severity is found at or above the given severity then the return code will be 1
 default is unset which will skip this validation (options: negligible, low, medium, high, critical)`)
 	descriptions.Add(&o.Ignore, `A list of vulnerability ignore rules, one or more property may be specified and all matching vulnerabilities will be ignored.
