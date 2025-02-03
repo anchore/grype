@@ -68,6 +68,14 @@ func Test_ByExactConstraint(t *testing.T) {
 			matches: true,
 		},
 		{
+			name:       "match apk",
+			constraint: "< 0",
+			input: vulnerability.Vulnerability{
+				Constraint: version.MustGetConstraint("< 0", version.ApkFormat),
+			},
+			matches: true,
+		},
+		{
 			name:       "not match",
 			constraint: "< 0",
 			input: vulnerability.Vulnerability{

@@ -6,38 +6,12 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
-// requiredCriteriaContainer is an interface criteria implementations may provide to give access
-// to nested criteria, which may be expanded while processing unique criteria sets. for example,
-// the "AND" condition implements this to allow FindVulnerabilities to determine nested database constraints
-// that may be applied
-type requiredCriteriaContainer interface {
-	RequiredCriteria() []vulnerability.Criteria
-}
-
-// optionalCriteriaContainer is an interface criteria implementations may provide to give access
-// to nested criteria, which may be expanded while processing unique criteria sets. for example,
-// the "OR" condition implements this to allow FindVulnerabilities to determine nested database constraints
-// that may be applied
-type optionalCriteriaContainer interface {
-	OptionalCriteria() []vulnerability.Criteria
-}
-
 // ------- Utilities -------
-
-// byMany returns criteria which will search based on the provided single criteria function and multiple values
-func byMany[T any](criteriaFn func(T) vulnerability.Criteria, c ...T) vulnerability.Criteria {
-	return &orCriteria{
-		criteria: reduce(c, nil, func(criteria []vulnerability.Criteria, t T) []vulnerability.Criteria {
-			return append(criteria, criteriaFn(t))
-		}),
-	}
-}
 
 // CriteriaIterator processes all conditions into distinct sets of flattened criteria
 func CriteriaIterator(criteria []vulnerability.Criteria) iter.Seq2[int, []vulnerability.Criteria] {
 	if len(criteria) == 0 {
-		return func(_ func(int, []vulnerability.Criteria) bool) {
-		}
+		return func(_ func(int, []vulnerability.Criteria) bool) {}
 	}
 	return func(yield func(int, []vulnerability.Criteria) bool) {
 		idx := 0
@@ -59,11 +33,11 @@ func processRemaining(row, criteria []vulnerability.Criteria, yield func([]vulne
 
 func processRemainingItem(row, criteria []vulnerability.Criteria, item vulnerability.Criteria, yield func([]vulnerability.Criteria) bool) bool {
 	switch item := item.(type) {
-	case requiredCriteriaContainer:
+	case and:
 		// we replace this criteria object with its constituent parts
-		return processRemaining(row, append(item.RequiredCriteria(), criteria...), yield)
-	case optionalCriteriaContainer:
-		for _, option := range item.OptionalCriteria() {
+		return processRemaining(row, append(item, criteria...), yield)
+	case or:
+		for _, option := range item {
 			if !processRemainingItem(row, criteria, option, yield) {
 				return false
 			}
@@ -74,10 +48,40 @@ func processRemainingItem(row, criteria []vulnerability.Criteria, item vulnerabi
 	return true // continue
 }
 
-// reduce a simplistic reducer function
-func reduce[Incoming any, Return any](values []Incoming, initial Return, reducer func(Return, Incoming) Return) Return {
-	for _, value := range values {
-		initial = reducer(initial, value)
+// orCriteria provides a way to specify multiple criteria to be used, only requiring one to match
+type or []vulnerability.Criteria
+
+func Or(criteria ...vulnerability.Criteria) vulnerability.Criteria {
+	return or(criteria)
+}
+
+func (c or) MatchesVulnerability(v vulnerability.Vulnerability) (bool, error) {
+	for _, crit := range c {
+		matches, err := crit.MatchesVulnerability(v)
+		if matches || err != nil {
+			return matches, err
+		}
 	}
-	return initial
+	return false, nil
+}
+
+var _ interface {
+	vulnerability.Criteria
+} = (*or)(nil)
+
+// andCriteria provides a way to specify multiple criteria to be used, all required
+type and []vulnerability.Criteria
+
+func And(criteria ...vulnerability.Criteria) vulnerability.Criteria {
+	return and(criteria)
+}
+
+func (c and) MatchesVulnerability(v vulnerability.Vulnerability) (bool, error) {
+	for _, crit := range c {
+		matches, err := crit.MatchesVulnerability(v)
+		if matches || err != nil {
+			return matches, err
+		}
+	}
+	return false, nil
 }

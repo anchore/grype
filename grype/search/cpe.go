@@ -14,11 +14,6 @@ func ByCPE(c cpe.CPE) vulnerability.Criteria {
 	}
 }
 
-// ByCPEs returns criteria which will search based on any of the provided CPEs
-func ByCPEs(cpes ...cpe.CPE) vulnerability.Criteria {
-	return byMany(ByCPE, cpes...)
-}
-
 type CPECriteria struct {
 	CPE cpe.CPE
 }

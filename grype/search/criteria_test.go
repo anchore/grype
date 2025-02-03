@@ -13,9 +13,9 @@ func Test_CriteriaIterator(t *testing.T) {
 	name2 := ByPackageName("name2")
 	name3 := ByPackageName("name3")
 
-	name1orName2 := NewOrCriteria(name1, name2)
-	name2orName3 := NewOrCriteria(name2, name3)
-	name1orName2orName3 := NewOrCriteria(name1, name2, name3)
+	name1orName2 := Or(name1, name2)
+	name2orName3 := Or(name2, name3)
+	name1orName2orName3 := Or(name1, name2, name3)
 
 	tests := []struct {
 		name     string
@@ -49,6 +49,13 @@ func Test_CriteriaIterator(t *testing.T) {
 				{name1, name2, name1}, {name1, name3, name1},
 				{name1, name2, name2}, {name1, name3, name2},
 				{name1, name2, name3}, {name1, name3, name3},
+			},
+		},
+		{
+			name: "(name1 AND name2) OR (name1 AND name3)",
+			in:   []vulnerability.Criteria{Or(And(name1, name2), And(name1, name3))},
+			expected: [][]vulnerability.Criteria{
+				{name1, name2}, {name1, name3},
 			},
 		},
 	}
