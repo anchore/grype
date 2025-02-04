@@ -10,6 +10,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/grype/vulnerability/mock"
 	"github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
@@ -194,7 +195,7 @@ func TestMatcher_SearchForStdlib(t *testing.T) {
 }
 
 func newMockProvider() vulnerability.Provider {
-	return vulnerability.NewMockProvider([]vulnerability.Vulnerability{
+	return mock.VulnerabilityProvider([]vulnerability.Vulnerability{
 		// for TestMatcher_DropMainPackageIfNoVersion
 		{
 			PackageName: "istio.io/istio",

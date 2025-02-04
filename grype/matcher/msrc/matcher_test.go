@@ -11,6 +11,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/grype/vulnerability/mock"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -22,7 +23,7 @@ func TestMatches(t *testing.T) {
 	// and not break the adaption of grype-db
 	msrcNamespace := fmt.Sprintf("msrc:distro:windows:%s", d.RawVersion)
 
-	vp := vulnerability.NewMockProvider([]vulnerability.Vulnerability{
+	vp := mock.VulnerabilityProvider([]vulnerability.Vulnerability{
 		{
 			Reference: vulnerability.Reference{
 				ID:        "CVE-2016-3333",

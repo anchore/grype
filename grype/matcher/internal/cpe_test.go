@@ -13,12 +13,13 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/grype/vulnerability/mock"
 	"github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 func newCPETestStore() vulnerability.Provider {
-	return vulnerability.NewMockProvider([]vulnerability.Vulnerability{
+	return mock.VulnerabilityProvider([]vulnerability.Vulnerability{
 		{
 			Reference: vulnerability.Reference{
 				ID:        "CVE-2017-fake-1",

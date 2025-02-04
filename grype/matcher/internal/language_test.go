@@ -11,11 +11,12 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/grype/vulnerability/mock"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 func newMockProviderByLanguage() vulnerability.Provider {
-	return vulnerability.NewMockProvider([]vulnerability.Vulnerability{
+	return mock.VulnerabilityProvider([]vulnerability.Vulnerability{
 		{
 			Reference: vulnerability.Reference{
 				ID:        "CVE-2017-fake-1",

@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
@@ -12,10 +13,6 @@ func Test_CriteriaIterator(t *testing.T) {
 	name1 := ByPackageName("name1")
 	name2 := ByPackageName("name2")
 	name3 := ByPackageName("name3")
-
-	name1orName2 := Or(name1, name2)
-	name2orName3 := Or(name2, name3)
-	name1orName2orName3 := Or(name1, name2, name3)
 
 	tests := []struct {
 		name     string
@@ -34,17 +31,17 @@ func Test_CriteriaIterator(t *testing.T) {
 		},
 		{
 			name:     "name1 or name2",
-			in:       []vulnerability.Criteria{name1orName2},
+			in:       []vulnerability.Criteria{Or(name1, name2)},
 			expected: [][]vulnerability.Criteria{{name1}, {name2}},
 		},
 		{
 			name:     "name1 AND (name2 or name3)",
-			in:       []vulnerability.Criteria{name1, name2orName3},
+			in:       []vulnerability.Criteria{name1, Or(name2, name3)},
 			expected: [][]vulnerability.Criteria{{name1, name2}, {name1, name3}},
 		},
 		{
 			name: "name1 AND (name2 or name3) AND (name1 or name2 or name3)",
-			in:   []vulnerability.Criteria{name1, name2orName3, name1orName2orName3},
+			in:   []vulnerability.Criteria{name1, Or(name2, name3), Or(name1, name2, name3)},
 			expected: [][]vulnerability.Criteria{
 				{name1, name2, name1}, {name1, name3, name1},
 				{name1, name2, name2}, {name1, name3, name2},
@@ -66,6 +63,42 @@ func Test_CriteriaIterator(t *testing.T) {
 				got = append(got, row)
 			}
 			require.ElementsMatch(t, test.expected, got)
+		})
+	}
+}
+
+func Test_ValidateCriteria(t *testing.T) {
+	tests := []struct {
+		name    string
+		in      []vulnerability.Criteria
+		wantErr require.ErrorAssertionFunc
+	}{
+		{
+			name:    "no error",
+			in:      []vulnerability.Criteria{ByPackageName("steve"), ByDistro(distro.Distro{})},
+			wantErr: require.NoError,
+		},
+		{
+			name:    "package name error",
+			in:      []vulnerability.Criteria{ByPackageName("steve"), ByPackageName("bob")},
+			wantErr: require.Error,
+		},
+		{
+			name:    "multiple distros error",
+			in:      []vulnerability.Criteria{ByDistro(distro.Distro{}), ByDistro(distro.Distro{})},
+			wantErr: require.Error,
+		},
+		{
+			name:    "multiple package name in or condition not error",
+			in:      []vulnerability.Criteria{Or(ByPackageName("steve"), ByPackageName("bob"))},
+			wantErr: require.NoError,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := ValidateCriteria(test.in)
+			test.wantErr(t, err)
 		})
 	}
 }

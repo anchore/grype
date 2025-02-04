@@ -12,6 +12,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/grype/vulnerability/mock"
 	"github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
@@ -79,7 +80,7 @@ func newMockProvider() vulnerability.Provider {
 
 	cpes := []cpe.CPE{cpe.Must("cpe:2.3:a:oracle:java_se:*:*:*:*:*:*:*:*", "")}
 
-	return vulnerability.NewMockProvider([]vulnerability.Vulnerability{
+	return mock.VulnerabilityProvider([]vulnerability.Vulnerability{
 		{
 			// positive cases
 			PackageName: "java_se",

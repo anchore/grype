@@ -1,7 +1,10 @@
 package search
 
 import (
+	"fmt"
 	"iter"
+	"reflect"
+	"slices"
 
 	"github.com/anchore/grype/grype/vulnerability"
 )
@@ -46,6 +49,30 @@ func processRemainingItem(row, criteria []vulnerability.Criteria, item vulnerabi
 		return processRemaining(append(row, item), criteria, yield)
 	}
 	return true // continue
+}
+
+var allowedMultipleCriteria = []reflect.Type{reflect.TypeOf(funcCriteria{})}
+
+// ValidateCriteria asserts that there are no incorrect duplications of criteria
+// e.g. multiple ByPackageName() which would result in no matches, while Or(pkgName1, pkgName2) is allowed
+func ValidateCriteria(criteria []vulnerability.Criteria) error {
+	for _, row := range CriteriaIterator(criteria) { // process OR conditions into flattened lists of AND conditions
+		for i := range row {
+			for j := range row {
+				if i == j {
+					continue
+				}
+				iType := reflect.TypeOf(row[i])
+				if slices.Contains(allowedMultipleCriteria, iType) {
+					continue
+				}
+				if iType == reflect.TypeOf(row[j]) {
+					return fmt.Errorf("multiple conflicting criteria specified: %+v %+v", row[i], row[j])
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // orCriteria provides a way to specify multiple criteria to be used, only requiring one to match

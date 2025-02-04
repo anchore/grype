@@ -12,11 +12,12 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/grype/vulnerability/mock"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 func newMockProviderByDistro() vulnerability.Provider {
-	return vulnerability.NewMockProvider([]vulnerability.Vulnerability{
+	return mock.VulnerabilityProvider([]vulnerability.Vulnerability{
 		{
 			// direct...
 			PackageName: "neutron",
