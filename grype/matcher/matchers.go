@@ -6,7 +6,6 @@ import (
 	"github.com/anchore/grype/grype/matcher/dotnet"
 	"github.com/anchore/grype/grype/matcher/dpkg"
 	"github.com/anchore/grype/grype/matcher/golang"
-	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
 	"github.com/anchore/grype/grype/matcher/msrc"
@@ -31,10 +30,7 @@ type Config struct {
 }
 
 func NewDefaultMatchers(mc Config) []match.Matcher {
-	var out []match.Matcher
-
-	// add all typed matchers
-	for _, m := range []internal.TypedMatcher{
+	return []match.Matcher{
 		&dpkg.Matcher{},
 		ruby.NewRubyMatcher(mc.Ruby),
 		python.NewPythonMatcher(mc.Python),
@@ -47,15 +43,6 @@ func NewDefaultMatchers(mc Config) []match.Matcher {
 		&msrc.Matcher{},
 		&portage.Matcher{},
 		rust.NewRustMatcher(mc.Rust),
-	} {
-		out = append(out, internal.MatcherAdapter{
-			Matcher: m,
-		})
+		stock.NewStockMatcher(mc.Stock),
 	}
-
-	// append other Matcher implementations
-	out = append(out,
-		stock.NewMatchProvider(mc.Stock),
-	)
-	return out
 }

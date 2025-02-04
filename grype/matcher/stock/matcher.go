@@ -16,7 +16,7 @@ type MatcherConfig struct {
 	UseCPEs bool
 }
 
-func NewMatchProvider(cfg MatcherConfig) match.Matcher {
+func NewStockMatcher(cfg MatcherConfig) match.Matcher {
 	return &Matcher{
 		cfg: cfg,
 	}
