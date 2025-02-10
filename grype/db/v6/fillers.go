@@ -8,17 +8,10 @@ import (
 func fillAffectedPackageHandles(reader Reader, handles []*AffectedPackageHandle) error {
 	return errors.Join(
 		reader.attachBlobValue(toBlobables(handles)...),
-		fillVulnerabilityHandles(reader, handles, affectedPackageHandleVulnerabilityHandleRef),
 		fillRefs(reader, handles, affectedPackageHandleOperatingSystemRef, operatingSystemID),
 		fillRefs(reader, handles, affectedPackageHandlePackageRef, packageID),
+		fillVulnerabilityHandles(reader, handles, affectedPackageHandleVulnerabilityHandleRef),
 	)
-}
-
-func affectedPackageHandleVulnerabilityHandleRef(t *AffectedPackageHandle) idRef[VulnerabilityHandle] {
-	return idRef[VulnerabilityHandle]{
-		id:  &t.VulnerabilityID,
-		ref: &t.Vulnerability,
-	}
 }
 
 func affectedPackageHandleOperatingSystemRef(t *AffectedPackageHandle) idRef[OperatingSystem] {
@@ -35,12 +28,19 @@ func affectedPackageHandlePackageRef(t *AffectedPackageHandle) idRef[Package] {
 	}
 }
 
-// fillAffectedCPEHandles lazy-loads all properties on the list of AffectedCPEHandles
+func affectedPackageHandleVulnerabilityHandleRef(t *AffectedPackageHandle) idRef[VulnerabilityHandle] {
+	return idRef[VulnerabilityHandle]{
+		id:  &t.VulnerabilityID,
+		ref: &t.Vulnerability,
+	}
+}
+
+// fillAffectedCPEHandles lazy loads all properties on the list of AffectedCPEHandles
 func fillAffectedCPEHandles(reader Reader, handles []*AffectedCPEHandle) error {
 	return errors.Join(
 		reader.attachBlobValue(toBlobables(handles)...),
 		fillRefs(reader, handles, affectedCPEHandleCpeRef, cpeHandleID),
-		fillVulnerabilityHandles(reader, handles, affectedCPEHandleVulnerabilityRef),
+		fillVulnerabilityHandles(reader, handles, affectedCPEHandleVulnerabilityHandleRef),
 	)
 }
 
@@ -51,7 +51,7 @@ func affectedCPEHandleCpeRef(t *AffectedCPEHandle) idRef[Cpe] {
 	}
 }
 
-func affectedCPEHandleVulnerabilityRef(t *AffectedCPEHandle) idRef[VulnerabilityHandle] {
+func affectedCPEHandleVulnerabilityHandleRef(t *AffectedCPEHandle) idRef[VulnerabilityHandle] {
 	return idRef[VulnerabilityHandle]{
 		id:  &t.VulnerabilityID,
 		ref: &t.Vulnerability,
