@@ -60,6 +60,11 @@ const (
 	NotAffectedFixStatus FixStatus = "not-affected"
 )
 
+const (
+	// AdvisoryReferenceTag is a tag that can be used to identify vulnerability advisory URL references
+	AdvisoryReferenceTag = "advisory"
+)
+
 func ParseVulnerabilityStatus(s string) VulnerabilityStatus {
 	switch strings.TrimSpace(strings.ToLower(s)) {
 	case string(VulnerabilityActive), "":
