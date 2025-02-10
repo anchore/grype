@@ -1346,6 +1346,8 @@ github.com/owenrumney/go-sarif v1.1.2-0.20231003122901-1000f5e05554 h1:FvA4bwjKp
 github.com/owenrumney/go-sarif v1.1.2-0.20231003122901-1000f5e05554/go.mod h1:n73K/hcuJ50MiVznXyN4rde6fZY7naGKWBXOLFTyc94=
 github.com/package-url/packageurl-go v0.1.1 h1:KTRE0bK3sKbFKAk3yy63DpeskU7Cvs/x/Da5l+RtzyU=
 github.com/package-url/packageurl-go v0.1.1/go.mod h1:uQd4a7Rh3ZsVg5j0lNyAfyxIeGde9yrlhjF78GzeW0c=
+github.com/pandatix/go-cvss v0.6.2 h1:TFiHlzUkT67s6UkelHmK6s1INKVUG7nlKYiWWDTITGI=
+github.com/pandatix/go-cvss v0.6.2/go.mod h1:jDXYlQBZrc8nvrMUVVvTG8PhmuShOnKrxP53nOFkt8Q=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/pascaldekloe/goe v0.1.0/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/pborman/indent v1.2.1 h1:lFiviAbISHv3Rf0jcuh489bi06hj98JsVMtIDZQb9yM=
