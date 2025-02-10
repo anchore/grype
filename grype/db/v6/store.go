@@ -26,6 +26,10 @@ func (s *store) getDB() *gorm.DB {
 	return s.db
 }
 
+func (s *store) attachBlobValue(values ...blobable) error {
+	return s.blobStore.attachBlobValue(values...)
+}
+
 func InitialData() []any {
 	var data []any
 	os := KnownOperatingSystemSpecifierOverrides()

@@ -5,14 +5,12 @@ import (
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal"
-	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 type Matcher struct {
-	stock.Matcher
 }
 
 func (m *Matcher) PackageTypes() []syftPkg.Type {

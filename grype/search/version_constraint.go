@@ -3,7 +3,6 @@ package search
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -19,13 +18,6 @@ type VersionConstraintMatcher interface {
 // ByConstraintFunc returns criteria which will use the provided function as inclusion criteria
 func ByConstraintFunc(constraintFunc func(constraint version.Constraint) (bool, error)) vulnerability.Criteria {
 	return &constraintFuncCriteria{fn: constraintFunc}
-}
-
-func ByExactConstraint(constraint string) vulnerability.Criteria {
-	return ByConstraintFunc(func(c version.Constraint) (bool, error) {
-		// TODO improve this; constraint could/should have a Constraint() string / Raw() string method
-		return strings.TrimSpace(strings.Split(c.String(), "(")[0]) == constraint, nil
-	})
 }
 
 // ByVersion returns criteria which constrains vulnerabilities to those with matching version constraints

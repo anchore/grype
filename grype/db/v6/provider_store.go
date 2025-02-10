@@ -12,6 +12,7 @@ import (
 type ProviderStoreReader interface {
 	GetProvider(name string) (*Provider, error)
 	AllProviders() ([]Provider, error)
+	fillProviders(handles []ref[string, Provider]) error
 }
 
 type providerStore struct {
@@ -50,4 +51,25 @@ func (s *providerStore) AllProviders() ([]Provider, error) {
 	})
 
 	return providers, nil
+}
+
+func (s *providerStore) fillProviders(handles []ref[string, Provider]) error {
+	providers, err := s.AllProviders()
+	if err != nil {
+		return err
+	}
+
+	providerMap := make(map[string]*Provider)
+	for _, provider := range providers {
+		providerMap[provider.ID] = &provider
+	}
+
+	for _, handle := range handles {
+		if handle.id == nil {
+			continue
+		}
+		*handle.ref = providerMap[*handle.id]
+	}
+
+	return nil
 }

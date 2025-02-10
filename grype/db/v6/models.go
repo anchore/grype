@@ -163,6 +163,9 @@ type VulnerabilityHandle struct {
 }
 
 func (v VulnerabilityHandle) getBlobValue() any {
+	if v.BlobValue == nil {
+		return nil // must return untyped nil or getBlobValue() == nil will always be false
+	}
 	return v.BlobValue
 }
 
@@ -254,6 +257,9 @@ type AffectedPackageHandle struct {
 }
 
 func (aph AffectedPackageHandle) getBlobValue() any {
+	if aph.BlobValue == nil {
+		return nil // must return untyped nil or getBlobValue() == nil will always be false
+	}
 	return aph.BlobValue
 }
 
@@ -552,6 +558,9 @@ func (v AffectedCPEHandle) getBlobID() ID {
 }
 
 func (v AffectedCPEHandle) getBlobValue() any {
+	if v.BlobValue == nil {
+		return nil // must return untyped nil or getBlobValue() == nil will always be false
+	}
 	return v.BlobValue
 }
 

@@ -2,20 +2,20 @@ package v6
 
 import (
 	"slices"
-
-	"gorm.io/gorm"
 )
 
-type idRef[T any] struct {
+type ref[ID, T any] struct {
 	id  *ID
 	ref **T
 }
+
+type idRef[T any] ref[ID, T]
 
 type refProvider[T, R any] func(*T) idRef[R]
 
 type idProvider[T any] func(*T) ID
 
-func fillRefs[T, R any](db *gorm.DB, handles []*T, getRef refProvider[T, R], refID idProvider[R]) error {
+func fillRefs[T, R any](reader Reader, handles []*T, getRef refProvider[T, R], refID idProvider[R]) error {
 	if len(handles) == 0 {
 		return nil
 	}
@@ -38,7 +38,7 @@ func fillRefs[T, R any](db *gorm.DB, handles []*T, getRef refProvider[T, R], ref
 
 	// load a map with all id -> ref results
 	var values []R
-	tx := db.Where("id IN (?)", ids)
+	tx := reader.getDB().Where("id IN (?)", ids)
 	err := tx.Find(&values).Error
 	if err != nil {
 		return err
@@ -73,26 +73,3 @@ func ptrs[T any](values []T) []*T {
 	}
 	return out
 }
-
-// func collectUniqueValues[From any, To comparable](values []From, mapFn func(From) To) []To {
-//	var out []To
-//	for i := range values {
-//		v := mapFn(values[i])
-//		if slices.Contains(out, v) {
-//			continue
-//		}
-//		out = append(out, v)
-//	}
-//	return out
-//}
-
-// func mapResults[T any](db *gorm.DB, ids []v6.ID, refID idProvider[T]) (map[v6.ID]T, error) {
-//	var results []T
-//	// FIXME probably need to build IN clause
-//	err := db.Where("ID IN (?)", ids).Find(&results).Error
-//	out := map[v6.ID]T{}
-//	for _, result := range results {
-//		out[refID(result)] = result
-//	}
-//	return out, err
-//}

@@ -91,7 +91,9 @@ func (s *blobStore) attachBlobValue(bs ...blobable) error {
 		b := bs[i]
 
 		id := b.getBlobID()
-		if id == 0 {
+
+		// skip fetching this blob if there is no blobID, or if we already have this blob
+		if id == 0 || b.getBlobValue() != nil {
 			continue
 		}
 

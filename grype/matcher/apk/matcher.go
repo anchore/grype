@@ -7,7 +7,6 @@ import (
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal"
-	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/version"
@@ -17,7 +16,6 @@ import (
 )
 
 type Matcher struct {
-	stock.Matcher
 }
 
 func (m *Matcher) PackageTypes() []syftPkg.Type {
@@ -230,7 +228,7 @@ func (m *Matcher) findNaksForPackage(store vulnerability.Provider, p pkg.Package
 	naks, err := store.FindVulnerabilities(
 		search.ByDistro(*p.Distro),
 		search.ByPackageName(p.Name),
-		search.ByExactConstraint("< 0"),
+		nakConstraint,
 	)
 	if err != nil {
 		return nil, err
@@ -239,9 +237,9 @@ func (m *Matcher) findNaksForPackage(store vulnerability.Provider, p pkg.Package
 	// append all the upstream naks
 	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
 		upstreamNaks, err := store.FindVulnerabilities(
-			search.ByPackageName(upstreamPkg.Name),
 			search.ByDistro(*upstreamPkg.Distro),
-			search.ByExactConstraint("< 0"),
+			search.ByPackageName(upstreamPkg.Name),
+			nakConstraint,
 		)
 		if err != nil {
 			return nil, err
@@ -269,3 +267,11 @@ func (m *Matcher) findNaksForPackage(store vulnerability.Provider, p pkg.Package
 
 	return ignores, nil
 }
+
+var (
+	nakVersionString = version.MustGetConstraint("< 0", version.ApkFormat).String()
+	// nakConstraint checks the exact version string for being an APK version with "< 0"
+	nakConstraint = search.ByConstraintFunc(func(c version.Constraint) (bool, error) {
+		return c.String() == nakVersionString, nil
+	})
+)

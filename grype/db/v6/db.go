@@ -39,6 +39,7 @@ type Reader interface {
 	AffectedPackageStoreReader
 	AffectedCPEStoreReader
 	getDB() *gorm.DB
+	attachBlobValue(...blobable) error
 }
 
 type Writer interface {

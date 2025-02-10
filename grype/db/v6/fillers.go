@@ -1,104 +1,39 @@
 package v6
 
 import (
-	"encoding/json"
 	"errors"
-
-	"gorm.io/gorm"
 )
 
-func affectedCPEVulnerabilityHandles(affectedPackages []*AffectedCPEHandle) []*VulnerabilityHandle {
-	var out []*VulnerabilityHandle
-	for _, h := range affectedPackages {
-		if h == nil {
-			continue
-		}
-		out = append(out, h.Vulnerability)
+// fillVulnerabilityHandles lazy loads vulnerability handle properties
+func fillVulnerabilityHandles[T any](reader Reader, handles []*T, vulnHandleRef refProvider[T, VulnerabilityHandle]) error {
+	// fill vulnerabilities
+	if err := fillRefs(reader, handles, vulnHandleRef, vulnerabilityHandleID); err != nil {
+		return err
 	}
-	return out
-}
-
-func affectedPackageVulnerabilityHandles(affectedPackages []*AffectedPackageHandle) []*VulnerabilityHandle {
-	var out []*VulnerabilityHandle
-	for _, h := range affectedPackages {
-		if h == nil {
-			continue
-		}
-		out = append(out, h.Vulnerability)
-	}
-	return out
-}
-
-func fillAffectedCPEHandles(db *gorm.DB, handles []*AffectedCPEHandle) error {
-	return errors.Join(
-		fillRefs(db, handles, affectedCPEVulnerabilityHandleRef, vulnerabilityHandleID),
-		fillRefs(db, handles, affectedCPECPERef, cpeHandleID),
-		fillAffectedCPEBlobs(db, handles),
-	)
-}
-
-func fillAffectedCPEBlobs(db *gorm.DB, handles []*AffectedCPEHandle) error {
-	return fillBlobs(db, handles, affectedCPEBlobRef)
-}
-
-func fillAffectedPackageBlobs(db *gorm.DB, handles []*AffectedPackageHandle) error {
-	return fillBlobs(db, handles, affectedPackageBlobRef)
-}
-
-func fillAffectedPackageHandles(db *gorm.DB, handles []*AffectedPackageHandle) error {
-	return errors.Join(
-		fillAffectedPackageBlobs(db, handles),
-		fillRefs(db, handles, affectedPackageVulnerabilityHandleRef, vulnerabilityHandleID),
-		fillRefs(db, handles, affectedPackageOperatingSystemHandleRef, operatingSystemID),
-		fillRefs(db, handles, affectedPackagePackageHandleRef, packageID),
-	)
-}
-
-func (s vulnerabilityProvider) fillVulnerabilityHandles(handles []*VulnerabilityHandle) error {
-	return errors.Join(
-		s.fillProviders(handles),
-		fillBlobs(s.db, handles, vulnerabilityHandleBlobRef),
-	)
-}
-
-func fillBlobs[ContainingType, BlobType any](db *gorm.DB, handles []*ContainingType, blobRef refProvider[ContainingType, BlobType]) error {
+	var providerRefs []ref[string, Provider]
+	vulnHandles := make([]*VulnerabilityHandle, len(handles))
 	for i := range handles {
-		ref := blobRef(handles[i])
-		// if no ID or if the blob is already set, do nothing
-		if ref.id == nil || *ref.ref != nil {
-			continue
-		}
-		var blob Blob
-		err := db.First(&blob, *ref.id).Error
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			continue
-		}
-		if err != nil {
-			return err
-		}
-
-		var t BlobType
-		err = json.Unmarshal([]byte(blob.Value), &t)
-		if err != nil {
-			return err
-		}
-		*ref.ref = &t
+		vulnHandles[i] = *vulnHandleRef(handles[i]).ref
+		providerRefs = append(providerRefs, ref[string, Provider]{
+			id:  &vulnHandles[i].ProviderID,
+			ref: &vulnHandles[i].Provider,
+		})
 	}
-	return nil
+	// then get references to them to fill the properties
+	return errors.Join(
+		reader.attachBlobValue(toBlobables(vulnHandles)...),
+		reader.fillProviders(providerRefs),
+	)
 }
 
-func affectedCPECPERef(t *AffectedCPEHandle) idRef[Cpe] {
-	return idRef[Cpe]{
-		id:  &t.CpeID,
-		ref: &t.CPE,
-	}
-}
-
-func affectedCPEVulnerabilityHandleRef(t *AffectedCPEHandle) idRef[VulnerabilityHandle] {
-	return idRef[VulnerabilityHandle]{
-		id:  &t.VulnerabilityID,
-		ref: &t.Vulnerability,
-	}
+// fillAffectedPackageHandles lazy loads all properties on the list of AffectedPackageHandles
+func fillAffectedPackageHandles(reader Reader, handles []*AffectedPackageHandle) error {
+	return errors.Join(
+		reader.attachBlobValue(toBlobables(handles)...),
+		fillVulnerabilityHandles(reader, handles, affectedPackageVulnerabilityHandleRef),
+		fillRefs(reader, handles, affectedPackageOperatingSystemHandleRef, operatingSystemID),
+		fillRefs(reader, handles, affectedPackagePackageHandleRef, packageID),
+	)
 }
 
 func affectedPackageVulnerabilityHandleRef(t *AffectedPackageHandle) idRef[VulnerabilityHandle] {
@@ -122,6 +57,29 @@ func affectedPackagePackageHandleRef(t *AffectedPackageHandle) idRef[Package] {
 	}
 }
 
+// fillAffectedCPEHandles lazy-loads all properties on the list of AffectedCPEHandles
+func fillAffectedCPEHandles(reader Reader, handles []*AffectedCPEHandle) error {
+	return errors.Join(
+		reader.attachBlobValue(toBlobables(handles)...),
+		fillRefs(reader, handles, affectedCPEHandleCpeRef, cpeHandleID),
+		fillVulnerabilityHandles(reader, handles, affectedCPEVulnerabilityHandleRef),
+	)
+}
+
+func affectedCPEHandleCpeRef(t *AffectedCPEHandle) idRef[Cpe] {
+	return idRef[Cpe]{
+		id:  &t.CpeID,
+		ref: &t.CPE,
+	}
+}
+
+func affectedCPEVulnerabilityHandleRef(t *AffectedCPEHandle) idRef[VulnerabilityHandle] {
+	return idRef[VulnerabilityHandle]{
+		id:  &t.VulnerabilityID,
+		ref: &t.Vulnerability,
+	}
+}
+
 func vulnerabilityHandleID(h *VulnerabilityHandle) ID {
 	return h.ID
 }
@@ -138,23 +96,10 @@ func packageID(h *Package) ID {
 	return h.ID
 }
 
-func affectedCPEBlobRef(h *AffectedCPEHandle) idRef[AffectedPackageBlob] {
-	return idRef[AffectedPackageBlob]{
-		id:  &h.BlobID,
-		ref: &h.BlobValue,
+func toBlobables[T blobable](handles []T) []blobable {
+	out := make([]blobable, len(handles))
+	for i := range handles {
+		out[i] = handles[i]
 	}
-}
-
-func affectedPackageBlobRef(h *AffectedPackageHandle) idRef[AffectedPackageBlob] {
-	return idRef[AffectedPackageBlob]{
-		id:  &h.BlobID,
-		ref: &h.BlobValue,
-	}
-}
-
-func vulnerabilityHandleBlobRef(h *VulnerabilityHandle) idRef[VulnerabilityBlob] {
-	return idRef[VulnerabilityBlob]{
-		id:  &h.BlobID,
-		ref: &h.BlobValue,
-	}
+	return out
 }
