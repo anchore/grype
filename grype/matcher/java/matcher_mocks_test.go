@@ -10,7 +10,7 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-func newMockStore() vulnerability.Provider {
+func newMockProvider() vulnerability.Provider {
 	return mock.VulnerabilityProvider([]vulnerability.Vulnerability{
 		{
 			PackageName: "org.springframework.spring-webmvc",

@@ -211,7 +211,7 @@ func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, p pk
 	return matches, nil
 }
 
-// NAK or NACK entries are those reported as explicitly not vulnerable by the upstream provider,
+// NAK entries are those reported as explicitly not vulnerable by the upstream provider,
 // for example this entry is present in the v5 database:
 // 312891,CVE-2020-7224,openvpn,alpine:distro:alpine:3.10,,< 0,apk,,"[{""id"":""CVE-2020-7224"",""namespace"":""nvd:cpe""}]","[""0""]",fixed,
 // which indicates, for the alpine:3.10 distro, package openvpn is not vulnerable to CVE-2020-7224
