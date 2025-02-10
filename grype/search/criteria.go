@@ -57,19 +57,20 @@ var allowedMultipleCriteria = []reflect.Type{reflect.TypeOf(funcCriteria{})}
 // e.g. multiple ByPackageName() which would result in no matches, while Or(pkgName1, pkgName2) is allowed
 func ValidateCriteria(criteria []vulnerability.Criteria) error {
 	for _, row := range CriteriaIterator(criteria) { // process OR conditions into flattened lists of AND conditions
-		for i := range row {
-			for j := range row {
-				if i == j {
-					continue
-				}
-				iType := reflect.TypeOf(row[i])
-				if slices.Contains(allowedMultipleCriteria, iType) {
-					continue
-				}
-				if iType == reflect.TypeOf(row[j]) {
-					return fmt.Errorf("multiple conflicting criteria specified: %+v %+v", row[i], row[j])
-				}
+		seenTypes := make(map[reflect.Type]interface{})
+
+		for _, criterion := range row {
+			criterionType := reflect.TypeOf(criterion)
+
+			if slices.Contains(allowedMultipleCriteria, criterionType) {
+				continue
 			}
+
+			if previous, exists := seenTypes[criterionType]; exists {
+				return fmt.Errorf("multiple conflicting criteria specified: %+v %+v", previous, criterion)
+			}
+
+			seenTypes[criterionType] = criterion
 		}
 	}
 	return nil

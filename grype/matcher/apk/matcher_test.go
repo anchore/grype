@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
@@ -906,5 +907,48 @@ func assertMatches(t *testing.T, expected, actual []match.Match) {
 
 	if diff := cmp.Diff(expected, actual, opts...); diff != "" {
 		t.Errorf("mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func Test_nakConstraint(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   vulnerability.Vulnerability
+		wantErr require.ErrorAssertionFunc
+		matches bool
+	}{
+		{
+			name: "matches apk",
+			input: vulnerability.Vulnerability{
+				Constraint: version.MustGetConstraint("< 0", version.ApkFormat),
+			},
+			matches: true,
+		},
+		{
+			name: "not match due to type",
+			input: vulnerability.Vulnerability{
+				Constraint: version.MustGetConstraint("< 0", version.SemanticFormat),
+			},
+			matches: false,
+		},
+		{
+			name: "not match",
+			input: vulnerability.Vulnerability{
+				Constraint: version.MustGetConstraint("< 2.0", version.SemanticFormat),
+			},
+			matches: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			matches, err := nakConstraint.MatchesVulnerability(tt.input)
+			wantErr := require.NoError
+			if tt.wantErr != nil {
+				wantErr = tt.wantErr
+			}
+			wantErr(t, err)
+			require.Equal(t, tt.matches, matches)
+		})
 	}
 }

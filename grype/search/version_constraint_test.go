@@ -51,54 +51,6 @@ func Test_ByVersion(t *testing.T) {
 	}
 }
 
-func Test_ByExactConstraint(t *testing.T) {
-	tests := []struct {
-		name       string
-		constraint string
-		input      vulnerability.Vulnerability
-		wantErr    require.ErrorAssertionFunc
-		matches    bool
-	}{
-		{
-			name:       "match",
-			constraint: "< 0",
-			input: vulnerability.Vulnerability{
-				Constraint: version.MustGetConstraint("< 0", version.SemanticFormat),
-			},
-			matches: true,
-		},
-		{
-			name:       "match apk",
-			constraint: "< 0",
-			input: vulnerability.Vulnerability{
-				Constraint: version.MustGetConstraint("< 0", version.ApkFormat),
-			},
-			matches: true,
-		},
-		{
-			name:       "not match",
-			constraint: "< 0",
-			input: vulnerability.Vulnerability{
-				Constraint: version.MustGetConstraint("< 2.0", version.SemanticFormat),
-			},
-			matches: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			constraint := ByExactConstraint(tt.constraint)
-			matches, err := constraint.MatchesVulnerability(tt.input)
-			wantErr := require.NoError
-			if tt.wantErr != nil {
-				wantErr = tt.wantErr
-			}
-			wantErr(t, err)
-			require.Equal(t, tt.matches, matches)
-		})
-	}
-}
-
 func Test_ByConstraintFunc(t *testing.T) {
 	tests := []struct {
 		name           string
