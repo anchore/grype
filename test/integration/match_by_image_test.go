@@ -44,6 +44,7 @@ func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 	thePkg := pkg.New(packages[0])
 	vulns, err := theStore.FindVulnerabilities(byNamespace("alpine:distro:alpine:3.12"), search.ByPackageName(thePkg.Name))
 	require.NoError(t, err)
+	require.NotEmpty(t, vulns)
 	vulnObj := vulns[0]
 
 	theResult.Add(match.Match{
@@ -106,6 +107,7 @@ func addJavascriptMatches(t *testing.T, theSource source.Source, catalog *syftPk
 	thePkg := pkg.New(packages[0])
 	vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:javascript"), search.ByPackageName(thePkg.Name))
 	require.NoError(t, err)
+	require.NotEmpty(t, vulns)
 	vulnObj := vulns[0]
 
 	theResult.Add(match.Match{
@@ -145,6 +147,7 @@ func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 	thePkg := pkg.New(packages[0])
 	vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:python"), search.ByPackageName(strings.ToLower(thePkg.Name)))
 	require.NoError(t, err)
+	require.NotEmpty(t, vulns)
 	vulnObj := vulns[0]
 
 	theResult.Add(match.Match{
@@ -184,6 +187,7 @@ func addDotnetMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 	thePkg := pkg.New(packages[1])
 	vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:dotnet"), search.ByPackageName(strings.ToLower(thePkg.Name)))
 	require.NoError(t, err)
+	require.NotEmpty(t, vulns)
 	vulnObj := vulns[0]
 
 	theResult.Add(match.Match{
@@ -220,6 +224,7 @@ func addRubyMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 	thePkg := pkg.New(packages[0])
 	vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:ruby"), search.ByPackageName(thePkg.Name))
 	require.NoError(t, err)
+	require.NotEmpty(t, vulns)
 	vulnObj := vulns[0]
 
 	theResult.Add(match.Match{
@@ -278,6 +283,7 @@ func addGolangMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 		thePkg := pkg.New(p)
 		vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:go"), search.ByPackageName(thePkg.Name))
 		require.NoError(t, err)
+		require.NotEmpty(t, vulns)
 		vulnObj := vulns[0]
 
 		theResult.Add(match.Match{
@@ -324,6 +330,7 @@ func addJavaMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 	thePkg := pkg.New(theSyftPkg)
 	vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:java"), search.ByPackageName(lookup))
 	require.NoError(t, err)
+	require.NotEmpty(t, vulns)
 	vulnObj := vulns[0]
 
 	theResult.Add(match.Match{
@@ -361,6 +368,7 @@ func addDpkgMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 	// NOTE: this is an indirect match, in typical debian style
 	vulns, err := theStore.FindVulnerabilities(byNamespace("debian:distro:debian:8"), search.ByPackageName(thePkg.Name+"-dev"))
 	require.NoError(t, err)
+	require.NotEmpty(t, vulns)
 	vulnObj := vulns[0]
 
 	theResult.Add(match.Match{
@@ -400,6 +408,7 @@ func addPortageMatches(t *testing.T, theSource source.Source, catalog *syftPkg.C
 	thePkg := pkg.New(packages[0])
 	vulns, err := theStore.FindVulnerabilities(byNamespace("gentoo:distro:gentoo:2.8"), search.ByPackageName(thePkg.Name))
 	require.NoError(t, err)
+	require.NotEmpty(t, vulns)
 	vulnObj := vulns[0]
 
 	theResult.Add(match.Match{
@@ -439,6 +448,7 @@ func addRhelMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 	thePkg := pkg.New(packages[0])
 	vulns, err := theStore.FindVulnerabilities(byNamespace("redhat:distro:redhat:8"), search.ByPackageName(thePkg.Name))
 	require.NoError(t, err)
+	require.NotEmpty(t, vulns)
 	vulnObj := vulns[0]
 
 	theResult.Add(match.Match{
@@ -520,6 +530,7 @@ func addHaskellMatches(t *testing.T, theSource source.Source, catalog *syftPkg.C
 	thePkg := pkg.New(packages[0])
 	vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:haskell"), search.ByPackageName(strings.ToLower(thePkg.Name)))
 	require.NoError(t, err)
+	require.NotEmpty(t, vulns)
 	vulnObj := vulns[0]
 
 	theResult.Add(match.Match{
@@ -605,6 +616,7 @@ func addRustMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 		thePkg := pkg.New(p)
 		vulns, err := theStore.FindVulnerabilities(byNamespace("github:language:rust"), search.ByPackageName(thePkg.Name))
 		require.NoError(t, err)
+		require.NotEmpty(t, vulns)
 		vulnObj := vulns[0]
 
 		theResult.Add(match.Match{
