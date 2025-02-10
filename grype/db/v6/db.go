@@ -38,6 +38,7 @@ type Reader interface {
 	VulnerabilityStoreReader
 	AffectedPackageStoreReader
 	AffectedCPEStoreReader
+	getDB() *gorm.DB
 }
 
 type Writer interface {
