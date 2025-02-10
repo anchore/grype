@@ -479,9 +479,9 @@ func addSlesMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 
 	vulns, err := theStore.FindVulnerabilities(byNamespace("redhat:distro:redhat:8"), search.ByPackageName(thePkg.Name))
 	require.NoError(t, err)
+	require.NotEmpty(t, vulns)
 	vulnObj := vulns[0]
 
-	// TODO why are we fetching redhat vulns above?
 	vulnObj.Namespace = "sles:distro:sles:12.5"
 	theResult.Add(match.Match{
 		Vulnerability: vulnObj,
@@ -558,9 +558,10 @@ func addJvmMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Colle
 		thePkg := pkg.New(p)
 		vulns, err := theStore.FindVulnerabilities(byNamespace("nvd:cpe"), search.ByPackageName(thePkg.Name))
 		require.NoError(t, err)
+		require.NotEmpty(t, vulns)
 		vulnObj := vulns[0]
 
-		// FIXME why is this being set?
+		// why is this being set?
 		vulnObj.CPEs = []cpe.CPE{
 			cpe.Must("cpe:2.3:a:oracle:jdk:*:*:*:*:*:*:*:*", ""),
 		}

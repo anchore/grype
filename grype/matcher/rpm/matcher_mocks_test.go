@@ -110,21 +110,3 @@ func vulnerabilitiesWithPackageQualifiers(packageName string) []vulnerability.Vu
 		},
 	}
 }
-
-//
-//func (pr *mockProvider) GetByDistro(d *distro.Distro, p pkg.Package) ([]vulnerability.Vulnerability, error) {
-//	var ty = strings.ToLower(d.Type.String())
-//	if d.Type == distro.CentOS || d.Type == distro.RedHat || d.Type == distro.RockyLinux || d.Type == distro.AlmaLinux {
-//		ty = "rhel"
-//	}
-//
-//	return pr.data[ty+":"+d.FullVersion()][p.Name], nil
-//}
-//
-//func (pr *mockProvider) GetByCPE(request cpe.CPE) (v []vulnerability.Vulnerability, err error) {
-//	return v, err
-//}
-//
-//func (pr *mockProvider) GetByLanguage(l syftPkg.Language, p pkg.Package) (v []vulnerability.Vulnerability, err error) {
-//	return v, err
-//}
