@@ -19,38 +19,6 @@ import (
 
 func Test_ListingUserAgent(t *testing.T) {
 
-	t.Run("legacy", func(t *testing.T) {
-		listingFile := "/listing.json"
-
-		got := ""
-
-		// setup mock
-		handler := http.NewServeMux()
-		handler.HandleFunc(listingFile, func(w http.ResponseWriter, r *http.Request) {
-			got = r.Header.Get("User-Agent")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte("1.0.0"))
-		})
-		mockSrv := httptest.NewServer(handler)
-		defer mockSrv.Close()
-
-		dbOptions := *dbOptionsDefault(clio.Identification{
-			Name:    "the-app",
-			Version: "v3.2.1",
-		})
-		dbOptions.DB.RequireUpdateCheck = true
-		dbOptions.DB.UpdateURL = mockSrv.URL + listingFile
-
-		_ = legacyDBList(dbListOptions{
-			Output:    "",
-			DBOptions: dbOptions,
-		})
-
-		if got != "the-app v3.2.1" {
-			t.Errorf("expected User-Agent header to match, got: %v", got)
-		}
-	})
-
 	t.Run("new", func(t *testing.T) {
 		listingFile := "/latest.json"
 
@@ -83,7 +51,7 @@ func Test_ListingUserAgent(t *testing.T) {
 		dbOptions.DB.RequireUpdateCheck = true
 		dbOptions.DB.UpdateURL = mockSrv.URL + listingFile
 
-		err := newDBList(dbListOptions{
+		err := runDBList(dbListOptions{
 			Output:    textOutputFormat,
 			DBOptions: dbOptions,
 		})
