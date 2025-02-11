@@ -48,8 +48,8 @@ func isVulnerableTarget(p pkg.Package, vuln vulnerability.Vulnerability) bool {
 		return true
 	}
 
-	// Do not filter by target software for any binary type packages since the composition is unknown
-	if p.Type == syftPkg.BinaryPkg {
+	// Do not filter by target software for any binary or unknown type packages since the composition is unknown
+	if p.Type == syftPkg.BinaryPkg || p.Type == syftPkg.UnknownPkg {
 		return true
 	}
 
