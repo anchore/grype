@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
-	legacyDistribution "github.com/anchore/grype/grype/db/legacy/distribution"
+	legacyDistribution "github.com/anchore/grype/grype/db/v5/distribution"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 )
 

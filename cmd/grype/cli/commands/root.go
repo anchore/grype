@@ -11,7 +11,7 @@ import (
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/db/legacy/distribution"
+	"github.com/anchore/grype/grype/db/v5/distribution"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/event/parsers"
 	"github.com/anchore/grype/grype/grypeerr"
