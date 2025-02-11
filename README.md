@@ -517,7 +517,7 @@ Grype's vulnerability database is a SQLite file, named `vulnerability.db`. Updat
 
 Grype's first step in a database update is discovering databases that are available for retrieval. Grype does this by requesting a "listing file" from a public endpoint:
 
-`https://toolbox-data.anchore.io/grype/databases/listing.json`
+`https://grype.anchore.io/databases/v6/latest.json`
 
 The listing file contains entries for every database that's available for download.
 
@@ -525,10 +525,11 @@ Here's an example of an entry in the listing file:
 
 ```json
 {
-  "built": "2021-10-21T08:13:41Z",
-  "version": 3,
-  "url": "https://toolbox-data.anchore.io/grype/databases/vulnerability-db_v3_2021-10-21T08:13:41Z.tar.gz",
-  "checksum": "sha256:8c99fb4e516f10b304f026267c2a73a474e2df878a59bf688cfb0f094bfe7a91"
+  "status": "active",
+  "schemaVersion": "6.0.0",
+  "built": "2025-02-11T04:06:41Z",
+  "path": "vulnerability-db_v6.0.0_2025-02-11T01:30:51Z_1739246801.tar.zst",
+  "checksum": "sha256:79bfa04265c5a32d21773ad0da1bda13c31e932fa1e1422db635c8d714038868"
 }
 ```
 
