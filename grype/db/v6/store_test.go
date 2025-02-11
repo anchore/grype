@@ -11,7 +11,8 @@ func TestStoreClose(t *testing.T) {
 
 	t.Run("readonly mode does nothing", func(t *testing.T) {
 		s := setupTestStore(t)
-		s.readOnly = true
+		s.empty = false
+		s.writable = false
 
 		err := s.Close()
 		require.NoError(t, err)

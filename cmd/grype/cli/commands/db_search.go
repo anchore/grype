@@ -18,6 +18,7 @@ import (
 	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/db/v6/installation"
+	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
@@ -242,7 +243,7 @@ func legacyDBSearchPackages(opts dbSearchMatchOptions, vulnerabilityIDs []string
 
 	var vulnerabilities []vulnerability.Vulnerability
 	for _, vulnerabilityID := range vulnerabilityIDs {
-		vulns, err := str.Get(vulnerabilityID, "")
+		vulns, err := str.FindVulnerabilities(search.ByID(vulnerabilityID))
 		if err != nil {
 			return fmt.Errorf("unable to get vulnerability %q: %w", vulnerabilityID, err)
 		}
@@ -305,7 +306,7 @@ func renderDBSearchPackagesTableRows(structuredRows []dbsearch.AffectedPackage) 
 			ranges = append(ranges, ra.Version.Constraint)
 		}
 		rangeStr := strings.Join(ranges, " || ")
-		rows = append(rows, []string{rr.Vulnerability.ID, pkgOrCPE, ecosystem, v5Namespace(rr), rangeStr})
+		rows = append(rows, []string{rr.Vulnerability.ID, pkgOrCPE, ecosystem, mimicV5Namespace(rr), rangeStr})
 	}
 
 	// sort rows by each column
@@ -321,70 +322,6 @@ func renderDBSearchPackagesTableRows(structuredRows []dbsearch.AffectedPackage) 
 	return rows
 }
 
-// v5Namespace returns the namespace for a given affected package based on what schema v5 did.
-func v5Namespace(row dbsearch.AffectedPackage) string {
-	switch row.Vulnerability.Provider {
-	case "nvd":
-		return "nvd:cpe"
-	case "github":
-		language := row.Package.Ecosystem
-		// normalize from purl type, github ecosystem types, and vunnel mappings
-		switch strings.ToLower(row.Package.Ecosystem) {
-		case "golang", "go-module":
-			language = "go"
-		case "composer", "php-composer":
-			language = "php"
-		case "cargo", "rust-crate":
-			language = "rust"
-		case "dart-pub", "pub":
-			language = "dart"
-		case "nuget":
-			language = "dotnet"
-		case "maven":
-			language = "java"
-		case "swifturl":
-			language = "swift"
-		case "npm", "node":
-			language = "javascript"
-		case "pypi", "pip":
-			language = "python"
-		case "rubygems", "gem":
-			language = "ruby"
-		}
-		return fmt.Sprintf("github:language:%s", language)
-	}
-	if row.OS != nil {
-		// distro family fixes
-		family := row.OS.Name
-		switch row.OS.Name {
-		case "amazon":
-			family = "amazonlinux"
-		case "mariner":
-			switch row.OS.Version {
-			case "1.0", "2.0":
-				family = "mariner"
-			default:
-				family = "azurelinux"
-			}
-		case "oracle":
-			family = "oraclelinux"
-		}
-
-		// provider fixes
-		pr := row.Vulnerability.Provider
-		if pr == "rhel" {
-			pr = "redhat"
-		}
-
-		// version fixes
-		ver := row.OS.Version
-		switch row.Vulnerability.Provider {
-		case "rhel", "oracle":
-			// ensure we only keep the major version
-			ver = strings.Split(row.OS.Version, ".")[0]
-		}
-
-		return fmt.Sprintf("%s:distro:%s:%s", pr, family, ver)
-	}
-	return row.Vulnerability.Provider
+func mimicV5Namespace(row dbsearch.AffectedPackage) string {
+	return v6.MimicV5Namespace(&row.Vulnerability.Model, row.Model)
 }

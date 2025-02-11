@@ -25,6 +25,9 @@ type Vulnerability struct {
 }
 
 type VulnerabilityInfo struct {
+	// TODO: remove this when namespace is no longer used
+	Model v6.VulnerabilityHandle `json:"-"` // tracking package handle info is necessary for namespace lookup
+
 	v6.VulnerabilityBlob `json:",inline"`
 
 	// Provider is the upstream data processor (usually Vunnel) that is responsible for vulnerability records. Each provider
@@ -86,6 +89,7 @@ func newVulnerabilityInfo(vuln v6.VulnerabilityHandle) VulnerabilityInfo {
 		blob = *vuln.BlobValue
 	}
 	return VulnerabilityInfo{
+		Model:             vuln,
 		VulnerabilityBlob: blob,
 		Provider:          vuln.Provider.ID,
 		Status:            string(vuln.Status),

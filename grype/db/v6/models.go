@@ -163,6 +163,9 @@ type VulnerabilityHandle struct {
 }
 
 func (v VulnerabilityHandle) getBlobValue() any {
+	if v.BlobValue == nil {
+		return nil // must return untyped nil or getBlobValue() == nil will always be false
+	}
 	return v.BlobValue
 }
 
@@ -254,6 +257,9 @@ type AffectedPackageHandle struct {
 }
 
 func (aph AffectedPackageHandle) getBlobValue() any {
+	if aph.BlobValue == nil {
+		return nil // must return untyped nil or getBlobValue() == nil will always be false
+	}
 	return aph.BlobValue
 }
 
@@ -540,7 +546,7 @@ type AffectedCPEHandle struct {
 	VulnerabilityID ID                   `gorm:"column:vulnerability_id;not null"`
 	Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
 
-	CpeID ID   `gorm:"column:cpe_id"`
+	CpeID ID   `gorm:"column:cpe_id;index"`
 	CPE   *Cpe `gorm:"foreignKey:CpeID"`
 
 	BlobID    ID                   `gorm:"column:blob_id"`
@@ -552,6 +558,9 @@ func (v AffectedCPEHandle) getBlobID() ID {
 }
 
 func (v AffectedCPEHandle) getBlobValue() any {
+	if v.BlobValue == nil {
+		return nil // must return untyped nil or getBlobValue() == nil will always be false
+	}
 	return v.BlobValue
 }
 

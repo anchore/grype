@@ -70,11 +70,15 @@ func init() {
 
 // ApplyExplicitIgnoreRules Filters out matches meeting the criteria defined above and those within the grype database
 func ApplyExplicitIgnoreRules(provider ExclusionProvider, matches Matches) (Matches, []IgnoredMatch) {
+	if provider == nil {
+		return matches, nil
+	}
+
 	var ignoreRules []IgnoreRule
 	ignoreRules = append(ignoreRules, explicitIgnoreRules...)
 
 	for _, m := range matches.Sorted() {
-		r, err := provider.GetRules(m.Vulnerability.ID)
+		r, err := provider.IgnoreRules(m.Vulnerability.ID)
 
 		if err != nil {
 			log.Warnf("unable to get ignore rules for vuln id=%s", m.Vulnerability.ID)

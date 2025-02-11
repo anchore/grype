@@ -18,7 +18,16 @@ type store struct {
 	blobStore *blobStore
 	db        *gorm.DB
 	config    Config
-	readOnly  bool
+	empty     bool
+	writable  bool
+}
+
+func (s *store) getDB() *gorm.DB {
+	return s.db
+}
+
+func (s *store) attachBlobValue(values ...blobable) error {
+	return s.blobStore.attachBlobValue(values...)
 }
 
 func InitialData() []any {
@@ -56,14 +65,16 @@ func newStore(cfg Config, empty, writable bool) (*store, error) {
 		blobStore:            bs,
 		db:                   db,
 		config:               cfg,
-		readOnly:             !empty && !writable,
+		empty:                empty,
+		writable:             writable,
 	}, nil
 }
 
 // Close closes the store and finalizes the blobs when the DB is open for writing. If open for reading, it does nothing.
 func (s *store) Close() error {
 	log.Debug("closing store")
-	if s.readOnly {
+	if !s.writable || !s.empty {
+		// if not empty, this writable execution created indexes
 		return nil
 	}
 

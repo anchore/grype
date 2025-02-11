@@ -44,7 +44,7 @@ func buildIgnoreRulesFromMatchExclusion(e VulnerabilityMatchExclusion) []match.I
 	return ignoreRules
 }
 
-func (pr *MatchExclusionProvider) GetRules(vulnerabilityID string) ([]match.IgnoreRule, error) {
+func (pr *MatchExclusionProvider) IgnoreRules(vulnerabilityID string) ([]match.IgnoreRule, error) {
 	matchExclusions, err := pr.reader.GetVulnerabilityMatchExclusion(vulnerabilityID)
 	if err != nil {
 		return nil, fmt.Errorf("match exclusion provider failed to fetch records for vulnerability id='%s': %w", vulnerabilityID, err)

@@ -80,6 +80,22 @@ func (d Distro) MajorVersion() string {
 	return fmt.Sprintf("%d", d.Version.Segments()[0])
 }
 
+// MinorVersion returns the minor version value from the pseudo-semantically versioned distro version value.
+func (d Distro) MinorVersion() string {
+	if d.Version == nil {
+		parts := strings.Split(d.RawVersion, ".")
+		if len(parts) > 1 {
+			return parts[1]
+		}
+		return ""
+	}
+	parts := d.Version.Segments()
+	if len(parts) > 1 {
+		return fmt.Sprintf("%d", parts[1])
+	}
+	return ""
+}
+
 // FullVersion returns the original user version value.
 func (d Distro) FullVersion() string {
 	return d.RawVersion
