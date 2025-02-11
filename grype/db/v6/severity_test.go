@@ -139,7 +139,7 @@ func TestParseCVSS(t *testing.T) {
 			expectedMetrics: &vulnerability.CvssMetrics{
 				BaseScore:           7.5,
 				ExploitabilityScore: ptr(10.0),
-				ImpactScore:         ptr(6.4),
+				ImpactScore:         ptr(6.5),
 			},
 		},
 		{

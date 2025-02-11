@@ -21,6 +21,7 @@ func extractSeverities(vuln *VulnerabilityHandle) (vulnerability.Severity, []vul
 	sev := vulnerability.UnknownSeverity
 	if len(vuln.BlobValue.Severities) > 0 {
 		var err error
+		// grype DB v6+ will order the set of severities by rank, so we can just take the first one
 		sev, err = extractSeverity(vuln.BlobValue.Severities[0].Value)
 		if err != nil {
 			return vulnerability.UnknownSeverity, nil, fmt.Errorf("unable to extract severity: %w", err)
@@ -98,9 +99,14 @@ func parseCVSS(vector string) (*vulnerability.CvssMetrics, error) {
 	}
 }
 
+// roundScore rounds the score to the nearest tenth based on first.org rounding rules
+// see https://www.first.org/cvss/v3.1/specification-document#Appendix-A---Floating-Point-Rounding
 func roundScore(score float64) float64 {
-	// 3.8870427750000003 -> 3.9
-	return math.Round(score*10) / 10
+	intInput := int(math.Round(score * 100000))
+	if intInput%10000 == 0 {
+		return float64(intInput) / 100000.0
+	}
+	return (math.Floor(float64(intInput)/10000.0) + 1) / 10.0
 }
 
 func interpretCVSS(score float64, version string) vulnerability.Severity {
@@ -115,35 +121,41 @@ func interpretCVSS(score float64, version string) vulnerability.Severity {
 }
 
 func interpretCVSSv2(score float64) vulnerability.Severity {
+	if score < 0 {
+		return vulnerability.UnknownSeverity
+	}
 	if score == 0 {
 		return vulnerability.NegligibleSeverity
 	}
-	if score > 0 && score <= 3.9 {
+	if score < 4.0 {
 		return vulnerability.LowSeverity
 	}
-	if score >= 4.0 && score <= 6.9 {
+	if score < 7.0 {
 		return vulnerability.MediumSeverity
 	}
-	if score >= 7.0 && score <= 10.0 {
+	if score <= 10.0 {
 		return vulnerability.HighSeverity
 	}
 	return vulnerability.UnknownSeverity
 }
 
 func interpretCVSSv3Plus(score float64) vulnerability.Severity {
+	if score < 0 {
+		return vulnerability.UnknownSeverity
+	}
 	if score == 0 {
 		return vulnerability.NegligibleSeverity
 	}
-	if score > 0 && score <= 3.9 {
+	if score < 4.0 {
 		return vulnerability.LowSeverity
 	}
-	if score >= 4.0 && score <= 6.9 {
+	if score < 7.0 {
 		return vulnerability.MediumSeverity
 	}
-	if score >= 7.0 && score <= 8.9 {
+	if score < 9.0 {
 		return vulnerability.HighSeverity
 	}
-	if score >= 9.0 && score <= 10.0 {
+	if score <= 10.0 {
 		return vulnerability.CriticalSeverity
 	}
 	return vulnerability.UnknownSeverity
