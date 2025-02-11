@@ -7,7 +7,6 @@ import (
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
-	legacyDistribution "github.com/anchore/grype/grype/db/v5/distribution"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/db/v6/installation"
 	"github.com/anchore/grype/internal/bus"
@@ -27,7 +26,7 @@ func DBUpdate(app clio.Application) *cobra.Command {
 			return nil
 		},
 		RunE: func(_ *cobra.Command, _ []string) error {
-			return runDBUpdate(opts.DB, opts.Experimental.DBv6)
+			return runDBUpdate(opts.DB)
 		},
 	}
 
@@ -39,14 +38,7 @@ func DBUpdate(app clio.Application) *cobra.Command {
 	return app.SetupCommand(cmd, &configWrapper{opts})
 }
 
-func runDBUpdate(opts options.Database, expUseV6 bool) error {
-	if expUseV6 {
-		return newDBUpdate(opts)
-	}
-	return legacyDBUpdate(opts)
-}
-
-func newDBUpdate(opts options.Database) error {
+func runDBUpdate(opts options.Database) error {
 	client, err := distribution.NewClient(opts.ToClientConfig())
 	if err != nil {
 		return fmt.Errorf("unable to create distribution client: %w", err)
@@ -59,31 +51,6 @@ func newDBUpdate(opts options.Database) error {
 	updated, err := c.Update()
 	if err != nil {
 		return fmt.Errorf("unable to update vulnerability database: %w", err)
-	}
-
-	result := "No vulnerability database update available\n"
-	if updated {
-		result = "Vulnerability database updated to latest version!\n"
-	}
-
-	log.Debugf("completed db update check with result: %s", result)
-
-	bus.Report(result)
-
-	return nil
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// all legacy processing below ////////////////////////////////////////////////////////////////////////////////////////
-
-func legacyDBUpdate(opts options.Database) error {
-	dbCurator, err := legacyDistribution.NewCurator(opts.ToLegacyCuratorConfig())
-	if err != nil {
-		return err
-	}
-	updated, err := dbCurator.Update()
-	if err != nil {
-		return fmt.Errorf("unable to update vulnerability database: %+v", err)
 	}
 
 	result := "No vulnerability database update available\n"

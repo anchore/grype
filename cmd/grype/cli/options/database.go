@@ -7,7 +7,6 @@ import (
 	"github.com/adrg/xdg"
 
 	"github.com/anchore/clio"
-	legacyDistribution "github.com/anchore/grype/grype/db/v5/distribution"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/db/v6/installation"
 	"github.com/anchore/grype/internal"
@@ -72,22 +71,6 @@ func (cfg Database) ToCuratorConfig() installation.Config {
 		ValidateAge:             cfg.ValidateAge,
 		ValidateChecksum:        cfg.ValidateByHashOnStart,
 		MaxAllowedBuiltAge:      cfg.MaxAllowedBuiltAge,
-		UpdateCheckMaxFrequency: cfg.MaxUpdateCheckFrequency,
-	}
-}
-
-func (cfg Database) ToLegacyCuratorConfig() legacyDistribution.Config {
-	return legacyDistribution.Config{
-		ID:                      cfg.ID,
-		DBRootDir:               cfg.Dir,
-		ListingURL:              cfg.UpdateURL,
-		CACert:                  cfg.CACert,
-		ValidateByHashOnGet:     cfg.ValidateByHashOnStart,
-		ValidateAge:             cfg.ValidateAge,
-		MaxAllowedBuiltAge:      cfg.MaxAllowedBuiltAge,
-		RequireUpdateCheck:      cfg.RequireUpdateCheck,
-		ListingFileTimeout:      cfg.UpdateAvailableTimeout,
-		UpdateTimeout:           cfg.UpdateDownloadTimeout,
 		UpdateCheckMaxFrequency: cfg.MaxUpdateCheckFrequency,
 	}
 }

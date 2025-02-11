@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
-	legacyDistribution "github.com/anchore/grype/grype/db/v5/distribution"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/internal/log"
@@ -60,13 +59,6 @@ func DBCheck(app clio.Application) *cobra.Command {
 }
 
 func runDBCheck(opts dbCheckOptions) error {
-	if opts.DBOptions.Experimental.DBv6 {
-		return newDBCheck(opts)
-	}
-	return legacyDBCheck(opts)
-}
-
-func newDBCheck(opts dbCheckOptions) error {
 	client, err := distribution.NewClient(opts.DB.ToClientConfig())
 	if err != nil {
 		return fmt.Errorf("unable to create distribution client: %w", err)
@@ -135,63 +127,5 @@ func presentNewDBCheck(format string, writer io.Writer, updateAvailable bool, cu
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}
-	return nil
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// all legacy processing below ////////////////////////////////////////////////////////////////////////////////////////
-
-type legacyDBCheckJSON struct {
-	CurrentDB       *legacyDistribution.Metadata     `json:"currentDB"`
-	CandidateDB     *legacyDistribution.ListingEntry `json:"candidateDB"`
-	UpdateAvailable bool                             `json:"updateAvailable"`
-}
-
-func legacyDBCheck(opts dbCheckOptions) error {
-	dbCurator, err := legacyDistribution.NewCurator(opts.DB.ToLegacyCuratorConfig())
-	if err != nil {
-		return err
-	}
-
-	updateAvailable, currentDBMetadata, updateDBEntry, err := dbCurator.IsUpdateAvailable()
-	if err != nil {
-		return fmt.Errorf("unable to check for vulnerability database update: %+v", err)
-	}
-
-	switch opts.Output {
-	case textOutputFormat:
-		if currentDBMetadata != nil {
-			fmt.Printf("Current DB version %d was built on %s\n", currentDBMetadata.Version, currentDBMetadata.Built.String())
-		}
-
-		if !updateAvailable {
-			fmt.Println("No update available")
-			return nil
-		}
-
-		fmt.Printf("Updated DB version %d was built on %s\n", updateDBEntry.Version, updateDBEntry.Built.String())
-		fmt.Printf("Updated DB URL: %s\n", updateDBEntry.URL.String())
-		fmt.Println("You can run 'grype db update' to update to the latest db")
-	case jsonOutputFormat:
-		data := legacyDBCheckJSON{
-			CurrentDB:       currentDBMetadata,
-			CandidateDB:     updateDBEntry,
-			UpdateAvailable: updateAvailable,
-		}
-
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetEscapeHTML(false)
-		enc.SetIndent("", " ")
-		if err := enc.Encode(&data); err != nil {
-			return fmt.Errorf("failed to db listing information: %+v", err)
-		}
-	default:
-		return fmt.Errorf("unsupported output format: %s", opts.Output)
-	}
-
-	if updateAvailable {
-		os.Exit(exitCodeOnDBUpgradeAvailable) //nolint:gocritic
-	}
-
 	return nil
 }

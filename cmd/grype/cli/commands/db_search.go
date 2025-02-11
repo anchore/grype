@@ -14,12 +14,9 @@ import (
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/commands/internal/dbsearch"
 	"github.com/anchore/grype/cmd/grype/cli/options"
-	"github.com/anchore/grype/grype"
 	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/db/v6/installation"
-	"github.com/anchore/grype/grype/search"
-	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
 )
@@ -86,55 +83,45 @@ func DBSearch(app clio.Application) *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		// this is here to support v5 functionality today but will be removed when v6 is the default DB version
-		Use:   "search VULN|PKG...",
+		Use:   "search",
 		Short: "Search the DB for vulnerabilities or affected packages",
 		Example: `
   Search for affected packages by vulnerability ID:
 
-    $ grype db search ELSA-2023-12205            # same as '--vuln ELSA-2023-12205'
+    $ grype db search --vuln ELSA-2023-12205
 
   Search for affected packages by package name:
 
-    $ grype db search log4j                      # same as '--pkg log4j'
+    $ grype db search --pkg log4j
 
   Search for affected packages by package name, filtering down to a specific vulnerability:
 
-    $ grype db search log4j CVE-2021-44228       # same as '--pkg log4j --vuln CVE-2021-44228'
+    $ grype db search --pkg log4j --vuln CVE-2021-44228
 
   Search for affected packages by PURL (note: version is not considered):
 
-    $ grype db search 'pkg:rpm/redhat/openssl'   # same as '--ecosystem rpm --pkg openssl'
+    $ grype db search --pkg 'pkg:rpm/redhat/openssl' # or: '--ecosystem rpm --pkg openssl
 
   Search for affected packages by CPE (note: version/update is not considered):
 
-    $ grype db search 'cpe:2.3:a:jetty:jetty_http_server:*:*:*:*:*:*'
-    $ grype db search 'cpe:/a:jetty:jetty_http_server'`,
+    $ grype db search --pkg 'cpe:2.3:a:jetty:jetty_http_server:*:*:*:*:*:*'
+    $ grype db search --pkg 'cpe:/a:jetty:jetty_http_server'`,
 		PreRunE: disableUI(app),
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			if opts.Experimental.DBv6 {
-				if len(args) > 0 {
-					// try to stay backwards compatible with v5 search command (which takes args)
-					if err := opts.applyArgs(args); err != nil {
-						return err
-					}
-				}
-				err := runDBSearchMatches(*opts)
-				if err != nil {
-					if errors.Is(err, dbsearch.ErrNoSearchCriteria) {
-						_ = cmd.Usage()
-					}
+			if len(args) > 0 {
+				// try to stay backwards compatible with v5 search command (which takes args)
+				if err := opts.applyArgs(args); err != nil {
 					return err
 				}
-				return nil
 			}
-
-			// this is v5, do arg handling here. Why not do this earlier in the struct Args field? When v6 functionality is
-			// enabled we want this command to show usage and exit, so we need to do this check later in processing (here).
-			if err := cobra.MinimumNArgs(1)(cmd, args); err != nil {
+			err = runDBSearchMatches(*opts)
+			if err != nil {
+				if errors.Is(err, dbsearch.ErrNoSearchCriteria) {
+					_ = cmd.Usage()
+				}
 				return err
 			}
-			return legacyDBSearchPackages(*opts, args)
+			return nil
 		},
 	}
 
@@ -213,74 +200,6 @@ func presentDBSearchMatches(outputFormat string, structuredRows dbsearch.Matches
 		enc.SetEscapeHTML(false)
 		enc.SetIndent("", " ")
 		if err := enc.Encode(structuredRows); err != nil {
-			return fmt.Errorf("failed to encode diff information: %+v", err)
-		}
-	default:
-		return fmt.Errorf("unsupported output format: %s", outputFormat)
-	}
-	return nil
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// legacy search functionality
-
-func legacyDBSearchPackages(opts dbSearchMatchOptions, vulnerabilityIDs []string) error {
-	if len(opts.Package.CPESpecs) > 0 {
-		return errors.New("CPE search is not supported with the v5 DB schema")
-	}
-
-	if len(opts.Package.PkgSpecs) > 0 {
-		return errors.New("package search is not supported with the v5 DB schema")
-	}
-
-	log.Debug("loading DB")
-	str, status, err := grype.LoadVulnerabilityDB(opts.DB.ToLegacyCuratorConfig(), opts.DB.AutoUpdate)
-	err = validateDBLoad(err, status)
-	if err != nil {
-		return err
-	}
-	defer log.CloseAndLogError(str, status.Location)
-
-	var vulnerabilities []vulnerability.Vulnerability
-	for _, vulnerabilityID := range vulnerabilityIDs {
-		vulns, err := str.FindVulnerabilities(search.ByID(vulnerabilityID))
-		if err != nil {
-			return fmt.Errorf("unable to get vulnerability %q: %w", vulnerabilityID, err)
-		}
-		vulnerabilities = append(vulnerabilities, vulns...)
-	}
-
-	if len(vulnerabilities) != 0 {
-		sb := &strings.Builder{}
-		err = presentLegacyDBSearchPackages(opts.Format.Output, vulnerabilities, sb)
-		bus.Report(sb.String())
-	}
-
-	return err
-}
-
-func presentLegacyDBSearchPackages(outputFormat string, vulnerabilities []vulnerability.Vulnerability, output io.Writer) error {
-	if vulnerabilities == nil {
-		return nil
-	}
-
-	switch outputFormat {
-	case tableOutputFormat:
-		rows := [][]string{}
-		for _, v := range vulnerabilities {
-			rows = append(rows, []string{v.ID, v.PackageName, v.Namespace, v.Constraint.String()})
-		}
-
-		table := newTable(output)
-
-		table.SetHeader([]string{"ID", "Package Name", "Namespace", "Version Constraint"})
-		table.AppendBulk(rows)
-		table.Render()
-	case jsonOutputFormat:
-		enc := json.NewEncoder(output)
-		enc.SetEscapeHTML(false)
-		enc.SetIndent("", " ")
-		if err := enc.Encode(vulnerabilities); err != nil {
 			return fmt.Errorf("failed to encode diff information: %+v", err)
 		}
 	default:

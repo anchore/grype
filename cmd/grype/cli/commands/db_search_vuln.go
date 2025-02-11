@@ -2,7 +2,6 @@ package commands
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"sort"
@@ -51,9 +50,6 @@ func DBSearchVulnerabilities(app clio.Application) *cobra.Command {
 			return nil
 		},
 		RunE: func(_ *cobra.Command, _ []string) (err error) {
-			if !opts.Experimental.DBv6 {
-				return errors.New("this command only supports the v6+ database schemas")
-			}
 			return runDBSearchVulnerabilities(*opts)
 		},
 	}

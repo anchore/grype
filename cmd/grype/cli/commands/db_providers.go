@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
-	"path"
 	"strings"
 	"time"
 
@@ -13,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
-	legacyDistribution "github.com/anchore/grype/grype/db/v5/distribution"
 	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/db/v6/installation"
@@ -42,7 +39,7 @@ func DBProviders(app clio.Application) *cobra.Command {
 		Short: "List vulnerability providers that are in the database",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(_ *cobra.Command, _ []string) error {
-			return runDBProviders(opts, app)
+			return runDBProviders(opts)
 		},
 	}
 
@@ -55,14 +52,7 @@ func DBProviders(app clio.Application) *cobra.Command {
 	return app.SetupCommand(cmd, &configWrapper{Hidden: opts, DBOptions: &opts.DBOptions})
 }
 
-func runDBProviders(opts *dbProvidersOptions, app clio.Application) error {
-	if opts.Experimental.DBv6 {
-		return newDBProviders(opts)
-	}
-	return legacyDBProviders(opts, app)
-}
-
-func newDBProviders(opts *dbProvidersOptions) error {
+func runDBProviders(opts *dbProvidersOptions) error {
 	client, err := distribution.NewClient(opts.DB.ToClientConfig())
 	if err != nil {
 		return fmt.Errorf("unable to create distribution client: %w", err)
@@ -148,118 +138,6 @@ func displayDBProvidersTable(providers []provider, output io.Writer) {
 }
 
 func displayDBProvidersJSON(providers []provider, output io.Writer) error {
-	encoder := json.NewEncoder(output)
-	encoder.SetEscapeHTML(false)
-	encoder.SetIndent("", " ")
-	err := encoder.Encode(providers)
-	if err != nil {
-		return fmt.Errorf("cannot display json: %w", err)
-	}
-	return nil
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// all legacy processing below ////////////////////////////////////////////////////////////////////////////////////////
-
-type legacyProviderMetadata struct {
-	Name              string `json:"name"`
-	LastSuccessfulRun string `json:"lastSuccessfulRun"`
-}
-
-type dbProviders struct {
-	Providers []legacyProviderMetadata `json:"providers"`
-}
-
-func legacyDBProviders(opts *dbProvidersOptions, app clio.Application) error {
-	metadataFileLocation, err := getLegacyMetadataFileLocation(app)
-	if err != nil {
-		return nil
-	}
-	providers, err := getLegacyProviders(*metadataFileLocation)
-	if err != nil {
-		return err
-	}
-
-	sb := &strings.Builder{}
-
-	switch opts.Output {
-	case tableOutputFormat, textOutputFormat:
-		displayLegacyProvidersTable(providers.Providers, sb)
-	case jsonOutputFormat:
-		err = displayLegacyProvidersJSON(providers, sb)
-		if err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("unsupported output format: %s", opts.Output)
-	}
-	bus.Report(sb.String())
-
-	return nil
-}
-
-func getLegacyMetadataFileLocation(app clio.Application) (*string, error) {
-	dbCurator, err := legacyDistribution.NewCurator(dbOptionsDefault(app.ID()).DB.ToLegacyCuratorConfig())
-	if err != nil {
-		return nil, err
-	}
-
-	location := dbCurator.Status().Location
-
-	return &location, nil
-}
-
-func getLegacyProviders(metadataFileLocation string) (*dbProviders, error) {
-	metadataFile := path.Join(metadataFileLocation, "provider-metadata.json")
-
-	file, err := os.Open(metadataFile)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("file not found: %w", err)
-		}
-		return nil, fmt.Errorf("error opening file: %w", err)
-	}
-	defer file.Close()
-
-	var providers dbProviders
-	fileBytes, err := io.ReadAll(file)
-	if err != nil {
-		return nil, fmt.Errorf("error reading file: %w", err)
-	}
-	err = json.Unmarshal(fileBytes, &providers)
-	if err != nil {
-		return nil, fmt.Errorf("cannot unmarshal providers: %w", err)
-	}
-
-	return &providers, nil
-}
-
-func displayLegacyProvidersTable(providers []legacyProviderMetadata, output io.Writer) {
-	rows := [][]string{}
-	for _, provider := range providers {
-		rows = append(rows, []string{provider.Name, provider.LastSuccessfulRun})
-	}
-
-	table := tablewriter.NewWriter(output)
-	table.SetHeader([]string{"Name", "Last Successful Run"})
-
-	table.SetHeaderLine(false)
-	table.SetBorder(false)
-	table.SetAutoWrapText(false)
-	table.SetAutoFormatHeaders(true)
-	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
-	table.SetCenterSeparator("")
-	table.SetColumnSeparator("")
-	table.SetRowSeparator("")
-	table.SetTablePadding("  ")
-	table.SetNoWhiteSpace(true)
-
-	table.AppendBulk(rows)
-	table.Render()
-}
-
-func displayLegacyProvidersJSON(providers *dbProviders, output io.Writer) error {
 	encoder := json.NewEncoder(output)
 	encoder.SetEscapeHTML(false)
 	encoder.SetIndent("", " ")

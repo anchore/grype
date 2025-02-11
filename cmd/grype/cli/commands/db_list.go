@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
-	legacyDistribution "github.com/anchore/grype/grype/db/v5/distribution"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 )
 
@@ -52,13 +51,6 @@ func DBList(app clio.Application) *cobra.Command {
 }
 
 func runDBList(opts dbListOptions) error {
-	if opts.Experimental.DBv6 {
-		return newDBList(opts)
-	}
-	return legacyDBList(opts)
-}
-
-func newDBList(opts dbListOptions) error {
 	c, err := distribution.NewClient(opts.DB.ToClientConfig())
 	if err != nil {
 		return fmt.Errorf("unable to create distribution client: %w", err)
@@ -102,59 +94,5 @@ func presentNewDBList(format string, u string, writer io.Writer, latest *distrib
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}
-	return nil
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// all legacy processing below ////////////////////////////////////////////////////////////////////////////////////////
-
-func legacyDBList(opts dbListOptions) error {
-	dbCurator, err := legacyDistribution.NewCurator(opts.DB.ToLegacyCuratorConfig())
-	if err != nil {
-		return err
-	}
-
-	listing, err := dbCurator.ListingFromURL()
-	if err != nil {
-		return err
-	}
-
-	supportedSchema := dbCurator.SupportedSchema()
-	available, exists := listing.Available[supportedSchema]
-
-	if len(available) == 0 || !exists {
-		return stderrPrintLnf("No databases available for the current schema (%d)", supportedSchema)
-	}
-
-	switch opts.Output {
-	case textOutputFormat:
-		// summarize each listing entry for the current DB schema
-		for _, l := range available {
-			fmt.Printf("Built:    %s\n", l.Built)
-			fmt.Printf("URL:      %s\n", l.URL)
-			fmt.Printf("Checksum: %s\n\n", l.Checksum)
-		}
-
-		fmt.Printf("%d databases available for schema %d\n", len(available), supportedSchema)
-	case jsonOutputFormat:
-		// show entries for the current schema
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetEscapeHTML(false)
-		enc.SetIndent("", " ")
-		if err := enc.Encode(&available); err != nil {
-			return fmt.Errorf("failed to db listing information: %+v", err)
-		}
-	case "raw":
-		// show the entire listing file
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetEscapeHTML(false)
-		enc.SetIndent("", " ")
-		if err := enc.Encode(&listing); err != nil {
-			return fmt.Errorf("failed to db listing information: %+v", err)
-		}
-	default:
-		return fmt.Errorf("unsupported output format: %s", opts.Output)
-	}
-
 	return nil
 }
