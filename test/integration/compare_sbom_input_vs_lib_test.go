@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/db/legacy/distribution"
+	"github.com/anchore/grype/grype/db/v5/distribution"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/format/spdxjson"
