@@ -162,6 +162,10 @@ type VulnerabilityHandle struct {
 	BlobValue *VulnerabilityBlob `gorm:"-"`
 }
 
+func (v VulnerabilityHandle) String() string {
+	return fmt.Sprintf("%s/%s", v.Provider, v.Name)
+}
+
 func (v VulnerabilityHandle) getBlobValue() any {
 	if v.BlobValue == nil {
 		return nil // must return untyped nil or getBlobValue() == nil will always be false
@@ -254,6 +258,36 @@ type AffectedPackageHandle struct {
 
 	BlobID    ID                   `gorm:"column:blob_id"`
 	BlobValue *AffectedPackageBlob `gorm:"-"`
+}
+
+func (aph AffectedPackageHandle) String() string {
+	var fields []string
+
+	if aph.BlobValue != nil {
+		v := aph.BlobValue.String()
+		if v != "" {
+			fields = append(fields, v)
+		}
+	}
+	if aph.OperatingSystem != nil {
+		fields = append(fields, fmt.Sprintf("os=%q", aph.OperatingSystem.String()))
+	} else {
+		fields = append(fields, fmt.Sprintf("os=%d", aph.OperatingSystemID))
+	}
+
+	if aph.Package != nil {
+		fields = append(fields, fmt.Sprintf("pkg=%q", aph.Package.String()))
+	} else {
+		fields = append(fields, fmt.Sprintf("pkg=%d", aph.PackageID))
+	}
+
+	if aph.Vulnerability != nil {
+		fields = append(fields, fmt.Sprintf("vuln=%q", aph.Vulnerability.String()))
+	} else {
+		fields = append(fields, fmt.Sprintf("vuln=%d", aph.VulnerabilityID))
+	}
+
+	return fmt.Sprintf("affectedPackage(%s)", strings.Join(fields, ", "))
 }
 
 func (aph AffectedPackageHandle) getBlobValue() any {
@@ -553,28 +587,53 @@ type AffectedCPEHandle struct {
 	BlobValue *AffectedPackageBlob `gorm:"-"`
 }
 
-func (v AffectedCPEHandle) getBlobID() ID {
-	return v.BlobID
+func (ach AffectedCPEHandle) String() string {
+	var fields []string
+
+	if ach.BlobValue != nil {
+		v := ach.BlobValue.String()
+		if v != "" {
+			fields = append(fields, v)
+		}
+	}
+
+	if ach.CPE != nil {
+		fields = append(fields, fmt.Sprintf("cpe=%q", ach.CPE.String()))
+	} else {
+		fields = append(fields, fmt.Sprintf("cpe=%d", ach.CpeID))
+	}
+
+	if ach.Vulnerability != nil {
+		fields = append(fields, fmt.Sprintf("vuln=%q", ach.Vulnerability.String()))
+	} else {
+		fields = append(fields, fmt.Sprintf("vuln=%d", ach.VulnerabilityID))
+	}
+
+	return fmt.Sprintf("affectedCPE(%s)", strings.Join(fields, ", "))
 }
 
-func (v AffectedCPEHandle) getBlobValue() any {
-	if v.BlobValue == nil {
+func (ach AffectedCPEHandle) getBlobID() ID {
+	return ach.BlobID
+}
+
+func (ach AffectedCPEHandle) getBlobValue() any {
+	if ach.BlobValue == nil {
 		return nil // must return untyped nil or getBlobValue() == nil will always be false
 	}
-	return v.BlobValue
+	return ach.BlobValue
 }
 
-func (v *AffectedCPEHandle) setBlobID(id ID) {
-	v.BlobID = id
+func (ach *AffectedCPEHandle) setBlobID(id ID) {
+	ach.BlobID = id
 }
 
-func (v *AffectedCPEHandle) setBlob(rawBlobValue []byte) error {
+func (ach *AffectedCPEHandle) setBlob(rawBlobValue []byte) error {
 	var blobValue AffectedPackageBlob
 	if err := json.Unmarshal(rawBlobValue, &blobValue); err != nil {
 		return fmt.Errorf("unable to unmarshal affected cpe blob value: %w", err)
 	}
 
-	v.BlobValue = &blobValue
+	ach.BlobValue = &blobValue
 	return nil
 }
 

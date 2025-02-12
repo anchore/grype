@@ -16,7 +16,7 @@ type golangVersion struct {
 
 func (g golangVersion) Compare(version *Version) (int, error) {
 	if version.Format != GolangFormat {
-		return -1, fmt.Errorf("cannot compare %v to golang version", version.Format)
+		return -1, NewUnsupportedFormatError(GolangFormat, version.Format)
 	}
 	if version.rich.golangVersion == nil {
 		return -1, fmt.Errorf("cannot compare version with nil golang version to golang version")
