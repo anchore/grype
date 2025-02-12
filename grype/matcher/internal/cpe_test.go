@@ -753,6 +753,56 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 			},
 		},
 		{
+			name: "Ensure target_sw mismatch does not apply to unknown packages",
+			p: pkg.Package{
+				CPEs: []cpe.CPE{
+					cpe.Must("cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:*:*:*", ""),
+				},
+				Name:     "handlebars",
+				Version:  "0.1",
+				Language: syftPkg.UnknownLanguage,
+				Type:     syftPkg.UnknownPkg,
+			},
+			expected: []match.Match{
+				{
+					Vulnerability: vulnerability.Vulnerability{
+						Reference: vulnerability.Reference{ID: "CVE-2021-23369"},
+					},
+					Package: pkg.Package{
+						CPEs: []cpe.CPE{
+							cpe.Must("cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:*:*:*", ""),
+						},
+						Name:     "handlebars",
+						Version:  "0.1",
+						Language: syftPkg.UnknownLanguage,
+						Type:     syftPkg.UnknownPkg,
+					},
+					Details: []match.Detail{
+						{
+							Type:       match.CPEMatch,
+							Confidence: 0.9,
+							SearchedBy: match.CPEParameters{
+								CPEs:      []string{"cpe:2.3:a:handlebarsjs:handlebars:0.1:*:*:*:*:*:*:*"},
+								Namespace: "nvd:cpe",
+								Package: match.CPEPackageParameter{
+									Name:    "handlebars",
+									Version: "0.1",
+								},
+							},
+							Found: match.CPEResult{
+								CPEs: []string{
+									"cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:node.js:*:*",
+								},
+								VersionConstraint: "< 4.7.7 (unknown)",
+								VulnerabilityID:   "CVE-2021-23369",
+							},
+							Matcher: matcher,
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "package without CPEs returns error",
 			p: pkg.Package{
 				Name: "some-package",

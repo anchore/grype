@@ -12,7 +12,7 @@ permissions:
 jobs:
   quality-gate:
     environment: release
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
 
@@ -106,7 +106,7 @@ jobs:
   # not all actions are guaranteed to be idempotent.
   release:
     needs: [quality-gate]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       packages: write
