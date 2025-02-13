@@ -2,6 +2,7 @@ package match
 
 import (
 	"regexp"
+	"strings"
 
 	"github.com/bmatcuk/doublestar/v2"
 
@@ -205,14 +206,44 @@ func packageNameRegex(packageName string) (*regexp.Regexp, error) {
 	return regexp.Compile(pattern)
 }
 
+/*
+   func ifPackageNameApplies(name string) ignoreCondition {
+        return func(match Match) bool {
+                if strings.HasPrefix(name, "linux") && strings.Contains(name, "-headers-") {
+                        pattern, err := packageNameRegex(name)
+                        if err != nil {
+                                return false
+                        }
+                        return pattern.MatchString(match.Package.Name)
+                }
+
+                return name == match.Package.Name
+        }
+}
+*/
+
 func ifPackageNameApplies(name string) ignoreCondition {
-	pattern, err := packageNameRegex(name)
-	if err != nil {
-		return func(Match) bool { return false }
+	var (
+		pattern *regexp.Regexp
+		err     error
+	)
+	if strings.HasPrefix(name, "linux") && strings.Contains(name, "-headers-") {
+		pattern, err = packageNameRegex(name)
 	}
 
 	return func(match Match) bool {
-		return pattern.MatchString(match.Package.Name)
+		if err != nil {
+			// Error compiling pattern
+			return false
+		}
+
+		if pattern != nil {
+			// Do regex for linux-headers
+			return pattern.MatchString(match.Package.Name)
+		}
+
+		// Exact string match for everything else
+		return name == match.Package.Name
 	}
 }
 
@@ -241,14 +272,30 @@ func ifPackageLocationApplies(location string) ignoreCondition {
 }
 
 func ifUpstreamPackageNameApplies(name string) ignoreCondition {
-	pattern, err := packageNameRegex(name)
-	if err != nil {
-		log.WithFields("name", name, "error", err).Debug("unable to parse name expression")
-		return func(Match) bool { return false }
+	var (
+		pattern *regexp.Regexp
+		err     error
+	)
+	if strings.HasPrefix(name, "linux") {
+		pattern, err = packageNameRegex(name)
 	}
+
 	return func(match Match) bool {
+		if err != nil {
+			// Error compiling pattern
+			log.WithFields("name", name, "error", err).Debug("unable to parse name expression")
+			return false
+		}
+
 		for _, upstream := range match.Package.Upstreams {
-			if pattern.MatchString(upstream.Name) {
+			if pattern != nil {
+				if pattern.MatchString(upstream.Name) {
+					return true
+				}
+				continue
+			}
+
+			if name == upstream.Name {
 				return true
 			}
 		}

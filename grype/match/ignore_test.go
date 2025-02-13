@@ -678,33 +678,6 @@ func TestApplyIgnoreRules(t *testing.T) {
 			},
 		},
 		{
-			name:       "ignore on name regex",
-			allMatches: kernelHeadersMatches,
-			ignoreRules: []IgnoreRule{
-				{
-					Package: IgnoreRulePackage{
-						Name: "kernel-headers.*",
-					},
-				},
-			},
-			expectedRemainingMatches: []Match{
-				kernelHeadersMatches[1],
-				kernelHeadersMatches[2],
-			},
-			expectedIgnoredMatches: []IgnoredMatch{
-				{
-					Match: kernelHeadersMatches[0],
-					AppliedIgnoreRules: []IgnoreRule{
-						{
-							Package: IgnoreRulePackage{
-								Name: "kernel-headers.*",
-							},
-						},
-					},
-				},
-			},
-		},
-		{
 			name:       "ignore on name regex, no matches",
 			allMatches: kernelHeadersMatches,
 			ignoreRules: []IgnoreRule{
@@ -729,33 +702,6 @@ func TestApplyIgnoreRules(t *testing.T) {
 			},
 			expectedRemainingMatches: kernelHeadersMatches,
 			expectedIgnoredMatches:   nil,
-		},
-		{
-			name:       "ignore on name regex, line termination test match",
-			allMatches: kernelHeadersMatches,
-			ignoreRules: []IgnoreRule{
-				{
-					Package: IgnoreRulePackage{
-						Name: "^kernel-headers$",
-					},
-				},
-			},
-			expectedRemainingMatches: []Match{
-				kernelHeadersMatches[1],
-				kernelHeadersMatches[2],
-			},
-			expectedIgnoredMatches: []IgnoredMatch{
-				{
-					Match: kernelHeadersMatches[0],
-					AppliedIgnoreRules: []IgnoreRule{
-						{
-							Package: IgnoreRulePackage{
-								Name: "^kernel-headers$",
-							},
-						},
-					},
-				},
-			},
 		},
 	}
 
