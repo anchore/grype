@@ -25,7 +25,6 @@ type Grype struct {
 	Search                     search             `yaml:"search" json:"search" mapstructure:"search"`
 	Ignore                     []match.IgnoreRule `yaml:"ignore" json:"ignore" mapstructure:"ignore"`
 	Exclusions                 []string           `yaml:"exclude" json:"exclude" mapstructure:"exclude"`
-	DB                         Database           `yaml:"db" json:"db" mapstructure:"db"`
 	ExternalSources            externalSources    `yaml:"external-sources" json:"externalSources" mapstructure:"external-sources"`
 	Match                      matchConfig        `yaml:"match" json:"match" mapstructure:"match"`
 	FailOn                     string             `yaml:"fail-on-severity" json:"fail-on-severity" mapstructure:"fail-on-severity"`
@@ -37,7 +36,15 @@ type Grype struct {
 	VexDocuments               []string           `yaml:"vex-documents" json:"vex-documents" mapstructure:"vex-documents"`
 	VexAdd                     []string           `yaml:"vex-add" json:"vex-add" mapstructure:"vex-add"`                                                                   // GRYPE_VEX_ADD
 	MatchUpstreamKernelHeaders bool               `yaml:"match-upstream-kernel-headers" json:"match-upstream-kernel-headers" mapstructure:"match-upstream-kernel-headers"` // Show matches on kernel-headers packages where the match is on kernel upstream instead of marking them as ignored, default=false
-	Experimental               Experimental       `yaml:"exp" json:"exp" mapstructure:"exp"`
+	DatabaseCommand            `yaml:",inline" json:",inline" mapstructure:",squash"`
+}
+
+type developer struct {
+	DB databaseDeveloper `yaml:"db" json:"db" mapstructure:"db"`
+}
+
+type databaseDeveloper struct {
+	Debug bool `yaml:"debug" json:"debug" mapstructure:"debug"`
 }
 
 var _ interface {
@@ -48,8 +55,10 @@ var _ interface {
 
 func DefaultGrype(id clio.Identification) *Grype {
 	return &Grype{
-		Search:                     defaultSearch(source.SquashedScope),
-		DB:                         DefaultDatabase(id),
+		Search: defaultSearch(source.SquashedScope),
+		DatabaseCommand: DatabaseCommand{
+			DB: DefaultDatabase(id),
+		},
 		Match:                      defaultMatchConfig(),
 		ExternalSources:            defaultExternalSources(),
 		CheckForAppUpdate:          true,

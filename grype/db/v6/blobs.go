@@ -28,6 +28,10 @@ type VulnerabilityBlob struct {
 	Severities []Severity `json:"severities,omitempty"`
 }
 
+func (v VulnerabilityBlob) String() string {
+	return v.ID
+}
+
 // Reference represents a single external URL and string tags to use for organizational purposes
 type Reference struct {
 	// URL is the external resource
@@ -114,6 +118,24 @@ type AffectedPackageBlob struct {
 	Ranges []AffectedRange `json:"ranges,omitempty"`
 }
 
+func (a AffectedPackageBlob) String() string {
+	var fields []string
+
+	if len(a.Ranges) > 0 {
+		var ranges []string
+		for _, r := range a.Ranges {
+			ranges = append(ranges, r.String())
+		}
+		fields = append(fields, fmt.Sprintf("ranges=%s", strings.Join(ranges, ", ")))
+	}
+
+	if len(a.CVEs) > 0 {
+		fields = append(fields, fmt.Sprintf("cves=%s", strings.Join(a.CVEs, ", ")))
+	}
+
+	return strings.Join(fields, ", ")
+}
+
 // AffectedPackageQualifiers contains package attributes that confirm the package is affected by the vulnerability.
 type AffectedPackageQualifiers struct {
 	// RpmModularity indicates if the package follows RPM modularity for versioning.
@@ -132,6 +154,10 @@ type AffectedRange struct {
 	Fix *Fix `json:"fix,omitempty"`
 }
 
+func (a AffectedRange) String() string {
+	return fmt.Sprintf("%s (%s)", a.Version, a.Fix)
+}
+
 // Fix conveys availability of a fix for a vulnerability.
 type Fix struct {
 	// Version is the version number of the fix.
@@ -142,6 +168,16 @@ type Fix struct {
 
 	// Detail provides additional fix information, such as commit details.
 	Detail *FixDetail `json:"detail,omitempty"`
+}
+
+func (f Fix) String() string {
+	switch f.State {
+	case FixedStatus:
+		return fmt.Sprintf("fixed in %s", f.Version)
+	case NotAffectedFixStatus:
+		return fmt.Sprintf("%s is not affected", f.Version)
+	}
+	return string(f.State)
 }
 
 // FixDetail is additional information about a fix, such as commit details and patch URLs.

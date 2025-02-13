@@ -361,14 +361,23 @@ func (s *affectedPackageStore) addOs(packages ...*AffectedPackageHandle) error {
 	return nil
 }
 
-func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config *GetAffectedPackageOptions) ([]AffectedPackageHandle, error) {
+func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config *GetAffectedPackageOptions) ([]AffectedPackageHandle, error) { // nolint:funlen
 	if config == nil {
 		config = &GetAffectedPackageOptions{}
 	}
 
 	start := time.Now()
+	count := 0
 	defer func() {
-		log.WithFields("pkg", pkg.String(), "distro", config.OSs, "vulns", config.Vulnerabilities, "duration", time.Since(start)).Trace("fetched affected package record")
+		log.
+			WithFields(
+				"pkg", pkg.String(),
+				"distro", config.OSs,
+				"vulns", config.Vulnerabilities,
+				"duration", time.Since(start),
+				"records", count,
+			).
+			Trace("fetched affected package record")
 	}()
 
 	query := s.handlePackage(s.db, pkg)
@@ -415,6 +424,8 @@ func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config
 		for _, r := range results {
 			models = append(models, *r)
 		}
+
+		count += len(results)
 
 		if config.Limit > 0 && len(models) >= config.Limit {
 			return ErrLimitReached

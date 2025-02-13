@@ -153,10 +153,10 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		func() (err error) {
 			log.Debug("loading DB")
 			if opts.Experimental.DBv6 {
-				vp, status, err = grype.LoadVulnerabilityDBv6(opts.DB.ToClientConfig(), opts.DB.ToCuratorConfig(), opts.DB.AutoUpdate)
+				vp, status, err = grype.LoadVulnerabilityDBv6(opts.ToClientConfig(), opts.ToCuratorConfig(), opts.DB.AutoUpdate)
 				return err
 			}
-			vp, status, err = grype.LoadVulnerabilityDB(opts.DB.ToLegacyCuratorConfig(), opts.DB.AutoUpdate)
+			vp, status, err = grype.LoadVulnerabilityDB(opts.ToLegacyCuratorConfig(), opts.DB.AutoUpdate)
 			return validateDBLoad(err, status)
 		},
 		func() (err error) {

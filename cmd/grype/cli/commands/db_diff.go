@@ -15,9 +15,9 @@ import (
 )
 
 type dbDiffOptions struct {
-	Output    string `yaml:"output" json:"output" mapstructure:"output"`
-	Delete    bool   `yaml:"delete" json:"delete" mapstructure:"delete"`
-	DBOptions `yaml:",inline" mapstructure:",squash"`
+	Output                  string `yaml:"output" json:"output" mapstructure:"output"`
+	Delete                  bool   `yaml:"delete" json:"delete" mapstructure:"delete"`
+	options.DatabaseCommand `yaml:",inline" mapstructure:",squash"`
 }
 
 var _ clio.FlagAdder = (*dbDiffOptions)(nil)
@@ -29,8 +29,8 @@ func (d *dbDiffOptions) AddFlags(flags clio.FlagSet) {
 
 func DBDiff(app clio.Application) *cobra.Command {
 	opts := &dbDiffOptions{
-		Output:    tableOutputFormat,
-		DBOptions: *dbOptionsDefault(app.ID()),
+		Output:          tableOutputFormat,
+		DatabaseCommand: *options.DefaultDatabaseCommand(app.ID()),
 	}
 
 	cmd := &cobra.Command{
@@ -43,14 +43,14 @@ func DBDiff(app clio.Application) *cobra.Command {
 			switch len(args) {
 			case 0:
 				log.Info("base_db_url and target_db_url not provided; fetching most recent")
-				base, target, err = getDefaultURLs(opts.DB)
+				base, target, err = getDefaultURLs(opts.DatabaseCommand)
 				if err != nil {
 					return err
 				}
 			case 1:
 				log.Info("target_db_url not provided; fetching most recent")
 				base = args[0]
-				_, target, err = getDefaultURLs(opts.DB)
+				_, target, err = getDefaultURLs(opts.DatabaseCommand)
 				if err != nil {
 					return err
 				}
@@ -65,15 +65,15 @@ func DBDiff(app clio.Application) *cobra.Command {
 
 	// prevent from being shown in the grype config
 	type configWrapper struct {
-		Hidden     *dbDiffOptions `json:"-" yaml:"-" mapstructure:"-"`
-		*DBOptions `yaml:",inline" mapstructure:",squash"`
+		Hidden                   *dbDiffOptions `json:"-" yaml:"-" mapstructure:"-"`
+		*options.DatabaseCommand `yaml:",inline" mapstructure:",squash"`
 	}
 
-	return app.SetupCommand(cmd, &configWrapper{Hidden: opts, DBOptions: &opts.DBOptions})
+	return app.SetupCommand(cmd, &configWrapper{Hidden: opts, DatabaseCommand: &opts.DatabaseCommand})
 }
 
 func runDBDiff(opts *dbDiffOptions, base string, target string) (errs error) {
-	d, err := differ.NewDiffer(opts.DB.ToLegacyCuratorConfig())
+	d, err := differ.NewDiffer(opts.ToLegacyCuratorConfig())
 	if err != nil {
 		return err
 	}
@@ -111,7 +111,7 @@ func runDBDiff(opts *dbDiffOptions, base string, target string) (errs error) {
 	return errs
 }
 
-func getDefaultURLs(opts options.Database) (baseURL string, targetURL string, err error) {
+func getDefaultURLs(opts options.DatabaseCommand) (baseURL string, targetURL string, err error) {
 	dbCurator, err := distribution.NewCurator(opts.ToLegacyCuratorConfig())
 	if err != nil {
 		return "", "", err
