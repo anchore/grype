@@ -7,8 +7,9 @@ import (
 
 // logDroppedVulnerability is a hook called when vulnerabilities are dropped from consideration in a vulnerability Provider,
 // this offers a convenient location to set a breakpoint
-func logDroppedVulnerability(reason any, fields logger.Fields) {
+func logDroppedVulnerability(vuln string, reason any, fields logger.Fields) {
 	fields["reason"] = reason
+	fields["vulnerability"] = vuln
 
 	log.WithFields(fields).Trace("dropped vulnerability")
 }

@@ -260,6 +260,18 @@ type AffectedPackageHandle struct {
 	BlobValue *AffectedPackageBlob `gorm:"-"`
 }
 
+func (aph AffectedPackageHandle) vulnerability() string {
+	if aph.Vulnerability != nil {
+		return aph.Vulnerability.Name
+	}
+	if aph.BlobValue != nil {
+		if len(aph.BlobValue.CVEs) > 0 {
+			return aph.BlobValue.CVEs[0]
+		}
+	}
+	return ""
+}
+
 func (aph AffectedPackageHandle) String() string {
 	var fields []string
 
@@ -585,6 +597,18 @@ type AffectedCPEHandle struct {
 
 	BlobID    ID                   `gorm:"column:blob_id"`
 	BlobValue *AffectedPackageBlob `gorm:"-"`
+}
+
+func (ach AffectedCPEHandle) vulnerability() string {
+	if ach.Vulnerability != nil {
+		return ach.Vulnerability.Name
+	}
+	if ach.BlobValue != nil {
+		if len(ach.BlobValue.CVEs) > 0 {
+			return ach.BlobValue.CVEs[0]
+		}
+	}
+	return ""
 }
 
 func (ach AffectedCPEHandle) String() string {
