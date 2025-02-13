@@ -44,8 +44,7 @@ func TestDBValidations(t *testing.T) {
 				"GRYPE_DB_MAX_UPDATE_CHECK_FREQUENCY": "10h",
 			},
 			assertions: []traitAssertion{
-				assertInOutput("no max-frequency set for update check"),
-				assertInOutput("checking for available database updates"),
+				assertInOutput("completed db update check"),
 				assertFailingReturnCode,
 			},
 		},
@@ -56,7 +55,7 @@ func TestDBValidations(t *testing.T) {
 				"GRYPE_DB_MAX_UPDATE_CHECK_FREQUENCY": "10h",
 			},
 			assertions: []traitAssertion{
-				assertInOutput("first-run of DB update"),
+				assertNotInOutput("no max-frequency set for update check"),
 				assertInOutput("checking for available database updates"),
 				assertInOutput("max-update-check-frequency: 10h"),
 				assertFailingReturnCode,
