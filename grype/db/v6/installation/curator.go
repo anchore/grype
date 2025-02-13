@@ -152,7 +152,7 @@ func (c curator) Update() (bool, error) {
 
 	if current != nil && !c.isUpdateCheckAllowed() {
 		// we should not notify the user of an update check if the current configuration and state
-		// indicates we're should be in a low-pass filter mode (and the check frequency is too high).
+		// indicates we are in a low-pass filter mode and the check frequency is too high.
 		// this should appear to the user as if we never attempted to check for an update at all.
 		return false, nil
 	}
@@ -221,7 +221,7 @@ func (c curator) update(current *db.Description) (*distribution.Archive, error) 
 		}
 
 		mon.Set("no update available")
-		return nil, nil
+		return nil, checkErr
 	}
 
 	log.Infof("downloading new vulnerability DB")

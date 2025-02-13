@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"fmt"
+	"net"
 	"strings"
 	"testing"
 )
@@ -44,7 +46,7 @@ func TestDBValidations(t *testing.T) {
 				"GRYPE_DB_MAX_UPDATE_CHECK_FREQUENCY": "10h",
 			},
 			assertions: []traitAssertion{
-				assertInOutput("completed db update check"),
+				assertInOutput("unable to update vulnerability database"),
 				assertFailingReturnCode,
 			},
 		},
@@ -63,10 +65,11 @@ func TestDBValidations(t *testing.T) {
 		},
 	}
 
+	invalidUpdateURL := fmt.Sprintf("https://localhost:%v", availablePort())
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			test.env["GRYPE_DB_CACHE_DIR"] = t.TempDir()
-			test.env["GRYPE_DB_UPDATE_URL"] = "https://localhost:8080"
+			test.env["GRYPE_DB_UPDATE_URL"] = invalidUpdateURL
 			cmd, stdout, stderr := runGrype(t, test.env, test.args...)
 			for _, traitAssertionFn := range test.assertions {
 				traitAssertionFn(t, stdout, stderr, cmd.ProcessState.ExitCode())
@@ -78,4 +81,15 @@ func TestDBValidations(t *testing.T) {
 			}
 		})
 	}
+}
+
+func availablePort() int {
+	if a, err := net.ResolveTCPAddr("tcp", "127.0.0.1:0"); err == nil {
+		var l *net.TCPListener
+		if l, err = net.ListenTCP("tcp", a); err == nil {
+			defer func() { _ = l.Close() }()
+			return l.Addr().(*net.TCPAddr).Port
+		}
+	}
+	panic("unable to get port")
 }
