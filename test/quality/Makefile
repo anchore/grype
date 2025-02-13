@@ -8,9 +8,9 @@ VULNERABILITY_LABELS = ./vulnerability-labels
 RESULT_SET = pr_vs_latest_via_sbom
 
 # update periodically with values from "grype db list"
-TEST_DB_URL_FILE = ./test-db-url
-TEST_DB_URL = $(shell cat $(TEST_DB_URL_FILE))
-TEST_DB = db.tar.gz
+TEST_DB_URL_FILE = ./test-db
+TEST_DB_URL = "https://grype.anchore.io/databases/v6/$(shell cat $(TEST_DB_URL_FILE))"
+TEST_DB = db.tar.zst
 
 # formatting variables
 BOLD := $(shell tput -T linux bold)
