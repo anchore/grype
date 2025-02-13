@@ -11,13 +11,14 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
+	"github.com/anchore/grype/cmd/grype/cli/options"
 	legacyDistribution "github.com/anchore/grype/grype/db/v5/distribution"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 )
 
 type dbListOptions struct {
-	Output    string `yaml:"output" json:"output" mapstructure:"output"`
-	DBOptions `yaml:",inline" mapstructure:",squash"`
+	Output                  string `yaml:"output" json:"output" mapstructure:"output"`
+	options.DatabaseCommand `yaml:",inline" mapstructure:",squash"`
 }
 
 var _ clio.FlagAdder = (*dbListOptions)(nil)
@@ -28,8 +29,8 @@ func (d *dbListOptions) AddFlags(flags clio.FlagSet) {
 
 func DBList(app clio.Application) *cobra.Command {
 	opts := &dbListOptions{
-		Output:    textOutputFormat,
-		DBOptions: *dbOptionsDefault(app.ID()),
+		Output:          textOutputFormat,
+		DatabaseCommand: *options.DefaultDatabaseCommand(app.ID()),
 	}
 
 	cmd := &cobra.Command{
@@ -44,11 +45,11 @@ func DBList(app clio.Application) *cobra.Command {
 
 	// prevent from being shown in the grype config
 	type configWrapper struct {
-		Hidden     *dbListOptions `json:"-" yaml:"-" mapstructure:"-"`
-		*DBOptions `yaml:",inline" mapstructure:",squash"`
+		Hidden                   *dbListOptions `json:"-" yaml:"-" mapstructure:"-"`
+		*options.DatabaseCommand `yaml:",inline" mapstructure:",squash"`
 	}
 
-	return app.SetupCommand(cmd, &configWrapper{Hidden: opts, DBOptions: &opts.DBOptions})
+	return app.SetupCommand(cmd, &configWrapper{Hidden: opts, DatabaseCommand: &opts.DatabaseCommand})
 }
 
 func runDBList(opts dbListOptions) error {
@@ -59,7 +60,7 @@ func runDBList(opts dbListOptions) error {
 }
 
 func newDBList(opts dbListOptions) error {
-	c, err := distribution.NewClient(opts.DB.ToClientConfig())
+	c, err := distribution.NewClient(opts.ToClientConfig())
 	if err != nil {
 		return fmt.Errorf("unable to create distribution client: %w", err)
 	}
@@ -109,7 +110,7 @@ func presentNewDBList(format string, u string, writer io.Writer, latest *distrib
 // all legacy processing below ////////////////////////////////////////////////////////////////////////////////////////
 
 func legacyDBList(opts dbListOptions) error {
-	dbCurator, err := legacyDistribution.NewCurator(opts.DB.ToLegacyCuratorConfig())
+	dbCurator, err := legacyDistribution.NewCurator(opts.ToLegacyCuratorConfig())
 	if err != nil {
 		return err
 	}

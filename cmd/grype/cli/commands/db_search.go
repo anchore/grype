@@ -31,7 +31,7 @@ type dbSearchMatchOptions struct {
 	OS            options.DBSearchOSs             `yaml:",inline" mapstructure:",squash"`
 	Bounds        options.DBSearchBounds          `yaml:",inline" mapstructure:",squash"`
 
-	DBOptions `yaml:",inline" mapstructure:",squash"`
+	options.DatabaseCommand `yaml:",inline" mapstructure:",squash"`
 }
 
 var alasPattern = regexp.MustCompile(`^alas[\w]*-\d+-\d+$`)
@@ -81,8 +81,8 @@ func DBSearch(app clio.Application) *cobra.Command {
 		Vulnerability: options.DBSearchVulnerabilities{
 			UseVulnIDFlag: true,
 		},
-		Bounds:    options.DefaultDBSearchBounds(),
-		DBOptions: *dbOptionsDefault(app.ID()),
+		Bounds:          options.DefaultDBSearchBounds(),
+		DatabaseCommand: *options.DefaultDatabaseCommand(app.ID()),
 	}
 
 	cmd := &cobra.Command{
@@ -144,20 +144,20 @@ func DBSearch(app clio.Application) *cobra.Command {
 
 	// prevent from being shown in the grype config
 	type configWrapper struct {
-		Hidden     *dbSearchMatchOptions `json:"-" yaml:"-" mapstructure:"-"`
-		*DBOptions `yaml:",inline" mapstructure:",squash"`
+		Hidden                   *dbSearchMatchOptions `json:"-" yaml:"-" mapstructure:"-"`
+		*options.DatabaseCommand `yaml:",inline" mapstructure:",squash"`
 	}
 
-	return app.SetupCommand(cmd, &configWrapper{Hidden: opts, DBOptions: &opts.DBOptions})
+	return app.SetupCommand(cmd, &configWrapper{Hidden: opts, DatabaseCommand: &opts.DatabaseCommand})
 }
 
 func runDBSearchMatches(opts dbSearchMatchOptions) error {
-	client, err := distribution.NewClient(opts.DB.ToClientConfig())
+	client, err := distribution.NewClient(opts.ToClientConfig())
 	if err != nil {
 		return fmt.Errorf("unable to create distribution client: %w", err)
 	}
 
-	curator, err := installation.NewCurator(opts.DB.ToCuratorConfig(), client)
+	curator, err := installation.NewCurator(opts.ToCuratorConfig(), client)
 	if err != nil {
 		return fmt.Errorf("unable to create curator: %w", err)
 	}
@@ -234,7 +234,7 @@ func legacyDBSearchPackages(opts dbSearchMatchOptions, vulnerabilityIDs []string
 	}
 
 	log.Debug("loading DB")
-	str, status, err := grype.LoadVulnerabilityDB(opts.DB.ToLegacyCuratorConfig(), opts.DB.AutoUpdate)
+	str, status, err := grype.LoadVulnerabilityDB(opts.ToLegacyCuratorConfig(), opts.DB.AutoUpdate)
 	err = validateDBLoad(err, status)
 	if err != nil {
 		return err

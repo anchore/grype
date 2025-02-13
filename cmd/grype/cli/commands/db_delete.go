@@ -13,7 +13,7 @@ import (
 )
 
 func DBDelete(app clio.Application) *cobra.Command {
-	opts := dbOptionsDefault(app.ID())
+	opts := options.DefaultDatabaseCommand(app.ID())
 
 	cmd := &cobra.Command{
 		Use:     "delete",
@@ -27,20 +27,20 @@ func DBDelete(app clio.Application) *cobra.Command {
 
 	// prevent from being shown in the grype config
 	type configWrapper struct {
-		*DBOptions `yaml:",inline" mapstructure:",squash"`
+		*options.DatabaseCommand `yaml:",inline" mapstructure:",squash"`
 	}
 
 	return app.SetupCommand(cmd, &configWrapper{opts})
 }
 
-func runDBDelete(opts DBOptions) error {
+func runDBDelete(opts options.DatabaseCommand) error {
 	if opts.Experimental.DBv6 {
-		return newDBDelete(opts.DB)
+		return newDBDelete(opts)
 	}
-	return legacyDBDelete(opts.DB)
+	return legacyDBDelete(opts)
 }
 
-func newDBDelete(opts options.Database) error {
+func newDBDelete(opts options.DatabaseCommand) error {
 	client, err := distribution.NewClient(opts.ToClientConfig())
 	if err != nil {
 		return fmt.Errorf("unable to create distribution client: %w", err)
@@ -57,7 +57,7 @@ func newDBDelete(opts options.Database) error {
 	return stderrPrintLnf("Vulnerability database deleted")
 }
 
-func legacyDBDelete(opts options.Database) error {
+func legacyDBDelete(opts options.DatabaseCommand) error {
 	dbCurator, err := legacyDistribution.NewCurator(opts.ToLegacyCuratorConfig())
 	if err != nil {
 		return err

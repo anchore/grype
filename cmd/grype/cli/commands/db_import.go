@@ -15,7 +15,7 @@ import (
 )
 
 func DBImport(app clio.Application) *cobra.Command {
-	opts := dbOptionsDefault(app.ID())
+	opts := options.DefaultDatabaseCommand(app.ID())
 
 	cmd := &cobra.Command{
 		Use:   "import FILE",
@@ -29,23 +29,23 @@ func DBImport(app clio.Application) *cobra.Command {
 
 	// prevent from being shown in the grype config
 	type configWrapper struct {
-		*DBOptions `yaml:",inline" mapstructure:",squash"`
+		*options.DatabaseCommand `yaml:",inline" mapstructure:",squash"`
 	}
 
 	return app.SetupCommand(cmd, &configWrapper{opts})
 }
 
-func runDBImport(opts DBOptions, dbArchivePath string) error {
+func runDBImport(opts options.DatabaseCommand, dbArchivePath string) error {
 	// TODO: tui update? better logging?
 
 	// TODO: we will only support v6 after development is complete
 	if opts.Experimental.DBv6 {
-		return newDBImport(opts.DB, dbArchivePath)
+		return newDBImport(opts, dbArchivePath)
 	}
-	return legacyDBImport(opts.DB, dbArchivePath)
+	return legacyDBImport(opts, dbArchivePath)
 }
 
-func newDBImport(opts options.Database, dbArchivePath string) error {
+func newDBImport(opts options.DatabaseCommand, dbArchivePath string) error {
 	client, err := distribution.NewClient(opts.ToClientConfig())
 	if err != nil {
 		return fmt.Errorf("unable to create distribution client: %w", err)
@@ -65,7 +65,7 @@ func newDBImport(opts options.Database, dbArchivePath string) error {
 	return nil
 }
 
-func legacyDBImport(opts options.Database, dbArchivePath string) error {
+func legacyDBImport(opts options.DatabaseCommand, dbArchivePath string) error {
 	dbCurator, err := legacyDistribution.NewCurator(opts.ToLegacyCuratorConfig())
 	if err != nil {
 		return err

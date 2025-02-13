@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
+	"github.com/anchore/grype/cmd/grype/cli/options"
 	legacyDistribution "github.com/anchore/grype/grype/db/v5/distribution"
 	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
@@ -16,8 +17,8 @@ import (
 )
 
 type dbStatusOptions struct {
-	Output    string `yaml:"output" json:"output" mapstructure:"output"`
-	DBOptions `yaml:",inline" mapstructure:",squash"`
+	Output                  string `yaml:"output" json:"output" mapstructure:"output"`
+	options.DatabaseCommand `yaml:",inline" mapstructure:",squash"`
 }
 
 var _ clio.FlagAdder = (*dbStatusOptions)(nil)
@@ -28,8 +29,8 @@ func (d *dbStatusOptions) AddFlags(flags clio.FlagSet) {
 
 func DBStatus(app clio.Application) *cobra.Command {
 	opts := &dbStatusOptions{
-		Output:    textOutputFormat,
-		DBOptions: *dbOptionsDefault(app.ID()),
+		Output:          textOutputFormat,
+		DatabaseCommand: *options.DefaultDatabaseCommand(app.ID()),
 	}
 
 	cmd := &cobra.Command{
@@ -44,11 +45,11 @@ func DBStatus(app clio.Application) *cobra.Command {
 
 	// prevent from being shown in the grype config
 	type configWrapper struct {
-		Hidden     *dbStatusOptions `json:"-" yaml:"-" mapstructure:"-"`
-		*DBOptions `yaml:",inline" mapstructure:",squash"`
+		Hidden                   *dbStatusOptions `json:"-" yaml:"-" mapstructure:"-"`
+		*options.DatabaseCommand `yaml:",inline" mapstructure:",squash"`
 	}
 
-	return app.SetupCommand(cmd, &configWrapper{Hidden: opts, DBOptions: &opts.DBOptions})
+	return app.SetupCommand(cmd, &configWrapper{Hidden: opts, DatabaseCommand: &opts.DatabaseCommand})
 }
 
 func runDBStatus(opts dbStatusOptions) error {
@@ -59,11 +60,11 @@ func runDBStatus(opts dbStatusOptions) error {
 }
 
 func newDBStatus(opts dbStatusOptions) error {
-	client, err := distribution.NewClient(opts.DB.ToClientConfig())
+	client, err := distribution.NewClient(opts.ToClientConfig())
 	if err != nil {
 		return fmt.Errorf("unable to create distribution client: %w", err)
 	}
-	c, err := installation.NewCurator(opts.DB.ToCuratorConfig(), client)
+	c, err := installation.NewCurator(opts.ToCuratorConfig(), client)
 	if err != nil {
 		return fmt.Errorf("unable to create distribution client: %w", err)
 	}
@@ -103,7 +104,7 @@ func presentDBStatus(format string, writer io.Writer, status v6.Status) error {
 // all legacy processing below ////////////////////////////////////////////////////////////////////////////////////////
 
 func legacyDBStatus(opts dbStatusOptions) error {
-	dbCurator, err := legacyDistribution.NewCurator(opts.DB.ToLegacyCuratorConfig())
+	dbCurator, err := legacyDistribution.NewCurator(opts.ToLegacyCuratorConfig())
 	if err != nil {
 		return err
 	}

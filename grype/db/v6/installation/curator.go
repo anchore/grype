@@ -35,6 +35,7 @@ type monitor struct {
 
 type Config struct {
 	DBRootDir string
+	Debug     bool
 
 	// validations
 	ValidateAge             bool
@@ -81,6 +82,7 @@ func (c curator) Reader() (db.Reader, error) {
 	s, err := db.NewReader(
 		db.Config{
 			DBDirPath: c.config.DBDirectoryPath(),
+			Debug:     c.config.Debug,
 		},
 	)
 	if err != nil {

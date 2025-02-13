@@ -117,7 +117,7 @@ func writeTestChecksumsFile(t *testing.T, fs afero.Fs, dir string, checksums str
 
 func writeTestDescriptionToDB(t *testing.T, dir string, desc db.Description) string {
 	c := db.Config{DBDirPath: dir}
-	d, err := db.NewLowLevelDB(c.DBFilePath(), false, false)
+	d, err := db.NewLowLevelDB(c.DBFilePath(), false, false, true)
 	require.NoError(t, err)
 
 	if err := d.Unscoped().Where("true").Delete(&db.DBMetadata{}).Error; err != nil {
