@@ -206,22 +206,6 @@ func packageNameRegex(packageName string) (*regexp.Regexp, error) {
 	return regexp.Compile(pattern)
 }
 
-/*
-   func ifPackageNameApplies(name string) ignoreCondition {
-        return func(match Match) bool {
-                if strings.HasPrefix(name, "linux") && strings.Contains(name, "-headers-") {
-                        pattern, err := packageNameRegex(name)
-                        if err != nil {
-                                return false
-                        }
-                        return pattern.MatchString(match.Package.Name)
-                }
-
-                return name == match.Package.Name
-        }
-}
-*/
-
 func ifPackageNameApplies(name string) ignoreCondition {
 	var (
 		pattern *regexp.Regexp
