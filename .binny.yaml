@@ -26,7 +26,7 @@ tools:
   # used for linting
   - name: golangci-lint
     version:
-      want: v1.63.4
+      want: v1.64.2
     method: github-release
     with:
       repo: golangci/golangci-lint
