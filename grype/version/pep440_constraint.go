@@ -26,7 +26,7 @@ func (p pep440Constraint) Satisfied(version *Version) (bool, error) {
 		return true, nil
 	}
 	if version.Format != PythonFormat {
-		return false, fmt.Errorf("(python) unsupported format: %s", version.Format)
+		return false, NewUnsupportedFormatError(PythonFormat, version.Format)
 	}
 
 	if version.rich.pep440version == nil {

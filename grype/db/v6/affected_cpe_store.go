@@ -117,6 +117,7 @@ func (s *affectedCPEStore) GetAffectedCPEs(cpe *cpe.Attributes, config *GetAffec
 	}
 
 	fields := make(logger.Fields)
+	count := 0
 	if cpe == nil {
 		fields["cpe"] = "any"
 	} else {
@@ -168,6 +169,8 @@ func (s *affectedCPEStore) GetAffectedCPEs(cpe *cpe.Attributes, config *GetAffec
 			models = append(models, *r)
 		}
 
+		count += len(results)
+
 		if config.Limit > 0 && len(models) >= config.Limit {
 			return ErrLimitReached
 		}
@@ -176,6 +179,8 @@ func (s *affectedCPEStore) GetAffectedCPEs(cpe *cpe.Attributes, config *GetAffec
 	}).Error; err != nil {
 		return models, fmt.Errorf("unable to fetch affected CPE records: %w", err)
 	}
+
+	fields["records"] = count
 
 	return models, nil
 }

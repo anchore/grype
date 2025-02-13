@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
+	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/db/v6/installation"
 	"github.com/anchore/grype/internal"
@@ -13,7 +14,7 @@ import (
 )
 
 func DBImport(app clio.Application) *cobra.Command {
-	opts := dbOptionsDefault(app.ID())
+	opts := options.DefaultDatabaseCommand(app.ID())
 
 	cmd := &cobra.Command{
 		Use:   "import FILE",
@@ -27,19 +28,19 @@ func DBImport(app clio.Application) *cobra.Command {
 
 	// prevent from being shown in the grype config
 	type configWrapper struct {
-		*DBOptions `yaml:",inline" mapstructure:",squash"`
+		*options.DatabaseCommand `yaml:",inline" mapstructure:",squash"`
 	}
 
 	return app.SetupCommand(cmd, &configWrapper{opts})
 }
 
-func runDBImport(opts DBOptions, dbArchivePath string) error {
+func runDBImport(opts options.DatabaseCommand, dbArchivePath string) error {
 	// TODO: tui update? better logging?
-	client, err := distribution.NewClient(opts.DB.ToClientConfig())
+	client, err := distribution.NewClient(opts.ToClientConfig())
 	if err != nil {
 		return fmt.Errorf("unable to create distribution client: %w", err)
 	}
-	c, err := installation.NewCurator(opts.DB.ToCuratorConfig(), client)
+	c, err := installation.NewCurator(opts.ToCuratorConfig(), client)
 	if err != nil {
 		return fmt.Errorf("unable to create curator: %w", err)
 	}

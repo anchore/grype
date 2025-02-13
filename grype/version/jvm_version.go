@@ -57,7 +57,7 @@ func (v *jvmVersion) Compare(other *Version) (int, error) {
 		return other.rich.semVer.verObj.Compare(v.semVer), nil
 	}
 
-	return -1, fmt.Errorf("unable to compare JVM to given format: %s", other.Format)
+	return -1, NewUnsupportedFormatError(JVMFormat, other.Format)
 }
 
 func (v jvmVersion) compare(other jvmVersion) int {

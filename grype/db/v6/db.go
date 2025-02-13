@@ -60,6 +60,7 @@ type Curator interface {
 
 type Config struct {
 	DBDirPath string
+	Debug     bool
 }
 
 func (c Config) DBFilePath() string {
@@ -86,8 +87,10 @@ func Hydrater() func(string) error {
 
 // NewLowLevelDB creates a new empty DB for writing or opens an existing one for reading from the given path. This is
 // not recommended for typical interactions with the vulnerability DB, use NewReader and NewWriter instead.
-func NewLowLevelDB(dbFilePath string, empty, writable bool) (*gorm.DB, error) {
-	var opts []gormadapter.Option
+func NewLowLevelDB(dbFilePath string, empty, writable, debug bool) (*gorm.DB, error) {
+	opts := []gormadapter.Option{
+		gormadapter.WithDebug(debug),
+	}
 
 	if empty && !writable {
 		return nil, fmt.Errorf("cannot open an empty database for reading only")

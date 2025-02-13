@@ -4,7 +4,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
-	"github.com/anchore/grype/cmd/grype/cli/options"
 )
 
 const (
@@ -12,20 +11,6 @@ const (
 	tableOutputFormat = "table"
 	textOutputFormat  = "text"
 )
-
-type DBOptions struct {
-	DB           options.Database     `yaml:"db" json:"db" mapstructure:"db"`
-	Experimental options.Experimental `yaml:"exp" json:"exp" mapstructure:"exp"`
-}
-
-func dbOptionsDefault(id clio.Identification) *DBOptions {
-	dbDefaults := options.DefaultDatabase(id)
-	// by default, require update check success for db operations which check for updates
-	dbDefaults.RequireUpdateCheck = true
-	return &DBOptions{
-		DB: dbDefaults,
-	}
-}
 
 func DB(app clio.Application) *cobra.Command {
 	db := &cobra.Command{

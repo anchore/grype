@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
+	"github.com/anchore/grype/cmd/grype/cli/options"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/internal/log"
@@ -19,8 +20,8 @@ const (
 )
 
 type dbCheckOptions struct {
-	Output    string `yaml:"output" json:"output" mapstructure:"output"`
-	DBOptions `yaml:",inline" mapstructure:",squash"`
+	Output                  string `yaml:"output" json:"output" mapstructure:"output"`
+	options.DatabaseCommand `yaml:",inline" mapstructure:",squash"`
 }
 
 var _ clio.FlagAdder = (*dbCheckOptions)(nil)
@@ -31,8 +32,8 @@ func (d *dbCheckOptions) AddFlags(flags clio.FlagSet) {
 
 func DBCheck(app clio.Application) *cobra.Command {
 	opts := &dbCheckOptions{
-		Output:    textOutputFormat,
-		DBOptions: *dbOptionsDefault(app.ID()),
+		Output:          textOutputFormat,
+		DatabaseCommand: *options.DefaultDatabaseCommand(app.ID()),
 	}
 
 	cmd := &cobra.Command{
@@ -51,20 +52,20 @@ func DBCheck(app clio.Application) *cobra.Command {
 
 	// prevent from being shown in the grype config
 	type configWrapper struct {
-		Hidden     *dbCheckOptions `json:"-" yaml:"-" mapstructure:"-"`
-		*DBOptions `yaml:",inline" mapstructure:",squash"`
+		Hidden                   *dbCheckOptions `json:"-" yaml:"-" mapstructure:"-"`
+		*options.DatabaseCommand `yaml:",inline" mapstructure:",squash"`
 	}
 
-	return app.SetupCommand(cmd, &configWrapper{Hidden: opts, DBOptions: &opts.DBOptions})
+	return app.SetupCommand(cmd, &configWrapper{Hidden: opts, DatabaseCommand: &opts.DatabaseCommand})
 }
 
 func runDBCheck(opts dbCheckOptions) error {
-	client, err := distribution.NewClient(opts.DB.ToClientConfig())
+	client, err := distribution.NewClient(opts.ToClientConfig())
 	if err != nil {
 		return fmt.Errorf("unable to create distribution client: %w", err)
 	}
 
-	cfg := opts.DB.ToCuratorConfig()
+	cfg := opts.ToCuratorConfig()
 
 	current, err := db.ReadDescription(cfg.DBFilePath())
 	if err != nil {

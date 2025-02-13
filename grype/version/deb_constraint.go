@@ -49,7 +49,7 @@ func (c debConstraint) Satisfied(version *Version) (bool, error) {
 	}
 
 	if !c.supported(version.Format) {
-		return false, fmt.Errorf("(deb) unsupported format: %s", version.Format)
+		return false, NewUnsupportedFormatError(DebFormat, version.Format)
 	}
 
 	if version.rich.debVer == nil {

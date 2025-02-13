@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/clio"
+	"github.com/anchore/grype/cmd/grype/cli/options"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/internal/schemaver"
@@ -44,7 +45,7 @@ func Test_ListingUserAgent(t *testing.T) {
 		mockSrv := httptest.NewServer(handler)
 		defer mockSrv.Close()
 
-		dbOptions := *dbOptionsDefault(clio.Identification{
+		dbOptions := *options.DefaultDatabaseCommand(clio.Identification{
 			Name:    "new-app",
 			Version: "v4.0.0",
 		})
@@ -52,8 +53,8 @@ func Test_ListingUserAgent(t *testing.T) {
 		dbOptions.DB.UpdateURL = mockSrv.URL + listingFile
 
 		err := runDBList(dbListOptions{
-			Output:    textOutputFormat,
-			DBOptions: dbOptions,
+			Output:          textOutputFormat,
+			DatabaseCommand: dbOptions,
 		})
 		require.NoError(t, err)
 

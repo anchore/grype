@@ -133,7 +133,7 @@ func generateCertFixture(t *testing.T) string {
 		return path
 	}
 
-	t.Logf(color.Bold.Sprint("Generating Key/Cert Fixture"))
+	t.Log(color.Bold.Sprint("Generating Key/Cert Fixture"))
 
 	cwd, err := os.Getwd()
 	if err != nil {

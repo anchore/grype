@@ -7,8 +7,6 @@ import (
 	"github.com/adrg/xdg"
 
 	"github.com/anchore/clio"
-	"github.com/anchore/grype/grype/db/v6/distribution"
-	"github.com/anchore/grype/grype/db/v6/installation"
 	"github.com/anchore/grype/internal"
 )
 
@@ -51,27 +49,6 @@ func DefaultDatabase(id clio.Identification) Database {
 		UpdateAvailableTimeout:  defaultUpdateAvailableTimeout,
 		UpdateDownloadTimeout:   defaultUpdateDownloadTimeout,
 		MaxUpdateCheckFrequency: defaultMaxUpdateCheckFrequency,
-	}
-}
-
-func (cfg Database) ToClientConfig() distribution.Config {
-	return distribution.Config{
-		ID:                 cfg.ID,
-		LatestURL:          cfg.UpdateURL,
-		CACert:             cfg.CACert,
-		RequireUpdateCheck: cfg.RequireUpdateCheck,
-		CheckTimeout:       cfg.UpdateAvailableTimeout,
-		UpdateTimeout:      cfg.UpdateDownloadTimeout,
-	}
-}
-
-func (cfg Database) ToCuratorConfig() installation.Config {
-	return installation.Config{
-		DBRootDir:               cfg.Dir,
-		ValidateAge:             cfg.ValidateAge,
-		ValidateChecksum:        cfg.ValidateByHashOnStart,
-		MaxAllowedBuiltAge:      cfg.MaxAllowedBuiltAge,
-		UpdateCheckMaxFrequency: cfg.MaxUpdateCheckFrequency,
 	}
 }
 

@@ -56,7 +56,7 @@ func (c semanticConstraint) Satisfied(version *Version) (bool, error) {
 	}
 
 	if !c.supported(version.Format) {
-		return false, fmt.Errorf("(semantic) unsupported format: %s", version.Format)
+		return false, NewUnsupportedFormatError(SemanticFormat, version.Format)
 	}
 
 	if version.rich.semVer == nil {

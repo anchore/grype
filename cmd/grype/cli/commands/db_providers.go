@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
+	"github.com/anchore/grype/cmd/grype/cli/options"
 	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/db/v6/installation"
@@ -18,8 +19,8 @@ import (
 )
 
 type dbProvidersOptions struct {
-	Output    string `yaml:"output" json:"output"`
-	DBOptions `yaml:",inline" mapstructure:",squash"`
+	Output                  string `yaml:"output" json:"output"`
+	options.DatabaseCommand `yaml:",inline" mapstructure:",squash"`
 }
 
 var _ clio.FlagAdder = (*dbProvidersOptions)(nil)
@@ -30,8 +31,8 @@ func (d *dbProvidersOptions) AddFlags(flags clio.FlagSet) {
 
 func DBProviders(app clio.Application) *cobra.Command {
 	opts := &dbProvidersOptions{
-		Output:    tableOutputFormat,
-		DBOptions: *dbOptionsDefault(app.ID()),
+		Output:          tableOutputFormat,
+		DatabaseCommand: *options.DefaultDatabaseCommand(app.ID()),
 	}
 
 	cmd := &cobra.Command{
@@ -45,19 +46,19 @@ func DBProviders(app clio.Application) *cobra.Command {
 
 	// prevent from being shown in the grype config
 	type configWrapper struct {
-		Hidden     *dbProvidersOptions `json:"-" yaml:"-" mapstructure:"-"`
-		*DBOptions `yaml:",inline" mapstructure:",squash"`
+		Hidden                   *dbProvidersOptions `json:"-" yaml:"-" mapstructure:"-"`
+		*options.DatabaseCommand `yaml:",inline" mapstructure:",squash"`
 	}
 
-	return app.SetupCommand(cmd, &configWrapper{Hidden: opts, DBOptions: &opts.DBOptions})
+	return app.SetupCommand(cmd, &configWrapper{Hidden: opts, DatabaseCommand: &opts.DatabaseCommand})
 }
 
 func runDBProviders(opts *dbProvidersOptions) error {
-	client, err := distribution.NewClient(opts.DB.ToClientConfig())
+	client, err := distribution.NewClient(opts.ToClientConfig())
 	if err != nil {
 		return fmt.Errorf("unable to create distribution client: %w", err)
 	}
-	c, err := installation.NewCurator(opts.DB.ToCuratorConfig(), client)
+	c, err := installation.NewCurator(opts.ToCuratorConfig(), client)
 	if err != nil {
 		return fmt.Errorf("unable to create curator: %w", err)
 	}

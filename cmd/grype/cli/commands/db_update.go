@@ -14,7 +14,7 @@ import (
 )
 
 func DBUpdate(app clio.Application) *cobra.Command {
-	opts := dbOptionsDefault(app.ID())
+	opts := options.DefaultDatabaseCommand(app.ID())
 
 	cmd := &cobra.Command{
 		Use:   "update",
@@ -26,19 +26,19 @@ func DBUpdate(app clio.Application) *cobra.Command {
 			return nil
 		},
 		RunE: func(_ *cobra.Command, _ []string) error {
-			return runDBUpdate(opts.DB)
+			return runDBUpdate(*opts)
 		},
 	}
 
 	// prevent from being shown in the grype config
 	type configWrapper struct {
-		*DBOptions `yaml:",inline" mapstructure:",squash"`
+		*options.DatabaseCommand `yaml:",inline" mapstructure:",squash"`
 	}
 
 	return app.SetupCommand(cmd, &configWrapper{opts})
 }
 
-func runDBUpdate(opts options.Database) error {
+func runDBUpdate(opts options.DatabaseCommand) error {
 	client, err := distribution.NewClient(opts.ToClientConfig())
 	if err != nil {
 		return fmt.Errorf("unable to create distribution client: %w", err)

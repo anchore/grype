@@ -25,7 +25,7 @@ type dbSearchVulnerabilityOptions struct {
 	Vulnerability options.DBSearchVulnerabilities `yaml:",inline" mapstructure:",squash"`
 	Bounds        options.DBSearchBounds          `yaml:",inline" mapstructure:",squash"`
 
-	DBOptions `yaml:",inline" mapstructure:",squash"`
+	options.DatabaseCommand `yaml:",inline" mapstructure:",squash"`
 }
 
 func DBSearchVulnerabilities(app clio.Application) *cobra.Command {
@@ -34,8 +34,8 @@ func DBSearchVulnerabilities(app clio.Application) *cobra.Command {
 		Vulnerability: options.DBSearchVulnerabilities{
 			UseVulnIDFlag: false, // we input this through the args
 		},
-		Bounds:    options.DefaultDBSearchBounds(),
-		DBOptions: *dbOptionsDefault(app.ID()),
+		Bounds:          options.DefaultDBSearchBounds(),
+		DatabaseCommand: *options.DefaultDatabaseCommand(app.ID()),
 	}
 
 	cmd := &cobra.Command{
@@ -56,20 +56,20 @@ func DBSearchVulnerabilities(app clio.Application) *cobra.Command {
 
 	// prevent from being shown in the grype config
 	type configWrapper struct {
-		Hidden     *dbSearchVulnerabilityOptions `json:"-" yaml:"-" mapstructure:"-"`
-		*DBOptions `yaml:",inline" mapstructure:",squash"`
+		Hidden                   *dbSearchVulnerabilityOptions `json:"-" yaml:"-" mapstructure:"-"`
+		*options.DatabaseCommand `yaml:",inline" mapstructure:",squash"`
 	}
 
-	return app.SetupCommand(cmd, &configWrapper{Hidden: opts, DBOptions: &opts.DBOptions})
+	return app.SetupCommand(cmd, &configWrapper{Hidden: opts, DatabaseCommand: &opts.DatabaseCommand})
 }
 
 func runDBSearchVulnerabilities(opts dbSearchVulnerabilityOptions) error {
-	client, err := distribution.NewClient(opts.DB.ToClientConfig())
+	client, err := distribution.NewClient(opts.ToClientConfig())
 	if err != nil {
 		return fmt.Errorf("unable to create distribution client: %w", err)
 	}
 
-	c, err := installation.NewCurator(opts.DB.ToCuratorConfig(), client)
+	c, err := installation.NewCurator(opts.ToCuratorConfig(), client)
 	if err != nil {
 		return fmt.Errorf("unable to create curator: %w", err)
 	}
