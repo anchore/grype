@@ -166,6 +166,9 @@ func getIgnoreConditionsForRule(rule IgnoreRule) []ignoreCondition {
 	}
 
 	if fs := rule.FixState; fs != "" {
+		if fs == "unknown" { // no fix state specified is effectively "unknown"
+			fs = ""
+		}
 		ignoreConditions = append(ignoreConditions, ifFixStateApplies(fs))
 	}
 
