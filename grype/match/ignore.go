@@ -5,6 +5,7 @@ import (
 
 	"github.com/bmatcuk/doublestar/v2"
 
+	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
 )
 
@@ -166,9 +167,6 @@ func getIgnoreConditionsForRule(rule IgnoreRule) []ignoreCondition {
 	}
 
 	if fs := rule.FixState; fs != "" {
-		if fs == "unknown" { // no fix state specified is effectively "unknown"
-			fs = ""
-		}
 		ignoreConditions = append(ignoreConditions, ifFixStateApplies(fs))
 	}
 
@@ -184,6 +182,10 @@ func getIgnoreConditionsForRule(rule IgnoreRule) []ignoreCondition {
 
 func ifFixStateApplies(fs string) ignoreCondition {
 	return func(match Match) bool {
+		if fs == string(vulnerability.FixStateUnknown) &&
+			match.Vulnerability.Fix.State == "" { // no fix state specified is effectively "unknown"
+			return true
+		}
 		return fs == string(match.Vulnerability.Fix.State)
 	}
 }
