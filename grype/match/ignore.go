@@ -5,8 +5,6 @@ import (
 	"strings"
 
 	"github.com/bmatcuk/doublestar/v2"
-
-	"github.com/anchore/grype/internal/log"
 )
 
 // IgnoreFilter implementations are used to filter matches, returning all applicable IgnoreRule(s) that applied,
@@ -207,26 +205,18 @@ func packageNameRegex(packageName string) (*regexp.Regexp, error) {
 }
 
 func ifPackageNameApplies(name string) ignoreCondition {
-	var (
-		pattern *regexp.Regexp
-		err     error
-	)
-	if strings.HasPrefix(name, "linux") && strings.Contains(name, "-headers-") {
-		pattern, err = packageNameRegex(name)
+	if name == "linux(-.*)?-headers-.*" {
+		pattern, err := packageNameRegex(name)
+		if err != nil {
+			return func(Match) bool { return false }
+		}
+
+		return func(match Match) bool {
+			return pattern.MatchString(match.Package.Name)
+		}
 	}
 
 	return func(match Match) bool {
-		if err != nil {
-			// Error compiling pattern
-			return false
-		}
-
-		if pattern != nil {
-			// Do regex for linux-headers
-			return pattern.MatchString(match.Package.Name)
-		}
-
-		// Exact string match for everything else
 		return name == match.Package.Name
 	}
 }
@@ -256,29 +246,19 @@ func ifPackageLocationApplies(location string) ignoreCondition {
 }
 
 func ifUpstreamPackageNameApplies(name string) ignoreCondition {
-	var (
-		pattern *regexp.Regexp
-		err     error
-	)
-	if strings.HasPrefix(name, "linux") {
-		pattern, err = packageNameRegex(name)
+	if name == "linux.*" {
+		return func(match Match) bool {
+			for _, upstream := range match.Package.Upstreams {
+				if strings.HasPrefix(upstream.Name, "linux") {
+					return true
+				}
+			}
+			return false
+		}
 	}
 
 	return func(match Match) bool {
-		if err != nil {
-			// Error compiling pattern
-			log.WithFields("name", name, "error", err).Debug("unable to parse name expression")
-			return false
-		}
-
 		for _, upstream := range match.Package.Upstreams {
-			if pattern != nil {
-				if pattern.MatchString(upstream.Name) {
-					return true
-				}
-				continue
-			}
-
 			if name == upstream.Name {
 				return true
 			}

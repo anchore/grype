@@ -216,7 +216,7 @@ var (
 				Version: "5.2.1",
 				Type:    syftPkg.DebPkg,
 				Upstreams: []pkg.UpstreamPackage{
-					{Name: "linux"},
+					{Name: "notalinux"},
 				},
 			},
 			Details: []Detail{
@@ -568,7 +568,7 @@ func TestApplyIgnoreRules(t *testing.T) {
 				},
 				{
 					Package: IgnoreRulePackage{
-						UpstreamName: "linux-.*",
+						UpstreamName: "linux.*",
 					},
 				},
 			},
@@ -591,7 +591,7 @@ func TestApplyIgnoreRules(t *testing.T) {
 					AppliedIgnoreRules: []IgnoreRule{
 						{
 							Package: IgnoreRulePackage{
-								UpstreamName: "linux-.*",
+								UpstreamName: "linux.*",
 							},
 						},
 					},
@@ -638,7 +638,7 @@ func TestApplyIgnoreRules(t *testing.T) {
 				},
 				{
 					Package: IgnoreRulePackage{
-						Name:         "linux-.*-headers-.*",
+						Name:         "linux(-.*)?-headers-.*",
 						UpstreamName: "linux.*",
 						Type:         string(syftPkg.DebPkg),
 					},
@@ -667,7 +667,7 @@ func TestApplyIgnoreRules(t *testing.T) {
 					AppliedIgnoreRules: []IgnoreRule{
 						{
 							Package: IgnoreRulePackage{
-								Name:         "linux-.*-headers-.*",
+								Name:         "linux(-.*)?-headers-.*",
 								UpstreamName: "linux.*",
 								Type:         string(syftPkg.DebPkg),
 							},
