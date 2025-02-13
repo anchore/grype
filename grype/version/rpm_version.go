@@ -116,16 +116,11 @@ func compareRpmReleases(a, b string) int {
 		return 0
 	}
 
-	aParts := strings.Split(a, "+")
-	bParts := strings.Split(b, "+")
-	if len(aParts) > 2 {
-		aParts = aParts[:len(aParts)-2]
-	}
-	if len(bParts) > 2 {
-		bParts = bParts[:len(bParts)-2]
-	}
-	trimmedA := strings.Join(aParts, "+")
-	trimmedB := strings.Join(bParts, "+")
+	a = strings.Replace(a, "module+el", "module_el", 1)
+	b = strings.Replace(b, "module+el", "module_el", 1)
+
+	trimmedA, _, _ := strings.Cut(a, "+")
+	trimmedB, _, _ := strings.Cut(b, "+")
 	return compareRpmVersions(trimmedA, trimmedB)
 }
 
