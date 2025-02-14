@@ -259,7 +259,7 @@ func (c curator) durationSinceUpdateCheck() (*time.Duration, error) {
 		return nil, fmt.Errorf("unable to read last update check timestamp: %w", err)
 	}
 
-	defer fh.Close()
+	defer log.CloseAndLogError(fh, filePath)
 
 	// read and parse rfc3339 timestamp
 	var lastCheckStr string
@@ -292,7 +292,7 @@ func (c curator) setLastSuccessfulUpdateCheck() {
 		return
 	}
 
-	defer fh.Close()
+	defer log.CloseAndLogError(fh, filePath)
 
 	_, _ = fmt.Fprintf(fh, "%s", time.Now().UTC().Format(time.RFC3339))
 }

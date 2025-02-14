@@ -200,7 +200,7 @@ func TestCurator_Update(t *testing.T) {
 
 		updated, err := c.Update()
 
-		require.NoError(t, err)
+		require.Error(t, err)
 		require.False(t, updated)
 		require.NoFileExists(t, filepath.Join(c.config.DBDirectoryPath(), lastUpdateCheckFileName))
 

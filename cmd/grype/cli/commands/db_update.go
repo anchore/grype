@@ -39,7 +39,9 @@ func DBUpdate(app clio.Application) *cobra.Command {
 }
 
 func runDBUpdate(opts options.DatabaseCommand) error {
-	client, err := distribution.NewClient(opts.ToClientConfig())
+	cfg := opts.ToClientConfig()
+	cfg.RequireUpdateCheck = true
+	client, err := distribution.NewClient(cfg)
 	if err != nil {
 		return fmt.Errorf("unable to create distribution client: %w", err)
 	}
