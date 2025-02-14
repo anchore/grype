@@ -7,6 +7,7 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/adrg/xdg"
@@ -307,7 +308,7 @@ func (c curator) validate(current *db.Description, validateChecksum bool) (strin
 }
 
 // Import takes a DB archive file and imports it into the final DB location.
-func (c curator) Import(dbArchivePath string) error {
+func (c curator) Import(path string) error {
 	mon := newMonitor()
 	mon.Set("unarchiving")
 	defer mon.SetCompleted()
@@ -322,10 +323,19 @@ func (c curator) Import(dbArchivePath string) error {
 		return fmt.Errorf("unable to create db import temp dir: %w", err)
 	}
 
-	log.Trace("unarchiving DB")
-	err = archiver.Unarchive(dbArchivePath, tempDir)
-	if err != nil {
-		return err
+	if strings.HasSuffix(path, ".db") {
+		// this is a raw DB file, copy it to the temp dir
+		log.Trace("copying DB")
+		if err := file.CopyFile(afero.NewOsFs(), path, filepath.Join(tempDir, db.VulnerabilityDBFileName)); err != nil {
+			return fmt.Errorf("unable to copy DB file: %w", err)
+		}
+	} else {
+		// assume it is an archive
+		log.Trace("unarchiving DB")
+		err = archiver.Unarchive(path, tempDir)
+		if err != nil {
+			return err
+		}
 	}
 
 	mon.downloadProgress.SetCompleted()

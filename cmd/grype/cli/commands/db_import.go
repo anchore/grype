@@ -18,8 +18,8 @@ func DBImport(app clio.Application) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "import FILE",
-		Short: "Import a vulnerability database archive",
-		Long:  fmt.Sprintf("import a vulnerability database archive from a local FILE.\nDB archives can be obtained from %q.", internal.DBUpdateURL),
+		Short: "Import a vulnerability database or archive",
+		Long:  fmt.Sprintf("import a vulnerability database or archive from a local FILE.\nDB archives can be obtained from %q.", internal.DBUpdateURL),
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			return runDBImport(*opts, args[0])
