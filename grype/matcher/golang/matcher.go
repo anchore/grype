@@ -60,7 +60,7 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 		return matches, nil, nil
 	}
 
-	return internal.MatchPackageByLanguageAndCPEs(store, p, m.Type(), searchByCPE(p.Name, m.cfg))
+	return internal.MatchPackageByEcosystemAndCPEs(store, p, m.Type(), searchByCPE(p.Name, m.cfg))
 }
 
 func searchByCPE(name string, cfg MatcherConfig) bool {

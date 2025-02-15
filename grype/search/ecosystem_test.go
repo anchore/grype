@@ -13,13 +13,15 @@ func Test_ByLanguage(t *testing.T) {
 	tests := []struct {
 		name    string
 		lang    syftPkg.Language
+		pkgType syftPkg.Type
 		input   vulnerability.Vulnerability
 		wantErr require.ErrorAssertionFunc
 		matches bool
 	}{
 		{
-			name: "match",
-			lang: syftPkg.Java,
+			name:    "match",
+			lang:    syftPkg.Java,
+			pkgType: syftPkg.JavaPkg,
 			input: vulnerability.Vulnerability{
 				Reference: vulnerability.Reference{
 					Namespace: "github:language:java",
@@ -28,8 +30,9 @@ func Test_ByLanguage(t *testing.T) {
 			matches: true,
 		},
 		{
-			name: "not match",
-			lang: syftPkg.Java,
+			name:    "not match",
+			lang:    syftPkg.Java,
+			pkgType: syftPkg.JavaPkg,
 			input: vulnerability.Vulnerability{
 				Reference: vulnerability.Reference{
 					Namespace: "github:language:javascript",
@@ -41,7 +44,7 @@ func Test_ByLanguage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			constraint := ByLanguage(tt.lang)
+			constraint := ByEcosystem(tt.lang, tt.pkgType)
 			matches, err := constraint.MatchesVulnerability(tt.input)
 			wantErr := require.NoError
 			if tt.wantErr != nil {

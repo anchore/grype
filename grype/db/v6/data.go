@@ -72,6 +72,14 @@ func KnownPackageSpecifierOverrides() []PackageSpecifierOverride {
 
 	// remap package URL types to syft package types
 	for _, t := range pkg.AllPkgs {
+		// these types should never be mapped to
+		// jenkins plugin: java-archive supersedes this
+		// github action workflow: github-action supersedes this
+		switch t {
+		case pkg.JenkinsPluginPkg, pkg.GithubActionWorkflowPkg:
+			continue
+		}
+
 		purlType := t.PackageURLType()
 		if purlType == "" || purlType == string(t) || strings.HasPrefix(purlType, "generic") {
 			continue
