@@ -49,6 +49,7 @@ func MatchPackageByEcosystemPackageName(store vulnerability.Provider, p pkg.Pack
 		search.ByPackageName(packageName),
 		onlyQualifiedPackages(p),
 		onlyVulnerableVersions(verObj),
+		onlyNonWithdrawnVulnerabilities(),
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("matcher failed to fetch language=%q pkg=%q: %w", p.Language, p.Name, err)

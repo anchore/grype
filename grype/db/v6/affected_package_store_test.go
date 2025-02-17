@@ -1181,7 +1181,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 			distro: OSSpecifier{
 				MajorVersion: "8",
 			},
-			expectErr: expectErrIs(t, ErrMissingDistroIdentification),
+			expectErr: expectErrIs(t, ErrMissingOSIdentification),
 		},
 		{
 			name: "nonexistent distro",
