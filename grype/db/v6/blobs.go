@@ -139,7 +139,7 @@ func (a AffectedPackageBlob) String() string {
 // AffectedPackageQualifiers contains package attributes that confirm the package is affected by the vulnerability.
 type AffectedPackageQualifiers struct {
 	// RpmModularity indicates if the package follows RPM modularity for versioning.
-	RpmModularity string `json:"rpm_modularity,omitempty"`
+	RpmModularity *string `json:"rpm_modularity,omitempty"`
 
 	// PlatformCPEs lists Common Platform Enumeration (CPE) identifiers for affected platforms.
 	PlatformCPEs []string `json:"platform_cpes,omitempty"`
