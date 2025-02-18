@@ -2,7 +2,6 @@ package name
 
 import (
 	"regexp"
-	"strings"
 
 	grypePkg "github.com/anchore/grype/grype/pkg"
 )
@@ -16,7 +15,7 @@ func (r *PythonResolver) Normalize(name string) string {
 	// the official python implementation of canonical naming at
 	// https://packaging.pypa.io/en/latest/_modules/packaging/utils.html#canonicalize_name
 
-	return strings.ToLower(regexp.MustCompile(`[-_.]+`).ReplaceAllString(name, "-"))
+	return regexp.MustCompile(`[-_.]+`).ReplaceAllString(name, "-")
 }
 
 func (r *PythonResolver) Names(p grypePkg.Package) []string {

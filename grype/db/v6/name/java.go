@@ -2,7 +2,6 @@ package name
 
 import (
 	"fmt"
-	"strings"
 
 	grypePkg "github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/internal/log"
@@ -14,7 +13,7 @@ type JavaResolver struct {
 }
 
 func (r *JavaResolver) Normalize(name string) string {
-	return strings.ToLower(name)
+	return name
 }
 
 func (r *JavaResolver) Names(p grypePkg.Package) []string {

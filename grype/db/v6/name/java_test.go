@@ -11,36 +11,39 @@ import (
 
 func TestJavaResolver_Normalize(t *testing.T) {
 	tests := []struct {
-		packageName string
-		normalized  string
+		name       string
+		normalized string
 	}{
 		{
-			packageName: "PyYAML",
-			normalized:  "pyyaml",
+			name: "PyYAML",
+			// note we are not lowercasing since the DB is case-insensitive for name columns
+			normalized: "PyYAML",
 		},
 		{
-			packageName: "oslo.concurrency",
-			normalized:  "oslo.concurrency",
+			name:       "oslo.concurrency",
+			normalized: "oslo.concurrency",
 		},
 		{
-			packageName: "",
-			normalized:  "",
+			name:       "",
+			normalized: "",
 		},
 		{
-			packageName: "test---1",
-			normalized:  "test---1",
+			name:       "test---1",
+			normalized: "test---1",
 		},
 		{
-			packageName: "AbCd.-__.--.-___.__.--1234____----....XyZZZ",
-			normalized:  "abcd.-__.--.-___.__.--1234____----....xyzzz",
+			name:       "AbCd.-__.--.-___.__.--1234____----....XyZZZ",
+			normalized: "AbCd.-__.--.-___.__.--1234____----....XyZZZ",
 		},
 	}
 
 	resolver := JavaResolver{}
 
 	for _, test := range tests {
-		resolvedNames := resolver.Normalize(test.packageName)
-		assert.Equal(t, resolvedNames, test.normalized)
+		t.Run(test.name, func(t *testing.T) {
+			resolvedNames := resolver.Normalize(test.name)
+			assert.Equal(t, resolvedNames, test.normalized)
+		})
 	}
 }
 
@@ -63,7 +66,7 @@ func TestJavaResolver_Names(t *testing.T) {
 					ManifestName:  "main-section-name-info",
 				},
 			},
-			resolved: []string{"pom-group-id-info:pom-artifact-id-info", "pom-group-id-info:main-section-name-info"},
+			resolved: []string{"pom-group-ID-info:pom-ARTIFACT-ID-info", "pom-group-ID-info:main-section-name-info"},
 		},
 		{
 			name: "both artifact and manifest 2",
