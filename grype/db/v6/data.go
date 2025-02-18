@@ -50,8 +50,8 @@ func KnownPackageSpecifierOverrides() []PackageSpecifierOverride {
 	// when matching packages, grype will always attempt to do so based off of the package type which means
 	// that any request must be in terms of the package type (relative to syft).
 
-	// map all known language ecosystems to their respective syft package types
 	ret := []PackageSpecifierOverride{
+		// map all known language ecosystems to their respective syft package types
 		{Ecosystem: pkg.Dart.String(), ReplacementEcosystem: ptr(string(pkg.DartPubPkg))},
 		{Ecosystem: pkg.Dotnet.String(), ReplacementEcosystem: ptr(string(pkg.DotnetPkg))},
 		{Ecosystem: pkg.Elixir.String(), ReplacementEcosystem: ptr(string(pkg.HexPkg))},
@@ -69,6 +69,9 @@ func KnownPackageSpecifierOverrides() []PackageSpecifierOverride {
 		{Ecosystem: pkg.Rust.String(), ReplacementEcosystem: ptr(string(pkg.RustPkg))},
 		{Ecosystem: pkg.Swift.String(), ReplacementEcosystem: ptr(string(pkg.SwiftPkg))},
 		{Ecosystem: pkg.Swipl.String(), ReplacementEcosystem: ptr(string(pkg.SwiplPackPkg))},
+
+		// jenkins plugins are a special case since they are always considered to be within the java ecosystem
+		{Ecosystem: string(pkg.JenkinsPluginPkg), ReplacementEcosystem: ptr(string(pkg.JavaPkg))},
 	}
 
 	// remap package URL types to syft package types
