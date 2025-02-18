@@ -65,7 +65,7 @@ func Test_ListingUserAgent(t *testing.T) {
 
 }
 
-func TestPresentNewDBList(t *testing.T) {
+func TestPresentDBList(t *testing.T) {
 	baseURL := "http://localhost:8000/latest.json"
 	latestDoc := &distribution.LatestDocument{
 		Status: "active",
@@ -103,13 +103,15 @@ Checksum: sha256:16bcb6551c748056f752f299fcdb4fa50fe61589d086be3889e670261ff21ca
 			name:   "valid JSON format",
 			format: jsonOutputFormat,
 			latest: latestDoc,
-			expectedText: `{
- "status": "active",
- "schemaVersion": "6.0.0",
- "built": "2024-11-27T14:43:17Z",
- "path": "vulnerability-db_v6.0.0_2024-11-25T01:31:56Z_1732718597.tar.zst",
- "checksum": "sha256:16bcb6551c748056f752f299fcdb4fa50fe61589d086be3889e670261ff21ca4"
-}
+			expectedText: `[
+ {
+  "status": "active",
+  "schemaVersion": "6.0.0",
+  "built": "2024-11-27T14:43:17Z",
+  "path": "vulnerability-db_v6.0.0_2024-11-25T01:31:56Z_1732718597.tar.zst",
+  "checksum": "sha256:16bcb6551c748056f752f299fcdb4fa50fe61589d086be3889e670261ff21ca4"
+ }
+]
 `,
 			expectedErr: require.NoError,
 		},
@@ -131,7 +133,7 @@ Checksum: sha256:16bcb6551c748056f752f299fcdb4fa50fe61589d086be3889e670261ff21ca
 		t.Run(tt.name, func(t *testing.T) {
 			writer := &bytes.Buffer{}
 
-			err := presentNewDBList(tt.format, baseURL, writer, tt.latest)
+			err := presentDBList(tt.format, baseURL, writer, tt.latest)
 			if tt.expectedErr == nil {
 				tt.expectedErr = require.NoError
 			}

@@ -62,10 +62,10 @@ func runDBList(opts dbListOptions) error {
 		return fmt.Errorf("unable to get database listing: %w", err)
 	}
 
-	return presentNewDBList(opts.Output, opts.DB.UpdateURL, os.Stdout, latest)
+	return presentDBList(opts.Output, opts.DB.UpdateURL, os.Stdout, latest)
 }
 
-func presentNewDBList(format string, u string, writer io.Writer, latest *distribution.LatestDocument) error {
+func presentDBList(format string, u string, writer io.Writer, latest *distribution.LatestDocument) error {
 	if latest == nil {
 		return fmt.Errorf("no database listing found")
 	}
@@ -89,7 +89,10 @@ func presentNewDBList(format string, u string, writer io.Writer, latest *distrib
 		enc := json.NewEncoder(writer)
 		enc.SetEscapeHTML(false)
 		enc.SetIndent("", " ")
-		if err := enc.Encode(&latest); err != nil {
+		// why make an array? We are reserving the right to list additional entries in the future without the
+		// need to change from an object to an array at that point in time. This will be useful if we implement
+		// the history.json functionality for grabbing historical database listings.
+		if err := enc.Encode([]any{latest}); err != nil {
 			return fmt.Errorf("failed to db listing information: %+v", err)
 		}
 	default:
