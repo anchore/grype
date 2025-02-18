@@ -32,7 +32,7 @@ func TestAffectedPackageTableRowMarshalJSON(t *testing.T) {
 			Detail: v6.AffectedPackageBlob{
 				CVEs: []string{"CVE-1234-5678"},
 				Qualifiers: &v6.AffectedPackageQualifiers{
-					RpmModularity: "modularity",
+					RpmModularity: ptr("modularity"),
 					PlatformCPEs:  []string{"platform-cpe-1"},
 				},
 				Ranges: []v6.AffectedRange{
@@ -107,7 +107,7 @@ func TestNewAffectedPackageRows(t *testing.T) {
 			BlobValue: &v6.AffectedPackageBlob{
 				CVEs: []string{"CVE-1234-5678"},
 				Qualifiers: &v6.AffectedPackageQualifiers{
-					RpmModularity: "modularity",
+					RpmModularity: ptr("modularity"),
 					PlatformCPEs:  []string{"platform-cpe-1"},
 				},
 				Ranges: []v6.AffectedRange{
@@ -168,7 +168,7 @@ func TestNewAffectedPackageRows(t *testing.T) {
 				Detail: v6.AffectedPackageBlob{
 					CVEs: []string{"CVE-1234-5678"},
 					Qualifiers: &v6.AffectedPackageQualifiers{
-						RpmModularity: "modularity",
+						RpmModularity: ptr("modularity"),
 						PlatformCPEs:  []string{"platform-cpe-1"},
 					},
 					Ranges: []v6.AffectedRange{
@@ -582,4 +582,8 @@ func (m *affectedMockReader) GetAffectedPackages(pkgSpec *v6.PackageSpecifier, o
 func (m *affectedMockReader) GetAffectedCPEs(cpeSpec *cpe.Attributes, options *v6.GetAffectedCPEOptions) ([]v6.AffectedCPEHandle, error) {
 	args := m.Called(cpeSpec, options)
 	return args.Get(0).([]v6.AffectedCPEHandle), args.Error(1)
+}
+
+func ptr[T any](t T) *T {
+	return &t
 }
