@@ -9,7 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/db/v5/distribution"
+	"github.com/anchore/grype/grype/db/v6/distribution"
+	"github.com/anchore/grype/grype/db/v6/installation"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/format/spdxjson"
@@ -20,7 +21,7 @@ import (
 	"github.com/anchore/syft/syft/source"
 )
 
-func getListingURL() string {
+func getLatestURL() string {
 	if value, ok := os.LookupEnv("GRYPE_DB_UPDATE_URL"); ok {
 		return value
 	}
@@ -37,12 +38,13 @@ func must(e sbom.FormatEncoder, err error) sbom.FormatEncoder {
 func TestCompareSBOMInputToLibResults(t *testing.T) {
 	// get a grype DB
 	store, status, err := grype.LoadVulnerabilityDB(distribution.Config{
-		DBRootDir:           "test-fixtures/grype-db",
-		ListingURL:          getListingURL(),
-		ValidateByHashOnGet: false,
+		LatestURL: getLatestURL(),
+	}, installation.Config{
+		DBRootDir:        "test-fixtures/grype-db",
+		ValidateChecksum: false,
 	}, true)
 	assert.NoError(t, err)
-	defer log.CloseAndLogError(store, status.Location)
+	defer log.CloseAndLogError(store, status.Path)
 
 	definedPkgTypes := strset.New()
 	for _, p := range syftPkg.AllPkgs {
@@ -243,12 +245,12 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 			assert.NoError(t, sbomFile.Close())
 
 			// get vulns (sbom)
-			matchesFromSbom, _, pkgsFromSbom, err := grype.FindVulnerabilities(*store, fmt.Sprintf("sbom:%s", sbomFile.Name()), source.SquashedScope, nil)
+			matchesFromSbom, _, pkgsFromSbom, err := grype.FindVulnerabilities(store, fmt.Sprintf("sbom:%s", sbomFile.Name()), source.SquashedScope, nil)
 			assert.NoError(t, err)
 
 			// get vulns (image)
 			imageSource := fmt.Sprintf("docker-archive:%s", imageArchive)
-			matchesFromImage, _, _, err := grype.FindVulnerabilities(*store, imageSource, source.SquashedScope, nil)
+			matchesFromImage, _, _, err := grype.FindVulnerabilities(store, imageSource, source.SquashedScope, nil)
 			assert.NoError(t, err)
 
 			// compare packages (shallow)

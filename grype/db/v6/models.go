@@ -137,11 +137,12 @@ func (p *Provider) AfterCreate(tx *gorm.DB) (err error) {
 // vulnerability related search tables //////////////////////////////////////////////////////
 
 // VulnerabilityHandle represents the pointer to the core advisory record for a single known vulnerability from a specific provider.
+// indexes: idx_vuln_provider_id: this is used --by-cve to find all vulnerabilities from the NVD provider
 type VulnerabilityHandle struct {
 	ID ID `gorm:"column:id;primaryKey"`
 
 	// Name is the unique name for the vulnerability (same as the decoded VulnerabilityBlob.ID)
-	Name string `gorm:"column:name;not null;index,collate:NOCASE"`
+	Name string `gorm:"column:name;not null;index,collate:NOCASE;index:idx_vuln_provider_id,collate:NOCASE"`
 
 	// Status conveys the actionability of the current record (one of "active", "analyzing", "rejected", "disputed")
 	Status VulnerabilityStatus `gorm:"column:status;not null;index,collate:NOCASE"`
@@ -155,7 +156,7 @@ type VulnerabilityHandle struct {
 	// WithdrawnDate is the date the vulnerability record was withdrawn
 	WithdrawnDate *time.Time `gorm:"column:withdrawn_date;index"`
 
-	ProviderID string    `gorm:"column:provider_id;not null;index"`
+	ProviderID string    `gorm:"column:provider_id;not null;index;index:idx_vuln_provider_id,collate:NOCASE"`
 	Provider   *Provider `gorm:"foreignKey:ProviderID"`
 
 	BlobID    ID                 `gorm:"column:blob_id;index,unique"`

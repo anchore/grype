@@ -105,7 +105,7 @@ tasks:
   update-quality-gate-db:
     desc: Update pinned version of quality gate database
     cmds:
-      - cmd: "go run cmd/grype/main.go db list -o json | jq -r .[0].url > test/quality/test-db-url"
+      - cmd: "go run cmd/grype/main.go db list -o json | jq -r '.path' > test/quality/test-db"
         silent: true
 
   list-tools:

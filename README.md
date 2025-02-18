@@ -212,10 +212,16 @@ grype --add-cpes-if-none --distro alpine:3.10 sbom:some-alpine-3.10.spdx.json
 
 ### Supported versions
 
-Any version of Grype before v0.51.0 (Oct 2022) is not supported. Unsupported releases will not receive any software updates or
+Software updates are always applied to the latest version of Grype; fixes are not backported to any previous versions of Grype.
+
+In terms of database updates, any version of Grype before v0.51.0 (Oct 2022, before schema v5) will not receive 
 vulnerability database updates. You can still build vulnerability databases for unsupported Grype releases by using previous
 releases of [vunnel](https://github.com/anchore/vunnel) to gather the upstream data and [grype-db](https://github.com/anchore/grype-db)
 to build databases for unsupported schemas.
+
+Only the latest DB schema is considered to be supported. When a new DB schema is introduced then the one it replaces is
+marked as deprecated. Deprecated schemas will continue to receive updates for at least one year after they are marked
+as deprecated at which point they will be marked as end of life.
 
 ### Working with attestations
 Grype supports scanning SBOMs as input via stdin. Users can use [cosign](https://github.com/sigstore/cosign) to verify attestations
@@ -517,7 +523,7 @@ Grype's vulnerability database is a SQLite file, named `vulnerability.db`. Updat
 
 Grype's first step in a database update is discovering databases that are available for retrieval. Grype does this by requesting a "listing file" from a public endpoint:
 
-`https://toolbox-data.anchore.io/grype/databases/listing.json`
+`https://grype.anchore.io/databases/v6/latest.json`
 
 The listing file contains entries for every database that's available for download.
 
@@ -525,10 +531,11 @@ Here's an example of an entry in the listing file:
 
 ```json
 {
-  "built": "2021-10-21T08:13:41Z",
-  "version": 3,
-  "url": "https://toolbox-data.anchore.io/grype/databases/vulnerability-db_v3_2021-10-21T08:13:41Z.tar.gz",
-  "checksum": "sha256:8c99fb4e516f10b304f026267c2a73a474e2df878a59bf688cfb0f094bfe7a91"
+  "status": "active",
+  "schemaVersion": "6.0.0",
+  "built": "2025-02-11T04:06:41Z",
+  "path": "vulnerability-db_v6.0.0_2025-02-11T01:30:51Z_1739246801.tar.zst",
+  "checksum": "sha256:79bfa04265c5a32d21773ad0da1bda13c31e932fa1e1422db635c8d714038868"
 }
 ```
 

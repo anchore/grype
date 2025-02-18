@@ -1,4 +1,4 @@
 package internal
 
 // note: do not change this
-const DBUpdateURL = "https://toolbox-data.anchore.io/grype/databases/listing.json"
+const DBUpdateURL = "https://grype.anchore.io/databases/v6/latest.json"

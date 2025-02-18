@@ -81,9 +81,9 @@ func assertJsonReport(tb testing.TB, stdout, _ string, _ int) {
 	}
 }
 
-func assertTableReport(tb testing.TB, stdout, _ string, _ int) {
+func assertDbProvidersTableReport(tb testing.TB, stdout, _ string, _ int) {
 	tb.Helper()
-	if !strings.Contains(stdout, "NAME") || !strings.Contains(stdout, "LAST SUCCESSFUL RUN") {
+	if !strings.Contains(stdout, "NAME") || !strings.Contains(stdout, "DATE CAPTURED") {
 		tb.Errorf("expected to find a table report, but did not")
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/adrg/xdg"
@@ -152,7 +153,7 @@ func (c curator) Update() (bool, error) {
 
 	if current != nil && !c.isUpdateCheckAllowed() {
 		// we should not notify the user of an update check if the current configuration and state
-		// indicates we're should be in a low-pass filter mode (and the check frequency is too high).
+		// indicates we are in a low-pass filter mode and the check frequency is too high.
 		// this should appear to the user as if we never attempted to check for an update at all.
 		return false, nil
 	}
@@ -221,7 +222,7 @@ func (c curator) update(current *db.Description) (*distribution.Archive, error) 
 		}
 
 		mon.Set("no update available")
-		return nil, nil
+		return nil, checkErr
 	}
 
 	log.Infof("downloading new vulnerability DB")
@@ -258,7 +259,7 @@ func (c curator) durationSinceUpdateCheck() (*time.Duration, error) {
 		return nil, fmt.Errorf("unable to read last update check timestamp: %w", err)
 	}
 
-	defer fh.Close()
+	defer log.CloseAndLogError(fh, filePath)
 
 	// read and parse rfc3339 timestamp
 	var lastCheckStr string
@@ -291,7 +292,7 @@ func (c curator) setLastSuccessfulUpdateCheck() {
 		return
 	}
 
-	defer fh.Close()
+	defer log.CloseAndLogError(fh, filePath)
 
 	_, _ = fmt.Fprintf(fh, "%s", time.Now().UTC().Format(time.RFC3339))
 }
@@ -307,7 +308,7 @@ func (c curator) validate(current *db.Description, validateChecksum bool) (strin
 }
 
 // Import takes a DB archive file and imports it into the final DB location.
-func (c curator) Import(dbArchivePath string) error {
+func (c curator) Import(path string) error {
 	mon := newMonitor()
 	mon.Set("unarchiving")
 	defer mon.SetCompleted()
@@ -322,10 +323,19 @@ func (c curator) Import(dbArchivePath string) error {
 		return fmt.Errorf("unable to create db import temp dir: %w", err)
 	}
 
-	log.Trace("unarchiving DB")
-	err = archiver.Unarchive(dbArchivePath, tempDir)
-	if err != nil {
-		return err
+	if strings.HasSuffix(path, ".db") {
+		// this is a raw DB file, copy it to the temp dir
+		log.Trace("copying DB")
+		if err := file.CopyFile(afero.NewOsFs(), path, filepath.Join(tempDir, db.VulnerabilityDBFileName)); err != nil {
+			return fmt.Errorf("unable to copy DB file: %w", err)
+		}
+	} else {
+		// assume it is an archive
+		log.Trace("unarchiving DB")
+		err = archiver.Unarchive(path, tempDir)
+		if err != nil {
+			return err
+		}
 	}
 
 	mon.downloadProgress.SetCompleted()
