@@ -85,6 +85,7 @@ func MatchPackageByCPEs(store vulnerability.Provider, p pkg.Package, upstreamMat
 			onlyVulnerableTargets(p),
 			onlyQualifiedPackages(p),
 			onlyVulnerableVersions(verObj),
+			onlyNonWithdrawnVulnerabilities(),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("matcher failed to fetch by CPE pkg=%q: %w", p.Name, err)

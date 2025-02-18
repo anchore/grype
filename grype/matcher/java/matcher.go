@@ -66,7 +66,7 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 		}
 	}
 
-	criteriaMatches, ignores, err := internal.MatchPackageByLanguageAndCPEs(store, p, m.Type(), m.cfg.UseCPEs)
+	criteriaMatches, ignores, err := internal.MatchPackageByEcosystemAndCPEs(store, p, m.Type(), m.cfg.UseCPEs)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to match by exact package: %w", err)
 	}

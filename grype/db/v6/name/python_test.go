@@ -1,4 +1,4 @@
-package python
+package name
 
 import (
 	"testing"
@@ -6,14 +6,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestResolver_Normalize(t *testing.T) {
+func TestPythonResolver_Normalize(t *testing.T) {
 	tests := []struct {
 		name       string
 		normalized string
 	}{
 		{
-			name:       "PyYAML",
-			normalized: "pyyaml",
+			name: "PyYAML",
+			// note we are not lowercasing since the DB is case-insensitive for name columns
+			normalized: "PyYAML",
 		},
 		{
 			name:       "oslo.concurrency",
@@ -29,11 +30,11 @@ func TestResolver_Normalize(t *testing.T) {
 		},
 		{
 			name:       "AbCd.-__.--.-___.__.--1234____----....XyZZZ",
-			normalized: "abcd-1234-xyzzz",
+			normalized: "AbCd-1234-XyZZZ",
 		},
 	}
 
-	resolver := Resolver{}
+	resolver := PythonResolver{}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

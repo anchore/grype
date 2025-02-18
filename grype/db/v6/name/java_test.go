@@ -1,4 +1,4 @@
-package java
+package name
 
 import (
 	"testing"
@@ -9,14 +9,15 @@ import (
 	grypePkg "github.com/anchore/grype/grype/pkg"
 )
 
-func TestResolver_Normalize(t *testing.T) {
+func TestJavaResolver_Normalize(t *testing.T) {
 	tests := []struct {
 		name       string
 		normalized string
 	}{
 		{
-			name:       "PyYAML",
-			normalized: "pyyaml",
+			name: "PyYAML",
+			// note we are not lowercasing since the DB is case-insensitive for name columns
+			normalized: "PyYAML",
 		},
 		{
 			name:       "oslo.concurrency",
@@ -32,11 +33,11 @@ func TestResolver_Normalize(t *testing.T) {
 		},
 		{
 			name:       "AbCd.-__.--.-___.__.--1234____----....XyZZZ",
-			normalized: "abcd.-__.--.-___.__.--1234____----....xyzzz",
+			normalized: "AbCd.-__.--.-___.__.--1234____----....XyZZZ",
 		},
 	}
 
-	resolver := Resolver{}
+	resolver := JavaResolver{}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -46,7 +47,7 @@ func TestResolver_Normalize(t *testing.T) {
 	}
 }
 
-func TestResolver_Resolve(t *testing.T) {
+func TestJavaResolver_Names(t *testing.T) {
 	tests := []struct {
 		name     string
 		pkg      grypePkg.Package
@@ -65,7 +66,7 @@ func TestResolver_Resolve(t *testing.T) {
 					ManifestName:  "main-section-name-info",
 				},
 			},
-			resolved: []string{"pom-group-id-info:pom-artifact-id-info", "pom-group-id-info:main-section-name-info"},
+			resolved: []string{"pom-group-ID-info:pom-ARTIFACT-ID-info", "pom-group-ID-info:main-section-name-info"},
 		},
 		{
 			name: "both artifact and manifest 2",
@@ -166,11 +167,11 @@ func TestResolver_Resolve(t *testing.T) {
 		},
 	}
 
-	resolver := Resolver{}
+	resolver := JavaResolver{}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			resolvedNames := resolver.Resolve(test.pkg)
+			resolvedNames := resolver.Names(test.pkg)
 			assert.ElementsMatch(t, resolvedNames, test.resolved)
 		})
 	}

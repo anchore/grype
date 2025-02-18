@@ -16,8 +16,8 @@ func MatchPackageByLanguage(store vulnerability.Provider, p pkg.Package, matcher
 	var matches []match.Match
 	var ignored []match.IgnoredMatch
 
-	for _, name := range PackageNames(p) {
-		nameMatches, nameIgnores, err := MatchPackageByLanguagePackageName(store, p, name, matcherType)
+	for _, name := range store.PackageSearchNames(p) {
+		nameMatches, nameIgnores, err := MatchPackageByEcosystemPackageName(store, p, name, matcherType)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -28,7 +28,7 @@ func MatchPackageByLanguage(store vulnerability.Provider, p pkg.Package, matcher
 	return matches, ignored, nil
 }
 
-func MatchPackageByLanguagePackageName(store vulnerability.Provider, p pkg.Package, packageName string, matcherType match.MatcherType) ([]match.Match, []match.IgnoredMatch, error) {
+func MatchPackageByEcosystemPackageName(store vulnerability.Provider, p pkg.Package, packageName string, matcherType match.MatcherType) ([]match.Match, []match.IgnoredMatch, error) {
 	if isUnknownVersion(p.Version) {
 		log.WithFields("package", p.Name).Trace("skipping package with unknown version")
 		return nil, nil, nil
@@ -45,10 +45,11 @@ func MatchPackageByLanguagePackageName(store vulnerability.Provider, p pkg.Packa
 
 	var matches []match.Match
 	vulns, err := store.FindVulnerabilities(
-		search.ByLanguage(p.Language),
+		search.ByEcosystem(p.Language, p.Type),
 		search.ByPackageName(packageName),
 		onlyQualifiedPackages(p),
 		onlyVulnerableVersions(verObj),
+		onlyNonWithdrawnVulnerabilities(),
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("matcher failed to fetch language=%q pkg=%q: %w", p.Language, p.Name, err)

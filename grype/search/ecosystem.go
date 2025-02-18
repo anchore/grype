@@ -8,18 +8,20 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-// ByLanguage returns criteria which will search based on the package Language
-func ByLanguage(lang syftPkg.Language) vulnerability.Criteria {
-	return &LanguageCriteria{
-		Language: lang,
+// ByEcosystem returns criteria which will search based on the package Language and or package type
+func ByEcosystem(lang syftPkg.Language, t syftPkg.Type) vulnerability.Criteria {
+	return &EcosystemCriteria{
+		Language:    lang,
+		PackageType: t,
 	}
 }
 
-type LanguageCriteria struct {
-	Language syftPkg.Language
+type EcosystemCriteria struct {
+	Language    syftPkg.Language
+	PackageType syftPkg.Type
 }
 
-func (c *LanguageCriteria) MatchesVulnerability(value vulnerability.Vulnerability) (bool, error) {
+func (c *EcosystemCriteria) MatchesVulnerability(value vulnerability.Vulnerability) (bool, error) {
 	ns, err := namespace.FromString(value.Namespace)
 	if err != nil {
 		log.Debugf("unable to determine namespace for vulnerability %v: %v", value.Reference.ID, err)
@@ -31,8 +33,10 @@ func (c *LanguageCriteria) MatchesVulnerability(value vulnerability.Vulnerabilit
 		return false, nil
 	}
 	return c.Language == lang.Language(), nil
+
+	// TODO: add package type?
 }
 
 var _ interface {
 	vulnerability.Criteria
-} = (*LanguageCriteria)(nil)
+} = (*EcosystemCriteria)(nil)

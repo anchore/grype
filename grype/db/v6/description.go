@@ -111,7 +111,7 @@ func ReadDBChecksum(dir string) (string, error) {
 		return "", fmt.Errorf("checksums file is not in the expected format")
 	}
 
-	return string(checksums), nil
+	return strings.TrimSpace(string(checksums)), nil
 }
 
 func CalculateDBDigest(dbFilePath string) (string, error) {

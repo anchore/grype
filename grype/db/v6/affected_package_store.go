@@ -28,8 +28,8 @@ const (
 var NoOSSpecified = &OSSpecifier{}
 var AnyOSSpecified *OSSpecifier
 var AnyPackageSpecified *PackageSpecifier
-var ErrMissingDistroIdentification = errors.New("missing os name or codename")
-var ErrDistroNotPresent = errors.New("distro not present")
+var ErrMissingOSIdentification = errors.New("missing OS name or codename")
+var ErrOSNotPresent = errors.New("OS not present")
 var ErrMultipleOSMatches = errors.New("multiple OS matches found but not allowed")
 var ErrLimitReached = errors.New("query limit reached")
 
@@ -529,7 +529,7 @@ func (s *affectedPackageStore) handleOSOptions(query *gorm.DB, configs []*OSSpec
 
 			switch {
 			case len(curResolvedDistros) == 0:
-				return nil, ErrDistroNotPresent
+				return nil, ErrOSNotPresent
 			case len(curResolvedDistros) > 1 && !config.AllowMultiple:
 				return nil, ErrMultipleOSMatches
 			}
@@ -579,7 +579,7 @@ func (s *affectedPackageStore) handleOSOptions(query *gorm.DB, configs []*OSSpec
 
 func (s *affectedPackageStore) resolveDistro(d OSSpecifier) ([]OperatingSystem, error) {
 	if d.Name == "" && d.LabelVersion == "" {
-		return nil, ErrMissingDistroIdentification
+		return nil, ErrMissingOSIdentification
 	}
 
 	// search for aliases for the given distro; we intentionally map some OSs to other OSs in terms of
