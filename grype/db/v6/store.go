@@ -15,6 +15,7 @@ type store struct {
 	*vulnerabilityStore
 	*affectedPackageStore
 	*affectedCPEStore
+	*vulnerabilityDecoratorStore
 	blobStore *blobStore
 	db        *gorm.DB
 	config    Config
@@ -55,18 +56,38 @@ func newStore(cfg Config, empty, writable bool) (*store, error) {
 		return nil, fmt.Errorf("failed to open db: %w", err)
 	}
 
+	metadataStore := newDBMetadataStore(db)
+
+	if empty {
+		if err := metadataStore.SetDBMetadata(); err != nil {
+			return nil, fmt.Errorf("failed to set db metadata: %w", err)
+		}
+	}
+
+	meta, err := metadataStore.GetDBMetadata()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get db metadata: %w", err)
+	}
+
+	if meta == nil {
+		return nil, fmt.Errorf("no DB metadata found")
+	}
+
+	dbVersion := newSchemaVerFromDBMetadata(*meta)
+
 	bs := newBlobStore(db)
 	return &store{
-		dbMetadataStore:      newDBMetadataStore(db),
-		providerStore:        newProviderStore(db),
-		vulnerabilityStore:   newVulnerabilityStore(db, bs),
-		affectedPackageStore: newAffectedPackageStore(db, bs),
-		affectedCPEStore:     newAffectedCPEStore(db, bs),
-		blobStore:            bs,
-		db:                   db,
-		config:               cfg,
-		empty:                empty,
-		writable:             writable,
+		dbMetadataStore:             metadataStore,
+		providerStore:               newProviderStore(db),
+		vulnerabilityStore:          newVulnerabilityStore(db, bs),
+		affectedPackageStore:        newAffectedPackageStore(db, bs),
+		affectedCPEStore:            newAffectedCPEStore(db, bs),
+		vulnerabilityDecoratorStore: newVulnerabilityDecoratorStore(db, bs, dbVersion),
+		blobStore:                   bs,
+		db:                          db,
+		config:                      cfg,
+		empty:                       empty,
+		writable:                    writable,
 	}, nil
 }
 

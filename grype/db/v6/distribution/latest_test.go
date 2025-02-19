@@ -20,13 +20,13 @@ func TestNewLatestDocument(t *testing.T) {
 	t.Run("valid entries", func(t *testing.T) {
 		archive1 := Archive{
 			Description: db.Description{
-				SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
+				SchemaVersion: schemaver.NewString(db.ModelVersion, db.Revision, db.Addition),
 				Built:         db.Time{Time: time.Now()},
 			},
 		}
 		archive2 := Archive{
 			Description: db.Description{
-				SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
+				SchemaVersion: schemaver.NewString(db.ModelVersion, db.Revision, db.Addition),
 				Built:         db.Time{Time: time.Now().Add(-1 * time.Hour)},
 			},
 		}
@@ -42,13 +42,13 @@ func TestNewLatestDocument(t *testing.T) {
 	t.Run("filter entries", func(t *testing.T) {
 		archive1 := Archive{
 			Description: db.Description{
-				SchemaVersion: schemaver.New(5, db.Revision, db.Addition), // old!
+				SchemaVersion: schemaver.NewString(5, db.Revision, db.Addition), // old!
 				Built:         db.Time{Time: time.Now()},
 			},
 		}
 		archive2 := Archive{
 			Description: db.Description{
-				SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
+				SchemaVersion: schemaver.NewString(db.ModelVersion, db.Revision, db.Addition),
 				Built:         db.Time{Time: time.Now().Add(-1 * time.Hour)},
 			},
 		}
@@ -125,7 +125,7 @@ func TestLatestDocument_Write(t *testing.T) {
 				Archive: Archive{
 					Description: db.Description{
 						Built:         now,
-						SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
+						SchemaVersion: schemaver.NewString(db.ModelVersion, db.Revision, db.Addition),
 					},
 					Path:     "valid/path/to/archive",
 					Checksum: "sha256:validchecksum",
@@ -140,7 +140,7 @@ func TestLatestDocument_Write(t *testing.T) {
 				Archive: Archive{
 					Description: db.Description{
 						Built:         now,
-						SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
+						SchemaVersion: schemaver.NewString(db.ModelVersion, db.Revision, db.Addition),
 					},
 					Path:     "valid/path/to/archive",
 					Checksum: "xxh64:validchecksum",
@@ -169,7 +169,7 @@ func TestLatestDocument_Write(t *testing.T) {
 				Archive: Archive{
 					Description: db.Description{
 						Built:         now,
-						SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
+						SchemaVersion: schemaver.NewString(db.ModelVersion, db.Revision, db.Addition),
 					},
 					Path:     "", // this!
 					Checksum: "xxh64:validchecksum",
@@ -184,7 +184,7 @@ func TestLatestDocument_Write(t *testing.T) {
 				Archive: Archive{
 					Description: db.Description{
 						Built:         now,
-						SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
+						SchemaVersion: schemaver.NewString(db.ModelVersion, db.Revision, db.Addition),
 					},
 					Path:     "valid/path/to/archive",
 					Checksum: "", // this!
@@ -199,7 +199,7 @@ func TestLatestDocument_Write(t *testing.T) {
 				Archive: Archive{
 					Description: db.Description{
 						Built:         db.Time{}, // this!
-						SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
+						SchemaVersion: schemaver.NewString(db.ModelVersion, db.Revision, db.Addition),
 					},
 					Path:     "valid/path/to/archive",
 					Checksum: "xxh64:validchecksum",
@@ -258,7 +258,7 @@ func TestNewArchive(t *testing.T) {
 			expectErr: require.NoError,
 			expected: &Archive{
 				Description: db.Description{
-					SchemaVersion: schemaver.New(1, 0, 5),
+					SchemaVersion: schemaver.NewString(1, 0, 5),
 					Built:         db.Time{Time: time.Date(2023, 11, 24, 12, 0, 0, 0, time.UTC)},
 				},
 				Path:     "archive.tar.gz",

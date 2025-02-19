@@ -82,7 +82,7 @@ func NewArchive(path string, t time.Time, model, revision, addition int) (*Archi
 
 	return &Archive{
 		Description: db.Description{
-			SchemaVersion: schemaver.New(model, revision, addition),
+			SchemaVersion: schemaver.NewString(model, revision, addition),
 			Built:         db.Time{Time: t},
 		},
 		// this is not the path on disk, this is the path relative to the latest.json file when hosted

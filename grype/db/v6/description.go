@@ -14,7 +14,7 @@ var ErrDBDoesNotExist = errors.New("database does not exist")
 
 type Description struct {
 	// SchemaVersion is the version of the DB schema
-	SchemaVersion schemaver.SchemaVer `json:"schemaVersion,omitempty"`
+	SchemaVersion schemaver.String `json:"schemaVersion,omitempty"`
 
 	// Built is the timestamp the database was built
 	Built Time `json:"built"`
@@ -53,7 +53,7 @@ func DescriptionFromMetadata(m *DBMetadata) *Description {
 		return nil
 	}
 	return &Description{
-		SchemaVersion: schemaver.New(m.Model, m.Revision, m.Addition),
+		SchemaVersion: schemaver.NewString(m.Model, m.Revision, m.Addition),
 		Built:         Time{Time: *m.BuildTimestamp},
 	}
 }
@@ -81,7 +81,7 @@ func ReadDescription(dbFilePath string) (*Description, error) {
 	}
 
 	return &Description{
-		SchemaVersion: schemaver.New(meta.Model, meta.Revision, meta.Addition),
+		SchemaVersion: schemaver.NewString(meta.Model, meta.Revision, meta.Addition),
 		Built:         Time{Time: *meta.BuildTimestamp},
 	}, nil
 }

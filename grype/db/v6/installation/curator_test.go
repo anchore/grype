@@ -85,7 +85,7 @@ func setupCuratorForUpdate(t *testing.T, opts ...setupOption) curator {
 
 	// populate metadata into the downloaded dir
 	oldDescription := db.Description{
-		SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
+		SchemaVersion: schemaver.NewString(db.ModelVersion, db.Revision, db.Addition),
 		Built:         db.Time{Time: time.Now().Add(-48 * time.Hour)},
 	}
 	writeTestDB(t, c.fs, dbDir)
@@ -567,7 +567,7 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 	t.Run("unsupported database version", func(t *testing.T) {
 		c, d := newCurator(t)
 
-		d.SchemaVersion = schemaver.New(db.ModelVersion-1, 0, 0)
+		d.SchemaVersion = schemaver.NewString(db.ModelVersion-1, 0, 0)
 
 		_, _, err := c.validateIntegrity(d, c.config.DBFilePath(), true)
 		require.ErrorContains(t, err, "unsupported database version")

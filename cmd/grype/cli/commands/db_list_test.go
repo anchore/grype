@@ -66,7 +66,7 @@ func Test_ListingUserAgent(t *testing.T) {
 				Status: "active",
 				Archive: distribution.Archive{
 					Description: db.Description{
-						SchemaVersion: schemaver.New(6, 0, 0),
+						SchemaVersion: schemaver.NewString(6, 0, 0),
 						Built:         db.Time{Time: time.Now()},
 					},
 					Path:     "vulnerability-db_v6.0.0.tar.gz",
@@ -103,7 +103,7 @@ func TestPresentNewDBList(t *testing.T) {
 		Status: "active",
 		Archive: distribution.Archive{
 			Description: db.Description{
-				SchemaVersion: schemaver.New(6, 0, 0),
+				SchemaVersion: schemaver.NewString(6, 0, 0),
 				Built:         db.Time{Time: time.Date(2024, 11, 27, 14, 43, 17, 0, time.UTC)},
 			},
 			Path:     "vulnerability-db_v6.0.0_2024-11-25T01:31:56Z_1732718597.tar.zst",

@@ -15,6 +15,10 @@ type ProviderStoreReader interface {
 	fillProviders(handles []ref[string, Provider]) error
 }
 
+type ProviderStoreWriter interface {
+	AddProvider(p Provider) error
+}
+
 type providerStore struct {
 	db *gorm.DB
 }
@@ -23,6 +27,15 @@ func newProviderStore(db *gorm.DB) *providerStore {
 	return &providerStore{
 		db: db,
 	}
+}
+
+func (s *providerStore) AddProvider(p Provider) error {
+	result := s.db.FirstOrCreate(&p)
+	if result.Error != nil {
+		return fmt.Errorf("failed to create provider record: %w", result.Error)
+	}
+
+	return nil
 }
 
 func (s *providerStore) GetProvider(name string) (*Provider, error) {

@@ -9,7 +9,9 @@ import (
 )
 
 func TestDbMetadataStore_empty(t *testing.T) {
-	s := newDBMetadataStore(setupTestStore(t).db)
+	db := setupTestStore(t).db
+	require.NoError(t, db.Unscoped().Where("1 = 1").Delete(&DBMetadata{}).Error) // delete all existing records
+	s := newDBMetadataStore(db)
 
 	// attempt to fetch a non-existent record
 	actualMetadata, err := s.GetDBMetadata()
@@ -58,6 +60,8 @@ func setupTestStore(t testing.TB, d ...string) *store {
 		DBDirPath: dir,
 	}, true, true)
 	require.NoError(t, err)
+
+	require.NoError(t, s.SetDBMetadata())
 
 	return s
 }

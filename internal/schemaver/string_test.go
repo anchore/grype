@@ -11,7 +11,7 @@ import (
 func TestSchemaVer_VersionComponents(t *testing.T) {
 	tests := []struct {
 		name             string
-		version          SchemaVer
+		version          String
 		expectedModel    int
 		expectedRevision int
 		expectedAddition int

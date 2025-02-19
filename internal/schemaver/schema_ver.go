@@ -1,15 +1,19 @@
 package schemaver
 
-import (
-	"fmt"
-	"strconv"
-	"strings"
-)
+import "fmt"
 
-type SchemaVer string
+type SchemaVer struct {
+	Model    int // breaking changes
+	Revision int // potentially-breaking changes
+	Addition int // additions only
+}
 
 func New(model, revision, addition int) SchemaVer {
-	return SchemaVer(fmt.Sprintf("%d.%d.%d", model, revision, addition))
+	return SchemaVer{
+		Model:    model,
+		Revision: revision,
+		Addition: addition,
+	}
 }
 
 func Parse(s string) (SchemaVer, error) {
@@ -28,35 +32,23 @@ func Parse(s string) (SchemaVer, error) {
 }
 
 func (s SchemaVer) String() string {
-	return string(s)
+	return fmt.Sprintf("%d.%d.%d", s.Model, s.Revision, s.Addition)
 }
 
-func (s SchemaVer) ModelPart() (int, bool) {
-	v, ok := parseVersionPart(s, 0)
-	if v == 0 {
-		ok = false
+func (s SchemaVer) LessThan(other SchemaVer) bool {
+	if s.Model != other.Model {
+		return s.Model < other.Model
 	}
-	return v, ok
-}
 
-func (s SchemaVer) RevisionPart() (int, bool) {
-	return parseVersionPart(s, 1)
-}
-
-func (s SchemaVer) AdditionPart() (int, bool) {
-	return parseVersionPart(s, 2)
-}
-
-func parseVersionPart(s SchemaVer, index int) (int, bool) {
-	parts := strings.Split(string(s), ".")
-	if len(parts) <= index {
-		return 0, false
+	if s.Revision != other.Revision {
+		return s.Revision < other.Revision
 	}
-	value, err := strconv.Atoi(parts[index])
-	if err != nil {
-		return 0, false
-	}
-	return value, true
+
+	return s.Addition < other.Addition
+}
+
+func (s SchemaVer) GreaterThanEqual(other SchemaVer) bool {
+	return !s.LessThan(other)
 }
 
 func (s SchemaVer) LessThan(other SchemaVer) bool {
