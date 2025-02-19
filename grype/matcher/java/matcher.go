@@ -59,7 +59,8 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 			if strings.Contains(err.Error(), "no artifact found") {
 				log.Debugf("no upstream maven artifact found for %s", p.Name)
 			} else {
-				log.WithFields("package", p.Name, "error", err).Warn("failed to resolve package details with maven")
+				log.WithFields("package", p.Name, "error", err).Error("failed to resolve package details with maven")
+				return nil, nil, fmt.Errorf("resolving package details with maven: %w", err)
 			}
 		} else {
 			matches = append(matches, upstreamMatches...)
