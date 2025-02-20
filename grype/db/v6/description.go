@@ -1,26 +1,16 @@
 package v6
 
 import (
-	"bytes"
-	"crypto/sha256"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
-	"github.com/OneOfOne/xxhash"
-	"github.com/spf13/afero"
-
-	"github.com/anchore/grype/internal/file"
 	"github.com/anchore/grype/internal/schemaver"
 )
 
 var ErrDBDoesNotExist = errors.New("database does not exist")
-
-const ChecksumFileName = VulnerabilityDBFileName + ".checksum"
 
 type Description struct {
 	// SchemaVersion is the version of the DB schema
@@ -96,53 +86,6 @@ func ReadDescription(dbFilePath string) (*Description, error) {
 	}, nil
 }
 
-func ReadDBChecksum(dir string) (string, error) {
-	checksumsFilePath := filepath.Join(dir, ChecksumFileName)
-	checksums, err := os.ReadFile(checksumsFilePath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read checksums file: %w", err)
-	}
-
-	if len(checksums) == 0 {
-		return "", fmt.Errorf("checksums file is empty")
-	}
-
-	if !bytes.HasPrefix(checksums, []byte("xxh64:")) {
-		return "", fmt.Errorf("checksums file is not in the expected format")
-	}
-
-	return strings.TrimSpace(string(checksums)), nil
-}
-
-func CalculateDBDigest(dbFilePath string) (string, error) {
-	digest, err := file.HashFile(afero.NewOsFs(), dbFilePath, xxhash.New64())
-	if err != nil {
-		return "", fmt.Errorf("failed to calculate checksum for DB file: %w", err)
-	}
-	return fmt.Sprintf("xxh64:%s", digest), nil
-}
-
-func CalculateArchiveDigest(dbFilePath string) (string, error) {
-	digest, err := file.HashFile(afero.NewOsFs(), dbFilePath, sha256.New())
-	if err != nil {
-		return "", fmt.Errorf("failed to calculate checksum for DB archive file: %w", err)
-	}
-	return fmt.Sprintf("sha256:%s", digest), nil
-}
-
 func (m Description) String() string {
 	return fmt.Sprintf("DB(version=%s built=%s)", m.SchemaVersion, m.Built)
-}
-
-func WriteChecksums(writer io.Writer, value string) error {
-	if value == "" {
-		return fmt.Errorf("checksum is required")
-	}
-
-	if !strings.HasPrefix(value, "xxh64:") {
-		return fmt.Errorf("checksum missing algorithm prefix")
-	}
-
-	_, err := writer.Write([]byte(value))
-	return err
 }

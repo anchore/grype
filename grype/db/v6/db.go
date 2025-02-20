@@ -38,6 +38,7 @@ type Reader interface {
 	VulnerabilityStoreReader
 	AffectedPackageStoreReader
 	AffectedCPEStoreReader
+	io.Closer
 	getDB() *gorm.DB
 	attachBlobValue(...blobable) error
 }

@@ -61,3 +61,12 @@ func setupTestStore(t testing.TB, d ...string) *store {
 
 	return s
 }
+
+func setupReadOnlyTestStore(t testing.TB, dir string) *store {
+	s, err := newStore(Config{
+		DBDirPath: dir,
+	}, false, false)
+	require.NoError(t, err)
+
+	return s
+}
