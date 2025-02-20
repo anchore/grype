@@ -1,6 +1,7 @@
 package installation
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"path"
@@ -108,16 +109,9 @@ func setupCuratorForUpdate(t *testing.T, opts ...setupOption) curator {
 	return c
 }
 
-func writeTestChecksumsFile(t *testing.T, fs afero.Fs, dir string, checksums string) {
-	require.NoError(t, fs.MkdirAll(dir, 0755))
-
-	metadataFilePath := path.Join(dir, db.ChecksumFileName)
-	require.NoError(t, afero.WriteFile(fs, metadataFilePath, []byte(checksums), 0644))
-}
-
 func writeTestDescriptionToDB(t *testing.T, dir string, desc db.Description) string {
 	c := db.Config{DBDirPath: dir}
-	d, err := db.NewLowLevelDB(c.DBFilePath(), false, false, true)
+	d, err := db.NewLowLevelDB(c.DBFilePath(), false, true, true)
 	require.NoError(t, err)
 
 	if err := d.Unscoped().Where("true").Delete(&db.DBMetadata{}).Error; err != nil {
@@ -145,13 +139,35 @@ func writeTestDescriptionToDB(t *testing.T, dir string, desc db.Description) str
 
 	require.NoError(t, d.Exec("VACUUM").Error)
 
-	digest, err := db.CalculateDBDigest(c.DBFilePath())
+	digest, err := db.CalculateDBDigest(afero.NewOsFs(), c.DBFilePath())
 	require.NoError(t, err)
 
-	// write the checksums file
-	writeTestChecksumsFile(t, afero.NewOsFs(), dir, digest)
+	writeTestImportMetadata(t, afero.NewOsFs(), dir, digest)
 
 	return digest
+}
+
+func writeTestImportMetadata(t *testing.T, fs afero.Fs, dir string, checksums string) {
+	writeTestImportMetadataWithCustomVersion(t, fs, dir, checksums, schemaver.New(db.ModelVersion, db.Revision, db.Addition).String())
+}
+
+func writeTestImportMetadataWithCustomVersion(t *testing.T, fs afero.Fs, dir string, checksums string, ver string) {
+	require.NoError(t, fs.MkdirAll(dir, 0755))
+
+	metadataFilePath := path.Join(dir, db.ImportMetadataFileName)
+
+	writer, err := afero.NewOsFs().Create(metadataFilePath)
+	require.NoError(t, err)
+	defer writer.Close()
+	enc := json.NewEncoder(writer)
+	enc.SetIndent("", " ")
+
+	doc := db.ImportMetadata{
+		Digest:        checksums,
+		ClientVersion: ver,
+	}
+
+	require.NoError(t, enc.Encode(doc))
 }
 
 func writeTestDB(t *testing.T, fs afero.Fs, dir string) string {
@@ -165,9 +181,11 @@ func writeTestDB(t *testing.T, fs afero.Fs, dir string) string {
 	require.NoError(t, rw.SetDBMetadata())
 	require.NoError(t, rw.Close())
 
-	checksum, err := db.ReadDBChecksum(dir)
+	doc, err := db.WriteImportMetadata(fs, dir)
+	require.NoError(t, err)
+	require.NotNil(t, doc)
 
-	return checksum
+	return doc.Digest
 }
 
 func TestCurator_Update(t *testing.T) {
@@ -490,16 +508,16 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 
 		require.NoError(t, os.MkdirAll(cfg.DBDirectoryPath(), 0755))
 
-		s := setupTestDB(t, cfg.DBDirectoryPath())
-		require.NoError(t, s.SetDBMetadata())
-		require.NoError(t, s.Close())
+		sw := setupTestDB(t, cfg.DBDirectoryPath())
+		require.NoError(t, sw.SetDBMetadata())
+		require.NoError(t, sw.Close())
+		s := setupReadOnlyTestDB(t, cfg.DBDirectoryPath())
 
 		// assume that we already have a valid checksum file
-		digest, err := db.CalculateDBDigest(cfg.DBFilePath())
+		digest, err := db.CalculateDBDigest(afero.NewOsFs(), cfg.DBFilePath())
 		require.NoError(t, err)
 
-		checksumsFilePath := filepath.Join(cfg.DBDirectoryPath(), db.ChecksumFileName)
-		require.NoError(t, os.WriteFile(checksumsFilePath, []byte(digest), 0644))
+		writeTestImportMetadata(t, afero.NewOsFs(), cfg.DBDirectoryPath(), digest)
 
 		ci, err := NewCurator(cfg, new(mockClient))
 		require.NoError(t, err)
@@ -527,19 +545,19 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 		require.ErrorContains(t, err, "database does not exist")
 	})
 
-	t.Run("checksum file does not exist", func(t *testing.T) {
+	t.Run("import metadata file does not exist", func(t *testing.T) {
 		c, d := newCurator(t)
 		dbDir := c.config.DBDirectoryPath()
-		require.NoError(t, os.Remove(filepath.Join(dbDir, db.ChecksumFileName)))
+		require.NoError(t, os.Remove(filepath.Join(dbDir, db.ImportMetadataFileName)))
 		_, err := c.validateChecksum(d)
-		require.ErrorContains(t, err, "no such file or directory")
+		require.ErrorContains(t, err, "missing import metadata")
 	})
 
 	t.Run("invalid checksum", func(t *testing.T) {
 		c, d := newCurator(t)
 		dbDir := c.config.DBDirectoryPath()
 
-		writeTestChecksumsFile(t, c.fs, dbDir, "xxh64:invalidchecksum")
+		writeTestImportMetadata(t, c.fs, dbDir, "xxh64:invalidchecksum")
 
 		_, err := c.validateChecksum(d)
 		require.ErrorContains(t, err, "bad db checksum")
@@ -662,9 +680,92 @@ func TestReplaceDB(t *testing.T) {
 		})
 	}
 }
+func Test_isRehydrationNeeded(t *testing.T) {
+	tests := []struct {
+		name               string
+		currentDBVersion   schemaver.SchemaVer
+		hydrationClientVer schemaver.SchemaVer
+		currentClientVer   schemaver.SchemaVer
+		expectedResult     bool
+		expectedErr        string
+	}{
+		{
+			name:             "no database exists",
+			currentDBVersion: "",
+			currentClientVer: schemaver.New(6, 2, 0),
+			expectedResult:   false,
+		},
+		{
+			name:             "no import metadata exists",
+			currentDBVersion: schemaver.New(6, 0, 0),
+			currentClientVer: schemaver.New(6, 2, 0),
+			expectedErr:      "missing import metadata",
+			expectedResult:   false,
+		},
+		{
+			name:               "invalid client version in metadata",
+			currentDBVersion:   schemaver.New(6, 0, 0),
+			hydrationClientVer: schemaver.SchemaVer("not.valid.version"),
+			currentClientVer:   schemaver.New(6, 2, 0),
+			expectedResult:     false,
+			expectedErr:        "unable to parse client version from import metadata",
+		},
+		{
+			name:               "rehydration needed",
+			currentDBVersion:   schemaver.New(6, 0, 1),
+			hydrationClientVer: schemaver.New(6, 0, 0),
+			currentClientVer:   schemaver.New(6, 0, 2),
+			expectedResult:     true,
+		},
+		{
+			name:               "no rehydration needed - client version equals current client version",
+			currentDBVersion:   schemaver.New(6, 0, 0),
+			hydrationClientVer: schemaver.New(6, 2, 0),
+			currentClientVer:   schemaver.New(6, 2, 0),
+			expectedResult:     false,
+		},
+		{
+			name:               "no rehydration needed - client version greater than current client version",
+			currentDBVersion:   schemaver.New(6, 0, 0),
+			hydrationClientVer: schemaver.New(6, 3, 0),
+			currentClientVer:   schemaver.New(6, 2, 0),
+			expectedResult:     false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fs := afero.NewOsFs()
+			testDir := t.TempDir()
+
+			if tt.hydrationClientVer != "" {
+				writeTestImportMetadataWithCustomVersion(t, fs, testDir, "xxh64:something", tt.hydrationClientVer.String())
+			}
+
+			result, err := isRehydrationNeeded(fs, testDir, tt.currentDBVersion, tt.currentClientVer)
+
+			if tt.expectedErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expectedErr)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.expectedResult, result)
+			}
+		})
+	}
+}
 
 func setupTestDB(t *testing.T, dbDir string) db.ReadWriter {
 	s, err := db.NewWriter(db.Config{
+		DBDirPath: dbDir,
+	})
+	require.NoError(t, err)
+
+	return s
+}
+
+func setupReadOnlyTestDB(t *testing.T, dbDir string) db.Reader {
+	s, err := db.NewReader(db.Config{
 		DBDirPath: dbDir,
 	})
 	require.NoError(t, err)
