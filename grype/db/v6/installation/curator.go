@@ -93,12 +93,14 @@ func (c curator) Status() db.Status {
 	d, err := db.ReadDescription(dbFile)
 	if err != nil {
 		return db.Status{
-			Err: err,
+			Path: dbFile,
+			Err:  err,
 		}
 	}
 	if d == nil {
 		return db.Status{
-			Err: fmt.Errorf("database not found at %q", dbFile),
+			Path: dbFile,
+			Err:  fmt.Errorf("database not found at %q", dbFile),
 		}
 	}
 
