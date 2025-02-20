@@ -42,7 +42,7 @@ tools:
   # used for signing the checksums file at release
   - name: cosign
     version:
-      want: v2.4.2
+      want: v2.4.3
     method: github-release
     with:
       repo: sigstore/cosign
