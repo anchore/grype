@@ -150,6 +150,7 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 		"wolfi:distro:wolfi:rolling",
 		"chainguard:distro:chainguard:rolling",
 		"archlinux:distro:archlinux:rolling",
+		"mageia:distro:mageia:9",
 	})
 
 	assert.NoError(t, err)
@@ -391,6 +392,13 @@ func TestIndex_NamespacesForDistro(t *testing.T) {
 			},
 			namespaces: []*distro.Namespace{
 				distro.NewNamespace("debian", osDistro.Debian, "unstable"),
+			},
+		},
+		{
+			name:   "Mageia 9 matches mageia namespace",
+			distro: newDistro(t, osDistro.Mageia, "9", []string{}),
+			namespaces: []*distro.Namespace{
+				distro.NewNamespace("mageia", "mageia", "9"),
 			},
 		},
 	}
