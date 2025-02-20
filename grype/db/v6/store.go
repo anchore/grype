@@ -70,13 +70,17 @@ func newStore(cfg Config, empty, writable bool) (*store, error) {
 	}, nil
 }
 
-// Close closes the store and finalizes the blobs when the DB is open for writing. If open for reading, it does nothing.
+// Close closes the store and finalizes the blobs when the DB is open for writing. If open for reading, only closes the connection to the DB.
 func (s *store) Close() error {
-	log.Debug("closing store")
 	if !s.writable || !s.empty {
+		d, err := s.db.DB()
+		if err == nil {
+			return d.Close()
+		}
 		// if not empty, this writable execution created indexes
 		return nil
 	}
+	log.Debug("closing store")
 
 	// drop all indexes, which saves a lot of space distribution-wise (these get re-created on running gorm auto-migrate)
 	if err := dropAllIndexes(s.db); err != nil {
@@ -95,7 +99,12 @@ func (s *store) Close() error {
 		return fmt.Errorf("integrity check failed: %w", err)
 	}
 
-	return nil
+	d, err := s.db.DB()
+	if err != nil {
+		return err
+	}
+
+	return d.Close()
 }
 
 func dropAllIndexes(db *gorm.DB) error {

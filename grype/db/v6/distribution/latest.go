@@ -1,6 +1,7 @@
 package distribution
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -8,7 +9,10 @@ import (
 	"sort"
 	"time"
 
+	"github.com/spf13/afero"
+
 	db "github.com/anchore/grype/grype/db/v6"
+	"github.com/anchore/grype/internal/file"
 	"github.com/anchore/grype/internal/schemaver"
 )
 
@@ -71,7 +75,7 @@ func NewLatestFromReader(reader io.Reader) (*LatestDocument, error) {
 }
 
 func NewArchive(path string, t time.Time, model, revision, addition int) (*Archive, error) {
-	checksum, err := db.CalculateArchiveDigest(path)
+	checksum, err := calculateArchiveDigest(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate archive checksum: %w", err)
 	}
@@ -115,4 +119,12 @@ func (l LatestDocument) Write(writer io.Writer) error {
 
 	_, err = writer.Write(contents)
 	return err
+}
+
+func calculateArchiveDigest(dbFilePath string) (string, error) {
+	digest, err := file.HashFile(afero.NewOsFs(), dbFilePath, sha256.New())
+	if err != nil {
+		return "", fmt.Errorf("failed to calculate checksum for DB archive file: %w", err)
+	}
+	return fmt.Sprintf("sha256:%s", digest), nil
 }

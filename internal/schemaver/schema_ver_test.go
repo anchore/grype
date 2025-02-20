@@ -93,3 +93,74 @@ func TestSchemaVer_VersionComponents(t *testing.T) {
 		})
 	}
 }
+
+func TestSchemaVerComparisons(t *testing.T) {
+	tests := []struct {
+		name           string
+		v1             SchemaVer
+		v2             SchemaVer
+		lessThan       bool
+		greaterOrEqual bool
+	}{
+		{
+			name:           "equal versions",
+			v1:             New(1, 0, 0),
+			v2:             New(1, 0, 0),
+			lessThan:       false,
+			greaterOrEqual: true,
+		},
+		{
+			name:           "different model versions",
+			v1:             New(1, 0, 0),
+			v2:             New(2, 0, 0),
+			lessThan:       true,
+			greaterOrEqual: false,
+		},
+		{
+			name:           "different revision versions",
+			v1:             New(1, 1, 0),
+			v2:             New(1, 2, 0),
+			lessThan:       true,
+			greaterOrEqual: false,
+		},
+		{
+			name:           "different addition versions",
+			v1:             New(1, 0, 1),
+			v2:             New(1, 0, 2),
+			lessThan:       true,
+			greaterOrEqual: false,
+		},
+		{
+			name:           "inverted addition versions",
+			v1:             New(1, 0, 2),
+			v2:             New(1, 0, 1),
+			lessThan:       false,
+			greaterOrEqual: true,
+		},
+		{
+			name:           "greater model overrides lower revision",
+			v1:             New(2, 0, 0),
+			v2:             New(1, 9, 9),
+			lessThan:       false,
+			greaterOrEqual: true,
+		},
+		{
+			name:           "greater revision overrides lower addition",
+			v1:             New(1, 2, 0),
+			v2:             New(1, 1, 9),
+			lessThan:       false,
+			greaterOrEqual: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.v1.LessThan(tt.v2); got != tt.lessThan {
+				t.Errorf("LessThan() = %v, want %v", got, tt.lessThan)
+			}
+			if got := tt.v1.GreaterOrEqualTo(tt.v2); got != tt.greaterOrEqual {
+				t.Errorf("GreaterOrEqualTo() = %v, want %v", got, tt.greaterOrEqual)
+			}
+		})
+	}
+}
