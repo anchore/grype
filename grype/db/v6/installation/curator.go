@@ -80,24 +80,12 @@ func NewCurator(cfg Config, downloader distribution.Client) (db.Curator, error) 
 }
 
 func (c curator) Reader() (db.Reader, error) {
-	s, err := db.NewReader(
+	return db.NewReader(
 		db.Config{
 			DBDirPath: c.config.DBDirectoryPath(),
 			Debug:     c.config.Debug,
 		},
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	m, err := s.GetDBMetadata()
-	if err != nil {
-		return nil, fmt.Errorf("unable to get vulnerability store metadata: %w", err)
-	}
-
-	_, err = c.validate(db.DescriptionFromMetadata(m), c.config.ValidateChecksum)
-
-	return s, err
 }
 
 func (c curator) Status() db.Status {
@@ -114,15 +102,22 @@ func (c curator) Status() db.Status {
 		}
 	}
 
-	// override the checksum validation setting to ensure the checksum is always validated
-	digest, validateErr := c.validate(d, true)
+	err = c.validateAge(d)
+	digest, checksumErr := c.validateChecksum(d)
+	if checksumErr != nil && c.config.ValidateChecksum {
+		if err != nil {
+			err = errors.Join(err, checksumErr)
+		} else {
+			err = checksumErr
+		}
+	}
 
 	return db.Status{
 		Built:         db.Time{Time: d.Built.Time},
 		SchemaVersion: d.SchemaVersion.String(),
 		Path:          dbFile,
 		Checksum:      digest,
-		Err:           validateErr,
+		Err:           err,
 	}
 }
 
@@ -143,7 +138,7 @@ func (c curator) Update() (bool, error) {
 		// downstream any non-existent DB should always be replaced with any best-candidate found
 		current = nil
 	} else {
-		_, err := c.validate(current, true)
+		err = c.validateAge(current)
 		if err != nil {
 			// even if we are not allowed to check for an update, we should still attempt to update the DB if it is invalid
 			log.WithFields("error", err).Warn("current database is invalid")
@@ -297,16 +292,6 @@ func (c curator) setLastSuccessfulUpdateCheck() {
 	_, _ = fmt.Fprintf(fh, "%s", time.Now().UTC().Format(time.RFC3339))
 }
 
-// validate checks the current database to ensure file integrity and if it can be used by this version of the application.
-func (c curator) validate(current *db.Description, validateChecksum bool) (string, error) {
-	metadata, digest, err := c.validateIntegrity(current, c.config.DBFilePath(), validateChecksum)
-	if err != nil {
-		return "", err
-	}
-
-	return digest, c.ensureNotStale(metadata)
-}
-
 // Import takes a DB archive file and imports it into the final DB location.
 func (c curator) Import(path string) error {
 	mon := newMonitor()
@@ -412,47 +397,40 @@ func (c curator) replaceDB(dbDirPath string) error {
 	return c.fs.Rename(dbDirPath, dbDir)
 }
 
-func (c curator) validateIntegrity(metadata *db.Description, dbFilePath string, validateChecksum bool) (*db.Description, string, error) {
-	// check that the disk checksum still matches the db payload
-	if metadata == nil {
-		return nil, "", fmt.Errorf("database not found: %s", dbFilePath)
-	}
-
+// validateChecksum checks that the disk checksum still matches the db payload
+func (c curator) validateChecksum(metadata *db.Description) (string, error) {
 	gotModel, ok := metadata.SchemaVersion.ModelPart()
 	if !ok || gotModel != db.ModelVersion {
-		return nil, "", fmt.Errorf("unsupported database version: have=%d want=%d", gotModel, db.ModelVersion)
+		return "", fmt.Errorf("unsupported database version: have=%d want=%d", gotModel, db.ModelVersion)
 	}
 
+	dbFilePath := c.config.DBFilePath()
 	if _, err := c.fs.Stat(dbFilePath); err != nil {
 		if os.IsNotExist(err) {
-			return nil, "", fmt.Errorf("database does not exist: %s", dbFilePath)
+			return "", fmt.Errorf("database does not exist: %s", dbFilePath)
 		}
-		return nil, "", fmt.Errorf("failed to access database file: %w", err)
+		return "", fmt.Errorf("failed to access database file: %w", err)
 	}
 
-	var digest string
-	if validateChecksum {
-		var err error
-		digest, err = db.ReadDBChecksum(filepath.Dir(dbFilePath))
-		if err != nil {
-			return nil, "", err
-		}
-
-		valid, actualHash, err := file.ValidateByHash(c.fs, dbFilePath, digest)
-		if err != nil {
-			return nil, "", err
-		}
-		if !valid {
-			return nil, "", fmt.Errorf("bad db checksum (%s): %q vs %q", dbFilePath, digest, actualHash)
-		}
+	digest, err := db.ReadDBChecksum(filepath.Dir(dbFilePath))
+	if err != nil {
+		return digest, err
 	}
 
-	return metadata, digest, nil
+	valid, actualHash, err := file.ValidateByHash(c.fs, dbFilePath, digest)
+	if err != nil {
+		return actualHash, err
+	}
+	if !valid {
+		return actualHash, fmt.Errorf("bad db checksum (%s): %q vs %q", dbFilePath, digest, actualHash)
+	}
+
+	return actualHash, nil
 }
 
-// ensureNotStale ensures the vulnerability database has not passed
+// validateAge ensures the vulnerability database has not passed
 // the max allowed age, calculated from the time it was built until now.
-func (c curator) ensureNotStale(m *db.Description) error {
+func (c curator) validateAge(m *db.Description) error {
 	if m == nil {
 		return fmt.Errorf("no metadata to validate")
 	}

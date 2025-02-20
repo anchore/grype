@@ -327,6 +327,10 @@ func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
 
 func validateDBLoad(loadErr error, status *v6.Status) error {
 	if loadErr != nil {
+		// notify the user about grype db delete to fix checksum errors
+		if strings.Contains(loadErr.Error(), "checksum") {
+			bus.Notify("Database checksum invalid, run `grype db delete` to remove it and `grype db update` to update.")
+		}
 		return fmt.Errorf("failed to load vulnerability db: %w", loadErr)
 	}
 	if status == nil {

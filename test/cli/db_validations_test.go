@@ -18,115 +18,299 @@ import (
 func TestDBValidations(t *testing.T) {
 	invalidUpdateURL := fmt.Sprintf("https://localhost:%v", availablePort())
 	yesterdayDbURL := dbtest.NewServer(t).SetDBBuilt(time.Now().Add(-1 * 24 * time.Hour)).Start()
-	updatedDbURL := dbtest.NewServer(t).SetDBBuilt(time.Now().Add(1 * time.Hour)).Start()
-	handlerServer := dbtest.NewServer(t).SetDBBuilt(time.Now().Add(3 * time.Hour))
-	handlerServerURL := handlerServer.Start()
+	todayDbURL := dbtest.NewServer(t).SetDBBuilt(time.Now().Add(1 * time.Hour)).Start()
+	notFoundDbURL := dbtest.NewServer(t).SetDBBuilt(time.Now().Add(3 * time.Hour)).WithHandler(http.NotFound).Start()
 
-	setupYesterdayDatabase := func(dir string) {
+	setupDbFromURL := func(t *testing.T, dir, url string) {
 		cmd, stdout, stderr := runGrype(t, map[string]string{
 			"GRYPE_DB_CACHE_DIR":  dir,
-			"GRYPE_DB_UPDATE_URL": yesterdayDbURL,
+			"GRYPE_DB_UPDATE_URL": url,
 		}, "db", "update", "-vvv")
 		assertInOutput("downloading new vulnerability DB")(t, stdout, stderr, cmd.ProcessState.ExitCode())
 		assertSucceedingReturnCode(t, stdout, stderr, cmd.ProcessState.ExitCode())
 	}
 
+	// common setup functions
+	type setupFunc = func(t *testing.T, dir string)
+	setup := func(funcs ...setupFunc) setupFunc {
+		return func(t *testing.T, dir string) {
+			for _, f := range funcs {
+				f(t, dir)
+			}
+		}
+	}
+
+	setupYesterdayDb := func(t *testing.T, dir string) {
+		setupDbFromURL(t, dir, yesterdayDbURL)
+	}
+
+	setupTodayDb := func(t *testing.T, dir string) {
+		setupDbFromURL(t, dir, todayDbURL)
+	}
+
+	dbFilePath := func(dir string) string {
+		return filepath.Join(dir, "6", "vulnerability.db")
+	}
+
+	corruptDb := func(t *testing.T, dir string) {
+		err := os.Truncate(dbFilePath(dir), 20)
+		require.NoError(t, err)
+	}
+
+	moveDbToBackup := func(t *testing.T, dir string) {
+		err := os.Rename(dbFilePath(dir), filepath.Join(dir, "db.old"))
+		require.NoError(t, err)
+	}
+
+	restoreDbFromBackup := func(t *testing.T, dir string) {
+		// replace with valid db, which doesn't match the hash
+		err := os.Rename(filepath.Join(dir, "db.old"), dbFilePath(dir))
+		require.NoError(t, err)
+	}
+
+	deleteDb := func(t *testing.T, dir string) {
+		err := os.Remove(dbFilePath(dir))
+		require.NoError(t, err)
+	}
+
+	// common asserts
+	assertDbDownloaded := assertInOutput("downloading new vulnerability DB")
+	assertDbNotDownloaded := assertNotInOutput("downloading new vulnerability DB")
+	assertNoVulnerabilities := assertInOutput("No vulnerabilities found")
+	assertDbLoadFailed := assertInOutput("failed to load vulnerability db")
+	assertDbLoadNotAtempted := assertNotInOutput("failed to load vulnerability db")
+	assertDbNotFound := assertInOutput("No installed DB version found")
+	assertCheckedForDbUpdate := assertInOutput("checking for available database updates")
+	assertUpdateMessageDisplayed := assertInOutput("update to the latest db")
+
+	// ensure we have grype built and ready
+	runGrype(t, map[string]string{}, "config")
+
 	tests := []struct {
 		name                      string
-		setup                     func(dir string)
-		dbRequireUpdate           bool
-		dbUpdateURL               string
-		dbMaxUpdateCheckFrequency string
-		dbCaCert                  string
-		args                      []string
+		setup                     setupFunc // setup to run before test cmd
+		dbUpdateURL               string    // update url to use, e.g. todayDbURL
+		dbRequireUpdate           bool      // whether an update check is required
+		dbMaxUpdateCheckFrequency string    // max update check frequency, defaults to 0 to always check
+		dbValidateHash            bool      // whether to validate existing db by hash
+		dbCaCert                  string    // ca cert file, if set
+		cmd                       string    // grype command to run, will be split on space, e.g.: "db update"
 		assertions                []traitAssertion
 	}{
 		{
-			name:        "new install downloads successfully",
-			args:        []string{"dir:."},
+			name:        "scan: new install downloads successfully",
+			setup:       nil,
 			dbUpdateURL: yesterdayDbURL,
+			cmd:         "dir:.",
 			assertions: []traitAssertion{
-				assertInOutput("downloaded new vulnerability DB"),
-				assertInOutput("No vulnerabilities found"),
+				assertDbDownloaded,
+				assertNoVulnerabilities,
 				assertSucceedingReturnCode,
 			},
 		},
 		{
-			name:                      "existing database updates successfully",
-			args:                      []string{"dir:."},
-			setup:                     setupYesterdayDatabase,
-			dbUpdateURL:               updatedDbURL,
-			dbMaxUpdateCheckFrequency: "1ms",
+			name:        "scan: existing db updates successfully",
+			setup:       setupYesterdayDb,
+			cmd:         "dir:.",
+			dbUpdateURL: todayDbURL,
 			assertions: []traitAssertion{
 				assertInOutput("captured DB checksum"),
-				assertInOutput("downloading new vulnerability DB"),
-				assertInOutput("No vulnerabilities found"),
+				assertDbDownloaded,
+				assertNoVulnerabilities,
 				assertSucceedingReturnCode,
 			},
 		},
 		{
-			name:                      "existing database skips update when not new",
-			args:                      []string{"dir:."},
-			setup:                     setupYesterdayDatabase,
-			dbUpdateURL:               yesterdayDbURL,
-			dbMaxUpdateCheckFrequency: "1ms",
+			name:        "scan: existing db skips update when same",
+			setup:       setupYesterdayDb,
+			cmd:         "dir:.",
+			dbUpdateURL: yesterdayDbURL,
 			assertions: []traitAssertion{
-				assertNotInOutput("downloading new vulnerability DB"),
-				assertInOutput("No vulnerabilities found"),
+				assertDbNotDownloaded,
+				assertNoVulnerabilities,
 				assertSucceedingReturnCode,
 			},
 		},
 		{
-			name: "corrupt database returns error",
-			args: []string{"dir:."},
-			setup: func(dir string) {
-				setupYesterdayDatabase(dir)
-				err := os.Truncate(filepath.Join(dir, "6", "vulnerability.db"), 20)
-				require.NoError(t, err)
-			},
-			dbUpdateURL: updatedDbURL,
+			name:        "scan: existing db skips update when newer",
+			setup:       setupTodayDb,
+			cmd:         "dir:.",
+			dbUpdateURL: yesterdayDbURL,
 			assertions: []traitAssertion{
-				assertInOutput("failed to load vulnerability db"),
+				assertDbNotDownloaded,
+				assertNoVulnerabilities,
+				assertSucceedingReturnCode,
+			},
+		},
+		{
+			name:        "scan: corrupt db returns error",
+			setup:       setup(setupYesterdayDb, corruptDb),
+			dbUpdateURL: todayDbURL,
+			cmd:         "dir:.",
+			assertions: []traitAssertion{
+				assertDbLoadFailed,
 				assertFailingReturnCode,
 			},
 		},
 		{
-			name:                      "continues on update check error with valid database",
-			args:                      []string{"dir:."},
-			dbMaxUpdateCheckFrequency: "1ms",
-			dbRequireUpdate:           false,
-			setup: func(dir string) {
-				setupYesterdayDatabase(dir)
-				handlerServer.RequestHandler = func(w http.ResponseWriter, r *http.Request) {
-					http.NotFound(w, r)
-				}
+			name:        "db check: continues on corrupt db no update",
+			setup:       setup(setupYesterdayDb, corruptDb),
+			dbUpdateURL: yesterdayDbURL,
+			cmd:         "db check",
+			assertions: []traitAssertion{
+				assertDbNotFound,
+				assertFailingReturnCode,
 			},
-			dbUpdateURL: handlerServerURL,
+		},
+		{
+			name:        "db check: continues on corrupt db with update",
+			setup:       setup(setupYesterdayDb, corruptDb),
+			dbUpdateURL: todayDbURL,
+			cmd:         "db check",
+			assertions: []traitAssertion{
+				assertDbNotFound,
+				assertFailingReturnCode,
+			},
+		},
+		{
+			name:        "db status: fails with corrupt db no update",
+			setup:       setup(setupYesterdayDb, corruptDb),
+			dbUpdateURL: yesterdayDbURL,
+			cmd:         "db status",
+			assertions: []traitAssertion{
+				assertDbNotDownloaded,
+				assertInOutput("failed to read DB metadata"),
+				assertFailingReturnCode,
+			},
+		},
+		{
+			name:        "db status: fails with corrupt db with update",
+			setup:       setup(setupYesterdayDb, corruptDb),
+			dbUpdateURL: todayDbURL,
+			cmd:         "db status",
+			assertions: []traitAssertion{
+				assertDbNotDownloaded,
+				assertInOutput("failed to read DB metadata"),
+				assertFailingReturnCode,
+			},
+		},
+		{
+			name:        "scan: missing db downloads a new one",
+			setup:       setup(setupYesterdayDb, deleteDb),
+			dbUpdateURL: todayDbURL,
+			cmd:         "dir:.",
+			assertions: []traitAssertion{
+				assertDbDownloaded,
+				assertNoVulnerabilities,
+				assertSucceedingReturnCode,
+			},
+		},
+		{
+			name:        "db check: missing db does not affect no update",
+			setup:       setup(setupYesterdayDb, deleteDb),
+			dbUpdateURL: yesterdayDbURL,
+			cmd:         "db check",
+			assertions: []traitAssertion{
+				assertDbNotFound,
+				assertFailingReturnCode,
+			},
+		},
+		{
+			name:        "db check: missing db does not affect with update",
+			setup:       setup(setupYesterdayDb, deleteDb),
+			dbUpdateURL: todayDbURL,
+			cmd:         "db check",
+			assertions: []traitAssertion{
+				assertDbNotFound,
+				assertFailingReturnCode,
+			},
+		},
+		{
+			name:        "db status: missing db returns error",
+			setup:       setup(setupYesterdayDb, deleteDb),
+			dbUpdateURL: todayDbURL,
+			cmd:         "db status",
+			assertions: []traitAssertion{
+				assertInOutput("database does not exist"),
+				assertFailingReturnCode,
+			},
+		},
+		{
+			name:           "db status: valid db fails with hash mismatch",
+			setup:          setup(setupYesterdayDb, moveDbToBackup, setupTodayDb, deleteDb, restoreDbFromBackup),
+			dbUpdateURL:    invalidUpdateURL,
+			dbValidateHash: true,
+			cmd:            "db status",
+			assertions: []traitAssertion{
+				assertInOutput("bad db checksum"),
+				assertFailingReturnCode,
+			},
+		},
+		{
+			name:           "db check: valid db with hash mismatch",
+			setup:          setup(setupYesterdayDb, moveDbToBackup, setupTodayDb, deleteDb, restoreDbFromBackup),
+			dbUpdateURL:    invalidUpdateURL,
+			dbValidateHash: true,
+			cmd:            "db check",
+			assertions: []traitAssertion{
+				assertDbLoadNotAtempted,
+				assertFailingReturnCode,
+			},
+		},
+		{
+			name: "scan: valid db fails with hash mismatch",
+			setup: func(t *testing.T, dir string) {
+				setup(setupYesterdayDb, moveDbToBackup, setupTodayDb, deleteDb, restoreDbFromBackup)(t, dir)
+			},
+			dbUpdateURL:    invalidUpdateURL,
+			dbValidateHash: true,
+			cmd:            "dir:.",
+			assertions: []traitAssertion{
+				assertInOutput("bad db checksum"),
+				assertDbLoadFailed,
+				assertDbNotDownloaded,
+				// notification mentions grype db delete and grype db update
+				assertInOutput("grype db delete"),
+				assertInOutput("grype db update"),
+				assertFailingReturnCode,
+			},
+		},
+		{
+			name:            "scan: update check error with valid db continues",
+			setup:           setupYesterdayDb,
+			dbUpdateURL:     notFoundDbURL,
+			dbRequireUpdate: false,
+			cmd:             "dir:.",
 			assertions: []traitAssertion{
 				assertInOutput("error updating db"),
 				assertSucceedingReturnCode,
 			},
 		},
 		{
-			name:                      "fails when update check fails and require update is set",
-			args:                      []string{"dir:."},
-			dbMaxUpdateCheckFrequency: "1ms",
-			dbRequireUpdate:           true,
-			setup: func(dir string) {
-				setupYesterdayDatabase(dir)
-				handlerServer.RequestHandler = func(w http.ResponseWriter, r *http.Request) {
-					http.NotFound(w, r)
-				}
-			},
-			dbUpdateURL: handlerServerURL,
+			name:            "scan: update check error with valid db fails when require update",
+			setup:           setupYesterdayDb,
+			dbUpdateURL:     notFoundDbURL,
+			dbRequireUpdate: true,
+			cmd:             "dir:.",
 			assertions: []traitAssertion{
 				assertInOutput("unable to update db"),
 				assertFailingReturnCode,
 			},
 		},
 		{
-			name:     "no panic on bad cert configuration",
-			args:     []string{"dir:."},
+			name:            "db check: update check error with valid db fails",
+			setup:           setupYesterdayDb,
+			dbUpdateURL:     notFoundDbURL,
+			dbRequireUpdate: false,
+			cmd:             "db check",
+			assertions: []traitAssertion{
+				assertInOutput("unable to check for vulnerability database update"),
+				assertFailingReturnCode,
+			},
+		},
+		{
+			name:     "scan: no panic on bad cert configuration",
+			cmd:      "dir:.",
 			dbCaCert: "./does-not-exist.crt",
 			assertions: []traitAssertion{
 				assertInOutput("failed to load vulnerability db"),
@@ -134,52 +318,63 @@ func TestDBValidations(t *testing.T) {
 			},
 		},
 		{
-			// check for a DB update always works when running "grype db check"
-			name:                      "always check for updates",
-			args:                      []string{"db", "check"},
+			name:                      "db check: always check for updates regardless of frequency",
+			setup:                     setupYesterdayDb,
+			dbUpdateURL:               todayDbURL,
 			dbMaxUpdateCheckFrequency: "10h",
+			cmd:                       "db check",
 			assertions: []traitAssertion{
-				assertInOutput("checking for available database updates"),
-				assertFailingReturnCode,
+				assertCheckedForDbUpdate,
+				assertUpdateMessageDisplayed,
+				func(tb testing.TB, stdout, stderr string, rc int) {
+					require.Equal(t, 100, rc)
+				},
 			},
 		},
 		{
-			// check for a DB update always works when running "grype db update"
-			name:                      "always update",
-			args:                      []string{"db", "update"},
+			name:                      "db update: always update regardless of frequency",
+			setup:                     setupYesterdayDb,
+			dbUpdateURL:               todayDbURL,
 			dbMaxUpdateCheckFrequency: "10h",
+			cmd:                       "db update",
 			assertions: []traitAssertion{
-				assertInOutput("unable to update vulnerability database"),
-				assertFailingReturnCode,
+				assertCheckedForDbUpdate,
+				assertDbDownloaded,
+				assertSucceedingReturnCode,
 			},
 		},
 		{
-			name:                      "ensure db update frequency config is wired and responsive",
-			args:                      []string{t.TempDir()},
-			dbMaxUpdateCheckFrequency: "10h",
+			name:                      "scan: ensure db update frequency config is respected",
+			setup:                     setupYesterdayDb,
+			dbUpdateURL:               todayDbURL,
+			dbMaxUpdateCheckFrequency: "10h", // last check was during setup, much more recently than 10h ago
+			cmd:                       "dir:.",
 			assertions: []traitAssertion{
 				assertNotInOutput("no max-frequency set for update check"),
-				assertInOutput("checking for available database updates"),
+				assertNotInOutput("checking for available database updates"),
+				assertDbNotDownloaded,
 				assertInOutput("max-update-check-frequency: 10h"),
-				assertFailingReturnCode,
+				assertSucceedingReturnCode,
 			},
 		},
 	}
 
 	for _, test := range tests {
+		test := test
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
 			dbDir := t.TempDir()
 			if test.setup != nil {
-				test.setup(dbDir)
+				test.setup(t, dbDir)
 			}
 
 			// set up values
 			env := map[string]string{
-				"GRYPE_DB_CACHE_DIR":  dbDir,
-				"GRYPE_DB_UPDATE_URL": defaultValue(test.dbUpdateURL, invalidUpdateURL),
-			}
-			if test.dbMaxUpdateCheckFrequency != "" {
-				env["GRYPE_DB_MAX_UPDATE_CHECK_FREQUENCY"] = test.dbMaxUpdateCheckFrequency
+				"GRYPE_DB_CACHE_DIR":                  dbDir,
+				"GRYPE_DB_UPDATE_URL":                 defaultValue(test.dbUpdateURL, invalidUpdateURL),
+				"GRYPE_DB_VALIDATE_BY_HASH_ON_START":  fmt.Sprintf("%v", defaultValue(test.dbValidateHash, false)),
+				"GRYPE_DB_MAX_UPDATE_CHECK_FREQUENCY": defaultValue(test.dbMaxUpdateCheckFrequency, "0"),
 			}
 			if test.dbCaCert != "" {
 				env["GRYPE_DB_CA_CERT"] = test.dbCaCert
@@ -188,7 +383,7 @@ func TestDBValidations(t *testing.T) {
 				env["GRYPE_DB_REQUIRE_UPDATE_CHECK"] = "true"
 			}
 
-			cmd, stdout, stderr := runGrype(t, env, append(test.args, "-vvv")...)
+			cmd, stdout, stderr := runGrype(t, env, append(strings.Split(test.cmd, " "), "-vvv")...)
 			for _, traitAssertionFn := range test.assertions {
 				traitAssertionFn(t, stdout, stderr, cmd.ProcessState.ExitCode())
 			}

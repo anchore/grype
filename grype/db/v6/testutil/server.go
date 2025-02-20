@@ -41,12 +41,12 @@ type ServerBuilder struct {
 
 func (s *ServerBuilder) SetDBBuilt(t time.Time) *ServerBuilder {
 	s.DBBuildTime = t
-	s.RebuildDB()
 	return s
 }
 
-func (s *ServerBuilder) RebuildDB() {
-	s.dbContents = nil
+func (s *ServerBuilder) WithHandler(handler http.HandlerFunc) *ServerBuilder {
+	s.RequestHandler = handler
+	return s
 }
 
 // NewServer creates a new test db server building a single database from the provided
@@ -83,16 +83,17 @@ func NewServer(t *testing.T) *ServerBuilder {
 func (s *ServerBuilder) Start() (url string) {
 	s.t.Helper()
 
+	contents := s.buildDB()
+	s.dbContents = pack(s.t, s.DBFormat, contents)
+
 	handler := http.NewServeMux()
 	handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if s.RequestHandler != nil {
-			s.RequestHandler(w, r)
-			return
-		}
-
-		if s.dbContents == nil {
-			contents := s.buildDB()
-			s.dbContents = pack(s.t, s.DBFormat, contents)
+			rw := wrappedWriter{writer: w}
+			s.RequestHandler(&rw, r)
+			if rw.handled {
+				return
+			}
 		}
 
 		archivePath := s.DBName + "." + s.DBFormat
@@ -325,4 +326,24 @@ func toAffectedVersion(c version.Constraint) v6.AffectedVersion {
 		Type:       strings.TrimSpace(strings.Split(parts[1], ")")[0]),
 		Constraint: strings.TrimSpace(parts[0]),
 	}
+}
+
+type wrappedWriter struct {
+	writer  http.ResponseWriter
+	handled bool
+}
+
+func (w *wrappedWriter) Header() http.Header {
+	w.handled = true
+	return w.writer.Header()
+}
+
+func (w *wrappedWriter) Write(contents []byte) (int, error) {
+	w.handled = true
+	return w.writer.Write(contents)
+}
+
+func (w *wrappedWriter) WriteHeader(statusCode int) {
+	w.handled = true
+	w.writer.WriteHeader(statusCode)
 }

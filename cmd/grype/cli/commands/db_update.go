@@ -40,7 +40,12 @@ func DBUpdate(app clio.Application) *cobra.Command {
 
 func runDBUpdate(opts options.DatabaseCommand) error {
 	cfg := opts.ToClientConfig()
-	cfg.RequireUpdateCheck = true
+	// we need to have this set to true to force the update call to try to update
+	// regardless of what the user provided in order for update checks to fail
+	if !cfg.RequireUpdateCheck {
+		log.Warn("overriding db update check")
+		cfg.RequireUpdateCheck = true
+	}
 	client, err := distribution.NewClient(cfg)
 	if err != nil {
 		return fmt.Errorf("unable to create distribution client: %w", err)
