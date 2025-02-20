@@ -79,8 +79,7 @@ func Test_NewServer(t *testing.T) {
 	require.NoError(t, err)
 
 	// test on an existing installation with an update
-	srv.DBBuildTime = time.Now().Add(1 * day) // newer than 1 day ago
-	srv.RebuildDB()
+	srv.SetDBBuilt(time.Now().Add(1 * day)) // newer than 1 day ago
 
 	didUpdate, err = curator.Update()
 	require.NoError(t, err)
