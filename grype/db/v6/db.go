@@ -12,8 +12,6 @@ import (
 )
 
 const (
-	VulnerabilityDBFileName = "vulnerability.db"
-
 	// We follow SchemaVer semantics (see https://snowplow.io/blog/introducing-schemaver-for-semantic-versioning-of-schemas)
 
 	// ModelVersion indicates how many breaking schema changes there have been (which will prevent interaction with any historical data)
@@ -24,8 +22,24 @@ const (
 	Revision = 0
 
 	// Addition indicates how many changes have been introduced that are compatible with all historical data
-	Addition = 0
+	Addition = 1
+
+	// v6 model changelog:
+	// 6.0.0: Initial version 🎉
+	// 6.0.1: Add CISA KEV store
 )
+
+const (
+	VulnerabilityDBFileName = "vulnerability.db"
+
+	// batchSize affects how many records are fetched at a time from the DB. Note: when using preload, row entries
+	// for related records may convey as parameters in a "WHERE x in (...)" which can lead to a large number of
+	// parameters in the query -- if above 999 then this will result in an error for sqlite. For this reason we
+	// try to keep this value well below 999.
+	batchSize = 300
+)
+
+var ErrDBCapabilityNotSupported = fmt.Errorf("capability not supported by DB")
 
 type ReadWriter interface {
 	Reader
@@ -36,6 +50,7 @@ type Reader interface {
 	DBMetadataStoreReader
 	ProviderStoreReader
 	VulnerabilityStoreReader
+	VulnerabilityDecoratorStoreReader
 	AffectedPackageStoreReader
 	AffectedCPEStoreReader
 	io.Closer
@@ -45,7 +60,9 @@ type Reader interface {
 
 type Writer interface {
 	DBMetadataStoreWriter
+	ProviderStoreWriter
 	VulnerabilityStoreWriter
+	VulnerabilityDecoratorStoreWriter
 	AffectedPackageStoreWriter
 	AffectedCPEStoreWriter
 	io.Closer

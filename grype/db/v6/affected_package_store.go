@@ -16,13 +16,8 @@ import (
 )
 
 const (
-	// batchSize affects how many records are fetched at a time from the DB. Note: when using preload, row entries
-	// for related records may convey as parameters in a "WHERE x in (...)" which can lead to a large number of
-	// parameters in the query -- if above 999 then this will result in an error for sqlite. For this reason we
-	// try to keep this value well below 999.
-	batchSize = 300
-	anyPkg    = "any"
-	anyOS     = "any"
+	anyPkg = "any"
+	anyOS  = "any"
 )
 
 var NoOSSpecified = &OSSpecifier{}
@@ -405,7 +400,7 @@ func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config
 				blobs = append(blobs, r)
 			}
 			if err := s.blobStore.attachBlobValue(blobs...); err != nil {
-				return fmt.Errorf("unable to attach blobs: %w", err)
+				return fmt.Errorf("unable to attach affected package blobs: %w", err)
 			}
 		}
 

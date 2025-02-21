@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/grype/internal/schemaver"
 )
 
 func Models() []any {
@@ -38,6 +39,9 @@ func Models() []any {
 		// CPE related search tables
 		&AffectedCPEHandle{}, // join on CPE
 		&Cpe{},
+
+		// decorations to vulnerability records
+		&KnownExploitedVulnerabilityHandle{},
 	}
 }
 
@@ -66,6 +70,10 @@ type DBMetadata struct {
 	Model          int        `gorm:"column:model;not null"`
 	Revision       int        `gorm:"column:revision;not null"`
 	Addition       int        `gorm:"column:addition;not null"`
+}
+
+func newSchemaVerFromDBMetadata(m DBMetadata) schemaver.SchemaVer {
+	return schemaver.New(m.Model, m.Revision, m.Addition)
 }
 
 // data source info //////////////////////////////////////////////////////
@@ -729,5 +737,39 @@ func (c *Cpe) AfterCreate(tx *gorm.DB) (err error) {
 	if cacheInst, ok := cacheFromContext(tx.Statement.Context); ok {
 		cacheInst.set(c)
 	}
+	return nil
+}
+
+type KnownExploitedVulnerabilityHandle struct {
+	ID int64 `gorm:"primaryKey"`
+
+	Cve string `gorm:"column:cve;not null;index,collate:NOCASE"`
+
+	BlobID    ID                               `gorm:"column:blob_id"`
+	BlobValue *KnownExploitedVulnerabilityBlob `gorm:"-"`
+}
+
+func (v KnownExploitedVulnerabilityHandle) getBlobValue() any {
+	if v.BlobValue == nil {
+		return nil // must return untyped nil or getBlobValue() == nil will always be false
+	}
+	return v.BlobValue
+}
+
+func (v *KnownExploitedVulnerabilityHandle) setBlobID(id ID) {
+	v.BlobID = id
+}
+
+func (v KnownExploitedVulnerabilityHandle) getBlobID() ID {
+	return v.BlobID
+}
+
+func (v *KnownExploitedVulnerabilityHandle) setBlob(rawBlobValue []byte) error {
+	var blobValue KnownExploitedVulnerabilityBlob
+	if err := json.Unmarshal(rawBlobValue, &blobValue); err != nil {
+		return fmt.Errorf("unable to unmarshal KEV blob value: %w", err)
+	}
+
+	v.BlobValue = &blobValue
 	return nil
 }

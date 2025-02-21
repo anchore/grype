@@ -34,9 +34,7 @@ func TestNewLatestDocument(t *testing.T) {
 		latestDoc := NewLatestDocument(archive1, archive2)
 		require.NotNil(t, latestDoc)
 		require.Equal(t, latestDoc.Archive, archive1) // most recent archive
-		actual, ok := latestDoc.SchemaVersion.ModelPart()
-		require.True(t, ok)
-		require.Equal(t, actual, db.ModelVersion)
+		require.Equal(t, latestDoc.SchemaVersion.Model, db.ModelVersion)
 	})
 
 	t.Run("filter entries", func(t *testing.T) {
@@ -56,9 +54,7 @@ func TestNewLatestDocument(t *testing.T) {
 		latestDoc := NewLatestDocument(archive1, archive2)
 		require.NotNil(t, latestDoc)
 		require.Equal(t, latestDoc.Archive, archive2) // most recent archive with valid version
-		actual, ok := latestDoc.SchemaVersion.ModelPart()
-		require.True(t, ok)
-		require.Equal(t, actual, db.ModelVersion)
+		require.Equal(t, latestDoc.SchemaVersion.Model, db.ModelVersion)
 	})
 
 	t.Run("no entries", func(t *testing.T) {
@@ -73,7 +69,8 @@ func TestNewLatestFromReader(t *testing.T) {
 		latestDoc := LatestDocument{
 			Archive: Archive{
 				Description: db.Description{
-					Built: db.Time{Time: time.Now().Truncate(time.Second).UTC()},
+					SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
+					Built:         db.Time{Time: time.Now().Truncate(time.Second).UTC()},
 				},
 			},
 			Status: "active",
