@@ -42,6 +42,8 @@ func Models() []any {
 
 		// decorations to vulnerability records
 		&KnownExploitedVulnerabilityHandle{},
+		&EpssHandle{},
+		&EpssMetadata{},
 	}
 }
 
@@ -772,4 +774,17 @@ func (v *KnownExploitedVulnerabilityHandle) setBlob(rawBlobValue []byte) error {
 
 	v.BlobValue = &blobValue
 	return nil
+}
+
+type EpssMetadata struct {
+	Date time.Time `gorm:"column:date;not null"`
+}
+
+type EpssHandle struct {
+	ID int64 `gorm:"primaryKey"`
+
+	Cve        string    `gorm:"column:cve;not null;index,collate:NOCASE"`
+	Epss       float64   `gorm:"column:epss;not null"`
+	Percentile float64   `gorm:"column:percentile;not null"`
+	Date       time.Time `gorm:"-"` // note we do not store the date in this table since it is expected to be the same for all records, that is what EpssMetadata is for
 }
