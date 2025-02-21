@@ -24,7 +24,7 @@ func cpeProvider(userInput string) ([]Package, Context, *sbom.SBOM, error) {
 		return nil, Context{}, nil, err
 	}
 
-	return decodeCPEFile(reader, ctx)
+	return decodeCPEsFromReader(reader, ctx)
 }
 
 func getCPEReader(userInput string) (r io.Reader, ctx Context, err error) {
@@ -39,7 +39,7 @@ func getCPEReader(userInput string) (r io.Reader, ctx Context, err error) {
 	return nil, ctx, errDoesNotProvide
 }
 
-func decodeCPEFile(reader io.Reader, ctx Context) ([]Package, Context, *sbom.SBOM, error) {
+func decodeCPEsFromReader(reader io.Reader, ctx Context) ([]Package, Context, *sbom.SBOM, error) {
 	scanner := bufio.NewScanner(reader)
 	var packages []Package
 	var syftPkgs []pkg.Package

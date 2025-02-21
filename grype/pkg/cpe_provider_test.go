@@ -38,7 +38,7 @@ func Test_CPEProvider(t *testing.T) {
 					Name:    "log4j",
 					Version: "2.14.1",
 					CPEs: []cpe.CPE{
-						must(cpe.New("cpe:/a:apache:log4j:2.14.1", "")),
+						cpe.Must("cpe:/a:apache:log4j:2.14.1", ""),
 					},
 				},
 			},
@@ -48,7 +48,7 @@ func Test_CPEProvider(t *testing.T) {
 						Name:    "log4j",
 						Version: "2.14.1",
 						CPEs: []cpe.CPE{
-							must(cpe.New("cpe:/a:apache:log4j:2.14.1", "")),
+							cpe.Must("cpe:/a:apache:log4j:2.14.1", ""),
 						},
 					}),
 				},
@@ -68,7 +68,7 @@ func Test_CPEProvider(t *testing.T) {
 				{
 					Name: "log4j",
 					CPEs: []cpe.CPE{
-						must(cpe.New("cpe:/a:apache:log4j", "")),
+						cpe.Must("cpe:/a:apache:log4j", ""),
 					},
 				},
 			},
@@ -77,7 +77,7 @@ func Test_CPEProvider(t *testing.T) {
 					Packages: pkg.NewCollection(pkg.Package{
 						Name: "log4j",
 						CPEs: []cpe.CPE{
-							must(cpe.New("cpe:/a:apache:log4j", "")),
+							cpe.Must("cpe:/a:apache:log4j", ""),
 						},
 					}),
 				},
@@ -98,7 +98,7 @@ func Test_CPEProvider(t *testing.T) {
 					Name:    "log4j",
 					Version: "2.14.1",
 					CPEs: []cpe.CPE{
-						must(cpe.New("cpe:2.3:a:apache:log4j:2.14.1:*:*:*:*:*:*:*", "")),
+						cpe.Must("cpe:2.3:a:apache:log4j:2.14.1:*:*:*:*:*:*:*", ""),
 					},
 				},
 			},
@@ -108,7 +108,7 @@ func Test_CPEProvider(t *testing.T) {
 						Name:    "log4j",
 						Version: "2.14.1",
 						CPEs: []cpe.CPE{
-							must(cpe.New("cpe:2.3:a:apache:log4j:2.14.1:*:*:*:*:*:*:*", "")),
+							cpe.Must("cpe:2.3:a:apache:log4j:2.14.1:*:*:*:*:*:*:*", ""),
 						},
 					}),
 				},
@@ -166,12 +166,4 @@ func Test_CPEProvider(t *testing.T) {
 			}
 		})
 	}
-}
-
-// Helper function to create CPE objects and panic on error (for use in test data only)
-func must(c cpe.CPE, err error) cpe.CPE {
-	if err != nil {
-		panic(err)
-	}
-	return c
 }
