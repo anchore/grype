@@ -684,52 +684,52 @@ func TestReplaceDB(t *testing.T) {
 func Test_isRehydrationNeeded(t *testing.T) {
 	tests := []struct {
 		name               string
-		currentDBVersion   schemaver.SchemaVer
-		hydrationClientVer schemaver.SchemaVer
-		currentClientVer   schemaver.SchemaVer
+		currentDBVersion   schemaver.String
+		hydrationClientVer schemaver.String
+		currentClientVer   schemaver.String
 		expectedResult     bool
 		expectedErr        string
 	}{
 		{
 			name:             "no database exists",
 			currentDBVersion: "",
-			currentClientVer: schemaver.New(6, 2, 0),
+			currentClientVer: schemaver.NewString(6, 2, 0),
 			expectedResult:   false,
 		},
 		{
 			name:             "no import metadata exists",
-			currentDBVersion: schemaver.New(6, 0, 0),
-			currentClientVer: schemaver.New(6, 2, 0),
+			currentDBVersion: schemaver.NewString(6, 0, 0),
+			currentClientVer: schemaver.NewString(6, 2, 0),
 			expectedErr:      "missing import metadata",
 			expectedResult:   false,
 		},
 		{
 			name:               "invalid client version in metadata",
-			currentDBVersion:   schemaver.New(6, 0, 0),
-			hydrationClientVer: schemaver.SchemaVer("not.valid.version"),
-			currentClientVer:   schemaver.New(6, 2, 0),
+			currentDBVersion:   schemaver.NewString(6, 0, 0),
+			hydrationClientVer: schemaver.String("not.valid.version"),
+			currentClientVer:   schemaver.NewString(6, 2, 0),
 			expectedResult:     false,
 			expectedErr:        "unable to parse client version from import metadata",
 		},
 		{
 			name:               "rehydration needed",
-			currentDBVersion:   schemaver.New(6, 0, 1),
-			hydrationClientVer: schemaver.New(6, 0, 0),
-			currentClientVer:   schemaver.New(6, 0, 2),
+			currentDBVersion:   schemaver.NewString(6, 0, 1),
+			hydrationClientVer: schemaver.NewString(6, 0, 0),
+			currentClientVer:   schemaver.NewString(6, 0, 2),
 			expectedResult:     true,
 		},
 		{
 			name:               "no rehydration needed - client version equals current client version",
-			currentDBVersion:   schemaver.New(6, 0, 0),
-			hydrationClientVer: schemaver.New(6, 2, 0),
-			currentClientVer:   schemaver.New(6, 2, 0),
+			currentDBVersion:   schemaver.NewString(6, 0, 0),
+			hydrationClientVer: schemaver.NewString(6, 2, 0),
+			currentClientVer:   schemaver.NewString(6, 2, 0),
 			expectedResult:     false,
 		},
 		{
 			name:               "no rehydration needed - client version greater than current client version",
-			currentDBVersion:   schemaver.New(6, 0, 0),
-			hydrationClientVer: schemaver.New(6, 3, 0),
-			currentClientVer:   schemaver.New(6, 2, 0),
+			currentDBVersion:   schemaver.NewString(6, 0, 0),
+			hydrationClientVer: schemaver.NewString(6, 3, 0),
+			currentClientVer:   schemaver.NewString(6, 2, 0),
 			expectedResult:     false,
 		},
 	}

@@ -95,12 +95,12 @@ func (c curator) Reader() (db.Reader, error) {
 		return nil, fmt.Errorf("unable to get vulnerability store metadata: %w", err)
 	}
 
-	var currentDBSchemaVersion schemaver.SchemaVer
+	var currentDBSchemaVersion schemaver.String
 	if m != nil {
-		currentDBSchemaVersion = schemaver.New(m.Model, m.Revision, m.Addition)
+		currentDBSchemaVersion = schemaver.NewString(m.Model, m.Revision, m.Addition)
 	}
 
-	doRehydrate, err := isRehydrationNeeded(c.fs, c.config.DBDirectoryPath(), currentDBSchemaVersion, schemaver.New(db.ModelVersion, db.Revision, db.Addition))
+	doRehydrate, err := isRehydrationNeeded(c.fs, c.config.DBDirectoryPath(), currentDBSchemaVersion, schemaver.NewString(db.ModelVersion, db.Revision, db.Addition))
 	if err != nil {
 		log.WithFields("error", err).Warn("unable to check if DB needs to be rehydrated")
 	} else if doRehydrate {
@@ -287,7 +287,7 @@ func (c curator) update(current *db.Description) (*distribution.Archive, error) 
 	return update, nil
 }
 
-func isRehydrationNeeded(fs afero.Fs, dirPath string, currentDBVersion schemaver.SchemaVer, currentClientVersion schemaver.SchemaVer) (bool, error) {
+func isRehydrationNeeded(fs afero.Fs, dirPath string, currentDBVersion schemaver.String, currentClientVersion schemaver.String) (bool, error) {
 	if currentDBVersion == "" {
 		// there is no DB to rehydrate
 		return false, nil
@@ -301,7 +301,7 @@ func isRehydrationNeeded(fs afero.Fs, dirPath string, currentDBVersion schemaver
 		return false, fmt.Errorf("missing import metadata")
 	}
 
-	clientHydrationVersion, err := schemaver.Parse(importMetadata.ClientVersion)
+	clientHydrationVersion, err := schemaver.ParseAsString(importMetadata.ClientVersion)
 	if err != nil {
 		return false, fmt.Errorf("unable to parse client version from import metadata: %w", err)
 	}

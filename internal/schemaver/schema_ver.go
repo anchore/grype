@@ -1,6 +1,10 @@
 package schemaver
 
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
 
 type SchemaVer struct {
 	Model    int // breaking changes
@@ -20,15 +24,18 @@ func Parse(s string) (SchemaVer, error) {
 	// must provide model.revision.addition
 	parts := strings.Split(strings.TrimSpace(s), ".")
 	if len(parts) != 3 {
-		return "", fmt.Errorf("invalid schema version format: %s", s)
+		return SchemaVer{}, fmt.Errorf("invalid schema version format: %s", s)
 	}
 	// check that all parts are integers
-	for _, part := range parts {
-		if _, err := strconv.Atoi(part); err != nil {
-			return "", fmt.Errorf("invalid schema version format: %s", s)
+	var values [3]int
+	for i, part := range parts {
+		v, err := strconv.Atoi(part)
+		if err != nil || v < 0 {
+			return SchemaVer{}, fmt.Errorf("invalid schema version format: %s", s)
 		}
+		values[i] = v
 	}
-	return SchemaVer(s), nil
+	return New(values[0], values[1], values[2]), nil
 }
 
 func (s SchemaVer) String() string {
@@ -47,39 +54,6 @@ func (s SchemaVer) LessThan(other SchemaVer) bool {
 	return s.Addition < other.Addition
 }
 
-func (s SchemaVer) GreaterThanEqual(other SchemaVer) bool {
-	return !s.LessThan(other)
-}
-
-func (s SchemaVer) LessThan(other SchemaVer) bool {
-	return s.compare(other) < 0
-}
-
 func (s SchemaVer) GreaterOrEqualTo(other SchemaVer) bool {
-	return s.compare(other) >= 0
-}
-
-func (s SchemaVer) compare(other SchemaVer) int {
-	parts := strings.Split(string(s), ".")
-	otherParts := strings.Split(string(other), ".")
-
-	for i := 0; i < 3; i++ {
-		v1 := 0
-		if i < len(parts) {
-			v1, _ = strconv.Atoi(parts[i])
-		}
-
-		v2 := 0
-		if i < len(otherParts) {
-			v2, _ = strconv.Atoi(otherParts[i])
-		}
-
-		if v1 < v2 {
-			return -1
-		} else if v1 > v2 {
-			return 1
-		}
-	}
-
-	return 0
+	return !s.LessThan(other)
 }
