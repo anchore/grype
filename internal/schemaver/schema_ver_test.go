@@ -179,12 +179,6 @@ func TestParse(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "valid version with zeros",
-			input:   "0.0.0",
-			want:    New(0, 0, 0),
-			wantErr: false,
-		},
-		{
 			name:    "valid large numbers",
 			input:   "999.888.777",
 			want:    New(999, 888, 777),
@@ -195,6 +189,12 @@ func TestParse(t *testing.T) {
 			input:   "  1.2.3  ",
 			want:    New(1, 2, 3),
 			wantErr: false,
+		},
+		{
+			name:    "invalid version with zeros",
+			input:   "0.0.0",
+			want:    New(0, 0, 0),
+			wantErr: true,
 		},
 		{
 			name:    "invalid empty string",

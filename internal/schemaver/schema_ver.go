@@ -35,6 +35,9 @@ func Parse(s string) (SchemaVer, error) {
 		}
 		values[i] = v
 	}
+	if values[0] < 1 {
+		return SchemaVer{}, fmt.Errorf("model value must be greater than 0: %s", s)
+	}
 	return New(values[0], values[1], values[2]), nil
 }
 
