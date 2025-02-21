@@ -2,6 +2,8 @@ package schemaver
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSchemaVerComparisons(t *testing.T) {
@@ -160,6 +162,84 @@ func TestParse(t *testing.T) {
 				got.Addition != tt.want.Addition) {
 				t.Errorf("Parse() = %v, want %v", got, tt.want)
 			}
+		})
+	}
+}
+
+func TestSchemaVer_Valid(t *testing.T) {
+	tests := []struct {
+		name     string
+		schema   SchemaVer
+		expected bool
+	}{
+		{
+			name: "valid schema version - all positive",
+			schema: SchemaVer{
+				Model:    1,
+				Revision: 1,
+				Addition: 1,
+			},
+			expected: true,
+		},
+		{
+			name: "valid schema version - zero revision and addition",
+			schema: SchemaVer{
+				Model:    1,
+				Revision: 0,
+				Addition: 0,
+			},
+			expected: true,
+		},
+		{
+			name: "invalid - zero model",
+			schema: SchemaVer{
+				Model:    0,
+				Revision: 1,
+				Addition: 1,
+			},
+			expected: false,
+		},
+		{
+			name: "invalid - negative model",
+			schema: SchemaVer{
+				Model:    -1,
+				Revision: 1,
+				Addition: 1,
+			},
+			expected: false,
+		},
+		{
+			name: "invalid - negative revision",
+			schema: SchemaVer{
+				Model:    1,
+				Revision: -1,
+				Addition: 1,
+			},
+			expected: false,
+		},
+		{
+			name: "invalid - negative addition",
+			schema: SchemaVer{
+				Model:    1,
+				Revision: 1,
+				Addition: -1,
+			},
+			expected: false,
+		},
+		{
+			name: "invalid - all negative",
+			schema: SchemaVer{
+				Model:    -1,
+				Revision: -1,
+				Addition: -1,
+			},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, tt.schema.Valid())
 		})
 	}
 }

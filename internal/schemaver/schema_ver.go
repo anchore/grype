@@ -45,6 +45,10 @@ func Parse(s string) (SchemaVer, error) {
 	return New(values[0], values[1], values[2]), nil
 }
 
+func (s SchemaVer) Valid() bool {
+	return s.Model > 0 && s.Revision >= 0 && s.Addition >= 0
+}
+
 func (s SchemaVer) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf(`"%s"`, s.String())), nil
 }
