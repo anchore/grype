@@ -81,19 +81,6 @@ func NewCurator(cfg Config, downloader distribution.Client) (db.Curator, error) 
 }
 
 func (c curator) Reader() (db.Reader, error) {
-	err := c.hydrateIfNeeded()
-	if err != nil {
-		return nil, err
-	}
-	return db.NewReader(
-		db.Config{
-			DBDirPath: c.config.DBDirectoryPath(),
-			Debug:     c.config.Debug,
-		},
-	)
-}
-
-func (c curator) hydrateIfNeeded() error {
 	s, err := db.NewReader(
 		db.Config{
 			DBDirPath: c.config.DBDirectoryPath(),
@@ -101,13 +88,12 @@ func (c curator) hydrateIfNeeded() error {
 		},
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer log.CloseAndLogError(s, c.config.DBFilePath())
 
 	m, err := s.GetDBMetadata()
 	if err != nil {
-		return fmt.Errorf("unable to get vulnerability store metadata: %w", err)
+		return nil, fmt.Errorf("unable to get vulnerability store metadata: %w", err)
 	}
 
 	var currentDBSchemaVersion schemaver.SchemaVer
@@ -117,11 +103,12 @@ func (c curator) hydrateIfNeeded() error {
 
 	doRehydrate, err := isRehydrationNeeded(c.fs, c.config.DBDirectoryPath(), currentDBSchemaVersion, schemaver.New(db.ModelVersion, db.Revision, db.Addition))
 	if err != nil {
-		log.WithFields("error", err).Warn("unable to check if DB needs to be rehydrated")
-	} else if doRehydrate {
-		if err := s.Close(); err != nil {
+		return nil, err
+	}
+	if doRehydrate {
+		if err = s.Close(); err != nil {
 			// DB connection may be in an inconsistent state -- we cannot continue
-			return fmt.Errorf("unable to close reader before rehydration: %w", err)
+			return nil, fmt.Errorf("unable to close reader before rehydration: %w", err)
 		}
 		mon := newMonitor()
 
@@ -136,9 +123,19 @@ func (c curator) hydrateIfNeeded() error {
 		}
 		mon.Set("rehydrated")
 		mon.SetCompleted()
+
+		s, err = db.NewReader(
+			db.Config{
+				DBDirPath: c.config.DBDirectoryPath(),
+				Debug:     c.config.Debug,
+			},
+		)
+		if err != nil {
+			return nil, fmt.Errorf("unable to create new reader after rehydration: %w", err)
+		}
 	}
 
-	return nil
+	return s, nil
 }
 
 func (c curator) Status() db.Status {
@@ -158,7 +155,7 @@ func (c curator) Status() db.Status {
 	}
 
 	err = c.validateAge(d)
-	digest, checksumErr := c.validateChecksum(d)
+	digest, checksumErr := c.validateIntegrity(d)
 	if checksumErr != nil && c.config.ValidateChecksum {
 		if err != nil {
 			err = errors.Join(err, checksumErr)
@@ -303,9 +300,6 @@ func isRehydrationNeeded(fs afero.Fs, dirPath string, currentDBVersion schemaver
 	importMetadata, err := db.ReadImportMetadata(fs, dirPath)
 	if err != nil {
 		return false, fmt.Errorf("unable to read import metadata: %w", err)
-	}
-	if importMetadata == nil {
-		return false, fmt.Errorf("missing import metadata")
 	}
 
 	clientHydrationVersion, err := schemaver.Parse(importMetadata.ClientVersion)
@@ -486,8 +480,8 @@ func (c curator) replaceDB(dbDirPath string) error {
 	return c.fs.Rename(dbDirPath, dbDir)
 }
 
-// validateChecksum checks that the disk checksum still matches the db payload
-func (c curator) validateChecksum(description *db.Description) (string, error) {
+// validateIntegrity checks that the disk checksum still matches the db payload
+func (c curator) validateIntegrity(description *db.Description) (string, error) {
 	dbFilePath := c.config.DBFilePath()
 
 	// check that the disk checksum still matches the db payload
@@ -510,10 +504,6 @@ func (c curator) validateChecksum(description *db.Description) (string, error) {
 	importMetadata, err := db.ReadImportMetadata(c.fs, filepath.Dir(dbFilePath))
 	if err != nil {
 		return "", err
-	}
-
-	if importMetadata == nil {
-		return "", fmt.Errorf("no import metadata found for database at: %s", dbFilePath)
 	}
 
 	valid, actualHash, err := file.ValidateByHash(c.fs, dbFilePath, importMetadata.Digest)

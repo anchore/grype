@@ -81,6 +81,7 @@ func TestDBValidations(t *testing.T) {
 	assertDbLoadNotAtempted := assertNotInOutput("failed to load vulnerability db")
 	assertDbNotFound := assertInOutput("No installed DB version found")
 	assertCheckedForDbUpdate := assertInOutput("checking for available database updates")
+	assertDbHashed := assertInOutput("captured DB digest")
 	assertUpdateMessageDisplayed := assertInOutput("update to the latest db")
 
 	// ensure we have grype built and ready
@@ -114,7 +115,7 @@ func TestDBValidations(t *testing.T) {
 			cmd:         "dir:.",
 			dbUpdateURL: todayDbURL,
 			assertions: []traitAssertion{
-				assertInOutput("captured DB checksum"),
+				assertDbHashed,
 				assertDbDownloaded,
 				assertNoVulnerabilities,
 				assertSucceedingReturnCode,
@@ -258,15 +259,31 @@ func TestDBValidations(t *testing.T) {
 			},
 		},
 		{
-			name: "scan: valid db fails with hash mismatch",
-			setup: func(t *testing.T, dir string) {
-				setup(setupYesterdayDb, moveDbToBackup, setupTodayDb, deleteDb, restoreDbFromBackup)(t, dir)
-			},
+			name:           "scan: valid db fails with hash mismatch",
+			setup:          setup(setupYesterdayDb, moveDbToBackup, setupTodayDb, deleteDb, restoreDbFromBackup),
 			dbUpdateURL:    invalidUpdateURL,
 			dbValidateHash: true,
 			cmd:            "dir:.",
 			assertions: []traitAssertion{
 				assertInOutput("bad db checksum"),
+				assertDbLoadFailed,
+				assertDbNotDownloaded,
+				// notification mentions grype db delete and grype db update
+				assertInOutput("grype db delete"),
+				assertInOutput("grype db update"),
+				assertFailingReturnCode,
+			},
+		},
+		{
+			name: "scan: missing import.json",
+			setup: setup(setupYesterdayDb, func(t *testing.T, dir string) {
+				require.NoError(t, os.Remove(filepath.Join(filepath.Dir(dbFilePath(dir)), "import.json")))
+			}),
+			dbUpdateURL:    invalidUpdateURL,
+			dbValidateHash: true,
+			cmd:            "dir:.",
+			assertions: []traitAssertion{
+				assertInOutput("no import metadata"),
 				assertDbLoadFailed,
 				assertDbNotDownloaded,
 				// notification mentions grype db delete and grype db update

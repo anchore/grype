@@ -531,7 +531,7 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 	t.Run("valid metadata with correct checksum", func(t *testing.T) {
 		c, d := newCurator(t)
 
-		digest, err := c.validateChecksum(d)
+		digest, err := c.validateIntegrity(d)
 		require.NoError(t, err)
 		require.NotEmpty(t, digest)
 	})
@@ -541,7 +541,7 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 
 		require.NoError(t, os.Remove(c.config.DBFilePath()))
 
-		_, err := c.validateChecksum(d)
+		_, err := c.validateIntegrity(d)
 		require.ErrorContains(t, err, "database does not exist")
 	})
 
@@ -549,8 +549,8 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 		c, d := newCurator(t)
 		dbDir := c.config.DBDirectoryPath()
 		require.NoError(t, os.Remove(filepath.Join(dbDir, db.ImportMetadataFileName)))
-		_, err := c.validateChecksum(d)
-		require.ErrorContains(t, err, "missing import metadata")
+		_, err := c.validateIntegrity(d)
+		require.ErrorContains(t, err, "no import metadata")
 	})
 
 	t.Run("invalid checksum", func(t *testing.T) {
@@ -559,7 +559,7 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 
 		writeTestImportMetadata(t, c.fs, dbDir, "xxh64:invalidchecksum")
 
-		_, err := c.validateChecksum(d)
+		_, err := c.validateIntegrity(d)
 		require.ErrorContains(t, err, "bad db checksum")
 	})
 
@@ -568,7 +568,7 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 
 		d.SchemaVersion = schemaver.New(db.ModelVersion-1, 0, 0)
 
-		_, err := c.validateChecksum(d)
+		_, err := c.validateIntegrity(d)
 		require.ErrorContains(t, err, "unsupported database version")
 	})
 }
@@ -699,7 +699,7 @@ func Test_isRehydrationNeeded(t *testing.T) {
 			name:             "no import metadata exists",
 			currentDBVersion: schemaver.New(6, 0, 0),
 			currentClientVer: schemaver.New(6, 2, 0),
-			expectedErr:      "missing import metadata",
+			expectedErr:      "unable to read import metadata",
 			expectedResult:   false,
 		},
 		{
