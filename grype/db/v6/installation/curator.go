@@ -17,6 +17,7 @@ import (
 	"github.com/wagoodman/go-progress"
 
 	"github.com/anchore/archiver/v3"
+	"github.com/anchore/clio"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/event"
@@ -46,9 +47,9 @@ type Config struct {
 	UpdateCheckMaxFrequency time.Duration
 }
 
-func DefaultConfig() Config {
+func DefaultConfig(id clio.Identification) Config {
 	return Config{
-		DBRootDir:               filepath.Join(xdg.CacheHome, "grype", "db"),
+		DBRootDir:               filepath.Join(xdg.CacheHome, id.Name, "db"),
 		ValidateAge:             true,
 		ValidateChecksum:        true,
 		MaxAllowedBuiltAge:      time.Hour * 24 * 5, // 5 days
@@ -185,7 +186,7 @@ func (c curator) Update() (bool, error) {
 		// we should not warn if the DB does not exist, as this is a common first-run case... but other cases we
 		// may care about, so warn in those cases.
 		if !errors.Is(err, db.ErrDBDoesNotExist) {
-			log.WithFields("error", err).Warn("unable to read current database metadata (continuing with update)")
+			log.WithFields("error", err).Warn("unable to read current database metadata; continuing with update")
 		}
 		// downstream any non-existent DB should always be replaced with any best-candidate found
 		current = nil
@@ -226,7 +227,7 @@ func (c curator) Update() (bool, error) {
 	log.WithFields(
 		"version", update.Description.SchemaVersion,
 		"built", update.Description.Built.String(),
-	).Info("downloaded new vulnerability DB")
+	).Info("installed new vulnerability DB")
 	return true, nil
 }
 
@@ -279,7 +280,7 @@ func (c curator) update(current *db.Description) (*distribution.Archive, error) 
 		return nil, fmt.Errorf("unable to update vulnerability database: %w", err)
 	}
 	mon.downloadProgress.SetCompleted()
-	if err := c.activate(dest, mon); err != nil {
+	if err = c.activate(dest, mon); err != nil {
 		return nil, fmt.Errorf("unable to activate new vulnerability database: %w", err)
 	}
 
@@ -477,7 +478,9 @@ func (c curator) replaceDB(dbDirPath string) error {
 	}
 
 	// activate the new db cache by moving the temp dir to final location
-	return c.fs.Rename(dbDirPath, dbDir)
+	err = c.fs.Rename(dbDirPath, dbDir)
+	log.WithFields("from", dbDirPath, "to", dbDir, "error", err).Debug("moved database directory to activate")
+	return err
 }
 
 // validateIntegrity checks that the disk checksum still matches the db payload

@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
@@ -15,6 +16,7 @@ import (
 	"github.com/wagoodman/go-progress"
 
 	"github.com/anchore/clio"
+	"github.com/anchore/grype/grype/db"
 	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/file"
@@ -51,7 +53,7 @@ type client struct {
 
 func DefaultConfig() Config {
 	return Config{
-		LatestURL:          "https://grype.anchore.io/databases/latest.json",
+		LatestURL:          "https://grype.anchore.io/databases",
 		RequireUpdateCheck: false,
 		CheckTimeout:       30 * time.Second,
 		UpdateTimeout:      300 * time.Second,
@@ -139,10 +141,10 @@ func (c client) Download(archive Archive, dest string, downloadProgress *progres
 	}
 
 	// download the db to the temp dir
-	u, err := url.Parse(c.config.LatestURL)
+	u, err := url.Parse(c.latestURL())
 	if err != nil {
 		removeAllOrLog(afero.NewOsFs(), tempDir)
-		return "", fmt.Errorf("unable to parse db URL %q: %w", c.config.LatestURL, err)
+		return "", fmt.Errorf("unable to parse db URL %q: %w", c.latestURL(), err)
 	}
 
 	u.Path = path.Join(path.Dir(u.Path), path.Clean(archive.Path))
@@ -167,7 +169,7 @@ func (c client) Download(archive Archive, dest string, downloadProgress *progres
 
 // Latest loads a LatestDocument from the configured URL.
 func (c client) Latest() (*LatestDocument, error) {
-	resp, err := c.latestHTTPClient.Get(c.config.LatestURL)
+	resp, err := c.latestHTTPClient.Get(c.latestURL())
 	if err != nil {
 		return nil, fmt.Errorf("unable to fetch latest.json: %w", err)
 	}
@@ -175,9 +177,18 @@ func (c client) Latest() (*LatestDocument, error) {
 		return nil, fmt.Errorf("unable to fetch latest.json: %s", resp.Status)
 	}
 
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	return NewLatestFromReader(resp.Body)
+}
+
+func (c client) latestURL() string {
+	latestURL := c.config.LatestURL
+	// allow path to be specified directly to a json file, or the path without version information
+	if !strings.HasSuffix(latestURL, ".json") {
+		latestURL = fmt.Sprintf("%s/v%d/%s", latestURL, db.SchemaVersion, LatestFileName)
+	}
+	return latestURL
 }
 
 func withClientTimeout(timeout time.Duration) func(*http.Client) {

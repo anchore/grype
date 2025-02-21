@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/wagoodman/go-progress"
 
+	"github.com/anchore/clio"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/internal/schemaver"
@@ -48,7 +49,7 @@ func (m *mockClient) Latest() (*distribution.LatestDocument, error) {
 
 func newTestCurator(t *testing.T) curator {
 	tempDir := t.TempDir()
-	cfg := DefaultConfig()
+	cfg := testConfig()
 	cfg.DBRootDir = tempDir
 
 	ci, err := NewCurator(cfg, new(mockClient))
@@ -265,7 +266,7 @@ func TestCurator_IsUpdateCheckAllowed(t *testing.T) {
 	newCurator := func(t *testing.T) curator {
 		tempDir := t.TempDir()
 
-		cfg := DefaultConfig()
+		cfg := testConfig()
 		cfg.UpdateCheckMaxFrequency = 10 * time.Minute
 		cfg.DBRootDir = tempDir
 
@@ -322,7 +323,7 @@ func TestCurator_DurationSinceUpdateCheck(t *testing.T) {
 	newCurator := func(t *testing.T) curator {
 		tempDir := t.TempDir()
 
-		cfg := DefaultConfig()
+		cfg := testConfig()
 		cfg.DBRootDir = tempDir
 
 		ci, err := NewCurator(cfg, nil)
@@ -370,7 +371,7 @@ func TestCurator_SetLastSuccessfulUpdateCheck(t *testing.T) {
 	newCurator := func(t *testing.T) curator {
 		tempDir := t.TempDir()
 
-		cfg := DefaultConfig()
+		cfg := testConfig()
 		cfg.DBRootDir = tempDir
 
 		ci, err := NewCurator(cfg, nil)
@@ -417,10 +418,10 @@ func TestCurator_SetLastSuccessfulUpdateCheck(t *testing.T) {
 	})
 }
 
-func TestCurator_EnsureNotStale(t *testing.T) {
+func TestCurator_validateAge(t *testing.T) {
 	newCurator := func(t *testing.T) curator {
 		tempDir := t.TempDir()
-		cfg := DefaultConfig()
+		cfg := testConfig()
 		cfg.DBRootDir = tempDir
 		cfg.MaxAllowedBuiltAge = 48 * time.Hour // set max age to 48 hours
 
@@ -500,10 +501,10 @@ func TestCurator_EnsureNotStale(t *testing.T) {
 	}
 }
 
-func TestCurator_ValidateIntegrity(t *testing.T) {
+func TestCurator_validateIntegrity(t *testing.T) {
 	newCurator := func(t *testing.T) (curator, *db.Description) {
 		tempDir := t.TempDir()
-		cfg := DefaultConfig()
+		cfg := testConfig()
 		cfg.DBRootDir = tempDir
 
 		require.NoError(t, os.MkdirAll(cfg.DBDirectoryPath(), 0755))
@@ -771,4 +772,10 @@ func setupReadOnlyTestDB(t *testing.T, dbDir string) db.Reader {
 	require.NoError(t, err)
 
 	return s
+}
+
+func testConfig() Config {
+	return DefaultConfig(clio.Identification{
+		Name: "grype-test",
+	})
 }

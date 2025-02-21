@@ -1,87 +1,82 @@
 package dbtest_test
 
 import (
-	"path/filepath"
+	"bytes"
+	"encoding/json"
+	"io"
+	"net/http"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/clio"
-	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
-	"github.com/anchore/grype/grype/db/v6/installation"
 	dbtest "github.com/anchore/grype/grype/db/v6/testutil"
-	"github.com/anchore/grype/grype/search"
 )
 
 func Test_NewServer(t *testing.T) {
-	dbDir := t.TempDir()
-
-	day := 24 * time.Hour
-
-	srv := dbtest.NewServer(t)
-	srv.DBBuildTime = time.Now().Add(-1 * day) // one day ago
-	url := srv.Start()
-
-	distConfig := distribution.Config{
-		ID: clio.Identification{
-			Name:           "test",
-			Version:        "1",
-			GitCommit:      "abcd",
-			GitDescription: "main",
-			BuildDate:      "now",
+	tests := []struct {
+		name         string
+		useDefault   bool
+		serverSubdir string
+	}{
+		{
+			name:       "default path",
+			useDefault: true,
 		},
-		LatestURL:          url,
-		CACert:             "",
-		RequireUpdateCheck: false,
-		CheckTimeout:       0,
-		UpdateTimeout:      0,
+		{
+			name:         "v6 path",
+			serverSubdir: "v6",
+		},
+		{
+			name:         "root path",
+			serverSubdir: "",
+		},
 	}
 
-	installConfig := installation.Config{
-		DBRootDir:               dbDir,
-		Debug:                   false,
-		ValidateAge:             false,
-		ValidateChecksum:        false,
-		MaxAllowedBuiltAge:      1 * time.Second,
-		UpdateCheckMaxFrequency: 0, // don't apply update check interval
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			srv := dbtest.NewServer(t).SetDBBuilt(time.Now().Add(-24 * time.Hour))
+			if !test.useDefault {
+				srv.ServerSubdir = test.serverSubdir
+			}
+
+			url := srv.Start() // one day ago
+			parts := strings.Split(url, "/")
+			urlPrefix := strings.Join(parts[:len(parts)-1], "/")
+
+			get := func(url string) (status int, contents []byte, readError error) {
+				resp, err := http.Get(url)
+				if resp.Body != nil {
+					defer func() { require.NoError(t, resp.Body.Close()) }()
+				}
+				require.NoError(t, err)
+				buf := bytes.Buffer{}
+				_, err = io.Copy(&buf, resp.Body)
+				return resp.StatusCode, buf.Bytes(), err
+			}
+
+			status, content, err := get(urlPrefix + "/latest.json")
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, status)
+
+			// should have a latest document at the given URL
+			var latest distribution.LatestDocument
+			require.NoError(t, json.Unmarshal(content, &latest))
+
+			relativeDb := latest.Archive.Path
+			require.NotEmpty(t, relativeDb)
+
+			// should have a db at the relative url in the latest doc
+			status, content, err = get(urlPrefix + "/" + relativeDb)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, status)
+			require.NotEmpty(t, content)
+
+			// should have 404 at wrong URL
+			status, _, _ = get(urlPrefix + "/asdf")
+			require.Equal(t, http.StatusNotFound, status)
+		})
 	}
-
-	distClient, err := distribution.NewClient(distConfig)
-	require.NoError(t, err)
-
-	curator, err := installation.NewCurator(installConfig, distClient)
-	require.NoError(t, err)
-
-	// test on a new installation with available db
-	didUpdate, err := curator.Update()
-	require.NoError(t, err)
-	require.True(t, didUpdate) // no database, should update
-
-	// test on an existing installation with NO update
-	didUpdate, err = curator.Update()
-	require.NoError(t, err)
-	require.False(t, didUpdate) // existing database, should not update
-
-	rdr, err := v6.NewReader(v6.Config{
-		DBDirPath: filepath.Join(dbDir, "6"),
-		Debug:     false,
-	})
-	require.NoError(t, err)
-
-	vp := v6.NewVulnerabilityProvider(rdr)
-	vulns, err := vp.FindVulnerabilities(search.ByID("CVE-2024-1234"))
-	require.NoError(t, err)
-	require.NotEmpty(t, vulns)
-
-	err = vp.Close()
-	require.NoError(t, err)
-
-	// test on an existing installation with an update
-	srv.SetDBBuilt(time.Now().Add(1 * day)) // newer than 1 day ago
-
-	didUpdate, err = curator.Update()
-	require.NoError(t, err)
-	require.True(t, didUpdate) // has update, should update
 }

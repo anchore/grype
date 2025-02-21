@@ -219,9 +219,9 @@ vulnerability database updates. You can still build vulnerability databases for 
 releases of [vunnel](https://github.com/anchore/vunnel) to gather the upstream data and [grype-db](https://github.com/anchore/grype-db)
 to build databases for unsupported schemas.
 
-Only the latest DB schema is considered to be supported. When a new DB schema is introduced then the one it replaces is
+Only the latest database schema is considered to be supported. When a new database schema is introduced then the one it replaces is
 marked as deprecated. Deprecated schemas will continue to receive updates for at least one year after they are marked
-as deprecated at which point they will be marked as end of life.
+as deprecated at which point they will no longer be supported.
 
 ### Working with attestations
 Grype supports scanning SBOMs as input via stdin. Users can use [cosign](https://github.com/sigstore/cosign) to verify attestations
@@ -521,13 +521,13 @@ By default, Grype automatically manages this database for you. Grype checks for 
 
 Grype's vulnerability database is a SQLite file, named `vulnerability.db`. Updates to the database are atomic: the entire database is replaced and then treated as "readonly" by Grype.
 
-Grype's first step in a database update is discovering databases that are available for retrieval. Grype does this by requesting a "listing file" from a public endpoint:
+Grype's first step in a database update is discovering databases that are available for retrieval. Grype does this by requesting a "latest database file" from a public endpoint:
 
-`https://grype.anchore.io/databases/v6/latest.json`
+https://grype.anchore.io/databases/v6/latest.json
 
-The listing file contains entries for every database that's available for download.
+The latest database file contains an entry for the most recent database available for download.
 
-Here's an example of an entry in the listing file:
+Here's an example of an entry in the latest database file:
 
 ```json
 {
@@ -539,7 +539,7 @@ Here's an example of an entry in the listing file:
 }
 ```
 
-With this information, Grype can select the correct database (the most recently built database with the current schema version), download the database, and verify the database's integrity using the listed `checksum` value.
+With this information, Grype can find the most recently built database with the current schema version, download the database, and verify the database's integrity using the `checksum` value.
 
 ### Managing Grype's database
 
@@ -547,7 +547,7 @@ With this information, Grype can select the correct database (the most recently 
 
 #### Local database cache directory
 
-By default, the database is cached on the local filesystem in the directory `$XDG_CACHE_HOME/grype/db/<SCHEMA-VERSION>/`. For example, on macOS, the database would be stored in `~/Library/Caches/grype/db/3/`. (For more information on XDG paths, refer to the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html).)
+By default, the database is cached on the local filesystem in the directory `$XDG_CACHE_HOME/grype/db/<SCHEMA-VERSION>/`. For example, on macOS, the database would be stored in `~/Library/Caches/grype/db/6/`. (For more information on XDG paths, refer to the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html).)
 
 You can set the cache directory path using the environment variable `GRYPE_DB_CACHE_DIR`. If setting that variable alone does not work, then the `TMPDIR` environment variable might also need to be set.
 
@@ -557,11 +557,13 @@ Grype needs up-to-date vulnerability information to provide accurate matches. By
 
 #### Offline and air-gapped environments
 
-By default, Grype checks for a new database on every run, by making a network call over the Internet. You can tell Grype not to perform this check by setting the environment variable `GRYPE_DB_AUTO_UPDATE` to `false`.
+By default, Grype checks for a new database on every run, by making a network request over the internet.
+You can tell Grype not to perform this check by setting the environment variable `GRYPE_DB_AUTO_UPDATE` to `false`.
 
-As long as you place Grype's `vulnerability.db` and `metadata.json` files in the cache directory for the expected schema version, Grype has no need to access the network. Additionally, you can get a listing of the database archives available for download from the `grype db list` command in an online environment, download the database archive, transfer it to your offline environment, and use `grype db import <db-archive-path>` to use the given database in an offline capacity.
+As long as you place Grype's `vulnerability.db` and `import.json` files in the cache directory for the expected schema version, Grype has no need to access the network.
+Additionally, you can get a reference to the latest database archive for download from the `grype db list` command in an online environment, download the database archive, transfer it to your offline environment, and use `grype db import <db-archive-path>` to use the given database in an offline capacity.
 
-If you would like to distribute your own Grype databases internally without needing to use `db import` manually you can leverage Grype's DB update mechanism. To do this you can craft your own `listing.json` file similar to the one found publically (see `grype db list -o raw` for an example of our public `listing.json` file) and change the download URL to point to an internal endpoint (e.g. a private S3 bucket, an internal file server, etc). Any internal installation of Grype can receive database updates automatically by configuring the `db.update-url` (same as the `GRYPE_DB_UPDATE_URL` environment variable) to point to the hosted `listing.json` file you've crafted.
+If you would like to distribute your own Grype databases internally without needing to use `db import` manually you can leverage Grype's DB update mechanism. To do this you can craft your own `latest.json` file similar to the public "latest database file" and change the download URL to point to an internal endpoint (e.g. a private S3 bucket, an internal file server, etc.). Any internal installation of Grype can receive database updates automatically by configuring the `db.update-url` (same as the `GRYPE_DB_UPDATE_URL` environment variable) to point to the hosted `latest.json` file you've crafted.
 
 #### CLI commands for database management
 
@@ -573,7 +575,7 @@ Grype provides database-specific CLI commands for users that want to control the
 
 `grype db update` — ensure the latest database has been downloaded to the cache directory (Grype performs this operation at the beginning of every scan by default)
 
-`grype db list` — download the listing file configured at `db.update-url` and show databases that are available for download
+`grype db list` — download the latest database file configured at `db.update-url` and show the database available for download
 
 `grype db import` — provide grype with a database archive to explicitly use (useful for offline DB updates)
 
@@ -765,7 +767,7 @@ db:
 
   # URL of the vulnerability database
   # same as GRYPE_DB_UPDATE_URL env var
-  update-url: "https://toolbox-data.anchore.io/grype/databases/listing.json"
+  update-url: "https://grype.anchore.io/databases"
 
   # it ensures db build is no older than the max-allowed-built-age
   # set to false to disable check

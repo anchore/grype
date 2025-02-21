@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -31,16 +32,22 @@ type ServerBuilder struct {
 	t               *testing.T
 	dbContents      []byte
 	DBFormat        string
-	DBName          string
 	DBBuildTime     time.Time
+	DBVersion       schemaver.SchemaVer
 	Vulnerabilities []vulnerability.Vulnerability
 	LatestDoc       *distribution.LatestDocument
-	LatestDocPath   string
+	ServerSubdir    string
+	LatestDocFile   string
 	RequestHandler  http.HandlerFunc
 }
 
 func (s *ServerBuilder) SetDBBuilt(t time.Time) *ServerBuilder {
 	s.DBBuildTime = t
+	return s
+}
+
+func (s *ServerBuilder) SetDBVersion(major, minor, patch int) *ServerBuilder {
+	s.DBVersion = schemaver.New(major, minor, patch)
 	return s
 }
 
@@ -54,23 +61,18 @@ func (s *ServerBuilder) WithHandler(handler http.HandlerFunc) *ServerBuilder {
 // specified in the provided latest parameter
 func NewServer(t *testing.T) *ServerBuilder {
 	t.Helper()
-	now := time.Now()
 	return &ServerBuilder{
-		t: t,
-
-		DBFormat:    "tar.zst",
-		DBName:      "vulnerability-db_v6.0.0",
-		DBBuildTime: time.Now().Add(-1 * 24 * time.Hour), // 1 day ago
-
-		LatestDocPath:   "latest.json",
+		t:               t,
+		DBFormat:        "tar.zst",
+		DBBuildTime:     time.Now(),
+		DBVersion:       schemaver.New(6, 0, 0),
+		ServerSubdir:    "databases/v6",
+		LatestDocFile:   "latest.json",
 		Vulnerabilities: DefaultVulnerabilities(),
 		LatestDoc: &distribution.LatestDocument{
 			Status: "active",
 			Archive: distribution.Archive{
-				Description: v6.Description{
-					SchemaVersion: schemaver.New(6, 0, 0),
-					Built:         v6.Time{Time: now},
-				},
+				Description: v6.Description{},
 			},
 		},
 	}
@@ -79,9 +81,14 @@ func NewServer(t *testing.T) *ServerBuilder {
 // Start starts builds a database and starts a server with the current settings
 // if you need to rebuild a DB or modify the behavior, you can either set
 // a custom RequestHandler func or modify the settings and call Start() again.
-// Returns a URL to the latest.json file, e.g. http://127.0.0.1:5678/latest.json
+// Returns a URL to the latest.json file, e.g. http://127.0.0.1:5678/v6/latest.json
 func (s *ServerBuilder) Start() (url string) {
 	s.t.Helper()
+
+	serverSubdir := s.ServerSubdir
+	if serverSubdir != "" {
+		serverSubdir += "/"
+	}
 
 	contents := s.buildDB()
 	s.dbContents = pack(s.t, s.DBFormat, contents)
@@ -96,17 +103,19 @@ func (s *ServerBuilder) Start() (url string) {
 			}
 		}
 
-		archivePath := s.DBName + "." + s.DBFormat
+		dbName := "vulnerability-db_v" + s.DBVersion.String()
+		archivePath := dbName + "." + s.DBFormat
 		switch r.RequestURI[1:] {
-		case s.LatestDocPath:
+		case serverSubdir + s.LatestDocFile:
 			latestDoc := *s.LatestDoc
 			latestDoc.Built.Time = s.DBBuildTime
+			latestDoc.Archive.SchemaVersion = s.DBVersion
 			latestDoc.Archive.Built.Time = s.DBBuildTime
 			latestDoc.Archive.Path = archivePath
 			latestDoc.Archive.Checksum = sha(s.dbContents)
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(latestDoc)
-		case archivePath:
+		case serverSubdir + archivePath:
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write(s.dbContents)
 		default:
@@ -118,7 +127,7 @@ func (s *ServerBuilder) Start() (url string) {
 	s.t.Cleanup(func() {
 		mockSrv.Close()
 	})
-	return mockSrv.URL + "/" + s.LatestDocPath
+	return mockSrv.URL + "/" + serverSubdir + s.LatestDocFile
 }
 
 func sha(contents []byte) string {
@@ -281,7 +290,22 @@ func (s *ServerBuilder) buildDB() []byte {
 	err = w.Close()
 	require.NoError(s.t, err)
 
-	contents, err := os.ReadFile(filepath.Join(tmp, "vulnerability.db"))
+	dbFile := filepath.Join(tmp, "vulnerability.db")
+
+	db, err := sql.Open("sqlite", dbFile)
+	require.NoError(s.t, err)
+
+	model, _ := s.DBVersion.ModelPart()
+	revision, _ := s.DBVersion.RevisionPart()
+	addition, _ := s.DBVersion.AdditionPart()
+	_, err = db.Exec("update db_metadata set build_timestamp = ?, model = ?, revision = ?, addition = ?",
+		s.DBBuildTime, model, revision, addition)
+	require.NoError(s.t, err)
+
+	err = db.Close()
+	require.NoError(s.t, err)
+
+	contents, err := os.ReadFile(dbFile)
 	require.NoError(s.t, err)
 
 	return contents

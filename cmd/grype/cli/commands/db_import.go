@@ -9,7 +9,6 @@ import (
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/db/v6/installation"
-	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
 )
 
@@ -19,7 +18,7 @@ func DBImport(app clio.Application) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "import FILE",
 		Short: "Import a vulnerability database or archive",
-		Long:  fmt.Sprintf("import a vulnerability database or archive from a local FILE.\nDB archives can be obtained from %q.", internal.DBUpdateURL),
+		Long:  fmt.Sprintf("import a vulnerability database or archive from a local FILE.\nDB archives can be obtained from %q.", opts.DB.UpdateURL),
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			return runDBImport(*opts, args[0])

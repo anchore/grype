@@ -1,13 +1,11 @@
 package options
 
 import (
-	"path"
 	"time"
 
-	"github.com/adrg/xdg"
-
 	"github.com/anchore/clio"
-	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/grype/db/v6/distribution"
+	"github.com/anchore/grype/grype/db/v6/installation"
 )
 
 type Database struct {
@@ -29,27 +27,23 @@ var _ interface {
 	clio.FieldDescriber
 } = (*Database)(nil)
 
-const (
-	defaultMaxDBAge                time.Duration = time.Hour * 24 * 5
-	defaultUpdateAvailableTimeout                = time.Second * 30
-	defaultUpdateDownloadTimeout                 = time.Second * 300
-	defaultMaxUpdateCheckFrequency               = time.Hour * 2
-)
-
 func DefaultDatabase(id clio.Identification) Database {
+	distConfig := distribution.DefaultConfig()
+	installConfig := installation.DefaultConfig(id)
 	return Database{
 		ID:          id,
-		Dir:         path.Join(xdg.CacheHome, id.Name, "db"),
-		UpdateURL:   internal.DBUpdateURL,
+		Dir:         installConfig.DBRootDir,
+		UpdateURL:   distConfig.LatestURL,
 		AutoUpdate:  true,
-		ValidateAge: true,
+		ValidateAge: installConfig.ValidateAge,
 		// After this period (5 days) the db data is considered stale
-		MaxAllowedBuiltAge:      defaultMaxDBAge,
-		RequireUpdateCheck:      false,
-		ValidateByHashOnStart:   true,
-		UpdateAvailableTimeout:  defaultUpdateAvailableTimeout,
-		UpdateDownloadTimeout:   defaultUpdateDownloadTimeout,
-		MaxUpdateCheckFrequency: defaultMaxUpdateCheckFrequency,
+		MaxAllowedBuiltAge:      installConfig.MaxAllowedBuiltAge,
+		RequireUpdateCheck:      distConfig.RequireUpdateCheck,
+		ValidateByHashOnStart:   installConfig.ValidateChecksum,
+		UpdateAvailableTimeout:  distConfig.CheckTimeout,
+		UpdateDownloadTimeout:   distConfig.UpdateTimeout,
+		MaxUpdateCheckFrequency: installConfig.UpdateCheckMaxFrequency,
+		CACert:                  distConfig.CACert,
 	}
 }
 
