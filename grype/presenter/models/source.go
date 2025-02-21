@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 
+	"github.com/anchore/grype/grype/pkg"
 	syftSource "github.com/anchore/syft/syft/source"
 )
 
@@ -14,6 +15,21 @@ type source struct {
 // newSource creates a new source object to be represented into JSON.
 func newSource(src syftSource.Description) (source, error) {
 	switch m := src.Metadata.(type) {
+	case pkg.PURLFileMetadata:
+		return source{
+			Type:   "purl-file",
+			Target: m.Path,
+		}, nil
+	case pkg.PURLLiteralMetadata:
+		return source{
+			Type:   "purl",
+			Target: m.PURL,
+		}, nil
+	case pkg.CPELiteralMetadata:
+		return source{
+			Type:   "cpe",
+			Target: m.CPE,
+		}, nil
 	case syftSource.ImageMetadata:
 		// ensure that empty collections are not shown as null
 		if m.RepoDigests == nil {
