@@ -1,18 +1,22 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 
+	v6 "github.com/anchore/grype/grype/db/v6"
 	dbtest "github.com/anchore/grype/grype/db/v6/testutil"
+	"github.com/anchore/grype/internal/schemaver"
 )
 
 func TestDBValidations(t *testing.T) {
@@ -20,6 +24,8 @@ func TestDBValidations(t *testing.T) {
 	expiredDbURL := dbtest.NewServer(t).SetDBBuilt(time.Now().Add(-24*24*time.Hour)).SetDBVersion(6, 0, 0).Start() // 24 days old
 	yesterdayDbURL := dbtest.NewServer(t).SetDBBuilt(time.Now().Add(-24*time.Hour)).SetDBVersion(6, 0, 0).Start()  // 24 hours old
 	todayDbURL := dbtest.NewServer(t).SetDBBuilt(time.Now()).SetDBVersion(6, 0, 0).Start()                         // just built
+	todayDbNewerVersionURL := dbtest.NewServer(t).SetDBBuilt(time.Now()).SetDBVersion(6, 0, 1).Start()             // just built
+	todayDbOlderVersionURL := dbtest.NewServer(t).SetDBBuilt(time.Now()).SetDBVersion(5, 9, 9).Start()             // just built
 	notFoundDbURL := dbtest.NewServer(t).SetDBBuilt(time.Now().Add(3 * time.Hour)).WithHandler(http.NotFound).Start()
 
 	// common setup functions
@@ -47,7 +53,7 @@ func TestDBValidations(t *testing.T) {
 	setupTodayDb := setupDb(todayDbURL)
 
 	dbFilePath := func(dir string) string {
-		return filepath.Join(dir, "6", "vulnerability.db")
+		return filepath.Join(dir, strconv.Itoa(v6.ModelVersion), "vulnerability.db")
 	}
 
 	corruptDb := func(t *testing.T, dir string) {
@@ -368,6 +374,52 @@ func TestDBValidations(t *testing.T) {
 				assertNotInOutput("checking for available database updates"),
 				assertDbNotDownloaded,
 				assertInOutput("max-update-check-frequency: 10h"),
+				assertSucceedingReturnCode,
+			},
+		},
+		{
+			name: "scan: ensure newer db version with older grype is not hydrated",
+			setup: setup(setupDb(todayDbNewerVersionURL), func(t *testing.T, dir string) {
+				// change the hydration version to a newer version that this grype
+				metaFile := filepath.Join(filepath.Dir(dbFilePath(dir)), v6.ImportMetadataFileName)
+				contents, err := os.ReadFile(metaFile)
+				require.NoError(t, err)
+				meta := v6.ImportMetadata{}
+				err = json.Unmarshal(contents, &meta)
+				require.NoError(t, err)
+				meta.ClientVersion = schemaver.New(v6.ModelVersion, v6.Revision, v6.Addition+1).String()
+				contents, err = json.Marshal(meta)
+				require.NoError(t, err)
+				err = os.WriteFile(metaFile, contents, 0x777)
+				require.NoError(t, err)
+			}),
+			dbUpdateURL: todayDbNewerVersionURL,
+			assertions: []traitAssertion{
+				assertInOutput("DB rehydration not needed"),
+				assertDbNotDownloaded,
+				assertSucceedingReturnCode,
+			},
+		},
+		{
+			name: "scan: ensure older db version with newer db version hydrated",
+			setup: setup(setupDb(todayDbNewerVersionURL), func(t *testing.T, dir string) {
+				// change the hydration version to a older version that this grype
+				metaFile := filepath.Join(filepath.Dir(dbFilePath(dir)), v6.ImportMetadataFileName)
+				contents, err := os.ReadFile(metaFile)
+				require.NoError(t, err)
+				meta := v6.ImportMetadata{}
+				err = json.Unmarshal(contents, &meta)
+				require.NoError(t, err)
+				meta.ClientVersion = schemaver.New(v6.ModelVersion-1, v6.Revision, v6.Addition).String()
+				contents, err = json.Marshal(meta)
+				require.NoError(t, err)
+				err = os.WriteFile(metaFile, contents, 0x777)
+				require.NoError(t, err)
+			}),
+			dbUpdateURL: todayDbOlderVersionURL,
+			assertions: []traitAssertion{
+				assertInOutput("rehydrating DB"),
+				assertDbNotDownloaded,
 				assertSucceedingReturnCode,
 			},
 		},
