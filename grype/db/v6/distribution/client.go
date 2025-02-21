@@ -183,12 +183,13 @@ func (c client) Latest() (*LatestDocument, error) {
 }
 
 func (c client) latestURL() string {
-	latestURL := c.config.LatestURL
+	url := c.config.LatestURL
 	// allow path to be specified directly to a json file, or the path without version information
-	if !strings.HasSuffix(latestURL, ".json") {
-		latestURL = fmt.Sprintf("%s/v%d/%s", latestURL, db.SchemaVersion, LatestFileName)
+	if !strings.HasSuffix(url, ".json") {
+		url = strings.TrimRight(url, "/")
+		url = fmt.Sprintf("%s/v%d/%s", url, db.SchemaVersion, LatestFileName)
 	}
-	return latestURL
+	return url
 }
 
 func withClientTimeout(timeout time.Duration) func(*http.Client) {
