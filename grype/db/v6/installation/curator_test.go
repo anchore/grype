@@ -85,7 +85,7 @@ func setupCuratorForUpdate(t *testing.T, opts ...setupOption) curator {
 
 	// populate metadata into the downloaded dir
 	oldDescription := db.Description{
-		SchemaVersion: schemaver.NewString(db.ModelVersion, db.Revision, db.Addition),
+		SchemaVersion: schemaver.New(db.ModelVersion, db.Revision, db.Addition),
 		Built:         db.Time{Time: time.Now().Add(-48 * time.Hour)},
 	}
 	writeTestDB(t, c.fs, dbDir)
@@ -118,21 +118,15 @@ func writeTestDescriptionToDB(t *testing.T, dir string, desc db.Description) str
 		t.Fatalf("failed to delete existing DB metadata record: %v", err)
 	}
 
-	mod, ok := desc.SchemaVersion.ModelPart()
-	require.True(t, ok)
-
-	revision, ok := desc.SchemaVersion.RevisionPart()
-	require.True(t, ok)
-
-	addition, ok := desc.SchemaVersion.AdditionPart()
-	require.True(t, ok)
+	require.NotEmpty(t, desc.SchemaVersion.Model)
+	require.NotEmpty(t, desc.SchemaVersion.String())
 
 	ts := time.Now().UTC()
 	instance := &db.DBMetadata{
 		BuildTimestamp: &ts,
-		Model:          mod,
-		Revision:       revision,
-		Addition:       addition,
+		Model:          desc.SchemaVersion.Model,
+		Revision:       desc.SchemaVersion.Revision,
+		Addition:       desc.SchemaVersion.Revision,
 	}
 
 	require.NoError(t, d.Create(instance).Error)
@@ -567,7 +561,7 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 	t.Run("unsupported database version", func(t *testing.T) {
 		c, d := newCurator(t)
 
-		d.SchemaVersion = schemaver.NewString(db.ModelVersion-1, 0, 0)
+		d.SchemaVersion = schemaver.New(db.ModelVersion-1, 0, 0)
 
 		_, _, err := c.validateIntegrity(d, c.config.DBFilePath(), true)
 		require.ErrorContains(t, err, "unsupported database version")
@@ -684,52 +678,52 @@ func TestReplaceDB(t *testing.T) {
 func Test_isRehydrationNeeded(t *testing.T) {
 	tests := []struct {
 		name               string
-		currentDBVersion   schemaver.String
-		hydrationClientVer schemaver.String
-		currentClientVer   schemaver.String
+		currentDBVersion   schemaver.SchemaVer
+		hydrationClientVer schemaver.SchemaVer
+		currentClientVer   schemaver.SchemaVer
 		expectedResult     bool
 		expectedErr        string
 	}{
 		{
 			name:             "no database exists",
-			currentDBVersion: "",
-			currentClientVer: schemaver.NewString(6, 2, 0),
+			currentDBVersion: schemaver.SchemaVer{},
+			currentClientVer: schemaver.New(6, 2, 0),
 			expectedResult:   false,
 		},
 		{
 			name:             "no import metadata exists",
-			currentDBVersion: schemaver.NewString(6, 0, 0),
-			currentClientVer: schemaver.NewString(6, 2, 0),
+			currentDBVersion: schemaver.New(6, 0, 0),
+			currentClientVer: schemaver.New(6, 2, 0),
 			expectedErr:      "missing import metadata",
 			expectedResult:   false,
 		},
 		{
 			name:               "invalid client version in metadata",
-			currentDBVersion:   schemaver.NewString(6, 0, 0),
-			hydrationClientVer: schemaver.String("not.valid.version"),
-			currentClientVer:   schemaver.NewString(6, 2, 0),
+			currentDBVersion:   schemaver.New(6, 0, 0),
+			hydrationClientVer: schemaver.SchemaVer{-19, 0, 0},
+			currentClientVer:   schemaver.New(6, 2, 0),
 			expectedResult:     false,
 			expectedErr:        "unable to parse client version from import metadata",
 		},
 		{
 			name:               "rehydration needed",
-			currentDBVersion:   schemaver.NewString(6, 0, 1),
-			hydrationClientVer: schemaver.NewString(6, 0, 0),
-			currentClientVer:   schemaver.NewString(6, 0, 2),
+			currentDBVersion:   schemaver.New(6, 0, 1),
+			hydrationClientVer: schemaver.New(6, 0, 0),
+			currentClientVer:   schemaver.New(6, 0, 2),
 			expectedResult:     true,
 		},
 		{
 			name:               "no rehydration needed - client version equals current client version",
-			currentDBVersion:   schemaver.NewString(6, 0, 0),
-			hydrationClientVer: schemaver.NewString(6, 2, 0),
-			currentClientVer:   schemaver.NewString(6, 2, 0),
+			currentDBVersion:   schemaver.New(6, 0, 0),
+			hydrationClientVer: schemaver.New(6, 2, 0),
+			currentClientVer:   schemaver.New(6, 2, 0),
 			expectedResult:     false,
 		},
 		{
 			name:               "no rehydration needed - client version greater than current client version",
-			currentDBVersion:   schemaver.NewString(6, 0, 0),
-			hydrationClientVer: schemaver.NewString(6, 3, 0),
-			currentClientVer:   schemaver.NewString(6, 2, 0),
+			currentDBVersion:   schemaver.New(6, 0, 0),
+			hydrationClientVer: schemaver.New(6, 3, 0),
+			currentClientVer:   schemaver.New(6, 2, 0),
 			expectedResult:     false,
 		},
 	}
@@ -739,11 +733,16 @@ func Test_isRehydrationNeeded(t *testing.T) {
 			fs := afero.NewOsFs()
 			testDir := t.TempDir()
 
-			if tt.hydrationClientVer != "" {
+			if tt.hydrationClientVer.Model != 0 {
 				writeTestImportMetadataWithCustomVersion(t, fs, testDir, "xxh64:something", tt.hydrationClientVer.String())
 			}
 
-			result, err := isRehydrationNeeded(fs, testDir, tt.currentDBVersion, tt.currentClientVer)
+			var dbVersion *schemaver.SchemaVer
+			if tt.currentDBVersion.Model != 0 {
+				dbVersion = &tt.currentDBVersion
+			}
+
+			result, err := isRehydrationNeeded(fs, testDir, dbVersion, tt.currentClientVer)
 
 			if tt.expectedErr != "" {
 				require.Error(t, err)

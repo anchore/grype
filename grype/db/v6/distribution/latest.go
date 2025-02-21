@@ -41,7 +41,7 @@ type Archive struct {
 func NewLatestDocument(entries ...Archive) *LatestDocument {
 	var validEntries []Archive
 	for _, entry := range entries {
-		if modelPart, ok := entry.SchemaVersion.ModelPart(); ok && modelPart == db.ModelVersion {
+		if entry.SchemaVersion.Model == db.ModelVersion {
 			validEntries = append(validEntries, entry)
 		}
 	}
@@ -82,7 +82,7 @@ func NewArchive(path string, t time.Time, model, revision, addition int) (*Archi
 
 	return &Archive{
 		Description: db.Description{
-			SchemaVersion: schemaver.NewString(model, revision, addition),
+			SchemaVersion: schemaver.New(model, revision, addition),
 			Built:         db.Time{Time: t},
 		},
 		// this is not the path on disk, this is the path relative to the latest.json file when hosted
@@ -92,7 +92,7 @@ func NewArchive(path string, t time.Time, model, revision, addition int) (*Archi
 }
 
 func (l LatestDocument) Write(writer io.Writer) error {
-	if l.SchemaVersion == "" {
+	if l.SchemaVersion.Model == 0 {
 		return fmt.Errorf("missing schema version")
 	}
 

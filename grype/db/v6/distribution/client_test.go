@@ -15,6 +15,7 @@ import (
 	"github.com/wagoodman/go-progress"
 
 	db "github.com/anchore/grype/grype/db/v6"
+	"github.com/anchore/grype/internal/schemaver"
 )
 
 func TestClient_LatestFromURL(t *testing.T) {
@@ -31,7 +32,7 @@ func TestClient_LatestFromURL(t *testing.T) {
 					Status: "active",
 					Archive: Archive{
 						Description: db.Description{
-							SchemaVersion: "1.0.0",
+							SchemaVersion: schemaver.New(1, 0, 0),
 							Built:         db.Time{Time: time.Date(2023, 9, 26, 12, 0, 0, 0, time.UTC)},
 						},
 						Path:     "path/to/archive",
@@ -51,7 +52,7 @@ func TestClient_LatestFromURL(t *testing.T) {
 				Status: "active",
 				Archive: Archive{
 					Description: db.Description{
-						SchemaVersion: "1.0.0",
+						SchemaVersion: schemaver.New(1, 0, 0),
 						Built:         db.Time{Time: time.Date(2023, 9, 26, 12, 0, 0, 0, time.UTC)},
 					},
 					Path:     "path/to/archive",
@@ -189,7 +190,7 @@ func TestClient_Download(t *testing.T) {
 
 func TestClient_IsUpdateAvailable(t *testing.T) {
 	current := &db.Description{
-		SchemaVersion: "1.0.0",
+		SchemaVersion: schemaver.New(1, 0, 0),
 		Built:         db.Time{Time: time.Date(2023, 9, 26, 12, 0, 0, 0, time.UTC)},
 	}
 
@@ -205,7 +206,7 @@ func TestClient_IsUpdateAvailable(t *testing.T) {
 				Status: StatusActive,
 				Archive: Archive{
 					Description: db.Description{
-						SchemaVersion: "1.0.0",
+						SchemaVersion: schemaver.New(1, 0, 0),
 						Built:         db.Time{Time: time.Date(2023, 9, 27, 12, 0, 0, 0, time.UTC)},
 					},
 					Path:     "path/to/archive.tar.gz",
@@ -214,7 +215,7 @@ func TestClient_IsUpdateAvailable(t *testing.T) {
 			},
 			archive: &Archive{
 				Description: db.Description{
-					SchemaVersion: "1.0.0",
+					SchemaVersion: schemaver.New(1, 0, 0),
 					Built:         db.Time{Time: time.Date(2023, 9, 27, 12, 0, 0, 0, time.UTC)},
 				},
 				Path:     "path/to/archive.tar.gz",
@@ -227,7 +228,7 @@ func TestClient_IsUpdateAvailable(t *testing.T) {
 				Status: "active",
 				Archive: Archive{
 					Description: db.Description{
-						SchemaVersion: "1.0.0",
+						SchemaVersion: schemaver.New(1, 0, 0),
 						Built:         db.Time{Time: time.Date(2023, 9, 26, 12, 0, 0, 0, time.UTC)},
 					},
 					Path:     "path/to/archive.tar.gz",
@@ -247,7 +248,7 @@ func TestClient_IsUpdateAvailable(t *testing.T) {
 				Status: StatusDeprecated,
 				Archive: Archive{
 					Description: db.Description{
-						SchemaVersion: "1.0.0",
+						SchemaVersion: schemaver.New(1, 0, 0),
 						Built:         db.Time{Time: time.Date(2023, 9, 27, 12, 0, 0, 0, time.UTC)},
 					},
 					Path:     "path/to/archive.tar.gz",
@@ -256,7 +257,7 @@ func TestClient_IsUpdateAvailable(t *testing.T) {
 			},
 			archive: &Archive{
 				Description: db.Description{
-					SchemaVersion: "1.0.0",
+					SchemaVersion: schemaver.New(1, 0, 0),
 					Built:         db.Time{Time: time.Date(2023, 9, 27, 12, 0, 0, 0, time.UTC)},
 				},
 				Path:     "path/to/archive.tar.gz",
@@ -270,7 +271,7 @@ func TestClient_IsUpdateAvailable(t *testing.T) {
 				Status: StatusEndOfLife,
 				Archive: Archive{
 					Description: db.Description{
-						SchemaVersion: "1.0.0",
+						SchemaVersion: schemaver.New(1, 0, 0),
 						Built:         db.Time{Time: time.Date(2023, 9, 27, 12, 0, 0, 0, time.UTC)},
 					},
 					Path:     "path/to/archive.tar.gz",
@@ -279,7 +280,7 @@ func TestClient_IsUpdateAvailable(t *testing.T) {
 			},
 			archive: &Archive{
 				Description: db.Description{
-					SchemaVersion: "1.0.0",
+					SchemaVersion: schemaver.New(1, 0, 0),
 					Built:         db.Time{Time: time.Date(2023, 9, 27, 12, 0, 0, 0, time.UTC)},
 				},
 				Path:     "path/to/archive.tar.gz",
@@ -308,22 +309,22 @@ func TestDatabaseDescription_IsSupersededBy(t *testing.T) {
 	t2 := time.Date(2023, 9, 27, 12, 0, 0, 0, time.UTC)
 
 	currentMetadata := db.Description{
-		SchemaVersion: "1.0.0",
+		SchemaVersion: schemaver.New(1, 0, 0),
 		Built:         db.Time{Time: t1},
 	}
 
 	newerMetadata := db.Description{
-		SchemaVersion: "1.0.0",
+		SchemaVersion: schemaver.New(1, 0, 0),
 		Built:         db.Time{Time: t2},
 	}
 
 	olderMetadata := db.Description{
-		SchemaVersion: "1.0.0",
+		SchemaVersion: schemaver.New(1, 0, 0),
 		Built:         db.Time{Time: t1},
 	}
 
 	differentModelMetadata := db.Description{
-		SchemaVersion: "2.0.0",
+		SchemaVersion: schemaver.New(2, 0, 0),
 		Built:         db.Time{Time: t2},
 	}
 

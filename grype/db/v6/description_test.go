@@ -29,7 +29,7 @@ func TestReadDescription(t *testing.T) {
 	require.NotNil(t, description)
 
 	assert.Equal(t, Description{
-		SchemaVersion: schemaver.NewString(expected.Model, expected.Revision, expected.Addition),
+		SchemaVersion: schemaver.New(expected.Model, expected.Revision, expected.Addition),
 		Built:         Time{*expected.BuildTimestamp},
 	}, *description)
 }

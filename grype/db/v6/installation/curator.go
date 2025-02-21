@@ -95,12 +95,13 @@ func (c curator) Reader() (db.Reader, error) {
 		return nil, fmt.Errorf("unable to get vulnerability store metadata: %w", err)
 	}
 
-	var currentDBSchemaVersion schemaver.String
+	var currentDBSchemaVersion *schemaver.SchemaVer
 	if m != nil {
-		currentDBSchemaVersion = schemaver.NewString(m.Model, m.Revision, m.Addition)
+		v := schemaver.New(m.Model, m.Revision, m.Addition)
+		currentDBSchemaVersion = &v
 	}
 
-	doRehydrate, err := isRehydrationNeeded(c.fs, c.config.DBDirectoryPath(), currentDBSchemaVersion, schemaver.NewString(db.ModelVersion, db.Revision, db.Addition))
+	doRehydrate, err := isRehydrationNeeded(c.fs, c.config.DBDirectoryPath(), currentDBSchemaVersion, schemaver.New(db.ModelVersion, db.Revision, db.Addition))
 	if err != nil {
 		log.WithFields("error", err).Warn("unable to check if DB needs to be rehydrated")
 	} else if doRehydrate {
@@ -287,8 +288,8 @@ func (c curator) update(current *db.Description) (*distribution.Archive, error) 
 	return update, nil
 }
 
-func isRehydrationNeeded(fs afero.Fs, dirPath string, currentDBVersion schemaver.String, currentClientVersion schemaver.String) (bool, error) {
-	if currentDBVersion == "" {
+func isRehydrationNeeded(fs afero.Fs, dirPath string, currentDBVersion *schemaver.SchemaVer, currentClientVersion schemaver.SchemaVer) (bool, error) {
+	if currentDBVersion == nil {
 		// there is no DB to rehydrate
 		return false, nil
 	}
@@ -301,12 +302,12 @@ func isRehydrationNeeded(fs afero.Fs, dirPath string, currentDBVersion schemaver
 		return false, fmt.Errorf("missing import metadata")
 	}
 
-	clientHydrationVersion, err := schemaver.ParseAsString(importMetadata.ClientVersion)
+	clientHydrationVersion, err := schemaver.Parse(importMetadata.ClientVersion)
 	if err != nil {
 		return false, fmt.Errorf("unable to parse client version from import metadata: %w", err)
 	}
 
-	hydratedWithOldClient := clientHydrationVersion.LessThan(currentDBVersion)
+	hydratedWithOldClient := clientHydrationVersion.LessThan(*currentDBVersion)
 	haveNewerClient := clientHydrationVersion.LessThan(currentClientVersion)
 	doRehydrate := hydratedWithOldClient && haveNewerClient
 
@@ -486,9 +487,8 @@ func (c curator) validateIntegrity(description *db.Description, dbFilePath strin
 		return nil, "", fmt.Errorf("database not found: %s", dbFilePath)
 	}
 
-	gotModel, ok := description.SchemaVersion.ModelPart()
-	if !ok || gotModel != db.ModelVersion {
-		return nil, "", fmt.Errorf("unsupported database version: have=%d want=%d", gotModel, db.ModelVersion)
+	if description.SchemaVersion.Model != db.ModelVersion {
+		return nil, "", fmt.Errorf("unsupported database version: have=%d want=%d", description.SchemaVersion.Model, db.ModelVersion)
 	}
 
 	if _, err := c.fs.Stat(dbFilePath); err != nil {

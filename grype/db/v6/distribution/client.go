@@ -230,15 +230,15 @@ func isSupersededBy(current *v6.Description, candidate v6.Description) bool {
 		return true
 	}
 
-	otherModelPart, otherOk := candidate.SchemaVersion.ModelPart()
-	currentModelPart, currentOk := current.SchemaVersion.ModelPart()
+	otherModelPart := candidate.SchemaVersion.Model
+	currentModelPart := current.SchemaVersion.Model
 
-	if !currentOk {
+	if currentModelPart == 0 {
 		log.Error("existing database has no schema version, doing nothing...")
 		return false
 	}
 
-	if !otherOk {
+	if otherModelPart == 0 {
 		log.Error("update has no schema version, doing nothing...")
 		return false
 	}
