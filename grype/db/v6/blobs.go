@@ -205,9 +205,7 @@ type KnownExploitedVulnerabilityBlob struct {
 	Cve                        string     `json:"cve"`
 	VendorProject              string     `json:"vendor_project,omitempty"`
 	Product                    string     `json:"product,omitempty"`
-	VulnerabilityName          string     `json:"vulnerability_name,omitempty"`
 	DateAdded                  *time.Time `json:"date_added,omitempty"`
-	ShortDescription           string     `json:"short_description,omitempty"`
 	RequiredAction             string     `json:"required_action,omitempty"`
 	DueDate                    *time.Time `json:"due_date,omitempty"`
 	KnownRansomwareCampaignUse string     `json:"known_ransomware_campaign_use,omitempty"`
