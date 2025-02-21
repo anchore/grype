@@ -11,7 +11,6 @@ import (
 	"github.com/anchore/grype/grype"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/db/v6/installation"
-	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/format/spdxjson"
 	"github.com/anchore/syft/syft/format/spdxtagvalue"
@@ -25,7 +24,7 @@ func getLatestURL() string {
 	if value, ok := os.LookupEnv("GRYPE_DB_UPDATE_URL"); ok {
 		return value
 	}
-	return internal.DBUpdateURL
+	return distribution.DefaultConfig().LatestURL
 }
 
 func must(e sbom.FormatEncoder, err error) sbom.FormatEncoder {
