@@ -16,7 +16,6 @@ import (
 	"github.com/wagoodman/go-progress"
 
 	"github.com/anchore/clio"
-	"github.com/anchore/grype/grype/db"
 	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/file"
@@ -183,13 +182,13 @@ func (c client) Latest() (*LatestDocument, error) {
 }
 
 func (c client) latestURL() string {
-	url := c.config.LatestURL
+	u := c.config.LatestURL
 	// allow path to be specified directly to a json file, or the path without version information
-	if !strings.HasSuffix(url, ".json") {
-		url = strings.TrimRight(url, "/")
-		url = fmt.Sprintf("%s/v%d/%s", url, db.SchemaVersion, LatestFileName)
+	if !strings.HasSuffix(u, ".json") {
+		u = strings.TrimRight(u, "/")
+		u = fmt.Sprintf("%s/v%d/%s", u, v6.ModelVersion, LatestFileName)
 	}
-	return url
+	return u
 }
 
 func withClientTimeout(timeout time.Duration) func(*http.Client) {
