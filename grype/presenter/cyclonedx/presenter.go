@@ -58,6 +58,10 @@ func (pres *Presenter) Present(output io.Writer) error {
 	// a consistent cyclondx BOM across syft and grype
 	cyclonedxBOM := cyclonedxhelpers.ToFormatModel(*pres.sbom)
 
+	// fix typed nils: `(*[]cyclonedx.Hash)(nil)` != nil, and does not omitempty
+	fixTypedNil(cyclonedxBOM.Metadata.Component)
+	fixTypedNils(cyclonedxBOM.Components)
+
 	// empty the tool metadata and add grype metadata
 	cyclonedxBOM.Metadata.Tools = &cyclonedx.ToolsChoice{
 		Components: &[]cyclonedx.Component{
@@ -84,4 +88,23 @@ func (pres *Presenter) Present(output io.Writer) error {
 	enc.SetEscapeHTML(false)
 
 	return enc.Encode(cyclonedxBOM)
+}
+
+func fixTypedNils(c *[]cyclonedx.Component) {
+	if c == nil {
+		return
+	}
+	for i := range *c {
+		fixTypedNil(&(*c)[i])
+	}
+}
+
+func fixTypedNil(c *cyclonedx.Component) {
+	if c == nil {
+		return
+	}
+	if c.Hashes != nil && len(*c.Hashes) == 0 {
+		c.Hashes = nil
+	}
+	fixTypedNils(c.Components)
 }
