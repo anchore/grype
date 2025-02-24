@@ -5,6 +5,7 @@ import (
 	"flag"
 	"testing"
 
+	"github.com/CycloneDX/cyclonedx-go"
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/clio"
@@ -14,6 +15,26 @@ import (
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for cyclonedx presenters")
+
+func Test_noTypedNilsInEncodeBOM(t *testing.T) {
+	var s []cyclonedx.Hash
+	var tmp any = &s
+	bom := cyclonedx.BOM{
+		SpecVersion: cyclonedx.SpecVersion1_5,
+		Components: &[]cyclonedx.Component{
+			{
+				Type:   cyclonedx.ComponentTypeFile,
+				Hashes: tmp.(*[]cyclonedx.Hash),
+			},
+		},
+	}
+
+	buf := bytes.Buffer{}
+	err := encodeBOM(&bom, cyclonedx.BOMFileFormatJSON, &buf)
+	require.NoError(t, err)
+
+	require.NotContains(t, buf.String(), `"hashes"`)
+}
 
 func TestCycloneDxPresenterImage(t *testing.T) {
 	var buffer bytes.Buffer

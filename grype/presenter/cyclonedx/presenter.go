@@ -79,9 +79,38 @@ func (pres *Presenter) Present(output io.Writer) error {
 		vulns = append(vulns, v)
 	}
 	cyclonedxBOM.Vulnerabilities = &vulns
-	enc := cyclonedx.NewBOMEncoder(output, pres.format)
+	return encodeBOM(cyclonedxBOM, pres.format, output)
+}
+
+func encodeBOM(bom *cyclonedx.BOM, format cyclonedx.BOMFileFormat, writer io.Writer) error {
+	// fix typed nils: `(*[]cyclonedx.Hash)(nil)` != nil, and does not omitempty
+	if bom.Metadata != nil {
+		fixTypedNil(bom.Metadata.Component)
+	}
+	fixTypedNils(bom.Components)
+
+	enc := cyclonedx.NewBOMEncoder(writer, format)
 	enc.SetPretty(true)
 	enc.SetEscapeHTML(false)
 
-	return enc.Encode(cyclonedxBOM)
+	return enc.Encode(bom)
+}
+
+func fixTypedNils(c *[]cyclonedx.Component) {
+	if c == nil {
+		return
+	}
+	for i := range *c {
+		fixTypedNil(&(*c)[i])
+	}
+}
+
+func fixTypedNil(c *cyclonedx.Component) {
+	if c == nil {
+		return
+	}
+	if c.Hashes != nil && len(*c.Hashes) == 0 {
+		c.Hashes = nil
+	}
+	fixTypedNils(c.Components)
 }

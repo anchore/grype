@@ -51,6 +51,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 	// exceptions: rust, php, dart, msrc (kb), etc. are not under test
 	definedPkgTypes.Remove(
 		string(syftPkg.BinaryPkg), // these are removed due to overlap-by-file-ownership
+		string(syftPkg.BitnamiPkg),
 		string(syftPkg.PhpPeclPkg),
 		string(syftPkg.RustPkg),
 		string(syftPkg.KbPkg),
@@ -72,6 +73,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		string(syftPkg.SwiftPkg),
 		string(syftPkg.GithubActionPkg),
 		string(syftPkg.GithubActionWorkflowPkg),
+		string(syftPkg.GraalVMNativeImagePkg),
 		string(syftPkg.ErlangOTPPkg),
 		string(syftPkg.WordpressPluginPkg), // TODO: remove me when there is a matcher for this merged in https://github.com/anchore/grype/pull/1553
 		string(syftPkg.LuaRocksPkg),
