@@ -58,10 +58,6 @@ func (pres *Presenter) Present(output io.Writer) error {
 	// a consistent cyclondx BOM across syft and grype
 	cyclonedxBOM := cyclonedxhelpers.ToFormatModel(*pres.sbom)
 
-	// fix typed nils: `(*[]cyclonedx.Hash)(nil)` != nil, and does not omitempty
-	fixTypedNil(cyclonedxBOM.Metadata.Component)
-	fixTypedNils(cyclonedxBOM.Components)
-
 	// empty the tool metadata and add grype metadata
 	cyclonedxBOM.Metadata.Tools = &cyclonedx.ToolsChoice{
 		Components: &[]cyclonedx.Component{
@@ -83,11 +79,21 @@ func (pres *Presenter) Present(output io.Writer) error {
 		vulns = append(vulns, v)
 	}
 	cyclonedxBOM.Vulnerabilities = &vulns
-	enc := cyclonedx.NewBOMEncoder(output, pres.format)
+	return encodeBOM(cyclonedxBOM, pres.format, output)
+}
+
+func encodeBOM(bom *cyclonedx.BOM, format cyclonedx.BOMFileFormat, writer io.Writer) error {
+	// fix typed nils: `(*[]cyclonedx.Hash)(nil)` != nil, and does not omitempty
+	if bom.Metadata != nil {
+		fixTypedNil(bom.Metadata.Component)
+	}
+	fixTypedNils(bom.Components)
+
+	enc := cyclonedx.NewBOMEncoder(writer, format)
 	enc.SetPretty(true)
 	enc.SetEscapeHTML(false)
 
-	return enc.Encode(cyclonedxBOM)
+	return enc.Encode(bom)
 }
 
 func fixTypedNils(c *[]cyclonedx.Component) {
