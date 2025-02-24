@@ -133,6 +133,9 @@
         "ID": {
           "type": "integer"
         },
+        "PackageID": {
+          "type": "integer"
+        },
         "Part": {
           "type": "string"
         },
@@ -159,17 +162,12 @@
         },
         "Other": {
           "type": "string"
-        },
-        "Packages": {
-          "items": {
-            "$ref": "#/$defs/Package"
-          },
-          "type": "array"
         }
       },
       "type": "object",
       "required": [
         "ID",
+        "PackageID",
         "Part",
         "Vendor",
         "Product",
@@ -178,8 +176,7 @@
         "SoftwareEdition",
         "TargetHardware",
         "TargetSoftware",
-        "Other",
-        "Packages"
+        "Other"
       ]
     },
     "EPSS": {
