@@ -101,7 +101,27 @@ func (v rpmVersion) compare(v2 rpmVersion) int {
 		return ret
 	}
 
-	return compareRpmVersions(v.release, v2.release)
+	return compareRpmReleases(v.release, v2.release)
+}
+
+// compareRpmReleases normalizes two release strigns before
+// calling compareRpmVersions to compare them.
+// It normalize the release strings by removing the build number
+// from the end:
+// "1.module_el8.3.0+757+d382997d" -> "1.module_el8.3.0"
+// This is important because the build numbers are not identical between CentOS
+// 8 and RHEL 8, even for the same package version, leading to FPs or FNs.
+func compareRpmReleases(a, b string) int {
+	if a == b {
+		return 0
+	}
+
+	a = strings.Replace(a, "module+el", "module_el", 1)
+	b = strings.Replace(b, "module+el", "module_el", 1)
+
+	trimmedA, _, _ := strings.Cut(a, "+")
+	trimmedB, _, _ := strings.Cut(b, "+")
+	return compareRpmVersions(trimmedA, trimmedB)
 }
 
 func epochIsPresent(epoch *int) bool {
