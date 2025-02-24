@@ -114,7 +114,7 @@ func writeTestDescriptionToDB(t *testing.T, dir string, desc db.Description) str
 	d, err := db.NewLowLevelDB(c.DBFilePath(), false, true, true)
 	require.NoError(t, err)
 
-	if err := d.Unscoped().Where("true").Delete(&db.DBMetadata{}).Error; err != nil {
+	if err := d.Where("true").Delete(&db.DBMetadata{}).Error; err != nil {
 		t.Fatalf("failed to delete existing DB metadata record: %v", err)
 	}
 
