@@ -27,7 +27,7 @@ func ReadImportMetadata(fs afero.Fs, dir string) (*ImportMetadata, error) {
 	checksumsFilePath := filepath.Join(dir, ImportMetadataFileName)
 
 	if _, err := fs.Stat(checksumsFilePath); os.IsNotExist(err) {
-		return nil, nil
+		return nil, fmt.Errorf("no import metadata file at: %v", checksumsFilePath)
 	}
 
 	content, err := afero.ReadFile(fs, checksumsFilePath)
@@ -36,7 +36,7 @@ func ReadImportMetadata(fs afero.Fs, dir string) (*ImportMetadata, error) {
 	}
 
 	if len(content) == 0 {
-		return nil, nil
+		return nil, fmt.Errorf("no import metadata found at: %v", checksumsFilePath)
 	}
 
 	var doc ImportMetadata

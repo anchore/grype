@@ -114,9 +114,11 @@ result-sets:
           # By pinning the DB the grype code itself becomes the independent variable under test (and not the
           # every-changing DB). That being said, we should be updating this DB periodically to ensure what we
           # are testing with is not too stale.
-          # version: git:current-commit+import-db=db.tar.gz
+          # version: git:current-commit+import-db=db.tar.zst
           # for local build of grype, use for example:
-          version: path:../../+import-db=db.tar.gz
+# we need to disable this while we are in pre-release of v6 (restore after release of v6)
+#          version: path:../../+import-db=db.tar.zst
+          version: path:../../
           takes: SBOM
           label: candidate
 
@@ -126,7 +128,9 @@ result-sets:
           # By pinning the DB the grype code itself becomes the independent variable under test (and not the
           # every-changing DB). That being said, we should be updating this DB periodically to ensure what we
           # are testing with is not too stale.
-          version: latest+import-db=db.tar.gz
+# we need to disable this while we are in pre-release of v6 (restore after release of v6)
+#          version: latest+import-db=db.tar.zst
+          version: latest
           takes: SBOM
           label: reference
   pr_vs_latest_via_sbom_2022:
@@ -155,9 +159,11 @@ result-sets:
           # By pinning the DB the grype code itself becomes the independent variable under test (and not the
           # every-changing DB). That being said, we should be updating this DB periodically to ensure what we
           # are testing with is not too stale.
-          # version: git:current-commit+import-db=db.tar.gz
+          # version: git:current-commit+import-db=db.tar.zst
           # for local build of grype, use for example:
-          version: path:../../+import-db=db.tar.gz
+# we need to disable this while we are in pre-release of v6 (restore after release of v6)
+#          version: path:../../+import-db=db.tar.zst
+          version: path:../../
           takes: SBOM
           label: candidate # is candidate better than the current baseline?
 
@@ -167,6 +173,8 @@ result-sets:
           # By pinning the DB the grype code itself becomes the independent variable under test (and not the
           # every-changing DB). That being said, we should be updating this DB periodically to ensure what we
           # are testing with is not too stale.
-          version: latest+import-db=db.tar.gz
+# we need to disable this while we are in pre-release of v6 (restore after release of v6)
+#          version: latest+import-db=db.tar.zst
+          version: latest
           takes: SBOM
           label: reference # this run is the current baseline

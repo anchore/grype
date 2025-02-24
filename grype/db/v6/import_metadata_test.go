@@ -25,10 +25,12 @@ func TestReadImportMetadata(t *testing.T) {
 		{
 			name:        "file does not exist",
 			fileContent: "",
+			expectedErr: "no import metadata",
 		},
 		{
-			name:      "empty file",
-			emptyFile: true,
+			name:        "empty file",
+			emptyFile:   true,
+			expectedErr: "no import metadata",
 		},
 		{
 			name:        "invalid json",

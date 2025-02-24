@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/wagoodman/go-progress"
 
+	"github.com/anchore/clio"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/internal/schemaver"
@@ -48,7 +49,7 @@ func (m *mockClient) Latest() (*distribution.LatestDocument, error) {
 
 func newTestCurator(t *testing.T) curator {
 	tempDir := t.TempDir()
-	cfg := DefaultConfig()
+	cfg := testConfig()
 	cfg.DBRootDir = tempDir
 
 	ci, err := NewCurator(cfg, new(mockClient))
@@ -212,7 +213,7 @@ func TestCurator_Update(t *testing.T) {
 
 		updated, err := c.Update()
 
-		require.NoError(t, err)
+		require.Error(t, err)
 		require.False(t, updated)
 		require.NoFileExists(t, filepath.Join(c.config.DBDirectoryPath(), lastUpdateCheckFileName))
 
@@ -259,7 +260,7 @@ func TestCurator_IsUpdateCheckAllowed(t *testing.T) {
 	newCurator := func(t *testing.T) curator {
 		tempDir := t.TempDir()
 
-		cfg := DefaultConfig()
+		cfg := testConfig()
 		cfg.UpdateCheckMaxFrequency = 10 * time.Minute
 		cfg.DBRootDir = tempDir
 
@@ -316,7 +317,7 @@ func TestCurator_DurationSinceUpdateCheck(t *testing.T) {
 	newCurator := func(t *testing.T) curator {
 		tempDir := t.TempDir()
 
-		cfg := DefaultConfig()
+		cfg := testConfig()
 		cfg.DBRootDir = tempDir
 
 		ci, err := NewCurator(cfg, nil)
@@ -364,7 +365,7 @@ func TestCurator_SetLastSuccessfulUpdateCheck(t *testing.T) {
 	newCurator := func(t *testing.T) curator {
 		tempDir := t.TempDir()
 
-		cfg := DefaultConfig()
+		cfg := testConfig()
 		cfg.DBRootDir = tempDir
 
 		ci, err := NewCurator(cfg, nil)
@@ -411,10 +412,10 @@ func TestCurator_SetLastSuccessfulUpdateCheck(t *testing.T) {
 	})
 }
 
-func TestCurator_EnsureNotStale(t *testing.T) {
+func TestCurator_validateAge(t *testing.T) {
 	newCurator := func(t *testing.T) curator {
 		tempDir := t.TempDir()
-		cfg := DefaultConfig()
+		cfg := testConfig()
 		cfg.DBRootDir = tempDir
 		cfg.MaxAllowedBuiltAge = 48 * time.Hour // set max age to 48 hours
 
@@ -488,16 +489,16 @@ func TestCurator_EnsureNotStale(t *testing.T) {
 				tt.modifyConfig(&c.config)
 			}
 
-			err := c.ensureNotStale(tt.description)
+			err := c.validateAge(tt.description)
 			tt.wantErr(t, err)
 		})
 	}
 }
 
-func TestCurator_ValidateIntegrity(t *testing.T) {
+func TestCurator_validateIntegrity(t *testing.T) {
 	newCurator := func(t *testing.T) (curator, *db.Description) {
 		tempDir := t.TempDir()
-		cfg := DefaultConfig()
+		cfg := testConfig()
 		cfg.DBRootDir = tempDir
 
 		require.NoError(t, os.MkdirAll(cfg.DBDirectoryPath(), 0755))
@@ -525,9 +526,8 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 	t.Run("valid metadata with correct checksum", func(t *testing.T) {
 		c, d := newCurator(t)
 
-		result, digest, err := c.validateIntegrity(d, c.config.DBFilePath(), true)
+		digest, err := c.validateIntegrity(d)
 		require.NoError(t, err)
-		require.NotNil(t, result)
 		require.NotEmpty(t, digest)
 	})
 
@@ -536,7 +536,7 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 
 		require.NoError(t, os.Remove(c.config.DBFilePath()))
 
-		_, _, err := c.validateIntegrity(d, c.config.DBFilePath(), true)
+		_, err := c.validateIntegrity(d)
 		require.ErrorContains(t, err, "database does not exist")
 	})
 
@@ -544,8 +544,8 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 		c, d := newCurator(t)
 		dbDir := c.config.DBDirectoryPath()
 		require.NoError(t, os.Remove(filepath.Join(dbDir, db.ImportMetadataFileName)))
-		_, _, err := c.validateIntegrity(d, c.config.DBFilePath(), true)
-		require.ErrorContains(t, err, "missing import metadata")
+		_, err := c.validateIntegrity(d)
+		require.ErrorContains(t, err, "no import metadata")
 	})
 
 	t.Run("invalid checksum", func(t *testing.T) {
@@ -554,7 +554,7 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 
 		writeTestImportMetadata(t, c.fs, dbDir, "xxh64:invalidchecksum")
 
-		_, _, err := c.validateIntegrity(d, c.config.DBFilePath(), true)
+		_, err := c.validateIntegrity(d)
 		require.ErrorContains(t, err, "bad db checksum")
 	})
 
@@ -563,7 +563,7 @@ func TestCurator_ValidateIntegrity(t *testing.T) {
 
 		d.SchemaVersion = schemaver.New(db.ModelVersion-1, 0, 0)
 
-		_, _, err := c.validateIntegrity(d, c.config.DBFilePath(), true)
+		_, err := c.validateIntegrity(d)
 		require.ErrorContains(t, err, "unsupported database version")
 	})
 }
@@ -694,7 +694,7 @@ func Test_isRehydrationNeeded(t *testing.T) {
 			name:             "no import metadata exists",
 			currentDBVersion: schemaver.New(6, 0, 0),
 			currentClientVer: schemaver.New(6, 2, 0),
-			expectedErr:      "missing import metadata",
+			expectedErr:      "unable to read import metadata",
 			expectedResult:   false,
 		},
 		{
@@ -771,4 +771,10 @@ func setupReadOnlyTestDB(t *testing.T, dbDir string) db.Reader {
 	require.NoError(t, err)
 
 	return s
+}
+
+func testConfig() Config {
+	return DefaultConfig(clio.Identification{
+		Name: "grype-test",
+	})
 }

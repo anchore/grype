@@ -28,7 +28,7 @@ func newDBMetadataStore(db *gorm.DB) *dbMetadataStore {
 }
 
 func (s *dbMetadataStore) GetDBMetadata() (*DBMetadata, error) {
-	log.Trace("fetching DB metadata")
+	log.Trace("reading metadata from DB")
 
 	var model DBMetadata
 

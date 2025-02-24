@@ -18,8 +18,8 @@ func TestNewVulnerabilityRows(t *testing.T) {
 			ID:            1,
 			Name:          "CVE-1234-5678",
 			Status:        "active",
-			PublishedDate: ptrTime(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
-			ModifiedDate:  ptrTime(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
+			PublishedDate: ptr(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
+			ModifiedDate:  ptr(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
 			WithdrawnDate: nil,
 			Provider:      &v6.Provider{ID: "provider1"},
 			BlobValue:     &v6.VulnerabilityBlob{Description: "Test description"},
@@ -37,8 +37,8 @@ func TestNewVulnerabilityRows(t *testing.T) {
 				VulnerabilityBlob: v6.VulnerabilityBlob{Description: "Test description"},
 				Provider:          "provider1",
 				Status:            "active",
-				PublishedDate:     ptrTime(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
-				ModifiedDate:      ptrTime(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
+				PublishedDate:     ptr(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
+				ModifiedDate:      ptr(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
 				WithdrawnDate:     nil,
 			},
 			OperatingSystems: []OperatingSystem{
@@ -64,8 +64,8 @@ func TestVulnerabilities(t *testing.T) {
 			ID:            1,
 			Name:          "CVE-1234-5678",
 			Status:        "active",
-			PublishedDate: ptrTime(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
-			ModifiedDate:  ptrTime(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
+			PublishedDate: ptr(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
+			ModifiedDate:  ptr(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
 			Provider:      &v6.Provider{ID: "provider1"},
 			BlobValue:     &v6.VulnerabilityBlob{Description: "Test description"},
 		},
@@ -86,8 +86,8 @@ func TestVulnerabilities(t *testing.T) {
 				VulnerabilityBlob: v6.VulnerabilityBlob{Description: "Test description"},
 				Provider:          "provider1",
 				Status:            "active",
-				PublishedDate:     ptrTime(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
-				ModifiedDate:      ptrTime(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
+				PublishedDate:     ptr(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
+				ModifiedDate:      ptr(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
 				WithdrawnDate:     nil,
 			},
 			OperatingSystems: []OperatingSystem{
@@ -114,10 +114,6 @@ func (m *mockVulnReader) GetVulnerabilities(vuln *v6.VulnerabilitySpecifier, con
 func (m *mockVulnReader) GetAffectedPackages(pkg *v6.PackageSpecifier, config *v6.GetAffectedPackageOptions) ([]v6.AffectedPackageHandle, error) {
 	args := m.Called(pkg, config)
 	return args.Get(0).([]v6.AffectedPackageHandle), args.Error(1)
-}
-
-func ptrTime(t time.Time) *time.Time {
-	return &t
 }
 
 func cmpOpts() []cmp.Option {

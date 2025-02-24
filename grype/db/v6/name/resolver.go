@@ -14,7 +14,7 @@ func FromType(t syftPkg.Type) Resolver {
 	switch t {
 	case syftPkg.PythonPkg:
 		return &PythonResolver{}
-	case syftPkg.JavaPkg:
+	case syftPkg.JavaPkg, syftPkg.JenkinsPluginPkg:
 		return &JavaResolver{}
 	}
 

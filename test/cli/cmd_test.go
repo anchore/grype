@@ -115,6 +115,15 @@ func TestCmd(t *testing.T) {
 				assertRowInStdOut([]string{"Pygments", "2.6.1", "2.7.4", "python", "GHSA-pq64-v7f5-gqh8", "High", "(suppressed)"}),
 			},
 		},
+		{
+			// from: https://github.com/anchore/grype/issues/2412 we need to ensure that explicit ignores in code don't break
+			name: "explicit ignores wired up",
+			args: []string{getFixtureImage(t, "image-java-subprocess")},
+			assertions: []traitAssertion{
+				assertSucceedingReturnCode,
+				assertNotInOutput("CVE-2023-45853"),
+			},
+		},
 	}
 
 	for _, test := range tests {

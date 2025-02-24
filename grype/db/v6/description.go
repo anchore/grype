@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/schemaver"
 )
 
@@ -74,6 +75,8 @@ func ReadDescription(dbFilePath string) (*Description, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read DB description: %w", err)
 	}
+	// we need to ensure readers are closed, or we can see stale reads in new readers!
+	defer log.CloseAndLogError(r, dbFilePath)
 
 	meta, err := r.GetDBMetadata()
 	if err != nil {
