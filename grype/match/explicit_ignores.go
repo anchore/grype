@@ -51,6 +51,12 @@ func init() {
 			vulnerabilities: []string{"CVE-2017-14727"},
 			packages:        []string{"logger"},
 		},
+		// https://github.com/anchore/grype/issues/2412#issuecomment-2663656195
+		{
+			typ:             "deb",
+			vulnerabilities: []string{"CVE-2023-45853"},
+			packages:        []string{"zlib1g", "zlib"},
+		},
 	}
 
 	for _, ignore := range explicitIgnores {
