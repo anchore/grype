@@ -46,6 +46,12 @@ type VulnerabilityInfo struct {
 
 	// WithdrawnDate is the date the vulnerability record was withdrawn
 	WithdrawnDate *time.Time `json:"withdrawn_date,omitempty"`
+
+	// KnownExploited is a list of known exploited vulnerabilities from the CISA KEV dataset
+	KnownExploited []KnownExploited `json:"known_exploited,omitempty"`
+
+	// EPSS is a list of Exploit Prediction Scoring System (EPSS) scores for the vulnerability
+	EPSS []EPSS `json:"epss,omitempty"`
 }
 
 // OperatingSystem represents specific release of an operating system.
@@ -57,10 +63,31 @@ type OperatingSystem struct {
 	Version string `json:"version"`
 }
 
+type KnownExploited struct {
+	CVE                        string   `json:"cve"`
+	VendorProject              string   `json:"vendor_project,omitempty"`
+	Product                    string   `json:"product,omitempty"`
+	DateAdded                  string   `json:"date_added,omitempty"`
+	RequiredAction             string   `json:"required_action,omitempty"`
+	DueDate                    string   `json:"due_date,omitempty"`
+	KnownRansomwareCampaignUse string   `json:"known_ransomware_campaign_use"`
+	Notes                      string   `json:"notes,omitempty"`
+	URLs                       []string `json:"urls,omitempty"`
+	CWEs                       []string `json:"cwes,omitempty"`
+}
+
+type EPSS struct {
+	CVE        string  `json:"cve"`
+	EPSS       float64 `json:"epss"`
+	Percentile float64 `json:"percentile"`
+	Date       string  `json:"date"`
+}
+
 type vulnerabilityAffectedPackageJoin struct {
 	Vulnerability    v6.VulnerabilityHandle
 	OperatingSystems []v6.OperatingSystem
 	AffectedPackages int
+	vulnerabilityDecorations
 }
 
 type VulnerabilitiesOptions struct {
@@ -70,20 +97,16 @@ type VulnerabilitiesOptions struct {
 
 func newVulnerabilityRows(vaps ...vulnerabilityAffectedPackageJoin) (rows []Vulnerability) {
 	for _, vap := range vaps {
-		rows = append(rows, newVulnerabilityRow(vap.Vulnerability, vap.AffectedPackages, vap.OperatingSystems))
+		rows = append(rows, Vulnerability{
+			VulnerabilityInfo: newVulnerabilityInfo(vap.Vulnerability, vap.vulnerabilityDecorations),
+			OperatingSystems:  newOperatingSystems(vap.OperatingSystems),
+			AffectedPackages:  vap.AffectedPackages,
+		})
 	}
 	return rows
 }
 
-func newVulnerabilityRow(vuln v6.VulnerabilityHandle, apCount int, operatingSystems []v6.OperatingSystem) Vulnerability {
-	return Vulnerability{
-		VulnerabilityInfo: newVulnerabilityInfo(vuln),
-		OperatingSystems:  newOperatingSystems(operatingSystems),
-		AffectedPackages:  apCount,
-	}
-}
-
-func newVulnerabilityInfo(vuln v6.VulnerabilityHandle) VulnerabilityInfo {
+func newVulnerabilityInfo(vuln v6.VulnerabilityHandle, vc vulnerabilityDecorations) VulnerabilityInfo {
 	var blob v6.VulnerabilityBlob
 	if vuln.BlobValue != nil {
 		blob = *vuln.BlobValue
@@ -96,6 +119,8 @@ func newVulnerabilityInfo(vuln v6.VulnerabilityHandle) VulnerabilityInfo {
 		PublishedDate:     vuln.PublishedDate,
 		ModifiedDate:      vuln.ModifiedDate,
 		WithdrawnDate:     vuln.WithdrawnDate,
+		KnownExploited:    vc.KnownExploited,
+		EPSS:              vc.EPSS,
 	}
 }
 
@@ -112,6 +137,7 @@ func newOperatingSystems(oss []v6.OperatingSystem) (os []OperatingSystem) {
 func FindVulnerabilities(reader interface { //nolint:funlen
 	v6.VulnerabilityStoreReader
 	v6.AffectedPackageStoreReader
+	v6.VulnerabilityDecoratorStoreReader
 }, config VulnerabilitiesOptions) ([]Vulnerability, error) {
 	log.WithFields("vulnSpecs", len(config.Vulnerability)).Debug("fetching vulnerabilities")
 
@@ -184,6 +210,12 @@ func FindVulnerabilities(reader interface { //nolint:funlen
 
 		if errors.Is(fetchErr, v6.ErrLimitReached) {
 			break
+		}
+	}
+
+	for i := range pairs {
+		if err := decorateVulnerabilities(reader, &pairs[i]); err != nil {
+			return nil, fmt.Errorf("unable to decorate vulnerability: %w", err)
 		}
 	}
 
