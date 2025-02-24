@@ -39,7 +39,7 @@ func (s *dbMetadataStore) GetDBMetadata() (*DBMetadata, error) {
 func (s *dbMetadataStore) SetDBMetadata() error {
 	log.Trace("writing DB metadata")
 
-	if err := s.db.Unscoped().Where("true").Delete(&DBMetadata{}).Error; err != nil {
+	if err := s.db.Where("true").Delete(&DBMetadata{}).Error; err != nil {
 		return fmt.Errorf("failed to delete existing DB metadata record: %w", err)
 	}
 
