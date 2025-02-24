@@ -97,9 +97,10 @@ func (c curator) Reader() (db.Reader, error) {
 		return nil, fmt.Errorf("unable to get vulnerability store metadata: %w", err)
 	}
 
-	var currentDBSchemaVersion schemaver.SchemaVer
+	var currentDBSchemaVersion *schemaver.SchemaVer
 	if m != nil {
-		currentDBSchemaVersion = schemaver.New(m.Model, m.Revision, m.Addition)
+		v := schemaver.New(m.Model, m.Revision, m.Addition)
+		currentDBSchemaVersion = &v
 	}
 
 	doRehydrate, err := isRehydrationNeeded(c.fs, c.config.DBDirectoryPath(), currentDBSchemaVersion, schemaver.New(db.ModelVersion, db.Revision, db.Addition))
@@ -292,8 +293,8 @@ func (c curator) update(current *db.Description) (*distribution.Archive, error) 
 	return update, nil
 }
 
-func isRehydrationNeeded(fs afero.Fs, dirPath string, currentDBVersion schemaver.SchemaVer, currentClientVersion schemaver.SchemaVer) (bool, error) {
-	if currentDBVersion == "" {
+func isRehydrationNeeded(fs afero.Fs, dirPath string, currentDBVersion *schemaver.SchemaVer, currentClientVersion schemaver.SchemaVer) (bool, error) {
+	if currentDBVersion == nil {
 		// there is no DB to rehydrate
 		return false, nil
 	}
@@ -308,7 +309,7 @@ func isRehydrationNeeded(fs afero.Fs, dirPath string, currentDBVersion schemaver
 		return false, fmt.Errorf("unable to parse client version from import metadata: %w", err)
 	}
 
-	hydratedWithOldClient := clientHydrationVersion.LessThan(currentDBVersion)
+	hydratedWithOldClient := clientHydrationVersion.LessThan(*currentDBVersion)
 	haveNewerClient := clientHydrationVersion.LessThan(currentClientVersion)
 	doRehydrate := hydratedWithOldClient && haveNewerClient
 
@@ -492,9 +493,8 @@ func (c curator) validateIntegrity(description *db.Description) (string, error) 
 		return "", fmt.Errorf("database not found: %s", dbFilePath)
 	}
 
-	gotModel, ok := description.SchemaVersion.ModelPart()
-	if !ok || gotModel != db.ModelVersion {
-		return "", fmt.Errorf("unsupported database version: have=%d want=%d", gotModel, db.ModelVersion)
+	if description.SchemaVersion.Model != db.ModelVersion {
+		return "", fmt.Errorf("unsupported database version: have=%d want=%d", description.SchemaVersion.Model, db.ModelVersion)
 	}
 
 	if _, err := c.fs.Stat(dbFilePath); err != nil {

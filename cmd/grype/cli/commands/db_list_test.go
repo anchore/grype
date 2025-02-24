@@ -91,7 +91,7 @@ func TestPresentDBList(t *testing.T) {
 			format: textOutputFormat,
 			latest: latestDoc,
 			expectedText: `Status:   active
-Schema:   6.0.0
+Schema:   v6.0.0
 Built:    2024-11-27T14:43:17Z
 Listing:  http://localhost:8000/latest.json
 DB URL:   http://localhost:8000/vulnerability-db_v6.0.0_2024-11-25T01:31:56Z_1732718597.tar.zst
@@ -106,7 +106,7 @@ Checksum: sha256:16bcb6551c748056f752f299fcdb4fa50fe61589d086be3889e670261ff21ca
 			expectedText: `[
  {
   "status": "active",
-  "schemaVersion": "6.0.0",
+  "schemaVersion": "v6.0.0",
   "built": "2024-11-27T14:43:17Z",
   "path": "vulnerability-db_v6.0.0_2024-11-25T01:31:56Z_1732718597.tar.zst",
   "checksum": "sha256:16bcb6551c748056f752f299fcdb4fa50fe61589d086be3889e670261ff21ca4"

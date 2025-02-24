@@ -295,9 +295,9 @@ func (s *ServerBuilder) buildDB() []byte {
 	db, err := sql.Open("sqlite", dbFile)
 	require.NoError(s.t, err)
 
-	model, _ := s.DBVersion.ModelPart()
-	revision, _ := s.DBVersion.RevisionPart()
-	addition, _ := s.DBVersion.AdditionPart()
+	model := s.DBVersion.Model
+	revision := s.DBVersion.Revision
+	addition := s.DBVersion.Addition
 	_, err = db.Exec("update db_metadata set build_timestamp = ?, model = ?, revision = ?, addition = ?",
 		s.DBBuildTime, model, revision, addition)
 	require.NoError(s.t, err)

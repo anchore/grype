@@ -200,3 +200,16 @@ type AffectedVersion struct {
 	// Constraint defines the version range constraint for affected versions.
 	Constraint string `json:"constraint,omitempty"`
 }
+
+type KnownExploitedVulnerabilityBlob struct {
+	Cve                        string     `json:"cve"`
+	VendorProject              string     `json:"vendor_project,omitempty"`
+	Product                    string     `json:"product,omitempty"`
+	DateAdded                  *time.Time `json:"date_added,omitempty"`
+	RequiredAction             string     `json:"required_action,omitempty"`
+	DueDate                    *time.Time `json:"due_date,omitempty"`
+	KnownRansomwareCampaignUse string     `json:"known_ransomware_campaign_use,omitempty"`
+	Notes                      string     `json:"notes,omitempty"`
+	URLs                       []string   `json:"urls,omitempty"`
+	CWEs                       []string   `json:"cwes,omitempty"`
+}

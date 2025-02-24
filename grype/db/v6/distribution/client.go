@@ -241,21 +241,18 @@ func isSupersededBy(current *v6.Description, candidate v6.Description) bool {
 		return true
 	}
 
-	otherModelPart, otherOk := candidate.SchemaVersion.ModelPart()
-	currentModelPart, currentOk := current.SchemaVersion.ModelPart()
-
-	if !currentOk {
+	if !current.SchemaVersion.Valid() {
 		log.Error("existing database has no schema version, doing nothing...")
 		return false
 	}
 
-	if !otherOk {
+	if !candidate.SchemaVersion.Valid() {
 		log.Error("update has no schema version, doing nothing...")
 		return false
 	}
 
-	if otherModelPart != currentModelPart {
-		log.WithFields("want", currentModelPart, "received", otherModelPart).Warn("update is for a different DB schema, skipping...")
+	if candidate.SchemaVersion.Model != current.SchemaVersion.Model {
+		log.WithFields("want", current.SchemaVersion.Model, "received", candidate.SchemaVersion.Model).Warn("update is for a different DB schema, skipping...")
 		return false
 	}
 

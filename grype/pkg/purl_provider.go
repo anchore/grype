@@ -38,10 +38,49 @@ func purlProvider(userInput string) ([]Package, Context, *sbom.SBOM, error) {
 		return nil, Context{}, nil, err
 	}
 
-	return decodePurlFile(reader, ctx)
+	return decodePurlsFromReader(reader, ctx)
 }
 
-func decodePurlFile(reader io.Reader, ctx Context) ([]Package, Context, *sbom.SBOM, error) {
+func getPurlReader(userInput string) (r io.Reader, ctx Context, err error) {
+	switch {
+	case strings.HasPrefix(userInput, purlInputPrefix):
+		path := strings.TrimPrefix(userInput, purlInputPrefix)
+		ctx.Source = &source.Description{
+			Metadata: PURLFileMetadata{
+				Path: path,
+			},
+		}
+		file, err := openPurlFile(path)
+		if err != nil {
+			return nil, ctx, err
+		}
+		return file, ctx, nil
+	case strings.HasPrefix(userInput, singlePurlInputPrefix):
+		ctx.Source = &source.Description{
+			Metadata: PURLLiteralMetadata{
+				PURL: userInput,
+			},
+		}
+		return strings.NewReader(userInput), ctx, nil
+	}
+	return nil, ctx, errDoesNotProvide
+}
+
+func openPurlFile(path string) (*os.File, error) {
+	expandedPath, err := homedir.Expand(path)
+	if err != nil {
+		return nil, fmt.Errorf("unable to open purls: %w", err)
+	}
+
+	f, err := os.Open(expandedPath)
+	if err != nil {
+		return nil, fmt.Errorf("unable to open file %s: %w", expandedPath, err)
+	}
+
+	return f, nil
+}
+
+func decodePurlsFromReader(reader io.Reader, ctx Context) ([]Package, Context, *sbom.SBOM, error) {
 	scanner := bufio.NewScanner(reader)
 	var packages []Package
 	var syftPkgs []pkg.Package
@@ -218,43 +257,4 @@ func handleDefaultUpstream(pkgName string, value string) []UpstreamPackage {
 		}
 	}
 	return nil
-}
-
-func getPurlReader(userInput string) (r io.Reader, ctx Context, err error) {
-	switch {
-	case strings.HasPrefix(userInput, purlInputPrefix):
-		path := strings.TrimPrefix(userInput, purlInputPrefix)
-		ctx.Source = &source.Description{
-			Metadata: PURLFileMetadata{
-				Path: path,
-			},
-		}
-		file, err := openPurlFile(path)
-		if err != nil {
-			return nil, ctx, err
-		}
-		return file, ctx, nil
-	case strings.HasPrefix(userInput, singlePurlInputPrefix):
-		ctx.Source = &source.Description{
-			Metadata: PURLLiteralMetadata{
-				PURL: userInput,
-			},
-		}
-		return strings.NewReader(userInput), ctx, nil
-	}
-	return nil, ctx, errDoesNotProvide
-}
-
-func openPurlFile(path string) (*os.File, error) {
-	expandedPath, err := homedir.Expand(path)
-	if err != nil {
-		return nil, fmt.Errorf("unable to open purls: %w", err)
-	}
-
-	f, err := os.Open(expandedPath)
-	if err != nil {
-		return nil, fmt.Errorf("unable to open file %s: %w", expandedPath, err)
-	}
-
-	return f, nil
 }
