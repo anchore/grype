@@ -2,6 +2,7 @@ package java
 
 import (
 	"context"
+	"errors"
 
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
@@ -32,15 +33,13 @@ func newMockProvider() vulnerability.Provider {
 }
 
 type mockMavenSearcher struct {
-	pkg pkg.Package
+	pkg                  pkg.Package
+	simulateRateLimiting bool
 }
 
 func (m mockMavenSearcher) GetMavenPackageBySha(context.Context, string) (*pkg.Package, error) {
-	return &m.pkg, nil
-}
-
-func newMockSearcher(pkg pkg.Package) MavenSearcher {
-	return mockMavenSearcher{
-		pkg,
+	if m.simulateRateLimiting {
+		return nil, errors.New("you been rate limited")
 	}
+	return &m.pkg, nil
 }
