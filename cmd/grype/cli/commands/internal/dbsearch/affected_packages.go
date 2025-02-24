@@ -71,7 +71,31 @@ type AffectedPackagesOptions struct {
 	RecordLimit           int
 }
 
-func newAffectedPackageRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPEs []v6.AffectedCPEHandle) (rows []AffectedPackage) {
+type affectedPackageWithDecorations struct {
+	v6.AffectedPackageHandle
+	vulnerabilityDecorations
+}
+
+func (a *affectedPackageWithDecorations) getCVEs() []string {
+	if a == nil {
+		return nil
+	}
+	return getCVEs(a.Vulnerability)
+}
+
+type affectedCPEWithDecorations struct {
+	v6.AffectedCPEHandle
+	vulnerabilityDecorations
+}
+
+func (a *affectedCPEWithDecorations) getCVEs() []string {
+	if a == nil {
+		return nil
+	}
+	return getCVEs(a.Vulnerability)
+}
+
+func newAffectedPackageRows(affectedPkgs []affectedPackageWithDecorations, affectedCPEs []affectedCPEWithDecorations) (rows []AffectedPackage) {
 	for i := range affectedPkgs {
 		pkg := affectedPkgs[i]
 		var detail v6.AffectedPackageBlob
@@ -84,9 +108,9 @@ func newAffectedPackageRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPE
 		}
 
 		rows = append(rows, AffectedPackage{
-			Vulnerability: newVulnerabilityInfo(*pkg.Vulnerability),
+			Vulnerability: newVulnerabilityInfo(*pkg.Vulnerability, pkg.vulnerabilityDecorations),
 			AffectedPackageInfo: AffectedPackageInfo{
-				Model:   &pkg,
+				Model:   &pkg.AffectedPackageHandle,
 				OS:      toOS(pkg.OperatingSystem),
 				Package: toPackage(pkg.Package),
 				Detail:  detail,
@@ -112,13 +136,14 @@ func newAffectedPackageRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPE
 
 		rows = append(rows, AffectedPackage{
 			// tracking model information is not possible with CPE handles
-			Vulnerability: newVulnerabilityInfo(*ac.Vulnerability),
+			Vulnerability: newVulnerabilityInfo(*ac.Vulnerability, ac.vulnerabilityDecorations),
 			AffectedPackageInfo: AffectedPackageInfo{
 				CPE:    c,
 				Detail: detail,
 			},
 		})
 	}
+
 	return rows
 }
 
@@ -150,6 +175,7 @@ func toOS(os *v6.OperatingSystem) *OperatingSystem {
 func FindAffectedPackages(reader interface {
 	v6.AffectedPackageStoreReader
 	v6.AffectedCPEStoreReader
+	v6.VulnerabilityDecoratorStoreReader
 }, criteria AffectedPackagesOptions) ([]AffectedPackage, error) {
 	allAffectedPkgs, allAffectedCPEs, err := findAffectedPackages(reader, criteria)
 	if err != nil {
@@ -159,12 +185,13 @@ func FindAffectedPackages(reader interface {
 	return newAffectedPackageRows(allAffectedPkgs, allAffectedCPEs), nil
 }
 
-func findAffectedPackages(reader interface { //nolint:funlen
+func findAffectedPackages(reader interface { //nolint:funlen,gocognit
 	v6.AffectedPackageStoreReader
 	v6.AffectedCPEStoreReader
-}, config AffectedPackagesOptions) ([]v6.AffectedPackageHandle, []v6.AffectedCPEHandle, error) {
-	var allAffectedPkgs []v6.AffectedPackageHandle
-	var allAffectedCPEs []v6.AffectedCPEHandle
+	v6.VulnerabilityDecoratorStoreReader
+}, config AffectedPackagesOptions) ([]affectedPackageWithDecorations, []affectedCPEWithDecorations, error) {
+	var allAffectedPkgs []affectedPackageWithDecorations
+	var allAffectedCPEs []affectedCPEWithDecorations
 
 	pkgSpecs := config.Package
 	cpeSpecs := config.CPE
@@ -191,6 +218,22 @@ func findAffectedPackages(reader interface { //nolint:funlen
 		}
 	}
 
+	// we have multiple return points that return actual values, using a defer to decorate any given results
+	// ensures that all paths are handled the same way.
+	defer func() {
+		for i := range allAffectedPkgs {
+			if err := decorateVulnerabilities(reader, &allAffectedPkgs[i]); err != nil {
+				log.WithFields("error", err).Debug("unable to decorate vulnerability on affected package")
+			}
+		}
+
+		for i := range allAffectedCPEs {
+			if err := decorateVulnerabilities(reader, &allAffectedCPEs[i]); err != nil {
+				log.WithFields("error", err).Debug("unable to decorate vulnerability on affected CPE")
+			}
+		}
+	}()
+
 	for i := range pkgSpecs {
 		pkgSpec := pkgSpecs[i]
 
@@ -208,7 +251,11 @@ func findAffectedPackages(reader interface { //nolint:funlen
 			Limit:                 config.RecordLimit,
 		})
 
-		allAffectedPkgs = append(allAffectedPkgs, affectedPkgs...)
+		for i := range affectedPkgs {
+			allAffectedPkgs = append(allAffectedPkgs, affectedPackageWithDecorations{
+				AffectedPackageHandle: affectedPkgs[i],
+			})
+		}
 
 		if err != nil {
 			if errors.Is(err, v6.ErrLimitReached) {
@@ -237,7 +284,11 @@ func findAffectedPackages(reader interface { //nolint:funlen
 				Limit:                 config.RecordLimit,
 			})
 
-			allAffectedCPEs = append(allAffectedCPEs, affectedCPEs...)
+			for i := range affectedCPEs {
+				allAffectedCPEs = append(allAffectedCPEs, affectedCPEWithDecorations{
+					AffectedCPEHandle: affectedCPEs[i],
+				})
+			}
 
 			if err != nil {
 				if errors.Is(err, v6.ErrLimitReached) {
