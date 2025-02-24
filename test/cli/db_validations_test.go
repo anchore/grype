@@ -178,7 +178,7 @@ func TestDBValidations(t *testing.T) {
 			dbUpdateURL: yesterdayDbURL,
 			assertions: []traitAssertion{
 				assertDbNotDownloaded,
-				assertInOutput("failed to read DB metadata"),
+				assertInOutput("failed to read DB description"),
 				assertFailingReturnCode,
 			},
 		},
@@ -188,7 +188,7 @@ func TestDBValidations(t *testing.T) {
 			dbUpdateURL: todayDbURL,
 			assertions: []traitAssertion{
 				assertDbNotDownloaded,
-				assertInOutput("failed to read DB metadata"),
+				assertInOutput("failed to read DB description"),
 				assertFailingReturnCode,
 			},
 		},
