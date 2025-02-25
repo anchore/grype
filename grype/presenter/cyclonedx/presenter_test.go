@@ -11,9 +11,34 @@ import (
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/presenter/internal"
 	"github.com/anchore/grype/grype/presenter/models"
+	"github.com/anchore/syft/syft/file"
+	"github.com/anchore/syft/syft/sbom"
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for cyclonedx presenters")
+
+func Test_noTypedNils(t *testing.T) {
+	s := sbom.SBOM{
+		Artifacts: sbom.Artifacts{
+			FileMetadata: map[file.Coordinates]file.Metadata{},
+			FileDigests:  map[file.Coordinates][]file.Digest{},
+		},
+	}
+	c := file.NewCoordinates("/file", "123")
+	s.Artifacts.FileMetadata[c] = file.Metadata{
+		Path: "/file",
+	}
+	s.Artifacts.FileDigests[c] = []file.Digest{}
+
+	p := NewJSONPresenter(models.PresenterConfig{
+		SBOM:   &s,
+		Pretty: false,
+	})
+	contents := bytes.Buffer{}
+	err := p.Present(&contents)
+	require.NoError(t, err)
+	require.NotContains(t, contents.String(), "null")
+}
 
 func TestCycloneDxPresenterImage(t *testing.T) {
 	var buffer bytes.Buffer

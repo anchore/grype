@@ -83,5 +83,5 @@ func (pres *Presenter) Present(output io.Writer) error {
 	enc.SetPretty(true)
 	enc.SetEscapeHTML(false)
 
-	return enc.Encode(cyclonedxBOM)
+	return enc.EncodeVersion(cyclonedxBOM, cyclonedxBOM.SpecVersion)
 }
