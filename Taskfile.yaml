@@ -375,7 +375,7 @@ tasks:
       - "{{ .NEXT_VERSION }}"
     cmds:
       - "{{ .TOOL_DIR }}/chronicle -vv -n --version-file {{ .NEXT_VERSION }} > {{ .CHANGELOG }}"
-      - "{{ .TOOL_DIR }}/glow {{ .CHANGELOG }}"
+      - "{{ .TOOL_DIR }}/glow -w 0 {{ .CHANGELOG }}"
 
 
   ## Release targets #################################
