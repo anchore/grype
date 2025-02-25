@@ -254,7 +254,7 @@ func TestExtractSeverities(t *testing.T) {
 			expectedError: require.NoError,
 		},
 		{
-			name: "valid CVSS severity",
+			name: "valid primary CVSS severity",
 			input: &VulnerabilityHandle{
 				BlobValue: &VulnerabilityBlob{
 					Severities: []Severity{
@@ -265,6 +265,7 @@ func TestExtractSeverities(t *testing.T) {
 								Version: "3.1",
 								Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
 							},
+							Rank: 1,
 						},
 					},
 				},
@@ -273,7 +274,73 @@ func TestExtractSeverities(t *testing.T) {
 			expectedCVSS: []vulnerability.Cvss{
 				{
 					Source:  "NVD",
-					Type:    "CVSS",
+					Type:    "Primary",
+					Version: "3.1",
+					Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+					Metrics: vulnerability.CvssMetrics{
+						BaseScore:           9.8,
+						ExploitabilityScore: ptr(3.9),
+						ImpactScore:         ptr(5.9),
+					},
+				},
+			},
+			expectedError: require.NoError,
+		},
+		{
+			name: "valid secondary CVSS severity",
+			input: &VulnerabilityHandle{
+				BlobValue: &VulnerabilityBlob{
+					Severities: []Severity{
+						{
+							Scheme: SeveritySchemeCVSS,
+							Source: "NVD",
+							Value: CVSSSeverity{
+								Version: "3.1",
+								Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+							},
+							Rank: 2,
+						},
+					},
+				},
+			},
+			expectedSev: vulnerability.CriticalSeverity,
+			expectedCVSS: []vulnerability.Cvss{
+				{
+					Source:  "NVD",
+					Type:    "Secondary",
+					Version: "3.1",
+					Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+					Metrics: vulnerability.CvssMetrics{
+						BaseScore:           9.8,
+						ExploitabilityScore: ptr(3.9),
+						ImpactScore:         ptr(5.9),
+					},
+				},
+			},
+			expectedError: require.NoError,
+		},
+		{
+			name: "valid CVSS severity with unknown rank (default to secondary)",
+			input: &VulnerabilityHandle{
+				BlobValue: &VulnerabilityBlob{
+					Severities: []Severity{
+						{
+							Scheme: SeveritySchemeCVSS,
+							Source: "NVD",
+							Value: CVSSSeverity{
+								Version: "3.1",
+								Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+							},
+							Rank: 3,
+						},
+					},
+				},
+			},
+			expectedSev: vulnerability.CriticalSeverity,
+			expectedCVSS: []vulnerability.Cvss{
+				{
+					Source:  "NVD",
+					Type:    "Secondary",
 					Version: "3.1",
 					Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
 					Metrics: vulnerability.CvssMetrics{
