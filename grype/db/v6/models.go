@@ -740,7 +740,7 @@ func (PackageCpe) TableName() string {
 type KnownExploitedVulnerabilityHandle struct {
 	ID int64 `gorm:"primaryKey"`
 
-	Cve string `gorm:"column:cve;not null;index,collate:NOCASE"`
+	Cve string `gorm:"column:cve;not null;index:kev_cve_idx,collate:NOCASE"`
 
 	BlobID    ID                               `gorm:"column:blob_id"`
 	BlobValue *KnownExploitedVulnerabilityBlob `gorm:"-"`
@@ -778,7 +778,7 @@ type EpssMetadata struct {
 type EpssHandle struct {
 	ID int64 `gorm:"primaryKey"`
 
-	Cve        string    `gorm:"column:cve;not null;index,collate:NOCASE"`
+	Cve        string    `gorm:"column:cve;not null;index:epss_cve_idx,collate:NOCASE"`
 	Epss       float64   `gorm:"column:epss;not null"`
 	Percentile float64   `gorm:"column:percentile;not null"`
 	Date       time.Time `gorm:"-"` // note we do not store the date in this table since it is expected to be the same for all records, that is what EpssMetadata is for
