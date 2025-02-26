@@ -229,7 +229,6 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 
 		// the IDs should have been set, and there is only one, so we know the correct values
 		c.ID = 1
-		c.PackageID = ptr(ID(1))
 
 		if d := cmp.Diff([]Cpe{c}, result.Package.CPEs); d != "" {
 			t.Errorf("unexpected result (-want +got):\n%s", d)
@@ -330,9 +329,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 		expPkg := *pkg1.Package
 		expPkg.ID = 1
 		cpe1.ID = 1
-		cpe1.PackageID = ptr(ID(1))
 		cpe2.ID = 2
-		cpe2.PackageID = ptr(ID(1))
 		expPkg.CPEs = []Cpe{cpe1, cpe2}
 
 		expected := []Package{
@@ -353,7 +350,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 
 	})
 
-	t.Run("dont allow same CPE to belong to multiple packages", func(t *testing.T) {
+	t.Run("allow same CPE to belong to multiple packages", func(t *testing.T) {
 		cpe1 := Cpe{
 			Part:    "a",
 			Vendor:  "vendor1",
@@ -394,7 +391,39 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 
 		s := setupAffectedPackageStore(t)
 		err := s.AddAffectedPackages(pkg1, pkg2)
-		require.ErrorContains(t, err, "CPE already exists for a different package")
+		require.NoError(t, err)
+
+		var pkgs []Package
+		err = s.db.Preload("CPEs").Find(&pkgs).Error
+		require.NoError(t, err)
+
+		cpe1.ID = 1
+		cpe2.ID = 2
+
+		expPkg1 := *pkg1.Package
+		expPkg1.ID = 1
+		expPkg1.CPEs = []Cpe{cpe1}
+
+		expPkg2 := *pkg2.Package
+		expPkg2.ID = 2
+		expPkg2.CPEs = []Cpe{cpe1, cpe2}
+
+		expected := []Package{
+			expPkg1,
+			expPkg2,
+		}
+
+		if d := cmp.Diff(expected, pkgs); d != "" {
+			t.Errorf("unexpected result (-want +got):\n%s", d)
+		}
+
+		expectedCPEs := []Cpe{cpe1, cpe2}
+		var cpeResults []Cpe
+		err = s.db.Find(&cpeResults).Error
+		require.NoError(t, err)
+		if d := cmp.Diff(expectedCPEs, cpeResults); d != "" {
+			t.Errorf("unexpected result (-want +got):\n%s", d)
+		}
 	})
 }
 

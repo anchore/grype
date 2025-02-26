@@ -453,7 +453,8 @@ func (s *affectedPackageStore) handlePackage(query *gorm.DB, config *PackageSpec
 	}
 
 	if config.CPE != nil {
-		query = query.Joins("JOIN cpes ON packages.id = cpes.package_id")
+		query = query.Joins("JOIN package_cpes ON packages.id = package_cpes.package_id")
+		query = query.Joins("JOIN cpes ON package_cpes.cpe_id = cpes.id")
 		query = handleCPEOptions(query, config.CPE)
 	}
 
