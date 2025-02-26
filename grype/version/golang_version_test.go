@@ -41,6 +41,14 @@ func TestNewGolangVersion(t *testing.T) {
 			},
 		},
 		{
+			name:  "semver with +incompatible+dirty",
+			input: "v24.0.7+incompatible+dirty",
+			expected: golangVersion{
+				raw:    "v24.0.7+incompatible+dirty",
+				semVer: hashiVer.Must(hashiVer.NewSemver("v24.0.7+incompatible.dirty")),
+			},
+		},
+		{
 			name:  "standard library",
 			input: "go1.21.4",
 			expected: golangVersion{
@@ -71,6 +79,7 @@ func TestNewGolangVersion(t *testing.T) {
 				require.Error(t, err)
 				return
 			}
+			assert.Nil(t, err)
 			assert.Equal(t, tc.expected, *v)
 		})
 	}

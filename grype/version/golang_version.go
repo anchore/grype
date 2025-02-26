@@ -48,9 +48,21 @@ func newGolangVersion(v string) (*golangVersion, error) {
 	if v == "(devel)" {
 		return nil, ErrUnsupportedVersion
 	}
+
+	// Invalid Semver fix ups
+
 	// go stdlib is reported by syft as a go package with version like "go1.24.1"
 	// other versions have "v" as a prefix, which the semver lib handles automatically
-	semver, err := hashiVer.NewSemver(strings.TrimPrefix(v, "go"))
+	fixedUp := strings.TrimPrefix(v, "go")
+
+	// go1.24 creates non-dot separated build metadata fields, e.g. +incompatible+dirty
+	// Fix up as per semver spec
+	before, after, found := strings.Cut(fixedUp, "+")
+	if found {
+		fixedUp = before + "+" + strings.ReplaceAll(after, "+", ".")
+	}
+
+	semver, err := hashiVer.NewSemver(fixedUp)
 	if err != nil {
 		return nil, err
 	}
