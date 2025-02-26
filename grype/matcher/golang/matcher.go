@@ -7,6 +7,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal/log"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -58,6 +59,13 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	}
 	if p.Name == mainModule && isNotCorrected {
 		return matches, nil, nil
+	}
+
+	// go1.24 started to generate versions in the form +incompatible+dirty, which
+	// fail to be matched: https://github.com/anchore/grype/issues/2482.
+	if p.Name == mainModule && strings.HasSuffix(p.Version, "+incompatible+dirty") {
+		log.WithFields("package", p.Name, "version", p.Version).Warn("main module has +incompatible+dirty suffix, trimming +dirty")
+		p.Version = strings.TrimSuffix(p.Version, "+dirty")
 	}
 
 	return internal.MatchPackageByEcosystemAndCPEs(store, p, m.Type(), searchByCPE(p.Name, m.cfg))
