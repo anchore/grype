@@ -3,14 +3,11 @@ package table
 import (
 	"fmt"
 	"io"
-	"sort"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/olekukonko/tablewriter"
 
-	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
 )
@@ -22,69 +19,31 @@ const (
 
 // Presenter is a generic struct for holding fields needed for reporting
 type Presenter struct {
-	results          match.Matches
-	ignoredMatches   []match.IgnoredMatch
-	packages         []pkg.Package
-	metadataProvider vulnerability.MetadataProvider
-	showSuppressed   bool
-	withColor        bool
+	document       models.Document
+	showSuppressed bool
+	withColor      bool
 }
 
 // NewPresenter is a *Presenter constructor
 func NewPresenter(pb models.PresenterConfig, showSuppressed bool) *Presenter {
 	return &Presenter{
-		results:          pb.Matches,
-		ignoredMatches:   pb.IgnoredMatches,
-		packages:         pb.Packages,
-		metadataProvider: pb.MetadataProvider,
-		showSuppressed:   showSuppressed,
-		withColor:        supportsColor(),
+		document:       pb.Document,
+		showSuppressed: showSuppressed,
+		withColor:      supportsColor(),
 	}
 }
 
 // Present creates a JSON-based reporting
-func (pres *Presenter) Present(output io.Writer) error {
-	rows := make([][]string, 0)
+func (p *Presenter) Present(output io.Writer) error {
+	rs := getRows(p.document, p.showSuppressed)
 
-	columns := []string{"Name", "Installed", "Fixed-In", "Type", "Vulnerability", "Severity"}
-	// Generate rows for matching vulnerabilities
-	for m := range pres.results.Enumerate() {
-		row, err := createRow(m, pres.metadataProvider, "")
-		if err != nil {
-			return err
-		}
-		rows = append(rows, row)
-	}
-
-	// Generate rows for suppressed vulnerabilities
-	if pres.showSuppressed {
-		for _, m := range pres.ignoredMatches {
-			msg := appendSuppressed
-			if m.AppliedIgnoreRules != nil {
-				for i := range m.AppliedIgnoreRules {
-					if m.AppliedIgnoreRules[i].Namespace == "vex" {
-						msg = appendSuppressedVEX
-					}
-				}
-			}
-			row, err := createRow(m.Match, pres.metadataProvider, msg)
-
-			if err != nil {
-				return err
-			}
-			rows = append(rows, row)
-		}
-	}
-
-	if len(rows) == 0 {
+	if len(rs) == 0 {
 		_, err := io.WriteString(output, "No vulnerabilities found\n")
 		return err
 	}
 
-	rows = sortRows(removeDuplicateRows(rows))
-
 	table := tablewriter.NewWriter(output)
-	table.SetHeader(columns)
+	table.SetHeader([]string{"Name", "Installed", "Fixed-In", "Type", "Vulnerability", "Severity", "Threat"})
 	table.SetAutoWrapText(false)
 	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
 	table.SetAlignment(tablewriter.ALIGN_LEFT)
@@ -98,13 +57,13 @@ func (pres *Presenter) Present(output io.Writer) error {
 	table.SetTablePadding("  ")
 	table.SetNoWhiteSpace(true)
 
-	if pres.withColor {
-		for _, row := range rows {
-			severityColor := getSeverityColor(row[len(row)-1])
-			table.Rich(row, []tablewriter.Colors{{}, {}, {}, {}, {}, severityColor})
+	if p.withColor {
+		for _, row := range rs.Render() {
+			severityColor := getSeverityColor(row[len(row)-2])
+			table.Rich(row, []tablewriter.Colors{{}, {}, {}, {}, {}, severityColor, {}})
 		}
 	} else {
-		table.AppendBulk(rows)
+		table.AppendBulk(rs.Render())
 	}
 
 	table.Render()
@@ -112,85 +71,112 @@ func (pres *Presenter) Present(output io.Writer) error {
 	return nil
 }
 
+func getRows(doc models.Document, showSuppressed bool) rows {
+	var rs rows
+
+	// generate rows for matching vulnerabilities
+	for _, m := range doc.Matches {
+		rs = append(rs, newRow(m, ""))
+	}
+
+	// generate rows for suppressed vulnerabilities
+	if showSuppressed {
+		for _, m := range doc.IgnoredMatches {
+			msg := appendSuppressed
+			if m.AppliedIgnoreRules != nil {
+				for i := range m.AppliedIgnoreRules {
+					if m.AppliedIgnoreRules[i].Namespace == "vex" {
+						msg = appendSuppressedVEX
+					}
+				}
+			}
+			rs = append(rs, newRow(m.Match, msg))
+		}
+	}
+	return rs
+}
+
 func supportsColor() bool {
 	return lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Render("") != ""
 }
 
-func sortRows(rows [][]string) [][]string {
-	// sort
-	sort.SliceStable(rows, func(i, j int) bool {
-		var (
-			name        = 0
-			ver         = 1
-			fix         = 2
-			packageType = 3
-			vuln        = 4
-			sev         = 5
-		)
-		// name, version, type, severity, vulnerability
-		// > is for numeric sorting like severity or year/number of vulnerability
-		// < is for alphabetical sorting like name, version, type
-		if rows[i][name] == rows[j][name] {
-			if rows[i][ver] == rows[j][ver] {
-				if rows[i][packageType] == rows[j][packageType] {
-					if models.SeverityScore(rows[i][sev]) == models.SeverityScore(rows[j][sev]) {
-						if rows[i][vuln] == rows[j][vuln] {
-							return rows[i][fix] < rows[j][fix]
-						}
-						// we use > here to get the most recently filed vulnerabilities
-						// to show at the top of the severity
-						return rows[i][vuln] > rows[j][vuln]
-					}
-					return models.SeverityScore(rows[i][sev]) > models.SeverityScore(rows[j][sev])
-				}
-				return rows[i][packageType] < rows[j][packageType]
-			}
-			return rows[i][ver] < rows[j][ver]
-		}
-		return rows[i][name] < rows[j][name]
-	})
+type rows []row
 
-	return rows
+type row struct {
+	Name            string
+	Version         string
+	Fix             string
+	PackageType     string
+	VulnerabilityID string
+	Severity        string
+	ThreatScore     float64
 }
 
-func removeDuplicateRows(items [][]string) [][]string {
-	seen := map[string][]string{}
-	var result [][]string
+func newRow(m models.Match, severitySuffix string) row {
+	severity := m.Vulnerability.Severity
+	if severity != "" {
+		severity += severitySuffix
+	}
 
-	for _, v := range items {
-		key := strings.Join(v, "|")
-		if seen[key] != nil {
+	fixVersion := strings.Join(m.Vulnerability.Fix.Versions, ", ")
+	switch m.Vulnerability.Fix.State {
+	case vulnerability.FixStateWontFix.String():
+		fixVersion = "(won't fix)"
+	case vulnerability.FixStateUnknown.String():
+		fixVersion = ""
+	}
+
+	return row{
+		Name:            m.Artifact.Name,
+		Version:         m.Artifact.Version,
+		Fix:             fixVersion,
+		PackageType:     string(m.Artifact.Type),
+		VulnerabilityID: m.Vulnerability.ID,
+		Severity:        severity,
+		ThreatScore:     m.Vulnerability.ThreatScore,
+	}
+}
+
+func (r row) Columns() []string {
+	cs := []string{r.Name, r.Version, r.Fix, r.PackageType, r.VulnerabilityID, r.Severity}
+
+	for _, v := range []float64{r.ThreatScore} {
+		if v == 0 {
+			cs = append(cs, "")
+		} else {
+			cs = append(cs, fmt.Sprintf("%.2f", v))
+		}
+	}
+
+	return cs
+}
+
+func (r row) String() string {
+	return strings.Join(r.Columns(), "|")
+}
+
+func (rs rows) Render() [][]string {
+	// deduplicate
+	seen := map[string]row{}
+	var deduped rows
+
+	for _, v := range rs {
+		key := v.String()
+		if _, ok := seen[key]; ok {
 			// dup!
 			continue
 		}
 
 		seen[key] = v
-		result = append(result, v)
-	}
-	return result
-}
-
-func createRow(m match.Match, metadataProvider vulnerability.MetadataProvider, severitySuffix string) ([]string, error) {
-	var severity string
-
-	metadata, err := metadataProvider.VulnerabilityMetadata(m.Vulnerability.Reference)
-	if err != nil {
-		return nil, fmt.Errorf("unable to fetch vuln=%q metadata: %+v", m.Vulnerability.ID, err)
+		deduped = append(deduped, v)
 	}
 
-	if metadata != nil {
-		severity = metadata.Severity + severitySuffix
+	// render final columns
+	out := make([][]string, len(deduped))
+	for idx, r := range deduped {
+		out[idx] = r.Columns()
 	}
-
-	fixVersion := strings.Join(m.Vulnerability.Fix.Versions, ", ")
-	switch m.Vulnerability.Fix.State {
-	case vulnerability.FixStateWontFix:
-		fixVersion = "(won't fix)"
-	case vulnerability.FixStateUnknown:
-		fixVersion = ""
-	}
-
-	return []string{m.Package.Name, m.Package.Version, fixVersion, string(m.Package.Type), m.Vulnerability.ID, severity}, nil
+	return out
 }
 
 func getSeverityColor(severity string) tablewriter.Colors {

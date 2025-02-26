@@ -1,18 +1,15 @@
 
 [TestTablePresenter/no_color - 1]
-NAME       INSTALLED  FIXED-IN          TYPE  VULNERABILITY  SEVERITY 
-package-1  1.1.1      the-next-version  rpm   CVE-1999-0001  [0;32mLow[0m       
-package-2  2.2.2                        deb   CVE-1999-0002  [1;31mCritical[0m  
+NAME       INSTALLED  FIXED-IN          TYPE  VULNERABILITY  SEVERITY  THREAT 
+package-1  1.1.1      the-next-version  rpm   CVE-1999-0001  Low       0.40    
+package-2  2.2.2                        deb   CVE-1999-0002  Critical  0.10    
 
 ---
 
 [TestTablePresenter/with_color - 1]
-NAME       INSTALLED  FIXED-IN          TYPE  VULNERABILITY  SEVERITY 
-package-1  1.1.1      the-next-version  rpm   CVE-1999-0001  [0;32mLow[0m       
-package-2  2.2.2                        deb   CVE-1999-0002  [1;31mCritical[0m  
-NAME       INSTALLED  FIXED-IN          TYPE  VULNERABILITY  SEVERITY 
-package-1  1.1.1      the-next-version  rpm   CVE-1999-0001  Low       
-package-2  2.2.2                        deb   CVE-1999-0002  Critical  
+NAME       INSTALLED  FIXED-IN          TYPE  VULNERABILITY  SEVERITY  THREAT 
+package-1  1.1.1      the-next-version  rpm   CVE-1999-0001  [0;32mLow[0m       0.40    
+package-2  2.2.2                        deb   CVE-1999-0002  [1;31mCritical[0m  0.10    
 
 ---
 
@@ -22,18 +19,18 @@ No vulnerabilities found
 ---
 
 [TestHidesIgnoredMatches - 1]
-NAME       INSTALLED  FIXED-IN          TYPE  VULNERABILITY  SEVERITY 
-package-1  1.1.1      the-next-version  rpm   CVE-1999-0001  Low       
-package-2  2.2.2                        deb   CVE-1999-0002  Critical  
+NAME       INSTALLED  FIXED-IN          TYPE  VULNERABILITY  SEVERITY  THREAT 
+package-1  1.1.1      the-next-version  rpm   CVE-1999-0001  Low       0.40    
+package-2  2.2.2                        deb   CVE-1999-0002  Critical  0.10    
 
 ---
 
 [TestDisplaysIgnoredMatches - 1]
-NAME       INSTALLED  FIXED-IN          TYPE  VULNERABILITY  SEVERITY                     
-package-1  1.1.1      the-next-version  rpm   CVE-1999-0001  Low                           
-package-2  2.2.2                        deb   CVE-1999-0002  Critical                      
-package-2  2.2.2                        deb   CVE-1999-0004  Critical (suppressed by VEX)  
-package-2  2.2.2                        deb   CVE-1999-0002  Critical (suppressed)         
-package-2  2.2.2                        deb   CVE-1999-0001  Low (suppressed)              
+NAME       INSTALLED  FIXED-IN          TYPE  VULNERABILITY  SEVERITY                      THREAT 
+package-1  1.1.1      the-next-version  rpm   CVE-1999-0001  Low                           0.40    
+package-2  2.2.2                        deb   CVE-1999-0002  Critical                      0.10    
+package-2  2.2.2                        deb   CVE-1999-0001  Low (suppressed)              0.40    
+package-2  2.2.2                        deb   CVE-1999-0002  Critical (suppressed)         0.10    
+package-2  2.2.2                        deb   CVE-1999-0004  Critical (suppressed by VEX)  0.10    
 
 ---

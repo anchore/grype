@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/gkampitakis/go-snaps/snaps"
-	"github.com/go-test/deep"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/internal"
@@ -19,83 +19,75 @@ import (
 )
 
 func TestCreateRow(t *testing.T) {
-	pkg1 := pkg.Package{
+	pkg1 := models.Package{
 		ID:      "package-1-id",
 		Name:    "package-1",
 		Version: "1.0.1",
 		Type:    syftPkg.DebPkg,
 	}
-	match1 := match.Match{
-		Vulnerability: vulnerability.Vulnerability{
-			Reference: vulnerability.Reference{
-				ID:        "CVE-1999-0001",
-				Namespace: "source-1",
+	match1 := models.Match{
+		Vulnerability: models.Vulnerability{
+			VulnerabilityMetadata: models.VulnerabilityMetadata{
+				ID:          "CVE-1999-0001",
+				Namespace:   "source-1",
+				Description: "1999-01 description",
+				Severity:    "Low",
+				Cvss: []models.Cvss{
+					{
+						Metrics: models.CvssMetrics{
+							BaseScore: 4,
+						},
+						Vector:  "another vector",
+						Version: "3.0",
+					},
+				},
+				ThreatScore: 0.4,
 			},
 		},
-		Package: pkg1,
-		Details: []match.Detail{
+		Artifact: pkg1,
+		MatchDetails: []models.MatchDetails{
 			{
-				Type:    match.ExactDirectMatch,
-				Matcher: match.DpkgMatcher,
+				Type:    match.ExactDirectMatch.String(),
+				Matcher: match.DpkgMatcher.String(),
 			},
 		},
 	}
 	cases := []struct {
 		name           string
-		match          match.Match
+		match          models.Match
 		severitySuffix string
-		expectedErr    error
 		expectedRow    []string
 	}{
 		{
 			name:           "create row for vulnerability",
 			match:          match1,
 			severitySuffix: "",
-			expectedErr:    nil,
-			expectedRow:    []string{match1.Package.Name, match1.Package.Version, "", string(match1.Package.Type), match1.Vulnerability.ID, "Low"},
+			expectedRow:    []string{match1.Artifact.Name, match1.Artifact.Version, "", string(match1.Artifact.Type), match1.Vulnerability.ID, "Low", "0.40"},
 		},
 		{
 			name:           "create row for suppressed vulnerability",
 			match:          match1,
 			severitySuffix: appendSuppressed,
-			expectedErr:    nil,
-			expectedRow:    []string{match1.Package.Name, match1.Package.Version, "", string(match1.Package.Type), match1.Vulnerability.ID, "Low (suppressed)"},
+			expectedRow:    []string{match1.Artifact.Name, match1.Artifact.Version, "", string(match1.Artifact.Type), match1.Vulnerability.ID, "Low (suppressed)", "0.40"},
 		},
 	}
 
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
-			row, err := createRow(testCase.match, models.NewMetadataMock(), testCase.severitySuffix)
+			row := newRow(testCase.match, testCase.severitySuffix)
+			cols := rows{row}.Render()[0]
 
-			assert.Equal(t, testCase.expectedErr, err)
-			assert.Equal(t, testCase.expectedRow, row)
+			assert.Equal(t, testCase.expectedRow, cols)
 		})
 	}
 }
 
 func TestTablePresenter(t *testing.T) {
-	var buffer bytes.Buffer
-	_, matches, packages, _, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.ImageSource)
-
-	pb := models.PresenterConfig{
-		Matches:          matches,
-		Packages:         packages,
-		MetadataProvider: metadataProvider,
-	}
-
+	pb := internal.GeneratePresenterConfig(t, internal.ImageSource)
 	pres := NewPresenter(pb, false)
 
 	t.Run("no color", func(t *testing.T) {
-		pres.withColor = true
-
-		err := pres.Present(&buffer)
-		require.NoError(t, err)
-
-		actual := buffer.String()
-		snaps.MatchSnapshot(t, actual)
-	})
-
-	t.Run("with color", func(t *testing.T) {
+		var buffer bytes.Buffer
 		pres.withColor = false
 
 		err := pres.Present(&buffer)
@@ -105,8 +97,16 @@ func TestTablePresenter(t *testing.T) {
 		snaps.MatchSnapshot(t, actual)
 	})
 
-	// TODO: add me back in when there is a JSON schema
-	// validateAgainstDbSchema(t, string(actual))
+	t.Run("with color", func(t *testing.T) {
+		var buffer bytes.Buffer
+		pres.withColor = true
+
+		err := pres.Present(&buffer)
+		require.NoError(t, err)
+
+		actual := buffer.String()
+		snaps.MatchSnapshot(t, actual)
+	})
 }
 
 func TestEmptyTablePresenter(t *testing.T) {
@@ -114,93 +114,27 @@ func TestEmptyTablePresenter(t *testing.T) {
 
 	var buffer bytes.Buffer
 
-	matches := match.NewMatches()
-
+	doc, err := models.NewDocument(clio.Identification{}, nil, pkg.Context{}, match.NewMatches(), nil, nil, nil, nil, models.SortByPackage)
+	require.NoError(t, err)
 	pb := models.PresenterConfig{
-		Matches:          matches,
-		Packages:         nil,
-		MetadataProvider: nil,
+		Document: doc,
 	}
 
 	pres := NewPresenter(pb, false)
 
 	// run presenter
-	err := pres.Present(&buffer)
+	err = pres.Present(&buffer)
 	require.NoError(t, err)
 
 	actual := buffer.String()
 	snaps.MatchSnapshot(t, actual)
 }
 
-func TestRemoveDuplicateRows(t *testing.T) {
-	data := [][]string{
-		{"1", "2", "3"},
-		{"a", "b", "c"},
-		{"1", "2", "3"},
-		{"a", "b", "c"},
-		{"1", "2", "3"},
-		{"4", "5", "6"},
-		{"1", "2", "1"},
-	}
-
-	expected := [][]string{
-		{"1", "2", "3"},
-		{"a", "b", "c"},
-		{"4", "5", "6"},
-		{"1", "2", "1"},
-	}
-
-	actual := removeDuplicateRows(data)
-
-	if diffs := deep.Equal(expected, actual); len(diffs) > 0 {
-		t.Errorf("found diffs!")
-		for _, d := range diffs {
-			t.Errorf("   diff: %+v", d)
-		}
-	}
-}
-
-func TestSortRows(t *testing.T) {
-	data := [][]string{
-		{"a", "v0.1.0", "", "deb", "CVE-2019-9996", "Critical"},
-		{"a", "v0.1.0", "", "deb", "CVE-2018-9996", "Critical"},
-		{"a", "v0.2.0", "", "deb", "CVE-2010-9996", "High"},
-		{"b", "v0.2.0", "", "deb", "CVE-2010-9996", "Medium"},
-		{"b", "v0.2.0", "2.0.0", "deb", "CVE-2019-9996", "High"},
-		{"b", "v0.2.0", "1.0.0", "deb", "CVE-2019-9996", "High"},
-		{"d", "v0.4.0", "", "node", "CVE-2011-9996", "Low"},
-		{"d", "v0.4.0", "", "node", "CVE-2012-9996", "Negligible"},
-		{"c", "v0.6.0", "", "node", "CVE-2013-9996", "Critical"},
-	}
-
-	expected := [][]string{
-		{"a", "v0.1.0", "", "deb", "CVE-2019-9996", "Critical"},
-		{"a", "v0.1.0", "", "deb", "CVE-2018-9996", "Critical"},
-		{"a", "v0.2.0", "", "deb", "CVE-2010-9996", "High"},
-		{"b", "v0.2.0", "1.0.0", "deb", "CVE-2019-9996", "High"},
-		{"b", "v0.2.0", "2.0.0", "deb", "CVE-2019-9996", "High"},
-		{"b", "v0.2.0", "", "deb", "CVE-2010-9996", "Medium"},
-		{"c", "v0.6.0", "", "node", "CVE-2013-9996", "Critical"},
-		{"d", "v0.4.0", "", "node", "CVE-2011-9996", "Low"},
-		{"d", "v0.4.0", "", "node", "CVE-2012-9996", "Negligible"},
-	}
-
-	actual := sortRows(data)
-
-	if diff := cmp.Diff(expected, actual); diff != "" {
-		t.Errorf("sortRows() mismatch (-want +got):\n%s", diff)
-	}
-}
-
 func TestHidesIgnoredMatches(t *testing.T) {
 	var buffer bytes.Buffer
-	matches, ignoredMatches, packages, _, metadataProvider, _, _ := internal.GenerateAnalysisWithIgnoredMatches(t, internal.ImageSource)
 
 	pb := models.PresenterConfig{
-		Matches:          matches,
-		IgnoredMatches:   ignoredMatches,
-		Packages:         packages,
-		MetadataProvider: metadataProvider,
+		Document: internal.GenerateAnalysisWithIgnoredMatches(t, internal.ImageSource),
 	}
 
 	pres := NewPresenter(pb, false)
@@ -214,13 +148,8 @@ func TestHidesIgnoredMatches(t *testing.T) {
 
 func TestDisplaysIgnoredMatches(t *testing.T) {
 	var buffer bytes.Buffer
-	matches, ignoredMatches, packages, _, metadataProvider, _, _ := internal.GenerateAnalysisWithIgnoredMatches(t, internal.ImageSource)
-
 	pb := models.PresenterConfig{
-		Matches:          matches,
-		IgnoredMatches:   ignoredMatches,
-		Packages:         packages,
-		MetadataProvider: metadataProvider,
+		Document: internal.GenerateAnalysisWithIgnoredMatches(t, internal.ImageSource),
 	}
 
 	pres := NewPresenter(pb, true)
@@ -230,4 +159,136 @@ func TestDisplaysIgnoredMatches(t *testing.T) {
 
 	actual := buffer.String()
 	snaps.MatchSnapshot(t, actual)
+}
+
+func TestRowsRender(t *testing.T) {
+
+	t.Run("empty rows returns empty slice", func(t *testing.T) {
+		var rs rows
+		result := rs.Render()
+		assert.Empty(t, result)
+	})
+
+	t.Run("deduplicates identical rows", func(t *testing.T) {
+		rs := rows{
+			mustRow(t, "pkg1", "1.0.0", "1.1.0", "os", "CVE-2023-1234", "critical", 0.95, vulnerability.FixStateFixed),
+			mustRow(t, "pkg1", "1.0.0", "1.1.0", "os", "CVE-2023-1234", "critical", 0.95, vulnerability.FixStateFixed),
+		}
+		result := rs.Render()
+
+		expected := [][]string{
+			{"pkg1", "1.0.0", "1.1.0", "os", "CVE-2023-1234", "critical", "0.95"},
+		}
+
+		if diff := cmp.Diff(expected, result); diff != "" {
+			t.Errorf("Render() mismatch (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("renders won't fix and empty fix versions correctly", func(t *testing.T) {
+		// Create rows with different fix states
+		row1 := mustRow(t, "pkgA", "1.0.0", "", "os", "CVE-2023-1234", "critical", 0.95, vulnerability.FixStateUnknown)
+		row2 := mustRow(t, "pkgB", "2.0.0", "", "os", "CVE-2023-5678", "high", 0.85, vulnerability.FixStateWontFix)
+		row3 := mustRow(t, "pkgC", "3.0.0", "3.1.0", "os", "CVE-2023-9012", "medium", 0.75, vulnerability.FixStateFixed)
+
+		rs := rows{row1, row2, row3}
+		result := rs.Render()
+
+		expected := [][]string{
+			{"pkgA", "1.0.0", "", "os", "CVE-2023-1234", "critical", "0.95"},
+			{"pkgB", "2.0.0", "(won't fix)", "os", "CVE-2023-5678", "high", "0.85"},
+			{"pkgC", "3.0.0", "3.1.0", "os", "CVE-2023-9012", "medium", "0.75"},
+		}
+
+		if diff := cmp.Diff(expected, result); diff != "" {
+			t.Errorf("Render() mismatch (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("formats threat score with two decimal places", func(t *testing.T) {
+		rs := rows{
+			mustRow(t, "pkgA", "1.0.0", "1.1.0", "os", "CVE-2023-1234", "critical", 0.955555, vulnerability.FixStateFixed),
+		}
+		result := rs.Render()
+
+		expected := [][]string{
+			{"pkgA", "1.0.0", "1.1.0", "os", "CVE-2023-1234", "critical", "0.96"},
+		}
+
+		if diff := cmp.Diff(expected, result); diff != "" {
+			t.Errorf("Render() mismatch (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("handles zero threat score by using empty string", func(t *testing.T) {
+		rs := rows{
+			mustRow(t, "pkgA", "1.0.0", "1.1.0", "os", "CVE-2023-1234", "critical", 0.0, vulnerability.FixStateFixed),
+		}
+		result := rs.Render()
+
+		expected := [][]string{
+			{"pkgA", "1.0.0", "1.1.0", "os", "CVE-2023-1234", "critical", ""},
+		}
+
+		if diff := cmp.Diff(expected, result); diff != "" {
+			t.Errorf("Render() mismatch (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("column count matches expectations", func(t *testing.T) {
+		rs := rows{
+			mustRow(t, "pkg1", "1.0.0", "1.1.0", "os", "CVE-2023-1234", "critical", 0.95, vulnerability.FixStateFixed),
+		}
+		result := rs.Render()
+
+		expected := [][]string{
+			{"pkg1", "1.0.0", "1.1.0", "os", "CVE-2023-1234", "critical", "0.95"},
+		}
+
+		if diff := cmp.Diff(expected, result); diff != "" {
+			t.Errorf("Render() mismatch (-want +got):\n%s", diff)
+		}
+
+		// should have 7 columns: name, version, fix, packageType, vulnID, severity, threatScore
+		if len(result[0]) != 7 {
+			t.Errorf("Expected 7 columns, got %d", len(result[0]))
+		}
+
+	})
+}
+
+// Helper function to create a test row
+func createTestRow(name, version, fix, pkgType, vulnID, severity string, threatScore float64, fixState vulnerability.FixState) (row, error) {
+	m := models.Match{
+		Vulnerability: models.Vulnerability{
+			Fix: models.Fix{
+				Versions: []string{fix},
+				State:    fixState.String(),
+			},
+			VulnerabilityMetadata: models.VulnerabilityMetadata{
+				ID:       vulnID,
+				Severity: severity,
+			},
+		},
+		Artifact: models.Package{
+			Name:    name,
+			Version: version,
+			Type:    syftPkg.Type(pkgType),
+		},
+	}
+
+	r := newRow(m, "")
+
+	// override the threat score for testing
+	r.ThreatScore = threatScore
+
+	return r, nil
+}
+
+func mustRow(t *testing.T, name, version, fix, pkgType, vulnID, severity string, threatScore float64, fixState vulnerability.FixState) row {
+	r, err := createTestRow(name, version, fix, pkgType, vulnID, severity, threatScore, fixState)
+	if err != nil {
+		t.Fatalf("failed to create test row: %v", err)
+	}
+	return r
 }

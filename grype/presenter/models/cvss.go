@@ -17,7 +17,7 @@ type CvssMetrics struct {
 	ImpactScore         *float64 `json:"impactScore,omitempty"`
 }
 
-func NewCVSS(metadata *vulnerability.Metadata) []Cvss {
+func toCVSS(metadata *vulnerability.Metadata) []Cvss {
 	cvss := make([]Cvss, 0)
 	for _, score := range metadata.Cvss {
 		vendorMetadata := score.VendorMetadata

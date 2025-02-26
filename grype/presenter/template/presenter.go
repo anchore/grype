@@ -5,29 +5,19 @@ import (
 	"io"
 	"os"
 	"reflect"
-	"sort"
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/mitchellh/go-homedir"
 
 	"github.com/anchore/clio"
-	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
-	"github.com/anchore/grype/grype/vulnerability"
 )
 
 // Presenter is an implementation of presenter.Presenter that formats output according to a user-provided Go text template.
 type Presenter struct {
 	id                 clio.Identification
-	matches            match.Matches
-	ignoredMatches     []match.IgnoredMatch
-	packages           []pkg.Package
-	context            pkg.Context
-	metadataProvider   vulnerability.MetadataProvider
-	appConfig          interface{}
-	dbStatus           interface{}
+	document           models.Document
 	pathToTemplateFile string
 }
 
@@ -35,13 +25,7 @@ type Presenter struct {
 func NewPresenter(pb models.PresenterConfig, templateFile string) *Presenter {
 	return &Presenter{
 		id:                 pb.ID,
-		matches:            pb.Matches,
-		ignoredMatches:     pb.IgnoredMatches,
-		packages:           pb.Packages,
-		metadataProvider:   pb.MetadataProvider,
-		context:            pb.Context,
-		appConfig:          pb.AppConfig,
-		dbStatus:           pb.DBStatus,
+		document:           pb.Document,
 		pathToTemplateFile: templateFile,
 	}
 }
@@ -64,13 +48,7 @@ func (pres *Presenter) Present(output io.Writer) error {
 		return fmt.Errorf("unable to parse template: %w", err)
 	}
 
-	document, err := models.NewDocument(pres.id, pres.packages, pres.context, pres.matches, pres.ignoredMatches, pres.metadataProvider,
-		pres.appConfig, pres.dbStatus)
-	if err != nil {
-		return err
-	}
-
-	err = tmpl.Execute(output, document)
+	err = tmpl.Execute(output, pres.document)
 	if err != nil {
 		return fmt.Errorf("unable to execute supplied template: %w", err)
 	}
@@ -94,7 +72,7 @@ var FuncMap = func() template.FuncMap {
 			return collection
 		}
 
-		sort.Sort(models.MatchSort(matches))
+		models.SortMatches(matches, models.SortByPackage)
 		return matches
 	}
 	return f

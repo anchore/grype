@@ -31,6 +31,7 @@ type Grype struct {
 	Registry                   registry           `yaml:"registry" json:"registry" mapstructure:"registry"`
 	ShowSuppressed             bool               `yaml:"show-suppressed" json:"show-suppressed" mapstructure:"show-suppressed"`
 	ByCVE                      bool               `yaml:"by-cve" json:"by-cve" mapstructure:"by-cve"` // --by-cve, indicates if the original match vulnerability IDs should be preserved or the CVE should be used instead
+	SortBy                     Sort               `yaml:"sort-by" json:"sort-by" mapstructure:"sort-by"`
 	Name                       string             `yaml:"name" json:"name" mapstructure:"name"`
 	DefaultImagePullSource     string             `yaml:"default-image-pull-source" json:"default-image-pull-source" mapstructure:"default-image-pull-source"`
 	VexDocuments               []string           `yaml:"vex-documents" json:"vex-documents" mapstructure:"vex-documents"`
@@ -59,6 +60,7 @@ func DefaultGrype(id clio.Identification) *Grype {
 		DatabaseCommand: DatabaseCommand{
 			DB: DefaultDatabase(id),
 		},
+		SortBy:                     defaultSort(),
 		Match:                      defaultMatchConfig(),
 		ExternalSources:            defaultExternalSources(),
 		CheckForAppUpdate:          true,
