@@ -159,11 +159,12 @@ func runDBSearchMatches(opts dbSearchMatchOptions) error {
 	}
 
 	rows, queryErr := dbsearch.FindMatches(reader, dbsearch.AffectedPackagesOptions{
-		Vulnerability: opts.Vulnerability.Specs,
-		Package:       opts.Package.PkgSpecs,
-		CPE:           opts.Package.CPESpecs,
-		OS:            opts.OS.Specs,
-		RecordLimit:   opts.Bounds.RecordLimit,
+		Vulnerability:         opts.Vulnerability.Specs,
+		Package:               opts.Package.PkgSpecs,
+		CPE:                   opts.Package.CPESpecs,
+		OS:                    opts.OS.Specs,
+		AllowBroadCPEMatching: opts.Package.AllowBroadCPEMatching,
+		RecordLimit:           opts.Bounds.RecordLimit,
 	})
 	if queryErr != nil {
 		if !errors.Is(queryErr, v6.ErrLimitReached) {

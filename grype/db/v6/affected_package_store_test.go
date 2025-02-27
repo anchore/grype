@@ -513,19 +513,36 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 			expected: []AffectedPackageHandle{*pkg2, *pkg3},
 		},
 		{
-			name: "match on any TSW when specific one provided",
+			name: "match on any TSW when specific one provided when broad matching enabled",
 			cpe: cpe.Attributes{
 				Part:     "a",
 				Vendor:   "vendor2",
 				TargetSW: "target1",
 			},
 			options: &GetAffectedPackageOptions{
-				PreloadPackageCPEs:   true,
-				PreloadPackage:       true,
-				PreloadBlob:          true,
-				PreloadVulnerability: true,
+				PreloadPackageCPEs:    true,
+				PreloadPackage:        true,
+				PreloadBlob:           true,
+				PreloadVulnerability:  true,
+				AllowBroadCPEMatching: true,
 			},
 			expected: []AffectedPackageHandle{*pkg2, *pkg3},
+		},
+		{
+			name: "do NOT match on any TSW when specific one provided when broad matching disabled",
+			cpe: cpe.Attributes{
+				Part:     "a",
+				Vendor:   "vendor2",
+				TargetSW: "target1",
+			},
+			options: &GetAffectedPackageOptions{
+				PreloadPackageCPEs:    true,
+				PreloadPackage:        true,
+				PreloadBlob:           true,
+				PreloadVulnerability:  true,
+				AllowBroadCPEMatching: false,
+			},
+			expected: []AffectedPackageHandle{*pkg3},
 		},
 		{
 			name: "missing attributes",
