@@ -70,7 +70,7 @@ require (
 	gorm.io/gorm v1.25.12
 )
 
-require github.com/DataDog/zstd v1.5.5
+require github.com/DataDog/zstd v1.5.5 // indirect
 
 require (
 	cel.dev/expr v0.16.1 // indirect

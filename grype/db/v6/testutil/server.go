@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/DataDog/zstd"
 	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/archiver/v3"
 	"github.com/anchore/grype/grype/db/v5/namespace"
 	distroNs "github.com/anchore/grype/grype/db/v5/namespace/distro"
 	"github.com/anchore/grype/grype/db/v5/namespace/language"
@@ -329,11 +329,11 @@ func pack(t *testing.T, typ string, contents []byte) []byte {
 		err = tw.Close()
 		require.NoError(t, err)
 
-		var tarZstd []byte
-		tarZstd, err = zstd.Compress(tarZstd, tarContents.Bytes())
+		tarZstd := bytes.Buffer{}
+		err = archiver.NewZstd().Compress(&tarContents, &tarZstd)
 		require.NoError(t, err)
 
-		return tarZstd
+		return tarZstd.Bytes()
 	}
 
 	panic("unsupported type: " + typ)
