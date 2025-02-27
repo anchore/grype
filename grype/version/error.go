@@ -5,6 +5,8 @@ import (
 	"fmt"
 )
 
+var ErrNoVersionProvided = errors.New("no version provided for comparison")
+
 // UnsupportedFormatError represents an error when a format doesn't match the expected format
 type UnsupportedFormatError struct {
 	Left  Format
@@ -20,7 +22,7 @@ func NewUnsupportedFormatError(left, right Format) *UnsupportedFormatError {
 }
 
 func (e *UnsupportedFormatError) Error() string {
-	return fmt.Sprintf("(%s) unsupported format: %s", e.Left, e.Right)
+	return fmt.Sprintf("(%s) unsupported version format for comparison: %s", e.Left, e.Right)
 }
 
 func (e *UnsupportedFormatError) Is(target error) bool {

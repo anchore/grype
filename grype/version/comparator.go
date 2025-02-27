@@ -7,6 +7,9 @@ type Comparator interface {
 }
 
 func finalizeComparisonVersion(version *Version, targetFormat Format) (*Version, error) {
+	if version == nil {
+		return nil, ErrNoVersionProvided
+	}
 	switch version.Format {
 	case targetFormat:
 		return version, nil

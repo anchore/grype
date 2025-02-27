@@ -43,6 +43,10 @@ func newJvmVersion(raw string) (*jvmVersion, error) {
 }
 
 func (v *jvmVersion) Compare(other *Version) (int, error) {
+	if other == nil {
+		return -1, ErrNoVersionProvided
+	}
+
 	if other.Format == JVMFormat {
 		if other.rich.jvmVersion == nil {
 			return -1, fmt.Errorf("given empty jvmVersion object")
