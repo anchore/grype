@@ -4,6 +4,9 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
+	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -29,24 +32,39 @@ const (
 
 type SyftSource string
 
-func GenerateAnalysis(t *testing.T, scheme SyftSource) (*sbom.SBOM, match.Matches, []pkg.Package, pkg.Context, vulnerability.MetadataProvider, interface{}, interface{}) {
+func GeneratePresenterConfig(t *testing.T, scheme SyftSource) models.PresenterConfig {
+	s, doc := GenerateAnalysis(t, scheme)
+	return models.PresenterConfig{
+		ID:       clio.Identification{Name: "grype", Version: "[not provided]"},
+		Document: doc,
+		SBOM:     s,
+		Pretty:   true,
+	}
+}
+
+func GenerateAnalysis(t *testing.T, scheme SyftSource) (*sbom.SBOM, models.Document) {
 	t.Helper()
+
+	context := generateContext(t, scheme)
 
 	s := &sbom.SBOM{
 		Artifacts: sbom.Artifacts{
 			Packages: syftPkg.NewCollection(generatePackages(t)...),
 		},
+		Source: *context.Source,
 	}
 
 	grypePackages := pkg.FromCollection(s.Artifacts.Packages, pkg.SynthesisConfig{})
 
 	matches := generateMatches(t, grypePackages[0], grypePackages[1])
-	context := generateContext(t, scheme)
 
-	return s, matches, grypePackages, context, models.NewMetadataMock(), nil, nil
+	doc, err := models.NewDocument(clio.Identification{Name: "grype", Version: "[not provided]"}, grypePackages, context, matches, nil, models.NewMetadataMock(), nil, nil, models.SortByPackage)
+	require.NoError(t, err)
+
+	return s, doc
 }
 
-func GenerateAnalysisWithIgnoredMatches(t *testing.T, scheme SyftSource) (match.Matches, []match.IgnoredMatch, []pkg.Package, pkg.Context, vulnerability.MetadataProvider, interface{}, interface{}) {
+func GenerateAnalysisWithIgnoredMatches(t *testing.T, scheme SyftSource) models.Document {
 	t.Helper()
 
 	s := &sbom.SBOM{
@@ -61,7 +79,9 @@ func GenerateAnalysisWithIgnoredMatches(t *testing.T, scheme SyftSource) (match.
 	ignoredMatches := generateIgnoredMatches(t, grypePackages[1])
 	context := generateContext(t, scheme)
 
-	return matches, ignoredMatches, grypePackages, context, models.NewMetadataMock(), nil, nil
+	doc, err := models.NewDocument(clio.Identification{Name: "grype", Version: "devel"}, grypePackages, context, matches, ignoredMatches, models.NewMetadataMock(), nil, nil, models.SortByPackage)
+	require.NoError(t, err)
+	return doc
 }
 
 func Redact(s []byte) []byte {
@@ -70,8 +90,10 @@ func Redact(s []byte) []byte {
 	refPattern := regexp.MustCompile(`ref="[a-zA-Z0-9\-:]+"`)
 	rfc3339Pattern := regexp.MustCompile(`([0-9]+)-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])[Tt]([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.[0-9]+)?(([Zz])|([+|\-]([01][0-9]|2[0-3]):[0-5][0-9]))`)
 	cycloneDxBomRefPattern := regexp.MustCompile(`[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`)
+	tempDirPattern := regexp.MustCompile(`/tmp/[^"]+`)
+	macTempDirPattern := regexp.MustCompile(`/var/folders/[^"]+`)
 
-	for _, pattern := range []*regexp.Regexp{serialPattern, rfc3339Pattern, refPattern, uuidPattern, cycloneDxBomRefPattern} {
+	for _, pattern := range []*regexp.Regexp{serialPattern, rfc3339Pattern, refPattern, uuidPattern, cycloneDxBomRefPattern, tempDirPattern, macTempDirPattern} {
 		s = pattern.ReplaceAll(s, []byte(""))
 	}
 	return s

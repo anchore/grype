@@ -16,7 +16,6 @@ import (
 )
 
 func TestPackagesAreSorted(t *testing.T) {
-
 	var pkg1 = pkg.Package{
 		ID:      "package-1-id",
 		Name:    "package-1",
@@ -47,7 +46,7 @@ func TestPackagesAreSorted(t *testing.T) {
 		Vulnerability: vulnerability.Vulnerability{
 			Reference: vulnerability.Reference{ID: "CVE-1999-0002"},
 		},
-		Package: pkg1,
+		Package: pkg2,
 		Details: match.Details{
 			{
 				Type: match.ExactIndirectMatch,
@@ -82,17 +81,26 @@ func TestPackagesAreSorted(t *testing.T) {
 			Version: "8.0",
 		},
 	}
-	doc, err := NewDocument(clio.Identification{}, packages, ctx, matches, nil, NewMetadataMock(), nil, nil)
+	doc, err := NewDocument(clio.Identification{}, packages, ctx, matches, nil, NewMetadataMock(), nil, nil, SortByPackage)
 	if err != nil {
 		t.Fatalf("unable to get document: %+v", err)
 	}
+
+	var actualPackages []string
+	for _, m := range doc.Matches {
+		actualPackages = append(actualPackages, m.Artifact.Name)
+	}
+
+	// sort packages first
+	assert.Equal(t, []string{"package-1", "package-1", "package-2"}, actualPackages)
 
 	var actualVulnerabilities []string
 	for _, m := range doc.Matches {
 		actualVulnerabilities = append(actualVulnerabilities, m.Vulnerability.ID)
 	}
 
-	assert.Equal(t, []string{"CVE-1999-0003", "CVE-1999-0002", "CVE-1999-0001"}, actualVulnerabilities)
+	// sort vulnerabilities second
+	assert.Equal(t, []string{"CVE-1999-0001", "CVE-1999-0003", "CVE-1999-0002"}, actualVulnerabilities)
 }
 
 func TestTimestampValidFormat(t *testing.T) {
@@ -104,7 +112,7 @@ func TestTimestampValidFormat(t *testing.T) {
 		Distro: nil,
 	}
 
-	doc, err := NewDocument(clio.Identification{}, nil, ctx, matches, nil, nil, nil, nil)
+	doc, err := NewDocument(clio.Identification{}, nil, ctx, matches, nil, nil, nil, nil, SortByPackage)
 	if err != nil {
 		t.Fatalf("unable to get document: %+v", err)
 	}

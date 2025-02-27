@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:ca9bfd93-9fb8-4f58-8f84-ff764935da1f",
+  "serialNumber": "urn:uuid:24d4fb73-8881-462c-940a-61b6d37b579d",
   "version": 1,
   "metadata": {
-    "timestamp": "2025-02-25T15:06:07-05:00",
+    "timestamp": "2025-02-27T13:15:13-05:00",
     "tools": {
       "components": [
         {
@@ -15,6 +15,12 @@
           "version": "[not provided]"
         }
       ]
+    },
+    "component": {
+      "bom-ref": "1882f79f937f7d91",
+      "type": "container",
+      "name": "user-input",
+      "version": "sha256:ca738abb87a8d58f112d3400ebb079b61ceae7dc290beb34bda735be4b1941d5"
     }
   },
   "components": [
@@ -84,13 +90,17 @@
   ],
   "vulnerabilities": [
     {
-      "bom-ref": "urn:uuid:ba32c3c8-31fd-42fd-9daa-1c082405210b",
+      "bom-ref": "urn:uuid:638bc45b-a838-4017-b690-dc5d8d3cfe8d",
       "id": "CVE-1999-0001",
-      "source": {},
+      "source": {
+        "name": "source-1"
+      },
       "references": [
         {
           "id": "CVE-1999-0001",
-          "source": {}
+          "source": {
+            "name": "source-1"
+          }
         }
       ],
       "ratings": [
@@ -109,13 +119,17 @@
       ]
     },
     {
-      "bom-ref": "urn:uuid:67745d83-3d79-43bd-b230-2bad4f072af9",
+      "bom-ref": "urn:uuid:6592d365-1128-49a0-8a68-570d8188965a",
       "id": "CVE-1999-0002",
-      "source": {},
+      "source": {
+        "name": "source-2"
+      },
       "references": [
         {
           "id": "CVE-1999-0002",
-          "source": {}
+          "source": {
+            "name": "source-2"
+          }
         }
       ],
       "ratings": [

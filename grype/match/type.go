@@ -18,6 +18,10 @@ var typeOrder = map[Type]int{
 
 type Type string
 
+func (t Type) String() string {
+	return string(t)
+}
+
 func ConvertToIndirectMatches(matches []Match, p pkg.Package) {
 	for idx := range matches {
 		for dIdx := range matches[idx].Details {

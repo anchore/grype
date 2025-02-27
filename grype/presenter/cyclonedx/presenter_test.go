@@ -5,9 +5,9 @@ import (
 	"flag"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/clio"
 	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/presenter/internal"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -43,18 +43,7 @@ func Test_noTypedNils(t *testing.T) {
 func TestCycloneDxPresenterImage(t *testing.T) {
 	var buffer bytes.Buffer
 
-	sbom, matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.ImageSource)
-	pb := models.PresenterConfig{
-		ID: clio.Identification{
-			Name:    "grype",
-			Version: "[not provided]",
-		},
-		Matches:          matches,
-		Packages:         packages,
-		Context:          context,
-		MetadataProvider: metadataProvider,
-		SBOM:             sbom,
-	}
+	pb := internal.GeneratePresenterConfig(t, internal.ImageSource)
 
 	pres := NewJSONPresenter(pb)
 	// run presenter
@@ -74,23 +63,15 @@ func TestCycloneDxPresenterImage(t *testing.T) {
 	actual = internal.Redact(actual)
 	expected = internal.Redact(expected)
 
-	require.JSONEq(t, string(expected), string(actual))
+	if d := cmp.Diff(string(expected), string(actual)); d != "" {
+		t.Fatalf("diff: %s", d)
+	}
 }
 
 func TestCycloneDxPresenterDir(t *testing.T) {
 	var buffer bytes.Buffer
-	sbom, matches, packages, ctx, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.DirectorySource)
-	pb := models.PresenterConfig{
-		ID: clio.Identification{
-			Name:    "grype",
-			Version: "[not provided]",
-		},
-		Matches:          matches,
-		Packages:         packages,
-		Context:          ctx,
-		MetadataProvider: metadataProvider,
-		SBOM:             sbom,
-	}
+
+	pb := internal.GeneratePresenterConfig(t, internal.DirectorySource)
 
 	pres := NewJSONPresenter(pb)
 
@@ -111,5 +92,7 @@ func TestCycloneDxPresenterDir(t *testing.T) {
 	actual = internal.Redact(actual)
 	expected = internal.Redact(expected)
 
-	require.JSONEq(t, string(expected), string(actual))
+	if d := cmp.Diff(string(expected), string(actual)); d != "" {
+		t.Fatalf("diff: %s", d)
+	}
 }
