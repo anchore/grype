@@ -57,6 +57,22 @@ func (v *jvmVersion) Compare(other *Version) (int, error) {
 		return other.rich.semVer.verObj.Compare(v.semVer), nil
 	}
 
+	jvmUpgrade, err := finalizeComparisonVersion(other, JVMFormat)
+	if err == nil {
+		if jvmUpgrade.rich.jvmVersion == nil {
+			return -1, fmt.Errorf("given empty jvmVersion object")
+		}
+		return jvmUpgrade.rich.jvmVersion.compare(*v), nil
+	}
+
+	semUpgrade, err := finalizeComparisonVersion(other, SemanticFormat)
+	if err == nil {
+		if semUpgrade.rich.semVer == nil {
+			return -1, fmt.Errorf("given empty semVer object")
+		}
+		return semUpgrade.rich.semVer.verObj.Compare(v.semVer), nil
+	}
+
 	return -1, NewUnsupportedFormatError(JVMFormat, other.Format)
 }
 

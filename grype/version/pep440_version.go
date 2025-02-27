@@ -13,9 +13,11 @@ type pep440Version struct {
 }
 
 func (p pep440Version) Compare(other *Version) (int, error) {
-	if other.Format != PythonFormat {
-		return -1, fmt.Errorf("unable to compare pep440 to given format: %s", other.Format)
+	other, err := finalizeComparisonVersion(other, PythonFormat)
+	if err != nil {
+		return -1, err
 	}
+
 	if other.rich.pep440version == nil {
 		return -1, fmt.Errorf("given empty pep440 object")
 	}
