@@ -434,6 +434,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 
 	cpe1 := Cpe{Part: "a", Vendor: "vendor1", Product: "product1"}
 	cpe2 := Cpe{Part: "a", Vendor: "vendor2", Product: "product2"}
+	cpe3 := Cpe{Part: "a", Vendor: "vendor2", Product: "product2", TargetSoftware: "target1"}
 	pkg1 := &AffectedPackageHandle{
 		Vulnerability: &VulnerabilityHandle{
 			Name: "CVE-2023-1234",
@@ -459,7 +460,20 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 		},
 	}
 
-	err := s.AddAffectedPackages(pkg1, pkg2)
+	pkg3 := &AffectedPackageHandle{
+		Vulnerability: &VulnerabilityHandle{
+			Name: "CVE-2023-5678",
+			Provider: &Provider{
+				ID: "provider1",
+			},
+		},
+		Package: &Package{Name: "pkg3", Ecosystem: "type2", CPEs: []Cpe{cpe3}},
+		BlobValue: &AffectedPackageBlob{
+			CVEs: []string{"CVE-2023-5678"},
+		},
+	}
+
+	err := s.AddAffectedPackages(pkg1, pkg2, pkg3)
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -496,7 +510,22 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 				PreloadBlob:          true,
 				PreloadVulnerability: true,
 			},
-			expected: []AffectedPackageHandle{*pkg2},
+			expected: []AffectedPackageHandle{*pkg2, *pkg3},
+		},
+		{
+			name: "match on any TSW when specific one provided",
+			cpe: cpe.Attributes{
+				Part:     "a",
+				Vendor:   "vendor2",
+				TargetSW: "target1",
+			},
+			options: &GetAffectedPackageOptions{
+				PreloadPackageCPEs:   true,
+				PreloadPackage:       true,
+				PreloadBlob:          true,
+				PreloadVulnerability: true,
+			},
+			expected: []AffectedPackageHandle{*pkg2, *pkg3},
 		},
 		{
 			name: "missing attributes",
@@ -509,7 +538,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 				PreloadBlob:          true,
 				PreloadVulnerability: true,
 			},
-			expected: []AffectedPackageHandle{*pkg1, *pkg2},
+			expected: []AffectedPackageHandle{*pkg1, *pkg2, *pkg3},
 		},
 		{
 			name: "no matches",

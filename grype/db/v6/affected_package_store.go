@@ -745,39 +745,39 @@ func (s *affectedPackageStore) handlePreload(query *gorm.DB, config GetAffectedP
 
 func handleCPEOptions(query *gorm.DB, c *cpe.Attributes) *gorm.DB {
 	if c.Part != cpe.Any {
-		query = query.Where("cpes.part = ? collate nocase", c.Part)
+		query = query.Where("cpes.part = ? collate nocase or cpes.part = ? collate nocase", c.Part, cpe.Any)
 	}
 
 	if c.Vendor != cpe.Any {
-		query = query.Where("cpes.vendor = ? collate nocase", c.Vendor)
+		query = query.Where("cpes.vendor = ? collate nocase or cpes.vendor = ? collate nocase", c.Vendor, cpe.Any)
 	}
 
 	if c.Product != cpe.Any {
-		query = query.Where("cpes.product = ? collate nocase", c.Product)
+		query = query.Where("cpes.product = ? collate nocase or cpes.product = ? collate nocase", c.Product, cpe.Any)
 	}
 
 	if c.Edition != cpe.Any {
-		query = query.Where("cpes.edition = ? collate nocase", c.Edition)
+		query = query.Where("cpes.edition = ? collate nocase or cpes.edition = ? collate nocase", c.Edition, cpe.Any)
 	}
 
 	if c.Language != cpe.Any {
-		query = query.Where("cpes.language = ? collate nocase", c.Language)
+		query = query.Where("cpes.language = ? collate nocase or cpes.language = ? collate nocase", c.Language, cpe.Any)
 	}
 
 	if c.SWEdition != cpe.Any {
-		query = query.Where("cpes.software_edition = ? collate nocase", c.SWEdition)
+		query = query.Where("cpes.software_edition = ? collate nocase or cpes.software_edition = ? collate nocase", c.SWEdition, cpe.Any)
 	}
 
 	if c.TargetSW != cpe.Any {
-		query = query.Where("cpes.target_software = ? collate nocase", c.TargetSW)
+		query = query.Where("cpes.target_software = ? collate nocase or cpes.target_software = ? collate nocase", c.TargetSW, cpe.Any)
 	}
 
 	if c.TargetHW != cpe.Any {
-		query = query.Where("cpes.target_hardware = ? collate nocase", c.TargetHW)
+		query = query.Where("cpes.target_hardware = ? collate nocase or cpes.target_hardware = ? collate nocase", c.TargetHW, cpe.Any)
 	}
 
 	if c.Other != cpe.Any {
-		query = query.Where("cpes.other = ? collate nocase", c.Other)
+		query = query.Where("cpes.other = ? collate nocase or cpes.other = ? collate nocase", c.Other, cpe.Any)
 	}
 	return query
 }
