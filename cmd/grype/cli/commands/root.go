@@ -275,7 +275,7 @@ func checkForAppUpdate(id clio.Identification, opts *options.Grype) {
 			},
 		})
 	} else {
-		log.Debugf("no new %s update available", id.Name)
+		log.Debugf("no new %s application update available", id.Name)
 	}
 }
 

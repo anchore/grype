@@ -24,19 +24,19 @@ func Provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom
 				return nil, ctx, s, exclusionsErr
 			}
 		}
-		log.WithFields("input", userInput).Trace("interpreting input from the given SBOM")
+		log.WithFields("input", userInput).Trace("interpreting input as an SBOM document")
 		return packages, ctx, s, err
 	}
 
 	packages, ctx, s, err = purlProvider(userInput)
 	if !errors.Is(err, errDoesNotProvide) {
-		log.WithFields("input", userInput).Trace("interpreting input from the given PURL(s)")
+		log.WithFields("input", userInput).Trace("interpreting input as one or more PURLs")
 		return packages, ctx, s, err
 	}
 
 	packages, ctx, s, err = cpeProvider(userInput)
 	if !errors.Is(err, errDoesNotProvide) {
-		log.WithFields("input", userInput).Trace("interpreting input from the given CPE")
+		log.WithFields("input", userInput).Trace("interpreting input as a CPE")
 		return packages, ctx, s, err
 	}
 
