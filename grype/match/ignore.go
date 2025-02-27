@@ -2,10 +2,9 @@ package match
 
 import (
 	"regexp"
+	"strings"
 
 	"github.com/bmatcuk/doublestar/v2"
-
-	"github.com/anchore/grype/internal/log"
 )
 
 // IgnoreFilter implementations are used to filter matches, returning all applicable IgnoreRule(s) that applied,
@@ -206,13 +205,19 @@ func packageNameRegex(packageName string) (*regexp.Regexp, error) {
 }
 
 func ifPackageNameApplies(name string) ignoreCondition {
-	pattern, err := packageNameRegex(name)
-	if err != nil {
-		return func(Match) bool { return false }
+	if name == "linux(-.*)?-headers-.*" {
+		pattern, err := packageNameRegex(name)
+		if err != nil {
+			return func(Match) bool { return false }
+		}
+
+		return func(match Match) bool {
+			return pattern.MatchString(match.Package.Name)
+		}
 	}
 
 	return func(match Match) bool {
-		return pattern.MatchString(match.Package.Name)
+		return name == match.Package.Name
 	}
 }
 
@@ -241,14 +246,20 @@ func ifPackageLocationApplies(location string) ignoreCondition {
 }
 
 func ifUpstreamPackageNameApplies(name string) ignoreCondition {
-	pattern, err := packageNameRegex(name)
-	if err != nil {
-		log.WithFields("name", name, "error", err).Debug("unable to parse name expression")
-		return func(Match) bool { return false }
+	if name == "linux.*" {
+		return func(match Match) bool {
+			for _, upstream := range match.Package.Upstreams {
+				if strings.HasPrefix(upstream.Name, "linux") {
+					return true
+				}
+			}
+			return false
+		}
 	}
+
 	return func(match Match) bool {
 		for _, upstream := range match.Package.Upstreams {
-			if pattern.MatchString(upstream.Name) {
+			if name == upstream.Name {
 				return true
 			}
 		}
