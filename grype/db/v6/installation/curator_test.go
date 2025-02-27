@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"path"
 	"path/filepath"
 	"testing"
 	"time"
@@ -149,11 +148,11 @@ func writeTestImportMetadata(t *testing.T, fs afero.Fs, dir string, checksums st
 func writeTestImportMetadataWithCustomVersion(t *testing.T, fs afero.Fs, dir string, checksums string, ver string) {
 	require.NoError(t, fs.MkdirAll(dir, 0755))
 
-	metadataFilePath := path.Join(dir, db.ImportMetadataFileName)
+	metadataFilePath := filepath.Join(dir, db.ImportMetadataFileName)
 
 	writer, err := afero.NewOsFs().Create(metadataFilePath)
 	require.NoError(t, err)
-	defer writer.Close()
+	defer func() { _ = writer.Close() }()
 	enc := json.NewEncoder(writer)
 	enc.SetIndent("", " ")
 

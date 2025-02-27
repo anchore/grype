@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -58,11 +57,11 @@ func DefaultConfig(id clio.Identification) Config {
 }
 
 func (c Config) DBFilePath() string {
-	return path.Join(c.DBDirectoryPath(), db.VulnerabilityDBFileName)
+	return filepath.Join(c.DBDirectoryPath(), db.VulnerabilityDBFileName)
 }
 
 func (c Config) DBDirectoryPath() string {
-	return path.Join(c.DBRootDir, strconv.Itoa(db.ModelVersion))
+	return filepath.Join(c.DBRootDir, strconv.Itoa(db.ModelVersion))
 }
 
 type curator struct {
@@ -333,7 +332,7 @@ func isRehydrationNeeded(fs afero.Fs, dirPath string, currentDBVersion *schemave
 func (c curator) durationSinceUpdateCheck() (*time.Duration, error) {
 	// open `$dbDir/last_update_check` file and read the timestamp and do now() - timestamp
 
-	filePath := path.Join(c.config.DBDirectoryPath(), lastUpdateCheckFileName)
+	filePath := filepath.Join(c.config.DBDirectoryPath(), lastUpdateCheckFileName)
 
 	if _, err := c.fs.Stat(filePath); os.IsNotExist(err) {
 		log.Trace("first-run of DB update")
@@ -371,7 +370,7 @@ func (c curator) setLastSuccessfulUpdateCheck() {
 	// note: we should always assume the DB dir actually exists, otherwise let this operation fail (since having a DB
 	// is a prerequisite for a successful update).
 
-	filePath := path.Join(c.config.DBDirectoryPath(), lastUpdateCheckFileName)
+	filePath := filepath.Join(c.config.DBDirectoryPath(), lastUpdateCheckFileName)
 	fh, err := c.fs.OpenFile(filePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		log.WithFields("error", err).Trace("unable to write last update check timestamp")
