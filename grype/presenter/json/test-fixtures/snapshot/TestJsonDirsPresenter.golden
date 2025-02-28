@@ -38,6 +38,9 @@
      },
      "found": {
       "constraint": ">= 20"
+     },
+     "fix": {
+      "suggestedVersion": "the-next-version"
      }
     }
    ],
@@ -103,6 +106,9 @@
      },
      "found": {
       "constraint": "somecpe"
+     },
+     "fix": {
+      "suggestedVersion": ""
      }
     }
    ],
