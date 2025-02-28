@@ -41,11 +41,11 @@ func NewMetadataMock() *MetadataMock {
 					Severity:    "Critical",
 					Cvss: []vulnerability.Cvss{
 						{
-							Metrics: vulnerability.NewCvssMetrics(
-								1,
-								2,
-								3,
-							),
+							Metrics: vulnerability.CvssMetrics{
+								BaseScore:           1,
+								ExploitabilityScore: ptr(2.0),
+								ImpactScore:         ptr(3.0),
+							},
 							Vector:  "vector",
 							Version: "2.0",
 							VendorMetadata: MockVendorMetadata{
@@ -68,11 +68,11 @@ func NewMetadataMock() *MetadataMock {
 					Severity:    "Critical",
 					Cvss: []vulnerability.Cvss{
 						{
-							Metrics: vulnerability.NewCvssMetrics(
-								1,
-								2,
-								3,
-							),
+							Metrics: vulnerability.CvssMetrics{
+								BaseScore:           1,
+								ExploitabilityScore: ptr(2.0),
+								ImpactScore:         ptr(3.0),
+							},
 							Vector:  "vector",
 							Version: "2.0",
 							VendorMetadata: MockVendorMetadata{
@@ -87,8 +87,14 @@ func NewMetadataMock() *MetadataMock {
 	}
 }
 
+func ptr[T any](t T) *T {
+	return &t
+}
+
 // VulnerabilityMetadata returns vulnerability metadata for a given id and recordSource.
 func (m *MetadataMock) VulnerabilityMetadata(vuln vulnerability.Reference) (*vulnerability.Metadata, error) {
 	value := m.store[vuln.ID][vuln.Namespace]
+	value.ID = vuln.ID
+	value.Namespace = vuln.Namespace
 	return &value, nil
 }
