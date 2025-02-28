@@ -273,5 +273,5 @@ var (
 	// nakConstraint checks the exact version string for being an APK version with "< 0"
 	nakConstraint = search.ByConstraintFunc(func(c version.Constraint) (bool, error) {
 		return c.String() == nakVersionString, nil
-	})
+	}, "there is a secDB NAK entry")
 )

@@ -1,6 +1,7 @@
 package search
 
 import (
+	"fmt"
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
@@ -18,6 +19,10 @@ type IDCriteria struct {
 
 func (v *IDCriteria) MatchesVulnerability(vuln vulnerability.Vulnerability) (bool, error) {
 	return vuln.ID == v.ID, nil
+}
+
+func (v *IDCriteria) Summarize() string {
+	return fmt.Sprintf("does not match vulnerability=%q", v.ID)
 }
 
 var _ interface {

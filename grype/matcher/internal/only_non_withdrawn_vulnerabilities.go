@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"fmt"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
 )
@@ -10,5 +11,5 @@ func onlyNonWithdrawnVulnerabilities() vulnerability.Criteria {
 	return search.ByFunc(func(v vulnerability.Vulnerability) (bool, error) {
 		// we should be using enumerations from all supported schema versions, but constants should not be imported here
 		return v.Status != "withdrawn" && v.Status != "rejected", nil
-	})
+	}, fmt.Sprintf("vulnerability is withdrawn or rejected"))
 }

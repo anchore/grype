@@ -12,7 +12,7 @@ func onlyVulnerableVersions(v *version.Version) vulnerability.Criteria {
 		// if no version is provided, match everything
 		return search.ByFunc(func(_ vulnerability.Vulnerability) (bool, error) {
 			return true, nil
-		})
+		}, "") // since we return true the summary is not used
 	}
 	return search.ByVersion(*v)
 }

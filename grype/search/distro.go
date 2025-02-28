@@ -43,6 +43,14 @@ func (c *DistroCriteria) MatchesVulnerability(value vulnerability.Vulnerability)
 	return false, nil
 }
 
+func (c *DistroCriteria) Summarize() string {
+	var distroStrs []string
+	for _, d := range c.Distros {
+		distroStrs = append(distroStrs, d.String())
+	}
+	return "does not match distro(s): " + strings.Join(distroStrs, ", ")
+}
+
 var _ interface {
 	vulnerability.Criteria
 } = (*DistroCriteria)(nil)

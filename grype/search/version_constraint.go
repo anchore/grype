@@ -16,8 +16,8 @@ type VersionConstraintMatcher interface {
 }
 
 // ByConstraintFunc returns criteria which will use the provided function as inclusion criteria
-func ByConstraintFunc(constraintFunc func(constraint version.Constraint) (bool, error)) vulnerability.Criteria {
-	return &constraintFuncCriteria{fn: constraintFunc}
+func ByConstraintFunc(constraintFunc func(constraint version.Constraint) (bool, error), summary string) vulnerability.Criteria {
+	return &constraintFuncCriteria{fn: constraintFunc, summary: summary}
 }
 
 // ByVersion returns criteria which constrains vulnerabilities to those with matching version constraints
@@ -40,12 +40,13 @@ func ByVersion(v version.Version) vulnerability.Criteria {
 			}
 		}
 		return satisfied, nil
-	})
+	}, fmt.Sprintf("does not match package version=%q", v.String()))
 }
 
 // constraintFuncCriteria implements vulnerability.Criteria by providing a function implementing the same signature as MatchVulnerability
 type constraintFuncCriteria struct {
-	fn func(constraint version.Constraint) (bool, error)
+	fn      func(constraint version.Constraint) (bool, error)
+	summary string
 }
 
 func (f *constraintFuncCriteria) MatchesConstraint(constraint version.Constraint) (bool, error) {
@@ -54,6 +55,10 @@ func (f *constraintFuncCriteria) MatchesConstraint(constraint version.Constraint
 
 func (f *constraintFuncCriteria) MatchesVulnerability(value vulnerability.Vulnerability) (bool, error) {
 	return f.fn(value.Constraint)
+}
+
+func (f *constraintFuncCriteria) Summarize() string {
+	return f.summary
 }
 
 var _ interface {

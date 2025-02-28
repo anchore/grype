@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"fmt"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -19,5 +20,5 @@ func onlyQualifiedPackages(p pkg.Package) vulnerability.Criteria {
 			}
 		}
 		return true, nil // all qualifiers passed
-	})
+	}, fmt.Sprintf("vulnerability does not align with package qualifiers for pkg=%s", p.String()))
 }

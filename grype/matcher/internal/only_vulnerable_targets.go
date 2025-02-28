@@ -1,7 +1,9 @@
 package internal
 
 import (
+	"fmt"
 	"github.com/facebookincubator/nvdtools/wfn"
+	"strings"
 
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
@@ -38,7 +40,30 @@ func isUnknownTarget(targetSW string) bool {
 func onlyVulnerableTargets(p pkg.Package) vulnerability.Criteria {
 	return search.ByFunc(func(v vulnerability.Vulnerability) (bool, error) {
 		return isVulnerableTarget(p, v), nil
-	})
+	}, fmt.Sprintf("vulnerability CPE target software does not align with %s", packageElements(p)))
+}
+
+func packageElements(p pkg.Package) string {
+	nameVersion := fmt.Sprintf("%s@%s", p.Name, p.Version)
+
+	var targetSW []string
+	for _, c := range p.CPEs {
+		if c.Attributes.TargetSW != wfn.Any {
+			targetSW = append(targetSW, c.Attributes.TargetSW)
+		}
+	}
+
+	pType := string(p.Type)
+	if pType == "" {
+		pType = "?"
+	}
+
+	targetSWStr := strings.Join(targetSW, ",")
+	if len(targetSW) == 0 {
+		targetSWStr = "none"
+	}
+
+	return fmt.Sprintf("pkg(%s type=%s targets=%s)", nameVersion, pType, targetSWStr)
 }
 
 // Determines if a vulnerability is an accurate match using the vulnerability's cpes' target software

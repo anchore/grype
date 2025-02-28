@@ -5,6 +5,7 @@ import (
 	"iter"
 	"reflect"
 	"slices"
+	"strings"
 
 	"github.com/anchore/grype/grype/vulnerability"
 )
@@ -76,6 +77,10 @@ func ValidateCriteria(criteria []vulnerability.Criteria) error {
 	return nil
 }
 
+var _ interface {
+	vulnerability.Criteria
+} = (*or)(nil)
+
 // orCriteria provides a way to specify multiple criteria to be used, only requiring one to match
 type or []vulnerability.Criteria
 
@@ -93,9 +98,17 @@ func (c or) MatchesVulnerability(v vulnerability.Vulnerability) (bool, error) {
 	return false, nil
 }
 
+func (c or) Summarize() string {
+	var elements []string
+	for _, crit := range c {
+		elements = append(elements, crit.Summarize())
+	}
+	return fmt.Sprintf("any(%s)", strings.Join(elements, "; "))
+}
+
 var _ interface {
 	vulnerability.Criteria
-} = (*or)(nil)
+} = (*and)(nil)
 
 // andCriteria provides a way to specify multiple criteria to be used, all required
 type and []vulnerability.Criteria
@@ -112,4 +125,12 @@ func (c and) MatchesVulnerability(v vulnerability.Vulnerability) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+func (c and) Summarize() string {
+	var elements []string
+	for _, crit := range c {
+		elements = append(elements, crit.Summarize())
+	}
+	return fmt.Sprintf("all(%s)", strings.Join(elements, "; "))
 }

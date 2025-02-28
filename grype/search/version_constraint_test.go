@@ -83,7 +83,7 @@ func Test_ByConstraintFunc(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			constraint := ByConstraintFunc(tt.constraintFunc)
+			constraint := ByConstraintFunc(tt.constraintFunc, "") // TODO: test the summary
 			matches, err := constraint.MatchesVulnerability(tt.input)
 			wantErr := require.NoError
 			if tt.wantErr != nil {

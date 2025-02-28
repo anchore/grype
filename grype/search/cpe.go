@@ -1,6 +1,7 @@
 package search
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/anchore/grype/grype/vulnerability"
@@ -23,6 +24,10 @@ func (v *CPECriteria) MatchesVulnerability(vuln vulnerability.Vulnerability) (bo
 		return true, nil
 	}
 	return false, nil
+}
+
+func (v *CPECriteria) Summarize() string {
+	return fmt.Sprintf("does not match CPE: %s", v.CPE.Attributes.BindToFmtString())
 }
 
 var _ interface {
