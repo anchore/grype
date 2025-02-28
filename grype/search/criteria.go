@@ -88,22 +88,16 @@ func Or(criteria ...vulnerability.Criteria) vulnerability.Criteria {
 	return or(criteria)
 }
 
-func (c or) MatchesVulnerability(v vulnerability.Vulnerability) (bool, error) {
+func (c or) MatchesVulnerability(v vulnerability.Vulnerability) (bool, string, error) {
+	var reasons []string
 	for _, crit := range c {
-		matches, err := crit.MatchesVulnerability(v)
+		matches, reason, err := crit.MatchesVulnerability(v)
 		if matches || err != nil {
-			return matches, err
+			return matches, reason, err
 		}
+		reasons = append(reasons, reason)
 	}
-	return false, nil
-}
-
-func (c or) Summarize() string {
-	var elements []string
-	for _, crit := range c {
-		elements = append(elements, crit.Summarize())
-	}
-	return fmt.Sprintf("any(%s)", strings.Join(elements, "; "))
+	return false, fmt.Sprintf("any(%s)", strings.Join(reasons, "; ")), nil
 }
 
 var _ interface {
@@ -117,20 +111,15 @@ func And(criteria ...vulnerability.Criteria) vulnerability.Criteria {
 	return and(criteria)
 }
 
-func (c and) MatchesVulnerability(v vulnerability.Vulnerability) (bool, error) {
-	for _, crit := range c {
-		matches, err := crit.MatchesVulnerability(v)
-		if matches || err != nil {
-			return matches, err
-		}
-	}
-	return false, nil
-}
+func (c and) MatchesVulnerability(v vulnerability.Vulnerability) (bool, string, error) {
+	var reasons []string
 
-func (c and) Summarize() string {
-	var elements []string
 	for _, crit := range c {
-		elements = append(elements, crit.Summarize())
+		matches, reason, err := crit.MatchesVulnerability(v)
+		if matches || err != nil {
+			return matches, reason, err
+		}
+		reasons = append(reasons, reason)
 	}
-	return fmt.Sprintf("all(%s)", strings.Join(elements, "; "))
+	return false, fmt.Sprintf("all(%s)", strings.Join(reasons, "; ")), nil
 }
