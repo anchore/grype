@@ -122,15 +122,6 @@ func TestEmptyJsonPresenter(t *testing.T) {
 
 }
 
-// TODO: fix me
-//func TestPresenter_Present_NewDocumentSorted(t *testing.T) {
-//	_, doc := internal.GenerateAnalysis(t, internal.ImageSource)
-//
-//	if !sort.IsSorted(models.NewMatchSorter(doc.Matches, models.SortByPackage)) {
-//		t.Errorf("expected matches to be sorted")
-//	}
-//}
-
 func redact(content []byte) []byte {
 	return timestampRegexp.ReplaceAll(content, []byte(`"timestamp":""`))
 }
