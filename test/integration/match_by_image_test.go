@@ -963,7 +963,7 @@ func assertMatches(t *testing.T, expected, actual []match.Match) {
 }
 
 func byNamespace(ns string) vulnerability.Criteria {
-	return search.ByFunc(func(v vulnerability.Vulnerability) (bool, error) {
-		return v.Reference.Namespace == ns, nil
+	return search.ByFunc(func(v vulnerability.Vulnerability) (bool, string, error) {
+		return v.Reference.Namespace == ns, "", nil
 	})
 }
