@@ -1,12 +1,12 @@
 package dbsearch
 
 import (
+	"bytes"
 	"encoding/json"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -25,6 +25,28 @@ func TestAffectedPackageTableRowMarshalJSON(t *testing.T) {
 			Status:        "active",
 			PublishedDate: ptr(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
 			ModifiedDate:  ptr(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
+			KnownExploited: []KnownExploited{
+				{
+					CVE:                        "CVE-1234-5678",
+					VendorProject:              "LinuxFoundation",
+					Product:                    "Linux",
+					DateAdded:                  "2025-02-02",
+					RequiredAction:             "Yes",
+					DueDate:                    "2025-02-02",
+					KnownRansomwareCampaignUse: "Known",
+					Notes:                      "note!",
+					URLs:                       []string{"https://example.com"},
+					CWEs:                       []string{"CWE-1234"},
+				},
+			},
+			EPSS: []EPSS{
+				{
+					CVE:        "CVE-1234-5678",
+					EPSS:       0.893,
+					Percentile: 0.99,
+					Date:       "2025-02-24",
+				},
+			},
 		},
 		AffectedPackageInfo: AffectedPackageInfo{
 			Package: &Package{Name: "pkg1", Ecosystem: "ecosystem1"},
@@ -51,7 +73,11 @@ func TestAffectedPackageTableRowMarshalJSON(t *testing.T) {
 		},
 	}
 
-	data, err := json.Marshal(row)
+	buf := bytes.Buffer{}
+	enc := json.NewEncoder(&buf)
+	enc.SetIndent("", "  ")
+	enc.SetEscapeHTML(false)
+	err := enc.Encode(row)
 	require.NoError(t, err)
 
 	expectedJSON := `{
@@ -117,9 +143,12 @@ func TestAffectedPackageTableRowMarshalJSON(t *testing.T) {
       }
     ]
   }
-}`
+}
+`
 
-	assert.JSONEq(t, expectedJSON, string(data))
+	if diff := cmp.Diff(expectedJSON, buf.String()); diff != "" {
+		t.Errorf("unexpected JSON (-want +got):\n%s", diff)
+	}
 }
 
 func TestNewAffectedPackageRows(t *testing.T) {
