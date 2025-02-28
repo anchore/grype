@@ -21,7 +21,6 @@ func DB(app clio.Application) *cobra.Command {
 	db.AddCommand(
 		DBCheck(app),
 		DBDelete(app),
-		DBDiff(app),
 		DBImport(app),
 		DBList(app),
 		DBStatus(app),

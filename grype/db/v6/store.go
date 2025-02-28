@@ -66,6 +66,11 @@ func newStore(cfg Config, empty, writable bool) (*store, error) {
 
 	meta, err := metadataStore.GetDBMetadata()
 	if err != nil {
+		// db.Close must be called, or we will get stale reads
+		d, _ := db.DB()
+		if d != nil {
+			_ = d.Close()
+		}
 		return nil, fmt.Errorf("failed to get db metadata: %w", err)
 	}
 

@@ -14,36 +14,6 @@ type golangVersion struct {
 	semVer *hashiVer.Version
 }
 
-func (g golangVersion) Compare(version *Version) (int, error) {
-	if version.Format != GolangFormat {
-		return -1, NewUnsupportedFormatError(GolangFormat, version.Format)
-	}
-	if version.rich.golangVersion == nil {
-		return -1, fmt.Errorf("cannot compare version with nil golang version to golang version")
-	}
-	if version.rich.golangVersion.raw == g.raw {
-		return 0, nil
-	}
-	if version.rich.golangVersion.raw == "(devel)" {
-		return -1, fmt.Errorf("cannot compare %s with %s", g.raw, version.rich.golangVersion.raw)
-	}
-
-	return version.rich.golangVersion.compare(g), nil
-}
-
-func (g golangVersion) compare(o golangVersion) int {
-	switch {
-	case g.semVer != nil && o.semVer != nil:
-		return g.semVer.Compare(o.semVer)
-	case g.semVer != nil && o.semVer == nil:
-		return 1
-	case g.semVer == nil && o.semVer != nil:
-		return -1
-	default:
-		return strings.Compare(g.raw, o.raw)
-	}
-}
-
 func newGolangVersion(v string) (*golangVersion, error) {
 	if v == "(devel)" {
 		return nil, ErrUnsupportedVersion
@@ -70,4 +40,36 @@ func newGolangVersion(v string) (*golangVersion, error) {
 		raw:    v,
 		semVer: semver,
 	}, nil
+}
+
+func (g golangVersion) Compare(other *Version) (int, error) {
+	other, err := finalizeComparisonVersion(other, GolangFormat)
+	if err != nil {
+		return -1, err
+	}
+
+	if other.rich.golangVersion == nil {
+		return -1, fmt.Errorf("cannot compare version with nil golang version to golang version")
+	}
+	if other.rich.golangVersion.raw == g.raw {
+		return 0, nil
+	}
+	if other.rich.golangVersion.raw == "(devel)" {
+		return -1, fmt.Errorf("cannot compare %s with %s", g.raw, other.rich.golangVersion.raw)
+	}
+
+	return other.rich.golangVersion.compare(g), nil
+}
+
+func (g golangVersion) compare(o golangVersion) int {
+	switch {
+	case g.semVer != nil && o.semVer != nil:
+		return g.semVer.Compare(o.semVer)
+	case g.semVer != nil && o.semVer == nil:
+		return 1
+	case g.semVer == nil && o.semVer != nil:
+		return -1
+	default:
+		return strings.Compare(g.raw, o.raw)
+	}
 }

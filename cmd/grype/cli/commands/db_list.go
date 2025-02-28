@@ -12,7 +12,6 @@ import (
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
-	legacyDistribution "github.com/anchore/grype/grype/db/v5/distribution"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 )
 
@@ -53,13 +52,6 @@ func DBList(app clio.Application) *cobra.Command {
 }
 
 func runDBList(opts dbListOptions) error {
-	if opts.Experimental.DBv6 {
-		return newDBList(opts)
-	}
-	return legacyDBList(opts)
-}
-
-func newDBList(opts dbListOptions) error {
 	c, err := distribution.NewClient(opts.ToClientConfig())
 	if err != nil {
 		return fmt.Errorf("unable to create distribution client: %w", err)
@@ -70,10 +62,10 @@ func newDBList(opts dbListOptions) error {
 		return fmt.Errorf("unable to get database listing: %w", err)
 	}
 
-	return presentNewDBList(opts.Output, opts.DB.UpdateURL, os.Stdout, latest)
+	return presentDBList(opts.Output, opts.DB.UpdateURL, os.Stdout, latest)
 }
 
-func presentNewDBList(format string, u string, writer io.Writer, latest *distribution.LatestDocument) error {
+func presentDBList(format string, u string, writer io.Writer, latest *distribution.LatestDocument) error {
 	if latest == nil {
 		return fmt.Errorf("no database listing found")
 	}
@@ -97,65 +89,14 @@ func presentNewDBList(format string, u string, writer io.Writer, latest *distrib
 		enc := json.NewEncoder(writer)
 		enc.SetEscapeHTML(false)
 		enc.SetIndent("", " ")
-		if err := enc.Encode(&latest); err != nil {
+		// why make an array? We are reserving the right to list additional entries in the future without the
+		// need to change from an object to an array at that point in time. This will be useful if we implement
+		// the history.json functionality for grabbing historical database listings.
+		if err := enc.Encode([]any{latest}); err != nil {
 			return fmt.Errorf("failed to db listing information: %+v", err)
 		}
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}
-	return nil
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// all legacy processing below ////////////////////////////////////////////////////////////////////////////////////////
-
-func legacyDBList(opts dbListOptions) error {
-	dbCurator, err := legacyDistribution.NewCurator(opts.ToLegacyCuratorConfig())
-	if err != nil {
-		return err
-	}
-
-	listing, err := dbCurator.ListingFromURL()
-	if err != nil {
-		return err
-	}
-
-	supportedSchema := dbCurator.SupportedSchema()
-	available, exists := listing.Available[supportedSchema]
-
-	if len(available) == 0 || !exists {
-		return stderrPrintLnf("No databases available for the current schema (%d)", supportedSchema)
-	}
-
-	switch opts.Output {
-	case textOutputFormat:
-		// summarize each listing entry for the current DB schema
-		for _, l := range available {
-			fmt.Printf("Built:    %s\n", l.Built)
-			fmt.Printf("URL:      %s\n", l.URL)
-			fmt.Printf("Checksum: %s\n\n", l.Checksum)
-		}
-
-		fmt.Printf("%d databases available for schema %d\n", len(available), supportedSchema)
-	case jsonOutputFormat:
-		// show entries for the current schema
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetEscapeHTML(false)
-		enc.SetIndent("", " ")
-		if err := enc.Encode(&available); err != nil {
-			return fmt.Errorf("failed to db listing information: %+v", err)
-		}
-	case "raw":
-		// show the entire listing file
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetEscapeHTML(false)
-		enc.SetIndent("", " ")
-		if err := enc.Encode(&listing); err != nil {
-			return fmt.Errorf("failed to db listing information: %+v", err)
-		}
-	default:
-		return fmt.Errorf("unsupported output format: %s", opts.Output)
-	}
-
 	return nil
 }

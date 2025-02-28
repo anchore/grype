@@ -29,14 +29,15 @@ var ErrMultipleOSMatches = errors.New("multiple OS matches found but not allowed
 var ErrLimitReached = errors.New("query limit reached")
 
 type GetAffectedPackageOptions struct {
-	PreloadOS            bool
-	PreloadPackage       bool
-	PreloadPackageCPEs   bool
-	PreloadVulnerability bool
-	PreloadBlob          bool
-	OSs                  OSSpecifiers
-	Vulnerabilities      VulnerabilitySpecifiers
-	Limit                int
+	PreloadOS             bool
+	PreloadPackage        bool
+	PreloadPackageCPEs    bool
+	PreloadVulnerability  bool
+	PreloadBlob           bool
+	OSs                   OSSpecifiers
+	Vulnerabilities       VulnerabilitySpecifiers
+	AllowBroadCPEMatching bool
+	Limit                 int
 }
 
 type PackageSpecifiers []*PackageSpecifier
@@ -375,7 +376,7 @@ func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config
 			Trace("fetched affected package record")
 	}()
 
-	query := s.handlePackage(s.db, pkg)
+	query := s.handlePackage(s.db, pkg, config.AllowBroadCPEMatching)
 
 	var err error
 	query, err = s.handleVulnerabilityOptions(query, config.Vulnerabilities)
@@ -434,27 +435,28 @@ func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config
 	return models, nil
 }
 
-func (s *affectedPackageStore) handlePackage(query *gorm.DB, config *PackageSpecifier) *gorm.DB {
-	if config == nil {
+func (s *affectedPackageStore) handlePackage(query *gorm.DB, p *PackageSpecifier, allowBroad bool) *gorm.DB {
+	if p == nil {
 		return query
 	}
 
-	if err := s.applyPackageAlias(config); err != nil {
+	if err := s.applyPackageAlias(p); err != nil {
 		log.Errorf("failed to apply package alias: %v", err)
 	}
 
 	query = query.Joins("JOIN packages ON affected_package_handles.package_id = packages.id")
 
-	if config.Name != "" {
-		query = query.Where("packages.name = ? collate nocase", config.Name)
+	if p.Name != "" {
+		query = query.Where("packages.name = ? collate nocase", p.Name)
 	}
-	if config.Ecosystem != "" {
-		query = query.Where("packages.ecosystem = ? collate nocase", config.Ecosystem)
+	if p.Ecosystem != "" {
+		query = query.Where("packages.ecosystem = ? collate nocase", p.Ecosystem)
 	}
 
-	if config.CPE != nil {
-		query = query.Joins("JOIN cpes ON packages.id = cpes.package_id")
-		query = handleCPEOptions(query, config.CPE)
+	if p.CPE != nil {
+		query = query.Joins("JOIN package_cpes ON packages.id = package_cpes.package_id")
+		query = query.Joins("JOIN cpes ON package_cpes.cpe_id = cpes.id")
+		query = handleCPEOptions(query, p.CPE, allowBroad)
 	}
 
 	return query
@@ -742,43 +744,39 @@ func (s *affectedPackageStore) handlePreload(query *gorm.DB, config GetAffectedP
 	return query
 }
 
-func handleCPEOptions(query *gorm.DB, c *cpe.Attributes) *gorm.DB {
-	if c.Part != cpe.Any {
-		query = query.Where("cpes.part = ? collate nocase", c.Part)
-	}
-
-	if c.Vendor != cpe.Any {
-		query = query.Where("cpes.vendor = ? collate nocase", c.Vendor)
-	}
-
-	if c.Product != cpe.Any {
-		query = query.Where("cpes.product = ? collate nocase", c.Product)
-	}
-
-	if c.Edition != cpe.Any {
-		query = query.Where("cpes.edition = ? collate nocase", c.Edition)
-	}
-
-	if c.Language != cpe.Any {
-		query = query.Where("cpes.language = ? collate nocase", c.Language)
-	}
-
-	if c.SWEdition != cpe.Any {
-		query = query.Where("cpes.software_edition = ? collate nocase", c.SWEdition)
-	}
-
-	if c.TargetSW != cpe.Any {
-		query = query.Where("cpes.target_software = ? collate nocase", c.TargetSW)
-	}
-
-	if c.TargetHW != cpe.Any {
-		query = query.Where("cpes.target_hardware = ? collate nocase", c.TargetHW)
-	}
-
-	if c.Other != cpe.Any {
-		query = query.Where("cpes.other = ? collate nocase", c.Other)
-	}
+func handleCPEOptions(query *gorm.DB, c *cpe.Attributes, allowBroad bool) *gorm.DB {
+	query = queryCPEAttributeScope(query, c.Part, "cpes.part", allowBroad)
+	query = queryCPEAttributeScope(query, c.Vendor, "cpes.vendor", allowBroad)
+	query = queryCPEAttributeScope(query, c.Product, "cpes.product", allowBroad)
+	query = queryCPEAttributeScope(query, c.Edition, "cpes.edition", allowBroad)
+	query = queryCPEAttributeScope(query, c.Language, "cpes.language", allowBroad)
+	query = queryCPEAttributeScope(query, c.SWEdition, "cpes.software_edition", allowBroad)
+	query = queryCPEAttributeScope(query, c.TargetSW, "cpes.target_software", allowBroad)
+	query = queryCPEAttributeScope(query, c.TargetHW, "cpes.target_hardware", allowBroad)
+	query = queryCPEAttributeScope(query, c.Other, "cpes.other", allowBroad)
 	return query
+}
+
+func queryCPEAttributeScope(query *gorm.DB, value string, dbColumn string, allowBroad bool) *gorm.DB {
+	if value == cpe.Any {
+		return query
+	}
+	if allowBroad {
+		// this allows for a package that specifies a CPE like
+		//
+		//   'cpe:2.3:a:cloudflare:octorpki:1.4.1:*:*:*:*:golang:*:*'
+		//
+		// to be able to positively match with a package CPE that claims to match "any" target software.
+		//
+		//   'cpe:2.3:a:cloudflare:octorpki:1.4.1:*:*:*:*:*:*:*'
+		//
+		// practically speaking, how would a vulnerability provider know that the package is vulnerable for all
+		// target software values (against the universe of packaging) -- this isn't practical.
+		return query.Where(fmt.Sprintf("%s = ? collate nocase or %s = ? collate nocase", dbColumn, dbColumn), value, cpe.Any)
+	}
+	// this is the most practical use case, where the package CPE with specified values must match the vulnerability
+	// CPE exactly (only for specified fields)
+	return query.Where(fmt.Sprintf("%s = ? collate nocase", dbColumn), value)
 }
 
 func hasDistroSpecified(d *OSSpecifier) bool {

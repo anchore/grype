@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -69,10 +68,14 @@ func getGrypeBinaryLocationByOS(t testing.TB, goOS string) string {
 	if runtime.GOARCH == "amd64" {
 		archPath = fmt.Sprintf("%s_v1", archPath)
 	}
+	executable := "grype"
 	// note: there is a subtle - vs _ difference between these versions
 	switch goOS {
+	case "windows":
+		executable += ".exe"
+		fallthrough
 	case "darwin", "linux":
-		return path.Join(repoRoot(t), fmt.Sprintf("snapshot/%s-build_%s_%s/grype", goOS, goOS, archPath))
+		return filepath.Join(repoRoot(t), "snapshot", fmt.Sprintf("%s-build_%s_%s", goOS, goOS, archPath), executable)
 	default:
 		t.Fatalf("unsupported OS: %s", runtime.GOOS)
 	}

@@ -20,11 +20,12 @@ type AffectedCPEStoreReader interface {
 }
 
 type GetAffectedCPEOptions struct {
-	PreloadCPE           bool
-	PreloadVulnerability bool
-	PreloadBlob          bool
-	Vulnerabilities      []VulnerabilitySpecifier
-	Limit                int
+	PreloadCPE            bool
+	PreloadVulnerability  bool
+	PreloadBlob           bool
+	Vulnerabilities       []VulnerabilitySpecifier
+	AllowBroadCPEMatching bool
+	Limit                 int
 }
 
 type affectedCPEStore struct {
@@ -129,7 +130,7 @@ func (s *affectedCPEStore) GetAffectedCPEs(cpe *cpe.Attributes, config *GetAffec
 		log.WithFields(fields).Trace("fetched affected CPE record")
 	}()
 
-	query := s.handleCPE(s.db, cpe)
+	query := s.handleCPE(s.db, cpe, config.AllowBroadCPEMatching)
 
 	var err error
 	query, err = s.handleVulnerabilityOptions(query, config.Vulnerabilities)
@@ -185,13 +186,13 @@ func (s *affectedCPEStore) GetAffectedCPEs(cpe *cpe.Attributes, config *GetAffec
 	return models, nil
 }
 
-func (s *affectedCPEStore) handleCPE(query *gorm.DB, c *cpe.Attributes) *gorm.DB {
+func (s *affectedCPEStore) handleCPE(query *gorm.DB, c *cpe.Attributes, allowBroad bool) *gorm.DB {
 	if c == nil {
 		return query
 	}
 	query = query.Joins("JOIN cpes ON cpes.id = affected_cpe_handles.cpe_id")
 
-	return handleCPEOptions(query, c)
+	return handleCPEOptions(query, c, allowBroad)
 }
 
 func (s *affectedCPEStore) handleVulnerabilityOptions(query *gorm.DB, configs []VulnerabilitySpecifier) (*gorm.DB, error) {

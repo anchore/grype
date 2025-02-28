@@ -58,7 +58,7 @@ func (c *constraintExpression) satisfied(other *Version) (bool, error) {
 		for j, andUnit := range andOperand {
 			result, err := andUnit.Compare(other)
 			if err != nil {
-				return false, fmt.Errorf("uncomparable %+v %+v: %w", andUnit, other, err)
+				return false, fmt.Errorf("uncomparable %#v vs %q: %w", andUnit, other.String(), err)
 			}
 			unit := c.units[i][j]
 

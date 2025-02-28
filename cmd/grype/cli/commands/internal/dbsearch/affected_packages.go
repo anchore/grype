@@ -63,11 +63,12 @@ func (c *CPE) String() string {
 }
 
 type AffectedPackagesOptions struct {
-	Vulnerability v6.VulnerabilitySpecifiers
-	Package       v6.PackageSpecifiers
-	CPE           v6.PackageSpecifiers
-	OS            v6.OSSpecifiers
-	RecordLimit   int
+	Vulnerability         v6.VulnerabilitySpecifiers
+	Package               v6.PackageSpecifiers
+	CPE                   v6.PackageSpecifiers
+	OS                    v6.OSSpecifiers
+	AllowBroadCPEMatching bool
+	RecordLimit           int
 }
 
 func newAffectedPackageRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPEs []v6.AffectedCPEHandle) (rows []AffectedPackage) {
@@ -196,14 +197,15 @@ func findAffectedPackages(reader interface { //nolint:funlen
 		log.WithFields("vuln", vulnSpecs, "pkg", pkgSpec, "os", osSpecs).Debug("searching for affected packages")
 
 		affectedPkgs, err := reader.GetAffectedPackages(pkgSpec, &v6.GetAffectedPackageOptions{
-			PreloadOS:            true,
-			PreloadPackage:       true,
-			PreloadPackageCPEs:   false,
-			PreloadVulnerability: true,
-			PreloadBlob:          true,
-			OSs:                  osSpecs,
-			Vulnerabilities:      vulnSpecs,
-			Limit:                config.RecordLimit,
+			PreloadOS:             true,
+			PreloadPackage:        true,
+			PreloadPackageCPEs:    false,
+			PreloadVulnerability:  true,
+			PreloadBlob:           true,
+			OSs:                   osSpecs,
+			Vulnerabilities:       vulnSpecs,
+			AllowBroadCPEMatching: config.AllowBroadCPEMatching,
+			Limit:                 config.RecordLimit,
 		})
 
 		allAffectedPkgs = append(allAffectedPkgs, affectedPkgs...)
@@ -227,11 +229,12 @@ func findAffectedPackages(reader interface { //nolint:funlen
 			log.WithFields("vuln", vulnSpecs, "cpe", cpeSpec).Debug("searching for affected packages")
 
 			affectedCPEs, err := reader.GetAffectedCPEs(searchCPE, &v6.GetAffectedCPEOptions{
-				PreloadCPE:           true,
-				PreloadVulnerability: true,
-				PreloadBlob:          true,
-				Vulnerabilities:      vulnSpecs,
-				Limit:                config.RecordLimit,
+				PreloadCPE:            true,
+				PreloadVulnerability:  true,
+				PreloadBlob:           true,
+				Vulnerabilities:       vulnSpecs,
+				AllowBroadCPEMatching: config.AllowBroadCPEMatching,
+				Limit:                 config.RecordLimit,
 			})
 
 			allAffectedCPEs = append(allAffectedCPEs, affectedCPEs...)

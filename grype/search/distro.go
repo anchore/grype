@@ -45,7 +45,6 @@ func (c *DistroCriteria) MatchesVulnerability(value vulnerability.Vulnerability)
 
 var _ interface {
 	vulnerability.Criteria
-	// queryOSSpecifier
 } = (*DistroCriteria)(nil)
 
 // matchesDistro returns true distro types are equal and versions are compatible

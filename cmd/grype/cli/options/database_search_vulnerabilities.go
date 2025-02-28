@@ -24,11 +24,11 @@ type DBSearchVulnerabilities struct {
 
 func (c *DBSearchVulnerabilities) AddFlags(flags clio.FlagSet) {
 	if c.UseVulnIDFlag {
-		flags.StringArrayVarP(&c.VulnerabilityIDs, "vuln", "", "only show results for the given vulnerability ID (supports DB schema v6+ only)")
+		flags.StringArrayVarP(&c.VulnerabilityIDs, "vuln", "", "only show results for the given vulnerability ID")
 	}
-	flags.StringVarP(&c.PublishedAfter, "published-after", "", "only show vulnerabilities originally published after the given date (format: YYYY-MM-DD) (supports DB schema v6+ only)")
-	flags.StringVarP(&c.ModifiedAfter, "modified-after", "", "only show vulnerabilities originally published or modified since the given date (format: YYYY-MM-DD) (supports DB schema v6+ only)")
-	flags.StringArrayVarP(&c.Providers, "provider", "", "only show vulnerabilities from the given provider (supports DB schema v6+ only)")
+	flags.StringVarP(&c.PublishedAfter, "published-after", "", "only show vulnerabilities originally published after the given date (format: YYYY-MM-DD)")
+	flags.StringVarP(&c.ModifiedAfter, "modified-after", "", "only show vulnerabilities originally published or modified since the given date (format: YYYY-MM-DD)")
+	flags.StringArrayVarP(&c.Providers, "provider", "", "only show vulnerabilities from the given provider")
 }
 
 func (c *DBSearchVulnerabilities) PostLoad() error {

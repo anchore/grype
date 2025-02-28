@@ -189,11 +189,18 @@ func toCvss(severities ...Severity) []vulnerability.Cvss {
 
 		out = append(out, vulnerability.Cvss{
 			Source:  sev.Source,
-			Type:    string(sev.Scheme),
+			Type:    legacyCVSSType(sev.Rank),
 			Version: cvssSev.Version,
 			Vector:  cvssSev.Vector,
 			Metrics: usedMetrics,
 		})
 	}
 	return out
+}
+
+func legacyCVSSType(rank int) string {
+	if rank == 1 {
+		return "Primary"
+	}
+	return "Secondary"
 }

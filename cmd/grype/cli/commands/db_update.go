@@ -7,7 +7,6 @@ import (
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
-	legacyDistribution "github.com/anchore/grype/grype/db/v5/distribution"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/db/v6/installation"
 	"github.com/anchore/grype/internal/bus"
@@ -27,7 +26,7 @@ func DBUpdate(app clio.Application) *cobra.Command {
 			return nil
 		},
 		RunE: func(_ *cobra.Command, _ []string) error {
-			return runDBUpdate(*opts, opts.Experimental.DBv6)
+			return runDBUpdate(*opts)
 		},
 	}
 
@@ -39,15 +38,15 @@ func DBUpdate(app clio.Application) *cobra.Command {
 	return app.SetupCommand(cmd, &configWrapper{opts})
 }
 
-func runDBUpdate(opts options.DatabaseCommand, expUseV6 bool) error {
-	if expUseV6 {
-		return newDBUpdate(opts)
+func runDBUpdate(opts options.DatabaseCommand) error {
+	cfg := opts.ToClientConfig()
+	// we need to have this set to true to force the update call to try to update
+	// regardless of what the user provided in order for update checks to fail
+	if !cfg.RequireUpdateCheck {
+		log.Warn("overriding db update check")
+		cfg.RequireUpdateCheck = true
 	}
-	return legacyDBUpdate(opts)
-}
-
-func newDBUpdate(opts options.DatabaseCommand) error {
-	client, err := distribution.NewClient(opts.ToClientConfig())
+	client, err := distribution.NewClient(cfg)
 	if err != nil {
 		return fmt.Errorf("unable to create distribution client: %w", err)
 	}
@@ -59,31 +58,6 @@ func newDBUpdate(opts options.DatabaseCommand) error {
 	updated, err := c.Update()
 	if err != nil {
 		return fmt.Errorf("unable to update vulnerability database: %w", err)
-	}
-
-	result := "No vulnerability database update available\n"
-	if updated {
-		result = "Vulnerability database updated to latest version!\n"
-	}
-
-	log.Debugf("completed db update check with result: %s", result)
-
-	bus.Report(result)
-
-	return nil
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// all legacy processing below ////////////////////////////////////////////////////////////////////////////////////////
-
-func legacyDBUpdate(opts options.DatabaseCommand) error {
-	dbCurator, err := legacyDistribution.NewCurator(opts.ToLegacyCuratorConfig())
-	if err != nil {
-		return err
-	}
-	updated, err := dbCurator.Update()
-	if err != nil {
-		return fmt.Errorf("unable to update vulnerability database: %+v", err)
 	}
 
 	result := "No vulnerability database update available\n"

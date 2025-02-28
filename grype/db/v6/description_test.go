@@ -2,7 +2,7 @@ package v6
 
 import (
 	"encoding/json"
-	"path"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -22,7 +22,7 @@ func TestReadDescription(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, s.Close())
 
-	dbFilePath := path.Join(tempDir, VulnerabilityDBFileName)
+	dbFilePath := filepath.Join(tempDir, VulnerabilityDBFileName)
 
 	description, err := ReadDescription(dbFilePath)
 	require.NoError(t, err)

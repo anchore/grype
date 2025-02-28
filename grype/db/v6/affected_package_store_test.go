@@ -229,7 +229,6 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 
 		// the IDs should have been set, and there is only one, so we know the correct values
 		c.ID = 1
-		c.PackageID = ptr(ID(1))
 
 		if d := cmp.Diff([]Cpe{c}, result.Package.CPEs); d != "" {
 			t.Errorf("unexpected result (-want +got):\n%s", d)
@@ -330,9 +329,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 		expPkg := *pkg1.Package
 		expPkg.ID = 1
 		cpe1.ID = 1
-		cpe1.PackageID = ptr(ID(1))
 		cpe2.ID = 2
-		cpe2.PackageID = ptr(ID(1))
 		expPkg.CPEs = []Cpe{cpe1, cpe2}
 
 		expected := []Package{
@@ -353,7 +350,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 
 	})
 
-	t.Run("dont allow same CPE to belong to multiple packages", func(t *testing.T) {
+	t.Run("allow same CPE to belong to multiple packages", func(t *testing.T) {
 		cpe1 := Cpe{
 			Part:    "a",
 			Vendor:  "vendor1",
@@ -394,7 +391,39 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 
 		s := setupAffectedPackageStore(t)
 		err := s.AddAffectedPackages(pkg1, pkg2)
-		require.ErrorContains(t, err, "CPE already exists for a different package")
+		require.NoError(t, err)
+
+		var pkgs []Package
+		err = s.db.Preload("CPEs").Find(&pkgs).Error
+		require.NoError(t, err)
+
+		cpe1.ID = 1
+		cpe2.ID = 2
+
+		expPkg1 := *pkg1.Package
+		expPkg1.ID = 1
+		expPkg1.CPEs = []Cpe{cpe1}
+
+		expPkg2 := *pkg2.Package
+		expPkg2.ID = 2
+		expPkg2.CPEs = []Cpe{cpe1, cpe2}
+
+		expected := []Package{
+			expPkg1,
+			expPkg2,
+		}
+
+		if d := cmp.Diff(expected, pkgs); d != "" {
+			t.Errorf("unexpected result (-want +got):\n%s", d)
+		}
+
+		expectedCPEs := []Cpe{cpe1, cpe2}
+		var cpeResults []Cpe
+		err = s.db.Find(&cpeResults).Error
+		require.NoError(t, err)
+		if d := cmp.Diff(expectedCPEs, cpeResults); d != "" {
+			t.Errorf("unexpected result (-want +got):\n%s", d)
+		}
 	})
 }
 
@@ -405,6 +434,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 
 	cpe1 := Cpe{Part: "a", Vendor: "vendor1", Product: "product1"}
 	cpe2 := Cpe{Part: "a", Vendor: "vendor2", Product: "product2"}
+	cpe3 := Cpe{Part: "a", Vendor: "vendor2", Product: "product2", TargetSoftware: "target1"}
 	pkg1 := &AffectedPackageHandle{
 		Vulnerability: &VulnerabilityHandle{
 			Name: "CVE-2023-1234",
@@ -430,7 +460,20 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 		},
 	}
 
-	err := s.AddAffectedPackages(pkg1, pkg2)
+	pkg3 := &AffectedPackageHandle{
+		Vulnerability: &VulnerabilityHandle{
+			Name: "CVE-2023-5678",
+			Provider: &Provider{
+				ID: "provider1",
+			},
+		},
+		Package: &Package{Name: "pkg3", Ecosystem: "type2", CPEs: []Cpe{cpe3}},
+		BlobValue: &AffectedPackageBlob{
+			CVEs: []string{"CVE-2023-5678"},
+		},
+	}
+
+	err := s.AddAffectedPackages(pkg1, pkg2, pkg3)
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -467,7 +510,39 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 				PreloadBlob:          true,
 				PreloadVulnerability: true,
 			},
-			expected: []AffectedPackageHandle{*pkg2},
+			expected: []AffectedPackageHandle{*pkg2, *pkg3},
+		},
+		{
+			name: "match on any TSW when specific one provided when broad matching enabled",
+			cpe: cpe.Attributes{
+				Part:     "a",
+				Vendor:   "vendor2",
+				TargetSW: "target1",
+			},
+			options: &GetAffectedPackageOptions{
+				PreloadPackageCPEs:    true,
+				PreloadPackage:        true,
+				PreloadBlob:           true,
+				PreloadVulnerability:  true,
+				AllowBroadCPEMatching: true,
+			},
+			expected: []AffectedPackageHandle{*pkg2, *pkg3},
+		},
+		{
+			name: "do NOT match on any TSW when specific one provided when broad matching disabled",
+			cpe: cpe.Attributes{
+				Part:     "a",
+				Vendor:   "vendor2",
+				TargetSW: "target1",
+			},
+			options: &GetAffectedPackageOptions{
+				PreloadPackageCPEs:    true,
+				PreloadPackage:        true,
+				PreloadBlob:           true,
+				PreloadVulnerability:  true,
+				AllowBroadCPEMatching: false,
+			},
+			expected: []AffectedPackageHandle{*pkg3},
 		},
 		{
 			name: "missing attributes",
@@ -480,7 +555,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 				PreloadBlob:          true,
 				PreloadVulnerability: true,
 			},
-			expected: []AffectedPackageHandle{*pkg1, *pkg2},
+			expected: []AffectedPackageHandle{*pkg1, *pkg2, *pkg3},
 		},
 		{
 			name: "no matches",

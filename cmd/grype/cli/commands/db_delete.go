@@ -7,7 +7,6 @@ import (
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
-	legacyDistribution "github.com/anchore/grype/grype/db/v5/distribution"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/db/v6/installation"
 )
@@ -34,13 +33,6 @@ func DBDelete(app clio.Application) *cobra.Command {
 }
 
 func runDBDelete(opts options.DatabaseCommand) error {
-	if opts.Experimental.DBv6 {
-		return newDBDelete(opts)
-	}
-	return legacyDBDelete(opts)
-}
-
-func newDBDelete(opts options.DatabaseCommand) error {
 	client, err := distribution.NewClient(opts.ToClientConfig())
 	if err != nil {
 		return fmt.Errorf("unable to create distribution client: %w", err)
@@ -51,18 +43,6 @@ func newDBDelete(opts options.DatabaseCommand) error {
 	}
 
 	if err := c.Delete(); err != nil {
-		return fmt.Errorf("unable to delete vulnerability database: %+v", err)
-	}
-
-	return stderrPrintLnf("Vulnerability database deleted")
-}
-
-func legacyDBDelete(opts options.DatabaseCommand) error {
-	dbCurator, err := legacyDistribution.NewCurator(opts.ToLegacyCuratorConfig())
-	if err != nil {
-		return err
-	}
-	if err := dbCurator.Delete(); err != nil {
 		return fmt.Errorf("unable to delete vulnerability database: %+v", err)
 	}
 

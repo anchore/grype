@@ -28,8 +28,6 @@ func newDBMetadataStore(db *gorm.DB) *dbMetadataStore {
 }
 
 func (s *dbMetadataStore) GetDBMetadata() (*DBMetadata, error) {
-	log.Trace("fetching DB metadata")
-
 	var model DBMetadata
 
 	result := s.db.First(&model)

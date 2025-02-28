@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/anchore/grype/grype/db/internal/gormadapter"
+	"github.com/anchore/grype/internal/log"
 )
 
 const (
@@ -99,7 +100,8 @@ func Hydrater() func(string) error {
 		// this will auto-migrate any models, creating and populating indexes as needed
 		// we don't pass any data initialization here because the data is already in the db archive and we do not want
 		// to affect the entries themselves, only indexes and schema.
-		_, err := newStore(Config{DBDirPath: path}, false, true)
+		s, err := newStore(Config{DBDirPath: path}, false, true)
+		log.CloseAndLogError(s, path)
 		return err
 	}
 }

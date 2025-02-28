@@ -11,7 +11,7 @@ import (
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/db/v5/distribution"
+	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/event/parsers"
 	"github.com/anchore/grype/grype/grypeerr"
@@ -119,7 +119,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 	}
 
 	var vp vulnerability.Provider
-	var status *distribution.Status
+	var status *v6.Status
 	var packages []pkg.Package
 	var s *sbom.SBOM
 	var pkgContext pkg.Context
@@ -152,11 +152,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		},
 		func() (err error) {
 			log.Debug("loading DB")
-			if opts.Experimental.DBv6 {
-				vp, status, err = grype.LoadVulnerabilityDBv6(opts.ToClientConfig(), opts.ToCuratorConfig(), opts.DB.AutoUpdate)
-				return err
-			}
-			vp, status, err = grype.LoadVulnerabilityDB(opts.ToLegacyCuratorConfig(), opts.DB.AutoUpdate)
+			vp, status, err = grype.LoadVulnerabilityDB(opts.ToClientConfig(), opts.ToCuratorConfig(), opts.DB.AutoUpdate)
 			return validateDBLoad(err, status)
 		},
 		func() (err error) {
@@ -177,7 +173,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		return err
 	}
 
-	defer log.CloseAndLogError(vp, status.Location)
+	defer log.CloseAndLogError(vp, status.Path)
 
 	if err = applyVexRules(opts); err != nil {
 		return fmt.Errorf("applying vex rules: %w", err)
@@ -279,7 +275,7 @@ func checkForAppUpdate(id clio.Identification, opts *options.Grype) {
 			},
 		})
 	} else {
-		log.Debugf("no new %s update available", id.Name)
+		log.Debugf("no new %s application update available", id.Name)
 	}
 }
 
@@ -329,8 +325,15 @@ func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
 	}
 }
 
-func validateDBLoad(loadErr error, status *distribution.Status) error {
+func validateDBLoad(loadErr error, status *v6.Status) error {
 	if loadErr != nil {
+		// notify the user about grype db delete to fix checksum errors
+		if strings.Contains(loadErr.Error(), "checksum") {
+			bus.Notify("Database checksum invalid, run `grype db delete` to remove it and `grype db update` to update.")
+		}
+		if strings.Contains(loadErr.Error(), "import.json") {
+			bus.Notify("Unable to find database import metadata, run `grype db delete` to remove the existing database and `grype db update` to update.")
+		}
 		return fmt.Errorf("failed to load vulnerability db: %w", loadErr)
 	}
 	if status == nil {

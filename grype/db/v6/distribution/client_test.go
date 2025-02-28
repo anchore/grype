@@ -379,3 +379,43 @@ func TestDatabaseDescription_IsSupersededBy(t *testing.T) {
 		})
 	}
 }
+
+func Test_latestURL(t *testing.T) {
+	tests := []struct {
+		url      string
+		expected string
+	}{
+		{
+			url:      "https://grype.anchore.io/databases",
+			expected: "https://grype.anchore.io/databases/v6/latest.json",
+		},
+		{
+			url:      "https://grype.anchore.io/databases/",
+			expected: "https://grype.anchore.io/databases/v6/latest.json",
+		},
+		{
+			url:      "https://grype.anchore.io/databases/v6/latest.json",
+			expected: "https://grype.anchore.io/databases/v6/latest.json",
+		},
+		{
+			url:      "http://grype.anchore.io/databases/",
+			expected: "http://grype.anchore.io/databases/v6/latest.json",
+		},
+		{
+			url:      "https://example.com/file.json",
+			expected: "https://example.com/file.json",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.url, func(t *testing.T) {
+			c := client{
+				config: Config{
+					LatestURL: test.url,
+				},
+			}
+			got := c.latestURL()
+			require.Equal(t, test.expected, got)
+		})
+	}
+}

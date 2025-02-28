@@ -152,14 +152,14 @@ func Open(path string, options ...Option) (*gorm.DB, error) {
 
 func (c config) prepareDB(dbObj *gorm.DB) (*gorm.DB, error) {
 	if c.writable {
-		log.Debug("using writable DB statements")
+		log.WithFields("path", c.path).Debug("using writable DB statements")
 		if err := c.applyStatements(dbObj, writerStatements); err != nil {
 			return nil, fmt.Errorf("unable to apply DB writer statements: %w", err)
 		}
 	}
 
 	if c.truncate && c.allowLargeMemoryFootprint {
-		log.Debug("using large memory footprint DB statements")
+		log.WithFields("path", c.path).Debug("using large memory footprint DB statements")
 		if err := c.applyStatements(dbObj, heavyWriteStatements); err != nil {
 			return nil, fmt.Errorf("unable to apply DB heavy writer statements: %w", err)
 		}
@@ -178,7 +178,7 @@ func (c config) prepareDB(dbObj *gorm.DB) (*gorm.DB, error) {
 	}
 
 	if len(c.models) > 0 && c.writable {
-		log.Debug("applying DB migrations")
+		log.WithFields("path", c.path).Debug("applying DB migrations")
 		if err := dbObj.AutoMigrate(c.models...); err != nil {
 			return nil, fmt.Errorf("unable to migrate: %w", err)
 		}
@@ -189,7 +189,7 @@ func (c config) prepareDB(dbObj *gorm.DB) (*gorm.DB, error) {
 	}
 
 	if len(c.initialData) > 0 && c.truncate {
-		log.Debug("writing initial data")
+		log.WithFields("path", c.path).Debug("writing initial data")
 		for _, d := range c.initialData {
 			if err := dbObj.Create(d).Error; err != nil {
 				return nil, fmt.Errorf("unable to create initial data: %w", err)

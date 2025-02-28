@@ -147,11 +147,12 @@ func (p *Provider) AfterCreate(tx *gorm.DB) (err error) {
 // vulnerability related search tables //////////////////////////////////////////////////////
 
 // VulnerabilityHandle represents the pointer to the core advisory record for a single known vulnerability from a specific provider.
+// indexes: idx_vuln_provider_id: this is used --by-cve to find all vulnerabilities from the NVD provider
 type VulnerabilityHandle struct {
 	ID ID `gorm:"column:id;primaryKey"`
 
 	// Name is the unique name for the vulnerability (same as the decoded VulnerabilityBlob.ID)
-	Name string `gorm:"column:name;not null;index,collate:NOCASE"`
+	Name string `gorm:"column:name;not null;index,collate:NOCASE;index:idx_vuln_provider_id,collate:NOCASE"`
 
 	// Status conveys the actionability of the current record (one of "active", "analyzing", "rejected", "disputed")
 	Status VulnerabilityStatus `gorm:"column:status;not null;index,collate:NOCASE"`
@@ -165,7 +166,7 @@ type VulnerabilityHandle struct {
 	// WithdrawnDate is the date the vulnerability record was withdrawn
 	WithdrawnDate *time.Time `gorm:"column:withdrawn_date;index"`
 
-	ProviderID string    `gorm:"column:provider_id;not null;index"`
+	ProviderID string    `gorm:"column:provider_id;not null;index;index:idx_vuln_provider_id,collate:NOCASE"`
 	Provider   *Provider `gorm:"foreignKey:ProviderID"`
 
 	BlobID    ID                 `gorm:"column:blob_id;index,unique"`
@@ -348,7 +349,7 @@ type Package struct {
 	Name string `gorm:"column:name;index:idx_package,unique,collate:NOCASE;index:idx_package_name,collate:NOCASE"`
 
 	// CPEs is the list of Common Platform Enumeration (CPE) identifiers that represent this package
-	CPEs []Cpe `gorm:"foreignKey:PackageID;constraint:OnDelete:CASCADE;"`
+	CPEs []Cpe `gorm:"many2many:package_cpes;"`
 }
 
 func (p Package) String() string {
@@ -412,20 +413,10 @@ func (p *Package) BeforeCreate(tx *gorm.DB) (err error) { // nolint:gocognit
 
 			if existingCPE.ID != 0 {
 				// if the record already exists, then we should use the existing record
-
-				if existingCPE.PackageID == nil {
-					log.WithFields("cpe", existingCPE, "pkg", existingPackage).Warn("CPE exists but was not associated with an already existing package until now")
-					continue
-				}
-
-				if *existingCPE.PackageID != existingPackage.ID {
-					return fmt.Errorf("CPE already exists for a different package (pkg=%v, existing_pkg=%v): %s", p.ID, existingPackage.ID, existingCPE)
-				}
 				continue
 			}
 
 			// if the CPE does not exist, proceed with creating it
-			newCPE.PackageID = &existingPackage.ID
 			existingPackage.CPEs = append(existingPackage.CPEs, newCPE)
 
 			if err := tx.Create(&newCPE).Error; err != nil {
@@ -435,11 +426,6 @@ func (p *Package) BeforeCreate(tx *gorm.DB) (err error) { // nolint:gocognit
 		// use the existing package instead of creating a new one
 		*p = existingPackage
 		return nil
-	}
-
-	// if the package does not exist, proceed with creating it
-	for i := range p.CPEs {
-		p.CPEs[i].PackageID = &p.ID
 	}
 	return nil
 }
@@ -673,8 +659,7 @@ func (ach *AffectedCPEHandle) setBlob(rawBlobValue []byte) error {
 
 type Cpe struct {
 	// TODO: what about different CPE versions?
-	ID        ID  `gorm:"primaryKey"`
-	PackageID *ID `gorm:"column:package_id;index"`
+	ID ID `gorm:"primaryKey"`
 
 	Part            string `gorm:"column:part;not null;index:idx_cpe,unique,collate:NOCASE"`
 	Vendor          string `gorm:"column:vendor;index:idx_cpe,unique,collate:NOCASE;index:idx_cpe_vendor,collate:NOCASE"`
@@ -685,6 +670,8 @@ type Cpe struct {
 	TargetHardware  string `gorm:"column:target_hardware;index:idx_cpe,unique,collate:NOCASE"`
 	TargetSoftware  string `gorm:"column:target_software;index:idx_cpe,unique,collate:NOCASE"`
 	Other           string `gorm:"column:other;index:idx_cpe,unique,collate:NOCASE"`
+
+	Packages []Package `gorm:"many2many:package_cpes;"`
 }
 
 func (c Cpe) String() string {
@@ -722,10 +709,6 @@ func (c *Cpe) BeforeCreate(tx *gorm.DB) (err error) {
 		var existing Cpe
 		result := tx.Where("id = ?", existingID).First(&existing)
 		if result.Error == nil {
-			if c.PackageID != nil && existing.PackageID != nil && *c.PackageID != *existing.PackageID {
-				return fmt.Errorf("CPE already exists for a different package (pkg=%d, existing_pkg=%d): %q", *c.PackageID, *existing.PackageID, c)
-			}
-
 			// if the record already exists, then we should use the existing record
 			*c = existing
 		}
@@ -742,10 +725,22 @@ func (c *Cpe) AfterCreate(tx *gorm.DB) (err error) {
 	return nil
 }
 
+// PackageCpe join table for the many-to-many relationship
+type PackageCpe struct {
+	PackageID ID `gorm:"primaryKey;column:package_id"`
+	CpeID     ID `gorm:"primaryKey;column:cpe_id"`
+}
+
+func (PackageCpe) TableName() string {
+	// note: this value is referenced in multiple struct tags and must not be changed or removed
+	// without this override the table name would be both model names in alphabetical order: cpes_packages
+	return "package_cpes"
+}
+
 type KnownExploitedVulnerabilityHandle struct {
 	ID int64 `gorm:"primaryKey"`
 
-	Cve string `gorm:"column:cve;not null;index,collate:NOCASE"`
+	Cve string `gorm:"column:cve;not null;index:kev_cve_idx,collate:NOCASE"`
 
 	BlobID    ID                               `gorm:"column:blob_id"`
 	BlobValue *KnownExploitedVulnerabilityBlob `gorm:"-"`
@@ -783,7 +778,7 @@ type EpssMetadata struct {
 type EpssHandle struct {
 	ID int64 `gorm:"primaryKey"`
 
-	Cve        string    `gorm:"column:cve;not null;index,collate:NOCASE"`
+	Cve        string    `gorm:"column:cve;not null;index:epss_cve_idx,collate:NOCASE"`
 	Epss       float64   `gorm:"column:epss;not null"`
 	Percentile float64   `gorm:"column:percentile;not null"`
 	Date       time.Time `gorm:"-"` // note we do not store the date in this table since it is expected to be the same for all records, that is what EpssMetadata is for
