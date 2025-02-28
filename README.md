@@ -39,6 +39,7 @@ For commercial support options with Syft or Grype, please [contact Anchore](http
   - CBL-Mariner
   - Debian
   - Distroless
+  - Mageia
   - Oracle Linux
   - Red Hat (RHEL)
   - Ubuntu

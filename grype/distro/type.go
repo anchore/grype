@@ -31,6 +31,7 @@ const (
 	Gentoo       Type = "gentoo"
 	Wolfi        Type = "wolfi"
 	Chainguard   Type = "chainguard"
+	Mageia       Type = "mageia"
 )
 
 // All contains all Linux distribution options
@@ -56,6 +57,7 @@ var All = []Type{
 	Gentoo,
 	Wolfi,
 	Chainguard,
+	Mageia,
 }
 
 // IDMapping connects a distro ID like "ubuntu" to a Distro type
@@ -82,6 +84,7 @@ var IDMapping = map[string]Type{
 	"gentoo":        Gentoo,
 	"wolfi":         Wolfi,
 	"chainguard":    Chainguard,
+	"mageia":        Mageia,
 }
 
 func TypeFromRelease(release linux.Release) Type {
