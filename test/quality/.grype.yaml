@@ -1,1 +1,22 @@
 by-cve: true
+
+match:
+  java:
+    using-cpes: true
+  jvm:
+    using-cpes: true
+  dotnet:
+    using-cpes: true
+  golang:
+    using-cpes: true
+    always-use-cpe-for-stdlib: true
+  javascript:
+    using-cpes: true
+  python:
+    using-cpes: true
+  ruby:
+    using-cpes: true
+  rust:
+    using-cpes: true
+  stock:
+    using-cpes: true
