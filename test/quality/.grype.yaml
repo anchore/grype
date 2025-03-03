@@ -1,5 +1,7 @@
 by-cve: true
 
+# we want to be able to validate CPE findings with the broadest lens possible (not just the default configuration)
+# to aid in validating CPE related changes (whereas the default configuration is more focused on non CPE matching)
 match:
   java:
     using-cpes: true

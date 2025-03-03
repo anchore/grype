@@ -14,7 +14,7 @@ func onlyQualifiedPackages(p pkg.Package) vulnerability.Criteria {
 		for _, qualifier := range vuln.PackageQualifiers {
 			satisfied, err := qualifier.Satisfied(p)
 			if err != nil {
-				return satisfied, fmt.Sprintf("unable to evaluate qualifier: %s", err), err
+				return satisfied, fmt.Sprintf("unable to evaluate qualifier: %s", err.Error()), err
 			}
 			if !satisfied {
 				// TODO: qualifiers don't have a good string representation
