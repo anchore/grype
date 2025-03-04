@@ -152,7 +152,7 @@ type VulnerabilityHandle struct {
 	ID ID `gorm:"column:id;primaryKey"`
 
 	// Name is the unique name for the vulnerability (same as the decoded VulnerabilityBlob.ID)
-	Name string `gorm:"column:name;not null;index,collate:NOCASE;index:idx_vuln_provider_id,collate:NOCASE"`
+	Name string `gorm:"column:name;not null;index:idx_vuln,collate:NOCASE;index:idx_vuln_provider_id,collate:NOCASE"`
 
 	// Status conveys the actionability of the current record (one of "active", "analyzing", "rejected", "disputed")
 	Status VulnerabilityStatus `gorm:"column:status;not null;index,collate:NOCASE"`
@@ -243,10 +243,10 @@ func (v *VulnerabilityHandle) AfterCreate(tx *gorm.DB) (err error) {
 
 type VulnerabilityAlias struct {
 	// Name is the unique name for the vulnerability
-	Name string `gorm:"column:name;primaryKey;index,collate:NOCASE"`
+	Name string `gorm:"column:name;primaryKey;index:idx_vuln_alias_name,collate:NOCASE"`
 
 	// Alias is an alternative name for the vulnerability that must be upstream from the Name (e.g if name is "RHSA-1234" then the upstream could be "CVE-1234-5678", but not the other way around)
-	Alias string `gorm:"column:alias;primaryKey;index,collate:NOCASE;not null"`
+	Alias string `gorm:"column:alias;primaryKey;index:idx_vuln_alias_alias,collate:NOCASE;not null"`
 }
 
 // package related search tables //////////////////////////////////////////////////////
@@ -258,13 +258,13 @@ type VulnerabilityAlias struct {
 // name (which might or might not be the product name in the CPE), in which case AffectedCPEHandle should be used.
 type AffectedPackageHandle struct {
 	ID              ID                   `gorm:"column:id;primaryKey"`
-	VulnerabilityID ID                   `gorm:"column:vulnerability_id;index;not null"`
+	VulnerabilityID ID                   `gorm:"column:vulnerability_id;index:idx_affected_pkg_vuln_id;not null"`
 	Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
 
-	OperatingSystemID *ID              `gorm:"column:operating_system_id;index"`
+	OperatingSystemID *ID              `gorm:"column:operating_system_id;index:idx_affected_pkg_os_id"`
 	OperatingSystem   *OperatingSystem `gorm:"foreignKey:OperatingSystemID"`
 
-	PackageID ID       `gorm:"column:package_id;index"`
+	PackageID ID       `gorm:"column:package_id;index:idx_affected_pkg_pkg_id"`
 	Package   *Package `gorm:"foreignKey:PackageID"`
 
 	BlobID    ID                   `gorm:"column:blob_id"`
@@ -585,7 +585,7 @@ func (os *OperatingSystemSpecifierOverride) BeforeCreate(_ *gorm.DB) (err error)
 // find vulnerabilities by these identifiers but not assert they are related to an entry in the Packages table.
 type AffectedCPEHandle struct {
 	ID              ID                   `gorm:"column:id;primaryKey"`
-	VulnerabilityID ID                   `gorm:"column:vulnerability_id;not null"`
+	VulnerabilityID ID                   `gorm:"column:vulnerability_id;index:idx_affected_cpe_vuln_id;not null"`
 	Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
 
 	CpeID ID   `gorm:"column:cpe_id;index"`

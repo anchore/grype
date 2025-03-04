@@ -98,6 +98,11 @@ func newStore(cfg Config, empty, writable bool) (*store, error) {
 
 // Close closes the store and finalizes the blobs when the DB is open for writing. If open for reading, only closes the connection to the DB.
 func (s *store) Close() error {
+	if s == nil {
+		// this can happen in cases where the reader could not be obtained (file read error) or a problem during
+		// automigrate (index creation failure). We don't want to fail on close in these cases.
+		return nil
+	}
 	if !s.writable || !s.empty {
 		d, err := s.db.DB()
 		if err == nil {

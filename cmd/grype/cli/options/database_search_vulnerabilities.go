@@ -14,10 +14,10 @@ type DBSearchVulnerabilities struct {
 	VulnerabilityIDs []string `yaml:"vulnerability-ids" json:"vulnerability-ids" mapstructure:"vulnerability-ids"`
 	UseVulnIDFlag    bool     `yaml:"-" json:"-" mapstructure:"-"`
 
-	PublishedAfter string `yaml:"published-after" json:"published-after" mapstructure:"published-after"`
-	ModifiedAfter  string `yaml:"modified-after" json:"modified-after" mapstructure:"modified-after"`
-
-	Providers []string `yaml:"providers" json:"providers" mapstructure:"providers"`
+	PublishedAfter string   `yaml:"published-after" json:"published-after" mapstructure:"published-after"`
+	ModifiedAfter  string   `yaml:"modified-after" json:"modified-after" mapstructure:"modified-after"`
+	Providers      []string `yaml:"providers" json:"providers" mapstructure:"providers"`
+	IncludeAliases bool     `yaml:"include-aliases" json:"include-aliases" mapstructure:"include-aliases"`
 
 	Specs v6.VulnerabilitySpecifiers `yaml:"-" json:"-" mapstructure:"-"`
 }
@@ -29,6 +29,7 @@ func (c *DBSearchVulnerabilities) AddFlags(flags clio.FlagSet) {
 	flags.StringVarP(&c.PublishedAfter, "published-after", "", "only show vulnerabilities originally published after the given date (format: YYYY-MM-DD)")
 	flags.StringVarP(&c.ModifiedAfter, "modified-after", "", "only show vulnerabilities originally published or modified since the given date (format: YYYY-MM-DD)")
 	flags.StringArrayVarP(&c.Providers, "provider", "", "only show vulnerabilities from the given provider")
+	flags.BoolVarP(&c.IncludeAliases, "include-aliases", "", "include vulnerabilities that are aliases of other vulnerabilities")
 }
 
 func (c *DBSearchVulnerabilities) PostLoad() error {
@@ -68,6 +69,7 @@ func (c *DBSearchVulnerabilities) PostLoad() error {
 			PublishedAfter: publishedAfter,
 			ModifiedAfter:  modifiedAfter,
 			Providers:      c.Providers,
+			IncludeAliases: c.IncludeAliases,
 		})
 	}
 
@@ -77,6 +79,7 @@ func (c *DBSearchVulnerabilities) PostLoad() error {
 				PublishedAfter: publishedAfter,
 				ModifiedAfter:  modifiedAfter,
 				Providers:      c.Providers,
+				IncludeAliases: c.IncludeAliases,
 			})
 		}
 	}

@@ -140,6 +140,9 @@ func (s *affectedCPEStore) GetAffectedCPEs(cpe *cpe.Attributes, config *GetAffec
 
 	query = s.handlePreload(query, *config)
 
+	// this prevents auto adding ORDER BY clauses to the query which can throw off the query planner in some cases (prevent using indexes)
+	query = query.Order("NULL")
+
 	var models []AffectedCPEHandle
 
 	var results []*AffectedCPEHandle

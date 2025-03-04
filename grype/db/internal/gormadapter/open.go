@@ -17,6 +17,14 @@ var commonStatements = []string{
 	`PRAGMA foreign_keys = ON`, // needed for v6+
 }
 
+var readerStatements = []string{
+	`PRAGMA query_only=ON`,            // prevents data changes on database files when enabled
+	`PRAGMA journal_mode=OFF`,         // disables the rollback journal
+	`PRAGMA mmap_size = 1073741824`,   // ~1 GB
+	`PRAGMA cache_size = -1073741824`, // ~1 GB
+	`PRAGMA locking_mode=EXCLUSIVE`,   // don't release locks at the end of reads, only when closing the connection
+}
+
 var writerStatements = []string{
 	// performance improvements (note: will result in lost data on write interruptions)
 	`PRAGMA synchronous = OFF`,     // minimize the amount of syncing to disk, prioritizing write performance over durability
@@ -153,26 +161,32 @@ func Open(path string, options ...Option) (*gorm.DB, error) {
 func (c config) prepareDB(dbObj *gorm.DB) (*gorm.DB, error) {
 	if c.writable {
 		log.WithFields("path", c.path).Debug("using writable DB statements")
-		if err := c.applyStatements(dbObj, writerStatements); err != nil {
+		if err := c.applyStatements(dbObj, writerStatements, true); err != nil {
 			return nil, fmt.Errorf("unable to apply DB writer statements: %w", err)
 		}
 	}
 
 	if c.truncate && c.allowLargeMemoryFootprint {
 		log.WithFields("path", c.path).Debug("using large memory footprint DB statements")
-		if err := c.applyStatements(dbObj, heavyWriteStatements); err != nil {
+		if err := c.applyStatements(dbObj, heavyWriteStatements, true); err != nil {
 			return nil, fmt.Errorf("unable to apply DB heavy writer statements: %w", err)
 		}
 	}
 
+	if !c.truncate && !c.writable {
+		if err := c.applyStatements(dbObj, readerStatements, false); err != nil {
+			return nil, fmt.Errorf("unable to apply DB reader statements: %w", err)
+		}
+	}
+
 	if len(commonStatements) > 0 {
-		if err := c.applyStatements(dbObj, commonStatements); err != nil {
+		if err := c.applyStatements(dbObj, commonStatements, false); err != nil {
 			return nil, fmt.Errorf("unable to apply DB common statements: %w", err)
 		}
 	}
 
 	if len(c.statements) > 0 {
-		if err := c.applyStatements(dbObj, c.statements); err != nil {
+		if err := c.applyStatements(dbObj, c.statements, false); err != nil {
 			return nil, fmt.Errorf("unable to apply DB custom statements: %w", err)
 		}
 	}
@@ -204,15 +218,24 @@ func (c config) prepareDB(dbObj *gorm.DB) (*gorm.DB, error) {
 	return dbObj, nil
 }
 
-func (c config) applyStatements(db *gorm.DB, statements []string) error {
+func (c config) applyStatements(db *gorm.DB, statements []string, verify bool) error {
 	for _, sqlStmt := range statements {
 		if err := db.Exec(sqlStmt).Error; err != nil {
 			return fmt.Errorf("unable to execute (%s): %w", sqlStmt, err)
+		}
+		if !verify {
+			continue
 		}
 		if strings.HasPrefix(sqlStmt, "PRAGMA") {
 			name, value, err := c.pragmaNameValue(sqlStmt)
 			if err != nil {
 				return fmt.Errorf("unable to parse PRAGMA statement: %w", err)
+			}
+
+			if strings.HasSuffix(name, "_size") {
+				// we can't validate mmap or cache sizes as they depend on the system's capabilities
+				// and sqlite will adjust them even if an impossible value is set
+				continue
 			}
 
 			var result string
