@@ -490,7 +490,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				},
 				Name:     "funfun",
 				Version:  "5.2.1",
-				Language: syftPkg.Rust,
+				Language: syftPkg.Rust, // this is identified as a rust package
 				Type:     syftPkg.RustPkg,
 			},
 			expected: []match.Match{},

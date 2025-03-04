@@ -5,6 +5,7 @@ import (
 	"iter"
 	"reflect"
 	"slices"
+	"strings"
 
 	"github.com/anchore/grype/grype/vulnerability"
 )
@@ -76,6 +77,10 @@ func ValidateCriteria(criteria []vulnerability.Criteria) error {
 	return nil
 }
 
+var _ interface {
+	vulnerability.Criteria
+} = (*or)(nil)
+
 // orCriteria provides a way to specify multiple criteria to be used, only requiring one to match
 type or []vulnerability.Criteria
 
@@ -83,19 +88,21 @@ func Or(criteria ...vulnerability.Criteria) vulnerability.Criteria {
 	return or(criteria)
 }
 
-func (c or) MatchesVulnerability(v vulnerability.Vulnerability) (bool, error) {
+func (c or) MatchesVulnerability(v vulnerability.Vulnerability) (bool, string, error) {
+	var reasons []string
 	for _, crit := range c {
-		matches, err := crit.MatchesVulnerability(v)
+		matches, reason, err := crit.MatchesVulnerability(v)
 		if matches || err != nil {
-			return matches, err
+			return matches, reason, err
 		}
+		reasons = append(reasons, reason)
 	}
-	return false, nil
+	return false, fmt.Sprintf("any(%s)", strings.Join(reasons, "; ")), nil
 }
 
 var _ interface {
 	vulnerability.Criteria
-} = (*or)(nil)
+} = (*and)(nil)
 
 // andCriteria provides a way to specify multiple criteria to be used, all required
 type and []vulnerability.Criteria
@@ -104,12 +111,15 @@ func And(criteria ...vulnerability.Criteria) vulnerability.Criteria {
 	return and(criteria)
 }
 
-func (c and) MatchesVulnerability(v vulnerability.Vulnerability) (bool, error) {
+func (c and) MatchesVulnerability(v vulnerability.Vulnerability) (bool, string, error) {
+	var reasons []string
+
 	for _, crit := range c {
-		matches, err := crit.MatchesVulnerability(v)
+		matches, reason, err := crit.MatchesVulnerability(v)
 		if matches || err != nil {
-			return matches, err
+			return matches, reason, err
 		}
+		reasons = append(reasons, reason)
 	}
-	return false, nil
+	return false, fmt.Sprintf("all(%s)", strings.Join(reasons, "; ")), nil
 }

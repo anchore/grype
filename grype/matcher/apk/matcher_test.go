@@ -942,7 +942,7 @@ func Test_nakConstraint(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			matches, err := nakConstraint.MatchesVulnerability(tt.input)
+			matches, _, err := nakConstraint.MatchesVulnerability(tt.input)
 			wantErr := require.NoError
 			if tt.wantErr != nil {
 				wantErr = tt.wantErr

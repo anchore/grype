@@ -1,11 +1,20 @@
 package search
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/cpe"
 )
+
+var _ interface {
+	vulnerability.Criteria
+} = (*CPECriteria)(nil)
+
+type CPECriteria struct {
+	CPE cpe.CPE
+}
 
 // ByCPE returns criteria which will search based on any of the provided CPEs
 func ByCPE(c cpe.CPE) vulnerability.Criteria {
@@ -14,20 +23,16 @@ func ByCPE(c cpe.CPE) vulnerability.Criteria {
 	}
 }
 
-type CPECriteria struct {
-	CPE cpe.CPE
-}
-
-func (v *CPECriteria) MatchesVulnerability(vuln vulnerability.Vulnerability) (bool, error) {
+func (v *CPECriteria) MatchesVulnerability(vuln vulnerability.Vulnerability) (bool, string, error) {
 	if containsCPE(vuln.CPEs, v.CPE) {
-		return true, nil
+		return true, "", nil
 	}
-	return false, nil
+	return false, "CPE attributes do not match", nil
 }
 
-var _ interface {
-	vulnerability.Criteria
-} = (*CPECriteria)(nil)
+func (v *CPECriteria) Summarize() string {
+	return fmt.Sprintf("does not match CPE: %s", v.CPE.Attributes.BindToFmtString())
+}
 
 // containsCPE returns true if the provided slice contains a matching CPE based on attributes matching
 func containsCPE(cpes []cpe.CPE, cpe cpe.CPE) bool {
