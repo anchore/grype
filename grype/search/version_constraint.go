@@ -45,15 +45,22 @@ func ByVersion(v version.Version) vulnerability.Criteria {
 
 // constraintFuncCriteria implements vulnerability.Criteria by providing a function implementing the same signature as MatchVulnerability
 type constraintFuncCriteria struct {
-	fn func(constraint version.Constraint) (bool, error)
+	fn      func(constraint version.Constraint) (bool, error)
+	summary string
 }
 
 func (f *constraintFuncCriteria) MatchesConstraint(constraint version.Constraint) (bool, error) {
 	return f.fn(constraint)
 }
 
-func (f *constraintFuncCriteria) MatchesVulnerability(value vulnerability.Vulnerability) (bool, error) {
-	return f.fn(value.Constraint)
+func (f *constraintFuncCriteria) MatchesVulnerability(value vulnerability.Vulnerability) (bool, string, error) {
+	matches, err := f.fn(value.Constraint)
+	// TODO: should we do something about this?
+	return matches, "", err
+}
+
+func (f *constraintFuncCriteria) Summarize() string {
+	return f.summary
 }
 
 var _ interface {

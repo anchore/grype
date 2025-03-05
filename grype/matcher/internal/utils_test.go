@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -12,7 +12,7 @@ import (
 
 func assertMatchesUsingIDsForVulnerabilities(t testing.TB, expected, actual []match.Match) {
 	t.Helper()
-	assert.Len(t, actual, len(expected))
+	require.Len(t, actual, len(expected))
 	for idx, a := range actual {
 		// only compare the vulnerability ID, nothing else
 		a.Vulnerability = vulnerability.Vulnerability{Reference: vulnerability.Reference{ID: a.Vulnerability.ID}}

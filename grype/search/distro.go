@@ -1,13 +1,13 @@
 package search
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/anchore/grype/grype/db/v5/namespace"
 	distroNs "github.com/anchore/grype/grype/db/v5/namespace/distro"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal/log"
 )
 
 // ByDistro returns criteria which will match vulnerabilities based on any of the provided Distros
@@ -21,26 +21,36 @@ type DistroCriteria struct {
 	Distros []distro.Distro
 }
 
-func (c *DistroCriteria) MatchesVulnerability(value vulnerability.Vulnerability) (bool, error) {
+func (c *DistroCriteria) MatchesVulnerability(value vulnerability.Vulnerability) (bool, string, error) {
 	ns, err := namespace.FromString(value.Namespace)
 	if err != nil {
-		log.Debugf("unable to determine namespace for vulnerability %v: %v", value.Reference.ID, err)
-		return false, nil
+		return false, fmt.Sprintf("unable to determine namespace for vulnerability %v: %v", value.Reference.ID, err), nil
 	}
 	dns, ok := ns.(*distroNs.Namespace)
 	if !ok || dns == nil {
 		// not a Distro-based vulnerability
-		return false, nil
+		return false, "not a distro-based vulnerability", nil
 	}
 	if len(c.Distros) == 0 {
-		return true, nil
+		return true, "", nil
 	}
+	var distroStrs []string
 	for _, d := range c.Distros {
 		if matchesDistro(&d, dns) {
-			return true, nil
+			return true, "", nil
 		}
+		distroStrs = append(distroStrs, d.String())
 	}
-	return false, nil
+
+	return false, fmt.Sprintf("does not match any known distro: %q", strings.Join(distroStrs, ", ")), nil
+}
+
+func (c *DistroCriteria) Summarize() string {
+	var distroStrs []string
+	for _, d := range c.Distros {
+		distroStrs = append(distroStrs, d.String())
+	}
+	return "does not match distro(s): " + strings.Join(distroStrs, ", ")
 }
 
 var _ interface {

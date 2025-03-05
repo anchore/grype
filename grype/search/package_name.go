@@ -1,6 +1,7 @@
 package search
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/anchore/grype/grype/vulnerability"
@@ -17,8 +18,12 @@ type PackageNameCriteria struct {
 	PackageName string
 }
 
-func (v *PackageNameCriteria) MatchesVulnerability(vuln vulnerability.Vulnerability) (bool, error) {
-	return strings.EqualFold(vuln.PackageName, v.PackageName), nil
+func (v *PackageNameCriteria) MatchesVulnerability(vuln vulnerability.Vulnerability) (bool, string, error) {
+	matchesPackageName := strings.EqualFold(vuln.PackageName, v.PackageName)
+	if !matchesPackageName {
+		return false, fmt.Sprintf("vulnerability package name %q does not match expected package name %q", vuln.PackageName, v.PackageName), nil
+	}
+	return true, "", nil
 }
 
 var _ interface {

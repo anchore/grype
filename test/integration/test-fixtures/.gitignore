@@ -1,2 +1,3 @@
 !**/image-*/Dockerfile
 grype-db
+grype-db-download*
