@@ -6,6 +6,7 @@ import (
 
 	"github.com/bmatcuk/doublestar/v2"
 
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/sbom"
 )
@@ -23,14 +24,23 @@ func Provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom
 				return nil, ctx, s, exclusionsErr
 			}
 		}
+		log.WithFields("input", userInput).Trace("interpreting input as an SBOM document")
 		return packages, ctx, s, err
 	}
 
 	packages, ctx, s, err = purlProvider(userInput)
 	if !errors.Is(err, errDoesNotProvide) {
+		log.WithFields("input", userInput).Trace("interpreting input as one or more PURLs")
 		return packages, ctx, s, err
 	}
 
+	packages, ctx, s, err = cpeProvider(userInput)
+	if !errors.Is(err, errDoesNotProvide) {
+		log.WithFields("input", userInput).Trace("interpreting input as a CPE")
+		return packages, ctx, s, err
+	}
+
+	log.WithFields("input", userInput).Trace("passing input to syft for interpretation")
 	return syftProvider(userInput, config)
 }
 

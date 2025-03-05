@@ -11,7 +11,6 @@ import (
 
 func TestProviderStore(t *testing.T) {
 	now := time.Date(2021, 1, 1, 2, 3, 4, 5, time.UTC)
-	other := time.Date(2022, 2, 3, 4, 5, 6, 7, time.UTC)
 	tests := []struct {
 		name      string
 		providers []Provider
@@ -26,25 +25,6 @@ func TestProviderStore(t *testing.T) {
 					Processor:    "vunnel",
 					DateCaptured: &now,
 					InputDigest:  "sha256:abcd1234",
-				},
-			},
-		},
-		{
-			name: "add existing provider",
-			providers: []Provider{
-				{ // original
-					ID:           "ubuntu",
-					Version:      "1.0",
-					Processor:    "vunnel",
-					DateCaptured: &now,
-					InputDigest:  "sha256:abcd1234",
-				},
-				{ //  overwrite...
-					ID:           "ubuntu",
-					Version:      "2.0",
-					Processor:    "something-else",
-					DateCaptured: &other,
-					InputDigest:  "sha256:cdef5678",
 				},
 			},
 		},

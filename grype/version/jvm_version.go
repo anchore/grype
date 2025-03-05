@@ -43,6 +43,10 @@ func newJvmVersion(raw string) (*jvmVersion, error) {
 }
 
 func (v *jvmVersion) Compare(other *Version) (int, error) {
+	if other == nil {
+		return -1, ErrNoVersionProvided
+	}
+
 	if other.Format == JVMFormat {
 		if other.rich.jvmVersion == nil {
 			return -1, fmt.Errorf("given empty jvmVersion object")
@@ -57,7 +61,23 @@ func (v *jvmVersion) Compare(other *Version) (int, error) {
 		return other.rich.semVer.verObj.Compare(v.semVer), nil
 	}
 
-	return -1, fmt.Errorf("unable to compare JVM to given format: %s", other.Format)
+	jvmUpgrade, err := finalizeComparisonVersion(other, JVMFormat)
+	if err == nil {
+		if jvmUpgrade.rich.jvmVersion == nil {
+			return -1, fmt.Errorf("given empty jvmVersion object")
+		}
+		return jvmUpgrade.rich.jvmVersion.compare(*v), nil
+	}
+
+	semUpgrade, err := finalizeComparisonVersion(other, SemanticFormat)
+	if err == nil {
+		if semUpgrade.rich.semVer == nil {
+			return -1, fmt.Errorf("given empty semVer object")
+		}
+		return semUpgrade.rich.semVer.verObj.Compare(v.semVer), nil
+	}
+
+	return -1, NewUnsupportedFormatError(JVMFormat, other.Format)
 }
 
 func (v jvmVersion) compare(other jvmVersion) int {

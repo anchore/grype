@@ -11,20 +11,19 @@ import (
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/db/legacy/distribution"
-	v5 "github.com/anchore/grype/grype/db/v5"
-	"github.com/anchore/grype/grype/db/v5/matcher"
-	"github.com/anchore/grype/grype/db/v5/matcher/dotnet"
-	"github.com/anchore/grype/grype/db/v5/matcher/golang"
-	"github.com/anchore/grype/grype/db/v5/matcher/java"
-	"github.com/anchore/grype/grype/db/v5/matcher/javascript"
-	"github.com/anchore/grype/grype/db/v5/matcher/python"
-	"github.com/anchore/grype/grype/db/v5/matcher/ruby"
-	"github.com/anchore/grype/grype/db/v5/matcher/stock"
+	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/event/parsers"
 	"github.com/anchore/grype/grype/grypeerr"
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher"
+	"github.com/anchore/grype/grype/matcher/dotnet"
+	"github.com/anchore/grype/grype/matcher/golang"
+	"github.com/anchore/grype/grype/matcher/java"
+	"github.com/anchore/grype/grype/matcher/javascript"
+	"github.com/anchore/grype/grype/matcher/python"
+	"github.com/anchore/grype/grype/matcher/ruby"
+	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vex"
@@ -113,13 +112,14 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 	writer, err := format.MakeScanResultWriter(opts.Outputs, opts.File, format.PresentationConfig{
 		TemplateFilePath: opts.OutputTemplateFile,
 		ShowSuppressed:   opts.ShowSuppressed,
+		Pretty:           opts.Pretty,
 	})
 	if err != nil {
 		return err
 	}
 
-	var str *v5.ProviderStore
-	var status *distribution.Status
+	var vp vulnerability.Provider
+	var status *v6.Status
 	var packages []pkg.Package
 	var s *sbom.SBOM
 	var pkgContext pkg.Context
@@ -152,7 +152,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		},
 		func() (err error) {
 			log.Debug("loading DB")
-			str, status, err = grype.LoadVulnerabilityDB(opts.DB.ToLegacyCuratorConfig(), opts.DB.AutoUpdate)
+			vp, status, err = grype.LoadVulnerabilityDB(opts.ToClientConfig(), opts.ToCuratorConfig(), opts.DB.AutoUpdate)
 			return validateDBLoad(err, status)
 		},
 		func() (err error) {
@@ -173,7 +173,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		return err
 	}
 
-	defer log.CloseAndLogError(str, status.Location)
+	defer log.CloseAndLogError(vp, status.Path)
 
 	if err = applyVexRules(opts); err != nil {
 		return fmt.Errorf("applying vex rules: %w", err)
@@ -182,11 +182,11 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 	applyDistroHint(packages, &pkgContext, opts)
 
 	vulnMatcher := grype.VulnerabilityMatcher{
-		Store:          *str,
-		IgnoreRules:    opts.Ignore,
-		NormalizeByCVE: opts.ByCVE,
-		FailSeverity:   opts.FailOnSeverity(),
-		Matchers:       getMatchers(opts),
+		VulnerabilityProvider: vp,
+		IgnoreRules:           opts.Ignore,
+		NormalizeByCVE:        opts.ByCVE,
+		FailSeverity:          opts.FailOnSeverity(),
+		Matchers:              getMatchers(opts),
 		VexProcessor: vex.NewProcessor(vex.ProcessorOptions{
 			Documents:   opts.VexDocuments,
 			IgnoreRules: opts.Ignore,
@@ -201,16 +201,18 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		errs = appendErrors(errs, err)
 	}
 
+	model, err := models.NewDocument(app.ID(), packages, pkgContext, *remainingMatches, ignoredMatches, vp, opts, status, models.SortByPackage)
+	if err != nil {
+		return fmt.Errorf("failed to create document: %w", err)
+	}
+
 	if err = writer.Write(models.PresenterConfig{
-		ID:               app.ID(),
-		Matches:          *remainingMatches,
-		IgnoredMatches:   ignoredMatches,
-		Packages:         packages,
-		Context:          pkgContext,
-		MetadataProvider: str,
-		SBOM:             s,
-		AppConfig:        opts,
-		DBStatus:         status,
+		ID:        app.ID(),
+		Document:  model,
+		SBOM:      s,
+		AppConfig: opts,
+		DBStatus:  status,
+		Pretty:    opts.Pretty,
 	}); err != nil {
 		errs = appendErrors(errs, err)
 	}
@@ -274,11 +276,11 @@ func checkForAppUpdate(id clio.Identification, opts *options.Grype) {
 			},
 		})
 	} else {
-		log.Debugf("no new %s update available", id.Name)
+		log.Debugf("no new %s application update available", id.Name)
 	}
 }
 
-func getMatchers(opts *options.Grype) []matcher.Matcher {
+func getMatchers(opts *options.Grype) []match.Matcher {
 	return matcher.NewDefaultMatchers(
 		matcher.Config{
 			Java: java.MatcherConfig{
@@ -324,8 +326,15 @@ func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
 	}
 }
 
-func validateDBLoad(loadErr error, status *distribution.Status) error {
+func validateDBLoad(loadErr error, status *v6.Status) error {
 	if loadErr != nil {
+		// notify the user about grype db delete to fix checksum errors
+		if strings.Contains(loadErr.Error(), "checksum") {
+			bus.Notify("Database checksum invalid, run `grype db delete` to remove it and `grype db update` to update.")
+		}
+		if strings.Contains(loadErr.Error(), "import.json") {
+			bus.Notify("Unable to find database import metadata, run `grype db delete` to remove the existing database and `grype db update` to update.")
+		}
 		return fmt.Errorf("failed to load vulnerability db: %w", loadErr)
 	}
 	if status == nil {

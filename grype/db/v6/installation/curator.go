@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/adrg/xdg"
@@ -16,12 +16,14 @@ import (
 	"github.com/wagoodman/go-progress"
 
 	"github.com/anchore/archiver/v3"
+	"github.com/anchore/clio"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/file"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/grype/internal/schemaver"
 )
 
 const lastUpdateCheckFileName = "last_update_check"
@@ -35,6 +37,7 @@ type monitor struct {
 
 type Config struct {
 	DBRootDir string
+	Debug     bool
 
 	// validations
 	ValidateAge             bool
@@ -43,9 +46,9 @@ type Config struct {
 	UpdateCheckMaxFrequency time.Duration
 }
 
-func DefaultConfig() Config {
+func DefaultConfig(id clio.Identification) Config {
 	return Config{
-		DBRootDir:               filepath.Join(xdg.CacheHome, "grype", "db"),
+		DBRootDir:               filepath.Join(xdg.CacheHome, id.Name, "db"),
 		ValidateAge:             true,
 		ValidateChecksum:        true,
 		MaxAllowedBuiltAge:      time.Hour * 24 * 5, // 5 days
@@ -54,11 +57,11 @@ func DefaultConfig() Config {
 }
 
 func (c Config) DBFilePath() string {
-	return path.Join(c.DBDirectoryPath(), db.VulnerabilityDBFileName)
+	return filepath.Join(c.DBDirectoryPath(), db.VulnerabilityDBFileName)
 }
 
 func (c Config) DBDirectoryPath() string {
-	return path.Join(c.DBRootDir, strconv.Itoa(db.ModelVersion))
+	return filepath.Join(c.DBRootDir, strconv.Itoa(db.ModelVersion))
 }
 
 type curator struct {
@@ -81,6 +84,7 @@ func (c curator) Reader() (db.Reader, error) {
 	s, err := db.NewReader(
 		db.Config{
 			DBDirPath: c.config.DBDirectoryPath(),
+			Debug:     c.config.Debug,
 		},
 	)
 	if err != nil {
@@ -92,9 +96,47 @@ func (c curator) Reader() (db.Reader, error) {
 		return nil, fmt.Errorf("unable to get vulnerability store metadata: %w", err)
 	}
 
-	_, err = c.validate(db.DescriptionFromMetadata(m), c.config.ValidateChecksum)
+	var currentDBSchemaVersion *schemaver.SchemaVer
+	if m != nil {
+		v := schemaver.New(m.Model, m.Revision, m.Addition)
+		currentDBSchemaVersion = &v
+	}
 
-	return s, err
+	doRehydrate, err := isRehydrationNeeded(c.fs, c.config.DBDirectoryPath(), currentDBSchemaVersion, schemaver.New(db.ModelVersion, db.Revision, db.Addition))
+	if err != nil {
+		return nil, err
+	}
+	if doRehydrate {
+		if err = s.Close(); err != nil {
+			// DB connection may be in an inconsistent state -- we cannot continue
+			return nil, fmt.Errorf("unable to close reader before rehydration: %w", err)
+		}
+		mon := newMonitor()
+
+		mon.Set("rehydrating DB")
+		log.Info("rehydrating DB")
+
+		// this is a condition where an old client imported a DB with additional capabilities than it can handle at hydration.
+		// this could lead to missing indexes and degraded performance now that a newer client is running (that can handle these capabilities).
+		// the only sensible thing to do is to rehydrate the existing DB to ensure indexes are up-to-date with the current client's capabilities.
+		if err := c.hydrate(c.config.DBDirectoryPath(), mon); err != nil {
+			log.WithFields("error", err).Warn("unable to rehydrate DB")
+		}
+		mon.Set("rehydrated")
+		mon.SetCompleted()
+
+		s, err = db.NewReader(
+			db.Config{
+				DBDirPath: c.config.DBDirectoryPath(),
+				Debug:     c.config.Debug,
+			},
+		)
+		if err != nil {
+			return nil, fmt.Errorf("unable to create new reader after rehydration: %w", err)
+		}
+	}
+
+	return s, nil
 }
 
 func (c curator) Status() db.Status {
@@ -102,24 +144,33 @@ func (c curator) Status() db.Status {
 	d, err := db.ReadDescription(dbFile)
 	if err != nil {
 		return db.Status{
-			Err: err,
+			Path: dbFile,
+			Err:  err,
 		}
 	}
 	if d == nil {
 		return db.Status{
-			Err: fmt.Errorf("database not found at %q", dbFile),
+			Path: dbFile,
+			Err:  fmt.Errorf("database not found at %q", dbFile),
 		}
 	}
 
-	// override the checksum validation setting to ensure the checksum is always validated
-	digest, validateErr := c.validate(d, true)
+	err = c.validateAge(d)
+	digest, checksumErr := c.validateIntegrity(d)
+	if checksumErr != nil && c.config.ValidateChecksum {
+		if err != nil {
+			err = errors.Join(err, checksumErr)
+		} else {
+			err = checksumErr
+		}
+	}
 
 	return db.Status{
 		Built:         db.Time{Time: d.Built.Time},
 		SchemaVersion: d.SchemaVersion.String(),
 		Path:          dbFile,
 		Checksum:      digest,
-		Err:           validateErr,
+		Err:           err,
 	}
 }
 
@@ -135,12 +186,12 @@ func (c curator) Update() (bool, error) {
 		// we should not warn if the DB does not exist, as this is a common first-run case... but other cases we
 		// may care about, so warn in those cases.
 		if !errors.Is(err, db.ErrDBDoesNotExist) {
-			log.WithFields("error", err).Warn("unable to read current database metadata (continuing with update)")
+			log.WithFields("error", err).Warn("unable to read current database metadata; continuing with update")
 		}
 		// downstream any non-existent DB should always be replaced with any best-candidate found
 		current = nil
 	} else {
-		_, err := c.validate(current, true)
+		err = c.validateAge(current)
 		if err != nil {
 			// even if we are not allowed to check for an update, we should still attempt to update the DB if it is invalid
 			log.WithFields("error", err).Warn("current database is invalid")
@@ -150,7 +201,7 @@ func (c curator) Update() (bool, error) {
 
 	if current != nil && !c.isUpdateCheckAllowed() {
 		// we should not notify the user of an update check if the current configuration and state
-		// indicates we're should be in a low-pass filter mode (and the check frequency is too high).
+		// indicates we are in a low-pass filter mode and the check frequency is too high.
 		// this should appear to the user as if we never attempted to check for an update at all.
 		return false, nil
 	}
@@ -176,7 +227,7 @@ func (c curator) Update() (bool, error) {
 	log.WithFields(
 		"version", update.Description.SchemaVersion,
 		"built", update.Description.Built.String(),
-	).Info("downloaded new vulnerability DB")
+	).Info("installed new vulnerability DB")
 	return true, nil
 }
 
@@ -219,7 +270,7 @@ func (c curator) update(current *db.Description) (*distribution.Archive, error) 
 		}
 
 		mon.Set("no update available")
-		return nil, nil
+		return nil, checkErr
 	}
 
 	log.Infof("downloading new vulnerability DB")
@@ -229,7 +280,7 @@ func (c curator) update(current *db.Description) (*distribution.Archive, error) 
 		return nil, fmt.Errorf("unable to update vulnerability database: %w", err)
 	}
 	mon.downloadProgress.SetCompleted()
-	if err := c.activate(dest, mon); err != nil {
+	if err = c.activate(dest, mon); err != nil {
 		return nil, fmt.Errorf("unable to activate new vulnerability database: %w", err)
 	}
 
@@ -241,10 +292,47 @@ func (c curator) update(current *db.Description) (*distribution.Archive, error) 
 	return update, nil
 }
 
+func isRehydrationNeeded(fs afero.Fs, dirPath string, currentDBVersion *schemaver.SchemaVer, currentClientVersion schemaver.SchemaVer) (bool, error) {
+	if currentDBVersion == nil {
+		// there is no DB to rehydrate
+		return false, nil
+	}
+
+	importMetadata, err := db.ReadImportMetadata(fs, dirPath)
+	if err != nil {
+		return false, fmt.Errorf("unable to read import metadata: %w", err)
+	}
+
+	clientHydrationVersion, err := schemaver.Parse(importMetadata.ClientVersion)
+	if err != nil {
+		return false, fmt.Errorf("unable to parse client version from import metadata: %w", err)
+	}
+
+	hydratedWithOldClient := clientHydrationVersion.LessThan(*currentDBVersion)
+	haveNewerClient := clientHydrationVersion.LessThan(currentClientVersion)
+	doRehydrate := hydratedWithOldClient && haveNewerClient
+
+	msg := "DB rehydration not needed"
+	if doRehydrate {
+		msg = "DB rehydration needed"
+	}
+
+	log.WithFields("clientHydrationVersion", clientHydrationVersion, "currentDBVersion", currentDBVersion, "currentClientVersion", currentClientVersion).Trace(msg)
+
+	if doRehydrate {
+		// this is a condition where an old client imported a DB with additional capabilities than it can handle at hydration.
+		// this could lead to missing indexes and degraded performance now that a newer client is running (that can handle these capabilities).
+		// the only sensible thing to do is to rehydrate the existing DB to ensure indexes are up-to-date with the current client's capabilities.
+		return true, nil
+	}
+
+	return false, nil
+}
+
 func (c curator) durationSinceUpdateCheck() (*time.Duration, error) {
 	// open `$dbDir/last_update_check` file and read the timestamp and do now() - timestamp
 
-	filePath := path.Join(c.config.DBDirectoryPath(), lastUpdateCheckFileName)
+	filePath := filepath.Join(c.config.DBDirectoryPath(), lastUpdateCheckFileName)
 
 	if _, err := c.fs.Stat(filePath); os.IsNotExist(err) {
 		log.Trace("first-run of DB update")
@@ -256,7 +344,7 @@ func (c curator) durationSinceUpdateCheck() (*time.Duration, error) {
 		return nil, fmt.Errorf("unable to read last update check timestamp: %w", err)
 	}
 
-	defer fh.Close()
+	defer log.CloseAndLogError(fh, filePath)
 
 	// read and parse rfc3339 timestamp
 	var lastCheckStr string
@@ -282,30 +370,20 @@ func (c curator) setLastSuccessfulUpdateCheck() {
 	// note: we should always assume the DB dir actually exists, otherwise let this operation fail (since having a DB
 	// is a prerequisite for a successful update).
 
-	filePath := path.Join(c.config.DBDirectoryPath(), lastUpdateCheckFileName)
+	filePath := filepath.Join(c.config.DBDirectoryPath(), lastUpdateCheckFileName)
 	fh, err := c.fs.OpenFile(filePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		log.WithFields("error", err).Trace("unable to write last update check timestamp")
 		return
 	}
 
-	defer fh.Close()
+	defer log.CloseAndLogError(fh, filePath)
 
 	_, _ = fmt.Fprintf(fh, "%s", time.Now().UTC().Format(time.RFC3339))
 }
 
-// validate checks the current database to ensure file integrity and if it can be used by this version of the application.
-func (c curator) validate(current *db.Description, validateChecksum bool) (string, error) {
-	metadata, digest, err := c.validateIntegrity(current, c.config.DBFilePath(), validateChecksum)
-	if err != nil {
-		return "", err
-	}
-
-	return digest, c.ensureNotStale(metadata)
-}
-
 // Import takes a DB archive file and imports it into the final DB location.
-func (c curator) Import(dbArchivePath string) error {
+func (c curator) Import(path string) error {
 	mon := newMonitor()
 	mon.Set("unarchiving")
 	defer mon.SetCompleted()
@@ -320,10 +398,19 @@ func (c curator) Import(dbArchivePath string) error {
 		return fmt.Errorf("unable to create db import temp dir: %w", err)
 	}
 
-	log.Trace("unarchiving DB")
-	err = archiver.Unarchive(dbArchivePath, tempDir)
-	if err != nil {
-		return err
+	if strings.HasSuffix(path, ".db") {
+		// this is a raw DB file, copy it to the temp dir
+		log.Trace("copying DB")
+		if err := file.CopyFile(afero.NewOsFs(), path, filepath.Join(tempDir, db.VulnerabilityDBFileName)); err != nil {
+			return fmt.Errorf("unable to copy DB file: %w", err)
+		}
+	} else {
+		// assume it is an archive
+		log.Trace("unarchiving DB")
+		err = archiver.Unarchive(path, tempDir)
+		if err != nil {
+			return err
+		}
 	}
 
 	mon.downloadProgress.SetCompleted()
@@ -343,8 +430,16 @@ func (c curator) Import(dbArchivePath string) error {
 func (c curator) activate(dbDirPath string, mon monitor) error {
 	defer mon.SetCompleted()
 
-	dbFilePath := filepath.Join(dbDirPath, db.VulnerabilityDBFileName)
+	if err := c.hydrate(dbDirPath, mon); err != nil {
+		return fmt.Errorf("failed to hydrate database: %w", err)
+	}
 
+	mon.Set("activating")
+
+	return c.replaceDB(dbDirPath)
+}
+
+func (c curator) hydrate(dbDirPath string, mon monitor) error {
 	if c.hydrator != nil {
 		mon.Set("hydrating")
 		if err := c.hydrator(dbDirPath); err != nil {
@@ -355,28 +450,14 @@ func (c curator) activate(dbDirPath string, mon monitor) error {
 
 	mon.Set("hashing")
 
-	// overwrite the checksums file with the new checksums
-	digest, err := db.CalculateDBDigest(dbFilePath)
+	doc, err := db.WriteImportMetadata(c.fs, dbDirPath)
 	if err != nil {
-		return err
-	}
-
-	checksumsFilePath := filepath.Join(dbDirPath, db.ChecksumFileName)
-	fh, err := c.fs.OpenFile(checksumsFilePath, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to open checksums file: %w", err)
-	}
-	if err := db.WriteChecksums(fh, digest); err != nil {
 		return fmt.Errorf("failed to write checksums file: %w", err)
 	}
-	if err := fh.Close(); err != nil {
-		return err
-	}
-	log.WithFields("digest", digest).Trace("captured DB checksum")
 
-	mon.Set("activating")
+	log.WithFields("digest", doc.Digest).Trace("captured DB digest")
 
-	return c.replaceDB(dbDirPath)
+	return nil
 }
 
 // replaceDB swaps over to using the given path.
@@ -397,50 +478,50 @@ func (c curator) replaceDB(dbDirPath string) error {
 	}
 
 	// activate the new db cache by moving the temp dir to final location
-	return c.fs.Rename(dbDirPath, dbDir)
+	err = c.fs.Rename(dbDirPath, dbDir)
+	log.WithFields("from", dbDirPath, "to", dbDir, "error", err).Debug("moved database directory to activate")
+	return err
 }
 
-func (c curator) validateIntegrity(metadata *db.Description, dbFilePath string, validateChecksum bool) (*db.Description, string, error) {
+// validateIntegrity checks that the disk checksum still matches the db payload
+func (c curator) validateIntegrity(description *db.Description) (string, error) {
+	dbFilePath := c.config.DBFilePath()
+
 	// check that the disk checksum still matches the db payload
-	if metadata == nil {
-		return nil, "", fmt.Errorf("database not found: %s", dbFilePath)
+	if description == nil {
+		return "", fmt.Errorf("database not found: %s", dbFilePath)
 	}
 
-	gotModel, ok := metadata.SchemaVersion.ModelPart()
-	if !ok || gotModel != db.ModelVersion {
-		return nil, "", fmt.Errorf("unsupported database version: have=%d want=%d", gotModel, db.ModelVersion)
+	if description.SchemaVersion.Model != db.ModelVersion {
+		return "", fmt.Errorf("unsupported database version: have=%d want=%d", description.SchemaVersion.Model, db.ModelVersion)
 	}
 
 	if _, err := c.fs.Stat(dbFilePath); err != nil {
 		if os.IsNotExist(err) {
-			return nil, "", fmt.Errorf("database does not exist: %s", dbFilePath)
+			return "", fmt.Errorf("database does not exist: %s", dbFilePath)
 		}
-		return nil, "", fmt.Errorf("failed to access database file: %w", err)
+		return "", fmt.Errorf("failed to access database file: %w", err)
 	}
 
-	var digest string
-	if validateChecksum {
-		var err error
-		digest, err = db.ReadDBChecksum(filepath.Dir(dbFilePath))
-		if err != nil {
-			return nil, "", err
-		}
-
-		valid, actualHash, err := file.ValidateByHash(c.fs, dbFilePath, digest)
-		if err != nil {
-			return nil, "", err
-		}
-		if !valid {
-			return nil, "", fmt.Errorf("bad db checksum (%s): %q vs %q", dbFilePath, digest, actualHash)
-		}
+	importMetadata, err := db.ReadImportMetadata(c.fs, filepath.Dir(dbFilePath))
+	if err != nil {
+		return "", err
 	}
 
-	return metadata, digest, nil
+	valid, actualHash, err := file.ValidateByHash(c.fs, dbFilePath, importMetadata.Digest)
+	if err != nil {
+		return actualHash, err
+	}
+	if !valid {
+		return actualHash, fmt.Errorf("bad db checksum (%s): %q vs %q", dbFilePath, importMetadata.Digest, actualHash)
+	}
+
+	return actualHash, nil
 }
 
-// ensureNotStale ensures the vulnerability database has not passed
+// validateAge ensures the vulnerability database has not passed
 // the max allowed age, calculated from the time it was built until now.
-func (c curator) ensureNotStale(m *db.Description) error {
+func (c curator) validateAge(m *db.Description) error {
 	if m == nil {
 		return fmt.Errorf("no metadata to validate")
 	}

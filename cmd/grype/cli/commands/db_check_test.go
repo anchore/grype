@@ -11,17 +11,18 @@ import (
 
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
+	"github.com/anchore/grype/internal/schemaver"
 )
 
 func TestPresentNewDBCheck(t *testing.T) {
 	currentDB := &db.Description{
-		SchemaVersion: "v6.0.0",
+		SchemaVersion: schemaver.New(6, 0, 0),
 		Built:         db.Time{Time: time.Date(2023, 11, 25, 12, 0, 0, 0, time.UTC)},
 	}
 
 	candidateDB := &distribution.Archive{
 		Description: db.Description{
-			SchemaVersion: "v6.0.1",
+			SchemaVersion: schemaver.New(6, 0, 1),
 			Built:         db.Time{Time: time.Date(2023, 11, 26, 12, 0, 0, 0, time.UTC)},
 		},
 		Path:     "vulnerability-db_6.0.1_2023-11-26T12:00:00Z_6238463.tar.gz",

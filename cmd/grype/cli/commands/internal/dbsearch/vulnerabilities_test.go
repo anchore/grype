@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -17,8 +18,8 @@ func TestNewVulnerabilityRows(t *testing.T) {
 			ID:            1,
 			Name:          "CVE-1234-5678",
 			Status:        "active",
-			PublishedDate: ptrTime(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
-			ModifiedDate:  ptrTime(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
+			PublishedDate: ptr(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
+			ModifiedDate:  ptr(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
 			WithdrawnDate: nil,
 			Provider:      &v6.Provider{ID: "provider1"},
 			BlobValue:     &v6.VulnerabilityBlob{Description: "Test description"},
@@ -27,6 +28,30 @@ func TestNewVulnerabilityRows(t *testing.T) {
 			{Name: "Linux", MajorVersion: "5", MinorVersion: "10"},
 		},
 		AffectedPackages: 5,
+		vulnerabilityDecorations: vulnerabilityDecorations{
+			KnownExploited: []KnownExploited{
+				{
+					CVE:                        "CVE-1234-5678",
+					VendorProject:              "LinuxFoundation",
+					Product:                    "Linux",
+					DateAdded:                  "2025-02-02",
+					RequiredAction:             "Yes",
+					DueDate:                    "2025-02-02",
+					KnownRansomwareCampaignUse: "Known",
+					Notes:                      "note!",
+					URLs:                       []string{"https://example.com"},
+					CWEs:                       []string{"CWE-1234"},
+				},
+			},
+			EPSS: []EPSS{
+				{
+					CVE:        "CVE-1234-5678",
+					EPSS:       0.893,
+					Percentile: 0.99,
+					Date:       "2025-02-24",
+				},
+			},
+		},
 	}
 
 	rows := newVulnerabilityRows(vap)
@@ -36,9 +61,31 @@ func TestNewVulnerabilityRows(t *testing.T) {
 				VulnerabilityBlob: v6.VulnerabilityBlob{Description: "Test description"},
 				Provider:          "provider1",
 				Status:            "active",
-				PublishedDate:     ptrTime(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
-				ModifiedDate:      ptrTime(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
+				PublishedDate:     ptr(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
+				ModifiedDate:      ptr(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
 				WithdrawnDate:     nil,
+				KnownExploited: []KnownExploited{
+					{
+						CVE:                        "CVE-1234-5678",
+						VendorProject:              "LinuxFoundation",
+						Product:                    "Linux",
+						DateAdded:                  "2025-02-02",
+						RequiredAction:             "Yes",
+						DueDate:                    "2025-02-02",
+						KnownRansomwareCampaignUse: "Known",
+						Notes:                      "note!",
+						URLs:                       []string{"https://example.com"},
+						CWEs:                       []string{"CWE-1234"},
+					},
+				},
+				EPSS: []EPSS{
+					{
+						CVE:        "CVE-1234-5678",
+						EPSS:       0.893,
+						Percentile: 0.99,
+						Date:       "2025-02-24",
+					},
+				},
 			},
 			OperatingSystems: []OperatingSystem{
 				{Name: "Linux", Version: "5.10"},
@@ -47,7 +94,7 @@ func TestNewVulnerabilityRows(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(expected, rows); diff != "" {
+	if diff := cmp.Diff(expected, rows, cmpOpts()...); diff != "" {
 		t.Errorf("unexpected rows (-want +got):\n%s", diff)
 	}
 }
@@ -63,8 +110,8 @@ func TestVulnerabilities(t *testing.T) {
 			ID:            1,
 			Name:          "CVE-1234-5678",
 			Status:        "active",
-			PublishedDate: ptrTime(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
-			ModifiedDate:  ptrTime(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
+			PublishedDate: ptr(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
+			ModifiedDate:  ptr(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
 			Provider:      &v6.Provider{ID: "provider1"},
 			BlobValue:     &v6.VulnerabilityBlob{Description: "Test description"},
 		},
@@ -73,6 +120,33 @@ func TestVulnerabilities(t *testing.T) {
 	mockReader.On("GetAffectedPackages", mock.Anything, mock.Anything).Return([]v6.AffectedPackageHandle{
 		{
 			OperatingSystem: &v6.OperatingSystem{Name: "Linux", MajorVersion: "5", MinorVersion: "10"},
+		},
+	}, nil)
+
+	mockReader.On("GetKnownExploitedVulnerabilities", "CVE-1234-5678").Return([]v6.KnownExploitedVulnerabilityHandle{
+		{
+			Cve: "CVE-1234-5678",
+			BlobValue: &v6.KnownExploitedVulnerabilityBlob{
+				Cve:                        "CVE-1234-5678",
+				VendorProject:              "LinuxFoundation",
+				Product:                    "Linux",
+				DateAdded:                  ptr(time.Date(2025, 2, 2, 0, 0, 0, 0, time.UTC)),
+				RequiredAction:             "Yes",
+				DueDate:                    ptr(time.Date(2025, 2, 2, 0, 0, 0, 0, time.UTC)),
+				KnownRansomwareCampaignUse: "Known",
+				Notes:                      "note!",
+				URLs:                       []string{"https://example.com"},
+				CWEs:                       []string{"CWE-1234"},
+			},
+		},
+	}, nil)
+
+	mockReader.On("GetEpss", "CVE-1234-5678").Return([]v6.EpssHandle{
+		{
+			Cve:        "CVE-1234-5678",
+			Epss:       0.893,
+			Percentile: 0.99,
+			Date:       time.Date(2025, 2, 24, 0, 0, 0, 0, time.UTC),
 		},
 	}, nil)
 
@@ -85,9 +159,31 @@ func TestVulnerabilities(t *testing.T) {
 				VulnerabilityBlob: v6.VulnerabilityBlob{Description: "Test description"},
 				Provider:          "provider1",
 				Status:            "active",
-				PublishedDate:     ptrTime(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
-				ModifiedDate:      ptrTime(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
+				PublishedDate:     ptr(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
+				ModifiedDate:      ptr(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
 				WithdrawnDate:     nil,
+				KnownExploited: []KnownExploited{
+					{
+						CVE:                        "CVE-1234-5678",
+						VendorProject:              "LinuxFoundation",
+						Product:                    "Linux",
+						DateAdded:                  "2025-02-02",
+						RequiredAction:             "Yes",
+						DueDate:                    "2025-02-02",
+						KnownRansomwareCampaignUse: "Known",
+						Notes:                      "note!",
+						URLs:                       []string{"https://example.com"},
+						CWEs:                       []string{"CWE-1234"},
+					},
+				},
+				EPSS: []EPSS{
+					{
+						CVE:        "CVE-1234-5678",
+						EPSS:       0.893,
+						Percentile: 0.99,
+						Date:       "2025-02-24",
+					},
+				},
 			},
 			OperatingSystems: []OperatingSystem{
 				{Name: "Linux", Version: "5.10"},
@@ -96,7 +192,7 @@ func TestVulnerabilities(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(expected, results); diff != "" {
+	if diff := cmp.Diff(expected, results, cmpOpts()...); diff != "" {
 		t.Errorf("unexpected results (-want +got):\n%s", diff)
 	}
 }
@@ -115,6 +211,19 @@ func (m *mockVulnReader) GetAffectedPackages(pkg *v6.PackageSpecifier, config *v
 	return args.Get(0).([]v6.AffectedPackageHandle), args.Error(1)
 }
 
-func ptrTime(t time.Time) *time.Time {
-	return &t
+func (m *mockVulnReader) GetKnownExploitedVulnerabilities(cve string) ([]v6.KnownExploitedVulnerabilityHandle, error) {
+	args := m.Called(cve)
+	return args.Get(0).([]v6.KnownExploitedVulnerabilityHandle), args.Error(1)
+}
+
+func (m *mockVulnReader) GetEpss(cve string) ([]v6.EpssHandle, error) {
+	args := m.Called(cve)
+	return args.Get(0).([]v6.EpssHandle), args.Error(1)
+}
+
+func cmpOpts() []cmp.Option {
+	return []cmp.Option{
+		cmpopts.IgnoreFields(AffectedPackageInfo{}, "Model"),
+		cmpopts.IgnoreFields(VulnerabilityInfo{}, "Model"),
+	}
 }

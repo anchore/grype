@@ -13,15 +13,17 @@ import (
 )
 
 type DBSearchPackages struct {
-	Packages  []string             `yaml:"packages" json:"packages" mapstructure:"packages"`
-	Ecosystem string               `yaml:"ecosystem" json:"ecosystem" mapstructure:"ecosystem"`
-	PkgSpecs  v6.PackageSpecifiers `yaml:"-" json:"-" mapstructure:"-"`
-	CPESpecs  v6.PackageSpecifiers `yaml:"-" json:"-" mapstructure:"-"`
+	AllowBroadCPEMatching bool                 `yaml:"allow-broad-cpe-matching" json:"allow-broad-cpe-matching" mapstructure:"allow-broad-cpe-matching"`
+	Packages              []string             `yaml:"packages" json:"packages" mapstructure:"packages"`
+	Ecosystem             string               `yaml:"ecosystem" json:"ecosystem" mapstructure:"ecosystem"`
+	PkgSpecs              v6.PackageSpecifiers `yaml:"-" json:"-" mapstructure:"-"`
+	CPESpecs              v6.PackageSpecifiers `yaml:"-" json:"-" mapstructure:"-"`
 }
 
 func (o *DBSearchPackages) AddFlags(flags clio.FlagSet) {
-	flags.StringArrayVarP(&o.Packages, "pkg", "", "package name/CPE/PURL to search for (supports DB schema v6+ only)")
-	flags.StringVarP(&o.Ecosystem, "ecosystem", "", "ecosystem of the package to search within (supports DB schema v6+ only)")
+	flags.StringArrayVarP(&o.Packages, "pkg", "", "package name/CPE/PURL to search for")
+	flags.StringVarP(&o.Ecosystem, "ecosystem", "", "ecosystem of the package to search within")
+	flags.BoolVarP(&o.AllowBroadCPEMatching, "broad-cpe-matching", "", "allow for specific package CPE attributes to match with '*' values on the vulnerability")
 }
 
 func (o *DBSearchPackages) PostLoad() error {

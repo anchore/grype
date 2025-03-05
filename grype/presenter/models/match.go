@@ -45,9 +45,15 @@ func newMatch(m match.Match, p pkg.Package, metadataProvider vulnerability.Metad
 		}
 	}
 
-	metadata, err := metadataProvider.VulnerabilityMetadata(m.Vulnerability.Reference)
-	if err != nil {
-		return nil, fmt.Errorf("unable to fetch vuln=%q metadata: %+v", m.Vulnerability.ID, err)
+	// vulnerability.Vulnerability should always have vulnerability.Metadata populated, however, in the case of test mocks
+	// and other edge cases, it may not be populated. In these cases, we should fetch the metadata from the provider.
+	metadata := m.Vulnerability.Metadata
+	if metadata == nil {
+		var err error
+		metadata, err = metadataProvider.VulnerabilityMetadata(m.Vulnerability.Reference)
+		if err != nil {
+			return nil, fmt.Errorf("unable to fetch related vuln=%q metadata: %+v", m.Vulnerability.Reference, err)
+		}
 	}
 
 	details := make([]MatchDetails, len(m.Details))
@@ -69,40 +75,6 @@ func newMatch(m match.Match, p pkg.Package, metadataProvider vulnerability.Metad
 		RelatedVulnerabilities: relatedVulnerabilities,
 		MatchDetails:           details,
 	}, nil
-}
-
-var _ sort.Interface = (*MatchSort)(nil)
-
-type MatchSort []Match
-
-// Len is the number of elements in the collection.
-func (m MatchSort) Len() int {
-	return len(m)
-}
-
-// Less reports whether the element with index i should sort before the element with index j.
-// sort should consistent across presenters: name, version, type, severity, vulnerability
-func (m MatchSort) Less(i, j int) bool {
-	matchI := m[i]
-	matchJ := m[j]
-	if matchI.Artifact.Name == matchJ.Artifact.Name {
-		if matchI.Artifact.Version == matchJ.Artifact.Version {
-			if matchI.Artifact.Type == matchJ.Artifact.Type {
-				if SeverityScore(matchI.Vulnerability.Severity) == SeverityScore(matchJ.Vulnerability.Severity) {
-					return matchI.Vulnerability.ID > matchJ.Vulnerability.ID
-				}
-				return SeverityScore(matchI.Vulnerability.Severity) > SeverityScore(matchJ.Vulnerability.Severity)
-			}
-			return matchI.Artifact.Type < matchJ.Artifact.Type
-		}
-		return matchI.Artifact.Version < matchJ.Artifact.Version
-	}
-	return matchI.Artifact.Name < matchJ.Artifact.Name
-}
-
-// Swap swaps the elements with indexes i and j.
-func (m MatchSort) Swap(i, j int) {
-	m[i], m[j] = m[j], m[i]
 }
 
 func calculateSuggestedFixedVersion(p pkg.Package, fixedVersions []string) string {

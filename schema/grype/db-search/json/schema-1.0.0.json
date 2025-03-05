@@ -107,10 +107,7 @@
           "$ref": "#/$defs/Fix"
         }
       },
-      "type": "object",
-      "required": [
-        "version"
-      ]
+      "type": "object"
     },
     "AffectedVersion": {
       "$defs": {
@@ -129,17 +126,11 @@
           "type": "string"
         }
       },
-      "type": "object",
-      "required": [
-        "constraint"
-      ]
+      "type": "object"
     },
     "CPE": {
       "properties": {
         "ID": {
-          "type": "integer"
-        },
-        "PackageID": {
           "type": "integer"
         },
         "Part": {
@@ -168,12 +159,17 @@
         },
         "Other": {
           "type": "string"
+        },
+        "Packages": {
+          "items": {
+            "$ref": "#/$defs/Package"
+          },
+          "type": "array"
         }
       },
       "type": "object",
       "required": [
         "ID",
-        "PackageID",
         "Part",
         "Vendor",
         "Product",
@@ -182,7 +178,8 @@
         "SoftwareEdition",
         "TargetHardware",
         "TargetSoftware",
-        "Other"
+        "Other",
+        "Packages"
       ]
     },
     "Fix": {
@@ -208,10 +205,7 @@
           "$ref": "#/$defs/FixDetail"
         }
       },
-      "type": "object",
-      "required": [
-        "state"
-      ]
+      "type": "object"
     },
     "FixDetail": {
       "$defs": {

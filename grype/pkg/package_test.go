@@ -743,6 +743,15 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
+			name: "bitnami-sbom-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.BitnamiSBOMEntry{
+					Name:    "a",
+					Version: "1",
+				},
+			},
+		},
+		{
 			name: "terraform-lock-provider-entry",
 			syftPkg: syftPkg.Package{
 				Metadata: syftPkg.TerraformLockProviderEntry{

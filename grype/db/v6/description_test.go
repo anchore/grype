@@ -2,10 +2,7 @@ package v6
 
 import (
 	"encoding/json"
-	"os"
-	"path"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -25,7 +22,7 @@ func TestReadDescription(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, s.Close())
 
-	dbFilePath := path.Join(tempDir, VulnerabilityDBFileName)
+	dbFilePath := filepath.Join(tempDir, VulnerabilityDBFileName)
 
 	description, err := ReadDescription(dbFilePath)
 	require.NoError(t, err)
@@ -108,132 +105,6 @@ func TestTime_JSONUnmarshalling(t *testing.T) {
 			tt.expectError(t, err)
 			if err == nil {
 				assert.Equal(t, tt.expectedTime.Time, parsedTime.Time)
-			}
-		})
-	}
-}
-
-func TestWriteChecksums(t *testing.T) {
-
-	cases := []struct {
-		name     string
-		digest   string
-		expected string
-		wantErr  require.ErrorAssertionFunc
-	}{
-		{
-			name:     "go case",
-			digest:   "xxh64:dummychecksum",
-			expected: "xxh64:dummychecksum",
-		},
-		{
-			name:    "empty checksum",
-			wantErr: require.Error,
-		},
-		{
-			name:    "missing prefix",
-			digest:  "dummychecksum",
-			wantErr: require.Error,
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			if tc.wantErr == nil {
-				tc.wantErr = require.NoError
-			}
-			sb := strings.Builder{}
-			err := WriteChecksums(&sb, tc.digest)
-			tc.wantErr(t, err)
-			if err == nil {
-				assert.Equal(t, tc.expected, sb.String())
-			}
-		})
-	}
-}
-
-func TestReadDBChecksum(t *testing.T) {
-	tests := []struct {
-		name             string
-		checksumContent  string
-		expectedErr      string
-		expectedChecksum string
-	}{
-		{
-			name:            "checksum file missing",
-			checksumContent: "",
-			expectedErr:     "failed to read checksums file",
-		},
-		{
-			name:            "invalid checksum format",
-			checksumContent: "invalid",
-			expectedErr:     "checksums file is not in the expected format",
-		},
-		{
-			name:             "valid checksum format",
-			checksumContent:  "xxh64:checksum",
-			expectedChecksum: "xxh64:checksum",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			dir := t.TempDir()
-			if tt.checksumContent != "" {
-				err := os.WriteFile(filepath.Join(dir, ChecksumFileName), []byte(tt.checksumContent), 0644)
-				require.NoError(t, err)
-			}
-
-			checksum, err := ReadDBChecksum(dir)
-
-			if tt.expectedErr != "" {
-				require.ErrorContains(t, err, tt.expectedErr)
-				require.Empty(t, checksum)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, tt.expectedChecksum, checksum)
-			}
-		})
-	}
-}
-
-func TestCalculateDigest(t *testing.T) {
-	tests := []struct {
-		name           string
-		fileContent    string
-		expectedErr    string
-		expectedDigest string
-	}{
-		{
-			name:        "file does not exist",
-			fileContent: "",
-			expectedErr: "failed to calculate checksum for DB file",
-		},
-		{
-			name:           "valid file",
-			fileContent:    "testcontent",
-			expectedDigest: "xxh64:d37ed71e4fee2ebd",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			dir := t.TempDir()
-			filePath := filepath.Join(dir, VulnerabilityDBFileName)
-
-			if tt.fileContent != "" {
-				err := os.WriteFile(filePath, []byte(tt.fileContent), 0644)
-				require.NoError(t, err)
-			}
-
-			digest, err := CalculateDBDigest(filePath)
-
-			if tt.expectedErr != "" {
-				require.ErrorContains(t, err, tt.expectedErr)
-				require.Empty(t, digest)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, tt.expectedDigest, digest)
 			}
 		})
 	}

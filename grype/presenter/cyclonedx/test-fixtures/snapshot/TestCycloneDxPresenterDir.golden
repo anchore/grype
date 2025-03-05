@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:7fd309b5-5ffd-4d2f-9b24-b040c0bb5af7",
+  "serialNumber": "urn:uuid:d78e14f4-ade8-4948-991c-73318b661114",
   "version": 1,
   "metadata": {
-    "timestamp": "2024-12-04T15:30:43+02:00",
+    "timestamp": "2025-02-27T13:15:13-05:00",
     "tools": {
       "components": [
         {
@@ -15,6 +15,11 @@
           "version": "[not provided]"
         }
       ]
+    },
+    "component": {
+      "bom-ref": "163686ac6e30c752",
+      "type": "file",
+      "name": "/var/folders/c0/4y79v5k56bz8v34chcmvq2k80000gp/T/TestCycloneDxPresenterDir3112352663/001"
     }
   },
   "components": [
@@ -84,13 +89,17 @@
   ],
   "vulnerabilities": [
     {
-      "bom-ref": "urn:uuid:a4b38bae-8a6e-4dd2-bdea-53e9cf590c12",
+      "bom-ref": "urn:uuid:e47db483-7ab2-4177-a82b-416b5a37bf93",
       "id": "CVE-1999-0001",
-      "source": {},
+      "source": {
+        "name": "source-1"
+      },
       "references": [
         {
           "id": "CVE-1999-0001",
-          "source": {}
+          "source": {
+            "name": "source-1"
+          }
         }
       ],
       "ratings": [
@@ -102,7 +111,6 @@
         }
       ],
       "description": "1999-01 description",
-      "advisories": [],
       "affects": [
         {
           "ref": "9baa2db122fea516"
@@ -110,13 +118,17 @@
       ]
     },
     {
-      "bom-ref": "urn:uuid:829dc942-6d41-4d7d-ad5d-41c9b6b12b62",
+      "bom-ref": "urn:uuid:3e3fbcf0-8dda-41a7-97ed-d1122923bf79",
       "id": "CVE-1999-0002",
-      "source": {},
+      "source": {
+        "name": "source-2"
+      },
       "references": [
         {
           "id": "CVE-1999-0002",
-          "source": {}
+          "source": {
+            "name": "source-2"
+          }
         }
       ],
       "ratings": [
@@ -128,7 +140,6 @@
         }
       ],
       "description": "1999-02 description",
-      "advisories": [],
       "affects": [
         {
           "ref": "pkg:deb/package-2@2.2.2?package-id=7bb53d560434bc7f"

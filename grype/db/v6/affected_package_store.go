@@ -9,38 +9,35 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/cpe"
 )
 
 const (
-	// batchSize affects how many records are fetched at a time from the DB. Note: when using preload, row entries
-	// for related records may convey as parameters in a "WHERE x in (...)" which can lead to a large number of
-	// parameters in the query -- if above 999 then this will result in an error for sqlite. For this reason we
-	// try to keep this value well below 999.
-	batchSize = 300
-	anyPkg    = "any"
-	anyOS     = "any"
+	anyPkg = "any"
+	anyOS  = "any"
 )
 
 var NoOSSpecified = &OSSpecifier{}
 var AnyOSSpecified *OSSpecifier
 var AnyPackageSpecified *PackageSpecifier
-var ErrMissingDistroIdentification = errors.New("missing os name or codename")
-var ErrDistroNotPresent = errors.New("distro not present")
+var ErrMissingOSIdentification = errors.New("missing OS name or codename")
+var ErrOSNotPresent = errors.New("OS not present")
 var ErrMultipleOSMatches = errors.New("multiple OS matches found but not allowed")
 var ErrLimitReached = errors.New("query limit reached")
 
 type GetAffectedPackageOptions struct {
-	PreloadOS            bool
-	PreloadPackage       bool
-	PreloadPackageCPEs   bool
-	PreloadVulnerability bool
-	PreloadBlob          bool
-	OSs                  OSSpecifiers
-	Vulnerabilities      VulnerabilitySpecifiers
-	Limit                int
+	PreloadOS             bool
+	PreloadPackage        bool
+	PreloadPackageCPEs    bool
+	PreloadVulnerability  bool
+	PreloadBlob           bool
+	OSs                   OSSpecifiers
+	Vulnerabilities       VulnerabilitySpecifiers
+	AllowBroadCPEMatching bool
+	Limit                 int
 }
 
 type PackageSpecifiers []*PackageSpecifier
@@ -214,28 +211,172 @@ func newAffectedPackageStore(db *gorm.DB, bs *blobStore) *affectedPackageStore {
 }
 
 func (s *affectedPackageStore) AddAffectedPackages(packages ...*AffectedPackageHandle) error {
+	omit := []string{"OperatingSystem"}
+	if err := s.addOs(packages...); err != nil {
+		return fmt.Errorf("unable to add affected package OS: %w", err)
+	}
+
+	hasCpes, err := s.addPackages(packages...)
+	if err != nil {
+		return fmt.Errorf("unable to add affected packages: %w", err)
+	}
+
+	if !hasCpes {
+		omit = append(omit, "Package")
+	}
+
 	for _, v := range packages {
 		if err := s.blobStore.addBlobable(v); err != nil {
 			return fmt.Errorf("unable to add affected blob: %w", err)
 		}
-		if err := s.db.Create(v).Error; err != nil {
+
+		if err := s.db.Omit(omit...).Create(v).Error; err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config *GetAffectedPackageOptions) ([]AffectedPackageHandle, error) {
+func (s *affectedPackageStore) addPackages(packages ...*AffectedPackageHandle) (bool, error) { // nolint:dupl
+	cacheInst, ok := cacheFromContext(s.db.Statement.Context)
+	if !ok {
+		return false, fmt.Errorf("unable to fetch package cache from context")
+	}
+	var final []*Package
+	var hasCPEs bool
+	byCacheKey := make(map[string][]*Package)
+	for _, p := range packages {
+		if p.Package != nil {
+			if len(p.Package.CPEs) > 0 {
+				// never use the cache if there are CPEs involved
+				final = append(final, p.Package)
+				hasCPEs = true
+				continue
+			}
+			key := p.Package.cacheKey()
+			if existingID, ok := cacheInst.getID(p.Package); ok {
+				// seen in a previous transaction...
+				p.PackageID = existingID
+			} else if _, ok := byCacheKey[key]; !ok {
+				// not seen within this transaction
+				final = append(final, p.Package)
+			}
+			byCacheKey[key] = append(byCacheKey[key], p.Package)
+		}
+	}
+
+	if len(final) == 0 {
+		return false, nil
+	}
+
+	// since there is risk of needing to write through packages with conflicting CPEs we cannot write these in batches,
+	// and since the before hooks reason about previous entries within this loop (potentially) we must ensure that
+	// these are written in different transactions.
+	for _, p := range final {
+		if err := s.db.Clauses(clause.OnConflict{DoNothing: true}).Create(p).Error; err != nil {
+			return false, fmt.Errorf("unable to create package records: %w", err)
+		}
+	}
+
+	// update the cache with the new records
+	for _, ref := range final {
+		cacheInst.set(ref)
+	}
+
+	// update all references with the IDs from the cache
+	for _, refs := range byCacheKey {
+		for _, ref := range refs {
+			id, ok := cacheInst.getID(ref)
+			if ok {
+				ref.setRowID(id)
+			}
+		}
+	}
+
+	// update the parent objects with the FK ID
+	for _, p := range packages {
+		if p.Package != nil {
+			p.PackageID = p.Package.ID
+		}
+	}
+	return hasCPEs, nil
+}
+
+func (s *affectedPackageStore) addOs(packages ...*AffectedPackageHandle) error { // nolint:dupl
+	cacheInst, ok := cacheFromContext(s.db.Statement.Context)
+	if !ok {
+		return fmt.Errorf("unable to fetch OS cache from context")
+	}
+
+	var final []*OperatingSystem
+	byCacheKey := make(map[string][]*OperatingSystem)
+	for _, p := range packages {
+		if p.OperatingSystem != nil {
+			p.OperatingSystem.clean()
+			key := p.OperatingSystem.cacheKey()
+			if existingID, ok := cacheInst.getID(p.OperatingSystem); ok {
+				// seen in a previous transaction...
+				p.OperatingSystemID = &existingID
+			} else if _, ok := byCacheKey[key]; !ok {
+				// not seen within this transaction
+				final = append(final, p.OperatingSystem)
+			}
+			byCacheKey[key] = append(byCacheKey[key], p.OperatingSystem)
+		}
+	}
+
+	if len(final) == 0 {
+		return nil
+	}
+
+	if err := s.db.Create(final).Error; err != nil {
+		return fmt.Errorf("unable to create OS records: %w", err)
+	}
+
+	// update the cache with the new records
+	for _, ref := range final {
+		cacheInst.set(ref)
+	}
+
+	// update all references with the IDs from the cache
+	for _, refs := range byCacheKey {
+		for _, ref := range refs {
+			id, ok := cacheInst.getID(ref)
+			if ok {
+				ref.setRowID(id)
+			}
+		}
+	}
+
+	// update the parent objects with the FK ID
+	for _, p := range packages {
+		if p.OperatingSystem != nil {
+			p.OperatingSystemID = &p.OperatingSystem.ID
+		}
+	}
+	return nil
+}
+
+func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config *GetAffectedPackageOptions) ([]AffectedPackageHandle, error) { // nolint:funlen
 	if config == nil {
 		config = &GetAffectedPackageOptions{}
 	}
 
 	start := time.Now()
+	count := 0
 	defer func() {
-		log.WithFields("pkg", pkg.String(), "distro", config.OSs, "vulns", config.Vulnerabilities, "duration", time.Since(start)).Trace("fetched affected package record")
+		log.
+			WithFields(
+				"pkg", pkg.String(),
+				"distro", config.OSs,
+				"vulns", config.Vulnerabilities,
+				"duration", time.Since(start),
+				"records", count,
+			).
+			Trace("fetched affected package record")
 	}()
 
-	query := s.handlePackage(s.db, pkg)
+	query := s.handlePackage(s.db, pkg, config.AllowBroadCPEMatching)
 
 	var err error
 	query, err = s.handleVulnerabilityOptions(query, config.Vulnerabilities)
@@ -260,7 +401,7 @@ func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config
 				blobs = append(blobs, r)
 			}
 			if err := s.blobStore.attachBlobValue(blobs...); err != nil {
-				return fmt.Errorf("unable to attach blobs: %w", err)
+				return fmt.Errorf("unable to attach affected package blobs: %w", err)
 			}
 		}
 
@@ -280,6 +421,8 @@ func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config
 			models = append(models, *r)
 		}
 
+		count += len(results)
+
 		if config.Limit > 0 && len(models) >= config.Limit {
 			return ErrLimitReached
 		}
@@ -292,27 +435,28 @@ func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config
 	return models, nil
 }
 
-func (s *affectedPackageStore) handlePackage(query *gorm.DB, config *PackageSpecifier) *gorm.DB {
-	if config == nil {
+func (s *affectedPackageStore) handlePackage(query *gorm.DB, p *PackageSpecifier, allowBroad bool) *gorm.DB {
+	if p == nil {
 		return query
 	}
 
-	if err := s.applyPackageAlias(config); err != nil {
+	if err := s.applyPackageAlias(p); err != nil {
 		log.Errorf("failed to apply package alias: %v", err)
 	}
 
 	query = query.Joins("JOIN packages ON affected_package_handles.package_id = packages.id")
 
-	if config.Name != "" {
-		query = query.Where("packages.name = ? collate nocase", config.Name)
+	if p.Name != "" {
+		query = query.Where("packages.name = ? collate nocase", p.Name)
 	}
-	if config.Ecosystem != "" {
-		query = query.Where("packages.ecosystem = ? collate nocase", config.Ecosystem)
+	if p.Ecosystem != "" {
+		query = query.Where("packages.ecosystem = ? collate nocase", p.Ecosystem)
 	}
 
-	if config.CPE != nil {
-		query = query.Joins("JOIN cpes ON packages.id = cpes.package_id")
-		query = handleCPEOptions(query, config.CPE)
+	if p.CPE != nil {
+		query = query.Joins("JOIN package_cpes ON packages.id = package_cpes.package_id")
+		query = query.Joins("JOIN cpes ON package_cpes.cpe_id = cpes.id")
+		query = handleCPEOptions(query, p.CPE, allowBroad)
 	}
 
 	return query
@@ -382,7 +526,7 @@ func (s *affectedPackageStore) handleOSOptions(query *gorm.DB, configs []*OSSpec
 
 			switch {
 			case len(curResolvedDistros) == 0:
-				return nil, ErrDistroNotPresent
+				return nil, ErrOSNotPresent
 			case len(curResolvedDistros) > 1 && !config.AllowMultiple:
 				return nil, ErrMultipleOSMatches
 			}
@@ -432,7 +576,7 @@ func (s *affectedPackageStore) handleOSOptions(query *gorm.DB, configs []*OSSpec
 
 func (s *affectedPackageStore) resolveDistro(d OSSpecifier) ([]OperatingSystem, error) {
 	if d.Name == "" && d.LabelVersion == "" {
-		return nil, ErrMissingDistroIdentification
+		return nil, ErrMissingOSIdentification
 	}
 
 	// search for aliases for the given distro; we intentionally map some OSs to other OSs in terms of
@@ -535,6 +679,8 @@ func (s *affectedPackageStore) searchForDistroVersionVariants(query *gorm.DB, d 
 	}
 
 	// search by the most specific criteria first, then fallback
+	d.MajorVersion = strings.TrimPrefix(d.MajorVersion, "0")
+	d.MinorVersion = strings.TrimPrefix(d.MinorVersion, "0")
 
 	var result []OperatingSystem
 	var err error
@@ -598,43 +744,39 @@ func (s *affectedPackageStore) handlePreload(query *gorm.DB, config GetAffectedP
 	return query
 }
 
-func handleCPEOptions(query *gorm.DB, c *cpe.Attributes) *gorm.DB {
-	if c.Part != cpe.Any {
-		query = query.Where("cpes.part = ? collate nocase", c.Part)
-	}
-
-	if c.Vendor != cpe.Any {
-		query = query.Where("cpes.vendor = ? collate nocase", c.Vendor)
-	}
-
-	if c.Product != cpe.Any {
-		query = query.Where("cpes.product = ? collate nocase", c.Product)
-	}
-
-	if c.Edition != cpe.Any {
-		query = query.Where("cpes.edition = ? collate nocase", c.Edition)
-	}
-
-	if c.Language != cpe.Any {
-		query = query.Where("cpes.language = ? collate nocase", c.Language)
-	}
-
-	if c.SWEdition != cpe.Any {
-		query = query.Where("cpes.software_edition = ? collate nocase", c.SWEdition)
-	}
-
-	if c.TargetSW != cpe.Any {
-		query = query.Where("cpes.target_software = ? collate nocase", c.TargetSW)
-	}
-
-	if c.TargetHW != cpe.Any {
-		query = query.Where("cpes.target_hardware = ? collate nocase", c.TargetHW)
-	}
-
-	if c.Other != cpe.Any {
-		query = query.Where("cpes.other = ? collate nocase", c.Other)
-	}
+func handleCPEOptions(query *gorm.DB, c *cpe.Attributes, allowBroad bool) *gorm.DB {
+	query = queryCPEAttributeScope(query, c.Part, "cpes.part", allowBroad)
+	query = queryCPEAttributeScope(query, c.Vendor, "cpes.vendor", allowBroad)
+	query = queryCPEAttributeScope(query, c.Product, "cpes.product", allowBroad)
+	query = queryCPEAttributeScope(query, c.Edition, "cpes.edition", allowBroad)
+	query = queryCPEAttributeScope(query, c.Language, "cpes.language", allowBroad)
+	query = queryCPEAttributeScope(query, c.SWEdition, "cpes.software_edition", allowBroad)
+	query = queryCPEAttributeScope(query, c.TargetSW, "cpes.target_software", allowBroad)
+	query = queryCPEAttributeScope(query, c.TargetHW, "cpes.target_hardware", allowBroad)
+	query = queryCPEAttributeScope(query, c.Other, "cpes.other", allowBroad)
 	return query
+}
+
+func queryCPEAttributeScope(query *gorm.DB, value string, dbColumn string, allowBroad bool) *gorm.DB {
+	if value == cpe.Any {
+		return query
+	}
+	if allowBroad {
+		// this allows for a package that specifies a CPE like
+		//
+		//   'cpe:2.3:a:cloudflare:octorpki:1.4.1:*:*:*:*:golang:*:*'
+		//
+		// to be able to positively match with a package CPE that claims to match "any" target software.
+		//
+		//   'cpe:2.3:a:cloudflare:octorpki:1.4.1:*:*:*:*:*:*:*'
+		//
+		// practically speaking, how would a vulnerability provider know that the package is vulnerable for all
+		// target software values (against the universe of packaging) -- this isn't practical.
+		return query.Where(fmt.Sprintf("%s = ? collate nocase or %s = ? collate nocase", dbColumn, dbColumn), value, cpe.Any)
+	}
+	// this is the most practical use case, where the package CPE with specified values must match the vulnerability
+	// CPE exactly (only for specified fields)
+	return query.Where(fmt.Sprintf("%s = ? collate nocase", dbColumn), value)
 }
 
 func hasDistroSpecified(d *OSSpecifier) bool {

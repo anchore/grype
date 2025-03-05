@@ -20,11 +20,12 @@ type AffectedCPEStoreReader interface {
 }
 
 type GetAffectedCPEOptions struct {
-	PreloadCPE           bool
-	PreloadVulnerability bool
-	PreloadBlob          bool
-	Vulnerabilities      []VulnerabilitySpecifier
-	Limit                int
+	PreloadCPE            bool
+	PreloadVulnerability  bool
+	PreloadBlob           bool
+	Vulnerabilities       []VulnerabilitySpecifier
+	AllowBroadCPEMatching bool
+	Limit                 int
 }
 
 type affectedCPEStore struct {
@@ -41,13 +42,70 @@ func newAffectedCPEStore(db *gorm.DB, bs *blobStore) *affectedCPEStore {
 
 // AddAffectedCPEs adds one or more affected CPEs to the store
 func (s *affectedCPEStore) AddAffectedCPEs(packages ...*AffectedCPEHandle) error {
+	if err := s.addCpes(packages...); err != nil {
+		return fmt.Errorf("unable to add CPEs from affected package CPEs: %w", err)
+	}
 	for _, pkg := range packages {
 		if err := s.blobStore.addBlobable(pkg); err != nil {
 			return fmt.Errorf("unable to add affected package blob: %w", err)
 		}
 
-		if err := s.db.Create(pkg).Error; err != nil {
-			return fmt.Errorf("unable to add affected CPE: %w", err)
+		if err := s.db.Omit("CPE").Create(pkg).Error; err != nil {
+			return fmt.Errorf("unable to add affected CPEs: %w", err)
+		}
+	}
+	return nil
+}
+
+func (s *affectedCPEStore) addCpes(packages ...*AffectedCPEHandle) error { // nolint:dupl
+	cacheInst, ok := cacheFromContext(s.db.Statement.Context)
+	if !ok {
+		return fmt.Errorf("unable to fetch CPE cache from context")
+	}
+
+	var final []*Cpe
+	byCacheKey := make(map[string][]*Cpe)
+	for _, p := range packages {
+		if p.CPE != nil {
+			key := p.CPE.cacheKey()
+			if existingID, ok := cacheInst.getID(p.CPE); ok {
+				// seen in a previous transaction...
+				p.CpeID = existingID
+			} else if _, ok := byCacheKey[key]; !ok {
+				// not seen within this transaction
+				final = append(final, p.CPE)
+			}
+			byCacheKey[key] = append(byCacheKey[key], p.CPE)
+		}
+	}
+
+	if len(final) == 0 {
+		return nil
+	}
+
+	if err := s.db.Create(final).Error; err != nil {
+		return fmt.Errorf("unable to create CPE records: %w", err)
+	}
+
+	// update the cache with the new records
+	for _, ref := range final {
+		cacheInst.set(ref)
+	}
+
+	// update all references with the IDs from the cache
+	for _, refs := range byCacheKey {
+		for _, ref := range refs {
+			id, ok := cacheInst.getID(ref)
+			if ok {
+				ref.setRowID(id)
+			}
+		}
+	}
+
+	// update the parent objects with the FK ID
+	for _, p := range packages {
+		if p.CPE != nil {
+			p.CpeID = p.CPE.ID
 		}
 	}
 	return nil
@@ -60,6 +118,7 @@ func (s *affectedCPEStore) GetAffectedCPEs(cpe *cpe.Attributes, config *GetAffec
 	}
 
 	fields := make(logger.Fields)
+	count := 0
 	if cpe == nil {
 		fields["cpe"] = "any"
 	} else {
@@ -71,7 +130,7 @@ func (s *affectedCPEStore) GetAffectedCPEs(cpe *cpe.Attributes, config *GetAffec
 		log.WithFields(fields).Trace("fetched affected CPE record")
 	}()
 
-	query := s.handleCPE(s.db, cpe)
+	query := s.handleCPE(s.db, cpe, config.AllowBroadCPEMatching)
 
 	var err error
 	query, err = s.handleVulnerabilityOptions(query, config.Vulnerabilities)
@@ -111,6 +170,8 @@ func (s *affectedCPEStore) GetAffectedCPEs(cpe *cpe.Attributes, config *GetAffec
 			models = append(models, *r)
 		}
 
+		count += len(results)
+
 		if config.Limit > 0 && len(models) >= config.Limit {
 			return ErrLimitReached
 		}
@@ -120,16 +181,18 @@ func (s *affectedCPEStore) GetAffectedCPEs(cpe *cpe.Attributes, config *GetAffec
 		return models, fmt.Errorf("unable to fetch affected CPE records: %w", err)
 	}
 
+	fields["records"] = count
+
 	return models, nil
 }
 
-func (s *affectedCPEStore) handleCPE(query *gorm.DB, c *cpe.Attributes) *gorm.DB {
+func (s *affectedCPEStore) handleCPE(query *gorm.DB, c *cpe.Attributes, allowBroad bool) *gorm.DB {
 	if c == nil {
 		return query
 	}
 	query = query.Joins("JOIN cpes ON cpes.id = affected_cpe_handles.cpe_id")
 
-	return handleCPEOptions(query, c)
+	return handleCPEOptions(query, c, allowBroad)
 }
 
 func (s *affectedCPEStore) handleVulnerabilityOptions(query *gorm.DB, configs []VulnerabilitySpecifier) (*gorm.DB, error) {

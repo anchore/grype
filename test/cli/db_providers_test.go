@@ -16,9 +16,8 @@ func TestDBProviders(t *testing.T) {
 			name: "db providers command",
 			args: []string{"db", "providers"},
 			assertions: []traitAssertion{
-				assertInOutput("LAST SUCCESSFUL RUN"),
 				assertNoStderr,
-				assertTableReport,
+				assertDbProvidersTableReport,
 			},
 		},
 		{
@@ -33,16 +32,15 @@ func TestDBProviders(t *testing.T) {
 			name: "db providers command with table output flag",
 			args: []string{"db", "providers", "-o", "table"},
 			assertions: []traitAssertion{
-				assertInOutput("LAST SUCCESSFUL RUN"),
 				assertNoStderr,
-				assertTableReport,
+				assertDbProvidersTableReport,
 			},
 		},
 		{
 			name: "db providers command with json output flag",
 			args: []string{"db", "providers", "-o", "json"},
 			assertions: []traitAssertion{
-				assertInOutput("providers"),
+				assertInOutput("processor"),
 				assertNoStderr,
 				assertJsonReport,
 			},

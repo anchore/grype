@@ -3,19 +3,15 @@ package sarif
 import (
 	"bytes"
 	"flag"
-	"fmt"
 	"os/exec"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/clio"
 	"github.com/anchore/go-testutils"
-	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/internal"
 	"github.com/anchore/grype/grype/presenter/models"
-	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/source"
 	"github.com/anchore/syft/syft/source/directorysource"
@@ -43,17 +39,8 @@ func TestSarifPresenter(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			var buffer bytes.Buffer
-			_, matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, tc.scheme)
 
-			pb := models.PresenterConfig{
-				ID: clio.Identification{
-					Name: "grype",
-				},
-				Matches:          matches,
-				Packages:         packages,
-				Context:          context,
-				MetadataProvider: metadataProvider,
-			}
+			pb := internal.GeneratePresenterConfig(t, tc.scheme)
 
 			pres := NewPresenter(pb)
 			err := pres.Present(&buffer)
@@ -95,17 +82,8 @@ func Test_SarifIsValid(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			var buffer bytes.Buffer
-			_, matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, tc.scheme)
 
-			pb := models.PresenterConfig{
-				ID: clio.Identification{
-					Name: "grype",
-				},
-				Matches:          matches,
-				Packages:         packages,
-				Context:          context,
-				MetadataProvider: metadataProvider,
-			}
+			pb := internal.GeneratePresenterConfig(t, tc.scheme)
 
 			pres := NewPresenter(pb)
 			err := pres.Present(&buffer)
@@ -227,14 +205,14 @@ func Test_locationPath(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			pres := createDirPresenter(t)
-			pres.src = &source.Description{
+			pres.src = source.Description{
 				Metadata: test.metadata,
 			}
 
-			path := pres.packagePath(pkg.Package{
+			path := pres.packagePath(models.Package{
 				Locations: file.NewLocationSet(
 					file.NewVirtualLocation(test.real, test.virtual),
-				),
+				).ToSlice(),
 			})
 
 			assert.Equal(t, test.expected, path)
@@ -243,22 +221,14 @@ func Test_locationPath(t *testing.T) {
 }
 
 func createDirPresenter(t *testing.T) *Presenter {
-	_, matches, packages, _, metadataProvider, _, _ := internal.GenerateAnalysis(t, internal.DirectorySource)
 	d := t.TempDir()
-	s, err := directorysource.NewFromPath(d)
+	newSrc, err := directorysource.NewFromPath(d)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	desc := s.Describe()
-	pb := models.PresenterConfig{
-		Matches:          matches,
-		Packages:         packages,
-		MetadataProvider: metadataProvider,
-		Context: pkg.Context{
-			Source: &desc,
-		},
-	}
+	pb := internal.GeneratePresenterConfig(t, internal.DirectorySource)
+	pb.SBOM.Source = newSrc.Describe()
 
 	pres := NewPresenter(pb)
 
@@ -294,14 +264,7 @@ func TestToSarifReport(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			_, matches, packages, context, metadataProvider, _, _ := internal.GenerateAnalysis(t, tc.scheme)
-
-			pb := models.PresenterConfig{
-				Matches:          matches,
-				Packages:         packages,
-				MetadataProvider: metadataProvider,
-				Context:          context,
-			}
+			pb := internal.GeneratePresenterConfig(t, tc.scheme)
 
 			pres := NewPresenter(pb)
 
@@ -345,72 +308,58 @@ func TestToSarifReport(t *testing.T) {
 
 }
 
-type NilMetadataProvider struct{}
-
-func (m *NilMetadataProvider) VulnerabilityMetadata(_ vulnerability.Reference) (*vulnerability.Metadata, error) {
-	return nil, nil
-}
-
-type MockMetadataProvider struct{}
-
-func (m *MockMetadataProvider) VulnerabilityMetadata(ref vulnerability.Reference) (*vulnerability.Metadata, error) {
-	cvss := func(id string, namespace string, scores ...float64) vulnerability.Metadata {
-		values := make([]vulnerability.Cvss, 0, len(scores))
-		for _, score := range scores {
-			values = append(values, vulnerability.Cvss{
-				Metrics: vulnerability.CvssMetrics{
-					BaseScore: score,
-				},
-			})
-		}
-		return vulnerability.Metadata{
-			ID:        id,
-			Namespace: namespace,
-			Cvss:      values,
-		}
-	}
-	values := []vulnerability.Metadata{
-		cvss("1", "nvd:cpe", 1),
-		cvss("1", "not-nvd", 2),
-		cvss("2", "not-nvd", 3, 4),
-	}
-	for _, v := range values {
-		if v.ID == ref.ID && v.Namespace == ref.Namespace {
-			return &v, nil
-		}
-	}
-	return nil, fmt.Errorf("not found")
-}
-
-func Test_cvssScoreWithNilMetadata(t *testing.T) {
-	pres := Presenter{
-		metadataProvider: &NilMetadataProvider{},
-	}
-	score := pres.cvssScore(vulnerability.Vulnerability{
-		Reference: vulnerability.Reference{
-			ID:        "id",
-			Namespace: "namespace",
+func Test_cvssScoreWithMissingMetadata(t *testing.T) {
+	score := cvssScore(models.Match{
+		Vulnerability: models.Vulnerability{
+			VulnerabilityMetadata: models.VulnerabilityMetadata{
+				ID:        "id",
+				Namespace: "namespace",
+			},
 		},
 	})
 	assert.Equal(t, float64(-1), score)
 }
 
 func Test_cvssScore(t *testing.T) {
+
+	cvss := func(id string, namespace string, scores ...float64) models.VulnerabilityMetadata {
+		values := make([]models.Cvss, 0, len(scores))
+		for _, score := range scores {
+			values = append(values, models.Cvss{
+				Metrics: models.CvssMetrics{
+					BaseScore: score,
+				},
+			})
+		}
+		return models.VulnerabilityMetadata{
+			ID:        id,
+			Namespace: namespace,
+			Cvss:      values,
+		}
+	}
+
+	nvd1 := cvss("1", "nvd:cpe", 1)
+	notNvd1 := cvss("1", "not-nvd", 2)
+	notNvd2 := cvss("2", "not-nvd", 3, 4)
+
 	tests := []struct {
-		name          string
-		vulnerability vulnerability.Vulnerability
-		expected      float64
+		name     string
+		match    models.Match
+		expected float64
 	}{
 		{
 			name: "none",
-			vulnerability: vulnerability.Vulnerability{
-				Reference: vulnerability.Reference{
-					ID: "4",
+			match: models.Match{
+				Vulnerability: models.Vulnerability{
+					VulnerabilityMetadata: models.VulnerabilityMetadata{
+						ID: "4",
+					},
 				},
-				RelatedVulnerabilities: []vulnerability.Reference{
+				RelatedVulnerabilities: []models.VulnerabilityMetadata{
 					{
 						ID:        "7",
 						Namespace: "nvd:cpe",
+						// intentionally missing info...
 					},
 				},
 			},
@@ -418,55 +367,45 @@ func Test_cvssScore(t *testing.T) {
 		},
 		{
 			name: "direct",
-			vulnerability: vulnerability.Vulnerability{
-				Reference: vulnerability.Reference{
-					ID:        "2",
-					Namespace: "not-nvd",
+			match: models.Match{
+				Vulnerability: models.Vulnerability{
+					VulnerabilityMetadata: notNvd2,
 				},
-				RelatedVulnerabilities: []vulnerability.Reference{
-					{
-						ID:        "1",
-						Namespace: "nvd:cpe",
-					},
+				RelatedVulnerabilities: []models.VulnerabilityMetadata{
+					nvd1,
 				},
 			},
 			expected: 4,
 		},
 		{
 			name: "related not nvd",
-			vulnerability: vulnerability.Vulnerability{
-				Reference: vulnerability.Reference{
-					ID:        "1",
-					Namespace: "nvd:cpe",
+			match: models.Match{
+				Vulnerability: models.Vulnerability{
+					VulnerabilityMetadata: nvd1,
 				},
-				RelatedVulnerabilities: []vulnerability.Reference{
-					{
-						ID:        "1",
-						Namespace: "nvd:cpe",
-					},
-					{
-						ID:        "1",
-						Namespace: "not-nvd",
-					},
+				RelatedVulnerabilities: []models.VulnerabilityMetadata{
+					nvd1,
+					notNvd1,
 				},
 			},
 			expected: 2,
 		},
 		{
 			name: "related nvd",
-			vulnerability: vulnerability.Vulnerability{
-				Reference: vulnerability.Reference{
-					ID:        "4",
-					Namespace: "not-nvd",
-				},
-				RelatedVulnerabilities: []vulnerability.Reference{
-					{
-						ID:        "1",
-						Namespace: "nvd:cpe",
+			match: models.Match{
+				Vulnerability: models.Vulnerability{
+					VulnerabilityMetadata: models.VulnerabilityMetadata{
+						ID:        "4",
+						Namespace: "not-nvd",
+						// intentionally missing info...
 					},
+				},
+				RelatedVulnerabilities: []models.VulnerabilityMetadata{
+					nvd1,
 					{
 						ID:        "7",
 						Namespace: "not-nvd",
+						// intentionally missing info...
 					},
 				},
 			},
@@ -476,10 +415,7 @@ func Test_cvssScore(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			pres := Presenter{
-				metadataProvider: &MockMetadataProvider{},
-			}
-			score := pres.cvssScore(test.vulnerability)
+			score := cvssScore(test.match)
 			assert.Equal(t, test.expected, score)
 		})
 	}
@@ -510,10 +446,12 @@ func Test_imageShortPathName(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := imageShortPathName(&source.Description{
-				Name:     test.in,
-				Metadata: nil,
-			})
+			got := imageShortPathName(
+				source.Description{
+					Name:     test.in,
+					Metadata: nil,
+				},
+			)
 
 			assert.Equal(t, test.expected, got)
 		})

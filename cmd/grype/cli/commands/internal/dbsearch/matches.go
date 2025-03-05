@@ -41,11 +41,13 @@ func (m Matches) Flatten() []AffectedPackage {
 	return rows
 }
 
-func newMatchesRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPEs []v6.AffectedCPEHandle) (rows []Match, retErr error) {
+func newMatchesRows(affectedPkgs []affectedPackageWithDecorations, affectedCPEs []affectedCPEWithDecorations) (rows []Match, retErr error) {
 	var affectedPkgsByVuln = make(map[v6.ID][]AffectedPackageInfo)
 	var vulnsByID = make(map[v6.ID]v6.VulnerabilityHandle)
+	var decorationsByID = make(map[v6.ID]vulnerabilityDecorations)
 
-	for _, pkg := range affectedPkgs {
+	for i := range affectedPkgs {
+		pkg := affectedPkgs[i]
 		var detail v6.AffectedPackageBlob
 		if pkg.BlobValue != nil {
 			detail = *pkg.BlobValue
@@ -56,9 +58,11 @@ func newMatchesRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPEs []v6.A
 		}
 		if _, ok := vulnsByID[pkg.Vulnerability.ID]; !ok {
 			vulnsByID[pkg.Vulnerability.ID] = *pkg.Vulnerability
+			decorationsByID[pkg.Vulnerability.ID] = pkg.vulnerabilityDecorations
 		}
 
 		aff := AffectedPackageInfo{
+			Model:   &pkg.AffectedPackageHandle,
 			OS:      toOS(pkg.OperatingSystem),
 			Package: toPackage(pkg.Package),
 			Detail:  detail,
@@ -85,9 +89,11 @@ func newMatchesRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPEs []v6.A
 
 		if _, ok := vulnsByID[ac.Vulnerability.ID]; !ok {
 			vulnsByID[ac.Vulnerability.ID] = *ac.Vulnerability
+			decorationsByID[ac.Vulnerability.ID] = ac.vulnerabilityDecorations
 		}
 
 		aff := AffectedPackageInfo{
+			// tracking model information is not possible with CPE handles
 			CPE:    c,
 			Detail: detail,
 		}
@@ -97,7 +103,7 @@ func newMatchesRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPEs []v6.A
 
 	for vulnID, vuln := range vulnsByID {
 		rows = append(rows, Match{
-			Vulnerability:    newVulnerabilityInfo(vuln),
+			Vulnerability:    newVulnerabilityInfo(vuln, decorationsByID[vulnID]),
 			AffectedPackages: affectedPkgsByVuln[vulnID],
 		})
 	}
@@ -112,6 +118,7 @@ func newMatchesRows(affectedPkgs []v6.AffectedPackageHandle, affectedCPEs []v6.A
 func FindMatches(reader interface {
 	v6.AffectedPackageStoreReader
 	v6.AffectedCPEStoreReader
+	v6.VulnerabilityDecoratorStoreReader
 }, criteria AffectedPackagesOptions) (Matches, error) {
 	allAffectedPkgs, allAffectedCPEs, fetchErr := findAffectedPackages(reader, criteria)
 

@@ -64,9 +64,11 @@ func splitEpochFromVersion(rawVersion string) (*int, string, error) {
 }
 
 func (v *rpmVersion) Compare(other *Version) (int, error) {
-	if other.Format != RpmFormat {
-		return -1, fmt.Errorf("unable to compare rpm to given format: %s", other.Format)
+	other, err := finalizeComparisonVersion(other, RpmFormat)
+	if err != nil {
+		return -1, err
 	}
+
 	if other.rich.rpmVer == nil {
 		return -1, fmt.Errorf("given empty rpmVersion object")
 	}

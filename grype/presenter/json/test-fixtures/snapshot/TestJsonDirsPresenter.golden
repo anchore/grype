@@ -4,6 +4,7 @@
    "vulnerability": {
     "id": "CVE-1999-0001",
     "dataSource": "",
+    "namespace": "source-1",
     "severity": "Low",
     "urls": [],
     "description": "1999-01 description",
@@ -51,7 +52,8 @@
     "type": "rpm",
     "locations": [
      {
-      "path": "/foo/bar/somefile-1.txt"
+      "path": "/foo/bar/somefile-1.txt",
+      "accessPath": "somefile-1.txt"
      }
     ],
     "language": "",
@@ -72,6 +74,7 @@
    "vulnerability": {
     "id": "CVE-1999-0002",
     "dataSource": "",
+    "namespace": "source-2",
     "severity": "Critical",
     "urls": [],
     "description": "1999-02 description",
@@ -119,7 +122,8 @@
     "type": "deb",
     "locations": [
      {
-      "path": "/foo/bar/somefile-2.txt"
+      "path": "/foo/bar/somefile-2.txt",
+      "accessPath": "somefile-2.txt"
      }
     ],
     "language": "",

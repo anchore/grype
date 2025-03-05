@@ -28,6 +28,10 @@ type VulnerabilityBlob struct {
 	Severities []Severity `json:"severities,omitempty"`
 }
 
+func (v VulnerabilityBlob) String() string {
+	return v.ID
+}
+
 // Reference represents a single external URL and string tags to use for organizational purposes
 type Reference struct {
 	// URL is the external resource
@@ -92,9 +96,6 @@ type CVSSSeverity struct {
 
 	// Version is the CVSS version (e.g. "3.0")
 	Version string `json:"version,omitempty"`
-
-	// Score is the evaluated CVSS vector as a scalar between 0 and 10
-	Score float64 `json:"score"`
 }
 
 func (c CVSSSeverity) String() string {
@@ -102,7 +103,7 @@ func (c CVSSSeverity) String() string {
 	if !strings.HasPrefix(strings.ToLower(c.Vector), "cvss:") && c.Version != "" {
 		vector = fmt.Sprintf("CVSS:%s/%s", c.Version, c.Vector)
 	}
-	return fmt.Sprintf("%s (%1.1f)", vector, c.Score)
+	return vector
 }
 
 // AffectedPackageBlob represents a package affected by a vulnerability.
@@ -117,10 +118,28 @@ type AffectedPackageBlob struct {
 	Ranges []AffectedRange `json:"ranges,omitempty"`
 }
 
+func (a AffectedPackageBlob) String() string {
+	var fields []string
+
+	if len(a.Ranges) > 0 {
+		var ranges []string
+		for _, r := range a.Ranges {
+			ranges = append(ranges, r.String())
+		}
+		fields = append(fields, fmt.Sprintf("ranges=%s", strings.Join(ranges, ", ")))
+	}
+
+	if len(a.CVEs) > 0 {
+		fields = append(fields, fmt.Sprintf("cves=%s", strings.Join(a.CVEs, ", ")))
+	}
+
+	return strings.Join(fields, ", ")
+}
+
 // AffectedPackageQualifiers contains package attributes that confirm the package is affected by the vulnerability.
 type AffectedPackageQualifiers struct {
 	// RpmModularity indicates if the package follows RPM modularity for versioning.
-	RpmModularity string `json:"rpm_modularity,omitempty"`
+	RpmModularity *string `json:"rpm_modularity,omitempty"`
 
 	// PlatformCPEs lists Common Platform Enumeration (CPE) identifiers for affected platforms.
 	PlatformCPEs []string `json:"platform_cpes,omitempty"`
@@ -129,10 +148,14 @@ type AffectedPackageQualifiers struct {
 // AffectedRange defines a specific range of versions affected by a vulnerability.
 type AffectedRange struct {
 	// Version defines the version constraints for affected software.
-	Version AffectedVersion `json:"version"`
+	Version AffectedVersion `json:"version,omitempty"`
 
 	// Fix provides details on the fix version and its state if available.
 	Fix *Fix `json:"fix,omitempty"`
+}
+
+func (a AffectedRange) String() string {
+	return fmt.Sprintf("%s (%s)", a.Version, a.Fix)
 }
 
 // Fix conveys availability of a fix for a vulnerability.
@@ -141,10 +164,20 @@ type Fix struct {
 	Version string `json:"version,omitempty"`
 
 	// State represents the status of the fix (e.g., "fixed", "unaffected").
-	State FixStatus `json:"state"`
+	State FixStatus `json:"state,omitempty"`
 
 	// Detail provides additional fix information, such as commit details.
 	Detail *FixDetail `json:"detail,omitempty"`
+}
+
+func (f Fix) String() string {
+	switch f.State {
+	case FixedStatus:
+		return fmt.Sprintf("fixed in %s", f.Version)
+	case NotAffectedFixStatus:
+		return fmt.Sprintf("%s is not affected", f.Version)
+	}
+	return string(f.State)
 }
 
 // FixDetail is additional information about a fix, such as commit details and patch URLs.
@@ -165,5 +198,18 @@ type AffectedVersion struct {
 	Type string `json:"type,omitempty"`
 
 	// Constraint defines the version range constraint for affected versions.
-	Constraint string `json:"constraint"`
+	Constraint string `json:"constraint,omitempty"`
+}
+
+type KnownExploitedVulnerabilityBlob struct {
+	Cve                        string     `json:"cve"`
+	VendorProject              string     `json:"vendor_project,omitempty"`
+	Product                    string     `json:"product,omitempty"`
+	DateAdded                  *time.Time `json:"date_added,omitempty"`
+	RequiredAction             string     `json:"required_action,omitempty"`
+	DueDate                    *time.Time `json:"due_date,omitempty"`
+	KnownRansomwareCampaignUse string     `json:"known_ransomware_campaign_use,omitempty"`
+	Notes                      string     `json:"notes,omitempty"`
+	URLs                       []string   `json:"urls,omitempty"`
+	CWEs                       []string   `json:"cwes,omitempty"`
 }

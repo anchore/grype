@@ -17,8 +17,9 @@ func newKBVersion(raw string) kbVersion {
 }
 
 func (v *kbVersion) Compare(other *Version) (int, error) {
-	if other.Format != KBFormat {
-		return -1, fmt.Errorf("unable to compare kb to given format: %s", other.Format)
+	other, err := finalizeComparisonVersion(other, KBFormat)
+	if err != nil {
+		return -1, err
 	}
 
 	if other.rich.kbVer == nil {

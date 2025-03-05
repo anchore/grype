@@ -11,8 +11,9 @@ import (
 )
 
 type Grype struct {
-	Outputs                    []string           `yaml:"output" json:"output" mapstructure:"output"`                                           // -o, <presenter>=<file> the Presenter hint string to use for report formatting and the output file
-	File                       string             `yaml:"file" json:"file" mapstructure:"file"`                                                 // --file, the file to write report output to
+	Outputs                    []string           `yaml:"output" json:"output" mapstructure:"output"` // -o, <presenter>=<file> the Presenter hint string to use for report formatting and the output file
+	File                       string             `yaml:"file" json:"file" mapstructure:"file"`       // --file, the file to write report output to
+	Pretty                     bool               `yaml:"pretty" json:"pretty" mapstructure:"pretty"`
 	Distro                     string             `yaml:"distro" json:"distro" mapstructure:"distro"`                                           // --distro, specify a distro to explicitly use
 	GenerateMissingCPEs        bool               `yaml:"add-cpes-if-none" json:"add-cpes-if-none" mapstructure:"add-cpes-if-none"`             // --add-cpes-if-none, automatically generate CPEs if they are not present in import (e.g. from a 3rd party SPDX document)
 	OutputTemplateFile         string             `yaml:"output-template-file" json:"output-template-file" mapstructure:"output-template-file"` // -t, the template file to use for formatting the final report
@@ -24,7 +25,6 @@ type Grype struct {
 	Search                     search             `yaml:"search" json:"search" mapstructure:"search"`
 	Ignore                     []match.IgnoreRule `yaml:"ignore" json:"ignore" mapstructure:"ignore"`
 	Exclusions                 []string           `yaml:"exclude" json:"exclude" mapstructure:"exclude"`
-	DB                         Database           `yaml:"db" json:"db" mapstructure:"db"`
 	ExternalSources            externalSources    `yaml:"external-sources" json:"externalSources" mapstructure:"external-sources"`
 	Match                      matchConfig        `yaml:"match" json:"match" mapstructure:"match"`
 	FailOn                     string             `yaml:"fail-on-severity" json:"fail-on-severity" mapstructure:"fail-on-severity"`
@@ -36,7 +36,15 @@ type Grype struct {
 	VexDocuments               []string           `yaml:"vex-documents" json:"vex-documents" mapstructure:"vex-documents"`
 	VexAdd                     []string           `yaml:"vex-add" json:"vex-add" mapstructure:"vex-add"`                                                                   // GRYPE_VEX_ADD
 	MatchUpstreamKernelHeaders bool               `yaml:"match-upstream-kernel-headers" json:"match-upstream-kernel-headers" mapstructure:"match-upstream-kernel-headers"` // Show matches on kernel-headers packages where the match is on kernel upstream instead of marking them as ignored, default=false
-	Experimental               Experimental       `yaml:"exp" json:"exp" mapstructure:"exp"`
+	DatabaseCommand            `yaml:",inline" json:",inline" mapstructure:",squash"`
+}
+
+type developer struct {
+	DB databaseDeveloper `yaml:"db" json:"db" mapstructure:"db"`
+}
+
+type databaseDeveloper struct {
+	Debug bool `yaml:"debug" json:"debug" mapstructure:"debug"`
 }
 
 var _ interface {
@@ -47,8 +55,10 @@ var _ interface {
 
 func DefaultGrype(id clio.Identification) *Grype {
 	return &Grype{
-		Search:                     defaultSearch(source.SquashedScope),
-		DB:                         DefaultDatabase(id),
+		Search: defaultSearch(source.SquashedScope),
+		DatabaseCommand: DatabaseCommand{
+			DB: DefaultDatabase(id),
+		},
 		Match:                      defaultMatchConfig(),
 		ExternalSources:            defaultExternalSources(),
 		CheckForAppUpdate:          true,
@@ -166,6 +176,7 @@ output-template-file: .grype/html.tmpl
 write output report to a file (default is to write to stdout)`)
 	descriptions.Add(&o.Outputs, `the output format of the vulnerability report (options: table, template, json, cyclonedx)
 when using template as the output type, you must also provide a value for 'output-template-file'`)
+	descriptions.Add(&o.Pretty, `pretty-print output`)
 	descriptions.Add(&o.FailOn, `upon scanning, if a severity is found at or above the given severity then the return code will be 1
 default is unset which will skip this validation (options: negligible, low, medium, high, critical)`)
 	descriptions.Add(&o.Ignore, `A list of vulnerability ignore rules, one or more property may be specified and all matching vulnerabilities will be ignored.

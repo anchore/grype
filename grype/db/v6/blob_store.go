@@ -2,7 +2,6 @@ package v6
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -20,12 +19,14 @@ type blobable interface {
 }
 
 type blobStore struct {
-	db *gorm.DB
+	db          *gorm.DB
+	idsByDigest map[string]ID
 }
 
 func newBlobStore(db *gorm.DB) *blobStore {
 	return &blobStore{
-		db: db,
+		db:          db,
+		idsByDigest: make(map[string]ID),
 	}
 }
 
@@ -52,14 +53,8 @@ func (s *blobStore) addBlobs(blobs ...*Blob) error {
 		v := blobs[i]
 		digest := v.computeDigest()
 
-		var blobDigest BlobDigest
-		err := s.db.Where("id = ?", digest).First(&blobDigest).Error
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return fmt.Errorf("failed to get blob digest: %w", err)
-		}
-
-		if blobDigest.BlobID != 0 {
-			v.ID = blobDigest.BlobID
+		if id, ok := s.idsByDigest[digest]; ok && id != 0 {
+			v.ID = id
 			continue
 		}
 
@@ -67,12 +62,8 @@ func (s *blobStore) addBlobs(blobs ...*Blob) error {
 			return fmt.Errorf("failed to create blob: %w", err)
 		}
 
-		blobDigest = BlobDigest{
-			ID:     digest,
-			BlobID: v.ID,
-		}
-		if err := s.db.Create(blobDigest).Error; err != nil {
-			return fmt.Errorf("failed to create blob digest: %w", err)
+		if v.ID != 0 {
+			s.idsByDigest[digest] = v.ID
 		}
 	}
 	return nil
@@ -100,7 +91,9 @@ func (s *blobStore) attachBlobValue(bs ...blobable) error {
 		b := bs[i]
 
 		id := b.getBlobID()
-		if id == 0 {
+
+		// skip fetching this blob if there is no blobID, or if we already have this blob
+		if id == 0 || b.getBlobValue() != nil {
 			continue
 		}
 
@@ -124,23 +117,6 @@ func (s *blobStore) attachBlobValue(bs ...blobable) error {
 		}
 	}
 
-	return nil
-}
-
-func (s *blobStore) Close() error {
-	var count int64
-	if err := s.db.Model(&Blob{}).Count(&count).Error; err != nil {
-		return fmt.Errorf("failed to count blobs: %w", err)
-	}
-
-	log.WithFields("records", count).Trace("finalizing blobs")
-
-	// we use the blob_digests table when writing entries to ensure we have unique blobs, but for distribution this
-	// is no longer needed and saves on space considerably. For this reason, we drop the table after we are
-	// done writing blobs so that the DB is always in a distributable state.
-	if err := s.db.Exec("DROP TABLE blob_digests").Error; err != nil {
-		return fmt.Errorf("failed to drop blob digests: %w", err)
-	}
 	return nil
 }
 

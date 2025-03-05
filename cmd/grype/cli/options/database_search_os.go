@@ -17,7 +17,7 @@ type DBSearchOSs struct {
 
 func (o *DBSearchOSs) AddFlags(flags clio.FlagSet) {
 	// consistent with grype --distro flag today
-	flags.StringArrayVarP(&o.OSs, "distro", "", "refine to results with the given operating system (format: 'name', 'name@version', 'name@maj.min', 'name@codename') (supports DB schema v6+ only)")
+	flags.StringArrayVarP(&o.OSs, "distro", "", "refine to results with the given operating system (format: 'name', 'name@version', 'name@maj.min', 'name@codename')")
 }
 
 func (o *DBSearchOSs) PostLoad() error {
