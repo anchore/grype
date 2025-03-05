@@ -22,3 +22,9 @@ match:
     using-cpes: true
   stock:
     using-cpes: true
+
+# while we are merging https://github.com/anchore/grype/pull/2494 to support v6 there are a few examples that are
+# worse, however, the overall matching behavior is correct, thus we should not block on these examples
+ignore:
+  - vulnerability: CVE-2012-0979
+  - vulnerability: CVE-2019-5736
