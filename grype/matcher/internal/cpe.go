@@ -37,7 +37,7 @@ func alpineCPEComparableVersion(version string) string {
 var ErrEmptyCPEMatch = errors.New("attempted CPE match against package with no CPEs")
 
 // MatchPackageByCPEs retrieves all vulnerabilities that match any of the provided package's CPEs
-func MatchPackageByCPEs(store vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
+func MatchPackageByCPEs(provider vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
 	// we attempt to merge match details within the same matcher when searching by CPEs, in this way there are fewer duplicated match
 	// objects (and fewer duplicated match details).
 
@@ -80,7 +80,7 @@ func MatchPackageByCPEs(store vulnerability.Provider, p pkg.Package, upstreamMat
 		}
 
 		// find all vulnerability records in the DB for the given CPE (not including version comparisons)
-		vulns, err := store.FindVulnerabilities(
+		vulns, err := provider.FindVulnerabilities(
 			search.ByCPE(c),
 			onlyVulnerableTargets(p),
 			onlyQualifiedPackages(p),

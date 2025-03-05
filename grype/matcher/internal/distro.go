@@ -13,7 +13,7 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-func MatchPackageByDistro(store vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoredMatch, error) {
+func MatchPackageByDistro(provider vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoredMatch, error) {
 	if p.Distro == nil {
 		return nil, nil, nil
 	}
@@ -33,7 +33,7 @@ func MatchPackageByDistro(store vulnerability.Provider, p pkg.Package, upstreamM
 	}
 
 	var matches []match.Match
-	vulns, err := store.FindVulnerabilities(
+	vulns, err := provider.FindVulnerabilities(
 		search.ByPackageName(p.Name),
 		search.ByDistro(*p.Distro),
 		onlyQualifiedPackages(p),

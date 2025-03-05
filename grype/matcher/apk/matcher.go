@@ -51,9 +51,9 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 }
 
 //nolint:funlen,gocognit
-func (m *Matcher) cpeMatchesWithoutSecDBFixes(store vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) cpeMatchesWithoutSecDBFixes(provider vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
 	// find CPE-indexed vulnerability matches specific to the given package name and version
-	cpeMatches, err := internal.MatchPackageByCPEs(store, p, m.Type())
+	cpeMatches, err := internal.MatchPackageByCPEs(provider, p, m.Type())
 	if err != nil {
 		log.WithFields("package", p.Name, "error", err).Debug("failed to find CPE matches for package")
 	}
@@ -65,7 +65,7 @@ func (m *Matcher) cpeMatchesWithoutSecDBFixes(store vulnerability.Provider, p pk
 
 	// remove cpe matches where there is an entry in the secDB for the particular package-vulnerability pairing, and the
 	// installed package version is >= the fixed in version for the secDB record.
-	secDBVulnerabilities, err := store.FindVulnerabilities(
+	secDBVulnerabilities, err := provider.FindVulnerabilities(
 		search.ByPackageName(p.Name),
 		search.ByDistro(*p.Distro))
 	if err != nil {
@@ -73,7 +73,7 @@ func (m *Matcher) cpeMatchesWithoutSecDBFixes(store vulnerability.Provider, p pk
 	}
 
 	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
-		secDBVulnerabilitiesForUpstream, err := store.FindVulnerabilities(
+		secDBVulnerabilitiesForUpstream, err := provider.FindVulnerabilities(
 			search.ByPackageName(upstreamPkg.Name),
 			search.ByDistro(*upstreamPkg.Distro))
 		if err != nil {
@@ -218,14 +218,14 @@ func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, p pk
 // we want to report these NAK entries as match.IgnoredMatch, to allow for later processing to create ignore rules
 // based on packages which overlap by location, such as a python binary found in addition to the python APK entry --
 // we want to NAK this vulnerability for BOTH packages
-func (m *Matcher) findNaksForPackage(store vulnerability.Provider, p pkg.Package) ([]match.IgnoredMatch, error) {
+func (m *Matcher) findNaksForPackage(provider vulnerability.Provider, p pkg.Package) ([]match.IgnoredMatch, error) {
 	// TODO: this was only applying to specific distros as originally implemented; this should probably be removed:
 	if d := p.Distro; d == nil || d.Type != distro.Wolfi && d.Type != distro.Chainguard && d.Type != distro.Alpine {
 		return nil, nil
 	}
 
 	// get all the direct naks
-	naks, err := store.FindVulnerabilities(
+	naks, err := provider.FindVulnerabilities(
 		search.ByDistro(*p.Distro),
 		search.ByPackageName(p.Name),
 		nakConstraint,
@@ -236,7 +236,7 @@ func (m *Matcher) findNaksForPackage(store vulnerability.Provider, p pkg.Package
 
 	// append all the upstream naks
 	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
-		upstreamNaks, err := store.FindVulnerabilities(
+		upstreamNaks, err := provider.FindVulnerabilities(
 			search.ByDistro(*upstreamPkg.Distro),
 			search.ByPackageName(upstreamPkg.Name),
 			nakConstraint,
