@@ -6,6 +6,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/olekukonko/tablewriter"
+	"github.com/scylladb/go-set/strset"
 
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -21,20 +22,39 @@ type Presenter struct {
 	document       models.Document
 	showSuppressed bool
 	withColor      bool
+
+	recommendedFixStyle lipgloss.Style
+}
+
+type rows []row
+
+type row struct {
+	Name            string
+	Version         string
+	Fix             string
+	PackageType     string
+	VulnerabilityID string
+	Severity        string
 }
 
 // NewPresenter is a *Presenter constructor
 func NewPresenter(pb models.PresenterConfig, showSuppressed bool) *Presenter {
+	withColor := supportsColor()
+	fixStyle := lipgloss.NewStyle().Border(lipgloss.Border{Left: "*"}, false, false, false, true)
+	if withColor {
+		fixStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("6")).Bold(true).Underline(true)
+	}
 	return &Presenter{
-		document:       pb.Document,
-		showSuppressed: showSuppressed,
-		withColor:      supportsColor(),
+		document:            pb.Document,
+		showSuppressed:      showSuppressed,
+		withColor:           withColor,
+		recommendedFixStyle: fixStyle,
 	}
 }
 
 // Present creates a JSON-based reporting
 func (p *Presenter) Present(output io.Writer) error {
-	rs := getRows(p.document, p.showSuppressed)
+	rs := p.getRows(p.document, p.showSuppressed)
 
 	if len(rs) == 0 {
 		_, err := io.WriteString(output, "No vulnerabilities found\n")
@@ -57,9 +77,16 @@ func (p *Presenter) Present(output io.Writer) error {
 	table.SetNoWhiteSpace(true)
 
 	if p.withColor {
-		for _, row := range rs.Render() {
-			severityColor := getSeverityColor(row[len(row)-1])
-			table.Rich(row, []tablewriter.Colors{{}, {}, {}, {}, {}, severityColor})
+		for _, row := range rs.Deduplicate() {
+			severityColor := getSeverityColor(row.Severity)
+			table.Rich(row.Columns(), []tablewriter.Colors{
+				{},            // name
+				{},            // version
+				{},            // fix
+				{},            // package type
+				{},            // vulnerability ID
+				severityColor, // severity
+			})
 		}
 	} else {
 		table.AppendBulk(rs.Render())
@@ -70,12 +97,12 @@ func (p *Presenter) Present(output io.Writer) error {
 	return nil
 }
 
-func getRows(doc models.Document, showSuppressed bool) rows {
+func (p *Presenter) getRows(doc models.Document, showSuppressed bool) rows {
 	var rs rows
 
 	// generate rows for matching vulnerabilities
 	for _, m := range doc.Matches {
-		rs = append(rs, newRow(m, ""))
+		rs = append(rs, p.newRow(m, ""))
 	}
 
 	// generate rows for suppressed vulnerabilities
@@ -89,7 +116,7 @@ func getRows(doc models.Document, showSuppressed bool) rows {
 					}
 				}
 			}
-			rs = append(rs, newRow(m.Match, msg))
+			rs = append(rs, p.newRow(m.Match, msg))
 		}
 	}
 	return rs
@@ -99,39 +126,51 @@ func supportsColor() bool {
 	return lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Render("") != ""
 }
 
-type rows []row
-
-type row struct {
-	Name            string
-	Version         string
-	Fix             string
-	PackageType     string
-	VulnerabilityID string
-	Severity        string
-}
-
-func newRow(m models.Match, severitySuffix string) row {
+func (p *Presenter) newRow(m models.Match, severitySuffix string) row {
 	severity := m.Vulnerability.Severity
 	if severity != "" {
 		severity += severitySuffix
 	}
 
-	fixVersion := strings.Join(m.Vulnerability.Fix.Versions, ", ")
-	switch m.Vulnerability.Fix.State {
-	case vulnerability.FixStateWontFix.String():
-		fixVersion = "(won't fix)"
-	case vulnerability.FixStateUnknown.String():
-		fixVersion = ""
-	}
-
 	return row{
 		Name:            m.Artifact.Name,
 		Version:         m.Artifact.Version,
-		Fix:             fixVersion,
+		Fix:             p.formatFix(m),
 		PackageType:     string(m.Artifact.Type),
 		VulnerabilityID: m.Vulnerability.ID,
 		Severity:        severity,
 	}
+}
+
+func (p *Presenter) formatFix(m models.Match) string {
+	switch m.Vulnerability.Fix.State {
+	case vulnerability.FixStateWontFix.String():
+		return "(won't fix)"
+	case vulnerability.FixStateUnknown.String():
+		return ""
+	}
+
+	recommended := strset.New()
+	for _, d := range m.MatchDetails {
+		if d.Fix == nil {
+			continue
+		}
+		if d.Fix.SuggestedVersion != "" {
+			recommended.Add(d.Fix.SuggestedVersion)
+		}
+	}
+
+	var vers []string
+	hasMultipleVersions := len(m.Vulnerability.Fix.Versions) > 1
+	for _, v := range m.Vulnerability.Fix.Versions {
+		if hasMultipleVersions && recommended.Has(v) {
+			vers = append(vers, p.recommendedFixStyle.Render(v))
+			continue
+		}
+		vers = append(vers, v)
+	}
+
+	return strings.Join(vers, ", ")
 }
 
 func (r row) Columns() []string {
@@ -143,6 +182,15 @@ func (r row) String() string {
 }
 
 func (rs rows) Render() [][]string {
+	deduped := rs.Deduplicate()
+	out := make([][]string, len(deduped))
+	for idx, r := range deduped {
+		out[idx] = r.Columns()
+	}
+	return out
+}
+
+func (rs rows) Deduplicate() []row {
 	// deduplicate
 	seen := map[string]row{}
 	var deduped rows
@@ -159,11 +207,7 @@ func (rs rows) Render() [][]string {
 	}
 
 	// render final columns
-	out := make([][]string, len(deduped))
-	for idx, r := range deduped {
-		out[idx] = r.Columns()
-	}
-	return out
+	return deduped
 }
 
 func getSeverityColor(severity string) tablewriter.Colors {

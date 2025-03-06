@@ -111,7 +111,7 @@ func generateMatches(t *testing.T, p1, p2 pkg.Package) match.Matches {
 					Namespace: "source-1",
 				},
 				Fix: vulnerability.Fix{
-					Versions: []string{"the-next-version"},
+					Versions: []string{"1.2.1", "2.1.3", "3.4.0"},
 					State:    vulnerability.FixStateFixed,
 				},
 			},

@@ -142,7 +142,7 @@ func TestFixSuggestedVersion(t *testing.T) {
 			Version: "8.0",
 		},
 	}
-	doc, err := NewDocument(clio.Identification{}, packages, ctx, matches, nil, NewMetadataMock(), nil, nil)
+	doc, err := NewDocument(clio.Identification{}, packages, ctx, matches, nil, NewMetadataMock(), nil, nil, SortByPackage)
 	if err != nil {
 		t.Fatalf("unable to get document: %+v", err)
 	}

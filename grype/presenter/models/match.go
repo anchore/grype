@@ -25,10 +25,10 @@ type MatchDetails struct {
 	Matcher    string      `json:"matcher"`
 	SearchedBy interface{} `json:"searchedBy"` // The specific attributes that were used to search (other than package name and version) --this indicates "how" the match was made.
 	Found      interface{} `json:"found"`      // The specific attributes on the vulnerability object that were matched with --this indicates "what" was matched on / within.
-	Fix        FixDetails  `json:"fix"`
+	Fix        *FixDetails `json:"fix,omitempty"`
 }
 
-// FixDetails contains all data related to the fix
+// FixDetails contains any data that is relevant to fixing the vulnerability specific to the package searched with
 type FixDetails struct {
 	SuggestedVersion string `json:"suggestedVersion"`
 }
@@ -56,6 +56,8 @@ func newMatch(m match.Match, p pkg.Package, metadataProvider vulnerability.Metad
 		}
 	}
 
+	format := version.FormatFromPkg(p)
+
 	details := make([]MatchDetails, len(m.Details))
 	for idx, d := range m.Details {
 		details[idx] = MatchDetails{
@@ -63,21 +65,29 @@ func newMatch(m match.Match, p pkg.Package, metadataProvider vulnerability.Metad
 			Matcher:    string(d.Matcher),
 			SearchedBy: d.SearchedBy,
 			Found:      d.Found,
-			Fix: FixDetails{
-				SuggestedVersion: calculateSuggestedFixedVersion(p, m.Vulnerability.Fix.Versions),
-			},
+			Fix:        getFix(m, p, format),
 		}
 	}
 
 	return &Match{
-		Vulnerability:          NewVulnerability(m.Vulnerability, metadata),
+		Vulnerability:          NewVulnerability(m.Vulnerability, metadata, format),
 		Artifact:               newPackage(p),
 		RelatedVulnerabilities: relatedVulnerabilities,
 		MatchDetails:           details,
 	}, nil
 }
 
-func calculateSuggestedFixedVersion(p pkg.Package, fixedVersions []string) string {
+func getFix(m match.Match, p pkg.Package, format version.Format) *FixDetails {
+	suggested := calculateSuggestedFixedVersion(p, m.Vulnerability.Fix.Versions, format)
+	if suggested == "" {
+		return nil
+	}
+	return &FixDetails{
+		SuggestedVersion: suggested,
+	}
+}
+
+func calculateSuggestedFixedVersion(p pkg.Package, fixedVersions []string, format version.Format) string {
 	if len(fixedVersions) == 0 {
 		return ""
 	}
@@ -86,7 +96,6 @@ func calculateSuggestedFixedVersion(p pkg.Package, fixedVersions []string) strin
 		return fixedVersions[0]
 	}
 
-	format := version.FormatFromPkg(p)
 	parseConstraint := func(constStr string) (version.Constraint, error) {
 		constraint, err := version.GetConstraint(constStr, format)
 		if err != nil {

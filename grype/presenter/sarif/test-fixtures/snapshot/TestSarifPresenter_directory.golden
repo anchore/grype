@@ -20,8 +20,8 @@
               },
               "helpUri": "https://github.com/anchore/grype",
               "help": {
-                "text": "Vulnerability CVE-1999-0001\nSeverity: low\nPackage: package-1\nVersion: 1.1.1\nFix Version: the-next-version\nType: rpm\nLocation: /some/path/somefile-1.txt\nData Namespace: source-1\nLink: CVE-1999-0001",
-                "markdown": "**Vulnerability CVE-1999-0001**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| low  | package-1  | 1.1.1  | the-next-version  | rpm  | /some/path/somefile-1.txt  | source-1  | CVE-1999-0001  |\n"
+                "text": "Vulnerability CVE-1999-0001\nSeverity: low\nPackage: package-1\nVersion: 1.1.1\nFix Version: 1.2.1,2.1.3,3.4.0\nType: rpm\nLocation: /some/path/somefile-1.txt\nData Namespace: source-1\nLink: CVE-1999-0001",
+                "markdown": "**Vulnerability CVE-1999-0001**\n| Severity | Package | Version | Fix Version | Type | Location | Data Namespace | Link |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| low  | package-1  | 1.1.1  | 1.2.1,2.1.3,3.4.0  | rpm  | /some/path/somefile-1.txt  | source-1  | CVE-1999-0001  |\n"
               },
               "properties": {
                 "security-severity": "4.0"

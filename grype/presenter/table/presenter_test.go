@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/gkampitakis/go-snaps/snaps"
 	"github.com/google/go-cmp/cmp"
+	"github.com/muesli/termenv"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -22,11 +24,15 @@ func TestCreateRow(t *testing.T) {
 	pkg1 := models.Package{
 		ID:      "package-1-id",
 		Name:    "package-1",
-		Version: "1.0.1",
+		Version: "2.0.0",
 		Type:    syftPkg.DebPkg,
 	}
 	match1 := models.Match{
 		Vulnerability: models.Vulnerability{
+			Fix: models.Fix{
+				Versions: []string{"1.0.2", "2.0.1", "3.0.4"},
+				State:    vulnerability.FixStateFixed.String(),
+			},
 			VulnerabilityMetadata: models.VulnerabilityMetadata{
 				ID:          "CVE-1999-0001",
 				Namespace:   "source-1",
@@ -48,6 +54,9 @@ func TestCreateRow(t *testing.T) {
 			{
 				Type:    match.ExactDirectMatch.String(),
 				Matcher: match.DpkgMatcher.String(),
+				Fix: &models.FixDetails{
+					SuggestedVersion: "2.0.1",
+				},
 			},
 		},
 	}
@@ -61,19 +70,20 @@ func TestCreateRow(t *testing.T) {
 			name:           "create row for vulnerability",
 			match:          match1,
 			severitySuffix: "",
-			expectedRow:    []string{match1.Artifact.Name, match1.Artifact.Version, "", string(match1.Artifact.Type), match1.Vulnerability.ID, "Low"},
+			expectedRow:    []string{match1.Artifact.Name, match1.Artifact.Version, "1.0.2, *2.0.1, 3.0.4", string(match1.Artifact.Type), match1.Vulnerability.ID, "Low"},
 		},
 		{
 			name:           "create row for suppressed vulnerability",
 			match:          match1,
 			severitySuffix: appendSuppressed,
-			expectedRow:    []string{match1.Artifact.Name, match1.Artifact.Version, "", string(match1.Artifact.Type), match1.Vulnerability.ID, "Low (suppressed)"},
+			expectedRow:    []string{match1.Artifact.Name, match1.Artifact.Version, "1.0.2, *2.0.1, 3.0.4", string(match1.Artifact.Type), match1.Vulnerability.ID, "Low (suppressed)"},
 		},
 	}
 
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
-			row := newRow(testCase.match, testCase.severitySuffix)
+			p := NewPresenter(models.PresenterConfig{}, false)
+			row := p.newRow(testCase.match, testCase.severitySuffix)
 			cols := rows{row}.Render()[0]
 
 			assert.Equal(t, testCase.expectedRow, cols)
@@ -83,11 +93,11 @@ func TestCreateRow(t *testing.T) {
 
 func TestTablePresenter(t *testing.T) {
 	pb := internal.GeneratePresenterConfig(t, internal.ImageSource)
-	pres := NewPresenter(pb, false)
 
 	t.Run("no color", func(t *testing.T) {
 		var buffer bytes.Buffer
-		pres.withColor = false
+		lipgloss.SetColorProfile(termenv.Ascii)
+		pres := NewPresenter(pb, false)
 
 		err := pres.Present(&buffer)
 		require.NoError(t, err)
@@ -98,7 +108,12 @@ func TestTablePresenter(t *testing.T) {
 
 	t.Run("with color", func(t *testing.T) {
 		var buffer bytes.Buffer
-		pres.withColor = true
+		lipgloss.SetColorProfile(termenv.TrueColor)
+		t.Cleanup(func() {
+			// don't affect other tests
+			lipgloss.SetColorProfile(termenv.Ascii)
+		})
+		pres := NewPresenter(pb, false)
 
 		err := pres.Present(&buffer)
 		require.NoError(t, err)
@@ -226,7 +241,6 @@ func TestRowsRender(t *testing.T) {
 	})
 }
 
-// Helper function to create a test row
 func createTestRow(name, version, fix, pkgType, vulnID, severity string, fixState vulnerability.FixState) (row, error) {
 	m := models.Match{
 		Vulnerability: models.Vulnerability{
@@ -246,7 +260,8 @@ func createTestRow(name, version, fix, pkgType, vulnID, severity string, fixStat
 		},
 	}
 
-	r := newRow(m, "")
+	p := NewPresenter(models.PresenterConfig{}, false)
+	r := p.newRow(m, "")
 
 	return r, nil
 }
