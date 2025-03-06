@@ -1,15 +1,15 @@
 
 [TestTablePresenter/no_color - 1]
-NAME       INSTALLED  FIXED-IN          TYPE  VULNERABILITY  SEVERITY 
-package-1  1.1.1      the-next-version  rpm   CVE-1999-0001  Low       
-package-2  2.2.2                        deb   CVE-1999-0002  Critical  
+NAME       INSTALLED  FIXED-IN              TYPE  VULNERABILITY  SEVERITY 
+package-1  1.1.1      *1.2.1, 2.1.3, 3.4.0  rpm   CVE-1999-0001  Low       
+package-2  2.2.2                            deb   CVE-1999-0002  Critical  
 
 ---
 
 [TestTablePresenter/with_color - 1]
-NAME       INSTALLED  FIXED-IN          TYPE  VULNERABILITY  SEVERITY 
-package-1  1.1.1      the-next-version  rpm   CVE-1999-0001  [0;32mLow[0m       
-package-2  2.2.2                        deb   CVE-1999-0002  [1;31mCritical[0m  
+NAME       INSTALLED  FIXED-IN             TYPE  VULNERABILITY  SEVERITY 
+package-1  1.1.1      [1;4;36;4m1[0m[1;4;36;4m.[0m[1;4;36;4m2[0m[1;4;36;4m.[0m[1;4;36;4m1[0m, 2.1.3, 3.4.0  rpm   CVE-1999-0001  [0;32mLow[0m       
+package-2  2.2.2                           deb   CVE-1999-0002  [1;31mCritical[0m  
 
 ---
 
@@ -19,18 +19,18 @@ No vulnerabilities found
 ---
 
 [TestHidesIgnoredMatches - 1]
-NAME       INSTALLED  FIXED-IN          TYPE  VULNERABILITY  SEVERITY 
-package-1  1.1.1      the-next-version  rpm   CVE-1999-0001  Low       
-package-2  2.2.2                        deb   CVE-1999-0002  Critical  
+NAME       INSTALLED  FIXED-IN              TYPE  VULNERABILITY  SEVERITY 
+package-1  1.1.1      *1.2.1, 2.1.3, 3.4.0  rpm   CVE-1999-0001  Low       
+package-2  2.2.2                            deb   CVE-1999-0002  Critical  
 
 ---
 
 [TestDisplaysIgnoredMatches - 1]
-NAME       INSTALLED  FIXED-IN          TYPE  VULNERABILITY  SEVERITY                     
-package-1  1.1.1      the-next-version  rpm   CVE-1999-0001  Low                           
-package-2  2.2.2                        deb   CVE-1999-0002  Critical                      
-package-2  2.2.2                        deb   CVE-1999-0001  Low (suppressed)              
-package-2  2.2.2                        deb   CVE-1999-0002  Critical (suppressed)         
-package-2  2.2.2                        deb   CVE-1999-0004  Critical (suppressed by VEX)  
+NAME       INSTALLED  FIXED-IN              TYPE  VULNERABILITY  SEVERITY                     
+package-1  1.1.1      *1.2.1, 2.1.3, 3.4.0  rpm   CVE-1999-0001  Low                           
+package-2  2.2.2                            deb   CVE-1999-0002  Critical                      
+package-2  2.2.2                            deb   CVE-1999-0001  Low (suppressed)              
+package-2  2.2.2                            deb   CVE-1999-0002  Critical (suppressed)         
+package-2  2.2.2                            deb   CVE-1999-0004  Critical (suppressed by VEX)  
 
 ---

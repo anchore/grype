@@ -103,6 +103,55 @@ func TestPackagesAreSorted(t *testing.T) {
 	assert.Equal(t, []string{"CVE-1999-0001", "CVE-1999-0003", "CVE-1999-0002"}, actualVulnerabilities)
 }
 
+func TestFixSuggestedVersion(t *testing.T) {
+
+	var pkg1 = pkg.Package{
+		ID:      "package-1-id",
+		Name:    "package-1",
+		Version: "1.1.1",
+		Type:    syftPkg.PythonPkg,
+	}
+
+	var match1 = match.Match{
+		Vulnerability: vulnerability.Vulnerability{
+			Fix: vulnerability.Fix{
+				Versions: []string{"1.0.0", "1.2.0", "1.1.2"},
+			},
+			Reference: vulnerability.Reference{ID: "CVE-1999-0003"},
+		},
+		Package: pkg1,
+		Details: match.Details{
+			{
+				Type: match.ExactDirectMatch,
+			},
+		},
+	}
+
+	matches := match.NewMatches()
+	matches.Add(match1)
+
+	packages := []pkg.Package{pkg1}
+
+	ctx := pkg.Context{
+		Source: &syftSource.Description{
+			Metadata: syftSource.DirectoryMetadata{},
+		},
+		Distro: &linux.Release{
+			ID:      "centos",
+			IDLike:  []string{"rhel"},
+			Version: "8.0",
+		},
+	}
+	doc, err := NewDocument(clio.Identification{}, packages, ctx, matches, nil, NewMetadataMock(), nil, nil, SortByPackage)
+	if err != nil {
+		t.Fatalf("unable to get document: %+v", err)
+	}
+
+	actualSuggestedFixedVersion := doc.Matches[0].MatchDetails[0].Fix.SuggestedVersion
+
+	assert.Equal(t, "1.1.2", actualSuggestedFixedVersion)
+}
+
 func TestTimestampValidFormat(t *testing.T) {
 
 	matches := match.NewMatches()
