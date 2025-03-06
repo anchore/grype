@@ -74,6 +74,15 @@ func NewLatestFromReader(reader io.Reader) (*LatestDocument, error) {
 	return &l, nil
 }
 
+func NewLatestFromFile(fs afero.Fs, path string) (*LatestDocument, error) {
+	fh, err := fs.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read listing file: %w", err)
+	}
+	defer fh.Close()
+	return NewLatestFromReader(fh)
+}
+
 func NewArchive(path string, t time.Time, model, revision, addition int) (*Archive, error) {
 	checksum, err := calculateArchiveDigest(path)
 	if err != nil {

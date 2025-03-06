@@ -44,10 +44,10 @@ type Client interface {
 }
 
 type client struct {
-	fs               afero.Fs
-	latestHTTPClient *http.Client
-	updateDownloader file.Getter
-	config           Config
+	fs                afero.Fs
+	dbDownloader      file.Getter
+	listingDownloader file.Getter
+	config            Config
 }
 
 func DefaultConfig() Config {
@@ -72,10 +72,10 @@ func NewClient(cfg Config) (Client, error) {
 	}
 
 	return client{
-		fs:               fs,
-		latestHTTPClient: latestClient,
-		updateDownloader: file.NewGetter(cfg.ID, dbClient),
-		config:           cfg,
+		fs:                fs,
+		listingDownloader: file.NewGetter(cfg.ID, latestClient),
+		dbDownloader:      file.NewGetter(cfg.ID, dbClient),
+		config:            cfg,
 	}, nil
 }
 
@@ -157,7 +157,7 @@ func (c client) Download(archive Archive, dest string, downloadProgress *progres
 	u.RawQuery = query.Encode()
 
 	// go-getter will automatically extract all files within the archive to the temp dir
-	err = c.updateDownloader.GetToDir(tempDir, u.String(), downloadProgress)
+	err = c.dbDownloader.GetToDir(tempDir, u.String(), downloadProgress)
 	if err != nil {
 		removeAllOrLog(afero.NewOsFs(), tempDir)
 		return "", fmt.Errorf("unable to download db: %w", err)
@@ -168,17 +168,23 @@ func (c client) Download(archive Archive, dest string, downloadProgress *progres
 
 // Latest loads a LatestDocument from the configured URL.
 func (c client) Latest() (*LatestDocument, error) {
-	resp, err := c.latestHTTPClient.Get(c.latestURL())
+	tempFile, err := afero.TempFile(c.fs, "", "grype-db-listing")
 	if err != nil {
-		return nil, fmt.Errorf("unable to fetch latest.json: %w", err)
+		return nil, fmt.Errorf("unable to create listing temp file: %w", err)
 	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unable to fetch latest.json: %s", resp.Status)
+	defer func() {
+		err := c.fs.RemoveAll(tempFile.Name())
+		if err != nil {
+			log.WithFields("error", err, "file", tempFile.Name()).Errorf("failed to remove file")
+		}
+	}()
+
+	err = c.listingDownloader.GetFile(tempFile.Name(), c.latestURL())
+	if err != nil {
+		return nil, fmt.Errorf("unable to download listing: %w", err)
 	}
 
-	defer func() { _ = resp.Body.Close() }()
-
-	return NewLatestFromReader(resp.Body)
+	return NewLatestFromFile(c.fs, tempFile.Name())
 }
 
 func (c client) latestURL() string {
