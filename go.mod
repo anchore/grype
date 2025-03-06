@@ -72,7 +72,7 @@ require (
 
 require github.com/DataDog/zstd v1.5.5 // indirect
 
-require github.com/muesli/termenv v0.15.2
+require github.com/muesli/termenv v0.16.0
 
 require (
 	cel.dev/expr v0.16.1 // indirect
