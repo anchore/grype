@@ -3,12 +3,11 @@ package distribution
 import (
 	"encoding/json"
 	"errors"
-	"net/http"
-	"net/http/httptest"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -17,105 +16,6 @@ import (
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/internal/schemaver"
 )
-
-func TestClient_LatestFromURL(t *testing.T) {
-	tests := []struct {
-		name        string
-		setupServer func() *httptest.Server
-		expectedDoc *LatestDocument
-		expectedErr require.ErrorAssertionFunc
-	}{
-		{
-			name: "go case",
-			setupServer: func() *httptest.Server {
-				doc := LatestDocument{
-					Status: "active",
-					Archive: Archive{
-						Description: db.Description{
-							SchemaVersion: schemaver.New(1, 0, 0),
-							Built:         db.Time{Time: time.Date(2023, 9, 26, 12, 0, 0, 0, time.UTC)},
-						},
-						Path:     "path/to/archive",
-						Checksum: "checksum123",
-					},
-				}
-				data, _ := json.Marshal(doc)
-
-				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					w.WriteHeader(http.StatusOK)
-					w.Header().Set("Content-Type", "application/json")
-					_, err := w.Write(data)
-					require.NoError(t, err)
-				}))
-			},
-			expectedDoc: &LatestDocument{
-				Status: "active",
-				Archive: Archive{
-					Description: db.Description{
-						SchemaVersion: schemaver.New(1, 0, 0),
-						Built:         db.Time{Time: time.Date(2023, 9, 26, 12, 0, 0, 0, time.UTC)},
-					},
-					Path:     "path/to/archive",
-					Checksum: "checksum123",
-				},
-			},
-		},
-		{
-			name: "error response",
-			setupServer: func() *httptest.Server {
-				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					w.WriteHeader(http.StatusInternalServerError)
-				}))
-			},
-			expectedDoc: nil,
-			expectedErr: func(t require.TestingT, err error, _ ...interface{}) {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), "500 Internal Server Error")
-			},
-		},
-		{
-			name: "malformed JSON response",
-			setupServer: func() *httptest.Server {
-				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					w.WriteHeader(http.StatusOK)
-					_, err := w.Write([]byte("malformed json"))
-					require.NoError(t, err)
-				}))
-			},
-			expectedDoc: nil,
-			expectedErr: func(t require.TestingT, err error, _ ...interface{}) {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), "invalid character 'm' looking for beginning of value")
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.expectedErr == nil {
-				tt.expectedErr = require.NoError
-			}
-
-			server := tt.setupServer()
-			defer server.Close()
-
-			c, err := NewClient(Config{
-				LatestURL: server.URL,
-			})
-			require.NoError(t, err)
-
-			cl := c.(client)
-
-			doc, err := cl.Latest()
-			tt.expectedErr(t, err)
-			if err != nil {
-				return
-			}
-
-			require.Equal(t, tt.expectedDoc, doc)
-		})
-	}
-}
 
 type mockGetter struct {
 	mock.Mock
@@ -129,6 +29,104 @@ func (m *mockGetter) GetFile(dst, src string, manuals ...*progress.Manual) error
 func (m *mockGetter) GetToDir(dst, src string, manuals ...*progress.Manual) error {
 	args := m.Called(dst, src, manuals)
 	return args.Error(0)
+}
+
+func TestClient_Latest(t *testing.T) {
+	tests := []struct {
+		name           string
+		latestResponse []byte
+		getFileErr     error
+		expectedDoc    *LatestDocument
+		expectedErr    require.ErrorAssertionFunc
+	}{
+		{
+			name: "go case",
+			latestResponse: func() []byte {
+				doc := LatestDocument{
+					Status: "active",
+					Archive: Archive{
+						Description: db.Description{
+							SchemaVersion: schemaver.New(1, 0, 0),
+							Built:         db.Time{Time: time.Date(2023, 9, 26, 12, 0, 0, 0, time.UTC)},
+						},
+						Path:     "path/to/archive",
+						Checksum: "checksum123",
+					},
+				}
+				data, err := json.Marshal(doc)
+				require.NoError(t, err)
+				return data
+			}(),
+			expectedDoc: &LatestDocument{
+				Status: "active",
+				Archive: Archive{
+					Description: db.Description{
+						SchemaVersion: schemaver.New(1, 0, 0),
+						Built:         db.Time{Time: time.Date(2023, 9, 26, 12, 0, 0, 0, time.UTC)},
+					},
+					Path:     "path/to/archive",
+					Checksum: "checksum123",
+				},
+			},
+		},
+		{
+			name:        "download error",
+			getFileErr:  errors.New("failed to download file"),
+			expectedDoc: nil,
+			expectedErr: func(t require.TestingT, err error, _ ...interface{}) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "unable to download listing")
+			},
+		},
+		{
+			name:           "malformed JSON response",
+			latestResponse: []byte("malformed json"),
+			expectedDoc:    nil,
+			expectedErr: func(t require.TestingT, err error, _ ...interface{}) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "invalid character 'm' looking for beginning of value")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.expectedErr == nil {
+				tt.expectedErr = require.NoError
+			}
+			mockFs := afero.NewMemMapFs()
+
+			mg := new(mockGetter)
+
+			mg.On("GetFile", mock.Anything, "http://localhost:8080/latest.json", mock.Anything).Run(func(args mock.Arguments) {
+				if tt.getFileErr != nil {
+					return
+				}
+
+				dst := args.String(0)
+				err := afero.WriteFile(mockFs, dst, tt.latestResponse, 0644)
+				require.NoError(t, err)
+			}).Return(tt.getFileErr)
+
+			c, err := NewClient(Config{
+				LatestURL: "http://localhost:8080/latest.json",
+			})
+			require.NoError(t, err)
+
+			cl := c.(client)
+			cl.fs = mockFs
+			cl.listingDownloader = mg
+
+			doc, err := cl.Latest()
+			tt.expectedErr(t, err)
+			if err != nil {
+				return
+			}
+
+			require.Equal(t, tt.expectedDoc, doc)
+			mg.AssertExpectations(t)
+		})
+	}
 }
 
 func TestClient_Download(t *testing.T) {
@@ -147,7 +145,7 @@ func TestClient_Download(t *testing.T) {
 		require.NoError(t, err)
 
 		cl := c.(client)
-		cl.updateDownloader = mg
+		cl.dbDownloader = mg
 
 		return cl, mg
 	}
