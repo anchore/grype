@@ -9,6 +9,8 @@ import (
 	"github.com/anchore/syft/syft/linux"
 )
 
+const AnyVersion = "*"
+
 // Distro represents a Linux Distribution.
 type Distro struct {
 	Type       Type
@@ -22,7 +24,7 @@ func New(t Type, version string, idLikes ...string) (*Distro, error) {
 	var verObj *hashiVer.Version
 	var err error
 
-	if version != "" {
+	if version != "" && version != AnyVersion {
 		verObj, err = hashiVer.NewVersion(version)
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse version: %w", err)
@@ -51,6 +53,10 @@ func NewFromRelease(release linux.Release) (*Distro, error) {
 			continue
 		}
 
+		if version == AnyVersion {
+			selectedVersion = version
+		}
+
 		if _, err := hashiVer.NewVersion(version); err == nil {
 			selectedVersion = version
 			break
@@ -72,9 +78,16 @@ func (d Distro) Name() string {
 	return string(d.Type)
 }
 
+func (d Distro) HasAnyVersion() bool {
+	return d.RawVersion == AnyVersion
+}
+
 // MajorVersion returns the major version value from the pseudo-semantically versioned distro version value.
 func (d Distro) MajorVersion() string {
 	if d.Version == nil {
+		if d.RawVersion == AnyVersion {
+			return ""
+		}
 		return strings.Split(d.RawVersion, ".")[0]
 	}
 	return fmt.Sprintf("%d", d.Version.Segments()[0])
