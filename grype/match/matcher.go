@@ -27,17 +27,17 @@ type fatalError struct {
 	inner   error
 }
 
-// NewFatalError creates a new FatalError wrapping the given error
+// NewFatalError creates a new fatalError wrapping the given error
 func NewFatalError(matcher MatcherType, e error) error {
 	return fatalError{matcher: matcher, inner: e}
 }
 
-// Error implements the error interface for FatalError.
+// Error implements the error interface for fatalError.
 func (f fatalError) Error() string {
 	return fmt.Sprintf("%s encountered a fatal error: %v", f.matcher, f.inner)
 }
 
-// IsFatalError returns true if err includes a FatalError
+// IsFatalError returns true if err includes a fatalError
 func IsFatalError(err error) bool {
 	var fe fatalError
 	return err != nil && errors.As(err, &fe)
