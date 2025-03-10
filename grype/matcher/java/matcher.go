@@ -59,7 +59,7 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 			if strings.Contains(err.Error(), "no artifact found") {
 				log.Debugf("no upstream maven artifact found for %s", p.Name)
 			} else {
-				return nil, nil, match.NewFatalError(fmt.Errorf("resolving details for package %q with maven: %w", p.Name, err))
+				return nil, nil, match.NewFatalError(match.JavaMatcher, fmt.Errorf("resolving details for package %q with maven: %w", p.Name, err))
 			}
 		} else {
 			matches = append(matches, upstreamMatches...)

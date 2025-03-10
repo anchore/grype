@@ -20,25 +20,25 @@ type Matcher interface {
 	Match(vp vulnerability.Provider, p pkg.Package) ([]Match, []IgnoredMatch, error)
 }
 
-// FatalError wraps an error that occurs during matching that is worth of
-// bubbling up to the user and yielding an unsuccessful scan. FatalError can be
-// checked for using errors.As().
-type FatalError struct {
-	inner error
+// fatalError can be returned from a Matcher to indicate the matching process should stop.
+// When fatalError(s) are encountered by the top-level matching process, these will be returned as errors to the caller.
+type fatalError struct {
+	matcher MatcherType
+	inner   error
 }
 
-// NewFatalError creates a new FatalError wrapping the given error.
-func NewFatalError(e error) FatalError {
-	return FatalError{inner: e}
+// NewFatalError creates a new FatalError wrapping the given error
+func NewFatalError(matcher MatcherType, e error) error {
+	return fatalError{matcher: matcher, inner: e}
 }
 
 // Error implements the error interface for FatalError.
-func (f FatalError) Error() string {
-	return fmt.Sprintf("vulnerability matching cannot continue: %v", f.inner)
+func (f fatalError) Error() string {
+	return fmt.Sprintf("%s encountered a fatal error: %v", f.matcher, f.inner)
 }
 
-// IsFatal returns true if err's tree includes a FatalErr.
-func IsFatal(err error) bool {
-	var fe FatalError
+// IsFatalError returns true if err includes a FatalError
+func IsFatalError(err error) bool {
+	var fe fatalError
 	return err != nil && errors.As(err, &fe)
 }
