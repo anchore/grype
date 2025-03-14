@@ -20,6 +20,7 @@ import (
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/event"
+	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/file"
 	"github.com/anchore/grype/internal/log"
@@ -116,10 +117,19 @@ func (c curator) Reader() (db.Reader, error) {
 		mon.Set("rehydrating DB")
 		log.Info("rehydrating DB")
 
+		// we're not changing the source of the DB, so we just want to use any existing value.
+		// if the source is empty/does not exist, it will be empty in the new metadata.
+		var source string
+		im, err := db.ReadImportMetadata(c.fs, c.config.DBDirectoryPath())
+		if err == nil && im != nil {
+			// ignore errors, as this is just a best-effort to get the source
+			source = im.Source
+		}
+
 		// this is a condition where an old client imported a DB with additional capabilities than it can handle at hydration.
 		// this could lead to missing indexes and degraded performance now that a newer client is running (that can handle these capabilities).
 		// the only sensible thing to do is to rehydrate the existing DB to ensure indexes are up-to-date with the current client's capabilities.
-		if err := c.hydrate(c.config.DBDirectoryPath(), mon); err != nil {
+		if err := c.hydrate(c.config.DBDirectoryPath(), source, mon); err != nil {
 			log.WithFields("error", err).Warn("unable to rehydrate DB")
 		}
 		mon.Set("rehydrated")
@@ -139,38 +149,46 @@ func (c curator) Reader() (db.Reader, error) {
 	return s, nil
 }
 
-func (c curator) Status() db.Status {
+func (c curator) Status() vulnerability.ProviderStatus {
 	dbFile := c.config.DBFilePath()
-	d, err := db.ReadDescription(dbFile)
-	if err != nil {
-		return db.Status{
-			Path: dbFile,
-			Err:  err,
+	d, validateErr := db.ReadDescription(dbFile)
+	if validateErr != nil {
+		return vulnerability.ProviderStatus{
+			Path:  dbFile,
+			Error: validateErr,
 		}
 	}
 	if d == nil {
-		return db.Status{
-			Path: dbFile,
-			Err:  fmt.Errorf("database not found at %q", dbFile),
+		return vulnerability.ProviderStatus{
+			Path:  dbFile,
+			Error: fmt.Errorf("database not found at %q", dbFile),
 		}
 	}
 
-	err = c.validateAge(d)
+	validateErr = c.validateAge(d)
 	digest, checksumErr := c.validateIntegrity(d)
 	if checksumErr != nil && c.config.ValidateChecksum {
-		if err != nil {
-			err = errors.Join(err, checksumErr)
+		if validateErr != nil {
+			validateErr = errors.Join(validateErr, checksumErr)
 		} else {
-			err = checksumErr
+			validateErr = checksumErr
 		}
 	}
 
-	return db.Status{
-		Built:         db.Time{Time: d.Built.Time},
+	var source string
+	im, readErr := db.ReadImportMetadata(c.fs, c.config.DBDirectoryPath())
+	if readErr == nil && im != nil {
+		// only make a best-effort to get the source
+		source = im.Source
+	}
+
+	return vulnerability.ProviderStatus{
+		Built:         d.Built.Time,
 		SchemaVersion: d.SchemaVersion.String(),
+		From:          source,
 		Path:          dbFile,
 		Checksum:      digest,
-		Err:           err,
+		Error:         validateErr,
 	}
 }
 
@@ -275,12 +293,12 @@ func (c curator) update(current *db.Description) (*distribution.Archive, error) 
 
 	log.Infof("downloading new vulnerability DB")
 	mon.Set("downloading")
-	dest, err := c.client.Download(*update, filepath.Dir(c.config.DBRootDir), mon.downloadProgress.Manual)
+	dest, url, err := c.client.Download(*update, filepath.Dir(c.config.DBRootDir), mon.downloadProgress.Manual)
 	if err != nil {
 		return nil, fmt.Errorf("unable to update vulnerability database: %w", err)
 	}
 	mon.downloadProgress.SetCompleted()
-	if err = c.activate(dest, mon); err != nil {
+	if err = c.activate(dest, url, mon); err != nil {
 		return nil, fmt.Errorf("unable to activate new vulnerability database: %w", err)
 	}
 
@@ -415,7 +433,7 @@ func (c curator) Import(path string) error {
 
 	mon.downloadProgress.SetCompleted()
 
-	err = c.activate(tempDir, mon)
+	err = c.activate(tempDir, "manual import", mon)
 	if err != nil {
 		removeAllOrLog(c.fs, tempDir)
 		return err
@@ -427,10 +445,10 @@ func (c curator) Import(path string) error {
 }
 
 // activate swaps over the downloaded db to the application directory, calculates the checksum, and records the checksums to a file.
-func (c curator) activate(dbDirPath string, mon monitor) error {
+func (c curator) activate(dbDirPath, url string, mon monitor) error {
 	defer mon.SetCompleted()
 
-	if err := c.hydrate(dbDirPath, mon); err != nil {
+	if err := c.hydrate(dbDirPath, url, mon); err != nil {
 		return fmt.Errorf("failed to hydrate database: %w", err)
 	}
 
@@ -439,7 +457,7 @@ func (c curator) activate(dbDirPath string, mon monitor) error {
 	return c.replaceDB(dbDirPath)
 }
 
-func (c curator) hydrate(dbDirPath string, mon monitor) error {
+func (c curator) hydrate(dbDirPath, from string, mon monitor) error {
 	if c.hydrator != nil {
 		mon.Set("hydrating")
 		if err := c.hydrator(dbDirPath); err != nil {
@@ -450,7 +468,7 @@ func (c curator) hydrate(dbDirPath string, mon monitor) error {
 
 	mon.Set("hashing")
 
-	doc, err := db.WriteImportMetadata(c.fs, dbDirPath)
+	doc, err := db.WriteImportMetadata(c.fs, dbDirPath, from)
 	if err != nil {
 		return fmt.Errorf("failed to write checksums file: %w", err)
 	}

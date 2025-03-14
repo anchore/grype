@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
-	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/db/v6/installation"
+	"github.com/anchore/grype/grype/vulnerability"
 )
 
 type dbStatusOptions struct {
@@ -67,17 +68,20 @@ func runDBStatus(opts dbStatusOptions) error {
 		return fmt.Errorf("failed to present db status information: %+v", err)
 	}
 
-	return status.Err
+	return status.Error
 }
 
-func presentDBStatus(format string, writer io.Writer, status v6.Status) error {
+func presentDBStatus(format string, writer io.Writer, status vulnerability.ProviderStatus) error {
 	switch format {
 	case textOutputFormat:
 		fmt.Fprintln(writer, "Path:     ", status.Path)
 		fmt.Fprintln(writer, "Schema:   ", status.SchemaVersion)
-		fmt.Fprintln(writer, "Built:    ", status.Built.String())
+		fmt.Fprintln(writer, "Built:    ", status.Built.Format(time.RFC3339))
+		if status.From != "" {
+			fmt.Fprintln(writer, "From:     ", status.From)
+		}
 		fmt.Fprintln(writer, "Checksum: ", status.Checksum)
-		fmt.Fprintln(writer, "Status:   ", status.Status())
+		fmt.Fprintln(writer, "Status:   ", renderStoreValidation(status))
 	case jsonOutputFormat:
 		enc := json.NewEncoder(writer)
 		enc.SetEscapeHTML(false)
@@ -90,4 +94,11 @@ func presentDBStatus(format string, writer io.Writer, status v6.Status) error {
 	}
 
 	return nil
+}
+
+func renderStoreValidation(status vulnerability.ProviderStatus) string {
+	if status.Error != nil {
+		return "invalid"
+	}
+	return "valid"
 }

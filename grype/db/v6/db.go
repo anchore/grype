@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/anchore/grype/grype/db/internal/gormadapter"
+	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
 )
 
@@ -72,7 +73,7 @@ type Writer interface {
 
 type Curator interface {
 	Reader() (Reader, error)
-	Status() Status
+	Status() vulnerability.ProviderStatus
 	Delete() error
 	Update() (bool, error)
 	Import(dbArchivePath string) error
