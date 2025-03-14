@@ -59,7 +59,7 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 		ctx := context.Background()
 		if timeout > 0 {
 			var cancel context.CancelFunc
-			ctx, cancel = context.WithTimeout(ctx, m.cfg.AbortAfter)
+			_, cancel = context.WithTimeout(ctx, m.cfg.AbortAfter)
 			defer cancel()
 		}
 

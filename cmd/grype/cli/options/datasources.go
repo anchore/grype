@@ -1,7 +1,6 @@
 package options
 
 import (
-	"github.com/anchore/clio"
 	"time"
 
 	"github.com/anchore/clio"
@@ -26,8 +25,8 @@ var _ interface {
 type maven struct {
 	SearchUpstreamBySha1 bool           `yaml:"search-upstream" json:"searchUpstreamBySha1" mapstructure:"search-maven-upstream"`
 	BaseURL              string         `yaml:"base-url" json:"baseUrl" mapstructure:"base-url"`
+	RateLimit            time.Duration  `yaml:"rate-limit" json:"rateLimit" mapstructure:"rate-limit"`
 	AbortAfter           *time.Duration `yaml:"abort-after" json:"abortAfter" mapstructure:"abort-after"`
-	RateLimit            time.Duration `yaml:"rate-limit" json:"rateLimit" mapstructure:"rate-limit"`
 }
 
 func defaultExternalSources() externalSources {
@@ -49,14 +48,11 @@ func (cfg externalSources) ToJavaMatcherConfig() java.ExternalSearchConfig {
 
 	cfg.Maven.AbortAfter = multiLevelOption[time.Duration](defaultAbortAfter, cfg.AbortAfter, cfg.Maven.AbortAfter)
 
-	return nil
-}
-
 	return java.ExternalSearchConfig{
 		SearchMavenUpstream: smu,
 		MavenBaseURL:        cfg.Maven.BaseURL,
-		AbortAfter:          *cfg.Maven.AbortAfter,
 		MavenRateLimit:      cfg.Maven.RateLimit,
+		AbortAfter:          *cfg.Maven.AbortAfter,
 	}
 }
 

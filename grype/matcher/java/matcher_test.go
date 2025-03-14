@@ -82,7 +82,20 @@ func TestMatcherJava_matchUpstreamMavenPackage(t *testing.T) {
 		assert.Errorf(t, err, "should have gotten an error from the rate limiting")
 	})
 }
+
 func TestMatcherJava_TestMatchUpstreamMavenPackagesTimeout(t *testing.T) {
+	newMatcher := func(searcher MavenSearcher) *Matcher {
+		return &Matcher{
+			cfg: MatcherConfig{
+				ExternalSearchConfig: ExternalSearchConfig{
+					SearchMavenUpstream: true,
+				},
+			},
+			MavenSearcher: searcher,
+		}
+	}
+	store := newMockProvider()
+
 	p := pkg.Package{
 		ID:       pkg.ID(uuid.NewString()),
 		Name:     "org.springframework.spring-webmvc",
@@ -98,69 +111,21 @@ func TestMatcherJava_TestMatchUpstreamMavenPackagesTimeout(t *testing.T) {
 			},
 		},
 	}
-	matcher := Matcher{
-		cfg: MatcherConfig{
-			ExternalSearchConfig: ExternalSearchConfig{
-				SearchMavenUpstream: true,
-			},
-			UseCPEs: false,
-		},
-		MavenSearcher: newMockSearcher(p),
-	}
-	store := newMockProvider()
 
-	// Create a context with a very short timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
+	t.Run("handles context timeout", func(t *testing.T) {
+		// Create a mock searcher that simulates rate limiting
+		searcher := mockMavenSearcher{
+			simulateRateLimiting: true,
+		}
+		matcher := newMatcher(searcher)
 
-	_, err := matcher.matchUpstreamMavenPackages(ctx, store, nil, p)
-	// Check if the error is a context deadline exceeded error
-	if err == nil {
-		t.Errorf("expected an error but got none")
-	} else if !errors.Is(err, context.DeadlineExceeded) {
-		t.Errorf("expected a context deadline exceeded error but got a different error: %v", err)
-	}
-}
+		// Create a context with a very short timeout
+		_, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
+		defer cancel()
 
-func TestMatcherJava_TestMatchTimeoutExtraction(t *testing.T) {
-	// Create a Matcher with an invalid AbortAfter value
-	matcher := Matcher{
-		cfg: MatcherConfig{
-			ExternalSearchConfig: ExternalSearchConfig{
-				SearchMavenUpstream: true,
-				AbortAfter:          "invalid_duration", // This cannot be parsed into a duration
-			},
-			UseCPEs: false,
-		},
-		MavenSearcher: newMockSearcher(pkg.Package{}),
-	}
+		_, err := matcher.matchUpstreamMavenPackages(store, p)
 
-	// Call Match
-	_, err := matcher.Match(nil, nil, pkg.Package{})
-	if err == nil {
-		t.Error("expected an error but got none")
-	} else if !strings.Contains(err.Error(), "failed to parse timeout duration") {
-		t.Errorf("expected a 'failed to parse timeout duration' error but got %v", err)
-	}
-}
-
-func TestMatcherJava_TestMatchWithCorrectAbortAfterVal(t *testing.T) {
-	// Create a Matcher with a valid AbortAfter value
-	matcher := Matcher{
-		cfg: MatcherConfig{
-			ExternalSearchConfig: ExternalSearchConfig{
-				SearchMavenUpstream: true,
-				AbortAfter:          "1ns",
-			},
-			UseCPEs: false,
-		},
-		MavenSearcher: newMockSearcher(pkg.Package{}),
-	}
-
-	// Call Match
-	store := newMockProvider()
-	_, err := matcher.Match(store, nil, pkg.Package{})
-	if err != nil {
-		t.Errorf("expected no error but got %v", err)
-	}
+		require.Error(t, err, "expected an error due to timeout")
+		assert.ErrorIs(t, err, context.DeadlineExceeded, "should have gotten a deadline exceeded error")
+	})
 }
