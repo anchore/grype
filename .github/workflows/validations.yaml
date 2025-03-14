@@ -139,6 +139,47 @@ jobs:
           path: snapshot
           key: snapshot-build-${{ github.run_id }}
 
+  Upload-Snapshot-Artifacts:
+    # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
+    name: "Upload snapshot artifacts"
+    needs: [Build-Snapshot-Artifacts]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
+
+      - name: Download snapshot build
+        uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf #v4.2.2
+        with:
+          path: snapshot
+          key: snapshot-build-${{ github.run_id }}
+
+      - run: npm install @actions/artifact@2.2.2
+
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const { readdirSync } = require('fs')
+            const { DefaultArtifactClient } = require('@actions/artifact')
+            const artifact = new DefaultArtifactClient()
+            const ls = d => readdirSync(d, { withFileTypes: true })
+            const baseDir = "./snapshot"
+            const dirs = ls(baseDir).filter(f => f.isDirectory()).map(f => f.name)
+            const uploads = []
+            for (const dir of dirs) {
+              // uploadArtifact returns Promise<{id, size}>
+              uploads.push(artifact.uploadArtifact(
+                // name of the archive:
+                `${dir}`,
+                // array of all files to include:
+                ls(`${baseDir}/${dir}`).map(f => `${baseDir}/${dir}/${f.name}`),
+                // base directory to trim from entries:
+                `${baseDir}/${dir}`,
+                { retentionDays: 30 }
+              ))
+            }
+            // wait for all uploads to finish
+            Promise.all(uploads)
+
   Acceptance-Linux:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Acceptance tests (Linux)"
@@ -224,3 +265,22 @@ jobs:
 
       - name: Run CLI Tests (Linux)
         run: make cli
+
+  Cleanup-Cache:
+    name: "Cleanup snapshot cache"
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+    needs:
+      - Acceptance-Linux
+      - Acceptance-Mac
+      - Cli-Linux
+      - Upload-Snapshot-Artifacts
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
+
+      - name: Delete snapshot cache
+        run: gh cache delete "snapshot-build-${{ github.run_id }}"
+        env:
+          GH_TOKEN: ${{ github.token }}
