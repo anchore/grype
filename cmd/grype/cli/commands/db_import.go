@@ -50,6 +50,6 @@ func runDBImport(opts options.DatabaseCommand, dbArchivePath string) error {
 	}
 
 	s := c.Status()
-	log.WithFields("built", s.Built.String(), "status", s.Status()).Info("vulnerability database imported")
+	log.WithFields("built", s.Built.String(), "status", renderStoreValidation(s)).Info("vulnerability database imported")
 	return nil
 }

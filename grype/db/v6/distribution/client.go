@@ -40,7 +40,7 @@ type Config struct {
 type Client interface {
 	Latest() (*LatestDocument, error)
 	IsUpdateAvailable(current *v6.Description) (*Archive, error)
-	Download(archive Archive, dest string, downloadProgress *progress.Manual) (string, error)
+	Download(archive Archive, dest string, downloadProgress *progress.Manual) (string, string, error)
 }
 
 type client struct {
@@ -126,24 +126,24 @@ func (c client) isUpdateAvailable(current *v6.Description, candidate *LatestDocu
 	return nil, message
 }
 
-func (c client) Download(archive Archive, dest string, downloadProgress *progress.Manual) (string, error) {
+func (c client) Download(archive Archive, dest string, downloadProgress *progress.Manual) (string, string, error) {
 	defer downloadProgress.SetCompleted()
 
 	if err := os.MkdirAll(dest, 0700); err != nil {
-		return "", fmt.Errorf("unable to create db download root dir: %w", err)
+		return "", "", fmt.Errorf("unable to create db download root dir: %w", err)
 	}
 
 	// note: as much as I'd like to use the afero FS abstraction here, the go-getter library does not support it
 	tempDir, err := os.MkdirTemp(dest, "grype-db-download")
 	if err != nil {
-		return "", fmt.Errorf("unable to create db client temp dir: %w", err)
+		return "", "", fmt.Errorf("unable to create db client temp dir: %w", err)
 	}
 
 	// download the db to the temp dir
 	u, err := url.Parse(c.latestURL())
 	if err != nil {
 		removeAllOrLog(afero.NewOsFs(), tempDir)
-		return "", fmt.Errorf("unable to parse db URL %q: %w", c.latestURL(), err)
+		return "", "", fmt.Errorf("unable to parse db URL %q: %w", c.latestURL(), err)
 	}
 
 	u.Path = path.Join(path.Dir(u.Path), path.Clean(archive.Path))
@@ -157,13 +157,14 @@ func (c client) Download(archive Archive, dest string, downloadProgress *progres
 	u.RawQuery = query.Encode()
 
 	// go-getter will automatically extract all files within the archive to the temp dir
-	err = c.dbDownloader.GetToDir(tempDir, u.String(), downloadProgress)
+	finalURL := u.String()
+	err = c.dbDownloader.GetToDir(tempDir, finalURL, downloadProgress)
 	if err != nil {
 		removeAllOrLog(afero.NewOsFs(), tempDir)
-		return "", fmt.Errorf("unable to download db: %w", err)
+		return "", "", fmt.Errorf("unable to download db: %w", err)
 	}
 
-	return tempDir, nil
+	return tempDir, finalURL, nil
 }
 
 // Latest loads a LatestDocument from the configured URL.
