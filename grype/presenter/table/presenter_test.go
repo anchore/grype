@@ -76,14 +76,14 @@ func TestCreateRow(t *testing.T) {
 			name:           "create row for suppressed vulnerability",
 			match:          match1,
 			severitySuffix: appendSuppressed,
-			expectedRow:    []string{match1.Artifact.Name, match1.Artifact.Version, "1.0.2, *2.0.1, 3.0.4", string(match1.Artifact.Type), match1.Vulnerability.ID, "Low (suppressed)"},
+			expectedRow:    []string{match1.Artifact.Name, match1.Artifact.Version, "1.0.2, *2.0.1, 3.0.4", string(match1.Artifact.Type), match1.Vulnerability.ID, "Low", "(suppressed)"},
 		},
 	}
 
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
 			p := NewPresenter(models.PresenterConfig{}, false)
-			row := p.newRow(testCase.match, testCase.severitySuffix)
+			row := p.newRow(testCase.match, testCase.severitySuffix, false)
 			cols := rows{row}.Render()[0]
 
 			assert.Equal(t, testCase.expectedRow, cols)
@@ -165,6 +165,45 @@ func TestDisplaysIgnoredMatches(t *testing.T) {
 	pb := models.PresenterConfig{
 		Document: internal.GenerateAnalysisWithIgnoredMatches(t, internal.ImageSource),
 	}
+
+	pres := NewPresenter(pb, true)
+
+	err := pres.Present(&buffer)
+	require.NoError(t, err)
+
+	actual := buffer.String()
+	snaps.MatchSnapshot(t, actual)
+}
+
+func TestDisplaysDistro(t *testing.T) {
+	var buffer bytes.Buffer
+	pb := models.PresenterConfig{
+		Document: internal.GenerateAnalysisWithIgnoredMatches(t, internal.ImageSource),
+	}
+
+	pb.Document.Matches[0].Vulnerability.Namespace = "ubuntu:distro:ubuntu:2.5"
+	pb.Document.Matches[1].Vulnerability.Namespace = "ubuntu:distro:ubuntu:3.5"
+
+	pres := NewPresenter(pb, false)
+
+	err := pres.Present(&buffer)
+	require.NoError(t, err)
+
+	actual := buffer.String()
+	snaps.MatchSnapshot(t, actual)
+}
+
+func TestDisplaysIgnoredMatchesAndDistro(t *testing.T) {
+	var buffer bytes.Buffer
+	pb := models.PresenterConfig{
+		Document: internal.GenerateAnalysisWithIgnoredMatches(t, internal.ImageSource),
+	}
+
+	pb.Document.Matches[0].Vulnerability.Namespace = "ubuntu:distro:ubuntu:2.5"
+	pb.Document.Matches[1].Vulnerability.Namespace = "ubuntu:distro:ubuntu:3.5"
+
+	pb.Document.IgnoredMatches[0].Vulnerability.Namespace = "ubuntu:distro:ubuntu:2.5"
+	pb.Document.IgnoredMatches[1].Vulnerability.Namespace = "ubuntu:distro:ubuntu:3.5"
 
 	pres := NewPresenter(pb, true)
 
@@ -261,7 +300,7 @@ func createTestRow(name, version, fix, pkgType, vulnID, severity string, fixStat
 	}
 
 	p := NewPresenter(models.PresenterConfig{}, false)
-	r := p.newRow(m, "")
+	r := p.newRow(m, "", false)
 
 	return r, nil
 }

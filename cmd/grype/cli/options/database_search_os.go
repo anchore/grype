@@ -32,9 +32,6 @@ func (o *DBSearchOSs) PostLoad() error {
 		if err != nil {
 			return err
 		}
-		if spec != nil {
-			spec.AllowMultiple = true
-		}
 		specs = append(specs, spec)
 	}
 	o.Specs = specs

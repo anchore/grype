@@ -1,6 +1,7 @@
 package table
 
 import (
+	"fmt"
 	"io"
 	"strings"
 
@@ -8,13 +9,14 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/scylladb/go-set/strset"
 
+	"github.com/anchore/grype/grype/db/v5/namespace/distro"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
 const (
-	appendSuppressed    = " (suppressed)"
-	appendSuppressedVEX = " (suppressed by VEX)"
+	appendSuppressed    = "suppressed"
+	appendSuppressedVEX = "suppressed by VEX"
 )
 
 // Presenter is a generic struct for holding fields needed for reporting
@@ -35,6 +37,7 @@ type row struct {
 	PackageType     string
 	VulnerabilityID string
 	Severity        string
+	Annotation      string
 }
 
 // NewPresenter is a *Presenter constructor
@@ -80,12 +83,13 @@ func (p *Presenter) Present(output io.Writer) error {
 		for _, row := range rs.Deduplicate() {
 			severityColor := getSeverityColor(row.Severity)
 			table.Rich(row.Columns(), []tablewriter.Colors{
-				{},            // name
-				{},            // version
-				{},            // fix
-				{},            // package type
-				{},            // vulnerability ID
-				severityColor, // severity
+				{},              // name
+				{},              // version
+				{},              // fix
+				{},              // package type
+				{},              // vulnerability ID
+				severityColor,   // severity
+				annotationColor, // annotations
 			})
 		}
 	} else {
@@ -100,9 +104,22 @@ func (p *Presenter) Present(output io.Writer) error {
 func (p *Presenter) getRows(doc models.Document, showSuppressed bool) rows {
 	var rs rows
 
+	multipleDistros := false
+	existingDistro := ""
+	for _, m := range doc.Matches {
+		if _, err := distro.FromString(m.Vulnerability.Namespace); err == nil {
+			if existingDistro == "" {
+				existingDistro = m.Vulnerability.Namespace
+			} else if existingDistro != m.Vulnerability.Namespace {
+				multipleDistros = true
+				break
+			}
+		}
+	}
+
 	// generate rows for matching vulnerabilities
 	for _, m := range doc.Matches {
-		rs = append(rs, p.newRow(m, ""))
+		rs = append(rs, p.newRow(m, "", multipleDistros))
 	}
 
 	// generate rows for suppressed vulnerabilities
@@ -116,7 +133,7 @@ func (p *Presenter) getRows(doc models.Document, showSuppressed bool) rows {
 					}
 				}
 			}
-			rs = append(rs, p.newRow(m.Match, msg))
+			rs = append(rs, p.newRow(m.Match, msg, multipleDistros))
 		}
 	}
 	return rs
@@ -126,10 +143,22 @@ func supportsColor() bool {
 	return lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Render("") != ""
 }
 
-func (p *Presenter) newRow(m models.Match, severitySuffix string) row {
-	severity := m.Vulnerability.Severity
-	if severity != "" {
-		severity += severitySuffix
+func (p *Presenter) newRow(m models.Match, severitySuffix string, showDistro bool) row {
+	var annotations []string
+
+	if showDistro {
+		if d, err := distro.FromString(m.Vulnerability.Namespace); err == nil {
+			annotations = append(annotations, fmt.Sprintf("%s:%s", d.DistroType(), d.Version()))
+		}
+	}
+
+	if severitySuffix != "" {
+		annotations = append(annotations, severitySuffix)
+	}
+
+	annotation := ""
+	if len(annotations) > 0 {
+		annotation = fmt.Sprintf("(%s)", strings.Join(annotations, ", "))
 	}
 
 	return row{
@@ -138,7 +167,8 @@ func (p *Presenter) newRow(m models.Match, severitySuffix string) row {
 		Fix:             p.formatFix(m),
 		PackageType:     string(m.Artifact.Type),
 		VulnerabilityID: m.Vulnerability.ID,
-		Severity:        severity,
+		Severity:        m.Vulnerability.Severity,
+		Annotation:      annotation,
 	}
 }
 
@@ -174,6 +204,9 @@ func (p *Presenter) formatFix(m models.Match) string {
 }
 
 func (r row) Columns() []string {
+	if r.Annotation != "" {
+		return []string{r.Name, r.Version, r.Fix, r.PackageType, r.VulnerabilityID, r.Severity, r.Annotation}
+	}
 	return []string{r.Name, r.Version, r.Fix, r.PackageType, r.VulnerabilityID, r.Severity}
 }
 
@@ -229,3 +262,5 @@ func getSeverityColor(severity string) tablewriter.Colors {
 
 	return tablewriter.Colors{severityFontType, severityColor}
 }
+
+var annotationColor = tablewriter.Colors{tablewriter.FgWhiteColor}
