@@ -80,7 +80,6 @@ func presentDBStatus(format string, writer io.Writer, status vulnerability.Provi
 		if status.From != "" {
 			fmt.Fprintln(writer, "From:     ", status.From)
 		}
-		fmt.Fprintln(writer, "Checksum: ", status.Checksum)
 		fmt.Fprintln(writer, "Status:   ", renderStoreValidation(status))
 	case jsonOutputFormat:
 		enc := json.NewEncoder(writer)

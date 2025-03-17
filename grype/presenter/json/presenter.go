@@ -4,25 +4,18 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/presenter/models"
 )
 
 type Presenter struct {
-	id        clio.Identification
-	document  models.Document
-	appConfig interface{}
-	dbStatus  interface{}
-	pretty    bool
+	document models.Document
+	pretty   bool
 }
 
 func NewPresenter(pb models.PresenterConfig) *Presenter {
 	return &Presenter{
-		id:        pb.ID,
-		document:  pb.Document,
-		appConfig: pb.AppConfig,
-		dbStatus:  pb.DBStatus,
-		pretty:    pb.Pretty,
+		document: pb.Document,
+		pretty:   pb.Pretty,
 	}
 }
 

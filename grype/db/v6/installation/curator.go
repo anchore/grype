@@ -166,7 +166,7 @@ func (c curator) Status() vulnerability.ProviderStatus {
 	}
 
 	validateErr = c.validateAge(d)
-	digest, checksumErr := c.validateIntegrity(d)
+	_, checksumErr := c.validateIntegrity(d)
 	if checksumErr != nil && c.config.ValidateChecksum {
 		if validateErr != nil {
 			validateErr = errors.Join(validateErr, checksumErr)
@@ -187,7 +187,6 @@ func (c curator) Status() vulnerability.ProviderStatus {
 		SchemaVersion: d.SchemaVersion.String(),
 		From:          source,
 		Path:          dbFile,
-		Checksum:      digest,
 		Error:         validateErr,
 	}
 }

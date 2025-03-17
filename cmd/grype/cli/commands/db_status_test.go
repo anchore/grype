@@ -3,13 +3,14 @@ package commands
 import (
 	"bytes"
 	"errors"
-	"github.com/anchore/grype/grype/vulnerability"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/anchore/grype/grype/vulnerability"
 )
 
 func TestPresentDBStatus(t *testing.T) {
@@ -18,17 +19,14 @@ func TestPresentDBStatus(t *testing.T) {
 		From:          "https://grype.anchore.io/databases/v6/vulnerability-db_v6.0.2_2025-03-14T01:31:06Z_1741925227.tar.zst?checksum=sha256%3Ad4654e3b212f1d8a1aaab979599691099af541568d687c4a7c4e7c1da079b9b8",
 		SchemaVersion: "6.0.0",
 		Built:         time.Date(2024, 11, 27, 14, 43, 17, 0, time.UTC),
-		Checksum:      "xxh64:89d3ae128f6e718e",
 		Error:         nil,
 	}
 
 	invalidStatus := vulnerability.ProviderStatus{
-		Path: "/Users/test/Library/Caches/grype/db/6/vulnerability.db",
-		From: "https://grype.anchore.io/databases/v6/vulnerability-db_v6.0.2_2025-03-14T01:31:06Z_1741925227.tar.zst?checksum=sha256%3Ad4654e3b212f1d8a1aaab979599691099af541568d687c4a7c4e7c1da079b9b8",
-
+		Path:          "/Users/test/Library/Caches/grype/db/6/vulnerability.db",
+		From:          "https://grype.anchore.io/databases/v6/vulnerability-db_v6.0.2_2025-03-14T01:31:06Z_1741925227.tar.zst?checksum=sha256%3Ad4654e3b212f1d8a1aaab979599691099af541568d687c4a7c4e7c1da079b9b8",
 		SchemaVersion: "6.0.0",
 		Built:         time.Date(2024, 11, 27, 14, 43, 17, 0, time.UTC),
-		Checksum:      "xxh64:89d3ae128f6e718e",
 		Error:         errors.New("checksum mismatch"),
 	}
 
@@ -47,7 +45,6 @@ func TestPresentDBStatus(t *testing.T) {
 Schema:    6.0.0
 Built:     2024-11-27T14:43:17Z
 From:      https://grype.anchore.io/databases/v6/vulnerability-db_v6.0.2_2025-03-14T01:31:06Z_1741925227.tar.zst?checksum=sha256%3Ad4654e3b212f1d8a1aaab979599691099af541568d687c4a7c4e7c1da079b9b8
-Checksum:  xxh64:89d3ae128f6e718e
 Status:    valid
 `,
 			expectedErr: require.NoError,
@@ -60,7 +57,6 @@ Status:    valid
 Schema:    6.0.0
 Built:     2024-11-27T14:43:17Z
 From:      https://grype.anchore.io/databases/v6/vulnerability-db_v6.0.2_2025-03-14T01:31:06Z_1741925227.tar.zst?checksum=sha256%3Ad4654e3b212f1d8a1aaab979599691099af541568d687c4a7c4e7c1da079b9b8
-Checksum:  xxh64:89d3ae128f6e718e
 Status:    invalid
 `,
 			expectedErr: require.NoError,
@@ -74,7 +70,6 @@ Status:    invalid
  "from": "https://grype.anchore.io/databases/v6/vulnerability-db_v6.0.2_2025-03-14T01:31:06Z_1741925227.tar.zst?checksum=sha256%3Ad4654e3b212f1d8a1aaab979599691099af541568d687c4a7c4e7c1da079b9b8",
  "built": "2024-11-27T14:43:17Z",
  "path": "/Users/test/Library/Caches/grype/db/6/vulnerability.db",
- "checksum": "xxh64:89d3ae128f6e718e",
  "valid": true
 }
 `,
@@ -89,7 +84,6 @@ Status:    invalid
  "from": "https://grype.anchore.io/databases/v6/vulnerability-db_v6.0.2_2025-03-14T01:31:06Z_1741925227.tar.zst?checksum=sha256%3Ad4654e3b212f1d8a1aaab979599691099af541568d687c4a7c4e7c1da079b9b8",
  "built": "2024-11-27T14:43:17Z",
  "path": "/Users/test/Library/Caches/grype/db/6/vulnerability.db",
- "checksum": "xxh64:89d3ae128f6e718e",
  "valid": false,
  "error": "checksum mismatch"
 }
