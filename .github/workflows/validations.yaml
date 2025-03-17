@@ -140,7 +140,6 @@ jobs:
           key: snapshot-build-${{ github.run_id }}
 
   Upload-Snapshot-Artifacts:
-    # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Upload snapshot artifacts"
     needs: [Build-Snapshot-Artifacts]
     runs-on: ubuntu-24.04
