@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 
+	"golang.org/x/exp/maps"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
@@ -25,7 +25,6 @@ var AnyOSSpecified *OSSpecifier
 var AnyPackageSpecified *PackageSpecifier
 var ErrMissingOSIdentification = errors.New("missing OS name or codename")
 var ErrOSNotPresent = errors.New("OS not present")
-var ErrMultipleOSMatches = errors.New("multiple OS matches found but not allowed")
 var ErrLimitReached = errors.New("query limit reached")
 
 type GetAffectedPackageOptions struct {
@@ -100,9 +99,6 @@ type OSSpecifier struct {
 
 	// LabelVersion is a string that represents a floating version (e.g. "edge" or "unstable") or is the CODENAME field in /etc/os-release (e.g. "wheezy" for debian 7)
 	LabelVersion string
-
-	// AllowMultiple specifies whether we intend to allow for multiple distro identities to be matched.
-	AllowMultiple bool
 }
 
 func (d *OSSpecifier) String() string {
@@ -509,7 +505,7 @@ func (s *affectedPackageStore) handleVulnerabilityOptions(query *gorm.DB, config
 }
 
 func (s *affectedPackageStore) handleOSOptions(query *gorm.DB, configs []*OSSpecifier) (*gorm.DB, error) {
-	resolvedDistroMap := make(map[int64]OperatingSystem)
+	ids := map[int64]struct{}{}
 
 	if len(configs) == 0 {
 		configs = append(configs, AnyOSSpecified)
@@ -524,15 +520,12 @@ func (s *affectedPackageStore) handleOSOptions(query *gorm.DB, configs []*OSSpec
 				return nil, fmt.Errorf("unable to resolve distro: %w", err)
 			}
 
-			switch {
-			case len(curResolvedDistros) == 0:
+			if len(curResolvedDistros) == 0 {
 				return nil, ErrOSNotPresent
-			case len(curResolvedDistros) > 1 && !config.AllowMultiple:
-				return nil, ErrMultipleOSMatches
 			}
 			hasSpecific = true
 			for _, d := range curResolvedDistros {
-				resolvedDistroMap[int64(d.ID)] = d
+				ids[int64(d.ID)] = struct{}{}
 			}
 		case config == AnyOSSpecified:
 			// TODO: one enhancement we may want to do later is "has OS defined but is not specific" which this does NOT cover. This is "may or may not have an OS defined" which is different.
@@ -546,30 +539,14 @@ func (s *affectedPackageStore) handleOSOptions(query *gorm.DB, configs []*OSSpec
 		return nil, fmt.Errorf("cannot mix specific distro with any or none distro specifiers")
 	}
 
-	var resolvedDistros []OperatingSystem
 	switch {
 	case hasAny:
 		return query, nil
 	case hasNone:
 		return query.Where("operating_system_id IS NULL"), nil
-	case hasSpecific:
-		for _, d := range resolvedDistroMap {
-			resolvedDistros = append(resolvedDistros, d)
-		}
-		sort.Slice(resolvedDistros, func(i, j int) bool {
-			return resolvedDistros[i].ID < resolvedDistros[j].ID
-		})
 	}
 
-	query = query.Joins("JOIN operating_systems ON affected_package_handles.operating_system_id = operating_systems.id")
-
-	if len(resolvedDistros) > 0 {
-		ids := make([]ID, len(resolvedDistros))
-		for i, d := range resolvedDistros {
-			ids[i] = d.ID
-		}
-		query = query.Where("operating_systems.id IN ?", ids)
-	}
+	query = query.Where("affected_package_handles.operating_system_id IN ?", maps.Keys(ids))
 
 	return query, nil
 }
