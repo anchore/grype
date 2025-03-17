@@ -36,9 +36,13 @@ func (m *mockClient) IsUpdateAvailable(current *db.Description) (*distribution.A
 	return args.Get(0).(*distribution.Archive), nil
 }
 
-func (m *mockClient) Download(archive distribution.Archive, dest string, downloadProgress *progress.Manual) (string, string, error) {
-	args := m.Called(archive, dest, downloadProgress)
-	return args.String(0), "http://localhost/archive.tar.zst", args.Error(1)
+func (m *mockClient) ResolveArchiveURL(_ distribution.Archive) (string, error) {
+	return "http://localhost/archive.tar.zst", nil
+}
+
+func (m *mockClient) Download(url, dest string, downloadProgress *progress.Manual) (string, error) {
+	args := m.Called(url, dest, downloadProgress)
+	return args.String(0), args.Error(1)
 }
 
 func (m *mockClient) Latest() (*distribution.LatestDocument, error) {
