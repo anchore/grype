@@ -131,11 +131,30 @@ jobs:
       - name: Build snapshot artifacts
         run: make snapshot
 
-      # upload snapshot builds as separate artifacts
+      # why not use actions/upload-artifact? It is very slow (3 minutes to upload ~600MB of data, vs 10 seconds with this approach).
+      # see https://github.com/actions/upload-artifact/issues/199 for more info
+      - name: Upload snapshot artifacts
+        uses: actions/cache/save@d4323d4df104b026a6aa633fdb11d772146be0bf #v4.2.2
+        with:
+          path: snapshot
+          key: snapshot-build-${{ github.run_id }}
+
+  Upload-Snapshot-Artifacts:
+    name: "Upload snapshot artifacts"
+    needs: [Build-Snapshot-Artifacts]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
+
+      - name: Download snapshot build
+        uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf #v4.2.2
+        with:
+          path: snapshot
+          key: snapshot-build-${{ github.run_id }}
+
       - run: npm install @actions/artifact@2.2.2
 
-      - name: Upload snapshot artifacts
-        uses: actions/github-script@v7
+      - uses: actions/github-script@v7
         with:
           script: |
             const { readdirSync } = require('fs')
@@ -160,7 +179,6 @@ jobs:
             // wait for all uploads to finish
             Promise.all(uploads)
 
-
   Acceptance-Linux:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Acceptance tests (Linux)"
@@ -170,10 +188,10 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
 
       - name: Download snapshot build
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 #v4.1.9
+        uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf #v4.2.2
         with:
-          name: linux-build_linux_amd64_v1
-          path: snapshot/linux-build_linux_amd64_v1
+          path: snapshot
+          key: snapshot-build-${{ github.run_id }}
 
       - name: Restore install.sh test image cache
         id: install-test-image-cache
@@ -193,7 +211,6 @@ jobs:
         if: steps.install-test-image-cache.outputs.cache-hit != 'true'
         run: make install-test-cache-save
 
-
   Acceptance-Mac:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Acceptance tests (Mac)"
@@ -206,10 +223,10 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
 
       - name: Download snapshot build
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 #v4.1.9
+        uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf #v4.2.2
         with:
-          name: darwin-build_darwin_arm64_v8.0
-          path: snapshot/darwin-build_darwin_arm64_v8.0
+          path: snapshot
+          key: snapshot-build-${{ github.run_id }}
 
       - name: Restore docker image cache for compare testing
         id: mac-compare-testing-cache
@@ -240,10 +257,29 @@ jobs:
           key: ${{ runner.os }}-cli-test-cache-${{ hashFiles('test/cli/test-fixtures/cache.fingerprint') }}
 
       - name: Download snapshot build
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 #v4.1.9
+        uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf #v4.2.2
         with:
-          name: linux-build_linux_amd64_v1
-          path: snapshot/linux-build_linux_amd64_v1
+          path: snapshot
+          key: snapshot-build-${{ github.run_id }}
 
       - name: Run CLI Tests (Linux)
         run: make cli
+
+  Cleanup-Cache:
+    name: "Cleanup snapshot cache"
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+    needs:
+      - Acceptance-Linux
+      - Acceptance-Mac
+      - Cli-Linux
+      - Upload-Snapshot-Artifacts
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
+
+      - name: Delete snapshot cache
+        run: gh cache delete "snapshot-build-${{ github.run_id }}"
+        env:
+          GH_TOKEN: ${{ github.token }}
