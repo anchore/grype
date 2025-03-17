@@ -243,6 +243,11 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			fixture: "test-fixtures/os/chainguard",
 			Type:    Chainguard,
 		},
+		{
+			fixture: "test-fixtures/os/mageia",
+			Type:    Mageia,
+			Version: "9.0.0",
+		},
 	}
 
 	observedDistros := stringutil.NewStringSet()
