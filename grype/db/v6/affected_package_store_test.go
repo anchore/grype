@@ -817,28 +817,15 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			expected: []AffectedPackageHandle{*pkg2d1},
 		},
 		{
-			name: "distro major version only (allow multiple)",
+			name: "distro major version only",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
 			options: &GetAffectedPackageOptions{
 				OSs: []*OSSpecifier{{
-					Name:          "ubuntu",
-					MajorVersion:  "20",
-					AllowMultiple: true,
+					Name:         "ubuntu",
+					MajorVersion: "20",
 				}},
 			},
 			expected: []AffectedPackageHandle{*pkg2d1, *pkg2d2},
-		},
-		{
-			name: "distro major version only (default)",
-			pkg:  pkgFromName(pkg2d1.Package.Name),
-			options: &GetAffectedPackageOptions{
-				OSs: []*OSSpecifier{{
-					Name:          "ubuntu",
-					MajorVersion:  "20",
-					AllowMultiple: false,
-				}},
-			},
-			wantErr: expectErrIs(t, ErrMultipleOSMatches),
 		},
 		{
 			name: "distro codename",
