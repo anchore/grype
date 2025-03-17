@@ -131,10 +131,6 @@ func TestClient_Latest(t *testing.T) {
 
 func TestClient_Download(t *testing.T) {
 	destDir := t.TempDir()
-	archive := &Archive{
-		Path:     "path/to/archive.tar.gz",
-		Checksum: "checksum123",
-	}
 
 	setup := func() (Client, *mockGetter) {
 		mg := new(mockGetter)
@@ -155,10 +151,9 @@ func TestClient_Download(t *testing.T) {
 		url := "http://localhost:8080/path/to/archive.tar.gz?checksum=checksum123"
 		mg.On("GetToDir", mock.Anything, url, mock.Anything).Return(nil)
 
-		tempDir, actualURL, err := c.Download(*archive, destDir, &progress.Manual{})
+		tempDir, err := c.Download(url, destDir, &progress.Manual{})
 		require.NoError(t, err)
 		require.True(t, len(tempDir) > 0)
-		assert.Equal(t, url, actualURL)
 
 		mg.AssertExpectations(t)
 	})
@@ -168,11 +163,10 @@ func TestClient_Download(t *testing.T) {
 		url := "http://localhost:8080/path/to/archive.tar.gz?checksum=checksum123"
 		mg.On("GetToDir", mock.Anything, url, mock.Anything).Return(errors.New("download failed"))
 
-		tempDir, actualURL, err := c.Download(*archive, destDir, &progress.Manual{})
+		tempDir, err := c.Download(url, destDir, &progress.Manual{})
 		require.Error(t, err)
 		require.Empty(t, tempDir)
 		require.Contains(t, err.Error(), "unable to download db")
-		assert.Empty(t, actualURL)
 
 		mg.AssertExpectations(t)
 	})
@@ -183,10 +177,9 @@ func TestClient_Download(t *testing.T) {
 		mg.On("GetToDir", mock.Anything, url, mock.Anything).Return(nil)
 
 		nestedPath := filepath.Join(destDir, "nested")
-		tempDir, actualURL, err := c.Download(*archive, nestedPath, &progress.Manual{})
+		tempDir, err := c.Download(url, nestedPath, &progress.Manual{})
 		require.NoError(t, err)
 		require.True(t, len(tempDir) > 0)
-		assert.Equal(t, url, actualURL)
 
 		mg.AssertExpectations(t)
 	})

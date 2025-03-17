@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -290,12 +291,19 @@ func (c curator) update(current *db.Description) (*distribution.Archive, error) 
 		return nil, checkErr
 	}
 
-	log.Infof("downloading new vulnerability DB")
+	log.Info("downloading new vulnerability DB")
 	mon.Set("downloading")
-	dest, url, err := c.client.Download(*update, filepath.Dir(c.config.DBRootDir), mon.downloadProgress.Manual)
+	url, err := c.client.ResolveArchiveURL(*update)
+	if err != nil {
+		return nil, fmt.Errorf("unable to resolve vulnerability DB URL: %w", err)
+	}
+	dest, err := c.client.Download(url, filepath.Dir(c.config.DBRootDir), mon.downloadProgress.Manual)
 	if err != nil {
 		return nil, fmt.Errorf("unable to update vulnerability database: %w", err)
 	}
+
+	log.WithFields("url", url).Debug("obtained vulnerability DB archive")
+
 	mon.downloadProgress.SetCompleted()
 	if err = c.activate(dest, url, mon); err != nil {
 		return nil, fmt.Errorf("unable to activate new vulnerability database: %w", err)
@@ -399,41 +407,57 @@ func (c curator) setLastSuccessfulUpdateCheck() {
 	_, _ = fmt.Fprintf(fh, "%s", time.Now().UTC().Format(time.RFC3339))
 }
 
-// Import takes a DB archive file and imports it into the final DB location.
-func (c curator) Import(path string) error {
+// Import takes a DB file path, archive file path, or URL and imports it into the final DB location.
+func (c curator) Import(reference string) error {
 	mon := newMonitor()
-	mon.Set("unarchiving")
+	mon.Set("preparing")
 	defer mon.SetCompleted()
 
 	if err := os.MkdirAll(c.config.DBRootDir, 0700); err != nil {
 		return fmt.Errorf("unable to create db root dir: %w", err)
 	}
 
-	// note: the temp directory is persisted upon download/validation/activation failure to allow for investigation
-	tempDir, err := os.MkdirTemp(c.config.DBRootDir, fmt.Sprintf("tmp-v%v-import", db.ModelVersion))
-	if err != nil {
-		return fmt.Errorf("unable to create db import temp dir: %w", err)
-	}
+	var tempDir, url string
+	if isURL(reference) {
+		log.Info("downloading new vulnerability DB")
+		mon.Set("downloading")
+		var err error
 
-	if strings.HasSuffix(path, ".db") {
-		// this is a raw DB file, copy it to the temp dir
-		log.Trace("copying DB")
-		if err := file.CopyFile(afero.NewOsFs(), path, filepath.Join(tempDir, db.VulnerabilityDBFileName)); err != nil {
-			return fmt.Errorf("unable to copy DB file: %w", err)
-		}
-	} else {
-		// assume it is an archive
-		log.Trace("unarchiving DB")
-		err = archiver.Unarchive(path, tempDir)
+		tempDir, err = c.client.Download(reference, filepath.Dir(c.config.DBRootDir), mon.downloadProgress.Manual)
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to update vulnerability database: %w", err)
+		}
+
+		url = reference
+	} else {
+		// note: the temp directory is persisted upon download/validation/activation failure to allow for investigation
+		var err error
+		tempDir, err = os.MkdirTemp(c.config.DBRootDir, fmt.Sprintf("tmp-v%v-import", db.ModelVersion))
+		if err != nil {
+			return fmt.Errorf("unable to create db import temp dir: %w", err)
+		}
+
+		url = "manual import"
+
+		if strings.HasSuffix(reference, ".db") {
+			// this is a raw DB file, copy it to the temp dir
+			log.Trace("copying DB")
+			if err := file.CopyFile(afero.NewOsFs(), reference, filepath.Join(tempDir, db.VulnerabilityDBFileName)); err != nil {
+				return fmt.Errorf("unable to copy DB file: %w", err)
+			}
+		} else {
+			// assume it is an archive
+			log.Info("unarchiving DB")
+			err := archiver.Unarchive(reference, tempDir)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	mon.downloadProgress.SetCompleted()
 
-	err = c.activate(tempDir, "manual import", mon)
-	if err != nil {
+	if err := c.activate(tempDir, url, mon); err != nil {
 		removeAllOrLog(c.fs, tempDir)
 		return err
 	}
@@ -441,6 +465,12 @@ func (c curator) Import(path string) error {
 	mon.Set("imported")
 
 	return nil
+}
+
+var urlPrefixPattern = regexp.MustCompile("^[a-zA-Z]+://")
+
+func isURL(reference string) bool {
+	return urlPrefixPattern.MatchString(reference)
 }
 
 // activate swaps over the downloaded db to the application directory, calculates the checksum, and records the checksums to a file.
