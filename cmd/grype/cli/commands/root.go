@@ -11,7 +11,6 @@ import (
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype"
-	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/event/parsers"
 	"github.com/anchore/grype/grype/grypeerr"
@@ -119,7 +118,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 	}
 
 	var vp vulnerability.Provider
-	var status *v6.Status
+	var status *vulnerability.ProviderStatus
 	var packages []pkg.Package
 	var s *sbom.SBOM
 	var pkgContext pkg.Context
@@ -201,23 +200,44 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		errs = appendErrors(errs, err)
 	}
 
-	model, err := models.NewDocument(app.ID(), packages, pkgContext, *remainingMatches, ignoredMatches, vp, opts, status, models.SortByPackage)
+	model, err := models.NewDocument(app.ID(), packages, pkgContext, *remainingMatches, ignoredMatches, vp, opts, dbInfo(status, vp), models.SortByPackage)
 	if err != nil {
 		return fmt.Errorf("failed to create document: %w", err)
 	}
 
 	if err = writer.Write(models.PresenterConfig{
-		ID:        app.ID(),
-		Document:  model,
-		SBOM:      s,
-		AppConfig: opts,
-		DBStatus:  status,
-		Pretty:    opts.Pretty,
+		ID:       app.ID(),
+		Document: model,
+		SBOM:     s,
+		Pretty:   opts.Pretty,
 	}); err != nil {
 		errs = appendErrors(errs, err)
 	}
 
 	return errs
+}
+
+func dbInfo(status *vulnerability.ProviderStatus, vp vulnerability.Provider) any {
+	var providers map[string]vulnerability.DataProvenance
+
+	if vp != nil {
+		providers = make(map[string]vulnerability.DataProvenance)
+		if dpr, ok := vp.(vulnerability.StoreMetadataProvider); ok {
+			dps, err := dpr.DataProvenance()
+			// ignore errors here
+			if err == nil {
+				providers = dps
+			}
+		}
+	}
+
+	return struct {
+		Status    *vulnerability.ProviderStatus           `json:"status"`
+		Providers map[string]vulnerability.DataProvenance `json:"providers"`
+	}{
+		Status:    status,
+		Providers: providers,
+	}
 }
 
 func applyDistroHint(pkgs []pkg.Package, context *pkg.Context, opts *options.Grype) {
@@ -326,7 +346,7 @@ func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
 	}
 }
 
-func validateDBLoad(loadErr error, status *v6.Status) error {
+func validateDBLoad(loadErr error, status *vulnerability.ProviderStatus) error {
 	if loadErr != nil {
 		// notify the user about grype db delete to fix checksum errors
 		if strings.Contains(loadErr.Error(), "checksum") {
@@ -340,8 +360,8 @@ func validateDBLoad(loadErr error, status *v6.Status) error {
 	if status == nil {
 		return fmt.Errorf("unable to determine the status of the vulnerability db")
 	}
-	if status.Err != nil {
-		return fmt.Errorf("db could not be loaded: %w", status.Err)
+	if status.Error != nil {
+		return fmt.Errorf("db could not be loaded: %w", status.Error)
 	}
 	return nil
 }

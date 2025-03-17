@@ -36,9 +36,9 @@ func (m *mockClient) IsUpdateAvailable(current *db.Description) (*distribution.A
 	return args.Get(0).(*distribution.Archive), nil
 }
 
-func (m *mockClient) Download(archive distribution.Archive, dest string, downloadProgress *progress.Manual) (string, error) {
+func (m *mockClient) Download(archive distribution.Archive, dest string, downloadProgress *progress.Manual) (string, string, error) {
 	args := m.Called(archive, dest, downloadProgress)
-	return args.String(0), args.Error(1)
+	return args.String(0), "http://localhost/archive.tar.zst", args.Error(1)
 }
 
 func (m *mockClient) Latest() (*distribution.LatestDocument, error) {
@@ -175,7 +175,7 @@ func writeTestDB(t *testing.T, fs afero.Fs, dir string) string {
 	require.NoError(t, rw.SetDBMetadata())
 	require.NoError(t, rw.Close())
 
-	doc, err := db.WriteImportMetadata(fs, dir)
+	doc, err := db.WriteImportMetadata(fs, dir, "source")
 	require.NoError(t, err)
 	require.NotNil(t, doc)
 

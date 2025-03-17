@@ -44,9 +44,10 @@ func TestReadImportMetadata(t *testing.T) {
 		},
 		{
 			name:        "valid metadata",
-			fileContent: `{"digest": "xxh64:testdigest", "client_version": "1.0.0"}`,
+			fileContent: `{"digest": "xxh64:testdigest", "source": "http://localhost:1234/archive.tar.gz", "client_version": "1.0.0"}`,
 			expectedResult: &ImportMetadata{
 				Digest:        "xxh64:testdigest",
+				Source:        "http://localhost:1234/archive.tar.gz",
 				ClientVersion: "1.0.0",
 			},
 		},
@@ -106,7 +107,8 @@ func TestWriteImportMetadata(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			claim, err := writeImportMetadata(&buf, tc.checksum)
+			src := "source!"
+			claim, err := writeImportMetadata(&buf, tc.checksum, src)
 			tc.wantErr(t, err)
 
 			if err == nil {
@@ -120,6 +122,7 @@ func TestWriteImportMetadata(t *testing.T) {
 				assert.Equal(t, tc.checksum, claim.Digest)
 				assert.Equal(t, tc.expectedVersion, doc.ClientVersion)
 				assert.Equal(t, tc.expectedVersion, claim.ClientVersion)
+				assert.Equal(t, src, doc.Source)
 			}
 		})
 	}
