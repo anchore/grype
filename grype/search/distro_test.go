@@ -11,8 +11,7 @@ import (
 )
 
 func Test_ByDistro(t *testing.T) {
-	deb8, err := distro.New(distro.Debian, "8", "")
-	require.NoError(t, err)
+	deb8 := distro.New(distro.Debian, "8", "")
 
 	tests := []struct {
 		name    string

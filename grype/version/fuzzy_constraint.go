@@ -100,6 +100,10 @@ func (f fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
 	return f.constraints.satisfied(UnknownFormat, verObj)
 }
 
+func (f fuzzyConstraint) Format() Format {
+	return UnknownFormat
+}
+
 func (f fuzzyConstraint) String() string {
 	if f.rawPhrase == "" {
 		return "none (unknown)"

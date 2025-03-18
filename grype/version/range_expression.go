@@ -8,7 +8,7 @@ import (
 )
 
 type simpleRangeExpression struct {
-	units [][]rangeUnit // only supports or'ing a group of and'ed groups
+	units [][]Range // only supports or'ing a group of and'ed groups
 }
 
 func parseRangeExpression(phrase string) (simpleRangeExpression, error) {
@@ -17,10 +17,10 @@ func parseRangeExpression(phrase string) (simpleRangeExpression, error) {
 		return simpleRangeExpression{}, fmt.Errorf("unable to create constraint expression from=%q : %w", phrase, err)
 	}
 
-	orUnits := make([][]rangeUnit, len(orParts))
+	orUnits := make([][]Range, len(orParts))
 	var fuzzyErr error
 	for orIdx, andParts := range orParts {
-		andUnits := make([]rangeUnit, len(andParts))
+		andUnits := make([]Range, len(andParts))
 		for andIdx, part := range andParts {
 			unit, err := parseRange(part)
 			if err != nil {

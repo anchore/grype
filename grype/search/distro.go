@@ -7,14 +7,37 @@ import (
 	"github.com/anchore/grype/grype/db/v5/namespace"
 	distroNs "github.com/anchore/grype/grype/db/v5/namespace/distro"
 	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 )
+
+func ByDistroRange(d distro.Distro, minRange, maxRange version.Range) vulnerability.Criteria {
+	return &DistroRangeCriteria{
+		Type:    d.Type,
+		Min:     minRange,
+		Max:     maxRange,
+		Variant: d.Variant,
+		IDLike:  d.IDLike,
+	}
+}
 
 // ByDistro returns criteria which will match vulnerabilities based on any of the provided Distros
 func ByDistro(d ...distro.Distro) vulnerability.Criteria {
 	return &DistroCriteria{
 		Distros: d,
 	}
+}
+
+type DistroRangeCriteria struct {
+	Type    distro.Type
+	Min     version.Range
+	Max     version.Range
+	Variant string
+	IDLike  []string
+}
+
+func (c *DistroRangeCriteria) MatchesVulnerability(value vulnerability.Vulnerability) (bool, string, error) {
+	panic("not implemented")
 }
 
 type DistroCriteria struct {

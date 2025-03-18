@@ -42,7 +42,7 @@ func TestMatcherRpm(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.New(distro.CentOS, "8", "")
+				d := distro.New(distro.CentOS, "8", "")
 				if err != nil {
 					t.Fatal("could not create distro: ", err)
 				}
@@ -73,7 +73,7 @@ func TestMatcherRpm(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.New(distro.CentOS, "8", "")
+				d := distro.New(distro.CentOS, "8", "")
 				if err != nil {
 					t.Fatal("could not create distro: ", err)
 				}
@@ -103,7 +103,7 @@ func TestMatcherRpm(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.New(distro.CentOS, "8", "")
+				d := distro.New(distro.CentOS, "8", "")
 				if err != nil {
 					t.Fatal("could not create distro: ", err)
 				}
@@ -137,7 +137,7 @@ func TestMatcherRpm(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.New(distro.CentOS, "8", "")
+				d := distro.New(distro.CentOS, "8", "")
 				if err != nil {
 					t.Fatal("could not create distro: ", err)
 				}
@@ -162,7 +162,7 @@ func TestMatcherRpm(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.New(distro.CentOS, "8", "")
+				d := distro.New(distro.CentOS, "8", "")
 				if err != nil {
 					t.Fatal("could not create distro: ", err)
 				}
@@ -186,7 +186,7 @@ func TestMatcherRpm(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.New(distro.CentOS, "8", "")
+				d := distro.New(distro.CentOS, "8", "")
 				if err != nil {
 					t.Fatal("could not create distro: ", err)
 				}
@@ -210,7 +210,7 @@ func TestMatcherRpm(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.New(distro.CentOS, "8", "")
+				d := distro.New(distro.CentOS, "8", "")
 				if err != nil {
 					t.Fatal("could not create distro: ", err)
 				}
@@ -234,7 +234,7 @@ func TestMatcherRpm(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.New(distro.CentOS, "8", "")
+				d := distro.New(distro.CentOS, "8", "")
 				if err != nil {
 					t.Fatal("could not create distro: ", err)
 				}
@@ -258,7 +258,7 @@ func TestMatcherRpm(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.New(distro.CentOS, "8", "")
+				d := distro.New(distro.CentOS, "8", "")
 				if err != nil {
 					t.Fatal("could not create distro: ", err)
 				}
@@ -285,7 +285,7 @@ func TestMatcherRpm(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.New(distro.CentOS, "8", "")
+				d := distro.New(distro.CentOS, "8", "")
 				if err != nil {
 					t.Fatal("could not create distro: ", err)
 				}
@@ -308,7 +308,7 @@ func TestMatcherRpm(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.New(distro.CentOS, "8", "")
+				d := distro.New(distro.CentOS, "8", "")
 				if err != nil {
 					t.Fatal("could not create distro: ", err)
 				}
@@ -398,10 +398,20 @@ func Test_addEpochIfApplicable(t *testing.T) {
 			pkg: pkg.Package{
 				Version: "3.26.0-6.el8",
 				Metadata: pkg.RpmMetadata{
-					Epoch: nil,
+					Epoch: nil, // assume 0 epoch
 				},
 			},
 			expected: "0:3.26.0-6.el8",
+		},
+		{
+			name: "version is empty",
+			pkg: pkg.Package{
+				Version: "",
+				Metadata: pkg.RpmMetadata{
+					Epoch: nil, // assume 0 epoch
+				},
+			},
+			expected: "",
 		},
 	}
 	for _, test := range tests {

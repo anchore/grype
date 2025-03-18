@@ -5,7 +5,8 @@ import (
 )
 
 type Constraint interface {
-	fmt.Stringer
+	fmt.Stringer    // TODO: needed just for apk naking... try and remove this
+	Format() Format // TODO: needed just for creating a constraint from an existing one... is there a better way to do this?
 	Satisfied(*Version) (bool, error)
 }
 

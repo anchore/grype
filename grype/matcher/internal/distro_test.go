@@ -51,7 +51,7 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 		},
 	}
 
-	d, err := distro.New(distro.Debian, "8", "")
+	d := distro.New(distro.Debian, "8", "")
 	if err != nil {
 		t.Fatal("could not create distro: ", err)
 	}
@@ -118,7 +118,7 @@ func TestFindMatchesByPackageDistroSles(t *testing.T) {
 		},
 	}
 
-	d, err := distro.New(distro.SLES, "12.5", "")
+	d := distro.New(distro.SLES, "12.5", "")
 	if err != nil {
 		t.Fatal("could not create distro: ", err)
 	}

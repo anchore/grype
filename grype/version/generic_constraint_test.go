@@ -156,7 +156,7 @@ func TestGenericConstraint_Invalid(t *testing.T) {
 	tests := []struct {
 		name       string
 		constraint string
-		gen        func(unit rangeUnit) (Comparator, error)
+		gen        func(unit Range) (Comparator, error)
 	}{
 		{
 			name:       "invalid operator",

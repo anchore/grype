@@ -13,12 +13,12 @@ import (
 // version group matches on everything except for whitespace and operators (range or boolean)
 var constraintPartPattern = regexp.MustCompile(`\s*(?P<prefix>[^><=a-zA-Z0-9().'"]*)(?P<operator>[><=]*)\s*(?P<version>.+)`)
 
-type rangeUnit struct {
+type Range struct {
 	operator operator
 	version  string
 }
 
-func parseRange(phrase string) (*rangeUnit, error) {
+func parseRange(phrase string) (*Range, error) {
 	match := stringutil.MatchCaptureGroups(constraintPartPattern, phrase)
 	version, exists := match["version"]
 	if !exists {
@@ -49,7 +49,7 @@ func parseRange(phrase string) (*rangeUnit, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse constraint operator=%q: %+v", match["operator"], err)
 	}
-	return &rangeUnit{
+	return &Range{
 		operator: op,
 		version:  version,
 	}, nil
@@ -70,7 +70,7 @@ func trimQuotes(s string) (string, error) {
 	}
 }
 
-func (c *rangeUnit) Satisfied(comparison int) bool {
+func (c *Range) Satisfied(comparison int) bool {
 	switch c.operator {
 	case EQ:
 		return comparison == 0

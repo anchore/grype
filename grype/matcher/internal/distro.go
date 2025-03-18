@@ -26,8 +26,8 @@ func MatchPackageByDistro(provider vulnerability.Provider, p pkg.Package, upstre
 	vulns, err := provider.FindVulnerabilities(
 		search.ByPackageName(p.Name),
 		search.ByDistro(*p.Distro),
-		onlyQualifiedPackages(p),
-		onlyVulnerableVersions(version.NewVersionFromPkg(p)),
+		OnlyQualifiedPackages(p),
+		OnlyVulnerableVersions(version.NewVersionFromPkg(p)),
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", p.Distro, p.Name, err)
@@ -41,23 +41,20 @@ func MatchPackageByDistro(provider vulnerability.Provider, p pkg.Package, upstre
 				{
 					Type:    match.ExactDirectMatch,
 					Matcher: upstreamMatcher,
-					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    p.Distro.Type.String(),
-							"version": p.Distro.Version,
+					SearchedBy: match.DistroParameters{
+						Distro: match.DistroIdentification{
+							Type:    p.Distro.Type.String(),
+							Version: p.Distro.Version,
 						},
-						// why include the package information? The given package searched with may be a source package
-						// for another package that is installed on the system. This makes it apparent exactly what
-						// was used in the search.
-						"package": map[string]string{
-							"name":    p.Name,
-							"version": p.Version,
+						Package: match.PackageParameter{
+							Name:    p.Name,
+							Version: p.Version,
 						},
-						"namespace": vuln.Namespace,
+						Namespace: vuln.Namespace,
 					},
-					Found: map[string]interface{}{
-						"vulnerabilityID":   vuln.ID,
-						"versionConstraint": vuln.Constraint.String(),
+					Found: match.DistroResult{
+						VulnerabilityID:   vuln.ID,
+						VersionConstraint: vuln.Constraint.String(),
 					},
 					Confidence: 1.0, // TODO: this is hard coded for now
 				},

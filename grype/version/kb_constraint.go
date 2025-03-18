@@ -45,6 +45,10 @@ func (c kbConstraint) Satisfied(version *Version) (bool, error) {
 	return c.expression.satisfied(KBFormat, version)
 }
 
+func (c kbConstraint) Format() Format {
+	return KBFormat
+}
+
 func (c kbConstraint) String() string {
 	if c.raw == "" {
 		return fmt.Sprintf("%q (kb)", c.raw) // with quotes

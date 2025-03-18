@@ -13,8 +13,9 @@ import (
 // Distro represents a Linux Distribution.
 type Distro struct {
 	Type     Type
-	Version  string
-	Codename string
+	Version  string // major.minor.patch
+	Codename string // in lieu of a version e.g. "fossa" instead of "20.04"
+	Variant  string // distinguish between variants of the same distro (e.g. "eus" for RHEL)
 	IDLike   []string
 
 	// fields populated in the constructor
@@ -24,10 +25,29 @@ type Distro struct {
 	remaining string
 }
 
+type VersionRangeTerminus struct {
+	MajorVersion string
+	MinorVersion string
+	Comparator   string
+}
+
 // New creates a new Distro object populated with the given values.
-func New(t Type, version, label string, idLikes ...string) (*Distro, error) {
-	var major, minor, remaining string
+func New(t Type, version, label string, idLikes ...string) *Distro {
+	var major, minor, remaining, variant string
 	if version != "" {
+
+		switch {
+		case strings.Contains(version, "+"):
+			vParts := strings.Split(version, "+")
+			version = vParts[0]
+			variant = vParts[1]
+
+			//case strings.Contains(version, "-"):
+			//	vParts := strings.Split(version, "-")
+			//	version = vParts[0]
+			//	variant = vParts[1]
+		}
+
 		// if starts with a digit, then assume it's a version and extract the major, minor, and remaining versions
 		if version[0] >= '0' && version[0] <= '9' {
 			// extract the major, minor, and remaining versions
@@ -52,18 +72,20 @@ func New(t Type, version, label string, idLikes ...string) (*Distro, error) {
 	}
 
 	return &Distro{
-		Type:      t,
+		Type:     t,
+		Version:  version,
+		Codename: label,
+		IDLike:   idLikes,
+		Variant:  variant,
+
 		major:     major,
 		minor:     minor,
 		remaining: remaining,
-		Version:   version,
-		Codename:  label,
-		IDLike:    idLikes,
-	}, nil
+	}
 }
 
 // NewFromNameVersion creates a new Distro object derived from the provided name and version
-func NewFromNameVersion(name, version string) (*Distro, error) {
+func NewFromNameVersion(name, version string) *Distro {
 	var codename string
 
 	// if there are no digits in the version, it is likely a codename
@@ -76,6 +98,7 @@ func NewFromNameVersion(name, version string) (*Distro, error) {
 	if typ == "" {
 		typ = Type(name)
 	}
+
 	return New(typ, version, codename, string(typ))
 }
 
@@ -116,7 +139,7 @@ func NewFromRelease(release linux.Release) (*Distro, error) {
 		selectedVersion = release.VersionID
 	}
 
-	return New(t, selectedVersion, release.VersionCodename, release.IDLike...)
+	return New(t, selectedVersion, release.VersionCodename, release.IDLike...), nil
 }
 
 func (d Distro) Name() string {
