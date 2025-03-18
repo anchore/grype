@@ -33,6 +33,10 @@ type AffectedPackageInfo struct {
 	// CPE is a Common Platform Enumeration that is affected by the vulnerability
 	CPE *CPE `json:"cpe,omitempty"`
 
+	// Namespace is a holdover value from the v5 DB schema that combines provider and search methods into a single value
+	// Deprecated: this field will be removed in a later version of the search schema
+	Namespace string `json:"namespace"`
+
 	// Detail is the detailed information about the affected package
 	Detail v6.AffectedPackageBlob `json:"detail"`
 }
@@ -110,10 +114,11 @@ func newAffectedPackageRows(affectedPkgs []affectedPackageWithDecorations, affec
 		rows = append(rows, AffectedPackage{
 			Vulnerability: newVulnerabilityInfo(*pkg.Vulnerability, pkg.vulnerabilityDecorations),
 			AffectedPackageInfo: AffectedPackageInfo{
-				Model:   &pkg.AffectedPackageHandle,
-				OS:      toOS(pkg.OperatingSystem),
-				Package: toPackage(pkg.Package),
-				Detail:  detail,
+				Model:     &pkg.AffectedPackageHandle,
+				OS:        toOS(pkg.OperatingSystem),
+				Package:   toPackage(pkg.Package),
+				Namespace: v6.MimicV5Namespace(pkg.Vulnerability, &pkg.AffectedPackageHandle),
+				Detail:    detail,
 			},
 		})
 	}
@@ -138,8 +143,9 @@ func newAffectedPackageRows(affectedPkgs []affectedPackageWithDecorations, affec
 			// tracking model information is not possible with CPE handles
 			Vulnerability: newVulnerabilityInfo(*ac.Vulnerability, ac.vulnerabilityDecorations),
 			AffectedPackageInfo: AffectedPackageInfo{
-				CPE:    c,
-				Detail: detail,
+				CPE:       c,
+				Namespace: v6.MimicV5Namespace(ac.Vulnerability, nil), // no affected package will default to NVD
+				Detail:    detail,
 			},
 		})
 	}

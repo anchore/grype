@@ -62,10 +62,11 @@ func newMatchesRows(affectedPkgs []affectedPackageWithDecorations, affectedCPEs 
 		}
 
 		aff := AffectedPackageInfo{
-			Model:   &pkg.AffectedPackageHandle,
-			OS:      toOS(pkg.OperatingSystem),
-			Package: toPackage(pkg.Package),
-			Detail:  detail,
+			Model:     &pkg.AffectedPackageHandle,
+			OS:        toOS(pkg.OperatingSystem),
+			Package:   toPackage(pkg.Package),
+			Namespace: v6.MimicV5Namespace(pkg.Vulnerability, &pkg.AffectedPackageHandle),
+			Detail:    detail,
 		}
 
 		affectedPkgsByVuln[pkg.Vulnerability.ID] = append(affectedPkgsByVuln[pkg.Vulnerability.ID], aff)
@@ -94,8 +95,9 @@ func newMatchesRows(affectedPkgs []affectedPackageWithDecorations, affectedCPEs 
 
 		aff := AffectedPackageInfo{
 			// tracking model information is not possible with CPE handles
-			CPE:    c,
-			Detail: detail,
+			CPE:       c,
+			Namespace: v6.MimicV5Namespace(ac.Vulnerability, nil), // no affected package will default to NVD
+			Detail:    detail,
 		}
 
 		affectedPkgsByVuln[ac.Vulnerability.ID] = append(affectedPkgsByVuln[ac.Vulnerability.ID], aff)
