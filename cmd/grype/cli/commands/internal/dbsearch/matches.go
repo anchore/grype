@@ -41,7 +41,7 @@ func (m Matches) Flatten() []AffectedPackage {
 	return rows
 }
 
-func newMatchesRows(affectedPkgs []affectedPackageWithDecorations, affectedCPEs []affectedCPEWithDecorations) (rows []Match, retErr error) {
+func newMatchesRows(affectedPkgs []affectedPackageWithDecorations, affectedCPEs []affectedCPEWithDecorations) (rows []Match, retErr error) { // nolint:funlen
 	var affectedPkgsByVuln = make(map[v6.ID][]AffectedPackageInfo)
 	var vulnsByID = make(map[v6.ID]v6.VulnerabilityHandle)
 	var decorationsByID = make(map[v6.ID]vulnerabilityDecorations)
