@@ -102,7 +102,9 @@ func Hydrater() func(string) error {
 		// we don't pass any data initialization here because the data is already in the db archive and we do not want
 		// to affect the entries themselves, only indexes and schema.
 		s, err := newStore(Config{DBDirPath: path}, false, true)
-		log.CloseAndLogError(s, path)
+		if s != nil {
+			log.CloseAndLogError(s, path)
+		}
 		return err
 	}
 }
