@@ -65,17 +65,16 @@ func newStore(cfg Config, empty, writable bool) (*store, error) {
 	}
 
 	meta, err := metadataStore.GetDBMetadata()
-	if err != nil {
+	if err != nil || meta == nil || meta.Model != ModelVersion {
 		// db.Close must be called, or we will get stale reads
 		d, _ := db.DB()
 		if d != nil {
 			_ = d.Close()
 		}
-		return nil, fmt.Errorf("failed to get db metadata: %w", err)
-	}
-
-	if meta == nil {
-		return nil, fmt.Errorf("no DB metadata found")
+		if err != nil {
+			return nil, fmt.Errorf("not a v%d database: %w", ModelVersion, err)
+		}
+		return nil, fmt.Errorf("not a v%d database", ModelVersion)
 	}
 
 	dbVersion := newSchemaVerFromDBMetadata(*meta)
