@@ -84,6 +84,7 @@ func (m *Matcher) matchUpstreamMavenPackages(store vulnerability.Provider, p pkg
 	if metadata, ok := p.Metadata.(pkg.JavaMetadata); ok {
 		// If the artifact and group ID exist, match the package directly without searching Maven
 		if metadata.PomArtifactID != "" && metadata.PomGroupID != "" {
+			log.Debugf("skipping maven search, POM data present for %s", p.Name)
 			indirectMatches, _, err := internal.MatchPackageByLanguage(store, p, m.Type())
 			if err != nil {
 				return nil, err
@@ -93,6 +94,7 @@ func (m *Matcher) matchUpstreamMavenPackages(store vulnerability.Provider, p pkg
 			// If the artifact and group ID exist is missing, attempt Maven lookup using SHA-1
 			for _, digest := range metadata.ArchiveDigests {
 				if digest.Algorithm == "sha1" {
+					log.Debugf("searching maven, POM data missing for %s", p.Name)
 					indirectPackage, err := m.GetMavenPackageBySha(ctx, digest.Value)
 					if err != nil {
 						return nil, err
