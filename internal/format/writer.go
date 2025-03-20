@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/anchore/go-homedir"
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/anchore/go-homedir"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"

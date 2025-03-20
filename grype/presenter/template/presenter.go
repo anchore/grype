@@ -8,9 +8,9 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
-	"github.com/anchore/go-homedir"
 
 	"github.com/anchore/clio"
+	"github.com/anchore/go-homedir"
 	"github.com/anchore/grype/grype/presenter/models"
 )
 

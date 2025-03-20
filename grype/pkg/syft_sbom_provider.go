@@ -8,9 +8,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/anchore/go-homedir"
 	"github.com/gabriel-vasile/mimetype"
 
+	"github.com/anchore/go-homedir"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/format"

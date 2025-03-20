@@ -69,6 +69,36 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
+			name: "dpkg archive with source info",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.DpkgArchiveEntry{
+					Package:       "pkg-info",
+					Source:        "src-info",
+					Version:       "version-info",
+					SourceVersion: "src-version-info",
+					Architecture:  "arch-info",
+					Maintainer:    "maintainer-info",
+					InstalledSize: 10,
+					Files: []syftPkg.DpkgFileRecord{
+						{
+							Path: "path-info",
+							Digest: &file.Digest{
+								Algorithm: "algo-info",
+								Value:     "digest-info",
+							},
+							IsConfigFile: true,
+						},
+					},
+				},
+			},
+			upstreams: []UpstreamPackage{
+				{
+					Name:    "src-info",
+					Version: "src-version-info",
+				},
+			},
+		},
+		{
 			name: "rpm archive with source info",
 			syftPkg: syftPkg.Package{
 				Metadata: syftPkg.RpmArchive{
