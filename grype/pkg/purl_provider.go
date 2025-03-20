@@ -7,9 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/mitchellh/go-homedir"
 	"github.com/scylladb/go-set/strset"
 
+	"github.com/anchore/go-homedir"
 	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/linux"

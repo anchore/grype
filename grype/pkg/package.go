@@ -204,6 +204,8 @@ func dataFromPkg(p syftPkg.Package) (interface{}, []UpstreamPackage) {
 		metadata = golangMetadataFromPkg(p)
 	case syftPkg.DpkgDBEntry:
 		upstreams = dpkgDataFromPkg(p)
+	case syftPkg.DpkgArchiveEntry:
+		upstreams = dpkgDataFromPkg(p)
 	case syftPkg.RpmArchive, syftPkg.RpmDBEntry:
 		m, u := rpmDataFromPkg(p)
 		upstreams = u
@@ -277,16 +279,25 @@ func golangMetadataFromPkg(p syftPkg.Package) interface{} {
 }
 
 func dpkgDataFromPkg(p syftPkg.Package) (upstreams []UpstreamPackage) {
-	if value, ok := p.Metadata.(syftPkg.DpkgDBEntry); ok {
+	switch value := p.Metadata.(type) {
+	case syftPkg.DpkgDBEntry:
 		if value.Source != "" {
 			upstreams = append(upstreams, UpstreamPackage{
 				Name:    value.Source,
 				Version: value.SourceVersion,
 			})
 		}
-	} else {
+	case syftPkg.DpkgArchiveEntry:
+		if value.Source != "" {
+			upstreams = append(upstreams, UpstreamPackage{
+				Name:    value.Source,
+				Version: value.SourceVersion,
+			})
+		}
+	default:
 		log.Warnf("unable to extract DPKG metadata for %s", p)
 	}
+
 	return upstreams
 }
 
