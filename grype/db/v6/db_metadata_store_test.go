@@ -19,6 +19,17 @@ func TestDbMetadataStore_empty(t *testing.T) {
 	require.NotNil(t, actualMetadata)
 }
 
+func TestDbMetadataStore_oldDb(t *testing.T) {
+	db := setupTestStore(t).db
+	require.NoError(t, db.Where("true").Model(DBMetadata{}).Update("Model", "5").Error) // old database version
+	s := newDBMetadataStore(db)
+
+	// attempt to fetch a non-existent record
+	actualMetadata, err := s.GetDBMetadata()
+	require.NoError(t, err)
+	require.NotNil(t, actualMetadata)
+}
+
 func TestDbMetadataStore(t *testing.T) {
 	s := newDBMetadataStore(setupTestStore(t).db)
 

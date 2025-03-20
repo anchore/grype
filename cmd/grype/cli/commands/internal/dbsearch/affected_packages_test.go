@@ -49,8 +49,9 @@ func TestAffectedPackageTableRowMarshalJSON(t *testing.T) {
 			},
 		},
 		AffectedPackageInfo: AffectedPackageInfo{
-			Package: &Package{Name: "pkg1", Ecosystem: "ecosystem1"},
-			CPE:     &CPE{Part: "a", Vendor: "vendor1", Product: "product1"},
+			Package:   &Package{Name: "pkg1", Ecosystem: "ecosystem1"},
+			CPE:       &CPE{Part: "a", Vendor: "vendor1", Product: "product1"},
+			Namespace: "namespace1",
 			Detail: v6.AffectedPackageBlob{
 				CVEs: []string{"CVE-1234-5678"},
 				Qualifiers: &v6.AffectedPackageQualifiers{
@@ -120,6 +121,7 @@ func TestAffectedPackageTableRowMarshalJSON(t *testing.T) {
     "ecosystem": "ecosystem1"
   },
   "cpe": "cpe:2.3:a:vendor1:product1:*:*:*:*:*:*",
+  "namespace": "namespace1",
   "detail": {
     "cves": [
       "CVE-1234-5678"
@@ -301,8 +303,9 @@ func TestNewAffectedPackageRows(t *testing.T) {
 				},
 			},
 			AffectedPackageInfo: AffectedPackageInfo{
-				OS:      &OperatingSystem{Name: "Linux", Version: "5.10"},
-				Package: &Package{Name: "pkg1", Ecosystem: "ecosystem1"},
+				OS:        &OperatingSystem{Name: "Linux", Version: "5.10"},
+				Package:   &Package{Name: "pkg1", Ecosystem: "ecosystem1"},
+				Namespace: "provider1:distro:Linux:5.10",
 				Detail: v6.AffectedPackageBlob{
 					CVEs: []string{"CVE-1234-5678"},
 					Qualifiers: &v6.AffectedPackageQualifiers{
@@ -352,7 +355,8 @@ func TestNewAffectedPackageRows(t *testing.T) {
 				},
 			},
 			AffectedPackageInfo: AffectedPackageInfo{
-				CPE: &CPE{Part: "a", Vendor: "vendor1", Product: "product1"},
+				CPE:       &CPE{Part: "a", Vendor: "vendor1", Product: "product1"},
+				Namespace: "nvd:cpe",
 				Detail: v6.AffectedPackageBlob{
 					CVEs: []string{"CVE-9876-5432"},
 					Ranges: []v6.AffectedRange{
@@ -535,8 +539,9 @@ func TestAffectedPackages(t *testing.T) {
 				},
 			},
 			AffectedPackageInfo: AffectedPackageInfo{
-				OS:      &OperatingSystem{Name: "Linux", Version: "5.10"},
-				Package: &Package{Name: "pkg1", Ecosystem: "ecosystem1"},
+				OS:        &OperatingSystem{Name: "Linux", Version: "5.10"},
+				Package:   &Package{Name: "pkg1", Ecosystem: "ecosystem1"},
+				Namespace: "provider1:distro:Linux:5.10",
 				Detail: v6.AffectedPackageBlob{
 					CVEs: []string{"CVE-1234-5678"},
 					Ranges: []v6.AffectedRange{
@@ -582,7 +587,8 @@ func TestAffectedPackages(t *testing.T) {
 				},
 			},
 			AffectedPackageInfo: AffectedPackageInfo{
-				CPE: &CPE{Part: "a", Vendor: "vendor1", Product: "product1"},
+				CPE:       &CPE{Part: "a", Vendor: "vendor1", Product: "product1"},
+				Namespace: "nvd:cpe",
 				Detail: v6.AffectedPackageBlob{
 					CVEs: []string{"CVE-9876-5432"},
 					Ranges: []v6.AffectedRange{
