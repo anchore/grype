@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/mitchellh/go-homedir"
+	"github.com/anchore/go-homedir"
 	"github.com/scylladb/go-set/strset"
 
 	"github.com/anchore/packageurl-go"
