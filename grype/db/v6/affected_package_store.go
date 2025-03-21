@@ -97,6 +97,9 @@ type OSSpecifier struct {
 	// MinorVersion is the second field in the VERSION_ID field in /etc/os-release (e.g. 0 in "7.0.1406")
 	MinorVersion string
 
+	// RemainingVersion is anything after the minor version in the VERSION_ID field in /etc/os-release (e.g. 1406 in "7.0.1406")
+	RemainingVersion string
+
 	// LabelVersion is a string that represents a floating version (e.g. "edge" or "unstable") or is the CODENAME field in /etc/os-release (e.g. "wheezy" for debian 7)
 	LabelVersion string
 }
@@ -112,10 +115,7 @@ func (d *OSSpecifier) String() string {
 
 	var version string
 	if d.MajorVersion != "" {
-		version = d.MajorVersion
-		if d.MinorVersion != "" {
-			version += "." + d.MinorVersion
-		}
+		version = d.version()
 	} else {
 		version = d.LabelVersion
 	}
@@ -132,19 +132,17 @@ func (d *OSSpecifier) String() string {
 }
 
 func (d OSSpecifier) version() string {
-	if d.MajorVersion != "" && d.MinorVersion != "" {
-		return d.MajorVersion + "." + d.MinorVersion
-	}
-
 	if d.MajorVersion != "" {
+		if d.MinorVersion != "" {
+			if d.RemainingVersion != "" {
+				return d.MajorVersion + "." + d.MinorVersion + "." + d.RemainingVersion
+			}
+			return d.MajorVersion + "." + d.MinorVersion
+		}
 		return d.MajorVersion
 	}
 
-	if d.LabelVersion != "" {
-		return d.LabelVersion
-	}
-
-	return ""
+	return d.LabelVersion
 }
 
 func (d OSSpecifiers) String() string {
