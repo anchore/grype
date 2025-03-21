@@ -21,7 +21,7 @@ func TestMatches(t *testing.T) {
 
 	// TODO: it would be ideal to test against something that constructs the namespace based on grype-db
 	// and not break the adaption of grype-db
-	msrcNamespace := fmt.Sprintf("msrc:distro:windows:%s", d.RawVersion)
+	msrcNamespace := fmt.Sprintf("msrc:distro:windows:%s", d.Version)
 
 	vp := mock.VulnerabilityProvider([]vulnerability.Vulnerability{
 		{
@@ -29,7 +29,7 @@ func TestMatches(t *testing.T) {
 				ID:        "CVE-2016-3333",
 				Namespace: msrcNamespace,
 			},
-			PackageName: d.RawVersion,
+			PackageName: d.Version,
 			Constraint:  version.MustGetConstraint("3200970 || 878787 || base", version.KBFormat),
 		},
 		{
@@ -38,7 +38,7 @@ func TestMatches(t *testing.T) {
 				ID:        "CVE-2020-made-up",
 				Namespace: msrcNamespace,
 			},
-			PackageName: d.RawVersion,
+			PackageName: d.Version,
 			Constraint:  version.MustGetConstraint("778786 || 878787 || base", version.KBFormat),
 		},
 		// Does not match the product ID
@@ -61,7 +61,7 @@ func TestMatches(t *testing.T) {
 			name: "direct KB match",
 			pkg: pkg.Package{
 				ID:      pkg.ID(uuid.NewString()),
-				Name:    d.RawVersion,
+				Name:    d.Version,
 				Version: "3200970",
 				Type:    syftPkg.KbPkg,
 				Distro:  d,
@@ -74,7 +74,7 @@ func TestMatches(t *testing.T) {
 			name: "multiple direct KB match",
 			pkg: pkg.Package{
 				ID:      pkg.ID(uuid.NewString()),
-				Name:    d.RawVersion,
+				Name:    d.Version,
 				Version: "878787",
 				Type:    syftPkg.KbPkg,
 				Distro:  d,
@@ -88,7 +88,7 @@ func TestMatches(t *testing.T) {
 			name: "no KBs found",
 			pkg: pkg.Package{
 				ID:   pkg.ID(uuid.NewString()),
-				Name: d.RawVersion,
+				Name: d.Version,
 				// this is the assumed version if no KBs are found
 				Version: "base",
 				Type:    syftPkg.KbPkg,

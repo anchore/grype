@@ -42,7 +42,7 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 		//
 		// depending where the team is during the development cycle you will see different behavior, making automating
 		// this a little challenging.
-		{Alias: "debian", Codename: "trixie", Rolling: true}, // is currently sid, which is considered rolling
+		{Alias: "debian", Codename: "trixie", Rolling: true, ReplacementLabelVersion: strRef("unstable")}, // is currently sid, which is considered rolling
 	}
 }
 

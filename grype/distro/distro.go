@@ -11,29 +11,46 @@ import (
 
 // Distro represents a Linux Distribution.
 type Distro struct {
-	Type       Type
-	Version    *hashiVer.Version
-	RawVersion string
-	IDLike     []string
+	Type     Type
+	Version  string
+	Codename string
+	IDLike   []string
+
+	// fields populated in the constructor
+
+	major     string
+	minor     string
+	remaining string
 }
 
 // New creates a new Distro object populated with the given values.
-func New(t Type, version string, idLikes ...string) (*Distro, error) {
-	var verObj *hashiVer.Version
-	var err error
-
+func New(t Type, version, label string, idLikes ...string) (*Distro, error) {
+	var major, minor, remaining string
 	if version != "" {
-		verObj, err = hashiVer.NewVersion(version)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse version: %w", err)
+		// if starts with a digit, then assume it's a version and extract the major, minor, and remaining versions
+		if version[0] >= '0' && version[0] <= '9' {
+			// extract the major, minor, and remaining versions
+			parts := strings.Split(version, ".")
+			if len(parts) > 0 {
+				major = parts[0]
+				if len(parts) > 1 {
+					minor = parts[1]
+				}
+				if len(parts) > 2 {
+					remaining = strings.Join(parts[2:], ".")
+				}
+			}
 		}
 	}
 
 	return &Distro{
-		Type:       t,
-		Version:    verObj,
-		RawVersion: version,
-		IDLike:     idLikes,
+		Type:      t,
+		major:     major,
+		minor:     minor,
+		remaining: remaining,
+		Version:   version,
+		Codename:  label,
+		IDLike:    idLikes,
 	}, nil
 }
 
@@ -51,21 +68,18 @@ func NewFromRelease(release linux.Release) (*Distro, error) {
 			continue
 		}
 
-		if _, err := hashiVer.NewVersion(version); err == nil {
+		_, err := hashiVer.NewVersion(version)
+		if err == nil {
 			selectedVersion = version
 			break
 		}
 	}
 
-	if t == Debian && release.VersionID == "" && release.Version == "" && strings.Contains(release.PrettyName, "sid") {
-		return &Distro{
-			Type:       t,
-			RawVersion: "unstable",
-			IDLike:     release.IDLike,
-		}, nil
+	if selectedVersion == "" {
+		selectedVersion = release.VersionID
 	}
 
-	return New(t, selectedVersion, release.IDLike...)
+	return New(t, selectedVersion, release.VersionCodename, release.IDLike...)
 }
 
 func (d Distro) Name() string {
@@ -74,44 +88,25 @@ func (d Distro) Name() string {
 
 // MajorVersion returns the major version value from the pseudo-semantically versioned distro version value.
 func (d Distro) MajorVersion() string {
-	if d.Version == nil {
-		return strings.Split(d.RawVersion, ".")[0]
-	}
-	return fmt.Sprintf("%d", d.Version.Segments()[0])
+	return d.major
 }
 
 // MinorVersion returns the minor version value from the pseudo-semantically versioned distro version value.
 func (d Distro) MinorVersion() string {
-	if d.Version == nil {
-		parts := strings.Split(d.RawVersion, ".")
-		if len(parts) > 1 {
-			return parts[1]
-		}
-		return ""
-	}
-	parts := d.Version.Segments()
-	if len(parts) > 1 {
-		return fmt.Sprintf("%d", parts[1])
-	}
-	return ""
+	return d.minor
 }
 
-// FullVersion returns the original user version value.
-func (d Distro) FullVersion() string {
-	return d.RawVersion
+func (d Distro) RemainingVersion() string {
+	return d.remaining
 }
 
 // String returns a human-friendly representation of the Linux distribution.
 func (d Distro) String() string {
 	versionStr := "(version unknown)"
-	if d.RawVersion != "" {
-		versionStr = d.RawVersion
+	if d.Version != "" {
+		versionStr = d.Version
 	}
 	return fmt.Sprintf("%s %s", d.Type, versionStr)
-}
-
-func (d Distro) IsRolling() bool {
-	return d.Type == Wolfi || d.Type == Chainguard || d.Type == ArchLinux || d.Type == Gentoo
 }
 
 // Unsupported Linux distributions

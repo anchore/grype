@@ -3,6 +3,8 @@ package distro
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -14,12 +16,12 @@ import (
 
 func Test_NewDistroFromRelease(t *testing.T) {
 	tests := []struct {
-		name               string
-		release            linux.Release
-		expectedVersion    string
-		expectedRawVersion string
-		expectedType       Type
-		expectErr          bool
+		name      string
+		release   linux.Release
+		expected  *Distro
+		minor     string
+		major     string
+		expectErr require.ErrorAssertionFunc
 	}{
 		{
 			name: "go case: derive version from version-id",
@@ -28,9 +30,12 @@ func Test_NewDistroFromRelease(t *testing.T) {
 				VersionID: "8",
 				Version:   "7",
 			},
-			expectedType:       CentOS,
-			expectedRawVersion: "8",
-			expectedVersion:    "8.0.0",
+			expected: &Distro{
+				Type:    CentOS,
+				Version: "8",
+			},
+			major: "8",
+			minor: "",
 		},
 		{
 			name: "fallback to release name when release id is missing",
@@ -38,9 +43,12 @@ func Test_NewDistroFromRelease(t *testing.T) {
 				Name:      "windows",
 				VersionID: "8",
 			},
-			expectedType:       Windows,
-			expectedRawVersion: "8",
-			expectedVersion:    "8.0.0",
+			expected: &Distro{
+				Type:    Windows,
+				Version: "8",
+			},
+			major: "8",
+			minor: "",
 		},
 		{
 			name: "fallback to version when version-id missing",
@@ -48,16 +56,22 @@ func Test_NewDistroFromRelease(t *testing.T) {
 				ID:      "centos",
 				Version: "8",
 			},
-			expectedType:       CentOS,
-			expectedRawVersion: "8",
-			expectedVersion:    "8.0.0",
+			expected: &Distro{
+				Type:    CentOS,
+				Version: "8",
+			},
+			major: "8",
+			minor: "",
 		},
 		{
-			name: "missing version results in error",
+			// this enables matching on multiple OS versions at once
+			name: "missing version or label version is allowed",
 			release: linux.Release{
 				ID: "centos",
 			},
-			expectedType: CentOS,
+			expected: &Distro{
+				Type: CentOS,
+			},
 		},
 		{
 			name: "bogus distro type results in error",
@@ -65,7 +79,7 @@ func Test_NewDistroFromRelease(t *testing.T) {
 				ID:        "bogosity",
 				VersionID: "8",
 			},
-			expectErr: true,
+			expectErr: require.Error,
 		},
 		{
 			// syft -o json debian:testing | jq .distro
@@ -78,9 +92,12 @@ func Test_NewDistroFromRelease(t *testing.T) {
 				VersionCodename: "trixie",
 				Name:            "Debian GNU/Linux",
 			},
-			expectedType:       Debian,
-			expectedRawVersion: "unstable",
-			expectedVersion:    "",
+			expected: &Distro{
+				Type:     Debian,
+				Codename: "trixie",
+			},
+			major: "",
+			minor: "",
 		},
 		{
 			name: "azure linux 3",
@@ -89,162 +106,38 @@ func Test_NewDistroFromRelease(t *testing.T) {
 				Version:   "3.0.20240417",
 				VersionID: "3.0",
 			},
-			expectedType:       Azure,
-			expectedRawVersion: "3.0",
+			expected: &Distro{
+				Type:    Azure,
+				Version: "3.0",
+			},
+			major: "3",
+			minor: "0",
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			d, err := NewFromRelease(test.release)
-			if test.expectErr {
-				require.Error(t, err)
-				return
-			} else {
-				require.NoError(t, err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.expectErr == nil {
+				tt.expectErr = require.NoError
 			}
 
-			assert.Equal(t, test.expectedType, d.Type)
-			if test.expectedVersion != "" {
-				assert.Equal(t, test.expectedVersion, d.Version.String())
+			distro, err := NewFromRelease(tt.release)
+			tt.expectErr(t, err)
+			if err != nil {
+				return
 			}
-			if test.expectedRawVersion != "" {
-				assert.Equal(t, test.expectedRawVersion, d.FullVersion())
+
+			if d := cmp.Diff(tt.expected, distro, cmpopts.IgnoreUnexported(Distro{})); d != "" {
+				t.Errorf("unexpected result: %s", d)
 			}
+			assert.Equal(t, tt.major, distro.MajorVersion(), "unexpected major version")
+			assert.Equal(t, tt.minor, distro.MinorVersion(), "unexpected minor version")
 		})
 	}
 
 }
 
 func Test_NewDistroFromRelease_Coverage(t *testing.T) {
-	tests := []struct {
-		fixture string
-		Type    Type
-		Version string
-	}{
-		{
-			fixture: "test-fixtures/os/alpine",
-			Type:    Alpine,
-			Version: "3.11.6",
-		},
-		{
-			fixture: "test-fixtures/os/amazon",
-			Type:    AmazonLinux,
-			Version: "2.0.0",
-		},
-		{
-			fixture: "test-fixtures/os/busybox",
-			Type:    Busybox,
-			Version: "1.31.1",
-		},
-		{
-			fixture: "test-fixtures/os/centos",
-			Type:    CentOS,
-			Version: "8.0.0",
-		},
-		{
-			fixture: "test-fixtures/os/debian",
-			Type:    Debian,
-			Version: "8.0.0",
-		},
-		{
-			fixture: "test-fixtures/os/fedora",
-			Type:    Fedora,
-			Version: "31.0.0",
-		},
-		{
-			fixture: "test-fixtures/os/redhat",
-			Type:    RedHat,
-			Version: "7.3.0",
-		},
-		{
-			fixture: "test-fixtures/os/ubuntu",
-			Type:    Ubuntu,
-			Version: "20.4.0",
-		},
-		{
-			fixture: "test-fixtures/os/oraclelinux",
-			Type:    OracleLinux,
-			Version: "8.3.0",
-		},
-		{
-			fixture: "test-fixtures/os/custom",
-			Type:    RedHat,
-			Version: "8.0.0",
-		},
-		{
-			fixture: "test-fixtures/os/opensuse-leap",
-			Type:    OpenSuseLeap,
-			Version: "15.2.0",
-		},
-		{
-			fixture: "test-fixtures/os/sles",
-			Type:    SLES,
-			Version: "15.2.0",
-		},
-		{
-			fixture: "test-fixtures/os/photon",
-			Type:    Photon,
-			Version: "2.0.0",
-		},
-		{
-			fixture: "test-fixtures/os/arch",
-			Type:    ArchLinux,
-		},
-		{
-			fixture: "test-fixtures/partial-fields/missing-id",
-			Type:    Debian,
-			Version: "8.0.0",
-		},
-		{
-			fixture: "test-fixtures/partial-fields/unknown-id",
-			Type:    Debian,
-			Version: "8.0.0",
-		},
-		{
-			fixture: "test-fixtures/os/centos6",
-			Type:    CentOS,
-			Version: "6.0.0",
-		},
-		{
-			fixture: "test-fixtures/os/centos5",
-			Type:    CentOS,
-			Version: "5.7.0",
-		},
-		{
-			fixture: "test-fixtures/os/mariner",
-			Type:    Mariner,
-			Version: "1.0.0",
-		},
-		{
-			fixture: "test-fixtures/os/azurelinux",
-			Type:    Azure,
-			Version: "3.0.0",
-		},
-		{
-			fixture: "test-fixtures/os/rockylinux",
-			Type:    RockyLinux,
-			Version: "8.4.0",
-		},
-		{
-			fixture: "test-fixtures/os/almalinux",
-			Type:    AlmaLinux,
-			Version: "8.4.0",
-		},
-		{
-			fixture: "test-fixtures/os/gentoo",
-			Type:    Gentoo,
-		},
-		{
-			fixture: "test-fixtures/os/wolfi",
-			Type:    Wolfi,
-		},
-		{
-			fixture: "test-fixtures/os/chainguard",
-			Type:    Chainguard,
-		},
-	}
-
 	observedDistros := stringutil.NewStringSet()
 	definedDistros := stringutil.NewStringSet()
 
@@ -256,9 +149,151 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 	// possible to comply with this test unless it is added manually to the "observed distros"
 	definedDistros.Remove(string(Windows))
 
-	for _, test := range tests {
-		t.Run(test.fixture, func(t *testing.T) {
-			s, err := directorysource.NewFromPath(test.fixture)
+	tests := []struct {
+		Name         string
+		Type         Type
+		Version      string
+		LabelVersion string
+	}{
+		{
+			Name:    "test-fixtures/os/alpine",
+			Type:    Alpine,
+			Version: "3.11.6",
+		},
+		{
+			Name:    "test-fixtures/os/alpine-edge",
+			Type:    Alpine,
+			Version: "3.22.0_alpha20250108",
+		},
+		{
+			Name:    "test-fixtures/os/amazon",
+			Type:    AmazonLinux,
+			Version: "2",
+		},
+		{
+			Name:    "test-fixtures/os/busybox",
+			Type:    Busybox,
+			Version: "1.31.1",
+		},
+		{
+			Name:    "test-fixtures/os/centos",
+			Type:    CentOS,
+			Version: "8",
+		},
+		{
+			Name:    "test-fixtures/os/debian",
+			Type:    Debian,
+			Version: "8",
+		},
+		{
+			Name:         "test-fixtures/os/debian-sid",
+			Type:         Debian,
+			LabelVersion: "trixie",
+		},
+		{
+			Name:    "test-fixtures/os/fedora",
+			Type:    Fedora,
+			Version: "31",
+		},
+		{
+			Name:    "test-fixtures/os/redhat",
+			Type:    RedHat,
+			Version: "7.3",
+		},
+		{
+			Name:         "test-fixtures/os/ubuntu",
+			Type:         Ubuntu,
+			Version:      "20.04",
+			LabelVersion: "focal",
+		},
+		{
+			Name:    "test-fixtures/os/oraclelinux",
+			Type:    OracleLinux,
+			Version: "8.3",
+		},
+		{
+			Name:    "test-fixtures/os/custom",
+			Type:    RedHat,
+			Version: "8",
+		},
+		{
+			Name:    "test-fixtures/os/opensuse-leap",
+			Type:    OpenSuseLeap,
+			Version: "15.2",
+		},
+		{
+			Name:    "test-fixtures/os/sles",
+			Type:    SLES,
+			Version: "15.2",
+		},
+		{
+			Name:    "test-fixtures/os/photon",
+			Type:    Photon,
+			Version: "2.0",
+		},
+		{
+			Name: "test-fixtures/os/arch",
+			Type: ArchLinux,
+		},
+		{
+			Name:    "test-fixtures/partial-fields/missing-id",
+			Type:    Debian,
+			Version: "8",
+		},
+		{
+			Name:    "test-fixtures/partial-fields/unknown-id",
+			Type:    Debian,
+			Version: "8",
+		},
+		{
+			Name:    "test-fixtures/os/centos6",
+			Type:    CentOS,
+			Version: "6",
+		},
+		{
+			Name:    "test-fixtures/os/centos5",
+			Type:    CentOS,
+			Version: "5.7",
+		},
+		{
+			Name:    "test-fixtures/os/mariner",
+			Type:    Mariner,
+			Version: "1.0",
+		},
+		{
+			Name:    "test-fixtures/os/azurelinux",
+			Type:    Azure,
+			Version: "3.0",
+		},
+		{
+			Name:    "test-fixtures/os/rockylinux",
+			Type:    RockyLinux,
+			Version: "8.4",
+		},
+		{
+			Name:    "test-fixtures/os/almalinux",
+			Type:    AlmaLinux,
+			Version: "8.4",
+		},
+		{
+			Name: "test-fixtures/os/gentoo",
+			Type: Gentoo,
+		},
+		{
+			Name:    "test-fixtures/os/wolfi",
+			Type:    Wolfi,
+			Version: "20220914",
+		},
+		{
+			Name:    "test-fixtures/os/chainguard",
+			Type:    Chainguard,
+			Version: "20230214",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			s, err := directorysource.NewFromPath(tt.Name)
 			require.NoError(t, err)
 
 			resolver, err := s.FileResolver(source.SquashedScope)
@@ -274,10 +309,9 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 
 			observedDistros.Add(d.Type.String())
 
-			assert.Equal(t, test.Type, d.Type)
-			if test.Version != "" {
-				assert.Equal(t, d.Version.String(), test.Version)
-			}
+			assert.Equal(t, tt.Type, d.Type, "unexpected distro type")
+			assert.Equal(t, tt.LabelVersion, d.Codename, "unexpected label version")
+			assert.Equal(t, tt.Version, d.Version, "unexpected version")
 		})
 	}
 
@@ -324,7 +358,7 @@ func TestDistro_FullVersion(t *testing.T) {
 				Version: test.version,
 			})
 			require.NoError(t, err)
-			assert.Equal(t, test.expected, d.FullVersion())
+			assert.Equal(t, test.expected, d.Version)
 		})
 	}
 

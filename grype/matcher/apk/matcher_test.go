@@ -61,7 +61,7 @@ func TestSecDBOnlyMatch(t *testing.T) {
 					SearchedBy: map[string]interface{}{
 						"distro": map[string]string{
 							"type":    d.Type.String(),
-							"version": d.RawVersion,
+							"version": d.Version,
 						},
 						"package": map[string]string{
 							"name":    "libvncserver",
@@ -140,7 +140,7 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 					SearchedBy: map[string]interface{}{
 						"distro": map[string]string{
 							"type":    d.Type.String(),
-							"version": d.RawVersion,
+							"version": d.Version,
 						},
 						"package": map[string]string{
 							"name":    "libvncserver",
@@ -226,7 +226,7 @@ func TestBothSecdbAndNvdMatches_DifferentFixInfo(t *testing.T) {
 					SearchedBy: map[string]interface{}{
 						"distro": map[string]string{
 							"type":    d.Type.String(),
-							"version": d.RawVersion,
+							"version": d.Version,
 						},
 						"package": map[string]string{
 							"name":    "libvncserver",
@@ -306,7 +306,7 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 					SearchedBy: map[string]interface{}{
 						"distro": map[string]string{
 							"type":    d.Type.String(),
-							"version": d.RawVersion,
+							"version": d.Version,
 						},
 						"package": map[string]string{
 							"name":    "libvncserver",
@@ -659,7 +659,7 @@ func TestNVDMatchCanceledByOriginPackageInSecDB(t *testing.T) {
 	vp := mock.VulnerabilityProvider(nvdVuln, secDBVuln)
 
 	m := Matcher{}
-	d, err := distro.New(distro.Wolfi, "")
+	d, err := distro.New(distro.Wolfi, "", "")
 	if err != nil {
 		t.Fatalf("failed to create a new distro: %+v", err)
 	}
@@ -734,7 +734,7 @@ func TestDistroMatchBySourceIndirection(t *testing.T) {
 					SearchedBy: map[string]interface{}{
 						"distro": map[string]string{
 							"type":    d.Type.String(),
-							"version": d.RawVersion,
+							"version": d.Version,
 						},
 						"package": map[string]string{
 							"name":    "musl",
@@ -805,7 +805,7 @@ func TestSecDBMatchesStillCountedWithCpeErrors(t *testing.T) {
 					SearchedBy: map[string]interface{}{
 						"distro": map[string]string{
 							"type":    d.Type.String(),
-							"version": d.RawVersion,
+							"version": d.Version,
 						},
 						"package": map[string]string{
 							"name":    "musl",
@@ -903,6 +903,7 @@ func assertMatches(t *testing.T, expected, actual []match.Match) {
 	var opts = []cmp.Option{
 		cmpopts.IgnoreFields(vulnerability.Vulnerability{}, "Constraint"),
 		cmpopts.IgnoreFields(pkg.Package{}, "Locations"),
+		cmpopts.IgnoreUnexported(distro.Distro{}),
 	}
 
 	if diff := cmp.Diff(expected, actual, opts...); diff != "" {

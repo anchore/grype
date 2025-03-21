@@ -1,0 +1,6 @@
+NAME="Alpine Linux"
+ID=alpine
+VERSION_ID=3.22.0_alpha20250108
+PRETTY_NAME="Alpine Linux edge"
+HOME_URL="https://alpinelinux.org/"
+BUG_REPORT_URL="https://gitlab.alpinelinux.org/alpine/aports/-/issues"

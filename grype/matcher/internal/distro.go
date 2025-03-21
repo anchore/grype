@@ -54,7 +54,7 @@ func MatchPackageByDistro(provider vulnerability.Provider, p pkg.Package, upstre
 					SearchedBy: map[string]interface{}{
 						"distro": map[string]string{
 							"type":    p.Distro.Type.String(),
-							"version": p.Distro.RawVersion,
+							"version": p.Distro.Version,
 						},
 						// why include the package information? The given package searched with may be a source package
 						// for another package that is installed on the system. This makes it apparent exactly what

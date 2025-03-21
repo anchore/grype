@@ -63,13 +63,11 @@ func matchesDistro(d *distro.Distro, ns *distroNs.Namespace) bool {
 		return false
 	}
 
-	ty := namespace.DistroTypeString(d.Type)
-
 	distroType := ns.DistroType()
-	if distroType != d.Type && distroType != distro.Type(ty) {
+	if distroType != d.Type {
 		return false
 	}
-	return compatibleVersion(d.FullVersion(), ns.Version())
+	return compatibleVersion(d.Version, ns.Version())
 }
 
 // compatibleVersion returns true when the versions are the same or the partial version describes the matching parts

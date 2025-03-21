@@ -992,7 +992,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 	debian10 := &OperatingSystem{Name: "debian", ReleaseID: "debian", MajorVersion: "10"}
 	alpine318 := &OperatingSystem{Name: "alpine", ReleaseID: "alpine", MajorVersion: "3", MinorVersion: "18"}
 	alpineEdge := &OperatingSystem{Name: "alpine", ReleaseID: "alpine", LabelVersion: "edge"}
-	debianTrixie := &OperatingSystem{Name: "debian", ReleaseID: "debian", LabelVersion: "trixie"}
+	debianUnstable := &OperatingSystem{Name: "debian", ReleaseID: "debian", LabelVersion: "unstable"}
 	debian7 := &OperatingSystem{Name: "debian", ReleaseID: "debian", MajorVersion: "7", LabelVersion: "wheezy"}
 	wolfi := &OperatingSystem{Name: "wolfi", ReleaseID: "wolfi", MajorVersion: "20230201"}
 	arch := &OperatingSystem{Name: "arch", ReleaseID: "arch", MajorVersion: "20241110", MinorVersion: "0"}
@@ -1010,7 +1010,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		debian10,
 		alpine318,
 		alpineEdge,
-		debianTrixie,
+		debianUnstable,
 		debian7,
 		wolfi,
 		arch,
@@ -1130,7 +1130,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 				MajorVersion: "13",
 				LabelVersion: "trixie",
 			},
-			expected: []OperatingSystem{*debianTrixie},
+			expected: []OperatingSystem{*debianUnstable},
 		},
 		{
 			name: "debian by codename",

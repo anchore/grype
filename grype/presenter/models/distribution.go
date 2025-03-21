@@ -34,7 +34,7 @@ func newDistribution(r *linux.Release) distribution {
 
 	return distribution{
 		Name:    d.Name(),
-		Version: d.FullVersion(),
+		Version: d.Version,
 		IDLike:  cleanIDLike(d.IDLike),
 	}
 }
