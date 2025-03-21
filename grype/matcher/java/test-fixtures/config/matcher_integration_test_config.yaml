@@ -1,6 +1,0 @@
-external-sources:
-  enable: true
-  maven:
-    search-upstream-by-sha1: true
-    base-url: https://search.maven.org/solrsearch/select
-    rate-limit: 500ms

@@ -4,12 +4,8 @@
 package java
 
 import (
-	"bytes"
 	"context"
 	"net/http"
-	"os/exec"
-	"regexp"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -690,110 +686,4 @@ func TestMavenSearch_GetMavenPackageBySha(t *testing.T) {
 			t.Logf("Time: %s Success: %s:%s", ti.String(), pkg.Name, pkg.Version)
 		}
 	}
-}
-
-// TestMavenSearch_MatchUpstreamMavenPackages focuses on comparing reduced searches to maven.org.
-// This is full integration test and requires network access to search.maven.org, a local installation of Grype (used v0.90.0), and the solr image for scanning.
-// It is not intended to be run as part of the normal test suite.
-// Use this to validate the vulnerability counts are the same and reduced maven searches between local instance and latest version of Grype.
-// Solr image: https://hub.docker.com/layers/library/solr/latest/images/sha256-16983468366aaf62417bb6a2a4b703b486b199b8461192df131455071c263916
-// The solr image was selected because of known java-archive packages within the image.
-// The config file (./test-fixtures/config/matcher_integration_test_config.yaml) enables the maven search
-// Additionally, increased the rate-limit to 500ms to avoid further 403 Forbiddens from Maven
-// This integration test takes approximately 400s
-func TestMavenSearch_MatchUpstreamMavenPackages(t *testing.T) {
-	image := "solr@sha256:16983468366aaf62417bb6a2a4b703b486b199b8461192df131455071c263916"
-	configFile := "./test-fixtures/config/matcher_integration_test_config.yaml"
-
-	// Running "go run ./cmd/grype solr:latest -vv"
-	goRunDuration, goRunOutput, goRunErr := runCommand("go", "run", "./../../../cmd/grype", image, "--config", configFile, "-vv")
-	if goRunErr != nil {
-		t.Errorf("Error running 'go run ./cmd/grype': %v\nOutput: %s", goRunErr, goRunOutput)
-	}
-
-	// Running "grype solr:latest -vv"
-	grypeDuration, grypeOutput, grypeErr := runCommand("grype", image, "--config", configFile, "-vv")
-	if grypeErr != nil {
-		t.Errorf("Error running 'grype': %v\nOutput: %s", grypeErr, grypeOutput)
-	}
-
-	// Count occurrences of "searching maven" and "skipping maven"
-	goRunSearchingCount := countOccurrences(goRunOutput, `searching maven`)
-	goRunSkippingCount := countOccurrences(goRunOutput, `skipping maven`)
-	grypeSearchingCount := countOccurrences(grypeOutput, `searching maven`)
-	grypeSkippingCount := countOccurrences(grypeOutput, `skipping maven`)
-
-	// Extract vulnerability counts
-	goRunTotalVulns, goRunVulnSummary := extractVulnerabilityCount(goRunOutput)
-	grypeTotalVulns, grypeVulnSummary := extractVulnerabilityCount(grypeOutput)
-
-	t.Logf("'go run ./cmd/grype' - Searching Maven count: %d, Skipping Maven count: %d", goRunSearchingCount, goRunSkippingCount)
-	t.Logf("'grype' - Searching Maven count: %d, Skipping Maven count: %d", grypeSearchingCount, grypeSkippingCount)
-
-	// Log execution times
-	t.Logf("'go run ./cmd/grype %s' took: %v", image, goRunDuration)
-	t.Logf("'grype %s' took: %v", image, grypeDuration)
-
-	// Log vulnerabilities found
-	t.Logf("'go run ./cmd/grype' - Total vulnerabilities: %d", goRunTotalVulns)
-	for severity, count := range goRunVulnSummary {
-		t.Logf("    %s: %d", severity, count)
-	}
-
-	t.Logf("'grype' - Total vulnerabilities: %d", grypeTotalVulns)
-	for severity, count := range grypeVulnSummary {
-		t.Logf("    %s: %d", severity, count)
-	}
-
-	// Comparing execution times
-	if goRunDuration > grypeDuration {
-		t.Logf("'go run ./../../../cmd/grype' is slower by %v", goRunDuration-grypeDuration)
-	} else {
-		t.Logf("'grype' is slower by %v", grypeDuration-goRunDuration)
-	}
-}
-
-// Helper function to run commands (e.g., go run ./cmd/grype)
-func runCommand(command string, args ...string) (time.Duration, string, error) {
-	start := time.Now()
-	cmd := exec.Command(command, args...)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &out
-	err := cmd.Run()
-	duration := time.Since(start)
-	return duration, out.String(), err
-}
-
-// Helper function to count references in the debug log
-func countOccurrences(text, pattern string) int {
-	re := regexp.MustCompile(pattern)
-	matches := re.FindAllStringIndex(text, -1)
-	return len(matches)
-}
-
-// Helper function to extract vulnerability counts from the debug log
-func extractVulnerabilityCount(output string) (int, map[string]int) {
-	vulnSummary := make(map[string]int)
-	totalVulns := 0
-
-	// Extract total vulnerabilities found
-	reTotal := regexp.MustCompile(`found (\d+) vulnerability matches`)
-	matchTotal := reTotal.FindStringSubmatch(output)
-	if len(matchTotal) > 1 {
-		totalVulns, _ = strconv.Atoi(matchTotal[1])
-	}
-
-	// Extract breakdown by severity
-	severityLevels := []string{"unknown", "negligible", "low", "medium", "high", "critical"}
-	for _, severity := range severityLevels {
-		re := regexp.MustCompile(severity + `: (\d+)`)
-		match := re.FindStringSubmatch(output)
-		if len(match) > 1 {
-			count, _ := strconv.Atoi(match[1])
-			vulnSummary[severity] = count
-		}
-	}
-
-	return totalVulns, vulnSummary
 }
