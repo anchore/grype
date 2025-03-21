@@ -30,13 +30,11 @@ func TestMatcherJava_matchUpstreamMavenPackage(t *testing.T) {
 	testCases := []struct {
 		testname            string
 		testExpectRateLimit bool
-		testExpectedError   bool
 		packages            []pkg.Package
 	}{
 		{
 			testname:            "do not search maven - metadata present",
 			testExpectRateLimit: false,
-			testExpectedError:   false,
 			packages: []pkg.Package{
 				{
 					ID:       pkg.ID(uuid.NewString()),
@@ -83,7 +81,6 @@ func TestMatcherJava_matchUpstreamMavenPackage(t *testing.T) {
 		{
 			testname:            "search maven - missing sha1 error",
 			testExpectRateLimit: false,
-			testExpectedError:   true,
 			packages: []pkg.Package{
 				{
 					ID:       pkg.ID(uuid.NewString()),
@@ -113,34 +110,31 @@ func TestMatcherJava_matchUpstreamMavenPackage(t *testing.T) {
 				matcher := newMatcher(mockMavenSearcher{
 					pkg: p.packages[0],
 				})
-				actual, err := matcher.matchUpstreamMavenPackages(store, p.packages[0])
+				actual, _ := matcher.matchUpstreamMavenPackages(store, p.packages[0])
 
-				if p.testExpectedError {
-					assert.Error(t, err, "expected an error")
-				} else {
-					assert.Len(t, actual, 2, "unexpected matches count")
+				assert.Len(t, actual, 2, "unexpected matches count")
 
-					foundCVEs := stringutil.NewStringSet()
-					for _, v := range actual {
-						foundCVEs.Add(v.Vulnerability.ID)
+				foundCVEs := stringutil.NewStringSet()
+				for _, v := range actual {
+					foundCVEs.Add(v.Vulnerability.ID)
 
-						require.NotEmpty(t, v.Details)
-						for _, d := range v.Details {
-							assert.Equal(t, match.ExactIndirectMatch, d.Type, "indirect match not indicated")
-							assert.Equal(t, matcher.Type(), d.Matcher, "failed to capture matcher type")
-						}
-						assert.Equal(t, p.packages[0].Name, v.Package.Name, "failed to capture original package name")
+					require.NotEmpty(t, v.Details)
+					for _, d := range v.Details {
+						assert.Equal(t, match.ExactIndirectMatch, d.Type, "indirect match not indicated")
+						assert.Equal(t, matcher.Type(), d.Matcher, "failed to capture matcher type")
 					}
+					assert.Equal(t, p.packages[0].Name, v.Package.Name, "failed to capture original package name")
+				}
 
-					for _, id := range []string{"CVE-2014-fake-2", "CVE-2013-fake-3"} {
-						if !foundCVEs.Contains(id) {
-							t.Errorf("missing discovered CVE: %s", id)
-						}
-					}
-					if t.Failed() {
-						t.Logf("discovered CVES: %+v", foundCVEs)
+				for _, id := range []string{"CVE-2014-fake-2", "CVE-2013-fake-3"} {
+					if !foundCVEs.Contains(id) {
+						t.Errorf("missing discovered CVE: %s", id)
 					}
 				}
+				if t.Failed() {
+					t.Logf("discovered CVES: %+v", foundCVEs)
+				}
+
 			})
 		}
 	})
@@ -231,7 +225,6 @@ func TestMatcherJava_shouldSearchMavenBySha(t *testing.T) {
 		{
 			testname:                  "search maven - missing artifactId",
 			expectedShouldSearchMaven: true,
-			testExpectedError:         false,
 			packages: []pkg.Package{
 				{
 					ID:       pkg.ID(uuid.NewString()),
@@ -253,9 +246,8 @@ func TestMatcherJava_shouldSearchMavenBySha(t *testing.T) {
 			},
 		},
 		{
-			testname:                  "search maven - missing sha1 error",
-			expectedShouldSearchMaven: true,
-			testExpectedError:         true,
+			testname:                  "do not search maven - missing sha1",
+			expectedShouldSearchMaven: false,
 			packages: []pkg.Package{
 				{
 					ID:       pkg.ID(uuid.NewString()),
@@ -285,17 +277,14 @@ func TestMatcherJava_shouldSearchMavenBySha(t *testing.T) {
 				matcher := newMatcher(mockMavenSearcher{
 					pkg: p.packages[0],
 				})
-				actual, digests, err := matcher.shouldSearchMavenBySha(p.packages[0])
+				actual, digests := matcher.shouldSearchMavenBySha(p.packages[0])
 
-				if p.testExpectedError {
-					assert.Error(t, err, "expected an error")
-				} else {
-					assert.Equal(t, p.expectedShouldSearchMaven, actual, "unexpected decision to search Maven")
+				assert.Equal(t, p.expectedShouldSearchMaven, actual, "unexpected decision to search Maven")
 
-					if actual {
-						assert.NotEmpty(t, digests, "sha digests should not be empty when search is expected")
-					}
+				if actual {
+					assert.NotEmpty(t, digests, "sha digests should not be empty when search is expected")
 				}
+
 			})
 		}
 	})

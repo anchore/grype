@@ -82,10 +82,7 @@ func (m *Matcher) matchUpstreamMavenPackages(store vulnerability.Provider, p pkg
 	ctx := context.Background()
 
 	// Check if we need to search Maven by SHA
-	searchMaven, digests, err := m.shouldSearchMavenBySha(p)
-	if err != nil {
-		return nil, err
-	}
+	searchMaven, digests := m.shouldSearchMavenBySha(p)
 	if searchMaven {
 		// If the artifact and group ID exist are missing, attempt Maven lookup using SHA-1
 		for _, digest := range digests {
@@ -114,7 +111,7 @@ func (m *Matcher) matchUpstreamMavenPackages(store vulnerability.Provider, p pkg
 	return matches, nil
 }
 
-func (m *Matcher) shouldSearchMavenBySha(p pkg.Package) (bool, []string, error) {
+func (m *Matcher) shouldSearchMavenBySha(p pkg.Package) (bool, []string) {
 	digests := []string{}
 
 	if metadata, ok := p.Metadata.(pkg.JavaMetadata); ok {
@@ -125,12 +122,12 @@ func (m *Matcher) shouldSearchMavenBySha(p pkg.Package) (bool, []string, error) 
 					digests = append(digests, digest.Value)
 				}
 			}
-			// If we need to search Maven but no valid SHA-1 digests exist, return an error
+			// if we need to search Maven but no valid SHA-1 digests exist, skip search
 			if len(digests) == 0 {
-				return true, nil, fmt.Errorf("missing SHA-1 digest; cannot search Maven for package %s", p.Name)
+				return false, digests
 			}
 		}
 	}
 
-	return len(digests) > 0, digests, nil
+	return len(digests) > 0, digests
 }
