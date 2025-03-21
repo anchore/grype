@@ -81,35 +81,56 @@ func (m *Matcher) matchUpstreamMavenPackages(store vulnerability.Provider, p pkg
 
 	ctx := context.Background()
 
-	if metadata, ok := p.Metadata.(pkg.JavaMetadata); ok {
-		// If the artifact and group ID exist, match the package directly without searching Maven
-		if metadata.PomArtifactID != "" && metadata.PomGroupID != "" {
-			log.Debugf("skipping maven search, POM data present for %s", p.Name)
-			indirectMatches, _, err := internal.MatchPackageByLanguage(store, p, m.Type())
+	// Check if we need to search Maven by SHA
+	searchMaven, digests, err := m.shouldSearchMavenBySha(p)
+	if err != nil {
+		return nil, err
+	}
+	if searchMaven {
+		// If the artifact and group ID exist are missing, attempt Maven lookup using SHA-1
+		for _, digest := range digests {
+			log.Debugf("searching maven, POM data missing for %s", p.Name)
+			indirectPackage, err := m.GetMavenPackageBySha(ctx, digest)
+			if err != nil {
+				return nil, err
+			}
+			indirectMatches, _, err := internal.MatchPackageByLanguage(store, *indirectPackage, m.Type())
 			if err != nil {
 				return nil, err
 			}
 			matches = append(matches, indirectMatches...)
-		} else {
-			// If the artifact and group ID exist is missing, attempt Maven lookup using SHA-1
-			for _, digest := range metadata.ArchiveDigests {
-				if digest.Algorithm == "sha1" {
-					log.Debugf("searching maven, POM data missing for %s", p.Name)
-					indirectPackage, err := m.GetMavenPackageBySha(ctx, digest.Value)
-					if err != nil {
-						return nil, err
-					}
-					indirectMatches, _, err := internal.MatchPackageByLanguage(store, *indirectPackage, m.Type())
-					if err != nil {
-						return nil, err
-					}
-					matches = append(matches, indirectMatches...)
-				}
-			}
 		}
+	} else {
+		log.Debugf("skipping maven search, POM data present for %s", p.Name)
+		indirectMatches, _, err := internal.MatchPackageByLanguage(store, p, m.Type())
+		if err != nil {
+			return nil, err
+		}
+		matches = append(matches, indirectMatches...)
 	}
 
 	match.ConvertToIndirectMatches(matches, p)
 
 	return matches, nil
+}
+
+func (m *Matcher) shouldSearchMavenBySha(p pkg.Package) (bool, []string, error) {
+	digests := []string{}
+
+	if metadata, ok := p.Metadata.(pkg.JavaMetadata); ok {
+		// if either the PomArtifactID or PomGroupID is missing, we need to search Maven
+		if metadata.PomArtifactID == "" || metadata.PomGroupID == "" {
+			for _, digest := range metadata.ArchiveDigests {
+				if digest.Algorithm == "sha1" && digest.Value != "" {
+					digests = append(digests, digest.Value)
+				}
+			}
+			// If we need to search Maven but no valid SHA-1 digests exist, return an error
+			if len(digests) == 0 {
+				return true, nil, fmt.Errorf("missing SHA-1 digest; cannot search Maven for package %s", p.Name)
+			}
+		}
+	}
+
+	return len(digests) > 0, digests, nil
 }
