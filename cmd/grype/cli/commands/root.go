@@ -263,10 +263,12 @@ func applyDistroHint(pkgs []pkg.Package, context *pkg.Context, opts *options.Gry
 	}
 
 	hasOSPackage := false
+loop:
 	for _, p := range pkgs {
 		switch p.Type {
 		case syftPkg.AlpmPkg, syftPkg.DebPkg, syftPkg.RpmPkg, syftPkg.KbPkg:
 			hasOSPackage = true
+			break loop
 		}
 	}
 

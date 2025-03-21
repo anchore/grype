@@ -11,10 +11,11 @@ import (
 
 // Distro represents a Linux Distribution.
 type Distro struct {
-	Type       Type
-	Version    *hashiVer.Version
-	RawVersion string
-	IDLike     []string
+	Type         Type
+	Version      *hashiVer.Version
+	RawVersion   string
+	LabelVersion string
+	IDLike       []string
 }
 
 // New creates a new Distro object populated with the given values.
@@ -45,7 +46,6 @@ func NewFromRelease(release linux.Release) (*Distro, error) {
 	}
 
 	var selectedVersion string
-
 	for _, version := range []string{release.VersionID, release.Version} {
 		if version == "" {
 			continue
@@ -57,15 +57,21 @@ func NewFromRelease(release linux.Release) (*Distro, error) {
 		}
 	}
 
-	if t == Debian && release.VersionID == "" && release.Version == "" && strings.Contains(release.PrettyName, "sid") {
-		return &Distro{
-			Type:       t,
-			RawVersion: "unstable",
-			IDLike:     release.IDLike,
-		}, nil
+	// already checked hashiVer.NewVersion, this never returns error
+	d, _ := New(t, selectedVersion, release.IDLike...)
+
+	switch {
+	case d.IsRolling():
+		d.LabelVersion = "rolling"
+	case isDebianUnstable(t, release):
+		d.LabelVersion = "unstable"
+	case isAlpineEdge(t, release):
+		d.LabelVersion = "edge"
+	case selectedVersion == "":
+		d.RawVersion = release.Version
 	}
 
-	return New(t, selectedVersion, release.IDLike...)
+	return d, nil
 }
 
 func (d Distro) Name() string {
@@ -122,4 +128,16 @@ func (d Distro) Disabled() bool {
 	default:
 		return false
 	}
+}
+
+func isAlpineEdge(t Type, release linux.Release) bool {
+	return t == Alpine &&
+		(release.Version == "edge" ||
+			strings.Contains(release.VersionID, "_alpha") ||
+			strings.Contains(release.PrettyName, "edge"))
+}
+
+func isDebianUnstable(t Type, release linux.Release) bool {
+	return t == Debian &&
+		strings.Contains(release.PrettyName, "sid")
 }

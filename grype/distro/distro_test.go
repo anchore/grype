@@ -18,6 +18,7 @@ func Test_NewDistroFromRelease(t *testing.T) {
 		release            linux.Release
 		expectedVersion    string
 		expectedRawVersion string
+		expectedLabel      string
 		expectedType       Type
 		expectErr          bool
 	}{
@@ -79,8 +80,80 @@ func Test_NewDistroFromRelease(t *testing.T) {
 				Name:            "Debian GNU/Linux",
 			},
 			expectedType:       Debian,
-			expectedRawVersion: "unstable",
+			expectedRawVersion: "",
 			expectedVersion:    "",
+			expectedLabel:      "unstable",
+		},
+		{
+			// syft -o json alpine:edge | jq .distro
+			name: "alpine edge",
+			release: linux.Release{
+				ID:         "alpine",
+				VersionID:  "3.22.0_alpha20250108",
+				Version:    "",
+				PrettyName: "Alpine Linux edge",
+				Name:       "Alpine Linux",
+			},
+			expectedType:       Alpine,
+			expectedRawVersion: "",
+			expectedVersion:    "",
+			expectedLabel:      "edge",
+		},
+		{
+			name: "wolfi",
+			release: linux.Release{
+				ID:         "wolfi",
+				VersionID:  "",
+				Version:    "",
+				PrettyName: "",
+				Name:       "",
+			},
+			expectedType:       Wolfi,
+			expectedRawVersion: "",
+			expectedVersion:    "",
+			expectedLabel:      "rolling",
+		},
+		{
+			name: "chainguard",
+			release: linux.Release{
+				ID:         "chainguard",
+				VersionID:  "",
+				Version:    "",
+				PrettyName: "",
+				Name:       "",
+			},
+			expectedType:       Chainguard,
+			expectedRawVersion: "",
+			expectedVersion:    "",
+			expectedLabel:      "rolling",
+		},
+		{
+			name: "arch",
+			release: linux.Release{
+				ID:         "arch",
+				VersionID:  "",
+				Version:    "",
+				PrettyName: "",
+				Name:       "",
+			},
+			expectedType:       ArchLinux,
+			expectedRawVersion: "",
+			expectedVersion:    "",
+			expectedLabel:      "rolling",
+		},
+		{
+			name: "gentoo",
+			release: linux.Release{
+				ID:         "gentoo",
+				VersionID:  "",
+				Version:    "",
+				PrettyName: "",
+				Name:       "",
+			},
+			expectedType:       Gentoo,
+			expectedRawVersion: "",
+			expectedVersion:    "",
+			expectedLabel:      "rolling",
 		},
 		{
 			name: "azure linux 3",
@@ -111,6 +184,7 @@ func Test_NewDistroFromRelease(t *testing.T) {
 			if test.expectedRawVersion != "" {
 				assert.Equal(t, test.expectedRawVersion, d.FullVersion())
 			}
+			assert.Equal(t, test.expectedLabel, d.LabelVersion)
 		})
 	}
 
