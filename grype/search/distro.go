@@ -63,13 +63,13 @@ func matchesDistro(d *distro.Distro, ns *distroNs.Namespace) bool {
 		return false
 	}
 
-	ty := namespace.DistroTypeString(d.Type)
-
-	distroType := ns.DistroType()
-	if distroType != d.Type && distroType != distro.Type(ty) {
+	distroType := mimicV6DistroTypeOverrides(ns.DistroType())
+	targetType := mimicV6DistroTypeOverrides(d.Type)
+	if distroType != targetType {
 		return false
 	}
-	return compatibleVersion(d.FullVersion(), ns.Version())
+
+	return compatibleVersion(d.Version, ns.Version())
 }
 
 // compatibleVersion returns true when the versions are the same or the partial version describes the matching parts
@@ -85,4 +85,35 @@ func compatibleVersion(fullVersion string, partialVersion string) bool {
 		return true
 	}
 	return false
+}
+
+// TODO: this is a temporary workaround... in the long term the mock should more strongly enforce
+// data overrides and not require this kind of logic being baked into mocks directly.
+func mimicV6DistroTypeOverrides(t distro.Type) distro.Type {
+	overrideMap := map[string]string{
+		"centos":      "rhel",
+		"rocky":       "rhel",
+		"rockylinux":  "rhel",
+		"alma":        "rhel",
+		"almalinux":   "rhel",
+		"gentoo":      "rhel",
+		"archlinux":   "arch",
+		"oracle":      "ol",
+		"oraclelinux": "ol",
+		"amazon":      "amzn",
+		"amazonlinux": "amzn",
+	}
+
+	applyMapping := func(i string) distro.Type {
+		if replacement, exists := distro.IDMapping[i]; exists {
+			return replacement
+		}
+		return distro.Type(i)
+	}
+
+	if replacement, exists := overrideMap[string(t)]; exists {
+		return applyMapping(replacement)
+	}
+
+	return applyMapping(string(t))
 }
