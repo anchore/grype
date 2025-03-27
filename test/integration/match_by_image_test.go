@@ -589,7 +589,7 @@ func addJvmMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Colle
 						CPEs: []string{
 							"cpe:2.3:a:oracle:jdk:1.8.0:update400:*:*:*:*:*:*",
 						},
-						Package: match.CPEPackageParameter{Name: "jdk", Version: "1.8.0_400-b07"},
+						Package: match.PackageParameter{Name: "jdk", Version: "1.8.0_400-b07"},
 					},
 					Found: match.CPEResult{
 						VulnerabilityID:   "CVE-jdk",

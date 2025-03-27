@@ -7,15 +7,15 @@ import (
 	"github.com/scylladb/go-set/strset"
 )
 
-type CPEPackageParameter struct {
+type PackageParameter struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
 }
 
 type CPEParameters struct {
-	Namespace string              `json:"namespace"`
-	CPEs      []string            `json:"cpes"`
-	Package   CPEPackageParameter `json:"package"`
+	Namespace string           `json:"namespace"`
+	CPEs      []string         `json:"cpes"`
+	Package   PackageParameter `json:"package"`
 }
 
 func (i *CPEParameters) Merge(other CPEParameters) error {
@@ -50,6 +50,30 @@ func (h CPEResult) Equals(other CPEResult) bool {
 		if h.CPEs[i] != other.CPEs[i] {
 			return false
 		}
+	}
+
+	return true
+}
+
+type PURLParameters struct {
+	Namespace string           `json:"namespace"`
+	PURL      string           `json:"purl"`
+	Package   PackageParameter `json:"package"`
+}
+
+type PURLResult struct {
+	VulnerabilityID   string `json:"vulnerabilityID"`
+	VersionConstraint string `json:"versionConstraint"`
+	PURL              string `json:"purl"`
+}
+
+func (h PURLResult) Equals(other PURLResult) bool {
+	if h.VersionConstraint != other.VersionConstraint {
+		return false
+	}
+
+	if h.PURL != other.PURL {
+		return false
 	}
 
 	return true
