@@ -20,8 +20,8 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoredMatch, error) {
-	// Bitnami packages' metadata are built from the package URL (instead of CPE, hence CPE match is not supported)
+	// Bitnami packages' metadata are built from the package URL
 	// ref: https://github.com/anchore/syft/blob/main/syft/pkg/bitnami.go#L3-L13
 	// ref: https://github.com/anchore/syft/blob/main/syft/pkg/cataloger/bitnami/package.go#L18-L45
-	return internal.MatchPackageByEcosystemAndCPEs(store, p, m.Type(), false)
+	return internal.MatchPackageByEcosystemAndPURL(store, p, m.Type(), true)
 }

@@ -8,12 +8,14 @@ const (
 	ExactDirectMatch   Type = "exact-direct-match"
 	ExactIndirectMatch Type = "exact-indirect-match"
 	CPEMatch           Type = "cpe-match"
+	PURLMatch          Type = "purl-match"
 )
 
 var typeOrder = map[Type]int{
 	ExactDirectMatch:   1,
 	ExactIndirectMatch: 2,
 	CPEMatch:           3,
+	PURLMatch:          4,
 }
 
 type Type string

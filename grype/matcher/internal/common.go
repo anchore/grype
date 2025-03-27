@@ -41,3 +41,34 @@ func MatchPackageByEcosystemPackageNameAndCPEs(store vulnerability.Provider, p p
 	}
 	return matches, ignored, nil
 }
+
+func MatchPackageByEcosystemAndPURL(store vulnerability.Provider, p pkg.Package, matcher match.MatcherType, includePURL bool) ([]match.Match, []match.IgnoredMatch, error) {
+	var matches []match.Match
+	var ignored []match.IgnoredMatch
+
+	for _, name := range store.PackageSearchNames(p) {
+		nameMatches, nameIgnores, err := MatchPackageByEcosystemPackageNameAndPURL(store, p, name, matcher, includePURL)
+		if err != nil {
+			return nil, nil, err
+		}
+		matches = append(matches, nameMatches...)
+		ignored = append(ignored, nameIgnores...)
+	}
+
+	return matches, ignored, nil
+}
+
+func MatchPackageByEcosystemPackageNameAndPURL(store vulnerability.Provider, p pkg.Package, packageName string, matcher match.MatcherType, includePURL bool) ([]match.Match, []match.IgnoredMatch, error) {
+	matches, ignored, err := MatchPackageByEcosystemPackageName(store, p, packageName, matcher)
+	if err != nil {
+		log.Debugf("could not match by package ecosystem (package=%+v): %v", p, err)
+	}
+	if includePURL {
+		purlMatches, err := MatchPackageByPURL(store, p, matcher)
+		if err != nil {
+			log.Debugf("could not match by package PURL (package=%+v): %v", p, err)
+		}
+		matches = append(matches, purlMatches...)
+	}
+	return matches, ignored, nil
+}

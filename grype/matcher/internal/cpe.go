@@ -131,7 +131,7 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 				CPEs: []string{
 					searchedByCPE.Attributes.BindToFmtString(),
 				},
-				Package: match.CPEPackageParameter{
+				Package: match.PackageParameter{
 					Name:    p.Name,
 					Version: p.Version,
 				},
