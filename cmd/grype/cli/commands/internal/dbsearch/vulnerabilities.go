@@ -7,6 +7,7 @@ import (
 	"time"
 
 	v6 "github.com/anchore/grype/grype/db/v6"
+	"github.com/anchore/grype/internal/cvss"
 	"github.com/anchore/grype/internal/log"
 )
 
@@ -83,6 +84,23 @@ type EPSS struct {
 	Date       string  `json:"date"`
 }
 
+type CVSSSeverity struct {
+	// Vector is the CVSS assessment as a parameterized string
+	Vector string `json:"vector"`
+
+	// Version is the CVSS version (e.g. "3.0")
+	Version string `json:"version,omitempty"`
+
+	// Metrics is the CVSS quantitative assessment based on the vector
+	Metrics CvssMetrics `json:"metrics"`
+}
+
+type CvssMetrics struct {
+	BaseScore           float64  `json:"baseScore"`
+	ExploitabilityScore *float64 `json:"exploitabilityScore,omitempty"`
+	ImpactScore         *float64 `json:"impactScore,omitempty"`
+}
+
 type vulnerabilityAffectedPackageJoin struct {
 	Vulnerability    v6.VulnerabilityHandle
 	OperatingSystems []v6.OperatingSystem
@@ -111,6 +129,7 @@ func newVulnerabilityInfo(vuln v6.VulnerabilityHandle, vc vulnerabilityDecoratio
 	if vuln.BlobValue != nil {
 		blob = *vuln.BlobValue
 	}
+	patchCVSSMetrics(&blob)
 	return VulnerabilityInfo{
 		Model:             vuln,
 		VulnerabilityBlob: blob,
@@ -121,6 +140,29 @@ func newVulnerabilityInfo(vuln v6.VulnerabilityHandle, vc vulnerabilityDecoratio
 		WithdrawnDate:     vuln.WithdrawnDate,
 		KnownExploited:    vc.KnownExploited,
 		EPSS:              vc.EPSS,
+	}
+}
+
+func patchCVSSMetrics(blob *v6.VulnerabilityBlob) {
+	for i := range blob.Severities {
+		sev := &blob.Severities[i]
+		if val, ok := sev.Value.(v6.CVSSSeverity); ok {
+			met, err := cvss.ParseMetricsFromVector(val.Vector)
+			if err != nil {
+				log.WithFields("vector", val.Vector, "error", err).Debug("unable to parse CVSS vector")
+				continue
+			}
+			newSev := CVSSSeverity{
+				Vector:  val.Vector,
+				Version: val.Version,
+				Metrics: CvssMetrics{
+					BaseScore:           met.BaseScore,
+					ExploitabilityScore: met.ExploitabilityScore,
+					ImpactScore:         met.ImpactScore,
+				},
+			}
+			sev.Value = newSev
+		}
 	}
 }
 
