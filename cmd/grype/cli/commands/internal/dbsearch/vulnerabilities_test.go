@@ -113,7 +113,20 @@ func TestVulnerabilities(t *testing.T) {
 			PublishedDate: ptr(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
 			ModifiedDate:  ptr(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
 			Provider:      &v6.Provider{ID: "provider1"},
-			BlobValue:     &v6.VulnerabilityBlob{Description: "Test description"},
+			BlobValue: &v6.VulnerabilityBlob{
+				Description: "Test description",
+				Severities: []v6.Severity{
+					{
+						Scheme: v6.SeveritySchemeCVSS,
+						Value: v6.CVSSSeverity{
+							Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+							Version: "3.1",
+						},
+						Source: "nvd",
+						Rank:   1,
+					},
+				},
+			},
 		},
 	}, nil)
 
@@ -156,12 +169,30 @@ func TestVulnerabilities(t *testing.T) {
 	expected := []Vulnerability{
 		{
 			VulnerabilityInfo: VulnerabilityInfo{
-				VulnerabilityBlob: v6.VulnerabilityBlob{Description: "Test description"},
-				Provider:          "provider1",
-				Status:            "active",
-				PublishedDate:     ptr(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
-				ModifiedDate:      ptr(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
-				WithdrawnDate:     nil,
+				VulnerabilityBlob: v6.VulnerabilityBlob{
+					Description: "Test description",
+					Severities: []v6.Severity{
+						{
+							Scheme: "CVSS",
+							Value: CVSSSeverity{
+								Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+								Version: "3.1",
+								Metrics: CvssMetrics{
+									BaseScore:           7.5,
+									ExploitabilityScore: ptr(3.9),
+									ImpactScore:         ptr(3.6),
+								},
+							},
+							Source: "nvd",
+							Rank:   1,
+						},
+					},
+				},
+				Provider:      "provider1",
+				Status:        "active",
+				PublishedDate: ptr(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
+				ModifiedDate:  ptr(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
+				WithdrawnDate: nil,
 				KnownExploited: []KnownExploited{
 					{
 						CVE:                        "CVE-1234-5678",
