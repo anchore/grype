@@ -9,11 +9,13 @@ import (
 
 const (
 	defaultMavenBaseURL = "https://search.maven.org/solrsearch/select"
+	defaultAbortAfter   = 10 * time.Minute
 )
 
 type externalSources struct {
-	Enable bool  `yaml:"enable" json:"enable" mapstructure:"enable"`
-	Maven  maven `yaml:"maven" json:"maven" mapstructure:"maven"`
+	Enable     bool           `yaml:"enable" json:"enable" mapstructure:"enable"`
+	AbortAfter *time.Duration `yaml:"abort-after" json:"abortAfter" mapstructure:"abort-after"`
+	Maven      maven          `yaml:"maven" json:"maven" mapstructure:"maven"`
 }
 
 var _ interface {
@@ -21,9 +23,10 @@ var _ interface {
 } = (*externalSources)(nil)
 
 type maven struct {
-	SearchUpstreamBySha1 bool          `yaml:"search-upstream" json:"searchUpstreamBySha1" mapstructure:"search-maven-upstream"`
-	BaseURL              string        `yaml:"base-url" json:"baseUrl" mapstructure:"base-url"`
-	RateLimit            time.Duration `yaml:"rate-limit" json:"rateLimit" mapstructure:"rate-limit"`
+	SearchUpstreamBySha1 bool           `yaml:"search-upstream" json:"searchUpstreamBySha1" mapstructure:"search-maven-upstream"`
+	BaseURL              string         `yaml:"base-url" json:"baseUrl" mapstructure:"base-url"`
+	RateLimit            time.Duration  `yaml:"rate-limit" json:"rateLimit" mapstructure:"rate-limit"`
+	AbortAfter           *time.Duration `yaml:"abort-after" json:"abortAfter" mapstructure:"abort-after"`
 }
 
 func defaultExternalSources() externalSources {
@@ -42,11 +45,25 @@ func (cfg externalSources) ToJavaMatcherConfig() java.ExternalSearchConfig {
 	if !cfg.Enable {
 		smu = cfg.Enable
 	}
+
+	cfg.Maven.AbortAfter = multiLevelOption[time.Duration](defaultAbortAfter, cfg.AbortAfter, cfg.Maven.AbortAfter)
+
 	return java.ExternalSearchConfig{
 		SearchMavenUpstream: smu,
 		MavenBaseURL:        cfg.Maven.BaseURL,
 		MavenRateLimit:      cfg.Maven.RateLimit,
+		AbortAfter:          *cfg.Maven.AbortAfter,
 	}
+}
+
+func multiLevelOption[T any](defaultValue T, option ...*T) *T {
+	result := defaultValue
+	for _, opt := range option {
+		if opt != nil {
+			result = *opt
+		}
+	}
+	return &result
 }
 
 func (cfg *externalSources) DescribeFields(descriptions clio.FieldDescriptionSet) {

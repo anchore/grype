@@ -27,6 +27,7 @@ type Matcher struct {
 type ExternalSearchConfig struct {
 	SearchMavenUpstream bool
 	MavenBaseURL        string
+	AbortAfter          time.Duration
 	MavenRateLimit      time.Duration
 }
 
@@ -54,6 +55,14 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	var matches []match.Match
 
 	if m.cfg.SearchMavenUpstream {
+		timeout := m.cfg.AbortAfter
+		ctx := context.Background()
+		if timeout > 0 {
+			var cancel context.CancelFunc
+			_, cancel = context.WithTimeout(ctx, m.cfg.AbortAfter)
+			defer cancel()
+		}
+
 		upstreamMatches, err := m.matchUpstreamMavenPackages(store, p)
 		if err != nil {
 			if strings.Contains(err.Error(), "no artifact found") {
