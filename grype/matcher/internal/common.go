@@ -63,6 +63,7 @@ func MatchPackageByEcosystemPackageNameAndPURL(store vulnerability.Provider, p p
 	if err != nil {
 		log.Debugf("could not match by package ecosystem (package=%+v): %v", p, err)
 	}
+
 	if includePURL {
 		purlMatches, err := MatchPackageByPURL(store, p, matcher)
 		if err != nil {

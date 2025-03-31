@@ -4,13 +4,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/anchore/packageurl-go"
-
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/packageurl-go"
 )
 
 var ErrEmptyPURLMatch = errors.New("attempted PURL match against package with no PURL")
@@ -54,10 +53,11 @@ func MatchPackageByPURL(provider vulnerability.Provider, p pkg.Package, upstream
 			Vulnerability: vuln,
 			Package:       p,
 			Details: match.Details{{
-				Matcher: upstreamMatcher,
-				Type:    match.PURLMatch,
+				Matcher:    upstreamMatcher,
+				Type:       match.PURLMatch,
+				Confidence: 0.9, // TODO: this is hard coded for now
 				SearchedBy: match.PURLParameters{
-					Namespace: purl.Namespace,
+					Namespace: purl.Type,
 					PURL:      p.PURL,
 					Package: match.PackageParameter{
 						Name:    purl.Name,

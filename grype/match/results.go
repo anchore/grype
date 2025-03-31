@@ -68,11 +68,9 @@ type PURLResult struct {
 }
 
 func (h PURLResult) Equals(other PURLResult) bool {
-	if h.VersionConstraint != other.VersionConstraint {
-		return false
-	}
-
-	if h.PURL != other.PURL {
+	if h.VulnerabilityID != other.VulnerabilityID ||
+		h.VersionConstraint != other.VersionConstraint ||
+		h.PURL != other.PURL {
 		return false
 	}
 

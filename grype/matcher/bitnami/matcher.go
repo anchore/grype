@@ -5,7 +5,6 @@ import (
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
-
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
