@@ -79,6 +79,10 @@ func create(id clio.Identification) (clio.Application, *cobra.Command) {
 			if errors.Is(err, grypeerr.ErrAboveSeverityThreshold) {
 				return 2
 			}
+			// return exit code 100 to indicate a DB upgrade is available (cmd: db check).
+			if errors.Is(err, grypeerr.ErrDBUpgradeAvailable) {
+				return 100
+			}
 			return 1
 		})
 
