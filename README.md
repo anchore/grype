@@ -288,10 +288,12 @@ feature is currently disabled by default. To enable this feature add the followi
 ```yaml
 external-sources:
   enable: true
+  abort-after: 10m
   maven:
     search-upstream-by-sha1: true
     base-url: https://search.maven.org/solrsearch/select
     rate-limit: 300ms # Time between Maven API requests
+    abort-after: 5m #override the global config
 ```
 
 You can also configure the base-url if you're using another registry as your maven endpoint.
