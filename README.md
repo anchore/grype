@@ -214,7 +214,7 @@ grype --add-cpes-if-none --distro alpine:3.10 sbom:some-alpine-3.10.spdx.json
 
 Software updates are always applied to the latest version of Grype; fixes are not backported to any previous versions of Grype.
 
-In terms of database updates, any version of Grype before v0.51.0 (Oct 2022, before schema v5) will not receive 
+In terms of database updates, any version of Grype before v0.51.0 (Oct 2022, before schema v5) will not receive
 vulnerability database updates. You can still build vulnerability databases for unsupported Grype releases by using previous
 releases of [vunnel](https://github.com/anchore/vunnel) to gather the upstream data and [grype-db](https://github.com/anchore/grype-db)
 to build databases for unsupported schemas.
@@ -352,6 +352,8 @@ For example, here's how you could trigger a CI pipeline failure if any vulnerabi
 ```
 grype ubuntu:latest --fail-on medium
 ```
+
+**Note:** Grype returns exit code `2` on vulnerability errors.
 
 ### Specifying matches to ignore
 
@@ -709,7 +711,7 @@ default-image-pull-source: ""
 # same as --name; set the name of the target being analyzed
 name: ""
 
-# upon scanning, if a severity is found at or above the given severity then the return code will be 1
+# upon scanning, if a severity is found at or above the given severity then the return code will be 2
 # default is unset which will skip this validation (options: negligible, low, medium, high, critical)
 # same as --fail-on ; GRYPE_FAIL_ON_SEVERITY env var
 fail-on-severity: ""

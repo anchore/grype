@@ -10,7 +10,7 @@ require (
 	github.com/adrg/xdg v0.5.3
 	github.com/anchore/archiver/v3 v3.5.3-0.20241210171143-5b1d8d1c7c51
 	github.com/anchore/bubbly v0.0.0-20231115134915-def0aba654a9
-	github.com/anchore/clio v0.0.0-20250319180342-2cfe4b0cb716
+	github.com/anchore/clio v0.0.0-20250401141128-4c1d6bd1e872
 	github.com/anchore/go-collections v0.0.0-20240216171411-9321230ce537
 	github.com/anchore/go-homedir v0.0.0-20250319154043-c29668562e4d
 	github.com/anchore/go-logger v0.0.0-20250318195838-07ae343dd722
@@ -97,7 +97,7 @@ require (
 	github.com/STARRY-S/zip v0.2.1 // indirect
 	github.com/acobaugh/osrelease v0.1.0 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
-	github.com/anchore/fangs v0.0.0-20250319222917-446a1e748ec2 // indirect
+	github.com/anchore/fangs v0.0.0-20250326231402-da263204d38e // indirect
 	github.com/anchore/go-macholibre v0.0.0-20220308212642-53e6d0aaf6fb // indirect
 	github.com/anchore/go-struct-converter v0.0.0-20221118182256-c68fdcfa2092 // indirect
 	github.com/anchore/go-sync v0.0.0-20250326131806-4eda43a485b6 // indirect
@@ -197,7 +197,7 @@ require (
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/maruel/natural v1.1.1 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-localereader v0.0.2-0.20220822084749-2491eb6c1c75 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
@@ -239,7 +239,7 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/rust-secure-code/go-rustaudit v0.0.0-20250226111315-e20ec32e963c // indirect
-	github.com/sagikazarmark/locafero v0.7.0 // indirect
+	github.com/sagikazarmark/locafero v0.9.0 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
 	github.com/sassoftware/go-rpmutils v0.4.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
@@ -251,7 +251,7 @@ require (
 	github.com/spdx/tools-golang v0.5.5 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
-	github.com/spf13/viper v1.20.0 // indirect
+	github.com/spf13/viper v1.20.1 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/sylabs/sif/v2 v2.21.1 // indirect
@@ -279,8 +279,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.33.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.29.0 // indirect
 	go.opentelemetry.io/otel/trace v1.33.0 // indirect
-	go.uber.org/atomic v1.9.0 // indirect
-	go.uber.org/multierr v1.9.0 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/mod v0.24.0 // indirect

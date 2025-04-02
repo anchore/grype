@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"os"
 	"runtime/debug"
 
@@ -11,6 +12,7 @@ import (
 	grypeHandler "github.com/anchore/grype/cmd/grype/cli/ui"
 	"github.com/anchore/grype/cmd/grype/internal/ui"
 	v6 "github.com/anchore/grype/grype/db/v6"
+	"github.com/anchore/grype/grype/grypeerr"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/redact"
@@ -70,6 +72,18 @@ func create(id clio.Identification) (clio.Application, *cobra.Command) {
 		).
 		WithPostRuns(func(_ *clio.State, _ error) {
 			stereoscope.Cleanup()
+		}).
+		WithMapExitCode(func(err error) int {
+			// return exit code 2 to indicate when a vulnerability severity is discovered
+			// that is equal or above the given --fail-on severity value.
+			if errors.Is(err, grypeerr.ErrAboveSeverityThreshold) {
+				return 2
+			}
+			// return exit code 100 to indicate a DB upgrade is available (cmd: db check).
+			if errors.Is(err, grypeerr.ErrDBUpgradeAvailable) {
+				return 100
+			}
+			return 1
 		})
 
 	app := clio.New(*clioCfg)
