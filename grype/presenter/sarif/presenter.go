@@ -331,7 +331,7 @@ func securitySeverityValue(m models.Match) string {
 
 // subtitle generates a subtitle for the given match
 func subtitle(m models.Match) string {
-	subtitle := m.Vulnerability.VulnerabilityMetadata.Description
+	subtitle := m.Vulnerability.Description
 	if subtitle != "" {
 		return subtitle
 	}
