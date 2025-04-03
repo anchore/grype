@@ -54,6 +54,7 @@
       "results": [
         {
           "ruleId": "CVE-1999-0001-package-1",
+          "level": "note",
           "message": {
             "text": "A low vulnerability in rpm package: package-1, version 1.1.1 was found at: /some/path/somefile-1.txt"
           },
@@ -78,6 +79,7 @@
         },
         {
           "ruleId": "CVE-1999-0002-package-2",
+          "level": "error",
           "message": {
             "text": "A critical vulnerability in deb package: package-2, version 2.2.2 was found at: /some/path/somefile-2.txt"
           },
