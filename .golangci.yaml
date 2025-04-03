@@ -1,57 +1,46 @@
-issues:
-  max-same-issues: 25
-  uniq-by-line: false
-
-  # TODO: enable this when we have coverage on docstring comments
-#  # The list of ids of default excludes to include or disable.
-#  include:
-#    - EXC0002 # disable excluding of issues about comments from golint
-
+version: "2"
 linters:
-  # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
-  disable-all: true
+    # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
+  default: none
   enable:
     - asciicheck
     - bodyclose
+    - copyloopvar
     - dogsled
     - dupl
     - errcheck
-    - copyloopvar
     - funlen
     - gocognit
     - goconst
     - gocritic
     - gocyclo
-    - gofmt
-    - goimports
     - goprintffuncname
     - gosec
-    - gosimple
     - govet
     - ineffassign
     - misspell
     - nakedret
     - revive
     - staticcheck
-    - stylecheck
-    - typecheck
     - unconvert
     - unparam
     - unused
     - whitespace
-
-linters-settings:
-  funlen:
-    # Checks the number of lines in a function.
-    # If lower than 0, disable the check.
-    # Default: 60
-    lines: 70
-    # Checks the number of statements in a function.
-    # If lower than 0, disable the check.
-    # Default: 40
-    statements: 50
-run:
-  timeout: 10m
+  settings:
+    funlen:
+      lines: 70
+      statements: 50
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
 
 # do not enable...
 #    - deadcode          # The owner seems to have abandoned the linter. Replaced by "unused".
@@ -79,3 +68,23 @@ run:
 #    - testpackage
 #    - varcheck     # The owner seems to have abandoned the linter. Replaced by "unused".
 #    - wsl          # this doens't have an auto-fixer yet and is pretty noisy (https://github.com/bombsimon/wsl/issues/90)
+
+issues:
+  max-same-issues: 25
+  uniq-by-line: false
+
+# TODO: enable this when we have coverage on docstring comments
+#  # The list of ids of default excludes to include or disable.
+#  include:
+#    - EXC0002 # disable excluding of issues about comments from golint
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

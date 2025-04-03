@@ -26,7 +26,7 @@ tools:
   # used for linting
   - name: golangci-lint
     version:
-      want: v1.64.8
+      want: v2.0.2
     method: github-release
     with:
       repo: golangci/golangci-lint
@@ -58,7 +58,7 @@ tools:
   # used to release all artifacts
   - name: goreleaser
     version:
-      want: v2.8.1
+      want: v2.8.2
     method: github-release
     with:
       repo: goreleaser/goreleaser
