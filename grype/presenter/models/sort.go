@@ -87,13 +87,13 @@ func compareByVulnerabilityID(a, b Match) int {
 }
 
 func compareBySeverity(a, b Match) int {
-	aScore := severityScore(a.Vulnerability.Severity)
-	bScore := severityScore(b.Vulnerability.Severity)
+	aScore := severityPriority(a.Vulnerability.Severity)
+	bScore := severityPriority(b.Vulnerability.Severity)
 
 	switch {
-	case aScore > bScore: // higher severity first
+	case aScore < bScore: // higher severity first
 		return -1
-	case aScore < bScore:
+	case aScore > bScore:
 		return 1
 	default:
 		return 0
@@ -142,20 +142,20 @@ func compareByPackageType(a, b Match) int {
 	}
 }
 
-// severityScore maps severity strings to numeric scores for comparison
-func severityScore(severity string) int {
+// severityPriority maps severity strings to numeric priority for comparison (the lowest value is most severe)
+func severityPriority(severity string) int {
 	switch strings.ToLower(severity) {
 	case "critical":
-		return 5
+		return 1
 	case "high":
-		return 4
+		return 2
 	case "medium":
 		return 3
 	case "low":
-		return 2
+		return 4
 	case "negligible":
-		return 1
+		return 5
 	default:
-		return 0
+		return 100 // least severe
 	}
 }
