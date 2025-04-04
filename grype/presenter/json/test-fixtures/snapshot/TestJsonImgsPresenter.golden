@@ -4,18 +4,26 @@
    "vulnerability": {
     "id": "CVE-1999-0001",
     "dataSource": "",
-    "namespace": "source-1",
     "severity": "Low",
     "urls": [],
-    "description": "1999-01 description",
     "cvss": [
      {
-      "version": "3.0",
-      "vector": "another vector",
+      "source": "nvd",
+      "type": "CVSS",
+      "version": "3.1",
+      "vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:L/I:L/A:H",
       "metrics": {
-       "baseScore": 4
+       "baseScore": 8.2
       },
       "vendorMetadata": {}
+     }
+    ],
+    "epss": [
+     {
+      "cve": "CVE-1999-0001",
+      "epss": 0.03,
+      "percentile": 0.42,
+      "date": "0001-01-01"
      }
     ],
     "fix": {
@@ -26,7 +34,8 @@
      ],
      "state": "fixed"
     },
-    "advisories": []
+    "advisories": [],
+    "risk": 1.68
    },
    "relatedVulnerabilities": [],
    "matchDetails": [
@@ -76,30 +85,40 @@
    "vulnerability": {
     "id": "CVE-1999-0002",
     "dataSource": "",
-    "namespace": "source-2",
     "severity": "Critical",
     "urls": [],
-    "description": "1999-02 description",
     "cvss": [
      {
-      "version": "2.0",
-      "vector": "vector",
+      "source": "nvd",
+      "type": "CVSS",
+      "version": "3.1",
+      "vector": "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:C/C:H/I:H/A:H",
       "metrics": {
-       "baseScore": 1,
-       "exploitabilityScore": 2,
-       "impactScore": 3
+       "baseScore": 8.5
       },
-      "vendorMetadata": {
-       "BaseSeverity": "Low",
-       "Status": "verified"
-      }
+      "vendorMetadata": {}
+     }
+    ],
+    "knownExploited": [
+     {
+      "cve": "CVE-1999-0002",
+      "knownRansomwareCampaignUse": "Known"
+     }
+    ],
+    "epss": [
+     {
+      "cve": "CVE-1999-0002",
+      "epss": 0.08,
+      "percentile": 0.53,
+      "date": "0001-01-01"
      }
     ],
     "fix": {
      "versions": [],
      "state": ""
     },
-    "advisories": []
+    "advisories": [],
+    "risk": 96.25000000000001
    },
    "relatedVulnerabilities": [],
    "matchDetails": [

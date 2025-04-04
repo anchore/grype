@@ -686,10 +686,10 @@ github.com/anchore/archiver/v3 v3.5.3-0.20241210171143-5b1d8d1c7c51 h1:yhk+P8lF3
 github.com/anchore/archiver/v3 v3.5.3-0.20241210171143-5b1d8d1c7c51/go.mod h1:nwuGSd7aZp0rtYt79YggCGafz1RYsclE7pi3fhLwvuw=
 github.com/anchore/bubbly v0.0.0-20231115134915-def0aba654a9 h1:p0ZIe0htYOX284Y4axJaGBvXHU0VCCzLN5Wf5XbKStU=
 github.com/anchore/bubbly v0.0.0-20231115134915-def0aba654a9/go.mod h1:3ZsFB9tzW3vl4gEiUeuSOMDnwroWxIxJelOOHUp8dSw=
-github.com/anchore/clio v0.0.0-20250401141128-4c1d6bd1e872 h1:iEF0xhHUuh3J8FrlPsZAQVaMpTa2j4lvLRI5XrXzge4=
-github.com/anchore/clio v0.0.0-20250401141128-4c1d6bd1e872/go.mod h1:Utb9i4kwiCWvqAIxZaJeMIXFO9uOgQXlvH2BfbfO/zI=
-github.com/anchore/fangs v0.0.0-20250326231402-da263204d38e h1:9hXsNmfBqo2exA4a90Qw33Edb+OROVmeibe9RzgS1wA=
-github.com/anchore/fangs v0.0.0-20250326231402-da263204d38e/go.mod h1:vrcYMDps9YXwwx2a9AsvipM6Fi5H9//9bymGb8G8BIQ=
+github.com/anchore/clio v0.0.0-20250408180537-ec8fa27f0d9f h1:jTeN+fKTXz1VFo3Zj7Msnx//s5kD6Htd+SS0z9/o7Ss=
+github.com/anchore/clio v0.0.0-20250408180537-ec8fa27f0d9f/go.mod h1:jQ+jv7v9RQnc5oA+Z0rAyXsQfaCAZHwY/CJZiLVggQ4=
+github.com/anchore/fangs v0.0.0-20250402135612-96e29e45f3fe h1:qv/xxpjF5RdKPqZjx8RM0aBi3HUCAO0DhRBMs2xhY1I=
+github.com/anchore/fangs v0.0.0-20250402135612-96e29e45f3fe/go.mod h1:vrcYMDps9YXwwx2a9AsvipM6Fi5H9//9bymGb8G8BIQ=
 github.com/anchore/go-collections v0.0.0-20240216171411-9321230ce537 h1:GjNGuwK5jWjJMyVppBjYS54eOiiSNv4Ba869k4wh72Q=
 github.com/anchore/go-collections v0.0.0-20240216171411-9321230ce537/go.mod h1:1aiktV46ATCkuVg0O573ZrH56BUawTECPETbZyBcqT8=
 github.com/anchore/go-homedir v0.0.0-20250319154043-c29668562e4d h1:gT69osH9AsdpOfqxbRwtxcNnSZ1zg4aKy2BevO3ZBdc=
