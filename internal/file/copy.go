@@ -11,7 +11,7 @@ import (
 
 func CopyDir(fs afero.Fs, src string, dst string) error {
 	var err error
-	var fds []os.DirEntry
+	var fds []os.FileInfo // <-- afero.ReadDir returns []os.FileInfo
 	var srcinfo os.FileInfo
 
 	if srcinfo, err = fs.Stat(src); err != nil {
@@ -22,7 +22,7 @@ func CopyDir(fs afero.Fs, src string, dst string) error {
 		return err
 	}
 
-	if fds, err = os.ReadDir(src); err != nil {
+	if fds, err = afero.ReadDir(fs, src); err != nil {
 		return err
 	}
 	for _, fd := range fds {
