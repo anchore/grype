@@ -64,6 +64,24 @@ func ParseMetricsFromVector(vector string) (*vulnerability.CvssMetrics, error) {
 	}
 }
 
+func SeverityFromBaseScore(bs float64) vulnerability.Severity {
+	switch {
+	case bs >= 10.0:
+		return vulnerability.UnknownSeverity
+	case bs >= 9.0:
+		return vulnerability.CriticalSeverity
+	case bs >= 7.0:
+		return vulnerability.HighSeverity
+	case bs >= 4.0:
+		return vulnerability.MediumSeverity
+	case bs >= 0.1:
+		return vulnerability.LowSeverity
+	case bs > 0:
+		return vulnerability.NegligibleSeverity
+	}
+	return vulnerability.UnknownSeverity
+}
+
 // roundScore rounds the score to the nearest tenth based on first.org rounding rules
 // see https://www.first.org/cvss/v3.1/specification-document#Appendix-A---Floating-Point-Rounding
 func roundScore(score float64) float64 {
