@@ -74,9 +74,13 @@ func MatchPackageByCPEs(provider vulnerability.Provider, p pkg.Package, upstream
 			searchVersion = transformJvmVersion(searchVersion, c.Attributes.Update)
 		}
 
-		verObj, err := version.NewVersion(searchVersion, format)
-		if err != nil {
-			return nil, fmt.Errorf("matcher failed to parse version pkg=%q ver=%q: %w", p.Name, p.Version, err)
+		var verObj *version.Version
+		var err error
+		if searchVersion != "" {
+			verObj, err = version.NewVersion(searchVersion, format)
+			if err != nil {
+				return nil, fmt.Errorf("matcher failed to parse version pkg=%q ver=%q: %w", p.Name, p.Version, err)
+			}
 		}
 
 		// find all vulnerability records in the DB for the given CPE (not including version comparisons)
@@ -95,7 +99,7 @@ func MatchPackageByCPEs(provider vulnerability.Provider, p pkg.Package, upstream
 		// relative to the current version information from the CPE (or the package) then the given package
 		// is vulnerable.
 		for _, vuln := range vulns {
-			addNewMatch(matchesByFingerprint, vuln, p, *verObj, upstreamMatcher, c)
+			addNewMatch(matchesByFingerprint, vuln, p, verObj, upstreamMatcher, c)
 		}
 	}
 
@@ -110,7 +114,7 @@ func transformJvmVersion(searchVersion, updateCpeField string) string {
 	return searchVersion
 }
 
-func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vulnerability.Vulnerability, p pkg.Package, searchVersion version.Version, upstreamMatcher match.MatcherType, searchedByCPE cpe.CPE) {
+func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vulnerability.Vulnerability, p pkg.Package, searchVersion *version.Version, upstreamMatcher match.MatcherType, searchedByCPE cpe.CPE) {
 	candidateMatch := match.Match{
 
 		Vulnerability: vuln,
@@ -186,7 +190,11 @@ func addMatchDetails(existingDetails []match.Detail, newDetails match.Detail) []
 	return existingDetails
 }
 
-func filterCPEsByVersion(pkgVersion version.Version, allCPEs []cpe.CPE) (matchedCPEs []cpe.CPE) {
+func filterCPEsByVersion(pkgVersion *version.Version, allCPEs []cpe.CPE) (matchedCPEs []cpe.CPE) {
+	if pkgVersion == nil {
+		// all CPEs are valid in the case when a version is not specified
+		return allCPEs
+	}
 	for _, c := range allCPEs {
 		if c.Attributes.Version == wfn.Any || c.Attributes.Version == wfn.NA {
 			matchedCPEs = append(matchedCPEs, c)
@@ -208,7 +216,7 @@ func filterCPEsByVersion(pkgVersion version.Version, allCPEs []cpe.CPE) (matched
 			continue
 		}
 
-		satisfied, err := constraint.Satisfied(&pkgVersion)
+		satisfied, err := constraint.Satisfied(pkgVersion)
 		if err != nil || satisfied {
 			// if we can't check for version satisfaction, don't filter out the CPE
 			matchedCPEs = append(matchedCPEs, c)
