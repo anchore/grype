@@ -169,9 +169,9 @@ func compareByEPSSPercentile(a, b Match) int {
 	bScore := epssPercentile(b.Vulnerability.EPSS)
 
 	switch {
-	case aScore < bScore: // higher severity first
+	case aScore > bScore: // higher severity first
 		return -1
-	case aScore > bScore:
+	case aScore < bScore:
 		return 1
 	default:
 		return 0
