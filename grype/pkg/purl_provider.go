@@ -201,12 +201,17 @@ func purlToPackage(rawLine string) (*Package, *pkg.Package, string, string, erro
 		PURL:     purl.String(),
 		Language: pkg.LanguageByName(purl.Type),
 	}
+	// copy to avoid mutating the original purl object
+	name := purl.Name
+	if purl.Namespace != "" {
+		name = fmt.Sprintf("%s/%s", purl.Namespace, purl.Name)
+	}
 
 	syftPkg.SetID()
 	return &Package{
 		ID:        ID(purl.String()),
 		CPEs:      cpes,
-		Name:      purl.Name,
+		Name:      name,
 		Version:   version,
 		Type:      pkgType,
 		Language:  pkg.LanguageByName(purl.Type),
