@@ -200,7 +200,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		errs = appendErrors(errs, err)
 	}
 
-	model, err := models.NewDocument(app.ID(), packages, pkgContext, *remainingMatches, ignoredMatches, vp, opts, dbInfo(status, vp), models.SortByPackage)
+	model, err := models.NewDocument(app.ID(), packages, pkgContext, *remainingMatches, ignoredMatches, vp, opts, dbInfo(status, vp), models.SortStrategy(opts.SortBy.Criteria))
 	if err != nil {
 		return fmt.Errorf("failed to create document: %w", err)
 	}

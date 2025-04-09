@@ -10,13 +10,17 @@ import (
 type SortStrategy string
 
 const (
-	SortByPackage SortStrategy = "package"
+	SortByPackage       SortStrategy = "package"
+	SortBySeverity      SortStrategy = "severity"
+	SortByThreat        SortStrategy = "epss"
+	SortByRisk          SortStrategy = "risk"
+	SortByVulnerability SortStrategy = "vulnerability"
 
 	defaultSortStrategy = SortByPackage
 )
 
 func SortStrategies() []SortStrategy {
-	return []SortStrategy{SortByPackage}
+	return []SortStrategy{SortByPackage, SortBySeverity, SortByThreat, SortByRisk, SortByVulnerability}
 }
 
 func (s SortStrategy) String() string {
@@ -37,12 +41,72 @@ type sortStrategyImpl []compareFunc
 // matchSortStrategy provides predefined sort strategies for Match
 var matchSortStrategy = map[SortStrategy]sortStrategyImpl{
 	SortByPackage: {
+		comparePackageAttributes,
+		compareVulnerabilityAttributes,
+	},
+	SortByVulnerability: {
+		compareVulnerabilityAttributes,
+		comparePackageAttributes,
+	},
+	SortBySeverity: {
+		// severity and tangential attributes...
+		compareBySeverity,
+		compareByRisk,
+		compareByEPSSPercentile,
+		// followed by package attributes...
+		comparePackageAttributes,
+		// followed by the remaining vulnerability attributes...
+		compareByVulnerabilityID,
+	},
+	SortByThreat: {
+		// epss and tangential attributes...
+		compareByEPSSPercentile,
+		compareByRisk,
+		compareBySeverity,
+		// followed by package attributes...
+		comparePackageAttributes,
+		// followed by the remaining vulnerability attributes...
+		compareByVulnerabilityID,
+	},
+	SortByRisk: {
+		// risk and tangential attributes...
+		compareByRisk,
+		compareBySeverity,
+		compareByEPSSPercentile,
+		// followed by package attributes...
+		comparePackageAttributes,
+		// followed by the remaining vulnerability attributes...
+		compareByVulnerabilityID,
+	},
+}
+
+func compareVulnerabilityAttributes(a, b Match) int {
+	return combine(
+		compareByVulnerabilityID,
+		compareBySeverity,
+		compareByEPSSPercentile,
+		compareByRisk,
+	)(a, b)
+}
+
+func comparePackageAttributes(a, b Match) int {
+	return combine(
 		compareByPackageName,
 		compareByPackageVersion,
 		compareByPackageType,
-		compareBySeverity,
-		compareByVulnerabilityID,
-	},
+	)(a, b)
+}
+
+func combine(impls ...compareFunc) compareFunc {
+	return func(a, b Match) int {
+		for _, impl := range impls {
+			result := impl(a, b)
+			if result != 0 {
+				return result
+			}
+		}
+		return 0
+	}
 }
 
 // SortMatches sorts matches based on a strategy name
@@ -100,6 +164,20 @@ func compareBySeverity(a, b Match) int {
 	}
 }
 
+func compareByEPSSPercentile(a, b Match) int {
+	aScore := epssPercentile(a.Vulnerability.EPSS)
+	bScore := epssPercentile(b.Vulnerability.EPSS)
+
+	switch {
+	case aScore < bScore: // higher severity first
+		return -1
+	case aScore > bScore:
+		return 1
+	default:
+		return 0
+	}
+}
+
 func compareByPackageName(a, b Match) int {
 	aName := a.Artifact.Name
 	bName := b.Artifact.Name
@@ -140,6 +218,33 @@ func compareByPackageType(a, b Match) int {
 	default:
 		return 0
 	}
+}
+
+func compareByRisk(a, b Match) int {
+	aRisk := a.Vulnerability.Risk
+	bRisk := b.Vulnerability.Risk
+
+	switch {
+	case aRisk > bRisk:
+		return -1
+	case aRisk < bRisk:
+		return 1
+	default:
+		return 0
+	}
+}
+
+func epssPercentile(es []EPSS) float64 {
+	switch len(es) {
+	case 0:
+		return 0.0
+	case 1:
+		return es[0].Percentile
+	}
+	sort.Slice(es, func(i, j int) bool {
+		return es[i].Percentile > es[j].Percentile
+	})
+	return es[0].Percentile
 }
 
 // severityPriority maps severity strings to numeric priority for comparison (the lowest value is most severe)
