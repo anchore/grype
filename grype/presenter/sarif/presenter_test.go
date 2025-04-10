@@ -286,6 +286,7 @@ func TestToSarifReport(t *testing.T) {
 			assert.Len(t, run.Results, 2)
 			result := run.Results[0]
 			assert.Equal(t, "CVE-1999-0001-package-1", *result.RuleID)
+			assert.Equal(t, "note", *result.Level)
 			assert.Len(t, result.Locations, 1)
 			location := result.Locations[0]
 			expectedLocation, ok := tc.locations[*result.RuleID]
@@ -296,6 +297,7 @@ func TestToSarifReport(t *testing.T) {
 
 			result = run.Results[1]
 			assert.Equal(t, "CVE-1999-0002-package-2", *result.RuleID)
+			assert.Equal(t, "error", *result.Level)
 			assert.Len(t, result.Locations, 1)
 			location = result.Locations[0]
 			expectedLocation, ok = tc.locations[*result.RuleID]
