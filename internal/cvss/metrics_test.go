@@ -110,6 +110,86 @@ func TestParseMetricsFromVector(t *testing.T) {
 	}
 }
 
+func TestSeverityFromBaseScore(t *testing.T) {
+	tests := []struct {
+		name     string
+		score    float64
+		expected vulnerability.Severity
+	}{
+		{
+			name:     "unknown severity (exactly 10.0)",
+			score:    10.0,
+			expected: vulnerability.UnknownSeverity,
+		},
+		{
+			name:     "unknown severity (greater than 10.0)",
+			score:    10.1,
+			expected: vulnerability.UnknownSeverity,
+		},
+		{
+			name:     "critical severity (lower bound)",
+			score:    9.0,
+			expected: vulnerability.CriticalSeverity,
+		},
+		{
+			name:     "critical severity (upper bound)",
+			score:    9.9,
+			expected: vulnerability.CriticalSeverity,
+		},
+		{
+			name:     "high severity (lower bound)",
+			score:    7.0,
+			expected: vulnerability.HighSeverity,
+		},
+		{
+			name:     "high severity (upper bound)",
+			score:    8.9,
+			expected: vulnerability.HighSeverity,
+		},
+		{
+			name:     "medium severity (lower bound)",
+			score:    4.0,
+			expected: vulnerability.MediumSeverity,
+		},
+		{
+			name:     "medium severity (upper bound)",
+			score:    6.9,
+			expected: vulnerability.MediumSeverity,
+		},
+		{
+			name:     "low severity (lower bound)",
+			score:    0.1,
+			expected: vulnerability.LowSeverity,
+		},
+		{
+			name:     "low severity (upper bound)",
+			score:    3.9,
+			expected: vulnerability.LowSeverity,
+		},
+		{
+			name:     "negligible severity (between 0 and 0.1)",
+			score:    0.05,
+			expected: vulnerability.NegligibleSeverity,
+		},
+		{
+			name:     "unknown severity (exactly zero)",
+			score:    0.0,
+			expected: vulnerability.UnknownSeverity,
+		},
+		{
+			name:     "unknown severity (negative)",
+			score:    -1.0,
+			expected: vulnerability.UnknownSeverity,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, SeverityFromBaseScore(tt.score))
+		})
+	}
+}
+
 func ptr(f float64) *float64 {
 	return &f
 }
