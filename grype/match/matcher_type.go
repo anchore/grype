@@ -16,6 +16,7 @@ const (
 	GoModuleMatcher    MatcherType = "go-module-matcher"
 	OpenVexMatcher     MatcherType = "openvex-matcher"
 	RustMatcher        MatcherType = "rust-matcher"
+	BitnamiMatcher     MatcherType = "bitnami-matcher"
 )
 
 var AllMatcherTypes = []MatcherType{
@@ -32,6 +33,7 @@ var AllMatcherTypes = []MatcherType{
 	GoModuleMatcher,
 	OpenVexMatcher,
 	RustMatcher,
+	BitnamiMatcher,
 }
 
 type MatcherType string

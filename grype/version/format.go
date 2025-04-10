@@ -85,6 +85,8 @@ func FormatFromPkg(p pkg.Package) Format {
 	switch p.Type {
 	case syftPkg.ApkPkg:
 		return ApkFormat
+	case syftPkg.BitnamiPkg:
+		return SemanticFormat
 	case syftPkg.DebPkg:
 		return DebFormat
 	case syftPkg.JavaPkg:

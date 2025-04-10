@@ -372,7 +372,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 					SearchedBy: match.CPEParameters{
 						CPEs:      []string{"cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"},
 						Namespace: "nvd:cpe",
-						Package: match.CPEPackageParameter{
+						Package: match.PackageParameter{
 							Name:    "libvncserver",
 							Version: "0.9.9",
 						},
@@ -444,7 +444,7 @@ func TestNvdOnlyMatches_FixInNvd(t *testing.T) {
 					SearchedBy: match.CPEParameters{
 						CPEs:      []string{"cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"},
 						Namespace: "nvd:cpe",
-						Package: match.CPEPackageParameter{
+						Package: match.PackageParameter{
 							Name:    "libvncserver",
 							Version: "0.9.9",
 						},
@@ -518,7 +518,7 @@ func TestNvdMatchesProperVersionFiltering(t *testing.T) {
 					SearchedBy: match.CPEParameters{
 						CPEs:      []string{"cpe:2.3:a:*:libvncserver:0.9.11:*:*:*:*:*:*:*"},
 						Namespace: "nvd:cpe",
-						Package: match.CPEPackageParameter{
+						Package: match.PackageParameter{
 							Name:    "libvncserver",
 							Version: "0.9.11-r10",
 						},
@@ -876,7 +876,7 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 					SearchedBy: match.CPEParameters{
 						CPEs:      []string{"cpe:2.3:a:musl:musl:1.3.2-r0:*:*:*:*:*:*:*"},
 						Namespace: "nvd:cpe",
-						Package: match.CPEPackageParameter{
+						Package: match.PackageParameter{
 							Name:    "musl",
 							Version: "1.3.2-r0",
 						},
