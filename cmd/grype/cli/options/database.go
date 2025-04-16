@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/anchore/clio"
+	"github.com/anchore/go-homedir"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/db/v6/installation"
 )
@@ -25,6 +26,7 @@ type Database struct {
 
 var _ interface {
 	clio.FieldDescriber
+	clio.PostLoader
 } = (*Database)(nil)
 
 func DefaultDatabase(id clio.Identification) Database {
@@ -63,4 +65,10 @@ This file is ~156KiB as of 2024-04-17 so the download should be quick; adjust as
 	descriptions.Add(&cfg.UpdateDownloadTimeout, `Timeout for downloading actual vulnerability DB
 The DB is ~156MB as of 2024-04-17 so slower connections may exceed the default timeout; adjust as needed`)
 	descriptions.Add(&cfg.MaxUpdateCheckFrequency, `Maximum frequency to check for vulnerability database updates`)
+}
+
+func (cfg *Database) PostLoad() error {
+	var err error
+	cfg.Dir, err = homedir.Expand(cfg.Dir)
+	return err
 }
