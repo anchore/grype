@@ -321,6 +321,15 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
+			name: "github-actions-use-statement",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.GitHubActionsUseStatement{
+					Value:   "a",
+					Comment: "a",
+				},
+			},
+		},
+		{
 			name: "golang-metadata",
 			syftPkg: syftPkg.Package{
 				Metadata: syftPkg.GolangBinaryBuildinfoEntry{
