@@ -10,6 +10,8 @@ import (
 	"github.com/scylladb/go-set/strset"
 
 	"github.com/anchore/go-homedir"
+	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/linux"
@@ -80,6 +82,24 @@ func openPurlFile(path string) (*os.File, error) {
 	return f, nil
 }
 
+func createLinuxRelease(name string, version string) *linux.Release {
+	var codename string
+
+	// if there are no digits in the version, it is likely a codename
+	if !strings.ContainsAny(version, "0123456789") {
+		codename = version
+		version = ""
+	}
+
+	return &linux.Release{
+		Name:            name,
+		ID:              name,
+		IDLike:          []string{name},
+		Version:         version,
+		VersionCodename: codename,
+	}
+}
+
 func decodePurlsFromReader(reader io.Reader, ctx Context) ([]Package, Context, *sbom.SBOM, error) {
 	scanner := bufio.NewScanner(reader)
 	var packages []Package
@@ -124,26 +144,8 @@ func decodePurlsFromReader(reader io.Reader, ctx Context) ([]Package, Context, *
 		for name, versions := range distros {
 			if versions.Size() == 1 {
 				version := versions.List()[0]
-				var codename string
-				// if there are no digits in the version, it is likely a codename
-				if !strings.ContainsAny(version, "0123456789") {
-					codename = version
-					version = ""
-				}
-				ctx.Distro = &linux.Release{
-					Name:            name,
-					ID:              name,
-					IDLike:          []string{name},
-					Version:         version,
-					VersionCodename: codename,
-				}
-				s.Artifacts.LinuxDistribution = &linux.Release{
-					Name:            name,
-					ID:              name,
-					IDLike:          []string{name},
-					Version:         version,
-					VersionCodename: codename,
-				}
+				ctx.Distro = createLinuxRelease(name, version)
+				s.Artifacts.LinuxDistribution = createLinuxRelease(name, version)
 			}
 		}
 	}
@@ -151,6 +153,7 @@ func decodePurlsFromReader(reader io.Reader, ctx Context) ([]Package, Context, *
 	return packages, ctx, s, nil
 }
 
+//nolint:funlen
 func purlToPackage(rawLine string) (*Package, *pkg.Package, string, string, error) {
 	purl, err := packageurl.FromString(rawLine)
 	if err != nil {
@@ -208,6 +211,13 @@ func purlToPackage(rawLine string) (*Package, *pkg.Package, string, string, erro
 	}
 
 	syftPkg.SetID()
+
+	distribution, err := distro.NewFromRelease(*createLinuxRelease(distroName, distroVersion))
+	if err != nil {
+		log.Trace("Unable to create Distro from a release: %s", err)
+		distribution = nil
+	}
+
 	return &Package{
 		ID:        ID(purl.String()),
 		CPEs:      cpes,
@@ -217,6 +227,7 @@ func purlToPackage(rawLine string) (*Package, *pkg.Package, string, string, erro
 		Language:  pkg.LanguageByName(purl.Type),
 		PURL:      purl.String(),
 		Upstreams: upstreams,
+		Distro:    distribution,
 	}, &syftPkg, distroName, distroVersion, nil
 }
 
