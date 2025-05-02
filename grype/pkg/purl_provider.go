@@ -80,6 +80,24 @@ func openPurlFile(path string) (*os.File, error) {
 	return f, nil
 }
 
+func createLinuxRelease(name string, version string) *linux.Release {
+	var codename string
+
+	// if there are no digits in the version, it is likely a codename
+	if !strings.ContainsAny(version, "0123456789") {
+		codename = version
+		version = ""
+	}
+
+	return &linux.Release{
+		Name:            name,
+		ID:              name,
+		IDLike:          []string{name},
+		Version:         version,
+		VersionCodename: codename,
+	}
+}
+
 func decodePurlsFromReader(reader io.Reader, ctx Context) ([]Package, Context, *sbom.SBOM, error) {
 	scanner := bufio.NewScanner(reader)
 	var packages []Package
@@ -124,26 +142,8 @@ func decodePurlsFromReader(reader io.Reader, ctx Context) ([]Package, Context, *
 		for name, versions := range distros {
 			if versions.Size() == 1 {
 				version := versions.List()[0]
-				var codename string
-				// if there are no digits in the version, it is likely a codename
-				if !strings.ContainsAny(version, "0123456789") {
-					codename = version
-					version = ""
-				}
-				ctx.Distro = &linux.Release{
-					Name:            name,
-					ID:              name,
-					IDLike:          []string{name},
-					Version:         version,
-					VersionCodename: codename,
-				}
-				s.Artifacts.LinuxDistribution = &linux.Release{
-					Name:            name,
-					ID:              name,
-					IDLike:          []string{name},
-					Version:         version,
-					VersionCodename: codename,
-				}
+				ctx.Distro = createLinuxRelease(name, version)
+				s.Artifacts.LinuxDistribution = createLinuxRelease(name, version)
 			}
 		}
 	}
