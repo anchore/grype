@@ -432,6 +432,34 @@ func Test_PurlProvider(t *testing.T) {
 			},
 		},
 		{
+			name:      "do not include namespace when given blank input blank",
+			userInput: "pkg:golang/wazuh@v4.5.0",
+			context: Context{
+				Source: &source.Description{
+					Metadata: PURLLiteralMetadata{PURL: "pkg:golang/wazuh@v4.5.0"},
+				},
+			},
+			pkgs: []Package{
+				{
+					Name:    "wazuh",
+					Version: "v4.5.0",
+					Type:    pkg.GoModulePkg,
+					PURL:    "pkg:golang/wazuh@v4.5.0",
+				},
+			},
+			sbom: &sbom.SBOM{
+				Artifacts: sbom.Artifacts{
+					Packages: pkg.NewCollection(pkg.Package{
+						Name:     "wazuh",
+						Version:  "v4.5.0",
+						Type:     pkg.GoModulePkg,
+						PURL:     "pkg:golang/wazuh@v4.5.0",
+						Language: pkg.Go,
+					}),
+				},
+			},
+		},
+		{
 			name:      "infer context when distro is present for multiple similar purls",
 			userInput: "purl:test-fixtures/purl/homogeneous-os.txt",
 			context: Context{

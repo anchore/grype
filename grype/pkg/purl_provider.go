@@ -194,7 +194,7 @@ func purlToPackage(rawLine string) (*Package, *pkg.Package, string, string, erro
 	}
 
 	name := purl.Name
-	if pkgType == pkg.GoModulePkg {
+	if pkgType == pkg.GoModulePkg && purl.Namespace != "" {
 		name = purl.Namespace + "/" + name
 	}
 
