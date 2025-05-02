@@ -153,6 +153,7 @@ func decodePurlsFromReader(reader io.Reader, ctx Context) ([]Package, Context, *
 	return packages, ctx, s, nil
 }
 
+//nolint:funlen
 func purlToPackage(rawLine string) (*Package, *pkg.Package, string, string, error) {
 	purl, err := packageurl.FromString(rawLine)
 	if err != nil {
@@ -208,7 +209,7 @@ func purlToPackage(rawLine string) (*Package, *pkg.Package, string, string, erro
 
 	distribution, err := distro.NewFromRelease(*createLinuxRelease(distroName, distroVersion))
 	if err != nil {
-		log.Trace("Unable to create Disto from a release: %s", err)
+		log.Trace("Unable to create Distro from a release: %s", err)
 		distribution = nil
 	}
 
