@@ -10,6 +10,8 @@ import (
 	"github.com/scylladb/go-set/strset"
 
 	"github.com/anchore/go-homedir"
+	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/linux"
@@ -203,6 +205,13 @@ func purlToPackage(rawLine string) (*Package, *pkg.Package, string, string, erro
 	}
 
 	syftPkg.SetID()
+
+	distribution, err := distro.NewFromRelease(*createLinuxRelease(distroName, distroVersion))
+	if err != nil {
+		log.Trace("Unable to create Disto from a release: %s", err)
+		distribution = nil
+	}
+
 	return &Package{
 		ID:        ID(purl.String()),
 		CPEs:      cpes,
@@ -212,6 +221,7 @@ func purlToPackage(rawLine string) (*Package, *pkg.Package, string, string, erro
 		Language:  pkg.LanguageByName(purl.Type),
 		PURL:      purl.String(),
 		Upstreams: upstreams,
+		Distro:    distribution,
 	}, &syftPkg, distroName, distroVersion, nil
 }
 
