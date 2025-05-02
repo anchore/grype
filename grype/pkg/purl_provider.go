@@ -193,8 +193,13 @@ func purlToPackage(rawLine string) (*Package, *pkg.Package, string, string, erro
 		version = fmt.Sprintf("%s:%s", epoch, purl.Version)
 	}
 
+	name := purl.Name
+	if pkgType == pkg.GoModulePkg {
+		name = purl.Namespace + "/" + name
+	}
+
 	syftPkg := pkg.Package{
-		Name:     purl.Name,
+		Name:     name,
 		Version:  version,
 		Type:     pkgType,
 		CPEs:     cpes,
@@ -206,7 +211,7 @@ func purlToPackage(rawLine string) (*Package, *pkg.Package, string, string, erro
 	return &Package{
 		ID:        ID(purl.String()),
 		CPEs:      cpes,
-		Name:      purl.Name,
+		Name:      name,
 		Version:   version,
 		Type:      pkgType,
 		Language:  pkg.LanguageByName(purl.Type),
