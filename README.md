@@ -212,7 +212,7 @@ grype --add-cpes-if-none --distro alpine:3.10 sbom:some-alpine-3.10.spdx.json
 
 ## Threat & Risk Prioritization
 
-This section explains the columns and UI cues that help you focus remediation efforts:
+This section explains the columns and UI cues that help prioritize remediation efforts:
 
 - **Severity**: String severity based on CVSS scores and indicate the significance of a vulnerability in levels.
   This balances concerns such as ease of exploitability, and the potential to affect 

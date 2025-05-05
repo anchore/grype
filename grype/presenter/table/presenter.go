@@ -114,23 +114,7 @@ func (p *Presenter) Present(output io.Writer) error {
 	table.SetTablePadding("  ")
 	table.SetNoWhiteSpace(true)
 
-	if p.withColor {
-		for _, row := range rs.Deduplicate() {
-			table.Rich(row.Columns(), []tablewriter.Colors{
-				{}, // name
-				{}, // version
-				{}, // fix
-				{}, // package type
-				{}, // vulnerability ID
-				{}, // severity
-				{}, // epss,
-				{}, // risk
-				{}, // annotations
-			})
-		}
-	} else {
-		table.AppendBulk(rs.Render())
-	}
+	table.AppendBulk(rs.Render())
 
 	table.Render()
 
