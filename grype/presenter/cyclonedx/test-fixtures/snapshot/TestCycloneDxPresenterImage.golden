@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:24d4fb73-8881-462c-940a-61b6d37b579d",
+  "serialNumber": "urn:uuid:04f27880-9830-4cfa-b9a5-9e8b9b4fee04",
   "version": 1,
   "metadata": {
-    "timestamp": "2025-02-27T13:15:13-05:00",
+    "timestamp": "2025-04-09T12:16:17-04:00",
     "tools": {
       "components": [
         {
@@ -90,28 +90,23 @@
   ],
   "vulnerabilities": [
     {
-      "bom-ref": "urn:uuid:638bc45b-a838-4017-b690-dc5d8d3cfe8d",
+      "bom-ref": "urn:uuid:0f1e7161-0591-4f58-928e-184e8c8184c0",
       "id": "CVE-1999-0001",
-      "source": {
-        "name": "source-1"
-      },
+      "source": {},
       "references": [
         {
           "id": "CVE-1999-0001",
-          "source": {
-            "name": "source-1"
-          }
+          "source": {}
         }
       ],
       "ratings": [
         {
-          "score": 4,
+          "score": 8.2,
           "severity": "low",
-          "method": "CVSSv3",
-          "vector": "another vector"
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:L/I:L/A:H"
         }
       ],
-      "description": "1999-01 description",
       "affects": [
         {
           "ref": "9baa2db122fea516"
@@ -119,28 +114,23 @@
       ]
     },
     {
-      "bom-ref": "urn:uuid:6592d365-1128-49a0-8a68-570d8188965a",
+      "bom-ref": "urn:uuid:757bf3c1-b03d-482b-b1a1-8b7a3fd5346f",
       "id": "CVE-1999-0002",
-      "source": {
-        "name": "source-2"
-      },
+      "source": {},
       "references": [
         {
           "id": "CVE-1999-0002",
-          "source": {
-            "name": "source-2"
-          }
+          "source": {}
         }
       ],
       "ratings": [
         {
-          "score": 1,
+          "score": 8.5,
           "severity": "critical",
-          "method": "CVSSv2",
-          "vector": "vector"
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:C/C:H/I:H/A:H"
         }
       ],
-      "description": "1999-02 description",
       "affects": [
         {
           "ref": "pkg:deb/package-2@2.2.2?package-id=7bb53d560434bc7f"

@@ -33,18 +33,26 @@ func TestCreateRow(t *testing.T) {
 				Versions: []string{"1.0.2", "2.0.1", "3.0.4"},
 				State:    vulnerability.FixStateFixed.String(),
 			},
+			Risk: 87.2,
 			VulnerabilityMetadata: models.VulnerabilityMetadata{
 				ID:          "CVE-1999-0001",
 				Namespace:   "source-1",
 				Description: "1999-01 description",
-				Severity:    "Low",
+				Severity:    "Medium",
 				Cvss: []models.Cvss{
 					{
 						Metrics: models.CvssMetrics{
-							BaseScore: 4,
+							BaseScore: 7,
 						},
-						Vector:  "another vector",
-						Version: "3.0",
+						Vector:  "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:L/I:L/A:H",
+						Version: "3.1",
+					},
+				},
+				EPSS: []models.EPSS{
+					{
+						CVE:        "CVE-1999-0001",
+						EPSS:       0.3,
+						Percentile: 0.5,
 					},
 				},
 			},
@@ -60,30 +68,43 @@ func TestCreateRow(t *testing.T) {
 			},
 		},
 	}
+
+	matchWithKev := match1
+	matchWithKev.Vulnerability.KnownExploited = append(matchWithKev.Vulnerability.KnownExploited, models.KnownExploited{
+		CVE:                        "CVE-1999-0001",
+		KnownRansomwareCampaignUse: "Known",
+	})
+
 	cases := []struct {
-		name           string
-		match          models.Match
-		severitySuffix string
-		expectedRow    []string
+		name            string
+		match           models.Match
+		extraAnnotation string
+		expectedRow     []string
 	}{
 		{
-			name:           "create row for vulnerability",
-			match:          match1,
-			severitySuffix: "",
-			expectedRow:    []string{match1.Artifact.Name, match1.Artifact.Version, "1.0.2, *2.0.1, 3.0.4", string(match1.Artifact.Type), match1.Vulnerability.ID, "Low"},
+			name:            "create row for vulnerability",
+			match:           match1,
+			extraAnnotation: "",
+			expectedRow:     []string{match1.Artifact.Name, match1.Artifact.Version, "1.0.2, *2.0.1, 3.0.4", string(match1.Artifact.Type), match1.Vulnerability.ID, "Medium", "50.00", " 87.2"},
 		},
 		{
-			name:           "create row for suppressed vulnerability",
-			match:          match1,
-			severitySuffix: appendSuppressed,
-			expectedRow:    []string{match1.Artifact.Name, match1.Artifact.Version, "1.0.2, *2.0.1, 3.0.4", string(match1.Artifact.Type), match1.Vulnerability.ID, "Low", "(suppressed)"},
+			name:            "create row for suppressed vulnerability",
+			match:           match1,
+			extraAnnotation: appendSuppressed,
+			expectedRow:     []string{match1.Artifact.Name, match1.Artifact.Version, "1.0.2, *2.0.1, 3.0.4", string(match1.Artifact.Type), match1.Vulnerability.ID, "Medium", "50.00", " 87.2", "(suppressed)"},
+		},
+		{
+			name:            "create row for suppressed vulnerability + Kev",
+			match:           matchWithKev,
+			extraAnnotation: appendSuppressed,
+			expectedRow:     []string{match1.Artifact.Name, match1.Artifact.Version, "1.0.2, *2.0.1, 3.0.4", string(match1.Artifact.Type), match1.Vulnerability.ID, "Medium", "50.00", " 87.2", "(kev, suppressed)"},
 		},
 	}
 
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
 			p := NewPresenter(models.PresenterConfig{}, false)
-			row := p.newRow(testCase.match, testCase.severitySuffix, false)
+			row := p.newRow(testCase.match, testCase.extraAnnotation, false)
 			cols := rows{row}.Render()[0]
 
 			assert.Equal(t, testCase.expectedRow, cols)
@@ -230,7 +251,7 @@ func TestRowsRender(t *testing.T) {
 		result := rs.Render()
 
 		expected := [][]string{
-			{"pkg1", "1.0.0", "1.1.0", "os", "CVE-2023-1234", "critical"},
+			{"pkg1", "1.0.0", "1.1.0", "os", "CVE-2023-1234", "critical", "75.00", "  N/A"},
 		}
 
 		if diff := cmp.Diff(expected, result); diff != "" {
@@ -248,9 +269,9 @@ func TestRowsRender(t *testing.T) {
 		result := rs.Render()
 
 		expected := [][]string{
-			{"pkgA", "1.0.0", "", "os", "CVE-2023-1234", "critical"},
-			{"pkgB", "2.0.0", "(won't fix)", "os", "CVE-2023-5678", "high"},
-			{"pkgC", "3.0.0", "3.1.0", "os", "CVE-2023-9012", "medium"},
+			{"pkgA", "1.0.0", "", "os", "CVE-2023-1234", "critical", "75.00", "  N/A"},
+			{"pkgB", "2.0.0", "(won't fix)", "os", "CVE-2023-5678", "high", "75.00", "  N/A"},
+			{"pkgC", "3.0.0", "3.1.0", "os", "CVE-2023-9012", "medium", "75.00", "  N/A"},
 		}
 
 		if diff := cmp.Diff(expected, result); diff != "" {
@@ -265,17 +286,15 @@ func TestRowsRender(t *testing.T) {
 		result := rs.Render()
 
 		expected := [][]string{
-			{"pkg1", "1.0.0", "1.1.0", "os", "CVE-2023-1234", "critical"},
+			{"pkg1", "1.0.0", "1.1.0", "os", "CVE-2023-1234", "critical", "75.00", "  N/A"},
 		}
 
 		if diff := cmp.Diff(expected, result); diff != "" {
 			t.Errorf("Render() mismatch (-want +got):\n%s", diff)
 		}
 
-		// should have 7 columns: name, version, fix, packageType, vulnID, severity
-		if len(result[0]) != 6 {
-			t.Errorf("Expected 7 columns, got %d", len(result[0]))
-		}
+		// expected columns: name, version, fix, packageType, vulnID, severity, epss, risk
+		assert.Len(t, result[0], 8)
 
 	})
 }
@@ -290,6 +309,24 @@ func createTestRow(name, version, fix, pkgType, vulnID, severity string, fixStat
 			VulnerabilityMetadata: models.VulnerabilityMetadata{
 				ID:       vulnID,
 				Severity: severity,
+				Cvss: []models.Cvss{
+					{
+						Source:  "nvd",
+						Type:    "CVSS",
+						Version: "3.1",
+						Vector:  "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:C/C:H/I:L/A:L",
+						Metrics: models.CvssMetrics{
+							BaseScore: 7.2,
+						},
+					},
+				},
+				EPSS: []models.EPSS{
+					{
+						CVE:        vulnID,
+						EPSS:       0.03,
+						Percentile: 0.75,
+					},
+				},
 			},
 		},
 		Artifact: models.Package{
