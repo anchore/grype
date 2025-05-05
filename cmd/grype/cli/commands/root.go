@@ -273,16 +273,18 @@ func applyDistroHint(pkgs []pkg.Package, context *pkg.Context, opts *options.Gry
 		}
 	}
 
-	hasOSPackage := false
+	hasOSPackageWithoutDistro := false
 	for _, p := range pkgs {
 		switch p.Type {
 		case syftPkg.AlpmPkg, syftPkg.DebPkg, syftPkg.RpmPkg, syftPkg.KbPkg:
-			hasOSPackage = true
+			if p.Distro == nil {
+				hasOSPackageWithoutDistro = true
+			}
 		}
 	}
 
-	if context.Distro == nil && hasOSPackage {
-		log.Warnf("Unable to determine the OS distribution. This may result in missing vulnerabilities. " +
+	if context.Distro == nil && hasOSPackageWithoutDistro {
+		log.Warnf("Unable to determine the OS distribution of some packages. This may result in missing vulnerabilities. " +
 			"You may specify a distro using: --distro <distro>:<version>")
 	}
 }
