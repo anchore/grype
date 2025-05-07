@@ -23,6 +23,7 @@ const (
 	OpenSuseLeap Type = "opensuseleap"
 	SLES         Type = "sles"
 	Photon       Type = "photon"
+	Echo         Type = "echo"
 	Windows      Type = "windows"
 	Mariner      Type = "mariner"
 	Azure        Type = "azurelinux"
@@ -48,6 +49,7 @@ var All = []Type{
 	OpenSuseLeap,
 	SLES,
 	Photon,
+	Echo,
 	Windows,
 	Mariner,
 	Azure,
@@ -74,6 +76,7 @@ var IDMapping = map[string]Type{
 	"opensuse-leap": OpenSuseLeap,
 	"sles":          SLES,
 	"photon":        Photon,
+	"echo":          Echo,
 	"windows":       Windows,
 	"mariner":       Mariner,
 	"azurelinux":    Azure,
