@@ -619,7 +619,7 @@ func Test_PurlProvider(t *testing.T) {
 				tc.wantErr = require.NoError
 			}
 
-			packages, ctx, gotSBOM, err := purlProvider(tc.userInput)
+			packages, ctx, gotSBOM, err := purlProvider(tc.userInput, ProviderConfig{})
 
 			tc.wantErr(t, err)
 			if err != nil {
