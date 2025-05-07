@@ -15,7 +15,19 @@ var errDoesNotProvide = fmt.Errorf("cannot provide packages from the given sourc
 
 // Provide a set of packages and context metadata describing where they were sourced from.
 func Provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom.SBOM, error) {
-	packages, ctx, s, err := syftSBOMProvider(userInput, config)
+	packages, ctx, s, err := purlProvider(userInput, config)
+	if !errors.Is(err, errDoesNotProvide) {
+		log.WithFields("input", userInput).Trace("interpreting input as one or more PURLs")
+		return packages, ctx, s, err
+	}
+
+	packages, ctx, s, err = cpeProvider(userInput)
+	if !errors.Is(err, errDoesNotProvide) {
+		log.WithFields("input", userInput).Trace("interpreting input as a CPE")
+		return packages, ctx, s, err
+	}
+
+	packages, ctx, s, err = syftSBOMProvider(userInput, config)
 	if !errors.Is(err, errDoesNotProvide) {
 		if len(config.Exclusions) > 0 {
 			var exclusionsErr error
@@ -25,18 +37,6 @@ func Provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom
 			}
 		}
 		log.WithFields("input", userInput).Trace("interpreting input as an SBOM document")
-		return packages, ctx, s, err
-	}
-
-	packages, ctx, s, err = purlProvider(userInput)
-	if !errors.Is(err, errDoesNotProvide) {
-		log.WithFields("input", userInput).Trace("interpreting input as one or more PURLs")
-		return packages, ctx, s, err
-	}
-
-	packages, ctx, s, err = cpeProvider(userInput)
-	if !errors.Is(err, errDoesNotProvide) {
-		log.WithFields("input", userInput).Trace("interpreting input as a CPE")
 		return packages, ctx, s, err
 	}
 

@@ -3,11 +3,13 @@ package pkg
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/stringutil"
+	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/file"
@@ -45,7 +47,7 @@ type Package struct {
 }
 
 func New(p syftPkg.Package) Package {
-	metadata, upstreams := dataFromPkg(p)
+	distro, metadata, upstreams := dataFromPkg(p)
 
 	licenseObjs := p.Licenses.ToSlice()
 	// note: this is used for presentation downstream and is a collection, thus should always be allocated
@@ -61,6 +63,7 @@ func New(p syftPkg.Package) Package {
 		ID:        ID(p.ID()),
 		Name:      p.Name,
 		Version:   p.Version,
+		Distro:    distro,
 		Locations: p.Locations,
 		Licenses:  licenses,
 		Language:  p.Language,
@@ -195,7 +198,8 @@ func isOSPackage(p syftPkg.Package) bool {
 	}
 }
 
-func dataFromPkg(p syftPkg.Package) (interface{}, []UpstreamPackage) {
+func dataFromPkg(p syftPkg.Package) (*distro.Distro, interface{}, []UpstreamPackage) {
+	var d *distro.Distro
 	var metadata interface{}
 	var upstreams []UpstreamPackage
 
@@ -222,7 +226,56 @@ func dataFromPkg(p syftPkg.Package) (interface{}, []UpstreamPackage) {
 	case syftPkg.JavaVMInstallation:
 		metadata = javaVMDataFromPkg(p)
 	}
-	return metadata, upstreams
+
+	if p.PURL != "" {
+		if len(upstreams) == 0 {
+			d, upstreams = readPURL(&p)
+		} else {
+			d, _ = readPURL(&p)
+		}
+	}
+
+	return d, metadata, upstreams
+}
+
+// readPURL reads any additional data Grype can use, which is ignored by Syft's PURL conversion
+func readPURL(p *syftPkg.Package) (*distro.Distro, []UpstreamPackage) {
+	var upstreams []UpstreamPackage
+	var distroName, distroVersion string
+
+	purl, err := packageurl.FromString(p.PURL)
+	if err != nil {
+		log.Debugf("unable to parse PURL: %v", err)
+	} else {
+		for _, qualifier := range purl.Qualifiers {
+			switch qualifier.Key {
+			case syftPkg.PURLQualifierUpstream:
+				for _, newUpstream := range parseUpstream(purl.Name, qualifier.Value, p.Type) {
+					if slices.Contains(upstreams, newUpstream) {
+						continue
+					}
+					upstreams = append(upstreams, newUpstream)
+				}
+			case syftPkg.PURLQualifierDistro:
+				name, version := parseDistroQualifier(qualifier.Value)
+				if name != "" && version != "" {
+					distroName = name
+					distroVersion = version
+				}
+			}
+		}
+	}
+
+	var d *distro.Distro
+	if distroName != "" {
+		d, err = distro.NewFromRelease(*createLinuxRelease(distroName, distroVersion))
+		if err != nil {
+			log.Trace("Unable to create Distro from a release: %s", err)
+			d = nil
+		}
+	}
+
+	return d, upstreams
 }
 
 func javaVMDataFromPkg(p syftPkg.Package) any {
@@ -405,6 +458,39 @@ func ByID(id ID, pkgs []Package) *Package {
 	for _, p := range pkgs {
 		if p.ID == id {
 			return &p
+		}
+	}
+	return nil
+}
+
+func parseUpstream(pkgName string, value string, pkgType syftPkg.Type) []UpstreamPackage {
+	if pkgType == syftPkg.RpmPkg {
+		return handleSourceRPM(pkgName, value)
+	}
+	return handleDefaultUpstream(pkgName, value)
+}
+
+func handleDefaultUpstream(pkgName string, value string) []UpstreamPackage {
+	fields := strings.Split(value, "@")
+	switch len(fields) {
+	case 2:
+		if fields[0] == pkgName {
+			return nil
+		}
+		return []UpstreamPackage{
+			{
+				Name:    fields[0],
+				Version: fields[1],
+			},
+		}
+	case 1:
+		if fields[0] == pkgName {
+			return nil
+		}
+		return []UpstreamPackage{
+			{
+				Name: fields[0],
+			},
 		}
 	}
 	return nil
