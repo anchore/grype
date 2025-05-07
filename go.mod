@@ -307,4 +307,4 @@ require (
 // this is a breaking change, so we need to pin the version until glebarez/go-sqlite is updated to use internal/libc
 replace modernc.org/sqlite v1.33.0 => modernc.org/sqlite v1.32.0
 
-replace github.com/anchore/syft => github.com/kzantow-anchore/syft v0.41.4-0.20250507171316-f0d469f86202
+replace github.com/anchore/syft => github.com/kzantow-anchore/syft v0.41.4-0.20250507185203-9ddd3e6bdd4b
