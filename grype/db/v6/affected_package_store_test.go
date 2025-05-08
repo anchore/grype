@@ -1020,6 +1020,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		amazon2,
 		rocky8,
 		alma8,
+		echo,
 	}
 	require.NoError(t, db.Create(&operatingSystems).Error)
 
@@ -1240,7 +1241,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 			expected: []OperatingSystem{*rhel8},
 		},
 		{
-			name: "lookup by non-standard name (echo)",
+			name: "echo rolling variant",
 			distro: OSSpecifier{
 				Name:         "echo",
 				MajorVersion: "1",
