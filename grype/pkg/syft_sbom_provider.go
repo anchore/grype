@@ -49,6 +49,10 @@ func getSBOM(userInput string) (*sbom.SBOM, error) {
 		return nil, err
 	}
 
+	return readSBOM(reader)
+}
+
+func readSBOM(reader io.ReadSeeker) (*sbom.SBOM, error) {
 	s, fmtID, _, err := format.Decode(reader)
 	if err != nil {
 		return nil, fmt.Errorf("unable to decode sbom: %w", err)
@@ -81,6 +85,10 @@ func extractReaderAndInfo(userInput string) (io.ReadSeeker, *inputInfo, error) {
 			return nil, nil, err
 		}
 		return decodeStdin(r)
+
+	case explicitlySpecifyingPurlList(userInput):
+		filepath := strings.TrimPrefix(userInput, purlInputPrefix)
+		return parseSBOM("purls", filepath)
 
 	case explicitlySpecifyingSBOM(userInput):
 		filepath := strings.TrimPrefix(userInput, "sbom:")
@@ -184,4 +192,8 @@ func isAncestorOfMimetype(mType *mimetype.MIME, expected string) bool {
 
 func explicitlySpecifyingSBOM(userInput string) bool {
 	return strings.HasPrefix(userInput, "sbom:")
+}
+
+func explicitlySpecifyingPurlList(userInput string) bool {
+	return strings.HasPrefix(userInput, purlInputPrefix)
 }
