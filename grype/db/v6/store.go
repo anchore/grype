@@ -23,7 +23,7 @@ type store struct {
 	writable  bool
 }
 
-func (s *store) getDB() *gorm.DB {
+func (s *store) GetDB() *gorm.DB {
 	return s.db
 }
 

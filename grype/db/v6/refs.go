@@ -38,7 +38,7 @@ func fillRefs[T, R any](reader Reader, handles []*T, getRef refProvider[T, R], r
 
 	// load a map with all id -> ref results
 	var values []R
-	tx := reader.getDB().Where("id IN (?)", ids)
+	tx := reader.GetDB().Where("id IN (?)", ids)
 	err := tx.Find(&values).Error
 	if err != nil {
 		return err

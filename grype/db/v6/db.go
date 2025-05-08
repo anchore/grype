@@ -57,7 +57,7 @@ type Reader interface {
 	AffectedPackageStoreReader
 	AffectedCPEStoreReader
 	io.Closer
-	getDB() *gorm.DB
+	GetDB() *gorm.DB
 	attachBlobValue(...blobable) error
 }
 
