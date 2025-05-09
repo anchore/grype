@@ -289,6 +289,11 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			Type:    Chainguard,
 			Version: "20230214",
 		},
+		{
+			Name:    "test-fixtures/os/minimos",
+			Type:    MinimOS,
+			Version: "20241031",
+		},
 	}
 
 	for _, tt := range tests {

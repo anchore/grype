@@ -22,6 +22,7 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 		{Alias: "wolfi", Rolling: true},
 		{Alias: "chainguard", Rolling: true},
 		{Alias: "arch", Rolling: true},
+		{Alias: "minimos", Rolling: true},
 		{Alias: "archlinux", ReplacementName: strRef("arch"), Rolling: true}, // non-standard, but common (dockerhub uses "archlinux")
 		{Alias: "oracle", ReplacementName: strRef("ol")},                     // non-standard, but common
 		{Alias: "oraclelinux", ReplacementName: strRef("ol")},                // non-standard, but common (dockerhub uses "oraclelinux")

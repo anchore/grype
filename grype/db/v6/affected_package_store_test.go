@@ -999,6 +999,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 	oracle5 := &OperatingSystem{Name: "oracle", ReleaseID: "ol", MajorVersion: "5"}
 	oracle6 := &OperatingSystem{Name: "oracle", ReleaseID: "ol", MajorVersion: "6"}
 	amazon2 := &OperatingSystem{Name: "amazon", ReleaseID: "amzn", MajorVersion: "2"}
+	minimos := &OperatingSystem{Name: "minimos", ReleaseID: "minimos", MajorVersion: "20241031"}
 	rocky8 := &OperatingSystem{Name: "rocky", ReleaseID: "rocky", MajorVersion: "8"}        // should not be matched
 	alma8 := &OperatingSystem{Name: "almalinux", ReleaseID: "almalinux", MajorVersion: "8"} // should not be matched
 
@@ -1017,6 +1018,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		oracle5,
 		oracle6,
 		amazon2,
+		minimos,
 		rocky8,
 		alma8,
 	}
@@ -1251,6 +1253,13 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 				Name:         "madeup",
 				MajorVersion: "99",
 			},
+		},
+		{
+			name: "minimos rolling variant",
+			distro: OSSpecifier{
+				Name: "minimos",
+			},
+			expected: []OperatingSystem{*minimos},
 		},
 	}
 
