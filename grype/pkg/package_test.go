@@ -694,12 +694,21 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
-			name: "Php-pecl-entry",
+			name: "php-pecl-entry",
 			syftPkg: syftPkg.Package{
 				Metadata: syftPkg.PhpPeclEntry{
 					Name:    "a",
 					Version: "a",
 					License: []string{"a"},
+				},
+			},
+		},
+		{
+			name: "php-pear-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.PhpPearEntry{
+					Name:    "a",
+					Version: "a",
 				},
 			},
 		},
