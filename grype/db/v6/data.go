@@ -72,6 +72,9 @@ func KnownPackageSpecifierOverrides() []PackageSpecifierOverride {
 
 		// jenkins plugins are a special case since they are always considered to be within the java ecosystem
 		{Ecosystem: string(pkg.JenkinsPluginPkg), ReplacementEcosystem: ptr(string(pkg.JavaPkg))},
+
+		// legacy cases
+		{Ecosystem: "pecl", ReplacementEcosystem: ptr(string(pkg.PhpPeclPkg))},
 	}
 
 	// remap package URL types to syft package types
