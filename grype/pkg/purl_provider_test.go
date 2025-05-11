@@ -274,8 +274,8 @@ func Test_PurlProvider(t *testing.T) {
 				tc.wantErr = require.NoError
 			}
 
-			packages, ctx, gotSBOM, err := purlProvider(tc.userInput, ProviderConfig{})
-			setContextDistro(packages, &ctx, gotSBOM)
+			packages, ctx, _, err := purlProvider(tc.userInput, ProviderConfig{})
+			setContextDistro(packages, &ctx)
 
 			tc.wantErr(t, err)
 			if err != nil {

@@ -6,9 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/file"
@@ -1001,12 +999,7 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			var d *distro.Distro
-			if test.sbom.Artifacts.LinuxDistribution != nil {
-				var err error
-				d, err = distro.NewFromRelease(*test.sbom.Artifacts.LinuxDistribution)
-				require.NoError(t, err)
-			}
+			d := distroFromRelease(test.sbom.Artifacts.LinuxDistribution)
 			catalog := removePackagesByOverlap(test.sbom.Artifacts.Packages, test.sbom.Relationships, d)
 			pkgs := FromCollection(catalog, SynthesisConfig{})
 			var pkgNames []string

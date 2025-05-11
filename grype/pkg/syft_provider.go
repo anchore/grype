@@ -10,6 +10,7 @@ import (
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft"
+	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
 	"github.com/anchore/syft/syft/source/sourceproviders"
@@ -20,14 +21,7 @@ func syftProvider(userInput string, config ProviderConfig) ([]Package, Context, 
 	if err != nil {
 		return nil, Context{}, nil, err
 	}
-
-	defer func() {
-		if src != nil {
-			if err := src.Close(); err != nil {
-				log.Tracef("unable to close source: %+v", err)
-			}
-		}
-	}()
+	defer log.CloseAndLogError(src, "syft source")
 
 	s, err := syft.CreateSBOM(context.Background(), src, config.SBOMOptions)
 	if err != nil {
@@ -40,10 +34,7 @@ func syftProvider(userInput string, config ProviderConfig) ([]Package, Context, 
 
 	srcDescription := src.Describe()
 
-	var d *distro.Distro
-	if s.Artifacts.LinuxDistribution != nil {
-		d, err = distro.NewFromRelease(*s.Artifacts.LinuxDistribution)
-	}
+	d := distroFromRelease(s.Artifacts.LinuxDistribution)
 
 	pkgCatalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, d)
 
@@ -88,4 +79,15 @@ func getSource(userInput string, config ProviderConfig) (source.Source, error) {
 
 func allSourceTags() []string {
 	return collections.TaggedValueSet[source.Provider]{}.Join(sourceproviders.All("", nil)...).Tags()
+}
+
+func distroFromRelease(linuxRelease *linux.Release) *distro.Distro {
+	if linuxRelease == nil {
+		return nil
+	}
+	d, err := distro.NewFromRelease(*linuxRelease)
+	if err != nil {
+		log.WithFields("error", err).Warn("unable to create distro from linux distribution")
+	}
+	return d
 }

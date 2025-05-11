@@ -64,7 +64,11 @@ func NewFromNameVersion(name, version string) (*Distro, error) {
 		version = ""
 	}
 
-	return New(Type(name), version, codename)
+	typ := IDMapping[name]
+	if typ == "" {
+		typ = Type(name)
+	}
+	return New(typ, version, codename, name)
 }
 
 // NewFromRelease creates a new Distro object derived from a syft linux.Release object.

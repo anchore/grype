@@ -20,7 +20,7 @@ func Provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom
 	if err != nil {
 		return nil, Context{}, nil, err
 	}
-	setContextDistro(packages, &ctx, s)
+	setContextDistro(packages, &ctx)
 	return packages, ctx, s, nil
 }
 
@@ -104,7 +104,7 @@ func locationMatches(location file.Location, exclusion string) (bool, error) {
 	return matchesRealPath || matchesVirtualPath, nil
 }
 
-func setContextDistro(packages []Package, ctx *Context, s *sbom.SBOM) {
+func setContextDistro(packages []Package, ctx *Context) {
 	if ctx.Distro != nil {
 		return
 	}

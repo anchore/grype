@@ -197,8 +197,7 @@ func isOSPackage(p syftPkg.Package) bool {
 	}
 }
 
-func dataFromPkg(p syftPkg.Package) (*distro.Distro, interface{}, []UpstreamPackage) {
-	var d *distro.Distro
+func dataFromPkg(p syftPkg.Package) (*distro.Distro, any, []UpstreamPackage) {
 	var metadata interface{}
 	var upstreams []UpstreamPackage
 
@@ -226,6 +225,7 @@ func dataFromPkg(p syftPkg.Package) (*distro.Distro, interface{}, []UpstreamPack
 		metadata = javaVMDataFromPkg(p)
 	}
 
+	var d *distro.Distro
 	if p.PURL != "" {
 		if len(upstreams) == 0 {
 			d, upstreams = readPURL(&p)
