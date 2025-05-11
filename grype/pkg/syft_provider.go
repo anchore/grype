@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/anchore/go-collections"
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/stereoscope/pkg/image"
@@ -37,14 +38,19 @@ func syftProvider(userInput string, config ProviderConfig) ([]Package, Context, 
 		return nil, Context{}, nil, errors.New("no SBOM provided")
 	}
 
-	pkgCatalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, s.Artifacts.LinuxDistribution)
-
 	srcDescription := src.Describe()
+
+	var d *distro.Distro
+	if s.Artifacts.LinuxDistribution != nil {
+		d, err = distro.NewFromRelease(*s.Artifacts.LinuxDistribution)
+	}
+
+	pkgCatalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, d)
 
 	packages := FromCollection(pkgCatalog, config.SynthesisConfig)
 	pkgCtx := Context{
 		Source: &srcDescription,
-		Distro: s.Artifacts.LinuxDistribution,
+		Distro: d,
 	}
 
 	return packages, pkgCtx, s, nil

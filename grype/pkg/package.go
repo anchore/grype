@@ -13,7 +13,6 @@ import (
 	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/file"
-	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	cpes "github.com/anchore/syft/syft/pkg/cataloger/common/cpe"
 )
@@ -47,7 +46,7 @@ type Package struct {
 }
 
 func New(p syftPkg.Package) Package {
-	distro, metadata, upstreams := dataFromPkg(p)
+	d, metadata, upstreams := dataFromPkg(p)
 
 	licenseObjs := p.Licenses.ToSlice()
 	// note: this is used for presentation downstream and is a collection, thus should always be allocated
@@ -63,7 +62,7 @@ func New(p syftPkg.Package) Package {
 		ID:        ID(p.ID()),
 		Name:      p.Name,
 		Version:   p.Version,
-		Distro:    distro,
+		Distro:    d,
 		Locations: p.Locations,
 		Licenses:  licenses,
 		Language:  p.Language,
@@ -101,7 +100,7 @@ func (p Package) String() string {
 	return fmt.Sprintf("Pkg(type=%s, name=%s, version=%s, upstreams=%d)", p.Type, p.Name, p.Version, len(p.Upstreams))
 }
 
-func removePackagesByOverlap(catalog *syftPkg.Collection, relationships []artifact.Relationship, distro *linux.Release) *syftPkg.Collection {
+func removePackagesByOverlap(catalog *syftPkg.Collection, relationships []artifact.Relationship, distro *distro.Distro) *syftPkg.Collection {
 	byOverlap := map[artifact.ID]artifact.Relationship{}
 	for _, r := range relationships {
 		if r.Type == artifact.OwnershipByFileOverlapRelationship {
@@ -154,23 +153,23 @@ func excludePackage(comprehensiveDistroFeed bool, p syftPkg.Package, parent syft
 // distroFeedIsComprehensive returns true if the distro feed
 // is comprehensive enough that we can drop packages owned by distro packages
 // before matching.
-func distroFeedIsComprehensive(distro *linux.Release) bool {
+func distroFeedIsComprehensive(dst *distro.Distro) bool {
 	// TODO: this mechanism should be re-examined once https://github.com/anchore/grype/issues/1426
 	// is addressed
-	if distro == nil {
+	if dst == nil {
 		return false
 	}
-	if distro.ID == "amzn" {
+	if dst.Type == distro.AmazonLinux {
 		// AmazonLinux shows "like rhel" but is not an rhel clone
 		// and does not have an exhaustive vulnerability feed.
 		return false
 	}
 	for _, d := range comprehensiveDistros {
-		if strings.EqualFold(d, distro.ID) {
+		if strings.EqualFold(string(d), dst.Name()) {
 			return true
 		}
-		for _, n := range distro.IDLike {
-			if strings.EqualFold(d, n) {
+		for _, n := range dst.IDLike {
+			if strings.EqualFold(string(d), n) {
 				return true
 			}
 		}
@@ -180,13 +179,13 @@ func distroFeedIsComprehensive(distro *linux.Release) bool {
 
 // computed by:
 // sqlite3 vulnerability.db 'select distinct namespace from vulnerability where fix_state in ("wont-fix", "not-fixed") order by namespace;' | cut -d ':' -f 1 | sort | uniq
-// then removing 'github' and replacing 'redhat' with 'rhel'
-var comprehensiveDistros = []string{
-	"azurelinux",
-	"debian",
-	"mariner",
-	"rhel",
-	"ubuntu",
+// then removing 'github'
+var comprehensiveDistros = []distro.Type{
+	distro.Azure,
+	distro.Debian,
+	distro.Mariner,
+	distro.RedHat,
+	distro.Ubuntu,
 }
 
 func isOSPackage(p syftPkg.Package) bool {
@@ -257,10 +256,10 @@ func readPURL(p *syftPkg.Package) (*distro.Distro, []UpstreamPackage) {
 					upstreams = append(upstreams, newUpstream)
 				}
 			case syftPkg.PURLQualifierDistro:
-				name, version := parseDistroQualifier(qualifier.Value)
-				if name != "" && version != "" {
-					distroName = name
-					distroVersion = version
+				fields := strings.SplitN(qualifier.Value, "-", 2)
+				distroName = fields[0]
+				if len(fields) > 1 {
+					distroVersion = fields[1]
 				}
 			}
 		}
@@ -268,7 +267,7 @@ func readPURL(p *syftPkg.Package) (*distro.Distro, []UpstreamPackage) {
 
 	var d *distro.Distro
 	if distroName != "" {
-		d, err = distro.NewFromRelease(*createLinuxRelease(distroName, distroVersion))
+		d, err = distro.NewFromNameVersion(distroName, distroVersion)
 		if err != nil {
 			log.Trace("Unable to create Distro from a release: %s", err)
 			d = nil

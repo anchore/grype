@@ -54,6 +54,19 @@ func New(t Type, version, label string, idLikes ...string) (*Distro, error) {
 	}, nil
 }
 
+// NewFromNameVersion creates a new Distro object derived from the provided name and version
+func NewFromNameVersion(name, version string) (*Distro, error) {
+	var codename string
+
+	// if there are no digits in the version, it is likely a codename
+	if !strings.ContainsAny(version, "0123456789") {
+		codename = version
+		version = ""
+	}
+
+	return New(Type(name), version, codename)
+}
+
 // NewFromRelease creates a new Distro object derived from a syft linux.Release object.
 func NewFromRelease(release linux.Release) (*Distro, error) {
 	t := TypeFromRelease(release)
@@ -105,6 +118,8 @@ func (d Distro) String() string {
 	versionStr := "(version unknown)"
 	if d.Version != "" {
 		versionStr = d.Version
+	} else if d.Codename != "" {
+		versionStr = d.Codename
 	}
 	return fmt.Sprintf("%s %s", d.Type, versionStr)
 }

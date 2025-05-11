@@ -12,6 +12,7 @@ import (
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype"
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/event/parsers"
 	"github.com/anchore/grype/grype/grypeerr"
@@ -35,7 +36,6 @@ import (
 	"github.com/anchore/grype/internal/stringutil"
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/cataloging"
-	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/sbom"
 )
@@ -261,15 +261,10 @@ func applyDistroHint(pkgs []pkg.Package, context *pkg.Context, opts *options.Gry
 		if len(split) > 1 {
 			v = split[1]
 		}
-		context.Distro = &linux.Release{
-			PrettyName: d,
-			Name:       d,
-			ID:         d,
-			IDLike: []string{
-				d,
-			},
-			Version:   v,
-			VersionID: v,
+		var err error
+		context.Distro, err = distro.NewFromNameVersion(d, v)
+		if err != nil {
+			log.WithFields("distro", opts.Distro, "error", err).Warn("unable to parse distro")
 		}
 	}
 

@@ -8,10 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/distro"
-	"github.com/anchore/syft/syft/file"
-	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/pkg"
-	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -21,7 +18,6 @@ func Test_PurlProvider(t *testing.T) {
 		userInput string
 		context   Context
 		pkgs      []Package
-		sbom      *sbom.SBOM
 		wantErr   require.ErrorAssertionFunc
 	}{
 		{
@@ -42,26 +38,15 @@ func Test_PurlProvider(t *testing.T) {
 					PURL:    "pkg:apk/curl@7.61.1",
 				},
 			},
-			sbom: &sbom.SBOM{
-				Artifacts: sbom.Artifacts{
-					Packages: pkg.NewCollection(pkg.Package{
-						Name:    "curl",
-						Version: "7.61.1",
-						Type:    pkg.ApkPkg,
-						PURL:    "pkg:apk/curl@7.61.1",
-					}),
-				},
-			},
 		},
 		{
 			name:      "os with codename",
 			userInput: "pkg:deb/debian/sysv-rc@2.88dsf-59?arch=all&distro=debian-jessie&upstream=sysvinit",
 			context: Context{
-				Distro: &linux.Release{
-					Name:            "debian",
-					ID:              "debian",
-					IDLike:          []string{"debian"},
-					VersionCodename: "jessie", // important!
+				Distro: &distro.Distro{
+					Type:     "debian",
+					IDLike:   []string{"debian"},
+					Codename: "jessie", // important!
 				},
 				Source: &source.Description{
 					Metadata: PURLLiteralMetadata{
@@ -80,22 +65,6 @@ func Test_PurlProvider(t *testing.T) {
 						{
 							Name: "sysvinit",
 						},
-					},
-				},
-			},
-			sbom: &sbom.SBOM{
-				Artifacts: sbom.Artifacts{
-					Packages: pkg.NewCollection(pkg.Package{
-						Name:    "sysv-rc",
-						Version: "2.88dsf-59",
-						Type:    pkg.DebPkg,
-						PURL:    "pkg:deb/debian/sysv-rc@2.88dsf-59?arch=all&distro=debian-jessie&upstream=sysvinit",
-					}),
-					LinuxDistribution: &linux.Release{
-						Name:            "debian",
-						ID:              "debian",
-						IDLike:          []string{"debian"},
-						VersionCodename: "jessie",
 					},
 				},
 			},
@@ -123,16 +92,6 @@ func Test_PurlProvider(t *testing.T) {
 					},
 				},
 			},
-			sbom: &sbom.SBOM{
-				Artifacts: sbom.Artifacts{
-					Packages: pkg.NewCollection(pkg.Package{
-						Name:    "libcrypto3",
-						Version: "3.3.2",
-						Type:    pkg.ApkPkg,
-						PURL:    "pkg:apk/libcrypto3@3.3.2?upstream=openssl",
-					}),
-				},
-			},
 		},
 		{
 			name:      "upstream with version",
@@ -158,24 +117,13 @@ func Test_PurlProvider(t *testing.T) {
 					},
 				},
 			},
-			sbom: &sbom.SBOM{
-				Artifacts: sbom.Artifacts{
-					Packages: pkg.NewCollection(pkg.Package{
-						Name:    "libcrypto3",
-						Version: "3.3.2",
-						Type:    pkg.ApkPkg,
-						PURL:    "pkg:apk/libcrypto3@3.3.2?upstream=openssl%403.2.1",
-					}),
-				},
-			},
 		},
 		{
 			name:      "upstream for source RPM",
 			userInput: "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?arch=aarch64&distro=rhel-8.10&upstream=systemd-239-82.el8_10.2.src.rpm",
 			context: Context{
-				Distro: &linux.Release{
-					Name:    "rhel",
-					ID:      "rhel",
+				Distro: &distro.Distro{
+					Type:    "redhat",
 					IDLike:  []string{"rhel"},
 					Version: "8.10",
 				},
@@ -188,7 +136,7 @@ func Test_PurlProvider(t *testing.T) {
 			pkgs: []Package{
 				{
 					Name:    "systemd-x",
-					Version: "0:239-82.el8_10.2",
+					Version: "239-82.el8_10.2",
 					Type:    pkg.RpmPkg,
 					PURL:    "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?arch=aarch64&distro=rhel-8.10&upstream=systemd-239-82.el8_10.2.src.rpm",
 					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.10", Codename: "", IDLike: []string{"rhel"}},
@@ -200,30 +148,13 @@ func Test_PurlProvider(t *testing.T) {
 					},
 				},
 			},
-			sbom: &sbom.SBOM{
-				Artifacts: sbom.Artifacts{
-					Packages: pkg.NewCollection(pkg.Package{
-						Name:    "systemd-x",
-						Version: "0:239-82.el8_10.2",
-						Type:    pkg.RpmPkg,
-						PURL:    "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?arch=aarch64&distro=rhel-8.10&upstream=systemd-239-82.el8_10.2.src.rpm",
-					}),
-					LinuxDistribution: &linux.Release{
-						Name:    "rhel",
-						ID:      "rhel",
-						IDLike:  []string{"rhel"},
-						Version: "8.10",
-					},
-				},
-			},
 		},
 		{
 			name:      "RPM with epoch",
 			userInput: "pkg:rpm/redhat/dbus-common@1.12.8-26.el8?arch=noarch&distro=rhel-8.10&epoch=1&upstream=dbus-1.12.8-26.el8.src.rpm",
 			context: Context{
-				Distro: &linux.Release{
-					Name:    "rhel",
-					ID:      "rhel",
+				Distro: &distro.Distro{
+					Type:    "redhat",
 					IDLike:  []string{"rhel"},
 					Version: "8.10",
 				},
@@ -248,104 +179,13 @@ func Test_PurlProvider(t *testing.T) {
 					},
 				},
 			},
-			sbom: &sbom.SBOM{
-				Artifacts: sbom.Artifacts{
-					Packages: pkg.NewCollection(pkg.Package{
-						Name:    "dbus-common",
-						Version: "1:1.12.8-26.el8",
-						Type:    pkg.RpmPkg,
-						PURL:    "pkg:rpm/redhat/dbus-common@1.12.8-26.el8?arch=noarch&distro=rhel-8.10&epoch=1&upstream=dbus-1.12.8-26.el8.src.rpm",
-					}),
-					LinuxDistribution: &linux.Release{
-						Name:    "rhel",
-						ID:      "rhel",
-						IDLike:  []string{"rhel"},
-						Version: "8.10",
-					},
-				},
-			},
-		},
-		{
-			name:      "takes multiple purls",
-			userInput: "purl:test-fixtures/purl/valid-purl.txt",
-			context: Context{
-				Distro: &linux.Release{
-					Name:    "debian",
-					ID:      "debian",
-					IDLike:  []string{"debian"},
-					Version: "8",
-				},
-				Source: &source.Description{
-					Metadata: PURLFileMetadata{
-						Path: "test-fixtures/purl/valid-purl.txt",
-					},
-				},
-			},
-			pkgs: []Package{
-				{
-					Name:    "sysv-rc",
-					Version: "2.88dsf-59",
-					Type:    pkg.DebPkg,
-					PURL:    "pkg:deb/debian/sysv-rc@2.88dsf-59?arch=all&distro=debian-8&upstream=sysvinit",
-					Distro:  &distro.Distro{Type: distro.Debian, Version: "8", Codename: "", IDLike: []string{"debian"}},
-					Upstreams: []UpstreamPackage{
-						{
-							Name: "sysvinit",
-						},
-					},
-				},
-				{
-					Name:    "ant",
-					Version: "1.10.8",
-					Type:    pkg.JavaPkg,
-					PURL:    "pkg:maven/org.apache.ant/ant@1.10.8",
-				},
-				{
-					Name:    "log4j-core",
-					Version: "2.14.1",
-					Type:    pkg.JavaPkg,
-					PURL:    "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1",
-				},
-			},
-			sbom: &sbom.SBOM{
-				Artifacts: sbom.Artifacts{
-					Packages: pkg.NewCollection(
-						pkg.Package{
-							Name:    "sysv-rc",
-							Version: "2.88dsf-59",
-							Type:    pkg.DebPkg,
-							PURL:    "pkg:deb/debian/sysv-rc@2.88dsf-59?arch=all&distro=debian-8&upstream=sysvinit",
-						},
-						pkg.Package{
-							Name:     "ant",
-							Version:  "1.10.8",
-							Type:     pkg.JavaPkg,
-							Language: pkg.Java,
-							PURL:     "pkg:maven/org.apache.ant/ant@1.10.8",
-						},
-						pkg.Package{
-							Name:     "log4j-core",
-							Version:  "2.14.1",
-							Type:     pkg.JavaPkg,
-							Language: pkg.Java,
-							PURL:     "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1",
-						}),
-					LinuxDistribution: &linux.Release{
-						Name:    "debian",
-						ID:      "debian",
-						IDLike:  []string{"debian"},
-						Version: "8",
-					},
-				},
-			},
 		},
 		{
 			name:      "infer context when distro is present for single purl",
 			userInput: "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.3",
 			context: Context{
-				Distro: &linux.Release{
-					Name:    "alpine",
-					ID:      "alpine",
+				Distro: &distro.Distro{
+					Type:    "alpine",
 					IDLike:  []string{"alpine"},
 					Version: "3.20.3",
 				},
@@ -362,22 +202,6 @@ func Test_PurlProvider(t *testing.T) {
 					Type:    pkg.ApkPkg,
 					PURL:    "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.3",
 					Distro:  &distro.Distro{Type: distro.Alpine, Version: "3.20.3", Codename: "", IDLike: []string{"alpine"}},
-				},
-			},
-			sbom: &sbom.SBOM{
-				Artifacts: sbom.Artifacts{
-					Packages: pkg.NewCollection(pkg.Package{
-						Name:    "curl",
-						Version: "7.61.1",
-						Type:    pkg.ApkPkg,
-						PURL:    "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.3",
-					}),
-					LinuxDistribution: &linux.Release{
-						Name:    "alpine",
-						ID:      "alpine",
-						IDLike:  []string{"alpine"},
-						Version: "3.20.3",
-					},
 				},
 			},
 		},
@@ -397,17 +221,6 @@ func Test_PurlProvider(t *testing.T) {
 					PURL:    "pkg:golang/k8s.io/ingress-nginx@v1.11.2",
 				},
 			},
-			sbom: &sbom.SBOM{
-				Artifacts: sbom.Artifacts{
-					Packages: pkg.NewCollection(pkg.Package{
-						Name:     "k8s.io/ingress-nginx",
-						Version:  "v1.11.2",
-						Type:     pkg.GoModulePkg,
-						Language: pkg.Go,
-						PURL:     "pkg:golang/k8s.io/ingress-nginx@v1.11.2",
-					}),
-				},
-			},
 		},
 		{
 			name:      "include complex namespace in name when purl is type Golang",
@@ -423,17 +236,6 @@ func Test_PurlProvider(t *testing.T) {
 					Version: "v4.5.0",
 					Type:    pkg.GoModulePkg,
 					PURL:    "pkg:golang/github.com/wazuh/wazuh@v4.5.0",
-				},
-			},
-			sbom: &sbom.SBOM{
-				Artifacts: sbom.Artifacts{
-					Packages: pkg.NewCollection(pkg.Package{
-						Name:     "github.com/wazuh/wazuh",
-						Version:  "v4.5.0",
-						Type:     pkg.GoModulePkg,
-						PURL:     "pkg:golang/github.com/wazuh/wazuh@v4.5.0",
-						Language: pkg.Go,
-					}),
 				},
 			},
 		},
@@ -453,147 +255,10 @@ func Test_PurlProvider(t *testing.T) {
 					PURL:    "pkg:golang/wazuh@v4.5.0",
 				},
 			},
-			sbom: &sbom.SBOM{
-				Artifacts: sbom.Artifacts{
-					Packages: pkg.NewCollection(pkg.Package{
-						Name:     "wazuh",
-						Version:  "v4.5.0",
-						Type:     pkg.GoModulePkg,
-						PURL:     "pkg:golang/wazuh@v4.5.0",
-						Language: pkg.Go,
-					}),
-				},
-			},
 		},
 		{
-			name:      "infer context when distro is present for multiple similar purls",
-			userInput: "purl:test-fixtures/purl/homogeneous-os.txt",
-			context: Context{
-				Distro: &linux.Release{
-					Name:    "alpine",
-					ID:      "alpine",
-					IDLike:  []string{"alpine"},
-					Version: "3.20.3",
-				},
-				Source: &source.Description{
-					Metadata: PURLFileMetadata{
-						Path: "test-fixtures/purl/homogeneous-os.txt",
-					},
-				},
-			},
-			pkgs: []Package{
-				{
-					Name:    "openssl",
-					Version: "3.2.1",
-					Type:    pkg.ApkPkg,
-					PURL:    "pkg:apk/openssl@3.2.1?arch=aarch64&distro=alpine-3.20.3",
-					Distro:  &distro.Distro{Type: distro.Alpine, Version: "3.20.3", Codename: "", IDLike: []string{"alpine"}},
-				},
-				{
-					Name:    "curl",
-					Version: "7.61.1",
-					Type:    pkg.ApkPkg,
-					PURL:    "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.3",
-					Distro:  &distro.Distro{Type: distro.Alpine, Version: "3.20.3", Codename: "", IDLike: []string{"alpine"}},
-				},
-			},
-			sbom: &sbom.SBOM{
-				Artifacts: sbom.Artifacts{
-					Packages: pkg.NewCollection(pkg.Package{
-						Name:    "openssl",
-						Version: "3.2.1",
-						Type:    pkg.ApkPkg,
-						PURL:    "pkg:apk/openssl@3.2.1?arch=aarch64&distro=alpine-3.20.3",
-					},
-						pkg.Package{
-							Name:    "curl",
-							Version: "7.61.1",
-							Type:    pkg.ApkPkg,
-							PURL:    "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.3",
-						}),
-					LinuxDistribution: &linux.Release{
-						Name:    "alpine",
-						ID:      "alpine",
-						IDLike:  []string{"alpine"},
-						Version: "3.20.3",
-					},
-				},
-			},
-		},
-		{
-			name:      "different distro info in purls does not infer context",
-			userInput: "purl:test-fixtures/purl/different-os.txt",
-			context: Context{
-				// important: no distro info inferred
-				Source: &source.Description{
-					Metadata: PURLFileMetadata{
-						Path: "test-fixtures/purl/different-os.txt",
-					},
-				},
-			},
-			pkgs: []Package{
-				{
-					Name:    "openssl",
-					Version: "3.2.1",
-					Type:    pkg.ApkPkg,
-					PURL:    "pkg:apk/openssl@3.2.1?arch=aarch64&distro=alpine-3.20.3",
-					Distro:  &distro.Distro{Type: distro.Alpine, Version: "3.20.3", Codename: "", IDLike: []string{"alpine"}},
-				},
-				{
-					Name:    "curl",
-					Version: "7.61.1",
-					Type:    pkg.ApkPkg,
-					PURL:    "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.2",
-					Distro:  &distro.Distro{Type: distro.Alpine, Version: "3.20.2", Codename: "", IDLike: []string{"alpine"}},
-				},
-			},
-			sbom: &sbom.SBOM{
-				Artifacts: sbom.Artifacts{
-					Packages: pkg.NewCollection(pkg.Package{
-						Name:    "openssl",
-						Version: "3.2.1",
-						Type:    pkg.ApkPkg,
-						PURL:    "pkg:apk/openssl@3.2.1?arch=aarch64&distro=alpine-3.20.3",
-					},
-						pkg.Package{
-							Name:    "curl",
-							Version: "7.61.1",
-							Type:    pkg.ApkPkg,
-							PURL:    "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.2",
-						}),
-				},
-			},
-		},
-		{
-			name:      "fails on path with nonexistant file",
-			userInput: "purl:tttt/empty.txt",
-			wantErr:   require.Error,
-		},
-		{
-			name:      "fails on invalid path",
-			userInput: "purl:~&&",
-			wantErr:   require.Error,
-		},
-		{
-			name:      "allow empty purl file",
-			userInput: "purl:test-fixtures/purl/empty.json",
-			sbom:      &sbom.SBOM{},
-			context: Context{
-				Source: &source.Description{
-					Metadata: PURLFileMetadata{
-						Path: "test-fixtures/purl/empty.json",
-					},
-				},
-			},
-		},
-		{
-			name:      "fails on invalid purl in file",
+			name:      "fails on purl list input",
 			userInput: "purl:test-fixtures/purl/invalid-purl.txt",
-			wantErr:   require.Error,
-		},
-		{
-			name:      "fails on invalid cpe in file",
-			userInput: "purl:test-fixtures/purl/invalid-cpe.txt",
 			wantErr:   require.Error,
 		},
 		{
@@ -603,16 +268,6 @@ func Test_PurlProvider(t *testing.T) {
 		},
 	}
 
-	opts := []cmp.Option{
-		cmpopts.IgnoreFields(Package{}, "ID", "Locations", "Licenses", "Metadata", "Language", "CPEs"),
-		cmpopts.IgnoreUnexported(distro.Distro{}),
-	}
-
-	syftPkgOpts := []cmp.Option{
-		cmpopts.IgnoreFields(pkg.Package{}, "id"),
-		cmpopts.IgnoreUnexported(pkg.Package{}, file.LocationSet{}, pkg.LicenseSet{}),
-	}
-
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.wantErr == nil {
@@ -620,6 +275,7 @@ func Test_PurlProvider(t *testing.T) {
 			}
 
 			packages, ctx, gotSBOM, err := purlProvider(tc.userInput, ProviderConfig{})
+			setContextDistro(packages, &ctx, gotSBOM)
 
 			tc.wantErr(t, err)
 			if err != nil {
@@ -627,35 +283,20 @@ func Test_PurlProvider(t *testing.T) {
 				return
 			}
 
-			if d := cmp.Diff(tc.context, ctx, opts...); d != "" {
+			if d := cmp.Diff(tc.context, ctx, diffOpts...); d != "" {
 				t.Errorf("unexpected context (-want +got):\n%s", d)
 			}
 			require.Len(t, packages, len(tc.pkgs))
 			for idx, expected := range tc.pkgs {
-				if d := cmp.Diff(expected, packages[idx], opts...); d != "" {
+				if d := cmp.Diff(expected, packages[idx], diffOpts...); d != "" {
 					t.Errorf("unexpected context (-want +got):\n%s", d)
 				}
 			}
-
-			gotSyftPkgs := gotSBOM.Artifacts.Packages.Sorted()
-			wantSyftPkgs := tc.sbom.Artifacts.Packages.Sorted()
-			require.Equal(t, len(gotSyftPkgs), len(wantSyftPkgs))
-			for idx, wantPkg := range wantSyftPkgs {
-				if d := cmp.Diff(wantPkg, gotSyftPkgs[idx], syftPkgOpts...); d != "" {
-					t.Errorf("unexpected Syft Pkg (-want +got):\n%s", d)
-				}
-			}
-
-			wantSyftDistro := tc.sbom.Artifacts.LinuxDistribution
-			gotDistro := gotSBOM.Artifacts.LinuxDistribution
-			if wantSyftDistro == nil {
-				require.Nil(t, gotDistro)
-				return
-			}
-
-			if d := cmp.Diff(wantSyftDistro, gotDistro); d != "" {
-				t.Errorf("unexpected Syft Distro (-want +got):\n%s", d)
-			}
 		})
 	}
+}
+
+var diffOpts = []cmp.Option{
+	cmpopts.IgnoreFields(Package{}, "ID", "Locations", "Licenses", "Language", "CPEs"),
+	cmpopts.IgnoreUnexported(distro.Distro{}),
 }

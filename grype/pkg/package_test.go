@@ -6,7 +6,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/file"
@@ -704,6 +706,16 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
+			name: "Php-pear-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.PhpPearEntry{
+					Name:    "a",
+					Version: "a",
+					License: []string{"a"},
+				},
+			},
+		},
+		{
 			name: "lua-rocks-entry",
 			syftPkg: syftPkg.Package{
 				Metadata: syftPkg.LuaRocksPackage{
@@ -974,14 +986,14 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 		},
 		{
 			name: "python bindings for system RPM install",
-			sbom: withDistro(catalogWithOverlaps(
+			sbom: withLinuxRelease(catalogWithOverlaps(
 				[]string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
 				[]string{"rpm:python3-rpm@4.14.3-26.el8 -> python:rpm@4.14.3"}), "rhel"),
 			expectedPackages: []string{"rpm:python3-rpm@4.14.3-26.el8"},
 		},
 		{
 			name: "amzn linux doesn't remove packages in this way",
-			sbom: withDistro(catalogWithOverlaps(
+			sbom: withLinuxRelease(catalogWithOverlaps(
 				[]string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
 				[]string{"rpm:python3-rpm@4.14.3-26.el8 -> python:rpm@4.14.3"}), "amzn"),
 			expectedPackages: []string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
@@ -989,7 +1001,13 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			catalog := removePackagesByOverlap(test.sbom.Artifacts.Packages, test.sbom.Relationships, test.sbom.Artifacts.LinuxDistribution)
+			var d *distro.Distro
+			if test.sbom.Artifacts.LinuxDistribution != nil {
+				var err error
+				d, err = distro.NewFromRelease(*test.sbom.Artifacts.LinuxDistribution)
+				require.NoError(t, err)
+			}
+			catalog := removePackagesByOverlap(test.sbom.Artifacts.Packages, test.sbom.Relationships, d)
 			pkgs := FromCollection(catalog, SynthesisConfig{})
 			var pkgNames []string
 			for _, p := range pkgs {
@@ -1070,7 +1088,7 @@ func catalogWithOverlaps(packages []string, overlaps []string) *sbom.SBOM {
 	}
 }
 
-func withDistro(s *sbom.SBOM, id string) *sbom.SBOM {
+func withLinuxRelease(s *sbom.SBOM, id string) *sbom.SBOM {
 	s.Artifacts.LinuxDistribution = &linux.Release{
 		ID: id,
 	}

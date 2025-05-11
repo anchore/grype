@@ -19,10 +19,6 @@ type PURLLiteralMetadata struct {
 	PURL string
 }
 
-type PURLFileMetadata struct {
-	Path string
-}
-
 func purlProvider(userInput string, config ProviderConfig) ([]Package, Context, *sbom.SBOM, error) {
 	reader, ctx, err := getPurlReader(userInput)
 	if err != nil {

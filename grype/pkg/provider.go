@@ -6,6 +6,7 @@ import (
 
 	"github.com/bmatcuk/doublestar/v2"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/sbom"
@@ -15,6 +16,16 @@ var errDoesNotProvide = fmt.Errorf("cannot provide packages from the given sourc
 
 // Provide a set of packages and context metadata describing where they were sourced from.
 func Provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom.SBOM, error) {
+	packages, ctx, s, err := provide(userInput, config)
+	if err != nil {
+		return nil, Context{}, nil, err
+	}
+	setContextDistro(packages, &ctx, s)
+	return packages, ctx, s, nil
+}
+
+// Provide a set of packages and context metadata describing where they were sourced from.
+func provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom.SBOM, error) {
 	packages, ctx, s, err := purlProvider(userInput, config)
 	if !errors.Is(err, errDoesNotProvide) {
 		log.WithFields("input", userInput).Trace("interpreting input as one or more PURLs")
@@ -91,4 +102,30 @@ func locationMatches(location file.Location, exclusion string) (bool, error) {
 		return false, err
 	}
 	return matchesRealPath || matchesVirtualPath, nil
+}
+
+func setContextDistro(packages []Package, ctx *Context, s *sbom.SBOM) {
+	if ctx.Distro != nil {
+		return
+	}
+	var singleDistro *distro.Distro
+	for _, p := range packages {
+		if p.Distro == nil {
+			continue
+		}
+		if singleDistro == nil {
+			singleDistro = p.Distro
+			continue
+		}
+		if singleDistro.Type != p.Distro.Type ||
+			singleDistro.Version != p.Distro.Version ||
+			singleDistro.Codename != p.Distro.Codename {
+			return
+		}
+	}
+
+	// if there is one distro (with one version) represented, use that
+	if singleDistro != nil {
+		ctx.Distro = singleDistro
+	}
 }
