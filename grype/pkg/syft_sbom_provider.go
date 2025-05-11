@@ -11,6 +11,7 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 
 	"github.com/anchore/go-homedir"
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/format"
@@ -34,7 +35,7 @@ func syftSBOMProvider(userInput string, config ProviderConfig) ([]Package, Conte
 		}
 	}
 
-	d := distroFromRelease(s.Artifacts.LinuxDistribution)
+	d := distro.FromRelease(s.Artifacts.LinuxDistribution)
 
 	catalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, d)
 

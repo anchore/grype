@@ -28,24 +28,24 @@ func Test_applyDistroHint(t *testing.T) {
 	applyDistroHint([]pkg.Package{}, &ctx, &cfg)
 	assert.NotNil(t, ctx.Distro)
 
-	assert.Equal(t, "alpine", ctx.Distro.Name)
+	assert.Equal(t, "alpine", ctx.Distro.Name())
 	assert.Equal(t, "3.10", ctx.Distro.Version)
 
 	// does override an existing distro
-	cfg.Distro = "ubuntu:latest"
+	cfg.Distro = "ubuntu:24.04"
 	applyDistroHint([]pkg.Package{}, &ctx, &cfg)
 	assert.NotNil(t, ctx.Distro)
 
-	assert.Equal(t, "ubuntu", ctx.Distro.Name)
-	assert.Equal(t, "latest", ctx.Distro.Version)
+	assert.Equal(t, "ubuntu", ctx.Distro.Name())
+	assert.Equal(t, "24.04", ctx.Distro.Version)
 
 	// doesn't remove an existing distro when empty
 	cfg.Distro = ""
 	applyDistroHint([]pkg.Package{}, &ctx, &cfg)
 	assert.NotNil(t, ctx.Distro)
 
-	assert.Equal(t, "ubuntu", ctx.Distro.Name)
-	assert.Equal(t, "latest", ctx.Distro.Version)
+	assert.Equal(t, "ubuntu", ctx.Distro.Name())
+	assert.Equal(t, "24.04", ctx.Distro.Version)
 }
 
 func Test_getProviderConfig(t *testing.T) {

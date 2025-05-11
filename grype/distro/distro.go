@@ -6,6 +6,7 @@ import (
 
 	hashiVer "github.com/hashicorp/go-version"
 
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/linux"
 )
 
@@ -97,6 +98,18 @@ func NewFromRelease(release linux.Release) (*Distro, error) {
 	}
 
 	return New(t, selectedVersion, release.VersionCodename, release.IDLike...)
+}
+
+// FromRelease attempts to get a distro from the linux release, only logging any errors
+func FromRelease(linuxRelease *linux.Release) *Distro {
+	if linuxRelease == nil {
+		return nil
+	}
+	d, err := NewFromRelease(*linuxRelease)
+	if err != nil {
+		log.WithFields("error", err).Warn("unable to create distro from linux distribution")
+	}
+	return d
 }
 
 func (d Distro) Name() string {
