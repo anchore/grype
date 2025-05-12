@@ -998,21 +998,21 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 		},
 		{
 			name: "remove overlapping package when parent version is prefix of child version",
-			sbom: withDistro(catalogWithOverlaps(
+			sbom: withLinuxRelease(catalogWithOverlaps(
 				[]string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5", "linux-kernel:linux-kernel@5.14.0-503.40.1.el9_5.x86_64+rt"},
 				[]string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5 -> linux-kernel:linux-kernel@5.14.0-503.40.1.el9_5.x86_64+rt"}), "rhel"),
 			expectedPackages: []string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5"},
 		},
 		{
 			name: "remove overlapping package when child version is prefix of parent version",
-			sbom: withDistro(catalogWithOverlaps(
+			sbom: withLinuxRelease(catalogWithOverlaps(
 				[]string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5+rt", "linux-kernel:linux-kernel@5.14.0-503.40.1.el9_5"},
 				[]string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5+rt -> linux-kernel:linux-kernel@5.14.0-503.40.1.el9_5"}), "rhel"),
 			expectedPackages: []string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5+rt"},
 		},
 		{
 			name: "do not remove overlapping package when versions are not similar",
-			sbom: withDistro(catalogWithOverlaps(
+			sbom: withLinuxRelease(catalogWithOverlaps(
 				[]string{"rpm:kernel@5.14.0-503.40.1.el9_5", "linux-kernel:linux-kernel@6.17"},
 				[]string{"rpm:kernel@5.14.0-503.40.1.el9_5 -> linux-kernel:linux-kernel@6.17"}), "rhel"),
 			expectedPackages: []string{"rpm:kernel@5.14.0-503.40.1.el9_5", "linux-kernel:linux-kernel@6.17"},
