@@ -44,6 +44,13 @@ func New(t Type, version, label string, idLikes ...string) (*Distro, error) {
 		}
 	}
 
+	for i := range idLikes {
+		typ, ok := IDMapping[strings.TrimSpace(idLikes[i])]
+		if ok {
+			idLikes[i] = typ.String()
+		}
+	}
+
 	return &Distro{
 		Type:      t,
 		major:     major,
