@@ -19,6 +19,6 @@ func (m *Matcher) Type() match.MatcherType {
 	return match.PortageMatcher
 }
 
-func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoredMatch, error) {
+func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	return internal.MatchPackageByDistro(store, p, m.Type())
 }

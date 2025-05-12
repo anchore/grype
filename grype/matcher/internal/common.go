@@ -9,9 +9,9 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-func MatchPackageByEcosystemAndCPEs(store vulnerability.Provider, p pkg.Package, matcher match.MatcherType, includeCPEs bool) ([]match.Match, []match.IgnoredMatch, error) {
+func MatchPackageByEcosystemAndCPEs(store vulnerability.Provider, p pkg.Package, matcher match.MatcherType, includeCPEs bool) ([]match.Match, []match.IgnoreFilter, error) {
 	var matches []match.Match
-	var ignored []match.IgnoredMatch
+	var ignored []match.IgnoreFilter
 
 	for _, name := range store.PackageSearchNames(p) {
 		nameMatches, nameIgnores, err := MatchPackageByEcosystemPackageNameAndCPEs(store, p, name, matcher, includeCPEs)
@@ -25,7 +25,7 @@ func MatchPackageByEcosystemAndCPEs(store vulnerability.Provider, p pkg.Package,
 	return matches, ignored, nil
 }
 
-func MatchPackageByEcosystemPackageNameAndCPEs(store vulnerability.Provider, p pkg.Package, packageName string, matcher match.MatcherType, includeCPEs bool) ([]match.Match, []match.IgnoredMatch, error) {
+func MatchPackageByEcosystemPackageNameAndCPEs(store vulnerability.Provider, p pkg.Package, packageName string, matcher match.MatcherType, includeCPEs bool) ([]match.Match, []match.IgnoreFilter, error) {
 	matches, ignored, err := MatchPackageByEcosystemPackageName(store, p, packageName, matcher)
 	if err != nil {
 		log.Debugf("could not match by package ecosystem (package=%+v): %v", p, err)
