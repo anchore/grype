@@ -407,8 +407,8 @@ func (p Presenter) resultMessage(m models.Match) sarif.Message {
 		src = fmt.Sprintf("at: %s", path)
 	case pkg.PURLLiteralMetadata:
 		src = fmt.Sprintf("from purl literal %q", meta.PURL)
-	case pkg.PURLFileMetadata:
-		src = fmt.Sprintf("from purl file %s", meta.Path)
+	case pkg.SBOMFileMetadata:
+		src = fmt.Sprintf("from SBOM file %s", meta.Path)
 	}
 	message := fmt.Sprintf("A %s vulnerability in %s package: %s, version %s was found %s",
 		severityText(m), m.Artifact.Type, m.Artifact.Name, m.Artifact.Version, src)

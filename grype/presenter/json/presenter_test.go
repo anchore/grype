@@ -12,11 +12,11 @@ import (
 
 	"github.com/anchore/clio"
 	"github.com/anchore/go-testutils"
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/internal"
 	"github.com/anchore/grype/grype/presenter/models"
-	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -85,8 +85,8 @@ func TestEmptyJsonPresenter(t *testing.T) {
 
 	ctx := pkg.Context{
 		Source: &source.Description{},
-		Distro: &linux.Release{
-			ID:      "centos",
+		Distro: &distro.Distro{
+			Type:    "centos",
 			IDLike:  []string{"rhel"},
 			Version: "8.0",
 		},

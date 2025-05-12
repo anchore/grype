@@ -19,7 +19,7 @@ require (
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/packageurl-go v0.1.1-0.20250220190351-d62adb6e1115
 	github.com/anchore/stereoscope v0.1.4
-	github.com/anchore/syft v1.23.2-0.20250509082920-0b78186a97a0
+	github.com/anchore/syft v1.23.2-0.20250512173324-621d21eb04ca
 	github.com/aquasecurity/go-pep440-version v0.0.1
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/bmatcuk/doublestar/v2 v2.0.4

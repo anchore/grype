@@ -7,10 +7,10 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/clio"
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	syftSource "github.com/anchore/syft/syft/source"
 )
@@ -75,8 +75,8 @@ func TestPackagesAreSorted(t *testing.T) {
 		Source: &syftSource.Description{
 			Metadata: syftSource.DirectoryMetadata{},
 		},
-		Distro: &linux.Release{
-			ID:      "centos",
+		Distro: &distro.Distro{
+			Type:    "centos",
 			IDLike:  []string{"rhel"},
 			Version: "8.0",
 		},
@@ -136,8 +136,8 @@ func TestFixSuggestedVersion(t *testing.T) {
 		Source: &syftSource.Description{
 			Metadata: syftSource.DirectoryMetadata{},
 		},
-		Distro: &linux.Release{
-			ID:      "centos",
+		Distro: &distro.Distro{
+			Type:    "centos",
 			IDLike:  []string{"rhel"},
 			Version: "8.0",
 		},

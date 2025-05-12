@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/file"
@@ -983,35 +984,35 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 		},
 		{
 			name: "python bindings for system RPM install",
-			sbom: withDistro(catalogWithOverlaps(
+			sbom: withLinuxRelease(catalogWithOverlaps(
 				[]string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
 				[]string{"rpm:python3-rpm@4.14.3-26.el8 -> python:rpm@4.14.3"}), "rhel"),
 			expectedPackages: []string{"rpm:python3-rpm@4.14.3-26.el8"},
 		},
 		{
 			name: "amzn linux doesn't remove packages in this way",
-			sbom: withDistro(catalogWithOverlaps(
+			sbom: withLinuxRelease(catalogWithOverlaps(
 				[]string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
 				[]string{"rpm:python3-rpm@4.14.3-26.el8 -> python:rpm@4.14.3"}), "amzn"),
 			expectedPackages: []string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
 		},
 		{
 			name: "remove overlapping package when parent version is prefix of child version",
-			sbom: withDistro(catalogWithOverlaps(
+			sbom: withLinuxRelease(catalogWithOverlaps(
 				[]string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5", "linux-kernel:linux-kernel@5.14.0-503.40.1.el9_5.x86_64+rt"},
 				[]string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5 -> linux-kernel:linux-kernel@5.14.0-503.40.1.el9_5.x86_64+rt"}), "rhel"),
 			expectedPackages: []string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5"},
 		},
 		{
 			name: "remove overlapping package when child version is prefix of parent version",
-			sbom: withDistro(catalogWithOverlaps(
+			sbom: withLinuxRelease(catalogWithOverlaps(
 				[]string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5+rt", "linux-kernel:linux-kernel@5.14.0-503.40.1.el9_5"},
 				[]string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5+rt -> linux-kernel:linux-kernel@5.14.0-503.40.1.el9_5"}), "rhel"),
 			expectedPackages: []string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5+rt"},
 		},
 		{
 			name: "do not remove overlapping package when versions are not similar",
-			sbom: withDistro(catalogWithOverlaps(
+			sbom: withLinuxRelease(catalogWithOverlaps(
 				[]string{"rpm:kernel@5.14.0-503.40.1.el9_5", "linux-kernel:linux-kernel@6.17"},
 				[]string{"rpm:kernel@5.14.0-503.40.1.el9_5 -> linux-kernel:linux-kernel@6.17"}), "rhel"),
 			expectedPackages: []string{"rpm:kernel@5.14.0-503.40.1.el9_5", "linux-kernel:linux-kernel@6.17"},
@@ -1019,7 +1020,8 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			catalog := removePackagesByOverlap(test.sbom.Artifacts.Packages, test.sbom.Relationships, test.sbom.Artifacts.LinuxDistribution)
+			d := distro.FromRelease(test.sbom.Artifacts.LinuxDistribution)
+			catalog := removePackagesByOverlap(test.sbom.Artifacts.Packages, test.sbom.Relationships, d)
 			pkgs := FromCollection(catalog, SynthesisConfig{})
 			var pkgNames []string
 			for _, p := range pkgs {
@@ -1100,7 +1102,7 @@ func catalogWithOverlaps(packages []string, overlaps []string) *sbom.SBOM {
 	}
 }
 
-func withDistro(s *sbom.SBOM, id string) *sbom.SBOM {
+func withLinuxRelease(s *sbom.SBOM, id string) *sbom.SBOM {
 	s.Artifacts.LinuxDistribution = &linux.Release{
 		ID: id,
 	}

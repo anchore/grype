@@ -1,11 +1,11 @@
 package version
 
 import (
-	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/go-test/deep"
+	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 )
 
 func TestScanExpression(t *testing.T) {

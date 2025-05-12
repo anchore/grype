@@ -65,12 +65,12 @@ func TestNewSource(t *testing.T) {
 		{
 			name: "purl-file",
 			metadata: syftSource.Description{
-				Metadata: pkg.PURLFileMetadata{
+				Metadata: pkg.SBOMFileMetadata{
 					Path: "/path/to/purls.txt",
 				},
 			},
 			expected: source{
-				Type:   "purl-file",
+				Type:   "sbom-file",
 				Target: "/path/to/purls.txt",
 			},
 		},

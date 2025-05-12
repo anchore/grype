@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype"
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/matcher/dotnet"
@@ -30,7 +31,6 @@ import (
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/cataloging/pkgcataloging"
 	"github.com/anchore/syft/syft/cpe"
-	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
 )
@@ -787,7 +787,7 @@ func TestMatchByImage(t *testing.T) {
 				},
 			})
 
-			actualResults := grype.FindVulnerabilitiesForPackage(theProvider, s.Artifacts.LinuxDistribution, matchers, pkg.FromCollection(s.Artifacts.Packages, pkg.SynthesisConfig{}))
+			actualResults := grype.FindVulnerabilitiesForPackage(theProvider, distro.FromRelease(s.Artifacts.LinuxDistribution), matchers, pkg.FromCollection(s.Artifacts.Packages, pkg.SynthesisConfig{}))
 			for _, m := range actualResults.Sorted() {
 				for _, d := range m.Details {
 					observedMatchers.Add(string(d.Matcher))
@@ -945,7 +945,6 @@ func vexMatches(t *testing.T, ignoredMatches []match.IgnoredMatch, vexStatus vex
 				},
 			},
 		},
-		Distro: &linux.Release{},
 	}
 
 	vexedMatches, ignoredMatches, err := vexMatcher.ApplyVEX(pctx, &matches, ignoredMatches)

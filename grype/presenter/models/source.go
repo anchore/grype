@@ -15,9 +15,9 @@ type source struct {
 // newSource creates a new source object to be represented into JSON.
 func newSource(src syftSource.Description) (source, error) {
 	switch m := src.Metadata.(type) {
-	case pkg.PURLFileMetadata:
+	case pkg.SBOMFileMetadata:
 		return source{
-			Type:   "purl-file",
+			Type:   "sbom-file",
 			Target: m.Path,
 		}, nil
 	case pkg.PURLLiteralMetadata:
