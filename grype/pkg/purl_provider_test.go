@@ -124,7 +124,7 @@ func Test_PurlProvider(t *testing.T) {
 			context: Context{
 				Distro: &distro.Distro{
 					Type:    "redhat",
-					IDLike:  []string{"rhel"},
+					IDLike:  []string{"redhat"},
 					Version: "8.10",
 				},
 				Source: &source.Description{
@@ -139,7 +139,7 @@ func Test_PurlProvider(t *testing.T) {
 					Version: "239-82.el8_10.2",
 					Type:    pkg.RpmPkg,
 					PURL:    "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?arch=aarch64&distro=rhel-8.10&upstream=systemd-239-82.el8_10.2.src.rpm",
-					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.10", Codename: "", IDLike: []string{"rhel"}},
+					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.10", Codename: "", IDLike: []string{"redhat"}},
 					Upstreams: []UpstreamPackage{
 						{
 							Name:    "systemd",
@@ -155,7 +155,7 @@ func Test_PurlProvider(t *testing.T) {
 			context: Context{
 				Distro: &distro.Distro{
 					Type:    "redhat",
-					IDLike:  []string{"rhel"},
+					IDLike:  []string{"redhat"},
 					Version: "8.10",
 				},
 				Source: &source.Description{
@@ -170,7 +170,7 @@ func Test_PurlProvider(t *testing.T) {
 					Version: "1:1.12.8-26.el8",
 					Type:    pkg.RpmPkg,
 					PURL:    "pkg:rpm/redhat/dbus-common@1.12.8-26.el8?arch=noarch&distro=rhel-8.10&epoch=1&upstream=dbus-1.12.8-26.el8.src.rpm",
-					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.10", Codename: "", IDLike: []string{"rhel"}},
+					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.10", Codename: "", IDLike: []string{"redhat"}},
 					Upstreams: []UpstreamPackage{
 						{
 							Name:    "dbus",

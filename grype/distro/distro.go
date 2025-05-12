@@ -69,7 +69,19 @@ func NewFromNameVersion(name, version string) (*Distro, error) {
 	if typ == "" {
 		typ = Type(name)
 	}
-	return New(typ, version, codename, name)
+	return New(typ, version, codename, string(typ))
+}
+
+// FromRelease attempts to get a distro from the linux release, only logging any errors
+func FromRelease(linuxRelease *linux.Release) *Distro {
+	if linuxRelease == nil {
+		return nil
+	}
+	d, err := NewFromRelease(*linuxRelease)
+	if err != nil {
+		log.WithFields("error", err).Warn("unable to create distro from linux distribution")
+	}
+	return d
 }
 
 // NewFromRelease creates a new Distro object derived from a syft linux.Release object.
@@ -98,18 +110,6 @@ func NewFromRelease(release linux.Release) (*Distro, error) {
 	}
 
 	return New(t, selectedVersion, release.VersionCodename, release.IDLike...)
-}
-
-// FromRelease attempts to get a distro from the linux release, only logging any errors
-func FromRelease(linuxRelease *linux.Release) *Distro {
-	if linuxRelease == nil {
-		return nil
-	}
-	d, err := NewFromRelease(*linuxRelease)
-	if err != nil {
-		log.WithFields("error", err).Warn("unable to create distro from linux distribution")
-	}
-	return d
 }
 
 func (d Distro) Name() string {

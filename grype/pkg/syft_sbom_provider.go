@@ -15,6 +15,7 @@ import (
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/format"
+	"github.com/anchore/syft/syft/format/syftjson"
 	"github.com/anchore/syft/syft/sbom"
 )
 
@@ -23,7 +24,7 @@ type SBOMFileMetadata struct {
 }
 
 func syftSBOMProvider(userInput string, config ProviderConfig) ([]Package, Context, *sbom.SBOM, error) {
-	s, path, err := getSBOM(userInput)
+	s, fmtID, path, err := getSBOM(userInput)
 	if err != nil {
 		return nil, Context{}, nil, err
 	}
@@ -39,33 +40,38 @@ func syftSBOMProvider(userInput string, config ProviderConfig) ([]Package, Conte
 
 	catalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, d)
 
-	return FromCollection(catalog, config.SynthesisConfig), Context{
+	var enhancers []enhancer
+	if fmtID != syftjson.ID {
+		enhancers = purlEnhancers
+	}
+
+	return FromCollection(catalog, config.SynthesisConfig, enhancers...), Context{
 		Source: &src,
 		Distro: d,
 	}, s, nil
 }
 
-func getSBOM(userInput string) (*sbom.SBOM, string, error) {
+func getSBOM(userInput string) (*sbom.SBOM, sbom.FormatID, string, error) {
 	reader, path, err := getSBOMReader(userInput)
 	if err != nil {
-		return nil, path, err
+		return nil, "", path, err
 	}
 
-	s, err := readSBOM(reader)
-	return s, path, err
+	s, fmtID, err := readSBOM(reader)
+	return s, fmtID, path, err
 }
 
-func readSBOM(reader io.ReadSeeker) (*sbom.SBOM, error) {
+func readSBOM(reader io.ReadSeeker) (*sbom.SBOM, sbom.FormatID, error) {
 	s, fmtID, _, err := format.Decode(reader)
 	if err != nil {
-		return nil, fmt.Errorf("unable to decode sbom: %w", err)
+		return nil, "", fmt.Errorf("unable to decode sbom: %w", err)
 	}
 
 	if fmtID == "" || s == nil {
-		return nil, errDoesNotProvide
+		return nil, "", errDoesNotProvide
 	}
 
-	return s, nil
+	return s, fmtID, nil
 }
 
 func getSBOMReader(userInput string) (io.ReadSeeker, string, error) {

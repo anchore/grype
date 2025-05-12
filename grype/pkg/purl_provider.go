@@ -30,7 +30,7 @@ func purlProvider(userInput string, config ProviderConfig) ([]Package, Context, 
 		return nil, Context{}, nil, fmt.Errorf("unable to decode purl: %w", err)
 	}
 
-	return FromCollection(s.Artifacts.Packages, config.SynthesisConfig), ctx, s, nil
+	return FromCollection(s.Artifacts.Packages, config.SynthesisConfig, purlEnhancers...), ctx, s, nil
 }
 
 func getPurlReader(userInput string) (r io.Reader, ctx Context, err error) {

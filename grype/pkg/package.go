@@ -45,8 +45,8 @@ type Package struct {
 	Metadata  interface{} // This is NOT 1-for-1 the syft metadata! Only the select data needed for vulnerability matching
 }
 
-func New(p syftPkg.Package) Package {
-	d, metadata, upstreams := dataFromPkg(p)
+func New(p syftPkg.Package, enhancers ...enhancer) Package {
+	metadata, upstreams := dataFromPkg(p)
 
 	licenseObjs := p.Licenses.ToSlice()
 	// note: this is used for presentation downstream and is a collection, thus should always be allocated
@@ -58,11 +58,10 @@ func New(p syftPkg.Package) Package {
 		licenses = []string{}
 	}
 
-	return Package{
+	out := Package{
 		ID:        ID(p.ID()),
 		Name:      p.Name,
 		Version:   p.Version,
-		Distro:    d,
 		Locations: p.Locations,
 		Licenses:  licenses,
 		Language:  p.Language,
@@ -72,13 +71,25 @@ func New(p syftPkg.Package) Package {
 		Upstreams: upstreams,
 		Metadata:  metadata,
 	}
+
+	if len(enhancers) > 0 {
+		purl, err := packageurl.FromString(p.PURL)
+		if err != nil {
+			log.WithFields("purl", purl, "error", err).Debug("unable to parse PURL")
+		}
+		for _, e := range enhancers {
+			e(&out, purl, p)
+		}
+	}
+
+	return out
 }
 
-func FromCollection(catalog *syftPkg.Collection, config SynthesisConfig) []Package {
-	return FromPackages(catalog.Sorted(), config)
+func FromCollection(catalog *syftPkg.Collection, config SynthesisConfig, enhancers ...enhancer) []Package {
+	return FromPackages(catalog.Sorted(), config, enhancers...)
 }
 
-func FromPackages(syftpkgs []syftPkg.Package, config SynthesisConfig) []Package {
+func FromPackages(syftpkgs []syftPkg.Package, config SynthesisConfig, enhancers ...enhancer) []Package {
 	var pkgs []Package
 	for _, p := range syftpkgs {
 		if len(p.CPEs) == 0 {
@@ -89,7 +100,7 @@ func FromPackages(syftpkgs []syftPkg.Package, config SynthesisConfig) []Package 
 				log.Debugf("no CPEs for package: %s", p)
 			}
 		}
-		pkgs = append(pkgs, New(p))
+		pkgs = append(pkgs, New(p, enhancers...))
 	}
 
 	return pkgs
@@ -197,7 +208,7 @@ func isOSPackage(p syftPkg.Package) bool {
 	}
 }
 
-func dataFromPkg(p syftPkg.Package) (*distro.Distro, any, []UpstreamPackage) {
+func dataFromPkg(p syftPkg.Package) (any, []UpstreamPackage) {
 	var metadata interface{}
 	var upstreams []UpstreamPackage
 
@@ -225,56 +236,7 @@ func dataFromPkg(p syftPkg.Package) (*distro.Distro, any, []UpstreamPackage) {
 		metadata = javaVMDataFromPkg(p)
 	}
 
-	var d *distro.Distro
-	if p.PURL != "" {
-		if len(upstreams) == 0 {
-			d, upstreams = readPURL(&p)
-		} else {
-			d, _ = readPURL(&p)
-		}
-	}
-
-	return d, metadata, upstreams
-}
-
-// readPURL reads any additional data Grype can use, which is ignored by Syft's PURL conversion
-func readPURL(p *syftPkg.Package) (*distro.Distro, []UpstreamPackage) {
-	var upstreams []UpstreamPackage
-	var distroName, distroVersion string
-
-	purl, err := packageurl.FromString(p.PURL)
-	if err != nil {
-		log.Debugf("unable to parse PURL: %v", err)
-	} else {
-		for _, qualifier := range purl.Qualifiers {
-			switch qualifier.Key {
-			case syftPkg.PURLQualifierUpstream:
-				for _, newUpstream := range parseUpstream(purl.Name, qualifier.Value, p.Type) {
-					if slices.Contains(upstreams, newUpstream) {
-						continue
-					}
-					upstreams = append(upstreams, newUpstream)
-				}
-			case syftPkg.PURLQualifierDistro:
-				fields := strings.SplitN(qualifier.Value, "-", 2)
-				distroName = fields[0]
-				if len(fields) > 1 {
-					distroVersion = fields[1]
-				}
-			}
-		}
-	}
-
-	var d *distro.Distro
-	if distroName != "" {
-		d, err = distro.NewFromNameVersion(distroName, distroVersion)
-		if err != nil {
-			log.Trace("Unable to create Distro from a release: %s", err)
-			d = nil
-		}
-	}
-
-	return d, upstreams
+	return metadata, upstreams
 }
 
 func javaVMDataFromPkg(p syftPkg.Package) any {
@@ -494,3 +456,60 @@ func handleDefaultUpstream(pkgName string, value string) []UpstreamPackage {
 	}
 	return nil
 }
+
+func setUpstreamsFromPURL(out *Package, purl packageurl.PackageURL, syftPkg syftPkg.Package) {
+	if len(out.Upstreams) == 0 {
+		out.Upstreams = upstreamsFromPURL(purl, syftPkg.Type)
+	}
+}
+
+// upstreamsFromPURL reads any additional data Grype can use, which is ignored by Syft's PURL conversion
+func upstreamsFromPURL(purl packageurl.PackageURL, pkgType syftPkg.Type) (upstreams []UpstreamPackage) {
+	for _, qualifier := range purl.Qualifiers {
+		if qualifier.Key == syftPkg.PURLQualifierUpstream {
+			for _, newUpstream := range parseUpstream(purl.Name, qualifier.Value, pkgType) {
+				if slices.Contains(upstreams, newUpstream) {
+					continue
+				}
+				upstreams = append(upstreams, newUpstream)
+			}
+		}
+	}
+	return upstreams
+}
+
+func setDistroFromPURL(out *Package, purl packageurl.PackageURL, _ syftPkg.Package) {
+	if out.Distro == nil {
+		out.Distro = distroFromPURL(purl)
+	}
+}
+
+// distroFromPURL reads distro data for Grype can use, which is ignored by Syft's PURL conversion
+func distroFromPURL(purl packageurl.PackageURL) (d *distro.Distro) {
+	var distroName, distroVersion string
+
+	for _, qualifier := range purl.Qualifiers {
+		if qualifier.Key == syftPkg.PURLQualifierDistro {
+			fields := strings.SplitN(qualifier.Value, "-", 2)
+			distroName = fields[0]
+			if len(fields) > 1 {
+				distroVersion = fields[1]
+			}
+		}
+	}
+
+	if distroName != "" {
+		var err error
+		d, err = distro.NewFromNameVersion(distroName, distroVersion)
+		if err != nil {
+			log.WithFields("purl", purl, "error", err).Debug("unable to create distro from a release")
+			d = nil
+		}
+	}
+
+	return d
+}
+
+type enhancer func(out *Package, purl packageurl.PackageURL, pkg syftPkg.Package)
+
+var purlEnhancers = []enhancer{setUpstreamsFromPURL, setDistroFromPURL}
