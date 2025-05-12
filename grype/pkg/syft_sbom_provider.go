@@ -40,7 +40,7 @@ func syftSBOMProvider(userInput string, config ProviderConfig) ([]Package, Conte
 
 	catalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, d)
 
-	var enhancers []enhancer
+	var enhancers []Enhancer
 	if fmtID != syftjson.ID {
 		enhancers = purlEnhancers
 	}

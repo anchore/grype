@@ -45,7 +45,7 @@ type Package struct {
 	Metadata  interface{} // This is NOT 1-for-1 the syft metadata! Only the select data needed for vulnerability matching
 }
 
-func New(p syftPkg.Package, enhancers ...enhancer) Package {
+func New(p syftPkg.Package, enhancers ...Enhancer) Package {
 	metadata, upstreams := dataFromPkg(p)
 
 	licenseObjs := p.Licenses.ToSlice()
@@ -85,11 +85,11 @@ func New(p syftPkg.Package, enhancers ...enhancer) Package {
 	return out
 }
 
-func FromCollection(catalog *syftPkg.Collection, config SynthesisConfig, enhancers ...enhancer) []Package {
+func FromCollection(catalog *syftPkg.Collection, config SynthesisConfig, enhancers ...Enhancer) []Package {
 	return FromPackages(catalog.Sorted(), config, enhancers...)
 }
 
-func FromPackages(syftpkgs []syftPkg.Package, config SynthesisConfig, enhancers ...enhancer) []Package {
+func FromPackages(syftpkgs []syftPkg.Package, config SynthesisConfig, enhancers ...Enhancer) []Package {
 	var pkgs []Package
 	for _, p := range syftpkgs {
 		if len(p.CPEs) == 0 {
@@ -510,6 +510,6 @@ func distroFromPURL(purl packageurl.PackageURL) (d *distro.Distro) {
 	return d
 }
 
-type enhancer func(out *Package, purl packageurl.PackageURL, pkg syftPkg.Package)
+type Enhancer func(out *Package, purl packageurl.PackageURL, pkg syftPkg.Package)
 
-var purlEnhancers = []enhancer{setUpstreamsFromPURL, setDistroFromPURL}
+var purlEnhancers = []Enhancer{setUpstreamsFromPURL, setDistroFromPURL}
