@@ -708,6 +708,8 @@ github.com/anchore/packageurl-go v0.1.1-0.20250220190351-d62adb6e1115 h1:ZyRCmiE
 github.com/anchore/packageurl-go v0.1.1-0.20250220190351-d62adb6e1115/go.mod h1:KoYIv7tdP5+CC9VGkeZV4/vGCKsY55VvoG+5dadg4YI=
 github.com/anchore/stereoscope v0.1.4 h1:e+iT9UdUzLBabWGe84hn5sTHDRioY+4IHsVzJXuJlek=
 github.com/anchore/stereoscope v0.1.4/go.mod h1:omWgXDEp/XfqCJlZXIByEo1c3ArZg/qTJ5LBKVLAIdw=
+github.com/anchore/syft v1.23.2-0.20250512173324-621d21eb04ca h1:GY1N+iXgj9rdibkf46vm+VQkASGGtW4NtDSNDAZSUuk=
+github.com/anchore/syft v1.23.2-0.20250512173324-621d21eb04ca/go.mod h1:rD7NI0LzopzDuVe5SW+NOUAcbaRe8TYwwourGwBYZZk=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/andybalholm/brotli v1.0.4/go.mod h1:fO7iG3H7G2nSZ7m0zPUDn85XEX2GTukHGRSepvi9Eig=
 github.com/andybalholm/brotli v1.1.1 h1:PR2pgnyFznKEugtsUo0xLdDop5SKXd5Qf5ysW+7XdTA=
@@ -1256,8 +1258,6 @@ github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
 github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=
 github.com/kr/text v0.2.0/go.mod h1:eLer722TekiGuMkidMxC/pM04lWEeraHUUmBw8l2grE=
-github.com/kzantow-anchore/syft v0.41.4-0.20250510163425-52a00a843c56 h1:1FoCQ8Kd1sPTsFsXHDAApmuprF/EP9ipq0UHJ72IERk=
-github.com/kzantow-anchore/syft v0.41.4-0.20250510163425-52a00a843c56/go.mod h1:rD7NI0LzopzDuVe5SW+NOUAcbaRe8TYwwourGwBYZZk=
 github.com/ledongthuc/pdf v0.0.0-20220302134840-0c2507a12d80/go.mod h1:imJHygn/1yfhB7XSJJKlFZKl/J+dCPAknuiaGOshXAs=
 github.com/logrusorgru/aurora v0.0.0-20200102142835-e9ef32dff381/go.mod h1:7rIyQOR62GCctdiQpZ/zOJlFyk6y+94wXzv6RNZgaR4=
 github.com/logrusorgru/aurora v2.0.3+incompatible h1:tOpm7WcpBTn4fjmVfgpQq0EfczGlG91VSDkswnjF5A8=
