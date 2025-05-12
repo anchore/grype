@@ -125,8 +125,8 @@ func excludePackage(comprehensiveDistroFeed bool, p pkg.Package, parent pkg.Pack
 	// python      3.9.2      binary
 	// python3.9   3.9.2-1    deb
 
-	// If the version is not effectively the same, keep both
-	if !strings.HasPrefix(parent.Version, p.Version) {
+	// If the version is not approximately the same, keep both
+	if !strings.HasPrefix(parent.Version, p.Version) && !strings.HasPrefix(p.Version, parent.Version) {
 		return false
 	}
 
