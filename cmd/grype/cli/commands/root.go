@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/wagoodman/go-partybus"
@@ -150,11 +151,15 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 			return nil
 		},
 		func() (err error) {
+			startTime := time.Now()
+			defer func() { log.WithFields("time", time.Since(startTime)).Info("loaded DB") }()
 			log.Debug("loading DB")
 			vp, status, err = grype.LoadVulnerabilityDB(opts.ToClientConfig(), opts.ToCuratorConfig(), opts.DB.AutoUpdate)
 			return validateDBLoad(err, status)
 		},
 		func() (err error) {
+			startTime := time.Now()
+			defer func() { log.WithFields("time", time.Since(startTime)).Info("gathered packages") }()
 			log.Debugf("gathering packages")
 			// packages are grype.Package, not syft.Package
 			// the SBOM is returned for downstream formatting concerns
@@ -178,6 +183,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		return fmt.Errorf("applying vex rules: %w", err)
 	}
 
+	startTime := time.Now()
 	applyDistroHint(packages, &pkgContext, opts)
 
 	vulnMatcher := grype.VulnerabilityMatcher{
@@ -200,7 +206,10 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		errs = appendErrors(errs, err)
 	}
 
-	model, err := models.NewDocument(app.ID(), packages, pkgContext, *remainingMatches, ignoredMatches, vp, opts, dbInfo(status, vp), models.SortByPackage)
+	log.WithFields("time", time.Since(startTime)).Info("found vulnerability matches")
+	startTime = time.Now()
+
+	model, err := models.NewDocument(app.ID(), packages, pkgContext, *remainingMatches, ignoredMatches, vp, opts, dbInfo(status, vp), models.SortStrategy(opts.SortBy.Criteria))
 	if err != nil {
 		return fmt.Errorf("failed to create document: %w", err)
 	}
@@ -213,6 +222,8 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 	}); err != nil {
 		errs = appendErrors(errs, err)
 	}
+
+	log.WithFields("time", time.Since(startTime)).Trace("wrote vulnerability report")
 
 	return errs
 }
@@ -262,16 +273,18 @@ func applyDistroHint(pkgs []pkg.Package, context *pkg.Context, opts *options.Gry
 		}
 	}
 
-	hasOSPackage := false
+	hasOSPackageWithoutDistro := false
 	for _, p := range pkgs {
 		switch p.Type {
 		case syftPkg.AlpmPkg, syftPkg.DebPkg, syftPkg.RpmPkg, syftPkg.KbPkg:
-			hasOSPackage = true
+			if p.Distro == nil {
+				hasOSPackageWithoutDistro = true
+			}
 		}
 	}
 
-	if context.Distro == nil && hasOSPackage {
-		log.Warnf("Unable to determine the OS distribution. This may result in missing vulnerabilities. " +
+	if context.Distro == nil && hasOSPackageWithoutDistro {
+		log.Warnf("Unable to determine the OS distribution of some packages. This may result in missing vulnerabilities. " +
 			"You may specify a distro using: --distro <distro>:<version>")
 	}
 }

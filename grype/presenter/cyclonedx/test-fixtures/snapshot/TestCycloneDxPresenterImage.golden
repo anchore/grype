@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:24d4fb73-8881-462c-940a-61b6d37b579d",
+  "serialNumber": "urn:uuid:792e3ebc-6cc7-4b3a-8fbb-bfb5532ba5c1",
   "version": 1,
   "metadata": {
-    "timestamp": "2025-02-27T13:15:13-05:00",
+    "timestamp": "2025-05-09T13:51:45-04:00",
     "tools": {
       "components": [
         {
@@ -58,7 +58,7 @@
       ]
     },
     {
-      "bom-ref": "pkg:deb/package-2@2.2.2?package-id=7bb53d560434bc7f",
+      "bom-ref": "pkg:deb/package-2@2.2.2?package-id=d4131374f6ed43cf",
       "type": "library",
       "name": "package-2",
       "version": "2.2.2",
@@ -90,28 +90,23 @@
   ],
   "vulnerabilities": [
     {
-      "bom-ref": "urn:uuid:638bc45b-a838-4017-b690-dc5d8d3cfe8d",
+      "bom-ref": "urn:uuid:1565a551-e4bb-4012-8863-41407f2dedd3",
       "id": "CVE-1999-0001",
-      "source": {
-        "name": "source-1"
-      },
+      "source": {},
       "references": [
         {
           "id": "CVE-1999-0001",
-          "source": {
-            "name": "source-1"
-          }
+          "source": {}
         }
       ],
       "ratings": [
         {
-          "score": 4,
+          "score": 8.2,
           "severity": "low",
-          "method": "CVSSv3",
-          "vector": "another vector"
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:L/I:L/A:H"
         }
       ],
-      "description": "1999-01 description",
       "affects": [
         {
           "ref": "9baa2db122fea516"
@@ -119,31 +114,26 @@
       ]
     },
     {
-      "bom-ref": "urn:uuid:6592d365-1128-49a0-8a68-570d8188965a",
+      "bom-ref": "urn:uuid:702719fe-6a8c-4890-b65f-065fc25e15cf",
       "id": "CVE-1999-0002",
-      "source": {
-        "name": "source-2"
-      },
+      "source": {},
       "references": [
         {
           "id": "CVE-1999-0002",
-          "source": {
-            "name": "source-2"
-          }
+          "source": {}
         }
       ],
       "ratings": [
         {
-          "score": 1,
+          "score": 8.5,
           "severity": "critical",
-          "method": "CVSSv2",
-          "vector": "vector"
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:C/C:H/I:H/A:H"
         }
       ],
-      "description": "1999-02 description",
       "affects": [
         {
-          "ref": "pkg:deb/package-2@2.2.2?package-id=7bb53d560434bc7f"
+          "ref": "pkg:deb/package-2@2.2.2?package-id=d4131374f6ed43cf"
         }
       ]
     }

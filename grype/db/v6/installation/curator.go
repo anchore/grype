@@ -272,6 +272,7 @@ func (c curator) isUpdateCheckAllowed() bool {
 func (c curator) update(current *db.Description) (*distribution.Archive, error) {
 	mon := newMonitor()
 	defer mon.SetCompleted()
+	startTime := time.Now()
 
 	mon.Set("checking for update")
 	update, checkErr := c.client.IsUpdateAvailable(current)
@@ -302,7 +303,7 @@ func (c curator) update(current *db.Description) (*distribution.Archive, error) 
 		return nil, fmt.Errorf("unable to update vulnerability database: %w", err)
 	}
 
-	log.WithFields("url", url).Debug("obtained vulnerability DB archive")
+	log.WithFields("url", url, "time", time.Since(startTime)).Info("downloaded vulnerability DB")
 
 	mon.downloadProgress.SetCompleted()
 	if err = c.activate(dest, url, mon); err != nil {
@@ -477,9 +478,14 @@ func isURL(reference string) bool {
 func (c curator) activate(dbDirPath, url string, mon monitor) error {
 	defer mon.SetCompleted()
 
+	startTime := time.Now()
 	if err := c.hydrate(dbDirPath, url, mon); err != nil {
 		return fmt.Errorf("failed to hydrate database: %w", err)
 	}
+
+	log.WithFields("time", time.Since(startTime)).Trace("hydrated db")
+	startTime = time.Now()
+	defer func() { log.WithFields("time", time.Since(startTime)).Trace("replaced db") }()
 
 	mon.Set("activating")
 

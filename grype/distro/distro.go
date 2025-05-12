@@ -111,8 +111,8 @@ func (d Distro) String() string {
 
 // Unsupported Linux distributions
 func (d Distro) Disabled() bool {
-	switch {
-	case d.Type == ArchLinux:
+	switch d.Type {
+	case ArchLinux:
 		return true
 	default:
 		return false

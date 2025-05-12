@@ -216,14 +216,144 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 			},
 		},
 		{
-			name: "suppress matching when missing version",
+			name: "return all possible matches when missing version",
 			p: pkg.Package{
 				CPEs: []cpe.CPE{
-					cpe.Must("cpe:2.3:*:activerecord:activerecord:unknown:rando1:*:ra:*:ruby:*:*", ""),
-					cpe.Must("cpe:2.3:*:activerecord:activerecord:unknown:rando4:*:re:*:rails:*:*", ""),
+					cpe.Must("cpe:2.3:*:activerecord:activerecord:*:rando1:*:ra:*:ruby:*:*", ""),
+					cpe.Must("cpe:2.3:*:activerecord:activerecord:*:rando4:*:re:*:rails:*:*", ""),
 				},
 				Name:     "activerecord",
 				Version:  "",
+				Language: syftPkg.Ruby,
+				Type:     syftPkg.GemPkg,
+			},
+			expected: []match.Match{
+				{
+
+					Vulnerability: vulnerability.Vulnerability{
+						Reference: vulnerability.Reference{ID: "CVE-2017-fake-1"},
+					},
+					Package: pkg.Package{
+						CPEs: []cpe.CPE{
+							cpe.Must("cpe:2.3:*:activerecord:activerecord:*:rando1:*:ra:*:ruby:*:*", ""),
+							cpe.Must("cpe:2.3:*:activerecord:activerecord:*:rando4:*:re:*:rails:*:*", ""),
+						},
+						Name:     "activerecord",
+						Version:  "", // important!
+						Language: syftPkg.Ruby,
+						Type:     syftPkg.GemPkg,
+					},
+
+					Details: []match.Detail{
+						{
+							Type:       match.CPEMatch,
+							Confidence: 0.9,
+							SearchedBy: match.CPEParameters{
+								CPEs: []string{
+									"cpe:2.3:*:activerecord:activerecord:*:rando4:*:re:*:rails:*:*", //important!
+								},
+								Namespace: "nvd:cpe",
+								Package: match.CPEPackageParameter{
+									Name:    "activerecord",
+									Version: "", // important!
+								},
+							},
+							Found: match.CPEResult{
+								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*"},
+								VersionConstraint: "< 3.7.6 (semver)",
+								VulnerabilityID:   "CVE-2017-fake-1",
+							},
+							Matcher: matcher,
+						},
+					},
+				},
+				{
+
+					Vulnerability: vulnerability.Vulnerability{
+						Reference: vulnerability.Reference{ID: "CVE-2017-fake-2"},
+					},
+					Package: pkg.Package{
+						CPEs: []cpe.CPE{
+							cpe.Must("cpe:2.3:*:activerecord:activerecord:*:rando1:*:ra:*:ruby:*:*", ""),
+							cpe.Must("cpe:2.3:*:activerecord:activerecord:*:rando4:*:re:*:rails:*:*", ""),
+						},
+						Name:     "activerecord",
+						Version:  "", // important!
+						Language: syftPkg.Ruby,
+						Type:     syftPkg.GemPkg,
+					},
+
+					Details: []match.Detail{
+						{
+							Type:       match.CPEMatch,
+							Confidence: 0.9,
+							SearchedBy: match.CPEParameters{
+								CPEs:      []string{"cpe:2.3:*:activerecord:activerecord:*:rando1:*:ra:*:ruby:*:*"}, //important!
+								Namespace: "nvd:cpe",
+								Package: match.CPEPackageParameter{
+									Name:    "activerecord",
+									Version: "", // important!
+								},
+							},
+							Found: match.CPEResult{
+								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:ruby:*:*"},
+								VersionConstraint: "< 3.7.4 (semver)",
+								VulnerabilityID:   "CVE-2017-fake-2",
+							},
+							Matcher: matcher,
+						},
+					},
+				},
+				{
+
+					Vulnerability: vulnerability.Vulnerability{
+						Reference: vulnerability.Reference{ID: "CVE-2017-fake-3"},
+					},
+					Package: pkg.Package{
+						CPEs: []cpe.CPE{
+							cpe.Must("cpe:2.3:*:activerecord:activerecord:*:rando1:*:ra:*:ruby:*:*", ""),
+							cpe.Must("cpe:2.3:*:activerecord:activerecord:*:rando4:*:re:*:rails:*:*", ""),
+						},
+						Name:     "activerecord",
+						Version:  "", // important!
+						Language: syftPkg.Ruby,
+						Type:     syftPkg.GemPkg,
+					},
+					Details: []match.Detail{
+						{
+							Type:       match.CPEMatch,
+							Confidence: 0.9,
+							SearchedBy: match.CPEParameters{
+								CPEs: []string{
+									"cpe:2.3:*:activerecord:activerecord:*:rando1:*:ra:*:ruby:*:*",  //important!
+									"cpe:2.3:*:activerecord:activerecord:*:rando4:*:re:*:rails:*:*", //important!
+								},
+								Namespace: "nvd:cpe",
+								Package: match.CPEPackageParameter{
+									Name:    "activerecord",
+									Version: "", // important!
+								},
+							},
+							Found: match.CPEResult{
+								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:4.0.1:*:*:*:*:*:*:*"},
+								VersionConstraint: "= 4.0.1 (semver)",
+								VulnerabilityID:   "CVE-2017-fake-3",
+							},
+							Matcher: matcher,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "suppress matching when version is unknown",
+			p: pkg.Package{
+				CPEs: []cpe.CPE{
+					cpe.Must("cpe:2.3:*:activerecord:activerecord:*:rando1:*:ra:*:ruby:*:*", ""),
+					cpe.Must("cpe:2.3:*:activerecord:activerecord:*:rando4:*:re:*:rails:*:*", ""),
+				},
+				Name:     "activerecord",
+				Version:  "unknown",
 				Language: syftPkg.Ruby,
 				Type:     syftPkg.GemPkg,
 			},
@@ -908,6 +1038,20 @@ func TestFilterCPEsByVersion(t *testing.T) {
 				"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
 			},
 		},
+		{
+			name:    "do not filter on empty version",
+			version: "", // important!
+			vulnerabilityCPEs: []string{
+				"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
+				"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
+				"cpe:2.3:*:multiple:multiple:2.0:*:*:*:*:*:*:*",
+			},
+			expected: []string{
+				"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
+				"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
+				"cpe:2.3:*:multiple:multiple:2.0:*:*:*:*:*:*:*",
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -918,13 +1062,15 @@ func TestFilterCPEsByVersion(t *testing.T) {
 				vulnerabilityCPEs[idx] = cpe.Must(c, "")
 			}
 
-			versionObj, err := version.NewVersion(test.version, version.UnknownFormat)
-			if err != nil {
-				t.Fatalf("unable to get version: %+v", err)
+			var versionObj *version.Version
+			var err error
+			if test.version != "" {
+				versionObj, err = version.NewVersion(test.version, version.UnknownFormat)
+				require.NoError(t, err)
 			}
 
 			// run the test subject...
-			actual := filterCPEsByVersion(*versionObj, vulnerabilityCPEs)
+			actual := filterCPEsByVersion(versionObj, vulnerabilityCPEs)
 
 			// format CPE objects to string...
 			actualStrs := make([]string, len(actual))

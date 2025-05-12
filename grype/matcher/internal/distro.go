@@ -23,13 +23,18 @@ func MatchPackageByDistro(provider vulnerability.Provider, p pkg.Package, upstre
 		return nil, nil, nil
 	}
 
-	verObj, err := version.NewVersionFromPkg(p)
-	if err != nil {
-		if errors.Is(err, version.ErrUnsupportedVersion) {
-			log.WithFields("error", err).Tracef("skipping package '%s@%s'", p.Name, p.Version)
-			return nil, nil, nil
+	var verObj *version.Version
+	var err error
+
+	if p.Version != "" {
+		verObj, err = version.NewVersionFromPkg(p)
+		if err != nil {
+			if errors.Is(err, version.ErrUnsupportedVersion) {
+				log.WithFields("error", err).Tracef("skipping package '%s@%s'", p.Name, p.Version)
+				return nil, nil, nil
+			}
+			return nil, nil, fmt.Errorf("matcher failed to parse version pkg=%q ver=%q: %w", p.Name, p.Version, err)
 		}
-		return nil, nil, fmt.Errorf("matcher failed to parse version pkg=%q ver=%q: %w", p.Name, p.Version, err)
 	}
 
 	var matches []match.Match
@@ -78,5 +83,5 @@ func MatchPackageByDistro(provider vulnerability.Provider, p pkg.Package, upstre
 }
 
 func isUnknownVersion(v string) bool {
-	return v == "" || strings.ToLower(v) == "unknown"
+	return strings.ToLower(v) == "unknown"
 }

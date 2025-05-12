@@ -6,6 +6,7 @@ import (
 	"io"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/scylladb/go-set/strset"
@@ -17,7 +18,9 @@ import (
 	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/db/v6/installation"
+	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
+	"github.com/anchore/grype/internal/cvss"
 )
 
 type dbSearchVulnerabilityOptions struct {
@@ -166,36 +169,14 @@ func renderDBSearchVulnerabilitiesTableRows(structuredRows []dbsearch.Vulnerabil
 
 	versionsByRow := make(map[row][]string)
 	for _, rr := range structuredRows {
-		// get the first severity value (which is ranked highest)
-		var sev string
-		if len(rr.Severities) > 0 {
-			sev = fmt.Sprintf("%s", rr.Severities[0].Value)
-		}
-
-		prov := rr.Provider
-		var versions []string
-		for _, os := range rr.OperatingSystems {
-			versions = append(versions, os.Version)
-		}
-
-		var published string
-		if rr.PublishedDate != nil && !rr.PublishedDate.IsZero() {
-			published = rr.PublishedDate.Format("2006-01-02")
-		}
-
-		var ref string
-		if len(rr.References) > 0 {
-			ref = rr.References[0].URL
-		}
-
 		r := row{
 			Vuln:                    rr.ID,
-			ProviderWithoutVersions: prov,
-			PublishedDate:           published,
-			Severity:                sev,
-			Reference:               ref,
+			ProviderWithoutVersions: rr.Provider,
+			PublishedDate:           getDate(rr.PublishedDate),
+			Severity:                getSeverity(rr.Severities),
+			Reference:               getPrimaryReference(rr.References),
 		}
-		versionsByRow[r] = append(versionsByRow[r], versions...)
+		versionsByRow[r] = append(versionsByRow[r], getOSVersions(rr.OperatingSystems)...)
 	}
 
 	var rows [][]string
@@ -219,4 +200,42 @@ func renderDBSearchVulnerabilitiesTableRows(structuredRows []dbsearch.Vulnerabil
 	})
 
 	return rows
+}
+
+func getOSVersions(oss []dbsearch.OperatingSystem) []string {
+	var versions []string
+	for _, os := range oss {
+		versions = append(versions, os.Version)
+	}
+	return versions
+}
+
+func getPrimaryReference(refs []v6.Reference) string {
+	if len(refs) > 0 {
+		return refs[0].URL
+	}
+
+	return ""
+}
+
+func getDate(t *time.Time) string {
+	if t != nil && !t.IsZero() {
+		return t.Format("2006-01-02")
+	}
+	return ""
+}
+
+func getSeverity(sevs []v6.Severity) string {
+	if len(sevs) == 0 {
+		return vulnerability.UnknownSeverity.String()
+	}
+	// get the first severity value (which is ranked highest)
+	switch v := sevs[0].Value.(type) {
+	case string:
+		return v
+	case dbsearch.CVSSSeverity:
+		return cvss.SeverityFromBaseScore(v.Metrics.BaseScore).String()
+	}
+
+	return fmt.Sprintf("%v", sevs[0].Value)
 }

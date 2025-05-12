@@ -118,8 +118,8 @@ func (c client) isUpdateAvailable(current *v6.Description, candidate *LatestDocu
 	}
 
 	// compare created data to current db date
-	if isSupersededBy(current, candidate.Archive.Description) {
-		log.Debugf("database update available: %s", candidate.Archive.Description)
+	if isSupersededBy(current, candidate.Description) {
+		log.Debugf("database update available: %s", candidate.Description)
 		return &candidate.Archive, message
 	}
 

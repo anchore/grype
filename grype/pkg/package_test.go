@@ -321,6 +321,15 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
+			name: "github-actions-use-statement",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.GitHubActionsUseStatement{
+					Value:   "a",
+					Comment: "a",
+				},
+			},
+		},
+		{
 			name: "golang-metadata",
 			syftPkg: syftPkg.Package{
 				Metadata: syftPkg.GolangBinaryBuildinfoEntry{
@@ -685,12 +694,21 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
-			name: "Php-pecl-entry",
+			name: "php-pecl-entry",
 			syftPkg: syftPkg.Package{
 				Metadata: syftPkg.PhpPeclEntry{
 					Name:    "a",
 					Version: "a",
 					License: []string{"a"},
+				},
+			},
+		},
+		{
+			name: "php-pear-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.PhpPearEntry{
+					Name:    "a",
+					Version: "a",
 				},
 			},
 		},
@@ -976,6 +994,27 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 				[]string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
 				[]string{"rpm:python3-rpm@4.14.3-26.el8 -> python:rpm@4.14.3"}), "amzn"),
 			expectedPackages: []string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
+		},
+		{
+			name: "remove overlapping package when parent version is prefix of child version",
+			sbom: withDistro(catalogWithOverlaps(
+				[]string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5", "linux-kernel:linux-kernel@5.14.0-503.40.1.el9_5.x86_64+rt"},
+				[]string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5 -> linux-kernel:linux-kernel@5.14.0-503.40.1.el9_5.x86_64+rt"}), "rhel"),
+			expectedPackages: []string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5"},
+		},
+		{
+			name: "remove overlapping package when child version is prefix of parent version",
+			sbom: withDistro(catalogWithOverlaps(
+				[]string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5+rt", "linux-kernel:linux-kernel@5.14.0-503.40.1.el9_5"},
+				[]string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5+rt -> linux-kernel:linux-kernel@5.14.0-503.40.1.el9_5"}), "rhel"),
+			expectedPackages: []string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5+rt"},
+		},
+		{
+			name: "do not remove overlapping package when versions are not similar",
+			sbom: withDistro(catalogWithOverlaps(
+				[]string{"rpm:kernel@5.14.0-503.40.1.el9_5", "linux-kernel:linux-kernel@6.17"},
+				[]string{"rpm:kernel@5.14.0-503.40.1.el9_5 -> linux-kernel:linux-kernel@6.17"}), "rhel"),
+			expectedPackages: []string{"rpm:kernel@5.14.0-503.40.1.el9_5", "linux-kernel:linux-kernel@6.17"},
 		},
 	}
 	for _, test := range tests {

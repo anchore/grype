@@ -24,7 +24,7 @@ type DistroCriteria struct {
 func (c *DistroCriteria) MatchesVulnerability(value vulnerability.Vulnerability) (bool, string, error) {
 	ns, err := namespace.FromString(value.Namespace)
 	if err != nil {
-		return false, fmt.Sprintf("unable to determine namespace for vulnerability %v: %v", value.Reference.ID, err), nil
+		return false, fmt.Sprintf("unable to determine namespace for vulnerability %v: %v", value.ID, err), nil
 	}
 	dns, ok := ns.(*distroNs.Namespace)
 	if !ok || dns == nil {

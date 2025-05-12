@@ -153,7 +153,7 @@ docker run --rm \
 $(ImageName):$(ImageTag)
 ```
 
-### Supported sources
+## Supported sources
 
 Grype can scan a variety of sources beyond those found in Docker.
 
@@ -210,11 +210,54 @@ use the `--distro <distro>:<version>` flag. A full example is:
 grype --add-cpes-if-none --distro alpine:3.10 sbom:some-alpine-3.10.spdx.json
 ```
 
+## Threat & Risk Prioritization
+
+This section explains the columns and UI cues that help prioritize remediation efforts:
+
+- **Severity**: String severity based on CVSS scores and indicate the significance of a vulnerability in levels.
+  This balances concerns such as ease of exploitability, and the potential to affect 
+  confidentiality, integrity, and availability of software and services.
+
+- **EPSS**:
+  [Exploit Prediction Scoring System](https://www.first.org/epss/model) is a metric expressing the likelihood
+  that a vulnerability will be 
+  exploited in the wild over the next 30 days (on a 0–1 scale); higher values signal a greater likelihood of 
+  exploitation.
+  The table output shows the EPSS percentile, a one-way transform of the EPSS score showing the 
+  proportion of all scored vulnerabilities with an equal or lower probability.
+  Percentiles linearize a heavily skewed distribution, making threshold choice (e.g. “only CVEs above the 
+  90th percentile”) straightforward.
+
+- **KEV Indicator**: Flags entries from CISA’s [Known Exploited Vulnerabilities Catalog](https://www.cisa.gov/known-exploited-vulnerabilities-catalog)
+  --an authoritative list of flaws observed being exploited in the wild.
+
+- **Risk Score**: A composite 0–100 metric calculated as:
+  ```markdown
+  risk = min(1, threat * average(severity)) * 100
+  ```
+  Where: 
+  - `severity` is the average of all CVSS scores and string severity for a vulnerability (scaled between 0–1).
+  - `threat` is the EPSS score (between 0–1). If the vulnerability is on the KEV list then `threat` is 
+    `1.05`, or `1.1` if the vulnerability is associated with a ransomware campaign.
+  This metric is one way to combine EPSS and CVSS suggested in the [EPSS user guide](https://www.first.org/epss/user-guide).
+
+- **Suggested Fixes**: All possible fixes for a package are listed, however, when multiple fixes are available, we de-emphasize all 
+  upgrade paths except for the minimal upgrade path (which highlights the smallest, safest version bump).
+
+Results default to sorting by Risk Score and can be overridden with `--sort-by <value>`:
+
+- `severity`: sort by severity
+- `epss`: sort by EPSS percentile (aka, "threat")
+- `risk`: sort by risk score
+- `kev`: just like risk, except that KEV entries are always above non-KEV entries
+- `package`: sort by package name, version, type
+- `vulnerability`: sort by vulnerability ID
+
 ### Supported versions
 
 Software updates are always applied to the latest version of Grype; fixes are not backported to any previous versions of Grype.
 
-In terms of database updates, any version of Grype before v0.51.0 (Oct 2022, before schema v5) will not receive 
+In terms of database updates, any version of Grype before v0.51.0 (Oct 2022, before schema v5) will not receive
 vulnerability database updates. You can still build vulnerability databases for unsupported Grype releases by using previous
 releases of [vunnel](https://github.com/anchore/vunnel) to gather the upstream data and [grype-db](https://github.com/anchore/grype-db)
 to build databases for unsupported schemas.
@@ -352,6 +395,8 @@ For example, here's how you could trigger a CI pipeline failure if any vulnerabi
 ```
 grype ubuntu:latest --fail-on medium
 ```
+
+**Note:** Grype returns exit code `2` on vulnerability errors.
 
 ### Specifying matches to ignore
 
@@ -697,192 +742,240 @@ GRYPE_CONFIG=/path/to/config.yaml grype <image>
 Configuration options (example values are the default):
 
 ```yaml
-# enable/disable checking for application updates on startup
-# same as GRYPE_CHECK_FOR_APP_UPDATE env var
-check-for-app-update: true
-
-# allows users to specify which image source should be used to generate the sbom
-# valid values are: registry, docker, podman
-# same as GRYPE_DEFAULT_IMAGE_PULL_SOURCE env var
-default-image-pull-source: ""
-
-# same as --name; set the name of the target being analyzed
-name: ""
-
-# upon scanning, if a severity is found at or above the given severity then the return code will be 1
-# default is unset which will skip this validation (options: negligible, low, medium, high, critical)
-# same as --fail-on ; GRYPE_FAIL_ON_SEVERITY env var
-fail-on-severity: ""
-
 # the output format of the vulnerability report (options: table, template, json, cyclonedx)
-# when using template as the output type, you must also provide a value for 'output-template-file'
-# same as -o ; GRYPE_OUTPUT env var
-output: "table"
+# when using template as the output type, you must also provide a value for 'output-template-file' (env: GRYPE_OUTPUT)
+output: 'table'
 
 # if using template output, you must provide a path to a Go template file
 # see https://github.com/anchore/grype#using-templates for more information on template output
 # the default path to the template file is the current working directory
 # output-template-file: .grype/html.tmpl
+#
+# write output report to a file (default is to write to stdout) (env: GRYPE_FILE)
+file: ''
 
-# write output report to a file (default is to write to stdout)
-# same as --file; GRYPE_FILE env var
-file: ""
+# pretty-print JSON output (env: GRYPE_PRETTY)
+pretty: false
 
-# a list of globs to exclude from scanning, for example:
-# exclude:
-#   - '/etc/**'
-#   - './out/**/*.json'
-# same as --exclude ; GRYPE_EXCLUDE env var
-exclude: []
+# distro to match against in the format: <distro>:<version> (env: GRYPE_DISTRO)
+distro: ''
 
-# include matches on kernel-headers packages that are matched against upstream kernel package
-# if 'false' any such matches are marked as ignored
-match-upstream-kernel-headers: false
-
-# os and/or architecture to use when referencing container images (e.g. "windows/armv6" or "arm64")
-# same as --platform; GRYPE_PLATFORM env var
-platform: ""
-
-# If using SBOM input, automatically generate CPEs when packages have none
+# generate CPEs for packages with no CPE data (env: GRYPE_ADD_CPES_IF_NONE)
 add-cpes-if-none: false
 
-# Explicitly specify a linux distribution to use as <distro>:<version> like alpine:3.10
-distro:
+# specify the path to a Go template file (requires 'template' output to be selected) (env: GRYPE_OUTPUT_TEMPLATE_FILE)
+output-template-file: ''
+
+# enable/disable checking for application updates on startup (env: GRYPE_CHECK_FOR_APP_UPDATE)
+check-for-app-update: true
+
+# ignore matches for vulnerabilities that are not fixed (env: GRYPE_ONLY_FIXED)
+only-fixed: false
+
+# ignore matches for vulnerabilities that are fixed (env: GRYPE_ONLY_NOTFIXED)
+only-notfixed: false
+
+# ignore matches for vulnerabilities with specified comma separated fix states, options=[fixed not-fixed unknown wont-fix] (env: GRYPE_IGNORE_WONTFIX)
+ignore-wontfix: ''
+
+# an optional platform specifier for container image sources (e.g. 'linux/arm64', 'linux/arm64/v8', 'arm64', 'linux') (env: GRYPE_PLATFORM)
+platform: ''
+
+# upon scanning, if a severity is found at or above the given severity then the return code will be 1
+# default is unset which will skip this validation (options: negligible, low, medium, high, critical) (env: GRYPE_FAIL_ON_SEVERITY)
+fail-on-severity: ''
+
+# show suppressed/ignored vulnerabilities in the output (only supported with table output format) (env: GRYPE_SHOW_SUPPRESSED)
+show-suppressed: false
+
+# orient results by CVE instead of the original vulnerability ID when possible (env: GRYPE_BY_CVE)
+by-cve: false
+
+# sort the match results with the given strategy, options=[package severity epss risk kev vulnerability] (env: GRYPE_SORT_BY)
+sort-by: 'risk'
+
+# same as --name; set the name of the target being analyzed (env: GRYPE_NAME)
+name: ''
+
+# allows users to specify which image source should be used to generate the sbom
+# valid values are: registry, docker, podman (env: GRYPE_DEFAULT_IMAGE_PULL_SOURCE)
+default-image-pull-source: ''
+
+search:
+  # selection of layers to analyze, options=[squashed all-layers] (env: GRYPE_SEARCH_SCOPE)
+  scope: 'squashed'
+
+  # search within archives that do not contain a file index to search against (tar, tar.gz, tar.bz2, etc)
+  # note: enabling this may result in a performance impact since all discovered compressed tars will be decompressed
+  # note: for now this only applies to the java package cataloger (env: GRYPE_SEARCH_UNINDEXED_ARCHIVES)
+  unindexed-archives: false
+
+  # search within archives that do contain a file index to search against (zip)
+  # note: for now this only applies to the java package cataloger (env: GRYPE_SEARCH_INDEXED_ARCHIVES)
+  indexed-archives: true
+
+# A list of vulnerability ignore rules, one or more property may be specified and all matching vulnerabilities will be ignored.
+# This is the full set of supported rule fields:
+#   - vulnerability: CVE-2008-4318
+#     fix-state: unknown
+#     package:
+#       name: libcurl
+#       version: 1.5.1
+#       type: npm
+#       location: "/usr/local/lib/node_modules/**"
+#
+# VEX fields apply when Grype reads vex data:
+#   - vex-status: not_affected
+#     vex-justification: vulnerable_code_not_present
+ignore: []
+
+# a list of globs to exclude from scanning, for example:
+#   - '/etc/**'
+#   - './out/**/*.json'
+# same as --exclude (env: GRYPE_EXCLUDE)
+exclude: []
 
 external-sources:
+  # enable Grype searching network source for additional information (env: GRYPE_EXTERNAL_SOURCES_ENABLE)
   enable: false
+
   maven:
-    search-upstream-by-sha1: true
-    base-url: https://search.maven.org/solrsearch/select
+    # search for Maven artifacts by SHA1 (env: GRYPE_EXTERNAL_SOURCES_MAVEN_SEARCH_MAVEN_UPSTREAM)
+    search-maven-upstream: true
+
+    # base URL of the Maven repository to search (env: GRYPE_EXTERNAL_SOURCES_MAVEN_BASE_URL)
+    base-url: 'https://search.maven.org/solrsearch/select'
+
+    # (env: GRYPE_EXTERNAL_SOURCES_MAVEN_RATE_LIMIT)
     rate-limit: 300ms
 
+match:
+  java:
+    # use CPE matching to find vulnerabilities (env: GRYPE_MATCH_JAVA_USING_CPES)
+    using-cpes: false
+
+  jvm:
+    # (env: GRYPE_MATCH_JVM_USING_CPES)
+    using-cpes: true
+
+  dotnet:
+    # use CPE matching to find vulnerabilities (env: GRYPE_MATCH_DOTNET_USING_CPES)
+    using-cpes: false
+
+  golang:
+    # use CPE matching to find vulnerabilities (env: GRYPE_MATCH_GOLANG_USING_CPES)
+    using-cpes: false
+
+    # use CPE matching to find vulnerabilities for the Go standard library (env: GRYPE_MATCH_GOLANG_ALWAYS_USE_CPE_FOR_STDLIB)
+    always-use-cpe-for-stdlib: true
+
+    # allow comparison between main module pseudo-versions (e.g. v0.0.0-20240413-2b432cf643...) (env: GRYPE_MATCH_GOLANG_ALLOW_MAIN_MODULE_PSEUDO_VERSION_COMPARISON)
+    allow-main-module-pseudo-version-comparison: false
+
+  javascript:
+    # use CPE matching to find vulnerabilities (env: GRYPE_MATCH_JAVASCRIPT_USING_CPES)
+    using-cpes: false
+
+  python:
+    # use CPE matching to find vulnerabilities (env: GRYPE_MATCH_PYTHON_USING_CPES)
+    using-cpes: false
+
+  ruby:
+    # use CPE matching to find vulnerabilities (env: GRYPE_MATCH_RUBY_USING_CPES)
+    using-cpes: false
+
+  rust:
+    # use CPE matching to find vulnerabilities (env: GRYPE_MATCH_RUST_USING_CPES)
+    using-cpes: false
+
+  stock:
+    # use CPE matching to find vulnerabilities (env: GRYPE_MATCH_STOCK_USING_CPES)
+    using-cpes: true
+
+
+registry:
+  # skip TLS verification when communicating with the registry (env: GRYPE_REGISTRY_INSECURE_SKIP_TLS_VERIFY)
+  insecure-skip-tls-verify: false
+
+  # use http instead of https when connecting to the registry (env: GRYPE_REGISTRY_INSECURE_USE_HTTP)
+  insecure-use-http: false
+
+  # Authentication credentials for specific registries. Each entry describes authentication for a specific authority:
+  # -   authority: the registry authority URL the URL to the registry (e.g. "docker.io", "localhost:5000", etc.) (env: SYFT_REGISTRY_AUTH_AUTHORITY)
+  #     username: a username if using basic credentials (env: SYFT_REGISTRY_AUTH_USERNAME)
+  #     password: a corresponding password (env: SYFT_REGISTRY_AUTH_PASSWORD)
+  #     token: a token if using token-based authentication, mutually exclusive with username/password (env: SYFT_REGISTRY_AUTH_TOKEN)
+  #     tls-cert: filepath to the client certificate used for TLS authentication to the registry (env: SYFT_REGISTRY_AUTH_TLS_CERT)
+  #     tls-key: filepath to the client key used for TLS authentication to the registry (env: SYFT_REGISTRY_AUTH_TLS_KEY)
+  auth: []
+
+  # filepath to a CA certificate (or directory containing *.crt, *.cert, *.pem) used to generate the client certificate (env: GRYPE_REGISTRY_CA_CERT)
+  ca-cert: ''
+
+# a list of VEX documents to consider when producing scanning results (env: GRYPE_VEX_DOCUMENTS)
+vex-documents: []
+
+# VEX statuses to consider as ignored rules (env: GRYPE_VEX_ADD)
+vex-add: []
+
+# match kernel-header packages with upstream kernel as kernel vulnerabilities (env: GRYPE_MATCH_UPSTREAM_KERNEL_HEADERS)
+match-upstream-kernel-headers: false
+
 db:
-  # check for database updates on execution
-  # same as GRYPE_DB_AUTO_UPDATE env var
+  # location to write the vulnerability database cache (env: GRYPE_DB_CACHE_DIR)
+  cache-dir: '~/Library/Caches/grype/db'
+
+  # URL of the vulnerability database (env: GRYPE_DB_UPDATE_URL)
+  update-url: 'https://grype.anchore.io/databases'
+
+  # certificate to trust download the database and listing file (env: GRYPE_DB_CA_CERT)
+  ca-cert: ''
+
+  # check for database updates on execution (env: GRYPE_DB_AUTO_UPDATE)
   auto-update: true
 
-  # location to write the vulnerability database cache; defaults to $XDG_CACHE_HOME/grype/db
-  # same as GRYPE_DB_CACHE_DIR env var
-  cache-dir: ""
+  # validate the database matches the known hash each execution (env: GRYPE_DB_VALIDATE_BY_HASH_ON_START)
+  validate-by-hash-on-start: true
 
-  # URL of the vulnerability database
-  # same as GRYPE_DB_UPDATE_URL env var
-  update-url: "https://grype.anchore.io/databases"
-
-  # it ensures db build is no older than the max-allowed-built-age
-  # set to false to disable check
+  # ensure db build is no older than the max-allowed-built-age (env: GRYPE_DB_VALIDATE_AGE)
   validate-age: true
 
   # Max allowed age for vulnerability database,
   # age being the time since it was built
-  # Default max age is 120h (or five days)
-  max-allowed-built-age: "120h"
+  # Default max age is 120h (or five days) (env: GRYPE_DB_MAX_ALLOWED_BUILT_AGE)
+  max-allowed-built-age: 120h0m0s
+
+  # fail the scan if unable to check for database updates (env: GRYPE_DB_REQUIRE_UPDATE_CHECK)
+  require-update-check: false
 
   # Timeout for downloading GRYPE_DB_UPDATE_URL to see if the database needs to be downloaded
-  # This file is ~156KiB as of 2024-04-17 so the download should be quick; adjust as needed
-  update-available-timeout: "30s"
+  # This file is ~156KiB as of 2024-04-17 so the download should be quick; adjust as needed (env: GRYPE_DB_UPDATE_AVAILABLE_TIMEOUT)
+  update-available-timeout: 30s
 
   # Timeout for downloading actual vulnerability DB
-  # The DB is ~156MB as of 2024-04-17 so slower connections may exceed the default timeout; adjust as needed
-  update-download-timeout: "120s"
+  # The DB is ~156MB as of 2024-04-17 so slower connections may exceed the default timeout; adjust as needed (env: GRYPE_DB_UPDATE_DOWNLOAD_TIMEOUT)
+  update-download-timeout: 5m0s
 
-search:
-  # the search space to look for packages (options: all-layers, squashed)
-  # same as -s ; GRYPE_SEARCH_SCOPE env var
-  scope: "squashed"
-
-  # search within archives that do contain a file index to search against (zip)
-  # note: for now this only applies to the java package cataloger
-  # same as GRYPE_PACKAGE_SEARCH_INDEXED_ARCHIVES env var
-  indexed-archives: true
-
-  # search within archives that do not contain a file index to search against (tar, tar.gz, tar.bz2, etc)
-  # note: enabling this may result in a performance impact since all discovered compressed tars will be decompressed
-  # note: for now this only applies to the java package cataloger
-  # same as GRYPE_PACKAGE_SEARCH_UNINDEXED_ARCHIVES env var
-  unindexed-archives: false
-
-# options when pulling directly from a registry via the "registry:" scheme
-registry:
-  # skip TLS verification when communicating with the registry
-  # same as GRYPE_REGISTRY_INSECURE_SKIP_TLS_VERIFY env var
-  insecure-skip-tls-verify: false
-
-  # use http instead of https when connecting to the registry
-  # same as GRYPE_REGISTRY_INSECURE_USE_HTTP env var
-  insecure-use-http: false
-
-  # filepath to a CA certificate (or directory containing *.crt, *.cert, *.pem) used to generate the client certificate
-  # GRYPE_REGISTRY_CA_CERT env var
-  ca-cert: ""
-
-  # credentials for specific registries
-  auth:
-    # the URL to the registry (e.g. "docker.io", "localhost:5000", etc.)
-    # GRYPE_REGISTRY_AUTH_AUTHORITY env var
-    - authority: ""
-
-      # GRYPE_REGISTRY_AUTH_USERNAME env var
-      username: ""
-
-      # GRYPE_REGISTRY_AUTH_PASSWORD env var
-      password: ""
-
-      # note: token and username/password are mutually exclusive
-      # GRYPE_REGISTRY_AUTH_TOKEN env var
-      token: ""
-
-      # filepath to the client certificate used for TLS authentication to the registry
-      # GRYPE_REGISTRY_AUTH_TLS_CERT env var
-      tls-cert: ""
-
-      # filepath to the client key used for TLS authentication to the registry
-      # GRYPE_REGISTRY_AUTH_TLS_KEY env var
-      tls-key: ""
-
-    # - ... # note, more credentials can be provided via config file only (not env vars)
-
+  # Maximum frequency to check for vulnerability database updates (env: GRYPE_DB_MAX_UPDATE_CHECK_FREQUENCY)
+  max-update-check-frequency: 2h0m0s
 
 log:
-  # suppress all output (except for the vulnerability list)
-  # same as -q ; GRYPE_LOG_QUIET env var
+  # suppress all logging output (env: GRYPE_LOG_QUIET)
   quiet: false
 
-  # increase verbosity
-  # same as GRYPE_LOG_VERBOSITY env var
-  verbosity: 0
+  # explicitly set the logging level (available: [error warn info debug trace]) (env: GRYPE_LOG_LEVEL)
+  level: 'warn'
 
-  # the log level; note: detailed logging suppress the ETUI
-  # same as GRYPE_LOG_LEVEL env var
-  # Uses logrus logging levels: https://github.com/sirupsen/logrus#level-logging
-  level: "error"
+  # file path to write logs to (env: GRYPE_LOG_FILE)
+  file: ''
 
-  # location to write the log file (default is not to have a log file)
-  # same as GRYPE_LOG_FILE env var
-  file: ""
+dev:
+  # capture resource profiling data (available: [cpu, mem]) (env: GRYPE_DEV_PROFILE)
+  profile: ''
 
-match:
-  # sets the matchers below to use cpes when trying to find
-  # vulnerability matches. The stock matcher is the default
-  # when no primary matcher can be identified.
-  java:
-    using-cpes: false
-  python:
-    using-cpes: false
-  javascript:
-    using-cpes: false
-  ruby:
-    using-cpes: false
-  dotnet:
-    using-cpes: false
-  golang:
-    using-cpes: false
-    # even if CPE matching is disabled, make an exception when scanning for "stdlib".
-    always-use-cpe-for-stdlib: true
-    # allow main module pseudo versions, which may have only been "guessed at" by Syft, to be used in vulnerability matching
-    allow-main-module-pseudo-version-comparison: false
-  stock:
-    using-cpes: true
+  db:
+    # show sql queries in trace logging (requires -vv) (env: GRYPE_DEV_DB_DEBUG)
+    debug: false
 ```
 
 ## Future plans

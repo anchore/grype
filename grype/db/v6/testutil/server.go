@@ -109,10 +109,10 @@ func (s *ServerBuilder) Start() (url string) {
 		case serverSubdir + s.LatestDocFile:
 			latestDoc := *s.LatestDoc
 			latestDoc.Built.Time = s.DBBuildTime
-			latestDoc.Archive.SchemaVersion = s.DBVersion
-			latestDoc.Archive.Built.Time = s.DBBuildTime
-			latestDoc.Archive.Path = archivePath
-			latestDoc.Archive.Checksum = sha(s.dbContents)
+			latestDoc.SchemaVersion = s.DBVersion
+			latestDoc.Built.Time = s.DBBuildTime
+			latestDoc.Path = archivePath
+			latestDoc.Checksum = sha(s.dbContents)
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(latestDoc)
 		case serverSubdir + archivePath:

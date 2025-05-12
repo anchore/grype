@@ -52,7 +52,7 @@ func NewLatestDocument(entries ...Archive) *LatestDocument {
 
 	// sort from most recent to the least recent
 	sort.SliceStable(validEntries, func(i, j int) bool {
-		return validEntries[i].Description.Built.After(entries[j].Description.Built.Time)
+		return validEntries[i].Built.After(entries[j].Built.Time)
 	})
 
 	return &LatestDocument{
@@ -109,15 +109,15 @@ func (l LatestDocument) Write(writer io.Writer) error {
 		l.Status = LifecycleStatus
 	}
 
-	if l.Archive.Path == "" {
+	if l.Path == "" {
 		return fmt.Errorf("missing archive path")
 	}
 
-	if l.Archive.Checksum == "" {
+	if l.Checksum == "" {
 		return fmt.Errorf("missing archive checksum")
 	}
 
-	if l.Archive.Description.Built.Time.IsZero() {
+	if l.Built.IsZero() {
 		return fmt.Errorf("missing built time")
 	}
 

@@ -12,11 +12,8 @@ import (
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
+	"github.com/anchore/grype/grype/grypeerr"
 	"github.com/anchore/grype/internal/log"
-)
-
-const (
-	exitCodeOnDBUpgradeAvailable = 100
 )
 
 type dbCheckOptions struct {
@@ -85,7 +82,7 @@ func runDBCheck(opts dbCheckOptions) error {
 	}
 
 	if updateAvailable {
-		os.Exit(exitCodeOnDBUpgradeAvailable) //nolint:gocritic
+		return grypeerr.ErrDBUpgradeAvailable
 	}
 	return nil
 }

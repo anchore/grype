@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/pkg"
@@ -74,6 +75,7 @@ func Test_PurlProvider(t *testing.T) {
 					Version: "2.88dsf-59",
 					Type:    pkg.DebPkg,
 					PURL:    "pkg:deb/debian/sysv-rc@2.88dsf-59?arch=all&distro=debian-jessie&upstream=sysvinit",
+					Distro:  &distro.Distro{Type: distro.Debian, Version: "", Codename: "jessie", IDLike: []string{"debian"}},
 					Upstreams: []UpstreamPackage{
 						{
 							Name: "sysvinit",
@@ -189,6 +191,7 @@ func Test_PurlProvider(t *testing.T) {
 					Version: "0:239-82.el8_10.2",
 					Type:    pkg.RpmPkg,
 					PURL:    "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?arch=aarch64&distro=rhel-8.10&upstream=systemd-239-82.el8_10.2.src.rpm",
+					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.10", Codename: "", IDLike: []string{"rhel"}},
 					Upstreams: []UpstreamPackage{
 						{
 							Name:    "systemd",
@@ -236,6 +239,7 @@ func Test_PurlProvider(t *testing.T) {
 					Version: "1:1.12.8-26.el8",
 					Type:    pkg.RpmPkg,
 					PURL:    "pkg:rpm/redhat/dbus-common@1.12.8-26.el8?arch=noarch&distro=rhel-8.10&epoch=1&upstream=dbus-1.12.8-26.el8.src.rpm",
+					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.10", Codename: "", IDLike: []string{"rhel"}},
 					Upstreams: []UpstreamPackage{
 						{
 							Name:    "dbus",
@@ -283,6 +287,7 @@ func Test_PurlProvider(t *testing.T) {
 					Version: "2.88dsf-59",
 					Type:    pkg.DebPkg,
 					PURL:    "pkg:deb/debian/sysv-rc@2.88dsf-59?arch=all&distro=debian-8&upstream=sysvinit",
+					Distro:  &distro.Distro{Type: distro.Debian, Version: "8", Codename: "", IDLike: []string{"debian"}},
 					Upstreams: []UpstreamPackage{
 						{
 							Name: "sysvinit",
@@ -356,6 +361,7 @@ func Test_PurlProvider(t *testing.T) {
 					Version: "7.61.1",
 					Type:    pkg.ApkPkg,
 					PURL:    "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.3",
+					Distro:  &distro.Distro{Type: distro.Alpine, Version: "3.20.3", Codename: "", IDLike: []string{"alpine"}},
 				},
 			},
 			sbom: &sbom.SBOM{
@@ -372,6 +378,90 @@ func Test_PurlProvider(t *testing.T) {
 						IDLike:  []string{"alpine"},
 						Version: "3.20.3",
 					},
+				},
+			},
+		},
+		{
+			name:      "include namespace in name when purl is type Golang",
+			userInput: "pkg:golang/k8s.io/ingress-nginx@v1.11.2",
+			context: Context{
+				Source: &source.Description{
+					Metadata: PURLLiteralMetadata{PURL: "pkg:golang/k8s.io/ingress-nginx@v1.11.2"},
+				},
+			},
+			pkgs: []Package{
+				{
+					Name:    "k8s.io/ingress-nginx",
+					Version: "v1.11.2",
+					Type:    pkg.GoModulePkg,
+					PURL:    "pkg:golang/k8s.io/ingress-nginx@v1.11.2",
+				},
+			},
+			sbom: &sbom.SBOM{
+				Artifacts: sbom.Artifacts{
+					Packages: pkg.NewCollection(pkg.Package{
+						Name:     "k8s.io/ingress-nginx",
+						Version:  "v1.11.2",
+						Type:     pkg.GoModulePkg,
+						Language: pkg.Go,
+						PURL:     "pkg:golang/k8s.io/ingress-nginx@v1.11.2",
+					}),
+				},
+			},
+		},
+		{
+			name:      "include complex namespace in name when purl is type Golang",
+			userInput: "pkg:golang/github.com/wazuh/wazuh@v4.5.0",
+			context: Context{
+				Source: &source.Description{
+					Metadata: PURLLiteralMetadata{PURL: "pkg:golang/github.com/wazuh/wazuh@v4.5.0"},
+				},
+			},
+			pkgs: []Package{
+				{
+					Name:    "github.com/wazuh/wazuh",
+					Version: "v4.5.0",
+					Type:    pkg.GoModulePkg,
+					PURL:    "pkg:golang/github.com/wazuh/wazuh@v4.5.0",
+				},
+			},
+			sbom: &sbom.SBOM{
+				Artifacts: sbom.Artifacts{
+					Packages: pkg.NewCollection(pkg.Package{
+						Name:     "github.com/wazuh/wazuh",
+						Version:  "v4.5.0",
+						Type:     pkg.GoModulePkg,
+						PURL:     "pkg:golang/github.com/wazuh/wazuh@v4.5.0",
+						Language: pkg.Go,
+					}),
+				},
+			},
+		},
+		{
+			name:      "do not include namespace when given blank input blank",
+			userInput: "pkg:golang/wazuh@v4.5.0",
+			context: Context{
+				Source: &source.Description{
+					Metadata: PURLLiteralMetadata{PURL: "pkg:golang/wazuh@v4.5.0"},
+				},
+			},
+			pkgs: []Package{
+				{
+					Name:    "wazuh",
+					Version: "v4.5.0",
+					Type:    pkg.GoModulePkg,
+					PURL:    "pkg:golang/wazuh@v4.5.0",
+				},
+			},
+			sbom: &sbom.SBOM{
+				Artifacts: sbom.Artifacts{
+					Packages: pkg.NewCollection(pkg.Package{
+						Name:     "wazuh",
+						Version:  "v4.5.0",
+						Type:     pkg.GoModulePkg,
+						PURL:     "pkg:golang/wazuh@v4.5.0",
+						Language: pkg.Go,
+					}),
 				},
 			},
 		},
@@ -397,12 +487,14 @@ func Test_PurlProvider(t *testing.T) {
 					Version: "3.2.1",
 					Type:    pkg.ApkPkg,
 					PURL:    "pkg:apk/openssl@3.2.1?arch=aarch64&distro=alpine-3.20.3",
+					Distro:  &distro.Distro{Type: distro.Alpine, Version: "3.20.3", Codename: "", IDLike: []string{"alpine"}},
 				},
 				{
 					Name:    "curl",
 					Version: "7.61.1",
 					Type:    pkg.ApkPkg,
 					PURL:    "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.3",
+					Distro:  &distro.Distro{Type: distro.Alpine, Version: "3.20.3", Codename: "", IDLike: []string{"alpine"}},
 				},
 			},
 			sbom: &sbom.SBOM{
@@ -445,12 +537,14 @@ func Test_PurlProvider(t *testing.T) {
 					Version: "3.2.1",
 					Type:    pkg.ApkPkg,
 					PURL:    "pkg:apk/openssl@3.2.1?arch=aarch64&distro=alpine-3.20.3",
+					Distro:  &distro.Distro{Type: distro.Alpine, Version: "3.20.3", Codename: "", IDLike: []string{"alpine"}},
 				},
 				{
 					Name:    "curl",
 					Version: "7.61.1",
 					Type:    pkg.ApkPkg,
 					PURL:    "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.2",
+					Distro:  &distro.Distro{Type: distro.Alpine, Version: "3.20.2", Codename: "", IDLike: []string{"alpine"}},
 				},
 			},
 			sbom: &sbom.SBOM{
@@ -511,6 +605,7 @@ func Test_PurlProvider(t *testing.T) {
 
 	opts := []cmp.Option{
 		cmpopts.IgnoreFields(Package{}, "ID", "Locations", "Licenses", "Metadata", "Language", "CPEs"),
+		cmpopts.IgnoreUnexported(distro.Distro{}),
 	}
 
 	syftPkgOpts := []cmp.Option{
