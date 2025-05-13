@@ -477,6 +477,7 @@ func (c Curator) ListingFromURL() (Listing, error) {
 		return Listing{}, fmt.Errorf("unable to create listing temp file: %w", err)
 	}
 	defer func() {
+		log.CloseAndLogError(tempFile, tempFile.Name())
 		err := c.fs.RemoveAll(tempFile.Name())
 		if err != nil {
 			log.Errorf("failed to remove file (%s): %w", tempFile.Name(), err)
@@ -492,15 +493,8 @@ func (c Curator) ListingFromURL() (Listing, error) {
 	// parse the listing file
 	listing, err := NewListingFromFile(c.fs, tempFile.Name())
 	if err != nil {
-		tempFile.Close() // close before returning error
 		return Listing{}, err
 	}
-
-	// explicitly close the file so that the deferred removal can succeed on Windows
-	if err := tempFile.Close(); err != nil {
-		log.Warnf("failed to close temp file: %s", err)
-	}
-
 	return listing, nil
 }
 
