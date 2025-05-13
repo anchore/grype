@@ -16,7 +16,7 @@ import (
 
 var metadataExceptions = strset.New(
 	"FileMetadata",
-	"PURLFileMetadata",
+	"SBOMFileMetadata",
 	"PURLLiteralMetadata",
 	"CPELiteralMetadata",
 )

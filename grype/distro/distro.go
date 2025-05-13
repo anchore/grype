@@ -6,6 +6,7 @@ import (
 
 	hashiVer "github.com/hashicorp/go-version"
 
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/linux"
 )
 
@@ -43,6 +44,13 @@ func New(t Type, version, label string, idLikes ...string) (*Distro, error) {
 		}
 	}
 
+	for i := range idLikes {
+		typ, ok := IDMapping[strings.TrimSpace(idLikes[i])]
+		if ok {
+			idLikes[i] = typ.String()
+		}
+	}
+
 	return &Distro{
 		Type:      t,
 		major:     major,
@@ -52,6 +60,35 @@ func New(t Type, version, label string, idLikes ...string) (*Distro, error) {
 		Codename:  label,
 		IDLike:    idLikes,
 	}, nil
+}
+
+// NewFromNameVersion creates a new Distro object derived from the provided name and version
+func NewFromNameVersion(name, version string) (*Distro, error) {
+	var codename string
+
+	// if there are no digits in the version, it is likely a codename
+	if !strings.ContainsAny(version, "0123456789") {
+		codename = version
+		version = ""
+	}
+
+	typ := IDMapping[name]
+	if typ == "" {
+		typ = Type(name)
+	}
+	return New(typ, version, codename, string(typ))
+}
+
+// FromRelease attempts to get a distro from the linux release, only logging any errors
+func FromRelease(linuxRelease *linux.Release) *Distro {
+	if linuxRelease == nil {
+		return nil
+	}
+	d, err := NewFromRelease(*linuxRelease)
+	if err != nil {
+		log.WithFields("error", err).Warn("unable to create distro from linux distribution")
+	}
+	return d
 }
 
 // NewFromRelease creates a new Distro object derived from a syft linux.Release object.
@@ -105,6 +142,8 @@ func (d Distro) String() string {
 	versionStr := "(version unknown)"
 	if d.Version != "" {
 		versionStr = d.Version
+	} else if d.Codename != "" {
+		versionStr = d.Codename
 	}
 	return fmt.Sprintf("%s %s", d.Type, versionStr)
 }

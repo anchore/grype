@@ -29,10 +29,12 @@ func Test_NewDistroFromRelease(t *testing.T) {
 				ID:        "centos",
 				VersionID: "8",
 				Version:   "7",
+				IDLike:    []string{"rhel"},
 			},
 			expected: &Distro{
 				Type:    CentOS,
 				Version: "8",
+				IDLike:  []string{"redhat"},
 			},
 			major: "8",
 			minor: "",

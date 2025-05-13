@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/anchore/go-collections"
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/stereoscope/pkg/image"
@@ -19,14 +20,7 @@ func syftProvider(userInput string, config ProviderConfig) ([]Package, Context, 
 	if err != nil {
 		return nil, Context{}, nil, err
 	}
-
-	defer func() {
-		if src != nil {
-			if err := src.Close(); err != nil {
-				log.Tracef("unable to close source: %+v", err)
-			}
-		}
-	}()
+	defer log.CloseAndLogError(src, "syft source")
 
 	s, err := syft.CreateSBOM(context.Background(), src, config.SBOMOptions)
 	if err != nil {
@@ -37,14 +31,16 @@ func syftProvider(userInput string, config ProviderConfig) ([]Package, Context, 
 		return nil, Context{}, nil, errors.New("no SBOM provided")
 	}
 
-	pkgCatalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, s.Artifacts.LinuxDistribution)
-
 	srcDescription := src.Describe()
+
+	d := distro.FromRelease(s.Artifacts.LinuxDistribution)
+
+	pkgCatalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, d)
 
 	packages := FromCollection(pkgCatalog, config.SynthesisConfig)
 	pkgCtx := Context{
 		Source: &srcDescription,
-		Distro: s.Artifacts.LinuxDistribution,
+		Distro: d,
 	}
 
 	return packages, pkgCtx, s, nil
