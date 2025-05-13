@@ -174,6 +174,7 @@ func (c client) Download(archiveURL, dest string, downloadProgress *progress.Man
 func (c client) Latest() (*LatestDocument, error) {
 	tempFile, err := afero.TempFile(c.fs, "", "grype-db-listing")
 	if err != nil {
+		tempFile.Close() // close before returning error
 		return nil, fmt.Errorf("unable to create listing temp file: %w", err)
 	}
 	defer func() {
@@ -187,6 +188,11 @@ func (c client) Latest() (*LatestDocument, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to download listing: %w", err)
 	}
+
+	// explicitly close the file so the deferred removal can succeed on Windows
+    if err := tempFile.Close(); err != nil {
+        log.Warnf("failed to close temp file: %s", err)
+    }
 
 	return NewLatestFromFile(c.fs, tempFile.Name())
 }
