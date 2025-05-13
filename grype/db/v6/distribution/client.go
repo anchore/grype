@@ -177,6 +177,7 @@ func (c client) Latest() (*LatestDocument, error) {
 		return nil, fmt.Errorf("unable to create listing temp file: %w", err)
 	}
 	defer func() {
+		log.CloseAndLogError(tempFile, tempFile.Name())
 		err := c.fs.RemoveAll(tempFile.Name())
 		if err != nil {
 			log.WithFields("error", err, "file", tempFile.Name()).Errorf("failed to remove file")
