@@ -3,6 +3,7 @@ package commands
 import (
 	"bytes"
 	"fmt"
+	"github.com/olekukonko/tablewriter/tw"
 	"io"
 	"os"
 	"strings"
@@ -91,20 +92,25 @@ func newTable(output io.Writer) *tablewriter.Table {
 	// we use a trimming writer to ensure that the table is not padded with spaces when there is a single long row
 	// and several short rows. AFAICT there is no table setting to control this behavior. Why do it as a writer? So
 	// we don't need to buffer the entire table in memory before writing it out.
-	table := tablewriter.NewWriter(newTrimmingWriter(output))
-	table.SetAutoWrapText(false)
-	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
 
-	table.SetHeaderLine(false)
-	table.SetBorder(false)
-	table.SetAutoFormatHeaders(true)
-	table.SetCenterSeparator("")
-	table.SetColumnSeparator("")
-	table.SetRowSeparator("")
-	table.SetTablePadding("  ")
-	table.SetNoWhiteSpace(true)
-	return table
+	// not accounted for...
+	//table.SetHeaderLine(false)
+	//table.SetCenterSeparator("")
+	//table.SetColumnSeparator("")
+	//table.SetRowSeparator("")
+	//table.SetTablePadding("  ")
+	//table.SetNoWhiteSpace(true)
+	return tablewriter.NewTable(newTrimmingWriter(output),
+		tablewriter.WithConfig(
+			tablewriter.NewConfigBuilder().
+				WithRowAutoWrap(tw.WrapNone).
+				WithHeaderAlignment(tw.AlignLeft).
+				WithRowAlignment(tw.AlignLeft).
+				WithHeaderAutoFormat(true).
+				Build(),
+		),
+		tablewriter.WithBorders(tw.Border{}),
+	)
 }
 
 // trimmingWriter is a writer that trims whitespace from the end of each line. It is assumed that whole lines are
