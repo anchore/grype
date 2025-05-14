@@ -377,11 +377,38 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
-			name: "dart-pub-metadata",
+			name: "dart-publock-metadata",
 			syftPkg: syftPkg.Package{
 				Metadata: syftPkg.DartPubspecLockEntry{
 					Name:    "a",
 					Version: "a",
+				},
+			},
+		},
+		{
+			name: "dart-pubspec-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.DartPubspec{
+					Homepage:      "a",
+					Repository:    "a",
+					Documentation: "a",
+					PublishTo:     "a",
+					Environment: &syftPkg.DartPubspecEnvironment{
+						SDK:     "a",
+						Flutter: "a",
+					},
+					Platforms:         []string{"a"},
+					IgnoredAdvisories: []string{"a"},
+				},
+			},
+		},
+		{
+			name: "homebrew-formula-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.HomebrewFormula{
+					Tap:         "a",
+					Homepage:    "a",
+					Description: "a",
 				},
 			},
 		},
