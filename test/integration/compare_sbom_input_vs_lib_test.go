@@ -63,6 +63,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		string(syftPkg.ConanPkg),
 		string(syftPkg.HexPkg),
 		string(syftPkg.PortagePkg),
+		string(syftPkg.HomebrewPkg),
 		string(syftPkg.CocoapodsPkg),
 		string(syftPkg.HackagePkg),
 		string(syftPkg.NixPkg),
