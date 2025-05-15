@@ -26,7 +26,7 @@ func (m *Matcher) Type() match.MatcherType {
 	return match.ApkMatcher
 }
 
-func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoredMatch, error) {
+func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	var matches []match.Match
 
 	// direct matches with package itself
@@ -218,7 +218,7 @@ func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, p pk
 // we want to report these NAK entries as match.IgnoredMatch, to allow for later processing to create ignore rules
 // based on packages which overlap by location, such as a python binary found in addition to the python APK entry --
 // we want to NAK this vulnerability for BOTH packages
-func (m *Matcher) findNaksForPackage(provider vulnerability.Provider, p pkg.Package) ([]match.IgnoredMatch, error) {
+func (m *Matcher) findNaksForPackage(provider vulnerability.Provider, p pkg.Package) ([]match.IgnoreFilter, error) {
 	// TODO: this was only applying to specific distros as originally implemented; this should probably be removed:
 	if d := p.Distro; d == nil || d.Type != distro.Wolfi && d.Type != distro.Chainguard && d.Type != distro.Alpine {
 		return nil, nil
@@ -248,21 +248,23 @@ func (m *Matcher) findNaksForPackage(provider vulnerability.Provider, p pkg.Pack
 		naks = append(naks, upstreamNaks...)
 	}
 
-	var ignores []match.IgnoredMatch
+	meta, ok := p.Metadata.(pkg.ApkMetadata)
+	if !ok {
+		return nil, nil
+	}
+
+	var ignores []match.IgnoreFilter
 	for _, nak := range naks {
-		ignores = append(ignores, match.IgnoredMatch{
-			Match: match.Match{
-				Vulnerability: nak,
-				Package:       p,
-				Details:       nil, // Probably don't need details here
-			},
-			AppliedIgnoreRules: []match.IgnoreRule{
-				{
+		for _, f := range meta.Files {
+			ignores = append(ignores,
+				match.IgnoreRule{
 					Vulnerability: nak.ID,
-					Reason:        "NAK",
-				},
-			},
-		})
+					Reason:        "Explicit APK NAK",
+					Package: match.IgnoreRulePackage{
+						Location: f.Path,
+					},
+				})
+		}
 	}
 
 	return ignores, nil
