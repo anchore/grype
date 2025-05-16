@@ -2,6 +2,8 @@ package v6
 
 import (
 	"slices"
+
+	"gorm.io/gorm"
 )
 
 type ref[ID, T any] struct {
@@ -38,7 +40,7 @@ func fillRefs[T, R any](reader Reader, handles []*T, getRef refProvider[T, R], r
 
 	// load a map with all id -> ref results
 	var values []R
-	tx := reader.getDB().Where("id IN (?)", ids)
+	tx := reader.(lowLevelReader).GetDB().Where("id IN (?)", ids)
 	err := tx.Find(&values).Error
 	if err != nil {
 		return err
@@ -72,4 +74,8 @@ func ptrs[T any](values []T) []*T {
 		out[i] = &values[i]
 	}
 	return out
+}
+
+type lowLevelReader interface {
+	GetDB() *gorm.DB
 }
