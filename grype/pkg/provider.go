@@ -6,6 +6,8 @@ import (
 
 	"github.com/bmatcuk/doublestar/v2"
 
+	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/sbom"
 )
@@ -14,7 +16,29 @@ var errDoesNotProvide = fmt.Errorf("cannot provide packages from the given sourc
 
 // Provide a set of packages and context metadata describing where they were sourced from.
 func Provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom.SBOM, error) {
-	packages, ctx, s, err := syftSBOMProvider(userInput, config)
+	packages, ctx, s, err := provide(userInput, config)
+	if err != nil {
+		return nil, Context{}, nil, err
+	}
+	setContextDistro(packages, &ctx)
+	return packages, ctx, s, nil
+}
+
+// Provide a set of packages and context metadata describing where they were sourced from.
+func provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom.SBOM, error) {
+	packages, ctx, s, err := purlProvider(userInput, config)
+	if !errors.Is(err, errDoesNotProvide) {
+		log.WithFields("input", userInput).Trace("interpreting input as one or more PURLs")
+		return packages, ctx, s, err
+	}
+
+	packages, ctx, s, err = cpeProvider(userInput)
+	if !errors.Is(err, errDoesNotProvide) {
+		log.WithFields("input", userInput).Trace("interpreting input as a CPE")
+		return packages, ctx, s, err
+	}
+
+	packages, ctx, s, err = syftSBOMProvider(userInput, config)
 	if !errors.Is(err, errDoesNotProvide) {
 		if len(config.Exclusions) > 0 {
 			var exclusionsErr error
@@ -23,14 +47,11 @@ func Provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom
 				return nil, ctx, s, exclusionsErr
 			}
 		}
+		log.WithFields("input", userInput).Trace("interpreting input as an SBOM document")
 		return packages, ctx, s, err
 	}
 
-	packages, err = purlProvider(userInput)
-	if !errors.Is(err, errDoesNotProvide) {
-		return packages, Context{}, s, err
-	}
-
+	log.WithFields("input", userInput).Trace("passing input to syft for interpretation")
 	return syftProvider(userInput, config)
 }
 
@@ -81,4 +102,30 @@ func locationMatches(location file.Location, exclusion string) (bool, error) {
 		return false, err
 	}
 	return matchesRealPath || matchesVirtualPath, nil
+}
+
+func setContextDistro(packages []Package, ctx *Context) {
+	if ctx.Distro != nil {
+		return
+	}
+	var singleDistro *distro.Distro
+	for _, p := range packages {
+		if p.Distro == nil {
+			continue
+		}
+		if singleDistro == nil {
+			singleDistro = p.Distro
+			continue
+		}
+		if singleDistro.Type != p.Distro.Type ||
+			singleDistro.Version != p.Distro.Version ||
+			singleDistro.Codename != p.Distro.Codename {
+			return
+		}
+	}
+
+	// if there is one distro (with one version) represented, use that
+	if singleDistro != nil {
+		ctx.Distro = singleDistro
+	}
 }

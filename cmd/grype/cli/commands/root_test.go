@@ -12,6 +12,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft"
+	"github.com/anchore/syft/syft/cataloging"
 	"github.com/anchore/syft/syft/pkg/cataloger/binary"
 )
 
@@ -27,24 +28,24 @@ func Test_applyDistroHint(t *testing.T) {
 	applyDistroHint([]pkg.Package{}, &ctx, &cfg)
 	assert.NotNil(t, ctx.Distro)
 
-	assert.Equal(t, "alpine", ctx.Distro.Name)
+	assert.Equal(t, "alpine", ctx.Distro.Name())
 	assert.Equal(t, "3.10", ctx.Distro.Version)
 
 	// does override an existing distro
-	cfg.Distro = "ubuntu:latest"
+	cfg.Distro = "ubuntu:24.04"
 	applyDistroHint([]pkg.Package{}, &ctx, &cfg)
 	assert.NotNil(t, ctx.Distro)
 
-	assert.Equal(t, "ubuntu", ctx.Distro.Name)
-	assert.Equal(t, "latest", ctx.Distro.Version)
+	assert.Equal(t, "ubuntu", ctx.Distro.Name())
+	assert.Equal(t, "24.04", ctx.Distro.Version)
 
 	// doesn't remove an existing distro when empty
 	cfg.Distro = ""
 	applyDistroHint([]pkg.Package{}, &ctx, &cfg)
 	assert.NotNil(t, ctx.Distro)
 
-	assert.Equal(t, "ubuntu", ctx.Distro.Name)
-	assert.Equal(t, "latest", ctx.Distro.Version)
+	assert.Equal(t, "ubuntu", ctx.Distro.Name())
+	assert.Equal(t, "24.04", ctx.Distro.Version)
 }
 
 func Test_getProviderConfig(t *testing.T) {
@@ -54,14 +55,18 @@ func Test_getProviderConfig(t *testing.T) {
 		want pkg.ProviderConfig
 	}{
 		{
-			name: "default-options-are-set",
+			name: "syft default api options are used",
 			opts: options.DefaultGrype(clio.Identification{
 				Name:    "test",
 				Version: "1.0",
 			}),
 			want: pkg.ProviderConfig{
 				SyftProviderConfig: pkg.SyftProviderConfig{
-					SBOMOptions: syft.DefaultCreateSBOMConfig(),
+					SBOMOptions: func() *syft.CreateSBOMConfig {
+						cfg := syft.DefaultCreateSBOMConfig()
+						cfg.Compliance.MissingVersion = cataloging.ComplianceActionDrop
+						return cfg
+					}(),
 					RegistryOptions: &image.RegistryOptions{
 						Credentials: []image.RegistryCredentials{},
 					},

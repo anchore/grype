@@ -7,6 +7,8 @@ import (
 	"text/scanner"
 )
 
+var ErrFallbackToFuzzy = fmt.Errorf("falling back to fuzzy version matching")
+
 type constraintExpression struct {
 	units       [][]constraintUnit // only supports or'ing a group of and'ed groups
 	comparators [][]Comparator     // only supports or'ing a group of and'ed groups
@@ -20,7 +22,7 @@ func newConstraintExpression(phrase string, genFn comparatorGenerator) (constrai
 
 	orUnits := make([][]constraintUnit, len(orParts))
 	orComparators := make([][]Comparator, len(orParts))
-
+	var fuzzyErr error
 	for orIdx, andParts := range orParts {
 		andUnits := make([]constraintUnit, len(andParts))
 		andComparators := make([]Comparator, len(andParts))
@@ -36,7 +38,16 @@ func newConstraintExpression(phrase string, genFn comparatorGenerator) (constrai
 
 			comparator, err := genFn(*unit)
 			if err != nil {
-				return constraintExpression{}, fmt.Errorf("failed to create comparator for '%s': %w", unit, err)
+				// this is a version constraint that could not be parsed as its
+				// specified type. Try falling back to fuzzy matching so that
+				// a match can still be attempted.
+				comparator, err = newFuzzyComparator(*unit)
+				if err != nil {
+					return constraintExpression{}, fmt.Errorf("failed to create comparator for '%s': %w", unit, err)
+				}
+				// Tell the caller we had to fallback from the specified
+				// version constraint format
+				fuzzyErr = ErrFallbackToFuzzy
 			}
 			andComparators[andIdx] = comparator
 		}
@@ -48,7 +59,7 @@ func newConstraintExpression(phrase string, genFn comparatorGenerator) (constrai
 	return constraintExpression{
 		units:       orUnits,
 		comparators: orComparators,
-	}, nil
+	}, fuzzyErr
 }
 
 func (c *constraintExpression) satisfied(other *Version) (bool, error) {
@@ -58,7 +69,7 @@ func (c *constraintExpression) satisfied(other *Version) (bool, error) {
 		for j, andUnit := range andOperand {
 			result, err := andUnit.Compare(other)
 			if err != nil {
-				return false, fmt.Errorf("uncomparable %+v %+v: %w", andUnit, other, err)
+				return false, fmt.Errorf("uncomparable %#v vs %q: %w", andUnit, other.String(), err)
 			}
 			unit := c.units[i][j]
 

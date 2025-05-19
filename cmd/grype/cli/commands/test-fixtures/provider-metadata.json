@@ -1,0 +1,12 @@
+{
+  "providers": [
+    {
+      "name": "provider1",
+      "lastSuccessfulRun": "2024-10-16T01:33:16.844201Z"
+    },
+    {
+      "name": "provider2",
+      "lastSuccessfulRun": "2024-10-16T01:32:43.516596Z"
+    }
+  ]
+}

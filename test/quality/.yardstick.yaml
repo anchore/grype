@@ -44,7 +44,8 @@ x-ref:
     - registry.access.redhat.com/ubi8@sha256:68fecea0d255ee253acbf0c860eaebb7017ef5ef007c25bee9eeffd29ce85b29
     - docker.io/python:3.8.0-slim@sha256:5e96e03a493a54904aa8be573fc0414431afb4f47ac58fbffd03b2a725005364
     - docker.io/ghost:5.2.4@sha256:42137b9bd1faf4cdea5933279c48a912d010ef614551aeb0e44308600aa3e69f
-    - docker.io/node:4.2.1-slim@sha256:af31633b87d0dc58c306b04ad9f6ca88104626363c5c085e9962832628eb09ce
+# commented out lines in this list are Docker v1 images, which no longer work after docker daemon dropped support
+#    - #docker.io/node:4.2.1-slim@sha256:af31633b87d0dc58c306b04ad9f6ca88104626363c5c085e9962832628eb09ce
     - docker.io/elastic/kibana:8.5.0@sha256:b9e3e52f61e0a347e38eabe80ba0859f859023bc0cc8836410320aa7eb5d3e02
     - docker.io/jenkins/jenkins:2.361.4-lts-jdk11@sha256:6fd5699ab182b5d23d0e3936de6047edc30955a3a92e01c392d5a2fd583efac0
     - docker.io/neo4j:4.4.14-community@sha256:fcfcbb026e0e538bf66f5fe5c4b2db3dd4931c3aae07f13a5a8c10e979596256
@@ -60,11 +61,11 @@ x-ref:
     - docker.io/grafana/grafana:9.2.4@sha256:a11c6829cdfe7fd791e48ba5b511f3562384361fb4c568ec2d8a5041ac52babe
     - docker.io/hashicorp/vault:1.12.0@sha256:09354ca0891f7cee8fbfe8db08c62d2d757fad8ae6c91f2b6cce7a34440e3fae
     - docker.io/ubuntu:12.04@sha256:18305429afa14ea462f810146ba44d4363ae76e4c8dfc38288cf73aa07485005
-    - docker.io/ubuntu:12.10@sha256:002fba3e3255af10be97ea26e476692a7ebed0bb074a9ab960b2e7a1526b15d7
-    - docker.io/ubuntu:13.04@sha256:bc48dd7075ce920ebbaa4581d3200e9fb3aaec31591061d7e3a280a04ef0248c
+#    - #docker.io/ubuntu:12.10@sha256:002fba3e3255af10be97ea26e476692a7ebed0bb074a9ab960b2e7a1526b15d7
+#    - #docker.io/ubuntu:13.04@sha256:bc48dd7075ce920ebbaa4581d3200e9fb3aaec31591061d7e3a280a04ef0248c
     - docker.io/ubuntu:14.04@sha256:881afbae521c910f764f7187dbfbca3cc10c26f8bafa458c76dda009a901c29d
-    - docker.io/ubuntu:14.10@sha256:6341c688b4b0b82ec735389b3c97df8cf2831b8cb8bd1856779130a86574ac5c
-    - docker.io/ubuntu:15.04@sha256:2fb27e433b3ecccea2a14e794875b086711f5d49953ef173d8a03e8707f1510f
+#    - #docker.io/ubuntu:14.10@sha256:6341c688b4b0b82ec735389b3c97df8cf2831b8cb8bd1856779130a86574ac5c
+#    - #docker.io/ubuntu:15.04@sha256:2fb27e433b3ecccea2a14e794875b086711f5d49953ef173d8a03e8707f1510f
     - docker.io/ubuntu:15.10@sha256:02521a2d079595241c6793b2044f02eecf294034f31d6e235ac4b2b54ffc41f3
     - docker.io/ubuntu:16.10@sha256:8dc9652808dc091400d7d5983949043a9f9c7132b15c14814275d25f94bca18a
     - docker.io/ubuntu:17.04@sha256:213e05583a7cb8756a3f998e6dd65204ddb6b4c128e2175dcdf174cdf1877459
@@ -91,6 +92,11 @@ default_max_year: 2021
 result-sets:
   pr_vs_latest_via_sbom:
     description: "latest released grype vs grype from the current build (via SBOM ingestion)"
+    validations:
+      - max-f1-regression: 0.0
+        max-new-false-negatives: 00
+        max-unlabeled-percent: 10
+        max_year: 2021
     matrix:
       images: *images
 
@@ -98,7 +104,7 @@ result-sets:
 
         - name: syft
           # note: we want to use a fixed version of syft for capturing all results (NOT "latest")
-          version: v0.98.0
+          version: v1.14.0
           produces: SBOM
           refresh: false
 
@@ -108,10 +114,11 @@ result-sets:
           # By pinning the DB the grype code itself becomes the independent variable under test (and not the
           # every-changing DB). That being said, we should be updating this DB periodically to ensure what we
           # are testing with is not too stale.
-          # version: git:current-commit+import-db=db.tar.gz
+          # version: git:current-commit+import-db=db.tar.zst
           # for local build of grype, use for example:
-          version: path:../../+import-db=db.tar.gz
+          version: path:../../+import-db=db.tar.zst
           takes: SBOM
+          label: candidate
 
         - name: grype
           # note: we import a static (pinned) DB as to prevent changes in the DB from affecting the results. The
@@ -119,5 +126,47 @@ result-sets:
           # By pinning the DB the grype code itself becomes the independent variable under test (and not the
           # every-changing DB). That being said, we should be updating this DB periodically to ensure what we
           # are testing with is not too stale.
-          version: latest+import-db=db.tar.gz
+          version: latest+import-db=db.tar.zst
           takes: SBOM
+          label: reference
+  pr_vs_latest_via_sbom_2022:
+    description: "same as 'pr_vs_latest_via_sbom', but includes vulnerabilities from 2022 and before, instead of 2021 and before"
+    max_year: 2022
+    validations:
+      - max-f1-regression: 0.1 # allowed to regress 0.1 on f1 score
+        max-new-false-negatives: 10
+        max-unlabeled-percent: 0
+        max_year: 2022
+        fail_on_empty_match_set: false
+    matrix:
+      images:
+        - docker.io/anchore/test_images:azurelinux3-63671fe@sha256:2d761ba36575ddd4e07d446f4f2a05448298c20e5bdcd3dedfbbc00f9865240d
+
+      tools:
+        - name: syft
+          # note: we want to use a fixed version of syft for capturing all results (NOT "latest")
+          version: v1.14.0
+          produces: SBOM
+          refresh: false
+
+        - name: grype
+          # note: we import a static (pinned) DB as to prevent changes in the DB from affecting the results. The
+          # point of this test is to ensure the correctness of the logic in grype itself with real production data.
+          # By pinning the DB the grype code itself becomes the independent variable under test (and not the
+          # every-changing DB). That being said, we should be updating this DB periodically to ensure what we
+          # are testing with is not too stale.
+          # version: git:current-commit+import-db=db.tar.zst
+          # for local build of grype, use for example:
+          version: path:../../+import-db=db.tar.zst
+          takes: SBOM
+          label: candidate # is candidate better than the current baseline?
+
+        - name: grype
+          # note: we import a static (pinned) DB as to prevent changes in the DB from affecting the results. The
+          # point of this test is to ensure the correctness of the logic in grype itself with real production data.
+          # By pinning the DB the grype code itself becomes the independent variable under test (and not the
+          # every-changing DB). That being said, we should be updating this DB periodically to ensure what we
+          # are testing with is not too stale.
+          version: latest+import-db=db.tar.zst
+          takes: SBOM
+          label: reference # this run is the current baseline

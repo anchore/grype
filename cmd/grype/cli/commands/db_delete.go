@@ -7,30 +7,42 @@ import (
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
-	"github.com/anchore/grype/grype/db"
+	"github.com/anchore/grype/grype/db/v6/distribution"
+	"github.com/anchore/grype/grype/db/v6/installation"
 )
 
 func DBDelete(app clio.Application) *cobra.Command {
-	opts := dbOptionsDefault(app.ID())
+	opts := options.DefaultDatabaseCommand(app.ID())
 
-	return app.SetupCommand(&cobra.Command{
+	cmd := &cobra.Command{
 		Use:     "delete",
-		Short:   "delete the vulnerability database",
+		Short:   "Delete the vulnerability database",
 		Args:    cobra.ExactArgs(0),
 		PreRunE: disableUI(app),
 		RunE: func(_ *cobra.Command, _ []string) error {
-			return runDBDelete(opts.DB)
+			return runDBDelete(*opts)
 		},
-	}, opts)
-}
-
-func runDBDelete(opts options.Database) error {
-	dbCurator, err := db.NewCurator(opts.ToCuratorConfig())
-	if err != nil {
-		return err
 	}
 
-	if err := dbCurator.Delete(); err != nil {
+	// prevent from being shown in the grype config
+	type configWrapper struct {
+		*options.DatabaseCommand `yaml:",inline" mapstructure:",squash"`
+	}
+
+	return app.SetupCommand(cmd, &configWrapper{opts})
+}
+
+func runDBDelete(opts options.DatabaseCommand) error {
+	client, err := distribution.NewClient(opts.ToClientConfig())
+	if err != nil {
+		return fmt.Errorf("unable to create distribution client: %w", err)
+	}
+	c, err := installation.NewCurator(opts.ToCuratorConfig(), client)
+	if err != nil {
+		return fmt.Errorf("unable to create curator: %w", err)
+	}
+
+	if err := c.Delete(); err != nil {
 		return fmt.Errorf("unable to delete vulnerability database: %+v", err)
 	}
 

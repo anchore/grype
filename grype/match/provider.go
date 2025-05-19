@@ -1,5 +1,5 @@
 package match
 
 type ExclusionProvider interface {
-	GetRules(vulnerabilityID string) ([]IgnoreRule, error)
+	IgnoreRules(vulnerabilityID string) ([]IgnoreRule, error)
 }

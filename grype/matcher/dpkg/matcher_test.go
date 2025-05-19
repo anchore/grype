@@ -16,11 +16,18 @@ import (
 
 func TestMatcherDpkg_matchBySourceIndirection(t *testing.T) {
 	matcher := Matcher{}
+
+	d, err := distro.New(distro.Debian, "8", "")
+	if err != nil {
+		t.Fatal("could not create distro: ", err)
+	}
+
 	p := pkg.Package{
 		ID:      pkg.ID(uuid.NewString()),
 		Name:    "neutron",
 		Version: "2014.1.3-6",
 		Type:    syftPkg.DebPkg,
+		Distro:  d,
 		Upstreams: []pkg.UpstreamPackage{
 			{
 				Name: "neutron-devel",
@@ -28,13 +35,8 @@ func TestMatcherDpkg_matchBySourceIndirection(t *testing.T) {
 		},
 	}
 
-	d, err := distro.New(distro.Debian, "8", "")
-	if err != nil {
-		t.Fatal("could not create distro: ", err)
-	}
-
-	store := newMockProvider()
-	actual, err := matcher.matchUpstreamPackages(store, d, p)
+	vp := newMockProvider()
+	actual, err := matcher.matchUpstreamPackages(vp, p)
 	assert.NoError(t, err, "unexpected err from matchUpstreamPackages", err)
 
 	assert.Len(t, actual, 2, "unexpected indirect matches count")

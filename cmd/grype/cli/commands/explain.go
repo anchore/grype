@@ -27,7 +27,7 @@ func (d *explainOptions) AddFlags(flags clio.FlagSet) {
 func Explain(app clio.Application) *cobra.Command {
 	opts := &explainOptions{}
 
-	return app.SetupCommand(&cobra.Command{
+	cmd := &cobra.Command{
 		Use:     "explain --id [VULNERABILITY ID]",
 		Short:   "Ask grype to explain a set of findings",
 		PreRunE: disableUI(app),
@@ -53,5 +53,12 @@ func Explain(app clio.Application) *cobra.Command {
 			// TODO: implement
 			return fmt.Errorf("requires grype json on stdin, please run 'grype -o json ... | grype explain ...'")
 		},
-	}, opts)
+	}
+
+	// prevent from being shown in the grype config
+	type configWrapper struct {
+		Opts *explainOptions `json:"-" yaml:"-" mapstructure:"-"`
+	}
+
+	return app.SetupCommand(cmd, &configWrapper{opts})
 }

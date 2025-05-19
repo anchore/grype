@@ -23,17 +23,18 @@ func newMavenVersion(raw string) (*mavenVersion, error) {
 	}, nil
 }
 
-// Compare returns 0 if j2 == j, 1 if j2 > j, and -1 if j2 < j.
-// If an error returns the int value is -1
-func (j *mavenVersion) Compare(j2 *Version) (int, error) {
-	if j2.Format != MavenFormat {
-		return -1, fmt.Errorf("unable to compare java to given format: %s", j2.Format)
+// Compare returns 0 if other == j, 1 if other > j, and -1 if other < j.
+// If an error is returned, the int value is -1
+func (j *mavenVersion) Compare(other *Version) (int, error) {
+	other, err := finalizeComparisonVersion(other, MavenFormat)
+	if err != nil {
+		return -1, err
 	}
-	if j2.rich.mavenVer == nil {
+	if other.rich.mavenVer == nil {
 		return -1, fmt.Errorf("given empty mavenVersion object")
 	}
 
-	submittedVersion := j2.rich.mavenVer.version
+	submittedVersion := other.rich.mavenVer.version
 	if submittedVersion.Equal(j.version) {
 		return 0, nil
 	}

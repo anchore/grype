@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:7295371c-8562-415c-be23-210d114e68bc",
+  "serialNumber": "urn:uuid:c7b9f230-9fb8-43f7-af7a-824cd878a853",
   "version": 1,
   "metadata": {
-    "timestamp": "2024-06-14T16:07:19-04:00",
+    "timestamp": "2025-05-16T15:26:00-04:00",
     "tools": {
       "components": [
         {
@@ -15,11 +15,16 @@
           "version": "[not provided]"
         }
       ]
+    },
+    "component": {
+      "bom-ref": "163686ac6e30c752",
+      "type": "file",
+      "name": "/var/folders/8y/ct5nbgtj4p30k10kfmq4p4s00000gn/T/TestCycloneDxPresenterDir76562573/001"
     }
   },
   "components": [
     {
-      "bom-ref": "9baa2db122fea516",
+      "bom-ref": "bbb0ba712c2b94ea",
       "type": "library",
       "name": "package-1",
       "version": "1.1.1",
@@ -52,7 +57,7 @@
       ]
     },
     {
-      "bom-ref": "7bb53d560434bc7f",
+      "bom-ref": "pkg:deb/package-2@2.2.2?package-id=74378afe15713625",
       "type": "library",
       "name": "package-2",
       "version": "2.2.2",
@@ -69,6 +74,7 @@
         }
       ],
       "cpe": "cpe:2.3:a:anchore:engine:2.2.2:*:*:python:*:*:*:*",
+      "purl": "pkg:deb/package-2@2.2.2",
       "properties": [
         {
           "name": "syft:package:type",
@@ -83,7 +89,7 @@
   ],
   "vulnerabilities": [
     {
-      "bom-ref": "urn:uuid:4287f379-8a42-49f0-8abc-b618cfbec513",
+      "bom-ref": "urn:uuid:983f094f-a20c-4aed-b6f1-d9b417c706cc",
       "id": "CVE-1999-0001",
       "source": {},
       "references": [
@@ -94,22 +100,20 @@
       ],
       "ratings": [
         {
-          "score": 4,
+          "score": 8.2,
           "severity": "low",
-          "method": "CVSSv3",
-          "vector": "another vector"
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:L/I:L/A:H"
         }
       ],
-      "description": "1999-01 description",
-      "advisories": [],
       "affects": [
         {
-          "ref": "9baa2db122fea516"
+          "ref": "bbb0ba712c2b94ea"
         }
       ]
     },
     {
-      "bom-ref": "urn:uuid:afc64b43-24cb-4f55-a948-dfd9c6920061",
+      "bom-ref": "urn:uuid:ae00e132-f2c5-4d07-896d-31aaf91e04d1",
       "id": "CVE-1999-0002",
       "source": {},
       "references": [
@@ -120,17 +124,15 @@
       ],
       "ratings": [
         {
-          "score": 1,
+          "score": 8.5,
           "severity": "critical",
-          "method": "CVSSv2",
-          "vector": "vector"
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:C/C:H/I:H/A:H"
         }
       ],
-      "description": "1999-02 description",
-      "advisories": [],
       "affects": [
         {
-          "ref": "7bb53d560434bc7f"
+          "ref": "pkg:deb/package-2@2.2.2?package-id=74378afe15713625"
         }
       ]
     }

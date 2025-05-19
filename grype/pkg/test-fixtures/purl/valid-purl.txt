@@ -1,0 +1,3 @@
+pkg:deb/debian/sysv-rc@2.88dsf-59?arch=all&distro=debian-8&upstream=sysvinit
+pkg:maven/org.apache.ant/ant@1.10.8
+pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1

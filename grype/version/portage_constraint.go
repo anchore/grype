@@ -48,7 +48,7 @@ func (c portageConstraint) Satisfied(version *Version) (bool, error) {
 	}
 
 	if !c.supported(version.Format) {
-		return false, fmt.Errorf("(portage) unsupported format: %s", version.Format)
+		return false, NewUnsupportedFormatError(PortageFormat, version.Format)
 	}
 
 	if version.rich.portVer == nil {

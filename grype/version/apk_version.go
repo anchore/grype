@@ -22,9 +22,11 @@ func newApkVersion(raw string) (*apkVersion, error) {
 }
 
 func (a *apkVersion) Compare(other *Version) (int, error) {
-	if other.Format != ApkFormat {
-		return -1, fmt.Errorf("unable to compare apk to given format: %s", other.Format)
+	other, err := finalizeComparisonVersion(other, ApkFormat)
+	if err != nil {
+		return -1, err
 	}
+
 	if other.rich.apkVer == nil {
 		return -1, fmt.Errorf("given empty apkVersion object")
 	}

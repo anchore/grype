@@ -1,9 +1,10 @@
 package v5
 
+import "io"
+
 type Store interface {
 	StoreReader
 	StoreWriter
-	DBCloser
 }
 
 type StoreReader interface {
@@ -12,6 +13,7 @@ type StoreReader interface {
 	VulnerabilityStoreReader
 	VulnerabilityMetadataStoreReader
 	VulnerabilityMatchExclusionStoreReader
+	io.Closer
 }
 
 type StoreWriter interface {
@@ -19,12 +21,9 @@ type StoreWriter interface {
 	VulnerabilityStoreWriter
 	VulnerabilityMetadataStoreWriter
 	VulnerabilityMatchExclusionStoreWriter
+	io.Closer
 }
 
 type DiffReader interface {
 	DiffStore(s StoreReader) (*[]Diff, error)
-}
-
-type DBCloser interface {
-	Close()
 }

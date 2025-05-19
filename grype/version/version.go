@@ -28,6 +28,7 @@ type rich struct {
 	kbVer         *kbVersion
 	portVer       *portageVersion
 	pep440version *pep440Version
+	jvmVersion    *jvmVersion
 }
 
 func NewVersion(raw string, format Format) (*Version, error) {
@@ -45,7 +46,9 @@ func NewVersion(raw string, format Format) (*Version, error) {
 }
 
 func NewVersionFromPkg(p pkg.Package) (*Version, error) {
-	ver, err := NewVersion(p.Version, FormatFromPkgType(p.Type))
+	format := FormatFromPkg(p)
+
+	ver, err := NewVersion(p.Version, format)
 	if err != nil {
 		return nil, err
 	}
@@ -96,6 +99,10 @@ func (v *Version) populate() error {
 		ver := newPortageVersion(v.Raw)
 		v.rich.portVer = &ver
 		return nil
+	case JVMFormat:
+		ver, err := newJvmVersion(v.Raw)
+		v.rich.jvmVersion = ver
+		return err
 	case UnknownFormat:
 		// use the raw string + fuzzy constraint
 		return nil
@@ -110,4 +117,56 @@ func (v Version) CPEs() []cpe.CPE {
 
 func (v Version) String() string {
 	return fmt.Sprintf("%s (%s)", v.Raw, v.Format)
+}
+
+func (v Version) Compare(other *Version) (int, error) {
+	if other == nil {
+		return -1, ErrNoVersionProvided
+	}
+
+	if other.Format == v.Format {
+		return v.compareSameFormat(other)
+	}
+
+	// different formats, try to convert to a common format
+	common, err := finalizeComparisonVersion(other, v.Format)
+	if err != nil {
+		return -1, err
+	}
+
+	return v.compareSameFormat(common)
+}
+
+func (v Version) compareSameFormat(other *Version) (int, error) {
+	switch v.Format {
+	case SemanticFormat:
+		return v.rich.semVer.verObj.Compare(other.rich.semVer.verObj), nil
+	case ApkFormat:
+		return v.rich.apkVer.Compare(other)
+	case DebFormat:
+		return v.rich.debVer.Compare(other)
+	case GolangFormat:
+		return v.rich.golangVersion.Compare(other)
+	case MavenFormat:
+		return v.rich.mavenVer.Compare(other)
+	case RpmFormat:
+		return v.rich.rpmVer.Compare(other)
+	case PythonFormat:
+		return v.rich.pep440version.Compare(other)
+	case KBFormat:
+		return v.rich.kbVer.Compare(other)
+	case GemFormat:
+		return v.rich.semVer.verObj.Compare(other.rich.semVer.verObj), nil
+	case PortageFormat:
+		return v.rich.portVer.Compare(other)
+	case JVMFormat:
+		return v.rich.jvmVersion.Compare(other)
+	}
+
+	v1, err := newFuzzyVersion(v.Raw)
+	if err != nil {
+		return -1, fmt.Errorf("unable to parse version (%s) as a fuzzy version: %w", v.Raw, err)
+	}
+
+	return v1.Compare(other)
 }

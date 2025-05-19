@@ -26,7 +26,7 @@ func (p pep440Constraint) Satisfied(version *Version) (bool, error) {
 		return true, nil
 	}
 	if version.Format != PythonFormat {
-		return false, fmt.Errorf("(python) unsupported format: %s", version.Format)
+		return false, NewUnsupportedFormatError(PythonFormat, version.Format)
 	}
 
 	if version.rich.pep440version == nil {
@@ -44,7 +44,7 @@ func newPep440Constraint(raw string) (pep440Constraint, error) {
 
 	constraints, err := newConstraintExpression(raw, newPep440Comparator)
 	if err != nil {
-		return pep440Constraint{}, fmt.Errorf("unable to parse pep440 constrain phrase %w", err)
+		return pep440Constraint{}, fmt.Errorf("unable to parse pep440 constraint phrase %w", err)
 	}
 
 	return pep440Constraint{

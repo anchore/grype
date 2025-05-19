@@ -35,3 +35,7 @@ var AllMatcherTypes = []MatcherType{
 }
 
 type MatcherType string
+
+func (t MatcherType) String() string {
+	return string(t)
+}

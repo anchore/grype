@@ -41,7 +41,7 @@ func isWordpressPlatformCPE(c cpe.CPE) bool {
 	return c.Attributes.Vendor == "wordpress" && c.Attributes.Product == "wordpress"
 }
 
-func (p platformCPE) Satisfied(d *distro.Distro, _ pkg.Package) (bool, error) {
+func (p platformCPE) Satisfied(pk pkg.Package) (bool, error) {
 	if p.cpe == "" {
 		return true, nil
 	}
@@ -60,20 +60,20 @@ func (p platformCPE) Satisfied(d *distro.Distro, _ pkg.Package) (bool, error) {
 
 	// The remaining checks are on distro, so if the distro is unknown the condition should
 	// be considered to be satisfied and avoid filtering matches
-	if d == nil {
+	if pk.Distro == nil {
 		return true, nil
 	}
 
 	if isWindowsPlatformCPE(c) {
-		return d.Type == distro.Windows, nil
+		return pk.Distro.Type == distro.Windows, nil
 	}
 
 	if isUbuntuPlatformCPE(c) {
-		return d.Type == distro.Ubuntu, nil
+		return pk.Distro.Type == distro.Ubuntu, nil
 	}
 
 	if isDebianPlatformCPE(c) {
-		return d.Type == distro.Debian, nil
+		return pk.Distro.Type == distro.Debian, nil
 	}
 
 	return true, err

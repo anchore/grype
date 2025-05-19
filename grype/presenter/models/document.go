@@ -2,7 +2,6 @@ package models
 
 import (
 	"fmt"
-	"sort"
 	"time"
 
 	"github.com/anchore/clio"
@@ -21,7 +20,7 @@ type Document struct {
 }
 
 // NewDocument creates and populates a new Document struct, representing the populated JSON document.
-func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Context, matches match.Matches, ignoredMatches []match.IgnoredMatch, metadataProvider vulnerability.MetadataProvider, appConfig interface{}, dbStatus interface{}) (Document, error) {
+func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Context, matches match.Matches, ignoredMatches []match.IgnoredMatch, metadataProvider vulnerability.MetadataProvider, appConfig any, dbInfo any, strategy SortStrategy) (Document, error) {
 	timestamp, timestampErr := time.Now().Local().MarshalText()
 	if timestampErr != nil {
 		return Document{}, timestampErr
@@ -43,7 +42,7 @@ func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Con
 		findings = append(findings, *matchModel)
 	}
 
-	sort.Sort(MatchSort(findings))
+	SortMatches(findings, strategy)
 
 	var src *source
 	if context.Source != nil {
@@ -79,11 +78,11 @@ func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Con
 		Source:         src,
 		Distro:         newDistribution(context.Distro),
 		Descriptor: descriptor{
-			Name:                  id.Name,
-			Version:               id.Version,
-			Configuration:         appConfig,
-			VulnerabilityDBStatus: dbStatus,
-			Timestamp:             string(timestamp),
+			Name:          id.Name,
+			Version:       id.Version,
+			Configuration: appConfig,
+			DB:            dbInfo,
+			Timestamp:     string(timestamp),
 		},
 	}, nil
 }

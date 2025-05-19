@@ -18,9 +18,11 @@ func newPortageVersion(raw string) portageVersion {
 }
 
 func (v *portageVersion) Compare(other *Version) (int, error) {
-	if other.Format != PortageFormat {
-		return -1, fmt.Errorf("unable to compare portage to given format: %s", other.Format)
+	other, err := finalizeComparisonVersion(other, PortageFormat)
+	if err != nil {
+		return -1, err
 	}
+
 	if other.rich.portVer == nil {
 		return -1, fmt.Errorf("given empty portageVersion object")
 	}

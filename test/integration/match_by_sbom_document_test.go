@@ -11,10 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -77,17 +75,8 @@ func TestMatchBySBOMDocument(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			mkStr := newMockDbStore()
-			vp, err := db.NewVulnerabilityProvider(mkStr)
-			require.NoError(t, err)
-			mp := db.NewVulnerabilityMetadataProvider(mkStr)
-			ep := db.NewMatchExclusionProvider(mkStr)
-			str := store.Store{
-				Provider:          vp,
-				MetadataProvider:  mp,
-				ExclusionProvider: ep,
-			}
-			matches, _, _, err := grype.FindVulnerabilities(str, fmt.Sprintf("sbom:%s", test.fixture), source.SquashedScope, nil)
+			vp := newMockDbProvider()
+			matches, _, _, err := grype.FindVulnerabilities(vp, fmt.Sprintf("sbom:%s", test.fixture), source.SquashedScope, nil)
 			assert.NoError(t, err)
 			details := make([]match.Detail, 0)
 			ids := strset.New()

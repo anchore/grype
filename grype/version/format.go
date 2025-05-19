@@ -3,7 +3,8 @@ package version
 import (
 	"strings"
 
-	"github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/grype/grype/pkg"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 const (
@@ -18,12 +19,13 @@ const (
 	GemFormat
 	PortageFormat
 	GolangFormat
+	JVMFormat
 )
 
 type Format int
 
 var formatStr = []string{
-	"UnknownFormat",
+	"Unknown",
 	"Semantic",
 	"Apk",
 	"Deb",
@@ -34,6 +36,7 @@ var formatStr = []string{
 	"Gem",
 	"Portage",
 	"Go",
+	"JVM",
 }
 
 var Formats = []Format{
@@ -46,6 +49,8 @@ var Formats = []Format{
 	KBFormat,
 	GemFormat,
 	PortageFormat,
+	GolangFormat,
+	JVMFormat,
 }
 
 func ParseFormat(userStr string) Format {
@@ -70,35 +75,39 @@ func ParseFormat(userStr string) Format {
 		return GemFormat
 	case strings.ToLower(PortageFormat.String()), "portage":
 		return PortageFormat
+	case strings.ToLower(JVMFormat.String()), "jvm", "jre", "jdk", "openjdk", "jep223":
+		return JVMFormat
 	}
 	return UnknownFormat
 }
 
-func FormatFromPkgType(t pkg.Type) Format {
-	var format Format
-	switch t {
-	case pkg.ApkPkg:
-		format = ApkFormat
-	case pkg.DebPkg:
-		format = DebFormat
-	case pkg.JavaPkg:
-		format = MavenFormat
-	case pkg.RpmPkg:
-		format = RpmFormat
-	case pkg.GemPkg:
-		format = GemFormat
-	case pkg.PythonPkg:
-		format = PythonFormat
-	case pkg.KbPkg:
-		format = KBFormat
-	case pkg.PortagePkg:
-		format = PortageFormat
-	case pkg.GoModulePkg:
-		format = GolangFormat
-	default:
-		format = UnknownFormat
+func FormatFromPkg(p pkg.Package) Format {
+	switch p.Type {
+	case syftPkg.ApkPkg:
+		return ApkFormat
+	case syftPkg.DebPkg:
+		return DebFormat
+	case syftPkg.JavaPkg:
+		return MavenFormat
+	case syftPkg.RpmPkg:
+		return RpmFormat
+	case syftPkg.GemPkg:
+		return GemFormat
+	case syftPkg.PythonPkg:
+		return PythonFormat
+	case syftPkg.KbPkg:
+		return KBFormat
+	case syftPkg.PortagePkg:
+		return PortageFormat
+	case syftPkg.GoModulePkg:
+		return GolangFormat
 	}
-	return format
+
+	if pkg.IsJvmPackage(p) {
+		return JVMFormat
+	}
+
+	return UnknownFormat
 }
 
 func (f Format) String() string {

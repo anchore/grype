@@ -7,16 +7,15 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/clio"
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	syftSource "github.com/anchore/syft/syft/source"
 )
 
 func TestPackagesAreSorted(t *testing.T) {
-
 	var pkg1 = pkg.Package{
 		ID:      "package-1-id",
 		Name:    "package-1",
@@ -33,7 +32,7 @@ func TestPackagesAreSorted(t *testing.T) {
 
 	var match1 = match.Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-1999-0003",
+			Reference: vulnerability.Reference{ID: "CVE-1999-0003"},
 		},
 		Package: pkg1,
 		Details: match.Details{
@@ -45,9 +44,9 @@ func TestPackagesAreSorted(t *testing.T) {
 
 	var match2 = match.Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-1999-0002",
+			Reference: vulnerability.Reference{ID: "CVE-1999-0002"},
 		},
-		Package: pkg1,
+		Package: pkg2,
 		Details: match.Details{
 			{
 				Type: match.ExactIndirectMatch,
@@ -57,7 +56,7 @@ func TestPackagesAreSorted(t *testing.T) {
 
 	var match3 = match.Match{
 		Vulnerability: vulnerability.Vulnerability{
-			ID: "CVE-1999-0001",
+			Reference: vulnerability.Reference{ID: "CVE-1999-0001"},
 		},
 		Package: pkg1,
 		Details: match.Details{
@@ -76,23 +75,81 @@ func TestPackagesAreSorted(t *testing.T) {
 		Source: &syftSource.Description{
 			Metadata: syftSource.DirectoryMetadata{},
 		},
-		Distro: &linux.Release{
-			ID:      "centos",
+		Distro: &distro.Distro{
+			Type:    "centos",
 			IDLike:  []string{"rhel"},
 			Version: "8.0",
 		},
 	}
-	doc, err := NewDocument(clio.Identification{}, packages, ctx, matches, nil, NewMetadataMock(), nil, nil)
+	doc, err := NewDocument(clio.Identification{}, packages, ctx, matches, nil, NewMetadataMock(), nil, nil, SortByPackage)
 	if err != nil {
 		t.Fatalf("unable to get document: %+v", err)
 	}
+
+	var actualPackages []string
+	for _, m := range doc.Matches {
+		actualPackages = append(actualPackages, m.Artifact.Name)
+	}
+
+	// sort packages first
+	assert.Equal(t, []string{"package-1", "package-1", "package-2"}, actualPackages)
 
 	var actualVulnerabilities []string
 	for _, m := range doc.Matches {
 		actualVulnerabilities = append(actualVulnerabilities, m.Vulnerability.ID)
 	}
 
-	assert.Equal(t, []string{"CVE-1999-0003", "CVE-1999-0002", "CVE-1999-0001"}, actualVulnerabilities)
+	// sort vulnerabilities second
+	assert.Equal(t, []string{"CVE-1999-0001", "CVE-1999-0003", "CVE-1999-0002"}, actualVulnerabilities)
+}
+
+func TestFixSuggestedVersion(t *testing.T) {
+
+	var pkg1 = pkg.Package{
+		ID:      "package-1-id",
+		Name:    "package-1",
+		Version: "1.1.1",
+		Type:    syftPkg.PythonPkg,
+	}
+
+	var match1 = match.Match{
+		Vulnerability: vulnerability.Vulnerability{
+			Fix: vulnerability.Fix{
+				Versions: []string{"1.0.0", "1.2.0", "1.1.2"},
+			},
+			Reference: vulnerability.Reference{ID: "CVE-1999-0003"},
+		},
+		Package: pkg1,
+		Details: match.Details{
+			{
+				Type: match.ExactDirectMatch,
+			},
+		},
+	}
+
+	matches := match.NewMatches()
+	matches.Add(match1)
+
+	packages := []pkg.Package{pkg1}
+
+	ctx := pkg.Context{
+		Source: &syftSource.Description{
+			Metadata: syftSource.DirectoryMetadata{},
+		},
+		Distro: &distro.Distro{
+			Type:    "centos",
+			IDLike:  []string{"rhel"},
+			Version: "8.0",
+		},
+	}
+	doc, err := NewDocument(clio.Identification{}, packages, ctx, matches, nil, NewMetadataMock(), nil, nil, SortByPackage)
+	if err != nil {
+		t.Fatalf("unable to get document: %+v", err)
+	}
+
+	actualSuggestedFixedVersion := doc.Matches[0].MatchDetails[0].Fix.SuggestedVersion
+
+	assert.Equal(t, "1.1.2", actualSuggestedFixedVersion)
 }
 
 func TestTimestampValidFormat(t *testing.T) {
@@ -104,7 +161,7 @@ func TestTimestampValidFormat(t *testing.T) {
 		Distro: nil,
 	}
 
-	doc, err := NewDocument(clio.Identification{}, nil, ctx, matches, nil, nil, nil, nil)
+	doc, err := NewDocument(clio.Identification{}, nil, ctx, matches, nil, nil, nil, nil, SortByPackage)
 	if err != nil {
 		t.Fatalf("unable to get document: %+v", err)
 	}

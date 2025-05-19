@@ -3,17 +3,20 @@ package commands
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/url"
 	"os"
 
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
-	"github.com/anchore/grype/grype/db"
+	"github.com/anchore/grype/cmd/grype/cli/options"
+	"github.com/anchore/grype/grype/db/v6/distribution"
 )
 
 type dbListOptions struct {
-	Output    string `yaml:"output" json:"output" mapstructure:"output"`
-	DBOptions `yaml:",inline" mapstructure:",squash"`
+	Output                  string `yaml:"output" json:"output" mapstructure:"output"`
+	options.DatabaseCommand `yaml:",inline" mapstructure:",squash"`
 }
 
 var _ clio.FlagAdder = (*dbListOptions)(nil)
@@ -24,68 +27,86 @@ func (d *dbListOptions) AddFlags(flags clio.FlagSet) {
 
 func DBList(app clio.Application) *cobra.Command {
 	opts := &dbListOptions{
-		Output:    "text",
-		DBOptions: *dbOptionsDefault(app.ID()),
+		Output:          textOutputFormat,
+		DatabaseCommand: *options.DefaultDatabaseCommand(app.ID()),
 	}
 
-	return app.SetupCommand(&cobra.Command{
+	cmd := &cobra.Command{
 		Use:     "list",
-		Short:   "list all DBs available according to the listing URL",
+		Short:   "List all DBs available according to the listing URL",
 		PreRunE: disableUI(app),
 		Args:    cobra.ExactArgs(0),
 		RunE: func(_ *cobra.Command, _ []string) error {
-			return runDBList(opts)
+			return runDBList(*opts)
 		},
-	}, opts)
+	}
+
+	// prevent from being shown in the grype config
+	type configWrapper struct {
+		Hidden                   *dbListOptions `json:"-" yaml:"-" mapstructure:"-"`
+		*options.DatabaseCommand `yaml:",inline" mapstructure:",squash"`
+	}
+
+	return app.SetupCommand(cmd, &configWrapper{Hidden: opts, DatabaseCommand: &opts.DatabaseCommand})
 }
 
-func runDBList(opts *dbListOptions) error {
-	dbCurator, err := db.NewCurator(opts.DB.ToCuratorConfig())
+func runDBList(opts dbListOptions) error {
+	c, err := distribution.NewClient(opts.ToClientConfig())
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to create distribution client: %w", err)
 	}
 
-	listing, err := dbCurator.ListingFromURL()
+	latest, err := c.Latest()
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to get database listing: %w", err)
 	}
 
-	supportedSchema := dbCurator.SupportedSchema()
-	available, exists := listing.Available[supportedSchema]
-
-	if len(available) == 0 || !exists {
-		return stderrPrintLnf("No databases available for the current schema (%d)", supportedSchema)
+	u, err := c.ResolveArchiveURL(latest.Archive)
+	if err != nil {
+		return fmt.Errorf("unable to resolve database URL: %w", err)
 	}
 
-	switch opts.Output {
-	case "text":
-		// summarize each listing entry for the current DB schema
-		for _, l := range available {
-			fmt.Printf("Built:    %s\n", l.Built)
-			fmt.Printf("URL:      %s\n", l.URL)
-			fmt.Printf("Checksum: %s\n\n", l.Checksum)
-		}
+	return presentDBList(opts.Output, u, opts.DB.UpdateURL, os.Stdout, latest)
+}
 
-		fmt.Printf("%d databases available for schema %d\n", len(available), supportedSchema)
-	case "json":
-		// show entries for the current schema
-		enc := json.NewEncoder(os.Stdout)
+func presentDBList(format string, archiveURL, listingURL string, writer io.Writer, latest *distribution.LatestDocument) error {
+	if latest == nil {
+		return fmt.Errorf("no database listing found")
+	}
+
+	// remove query params
+	archiveURLObj, err := url.Parse(archiveURL)
+	if err != nil {
+		return fmt.Errorf("unable to parse db URL %q: %w", archiveURL, err)
+	}
+
+	archiveURLObj.RawQuery = ""
+
+	if listingURL == distribution.DefaultConfig().LatestURL {
+		// append on the schema
+		listingURL = fmt.Sprintf("%s/v%v/%s", listingURL, latest.SchemaVersion.Model, distribution.LatestFileName)
+	}
+
+	switch format {
+	case textOutputFormat:
+		fmt.Fprintf(writer, "Status:   %s\n", latest.Status)
+		fmt.Fprintf(writer, "Schema:   %s\n", latest.SchemaVersion.String())
+		fmt.Fprintf(writer, "Built:    %s\n", latest.Built.String())
+		fmt.Fprintf(writer, "Listing:  %s\n", listingURL)
+		fmt.Fprintf(writer, "DB URL:   %s\n", archiveURLObj.String())
+		fmt.Fprintf(writer, "Checksum: %s\n", latest.Checksum)
+	case jsonOutputFormat, "raw":
+		enc := json.NewEncoder(writer)
 		enc.SetEscapeHTML(false)
 		enc.SetIndent("", " ")
-		if err := enc.Encode(&available); err != nil {
-			return fmt.Errorf("failed to db listing information: %+v", err)
-		}
-	case "raw":
-		// show the entire listing file
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetEscapeHTML(false)
-		enc.SetIndent("", " ")
-		if err := enc.Encode(&listing); err != nil {
+		// why make an array? We are reserving the right to list additional entries in the future without the
+		// need to change from an object to an array at that point in time. This will be useful if we implement
+		// the history.json functionality for grabbing historical database listings.
+		if err := enc.Encode([]any{latest}); err != nil {
 			return fmt.Errorf("failed to db listing information: %+v", err)
 		}
 	default:
-		return fmt.Errorf("unsupported output format: %s", opts.Output)
+		return fmt.Errorf("unsupported output format: %s", format)
 	}
-
 	return nil
 }

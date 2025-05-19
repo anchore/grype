@@ -1,10 +1,12 @@
 package models
 
-import "github.com/anchore/grype/grype/vulnerability"
+import (
+	"github.com/anchore/grype/grype/vulnerability"
+)
 
 var _ vulnerability.MetadataProvider = (*MetadataMock)(nil)
 
-// MetadataMock provides the behavior required for a vulnerability.MetadataProvider for the purpose of testing.
+// MetadataMock provides the behavior required for a vulnerability.Provider for the purpose of testing.
 type MetadataMock struct {
 	store map[string]map[string]vulnerability.Metadata
 }
@@ -39,11 +41,11 @@ func NewMetadataMock() *MetadataMock {
 					Severity:    "Critical",
 					Cvss: []vulnerability.Cvss{
 						{
-							Metrics: vulnerability.NewCvssMetrics(
-								1,
-								2,
-								3,
-							),
+							Metrics: vulnerability.CvssMetrics{
+								BaseScore:           1,
+								ExploitabilityScore: ptr(2.0),
+								ImpactScore:         ptr(3.0),
+							},
 							Vector:  "vector",
 							Version: "2.0",
 							VendorMetadata: MockVendorMetadata{
@@ -66,11 +68,11 @@ func NewMetadataMock() *MetadataMock {
 					Severity:    "Critical",
 					Cvss: []vulnerability.Cvss{
 						{
-							Metrics: vulnerability.NewCvssMetrics(
-								1,
-								2,
-								3,
-							),
+							Metrics: vulnerability.CvssMetrics{
+								BaseScore:           1,
+								ExploitabilityScore: ptr(2.0),
+								ImpactScore:         ptr(3.0),
+							},
 							Vector:  "vector",
 							Version: "2.0",
 							VendorMetadata: MockVendorMetadata{
@@ -85,8 +87,14 @@ func NewMetadataMock() *MetadataMock {
 	}
 }
 
-// GetMetadata returns vulnerability metadata for a given id and recordSource.
-func (m *MetadataMock) GetMetadata(id, namespace string) (*vulnerability.Metadata, error) {
-	value := m.store[id][namespace]
+func ptr[T any](t T) *T {
+	return &t
+}
+
+// VulnerabilityMetadata returns vulnerability metadata for a given id and recordSource.
+func (m *MetadataMock) VulnerabilityMetadata(vuln vulnerability.Reference) (*vulnerability.Metadata, error) {
+	value := m.store[vuln.ID][vuln.Namespace]
+	value.ID = vuln.ID
+	value.Namespace = vuln.Namespace
 	return &value, nil
 }

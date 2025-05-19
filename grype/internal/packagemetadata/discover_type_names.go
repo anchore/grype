@@ -16,6 +16,9 @@ import (
 
 var metadataExceptions = strset.New(
 	"FileMetadata",
+	"SBOMFileMetadata",
+	"PURLLiteralMetadata",
+	"CPELiteralMetadata",
 )
 
 func DiscoverTypeNames() ([]string, error) {

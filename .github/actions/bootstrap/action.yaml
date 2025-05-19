@@ -4,11 +4,11 @@ inputs:
   go-version:
     description: "Go version to install"
     required: true
-    default: "1.23.x"
+    default: ">= 1.24"
   python-version:
     description: "Python version to install"
     required: true
-    default: "3.10"
+    default: "3.11"
   go-dependencies:
     description: "Download go dependencies"
     required: true
@@ -21,6 +21,9 @@ inputs:
     description: "Compute test fixture fingerprints"
     required: true
     default: "true"
+  tools:
+    description: "whether to install tools"
+    default: "true"
   bootstrap-apt-packages:
     description: "Space delimited list of tools to install via apt"
     default: "libxml2-utils"
@@ -29,23 +32,25 @@ runs:
   using: "composite"
   steps:
     # note: go mod and build is automatically cached on default with v4+
-    - uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
+    - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
       if: inputs.go-version != ''
       with:
         go-version: ${{ inputs.go-version }}
 
-    - uses: actions/setup-python@d27e3f3d7c64b4bbf8e4abfb9b63b83e846e0435 # v4.5.0
+    - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
       with:
         python-version: ${{ inputs.python-version }}
 
     - name: Restore tool cache
       id: tool-cache
-      uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+      uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      if: inputs.tools == 'true'
       with:
         path: ${{ github.workspace }}/.tool
         key: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-tool-${{ hashFiles('.binny.yaml') }}
 
     - name: Install project tools
+      if: inputs.tools == 'true'
       shell: bash
       run: make tools
 

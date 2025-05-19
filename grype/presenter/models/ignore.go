@@ -10,6 +10,7 @@ type IgnoredMatch struct {
 type IgnoreRule struct {
 	Vulnerability    string             `json:"vulnerability,omitempty"`
 	Reason           string             `json:"reason,omitempty"`
+	Namespace        string             `json:"namespace"`
 	FixState         string             `json:"fix-state,omitempty"`
 	Package          *IgnoreRulePackage `json:"package,omitempty"`
 	VexStatus        string             `json:"vex-status,omitempty"`
@@ -20,6 +21,7 @@ type IgnoreRule struct {
 type IgnoreRulePackage struct {
 	Name         string `json:"name,omitempty"`
 	Version      string `json:"version,omitempty"`
+	Language     string `json:"language"`
 	Type         string `json:"type,omitempty"`
 	Location     string `json:"location,omitempty"`
 	UpstreamName string `json:"upstream-name,omitempty"`
@@ -33,6 +35,7 @@ func newIgnoreRule(r match.IgnoreRule) IgnoreRule {
 		ignoreRulePackage = &IgnoreRulePackage{
 			Name:         r.Package.Name,
 			Version:      r.Package.Version,
+			Language:     r.Package.Language,
 			Type:         r.Package.Type,
 			Location:     r.Package.Location,
 			UpstreamName: r.Package.UpstreamName,
@@ -42,6 +45,7 @@ func newIgnoreRule(r match.IgnoreRule) IgnoreRule {
 	return IgnoreRule{
 		Vulnerability:    r.Vulnerability,
 		Reason:           r.Reason,
+		Namespace:        r.Namespace,
 		FixState:         r.FixState,
 		Package:          ignoreRulePackage,
 		VexStatus:        r.VexStatus,

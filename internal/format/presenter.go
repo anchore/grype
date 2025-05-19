@@ -15,6 +15,7 @@ import (
 type PresentationConfig struct {
 	TemplateFilePath string
 	ShowSuppressed   bool
+	Pretty           bool
 }
 
 // GetPresenter retrieves a Presenter that matches a CLI option

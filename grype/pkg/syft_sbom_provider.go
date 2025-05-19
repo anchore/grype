@@ -9,76 +9,72 @@ import (
 	"strings"
 
 	"github.com/gabriel-vasile/mimetype"
-	"github.com/mitchellh/go-homedir"
 
+	"github.com/anchore/go-homedir"
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/format"
+	"github.com/anchore/syft/syft/format/syftjson"
 	"github.com/anchore/syft/syft/sbom"
 )
 
-type errEmptySBOM struct {
-	sbomFilepath string
-}
-
-func (e errEmptySBOM) Error() string {
-	return fmt.Sprintf("SBOM file is empty: %s", e.sbomFilepath)
+type SBOMFileMetadata struct {
+	Path string
 }
 
 func syftSBOMProvider(userInput string, config ProviderConfig) ([]Package, Context, *sbom.SBOM, error) {
-	s, err := getSBOM(userInput)
+	s, fmtID, path, err := getSBOM(userInput)
 	if err != nil {
 		return nil, Context{}, nil, err
 	}
 
-	catalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, s.Artifacts.LinuxDistribution)
+	src := s.Source
+	if src.Metadata == nil && path != "" {
+		src.Metadata = SBOMFileMetadata{
+			Path: path,
+		}
+	}
 
-	return FromCollection(catalog, config.SynthesisConfig), Context{
-		Source: &s.Source,
-		Distro: s.Artifacts.LinuxDistribution,
+	d := distro.FromRelease(s.Artifacts.LinuxDistribution)
+
+	catalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, d)
+
+	var enhancers []Enhancer
+	if fmtID != syftjson.ID {
+		enhancers = purlEnhancers
+	}
+
+	return FromCollection(catalog, config.SynthesisConfig, enhancers...), Context{
+		Source: &src,
+		Distro: d,
 	}, s, nil
 }
 
-func newInputInfo(scheme, contentTye string) *inputInfo {
-	return &inputInfo{
-		Scheme:      scheme,
-		ContentType: contentTye,
-	}
-}
-
-type inputInfo struct {
-	ContentType string
-	Scheme      string
-}
-
-func getSBOM(userInput string) (*sbom.SBOM, error) {
-	reader, err := getSBOMReader(userInput)
+func getSBOM(userInput string) (*sbom.SBOM, sbom.FormatID, string, error) {
+	reader, path, err := getSBOMReader(userInput)
 	if err != nil {
-		return nil, err
+		return nil, "", path, err
 	}
 
+	s, fmtID, err := readSBOM(reader)
+	return s, fmtID, path, err
+}
+
+func readSBOM(reader io.ReadSeeker) (*sbom.SBOM, sbom.FormatID, error) {
 	s, fmtID, _, err := format.Decode(reader)
 	if err != nil {
-		return nil, fmt.Errorf("unable to decode sbom: %w", err)
+		return nil, "", fmt.Errorf("unable to decode sbom: %w", err)
 	}
 
 	if fmtID == "" || s == nil {
-		return nil, errDoesNotProvide
+		return nil, "", errDoesNotProvide
 	}
 
-	return s, nil
+	return s, fmtID, nil
 }
 
-func getSBOMReader(userInput string) (r io.ReadSeeker, err error) {
-	r, _, err = extractReaderAndInfo(userInput)
-	if err != nil {
-		return nil, err
-	}
-
-	return r, nil
-}
-
-func extractReaderAndInfo(userInput string) (io.ReadSeeker, *inputInfo, error) {
+func getSBOMReader(userInput string) (io.ReadSeeker, string, error) {
 	switch {
 	// the order of cases matter
 	case userInput == "":
@@ -86,63 +82,39 @@ func extractReaderAndInfo(userInput string) (io.ReadSeeker, *inputInfo, error) {
 		// options from the CLI, otherwise we should not assume there is any valid input from stdin.
 		r, err := stdinReader()
 		if err != nil {
-			return nil, nil, err
+			return nil, "", err
 		}
 		return decodeStdin(r)
 
+	case explicitlySpecifyingPurlList(userInput):
+		filepath := strings.TrimPrefix(userInput, purlInputPrefix)
+		return openFile(filepath)
+
 	case explicitlySpecifyingSBOM(userInput):
 		filepath := strings.TrimPrefix(userInput, "sbom:")
-		return parseSBOM("sbom", filepath)
+		return openFile(filepath)
 
 	case isPossibleSBOM(userInput):
-		return parseSBOM("", userInput)
+		return openFile(userInput)
 
 	default:
-		return nil, nil, errDoesNotProvide
+		return nil, "", errDoesNotProvide
 	}
 }
 
-func parseSBOM(scheme, path string) (io.ReadSeeker, *inputInfo, error) {
-	r, err := openFile(path)
-	if err != nil {
-		return nil, nil, err
-	}
-	info := newInputInfo(scheme, "sbom")
-	return r, info, nil
-}
-
-func decodeStdin(r io.Reader) (io.ReadSeeker, *inputInfo, error) {
+func decodeStdin(r io.Reader) (io.ReadSeeker, string, error) {
 	b, err := io.ReadAll(r)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed reading stdin: %w", err)
+		return nil, "", fmt.Errorf("failed reading stdin: %w", err)
 	}
 
 	reader := bytes.NewReader(b)
 	_, err = reader.Seek(0, io.SeekStart)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse stdin: %w", err)
+		return nil, "", fmt.Errorf("failed to parse stdin: %w", err)
 	}
 
-	return reader, newInputInfo("", "sbom"), nil
-}
-
-// fileHasContent returns a bool indicating whether the given file has data that could possibly be utilized in
-// downstream processing.
-func fileHasContent(f *os.File) bool {
-	if f == nil {
-		return false
-	}
-
-	info, err := f.Stat()
-	if err != nil {
-		return false
-	}
-
-	if size := info.Size(); size > 0 {
-		return true
-	}
-
-	return false
+	return reader, "", nil
 }
 
 func stdinReader() (io.Reader, error) {
@@ -158,41 +130,26 @@ func stdinReader() (io.Reader, error) {
 	return os.Stdin, nil
 }
 
-func closeFile(f *os.File) {
-	if f == nil {
-		return
-	}
-
-	err := f.Close()
-	if err != nil {
-		log.Warnf("failed to close file %s: %v", f.Name(), err)
-	}
-}
-
-func openFile(path string) (*os.File, error) {
+func openFile(path string) (io.ReadSeekCloser, string, error) {
 	expandedPath, err := homedir.Expand(path)
 	if err != nil {
-		return nil, fmt.Errorf("unable to open SBOM: %w", err)
+		return nil, path, fmt.Errorf("unable to open SBOM: %w", err)
 	}
 
 	f, err := os.Open(expandedPath)
 	if err != nil {
-		return nil, fmt.Errorf("unable to open file %s: %w", expandedPath, err)
+		return nil, path, fmt.Errorf("unable to open file %s: %w", expandedPath, err)
 	}
 
-	if !fileHasContent(f) {
-		return nil, errEmptySBOM{path}
-	}
-
-	return f, nil
+	return f, path, nil
 }
 
 func isPossibleSBOM(userInput string) bool {
-	f, err := openFile(userInput)
+	f, path, err := openFile(userInput)
 	if err != nil {
 		return false
 	}
-	defer closeFile(f)
+	defer log.CloseAndLogError(f, path)
 
 	mType, err := mimetype.DetectReader(f)
 	if err != nil {
@@ -215,4 +172,8 @@ func isAncestorOfMimetype(mType *mimetype.MIME, expected string) bool {
 
 func explicitlySpecifyingSBOM(userInput string) bool {
 	return strings.HasPrefix(userInput, "sbom:")
+}
+
+func explicitlySpecifyingPurlList(userInput string) bool {
+	return strings.HasPrefix(userInput, purlInputPrefix)
 }

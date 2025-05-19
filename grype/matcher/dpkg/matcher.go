@@ -3,10 +3,9 @@ package dpkg
 import (
 	"fmt"
 
-	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
@@ -22,29 +21,29 @@ func (m *Matcher) Type() match.MatcherType {
 	return match.DpkgMatcher
 }
 
-func (m *Matcher) Match(store vulnerability.Provider, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoredMatch, error) {
 	matches := make([]match.Match, 0)
 
-	sourceMatches, err := m.matchUpstreamPackages(store, d, p)
+	sourceMatches, err := m.matchUpstreamPackages(store, p)
 	if err != nil {
-		return nil, fmt.Errorf("failed to match by source indirection: %w", err)
+		return nil, nil, fmt.Errorf("failed to match by source indirection: %w", err)
 	}
 	matches = append(matches, sourceMatches...)
 
-	exactMatches, err := search.ByPackageDistro(store, d, p, m.Type())
+	exactMatches, _, err := internal.MatchPackageByDistro(store, p, m.Type())
 	if err != nil {
-		return nil, fmt.Errorf("failed to match by exact package name: %w", err)
+		return nil, nil, fmt.Errorf("failed to match by exact package name: %w", err)
 	}
 	matches = append(matches, exactMatches...)
 
-	return matches, nil
+	return matches, nil, nil
 }
 
-func (m *Matcher) matchUpstreamPackages(store vulnerability.ProviderByDistro, d *distro.Distro, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) matchUpstreamPackages(store vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
 	var matches []match.Match
 
 	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indirectMatches, err := search.ByPackageDistro(store, d, indirectPackage, m.Type())
+		indirectMatches, _, err := internal.MatchPackageByDistro(store, indirectPackage, m.Type())
 		if err != nil {
 			return nil, fmt.Errorf("failed to find vulnerabilities for dpkg upstream source package: %w", err)
 		}

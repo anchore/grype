@@ -1,3 +1,0 @@
-pkg:deb/debian/curl@7.50.3-1?arch=i386&distro=jessie&cpes=cpe%3A2.3%3Aa%3Abenjamin_curtis%3Aphpbugtracker%3A1.0.3%3A%2A%3A%2A%3A%2A%3A%2A%3A%2A%3A%2A%3A%2A
-pkg:maven/org.apache.ant/ant@1.10.8
-pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1

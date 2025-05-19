@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/wagoodman/go-partybus"
@@ -11,8 +12,7 @@ import (
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/db"
-	grypeDb "github.com/anchore/grype/grype/db/v5"
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/event"
 	"github.com/anchore/grype/grype/event/parsers"
 	"github.com/anchore/grype/grype/grypeerr"
@@ -27,14 +27,15 @@ import (
 	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
-	"github.com/anchore/grype/grype/store"
 	"github.com/anchore/grype/grype/vex"
+	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/format"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/stringutil"
-	"github.com/anchore/syft/syft/linux"
+	"github.com/anchore/syft/syft"
+	"github.com/anchore/syft/syft/cataloging"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/sbom"
 )
@@ -59,9 +60,12 @@ You can also explicitly specify the scheme to use:
     {{.appName}} oci-dir:path/to/yourimage              read directly from a path on disk for OCI layout directories (from Skopeo or otherwise)
     {{.appName}} singularity:path/to/yourimage.sif      read directly from a Singularity Image Format (SIF) container on disk
     {{.appName}} dir:path/to/yourproject                read directly from a path on disk (any directory)
+    {{.appName}} file:path/to/yourfile                  read directly from a file on disk
     {{.appName}} sbom:path/to/syft.json                 read Syft JSON from path on disk
     {{.appName}} registry:yourrepo/yourimage:tag        pull image directly from a registry (no container runtime required)
-    {{.appName}} purl:path/to/purl/file                 read a newline separated file of purls from a path on disk
+    {{.appName}} purl:path/to/purl/file                 read a newline separated file of package URLs from a path on disk
+    {{.appName}} PURL                                   read a single package PURL directly (e.g. pkg:apk/openssl@3.2.1?distro=alpine-3.20.3)
+    {{.appName}} CPE                                    read a single CPE directly (e.g. cpe:2.3:a:openssl:openssl:3.0.14:*:*:*:*:*)
 
 You can also pipe in Syft JSON directly:
 	syft yourimage:tag -o json | {{.appName}}
@@ -84,13 +88,13 @@ You can also pipe in Syft JSON directly:
 }
 
 var ignoreNonFixedMatches = []match.IgnoreRule{
-	{FixState: string(grypeDb.NotFixedState)},
-	{FixState: string(grypeDb.WontFixState)},
-	{FixState: string(grypeDb.UnknownFixState)},
+	{FixState: string(vulnerability.FixStateNotFixed)},
+	{FixState: string(vulnerability.FixStateWontFix)},
+	{FixState: string(vulnerability.FixStateUnknown)},
 }
 
 var ignoreFixedMatches = []match.IgnoreRule{
-	{FixState: string(grypeDb.FixedState)},
+	{FixState: string(vulnerability.FixStateFixed)},
 }
 
 var ignoreVEXFixedNotAffected = []match.IgnoreRule{
@@ -100,7 +104,7 @@ var ignoreVEXFixedNotAffected = []match.IgnoreRule{
 
 var ignoreLinuxKernelHeaders = []match.IgnoreRule{
 	{Package: match.IgnoreRulePackage{Name: "kernel-headers", UpstreamName: "kernel", Type: string(syftPkg.RpmPkg)}, MatchType: match.ExactIndirectMatch},
-	{Package: match.IgnoreRulePackage{Name: "linux-headers-.*", UpstreamName: "linux", Type: string(syftPkg.DebPkg)}, MatchType: match.ExactIndirectMatch},
+	{Package: match.IgnoreRulePackage{Name: "linux(-.*)?-headers-.*", UpstreamName: "linux.*", Type: string(syftPkg.DebPkg)}, MatchType: match.ExactIndirectMatch},
 	{Package: match.IgnoreRulePackage{Name: "linux-libc-dev", UpstreamName: "linux", Type: string(syftPkg.DebPkg)}, MatchType: match.ExactIndirectMatch},
 }
 
@@ -109,14 +113,14 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 	writer, err := format.MakeScanResultWriter(opts.Outputs, opts.File, format.PresentationConfig{
 		TemplateFilePath: opts.OutputTemplateFile,
 		ShowSuppressed:   opts.ShowSuppressed,
+		Pretty:           opts.Pretty,
 	})
 	if err != nil {
 		return err
 	}
 
-	var str *store.Store
-	var status *db.Status
-	var dbCloser *db.Closer
+	var vp vulnerability.Provider
+	var status *vulnerability.ProviderStatus
 	var packages []pkg.Package
 	var s *sbom.SBOM
 	var pkgContext pkg.Context
@@ -134,8 +138,8 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 	}
 
 	for _, ignoreState := range stringutil.SplitCommaSeparatedString(opts.IgnoreStates) {
-		switch grypeDb.FixState(ignoreState) {
-		case grypeDb.UnknownFixState, grypeDb.FixedState, grypeDb.NotFixedState, grypeDb.WontFixState:
+		switch vulnerability.FixState(ignoreState) {
+		case vulnerability.FixStateUnknown, vulnerability.FixStateFixed, vulnerability.FixStateNotFixed, vulnerability.FixStateWontFix:
 			opts.Ignore = append(opts.Ignore, match.IgnoreRule{FixState: ignoreState})
 		default:
 			return fmt.Errorf("unknown fix state %s was supplied for --ignore-states", ignoreState)
@@ -148,11 +152,15 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 			return nil
 		},
 		func() (err error) {
+			startTime := time.Now()
+			defer func() { log.WithFields("time", time.Since(startTime)).Info("loaded DB") }()
 			log.Debug("loading DB")
-			str, status, dbCloser, err = grype.LoadVulnerabilityDB(opts.DB.ToCuratorConfig(), opts.DB.AutoUpdate)
+			vp, status, err = grype.LoadVulnerabilityDB(opts.ToClientConfig(), opts.ToCuratorConfig(), opts.DB.AutoUpdate)
 			return validateDBLoad(err, status)
 		},
 		func() (err error) {
+			startTime := time.Now()
+			defer func() { log.WithFields("time", time.Since(startTime)).Info("gathered packages") }()
 			log.Debugf("gathering packages")
 			// packages are grype.Package, not syft.Package
 			// the SBOM is returned for downstream formatting concerns
@@ -170,22 +178,21 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		return err
 	}
 
-	if dbCloser != nil {
-		defer dbCloser.Close()
-	}
+	defer log.CloseAndLogError(vp, status.Path)
 
 	if err = applyVexRules(opts); err != nil {
 		return fmt.Errorf("applying vex rules: %w", err)
 	}
 
+	startTime := time.Now()
 	applyDistroHint(packages, &pkgContext, opts)
 
 	vulnMatcher := grype.VulnerabilityMatcher{
-		Store:          *str,
-		IgnoreRules:    opts.Ignore,
-		NormalizeByCVE: opts.ByCVE,
-		FailSeverity:   opts.FailOnSeverity(),
-		Matchers:       getMatchers(opts),
+		VulnerabilityProvider: vp,
+		IgnoreRules:           opts.Ignore,
+		NormalizeByCVE:        opts.ByCVE,
+		FailSeverity:          opts.FailOnSeverity(),
+		Matchers:              getMatchers(opts),
 		VexProcessor: vex.NewProcessor(vex.ProcessorOptions{
 			Documents:   opts.VexDocuments,
 			IgnoreRules: opts.Ignore,
@@ -200,21 +207,49 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		errs = appendErrors(errs, err)
 	}
 
+	log.WithFields("time", time.Since(startTime)).Info("found vulnerability matches")
+	startTime = time.Now()
+
+	model, err := models.NewDocument(app.ID(), packages, pkgContext, *remainingMatches, ignoredMatches, vp, opts, dbInfo(status, vp), models.SortStrategy(opts.SortBy.Criteria))
+	if err != nil {
+		return fmt.Errorf("failed to create document: %w", err)
+	}
+
 	if err = writer.Write(models.PresenterConfig{
-		ID:               app.ID(),
-		Matches:          *remainingMatches,
-		IgnoredMatches:   ignoredMatches,
-		Packages:         packages,
-		Context:          pkgContext,
-		MetadataProvider: str,
-		SBOM:             s,
-		AppConfig:        opts,
-		DBStatus:         status,
+		ID:       app.ID(),
+		Document: model,
+		SBOM:     s,
+		Pretty:   opts.Pretty,
 	}); err != nil {
 		errs = appendErrors(errs, err)
 	}
 
+	log.WithFields("time", time.Since(startTime)).Trace("wrote vulnerability report")
+
 	return errs
+}
+
+func dbInfo(status *vulnerability.ProviderStatus, vp vulnerability.Provider) any {
+	var providers map[string]vulnerability.DataProvenance
+
+	if vp != nil {
+		providers = make(map[string]vulnerability.DataProvenance)
+		if dpr, ok := vp.(vulnerability.StoreMetadataProvider); ok {
+			dps, err := dpr.DataProvenance()
+			// ignore errors here
+			if err == nil {
+				providers = dps
+			}
+		}
+	}
+
+	return struct {
+		Status    *vulnerability.ProviderStatus           `json:"status"`
+		Providers map[string]vulnerability.DataProvenance `json:"providers"`
+	}{
+		Status:    status,
+		Providers: providers,
+	}
 }
 
 func applyDistroHint(pkgs []pkg.Package, context *pkg.Context, opts *options.Grype) {
@@ -227,28 +262,25 @@ func applyDistroHint(pkgs []pkg.Package, context *pkg.Context, opts *options.Gry
 		if len(split) > 1 {
 			v = split[1]
 		}
-		context.Distro = &linux.Release{
-			PrettyName: d,
-			Name:       d,
-			ID:         d,
-			IDLike: []string{
-				d,
-			},
-			Version:   v,
-			VersionID: v,
+		var err error
+		context.Distro, err = distro.NewFromNameVersion(d, v)
+		if err != nil {
+			log.WithFields("distro", opts.Distro, "error", err).Warn("unable to parse distro")
 		}
 	}
 
-	hasOSPackage := false
+	hasOSPackageWithoutDistro := false
 	for _, p := range pkgs {
 		switch p.Type {
 		case syftPkg.AlpmPkg, syftPkg.DebPkg, syftPkg.RpmPkg, syftPkg.KbPkg:
-			hasOSPackage = true
+			if p.Distro == nil {
+				hasOSPackageWithoutDistro = true
+			}
 		}
 	}
 
-	if context.Distro == nil && hasOSPackage {
-		log.Warnf("Unable to determine the OS distribution. This may result in missing vulnerabilities. " +
+	if context.Distro == nil && hasOSPackageWithoutDistro {
+		log.Warnf("Unable to determine the OS distribution of some packages. This may result in missing vulnerabilities. " +
 			"You may specify a distro using: --distro <distro>:<version>")
 	}
 }
@@ -273,11 +305,11 @@ func checkForAppUpdate(id clio.Identification, opts *options.Grype) {
 			},
 		})
 	} else {
-		log.Debugf("no new %s update available", id.Name)
+		log.Debugf("no new %s application update available", id.Name)
 	}
 }
 
-func getMatchers(opts *options.Grype) []matcher.Matcher {
+func getMatchers(opts *options.Grype) []match.Matcher {
 	return matcher.NewDefaultMatchers(
 		matcher.Config{
 			Java: java.MatcherConfig{
@@ -298,15 +330,47 @@ func getMatchers(opts *options.Grype) []matcher.Matcher {
 	)
 }
 
-func validateDBLoad(loadErr error, status *db.Status) error {
+func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
+	cfg := syft.DefaultCreateSBOMConfig()
+	cfg.Packages.JavaArchive.IncludeIndexedArchives = opts.Search.IncludeIndexedArchives
+	cfg.Packages.JavaArchive.IncludeUnindexedArchives = opts.Search.IncludeUnindexedArchives
+
+	// when we run into a package with missing information like version, then this is not useful in the context
+	// of vulnerability matching. Though there will be downstream processing to handle this case, we can still
+	// save us the effort of ever attempting to match with these packages as early as possible.
+	cfg.Compliance.MissingVersion = cataloging.ComplianceActionDrop
+
+	return pkg.ProviderConfig{
+		SyftProviderConfig: pkg.SyftProviderConfig{
+			RegistryOptions:        opts.Registry.ToOptions(),
+			Exclusions:             opts.Exclusions,
+			SBOMOptions:            cfg,
+			Platform:               opts.Platform,
+			Name:                   opts.Name,
+			DefaultImagePullSource: opts.DefaultImagePullSource,
+		},
+		SynthesisConfig: pkg.SynthesisConfig{
+			GenerateMissingCPEs: opts.GenerateMissingCPEs,
+		},
+	}
+}
+
+func validateDBLoad(loadErr error, status *vulnerability.ProviderStatus) error {
 	if loadErr != nil {
+		// notify the user about grype db delete to fix checksum errors
+		if strings.Contains(loadErr.Error(), "checksum") {
+			bus.Notify("Database checksum invalid, run `grype db delete` to remove it and `grype db update` to update.")
+		}
+		if strings.Contains(loadErr.Error(), "import.json") {
+			bus.Notify("Unable to find database import metadata, run `grype db delete` to remove the existing database and `grype db update` to update.")
+		}
 		return fmt.Errorf("failed to load vulnerability db: %w", loadErr)
 	}
 	if status == nil {
 		return fmt.Errorf("unable to determine the status of the vulnerability db")
 	}
-	if status.Err != nil {
-		return fmt.Errorf("db could not be loaded: %w", status.Err)
+	if status.Error != nil {
+		return fmt.Errorf("db could not be loaded: %w", status.Error)
 	}
 	return nil
 }

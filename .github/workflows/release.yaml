@@ -12,9 +12,9 @@ permissions:
 jobs:
   quality-gate:
     environment: release
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.1.7
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
 
       - name: Check if running on main
         if: github.ref != 'refs/heads/main'
@@ -24,7 +24,7 @@ jobs:
         # at the time of when the OIDC token was issued on the Github Actions runner.
         run: echo "This can only be run on the main branch otherwise releases produced will not be verifiable with cosign" && exit 1
 
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.1.7
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
 
       - name: Check if pinned syft is a release version
         run: .github/scripts/check-syft-version-is-release.sh
@@ -60,6 +60,17 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
           checkName: "Integration tests"
+          timeoutSeconds: 1200 # 20 minutes, it sometimes takes that long
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Check integration test results
+        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be # v1.2.0
+        id: quality_tests
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
+          checkName: "Quality tests"
+          timeoutSeconds: 1200 # 20 minutes, it sometimes takes that long
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check acceptance test results (linux)
@@ -90,11 +101,12 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Quality gate
-        if: steps.static-analysis.outputs.conclusion != 'success' || steps.unit.outputs.conclusion != 'success' || steps.integration.outputs.conclusion != 'success' || steps.cli-linux.outputs.conclusion != 'success' || steps.acceptance-linux.outputs.conclusion != 'success' || steps.acceptance-mac.outputs.conclusion != 'success'
+        if: steps.static-analysis.outputs.conclusion != 'success' || steps.unit.outputs.conclusion != 'success' || steps.integration.outputs.conclusion != 'success' || steps.quality_tests.outputs.conclusion != 'success' || steps.cli-linux.outputs.conclusion != 'success' || steps.acceptance-linux.outputs.conclusion != 'success' || steps.acceptance-mac.outputs.conclusion != 'success'
         run: |
           echo "Static Analysis Status: ${{ steps.static-analysis.conclusion }}"
           echo "Unit Test Status: ${{ steps.unit.outputs.conclusion }}"
           echo "Integration Test Status: ${{ steps.integration.outputs.conclusion }}"
+          echo "Quality Test Status: ${{ steps.quality_tests.outputs.conclusion }}"
           echo "Acceptance Test (Linux) Status: ${{ steps.acceptance-linux.outputs.conclusion }}"
           echo "Acceptance Test (Mac) Status: ${{ steps.acceptance-mac.outputs.conclusion }}"
           echo "CLI Test (Linux) Status: ${{ steps.cli-linux.outputs.conclusion }}"
@@ -106,13 +118,13 @@ jobs:
   # not all actions are guaranteed to be idempotent.
   release:
     needs: [quality-gate]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       packages: write
       id-token: write
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.1.7
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
         with:
           fetch-depth: 0
 
@@ -123,13 +135,13 @@ jobs:
           build-cache-key-prefix: "snapshot"
 
       - name: Login to Docker Hub
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567  #v3.3.0
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772  #v3.4.0
         with:
           username: ${{ secrets.ANCHOREOSSWRITE_DH_USERNAME }}
           password: ${{ secrets.ANCHOREOSSWRITE_DH_PAT }}
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567  #v3.3.0
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772  #v3.4.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -158,12 +170,12 @@ jobs:
           # for updating brew formula in anchore/homebrew-syft
           GITHUB_BREW_TOKEN: ${{ secrets.ANCHOREOPS_GITHUB_OSS_WRITE_TOKEN }}
 
-      - uses: anchore/sbom-action@61119d458adab75f756bc0b9e4bde25725f86a7a # v0.17.2
+      - uses: anchore/sbom-action@e11c554f704a0b820cbf8c51673f6945e0731532 # v0.20.0
         continue-on-error: true
         with:
           artifact-name: sbom.spdx.json
 
-      - uses: 8398a7/action-slack@28ba43ae48961b90635b50953d216767a6bea486 # v3.16.2
+      - uses: 8398a7/action-slack@1750b5085f3ec60384090fb7c52965ef822e869e # v3.18.0
         continue-on-error: true
         with:
           status: ${{ job.status }}

@@ -21,9 +21,11 @@ func newDebVersion(raw string) (*debVersion, error) {
 }
 
 func (d *debVersion) Compare(other *Version) (int, error) {
-	if other.Format != DebFormat {
-		return -1, fmt.Errorf("unable to compare deb to given format: %s", other.Format)
+	other, err := finalizeComparisonVersion(other, DebFormat)
+	if err != nil {
+		return -1, err
 	}
+
 	if other.rich.debVer == nil {
 		return -1, fmt.Errorf("given empty debVersion object")
 	}

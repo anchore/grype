@@ -53,7 +53,7 @@ func (c mavenConstraint) Satisfied(version *Version) (satisfied bool, err error)
 	}
 
 	if !c.supported(version.Format) {
-		return false, fmt.Errorf("(maven) unsupported format: %s", version.Format)
+		return false, NewUnsupportedFormatError(MavenFormat, version.Format)
 	}
 
 	if version.rich.mavenVer == nil {

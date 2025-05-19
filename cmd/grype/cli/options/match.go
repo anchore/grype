@@ -5,6 +5,7 @@ import "github.com/anchore/clio"
 // matchConfig contains all matching-related configuration options available to the user via the application config.
 type matchConfig struct {
 	Java       matcherConfig `yaml:"java" json:"java" mapstructure:"java"`                   // settings for the java matcher
+	JVM        matcherConfig `yaml:"jvm" json:"jvm" mapstructure:"jvm"`                      // settings for the jvm matcher
 	Dotnet     matcherConfig `yaml:"dotnet" json:"dotnet" mapstructure:"dotnet"`             // settings for the dotnet matcher
 	Golang     golangConfig  `yaml:"golang" json:"golang" mapstructure:"golang"`             // settings for the golang matcher
 	Javascript matcherConfig `yaml:"javascript" json:"javascript" mapstructure:"javascript"` // settings for the javascript matcher
@@ -43,6 +44,7 @@ func defaultMatchConfig() matchConfig {
 	dontUseCpe := matcherConfig{UseCPEs: false}
 	return matchConfig{
 		Java:       dontUseCpe,
+		JVM:        useCpe,
 		Dotnet:     dontUseCpe,
 		Golang:     defaultGolangConfig(),
 		Javascript: dontUseCpe,

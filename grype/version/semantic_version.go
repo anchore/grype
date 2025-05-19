@@ -21,9 +21,11 @@ func newSemanticVersion(raw string) (*semanticVersion, error) {
 }
 
 func (v *semanticVersion) Compare(other *Version) (int, error) {
-	if other.Format != SemanticFormat {
-		return -1, fmt.Errorf("unable to compare semantic version to given format: %s", other.Format)
+	other, err := finalizeComparisonVersion(other, SemanticFormat)
+	if err != nil {
+		return -1, err
 	}
+
 	if other.rich.semVer == nil {
 		return -1, fmt.Errorf("given empty semanticVersion object")
 	}

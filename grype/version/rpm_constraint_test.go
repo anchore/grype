@@ -60,6 +60,13 @@ func TestVersionRpmConstraint(t *testing.T) {
 		{version: "4.19.0-1.el7_5", constraint: "<= 12:4.19.0-1.el7", satisfied: false},
 		{version: "3:4.19.0-1.el7_5", constraint: "< 4.21.0-1.el7", satisfied: true},
 		{version: "4:1.2.3-3-el7_5", constraint: "< 1.2.3-el7_5~snapshot1", satisfied: false},
+		// regression https://github.com/anchore/grype/issues/398
+		{version: "8.3.1-5.el8.4", constraint: "< 0:8.3.1-5.el8.5", satisfied: true},
+		{version: "8.3.1-5.el8.40", constraint: "< 0:8.3.1-5.el8.5", satisfied: false},
+		{version: "8.3.1-5.el8", constraint: "< 0:8.3.1-5.el8.0.0", satisfied: false},
+		{version: "8.3.1-5.el8", constraint: "<= 0:8.3.1-5.el8.0.0", satisfied: true},
+		{version: "8.3.1-5.el8.0.0", constraint: "> 0:8.3.1-5.el8", satisfied: false},
+		{version: "8.3.1-5.el8.0.0", constraint: ">= 0:8.3.1-5.el8", satisfied: true},
 	}
 
 	for _, test := range tests {

@@ -1,167 +1,61 @@
 package search
 
 import (
-	"strings"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/distro"
-	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
-	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-type mockDistroProvider struct {
-	data map[string]map[string][]vulnerability.Vulnerability
-}
+func Test_ByDistro(t *testing.T) {
+	deb8, err := distro.New(distro.Debian, "8", "")
+	require.NoError(t, err)
 
-func newMockProviderByDistro() *mockDistroProvider {
-	pr := mockDistroProvider{
-		data: make(map[string]map[string][]vulnerability.Vulnerability),
-	}
-	pr.stub()
-	return &pr
-}
-
-func (pr *mockDistroProvider) stub() {
-	pr.data["debian:8"] = map[string][]vulnerability.Vulnerability{
-		// direct...
-		"neutron": {
-			{
-				Constraint: version.MustGetConstraint("< 2014.1.5-6", version.DebFormat),
-				ID:         "CVE-2014-fake-1",
-				Namespace:  "debian:8",
-			},
-		},
-	}
-	pr.data["sles:12.5"] = map[string][]vulnerability.Vulnerability{
-		// direct...
-		"sles_test_package": {
-			{
-				Constraint: version.MustGetConstraint("< 2014.1.5-6", version.RpmFormat),
-				ID:         "CVE-2014-fake-4",
-				Namespace:  "sles:12.5",
-			},
-		},
-	}
-}
-
-func (pr *mockDistroProvider) GetByDistro(d *distro.Distro, p pkg.Package) ([]vulnerability.Vulnerability, error) {
-	return pr.data[strings.ToLower(d.Type.String())+":"+d.FullVersion()][p.Name], nil
-}
-
-func TestFindMatchesByPackageDistro(t *testing.T) {
-	p := pkg.Package{
-		ID:      pkg.ID(uuid.NewString()),
-		Name:    "neutron",
-		Version: "2014.1.3-6",
-		Type:    syftPkg.DebPkg,
-		Upstreams: []pkg.UpstreamPackage{
-			{
-				Name: "neutron-devel",
-			},
-		},
-	}
-
-	d, err := distro.New(distro.Debian, "8", "")
-	if err != nil {
-		t.Fatal("could not create distro: ", err)
-	}
-
-	expected := []match.Match{
+	tests := []struct {
+		name    string
+		distro  distro.Distro
+		input   vulnerability.Vulnerability
+		wantErr require.ErrorAssertionFunc
+		matches bool
+		reason  string
+	}{
 		{
-
-			Vulnerability: vulnerability.Vulnerability{
-				ID: "CVE-2014-fake-1",
-			},
-			Package: p,
-			Details: []match.Detail{
-				{
-					Type:       match.ExactDirectMatch,
-					Confidence: 1,
-					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    "debian",
-							"version": "8",
-						},
-						"package": map[string]string{
-							"name":    "neutron",
-							"version": "2014.1.3-6",
-						},
-						"namespace": "debian:8",
-					},
-					Found: map[string]interface{}{
-						"versionConstraint": "< 2014.1.5-6 (deb)",
-						"vulnerabilityID":   "CVE-2014-fake-1",
-					},
-					Matcher: match.PythonMatcher,
+			name:   "match",
+			distro: *deb8,
+			input: vulnerability.Vulnerability{
+				Reference: vulnerability.Reference{
+					Namespace: "debian:distro:debian:8",
 				},
 			},
+			matches: true,
 		},
-	}
-
-	store := newMockProviderByDistro()
-	actual, err := ByPackageDistro(store, d, p, match.PythonMatcher)
-	assert.NoError(t, err)
-	assertMatchesUsingIDsForVulnerabilities(t, expected, actual)
-}
-
-func TestFindMatchesByPackageDistroSles(t *testing.T) {
-	p := pkg.Package{
-		ID:      pkg.ID(uuid.NewString()),
-		Name:    "sles_test_package",
-		Version: "2014.1.3-6",
-		Type:    syftPkg.RpmPkg,
-		Upstreams: []pkg.UpstreamPackage{
-			{
-				Name: "sles_test_package",
-			},
-		},
-	}
-
-	d, err := distro.New(distro.SLES, "12.5", "")
-	if err != nil {
-		t.Fatal("could not create distro: ", err)
-	}
-
-	expected := []match.Match{
 		{
-
-			Vulnerability: vulnerability.Vulnerability{
-				ID: "CVE-2014-fake-4",
-			},
-			Package: p,
-			Details: []match.Detail{
-				{
-					Type:       match.ExactDirectMatch,
-					Confidence: 1,
-					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    "sles",
-							"version": "12.5",
-						},
-						"package": map[string]string{
-							"name":    "sles_test_package",
-							"version": "2014.1.3-6",
-						},
-						"namespace": "sles:12.5",
-					},
-					Found: map[string]interface{}{
-						"versionConstraint": "< 2014.1.5-6 (rpm)",
-						"vulnerabilityID":   "CVE-2014-fake-4",
-					},
-					Matcher: match.PythonMatcher,
+			name:   "not match",
+			distro: *deb8,
+			input: vulnerability.Vulnerability{
+				Reference: vulnerability.Reference{
+					Namespace: "debian:distro:ubuntu:8",
 				},
 			},
+			matches: false,
+			reason:  `does not match any known distro: "debian 8"`,
 		},
 	}
 
-	store := newMockProviderByDistro()
-	actual, err := ByPackageDistro(store, d, p, match.PythonMatcher)
-	assert.NoError(t, err)
-	assertMatchesUsingIDsForVulnerabilities(t, expected, actual)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			constraint := ByDistro(tt.distro)
+			matches, reason, err := constraint.MatchesVulnerability(tt.input)
+			wantErr := require.NoError
+			if tt.wantErr != nil {
+				wantErr = tt.wantErr
+			}
+			wantErr(t, err)
+			assert.Equal(t, tt.matches, matches)
+			assert.Equal(t, tt.reason, reason)
+		})
+	}
 }

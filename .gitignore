@@ -18,8 +18,8 @@ bin/
 /.task
 
 # changelog generation
-CHANGELOG.md
-VERSION
+/CHANGELOG.md
+/VERSION
 
 # IDE configuration
 .vscode/

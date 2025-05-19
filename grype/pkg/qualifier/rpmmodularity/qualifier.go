@@ -16,7 +16,7 @@ func New(module string) qualifier.Qualifier {
 	return &rpmModularity{module: module}
 }
 
-func (r rpmModularity) Satisfied(d *distro.Distro, p pkg.Package) (bool, error) {
+func (r rpmModularity) Satisfied(p pkg.Package) (bool, error) {
 	if p.Metadata == nil {
 		// If unable to determine package modularity, the constraint should be considered satisfied
 		return true, nil
@@ -33,7 +33,7 @@ func (r rpmModularity) Satisfied(d *distro.Distro, p pkg.Package) (bool, error) 
 		return true, nil
 	}
 
-	if d != nil && d.Type == distro.OracleLinux && *m.ModularityLabel == "" {
+	if p.Distro != nil && p.Distro.Type == distro.OracleLinux && *m.ModularityLabel == "" {
 		// For oraclelinux, the default stream of an installed appstream package does not currently set
 		// the MODULARITYLABEL property in the rpm metadata; however, in their advisory data they do specify
 		// modularity information, so this ends up in a case where the vuln entries have modularity but the

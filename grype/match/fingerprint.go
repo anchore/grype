@@ -3,15 +3,19 @@ package match
 import (
 	"fmt"
 
-	"github.com/mitchellh/hashstructure/v2"
+	"github.com/gohugoio/hashstructure"
 
 	"github.com/anchore/grype/grype/pkg"
 )
 
 type Fingerprint struct {
+	coreFingerprint
+	vulnerabilityFixes string
+}
+
+type coreFingerprint struct {
 	vulnerabilityID        string
 	vulnerabilityNamespace string
-	vulnerabilityFixes     string
 	packageID              pkg.ID // note: this encodes package name, version, type, location
 }
 
@@ -20,7 +24,7 @@ func (m Fingerprint) String() string {
 }
 
 func (m Fingerprint) ID() string {
-	f, err := hashstructure.Hash(&m, hashstructure.FormatV2, &hashstructure.HashOptions{
+	f, err := hashstructure.Hash(&m, &hashstructure.HashOptions{
 		ZeroNil:      true,
 		SlicesAsSets: true,
 	})

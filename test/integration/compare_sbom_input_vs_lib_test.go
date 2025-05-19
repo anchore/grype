@@ -9,8 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/grype/grype"
-	"github.com/anchore/grype/grype/db"
-	"github.com/anchore/grype/internal"
+	"github.com/anchore/grype/grype/db/v6/distribution"
+	"github.com/anchore/grype/grype/db/v6/installation"
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/format/spdxjson"
 	"github.com/anchore/syft/syft/format/spdxtagvalue"
 	"github.com/anchore/syft/syft/format/syftjson"
@@ -19,11 +20,11 @@ import (
 	"github.com/anchore/syft/syft/source"
 )
 
-func getListingURL() string {
+func getLatestURL() string {
 	if value, ok := os.LookupEnv("GRYPE_DB_UPDATE_URL"); ok {
 		return value
 	}
-	return internal.DBUpdateURL
+	return distribution.DefaultConfig().LatestURL
 }
 
 func must(e sbom.FormatEncoder, err error) sbom.FormatEncoder {
@@ -35,16 +36,14 @@ func must(e sbom.FormatEncoder, err error) sbom.FormatEncoder {
 
 func TestCompareSBOMInputToLibResults(t *testing.T) {
 	// get a grype DB
-	store, _, closer, err := grype.LoadVulnerabilityDB(db.Config{
-		DBRootDir:           "test-fixtures/grype-db",
-		ListingURL:          getListingURL(),
-		ValidateByHashOnGet: false,
+	store, status, err := grype.LoadVulnerabilityDB(distribution.Config{
+		LatestURL: getLatestURL(),
+	}, installation.Config{
+		DBRootDir:        "test-fixtures/grype-db",
+		ValidateChecksum: false,
 	}, true)
 	assert.NoError(t, err)
-
-	if closer != nil {
-		defer closer.Close()
-	}
+	defer log.CloseAndLogError(store, status.Path)
 
 	definedPkgTypes := strset.New()
 	for _, p := range syftPkg.AllPkgs {
@@ -53,7 +52,9 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 	// exceptions: rust, php, dart, msrc (kb), etc. are not under test
 	definedPkgTypes.Remove(
 		string(syftPkg.BinaryPkg), // these are removed due to overlap-by-file-ownership
+		string(syftPkg.BitnamiPkg),
 		string(syftPkg.PhpPeclPkg),
+		string(syftPkg.PhpPearPkg),
 		string(syftPkg.RustPkg),
 		string(syftPkg.KbPkg),
 		string(syftPkg.DartPubPkg),
@@ -62,6 +63,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		string(syftPkg.ConanPkg),
 		string(syftPkg.HexPkg),
 		string(syftPkg.PortagePkg),
+		string(syftPkg.HomebrewPkg),
 		string(syftPkg.CocoapodsPkg),
 		string(syftPkg.HackagePkg),
 		string(syftPkg.NixPkg),
@@ -74,9 +76,11 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		string(syftPkg.SwiftPkg),
 		string(syftPkg.GithubActionPkg),
 		string(syftPkg.GithubActionWorkflowPkg),
+		string(syftPkg.GraalVMNativeImagePkg),
 		string(syftPkg.ErlangOTPPkg),
 		string(syftPkg.WordpressPluginPkg), // TODO: remove me when there is a matcher for this merged in https://github.com/anchore/grype/pull/1553
 		string(syftPkg.LuaRocksPkg),
+		string(syftPkg.TerraformPkg),
 	)
 	observedPkgTypes := strset.New()
 	testCases := []struct {
@@ -244,12 +248,12 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 			assert.NoError(t, sbomFile.Close())
 
 			// get vulns (sbom)
-			matchesFromSbom, _, pkgsFromSbom, err := grype.FindVulnerabilities(*store, fmt.Sprintf("sbom:%s", sbomFile.Name()), source.SquashedScope, nil)
+			matchesFromSbom, _, pkgsFromSbom, err := grype.FindVulnerabilities(store, fmt.Sprintf("sbom:%s", sbomFile.Name()), source.SquashedScope, nil)
 			assert.NoError(t, err)
 
 			// get vulns (image)
 			imageSource := fmt.Sprintf("docker-archive:%s", imageArchive)
-			matchesFromImage, _, _, err := grype.FindVulnerabilities(*store, imageSource, source.SquashedScope, nil)
+			matchesFromImage, _, _, err := grype.FindVulnerabilities(store, imageSource, source.SquashedScope, nil)
 			assert.NoError(t, err)
 
 			// compare packages (shallow)
