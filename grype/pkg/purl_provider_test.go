@@ -40,6 +40,29 @@ func Test_PurlProvider(t *testing.T) {
 			},
 		},
 		{
+			name:      "java metadata decoded from purl",
+			userInput: "pkg:maven/org.apache.commons/commons-lang3@3.12.0",
+			context: Context{
+				Source: &source.Description{
+					Metadata: PURLLiteralMetadata{
+						PURL: "pkg:maven/org.apache.commons/commons-lang3@3.12.0",
+					},
+				},
+			},
+			pkgs: []Package{
+				{
+					Name:    "commons-lang3",
+					Version: "3.12.0",
+					Type:    pkg.JavaPkg,
+					PURL:    "pkg:maven/org.apache.commons/commons-lang3@3.12.0",
+					Metadata: JavaMetadata{
+						PomArtifactID: "commons-lang3",
+						PomGroupID:    "org.apache.commons",
+					},
+				},
+			},
+		},
+		{
 			name:      "os with codename",
 			userInput: "pkg:deb/debian/sysv-rc@2.88dsf-59?arch=all&distro=debian-jessie&upstream=sysvinit",
 			context: Context{

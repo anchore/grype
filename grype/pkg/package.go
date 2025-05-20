@@ -212,6 +212,7 @@ func dataFromPkg(p syftPkg.Package) (any, []UpstreamPackage) {
 	var metadata interface{}
 	var upstreams []UpstreamPackage
 
+	// use the metadata to determine the type of package
 	switch p.Metadata.(type) {
 	case syftPkg.GolangModuleEntry, syftPkg.GolangBinaryBuildinfoEntry:
 		metadata = golangMetadataFromPkg(p)
@@ -226,7 +227,7 @@ func dataFromPkg(p syftPkg.Package) (any, []UpstreamPackage) {
 			metadata = *m
 		}
 	case syftPkg.JavaArchive:
-		if m := javaDataFromPkg(p); m != nil {
+		if m := javaDataFromPkgMetadata(p); m != nil {
 			metadata = *m
 		}
 	case syftPkg.ApkDBEntry:
@@ -234,6 +235,13 @@ func dataFromPkg(p syftPkg.Package) (any, []UpstreamPackage) {
 		upstreams = apkDataFromPkg(p)
 	case syftPkg.JavaVMInstallation:
 		metadata = javaVMDataFromPkg(p)
+	}
+
+	// there are still cases where we could still fill the metadata from other info (such as the PURL)
+	if metadata == nil {
+		if p.Type == syftPkg.JavaPkg {
+			metadata = javaDataFromPkgData(p)
+		}
 	}
 
 	return metadata, upstreams
@@ -309,7 +317,7 @@ func dpkgDataFromPkg(p syftPkg.Package) (upstreams []UpstreamPackage) {
 			})
 		}
 	default:
-		log.Warnf("unable to extract DPKG metadata for %s", p)
+		log.Debugf("unable to extract DPKG metadata for %s", p)
 	}
 
 	return upstreams
@@ -343,7 +351,7 @@ func handleSourceRPM(pkgName, sourceRpm string) []UpstreamPackage {
 	var upstreams []UpstreamPackage
 	name, version := getNameAndELVersion(sourceRpm)
 	if name == "" && version == "" {
-		log.Warnf("unable to extract name and version from SourceRPM=%q ", sourceRpm)
+		log.Debugf("unable to extract name and version from SourceRPM=%q", sourceRpm)
 	} else if name != pkgName {
 		// don't include matches if the source package name matches the current package name
 		if name != "" && version != "" {
@@ -364,13 +372,17 @@ func getNameAndELVersion(sourceRpm string) (string, string) {
 	return groupMatches["name"], version
 }
 
-func javaDataFromPkg(p syftPkg.Package) (metadata *JavaMetadata) {
+func javaDataFromPkgMetadata(p syftPkg.Package) (metadata *JavaMetadata) {
 	if value, ok := p.Metadata.(syftPkg.JavaArchive); ok {
 		var artifactID, groupID, name string
 		if value.PomProperties != nil {
 			artifactID = value.PomProperties.ArtifactID
 			groupID = value.PomProperties.GroupID
+		} else {
+			// get the group ID / artifact ID from the PURL
+			artifactID, groupID = javaGroupArtifactIDFromPurl(p.PURL)
 		}
+
 		if value.Manifest != nil {
 			for _, kv := range value.Manifest.Main {
 				if kv.Key == "Name" {
@@ -396,10 +408,34 @@ func javaDataFromPkg(p syftPkg.Package) (metadata *JavaMetadata) {
 			ManifestName:   name,
 			ArchiveDigests: archiveDigests,
 		}
-	} else {
-		log.Warnf("unable to extract Java metadata for %s", p)
 	}
 	return metadata
+}
+
+func javaDataFromPkgData(p syftPkg.Package) (metadata *JavaMetadata) {
+	switch p.Type {
+	case syftPkg.JavaPkg:
+		artifactID, groupID := javaGroupArtifactIDFromPurl(p.PURL)
+		if artifactID != "" && groupID != "" {
+			metadata = &JavaMetadata{
+				PomArtifactID: artifactID,
+				PomGroupID:    groupID,
+			}
+		}
+	default:
+		log.Debugf("unable to extract metadata for %s", p)
+	}
+
+	return metadata
+}
+
+func javaGroupArtifactIDFromPurl(p string) (string, string) {
+	purl, err := packageurl.FromString(p)
+	if err != nil {
+		log.WithFields("purl", purl, "error", err).Debug("unable to parse java PURL")
+		return "", ""
+	}
+	return purl.Name, purl.Namespace
 }
 
 func apkDataFromPkg(p syftPkg.Package) (upstreams []UpstreamPackage) {
@@ -410,7 +446,7 @@ func apkDataFromPkg(p syftPkg.Package) (upstreams []UpstreamPackage) {
 			})
 		}
 	} else {
-		log.Warnf("unable to extract APK metadata for %s", p)
+		log.Debugf("unable to extract APK metadata for %s", p)
 	}
 	return upstreams
 }

@@ -842,6 +842,19 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "pe binary metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.PEBinary{
+					VersionResources: syftPkg.KeyValues{
+						{
+							Key:   "k",
+							Value: "k",
+						},
+					},
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
