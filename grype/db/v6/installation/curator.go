@@ -298,7 +298,14 @@ func (c curator) update(current *db.Description) (*distribution.Archive, error) 
 	if err != nil {
 		return nil, fmt.Errorf("unable to resolve vulnerability DB URL: %w", err)
 	}
-	dest, err := c.client.Download(url, filepath.Dir(c.config.DBRootDir), mon.downloadProgress.Manual)
+
+	// Ensure parent of DBRootDir exists for the download client to create a temp dir within DBRootDir
+	// This might be redundant if DBRootDir must already exist, but good for safety.
+	if err := os.MkdirAll(c.config.DBRootDir, 0o700); err != nil {
+		return nil, fmt.Errorf("unable to create db root dir %s for download: %w", c.config.DBRootDir, err)
+	}
+
+	dest, err := c.client.Download(url, c.config.DBRootDir, mon.downloadProgress.Manual)
 	if err != nil {
 		return nil, fmt.Errorf("unable to update vulnerability database: %w", err)
 	}
@@ -307,6 +314,8 @@ func (c curator) update(current *db.Description) (*distribution.Archive, error) 
 
 	mon.downloadProgress.SetCompleted()
 	if err = c.activate(dest, url, mon); err != nil {
+		log.Warnf("Failed to activate downloaded database from %s, attempting cleanup of temporary download directory.", dest)
+		removeAllOrLog(c.fs, dest)
 		return nil, fmt.Errorf("unable to activate new vulnerability database: %w", err)
 	}
 
@@ -397,7 +406,7 @@ func (c curator) setLastSuccessfulUpdateCheck() {
 	// is a prerequisite for a successful update).
 
 	filePath := filepath.Join(c.config.DBDirectoryPath(), lastUpdateCheckFileName)
-	fh, err := c.fs.OpenFile(filePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+	fh, err := c.fs.OpenFile(filePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
 	if err != nil {
 		log.WithFields("error", err).Trace("unable to write last update check timestamp")
 		return
@@ -414,7 +423,7 @@ func (c curator) Import(reference string) error {
 	mon.Set("preparing")
 	defer mon.SetCompleted()
 
-	if err := os.MkdirAll(c.config.DBRootDir, 0700); err != nil {
+	if err := os.MkdirAll(c.config.DBRootDir, 0o700); err != nil {
 		return fmt.Errorf("unable to create db root dir: %w", err)
 	}
 
@@ -424,7 +433,7 @@ func (c curator) Import(reference string) error {
 		mon.Set("downloading")
 		var err error
 
-		tempDir, err = c.client.Download(reference, filepath.Dir(c.config.DBRootDir), mon.downloadProgress.Manual)
+		tempDir, err = c.client.Download(reference, c.config.DBRootDir, mon.downloadProgress.Manual)
 		if err != nil {
 			return fmt.Errorf("unable to update vulnerability database: %w", err)
 		}
@@ -526,12 +535,17 @@ func (c curator) replaceDB(dbDirPath string) error {
 	}
 
 	// ensure parent db directory exists
-	if err := c.fs.MkdirAll(filepath.Dir(dbDir), 0700); err != nil {
+	if err = c.fs.MkdirAll(filepath.Dir(dbDir), 0o700); err != nil {
 		return fmt.Errorf("unable to create db parent directory: %w", err)
 	}
 
 	// activate the new db cache by moving the temp dir to final location
+	// the rename should be safe because the temp dir is under GRYPE_DB_CACHE_DIR
+	// and so on the same filesystem as the final location
 	err = c.fs.Rename(dbDirPath, dbDir)
+	if err != nil {
+		err = fmt.Errorf("failed to move database directory to activate: %w", err)
+	}
 	log.WithFields("from", dbDirPath, "to", dbDir, "error", err).Debug("moved database directory to activate")
 	return err
 }

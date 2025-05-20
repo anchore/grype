@@ -57,7 +57,7 @@
     }
    ],
    "artifact": {
-    "id": "9baa2db122fea516",
+    "id": "bbb0ba712c2b94ea",
     "name": "package-1",
     "version": "1.1.1",
     "type": "rpm",
@@ -134,7 +134,7 @@
     }
    ],
    "artifact": {
-    "id": "d4131374f6ed43cf",
+    "id": "74378afe15713625",
     "name": "package-2",
     "version": "2.2.2",
     "type": "deb",
