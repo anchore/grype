@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/pkg"
@@ -219,8 +218,7 @@ func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, p pk
 // based on packages which overlap by location, such as a python binary found in addition to the python APK entry --
 // we want to NAK this vulnerability for BOTH packages
 func (m *Matcher) findNaksForPackage(provider vulnerability.Provider, p pkg.Package) ([]match.IgnoreFilter, error) {
-	// TODO: this was only applying to specific distros as originally implemented; this should probably be removed:
-	if d := p.Distro; d == nil || d.Type != distro.Wolfi && d.Type != distro.Chainguard && d.Type != distro.Alpine {
+	if p.Distro == nil {
 		return nil, nil
 	}
 
@@ -258,8 +256,8 @@ func (m *Matcher) findNaksForPackage(provider vulnerability.Provider, p pkg.Pack
 		for _, f := range meta.Files {
 			ignores = append(ignores,
 				match.IgnoreRule{
-					Vulnerability: nak.ID,
-					Reason:        "Explicit APK NAK",
+					RelatedVulnerability: nak.ID,
+					Reason:               "Explicit APK NAK",
 					Package: match.IgnoreRulePackage{
 						Location: f.Path,
 					},
