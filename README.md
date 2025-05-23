@@ -34,9 +34,9 @@ For commercial support options with Syft or Grype, please [contact Anchore](http
 - Find vulnerabilities for major operating system packages:
   - Alpine
   - Amazon Linux
+  - Azure Linux (previously CBL-Mariner)
   - BusyBox
   - CentOS
-  - CBL-Mariner
   - Debian
   - Distroless
   - Oracle Linux
