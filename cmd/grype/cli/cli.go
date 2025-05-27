@@ -34,8 +34,8 @@ func Command(id clio.Identification) *cobra.Command {
 	return cmd
 }
 
-func create(id clio.Identification) (clio.Application, *cobra.Command) {
-	clioCfg := clio.NewSetupConfig(id).
+func SetupConfig(id clio.Identification) *clio.SetupConfig {
+	return clio.NewSetupConfig(id).
 		WithGlobalConfigFlag().   // add persistent -c <path> for reading an application config from
 		WithGlobalLoggingFlags(). // add persistent -v and -q flags tied to the logging config
 		WithConfigInRootHelp().   // --help on the root command renders the full application config in the help text
@@ -92,6 +92,10 @@ func create(id clio.Identification) (clio.Application, *cobra.Command) {
 			}
 			return 1
 		})
+}
+
+func create(id clio.Identification) (clio.Application, *cobra.Command) {
+	clioCfg := SetupConfig(id)
 
 	app := clio.New(*clioCfg)
 
