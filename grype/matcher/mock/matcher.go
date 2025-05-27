@@ -11,7 +11,7 @@ import (
 
 // MatchFunc is a function that takes a vulnerability provider and a package,
 // and returns matches, ignored matches, and an error.
-type MatchFunc func(vp vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoredMatch, error)
+type MatchFunc func(vp vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error)
 
 // Matcher is a mock implementation of the match.Matcher interface. This is
 // intended for testing purposes only.
@@ -36,7 +36,7 @@ func (m Matcher) Type() match.MatcherType {
 	return "MOCK"
 }
 
-func (m Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoredMatch, error) {
+func (m Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	if m.matchFunc != nil {
 		return m.matchFunc(vp, p)
 	}

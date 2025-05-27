@@ -17,7 +17,7 @@ type Matcher interface {
 
 	// Match is called for every package found, returning any matches and an optional Ignorer which will be applied
 	// after all matches are found
-	Match(vp vulnerability.Provider, p pkg.Package) ([]Match, []IgnoredMatch, error)
+	Match(vp vulnerability.Provider, p pkg.Package) ([]Match, []IgnoreFilter, error)
 }
 
 // fatalError can be returned from a Matcher to indicate the matching process should stop.
