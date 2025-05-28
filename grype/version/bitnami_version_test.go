@@ -18,19 +18,18 @@ func TestBitnamiVersionCompare(t *testing.T) {
 		errorSubstring string
 	}{
 		{
-			name:         "different format returns error",
+			name:         "same format successful comparison",
+			thisVersion:  "1.2.3-4",
+			otherVersion: "1.2.3-5",
+			otherFormat:  BitnamiFormat,
+			expectError:  false,
+		},
+		{
+			name:         "semantic versioning successful comparison",
 			thisVersion:  "1.2.3-4",
 			otherVersion: "1.2.3",
 			otherFormat:  SemanticFormat,
 			expectError:  false,
-		},
-		{
-			name:           "same format successful comparison",
-			thisVersion:    "1.2.3-4",
-			otherVersion:   "1.2.3-5",
-			otherFormat:    BitnamiFormat,
-			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
 		},
 		{
 			name:           "different format returns error - deb",
