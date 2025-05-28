@@ -47,14 +47,6 @@ tools:
     with:
       repo: sigstore/cosign
 
-  # used in integration tests to verify JSON schemas
-  - name: yajsv
-    version:
-      want: v1.4.1
-    method: github-release
-    with:
-      repo: neilpa/yajsv
-
   # used to release all artifacts
   - name: goreleaser
     version:
