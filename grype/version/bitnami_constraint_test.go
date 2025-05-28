@@ -58,9 +58,10 @@ func TestVersionBitnami(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			// We use newSemanticConstraint but using BitnamiFormat as the format
 			constraint, err := newSemanticConstraint(test.constraint)
 
-			assert.NoError(t, err, "unexpected error from newBitnamiConstraint: %v", err)
+			assert.NoError(t, err, "unexpected error from newSemanticConstraint: %v", err)
 			test.assertVersionConstraint(t, BitnamiFormat, constraint)
 		})
 	}
