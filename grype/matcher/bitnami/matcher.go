@@ -19,8 +19,9 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoredMatch, error) {
-	// Bitnami packages' metadata are built from the package URL
+	// Bitnami packages' metadata are built from the package URL which contains
+	// info such as the package name, version, revision, distro or architecture.
 	// ref: https://github.com/anchore/syft/blob/main/syft/pkg/bitnami.go#L3-L13
 	// ref: https://github.com/anchore/syft/blob/main/syft/pkg/cataloger/bitnami/package.go#L18-L45
-	return internal.MatchPackageByEcosystemAndPURL(store, p, m.Type(), true)
+	return internal.MatchPackageByEcosystemPackageName(store, p, p.Name, m.Type())
 }

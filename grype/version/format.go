@@ -11,6 +11,7 @@ const (
 	UnknownFormat Format = iota
 	SemanticFormat
 	ApkFormat
+	BitnamiFormat
 	DebFormat
 	MavenFormat
 	RpmFormat
@@ -42,6 +43,7 @@ var formatStr = []string{
 var Formats = []Format{
 	SemanticFormat,
 	ApkFormat,
+	BitnamiFormat,
 	DebFormat,
 	MavenFormat,
 	RpmFormat,
@@ -86,7 +88,7 @@ func FormatFromPkg(p pkg.Package) Format {
 	case syftPkg.ApkPkg:
 		return ApkFormat
 	case syftPkg.BitnamiPkg:
-		return SemanticFormat
+		return BitnamiFormat
 	case syftPkg.DebPkg:
 		return DebFormat
 	case syftPkg.JavaPkg:

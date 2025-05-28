@@ -72,14 +72,10 @@ func KnownPackageSpecifierOverrides() []PackageSpecifierOverride {
 
 		// jenkins plugins are a special case since they are always considered to be within the java ecosystem
 		{Ecosystem: string(pkg.JenkinsPluginPkg), ReplacementEcosystem: ptr(string(pkg.JavaPkg))},
-<<<<<<< HEAD
-		// Bitnami is a special case since it's not a language ecosystem but is a package type
+		// Bitnami is a special case since it's not a language ecosystem but is a syft package type
 		{Ecosystem: "bitnami", ReplacementEcosystem: ptr(string(pkg.BitnamiPkg))},
-=======
-
 		// legacy cases
 		{Ecosystem: "pecl", ReplacementEcosystem: ptr(string(pkg.PhpPeclPkg))},
->>>>>>> main
 	}
 
 	// remap package URL types to syft package types

@@ -67,6 +67,10 @@ func (v *Version) populate() error {
 		ver, err := newApkVersion(v.Raw)
 		v.rich.apkVer = ver
 		return err
+	case BitnamiFormat:
+		ver, err := newBitnamiVersion(v.Raw)
+		v.rich.semVer = ver
+		return err
 	case DebFormat:
 		ver, err := newDebVersion(v.Raw)
 		v.rich.debVer = ver
@@ -143,6 +147,8 @@ func (v Version) compareSameFormat(other *Version) (int, error) {
 		return v.rich.semVer.verObj.Compare(other.rich.semVer.verObj), nil
 	case ApkFormat:
 		return v.rich.apkVer.Compare(other)
+	case BitnamiFormat:
+		return v.rich.semVer.Compare(other)
 	case DebFormat:
 		return v.rich.debVer.Compare(other)
 	case GolangFormat:
