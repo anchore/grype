@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -20,6 +21,7 @@ import (
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/event"
+	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
 	"github.com/anchore/grype/internal/file"
 	"github.com/anchore/grype/internal/log"
@@ -116,10 +118,19 @@ func (c curator) Reader() (db.Reader, error) {
 		mon.Set("rehydrating DB")
 		log.Info("rehydrating DB")
 
+		// we're not changing the source of the DB, so we just want to use any existing value.
+		// if the source is empty/does not exist, it will be empty in the new metadata.
+		var source string
+		im, err := db.ReadImportMetadata(c.fs, c.config.DBDirectoryPath())
+		if err == nil && im != nil {
+			// ignore errors, as this is just a best-effort to get the source
+			source = im.Source
+		}
+
 		// this is a condition where an old client imported a DB with additional capabilities than it can handle at hydration.
 		// this could lead to missing indexes and degraded performance now that a newer client is running (that can handle these capabilities).
 		// the only sensible thing to do is to rehydrate the existing DB to ensure indexes are up-to-date with the current client's capabilities.
-		if err := c.hydrate(c.config.DBDirectoryPath(), mon); err != nil {
+		if err := c.hydrate(c.config.DBDirectoryPath(), source, mon); err != nil {
 			log.WithFields("error", err).Warn("unable to rehydrate DB")
 		}
 		mon.Set("rehydrated")
@@ -139,38 +150,45 @@ func (c curator) Reader() (db.Reader, error) {
 	return s, nil
 }
 
-func (c curator) Status() db.Status {
+func (c curator) Status() vulnerability.ProviderStatus {
 	dbFile := c.config.DBFilePath()
-	d, err := db.ReadDescription(dbFile)
-	if err != nil {
-		return db.Status{
-			Path: dbFile,
-			Err:  err,
+	d, validateErr := db.ReadDescription(dbFile)
+	if validateErr != nil {
+		return vulnerability.ProviderStatus{
+			Path:  dbFile,
+			Error: validateErr,
 		}
 	}
 	if d == nil {
-		return db.Status{
-			Path: dbFile,
-			Err:  fmt.Errorf("database not found at %q", dbFile),
+		return vulnerability.ProviderStatus{
+			Path:  dbFile,
+			Error: fmt.Errorf("database not found at %q", dbFile),
 		}
 	}
 
-	err = c.validateAge(d)
-	digest, checksumErr := c.validateIntegrity(d)
+	validateErr = c.validateAge(d)
+	_, checksumErr := c.validateIntegrity(d)
 	if checksumErr != nil && c.config.ValidateChecksum {
-		if err != nil {
-			err = errors.Join(err, checksumErr)
+		if validateErr != nil {
+			validateErr = errors.Join(validateErr, checksumErr)
 		} else {
-			err = checksumErr
+			validateErr = checksumErr
 		}
 	}
 
-	return db.Status{
-		Built:         db.Time{Time: d.Built.Time},
+	var source string
+	im, readErr := db.ReadImportMetadata(c.fs, c.config.DBDirectoryPath())
+	if readErr == nil && im != nil {
+		// only make a best-effort to get the source
+		source = im.Source
+	}
+
+	return vulnerability.ProviderStatus{
+		Built:         d.Built.Time,
 		SchemaVersion: d.SchemaVersion.String(),
+		From:          source,
 		Path:          dbFile,
-		Checksum:      digest,
-		Err:           err,
+		Error:         validateErr,
 	}
 }
 
@@ -254,6 +272,7 @@ func (c curator) isUpdateCheckAllowed() bool {
 func (c curator) update(current *db.Description) (*distribution.Archive, error) {
 	mon := newMonitor()
 	defer mon.SetCompleted()
+	startTime := time.Now()
 
 	mon.Set("checking for update")
 	update, checkErr := c.client.IsUpdateAvailable(current)
@@ -273,14 +292,30 @@ func (c curator) update(current *db.Description) (*distribution.Archive, error) 
 		return nil, checkErr
 	}
 
-	log.Infof("downloading new vulnerability DB")
+	log.Info("downloading new vulnerability DB")
 	mon.Set("downloading")
-	dest, err := c.client.Download(*update, filepath.Dir(c.config.DBRootDir), mon.downloadProgress.Manual)
+	url, err := c.client.ResolveArchiveURL(*update)
+	if err != nil {
+		return nil, fmt.Errorf("unable to resolve vulnerability DB URL: %w", err)
+	}
+
+	// Ensure parent of DBRootDir exists for the download client to create a temp dir within DBRootDir
+	// This might be redundant if DBRootDir must already exist, but good for safety.
+	if err := os.MkdirAll(c.config.DBRootDir, 0o700); err != nil {
+		return nil, fmt.Errorf("unable to create db root dir %s for download: %w", c.config.DBRootDir, err)
+	}
+
+	dest, err := c.client.Download(url, c.config.DBRootDir, mon.downloadProgress.Manual)
 	if err != nil {
 		return nil, fmt.Errorf("unable to update vulnerability database: %w", err)
 	}
+
+	log.WithFields("url", url, "time", time.Since(startTime)).Info("downloaded vulnerability DB")
+
 	mon.downloadProgress.SetCompleted()
-	if err = c.activate(dest, mon); err != nil {
+	if err = c.activate(dest, url, mon); err != nil {
+		log.Warnf("Failed to activate downloaded database from %s, attempting cleanup of temporary download directory.", dest)
+		removeAllOrLog(c.fs, dest)
 		return nil, fmt.Errorf("unable to activate new vulnerability database: %w", err)
 	}
 
@@ -371,7 +406,7 @@ func (c curator) setLastSuccessfulUpdateCheck() {
 	// is a prerequisite for a successful update).
 
 	filePath := filepath.Join(c.config.DBDirectoryPath(), lastUpdateCheckFileName)
-	fh, err := c.fs.OpenFile(filePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+	fh, err := c.fs.OpenFile(filePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
 	if err != nil {
 		log.WithFields("error", err).Trace("unable to write last update check timestamp")
 		return
@@ -382,41 +417,57 @@ func (c curator) setLastSuccessfulUpdateCheck() {
 	_, _ = fmt.Fprintf(fh, "%s", time.Now().UTC().Format(time.RFC3339))
 }
 
-// Import takes a DB archive file and imports it into the final DB location.
-func (c curator) Import(path string) error {
+// Import takes a DB file path, archive file path, or URL and imports it into the final DB location.
+func (c curator) Import(reference string) error {
 	mon := newMonitor()
-	mon.Set("unarchiving")
+	mon.Set("preparing")
 	defer mon.SetCompleted()
 
-	if err := os.MkdirAll(c.config.DBRootDir, 0700); err != nil {
+	if err := os.MkdirAll(c.config.DBRootDir, 0o700); err != nil {
 		return fmt.Errorf("unable to create db root dir: %w", err)
 	}
 
-	// note: the temp directory is persisted upon download/validation/activation failure to allow for investigation
-	tempDir, err := os.MkdirTemp(c.config.DBRootDir, fmt.Sprintf("tmp-v%v-import", db.ModelVersion))
-	if err != nil {
-		return fmt.Errorf("unable to create db import temp dir: %w", err)
-	}
+	var tempDir, url string
+	if isURL(reference) {
+		log.Info("downloading new vulnerability DB")
+		mon.Set("downloading")
+		var err error
 
-	if strings.HasSuffix(path, ".db") {
-		// this is a raw DB file, copy it to the temp dir
-		log.Trace("copying DB")
-		if err := file.CopyFile(afero.NewOsFs(), path, filepath.Join(tempDir, db.VulnerabilityDBFileName)); err != nil {
-			return fmt.Errorf("unable to copy DB file: %w", err)
-		}
-	} else {
-		// assume it is an archive
-		log.Trace("unarchiving DB")
-		err = archiver.Unarchive(path, tempDir)
+		tempDir, err = c.client.Download(reference, c.config.DBRootDir, mon.downloadProgress.Manual)
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to update vulnerability database: %w", err)
+		}
+
+		url = reference
+	} else {
+		// note: the temp directory is persisted upon download/validation/activation failure to allow for investigation
+		var err error
+		tempDir, err = os.MkdirTemp(c.config.DBRootDir, fmt.Sprintf("tmp-v%v-import", db.ModelVersion))
+		if err != nil {
+			return fmt.Errorf("unable to create db import temp dir: %w", err)
+		}
+
+		url = "manual import"
+
+		if strings.HasSuffix(reference, ".db") {
+			// this is a raw DB file, copy it to the temp dir
+			log.Trace("copying DB")
+			if err := file.CopyFile(afero.NewOsFs(), reference, filepath.Join(tempDir, db.VulnerabilityDBFileName)); err != nil {
+				return fmt.Errorf("unable to copy DB file: %w", err)
+			}
+		} else {
+			// assume it is an archive
+			log.Info("unarchiving DB")
+			err := archiver.Unarchive(reference, tempDir)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	mon.downloadProgress.SetCompleted()
 
-	err = c.activate(tempDir, mon)
-	if err != nil {
+	if err := c.activate(tempDir, url, mon); err != nil {
 		removeAllOrLog(c.fs, tempDir)
 		return err
 	}
@@ -426,20 +477,31 @@ func (c curator) Import(path string) error {
 	return nil
 }
 
+var urlPrefixPattern = regexp.MustCompile("^[a-zA-Z]+://")
+
+func isURL(reference string) bool {
+	return urlPrefixPattern.MatchString(reference)
+}
+
 // activate swaps over the downloaded db to the application directory, calculates the checksum, and records the checksums to a file.
-func (c curator) activate(dbDirPath string, mon monitor) error {
+func (c curator) activate(dbDirPath, url string, mon monitor) error {
 	defer mon.SetCompleted()
 
-	if err := c.hydrate(dbDirPath, mon); err != nil {
+	startTime := time.Now()
+	if err := c.hydrate(dbDirPath, url, mon); err != nil {
 		return fmt.Errorf("failed to hydrate database: %w", err)
 	}
+
+	log.WithFields("time", time.Since(startTime)).Trace("hydrated db")
+	startTime = time.Now()
+	defer func() { log.WithFields("time", time.Since(startTime)).Trace("replaced db") }()
 
 	mon.Set("activating")
 
 	return c.replaceDB(dbDirPath)
 }
 
-func (c curator) hydrate(dbDirPath string, mon monitor) error {
+func (c curator) hydrate(dbDirPath, from string, mon monitor) error {
 	if c.hydrator != nil {
 		mon.Set("hydrating")
 		if err := c.hydrator(dbDirPath); err != nil {
@@ -450,7 +512,7 @@ func (c curator) hydrate(dbDirPath string, mon monitor) error {
 
 	mon.Set("hashing")
 
-	doc, err := db.WriteImportMetadata(c.fs, dbDirPath)
+	doc, err := db.WriteImportMetadata(c.fs, dbDirPath, from)
 	if err != nil {
 		return fmt.Errorf("failed to write checksums file: %w", err)
 	}
@@ -473,12 +535,17 @@ func (c curator) replaceDB(dbDirPath string) error {
 	}
 
 	// ensure parent db directory exists
-	if err := c.fs.MkdirAll(filepath.Dir(dbDir), 0700); err != nil {
+	if err = c.fs.MkdirAll(filepath.Dir(dbDir), 0o700); err != nil {
 		return fmt.Errorf("unable to create db parent directory: %w", err)
 	}
 
 	// activate the new db cache by moving the temp dir to final location
+	// the rename should be safe because the temp dir is under GRYPE_DB_CACHE_DIR
+	// and so on the same filesystem as the final location
 	err = c.fs.Rename(dbDirPath, dbDir)
+	if err != nil {
+		err = fmt.Errorf("failed to move database directory to activate: %w", err)
+	}
 	log.WithFields("from", dbDirPath, "to", dbDir, "error", err).Debug("moved database directory to activate")
 	return err
 }

@@ -66,7 +66,6 @@ func Test_ListingUserAgent(t *testing.T) {
 }
 
 func TestPresentDBList(t *testing.T) {
-	baseURL := "http://localhost:8000/latest.json"
 	latestDoc := &distribution.LatestDocument{
 		Status: "active",
 		Archive: distribution.Archive{
@@ -82,19 +81,38 @@ func TestPresentDBList(t *testing.T) {
 	tests := []struct {
 		name         string
 		format       string
+		baseURL      string
+		archiveURL   string
 		latest       *distribution.LatestDocument
 		expectedText string
 		expectedErr  require.ErrorAssertionFunc
 	}{
 		{
-			name:   "valid text format",
-			format: textOutputFormat,
-			latest: latestDoc,
+			name:       "valid text format",
+			format:     textOutputFormat,
+			latest:     latestDoc,
+			baseURL:    "http://localhost:8000/latest.json",
+			archiveURL: "http://localhost:8000/vulnerability-db_v6.0.0_2024-11-25T01:31:56Z_1732718597.tar.zst",
 			expectedText: `Status:   active
 Schema:   v6.0.0
 Built:    2024-11-27T14:43:17Z
 Listing:  http://localhost:8000/latest.json
 DB URL:   http://localhost:8000/vulnerability-db_v6.0.0_2024-11-25T01:31:56Z_1732718597.tar.zst
+Checksum: sha256:16bcb6551c748056f752f299fcdb4fa50fe61589d086be3889e670261ff21ca4
+`,
+			expectedErr: require.NoError,
+		},
+		{
+			name:       "complete default values",
+			format:     textOutputFormat,
+			latest:     latestDoc,
+			baseURL:    "https://grype.anchore.io/databases",
+			archiveURL: "https://grype.anchore.io/databases/v6/vulnerability-db_v6.0.0_2024-11-25T01:31:56Z_1732718597.tar.zst",
+			expectedText: `Status:   active
+Schema:   v6.0.0
+Built:    2024-11-27T14:43:17Z
+Listing:  https://grype.anchore.io/databases/v6/latest.json
+DB URL:   https://grype.anchore.io/databases/v6/vulnerability-db_v6.0.0_2024-11-25T01:31:56Z_1732718597.tar.zst
 Checksum: sha256:16bcb6551c748056f752f299fcdb4fa50fe61589d086be3889e670261ff21ca4
 `,
 			expectedErr: require.NoError,
@@ -133,7 +151,7 @@ Checksum: sha256:16bcb6551c748056f752f299fcdb4fa50fe61589d086be3889e670261ff21ca
 		t.Run(tt.name, func(t *testing.T) {
 			writer := &bytes.Buffer{}
 
-			err := presentDBList(tt.format, baseURL, writer, tt.latest)
+			err := presentDBList(tt.format, tt.archiveURL, tt.baseURL, writer, tt.latest)
 			if tt.expectedErr == nil {
 				tt.expectedErr = require.NoError
 			}

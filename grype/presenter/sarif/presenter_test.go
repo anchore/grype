@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -17,7 +18,7 @@ import (
 	"github.com/anchore/syft/syft/source/directorysource"
 )
 
-var updateSnapshot = flag.Bool("update-sarif", false, "update .golden files for sarif presenters")
+var updateSnapshot = flag.Bool("update", false, "update .golden files for sarif presenters")
 var validatorImage = "ghcr.io/anchore/sarif-validator:0.1.0@sha256:a0729d695e023740f5df6bcb50d134e88149bea59c63a896a204e88f62b564c6"
 
 func TestSarifPresenter(t *testing.T) {
@@ -57,8 +58,8 @@ func TestSarifPresenter(t *testing.T) {
 			actual = internal.Redact(actual)
 			expected = internal.Redact(expected)
 
-			if !bytes.Equal(expected, actual) {
-				assert.JSONEq(t, string(expected), string(actual))
+			if d := cmp.Diff(string(expected), string(actual)); d != "" {
+				t.Fatalf("(-want +got):\n%s", d)
 			}
 		})
 	}
@@ -286,6 +287,7 @@ func TestToSarifReport(t *testing.T) {
 			assert.Len(t, run.Results, 2)
 			result := run.Results[0]
 			assert.Equal(t, "CVE-1999-0001-package-1", *result.RuleID)
+			assert.Equal(t, "note", *result.Level)
 			assert.Len(t, result.Locations, 1)
 			location := result.Locations[0]
 			expectedLocation, ok := tc.locations[*result.RuleID]
@@ -296,6 +298,7 @@ func TestToSarifReport(t *testing.T) {
 
 			result = run.Results[1]
 			assert.Equal(t, "CVE-1999-0002-package-2", *result.RuleID)
+			assert.Equal(t, "error", *result.Level)
 			assert.Len(t, result.Locations, 1)
 			location = result.Locations[0]
 			expectedLocation, ok = tc.locations[*result.RuleID]

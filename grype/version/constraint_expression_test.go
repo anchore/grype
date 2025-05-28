@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
+	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 )
 
 func TestScanExpression(t *testing.T) {
@@ -85,4 +87,92 @@ func TestScanExpression(t *testing.T) {
 
 		})
 	}
+}
+
+func TestNewConstraintExpression(t *testing.T) {
+	tests := []struct {
+		name     string
+		phrase   string
+		genFn    comparatorGenerator
+		expected constraintExpression
+		wantErr  error
+	}{
+		{
+			name:   "single valid constraint",
+			phrase: "<1.1.1",
+			genFn:  newGolangComparator,
+			expected: constraintExpression{
+				units: [][]constraintUnit{
+					{constraintUnit{
+						rangeOperator: LT,
+						version:       "1.1.1",
+					}},
+				},
+				comparators: [][]Comparator{
+					{mustGolangComparator(t, constraintUnit{
+						rangeOperator: LT,
+						version:       "1.1.1",
+					})},
+				},
+			},
+			wantErr: nil,
+		},
+		{
+			name:   "fall back to fuzzy on invalid semver",
+			phrase: ">9.6.0b1",
+			genFn:  newGolangComparator,
+			expected: constraintExpression{
+				units: [][]constraintUnit{
+					{constraintUnit{
+						rangeOperator: GT,
+						version:       "9.6.0b1",
+					}},
+				},
+				comparators: [][]Comparator{
+					{mustFuzzyComparator(t, constraintUnit{
+						rangeOperator: GT,
+						version:       "9.6.0b1",
+					})},
+				},
+			},
+			wantErr: ErrFallbackToFuzzy,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actual, err := newConstraintExpression(test.phrase, test.genFn)
+			if test.wantErr != nil {
+				require.ErrorIs(t, err, test.wantErr)
+			} else {
+				require.NoError(t, err)
+			}
+
+			opts := []cmp.Option{
+				cmp.AllowUnexported(constraintExpression{},
+					constraintUnit{}, golangVersion{}, fuzzyVersion{}, semanticVersion{}),
+			}
+			if diff := cmp.Diff(test.expected, actual, opts...); diff != "" {
+				t.Errorf("actual does not match expected, diff: %s", diff)
+			}
+		})
+	}
+}
+
+func mustGolangComparator(t *testing.T, unit constraintUnit) Comparator {
+	t.Helper()
+	c, err := newGolangComparator(unit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return c
+}
+
+func mustFuzzyComparator(t *testing.T, unit constraintUnit) Comparator {
+	t.Helper()
+	c, err := newFuzzyComparator(unit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return c
 }

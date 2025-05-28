@@ -11,7 +11,7 @@ import (
 )
 
 func TestRpmModularity_Satisfied(t *testing.T) {
-	oracle, _ := distro.New(distro.OracleLinux, "8")
+	oracle, _ := distro.New(distro.OracleLinux, "8", "")
 
 	tests := []struct {
 		name          string

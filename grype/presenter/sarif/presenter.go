@@ -329,9 +329,23 @@ func securitySeverityValue(m models.Match) string {
 	return "0.0"
 }
 
+func levelValue(m models.Match) string {
+	severity := vulnerability.ParseSeverity(m.Vulnerability.Severity)
+	switch severity {
+	case vulnerability.CriticalSeverity:
+		return "error"
+	case vulnerability.HighSeverity:
+		return "error"
+	case vulnerability.MediumSeverity:
+		return "warning"
+	}
+
+	return "note"
+}
+
 // subtitle generates a subtitle for the given match
 func subtitle(m models.Match) string {
-	subtitle := m.Vulnerability.VulnerabilityMetadata.Description
+	subtitle := m.Vulnerability.Description
 	if subtitle != "" {
 		return subtitle
 	}
@@ -360,6 +374,7 @@ func (p Presenter) sarifResults() []*sarif.Result {
 	for _, m := range p.document.Matches {
 		out = append(out, &sarif.Result{
 			RuleID:  sp(p.ruleID(m)),
+			Level:   sp(levelValue(m)),
 			Message: p.resultMessage(m),
 			// According to the SARIF spec, it may be correct to use AnalysisTarget.URI to indicate a logical
 			// file such as a "Dockerfile" but GitHub does not work well with this
@@ -392,8 +407,8 @@ func (p Presenter) resultMessage(m models.Match) sarif.Message {
 		src = fmt.Sprintf("at: %s", path)
 	case pkg.PURLLiteralMetadata:
 		src = fmt.Sprintf("from purl literal %q", meta.PURL)
-	case pkg.PURLFileMetadata:
-		src = fmt.Sprintf("from purl file %s", meta.Path)
+	case pkg.SBOMFileMetadata:
+		src = fmt.Sprintf("from SBOM file %s", meta.Path)
 	}
 	message := fmt.Sprintf("A %s vulnerability in %s package: %s, version %s was found %s",
 		severityText(m), m.Artifact.Type, m.Artifact.Name, m.Artifact.Version, src)

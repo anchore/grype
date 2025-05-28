@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/anchore/grype/grype/db/internal/gormadapter"
+	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
 )
 
@@ -56,7 +57,6 @@ type Reader interface {
 	AffectedPackageStoreReader
 	AffectedCPEStoreReader
 	io.Closer
-	getDB() *gorm.DB
 	attachBlobValue(...blobable) error
 }
 
@@ -72,7 +72,7 @@ type Writer interface {
 
 type Curator interface {
 	Reader() (Reader, error)
-	Status() Status
+	Status() vulnerability.ProviderStatus
 	Delete() error
 	Update() (bool, error)
 	Import(dbArchivePath string) error
@@ -101,7 +101,9 @@ func Hydrater() func(string) error {
 		// we don't pass any data initialization here because the data is already in the db archive and we do not want
 		// to affect the entries themselves, only indexes and schema.
 		s, err := newStore(Config{DBDirPath: path}, false, true)
-		log.CloseAndLogError(s, path)
+		if s != nil {
+			log.CloseAndLogError(s, path)
+		}
 		return err
 	}
 }

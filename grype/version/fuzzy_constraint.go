@@ -176,6 +176,8 @@ func parseVersionParts(v string) (int, int, int) {
 		// !"#$%&'()*+,-./ are dec 33 to 47, :;<=>?@ are dec 58 to 64, [\]^_` are dec 91 to 96 and {|}~ are dec 123 to 126.
 		// So, punctuation is in dec 33-126 range except 48-57, 65-90 and 97-122 gaps.
 		// This inverse logic allows for early short-circuiting for most of the chars and shaves ~20ns in benchmarks.
+		// linters might yell about De Morgan's law here - we ignore them in this case
+		//nolint:staticcheck
 		return b >= '!' && b <= '~' &&
 			!(b > '/' && b < ':' ||
 				b > '@' && b < '[' ||

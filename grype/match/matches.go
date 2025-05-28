@@ -100,7 +100,8 @@ func (r *Matches) addOrMerge(newMatch Match, newFp Fingerprint) {
 		// case A
 		if err := existingMatch.Merge(newMatch); err != nil {
 			log.WithFields("original", existingMatch.String(), "new", newMatch.String(), "error", err).Warn("unable to merge matches")
-			// TODO: dropped match in this case, we should figure a way to handle this
+			// at least capture the additional details
+			existingMatch.Details = append(existingMatch.Details, newMatch.Details...)
 		}
 
 		r.byFingerprint[newFp] = existingMatch
@@ -125,6 +126,8 @@ func (r *Matches) mergeCoreMatches(newMatch Match, newFp Fingerprint, existingFi
 			// case B1
 			if replaced := r.replace(newMatch, existingFp, newFp, existingMatch.Details...); !replaced {
 				log.WithFields("original", existingMatch.String(), "new", newMatch.String()).Trace("unable to replace match")
+				// at least capture the new details
+				existingMatch.Details = append(existingMatch.Details, newMatch.Details...)
 			} else {
 				return true
 			}
@@ -132,7 +135,9 @@ func (r *Matches) mergeCoreMatches(newMatch Match, newFp Fingerprint, existingFi
 
 		// case B2
 		if err := existingMatch.Merge(newMatch); err != nil {
-			log.WithFields("original", existingMatch.String(), "new", newMatch.String(), "error", err).Warn("unable to merge matches")
+			log.WithFields("original", existingMatch.String(), "new", newMatch.String(), "error", err).Trace("unable to merge matches")
+			// at least capture the new details
+			existingMatch.Details = append(existingMatch.Details, newMatch.Details...)
 		} else {
 			return true
 		}

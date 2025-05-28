@@ -27,7 +27,7 @@ func TestDBSearchOSsPostLoad(t *testing.T) {
 				OSs: []string{"ubuntu"},
 			},
 			expectedSpecs: []*v6.OSSpecifier{
-				{Name: "ubuntu", AllowMultiple: true},
+				{Name: "ubuntu"},
 			},
 		},
 		{
@@ -36,7 +36,7 @@ func TestDBSearchOSsPostLoad(t *testing.T) {
 				OSs: []string{"ubuntu@20"},
 			},
 			expectedSpecs: []*v6.OSSpecifier{
-				{Name: "ubuntu", MajorVersion: "20", AllowMultiple: true},
+				{Name: "ubuntu", MajorVersion: "20"},
 			},
 		},
 		{
@@ -45,7 +45,7 @@ func TestDBSearchOSsPostLoad(t *testing.T) {
 				OSs: []string{"ubuntu@20.04"},
 			},
 			expectedSpecs: []*v6.OSSpecifier{
-				{Name: "ubuntu", MajorVersion: "20", MinorVersion: "04", AllowMultiple: true},
+				{Name: "ubuntu", MajorVersion: "20", MinorVersion: "04"},
 			},
 		},
 		{
@@ -54,7 +54,7 @@ func TestDBSearchOSsPostLoad(t *testing.T) {
 				OSs: []string{"ubuntu@focal"},
 			},
 			expectedSpecs: []*v6.OSSpecifier{
-				{Name: "ubuntu", LabelVersion: "focal", AllowMultiple: true},
+				{Name: "ubuntu", LabelVersion: "focal"},
 			},
 		},
 		{
@@ -70,7 +70,7 @@ func TestDBSearchOSsPostLoad(t *testing.T) {
 				OSs: []string{"ubuntu:20"},
 			},
 			expectedSpecs: []*v6.OSSpecifier{
-				{Name: "ubuntu", MajorVersion: "20", AllowMultiple: true},
+				{Name: "ubuntu", MajorVersion: "20"},
 			},
 		},
 		{

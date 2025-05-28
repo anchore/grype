@@ -54,6 +54,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		string(syftPkg.BinaryPkg), // these are removed due to overlap-by-file-ownership
 		string(syftPkg.BitnamiPkg),
 		string(syftPkg.PhpPeclPkg),
+		string(syftPkg.PhpPearPkg),
 		string(syftPkg.RustPkg),
 		string(syftPkg.KbPkg),
 		string(syftPkg.DartPubPkg),
@@ -62,6 +63,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		string(syftPkg.ConanPkg),
 		string(syftPkg.HexPkg),
 		string(syftPkg.PortagePkg),
+		string(syftPkg.HomebrewPkg),
 		string(syftPkg.CocoapodsPkg),
 		string(syftPkg.HackagePkg),
 		string(syftPkg.NixPkg),

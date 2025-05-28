@@ -6,10 +6,8 @@ import (
 )
 
 type PresenterConfig struct {
-	ID        clio.Identification
-	Document  Document
-	SBOM      *sbom.SBOM
-	AppConfig interface{}
-	DBStatus  interface{}
-	Pretty    bool
+	ID       clio.Identification
+	Document Document
+	SBOM     *sbom.SBOM
+	Pretty   bool
 }

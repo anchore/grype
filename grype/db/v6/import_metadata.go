@@ -18,8 +18,8 @@ import (
 const ImportMetadataFileName = "import.json"
 
 type ImportMetadata struct {
-	Digest string `json:"digest"`
-
+	Digest        string `json:"digest"`
+	Source        string `json:"source,omitempty"`
 	ClientVersion string `json:"client_version"`
 }
 
@@ -59,7 +59,7 @@ func CalculateDBDigest(fs afero.Fs, dbFilePath string) (string, error) {
 	return fmt.Sprintf("xxh64:%s", digest), nil
 }
 
-func WriteImportMetadata(fs afero.Fs, dbDir string) (*ImportMetadata, error) {
+func WriteImportMetadata(fs afero.Fs, dbDir, source string) (*ImportMetadata, error) {
 	metadataFilePath := filepath.Join(dbDir, ImportMetadataFileName)
 	f, err := fs.OpenFile(metadataFilePath, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
@@ -72,10 +72,10 @@ func WriteImportMetadata(fs afero.Fs, dbDir string) (*ImportMetadata, error) {
 		return nil, fmt.Errorf("failed to calculate checksum for DB file: %w", err)
 	}
 
-	return writeImportMetadata(f, checksums)
+	return writeImportMetadata(f, checksums, source)
 }
 
-func writeImportMetadata(writer io.Writer, checksums string) (*ImportMetadata, error) {
+func writeImportMetadata(writer io.Writer, checksums, source string) (*ImportMetadata, error) {
 	if checksums == "" {
 		return nil, fmt.Errorf("checksum is required")
 	}
@@ -89,6 +89,7 @@ func writeImportMetadata(writer io.Writer, checksums string) (*ImportMetadata, e
 
 	doc := ImportMetadata{
 		Digest:        checksums,
+		Source:        source,
 		ClientVersion: schemaver.New(ModelVersion, Revision, Addition).String(),
 	}
 

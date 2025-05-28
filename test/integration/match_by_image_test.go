@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype"
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/matcher/dotnet"
@@ -30,7 +31,6 @@ import (
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/cataloging/pkgcataloging"
 	"github.com/anchore/syft/syft/cpe"
-	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
 )
@@ -177,7 +177,21 @@ func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 
 func addDotnetMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, provider vulnerability.Provider, theResult *match.Matches) {
 	packages := catalog.PackagesByPath("/dotnet/TestLibrary.deps.json")
-	if len(packages) != 2 { // TestLibrary + AWSSDK.Core
+	// 55caef8df7ac822e Pkg(name="TestLibrary" version="1.0.0" type="dotnet" id="55caef8df7ac822e")
+	// 0012329cdebba0ea Pkg(name="AWSSDK.Core" version="3.7.10.6" type="dotnet" id="0012329cdebba0ea")
+	// 07ec6fb2adb2cf8f Pkg(name="Microsoft.Extensions.DependencyInjection.Abstractions" version="6.0.0" type="dotnet" id="07ec6fb2adb2cf8f")
+	// ff03e77b91acca32 Pkg(name="Microsoft.Extensions.DependencyInjection" version="6.0.0" type="dotnet" id="ff03e77b91acca32")
+	// a1ea42c8f064083e Pkg(name="Microsoft.Extensions.Logging.Abstractions" version="6.0.0" type="dotnet" id="a1ea42c8f064083e")
+	// aaef85a2649e5d15 Pkg(name="Microsoft.Extensions.Logging" version="6.0.0" type="dotnet" id="aaef85a2649e5d15")
+	// 4af0fb6a81ba0423 Pkg(name="Microsoft.Extensions.Options" version="6.0.0" type="dotnet" id="4af0fb6a81ba0423")
+	// cb41a8aefdf40c3a Pkg(name="Microsoft.Extensions.Primitives" version="6.0.0" type="dotnet" id="cb41a8aefdf40c3a")
+	// 5ee80fba9caa3ab3 Pkg(name="Newtonsoft.Json" version="13.0.1" type="dotnet" id="5ee80fba9caa3ab3")
+	// df4b5dc73acd1f36 Pkg(name="Serilog.Sinks.Console" version="4.0.1" type="dotnet" id="df4b5dc73acd1f36")
+	// 023b9ba74c5c5ef5 Pkg(name="Serilog" version="2.10.0" type="dotnet" id="023b9ba74c5c5ef5")
+	// 430e4d4304a3ff55 Pkg(name="System.Diagnostics.DiagnosticSource" version="6.0.0" type="dotnet" id="430e4d4304a3ff55")
+	// 42021023d8f87661 Pkg(name="System.Runtime.CompilerServices.Unsafe" version="6.0.0" type="dotnet" id="42021023d8f87661")
+	// 2bb01d8c22df1e95 Pkg(name="TestCommon" version="1.0.0" type="dotnet" id="2bb01d8c22df1e95")
+	if len(packages) != 14 {
 		for _, p := range packages {
 			t.Logf("Dotnet Package: %s %+v", p.ID(), p)
 		}
@@ -773,7 +787,7 @@ func TestMatchByImage(t *testing.T) {
 				},
 			})
 
-			actualResults := grype.FindVulnerabilitiesForPackage(theProvider, s.Artifacts.LinuxDistribution, matchers, pkg.FromCollection(s.Artifacts.Packages, pkg.SynthesisConfig{}))
+			actualResults := grype.FindVulnerabilitiesForPackage(theProvider, distro.FromRelease(s.Artifacts.LinuxDistribution), matchers, pkg.FromCollection(s.Artifacts.Packages, pkg.SynthesisConfig{}))
 			for _, m := range actualResults.Sorted() {
 				for _, d := range m.Details {
 					observedMatchers.Add(string(d.Matcher))
@@ -931,7 +945,6 @@ func vexMatches(t *testing.T, ignoredMatches []match.IgnoredMatch, vexStatus vex
 				},
 			},
 		},
-		Distro: &linux.Release{},
 	}
 
 	vexedMatches, ignoredMatches, err := vexMatcher.ApplyVEX(pctx, &matches, ignoredMatches)

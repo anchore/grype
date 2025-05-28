@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/url"
 	"os"
-	"path"
 
 	"github.com/spf13/cobra"
 
@@ -62,28 +61,39 @@ func runDBList(opts dbListOptions) error {
 		return fmt.Errorf("unable to get database listing: %w", err)
 	}
 
-	return presentDBList(opts.Output, opts.DB.UpdateURL, os.Stdout, latest)
+	u, err := c.ResolveArchiveURL(latest.Archive)
+	if err != nil {
+		return fmt.Errorf("unable to resolve database URL: %w", err)
+	}
+
+	return presentDBList(opts.Output, u, opts.DB.UpdateURL, os.Stdout, latest)
 }
 
-func presentDBList(format string, u string, writer io.Writer, latest *distribution.LatestDocument) error {
+func presentDBList(format string, archiveURL, listingURL string, writer io.Writer, latest *distribution.LatestDocument) error {
 	if latest == nil {
 		return fmt.Errorf("no database listing found")
 	}
 
-	parsedURL, err := url.Parse(u)
+	// remove query params
+	archiveURLObj, err := url.Parse(archiveURL)
 	if err != nil {
-		return fmt.Errorf("failed to parse base URL: %w", err)
+		return fmt.Errorf("unable to parse db URL %q: %w", archiveURL, err)
 	}
 
-	parsedURL.Path = path.Join(path.Dir(parsedURL.Path), latest.Path)
+	archiveURLObj.RawQuery = ""
+
+	if listingURL == distribution.DefaultConfig().LatestURL {
+		// append on the schema
+		listingURL = fmt.Sprintf("%s/v%v/%s", listingURL, latest.SchemaVersion.Model, distribution.LatestFileName)
+	}
 
 	switch format {
 	case textOutputFormat:
 		fmt.Fprintf(writer, "Status:   %s\n", latest.Status)
 		fmt.Fprintf(writer, "Schema:   %s\n", latest.SchemaVersion.String())
 		fmt.Fprintf(writer, "Built:    %s\n", latest.Built.String())
-		fmt.Fprintf(writer, "Listing:  %s\n", u)
-		fmt.Fprintf(writer, "DB URL:   %s\n", parsedURL.String())
+		fmt.Fprintf(writer, "Listing:  %s\n", listingURL)
+		fmt.Fprintf(writer, "DB URL:   %s\n", archiveURLObj.String())
 		fmt.Fprintf(writer, "Checksum: %s\n", latest.Checksum)
 	case jsonOutputFormat, "raw":
 		enc := json.NewEncoder(writer)

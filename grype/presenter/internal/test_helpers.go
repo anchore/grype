@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/clio"
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -15,7 +16,6 @@ import (
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/file"
-	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/sbom"
 	syftSource "github.com/anchore/syft/syft/source"
@@ -99,7 +99,7 @@ func Redact(s []byte) []byte {
 	return s
 }
 
-func generateMatches(t *testing.T, p1, p2 pkg.Package) match.Matches {
+func generateMatches(t *testing.T, p1, p2 pkg.Package) match.Matches { // nolint:funlen
 	t.Helper()
 
 	matches := []match.Match{
@@ -113,6 +113,29 @@ func generateMatches(t *testing.T, p1, p2 pkg.Package) match.Matches {
 				Fix: vulnerability.Fix{
 					Versions: []string{"1.2.1", "2.1.3", "3.4.0"},
 					State:    vulnerability.FixStateFixed,
+				},
+				Metadata: &vulnerability.Metadata{
+					ID:       "CVE-1999-0001",
+					Severity: "Low",
+					Cvss: []vulnerability.Cvss{
+						{
+							Source:  "nvd",
+							Type:    "CVSS",
+							Version: "3.1",
+							Vector:  "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:L/I:L/A:H",
+							Metrics: vulnerability.CvssMetrics{
+								BaseScore: 8.2,
+							},
+						},
+					},
+					KnownExploited: nil,
+					EPSS: []vulnerability.EPSS{
+						{
+							CVE:        "CVE-1999-0001",
+							EPSS:       0.03,
+							Percentile: 0.42,
+						},
+					},
 				},
 			},
 			Package: p1,
@@ -138,6 +161,34 @@ func generateMatches(t *testing.T, p1, p2 pkg.Package) match.Matches {
 				Reference: vulnerability.Reference{
 					ID:        "CVE-1999-0002",
 					Namespace: "source-2",
+				},
+				Metadata: &vulnerability.Metadata{
+					ID:       "CVE-1999-0002",
+					Severity: "Critical",
+					Cvss: []vulnerability.Cvss{
+						{
+							Source:  "nvd",
+							Type:    "CVSS",
+							Version: "3.1",
+							Vector:  "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:C/C:H/I:H/A:H",
+							Metrics: vulnerability.CvssMetrics{
+								BaseScore: 8.5,
+							},
+						},
+					},
+					KnownExploited: []vulnerability.KnownExploited{
+						{
+							CVE:                        "CVE-1999-0002",
+							KnownRansomwareCampaignUse: "Known",
+						},
+					},
+					EPSS: []vulnerability.EPSS{
+						{
+							CVE:        "CVE-1999-0002",
+							EPSS:       0.08,
+							Percentile: 0.53,
+						},
+					},
 				},
 			},
 			Package: p2,
@@ -173,6 +224,29 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 						ID:        "CVE-1999-0001",
 						Namespace: "source-1",
 					},
+					Metadata: &vulnerability.Metadata{
+						ID:       "CVE-1999-0001",
+						Severity: "Low",
+						Cvss: []vulnerability.Cvss{
+							{
+								Source:  "nvd",
+								Type:    "CVSS",
+								Version: "3.1",
+								Vector:  "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:L/I:L/A:H",
+								Metrics: vulnerability.CvssMetrics{
+									BaseScore: 8.2,
+								},
+							},
+						},
+						KnownExploited: nil,
+						EPSS: []vulnerability.EPSS{
+							{
+								CVE:        "CVE-1999-0001",
+								EPSS:       0.03,
+								Percentile: 0.42,
+							},
+						},
+					},
 				},
 				Package: p,
 				Details: []match.Detail{
@@ -200,6 +274,34 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 						ID:        "CVE-1999-0002",
 						Namespace: "source-2",
 					},
+					Metadata: &vulnerability.Metadata{
+						ID:       "CVE-1999-0002",
+						Severity: "Critical",
+						Cvss: []vulnerability.Cvss{
+							{
+								Source:  "nvd",
+								Type:    "CVSS",
+								Version: "3.1",
+								Vector:  "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:C/C:H/I:H/A:H",
+								Metrics: vulnerability.CvssMetrics{
+									BaseScore: 8.5,
+								},
+							},
+						},
+						KnownExploited: []vulnerability.KnownExploited{
+							{
+								CVE:                        "CVE-1999-0002",
+								KnownRansomwareCampaignUse: "Known",
+							},
+						},
+						EPSS: []vulnerability.EPSS{
+							{
+								CVE:        "CVE-1999-0002",
+								EPSS:       0.08,
+								Percentile: 0.53,
+							},
+						},
+					},
 				},
 				Package: p,
 				Details: []match.Detail{
@@ -223,6 +325,28 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 					Reference: vulnerability.Reference{
 						ID:        "CVE-1999-0004",
 						Namespace: "source-2",
+					},
+					Metadata: &vulnerability.Metadata{
+						ID:       "CVE-1999-0004",
+						Severity: "High",
+						Cvss: []vulnerability.Cvss{
+							{
+								Source:  "nvd",
+								Type:    "CVSS",
+								Version: "3.1",
+								Vector:  "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:C/C:H/I:L/A:L",
+								Metrics: vulnerability.CvssMetrics{
+									BaseScore: 7.2,
+								},
+							},
+						},
+						EPSS: []vulnerability.EPSS{
+							{
+								CVE:        "CVE-1999-0004",
+								EPSS:       0.03,
+								Percentile: 0.75,
+							},
+						},
 					},
 				},
 				Package: p,
@@ -382,8 +506,8 @@ func generateContext(t *testing.T, scheme SyftSource) pkg.Context {
 
 	return pkg.Context{
 		Source: &desc,
-		Distro: &linux.Release{
-			Name: "centos",
+		Distro: &distro.Distro{
+			Type: "centos",
 			IDLike: []string{
 				"centos",
 			},

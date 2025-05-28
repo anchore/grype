@@ -42,7 +42,7 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 		//
 		// depending where the team is during the development cycle you will see different behavior, making automating
 		// this a little challenging.
-		{Alias: "debian", Codename: "trixie", Rolling: true}, // is currently sid, which is considered rolling
+		{Alias: "debian", Codename: "trixie", Rolling: true, ReplacementLabelVersion: strRef("unstable")}, // is currently sid, which is considered rolling
 	}
 }
 
@@ -72,8 +72,14 @@ func KnownPackageSpecifierOverrides() []PackageSpecifierOverride {
 
 		// jenkins plugins are a special case since they are always considered to be within the java ecosystem
 		{Ecosystem: string(pkg.JenkinsPluginPkg), ReplacementEcosystem: ptr(string(pkg.JavaPkg))},
+<<<<<<< HEAD
 		// Bitnami is a special case since it's not a language ecosystem but is a package type
 		{Ecosystem: "bitnami", ReplacementEcosystem: ptr(string(pkg.BitnamiPkg))},
+=======
+
+		// legacy cases
+		{Ecosystem: "pecl", ReplacementEcosystem: ptr(string(pkg.PhpPeclPkg))},
+>>>>>>> main
 	}
 
 	// remap package URL types to syft package types

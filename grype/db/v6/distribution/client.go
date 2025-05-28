@@ -40,7 +40,8 @@ type Config struct {
 type Client interface {
 	Latest() (*LatestDocument, error)
 	IsUpdateAvailable(current *v6.Description) (*Archive, error)
-	Download(archive Archive, dest string, downloadProgress *progress.Manual) (string, error)
+	ResolveArchiveURL(archive Archive) (string, error)
+	Download(url, dest string, downloadProgress *progress.Manual) (string, error)
 }
 
 type client struct {
@@ -117,8 +118,8 @@ func (c client) isUpdateAvailable(current *v6.Description, candidate *LatestDocu
 	}
 
 	// compare created data to current db date
-	if isSupersededBy(current, candidate.Archive.Description) {
-		log.Debugf("database update available: %s", candidate.Archive.Description)
+	if isSupersededBy(current, candidate.Description) {
+		log.Debugf("database update available: %s", candidate.Description)
 		return &candidate.Archive, message
 	}
 
@@ -126,23 +127,10 @@ func (c client) isUpdateAvailable(current *v6.Description, candidate *LatestDocu
 	return nil, message
 }
 
-func (c client) Download(archive Archive, dest string, downloadProgress *progress.Manual) (string, error) {
-	defer downloadProgress.SetCompleted()
-
-	if err := os.MkdirAll(dest, 0700); err != nil {
-		return "", fmt.Errorf("unable to create db download root dir: %w", err)
-	}
-
-	// note: as much as I'd like to use the afero FS abstraction here, the go-getter library does not support it
-	tempDir, err := os.MkdirTemp(dest, "grype-db-download")
-	if err != nil {
-		return "", fmt.Errorf("unable to create db client temp dir: %w", err)
-	}
-
+func (c client) ResolveArchiveURL(archive Archive) (string, error) {
 	// download the db to the temp dir
 	u, err := url.Parse(c.latestURL())
 	if err != nil {
-		removeAllOrLog(afero.NewOsFs(), tempDir)
 		return "", fmt.Errorf("unable to parse db URL %q: %w", c.latestURL(), err)
 	}
 
@@ -156,8 +144,24 @@ func (c client) Download(archive Archive, dest string, downloadProgress *progres
 	}
 	u.RawQuery = query.Encode()
 
+	return u.String(), nil
+}
+
+func (c client) Download(archiveURL, dest string, downloadProgress *progress.Manual) (string, error) {
+	defer downloadProgress.SetCompleted()
+
+	if err := os.MkdirAll(dest, 0700); err != nil {
+		return "", fmt.Errorf("unable to create db download root dir: %w", err)
+	}
+
+	// note: as much as I'd like to use the afero FS abstraction here, the go-getter library does not support it
+	tempDir, err := os.MkdirTemp(dest, "grype-db-download")
+	if err != nil {
+		return "", fmt.Errorf("unable to create db client temp dir: %w", err)
+	}
+
 	// go-getter will automatically extract all files within the archive to the temp dir
-	err = c.dbDownloader.GetToDir(tempDir, u.String(), downloadProgress)
+	err = c.dbDownloader.GetToDir(tempDir, archiveURL, downloadProgress)
 	if err != nil {
 		removeAllOrLog(afero.NewOsFs(), tempDir)
 		return "", fmt.Errorf("unable to download db: %w", err)
@@ -173,6 +177,7 @@ func (c client) Latest() (*LatestDocument, error) {
 		return nil, fmt.Errorf("unable to create listing temp file: %w", err)
 	}
 	defer func() {
+		log.CloseAndLogError(tempFile, tempFile.Name())
 		err := c.fs.RemoveAll(tempFile.Name())
 		if err != nil {
 			log.WithFields("error", err, "file", tempFile.Name()).Errorf("failed to remove file")

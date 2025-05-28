@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mitchellh/hashstructure/v2"
+	"github.com/gohugoio/hashstructure"
 )
 
 type Details []Detail
@@ -43,7 +43,7 @@ func (m Details) Types() (tys []Type) {
 }
 
 func (m Detail) ID() string {
-	f, err := hashstructure.Hash(&m, hashstructure.FormatV2, &hashstructure.HashOptions{
+	f, err := hashstructure.Hash(&m, &hashstructure.HashOptions{
 		ZeroNil:      true,
 		SlicesAsSets: true,
 	})

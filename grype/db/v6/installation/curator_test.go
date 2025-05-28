@@ -36,8 +36,12 @@ func (m *mockClient) IsUpdateAvailable(current *db.Description) (*distribution.A
 	return args.Get(0).(*distribution.Archive), nil
 }
 
-func (m *mockClient) Download(archive distribution.Archive, dest string, downloadProgress *progress.Manual) (string, error) {
-	args := m.Called(archive, dest, downloadProgress)
+func (m *mockClient) ResolveArchiveURL(_ distribution.Archive) (string, error) {
+	return "http://localhost/archive.tar.zst", nil
+}
+
+func (m *mockClient) Download(url, dest string, downloadProgress *progress.Manual) (string, error) {
+	args := m.Called(url, dest, downloadProgress)
 	return args.String(0), args.Error(1)
 }
 
@@ -175,7 +179,7 @@ func writeTestDB(t *testing.T, fs afero.Fs, dir string) string {
 	require.NoError(t, rw.SetDBMetadata())
 	require.NoError(t, rw.Close())
 
-	doc, err := db.WriteImportMetadata(fs, dir)
+	doc, err := db.WriteImportMetadata(fs, dir, "source")
 	require.NoError(t, err)
 	require.NotNil(t, doc)
 
@@ -752,6 +756,153 @@ func Test_isRehydrationNeeded(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCurator_Update_UsesDBRootDirForDownloadTempBase(t *testing.T) {
+	c := newTestCurator(t) // This sets up c.fs as afero.NewOsFs() rooted in t.TempDir()
+	mc := c.client.(*mockClient)
+
+	// This is the path that the mocked Download method will return.
+	// It simulates a temporary directory created by the download client within DBRootDir.
+	expectedDownloadedContentPath := filepath.Join(c.config.DBRootDir, "temp-downloaded-db-content-123")
+
+	// Pre-create this directory and make it look like a valid DB source for the hydrator and replaceDB.
+	require.NoError(t, c.fs.MkdirAll(expectedDownloadedContentPath, 0755))
+	// Write minimal valid DB metadata so that hydration/activation can proceed far enough.
+	// Using existing helpers to create a semblance of a DB.
+	writeTestDB(t, c.fs, expectedDownloadedContentPath) // This creates a basic DB file and import metadata.
+
+	// Mock client responses
+	mc.On("IsUpdateAvailable", mock.Anything).Return(&distribution.Archive{}, nil)
+	// CRUCIAL ASSERTION:
+	// Verify that Download is called with c.config.DBRootDir as its second argument (baseDirForTemp).
+	// It will return the expectedDownloadedContentPath, simulating successful download and extraction.
+	mc.On("Download", mock.Anything, c.config.DBRootDir, mock.Anything).Return(expectedDownloadedContentPath, nil)
+
+	hydrateCalled := false
+	c.hydrator = func(path string) error {
+		// Ensure hydrator is called with the path returned by Download
+		assert.Equal(t, expectedDownloadedContentPath, path, "hydrator called with incorrect path")
+		hydrateCalled = true
+		return nil // Simulate successful hydration
+	}
+
+	// Call Update to trigger the download and activation sequence
+	updated, err := c.Update()
+
+	// Assertions
+	require.NoError(t, err, "Update should succeed")
+	require.True(t, updated, "Update should report true")
+	mc.AssertExpectations(t) // Verifies that Download was called with the expected arguments
+	assert.True(t, hydrateCalled, "expected hydrator to be called")
+
+	// Check if the DB was "activated" (i.e., renamed)
+	finalDBPath := c.config.DBDirectoryPath()
+	_, err = c.fs.Stat(finalDBPath)
+	require.NoError(t, err, "final DB directory should exist after successful update")
+	// And the temporary downloaded content path should no longer exist as it was renamed
+	_, err = c.fs.Stat(expectedDownloadedContentPath)
+	require.True(t, os.IsNotExist(err), "temporary download path should not exist after rename")
+}
+
+func TestCurator_Update_CleansUpDownloadDirOnActivationFailure(t *testing.T) {
+	c := newTestCurator(t) // Sets up c.fs as afero.NewOsFs() rooted in t.TempDir()
+	mc := c.client.(*mockClient)
+
+	// This is the path that the mocked Download method will return.
+	// This directory should be cleaned up if activation fails.
+	downloadedContentPath := filepath.Join(c.config.DBRootDir, "temp-download-to-be-cleaned-up")
+
+	// Simulate the download client successfully creating this directory.
+	require.NoError(t, c.fs.MkdirAll(downloadedContentPath, 0755))
+	// Optionally, put a dummy file inside to make the cleanup more tangible.
+	require.NoError(t, afero.WriteFile(c.fs, filepath.Join(downloadedContentPath, "dummy_file.txt"), []byte("test data"), 0644))
+
+	// Mock client responses
+	mc.On("IsUpdateAvailable", mock.Anything).Return(&distribution.Archive{}, nil)
+	// Download is called with DBRootDir as base, and returns the path to the (simulated) downloaded content.
+	mc.On("Download", mock.Anything, c.config.DBRootDir, mock.Anything).Return(downloadedContentPath, nil)
+
+	// Configure the hydrator to fail, which will cause c.activate() to fail.
+	expectedHydrationError := "simulated hydration failure"
+	c.hydrator = func(path string) error {
+		assert.Equal(t, downloadedContentPath, path, "hydrator called with incorrect path")
+		return errors.New(expectedHydrationError)
+	}
+
+	// Call Update, expecting it to fail during activation.
+	updated, err := c.Update()
+
+	// Assertions
+	require.Error(t, err, "Update should fail due to activation error")
+	require.Contains(t, err.Error(), expectedHydrationError, "Error message should reflect hydration failure")
+	require.False(t, updated, "Update should report false on failure")
+	mc.AssertExpectations(t) // Verifies Download was called as expected.
+
+	// CRUCIAL ASSERTION:
+	// Verify that the temporary download directory was cleaned up.
+	_, statErr := c.fs.Stat(downloadedContentPath)
+	require.True(t, os.IsNotExist(statErr), "expected temporary download directory to be cleaned up after activation failure")
+}
+
+// Test for the Import path (URL case) - very similar to the Update tests
+func TestCurator_Import_URL_UsesDBRootDirForDownloadTempBaseAndCleansUp(t *testing.T) {
+	t.Run("successful import from URL", func(t *testing.T) {
+		c := newTestCurator(t)
+		mc := c.client.(*mockClient)
+
+		importURL := "http://localhost/some/db.tar.gz"
+		expectedDownloadedContentPath := filepath.Join(c.config.DBRootDir, "temp-imported-db-content-url")
+
+		require.NoError(t, c.fs.MkdirAll(expectedDownloadedContentPath, 0755))
+		writeTestDB(t, c.fs, expectedDownloadedContentPath)
+
+		mc.On("Download", importURL, c.config.DBRootDir, mock.Anything).Return(expectedDownloadedContentPath, nil)
+
+		hydrateCalled := false
+		c.hydrator = func(path string) error {
+			assert.Equal(t, expectedDownloadedContentPath, path)
+			hydrateCalled = true
+			return nil
+		}
+
+		err := c.Import(importURL)
+
+		require.NoError(t, err)
+		mc.AssertExpectations(t)
+		assert.True(t, hydrateCalled)
+		_, err = c.fs.Stat(c.config.DBDirectoryPath())
+		require.NoError(t, err, "final DB directory should exist")
+		_, err = c.fs.Stat(expectedDownloadedContentPath)
+		require.True(t, os.IsNotExist(err), "temp import path should not exist after rename")
+	})
+
+	t.Run("import from URL fails activation", func(t *testing.T) {
+		c := newTestCurator(t)
+		mc := c.client.(*mockClient)
+
+		importURL := "http://localhost/some/other/db.tar.gz"
+		downloadedContentPath := filepath.Join(c.config.DBRootDir, "temp-imported-to-cleanup-url")
+
+		require.NoError(t, c.fs.MkdirAll(downloadedContentPath, 0755))
+		require.NoError(t, afero.WriteFile(c.fs, filepath.Join(downloadedContentPath, "dummy.txt"), []byte("test"), 0644))
+
+		mc.On("Download", importURL, c.config.DBRootDir, mock.Anything).Return(downloadedContentPath, nil)
+
+		expectedHydrationError := "simulated hydration failure for import"
+		c.hydrator = func(path string) error {
+			return errors.New(expectedHydrationError)
+		}
+
+		err := c.Import(importURL)
+
+		require.Error(t, err)
+		require.Contains(t, err.Error(), expectedHydrationError)
+		mc.AssertExpectations(t)
+
+		_, statErr := c.fs.Stat(downloadedContentPath)
+		require.True(t, os.IsNotExist(statErr), "expected temp import directory to be cleaned up")
+	})
 }
 
 func setupTestDB(t *testing.T, dbDir string) db.ReadWriter {
