@@ -75,11 +75,6 @@ func Test_CycloneDX_Valid(t *testing.T) {
 			cmd.Stdout = &out
 			cmd.Stderr = &out
 
-			if format == "xml" {
-				// the XML validator does not pass with a language of "python"
-				contents = strings.ReplaceAll(contents, ":*:*:python:*:*:*:*", ":*:*:*:*:*:*:*")
-			}
-
 			// pipe to the docker command
 			cmd.Stdin = strings.NewReader(contents)
 
