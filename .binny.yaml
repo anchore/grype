@@ -98,7 +98,7 @@ tools:
   # used for integration tests
   - name: skopeo
     version:
-      want: v1.18.0
+      want: v1.19.0
     method: go-install
     with:
       module: github.com/containers/skopeo
