@@ -38,6 +38,7 @@ var formatStr = []string{
 	"Portage",
 	"Go",
 	"JVM",
+	"Bitnami",
 }
 
 var Formats = []Format{
