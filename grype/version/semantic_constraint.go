@@ -40,7 +40,9 @@ func (c semanticConstraint) supported(format Format) bool {
 	// portion and makes a semVer object that is compatible with
 	// these constraints. In practice two formats (semVer, gem version) follow semVer,
 	// but one of them needs extra cleanup to function (gem).
-	return format == SemanticFormat || format == GemFormat
+	// Bitnami is a special case that uses semantic versioning given semVer
+	// is used on the Bitnami Vulndb but it's not used on the Bitnami packages.
+	return format == SemanticFormat || format == GemFormat || format == BitnamiFormat
 }
 
 func (c semanticConstraint) Satisfied(version *Version) (bool, error) {

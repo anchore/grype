@@ -18,6 +18,10 @@ func TestParseFormat(t *testing.T) {
 			format: DebFormat,
 		},
 		{
+			input:  "bitnami",
+			format: BitnamiFormat,
+		},
+		{
 			input:  "maven",
 			format: MavenFormat,
 		},
@@ -56,6 +60,13 @@ func TestFormatFromPkgType(t *testing.T) {
 		p      pkg.Package
 		format Format
 	}{
+		{
+			name: "bitnami",
+			p: pkg.Package{
+				Type: syftPkg.BitnamiPkg,
+			},
+			format: BitnamiFormat,
+		},
 		{
 			name: "deb",
 			p: pkg.Package{

@@ -57,6 +57,7 @@ func NewVersionFromPkg(p pkg.Package) (*Version, error) {
 	return ver, nil
 }
 
+//nolint:funlen
 func (v *Version) populate() error {
 	switch v.Format {
 	case SemanticFormat:
@@ -66,6 +67,10 @@ func (v *Version) populate() error {
 	case ApkFormat:
 		ver, err := newApkVersion(v.Raw)
 		v.rich.apkVer = ver
+		return err
+	case BitnamiFormat:
+		ver, err := newBitnamiVersion(v.Raw)
+		v.rich.semVer = ver
 		return err
 	case DebFormat:
 		ver, err := newDebVersion(v.Raw)
@@ -139,7 +144,7 @@ func (v Version) Compare(other *Version) (int, error) {
 
 func (v Version) compareSameFormat(other *Version) (int, error) {
 	switch v.Format {
-	case SemanticFormat:
+	case SemanticFormat, GemFormat, BitnamiFormat:
 		return v.rich.semVer.verObj.Compare(other.rich.semVer.verObj), nil
 	case ApkFormat:
 		return v.rich.apkVer.Compare(other)
@@ -155,8 +160,6 @@ func (v Version) compareSameFormat(other *Version) (int, error) {
 		return v.rich.pep440version.Compare(other)
 	case KBFormat:
 		return v.rich.kbVer.Compare(other)
-	case GemFormat:
-		return v.rich.semVer.verObj.Compare(other.rich.semVer.verObj), nil
 	case PortageFormat:
 		return v.rich.portVer.Compare(other)
 	case JVMFormat:

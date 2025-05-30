@@ -22,6 +22,7 @@ require (
 	github.com/anchore/syft v1.26.1
 	github.com/aquasecurity/go-pep440-version v0.0.1
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
+	github.com/bitnami/go-version v0.0.0-20250131085805-b1f57a8634ef
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/charmbracelet/bubbletea v1.3.5
 	github.com/charmbracelet/lipgloss v1.1.0
@@ -109,7 +110,6 @@ require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/becheran/wildmatch-go v1.0.0 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
-	github.com/bitnami/go-version v0.0.0-20250131085805-b1f57a8634ef // indirect
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb // indirect
 	github.com/bmatcuk/doublestar/v4 v4.8.1 // indirect
 	github.com/bodgit/plumbing v1.3.0 // indirect
