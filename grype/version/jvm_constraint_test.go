@@ -58,6 +58,15 @@ func TestVersionConstraintJVM(t *testing.T) {
 		{version: "1.8.0_131", constraint: "> 1.8.0_131-ea", satisfied: true},
 		{version: "9.0.0-ea", constraint: "< 9.0.0", satisfied: true},
 		{version: "9.0.0-ea", constraint: "> 1.8.0_131", satisfied: true},
+
+		{version: "1.6.0u141", constraint: "= 1.6.0_141", satisfied: true},
+		{version: "1.6.0u141", constraint: "= 6.0.141", satisfied: true},
+		{version: "1.6.0_141", constraint: "= 6.0.141", satisfied: true},
+		{version: "6.0.141", constraint: "= 1.6.0_141", satisfied: true},
+
+		{version: "1.6.0u141", constraint: "> 1.6.0_37", satisfied: true},
+		{version: "1.6.0_141", constraint: "> 1.6.0_37", satisfied: true},
+		{version: "6.0.141", constraint: "> 1.6.0_37", satisfied: true},
 	}
 
 	for _, test := range tests {
