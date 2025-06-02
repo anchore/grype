@@ -39,6 +39,7 @@ For commercial support options with Syft or Grype, please [contact Anchore](http
   - CentOS
   - Debian
   - Distroless
+  - MinimOS
   - Oracle Linux
   - Red Hat (RHEL)
   - Ubuntu
@@ -552,6 +553,7 @@ When Grype performs a scan for vulnerabilities, it does so using a vulnerability
 - Chainguard SecDB: https://packages.cgr.dev/chainguard/security.json
 - Debian Linux CVE Tracker: https://security-tracker.debian.org/tracker/data/json
 - GitHub Security Advisories (GHSAs): https://github.com/advisories
+- MinimOS SecDB: https://packages.mini.dev/advisories/secdb/security.json
 - National Vulnerability Database (NVD): https://nvd.nist.gov/vuln/data-feeds
 - Oracle Linux OVAL: https://linux.oracle.com/security/oval/
 - RedHat Linux Security Data: https://access.redhat.com/hydra/rest/securitydata/

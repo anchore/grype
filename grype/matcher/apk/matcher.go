@@ -220,7 +220,7 @@ func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, p pk
 // we want to NAK this vulnerability for BOTH packages
 func (m *Matcher) findNaksForPackage(provider vulnerability.Provider, p pkg.Package) ([]match.IgnoredMatch, error) {
 	// TODO: this was only applying to specific distros as originally implemented; this should probably be removed:
-	if d := p.Distro; d == nil || d.Type != distro.Wolfi && d.Type != distro.Chainguard && d.Type != distro.Alpine {
+	if d := p.Distro; d == nil || d.Type != distro.Wolfi && d.Type != distro.Chainguard && d.Type != distro.Alpine && d.Type != distro.MinimOS {
 		return nil, nil
 	}
 
