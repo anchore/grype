@@ -22,7 +22,7 @@ func (m *Matcher) Type() match.MatcherType {
 	return match.MsrcMatcher
 }
 
-func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoredMatch, error) {
+func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	// find KB matches for the MSFT version given in the package and version.
 	// The "distro" holds the information about the Windows version, and its
 	// patch (KB)
