@@ -710,6 +710,8 @@ github.com/anchore/packageurl-go v0.1.1-0.20250220190351-d62adb6e1115 h1:ZyRCmiE
 github.com/anchore/packageurl-go v0.1.1-0.20250220190351-d62adb6e1115/go.mod h1:KoYIv7tdP5+CC9VGkeZV4/vGCKsY55VvoG+5dadg4YI=
 github.com/anchore/stereoscope v0.1.5-0.20250603185652-2bca55514913 h1:4WyA6KrCubrpew1swsEG22tL5xMkx+Si02p3t6EB6mo=
 github.com/anchore/stereoscope v0.1.5-0.20250603185652-2bca55514913/go.mod h1:mdVhB15N150k+cGwfeuf6FQwg0pJ8lM08wy9qfzYQns=
+github.com/anchore/stereoscope v0.1.5-0.20250603212233-59ba487a400a h1:KhCCDezgOTAZUBta4WcHWvyJ4nQLFA+7cxKWs3e4qwU=
+github.com/anchore/stereoscope v0.1.5-0.20250603212233-59ba487a400a/go.mod h1:mdVhB15N150k+cGwfeuf6FQwg0pJ8lM08wy9qfzYQns=
 github.com/anchore/syft v1.26.1 h1:v64AqoYzPGZols2O20xquE93bJr0EH3VqAKsB0fr0WA=
 github.com/anchore/syft v1.26.1/go.mod h1:OyN/wK6s7lmV2kAUm4zcQbZhLznToASL2r+iRQHcIKY=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
