@@ -473,7 +473,7 @@ type OperatingSystem struct {
 
 	// Designator is a string used to distinguish between different releases of the same version of the operating system
 	// such as RHEL-9.4-EUS vs RHEL-9
-	Designator string `gorm:"column:designator;index,collate:NOCASE"`
+	Designator string `gorm:"column:designator;index:os_idx,unique;index,collate:NOCASE"`
 }
 
 func (o *OperatingSystem) VersionNumber() string {
@@ -495,11 +495,16 @@ func (o *OperatingSystem) Version() string {
 		return o.LabelVersion
 	}
 
+	var suffix string
+	if o.Designator != "" {
+		suffix = fmt.Sprintf("-%s", o.Designator)
+	}
+
 	if o.MajorVersion != "" {
 		if o.MinorVersion != "" {
-			return fmt.Sprintf("%s.%s", o.MajorVersion, o.MinorVersion)
+			return fmt.Sprintf("%s.%s%s", o.MajorVersion, o.MinorVersion, suffix)
 		}
-		return o.MajorVersion
+		return o.MajorVersion + suffix
 	}
 
 	return o.Codename
