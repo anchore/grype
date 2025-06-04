@@ -120,7 +120,7 @@ func TestAffectedPackageTableRowMarshalJSON(t *testing.T) {
     "name": "pkg1",
     "ecosystem": "ecosystem1"
   },
-  "cpe": "cpe:2.3:a:vendor1:product1:*:*:*:*:*:*",
+  "cpe": "cpe:2.3:a:vendor1:product1:*:*:*:*:*:*:*:*",
   "namespace": "namespace1",
   "detail": {
     "cves": [

@@ -104,7 +104,7 @@ func DBSearch(app clio.Application) *cobra.Command {
 
   Search for affected packages by CPE (note: version/update is not considered):
 
-    $ grype db search --pkg 'cpe:2.3:a:jetty:jetty_http_server:*:*:*:*:*:*'
+    $ grype db search --pkg 'cpe:2.3:a:jetty:jetty_http_server:*:*:*:*:*:*:*:*'
     $ grype db search --pkg 'cpe:/a:jetty:jetty_http_server'`,
 		PreRunE: disableUI(app),
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
