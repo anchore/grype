@@ -675,7 +675,7 @@ type Cpe struct {
 }
 
 func (c Cpe) String() string {
-	parts := []string{"cpe:2.3", c.Part, c.Vendor, c.Product, c.Edition, c.Language, c.SoftwareEdition, c.TargetHardware, c.TargetSoftware, c.Other}
+	parts := []string{"cpe:2.3", c.Part, c.Vendor, c.Product, "*", "*", c.Edition, c.Language, c.SoftwareEdition, c.TargetHardware, c.TargetSoftware, c.Other}
 	for i, part := range parts {
 		if part == "" {
 			parts[i] = "*"
