@@ -30,7 +30,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/facebookincubator/nvdtools v0.1.5
 	github.com/gabriel-vasile/mimetype v1.4.9
-	github.com/gkampitakis/go-snaps v0.5.12
+	github.com/gkampitakis/go-snaps v0.5.13
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-test/deep v1.1.1
 	github.com/go-viper/mapstructure/v2 v2.2.1
@@ -167,7 +167,7 @@ require (
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-restruct/restruct v1.2.0-alpha // indirect
-	github.com/goccy/go-yaml v1.17.1 // indirect
+	github.com/goccy/go-yaml v1.18.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
