@@ -1,16 +1,19 @@
 package version
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 var _ Constraint = (*genericConstraint)(nil)
 
 type genericConstraint struct {
 	raw        string
 	expression constraintExpression
-	name       string
+	format     Format
 }
 
-func newGenericConstraint(raw string, genFn comparatorGenerator, name string) (genericConstraint, error) {
+func newGenericConstraint(raw string, genFn comparatorGenerator, format Format) (genericConstraint, error) {
 	constraints, err := newConstraintExpression(raw, genFn)
 	if err != nil {
 		return genericConstraint{}, err
@@ -18,7 +21,7 @@ func newGenericConstraint(raw string, genFn comparatorGenerator, name string) (g
 	return genericConstraint{
 		expression: constraints,
 		raw:        raw,
-		name:       name,
+		format:     format,
 	}, nil
 }
 
@@ -27,7 +30,11 @@ func (g genericConstraint) String() string {
 	if g.raw != "" {
 		value = g.raw
 	}
-	return fmt.Sprintf("%s (%s)", value, g.name)
+	return fmt.Sprintf("%s (%s)", value, strings.ToLower(g.format.String()))
+}
+
+func (g genericConstraint) Format() Format {
+	return g.format
 }
 
 func (g genericConstraint) Satisfied(version *Version) (bool, error) {

@@ -66,6 +66,10 @@ func (c semanticConstraint) Satisfied(version *Version) (bool, error) {
 	return c.constraint.Check(version.rich.semVer.verObj), nil
 }
 
+func (c semanticConstraint) Format() Format {
+	return SemanticFormat
+}
+
 func (c semanticConstraint) String() string {
 	if c.raw == "" {
 		return "none (semver)"

@@ -81,11 +81,11 @@ func (f *fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
 
 	// rebuild temp constraint based off of ver obj
 	if verObj.Format != UnknownFormat {
-		newConstaint, err := GetConstraint(f.rawPhrase, verObj.Format)
+		newConstraint, err := GetConstraint(f.rawPhrase, verObj.Format)
 		// check if constraint is not fuzzyConstraint
-		_, ok := newConstaint.(*fuzzyConstraint)
+		_, ok := newConstraint.(*fuzzyConstraint)
 		if err == nil && !ok {
-			satisfied, err := newConstaint.Satisfied(verObj)
+			satisfied, err := newConstraint.Satisfied(verObj)
 			if err == nil {
 				return satisfied, nil
 			}
@@ -102,6 +102,13 @@ func (f *fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
 	}
 	// semver didn't work, use fuzzy part matching instead...
 	return f.constraints.satisfied(verObj)
+}
+
+func (f *fuzzyConstraint) Format() Format {
+	if f.semanticConstraint != nil {
+		return SemanticFormat
+	}
+	return UnknownFormat
 }
 
 func (f *fuzzyConstraint) String() string {

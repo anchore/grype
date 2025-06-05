@@ -61,6 +61,10 @@ func (c rpmConstraint) Satisfied(version *Version) (bool, error) {
 	return c.expression.satisfied(version)
 }
 
+func (c rpmConstraint) Format() Format {
+	return RpmFormat
+}
+
 func (c rpmConstraint) String() string {
 	if c.raw == "" {
 		return "none (rpm)"

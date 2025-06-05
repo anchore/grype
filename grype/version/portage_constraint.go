@@ -58,6 +58,10 @@ func (c portageConstraint) Satisfied(version *Version) (bool, error) {
 	return c.expression.satisfied(version)
 }
 
+func (c portageConstraint) Format() Format {
+	return PortageFormat
+}
+
 func (c portageConstraint) String() string {
 	if c.raw == "" {
 		return "none (portage)"

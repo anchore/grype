@@ -398,10 +398,20 @@ func Test_addEpochIfApplicable(t *testing.T) {
 			pkg: pkg.Package{
 				Version: "3.26.0-6.el8",
 				Metadata: pkg.RpmMetadata{
-					Epoch: nil,
+					Epoch: nil, // assume 0 epoch
 				},
 			},
 			expected: "0:3.26.0-6.el8",
+		},
+		{
+			name: "version is empty",
+			pkg: pkg.Package{
+				Version: "",
+				Metadata: pkg.RpmMetadata{
+					Epoch: nil, // assume 0 epoch
+				},
+			},
+			expected: "",
 		},
 	}
 	for _, test := range tests {

@@ -59,6 +59,10 @@ func (c debConstraint) Satisfied(version *Version) (bool, error) {
 	return c.expression.satisfied(version)
 }
 
+func (c debConstraint) Format() Format {
+	return DebFormat
+}
+
 func (c debConstraint) String() string {
 	if c.raw == "" {
 		return "none (deb)"

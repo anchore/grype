@@ -6,6 +6,7 @@ import (
 
 type Constraint interface {
 	fmt.Stringer
+	Format() Format
 	Satisfied(*Version) (bool, error)
 }
 

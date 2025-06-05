@@ -231,11 +231,18 @@ func applyDistroHint(pkgs []pkg.Package, context *pkg.Context, opts *options.Gry
 		if len(split) > 1 {
 			v = split[1]
 		}
-		if strings.Contains(v, "-") {
+		switch {
+		case strings.Contains(v, "+"):
+			vParts := strings.Split(v, "+")
+			v = vParts[0]
+			designator = vParts[1]
+
+		case strings.Contains(v, "-"):
 			vParts := strings.Split(v, "-")
 			v = vParts[0]
 			designator = vParts[1]
 		}
+
 		context.Distro = &linux.Release{
 			PrettyName: d,
 			Name:       d,

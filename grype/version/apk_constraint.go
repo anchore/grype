@@ -64,6 +64,10 @@ func (c apkConstraint) Satisfied(version *Version) (bool, error) {
 	return c.expression.satisfied(version)
 }
 
+func (c apkConstraint) Format() Format {
+	return ApkFormat
+}
+
 func (c apkConstraint) String() string {
 	if c.raw == "" {
 		return "none (apk)"

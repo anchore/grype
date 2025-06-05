@@ -63,6 +63,10 @@ func (c mavenConstraint) Satisfied(version *Version) (satisfied bool, err error)
 	return c.expression.satisfied(version)
 }
 
+func (c mavenConstraint) Format() Format {
+	return MavenFormat
+}
+
 func (c mavenConstraint) String() string {
 	if c.raw == "" {
 		return "none (maven)"

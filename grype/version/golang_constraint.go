@@ -3,7 +3,7 @@ package version
 import "fmt"
 
 func newGolangConstraint(raw string) (Constraint, error) {
-	return newGenericConstraint(raw, newGolangComparator, "go")
+	return newGenericConstraint(raw, newGolangComparator, GolangFormat)
 }
 
 func newGolangComparator(unit constraintUnit) (Comparator, error) {
