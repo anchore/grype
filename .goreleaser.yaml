@@ -94,10 +94,10 @@ brews:
 
 dockers:
   - image_templates:
-      - anchore/grype:debug
-      - anchore/grype:{{.Tag}}-debug
-      - ghcr.io/anchore/grype:debug
-      - ghcr.io/anchore/grype:{{.Tag}}-debug
+      - anchore/grype:debug-amd64
+      - anchore/grype:{{.Tag}}-debug-amd64
+      - ghcr.io/anchore/grype:debug-amd64
+      - ghcr.io/anchore/grype:{{.Tag}}-debug-amd64
     goarch: amd64
     dockerfile: Dockerfile.debug
     use: buildx
@@ -154,10 +154,10 @@ dockers:
       - "--build-arg=VCS_URL={{.GitURL}}"
 
   - image_templates:
-      - anchore/grype:latest
-      - anchore/grype:{{.Tag}}
-      - ghcr.io/anchore/grype:latest
-      - ghcr.io/anchore/grype:{{.Tag}}
+      - anchore/grype:latest-amd64
+      - anchore/grype:{{.Tag}}-amd64
+      - ghcr.io/anchore/grype:latest-amd64
+      - ghcr.io/anchore/grype:{{.Tag}}-amd64
     goarch: amd64
     dockerfile: Dockerfile
     use: buildx
@@ -210,41 +210,42 @@ dockers:
 docker_manifests:
   - name_template: anchore/grype:latest
     image_templates:
-      - anchore/grype:{{.Tag}}
+      - anchore/grype:{{.Tag}}-amd64
       - anchore/grype:{{.Tag}}-arm64v8
       - anchore/grype:{{.Tag}}-ppc64le
       - anchore/grype:{{.Tag}}-s390x
 
   - name_template: anchore/grype:debug
-      - anchore/grype:{{.Tag}}-debug
+    image_templates:
+      - anchore/grype:{{.Tag}}-debug-amd64
       - anchore/grype:{{.Tag}}-debug-arm64v8
       - anchore/grype:{{.Tag}}-debug-ppc64le
       - anchore/grype:{{.Tag}}-debug-s390x
 
   - name_template: anchore/grype:{{.Tag}}
     image_templates:
-      - anchore/grype:{{.Tag}}
+      - anchore/grype:{{.Tag}}-amd64
       - anchore/grype:{{.Tag}}-arm64v8
       - anchore/grype:{{.Tag}}-ppc64le
       - anchore/grype:{{.Tag}}-s390x
 
   - name_template: ghcr.io/anchore/grype:latest
     image_templates:
-      - ghcr.io/anchore/grype:{{.Tag}}
+      - ghcr.io/anchore/grype:{{.Tag}}-amd64
       - ghcr.io/anchore/grype:{{.Tag}}-arm64v8
       - ghcr.io/anchore/grype:{{.Tag}}-ppc64le
       - ghcr.io/anchore/grype:{{.Tag}}-s390x
 
   - name_template: ghcr.io/anchore/grype:debug
     image_templates:
-      - ghcr.io/anchore/grype:{{.Tag}}-debug
+      - ghcr.io/anchore/grype:{{.Tag}}-debug-amd64
       - ghcr.io/anchore/grype:{{.Tag}}-debug-arm64v8
       - ghcr.io/anchore/grype:{{.Tag}}-debug-ppc64le
       - ghcr.io/anchore/grype:{{.Tag}}-debug-s390x
 
   - name_template: ghcr.io/anchore/grype:{{.Tag}}
     image_templates:
-      - ghcr.io/anchore/grype:{{.Tag}}
+      - ghcr.io/anchore/grype:{{.Tag}}-amd64
       - ghcr.io/anchore/grype:{{.Tag}}-arm64v8
       - ghcr.io/anchore/grype:{{.Tag}}-ppc64le
       - ghcr.io/anchore/grype:{{.Tag}}-s390x
