@@ -27,7 +27,7 @@ all: capture validate ## Fetch or capture all data and run all quality checks
 
 .PHONY: validate
 validate: venv $(VULNERABILITY_LABELS)/Makefile ## Run all quality checks against already collected data
-	$(YARDSTICK) validate -r $(RESULT_SET) -r $(RESULT_SET)_2022 $(RESULT_SET)_2024
+	$(YARDSTICK) validate -r $(RESULT_SET) -r $(RESULT_SET)_2022 -r $(RESULT_SET)_2024
 
 .PHONY: capture
 capture: sboms vulns ## Collect and store all syft and grype results
@@ -48,7 +48,7 @@ sboms: $(YARDSTICK_RESULT_DIR) venv clear-results ## Collect and store all syft 
 .PHONY: download-sboms
 download-sboms: $(VULNERABILITY_LABELS)/Makefile
 	cd vulnerability-match-labels && make venv
-	bash -c "export ORAS_CACHE=$(shell pwd)/.oras-cache && make venv && . vulnerability-match-labels/venv/bin/activate && ./vulnerability-match-labels/sboms.py download -r $(RESULT_SET) && ./vulnerability-match-labels/sboms.py download -r $(RESULT_SET)_2022 $(RESULT_SET)_2024"
+	bash -c "export ORAS_CACHE=$(shell pwd)/.oras-cache && make venv && . vulnerability-match-labels/venv/bin/activate && ./vulnerability-match-labels/sboms.py download -r $(RESULT_SET) && ./vulnerability-match-labels/sboms.py download -r $(RESULT_SET)_2022 && ./vulnerability-match-labels/sboms.py download -r $(RESULT_SET)_2024"
 
 venv: venv/touchfile
 
