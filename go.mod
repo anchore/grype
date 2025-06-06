@@ -27,17 +27,17 @@ require (
 	github.com/charmbracelet/bubbletea v1.3.5
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/dave/jennifer v1.7.1
-	github.com/docker/docker v28.1.1+incompatible
+	github.com/docker/docker v28.2.2+incompatible
 	github.com/dustin/go-humanize v1.0.1
 	github.com/facebookincubator/nvdtools v0.1.5
 	github.com/gabriel-vasile/mimetype v1.4.9
-	github.com/gkampitakis/go-snaps v0.5.11
+	github.com/gkampitakis/go-snaps v0.5.13
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-test/deep v1.1.1
 	github.com/go-viper/mapstructure/v2 v2.2.1
 	github.com/gohugoio/hashstructure v0.5.0
 	github.com/google/go-cmp v0.7.0
-	github.com/google/go-containerregistry v0.20.4
+	github.com/google/go-containerregistry v0.20.5
 	github.com/google/uuid v1.6.0
 	github.com/gookit/color v1.5.4
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
@@ -67,10 +67,10 @@ require (
 	github.com/wagoodman/go-progress v0.0.0-20230925121702-07e42b3cdba0
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
-	golang.org/x/time v0.11.0
+	golang.org/x/time v0.12.0
 	golang.org/x/tools v0.33.0
 	gopkg.in/yaml.v3 v3.0.1
-	gorm.io/gorm v1.26.1
+	gorm.io/gorm v1.30.0
 )
 
 require (
@@ -131,12 +131,13 @@ require (
 	github.com/containerd/containerd/api v1.8.0 // indirect
 	github.com/containerd/continuity v0.4.4 // indirect
 	github.com/containerd/errdefs v0.3.0 // indirect
+	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/fifo v1.1.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/platforms v0.2.1 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.16.3 // indirect
 	github.com/containerd/ttrpc v1.2.7 // indirect
-	github.com/containerd/typeurl/v2 v2.1.1 // indirect
+	github.com/containerd/typeurl/v2 v2.2.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.4.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/deitch/magic v0.0.0-20230404182410-1ff89d7342da // indirect
@@ -157,7 +158,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/github/go-spdx/v2 v2.3.3 // indirect
-	github.com/gkampitakis/ciinfo v0.3.1 // indirect
+	github.com/gkampitakis/ciinfo v0.3.2 // indirect
 	github.com/gkampitakis/go-diff v1.3.2 // indirect
 	github.com/glebarez/go-sqlite v1.22.0 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
@@ -166,7 +167,7 @@ require (
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-restruct/restruct v1.2.0-alpha // indirect
-	github.com/goccy/go-yaml v1.15.13 // indirect
+	github.com/goccy/go-yaml v1.18.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/golang/snappy v0.0.4 // indirect

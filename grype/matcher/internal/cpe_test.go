@@ -26,7 +26,7 @@ func newCPETestStore() vulnerability.Provider {
 				Namespace: "nvd:cpe",
 			},
 			PackageName: "activerecord",
-			Constraint:  version.MustGetConstraint("< 3.7.6", version.SemanticFormat),
+			Constraint:  version.MustGetConstraint("< 3.7.6", version.GemFormat),
 			CPEs:        []cpe.CPE{cpe.Must("cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*", "")},
 		},
 		{
@@ -35,7 +35,7 @@ func newCPETestStore() vulnerability.Provider {
 				Namespace: "nvd:cpe",
 			},
 			PackageName: "activerecord",
-			Constraint:  version.MustGetConstraint("< 3.7.4", version.SemanticFormat),
+			Constraint:  version.MustGetConstraint("< 3.7.4", version.GemFormat),
 			CPEs:        []cpe.CPE{cpe.Must("cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:ruby:*:*", "")},
 		},
 		{
@@ -155,7 +155,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							},
 							Found: match.CPEResult{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*"},
-								VersionConstraint: "< 3.7.6 (semver)",
+								VersionConstraint: "< 3.7.6 (gem)",
 								VulnerabilityID:   "CVE-2017-fake-1",
 							},
 							Matcher: matcher,
@@ -206,7 +206,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							},
 							Found: match.CPEResult{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*"},
-								VersionConstraint: "< 3.7.6 (semver)",
+								VersionConstraint: "< 3.7.6 (gem)",
 								VulnerabilityID:   "CVE-2017-fake-1",
 							},
 							Matcher: matcher,
@@ -260,7 +260,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							},
 							Found: match.CPEResult{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*"},
-								VersionConstraint: "< 3.7.6 (semver)",
+								VersionConstraint: "< 3.7.6 (gem)",
 								VulnerabilityID:   "CVE-2017-fake-1",
 							},
 							Matcher: matcher,
@@ -297,7 +297,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							},
 							Found: match.CPEResult{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:ruby:*:*"},
-								VersionConstraint: "< 3.7.4 (semver)",
+								VersionConstraint: "< 3.7.4 (gem)",
 								VulnerabilityID:   "CVE-2017-fake-2",
 							},
 							Matcher: matcher,
@@ -336,7 +336,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							},
 							Found: match.CPEResult{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:4.0.1:*:*:*:*:*:*:*"},
-								VersionConstraint: "= 4.0.1 (semver)",
+								VersionConstraint: "= 4.0.1 (gem)",
 								VulnerabilityID:   "CVE-2017-fake-3",
 							},
 							Matcher: matcher,
@@ -404,7 +404,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							},
 							Found: match.CPEResult{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*"},
-								VersionConstraint: "< 3.7.6 (semver)",
+								VersionConstraint: "< 3.7.6 (gem)",
 								VulnerabilityID:   "CVE-2017-fake-1",
 							},
 							Matcher: matcher,
@@ -441,7 +441,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							},
 							Found: match.CPEResult{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:ruby:*:*"},
-								VersionConstraint: "< 3.7.4 (semver)",
+								VersionConstraint: "< 3.7.4 (gem)",
 								VulnerabilityID:   "CVE-2017-fake-2",
 							},
 							Matcher: matcher,
@@ -490,7 +490,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							},
 							Found: match.CPEResult{
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:4.0.1:*:*:*:*:*:*:*"},
-								VersionConstraint: "= 4.0.1 (semver)",
+								VersionConstraint: "= 4.0.1 (gem)",
 								VulnerabilityID:   "CVE-2017-fake-3",
 							},
 							Matcher: matcher,

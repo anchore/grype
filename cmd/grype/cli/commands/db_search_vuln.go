@@ -94,12 +94,11 @@ func runDBSearchVulnerabilities(opts dbSearchVulnerabilityOptions) error {
 		return err
 	}
 
-	if len(rows) != 0 {
-		sb := &strings.Builder{}
-		err = presentDBSearchVulnerabilities(opts.Format.Output, rows, sb)
-		bus.Report(sb.String())
-	} else {
-		bus.Notify("No results found")
+	sb := &strings.Builder{}
+	err = presentDBSearchVulnerabilities(opts.Format.Output, rows, sb)
+	rep := sb.String()
+	if rep != "" {
+		bus.Report(rep)
 	}
 
 	return err
@@ -132,12 +131,13 @@ func validateProvidersFilter(reader v6.Reader, providers []string) error {
 }
 
 func presentDBSearchVulnerabilities(outputFormat string, structuredRows []dbsearch.Vulnerability, output io.Writer) error {
-	if len(structuredRows) == 0 {
-		return nil
-	}
-
 	switch outputFormat {
 	case tableOutputFormat:
+		if len(structuredRows) == 0 {
+			bus.Notify("No results found")
+			return nil
+		}
+
 		rows := renderDBSearchVulnerabilitiesTableRows(structuredRows)
 
 		table := newTable(output)
@@ -146,6 +146,10 @@ func presentDBSearchVulnerabilities(outputFormat string, structuredRows []dbsear
 		table.AppendBulk(rows)
 		table.Render()
 	case jsonOutputFormat:
+		if structuredRows == nil {
+			// always allocate the top level collection
+			structuredRows = []dbsearch.Vulnerability{}
+		}
 		enc := json.NewEncoder(output)
 		enc.SetEscapeHTML(false)
 		enc.SetIndent("", " ")

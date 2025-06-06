@@ -26,24 +26,21 @@ func TestGemfileConstraint(t *testing.T) {
 		{version: "1.2.0-x86-linux", constraint: "= 1.2.0", satisfied: true},
 		{version: "1.2.0-x86_64-linux", constraint: "= 1.2.0", satisfied: true},
 		{version: "1.2.0-x86_64-linux", constraint: "< 1.2.1", satisfied: true},
-		{version: "1.2.3----RC-SNAPSHOT.12.9.1--.12+788", constraint: "> 1.0.0", satisfied: true},
-		{version: "1.2.3----RC-SNAPSHOT.12.9.1--.12+788-armv7-darwin", constraint: "< 1.2.3", satisfied: true},
-		{version: "1.2.3----rc-snapshot.12.9.1--.12+788-armv7-darwin", constraint: "< 1.2.3", satisfied: true},
 		// https://semver.org/#spec-item-11
 		{version: "1.2.0-alpha-x86-linux", constraint: "<1.2.0", satisfied: true},
 		{version: "1.2.0-alpha-1-x86-linux", constraint: "<1.2.0", satisfied: true},
 		// gem versions seem to respect the order: {sem-version}+{meta}-{arch}-{os}
 		// but let's check the extraction works even when the order of {meta}-{arch} varies.
-		{version: "1.2.0-alpha-1-x86-linux+meta", constraint: "<1.2.0", satisfied: true},
-		{version: "1.2.0-alpha-1+meta-x86-linux", constraint: "<1.2.0", satisfied: true},
-		{version: "1.2.0-alpha-1-x86-linux+meta", constraint: ">1.1.0", satisfied: true},
-		{version: "1.2.0-alpha-1-arm-linux+meta", constraint: ">1.1.0", satisfied: true},
-		{version: "1.0.0-alpha-a.b-c-somethinglong+build.1-aef.1-its-okay", constraint: "<1.0.0", satisfied: true},
+		{version: "1.2.0-alpha-1-x86-linux-meta", constraint: "<1.2.0", satisfied: true},
+		{version: "1.2.0-alpha-1-meta-x86-linux", constraint: "<1.2.0", satisfied: true},
+		{version: "1.2.0-alpha-1-x86-linux-meta", constraint: ">1.1.0", satisfied: true},
+		{version: "1.2.0-alpha-1-arm-linux-meta", constraint: ">1.1.0", satisfied: true},
+		{version: "1.0.0-alpha-a.b-c-somethinglong-build.1-aef.1-its-okay", constraint: "<1.0.0", satisfied: true},
 	}
 
 	for _, test := range tests {
 		t.Run(test.tName(), func(t *testing.T) {
-			constraint, err := newSemanticConstraint(test.constraint)
+			constraint, err := newGemfileConstraint(test.constraint)
 			assert.NoError(t, err, "unexpected error from newSemanticConstraint: %v", err)
 
 			test.assertVersionConstraint(t, GemFormat, constraint)
