@@ -251,7 +251,7 @@ Results default to sorting by Risk Score and can be overridden with `--sort-by <
 - `epss`: sort by EPSS percentile (aka, "threat")
 - `risk`: sort by risk score
 - `kev`: just like risk, except that KEV entries are always above non-KEV entries
-- `package`: sort by package name, version, type
+- `package`: sort by package name
 - `vulnerability`: sort by vulnerability ID
 
 ### Supported versions
