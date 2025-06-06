@@ -25,6 +25,7 @@ type rich struct {
 	golangVersion *golangVersion
 	mavenVer      *mavenVersion
 	rpmVer        *rpmVersion
+	rubyVer       *rubyVersion
 	kbVer         *kbVersion
 	portVer       *portageVersion
 	pep440version *pep440Version
@@ -92,8 +93,8 @@ func (v *Version) populate() error {
 		v.rich.kbVer = &ver
 		return nil
 	case GemFormat:
-		ver, err := newGemfileVersion(v.Raw)
-		v.rich.semVer = ver
+		ver, err := newGemVersion(v.Raw)
+		v.rich.rubyVer = ver
 		return err
 	case PortageFormat:
 		ver := newPortageVersion(v.Raw)
@@ -156,7 +157,7 @@ func (v Version) compareSameFormat(other *Version) (int, error) {
 	case KBFormat:
 		return v.rich.kbVer.Compare(other)
 	case GemFormat:
-		return v.rich.semVer.verObj.Compare(other.rich.semVer.verObj), nil
+		return v.rich.rubyVer.Compare(other)
 	case PortageFormat:
 		return v.rich.portVer.Compare(other)
 	case JVMFormat:
