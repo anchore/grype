@@ -20,6 +20,7 @@ const (
 	PortageFormat
 	GolangFormat
 	JVMFormat
+	BitnamiFormat
 )
 
 type Format int
@@ -37,6 +38,7 @@ var formatStr = []string{
 	"Portage",
 	"Go",
 	"JVM",
+	"Bitnami",
 }
 
 var Formats = []Format{
@@ -51,6 +53,7 @@ var Formats = []Format{
 	PortageFormat,
 	GolangFormat,
 	JVMFormat,
+	BitnamiFormat,
 }
 
 func ParseFormat(userStr string) Format {
@@ -59,6 +62,8 @@ func ParseFormat(userStr string) Format {
 		return SemanticFormat
 	case strings.ToLower(ApkFormat.String()), "apk":
 		return ApkFormat
+	case strings.ToLower(BitnamiFormat.String()), "bitnami":
+		return BitnamiFormat
 	case strings.ToLower(DebFormat.String()), "dpkg":
 		return DebFormat
 	case strings.ToLower(GolangFormat.String()), "go":
@@ -85,6 +90,8 @@ func FormatFromPkg(p pkg.Package) Format {
 	switch p.Type {
 	case syftPkg.ApkPkg:
 		return ApkFormat
+	case syftPkg.BitnamiPkg:
+		return BitnamiFormat
 	case syftPkg.DebPkg:
 		return DebFormat
 	case syftPkg.JavaPkg:
