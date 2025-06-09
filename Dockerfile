@@ -1,9 +1,4 @@
-FROM gcr.io/distroless/static-debian11@sha256:5759d194607e472ff80fff5833442d3991dd89b219c96552837a2c8f74058617 AS build
-
-
-FROM scratch
-# needed for version check HTTPS request
-COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+FROM gcr.io/distroless/static-debian12:nonroot
 
 # create the /tmp dir, which is needed for image content cache
 WORKDIR /tmp

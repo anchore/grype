@@ -3,15 +3,16 @@ package pkg
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/stringutil"
+	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/file"
-	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	cpes "github.com/anchore/syft/syft/pkg/cataloger/common/cpe"
 )
@@ -44,7 +45,7 @@ type Package struct {
 	Metadata  interface{} // This is NOT 1-for-1 the syft metadata! Only the select data needed for vulnerability matching
 }
 
-func New(p syftPkg.Package) Package {
+func New(p syftPkg.Package, enhancers ...Enhancer) Package {
 	metadata, upstreams := dataFromPkg(p)
 
 	licenseObjs := p.Licenses.ToSlice()
@@ -57,7 +58,7 @@ func New(p syftPkg.Package) Package {
 		licenses = []string{}
 	}
 
-	return Package{
+	out := Package{
 		ID:        ID(p.ID()),
 		Name:      p.Name,
 		Version:   p.Version,
@@ -70,13 +71,25 @@ func New(p syftPkg.Package) Package {
 		Upstreams: upstreams,
 		Metadata:  metadata,
 	}
+
+	if len(enhancers) > 0 {
+		purl, err := packageurl.FromString(p.PURL)
+		if err != nil {
+			log.WithFields("purl", purl, "error", err).Debug("unable to parse PURL")
+		}
+		for _, e := range enhancers {
+			e(&out, purl, p)
+		}
+	}
+
+	return out
 }
 
-func FromCollection(catalog *syftPkg.Collection, config SynthesisConfig) []Package {
-	return FromPackages(catalog.Sorted(), config)
+func FromCollection(catalog *syftPkg.Collection, config SynthesisConfig, enhancers ...Enhancer) []Package {
+	return FromPackages(catalog.Sorted(), config, enhancers...)
 }
 
-func FromPackages(syftpkgs []syftPkg.Package, config SynthesisConfig) []Package {
+func FromPackages(syftpkgs []syftPkg.Package, config SynthesisConfig, enhancers ...Enhancer) []Package {
 	var pkgs []Package
 	for _, p := range syftpkgs {
 		if len(p.CPEs) == 0 {
@@ -87,7 +100,7 @@ func FromPackages(syftpkgs []syftPkg.Package, config SynthesisConfig) []Package 
 				log.Debugf("no CPEs for package: %s", p)
 			}
 		}
-		pkgs = append(pkgs, New(p))
+		pkgs = append(pkgs, New(p, enhancers...))
 	}
 
 	return pkgs
@@ -98,7 +111,7 @@ func (p Package) String() string {
 	return fmt.Sprintf("Pkg(type=%s, name=%s, version=%s, upstreams=%d)", p.Type, p.Name, p.Version, len(p.Upstreams))
 }
 
-func removePackagesByOverlap(catalog *syftPkg.Collection, relationships []artifact.Relationship, distro *linux.Release) *syftPkg.Collection {
+func removePackagesByOverlap(catalog *syftPkg.Collection, relationships []artifact.Relationship, distro *distro.Distro) *syftPkg.Collection {
 	byOverlap := map[artifact.ID]artifact.Relationship{}
 	for _, r := range relationships {
 		if r.Type == artifact.OwnershipByFileOverlapRelationship {
@@ -127,8 +140,8 @@ func excludePackage(comprehensiveDistroFeed bool, p syftPkg.Package, parent syft
 	// python      3.9.2      binary
 	// python3.9   3.9.2-1    deb
 
-	// If the version is not effectively the same, keep both
-	if !strings.HasPrefix(parent.Version, p.Version) {
+	// If the version is not approximately the same, keep both
+	if !strings.HasPrefix(parent.Version, p.Version) && !strings.HasPrefix(p.Version, parent.Version) {
 		return false
 	}
 
@@ -151,23 +164,23 @@ func excludePackage(comprehensiveDistroFeed bool, p syftPkg.Package, parent syft
 // distroFeedIsComprehensive returns true if the distro feed
 // is comprehensive enough that we can drop packages owned by distro packages
 // before matching.
-func distroFeedIsComprehensive(distro *linux.Release) bool {
+func distroFeedIsComprehensive(dst *distro.Distro) bool {
 	// TODO: this mechanism should be re-examined once https://github.com/anchore/grype/issues/1426
 	// is addressed
-	if distro == nil {
+	if dst == nil {
 		return false
 	}
-	if distro.ID == "amzn" {
+	if dst.Type == distro.AmazonLinux {
 		// AmazonLinux shows "like rhel" but is not an rhel clone
 		// and does not have an exhaustive vulnerability feed.
 		return false
 	}
 	for _, d := range comprehensiveDistros {
-		if strings.EqualFold(d, distro.ID) {
+		if strings.EqualFold(string(d), dst.Name()) {
 			return true
 		}
-		for _, n := range distro.IDLike {
-			if strings.EqualFold(d, n) {
+		for _, n := range dst.IDLike {
+			if strings.EqualFold(string(d), n) {
 				return true
 			}
 		}
@@ -177,13 +190,13 @@ func distroFeedIsComprehensive(distro *linux.Release) bool {
 
 // computed by:
 // sqlite3 vulnerability.db 'select distinct namespace from vulnerability where fix_state in ("wont-fix", "not-fixed") order by namespace;' | cut -d ':' -f 1 | sort | uniq
-// then removing 'github' and replacing 'redhat' with 'rhel'
-var comprehensiveDistros = []string{
-	"azurelinux",
-	"debian",
-	"mariner",
-	"rhel",
-	"ubuntu",
+// then removing 'github'
+var comprehensiveDistros = []distro.Type{
+	distro.Azure,
+	distro.Debian,
+	distro.Mariner,
+	distro.RedHat,
+	distro.Ubuntu,
 }
 
 func isOSPackage(p syftPkg.Package) bool {
@@ -195,10 +208,11 @@ func isOSPackage(p syftPkg.Package) bool {
 	}
 }
 
-func dataFromPkg(p syftPkg.Package) (interface{}, []UpstreamPackage) {
+func dataFromPkg(p syftPkg.Package) (any, []UpstreamPackage) {
 	var metadata interface{}
 	var upstreams []UpstreamPackage
 
+	// use the metadata to determine the type of package
 	switch p.Metadata.(type) {
 	case syftPkg.GolangModuleEntry, syftPkg.GolangBinaryBuildinfoEntry:
 		metadata = golangMetadataFromPkg(p)
@@ -213,7 +227,7 @@ func dataFromPkg(p syftPkg.Package) (interface{}, []UpstreamPackage) {
 			metadata = *m
 		}
 	case syftPkg.JavaArchive:
-		if m := javaDataFromPkg(p); m != nil {
+		if m := javaDataFromPkgMetadata(p); m != nil {
 			metadata = *m
 		}
 	case syftPkg.ApkDBEntry:
@@ -222,6 +236,14 @@ func dataFromPkg(p syftPkg.Package) (interface{}, []UpstreamPackage) {
 	case syftPkg.JavaVMInstallation:
 		metadata = javaVMDataFromPkg(p)
 	}
+
+	// there are still cases where we could still fill the metadata from other info (such as the PURL)
+	if metadata == nil {
+		if p.Type == syftPkg.JavaPkg {
+			metadata = javaDataFromPkgData(p)
+		}
+	}
+
 	return metadata, upstreams
 }
 
@@ -295,7 +317,7 @@ func dpkgDataFromPkg(p syftPkg.Package) (upstreams []UpstreamPackage) {
 			})
 		}
 	default:
-		log.Warnf("unable to extract DPKG metadata for %s", p)
+		log.Debugf("unable to extract DPKG metadata for %s", p)
 	}
 
 	return upstreams
@@ -329,7 +351,7 @@ func handleSourceRPM(pkgName, sourceRpm string) []UpstreamPackage {
 	var upstreams []UpstreamPackage
 	name, version := getNameAndELVersion(sourceRpm)
 	if name == "" && version == "" {
-		log.Warnf("unable to extract name and version from SourceRPM=%q ", sourceRpm)
+		log.Debugf("unable to extract name and version from SourceRPM=%q", sourceRpm)
 	} else if name != pkgName {
 		// don't include matches if the source package name matches the current package name
 		if name != "" && version != "" {
@@ -350,13 +372,17 @@ func getNameAndELVersion(sourceRpm string) (string, string) {
 	return groupMatches["name"], version
 }
 
-func javaDataFromPkg(p syftPkg.Package) (metadata *JavaMetadata) {
+func javaDataFromPkgMetadata(p syftPkg.Package) (metadata *JavaMetadata) {
 	if value, ok := p.Metadata.(syftPkg.JavaArchive); ok {
 		var artifactID, groupID, name string
 		if value.PomProperties != nil {
 			artifactID = value.PomProperties.ArtifactID
 			groupID = value.PomProperties.GroupID
+		} else {
+			// get the group ID / artifact ID from the PURL
+			artifactID, groupID = javaGroupArtifactIDFromPurl(p.PURL)
 		}
+
 		if value.Manifest != nil {
 			for _, kv := range value.Manifest.Main {
 				if kv.Key == "Name" {
@@ -382,10 +408,34 @@ func javaDataFromPkg(p syftPkg.Package) (metadata *JavaMetadata) {
 			ManifestName:   name,
 			ArchiveDigests: archiveDigests,
 		}
-	} else {
-		log.Warnf("unable to extract Java metadata for %s", p)
 	}
 	return metadata
+}
+
+func javaDataFromPkgData(p syftPkg.Package) (metadata *JavaMetadata) {
+	switch p.Type {
+	case syftPkg.JavaPkg:
+		artifactID, groupID := javaGroupArtifactIDFromPurl(p.PURL)
+		if artifactID != "" && groupID != "" {
+			metadata = &JavaMetadata{
+				PomArtifactID: artifactID,
+				PomGroupID:    groupID,
+			}
+		}
+	default:
+		log.Debugf("unable to extract metadata for %s", p)
+	}
+
+	return metadata
+}
+
+func javaGroupArtifactIDFromPurl(p string) (string, string) {
+	purl, err := packageurl.FromString(p)
+	if err != nil {
+		log.WithFields("purl", purl, "error", err).Debug("unable to parse java PURL")
+		return "", ""
+	}
+	return purl.Name, purl.Namespace
 }
 
 func apkDataFromPkg(p syftPkg.Package) (upstreams []UpstreamPackage) {
@@ -396,7 +446,7 @@ func apkDataFromPkg(p syftPkg.Package) (upstreams []UpstreamPackage) {
 			})
 		}
 	} else {
-		log.Warnf("unable to extract APK metadata for %s", p)
+		log.Debugf("unable to extract APK metadata for %s", p)
 	}
 	return upstreams
 }
@@ -409,3 +459,93 @@ func ByID(id ID, pkgs []Package) *Package {
 	}
 	return nil
 }
+
+func parseUpstream(pkgName string, value string, pkgType syftPkg.Type) []UpstreamPackage {
+	if pkgType == syftPkg.RpmPkg {
+		return handleSourceRPM(pkgName, value)
+	}
+	return handleDefaultUpstream(pkgName, value)
+}
+
+func handleDefaultUpstream(pkgName string, value string) []UpstreamPackage {
+	fields := strings.Split(value, "@")
+	switch len(fields) {
+	case 2:
+		if fields[0] == pkgName {
+			return nil
+		}
+		return []UpstreamPackage{
+			{
+				Name:    fields[0],
+				Version: fields[1],
+			},
+		}
+	case 1:
+		if fields[0] == pkgName {
+			return nil
+		}
+		return []UpstreamPackage{
+			{
+				Name: fields[0],
+			},
+		}
+	}
+	return nil
+}
+
+func setUpstreamsFromPURL(out *Package, purl packageurl.PackageURL, syftPkg syftPkg.Package) {
+	if len(out.Upstreams) == 0 {
+		out.Upstreams = upstreamsFromPURL(purl, syftPkg.Type)
+	}
+}
+
+// upstreamsFromPURL reads any additional data Grype can use, which is ignored by Syft's PURL conversion
+func upstreamsFromPURL(purl packageurl.PackageURL, pkgType syftPkg.Type) (upstreams []UpstreamPackage) {
+	for _, qualifier := range purl.Qualifiers {
+		if qualifier.Key == syftPkg.PURLQualifierUpstream {
+			for _, newUpstream := range parseUpstream(purl.Name, qualifier.Value, pkgType) {
+				if slices.Contains(upstreams, newUpstream) {
+					continue
+				}
+				upstreams = append(upstreams, newUpstream)
+			}
+		}
+	}
+	return upstreams
+}
+
+func setDistroFromPURL(out *Package, purl packageurl.PackageURL, _ syftPkg.Package) {
+	if out.Distro == nil {
+		out.Distro = distroFromPURL(purl)
+	}
+}
+
+// distroFromPURL reads distro data for Grype can use, which is ignored by Syft's PURL conversion
+func distroFromPURL(purl packageurl.PackageURL) (d *distro.Distro) {
+	var distroName, distroVersion string
+
+	for _, qualifier := range purl.Qualifiers {
+		if qualifier.Key == syftPkg.PURLQualifierDistro {
+			fields := strings.SplitN(qualifier.Value, "-", 2)
+			distroName = fields[0]
+			if len(fields) > 1 {
+				distroVersion = fields[1]
+			}
+		}
+	}
+
+	if distroName != "" {
+		var err error
+		d, err = distro.NewFromNameVersion(distroName, distroVersion)
+		if err != nil {
+			log.WithFields("purl", purl, "error", err).Debug("unable to create distro from a release")
+			d = nil
+		}
+	}
+
+	return d
+}
+
+type Enhancer func(out *Package, purl packageurl.PackageURL, pkg syftPkg.Package)
+
+var purlEnhancers = []Enhancer{setUpstreamsFromPURL, setDistroFromPURL}

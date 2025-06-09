@@ -477,6 +477,7 @@ func (c Curator) ListingFromURL() (Listing, error) {
 		return Listing{}, fmt.Errorf("unable to create listing temp file: %w", err)
 	}
 	defer func() {
+		log.CloseAndLogError(tempFile, tempFile.Name())
 		err := c.fs.RemoveAll(tempFile.Name())
 		if err != nil {
 			log.Errorf("failed to remove file (%s): %w", tempFile.Name(), err)

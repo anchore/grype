@@ -44,7 +44,7 @@ func newPep440Constraint(raw string) (pep440Constraint, error) {
 
 	constraints, err := newConstraintExpression(raw, newPep440Comparator)
 	if err != nil {
-		return pep440Constraint{}, fmt.Errorf("unable to parse pep440 constrain phrase %w", err)
+		return pep440Constraint{}, fmt.Errorf("unable to parse pep440 constraint phrase %w", err)
 	}
 
 	return pep440Constraint{

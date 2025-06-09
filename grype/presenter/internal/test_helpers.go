@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/clio"
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -15,7 +16,6 @@ import (
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/file"
-	"github.com/anchore/syft/syft/linux"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/sbom"
 	syftSource "github.com/anchore/syft/syft/source"
@@ -393,7 +393,7 @@ func generatePackages(t *testing.T) []syftPkg.Package {
 						Vendor:   "anchore",
 						Product:  "engine",
 						Version:  "0.9.2",
-						Language: "python",
+						Language: "en",
 					},
 				},
 			},
@@ -415,7 +415,7 @@ func generatePackages(t *testing.T) []syftPkg.Package {
 						Vendor:   "anchore",
 						Product:  "engine",
 						Version:  "2.2.2",
-						Language: "python",
+						Language: "en",
 					},
 				},
 			},
@@ -506,8 +506,8 @@ func generateContext(t *testing.T, scheme SyftSource) pkg.Context {
 
 	return pkg.Context{
 		Source: &desc,
-		Distro: &linux.Release{
-			Name: "centos",
+		Distro: &distro.Distro{
+			Type: "centos",
 			IDLike: []string{
 				"centos",
 			},

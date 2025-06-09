@@ -22,6 +22,7 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 		{Alias: "wolfi", Rolling: true},
 		{Alias: "chainguard", Rolling: true},
 		{Alias: "arch", Rolling: true},
+		{Alias: "minimos", Rolling: true},
 		{Alias: "archlinux", ReplacementName: strRef("arch"), Rolling: true}, // non-standard, but common (dockerhub uses "archlinux")
 		{Alias: "oracle", ReplacementName: strRef("ol")},                     // non-standard, but common
 		{Alias: "oraclelinux", ReplacementName: strRef("ol")},                // non-standard, but common (dockerhub uses "oraclelinux")
@@ -73,6 +74,9 @@ func KnownPackageSpecifierOverrides() []PackageSpecifierOverride {
 
 		// jenkins plugins are a special case since they are always considered to be within the java ecosystem
 		{Ecosystem: string(pkg.JenkinsPluginPkg), ReplacementEcosystem: ptr(string(pkg.JavaPkg))},
+
+		// legacy cases
+		{Ecosystem: "pecl", ReplacementEcosystem: ptr(string(pkg.PhpPeclPkg))},
 	}
 
 	// remap package URL types to syft package types

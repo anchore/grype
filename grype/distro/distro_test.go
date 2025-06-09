@@ -29,10 +29,12 @@ func Test_NewDistroFromRelease(t *testing.T) {
 				ID:        "centos",
 				VersionID: "8",
 				Version:   "7",
+				IDLike:    []string{"rhel"},
 			},
 			expected: &Distro{
 				Type:    CentOS,
 				Version: "8",
+				IDLike:  []string{"redhat"},
 			},
 			major: "8",
 			minor: "",
@@ -293,6 +295,11 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			Name:    "test-fixtures/os/chainguard",
 			Type:    Chainguard,
 			Version: "20230214",
+		},
+		{
+			Name:    "test-fixtures/os/minimos",
+			Type:    MinimOS,
+			Version: "20241031",
 		},
 	}
 

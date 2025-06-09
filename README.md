@@ -24,7 +24,7 @@ A vulnerability scanner for container images and filesystems. Easily [install th
 - Agenda: https://docs.google.com/document/d/1ZtSAa6fj2a6KRWviTn3WoJm09edvrNUp4Iz_dOjjyY8/edit?usp=sharing (join [this group](https://groups.google.com/g/anchore-oss-community) for write access)
 - All are welcome!
 
-For commercial support options with Syft or Grype, please [contact Anchore](https://get.anchore.com/contact/)
+For commercial support options with Syft or Grype, please [contact Anchore](https://get.anchore.com/contact/).
 
 ![grype-demo](https://user-images.githubusercontent.com/590471/90276236-9868f300-de31-11ea-8068-4268b6b68529.gif)
 
@@ -34,12 +34,13 @@ For commercial support options with Syft or Grype, please [contact Anchore](http
 - Find vulnerabilities for major operating system packages:
   - Alpine
   - Amazon Linux
+  - Azure Linux (previously CBL-Mariner)
   - BusyBox
   - CentOS
-  - CBL-Mariner
   - Debian
   - Echo
   - Distroless
+  - MinimOS
   - Oracle Linux
   - Red Hat (RHEL)
   - Ubuntu
@@ -554,6 +555,7 @@ When Grype performs a scan for vulnerabilities, it does so using a vulnerability
 - Debian Linux CVE Tracker: https://security-tracker.debian.org/tracker/data/json
 - Echo Security Advisories: https://advisory.echohq.com/data.json
 - GitHub Security Advisories (GHSAs): https://github.com/advisories
+- MinimOS SecDB: https://packages.mini.dev/advisories/secdb/security.json
 - National Vulnerability Database (NVD): https://nvd.nist.gov/vuln/data-feeds
 - Oracle Linux OVAL: https://linux.oracle.com/security/oval/
 - RedHat Linux Security Data: https://access.redhat.com/hydra/rest/securitydata/
