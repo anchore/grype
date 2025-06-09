@@ -28,7 +28,7 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 		{Alias: "oraclelinux", ReplacementName: strRef("ol")},                // non-standard, but common (dockerhub uses "oraclelinux")
 		{Alias: "amazon", ReplacementName: strRef("amzn")},                   // non-standard, but common
 		{Alias: "amazonlinux", ReplacementName: strRef("amzn")},              // non-standard, but common (dockerhub uses "amazonlinux")
-		{Alias: "echo", Rolling: true}, 
+		{Alias: "echo", Rolling: true},
 		// TODO: trixie is a placeholder for now, but should be updated to sid when the time comes
 		// this needs to be automated, but isn't clear how to do so since you'll see things like this:
 		//
