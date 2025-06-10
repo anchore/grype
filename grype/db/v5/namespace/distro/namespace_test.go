@@ -42,6 +42,10 @@ func TestFromString(t *testing.T) {
 			result:          NewNamespace("wolfi", grypeDistro.Wolfi, "rolling"),
 		},
 		{
+			namespaceString: "echo:distro:echo:rolling",
+			result:          NewNamespace("echo", grypeDistro.Echo, "rolling"),
+		},
+		{
 			namespaceString: "minimos:distro:minimos:rolling",
 			result:          NewNamespace("minimos", grypeDistro.MinimOS, "rolling"),
 		},

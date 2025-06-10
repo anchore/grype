@@ -990,6 +990,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 	rhel8 := &OperatingSystem{Name: "rhel", ReleaseID: "rhel", MajorVersion: "8"}
 	rhel81 := &OperatingSystem{Name: "rhel", ReleaseID: "rhel", MajorVersion: "8", MinorVersion: "1"}
 	debian10 := &OperatingSystem{Name: "debian", ReleaseID: "debian", MajorVersion: "10"}
+	echo := &OperatingSystem{Name: "echo", ReleaseID: "echo", MajorVersion: "1"}
 	alpine318 := &OperatingSystem{Name: "alpine", ReleaseID: "alpine", MajorVersion: "3", MinorVersion: "18"}
 	alpineEdge := &OperatingSystem{Name: "alpine", ReleaseID: "alpine", LabelVersion: "edge"}
 	debianUnstable := &OperatingSystem{Name: "debian", ReleaseID: "debian", LabelVersion: "unstable"}
@@ -1021,6 +1022,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		minimos,
 		rocky8,
 		alma8,
+		echo,
 	}
 	require.NoError(t, db.Create(&operatingSystems).Error)
 
@@ -1239,6 +1241,14 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 				MajorVersion: "8",
 			},
 			expected: []OperatingSystem{*rhel8},
+		},
+		{
+			name: "echo rolling variant",
+			distro: OSSpecifier{
+				Name:         "echo",
+				MajorVersion: "1",
+			},
+			expected: []OperatingSystem{*echo},
 		},
 		{
 			name: "missing distro name",

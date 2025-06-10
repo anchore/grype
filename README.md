@@ -38,6 +38,7 @@ For commercial support options with Syft or Grype, please [contact Anchore](http
   - BusyBox
   - CentOS
   - Debian
+  - Echo
   - Distroless
   - MinimOS
   - Oracle Linux
@@ -552,6 +553,7 @@ When Grype performs a scan for vulnerabilities, it does so using a vulnerability
 - Amazon Linux ALAS: https://alas.aws.amazon.com/AL2/alas.rss
 - Chainguard SecDB: https://packages.cgr.dev/chainguard/security.json
 - Debian Linux CVE Tracker: https://security-tracker.debian.org/tracker/data/json
+- Echo Security Advisories: https://advisory.echohq.com/data.json
 - GitHub Security Advisories (GHSAs): https://github.com/advisories
 - MinimOS SecDB: https://packages.mini.dev/advisories/secdb/security.json
 - National Vulnerability Database (NVD): https://nvd.nist.gov/vuln/data-feeds
