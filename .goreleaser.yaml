@@ -93,70 +93,9 @@ brews:
     license: "Apache License 2.0"
 
 dockers:
+  # production images...
   - image_templates:
-      - anchore/grype:debug-amd64
-      - anchore/grype:{{.Tag}}-debug-amd64
-      - ghcr.io/anchore/grype:debug-amd64
-      - ghcr.io/anchore/grype:{{.Tag}}-debug-amd64
-    goarch: amd64
-    dockerfile: Dockerfile.debug
-    use: buildx
-    build_flag_templates:
-      - "--platform=linux/amd64"
-      - "--build-arg=BUILD_DATE={{.Date}}"
-      - "--build-arg=BUILD_VERSION={{.Version}}"
-      - "--build-arg=VCS_REF={{.FullCommit}}"
-      - "--build-arg=VCS_URL={{.GitURL}}"
-
-  - image_templates:
-      - anchore/grype:debug-arm64v8
-      - anchore/grype:{{.Tag}}-debug-arm64v8
-      - ghcr.io/anchore/grype:debug-arm64v8
-      - ghcr.io/anchore/grype:{{.Tag}}-debug-arm64v8
-    goarch: arm64
-    dockerfile: Dockerfile.debug
-    use: buildx
-    build_flag_templates:
-      - "--platform=linux/arm64/v8"
-      - "--build-arg=BUILD_DATE={{.Date}}"
-      - "--build-arg=BUILD_VERSION={{.Version}}"
-      - "--build-arg=VCS_REF={{.FullCommit}}"
-      - "--build-arg=VCS_URL={{.GitURL}}"
-
-  - image_templates:
-      - anchore/grype:debug-ppc64le
-      - anchore/grype:{{.Tag}}-debug-ppc64le
-      - ghcr.io/anchore/grype:debug-ppc64le
-      - ghcr.io/anchore/grype:{{.Tag}}-debug-ppc64le
-    goarch: ppc64le
-    dockerfile: Dockerfile.debug
-    use: buildx
-    build_flag_templates:
-      - "--platform=linux/ppc64le"
-      - "--build-arg=BUILD_DATE={{.Date}}"
-      - "--build-arg=BUILD_VERSION={{.Version}}"
-      - "--build-arg=VCS_REF={{.FullCommit}}"
-      - "--build-arg=VCS_URL={{.GitURL}}"
-
-  - image_templates:
-      - anchore/grype:debug-s390x
-      - anchore/grype:{{.Tag}}-debug-s390x
-      - ghcr.io/anchore/grype:debug-s390x
-      - ghcr.io/anchore/grype:{{.Tag}}-debug-s390x
-    goarch: s390x
-    dockerfile: Dockerfile.debug
-    use: buildx
-    build_flag_templates:
-      - "--platform=linux/s390x"
-      - "--build-arg=BUILD_DATE={{.Date}}"
-      - "--build-arg=BUILD_VERSION={{.Version}}"
-      - "--build-arg=VCS_REF={{.FullCommit}}"
-      - "--build-arg=VCS_URL={{.GitURL}}"
-
-  - image_templates:
-      - anchore/grype:latest-amd64
       - anchore/grype:{{.Tag}}-amd64
-      - ghcr.io/anchore/grype:latest-amd64
       - ghcr.io/anchore/grype:{{.Tag}}-amd64
     goarch: amd64
     dockerfile: Dockerfile
@@ -199,6 +138,112 @@ dockers:
       - ghcr.io/anchore/grype:{{.Tag}}-s390x
     goarch: s390x
     dockerfile: Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/s390x"
+      - "--build-arg=BUILD_DATE={{.Date}}"
+      - "--build-arg=BUILD_VERSION={{.Version}}"
+      - "--build-arg=VCS_REF={{.FullCommit}}"
+      - "--build-arg=VCS_URL={{.GitURL}}"
+
+  # nonroot images...
+  - image_templates:
+      - anchore/grype:{{.Tag}}-nonroot-amd64
+      - ghcr.io/anchore/grype:{{.Tag}}-nonroot-amd64
+    goarch: amd64
+    dockerfile: Dockerfile.nonroot
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--build-arg=BUILD_DATE={{.Date}}"
+      - "--build-arg=BUILD_VERSION={{.Version}}"
+      - "--build-arg=VCS_REF={{.FullCommit}}"
+      - "--build-arg=VCS_URL={{.GitURL}}"
+
+  - image_templates:
+      - anchore/grype:{{.Tag}}-nonroot-arm64v8
+      - ghcr.io/anchore/grype:{{.Tag}}-nonroot-arm64v8
+    goarch: arm64
+    dockerfile: Dockerfile.nonroot
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/arm64/v8"
+      - "--build-arg=BUILD_DATE={{.Date}}"
+      - "--build-arg=BUILD_VERSION={{.Version}}"
+      - "--build-arg=VCS_REF={{.FullCommit}}"
+      - "--build-arg=VCS_URL={{.GitURL}}"
+
+  - image_templates:
+      - anchore/grype:{{.Tag}}-nonroot-ppc64le
+      - ghcr.io/anchore/grype:{{.Tag}}-nonroot-ppc64le
+    goarch: ppc64le
+    dockerfile: Dockerfile.nonroot
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/ppc64le"
+      - "--build-arg=BUILD_DATE={{.Date}}"
+      - "--build-arg=BUILD_VERSION={{.Version}}"
+      - "--build-arg=VCS_REF={{.FullCommit}}"
+      - "--build-arg=VCS_URL={{.GitURL}}"
+
+  - image_templates:
+      - anchore/grype:{{.Tag}}-nonroot-s390x
+      - ghcr.io/anchore/grype:{{.Tag}}-nonroot-s390x
+    goarch: s390x
+    dockerfile: Dockerfile.nonroot
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/s390x"
+      - "--build-arg=BUILD_DATE={{.Date}}"
+      - "--build-arg=BUILD_VERSION={{.Version}}"
+      - "--build-arg=VCS_REF={{.FullCommit}}"
+      - "--build-arg=VCS_URL={{.GitURL}}"
+
+  # debug images...
+  - image_templates:
+      - anchore/grype:{{.Tag}}-debug-amd64
+      - ghcr.io/anchore/grype:{{.Tag}}-debug-amd64
+    goarch: amd64
+    dockerfile: Dockerfile.debug
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--build-arg=BUILD_DATE={{.Date}}"
+      - "--build-arg=BUILD_VERSION={{.Version}}"
+      - "--build-arg=VCS_REF={{.FullCommit}}"
+      - "--build-arg=VCS_URL={{.GitURL}}"
+
+  - image_templates:
+      - anchore/grype:{{.Tag}}-debug-arm64v8
+      - ghcr.io/anchore/grype:{{.Tag}}-debug-arm64v8
+    goarch: arm64
+    dockerfile: Dockerfile.debug
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/arm64/v8"
+      - "--build-arg=BUILD_DATE={{.Date}}"
+      - "--build-arg=BUILD_VERSION={{.Version}}"
+      - "--build-arg=VCS_REF={{.FullCommit}}"
+      - "--build-arg=VCS_URL={{.GitURL}}"
+
+  - image_templates:
+      - anchore/grype:{{.Tag}}-debug-ppc64le
+      - ghcr.io/anchore/grype:{{.Tag}}-debug-ppc64le
+    goarch: ppc64le
+    dockerfile: Dockerfile.debug
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/ppc64le"
+      - "--build-arg=BUILD_DATE={{.Date}}"
+      - "--build-arg=BUILD_VERSION={{.Version}}"
+      - "--build-arg=VCS_REF={{.FullCommit}}"
+      - "--build-arg=VCS_URL={{.GitURL}}"
+
+  - image_templates:
+      - anchore/grype:{{.Tag}}-debug-s390x
+      - ghcr.io/anchore/grype:{{.Tag}}-debug-s390x
+    goarch: s390x
+    dockerfile: Dockerfile.debug
     use: buildx
     build_flag_templates:
       - "--platform=linux/s390x"
@@ -215,12 +260,12 @@ docker_manifests:
       - anchore/grype:{{.Tag}}-ppc64le
       - anchore/grype:{{.Tag}}-s390x
 
-  - name_template: anchore/grype:debug
+  - name_template: ghcr.io/anchore/grype:latest
     image_templates:
-      - anchore/grype:{{.Tag}}-debug-amd64
-      - anchore/grype:{{.Tag}}-debug-arm64v8
-      - anchore/grype:{{.Tag}}-debug-ppc64le
-      - anchore/grype:{{.Tag}}-debug-s390x
+      - ghcr.io/anchore/grype:{{.Tag}}-amd64
+      - ghcr.io/anchore/grype:{{.Tag}}-arm64v8
+      - ghcr.io/anchore/grype:{{.Tag}}-ppc64le
+      - ghcr.io/anchore/grype:{{.Tag}}-s390x
 
   - name_template: anchore/grype:{{.Tag}}
     image_templates:
@@ -229,12 +274,49 @@ docker_manifests:
       - anchore/grype:{{.Tag}}-ppc64le
       - anchore/grype:{{.Tag}}-s390x
 
-  - name_template: ghcr.io/anchore/grype:latest
+  - name_template: ghcr.io/anchore/grype:{{.Tag}}
     image_templates:
       - ghcr.io/anchore/grype:{{.Tag}}-amd64
       - ghcr.io/anchore/grype:{{.Tag}}-arm64v8
       - ghcr.io/anchore/grype:{{.Tag}}-ppc64le
       - ghcr.io/anchore/grype:{{.Tag}}-s390x
+
+  # nonroot images...
+  - name_template: anchore/grype:nonroot
+    image_templates:
+      - anchore/grype:{{.Tag}}-nonroot-amd64
+      - anchore/grype:{{.Tag}}-nonroot-arm64v8
+      - anchore/grype:{{.Tag}}-nonroot-ppc64le
+      - anchore/grype:{{.Tag}}-nonroot-s390x
+
+  - name_template: ghcr.io/anchore/grype:nonroot
+    image_templates:
+      - ghcr.io/anchore/grype:{{.Tag}}-nonroot-amd64
+      - ghcr.io/anchore/grype:{{.Tag}}-nonroot-arm64v8
+      - ghcr.io/anchore/grype:{{.Tag}}-nonroot-ppc64le
+      - ghcr.io/anchore/grype:{{.Tag}}-nonroot-s390x
+
+  - name_template: anchore/grype:{{.Tag}}-nonroot
+    image_templates:
+      - anchore/grype:{{.Tag}}-nonroot-amd64
+      - anchore/grype:{{.Tag}}-nonroot-arm64v8
+      - anchore/grype:{{.Tag}}-nonroot-ppc64le
+      - anchore/grype:{{.Tag}}-nonroot-s390x
+
+  - name_template: ghcr.io/anchore/grype:{{.Tag}}-nonroot
+    image_templates:
+      - ghcr.io/anchore/grype:{{.Tag}}-nonroot-amd64
+      - ghcr.io/anchore/grype:{{.Tag}}-nonroot-arm64v8
+      - ghcr.io/anchore/grype:{{.Tag}}-nonroot-ppc64le
+      - ghcr.io/anchore/grype:{{.Tag}}-nonroot-s390x
+
+  # debug images...
+  - name_template: anchore/grype:debug
+    image_templates:
+      - anchore/grype:{{.Tag}}-debug-amd64
+      - anchore/grype:{{.Tag}}-debug-arm64v8
+      - anchore/grype:{{.Tag}}-debug-ppc64le
+      - anchore/grype:{{.Tag}}-debug-s390x
 
   - name_template: ghcr.io/anchore/grype:debug
     image_templates:
@@ -243,13 +325,19 @@ docker_manifests:
       - ghcr.io/anchore/grype:{{.Tag}}-debug-ppc64le
       - ghcr.io/anchore/grype:{{.Tag}}-debug-s390x
 
-  - name_template: ghcr.io/anchore/grype:{{.Tag}}
+  - name_template: anchore/grype:{{.Tag}}-debug
     image_templates:
-      - ghcr.io/anchore/grype:{{.Tag}}-amd64
-      - ghcr.io/anchore/grype:{{.Tag}}-arm64v8
-      - ghcr.io/anchore/grype:{{.Tag}}-ppc64le
-      - ghcr.io/anchore/grype:{{.Tag}}-s390x
+      - anchore/grype:{{.Tag}}-debug-amd64
+      - anchore/grype:{{.Tag}}-debug-arm64v8
+      - anchore/grype:{{.Tag}}-debug-ppc64le
+      - anchore/grype:{{.Tag}}-debug-s390x
 
+  - name_template: ghcr.io/anchore/grype:{{.Tag}}-debug
+    image_templates:
+      - ghcr.io/anchore/grype:{{.Tag}}-debug-amd64
+      - ghcr.io/anchore/grype:{{.Tag}}-debug-arm64v8
+      - ghcr.io/anchore/grype:{{.Tag}}-debug-ppc64le
+      - ghcr.io/anchore/grype:{{.Tag}}-debug-s390x
 
 signs:
   - cmd: .tool/cosign
