@@ -28,15 +28,15 @@ type IgnoredMatch struct {
 // specified criteria must be met by the vulnerability match in order for the
 // rule to apply.
 type IgnoreRule struct {
-	Vulnerability        string            `yaml:"vulnerability" json:"vulnerability" mapstructure:"vulnerability"`
-	RelatedVulnerability string            `yaml:"related-vulnerability,omitempty" json:"related-vulnerability,omitempty" mapstructure:"related-vulnerability"`
-	Reason               string            `yaml:"reason" json:"reason" mapstructure:"reason"`
-	Namespace            string            `yaml:"namespace" json:"namespace" mapstructure:"namespace"`
-	FixState             string            `yaml:"fix-state" json:"fix-state" mapstructure:"fix-state"`
-	Package              IgnoreRulePackage `yaml:"package" json:"package" mapstructure:"package"`
-	VexStatus            string            `yaml:"vex-status" json:"vex-status" mapstructure:"vex-status"`
-	VexJustification     string            `yaml:"vex-justification" json:"vex-justification" mapstructure:"vex-justification"`
-	MatchType            Type              `yaml:"match-type" json:"match-type" mapstructure:"match-type"`
+	Vulnerability    string            `yaml:"vulnerability" json:"vulnerability" mapstructure:"vulnerability"`
+	IncludeAliases   bool              `yaml:"include-aliases" json:"include-aliases" mapstructure:"include-aliases"`
+	Reason           string            `yaml:"reason" json:"reason" mapstructure:"reason"`
+	Namespace        string            `yaml:"namespace" json:"namespace" mapstructure:"namespace"`
+	FixState         string            `yaml:"fix-state" json:"fix-state" mapstructure:"fix-state"`
+	Package          IgnoreRulePackage `yaml:"package" json:"package" mapstructure:"package"`
+	VexStatus        string            `yaml:"vex-status" json:"vex-status" mapstructure:"vex-status"`
+	VexJustification string            `yaml:"vex-justification" json:"vex-justification" mapstructure:"vex-justification"`
+	MatchType        Type              `yaml:"match-type" json:"match-type" mapstructure:"match-type"`
 }
 
 // IgnoreRulePackage describes the Package-specific fields that comprise the IgnoreRule.
@@ -140,11 +140,7 @@ func getIgnoreConditionsForRule(rule IgnoreRule) []ignoreCondition {
 	var ignoreConditions []ignoreCondition
 
 	if v := rule.Vulnerability; v != "" {
-		ignoreConditions = append(ignoreConditions, ifVulnerabilityApplies(v))
-	}
-
-	if v := rule.RelatedVulnerability; v != "" {
-		ignoreConditions = append(ignoreConditions, ifRelatedVulnerabilityApplies(v))
+		ignoreConditions = append(ignoreConditions, ifVulnerabilityApplies(v, rule.IncludeAliases))
 	}
 
 	if ns := rule.Namespace; ns != "" {
@@ -195,20 +191,16 @@ func ifFixStateApplies(fs string) ignoreCondition {
 	}
 }
 
-func ifVulnerabilityApplies(vulnerability string) ignoreCondition {
-	return func(match Match) bool {
-		return vulnerability == match.Vulnerability.ID
-	}
-}
-
-func ifRelatedVulnerabilityApplies(vulnerability string) ignoreCondition {
+func ifVulnerabilityApplies(vulnerability string, includeAliases bool) ignoreCondition {
 	return func(match Match) bool {
 		if vulnerability == match.Vulnerability.ID {
 			return true
 		}
-		for _, related := range match.Vulnerability.RelatedVulnerabilities {
-			if vulnerability == related.ID {
-				return true
+		if includeAliases {
+			for _, related := range match.Vulnerability.RelatedVulnerabilities {
+				if vulnerability == related.ID {
+					return true
+				}
 			}
 		}
 		return false
