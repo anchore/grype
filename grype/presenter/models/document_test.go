@@ -177,5 +177,5 @@ func TestConfigurableTimestamp(t *testing.T) {
 	}
 
 	assert.Empty(t, doc.Descriptor.Timestamp)
-	
+
 }

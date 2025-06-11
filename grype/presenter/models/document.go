@@ -2,8 +2,8 @@ package models
 
 import (
 	"fmt"
-	"time"
 	"os"
+	"time"
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/distro"
