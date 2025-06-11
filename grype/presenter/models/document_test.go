@@ -162,3 +162,20 @@ func TestTimestampValidFormat(t *testing.T) {
 	}
 
 }
+
+func TestConfigurableTimestamp(t *testing.T) {
+
+	matches := match.NewMatches()
+	ctx := pkg.Context{
+		Source: nil,
+		Distro: nil,
+	}
+
+	doc, err := NewDocument(clio.Identification{}, nil, ctx, matches, nil, nil, nil, nil, SortByPackage, false)
+	if err != nil {
+		t.Fatalf("unable to get document: %+v", err)
+	}
+
+	assert.Empty(t, doc.Descriptor.Timestamp)
+	
+}

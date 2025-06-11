@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"time"
+	"os"
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/distro"
@@ -21,10 +22,18 @@ type Document struct {
 }
 
 // NewDocument creates and populates a new Document struct, representing the populated JSON document.
-func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Context, matches match.Matches, ignoredMatches []match.IgnoredMatch, metadataProvider vulnerability.MetadataProvider, appConfig any, dbInfo any, strategy SortStrategy) (Document, error) {
-	timestamp, timestampErr := time.Now().Local().MarshalText()
-	if timestampErr != nil {
-		return Document{}, timestampErr
+func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Context, matches match.Matches, ignoredMatches []match.IgnoredMatch, metadataProvider vulnerability.MetadataProvider, appConfig any, dbInfo any, strategy SortStrategy, outputTimestamp bool) (Document, error) {
+	var timestamp []byte
+
+	if !outputTimestamp || os.Getenv("GRYPE_TIMESTAMP") == "false" {
+		// can't be nil in string() call
+		timestamp = []byte{}
+	} else {
+		var timestampErr error
+		timestamp, timestampErr = time.Now().Local().MarshalText()
+		if timestampErr != nil {
+			return Document{}, timestampErr
+		}
 	}
 
 	// we must preallocate the findings to ensure the JSON document does not show "null" when no matches are found
