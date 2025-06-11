@@ -57,7 +57,6 @@ tasks:
       - task: check-licenses
       - task: lint
       - task: check-json-schema-drift
-      - task: validate-cyclonedx-schema
 # TODO: while developing v6, we need to disable this check (since v5 and v6 are imported in the same codebase)
 #      - task: validate-grype-db-schema
 
@@ -176,11 +175,6 @@ tasks:
     desc: Ensure there is no drift between the JSON schema and the code
     cmds:
       - .github/scripts/json-schema-drift-check.sh
-
-  validate-cyclonedx-schema:
-    desc: Run integration tests
-    cmds:
-      - "cd schema/cyclonedx && make"
 
   validate-grype-db-schema:
     desc: Ensure the codebase is only referencing a single grype-db schema version (multiple is not allowed)

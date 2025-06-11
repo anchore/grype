@@ -21,6 +21,15 @@ func newSemanticVersion(raw string) (*semanticVersion, error) {
 }
 
 func (v *semanticVersion) Compare(other *Version) (int, error) {
+	if other != nil && other.Format == BitnamiFormat {
+		transformed, err := newBitnamiVersion(other.Raw)
+		if err != nil {
+			return -1, fmt.Errorf("unable to transform bitnami version: %w", err)
+		}
+
+		return transformed.verObj.Compare(v.verObj), nil
+	}
+
 	other, err := finalizeComparisonVersion(other, SemanticFormat)
 	if err != nil {
 		return -1, err

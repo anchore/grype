@@ -104,7 +104,7 @@ func DBSearch(app clio.Application) *cobra.Command {
 
   Search for affected packages by CPE (note: version/update is not considered):
 
-    $ grype db search --pkg 'cpe:2.3:a:jetty:jetty_http_server:*:*:*:*:*:*'
+    $ grype db search --pkg 'cpe:2.3:a:jetty:jetty_http_server:*:*:*:*:*:*:*:*'
     $ grype db search --pkg 'cpe:/a:jetty:jetty_http_server'`,
 		PreRunE: disableUI(app),
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
@@ -172,15 +172,14 @@ func runDBSearchMatches(opts dbSearchMatchOptions) error {
 		}
 	}
 
-	if len(rows) != 0 {
-		sb := &strings.Builder{}
-		err = presentDBSearchMatches(opts.Format.Output, rows, sb)
-		bus.Report(sb.String())
-		if err != nil {
-			return fmt.Errorf("unable to present search results: %w", err)
-		}
-	} else {
-		bus.Notify("No results found")
+	sb := &strings.Builder{}
+	err = presentDBSearchMatches(opts.Format.Output, rows, sb)
+	rep := sb.String()
+	if rep != "" {
+		bus.Report(rep)
+	}
+	if err != nil {
+		return fmt.Errorf("unable to present search results: %w", err)
 	}
 
 	return queryErr
@@ -189,6 +188,10 @@ func runDBSearchMatches(opts dbSearchMatchOptions) error {
 func presentDBSearchMatches(outputFormat string, structuredRows dbsearch.Matches, output io.Writer) error {
 	switch outputFormat {
 	case tableOutputFormat:
+		if len(structuredRows) == 0 {
+			bus.Notify("No results found")
+			return nil
+		}
 		rows := renderDBSearchPackagesTableRows(structuredRows.Flatten())
 
 		table := newTable(output)
@@ -197,6 +200,10 @@ func presentDBSearchMatches(outputFormat string, structuredRows dbsearch.Matches
 		table.AppendBulk(rows)
 		table.Render()
 	case jsonOutputFormat:
+		if structuredRows == nil {
+			// always allocate the top level collection
+			structuredRows = dbsearch.Matches{}
+		}
 		enc := json.NewEncoder(output)
 		enc.SetEscapeHTML(false)
 		enc.SetIndent("", " ")

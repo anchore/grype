@@ -34,7 +34,7 @@ tools:
   # used for showing the changelog at release
   - name: glow
     version:
-      want: v2.1.0
+      want: v2.1.1
     method: github-release
     with:
       repo: charmbracelet/glow
@@ -47,18 +47,10 @@ tools:
     with:
       repo: sigstore/cosign
 
-  # used in integration tests to verify JSON schemas
-  - name: yajsv
-    version:
-      want: v1.4.1
-    method: github-release
-    with:
-      repo: neilpa/yajsv
-
   # used to release all artifacts
   - name: goreleaser
     version:
-      want: v2.9.0
+      want: v2.10.2
     method: github-release
     with:
       repo: goreleaser/goreleaser
@@ -90,7 +82,7 @@ tools:
   # used for running all local and CI tasks
   - name: task
     version:
-      want: v3.43.3
+      want: v3.44.0
     method: github-release
     with:
       repo: go-task/task
@@ -98,7 +90,7 @@ tools:
   # used for triggering a release
   - name: gh
     version:
-      want: v2.73.0
+      want: v2.74.1
     method: github-release
     with:
       repo: cli/cli
@@ -106,7 +98,7 @@ tools:
   # used for integration tests
   - name: skopeo
     version:
-      want: v1.18.0
+      want: v1.19.0
     method: go-install
     with:
       module: github.com/containers/skopeo

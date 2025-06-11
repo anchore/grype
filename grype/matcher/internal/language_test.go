@@ -24,7 +24,7 @@ func newMockProviderByLanguage() vulnerability.Provider {
 			},
 			PackageName: "activerecord",
 			// make sure we find it with semVer constraint
-			Constraint: version.MustGetConstraint("< 3.7.6", version.SemanticFormat),
+			Constraint: version.MustGetConstraint("< 3.7.6", version.GemFormat),
 		},
 		{
 			Reference: vulnerability.Reference{
@@ -49,7 +49,7 @@ func newMockProviderByLanguage() vulnerability.Provider {
 				Namespace: "github:language:ruby",
 			},
 			PackageName: "nokogiri",
-			Constraint:  version.MustGetConstraint("< 1.7.4", version.SemanticFormat),
+			Constraint:  version.MustGetConstraint("< 1.7.4", version.GemFormat),
 		},
 	}...)
 }
@@ -90,7 +90,7 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 		assertEmpty bool
 	}{
 		{
-			constraint: "< 3.7.6 (semver)",
+			constraint: "< 3.7.6 (gem)",
 			p: pkg.Package{
 				ID:       pkg.ID(uuid.NewString()),
 				Name:     "activerecord",
@@ -100,7 +100,7 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 			},
 		},
 		{
-			constraint: "< 1.7.6 (semver)",
+			constraint: "< 1.7.6 (gem)",
 			p: pkg.Package{
 				ID:       pkg.ID(uuid.NewString()),
 				Name:     "nokogiri",

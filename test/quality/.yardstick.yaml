@@ -170,3 +170,45 @@ result-sets:
           version: latest+import-db=db.tar.zst
           takes: SBOM
           label: reference # this run is the current baseline
+
+  pr_vs_latest_via_sbom_2024:
+    description: "same as 'pr_vs_latest_via_sbom', but includes vulnerabilities from 2024 and before, instead of 2021 and before"
+    max_year: 2024
+    validations:
+      - max-f1-regression: 0.1 # allowed to regress 0.1 on f1 score
+        max-new-false-negatives: 10
+        max-unlabeled-percent: 0
+        max_year: 2024
+        fail_on_empty_match_set: false
+    matrix:
+      images:
+        - docker.io/bitnami/redis:7.4.0@sha256:4bad45268adfdbb0b456d6bf74ded449ef79f3706cb4e473516a0a5b393968c0
+
+      tools:
+        - name: syft
+          # note: we want to use a fixed version of syft for capturing all results (NOT "latest")
+          version: v1.14.0
+          produces: SBOM
+          refresh: false
+
+        - name: grype
+          # note: we import a static (pinned) DB as to prevent changes in the DB from affecting the results. The
+          # point of this test is to ensure the correctness of the logic in grype itself with real production data.
+          # By pinning the DB the grype code itself becomes the independent variable under test (and not the
+          # every-changing DB). That being said, we should be updating this DB periodically to ensure what we
+          # are testing with is not too stale.
+          # version: git:current-commit+import-db=db.tar.zst
+          # for local build of grype, use for example:
+          version: path:../../+import-db=db.tar.zst
+          takes: SBOM
+          label: candidate # is candidate better than the current baseline?
+
+        - name: grype
+          # note: we import a static (pinned) DB as to prevent changes in the DB from affecting the results. The
+          # point of this test is to ensure the correctness of the logic in grype itself with real production data.
+          # By pinning the DB the grype code itself becomes the independent variable under test (and not the
+          # every-changing DB). That being said, we should be updating this DB periodically to ensure what we
+          # are testing with is not too stale.
+          version: latest+import-db=db.tar.zst
+          takes: SBOM
+          label: reference # this run is the current baseline

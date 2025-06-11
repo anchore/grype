@@ -990,6 +990,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 	rhel8 := &OperatingSystem{Name: "rhel", ReleaseID: "rhel", MajorVersion: "8"}
 	rhel81 := &OperatingSystem{Name: "rhel", ReleaseID: "rhel", MajorVersion: "8", MinorVersion: "1"}
 	debian10 := &OperatingSystem{Name: "debian", ReleaseID: "debian", MajorVersion: "10"}
+	echo := &OperatingSystem{Name: "echo", ReleaseID: "echo", MajorVersion: "1"}
 	alpine318 := &OperatingSystem{Name: "alpine", ReleaseID: "alpine", MajorVersion: "3", MinorVersion: "18"}
 	alpineEdge := &OperatingSystem{Name: "alpine", ReleaseID: "alpine", LabelVersion: "edge"}
 	debianUnstable := &OperatingSystem{Name: "debian", ReleaseID: "debian", LabelVersion: "unstable"}
@@ -999,6 +1000,7 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 	oracle5 := &OperatingSystem{Name: "oracle", ReleaseID: "ol", MajorVersion: "5"}
 	oracle6 := &OperatingSystem{Name: "oracle", ReleaseID: "ol", MajorVersion: "6"}
 	amazon2 := &OperatingSystem{Name: "amazon", ReleaseID: "amzn", MajorVersion: "2"}
+	minimos := &OperatingSystem{Name: "minimos", ReleaseID: "minimos", MajorVersion: "20241031"}
 	rocky8 := &OperatingSystem{Name: "rocky", ReleaseID: "rocky", MajorVersion: "8"}        // should not be matched
 	alma8 := &OperatingSystem{Name: "almalinux", ReleaseID: "almalinux", MajorVersion: "8"} // should not be matched
 
@@ -1017,8 +1019,10 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 		oracle5,
 		oracle6,
 		amazon2,
+		minimos,
 		rocky8,
 		alma8,
+		echo,
 	}
 	require.NoError(t, db.Create(&operatingSystems).Error)
 
@@ -1239,6 +1243,14 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 			expected: []OperatingSystem{*rhel8},
 		},
 		{
+			name: "echo rolling variant",
+			distro: OSSpecifier{
+				Name:         "echo",
+				MajorVersion: "1",
+			},
+			expected: []OperatingSystem{*echo},
+		},
+		{
 			name: "missing distro name",
 			distro: OSSpecifier{
 				MajorVersion: "8",
@@ -1251,6 +1263,13 @@ func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
 				Name:         "madeup",
 				MajorVersion: "99",
 			},
+		},
+		{
+			name: "minimos rolling variant",
+			distro: OSSpecifier{
+				Name: "minimos",
+			},
+			expected: []OperatingSystem{*minimos},
 		},
 	}
 
