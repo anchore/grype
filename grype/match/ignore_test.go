@@ -379,7 +379,8 @@ func TestApplyIgnoreRules(t *testing.T) {
 			allMatches: allMatches,
 			ignoreRules: []IgnoreRule{
 				{
-					RelatedVulnerability: "CVE-123",
+					Vulnerability:  "CVE-123",
+					IncludeAliases: true,
 				},
 			},
 			expectedRemainingMatches: []Match{
@@ -391,7 +392,8 @@ func TestApplyIgnoreRules(t *testing.T) {
 					Match: allMatches[0],
 					AppliedIgnoreRules: []IgnoreRule{
 						{
-							RelatedVulnerability: "CVE-123",
+							Vulnerability:  "CVE-123",
+							IncludeAliases: true,
 						},
 					},
 				},
@@ -399,7 +401,8 @@ func TestApplyIgnoreRules(t *testing.T) {
 					Match: allMatches[1],
 					AppliedIgnoreRules: []IgnoreRule{
 						{
-							RelatedVulnerability: "CVE-123",
+							Vulnerability:  "CVE-123",
+							IncludeAliases: true,
 						},
 					},
 				},
