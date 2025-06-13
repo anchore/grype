@@ -41,6 +41,11 @@ var (
 				Fix: vulnerability.Fix{
 					State: vulnerability.FixStateNotFixed,
 				},
+				RelatedVulnerabilities: []vulnerability.Reference{
+					{
+						ID: "CVE-123",
+					},
+				},
 			},
 			Package: pkg.Package{
 				ID:       pkg.ID(uuid.NewString()),
@@ -364,6 +369,40 @@ func TestApplyIgnoreRules(t *testing.T) {
 							Package: IgnoreRulePackage{
 								Location: "/virtual/path/that/has/reach",
 							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:       "ignore related matches",
+			allMatches: allMatches,
+			ignoreRules: []IgnoreRule{
+				{
+					Vulnerability:  "CVE-123",
+					IncludeAliases: true,
+				},
+			},
+			expectedRemainingMatches: []Match{
+				allMatches[2],
+				allMatches[3],
+			},
+			expectedIgnoredMatches: []IgnoredMatch{
+				{
+					Match: allMatches[0],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							Vulnerability:  "CVE-123",
+							IncludeAliases: true,
+						},
+					},
+				},
+				{
+					Match: allMatches[1],
+					AppliedIgnoreRules: []IgnoreRule{
+						{
+							Vulnerability:  "CVE-123",
+							IncludeAliases: true,
 						},
 					},
 				},

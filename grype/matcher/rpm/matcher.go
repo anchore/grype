@@ -23,7 +23,7 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 //nolint:funlen
-func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoredMatch, error) {
+func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	matches := make([]match.Match, 0)
 
 	// let's match with a synthetic package that doesn't exist. We will create a new
