@@ -7,6 +7,7 @@ import (
 	"time"
 
 	v6 "github.com/anchore/grype/grype/db/v6"
+	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/cvss"
 	"github.com/anchore/grype/internal/log"
 )
@@ -30,6 +31,9 @@ type VulnerabilityInfo struct {
 	Model v6.VulnerabilityHandle `json:"-"` // tracking package handle info is necessary for namespace lookup
 
 	v6.VulnerabilityBlob `json:",inline"`
+
+	// Severity is the single string representation of the vulnerability's severity based on the set of available severity values
+	Severity string `json:"severity,omitempty"`
 
 	// Provider is the upstream data processor (usually Vunnel) that is responsible for vulnerability records. Each provider
 	// should be scoped to a specific vulnerability dataset, for instance, the "ubuntu" provider for all records from
@@ -133,6 +137,7 @@ func newVulnerabilityInfo(vuln v6.VulnerabilityHandle, vc vulnerabilityDecoratio
 	return VulnerabilityInfo{
 		Model:             vuln,
 		VulnerabilityBlob: blob,
+		Severity:          getSeverity(blob.Severities),
 		Provider:          vuln.Provider.ID,
 		Status:            string(vuln.Status),
 		PublishedDate:     vuln.PublishedDate,
@@ -267,4 +272,19 @@ func FindVulnerabilities(reader interface { //nolint:funlen
 	}
 
 	return newVulnerabilityRows(pairs...), err
+}
+
+func getSeverity(sevs []v6.Severity) string {
+	if len(sevs) == 0 {
+		return vulnerability.UnknownSeverity.String()
+	}
+	// get the first severity value (which is ranked highest)
+	switch v := sevs[0].Value.(type) {
+	case string:
+		return v
+	case CVSSSeverity:
+		return cvss.SeverityFromBaseScore(v.Metrics.BaseScore).String()
+	}
+
+	return fmt.Sprintf("%v", sevs[0].Value)
 }

@@ -18,9 +18,7 @@ import (
 	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/db/v6/installation"
-	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/bus"
-	"github.com/anchore/grype/internal/cvss"
 )
 
 type dbSearchVulnerabilityOptions struct {
@@ -177,7 +175,7 @@ func renderDBSearchVulnerabilitiesTableRows(structuredRows []dbsearch.Vulnerabil
 			Vuln:                    rr.ID,
 			ProviderWithoutVersions: rr.Provider,
 			PublishedDate:           getDate(rr.PublishedDate),
-			Severity:                getSeverity(rr.Severities),
+			Severity:                rr.Severity,
 			Reference:               getPrimaryReference(rr.References),
 		}
 		versionsByRow[r] = append(versionsByRow[r], getOSVersions(rr.OperatingSystems)...)
@@ -227,19 +225,4 @@ func getDate(t *time.Time) string {
 		return t.Format("2006-01-02")
 	}
 	return ""
-}
-
-func getSeverity(sevs []v6.Severity) string {
-	if len(sevs) == 0 {
-		return vulnerability.UnknownSeverity.String()
-	}
-	// get the first severity value (which is ranked highest)
-	switch v := sevs[0].Value.(type) {
-	case string:
-		return v
-	case dbsearch.CVSSSeverity:
-		return cvss.SeverityFromBaseScore(v.Metrics.BaseScore).String()
-	}
-
-	return fmt.Sprintf("%v", sevs[0].Value)
 }
