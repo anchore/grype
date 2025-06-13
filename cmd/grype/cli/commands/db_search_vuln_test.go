@@ -8,7 +8,6 @@ import (
 
 	"github.com/anchore/grype/cmd/grype/cli/commands/internal/dbsearch"
 	v6 "github.com/anchore/grype/grype/db/v6"
-	"github.com/anchore/grype/grype/vulnerability"
 )
 
 func TestGetOSVersions(t *testing.T) {
@@ -131,93 +130,6 @@ func TestGetDate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			actual := getDate(tt.input)
-			require.Equal(t, tt.expected, actual)
-		})
-	}
-}
-
-func TestGetSeverity(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    []v6.Severity
-		expected string
-	}{
-		{
-			name:     "empty list",
-			input:    []v6.Severity{},
-			expected: vulnerability.UnknownSeverity.String(),
-		},
-		{
-			name: "string severity",
-			input: []v6.Severity{
-				{
-					Scheme: "HML",
-					Value:  "high",
-					Source: "nvd@nist.gov",
-					Rank:   1,
-				},
-			},
-			expected: "high",
-		},
-		{
-			name: "CVSS severity",
-			input: []v6.Severity{
-				{
-					Scheme: "CVSS_V3",
-					Value: dbsearch.CVSSSeverity{
-						Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
-						Version: "3.1",
-						Metrics: dbsearch.CvssMetrics{
-							BaseScore: 9.8,
-						},
-					},
-					Source: "nvd@nist.gov",
-					Rank:   1,
-				},
-			},
-			expected: "critical",
-		},
-		{
-			name: "other value type",
-			input: []v6.Severity{
-				{
-					Scheme: "OTHER",
-					Value:  42.0,
-					Source: "custom",
-					Rank:   1,
-				},
-			},
-			expected: "42",
-		},
-		{
-			name: "multiple severities",
-			input: []v6.Severity{
-				{
-					Scheme: "HML",
-					Value:  "high",
-					Source: "nvd@nist.gov",
-					Rank:   1,
-				},
-				{
-					Scheme: "CVSS_V3",
-					Value: dbsearch.CVSSSeverity{
-						Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
-						Version: "3.1",
-						Metrics: dbsearch.CvssMetrics{
-							BaseScore: 9.8,
-						},
-					},
-					Source: "nvd@nist.gov",
-					Rank:   2,
-				},
-			},
-			expected: "high",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			actual := getSeverity(tt.input)
 			require.Equal(t, tt.expected, actual)
 		})
 	}

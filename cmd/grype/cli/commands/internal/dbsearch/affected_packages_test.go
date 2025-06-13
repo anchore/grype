@@ -169,7 +169,23 @@ func TestNewAffectedPackageRows(t *testing.T) {
 					Status:        "active",
 					PublishedDate: ptr(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
 					ModifiedDate:  ptr(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
-					BlobValue:     &v6.VulnerabilityBlob{Description: "Test vulnerability"},
+					BlobValue: &v6.VulnerabilityBlob{
+						Description: "Test vulnerability",
+						Severities: []v6.Severity{
+							{
+								Scheme: "CVSS_V3",
+								Value: CVSSSeverity{
+									Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+									Version: "3.1",
+									Metrics: CvssMetrics{
+										BaseScore: 9.8,
+									},
+								},
+								Source: "nvd@nist.gov",
+								Rank:   1,
+							},
+						},
+					},
 				},
 				BlobValue: &v6.AffectedPackageBlob{
 					CVEs: []string{"CVE-1234-5678"},
@@ -274,11 +290,28 @@ func TestNewAffectedPackageRows(t *testing.T) {
 	expected := []AffectedPackage{
 		{
 			Vulnerability: VulnerabilityInfo{
-				VulnerabilityBlob: v6.VulnerabilityBlob{Description: "Test vulnerability"},
-				Provider:          "provider1",
-				Status:            "active",
-				PublishedDate:     ptr(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
-				ModifiedDate:      ptr(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
+				VulnerabilityBlob: v6.VulnerabilityBlob{
+					Description: "Test vulnerability",
+					Severities: []v6.Severity{
+						{
+							Scheme: "CVSS_V3",
+							Value: CVSSSeverity{
+								Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+								Version: "3.1",
+								Metrics: CvssMetrics{
+									BaseScore: 9.8,
+								},
+							},
+							Source: "nvd@nist.gov",
+							Rank:   1,
+						},
+					},
+				},
+				Severity:      "critical",
+				Provider:      "provider1",
+				Status:        "active",
+				PublishedDate: ptr(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
+				ModifiedDate:  ptr(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
 				KnownExploited: []KnownExploited{
 					{
 						CVE:                        "CVE-1234-5678",
@@ -330,6 +363,7 @@ func TestNewAffectedPackageRows(t *testing.T) {
 		{
 			Vulnerability: VulnerabilityInfo{
 				VulnerabilityBlob: v6.VulnerabilityBlob{Description: "CPE vulnerability description"},
+				Severity:          "unknown",
 				Provider:          "provider2",
 				KnownExploited: []KnownExploited{
 					{
@@ -511,6 +545,7 @@ func TestAffectedPackages(t *testing.T) {
 		{
 			Vulnerability: VulnerabilityInfo{
 				VulnerabilityBlob: v6.VulnerabilityBlob{Description: "Test vulnerability"},
+				Severity:          "unknown",
 				Provider:          "provider1",
 				Status:            "active",
 				PublishedDate:     ptr(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
@@ -562,6 +597,7 @@ func TestAffectedPackages(t *testing.T) {
 		{
 			Vulnerability: VulnerabilityInfo{
 				VulnerabilityBlob: v6.VulnerabilityBlob{Description: "CPE vulnerability description"},
+				Severity:          "unknown",
 				Provider:          "provider2",
 				KnownExploited: []KnownExploited{
 					{
