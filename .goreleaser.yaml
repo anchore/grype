@@ -59,16 +59,16 @@ builds:
 
 archives:
   - id: linux-archives
-    builds:
+    ids:
       - linux-build
 
   - id: darwin-archives
-    builds:
+    ids:
       - darwin-build
 
   - id: windows-archives
-    format: zip
-    builds:
+    formats: [zip]
+    ids:
       - windows-build
 
 nfpms:
@@ -80,7 +80,7 @@ nfpms:
       - rpm
       - deb
 
-brews:
+homebrew_casks:
   - repository:
       owner: anchore
       name: homebrew-grype
