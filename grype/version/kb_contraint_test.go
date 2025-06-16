@@ -26,7 +26,7 @@ func TestVersionKbConstraint(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			constraint, err := newKBConstraint(test.constraint)
+			constraint, err := GetConstraint(test.constraint, KBFormat)
 			assert.NoError(t, err, "unexpected error from newKBConstraint: %v", err)
 
 			test.assertVersionConstraint(t, KBFormat, constraint)

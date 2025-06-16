@@ -70,7 +70,7 @@ func TestVersionJVM(t *testing.T) {
 			require.NotNil(t, v2)
 			require.NoError(t, err)
 
-			actual := v1.compare(*v2)
+			actual := v1.compare(v2)
 			assert.Equal(t, test.expected, actual)
 		})
 	}
@@ -145,8 +145,7 @@ func TestVersionJVM_invalid(t *testing.T) {
 			if tt.wantErr == nil {
 				tt.wantErr = require.NoError
 			}
-			v, err := newJvmVersion(tt.version)
-			assert.Nil(t, v)
+			_, err := newJvmVersion(tt.version)
 			tt.wantErr(t, err)
 		})
 	}
@@ -195,7 +194,7 @@ func TestJvmVersionCompare_Formats(t *testing.T) {
 			otherVersion:   "not-valid-jvm-or-semver",
 			otherFormat:    UnknownFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
+			errorSubstring: "unsupported version comparison",
 		},
 		{
 			name:           "different format returns error - apk",
@@ -203,7 +202,7 @@ func TestJvmVersionCompare_Formats(t *testing.T) {
 			otherVersion:   "1.8.0-r1",
 			otherFormat:    ApkFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
+			errorSubstring: "unsupported version comparison",
 		},
 		{
 			name:           "different format returns error - deb",
@@ -211,13 +210,13 @@ func TestJvmVersionCompare_Formats(t *testing.T) {
 			otherVersion:   "1.8.0-1",
 			otherFormat:    DebFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
+			errorSubstring: "unsupported version comparison",
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, err := newJvmVersion(test.thisVersion)
+			thisVer, err := NewVersion(test.thisVersion, JVMFormat)
 			require.NoError(t, err)
 
 			otherVer, err := NewVersion(test.otherVersion, test.otherFormat)
@@ -242,14 +241,15 @@ func TestJvmVersionCompare_Formats(t *testing.T) {
 func TestJvmVersionCompareEdgeCases(t *testing.T) {
 	tests := []struct {
 		name           string
-		setupFunc      func() (*jvmVersion, *Version)
+		setupFunc      func(testing.TB) (*Version, *Version)
 		expectError    bool
 		errorSubstring string
 	}{
 		{
 			name: "nil version object",
-			setupFunc: func() (*jvmVersion, *Version) {
-				thisVer, _ := newJvmVersion("1.8.0_275")
+			setupFunc: func(t testing.TB) (*Version, *Version) {
+				thisVer, err := NewVersion("1.8.0_275", JVMFormat)
+				require.NoError(t, err)
 				return thisVer, nil
 			},
 			expectError:    true,
@@ -257,41 +257,39 @@ func TestJvmVersionCompareEdgeCases(t *testing.T) {
 		},
 		{
 			name: "jvm format but empty jvmVersion object",
-			setupFunc: func() (*jvmVersion, *Version) {
-				thisVer, _ := newJvmVersion("1.8.0_275")
-
+			setupFunc: func(t testing.TB) (*Version, *Version) {
+				thisVer, err := NewVersion("1.8.0_275", JVMFormat)
+				require.NoError(t, err)
 				otherVer := &Version{
 					Raw:    "1.8.0_281",
 					Format: JVMFormat,
-					rich:   rich{}, // jvmVersion will be nil
 				}
 
 				return thisVer, otherVer
 			},
 			expectError:    true,
-			errorSubstring: "given empty jvmVersion object",
+			errorSubstring: `cannot compare "JVM" formatted version with empty version object`,
 		},
 		{
 			name: "semantic format but empty semVer object",
-			setupFunc: func() (*jvmVersion, *Version) {
-				thisVer, _ := newJvmVersion("1.8.0_275")
-
+			setupFunc: func(t testing.TB) (*Version, *Version) {
+				thisVer, err := NewVersion("1.8.0_275", JVMFormat)
+				require.NoError(t, err)
 				otherVer := &Version{
 					Raw:    "1.8.1",
 					Format: SemanticFormat,
-					rich:   rich{}, // semVer will be nil
 				}
 
 				return thisVer, otherVer
 			},
 			expectError:    true,
-			errorSubstring: "given empty semVer object",
+			errorSubstring: `cannot compare "JVM" formatted version with empty version object`,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, otherVer := test.setupFunc()
+			thisVer, otherVer := test.setupFunc(t)
 
 			_, err := thisVer.Compare(otherVer)
 

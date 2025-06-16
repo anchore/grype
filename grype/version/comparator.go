@@ -1,9 +1,20 @@
 package version
 
+import (
+	"github.com/anchore/grype/internal"
+)
+
 type comparatorGenerator func(constraintUnit) (Comparator, error)
 
 type Comparator interface {
+	// Compare compares this version to another version.
+	// This returns -1, 0, or 1 if this version is smaller,
+	// equal, or larger than the other version, respectively.
 	Compare(*Version) (int, error)
+}
+
+type formatAcceptor interface {
+	acceptsFormats() *internal.OrderedSet[Format]
 }
 
 func finalizeComparisonVersion(version *Version, targetFormat Format) (*Version, error) {
@@ -17,10 +28,10 @@ func finalizeComparisonVersion(version *Version, targetFormat Format) (*Version,
 		upgradedVersion, err := NewVersion(version.Raw, targetFormat)
 		if err != nil {
 			// unable to upgrade the unknown version to the target version
-			return nil, NewUnsupportedFormatError(targetFormat, version.Format)
+			return nil, newUnsupportedFormatError(targetFormat, version)
 		}
 		return upgradedVersion, nil
 	}
 
-	return nil, NewUnsupportedFormatError(targetFormat, version.Format)
+	return nil, newUnsupportedFormatError(targetFormat, version)
 }

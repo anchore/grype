@@ -7,9 +7,9 @@ func newJvmConstraint(raw string) (Constraint, error) {
 }
 
 func newJvmComparator(unit constraintUnit) (Comparator, error) {
-	ver, err := newJvmVersion(unit.version)
+	ver, err := newJvmVersion(unit.rawVersion)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse JVM constraint version (%s): %w", unit.version, err)
+		return nil, fmt.Errorf("unable to parse JVM constraint version (%s): %w", unit.rawVersion, err)
 	}
 	return ver, nil
 }

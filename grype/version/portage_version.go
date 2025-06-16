@@ -1,10 +1,19 @@
 package version
 
 import (
-	"fmt"
 	"math/big"
 	"regexp"
 	"strings"
+)
+
+var _ Comparator = (*portageVersion)(nil)
+
+// for the original python implementation, see:
+// https://github.com/gentoo/portage/blob/master/lib/portage/versions.py
+var (
+	versionRegexp = regexp.MustCompile(`(\d+)((\.\d+)*)([a-z]?)((_(pre|p|beta|alpha|rc)\d*)*)(-r(\d+))?`)
+	suffixRegexp  = regexp.MustCompile(`^(alpha|beta|rc|pre|p)(\d*)$`)
+	suffixValue   = map[string]int{"pre": -2, "p": 0, "alpha": -4, "beta": -3, "rc": -1}
 )
 
 type portageVersion struct {
@@ -17,17 +26,16 @@ func newPortageVersion(raw string) portageVersion {
 	}
 }
 
-func (v *portageVersion) Compare(other *Version) (int, error) {
-	other, err := finalizeComparisonVersion(other, PortageFormat)
-	if err != nil {
-		return -1, err
+func (v portageVersion) Compare(other *Version) (int, error) {
+	if other == nil {
+		return -1, ErrNoVersionProvided
 	}
 
-	if other.rich.portVer == nil {
-		return -1, fmt.Errorf("given empty portageVersion object")
+	if o, ok := other.comparator.(portageVersion); ok {
+		return v.compare(o), nil
 	}
 
-	return other.rich.portVer.compare(*v), nil
+	return -1, newNotComparableError(PortageFormat, other)
 }
 
 // Compare returns 0 if v == v2, -1 if v < v2, and +1 if v > v2.
@@ -37,14 +45,6 @@ func (v portageVersion) compare(v2 portageVersion) int {
 	}
 	return comparePortageVersions(v.version, v2.version)
 }
-
-// For the original python implementation, see:
-// https://github.com/gentoo/portage/blob/master/lib/portage/versions.py
-var (
-	versionRegexp = regexp.MustCompile(`(\d+)((\.\d+)*)([a-z]?)((_(pre|p|beta|alpha|rc)\d*)*)(-r(\d+))?`)
-	suffixRegexp  = regexp.MustCompile(`^(alpha|beta|rc|pre|p)(\d*)$`)
-	suffixValue   = map[string]int{"pre": -2, "p": 0, "alpha": -4, "beta": -3, "rc": -1}
-)
 
 //nolint:funlen,gocognit
 func comparePortageVersions(a, b string) int {

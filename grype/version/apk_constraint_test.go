@@ -49,8 +49,8 @@ func TestVersionApk(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			constraint, err := newApkConstraint(test.constraint)
+		t.Run(test.tName(), func(t *testing.T) {
+			constraint, err := GetConstraint(test.constraint, ApkFormat)
 
 			assert.NoError(t, err, "unexpected error from newApkConstraint: %v", err)
 			test.assertVersionConstraint(t, ApkFormat, constraint)

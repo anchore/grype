@@ -2,14 +2,9 @@ package version
 
 import (
 	"fmt"
-	"strings"
 
 	hashiVer "github.com/anchore/go-version"
 )
-
-// ruby packages such as activerecord and sprockets don't strictly follow semver
-// note: this may result in missed matches for versioned betas
-var normalizer = strings.NewReplacer(".alpha", "-alpha", ".beta", "-beta", ".rc", "-rc")
 
 type semanticConstraint struct {
 	raw        string
@@ -22,14 +17,12 @@ func newSemanticConstraint(constStr string) (semanticConstraint, error) {
 		return semanticConstraint{}, nil
 	}
 
-	normalized := normalizer.Replace(constStr)
-
-	constraints, err := hashiVer.NewConstraint(normalized)
+	constraints, err := hashiVer.NewConstraint(constStr)
 	if err != nil {
 		return semanticConstraint{}, err
 	}
 	return semanticConstraint{
-		raw:        normalized,
+		raw:        constStr,
 		constraint: constraints,
 	}, nil
 }
@@ -58,14 +51,15 @@ func (c semanticConstraint) Satisfied(version *Version) (bool, error) {
 	}
 
 	if !c.supported(version.Format) {
-		return false, NewUnsupportedFormatError(SemanticFormat, version.Format)
+		return false, newUnsupportedFormatError(SemanticFormat, version)
 	}
 
-	if version.rich.semVer == nil {
-		return false, fmt.Errorf("no rich semantic version given: %+v", version)
+	semver, ok := version.comparator.(semanticVersion)
+	if !ok {
+		return false, fmt.Errorf("cannot compare %T with %T", c, version.comparator)
 	}
 
-	return c.constraint.Check(version.rich.semVer.verObj), nil
+	return c.constraint.Check(semver.obj), nil
 }
 
 func (c semanticConstraint) String() string {

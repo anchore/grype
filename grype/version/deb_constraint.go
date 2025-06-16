@@ -25,9 +25,9 @@ func newDebConstraint(raw string) (debConstraint, error) {
 }
 
 func newDebComparator(unit constraintUnit) (Comparator, error) {
-	ver, err := newDebVersion(unit.version)
+	ver, err := newDebVersion(unit.rawVersion)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse constraint version (%s): %w", unit.version, err)
+		return nil, fmt.Errorf("unable to parse constraint version (%s): %w", unit.rawVersion, err)
 	}
 	return ver, nil
 }
@@ -49,11 +49,7 @@ func (c debConstraint) Satisfied(version *Version) (bool, error) {
 	}
 
 	if !c.supported(version.Format) {
-		return false, NewUnsupportedFormatError(DebFormat, version.Format)
-	}
-
-	if version.rich.debVer == nil {
-		return false, fmt.Errorf("no rich deb version given: %+v", version)
+		return false, newUnsupportedFormatError(DebFormat, version)
 	}
 
 	return c.expression.satisfied(version)

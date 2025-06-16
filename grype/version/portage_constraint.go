@@ -27,7 +27,7 @@ func newPortageConstraint(raw string) (portageConstraint, error) {
 }
 
 func newPortageComparator(unit constraintUnit) (Comparator, error) {
-	ver := newPortageVersion(unit.version)
+	ver := newPortageVersion(unit.rawVersion)
 	return &ver, nil
 }
 
@@ -48,11 +48,7 @@ func (c portageConstraint) Satisfied(version *Version) (bool, error) {
 	}
 
 	if !c.supported(version.Format) {
-		return false, NewUnsupportedFormatError(PortageFormat, version.Format)
-	}
-
-	if version.rich.portVer == nil {
-		return false, fmt.Errorf("no rich portage version given: %+v", version)
+		return false, newUnsupportedFormatError(PortageFormat, version)
 	}
 
 	return c.expression.satisfied(version)

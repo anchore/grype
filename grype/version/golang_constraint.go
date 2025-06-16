@@ -7,9 +7,9 @@ func newGolangConstraint(raw string) (Constraint, error) {
 }
 
 func newGolangComparator(unit constraintUnit) (Comparator, error) {
-	ver, err := newGolangVersion(unit.version)
+	ver, err := newGolangVersion(unit.rawVersion)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse Golang constraint version (%s): %w", unit.version, err)
+		return nil, fmt.Errorf("unable to parse Golang constraint version (%s): %w", unit.rawVersion, err)
 	}
 	return ver, nil
 }

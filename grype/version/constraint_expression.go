@@ -62,18 +62,21 @@ func newConstraintExpression(phrase string, genFn comparatorGenerator) (constrai
 	}, fuzzyErr
 }
 
-func (c *constraintExpression) satisfied(other *Version) (bool, error) {
+func (c *constraintExpression) satisfied(version *Version) (bool, error) {
 	oneSatisfied := false
 	for i, andOperand := range c.comparators {
 		allSatisfied := true
 		for j, andUnit := range andOperand {
-			result, err := andUnit.Compare(other)
+			result, err := andUnit.Compare(version)
 			if err != nil {
-				return false, fmt.Errorf("uncomparable %#v vs %q: %w", andUnit, other.String(), err)
+				return false, fmt.Errorf("uncomparable %T vs %q: %w", andUnit, version.String(), err)
 			}
 			unit := c.units[i][j]
 
-			if !unit.Satisfied(result) {
+			// when performing the unit.Compare(version), this implicitly reverses the order of the comparison.
+			// For this reason, we flip the result here so that the unit.Satisfied() call is relative to the
+			// original operand order.
+			if !unit.Satisfied(result * -1) {
 				allSatisfied = false
 			}
 		}

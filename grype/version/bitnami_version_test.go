@@ -37,7 +37,7 @@ func TestBitnamiVersionCompare(t *testing.T) {
 			otherVersion:   "1.2.3-1",
 			otherFormat:    DebFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
+			errorSubstring: "unsupported version comparison",
 		},
 		{
 			name:         "unknown format attempts upgrade - valid semver format",
@@ -52,13 +52,13 @@ func TestBitnamiVersionCompare(t *testing.T) {
 			otherVersion:   "not-valid-semver-format",
 			otherFormat:    UnknownFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
+			errorSubstring: "unsupported version comparison",
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, err := newBitnamiVersion(test.thisVersion)
+			thisVer, err := NewVersion(test.thisVersion, BitnamiFormat)
 			require.NoError(t, err)
 
 			otherVer, err := NewVersion(test.otherVersion, test.otherFormat)
@@ -83,14 +83,16 @@ func TestBitnamiVersionCompare(t *testing.T) {
 func TestBitnamiVersionCompareEdgeCases(t *testing.T) {
 	tests := []struct {
 		name           string
-		setupFunc      func() (*semanticVersion, *Version)
+		setupFunc      func(testing.TB) (*Version, *Version)
 		expectError    bool
 		errorSubstring string
 	}{
 		{
 			name: "nil version object",
-			setupFunc: func() (*semanticVersion, *Version) {
-				thisVer, _ := newBitnamiVersion("1.2.3-4")
+			setupFunc: func(t testing.TB) (*Version, *Version) {
+				thisVer, err := NewVersion("1.2.3-4", BitnamiFormat)
+				require.NoError(t, err)
+
 				return thisVer, nil
 			},
 			expectError:    true,
@@ -98,24 +100,24 @@ func TestBitnamiVersionCompareEdgeCases(t *testing.T) {
 		},
 		{
 			name: "empty semanticVersion in other object",
-			setupFunc: func() (*semanticVersion, *Version) {
-				thisVer, _ := newBitnamiVersion("1.2.3-4")
+			setupFunc: func(t testing.TB) (*Version, *Version) {
+				thisVer, err := NewVersion("1.2.3-4", BitnamiFormat)
+				require.NoError(t, err)
 				otherVer := &Version{
 					Raw:    "1.2.3-5",
 					Format: SemanticFormat,
-					rich:   rich{},
 				}
 
 				return thisVer, otherVer
 			},
 			expectError:    true,
-			errorSubstring: "given empty semanticVersion object",
+			errorSubstring: `cannot compare "Bitnami" formatted version with empty version object`,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, otherVer := test.setupFunc()
+			thisVer, otherVer := test.setupFunc(t)
 
 			_, err := thisVer.Compare(otherVer)
 

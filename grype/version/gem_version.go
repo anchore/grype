@@ -7,9 +7,9 @@ import (
 	"strings"
 )
 
-var _ Comparator = (*rubyVersion)(nil)
+var _ Comparator = (*gemVersion)(nil)
 
-type rubyVersion struct {
+type gemVersion struct {
 	original     string
 	segments     []any
 	canonical    []any
@@ -25,6 +25,113 @@ var (
 	segmentRegexp     = regexp.MustCompile(rubySegmentPattern)
 	correctnessRegexp = regexp.MustCompile(rubyCorrectnessPattern)
 )
+
+func newGemVersion(raw string) (gemVersion, error) {
+	original := raw
+	processed := cleanArchFromVersion(raw)
+	if processed == "" || strings.TrimSpace(processed) == "" {
+		processed = "0"
+	} else {
+		processed = strings.TrimSpace(processed)
+	}
+
+	if !correctnessRegexp.MatchString(processed) {
+		return gemVersion{}, fmt.Errorf("malformed version number string %q", original)
+	}
+	processed = strings.ReplaceAll(processed, "-", ".pre.")
+
+	isPrerelease := strings.ContainsAny(processed, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+	segments, err := partitionSegments(processed)
+	if err != nil {
+		return gemVersion{}, fmt.Errorf("malformed version number string %q: %w", original, err)
+	}
+	if len(segments) == 0 {
+		if processed == "0" {
+			segments = []any{0}
+		} else {
+			return gemVersion{}, fmt.Errorf("malformed version number string %q (no valid segments after processing)", original)
+		}
+	}
+	canonical := make([]any, len(segments))
+	copy(canonical, segments)
+
+	canonical = trimTrailingZeros(canonical)
+	canonical = trimIntermediateZeros(canonical, isPrerelease)
+
+	if len(canonical) == 0 {
+		canonical = []any{0}
+	}
+
+	return gemVersion{
+		original:     original,
+		segments:     segments,
+		canonical:    canonical,
+		isPrerelease: isPrerelease,
+	}, nil
+}
+
+func (v gemVersion) Compare(other *Version) (int, error) {
+	if other == nil {
+		return -1, ErrNoVersionProvided
+	}
+
+	if o, ok := other.comparator.(gemVersion); ok {
+		return v.compare(o)
+	}
+
+	return -1, newNotComparableError(GemFormat, other)
+}
+
+func (v gemVersion) compare(other gemVersion) (int, error) {
+	result, commonSegmentsAreEqual, err := compareSegments(v.canonical, other.canonical)
+	if err != nil {
+		return -1, err
+	}
+
+	if commonSegmentsAreEqual {
+		return compareLengths(v.canonical, other.canonical, result), nil
+	}
+
+	return result, nil
+}
+
+func (v *gemVersion) String() string {
+	return v.original
+}
+
+func partitionSegments(versionString string) ([]any, error) {
+	if versionString == "" {
+		return []any{}, fmt.Errorf("cannot partition empty version string")
+	}
+	if strings.Contains(versionString, "..") {
+		return nil, fmt.Errorf("invalid version string (double dot): %q", versionString)
+	}
+	if (strings.HasPrefix(versionString, ".") && versionString != ".") ||
+		(strings.HasSuffix(versionString, ".") && versionString != ".") {
+		if len(versionString) > 1 {
+			return nil, fmt.Errorf("invalid version string (leading/trailing dot): %q", versionString)
+		}
+	}
+
+	parts := segmentRegexp.FindAllString(versionString, -1)
+	if len(parts) == 0 {
+		if versionString == "0" {
+			return []any{0}, nil
+		}
+		return nil, fmt.Errorf("no valid segments found in %q", versionString)
+	}
+
+	segments := make([]any, 0, len(parts))
+	for _, s := range parts {
+		if n, err := strconv.Atoi(s); err == nil {
+			segments = append(segments, n)
+		} else {
+			segments = append(segments, s)
+		}
+	}
+	return segments, nil
+}
 
 func trimTrailingZeros(segments []any) []any {
 	if len(segments) <= 1 {
@@ -94,84 +201,6 @@ func trimIntermediateZeros(segments []any, isPrerelease bool) []any {
 	reconstructed = append(reconstructed, segments[firstLetterIdx:]...)
 
 	return reconstructed
-}
-
-func newGemVersion(raw string) (*rubyVersion, error) {
-	original := raw
-	processed := cleanArchFromVersion(raw)
-	if processed == "" || strings.TrimSpace(processed) == "" {
-		processed = "0"
-	} else {
-		processed = strings.TrimSpace(processed)
-	}
-
-	if !correctnessRegexp.MatchString(processed) {
-		return nil, fmt.Errorf("malformed version number string %q", original)
-	}
-	processed = strings.ReplaceAll(processed, "-", ".pre.")
-
-	isPrerelease := strings.ContainsAny(processed, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
-	segments, err := partitionSegments(processed)
-	if err != nil {
-		return nil, fmt.Errorf("malformed version number string %q: %w", original, err)
-	}
-	if len(segments) == 0 {
-		if processed == "0" {
-			segments = []any{0}
-		} else {
-			return nil, fmt.Errorf("malformed version number string %q (no valid segments after processing)", original)
-		}
-	}
-	canonical := make([]any, len(segments))
-	copy(canonical, segments)
-
-	canonical = trimTrailingZeros(canonical)
-	canonical = trimIntermediateZeros(canonical, isPrerelease)
-
-	if len(canonical) == 0 {
-		canonical = []any{0}
-	}
-
-	return &rubyVersion{
-		original:     original,
-		segments:     segments,
-		canonical:    canonical,
-		isPrerelease: isPrerelease,
-	}, nil
-}
-
-func partitionSegments(versionString string) ([]any, error) {
-	if versionString == "" {
-		return []any{}, fmt.Errorf("cannot partition empty version string")
-	}
-	if strings.Contains(versionString, "..") {
-		return nil, fmt.Errorf("invalid version string (double dot): %q", versionString)
-	}
-	if (strings.HasPrefix(versionString, ".") && versionString != ".") ||
-		(strings.HasSuffix(versionString, ".") && versionString != ".") {
-		if len(versionString) > 1 {
-			return nil, fmt.Errorf("invalid version string (leading/trailing dot): %q", versionString)
-		}
-	}
-
-	parts := segmentRegexp.FindAllString(versionString, -1)
-	if len(parts) == 0 {
-		if versionString == "0" {
-			return []any{0}, nil
-		}
-		return nil, fmt.Errorf("no valid segments found in %q", versionString)
-	}
-
-	segments := make([]any, 0, len(parts))
-	for _, s := range parts {
-		if n, err := strconv.Atoi(s); err == nil {
-			segments = append(segments, n)
-		} else {
-			segments = append(segments, s)
-		}
-	}
-	return segments, nil
 }
 
 func compareSegments(left, right []any) (result int, allEqual bool, err error) {
@@ -253,47 +282,6 @@ func compareLengths(left, right []any, commonResult int) int {
 		}
 	}
 	return 0
-}
-
-func (v *rubyVersion) Compare(other *Version) (int, error) {
-	if other == nil {
-		return -1, fmt.Errorf("cannot compare with nil version")
-	}
-	if other.Format != GemFormat && other.Format != UnknownFormat {
-		return -1, fmt.Errorf("cannot compare Gem version %q with format %s", v.original, other.Format)
-	}
-
-	var otherRubyVer *rubyVersion
-	switch {
-	case other.rich.rubyVer != nil:
-		otherRubyVer = other.rich.rubyVer
-	case other.Format == UnknownFormat || other.Format == GemFormat:
-		var err error
-		otherRubyVer, err = newGemVersion(other.Raw)
-		if err != nil {
-			return -1, fmt.Errorf("cannot compare Gem version %q with unparsable version %q: %w", v.original, other.Raw, err)
-		}
-	default:
-		return -1, fmt.Errorf("internal error: other version (%s) is GemFormat but has no parsed data and could not be reparsed", other.Raw)
-	}
-
-	standardResult, commonSegmentsAreEqual, err := compareSegments(v.canonical, otherRubyVer.canonical)
-	if err != nil {
-		return -1, err
-	}
-
-	if commonSegmentsAreEqual {
-		standardResult = compareLengths(v.canonical, otherRubyVer.canonical, standardResult)
-	}
-
-	if standardResult == 0 {
-		return 0, nil
-	}
-	return -standardResult, nil
-}
-
-func (v *rubyVersion) String() string {
-	return v.original
 }
 
 func cleanArchFromVersion(raw string) string {

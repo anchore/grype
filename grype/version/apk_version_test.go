@@ -30,7 +30,7 @@ func TestApkVersionCompare(t *testing.T) {
 			otherVersion:   "1.2.3",
 			otherFormat:    SemanticFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
+			errorSubstring: "unsupported version comparison",
 		},
 		{
 			name:           "different format returns error - deb",
@@ -38,7 +38,7 @@ func TestApkVersionCompare(t *testing.T) {
 			otherVersion:   "1.2.3-1",
 			otherFormat:    DebFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
+			errorSubstring: "unsupported version comparison",
 		},
 		{
 			name:         "unknown format attempts upgrade - valid apk format",
@@ -53,13 +53,13 @@ func TestApkVersionCompare(t *testing.T) {
 			otherVersion:   "not-valid-apk-format",
 			otherFormat:    UnknownFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
+			errorSubstring: "unsupported version comparison",
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, err := newApkVersion(test.thisVersion)
+			thisVer, err := NewVersion(test.thisVersion, ApkFormat)
 			require.NoError(t, err)
 
 			otherVer, err := NewVersion(test.otherVersion, test.otherFormat)
@@ -84,14 +84,15 @@ func TestApkVersionCompare(t *testing.T) {
 func TestApkVersionCompareEdgeCases(t *testing.T) {
 	tests := []struct {
 		name           string
-		setupFunc      func() (*apkVersion, *Version)
+		setupFunc      func(testing.TB) (*Version, *Version)
 		expectError    bool
 		errorSubstring string
 	}{
 		{
 			name: "nil version object",
-			setupFunc: func() (*apkVersion, *Version) {
-				thisVer, _ := newApkVersion("1.2.3-r4")
+			setupFunc: func(t testing.TB) (*Version, *Version) {
+				thisVer, err := NewVersion("1.2.3-r4", ApkFormat)
+				require.NoError(t, err)
 				return thisVer, nil
 			},
 			expectError:    true,
@@ -99,24 +100,24 @@ func TestApkVersionCompareEdgeCases(t *testing.T) {
 		},
 		{
 			name: "empty apkVersion in other object",
-			setupFunc: func() (*apkVersion, *Version) {
-				thisVer, _ := newApkVersion("1.2.3-r4")
+			setupFunc: func(testing.TB) (*Version, *Version) {
+				thisVer, err := NewVersion("1.2.3-r4", ApkFormat)
+				require.NoError(t, err)
 				otherVer := &Version{
 					Raw:    "1.2.3-r5",
 					Format: ApkFormat,
-					rich:   rich{}, // don't populate the rich.apkVer field
 				}
 
 				return thisVer, otherVer
 			},
 			expectError:    true,
-			errorSubstring: "given empty apkVersion object",
+			errorSubstring: `cannot compare "Apk" formatted version with empty version object`,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, otherVer := test.setupFunc()
+			thisVer, otherVer := test.setupFunc(t)
 
 			_, err := thisVer.Compare(otherVer)
 

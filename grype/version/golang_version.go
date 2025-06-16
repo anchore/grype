@@ -10,13 +10,13 @@ import (
 var _ Comparator = (*golangVersion)(nil)
 
 type golangVersion struct {
-	raw    string
-	semVer *hashiVer.Version
+	raw string
+	obj *hashiVer.Version
 }
 
-func newGolangVersion(v string) (*golangVersion, error) {
+func newGolangVersion(v string) (golangVersion, error) {
 	if v == "(devel)" {
-		return nil, ErrUnsupportedVersion
+		return golangVersion{}, ErrUnsupportedVersion
 	}
 
 	// Invalid Semver fix ups
@@ -34,40 +34,42 @@ func newGolangVersion(v string) (*golangVersion, error) {
 
 	semver, err := hashiVer.NewSemver(fixedUp)
 	if err != nil {
-		return nil, err
+		return golangVersion{}, err
 	}
-	return &golangVersion{
-		raw:    v,
-		semVer: semver,
+	return golangVersion{
+		raw: v,
+		obj: semver,
 	}, nil
 }
 
 func (g golangVersion) Compare(other *Version) (int, error) {
-	other, err := finalizeComparisonVersion(other, GolangFormat)
-	if err != nil {
-		return -1, err
+	if other == nil {
+		return -1, ErrNoVersionProvided
 	}
 
-	if other.rich.golangVersion == nil {
-		return -1, fmt.Errorf("cannot compare version with nil golang version to golang version")
+	o, ok := other.comparator.(golangVersion)
+	if !ok {
+		return -1, newNotComparableError(GolangFormat, other)
 	}
-	if other.rich.golangVersion.raw == g.raw {
+
+	if o.raw == g.raw {
 		return 0, nil
 	}
-	if other.rich.golangVersion.raw == "(devel)" {
-		return -1, fmt.Errorf("cannot compare %s with %s", g.raw, other.rich.golangVersion.raw)
+
+	if o.raw == "(devel)" {
+		return -1, fmt.Errorf("cannot compare a non-development version %q with a default development version of %q", g.raw, o.raw)
 	}
 
-	return other.rich.golangVersion.compare(g), nil
+	return g.compare(o), nil
 }
 
 func (g golangVersion) compare(o golangVersion) int {
 	switch {
-	case g.semVer != nil && o.semVer != nil:
-		return g.semVer.Compare(o.semVer)
-	case g.semVer != nil && o.semVer == nil:
+	case g.obj != nil && o.obj != nil:
+		return g.obj.Compare(o.obj)
+	case g.obj != nil && o.obj == nil:
 		return 1
-	case g.semVer == nil && o.semVer != nil:
+	case g.obj == nil && o.obj != nil:
 		return -1
 	default:
 		return strings.Compare(g.raw, o.raw)

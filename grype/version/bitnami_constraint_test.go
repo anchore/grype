@@ -3,7 +3,7 @@ package version
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestVersionBitnami(t *testing.T) {
@@ -57,11 +57,10 @@ func TestVersionBitnami(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			// We use newSemanticConstraint but using BitnamiFormat as the format
-			constraint, err := newSemanticConstraint(test.constraint)
+		t.Run(test.tName(), func(t *testing.T) {
+			constraint, err := GetConstraint(test.constraint, BitnamiFormat)
 
-			assert.NoError(t, err, "unexpected error from newSemanticConstraint: %v", err)
+			require.NoError(t, err)
 			test.assertVersionConstraint(t, BitnamiFormat, constraint)
 		})
 	}

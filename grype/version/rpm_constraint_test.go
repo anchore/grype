@@ -71,7 +71,7 @@ func TestVersionRpmConstraint(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.tName(), func(t *testing.T) {
-			constraint, err := newRpmConstraint(test.constraint)
+			constraint, err := GetConstraint(test.constraint, RpmFormat)
 			assert.NoError(t, err, "unexpected error from newRpmConstraint: %v", err)
 
 			test.assertVersionConstraint(t, RpmFormat, constraint)

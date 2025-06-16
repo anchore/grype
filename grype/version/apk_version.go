@@ -1,35 +1,34 @@
 package version
 
 import (
-	"fmt"
-
 	apk "github.com/knqyf263/go-apk-version"
 )
+
+var _ Comparator = (*apkVersion)(nil)
 
 type apkVersion struct {
 	obj apk.Version
 }
 
-func newApkVersion(raw string) (*apkVersion, error) {
+func newApkVersion(raw string) (apkVersion, error) {
 	ver, err := apk.NewVersion(raw)
 	if err != nil {
-		return nil, err
+		return apkVersion{}, err
 	}
 
-	return &apkVersion{
+	return apkVersion{
 		obj: ver,
 	}, nil
 }
 
-func (a *apkVersion) Compare(other *Version) (int, error) {
-	other, err := finalizeComparisonVersion(other, ApkFormat)
-	if err != nil {
-		return -1, err
+func (v apkVersion) Compare(other *Version) (int, error) {
+	if other == nil {
+		return -1, ErrNoVersionProvided
 	}
 
-	if other.rich.apkVer == nil {
-		return -1, fmt.Errorf("given empty apkVersion object")
+	if o, ok := other.comparator.(apkVersion); ok {
+		return v.obj.Compare(o.obj), nil
 	}
 
-	return other.rich.apkVer.obj.Compare(a.obj), nil
+	return -1, newNotComparableError(ApkFormat, other)
 }

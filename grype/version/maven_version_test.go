@@ -10,70 +10,70 @@ import (
 
 func Test_javaVersion_Compare(t *testing.T) {
 	tests := []struct {
-		name    string
-		compare string
-		want    int
+		v1   string
+		v2   string
+		want int
 	}{
 		{
-			name:    "1",
-			compare: "2",
-			want:    -1,
+			v1:   "1",
+			v2:   "2",
+			want: -1,
 		},
 		{
-			name:    "1.8.0_282",
-			compare: "1.8.0_282",
-			want:    0,
+			v1:   "1.8.0_282",
+			v2:   "1.8.0_282",
+			want: 0,
 		},
 		{
-			name:    "2.5",
-			compare: "2.0",
-			want:    1,
+			v1:   "2.5",
+			v2:   "2.0",
+			want: 1,
 		},
 		{
-			name:    "2.414.2-cb-5",
-			compare: "2.414.2",
-			want:    1,
+			v1:   "2.414.2-cb-5",
+			v2:   "2.414.2",
+			want: 1,
 		},
 		{
-			name:    "5.2.25.RELEASE", // see https://mvnrepository.com/artifact/org.springframework/spring-web
-			compare: "5.2.25",
-			want:    0,
+			v1:   "5.2.25.RELEASE", // see https://mvnrepository.com/artifact/org.springframework/spring-web
+			v2:   "5.2.25",
+			want: 0,
 		},
 		{
-			name:    "5.2.25.release",
-			compare: "5.2.25",
-			want:    0,
+			v1:   "5.2.25.release",
+			v2:   "5.2.25",
+			want: 0,
 		},
 		{
-			name:    "5.2.25.FINAL",
-			compare: "5.2.25",
-			want:    0,
+			v1:   "5.2.25.FINAL",
+			v2:   "5.2.25",
+			want: 0,
 		},
 		{
-			name:    "5.2.25.final",
-			compare: "5.2.25",
-			want:    0,
+			v1:   "5.2.25.final",
+			v2:   "5.2.25",
+			want: 0,
 		},
 		{
-			name:    "5.2.25.GA",
-			compare: "5.2.25",
-			want:    0,
+			v1:   "5.2.25.GA",
+			v2:   "5.2.25",
+			want: 0,
 		},
 		{
-			name:    "5.2.25.ga",
-			compare: "5.2.25",
-			want:    0,
+			v1:   "5.2.25.ga",
+			v2:   "5.2.25",
+			want: 0,
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			j, err := NewVersion(tt.name, MavenFormat)
+		t.Run(tt.v1+" vs "+tt.v2, func(t *testing.T) {
+			v1, err := NewVersion(tt.v1, MavenFormat)
 			assert.NoError(t, err)
 
-			j2, err := NewVersion(tt.compare, MavenFormat)
+			v2, err := NewVersion(tt.v2, MavenFormat)
 			assert.NoError(t, err)
 
-			if got, _ := j2.rich.mavenVer.Compare(j); got != tt.want {
+			if got, _ := v1.Compare(v2); got != tt.want {
 				t.Errorf("Compare() = %v, want %v", got, tt.want)
 			}
 		})
@@ -109,7 +109,7 @@ func TestMavenVersionCompare_Format(t *testing.T) {
 			otherVersion:   "1.2.3",
 			otherFormat:    SemanticFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
+			errorSubstring: "unsupported version comparison",
 		},
 		{
 			name:           "different format returns error - apk",
@@ -117,7 +117,7 @@ func TestMavenVersionCompare_Format(t *testing.T) {
 			otherVersion:   "1.2.3-r4",
 			otherFormat:    ApkFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
+			errorSubstring: "unsupported version comparison",
 		},
 		{
 			name:         "unknown format attempts upgrade - valid maven format",
@@ -130,7 +130,7 @@ func TestMavenVersionCompare_Format(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, err := newMavenVersion(test.thisVersion)
+			thisVer, err := NewVersion(test.thisVersion, MavenFormat)
 			require.NoError(t, err)
 
 			otherVer, err := NewVersion(test.otherVersion, test.otherFormat)
@@ -155,14 +155,15 @@ func TestMavenVersionCompare_Format(t *testing.T) {
 func TestMavenVersionCompareEdgeCases(t *testing.T) {
 	tests := []struct {
 		name           string
-		setupFunc      func() (*mavenVersion, *Version)
+		setupFunc      func(testing.TB) (*Version, *Version)
 		expectError    bool
 		errorSubstring string
 	}{
 		{
 			name: "nil version object",
-			setupFunc: func() (*mavenVersion, *Version) {
-				thisVer, _ := newMavenVersion("1.2.3")
+			setupFunc: func(t testing.TB) (*Version, *Version) {
+				thisVer, err := NewVersion("1.2.3", MavenFormat)
+				require.NoError(t, err)
 				return thisVer, nil
 			},
 			expectError:    true,
@@ -170,33 +171,35 @@ func TestMavenVersionCompareEdgeCases(t *testing.T) {
 		},
 		{
 			name: "empty mavenVersion in other object",
-			setupFunc: func() (*mavenVersion, *Version) {
-				thisVer, _ := newMavenVersion("1.2.3")
+			setupFunc: func(t testing.TB) (*Version, *Version) {
+				thisVer, err := NewVersion("1.2.3", MavenFormat)
+				require.NoError(t, err)
 
 				otherVer := &Version{
 					Raw:    "1.2.4",
 					Format: MavenFormat,
-					rich:   rich{},
 				}
 
 				return thisVer, otherVer
 			},
 			expectError:    true,
-			errorSubstring: "given empty mavenVersion object",
+			errorSubstring: `cannot compare "Maven" formatted version with empty version object`,
 		},
 		{
 			name: "incomparable maven versions",
-			setupFunc: func() (*mavenVersion, *Version) {
+			setupFunc: func(t testing.TB) (*Version, *Version) {
 				// This test would be hard to construct in practice since the Maven
 				// version library handles most comparisons, but we can simulate the
 				// error condition by creating a mock that would trigger the last
 				// error condition in the Compare function
-				thisVer, _ := newMavenVersion("1.2.3")
+				thisVer, err := NewVersion("1.2.3", MavenFormat)
+				require.NoError(t, err)
 
 				// We'd need to modify the otherVer manually to create a scenario
 				// where none of the comparison methods return true, which is unlikely
 				// in real usage but could be simulated for test coverage
-				otherVer, _ := NewVersion("1.2.4", MavenFormat)
+				otherVer, err := NewVersion("1.2.4", MavenFormat)
+				require.NoError(t, err)
 
 				return thisVer, otherVer
 			},
@@ -207,7 +210,7 @@ func TestMavenVersionCompareEdgeCases(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, otherVer := test.setupFunc()
+			thisVer, otherVer := test.setupFunc(t)
 
 			_, err := thisVer.Compare(otherVer)
 

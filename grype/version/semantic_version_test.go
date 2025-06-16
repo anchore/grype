@@ -44,7 +44,7 @@ func TestSemanticVersionCompare_Format(t *testing.T) {
 			otherVersion:   "1.2.3-1",
 			otherFormat:    DebFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
+			errorSubstring: "unsupported version comparison",
 		},
 		{
 			name:           "different format returns error - apk",
@@ -52,7 +52,7 @@ func TestSemanticVersionCompare_Format(t *testing.T) {
 			otherVersion:   "1.2.3-r4",
 			otherFormat:    ApkFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
+			errorSubstring: "unsupported version comparison",
 		},
 		{
 			name:           "different format returns error - rpm",
@@ -60,7 +60,7 @@ func TestSemanticVersionCompare_Format(t *testing.T) {
 			otherVersion:   "1.2.3-1",
 			otherFormat:    RpmFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
+			errorSubstring: "unsupported version comparison",
 		},
 		{
 			name:         "unknown format attempts upgrade - valid semantic format",
@@ -75,13 +75,13 @@ func TestSemanticVersionCompare_Format(t *testing.T) {
 			otherVersion:   "not.valid.semver",
 			otherFormat:    UnknownFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
+			errorSubstring: "unsupported version comparison",
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, err := newSemanticVersion(test.thisVersion)
+			thisVer, err := NewVersion(test.thisVersion, SemanticFormat)
 			require.NoError(t, err)
 
 			otherVer, err := NewVersion(test.otherVersion, test.otherFormat)
@@ -106,14 +106,15 @@ func TestSemanticVersionCompare_Format(t *testing.T) {
 func TestSemanticVersionCompareEdgeCases(t *testing.T) {
 	tests := []struct {
 		name           string
-		setupFunc      func() (*semanticVersion, *Version)
+		setupFunc      func(testing.TB) (*Version, *Version)
 		expectError    bool
 		errorSubstring string
 	}{
 		{
 			name: "nil version object",
-			setupFunc: func() (*semanticVersion, *Version) {
-				thisVer, _ := newSemanticVersion("1.2.3")
+			setupFunc: func(t testing.TB) (*Version, *Version) {
+				thisVer, err := NewVersion("1.2.3", SemanticFormat)
+				require.NoError(t, err)
 				return thisVer, nil
 			},
 			expectError:    true,
@@ -121,25 +122,25 @@ func TestSemanticVersionCompareEdgeCases(t *testing.T) {
 		},
 		{
 			name: "empty semanticVersion in other object",
-			setupFunc: func() (*semanticVersion, *Version) {
-				thisVer, _ := newSemanticVersion("1.2.3")
+			setupFunc: func(t testing.TB) (*Version, *Version) {
+				thisVer, err := NewVersion("1.2.3", SemanticFormat)
+				require.NoError(t, err)
 
 				otherVer := &Version{
 					Raw:    "1.2.4",
 					Format: SemanticFormat,
-					rich:   rich{},
 				}
 
 				return thisVer, otherVer
 			},
 			expectError:    true,
-			errorSubstring: "given empty semanticVersion object",
+			errorSubstring: `cannot compare "Semantic" formatted version with empty version object`,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, otherVer := test.setupFunc()
+			thisVer, otherVer := test.setupFunc(t)
 
 			_, err := thisVer.Compare(otherVer)
 

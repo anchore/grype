@@ -26,9 +26,9 @@ func newApkConstraint(raw string) (apkConstraint, error) {
 }
 
 func newApkComparator(unit constraintUnit) (Comparator, error) {
-	ver, err := newApkVersion(unit.version)
+	ver, err := newApkVersion(unit.rawVersion)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse constraint version (%s): %w", unit.version, err)
+		return nil, fmt.Errorf("unable to parse constraint version (%s): %w", unit.rawVersion, err)
 	}
 
 	return ver, nil
@@ -54,11 +54,7 @@ func (c apkConstraint) Satisfied(version *Version) (bool, error) {
 	}
 
 	if !c.supported(version.Format) {
-		return false, NewUnsupportedFormatError(ApkFormat, version.Format)
-	}
-
-	if version.rich.apkVer == nil {
-		return false, fmt.Errorf("no rich apk version given: %+v", version)
+		return false, newUnsupportedFormatError(ApkFormat, version)
 	}
 
 	return c.expression.satisfied(version)

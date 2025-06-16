@@ -12,19 +12,6 @@ type pep440Version struct {
 	obj goPepVersion.Version
 }
 
-func (p pep440Version) Compare(other *Version) (int, error) {
-	other, err := finalizeComparisonVersion(other, PythonFormat)
-	if err != nil {
-		return -1, err
-	}
-
-	if other.rich.pep440version == nil {
-		return -1, fmt.Errorf("given empty pep440 object")
-	}
-
-	return other.rich.pep440version.obj.Compare(p.obj), nil
-}
-
 func newPep440Version(raw string) (pep440Version, error) {
 	parsed, err := goPepVersion.Parse(raw)
 	if err != nil {
@@ -33,4 +20,16 @@ func newPep440Version(raw string) (pep440Version, error) {
 	return pep440Version{
 		obj: parsed,
 	}, nil
+}
+
+func (v pep440Version) Compare(other *Version) (int, error) {
+	if other == nil {
+		return -1, ErrNoVersionProvided
+	}
+
+	if o, ok := other.comparator.(pep440Version); ok {
+		return v.obj.Compare(o.obj), nil
+	}
+
+	return -1, newNotComparableError(PythonFormat, other)
 }

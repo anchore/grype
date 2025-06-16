@@ -20,14 +20,14 @@ func TestSplitFuzzyPhrase(t *testing.T) {
 			phrase: `="in<(b e t w e e n)>quotes<=||>=not!="`,
 			expected: &constraintUnit{
 				rangeOperator: EQ,
-				version:       "in<(b e t w e e n)>quotes<=||>=not!=",
+				rawVersion:    "in<(b e t w e e n)>quotes<=||>=not!=",
 			},
 		},
 		{
 			phrase: ` >= "in<(b e t w e e n)>quotes<=||>=not!=" `,
 			expected: &constraintUnit{
 				rangeOperator: GTE,
-				version:       "in<(b e t w e e n)>quotes<=||>=not!=",
+				rawVersion:    "in<(b e t w e e n)>quotes<=||>=not!=",
 			},
 		},
 		{
@@ -35,28 +35,28 @@ func TestSplitFuzzyPhrase(t *testing.T) {
 			phrase: ` >= inbet"ween)>quotes" with trailing words `,
 			expected: &constraintUnit{
 				rangeOperator: GTE,
-				version:       `inbet"ween)>quotes" with trailing words`,
+				rawVersion:    `inbet"ween)>quotes" with trailing words`,
 			},
 		},
 		{
 			phrase: `="something"`,
 			expected: &constraintUnit{
 				rangeOperator: EQ,
-				version:       "something",
+				rawVersion:    "something",
 			},
 		},
 		{
 			phrase: "=something",
 			expected: &constraintUnit{
 				rangeOperator: EQ,
-				version:       "something",
+				rawVersion:    "something",
 			},
 		},
 		{
 			phrase: "= something",
 			expected: &constraintUnit{
 				rangeOperator: EQ,
-				version:       "something",
+				rawVersion:    "something",
 			},
 		},
 		{
@@ -64,7 +64,7 @@ func TestSplitFuzzyPhrase(t *testing.T) {
 			expected: &constraintUnit{
 
 				rangeOperator: EQ,
-				version:       "something",
+				rawVersion:    "something",
 			},
 		},
 		{
@@ -72,7 +72,7 @@ func TestSplitFuzzyPhrase(t *testing.T) {
 			expected: &constraintUnit{
 
 				rangeOperator: GT,
-				version:       "something",
+				rawVersion:    "something",
 			},
 		},
 		{
@@ -80,7 +80,7 @@ func TestSplitFuzzyPhrase(t *testing.T) {
 			expected: &constraintUnit{
 
 				rangeOperator: GTE,
-				version:       "2.3",
+				rawVersion:    "2.3",
 			},
 		},
 		{
@@ -88,7 +88,7 @@ func TestSplitFuzzyPhrase(t *testing.T) {
 			expected: &constraintUnit{
 
 				rangeOperator: LT,
-				version:       "2.3",
+				rawVersion:    "2.3",
 			},
 		},
 		{
@@ -96,7 +96,7 @@ func TestSplitFuzzyPhrase(t *testing.T) {
 			expected: &constraintUnit{
 
 				rangeOperator: LTE,
-				version:       "2.3",
+				rawVersion:    "2.3",
 			},
 		},
 		{
@@ -104,7 +104,7 @@ func TestSplitFuzzyPhrase(t *testing.T) {
 			expected: &constraintUnit{
 
 				rangeOperator: GTE,
-				version:       "1.0",
+				rawVersion:    "1.0",
 			},
 		},
 	}

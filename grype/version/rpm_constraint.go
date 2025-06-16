@@ -27,9 +27,9 @@ func newRpmConstraint(raw string) (rpmConstraint, error) {
 }
 
 func newRpmComparator(unit constraintUnit) (Comparator, error) {
-	ver, err := newRpmVersion(unit.version)
+	ver, err := newRpmVersion(unit.rawVersion)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse constraint version (%s): %w", unit.version, err)
+		return nil, fmt.Errorf("unable to parse constraint version (%s): %w", unit.rawVersion, err)
 	}
 	return &ver, nil
 }
@@ -51,11 +51,7 @@ func (c rpmConstraint) Satisfied(version *Version) (bool, error) {
 	}
 
 	if !c.supported(version.Format) {
-		return false, NewUnsupportedFormatError(RpmFormat, version.Format)
-	}
-
-	if version.rich.rpmVer == nil {
-		return false, fmt.Errorf("no rich rpm version given: %+v", version)
+		return false, newUnsupportedFormatError(RpmFormat, version)
 	}
 
 	return c.expression.satisfied(version)

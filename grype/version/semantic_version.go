@@ -2,42 +2,59 @@ package version
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 
 	hashiVer "github.com/anchore/go-version"
 )
 
+var _ Comparator = (*semanticVersion)(nil)
+
+// semverPrereleaseNormalizer are meant to replace common pre-release suffixes with standard semver pre-release suffixes.
+// this is primarily intended for to cover ruby packages such as activerecord and sprockets, which don't strictly
+// follow semver, however, this can generally be applied to other cases using semver as well.
+// note: this may result in missed matches for versioned betas
+var semverPrereleaseNormalizer = strings.NewReplacer(".alpha", "-alpha", ".beta", "-beta", ".rc", "-rc")
+
 type semanticVersion struct {
-	verObj *hashiVer.Version
+	obj *hashiVer.Version
 }
 
-func newSemanticVersion(raw string) (*semanticVersion, error) {
-	verObj, err := hashiVer.NewVersion(normalizer.Replace(raw))
-	if err != nil {
-		return nil, fmt.Errorf("unable to create semver obj: %w", err)
+var versionStartsWithV = regexp.MustCompile(`^v\d+`)
+
+func newSemanticVersion(raw string, strict bool) (semanticVersion, error) {
+	clean := semverPrereleaseNormalizer.Replace(raw)
+
+	var verObj *hashiVer.Version
+	var err error
+	if strict {
+		// we still want v-prefix processing
+		if versionStartsWithV.MatchString(clean) {
+			clean = strings.TrimPrefix(clean, "v")
+		}
+		verObj, err = hashiVer.NewSemver(clean)
+	} else {
+		verObj, err = hashiVer.NewVersion(clean)
 	}
-	return &semanticVersion{
-		verObj: verObj,
+	if err != nil {
+		return semanticVersion{}, fmt.Errorf("unable to create semver obj: %w", err)
+	}
+	return semanticVersion{
+		obj: verObj,
 	}, nil
 }
 
-func (v *semanticVersion) Compare(other *Version) (int, error) {
-	if other != nil && other.Format == BitnamiFormat {
-		transformed, err := newBitnamiVersion(other.Raw)
-		if err != nil {
-			return -1, fmt.Errorf("unable to transform bitnami version: %w", err)
+func (v semanticVersion) Compare(other *Version) (int, error) {
+	if other == nil {
+		return -1, ErrNoVersionProvided
+	}
+
+	if o, ok := other.comparator.(semanticVersion); ok {
+		if o.obj == nil {
+			return -1, ErrNoVersionProvided
 		}
 
-		return transformed.verObj.Compare(v.verObj), nil
+		return v.obj.Compare(o.obj), nil
 	}
-
-	other, err := finalizeComparisonVersion(other, SemanticFormat)
-	if err != nil {
-		return -1, err
-	}
-
-	if other.rich.semVer == nil {
-		return -1, fmt.Errorf("given empty semanticVersion object")
-	}
-
-	return other.rich.semVer.verObj.Compare(v.verObj), nil
+	return -1, newNotComparableError(SemanticFormat, other)
 }

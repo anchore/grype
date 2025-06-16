@@ -105,13 +105,13 @@ func TestNewConstraintExpression(t *testing.T) {
 				units: [][]constraintUnit{
 					{constraintUnit{
 						rangeOperator: LT,
-						version:       "1.1.1",
+						rawVersion:    "1.1.1",
 					}},
 				},
 				comparators: [][]Comparator{
 					{mustGolangComparator(t, constraintUnit{
 						rangeOperator: LT,
-						version:       "1.1.1",
+						rawVersion:    "1.1.1",
 					})},
 				},
 			},
@@ -125,13 +125,13 @@ func TestNewConstraintExpression(t *testing.T) {
 				units: [][]constraintUnit{
 					{constraintUnit{
 						rangeOperator: GT,
-						version:       "9.6.0b1",
+						rawVersion:    "9.6.0b1",
 					}},
 				},
 				comparators: [][]Comparator{
 					{mustFuzzyComparator(t, constraintUnit{
 						rangeOperator: GT,
-						version:       "9.6.0b1",
+						rawVersion:    "9.6.0b1",
 					})},
 				},
 			},

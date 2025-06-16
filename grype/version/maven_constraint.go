@@ -25,9 +25,9 @@ func newMavenConstraint(raw string) (mavenConstraint, error) {
 }
 
 func newMavenComparator(unit constraintUnit) (Comparator, error) {
-	ver, err := newMavenVersion(unit.version)
+	ver, err := newMavenVersion(unit.rawVersion)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse constraint version (%s): %w", unit.version, err)
+		return nil, fmt.Errorf("unable to parse constraint version (%s): %w", unit.rawVersion, err)
 	}
 
 	return ver, nil
@@ -53,11 +53,7 @@ func (c mavenConstraint) Satisfied(version *Version) (satisfied bool, err error)
 	}
 
 	if !c.supported(version.Format) {
-		return false, NewUnsupportedFormatError(MavenFormat, version.Format)
-	}
-
-	if version.rich.mavenVer == nil {
-		return false, fmt.Errorf("no rich apk version given: %+v", version)
+		return false, newUnsupportedFormatError(MavenFormat, version)
 	}
 
 	return c.expression.satisfied(version)

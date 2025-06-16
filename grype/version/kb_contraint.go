@@ -27,9 +27,7 @@ func newKBConstraint(raw string) (kbConstraint, error) {
 }
 
 func newKBComparator(unit constraintUnit) (Comparator, error) {
-	// XXX unit.version is probably not needed because newKBVersion doesn't do anything
-	ver := newKBVersion(unit.version)
-	return &ver, nil
+	return newKBVersion(unit.rawVersion), nil
 }
 
 func (c kbConstraint) supported(format Format) bool {
@@ -51,7 +49,7 @@ func (c kbConstraint) Satisfied(version *Version) (bool, error) {
 	}
 
 	if !c.supported(version.Format) {
-		return false, NewUnsupportedFormatError(KBFormat, version.Format)
+		return false, newUnsupportedFormatError(KBFormat, version)
 	}
 
 	return c.expression.satisfied(version)

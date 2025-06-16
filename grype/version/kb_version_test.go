@@ -30,7 +30,7 @@ func TestKbVersionCompare(t *testing.T) {
 			otherVersion:   "1.2.3",
 			otherFormat:    SemanticFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
+			errorSubstring: `(KB) unsupported version comparison: value="1.2.3" format="Semantic"`,
 		},
 		{
 			name:         "unknown format attempts upgrade - valid kb format",
@@ -43,7 +43,8 @@ func TestKbVersionCompare(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer := newKBVersion(test.thisVersion)
+			thisVer, err := NewVersion(test.thisVersion, KBFormat)
+			require.NoError(t, err)
 
 			otherVer, err := NewVersion(test.otherVersion, test.otherFormat)
 			require.NoError(t, err)
@@ -67,40 +68,44 @@ func TestKbVersionCompare(t *testing.T) {
 func TestKbVersionCompareEdgeCases(t *testing.T) {
 	tests := []struct {
 		name           string
-		setupFunc      func() (*kbVersion, *Version)
+		setupFunc      func(testing.TB) (*Version, *Version)
 		expectError    bool
 		errorSubstring string
 	}{
 		{
 			name: "nil version object",
-			setupFunc: func() (*kbVersion, *Version) {
-				thisVer := newKBVersion("KB4562562")
-				return &thisVer, nil
+			setupFunc: func(t testing.TB) (*Version, *Version) {
+				v, err := NewVersion("KB4562562", KBFormat)
+				require.NoError(t, err)
+				return v, nil
 			},
 			expectError:    true,
 			errorSubstring: "no version provided for comparison",
 		},
 		{
 			name: "empty kbVersion in other object",
-			setupFunc: func() (*kbVersion, *Version) {
+			setupFunc: func(t testing.TB) (*Version, *Version) {
 				thisVer := newKBVersion("KB4562562")
 
 				otherVer := &Version{
 					Raw:    "KB4562563",
 					Format: KBFormat,
-					rich:   rich{},
 				}
 
-				return &thisVer, otherVer
+				return &Version{
+					Raw:        "KB4562562",
+					Format:     KBFormat,
+					comparator: thisVer,
+				}, otherVer
 			},
 			expectError:    true,
-			errorSubstring: "given empty kbVersion object",
+			errorSubstring: `cannot compare "KB" formatted version with empty version object`,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, otherVer := test.setupFunc()
+			thisVer, otherVer := test.setupFunc(t)
 
 			_, err := thisVer.Compare(otherVer)
 

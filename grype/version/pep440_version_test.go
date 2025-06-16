@@ -37,7 +37,7 @@ func TestPep440VersionCompare(t *testing.T) {
 			otherVersion:   "1.2.3",
 			otherFormat:    SemanticFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
+			errorSubstring: "unsupported version comparison",
 		},
 		{
 			name:           "different format returns error - apk",
@@ -45,7 +45,7 @@ func TestPep440VersionCompare(t *testing.T) {
 			otherVersion:   "1.2.3-r4",
 			otherFormat:    ApkFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
+			errorSubstring: "unsupported version comparison",
 		},
 		{
 			name:         "unknown format attempts upgrade - valid python format",
@@ -60,13 +60,13 @@ func TestPep440VersionCompare(t *testing.T) {
 			otherVersion:   "not/valid/python-format",
 			otherFormat:    UnknownFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
+			errorSubstring: "unsupported version comparison",
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, err := newPep440Version(test.thisVersion)
+			thisVer, err := NewVersion(test.thisVersion, PythonFormat)
 			require.NoError(t, err)
 
 			otherVer, err := NewVersion(test.otherVersion, test.otherFormat)
@@ -91,14 +91,15 @@ func TestPep440VersionCompare(t *testing.T) {
 func TestPep440VersionCompareEdgeCases(t *testing.T) {
 	tests := []struct {
 		name           string
-		setupFunc      func() (pep440Version, *Version)
+		setupFunc      func(testing.TB) (*Version, *Version)
 		expectError    bool
 		errorSubstring string
 	}{
 		{
 			name: "nil version object",
-			setupFunc: func() (pep440Version, *Version) {
-				thisVer, _ := newPep440Version("1.2.3")
+			setupFunc: func(t testing.TB) (*Version, *Version) {
+				thisVer, err := NewVersion("1.2.3", PythonFormat)
+				require.NoError(t, err)
 				return thisVer, nil
 			},
 			expectError:    true,
@@ -106,25 +107,25 @@ func TestPep440VersionCompareEdgeCases(t *testing.T) {
 		},
 		{
 			name: "empty pep440version in other object",
-			setupFunc: func() (pep440Version, *Version) {
-				thisVer, _ := newPep440Version("1.2.3")
+			setupFunc: func(t testing.TB) (*Version, *Version) {
+				thisVer, err := NewVersion("1.2.3", PythonFormat)
+				require.NoError(t, err)
 
 				otherVer := &Version{
 					Raw:    "1.2.4",
 					Format: PythonFormat,
-					rich:   rich{},
 				}
 
 				return thisVer, otherVer
 			},
 			expectError:    true,
-			errorSubstring: "given empty pep440 object",
+			errorSubstring: `cannot compare "Python" formatted version with empty version object`,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, otherVer := test.setupFunc()
+			thisVer, otherVer := test.setupFunc(t)
 
 			_, err := thisVer.Compare(otherVer)
 

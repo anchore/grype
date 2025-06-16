@@ -20,40 +20,40 @@ func TestNewGolangVersion(t *testing.T) {
 			name:  "normal semantic version",
 			input: "v1.8.0",
 			expected: golangVersion{
-				raw:    "v1.8.0",
-				semVer: hashiVer.Must(hashiVer.NewSemver("v1.8.0")),
+				raw: "v1.8.0",
+				obj: hashiVer.Must(hashiVer.NewSemver("v1.8.0")),
 			},
 		},
 		{
 			name:  "v0.0.0 date and hash version",
 			input: "v0.0.0-20180116102854-5a71ef0e047d",
 			expected: golangVersion{
-				raw:    "v0.0.0-20180116102854-5a71ef0e047d",
-				semVer: hashiVer.Must(hashiVer.NewSemver("v0.0.0-20180116102854-5a71ef0e047d")),
+				raw: "v0.0.0-20180116102854-5a71ef0e047d",
+				obj: hashiVer.Must(hashiVer.NewSemver("v0.0.0-20180116102854-5a71ef0e047d")),
 			},
 		},
 		{
 			name:  "semver with +incompatible",
 			input: "v24.0.7+incompatible",
 			expected: golangVersion{
-				raw:    "v24.0.7+incompatible",
-				semVer: hashiVer.Must(hashiVer.NewSemver("v24.0.7+incompatible")),
+				raw: "v24.0.7+incompatible",
+				obj: hashiVer.Must(hashiVer.NewSemver("v24.0.7+incompatible")),
 			},
 		},
 		{
 			name:  "semver with +incompatible+dirty",
 			input: "v24.0.7+incompatible+dirty",
 			expected: golangVersion{
-				raw:    "v24.0.7+incompatible+dirty",
-				semVer: hashiVer.Must(hashiVer.NewSemver("v24.0.7+incompatible.dirty")),
+				raw: "v24.0.7+incompatible+dirty",
+				obj: hashiVer.Must(hashiVer.NewSemver("v24.0.7+incompatible.dirty")),
 			},
 		},
 		{
 			name:  "standard library",
 			input: "go1.21.4",
 			expected: golangVersion{
-				raw:    "go1.21.4",
-				semVer: hashiVer.Must(hashiVer.NewSemver("1.21.4")),
+				raw: "go1.21.4",
+				obj: hashiVer.Must(hashiVer.NewSemver("1.21.4")),
 			},
 		},
 		{
@@ -80,7 +80,7 @@ func TestNewGolangVersion(t *testing.T) {
 				return
 			}
 			assert.Nil(t, err)
-			assert.Equal(t, tc.expected, *v)
+			assert.Equal(t, tc.expected, v)
 		})
 	}
 }
@@ -166,7 +166,7 @@ func TestCompareGolangVersions(t *testing.T) {
 			require.NoError(t, err)
 			other, err := newGolangVersion(tc.otherVersion)
 			require.NoError(t, err)
-			got := a.compare(*other)
+			got := a.compare(other)
 			assert.Equal(t, tc.want, got)
 		})
 	}
@@ -176,35 +176,39 @@ func Test_newGolangVersion_UnsupportedVersion(t *testing.T) {
 	tests := []struct {
 		name    string
 		v       string
-		want    *golangVersion
-		wantErr assert.ErrorAssertionFunc
+		want    golangVersion
+		wantErr require.ErrorAssertionFunc
 	}{
 		{
 			name: "devel",
 			v:    "(devel)",
-			wantErr: func(t assert.TestingT, err error, msgAndArgs ...interface{}) bool {
-				return assert.ErrorIs(t, err, ErrUnsupportedVersion)
+			wantErr: func(t require.TestingT, err error, msgAndArgs ...interface{}) {
+				require.ErrorIs(t, err, ErrUnsupportedVersion)
 			},
 		},
 		{
 			name:    "invalid",
 			v:       "invalid",
-			wantErr: assert.Error,
+			wantErr: require.Error,
 		},
 		{
 			name: "valid",
 			v:    "v1.2.3",
-			want: &golangVersion{
-				raw:    "v1.2.3",
-				semVer: hashiVer.Must(hashiVer.NewSemver("v1.2.3")),
+			want: golangVersion{
+				raw: "v1.2.3",
+				obj: hashiVer.Must(hashiVer.NewSemver("v1.2.3")),
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.wantErr == nil {
+				tt.wantErr = require.NoError
+			}
 			got, err := newGolangVersion(tt.v)
-			if tt.wantErr != nil {
-				tt.wantErr(t, err)
+			tt.wantErr(t, err)
+			if err != nil {
+				return
 			}
 			assert.Equal(t, tt.want, got)
 		})

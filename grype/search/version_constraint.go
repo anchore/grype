@@ -25,7 +25,7 @@ func ByVersion(v version.Version) vulnerability.Criteria {
 	return ByConstraintFunc(func(constraint version.Constraint) (bool, error) {
 		satisfied, err := constraint.Satisfied(&v)
 		if err != nil {
-			var formatErr *version.UnsupportedFormatError
+			var formatErr *version.UnsupportedComparisonError
 			if errors.As(err, &formatErr) {
 				// if the format is unsupported, then the constraint is not satisfied, but this should not be conveyed as an error
 				log.WithFields("reason", err).Trace("unsatisfied constraint")

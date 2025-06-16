@@ -15,7 +15,7 @@ var constraintPartPattern = regexp.MustCompile(`\s*(?P<operator>[><=]*)\s*(?P<ve
 
 type constraintUnit struct {
 	rangeOperator operator
-	version       string
+	rawVersion    string
 }
 
 func parseUnit(phrase string) (*constraintUnit, error) {
@@ -39,7 +39,7 @@ func parseUnit(phrase string) (*constraintUnit, error) {
 	}
 	return &constraintUnit{
 		rangeOperator: op,
-		version:       version,
+		rawVersion:    version,
 	}, nil
 }
 

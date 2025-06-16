@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestItWorks(t *testing.T) {
+func Test_Pep440Constraint(t *testing.T) {
 	tests := []testCase{
 		{
 			name:       "empty constraint",
@@ -209,7 +209,7 @@ func TestItWorks(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			c, err := newPep440Constraint(tc.constraint)
+			c, err := GetConstraint(tc.constraint, PythonFormat)
 			require.NoError(t, err)
 			v, err := NewVersion(tc.version, PythonFormat)
 			require.NoError(t, err)

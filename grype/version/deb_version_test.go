@@ -30,7 +30,7 @@ func TestDebVersionCompare(t *testing.T) {
 			otherVersion:   "1.2.3",
 			otherFormat:    SemanticFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
+			errorSubstring: "unsupported version comparison",
 		},
 		{
 			name:           "different format returns error - apk",
@@ -38,7 +38,7 @@ func TestDebVersionCompare(t *testing.T) {
 			otherVersion:   "1.2.3-r4",
 			otherFormat:    ApkFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
+			errorSubstring: "unsupported version comparison",
 		},
 		{
 			name:         "unknown format attempts upgrade - valid deb format",
@@ -53,13 +53,13 @@ func TestDebVersionCompare(t *testing.T) {
 			otherVersion:   "not-valid-deb-format",
 			otherFormat:    UnknownFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
+			errorSubstring: "unsupported version comparison",
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, err := newDebVersion(test.thisVersion)
+			thisVer, err := NewVersion(test.thisVersion, DebFormat)
 			require.NoError(t, err)
 
 			otherVer, err := NewVersion(test.otherVersion, test.otherFormat)
@@ -84,14 +84,15 @@ func TestDebVersionCompare(t *testing.T) {
 func TestDebVersionCompareEdgeCases(t *testing.T) {
 	tests := []struct {
 		name           string
-		setupFunc      func() (*debVersion, *Version)
+		setupFunc      func(testing.TB) (*Version, *Version)
 		expectError    bool
 		errorSubstring string
 	}{
 		{
 			name: "nil version object",
-			setupFunc: func() (*debVersion, *Version) {
-				thisVer, _ := newDebVersion("1.2.3-1")
+			setupFunc: func(t testing.TB) (*Version, *Version) {
+				thisVer, err := NewVersion("1.2.3-1", DebFormat)
+				require.NoError(t, err)
 				return thisVer, nil
 			},
 			expectError:    true,
@@ -99,25 +100,24 @@ func TestDebVersionCompareEdgeCases(t *testing.T) {
 		},
 		{
 			name: "empty debVersion in other object",
-			setupFunc: func() (*debVersion, *Version) {
-				thisVer, _ := newDebVersion("1.2.3-1")
-
+			setupFunc: func(t testing.TB) (*Version, *Version) {
+				thisVer, err := NewVersion("1.2.3-1", DebFormat)
+				require.NoError(t, err)
 				otherVer := &Version{
 					Raw:    "1.2.3-2",
 					Format: DebFormat,
-					rich:   rich{}, // debVer will be nil
 				}
 
 				return thisVer, otherVer
 			},
 			expectError:    true,
-			errorSubstring: "given empty debVersion object",
+			errorSubstring: `cannot compare "Deb" formatted version with empty version object`,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, otherVer := test.setupFunc()
+			thisVer, otherVer := test.setupFunc(t)
 
 			_, err := thisVer.Compare(otherVer)
 

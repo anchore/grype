@@ -62,7 +62,7 @@ func TestVersionConstraintJVM(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.version+"_constraint_"+test.constraint, func(t *testing.T) {
-			constraint, err := newJvmConstraint(test.constraint)
+			constraint, err := GetConstraint(test.constraint, JVMFormat)
 			require.NoError(t, err)
 			test.assertVersionConstraint(t, JVMFormat, constraint)
 		})

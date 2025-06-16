@@ -9,6 +9,8 @@ import (
 	"unicode"
 )
 
+var _ Comparator = (*rpmVersion)(nil)
+
 type rpmVersion struct {
 	epoch   *int
 	version string
@@ -37,43 +39,16 @@ func newRpmVersion(raw string) (rpmVersion, error) {
 	}, nil
 }
 
-func splitEpochFromVersion(rawVersion string) (*int, string, error) {
-	fields := strings.SplitN(rawVersion, ":", 2)
-
-	// When the epoch is not included, should be considered to be 0 during
-	// comparisons (see https://github.com/rpm-software-management/rpm/issues/450).
-	// But, often the inclusion of the epoch in vuln databases or source RPM
-	// filenames is not consistent so, represent a missing epoch as nil. This allows
-	// the comparison logic itself to determine if it should use a zero or another
-	// value which supports more flexible comparison options because the version
-	// creation is not lossy
-
-	if len(fields) == 1 {
-		return nil, rawVersion, nil
+func (v rpmVersion) Compare(other *Version) (int, error) {
+	if other == nil {
+		return -1, ErrNoVersionProvided
 	}
 
-	// there is an epoch
-	epochStr := strings.TrimLeft(fields[0], " ")
-
-	epoch, err := strconv.Atoi(epochStr)
-	if err != nil {
-		return nil, "", fmt.Errorf("unable to parse epoch (%s): %w", epochStr, err)
+	if o, ok := other.comparator.(rpmVersion); ok {
+		return v.compare(o), nil
 	}
 
-	return &epoch, fields[1], nil
-}
-
-func (v *rpmVersion) Compare(other *Version) (int, error) {
-	other, err := finalizeComparisonVersion(other, RpmFormat)
-	if err != nil {
-		return -1, err
-	}
-
-	if other.rich.rpmVer == nil {
-		return -1, fmt.Errorf("given empty rpmVersion object")
-	}
-
-	return other.rich.rpmVer.compare(*v), nil
+	return -1, newNotComparableError(RpmFormat, other)
 }
 
 // Compare returns 0 if v == v2, -1 if v < v2, and +1 if v > v2.
@@ -133,6 +108,32 @@ func (v rpmVersion) String() string {
 		version += fmt.Sprintf("-%s", v.release)
 	}
 	return version
+}
+
+func splitEpochFromVersion(rawVersion string) (*int, string, error) {
+	fields := strings.SplitN(rawVersion, ":", 2)
+
+	// When the epoch is not included, should be considered to be 0 during
+	// comparisons (see https://github.com/rpm-software-management/rpm/issues/450).
+	// But, often the inclusion of the epoch in vuln databases or source RPM
+	// filenames is not consistent so, represent a missing epoch as nil. This allows
+	// the comparison logic itself to determine if it should use a zero or another
+	// value which supports more flexible comparison options because the version
+	// creation is not lossy
+
+	if len(fields) == 1 {
+		return nil, rawVersion, nil
+	}
+
+	// there is an epoch
+	epochStr := strings.TrimLeft(fields[0], " ")
+
+	epoch, err := strconv.Atoi(epochStr)
+	if err != nil {
+		return nil, "", fmt.Errorf("unable to parse epoch (%s): %w", epochStr, err)
+	}
+
+	return &epoch, fields[1], nil
 }
 
 // compareRpmVersions compares two version or release strings without the epoch.
