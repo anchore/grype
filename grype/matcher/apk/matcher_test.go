@@ -339,7 +339,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 		PackageName: "libvncserver",
 		Constraint:  version.MustGetConstraint("<= 0.9.11", version.UnknownFormat),
 		CPEs: []cpe.CPE{
-			cpe.Must(`cpe:2.3:a:lib_vnc_project-\(server\):libvncserver:*:*:*:*:*:*:*:*`, ""),
+			cpe.Must(`cpe:2.3:a:lib_vnc_project-\(server\):lib/vncserver:*:*:*:*:*:*:*:*`, ""),
 		},
 	}
 	vp := mock.VulnerabilityProvider(nvdVuln)
@@ -356,7 +356,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 		Type:    syftPkg.ApkPkg,
 		Distro:  d,
 		CPEs: []cpe.CPE{
-			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*", ""),
+			cpe.Must("cpe:2.3:a:*:lib/vncserver:0.9.9:*:*:*:*:*:*:*", ""),
 		},
 	}
 
@@ -370,7 +370,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 					Type:       match.CPEMatch,
 					Confidence: 0.9,
 					SearchedBy: match.CPEParameters{
-						CPEs:      []string{"cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"},
+						CPEs:      []string{"cpe:2.3:a:*:lib\\/vncserver:0.9.9:*:*:*:*:*:*:*"},
 						Namespace: "nvd:cpe",
 						Package: match.CPEPackageParameter{
 							Name:    "libvncserver",
