@@ -133,7 +133,8 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 			SearchedBy: match.CPEParameters{
 				Namespace: vuln.Namespace,
 				CPEs: []string{
-					searchedByCPE.Attributes.BindToFmtString(),
+					// use .String() for proper escaping
+					searchedByCPE.Attributes.String(),
 				},
 				Package: match.CPEPackageParameter{
 					Name:    p.Name,
@@ -238,7 +239,8 @@ func toMatches(matchesByFingerprint map[match.Fingerprint]match.Match) (matches 
 func cpesToString(cpes []cpe.CPE) []string {
 	var strs = make([]string, len(cpes))
 	for idx, c := range cpes {
-		strs[idx] = c.Attributes.BindToFmtString()
+		// use .String() for proper escaping
+		strs[idx] = c.Attributes.String()
 	}
 	sort.Strings(strs)
 	return strs

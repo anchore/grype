@@ -35,6 +35,7 @@ func UpstreamPackages(p Package) (pkgs []Package) {
 				c.Attributes.Version = u.Version
 			}
 
+			// use BindToFmtString because we search against unescaped CPE strings
 			updatedCPEString := strings.ReplaceAll(c.Attributes.BindToFmtString(), p.Name, u.Name)
 
 			cpeStrings.Add(updatedCPEString)

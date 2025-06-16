@@ -378,7 +378,8 @@ func TestNvdOnlyMatches(t *testing.T) {
 						},
 					},
 					Found: match.CPEResult{
-						CPEs:              []string{nvdVuln.CPEs[0].Attributes.BindToFmtString()},
+						// use .String() for proper escaping
+						CPEs:              []string{nvdVuln.CPEs[0].Attributes.String()},
 						VersionConstraint: nvdVuln.Constraint.String(),
 						VulnerabilityID:   "CVE-2020-1",
 					},
@@ -450,7 +451,7 @@ func TestNvdOnlyMatches_FixInNvd(t *testing.T) {
 						},
 					},
 					Found: match.CPEResult{
-						CPEs:              []string{vulnFound.CPEs[0].Attributes.BindToFmtString()},
+						CPEs:              []string{vulnFound.CPEs[0].Attributes.String()},
 						VersionConstraint: vulnFound.Constraint.String(),
 						VulnerabilityID:   "CVE-2020-1",
 					},
@@ -524,7 +525,7 @@ func TestNvdMatchesProperVersionFiltering(t *testing.T) {
 						},
 					},
 					Found: match.CPEResult{
-						CPEs:              []string{nvdVulnMatch.CPEs[0].Attributes.BindToFmtString()},
+						CPEs:              []string{nvdVulnMatch.CPEs[0].Attributes.String()},
 						VersionConstraint: nvdVulnMatch.Constraint.String(),
 						VulnerabilityID:   "CVE-2020-1",
 					},
@@ -882,7 +883,7 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 						},
 					},
 					Found: match.CPEResult{
-						CPEs:              []string{nvdVuln.CPEs[0].Attributes.BindToFmtString()},
+						CPEs:              []string{nvdVuln.CPEs[0].Attributes.String()},
 						VersionConstraint: nvdVuln.Constraint.String(),
 						VulnerabilityID:   "CVE-2020-1",
 					},

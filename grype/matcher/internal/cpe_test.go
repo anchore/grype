@@ -1075,7 +1075,8 @@ func TestFilterCPEsByVersion(t *testing.T) {
 			// format CPE objects to string...
 			actualStrs := make([]string, len(actual))
 			for idx, a := range actual {
-				actualStrs[idx] = a.Attributes.BindToFmtString()
+				// use .String() for proper escaping
+				actualStrs[idx] = a.Attributes.String()
 			}
 
 			assert.ElementsMatch(t, test.expected, actualStrs)
