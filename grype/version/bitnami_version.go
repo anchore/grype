@@ -21,7 +21,7 @@ func newBitnamiVersion(raw string) (bitnamiVersion, error) {
 		fmtErr := err
 		verObj, err := hashiVer.NewVersion(raw)
 		if err != nil {
-			return bitnamiVersion{}, fmtErr
+			return bitnamiVersion{}, invalidFormatError(BitnamiFormat, raw, fmtErr)
 		}
 		var segments []string
 		for _, segment := range verObj.Segments() {
@@ -39,16 +39,12 @@ func newBitnamiVersion(raw string) (bitnamiVersion, error) {
 	// previous version. Then, we discard it.
 	verObj, err := hashiVer.NewVersion(raw)
 	if err != nil {
-		return bitnamiVersion{}, fmt.Errorf("unable to create semver obj: %w", err)
+		return bitnamiVersion{}, invalidFormatError(BitnamiFormat, raw, err)
 	}
 	return bitnamiVersion{
 		obj: verObj,
 	}, nil
 }
-
-// func (v bitnamiVersion) acceptsFormats() *internal.OrderedSet[Format] {
-//	return internal.NewOrderedSet(BitnamiFormat, SemanticFormat)
-//}
 
 func (v bitnamiVersion) Compare(other *Version) (int, error) {
 	if other == nil {

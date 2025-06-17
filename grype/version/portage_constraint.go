@@ -1,3 +1,4 @@
+//nolint:dupl
 package version
 
 import (
@@ -24,11 +25,6 @@ func newPortageConstraint(raw string) (portageConstraint, error) {
 		raw:        raw,
 		expression: constraints,
 	}, nil
-}
-
-func newPortageComparator(unit constraintUnit) (Comparator, error) {
-	ver := newPortageVersion(unit.rawVersion)
-	return &ver, nil
 }
 
 func (c portageConstraint) supported(format Format) bool {

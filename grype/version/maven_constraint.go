@@ -24,15 +24,6 @@ func newMavenConstraint(raw string) (mavenConstraint, error) {
 	}, nil
 }
 
-func newMavenComparator(unit constraintUnit) (Comparator, error) {
-	ver, err := newMavenVersion(unit.rawVersion)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse constraint version (%s): %w", unit.rawVersion, err)
-	}
-
-	return ver, nil
-}
-
 func (c mavenConstraint) supported(format Format) bool {
 	return format == MavenFormat
 }

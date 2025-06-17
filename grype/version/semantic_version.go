@@ -1,7 +1,6 @@
 package version
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 
@@ -37,7 +36,7 @@ func newSemanticVersion(raw string, strict bool) (semanticVersion, error) {
 		verObj, err = hashiVer.NewVersion(clean)
 	}
 	if err != nil {
-		return semanticVersion{}, fmt.Errorf("unable to create semver obj: %w", err)
+		return semanticVersion{}, invalidFormatError(SemanticFormat, raw, err)
 	}
 	return semanticVersion{
 		obj: verObj,

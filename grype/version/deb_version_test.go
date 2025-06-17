@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,22 +24,6 @@ func TestDebVersionCompare(t *testing.T) {
 			expectError:  false,
 		},
 		{
-			name:           "different format returns error",
-			thisVersion:    "1.2.3-1",
-			otherVersion:   "1.2.3",
-			otherFormat:    SemanticFormat,
-			expectError:    true,
-			errorSubstring: "unsupported version comparison",
-		},
-		{
-			name:           "different format returns error - apk",
-			thisVersion:    "1.2.3-1",
-			otherVersion:   "1.2.3-r4",
-			otherFormat:    ApkFormat,
-			expectError:    true,
-			errorSubstring: "unsupported version comparison",
-		},
-		{
 			name:         "unknown format attempts upgrade - valid deb format",
 			thisVersion:  "1.2.3-1",
 			otherVersion: "1.2.3-2",
@@ -53,13 +36,13 @@ func TestDebVersionCompare(t *testing.T) {
 			otherVersion:   "not-valid-deb-format",
 			otherFormat:    UnknownFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version comparison",
+			errorSubstring: "upstream_version must start with digit",
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, err := NewVersion(test.thisVersion, DebFormat)
+			thisVer, err := newDebVersion(test.thisVersion)
 			require.NoError(t, err)
 
 			otherVer, err := NewVersion(test.otherVersion, test.otherFormat)
@@ -70,12 +53,12 @@ func TestDebVersionCompare(t *testing.T) {
 			if test.expectError {
 				require.Error(t, err)
 				if test.errorSubstring != "" {
-					assert.True(t, strings.Contains(err.Error(), test.errorSubstring),
+					require.True(t, strings.Contains(err.Error(), test.errorSubstring),
 						"Expected error to contain '%s', got: %v", test.errorSubstring, err)
 				}
 			} else {
-				assert.NoError(t, err)
-				assert.Contains(t, []int{-1, 0, 1}, result, "Expected comparison result to be -1, 0, or 1")
+				require.NoError(t, err)
+				require.Contains(t, []int{-1, 0, 1}, result, "Expected comparison result to be -1, 0, or 1")
 			}
 		})
 	}
@@ -110,8 +93,7 @@ func TestDebVersionCompareEdgeCases(t *testing.T) {
 
 				return thisVer, otherVer
 			},
-			expectError:    true,
-			errorSubstring: `cannot compare "Deb" formatted version with empty version object`,
+			expectError: false,
 		},
 	}
 
@@ -121,9 +103,11 @@ func TestDebVersionCompareEdgeCases(t *testing.T) {
 
 			_, err := thisVer.Compare(otherVer)
 
-			require.Error(t, err)
+			if test.expectError {
+				require.Error(t, err)
+			}
 			if test.errorSubstring != "" {
-				assert.True(t, strings.Contains(err.Error(), test.errorSubstring),
+				require.True(t, strings.Contains(err.Error(), test.errorSubstring),
 					"Expected error to contain '%s', got: %v", test.errorSubstring, err)
 			}
 		})

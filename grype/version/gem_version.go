@@ -78,7 +78,7 @@ func (v gemVersion) Compare(other *Version) (int, error) {
 
 	o, err := newGemVersion(other.Raw)
 	if err != nil {
-		return 0, err
+		return 0, invalidFormatError(GemFormat, other.Raw, err)
 	}
 
 	return v.compare(o)

@@ -25,12 +25,11 @@ func TestKbVersionCompare(t *testing.T) {
 			expectError:  false,
 		},
 		{
-			name:           "different format returns error",
-			thisVersion:    "KB4562562",
-			otherVersion:   "1.2.3",
-			otherFormat:    SemanticFormat,
-			expectError:    true,
-			errorSubstring: `(KB) unsupported version comparison: value="1.2.3" format="Semantic"`,
+			name:         "different format does not return error",
+			thisVersion:  "KB4562562",
+			otherVersion: "1.2.3",
+			otherFormat:  SemanticFormat,
+			expectError:  false,
 		},
 		{
 			name:         "unknown format attempts upgrade - valid kb format",
@@ -43,8 +42,7 @@ func TestKbVersionCompare(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, err := NewVersion(test.thisVersion, KBFormat)
-			require.NoError(t, err)
+			thisVer := newKBVersion(test.thisVersion)
 
 			otherVer, err := NewVersion(test.otherVersion, test.otherFormat)
 			require.NoError(t, err)

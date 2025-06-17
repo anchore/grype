@@ -1,8 +1,6 @@
 package version
 
 import (
-	"fmt"
-
 	goPepVersion "github.com/aquasecurity/go-pep440-version"
 )
 
@@ -15,7 +13,7 @@ type pep440Version struct {
 func newPep440Version(raw string) (pep440Version, error) {
 	parsed, err := goPepVersion.Parse(raw)
 	if err != nil {
-		return pep440Version{}, fmt.Errorf("could not parse pep440 version: %w", err)
+		return pep440Version{}, invalidFormatError(SemanticFormat, raw, err)
 	}
 	return pep440Version{
 		obj: parsed,

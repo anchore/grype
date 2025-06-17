@@ -26,10 +26,6 @@ func newKBConstraint(raw string) (kbConstraint, error) {
 	}, nil
 }
 
-func newKBComparator(unit constraintUnit) (Comparator, error) {
-	return newKBVersion(unit.rawVersion), nil
-}
-
 func (c kbConstraint) supported(format Format) bool {
 	return format == KBFormat
 }

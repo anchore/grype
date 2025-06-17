@@ -35,7 +35,7 @@ func newJvmVersion(raw string) (jvmVersion, error) {
 	}
 	verObj, err := hashiVer.NewVersion(raw)
 	if err != nil {
-		return jvmVersion{}, fmt.Errorf("unable to create semver obj for JVM version: %w", err)
+		return jvmVersion{}, invalidFormatError(JVMFormat, raw, err)
 	}
 
 	return jvmVersion{

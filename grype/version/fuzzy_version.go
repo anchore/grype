@@ -15,10 +15,6 @@ func newFuzzyVersion(raw string) (fuzzyVersion, error) {
 	}, nil
 }
 
-// func (v fuzzyVersion) acceptsFormats() *internal.OrderedSet[Format] {
-//	return internal.NewOrderedSet(SemanticFormat, UnknownFormat)
-//}
-
 func (v fuzzyVersion) Compare(other *Version) (int, error) {
 	if other == nil {
 		return -1, ErrNoVersionProvided
@@ -26,7 +22,7 @@ func (v fuzzyVersion) Compare(other *Version) (int, error) {
 
 	semver := newFuzzySemver(other.Raw)
 	if semver != nil && v.semVer != nil && v.semVer.obj != nil && semver.obj != nil {
-		return semver.obj.Compare(v.semVer.obj), nil
+		return v.semVer.obj.Compare(semver.obj), nil
 	}
 
 	// one or both are no semver compliant, use fuzzy comparison

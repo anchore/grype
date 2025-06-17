@@ -32,14 +32,6 @@ func TestBitnamiVersionCompare(t *testing.T) {
 			expectError:  false,
 		},
 		{
-			name:           "different format returns error - deb",
-			thisVersion:    "1.2.3-4",
-			otherVersion:   "1.2.3-1",
-			otherFormat:    DebFormat,
-			expectError:    true,
-			errorSubstring: "unsupported version comparison",
-		},
-		{
 			name:         "unknown format attempts upgrade - valid semver format",
 			thisVersion:  "1.2.3-4",
 			otherVersion: "1.2.3-5",
@@ -52,13 +44,13 @@ func TestBitnamiVersionCompare(t *testing.T) {
 			otherVersion:   "not-valid-semver-format",
 			otherFormat:    UnknownFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version comparison",
+			errorSubstring: "invalid semantic version",
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, err := NewVersion(test.thisVersion, BitnamiFormat)
+			thisVer, err := newBitnamiVersion(test.thisVersion)
 			require.NoError(t, err)
 
 			otherVer, err := NewVersion(test.otherVersion, test.otherFormat)
@@ -97,21 +89,6 @@ func TestBitnamiVersionCompareEdgeCases(t *testing.T) {
 			},
 			expectError:    true,
 			errorSubstring: "no version provided for comparison",
-		},
-		{
-			name: "empty semanticVersion in other object",
-			setupFunc: func(t testing.TB) (*Version, *Version) {
-				thisVer, err := NewVersion("1.2.3-4", BitnamiFormat)
-				require.NoError(t, err)
-				otherVer := &Version{
-					Raw:    "1.2.3-5",
-					Format: SemanticFormat,
-				}
-
-				return thisVer, otherVer
-			},
-			expectError:    true,
-			errorSubstring: `cannot compare "Bitnami" formatted version with empty version object`,
 		},
 	}
 

@@ -13,7 +13,7 @@ type apkVersion struct {
 func newApkVersion(raw string) (apkVersion, error) {
 	ver, err := apk.NewVersion(raw)
 	if err != nil {
-		return apkVersion{}, err
+		return apkVersion{}, invalidFormatError(ApkFormat, raw, err)
 	}
 
 	return apkVersion{
@@ -28,7 +28,7 @@ func (v apkVersion) Compare(other *Version) (int, error) {
 
 	apkVer, err := newApkVersion(other.Raw)
 	if err != nil {
-		return 0, err
+		return -1, err
 	}
 
 	return v.obj.Compare(apkVer.obj), nil

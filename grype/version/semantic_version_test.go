@@ -39,30 +39,6 @@ func TestSemanticVersionCompare_Format(t *testing.T) {
 			expectError:  false,
 		},
 		{
-			name:           "different format returns error",
-			thisVersion:    "1.2.3",
-			otherVersion:   "1.2.3-1",
-			otherFormat:    DebFormat,
-			expectError:    true,
-			errorSubstring: "unsupported version comparison",
-		},
-		{
-			name:           "different format returns error - apk",
-			thisVersion:    "1.2.3",
-			otherVersion:   "1.2.3-r4",
-			otherFormat:    ApkFormat,
-			expectError:    true,
-			errorSubstring: "unsupported version comparison",
-		},
-		{
-			name:           "different format returns error - rpm",
-			thisVersion:    "1.2.3",
-			otherVersion:   "1.2.3-1",
-			otherFormat:    RpmFormat,
-			expectError:    true,
-			errorSubstring: "unsupported version comparison",
-		},
-		{
 			name:         "unknown format attempts upgrade - valid semantic format",
 			thisVersion:  "1.2.3",
 			otherVersion: "1.2.4",
@@ -75,13 +51,13 @@ func TestSemanticVersionCompare_Format(t *testing.T) {
 			otherVersion:   "not.valid.semver",
 			otherFormat:    UnknownFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version comparison",
+			errorSubstring: "invalid",
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, err := NewVersion(test.thisVersion, SemanticFormat)
+			thisVer, err := newSemanticVersion(test.thisVersion, true)
 			require.NoError(t, err)
 
 			otherVer, err := NewVersion(test.otherVersion, test.otherFormat)
@@ -119,22 +95,6 @@ func TestSemanticVersionCompareEdgeCases(t *testing.T) {
 			},
 			expectError:    true,
 			errorSubstring: "no version provided for comparison",
-		},
-		{
-			name: "empty semanticVersion in other object",
-			setupFunc: func(t testing.TB) (*Version, *Version) {
-				thisVer, err := NewVersion("1.2.3", SemanticFormat)
-				require.NoError(t, err)
-
-				otherVer := &Version{
-					Raw:    "1.2.4",
-					Format: SemanticFormat,
-				}
-
-				return thisVer, otherVer
-			},
-			expectError:    true,
-			errorSubstring: `cannot compare "Semantic" formatted version with empty version object`,
 		},
 	}
 

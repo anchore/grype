@@ -1,15 +1,5 @@
 package version
 
-import "fmt"
-
 func newJvmConstraint(raw string) (Constraint, error) {
 	return newGenericConstraint(raw, JVMFormat)
-}
-
-func newJvmComparator(unit constraintUnit) (Comparator, error) {
-	ver, err := newJvmVersion(unit.rawVersion)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse JVM constraint version (%s): %w", unit.rawVersion, err)
-	}
-	return ver, nil
 }

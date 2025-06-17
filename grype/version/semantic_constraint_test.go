@@ -195,7 +195,7 @@ func TestSemanticConstraint_RubyNormalizerEdgeCases(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := NewVersion(test.version, SemanticFormat)
+			_, err := newSemanticVersion(test.version, false)
 			if test.shouldError {
 				require.Error(t, err)
 			} else {
