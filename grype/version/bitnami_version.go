@@ -10,7 +10,7 @@ import (
 	"github.com/anchore/grype/internal"
 )
 
-var _ Comparator = (*debVersion)(nil)
+var _ Comparator = (*bitnamiVersion)(nil)
 
 type bitnamiVersion struct {
 	obj *hashiVer.Version
