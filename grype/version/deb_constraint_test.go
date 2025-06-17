@@ -66,7 +66,7 @@ func TestVersionDeb(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.tName(), func(t *testing.T) {
 			constraint, err := GetConstraint(test.constraint, DebFormat)
-			assert.NoError(t, err, "unexpected error from newDebConstraint: %v", err)
+			assert.NoError(t, err, "unexpected error from GetConstraint: %v", err)
 
 			test.assertVersionConstraint(t, DebFormat, constraint)
 		})

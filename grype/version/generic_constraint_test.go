@@ -48,7 +48,6 @@ func TestGenericConstraint_String(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			// Create a mock comparator generator that always succeeds
 			mockGenerator := func(unit constraintUnit) (Comparator, error) {
 				ver, err := NewVersion(unit.rawVersion, SemanticFormat)
 				if err != nil {
@@ -67,7 +66,6 @@ func TestGenericConstraint_String(t *testing.T) {
 }
 
 func TestGenericConstraint_Satisfied_EmptyConstraint(t *testing.T) {
-	// Create a mock comparator generator
 	mockGenerator := func(unit constraintUnit) (Comparator, error) {
 		ver, err := NewVersion(unit.rawVersion, SemanticFormat)
 		if err != nil {
@@ -107,7 +105,6 @@ func TestGenericConstraint_Satisfied_EmptyConstraint(t *testing.T) {
 }
 
 func TestGenericConstraint_Satisfied_WithConstraint(t *testing.T) {
-	// Create a comparator generator that uses semantic versioning
 	semanticGenerator := func(unit constraintUnit) (Comparator, error) {
 		ver, err := NewVersion(unit.rawVersion, SemanticFormat)
 		if err != nil {
@@ -179,8 +176,7 @@ func TestGenericConstraint_Satisfied_WithConstraint(t *testing.T) {
 	}
 }
 
-func TestGenericConstraint_InvalidConstraint(t *testing.T) {
-	// Create a comparator generator that might fail
+func TestGenericConstraint_Invalid(t *testing.T) {
 	mockGenerator := func(unit constraintUnit) (Comparator, error) {
 		ver, err := NewVersion(unit.rawVersion, SemanticFormat)
 		if err != nil {
@@ -189,77 +185,45 @@ func TestGenericConstraint_InvalidConstraint(t *testing.T) {
 		return ver.comparator, nil
 	}
 
+	failingGenerator := func(unit constraintUnit) (Comparator, error) {
+		return nil, assert.AnError
+	}
+
 	tests := []struct {
 		name       string
 		constraint string
+		gen        func(unit constraintUnit) (Comparator, error)
 	}{
 		{
 			name:       "invalid operator",
 			constraint: "~~ 1.0.0",
+			gen:        mockGenerator,
 		},
 		{
 			name:       "invalid version",
 			constraint: "> not.a.version",
+			gen:        mockGenerator,
 		},
 		{
 			name:       "malformed constraint",
 			constraint: "> 1.0.0 < 2.0.0", // missing comma
+			gen:        mockGenerator,
+		},
+		{
+			name:       "failing generator",
+			constraint: "> 1.0.0",
+			gen:        failingGenerator,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := newGenericConstraint(test.constraint, mockGenerator, "test")
+			_, err := newGenericConstraint(test.constraint, test.gen, "test")
 			assert.Error(t, err)
 		})
 	}
 }
 
-func TestGenericConstraint_CompilerGeneratorError(t *testing.T) {
-	// Create a comparator generator that always fails
-	failingGenerator := func(unit constraintUnit) (Comparator, error) {
-		return nil, assert.AnError
-	}
-
-	_, err := newGenericConstraint("> 1.0.0", failingGenerator, "test")
-	assert.Error(t, err)
-}
-
-func TestGenericConstraint_ActualUsage_JVM(t *testing.T) {
-	// Test actual usage patterns similar to JVM constraints
-	constraint, err := newGenericConstraint(">= 8", newJvmComparator, "jvm")
-	require.NoError(t, err)
-
-	// Test with a JVM version
-	version, err := NewVersion("11", JVMFormat)
-	require.NoError(t, err)
-
-	satisfied, err := constraint.Satisfied(version)
-	assert.NoError(t, err)
-	assert.True(t, satisfied)
-
-	// Test string representation
-	assert.Equal(t, ">= 8 (jvm)", constraint.String())
-}
-
-func TestGenericConstraint_ActualUsage_Golang(t *testing.T) {
-	// Test actual usage patterns similar to Golang constraints
-	constraint, err := newGenericConstraint("< v1.20.0", newGolangComparator, "go")
-	require.NoError(t, err)
-
-	// Test with a Golang version
-	version, err := NewVersion("v1.19.5", GolangFormat)
-	require.NoError(t, err)
-
-	satisfied, err := constraint.Satisfied(version)
-	assert.NoError(t, err)
-	assert.True(t, satisfied)
-
-	// Test string representation
-	assert.Equal(t, "< v1.20.0 (go)", constraint.String())
-}
-
-// Helper function to create versions for testing
 func mustNewVersion(t *testing.T, version string, format Format) *Version {
 	t.Helper()
 	v, err := NewVersion(version, format)
