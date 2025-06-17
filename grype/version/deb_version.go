@@ -13,7 +13,7 @@ type debVersion struct {
 func newDebVersion(raw string) (debVersion, error) {
 	ver, err := deb.NewVersion(raw)
 	if err != nil {
-		return debVersion{}, err
+		return debVersion{}, invalidFormatError(DebFormat, raw, err)
 	}
 	return debVersion{
 		obj: ver,

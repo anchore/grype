@@ -104,22 +104,6 @@ func TestMavenVersionCompare_Format(t *testing.T) {
 			expectError:  false,
 		},
 		{
-			name:           "different format returns error",
-			thisVersion:    "1.2.3",
-			otherVersion:   "1.2.3",
-			otherFormat:    SemanticFormat,
-			expectError:    true,
-			errorSubstring: "unsupported version comparison",
-		},
-		{
-			name:           "different format returns error - apk",
-			thisVersion:    "1.2.3",
-			otherVersion:   "1.2.3-r4",
-			otherFormat:    ApkFormat,
-			expectError:    true,
-			errorSubstring: "unsupported version comparison",
-		},
-		{
 			name:         "unknown format attempts upgrade - valid maven format",
 			thisVersion:  "1.2.3",
 			otherVersion: "1.2.4",
@@ -168,22 +152,6 @@ func TestMavenVersionCompareEdgeCases(t *testing.T) {
 			},
 			expectError:    true,
 			errorSubstring: "no version provided for comparison",
-		},
-		{
-			name: "empty mavenVersion in other object",
-			setupFunc: func(t testing.TB) (*Version, *Version) {
-				thisVer, err := NewVersion("1.2.3", MavenFormat)
-				require.NoError(t, err)
-
-				otherVer := &Version{
-					Raw:    "1.2.4",
-					Format: MavenFormat,
-				}
-
-				return thisVer, otherVer
-			},
-			expectError:    true,
-			errorSubstring: `cannot compare "Maven" formatted version with empty version object`,
 		},
 		{
 			name: "incomparable maven versions",

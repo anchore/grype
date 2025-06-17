@@ -20,14 +20,6 @@ func newPep440Constraint(raw string) (pep440Constraint, error) {
 	}, nil
 }
 
-func newPep440Comparator(unit constraintUnit) (Comparator, error) {
-	ver, err := newPep440Version(unit.rawVersion)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse constraint version (%s): %w", unit.rawVersion, err)
-	}
-	return ver, nil
-}
-
 type pep440Constraint struct {
 	raw        string
 	expression constraintExpression

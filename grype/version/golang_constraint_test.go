@@ -64,16 +64,15 @@ func TestGolangVersionCompare_NilVersion(t *testing.T) {
 }
 
 func TestGolangVersionCompare_DifferentFormat(t *testing.T) {
-	golangVer, err := NewVersion("v1.2.3", GolangFormat)
+	golangVer, err := newGolangVersion("v1.2.3")
 	require.NoError(t, err)
 
 	semanticVer, err := NewVersion("1.2.3", SemanticFormat)
 	require.NoError(t, err)
 
 	result, err := golangVer.Compare(semanticVer)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "unsupported version comparison")
-	assert.Equal(t, -1, result)
+	require.NoError(t, err)
+	assert.Equal(t, 0, result)
 }
 
 func TestGolangVersionCompare_SameRawVersion(t *testing.T) {

@@ -83,22 +83,6 @@ func TestRpmVersionCompare_Format(t *testing.T) {
 			expectError:  false,
 		},
 		{
-			name:           "different format returns error",
-			thisVersion:    "1.2.3-1",
-			otherVersion:   "1.2.3",
-			otherFormat:    SemanticFormat,
-			expectError:    true,
-			errorSubstring: "unsupported version comparison",
-		},
-		{
-			name:           "different format returns error - apk",
-			thisVersion:    "1.2.3-1",
-			otherVersion:   "1.2.3-r4",
-			otherFormat:    ApkFormat,
-			expectError:    true,
-			errorSubstring: "unsupported version comparison",
-		},
-		{
 			name:         "unknown format attempts upgrade - valid rpm format",
 			thisVersion:  "1.2.3-1",
 			otherVersion: "1.2.3-2",
@@ -147,22 +131,6 @@ func TestRpmVersionCompareEdgeCases(t *testing.T) {
 			},
 			expectError:    true,
 			errorSubstring: "no version provided for comparison",
-		},
-		{
-			name: "empty rpmVersion in other object",
-			setupFunc: func(t testing.TB) (*Version, *Version) {
-				thisVer, err := NewVersion("1.2.3-1", RpmFormat)
-				require.NoError(t, err)
-
-				otherVer := &Version{
-					Raw:    "1.2.3-2",
-					Format: RpmFormat,
-				}
-
-				return thisVer, otherVer
-			},
-			expectError:    true,
-			errorSubstring: `cannot compare "RPM" formatted version with empty version object`,
 		},
 	}
 

@@ -1,6 +1,7 @@
 package version
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/anchore/grype/grype/pkg"
@@ -22,13 +23,7 @@ func NewVersion(raw string, format Format) (*Version, error) {
 	version := &Version{
 		Raw:    raw,
 		Format: format,
-		//comparators: make(map[Format]Comparator),
 	}
-
-	// err := version.populate()
-	//if err != nil {
-	//	return nil, err
-	//}
 
 	return version, nil
 }
@@ -102,15 +97,29 @@ func (v Version) Compare(other *Version) (int, error) {
 		return -1, ErrNoVersionProvided
 	}
 
-	for _, format := range []Format{v.Format, other.Format} {
-		comparator, err := v.getComparator(format)
-		if comparator != nil && err == nil {
-			cmp, err := comparator.Compare(other)
-			if err == nil {
-				return cmp, nil
-			}
+	var result int
+	comparator, err := v.getComparator(v.Format)
+	if err == nil {
+		// if the package version, v was able to compare without error, return the result
+		result, err = comparator.Compare(other)
+		if err == nil {
+			// no error returned for package version or db version, return the result
+			return result, nil
 		}
 	}
+	// we were unable to parse the package or db version as v.Format, try other.Format if they differ
+	if v.Format != other.Format {
+		originalErr := err
+		comparator, err = v.getComparator(other.Format)
+		if err == nil {
+			result, err = comparator.Compare(other)
+			if err == nil {
+				return result, nil
+			}
+		}
+		err = errors.Join(originalErr, err)
+	}
 
-	return 0, fmt.Errorf("unable to compare versions: %v %v", v, other)
+	// all formats returned error, return all errors
+	return 0, fmt.Errorf("unable to compare versions: %v %v due to %w", v, other, err)
 }

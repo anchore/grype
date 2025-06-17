@@ -1,3 +1,4 @@
+//nolint:dupl
 package version
 
 import (
@@ -24,14 +25,6 @@ func newRpmConstraint(raw string) (rpmConstraint, error) {
 		raw:        raw,
 		expression: constraints,
 	}, nil
-}
-
-func newRpmComparator(unit constraintUnit) (Comparator, error) {
-	ver, err := newRpmVersion(unit.rawVersion)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse constraint version (%s): %w", unit.rawVersion, err)
-	}
-	return &ver, nil
 }
 
 func (c rpmConstraint) supported(format Format) bool {

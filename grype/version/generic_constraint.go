@@ -16,7 +16,7 @@ type genericConstraint struct {
 func newGenericConstraint(raw string, format Format) (genericConstraint, error) {
 	constraints, err := newConstraintExpression(raw, format)
 	if err != nil {
-		return genericConstraint{}, err
+		return genericConstraint{}, invalidFormatError(format, raw, err)
 	}
 	return genericConstraint{
 		expression: constraints,

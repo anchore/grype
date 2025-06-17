@@ -59,14 +59,6 @@ check:
 	}, nil
 }
 
-func newFuzzyComparator(unit constraintUnit) (Comparator, error) {
-	ver, err := newFuzzyVersion(unit.rawVersion)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse constraint version (%s): %w", unit.rawVersion, err)
-	}
-	return &ver, nil
-}
-
 func (f fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
 	if f.rawPhrase == "" && verObj != nil {
 		// an empty constraint is always satisfied

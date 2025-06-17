@@ -16,21 +16,13 @@ func newDebConstraint(raw string) (debConstraint, error) {
 
 	constraints, err := newConstraintExpression(raw, DebFormat)
 	if err != nil {
-		return debConstraint{}, fmt.Errorf("unable to parse deb constraint phrase: %w", err)
+		return debConstraint{}, invalidFormatError(DebFormat, raw, err)
 	}
 	return debConstraint{
 		raw:        raw,
 		expression: constraints,
 	}, nil
 }
-
-// func newDebComparator(unit constraintUnit) (Comparator, error) {
-//	ver, err := newDebVersion(unit.rawVersion)
-//	if err != nil {
-//		return nil, fmt.Errorf("unable to parse constraint version (%s): %w", unit.rawVersion, err)
-//	}
-//	return ver, nil
-//}
 
 func (c debConstraint) supported(format Format) bool {
 	return format == DebFormat
