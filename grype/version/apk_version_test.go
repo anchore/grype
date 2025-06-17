@@ -68,7 +68,7 @@ func TestApkVersionCompare(t *testing.T) {
 			result, err := thisVer.Compare(otherVer)
 
 			if test.expectError {
-				assert.Error(t, err)
+				require.Error(t, err)
 				if test.errorSubstring != "" {
 					assert.True(t, strings.Contains(err.Error(), test.errorSubstring),
 						"Expected error to contain '%s', got: %v", test.errorSubstring, err)
@@ -121,7 +121,7 @@ func TestApkVersionCompareEdgeCases(t *testing.T) {
 
 			_, err := thisVer.Compare(otherVer)
 
-			assert.Error(t, err)
+			require.Error(t, err)
 			if test.errorSubstring != "" {
 				assert.True(t, strings.Contains(err.Error(), test.errorSubstring),
 					"Expected error to contain '%s', got: %v", test.errorSubstring, err)

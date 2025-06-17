@@ -7,7 +7,6 @@ import (
 	bitnami "github.com/bitnami/go-version/pkg/version"
 
 	hashiVer "github.com/anchore/go-version"
-	"github.com/anchore/grype/internal"
 )
 
 var _ Comparator = (*bitnamiVersion)(nil)
@@ -47,21 +46,20 @@ func newBitnamiVersion(raw string) (bitnamiVersion, error) {
 	}, nil
 }
 
-func (v bitnamiVersion) acceptsFormats() *internal.OrderedSet[Format] {
-	return internal.NewOrderedSet(BitnamiFormat, SemanticFormat)
-}
+// func (v bitnamiVersion) acceptsFormats() *internal.OrderedSet[Format] {
+//	return internal.NewOrderedSet(BitnamiFormat, SemanticFormat)
+//}
 
 func (v bitnamiVersion) Compare(other *Version) (int, error) {
 	if other == nil {
 		return -1, ErrNoVersionProvided
 	}
 
-	switch o := other.comparator.(type) {
-	case bitnamiVersion:
-		return v.obj.Compare(o.obj), nil
-	case semanticVersion:
-		return v.obj.Compare(o.obj), nil
+	bv, err := newBitnamiVersion(other.Raw)
+
+	if err != nil {
+		return 0, err
 	}
 
-	return -1, newNotComparableError(BitnamiFormat, other)
+	return v.obj.Compare(bv.obj), nil
 }

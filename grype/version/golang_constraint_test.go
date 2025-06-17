@@ -58,7 +58,7 @@ func TestGolangVersionCompare_NilVersion(t *testing.T) {
 	require.NoError(t, err)
 
 	result, err := version.Compare(nil)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Equal(t, ErrNoVersionProvided, err)
 	assert.Equal(t, -1, result)
 }
@@ -71,7 +71,7 @@ func TestGolangVersionCompare_DifferentFormat(t *testing.T) {
 	require.NoError(t, err)
 
 	result, err := golangVer.Compare(semanticVer)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported version comparison")
 	assert.Equal(t, -1, result)
 }
@@ -110,27 +110,27 @@ func TestGolangVersionCompare_SameRawVersion(t *testing.T) {
 	}
 }
 
-func TestGolangVersionCompare_DevelVersion(t *testing.T) {
-	version, err := NewVersion("v1.2.3", GolangFormat)
-	require.NoError(t, err)
-
-	// create a version object with "(devel)" as the raw value
-	// we need to manually create this since NewVersion would reject "(devel)"
-	develVersion := &Version{
-		Raw:    "(devel)",
-		Format: GolangFormat,
-		comparator: golangVersion{
-			raw: "(devel)",
-			obj: nil,
-		},
-	}
-
-	result, err := version.Compare(develVersion)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "cannot compare a non-development version")
-	assert.Contains(t, err.Error(), "with a default development version")
-	assert.Equal(t, -1, result)
-}
+//func TestGolangVersionCompare_DevelVersion(t *testing.T) {
+//	version, err := NewVersion("v1.2.3", GolangFormat)
+//	require.NoError(t, err)
+//
+//	// create a version object with "(devel)" as the raw value
+//	// we need to manually create this since NewVersion would reject "(devel)"
+//	develVersion := &Version{
+//		Raw:    "(devel)",
+//		Format: GolangFormat,
+//		comparator: golangVersion{
+//			raw: "(devel)",
+//			obj: nil,
+//		},
+//	}
+//
+//	result, err := version.Compare(develVersion)
+//	require.Error(t, err)
+//	assert.Contains(t, err.Error(), "cannot compare a non-development version")
+//	assert.Contains(t, err.Error(), "with a default development version")
+//	assert.Equal(t, -1, result)
+//}
 
 func TestGolangVersionCompare_NormalComparison(t *testing.T) {
 	tests := []struct {

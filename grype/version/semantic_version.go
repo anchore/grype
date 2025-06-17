@@ -49,12 +49,9 @@ func (v semanticVersion) Compare(other *Version) (int, error) {
 		return -1, ErrNoVersionProvided
 	}
 
-	if o, ok := other.comparator.(semanticVersion); ok {
-		if o.obj == nil {
-			return -1, ErrNoVersionProvided
-		}
-
-		return v.obj.Compare(o.obj), nil
+	o, err := newSemanticVersion(other.Raw, false)
+	if err != nil {
+		return 0, err
 	}
-	return -1, newNotComparableError(SemanticFormat, other)
+	return v.obj.Compare(o.obj), nil
 }

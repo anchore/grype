@@ -1,11 +1,9 @@
 package version
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/internal"
 )
 
 var _ Comparator = (*Version)(nil)
@@ -15,21 +13,22 @@ var _ Comparator = (*Version)(nil)
 var ErrUnsupportedVersion = fmt.Errorf("unsupported version value")
 
 type Version struct {
-	Raw        string
-	Format     Format
-	comparator Comparator
+	Raw         string
+	Format      Format
+	comparators map[Format]Comparator
 }
 
 func NewVersion(raw string, format Format) (*Version, error) {
 	version := &Version{
 		Raw:    raw,
 		Format: format,
+		//comparators: make(map[Format]Comparator),
 	}
 
-	err := version.populate()
-	if err != nil {
-		return nil, err
-	}
+	// err := version.populate()
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	return version, nil
 }
@@ -46,10 +45,16 @@ func NewVersionFromPkg(p pkg.Package) (*Version, error) {
 }
 
 //nolint:funlen
-func (v *Version) populate() error {
+func (v *Version) getComparator(format Format) (Comparator, error) {
+	if v.comparators == nil {
+		v.comparators = make(map[Format]Comparator)
+	}
+	if comparator, ok := v.comparators[format]; ok {
+		return comparator, nil
+	}
 	var comparator Comparator
 	var err error
-	switch v.Format {
+	switch format {
 	case SemanticFormat:
 		// not enforcing strict semver here, so that we can parse versions like "v1.0.0", "1.0", or "1.0a", which aren't strictly semver compliant
 		comparator, err = newSemanticVersion(v.Raw, false)
@@ -81,9 +86,9 @@ func (v *Version) populate() error {
 		err = fmt.Errorf("no comparator populated (format=%s)", v.Format)
 	}
 
-	v.comparator = comparator
+	v.comparators[format] = comparator
 
-	return err
+	return comparator, err
 }
 func (v Version) String() string {
 	return fmt.Sprintf("%s (%s)", v.Raw, v.Format)
@@ -97,46 +102,15 @@ func (v Version) Compare(other *Version) (int, error) {
 		return -1, ErrNoVersionProvided
 	}
 
-	if other.Format != v.Format {
-		var fmts *internal.OrderedSet[Format]
-
-		if fa, ok := v.comparator.(formatAcceptor); ok {
-			fmts = fa.acceptsFormats()
-		}
-		if fmts.IsEmpty() {
-			fmts = internal.NewOrderedSet(v.Format)
-		}
-
-		// try to convert to a common format using available formats
-		var firstFormatError *UnsupportedComparisonError
-
-		for _, format := range fmts.ToSlice() {
-			convertedOther, err := finalizeComparisonVersion(other, format)
+	for _, format := range []Format{v.Format, other.Format} {
+		comparator, err := v.getComparator(format)
+		if comparator != nil && err == nil {
+			cmp, err := comparator.Compare(other)
 			if err == nil {
-				other = convertedOther
-				firstFormatError = nil // reset the first format error since we successfully converted
-				break
+				return cmp, nil
 			}
-
-			// check if this is a format error (we can try other formats)
-			var fmtErr *UnsupportedComparisonError
-			if errors.As(err, &fmtErr) {
-				if firstFormatError == nil {
-					// we want the most preferred format error (the front of the list)
-					firstFormatError = fmtErr
-				}
-				continue // try next format...
-			}
-
-			// non-format error...
-			return -1, fmt.Errorf("unable to finalize comparison version: %w", err)
-		}
-
-		// if we exhausted all formats without success, return the last format error
-		if firstFormatError != nil {
-			return -1, firstFormatError
 		}
 	}
 
-	return v.comparator.Compare(other)
+	return 0, fmt.Errorf("unable to compare versions: %v %v", v, other)
 }

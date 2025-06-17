@@ -15,7 +15,7 @@ func newRpmConstraint(raw string) (rpmConstraint, error) {
 		return rpmConstraint{}, nil
 	}
 
-	constraints, err := newConstraintExpression(raw, newRpmComparator)
+	constraints, err := newConstraintExpression(raw, RpmFormat)
 	if err != nil {
 		return rpmConstraint{}, fmt.Errorf("unable to parse rpm constraint phrase: %w", err)
 	}

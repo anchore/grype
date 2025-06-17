@@ -26,9 +26,10 @@ func (v apkVersion) Compare(other *Version) (int, error) {
 		return -1, ErrNoVersionProvided
 	}
 
-	if o, ok := other.comparator.(apkVersion); ok {
-		return v.obj.Compare(o.obj), nil
+	apkVer, err := newApkVersion(other.Raw)
+	if err != nil {
+		return 0, err
 	}
 
-	return -1, newNotComparableError(ApkFormat, other)
+	return v.obj.Compare(apkVer.obj), nil
 }

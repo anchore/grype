@@ -21,11 +21,7 @@ func (v kbVersion) Compare(other *Version) (int, error) {
 		return -1, ErrNoVersionProvided
 	}
 
-	if o, ok := other.comparator.(kbVersion); ok {
-		return v.compare(o), nil
-	}
-
-	return -1, newNotComparableError(KBFormat, other)
+	return v.compare(newKBVersion(other.Raw)), nil
 }
 
 // Compare returns 0 if v == v2, 1 otherwise

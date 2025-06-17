@@ -31,11 +31,7 @@ func (v portageVersion) Compare(other *Version) (int, error) {
 		return -1, ErrNoVersionProvided
 	}
 
-	if o, ok := other.comparator.(portageVersion); ok {
-		return v.compare(o), nil
-	}
-
-	return -1, newNotComparableError(PortageFormat, other)
+	return v.compare(newPortageVersion(other.Raw)), nil
 }
 
 // Compare returns 0 if v == v2, -1 if v < v2, and +1 if v > v2.

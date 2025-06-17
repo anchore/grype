@@ -10,22 +10,20 @@ import (
 var ErrFallbackToFuzzy = fmt.Errorf("falling back to fuzzy version matching")
 
 type constraintExpression struct {
-	units       [][]constraintUnit // only supports or'ing a group of and'ed groups
-	comparators [][]Comparator     // only supports or'ing a group of and'ed groups
+	format Format
+	units  [][]constraintUnit // only supports or'ing a group of and'ed groups
 }
 
-func newConstraintExpression(phrase string, genFn comparatorGenerator) (constraintExpression, error) {
+func newConstraintExpression(phrase string, format Format) (constraintExpression, error) {
 	orParts, err := scanExpression(phrase)
 	if err != nil {
 		return constraintExpression{}, fmt.Errorf("unable to create constraint expression from=%q : %w", phrase, err)
 	}
 
 	orUnits := make([][]constraintUnit, len(orParts))
-	orComparators := make([][]Comparator, len(orParts))
 	var fuzzyErr error
 	for orIdx, andParts := range orParts {
 		andUnits := make([]constraintUnit, len(andParts))
-		andComparators := make([]Comparator, len(andParts))
 		for andIdx, part := range andParts {
 			unit, err := parseUnit(part)
 			if err != nil {
@@ -35,48 +33,32 @@ func newConstraintExpression(phrase string, genFn comparatorGenerator) (constrai
 				return constraintExpression{}, fmt.Errorf("unable to parse unit: %q", part)
 			}
 			andUnits[andIdx] = *unit
-
-			comparator, err := genFn(*unit)
-			if err != nil {
-				// this is a version constraint that could not be parsed as its
-				// specified type. Try falling back to fuzzy matching so that
-				// a match can still be attempted.
-				comparator, err = newFuzzyComparator(*unit)
-				if err != nil {
-					return constraintExpression{}, fmt.Errorf("failed to create comparator for '%s': %w", unit, err)
-				}
-				// Tell the caller we had to fallback from the specified
-				// version constraint format
-				fuzzyErr = ErrFallbackToFuzzy
-			}
-			andComparators[andIdx] = comparator
 		}
 
 		orUnits[orIdx] = andUnits
-		orComparators[orIdx] = andComparators
 	}
 
 	return constraintExpression{
-		units:       orUnits,
-		comparators: orComparators,
+		format: format,
+		units:  orUnits,
 	}, fuzzyErr
 }
 
 func (c *constraintExpression) satisfied(version *Version) (bool, error) {
 	oneSatisfied := false
-	for i, andOperand := range c.comparators {
+	for i, andOperand := range c.units {
 		allSatisfied := true
 		for j, andUnit := range andOperand {
-			result, err := andUnit.Compare(version)
+			result, err := version.Compare(&Version{
+				Format: c.format,
+				Raw:    andUnit.rawVersion,
+			})
 			if err != nil {
 				return false, fmt.Errorf("uncomparable %T vs %q: %w", andUnit, version.String(), err)
 			}
 			unit := c.units[i][j]
 
-			// when performing the unit.Compare(version), this implicitly reverses the order of the comparison.
-			// For this reason, we flip the result here so that the unit.Satisfied() call is relative to the
-			// original operand order.
-			if !unit.Satisfied(result * -1) {
+			if !unit.Satisfied(result) {
 				allSatisfied = false
 			}
 		}

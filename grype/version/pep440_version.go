@@ -27,9 +27,10 @@ func (v pep440Version) Compare(other *Version) (int, error) {
 		return -1, ErrNoVersionProvided
 	}
 
-	if o, ok := other.comparator.(pep440Version); ok {
-		return v.obj.Compare(o.obj), nil
+	o, err := newPep440Version(other.Raw)
+	if err != nil {
+		return 0, err
 	}
 
-	return -1, newNotComparableError(PythonFormat, other)
+	return v.obj.Compare(o.obj), nil
 }

@@ -44,11 +44,12 @@ func (v rpmVersion) Compare(other *Version) (int, error) {
 		return -1, ErrNoVersionProvided
 	}
 
-	if o, ok := other.comparator.(rpmVersion); ok {
-		return v.compare(o), nil
+	o, err := newRpmVersion(other.Raw)
+	if err != nil {
+		return 0, err
 	}
 
-	return -1, newNotComparableError(RpmFormat, other)
+	return v.compare(o), nil
 }
 
 // Compare returns 0 if v == v2, -1 if v < v2, and +1 if v > v2.

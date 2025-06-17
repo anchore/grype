@@ -15,7 +15,7 @@ func newKBConstraint(raw string) (kbConstraint, error) {
 		return kbConstraint{}, nil
 	}
 
-	constraints, err := newConstraintExpression(raw, newKBComparator)
+	constraints, err := newConstraintExpression(raw, KBFormat)
 	if err != nil {
 		return kbConstraint{}, fmt.Errorf("unable to parse kb constraint phrase: %w", err)
 	}

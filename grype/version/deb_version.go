@@ -25,9 +25,10 @@ func (v debVersion) Compare(other *Version) (int, error) {
 		return -1, ErrNoVersionProvided
 	}
 
-	if o, ok := other.comparator.(debVersion); ok {
-		return v.obj.Compare(o.obj), nil
+	o, err := newDebVersion(other.Raw)
+	if err != nil {
+		return 0, err
 	}
 
-	return -1, newNotComparableError(DebFormat, other)
+	return v.obj.Compare(o.obj), nil
 }

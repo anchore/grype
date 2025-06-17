@@ -12,7 +12,6 @@ import (
 
 var _ interface {
 	Comparator
-	formatAcceptor
 } = (*jvmVersion)(nil)
 
 var (
@@ -45,23 +44,20 @@ func newJvmVersion(raw string) (jvmVersion, error) {
 	}, nil
 }
 
-func (v jvmVersion) acceptsFormats() *internal.OrderedSet[Format] {
-	return internal.NewOrderedSet(JVMFormat, SemanticFormat)
-}
+// func (v jvmVersion) acceptsFormats() *internal.OrderedSet[Format] {
+//	return internal.NewOrderedSet(JVMFormat, SemanticFormat)
+//}
 
 func (v jvmVersion) Compare(other *Version) (int, error) {
 	if other == nil {
 		return -1, ErrNoVersionProvided
 	}
 
-	switch o := other.comparator.(type) {
-	case jvmVersion:
-		return v.compare(o), nil
-	case semanticVersion:
-		return v.semVer.Compare(o.obj), nil
+	o, err := newJvmVersion(other.Raw)
+	if err != nil {
+		return 0, err
 	}
-
-	return -1, newNotComparableError(JVMFormat, other)
+	return v.compare(o), nil
 }
 
 func (v jvmVersion) compare(other jvmVersion) int {

@@ -9,36 +9,52 @@ type Constraint interface {
 	Satisfied(*Version) (bool, error)
 }
 
+type constraint struct {
+	Format     Format
+	Raw        string
+	constraint Constraint
+}
+
 func GetConstraint(constStr string, format Format) (Constraint, error) {
+	var c Constraint
+	var err error
+
 	switch format {
 	case ApkFormat:
-		return newApkConstraint(constStr)
+		c, err = newApkConstraint(constStr)
 	case SemanticFormat:
-		return newSemanticConstraint(constStr)
+		c, err = newSemanticConstraint(constStr)
 	case BitnamiFormat:
-		return newBitnamiConstraint(constStr)
+		c, err = newBitnamiConstraint(constStr)
 	case GemFormat:
-		return newGemfileConstraint(constStr)
+		c, err = newGemfileConstraint(constStr)
 	case DebFormat:
-		return newDebConstraint(constStr)
+		c, err = newDebConstraint(constStr)
 	case GolangFormat:
-		return newGolangConstraint(constStr)
+		c, err = newGolangConstraint(constStr)
 	case MavenFormat:
-		return newMavenConstraint(constStr)
+		c, err = newMavenConstraint(constStr)
 	case RpmFormat:
-		return newRpmConstraint(constStr)
+		c, err = newRpmConstraint(constStr)
 	case PythonFormat:
-		return newPep440Constraint(constStr)
+		c, err = newPep440Constraint(constStr)
 	case KBFormat:
-		return newKBConstraint(constStr)
+		c, err = newKBConstraint(constStr)
 	case PortageFormat:
-		return newPortageConstraint(constStr)
+		c, err = newPortageConstraint(constStr)
 	case JVMFormat:
-		return newJvmConstraint(constStr)
+		c, err = newJvmConstraint(constStr)
 	case UnknownFormat:
-		return newFuzzyConstraint(constStr, "unknown")
+		c, err = newFuzzyConstraint(constStr, "unknown")
+	default:
+		return nil, fmt.Errorf("could not find constraint for given format: %s", format)
 	}
-	return nil, fmt.Errorf("could not find constraint for given format: %s", format)
+
+	return constraint{
+		Format:     format,
+		Raw:        constStr,
+		constraint: c,
+	}, err
 }
 
 // MustGetConstraint is meant for testing only, do not use within the library
@@ -62,4 +78,12 @@ type NonFatalConstraintError struct {
 
 func (e NonFatalConstraintError) Error() string {
 	return fmt.Sprintf("Matching raw constraint %s against version %s caused a non-fatal error: %s", e.constraint, e.version, e.message)
+}
+
+func (c constraint) String() string {
+	return c.Raw
+}
+
+func (c constraint) Satisfied(version *Version) (bool, error) {
+	return c.constraint.Satisfied(version)
 }
