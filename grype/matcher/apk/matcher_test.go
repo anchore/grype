@@ -339,7 +339,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 		PackageName: "libvncserver",
 		Constraint:  version.MustGetConstraint("<= 0.9.11", version.UnknownFormat),
 		CPEs: []cpe.CPE{
-			cpe.Must(`cpe:2.3:a:lib_vnc_project-\(server\):libvncserver:*:*:*:*:*:*:*:*`, ""),
+			cpe.Must(`cpe:2.3:a:lib_vnc_project-\(server\):lib/vncserver:*:*:*:*:*:*:*:*`, ""),
 		},
 	}
 	vp := mock.VulnerabilityProvider(nvdVuln)
@@ -356,7 +356,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 		Type:    syftPkg.ApkPkg,
 		Distro:  d,
 		CPEs: []cpe.CPE{
-			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*", ""),
+			cpe.Must("cpe:2.3:a:*:lib/vncserver:0.9.9:*:*:*:*:*:*:*", ""),
 		},
 	}
 
@@ -370,7 +370,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 					Type:       match.CPEMatch,
 					Confidence: 0.9,
 					SearchedBy: match.CPEParameters{
-						CPEs:      []string{"cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"},
+						CPEs:      []string{"cpe:2.3:a:*:lib\\/vncserver:0.9.9:*:*:*:*:*:*:*"},
 						Namespace: "nvd:cpe",
 						Package: match.CPEPackageParameter{
 							Name:    "libvncserver",
@@ -378,7 +378,8 @@ func TestNvdOnlyMatches(t *testing.T) {
 						},
 					},
 					Found: match.CPEResult{
-						CPEs:              []string{nvdVuln.CPEs[0].Attributes.BindToFmtString()},
+						// use .String() for proper escaping
+						CPEs:              []string{nvdVuln.CPEs[0].Attributes.String()},
 						VersionConstraint: nvdVuln.Constraint.String(),
 						VulnerabilityID:   "CVE-2020-1",
 					},
@@ -450,7 +451,7 @@ func TestNvdOnlyMatches_FixInNvd(t *testing.T) {
 						},
 					},
 					Found: match.CPEResult{
-						CPEs:              []string{vulnFound.CPEs[0].Attributes.BindToFmtString()},
+						CPEs:              []string{vulnFound.CPEs[0].Attributes.String()},
 						VersionConstraint: vulnFound.Constraint.String(),
 						VulnerabilityID:   "CVE-2020-1",
 					},
@@ -524,7 +525,7 @@ func TestNvdMatchesProperVersionFiltering(t *testing.T) {
 						},
 					},
 					Found: match.CPEResult{
-						CPEs:              []string{nvdVulnMatch.CPEs[0].Attributes.BindToFmtString()},
+						CPEs:              []string{nvdVulnMatch.CPEs[0].Attributes.String()},
 						VersionConstraint: nvdVulnMatch.Constraint.String(),
 						VulnerabilityID:   "CVE-2020-1",
 					},
@@ -882,7 +883,7 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 						},
 					},
 					Found: match.CPEResult{
-						CPEs:              []string{nvdVuln.CPEs[0].Attributes.BindToFmtString()},
+						CPEs:              []string{nvdVuln.CPEs[0].Attributes.String()},
 						VersionConstraint: nvdVuln.Constraint.String(),
 						VulnerabilityID:   "CVE-2020-1",
 					},
