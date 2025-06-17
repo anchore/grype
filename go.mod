@@ -34,7 +34,7 @@ require (
 	github.com/gkampitakis/go-snaps v0.5.13
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-test/deep v1.1.1
-	github.com/go-viper/mapstructure/v2 v2.2.1
+	github.com/go-viper/mapstructure/v2 v2.3.0
 	github.com/gohugoio/hashstructure v0.5.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-containerregistry v0.20.5
