@@ -42,36 +42,36 @@ func newGolangVersion(v string) (golangVersion, error) {
 	}, nil
 }
 
-func (g golangVersion) Compare(other *Version) (int, error) {
+func (v golangVersion) Compare(other *Version) (int, error) {
 	if other == nil {
 		return -1, ErrNoVersionProvided
 	}
 
-	o, ok := other.comparator.(golangVersion)
-	if !ok {
-		return -1, newNotComparableError(GolangFormat, other)
+	o, err := newGolangVersion(other.Raw)
+	if err != nil {
+		return 0, err
 	}
 
-	if o.raw == g.raw {
+	if o.raw == v.raw {
 		return 0, nil
 	}
 
 	if o.raw == "(devel)" {
-		return -1, fmt.Errorf("cannot compare a non-development version %q with a default development version of %q", g.raw, o.raw)
+		return -1, fmt.Errorf("cannot compare a non-development version %q with a default development version of %q", v.raw, o.raw)
 	}
 
-	return g.compare(o), nil
+	return v.compare(o), nil
 }
 
-func (g golangVersion) compare(o golangVersion) int {
+func (v golangVersion) compare(o golangVersion) int {
 	switch {
-	case g.obj != nil && o.obj != nil:
-		return g.obj.Compare(o.obj)
-	case g.obj != nil && o.obj == nil:
+	case v.obj != nil && o.obj != nil:
+		return v.obj.Compare(o.obj)
+	case v.obj != nil && o.obj == nil:
 		return 1
-	case g.obj == nil && o.obj != nil:
+	case v.obj == nil && o.obj != nil:
 		return -1
 	default:
-		return strings.Compare(g.raw, o.raw)
+		return strings.Compare(v.raw, o.raw)
 	}
 }

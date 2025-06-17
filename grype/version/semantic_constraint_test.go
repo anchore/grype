@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_SemanticConstraint(t *testing.T) {
@@ -196,7 +197,7 @@ func TestSemanticConstraint_RubyNormalizerEdgeCases(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			_, err := NewVersion(test.version, SemanticFormat)
 			if test.shouldError {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 			}

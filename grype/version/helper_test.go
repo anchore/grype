@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type testCase struct {
@@ -36,7 +37,7 @@ func (c *testCase) assertVersionConstraint(t *testing.T, format Format, constrai
 		if c.errorAssertion != nil {
 			c.errorAssertion(t, err)
 		} else {
-			assert.Error(t, err)
+			require.Error(t, err)
 		}
 	} else {
 		assert.NoError(t, err, "unexpected error from constraint.Satisfied: %v", err)

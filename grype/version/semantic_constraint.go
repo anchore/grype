@@ -53,10 +53,9 @@ func (c semanticConstraint) Satisfied(version *Version) (bool, error) {
 	if !c.supported(version.Format) {
 		return false, newUnsupportedFormatError(SemanticFormat, version)
 	}
-
-	semver, ok := version.comparator.(semanticVersion)
-	if !ok {
-		return false, fmt.Errorf("cannot compare %T with %T", c, version.comparator)
+	semver, err := newSemanticVersion(version.Raw, false)
+	if err != nil {
+		return false, err
 	}
 
 	return c.constraint.Check(semver.obj), nil

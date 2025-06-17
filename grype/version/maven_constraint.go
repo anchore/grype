@@ -13,7 +13,7 @@ func newMavenConstraint(raw string) (mavenConstraint, error) {
 		return mavenConstraint{}, nil
 	}
 
-	constraints, err := newConstraintExpression(raw, newMavenComparator)
+	constraints, err := newConstraintExpression(raw, MavenFormat)
 	if err != nil {
 		return mavenConstraint{}, fmt.Errorf("unable to parse maven constraint phrase: %w", err)
 	}

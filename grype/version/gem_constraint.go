@@ -3,7 +3,7 @@ package version
 import "fmt"
 
 func newGemfileConstraint(raw string) (Constraint, error) {
-	return newGenericConstraint(raw, newGemfileComparator, "gem")
+	return newGenericConstraint(raw, GemFormat)
 }
 
 func newGemfileComparator(unit constraintUnit) (Comparator, error) {

@@ -1,9 +1,5 @@
 package version
 
-import (
-	"github.com/anchore/grype/internal"
-)
-
 type comparatorGenerator func(constraintUnit) (Comparator, error)
 
 type Comparator interface {
@@ -13,9 +9,9 @@ type Comparator interface {
 	Compare(*Version) (int, error)
 }
 
-type formatAcceptor interface {
-	acceptsFormats() *internal.OrderedSet[Format]
-}
+// type formatAcceptor interface {
+//	acceptsFormats() *internal.OrderedSet[Format]
+//}
 
 func finalizeComparisonVersion(version *Version, targetFormat Format) (*Version, error) {
 	if version == nil {

@@ -35,15 +35,15 @@ func (e *UnsupportedComparisonError) Is(target error) bool {
 		(t.Right.Format == UnknownFormat || t.Right == e.Right)
 }
 
-func newNotComparableError(left Format, other *Version) error {
-	if other == nil {
-		return fmt.Errorf("cannot compare %q formatted version with empty version", left)
-	}
-	if other.comparator == nil {
-		return fmt.Errorf("cannot compare %q formatted version with empty version object", left)
-	}
-	if left != other.Format {
-		return newUnsupportedFormatError(left, other)
-	}
-	return fmt.Errorf("cannot compare %q objects", left)
-}
+// func newNotComparableError(left Format, other *Version) error {
+//	if other == nil {
+//		return fmt.Errorf("cannot compare %q formatted version with empty version", left)
+//	}
+//	//if other.comparator == nil {
+//	//	return fmt.Errorf("cannot compare %q formatted version with empty version object", left)
+//	//}
+//	if left != other.Format {
+//		return newUnsupportedFormatError(left, other)
+//	}
+//	return fmt.Errorf("cannot compare %q objects", left)
+//}

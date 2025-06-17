@@ -15,7 +15,7 @@ func newPortageConstraint(raw string) (portageConstraint, error) {
 		return portageConstraint{}, nil
 	}
 
-	constraints, err := newConstraintExpression(raw, newPortageComparator)
+	constraints, err := newConstraintExpression(raw, PortageFormat)
 	if err != nil {
 		return portageConstraint{}, fmt.Errorf("unable to parse portage constraint phrase: %w", err)
 	}

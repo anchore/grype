@@ -76,11 +76,12 @@ func (v gemVersion) Compare(other *Version) (int, error) {
 		return -1, ErrNoVersionProvided
 	}
 
-	if o, ok := other.comparator.(gemVersion); ok {
-		return v.compare(o)
+	o, err := newGemVersion(other.Raw)
+	if err != nil {
+		return 0, err
 	}
 
-	return -1, newNotComparableError(GemFormat, other)
+	return v.compare(o)
 }
 
 func (v gemVersion) compare(other gemVersion) (int, error) {

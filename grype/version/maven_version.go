@@ -31,11 +31,12 @@ func (v mavenVersion) Compare(other *Version) (int, error) {
 	if other == nil {
 		return -1, fmt.Errorf("cannot compare nil version with %v", other)
 	}
-	if o, ok := other.comparator.(mavenVersion); ok {
-		return v.compare(o.obj)
-	}
 
-	return -1, newNotComparableError(MavenFormat, other)
+	o, err := newMavenVersion(other.Raw)
+	if err != nil {
+		return 0, err
+	}
+	return v.compare(o.obj)
 }
 
 func (v mavenVersion) compare(other mvnv.Version) (int, error) {

@@ -3,7 +3,7 @@ package version
 import "fmt"
 
 func newJvmConstraint(raw string) (Constraint, error) {
-	return newGenericConstraint(raw, newJvmComparator, "jvm")
+	return newGenericConstraint(raw, JVMFormat)
 }
 
 func newJvmComparator(unit constraintUnit) (Comparator, error) {

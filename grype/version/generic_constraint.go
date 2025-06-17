@@ -1,6 +1,9 @@
 package version
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 var _ Constraint = (*genericConstraint)(nil)
 
@@ -10,15 +13,15 @@ type genericConstraint struct {
 	name       string
 }
 
-func newGenericConstraint(raw string, genFn comparatorGenerator, name string) (genericConstraint, error) {
-	constraints, err := newConstraintExpression(raw, genFn)
+func newGenericConstraint(raw string, format Format) (genericConstraint, error) {
+	constraints, err := newConstraintExpression(raw, format)
 	if err != nil {
 		return genericConstraint{}, err
 	}
 	return genericConstraint{
 		expression: constraints,
 		raw:        raw,
-		name:       name,
+		name:       strings.ToLower(format.String()),
 	}, nil
 }
 

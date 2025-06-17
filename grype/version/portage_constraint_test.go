@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestVersionPortageConstraint(t *testing.T) {
@@ -130,12 +131,12 @@ func TestPortageConstraint_Satisfied_NilVersion(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			constraint, err := GetConstraint(test.constraint, PortageFormat)
+			c, err := GetConstraint(test.constraint, PortageFormat)
 			assert.NoError(t, err)
 
-			satisfied, err := constraint.Satisfied(nil)
+			satisfied, err := c.Satisfied(nil)
 			if test.shouldError {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, test.expected, satisfied)
@@ -145,15 +146,15 @@ func TestPortageConstraint_Satisfied_NilVersion(t *testing.T) {
 }
 
 func TestPortageConstraint_Satisfied_UnsupportedFormat(t *testing.T) {
-	constraint, err := GetConstraint("> 1.0.0", PortageFormat)
+	c, err := GetConstraint("> 1.0.0", PortageFormat)
 	assert.NoError(t, err)
 
 	// Test with a semantic version (wrong format)
 	version, err := NewVersion("1.2.3", SemanticFormat)
 	assert.NoError(t, err)
 
-	satisfied, err := constraint.Satisfied(version)
-	assert.Error(t, err)
+	satisfied, err := c.Satisfied(version)
+	require.Error(t, err)
 	assert.False(t, satisfied)
 	assert.Contains(t, err.Error(), "unsupported version comparison")
 }

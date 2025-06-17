@@ -29,7 +29,7 @@ func newFuzzyConstraint(phrase, hint string) (fuzzyConstraint, error) {
 		}, nil
 	}
 
-	constraints, err := newConstraintExpression(phrase, newFuzzyComparator)
+	constraints, err := newConstraintExpression(phrase, UnknownFormat)
 	if err != nil {
 		return fuzzyConstraint{}, fmt.Errorf("could not create fuzzy constraint: %+v", err)
 	}
