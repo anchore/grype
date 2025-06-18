@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestVersionApk_Constraint(t *testing.T) {
+func TestApkVersion_Constraint(t *testing.T) {
 	tests := []testCase{
 		{version: "2.3.1", constraint: "", satisfied: true},
 		// compound conditions
