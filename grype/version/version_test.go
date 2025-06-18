@@ -84,7 +84,7 @@ func TestVersionCompare(t *testing.T) {
 	}
 }
 
-func Test_UpgradeUnknownRightSideComparison(t *testing.T) {
+func TestVersion_UpgradeUnknownRightSideComparison(t *testing.T) {
 	v1, err := NewVersion("1.0.0", SemanticFormat)
 	require.NoError(t, err)
 

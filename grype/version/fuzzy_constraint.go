@@ -17,7 +17,7 @@ type fuzzyConstraint struct {
 	rawPhrase          string
 	phraseHint         string
 	semanticConstraint *hashiVer.Constraints
-	constraints        constraintExpression
+	constraints        simpleRangeExpression
 }
 
 func newFuzzyConstraint(phrase, hint string) (fuzzyConstraint, error) {
@@ -29,7 +29,7 @@ func newFuzzyConstraint(phrase, hint string) (fuzzyConstraint, error) {
 		}, nil
 	}
 
-	constraints, err := newConstraintExpression(phrase)
+	constraints, err := parseRangeExpression(phrase)
 	if err != nil {
 		return fuzzyConstraint{}, fmt.Errorf("could not create fuzzy constraint: %+v", err)
 	}
@@ -40,7 +40,7 @@ func newFuzzyConstraint(phrase, hint string) (fuzzyConstraint, error) {
 check:
 	for _, units := range constraints.units {
 		for _, unit := range units {
-			if !pseudoSemverPattern.MatchString(unit.rawVersion) {
+			if !pseudoSemverPattern.MatchString(unit.version) {
 				valid = false
 				break check
 			}

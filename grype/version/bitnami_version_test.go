@@ -8,7 +8,67 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestBitnamiVersionCompare(t *testing.T) {
+func TestBitnamiVersion_Constraint(t *testing.T) {
+	tests := []testCase{
+		// empty values
+		{version: "2.3.1", constraint: "", satisfied: true},
+		// typical cases
+		{version: "1.5.0", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: true},
+		{version: "0.2.0", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: true},
+		{version: "0.0.1", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: false},
+		{version: "0.6.0", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: false},
+		{version: "2.5.0", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: false},
+		{version: "2.3.1", constraint: "2.3.1", satisfied: true},
+		{version: "2.3.1", constraint: "= 2.3.1", satisfied: true},
+		{version: "2.3.1", constraint: "  =   2.3.1", satisfied: true},
+		{version: "2.3.1", constraint: ">= 2.3.1", satisfied: true},
+		{version: "2.3.1", constraint: "> 2.0.0", satisfied: true},
+		{version: "2.3.1", constraint: "> 2.0", satisfied: true},
+		{version: "2.3.1", constraint: "> 2", satisfied: true},
+		{version: "2.3.1", constraint: "> 2, < 3", satisfied: true},
+		{version: "2.3.1", constraint: "> 2.3, < 3.1", satisfied: true},
+		{version: "2.3.1", constraint: "> 2.3.0, < 3.1", satisfied: true},
+		{version: "2.3.1", constraint: ">= 2.3.1, < 3.1", satisfied: true},
+		{version: "2.3.1", constraint: "  =  2.3.2", satisfied: false},
+		{version: "2.3.1", constraint: ">= 2.3.2", satisfied: false},
+		{version: "2.3.1", constraint: "> 2.3.1", satisfied: false},
+		{version: "2.3.1", constraint: "< 2.0.0", satisfied: false},
+		{version: "2.3.1", constraint: "< 2.0", satisfied: false},
+		{version: "2.3.1", constraint: "< 2", satisfied: false},
+		{version: "2.3.1", constraint: "< 2, > 3", satisfied: false},
+		{version: "2.3.1-1", constraint: "2.3.1", satisfied: true},
+		{version: "2.3.1-1", constraint: "= 2.3.1", satisfied: true},
+		{version: "2.3.1-1", constraint: "  =   2.3.1", satisfied: true},
+		{version: "2.3.1-1", constraint: ">= 2.3.1", satisfied: true},
+		{version: "2.3.1-1", constraint: "> 2.0.0", satisfied: true},
+		{version: "2.3.1-1", constraint: "> 2.0", satisfied: true},
+		{version: "2.3.1-1", constraint: "> 2", satisfied: true},
+		{version: "2.3.1-1", constraint: "> 2, < 3", satisfied: true},
+		{version: "2.3.1-1", constraint: "> 2.3, < 3.1", satisfied: true},
+		{version: "2.3.1-1", constraint: "> 2.3.0, < 3.1", satisfied: true},
+		{version: "2.3.1-1", constraint: ">= 2.3.1, < 3.1", satisfied: true},
+		{version: "2.3.1-1", constraint: "  =  2.3.2", satisfied: false},
+		{version: "2.3.1-1", constraint: ">= 2.3.2", satisfied: false},
+		{version: "2.3.1-1", constraint: "< 2.0.0", satisfied: false},
+		{version: "2.3.1-1", constraint: "< 2.0", satisfied: false},
+		{version: "2.3.1-1", constraint: "< 2", satisfied: false},
+		{version: "2.3.1-1", constraint: "< 2, > 3", satisfied: false},
+		// ignoring revisions
+		{version: "2.3.1-1", constraint: "> 2.3.1", satisfied: false},
+		{version: "2.3.1-1", constraint: "< 2.3.1-2", satisfied: false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.tName(), func(t *testing.T) {
+			constraint, err := GetConstraint(test.constraint, BitnamiFormat)
+
+			require.NoError(t, err)
+			test.assertVersionConstraint(t, BitnamiFormat, constraint)
+		})
+	}
+}
+
+func TestBitnamiVersion_Compare(t *testing.T) {
 	tests := []struct {
 		name           string
 		thisVersion    string
@@ -72,7 +132,7 @@ func TestBitnamiVersionCompare(t *testing.T) {
 	}
 }
 
-func TestBitnamiVersionCompareEdgeCases(t *testing.T) {
+func TestBitnamiVersion_Compare_EdgeCases(t *testing.T) {
 	tests := []struct {
 		name           string
 		setupFunc      func(testing.TB) (*Version, *Version)

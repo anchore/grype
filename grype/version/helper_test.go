@@ -10,12 +10,11 @@ import (
 )
 
 type testCase struct {
-	name           string
-	version        string
-	constraint     string
-	satisfied      bool
-	shouldErr      bool
-	errorAssertion func(t *testing.T, err error)
+	name       string
+	version    string
+	constraint string
+	satisfied  bool
+	wantError  require.ErrorAssertionFunc
 }
 
 func (c *testCase) tName() string {
@@ -28,19 +27,17 @@ func (c *testCase) tName() string {
 
 func (c *testCase) assertVersionConstraint(t *testing.T, format Format, constraint Constraint) {
 	t.Helper()
+	if c.wantError == nil {
+		c.wantError = require.NoError
+	}
 
 	version, err := NewVersion(c.version, format)
 	assert.NoError(t, err, "unexpected error from NewVersion: %v", err)
 
 	isSatisfied, err := constraint.Satisfied(version)
-	if c.shouldErr {
-		if c.errorAssertion != nil {
-			c.errorAssertion(t, err)
-		} else {
-			require.Error(t, err)
-		}
-	} else {
-		assert.NoError(t, err, "unexpected error from constraint.Satisfied: %v", err)
+	c.wantError(t, err)
+	if err != nil {
+		return
 	}
 	assert.Equal(t, c.satisfied, isSatisfied, "unexpected constraint check result")
 }

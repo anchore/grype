@@ -4,19 +4,30 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestVersionKbConstraint(t *testing.T) {
+func TestKbVersion_Constraint(t *testing.T) {
 	tests := []testCase{
-		//{name: "no constraint no version raises error", version: "", constraint: "", satisfied: false, shouldErr: true, errorAssertion: func(t *testing.T, err error) {
-		//	var expectedError *NonFatalConstraintError
-		//	assert.ErrorAs(t, err, &expectedError, "Unexpected error type from kbConstraint.Satisfied: %v", err)
-		//}},
-		//{name: "no constraint with version raises error", version: "878787", constraint: "", satisfied: false, shouldErr: true, errorAssertion: func(t *testing.T, err error) {
-		//	var expectedError *NonFatalConstraintError
-		//	assert.ErrorAs(t, err, &expectedError, "Unexpected error type from kbConstraint.Satisfied: %v", err)
-		//}},
-		{name: "no version is unsatisifed", version: "", constraint: "foo", satisfied: false},
+		{
+			name:    "no constraint no version raises error",
+			version: "", constraint: "",
+			satisfied: false,
+			wantError: func(t require.TestingT, err error, msgAndArgs ...interface{}) {
+				var expectedError *NonFatalConstraintError
+				assert.ErrorAs(t, err, &expectedError, "Unexpected error type from kbConstraint.Satisfied: %v", err)
+			},
+		},
+		{
+			name:    "no constraint with version raises error",
+			version: "878787", constraint: "",
+			satisfied: false,
+			wantError: func(t require.TestingT, err error, msgAndArgs ...interface{}) {
+				var expectedError *NonFatalConstraintError
+				assert.ErrorAs(t, err, &expectedError, "Unexpected error type from kbConstraint.Satisfied: %v", err)
+			},
+		},
+		{name: "no version is unsatisfied", version: "", constraint: "foo", satisfied: false},
 		{name: "version constraint mismatch", version: "1", constraint: "foo", satisfied: false},
 		{name: "matching version and constraint", version: "1", constraint: "1", satisfied: true},
 		{name: "base keyword matching version and constraint", version: "base", constraint: "base", satisfied: true},

@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSmartVerCmp(t *testing.T) {
+func TestFuzzyVersionComparison(t *testing.T) {
 	cases := []struct {
 		v1, v2 string
 		ret    int
@@ -69,7 +69,7 @@ func TestSmartVerCmp(t *testing.T) {
 	}
 }
 
-func TestFuzzyConstraintSatisfaction(t *testing.T) {
+func TestFuzzyVersion_Constraint(t *testing.T) {
 	tests := []testCase{
 		{
 			name:       "empty constraint",

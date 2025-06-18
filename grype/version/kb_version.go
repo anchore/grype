@@ -24,7 +24,7 @@ func (v kbVersion) Compare(other *Version) (int, error) {
 	return v.compare(newKBVersion(other.Raw)), nil
 }
 
-// Compare returns 0 if v == v2, 1 otherwise
+// compare returns 0 if v == v2, 1 otherwise
 func (v kbVersion) compare(other kbVersion) int {
 	if reflect.DeepEqual(v, other) {
 		return 0

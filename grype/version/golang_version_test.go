@@ -9,12 +9,245 @@ import (
 	hashiVer "github.com/anchore/go-version"
 )
 
-func TestNewGolangVersion(t *testing.T) {
+func TestGolangVersion_Constraint(t *testing.T) {
+	tests := []struct {
+		name       string
+		version    string
+		constraint string
+		satisfied  bool
+	}{
+		{
+			name:       "regular semantic version satisfied",
+			version:    "v1.2.3",
+			constraint: "< 1.2.4",
+			satisfied:  true,
+		},
+		{
+			name:       "regular semantic version unsatisfied",
+			version:    "v1.2.3",
+			constraint: "> 1.2.4",
+			satisfied:  false,
+		},
+		{
+			name:       "+incompatible added to version", // see grype#1581
+			version:    "v3.2.0+incompatible",
+			constraint: "<=3.2.0",
+			satisfied:  true,
+		},
+		{
+			name:       "the empty constraint is always satisfied",
+			version:    "v1.0.0",
+			constraint: "",
+			satisfied:  true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			c, err := GetConstraint(tc.constraint, GolangFormat)
+			require.NoError(t, err)
+			v, err := NewVersion(tc.version, GolangFormat)
+			require.NoError(t, err)
+			sat, err := c.Satisfied(v)
+			require.NoError(t, err)
+			assert.Equal(t, tc.satisfied, sat)
+		})
+	}
+}
+
+func TestGolangVersion_String(t *testing.T) {
+	tests := []struct {
+		name       string
+		constraint string
+		expected   string
+	}{
+		{
+			name:       "empty string",
+			constraint: "",
+			expected:   "none (go)",
+		},
+		{
+			name:       "basic constraint",
+			constraint: "< 1.3.4",
+			expected:   "< 1.3.4 (go)",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			c, err := GetConstraint(tc.constraint, GolangFormat)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expected, c.String())
+		})
+	}
+}
+
+func TestGolangVersion_Compare(t *testing.T) {
+	tests := []struct {
+		name     string
+		version1 string
+		version2 string
+		expected int
+	}{
+		{
+			name:     "same basic version",
+			version1: "v1.2.3",
+			version2: "v1.2.3",
+			expected: 0,
+		},
+		{
+			name:     "same version with incompatible",
+			version1: "v3.2.0+incompatible",
+			version2: "v3.2.0+incompatible",
+			expected: 0,
+		},
+		{
+			name:     "same go stdlib version",
+			version1: "go1.24.1",
+			version2: "go1.24.1",
+			expected: 0,
+		},
+		{
+			name:     "version1 less than version2",
+			version1: "v1.2.3",
+			version2: "v1.2.4",
+			expected: -1,
+		},
+		{
+			name:     "version1 greater than version2",
+			version1: "v1.2.4",
+			version2: "v1.2.3",
+			expected: 1,
+		},
+		{
+			name:     "version1 equal to version2",
+			version1: "v1.2.3",
+			version2: "v1.2.3",
+			expected: 0,
+		},
+		{
+			name:     "go stdlib versions",
+			version1: "go1.23.1",
+			version2: "go1.24.1",
+			expected: -1,
+		},
+		{
+			name:     "incompatible versions",
+			version1: "v3.1.0+incompatible",
+			version2: "v3.2.0+incompatible",
+			expected: -1,
+		},
+		{
+			name:     "semver this version less",
+			version1: "v1.2.3",
+			version2: "v1.2.4",
+			expected: -1,
+		},
+		{
+			name:     "semver this version more",
+			version1: "v1.3.4",
+			version2: "v1.2.4",
+			expected: 1,
+		},
+		{
+			name:     "semver equal",
+			version1: "v1.2.4",
+			version2: "v1.2.4",
+			expected: 0,
+		},
+		{
+			name:     "commit-sha this version less",
+			version1: "v0.0.0-20180116102854-5a71ef0e047d",
+			version2: "v0.0.0-20190116102854-somehash",
+			expected: -1,
+		},
+		{
+			name:     "commit-sha this version more",
+			version1: "v0.0.0-20180216102854-5a71ef0e047d",
+			version2: "v0.0.0-20180116102854-somehash",
+			expected: 1,
+		},
+		{
+			name:     "commit-sha this version equal",
+			version1: "v0.0.0-20180116102854-5a71ef0e047d",
+			version2: "v0.0.0-20180116102854-5a71ef0e047d",
+			expected: 0,
+		},
+		{
+			name:     "this pre-semver is less than any semver",
+			version1: "v0.0.0-20180116102854-5a71ef0e047d",
+			version2: "v0.0.1",
+			expected: -1,
+		},
+		{
+			name:     "semver is greater than timestamp",
+			version1: "v2.1.0",
+			version2: "v0.0.0-20180116102854-5a71ef0e047d",
+			expected: 1,
+		},
+		{
+			name:     "pseudoversion less than other pseudoversion",
+			version1: "v0.0.0-20170116102854-1ef0e047d5a7",
+			version2: "v0.0.0-20180116102854-5a71ef0e047d",
+			expected: -1,
+		},
+		{
+			name:     "pseudoversion greater than other pseudoversion",
+			version1: "v0.0.0-20190116102854-8a3f0e047d5a",
+			version2: "v0.0.0-20180116102854-5a71ef0e047d",
+			expected: 1,
+		},
+		{
+			name:     "+incompatible doesn't break equality",
+			version1: "v3.2.0",
+			version2: "v3.2.0+incompatible",
+			expected: 0,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			version1, err := NewVersion(test.version1, GolangFormat)
+			require.NoError(t, err)
+
+			version2, err := NewVersion(test.version2, GolangFormat)
+			require.NoError(t, err)
+
+			result, err := version1.Compare(version2)
+			assert.NoError(t, err)
+			assert.Equal(t, test.expected, result)
+		})
+	}
+}
+
+func TestGolangVersion_Compare_NilVersion(t *testing.T) {
+	version, err := NewVersion("v1.2.3", GolangFormat)
+	require.NoError(t, err)
+
+	result, err := version.Compare(nil)
+	require.Error(t, err)
+	assert.Equal(t, ErrNoVersionProvided, err)
+	assert.Equal(t, -1, result)
+}
+
+func TestGolangVersion_Compare_DifferentFormat(t *testing.T) {
+	golangVer, err := newGolangVersion("v1.2.3")
+	require.NoError(t, err)
+
+	semanticVer, err := NewVersion("1.2.3", SemanticFormat)
+	require.NoError(t, err)
+
+	result, err := golangVer.Compare(semanticVer)
+	require.NoError(t, err)
+	assert.Equal(t, 0, result)
+}
+
+func TestGolangVersion(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
 		expected golangVersion
-		wantErr  bool
+		wantErr  require.ErrorAssertionFunc
 	}{
 		{
 			name:  "normal semantic version",
@@ -61,156 +294,30 @@ func TestNewGolangVersion(t *testing.T) {
 			// If we get a package with this version, it means the SBOM
 			// doesn't have a real version number for the built package, so
 			// we can't compare it and should just return an error.
-			name:    "devel",
-			input:   "(devel)",
-			wantErr: true,
-		},
-		{
-			name:    "invalid input",
-			input:   "some nonsense",
-			wantErr: true,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			v, err := newGolangVersion(tc.input)
-			if tc.wantErr {
-				require.Error(t, err)
-				return
-			}
-			assert.Nil(t, err)
-			assert.Equal(t, tc.expected, v)
-		})
-	}
-}
-
-func TestCompareGolangVersions(t *testing.T) {
-	tests := []struct {
-		name         string
-		thisVersion  string
-		otherVersion string
-		want         int
-	}{
-		{
-			name:         "semver this version less",
-			thisVersion:  "v1.2.3",
-			otherVersion: "v1.2.4",
-			want:         -1,
-		},
-		{
-			name:         "semver this version more",
-			thisVersion:  "v1.3.4",
-			otherVersion: "v1.2.4",
-			want:         1,
-		},
-		{
-			name:         "semver equal",
-			thisVersion:  "v1.2.4",
-			otherVersion: "v1.2.4",
-			want:         0,
-		},
-		{
-			name:         "commit-sha this version less",
-			thisVersion:  "v0.0.0-20180116102854-5a71ef0e047d",
-			otherVersion: "v0.0.0-20190116102854-somehash",
-			want:         -1,
-		},
-		{
-			name:         "commit-sha this version more",
-			thisVersion:  "v0.0.0-20180216102854-5a71ef0e047d",
-			otherVersion: "v0.0.0-20180116102854-somehash",
-			want:         1,
-		},
-		{
-			name:         "commit-sha this version equal",
-			thisVersion:  "v0.0.0-20180116102854-5a71ef0e047d",
-			otherVersion: "v0.0.0-20180116102854-5a71ef0e047d",
-			want:         0,
-		},
-		{
-			name:         "this pre-semver is less than any semver",
-			thisVersion:  "v0.0.0-20180116102854-5a71ef0e047d",
-			otherVersion: "v0.0.1",
-			want:         -1,
-		},
-		{
-			name:         "semver is greater than timestamp",
-			thisVersion:  "v2.1.0",
-			otherVersion: "v0.0.0-20180116102854-5a71ef0e047d",
-			want:         1,
-		},
-		{
-			name:         "pseudoversion less than other pseudoversion",
-			thisVersion:  "v0.0.0-20170116102854-1ef0e047d5a7",
-			otherVersion: "v0.0.0-20180116102854-5a71ef0e047d",
-			want:         -1,
-		},
-		{
-			name:         "pseudoversion greater than other pseudoversion",
-			thisVersion:  "v0.0.0-20190116102854-8a3f0e047d5a",
-			otherVersion: "v0.0.0-20180116102854-5a71ef0e047d",
-			want:         1,
-		},
-		{
-			name:         "+incompatible doesn't break equality",
-			thisVersion:  "v3.2.0",
-			otherVersion: "v3.2.0+incompatible",
-			want:         0,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			a, err := newGolangVersion(tc.thisVersion)
-			require.NoError(t, err)
-			other, err := newGolangVersion(tc.otherVersion)
-			require.NoError(t, err)
-			got := a.compare(other)
-			assert.Equal(t, tc.want, got)
-		})
-	}
-}
-
-func Test_newGolangVersion_UnsupportedVersion(t *testing.T) {
-	tests := []struct {
-		name    string
-		v       string
-		want    golangVersion
-		wantErr require.ErrorAssertionFunc
-	}{
-		{
-			name: "devel",
-			v:    "(devel)",
+			name:  "devel",
+			input: "(devel)",
 			wantErr: func(t require.TestingT, err error, msgAndArgs ...interface{}) {
 				require.ErrorIs(t, err, ErrUnsupportedVersion)
 			},
 		},
 		{
 			name:    "invalid",
-			v:       "invalid",
+			input:   "invalid",
 			wantErr: require.Error,
 		},
-		{
-			name: "valid",
-			v:    "v1.2.3",
-			want: golangVersion{
-				raw: "v1.2.3",
-				obj: hashiVer.Must(hashiVer.NewSemver("v1.2.3")),
-			},
-		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.wantErr == nil {
-				tt.wantErr = require.NoError
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.wantErr == nil {
+				tc.wantErr = require.NoError
 			}
-			got, err := newGolangVersion(tt.v)
-			tt.wantErr(t, err)
+			v, err := newGolangVersion(tc.input)
+			tc.wantErr(t, err)
 			if err != nil {
 				return
 			}
-			assert.Equal(t, tt.want, got)
+			assert.Equal(t, tc.expected, v)
 		})
 	}
 }

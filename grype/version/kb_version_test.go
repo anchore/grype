@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestKbVersionCompare(t *testing.T) {
+func TestKbVersion_Compare(t *testing.T) {
 	tests := []struct {
 		name           string
 		thisVersion    string
@@ -63,7 +63,7 @@ func TestKbVersionCompare(t *testing.T) {
 	}
 }
 
-func TestKbVersionCompareEdgeCases(t *testing.T) {
+func TestKbVersion_Compare_EdgeCases(t *testing.T) {
 	tests := []struct {
 		name           string
 		setupFunc      func(testing.TB) (*Version, *Version)
@@ -80,25 +80,6 @@ func TestKbVersionCompareEdgeCases(t *testing.T) {
 			expectError:    true,
 			errorSubstring: "no version provided for comparison",
 		},
-		//{
-		//	name: "empty kbVersion in other object",
-		//	setupFunc: func(t testing.TB) (*Version, *Version) {
-		//		thisVer := newKBVersion("KB4562562")
-		//
-		//		otherVer := &Version{
-		//			Raw:    "KB4562563",
-		//			Format: KBFormat,
-		//		}
-		//
-		//		return &Version{
-		//			Raw:        "KB4562562",
-		//			Format:     KBFormat,
-		//			comparator: thisVer,
-		//		}, otherVer
-		//	},
-		//	expectError:    true,
-		//	errorSubstring: `cannot compare "KB" formatted version with empty version object`,
-		//},
 	}
 
 	for _, test := range tests {

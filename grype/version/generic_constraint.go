@@ -9,12 +9,12 @@ var _ Constraint = (*genericConstraint)(nil)
 
 type genericConstraint struct {
 	raw        string
-	expression constraintExpression
+	expression simpleRangeExpression
 	format     Format
 }
 
 func newGenericConstraint(format Format, raw string) (genericConstraint, error) {
-	constraints, err := newConstraintExpression(raw)
+	constraints, err := parseRangeExpression(raw)
 	if err != nil {
 		return genericConstraint{}, invalidFormatError(format, raw, err)
 	}
@@ -45,12 +45,8 @@ func (g genericConstraint) Satisfied(version *Version) (bool, error) {
 		}
 		return true, nil
 	}
-	if !g.supported(version.Format) {
+	if version.Format != g.format {
 		return false, newUnsupportedFormatError(g.format, version)
 	}
 	return g.expression.satisfied(g.format, version)
-}
-
-func (g genericConstraint) supported(format Format) bool {
-	return format == g.format
 }
