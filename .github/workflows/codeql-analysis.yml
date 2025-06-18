@@ -14,8 +14,10 @@ on:
     - cron: '0 14 * * 4'
 
 jobs:
-  security-scan:
+  CodeQL:
     uses: anchore/workflows/.github/workflows/codeql.yaml@add-codeql
+    with:
+      entrypoint: "./cmd/${{ github.event.repository.name }}"
     permissions:
       security-events: write
       contents: read
