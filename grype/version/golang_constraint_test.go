@@ -205,7 +205,7 @@ func TestString(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			c, err := newGolangConstraint(tc.constraint)
+			c, err := GetConstraint(tc.constraint, GolangFormat)
 			require.NoError(t, err)
 			assert.Equal(t, tc.expected, c.String())
 		})

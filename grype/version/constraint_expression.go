@@ -10,11 +10,10 @@ import (
 var ErrFallbackToFuzzy = fmt.Errorf("falling back to fuzzy version matching")
 
 type constraintExpression struct {
-	format Format
-	units  [][]constraintUnit // only supports or'ing a group of and'ed groups
+	units [][]constraintUnit // only supports or'ing a group of and'ed groups
 }
 
-func newConstraintExpression(phrase string, format Format) (constraintExpression, error) {
+func newConstraintExpression(phrase string) (constraintExpression, error) {
 	orParts, err := scanExpression(phrase)
 	if err != nil {
 		return constraintExpression{}, fmt.Errorf("unable to create constraint expression from=%q : %w", phrase, err)
@@ -39,18 +38,17 @@ func newConstraintExpression(phrase string, format Format) (constraintExpression
 	}
 
 	return constraintExpression{
-		format: format,
-		units:  orUnits,
+		units: orUnits,
 	}, fuzzyErr
 }
 
-func (c *constraintExpression) satisfied(version *Version) (bool, error) {
+func (c *constraintExpression) satisfied(format Format, version *Version) (bool, error) {
 	oneSatisfied := false
 	for i, andOperand := range c.units {
 		allSatisfied := true
 		for j, andUnit := range andOperand {
 			result, err := version.Compare(&Version{
-				Format: c.format,
+				Format: format,
 				Raw:    andUnit.rawVersion,
 			})
 			if err != nil {

@@ -9,61 +9,51 @@ type Constraint interface {
 	Satisfied(*Version) (bool, error)
 }
 
-type constraint struct {
-	Format     Format
-	Raw        string
-	constraint Constraint
-}
-
 func GetConstraint(constStr string, format Format) (Constraint, error) {
 	var c Constraint
 	var err error
 
 	switch format {
 	case ApkFormat:
-		c, err = newApkConstraint(constStr)
+		c, err = newGenericConstraint(ApkFormat, constStr)
 	case SemanticFormat:
-		c, err = newSemanticConstraint(constStr)
+		c, err = newGenericConstraint(SemanticFormat, constStr)
 	case BitnamiFormat:
-		c, err = newBitnamiConstraint(constStr)
+		c, err = newGenericConstraint(BitnamiFormat, constStr)
 	case GemFormat:
-		c, err = newGemfileConstraint(constStr)
+		c, err = newGenericConstraint(GemFormat, constStr)
 	case DebFormat:
-		c, err = newDebConstraint(constStr)
+		c, err = newGenericConstraint(DebFormat, constStr)
 	case GolangFormat:
-		c, err = newGolangConstraint(constStr)
+		c, err = newGenericConstraint(GolangFormat, constStr)
 	case MavenFormat:
-		c, err = newMavenConstraint(constStr)
+		c, err = newGenericConstraint(MavenFormat, constStr)
 	case RpmFormat:
-		c, err = newRpmConstraint(constStr)
+		c, err = newGenericConstraint(RpmFormat, constStr)
 	case PythonFormat:
-		c, err = newPep440Constraint(constStr)
+		c, err = newGenericConstraint(PythonFormat, constStr)
 	case KBFormat:
-		c, err = newKBConstraint(constStr)
+		c, err = newGenericConstraint(KBFormat, constStr)
 	case PortageFormat:
-		c, err = newPortageConstraint(constStr)
+		c, err = newGenericConstraint(PortageFormat, constStr)
 	case JVMFormat:
-		c, err = newJvmConstraint(constStr)
+		c, err = newGenericConstraint(JVMFormat, constStr)
 	case UnknownFormat:
 		c, err = newFuzzyConstraint(constStr, "unknown")
 	default:
 		return nil, fmt.Errorf("could not find constraint for given format: %s", format)
 	}
 
-	return constraint{
-		Format:     format,
-		Raw:        constStr,
-		constraint: c,
-	}, err
+	return c, err
 }
 
 // MustGetConstraint is meant for testing only, do not use within the library
 func MustGetConstraint(constStr string, format Format) Constraint {
-	constraint, err := GetConstraint(constStr, format)
+	c, err := GetConstraint(constStr, format)
 	if err != nil {
 		panic(err)
 	}
-	return constraint
+	return c
 }
 
 // NonFatalConstraintError should be used any time an unexpected but recoverable condition is encountered while
@@ -78,12 +68,4 @@ type NonFatalConstraintError struct {
 
 func (e NonFatalConstraintError) Error() string {
 	return fmt.Sprintf("Matching raw constraint %s against version %s caused a non-fatal error: %s", e.constraint, e.version, e.message)
-}
-
-func (c constraint) String() string {
-	return c.Raw
-}
-
-func (c constraint) Satisfied(version *Version) (bool, error) {
-	return c.constraint.Satisfied(version)
 }
