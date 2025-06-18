@@ -6,6 +6,7 @@
 name: CodeQL Security Scan
 
 on:
+  workflow_dispatch:
   push:
     paths:
      - '**'
