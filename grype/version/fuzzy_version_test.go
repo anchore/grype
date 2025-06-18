@@ -56,11 +56,9 @@ func TestFuzzyVersion_Compare(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, err := NewVersion(test.thisVersion, UnknownFormat) // explicitly use the fuzzy version format
-			require.NoError(t, err)
+			thisVer := NewVersion(test.thisVersion, UnknownFormat) // explicitly use the fuzzy version format
 
-			otherVer, err := NewVersion(test.otherVersion, test.otherFormat)
-			require.NoError(t, err)
+			otherVer := NewVersion(test.otherVersion, test.otherFormat)
 
 			result, err := thisVer.Compare(otherVer)
 
@@ -89,8 +87,7 @@ func TestFuzzyVersion_Compare_EdgeCases(t *testing.T) {
 		{
 			name: "nil version object",
 			setupFunc: func(t testing.TB) (*Version, *Version) {
-				thisVer, err := NewVersion("1.2.3", UnknownFormat)
-				require.NoError(t, err)
+				thisVer := NewVersion("1.2.3", UnknownFormat)
 
 				return thisVer, nil
 			},
@@ -135,8 +132,7 @@ func TestFuzzyVersion_Compare_NilScenarios(t *testing.T) {
 					raw:    "abc123",
 				}
 
-				otherVer, err := NewVersion("def456", UnknownFormat)
-				require.NoError(t, err)
+				otherVer := NewVersion("def456", UnknownFormat)
 
 				return fv, otherVer
 			},
@@ -151,8 +147,7 @@ func TestFuzzyVersion_Compare_NilScenarios(t *testing.T) {
 					raw:    "abc123",
 				}
 
-				otherVer, err := NewVersion("1.2.3", UnknownFormat)
-				require.NoError(t, err)
+				otherVer := NewVersion("1.2.3", UnknownFormat)
 
 				return fv, otherVer
 			},
@@ -167,8 +162,7 @@ func TestFuzzyVersion_Compare_NilScenarios(t *testing.T) {
 					raw:    "abc123",
 				}
 
-				otherVer, err := NewVersion("1.2.3", UnknownFormat)
-				require.NoError(t, err)
+				otherVer := NewVersion("1.2.3", UnknownFormat)
 
 				return fv, otherVer
 			},
@@ -187,8 +181,7 @@ func TestFuzzyVersion_Compare_NilScenarios(t *testing.T) {
 				}
 
 				// create other version that will result in nil semver from newFuzzySemver
-				otherVer, err := NewVersion("abc123", UnknownFormat)
-				require.NoError(t, err)
+				otherVer := NewVersion("abc123", UnknownFormat)
 
 				return fv, otherVer
 			},
@@ -209,8 +202,7 @@ func TestFuzzyVersion_Compare_NilScenarios(t *testing.T) {
 				// this should create a version that when passed to newFuzzySemver
 				// results in a semanticVersion with nil obj (this might be hard to achieve
 				// but we'll test the logic path)
-				otherVer, err := NewVersion("not-semver-compliant", UnknownFormat)
-				require.NoError(t, err)
+				otherVer := NewVersion("not-semver-compliant", UnknownFormat)
 
 				return fv, otherVer
 			},
@@ -228,8 +220,7 @@ func TestFuzzyVersion_Compare_NilScenarios(t *testing.T) {
 					raw:    "1.2.3",
 				}
 
-				otherVer, err := NewVersion("1.2.4", UnknownFormat)
-				require.NoError(t, err)
+				otherVer := NewVersion("1.2.4", UnknownFormat)
 
 				return fv, otherVer
 			},

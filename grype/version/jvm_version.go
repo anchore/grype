@@ -44,10 +44,6 @@ func newJvmVersion(raw string) (jvmVersion, error) {
 	}, nil
 }
 
-// func (v jvmVersion) acceptsFormats() *internal.OrderedSet[Format] {
-//	return internal.NewOrderedSet(JVMFormat, SemanticFormat)
-//}
-
 func (v jvmVersion) Compare(other *Version) (int, error) {
 	if other == nil {
 		return -1, ErrNoVersionProvided

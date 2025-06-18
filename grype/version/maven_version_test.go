@@ -155,11 +155,8 @@ func TestMavenVersion_Compare(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.v1+" vs "+tt.v2, func(t *testing.T) {
-			v1, err := NewVersion(tt.v1, MavenFormat)
-			assert.NoError(t, err)
-
-			v2, err := NewVersion(tt.v2, MavenFormat)
-			assert.NoError(t, err)
+			v1 := NewVersion(tt.v1, MavenFormat)
+			v2 := NewVersion(tt.v2, MavenFormat)
 
 			if got, _ := v1.Compare(v2); got != tt.want {
 				t.Errorf("Compare() = %v, want %v", got, tt.want)
@@ -202,11 +199,8 @@ func TestMavenVersion_Compare_Format(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, err := NewVersion(test.thisVersion, MavenFormat)
-			require.NoError(t, err)
-
-			otherVer, err := NewVersion(test.otherVersion, test.otherFormat)
-			require.NoError(t, err)
+			thisVer := NewVersion(test.thisVersion, MavenFormat)
+			otherVer := NewVersion(test.otherVersion, test.otherFormat)
 
 			result, err := thisVer.Compare(otherVer)
 
@@ -234,8 +228,7 @@ func TestMavenVersion_Compare_EdgeCases(t *testing.T) {
 		{
 			name: "nil version object",
 			setupFunc: func(t testing.TB) (*Version, *Version) {
-				thisVer, err := NewVersion("1.2.3", MavenFormat)
-				require.NoError(t, err)
+				thisVer := NewVersion("1.2.3", MavenFormat)
 				return thisVer, nil
 			},
 			expectError:    true,
@@ -248,14 +241,12 @@ func TestMavenVersion_Compare_EdgeCases(t *testing.T) {
 				// version library handles most comparisons, but we can simulate the
 				// error condition by creating a mock that would trigger the last
 				// error condition in the Compare function
-				thisVer, err := NewVersion("1.2.3", MavenFormat)
-				require.NoError(t, err)
+				thisVer := NewVersion("1.2.3", MavenFormat)
 
 				// We'd need to modify the otherVer manually to create a scenario
 				// where none of the comparison methods return true, which is unlikely
 				// in real usage but could be simulated for test coverage
-				otherVer, err := NewVersion("1.2.4", MavenFormat)
-				require.NoError(t, err)
+				otherVer := NewVersion("1.2.4", MavenFormat)
 
 				return thisVer, otherVer
 			},

@@ -59,14 +59,12 @@ func TestVersionCompare(t *testing.T) {
 					if tc.expectErr == nil {
 						tc.expectErr = require.NoError
 					}
-					v1, err := NewVersion(tc.v1, format)
-					require.NoError(t, err, "failed to create version1")
+					v1 := NewVersion(tc.v1, format)
 					require.Equal(t, format, v1.Format)
 
 					var v2 *Version
 					if tc.v2 != "" {
-						v2, err = NewVersion(tc.v2, format)
-						require.NoError(t, err, "failed to create version2")
+						v2 = NewVersion(tc.v2, format)
 						require.Equal(t, format, v2.Format)
 					}
 
@@ -85,12 +83,10 @@ func TestVersionCompare(t *testing.T) {
 }
 
 func TestVersion_UpgradeUnknownRightSideComparison(t *testing.T) {
-	v1, err := NewVersion("1.0.0", SemanticFormat)
-	require.NoError(t, err)
+	v1 := NewVersion("1.0.0", SemanticFormat)
 
 	// test if we can upgrade an unknown format to a known format when the left hand side is known
-	v2, err := NewVersion("1.0.0", UnknownFormat)
-	require.NoError(t, err)
+	v2 := NewVersion("1.0.0", UnknownFormat)
 
 	result, err := v1.Compare(v2)
 	assert.NoError(t, err)
@@ -120,15 +116,8 @@ func TestVersionCompareSameFormat(t *testing.T) {
 		t.Run(fmt.name, func(t *testing.T) {
 			// just test that we can create and compare versions of this format
 			// without errors - not testing the actual comparison logic
-			v1, err := NewVersion("1.0.0", fmt.format)
-			if err != nil {
-				t.Skipf("Skipping %s format, couldn't create version: %v", fmt.name, err)
-			}
-
-			v2, err := NewVersion("1.0.0", fmt.format)
-			if err != nil {
-				t.Skipf("Skipping %s format, couldn't create second version: %v", fmt.name, err)
-			}
+			v1 := NewVersion("1.0.0", fmt.format)
+			v2 := NewVersion("1.0.0", fmt.format)
 
 			result, err := v1.Compare(v2)
 			assert.NoError(t, err, "comparison error")

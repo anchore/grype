@@ -124,13 +124,11 @@ func TestJVMVersion_Compare(t *testing.T) {
 	for _, test := range tests {
 		name := test.v1 + "_vs_" + test.v2
 		t.Run(name, func(t *testing.T) {
-			v1, err := NewVersion(test.v1, JVMFormat)
+			v1 := NewVersion(test.v1, JVMFormat)
 			require.NotNil(t, v1)
-			require.NoError(t, err)
 
-			v2, err := NewVersion(test.v2, JVMFormat)
+			v2 := NewVersion(test.v2, JVMFormat)
 			require.NotNil(t, v2)
-			require.NoError(t, err)
 
 			actual, err := v1.Compare(v2)
 			require.NoError(t, err)
@@ -266,8 +264,7 @@ func TestJvmVersion_Compare_Formats(t *testing.T) {
 			thisVer, err := newJvmVersion(test.thisVersion)
 			require.NoError(t, err)
 
-			otherVer, err := NewVersion(test.otherVersion, test.otherFormat)
-			require.NoError(t, err)
+			otherVer := NewVersion(test.otherVersion, test.otherFormat)
 
 			result, err := thisVer.Compare(otherVer)
 
@@ -294,8 +291,7 @@ func TestJvmVersion_Compare_EdgeCases(t *testing.T) {
 		{
 			name: "nil version object",
 			setupFunc: func(t testing.TB) (*Version, *Version) {
-				thisVer, err := NewVersion("1.8.0_275", JVMFormat)
-				require.NoError(t, err)
+				thisVer := NewVersion("1.8.0_275", JVMFormat)
 				return thisVer, nil
 			},
 			expectError:    true,

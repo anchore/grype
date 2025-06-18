@@ -46,8 +46,7 @@ func TestGolangVersion_Constraint(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			c, err := GetConstraint(tc.constraint, GolangFormat)
 			require.NoError(t, err)
-			v, err := NewVersion(tc.version, GolangFormat)
-			require.NoError(t, err)
+			v := NewVersion(tc.version, GolangFormat)
 			sat, err := c.Satisfied(v)
 			require.NoError(t, err)
 			assert.Equal(t, tc.satisfied, sat)
@@ -207,11 +206,9 @@ func TestGolangVersion_Compare(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			version1, err := NewVersion(test.version1, GolangFormat)
-			require.NoError(t, err)
+			version1 := NewVersion(test.version1, GolangFormat)
 
-			version2, err := NewVersion(test.version2, GolangFormat)
-			require.NoError(t, err)
+			version2 := NewVersion(test.version2, GolangFormat)
 
 			result, err := version1.Compare(version2)
 			assert.NoError(t, err)
@@ -221,8 +218,7 @@ func TestGolangVersion_Compare(t *testing.T) {
 }
 
 func TestGolangVersion_Compare_NilVersion(t *testing.T) {
-	version, err := NewVersion("v1.2.3", GolangFormat)
-	require.NoError(t, err)
+	version := NewVersion("v1.2.3", GolangFormat)
 
 	result, err := version.Compare(nil)
 	require.Error(t, err)
@@ -234,8 +230,7 @@ func TestGolangVersion_Compare_DifferentFormat(t *testing.T) {
 	golangVer, err := newGolangVersion("v1.2.3")
 	require.NoError(t, err)
 
-	semanticVer, err := NewVersion("1.2.3", SemanticFormat)
-	require.NoError(t, err)
+	semanticVer := NewVersion("1.2.3", SemanticFormat)
 
 	result, err := golangVer.Compare(semanticVer)
 	require.NoError(t, err)

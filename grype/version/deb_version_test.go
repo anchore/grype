@@ -112,8 +112,7 @@ func TestDebVersion_Compare(t *testing.T) {
 			thisVer, err := newDebVersion(test.thisVersion)
 			require.NoError(t, err)
 
-			otherVer, err := NewVersion(test.otherVersion, test.otherFormat)
-			require.NoError(t, err)
+			otherVer := NewVersion(test.otherVersion, test.otherFormat)
 
 			result, err := thisVer.Compare(otherVer)
 
@@ -141,8 +140,7 @@ func TestDebVersion_Compare_EdgeCases(t *testing.T) {
 		{
 			name: "nil version object",
 			setupFunc: func(t testing.TB) (*Version, *Version) {
-				thisVer, err := NewVersion("1.2.3-1", DebFormat)
-				require.NoError(t, err)
+				thisVer := NewVersion("1.2.3-1", DebFormat)
 				return thisVer, nil
 			},
 			expectError:    true,
@@ -151,8 +149,7 @@ func TestDebVersion_Compare_EdgeCases(t *testing.T) {
 		{
 			name: "empty debVersion in other object",
 			setupFunc: func(t testing.TB) (*Version, *Version) {
-				thisVer, err := NewVersion("1.2.3-1", DebFormat)
-				require.NoError(t, err)
+				thisVer := NewVersion("1.2.3-1", DebFormat)
 				otherVer := &Version{
 					Raw:    "1.2.3-2",
 					Format: DebFormat,

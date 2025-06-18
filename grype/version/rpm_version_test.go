@@ -114,15 +114,8 @@ func TestRpmVersion_Compare(t *testing.T) {
 	for _, test := range tests {
 		name := test.v1 + "_vs_" + test.v2
 		t.Run(name, func(t *testing.T) {
-			v1, err := NewVersion(test.v1, RpmFormat)
-			if err != nil {
-				t.Fatalf("failed to create v1: %+v", err)
-			}
-
-			v2, err := NewVersion(test.v2, RpmFormat)
-			if err != nil {
-				t.Fatalf("failed to create v2: %+v", err)
-			}
+			v1 := NewVersion(test.v1, RpmFormat)
+			v2 := NewVersion(test.v2, RpmFormat)
 
 			actual, err := v1.Compare(v2)
 			require.NoError(t, err, "unexpected error comparing versions: %s vs %s", test.v1, test.v2)
@@ -165,11 +158,9 @@ func TestRpmVersion_Compare_Format(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, err := NewVersion(test.thisVersion, RpmFormat)
-			require.NoError(t, err)
+			thisVer := NewVersion(test.thisVersion, RpmFormat)
 
-			otherVer, err := NewVersion(test.otherVersion, test.otherFormat)
-			require.NoError(t, err)
+			otherVer := NewVersion(test.otherVersion, test.otherFormat)
 
 			result, err := thisVer.Compare(otherVer)
 
@@ -197,8 +188,7 @@ func TestRpmVersion_Compare_EdgeCases(t *testing.T) {
 		{
 			name: "nil version object",
 			setupFunc: func(t testing.TB) (*Version, *Version) {
-				thisVer, err := NewVersion("1.2.3-1", RpmFormat)
-				require.NoError(t, err)
+				thisVer := NewVersion("1.2.3-1", RpmFormat)
 				return thisVer, nil
 			},
 			expectError:    true,

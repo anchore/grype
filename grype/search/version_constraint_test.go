@@ -40,8 +40,7 @@ func Test_ByVersion(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			v, err := version.NewVersion(tt.version, version.SemanticFormat)
-			require.NoError(t, err)
+			v := version.NewVersion(tt.version, version.SemanticFormat)
 			constraint := ByVersion(*v)
 			matches, reason, err := constraint.MatchesVulnerability(tt.input)
 			wantErr := require.NoError

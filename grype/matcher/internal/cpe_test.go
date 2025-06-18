@@ -1063,10 +1063,8 @@ func TestFilterCPEsByVersion(t *testing.T) {
 			}
 
 			var versionObj *version.Version
-			var err error
 			if test.version != "" {
-				versionObj, err = version.NewVersion(test.version, version.UnknownFormat)
-				require.NoError(t, err)
+				versionObj = version.NewVersion(test.version, version.UnknownFormat)
 			}
 
 			// run the test subject...

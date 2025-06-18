@@ -212,8 +212,7 @@ func TestPep440Version_Constraint(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			c, err := GetConstraint(tc.constraint, PythonFormat)
 			require.NoError(t, err)
-			v, err := NewVersion(tc.version, PythonFormat)
-			require.NoError(t, err)
+			v := NewVersion(tc.version, PythonFormat)
 			sat, err := c.Satisfied(v)
 			require.NoError(t, err)
 			assert.Equal(t, tc.satisfied, sat)
@@ -266,8 +265,7 @@ func TestPep440Version_Compare(t *testing.T) {
 			thisVer, err := newPep440Version(test.thisVersion)
 			require.NoError(t, err)
 
-			otherVer, err := NewVersion(test.otherVersion, test.otherFormat)
-			require.NoError(t, err)
+			otherVer := NewVersion(test.otherVersion, test.otherFormat)
 
 			result, err := thisVer.Compare(otherVer)
 
@@ -295,8 +293,7 @@ func TestPep440Version_Compare_EdgeCases(t *testing.T) {
 		{
 			name: "nil version object",
 			setupFunc: func(t testing.TB) (*Version, *Version) {
-				thisVer, err := NewVersion("1.2.3", PythonFormat)
-				require.NoError(t, err)
+				thisVer := NewVersion("1.2.3", PythonFormat)
 				return thisVer, nil
 			},
 			expectError:    true,

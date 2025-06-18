@@ -15,32 +15,23 @@ type Version struct {
 	comparators map[Format]Comparator
 }
 
-func NewVersion(raw string, format Format) (*Version, error) {
-	version := &Version{
+func NewVersion(raw string, format Format) *Version {
+	return &Version{
 		Raw:    raw,
 		Format: format,
 	}
-
-	// the comparator is implicitly set to the version object.
-	// This is really important to do since the caller already assumes that invalid values for the given version
-	// format will return an error, so we need to ensure that the comparator is set before returning the version.
-	_, err := version.getComparator(format)
-	if err != nil {
-		return nil, err
-	}
-
-	return version, nil
 }
 
-func NewVersionFromPkg(p pkg.Package) (*Version, error) {
-	format := FormatFromPkg(p)
-
-	ver, err := NewVersion(p.Version, format)
-	if err != nil {
-		return nil, err
+func NewVersionFromPkg(p pkg.Package) *Version {
+	if p.Version == "" {
+		return nil
 	}
+	return NewVersion(p.Version, FormatFromPkg(p))
+}
 
-	return ver, nil
+func (v *Version) Validate() error {
+	_, err := v.getComparator(v.Format)
+	return err
 }
 
 //nolint:funlen

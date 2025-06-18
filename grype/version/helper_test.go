@@ -31,8 +31,7 @@ func (c *testCase) assertVersionConstraint(t *testing.T, format Format, constrai
 		c.wantError = require.NoError
 	}
 
-	version, err := NewVersion(c.version, format)
-	assert.NoError(t, err, "unexpected error from NewVersion: %v", err)
+	version := NewVersion(c.version, format)
 
 	isSatisfied, err := constraint.Satisfied(version)
 	c.wantError(t, err)
