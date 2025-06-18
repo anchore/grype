@@ -6,6 +6,7 @@
 name: CodeQL Security Scan
 
 on:
+  workflow_dispatch:
   push:
     paths:
      - '**'
@@ -45,16 +46,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-    - name: Utilize Go Module Cache
-      uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
-      with:
-        path: |
-          ~/go/pkg/mod
-          ~/.cache/go-build
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-
     - name: Set correct version of Golang to use during CodeQL run
       uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
       with:
@@ -82,7 +73,7 @@ jobs:
     #    and modify them (or add more) to build your code if your project
     #    uses a compiled language
     - name: Build grype for CodeQL
-      run: make grype
+      run: make build
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@ce28f5bb42b7a9f2c824e633a3f6ee835bab6858 # v3.29.0
