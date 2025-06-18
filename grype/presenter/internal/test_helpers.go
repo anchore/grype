@@ -390,8 +390,8 @@ func generatePackages(t *testing.T) []syftPkg.Package {
 				{
 					Attributes: cpe.Attributes{
 						Part:     "a",
-						Vendor:   "anchore",
-						Product:  "engine",
+						Vendor:   "anchore:oss",
+						Product:  "anchore/engine",
 						Version:  "0.9.2",
 						Language: "en",
 					},
