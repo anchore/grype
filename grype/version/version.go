@@ -21,6 +21,14 @@ func NewVersion(raw string, format Format) (*Version, error) {
 		Format: format,
 	}
 
+	// the comparator is implicitly set to the version object.
+	// This is really important to do since the caller already assumes that invalid values for the given version
+	// format will return an error, so we need to ensure that the comparator is set before returning the version.
+	_, err := version.getComparator(format)
+	if err != nil {
+		return nil, err
+	}
+
 	return version, nil
 }
 
