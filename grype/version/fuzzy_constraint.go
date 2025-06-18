@@ -29,7 +29,7 @@ func newFuzzyConstraint(phrase, hint string) (fuzzyConstraint, error) {
 		}, nil
 	}
 
-	constraints, err := newConstraintExpression(phrase, UnknownFormat)
+	constraints, err := newConstraintExpression(phrase)
 	if err != nil {
 		return fuzzyConstraint{}, fmt.Errorf("could not create fuzzy constraint: %+v", err)
 	}
@@ -97,7 +97,7 @@ func (f fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
 		}
 	}
 	// semver didn't work, use fuzzy part matching instead...
-	return f.constraints.satisfied(verObj)
+	return f.constraints.satisfied(UnknownFormat, verObj)
 }
 
 func (f fuzzyConstraint) String() string {

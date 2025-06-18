@@ -97,7 +97,7 @@ func TestVersionEqualityJava(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			constraint, err := newMavenConstraint(test.constraint)
+			constraint, err := GetConstraint(test.constraint, MavenFormat)
 
 			assert.NoError(t, err, "unexpected error from newMavenConstraint %s: %v", test.version, err)
 			test.assertVersionConstraint(t, MavenFormat, constraint)

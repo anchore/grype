@@ -184,43 +184,10 @@ func TestPortageConstraint_String(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			constraint, err := newPortageConstraint(test.constraint)
+			constraint, err := GetConstraint(test.constraint, PortageFormat)
 			assert.NoError(t, err)
 
 			result := constraint.String()
-			assert.Equal(t, test.expected, result)
-		})
-	}
-}
-
-func TestPortageConstraint_Supported(t *testing.T) {
-	constraint := portageConstraint{}
-
-	tests := []struct {
-		name     string
-		format   Format
-		expected bool
-	}{
-		{
-			name:     "portage format supported",
-			format:   PortageFormat,
-			expected: true,
-		},
-		{
-			name:     "semantic format not supported",
-			format:   SemanticFormat,
-			expected: false,
-		},
-		{
-			name:     "unknown format not supported",
-			format:   UnknownFormat,
-			expected: false,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			result := constraint.supported(test.format)
 			assert.Equal(t, test.expected, result)
 		})
 	}
