@@ -173,7 +173,6 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 			return nil
 		},
 	)
-
 	if err != nil {
 		return err
 	}
@@ -402,7 +401,9 @@ func validateRootArgs(cmd *cobra.Command, args []string) error {
 }
 
 func applyVexRules(opts *options.Grype) error {
-	if len(opts.Ignore) == 0 && len(opts.VexDocuments) > 0 {
+	// If any vex documents are provided, assume the user intends to ignore vulnerabilities that those
+	// vex documents list as "fixed" or "not_affected".
+	if len(opts.VexDocuments) > 0 {
 		opts.Ignore = append(opts.Ignore, ignoreVEXFixedNotAffected...)
 	}
 
