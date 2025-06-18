@@ -16,6 +16,8 @@ on:
 jobs:
   security-scan:
     uses: anchore/workflows/.github/workflows/codeql.yaml@add-codeql
+    with:
+      build-command: 'make build'
     permissions:
       security-events: write
       contents: read
