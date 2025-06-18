@@ -9,10 +9,6 @@ import (
 
 var _ Comparator = (*Version)(nil)
 
-// ErrUnsupportedVersion is returned when a version string cannot be parsed into a rich version object
-// for a known unsupported case (e.g. golang "devel" version).
-var ErrUnsupportedVersion = fmt.Errorf("unsupported version value")
-
 type Version struct {
 	Raw         string
 	Format      Format
@@ -47,6 +43,7 @@ func (v *Version) getComparator(format Format) (Comparator, error) {
 	if comparator, ok := v.comparators[format]; ok {
 		return comparator, nil
 	}
+
 	var comparator Comparator
 	var err error
 	switch format {
@@ -78,7 +75,7 @@ func (v *Version) getComparator(format Format) (Comparator, error) {
 	case UnknownFormat:
 		comparator, err = newFuzzyVersion(v.Raw)
 	default:
-		err = fmt.Errorf("no comparator populated (format=%s)", v.Format)
+		err = fmt.Errorf("no comparator available for format %q", v.Format)
 	}
 
 	v.comparators[format] = comparator

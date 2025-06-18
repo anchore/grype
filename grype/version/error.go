@@ -5,6 +5,11 @@ import (
 	"fmt"
 )
 
+// ErrUnsupportedVersion is returned when a version string cannot be parsed because the value is known
+// to cause issues or is otherwise problematic (e.g. golang "devel" version).
+var ErrUnsupportedVersion = fmt.Errorf("unsupported version value")
+
+// ErrNoVersionProvided is returned when a version is attempted to be compared, but no other version is provided to compare against.
 var ErrNoVersionProvided = errors.New("no version provided for comparison")
 
 // UnsupportedComparisonError represents an error when a format doesn't match the expected format
