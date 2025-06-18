@@ -15,7 +15,7 @@ on:
 
 jobs:
   CodeQL:
-    uses: anchore/workflows/.github/workflows/codeql.yaml@add-codeql
+    uses: anchore/workflows/.github/workflows/codeql-go.yaml@main
     with:
       entrypoint: "./cmd/${{ github.event.repository.name }}"
     permissions:
