@@ -7,8 +7,6 @@ import (
 	"text/scanner"
 )
 
-var ErrFallbackToFuzzy = fmt.Errorf("falling back to fuzzy version matching")
-
 type constraintExpression struct {
 	units [][]constraintUnit // only supports or'ing a group of and'ed groups
 }
