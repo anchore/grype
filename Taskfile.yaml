@@ -40,7 +40,13 @@ tasks:
 
   ## High-level tasks #################################
 
+  # note: the default task should not run levels of test, only build the project.
   default:
+    desc: Build the project
+    cmds:
+      - task: build
+
+  validate:
     desc: Run all validation tasks
     aliases:
       - pr-validations
