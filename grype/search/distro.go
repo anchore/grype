@@ -11,13 +11,26 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
-func ByDistroRange(d distro.Distro, minRange, maxRange version.Range) vulnerability.Criteria {
+func ByDistroRange(ranges ...DistroRange) vulnerability.Criteria {
+
+	for i := range ranges {
+		r := &ranges[i]
+		var variant string
+		for j := range r.Ranges {
+			var major, minor, remaining string
+			rr := &r.Ranges[j]
+			major, minor, remaining, variant = distro.ParseVersion(rr.Version)
+			rr.major = major
+			rr.minor = minor
+			rr.remaining = remaining
+			if r.Variant != "" && variant != "" {
+				r.Variant = variant
+			}
+		}
+	}
+
 	return &DistroRangeCriteria{
-		Type:    d.Type,
-		Min:     minRange,
-		Max:     maxRange,
-		Variant: d.Variant,
-		IDLike:  d.IDLike,
+		Ranges: ranges,
 	}
 }
 
@@ -29,11 +42,43 @@ func ByDistro(d ...distro.Distro) vulnerability.Criteria {
 }
 
 type DistroRangeCriteria struct {
+	Ranges []DistroRange
+}
+
+type DistroRange struct {
 	Type    distro.Type
-	Min     version.Range
-	Max     version.Range
+	Ranges  []DistroOpenRange
 	Variant string
 	IDLike  []string
+}
+
+func (d DistroRange) Name() string {
+	return string(d.Type)
+}
+
+type DistroOpenRange struct {
+	Version  string
+	Operator version.Operator
+
+	// fields populated in the constructor
+
+	major     string
+	minor     string
+	remaining string
+}
+
+// MajorVersion returns the major version value from the pseudo-semantically versioned distro version value.
+func (d DistroOpenRange) MajorVersion() string {
+	return d.major
+}
+
+// MinorVersion returns the minor version value from the pseudo-semantically versioned distro version value.
+func (d DistroOpenRange) MinorVersion() string {
+	return d.minor
+}
+
+func (d DistroOpenRange) RemainingVersion() string {
+	return d.remaining
 }
 
 func (c *DistroRangeCriteria) MatchesVulnerability(value vulnerability.Vulnerability) (bool, string, error) {

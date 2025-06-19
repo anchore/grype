@@ -33,6 +33,7 @@ type GetAffectedPackageOptions struct {
 	PreloadVulnerability  bool
 	PreloadBlob           bool
 	OSs                   OSSpecifiers
+	OSRanges              OSRangeSpecifiers
 	Vulnerabilities       VulnerabilitySpecifiers
 	AllowBroadCPEMatching bool
 	Limit                 int
@@ -224,7 +225,7 @@ func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config
 		return nil, err
 	}
 
-	query, err = s.handleOSOptions(query, config.OSs)
+	query, err = s.handleOSOptions(query, config.OSs, config.OSRanges)
 	if err != nil {
 		return nil, err
 	}
@@ -348,25 +349,23 @@ func (s *affectedPackageStore) handleVulnerabilityOptions(query *gorm.DB, config
 	return handleVulnerabilityOptions(s.db, query, configs...)
 }
 
-func (s *affectedPackageStore) handleOSOptions(query *gorm.DB, configs []*OSSpecifier) (*gorm.DB, error) {
+func (s *affectedPackageStore) handleOSOptions(query *gorm.DB, configs []*OSSpecifier, rangeConfigs []OSRangeSpecifier) (*gorm.DB, error) {
 	ids := map[int64]struct{}{}
 
-	if len(configs) == 0 {
+	if len(configs) == 0 && len(rangeConfigs) == 0 {
 		configs = append(configs, AnyOSSpecified)
 	}
 
 	var hasAny, hasNone, hasSpecific bool
+	// process OS specs...
 	for _, config := range configs {
 		switch {
 		case hasOSSpecified(config):
-			curResolved, err := s.osStore.resolveOperatingSystems(*config)
+			curResolved, err := s.osStore.GetOperatingSystems(*config)
 			if err != nil {
 				return nil, fmt.Errorf("unable to resolve operating system: %w", err)
 			}
 
-			if len(curResolved) == 0 {
-				return nil, ErrOSNotPresent
-			}
 			hasSpecific = true
 			for _, d := range curResolved {
 				ids[int64(d.ID)] = struct{}{}
@@ -383,11 +382,33 @@ func (s *affectedPackageStore) handleOSOptions(query *gorm.DB, configs []*OSSpec
 		return nil, fmt.Errorf("cannot mix specific OS with 'any' or 'none' OS specifiers")
 	}
 
+	var hasRange = len(rangeConfigs) > 0
+	if (hasAny || hasNone) && hasRange {
+		return nil, fmt.Errorf("cannot mix OS ranges with 'any' or 'none' OS range specifiers")
+	}
+
+	// process OS ranges...
+	for _, rangeConfig := range rangeConfigs {
+		curResolved, err := s.osStore.GetOperatingSystemsInRange(rangeConfig)
+		if err != nil {
+			return nil, fmt.Errorf("unable to resolve operating system range: %w", err)
+		}
+
+		for _, d := range curResolved {
+			ids[int64(d.ID)] = struct{}{}
+		}
+	}
+
 	switch {
 	case hasAny:
 		return query, nil
 	case hasNone:
 		return query.Where("operating_system_id IS NULL"), nil
+	}
+
+	// we were told to filter by specific OSes but found no matching OSes...
+	if len(ids) == 0 {
+		return nil, ErrOSNotPresent
 	}
 
 	query = query.Where("affected_package_handles.operating_system_id IN ?", maps.Keys(ids))

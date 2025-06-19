@@ -3,16 +3,18 @@ package v6
 import (
 	"errors"
 	"fmt"
+	"github.com/anchore/grype/grype/version"
 	"regexp"
 	"strings"
 
 	"gorm.io/gorm"
 
-	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/internal/log"
 )
 
 type OSSpecifiers []*OSSpecifier
+
+type OSRangeSpecifiers []OSRangeSpecifier
 
 // OSSpecifier is a struct that represents a distro in a way that can be used to query the affected package store.
 type OSSpecifier struct {
@@ -33,9 +35,56 @@ type OSSpecifier struct {
 
 	// Variant is a string that represents a variant of the distro (e.g. "eus" for RHEL EUS releases)
 	Variant string
+}
 
-	// Operator is the operator used to match the version (e.g. "=", ">=", "<", etc. default is "" which is equivalent to "=")
-	Range version.Operator
+type OSRangeSpecifier struct {
+	// Name of the distro as identified by the ID field in /etc/os-release (or similar normalized name, e.g. "oracle" instead of "ol")
+	Name string
+
+	Ranges []OSVersionRange
+
+	// Variant is a string that represents a variant of the distro (e.g. "eus" for RHEL EUS releases)
+	Variant string
+}
+
+type OSVersionRange struct {
+	// MajorVersion is the first field in the VERSION_ID field in /etc/os-release (e.g. 7 in "7.0.1406")
+	MajorVersion string
+
+	// MinorVersion is the second field in the VERSION_ID field in /etc/os-release (e.g. 0 in "7.0.1406")
+	MinorVersion string
+
+	// RemainingVersion is anything after the minor version in the VERSION_ID field in /etc/os-release (e.g. 1406 in "7.0.1406")
+	RemainingVersion string
+
+	// LabelVersion is a string that represents a floating version (e.g. "edge" or "unstable") or is the CODENAME field in /etc/os-release (e.g. "wheezy" for debian 7)
+	LabelVersion string
+
+	Operator version.Operator
+}
+
+func (r *OSRangeSpecifier) expression() string {
+	if len(r.Ranges) == 0 {
+		return ""
+	}
+
+	var parts []string
+	for _, v := range r.Ranges {
+		if v.MajorVersion != "" {
+			part := v.MajorVersion
+			if v.MinorVersion != "" {
+				part += "." + v.MinorVersion
+				if v.RemainingVersion != "" {
+					part += "." + v.RemainingVersion
+				}
+			}
+			parts = append(parts, string(v.Operator)+part)
+		} else if v.LabelVersion != "" {
+			parts = append(parts, string(v.Operator)+v.LabelVersion)
+		}
+	}
+
+	return strings.Join(parts, ",")
 }
 
 func (d *OSSpecifier) clean() {
@@ -124,6 +173,8 @@ func (d OSSpecifier) matchesVersionPattern(pattern string) bool {
 }
 
 type OperatingSystemStoreReader interface {
+	GetOperatingSystems(OSSpecifier) ([]OperatingSystem, error)
+	GetOperatingSystemsInRange(dr OSRangeSpecifier) ([]OperatingSystem, error)
 }
 
 type operatingSystemStore struct {
@@ -193,20 +244,102 @@ func (s *operatingSystemStore) addOsFromPackages(packages ...*AffectedPackageHan
 	return nil
 }
 
-func (s *operatingSystemStore) resolveOperatingSystems(d OSSpecifier) ([]OperatingSystem, error) {
-	if d.Name == "" && d.LabelVersion == "" {
-		return nil, ErrMissingOSIdentification
+func (s *operatingSystemStore) GetOperatingSystemsInRange(dr OSRangeSpecifier) ([]OperatingSystem, error) {
+	switch len(dr.Ranges) {
+	case 0:
+		return nil, fmt.Errorf("no ranges specified for OS %q", dr.Name)
+	case 1, 2:
+		break // ok, we can handle 1 or 2 ranges
+	default:
+		return nil, fmt.Errorf("too many ranges specified for OS %q: %d", dr.Name, len(dr.Ranges))
 	}
 
-	// search for aliases for the given distro; we intentionally map some OSs to other OSs in terms of
-	// vulnerability (e.g. `centos` is an alias for `rhel`). If an alias is found always use that alias in
-	// searches (there will never be anything in the DB for aliased distros).
-	if err := s.applyOSAlias(&d); err != nil {
-		return nil, err
+	// create an os specifier for each part of the range
+	var ds []OSSpecifier
+	var name string
+	for i, r := range dr.Ranges {
+		if dr.Name == "" && r.LabelVersion == "" {
+			return nil, ErrMissingOSIdentification
+		}
+
+		d := OSSpecifier{
+			Name:             dr.Name,
+			MajorVersion:     r.MajorVersion,
+			MinorVersion:     r.MinorVersion,
+			RemainingVersion: r.RemainingVersion,
+			LabelVersion:     r.LabelVersion,
+			Variant:          dr.Variant,
+		}
+
+		// search for aliases for the given distro; we intentionally map some OSs to other OSs in terms of
+		// vulnerability (e.g. `centos` is an alias for `rhel`). If an alias is found always use that alias in
+		// searches (there will never be anything in the DB for aliased distros).
+		if err := s.applyOSAlias(&d); err != nil {
+			return nil, err
+		}
+
+		if d.MajorVersion == "" {
+			return nil, fmt.Errorf("numeric version is required to select on OS ranges for %q", d.Name)
+		}
+
+		if d.Name == "" {
+			return nil, ErrMissingOSIdentification
+		}
+
+		if name == "" {
+			name = d.Name
+		}
+
+		d.clean()
+		ds = append(ds, d)
+
+		// we preserve any alias transformations that were applied to the OS specifier when we later build an expression
+		dr.Ranges[i] = OSVersionRange{
+			MajorVersion:     d.MajorVersion,
+			MinorVersion:     d.MinorVersion,
+			RemainingVersion: d.RemainingVersion,
+			LabelVersion:     d.LabelVersion,
+			Operator:         r.Operator,
+		}
 	}
 
-	d.clean()
+	dWithoutVersion := OSSpecifier{
+		Name:    name, // we want to use the name after performing any alias transformations
+		Variant: dr.Variant,
+	}
 
+	allOS, err := s.GetOperatingSystems(dWithoutVersion)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get OS by name %q: %w", dWithoutVersion.Name, err)
+	}
+
+	// we treat the set of os specifiers as an AND'd set (not OR'd as dealt with in the vulnerability provider)
+	expression := dr.expression()
+	constraint, err := version.GetConstraint(dr.expression(), version.SemanticFormat)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse OS version range expression %q: %w", expression, err)
+	}
+
+	var result []OperatingSystem
+	for _, os := range allOS {
+		ver := version.NewVersion(os.Version(), version.SemanticFormat)
+		if ver == nil {
+			// TODO: log?
+			continue
+		}
+		satisfied, err := constraint.Satisfied(ver)
+		if err != nil {
+			// TODO: log?
+			continue
+		}
+		if satisfied {
+			result = append(result, os)
+		}
+	}
+	return result, nil
+}
+
+func (s *operatingSystemStore) prepareQuery(d OSSpecifier) (*gorm.DB, error) {
 	query := s.db.Model(&OperatingSystem{})
 
 	if d.Name != "" {
@@ -223,8 +356,28 @@ func (s *operatingSystemStore) resolveOperatingSystems(d OSSpecifier) ([]Operati
 		// we specifically want to match vanilla...
 		query = query.Where("variant IS NULL OR variant = ''")
 	}
+	return query, nil
+}
 
-	return s.searchForOSVersions(query, d)
+func (s *operatingSystemStore) GetOperatingSystems(d OSSpecifier) ([]OperatingSystem, error) {
+	if d.Name == "" && d.LabelVersion == "" {
+		return nil, ErrMissingOSIdentification
+	}
+
+	// search for aliases for the given distro; we intentionally map some OSs to other OSs in terms of
+	// vulnerability (e.g. `centos` is an alias for `rhel`). If an alias is found always use that alias in
+	// searches (there will never be anything in the DB for aliased distros).
+	if err := s.applyOSAlias(&d); err != nil {
+		return nil, err
+	}
+
+	d.clean()
+
+	query, err := s.prepareQuery(d)
+	if err != nil {
+		return nil, err
+	}
+	return s.searchForOSExactVersions(query, d)
 }
 
 func (s *operatingSystemStore) applyOSAlias(d *OSSpecifier) error {
@@ -288,14 +441,7 @@ func (s *operatingSystemStore) applyOSAlias(d *OSSpecifier) error {
 	return nil
 }
 
-func (s *operatingSystemStore) searchForOSVersions(query *gorm.DB, d OSSpecifier) ([]OperatingSystem, error) {
-	if d.Range != "" && d.Range != version.EQ {
-		return s.searchForOSVersionRange(query, d)
-	}
-	return s.searchForOSExactVersion(query, d)
-}
-
-func (s *operatingSystemStore) searchForOSExactVersion(query *gorm.DB, d OSSpecifier) ([]OperatingSystem, error) {
+func (s *operatingSystemStore) searchForOSExactVersions(query *gorm.DB, d OSSpecifier) ([]OperatingSystem, error) {
 	var allOs []OperatingSystem
 
 	handleQuery := func(q *gorm.DB, desc string) ([]OperatingSystem, error) {
@@ -346,60 +492,4 @@ func (s *operatingSystemStore) searchForOSExactVersion(query *gorm.DB, d OSSpeci
 	}
 
 	return allOs, nil
-}
-
-func (s *operatingSystemStore) searchForOSVersionRange(query *gorm.DB, d OSSpecifier) ([]OperatingSystem, error) {
-	var allOs []OperatingSystem
-
-	rangeExpr, err := version.ParseRangeExpression(string(d.Range))
-	if err != nil {
-		return nil, fmt.Errorf("invalid range expression %q: %w", d.Range, err)
-	}
-
-	// get all OS records that match the base criteria (name, variant, etc.)
-	err = query.Find(&allOs).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("failed to query OS records for range matching: %w", err)
-	}
-
-	// filter results based on version range
-	var filtered []OperatingSystem
-	for _, os := range allOs {
-		if s.osVersionSatisfiesRange(os, rangeExpr) {
-			filtered = append(filtered, os)
-		}
-	}
-
-	return filtered, nil
-}
-
-func (s *operatingSystemStore) osVersionSatisfiesRange(os OperatingSystem, rangeExpr *version.RangeExpression) bool {
-	osVersionStr := os.Version()
-	if osVersionStr == "" {
-		return false
-	}
-
-	// create version objects for comparison - using generic format for OS versions
-	osVersion, err := version.NewVersion(osVersionStr, version.SemanticFormat)
-	if err != nil {
-		log.Tracef("failed to create version from OS version %q: %v", osVersionStr, err)
-		return false
-	}
-
-	targetVersion, err := version.NewVersion(rangeExpr.Version, version.SemanticFormat)
-	if err != nil {
-		log.Tracef("failed to create version from range version %q: %v", rangeExpr.Version, err)
-		return false
-	}
-
-	result, err := osVersion.Compare(targetVersion)
-	if err != nil {
-		log.Tracef("failed to compare versions %q and %q: %v", osVersionStr, rangeExpr.Version, err)
-		return false
-	}
-
-	return rangeExpr.Satisfied(result)
 }

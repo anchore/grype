@@ -307,7 +307,7 @@ func TestOperatingSystemStore_ResolveOperatingSystem(t *testing.T) {
 			if tt.expectErr == nil {
 				tt.expectErr = require.NoError
 			}
-			result, err := oss.resolveOperatingSystems(tt.os)
+			result, err := oss.GetOperatingSystems(tt.os)
 			tt.expectErr(t, err)
 			if err != nil {
 				return

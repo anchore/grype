@@ -9,23 +9,23 @@ import (
 	"github.com/anchore/grype/internal/stringutil"
 )
 
-// operator group only matches on range operators (GT, LT, GTE, LTE, E)
+// Operator group only matches on range operators (GT, LT, GTE, LTE, E)
 // version group matches on everything except for whitespace and operators (range or boolean)
-var constraintPartPattern = regexp.MustCompile(`\s*(?P<prefix>[^><=a-zA-Z0-9().'"]*)(?P<operator>[><=]*)\s*(?P<version>.+)`)
+var constraintPartPattern = regexp.MustCompile(`\s*(?P<prefix>[^><=a-zA-Z0-9().'"]*)(?P<Operator>[><=]*)\s*(?P<version>.+)`)
 
-type Range struct {
-	operator operator
+type rangeUnit struct {
+	operator Operator
 	version  string
 }
 
-func parseRange(phrase string) (*Range, error) {
+func parseRange(phrase string) (*rangeUnit, error) {
 	match := stringutil.MatchCaptureGroups(constraintPartPattern, phrase)
 	version, exists := match["version"]
 	if !exists {
 		return nil, nil
 	}
 
-	opStr := match["operator"]
+	opStr := match["Operator"]
 
 	prefix := match["prefix"]
 
@@ -47,9 +47,9 @@ func parseRange(phrase string) (*Range, error) {
 
 	op, err := parseOperator(opStr)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse constraint operator=%q: %+v", match["operator"], err)
+		return nil, fmt.Errorf("unable to parse constraint Operator=%q: %+v", match["Operator"], err)
 	}
-	return &Range{
+	return &rangeUnit{
 		operator: op,
 		version:  version,
 	}, nil
@@ -70,7 +70,7 @@ func trimQuotes(s string) (string, error) {
 	}
 }
 
-func (c *Range) Satisfied(comparison int) bool {
+func (c *rangeUnit) Satisfied(comparison int) bool {
 	switch c.operator {
 	case EQ:
 		return comparison == 0
@@ -83,7 +83,7 @@ func (c *Range) Satisfied(comparison int) bool {
 	case LTE:
 		return comparison <= 0
 	default:
-		panic(fmt.Errorf("unknown operator: %s", c.operator))
+		panic(fmt.Errorf("unknown Operator: %s", c.operator))
 	}
 }
 

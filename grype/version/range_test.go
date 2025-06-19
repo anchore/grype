@@ -11,7 +11,7 @@ import (
 func TestParseRangeUnit(t *testing.T) {
 	tests := []struct {
 		phrase    string
-		expected  *Range
+		expected  *rangeUnit
 		wantError require.ErrorAssertionFunc
 	}{
 		{
@@ -19,14 +19,14 @@ func TestParseRangeUnit(t *testing.T) {
 		},
 		{
 			phrase: `="in<(b e t w e e n)>quotes<=||>=not!="`,
-			expected: &Range{
+			expected: &rangeUnit{
 				operator: EQ,
 				version:  "in<(b e t w e e n)>quotes<=||>=not!=",
 			},
 		},
 		{
 			phrase: ` >= "in<(b e t w e e n)>quotes<=||>=not!=" `,
-			expected: &Range{
+			expected: &rangeUnit{
 				operator: GTE,
 				version:  "in<(b e t w e e n)>quotes<=||>=not!=",
 			},
@@ -34,7 +34,7 @@ func TestParseRangeUnit(t *testing.T) {
 		{
 			// to cover a version that has quotes within it, but not necessarily surrounding the entire version
 			phrase: ` >= inbet"ween)>quotes" with trailing words `,
-			expected: &Range{
+			expected: &rangeUnit{
 				operator: GTE,
 				version:  `inbet"ween)>quotes" with trailing words`,
 			},
@@ -45,28 +45,28 @@ func TestParseRangeUnit(t *testing.T) {
 		},
 		{
 			phrase: `="something"`,
-			expected: &Range{
+			expected: &rangeUnit{
 				operator: EQ,
 				version:  "something",
 			},
 		},
 		{
 			phrase: "=something",
-			expected: &Range{
+			expected: &rangeUnit{
 				operator: EQ,
 				version:  "something",
 			},
 		},
 		{
 			phrase: "= something",
-			expected: &Range{
+			expected: &rangeUnit{
 				operator: EQ,
 				version:  "something",
 			},
 		},
 		{
 			phrase: "something",
-			expected: &Range{
+			expected: &rangeUnit{
 
 				operator: EQ,
 				version:  "something",
@@ -74,7 +74,7 @@ func TestParseRangeUnit(t *testing.T) {
 		},
 		{
 			phrase: "> something",
-			expected: &Range{
+			expected: &rangeUnit{
 
 				operator: GT,
 				version:  "something",
@@ -82,7 +82,7 @@ func TestParseRangeUnit(t *testing.T) {
 		},
 		{
 			phrase: ">= 2.3",
-			expected: &Range{
+			expected: &rangeUnit{
 
 				operator: GTE,
 				version:  "2.3",
@@ -90,7 +90,7 @@ func TestParseRangeUnit(t *testing.T) {
 		},
 		{
 			phrase: "< 2.3",
-			expected: &Range{
+			expected: &rangeUnit{
 
 				operator: LT,
 				version:  "2.3",
@@ -98,7 +98,7 @@ func TestParseRangeUnit(t *testing.T) {
 		},
 		{
 			phrase: "<=2.3",
-			expected: &Range{
+			expected: &rangeUnit{
 
 				operator: LTE,
 				version:  "2.3",
@@ -106,7 +106,7 @@ func TestParseRangeUnit(t *testing.T) {
 		},
 		{
 			phrase: "  >=   1.0 ",
-			expected: &Range{
+			expected: &rangeUnit{
 
 				operator: GTE,
 				version:  "1.0",
