@@ -77,6 +77,9 @@ func KnownPackageSpecifierOverrides() []PackageSpecifierOverride {
 
 		// legacy cases
 		{Ecosystem: "pecl", ReplacementEcosystem: ptr(string(pkg.PhpPeclPkg))},
+		{Ecosystem: "kb", ReplacementEcosystem: ptr(string(pkg.KbPkg))},
+		{Ecosystem: "dpkg", ReplacementEcosystem: ptr(string(pkg.DebPkg))},
+		{Ecosystem: "apkg", ReplacementEcosystem: ptr(string(pkg.ApkPkg))},
 	}
 
 	// remap package URL types to syft package types
