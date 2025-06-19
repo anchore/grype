@@ -50,7 +50,7 @@ func (m *Matcher) Type() match.MatcherType {
 	return match.JavaMatcher
 }
 
-func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoredMatch, error) {
+func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	var matches []match.Match
 
 	if m.cfg.SearchMavenUpstream {

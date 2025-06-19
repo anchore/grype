@@ -18,7 +18,7 @@ func (m *Matcher) Type() match.MatcherType {
 	return match.BitnamiMatcher
 }
 
-func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoredMatch, error) {
+func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	// Bitnami packages' metadata are built from the package URL which contains
 	// info such as the package name, version, revision, distro or architecture.
 	// ref: https://github.com/anchore/syft/blob/main/syft/pkg/bitnami.go#L3-L13

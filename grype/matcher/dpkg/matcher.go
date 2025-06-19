@@ -21,7 +21,7 @@ func (m *Matcher) Type() match.MatcherType {
 	return match.DpkgMatcher
 }
 
-func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoredMatch, error) {
+func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	matches := make([]match.Match, 0)
 
 	sourceMatches, err := m.matchUpstreamPackages(store, p)

@@ -29,6 +29,7 @@ type IgnoredMatch struct {
 // rule to apply.
 type IgnoreRule struct {
 	Vulnerability    string            `yaml:"vulnerability" json:"vulnerability" mapstructure:"vulnerability"`
+	IncludeAliases   bool              `yaml:"include-aliases" json:"include-aliases" mapstructure:"include-aliases"`
 	Reason           string            `yaml:"reason" json:"reason" mapstructure:"reason"`
 	Namespace        string            `yaml:"namespace" json:"namespace" mapstructure:"namespace"`
 	FixState         string            `yaml:"fix-state" json:"fix-state" mapstructure:"fix-state"`
@@ -139,7 +140,7 @@ func getIgnoreConditionsForRule(rule IgnoreRule) []ignoreCondition {
 	var ignoreConditions []ignoreCondition
 
 	if v := rule.Vulnerability; v != "" {
-		ignoreConditions = append(ignoreConditions, ifVulnerabilityApplies(v))
+		ignoreConditions = append(ignoreConditions, ifVulnerabilityApplies(v, rule.IncludeAliases))
 	}
 
 	if ns := rule.Namespace; ns != "" {
@@ -190,9 +191,19 @@ func ifFixStateApplies(fs string) ignoreCondition {
 	}
 }
 
-func ifVulnerabilityApplies(vulnerability string) ignoreCondition {
+func ifVulnerabilityApplies(vulnerability string, includeAliases bool) ignoreCondition {
 	return func(match Match) bool {
-		return vulnerability == match.Vulnerability.ID
+		if vulnerability == match.Vulnerability.ID {
+			return true
+		}
+		if includeAliases {
+			for _, related := range match.Vulnerability.RelatedVulnerabilities {
+				if vulnerability == related.ID {
+					return true
+				}
+			}
+		}
+		return false
 	}
 }
 

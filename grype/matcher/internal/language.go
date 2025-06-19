@@ -12,9 +12,9 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-func MatchPackageByLanguage(store vulnerability.Provider, p pkg.Package, matcherType match.MatcherType) ([]match.Match, []match.IgnoredMatch, error) {
+func MatchPackageByLanguage(store vulnerability.Provider, p pkg.Package, matcherType match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
 	var matches []match.Match
-	var ignored []match.IgnoredMatch
+	var ignored []match.IgnoreFilter
 
 	for _, name := range store.PackageSearchNames(p) {
 		nameMatches, nameIgnores, err := MatchPackageByEcosystemPackageName(store, p, name, matcherType)
@@ -28,7 +28,7 @@ func MatchPackageByLanguage(store vulnerability.Provider, p pkg.Package, matcher
 	return matches, ignored, nil
 }
 
-func MatchPackageByEcosystemPackageName(provider vulnerability.Provider, p pkg.Package, packageName string, matcherType match.MatcherType) ([]match.Match, []match.IgnoredMatch, error) {
+func MatchPackageByEcosystemPackageName(provider vulnerability.Provider, p pkg.Package, packageName string, matcherType match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
 	if isUnknownVersion(p.Version) {
 		log.WithFields("package", p.Name).Trace("skipping package with unknown version")
 		return nil, nil, nil
