@@ -1,24 +1,27 @@
 package version
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 var _ Constraint = (*genericConstraint)(nil)
 
 type genericConstraint struct {
 	raw        string
-	expression constraintExpression
-	name       string
+	expression simpleRangeExpression
+	format     Format
 }
 
-func newGenericConstraint(raw string, genFn comparatorGenerator, name string) (genericConstraint, error) {
-	constraints, err := newConstraintExpression(raw, genFn)
+func newGenericConstraint(format Format, raw string) (genericConstraint, error) {
+	constraints, err := parseRangeExpression(raw)
 	if err != nil {
-		return genericConstraint{}, err
+		return genericConstraint{}, invalidFormatError(format, raw, err)
 	}
 	return genericConstraint{
 		expression: constraints,
 		raw:        raw,
-		name:       name,
+		format:     format,
 	}, nil
 }
 
@@ -27,12 +30,23 @@ func (g genericConstraint) String() string {
 	if g.raw != "" {
 		value = g.raw
 	}
-	return fmt.Sprintf("%s (%s)", value, g.name)
+	return fmt.Sprintf("%s (%s)", value, strings.ToLower(g.format.String()))
 }
 
 func (g genericConstraint) Satisfied(version *Version) (bool, error) {
-	if g.raw == "" {
-		return true, nil // the empty constraint is always satisfied
+	if g.raw == "" && version != nil {
+		// empty constraints are always satisfied
+		return true, nil
 	}
-	return g.expression.satisfied(version)
+	if version == nil {
+		if g.raw != "" {
+			// a non-empty constraint with no version given should always fail
+			return false, nil
+		}
+		return true, nil
+	}
+	if version.Format != g.format {
+		return false, newUnsupportedFormatError(g.format, version)
+	}
+	return g.expression.satisfied(g.format, version)
 }

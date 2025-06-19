@@ -77,10 +77,7 @@ func MatchPackageByCPEs(provider vulnerability.Provider, p pkg.Package, upstream
 		var verObj *version.Version
 		var err error
 		if searchVersion != "" {
-			verObj, err = version.NewVersion(searchVersion, format)
-			if err != nil {
-				return nil, fmt.Errorf("matcher failed to parse version pkg=%q ver=%q: %w", p.Name, p.Version, err)
-			}
+			verObj = version.NewVersion(searchVersion, format)
 		}
 
 		// find all vulnerability records in the DB for the given CPE (not including version comparisons)

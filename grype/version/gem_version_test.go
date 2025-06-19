@@ -9,17 +9,54 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func makeSemVer(t *testing.T, raw string) *semanticVersion {
-	semVer, err := newSemanticVersion(raw)
-	assert.NoError(t, err)
-	return semVer
+func TestGemVersion_Constraint(t *testing.T) {
+	tests := []testCase{
+		// empty values
+		{version: "2.3.1", constraint: "", satisfied: true},
+		// typical cases
+		{version: "0.9.9-r0", constraint: "< 0.9.12-r1", satisfied: true}, // regression case
+		{version: "1.5.0-arm-windows", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: true},
+		{version: "0.2.0-arm-windows", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: true},
+		{version: "0.0.1-armv5-window", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: false},
+		{version: "0.0.1-armv7-linux", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: false},
+		{version: "0.6.0-universal-darwin-9", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: false},
+		{version: "0.6.0-universal-darwin-10", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: false},
+		{version: "0.6.0-x86_64-darwin-10", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: false},
+		{version: "2.5.0", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: false},
+		{version: "1.2.0", constraint: ">1.0, <2.0", satisfied: true},
+		{version: "1.2.0-x86", constraint: ">1.0, <2.0", satisfied: true},
+		{version: "1.2.0-x86-linux", constraint: ">1.0, <2.0", satisfied: true},
+		{version: "1.2.0-x86-linux", constraint: "= 1.2.0", satisfied: true},
+		{version: "1.2.0-x86_64-linux", constraint: "= 1.2.0", satisfied: true},
+		{version: "1.2.0-x86_64-linux", constraint: "< 1.2.1", satisfied: true},
+		// https://semver.org/#spec-item-11
+		{version: "1.2.0-alpha-x86-linux", constraint: "<1.2.0", satisfied: true},
+		{version: "1.2.0-alpha-1-x86-linux", constraint: "<1.2.0", satisfied: true},
+		// gem versions seem to respect the order: {sem-version}+{meta}-{arch}-{os}
+		// but let's check the extraction works even when the order of {meta}-{arch} varies.
+		{version: "1.2.0-alpha-1-x86-linux-meta", constraint: "<1.2.0", satisfied: true},
+		{version: "1.2.0-alpha-1-meta-x86-linux", constraint: "<1.2.0", satisfied: true},
+		{version: "1.2.0-alpha-1-x86-linux-meta", constraint: ">1.1.0", satisfied: true},
+		{version: "1.2.0-alpha-1-arm-linux-meta", constraint: ">1.1.0", satisfied: true},
+		{version: "1.0.0-alpha-a.b-c-somethinglong-build.1-aef.1-its-okay", constraint: "<1.0.0", satisfied: true},
+	}
+
+	for _, test := range tests {
+		t.Run(test.tName(), func(t *testing.T) {
+			constraint, err := GetConstraint(test.constraint, GemFormat)
+			assert.NoError(t, err, "unexpected error from newSemanticConstraint: %v", err)
+
+			test.assertVersionConstraint(t, GemFormat, constraint)
+		})
+	}
+
 }
 
 func Test_cleanPlatformMakesEqualVersions(t *testing.T) {
 	tests := []struct {
 		input   string
 		trimmed string
-		want    *rubyVersion
+		want    *gemVersion
 	}{
 		{input: "1.13.1", trimmed: "1.13.1"},
 		{input: "1.13.1-arm-linux", trimmed: "1.13.1"},
@@ -44,10 +81,8 @@ func Test_cleanPlatformMakesEqualVersions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			original, err := NewVersion(tt.input, GemFormat)
-			require.NoError(t, err)
-			trimmed, err := NewVersion(tt.trimmed, GemFormat)
-			require.NoError(t, err)
+			original := NewVersion(tt.input, GemFormat)
+			trimmed := NewVersion(tt.trimmed, GemFormat)
 			comp, err := original.Compare(trimmed)
 			require.NoError(t, err)
 			assert.Equal(t, 0, comp)
@@ -58,26 +93,7 @@ func Test_cleanPlatformMakesEqualVersions(t *testing.T) {
 	}
 }
 
-func newTestGemVersion(t *testing.T, raw string) *Version {
-	t.Helper()
-	rv, err := newGemVersion(raw)
-	require.NoError(t, err, "Failed to create rubyVersion for testing: %s", raw)
-	return &Version{
-		Raw:    raw,
-		Format: GemFormat,
-		rich:   rich{rubyVer: rv},
-	}
-}
-
-// Helper to directly get a *rubyVersion, failing test on error.
-func mustNewRubyVersion(t *testing.T, raw string) *rubyVersion {
-	t.Helper()
-	rv, err := newGemVersion(raw)
-	require.NoError(t, err, "newGemVersion(%q) failed: %v", raw, err)
-	return rv
-}
-
-func TestNewRubyVersion_ValidInputs(t *testing.T) {
+func TestNewGemVersion_ValidInputs(t *testing.T) {
 	tests := []struct {
 		input              string
 		expectedOriginal   string // What v.original should be
@@ -109,14 +125,13 @@ func TestNewRubyVersion_ValidInputs(t *testing.T) {
 	}
 }
 
-func TestNewRubyVersion_InvalidInputs(t *testing.T) {
+func TestNewGemVersion_InvalidInputs(t *testing.T) {
 	invalidVersions := []struct {
 		name           string
 		input          string
 		errorSubstring string
 	}{
-		//{"junk", "junk", "malformed version number string"},
-		{"newline", "1.0\n2.0", "malformed version number string"}, // Handled by correctness regex
+		{"newline", "1.0\n2.0", "malformed version number string"},
 		{"double_dot", "1..2", "malformed version number string"},
 		{"space_separated", "1.2 3.4", "malformed version number string"},
 		{"trailing_dot_long", "1.2.", "leading/trailing dot"},
@@ -133,7 +148,7 @@ func TestNewRubyVersion_InvalidInputs(t *testing.T) {
 	for _, tt := range invalidVersions {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := newGemVersion(tt.input)
-			assert.Error(t, err)
+			require.Error(t, err)
 			if tt.errorSubstring != "" {
 				assert.Contains(t, err.Error(), tt.errorSubstring, "Error message mismatch for input: %s", tt.input)
 			}
@@ -141,62 +156,62 @@ func TestNewRubyVersion_InvalidInputs(t *testing.T) {
 	}
 }
 
-func TestRubyVersion_Compare(t *testing.T) {
+func TestGemVersion_Compare(t *testing.T) {
 	tests := []struct {
 		v1   string
 		v2   string
-		want int // Expected result of v1.Compare(v2)
+		want int // expected result of v1.Compare(v2)
 	}{
 		// Basic comparisons (from Ruby's test_spaceship)
 		{"1.0", "1.0.0", 0},
-		{"1.0", "1.0.a", -1},
-		{"1.8.2", "0.0.0", -1},
-		{"1.8.2", "1.8.2.a", -1},
-		{"1.8.2.b", "1.8.2.a", -1},
-		{"1.8.2.a", "1.8.2", 1},
-		{"1.8.2.a10", "1.8.2.a9", -1},
+		{"1.0", "1.0.a", 1},
+		{"1.8.2", "0.0.0", 1},
+		{"1.8.2", "1.8.2.a", 1},
+		{"1.8.2.b", "1.8.2.a", 1},
+		{"1.8.2.a", "1.8.2", -1},
+		{"1.8.2.a10", "1.8.2.a9", 1},
 		{"", "0", 0}, // "" is treated as "0"
 
 		// Canonicalization leading to equality
-		{"0.beta.1", "0.0.beta.1", 0}, // Ruby: 0.beta.1 <=> 0.0.beta.1 is 0. Canonical for both is ["beta", -1]
-		{"0.0.beta", "0.0.beta.1", 1}, // Ruby: 0.0.beta <=> 0.0.beta.1 is -1. Canonical ["beta"] vs ["beta", -1]
+		{"0.beta.1", "0.0.beta.1", 0},  // Ruby: 0.beta.1 <=> 0.0.beta.1 is 0. Canonical for both is ["beta", -1]
+		{"0.0.beta", "0.0.beta.1", -1}, // Ruby: 0.0.beta <=> 0.0.beta.1 is -1. Canonical ["beta"] vs ["beta", -1]
 
 		// String segments comparison
-		{"5.a", "5.0.0.rc2", 1},  // "a" < "rc"
-		{"5.x", "5.0.0.rc2", -1}, // "x" > "rc"
+		{"5.a", "5.0.0.rc2", -1}, // "a" < "rc"
+		{"5.x", "5.0.0.rc2", 1},  // "x" > "rc"
 
 		// Direct string comparison from Ruby test
 		{"1.9.3", "1.9.3", 0},
-		{"1.9.3", "1.9.2.99", -1},
-		{"1.9.3", "1.9.3.1", 1},
+		{"1.9.3", "1.9.2.99", 1},
+		{"1.9.3", "1.9.3.1", -1},
 
 		// Additional common cases
-		{"1.0", "1.1", 1},
-		{"1.1", "1.0", -1},
+		{"1.0", "1.1", -1},
+		{"1.1", "1.0", 1},
 		{"1", "1.0", 0},
-		{"1.0.1", "1.0.0", -1},
-		{"1.0.0", "1.0.1", 1},
+		{"1.0.1", "1.0.0", 1},
+		{"1.0.0", "1.0.1", -1},
 
 		// Prerelease vs Prerelease (length diff)
-		{"1.0.alpha.1", "1.0.alpha", -1},
-		{"1.0.alpha", "1.0.alpha.1", 1},
+		{"1.0.alpha.1", "1.0.alpha", 1},
+		{"1.0.alpha", "1.0.alpha.1", -1},
 
 		// Hyphen handling (SemVer-like via .pre.)
-		{"1.0.0-alpha", "1.0.0-alpha.1", 1},
-		{"1.0.0-alpha.1", "1.0.0-beta.2", 1},
-		{"1.0.0-beta.2", "1.0.0-beta.11", 1},
-		{"1.0.0-beta.11", "1.0.0-rc.1", 1}, // beta < rc
-		{"1.0.0-rc1", "1.0.0", 1},
-		{"1.0.0-1", "1", 1}, // 1.0.0.pre.1 vs 1
-		{"1-1", "1", 1},     // 1.pre.1 vs 1
+		{"1.0.0-alpha", "1.0.0-alpha.1", -1},
+		{"1.0.0-alpha.1", "1.0.0-beta.2", -1},
+		{"1.0.0-beta.2", "1.0.0-beta.11", -1},
+		{"1.0.0-beta.11", "1.0.0-rc.1", -1}, // beta < rc
+		{"1.0.0-rc1", "1.0.0", -1},
+		{"1.0.0-1", "1", -1}, // 1.0.0.pre.1 vs 1
+		{"1-1", "1", -1},     // 1.pre.1 vs 1
 
 		// From Ruby's test_semver (some overlap, ensure coverage)
-		{"1.0.0-alpha", "1.0.0-alpha.1", 1},
-		{"1.0.0-alpha.1", "1.0.0-beta.2", 1}, // alpha < beta
-		{"1.0.0-beta.2", "1.0.0-beta.11", 1}, // 2 < 11
-		{"1.0.0-beta.11", "1.0.0-rc.1", 1},   // beta < rc
-		{"1.0.0-rc1", "1.0.0", 1},            // 1.0.0.pre.rc.1 < 1.0.0 (release)
-		{"1.0.0-1", "1", 1},                  // 1.0.0.pre.1 < 1 (release)
+		{"1.0.0-alpha", "1.0.0-alpha.1", -1},
+		{"1.0.0-alpha.1", "1.0.0-beta.2", -1}, // alpha < beta
+		{"1.0.0-beta.2", "1.0.0-beta.11", -1}, // 2 < 11
+		{"1.0.0-beta.11", "1.0.0-rc.1", -1},   // beta < rc
+		{"1.0.0-rc1", "1.0.0", -1},            // 1.0.0.pre.rc.1 < 1.0.0 (release)
+		{"1.0.0-1", "1", -1},                  // 1.0.0.pre.1 < 1 (release)
 
 		// Edge cases with canonicalization
 		{"1.0", "1", 0},
@@ -207,11 +222,11 @@ func TestRubyVersion_Compare(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%s_vs_%s", tt.v1, tt.v2), func(t *testing.T) {
-			ver1 := newTestGemVersion(t, tt.v1)
-			ver2 := newTestGemVersion(t, tt.v2)
+			ver1 := NewVersion(tt.v1, GemFormat)
+			ver2 := NewVersion(tt.v2, GemFormat)
 
 			// Test v1 vs v2
-			got1, err1 := ver1.rich.rubyVer.Compare(ver2)
+			got1, err1 := ver1.Compare(ver2)
 			require.NoError(t, err1, "v1.Compare(v2) failed for %s vs %s", tt.v1, tt.v2)
 			assert.Equal(t, tt.want, got1, "Compare(%q, %q) == %d, want %d", tt.v1, tt.v2, got1, tt.want)
 
@@ -220,57 +235,51 @@ func TestRubyVersion_Compare(t *testing.T) {
 			if tt.want != 0 {
 				expectedSymmetric = -tt.want
 			}
-			got2, err2 := ver2.rich.rubyVer.Compare(ver1)
+			got2, err2 := ver2.Compare(ver1)
 			require.NoError(t, err2, "v2.Compare(v1) failed for %s vs %s", tt.v2, tt.v1)
 			assert.Equal(t, expectedSymmetric, got2, "Compare(%q, %q) == %d, want %d (symmetric)", tt.v2, tt.v1, got2, expectedSymmetric)
 
 			// Test reflexivity: v1 vs v1
-			gotReflexive1, errReflexive1 := ver1.rich.rubyVer.Compare(ver1)
+			gotReflexive1, errReflexive1 := ver1.Compare(ver1)
 			require.NoError(t, errReflexive1, "v1.Compare(v1) failed for %s", tt.v1)
 			assert.Equal(t, 0, gotReflexive1, "Compare(%q, %q) == %d, want 0 (reflexive)", tt.v1, tt.v1, gotReflexive1)
 		})
 	}
 }
 
-func TestRubyVersion_Compare_Errors(t *testing.T) {
-	vGem1_0 := newTestGemVersion(t, "1.0")
+func TestGemVersion_Compare_Errors(t *testing.T) {
+	vGem1_0, err := newGemVersion("1.0")
+	require.NoError(t, err)
 
 	t.Run("CompareWithNil", func(t *testing.T) {
-		_, err := vGem1_0.rich.rubyVer.Compare(nil)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "cannot compare with nil version")
+		_, err := vGem1_0.Compare(nil)
+		assert.ErrorIs(t, err, ErrNoVersionProvided)
 	})
 
 	t.Run("CompareWithDifferentFormat", func(t *testing.T) {
 		// Assuming SemanticFormat is a distinct, incompatible format
 		// and that the Format type has a String() method for user-friendly error messages.
-		vOther := &Version{Raw: "1.0.0", Format: SemanticFormat, rich: rich{}}
-		_, err := vGem1_0.rich.rubyVer.Compare(vOther)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "cannot compare Gem version")
-		// Assuming SemanticFormat.String() would return "semver" or similar.
-		// Adjust if the actual string representation in the error is different.
-		assert.Contains(t, err.Error(), SemanticFormat.String())
+		vOther := &Version{Raw: "1.0.0", Format: SemanticFormat}
+		_, err := vGem1_0.Compare(vOther)
+		require.NoError(t, err)
 	})
 
 	t.Run("CompareWithUnknownFormat_ParsableAsGem", func(t *testing.T) {
-		vOther := &Version{Raw: "1.1", Format: UnknownFormat, rich: rich{}} // Parsable as Gem
-		res, err := vGem1_0.rich.rubyVer.Compare(vOther)
+		vOther := &Version{Raw: "1.1", Format: UnknownFormat} // Parsable as Gem
+		res, err := vGem1_0.Compare(vOther)
 		assert.NoError(t, err)
-		assert.Equal(t, 1, res) // 1.0 < 1.1
+		assert.Equal(t, -1, res) // 1.0 < 1.1
 	})
 
 	t.Run("CompareWithUnknownFormat_UnparsableAsGem", func(t *testing.T) {
-		vOther := &Version{Raw: "invalid..version", Format: UnknownFormat, rich: rich{}}
-		_, err := vGem1_0.rich.rubyVer.Compare(vOther)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "cannot compare Gem version")
-		assert.Contains(t, err.Error(), "unparsable version")
-		assert.Contains(t, err.Error(), "invalid..version")
+		vOther := &Version{Raw: "invalid..version", Format: UnknownFormat}
+		_, err := vGem1_0.Compare(vOther)
+		require.Error(t, err)
+		require.ErrorContains(t, err, "malformed version number string")
 	})
 }
 
-func TestRubyVersion_canonical(t *testing.T) {
+func TestGemVersion_canonical(t *testing.T) {
 	tests := []struct {
 		name    string
 		version string
@@ -292,7 +301,9 @@ func TestRubyVersion_canonical(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			v := mustNewRubyVersion(t, tt.version)
+			v, err := newGemVersion(tt.version)
+			require.NoError(t, err)
+
 			if d := cmp.Diff(v.canonical, tt.want); d != "" {
 				t.Errorf("canonical mismatch (-want +got):\n%s", d)
 			}

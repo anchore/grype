@@ -10,7 +10,9 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-var _ Comparator = (*jvmVersion)(nil)
+var _ interface {
+	Comparator
+} = (*jvmVersion)(nil)
 
 var (
 	preJep223VersionPattern = regexp.MustCompile(`^1\.(?P<major>\d+)(\.(?P<minor>\d+)([_-](update)?(_)?(?P<patch>\d+))?(-(?P<prerelease>[^b][^-]+))?(-b(?P<build>\d+))?)?`)
@@ -22,7 +24,7 @@ type jvmVersion struct {
 	semVer      *hashiVer.Version
 }
 
-func newJvmVersion(raw string) (*jvmVersion, error) {
+func newJvmVersion(raw string) (jvmVersion, error) {
 	isPreJep233 := strings.HasPrefix(raw, "1.")
 
 	if isPreJep233 {
@@ -33,51 +35,25 @@ func newJvmVersion(raw string) (*jvmVersion, error) {
 	}
 	verObj, err := hashiVer.NewVersion(raw)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create semver obj for JVM version: %w", err)
+		return jvmVersion{}, invalidFormatError(JVMFormat, raw, err)
 	}
 
-	return &jvmVersion{
+	return jvmVersion{
 		isPreJep223: isPreJep233,
 		semVer:      verObj,
 	}, nil
 }
 
-func (v *jvmVersion) Compare(other *Version) (int, error) {
+func (v jvmVersion) Compare(other *Version) (int, error) {
 	if other == nil {
 		return -1, ErrNoVersionProvided
 	}
 
-	if other.Format == JVMFormat {
-		if other.rich.jvmVersion == nil {
-			return -1, fmt.Errorf("given empty jvmVersion object")
-		}
-		return other.rich.jvmVersion.compare(*v), nil
+	o, err := newJvmVersion(other.Raw)
+	if err != nil {
+		return 0, err
 	}
-
-	if other.Format == SemanticFormat {
-		if other.rich.semVer == nil {
-			return -1, fmt.Errorf("given empty semVer object")
-		}
-		return other.rich.semVer.verObj.Compare(v.semVer), nil
-	}
-
-	jvmUpgrade, err := finalizeComparisonVersion(other, JVMFormat)
-	if err == nil {
-		if jvmUpgrade.rich.jvmVersion == nil {
-			return -1, fmt.Errorf("given empty jvmVersion object")
-		}
-		return jvmUpgrade.rich.jvmVersion.compare(*v), nil
-	}
-
-	semUpgrade, err := finalizeComparisonVersion(other, SemanticFormat)
-	if err == nil {
-		if semUpgrade.rich.semVer == nil {
-			return -1, fmt.Errorf("given empty semVer object")
-		}
-		return semUpgrade.rich.semVer.verObj.Compare(v.semVer), nil
-	}
-
-	return -1, NewUnsupportedFormatError(JVMFormat, other.Format)
+	return v.compare(o), nil
 }
 
 func (v jvmVersion) compare(other jvmVersion) int {

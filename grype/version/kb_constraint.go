@@ -1,12 +1,10 @@
 package version
 
-import (
-	"fmt"
-)
+import "fmt"
 
 type kbConstraint struct {
 	raw        string
-	expression constraintExpression
+	expression simpleRangeExpression
 }
 
 func newKBConstraint(raw string) (kbConstraint, error) {
@@ -15,7 +13,7 @@ func newKBConstraint(raw string) (kbConstraint, error) {
 		return kbConstraint{}, nil
 	}
 
-	constraints, err := newConstraintExpression(raw, newKBComparator)
+	constraints, err := parseRangeExpression(raw)
 	if err != nil {
 		return kbConstraint{}, fmt.Errorf("unable to parse kb constraint phrase: %w", err)
 	}
@@ -24,16 +22,6 @@ func newKBConstraint(raw string) (kbConstraint, error) {
 		raw:        raw,
 		expression: constraints,
 	}, nil
-}
-
-func newKBComparator(unit constraintUnit) (Comparator, error) {
-	// XXX unit.version is probably not needed because newKBVersion doesn't do anything
-	ver := newKBVersion(unit.version)
-	return &ver, nil
-}
-
-func (c kbConstraint) supported(format Format) bool {
-	return format == KBFormat
 }
 
 func (c kbConstraint) Satisfied(version *Version) (bool, error) {
@@ -50,16 +38,16 @@ func (c kbConstraint) Satisfied(version *Version) (bool, error) {
 		return true, nil
 	}
 
-	if !c.supported(version.Format) {
-		return false, NewUnsupportedFormatError(KBFormat, version.Format)
+	if version.Format != KBFormat {
+		return false, newUnsupportedFormatError(KBFormat, version)
 	}
 
-	return c.expression.satisfied(version)
+	return c.expression.satisfied(KBFormat, version)
 }
 
 func (c kbConstraint) String() string {
 	if c.raw == "" {
-		return fmt.Sprintf("%q (kb)", c.raw)
+		return fmt.Sprintf("%q (kb)", c.raw) // with quotes
 	}
-	return fmt.Sprintf("%s (kb)", c.raw)
+	return fmt.Sprintf("%s (kb)", c.raw) // no quotes
 }

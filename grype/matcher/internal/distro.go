@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -23,26 +22,12 @@ func MatchPackageByDistro(provider vulnerability.Provider, p pkg.Package, upstre
 		return nil, nil, nil
 	}
 
-	var verObj *version.Version
-	var err error
-
-	if p.Version != "" {
-		verObj, err = version.NewVersionFromPkg(p)
-		if err != nil {
-			if errors.Is(err, version.ErrUnsupportedVersion) {
-				log.WithFields("error", err).Tracef("skipping package '%s@%s'", p.Name, p.Version)
-				return nil, nil, nil
-			}
-			return nil, nil, fmt.Errorf("matcher failed to parse version pkg=%q ver=%q: %w", p.Name, p.Version, err)
-		}
-	}
-
 	var matches []match.Match
 	vulns, err := provider.FindVulnerabilities(
 		search.ByPackageName(p.Name),
 		search.ByDistro(*p.Distro),
 		onlyQualifiedPackages(p),
-		onlyVulnerableVersions(verObj),
+		onlyVulnerableVersions(version.NewVersionFromPkg(p)),
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", p.Distro, p.Name, err)

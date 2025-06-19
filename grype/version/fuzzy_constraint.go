@@ -8,28 +8,30 @@ import (
 	hashiVer "github.com/anchore/go-version"
 )
 
-// derived from https://semver.org/, but additionally matches partial versions (e.g. "2.0")
-var pseudoSemverPattern = regexp.MustCompile(`^(0|[1-9]\d*)(\.(0|[1-9]\d*))?(\.(0|[1-9]\d*))?(?:(-|alpha|beta|rc)((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$`)
+// derived from https://semver.org/, but additionally matches:
+// - partial versions (e.g. "2.0")
+// - optional prefix "v" (e.g. "v1.0.0")
+var pseudoSemverPattern = regexp.MustCompile(`^v?(0|[1-9]\d*)(\.(0|[1-9]\d*))?(\.(0|[1-9]\d*))?(?:(-|alpha|beta|rc)((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$`)
 
 type fuzzyConstraint struct {
 	rawPhrase          string
 	phraseHint         string
 	semanticConstraint *hashiVer.Constraints
-	constraints        constraintExpression
+	constraints        simpleRangeExpression
 }
 
-func newFuzzyConstraint(phrase, hint string) (*fuzzyConstraint, error) {
+func newFuzzyConstraint(phrase, hint string) (fuzzyConstraint, error) {
 	if phrase == "" {
 		// an empty constraint is always satisfied
-		return &fuzzyConstraint{
+		return fuzzyConstraint{
 			rawPhrase:  phrase,
 			phraseHint: hint,
 		}, nil
 	}
 
-	constraints, err := newConstraintExpression(phrase, newFuzzyComparator)
+	constraints, err := parseRangeExpression(phrase)
 	if err != nil {
-		return nil, fmt.Errorf("could not create fuzzy constraint: %+v", err)
+		return fuzzyConstraint{}, fmt.Errorf("could not create fuzzy constraint: %+v", err)
 	}
 	var semverConstraint *hashiVer.Constraints
 
@@ -49,7 +51,7 @@ check:
 		semverConstraint = &value
 	}
 
-	return &fuzzyConstraint{
+	return fuzzyConstraint{
 		rawPhrase:          phrase,
 		phraseHint:         hint,
 		constraints:        constraints,
@@ -57,15 +59,7 @@ check:
 	}, nil
 }
 
-func newFuzzyComparator(unit constraintUnit) (Comparator, error) {
-	ver, err := newFuzzyVersion(unit.version)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse constraint version (%s): %w", unit.version, err)
-	}
-	return &ver, nil
-}
-
-func (f *fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
+func (f fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
 	if f.rawPhrase == "" && verObj != nil {
 		// an empty constraint is always satisfied
 		return true, nil
@@ -81,11 +75,11 @@ func (f *fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
 
 	// rebuild temp constraint based off of ver obj
 	if verObj.Format != UnknownFormat {
-		newConstaint, err := GetConstraint(f.rawPhrase, verObj.Format)
+		newConstraint, err := GetConstraint(f.rawPhrase, verObj.Format)
 		// check if constraint is not fuzzyConstraint
-		_, ok := newConstaint.(*fuzzyConstraint)
+		_, ok := newConstraint.(fuzzyConstraint)
 		if err == nil && !ok {
-			satisfied, err := newConstaint.Satisfied(verObj)
+			satisfied, err := newConstraint.Satisfied(verObj)
 			if err == nil {
 				return satisfied, nil
 			}
@@ -95,16 +89,18 @@ func (f *fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
 	// attempt semver first, then fallback to fuzzy part matching...
 	if f.semanticConstraint != nil {
 		if pseudoSemverPattern.MatchString(version) {
-			if semver, err := newSemanticVersion(version); err == nil && semver != nil {
-				return f.semanticConstraint.Check(semver.verObj), nil
+			// we're stricter about accepting looser semver rules here since we have no context about
+			// the true format of the version, thus we want to reduce the change of false negatives
+			if semver, err := newSemanticVersion(version, true); err == nil {
+				return f.semanticConstraint.Check(semver.obj), nil
 			}
 		}
 	}
 	// semver didn't work, use fuzzy part matching instead...
-	return f.constraints.satisfied(verObj)
+	return f.constraints.satisfied(UnknownFormat, verObj)
 }
 
-func (f *fuzzyConstraint) String() string {
+func (f fuzzyConstraint) String() string {
 	if f.rawPhrase == "" {
 		return "none (unknown)"
 	}

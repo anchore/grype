@@ -5,117 +5,124 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestSplitFuzzyPhrase(t *testing.T) {
+func TestParseRangeUnit(t *testing.T) {
 	tests := []struct {
-		phrase   string
-		expected *constraintUnit
-		err      bool
+		phrase    string
+		expected  *rangeUnit
+		wantError require.ErrorAssertionFunc
 	}{
 		{
 			phrase: "",
 		},
 		{
 			phrase: `="in<(b e t w e e n)>quotes<=||>=not!="`,
-			expected: &constraintUnit{
-				rangeOperator: EQ,
-				version:       "in<(b e t w e e n)>quotes<=||>=not!=",
+			expected: &rangeUnit{
+				operator: EQ,
+				version:  "in<(b e t w e e n)>quotes<=||>=not!=",
 			},
 		},
 		{
 			phrase: ` >= "in<(b e t w e e n)>quotes<=||>=not!=" `,
-			expected: &constraintUnit{
-				rangeOperator: GTE,
-				version:       "in<(b e t w e e n)>quotes<=||>=not!=",
+			expected: &rangeUnit{
+				operator: GTE,
+				version:  "in<(b e t w e e n)>quotes<=||>=not!=",
 			},
 		},
 		{
 			// to cover a version that has quotes within it, but not necessarily surrounding the entire version
 			phrase: ` >= inbet"ween)>quotes" with trailing words `,
-			expected: &constraintUnit{
-				rangeOperator: GTE,
-				version:       `inbet"ween)>quotes" with trailing words`,
+			expected: &rangeUnit{
+				operator: GTE,
+				version:  `inbet"ween)>quotes" with trailing words`,
 			},
 		},
 		{
+			phrase:    `="unbalandedquotes`,
+			wantError: require.Error,
+		},
+		{
 			phrase: `="something"`,
-			expected: &constraintUnit{
-				rangeOperator: EQ,
-				version:       "something",
+			expected: &rangeUnit{
+				operator: EQ,
+				version:  "something",
 			},
 		},
 		{
 			phrase: "=something",
-			expected: &constraintUnit{
-				rangeOperator: EQ,
-				version:       "something",
+			expected: &rangeUnit{
+				operator: EQ,
+				version:  "something",
 			},
 		},
 		{
 			phrase: "= something",
-			expected: &constraintUnit{
-				rangeOperator: EQ,
-				version:       "something",
+			expected: &rangeUnit{
+				operator: EQ,
+				version:  "something",
 			},
 		},
 		{
 			phrase: "something",
-			expected: &constraintUnit{
+			expected: &rangeUnit{
 
-				rangeOperator: EQ,
-				version:       "something",
+				operator: EQ,
+				version:  "something",
 			},
 		},
 		{
 			phrase: "> something",
-			expected: &constraintUnit{
+			expected: &rangeUnit{
 
-				rangeOperator: GT,
-				version:       "something",
+				operator: GT,
+				version:  "something",
 			},
 		},
 		{
 			phrase: ">= 2.3",
-			expected: &constraintUnit{
+			expected: &rangeUnit{
 
-				rangeOperator: GTE,
-				version:       "2.3",
+				operator: GTE,
+				version:  "2.3",
 			},
 		},
 		{
 			phrase: "< 2.3",
-			expected: &constraintUnit{
+			expected: &rangeUnit{
 
-				rangeOperator: LT,
-				version:       "2.3",
+				operator: LT,
+				version:  "2.3",
 			},
 		},
 		{
 			phrase: "<=2.3",
-			expected: &constraintUnit{
+			expected: &rangeUnit{
 
-				rangeOperator: LTE,
-				version:       "2.3",
+				operator: LTE,
+				version:  "2.3",
 			},
 		},
 		{
 			phrase: "  >=   1.0 ",
-			expected: &constraintUnit{
+			expected: &rangeUnit{
 
-				rangeOperator: GTE,
-				version:       "1.0",
+				operator: GTE,
+				version:  "1.0",
 			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.phrase, func(t *testing.T) {
-			actual, err := parseUnit(test.phrase)
-			if err != nil && test.err == false {
-				t.Fatalf("expected no error, got %+v", err)
-			} else if err == nil && test.err {
-				t.Fatalf("expected an error but did not get one")
+			if test.wantError == nil {
+				test.wantError = require.NoError
+			}
+			actual, err := parseRange(test.phrase)
+			test.wantError(t, err)
+			if err != nil {
+				return
 			}
 
 			if !reflect.DeepEqual(test.expected, actual) {
@@ -176,7 +183,7 @@ func TestTrimQuotes(t *testing.T) {
 			err:      true,
 		},
 		{
-			// This raises an error, but I do not believe that this is a scenario that we need to account for, so should be ok.
+			// this raises an error, but I do not believe that this is a scenario that we need to account for, so should be ok.
 			name:     "nested double/double quotes",
 			input:    "\"t\"es\"t\"",
 			expected: "\"t\"es\"t\"",

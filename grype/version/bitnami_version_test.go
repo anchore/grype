@@ -8,7 +8,67 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestBitnamiVersionCompare(t *testing.T) {
+func TestBitnamiVersion_Constraint(t *testing.T) {
+	tests := []testCase{
+		// empty values
+		{version: "2.3.1", constraint: "", satisfied: true},
+		// typical cases
+		{version: "1.5.0", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: true},
+		{version: "0.2.0", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: true},
+		{version: "0.0.1", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: false},
+		{version: "0.6.0", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: false},
+		{version: "2.5.0", constraint: "> 0.1.0, < 0.5.0 || > 1.0.0, < 2.0.0", satisfied: false},
+		{version: "2.3.1", constraint: "2.3.1", satisfied: true},
+		{version: "2.3.1", constraint: "= 2.3.1", satisfied: true},
+		{version: "2.3.1", constraint: "  =   2.3.1", satisfied: true},
+		{version: "2.3.1", constraint: ">= 2.3.1", satisfied: true},
+		{version: "2.3.1", constraint: "> 2.0.0", satisfied: true},
+		{version: "2.3.1", constraint: "> 2.0", satisfied: true},
+		{version: "2.3.1", constraint: "> 2", satisfied: true},
+		{version: "2.3.1", constraint: "> 2, < 3", satisfied: true},
+		{version: "2.3.1", constraint: "> 2.3, < 3.1", satisfied: true},
+		{version: "2.3.1", constraint: "> 2.3.0, < 3.1", satisfied: true},
+		{version: "2.3.1", constraint: ">= 2.3.1, < 3.1", satisfied: true},
+		{version: "2.3.1", constraint: "  =  2.3.2", satisfied: false},
+		{version: "2.3.1", constraint: ">= 2.3.2", satisfied: false},
+		{version: "2.3.1", constraint: "> 2.3.1", satisfied: false},
+		{version: "2.3.1", constraint: "< 2.0.0", satisfied: false},
+		{version: "2.3.1", constraint: "< 2.0", satisfied: false},
+		{version: "2.3.1", constraint: "< 2", satisfied: false},
+		{version: "2.3.1", constraint: "< 2, > 3", satisfied: false},
+		{version: "2.3.1-1", constraint: "2.3.1", satisfied: true},
+		{version: "2.3.1-1", constraint: "= 2.3.1", satisfied: true},
+		{version: "2.3.1-1", constraint: "  =   2.3.1", satisfied: true},
+		{version: "2.3.1-1", constraint: ">= 2.3.1", satisfied: true},
+		{version: "2.3.1-1", constraint: "> 2.0.0", satisfied: true},
+		{version: "2.3.1-1", constraint: "> 2.0", satisfied: true},
+		{version: "2.3.1-1", constraint: "> 2", satisfied: true},
+		{version: "2.3.1-1", constraint: "> 2, < 3", satisfied: true},
+		{version: "2.3.1-1", constraint: "> 2.3, < 3.1", satisfied: true},
+		{version: "2.3.1-1", constraint: "> 2.3.0, < 3.1", satisfied: true},
+		{version: "2.3.1-1", constraint: ">= 2.3.1, < 3.1", satisfied: true},
+		{version: "2.3.1-1", constraint: "  =  2.3.2", satisfied: false},
+		{version: "2.3.1-1", constraint: ">= 2.3.2", satisfied: false},
+		{version: "2.3.1-1", constraint: "< 2.0.0", satisfied: false},
+		{version: "2.3.1-1", constraint: "< 2.0", satisfied: false},
+		{version: "2.3.1-1", constraint: "< 2", satisfied: false},
+		{version: "2.3.1-1", constraint: "< 2, > 3", satisfied: false},
+		// ignoring revisions
+		{version: "2.3.1-1", constraint: "> 2.3.1", satisfied: false},
+		{version: "2.3.1-1", constraint: "< 2.3.1-2", satisfied: false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.tName(), func(t *testing.T) {
+			constraint, err := GetConstraint(test.constraint, BitnamiFormat)
+
+			require.NoError(t, err)
+			test.assertVersionConstraint(t, BitnamiFormat, constraint)
+		})
+	}
+}
+
+func TestBitnamiVersion_Compare(t *testing.T) {
 	tests := []struct {
 		name           string
 		thisVersion    string
@@ -32,14 +92,6 @@ func TestBitnamiVersionCompare(t *testing.T) {
 			expectError:  false,
 		},
 		{
-			name:           "different format returns error - deb",
-			thisVersion:    "1.2.3-4",
-			otherVersion:   "1.2.3-1",
-			otherFormat:    DebFormat,
-			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
-		},
-		{
 			name:         "unknown format attempts upgrade - valid semver format",
 			thisVersion:  "1.2.3-4",
 			otherVersion: "1.2.3-5",
@@ -52,7 +104,7 @@ func TestBitnamiVersionCompare(t *testing.T) {
 			otherVersion:   "not-valid-semver-format",
 			otherFormat:    UnknownFormat,
 			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
+			errorSubstring: "invalid semantic version",
 		},
 	}
 
@@ -61,13 +113,12 @@ func TestBitnamiVersionCompare(t *testing.T) {
 			thisVer, err := newBitnamiVersion(test.thisVersion)
 			require.NoError(t, err)
 
-			otherVer, err := NewVersion(test.otherVersion, test.otherFormat)
-			require.NoError(t, err)
+			otherVer := NewVersion(test.otherVersion, test.otherFormat)
 
 			result, err := thisVer.Compare(otherVer)
 
 			if test.expectError {
-				assert.Error(t, err)
+				require.Error(t, err)
 				if test.errorSubstring != "" {
 					assert.True(t, strings.Contains(err.Error(), test.errorSubstring),
 						"Expected error to contain '%s', got: %v", test.errorSubstring, err)
@@ -80,46 +131,32 @@ func TestBitnamiVersionCompare(t *testing.T) {
 	}
 }
 
-func TestBitnamiVersionCompareEdgeCases(t *testing.T) {
+func TestBitnamiVersion_Compare_EdgeCases(t *testing.T) {
 	tests := []struct {
 		name           string
-		setupFunc      func() (*semanticVersion, *Version)
+		setupFunc      func(testing.TB) (*Version, *Version)
 		expectError    bool
 		errorSubstring string
 	}{
 		{
 			name: "nil version object",
-			setupFunc: func() (*semanticVersion, *Version) {
-				thisVer, _ := newBitnamiVersion("1.2.3-4")
+			setupFunc: func(t testing.TB) (*Version, *Version) {
+				thisVer := NewVersion("1.2.3-4", BitnamiFormat)
+
 				return thisVer, nil
 			},
 			expectError:    true,
 			errorSubstring: "no version provided for comparison",
 		},
-		{
-			name: "empty semanticVersion in other object",
-			setupFunc: func() (*semanticVersion, *Version) {
-				thisVer, _ := newBitnamiVersion("1.2.3-4")
-				otherVer := &Version{
-					Raw:    "1.2.3-5",
-					Format: SemanticFormat,
-					rich:   rich{},
-				}
-
-				return thisVer, otherVer
-			},
-			expectError:    true,
-			errorSubstring: "given empty semanticVersion object",
-		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, otherVer := test.setupFunc()
+			thisVer, otherVer := test.setupFunc(t)
 
 			_, err := thisVer.Compare(otherVer)
 
-			assert.Error(t, err)
+			require.Error(t, err)
 			if test.errorSubstring != "" {
 				assert.True(t, strings.Contains(err.Error(), test.errorSubstring),
 					"Expected error to contain '%s', got: %v", test.errorSubstring, err)

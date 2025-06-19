@@ -113,8 +113,10 @@ func calculateSuggestedFixedVersion(p pkg.Package, fixedVersions []string, forma
 	}
 
 	sort.SliceStable(fixedVersions, func(i, j int) bool {
-		v1, err1 := version.NewVersion(fixedVersions[i], format)
-		v2, err2 := version.NewVersion(fixedVersions[j], format)
+		v1 := version.NewVersion(fixedVersions[i], format)
+		v2 := version.NewVersion(fixedVersions[j], format)
+		err1 := v1.Validate()
+		err2 := v2.Validate()
 		if err1 != nil || err2 != nil {
 			log.WithFields("package", p.Name).Trace("error while parsing version for sorting")
 			return false

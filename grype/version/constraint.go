@@ -10,54 +10,48 @@ type Constraint interface {
 }
 
 func GetConstraint(constStr string, format Format) (Constraint, error) {
+	var c Constraint
+	var err error
+
 	switch format {
 	case ApkFormat:
-		return newApkConstraint(constStr)
-	case SemanticFormat, BitnamiFormat:
-		return newSemanticConstraint(constStr)
-	case DebFormat:
-		return newDebConstraint(constStr)
+		c, err = newGenericConstraint(ApkFormat, constStr)
+	case SemanticFormat:
+		c, err = newGenericConstraint(SemanticFormat, constStr)
+	case BitnamiFormat:
+		c, err = newGenericConstraint(BitnamiFormat, constStr)
 	case GemFormat:
-		return newGemfileConstraint(constStr)
+		c, err = newGenericConstraint(GemFormat, constStr)
+	case DebFormat:
+		c, err = newGenericConstraint(DebFormat, constStr)
 	case GolangFormat:
-		return newGolangConstraint(constStr)
+		c, err = newGenericConstraint(GolangFormat, constStr)
 	case MavenFormat:
-		return newMavenConstraint(constStr)
+		c, err = newGenericConstraint(MavenFormat, constStr)
 	case RpmFormat:
-		return newRpmConstraint(constStr)
+		c, err = newGenericConstraint(RpmFormat, constStr)
 	case PythonFormat:
-		return newPep440Constraint(constStr)
+		c, err = newGenericConstraint(PythonFormat, constStr)
 	case KBFormat:
-		return newKBConstraint(constStr)
+		c, err = newKBConstraint(constStr)
 	case PortageFormat:
-		return newPortageConstraint(constStr)
+		c, err = newGenericConstraint(PortageFormat, constStr)
 	case JVMFormat:
-		return newJvmConstraint(constStr)
+		c, err = newGenericConstraint(JVMFormat, constStr)
 	case UnknownFormat:
-		return newFuzzyConstraint(constStr, "unknown")
+		c, err = newFuzzyConstraint(constStr, "unknown")
+	default:
+		return nil, fmt.Errorf("could not find constraint for given format: %s", format)
 	}
-	return nil, fmt.Errorf("could not find constraint for given format: %s", format)
+
+	return c, err
 }
 
 // MustGetConstraint is meant for testing only, do not use within the library
 func MustGetConstraint(constStr string, format Format) Constraint {
-	constraint, err := GetConstraint(constStr, format)
+	c, err := GetConstraint(constStr, format)
 	if err != nil {
 		panic(err)
 	}
-	return constraint
-}
-
-// NonFatalConstraintError should be used any time an unexpected but recoverable condition is encountered while
-// checking version constraint satisfaction. The error should get returned by any implementer of the Constraint
-// interface. If returned by the Satisfied method on the Constraint interface, this error will be caught and
-// logged as a warning in the FindMatchesByPackageDistro function in grype/matcher/common/distro_matchers.go
-type NonFatalConstraintError struct {
-	constraint Constraint
-	version    *Version
-	message    string
-}
-
-func (e NonFatalConstraintError) Error() string {
-	return fmt.Sprintf("Matching raw constraint %s against version %s caused a non-fatal error: %s", e.constraint, e.version, e.message)
+	return c
 }

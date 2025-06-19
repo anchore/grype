@@ -7,69 +7,50 @@ import (
 	"text/scanner"
 )
 
-var ErrFallbackToFuzzy = fmt.Errorf("falling back to fuzzy version matching")
-
-type constraintExpression struct {
-	units       [][]constraintUnit // only supports or'ing a group of and'ed groups
-	comparators [][]Comparator     // only supports or'ing a group of and'ed groups
+type simpleRangeExpression struct {
+	units [][]rangeUnit // only supports or'ing a group of and'ed groups
 }
 
-func newConstraintExpression(phrase string, genFn comparatorGenerator) (constraintExpression, error) {
+func parseRangeExpression(phrase string) (simpleRangeExpression, error) {
 	orParts, err := scanExpression(phrase)
 	if err != nil {
-		return constraintExpression{}, fmt.Errorf("unable to create constraint expression from=%q : %w", phrase, err)
+		return simpleRangeExpression{}, fmt.Errorf("unable to create constraint expression from=%q : %w", phrase, err)
 	}
 
-	orUnits := make([][]constraintUnit, len(orParts))
-	orComparators := make([][]Comparator, len(orParts))
+	orUnits := make([][]rangeUnit, len(orParts))
 	var fuzzyErr error
 	for orIdx, andParts := range orParts {
-		andUnits := make([]constraintUnit, len(andParts))
-		andComparators := make([]Comparator, len(andParts))
+		andUnits := make([]rangeUnit, len(andParts))
 		for andIdx, part := range andParts {
-			unit, err := parseUnit(part)
+			unit, err := parseRange(part)
 			if err != nil {
-				return constraintExpression{}, err
+				return simpleRangeExpression{}, err
 			}
 			if unit == nil {
-				return constraintExpression{}, fmt.Errorf("unable to parse unit: %q", part)
+				return simpleRangeExpression{}, fmt.Errorf("unable to parse unit: %q", part)
 			}
 			andUnits[andIdx] = *unit
-
-			comparator, err := genFn(*unit)
-			if err != nil {
-				// this is a version constraint that could not be parsed as its
-				// specified type. Try falling back to fuzzy matching so that
-				// a match can still be attempted.
-				comparator, err = newFuzzyComparator(*unit)
-				if err != nil {
-					return constraintExpression{}, fmt.Errorf("failed to create comparator for '%s': %w", unit, err)
-				}
-				// Tell the caller we had to fallback from the specified
-				// version constraint format
-				fuzzyErr = ErrFallbackToFuzzy
-			}
-			andComparators[andIdx] = comparator
 		}
 
 		orUnits[orIdx] = andUnits
-		orComparators[orIdx] = andComparators
 	}
 
-	return constraintExpression{
-		units:       orUnits,
-		comparators: orComparators,
+	return simpleRangeExpression{
+		units: orUnits,
 	}, fuzzyErr
 }
 
-func (c *constraintExpression) satisfied(other *Version) (bool, error) {
+func (c *simpleRangeExpression) satisfied(format Format, version *Version) (bool, error) {
 	oneSatisfied := false
-	for i, andOperand := range c.comparators {
+	for i, andOperand := range c.units {
 		allSatisfied := true
 		for j, andUnit := range andOperand {
-			result, err := andUnit.Compare(other)
+			result, err := version.Compare(&Version{
+				Format: format,
+				Raw:    andUnit.version,
+			})
 			if err != nil {
-				return false, fmt.Errorf("uncomparable %#v vs %q: %w", andUnit, other.String(), err)
+				return false, fmt.Errorf("uncomparable %T vs %q: %w", andUnit, version.String(), err)
 			}
 			unit := c.units[i][j]
 

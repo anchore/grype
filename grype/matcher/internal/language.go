@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/anchore/grype/grype/match"
@@ -34,21 +33,12 @@ func MatchPackageByEcosystemPackageName(provider vulnerability.Provider, p pkg.P
 		return nil, nil, nil
 	}
 
-	verObj, err := version.NewVersionFromPkg(p)
-	if err != nil {
-		if errors.Is(err, version.ErrUnsupportedVersion) {
-			log.WithFields("error", err).Tracef("skipping package '%s@%s'", p.Name, p.Version)
-			return nil, nil, nil
-		}
-		return nil, nil, fmt.Errorf("matcher failed to parse version pkg=%q ver=%q: %w", p.Name, p.Version, err)
-	}
-
 	var matches []match.Match
 	vulns, err := provider.FindVulnerabilities(
 		search.ByEcosystem(p.Language, p.Type),
 		search.ByPackageName(packageName),
 		onlyQualifiedPackages(p),
-		onlyVulnerableVersions(verObj),
+		onlyVulnerableVersions(version.NewVersionFromPkg(p)),
 		onlyNonWithdrawnVulnerabilities(),
 	)
 	if err != nil {

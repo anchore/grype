@@ -1,6 +1,7 @@
 package version
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,82 +11,82 @@ import (
 func TestVersionCompare(t *testing.T) {
 	tests := []struct {
 		name           string
-		version1       string
-		version2       string
-		format         Format
+		v1             string
+		v2             string
 		expectedResult int
-		expectErr      bool
+		expectErr      require.ErrorAssertionFunc
 	}{
 		{
 			name:           "v1 greater than v2",
-			version1:       "2.0.0",
-			version2:       "1.0.0",
-			format:         SemanticFormat,
+			v1:             "2.0.0",
+			v2:             "1.0.0",
 			expectedResult: 1,
-			expectErr:      false,
 		},
 		{
 			name:           "v1 less than v2",
-			version1:       "1.0.0",
-			version2:       "2.0.0",
-			format:         SemanticFormat,
+			v1:             "1.0.0",
+			v2:             "2.0.0",
 			expectedResult: -1,
-			expectErr:      false,
 		},
 		{
 			name:           "v1 equal to v2",
-			version1:       "1.0.0",
-			version2:       "1.0.0",
-			format:         SemanticFormat,
+			v1:             "1.0.0",
+			v2:             "1.0.0",
 			expectedResult: 0,
-			expectErr:      false,
 		},
 		{
 			name:           "compare with nil version",
-			version1:       "1.0.0",
-			version2:       "",
-			format:         SemanticFormat,
+			v1:             "1.0.0",
+			v2:             "",
 			expectedResult: -1,
-			expectErr:      true,
+			expectErr:      require.Error,
 		},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			v1, err := NewVersion(tc.version1, tc.format)
-			require.NoError(t, err, "failed to create version1")
+	// the above test cases are pretty tame value-wise, so we can use (almost) all formats
+	var formats []Format
+	formats = append(formats, Formats...)
 
-			var v2 *Version
-			if tc.version2 == "" {
-				v2 = nil // test nil case
-			} else if tc.name == "different formats" {
-				// use a different format for the second version
-				v2, err = NewVersion(tc.version2, PythonFormat)
-				require.NoError(t, err, "failed to create version2 with different format")
-			} else {
-				v2, err = NewVersion(tc.version2, tc.format)
-				require.NoError(t, err, "failed to create version2")
-			}
+	// leave out some formats...
+	slices.DeleteFunc(formats, func(f Format) bool {
+		return f == KBFormat
+	})
 
-			result, err := v1.Compare(v2)
+	for _, format := range formats {
+		t.Run(format.String(), func(t *testing.T) {
+			for _, tc := range tests {
+				t.Run(tc.name, func(t *testing.T) {
+					if tc.expectErr == nil {
+						tc.expectErr = require.NoError
+					}
+					v1 := NewVersion(tc.v1, format)
+					require.Equal(t, format, v1.Format)
 
-			if tc.expectErr {
-				assert.Error(t, err, "expected an error but got none")
-			} else {
-				assert.NoError(t, err, "unexpected error during comparison")
-				assert.Equal(t, tc.expectedResult, result, "comparison result mismatch")
+					var v2 *Version
+					if tc.v2 != "" {
+						v2 = NewVersion(tc.v2, format)
+						require.Equal(t, format, v2.Format)
+					}
+
+					result, err := v1.Compare(v2)
+					tc.expectErr(t, err, "unexpected error during comparison")
+					if err != nil {
+						return // skip further checks if there was an error
+					}
+
+					assert.NoError(t, err, "unexpected error during comparison")
+					assert.Equal(t, tc.expectedResult, result, "comparison result mismatch")
+				})
 			}
 		})
 	}
 }
 
-func Test_UpgradeUnknownRightSideComparison(t *testing.T) {
-	v1, err := NewVersion("1.0.0", SemanticFormat)
-	require.NoError(t, err)
+func TestVersion_UpgradeUnknownRightSideComparison(t *testing.T) {
+	v1 := NewVersion("1.0.0", SemanticFormat)
 
 	// test if we can upgrade an unknown format to a known format when the left hand side is known
-	v2, err := NewVersion("1.0.0", UnknownFormat)
-	require.NoError(t, err)
+	v2 := NewVersion("1.0.0", UnknownFormat)
 
 	result, err := v1.Compare(v2)
 	assert.NoError(t, err)
@@ -115,15 +116,8 @@ func TestVersionCompareSameFormat(t *testing.T) {
 		t.Run(fmt.name, func(t *testing.T) {
 			// just test that we can create and compare versions of this format
 			// without errors - not testing the actual comparison logic
-			v1, err := NewVersion("1.0.0", fmt.format)
-			if err != nil {
-				t.Skipf("Skipping %s format, couldn't create version: %v", fmt.name, err)
-			}
-
-			v2, err := NewVersion("1.0.0", fmt.format)
-			if err != nil {
-				t.Skipf("Skipping %s format, couldn't create second version: %v", fmt.name, err)
-			}
+			v1 := NewVersion("1.0.0", fmt.format)
+			v2 := NewVersion("1.0.0", fmt.format)
 
 			result, err := v1.Compare(v2)
 			assert.NoError(t, err, "comparison error")

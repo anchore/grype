@@ -1,178 +1,121 @@
 package version
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/syft/syft/cpe"
 )
 
-// ErrUnsupportedVersion is returned when a version string cannot be parsed into a rich version object
-// for a known unsupported case (e.g. golang "devel" version).
-var ErrUnsupportedVersion = fmt.Errorf("unsupported version value")
+var _ Comparator = (*Version)(nil)
 
 type Version struct {
-	Raw    string
-	Format Format
-	rich   rich
+	Raw         string
+	Format      Format
+	comparators map[Format]Comparator
 }
 
-type rich struct {
-	cpeVers       []cpe.CPE
-	semVer        *semanticVersion
-	apkVer        *apkVersion
-	debVer        *debVersion
-	golangVersion *golangVersion
-	mavenVer      *mavenVersion
-	rpmVer        *rpmVersion
-	rubyVer       *rubyVersion
-	kbVer         *kbVersion
-	portVer       *portageVersion
-	pep440version *pep440Version
-	jvmVersion    *jvmVersion
-}
-
-func NewVersion(raw string, format Format) (*Version, error) {
-	version := &Version{
+func NewVersion(raw string, format Format) *Version {
+	return &Version{
 		Raw:    raw,
 		Format: format,
 	}
-
-	err := version.populate()
-	if err != nil {
-		return nil, err
-	}
-
-	return version, nil
 }
 
-func NewVersionFromPkg(p pkg.Package) (*Version, error) {
-	format := FormatFromPkg(p)
-
-	ver, err := NewVersion(p.Version, format)
-	if err != nil {
-		return nil, err
+func NewVersionFromPkg(p pkg.Package) *Version {
+	if p.Version == "" {
+		return nil
 	}
+	return NewVersion(p.Version, FormatFromPkg(p))
+}
 
-	ver.rich.cpeVers = p.CPEs
-	return ver, nil
+func (v *Version) Validate() error {
+	_, err := v.getComparator(v.Format)
+	return err
 }
 
 //nolint:funlen
-func (v *Version) populate() error {
-	switch v.Format {
-	case SemanticFormat:
-		ver, err := newSemanticVersion(v.Raw)
-		v.rich.semVer = ver
-		return err
-	case ApkFormat:
-		ver, err := newApkVersion(v.Raw)
-		v.rich.apkVer = ver
-		return err
-	case BitnamiFormat:
-		ver, err := newBitnamiVersion(v.Raw)
-		v.rich.semVer = ver
-		return err
-	case DebFormat:
-		ver, err := newDebVersion(v.Raw)
-		v.rich.debVer = ver
-		return err
-	case GolangFormat:
-		ver, err := newGolangVersion(v.Raw)
-		v.rich.golangVersion = ver
-		return err
-	case MavenFormat:
-		ver, err := newMavenVersion(v.Raw)
-		v.rich.mavenVer = ver
-		return err
-	case RpmFormat:
-		ver, err := newRpmVersion(v.Raw)
-		v.rich.rpmVer = &ver
-		return err
-	case PythonFormat:
-		ver, err := newPep440Version(v.Raw)
-		v.rich.pep440version = &ver
-		return err
-	case KBFormat:
-		ver := newKBVersion(v.Raw)
-		v.rich.kbVer = &ver
-		return nil
-	case GemFormat:
-		ver, err := newGemVersion(v.Raw)
-		v.rich.rubyVer = ver
-		return err
-	case PortageFormat:
-		ver := newPortageVersion(v.Raw)
-		v.rich.portVer = &ver
-		return nil
-	case JVMFormat:
-		ver, err := newJvmVersion(v.Raw)
-		v.rich.jvmVersion = ver
-		return err
-	case UnknownFormat:
-		// use the raw string + fuzzy constraint
-		return nil
+func (v *Version) getComparator(format Format) (Comparator, error) {
+	if v.comparators == nil {
+		v.comparators = make(map[Format]Comparator)
+	}
+	if comparator, ok := v.comparators[format]; ok {
+		return comparator, nil
 	}
 
-	return fmt.Errorf("no rich version populated (format=%s)", v.Format)
-}
+	var comparator Comparator
+	var err error
+	switch format {
+	case SemanticFormat:
+		// not enforcing strict semver here, so that we can parse versions like "v1.0.0", "1.0", or "1.0a", which aren't strictly semver compliant
+		comparator, err = newSemanticVersion(v.Raw, false)
+	case ApkFormat:
+		comparator, err = newApkVersion(v.Raw)
+	case BitnamiFormat:
+		comparator, err = newBitnamiVersion(v.Raw)
+	case DebFormat:
+		comparator, err = newDebVersion(v.Raw)
+	case GolangFormat:
+		comparator, err = newGolangVersion(v.Raw)
+	case MavenFormat:
+		comparator, err = newMavenVersion(v.Raw)
+	case RpmFormat:
+		comparator, err = newRpmVersion(v.Raw)
+	case PythonFormat:
+		comparator, err = newPep440Version(v.Raw)
+	case KBFormat:
+		comparator = newKBVersion(v.Raw)
+	case GemFormat:
+		comparator, err = newGemVersion(v.Raw)
+	case PortageFormat:
+		comparator = newPortageVersion(v.Raw)
+	case JVMFormat:
+		comparator, err = newJvmVersion(v.Raw)
+	case UnknownFormat:
+		comparator, err = newFuzzyVersion(v.Raw)
+	default:
+		err = fmt.Errorf("no comparator available for format %q", v.Format)
+	}
 
-func (v Version) CPEs() []cpe.CPE {
-	return v.rich.cpeVers
-}
+	v.comparators[format] = comparator
 
+	return comparator, err
+}
 func (v Version) String() string {
 	return fmt.Sprintf("%s (%s)", v.Raw, v.Format)
 }
 
+// Compare compares this version to another version.
+// This returns -1, 0, or 1 if this version is smaller,
+// equal, or larger than the other version, respectively.
 func (v Version) Compare(other *Version) (int, error) {
 	if other == nil {
 		return -1, ErrNoVersionProvided
 	}
 
-	if other.Format == v.Format {
-		return v.compareSameFormat(other)
+	var result int
+	comparator, err := v.getComparator(v.Format)
+	if err == nil {
+		// if the package version, v was able to compare without error, return the result
+		result, err = comparator.Compare(other)
+		if err == nil {
+			// no error returned for package version or db version, return the result
+			return result, nil
+		}
+	}
+	// we were unable to parse the package or db version as v.Format, try other.Format if they differ
+	if v.Format != other.Format {
+		originalErr := err
+		comparator, err = v.getComparator(other.Format)
+		if err == nil {
+			result, err = comparator.Compare(other)
+			if err == nil {
+				return result, nil
+			}
+		}
+		err = errors.Join(originalErr, err)
 	}
 
-	// different formats, try to convert to a common format
-	common, err := finalizeComparisonVersion(other, v.Format)
-	if err != nil {
-		return -1, err
-	}
-
-	return v.compareSameFormat(common)
-}
-
-func (v Version) compareSameFormat(other *Version) (int, error) {
-	switch v.Format {
-	case SemanticFormat, BitnamiFormat:
-		return v.rich.semVer.verObj.Compare(other.rich.semVer.verObj), nil
-	case ApkFormat:
-		return v.rich.apkVer.Compare(other)
-	case DebFormat:
-		return v.rich.debVer.Compare(other)
-	case GolangFormat:
-		return v.rich.golangVersion.Compare(other)
-	case MavenFormat:
-		return v.rich.mavenVer.Compare(other)
-	case RpmFormat:
-		return v.rich.rpmVer.Compare(other)
-	case PythonFormat:
-		return v.rich.pep440version.Compare(other)
-	case KBFormat:
-		return v.rich.kbVer.Compare(other)
-	case GemFormat:
-		return v.rich.rubyVer.Compare(other)
-	case PortageFormat:
-		return v.rich.portVer.Compare(other)
-	case JVMFormat:
-		return v.rich.jvmVersion.Compare(other)
-	}
-
-	v1, err := newFuzzyVersion(v.Raw)
-	if err != nil {
-		return -1, fmt.Errorf("unable to parse version (%s) as a fuzzy version: %w", v.Raw, err)
-	}
-
-	return v1.Compare(other)
+	// all formats returned error, return all errors
+	return 0, fmt.Errorf("unable to compare versions: %v %v due to %w", v, other, err)
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestKbVersionCompare(t *testing.T) {
+func TestKbVersion_Compare(t *testing.T) {
 	tests := []struct {
 		name           string
 		thisVersion    string
@@ -25,12 +25,11 @@ func TestKbVersionCompare(t *testing.T) {
 			expectError:  false,
 		},
 		{
-			name:           "different format returns error",
-			thisVersion:    "KB4562562",
-			otherVersion:   "1.2.3",
-			otherFormat:    SemanticFormat,
-			expectError:    true,
-			errorSubstring: "unsupported version format for comparison",
+			name:         "different format does not return error",
+			thisVersion:  "KB4562562",
+			otherVersion: "1.2.3",
+			otherFormat:  SemanticFormat,
+			expectError:  false,
 		},
 		{
 			name:         "unknown format attempts upgrade - valid kb format",
@@ -45,8 +44,7 @@ func TestKbVersionCompare(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			thisVer := newKBVersion(test.thisVersion)
 
-			otherVer, err := NewVersion(test.otherVersion, test.otherFormat)
-			require.NoError(t, err)
+			otherVer := NewVersion(test.otherVersion, test.otherFormat)
 
 			result, err := thisVer.Compare(otherVer)
 
@@ -64,47 +62,31 @@ func TestKbVersionCompare(t *testing.T) {
 	}
 }
 
-func TestKbVersionCompareEdgeCases(t *testing.T) {
+func TestKbVersion_Compare_EdgeCases(t *testing.T) {
 	tests := []struct {
 		name           string
-		setupFunc      func() (*kbVersion, *Version)
+		setupFunc      func(testing.TB) (*Version, *Version)
 		expectError    bool
 		errorSubstring string
 	}{
 		{
 			name: "nil version object",
-			setupFunc: func() (*kbVersion, *Version) {
-				thisVer := newKBVersion("KB4562562")
-				return &thisVer, nil
+			setupFunc: func(t testing.TB) (*Version, *Version) {
+				v := NewVersion("KB4562562", KBFormat)
+				return v, nil
 			},
 			expectError:    true,
 			errorSubstring: "no version provided for comparison",
-		},
-		{
-			name: "empty kbVersion in other object",
-			setupFunc: func() (*kbVersion, *Version) {
-				thisVer := newKBVersion("KB4562562")
-
-				otherVer := &Version{
-					Raw:    "KB4562563",
-					Format: KBFormat,
-					rich:   rich{},
-				}
-
-				return &thisVer, otherVer
-			},
-			expectError:    true,
-			errorSubstring: "given empty kbVersion object",
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer, otherVer := test.setupFunc()
+			thisVer, otherVer := test.setupFunc(t)
 
 			_, err := thisVer.Compare(otherVer)
 
-			assert.Error(t, err)
+			require.Error(t, err)
 			if test.errorSubstring != "" {
 				assert.True(t, strings.Contains(err.Error(), test.errorSubstring),
 					"Expected error to contain '%s', got: %v", test.errorSubstring, err)

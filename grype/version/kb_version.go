@@ -1,37 +1,32 @@
 package version
 
 import (
-	"fmt"
 	"reflect"
 )
+
+var _ Comparator = (*kbVersion)(nil)
 
 type kbVersion struct {
 	version string
 }
 
 func newKBVersion(raw string) kbVersion {
-	// XXX Is this even useful/necessary?
 	return kbVersion{
 		version: raw,
 	}
 }
 
-func (v *kbVersion) Compare(other *Version) (int, error) {
-	other, err := finalizeComparisonVersion(other, KBFormat)
-	if err != nil {
-		return -1, err
+func (v kbVersion) Compare(other *Version) (int, error) {
+	if other == nil {
+		return -1, ErrNoVersionProvided
 	}
 
-	if other.rich.kbVer == nil {
-		return -1, fmt.Errorf("given empty kbVersion object")
-	}
-
-	return other.rich.kbVer.compare(*v), nil
+	return v.compare(newKBVersion(other.Raw)), nil
 }
 
-// Compare returns 0 if v == v2, 1 otherwise
-func (v kbVersion) compare(v2 kbVersion) int {
-	if reflect.DeepEqual(v, v2) {
+// compare returns 0 if v == v2, 1 otherwise
+func (v kbVersion) compare(other kbVersion) int {
+	if reflect.DeepEqual(v, other) {
 		return 0
 	}
 

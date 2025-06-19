@@ -1,34 +1,34 @@
 package version
 
 import (
-	"fmt"
-
 	deb "github.com/knqyf263/go-deb-version"
 )
+
+var _ Comparator = (*debVersion)(nil)
 
 type debVersion struct {
 	obj deb.Version
 }
 
-func newDebVersion(raw string) (*debVersion, error) {
+func newDebVersion(raw string) (debVersion, error) {
 	ver, err := deb.NewVersion(raw)
 	if err != nil {
-		return nil, err
+		return debVersion{}, invalidFormatError(DebFormat, raw, err)
 	}
-	return &debVersion{
+	return debVersion{
 		obj: ver,
 	}, nil
 }
 
-func (d *debVersion) Compare(other *Version) (int, error) {
-	other, err := finalizeComparisonVersion(other, DebFormat)
+func (v debVersion) Compare(other *Version) (int, error) {
+	if other == nil {
+		return -1, ErrNoVersionProvided
+	}
+
+	o, err := newDebVersion(other.Raw)
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
 
-	if other.rich.debVer == nil {
-		return -1, fmt.Errorf("given empty debVersion object")
-	}
-
-	return other.rich.debVer.obj.Compare(d.obj), nil
+	return v.obj.Compare(o.obj), nil
 }
