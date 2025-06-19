@@ -31,10 +31,6 @@ func TestMatchBySBOMDocument(t *testing.T) {
 				{
 					Type: match.ExactDirectMatch,
 					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    "windows",
-							"version": "10816",
-						},
 						"namespace": "msrc:distro:windows:10816",
 						"package": map[string]string{
 							"name":    "10816",
