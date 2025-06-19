@@ -163,7 +163,7 @@ func addEpochIfApplicable(p *pkg.Package) {
 	}
 }
 
-func findMatches(provider vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoredMatch, error) {
+func findMatches(provider vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
 	if p.Distro == nil {
 		return nil, nil, nil
 	}
@@ -179,7 +179,7 @@ func findMatches(provider vulnerability.Provider, p pkg.Package, upstreamMatcher
 	return internal.MatchPackageByDistro(provider, p, upstreamMatcher)
 }
 
-func findEUSMatches(provider vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoredMatch, error) {
+func findEUSMatches(provider vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
 	verObj := version.NewVersionFromPkg(p)
 
 	distroWithoutEUS := *p.Distro
@@ -200,23 +200,34 @@ func findEUSMatches(provider vulnerability.Provider, p pkg.Package, upstreamMatc
 		return nil, nil, nil
 	}
 
-	c := internal.NewMatchFactory(internal.MatchPrototype{
-		Pkg:     p,
-		Type:    match.ExactDirectMatch,
-		Matcher: upstreamMatcher,
-		SearchedBy: match.DistroParameters{
-			Distro: match.DistroIdentification{
-				Type:    p.Distro.Type.String(),
-				Version: p.Distro.Version,
+	c := internal.NewMatchFactory()
+
+	c.AddVulnsAsDisclosures(
+		internal.DisclosureConfig{
+			KeepFixVersions: false, // this is already covered in resolutions
+			MatchPrototype: internal.MatchPrototype{
+				Pkg:     p,
+				Type:    match.ExactDirectMatch,
+				Matcher: upstreamMatcher,
+				SearchedBy: match.DistroParameters{
+					Distro: match.DistroIdentification{
+						Type:    p.Distro.Type.String(),
+						Version: p.Distro.Version,
+					},
+					Package: match.PackageParameter{
+						Name:    p.Name,
+						Version: p.Version,
+					},
+				},
 			},
-			Package: match.PackageParameter{
-				Name:    p.Name,
-				Version: p.Version,
+			FoundByGenerator: func(v vulnerability.Vulnerability) any {
+				return match.DistroResult{
+					VulnerabilityID:   v.ID,
+					VersionConstraint: v.Constraint.String(),
+				}
 			},
 		},
-	})
-
-	c.AddDisclosures(disclosures...)
+		disclosures...)
 
 	resolutions, err := provider.FindVulnerabilities(
 		search.ByPackageName(p.Name),
@@ -247,18 +258,10 @@ func findEUSMatches(provider vulnerability.Provider, p pkg.Package, upstreamMatc
 		return nil, nil, fmt.Errorf("matcher failed to fetch resolutions for distro=%q pkg=%q: %w", p.Distro, p.Name, err)
 	}
 
-	c.AddResolutions(resolutions...)
+	c.AddVulnsAsResolutions(resolutions...)
 
-	matches, err := c.Matches(
-		func(v vulnerability.Vulnerability) any {
-			return match.DistroResult{
-				VulnerabilityID:   v.ID,
-				VersionConstraint: v.Constraint.String(),
-			}
-		},
-	)
-	// TODO: raise up evidence of ignored matches?
-	return matches, nil, err
+	matches, ignored, err := c.Matches()
+	return matches, ignored, err
 }
 
 func isUnknownVersion(v string) bool {
