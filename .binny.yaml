@@ -42,7 +42,7 @@ tools:
   # used for signing the checksums file at release
   - name: cosign
     version:
-      want: v2.5.1
+      want: v2.5.2
     method: github-release
     with:
       repo: sigstore/cosign
@@ -90,7 +90,7 @@ tools:
   # used for triggering a release
   - name: gh
     version:
-      want: v2.74.1
+      want: v2.74.2
     method: github-release
     with:
       repo: cli/cli
