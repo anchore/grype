@@ -71,3 +71,36 @@ func MatchPackageByDistro(provider vulnerability.Provider, p pkg.Package, ty mat
 func isUnknownVersion(v string) bool {
 	return strings.ToLower(v) == "unknown"
 }
+
+func CreateMatch(p pkg.Package, vuln vulnerability.Vulnerability, ty match.Type, upstreamMatcher match.MatcherType) match.Match {
+	if ty == "" {
+		ty = match.ExactDirectMatch
+	}
+
+	return match.Match{
+		Vulnerability: vuln,
+		Package:       p,
+		Details: []match.Detail{
+			{
+				Type:    ty,
+				Matcher: upstreamMatcher,
+				SearchedBy: match.DistroParameters{
+					Distro: match.DistroIdentification{
+						Type:    p.Distro.Type.String(),
+						Version: p.Distro.Version,
+					},
+					Package: match.PackageParameter{
+						Name:    p.Name,
+						Version: p.Version,
+					},
+					Namespace: vuln.Namespace,
+				},
+				Found: match.DistroResult{
+					VulnerabilityID:   vuln.ID,
+					VersionConstraint: vuln.Constraint.String(),
+				},
+				Confidence: 1.0, // TODO: this is hard coded for now
+			},
+		},
+	}
+}

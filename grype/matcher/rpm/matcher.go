@@ -169,13 +169,13 @@ func findMatches(provider vulnerability.Provider, p pkg.Package, ty match.Type, 
 	}
 
 	if isEUSContext(p.Distro) {
-		return findEUSMatches(provider, p, upstreamMatcher)
+		return findEUSMatches(provider, p, ty, upstreamMatcher)
 	}
 
 	return internal.MatchPackageByDistro(provider, p, ty, upstreamMatcher)
 }
 
-func findEUSMatches(provider vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
+func findEUSMatches(provider vulnerability.Provider, p pkg.Package, ty match.Type, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
 	verObj := version.NewVersionFromPkg(p)
 
 	distroWithoutEUS := *p.Distro
@@ -202,7 +202,7 @@ func findEUSMatches(provider vulnerability.Provider, p pkg.Package, upstreamMatc
 		internal.DisclosureConfig{
 			KeepFixVersions: false, // this is already covered in resolutions
 			MatchPrototype: internal.MatchPrototype{
-				Type:    match.ExactDirectMatch,
+				Type:    ty,
 				Matcher: upstreamMatcher,
 				SearchedBy: match.DistroParameters{
 					Distro: match.DistroIdentification{

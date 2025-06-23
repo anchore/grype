@@ -11,6 +11,7 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
+// TODO: can we replace this with instead using the generic criteria.OR and have range info paired with each distro object?
 func ByDistroRange(ranges ...DistroRange) vulnerability.Criteria {
 
 	for i := range ranges {

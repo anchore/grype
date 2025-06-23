@@ -58,7 +58,7 @@ func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Pack
 		return nil, nil, err
 	}
 
-	c.AddMatchesAsDisclosuresFromMatches(cfg, secDBMatches...)
+	c.AddMatchesAsDisclosures(cfg, secDBMatches...)
 
 	// TODO: are there other errors that we should handle here that causes this to short circuit
 	err = m.cpeMatchesWithoutSecDBFixes(store, c, p)
@@ -130,7 +130,7 @@ func (m *Matcher) cpeMatchesWithoutSecDBFixes(provider vulnerability.Provider, c
 		log.WithFields("package", p.Name, "error", err).Debug("failed to find CPE matches for package")
 	}
 
-	c.AddMatchesAsDisclosuresFromMatches(cfg, cpeMatches...)
+	c.AddMatchesAsDisclosures(cfg, cpeMatches...)
 
 	// remove cpe matches where there is an entry in the secDB for the particular package-vulnerability pairing, and the
 	// installed package version is >= the fixed in version for the secDB record.
@@ -142,6 +142,7 @@ func (m *Matcher) cpeMatchesWithoutSecDBFixes(provider vulnerability.Provider, c
 		return err
 	}
 
+	// TODO: this is a different set of packages than what the match factory represents... can we combine indirect and direct indications here?
 	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
 		secDBVulnerabilitiesForUpstream, err := provider.FindVulnerabilities(
 			search.ByPackageName(upstreamPkg.Name),

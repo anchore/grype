@@ -13,34 +13,25 @@ import (
 	"strings"
 )
 
-// Disclosure represents a claim of something being vulnerable.
-type Disclosure struct {
-	// temporary
-	// TODO: we must not include fix info (e.g. alma)
-	config *DisclosureConfig // the config used to create this disclosure, which contains the prototype and other information
-	vulnerability.Vulnerability
-
-	matchDetails []match.Detail
+// advisory represents a claim of something being vulnerable and has optional fix information available.
+type advisory struct {
+	Config               *DisclosureConfig
+	Vulnerability        vulnerability.Vulnerability
+	ExistingMatchDetails []match.Detail
 }
 
-// TODO: this would be a combination of the disclosure and resolution... which is already on vulnerability.Vulnerability
-// so in the future this would be a more sane definition
-type advisory Disclosure
-
-// Resolution represents the conclusion of a vulnerability being fixed, wont-fixed, or not-fixed, and the specifics thereof.
-type Resolution struct {
-	// temporary
-	//config *ResolutionConfig // the config used to create this resolution, which contains the prototype and other information
+// resolution represents the conclusion of a vulnerability being fixed, wont-fixed, or not-fixed, and the specifics thereof.
+type resolution struct {
 	vulnerability.Reference
 	vulnerability.Fix
-	Constraint version.Constraint // TODO: i really don't want this here, but we don't have the format until we expose the data from the fix directly
+	Constraint version.Constraint
 }
 
 type MatchFactory struct {
 	ids             *strset.Set
 	pkg             pkg.Package // the package that is being matched against
-	disclosuresByID map[string][]Disclosure
-	resolutionsByID map[string][]Resolution
+	disclosuresByID map[string][]advisory
+	resolutionsByID map[string][]resolution
 }
 
 type MatchPrototype struct {
@@ -63,14 +54,15 @@ type DisclosureConfig struct {
 
 func NewMatchFactory(p pkg.Package) *MatchFactory {
 	return &MatchFactory{
-		pkg:             p,
-		ids:             strset.New(),
-		disclosuresByID: make(map[string][]Disclosure),
-		resolutionsByID: make(map[string][]Resolution),
+		pkg: p,
+		ids: strset.New(),
+		// TODO: can we also take matches
+		disclosuresByID: make(map[string][]advisory),
+		resolutionsByID: make(map[string][]resolution),
 	}
 }
 
-func (c *MatchFactory) AddMatchesAsDisclosuresFromMatches(cfg DisclosureConfig, ms ...match.Match) {
+func (c *MatchFactory) AddMatchesAsDisclosures(cfg DisclosureConfig, ms ...match.Match) {
 	for _, d := range matchesToDisclosure(&cfg, ms...) {
 		c.addDisclosure(&cfg, d)
 	}
@@ -82,14 +74,14 @@ func (c *MatchFactory) AddVulnsAsDisclosures(cfg DisclosureConfig, vs ...vulnera
 	}
 }
 
-func (c *MatchFactory) addDisclosure(cfg *DisclosureConfig, d Disclosure) {
+func (c *MatchFactory) addDisclosure(cfg *DisclosureConfig, d advisory) {
 	cfg.MatchPrototype.version = version.NewVersionFromPkg(c.pkg)
-	d.config = cfg
+	d.Config = cfg
 
-	if d.ID == "" {
+	if d.Vulnerability.ID == "" {
 		return // we cannot add a disclosure without an ID
 	}
-	c.ids.Add(d.ID)
+	c.ids.Add(d.Vulnerability.ID)
 
 	if !cfg.KeepFixVersions && len(d.Vulnerability.Fix.Versions) > 0 {
 		d.Vulnerability.Fix = vulnerability.Fix{
@@ -97,10 +89,10 @@ func (c *MatchFactory) addDisclosure(cfg *DisclosureConfig, d Disclosure) {
 		}
 	}
 
-	if existing, ok := c.disclosuresByID[d.ID]; ok {
-		c.disclosuresByID[d.ID] = append(existing, d)
+	if existing, ok := c.disclosuresByID[d.Vulnerability.ID]; ok {
+		c.disclosuresByID[d.Vulnerability.ID] = append(existing, d)
 	} else {
-		c.disclosuresByID[d.ID] = []Disclosure{d}
+		c.disclosuresByID[d.Vulnerability.ID] = []advisory{d}
 	}
 }
 
@@ -110,11 +102,11 @@ func (c *MatchFactory) AddVulnsAsResolutions(vs ...vulnerability.Vulnerability) 
 			return // we cannot add a resolution without an ID
 		}
 		c.ids.Add(r.ID)
-		//r.config = &cfg
+		//r.Config = &cfg
 		if existing, ok := c.resolutionsByID[r.ID]; ok {
 			c.resolutionsByID[r.ID] = append(existing, r)
 		} else {
-			c.resolutionsByID[r.ID] = []Resolution{r}
+			c.resolutionsByID[r.ID] = []resolution{r}
 		}
 	}
 }
@@ -123,7 +115,7 @@ func (c *MatchFactory) reconcile() ([]advisory, []match.IgnoreFilter, error) {
 	ids := c.ids.List()
 	sort.Strings(ids)
 
-	var vulns []Disclosure
+	var advisories []advisory
 	var ignored []match.IgnoreFilter
 vulnLoop:
 	for _, id := range ids {
@@ -140,7 +132,7 @@ vulnLoop:
 		if len(rs) == 0 || !ok {
 			// no resolutions found for this vulnerability, so we will not include it
 			for _, d := range ds {
-				vulns = append(vulns, d)
+				advisories = append(advisories, d)
 			}
 			continue vulnLoop
 		}
@@ -156,10 +148,10 @@ vulnLoop:
 					// these do not negate disclosures, so we will skip them
 					continue
 				}
-				isVulnerable, err := r.Constraint.Satisfied(d.config.MatchPrototype.version)
+				isVulnerable, err := r.Constraint.Satisfied(d.Config.MatchPrototype.version)
 				if err != nil {
 					log.WithFields(logger.Fields{
-						"vulnerability": d.ID,
+						"vulnerability": d.Vulnerability.ID,
 						"error":         err,
 					}).Tracef("failed to check constraint for vulnerability")
 					continue // skip this resolution, but check other resolutions
@@ -182,61 +174,55 @@ vulnLoop:
 				continue
 			}
 
-			vuln := d
+			finalAdvisory := d
 
 			fixVersions.Remove("")
 			fixVersionList := fixVersions.List()
-			sort.Strings(fixVersionList) // TODO: use version sort, not lexically... or does this matter... when converting to a model for presentation this will be handled.
+			sort.Strings(fixVersionList)
 
-			vuln.Fix.State = state
-			vuln.Fix.Versions = fixVersionList
+			finalAdvisory.Vulnerability.Fix.State = state
+			finalAdvisory.Vulnerability.Fix.Versions = fixVersionList
 
 			// this disclosure does not have a resolution that satisfies it, so we will keep it... patching on any fixes that we are aware of
-			vulns = append(vulns, vuln)
+			advisories = append(advisories, finalAdvisory)
 		}
 
 		// TODO: in the future we should save evidence of being ignored here
 	}
 
-	// TODO: temp glue code
-	var ads []advisory
-	for _, d := range vulns {
-		ads = append(ads, advisory(d))
-	}
-
-	return ads, ignored, nil
+	return advisories, ignored, nil
 }
 
 func (c *MatchFactory) Matches() ([]match.Match, []match.IgnoreFilter, error) {
-	advisories, ignored, err := c.reconcile()
+	disclosures, ignored, err := c.reconcile()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to reconcile vulnerabilities: %w", err)
 	}
 
 	var matches []match.Match
-	for _, a := range advisories {
-		sb := a.config.MatchPrototype.SearchedBy
+	for _, a := range disclosures {
+		sb := a.Config.MatchPrototype.SearchedBy
 		switch v := sb.(type) {
 		case match.DistroParameters:
-			v.Namespace = a.Namespace
+			v.Namespace = a.Vulnerability.Namespace
 			sb = v
 		}
 
 		var details []match.Detail
-		if a.config.FoundByGenerator != nil {
+		if a.Config.FoundByGenerator != nil {
 			// TODO: should we have a default FoundByGenerator?
 			details = []match.Detail{
 				{
-					Type:       a.config.MatchPrototype.Type,
-					Matcher:    a.config.MatchPrototype.Matcher,
+					Type:       a.Config.MatchPrototype.Type,
+					Matcher:    a.Config.MatchPrototype.Matcher,
 					SearchedBy: sb,
-					Found:      a.config.FoundByGenerator(a.Vulnerability),
-					Confidence: confidenceForMatchType(a.config.MatchPrototype.Type),
+					Found:      a.Config.FoundByGenerator(a.Vulnerability),
+					Confidence: confidenceForMatchType(a.Config.MatchPrototype.Type),
 				},
 			}
 		}
 
-		details = append(details, a.matchDetails...)
+		details = append(details, a.ExistingMatchDetails...)
 
 		matches = append(matches, match.Match{
 			Vulnerability: a.Vulnerability,
@@ -258,31 +244,28 @@ func confidenceForMatchType(mt match.Type) float64 {
 	}
 }
 
-func matchesToDisclosure(cfg *DisclosureConfig, ms ...match.Match) []Disclosure {
-	var out []Disclosure
+func matchesToDisclosure(cfg *DisclosureConfig, ms ...match.Match) []advisory {
+	var out []advisory
 	for _, m := range ms {
-		out = append(out, Disclosure{
-			config:        cfg,
-			Vulnerability: m.Vulnerability,
-			matchDetails:  m.Details,
+		out = append(out, advisory{
+			Config:               cfg,
+			Vulnerability:        m.Vulnerability,
+			ExistingMatchDetails: m.Details,
 		})
 	}
 	return out
 }
 
-func vulnsToDisclosure(vs ...vulnerability.Vulnerability) []Disclosure {
-	// temporary
-	var out []Disclosure
+func vulnsToDisclosure(vs ...vulnerability.Vulnerability) []advisory {
+	var out []advisory
 	for _, v := range vs {
-		// TODO: should we remove the fix info?
-		out = append(out, Disclosure{Vulnerability: v})
+		out = append(out, advisory{Vulnerability: v})
 	}
 	return out
 }
 
-func vulnsToResolution(vs ...vulnerability.Vulnerability) []Resolution {
-	// temporary
-	var out []Resolution
+func vulnsToResolution(vs ...vulnerability.Vulnerability) []resolution {
+	var out []resolution
 	for _, v := range vs {
 		if len(v.Fix.Versions) == 0 {
 			continue
@@ -298,7 +281,7 @@ func vulnsToResolution(vs ...vulnerability.Vulnerability) []Resolution {
 			continue // skip this resolution
 		}
 
-		out = append(out, Resolution{
+		out = append(out, resolution{
 			Reference:  v.Reference,
 			Fix:        v.Fix,
 			Constraint: constraint, // TODO: not great, but is actionable based on the fix
