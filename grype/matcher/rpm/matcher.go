@@ -111,16 +111,12 @@ func (m *Matcher) matchUpstreamPackages(provider vulnerability.Provider, p pkg.P
 	var matches []match.Match
 
 	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indirectMatches, _, err := findMatches(provider, indirectPackage, m.Type())
+		indirectMatches, _, err := findMatches(provider, indirectPackage, match.ExactIndirectMatch, m.Type())
 		if err != nil {
 			return nil, fmt.Errorf("failed to find vulnerabilities for rpm upstream source package: %w", err)
 		}
 		matches = append(matches, indirectMatches...)
 	}
-
-	// we want to make certain that we are tracking the match based on the package from the SBOM (not the indirect package).
-	// The match details already contain the specific indirect package information used to make the match.
-	match.ConvertToIndirectMatches(matches, p)
 
 	return matches, nil
 }
@@ -131,7 +127,7 @@ func (m *Matcher) matchPackage(provider vulnerability.Provider, p pkg.Package) (
 
 	addEpochIfApplicable(&p)
 
-	matches, _, err := findMatches(provider, p, m.Type())
+	matches, _, err := findMatches(provider, p, match.ExactDirectMatch, m.Type())
 	if err != nil {
 		return nil, fmt.Errorf("failed to find vulnerabilities by dpkg source indirection: %w", err)
 	}
@@ -163,7 +159,7 @@ func addEpochIfApplicable(p *pkg.Package) {
 	}
 }
 
-func findMatches(provider vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
+func findMatches(provider vulnerability.Provider, p pkg.Package, ty match.Type, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
 	if p.Distro == nil {
 		return nil, nil, nil
 	}
@@ -176,7 +172,7 @@ func findMatches(provider vulnerability.Provider, p pkg.Package, upstreamMatcher
 		return findEUSMatches(provider, p, upstreamMatcher)
 	}
 
-	return internal.MatchPackageByDistro(provider, p, upstreamMatcher)
+	return internal.MatchPackageByDistro(provider, p, ty, upstreamMatcher)
 }
 
 func findEUSMatches(provider vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
@@ -200,13 +196,12 @@ func findEUSMatches(provider vulnerability.Provider, p pkg.Package, upstreamMatc
 		return nil, nil, nil
 	}
 
-	c := internal.NewMatchFactory()
+	c := internal.NewMatchFactory(p)
 
 	c.AddVulnsAsDisclosures(
 		internal.DisclosureConfig{
 			KeepFixVersions: false, // this is already covered in resolutions
 			MatchPrototype: internal.MatchPrototype{
-				Pkg:     p,
 				Type:    match.ExactDirectMatch,
 				Matcher: upstreamMatcher,
 				SearchedBy: match.DistroParameters{
@@ -242,6 +237,7 @@ func findEUSMatches(provider vulnerability.Provider, p pkg.Package, upstreamMatc
 						Operator: version.GTE,
 					},
 					{
+						// TODO: what if minor version is not specified?
 						Version:  fmt.Sprintf("%s.%s", p.Distro.MajorVersion(), p.Distro.MinorVersion()),
 						Operator: version.LTE,
 					},

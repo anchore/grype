@@ -12,9 +12,13 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-func MatchPackageByDistro(provider vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
+func MatchPackageByDistro(provider vulnerability.Provider, p pkg.Package, ty match.Type, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
 	if p.Distro == nil {
 		return nil, nil, nil
+	}
+
+	if ty == "" {
+		ty = match.ExactDirectMatch
 	}
 
 	if isUnknownVersion(p.Version) {
@@ -39,7 +43,7 @@ func MatchPackageByDistro(provider vulnerability.Provider, p pkg.Package, upstre
 			Package:       p,
 			Details: []match.Detail{
 				{
-					Type:    match.ExactDirectMatch,
+					Type:    ty,
 					Matcher: upstreamMatcher,
 					SearchedBy: match.DistroParameters{
 						Distro: match.DistroIdentification{

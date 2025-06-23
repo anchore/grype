@@ -17,7 +17,7 @@ import (
 type Disclosure struct {
 	// temporary
 	// TODO: we must not include fix info (e.g. alma)
-	Config *DisclosureConfig // the config used to create this disclosure, which contains the prototype and other information
+	config *DisclosureConfig // the config used to create this disclosure, which contains the prototype and other information
 	vulnerability.Vulnerability
 
 	matchDetails []match.Detail
@@ -30,6 +30,7 @@ type advisory Disclosure
 // Resolution represents the conclusion of a vulnerability being fixed, wont-fixed, or not-fixed, and the specifics thereof.
 type Resolution struct {
 	// temporary
+	//config *ResolutionConfig // the config used to create this resolution, which contains the prototype and other information
 	vulnerability.Reference
 	vulnerability.Fix
 	Constraint version.Constraint // TODO: i really don't want this here, but we don't have the format until we expose the data from the fix directly
@@ -37,6 +38,7 @@ type Resolution struct {
 
 type MatchFactory struct {
 	ids             *strset.Set
+	pkg             pkg.Package // the package that is being matched against
 	disclosuresByID map[string][]Disclosure
 	resolutionsByID map[string][]Resolution
 }
@@ -44,7 +46,6 @@ type MatchFactory struct {
 type MatchPrototype struct {
 	version *version.Version // the version of the package that was matched
 
-	Pkg        pkg.Package
 	Type       match.Type
 	Matcher    match.MatcherType
 	SearchedBy any
@@ -56,8 +57,13 @@ type DisclosureConfig struct {
 	MatchPrototype   MatchPrototype
 }
 
-func NewMatchFactory() *MatchFactory {
+//type ResolutionConfig struct {
+//	IgnoreRuleGenerator func(pkg.Package, vulnerability.Vulnerability) []match.IgnoreFilter // a function that returns the "ignore rule" for the resolution
+//}
+
+func NewMatchFactory(p pkg.Package) *MatchFactory {
 	return &MatchFactory{
+		pkg:             p,
 		ids:             strset.New(),
 		disclosuresByID: make(map[string][]Disclosure),
 		resolutionsByID: make(map[string][]Resolution),
@@ -77,8 +83,8 @@ func (c *MatchFactory) AddVulnsAsDisclosures(cfg DisclosureConfig, vs ...vulnera
 }
 
 func (c *MatchFactory) addDisclosure(cfg *DisclosureConfig, d Disclosure) {
-	cfg.MatchPrototype.version = version.NewVersionFromPkg(cfg.MatchPrototype.Pkg)
-	d.Config = cfg
+	cfg.MatchPrototype.version = version.NewVersionFromPkg(c.pkg)
+	d.config = cfg
 
 	if d.ID == "" {
 		return // we cannot add a disclosure without an ID
@@ -104,6 +110,7 @@ func (c *MatchFactory) AddVulnsAsResolutions(vs ...vulnerability.Vulnerability) 
 			return // we cannot add a resolution without an ID
 		}
 		c.ids.Add(r.ID)
+		//r.config = &cfg
 		if existing, ok := c.resolutionsByID[r.ID]; ok {
 			c.resolutionsByID[r.ID] = append(existing, r)
 		} else {
@@ -149,7 +156,7 @@ vulnLoop:
 					// these do not negate disclosures, so we will skip them
 					continue
 				}
-				isVulnerable, err := r.Constraint.Satisfied(d.Config.MatchPrototype.version)
+				isVulnerable, err := r.Constraint.Satisfied(d.config.MatchPrototype.version)
 				if err != nil {
 					log.WithFields(logger.Fields{
 						"vulnerability": d.ID,
@@ -208,28 +215,32 @@ func (c *MatchFactory) Matches() ([]match.Match, []match.IgnoreFilter, error) {
 
 	var matches []match.Match
 	for _, a := range advisories {
-		sb := a.Config.MatchPrototype.SearchedBy
+		sb := a.config.MatchPrototype.SearchedBy
 		switch v := sb.(type) {
 		case match.DistroParameters:
 			v.Namespace = a.Namespace
 			sb = v
 		}
 
-		details := []match.Detail{
-			{
-				Type:       a.Config.MatchPrototype.Type,
-				Matcher:    a.Config.MatchPrototype.Matcher,
-				SearchedBy: sb,
-				Found:      a.Config.FoundByGenerator(a.Vulnerability),
-				Confidence: confidenceForMatchType(a.Config.MatchPrototype.Type),
-			},
+		var details []match.Detail
+		if a.config.FoundByGenerator != nil {
+			// TODO: should we have a default FoundByGenerator?
+			details = []match.Detail{
+				{
+					Type:       a.config.MatchPrototype.Type,
+					Matcher:    a.config.MatchPrototype.Matcher,
+					SearchedBy: sb,
+					Found:      a.config.FoundByGenerator(a.Vulnerability),
+					Confidence: confidenceForMatchType(a.config.MatchPrototype.Type),
+				},
+			}
 		}
 
 		details = append(details, a.matchDetails...)
 
 		matches = append(matches, match.Match{
 			Vulnerability: a.Vulnerability,
-			Package:       a.Config.MatchPrototype.Pkg,
+			Package:       c.pkg,
 			Details:       details,
 		})
 	}
@@ -250,9 +261,8 @@ func confidenceForMatchType(mt match.Type) float64 {
 func matchesToDisclosure(cfg *DisclosureConfig, ms ...match.Match) []Disclosure {
 	var out []Disclosure
 	for _, m := range ms {
-
 		out = append(out, Disclosure{
-			Config:        cfg,
+			config:        cfg,
 			Vulnerability: m.Vulnerability,
 			matchDetails:  m.Details,
 		})
