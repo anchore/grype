@@ -159,7 +159,7 @@ func TestGenericConstraint_Invalid(t *testing.T) {
 		gen        func(unit rangeUnit) (Comparator, error)
 	}{
 		{
-			name:       "invalid operator",
+			name:       "invalid Operator",
 			constraint: "~~ 1.0.0",
 		},
 		{

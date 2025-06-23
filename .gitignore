@@ -1,3 +1,7 @@
+# AI
+.claude
+CLAUDE.MD
+
 # local development tailoring
 go.work
 go.work.sum

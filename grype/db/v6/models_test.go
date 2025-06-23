@@ -3,6 +3,7 @@ package v6
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -123,6 +124,51 @@ func TestOperatingSystem_Version(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.expectedResult, tt.os.Version())
+		})
+	}
+}
+
+func TestOperatingSystem_clean(t *testing.T) {
+
+	tests := []struct {
+		name  string
+		input OperatingSystem
+		want  OperatingSystem
+	}{
+		{
+			name: "trim 0s",
+			input: OperatingSystem{
+				Name:         "Ubuntu",
+				MajorVersion: "20",
+				MinorVersion: "04",
+			},
+			want: OperatingSystem{
+				Name:         "Ubuntu",
+				MajorVersion: "20",
+				MinorVersion: "4",
+			},
+		},
+		{
+			name: "preserve 0 value",
+			input: OperatingSystem{
+				Name:         "Redhat",
+				MajorVersion: "9",
+				MinorVersion: "0",
+			},
+			want: OperatingSystem{
+				Name:         "Redhat",
+				MajorVersion: "9",
+				MinorVersion: "0", // important! ...9 != 9.0 since 9 includes multiple minor versions
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			o := tt.input
+			o.clean()
+			if d := cmp.Diff(tt.want, o); d != "" {
+				t.Errorf("OperatingSystem.clean() mismatch (-want +got):\n%s", d)
+			}
 		})
 	}
 }

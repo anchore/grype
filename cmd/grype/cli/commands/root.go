@@ -261,11 +261,7 @@ func applyDistroHint(pkgs []pkg.Package, context *pkg.Context, opts *options.Gry
 		if len(split) > 1 {
 			v = split[1]
 		}
-		var err error
-		context.Distro, err = distro.NewFromNameVersion(d, v)
-		if err != nil {
-			log.WithFields("distro", opts.Distro, "error", err).Warn("unable to parse distro")
-		}
+		context.Distro = distro.NewFromNameVersion(d, v)
 	}
 
 	hasOSPackageWithoutDistro := false

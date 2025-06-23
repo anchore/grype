@@ -25,6 +25,10 @@ func newGenericConstraint(format Format, raw string) (genericConstraint, error) 
 	}, nil
 }
 
+func (g genericConstraint) Format() Format {
+	return g.format
+}
+
 func (g genericConstraint) String() string {
 	value := "none"
 	if g.raw != "" {

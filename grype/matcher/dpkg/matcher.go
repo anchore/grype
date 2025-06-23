@@ -30,7 +30,7 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	}
 	matches = append(matches, sourceMatches...)
 
-	exactMatches, _, err := internal.MatchPackageByDistro(store, p, m.Type())
+	exactMatches, _, err := internal.MatchPackageByDistro(store, p, match.ExactDirectMatch, m.Type())
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to match by exact package name: %w", err)
 	}
@@ -43,16 +43,12 @@ func (m *Matcher) matchUpstreamPackages(store vulnerability.Provider, p pkg.Pack
 	var matches []match.Match
 
 	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indirectMatches, _, err := internal.MatchPackageByDistro(store, indirectPackage, m.Type())
+		indirectMatches, _, err := internal.MatchPackageByDistro(store, indirectPackage, match.ExactIndirectMatch, m.Type())
 		if err != nil {
 			return nil, fmt.Errorf("failed to find vulnerabilities for dpkg upstream source package: %w", err)
 		}
 		matches = append(matches, indirectMatches...)
 	}
-
-	// we want to make certain that we are tracking the match based on the package from the SBOM (not the indirect package)
-	// however, we also want to keep the indirect package around for future reference
-	match.ConvertToIndirectMatches(matches, p)
 
 	return matches, nil
 }

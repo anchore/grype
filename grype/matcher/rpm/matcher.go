@@ -4,10 +4,14 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/search"
+	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal/log"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -23,7 +27,7 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 //nolint:funlen
-func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+func (m *Matcher) Match(provider vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	matches := make([]match.Match, 0)
 
 	// let's match with a synthetic package that doesn't exist. We will create a new
@@ -71,7 +75,7 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	// really assume an epoch of 4 on the other side). This could still lead to
 	// problems since an epoch delimits potentially non-comparable version lineages.
 
-	sourceMatches, err := m.matchUpstreamPackages(store, p)
+	sourceMatches, err := m.matchUpstreamPackages(provider, p)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to match by source indirection: %w", err)
 	}
@@ -93,7 +97,7 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	// case). To do this we fill in missing epoch values in the package versions with
 	// an explicit 0.
 
-	exactMatches, err := m.matchPackage(store, p)
+	exactMatches, err := m.matchPackage(provider, p)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to match by exact package name: %w", err)
 	}
@@ -103,31 +107,27 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	return matches, nil, nil
 }
 
-func (m *Matcher) matchUpstreamPackages(store vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) matchUpstreamPackages(provider vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
 	var matches []match.Match
 
 	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indirectMatches, _, err := internal.MatchPackageByDistro(store, indirectPackage, m.Type())
+		indirectMatches, _, err := findMatches(provider, indirectPackage, match.ExactIndirectMatch, m.Type())
 		if err != nil {
 			return nil, fmt.Errorf("failed to find vulnerabilities for rpm upstream source package: %w", err)
 		}
 		matches = append(matches, indirectMatches...)
 	}
 
-	// we want to make certain that we are tracking the match based on the package from the SBOM (not the indirect package).
-	// The match details already contains the specific indirect package information used to make the match.
-	match.ConvertToIndirectMatches(matches, p)
-
 	return matches, nil
 }
 
-func (m *Matcher) matchPackage(store vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) matchPackage(provider vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
 	// we want to ensure that the version ALWAYS has an epoch specified...
 	originalPkg := p
 
 	addEpochIfApplicable(&p)
 
-	matches, _, err := internal.MatchPackageByDistro(store, p, m.Type())
+	matches, _, err := findMatches(provider, p, match.ExactDirectMatch, m.Type())
 	if err != nil {
 		return nil, fmt.Errorf("failed to find vulnerabilities by dpkg source indirection: %w", err)
 	}
@@ -142,16 +142,132 @@ func (m *Matcher) matchPackage(store vulnerability.Provider, p pkg.Package) ([]m
 
 func addEpochIfApplicable(p *pkg.Package) {
 	meta, ok := p.Metadata.(pkg.RpmMetadata)
-	version := p.Version
+	ver := p.Version
+	if ver == "" {
+		return // no version to work with, so we should not bother with an epoch
+	}
 	switch {
-	case strings.Contains(version, ":"):
+	case strings.Contains(ver, ":"):
 		// we already have an epoch embedded in the version string
 		return
 	case ok && meta.Epoch != nil:
 		// we have an explicit epoch in the metadata
-		p.Version = fmt.Sprintf("%d:%s", *meta.Epoch, version)
+		p.Version = fmt.Sprintf("%d:%s", *meta.Epoch, ver)
 	default:
 		// no epoch was found, so we will add one
-		p.Version = "0:" + version
+		p.Version = "0:" + ver
 	}
+}
+
+func findMatches(provider vulnerability.Provider, p pkg.Package, ty match.Type, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
+	if p.Distro == nil {
+		return nil, nil, nil
+	}
+	if isUnknownVersion(p.Version) {
+		log.WithFields("package", p.Name).Trace("skipping package with unknown version")
+		return nil, nil, nil
+	}
+
+	if isEUSContext(p.Distro) {
+		return findEUSMatches(provider, p, upstreamMatcher)
+	}
+
+	return internal.MatchPackageByDistro(provider, p, ty, upstreamMatcher)
+}
+
+func findEUSMatches(provider vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
+	verObj := version.NewVersionFromPkg(p)
+
+	distroWithoutEUS := *p.Distro
+	distroWithoutEUS.Variant = "" // clear the EUS designator so that we can search for the base distro
+
+	disclosures, err := provider.FindVulnerabilities(
+		search.ByPackageName(p.Name),
+		search.ByDistro(distroWithoutEUS), // e.g.  >= 9.0 && < 10
+		internal.OnlyQualifiedPackages(p),
+		// TODO: answer : we can never do this? well, can't do it for alma
+		internal.OnlyVulnerableVersions(verObj), // TODO: we do less work by including this here, but if we were being pure about this we'd let the collection handle this
+	)
+	if err != nil {
+		return nil, nil, fmt.Errorf("matcher failed to fetch disclosures for distro=%q pkg=%q: %w", p.Distro, p.Name, err)
+	}
+
+	if len(disclosures) == 0 {
+		return nil, nil, nil
+	}
+
+	c := internal.NewMatchFactory(p)
+
+	c.AddVulnsAsDisclosures(
+		internal.DisclosureConfig{
+			KeepFixVersions: false, // this is already covered in resolutions
+			MatchPrototype: internal.MatchPrototype{
+				Type:    match.ExactDirectMatch,
+				Matcher: upstreamMatcher,
+				SearchedBy: match.DistroParameters{
+					Distro: match.DistroIdentification{
+						Type:    p.Distro.Type.String(),
+						Version: p.Distro.Version,
+					},
+					Package: match.PackageParameter{
+						Name:    p.Name,
+						Version: p.Version,
+					},
+				},
+			},
+			FoundByGenerator: func(v vulnerability.Vulnerability) any {
+				return match.DistroResult{
+					VulnerabilityID:   v.ID,
+					VersionConstraint: v.Constraint.String(),
+				}
+			},
+		},
+		disclosures...)
+
+	resolutions, err := provider.FindVulnerabilities(
+		search.ByPackageName(p.Name),
+		search.ByDistro(distroWithoutEUS), // e.g.  >= 9.0 && < 10
+		search.ByDistroRange(
+			search.DistroRange{
+				Type: p.Distro.Type,
+				// e.g.  >= 9.0+eus && <= 9.X+eus
+				Ranges: []search.DistroOpenRange{
+					{
+						Version:  fmt.Sprintf("%s.0", p.Distro.MajorVersion()),
+						Operator: version.GTE,
+					},
+					{
+						// TODO: what if minor version is not specified?
+						Version:  fmt.Sprintf("%s.%s", p.Distro.MajorVersion(), p.Distro.MinorVersion()),
+						Operator: version.LTE,
+					},
+				},
+				Variant: p.Distro.Variant,
+				IDLike:  p.Distro.IDLike,
+			},
+		),
+		internal.OnlyQualifiedPackages(p),
+		// internal.OnlyVulnerableVersions(verObj), // this is applied within the collection, so is WRONG to apply here (will result in FPs)
+	)
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("matcher failed to fetch resolutions for distro=%q pkg=%q: %w", p.Distro, p.Name, err)
+	}
+
+	c.AddVulnsAsResolutions(resolutions...)
+
+	matches, ignored, err := c.Matches()
+	return matches, ignored, err
+}
+
+func isUnknownVersion(v string) bool {
+	return v == "" || strings.ToLower(v) == "unknown"
+}
+
+func isEUSContext(d *distro.Distro) bool {
+	if d == nil {
+		return false
+	}
+
+	return strings.ToLower(d.Variant) == "eus"
 }
