@@ -54,17 +54,17 @@ func MatchPackageByEcosystemPackageName(provider vulnerability.Provider, p pkg.P
 					Type:       match.ExactDirectMatch,
 					Confidence: 1.0, // TODO: this is hard coded for now
 					Matcher:    matcherType,
-					SearchedBy: map[string]interface{}{
-						"language":  string(p.Language),
-						"namespace": vuln.Namespace,
-						"package": map[string]string{
-							"name":    p.Name,
-							"version": p.Version,
+					SearchedBy: match.EcosystemParameters{
+						Language:  string(p.Language),
+						Namespace: vuln.Namespace,
+						Package: match.PackageParameter{
+							Name:    p.Name,
+							Version: p.Version,
 						},
 					},
-					Found: map[string]interface{}{
-						"vulnerabilityID":   vuln.ID,
-						"versionConstraint": vuln.Constraint.String(),
+					Found: match.EcosystemResult{
+						VulnerabilityID:   vuln.ID,
+						VersionConstraint: vuln.Constraint.String(),
 					},
 				},
 			},

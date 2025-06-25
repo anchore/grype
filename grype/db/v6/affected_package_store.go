@@ -33,7 +33,6 @@ type GetAffectedPackageOptions struct {
 	PreloadVulnerability  bool
 	PreloadBlob           bool
 	OSs                   OSSpecifiers
-	OSRanges              OSRangeSpecifiers
 	Vulnerabilities       VulnerabilitySpecifiers
 	AllowBroadCPEMatching bool
 	Limit                 int
@@ -225,7 +224,7 @@ func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config
 		return nil, err
 	}
 
-	query, err = s.handleOSOptions(query, config.OSs, config.OSRanges)
+	query, err = s.handleOSOptions(query, config.OSs)
 	if err != nil {
 		return nil, err
 	}
@@ -349,10 +348,10 @@ func (s *affectedPackageStore) handleVulnerabilityOptions(query *gorm.DB, config
 	return handleVulnerabilityOptions(s.db, query, configs...)
 }
 
-func (s *affectedPackageStore) handleOSOptions(query *gorm.DB, configs []*OSSpecifier, rangeConfigs []OSRangeSpecifier) (*gorm.DB, error) {
+func (s *affectedPackageStore) handleOSOptions(query *gorm.DB, configs []*OSSpecifier) (*gorm.DB, error) {
 	ids := map[int64]struct{}{}
 
-	if len(configs) == 0 && len(rangeConfigs) == 0 {
+	if len(configs) == 0 {
 		configs = append(configs, AnyOSSpecified)
 	}
 
@@ -380,23 +379,6 @@ func (s *affectedPackageStore) handleOSOptions(query *gorm.DB, configs []*OSSpec
 
 	if (hasAny || hasNone) && hasSpecific {
 		return nil, fmt.Errorf("cannot mix specific OS with 'any' or 'none' OS specifiers")
-	}
-
-	var hasRange = len(rangeConfigs) > 0
-	if (hasAny || hasNone) && hasRange {
-		return nil, fmt.Errorf("cannot mix OS ranges with 'any' or 'none' OS range specifiers")
-	}
-
-	// process OS ranges...
-	for _, rangeConfig := range rangeConfigs {
-		curResolved, err := s.osStore.GetOperatingSystemsInRange(rangeConfig)
-		if err != nil {
-			return nil, fmt.Errorf("unable to resolve operating system range: %w", err)
-		}
-
-		for _, d := range curResolved {
-			ids[int64(d.ID)] = struct{}{}
-		}
 	}
 
 	switch {

@@ -94,3 +94,30 @@ func (d DistroResult) Equals(other DistroResult) bool {
 	return d.VulnerabilityID == other.VulnerabilityID &&
 		d.VersionConstraint == other.VersionConstraint
 }
+
+type EcosystemParameters struct {
+	Language  string           `json:"language"`
+	Namespace string           `json:"namespace"`
+	Package   PackageParameter `json:"package"`
+}
+
+func (e *EcosystemParameters) Merge(other EcosystemParameters) error {
+	if e.Namespace != other.Namespace {
+		return fmt.Errorf("namespaces do not match")
+	}
+	if e.Language != other.Language {
+		return fmt.Errorf("languages do not match")
+	}
+	if e.Package.Name != other.Package.Name {
+		return fmt.Errorf("package names do not match")
+	}
+	if e.Package.Version != other.Package.Version {
+		return fmt.Errorf("package versions do not match")
+	}
+	return nil
+}
+
+type EcosystemResult struct {
+	VulnerabilityID   string `json:"vulnerabilityID"`
+	VersionConstraint string `json:"versionConstraint"`
+}

@@ -52,9 +52,6 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 	}
 
 	d := distro.New(distro.Debian, "8", "")
-	if err != nil {
-		t.Fatal("could not create distro: ", err)
-	}
 	p.Distro = d
 
 	expected := []match.Match{
@@ -92,14 +89,14 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 	}
 
 	store := newMockProviderByDistro()
-	actual, ignored, err := MatchPackageByDistro(store, p, match.PythonMatcher)
+	actual, ignored, err := MatchPackageByDistro(store, p, nil, match.PythonMatcher)
 	require.NoError(t, err)
 	require.Empty(t, ignored)
 	assertMatchesUsingIDsForVulnerabilities(t, expected, actual)
 
 	// prove we do not search for unknown versions
 	p.Version = "unknown"
-	actual, ignored, err = MatchPackageByDistro(store, p, match.PythonMatcher)
+	actual, ignored, err = MatchPackageByDistro(store, p, nil, match.PythonMatcher)
 	require.NoError(t, err)
 	require.Empty(t, ignored)
 	assert.Empty(t, actual)
@@ -119,9 +116,6 @@ func TestFindMatchesByPackageDistroSles(t *testing.T) {
 	}
 
 	d := distro.New(distro.SLES, "12.5", "")
-	if err != nil {
-		t.Fatal("could not create distro: ", err)
-	}
 	p.Distro = d
 
 	expected := []match.Match{
@@ -159,7 +153,7 @@ func TestFindMatchesByPackageDistroSles(t *testing.T) {
 	}
 
 	store := newMockProviderByDistro()
-	actual, ignored, err := MatchPackageByDistro(store, p, match.PythonMatcher)
+	actual, ignored, err := MatchPackageByDistro(store, p, nil, match.PythonMatcher)
 	assert.NoError(t, err)
 	require.Empty(t, ignored)
 	assertMatchesUsingIDsForVulnerabilities(t, expected, actual)

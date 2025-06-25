@@ -15,7 +15,7 @@ type Distro struct {
 	Type     Type
 	Version  string // major.minor.patch
 	Codename string // in lieu of a version e.g. "fossa" instead of "20.04"
-	Variant  string // distinguish between variants of the same distro (e.g. "eus" for RHEL)
+	Channel  string // distinguish between different feeds for fix and vulnerability data, e.g. "eus" for RHEL
 	IDLike   []string
 
 	// fields populated in the constructor
@@ -27,7 +27,7 @@ type Distro struct {
 
 // New creates a new Distro object populated with the given values.
 func New(t Type, version, label string, idLikes ...string) *Distro {
-	major, minor, remaining, variant := ParseVersion(version)
+	major, minor, remaining, channel := ParseVersion(version)
 
 	for i := range idLikes {
 		typ, ok := IDMapping[strings.TrimSpace(idLikes[i])]
@@ -41,7 +41,7 @@ func New(t Type, version, label string, idLikes ...string) *Distro {
 		Version:  version,
 		Codename: label,
 		IDLike:   idLikes,
-		Variant:  variant,
+		Channel:  channel,
 
 		major:     major,
 		minor:     minor,
@@ -49,21 +49,15 @@ func New(t Type, version, label string, idLikes ...string) *Distro {
 	}
 }
 
-func ParseVersion(version string) (major, minor, remaining, variant string) {
+func ParseVersion(version string) (major, minor, remaining, channel string) {
 	if version == "" {
 		return "", "", "", ""
 	}
 
-	switch {
-	case strings.Contains(version, "+"):
+	if strings.Contains(version, "+") {
 		vParts := strings.Split(version, "+")
 		version = vParts[0]
-		variant = vParts[1]
-
-		//case strings.Contains(version, "-"):
-		//	vParts := strings.Split(version, "-")
-		//	version = vParts[0]
-		//	variant = vParts[1]
+		channel = vParts[1]
 	}
 
 	// if starts with a digit, then assume it's a version and extract the major, minor, and remaining versions
@@ -81,7 +75,7 @@ func ParseVersion(version string) (major, minor, remaining, variant string) {
 		}
 	}
 
-	return major, minor, remaining, variant
+	return major, minor, remaining, channel
 }
 
 // NewFromNameVersion creates a new Distro object derived from the provided name and version

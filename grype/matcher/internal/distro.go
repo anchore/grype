@@ -12,13 +12,9 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-func MatchPackageByDistro(provider vulnerability.Provider, p pkg.Package, ty match.Type, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
+func MatchPackageByDistro(provider vulnerability.Provider, p pkg.Package, refPkg *pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
 	if p.Distro == nil {
 		return nil, nil, nil
-	}
-
-	if ty == "" {
-		ty = match.ExactDirectMatch
 	}
 
 	if isUnknownVersion(p.Version) {
@@ -37,10 +33,16 @@ func MatchPackageByDistro(provider vulnerability.Provider, p pkg.Package, ty mat
 		return nil, nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", p.Distro, p.Name, err)
 	}
 
+	ty := match.ExactIndirectMatch
+	if refPkg == nil {
+		ty = match.ExactDirectMatch
+		refPkg = &p
+	}
+
 	for _, vuln := range vulns {
 		matches = append(matches, match.Match{
 			Vulnerability: vuln,
-			Package:       p,
+			Package:       *refPkg,
 			Details: []match.Detail{
 				{
 					Type:    ty,
@@ -70,37 +72,4 @@ func MatchPackageByDistro(provider vulnerability.Provider, p pkg.Package, ty mat
 
 func isUnknownVersion(v string) bool {
 	return strings.ToLower(v) == "unknown"
-}
-
-func CreateMatch(p pkg.Package, vuln vulnerability.Vulnerability, ty match.Type, upstreamMatcher match.MatcherType) match.Match {
-	if ty == "" {
-		ty = match.ExactDirectMatch
-	}
-
-	return match.Match{
-		Vulnerability: vuln,
-		Package:       p,
-		Details: []match.Detail{
-			{
-				Type:    ty,
-				Matcher: upstreamMatcher,
-				SearchedBy: match.DistroParameters{
-					Distro: match.DistroIdentification{
-						Type:    p.Distro.Type.String(),
-						Version: p.Distro.Version,
-					},
-					Package: match.PackageParameter{
-						Name:    p.Name,
-						Version: p.Version,
-					},
-					Namespace: vuln.Namespace,
-				},
-				Found: match.DistroResult{
-					VulnerabilityID:   vuln.ID,
-					VersionConstraint: vuln.Constraint.String(),
-				},
-				Confidence: 1.0, // TODO: this is hard coded for now
-			},
-		},
-	}
 }

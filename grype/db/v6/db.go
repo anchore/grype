@@ -30,7 +30,7 @@ const (
 	// 6.0.0: Initial version 🎉
 	// 6.0.1: Add CISA KEV to VulnerabilityDecorator store
 	// 6.0.2: Add EPSS to VulnerabilityDecorator store
-	// 6.0.3: Add variant column to OperatingSystem model
+	// 6.0.3: Add channel column to OperatingSystem model
 )
 
 const (

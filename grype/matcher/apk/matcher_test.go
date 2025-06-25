@@ -55,20 +55,20 @@ func TestSecDBOnlyMatch(t *testing.T) {
 				{
 					Type:       match.ExactDirectMatch,
 					Confidence: 1.0,
-					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    d.Type.String(),
-							"version": d.Version,
+					SearchedBy: match.DistroParameters{
+						Distro: match.DistroIdentification{
+							Type:    d.Type.String(),
+							Version: d.Version,
 						},
-						"package": map[string]string{
-							"name":    "libvncserver",
-							"version": "0.9.9",
+						Package: match.PackageParameter{
+							Name:    "libvncserver",
+							Version: "0.9.9",
 						},
-						"namespace": "secdb:distro:alpine:3.12",
+						Namespace: "secdb:distro:alpine:3.12",
 					},
-					Found: map[string]interface{}{
-						"versionConstraint": secDbVuln.Constraint.String(),
-						"vulnerabilityID":   "CVE-2020-2",
+					Found: match.DistroResult{
+						VulnerabilityID:   "CVE-2020-2",
+						VersionConstraint: secDbVuln.Constraint.String(),
 					},
 					Matcher: match.ApkMatcher,
 				},
@@ -131,20 +131,20 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 				{
 					Type:       match.ExactDirectMatch,
 					Confidence: 1.0,
-					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    d.Type.String(),
-							"version": d.Version,
+					SearchedBy: match.DistroParameters{
+						Distro: match.DistroIdentification{
+							Type:    d.Type.String(),
+							Version: d.Version,
 						},
-						"package": map[string]string{
-							"name":    "libvncserver",
-							"version": "0.9.9",
+						Package: match.PackageParameter{
+							Name:    "libvncserver",
+							Version: "0.9.9",
 						},
-						"namespace": "secdb:distro:alpine:3.12",
+						Namespace: "secdb:distro:alpine:3.12",
 					},
-					Found: map[string]interface{}{
-						"versionConstraint": secDbVuln.Constraint.String(),
-						"vulnerabilityID":   "CVE-2020-1",
+					Found: match.DistroResult{
+						VulnerabilityID:   "CVE-2020-1",
+						VersionConstraint: secDbVuln.Constraint.String(),
 					},
 					Matcher: match.ApkMatcher,
 				},
@@ -214,20 +214,20 @@ func TestBothSecdbAndNvdMatches_DifferentFixInfo(t *testing.T) {
 				{
 					Type:       match.ExactDirectMatch,
 					Confidence: 1.0,
-					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    d.Type.String(),
-							"version": d.Version,
+					SearchedBy: match.DistroParameters{
+						Distro: match.DistroIdentification{
+							Type:    d.Type.String(),
+							Version: d.Version,
 						},
-						"package": map[string]string{
-							"name":    "libvncserver",
-							"version": "0.9.9",
+						Package: match.PackageParameter{
+							Name:    "libvncserver",
+							Version: "0.9.9",
 						},
-						"namespace": "secdb:distro:alpine:3.12",
+						Namespace: "secdb:distro:alpine:3.12",
 					},
-					Found: map[string]interface{}{
-						"versionConstraint": secDbVuln.Constraint.String(),
-						"vulnerabilityID":   "CVE-2020-1",
+					Found: match.DistroResult{
+						VulnerabilityID:   "CVE-2020-1",
+						VersionConstraint: secDbVuln.Constraint.String(),
 					},
 					Matcher: match.ApkMatcher,
 				},
@@ -292,20 +292,20 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 				{
 					Type:       match.ExactDirectMatch,
 					Confidence: 1.0,
-					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    d.Type.String(),
-							"version": d.Version,
+					SearchedBy: match.DistroParameters{
+						Distro: match.DistroIdentification{
+							Type:    d.Type.String(),
+							Version: d.Version,
 						},
-						"package": map[string]string{
-							"name":    "libvncserver",
-							"version": "0.9.9",
+						Package: match.PackageParameter{
+							Name:    "libvncserver",
+							Version: "0.9.9",
 						},
-						"namespace": "secdb:distro:alpine:3.12",
+						Namespace: "secdb:distro:alpine:3.12",
 					},
-					Found: map[string]interface{}{
-						"versionConstraint": secDbVuln.Constraint.String(),
-						"vulnerabilityID":   "CVE-2020-1",
+					Found: match.DistroResult{
+						VulnerabilityID:   "CVE-2020-1",
+						VersionConstraint: secDbVuln.Constraint.String(),
 					},
 					Matcher: match.ApkMatcher,
 				},
@@ -707,20 +707,20 @@ func TestDistroMatchBySourceIndirection(t *testing.T) {
 				{
 					Type:       match.ExactIndirectMatch,
 					Confidence: 1.0,
-					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    d.Type.String(),
-							"version": d.Version,
+					SearchedBy: match.DistroParameters{
+						Distro: match.DistroIdentification{
+							Type:    d.Type.String(),
+							Version: d.Version,
 						},
-						"package": map[string]string{
-							"name":    "musl",
-							"version": p.Version,
+						Package: match.PackageParameter{
+							Name:    "musl",
+							Version: p.Version,
 						},
-						"namespace": "secdb:distro:alpine:3.12",
+						Namespace: "secdb:distro:alpine:3.12",
 					},
-					Found: map[string]interface{}{
-						"versionConstraint": secDbVuln.Constraint.String(),
-						"vulnerabilityID":   "CVE-2020-2",
+					Found: match.DistroResult{
+						VulnerabilityID:   "CVE-2020-2",
+						VersionConstraint: secDbVuln.Constraint.String(),
 					},
 					Matcher: match.ApkMatcher,
 				},
@@ -775,20 +775,20 @@ func TestSecDBMatchesStillCountedWithCpeErrors(t *testing.T) {
 				{
 					Type:       match.ExactIndirectMatch,
 					Confidence: 1.0,
-					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    d.Type.String(),
-							"version": d.Version,
+					SearchedBy: match.DistroParameters{
+						Distro: match.DistroIdentification{
+							Type:    d.Type.String(),
+							Version: d.Version,
 						},
-						"package": map[string]string{
-							"name":    "musl",
-							"version": p.Version,
+						Package: match.PackageParameter{
+							Name:    "musl",
+							Version: p.Version,
 						},
-						"namespace": "secdb:distro:alpine:3.12",
+						Namespace: "secdb:distro:alpine:3.12",
 					},
-					Found: map[string]interface{}{
-						"versionConstraint": secDbVuln.Constraint.String(),
-						"vulnerabilityID":   "CVE-2020-2",
+					Found: match.DistroResult{
+						VulnerabilityID:   "CVE-2020-2",
+						VersionConstraint: secDbVuln.Constraint.String(),
 					},
 					Matcher: match.ApkMatcher,
 				},

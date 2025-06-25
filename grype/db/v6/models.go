@@ -471,9 +471,9 @@ type OperatingSystem struct {
 	// Codename is the codename of a specific release (e.g. "buster" for debian 10)
 	Codename string `gorm:"column:codename;index,collate:NOCASE"`
 
-	// Variant is a string used to distinguish between different releases of the same version of the operating system
-	// such as RHEL-9.4-EUS vs RHEL-9
-	Variant string `gorm:"column:variant;index:os_idx,unique;index,collate:NOCASE"`
+	// Channel is a string used to distinguish between fix and vulnerability data for the same OS release.
+	// such as RHEL-9.4+EUS vs RHEL-9
+	Channel string `gorm:"column:channel;index:os_idx,unique;index,collate:NOCASE"`
 }
 
 func (o *OperatingSystem) VersionNumber() string {
@@ -496,8 +496,8 @@ func (o *OperatingSystem) Version() string {
 	}
 
 	var suffix string
-	if o.Variant != "" {
-		suffix = fmt.Sprintf("-%s", o.Variant)
+	if o.Channel != "" {
+		suffix = fmt.Sprintf("-%s", o.Channel)
 	}
 
 	if o.MajorVersion != "" {

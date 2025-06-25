@@ -30,7 +30,7 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	}
 	matches = append(matches, sourceMatches...)
 
-	exactMatches, _, err := internal.MatchPackageByDistro(store, p, match.ExactDirectMatch, m.Type())
+	exactMatches, _, err := internal.MatchPackageByDistro(store, p, nil, m.Type())
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to match by exact package name: %w", err)
 	}
@@ -43,7 +43,7 @@ func (m *Matcher) matchUpstreamPackages(store vulnerability.Provider, p pkg.Pack
 	var matches []match.Match
 
 	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indirectMatches, _, err := internal.MatchPackageByDistro(store, indirectPackage, match.ExactIndirectMatch, m.Type())
+		indirectMatches, _, err := internal.MatchPackageByDistro(store, indirectPackage, &p, m.Type())
 		if err != nil {
 			return nil, fmt.Errorf("failed to find vulnerabilities for dpkg upstream source package: %w", err)
 		}

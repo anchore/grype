@@ -17,7 +17,6 @@ import (
 
 func TestMatches(t *testing.T) {
 	d := distro.New(distro.Windows, "10816", "Windows Server 2016")
-	require.NoError(t, err)
 
 	// TODO: it would be ideal to test against something that constructs the namespace based on grype-db
 	// and not break the adaption of grype-db
