@@ -3,6 +3,7 @@ package format
 import (
 	"github.com/wagoodman/go-presenter"
 
+	"github.com/anchore/grype/grype/presenter/csv"
 	"github.com/anchore/grype/grype/presenter/cyclonedx"
 	"github.com/anchore/grype/grype/presenter/json"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -25,6 +26,8 @@ func GetPresenter(format Format, c PresentationConfig, pb models.PresenterConfig
 		return json.NewPresenter(pb)
 	case TableFormat:
 		return table.NewPresenter(pb, c.ShowSuppressed)
+	case CSVFormat:
+		return csv.NewPresenter(pb, c.ShowSuppressed)
 
 	// NOTE: cyclonedx is identical to EmbeddedVEXJSON
 	// The cyclonedx library only provides two BOM formats: JSON and XML
