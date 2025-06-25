@@ -18,7 +18,7 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-func alpineCPEComparableVersion(version string) string {
+func AlpineCPEComparableVersion(version string) string {
 	// clean the alpine package version so that it compares correctly with the CPE version comparison logic
 	// alpine versions are suffixed with -r{buildindex}; however, if left intact CPE comparison logic will
 	// incorrectly treat these as a pre-release.  In actuality, we just want to treat 1.2.3-r21 as equivalent to
@@ -52,7 +52,7 @@ func MatchPackageByCPEs(provider vulnerability.Provider, p pkg.Package, upstream
 		searchVersion := c.Attributes.Version
 
 		if p.Type == syftPkg.ApkPkg {
-			searchVersion = alpineCPEComparableVersion(searchVersion)
+			searchVersion = AlpineCPEComparableVersion(searchVersion)
 		}
 
 		if searchVersion == wfn.NA || searchVersion == wfn.Any || isUnknownVersion(searchVersion) {
@@ -83,10 +83,10 @@ func MatchPackageByCPEs(provider vulnerability.Provider, p pkg.Package, upstream
 		// find all vulnerability records in the DB for the given CPE (not including version comparisons)
 		vulns, err := provider.FindVulnerabilities(
 			search.ByCPE(c),
-			onlyVulnerableTargets(p),
+			OnlyVulnerableTargets(p),
 			OnlyQualifiedPackages(p),
 			OnlyVulnerableVersions(verObj),
-			onlyNonWithdrawnVulnerabilities(),
+			OnlyNonWithdrawnVulnerabilities(),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("matcher failed to fetch by CPE pkg=%q: %w", p.Name, err)
@@ -123,30 +123,34 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 	}
 
 	candidateMatch.Details = addMatchDetails(candidateMatch.Details,
-		match.Detail{
-			Type:       match.CPEMatch,
-			Confidence: 0.9, // TODO: this is hard coded for now
-			Matcher:    upstreamMatcher,
-			SearchedBy: match.CPEParameters{
-				Namespace: vuln.Namespace,
-				CPEs: []string{
-					// use .String() for proper escaping
-					searchedByCPE.Attributes.String(),
-				},
-				Package: match.PackageParameter{
-					Name:    p.Name,
-					Version: p.Version,
-				},
-			},
-			Found: match.CPEResult{
-				VulnerabilityID:   vuln.ID,
-				VersionConstraint: vuln.Constraint.String(),
-				CPEs:              cpesToString(filterCPEsByVersion(searchVersion, vuln.CPEs)),
-			},
-		},
+		CPEMatchDetails(upstreamMatcher, vuln, searchedByCPE, p, searchVersion),
 	)
 
 	matchesByFingerprint[candidateMatch.Fingerprint()] = candidateMatch
+}
+
+func CPEMatchDetails(matcherType match.MatcherType, vuln vulnerability.Vulnerability, searchedByCPE cpe.CPE, p pkg.Package, searchVersion *version.Version) match.Detail {
+	return match.Detail{
+		Type:       match.CPEMatch,
+		Confidence: 0.9, // TODO: this is hard coded for now
+		Matcher:    matcherType,
+		SearchedBy: match.CPEParameters{
+			Namespace: vuln.Namespace,
+			CPEs: []string{
+				// use .String() for proper escaping
+				searchedByCPE.Attributes.String(),
+			},
+			Package: match.PackageParameter{
+				Name:    p.Name,
+				Version: p.Version,
+			},
+		},
+		Found: match.CPEResult{
+			VulnerabilityID:   vuln.ID,
+			VersionConstraint: vuln.Constraint.String(),
+			CPEs:              cpesToString(filterCPEsByVersion(searchVersion, vuln.CPEs)),
+		},
+	}
 }
 
 func addMatchDetails(existingDetails []match.Detail, newDetails match.Detail) []match.Detail {

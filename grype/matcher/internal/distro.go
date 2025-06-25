@@ -43,31 +43,35 @@ func MatchPackageByDistro(provider vulnerability.Provider, p pkg.Package, refPkg
 		matches = append(matches, match.Match{
 			Vulnerability: vuln,
 			Package:       *refPkg,
-			Details: []match.Detail{
-				{
-					Type:    ty,
-					Matcher: upstreamMatcher,
-					SearchedBy: match.DistroParameters{
-						Distro: match.DistroIdentification{
-							Type:    p.Distro.Type.String(),
-							Version: p.Distro.Version,
-						},
-						Package: match.PackageParameter{
-							Name:    p.Name,
-							Version: p.Version,
-						},
-						Namespace: vuln.Namespace,
-					},
-					Found: match.DistroResult{
-						VulnerabilityID:   vuln.ID,
-						VersionConstraint: vuln.Constraint.String(),
-					},
-					Confidence: 1.0, // TODO: this is hard coded for now
-				},
-			},
+			Details:       DistroMatchDetails(ty, upstreamMatcher, p, vuln),
 		})
 	}
 	return matches, nil, err
+}
+
+func DistroMatchDetails(ty match.Type, upstreamMatcher match.MatcherType, p pkg.Package, vuln vulnerability.Vulnerability) []match.Detail {
+	return []match.Detail{
+		{
+			Type:    ty,
+			Matcher: upstreamMatcher,
+			SearchedBy: match.DistroParameters{
+				Distro: match.DistroIdentification{
+					Type:    p.Distro.Type.String(),
+					Version: p.Distro.Version,
+				},
+				Package: match.PackageParameter{
+					Name:    p.Name,
+					Version: p.Version,
+				},
+				Namespace: vuln.Namespace,
+			},
+			Found: match.DistroResult{
+				VulnerabilityID:   vuln.ID,
+				VersionConstraint: vuln.Constraint.String(),
+			},
+			Confidence: 1.0, // TODO: this is hard coded for now
+		},
+	}
 }
 
 func isUnknownVersion(v string) bool {
