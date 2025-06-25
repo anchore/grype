@@ -1,14 +1,14 @@
 package apk
 
 import (
-	"errors"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal"
+	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -23,53 +23,87 @@ func (m *Matcher) Type() match.MatcherType {
 	return match.ApkMatcher
 }
 
-func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+func (m *Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+	if p.Distro == nil {
+		return nil, nil, nil
+	}
 
-	// direct matches with package itself
-	matches, ignored, err := m.findMatchesForPackage(store, p, match.ExactDirectMatch)
+	matchType := match.ExactDirectMatch
+	searchPackage := p
+	provider := result.NewProvider(vp, func(criteria []vulnerability.Criteria, v vulnerability.Vulnerability) match.Details {
+		searchedByCPE, ok := getCPE(criteria)
+		if ok {
+			searchVersion := version.NewVersion(searchedByCPE.Attributes.Version, version.ApkFormat)
+			return match.Details{internal.CPEMatchDetails(match.ApkMatcher, v, searchedByCPE, searchPackage, searchVersion)}
+		}
+		return internal.DistroMatchDetails(matchType, match.ApkMatcher, searchPackage, v)
+	})
+
+	// direct matches with the package itself
+	matches, ignored, err := m.findMatchesForPackage(provider, p)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// indirect matches via package's origin package
+	// TODO fix hack to pass matchType
+	// remaining matches are indirect
+	matchType = match.ExactIndirectMatch
+
+	// indirect matches via the package's origin package
 	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indMatches, indIgnored, err := m.findMatchesForPackage(store, indirectPackage, match.ExactIndirectMatch)
+		searchPackage = indirectPackage
+		indMatches, indIgnored, err := m.findMatchesForPackage(provider, indirectPackage)
 		if err != nil {
 			return nil, nil, err
 		}
-		matches = append(matches, indMatches...)
+		matches.Merge(indMatches)
 		ignored = append(ignored, indIgnored...)
 	}
 
-	return matches, ignored, err
+	return matches.ToMatches(p), ignored, err
 }
 
-func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Package, ty match.Type) ([]match.Match, []match.IgnoreFilter, error) {
-	c := internal.NewMatchFactory(p)
-
-	cfg := internal.DisclosureConfig{
-		KeepFixVersions: false,
-		// we do not want to keep the fix versions for APK matches, because they are not useful in this context
-	}
+func (m *Matcher) findMatchesForPackage(provider result.Provider, p pkg.Package) (result.ResultSet, []match.IgnoreFilter, error) {
 	// find SecDB matches for the given package name and version
-	secDBMatches, _, err := internal.MatchPackageByDistro(store, p, ty, m.Type())
+	allSecDbDisclosures, err := provider.FindResults(
+		search.ByPackageName(p.Name),
+		search.ByDistro(*p.Distro),
+	)
 	if err != nil {
 		// TODO: we're dropping some....
 		return nil, nil, err
 	}
 
-	c.AddMatchesAsDisclosuresFromMatches(cfg, secDBMatches...)
+	secDbMatches := allSecDbDisclosures.Filter(
+		internal.OnlyQualifiedPackages(p),
+		internal.OnlyVulnerableVersions(version.NewVersionFromPkg(p)),
+	)
 
-	// TODO: are there other errors that we should handle here that causes this to short circuit
-	err = m.cpeMatchesWithoutSecDBFixes(store, c, p)
-	if err != nil && !errors.Is(err, internal.ErrEmptyCPEMatch) {
-		// TODO: we're dropping some....
+	// find CPE-indexed vulnerability matches specific to the given package name and version
+	cpeVulns, err := provider.FindResults(
+		byAlpineCPEs(p),
+	)
+	if err != nil {
 		return nil, nil, err
+	}
+
+	// get the set with no secDB entries
+	cpeVulns = cpeVulns.Remove(allSecDbDisclosures)
+
+	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
+		secDBVulnerabilitiesForUpstream, err := provider.FindResults(
+			search.ByPackageName(upstreamPkg.Name),
+			search.ByDistro(*upstreamPkg.Distro))
+		if err != nil {
+			return nil, nil, err
+		}
+
+		cpeVulns = cpeVulns.Remove(secDBVulnerabilitiesForUpstream)
 	}
 
 	// APK sources are also able to NAK vulnerabilities, so we want to return these as explicit ignores in order
 	// to allow rules later to use these to ignore "the same" vulnerability found in "the same" locations
-	naks, err := store.FindVulnerabilities(
+	naks, err := provider.FindResults(
 		search.ByDistro(*p.Distro),
 		search.ByPackageName(p.Name),
 		nakConstraint,
@@ -79,15 +113,10 @@ func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Pack
 		return nil, nil, err
 	}
 
-	c.AddVulnsAsResolutions(
-		naks...,
-	)
+	// remove NAKs from our immediate result list
+	cpeVulns = cpeVulns.Remove(naks)
 
-	matches, ignored, err := c.Matches()
-	if err != nil {
-		// TODO: we're dropping some....
-		return nil, nil, err
-	}
+	var ignored []match.IgnoreFilter
 
 	// we still need to raise up explicit ignore rules for every package that has a NAK vulnerability. Note that
 	// this is separate from the combination of disclosures and resolutions that we have already created. This is
@@ -101,7 +130,7 @@ func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Pack
 		for _, f := range meta.Files {
 			ignored = append(ignored,
 				match.IgnoreRule{
-					Vulnerability:  nak.ID,
+					Vulnerability:  string(nak.ID),
 					IncludeAliases: true,
 					Reason:         "Explicit APK NAK",
 					Package: match.IgnoreRulePackage{
@@ -111,50 +140,54 @@ func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Pack
 		}
 	}
 
-	return matches, ignored, nil
+	cpeVulns = removeFixInfo(cpeVulns)
+
+	results := secDbMatches.Merge(cpeVulns)
+
+	return results, ignored, nil
 }
 
-//nolint:funlen,gocognit
-func (m *Matcher) cpeMatchesWithoutSecDBFixes(provider vulnerability.Provider, c *internal.MatchFactory, p pkg.Package) error {
-	if p.Distro == nil {
-		return nil
-	}
-
-	cfg := internal.DisclosureConfig{
-		KeepFixVersions: false,
-	}
-
-	// find CPE-indexed vulnerability matches specific to the given package name and version
-	cpeMatches, err := internal.MatchPackageByCPEs(provider, p, m.Type())
-	if err != nil {
-		log.WithFields("package", p.Name, "error", err).Debug("failed to find CPE matches for package")
-	}
-
-	c.AddMatchesAsDisclosuresFromMatches(cfg, cpeMatches...)
-
-	// remove cpe matches where there is an entry in the secDB for the particular package-vulnerability pairing, and the
-	// installed package version is >= the fixed in version for the secDB record.
-	secDBVulnerabilities, err := provider.FindVulnerabilities(
-		search.ByPackageName(p.Name),
-		search.ByDistro(*p.Distro),
-	)
-	if err != nil {
-		return err
-	}
-
-	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
-		secDBVulnerabilitiesForUpstream, err := provider.FindVulnerabilities(
-			search.ByPackageName(upstreamPkg.Name),
-			search.ByDistro(*upstreamPkg.Distro))
-		if err != nil {
-			return err
+func byAlpineCPEs(p pkg.Package) vulnerability.Criteria {
+	var out []vulnerability.Criteria
+	for _, c := range p.CPEs {
+		searchVersion := c.Attributes.Version
+		if searchVersion == "" {
+			searchVersion = p.Version
 		}
-		secDBVulnerabilities = append(secDBVulnerabilities, secDBVulnerabilitiesForUpstream...)
+		c.Attributes.Version = internal.AlpineCPEComparableVersion(searchVersion)
+		out = append(out, search.And(
+			search.ByCPE(c),
+			internal.OnlyVulnerableTargets(p),
+			internal.OnlyVulnerableVersions(version.NewVersion(c.Attributes.Version, version.ApkFormat)),
+			internal.OnlyNonWithdrawnVulnerabilities(),
+			internal.OnlyQualifiedPackages(p),
+		))
 	}
+	return search.Or(out...)
+}
 
-	c.AddVulnsAsResolutions(secDBVulnerabilities...)
+func getCPE(criteria []vulnerability.Criteria) (cpe.CPE, bool) {
+	for _, criterion := range criteria {
+		if c, ok := criterion.(*search.CPECriteria); ok && c != nil {
+			return c.CPE, true
+		}
+	}
+	return cpe.CPE{}, false
+}
 
-	return nil
+func removeFixInfo(vulns result.ResultSet) result.ResultSet {
+	out := result.ResultSet{}
+	for i := range vulns {
+		incoming := vulns[i]
+		for v := range incoming.Vulnerabilities {
+			incoming.Vulnerabilities[v].Fix = vulnerability.Fix{
+				Versions: nil,
+				State:    vulnerability.FixStateUnknown,
+			}
+		}
+		out[i] = incoming
+	}
+	return out
 }
 
 var (
