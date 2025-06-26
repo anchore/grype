@@ -78,7 +78,7 @@ func TestBitnamiVersion_Compare(t *testing.T) {
 		errorSubstring string
 	}{
 		{
-			name:         "same format successful comparison",
+			name:         "same Fmt successful comparison",
 			thisVersion:  "1.2.3-4",
 			otherVersion: "1.2.3-5",
 			otherFormat:  BitnamiFormat,
@@ -92,16 +92,16 @@ func TestBitnamiVersion_Compare(t *testing.T) {
 			expectError:  false,
 		},
 		{
-			name:         "unknown format attempts upgrade - valid semver format",
+			name:         "unknown Fmt attempts upgrade - valid semver Fmt",
 			thisVersion:  "1.2.3-4",
 			otherVersion: "1.2.3-5",
 			otherFormat:  UnknownFormat,
 			expectError:  false,
 		},
 		{
-			name:           "unknown format attempts upgrade - invalid semver format",
+			name:           "unknown Fmt attempts upgrade - invalid semver Fmt",
 			thisVersion:    "1.2.3-4",
-			otherVersion:   "not-valid-semver-format",
+			otherVersion:   "not-valid-semver-Fmt",
 			otherFormat:    UnknownFormat,
 			expectError:    true,
 			errorSubstring: "invalid semantic version",

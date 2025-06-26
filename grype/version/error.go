@@ -12,7 +12,7 @@ var ErrUnsupportedVersion = fmt.Errorf("unsupported version value")
 // ErrNoVersionProvided is returned when a version is attempted to be compared, but no other version is provided to compare against.
 var ErrNoVersionProvided = errors.New("no version provided for comparison")
 
-// UnsupportedComparisonError represents an error when a format doesn't match the expected format
+// UnsupportedComparisonError represents an error when a Fmt doesn't match the expected Fmt
 type UnsupportedComparisonError struct {
 	Left  Format
 	Right *Version
@@ -27,7 +27,7 @@ func newUnsupportedFormatError(left Format, right *Version) *UnsupportedComparis
 }
 
 func (e *UnsupportedComparisonError) Error() string {
-	return fmt.Sprintf("(%s) unsupported version comparison: value=%q format=%q", e.Left, e.Right.Raw, e.Right.Format)
+	return fmt.Sprintf("(%s) unsupported version comparison: value=%q Fmt=%q", e.Left, e.Right.Raw, e.Right.Format)
 }
 
 func (e *UnsupportedComparisonError) Is(target error) bool {
@@ -55,5 +55,5 @@ type NonFatalConstraintError struct {
 }
 
 func (e NonFatalConstraintError) Error() string {
-	return fmt.Sprintf("matching raw constraint %s against version %s caused a non-fatal error: %s", e.constraint, e.version, e.message)
+	return fmt.Sprintf("matching Raw constraint %s against version %s caused a non-fatal error: %s", e.constraint, e.version, e.message)
 }

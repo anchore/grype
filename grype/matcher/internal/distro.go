@@ -12,56 +12,63 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-func MatchPackageByDistro(provider vulnerability.Provider, p pkg.Package, refPkg *pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
-	if p.Distro == nil {
+func MatchPackage(searchPkg pkg.Package, refPkg *pkg.Package) pkg.Package {
+	if refPkg != nil {
+		return *refPkg
+	}
+	return searchPkg
+}
+
+func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package, refPkg *pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
+	if searchPkg.Distro == nil {
 		return nil, nil, nil
 	}
 
-	if isUnknownVersion(p.Version) {
-		log.WithFields("package", p.Name).Trace("skipping package with unknown version")
+	if isUnknownVersion(searchPkg.Version) {
+		log.WithFields("package", searchPkg.Name).Trace("skipping package with unknown version")
 		return nil, nil, nil
 	}
 
 	var matches []match.Match
 	vulns, err := provider.FindVulnerabilities(
-		search.ByPackageName(p.Name),
-		search.ByDistro(*p.Distro),
-		OnlyQualifiedPackages(p),
-		OnlyVulnerableVersions(version.NewVersionFromPkg(p)),
+		search.ByPackageName(searchPkg.Name),
+		search.ByDistro(*searchPkg.Distro),
+		OnlyQualifiedPackages(searchPkg),
+		OnlyVulnerableVersions(version.NewVersionFromPkg(searchPkg)),
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", p.Distro, p.Name, err)
-	}
-
-	ty := match.ExactIndirectMatch
-	if refPkg == nil {
-		ty = match.ExactDirectMatch
-		refPkg = &p
+		return nil, nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
 	}
 
 	for _, vuln := range vulns {
 		matches = append(matches, match.Match{
 			Vulnerability: vuln,
-			Package:       *refPkg,
-			Details:       DistroMatchDetails(ty, upstreamMatcher, p, vuln),
+			Package:       MatchPackage(searchPkg, refPkg),
+			Details:       DistroMatchDetails(upstreamMatcher, searchPkg, refPkg, vuln),
 		})
 	}
 	return matches, nil, err
 }
 
-func DistroMatchDetails(ty match.Type, upstreamMatcher match.MatcherType, p pkg.Package, vuln vulnerability.Vulnerability) []match.Detail {
+func DistroMatchDetails(upstreamMatcher match.MatcherType, searchPkg pkg.Package, refPkg *pkg.Package, vuln vulnerability.Vulnerability) []match.Detail {
+	ty := match.ExactIndirectMatch
+	if refPkg == nil {
+		ty = match.ExactDirectMatch
+		refPkg = &searchPkg
+	}
+
 	return []match.Detail{
 		{
 			Type:    ty,
 			Matcher: upstreamMatcher,
 			SearchedBy: match.DistroParameters{
 				Distro: match.DistroIdentification{
-					Type:    p.Distro.Type.String(),
-					Version: p.Distro.Version,
+					Type:    searchPkg.Distro.Type.String(),
+					Version: searchPkg.Distro.Version,
 				},
 				Package: match.PackageParameter{
-					Name:    p.Name,
-					Version: p.Version,
+					Name:    refPkg.Name,
+					Version: refPkg.Version,
 				},
 				Namespace: vuln.Namespace,
 			},

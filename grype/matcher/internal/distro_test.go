@@ -67,20 +67,20 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 				{
 					Type:       match.ExactDirectMatch,
 					Confidence: 1,
-					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    "debian",
-							"version": "8",
+					SearchedBy: match.DistroParameters{
+						Distro: match.DistroIdentification{
+							Type:    "debian",
+							Version: "8",
 						},
-						"package": map[string]string{
-							"name":    "neutron",
-							"version": "2014.1.3-6",
+						Package: match.PackageParameter{
+							Name:    "neutron",
+							Version: "2014.1.3-6",
 						},
-						"namespace": "secdb:distro:debian:8",
+						Namespace: "secdb:distro:debian:8",
 					},
-					Found: map[string]interface{}{
-						"versionConstraint": "< 2014.1.5-6 (deb)",
-						"vulnerabilityID":   "CVE-2014-fake-1",
+					Found: match.DistroResult{
+						VersionConstraint: "< 2014.1.5-6 (deb)",
+						VulnerabilityID:   "CVE-2014-fake-1",
 					},
 					Matcher: match.PythonMatcher,
 				},
@@ -131,20 +131,20 @@ func TestFindMatchesByPackageDistroSles(t *testing.T) {
 				{
 					Type:       match.ExactDirectMatch,
 					Confidence: 1,
-					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    "sles",
-							"version": "12.5",
+					SearchedBy: match.DistroParameters{
+						Distro: match.DistroIdentification{
+							Type:    "sles",
+							Version: "12.5",
 						},
-						"package": map[string]string{
-							"name":    "sles_test_package",
-							"version": "2014.1.3-6",
+						Package: match.PackageParameter{
+							Name:    "sles_test_package",
+							Version: "2014.1.3-6",
 						},
-						"namespace": "secdb:distro:sles:12.5",
+						Namespace: "secdb:distro:sles:12.5",
 					},
-					Found: map[string]interface{}{
-						"versionConstraint": "< 2014.1.5-6 (rpm)",
-						"vulnerabilityID":   "CVE-2014-fake-4",
+					Found: match.DistroResult{
+						VersionConstraint: "< 2014.1.5-6 (rpm)",
+						VulnerabilityID:   "CVE-2014-fake-4",
 					},
 					Matcher: match.PythonMatcher,
 				},

@@ -14,8 +14,8 @@ import (
 var constraintPartPattern = regexp.MustCompile(`\s*(?P<prefix>[^><=a-zA-Z0-9().'"]*)(?P<Operator>[><=]*)\s*(?P<version>.+)`)
 
 type rangeUnit struct {
-	operator Operator
-	version  string
+	Operator Operator
+	Version  string
 }
 
 func parseRange(phrase string) (*rangeUnit, error) {
@@ -50,8 +50,8 @@ func parseRange(phrase string) (*rangeUnit, error) {
 		return nil, fmt.Errorf("unable to parse constraint Operator=%q: %+v", match["Operator"], err)
 	}
 	return &rangeUnit{
-		operator: op,
-		version:  version,
+		Operator: op,
+		Version:  version,
 	}, nil
 }
 
@@ -71,7 +71,7 @@ func trimQuotes(s string) (string, error) {
 }
 
 func (c *rangeUnit) Satisfied(comparison int) bool {
-	switch c.operator {
+	switch c.Operator {
 	case EQ:
 		return comparison == 0
 	case GT:
@@ -83,7 +83,7 @@ func (c *rangeUnit) Satisfied(comparison int) bool {
 	case LTE:
 		return comparison <= 0
 	default:
-		panic(fmt.Errorf("unknown Operator: %s", c.operator))
+		panic(fmt.Errorf("unknown Operator: %s", c.Operator))
 	}
 }
 
@@ -105,7 +105,7 @@ func validateVersion(version string) error {
 			quoteChar = 0
 		case !inQuotes && strings.ContainsRune("><=", r):
 			// invalid character outside of quotes
-			return fmt.Errorf("version %q potentially is a version constraint expression (should not contain '><=' outside of quotes)", version)
+			return fmt.Errorf("version %q potentially is a version constraint Expression (should not contain '><=' outside of quotes)", version)
 		}
 	}
 

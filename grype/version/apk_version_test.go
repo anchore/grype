@@ -71,21 +71,21 @@ func TestApkVersion_Compare(t *testing.T) {
 		errorSubstring string
 	}{
 		{
-			name:         "same format successful comparison",
+			name:         "same Fmt successful comparison",
 			thisVersion:  "1.2.3-r4",
 			otherVersion: "1.2.3-r5",
 			otherFormat:  ApkFormat,
 			expectError:  false,
 		},
 		{
-			name:         "different format does not return error",
+			name:         "different Fmt does not return error",
 			thisVersion:  "1.2.3-r4",
 			otherVersion: "1.2.3",
 			otherFormat:  SemanticFormat,
 			expectError:  false,
 		},
 		{
-			name:           "different format does not return error - deb",
+			name:           "different Fmt does not return error - deb",
 			thisVersion:    "1.2.3-r4",
 			otherVersion:   "1.2.3-1",
 			otherFormat:    DebFormat,
@@ -93,16 +93,16 @@ func TestApkVersion_Compare(t *testing.T) {
 			errorSubstring: "unsupported version comparison",
 		},
 		{
-			name:         "unknown format attempts upgrade - valid apk format",
+			name:         "unknown Fmt attempts upgrade - valid apk Fmt",
 			thisVersion:  "1.2.3-r4",
 			otherVersion: "1.2.3-r5",
 			otherFormat:  UnknownFormat,
 			expectError:  false,
 		},
 		{
-			name:           "unknown format attempts upgrade - invalid apk format",
+			name:           "unknown Fmt attempts upgrade - invalid apk Fmt",
 			thisVersion:    "1.2.3-r4",
-			otherVersion:   "not-valid-apk-format",
+			otherVersion:   "not-valid-apk-Fmt",
 			otherFormat:    UnknownFormat,
 			expectError:    true,
 			errorSubstring: "invalid version",

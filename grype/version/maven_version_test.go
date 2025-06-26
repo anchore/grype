@@ -175,21 +175,21 @@ func TestMavenVersion_Compare_Format(t *testing.T) {
 		errorSubstring string
 	}{
 		{
-			name:         "same format successful comparison",
+			name:         "same Fmt successful comparison",
 			thisVersion:  "1.2.3",
 			otherVersion: "1.2.4",
 			otherFormat:  MavenFormat,
 			expectError:  false,
 		},
 		{
-			name:         "same format successful comparison with qualifiers",
+			name:         "same Fmt successful comparison with qualifiers",
 			thisVersion:  "1.2.3-SNAPSHOT",
 			otherVersion: "1.2.3-RELEASE",
 			otherFormat:  MavenFormat,
 			expectError:  false,
 		},
 		{
-			name:         "unknown format attempts upgrade - valid maven format",
+			name:         "unknown Fmt attempts upgrade - valid maven Fmt",
 			thisVersion:  "1.2.3",
 			otherVersion: "1.2.4",
 			otherFormat:  UnknownFormat,

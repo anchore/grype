@@ -33,13 +33,13 @@ func TestGenericConstraint_String(t *testing.T) {
 			expected:   ">= 1.0.0, < 2.0.0 (maven)",
 		},
 		{
-			name:       "jvm format name",
+			name:       "jvm Fmt name",
 			constraint: "< 11",
 			format:     JVMFormat,
 			expected:   "< 11 (jvm)",
 		},
 		{
-			name:       "go format name",
+			name:       "go Fmt name",
 			constraint: "> v1.2.3",
 			format:     GolangFormat,
 			expected:   "> v1.2.3 (go)",
@@ -74,7 +74,7 @@ func TestGenericConstraint_Satisfied_EmptyConstraint(t *testing.T) {
 			version: nil,
 		},
 		{
-			name:    "with different format version",
+			name:    "with different Fmt version",
 			version: NewVersion("1.2.3-r1", ApkFormat),
 		},
 	}

@@ -6,8 +6,10 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
+var _ Provider = (*provider)(nil)
+
 type Provider interface {
-	FindResults(criteria ...vulnerability.Criteria) (ResultSet, error)
+	FindResults(criteria ...vulnerability.Criteria) (Set, error)
 }
 
 type detailProvider func([]vulnerability.Criteria, vulnerability.Vulnerability) match.Details
@@ -24,31 +26,33 @@ func NewProvider(vp vulnerability.Provider, details detailProvider) Provider {
 	}
 }
 
-func (p provider) FindResults(criteria ...vulnerability.Criteria) (ResultSet, error) {
-	results := ResultSet{}
+func (p provider) FindResults(criteria ...vulnerability.Criteria) (Set, error) {
+	results := Set{}
 	// get each iteration here so detailProvider will have the specific values used for searches
-	for _, row := range search.CriteriaIterator(criteria) {
-		vulns, err := p.vulnProvider.FindVulnerabilities(row...)
+	for _, c := range search.CriteriaIterator(criteria) {
+		vulns, err := p.vulnProvider.FindVulnerabilities(c...)
 		if err != nil {
-			return ResultSet{}, err
+			return Set{}, err
 		}
 		for _, v := range vulns {
-			result, ok := results[ResultID(v.ID)]
+			if v.ID == "" {
+				continue // skip vulnerabilities without an ID (should never happen)
+			}
+
+			result, ok := results[ID(v.ID)]
 			details := p.detailProvider(criteria, v)
 			if ok {
 				result.Vulnerabilities = append(result.Vulnerabilities, v)
 				result.Details = append(result.Details, details...)
 			} else {
 				result = Result{
-					ID:              ResultID(v.ID),
+					ID:              ID(v.ID),
 					Vulnerabilities: []vulnerability.Vulnerability{v},
 					Details:         details,
 				}
 			}
-			results[ResultID(v.ID)] = result
+			results[ID(v.ID)] = result
 		}
 	}
 	return results, nil
 }
-
-var _ Provider = (*provider)(nil)

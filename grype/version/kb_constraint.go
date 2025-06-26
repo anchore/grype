@@ -3,8 +3,8 @@ package version
 import "fmt"
 
 type kbConstraint struct {
-	raw        string
-	expression simpleRangeExpression
+	Raw        string
+	Expression simpleRangeExpression
 }
 
 func newKBConstraint(raw string) (kbConstraint, error) {
@@ -19,18 +19,18 @@ func newKBConstraint(raw string) (kbConstraint, error) {
 	}
 
 	return kbConstraint{
-		raw:        raw,
-		expression: constraints,
+		Raw:        raw,
+		Expression: constraints,
 	}, nil
 }
 
 func (c kbConstraint) Satisfied(version *Version) (bool, error) {
-	if c.raw == "" {
+	if c.Raw == "" {
 		// an empty constraint is never satisfied
 		return false, &NonFatalConstraintError{
 			constraint: c,
 			version:    version,
-			message:    "Unexpected data in DB: Empty raw version constraint.",
+			message:    "Unexpected data in DB: Empty Raw version constraint.",
 		}
 	}
 
@@ -42,7 +42,7 @@ func (c kbConstraint) Satisfied(version *Version) (bool, error) {
 		return false, newUnsupportedFormatError(KBFormat, version)
 	}
 
-	return c.expression.satisfied(KBFormat, version)
+	return c.Expression.satisfied(KBFormat, version)
 }
 
 func (c kbConstraint) Format() Format {
@@ -50,8 +50,12 @@ func (c kbConstraint) Format() Format {
 }
 
 func (c kbConstraint) String() string {
-	if c.raw == "" {
-		return fmt.Sprintf("%q (kb)", c.raw) // with quotes
+	if c.Raw == "" {
+		return fmt.Sprintf("%q (kb)", c.Raw) // with quotes
 	}
-	return fmt.Sprintf("%s (kb)", c.raw) // no quotes
+	return fmt.Sprintf("%s (kb)", c.Raw) // no quotes
+}
+
+func (c kbConstraint) Value() string {
+	return c.Raw
 }

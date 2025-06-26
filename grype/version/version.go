@@ -74,7 +74,7 @@ func (v *Version) getComparator(format Format) (Comparator, error) {
 	case UnknownFormat:
 		comparator, err = newFuzzyVersion(v.Raw)
 	default:
-		err = fmt.Errorf("no comparator available for format %q", v.Format)
+		err = fmt.Errorf("no comparator available for Fmt %q", v.Format)
 	}
 
 	v.comparators[format] = comparator

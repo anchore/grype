@@ -230,30 +230,30 @@ func TestPep440Version_Compare(t *testing.T) {
 		errorSubstring string
 	}{
 		{
-			name:         "same format successful comparison",
+			name:         "same Fmt successful comparison",
 			thisVersion:  "1.2.3",
 			otherVersion: "1.2.4",
 			otherFormat:  PythonFormat,
 			expectError:  false,
 		},
 		{
-			name:         "same format successful comparison with pre-release",
+			name:         "same Fmt successful comparison with pre-release",
 			thisVersion:  "1.2.3a1",
 			otherVersion: "1.2.3b2",
 			otherFormat:  PythonFormat,
 			expectError:  false,
 		},
 		{
-			name:         "unknown format attempts upgrade - valid python format",
+			name:         "unknown Fmt attempts upgrade - valid python Fmt",
 			thisVersion:  "1.2.3",
 			otherVersion: "1.2.4",
 			otherFormat:  UnknownFormat,
 			expectError:  false,
 		},
 		{
-			name:           "unknown format attempts upgrade - invalid python format",
+			name:           "unknown Fmt attempts upgrade - invalid python Fmt",
 			thisVersion:    "1.2.3",
-			otherVersion:   "not/valid/python-format",
+			otherVersion:   "not/valid/python-Fmt",
 			otherFormat:    UnknownFormat,
 			expectError:    true,
 			errorSubstring: "invalid",

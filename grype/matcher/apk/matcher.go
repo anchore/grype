@@ -14,8 +14,16 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-type Matcher struct {
-}
+var (
+	nakVersionString = version.MustGetConstraint("< 0", version.ApkFormat).Value()
+
+	// nakConstraint checks the exact version string for being an APK version with "< 0"
+	nakConstraint = search.ByConstraintFunc(func(c version.Constraint) (bool, error) {
+		return c.Value() == nakVersionString, nil
+	})
+)
+
+type Matcher struct{}
 
 func (m *Matcher) PackageTypes() []syftPkg.Type {
 	return []syftPkg.Type{syftPkg.ApkPkg}
@@ -29,7 +37,7 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	var matches []match.Match
 
 	// direct matches with package itself
-	directMatches, err := m.findMatchesForPackage(store, p)
+	directMatches, err := m.findMatchesForPackage(store, p, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -161,9 +169,9 @@ func vulnerabilitiesByID(vulns []vulnerability.Vulnerability) map[string][]vulne
 	return results
 }
 
-func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Package, refPkg *pkg.Package) ([]match.Match, error) {
 	// find SecDB matches for the given package name and version
-	secDBMatches, _, err := internal.MatchPackageByDistro(store, p, m.Type())
+	secDBMatches, _, err := internal.MatchPackageByDistro(store, p, refPkg, m.Type())
 	if err != nil {
 		return nil, err
 	}
@@ -185,11 +193,11 @@ func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Pack
 	return matches, nil
 }
 
-func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, searchPkg pkg.Package) ([]match.Match, error) {
 	var matches []match.Match
 
-	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indirectMatches, err := m.findMatchesForPackage(store, indirectPackage)
+	for _, indirectPackage := range pkg.UpstreamPackages(searchPkg) {
+		indirectMatches, err := m.findMatchesForPackage(store, indirectPackage, &searchPkg)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find vulnerabilities for apk upstream source package: %w", err)
 		}
@@ -198,7 +206,7 @@ func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, p pk
 
 	// we want to make certain that we are tracking the match based on the package from the SBOM (not the indirect package)
 	// however, we also want to keep the indirect package around for future reference
-	match.ConvertToIndirectMatches(matches, p)
+	match.ConvertToIndirectMatches(matches, searchPkg)
 
 	return matches, nil
 }
@@ -261,11 +269,3 @@ func (m *Matcher) findNaksForPackage(provider vulnerability.Provider, p pkg.Pack
 
 	return ignores, nil
 }
-
-var (
-	nakVersionString = version.MustGetConstraint("< 0", version.ApkFormat).String()
-	// nakConstraint checks the exact version string for being an APK version with "< 0"
-	nakConstraint = search.ByConstraintFunc(func(c version.Constraint) (bool, error) {
-		return c.String() == nakVersionString, nil
-	})
-)

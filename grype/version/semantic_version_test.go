@@ -170,7 +170,7 @@ func TestSemanticVersion_PrereleaseNormalizer_EdgeCases(t *testing.T) {
 			version: "1.0.0.alpha.beta.rc", // should normalize to 1.0.0-alpha-beta-rc
 		},
 		{
-			name:    "version already in correct format",
+			name:    "version already in correct Fmt",
 			version: "1.0.0-alpha",
 		},
 		{
@@ -191,7 +191,7 @@ func TestSemanticVersion_PrereleaseNormalizer_EdgeCases(t *testing.T) {
 }
 
 func TestSemanticVersion_PrereleaseNormalizer_WithGemFormat(t *testing.T) {
-	// ensure that the prerelease normalizer in semantic format doesn't conflict with gem format
+	// ensure that the prerelease normalizer in semantic Fmt doesn't conflict with gem Fmt
 	rubyStyleVersions := []string{
 		"1.0.0.alpha",
 		"1.0.0.beta.1",
@@ -221,35 +221,35 @@ func TestSemanticVersion_Compare_Format(t *testing.T) {
 		errorSubstring string
 	}{
 		{
-			name:         "same format successful comparison",
+			name:         "same Fmt successful comparison",
 			thisVersion:  "1.2.3",
 			otherVersion: "1.2.4",
 			otherFormat:  SemanticFormat,
 			expectError:  false,
 		},
 		{
-			name:         "same format successful comparison with prerelease",
+			name:         "same Fmt successful comparison with prerelease",
 			thisVersion:  "1.2.3-alpha",
 			otherVersion: "1.2.3-beta",
 			otherFormat:  SemanticFormat,
 			expectError:  false,
 		},
 		{
-			name:         "same format successful comparison with build metadata",
+			name:         "same Fmt successful comparison with build metadata",
 			thisVersion:  "1.2.3+build.1",
 			otherVersion: "1.2.3+build.2",
 			otherFormat:  SemanticFormat,
 			expectError:  false,
 		},
 		{
-			name:         "unknown format attempts upgrade - valid semantic format",
+			name:         "unknown Fmt attempts upgrade - valid semantic Fmt",
 			thisVersion:  "1.2.3",
 			otherVersion: "1.2.4",
 			otherFormat:  UnknownFormat,
 			expectError:  false,
 		},
 		{
-			name:           "unknown format attempts upgrade - invalid semantic format",
+			name:           "unknown Fmt attempts upgrade - invalid semantic Fmt",
 			thisVersion:    "1.2.3",
 			otherVersion:   "not.valid.semver",
 			otherFormat:    UnknownFormat,
