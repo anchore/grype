@@ -27,8 +27,10 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 //nolint:funlen
-func (m *Matcher) Match(provider vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+func (m *Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	var matches []match.Match
+
+	provider := result.NewProvider(vp, p, m.Type())
 
 	// 1. let's match with the package given to us (direct match)....
 
@@ -105,13 +107,13 @@ func (m *Matcher) Match(provider vulnerability.Provider, p pkg.Package) ([]match
 	return matches, nil, nil
 }
 
-func (m *Matcher) matchPackage(provider vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) matchPackage(provider result.Provider, p pkg.Package) ([]match.Match, error) {
 	// we want to ensure that the version ALWAYS has an epoch specified...
 	originalPkg := p
 
 	addEpochIfApplicable(&p)
 
-	matches, err := m.findMatches(provider, p, nil)
+	matches, err := m.findMatches(provider, p)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find vulnerabilities by dpkg source indirection: %w", err)
 	}
@@ -126,11 +128,11 @@ func (m *Matcher) matchPackage(provider vulnerability.Provider, p pkg.Package) (
 	return matches, nil
 }
 
-func (m *Matcher) matchUpstreamPackages(provider vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) matchUpstreamPackages(provider result.Provider, p pkg.Package) ([]match.Match, error) {
 	var matches []match.Match
 
 	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indirectMatches, err := m.findMatches(provider, indirectPackage, &p)
+		indirectMatches, err := m.findMatches(provider, indirectPackage)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find vulnerabilities for rpm upstream source package: %w", err)
 		}
@@ -140,7 +142,7 @@ func (m *Matcher) matchUpstreamPackages(provider vulnerability.Provider, p pkg.P
 	return matches, nil
 }
 
-func (m *Matcher) findMatches(vp vulnerability.Provider, searchPkg pkg.Package, refPkg *pkg.Package) ([]match.Match, error) {
+func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
 	if searchPkg.Distro == nil {
 		return nil, nil
 	}
@@ -148,12 +150,6 @@ func (m *Matcher) findMatches(vp vulnerability.Provider, searchPkg pkg.Package, 
 		log.WithFields("package", searchPkg.Name).Trace("skipping package with unknown version")
 		return nil, nil
 	}
-
-	provider := result.NewProvider(vp,
-		func(criteria []vulnerability.Criteria, v vulnerability.Vulnerability) match.Details {
-			return internal.DistroMatchDetails(m.Type(), searchPkg, refPkg, v)
-		},
-	)
 
 	if isEUSContext(searchPkg.Distro) {
 		return m.findEUSMatches(provider, searchPkg)
@@ -171,7 +167,7 @@ func (m *Matcher) findMatches(vp vulnerability.Provider, searchPkg pkg.Package, 
 		return nil, fmt.Errorf("matcher failed to fetch disclosures for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
 	}
 
-	return disclosures.ToMatches(internal.MatchPackage(searchPkg, refPkg), nil), nil
+	return disclosures.ToMatches(), nil
 }
 
 func (m *Matcher) findEUSMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
@@ -206,7 +202,7 @@ func (m *Matcher) findEUSMatches(provider result.Provider, searchPkg pkg.Package
 
 	remaining := disclosures.Merge(resolutions, resolveDisclosures(version.NewVersionFromPkg(searchPkg)))
 
-	return remaining.ToMatches(searchPkg, nil), err
+	return remaining.ToMatches(), err
 }
 
 func addEpochIfApplicable(p *pkg.Package) {
@@ -242,39 +238,40 @@ func isEUSContext(d *distro.Distro) bool {
 
 // resolveDisclosures returns a function that will filter disclosures based on the provided advisory information (by fix version only).
 // Additionally, this will merge applicable fixes into one vulnerability record, so that the final result contains only one vulnerability record per disclosure.
-func resolveDisclosures(v *version.Version) func(existing, incoming []result.Result) []result.Result {
-	return func(existing, incoming []result.Result) []result.Result {
+func resolveDisclosures(v *version.Version) func(disclosures, advisoryOverlays []result.Result) []result.Result {
+	return func(disclosures, advisoryOverlays []result.Result) []result.Result {
 		var out []result.Result
 
-		for _, disclosures := range existing {
+		for _, ds := range disclosures {
 			// find the corresponding advisory overlay results for this ID
-			var advisoryOverlays []result.Result
-			for _, advisory := range incoming {
-				if advisory.ID == disclosures.ID {
-					advisoryOverlays = append(advisoryOverlays, advisory)
+			var as []result.Result
+			for _, advisory := range advisoryOverlays {
+				if advisory.ID == ds.ID {
+					as = append(as, advisory)
 				}
 			}
 
-			processedResult := processDisclosureResult(v, disclosures, advisoryOverlays)
+			processedResult := processDisclosureResult(v, ds, as)
 			if len(processedResult.Vulnerabilities) > 0 {
 				out = append(out, processedResult)
 			}
 		}
 
-		// add any incoming results that don't have corresponding existing results
-		for _, advisory := range incoming {
-			hasCorrespondingExisting := false
-			for _, existing := range existing {
-				if existing.ID == advisory.ID {
-					hasCorrespondingExisting = true
-					break
-				}
-			}
-			if !hasCorrespondingExisting {
-				// this advisory doesn't have a corresponding disclosure, include it as-is
-				out = append(out, advisory)
-			}
-		}
+		// TODO: I've got this commented out since we DON't want to consider EUS advisories as a "new" disclosure.
+		//// add any incoming results that don't have corresponding existing results
+		//for _, advisory := range advisoryOverlays {
+		//	hasCorrespondingExisting := false
+		//	for _, e := range disclosures {
+		//		if e.ID == advisory.ID {
+		//			hasCorrespondingExisting = true
+		//			break
+		//		}
+		//	}
+		//	if !hasCorrespondingExisting {
+		//		// this advisory doesn't have a corresponding disclosure, include it as-is
+		//		out = append(out, advisory)
+		//	}
+		//}
 
 		return out
 	}
@@ -283,10 +280,9 @@ func resolveDisclosures(v *version.Version) func(existing, incoming []result.Res
 // processDisclosureResult processes a single disclosure Result against its corresponding advisory overlay Results
 func processDisclosureResult(v *version.Version, disclosures result.Result, advisoryOverlays []result.Result) result.Result {
 	processedResult := result.Result{
-		ID: disclosures.ID,
+		ID:      disclosures.ID,
+		Package: disclosures.Package,
 	}
-
-	// TODO: should we be honoring the disclosure constraint or not?? I feel like this is conditional based on matcher input.
 
 	// keep only the disclosures that meet the criteria of the resolution
 	for _, disclosure := range disclosures.Vulnerabilities {
@@ -348,16 +344,46 @@ func processDisclosureResult(v *version.Version, disclosures result.Result, advi
 		// this disclosure does not have a resolution that satisfies it, so we will keep it... patching on any fixes that we are aware of
 		patchedRecord.Fix.State = finalizeFixState(disclosure, state)
 		patchedRecord.Constraint = version.CombineConstraints(constraints...)
+
+		// now update the cumulative results
 		processedResult.Vulnerabilities = append(processedResult.Vulnerabilities, patchedRecord)
 		processedResult.Details = append(processedResult.Details, allAdvisoryDetails...)
 	}
 
 	if len(processedResult.Vulnerabilities) > 0 {
-		// keep details around only if we have vulnerabilities they describe
-		processedResult.Details = disclosures.Details
+		// keep details around only if we have vulnerabilities they describe.
+		// Additionally, since we are managing version-specific criteria manually here, we will attach those
+		// details accordingly.
+		processedResult.Details = append(processedResult.Details, disclosures.Details...)
+		processedResult.Details = internal.NewMatchDetailsSet(processedResult.Details...).ToSlice()
+		patchPackageVersionDetails(v.Raw, processedResult.Details)
 	}
 
 	return processedResult
+}
+
+func patchPackageVersionDetails(version string, details match.Details) {
+	for idx := range details {
+		d := &details[idx]
+
+		switch params := d.SearchedBy.(type) {
+		case match.CPEParameters:
+			if params.Package.Version == "" {
+				params.Package.Version = version
+				d.SearchedBy = params
+			}
+		case match.DistroParameters:
+			if params.Package.Version == "" {
+				params.Package.Version = version
+				d.SearchedBy = params
+			}
+		case match.EcosystemParameters:
+			if params.Package.Version == "" {
+				params.Package.Version = version
+				d.SearchedBy = params
+			}
+		}
+	}
 }
 
 func isVulnerableVersion(v *version.Version, c version.Constraint, id string) bool {

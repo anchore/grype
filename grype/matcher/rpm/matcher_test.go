@@ -20,10 +20,6 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-func intRef(x int) *int {
-	return &x
-}
-
 func TestMatcherRpm(t *testing.T) {
 	tests := []struct {
 		name            string
@@ -939,6 +935,7 @@ func TestResolveDisclosures(t *testing.T) {
 			got := resolver(tt.disclosures, tt.advisoryOverlay)
 
 			opts := cmp.Options{
+				cmpopts.IgnoreUnexported(result.Result{}),
 				cmpopts.IgnoreUnexported(version.Version{}),
 				cmpopts.EquateEmpty(),
 			}
@@ -950,66 +947,75 @@ func TestResolveDisclosures(t *testing.T) {
 }
 
 func TestFindEUSMatches(t *testing.T) {
+	testPkg1 := pkg.Package{
+		ID:      pkg.ID("test-pkg-id"),
+		Name:    "test-pkg",
+		Version: "1.0.0",
+		Type:    syftPkg.RpmPkg,
+		Distro: &distro.Distro{
+			Type:    distro.RedHat,
+			Version: "9.4",
+			Channel: "eus",
+		},
+	}
+
 	tests := []struct {
-		name              string
-		searchPkg         pkg.Package
-		disclosureResults result.Set
-		resolutionResults result.Set
-		want              []match.Match
-		wantErr           require.ErrorAssertionFunc
+		name            string
+		catalogPkg      pkg.Package
+		searchPkg       *pkg.Package
+		disclosureVulns []vulnerability.Vulnerability
+		resolutionVulns []vulnerability.Vulnerability
+		disclosureError error
+		resolutionError error
+		want            []match.Match
+		wantErr         require.ErrorAssertionFunc
 	}{
 		{
-			name: "successful EUS match with fix",
-			searchPkg: pkg.Package{
-				ID:      pkg.ID("test-pkg-id"),
-				Name:    "test-pkg",
-				Version: "1.0.0",
-				Type:    syftPkg.RpmPkg,
-				Distro: &distro.Distro{
-					Type:    distro.RedHat,
-					Version: "9.4",
-					Channel: "eus",
-				},
-			},
-			disclosureResults: result.Set{
-				"CVE-2021-1": []result.Result{
-					{
-						ID: "CVE-2021-1",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "CVE-2021-1"},
-								Fix: vulnerability.Fix{
-									State:    vulnerability.FixStateUnknown,
-									Versions: []string{},
-								},
-							},
-						},
-						Details: []match.Detail{{Type: match.ExactDirectMatch}},
+			name:            "empty set of disclosures and advisories",
+			catalogPkg:      testPkg1,
+			disclosureVulns: []vulnerability.Vulnerability{},
+			resolutionVulns: []vulnerability.Vulnerability{},
+			want:            nil,
+		},
+		{
+			name:       "successful EUS match with fix - direct match",
+			catalogPkg: testPkg1,
+			disclosureVulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2021-1",
+						Namespace: "namespace",
+					},
+					PackageName: "test-pkg", // same as searched package = direct match
+					Constraint:  version.MustGetConstraint("< 1.5.0", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateUnknown,
+						Versions: []string{},
 					},
 				},
 			},
-			resolutionResults: result.Set{
-				"CVE-2021-1": []result.Result{
-					{
-						ID: "CVE-2021-1",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-								Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
-								Fix: vulnerability.Fix{
-									State:    vulnerability.FixStateFixed,
-									Versions: []string{"1.5.0"},
-								},
-							},
-						},
-						Details: []match.Detail{{Type: match.ExactDirectMatch}},
+			resolutionVulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2021-1",
+						Namespace: "namespace",
+					},
+					PackageName: "test-pkg", // same as searched package = direct match
+					Constraint:  version.MustGetConstraint("< 1.5.0", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateFixed,
+						Versions: []string{"1.5.0"},
 					},
 				},
 			},
 			want: []match.Match{
 				{
 					Vulnerability: vulnerability.Vulnerability{
-						Reference: vulnerability.Reference{ID: "CVE-2021-1"},
+						Reference: vulnerability.Reference{
+							ID:        "CVE-2021-1",
+							Namespace: "namespace",
+						},
+						PackageName: "test-pkg",
 						Fix: vulnerability.Fix{
 							State:    vulnerability.FixStateFixed,
 							Versions: []string{"1.5.0"},
@@ -1026,70 +1032,106 @@ func TestFindEUSMatches(t *testing.T) {
 							Channel: "eus",
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
-				},
-			},
-		},
-		{
-			name: "no disclosures found",
-			searchPkg: pkg.Package{
-				ID:      pkg.ID("test-pkg-id"),
-				Name:    "test-pkg",
-				Version: "1.0.0",
-				Type:    syftPkg.RpmPkg,
-				Distro: &distro.Distro{
-					Type:    distro.RedHat,
-					Version: "9.4",
-					Channel: "eus",
-				},
-			},
-			disclosureResults: result.Set{},
-			resolutionResults: result.Set{},
-			want:              nil,
-		},
-		{
-			name: "valid disclosures found but no resolutions",
-			searchPkg: pkg.Package{
-				ID:      pkg.ID("test-pkg-id"),
-				Name:    "test-pkg",
-				Version: "1.0.0",
-				Type:    syftPkg.RpmPkg,
-				Distro: &distro.Distro{
-					Type:    distro.RedHat,
-					Version: "9.4",
-					Channel: "eus",
-				},
-			},
-			disclosureResults: result.Set{
-				"CVE-2021-1": []result.Result{
-					{
-						ID: "CVE-2021-1",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-								Constraint: version.MustGetConstraint("", version.RpmFormat), // no constraint, so we assume it's always vulnerable
-								Fix: vulnerability.Fix{
-									State:    vulnerability.FixStateUnknown,
-									Versions: []string{},
+					Details: []match.Detail{
+						{
+							Type: match.ExactDirectMatch,
+							SearchedBy: match.DistroParameters{
+								Distro: match.DistroIdentification{
+									Type:    "redhat",
+									Version: "9.4",
 								},
+								Package: match.PackageParameter{
+									Name:    "test-pkg",
+									Version: "1.0.0",
+								},
+								Namespace: "namespace",
 							},
+							Found: match.DistroResult{
+								VulnerabilityID:   "CVE-2021-1",
+								VersionConstraint: "< 1.5.0 (rpm)",
+							},
+							Matcher:    match.RpmMatcher,
+							Confidence: 1,
 						},
-						Details: []match.Detail{{Type: match.ExactDirectMatch}},
+						{
+							Type: match.ExactDirectMatch,
+							SearchedBy: match.DistroParameters{
+								Distro: match.DistroIdentification{
+									Type:    "redhat",
+									Version: "9.4+eus",
+								},
+								Package: match.PackageParameter{
+									Name:    "test-pkg",
+									Version: "1.0.0",
+								},
+								Namespace: "namespace",
+							},
+							Found: match.DistroResult{
+								VulnerabilityID:   "CVE-2021-1",
+								VersionConstraint: "< 1.5.0 (rpm)",
+							},
+							Matcher:    match.RpmMatcher,
+							Confidence: 1,
+						},
 					},
 				},
 			},
-			resolutionResults: result.Set{},
-			want: []match.Match{ // keep the original disclosure as a match
+		},
+		{
+			name:       "successful EUS match with fix - indirect match",
+			catalogPkg: testPkg1,
+			searchPkg: &pkg.Package{
+				ID:      pkg.ID("indirect-test-pkg-id"),
+				Name:    "indirect-test-pkg", // important! this will be detected as an indirect match
+				Version: "1.0.0",
+				Type:    syftPkg.RpmPkg,
+				Distro: &distro.Distro{
+					Type:    distro.RedHat,
+					Version: "9.4",
+					Channel: "eus",
+				},
+			},
+			disclosureVulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2021-1",
+						Namespace: "namespace",
+					},
+					PackageName: "indirect-test-pkg", // setup to match search package name
+					Constraint:  version.MustGetConstraint("< 1.5.0", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateUnknown,
+						Versions: []string{},
+					},
+				},
+			},
+			resolutionVulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2021-1",
+						Namespace: "namespace",
+					},
+					PackageName: "indirect-test-pkg", // setup to match search package name
+					Constraint:  version.MustGetConstraint("< 1.5.0", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateFixed,
+						Versions: []string{"1.5.0"},
+					},
+				},
+			},
+			want: []match.Match{
 				{
 					Vulnerability: vulnerability.Vulnerability{
-						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-						Constraint: version.MustGetConstraint("", version.RpmFormat),
+						Reference: vulnerability.Reference{
+							ID:        "CVE-2021-1",
+							Namespace: "namespace",
+						},
+						PackageName: "indirect-test-pkg",
 						Fix: vulnerability.Fix{
-							State:    vulnerability.FixStateUnknown,
-							Versions: []string{},
+							State:    vulnerability.FixStateFixed,
+							Versions: []string{"1.5.0"},
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 					Package: pkg.Package{
 						ID:      pkg.ID("test-pkg-id"),
 						Name:    "test-pkg",
@@ -1099,6 +1141,116 @@ func TestFindEUSMatches(t *testing.T) {
 							Type:    distro.RedHat,
 							Version: "9.4",
 							Channel: "eus",
+						},
+					},
+					Details: []match.Detail{
+						{
+							Type: match.ExactIndirectMatch,
+							SearchedBy: match.DistroParameters{
+								Distro: match.DistroIdentification{
+									Type:    "redhat",
+									Version: "9.4",
+								},
+								Package: match.PackageParameter{
+									Name:    "indirect-test-pkg", // important! we used the indirect package as input
+									Version: "1.0.0",
+								},
+								Namespace: "namespace",
+							},
+							Found: match.DistroResult{
+								VulnerabilityID:   "CVE-2021-1",
+								VersionConstraint: "< 1.5.0 (rpm)",
+							},
+							Matcher:    match.RpmMatcher,
+							Confidence: 1,
+						},
+						{
+							Type: match.ExactIndirectMatch,
+							SearchedBy: match.DistroParameters{
+								Distro: match.DistroIdentification{
+									Type:    "redhat",
+									Version: "9.4+eus",
+								},
+								Package: match.PackageParameter{
+									Name:    "indirect-test-pkg", // important! we used the indirect package as input
+									Version: "1.0.0",
+								},
+								Namespace: "namespace",
+							},
+							Found: match.DistroResult{
+								VulnerabilityID:   "CVE-2021-1",
+								VersionConstraint: "< 1.5.0 (rpm)",
+							},
+							Matcher:    match.RpmMatcher,
+							Confidence: 1,
+						},
+					},
+				},
+			},
+		},
+		{
+			name:       "valid disclosures found but no resolutions",
+			catalogPkg: testPkg1,
+			disclosureVulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2021-1",
+						Namespace: "namespace",
+					},
+					PackageName: "test-pkg",                                       // direct match
+					Constraint:  version.MustGetConstraint("", version.RpmFormat), // no constraint, so always vulnerable
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateUnknown,
+						Versions: []string{},
+					},
+				},
+			},
+			resolutionVulns: []vulnerability.Vulnerability{},
+			want: []match.Match{ // keep the original disclosure as a match
+				{
+					Vulnerability: vulnerability.Vulnerability{
+						Reference: vulnerability.Reference{
+							ID:        "CVE-2021-1",
+							Namespace: "namespace",
+						},
+						PackageName: "test-pkg",
+						Constraint:  version.MustGetConstraint("", version.RpmFormat),
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateUnknown,
+							Versions: []string{},
+						},
+					},
+					Package: pkg.Package{
+						ID:      pkg.ID("test-pkg-id"),
+						Name:    "test-pkg",
+						Version: "1.0.0",
+						Type:    syftPkg.RpmPkg,
+						Distro: &distro.Distro{
+							Type:    distro.RedHat,
+							Version: "9.4",
+							Channel: "eus",
+						},
+					},
+					Details: []match.Detail{
+						{
+							Type: match.ExactDirectMatch,
+							SearchedBy: match.DistroParameters{
+								Distro: match.DistroIdentification{
+									Type:    "redhat",
+									Version: "9.4",
+								},
+								Package: match.PackageParameter{
+									Name:    "test-pkg",
+									Version: "1.0.0",
+								},
+								Namespace: "namespace",
+							},
+							Found: match.DistroResult{
+								VulnerabilityID:   "CVE-2021-1",
+								VersionConstraint: "none (rpm)",
+							},
+							Matcher:    match.RpmMatcher,
+							Confidence: 1,
 						},
 					},
 				},
@@ -1106,10 +1258,10 @@ func TestFindEUSMatches(t *testing.T) {
 		},
 		{
 			name: "vulnerability resolved by EUS advisory",
-			searchPkg: pkg.Package{
+			catalogPkg: pkg.Package{
 				ID:      pkg.ID("test-pkg-id"),
 				Name:    "test-pkg",
-				Version: "2.0.0",
+				Version: "2.0.0", // version higher than fix, so resolved
 				Type:    syftPkg.RpmPkg,
 				Distro: &distro.Distro{
 					Type:    distro.RedHat,
@@ -1117,128 +1269,98 @@ func TestFindEUSMatches(t *testing.T) {
 					Channel: "eus",
 				},
 			},
-			disclosureResults: result.Set{
-				"CVE-2021-1": []result.Result{
-					{
-						ID: "CVE-2021-1",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "CVE-2021-1"},
-								Fix: vulnerability.Fix{
-									State:    vulnerability.FixStateUnknown,
-									Versions: []string{},
-								},
-							},
-						},
-						Details: []match.Detail{{Type: match.ExactDirectMatch}},
+			disclosureVulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2021-1",
+						Namespace: "namespace",
+					},
+					PackageName: "test-pkg", // direct match
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateUnknown,
+						Versions: []string{},
 					},
 				},
 			},
-			resolutionResults: result.Set{
-				"CVE-2021-1": []result.Result{
-					{
-						ID: "CVE-2021-1",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-								Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
-								Fix: vulnerability.Fix{
-									State:    vulnerability.FixStateFixed,
-									Versions: []string{"1.5.0"},
-								},
-							},
-						},
-						Details: []match.Detail{{Type: match.ExactDirectMatch}},
+			resolutionVulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2021-1",
+						Namespace: "namespace",
+					},
+					PackageName: "test-pkg", // direct match
+					Constraint:  version.MustGetConstraint("< 1.5.0", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateFixed,
+						Versions: []string{"1.5.0"},
 					},
 				},
 			},
 			want: []match.Match{}, // vulnerability is resolved because package version 2.0.0 > 1.5.0
 		},
 		{
-			name: "multiple valid disclosures with mixed resolutions",
-			searchPkg: pkg.Package{
-				ID:      pkg.ID("test-pkg-id"),
-				Name:    "test-pkg",
-				Version: "1.0.0",
-				Type:    syftPkg.RpmPkg,
-				Distro: &distro.Distro{
-					Type:    distro.RedHat,
-					Version: "9.4",
-					Channel: "eus",
-				},
-			},
-			disclosureResults: result.Set{
-				"CVE-2021-1": []result.Result{
-					{
-						ID: "CVE-2021-1",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-								Constraint: version.MustGetConstraint("", version.RpmFormat),
-								Fix: vulnerability.Fix{
-									State:    vulnerability.FixStateUnknown,
-									Versions: []string{},
-								},
-							},
-						},
-						Details: []match.Detail{{Type: match.ExactDirectMatch}},
+			name:       "multiple valid disclosures with mixed resolutions",
+			catalogPkg: testPkg1,
+			disclosureVulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2021-1",
+						Namespace: "namespace",
+					},
+					PackageName: "test-pkg", // direct match
+					Constraint:  version.MustGetConstraint("", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateUnknown,
+						Versions: []string{},
 					},
 				},
-				"CVE-2021-2": []result.Result{
-					{
-						ID: "CVE-2021-2",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference:  vulnerability.Reference{ID: "CVE-2021-2"},
-								Constraint: version.MustGetConstraint("", version.RpmFormat),
-								Fix: vulnerability.Fix{
-									State:    vulnerability.FixStateUnknown,
-									Versions: []string{},
-								},
-							},
-						},
-						Details: []match.Detail{{Type: match.ExactDirectMatch}},
+				{
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2021-2",
+						Namespace: "namespace",
+					},
+					PackageName: "test-pkg", // direct match
+					Constraint:  version.MustGetConstraint("", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateUnknown,
+						Versions: []string{},
 					},
 				},
-				"CVE-2021-3": []result.Result{
-					{
-						ID: "CVE-2021-3",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference:  vulnerability.Reference{ID: "CVE-2021-2"},
-								Constraint: nil, // no constraint, so we assume we're never vulnerable to this
-								Fix: vulnerability.Fix{
-									State:    vulnerability.FixStateUnknown,
-									Versions: []string{},
-								},
-							},
-						},
-						Details: []match.Detail{{Type: match.ExactDirectMatch}},
+				{
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2021-3",
+						Namespace: "namespace",
+					},
+					PackageName: "test-pkg", // direct match
+					Constraint:  nil,        // no constraint, so we assume we're never vulnerable to this
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateUnknown,
+						Versions: []string{},
 					},
 				},
 			},
-			resolutionResults: result.Set{
-				"CVE-2021-1": []result.Result{
-					{
-						ID: "CVE-2021-1",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-								Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
-								Fix: vulnerability.Fix{
-									State:    vulnerability.FixStateFixed,
-									Versions: []string{"1.5.0"},
-								},
-							},
-						},
-						Details: []match.Detail{{Type: match.ExactDirectMatch}},
+			resolutionVulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2021-1",
+						Namespace: "namespace",
+					},
+					PackageName: "test-pkg", // direct match
+					Constraint:  version.MustGetConstraint("< 1.5.0", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateFixed,
+						Versions: []string{"1.5.0"},
 					},
 				},
 			},
 			want: []match.Match{
 				{
 					Vulnerability: vulnerability.Vulnerability{
-						Reference: vulnerability.Reference{ID: "CVE-2021-1"},
+						Reference: vulnerability.Reference{
+							ID:        "CVE-2021-1",
+							Namespace: "namespace",
+						},
+						PackageName: "test-pkg",
 						Fix: vulnerability.Fix{
 							State:    vulnerability.FixStateFixed,
 							Versions: []string{"1.5.0"},
@@ -1255,11 +1377,76 @@ func TestFindEUSMatches(t *testing.T) {
 							Channel: "eus",
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
+					Details: []match.Detail{
+						{
+							Type: match.ExactDirectMatch,
+							SearchedBy: match.DistroParameters{
+								Distro: match.DistroIdentification{
+									Type:    "redhat",
+									Version: "9.4",
+								},
+								Package: match.PackageParameter{
+									Name:    "test-pkg",
+									Version: "1.0.0",
+								},
+								Namespace: "namespace",
+							},
+							Found: match.DistroResult{
+								VulnerabilityID:   "CVE-2021-1",
+								VersionConstraint: "< 1.5.0 (rpm)",
+							},
+							Matcher:    match.RpmMatcher,
+							Confidence: 1,
+						},
+						{
+							Type: match.ExactDirectMatch,
+							SearchedBy: match.DistroParameters{
+								Distro: match.DistroIdentification{
+									Type:    "redhat",
+									Version: "9.4+eus",
+								},
+								Package: match.PackageParameter{
+									Name:    "test-pkg",
+									Version: "1.0.0",
+								},
+								Namespace: "namespace",
+							},
+							Found: match.DistroResult{
+								VulnerabilityID:   "CVE-2021-1",
+								VersionConstraint: "< 1.5.0 (rpm)",
+							},
+							Matcher:    match.RpmMatcher,
+							Confidence: 1,
+						},
+						{
+							Type: match.ExactDirectMatch,
+							SearchedBy: match.DistroParameters{
+								Distro: match.DistroIdentification{
+									Type:    "redhat",
+									Version: "9.4",
+								},
+								Package: match.PackageParameter{
+									Name:    "test-pkg",
+									Version: "1.0.0",
+								},
+								Namespace: "namespace",
+							},
+							Found: match.DistroResult{
+								VulnerabilityID:   "CVE-2021-1",
+								VersionConstraint: "none (rpm)", // important! this is the disclosure with no constraint
+							},
+							Matcher:    match.RpmMatcher,
+							Confidence: 1,
+						},
+					},
 				},
 				{
 					Vulnerability: vulnerability.Vulnerability{
-						Reference: vulnerability.Reference{ID: "CVE-2021-2"},
+						Reference: vulnerability.Reference{
+							ID:        "CVE-2021-2",
+							Namespace: "namespace",
+						},
+						PackageName: "test-pkg",
 						Fix: vulnerability.Fix{
 							State:    vulnerability.FixStateUnknown,
 							Versions: []string{},
@@ -1276,61 +1463,60 @@ func TestFindEUSMatches(t *testing.T) {
 							Channel: "eus",
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
-				},
-			},
-		},
-		{
-			name: "error fetching disclosures",
-			searchPkg: pkg.Package{
-				ID:      pkg.ID("test-pkg-id"),
-				Name:    "test-pkg",
-				Version: "1.0.0",
-				Type:    syftPkg.RpmPkg,
-				Distro: &distro.Distro{
-					Type:    distro.RedHat,
-					Version: "9.4",
-					Channel: "eus",
-				},
-			},
-			disclosureResults: result.Set{},
-			resolutionResults: result.Set{},
-			want:              nil,
-			wantErr:           require.Error,
-		},
-		{
-			name: "error fetching resolutions",
-			searchPkg: pkg.Package{
-				ID:      pkg.ID("test-pkg-id"),
-				Name:    "test-pkg",
-				Version: "1.0.0",
-				Type:    syftPkg.RpmPkg,
-				Distro: &distro.Distro{
-					Type:    distro.RedHat,
-					Version: "9.4",
-					Channel: "eus",
-				},
-			},
-			disclosureResults: result.Set{
-				"CVE-2021-1": []result.Result{
-					{
-						ID: "CVE-2021-1",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "CVE-2021-1"},
-								Fix: vulnerability.Fix{
-									State:    vulnerability.FixStateUnknown,
-									Versions: []string{},
+					Details: []match.Detail{
+						{
+							Type: match.ExactDirectMatch,
+							SearchedBy: match.DistroParameters{
+								Distro: match.DistroIdentification{
+									Type:    "redhat",
+									Version: "9.4",
 								},
+								Package: match.PackageParameter{
+									Name:    "test-pkg",
+									Version: "1.0.0",
+								},
+								Namespace: "namespace",
 							},
+							Found: match.DistroResult{
+								VulnerabilityID:   "CVE-2021-2",
+								VersionConstraint: "none (rpm)",
+							},
+							Matcher:    match.RpmMatcher,
+							Confidence: 1,
 						},
-						Details: []match.Detail{{Type: match.ExactDirectMatch}},
 					},
 				},
 			},
-			resolutionResults: result.Set{},
-			want:              nil,
-			wantErr:           require.Error,
+		},
+		{
+			name:            "error fetching disclosures",
+			catalogPkg:      testPkg1,
+			disclosureVulns: []vulnerability.Vulnerability{},
+			resolutionVulns: []vulnerability.Vulnerability{},
+			disclosureError: errors.New("disclosure error"),
+			want:            nil,
+			wantErr:         require.Error,
+		},
+		{
+			name:       "error fetching resolutions",
+			catalogPkg: testPkg1,
+			disclosureVulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2021-1",
+						Namespace: "namespace",
+					},
+					PackageName: "test-pkg", // direct match
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateUnknown,
+						Versions: []string{},
+					},
+				},
+			},
+			resolutionVulns: []vulnerability.Vulnerability{},
+			resolutionError: errors.New("resolution error"),
+			want:            nil,
+			wantErr:         require.Error,
 		},
 	}
 
@@ -1340,20 +1526,21 @@ func TestFindEUSMatches(t *testing.T) {
 				tt.wantErr = require.NoError
 			}
 
-			mockProvider := newMockResultProvider()
-			mockProvider.setDisclosureResults(tt.disclosureResults)
-			mockProvider.setResolutionResults(tt.resolutionResults)
+			if tt.searchPkg == nil {
+				tt.searchPkg = &tt.catalogPkg
+			}
 
-			if tt.name == "error fetching disclosures" {
-				mockProvider.setDisclosureError(errors.New("disclosure error"))
-			}
-			if tt.name == "error fetching resolutions" {
-				mockProvider.setResolutionError(errors.New("resolution error"))
-			}
+			vulnProvider := newMockVulnProvider()
+			vulnProvider.setDisclosureVulns(tt.disclosureVulns)
+			vulnProvider.setResolutionVulns(tt.resolutionVulns)
+			vulnProvider.setDisclosureError(tt.disclosureError)
+			vulnProvider.setResolutionError(tt.resolutionError)
+
+			resultProvider := result.NewProvider(vulnProvider, tt.catalogPkg, match.RpmMatcher)
 
 			matcher := &Matcher{}
 
-			got, err := matcher.findEUSMatches(mockProvider, tt.searchPkg)
+			got, err := matcher.findEUSMatches(resultProvider, *tt.searchPkg)
 			tt.wantErr(t, err)
 
 			if err != nil {
@@ -1381,50 +1568,55 @@ func strRef(s string) *string {
 	return &s
 }
 
-type mockResultProvider struct {
-	disclosureResults result.Set
-	resolutionResults result.Set
-	disclosureError   error
-	resolutionError   error
-	callCount         int
+func intRef(s int) *int {
+	return &s
 }
 
-func newMockResultProvider() *mockResultProvider {
-	return &mockResultProvider{
-		disclosureResults: make(result.Set),
-		resolutionResults: make(result.Set),
-	}
+// Mock vulnerability provider for testing
+type mockVulnProvider struct {
+	// cheaply get a working interface that will panic when functionality is not overridden
+	vulnerability.Provider
+
+	disclosureVulns []vulnerability.Vulnerability
+	resolutionVulns []vulnerability.Vulnerability
+	disclosureError error
+	resolutionError error
+	callCount       int
 }
 
-func (m *mockResultProvider) setDisclosureResults(results result.Set) {
-	m.disclosureResults = results
+func newMockVulnProvider() *mockVulnProvider {
+	return &mockVulnProvider{}
 }
 
-func (m *mockResultProvider) setResolutionResults(results result.Set) {
-	m.resolutionResults = results
+func (m *mockVulnProvider) setDisclosureVulns(vulns []vulnerability.Vulnerability) {
+	m.disclosureVulns = vulns
 }
 
-func (m *mockResultProvider) setDisclosureError(err error) {
+func (m *mockVulnProvider) setResolutionVulns(vulns []vulnerability.Vulnerability) {
+	m.resolutionVulns = vulns
+}
+
+func (m *mockVulnProvider) setDisclosureError(err error) {
 	m.disclosureError = err
 }
 
-func (m *mockResultProvider) setResolutionError(err error) {
+func (m *mockVulnProvider) setResolutionError(err error) {
 	m.resolutionError = err
 }
 
-func (m *mockResultProvider) FindResults(criteria ...vulnerability.Criteria) (result.Set, error) {
+func (m *mockVulnProvider) FindVulnerabilities(criteria ...vulnerability.Criteria) ([]vulnerability.Vulnerability, error) {
 	m.callCount++
 
 	// heuristic: first call is for disclosures (base distro), second is for resolutions (base + eus distro)
 	if m.callCount == 1 {
 		if m.disclosureError != nil {
-			return result.Set{}, m.disclosureError
+			return nil, m.disclosureError
 		}
-		return m.disclosureResults, nil
+		return m.disclosureVulns, nil
 	}
 
 	if m.resolutionError != nil {
-		return result.Set{}, m.resolutionError
+		return nil, m.resolutionError
 	}
-	return m.resolutionResults, nil
+	return m.resolutionVulns, nil
 }

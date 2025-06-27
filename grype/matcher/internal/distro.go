@@ -67,8 +67,8 @@ func DistroMatchDetails(upstreamMatcher match.MatcherType, searchPkg pkg.Package
 					Version: searchPkg.Distro.Version,
 				},
 				Package: match.PackageParameter{
-					Name:    refPkg.Name,
-					Version: refPkg.Version,
+					Name:    searchPkg.Name,
+					Version: searchPkg.Version,
 				},
 				Namespace: vuln.Namespace,
 			},

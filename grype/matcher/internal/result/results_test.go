@@ -1,8 +1,10 @@
 package result
 
 import (
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/syft/syft/file"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"testing"
 
@@ -10,10 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
-	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 func TestSet_Remove(t *testing.T) {
@@ -254,17 +254,15 @@ func TestSet_Merge(t *testing.T) {
 
 func TestSet_ToMatches(t *testing.T) {
 	testPkg := pkg.Package{
-		Name:    "test-pkg",
+		Name:    "test-Package",
 		Version: "1.0.0",
 		Type:    syftPkg.DebPkg,
 	}
 
 	tests := []struct {
-		name       string
-		receiver   Set
-		pkg        pkg.Package
-		mergeFuncs []func(vulns []vulnerability.Vulnerability) []vulnerability.Vulnerability
-		want       []match.Match
+		name     string
+		receiver Set
+		want     []match.Match
 	}{
 		{
 			name: "convert results to matches",
@@ -277,10 +275,10 @@ func TestSet_ToMatches(t *testing.T) {
 							{Reference: vulnerability.Reference{ID: "CVE-2021-2"}},
 						},
 						Details: match.Details{{Type: match.ExactDirectMatch}},
+						Package: &testPkg,
 					},
 				},
 			},
-			pkg: testPkg,
 			want: []match.Match{
 				{
 					Vulnerability: vulnerability.Vulnerability{Reference: vulnerability.Reference{ID: "CVE-2021-1"}},
@@ -302,6 +300,7 @@ func TestSet_ToMatches(t *testing.T) {
 						ID:              "vuln-1",
 						Vulnerabilities: []vulnerability.Vulnerability{},
 						Details:         match.Details{{Type: match.ExactDirectMatch}},
+						Package:         &testPkg,
 					},
 				},
 				"vuln-2": []Result{
@@ -311,40 +310,8 @@ func TestSet_ToMatches(t *testing.T) {
 							{Reference: vulnerability.Reference{ID: "CVE-2021-2"}},
 						},
 						Details: match.Details{{Type: match.ExactDirectMatch}},
+						Package: &testPkg,
 					},
-				},
-			},
-			pkg: testPkg,
-			want: []match.Match{
-				{
-					Vulnerability: vulnerability.Vulnerability{Reference: vulnerability.Reference{ID: "CVE-2021-2"}},
-					Package:       testPkg,
-					Details:       match.Details{{Type: match.ExactDirectMatch}},
-				},
-			},
-		},
-		{
-			name: "apply merge functions to vulnerabilities",
-			receiver: Set{
-				"vuln-1": []Result{
-					{
-						ID: "vuln-1",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{Reference: vulnerability.Reference{ID: "CVE-2021-1"}},
-							{Reference: vulnerability.Reference{ID: "CVE-2021-2"}},
-						},
-						Details: match.Details{{Type: match.ExactDirectMatch}},
-					},
-				},
-			},
-			pkg: testPkg,
-			mergeFuncs: []func(vulns []vulnerability.Vulnerability) []vulnerability.Vulnerability{
-				func(vulns []vulnerability.Vulnerability) []vulnerability.Vulnerability {
-					// filter out the first vulnerability
-					if len(vulns) > 1 {
-						return vulns[1:]
-					}
-					return vulns
 				},
 			},
 			want: []match.Match{
@@ -358,14 +325,13 @@ func TestSet_ToMatches(t *testing.T) {
 		{
 			name:     "empty set returns no matches",
 			receiver: Set{},
-			pkg:      testPkg,
 			want:     []match.Match{},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.receiver.ToMatches(tt.pkg, tt.mergeFuncs...)
+			got := tt.receiver.ToMatches()
 			opts := cmp.Options{
 				cmpopts.IgnoreUnexported(file.LocationSet{}),
 				cmpopts.EquateEmpty(),
@@ -394,12 +360,12 @@ func TestSet_Filter(t *testing.T) {
 						Vulnerabilities: []vulnerability.Vulnerability{
 							{
 								Reference:   vulnerability.Reference{ID: "CVE-2021-1"},
-								PackageName: "test-pkg",
+								PackageName: "test-Package",
 								Constraint:  version.MustGetConstraint("< 2.0.0", version.SemanticFormat),
 							},
 							{
 								Reference:   vulnerability.Reference{ID: "CVE-2021-2"},
-								PackageName: "other-pkg",
+								PackageName: "other-Package",
 								Constraint:  version.MustGetConstraint("< 1.0.0", version.SemanticFormat),
 							},
 						},
@@ -408,7 +374,7 @@ func TestSet_Filter(t *testing.T) {
 				},
 			},
 			criteria: []vulnerability.Criteria{
-				search.ByPackageName("test-pkg"),
+				search.ByPackageName("test-Package"),
 			},
 			want: Set{
 				"vuln-1": []Result{
@@ -417,7 +383,7 @@ func TestSet_Filter(t *testing.T) {
 						Vulnerabilities: []vulnerability.Vulnerability{
 							{
 								Reference:   vulnerability.Reference{ID: "CVE-2021-1"},
-								PackageName: "test-pkg",
+								PackageName: "test-Package",
 								Constraint:  version.MustGetConstraint("< 2.0.0", version.SemanticFormat),
 							},
 						},
@@ -435,7 +401,7 @@ func TestSet_Filter(t *testing.T) {
 						Vulnerabilities: []vulnerability.Vulnerability{
 							{
 								Reference:   vulnerability.Reference{ID: "CVE-2021-1"},
-								PackageName: "other-pkg",
+								PackageName: "other-Package",
 								Constraint:  version.MustGetConstraint("< 2.0.0", version.SemanticFormat),
 							},
 						},
@@ -444,7 +410,7 @@ func TestSet_Filter(t *testing.T) {
 				},
 			},
 			criteria: []vulnerability.Criteria{
-				search.ByPackageName("test-pkg"),
+				search.ByPackageName("test-Package"),
 			},
 			want: Set{},
 		},
@@ -452,7 +418,7 @@ func TestSet_Filter(t *testing.T) {
 			name:     "filter empty set",
 			receiver: Set{},
 			criteria: []vulnerability.Criteria{
-				search.ByPackageName("test-pkg"),
+				search.ByPackageName("test-Package"),
 			},
 			want: Set{},
 		},
@@ -465,7 +431,7 @@ func TestSet_Filter(t *testing.T) {
 						Vulnerabilities: []vulnerability.Vulnerability{
 							{
 								Reference:   vulnerability.Reference{ID: "CVE-2021-1"},
-								PackageName: "test-pkg",
+								PackageName: "test-Package",
 								Constraint:  version.MustGetConstraint("< 2.0.0", version.SemanticFormat),
 							},
 						},
@@ -481,7 +447,7 @@ func TestSet_Filter(t *testing.T) {
 						Vulnerabilities: []vulnerability.Vulnerability{
 							{
 								Reference:   vulnerability.Reference{ID: "CVE-2021-1"},
-								PackageName: "test-pkg",
+								PackageName: "test-Package",
 								Constraint:  version.MustGetConstraint("< 2.0.0", version.SemanticFormat),
 							},
 						},

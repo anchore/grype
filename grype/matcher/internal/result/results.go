@@ -2,6 +2,7 @@ package result
 
 import (
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
@@ -11,6 +12,7 @@ type Result struct {
 	ID              ID
 	Vulnerabilities []vulnerability.Vulnerability
 	Details         []match.Detail
+	Package         *pkg.Package
 }
 
 type ID string
@@ -22,33 +24,33 @@ func unionIntoResult(existing []Result) Result {
 	for _, r := range existing {
 		if merged.ID == "" {
 			merged.ID = r.ID
+			merged.Package = r.Package
 		}
 		merged.Vulnerabilities = append(merged.Vulnerabilities, r.Vulnerabilities...)
 		merged.Details = append(merged.Details, r.Details...)
 	}
+	merged.Details = internal.NewMatchDetailsSet(merged.Details...).ToSlice()
 	return merged
 }
 
-func (s Set) ToMatches(p pkg.Package, mergeFunc func(vulns []Result) Result) []match.Match {
+func (s Set) ToMatches() []match.Match {
 	var out []match.Match
 	for _, results := range s {
-
-		if mergeFunc == nil {
-			// with no other merge functions specified, append all vulnerability results and details
-			mergeFunc = unionIntoResult
-		}
-
-		merged := mergeFunc(results)
+		merged := unionIntoResult(results)
 
 		if len(merged.Vulnerabilities) == 0 {
 			continue
+		}
+
+		if merged.Package == nil {
+			continue // skip results without a package
 		}
 
 		for _, vv := range merged.Vulnerabilities {
 			out = append(out,
 				match.Match{
 					Vulnerability: vv,
-					Package:       p,
+					Package:       *merged.Package,
 					Details:       merged.Details,
 				},
 			)

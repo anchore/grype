@@ -20,27 +20,35 @@ func ByConstraintFunc(constraintFunc func(constraint version.Constraint) (bool, 
 	return &constraintFuncCriteria{fn: constraintFunc}
 }
 
+type VersionCriteria struct {
+	Version version.Version
+	vulnerability.Criteria
+}
+
 // ByVersion returns criteria which constrains vulnerabilities to those with matching version constraints
 func ByVersion(v version.Version) vulnerability.Criteria {
-	return ByConstraintFunc(func(constraint version.Constraint) (bool, error) {
-		satisfied, err := constraint.Satisfied(&v)
-		if err != nil {
-			var unsupportedError *version.UnsupportedComparisonError
-			if errors.As(err, &unsupportedError) {
-				// if the format is unsupported, then the constraint is not satisfied, but this should not be conveyed as an error
-				log.WithFields("reason", err).Trace("unsatisfied constraint")
-				return false, nil
-			}
+	return &VersionCriteria{
+		Version: v,
+		Criteria: ByConstraintFunc(func(constraint version.Constraint) (bool, error) {
+			satisfied, err := constraint.Satisfied(&v)
+			if err != nil {
+				var unsupportedError *version.UnsupportedComparisonError
+				if errors.As(err, &unsupportedError) {
+					// if the format is unsupported, then the constraint is not satisfied, but this should not be conveyed as an error
+					log.WithFields("reason", err).Trace("unsatisfied constraint")
+					return false, nil
+				}
 
-			var e *version.NonFatalConstraintError
-			if errors.As(err, &e) {
-				log.Warn(e)
-			} else {
-				return false, fmt.Errorf("failed to check constraint=%v version=%v: %w", constraint, v, err)
+				var e *version.NonFatalConstraintError
+				if errors.As(err, &e) {
+					log.Warn(e)
+				} else {
+					return false, fmt.Errorf("failed to check constraint=%v version=%v: %w", constraint, v, err)
+				}
 			}
-		}
-		return satisfied, nil
-	})
+			return satisfied, nil
+		}),
+	}
 }
 
 // constraintFuncCriteria implements vulnerability.Criteria by providing a function implementing the same signature as MatchVulnerability

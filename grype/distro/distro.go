@@ -156,13 +156,22 @@ func (d Distro) RemainingVersion() string {
 
 // String returns a human-friendly representation of the Linux distribution.
 func (d Distro) String() string {
+	return fmt.Sprintf("%s %s", d.Type, d.VersionString())
+}
+
+func (d Distro) VersionString() string {
 	versionStr := "(version unknown)"
 	if d.Version != "" {
 		versionStr = d.Version
 	} else if d.Codename != "" {
 		versionStr = d.Codename
 	}
-	return fmt.Sprintf("%s %s", d.Type, versionStr)
+
+	if d.Channel != "" {
+		versionStr += "+" + d.Channel
+	}
+
+	return versionStr
 }
 
 // Unsupported Linux distributions
