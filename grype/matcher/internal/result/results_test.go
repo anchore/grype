@@ -1,19 +1,19 @@
 package result
 
 import (
-	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/version"
-	"github.com/anchore/syft/syft/file"
-	syftPkg "github.com/anchore/syft/syft/pkg"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
+	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/syft/syft/file"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 func TestSet_Remove(t *testing.T) {

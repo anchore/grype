@@ -178,9 +178,7 @@ func (s *Set) Remove(vs ...*Version) {
 		if v == nil {
 			continue
 		}
-		if _, ok := (*s)[v.Raw]; ok {
-			delete(*s, v.Raw)
-		}
+		delete(*s, v.Raw)
 	}
 }
 

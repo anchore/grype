@@ -15,11 +15,11 @@ import (
 )
 
 var (
-	nakVersionString = version.MustGetConstraint("< 0", version.ApkFormat).Value()
+	nakVersionString = version.MustGetConstraint("< 0", version.ApkFormat).String()
 
 	// nakConstraint checks the exact version string for being an APK version with "< 0"
 	nakConstraint = search.ByConstraintFunc(func(c version.Constraint) (bool, error) {
-		return c.Value() == nakVersionString, nil
+		return c.String() == nakVersionString, nil
 	})
 )
 
@@ -169,9 +169,9 @@ func vulnerabilitiesByID(vulns []vulnerability.Vulnerability) map[string][]vulne
 	return results
 }
 
-func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Package, refPkg *pkg.Package) ([]match.Match, error) {
+func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Package, catalogPkg *pkg.Package) ([]match.Match, error) {
 	// find SecDB matches for the given package name and version
-	secDBMatches, _, err := internal.MatchPackageByDistro(store, p, refPkg, m.Type())
+	secDBMatches, _, err := internal.MatchPackageByDistro(store, p, catalogPkg, m.Type())
 	if err != nil {
 		return nil, err
 	}
@@ -193,11 +193,11 @@ func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Pack
 	return matches, nil
 }
 
-func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, searchPkg pkg.Package) ([]match.Match, error) {
+func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, catalogPkg pkg.Package) ([]match.Match, error) {
 	var matches []match.Match
 
-	for _, indirectPackage := range pkg.UpstreamPackages(searchPkg) {
-		indirectMatches, err := m.findMatchesForPackage(store, indirectPackage, &searchPkg)
+	for _, indirectPackage := range pkg.UpstreamPackages(catalogPkg) {
+		indirectMatches, err := m.findMatchesForPackage(store, indirectPackage, &catalogPkg)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find vulnerabilities for apk upstream source package: %w", err)
 		}
@@ -206,7 +206,7 @@ func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, sear
 
 	// we want to make certain that we are tracking the match based on the package from the SBOM (not the indirect package)
 	// however, we also want to keep the indirect package around for future reference
-	match.ConvertToIndirectMatches(matches, searchPkg)
+	match.ConvertToIndirectMatches(matches, catalogPkg)
 
 	return matches, nil
 }

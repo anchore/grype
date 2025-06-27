@@ -2,8 +2,9 @@ package version
 
 import (
 	"fmt"
-	"github.com/scylladb/go-set/strset"
 	"strings"
+
+	"github.com/scylladb/go-set/strset"
 )
 
 func CombineConstraints(constraints ...Constraint) Constraint {

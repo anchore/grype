@@ -12,14 +12,7 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-func MatchPackage(searchPkg pkg.Package, refPkg *pkg.Package) pkg.Package {
-	if refPkg != nil {
-		return *refPkg
-	}
-	return searchPkg
-}
-
-func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package, refPkg *pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
+func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package, catalogPkg *pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
 	if searchPkg.Distro == nil {
 		return nil, nil, nil
 	}
@@ -43,18 +36,24 @@ func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package
 	for _, vuln := range vulns {
 		matches = append(matches, match.Match{
 			Vulnerability: vuln,
-			Package:       MatchPackage(searchPkg, refPkg),
-			Details:       DistroMatchDetails(upstreamMatcher, searchPkg, refPkg, vuln),
+			Package:       matchPackage(searchPkg, catalogPkg),
+			Details:       distroMatchDetails(upstreamMatcher, searchPkg, catalogPkg, vuln),
 		})
 	}
 	return matches, nil, err
 }
 
-func DistroMatchDetails(upstreamMatcher match.MatcherType, searchPkg pkg.Package, refPkg *pkg.Package, vuln vulnerability.Vulnerability) []match.Detail {
+func matchPackage(searchPkg pkg.Package, catalogPkg *pkg.Package) pkg.Package {
+	if catalogPkg != nil {
+		return *catalogPkg
+	}
+	return searchPkg
+}
+
+func distroMatchDetails(upstreamMatcher match.MatcherType, searchPkg pkg.Package, catalogPkg *pkg.Package, vuln vulnerability.Vulnerability) []match.Detail {
 	ty := match.ExactIndirectMatch
-	if refPkg == nil {
+	if catalogPkg == nil {
 		ty = match.ExactDirectMatch
-		refPkg = &searchPkg
 	}
 
 	return []match.Detail{

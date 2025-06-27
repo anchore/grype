@@ -55,6 +55,16 @@ func (p provider) FindResults(criteria ...vulnerability.Criteria) (Set, error) {
 }
 
 func detailProvider(matcher match.MatcherType, catalogedPkg pkg.Package, criteriaSet []vulnerability.Criteria, vuln vulnerability.Vulnerability) match.Details {
+	cpeParams, distroParams, ecosystemParams, pkgParams := extractSearchParameters(criteriaSet, vuln)
+	distroMatchType := determineMatchType(catalogedPkg, pkgParams)
+	applyPackageParamsToSearchParams(pkgParams, &cpeParams, &distroParams, &ecosystemParams)
+	constraintStr := getConstraintString(vuln)
+
+	return buildMatchDetails(matcher, distroMatchType, constraintStr, vuln, cpeParams, distroParams, ecosystemParams)
+}
+
+// extractSearchParameters processes criteria set and extracts search parameters for different match types
+func extractSearchParameters(criteriaSet []vulnerability.Criteria, vuln vulnerability.Vulnerability) ([]match.CPEParameters, []match.DistroParameters, []match.EcosystemParameters, *match.PackageParameter) {
 	var cpeParams []match.CPEParameters
 	var distroParams []match.DistroParameters
 	var ecosystemParams []match.EcosystemParameters
@@ -81,7 +91,6 @@ func detailProvider(matcher match.MatcherType, catalogedPkg pkg.Package, criteri
 			})
 
 		case *search.CPECriteria:
-
 			cpeParams = append(cpeParams, match.CPEParameters{
 				Namespace: vuln.Namespace, // TODO: this is a holdover and will be removed in the future
 				CPEs: []string{
@@ -102,73 +111,86 @@ func detailProvider(matcher match.MatcherType, catalogedPkg pkg.Package, criteri
 		}
 	}
 
-	// apply any discovered package parameters to the ecosystem, cpe, and distro parameters
-	distroMatchType := match.ExactDirectMatch
-	if pkgParams != nil {
-		if catalogedPkg.Name != pkgParams.Name {
-			// if the cataloged package name does not match the package parameter, then this is an indirect match
-			distroMatchType = match.ExactIndirectMatch
-		}
-		for i := range ecosystemParams {
-			ecosystemParams[i].Package = *pkgParams
-		}
-		for i := range cpeParams {
-			cpeParams[i].Package = *pkgParams
-		}
-		for i := range distroParams {
-			distroParams[i].Package = *pkgParams
-		}
+	return cpeParams, distroParams, ecosystemParams, pkgParams
+}
+
+// determineMatchType determines if this is a direct or indirect match based on package names
+func determineMatchType(catalogedPkg pkg.Package, pkgParams *match.PackageParameter) match.Type {
+	if pkgParams != nil && catalogedPkg.Name != pkgParams.Name {
+		// if the cataloged package name does not match the package parameter, then this is an indirect match
+		return match.ExactIndirectMatch
+	}
+	return match.ExactDirectMatch
+}
+
+// applyPackageParamsToSearchParams applies discovered package parameters to search parameters
+func applyPackageParamsToSearchParams(pkgParams *match.PackageParameter, cpeParams *[]match.CPEParameters, distroParams *[]match.DistroParameters, ecosystemParams *[]match.EcosystemParameters) {
+	if pkgParams == nil {
+		return
 	}
 
-	var constraintStr string
+	for i := range *ecosystemParams {
+		(*ecosystemParams)[i].Package = *pkgParams
+	}
+	for i := range *cpeParams {
+		(*cpeParams)[i].Package = *pkgParams
+	}
+	for i := range *distroParams {
+		(*distroParams)[i].Package = *pkgParams
+	}
+}
+
+// getConstraintString safely extracts constraint string from vulnerability
+func getConstraintString(vuln vulnerability.Vulnerability) string {
 	if vuln.Constraint != nil {
-		constraintStr = vuln.Constraint.String()
+		return vuln.Constraint.String()
 	}
+	return ""
+}
 
-	// create the details for the vulnerability
+// buildMatchDetails creates the final match details from all parameters
+func buildMatchDetails(matcher match.MatcherType, distroMatchType match.Type, constraintStr string, vuln vulnerability.Vulnerability, cpeParams []match.CPEParameters, distroParams []match.DistroParameters, ecosystemParams []match.EcosystemParameters) match.Details {
 	var details match.Details
+
+	// add CPE match details
 	for _, cpeParam := range cpeParams {
-		details = append(details,
-			match.Detail{
-				Type:       match.CPEMatch,
-				Matcher:    matcher,
-				SearchedBy: cpeParam,
-				Found: match.CPEResult{
-					VulnerabilityID:   vuln.ID,
-					VersionConstraint: constraintStr,
-				},
-				Confidence: 0.9, // TODO: this is hard coded for now
+		details = append(details, match.Detail{
+			Type:       match.CPEMatch,
+			Matcher:    matcher,
+			SearchedBy: cpeParam,
+			Found: match.CPEResult{
+				VulnerabilityID:   vuln.ID,
+				VersionConstraint: constraintStr,
 			},
-		)
+			Confidence: 0.9, // TODO: this is hard coded for now
+		})
 	}
 
+	// add distro match details
 	for _, distroParam := range distroParams {
-		details = append(details,
-			match.Detail{
-				Type:       distroMatchType,
-				Matcher:    matcher,
-				SearchedBy: distroParam,
-				Found: match.DistroResult{
-					VulnerabilityID:   vuln.ID,
-					VersionConstraint: constraintStr,
-				},
-				Confidence: 1.0, // TODO: this is hard coded for now
+		details = append(details, match.Detail{
+			Type:       distroMatchType,
+			Matcher:    matcher,
+			SearchedBy: distroParam,
+			Found: match.DistroResult{
+				VulnerabilityID:   vuln.ID,
+				VersionConstraint: constraintStr,
 			},
-		)
+			Confidence: 1.0, // TODO: this is hard coded for now
+		})
 	}
 
+	// add ecosystem match details
 	for _, ecosystemParam := range ecosystemParams {
-		details = append(details,
-			match.Detail{
-				Type:       match.ExactDirectMatch,
-				Matcher:    matcher,
-				SearchedBy: ecosystemParam,
-				Found: match.EcosystemResult{
-					VulnerabilityID:   vuln.ID,
-					VersionConstraint: constraintStr,
-				},
+		details = append(details, match.Detail{
+			Type:       match.ExactDirectMatch,
+			Matcher:    matcher,
+			SearchedBy: ecosystemParam,
+			Found: match.EcosystemResult{
+				VulnerabilityID:   vuln.ID,
+				VersionConstraint: constraintStr,
 			},
-		)
+		})
 	}
 
 	return details

@@ -914,12 +914,12 @@ func Test_nakConstraint(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			matches, _, err := nakConstraint.MatchesVulnerability(tt.input)
-			wantErr := require.NoError
-			if tt.wantErr != nil {
-				wantErr = tt.wantErr
+			if tt.wantErr == nil {
+				tt.wantErr = require.NoError
 			}
-			wantErr(t, err)
+
+			matches, _, err := nakConstraint.MatchesVulnerability(tt.input)
+			tt.wantErr(t, err)
 			require.Equal(t, tt.matches, matches)
 		})
 	}

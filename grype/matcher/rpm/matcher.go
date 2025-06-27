@@ -2,15 +2,15 @@ package rpm
 
 import (
 	"fmt"
-	"github.com/anchore/grype/grype/matcher/internal/result"
-	"github.com/anchore/grype/grype/version"
 	"strings"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal"
+	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
+	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -259,7 +259,7 @@ func resolveDisclosures(v *version.Version) func(disclosures, advisoryOverlays [
 
 		// TODO: I've got this commented out since we DON't want to consider EUS advisories as a "new" disclosure.
 		//// add any incoming results that don't have corresponding existing results
-		//for _, advisory := range advisoryOverlays {
+		// for _, advisory := range advisoryOverlays {
 		//	hasCorrespondingExisting := false
 		//	for _, e := range disclosures {
 		//		if e.ID == advisory.ID {
@@ -284,82 +284,100 @@ func processDisclosureResult(v *version.Version, disclosures result.Result, advi
 		Package: disclosures.Package,
 	}
 
-	// keep only the disclosures that meet the criteria of the resolution
+	// process each disclosure vulnerability against advisory overlays
 	for _, disclosure := range disclosures.Vulnerabilities {
-		fixVersions := version.Set{}
-		var constraints []version.Constraint
-		var state vulnerability.FixState
-		var allAdvisoryDetails match.Details
+		processedVuln, advisoryDetails := processVulnerabilityWithAdvisories(v, disclosure, advisoryOverlays)
+		if processedVuln != nil {
+			processedResult.Vulnerabilities = append(processedResult.Vulnerabilities, *processedVuln)
+			processedResult.Details = append(processedResult.Details, advisoryDetails...)
+		}
+	}
 
-		if isVulnerableVersion(v, disclosure.Constraint, disclosure.ID) {
-			// we don't persist fix information, but we do keep the constraint
-			constraints = append(constraints, disclosure.Constraint)
+	finalizeProcessedResult(&processedResult, disclosures.Details, v)
+	return processedResult
+}
+
+// processVulnerabilityWithAdvisories processes a single vulnerability against advisory overlays
+func processVulnerabilityWithAdvisories(v *version.Version, disclosure vulnerability.Vulnerability, advisoryOverlays []result.Result) (*vulnerability.Vulnerability, match.Details) {
+	fixVersions := version.Set{}
+	var constraints []version.Constraint
+	var state vulnerability.FixState
+	var allAdvisoryDetails match.Details
+
+	// check if we're vulnerable to the original disclosure
+	if isVulnerableVersion(v, disclosure.Constraint, disclosure.ID) {
+		constraints = append(constraints, disclosure.Constraint)
+	}
+
+	// process advisory overlays
+	for _, advisoryOverlay := range advisoryOverlays {
+		allAdvisoryDetails = append(allAdvisoryDetails, advisoryOverlay.Details...)
+		processAdvisoryVulnerabilities(v, advisoryOverlay.Vulnerabilities, &fixVersions, &constraints, &state)
+	}
+
+	if len(constraints) == 0 {
+		// all of the advisories showed we're not vulnerable, so we can skip this disclosure
+		return nil, nil
+	}
+
+	patchedRecord := buildPatchedVulnerabilityRecord(v, disclosure, fixVersions, constraints, state)
+	return &patchedRecord, allAdvisoryDetails
+}
+
+// processAdvisoryVulnerabilities processes vulnerabilities from advisory overlays
+func processAdvisoryVulnerabilities(v *version.Version, advisories []vulnerability.Vulnerability, fixVersions *version.Set, constraints *[]version.Constraint, state *vulnerability.FixState) {
+	for _, advisory := range advisories {
+		if advisory.Fix.State == vulnerability.FixStateWontFix && *state != vulnerability.FixStateFixed {
+			*state = advisory.Fix.State
 		}
 
-		for _, advisoryOverlay := range advisoryOverlays {
-			allAdvisoryDetails = append(allAdvisoryDetails, advisoryOverlay.Details...)
-
-			for _, advisory := range advisoryOverlay.Vulnerabilities {
-				if advisory.Fix.State == vulnerability.FixStateWontFix && state != vulnerability.FixStateFixed {
-					state = advisory.Fix.State
-				}
-
-				applicableFixes := neededFixes(v, advisory.Fix.Versions, advisory.Constraint.Format(), advisory.ID)
-				if len(applicableFixes) > 0 {
-					constraints = append(constraints, advisory.Constraint)
-				} else {
-					// none of the fixes on this advisory are greater than the current version, so we can skip this advisory
-					continue
-				}
-
-				// we're vulnerable! keep any fix versions that could have been applied
-				fixVersions.Add(applicableFixes...)
-				if state != vulnerability.FixStateFixed {
-					state = advisory.Fix.State
-				}
-			}
-		}
-
-		if len(constraints) == 0 {
-			// all of the advisories showed we're not vulnerable, so we can skip this disclosure.
-			// we also know that (for some reason) the disclosure no longer applies.
+		applicableFixes := neededFixes(v, advisory.Fix.Versions, advisory.Constraint.Format(), advisory.ID)
+		if len(applicableFixes) == 0 {
+			// none of the fixes on this advisory are greater than the current version, so we can skip this advisory
 			continue
 		}
 
-		patchedRecord := disclosure
-
-		if state == vulnerability.FixStateFixed {
-			patchedRecord.Fix.Versions = nil
-			for _, fixVersion := range fixVersions.Values() {
-				patchedRecord.Fix.Versions = append(patchedRecord.Fix.Versions, fixVersion.Raw)
-				fixConstraint, err := version.GetConstraint(fmt.Sprintf("< %s", fixVersion), v.Format)
-				if err != nil {
-					log.WithFields("vulnerability", disclosure.ID, "fixVersion", fixVersion, "error", err).Trace("failed to create constraint for fix version")
-					continue // skip this fix version if we cannot create a constraint
-				}
-				constraints = append(constraints, fixConstraint)
-			}
+		// we're vulnerable! keep any fix versions that could have been applied
+		*constraints = append(*constraints, advisory.Constraint)
+		fixVersions.Add(applicableFixes...)
+		if *state != vulnerability.FixStateFixed {
+			*state = advisory.Fix.State
 		}
+	}
+}
 
-		// this disclosure does not have a resolution that satisfies it, so we will keep it... patching on any fixes that we are aware of
-		patchedRecord.Fix.State = finalizeFixState(disclosure, state)
-		patchedRecord.Constraint = version.CombineConstraints(constraints...)
+// buildPatchedVulnerabilityRecord creates the final patched vulnerability record
+func buildPatchedVulnerabilityRecord(v *version.Version, disclosure vulnerability.Vulnerability, fixVersions version.Set, constraints []version.Constraint, state vulnerability.FixState) vulnerability.Vulnerability {
+	patchedRecord := disclosure
 
-		// now update the cumulative results
-		processedResult.Vulnerabilities = append(processedResult.Vulnerabilities, patchedRecord)
-		processedResult.Details = append(processedResult.Details, allAdvisoryDetails...)
+	if state == vulnerability.FixStateFixed {
+		patchedRecord.Fix.Versions = nil
+		for _, fixVersion := range fixVersions.Values() {
+			patchedRecord.Fix.Versions = append(patchedRecord.Fix.Versions, fixVersion.Raw)
+			fixConstraint, err := version.GetConstraint(fmt.Sprintf("< %s", fixVersion), v.Format)
+			if err != nil {
+				log.WithFields("vulnerability", disclosure.ID, "fixVersion", fixVersion, "error", err).Trace("failed to create constraint for fix version")
+				continue // skip this fix version if we cannot create a constraint
+			}
+			constraints = append(constraints, fixConstraint)
+		}
 	}
 
-	if len(processedResult.Vulnerabilities) > 0 {
-		// keep details around only if we have vulnerabilities they describe.
-		// Additionally, since we are managing version-specific criteria manually here, we will attach those
-		// details accordingly.
-		processedResult.Details = append(processedResult.Details, disclosures.Details...)
-		processedResult.Details = internal.NewMatchDetailsSet(processedResult.Details...).ToSlice()
-		patchPackageVersionDetails(v.Raw, processedResult.Details)
+	patchedRecord.Fix.State = finalizeFixState(disclosure, state)
+	patchedRecord.Constraint = version.CombineConstraints(constraints...)
+	return patchedRecord
+}
+
+// finalizeProcessedResult finalizes the processed result by adding details and patching version info
+func finalizeProcessedResult(processedResult *result.Result, originalDetails match.Details, v *version.Version) {
+	if len(processedResult.Vulnerabilities) == 0 {
+		return
 	}
 
-	return processedResult
+	// keep details around only if we have vulnerabilities they describe
+	processedResult.Details = append(processedResult.Details, originalDetails...)
+	processedResult.Details = internal.NewMatchDetailsSet(processedResult.Details...).ToSlice()
+	patchPackageVersionDetails(v.Raw, processedResult.Details)
 }
 
 func patchPackageVersionDetails(version string, details match.Details) {
