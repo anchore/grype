@@ -39,19 +39,13 @@ func (p provider) FindResults(criteria ...vulnerability.Criteria) (Set, error) {
 				continue // skip vulnerabilities without an ID (should never happen)
 			}
 
-			result, ok := results[ID(v.ID)]
-			details := p.detailProvider(criteria, v)
-			if ok {
-				result.Vulnerabilities = append(result.Vulnerabilities, v)
-				result.Details = append(result.Details, details...)
-			} else {
-				result = Result{
-					ID:              ID(v.ID),
-					Vulnerabilities: []vulnerability.Vulnerability{v},
-					Details:         details,
-				}
+			newResult := Result{
+				ID:              ID(v.ID),
+				Vulnerabilities: []vulnerability.Vulnerability{v},
+				Details:         p.detailProvider(criteria, v),
 			}
-			results[ID(v.ID)] = result
+
+			results[ID(v.ID)] = append(results[ID(v.ID)], newResult)
 		}
 	}
 	return results, nil

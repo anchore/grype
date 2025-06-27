@@ -3,6 +3,7 @@ package version
 import (
 	"errors"
 	"fmt"
+	"sort"
 
 	"github.com/anchore/grype/grype/pkg"
 )
@@ -118,4 +119,106 @@ func (v Version) Compare(other *Version) (int, error) {
 
 	// all formats returned error, return all errors
 	return 0, fmt.Errorf("unable to compare versions: %v %v due to %w", v, other, err)
+}
+
+func (v *Version) Evaluate(op Operator, other *Version) (bool, error) {
+	if v == nil {
+		return false, fmt.Errorf("cannot evaluate version with nil version")
+	}
+	if other == nil {
+		return false, ErrNoVersionProvided
+	}
+
+	comparator, err := v.getComparator(v.Format)
+	if err != nil {
+		return false, fmt.Errorf("unable to get comparator for %s: %w", v.Format, err)
+	}
+
+	result, err := comparator.Compare(other)
+	if err != nil {
+		return false, fmt.Errorf("unable to compare versions %s and %s: %w", v, other, err)
+	}
+
+	switch op {
+	case EQ, "":
+		return result == 0, nil
+	case GT:
+		return result > 0, nil
+	case LT:
+		return result < 0, nil
+	case GTE:
+		return result >= 0, nil
+	case LTE:
+		return result <= 0, nil
+	}
+	return false, fmt.Errorf("unknown operator %s", op)
+}
+
+type Set map[string]*Version
+
+func (s *Set) Add(vs ...*Version) {
+	if s == nil {
+		*s = make(Set)
+	}
+
+	for i := range vs {
+		v := vs[i]
+		if v == nil {
+			return
+		}
+		(*s)[v.Raw] = v
+	}
+}
+
+func (s *Set) Remove(vs ...*Version) {
+	if s == nil {
+		return
+	}
+	for _, v := range vs {
+		if v == nil {
+			continue
+		}
+		if _, ok := (*s)[v.Raw]; ok {
+			delete(*s, v.Raw)
+		}
+	}
+}
+
+func (s Set) Contains(v *Version) bool {
+	if v == nil {
+		return false
+	}
+	if _, ok := s[v.Raw]; ok {
+		return true
+	}
+	return false
+}
+
+func (s Set) Values() []*Version {
+	if s == nil {
+		return nil
+	}
+	out := make([]*Version, 0, len(s))
+	for _, v := range s {
+		out = append(out, v)
+	}
+
+	sort.Slice(out, func(i, j int) bool {
+		if out[i] == nil && out[j] == nil {
+			return false
+		}
+		if out[i] == nil {
+			return true
+		}
+		if out[j] == nil {
+			return false
+		}
+		cmp, err := out[i].Compare(out[j])
+		if err != nil {
+			return false // if we can't compare, don't change the order
+		}
+		return cmp < 0
+	})
+
+	return out
 }

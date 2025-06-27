@@ -10,130 +10,146 @@ import (
 type Result struct {
 	ID              ID
 	Vulnerabilities []vulnerability.Vulnerability
-	Details         match.Details
+	Details         []match.Detail
 }
 
 type ID string
 
-type Set map[ID]Result
+type Set map[ID][]Result
 
-func (r Set) ToMatches(p pkg.Package, mergeFuncs ...func(vulns []vulnerability.Vulnerability) []vulnerability.Vulnerability) []match.Match {
+func unionIntoResult(existing []Result) Result {
+	var merged Result
+	for _, r := range existing {
+		if merged.ID == "" {
+			merged.ID = r.ID
+		}
+		merged.Vulnerabilities = append(merged.Vulnerabilities, r.Vulnerabilities...)
+		merged.Details = append(merged.Details, r.Details...)
+	}
+	return merged
+}
+
+func (s Set) ToMatches(p pkg.Package, mergeFunc func(vulns []Result) Result) []match.Match {
 	var out []match.Match
-	for _, v := range r {
-		vulns := v.Vulnerabilities
-		if len(mergeFuncs) > 0 {
-			// merge vulnerabilities if requested
-			for _, mergeFunc := range mergeFuncs {
-				vulns = mergeFunc(vulns)
-			}
+	for _, results := range s {
+
+		if mergeFunc == nil {
+			// with no other merge functions specified, append all vulnerability results and details
+			mergeFunc = unionIntoResult
 		}
 
-		if len(vulns) == 0 {
+		merged := mergeFunc(results)
+
+		if len(merged.Vulnerabilities) == 0 {
 			continue
 		}
 
-		for _, vv := range vulns {
+		for _, vv := range merged.Vulnerabilities {
 			out = append(out,
 				match.Match{
 					Vulnerability: vv,
 					Package:       p,
-					Details:       v.Details,
+					Details:       merged.Details,
 				},
 			)
 		}
 	}
 
-	// sort.Sort(match.ByElements(out))
 	return out
 }
 
-func (r Set) Remove(incoming Set) Set {
+func (s Set) Remove(incoming Set) Set {
 	out := Set{}
-	for id, v := range r {
+	for id, results := range s {
 		if incoming.Contains(id) {
 			continue
 		}
-		out[id] = v
+		out[id] = results
 	}
 	return out
 }
 
-func defaultResultMerge(existing, incoming Result) Result {
-	id := existing.ID
-	if id == "" {
-		id = incoming.ID
-	}
-	return Result{
-		ID:              id,
-		Vulnerabilities: append(existing.Vulnerabilities, incoming.Vulnerabilities...),
-		Details:         append(existing.Details, incoming.Details...),
-	}
+func unionResults(existing, incoming []Result) (n []Result) {
+	n = append(n, existing...)
+	n = append(n, incoming...)
+	return n
 }
 
-var defaultMergeFuncs = []func(existing, incoming Result) Result{
-	defaultResultMerge,
-}
-
-func (r Set) Merge(incoming Set, mergeFuncs ...func(existing, incoming Result) Result) Set {
+func (s Set) Merge(incoming Set, mergeFuncs ...func(existing, incoming []Result) []Result) Set {
 	out := Set{}
 	if len(mergeFuncs) == 0 {
 		// with no other merge functions specified, append all vulnerability results and details
-		mergeFuncs = defaultMergeFuncs
+		mergeFuncs = []func(existing, incoming []Result) []Result{
+			unionResults,
+		}
 	}
 
-	// keep entries from the incoming set, merging with existing entries
-nextIncoming:
-	for _, v := range incoming {
-		newEntry := v
-		for _, mergeFunc := range mergeFuncs {
-			newEntry = mergeFunc(r[v.ID], newEntry)
-			if newEntry.ID == "" || len(newEntry.Vulnerabilities) == 0 {
-				continue nextIncoming
-			}
-		}
-		out[v.ID] = newEntry
+	// det all unique IDs from both sets
+	allIDs := make(map[ID]bool)
+	for id := range s {
+		allIDs[id] = true
+	}
+	for id := range incoming {
+		allIDs[id] = true
 	}
 
-	// keep entries not present in the incoming set
-nextExisting:
-	for _, v := range r {
-		// skip entries already merged
-		if incoming.Contains(v.ID) {
-			continue
-		}
-		newEntry := v
+	// process each ID, applying all merge functions
+	for id := range allIDs {
+		existingResults := s[id]
+		incomingResults := incoming[id]
+
+		mergedResults := append([]Result(nil), existingResults...)
 		for _, mergeFunc := range mergeFuncs {
-			newEntry = mergeFunc(newEntry, Result{})
-			if newEntry.ID == "" || len(newEntry.Vulnerabilities) == 0 {
-				continue nextExisting
+			mergedResults = mergeFunc(mergedResults, incomingResults)
+		}
+
+		if len(mergedResults) > 0 {
+			// filter out any results with empty vulnerabilities
+			var validResults []Result
+			for _, result := range mergedResults {
+				if result.ID != "" && len(result.Vulnerabilities) > 0 {
+					validResults = append(validResults, result)
+				}
+			}
+			if len(validResults) > 0 {
+				out[id] = validResults
 			}
 		}
-		out[v.ID] = newEntry
 	}
+
 	return out
 }
 
-func (r Set) Contains(id ID) bool {
-	_, ok := r[id]
-	return ok
+func (s Set) Contains(id ID) bool {
+	results, ok := s[id]
+	return ok && len(results) > 0
 }
 
-func (r Set) Filter(criteria ...vulnerability.Criteria) Set {
+func (s Set) Filter(criteria ...vulnerability.Criteria) Set {
 	out := Set{}
-	for _, v := range r {
-		vulns, err := filterVulns(v.Vulnerabilities, criteria)
-		if err != nil {
-			log.WithFields("vulnerability", v.ID, "error", err).Debug("failed to filter vulns")
-			// if there was an error filtering vulnerabilities, keep them all
-			vulns = v.Vulnerabilities
+	for id, results := range s {
+		var filteredResults []Result
+
+		for _, result := range results {
+			vulns, err := filterVulns(result.Vulnerabilities, criteria)
+			if err != nil {
+				log.WithFields("vulnerability", result.ID, "error", err).Debug("failed to filter vulns")
+				// if there was an error filtering vulnerabilities, keep them all
+				vulns = result.Vulnerabilities
+			}
+			if len(vulns) == 0 {
+				continue
+			}
+
+			filteredResults = append(filteredResults, Result{
+				ID:              result.ID,
+				Vulnerabilities: vulns,
+				Details:         result.Details,
+			})
 		}
-		if len(vulns) == 0 {
-			continue
-		}
-		out[v.ID] = Result{
-			ID:              v.ID,
-			Vulnerabilities: vulns,
-			Details:         v.Details,
+
+		if len(filteredResults) > 0 {
+			out[id] = filteredResults
 		}
 	}
 	return out

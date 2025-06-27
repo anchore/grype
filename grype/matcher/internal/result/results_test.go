@@ -26,45 +26,59 @@ func TestSet_Remove(t *testing.T) {
 		{
 			name: "remove existing entries",
 			receiver: Set{
-				"vuln-1": Result{
-					ID:              "vuln-1",
-					Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1"}}},
-					Details:         match.Details{{Type: match.ExactDirectMatch}},
+				"vuln-1": []Result{
+					{
+						ID:              "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1"}}},
+						Details:         match.Details{{Type: match.ExactDirectMatch}},
+					},
 				},
-				"vuln-2": Result{
-					ID:              "vuln-2",
-					Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-2"}}},
-					Details:         match.Details{{Type: match.ExactDirectMatch}},
+				"vuln-2": []Result{
+					{
+						ID:              "vuln-2",
+						Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-2"}}},
+						Details:         match.Details{{Type: match.ExactDirectMatch}},
+					},
 				},
 			},
 			incoming: Set{
-				"vuln-1": Result{ID: "vuln-1"},
+				"vuln-1": []Result{
+					{ID: "vuln-1"},
+				},
 			},
 			want: Set{
-				"vuln-2": Result{
-					ID:              "vuln-2",
-					Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-2"}}},
-					Details:         match.Details{{Type: match.ExactDirectMatch}},
+				"vuln-2": []Result{
+					{
+						ID:              "vuln-2",
+						Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-2"}}},
+						Details:         match.Details{{Type: match.ExactDirectMatch}},
+					},
 				},
 			},
 		},
 		{
 			name: "remove non-existing entry has no effect",
 			receiver: Set{
-				"vuln-1": Result{
-					ID:              "vuln-1",
-					Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1"}}},
-					Details:         match.Details{{Type: match.ExactDirectMatch}},
+				"vuln-1": []Result{
+					{
+						ID:              "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1"}}},
+						Details:         match.Details{{Type: match.ExactDirectMatch}},
+					},
 				},
 			},
 			incoming: Set{
-				"vuln-2": Result{ID: "vuln-2"},
+				"vuln-2": []Result{
+					{ID: "vuln-2"},
+				},
 			},
 			want: Set{
-				"vuln-1": Result{
-					ID:              "vuln-1",
-					Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1"}}},
-					Details:         match.Details{{Type: match.ExactDirectMatch}},
+				"vuln-1": []Result{
+					{
+						ID:              "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1"}}},
+						Details:         match.Details{{Type: match.ExactDirectMatch}},
+					},
 				},
 			},
 		},
@@ -72,25 +86,31 @@ func TestSet_Remove(t *testing.T) {
 			name:     "remove from empty set",
 			receiver: Set{},
 			incoming: Set{
-				"vuln-1": Result{ID: "vuln-1"},
+				"vuln-1": []Result{
+					{ID: "vuln-1"},
+				},
 			},
 			want: Set{},
 		},
 		{
 			name: "remove with empty incoming set",
 			receiver: Set{
-				"vuln-1": Result{
-					ID:              "vuln-1",
-					Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1"}}},
-					Details:         match.Details{{Type: match.ExactDirectMatch}},
+				"vuln-1": []Result{
+					{
+						ID:              "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1"}}},
+						Details:         match.Details{{Type: match.ExactDirectMatch}},
+					},
 				},
 			},
 			incoming: Set{},
 			want: Set{
-				"vuln-1": Result{
-					ID:              "vuln-1",
-					Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1"}}},
-					Details:         match.Details{{Type: match.ExactDirectMatch}},
+				"vuln-1": []Result{
+					{
+						ID:              "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1"}}},
+						Details:         match.Details{{Type: match.ExactDirectMatch}},
+					},
 				},
 			},
 		},
@@ -111,35 +131,40 @@ func TestSet_Merge(t *testing.T) {
 		name       string
 		receiver   Set
 		incoming   Set
-		mergeFuncs []func(existing, incoming Result) Result
+		mergeFuncs []func(existing, incoming []Result) []Result
 		want       Set
 	}{
 		{
 			name: "merge with default merge function",
 			receiver: Set{
-				"vuln-1": Result{
-					ID:              "vuln-1",
-					Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1"}}},
-					Details:         match.Details{{Type: match.ExactDirectMatch}},
+				"vuln-1": []Result{
+					{
+						ID:              "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1"}}},
+						Details:         match.Details{{Type: match.ExactDirectMatch}},
+					},
 				},
 			},
 			incoming: Set{
-				"vuln-1": Result{
-					ID:              "vuln-1",
-					Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1-updated"}}},
-					Details:         match.Details{{Type: match.ExactIndirectMatch}},
+				"vuln-1": []Result{
+					{
+						ID:              "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1-updated"}}},
+						Details:         match.Details{{Type: match.ExactIndirectMatch}},
+					},
 				},
 			},
 			want: Set{
-				"vuln-1": Result{
-					ID: "vuln-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{Reference: vulnerability.Reference{ID: "CVE-2021-1"}},
-						{Reference: vulnerability.Reference{ID: "CVE-2021-1-updated"}},
+				"vuln-1": []Result{
+					{
+						ID:              "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1"}}},
+						Details:         match.Details{{Type: match.ExactDirectMatch}},
 					},
-					Details: match.Details{
-						{Type: match.ExactDirectMatch},
-						{Type: match.ExactIndirectMatch},
+					{
+						ID:              "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1-updated"}}},
+						Details:         match.Details{{Type: match.ExactIndirectMatch}},
 					},
 				},
 			},
@@ -147,52 +172,64 @@ func TestSet_Merge(t *testing.T) {
 		{
 			name: "merge new entry from incoming",
 			receiver: Set{
-				"vuln-1": Result{
-					ID:              "vuln-1",
-					Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1"}}},
-					Details:         match.Details{{Type: match.ExactDirectMatch}},
+				"vuln-1": []Result{
+					{
+						ID:              "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1"}}},
+						Details:         match.Details{{Type: match.ExactDirectMatch}},
+					},
 				},
 			},
 			incoming: Set{
-				"vuln-2": Result{
-					ID:              "vuln-2",
-					Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-2"}}},
-					Details:         match.Details{{Type: match.ExactDirectMatch}},
+				"vuln-2": []Result{
+					{
+						ID:              "vuln-2",
+						Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-2"}}},
+						Details:         match.Details{{Type: match.ExactDirectMatch}},
+					},
 				},
 			},
 			want: Set{
-				"vuln-1": Result{
-					ID:              "vuln-1",
-					Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1"}}},
-					Details:         match.Details{{Type: match.ExactDirectMatch}},
+				"vuln-1": []Result{
+					{
+						ID:              "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1"}}},
+						Details:         match.Details{{Type: match.ExactDirectMatch}},
+					},
 				},
-				"vuln-2": Result{
-					ID:              "vuln-2",
-					Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-2"}}},
-					Details:         match.Details{{Type: match.ExactDirectMatch}},
+				"vuln-2": []Result{
+					{
+						ID:              "vuln-2",
+						Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-2"}}},
+						Details:         match.Details{{Type: match.ExactDirectMatch}},
+					},
 				},
 			},
 		},
 		{
 			name: "merge with custom merge function that filters out results",
 			receiver: Set{
-				"vuln-1": Result{
-					ID:              "vuln-1",
-					Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1"}}},
-					Details:         match.Details{{Type: match.ExactDirectMatch}},
+				"vuln-1": []Result{
+					{
+						ID:              "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1"}}},
+						Details:         match.Details{{Type: match.ExactDirectMatch}},
+					},
 				},
 			},
 			incoming: Set{
-				"vuln-1": Result{
-					ID:              "vuln-1",
-					Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1-updated"}}},
-					Details:         match.Details{{Type: match.ExactIndirectMatch}},
+				"vuln-1": []Result{
+					{
+						ID:              "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1-updated"}}},
+						Details:         match.Details{{Type: match.ExactIndirectMatch}},
+					},
 				},
 			},
-			mergeFuncs: []func(existing, incoming Result) Result{
-				func(existing, incoming Result) Result {
+			mergeFuncs: []func(existing, incoming []Result) []Result{
+				func(existing, incoming []Result) []Result {
 					// custom merge function that returns empty result to filter out
-					return Result{}
+					return []Result{}
 				},
 			},
 			want: Set{},
@@ -232,13 +269,15 @@ func TestSet_ToMatches(t *testing.T) {
 		{
 			name: "convert results to matches",
 			receiver: Set{
-				"vuln-1": Result{
-					ID: "vuln-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{Reference: vulnerability.Reference{ID: "CVE-2021-1"}},
-						{Reference: vulnerability.Reference{ID: "CVE-2021-2"}},
+				"vuln-1": []Result{
+					{
+						ID: "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{Reference: vulnerability.Reference{ID: "CVE-2021-1"}},
+							{Reference: vulnerability.Reference{ID: "CVE-2021-2"}},
+						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
 					},
-					Details: match.Details{{Type: match.ExactDirectMatch}},
 				},
 			},
 			pkg: testPkg,
@@ -258,17 +297,21 @@ func TestSet_ToMatches(t *testing.T) {
 		{
 			name: "skip results with no vulnerabilities",
 			receiver: Set{
-				"vuln-1": Result{
-					ID:              "vuln-1",
-					Vulnerabilities: []vulnerability.Vulnerability{},
-					Details:         match.Details{{Type: match.ExactDirectMatch}},
-				},
-				"vuln-2": Result{
-					ID: "vuln-2",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{Reference: vulnerability.Reference{ID: "CVE-2021-2"}},
+				"vuln-1": []Result{
+					{
+						ID:              "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{},
+						Details:         match.Details{{Type: match.ExactDirectMatch}},
 					},
-					Details: match.Details{{Type: match.ExactDirectMatch}},
+				},
+				"vuln-2": []Result{
+					{
+						ID: "vuln-2",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{Reference: vulnerability.Reference{ID: "CVE-2021-2"}},
+						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
+					},
 				},
 			},
 			pkg: testPkg,
@@ -283,13 +326,15 @@ func TestSet_ToMatches(t *testing.T) {
 		{
 			name: "apply merge functions to vulnerabilities",
 			receiver: Set{
-				"vuln-1": Result{
-					ID: "vuln-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{Reference: vulnerability.Reference{ID: "CVE-2021-1"}},
-						{Reference: vulnerability.Reference{ID: "CVE-2021-2"}},
+				"vuln-1": []Result{
+					{
+						ID: "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{Reference: vulnerability.Reference{ID: "CVE-2021-1"}},
+							{Reference: vulnerability.Reference{ID: "CVE-2021-2"}},
+						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
 					},
-					Details: match.Details{{Type: match.ExactDirectMatch}},
 				},
 			},
 			pkg: testPkg,
@@ -343,53 +388,59 @@ func TestSet_Filter(t *testing.T) {
 		{
 			name: "filter vulnerabilities with matching criteria",
 			receiver: Set{
-				"vuln-1": Result{
-					ID: "vuln-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:   vulnerability.Reference{ID: "CVE-2021-1"},
-							PackageName: "test-pkg",
-							Constraint:  version.MustGetConstraint("< 2.0.0", version.SemanticFormat),
+				"vuln-1": []Result{
+					{
+						ID: "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference:   vulnerability.Reference{ID: "CVE-2021-1"},
+								PackageName: "test-pkg",
+								Constraint:  version.MustGetConstraint("< 2.0.0", version.SemanticFormat),
+							},
+							{
+								Reference:   vulnerability.Reference{ID: "CVE-2021-2"},
+								PackageName: "other-pkg",
+								Constraint:  version.MustGetConstraint("< 1.0.0", version.SemanticFormat),
+							},
 						},
-						{
-							Reference:   vulnerability.Reference{ID: "CVE-2021-2"},
-							PackageName: "other-pkg",
-							Constraint:  version.MustGetConstraint("< 1.0.0", version.SemanticFormat),
-						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
 					},
-					Details: match.Details{{Type: match.ExactDirectMatch}},
 				},
 			},
 			criteria: []vulnerability.Criteria{
 				search.ByPackageName("test-pkg"),
 			},
 			want: Set{
-				"vuln-1": Result{
-					ID: "vuln-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:   vulnerability.Reference{ID: "CVE-2021-1"},
-							PackageName: "test-pkg",
-							Constraint:  version.MustGetConstraint("< 2.0.0", version.SemanticFormat),
+				"vuln-1": []Result{
+					{
+						ID: "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference:   vulnerability.Reference{ID: "CVE-2021-1"},
+								PackageName: "test-pkg",
+								Constraint:  version.MustGetConstraint("< 2.0.0", version.SemanticFormat),
+							},
 						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
 					},
-					Details: match.Details{{Type: match.ExactDirectMatch}},
 				},
 			},
 		},
 		{
 			name: "filter out all vulnerabilities removes result",
 			receiver: Set{
-				"vuln-1": Result{
-					ID: "vuln-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:   vulnerability.Reference{ID: "CVE-2021-1"},
-							PackageName: "other-pkg",
-							Constraint:  version.MustGetConstraint("< 2.0.0", version.SemanticFormat),
+				"vuln-1": []Result{
+					{
+						ID: "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference:   vulnerability.Reference{ID: "CVE-2021-1"},
+								PackageName: "other-pkg",
+								Constraint:  version.MustGetConstraint("< 2.0.0", version.SemanticFormat),
+							},
 						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
 					},
-					Details: match.Details{{Type: match.ExactDirectMatch}},
 				},
 			},
 			criteria: []vulnerability.Criteria{
@@ -408,30 +459,34 @@ func TestSet_Filter(t *testing.T) {
 		{
 			name: "filter with no criteria returns original set",
 			receiver: Set{
-				"vuln-1": Result{
-					ID: "vuln-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:   vulnerability.Reference{ID: "CVE-2021-1"},
-							PackageName: "test-pkg",
-							Constraint:  version.MustGetConstraint("< 2.0.0", version.SemanticFormat),
+				"vuln-1": []Result{
+					{
+						ID: "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference:   vulnerability.Reference{ID: "CVE-2021-1"},
+								PackageName: "test-pkg",
+								Constraint:  version.MustGetConstraint("< 2.0.0", version.SemanticFormat),
+							},
 						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
 					},
-					Details: match.Details{{Type: match.ExactDirectMatch}},
 				},
 			},
 			criteria: []vulnerability.Criteria{},
 			want: Set{
-				"vuln-1": Result{
-					ID: "vuln-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:   vulnerability.Reference{ID: "CVE-2021-1"},
-							PackageName: "test-pkg",
-							Constraint:  version.MustGetConstraint("< 2.0.0", version.SemanticFormat),
+				"vuln-1": []Result{
+					{
+						ID: "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference:   vulnerability.Reference{ID: "CVE-2021-1"},
+								PackageName: "test-pkg",
+								Constraint:  version.MustGetConstraint("< 2.0.0", version.SemanticFormat),
+							},
 						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
 					},
-					Details: match.Details{{Type: match.ExactDirectMatch}},
 				},
 			},
 		},
@@ -467,13 +522,17 @@ func TestSet_Contains(t *testing.T) {
 		{
 			name: "contains existing ID",
 			receiver: Set{
-				"vuln-1": Result{
-					ID:              "vuln-1",
-					Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1"}}},
+				"vuln-1": []Result{
+					{
+						ID:              "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1"}}},
+					},
 				},
-				"vuln-2": Result{
-					ID:              "vuln-2",
-					Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-2"}}},
+				"vuln-2": []Result{
+					{
+						ID:              "vuln-2",
+						Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-2"}}},
+					},
 				},
 			},
 			id:   "vuln-1",
@@ -482,9 +541,11 @@ func TestSet_Contains(t *testing.T) {
 		{
 			name: "does not contain non-existing ID",
 			receiver: Set{
-				"vuln-1": Result{
-					ID:              "vuln-1",
-					Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1"}}},
+				"vuln-1": []Result{
+					{
+						ID:              "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2021-1"}}},
+					},
 				},
 			},
 			id:   "vuln-2",

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/version"
-	"github.com/scylladb/go-set/strset"
-	"sort"
 	"strings"
 
 	"github.com/anchore/grype/grype/distro"
@@ -173,7 +171,7 @@ func (m *Matcher) findMatches(vp vulnerability.Provider, searchPkg pkg.Package, 
 		return nil, fmt.Errorf("matcher failed to fetch disclosures for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
 	}
 
-	return disclosures.ToMatches(internal.MatchPackage(searchPkg, refPkg)), nil
+	return disclosures.ToMatches(internal.MatchPackage(searchPkg, refPkg), nil), nil
 }
 
 func (m *Matcher) findEUSMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
@@ -208,7 +206,7 @@ func (m *Matcher) findEUSMatches(provider result.Provider, searchPkg pkg.Package
 
 	remaining := disclosures.Merge(resolutions, resolveDisclosures(version.NewVersionFromPkg(searchPkg)))
 
-	return remaining.ToMatches(searchPkg), err
+	return remaining.ToMatches(searchPkg, nil), err
 }
 
 func addEpochIfApplicable(p *pkg.Package) {
@@ -244,76 +242,168 @@ func isEUSContext(d *distro.Distro) bool {
 
 // resolveDisclosures returns a function that will filter disclosures based on the provided advisory information (by fix version only).
 // Additionally, this will merge applicable fixes into one vulnerability record, so that the final result contains only one vulnerability record per disclosure.
-func resolveDisclosures(v *version.Version) func(disclosures, advisoryOverlay result.Result) result.Result {
-	return func(disclosures, advisoryOverlay result.Result) result.Result {
-		out := result.Result{ID: disclosures.ID}
+func resolveDisclosures(v *version.Version) func(existing, incoming []result.Result) []result.Result {
+	return func(existing, incoming []result.Result) []result.Result {
+		var out []result.Result
 
-		// keep only the disclosures that Result the criteria of the resolution
-	disclosureLoop:
-		for _, disclosure := range disclosures.Vulnerabilities {
-			fixVersions := strset.New()
-			var constraints []version.Constraint
-			var state vulnerability.FixState
-
-			constraints = append(constraints, disclosure.Constraint)
-
-			for _, advisory := range advisoryOverlay.Vulnerabilities {
-				isVulnerable, err := advisory.Constraint.Satisfied(v)
-				if err != nil {
-					log.WithFields("vulnerability", advisory.ID, "error", err).Tracef("failed to check constraint for vulnerability")
-					continue // skip this resolution, but check other resolutions
-				}
-
-				if isVulnerable {
-					constraints = append(constraints, advisory.Constraint)
-				}
-
-				switch advisory.Fix.State {
-				case vulnerability.FixStateWontFix:
-					if state != vulnerability.FixStateFixed {
-						state = advisory.Fix.State
-					}
-					fallthrough
-				case vulnerability.FixStateUnknown:
-					// these do not negate disclosures, so we will skip them
-					continue
-				}
-
-				if !isVulnerable {
-					// a fix applies to the package, so we're not vulnerable (thus should not keep this disclosure)
-					continue disclosureLoop
-				}
-
-				// we're vulnerable! keep any fix versions that could have been applied
-				fixVersions.Add(advisory.Fix.Versions...)
-				if state != vulnerability.FixStateFixed {
-					state = advisory.Fix.State
+		for _, disclosures := range existing {
+			// find the corresponding advisory overlay results for this ID
+			var advisoryOverlays []result.Result
+			for _, advisory := range incoming {
+				if advisory.ID == disclosures.ID {
+					advisoryOverlays = append(advisoryOverlays, advisory)
 				}
 			}
 
-			patchedRecord := disclosure
-
-			if state == "" {
-				state = vulnerability.FixStateUnknown
+			processedResult := processDisclosureResult(v, disclosures, advisoryOverlays)
+			if len(processedResult.Vulnerabilities) > 0 {
+				out = append(out, processedResult)
 			}
+		}
 
-			if patchedRecord.Fix.State == vulnerability.FixStateUnknown || state == vulnerability.FixStateFixed {
-				patchedRecord.Fix.State = state
+		// add any incoming results that don't have corresponding existing results
+		for _, advisory := range incoming {
+			hasCorrespondingExisting := false
+			for _, existing := range existing {
+				if existing.ID == advisory.ID {
+					hasCorrespondingExisting = true
+					break
+				}
 			}
-			patchedRecord.Constraint = version.CombineConstraints(constraints...)
-
-			if state == vulnerability.FixStateFixed {
-				fixVersions.Remove("")
-				fixVersionList := fixVersions.List()
-				sort.Strings(fixVersionList)
-				patchedRecord.Fix.Versions = fixVersionList
+			if !hasCorrespondingExisting {
+				// this advisory doesn't have a corresponding disclosure, include it as-is
+				out = append(out, advisory)
 			}
-
-			// this disclosure does not have a resolution that satisfies it, so we will keep it... patching on any fixes that we are aware of
-			out.Vulnerabilities = append(out.Vulnerabilities, patchedRecord)
-			out.Details = append(out.Details, advisoryOverlay.Details...)
 		}
 
 		return out
 	}
+}
+
+// processDisclosureResult processes a single disclosure Result against its corresponding advisory overlay Results
+func processDisclosureResult(v *version.Version, disclosures result.Result, advisoryOverlays []result.Result) result.Result {
+	processedResult := result.Result{
+		ID: disclosures.ID,
+	}
+
+	// TODO: should we be honoring the disclosure constraint or not?? I feel like this is conditional based on matcher input.
+
+	// keep only the disclosures that meet the criteria of the resolution
+	for _, disclosure := range disclosures.Vulnerabilities {
+		fixVersions := version.Set{}
+		var constraints []version.Constraint
+		var state vulnerability.FixState
+		var allAdvisoryDetails match.Details
+
+		if isVulnerableVersion(v, disclosure.Constraint, disclosure.ID) {
+			// we don't persist fix information, but we do keep the constraint
+			constraints = append(constraints, disclosure.Constraint)
+		}
+
+		for _, advisoryOverlay := range advisoryOverlays {
+			allAdvisoryDetails = append(allAdvisoryDetails, advisoryOverlay.Details...)
+
+			for _, advisory := range advisoryOverlay.Vulnerabilities {
+				if advisory.Fix.State == vulnerability.FixStateWontFix && state != vulnerability.FixStateFixed {
+					state = advisory.Fix.State
+				}
+
+				applicableFixes := neededFixes(v, advisory.Fix.Versions, advisory.Constraint.Format(), advisory.ID)
+				if len(applicableFixes) > 0 {
+					constraints = append(constraints, advisory.Constraint)
+				} else {
+					// none of the fixes on this advisory are greater than the current version, so we can skip this advisory
+					continue
+				}
+
+				// we're vulnerable! keep any fix versions that could have been applied
+				fixVersions.Add(applicableFixes...)
+				if state != vulnerability.FixStateFixed {
+					state = advisory.Fix.State
+				}
+			}
+		}
+
+		if len(constraints) == 0 {
+			// all of the advisories showed we're not vulnerable, so we can skip this disclosure.
+			// we also know that (for some reason) the disclosure no longer applies.
+			continue
+		}
+
+		patchedRecord := disclosure
+
+		if state == vulnerability.FixStateFixed {
+			patchedRecord.Fix.Versions = nil
+			for _, fixVersion := range fixVersions.Values() {
+				patchedRecord.Fix.Versions = append(patchedRecord.Fix.Versions, fixVersion.Raw)
+				fixConstraint, err := version.GetConstraint(fmt.Sprintf("< %s", fixVersion), v.Format)
+				if err != nil {
+					log.WithFields("vulnerability", disclosure.ID, "fixVersion", fixVersion, "error", err).Trace("failed to create constraint for fix version")
+					continue // skip this fix version if we cannot create a constraint
+				}
+				constraints = append(constraints, fixConstraint)
+			}
+		}
+
+		// this disclosure does not have a resolution that satisfies it, so we will keep it... patching on any fixes that we are aware of
+		patchedRecord.Fix.State = finalizeFixState(disclosure, state)
+		patchedRecord.Constraint = version.CombineConstraints(constraints...)
+		processedResult.Vulnerabilities = append(processedResult.Vulnerabilities, patchedRecord)
+		processedResult.Details = append(processedResult.Details, allAdvisoryDetails...)
+	}
+
+	if len(processedResult.Vulnerabilities) > 0 {
+		// keep details around only if we have vulnerabilities they describe
+		processedResult.Details = disclosures.Details
+	}
+
+	return processedResult
+}
+
+func isVulnerableVersion(v *version.Version, c version.Constraint, id string) bool {
+	if c == nil {
+		// nil constraint is different than an empty constraint, so we should not consider this vulnerable
+		return false
+	}
+
+	isVulnerable, err := c.Satisfied(v)
+	if err != nil {
+		log.WithFields("vulnerability", id, "error", err).Trace("failed to check constraint")
+		return false // if we cannot determine if the version is vulnerable, we assume it is not
+	}
+
+	return isVulnerable
+}
+
+func neededFixes(v *version.Version, fixVersions []string, format version.Format, id string) []*version.Version {
+	var needed []*version.Version
+	for _, fixVersion := range fixVersions {
+		fixVersionObj := version.NewVersion(fixVersion, format) // note: we use the format from the advisory, not the version itself
+		res, err := v.Evaluate(version.LT, fixVersionObj)
+		if err != nil {
+			log.WithFields("format", format, "version", fixVersion, "error", err, "vulnerability", id).Trace("failed to evaluate fix version")
+			continue
+		}
+		if res {
+			needed = append(needed, fixVersionObj)
+		}
+	}
+
+	return needed
+}
+
+func finalizeFixState(record vulnerability.Vulnerability, state vulnerability.FixState) vulnerability.FixState {
+	if state == "" {
+		state = vulnerability.FixStateUnknown
+	}
+
+	if state != vulnerability.FixStateUnknown {
+		return state
+	}
+
+	if record.Fix.State != vulnerability.FixStateUnknown {
+		return record.Fix.State
+	}
+
+	return vulnerability.FixStateUnknown
 }
