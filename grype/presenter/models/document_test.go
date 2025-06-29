@@ -81,7 +81,7 @@ func TestPackagesAreSorted(t *testing.T) {
 			Version: "8.0",
 		},
 	}
-	doc, err := NewDocument(clio.Identification{}, packages, ctx, matches, nil, NewMetadataMock(), nil, nil, SortByPackage)
+	doc, err := NewDocument(clio.Identification{}, packages, ctx, matches, nil, NewMetadataMock(), nil, nil, SortByPackage, true)
 	if err != nil {
 		t.Fatalf("unable to get document: %+v", err)
 	}
@@ -142,7 +142,7 @@ func TestFixSuggestedVersion(t *testing.T) {
 			Version: "8.0",
 		},
 	}
-	doc, err := NewDocument(clio.Identification{}, packages, ctx, matches, nil, NewMetadataMock(), nil, nil, SortByPackage)
+	doc, err := NewDocument(clio.Identification{}, packages, ctx, matches, nil, NewMetadataMock(), nil, nil, SortByPackage, true)
 	if err != nil {
 		t.Fatalf("unable to get document: %+v", err)
 	}
@@ -161,7 +161,7 @@ func TestTimestampValidFormat(t *testing.T) {
 		Distro: nil,
 	}
 
-	doc, err := NewDocument(clio.Identification{}, nil, ctx, matches, nil, nil, nil, nil, SortByPackage)
+	doc, err := NewDocument(clio.Identification{}, nil, ctx, matches, nil, nil, nil, nil, SortByPackage, true)
 	if err != nil {
 		t.Fatalf("unable to get document: %+v", err)
 	}
@@ -172,5 +172,22 @@ func TestTimestampValidFormat(t *testing.T) {
 	if timeErr != nil {
 		t.Fatalf("unable to parse time: %+v", timeErr)
 	}
+
+}
+
+func TestConfigurableTimestamp(t *testing.T) {
+
+	matches := match.NewMatches()
+	ctx := pkg.Context{
+		Source: nil,
+		Distro: nil,
+	}
+
+	doc, err := NewDocument(clio.Identification{}, nil, ctx, matches, nil, nil, nil, nil, SortByPackage, false)
+	if err != nil {
+		t.Fatalf("unable to get document: %+v", err)
+	}
+
+	assert.Empty(t, doc.Descriptor.Timestamp)
 
 }
