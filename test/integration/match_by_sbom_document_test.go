@@ -30,14 +30,14 @@ func TestMatchBySBOMDocument(t *testing.T) {
 			expectedDetails: []match.Detail{
 				{
 					Type: match.ExactDirectMatch,
-					SearchedBy: map[string]interface{}{
-						"language":  "idris",
-						"namespace": "github:language:idris",
-						"package":   map[string]string{"name": "my-package", "version": "1.0.5"},
+					SearchedBy: match.EcosystemParameters{
+						Language:  "idris",
+						Namespace: "github:language:idris",
+						Package:   match.PackageParameter{Name: "my-package", Version: "1.0.5"},
 					},
-					Found: map[string]interface{}{
-						"versionConstraint": "< 2.0 (unknown)",
-						"vulnerabilityID":   "CVE-bogus-my-package-2-idris",
+					Found: match.EcosystemResult{
+						VersionConstraint: "< 2.0 (unknown)",
+						VulnerabilityID:   "CVE-bogus-my-package-2-idris",
 					},
 					Matcher:    match.StockMatcher,
 					Confidence: 1,

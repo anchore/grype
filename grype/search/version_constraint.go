@@ -9,6 +9,11 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
+var _ interface {
+	vulnerability.Criteria
+	VersionConstraintMatcher
+} = (*VersionCriteria)(nil)
+
 // VersionConstraintMatcher is used for searches which include version.Constraints; this should be used instead of
 // post-filtering vulnerabilities in order to most efficiently hydrate data in memory
 type VersionConstraintMatcher interface {
@@ -49,6 +54,14 @@ func ByVersion(v version.Version) vulnerability.Criteria {
 			return satisfied, nil
 		}),
 	}
+}
+
+func (v VersionCriteria) MatchesConstraint(constraint version.Constraint) (bool, error) {
+	cm, ok := v.Criteria.(VersionConstraintMatcher)
+	if !ok {
+		return false, nil
+	}
+	return cm.MatchesConstraint(constraint)
 }
 
 // constraintFuncCriteria implements vulnerability.Criteria by providing a function implementing the same signature as MatchVulnerability
