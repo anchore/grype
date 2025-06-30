@@ -1,0 +1,8 @@
+# Zizmor configuration file for suppressing false positives
+
+rules:
+  unpinned-uses:
+    ignore:
+      # anchore/workflows is an internal repository with controlled access
+      # Always use latest version from main branch for internal workflows
+      - update-anchore-dependencies.yml
