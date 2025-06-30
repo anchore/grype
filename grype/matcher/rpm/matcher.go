@@ -200,7 +200,7 @@ func (m *Matcher) findEUSMatches(provider result.Provider, searchPkg pkg.Package
 		return nil, fmt.Errorf("matcher failed to fetch resolutions for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
 	}
 
-	remaining := disclosures.Merge(resolutions, resolveDisclosures(version.NewVersionFromPkg(searchPkg)))
+	remaining := disclosures.Merge(resolutions, resolveDisclosures(version.NewVersionFromPkg(searchPkg), false))
 
 	return remaining.ToMatches(), err
 }
@@ -238,7 +238,7 @@ func isEUSContext(d *distro.Distro) bool {
 
 // resolveDisclosures returns a function that will filter disclosures based on the provided advisory information (by fix version only).
 // Additionally, this will merge applicable fixes into one vulnerability record, so that the final result contains only one vulnerability record per disclosure.
-func resolveDisclosures(v *version.Version) func(disclosures, advisoryOverlays []result.Result) []result.Result {
+func resolveDisclosures(v *version.Version, treatResolutionsAsDisclosures bool) func(disclosures, advisoryOverlays []result.Result) []result.Result {
 	return func(disclosures, advisoryOverlays []result.Result) []result.Result {
 		var out []result.Result
 
@@ -257,21 +257,24 @@ func resolveDisclosures(v *version.Version) func(disclosures, advisoryOverlays [
 			}
 		}
 
-		// TODO: I've got this commented out since we DON't want to consider EUS advisories as a "new" disclosure.
-		//// add any incoming results that don't have corresponding existing results
-		// for _, advisory := range advisoryOverlays {
-		//	hasCorrespondingExisting := false
-		//	for _, e := range disclosures {
-		//		if e.ID == advisory.ID {
-		//			hasCorrespondingExisting = true
-		//			break
-		//		}
-		//	}
-		//	if !hasCorrespondingExisting {
-		//		// this advisory doesn't have a corresponding disclosure, include it as-is
-		//		out = append(out, advisory)
-		//	}
-		//}
+		if treatResolutionsAsDisclosures {
+			// add any incoming results that don't have corresponding existing results
+			for _, advisory := range advisoryOverlays {
+				hasCorrespondingExisting := false
+				for _, e := range disclosures {
+					if e.ID == advisory.ID {
+						hasCorrespondingExisting = true
+						break
+					}
+				}
+				if !hasCorrespondingExisting {
+					// this advisory doesn't have a corresponding disclosure, include it as-is
+					// note: we are presuming that the original disclosure has already been verified to be vulnerable
+					// against the original package.
+					out = append(out, advisory)
+				}
+			}
+		}
 
 		return out
 	}
@@ -377,27 +380,25 @@ func finalizeProcessedResult(processedResult *result.Result, originalDetails mat
 	// keep details around only if we have vulnerabilities they describe
 	processedResult.Details = append(processedResult.Details, originalDetails...)
 	processedResult.Details = internal.NewMatchDetailsSet(processedResult.Details...).ToSlice()
-	patchPackageVersionDetails(v.Raw, processedResult.Details)
-}
 
-func patchPackageVersionDetails(version string, details match.Details) {
-	for idx := range details {
-		d := &details[idx]
+	// patch the version in the details if it is missing
+	for idx := range processedResult.Details {
+		d := &processedResult.Details[idx]
 
 		switch params := d.SearchedBy.(type) {
 		case match.CPEParameters:
 			if params.Package.Version == "" {
-				params.Package.Version = version
+				params.Package.Version = v.Raw
 				d.SearchedBy = params
 			}
 		case match.DistroParameters:
 			if params.Package.Version == "" {
-				params.Package.Version = version
+				params.Package.Version = v.Raw
 				d.SearchedBy = params
 			}
 		case match.EcosystemParameters:
 			if params.Package.Version == "" {
-				params.Package.Version = version
+				params.Package.Version = v.Raw
 				d.SearchedBy = params
 			}
 		}

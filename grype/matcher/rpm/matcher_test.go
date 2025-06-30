@@ -394,11 +394,12 @@ func Test_addEpochIfApplicable(t *testing.T) {
 
 func TestResolveDisclosures(t *testing.T) {
 	tests := []struct {
-		name            string
-		packageVersion  string
-		disclosures     []result.Result
-		advisoryOverlay []result.Result
-		want            []result.Result
+		name                     string
+		packageVersion           string
+		resolutionsAsDisclosures bool
+		disclosures              []result.Result
+		advisoryOverlay          []result.Result
+		want                     []result.Result
 	}{
 		{
 			name:           "disclosure with fix version - package version is vulnerable",
@@ -530,7 +531,7 @@ func TestResolveDisclosures(t *testing.T) {
 								Versions: []string{"1.5.0", "1.4.2"},
 							},
 						},
-						{ // duplicate advisory, should already be counted from the first one
+						{ // duplicate advisory should already be counted from the first one
 							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
 							Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
 							Fix: vulnerability.Fix{
@@ -538,7 +539,7 @@ func TestResolveDisclosures(t *testing.T) {
 								Versions: []string{"1.5.0", "1.4.2"},
 							},
 						},
-						{ // duplicate advisory, with different fix version
+						{ // duplicate advisory, with a different fix version
 							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
 							Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
 							Fix: vulnerability.Fix{
@@ -605,7 +606,7 @@ func TestResolveDisclosures(t *testing.T) {
 							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
 							Constraint: version.MustGetConstraint("< 2.0.0", version.RpmFormat),
 							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateWontFix, // important! we want the disclosure to reflect this property
+								State:    vulnerability.FixStateWontFix, // important! we want the match to reflect this property
 								Versions: []string{},
 							},
 						},
@@ -671,7 +672,7 @@ func TestResolveDisclosures(t *testing.T) {
 					Vulnerabilities: []vulnerability.Vulnerability{
 						{
 							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 2.0.0", version.RpmFormat), // from the disclosure
+							Constraint: version.MustGetConstraint("< 2.0.0", version.RpmFormat), // from the disclosure (nothing from the resolution since there was no fix information)
 							Fix: vulnerability.Fix{
 								State:    vulnerability.FixStateUnknown,
 								Versions: []string{},
@@ -725,7 +726,7 @@ func TestResolveDisclosures(t *testing.T) {
 							Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
 							Fix: vulnerability.Fix{
 								State:    vulnerability.FixStateFixed,
-								Versions: []string{"1.5.0"},
+								Versions: []string{"1.5.0"}, // note: empty versions are filtered out
 							},
 						},
 					},
@@ -735,7 +736,7 @@ func TestResolveDisclosures(t *testing.T) {
 		},
 		{
 			name:           "constraint satisfaction error - advisory skipped",
-			packageVersion: "W:1.2.3-456", // intentionally invalid epoch
+			packageVersion: "W:1.2.3-456", // intentionally invalid epoch (will fail to parse)
 			disclosures: []result.Result{
 				{
 					ID: "CVE-2021-1",
@@ -930,7 +931,7 @@ func TestResolveDisclosures(t *testing.T) {
 				v = nil
 			}
 
-			resolver := resolveDisclosures(v)
+			resolver := resolveDisclosures(v, tt.resolutionsAsDisclosures)
 
 			got := resolver(tt.disclosures, tt.advisoryOverlay)
 

@@ -56,42 +56,42 @@ func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 			{
 				Type:       match.ExactDirectMatch,
 				Confidence: 1.0,
-				SearchedBy: map[string]any{
-					"distro": map[string]string{
-						"type":    "alpine",
-						"version": "3.12.0",
+				SearchedBy: match.DistroParameters{
+					Distro: match.DistroIdentification{
+						Type:    "alpine",
+						Version: "3.12.0",
 					},
-					"namespace": "alpine:distro:alpine:3.12",
-					"package": map[string]string{
-						"name":    "libvncserver",
-						"version": "0.9.9",
+					Namespace: "alpine:distro:alpine:3.12",
+					Package: match.PackageParameter{
+						Name:    "libvncserver",
+						Version: "0.9.9",
 					},
 				},
-				Found: map[string]any{
-					"versionConstraint": "< 0.9.10 (unknown)",
-					"vulnerabilityID":   vulnObj.ID,
+				Found: match.DistroResult{
+					VersionConstraint: "< 0.9.10 (unknown)",
+					VulnerabilityID:   vulnObj.ID,
 				},
 				Matcher: match.ApkMatcher,
 			},
 			{
 				// note: the input pURL has an upstream reference (redundant)
-				Type: "exact-indirect-match",
-				SearchedBy: map[string]any{
-					"distro": map[string]string{
-						"type":    "alpine",
-						"version": "3.12.0",
+				Type: match.ExactIndirectMatch,
+				SearchedBy: match.DistroParameters{
+					Distro: match.DistroIdentification{
+						Type:    "alpine",
+						Version: "3.12.0",
 					},
-					"namespace": "alpine:distro:alpine:3.12",
-					"package": map[string]string{
-						"name":    "libvncserver",
-						"version": "0.9.9",
+					Namespace: "alpine:distro:alpine:3.12",
+					Package: match.PackageParameter{
+						Name:    "libvncserver",
+						Version: "0.9.9",
 					},
 				},
-				Found: map[string]any{
-					"versionConstraint": "< 0.9.10 (unknown)",
-					"vulnerabilityID":   "CVE-alpine-libvncserver",
+				Found: match.DistroResult{
+					VersionConstraint: "< 0.9.10 (unknown)",
+					VulnerabilityID:   "CVE-alpine-libvncserver",
 				},
-				Matcher:    "apk-matcher",
+				Matcher:    match.ApkMatcher,
 				Confidence: 1,
 			},
 		},
@@ -117,17 +117,17 @@ func addJavascriptMatches(t *testing.T, theSource source.Source, catalog *syftPk
 			{
 				Type:       match.ExactDirectMatch,
 				Confidence: 1.0,
-				SearchedBy: map[string]any{
-					"language":  "javascript",
-					"namespace": "github:language:javascript",
-					"package": map[string]string{
-						"name":    thePkg.Name,
-						"version": thePkg.Version,
+				SearchedBy: match.EcosystemParameters{
+					Language:  "javascript",
+					Namespace: "github:language:javascript",
+					Package: match.PackageParameter{
+						Name:    thePkg.Name,
+						Version: thePkg.Version,
 					},
 				},
-				Found: map[string]any{
-					"versionConstraint": "> 5, < 7.2.1 (unknown)",
-					"vulnerabilityID":   vulnObj.ID,
+				Found: match.EcosystemResult{
+					VersionConstraint: "> 5, < 7.2.1 (unknown)",
+					VulnerabilityID:   vulnObj.ID,
 				},
 				Matcher: match.JavascriptMatcher,
 			},
@@ -157,17 +157,17 @@ func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 			{
 				Type:       match.ExactDirectMatch,
 				Confidence: 1.0,
-				SearchedBy: map[string]any{
-					"language":  "python",
-					"namespace": "github:language:python",
-					"package": map[string]string{
-						"name":    thePkg.Name,
-						"version": thePkg.Version,
+				SearchedBy: match.EcosystemParameters{
+					Language:  "python",
+					Namespace: "github:language:python",
+					Package: match.PackageParameter{
+						Name:    thePkg.Name,
+						Version: thePkg.Version,
 					},
 				},
-				Found: map[string]any{
-					"versionConstraint": "< 2.6.2 (python)",
-					"vulnerabilityID":   vulnObj.ID,
+				Found: match.EcosystemResult{
+					VersionConstraint: "< 2.6.2 (python)",
+					VulnerabilityID:   vulnObj.ID,
 				},
 				Matcher: match.PythonMatcher,
 			},
@@ -211,17 +211,17 @@ func addDotnetMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 			{
 				Type:       match.ExactDirectMatch,
 				Confidence: 1.0,
-				SearchedBy: map[string]any{
-					"language":  "dotnet",
-					"namespace": "github:language:dotnet",
-					"package": map[string]string{
-						"name":    thePkg.Name,
-						"version": thePkg.Version,
+				SearchedBy: match.EcosystemParameters{
+					Language:  "dotnet",
+					Namespace: "github:language:dotnet",
+					Package: match.PackageParameter{
+						Name:    thePkg.Name,
+						Version: thePkg.Version,
 					},
 				},
-				Found: map[string]any{
-					"versionConstraint": ">= 3.7.0.0, < 3.7.12.0 (unknown)",
-					"vulnerabilityID":   vulnObj.ID,
+				Found: match.EcosystemResult{
+					VersionConstraint: ">= 3.7.0.0, < 3.7.12.0 (unknown)",
+					VulnerabilityID:   vulnObj.ID,
 				},
 				Matcher: match.DotnetMatcher,
 			},
@@ -248,17 +248,17 @@ func addRubyMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 			{
 				Type:       match.ExactDirectMatch,
 				Confidence: 1.0,
-				SearchedBy: map[string]any{
-					"language":  "ruby",
-					"namespace": "github:language:ruby",
-					"package": map[string]string{
-						"name":    thePkg.Name,
-						"version": thePkg.Version,
+				SearchedBy: match.EcosystemParameters{
+					Language:  "ruby",
+					Namespace: "github:language:ruby",
+					Package: match.PackageParameter{
+						Name:    thePkg.Name,
+						Version: thePkg.Version,
 					},
 				},
-				Found: map[string]any{
-					"versionConstraint": "> 2.0.0, <= 2.1.4 (unknown)",
-					"vulnerabilityID":   vulnObj.ID,
+				Found: match.EcosystemResult{
+					VersionConstraint: "> 2.0.0, <= 2.1.4 (unknown)",
+					VulnerabilityID:   vulnObj.ID,
 				},
 				Matcher: match.RubyGemMatcher,
 			},
@@ -307,17 +307,17 @@ func addGolangMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 				{
 					Type:       match.ExactDirectMatch,
 					Confidence: 1.0,
-					SearchedBy: map[string]any{
-						"language":  "go",
-						"namespace": "github:language:go",
-						"package": map[string]string{
-							"name":    thePkg.Name,
-							"version": thePkg.Version,
+					SearchedBy: match.EcosystemParameters{
+						Language:  "go",
+						Namespace: "github:language:go",
+						Package: match.PackageParameter{
+							Name:    thePkg.Name,
+							Version: thePkg.Version,
 						},
 					},
-					Found: map[string]any{
-						"versionConstraint": "< 1.4.0 (unknown)",
-						"vulnerabilityID":   vulnObj.ID,
+					Found: match.EcosystemResult{
+						VersionConstraint: "< 1.4.0 (unknown)",
+						VulnerabilityID:   vulnObj.ID,
 					},
 					Matcher: match.GoModuleMatcher,
 				},
@@ -354,17 +354,17 @@ func addJavaMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 			{
 				Type:       match.ExactDirectMatch,
 				Confidence: 1.0,
-				SearchedBy: map[string]any{
-					"language":  "java",
-					"namespace": "github:language:java",
-					"package": map[string]string{
-						"name":    thePkg.Name,
-						"version": thePkg.Version,
+				SearchedBy: match.EcosystemParameters{
+					Language:  "java",
+					Namespace: "github:language:java",
+					Package: match.PackageParameter{
+						Name:    thePkg.Name,
+						Version: thePkg.Version,
 					},
 				},
-				Found: map[string]any{
-					"versionConstraint": ">= 0.0.1, < 1.2.0 (unknown)",
-					"vulnerabilityID":   vulnObj.ID,
+				Found: match.EcosystemResult{
+					VersionConstraint: ">= 0.0.1, < 1.2.0 (unknown)",
+					VulnerabilityID:   vulnObj.ID,
 				},
 				Matcher: match.JavaMatcher,
 			},
@@ -392,20 +392,20 @@ func addDpkgMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 			{
 				Type:       match.ExactIndirectMatch,
 				Confidence: 1.0,
-				SearchedBy: map[string]any{
-					"distro": map[string]string{
-						"type":    "debian",
-						"version": "8",
+				SearchedBy: match.DistroParameters{
+					Distro: match.DistroIdentification{
+						Type:    "debian",
+						Version: "8",
 					},
-					"namespace": "debian:distro:debian:8",
-					"package": map[string]string{
-						"name":    "apt-dev",
-						"version": "1.8.2",
+					Namespace: "debian:distro:debian:8",
+					Package: match.PackageParameter{
+						Name:    "apt-dev",
+						Version: "1.8.2",
 					},
 				},
-				Found: map[string]any{
-					"versionConstraint": "<= 1.8.2 (deb)",
-					"vulnerabilityID":   vulnObj.ID,
+				Found: match.DistroResult{
+					VersionConstraint: "<= 1.8.2 (deb)",
+					VulnerabilityID:   vulnObj.ID,
 				},
 				Matcher: match.DpkgMatcher,
 			},
@@ -432,20 +432,20 @@ func addPortageMatches(t *testing.T, theSource source.Source, catalog *syftPkg.C
 			{
 				Type:       match.ExactDirectMatch,
 				Confidence: 1.0,
-				SearchedBy: map[string]any{
-					"distro": map[string]string{
-						"type":    "gentoo",
-						"version": "2.8",
+				SearchedBy: match.DistroParameters{
+					Distro: match.DistroIdentification{
+						Type:    "gentoo",
+						Version: "2.8",
 					},
-					"namespace": "gentoo:distro:gentoo:2.8",
-					"package": map[string]string{
-						"name":    "app-containers/skopeo",
-						"version": "1.5.1",
+					Namespace: "gentoo:distro:gentoo:2.8",
+					Package: match.PackageParameter{
+						Name:    "app-containers/skopeo",
+						Version: "1.5.1",
 					},
 				},
-				Found: map[string]any{
-					"versionConstraint": "< 1.6.0 (unknown)",
-					"vulnerabilityID":   vulnObj.ID,
+				Found: match.DistroResult{
+					VersionConstraint: "< 1.6.0 (unknown)",
+					VulnerabilityID:   vulnObj.ID,
 				},
 				Matcher: match.PortageMatcher,
 			},
@@ -472,20 +472,20 @@ func addRhelMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 			{
 				Type:       match.ExactDirectMatch,
 				Confidence: 1.0,
-				SearchedBy: map[string]any{
-					"distro": map[string]string{
-						"type":    "centos",
-						"version": "8",
+				SearchedBy: match.DistroParameters{
+					Distro: match.DistroIdentification{
+						Type:    "centos",
+						Version: "8",
 					},
-					"namespace": "redhat:distro:redhat:8",
-					"package": map[string]string{
-						"name":    "dive",
-						"version": "0:0.9.2-1",
+					Namespace: "redhat:distro:redhat:8",
+					Package: match.PackageParameter{
+						Name:    "dive",
+						Version: "0:0.9.2-1",
 					},
 				},
-				Found: map[string]any{
-					"versionConstraint": "<= 1.0.42 (rpm)",
-					"vulnerabilityID":   vulnObj.ID,
+				Found: match.DistroResult{
+					VersionConstraint: "<= 1.0.42 (rpm)",
+					VulnerabilityID:   vulnObj.ID,
 				},
 				Matcher: match.RpmMatcher,
 			},
@@ -514,20 +514,20 @@ func addSlesMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 			{
 				Type:       match.ExactDirectMatch,
 				Confidence: 1.0,
-				SearchedBy: map[string]any{
-					"distro": map[string]string{
-						"type":    "sles",
-						"version": "12.5",
+				SearchedBy: match.DistroParameters{
+					Distro: match.DistroIdentification{
+						Type:    "sles",
+						Version: "12.5",
 					},
-					"namespace": "sles:distro:sles:12.5",
-					"package": map[string]string{
-						"name":    "dive",
-						"version": "0:0.9.2-1",
+					Namespace: "sles:distro:sles:12.5",
+					Package: match.PackageParameter{
+						Name:    "dive",
+						Version: "0:0.9.2-1",
 					},
 				},
-				Found: map[string]any{
-					"versionConstraint": "<= 1.0.42 (rpm)",
-					"vulnerabilityID":   vulnObj.ID,
+				Found: match.DistroResult{
+					VersionConstraint: "<= 1.0.42 (rpm)",
+					VulnerabilityID:   vulnObj.ID,
 				},
 				Matcher: match.RpmMatcher,
 			},
@@ -554,17 +554,17 @@ func addHaskellMatches(t *testing.T, theSource source.Source, catalog *syftPkg.C
 			{
 				Type:       match.ExactDirectMatch,
 				Confidence: 1.0,
-				SearchedBy: map[string]any{
-					"language":  "haskell",
-					"namespace": "github:language:haskell",
-					"package": map[string]string{
-						"name":    thePkg.Name,
-						"version": thePkg.Version,
+				SearchedBy: match.EcosystemParameters{
+					Language:  "haskell",
+					Namespace: "github:language:haskell",
+					Package: match.PackageParameter{
+						Name:    thePkg.Name,
+						Version: thePkg.Version,
 					},
 				},
-				Found: map[string]any{
-					"versionConstraint": "< 0.9.0 (unknown)",
-					"vulnerabilityID":   "CVE-haskell-sample",
+				Found: match.EcosystemResult{
+					VersionConstraint: "< 0.9.0 (unknown)",
+					VulnerabilityID:   "CVE-haskell-sample",
 				},
 				Matcher: match.StockMatcher,
 			},
@@ -640,17 +640,17 @@ func addRustMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 				{
 					Type:       match.ExactDirectMatch,
 					Confidence: 1.0,
-					SearchedBy: map[string]any{
-						"language":  "rust",
-						"namespace": "github:language:rust",
-						"package": map[string]string{
-							"name":    thePkg.Name,
-							"version": thePkg.Version,
+					SearchedBy: match.EcosystemParameters{
+						Language:  "rust",
+						Namespace: "github:language:rust",
+						Package: match.PackageParameter{
+							Name:    thePkg.Name,
+							Version: thePkg.Version,
 						},
 					},
-					Found: map[string]any{
-						"versionConstraint": vulnObj.Constraint.String(),
-						"vulnerabilityID":   vulnObj.ID,
+					Found: match.EcosystemResult{
+						VersionConstraint: vulnObj.Constraint.String(),
+						VulnerabilityID:   vulnObj.ID,
 					},
 					Matcher: match.RustMatcher,
 				},
@@ -901,23 +901,23 @@ func testIgnoredMatches() []match.IgnoredMatch {
 				},
 				Details: []match.Detail{
 					{
-						Type: "exact-indirect-match",
-						SearchedBy: map[string]any{
-							"distro": map[string]string{
-								"type":    "alpine",
-								"version": "3.12.0",
+						Type: match.ExactIndirectMatch,
+						SearchedBy: match.DistroParameters{
+							Distro: match.DistroIdentification{
+								Type:    "alpine",
+								Version: "3.12.0",
 							},
-							"namespace": "alpine:distro:alpine:3.12",
-							"package": map[string]string{
-								"name":    "libvncserver",
-								"version": "0.9.9",
+							Namespace: "alpine:distro:alpine:3.12",
+							Package: match.PackageParameter{
+								Name:    "libvncserver",
+								Version: "0.9.9",
 							},
 						},
-						Found: map[string]any{
-							"versionConstraint": "< 0.9.10 (unknown)",
-							"vulnerabilityID":   "CVE-alpine-libvncserver",
+						Found: match.DistroResult{
+							VersionConstraint: "< 0.9.10 (unknown)",
+							VulnerabilityID:   "CVE-alpine-libvncserver",
 						},
-						Matcher:    "apk-matcher",
+						Matcher:    match.ApkMatcher,
 						Confidence: 1,
 					},
 				},
