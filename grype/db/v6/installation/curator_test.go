@@ -729,6 +729,16 @@ func Test_isRehydrationNeeded(t *testing.T) {
 			currentClientVer:   schemaver.New(6, 2, 0),
 			expectedResult:     false,
 		},
+		{
+			// there are cases where new features will result in new columns, thus an old client downloading and hydrating
+			// a DB should function, however, when the new client is downloaded it should trigger at least a rehydration
+			// of the existing DB (in cases where the new DB is not availabl for download yet).
+			name:               "rehydration needed - we have a new client version, with an old DB version",
+			currentDBVersion:   schemaver.New(6, 0, 2),
+			hydrationClientVer: schemaver.New(6, 0, 2),
+			currentClientVer:   schemaver.New(6, 0, 3),
+			expectedResult:     true,
+		},
 	}
 
 	for _, tt := range tests {

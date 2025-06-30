@@ -83,6 +83,26 @@ func (s SchemaVer) LessThan(other SchemaVer) bool {
 	return s.Addition < other.Addition
 }
 
+func (s SchemaVer) LessThanOrEqualTo(other SchemaVer) bool {
+	return s.LessThan(other) || s.Equal(other)
+}
+
+func (s SchemaVer) Equal(other SchemaVer) bool {
+	return s.Model == other.Model && s.Revision == other.Revision && s.Addition == other.Addition
+}
+
+func (s SchemaVer) GreaterThan(other SchemaVer) bool {
+	if s.Model != other.Model {
+		return s.Model > other.Model
+	}
+
+	if s.Revision != other.Revision {
+		return s.Revision > other.Revision
+	}
+
+	return s.Addition > other.Addition
+}
+
 func (s SchemaVer) GreaterOrEqualTo(other SchemaVer) bool {
-	return !s.LessThan(other)
+	return s.GreaterThan(other) || s.Equal(other)
 }
