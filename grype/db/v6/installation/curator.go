@@ -343,7 +343,7 @@ func isRehydrationNeeded(fs afero.Fs, dirPath string, currentDBVersion *schemave
 		return false, fmt.Errorf("unable to parse client version from import metadata: %w", err)
 	}
 
-	hydratedWithOldClient := clientHydrationVersion.LessThan(*currentDBVersion)
+	hydratedWithOldClient := clientHydrationVersion.LessThanOrEqualTo(*currentDBVersion)
 	haveNewerClient := clientHydrationVersion.LessThan(currentClientVersion)
 	doRehydrate := hydratedWithOldClient && haveNewerClient
 
