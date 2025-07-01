@@ -123,30 +123,34 @@ func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vu
 	}
 
 	candidateMatch.Details = addMatchDetails(candidateMatch.Details,
-		match.Detail{
-			Type:       match.CPEMatch,
-			Confidence: 0.9, // TODO: this is hard coded for now
-			Matcher:    upstreamMatcher,
-			SearchedBy: match.CPEParameters{
-				Namespace: vuln.Namespace,
-				CPEs: []string{
-					// use .String() for proper escaping
-					searchedByCPE.Attributes.String(),
-				},
-				Package: match.CPEPackageParameter{
-					Name:    p.Name,
-					Version: p.Version,
-				},
-			},
-			Found: match.CPEResult{
-				VulnerabilityID:   vuln.ID,
-				VersionConstraint: vuln.Constraint.String(),
-				CPEs:              cpesToString(filterCPEsByVersion(searchVersion, vuln.CPEs)),
-			},
-		},
+		CPEMatchDetails(upstreamMatcher, vuln, searchedByCPE, p, searchVersion),
 	)
 
 	matchesByFingerprint[candidateMatch.Fingerprint()] = candidateMatch
+}
+
+func CPEMatchDetails(matcherType match.MatcherType, vuln vulnerability.Vulnerability, searchedByCPE cpe.CPE, p pkg.Package, searchVersion *version.Version) match.Detail {
+	return match.Detail{
+		Type:       match.CPEMatch,
+		Confidence: 0.9, // TODO: this is hard coded for now
+		Matcher:    matcherType,
+		SearchedBy: match.CPEParameters{
+			Namespace: vuln.Namespace,
+			CPEs: []string{
+				// use .String() for proper escaping
+				searchedByCPE.Attributes.String(),
+			},
+			Package: match.PackageParameter{
+				Name:    p.Name,
+				Version: p.Version,
+			},
+		},
+		Found: match.CPEResult{
+			VulnerabilityID:   vuln.ID,
+			VersionConstraint: vuln.Constraint.String(),
+			CPEs:              cpesToString(filterCPEsByVersion(searchVersion, vuln.CPEs)),
+		},
+	}
 }
 
 func addMatchDetails(existingDetails []match.Detail, newDetails match.Detail) []match.Detail {

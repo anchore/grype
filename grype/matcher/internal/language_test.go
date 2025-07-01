@@ -67,14 +67,14 @@ func expectedMatch(p pkg.Package, constraint string) []match.Match {
 				{
 					Type:       match.ExactDirectMatch,
 					Confidence: 1,
-					SearchedBy: map[string]interface{}{
-						"language":  "ruby",
-						"namespace": "github:language:ruby",
-						"package":   map[string]string{"name": p.Name, "version": p.Version},
+					SearchedBy: match.EcosystemParameters{
+						Language:  "ruby",
+						Namespace: "github:language:ruby",
+						Package:   match.PackageParameter{Name: p.Name, Version: p.Version},
 					},
-					Found: map[string]interface{}{
-						"versionConstraint": constraint,
-						"vulnerabilityID":   "CVE-2017-fake-1",
+					Found: match.EcosystemResult{
+						VulnerabilityID:   "CVE-2017-fake-1",
+						VersionConstraint: constraint,
 					},
 					Matcher: match.RubyGemMatcher,
 				},

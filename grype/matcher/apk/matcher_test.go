@@ -33,10 +33,7 @@ func TestSecDBOnlyMatch(t *testing.T) {
 	vp := mock.VulnerabilityProvider(secDbVuln)
 
 	m := Matcher{}
-	d, err := distro.New(distro.Alpine, "3.12.0", "")
-	if err != nil {
-		t.Fatalf("failed to create a new distro: %+v", err)
-	}
+	d := distro.New(distro.Alpine, "3.12.0", "")
 
 	p := pkg.Package{
 		ID:      pkg.ID(uuid.NewString()),
@@ -58,20 +55,20 @@ func TestSecDBOnlyMatch(t *testing.T) {
 				{
 					Type:       match.ExactDirectMatch,
 					Confidence: 1.0,
-					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    d.Type.String(),
-							"version": d.Version,
+					SearchedBy: match.DistroParameters{
+						Distro: match.DistroIdentification{
+							Type:    d.Type.String(),
+							Version: d.Version,
 						},
-						"package": map[string]string{
-							"name":    "libvncserver",
-							"version": "0.9.9",
+						Package: match.PackageParameter{
+							Name:    "libvncserver",
+							Version: "0.9.9",
 						},
-						"namespace": "secdb:distro:alpine:3.12",
+						Namespace: "secdb:distro:alpine:3.12",
 					},
-					Found: map[string]interface{}{
-						"versionConstraint": secDbVuln.Constraint.String(),
-						"vulnerabilityID":   "CVE-2020-2",
+					Found: match.DistroResult{
+						VulnerabilityID:   "CVE-2020-2",
+						VersionConstraint: secDbVuln.Constraint.String(),
 					},
 					Matcher: match.ApkMatcher,
 				},
@@ -112,10 +109,7 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 	vp := mock.VulnerabilityProvider(nvdVuln, secDbVuln)
 
 	m := Matcher{}
-	d, err := distro.New(distro.Alpine, "3.12.0", "")
-	if err != nil {
-		t.Fatalf("failed to create a new distro: %+v", err)
-	}
+	d := distro.New(distro.Alpine, "3.12.0", "")
 
 	p := pkg.Package{
 		ID:      pkg.ID(uuid.NewString()),
@@ -137,20 +131,20 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 				{
 					Type:       match.ExactDirectMatch,
 					Confidence: 1.0,
-					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    d.Type.String(),
-							"version": d.Version,
+					SearchedBy: match.DistroParameters{
+						Distro: match.DistroIdentification{
+							Type:    d.Type.String(),
+							Version: d.Version,
 						},
-						"package": map[string]string{
-							"name":    "libvncserver",
-							"version": "0.9.9",
+						Package: match.PackageParameter{
+							Name:    "libvncserver",
+							Version: "0.9.9",
 						},
-						"namespace": "secdb:distro:alpine:3.12",
+						Namespace: "secdb:distro:alpine:3.12",
 					},
-					Found: map[string]interface{}{
-						"versionConstraint": secDbVuln.Constraint.String(),
-						"vulnerabilityID":   "CVE-2020-1",
+					Found: match.DistroResult{
+						VulnerabilityID:   "CVE-2020-1",
+						VersionConstraint: secDbVuln.Constraint.String(),
 					},
 					Matcher: match.ApkMatcher,
 				},
@@ -198,10 +192,7 @@ func TestBothSecdbAndNvdMatches_DifferentFixInfo(t *testing.T) {
 	}
 	vp := mock.VulnerabilityProvider(nvdVuln, secDbVuln)
 	m := Matcher{}
-	d, err := distro.New(distro.Alpine, "3.12.0", "")
-	if err != nil {
-		t.Fatalf("failed to create a new distro: %+v", err)
-	}
+	d := distro.New(distro.Alpine, "3.12.0", "")
 
 	p := pkg.Package{
 		ID:      pkg.ID(uuid.NewString()),
@@ -223,20 +214,20 @@ func TestBothSecdbAndNvdMatches_DifferentFixInfo(t *testing.T) {
 				{
 					Type:       match.ExactDirectMatch,
 					Confidence: 1.0,
-					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    d.Type.String(),
-							"version": d.Version,
+					SearchedBy: match.DistroParameters{
+						Distro: match.DistroIdentification{
+							Type:    d.Type.String(),
+							Version: d.Version,
 						},
-						"package": map[string]string{
-							"name":    "libvncserver",
-							"version": "0.9.9",
+						Package: match.PackageParameter{
+							Name:    "libvncserver",
+							Version: "0.9.9",
 						},
-						"namespace": "secdb:distro:alpine:3.12",
+						Namespace: "secdb:distro:alpine:3.12",
 					},
-					Found: map[string]interface{}{
-						"versionConstraint": secDbVuln.Constraint.String(),
-						"vulnerabilityID":   "CVE-2020-1",
+					Found: match.DistroResult{
+						VulnerabilityID:   "CVE-2020-1",
+						VersionConstraint: secDbVuln.Constraint.String(),
 					},
 					Matcher: match.ApkMatcher,
 				},
@@ -278,10 +269,8 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 	vp := mock.VulnerabilityProvider(nvdVuln, secDbVuln)
 
 	m := Matcher{}
-	d, err := distro.New(distro.Alpine, "3.12.0", "")
-	if err != nil {
-		t.Fatalf("failed to create a new distro: %+v", err)
-	}
+	d := distro.New(distro.Alpine, "3.12.0", "")
+
 	p := pkg.Package{
 		ID:      pkg.ID(uuid.NewString()),
 		Name:    "libvncserver",
@@ -303,20 +292,20 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 				{
 					Type:       match.ExactDirectMatch,
 					Confidence: 1.0,
-					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    d.Type.String(),
-							"version": d.Version,
+					SearchedBy: match.DistroParameters{
+						Distro: match.DistroIdentification{
+							Type:    d.Type.String(),
+							Version: d.Version,
 						},
-						"package": map[string]string{
-							"name":    "libvncserver",
-							"version": "0.9.9",
+						Package: match.PackageParameter{
+							Name:    "libvncserver",
+							Version: "0.9.9",
 						},
-						"namespace": "secdb:distro:alpine:3.12",
+						Namespace: "secdb:distro:alpine:3.12",
 					},
-					Found: map[string]interface{}{
-						"versionConstraint": secDbVuln.Constraint.String(),
-						"vulnerabilityID":   "CVE-2020-1",
+					Found: match.DistroResult{
+						VulnerabilityID:   "CVE-2020-1",
+						VersionConstraint: secDbVuln.Constraint.String(),
 					},
 					Matcher: match.ApkMatcher,
 				},
@@ -345,10 +334,8 @@ func TestNvdOnlyMatches(t *testing.T) {
 	vp := mock.VulnerabilityProvider(nvdVuln)
 
 	m := Matcher{}
-	d, err := distro.New(distro.Alpine, "3.12.0", "")
-	if err != nil {
-		t.Fatalf("failed to create a new distro: %+v", err)
-	}
+	d := distro.New(distro.Alpine, "3.12.0", "")
+
 	p := pkg.Package{
 		ID:      pkg.ID(uuid.NewString()),
 		Name:    "libvncserver",
@@ -372,7 +359,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 					SearchedBy: match.CPEParameters{
 						CPEs:      []string{"cpe:2.3:a:*:lib\\/vncserver:0.9.9:*:*:*:*:*:*:*"},
 						Namespace: "nvd:cpe",
-						Package: match.CPEPackageParameter{
+						Package: match.PackageParameter{
 							Name:    "libvncserver",
 							Version: "0.9.9",
 						},
@@ -414,10 +401,8 @@ func TestNvdOnlyMatches_FixInNvd(t *testing.T) {
 	vp := mock.VulnerabilityProvider(nvdVuln)
 
 	m := Matcher{}
-	d, err := distro.New(distro.Alpine, "3.12.0", "")
-	if err != nil {
-		t.Fatalf("failed to create a new distro: %+v", err)
-	}
+	d := distro.New(distro.Alpine, "3.12.0", "")
+
 	p := pkg.Package{
 		ID:      pkg.ID(uuid.NewString()),
 		Name:    "libvncserver",
@@ -445,7 +430,7 @@ func TestNvdOnlyMatches_FixInNvd(t *testing.T) {
 					SearchedBy: match.CPEParameters{
 						CPEs:      []string{"cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*"},
 						Namespace: "nvd:cpe",
-						Package: match.CPEPackageParameter{
+						Package: match.PackageParameter{
 							Name:    "libvncserver",
 							Version: "0.9.9",
 						},
@@ -493,10 +478,8 @@ func TestNvdMatchesProperVersionFiltering(t *testing.T) {
 	vp := mock.VulnerabilityProvider(nvdVulnMatch, nvdVulnNoMatch)
 
 	m := Matcher{}
-	d, err := distro.New(distro.Alpine, "3.12.0", "")
-	if err != nil {
-		t.Fatalf("failed to create a new distro: %+v", err)
-	}
+	d := distro.New(distro.Alpine, "3.12.0", "")
+
 	p := pkg.Package{
 		ID:      pkg.ID(uuid.NewString()),
 		Name:    "libvncserver",
@@ -519,7 +502,7 @@ func TestNvdMatchesProperVersionFiltering(t *testing.T) {
 					SearchedBy: match.CPEParameters{
 						CPEs:      []string{"cpe:2.3:a:*:libvncserver:0.9.11:*:*:*:*:*:*:*"},
 						Namespace: "nvd:cpe",
-						Package: match.CPEPackageParameter{
+						Package: match.PackageParameter{
 							Name:    "libvncserver",
 							Version: "0.9.11-r10",
 						},
@@ -566,10 +549,8 @@ func TestNvdMatchesWithSecDBFix(t *testing.T) {
 	vp := mock.VulnerabilityProvider(nvdVuln, secDbVuln)
 
 	m := Matcher{}
-	d, err := distro.New(distro.Alpine, "3.12.0", "")
-	if err != nil {
-		t.Fatalf("failed to create a new distro: %+v", err)
-	}
+	d := distro.New(distro.Alpine, "3.12.0", "")
+
 	p := pkg.Package{
 		ID:      pkg.ID(uuid.NewString()),
 		Name:    "libvncserver",
@@ -614,10 +595,8 @@ func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
 	vp := mock.VulnerabilityProvider(nvdVuln, secDbVuln)
 
 	m := Matcher{}
-	d, err := distro.New(distro.Alpine, "3.12.0", "")
-	if err != nil {
-		t.Fatalf("failed to create a new distro: %+v", err)
-	}
+	d := distro.New(distro.Alpine, "3.12.0", "")
+
 	p := pkg.Package{
 		ID:      pkg.ID(uuid.NewString()),
 		Name:    "libvncserver",
@@ -660,10 +639,8 @@ func TestNVDMatchCanceledByOriginPackageInSecDB(t *testing.T) {
 	vp := mock.VulnerabilityProvider(nvdVuln, secDBVuln)
 
 	m := Matcher{}
-	d, err := distro.New(distro.Wolfi, "", "")
-	if err != nil {
-		t.Fatalf("failed to create a new distro: %+v", err)
-	}
+	d := distro.New(distro.Wolfi, "", "")
+
 	p := pkg.Package{
 		ID:      pkg.ID(uuid.NewString()),
 		Name:    "php-8.3-fpm", // the package will not match anything
@@ -703,10 +680,8 @@ func TestDistroMatchBySourceIndirection(t *testing.T) {
 	vp := mock.VulnerabilityProvider(secDbVuln)
 
 	m := Matcher{}
-	d, err := distro.New(distro.Alpine, "3.12.0", "")
-	if err != nil {
-		t.Fatalf("failed to create a new distro: %+v", err)
-	}
+	d := distro.New(distro.Alpine, "3.12.0", "")
+
 	p := pkg.Package{
 		ID:      pkg.ID(uuid.NewString()),
 		Name:    "musl-utils",
@@ -732,20 +707,20 @@ func TestDistroMatchBySourceIndirection(t *testing.T) {
 				{
 					Type:       match.ExactIndirectMatch,
 					Confidence: 1.0,
-					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    d.Type.String(),
-							"version": d.Version,
+					SearchedBy: match.DistroParameters{
+						Distro: match.DistroIdentification{
+							Type:    d.Type.String(),
+							Version: d.Version,
 						},
-						"package": map[string]string{
-							"name":    "musl",
-							"version": p.Version,
+						Package: match.PackageParameter{
+							Name:    "musl",
+							Version: p.Version,
 						},
-						"namespace": "secdb:distro:alpine:3.12",
+						Namespace: "secdb:distro:alpine:3.12",
 					},
-					Found: map[string]interface{}{
-						"versionConstraint": secDbVuln.Constraint.String(),
-						"vulnerabilityID":   "CVE-2020-2",
+					Found: match.DistroResult{
+						VulnerabilityID:   "CVE-2020-2",
+						VersionConstraint: secDbVuln.Constraint.String(),
 					},
 					Matcher: match.ApkMatcher,
 				},
@@ -775,10 +750,7 @@ func TestSecDBMatchesStillCountedWithCpeErrors(t *testing.T) {
 	vp := mock.VulnerabilityProvider(secDbVuln)
 
 	m := Matcher{}
-	d, err := distro.New(distro.Alpine, "3.12.0", "")
-	if err != nil {
-		t.Fatalf("failed to create a new distro: %+v", err)
-	}
+	d := distro.New(distro.Alpine, "3.12.0", "")
 
 	p := pkg.Package{
 		ID:      pkg.ID(uuid.NewString()),
@@ -803,20 +775,20 @@ func TestSecDBMatchesStillCountedWithCpeErrors(t *testing.T) {
 				{
 					Type:       match.ExactIndirectMatch,
 					Confidence: 1.0,
-					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    d.Type.String(),
-							"version": d.Version,
+					SearchedBy: match.DistroParameters{
+						Distro: match.DistroIdentification{
+							Type:    d.Type.String(),
+							Version: d.Version,
 						},
-						"package": map[string]string{
-							"name":    "musl",
-							"version": p.Version,
+						Package: match.PackageParameter{
+							Name:    "musl",
+							Version: p.Version,
 						},
-						"namespace": "secdb:distro:alpine:3.12",
+						Namespace: "secdb:distro:alpine:3.12",
 					},
-					Found: map[string]interface{}{
-						"versionConstraint": secDbVuln.Constraint.String(),
-						"vulnerabilityID":   "CVE-2020-2",
+					Found: match.DistroResult{
+						VulnerabilityID:   "CVE-2020-2",
+						VersionConstraint: secDbVuln.Constraint.String(),
 					},
 					Matcher: match.ApkMatcher,
 				},
@@ -845,10 +817,8 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 	vp := mock.VulnerabilityProvider(nvdVuln)
 
 	m := Matcher{}
-	d, err := distro.New(distro.Alpine, "3.12.0", "")
-	if err != nil {
-		t.Fatalf("failed to create a new distro: %+v", err)
-	}
+	d := distro.New(distro.Alpine, "3.12.0", "")
+
 	p := pkg.Package{
 		ID:      pkg.ID(uuid.NewString()),
 		Name:    "musl-utils",
@@ -877,7 +847,7 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 					SearchedBy: match.CPEParameters{
 						CPEs:      []string{"cpe:2.3:a:musl:musl:1.3.2-r0:*:*:*:*:*:*:*"},
 						Namespace: "nvd:cpe",
-						Package: match.CPEPackageParameter{
+						Package: match.PackageParameter{
 							Name:    "musl",
 							Version: "1.3.2-r0",
 						},
@@ -944,12 +914,12 @@ func Test_nakConstraint(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			matches, _, err := nakConstraint.MatchesVulnerability(tt.input)
-			wantErr := require.NoError
-			if tt.wantErr != nil {
-				wantErr = tt.wantErr
+			if tt.wantErr == nil {
+				tt.wantErr = require.NoError
 			}
-			wantErr(t, err)
+
+			matches, _, err := nakConstraint.MatchesVulnerability(tt.input)
+			tt.wantErr(t, err)
 			require.Equal(t, tt.matches, matches)
 		})
 	}

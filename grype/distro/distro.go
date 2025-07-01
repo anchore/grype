@@ -25,7 +25,7 @@ type Distro struct {
 }
 
 // New creates a new Distro object populated with the given values.
-func New(t Type, version, label string, idLikes ...string) (*Distro, error) {
+func New(t Type, version, label string, idLikes ...string) *Distro {
 	var major, minor, remaining string
 	if version != "" {
 		// if starts with a digit, then assume it's a version and extract the major, minor, and remaining versions
@@ -59,11 +59,11 @@ func New(t Type, version, label string, idLikes ...string) (*Distro, error) {
 		Version:   version,
 		Codename:  label,
 		IDLike:    idLikes,
-	}, nil
+	}
 }
 
 // NewFromNameVersion creates a new Distro object derived from the provided name and version
-func NewFromNameVersion(name, version string) (*Distro, error) {
+func NewFromNameVersion(name, version string) *Distro {
 	var codename string
 
 	// if there are no digits in the version, it is likely a codename
@@ -116,7 +116,7 @@ func NewFromRelease(release linux.Release) (*Distro, error) {
 		selectedVersion = release.VersionID
 	}
 
-	return New(t, selectedVersion, release.VersionCodename, release.IDLike...)
+	return New(t, selectedVersion, release.VersionCodename, release.IDLike...), nil
 }
 
 func (d Distro) Name() string {

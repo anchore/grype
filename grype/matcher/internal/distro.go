@@ -12,59 +12,72 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-func MatchPackageByDistro(provider vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
-	if p.Distro == nil {
+func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package, catalogPkg *pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
+	if searchPkg.Distro == nil {
 		return nil, nil, nil
 	}
 
-	if isUnknownVersion(p.Version) {
-		log.WithFields("package", p.Name).Trace("skipping package with unknown version")
+	if isUnknownVersion(searchPkg.Version) {
+		log.WithFields("package", searchPkg.Name).Trace("skipping package with unknown version")
 		return nil, nil, nil
 	}
 
 	var matches []match.Match
 	vulns, err := provider.FindVulnerabilities(
-		search.ByPackageName(p.Name),
-		search.ByDistro(*p.Distro),
-		onlyQualifiedPackages(p),
-		onlyVulnerableVersions(version.NewVersionFromPkg(p)),
+		search.ByPackageName(searchPkg.Name),
+		search.ByDistro(*searchPkg.Distro),
+		onlyQualifiedPackages(searchPkg),
+		onlyVulnerableVersions(version.NewVersionFromPkg(searchPkg)),
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", p.Distro, p.Name, err)
+		return nil, nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
 	}
 
 	for _, vuln := range vulns {
 		matches = append(matches, match.Match{
 			Vulnerability: vuln,
-			Package:       p,
-			Details: []match.Detail{
-				{
-					Type:    match.ExactDirectMatch,
-					Matcher: upstreamMatcher,
-					SearchedBy: map[string]interface{}{
-						"distro": map[string]string{
-							"type":    p.Distro.Type.String(),
-							"version": p.Distro.Version,
-						},
-						// why include the package information? The given package searched with may be a source package
-						// for another package that is installed on the system. This makes it apparent exactly what
-						// was used in the search.
-						"package": map[string]string{
-							"name":    p.Name,
-							"version": p.Version,
-						},
-						"namespace": vuln.Namespace,
-					},
-					Found: map[string]interface{}{
-						"vulnerabilityID":   vuln.ID,
-						"versionConstraint": vuln.Constraint.String(),
-					},
-					Confidence: 1.0, // TODO: this is hard coded for now
-				},
-			},
+			Package:       matchPackage(searchPkg, catalogPkg),
+			Details:       distroMatchDetails(upstreamMatcher, searchPkg, catalogPkg, vuln),
 		})
 	}
 	return matches, nil, err
+}
+
+func matchPackage(searchPkg pkg.Package, catalogPkg *pkg.Package) pkg.Package {
+	if catalogPkg != nil {
+		return *catalogPkg
+	}
+	return searchPkg
+}
+
+func distroMatchDetails(upstreamMatcher match.MatcherType, searchPkg pkg.Package, catalogPkg *pkg.Package, vuln vulnerability.Vulnerability) []match.Detail {
+	ty := match.ExactIndirectMatch
+	if catalogPkg == nil {
+		ty = match.ExactDirectMatch
+	}
+
+	return []match.Detail{
+		{
+			Type:    ty,
+			Matcher: upstreamMatcher,
+			SearchedBy: match.DistroParameters{
+				Distro: match.DistroIdentification{
+					Type:    searchPkg.Distro.Type.String(),
+					Version: searchPkg.Distro.Version,
+				},
+				Package: match.PackageParameter{
+					Name:    searchPkg.Name,
+					Version: searchPkg.Version,
+				},
+				Namespace: vuln.Namespace,
+			},
+			Found: match.DistroResult{
+				VulnerabilityID:   vuln.ID,
+				VersionConstraint: vuln.Constraint.String(),
+			},
+			Confidence: 1.0, // TODO: this is hard coded for now
+		},
+	}
 }
 
 func isUnknownVersion(v string) bool {

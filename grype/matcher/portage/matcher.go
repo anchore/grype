@@ -20,5 +20,5 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
-	return internal.MatchPackageByDistro(store, p, m.Type())
+	return internal.MatchPackageByDistro(store, p, nil, m.Type())
 }
