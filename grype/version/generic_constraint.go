@@ -8,9 +8,9 @@ import (
 var _ Constraint = (*genericConstraint)(nil)
 
 type genericConstraint struct {
-	raw        string
-	expression simpleRangeExpression
-	format     Format
+	Raw        string
+	Expression simpleRangeExpression
+	Fmt        Format
 }
 
 func newGenericConstraint(format Format, raw string) (genericConstraint, error) {
@@ -19,34 +19,42 @@ func newGenericConstraint(format Format, raw string) (genericConstraint, error) 
 		return genericConstraint{}, invalidFormatError(format, raw, err)
 	}
 	return genericConstraint{
-		expression: constraints,
-		raw:        raw,
-		format:     format,
+		Expression: constraints,
+		Raw:        raw,
+		Fmt:        format,
 	}, nil
 }
 
 func (g genericConstraint) String() string {
-	value := "none"
-	if g.raw != "" {
-		value = g.raw
+	value := g.Value()
+	if g.Raw == "" {
+		value = "none"
 	}
-	return fmt.Sprintf("%s (%s)", value, strings.ToLower(g.format.String()))
+	return fmt.Sprintf("%s (%s)", value, strings.ToLower(g.Fmt.String()))
+}
+
+func (g genericConstraint) Value() string {
+	return g.Raw
+}
+
+func (g genericConstraint) Format() Format {
+	return g.Fmt
 }
 
 func (g genericConstraint) Satisfied(version *Version) (bool, error) {
-	if g.raw == "" && version != nil {
+	if g.Raw == "" && version != nil {
 		// empty constraints are always satisfied
 		return true, nil
 	}
 	if version == nil {
-		if g.raw != "" {
+		if g.Raw != "" {
 			// a non-empty constraint with no version given should always fail
 			return false, nil
 		}
 		return true, nil
 	}
-	if version.Format != g.format {
-		return false, newUnsupportedFormatError(g.format, version)
+	if version.Format != g.Fmt {
+		return false, newUnsupportedFormatError(g.Fmt, version)
 	}
-	return g.expression.satisfied(g.format, version)
+	return g.Expression.satisfied(g.Fmt, version)
 }

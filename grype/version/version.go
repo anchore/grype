@@ -119,3 +119,36 @@ func (v Version) Compare(other *Version) (int, error) {
 	// all formats returned error, return all errors
 	return 0, fmt.Errorf("unable to compare versions: %v %v due to %w", v, other, err)
 }
+
+func (v *Version) Is(op Operator, other *Version) (bool, error) {
+	if v == nil {
+		return false, fmt.Errorf("cannot evaluate version with nil version")
+	}
+	if other == nil {
+		return false, ErrNoVersionProvided
+	}
+
+	comparator, err := v.getComparator(v.Format)
+	if err != nil {
+		return false, fmt.Errorf("unable to get comparator for %s: %w", v.Format, err)
+	}
+
+	result, err := comparator.Compare(other)
+	if err != nil {
+		return false, fmt.Errorf("unable to compare versions %s and %s: %w", v, other, err)
+	}
+
+	switch op {
+	case EQ, "":
+		return result == 0, nil
+	case GT:
+		return result > 0, nil
+	case LT:
+		return result < 0, nil
+	case GTE:
+		return result >= 0, nil
+	case LTE:
+		return result <= 0, nil
+	}
+	return false, fmt.Errorf("unknown operator %s", op)
+}

@@ -8,13 +8,13 @@ import (
 )
 
 type simpleRangeExpression struct {
-	units [][]rangeUnit // only supports or'ing a group of and'ed groups
+	Units [][]rangeUnit // only supports or'ing a group of and'ed groups
 }
 
 func parseRangeExpression(phrase string) (simpleRangeExpression, error) {
 	orParts, err := scanExpression(phrase)
 	if err != nil {
-		return simpleRangeExpression{}, fmt.Errorf("unable to create constraint expression from=%q : %w", phrase, err)
+		return simpleRangeExpression{}, fmt.Errorf("unable to create constraint Expression from=%q : %w", phrase, err)
 	}
 
 	orUnits := make([][]rangeUnit, len(orParts))
@@ -36,23 +36,23 @@ func parseRangeExpression(phrase string) (simpleRangeExpression, error) {
 	}
 
 	return simpleRangeExpression{
-		units: orUnits,
+		Units: orUnits,
 	}, fuzzyErr
 }
 
 func (c *simpleRangeExpression) satisfied(format Format, version *Version) (bool, error) {
 	oneSatisfied := false
-	for i, andOperand := range c.units {
+	for i, andOperand := range c.Units {
 		allSatisfied := true
 		for j, andUnit := range andOperand {
 			result, err := version.Compare(&Version{
 				Format: format,
-				Raw:    andUnit.version,
+				Raw:    andUnit.Version,
 			})
 			if err != nil {
 				return false, fmt.Errorf("uncomparable %T vs %q: %w", andUnit, version.String(), err)
 			}
-			unit := c.units[i][j]
+			unit := c.Units[i][j]
 
 			if !unit.Satisfied(result) {
 				allSatisfied = false

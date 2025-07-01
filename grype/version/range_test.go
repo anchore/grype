@@ -20,23 +20,23 @@ func TestParseRangeUnit(t *testing.T) {
 		{
 			phrase: `="in<(b e t w e e n)>quotes<=||>=not!="`,
 			expected: &rangeUnit{
-				operator: EQ,
-				version:  "in<(b e t w e e n)>quotes<=||>=not!=",
+				Operator: EQ,
+				Version:  "in<(b e t w e e n)>quotes<=||>=not!=",
 			},
 		},
 		{
 			phrase: ` >= "in<(b e t w e e n)>quotes<=||>=not!=" `,
 			expected: &rangeUnit{
-				operator: GTE,
-				version:  "in<(b e t w e e n)>quotes<=||>=not!=",
+				Operator: GTE,
+				Version:  "in<(b e t w e e n)>quotes<=||>=not!=",
 			},
 		},
 		{
 			// to cover a version that has quotes within it, but not necessarily surrounding the entire version
 			phrase: ` >= inbet"ween)>quotes" with trailing words `,
 			expected: &rangeUnit{
-				operator: GTE,
-				version:  `inbet"ween)>quotes" with trailing words`,
+				Operator: GTE,
+				Version:  `inbet"ween)>quotes" with trailing words`,
 			},
 		},
 		{
@@ -46,70 +46,70 @@ func TestParseRangeUnit(t *testing.T) {
 		{
 			phrase: `="something"`,
 			expected: &rangeUnit{
-				operator: EQ,
-				version:  "something",
+				Operator: EQ,
+				Version:  "something",
 			},
 		},
 		{
 			phrase: "=something",
 			expected: &rangeUnit{
-				operator: EQ,
-				version:  "something",
+				Operator: EQ,
+				Version:  "something",
 			},
 		},
 		{
 			phrase: "= something",
 			expected: &rangeUnit{
-				operator: EQ,
-				version:  "something",
+				Operator: EQ,
+				Version:  "something",
 			},
 		},
 		{
 			phrase: "something",
 			expected: &rangeUnit{
 
-				operator: EQ,
-				version:  "something",
+				Operator: EQ,
+				Version:  "something",
 			},
 		},
 		{
 			phrase: "> something",
 			expected: &rangeUnit{
 
-				operator: GT,
-				version:  "something",
+				Operator: GT,
+				Version:  "something",
 			},
 		},
 		{
 			phrase: ">= 2.3",
 			expected: &rangeUnit{
 
-				operator: GTE,
-				version:  "2.3",
+				Operator: GTE,
+				Version:  "2.3",
 			},
 		},
 		{
 			phrase: "< 2.3",
 			expected: &rangeUnit{
 
-				operator: LT,
-				version:  "2.3",
+				Operator: LT,
+				Version:  "2.3",
 			},
 		},
 		{
 			phrase: "<=2.3",
 			expected: &rangeUnit{
 
-				operator: LTE,
-				version:  "2.3",
+				Operator: LTE,
+				Version:  "2.3",
 			},
 		},
 		{
 			phrase: "  >=   1.0 ",
 			expected: &rangeUnit{
 
-				operator: GTE,
-				version:  "1.0",
+				Operator: GTE,
+				Version:  "1.0",
 			},
 		},
 	}
