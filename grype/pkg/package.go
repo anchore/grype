@@ -535,12 +535,7 @@ func distroFromPURL(purl packageurl.PackageURL) (d *distro.Distro) {
 	}
 
 	if distroName != "" {
-		var err error
-		d, err = distro.NewFromNameVersion(distroName, distroVersion)
-		if err != nil {
-			log.WithFields("purl", purl, "error", err).Debug("unable to create distro from a release")
-			d = nil
-		}
+		d = distro.NewFromNameVersion(distroName, distroVersion)
 	}
 
 	return d

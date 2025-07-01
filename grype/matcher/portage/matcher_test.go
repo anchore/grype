@@ -16,10 +16,7 @@ import (
 func TestMatcherPortage_Match(t *testing.T) {
 	matcher := Matcher{}
 
-	d, err := distro.New(distro.Gentoo, "", "")
-	if err != nil {
-		t.Fatal("could not create distro: ", err)
-	}
+	d := distro.New(distro.Gentoo, "", "")
 
 	p := pkg.Package{
 		ID:      pkg.ID(uuid.NewString()),

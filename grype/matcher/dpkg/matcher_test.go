@@ -17,10 +17,7 @@ import (
 func TestMatcherDpkg_matchBySourceIndirection(t *testing.T) {
 	matcher := Matcher{}
 
-	d, err := distro.New(distro.Debian, "8", "")
-	if err != nil {
-		t.Fatal("could not create distro: ", err)
-	}
+	d := distro.New(distro.Debian, "8", "")
 
 	p := pkg.Package{
 		ID:      pkg.ID(uuid.NewString()),

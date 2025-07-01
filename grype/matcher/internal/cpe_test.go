@@ -148,7 +148,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							SearchedBy: match.CPEParameters{
 								Namespace: "nvd:cpe",
 								CPEs:      []string{"cpe:2.3:*:activerecord:activerecord:3.7.5:rando4:*:re:*:rails:*:*"},
-								Package: match.CPEPackageParameter{
+								Package: match.PackageParameter{
 									Name:    "activerecord",
 									Version: "3.7.5",
 								},
@@ -199,7 +199,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							SearchedBy: match.CPEParameters{
 								Namespace: "nvd:cpe",
 								CPEs:      []string{"cpe:2.3:*:activerecord:activerecord:3.7.5:rando4:*:re:*:rails:*:*"},
-								Package: match.CPEPackageParameter{
+								Package: match.PackageParameter{
 									Name:    "activerecord",
 									Version: "3.7.5",
 								},
@@ -253,7 +253,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 									"cpe:2.3:*:activerecord:activerecord:*:rando4:*:re:*:rails:*:*", //important!
 								},
 								Namespace: "nvd:cpe",
-								Package: match.CPEPackageParameter{
+								Package: match.PackageParameter{
 									Name:    "activerecord",
 									Version: "", // important!
 								},
@@ -290,7 +290,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							SearchedBy: match.CPEParameters{
 								CPEs:      []string{"cpe:2.3:*:activerecord:activerecord:*:rando1:*:ra:*:ruby:*:*"}, //important!
 								Namespace: "nvd:cpe",
-								Package: match.CPEPackageParameter{
+								Package: match.PackageParameter{
 									Name:    "activerecord",
 									Version: "", // important!
 								},
@@ -329,7 +329,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 									"cpe:2.3:*:activerecord:activerecord:*:rando4:*:re:*:rails:*:*", //important!
 								},
 								Namespace: "nvd:cpe",
-								Package: match.CPEPackageParameter{
+								Package: match.PackageParameter{
 									Name:    "activerecord",
 									Version: "", // important!
 								},
@@ -397,7 +397,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 									"cpe:2.3:*:activerecord:activerecord:3.7.3:rando4:*:re:*:rails:*:*",
 								},
 								Namespace: "nvd:cpe",
-								Package: match.CPEPackageParameter{
+								Package: match.PackageParameter{
 									Name:    "activerecord",
 									Version: "3.7.3",
 								},
@@ -434,7 +434,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							SearchedBy: match.CPEParameters{
 								CPEs:      []string{"cpe:2.3:*:activerecord:activerecord:3.7.3:rando1:*:ra:*:ruby:*:*"},
 								Namespace: "nvd:cpe",
-								Package: match.CPEPackageParameter{
+								Package: match.PackageParameter{
 									Name:    "activerecord",
 									Version: "3.7.3",
 								},
@@ -483,7 +483,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							SearchedBy: match.CPEParameters{
 								CPEs:      []string{"cpe:2.3:*:*:activerecord:4.0.1:*:*:*:*:*:*:*"},
 								Namespace: "nvd:cpe",
-								Package: match.CPEPackageParameter{
+								Package: match.PackageParameter{
 									Name:    "activerecord",
 									Version: "4.0.1",
 								},
@@ -543,7 +543,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							SearchedBy: match.CPEParameters{
 								CPEs:      []string{"cpe:2.3:*:awesome:awesome:98SE1:rando1:*:ra:*:dunno:*:*"},
 								Namespace: "nvd:cpe",
-								Package: match.CPEPackageParameter{
+								Package: match.PackageParameter{
 									Name:    "awesome",
 									Version: "98SE1",
 								},
@@ -593,7 +593,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							SearchedBy: match.CPEParameters{
 								CPEs:      []string{"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*"},
 								Namespace: "nvd:cpe",
-								Package: match.CPEPackageParameter{
+								Package: match.PackageParameter{
 									Name:    "multiple",
 									Version: "1.0",
 								},
@@ -657,7 +657,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							SearchedBy: match.CPEParameters{
 								CPEs:      []string{"cpe:2.3:*:sw:sw:0.1:*:*:*:*:*:*:*"},
 								Namespace: "nvd:cpe",
-								Package: match.CPEPackageParameter{
+								Package: match.PackageParameter{
 									Name:    "sw",
 									Version: "0.1",
 								},
@@ -713,7 +713,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							SearchedBy: match.CPEParameters{
 								CPEs:      []string{"cpe:2.3:*:funfun:funfun:5.2.1:*:*:*:*:python:*:*"},
 								Namespace: "nvd:cpe",
-								Package: match.CPEPackageParameter{
+								Package: match.PackageParameter{
 									Name:    "funfun",
 									Version: "5.2.1",
 								},
@@ -764,7 +764,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							SearchedBy: match.CPEParameters{
 								CPEs:      []string{"cpe:2.3:a:handlebarsjs:handlebars:0.1:*:*:*:*:*:*:*"},
 								Namespace: "nvd:cpe",
-								Package: match.CPEPackageParameter{
+								Package: match.PackageParameter{
 									Name:    "handlebars",
 									Version: "0.1",
 								},
@@ -814,7 +814,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							SearchedBy: match.CPEParameters{
 								CPEs:      []string{"cpe:2.3:a:handlebarsjs:handlebars:0.1:*:*:*:*:*:*:*"},
 								Namespace: "nvd:cpe",
-								Package: match.CPEPackageParameter{
+								Package: match.PackageParameter{
 									Name:    "handlebars",
 									Version: "0.1",
 								},
@@ -864,7 +864,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							SearchedBy: match.CPEParameters{
 								CPEs:      []string{"cpe:2.3:a:handlebarsjs:handlebars:0.1:*:*:*:*:*:*:*"},
 								Namespace: "nvd:cpe",
-								Package: match.CPEPackageParameter{
+								Package: match.PackageParameter{
 									Name:    "handlebars",
 									Version: "0.1",
 								},
@@ -914,7 +914,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							SearchedBy: match.CPEParameters{
 								CPEs:      []string{"cpe:2.3:a:handlebarsjs:handlebars:0.1:*:*:*:*:*:*:*"},
 								Namespace: "nvd:cpe",
-								Package: match.CPEPackageParameter{
+								Package: match.PackageParameter{
 									Name:    "handlebars",
 									Version: "0.1",
 								},
@@ -977,7 +977,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 							SearchedBy: match.CPEParameters{
 								CPEs:      []string{"cpe:2.3:a:handlebarsjs:handlebars:0.1:*:*:*:*:*:*:*"},
 								Namespace: "nvd:cpe",
-								Package: match.CPEPackageParameter{
+								Package: match.PackageParameter{
 									Name:    "handlebars",
 									Version: "0.1",
 								},
