@@ -105,7 +105,7 @@ func validateVersion(version string) error {
 			quoteChar = 0
 		case !inQuotes && strings.ContainsRune("><=", r):
 			// invalid character outside of quotes
-			return fmt.Errorf("version %q potentially is a version constraint Expression (should not contain '><=' outside of quotes)", version)
+			return fmt.Errorf("version %q potentially is a version constraint expression (should not contain '><=' outside of quotes)", version)
 		}
 	}
 

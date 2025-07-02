@@ -15,7 +15,7 @@ func TestScanExpression(t *testing.T) {
 		wantErr  require.ErrorAssertionFunc
 	}{
 		{
-			name:   "simple AND and OR Expression",
+			name:   "simple AND and OR expression",
 			phrase: "x,y||z",
 			expected: [][]string{
 				{
@@ -44,7 +44,7 @@ func TestScanExpression(t *testing.T) {
 			},
 		},
 		{
-			name:    "parenthetical Expression not supported",
+			name:    "parenthetical expression not supported",
 			phrase:  "(<1.0, >=2.0|| 3.0) || =4.0",
 			wantErr: require.Error,
 		},

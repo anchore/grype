@@ -14,7 +14,7 @@ type simpleRangeExpression struct {
 func parseRangeExpression(phrase string) (simpleRangeExpression, error) {
 	orParts, err := scanExpression(phrase)
 	if err != nil {
-		return simpleRangeExpression{}, fmt.Errorf("unable to create constraint Expression from=%q : %w", phrase, err)
+		return simpleRangeExpression{}, fmt.Errorf("unable to create constraint expression from=%q : %w", phrase, err)
 	}
 
 	orUnits := make([][]rangeUnit, len(orParts))
