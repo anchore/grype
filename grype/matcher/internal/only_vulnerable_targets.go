@@ -165,7 +165,7 @@ func normalizeTargetSoftwares(ts []string) *strset.Set {
 	for _, ts := range ts {
 		// Attempt to normalize target sw to package type, e.g. node and nodejs should match
 		pt := string(internal.CPETargetSoftwareToPackageType(ts))
-		if pt == "" && ts != "*" && ts != "?" {
+		if pt == "" && ts != "*" && ts != "?" && ts != "-" {
 			// normalizing failed; preserve raw cpe target sw string as the type
 			// unless it is wildcard
 			pt = strings.ToLower(ts)

@@ -324,7 +324,7 @@ func TestPkgTypesFromTargetSoftware(t *testing.T) {
 		},
 		{
 			name:     "wildcards and special characters should be ignored",
-			input:    []string{"*", "?", ""},
+			input:    []string{"*", "?", "-", ""},
 			expected: []string{},
 		},
 		{
