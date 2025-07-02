@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
@@ -77,7 +76,10 @@ func runDBProviders(opts *dbProvidersOptions) error {
 
 	switch opts.Output {
 	case tableOutputFormat, textOutputFormat:
-		displayDBProvidersTable(toProviders(providerModels), sb)
+		err = displayDBProvidersTable(toProviders(providerModels), sb)
+		if err != nil {
+			return err
+		}
 	case jsonOutputFormat:
 		err = displayDBProvidersJSON(toProviders(providerModels), sb)
 		if err != nil {
@@ -113,29 +115,18 @@ func toProviders(providers []v6.Provider) []provider {
 	return res
 }
 
-func displayDBProvidersTable(providers []provider, output io.Writer) {
+func displayDBProvidersTable(providers []provider, output io.Writer) error {
 	rows := [][]string{}
-	for _, provider := range providers {
-		rows = append(rows, []string{provider.Name, provider.Version, provider.Processor, provider.DateCaptured.String(), provider.InputDigest})
+	for _, p := range providers {
+		rows = append(rows, []string{p.Name, p.Version, p.Processor, p.DateCaptured.String(), p.InputDigest})
 	}
 
-	table := tablewriter.NewWriter(output)
-	table.SetHeader([]string{"Name", "Version", "Processor", "Date Captured", "Input Digest"})
+	table := newTable(output, []string{"Name", "Version", "Processor", "Date Captured", "Input Digest"})
 
-	table.SetHeaderLine(false)
-	table.SetBorder(false)
-	table.SetAutoWrapText(false)
-	table.SetAutoFormatHeaders(true)
-	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
-	table.SetCenterSeparator("")
-	table.SetColumnSeparator("")
-	table.SetRowSeparator("")
-	table.SetTablePadding("  ")
-	table.SetNoWhiteSpace(true)
-
-	table.AppendBulk(rows)
-	table.Render()
+	if err := table.Bulk(rows); err != nil {
+		return fmt.Errorf("failed to add table rows: %w", err)
+	}
+	return table.Render()
 }
 
 func displayDBProvidersJSON(providers []provider, output io.Writer) error {

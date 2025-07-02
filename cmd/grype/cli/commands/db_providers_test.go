@@ -26,13 +26,13 @@ func TestDisplayDBProvidersTable(t *testing.T) {
 		},
 	}
 
-	expectedOutput := `NAME       VERSION  PROCESSOR   DATE CAPTURED                  INPUT DIGEST        
+	expectedOutput := `NAME       VERSION  PROCESSOR   DATE CAPTURED                  INPUT DIGEST         
 provider1  1.0.0    vunnel@3.2  2024-11-25 14:30:00 +0000 UTC  xxh64:1234567834567  
 provider2  2.0.0    vunnel@3.2  2024-11-26 10:15:00 +0000 UTC  xxh64:9876543212345  
 `
 
 	var output bytes.Buffer
-	displayDBProvidersTable(providers, &output)
+	require.NoError(t, displayDBProvidersTable(providers, &output))
 
 	require.Equal(t, expectedOutput, output.String())
 }
