@@ -138,11 +138,12 @@ func presentDBSearchVulnerabilities(outputFormat string, structuredRows []dbsear
 
 		rows := renderDBSearchVulnerabilitiesTableRows(structuredRows)
 
-		table := newTable(output)
+		table := newTable(output, []string{"ID", "Provider", "Published", "Severity", "Reference"})
 
-		table.SetHeader([]string{"ID", "Provider", "Published", "Severity", "Reference"})
-		table.AppendBulk(rows)
-		table.Render()
+		if err := table.Bulk(rows); err != nil {
+			return fmt.Errorf("failed to add table rows: %+v", err)
+		}
+		return table.Render()
 	case jsonOutputFormat:
 		if structuredRows == nil {
 			// always allocate the top level collection

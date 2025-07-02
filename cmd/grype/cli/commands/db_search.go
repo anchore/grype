@@ -194,11 +194,12 @@ func presentDBSearchMatches(outputFormat string, structuredRows dbsearch.Matches
 		}
 		rows := renderDBSearchPackagesTableRows(structuredRows.Flatten())
 
-		table := newTable(output)
+		table := newTable(output, []string{"Vulnerability", "Package", "Ecosystem", "Namespace", "Version Constraint"})
 
-		table.SetHeader([]string{"Vulnerability", "Package", "Ecosystem", "Namespace", "Version Constraint"})
-		table.AppendBulk(rows)
-		table.Render()
+		if err := table.Bulk(rows); err != nil {
+			return fmt.Errorf("failed to add table rows: %+v", err)
+		}
+		return table.Render()
 	case jsonOutputFormat:
 		if structuredRows == nil {
 			// always allocate the top level collection
