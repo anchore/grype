@@ -30,8 +30,8 @@ func (c combinedConstraint) String() string {
 	return fmt.Sprintf("%s (%s)", c.Value(), strings.ToLower(c.Format().String()))
 }
 
-// TODO: there is room for improvement here to make this more readable (filter out redundant constraints... e.g. <1.0 || < 2.0 should just be < 2.0)
 func (c combinedConstraint) Value() string {
+	// TODO: there is room for improvement here to make this more readable (filter out redundant constraints... e.g. <1.0 || < 2.0 should just be < 2.0)
 	var str string
 	for i, op := range c.OrOperands {
 		if i > 0 {

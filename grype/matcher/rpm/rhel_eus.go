@@ -251,7 +251,7 @@ func neededFixes(v *version.Version, fixVersions []string, format version.Format
 	var needed []*version.Version
 	for _, fixVersion := range fixVersions {
 		fixVersionObj := version.NewVersion(fixVersion, format) // note: we use the format from the advisory, not the version itself
-		res, err := v.Evaluate(version.LT, fixVersionObj)
+		res, err := v.Is(version.LT, fixVersionObj)
 		if err != nil {
 			log.WithFields("format", format, "version", fixVersion, "error", err, "vulnerability", id).Trace("failed to evaluate fix version")
 			continue

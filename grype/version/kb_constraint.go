@@ -30,7 +30,7 @@ func (c kbConstraint) Satisfied(version *Version) (bool, error) {
 		return false, &NonFatalConstraintError{
 			constraint: c,
 			version:    version,
-			message:    "Unexpected data in DB: Empty Raw version constraint.",
+			message:    "unexpected data in DB: empty raw version constraint",
 		}
 	}
 
