@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -393,6 +394,131 @@ func TestOSSpecifier_String(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := tt.os.String()
 			require.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestTrimZeroes(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "empty string",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "single zero",
+			input:    "0",
+			expected: "0",
+		},
+		{
+			name:     "multiple zeros only",
+			input:    "000",
+			expected: "0",
+		},
+		{
+			name:     "single non-zero digit",
+			input:    "5",
+			expected: "5",
+		},
+		{
+			name:     "no leading zeros",
+			input:    "123",
+			expected: "123",
+		},
+		{
+			name:     "single leading zero",
+			input:    "0123",
+			expected: "123",
+		},
+		{
+			name:     "multiple leading zeros",
+			input:    "000123",
+			expected: "123",
+		},
+		{
+			name:     "leading zeros with trailing zeros",
+			input:    "001230",
+			expected: "1230",
+		},
+		{
+			name:     "string starting with non-zero",
+			input:    "1000",
+			expected: "1000",
+		},
+		{
+			name:     "mixed digits with leading zeros",
+			input:    "00042",
+			expected: "42",
+		},
+		{
+			name:     "very long leading zeros",
+			input:    "00000000001",
+			expected: "1",
+		},
+		{
+			name:     "alphanumeric with leading zero",
+			input:    "0abc",
+			expected: "abc",
+		},
+		{
+			name:     "special characters with leading zeros",
+			input:    "00.123",
+			expected: ".123",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := trimZeroes(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestOSSpecifier_clean(t *testing.T) {
+	tests := []struct {
+		name  string
+		input OSSpecifier
+		want  OSSpecifier
+	}{
+		{
+			name: "trim 0s",
+			input: OSSpecifier{
+				Name:         "Ubuntu",
+				MajorVersion: "20",
+				MinorVersion: "04",
+			},
+			want: OSSpecifier{
+				Name:         "Ubuntu",
+				MajorVersion: "20",
+				MinorVersion: "4",
+			},
+		},
+		{
+			name: "preserve 0 value",
+			input: OSSpecifier{
+				Name:         "Redhat",
+				MajorVersion: "9",
+				MinorVersion: "0",
+			},
+			want: OSSpecifier{
+				Name:         "Redhat",
+				MajorVersion: "9",
+				MinorVersion: "0", // important! ...9 != 9.0 since 9 includes multiple minor versions
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			o := tt.input
+			o.clean()
+			if d := cmp.Diff(tt.want, o); d != "" {
+				t.Errorf("OSSpecifier.clean() mismatch (-want +got):\n%s", d)
+			}
 		})
 	}
 }

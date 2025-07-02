@@ -45,7 +45,6 @@ func TestMatcherRpm(t *testing.T) {
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
 				d := distro.New(distro.CentOS, "8", "")
-
 				store := newMockProvider("neutron-libs", "neutron", false, false)
 
 				return store, d, matcher

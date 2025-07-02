@@ -535,22 +535,6 @@ func (o *OperatingSystem) clean() {
 	o.MinorVersion = trimZeroes(o.MinorVersion)
 }
 
-func trimZeroes(s string) string {
-	// trim leading zeros from the version components
-	if s == "" {
-		return s
-	}
-	if s[0] == '0' {
-		s = strings.TrimLeft(s, "0")
-	}
-	if s == "" {
-		// we've not only trimmed leading zeros, but also the entire string
-		// we should preserve the zero value for the version
-		return "0"
-	}
-	return s
-}
-
 func (o *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
 	o.clean()
 
@@ -700,7 +684,7 @@ type Cpe struct {
 }
 
 func (c Cpe) String() string {
-	parts := []string{"cpe:2.3", c.Part, c.Vendor, c.Product, "*", "*", c.Edition, c.Language, c.SoftwareEdition, c.TargetHardware, c.TargetSoftware, c.Other}
+	parts := []string{"cpe:2.3", c.Part, c.Vendor, c.Product, "*", "*", c.Edition, c.Language, c.SoftwareEdition, c.TargetSoftware, c.TargetHardware, c.Other}
 	for i, part := range parts {
 		if part == "" {
 			parts[i] = "*"

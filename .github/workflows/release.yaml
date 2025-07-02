@@ -5,12 +5,17 @@ on:
       version:
         description: tag the latest commit on main with the given version (prefixed with v)
         required: true
+      skip_quality_gate:
+        description: skip quality gate and proceed directly to releasing (for emergency releases)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
   quality-gate:
+    if: ${{ !inputs.skip_quality_gate }}
     environment: release
     runs-on: ubuntu-24.04
     steps:
@@ -118,6 +123,7 @@ jobs:
   # not all actions are guaranteed to be idempotent.
   release:
     needs: [quality-gate]
+    if: ${{ always() && (needs.quality-gate.result == 'success' || inputs.skip_quality_gate) }}
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -187,6 +193,7 @@ jobs:
 
   release-version-file:
     needs: [release]
+    if: ${{ needs.release.result == 'success' }}
     uses: ./.github/workflows/release-version-file.yaml
     with:
       version: ${{ github.event.inputs.version }}

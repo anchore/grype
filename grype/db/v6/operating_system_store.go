@@ -344,3 +344,19 @@ func (s *operatingSystemStore) searchForOSExactVersions(query *gorm.DB, d OSSpec
 
 	return allOs, nil
 }
+
+func trimZeroes(s string) string {
+	// trim leading zeros from the version components
+	if s == "" {
+		return s
+	}
+	if s[0] == '0' {
+		s = strings.TrimLeft(s, "0")
+	}
+	if s == "" {
+		// we've not only trimmed leading zeros, but also the entire string
+		// we should preserve the zero value for the version
+		return "0"
+	}
+	return s
+}

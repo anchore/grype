@@ -8,6 +8,8 @@ import (
 	"path"
 
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/renderer"
+	"github.com/olekukonko/tablewriter/tw"
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
 
@@ -162,25 +164,12 @@ func (d *Differ) Present(outputFormat string, diff *[]v5.Diff, output io.Writer)
 			rows = append(rows, []string{d.ID, d.Namespace, d.Reason})
 		}
 
-		table := tablewriter.NewWriter(output)
-		columns := []string{"ID", "Namespace", "Reason"}
+		table := newTable(output, []string{"ID", "Namespace", "Reason"})
 
-		table.SetHeader(columns)
-		table.SetAutoWrapText(false)
-		table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-		table.SetAlignment(tablewriter.ALIGN_LEFT)
-
-		table.SetHeaderLine(false)
-		table.SetBorder(false)
-		table.SetAutoFormatHeaders(true)
-		table.SetCenterSeparator("")
-		table.SetColumnSeparator("")
-		table.SetRowSeparator("")
-		table.SetTablePadding("  ")
-		table.SetNoWhiteSpace(true)
-
-		table.AppendBulk(rows)
-		table.Render()
+		if err := table.Bulk(rows); err != nil {
+			return fmt.Errorf("failed to add table rows: %+v", err)
+		}
+		return table.Render()
 	case "json":
 		enc := json.NewEncoder(output)
 		enc.SetEscapeHTML(false)
@@ -192,4 +181,38 @@ func (d *Differ) Present(outputFormat string, diff *[]v5.Diff, output io.Writer)
 		return fmt.Errorf("unsupported output format: %s", outputFormat)
 	}
 	return nil
+}
+
+func newTable(output io.Writer, columns []string) *tablewriter.Table {
+	return tablewriter.NewTable(output,
+		tablewriter.WithHeader(columns),
+		tablewriter.WithHeaderAutoWrap(tw.WrapNone),
+		tablewriter.WithRowAutoWrap(tw.WrapNone),
+		tablewriter.WithAutoHide(tw.On),
+		tablewriter.WithRenderer(renderer.NewBlueprint()),
+		tablewriter.WithBehavior(
+			tw.Behavior{
+				TrimSpace: tw.On,
+				AutoHide:  tw.On,
+			},
+		),
+		tablewriter.WithPadding(
+			tw.Padding{
+				Right: "  ",
+			},
+		),
+		tablewriter.WithRendition(
+			tw.Rendition{
+				Symbols: tw.NewSymbols(tw.StyleNone),
+				Settings: tw.Settings{
+					Lines: tw.Lines{
+						ShowTop:        tw.Off,
+						ShowBottom:     tw.Off,
+						ShowHeaderLine: tw.Off,
+						ShowFooterLine: tw.Off,
+					},
+				},
+			},
+		),
+	)
 }
