@@ -1,11 +1,11 @@
 package version
 
-import (
-	"fmt"
-)
+import "fmt"
 
 type Constraint interface {
 	fmt.Stringer
+	Value() string
+	Format() Format
 	Satisfied(*Version) (bool, error)
 }
 

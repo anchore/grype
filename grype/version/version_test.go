@@ -125,3 +125,239 @@ func TestVersionCompareSameFormat(t *testing.T) {
 		})
 	}
 }
+
+func TestVersion_Is(t *testing.T) {
+	tests := []struct {
+		name     string
+		version  *Version
+		operator Operator
+		other    *Version
+		expected bool
+		wantErr  require.ErrorAssertionFunc
+	}{
+		{
+			name:     "equal versions - EQ operator",
+			version:  NewVersion("1.0.0", SemanticFormat),
+			operator: EQ,
+			other:    NewVersion("1.0.0", SemanticFormat),
+			expected: true,
+		},
+		{
+			name:     "equal versions - empty operator (defaults to EQ)",
+			version:  NewVersion("1.0.0", SemanticFormat),
+			operator: "",
+			other:    NewVersion("1.0.0", SemanticFormat),
+			expected: true,
+		},
+		{
+			name:     "unequal versions - EQ operator",
+			version:  NewVersion("1.0.0", SemanticFormat),
+			operator: EQ,
+			other:    NewVersion("2.0.0", SemanticFormat),
+			expected: false,
+		},
+		{
+			name:     "greater than - GT operator true",
+			version:  NewVersion("2.0.0", SemanticFormat),
+			operator: GT,
+			other:    NewVersion("1.0.0", SemanticFormat),
+			expected: true,
+		},
+		{
+			name:     "greater than - GT operator false",
+			version:  NewVersion("1.0.0", SemanticFormat),
+			operator: GT,
+			other:    NewVersion("2.0.0", SemanticFormat),
+			expected: false,
+		},
+		{
+			name:     "greater than or equal - GTE operator true (greater)",
+			version:  NewVersion("2.0.0", SemanticFormat),
+			operator: GTE,
+			other:    NewVersion("1.0.0", SemanticFormat),
+			expected: true,
+		},
+		{
+			name:     "greater than or equal - GTE operator true (equal)",
+			version:  NewVersion("1.0.0", SemanticFormat),
+			operator: GTE,
+			other:    NewVersion("1.0.0", SemanticFormat),
+			expected: true,
+		},
+		{
+			name:     "greater than or equal - GTE operator false",
+			version:  NewVersion("1.0.0", SemanticFormat),
+			operator: GTE,
+			other:    NewVersion("2.0.0", SemanticFormat),
+			expected: false,
+		},
+		{
+			name:     "less than - LT operator true",
+			version:  NewVersion("1.0.0", SemanticFormat),
+			operator: LT,
+			other:    NewVersion("2.0.0", SemanticFormat),
+			expected: true,
+		},
+		{
+			name:     "less than - LT operator false",
+			version:  NewVersion("2.0.0", SemanticFormat),
+			operator: LT,
+			other:    NewVersion("1.0.0", SemanticFormat),
+			expected: false,
+		},
+		{
+			name:     "less than or equal - LTE operator true (less)",
+			version:  NewVersion("1.0.0", SemanticFormat),
+			operator: LTE,
+			other:    NewVersion("2.0.0", SemanticFormat),
+			expected: true,
+		},
+		{
+			name:     "less than or equal - LTE operator true (equal)",
+			version:  NewVersion("1.0.0", SemanticFormat),
+			operator: LTE,
+			other:    NewVersion("1.0.0", SemanticFormat),
+			expected: true,
+		},
+		{
+			name:     "less than or equal - LTE operator false",
+			version:  NewVersion("2.0.0", SemanticFormat),
+			operator: LTE,
+			other:    NewVersion("1.0.0", SemanticFormat),
+			expected: false,
+		},
+		{
+			name:     "nil other version should return ErrNoVersionProvided",
+			version:  NewVersion("1.0.0", SemanticFormat),
+			operator: EQ,
+			other:    nil,
+			wantErr:  require.Error,
+		},
+		{
+			name:     "unknown operator should return error",
+			version:  NewVersion("1.0.0", SemanticFormat),
+			operator: "unknown",
+			other:    NewVersion("1.0.0", SemanticFormat),
+			wantErr:  require.Error,
+		},
+		{
+			name:     "invalid version format should return error",
+			version:  NewVersion("invalid", SemanticFormat),
+			operator: EQ,
+			other:    NewVersion("1.0.0", SemanticFormat),
+			wantErr:  require.Error,
+		},
+		{
+			name:     "different formats - semantic vs apk",
+			version:  NewVersion("1.0.0", SemanticFormat),
+			operator: EQ,
+			other:    NewVersion("1.0.0", ApkFormat),
+			expected: true,
+		},
+		{
+			name:     "complex semantic versions",
+			version:  NewVersion("1.2.3-alpha.1", SemanticFormat),
+			operator: LT,
+			other:    NewVersion("1.2.3", SemanticFormat),
+			expected: true,
+		},
+		{
+			name:     "version with v prefix",
+			version:  NewVersion("v1.0.0", SemanticFormat),
+			operator: EQ,
+			other:    NewVersion("1.0.0", SemanticFormat),
+			expected: true,
+		},
+		{
+			name:     "nil other version is ErrNoVersionProvided",
+			version:  NewVersion("1.0.0", SemanticFormat),
+			operator: EQ,
+			other:    nil,
+			wantErr: func(t require.TestingT, err error, a ...interface{}) {
+				require.ErrorIs(t, err, ErrNoVersionProvided, a...)
+			},
+		},
+		{
+			name:     "unknown operator error",
+			version:  NewVersion("1.0.0", SemanticFormat),
+			operator: "!@#",
+			other:    NewVersion("1.0.0", SemanticFormat),
+			wantErr: func(t require.TestingT, err error, a ...interface{}) {
+				require.ErrorContains(t, err, "unknown operator !@#", a...)
+			},
+		},
+		{
+			name:     "invalid version format error contains format",
+			version:  NewVersion("not-a-valid-version", SemanticFormat),
+			operator: EQ,
+			other:    NewVersion("1.0.0", SemanticFormat),
+			wantErr: func(t require.TestingT, err error, a ...interface{}) {
+				require.ErrorContains(t, err, "unable to get comparator for Semantic", a...)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.wantErr == nil {
+				tt.wantErr = require.NoError
+			}
+
+			result, err := tt.version.Is(tt.operator, tt.other)
+			tt.wantErr(t, err)
+
+			if err != nil {
+				return
+			}
+
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestVersion_Is_AllOperators(t *testing.T) {
+	v1 := NewVersion("1.0.0", SemanticFormat)
+	v2 := NewVersion("2.0.0", SemanticFormat)
+	v1dup := NewVersion("1.0.0", SemanticFormat)
+
+	tests := []struct {
+		name     string
+		left     *Version
+		operator Operator
+		right    *Version
+		expected bool
+	}{
+		// v1 (1.0.0) vs v2 (2.0.0)
+		{"1.0.0 = 2.0.0", v1, EQ, v2, false},
+		{"1.0.0 > 2.0.0", v1, GT, v2, false},
+		{"1.0.0 >= 2.0.0", v1, GTE, v2, false},
+		{"1.0.0 < 2.0.0", v1, LT, v2, true},
+		{"1.0.0 <= 2.0.0", v1, LTE, v2, true},
+
+		// v2 (2.0.0) vs v1 (1.0.0)
+		{"2.0.0 = 1.0.0", v2, EQ, v1, false},
+		{"2.0.0 > 1.0.0", v2, GT, v1, true},
+		{"2.0.0 >= 1.0.0", v2, GTE, v1, true},
+		{"2.0.0 < 1.0.0", v2, LT, v1, false},
+		{"2.0.0 <= 1.0.0", v2, LTE, v1, false},
+
+		// v1 (1.0.0) vs v1dup (1.0.0)
+		{"1.0.0 = 1.0.0", v1, EQ, v1dup, true},
+		{"1.0.0 > 1.0.0", v1, GT, v1dup, false},
+		{"1.0.0 >= 1.0.0", v1, GTE, v1dup, true},
+		{"1.0.0 < 1.0.0", v1, LT, v1dup, false},
+		{"1.0.0 <= 1.0.0", v1, LTE, v1dup, true},
+
+		// empty operator should default to EQ
+		{"1.0.0 (empty) 1.0.0", v1, "", v1dup, true},
+		{"1.0.0 (empty) 2.0.0", v1, "", v2, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := tt.left.Is(tt.operator, tt.right)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
