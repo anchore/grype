@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:89105aa1-e87c-409a-8281-48b46b36130d",
+  "serialNumber": "urn:uuid:56b98bde-7bce-4e5a-a184-1a0b80515c18",
   "version": 1,
   "metadata": {
-    "timestamp": "2025-06-16T10:43:00-04:00",
+    "timestamp": "2025-07-02T13:38:20-04:00",
     "tools": {
       "components": [
         {
@@ -19,7 +19,7 @@
     "component": {
       "bom-ref": "163686ac6e30c752",
       "type": "file",
-      "name": "/var/folders/jc/fxkytj5j5sj8rwxsv7k5x1b80000gn/T/TestCycloneDxPresenterDir1134101579/001"
+      "name": "/var/folders/c0/4y79v5k56bz8v34chcmvq2k80000gp/T/TestCycloneDxPresenterDir86489560/001"
     }
   },
   "components": [
@@ -89,7 +89,7 @@
   ],
   "vulnerabilities": [
     {
-      "bom-ref": "urn:uuid:0919b596-a1af-43e2-96be-0d1800694c03",
+      "bom-ref": "urn:uuid:7f443ac1-d745-42cb-90f0-62b70d423bad",
       "id": "CVE-1999-0001",
       "source": {},
       "references": [
@@ -104,6 +104,14 @@
           "severity": "low",
           "method": "CVSSv31",
           "vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:L/I:L/A:H"
+        },
+        {
+          "source": {
+            "name": "FIRST",
+            "url": "https://www.first.org/epss/"
+          },
+          "score": 0.03,
+          "method": "other"
         }
       ],
       "affects": [
@@ -113,7 +121,7 @@
       ]
     },
     {
-      "bom-ref": "urn:uuid:2627386f-23ef-4beb-9b63-61e4ae4ccda7",
+      "bom-ref": "urn:uuid:f97f70c8-a9b3-4aa7-b207-c63daf59b989",
       "id": "CVE-1999-0002",
       "source": {},
       "references": [
@@ -128,6 +136,23 @@
           "severity": "critical",
           "method": "CVSSv31",
           "vector": "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:C/C:H/I:H/A:H"
+        },
+        {
+          "source": {
+            "name": "FIRST",
+            "url": "https://www.first.org/epss/"
+          },
+          "score": 0.08,
+          "method": "other"
+        },
+        {
+          "source": {
+            "name": "CISA KEV Catalog",
+            "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+          },
+          "score": 1,
+          "method": "other",
+          "justification": "Listed in CISA KEV"
         }
       ],
       "affects": [
