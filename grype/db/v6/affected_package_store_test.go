@@ -137,7 +137,8 @@ func defaultAffectedPackageHandlePreloadCases() []affectedPackageHandlePreloadCo
 func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 	setupAffectedPackageStore := func(t *testing.T) *affectedPackageStore {
 		db := setupTestStore(t).db
-		return newAffectedPackageStore(db, newBlobStore(db))
+		bs := newBlobStore(db)
+		return newAffectedPackageStore(db, bs, newOperatingSystemStore(db, bs))
 	}
 
 	setupTestStoreWithPackages := func(t *testing.T) (*AffectedPackageHandle, *AffectedPackageHandle, *affectedPackageStore) {
@@ -430,7 +431,8 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 	db := setupTestStore(t).db
 	bs := newBlobStore(db)
-	s := newAffectedPackageStore(db, bs)
+	oss := newOperatingSystemStore(db, bs)
+	s := newAffectedPackageStore(db, bs, oss)
 
 	cpe1 := Cpe{Part: "a", Vendor: "vendor1", Product: "product1"}
 	cpe2 := Cpe{Part: "a", Vendor: "vendor2", Product: "product2"}
@@ -595,7 +597,8 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 func TestAffectedPackageStore_GetAffectedPackages_CaseInsensitive(t *testing.T) {
 	db := setupTestStore(t).db
 	bs := newBlobStore(db)
-	s := newAffectedPackageStore(db, bs)
+	oss := newOperatingSystemStore(db, bs)
+	s := newAffectedPackageStore(db, bs, oss)
 
 	cpe1 := Cpe{Part: "a", Vendor: "Vendor1", Product: "Product1"} // capitalized
 	pkg1 := &AffectedPackageHandle{
@@ -734,7 +737,8 @@ func TestAffectedPackageStore_GetAffectedPackages_CaseInsensitive(t *testing.T) 
 func TestAffectedPackageStore_GetAffectedPackages_MultipleVulnerabilitySpecs(t *testing.T) {
 	db := setupTestStore(t).db
 	bs := newBlobStore(db)
-	s := newAffectedPackageStore(db, bs)
+	oss := newOperatingSystemStore(db, bs)
+	s := newAffectedPackageStore(db, bs, oss)
 
 	cpe1 := Cpe{Part: "a", Vendor: "vendor1", Product: "product1"}
 	cpe2 := Cpe{Part: "a", Vendor: "vendor2", Product: "product2"}
@@ -789,7 +793,8 @@ func TestAffectedPackageStore_GetAffectedPackages_MultipleVulnerabilitySpecs(t *
 func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 	db := setupTestStore(t).db
 	bs := newBlobStore(db)
-	s := newAffectedPackageStore(db, bs)
+	oss := newOperatingSystemStore(db, bs)
+	s := newAffectedPackageStore(db, bs, oss)
 
 	pkg2d1 := testDistro1AffectedPackage2Handle()
 	pkg2 := testNonDistroAffectedPackage2Handle()
@@ -943,7 +948,8 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 func TestAffectedPackageStore_ApplyPackageAlias(t *testing.T) {
 	db := setupTestStore(t).db
 	bs := newBlobStore(db)
-	s := newAffectedPackageStore(db, bs)
+	oss := newOperatingSystemStore(db, bs)
+	s := newAffectedPackageStore(db, bs, oss)
 
 	tests := []struct {
 		name     string
@@ -975,395 +981,6 @@ func TestAffectedPackageStore_ApplyPackageAlias(t *testing.T) {
 			err := s.applyPackageAlias(tt.input)
 			require.NoError(t, err)
 			assert.Equal(t, tt.expected, tt.input.Ecosystem)
-		})
-	}
-}
-
-func TestAffectedPackageStore_ResolveDistro(t *testing.T) {
-	// we always preload the OS aliases into the DB when staging for writing
-	db := setupTestStore(t).db
-	bs := newBlobStore(db)
-	s := newAffectedPackageStore(db, bs)
-
-	ubuntu2004 := &OperatingSystem{Name: "ubuntu", ReleaseID: "ubuntu", MajorVersion: "20", MinorVersion: "04", LabelVersion: "focal"}
-	ubuntu2010 := &OperatingSystem{Name: "ubuntu", MajorVersion: "20", MinorVersion: "10", LabelVersion: "groovy"}
-	rhel8 := &OperatingSystem{Name: "rhel", ReleaseID: "rhel", MajorVersion: "8"}
-	rhel81 := &OperatingSystem{Name: "rhel", ReleaseID: "rhel", MajorVersion: "8", MinorVersion: "1"}
-	debian10 := &OperatingSystem{Name: "debian", ReleaseID: "debian", MajorVersion: "10"}
-	echo := &OperatingSystem{Name: "echo", ReleaseID: "echo", MajorVersion: "1"}
-	alpine318 := &OperatingSystem{Name: "alpine", ReleaseID: "alpine", MajorVersion: "3", MinorVersion: "18"}
-	alpineEdge := &OperatingSystem{Name: "alpine", ReleaseID: "alpine", LabelVersion: "edge"}
-	debianUnstable := &OperatingSystem{Name: "debian", ReleaseID: "debian", LabelVersion: "unstable"}
-	debian7 := &OperatingSystem{Name: "debian", ReleaseID: "debian", MajorVersion: "7", LabelVersion: "wheezy"}
-	wolfi := &OperatingSystem{Name: "wolfi", ReleaseID: "wolfi", MajorVersion: "20230201"}
-	arch := &OperatingSystem{Name: "arch", ReleaseID: "arch", MajorVersion: "20241110", MinorVersion: "0"}
-	oracle5 := &OperatingSystem{Name: "oracle", ReleaseID: "ol", MajorVersion: "5"}
-	oracle6 := &OperatingSystem{Name: "oracle", ReleaseID: "ol", MajorVersion: "6"}
-	amazon2 := &OperatingSystem{Name: "amazon", ReleaseID: "amzn", MajorVersion: "2"}
-	minimos := &OperatingSystem{Name: "minimos", ReleaseID: "minimos", MajorVersion: "20241031"}
-	rocky8 := &OperatingSystem{Name: "rocky", ReleaseID: "rocky", MajorVersion: "8"}        // should not be matched
-	alma8 := &OperatingSystem{Name: "almalinux", ReleaseID: "almalinux", MajorVersion: "8"} // should not be matched
-
-	operatingSystems := []*OperatingSystem{
-		ubuntu2004,
-		ubuntu2010,
-		rhel8,
-		rhel81,
-		debian10,
-		alpine318,
-		alpineEdge,
-		debianUnstable,
-		debian7,
-		wolfi,
-		arch,
-		oracle5,
-		oracle6,
-		amazon2,
-		minimos,
-		rocky8,
-		alma8,
-		echo,
-	}
-	require.NoError(t, db.Create(&operatingSystems).Error)
-
-	tests := []struct {
-		name      string
-		distro    OSSpecifier
-		expected  []OperatingSystem
-		expectErr require.ErrorAssertionFunc
-	}{
-		{
-			name: "specific distro with major and minor version",
-			distro: OSSpecifier{
-				Name:         "ubuntu",
-				MajorVersion: "20",
-				MinorVersion: "04",
-			},
-			expected: []OperatingSystem{*ubuntu2004},
-		},
-		{
-			name: "specific distro with major and minor version (missing left padding)",
-			distro: OSSpecifier{
-				Name:         "ubuntu",
-				MajorVersion: "20",
-				MinorVersion: "4",
-			},
-			expected: []OperatingSystem{*ubuntu2004},
-		},
-		{
-			name: "alias resolution with major version",
-			distro: OSSpecifier{
-				Name:         "centos",
-				MajorVersion: "8",
-			},
-			expected: []OperatingSystem{*rhel8},
-		},
-		{
-			name: "alias resolution with major and minor version",
-			distro: OSSpecifier{
-				Name:         "centos",
-				MajorVersion: "8",
-				MinorVersion: "1",
-			},
-			expected: []OperatingSystem{*rhel81},
-		},
-		{
-			name: "distro with major version only",
-			distro: OSSpecifier{
-				Name:         "debian",
-				MajorVersion: "10",
-			},
-			expected: []OperatingSystem{*debian10},
-		},
-		{
-			name: "codename resolution",
-			distro: OSSpecifier{
-				Name:         "ubuntu",
-				LabelVersion: "focal",
-			},
-			expected: []OperatingSystem{*ubuntu2004},
-		},
-		{
-			name: "codename and version info",
-			distro: OSSpecifier{
-				Name:         "ubuntu",
-				MajorVersion: "20",
-				MinorVersion: "04",
-				LabelVersion: "focal",
-			},
-			expected: []OperatingSystem{*ubuntu2004},
-		},
-		{
-			name: "conflicting codename and version info",
-			distro: OSSpecifier{
-				Name:         "ubuntu",
-				MajorVersion: "20",
-				MinorVersion: "04",
-				LabelVersion: "fake",
-			},
-		},
-		{
-			name: "alpine edge version",
-			distro: OSSpecifier{
-				Name:         "alpine",
-				MajorVersion: "3",
-				MinorVersion: "21",
-				LabelVersion: "3.21.0_alpha20240807",
-			},
-			expected: []OperatingSystem{*alpineEdge},
-		},
-		{
-			name: "arch rolling variant",
-			distro: OSSpecifier{
-				Name: "arch",
-			},
-			expected: []OperatingSystem{*arch},
-		},
-		{
-			name: "wolfi rolling variant",
-			distro: OSSpecifier{
-				Name:         "wolfi",
-				MajorVersion: "20221018",
-			},
-			expected: []OperatingSystem{*wolfi},
-		},
-		{
-			name: "debian by codename for rolling alias",
-			distro: OSSpecifier{
-				Name:         "debian",
-				MajorVersion: "13",
-				LabelVersion: "trixie",
-			},
-			expected: []OperatingSystem{*debianUnstable},
-		},
-		{
-			name: "debian by codename",
-			distro: OSSpecifier{
-				Name:         "debian",
-				LabelVersion: "wheezy",
-			},
-			expected: []OperatingSystem{*debian7},
-		},
-		{
-			name: "debian by major version",
-			distro: OSSpecifier{
-				Name:         "debian",
-				MajorVersion: "7",
-			},
-			expected: []OperatingSystem{*debian7},
-		},
-		{
-			name: "debian by major.minor version",
-			distro: OSSpecifier{
-				Name:         "debian",
-				MajorVersion: "7",
-				MinorVersion: "2",
-			},
-			expected: []OperatingSystem{*debian7},
-		},
-		{
-			name: "alpine with major and minor version",
-			distro: OSSpecifier{
-				Name:         "alpine",
-				MajorVersion: "3",
-				MinorVersion: "18",
-			},
-			expected: []OperatingSystem{*alpine318},
-		},
-		{
-			name: "lookup by release ID (not name)",
-			distro: OSSpecifier{
-				Name:         "ol",
-				MajorVersion: "5",
-			},
-			expected: []OperatingSystem{*oracle5},
-		},
-		{
-			name: "lookup by non-standard name (oraclelinux)",
-			distro: OSSpecifier{
-				Name:         "oraclelinux", // based on the grype distro names
-				MajorVersion: "5",
-			},
-			expected: []OperatingSystem{*oracle5},
-		},
-		{
-			name: "lookup by non-standard name (amazonlinux)",
-			distro: OSSpecifier{
-				Name:         "amazonlinux", // based on the grype distro names
-				MajorVersion: "2",
-			},
-			expected: []OperatingSystem{*amazon2},
-		},
-		{
-			name: "lookup by non-standard name (oracle)",
-			distro: OSSpecifier{
-				Name:         "oracle",
-				MajorVersion: "5",
-			},
-			expected: []OperatingSystem{*oracle5},
-		},
-		{
-			name: "lookup by non-standard name (amazon)",
-			distro: OSSpecifier{
-				Name:         "amazon",
-				MajorVersion: "2",
-			},
-			expected: []OperatingSystem{*amazon2},
-		},
-		{
-			name: "lookup by non-standard name (rocky)",
-			distro: OSSpecifier{
-				Name:         "rocky",
-				MajorVersion: "8",
-			},
-			expected: []OperatingSystem{*rhel8},
-		},
-		{
-			name: "lookup by non-standard name (rockylinux)",
-			distro: OSSpecifier{
-				Name:         "rockylinux",
-				MajorVersion: "8",
-			},
-			expected: []OperatingSystem{*rhel8},
-		},
-		{
-			name: "lookup by non-standard name (alma)",
-			distro: OSSpecifier{
-				Name:         "alma",
-				MajorVersion: "8",
-			},
-			expected: []OperatingSystem{*rhel8},
-		},
-		{
-			name: "lookup by non-standard name (almalinux)",
-			distro: OSSpecifier{
-				Name:         "almalinux",
-				MajorVersion: "8",
-			},
-			expected: []OperatingSystem{*rhel8},
-		},
-		{
-			name: "echo rolling variant",
-			distro: OSSpecifier{
-				Name:         "echo",
-				MajorVersion: "1",
-			},
-			expected: []OperatingSystem{*echo},
-		},
-		{
-			name: "missing distro name",
-			distro: OSSpecifier{
-				MajorVersion: "8",
-			},
-			expectErr: expectErrIs(t, ErrMissingOSIdentification),
-		},
-		{
-			name: "nonexistent distro",
-			distro: OSSpecifier{
-				Name:         "madeup",
-				MajorVersion: "99",
-			},
-		},
-		{
-			name: "minimos rolling variant",
-			distro: OSSpecifier{
-				Name: "minimos",
-			},
-			expected: []OperatingSystem{*minimos},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.expectErr == nil {
-				tt.expectErr = require.NoError
-			}
-			result, err := s.resolveDistro(tt.distro)
-			tt.expectErr(t, err)
-			if err != nil {
-				return
-			}
-
-			if diff := cmp.Diff(tt.expected, result, cmpopts.EquateEmpty()); diff != "" {
-				t.Errorf("unexpected result (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
-
-func TestDistroSpecifier_String(t *testing.T) {
-	tests := []struct {
-		name     string
-		distro   *OSSpecifier
-		expected string
-	}{
-		{
-			name:     "nil distro",
-			distro:   AnyOSSpecified,
-			expected: "any",
-		},
-		{
-			name:     "no distro specified",
-			distro:   NoOSSpecified,
-			expected: "none",
-		},
-		{
-			name: "only name specified",
-			distro: &OSSpecifier{
-				Name: "ubuntu",
-			},
-			expected: "ubuntu",
-		},
-		{
-			name: "name and major version specified",
-			distro: &OSSpecifier{
-				Name:         "ubuntu",
-				MajorVersion: "20",
-			},
-			expected: "ubuntu@20",
-		},
-		{
-			name: "name, major, and minor version specified",
-			distro: &OSSpecifier{
-				Name:         "ubuntu",
-				MajorVersion: "20",
-				MinorVersion: "04",
-			},
-			expected: "ubuntu@20.04",
-		},
-		{
-			name: "name, major version, and codename specified",
-			distro: &OSSpecifier{
-				Name:         "ubuntu",
-				MajorVersion: "20",
-				LabelVersion: "focal",
-			},
-			expected: "ubuntu@20 (focal)",
-		},
-		{
-			name: "name and codename specified",
-			distro: &OSSpecifier{
-				Name:         "ubuntu",
-				LabelVersion: "focal",
-			},
-			expected: "ubuntu@focal",
-		},
-		{
-			name: "name, major version, minor version, and codename specified",
-			distro: &OSSpecifier{
-				Name:         "ubuntu",
-				MajorVersion: "20",
-				MinorVersion: "04",
-				LabelVersion: "focal",
-			},
-			expected: "ubuntu@20.04",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := tt.distro.String()
-			require.Equal(t, tt.expected, result)
 		})
 	}
 }

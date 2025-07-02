@@ -54,6 +54,7 @@ type Reader interface {
 	ProviderStoreReader
 	VulnerabilityStoreReader
 	VulnerabilityDecoratorStoreReader
+	OperatingSystemStoreReader
 	AffectedPackageStoreReader
 	AffectedCPEStoreReader
 	io.Closer
