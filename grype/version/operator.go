@@ -25,5 +25,5 @@ func parseOperator(op string) (Operator, error) {
 	case string(LTE):
 		return LTE, nil
 	}
-	return "", fmt.Errorf("unknown Operator: '%s'", op)
+	return "", fmt.Errorf("unknown operator: '%s'", op)
 }
