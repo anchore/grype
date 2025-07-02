@@ -18,21 +18,21 @@ func TestKbVersion_Compare(t *testing.T) {
 		errorSubstring string
 	}{
 		{
-			name:         "same Fmt successful comparison",
+			name:         "same format successful comparison",
 			thisVersion:  "KB4562562",
 			otherVersion: "KB4562563",
 			otherFormat:  KBFormat,
 			expectError:  false,
 		},
 		{
-			name:         "different Fmt does not return error",
+			name:         "different format does not return error",
 			thisVersion:  "KB4562562",
 			otherVersion: "1.2.3",
 			otherFormat:  SemanticFormat,
 			expectError:  false,
 		},
 		{
-			name:         "unknown Fmt attempts upgrade - valid kb Fmt",
+			name:         "unknown format attempts upgrade - valid kb format",
 			thisVersion:  "KB4562562",
 			otherVersion: "KB4562563",
 			otherFormat:  UnknownFormat,

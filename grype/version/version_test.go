@@ -85,12 +85,12 @@ func TestVersionCompare(t *testing.T) {
 func TestVersion_UpgradeUnknownRightSideComparison(t *testing.T) {
 	v1 := NewVersion("1.0.0", SemanticFormat)
 
-	// test if we can upgrade an unknown Fmt to a known Fmt when the left hand side is known
+	// test if we can upgrade an unknown format to a known format when the left hand side is known
 	v2 := NewVersion("1.0.0", UnknownFormat)
 
 	result, err := v1.Compare(v2)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, result, "versions should be equal after Fmt conversion")
+	assert.Equal(t, 0, result, "versions should be equal after format conversion")
 }
 
 func TestVersionCompareSameFormat(t *testing.T) {
@@ -114,7 +114,7 @@ func TestVersionCompareSameFormat(t *testing.T) {
 
 	for _, fmt := range formats {
 		t.Run(fmt.name, func(t *testing.T) {
-			// just test that we can create and compare versions of this Fmt
+			// just test that we can create and compare versions of this format
 			// without errors - not testing the actual comparison logic
 			v1 := NewVersion("1.0.0", fmt.format)
 			v2 := NewVersion("1.0.0", fmt.format)

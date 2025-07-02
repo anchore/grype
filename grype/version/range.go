@@ -11,7 +11,7 @@ import (
 
 // Operator group only matches on range operators (GT, LT, GTE, LTE, E)
 // version group matches on everything except for whitespace and operators (range or boolean)
-var constraintPartPattern = regexp.MustCompile(`\s*(?P<prefix>[^><=a-zA-Z0-9().'"]*)(?P<Operator>[><=]*)\s*(?P<version>.+)`)
+var constraintPartPattern = regexp.MustCompile(`\s*(?P<prefix>[^><=a-zA-Z0-9().'"]*)(?P<operator>[><=]*)\s*(?P<version>.+)`)
 
 type rangeUnit struct {
 	Operator Operator
@@ -25,7 +25,7 @@ func parseRange(phrase string) (*rangeUnit, error) {
 		return nil, nil
 	}
 
-	opStr := match["Operator"]
+	opStr := match["operator"]
 
 	prefix := match["prefix"]
 
@@ -47,7 +47,7 @@ func parseRange(phrase string) (*rangeUnit, error) {
 
 	op, err := parseOperator(opStr)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse constraint Operator=%q: %+v", match["Operator"], err)
+		return nil, fmt.Errorf("unable to parse constraint operator=%q: %+v", opStr, err)
 	}
 	return &rangeUnit{
 		Operator: op,
@@ -83,7 +83,7 @@ func (c *rangeUnit) Satisfied(comparison int) bool {
 	case LTE:
 		return comparison <= 0
 	default:
-		panic(fmt.Errorf("unknown Operator: %s", c.Operator))
+		panic(fmt.Errorf("unknown operator: %s", c.Operator))
 	}
 }
 
@@ -105,7 +105,7 @@ func validateVersion(version string) error {
 			quoteChar = 0
 		case !inQuotes && strings.ContainsRune("><=", r):
 			// invalid character outside of quotes
-			return fmt.Errorf("version %q potentially is a version constraint Expression (should not contain '><=' outside of quotes)", version)
+			return fmt.Errorf("version %q potentially is a version constraint expression (should not contain '><=' outside of quotes)", version)
 		}
 	}
 

@@ -41,7 +41,7 @@ func GetConstraint(constStr string, format Format) (Constraint, error) {
 	case UnknownFormat:
 		c, err = newFuzzyConstraint(constStr, "unknown")
 	default:
-		return nil, fmt.Errorf("could not find constraint for given Fmt: %s", format)
+		return nil, fmt.Errorf("could not find constraint for given format: %s", format)
 	}
 
 	return c, err

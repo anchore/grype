@@ -84,23 +84,23 @@ func TestDebVersion_Compare(t *testing.T) {
 		errorSubstring string
 	}{
 		{
-			name:         "same Fmt successful comparison",
+			name:         "same format successful comparison",
 			thisVersion:  "1.2.3-1",
 			otherVersion: "1.2.3-2",
 			otherFormat:  DebFormat,
 			expectError:  false,
 		},
 		{
-			name:         "unknown Fmt attempts upgrade - valid deb Fmt",
+			name:         "unknown format attempts upgrade - valid deb format",
 			thisVersion:  "1.2.3-1",
 			otherVersion: "1.2.3-2",
 			otherFormat:  UnknownFormat,
 			expectError:  false,
 		},
 		{
-			name:           "unknown Fmt attempts upgrade - invalid deb Fmt",
+			name:           "unknown format attempts upgrade - invalid deb format",
 			thisVersion:    "1.2.3-1",
-			otherVersion:   "not-valid-deb-Fmt",
+			otherVersion:   "not-valid-deb-format",
 			otherFormat:    UnknownFormat,
 			expectError:    true,
 			errorSubstring: "upstream_version must start with digit",

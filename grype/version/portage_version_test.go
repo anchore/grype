@@ -150,7 +150,7 @@ func TestPortageVersion_Constraint_UnsupportedFormat(t *testing.T) {
 	c, err := GetConstraint("> 1.0.0", PortageFormat)
 	assert.NoError(t, err)
 
-	// test with a semantic version (wrong Fmt)
+	// test with a semantic version (wrong format)
 	version := NewVersion("1.2.3", SemanticFormat)
 
 	satisfied, err := c.Satisfied(version)
@@ -234,21 +234,21 @@ func TestPortageVersion_Compare_Format(t *testing.T) {
 		errorSubstring string
 	}{
 		{
-			name:         "same Fmt successful comparison",
+			name:         "same format successful comparison",
 			thisVersion:  "1.2.3",
 			otherVersion: "1.2.4",
 			otherFormat:  PortageFormat,
 			expectError:  false,
 		},
 		{
-			name:         "same Fmt successful comparison with suffixes",
+			name:         "same format successful comparison with suffixes",
 			thisVersion:  "1.2.3-r1",
 			otherVersion: "1.2.3-r2",
 			otherFormat:  PortageFormat,
 			expectError:  false,
 		},
 		{
-			name:         "unknown Fmt attempts upgrade - valid portage Fmt",
+			name:         "unknown format attempts upgrade - valid portage format",
 			thisVersion:  "1.2.3",
 			otherVersion: "1.2.4",
 			otherFormat:  UnknownFormat,

@@ -90,7 +90,7 @@ func (f fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
 	if f.SemanticConstraint != nil {
 		if pseudoSemverPattern.MatchString(version) {
 			// we're stricter about accepting looser semver rules here since we have no context about
-			// the true Fmt of the version, thus we want to reduce the change of false negatives
+			// the true format of the version, thus we want to reduce the change of false negatives
 			if semver, err := newSemanticVersion(version, true); err == nil {
 				return f.SemanticConstraint.Check(semver.obj), nil
 			}

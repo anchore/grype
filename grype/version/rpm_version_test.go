@@ -134,21 +134,21 @@ func TestRpmVersion_Compare_Format(t *testing.T) {
 		errorSubstring string
 	}{
 		{
-			name:         "same Fmt successful comparison",
+			name:         "same format successful comparison",
 			thisVersion:  "1.2.3-1",
 			otherVersion: "1.2.3-2",
 			otherFormat:  RpmFormat,
 			expectError:  false,
 		},
 		{
-			name:         "same Fmt successful comparison with epoch",
+			name:         "same format successful comparison with epoch",
 			thisVersion:  "1:1.2.3-1",
 			otherVersion: "1:1.2.3-2",
 			otherFormat:  RpmFormat,
 			expectError:  false,
 		},
 		{
-			name:         "unknown Fmt attempts upgrade - valid rpm Fmt",
+			name:         "unknown format attempts upgrade - valid rpm format",
 			thisVersion:  "1.2.3-1",
 			otherVersion: "1.2.3-2",
 			otherFormat:  UnknownFormat,

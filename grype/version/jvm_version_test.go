@@ -114,7 +114,7 @@ func TestJVMVersion_Compare(t *testing.T) {
 		{"1.8.0_13-b002", "8.0.13-ea+b2", 1},
 
 		// pre 1.8 (when the jep 223 was introduced)
-		{"1.7.0", "7.0.0", 0}, // there is no v7 of the JVM, but we want to honor this comparison since it may be someone mistakenly using the wrong version Fmt
+		{"1.7.0", "7.0.0", 0}, // there is no v7 of the JVM, but we want to honor this comparison since it may be someone mistakenly using the wrong version format
 
 		// invalid but we should work with these
 		{"1.8.0_131", "1.8.0-update131-b02", 0},
@@ -174,7 +174,7 @@ func TestJVMVersion_ConvertNonCompliantSemver(t *testing.T) {
 			expected: "8.0.0-rc1",
 		},
 		{
-			name:     "invalid update Fmt, no update keyword",
+			name:     "invalid update format, no update keyword",
 			input:    "8.0-foo302",
 			expected: "8.0-foo302",
 		},
@@ -222,35 +222,35 @@ func TestJvmVersion_Compare_Formats(t *testing.T) {
 		errorSubstring string
 	}{
 		{
-			name:         "same Fmt successful comparison",
+			name:         "same format successful comparison",
 			thisVersion:  "1.8.0_275",
 			otherVersion: "1.8.0_281",
 			otherFormat:  JVMFormat,
 			expectError:  false,
 		},
 		{
-			name:         "semantic Fmt successful comparison",
+			name:         "semantic format successful comparison",
 			thisVersion:  "1.8.0_275",
 			otherVersion: "1.8.1",
 			otherFormat:  SemanticFormat,
 			expectError:  false,
 		},
 		{
-			name:         "unknown Fmt attempts upgrade to JVM - valid",
+			name:         "unknown format attempts upgrade to JVM - valid",
 			thisVersion:  "1.8.0_275",
 			otherVersion: "1.8.0_281",
 			otherFormat:  UnknownFormat,
 			expectError:  false,
 		},
 		{
-			name:         "unknown Fmt attempts upgrade to Semantic - valid",
+			name:         "unknown format attempts upgrade to Semantic - valid",
 			thisVersion:  "1.8.0_275",
 			otherVersion: "1.9.0",
 			otherFormat:  UnknownFormat,
 			expectError:  false,
 		},
 		{
-			name:           "unknown Fmt fails all upgrades - invalid",
+			name:           "unknown format fails all upgrades - invalid",
 			thisVersion:    "1.8.0_275",
 			otherVersion:   "not-valid-jvm-or-semver",
 			otherFormat:    UnknownFormat,

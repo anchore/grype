@@ -18,7 +18,7 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-func AlpineCPEComparableVersion(version string) string {
+func alpineCPEComparableVersion(version string) string {
 	// clean the alpine package version so that it compares correctly with the CPE version comparison logic
 	// alpine versions are suffixed with -r{buildindex}; however, if left intact CPE comparison logic will
 	// incorrectly treat these as a pre-release.  In actuality, we just want to treat 1.2.3-r21 as equivalent to
@@ -52,7 +52,7 @@ func MatchPackageByCPEs(provider vulnerability.Provider, p pkg.Package, upstream
 		searchVersion := c.Attributes.Version
 
 		if p.Type == syftPkg.ApkPkg {
-			searchVersion = AlpineCPEComparableVersion(searchVersion)
+			searchVersion = alpineCPEComparableVersion(searchVersion)
 		}
 
 		if searchVersion == wfn.NA || searchVersion == wfn.Any || isUnknownVersion(searchVersion) {

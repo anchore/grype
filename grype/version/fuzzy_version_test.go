@@ -25,14 +25,14 @@ func TestFuzzyVersion_Compare(t *testing.T) {
 			expectError:  false,
 		},
 		{
-			name:         "fuzzy comparison with unknown Fmt",
+			name:         "fuzzy comparison with unknown format",
 			thisVersion:  "1.2.3",
 			otherVersion: "1.2.4",
 			otherFormat:  UnknownFormat,
 			expectError:  false,
 		},
 		{
-			name:         "fuzzy comparison with different Fmt",
+			name:         "fuzzy comparison with different format",
 			thisVersion:  "1.2.3",
 			otherVersion: "1.2.3-r4",
 			otherFormat:  ApkFormat,
@@ -56,7 +56,7 @@ func TestFuzzyVersion_Compare(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer := NewVersion(test.thisVersion, UnknownFormat) // explicitly use the fuzzy version Fmt
+			thisVer := NewVersion(test.thisVersion, UnknownFormat) // explicitly use the fuzzy version format
 
 			otherVer := NewVersion(test.otherVersion, test.otherFormat)
 

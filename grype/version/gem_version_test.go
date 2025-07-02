@@ -257,7 +257,7 @@ func TestGemVersion_Compare_Errors(t *testing.T) {
 	})
 
 	t.Run("CompareWithDifferentFormat", func(t *testing.T) {
-		// Assuming SemanticFormat is a distinct, incompatible Fmt
+		// Assuming SemanticFormat is a distinct, incompatible format
 		// and that the Format type has a String() method for user-friendly error messages.
 		vOther := &Version{Raw: "1.0.0", Format: SemanticFormat}
 		_, err := vGem1_0.Compare(vOther)

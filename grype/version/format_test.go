@@ -44,11 +44,11 @@ func TestParseFormat(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		name := fmt.Sprintf("'%s'->Fmt[%s]", test.input, test.format)
+		name := fmt.Sprintf("'%s'->format[%s]", test.input, test.format)
 		t.Run(name, func(t *testing.T) {
 			actual := ParseFormat(test.input)
 			if actual != test.format {
-				t.Errorf("mismatched user string -> Fmt mapping, pkgType='%s': '%s'!='%s'", test.input, test.format, actual)
+				t.Errorf("mismatched user string -> format mapping, pkgType='%s': '%s'!='%s'", test.input, test.format, actual)
 			}
 		})
 	}
@@ -130,11 +130,11 @@ func TestFormatFromPkgType(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		name := fmt.Sprintf("pkgType[%s]->Fmt[%s]", test.p.Type, test.format)
+		name := fmt.Sprintf("pkgType[%s]->format[%s]", test.p.Type, test.format)
 		t.Run(name, func(t *testing.T) {
 			actual := FormatFromPkg(test.p)
 			if actual != test.format {
-				t.Errorf("mismatched pkgType->Fmt mapping, pkgType='%s': '%s'!='%s'", test.p.Type, test.format, actual)
+				t.Errorf("mismatched pkgType->format mapping, pkgType='%s': '%s'!='%s'", test.p.Type, test.format, actual)
 			}
 		})
 	}
