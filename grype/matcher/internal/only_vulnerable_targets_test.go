@@ -280,85 +280,80 @@ func TestPkgTypesFromTargetSoftware(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    []string
-		expected []syftPkg.Type
+		expected []string
 	}{
 		{
 			name:     "empty input",
 			input:    []string{},
-			expected: []syftPkg.Type{},
+			expected: []string{},
 		},
 		{
 			name:     "single input with known mapping",
 			input:    []string{"node.js"},
-			expected: []syftPkg.Type{syftPkg.NpmPkg},
+			expected: []string{string(syftPkg.NpmPkg)},
 		},
 		{
 			name:     "multiple inputs with known mappings",
 			input:    []string{"python", "ruby", "java"},
-			expected: []syftPkg.Type{syftPkg.PythonPkg, syftPkg.GemPkg, syftPkg.JavaPkg},
+			expected: []string{string(syftPkg.PythonPkg), string(syftPkg.GemPkg), string(syftPkg.JavaPkg)},
 		},
 		{
 			name:     "case insensitive input",
 			input:    []string{"Python", "RUBY", "Java"},
-			expected: []syftPkg.Type{syftPkg.PythonPkg, syftPkg.GemPkg, syftPkg.JavaPkg},
+			expected: []string{string(syftPkg.PythonPkg), string(syftPkg.GemPkg), string(syftPkg.JavaPkg)},
 		},
 		{
 			name:     "mixed known and unknown inputs",
 			input:    []string{"python", "unknown", "ruby"},
-			expected: []syftPkg.Type{syftPkg.PythonPkg, syftPkg.GemPkg},
+			expected: []string{string(syftPkg.PythonPkg), "unknown", string(syftPkg.GemPkg)},
 		},
 		{
 			name:     "all unknown inputs",
 			input:    []string{"unknown1", "unknown2", "unknown3"},
-			expected: []syftPkg.Type{},
+			expected: []string{"unknown1", "unknown2", "unknown3"},
 		},
 		{
 			name:     "inputs with spaces and hyphens",
 			input:    []string{"redhat-enterprise-linux", "jenkins ci"},
-			expected: []syftPkg.Type{syftPkg.RpmPkg, syftPkg.JavaPkg},
+			expected: []string{string(syftPkg.RpmPkg), string(syftPkg.JavaPkg)},
 		},
 		{
 			name:     "aliases for the same package type",
 			input:    []string{"nodejs", "npm", "javascript"},
-			expected: []syftPkg.Type{syftPkg.NpmPkg},
+			expected: []string{string(syftPkg.NpmPkg)},
 		},
 		{
 			name:     "wildcards and special characters should be ignored",
 			input:    []string{"*", "?", ""},
-			expected: []syftPkg.Type{},
+			expected: []string{},
 		},
 		{
 			name:     "Linux distributions",
 			input:    []string{"alpine", "debian", "redhat", "gentoo"},
-			expected: []syftPkg.Type{syftPkg.ApkPkg, syftPkg.DebPkg, syftPkg.RpmPkg, syftPkg.PortagePkg},
+			expected: []string{string(syftPkg.ApkPkg), string(syftPkg.DebPkg), string(syftPkg.RpmPkg), string(syftPkg.PortagePkg)},
 		},
 		{
 			name:     ".NET ecosystem",
 			input:    []string{".net", "asp.net", "c#"},
-			expected: []syftPkg.Type{syftPkg.DotnetPkg},
+			expected: []string{string(syftPkg.DotnetPkg)},
 		},
 		{
 			name:     "JavaScript ecosystem",
 			input:    []string{"javascript", "node.js", "jquery"},
-			expected: []syftPkg.Type{syftPkg.NpmPkg},
+			expected: []string{string(syftPkg.NpmPkg)},
 		},
 		{
 			name:     "Java ecosystem",
 			input:    []string{"java", "maven", "kafka", "log4j"},
-			expected: []syftPkg.Type{syftPkg.JavaPkg},
+			expected: []string{string(syftPkg.JavaPkg)},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			actual := pkgTypesFromTargetSoftware(test.input)
+			actual := normalizeTargetSoftwares(test.input)
 
-			var actualTypes []syftPkg.Type
-			for _, typeStr := range actual.List() {
-				actualTypes = append(actualTypes, syftPkg.Type(typeStr))
-			}
-
-			assert.ElementsMatch(t, test.expected, actualTypes, "package types should match")
+			assert.ElementsMatch(t, test.expected, actual.List(), "package types should match")
 		})
 	}
 }
