@@ -522,8 +522,8 @@ func (o *OperatingSystem) setRowID(i ID) {
 }
 
 func (o *OperatingSystem) clean() {
-	o.MajorVersion = strings.TrimLeft(o.MajorVersion, "0")
-	o.MinorVersion = strings.TrimLeft(o.MinorVersion, "0")
+	o.MajorVersion = trimZeroes(o.MajorVersion)
+	o.MinorVersion = trimZeroes(o.MinorVersion)
 }
 
 func (o *OperatingSystem) BeforeCreate(tx *gorm.DB) (err error) {
