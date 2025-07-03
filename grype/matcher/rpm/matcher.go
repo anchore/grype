@@ -15,22 +15,7 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-const (
-	EUSPreferenceNever  EUSPreference = "never"
-	EUSPreferenceAlways EUSPreference = "always"
-	EUSPreferenceAuto   EUSPreference = "auto"
-)
-
-type EUSPreference string
-
-type MatcherConfig struct {
-	// EUSPreference defines how the matcher should handle Redhat EUS packages
-	EUSPreference EUSPreference
-}
-
-type Matcher struct {
-	cfg MatcherConfig
-}
+type Matcher struct{}
 
 func (m *Matcher) PackageTypes() []syftPkg.Type {
 	return []syftPkg.Type{syftPkg.RpmPkg}
@@ -165,12 +150,15 @@ func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package) (
 		return nil, nil
 	}
 
-	if shouldUseRedhatEUS(searchPkg.Distro, m.cfg.EUSPreference) {
-		return findRedhatEUSMatches(provider, searchPkg)
+	switch {
+	case shouldUseRedhatEUSMatching(searchPkg.Distro):
+		return redhatEUSMatches(provider, searchPkg)
+	default:
+		return standardMatches(provider, searchPkg)
 	}
+}
 
-	// Non-EUS matching...
-
+func standardMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
 	disclosures, err := provider.FindResults(
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(*searchPkg.Distro),

@@ -2,6 +2,7 @@ package models
 
 import (
 	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/grype/pkg"
 )
 
 // distribution provides information about a detected Linux distribution.
@@ -12,7 +13,11 @@ type distribution struct {
 }
 
 // newDistribution creates a struct with the Linux distribution to be represented in JSON.
-func newDistribution(d *distro.Distro) distribution {
+func newDistribution(ctx pkg.Context, d *distro.Distro) distribution {
+	if ctx.Distro != nil {
+		// if the distro is provided in the context, use it
+		d = ctx.Distro
+	}
 	if d == nil {
 		return distribution{}
 	}

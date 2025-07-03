@@ -15,7 +15,7 @@ import (
 	"github.com/anchore/syft/syft/source/sourceproviders"
 )
 
-func syftProvider(userInput string, config ProviderConfig) ([]Package, Context, *sbom.SBOM, error) {
+func syftProvider(userInput string, config ProviderConfig, applyChannel func(*distro.Distro)) ([]Package, Context, *sbom.SBOM, error) {
 	src, err := getSource(userInput, config)
 	if err != nil {
 		return nil, Context{}, nil, err
@@ -33,7 +33,13 @@ func syftProvider(userInput string, config ProviderConfig) ([]Package, Context, 
 
 	srcDescription := src.Describe()
 
-	d := distro.FromRelease(s.Artifacts.LinuxDistribution)
+	var d *distro.Distro
+	if config.Distro.Override != nil {
+		d = config.Distro.Override
+	} else {
+		d = distro.FromRelease(s.Artifacts.LinuxDistribution)
+		applyChannel(d)
+	}
 
 	pkgCatalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, d)
 

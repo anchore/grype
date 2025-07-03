@@ -18,7 +18,7 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-func TestResolveDisclosures(t *testing.T) {
+func TestResolveEUSDisclosures(t *testing.T) {
 	tests := []struct {
 		name                     string
 		packageVersion           string
@@ -557,7 +557,7 @@ func TestResolveDisclosures(t *testing.T) {
 				v = nil
 			}
 
-			resolver := resolveDisclosures(v, tt.resolutionsAsDisclosures)
+			resolver := resolveEUSDisclosures(v, tt.resolutionsAsDisclosures)
 
 			got := resolver(tt.disclosures, tt.advisoryOverlay)
 
@@ -567,13 +567,13 @@ func TestResolveDisclosures(t *testing.T) {
 				cmpopts.EquateEmpty(),
 			}
 			if diff := cmp.Diff(tt.want, got, opts...); diff != "" {
-				t.Errorf("resolveDisclosures() mismatch (-want +got):\n%s", diff)
+				t.Errorf("resolveEUSDisclosures() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
 }
 
-func TestFindRedhatEUSMatches(t *testing.T) {
+func TestRedhatEUSMatches(t *testing.T) {
 	testPkg1 := pkg.Package{
 		ID:      pkg.ID("test-pkg-id"),
 		Name:    "test-pkg",
@@ -1165,7 +1165,7 @@ func TestFindRedhatEUSMatches(t *testing.T) {
 
 			resultProvider := result.NewProvider(vulnProvider, tt.catalogPkg, match.RpmMatcher)
 
-			got, err := findRedhatEUSMatches(resultProvider, *tt.searchPkg)
+			got, err := redhatEUSMatches(resultProvider, *tt.searchPkg)
 			tt.wantErr(t, err)
 
 			if err != nil {
@@ -1183,7 +1183,7 @@ func TestFindRedhatEUSMatches(t *testing.T) {
 				cmpopts.EquateEmpty(),
 			}
 			if diff := cmp.Diff(tt.want, got, opts...); diff != "" {
-				t.Errorf("findRedhatEUSMatches() mismatch (-want +got):\n%s", diff)
+				t.Errorf("redhatEUSMatches() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

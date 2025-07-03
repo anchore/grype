@@ -115,6 +115,35 @@ func Test_NewDistroFromRelease(t *testing.T) {
 			major: "3",
 			minor: "0",
 		},
+		{
+			name: "eus hinted at as attribute",
+			release: linux.Release{
+				ID:              "rhel",
+				Version:         "9.4",
+				ExtendedSupport: true,
+			},
+			expected: &Distro{
+				Type:    RedHat,
+				Version: "9.4",
+				Channel: "eus",
+			},
+			major: "9",
+			minor: "4",
+		},
+		{
+			name: "eus embedded in the version",
+			release: linux.Release{
+				ID:      "rhel",
+				Version: "9.4+eus",
+			},
+			expected: &Distro{
+				Type:    RedHat,
+				Version: "9.4",
+				Channel: "eus",
+			},
+			major: "9",
+			minor: "4",
+		},
 	}
 
 	for _, tt := range tests {

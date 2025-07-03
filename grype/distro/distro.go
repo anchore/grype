@@ -27,7 +27,7 @@ type Distro struct {
 
 // New creates a new Distro object populated with the given values.
 func New(t Type, version, label string, idLikes ...string) *Distro {
-	major, minor, remaining, channel := ParseVersion(version)
+	major, minor, remaining, versionWithoutSuffix, channel := parseVersion(version)
 
 	for i := range idLikes {
 		typ, ok := IDMapping[strings.TrimSpace(idLikes[i])]
@@ -38,7 +38,7 @@ func New(t Type, version, label string, idLikes ...string) *Distro {
 
 	return &Distro{
 		Type:     t,
-		Version:  version,
+		Version:  versionWithoutSuffix,
 		Codename: label,
 		IDLike:   idLikes,
 		Channel:  channel,
@@ -49,14 +49,16 @@ func New(t Type, version, label string, idLikes ...string) *Distro {
 	}
 }
 
-func ParseVersion(version string) (major, minor, remaining, channel string) {
+func parseVersion(version string) (major, minor, remaining, versionWithoutSuffix, channel string) {
 	if version == "" {
-		return "", "", "", ""
+		return "", "", "", "", ""
 	}
 
+	versionWithoutSuffix = version
 	if strings.Contains(version, "+") {
 		vParts := strings.Split(version, "+")
 		version = vParts[0]
+		versionWithoutSuffix = version
 		channel = vParts[1]
 	}
 
@@ -75,7 +77,7 @@ func ParseVersion(version string) (major, minor, remaining, channel string) {
 		}
 	}
 
-	return major, minor, remaining, channel
+	return major, minor, remaining, versionWithoutSuffix, channel
 }
 
 // NewFromNameVersion creates a new Distro object derived from the provided name and version
@@ -115,14 +117,18 @@ func NewFromRelease(release linux.Release) (*Distro, error) {
 		return nil, fmt.Errorf("unable to determine distro type")
 	}
 
-	var selectedVersion string
+	var (
+		selectedVersion    string
+		selectedVersionObj *hashiVer.Version
+	)
 
 	for _, version := range []string{release.VersionID, release.Version} {
 		if version == "" {
 			continue
 		}
 
-		_, err := hashiVer.NewVersion(version)
+		var err error
+		selectedVersionObj, err = hashiVer.NewVersion(version)
 		if err == nil {
 			selectedVersion = version
 			break
@@ -133,7 +139,23 @@ func NewFromRelease(release linux.Release) (*Distro, error) {
 		selectedVersion = release.VersionID
 	}
 
-	return New(t, selectedVersion, release.VersionCodename, release.IDLike...), nil
+	d := New(t, selectedVersion, release.VersionCodename, release.IDLike...)
+
+	if release.ExtendedSupport && d.Channel == "" {
+		var major int
+		if selectedVersionObj != nil {
+			segs := selectedVersionObj.Segments()
+			if len(segs) > 0 {
+				major = segs[0]
+			}
+		}
+		// we can only be using EUS data for RHEL 8+ releases
+		if release.ID == "rhel" && major >= 8 {
+			d.Channel = "eus"
+		}
+	}
+
+	return d, nil
 }
 
 func (d Distro) Name() string {
@@ -156,11 +178,15 @@ func (d Distro) RemainingVersion() string {
 
 // String returns a human-friendly representation of the Linux distribution.
 func (d Distro) String() string {
-	return fmt.Sprintf("%s %s", d.Type, d.VersionString())
+	return fmt.Sprintf("%s %s", d.ID(), d.VersionString())
+}
+
+func (d Distro) ID() string {
+	return typeToIDMapping[d.Type]
 }
 
 func (d Distro) VersionString() string {
-	versionStr := "(version unknown)"
+	versionStr := ""
 	if d.Version != "" {
 		versionStr = d.Version
 	} else if d.Codename != "" {
@@ -174,7 +200,7 @@ func (d Distro) VersionString() string {
 	return versionStr
 }
 
-// Unsupported Linux distributions
+// Disabled is a way to convey if a Linux distribution is not supported by Grype.
 func (d Distro) Disabled() bool {
 	switch d.Type {
 	case ArchLinux:

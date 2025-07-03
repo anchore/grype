@@ -15,8 +15,8 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-func shouldUseRedhatEUS(d *distro.Distro, pref EUSPreference) bool {
-	if d == nil || pref == EUSPreferenceNever {
+func shouldUseRedhatEUSMatching(d *distro.Distro) bool {
+	if d == nil {
 		return false
 	}
 
@@ -25,10 +25,10 @@ func shouldUseRedhatEUS(d *distro.Distro, pref EUSPreference) bool {
 		return false
 	}
 
-	return pref == EUSPreferenceAlways || strings.ToLower(d.Channel) == "eus"
+	return strings.ToLower(d.Channel) == "eus"
 }
 
-func findRedhatEUSMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
+func redhatEUSMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
 	distroWithoutEUS := *searchPkg.Distro
 	distroWithoutEUS.Channel = "" // clear the EUS designator so that we can search for the base distro
 
@@ -58,14 +58,14 @@ func findRedhatEUSMatches(provider result.Provider, searchPkg pkg.Package) ([]ma
 		return nil, fmt.Errorf("matcher failed to fetch resolutions for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
 	}
 
-	remaining := disclosures.Merge(resolutions, resolveDisclosures(version.NewVersionFromPkg(searchPkg), false))
+	remaining := disclosures.Merge(resolutions, resolveEUSDisclosures(version.NewVersionFromPkg(searchPkg), false))
 
 	return remaining.ToMatches(), err
 }
 
-// resolveDisclosures returns a function that will filter disclosures based on the provided advisory information (by fix version only).
+// resolveEUSDisclosures returns a function that will filter disclosures based on the provided advisory information (by fix version only).
 // Additionally, this will merge applicable fixes into one vulnerability record, so that the final result contains only one vulnerability record per disclosure.
-func resolveDisclosures(v *version.Version, treatResolutionsAsDisclosures bool) func(disclosures, advisoryOverlays []result.Result) []result.Result {
+func resolveEUSDisclosures(v *version.Version, treatResolutionsAsDisclosures bool) func(disclosures, advisoryOverlays []result.Result) []result.Result {
 	return func(disclosures, advisoryOverlays []result.Result) []result.Result {
 		var out []result.Result
 
@@ -129,7 +129,7 @@ func processDisclosureResult(v *version.Version, disclosures result.Result, advi
 
 // processVulnerabilityWithAdvisories processes a single vulnerability against advisory overlays
 func processVulnerabilityWithAdvisories(v *version.Version, disclosure vulnerability.Vulnerability, advisoryOverlays []result.Result) (*vulnerability.Vulnerability, match.Details) {
-	fixVersions := version.Set{}
+	fixVersions := version.NewSet(true)
 	var constraints []version.Constraint
 	var state vulnerability.FixState
 	var allAdvisoryDetails match.Details
@@ -142,7 +142,7 @@ func processVulnerabilityWithAdvisories(v *version.Version, disclosure vulnerabi
 	// process advisory overlays
 	for _, advisoryOverlay := range advisoryOverlays {
 		allAdvisoryDetails = append(allAdvisoryDetails, advisoryOverlay.Details...)
-		processAdvisoryVulnerabilities(v, advisoryOverlay.Vulnerabilities, &fixVersions, &constraints, &state)
+		processAdvisoryVulnerabilities(v, advisoryOverlay.Vulnerabilities, fixVersions, &constraints, &state)
 	}
 
 	if len(constraints) == 0 {
@@ -177,7 +177,7 @@ func processAdvisoryVulnerabilities(v *version.Version, advisories []vulnerabili
 }
 
 // buildPatchedVulnerabilityRecord creates the final patched vulnerability record
-func buildPatchedVulnerabilityRecord(v *version.Version, disclosure vulnerability.Vulnerability, fixVersions version.Set, constraints []version.Constraint, state vulnerability.FixState) vulnerability.Vulnerability {
+func buildPatchedVulnerabilityRecord(v *version.Version, disclosure vulnerability.Vulnerability, fixVersions *version.Set, constraints []version.Constraint, state vulnerability.FixState) vulnerability.Vulnerability {
 	patchedRecord := disclosure
 
 	if state == vulnerability.FixStateFixed {

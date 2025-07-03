@@ -1,7 +1,6 @@
 package grype
 
 import (
-	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/pkg"
@@ -29,11 +28,11 @@ func FindVulnerabilities(store vulnerability.Provider, userImageStr string, scop
 
 	matchers := matcher.NewDefaultMatchers(matcher.Config{})
 
-	return FindVulnerabilitiesForPackage(store, context.Distro, matchers, packages), context, packages, nil
+	return FindVulnerabilitiesForPackage(store, matchers, packages), context, packages, nil
 }
 
 // TODO: deprecated, will remove before v1.0.0
-func FindVulnerabilitiesForPackage(store vulnerability.Provider, d *distro.Distro, matchers []match.Matcher, packages []pkg.Package) match.Matches {
+func FindVulnerabilitiesForPackage(store vulnerability.Provider, matchers []match.Matcher, packages []pkg.Package) match.Matches {
 	exclusionProvider, _ := store.(match.ExclusionProvider) // TODO v5 is an exclusion provider, but v6 is not
 	runner := VulnerabilityMatcher{
 		VulnerabilityProvider: store,
@@ -42,9 +41,7 @@ func FindVulnerabilitiesForPackage(store vulnerability.Provider, d *distro.Distr
 		NormalizeByCVE:        false,
 	}
 
-	actualResults, _, err := runner.FindMatches(packages, pkg.Context{
-		Distro: d,
-	})
+	actualResults, _, err := runner.FindMatches(packages, pkg.Context{})
 	if err != nil || actualResults == nil {
 		log.WithFields("error", err).Error("unable to find vulnerabilities")
 		return match.NewMatches()
