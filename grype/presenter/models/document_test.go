@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/clio"
-	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -75,11 +74,6 @@ func TestPackagesAreSorted(t *testing.T) {
 		Source: &syftSource.Description{
 			Metadata: syftSource.DirectoryMetadata{},
 		},
-		Distro: &distro.Distro{
-			Type:    "centos",
-			IDLike:  []string{"rhel"},
-			Version: "8.0",
-		},
 	}
 	doc, err := NewDocument(clio.Identification{}, packages, ctx, matches, nil, NewMetadataMock(), nil, nil, SortByPackage)
 	if err != nil {
@@ -136,11 +130,6 @@ func TestFixSuggestedVersion(t *testing.T) {
 		Source: &syftSource.Description{
 			Metadata: syftSource.DirectoryMetadata{},
 		},
-		Distro: &distro.Distro{
-			Type:    "centos",
-			IDLike:  []string{"rhel"},
-			Version: "8.0",
-		},
 	}
 	doc, err := NewDocument(clio.Identification{}, packages, ctx, matches, nil, NewMetadataMock(), nil, nil, SortByPackage)
 	if err != nil {
@@ -158,7 +147,6 @@ func TestTimestampValidFormat(t *testing.T) {
 
 	ctx := pkg.Context{
 		Source: nil,
-		Distro: nil,
 	}
 
 	doc, err := NewDocument(clio.Identification{}, nil, ctx, matches, nil, nil, nil, nil, SortByPackage)

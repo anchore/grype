@@ -29,6 +29,9 @@ type OSSpecifier struct {
 
 	// LabelVersion is a string that represents a floating version (e.g. "edge" or "unstable") or is the CODENAME field in /etc/os-release (e.g. "wheezy" for debian 7)
 	LabelVersion string
+
+	// Channel is a string that represents a different feed for fix and vulnerability data (e.g. "eus" for RHEL)
+	Channel string
 }
 
 func (d *OSSpecifier) clean() {
@@ -280,6 +283,12 @@ func (s *operatingSystemStore) prepareQuery(d OSSpecifier) *gorm.DB {
 		query = query.Where("codename = ? collate nocase OR label_version = ? collate nocase", d.LabelVersion, d.LabelVersion)
 	}
 
+	if d.Channel != "" {
+		query = query.Where("channel = ? collate nocase", d.Channel)
+	} else {
+		// we specifically want to match vanilla...
+		query = query.Where("channel IS NULL OR channel = ''")
+	}
 	return query
 }
 

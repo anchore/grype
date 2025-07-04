@@ -15,9 +15,9 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-// onlyVulnerableTargets returns a criteria object that tests vulnerability qualifiers against the package vulnerability rules.
+// OnlyVulnerableTargets returns a criteria object that tests vulnerability qualifiers against the package vulnerability rules.
 // TODO: in the future this should be moved to underneath the store to avoid the need to recompute CPE comparisons and to leverage ecosystem aliases for target software
-func onlyVulnerableTargets(p pkg.Package) vulnerability.Criteria {
+func OnlyVulnerableTargets(p pkg.Package) vulnerability.Criteria {
 	return search.ByFunc(func(v vulnerability.Vulnerability) (bool, string, error) {
 		matches, reasons := isVulnerableTarget(p, v)
 		return matches, reasons, nil
