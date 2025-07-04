@@ -13,24 +13,27 @@ import (
 )
 
 func Test_PurlProvider(t *testing.T) {
+
 	tests := []struct {
-		name      string
-		userInput string
-		context   Context
-		pkgs      []Package
-		wantErr   require.ErrorAssertionFunc
+		name        string
+		userInput   string
+		channels    []distro.FixChannel
+		wantContext Context
+		wantPkgs    []Package
+		wantErr     require.ErrorAssertionFunc
 	}{
 		{
 			name:      "takes a single purl",
 			userInput: "pkg:apk/curl@7.61.1",
-			context: Context{
+			channels:  testFixChannels(),
+			wantContext: Context{
 				Source: &source.Description{
 					Metadata: PURLLiteralMetadata{
 						PURL: "pkg:apk/curl@7.61.1",
 					},
 				},
 			},
-			pkgs: []Package{
+			wantPkgs: []Package{
 				{
 					Name:    "curl",
 					Version: "7.61.1",
@@ -42,14 +45,15 @@ func Test_PurlProvider(t *testing.T) {
 		{
 			name:      "java metadata decoded from purl",
 			userInput: "pkg:maven/org.apache.commons/commons-lang3@3.12.0",
-			context: Context{
+			channels:  testFixChannels(),
+			wantContext: Context{
 				Source: &source.Description{
 					Metadata: PURLLiteralMetadata{
 						PURL: "pkg:maven/org.apache.commons/commons-lang3@3.12.0",
 					},
 				},
 			},
-			pkgs: []Package{
+			wantPkgs: []Package{
 				{
 					Name:    "commons-lang3",
 					Version: "3.12.0",
@@ -65,19 +69,15 @@ func Test_PurlProvider(t *testing.T) {
 		{
 			name:      "os with codename",
 			userInput: "pkg:deb/debian/sysv-rc@2.88dsf-59?arch=all&distro=debian-jessie&upstream=sysvinit",
-			context: Context{
-				Distro: &distro.Distro{
-					Type:     "debian",
-					IDLike:   []string{"debian"},
-					Codename: "jessie", // important!
-				},
+			channels:  testFixChannels(),
+			wantContext: Context{
 				Source: &source.Description{
 					Metadata: PURLLiteralMetadata{
 						PURL: "pkg:deb/debian/sysv-rc@2.88dsf-59?arch=all&distro=debian-jessie&upstream=sysvinit",
 					},
 				},
 			},
-			pkgs: []Package{
+			wantPkgs: []Package{
 				{
 					Name:    "sysv-rc",
 					Version: "2.88dsf-59",
@@ -95,14 +95,15 @@ func Test_PurlProvider(t *testing.T) {
 		{
 			name:      "default upstream",
 			userInput: "pkg:apk/libcrypto3@3.3.2?upstream=openssl",
-			context: Context{
+			channels:  testFixChannels(),
+			wantContext: Context{
 				Source: &source.Description{
 					Metadata: PURLLiteralMetadata{
 						PURL: "pkg:apk/libcrypto3@3.3.2?upstream=openssl",
 					},
 				},
 			},
-			pkgs: []Package{
+			wantPkgs: []Package{
 				{
 					Name:    "libcrypto3",
 					Version: "3.3.2",
@@ -119,14 +120,15 @@ func Test_PurlProvider(t *testing.T) {
 		{
 			name:      "upstream with version",
 			userInput: "pkg:apk/libcrypto3@3.3.2?upstream=openssl%403.2.1", // %40 is @
-			context: Context{
+			channels:  testFixChannels(),
+			wantContext: Context{
 				Source: &source.Description{
 					Metadata: PURLLiteralMetadata{
 						PURL: "pkg:apk/libcrypto3@3.3.2?upstream=openssl%403.2.1",
 					},
 				},
 			},
-			pkgs: []Package{
+			wantPkgs: []Package{
 				{
 					Name:    "libcrypto3",
 					Version: "3.3.2",
@@ -144,19 +146,15 @@ func Test_PurlProvider(t *testing.T) {
 		{
 			name:      "upstream for source RPM",
 			userInput: "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?arch=aarch64&distro=rhel-8.10&upstream=systemd-239-82.el8_10.2.src.rpm",
-			context: Context{
-				Distro: &distro.Distro{
-					Type:    "redhat",
-					IDLike:  []string{"redhat"},
-					Version: "8.10",
-				},
+			channels:  testFixChannels(),
+			wantContext: Context{
 				Source: &source.Description{
 					Metadata: PURLLiteralMetadata{
 						PURL: "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?arch=aarch64&distro=rhel-8.10&upstream=systemd-239-82.el8_10.2.src.rpm",
 					},
 				},
 			},
-			pkgs: []Package{
+			wantPkgs: []Package{
 				{
 					Name:    "systemd-x",
 					Version: "239-82.el8_10.2",
@@ -175,19 +173,15 @@ func Test_PurlProvider(t *testing.T) {
 		{
 			name:      "RPM with epoch",
 			userInput: "pkg:rpm/redhat/dbus-common@1.12.8-26.el8?arch=noarch&distro=rhel-8.10&epoch=1&upstream=dbus-1.12.8-26.el8.src.rpm",
-			context: Context{
-				Distro: &distro.Distro{
-					Type:    "redhat",
-					IDLike:  []string{"redhat"},
-					Version: "8.10",
-				},
+			channels:  testFixChannels(),
+			wantContext: Context{
 				Source: &source.Description{
 					Metadata: PURLLiteralMetadata{
 						PURL: "pkg:rpm/redhat/dbus-common@1.12.8-26.el8?arch=noarch&distro=rhel-8.10&epoch=1&upstream=dbus-1.12.8-26.el8.src.rpm",
 					},
 				},
 			},
-			pkgs: []Package{
+			wantPkgs: []Package{
 				{
 					Name:    "dbus-common",
 					Version: "1:1.12.8-26.el8",
@@ -206,19 +200,15 @@ func Test_PurlProvider(t *testing.T) {
 		{
 			name:      "infer context when distro is present for single purl",
 			userInput: "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.3",
-			context: Context{
-				Distro: &distro.Distro{
-					Type:    "alpine",
-					IDLike:  []string{"alpine"},
-					Version: "3.20.3",
-				},
+			channels:  testFixChannels(),
+			wantContext: Context{
 				Source: &source.Description{
 					Metadata: PURLLiteralMetadata{
 						PURL: "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.3",
 					},
 				},
 			},
-			pkgs: []Package{
+			wantPkgs: []Package{
 				{
 					Name:    "curl",
 					Version: "7.61.1",
@@ -231,12 +221,13 @@ func Test_PurlProvider(t *testing.T) {
 		{
 			name:      "include namespace in name when purl is type Golang",
 			userInput: "pkg:golang/k8s.io/ingress-nginx@v1.11.2",
-			context: Context{
+			channels:  testFixChannels(),
+			wantContext: Context{
 				Source: &source.Description{
 					Metadata: PURLLiteralMetadata{PURL: "pkg:golang/k8s.io/ingress-nginx@v1.11.2"},
 				},
 			},
-			pkgs: []Package{
+			wantPkgs: []Package{
 				{
 					Name:    "k8s.io/ingress-nginx",
 					Version: "v1.11.2",
@@ -248,12 +239,13 @@ func Test_PurlProvider(t *testing.T) {
 		{
 			name:      "include complex namespace in name when purl is type Golang",
 			userInput: "pkg:golang/github.com/wazuh/wazuh@v4.5.0",
-			context: Context{
+			channels:  testFixChannels(),
+			wantContext: Context{
 				Source: &source.Description{
 					Metadata: PURLLiteralMetadata{PURL: "pkg:golang/github.com/wazuh/wazuh@v4.5.0"},
 				},
 			},
-			pkgs: []Package{
+			wantPkgs: []Package{
 				{
 					Name:    "github.com/wazuh/wazuh",
 					Version: "v4.5.0",
@@ -265,12 +257,13 @@ func Test_PurlProvider(t *testing.T) {
 		{
 			name:      "do not include namespace when given blank input blank",
 			userInput: "pkg:golang/wazuh@v4.5.0",
-			context: Context{
+			channels:  testFixChannels(),
+			wantContext: Context{
 				Source: &source.Description{
 					Metadata: PURLLiteralMetadata{PURL: "pkg:golang/wazuh@v4.5.0"},
 				},
 			},
-			pkgs: []Package{
+			wantPkgs: []Package{
 				{
 					Name:    "wazuh",
 					Version: "v4.5.0",
@@ -280,13 +273,90 @@ func Test_PurlProvider(t *testing.T) {
 			},
 		},
 		{
+			name:      "RPM with extended support (auto)",
+			userInput: "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?distro=rhel-8.10+eus",
+			channels:  testFixChannels(), // important! auto applies EUS
+			wantContext: Context{
+				Source: &source.Description{
+					Metadata: PURLLiteralMetadata{
+						PURL: "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?distro=rhel-8.10+eus",
+					},
+				},
+			},
+			wantPkgs: []Package{
+				{
+					Name:    "systemd-x",
+					Version: "239-82.el8_10.2",
+					Type:    pkg.RpmPkg,
+					PURL:    "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?distro=rhel-8.10+eus",
+					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.10", Channel: "eus", IDLike: []string{"redhat"}},
+				},
+			},
+		},
+		{
+			name:      "RPM with extended support (never)",
+			userInput: "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?distro=rhel-8.10+eus",
+			channels: []distro.FixChannel{
+				{
+					Name:  "eus",
+					IDs:   []string{"rhel"},
+					Apply: distro.ChannelNeverEnabled, // important!
+				},
+			},
+			wantContext: Context{
+				Source: &source.Description{
+					Metadata: PURLLiteralMetadata{
+						PURL: "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?distro=rhel-8.10+eus", // the input did hint hat eus, so we leave it
+					},
+				},
+			},
+			wantPkgs: []Package{
+				{
+					Name:    "systemd-x",
+					Version: "239-82.el8_10.2",
+					Type:    pkg.RpmPkg,
+					PURL:    "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?distro=rhel-8.10",                                   // important! no channel applied
+					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.10", Channel: "", IDLike: []string{"redhat"}}, // important! no channel applied
+				},
+			},
+		},
+		{
+			name:      "RPM without extended support (always)",
+			userInput: "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?distro=rhel-8.10", // important! no channel hint
+			channels: []distro.FixChannel{
+				{
+					Name:  "eus",
+					IDs:   []string{"rhel"},
+					Apply: distro.ChannelAlwaysEnabled, // important!
+				},
+			},
+			wantContext: Context{
+				Source: &source.Description{
+					Metadata: PURLLiteralMetadata{
+						PURL: "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?distro=rhel-8.10",
+					},
+				},
+			},
+			wantPkgs: []Package{
+				{
+					Name:    "systemd-x",
+					Version: "239-82.el8_10.2",
+					Type:    pkg.RpmPkg,
+					PURL:    "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?distro=rhel-8.10%2Beus",                                // important! channel applied
+					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.10", Channel: "eus", IDLike: []string{"redhat"}}, // important! channel applied
+				},
+			},
+		},
+		{
 			name:      "fails on purl list input",
 			userInput: "purl:test-fixtures/purl/invalid-purl.txt",
+			channels:  testFixChannels(),
 			wantErr:   require.Error,
 		},
 		{
 			name:      "invalid prefix",
 			userInput: "dir:test-fixtures/purl",
+			channels:  testFixChannels(),
 			wantErr:   require.Error,
 		},
 	}
@@ -297,8 +367,7 @@ func Test_PurlProvider(t *testing.T) {
 				tc.wantErr = require.NoError
 			}
 
-			packages, ctx, _, err := purlProvider(tc.userInput, ProviderConfig{})
-			setContextDistro(packages, &ctx)
+			packages, ctx, _, err := purlProvider(tc.userInput, ProviderConfig{}, getDistroChannelApplier(tc.channels))
 
 			tc.wantErr(t, err)
 			if err != nil {
@@ -306,11 +375,11 @@ func Test_PurlProvider(t *testing.T) {
 				return
 			}
 
-			if d := cmp.Diff(tc.context, ctx, diffOpts...); d != "" {
+			if d := cmp.Diff(tc.wantContext, ctx, diffOpts...); d != "" {
 				t.Errorf("unexpected context (-want +got):\n%s", d)
 			}
-			require.Len(t, packages, len(tc.pkgs))
-			for idx, expected := range tc.pkgs {
+			require.Len(t, packages, len(tc.wantPkgs))
+			for idx, expected := range tc.wantPkgs {
 				if d := cmp.Diff(expected, packages[idx], diffOpts...); d != "" {
 					t.Errorf("unexpected context (-want +got):\n%s", d)
 				}

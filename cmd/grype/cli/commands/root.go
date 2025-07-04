@@ -179,12 +179,13 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 
 	defer log.CloseAndLogError(vp, status.Path)
 
+	warnWhenDistroHintNeeded(packages, &pkgContext)
+
 	if err = applyVexRules(opts); err != nil {
 		return fmt.Errorf("applying vex rules: %w", err)
 	}
 
 	startTime := time.Now()
-	applyDistroHint(packages, &pkgContext, opts)
 
 	vulnMatcher := grype.VulnerabilityMatcher{
 		VulnerabilityProvider: vp,
@@ -228,6 +229,23 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 	return errs
 }
 
+func warnWhenDistroHintNeeded(pkgs []pkg.Package, context *pkg.Context) {
+	hasOSPackageWithoutDistro := false
+	for _, p := range pkgs {
+		switch p.Type {
+		case syftPkg.AlpmPkg, syftPkg.DebPkg, syftPkg.RpmPkg, syftPkg.KbPkg:
+			if p.Distro == nil {
+				hasOSPackageWithoutDistro = true
+			}
+		}
+	}
+
+	if context.Distro == nil && hasOSPackageWithoutDistro {
+		log.Warnf("Unable to determine the OS distribution of some packages. This may result in missing vulnerabilities. " +
+			"You may specify a distro using: --distro <distro>:<version>")
+	}
+}
+
 func dbInfo(status *vulnerability.ProviderStatus, vp vulnerability.Provider) any {
 	var providers map[string]vulnerability.DataProvenance
 
@@ -248,35 +266,6 @@ func dbInfo(status *vulnerability.ProviderStatus, vp vulnerability.Provider) any
 	}{
 		Status:    status,
 		Providers: providers,
-	}
-}
-
-func applyDistroHint(pkgs []pkg.Package, context *pkg.Context, opts *options.Grype) {
-	if opts.Distro != "" {
-		log.Infof("using distro: %s", opts.Distro)
-
-		split := strings.Split(opts.Distro, ":")
-		d := split[0]
-		v := ""
-		if len(split) > 1 {
-			v = split[1]
-		}
-		context.Distro = distro.NewFromNameVersion(d, v)
-	}
-
-	hasOSPackageWithoutDistro := false
-	for _, p := range pkgs {
-		switch p.Type {
-		case syftPkg.AlpmPkg, syftPkg.DebPkg, syftPkg.RpmPkg, syftPkg.KbPkg:
-			if p.Distro == nil {
-				hasOSPackageWithoutDistro = true
-			}
-		}
-	}
-
-	if context.Distro == nil && hasOSPackageWithoutDistro {
-		log.Warnf("Unable to determine the OS distribution of some packages. This may result in missing vulnerabilities. " +
-			"You may specify a distro using: --distro <distro>:<version>")
 	}
 }
 
@@ -346,8 +335,21 @@ func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
 		},
 		SynthesisConfig: pkg.SynthesisConfig{
 			GenerateMissingCPEs: opts.GenerateMissingCPEs,
+			Distro: pkg.DistroConfig{
+				Override: applyDistroHint(opts.Distro),
+				// TODO: wire up fix channels when there is EUS data in the DB
+				FixChannels: distro.DefaultFixChannels(),
+			},
 		},
 	}
+}
+
+func applyDistroHint(hint string) *distro.Distro {
+	if hint == "" {
+		return nil
+	}
+
+	return distro.NewFromNameVersion(stringutil.SplitOnFirstString(hint, ":", "@"))
 }
 
 func validateDBLoad(loadErr error, status *vulnerability.ProviderStatus) error {

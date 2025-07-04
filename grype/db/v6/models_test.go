@@ -1,9 +1,9 @@
 package v6
 
 import (
-	"github.com/google/go-cmp/cmp"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -118,6 +118,11 @@ func TestOperatingSystem_Version(t *testing.T) {
 			name:           "codename",
 			os:             &OperatingSystem{Codename: "buster"},
 			expectedResult: "buster",
+		},
+		{
+			name:           "with channel",
+			os:             &OperatingSystem{MajorVersion: "10", MinorVersion: "1", Channel: "stable"},
+			expectedResult: "10.1+stable",
 		},
 	}
 

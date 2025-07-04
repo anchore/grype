@@ -80,7 +80,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 }
 
 func TestEmptyJsonPresenter(t *testing.T) {
-	// Expected to have an empty JSON array back
+	// expected to have an empty JSON array back
 	var buffer bytes.Buffer
 
 	ctx := pkg.Context{

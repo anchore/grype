@@ -67,7 +67,7 @@ func TestGenericConstraint_Satisfied_EmptyConstraint(t *testing.T) {
 	}{
 		{
 			name:    "with valid version",
-			version: NewVersion("1.2.3", SemanticFormat),
+			version: New("1.2.3", SemanticFormat),
 		},
 		{
 			name:    "with nil version",
@@ -75,7 +75,7 @@ func TestGenericConstraint_Satisfied_EmptyConstraint(t *testing.T) {
 		},
 		{
 			name:    "with different format version",
-			version: NewVersion("1.2.3-r1", ApkFormat),
+			version: New("1.2.3-r1", ApkFormat),
 		},
 	}
 
@@ -139,7 +139,7 @@ func TestGenericConstraint_Satisfied_WithConstraint(t *testing.T) {
 			constraint, err := newGenericConstraint(SemanticFormat, test.constraint)
 			require.NoError(t, err)
 
-			version := NewVersion(test.version, SemanticFormat)
+			version := New(test.version, SemanticFormat)
 
 			satisfied, err := constraint.Satisfied(version)
 			if test.shouldError {

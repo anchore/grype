@@ -81,8 +81,8 @@ func Test_cleanPlatformMakesEqualVersions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			original := NewVersion(tt.input, GemFormat)
-			trimmed := NewVersion(tt.trimmed, GemFormat)
+			original := New(tt.input, GemFormat)
+			trimmed := New(tt.trimmed, GemFormat)
 			comp, err := original.Compare(trimmed)
 			require.NoError(t, err)
 			assert.Equal(t, 0, comp)
@@ -222,8 +222,8 @@ func TestGemVersion_Compare(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%s_vs_%s", tt.v1, tt.v2), func(t *testing.T) {
-			ver1 := NewVersion(tt.v1, GemFormat)
-			ver2 := NewVersion(tt.v2, GemFormat)
+			ver1 := New(tt.v1, GemFormat)
+			ver2 := New(tt.v2, GemFormat)
 
 			// Test v1 vs v2
 			got1, err1 := ver1.Compare(ver2)
