@@ -153,14 +153,33 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		},
 		func() (err error) {
 			startTime := time.Now()
-			defer func() { log.WithFields("time", time.Since(startTime)).Info("loaded DB") }()
+
+			defer func() {
+				validStr := "valid"
+				if err != nil {
+					validStr = "invalid"
+				}
+				log.WithFields("time", time.Since(startTime), "status", validStr).Info("loaded DB")
+				if status != nil {
+					log.WithFields("schema", status.SchemaVersion).Debug("├──")
+					log.WithFields("built", status.Built.UTC().Format(time.RFC3339)).Debug("├──")
+					log.WithFields("from", status.From).Debug("├──")
+					log.WithFields("path", status.Path).Debug("└──")
+				}
+			}()
+
 			log.Debug("loading DB")
 			vp, status, err = grype.LoadVulnerabilityDB(opts.ToClientConfig(), opts.ToCuratorConfig(), opts.DB.AutoUpdate)
+
 			return validateDBLoad(err, status)
 		},
 		func() (err error) {
 			startTime := time.Now()
-			defer func() { log.WithFields("time", time.Since(startTime)).Info("gathered packages") }()
+
+			defer func() {
+				log.WithFields("time", time.Since(startTime), "packages", len(packages)).Info("gathered packages")
+			}()
+
 			log.Debugf("gathering packages")
 			// packages are grype.Package, not syft.Package
 			// the SBOM is returned for downstream formatting concerns
@@ -170,6 +189,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 			if err != nil {
 				return fmt.Errorf("failed to catalog: %w", err)
 			}
+
 			return nil
 		},
 	)
