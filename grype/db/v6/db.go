@@ -24,12 +24,13 @@ const (
 	Revision = 0
 
 	// Addition indicates how many changes have been introduced that are compatible with all historical data
-	Addition = 2
+	Addition = 3
 
 	// v6 model changelog:
 	// 6.0.0: Initial version 🎉
 	// 6.0.1: Add CISA KEV to VulnerabilityDecorator store
 	// 6.0.2: Add EPSS to VulnerabilityDecorator store
+	// 6.0.3: Add channel column to OperatingSystem model
 )
 
 const (
