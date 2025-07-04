@@ -50,5 +50,9 @@ func (m *Matcher) matchUpstreamPackages(store vulnerability.Provider, p pkg.Pack
 		matches = append(matches, indirectMatches...)
 	}
 
+	// we want to make certain that we are tracking the match based on the package from the SBOM (not the indirect package)
+	// however, we also want to keep the indirect package around for future reference
+	match.ConvertToIndirectMatches(matches, p)
+
 	return matches, nil
 }
