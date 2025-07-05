@@ -13,6 +13,7 @@ import (
 )
 
 func Test_PurlProvider(t *testing.T) {
+	applyChannel := getDistroChannelApplier(distro.DefaultFixChannels())
 	tests := []struct {
 		name      string
 		userInput string
@@ -66,11 +67,6 @@ func Test_PurlProvider(t *testing.T) {
 			name:      "os with codename",
 			userInput: "pkg:deb/debian/sysv-rc@2.88dsf-59?arch=all&distro=debian-jessie&upstream=sysvinit",
 			context: Context{
-				Distro: &distro.Distro{
-					Type:     "debian",
-					IDLike:   []string{"debian"},
-					Codename: "jessie", // important!
-				},
 				Source: &source.Description{
 					Metadata: PURLLiteralMetadata{
 						PURL: "pkg:deb/debian/sysv-rc@2.88dsf-59?arch=all&distro=debian-jessie&upstream=sysvinit",
@@ -145,11 +141,6 @@ func Test_PurlProvider(t *testing.T) {
 			name:      "upstream for source RPM",
 			userInput: "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?arch=aarch64&distro=rhel-8.10&upstream=systemd-239-82.el8_10.2.src.rpm",
 			context: Context{
-				Distro: &distro.Distro{
-					Type:    "redhat",
-					IDLike:  []string{"redhat"},
-					Version: "8.10",
-				},
 				Source: &source.Description{
 					Metadata: PURLLiteralMetadata{
 						PURL: "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?arch=aarch64&distro=rhel-8.10&upstream=systemd-239-82.el8_10.2.src.rpm",
@@ -176,11 +167,6 @@ func Test_PurlProvider(t *testing.T) {
 			name:      "RPM with epoch",
 			userInput: "pkg:rpm/redhat/dbus-common@1.12.8-26.el8?arch=noarch&distro=rhel-8.10&epoch=1&upstream=dbus-1.12.8-26.el8.src.rpm",
 			context: Context{
-				Distro: &distro.Distro{
-					Type:    "redhat",
-					IDLike:  []string{"redhat"},
-					Version: "8.10",
-				},
 				Source: &source.Description{
 					Metadata: PURLLiteralMetadata{
 						PURL: "pkg:rpm/redhat/dbus-common@1.12.8-26.el8?arch=noarch&distro=rhel-8.10&epoch=1&upstream=dbus-1.12.8-26.el8.src.rpm",
@@ -207,11 +193,6 @@ func Test_PurlProvider(t *testing.T) {
 			name:      "infer context when distro is present for single purl",
 			userInput: "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.3",
 			context: Context{
-				Distro: &distro.Distro{
-					Type:    "alpine",
-					IDLike:  []string{"alpine"},
-					Version: "3.20.3",
-				},
 				Source: &source.Description{
 					Metadata: PURLLiteralMetadata{
 						PURL: "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.3",
@@ -297,8 +278,7 @@ func Test_PurlProvider(t *testing.T) {
 				tc.wantErr = require.NoError
 			}
 
-			packages, ctx, _, err := purlProvider(tc.userInput, ProviderConfig{})
-			setContextDistro(packages, &ctx)
+			packages, ctx, _, err := purlProvider(tc.userInput, ProviderConfig{}, applyChannel)
 
 			tc.wantErr(t, err)
 			if err != nil {

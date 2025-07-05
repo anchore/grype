@@ -787,7 +787,11 @@ func TestMatchByImage(t *testing.T) {
 				},
 			})
 
-			actualResults := grype.FindVulnerabilitiesForPackage(theProvider, distro.FromRelease(s.Artifacts.LinuxDistribution), matchers, pkg.FromCollection(s.Artifacts.Packages, pkg.SynthesisConfig{}))
+			actualResults := grype.FindVulnerabilitiesForPackage(theProvider, matchers, pkg.FromCollection(s.Artifacts.Packages, pkg.SynthesisConfig{
+				Distro: pkg.DistroConfig{
+					Override: distro.FromRelease(s.Artifacts.LinuxDistribution),
+				},
+			}))
 			for _, m := range actualResults.Sorted() {
 				for _, d := range m.Details {
 					observedMatchers.Add(string(d.Matcher))
