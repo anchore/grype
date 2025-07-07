@@ -227,7 +227,7 @@ func (p *Presenter) newRow(m models.Match, extraAnnotation string, showDistro bo
 	var kev, annotation string
 	if len(m.Vulnerability.KnownExploited) > 0 {
 		if p.withColor {
-			kev = p.kevStyle.Reverse(false).Render("") + p.kevStyle.Render("KEV") + p.kevStyle.Reverse(false).Render("") // ⚡❋◆◉፨⿻⨳✖•
+			kev = p.kevStyle.Render(" KEV ") // ⚡❋◆◉፨⿻⨳✖• (requires non-standard fonts:  )
 		} else {
 			annotations = append([]string{"kev"}, annotations...)
 		}
