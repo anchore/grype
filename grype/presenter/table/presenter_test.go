@@ -85,19 +85,19 @@ func TestCreateRow(t *testing.T) {
 			name:            "create row for vulnerability",
 			match:           match1,
 			extraAnnotation: "",
-			expectedRow:     []string{match1.Artifact.Name, match1.Artifact.Version, "1.0.2, *2.0.1, 3.0.4", string(match1.Artifact.Type), match1.Vulnerability.ID, "Medium", "50.00", " 87.2"},
+			expectedRow:     []string{match1.Artifact.Name, match1.Artifact.Version, "1.0.2, *2.0.1, 3.0.4", string(match1.Artifact.Type), match1.Vulnerability.ID, "Medium", "30.0% (50th)", " 87.2"},
 		},
 		{
 			name:            "create row for suppressed vulnerability",
 			match:           match1,
 			extraAnnotation: appendSuppressed,
-			expectedRow:     []string{match1.Artifact.Name, match1.Artifact.Version, "1.0.2, *2.0.1, 3.0.4", string(match1.Artifact.Type), match1.Vulnerability.ID, "Medium", "50.00", " 87.2", "(suppressed)"},
+			expectedRow:     []string{match1.Artifact.Name, match1.Artifact.Version, "1.0.2, *2.0.1, 3.0.4", string(match1.Artifact.Type), match1.Vulnerability.ID, "Medium", "30.0% (50th)", " 87.2", "(suppressed)"},
 		},
 		{
 			name:            "create row for suppressed vulnerability + Kev",
 			match:           matchWithKev,
 			extraAnnotation: appendSuppressed,
-			expectedRow:     []string{match1.Artifact.Name, match1.Artifact.Version, "1.0.2, *2.0.1, 3.0.4", string(match1.Artifact.Type), match1.Vulnerability.ID, "Medium", "50.00", " 87.2", "(kev, suppressed)"},
+			expectedRow:     []string{match1.Artifact.Name, match1.Artifact.Version, "1.0.2, *2.0.1, 3.0.4", string(match1.Artifact.Type), match1.Vulnerability.ID, "Medium", "30.0% (50th)", " 87.2", "(kev, suppressed)"},
 		},
 	}
 
@@ -251,7 +251,7 @@ func TestRowsRender(t *testing.T) {
 		result := rs.Render()
 
 		expected := [][]string{
-			{"pkg1", "1.0.0", "1.1.0", "os", "CVE-2023-1234", "critical", "75.00", "  N/A"},
+			{"pkg1", "1.0.0", "1.1.0", "os", "CVE-2023-1234", "critical", "3.0% (75th)", "  N/A"},
 		}
 
 		if diff := cmp.Diff(expected, result); diff != "" {
@@ -269,9 +269,9 @@ func TestRowsRender(t *testing.T) {
 		result := rs.Render()
 
 		expected := [][]string{
-			{"pkgA", "1.0.0", "", "os", "CVE-2023-1234", "critical", "75.00", "  N/A"},
-			{"pkgB", "2.0.0", "(won't fix)", "os", "CVE-2023-5678", "high", "75.00", "  N/A"},
-			{"pkgC", "3.0.0", "3.1.0", "os", "CVE-2023-9012", "medium", "75.00", "  N/A"},
+			{"pkgA", "1.0.0", "", "os", "CVE-2023-1234", "critical", "3.0% (75th)", "  N/A"},
+			{"pkgB", "2.0.0", "(won't fix)", "os", "CVE-2023-5678", "high", "3.0% (75th)", "  N/A"},
+			{"pkgC", "3.0.0", "3.1.0", "os", "CVE-2023-9012", "medium", "3.0% (75th)", "  N/A"},
 		}
 
 		if diff := cmp.Diff(expected, result); diff != "" {
@@ -286,7 +286,7 @@ func TestRowsRender(t *testing.T) {
 		result := rs.Render()
 
 		expected := [][]string{
-			{"pkg1", "1.0.0", "1.1.0", "os", "CVE-2023-1234", "critical", "75.00", "  N/A"},
+			{"pkg1", "1.0.0", "1.1.0", "os", "CVE-2023-1234", "critical", "3.0% (75th)", "  N/A"},
 		}
 
 		if diff := cmp.Diff(expected, result); diff != "" {
@@ -340,6 +340,123 @@ func createTestRow(name, version, fix, pkgType, vulnID, severity string, fixStat
 	r := p.newRow(m, "", false)
 
 	return r, nil
+}
+
+func TestEPSS_String(t *testing.T) {
+	tests := []struct {
+		name       string
+		score      float64
+		percentile float64
+		expected   string
+	}{
+		{
+			name:       "zero percentile should return N/A",
+			score:      0.0,
+			percentile: 0.0,
+			expected:   "N/A",
+		},
+		{
+			name:       "very low probability less than 0.1%",
+			score:      0.0005,
+			percentile: 0.15,
+			expected:   "< 0.1% (15th)",
+		},
+		{
+			name:       "low probability with 1st percentile",
+			score:      0.02,
+			percentile: 0.01,
+			expected:   "2.0% (1st)",
+		},
+		{
+			name:       "medium probability with 2nd percentile",
+			score:      0.153,
+			percentile: 0.92,
+			expected:   "15.3% (92nd)",
+		},
+		{
+			name:       "high probability with 3rd percentile",
+			score:      0.456,
+			percentile: 0.93,
+			expected:   "45.6% (93rd)",
+		},
+		{
+			name:       "probability with 4th percentile",
+			score:      0.234,
+			percentile: 0.84,
+			expected:   "23.4% (84th)",
+		},
+		{
+			name:       "probability with 11th percentile (special case)",
+			score:      0.125,
+			percentile: 0.11,
+			expected:   "12.5% (11th)",
+		},
+		{
+			name:       "probability with 12th percentile (special case)",
+			score:      0.187,
+			percentile: 0.12,
+			expected:   "18.7% (12th)",
+		},
+		{
+			name:       "probability with 13th percentile (special case)",
+			score:      0.203,
+			percentile: 0.13,
+			expected:   "20.3% (13th)",
+		},
+		{
+			name:       "probability with 21st percentile",
+			score:      0.312,
+			percentile: 0.21,
+			expected:   "31.2% (21st)",
+		},
+		{
+			name:       "probability with 22nd percentile",
+			score:      0.345,
+			percentile: 0.22,
+			expected:   "34.5% (22nd)",
+		},
+		{
+			name:       "probability with 23rd percentile",
+			score:      0.378,
+			percentile: 0.23,
+			expected:   "37.8% (23rd)",
+		},
+		{
+			name:       "high percentile with 99th",
+			score:      0.789,
+			percentile: 0.99,
+			expected:   "78.9% (99th)",
+		},
+		{
+			name:       "maximum probability and percentile",
+			score:      1.0,
+			percentile: 1.0,
+			expected:   "100.0% (100th)",
+		},
+		{
+			name:       "very small non-zero probability",
+			score:      0.001,
+			percentile: 0.05,
+			expected:   "0.1% (5th)",
+		},
+		{
+			name:       "edge case: exactly 0.1% probability",
+			score:      0.001,
+			percentile: 0.08,
+			expected:   "0.1% (8th)",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := epss{
+				Score:      tt.score,
+				Percentile: tt.percentile,
+			}
+			result := e.String()
+			assert.Equal(t, tt.expected, result)
+		})
+	}
 }
 
 func mustRow(t *testing.T, name, version, fix, pkgType, vulnID, severity string, fixState vulnerability.FixState) row {

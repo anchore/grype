@@ -58,14 +58,39 @@ type epss struct {
 }
 
 func (e epss) String() string {
-	percentile := e.Percentile * 100
-	switch {
-	case percentile == 0:
-		return "  N/A"
-	case percentile < 0.1:
-		return "< 0.1%"
+	if e.Percentile == 0 {
+		return "N/A"
 	}
-	return fmt.Sprintf("%5.2f", percentile)
+
+	probability := e.Score * 100
+	percentile := e.Percentile * 100
+
+	if probability < 0.1 {
+		return fmt.Sprintf("< 0.1%% (%s)", formatPercentileWithSuffix(percentile))
+	}
+
+	return fmt.Sprintf("%.1f%% (%s)", probability, formatPercentileWithSuffix(percentile))
+}
+
+func formatPercentileWithSuffix(percentile float64) string {
+	p := int(percentile)
+
+	// Handle special cases for 11th, 12th, 13th
+	if p%100 >= 11 && p%100 <= 13 {
+		return fmt.Sprintf("%dth", p)
+	}
+
+	// Handle other cases
+	switch p % 10 {
+	case 1:
+		return fmt.Sprintf("%dst", p)
+	case 2:
+		return fmt.Sprintf("%dnd", p)
+	case 3:
+		return fmt.Sprintf("%drd", p)
+	default:
+		return fmt.Sprintf("%dth", p)
+	}
 }
 
 // NewPresenter is a *Presenter constructor
@@ -101,7 +126,7 @@ func (p *Presenter) Present(output io.Writer) error {
 		return err
 	}
 
-	table := newTable(output, []string{"Name", "Installed", "Fixed In", "Type", "Vulnerability", "Severity", "EPSS%", "Risk"})
+	table := newTable(output, []string{"Name", "Installed", "Fixed In", "Type", "Vulnerability", "Severity", "EPSS", "Risk"})
 
 	if err := table.Bulk(rs.Render()); err != nil {
 		return fmt.Errorf("failed to add table rows: %w", err)
