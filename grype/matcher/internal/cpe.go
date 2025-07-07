@@ -83,10 +83,10 @@ func MatchPackageByCPEs(provider vulnerability.Provider, p pkg.Package, upstream
 		// find all vulnerability records in the DB for the given CPE (not including version comparisons)
 		vulns, err := provider.FindVulnerabilities(
 			search.ByCPE(c),
-			onlyVulnerableTargets(p),
-			onlyQualifiedPackages(p),
-			onlyVulnerableVersions(verObj),
-			onlyNonWithdrawnVulnerabilities(),
+			OnlyVulnerableTargets(p),
+			OnlyQualifiedPackages(p),
+			OnlyVulnerableVersions(verObj),
+			OnlyNonWithdrawnVulnerabilities(),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("matcher failed to fetch by CPE pkg=%q: %w", p.Name, err)

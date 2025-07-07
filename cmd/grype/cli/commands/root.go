@@ -27,6 +27,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
+	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vex"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
@@ -153,20 +154,35 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		},
 		func() (err error) {
 			startTime := time.Now()
-			defer func() { log.WithFields("time", time.Since(startTime)).Info("loaded DB") }()
+
+			defer func() {
+				validStr := "valid"
+				if err != nil {
+					validStr = "invalid"
+				}
+				log.WithFields("time", time.Since(startTime), "status", validStr).Info("loaded DB")
+				if status != nil {
+					log.WithFields("schema", status.SchemaVersion).Debug("├──")
+					log.WithFields("built", status.Built.UTC().Format(time.RFC3339)).Debug("├──")
+					log.WithFields("from", status.From).Debug("├──")
+					log.WithFields("path", status.Path).Debug("└──")
+				}
+			}()
 			log.Debug("loading DB")
 			vp, status, err = grype.LoadVulnerabilityDB(opts.ToClientConfig(), opts.ToCuratorConfig(), opts.DB.AutoUpdate)
 			return validateDBLoad(err, status)
 		},
 		func() (err error) {
 			startTime := time.Now()
-			defer func() { log.WithFields("time", time.Since(startTime)).Info("gathered packages") }()
+			var count int
+			defer func() { log.WithFields("time", time.Since(startTime), "packages", count).Info("gathered packages") }()
 			log.Debugf("gathering packages")
 			// packages are grype.Package, not syft.Package
 			// the SBOM is returned for downstream formatting concerns
 			// grype uses the SBOM in combination with syft formatters to produce cycloneDX
 			// with vulnerability information appended
 			packages, pkgContext, s, err = pkg.Provide(userInput, getProviderConfig(opts))
+			count = len(packages)
 			if err != nil {
 				return fmt.Errorf("failed to catalog: %w", err)
 			}
@@ -336,9 +352,8 @@ func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
 		SynthesisConfig: pkg.SynthesisConfig{
 			GenerateMissingCPEs: opts.GenerateMissingCPEs,
 			Distro: pkg.DistroConfig{
-				Override: applyDistroHint(opts.Distro),
-				// TODO: wire up fix channels when there is EUS data in the DB
-				FixChannels: distro.DefaultFixChannels(),
+				Override:    applyDistroHint(opts.Distro),
+				FixChannels: getFixChannels(opts.FixChannel),
 			},
 		},
 	}
@@ -350,6 +365,27 @@ func applyDistroHint(hint string) *distro.Distro {
 	}
 
 	return distro.NewFromNameVersion(stringutil.SplitOnFirstString(hint, ":", "@"))
+}
+
+func getFixChannels(fixChannelOpts options.FixChannels) []distro.FixChannel {
+	var c version.Constraint
+	var err error
+	if fixChannelOpts.RedHatEUS.Versions != "" {
+		c, err = version.GetConstraint(fixChannelOpts.RedHatEUS.Versions, version.SemanticFormat)
+		if err != nil {
+			log.Errorf("unable to parse Red Hat EUS version constraint %q, ignoring: %v", fixChannelOpts.RedHatEUS.Versions, err)
+			return nil
+		}
+	}
+
+	return []distro.FixChannel{
+		{
+			Name:     "eus",
+			IDs:      fixChannelOpts.RedHatEUS.IDs,
+			Apply:    fixChannelOpts.RedHatEUS.Apply,
+			Versions: c,
+		},
+	}
 }
 
 func validateDBLoad(loadErr error, status *vulnerability.ProviderStatus) error {
