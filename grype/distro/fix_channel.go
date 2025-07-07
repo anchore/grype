@@ -43,7 +43,7 @@ func DefaultFixChannels() FixChannels {
 		{
 			Name:     "eus",
 			IDs:      []string{"rhel"},
-			Apply:    ChannelNeverEnabled, // this will change to ChannelConditionallyEnabled once there is data in the DB to support it
+			Apply:    ChannelConditionallyEnabled,
 			Versions: version.MustGetConstraint(">= 8.0", version.SemanticFormat),
 		},
 	}
