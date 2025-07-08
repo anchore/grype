@@ -467,7 +467,7 @@ func Test_PurlList(t *testing.T) {
 			},
 		},
 		{
-			name:      "fails on path with nonexistant file",
+			name:      "fails on path with nonexistent file",
 			userInput: "purl:tttt/empty.txt",
 			wantErr:   require.Error,
 		},
