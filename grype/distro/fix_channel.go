@@ -19,11 +19,19 @@ const (
 	ChannelConditionallyEnabled FixChannelEnabled = "auto"
 )
 
+// FixChannel represents a subscription or repository where package fixes and updates are provided for a Linux distribution
 type FixChannel struct {
-	Name     string
-	IDs      []string
-	Apply    FixChannelEnabled
-	Versions version.Constraint // which distro versions this channel applies to (empty means all versions)
+	// Name is the name of the channel, e.g. "eus" for RHEL
+	Name string
+
+	// IDs is a list of distro release IDs that this channel applies to, e.g. "rhel" for RHEL (this is relative to the /etc/os-release ID field)
+	IDs []string
+
+	// Apply indicates how the channel should be applied to the distrp
+	Apply FixChannelEnabled
+
+	// Versions is a version constraint that indicates which versions of the distro this channel applies to (e.g. ">= 8.0" for RHEL 8 and above)
+	Versions version.Constraint
 }
 
 func DefaultFixChannels() []FixChannel {
