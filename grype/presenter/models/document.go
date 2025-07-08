@@ -2,7 +2,6 @@ package models
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/anchore/clio"
@@ -25,7 +24,7 @@ type Document struct {
 func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Context, matches match.Matches, ignoredMatches []match.IgnoredMatch, metadataProvider vulnerability.MetadataProvider, appConfig any, dbInfo any, strategy SortStrategy, outputTimestamp bool) (Document, error) {
 	var timestamp []byte
 
-	if !outputTimestamp || os.Getenv("GRYPE_TIMESTAMP") == "false" {
+	if !outputTimestamp {
 		// can't be nil in string() call
 		timestamp = []byte{}
 	} else {
