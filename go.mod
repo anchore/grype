@@ -311,6 +311,3 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 	modernc.org/sqlite v1.38.0 // indirect
 )
-
-// this is a breaking change, so we need to pin the version until glebarez/go-sqlite is updated to use internal/libc
-replace modernc.org/sqlite v1.33.0 => modernc.org/sqlite v1.32.0
