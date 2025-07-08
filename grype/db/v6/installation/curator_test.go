@@ -732,7 +732,7 @@ func Test_isRehydrationNeeded(t *testing.T) {
 		{
 			// there are cases where new features will result in new columns, thus an old client downloading and hydrating
 			// a DB should function, however, when the new client is downloaded it should trigger at least a rehydration
-			// of the existing DB (in cases where the new DB is not availabl for download yet).
+			// of the existing DB (in cases where the new DB is not available for download yet).
 			name:               "rehydration needed - we have a new client version, with an old DB version",
 			currentDBVersion:   schemaver.New(6, 0, 2),
 			hydrationClientVer: schemaver.New(6, 0, 2),
