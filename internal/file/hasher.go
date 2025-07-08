@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/afero"
 )
 
+// TODO: pick this one or the other one...
 func ValidateByHash(fs afero.Fs, path, hashStr string) (bool, string, error) {
 	var hasher hash.Hash
 	var hashFn string
@@ -28,7 +29,7 @@ func ValidateByHash(fs afero.Fs, path, hashStr string) (bool, string, error) {
 
 	hashNoPrefix := strings.Split(hashStr, ":")[1]
 
-	actualHash, err := HashFile(fs, path, hasher)
+	actualHash, err := ContentDigest(fs, path, hasher)
 	if err != nil {
 		return false, "", err
 	}
@@ -36,7 +37,19 @@ func ValidateByHash(fs afero.Fs, path, hashStr string) (bool, string, error) {
 	return actualHash == hashNoPrefix, hashFn + ":" + actualHash, nil
 }
 
-func HashFile(fs afero.Fs, path string, hasher hash.Hash) (string, error) {
+// TODO: pick this one or the other one...
+func ValidateDigest(path, expectedDigest string, hasher hash.Hash) error {
+	actual, err := ContentDigest(afero.NewOsFs(), path, hasher)
+	if err != nil {
+		return fmt.Errorf("failed to hash file %q: %w", path, err)
+	}
+	if !strings.HasSuffix(expectedDigest, actual) {
+		return fmt.Errorf("hash mismatch for file %q: got %q expected %q", path, actual, expectedDigest)
+	}
+	return nil
+}
+
+func ContentDigest(fs afero.Fs, path string, hasher hash.Hash) (string, error) {
 	f, err := fs.Open(path)
 	if err != nil {
 		return "", fmt.Errorf("failed to open file '%s': %w", path, err)

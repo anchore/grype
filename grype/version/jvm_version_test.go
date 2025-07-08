@@ -114,7 +114,7 @@ func TestJVMVersion_Compare(t *testing.T) {
 		{"1.8.0_13-b002", "8.0.13-ea+b2", 1},
 
 		// pre 1.8 (when the jep 223 was introduced)
-		{"1.7.0", "7.0.0", 0}, // there is no v7 of the JVM, but we want to honor this comparison since it may be someone mistakenly using the wrong version format
+		{"1.7.0", "7.0.0", 0}, // there is no v6 of the JVM, but we want to honor this comparison since it may be someone mistakenly using the wrong version format
 
 		// invalid but we should work with these
 		{"1.8.0_131", "1.8.0-update131-b02", 0},

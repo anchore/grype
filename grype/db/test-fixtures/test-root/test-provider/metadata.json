@@ -1,0 +1,18 @@
+{
+  "provider": "wolfi",
+  "urls": [
+    "https://packages.wolfi.dev/os/security.json"
+  ],
+  "store": "sqlite",
+  "timestamp": "2024-03-25T01:26:38.371438+00:00",
+  "version": 1,
+  "listing": {
+    "digest": "00dfa461d5d03954",
+    "path": "checksums",
+    "algorithm": "xxh64"
+  },
+  "schema": {
+    "version": "1.0.1",
+    "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.1.json"
+  }
+}

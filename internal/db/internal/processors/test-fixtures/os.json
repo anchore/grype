@@ -1,0 +1,203 @@
+[
+  {
+    "Vulnerability": {
+      "CVSS": [],
+      "Description": "",
+      "FixedIn": [
+        {
+          "Name": "asterisk",
+          "NamespaceName": "debian:8",
+          "VendorAdvisory": {
+            "AdvisorySummary": [],
+            "NoAdvisory": false
+          },
+          "Version": "1:1.6.2.0~rc3-1",
+          "VersionFormat": "dpkg"
+        },
+        {
+          "Name": "auth2db",
+          "NamespaceName": "debian:8",
+          "VendorAdvisory": {
+            "AdvisorySummary": [],
+            "NoAdvisory": false
+          },
+          "Version": "0.2.5-2+dfsg-1",
+          "VersionFormat": "dpkg"
+        },
+        {
+          "Name": "exaile",
+          "NamespaceName": "debian:8",
+          "VendorAdvisory": {
+            "AdvisorySummary": [],
+            "NoAdvisory": false
+          },
+          "Version": "0.2.14+debian-2.2",
+          "VersionFormat": "dpkg"
+        },
+        {
+          "Name": "wordpress",
+          "NamespaceName": "debian:8",
+          "VendorAdvisory": {
+            "AdvisorySummary": [],
+            "NoAdvisory": false
+          },
+          "Version": "",
+          "VersionFormat": "dpkg"
+        }
+      ],
+      "Link": "https://security-tracker.debian.org/tracker/CVE-2008-7220",
+      "Metadata": {
+        "NVD": {
+          "CVSSv2": {
+            "Score": 7.5,
+            "Vectors": "AV:N/AC:L/Au:N/C:P/I:P/A:P"
+          }
+        }
+      },
+      "Name": "CVE-2008-7220",
+      "NamespaceName": "debian:8",
+      "Severity": "High"
+    }
+  },
+  {
+    "Vulnerability": {
+      "CVSS": [],
+      "Description": "",
+      "FixedIn": [
+        {
+          "Name": "rsyslog",
+          "NamespaceName": "debian:8",
+          "VendorAdvisory": {
+            "AdvisorySummary": [],
+            "NoAdvisory": false
+          },
+          "Version": "5.7.4-1",
+          "VersionFormat": "dpkg"
+        }
+      ],
+      "Link": "https://security-tracker.debian.org/tracker/CVE-2011-4623",
+      "Metadata": {
+        "NVD": {
+          "CVSSv2": {
+            "Score": 2.1,
+            "Vectors": "AV:L/AC:L/Au:N/C:N/I:N/A:P"
+          }
+        }
+      },
+      "Name": "CVE-2011-4623",
+      "NamespaceName": "debian:8",
+      "Severity": "Low"
+    }
+  },
+  {
+    "Vulnerability": {
+      "CVSS": [],
+      "Description": "",
+      "FixedIn": [
+        {
+          "Name": "rsyslog",
+          "NamespaceName": "debian:8",
+          "VendorAdvisory": {
+            "AdvisorySummary": [],
+            "NoAdvisory": false
+          },
+          "Version": "3.18.6-1",
+          "VersionFormat": "dpkg"
+        }
+      ],
+      "Link": "https://security-tracker.debian.org/tracker/CVE-2008-5618",
+      "Metadata": {
+        "NVD": {
+          "CVSSv2": {
+            "Score": 5,
+            "Vectors": "AV:N/AC:L/Au:N/C:N/I:N/A:P"
+          }
+        }
+      },
+      "Name": "CVE-2008-5618",
+      "NamespaceName": "debian:8",
+      "Severity": "Low"
+    }
+  },
+  {
+    "Vulnerability": {
+      "Description": "",
+      "FixedIn": [
+        {
+          "Name": "389-ds-base",
+          "NamespaceName": "amzn:2",
+          "Version": "1.3.8.4-15.amzn2.0.1",
+          "VersionFormat": "rpm"
+        },
+        {
+          "Name": "389-ds-base-debuginfo",
+          "NamespaceName": "amzn:2",
+          "Version": "1.3.8.4-15.amzn2.0.1",
+          "VersionFormat": "rpm"
+        },
+        {
+          "Name": "389-ds-base-devel",
+          "NamespaceName": "amzn:2",
+          "Version": "1.3.8.4-15.amzn2.0.1",
+          "VersionFormat": "rpm"
+        },
+        {
+          "Name": "389-ds-base-libs",
+          "NamespaceName": "amzn:2",
+          "Version": "1.3.8.4-15.amzn2.0.1",
+          "VersionFormat": "rpm"
+        },
+        {
+          "Name": "389-ds-base-snmp",
+          "NamespaceName": "amzn:2",
+          "Version": "1.3.8.4-15.amzn2.0.1",
+          "VersionFormat": "rpm"
+        }
+      ],
+      "Link": "https://alas.aws.amazon.com/AL2/ALAS-2018-1106.html",
+      "Metadata": {
+        "CVE": [
+          {"Name": "CVE-2018-14648"}
+        ]
+      },
+      "Name": "ALAS-2018-1106",
+      "NamespaceName": "amzn:2",
+      "Severity": "Medium"
+    }
+  },
+  {
+    "Vulnerability": {
+      "CVSS": [],
+      "Description": "",
+      "FixedIn": [],
+      "Link": null,
+      "Metadata": {},
+      "Name": null,
+      "NamespaceName": null,
+      "Severity": null
+    }
+  },
+  {
+    "Vulnerability": {
+      "CVSS": [],
+      "Description": "",
+      "FixedIn": [],
+      "Link": null,
+      "Metadata": {},
+      "Name": "",
+      "NamespaceName": null,
+      "Severity": null
+    }
+  },
+  {
+    "Vulnerability": {
+      "CVSS": [],
+      "Description": "",
+      "FixedIn": [],
+      "Link": null,
+      "Metadata": {},
+      "NamespaceName": null,
+      "Severity": null
+    }
+  }
+]

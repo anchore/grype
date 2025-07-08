@@ -11,9 +11,9 @@ import (
 	"github.com/olekukonko/tablewriter/tw"
 	"github.com/scylladb/go-set/strset"
 
-	"github.com/anchore/grype/grype/db/v5/namespace/distro"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal/db/v5/namespace/distro"
 )
 
 const (

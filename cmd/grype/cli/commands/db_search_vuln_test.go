@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/cmd/grype/cli/commands/internal/dbsearch"
-	v6 "github.com/anchore/grype/grype/db/v6"
+	v6 "github.com/anchore/grype/internal/db/v6"
 )
 
 func TestGetOSVersions(t *testing.T) {

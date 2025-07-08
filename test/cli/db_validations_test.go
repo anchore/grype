@@ -14,8 +14,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	v6 "github.com/anchore/grype/grype/db/v6"
-	dbtest "github.com/anchore/grype/grype/db/v6/testutil"
+	v6 "github.com/anchore/grype/internal/db/v6"
+	dbtest "github.com/anchore/grype/internal/db/v6/testutil"
 	"github.com/anchore/grype/internal/schemaver"
 )
 

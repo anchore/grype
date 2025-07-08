@@ -2,8 +2,8 @@ package options
 
 import (
 	"github.com/anchore/clio"
-	"github.com/anchore/grype/grype/db/v6/distribution"
-	"github.com/anchore/grype/grype/db/v6/installation"
+	"github.com/anchore/grype/internal/db/v6/distribution"
+	"github.com/anchore/grype/internal/db/v6/installation"
 )
 
 type DatabaseCommand struct {

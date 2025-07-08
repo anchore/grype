@@ -3,9 +3,9 @@ package search
 import (
 	"fmt"
 
-	"github.com/anchore/grype/grype/db/v5/namespace"
-	"github.com/anchore/grype/grype/db/v5/namespace/language"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal/db/v5/namespace"
+	"github.com/anchore/grype/internal/db/v5/namespace/language"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 

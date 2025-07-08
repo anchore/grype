@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/vulnerability"
+	v6 "github.com/anchore/grype/internal/db/v6"
 )
 
 func TestGetSeverity(t *testing.T) {

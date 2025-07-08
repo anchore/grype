@@ -11,9 +11,9 @@ import (
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
-	"github.com/anchore/grype/grype/db/v6/distribution"
-	"github.com/anchore/grype/grype/db/v6/installation"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal/db/v6/distribution"
+	"github.com/anchore/grype/internal/db/v6/installation"
 )
 
 type dbStatusOptions struct {

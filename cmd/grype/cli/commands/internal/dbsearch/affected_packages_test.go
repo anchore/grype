@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	v6 "github.com/anchore/grype/grype/db/v6"
+	v6 "github.com/anchore/grype/internal/db/v6"
 	"github.com/anchore/syft/syft/cpe"
 )
 

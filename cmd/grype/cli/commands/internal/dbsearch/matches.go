@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
-	v6 "github.com/anchore/grype/grype/db/v6"
+	v6 "github.com/anchore/grype/internal/db/v6"
 )
 
 // Matches is the JSON document for the `db search` command

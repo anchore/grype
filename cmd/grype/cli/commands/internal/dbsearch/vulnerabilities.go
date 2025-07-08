@@ -6,9 +6,9 @@ import (
 	"sort"
 	"time"
 
-	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/cvss"
+	v6 "github.com/anchore/grype/internal/db/v6"
 	"github.com/anchore/grype/internal/log"
 )
 

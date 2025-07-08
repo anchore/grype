@@ -1,0 +1,138 @@
+[
+  {
+    "cve": {
+      "id": "CVE-1987-1111",
+      "sourceIdentifier": "cve@mitre.org",
+      "published": "2016-11-22T17:59:00.180",
+      "lastModified": "2016-11-28T19:50:59.600",
+      "vulnStatus": "Modified",
+      "descriptions": [],
+      "metrics": {
+        "cvssMetricV30": [],
+        "cvssMetricV2": []
+      },
+      "weaknesses": [],
+      "configurations": [
+        {
+          "nodes": [
+            {
+              "operator": "OR",
+              "negate": false,
+              "cpeMatch": [
+                {
+                  "vulnerable": true,
+                  "criteria": "cpe:2.3:a:soap\\:\\:lite_project:soap\\:\\:lite:*:*:*:*:*:perl:*:*",
+                  "versionEndIncluding": "1.14",
+                  "matchCriteriaId": "FB4DACB9-2E9E-4CBE-825F-FC0303D8CC86"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "references": []
+    }
+  },
+  {
+    "cve": {
+      "id": "CVE-1987-2222",
+      "sourceIdentifier": "cve@mitre.org",
+      "published": "2016-11-22T17:59:00.180",
+      "lastModified": "2016-11-28T19:50:59.600",
+      "vulnStatus": "Modified",
+      "descriptions": [],
+      "metrics": {
+        "cvssMetricV30": [],
+        "cvssMetricV2": []
+      },
+      "weaknesses": [],
+      "configurations": [
+        {
+          "nodes": [
+            {
+              "operator": "OR",
+              "negate": false,
+              "cpeMatch": [
+                {
+                  "vulnerable": true,
+                  "criteria": "cpe:2.3:a:soap\\:\\:lite_project:soap\\:\\:lite:*:*:*:*:*:perl:*:*",
+                  "versionEndIncluding": "1.14",
+                  "matchCriteriaId": "FB4DACB9-2E9E-4CBE-825F-FC0303D8CC86"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "references": []
+    }
+  },
+  {
+    "cve": {
+      "id": "CVE-1987-3333",
+      "sourceIdentifier": "cve@mitre.org",
+      "published": "2016-11-22T17:59:00.180",
+      "lastModified": "2016-11-28T19:50:59.600",
+      "vulnStatus": "Modified",
+      "descriptions": [],
+      "metrics": {
+        "cvssMetricV30": [],
+        "cvssMetricV2": []
+      },
+      "weaknesses": [],
+      "configurations": [
+        {
+          "nodes": [
+            {
+              "operator": "OR",
+              "negate": false,
+              "cpeMatch": [
+                {
+                  "vulnerable": true,
+                  "criteria": "cpe:2.3:a:soap\\:\\:lite_project:soap\\:\\:lite:*:*:*:*:*:perl:*:*",
+                  "versionEndIncluding": "1.14",
+                  "matchCriteriaId": "FB4DACB9-2E9E-4CBE-825F-FC0303D8CC86"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "references": []
+    }
+  },
+  {
+    "cve": {
+      "id": "",
+      "sourceIdentifier": "^ note... there is no CVE ID in this test!!!",
+      "published": "2016-11-22T17:59:00.180",
+      "lastModified": "2016-11-28T19:50:59.600",
+      "vulnStatus": "Modified",
+      "descriptions": [],
+      "metrics": {
+        "cvssMetricV30": [],
+        "cvssMetricV2": []
+      },
+      "weaknesses": [],
+      "configurations": [
+        {
+          "nodes": [
+            {
+              "operator": "OR",
+              "negate": false,
+              "cpeMatch": [
+                {
+                  "vulnerable": true,
+                  "criteria": "cpe:2.3:a:soap\\:\\:lite_project:soap\\:\\:lite:*:*:*:*:*:perl:*:*",
+                  "versionEndIncluding": "1.14",
+                  "matchCriteriaId": "FB4DACB9-2E9E-4CBE-825F-FC0303D8CC86"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "references": []
+    }
+  }
+]

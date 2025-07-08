@@ -1,0 +1,41 @@
+{
+    "Advisory": {
+      "Classification": "GENERAL",
+      "Severity": "Critical",
+      "CVSS": {
+        "version": "3.1",
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+        "base_metrics": {
+          "base_score": 9.8,
+          "exploitability_score": 3.9,
+          "impact_score": 5.9,
+          "base_severity": "Critical"
+        },
+        "status": "N/A"
+      },
+      "FixedIn": [
+        {
+          "name": "scratch-vm",
+          "identifier": "0.2.0-prerelease.20200714185213",
+          "ecosystem": "npm",
+          "namespace": "github:npm",
+          "range": "<= 0.2.0-prerelease.20200709173451"
+        }
+      ],
+      "Summary": "Remote Code Execution in scratch-vm",
+      "url": "https://github.com/advisories/GHSA-vc9j-fhvv-8vrf",
+      "CVE": [
+        "CVE-2020-14000"
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2020-14000"
+        ]
+      },
+      "ghsaId": "GHSA-vc9j-fhvv-8vrf",
+      "published": "2020-07-27T19:55:52Z",
+      "updated": "2023-01-09T05:03:39Z",
+      "withdrawn": null,
+      "namespace": "github:npm"
+    }
+}

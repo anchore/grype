@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	v6 "github.com/anchore/grype/grype/db/v6"
+	v6 "github.com/anchore/grype/internal/db/v6"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/cpe"
 )

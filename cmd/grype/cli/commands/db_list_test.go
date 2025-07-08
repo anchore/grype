@@ -13,8 +13,8 @@ import (
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
-	db "github.com/anchore/grype/grype/db/v6"
-	"github.com/anchore/grype/grype/db/v6/distribution"
+	db "github.com/anchore/grype/internal/db/v6"
+	"github.com/anchore/grype/internal/db/v6/distribution"
 	"github.com/anchore/grype/internal/schemaver"
 )
 

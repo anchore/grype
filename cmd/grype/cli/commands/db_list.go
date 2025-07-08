@@ -11,7 +11,7 @@ import (
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
-	"github.com/anchore/grype/grype/db/v6/distribution"
+	"github.com/anchore/grype/internal/db/v6/distribution"
 )
 
 type dbListOptions struct {
