@@ -11,6 +11,7 @@ import (
 	"github.com/anchore/grype/grype/db/internal/gormadapter"
 	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/db/v5/store/model"
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/stringutil"
 )
 
@@ -98,7 +99,7 @@ func (s *store) GetVulnerability(namespace, id string) ([]v5.Vulnerability, erro
 
 	result := query.Find(&models)
 
-	var vulnerabilities = make([]v5.Vulnerability, len(models))
+	vulnerabilities := make([]v5.Vulnerability, len(models))
 	for idx, m := range models {
 		vulnerability, err := m.Inflate()
 		if err != nil {
@@ -116,7 +117,7 @@ func (s *store) SearchForVulnerabilities(namespace, packageName string) ([]v5.Vu
 
 	result := s.db.Where("namespace = ? AND package_name = ?", namespace, packageName).Find(&models)
 
-	var vulnerabilities = make([]v5.Vulnerability, len(models))
+	vulnerabilities := make([]v5.Vulnerability, len(models))
 	for idx, m := range models {
 		vulnerability, err := m.Inflate()
 		if err != nil {
@@ -278,7 +279,27 @@ func (s *store) AddVulnerabilityMatchExclusion(exclusions ...v5.VulnerabilityMat
 }
 
 func (s *store) Close() error {
+	log.Info("optimizing database settings for memory-efficient VACUUM")
+
+	// Reduce memory footprint for VACUUM operation
+	memoryEfficientStatements := []string{
+		"PRAGMA cache_size = -32768",     // 32MB instead of 1GB
+		"PRAGMA temp_store = FILE",       // Use disk for temp storage
+		"PRAGMA mmap_size = 67108864",    // 64MB instead of 1GB
+		"PRAGMA journal_mode = TRUNCATE", // Disk-based journal, no directory modifications
+	}
+
+	for _, stmt := range memoryEfficientStatements {
+		if err := s.db.Exec(stmt).Error; err != nil {
+			log.WithFields("statement", stmt, "error", err).Warn("failed to apply memory optimization")
+		} else {
+			log.WithFields("statement", stmt).Debug("applied memory optimization")
+		}
+	}
+
+	log.Info("starting database VACUUM operation")
 	s.db.Exec("VACUUM;")
+	log.Info("database VACUUM operation completed")
 
 	sqlDB, _ := s.db.DB()
 	if sqlDB != nil {
