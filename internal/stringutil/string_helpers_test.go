@@ -320,3 +320,110 @@ func TestSplitOnFirstString(t *testing.T) {
 		})
 	}
 }
+
+func TestSplitOnAny(t *testing.T) {
+	tests := []struct {
+		name       string
+		input      string
+		separators []string
+		expected   []string
+	}{
+		{
+			name:       "empty string",
+			input:      "",
+			separators: []string{","},
+			expected:   nil,
+		},
+		{
+			name:       "single separator",
+			input:      "a,b,c",
+			separators: []string{","},
+			expected:   []string{"a", "b", "c"},
+		},
+		{
+			name:       "multiple separators",
+			input:      "a,b;c:d",
+			separators: []string{",", ";", ":"},
+			expected:   []string{"a", "b", "c", "d"},
+		},
+		{
+			name:       "no separators found",
+			input:      "hello",
+			separators: []string{",", ";"},
+			expected:   []string{"hello"},
+		},
+		{
+			name:       "consecutive separators",
+			input:      "a,,b",
+			separators: []string{","},
+			expected:   []string{"a", "", "b"},
+		},
+		{
+			name:       "separator at beginning",
+			input:      ",a,b",
+			separators: []string{","},
+			expected:   []string{"", "a", "b"},
+		},
+		{
+			name:       "separator at end",
+			input:      "a,b,",
+			separators: []string{","},
+			expected:   []string{"a", "b", ""},
+		},
+		{
+			name:       "only separators",
+			input:      ",,",
+			separators: []string{","},
+			expected:   []string{"", "", ""},
+		},
+		{
+			name:       "overlapping separators",
+			input:      "a,b;c,d",
+			separators: []string{",", ";"},
+			expected:   []string{"a", "b", "c", "d"},
+		},
+		{
+			name:       "separator is substring of another",
+			input:      "a::b:c",
+			separators: []string{"::", ":"},
+			expected:   []string{"a", "b", "c"},
+		},
+		{
+			name:       "order does not matter for overlapping",
+			input:      "a::b:c",
+			separators: []string{":", "::"},
+			expected:   []string{"a", "b", "c"},
+		},
+		{
+			name:       "no separators provided",
+			input:      "hello",
+			separators: []string{},
+			expected:   []string{"hello"},
+		},
+		{
+			name:       "multi-character separator",
+			input:      "a<->b<->c",
+			separators: []string{"<->"},
+			expected:   []string{"a", "b", "c"},
+		},
+		{
+			name:       "mixed single and multi-character separators",
+			input:      "a,b<->c;d",
+			separators: []string{",", "<->", ";"},
+			expected:   []string{"a", "b", "c", "d"},
+		},
+		{
+			name:       "space separator",
+			input:      "hello world test",
+			separators: []string{" "},
+			expected:   []string{"hello", "world", "test"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := SplitOnAny(tt.input, tt.separators...)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}

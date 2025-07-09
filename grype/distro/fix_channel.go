@@ -1,6 +1,8 @@
 package distro
 
 import (
+	"github.com/scylladb/go-set/strset"
+
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/linux"
@@ -34,7 +36,9 @@ type FixChannel struct {
 	Versions version.Constraint
 }
 
-func DefaultFixChannels() []FixChannel {
+type FixChannels []FixChannel
+
+func DefaultFixChannels() FixChannels {
 	return []FixChannel{
 		{
 			Name:     "eus",
@@ -45,7 +49,24 @@ func DefaultFixChannels() []FixChannel {
 	}
 }
 
-func applyChannels(release linux.Release, ver *version.Version, existingChannel string, channels []FixChannel) string {
+func (f FixChannels) Apply(enable FixChannelEnabled) FixChannels {
+	for i := range f {
+		f[i].Apply = enable
+	}
+	return f
+}
+
+func applyChannels(release linux.Release, ver *version.Version, existingChannels []string, channels []FixChannel) []string {
+	existingChannelSet := strset.New(existingChannels...)
+	var result []string
+
+	addResult := func(channel string, extendedSupport bool, pref FixChannelEnabled) {
+		res := applyChannel(channel, extendedSupport, pref)
+		if res != "" {
+			result = append(result, res)
+		}
+	}
+
 	for _, channel := range channels {
 		var found bool
 		for _, channelID := range channel.IDs {
@@ -59,13 +80,14 @@ func applyChannels(release linux.Release, ver *version.Version, existingChannel 
 		}
 
 		// we will either get a direct indication as a flag, or as a result of the channel being applied to the distro already
-		extendedSupport := release.ExtendedSupport || existingChannel == channel.Name
+		extendedSupport := release.ExtendedSupport || existingChannelSet.Has(channel.Name)
 
 		if ver == nil && release.VersionCodename != "" {
 			// TODO: there is not a good way to do this without a DB call, so for now we will assume the channel applies
 			log.Debugf("using channel %q for distro %q with codename %q", channel.Name, release.ID, release.VersionCodename)
 
-			return applyChannel(channel.Name, extendedSupport, channel.Apply)
+			addResult(channel.Name, extendedSupport, channel.Apply)
+			continue
 		}
 
 		if channel.Versions != nil && ver != nil {
@@ -76,13 +98,14 @@ func applyChannels(release linux.Release, ver *version.Version, existingChannel 
 			}
 			if isApplicable {
 				log.Debugf("using channel %q for distro %q with version %q", channel.Name, release.ID, ver)
-				return applyChannel(channel.Name, extendedSupport, channel.Apply)
+				addResult(channel.Name, extendedSupport, channel.Apply)
+				continue
 			}
 		}
 		log.Debugf("using channel %q for distro %q", channel.Name, release.ID)
-		return applyChannel(channel.Name, extendedSupport, channel.Apply)
+		addResult(channel.Name, extendedSupport, channel.Apply)
 	}
-	return ""
+	return result
 }
 
 func applyChannel(channel string, hintsExtendedSupport bool, pref FixChannelEnabled) string {

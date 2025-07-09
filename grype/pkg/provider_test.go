@@ -253,13 +253,13 @@ func Test_getDistroChannelApplier(t *testing.T) {
 		name     string
 		channels []distro.FixChannel
 		distro   func() *distro.Distro
-		want     string
+		want     []string
 	}{
 		{
 			name:     "nil distro",
 			channels: distro.DefaultFixChannels(),
 			distro:   func() *distro.Distro { return nil },
-			want:     "",
+			want:     nil,
 		},
 		{
 			name:     "no matching channel",
@@ -267,7 +267,7 @@ func Test_getDistroChannelApplier(t *testing.T) {
 			distro: func() *distro.Distro {
 				return distro.NewFromNameVersion("ubuntu", "20.04")
 			},
-			want: "",
+			want: nil,
 		},
 		{
 			name: "channel never enabled",
@@ -279,7 +279,7 @@ func Test_getDistroChannelApplier(t *testing.T) {
 				},
 			},
 			distro: defaultOSGen,
-			want:   "",
+			want:   nil,
 		},
 		{
 			name: "channel always enabled",
@@ -291,7 +291,7 @@ func Test_getDistroChannelApplier(t *testing.T) {
 				},
 			},
 			distro: defaultOSGen,
-			want:   "eus",
+			want:   []string{"eus"},
 		},
 		{
 			name: "case insensitive matching",
@@ -303,7 +303,7 @@ func Test_getDistroChannelApplier(t *testing.T) {
 				},
 			},
 			distro: defaultOSGen,
-			want:   "eus",
+			want:   []string{"eus"},
 		},
 		{
 			name: "multiple IDs in channel",
@@ -315,7 +315,7 @@ func Test_getDistroChannelApplier(t *testing.T) {
 				},
 			},
 			distro: defaultOSGen,
-			want:   "test-channel",
+			want:   []string{"test-channel"},
 		},
 		{
 			name: "empty channel name skipped",
@@ -327,7 +327,7 @@ func Test_getDistroChannelApplier(t *testing.T) {
 				},
 			},
 			distro: defaultOSGen,
-			want:   "",
+			want:   nil,
 		},
 	}
 
@@ -339,7 +339,7 @@ func Test_getDistroChannelApplier(t *testing.T) {
 			applier(d)
 
 			if d != nil {
-				assert.Equal(t, tt.want, d.Channel)
+				assert.Equal(t, tt.want, d.Channels)
 			}
 		})
 	}

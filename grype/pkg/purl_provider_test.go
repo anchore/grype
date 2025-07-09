@@ -12,6 +12,11 @@ import (
 	"github.com/anchore/syft/syft/source"
 )
 
+var diffOpts = []cmp.Option{
+	cmpopts.IgnoreFields(Package{}, "ID", "Locations", "Licenses", "Language", "CPEs"),
+	cmpopts.IgnoreUnexported(distro.Distro{}),
+}
+
 func Test_PurlProvider(t *testing.T) {
 
 	tests := []struct {
@@ -289,7 +294,7 @@ func Test_PurlProvider(t *testing.T) {
 					Version: "239-82.el8_10.2",
 					Type:    pkg.RpmPkg,
 					PURL:    "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?distro=rhel-8.10+eus",
-					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.10", Channel: "eus", IDLike: []string{"redhat"}},
+					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.10", Channels: names("eus"), IDLike: []string{"redhat"}},
 				},
 			},
 		},
@@ -315,8 +320,8 @@ func Test_PurlProvider(t *testing.T) {
 					Name:    "systemd-x",
 					Version: "239-82.el8_10.2",
 					Type:    pkg.RpmPkg,
-					PURL:    "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?distro=rhel-8.10",                                   // important! no channel applied
-					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.10", Channel: "", IDLike: []string{"redhat"}}, // important! no channel applied
+					PURL:    "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?distro=rhel-8.10",                                     // important! no channel applied
+					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.10", Channels: nil, IDLike: []string{"redhat"}}, // important! no channel applied
 				},
 			},
 		},
@@ -342,8 +347,8 @@ func Test_PurlProvider(t *testing.T) {
 					Name:    "systemd-x",
 					Version: "239-82.el8_10.2",
 					Type:    pkg.RpmPkg,
-					PURL:    "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?distro=rhel-8.10%2Beus",                                // important! channel applied
-					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.10", Channel: "eus", IDLike: []string{"redhat"}}, // important! channel applied
+					PURL:    "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?distro=rhel-8.10%2Beus",                                        // important! channel applied
+					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.10", Channels: names("eus"), IDLike: []string{"redhat"}}, // important! channel applied
 				},
 			},
 		},
@@ -388,7 +393,6 @@ func Test_PurlProvider(t *testing.T) {
 	}
 }
 
-var diffOpts = []cmp.Option{
-	cmpopts.IgnoreFields(Package{}, "ID", "Locations", "Licenses", "Language", "CPEs"),
-	cmpopts.IgnoreUnexported(distro.Distro{}),
+func names(ns ...string) []string {
+	return ns
 }

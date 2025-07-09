@@ -144,9 +144,9 @@ func Test_NewDistroFromRelease(t *testing.T) {
 			},
 			channels: testFixChannels(),
 			expected: &Distro{
-				Type:    RedHat,
-				Version: "9.4",
-				Channel: "eus",
+				Type:     RedHat,
+				Version:  "9.4",
+				Channels: names("eus"),
 			},
 			major: "9",
 			minor: "4",
@@ -166,9 +166,9 @@ func Test_NewDistroFromRelease(t *testing.T) {
 				},
 			},
 			expected: &Distro{
-				Type:    RedHat,
-				Version: "9.4",
-				Channel: "eus",
+				Type:     RedHat,
+				Version:  "9.4",
+				Channels: names("eus"),
 			},
 			major: "9",
 			minor: "4",
@@ -187,9 +187,9 @@ func Test_NewDistroFromRelease(t *testing.T) {
 				},
 			},
 			expected: &Distro{
-				Type:    RedHat,
-				Version: "9.4",
-				Channel: "eus",
+				Type:     RedHat,
+				Version:  "9.4",
+				Channels: names("eus"),
 			},
 			major: "9",
 			minor: "4",
@@ -209,9 +209,9 @@ func Test_NewDistroFromRelease(t *testing.T) {
 				},
 			},
 			expected: &Distro{
-				Type:    RedHat,
-				Version: "9.4",
-				Channel: "eus",
+				Type:     RedHat,
+				Version:  "9.4",
+				Channels: names("eus"),
 			},
 			major: "9",
 			minor: "4",
@@ -230,9 +230,9 @@ func Test_NewDistroFromRelease(t *testing.T) {
 				},
 			},
 			expected: &Distro{
-				Type:    RedHat,
-				Version: "9.4",
-				Channel: "eus",
+				Type:     RedHat,
+				Version:  "9.4",
+				Channels: names("eus"),
 			},
 			major: "9",
 			minor: "4",
@@ -575,4 +575,8 @@ func TestDistro_MajorVersion(t *testing.T) {
 		})
 	}
 
+}
+
+func names(ns ...string) []string {
+	return ns
 }

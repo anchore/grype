@@ -532,8 +532,8 @@ func updatePURLWithDistro(out *Package, purl packageurl.PackageURL) {
 				if vs != "" {
 					q.Value += "-" + vs
 				}
-				if out.Distro.Channel != "" {
-					q.Value += "+" + out.Distro.Channel
+				if len(out.Distro.Channels) > 0 {
+					q.Value += "+" + strings.Join(out.Distro.Channels, ",")
 				}
 				out.PURL = purl.String()
 				break

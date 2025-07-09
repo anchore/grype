@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/bmatcuk/doublestar/v2"
+	"github.com/scylladb/go-set/strset"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/internal/log"
@@ -45,9 +46,9 @@ func Provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom
 	return packages, ctx, s, nil
 }
 
-func getDistroChannelApplier(channels []distro.FixChannel) func(d *distro.Distro) bool {
+func getDistroChannelApplier(channels []distro.FixChannel) func(d *distro.Distro) bool { // nolint:gocognit
 	// build a map of channel names to channels
-	idx := make(map[string]distro.FixChannel, len(channels))
+	idx := make(map[string][]distro.FixChannel, len(channels))
 	for _, c := range channels {
 		if c.Name == "" {
 			continue
@@ -56,7 +57,8 @@ func getDistroChannelApplier(channels []distro.FixChannel) func(d *distro.Distro
 			if id == "" {
 				continue
 			}
-			idx[strings.ToLower(id)] = c
+			id = strings.ToLower(id)
+			idx[id] = append(idx[id], c)
 		}
 	}
 
@@ -65,21 +67,41 @@ func getDistroChannelApplier(channels []distro.FixChannel) func(d *distro.Distro
 			return false
 		}
 
+		var result []string
+
 		id := strings.ToLower(d.ID())
-		channel, ok := idx[id]
+		channels, ok := idx[id]
 		if !ok {
 			return false
 		}
 
-		switch channel.Apply {
-		case distro.ChannelNeverEnabled:
-			d.Channel = ""
-			return true
-		case distro.ChannelAlwaysEnabled:
-			d.Channel = channel.Name
-			return true
+		existing := strset.New(d.Channels...)
+
+		var modified bool
+		for _, channel := range channels {
+			if channel.Name == "" {
+				continue
+			}
+			switch channel.Apply {
+			case distro.ChannelNeverEnabled:
+				if existing.Has(channel.Name) {
+					modified = true
+				}
+			case distro.ChannelAlwaysEnabled:
+				result = append(result, channel.Name)
+				if !existing.Has(channel.Name) {
+					modified = true
+				}
+			case distro.ChannelConditionallyEnabled:
+				if existing.Has(channel.Name) {
+					result = append(result, channel.Name)
+				}
+			}
 		}
-		return false
+
+		d.Channels = result
+
+		return modified
 	}
 }
 

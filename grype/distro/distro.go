@@ -6,15 +6,16 @@ import (
 
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/grype/internal/stringutil"
 	"github.com/anchore/syft/syft/linux"
 )
 
 // Distro represents a Linux Distribution.
 type Distro struct {
 	Type     Type
-	Version  string // major.minor.patch
-	Codename string // in lieu of a version e.g. "fossa" instead of "20.04"
-	Channel  string // distinguish between different feeds for fix and vulnerability data, e.g. "eus" for RHEL
+	Version  string   // major.minor.patch
+	Codename string   // in lieu of a version e.g. "fossa" instead of "20.04"
+	Channels []string // distinguish between different feeds for fix and vulnerability data, e.g. "eus" for RHEL
 	IDLike   []string
 
 	// fields populated in the constructor
@@ -26,7 +27,7 @@ type Distro struct {
 
 // New creates a new Distro object populated with the given values.
 func New(t Type, version, label string, idLikes ...string) *Distro {
-	major, minor, remaining, versionWithoutSuffix, channel := parseVersion(version)
+	major, minor, remaining, versionWithoutSuffix, channels := parseVersion(version)
 
 	for i := range idLikes {
 		typ, ok := IDMapping[strings.TrimSpace(idLikes[i])]
@@ -40,7 +41,7 @@ func New(t Type, version, label string, idLikes ...string) *Distro {
 		Version:  versionWithoutSuffix,
 		Codename: label,
 		IDLike:   idLikes,
-		Channel:  channel,
+		Channels: channels,
 
 		major:     major,
 		minor:     minor,
@@ -48,17 +49,18 @@ func New(t Type, version, label string, idLikes ...string) *Distro {
 	}
 }
 
-func parseVersion(version string) (major, minor, remaining, versionWithoutSuffix, channel string) {
+func parseVersion(version string) (major, minor, remaining, versionWithoutSuffix string, channels []string) {
 	if version == "" {
-		return "", "", "", "", ""
+		return "", "", "", "", nil
 	}
 
 	versionWithoutSuffix = version
+	var channelStr string
 	if strings.Contains(version, "+") {
-		vParts := strings.Split(version, "+")
+		vParts := strings.SplitN(version, "+", 2)
 		version = vParts[0]
 		versionWithoutSuffix = version
-		channel = vParts[1]
+		channelStr = vParts[1]
 	}
 
 	// if starts with a digit, then assume it's a version and extract the major, minor, and remaining versions
@@ -76,7 +78,7 @@ func parseVersion(version string) (major, minor, remaining, versionWithoutSuffix
 		}
 	}
 
-	return major, minor, remaining, versionWithoutSuffix, channel
+	return major, minor, remaining, versionWithoutSuffix, stringutil.SplitOnAny(strings.TrimSpace(channelStr), ",", "+")
 }
 
 // NewFromNameVersion creates a new Distro object derived from the provided name and version
@@ -139,7 +141,7 @@ func NewFromRelease(release linux.Release, channels []FixChannel) (*Distro, erro
 	}
 
 	d := New(t, selectedVersion, release.VersionCodename, release.IDLike...)
-	d.Channel = applyChannels(release, selectedVersionObj, d.Channel, channels)
+	d.Channels = applyChannels(release, selectedVersionObj, d.Channels, channels)
 
 	return d, nil
 }
@@ -179,8 +181,10 @@ func (d Distro) VersionString() string {
 		versionStr = d.Codename
 	}
 
-	if d.Channel != "" {
-		versionStr += "+" + d.Channel
+	channels := nonEmptyStrings(d.Channels...)
+
+	if len(channels) > 0 {
+		versionStr += "+" + strings.Join(channels, ",")
 	}
 
 	return versionStr
@@ -194,4 +198,13 @@ func (d Distro) Disabled() bool {
 	default:
 		return false
 	}
+}
+
+func nonEmptyStrings(ss ...string) (res []string) {
+	for _, s := range ss {
+		if s != "" {
+			res = append(res, s)
+		}
+	}
+	return res
 }

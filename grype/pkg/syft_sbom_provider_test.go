@@ -541,10 +541,10 @@ func Test_PurlList(t *testing.T) {
 					},
 				},
 				Distro: &distro.Distro{
-					Type:    distro.RedHat,
-					IDLike:  []string{"redhat"},
-					Channel: "eus", // important!
-					Version: "9.4",
+					Type:     distro.RedHat,
+					IDLike:   []string{"redhat"},
+					Channels: names("eus"), // important!
+					Version:  "9.4",
 				},
 			},
 			wantPkgs: []Package{
@@ -552,7 +552,7 @@ func Test_PurlList(t *testing.T) {
 					Name:    "kernel",
 					Version: "0:5.14.0-100",
 					Type:    pkg.RpmPkg,
-					Distro:  &distro.Distro{Type: distro.RedHat, Version: "9.4", Channel: "eus", IDLike: []string{"redhat"}},
+					Distro:  &distro.Distro{Type: distro.RedHat, Version: "9.4", Channels: names("eus"), IDLike: []string{"redhat"}},
 					PURL:    "pkg:rpm/redhat/kernel@0:5.14.0-100?distro=rhel-9.4+eus",
 				},
 			},
