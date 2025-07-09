@@ -595,13 +595,5 @@ func Test_PurlList(t *testing.T) {
 }
 
 func testFixChannels() []distro.FixChannel {
-	// TODO: change this to distro.DefaultFixChannels() when EUS is configured "auto" by default
-	//return distro.DefaultFixChannels()
-	return []distro.FixChannel{
-		{
-			Name:  "eus",
-			IDs:   []string{"rhel"},
-			Apply: distro.ChannelConditionallyEnabled,
-		},
-	}
+	return distro.DefaultFixChannels()
 }

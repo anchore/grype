@@ -52,7 +52,7 @@ func Test_getProviderConfig(t *testing.T) {
 							{
 								Name:     "eus",
 								IDs:      []string{"rhel"},
-								Apply:    "never", // TODO: this will change to "auto" once there is data in the DB to support it
+								Apply:    "auto",
 								Versions: version.MustGetConstraint(">= 8.0", version.SemanticFormat),
 							},
 						},
