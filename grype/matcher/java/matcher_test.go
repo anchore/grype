@@ -1,7 +1,9 @@
 package java
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -287,5 +289,52 @@ func TestMatcherJava_shouldSearchMavenBySha(t *testing.T) {
 
 			})
 		}
+	})
+}
+
+func TestMatcherJava_TestMatchUpstreamMavenPackagesTimeout(t *testing.T) {
+	newMatcher := func(searcher MavenSearcher) *Matcher {
+		return &Matcher{
+			cfg: MatcherConfig{
+				ExternalSearchConfig: ExternalSearchConfig{
+					SearchMavenUpstream: true,
+				},
+			},
+			MavenSearcher: searcher,
+		}
+	}
+	store := newMockProvider()
+
+	p := pkg.Package{
+		ID:       pkg.ID(uuid.NewString()),
+		Name:     "org.springframework.spring-webmvc",
+		Version:  "5.1.5.RELEASE",
+		Language: syftPkg.Java,
+		Type:     syftPkg.JavaPkg,
+		Metadata: pkg.JavaMetadata{
+			ArchiveDigests: []pkg.Digest{
+				{
+					Algorithm: "sha1",
+					Value:     "236e3bfdbdc6c86629237a74f0f11414adb4e211",
+				},
+			},
+		},
+	}
+
+	t.Run("handles context timeout", func(t *testing.T) {
+		// Create a mock searcher that simulates rate limiting
+		searcher := mockMavenSearcher{
+			simulateRateLimiting: true,
+		}
+		matcher := newMatcher(searcher)
+
+		// Create a context with a very short timeout
+		_, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
+		defer cancel()
+
+		_, err := matcher.matchUpstreamMavenPackages(store, p)
+
+		require.Error(t, err, "expected an error due to timeout")
+		assert.ErrorIs(t, err, context.DeadlineExceeded, "should have gotten a deadline exceeded error")
 	})
 }
