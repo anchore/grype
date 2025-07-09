@@ -368,22 +368,34 @@ func applyDistroHint(hint string) *distro.Distro {
 }
 
 func getFixChannels(fixChannelOpts options.FixChannels) []distro.FixChannel {
-	var c version.Constraint
-	var err error
-	if fixChannelOpts.RedHatEUS.Versions != "" {
-		c, err = version.GetConstraint(fixChannelOpts.RedHatEUS.Versions, version.SemanticFormat)
-		if err != nil {
-			log.Errorf("unable to parse Red Hat EUS version constraint %q, ignoring: %v", fixChannelOpts.RedHatEUS.Versions, err)
-			return nil
+	// get more detailed information from the API defaults
+	apiDefaults := distro.DefaultFixChannels()
+
+	var eus *distro.FixChannel
+	for i := range apiDefaults {
+		fc := &apiDefaults[i]
+		if fc.Name == "eus" {
+			eus = fc
+			break
 		}
+	}
+
+	var c version.Constraint
+	var ids []string
+	if eus != nil {
+		c = eus.Versions
+		ids = eus.IDs
 	}
 
 	return []distro.FixChannel{
 		{
+			// information inherent to the channel (part of the API defaults)
 			Name:     "eus",
-			IDs:      fixChannelOpts.RedHatEUS.IDs,
-			Apply:    fixChannelOpts.RedHatEUS.Apply,
+			IDs:      ids,
 			Versions: c,
+
+			// user configuration
+			Apply: distro.FixChannelEnabled(fixChannelOpts.RedHatEUS.Apply),
 		},
 	}
 }
