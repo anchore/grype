@@ -279,7 +279,7 @@ func (s *store) AddVulnerabilityMatchExclusion(exclusions ...v5.VulnerabilityMat
 }
 
 func (s *store) Close() error {
-	log.Info("optimizing database settings for memory-efficient VACUUM")
+	log.Debug("optimizing database settings for memory-efficient VACUUM")
 
 	// Reduce memory footprint for VACUUM operation
 	memoryEfficientStatements := []string{
@@ -297,9 +297,9 @@ func (s *store) Close() error {
 		}
 	}
 
-	log.Info("starting database VACUUM operation")
+	log.Debug("starting database VACUUM operation")
 	s.db.Exec("VACUUM;")
-	log.Info("database VACUUM operation completed")
+	log.Debug("database VACUUM operation completed")
 
 	sqlDB, _ := s.db.DB()
 	if sqlDB != nil {
