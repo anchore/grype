@@ -3,8 +3,6 @@ package version
 import (
 	"errors"
 	"fmt"
-
-	"github.com/anchore/grype/grype/pkg"
 )
 
 var _ Comparator = (*Version)(nil)
@@ -15,18 +13,11 @@ type Version struct {
 	comparators map[Format]Comparator
 }
 
-func NewVersion(raw string, format Format) *Version {
+func New(raw string, format Format) *Version {
 	return &Version{
 		Raw:    raw,
 		Format: format,
 	}
-}
-
-func NewVersionFromPkg(p pkg.Package) *Version {
-	if p.Version == "" {
-		return nil
-	}
-	return NewVersion(p.Version, FormatFromPkg(p))
 }
 
 func (v *Version) Validate() error {

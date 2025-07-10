@@ -59,12 +59,12 @@ func TestVersionCompare(t *testing.T) {
 					if tc.expectErr == nil {
 						tc.expectErr = require.NoError
 					}
-					v1 := NewVersion(tc.v1, format)
+					v1 := New(tc.v1, format)
 					require.Equal(t, format, v1.Format)
 
 					var v2 *Version
 					if tc.v2 != "" {
-						v2 = NewVersion(tc.v2, format)
+						v2 = New(tc.v2, format)
 						require.Equal(t, format, v2.Format)
 					}
 
@@ -83,10 +83,10 @@ func TestVersionCompare(t *testing.T) {
 }
 
 func TestVersion_UpgradeUnknownRightSideComparison(t *testing.T) {
-	v1 := NewVersion("1.0.0", SemanticFormat)
+	v1 := New("1.0.0", SemanticFormat)
 
 	// test if we can upgrade an unknown format to a known format when the left hand side is known
-	v2 := NewVersion("1.0.0", UnknownFormat)
+	v2 := New("1.0.0", UnknownFormat)
 
 	result, err := v1.Compare(v2)
 	assert.NoError(t, err)
@@ -116,8 +116,8 @@ func TestVersionCompareSameFormat(t *testing.T) {
 		t.Run(fmt.name, func(t *testing.T) {
 			// just test that we can create and compare versions of this format
 			// without errors - not testing the actual comparison logic
-			v1 := NewVersion("1.0.0", fmt.format)
-			v2 := NewVersion("1.0.0", fmt.format)
+			v1 := New("1.0.0", fmt.format)
+			v2 := New("1.0.0", fmt.format)
 
 			result, err := v1.Compare(v2)
 			assert.NoError(t, err, "comparison error")
@@ -137,140 +137,140 @@ func TestVersion_Is(t *testing.T) {
 	}{
 		{
 			name:     "equal versions - EQ operator",
-			version:  NewVersion("1.0.0", SemanticFormat),
+			version:  New("1.0.0", SemanticFormat),
 			operator: EQ,
-			other:    NewVersion("1.0.0", SemanticFormat),
+			other:    New("1.0.0", SemanticFormat),
 			expected: true,
 		},
 		{
 			name:     "equal versions - empty operator (defaults to EQ)",
-			version:  NewVersion("1.0.0", SemanticFormat),
+			version:  New("1.0.0", SemanticFormat),
 			operator: "",
-			other:    NewVersion("1.0.0", SemanticFormat),
+			other:    New("1.0.0", SemanticFormat),
 			expected: true,
 		},
 		{
 			name:     "unequal versions - EQ operator",
-			version:  NewVersion("1.0.0", SemanticFormat),
+			version:  New("1.0.0", SemanticFormat),
 			operator: EQ,
-			other:    NewVersion("2.0.0", SemanticFormat),
+			other:    New("2.0.0", SemanticFormat),
 			expected: false,
 		},
 		{
 			name:     "greater than - GT operator true",
-			version:  NewVersion("2.0.0", SemanticFormat),
+			version:  New("2.0.0", SemanticFormat),
 			operator: GT,
-			other:    NewVersion("1.0.0", SemanticFormat),
+			other:    New("1.0.0", SemanticFormat),
 			expected: true,
 		},
 		{
 			name:     "greater than - GT operator false",
-			version:  NewVersion("1.0.0", SemanticFormat),
+			version:  New("1.0.0", SemanticFormat),
 			operator: GT,
-			other:    NewVersion("2.0.0", SemanticFormat),
+			other:    New("2.0.0", SemanticFormat),
 			expected: false,
 		},
 		{
 			name:     "greater than or equal - GTE operator true (greater)",
-			version:  NewVersion("2.0.0", SemanticFormat),
+			version:  New("2.0.0", SemanticFormat),
 			operator: GTE,
-			other:    NewVersion("1.0.0", SemanticFormat),
+			other:    New("1.0.0", SemanticFormat),
 			expected: true,
 		},
 		{
 			name:     "greater than or equal - GTE operator true (equal)",
-			version:  NewVersion("1.0.0", SemanticFormat),
+			version:  New("1.0.0", SemanticFormat),
 			operator: GTE,
-			other:    NewVersion("1.0.0", SemanticFormat),
+			other:    New("1.0.0", SemanticFormat),
 			expected: true,
 		},
 		{
 			name:     "greater than or equal - GTE operator false",
-			version:  NewVersion("1.0.0", SemanticFormat),
+			version:  New("1.0.0", SemanticFormat),
 			operator: GTE,
-			other:    NewVersion("2.0.0", SemanticFormat),
+			other:    New("2.0.0", SemanticFormat),
 			expected: false,
 		},
 		{
 			name:     "less than - LT operator true",
-			version:  NewVersion("1.0.0", SemanticFormat),
+			version:  New("1.0.0", SemanticFormat),
 			operator: LT,
-			other:    NewVersion("2.0.0", SemanticFormat),
+			other:    New("2.0.0", SemanticFormat),
 			expected: true,
 		},
 		{
 			name:     "less than - LT operator false",
-			version:  NewVersion("2.0.0", SemanticFormat),
+			version:  New("2.0.0", SemanticFormat),
 			operator: LT,
-			other:    NewVersion("1.0.0", SemanticFormat),
+			other:    New("1.0.0", SemanticFormat),
 			expected: false,
 		},
 		{
 			name:     "less than or equal - LTE operator true (less)",
-			version:  NewVersion("1.0.0", SemanticFormat),
+			version:  New("1.0.0", SemanticFormat),
 			operator: LTE,
-			other:    NewVersion("2.0.0", SemanticFormat),
+			other:    New("2.0.0", SemanticFormat),
 			expected: true,
 		},
 		{
 			name:     "less than or equal - LTE operator true (equal)",
-			version:  NewVersion("1.0.0", SemanticFormat),
+			version:  New("1.0.0", SemanticFormat),
 			operator: LTE,
-			other:    NewVersion("1.0.0", SemanticFormat),
+			other:    New("1.0.0", SemanticFormat),
 			expected: true,
 		},
 		{
 			name:     "less than or equal - LTE operator false",
-			version:  NewVersion("2.0.0", SemanticFormat),
+			version:  New("2.0.0", SemanticFormat),
 			operator: LTE,
-			other:    NewVersion("1.0.0", SemanticFormat),
+			other:    New("1.0.0", SemanticFormat),
 			expected: false,
 		},
 		{
 			name:     "nil other version should return ErrNoVersionProvided",
-			version:  NewVersion("1.0.0", SemanticFormat),
+			version:  New("1.0.0", SemanticFormat),
 			operator: EQ,
 			other:    nil,
 			wantErr:  require.Error,
 		},
 		{
 			name:     "unknown operator should return error",
-			version:  NewVersion("1.0.0", SemanticFormat),
+			version:  New("1.0.0", SemanticFormat),
 			operator: "unknown",
-			other:    NewVersion("1.0.0", SemanticFormat),
+			other:    New("1.0.0", SemanticFormat),
 			wantErr:  require.Error,
 		},
 		{
 			name:     "invalid version format should return error",
-			version:  NewVersion("invalid", SemanticFormat),
+			version:  New("invalid", SemanticFormat),
 			operator: EQ,
-			other:    NewVersion("1.0.0", SemanticFormat),
+			other:    New("1.0.0", SemanticFormat),
 			wantErr:  require.Error,
 		},
 		{
 			name:     "different formats - semantic vs apk",
-			version:  NewVersion("1.0.0", SemanticFormat),
+			version:  New("1.0.0", SemanticFormat),
 			operator: EQ,
-			other:    NewVersion("1.0.0", ApkFormat),
+			other:    New("1.0.0", ApkFormat),
 			expected: true,
 		},
 		{
 			name:     "complex semantic versions",
-			version:  NewVersion("1.2.3-alpha.1", SemanticFormat),
+			version:  New("1.2.3-alpha.1", SemanticFormat),
 			operator: LT,
-			other:    NewVersion("1.2.3", SemanticFormat),
+			other:    New("1.2.3", SemanticFormat),
 			expected: true,
 		},
 		{
 			name:     "version with v prefix",
-			version:  NewVersion("v1.0.0", SemanticFormat),
+			version:  New("v1.0.0", SemanticFormat),
 			operator: EQ,
-			other:    NewVersion("1.0.0", SemanticFormat),
+			other:    New("1.0.0", SemanticFormat),
 			expected: true,
 		},
 		{
 			name:     "nil other version is ErrNoVersionProvided",
-			version:  NewVersion("1.0.0", SemanticFormat),
+			version:  New("1.0.0", SemanticFormat),
 			operator: EQ,
 			other:    nil,
 			wantErr: func(t require.TestingT, err error, a ...interface{}) {
@@ -279,18 +279,18 @@ func TestVersion_Is(t *testing.T) {
 		},
 		{
 			name:     "unknown operator error",
-			version:  NewVersion("1.0.0", SemanticFormat),
+			version:  New("1.0.0", SemanticFormat),
 			operator: "!@#",
-			other:    NewVersion("1.0.0", SemanticFormat),
+			other:    New("1.0.0", SemanticFormat),
 			wantErr: func(t require.TestingT, err error, a ...interface{}) {
 				require.ErrorContains(t, err, "unknown operator !@#", a...)
 			},
 		},
 		{
 			name:     "invalid version format error contains format",
-			version:  NewVersion("not-a-valid-version", SemanticFormat),
+			version:  New("not-a-valid-version", SemanticFormat),
 			operator: EQ,
-			other:    NewVersion("1.0.0", SemanticFormat),
+			other:    New("1.0.0", SemanticFormat),
 			wantErr: func(t require.TestingT, err error, a ...interface{}) {
 				require.ErrorContains(t, err, "unable to get comparator for Semantic", a...)
 			},
@@ -316,9 +316,9 @@ func TestVersion_Is(t *testing.T) {
 }
 
 func TestVersion_Is_AllOperators(t *testing.T) {
-	v1 := NewVersion("1.0.0", SemanticFormat)
-	v2 := NewVersion("2.0.0", SemanticFormat)
-	v1dup := NewVersion("1.0.0", SemanticFormat)
+	v1 := New("1.0.0", SemanticFormat)
+	v2 := New("2.0.0", SemanticFormat)
+	v1dup := New("1.0.0", SemanticFormat)
 
 	tests := []struct {
 		name     string

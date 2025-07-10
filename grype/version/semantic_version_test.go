@@ -201,8 +201,8 @@ func TestSemanticVersion_PrereleaseNormalizer_WithGemFormat(t *testing.T) {
 	for _, version := range rubyStyleVersions {
 		t.Run(version, func(t *testing.T) {
 			// both semantic and gem formats should be able to handle these versions
-			semanticVer := NewVersion(version, SemanticFormat)
-			gemVer := NewVersion(version, GemFormat)
+			semanticVer := New(version, SemanticFormat)
+			gemVer := New(version, GemFormat)
 
 			// they might have different comparison behavior, but both should be valid
 			assert.NotNil(t, semanticVer)
@@ -263,7 +263,7 @@ func TestSemanticVersion_Compare_Format(t *testing.T) {
 			thisVer, err := newSemanticVersion(test.thisVersion, true)
 			require.NoError(t, err)
 
-			otherVer := NewVersion(test.otherVersion, test.otherFormat)
+			otherVer := New(test.otherVersion, test.otherFormat)
 
 			result, err := thisVer.Compare(otherVer)
 
@@ -291,7 +291,7 @@ func TestSemanticVersion_Compare_EdgeCases(t *testing.T) {
 		{
 			name: "nil version object",
 			setupFunc: func(t testing.TB) (*Version, *Version) {
-				thisVer := NewVersion("1.2.3", SemanticFormat)
+				thisVer := New("1.2.3", SemanticFormat)
 				return thisVer, nil
 			},
 			expectError:    true,

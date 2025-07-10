@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft"
 )
@@ -21,4 +22,10 @@ type SyftProviderConfig struct {
 
 type SynthesisConfig struct {
 	GenerateMissingCPEs bool
+	Distro              DistroConfig
+}
+
+type DistroConfig struct {
+	Override    *distro.Distro
+	FixChannels []distro.FixChannel
 }

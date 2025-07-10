@@ -14,10 +14,23 @@ import (
 	"github.com/anchore/syft/syft/source/directorysource"
 )
 
+func testFixChannels() []FixChannel {
+	// TODO: change this to DefaultFixChannels() when EUS is configured "auto" by default
+	//return DefaultFixChannels()
+	return []FixChannel{
+		{
+			Name:  "eus",
+			IDs:   []string{"rhel"},
+			Apply: ChannelConditionallyEnabled,
+		},
+	}
+}
+
 func Test_NewDistroFromRelease(t *testing.T) {
 	tests := []struct {
 		name      string
 		release   linux.Release
+		channels  []FixChannel
 		expected  *Distro
 		minor     string
 		major     string
@@ -31,6 +44,7 @@ func Test_NewDistroFromRelease(t *testing.T) {
 				Version:   "7",
 				IDLike:    []string{"rhel"},
 			},
+			channels: testFixChannels(),
 			expected: &Distro{
 				Type:    CentOS,
 				Version: "8",
@@ -45,6 +59,7 @@ func Test_NewDistroFromRelease(t *testing.T) {
 				Name:      "windows",
 				VersionID: "8",
 			},
+			channels: testFixChannels(),
 			expected: &Distro{
 				Type:    Windows,
 				Version: "8",
@@ -58,6 +73,7 @@ func Test_NewDistroFromRelease(t *testing.T) {
 				ID:      "centos",
 				Version: "8",
 			},
+			channels: testFixChannels(),
 			expected: &Distro{
 				Type:    CentOS,
 				Version: "8",
@@ -71,6 +87,7 @@ func Test_NewDistroFromRelease(t *testing.T) {
 			release: linux.Release{
 				ID: "centos",
 			},
+			channels: testFixChannels(),
 			expected: &Distro{
 				Type: CentOS,
 			},
@@ -81,6 +98,7 @@ func Test_NewDistroFromRelease(t *testing.T) {
 				ID:        "bogosity",
 				VersionID: "8",
 			},
+			channels:  testFixChannels(),
 			expectErr: require.Error,
 		},
 		{
@@ -94,6 +112,7 @@ func Test_NewDistroFromRelease(t *testing.T) {
 				VersionCodename: "trixie",
 				Name:            "Debian GNU/Linux",
 			},
+			channels: testFixChannels(),
 			expected: &Distro{
 				Type:     Debian,
 				Codename: "trixie",
@@ -108,12 +127,156 @@ func Test_NewDistroFromRelease(t *testing.T) {
 				Version:   "3.0.20240417",
 				VersionID: "3.0",
 			},
+			channels: testFixChannels(),
 			expected: &Distro{
 				Type:    Azure,
 				Version: "3.0",
 			},
 			major: "3",
 			minor: "0",
+		},
+		{
+			name: "eus hint ignored when configured to never apply",
+			release: linux.Release{
+				ID:              "rhel",
+				Version:         "9.4",
+				ExtendedSupport: true,
+			},
+			channels: testFixChannels(),
+			expected: &Distro{
+				Type:     RedHat,
+				Version:  "9.4",
+				Channels: names("eus"),
+			},
+			major: "9",
+			minor: "4",
+		},
+		{
+			name: "eus hinted at as attribute",
+			release: linux.Release{
+				ID:              "rhel",
+				Version:         "9.4",
+				ExtendedSupport: true,
+			},
+			channels: []FixChannel{
+				{
+					Name:  "eus",
+					IDs:   []string{"rhel"},
+					Apply: ChannelConditionallyEnabled,
+				},
+			},
+			expected: &Distro{
+				Type:     RedHat,
+				Version:  "9.4",
+				Channels: names("eus"),
+			},
+			major: "9",
+			minor: "4",
+		},
+		{
+			name: "eus embedded in the version",
+			release: linux.Release{
+				ID:      "rhel",
+				Version: "9.4+eus",
+			},
+			channels: []FixChannel{
+				{
+					Name:  "eus",
+					IDs:   []string{"rhel"},
+					Apply: ChannelConditionallyEnabled,
+				},
+			},
+			expected: &Distro{
+				Type:     RedHat,
+				Version:  "9.4",
+				Channels: names("eus"),
+			},
+			major: "9",
+			minor: "4",
+		},
+		{
+			name: "eus hinted at as attribute (always apply)",
+			release: linux.Release{
+				ID:              "rhel",
+				Version:         "9.4",
+				ExtendedSupport: true,
+			},
+			channels: []FixChannel{
+				{
+					Name:  "eus",
+					IDs:   []string{"rhel"},
+					Apply: ChannelAlwaysEnabled, // important!
+				},
+			},
+			expected: &Distro{
+				Type:     RedHat,
+				Version:  "9.4",
+				Channels: names("eus"),
+			},
+			major: "9",
+			minor: "4",
+		},
+		{
+			name: "eus embedded in the version (always apply)",
+			release: linux.Release{
+				ID:      "rhel",
+				Version: "9.4+eus",
+			},
+			channels: []FixChannel{
+				{
+					Name:  "eus",
+					IDs:   []string{"rhel"},
+					Apply: ChannelAlwaysEnabled, // important!
+				},
+			},
+			expected: &Distro{
+				Type:     RedHat,
+				Version:  "9.4",
+				Channels: names("eus"),
+			},
+			major: "9",
+			minor: "4",
+		},
+		{
+			name: "eus hinted at as attribute (never apply)",
+			release: linux.Release{
+				ID:              "rhel",
+				Version:         "9.4",
+				ExtendedSupport: true,
+			},
+			channels: []FixChannel{
+				{
+					Name:  "eus",
+					IDs:   []string{"rhel"},
+					Apply: ChannelNeverEnabled, // important!
+				},
+			},
+			expected: &Distro{
+				Type:    RedHat,
+				Version: "9.4",
+			},
+			major: "9",
+			minor: "4",
+		},
+		{
+			name: "eus embedded in the version (never apply)",
+			release: linux.Release{
+				ID:      "rhel",
+				Version: "9.4+eus",
+			},
+			channels: []FixChannel{
+				{
+					Name:  "eus",
+					IDs:   []string{"rhel"},
+					Apply: ChannelNeverEnabled, // important!
+				},
+			},
+			expected: &Distro{
+				Type:    RedHat,
+				Version: "9.4",
+			},
+			major: "9",
+			minor: "4",
 		},
 	}
 
@@ -123,7 +286,7 @@ func Test_NewDistroFromRelease(t *testing.T) {
 				tt.expectErr = require.NoError
 			}
 
-			distro, err := NewFromRelease(tt.release)
+			distro, err := NewFromRelease(tt.release, tt.channels)
 			tt.expectErr(t, err)
 			if err != nil {
 				return
@@ -316,7 +479,7 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			require.NotNil(t, release, "empty linux release info")
 
 			// craft a new distro from the syft raw info
-			d, err := NewFromRelease(*release)
+			d, err := NewFromRelease(*release, testFixChannels())
 			require.NoError(t, err)
 
 			observedDistros.Add(d.Type.String())
@@ -368,7 +531,7 @@ func TestDistro_FullVersion(t *testing.T) {
 			d, err := NewFromRelease(linux.Release{
 				ID:      "centos",
 				Version: test.version,
-			})
+			}, testFixChannels())
 			require.NoError(t, err)
 			assert.Equal(t, test.expected, d.Version)
 		})
@@ -405,11 +568,15 @@ func TestDistro_MajorVersion(t *testing.T) {
 			d, err := NewFromRelease(linux.Release{
 				ID:      "centos",
 				Version: test.version,
-			})
+			}, testFixChannels())
 			require.NoError(t, err)
 			assert.Equal(t, test.expected, d.MajorVersion())
 
 		})
 	}
 
+}
+
+func names(ns ...string) []string {
+	return ns
 }

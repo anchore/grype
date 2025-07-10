@@ -511,7 +511,8 @@ func generateContext(t *testing.T, scheme SyftSource) pkg.Context {
 			IDLike: []string{
 				"centos",
 			},
-			Version: "8.0",
+			Version:  "8.0",
+			Channels: []string{"eus"}, // a fake EUS-like channel for centOS
 		},
 	}
 }

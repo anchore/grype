@@ -1064,7 +1064,7 @@ func TestFilterCPEsByVersion(t *testing.T) {
 
 			var versionObj *version.Version
 			if test.version != "" {
-				versionObj = version.NewVersion(test.version, version.UnknownFormat)
+				versionObj = version.New(test.version, version.UnknownFormat)
 			}
 
 			// run the test subject...

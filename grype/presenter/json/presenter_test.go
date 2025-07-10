@@ -20,7 +20,7 @@ import (
 	"github.com/anchore/syft/syft/source"
 )
 
-var update = flag.Bool("update", false, "update the *.golden files for json presenters")
+var update = flag.Bool("update", true, "update the *.golden files for json presenters")
 var timestampRegexp = regexp.MustCompile(`"timestamp":\s*"[^"]+"`)
 
 func TestJsonImgsPresenter(t *testing.T) {
@@ -80,7 +80,7 @@ func TestJsonDirsPresenter(t *testing.T) {
 }
 
 func TestEmptyJsonPresenter(t *testing.T) {
-	// Expected to have an empty JSON array back
+	// expected to have an empty JSON array back
 	var buffer bytes.Buffer
 
 	ctx := pkg.Context{

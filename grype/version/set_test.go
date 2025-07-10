@@ -24,8 +24,8 @@ func TestNewSet(t *testing.T) {
 			name:         "set with versions",
 			ignoreFormat: false,
 			versions: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
-				NewVersion("2.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
+				New("2.0.0", SemanticFormat),
 			},
 			expectedSize: 2,
 		},
@@ -33,8 +33,8 @@ func TestNewSet(t *testing.T) {
 			name:         "set with duplicate versions ignoring format",
 			ignoreFormat: true,
 			versions: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
-				NewVersion("1.0.0", ApkFormat),
+				New("1.0.0", SemanticFormat),
+				New("1.0.0", ApkFormat),
 			},
 			expectedSize: 1,
 		},
@@ -42,8 +42,8 @@ func TestNewSet(t *testing.T) {
 			name:         "set with duplicate versions not ignoring format",
 			ignoreFormat: false,
 			versions: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
-				NewVersion("1.0.0", ApkFormat),
+				New("1.0.0", SemanticFormat),
+				New("1.0.0", ApkFormat),
 			},
 			expectedSize: 2,
 		},
@@ -51,9 +51,9 @@ func TestNewSet(t *testing.T) {
 			name:         "set with nil versions",
 			ignoreFormat: false,
 			versions: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
 				nil,
-				NewVersion("2.0.0", SemanticFormat),
+				New("2.0.0", SemanticFormat),
 			},
 			expectedSize: 2,
 		},
@@ -81,10 +81,10 @@ func TestSet_Add(t *testing.T) {
 			name:         "add to empty set",
 			ignoreFormat: false,
 			versionsToAdd: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
 			},
 			expectedSize:     1,
-			expectedContains: NewVersion("1.0.0", SemanticFormat),
+			expectedContains: New("1.0.0", SemanticFormat),
 		},
 		{
 			name:         "add nil version",
@@ -98,46 +98,46 @@ func TestSet_Add(t *testing.T) {
 			name:         "add duplicate version",
 			ignoreFormat: false,
 			initialVersions: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
 			},
 			versionsToAdd: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
 			},
 			expectedSize:     1,
-			expectedContains: NewVersion("1.0.0", SemanticFormat),
+			expectedContains: New("1.0.0", SemanticFormat),
 		},
 		{
 			name:         "add same version different format with ignoreFormat=true",
 			ignoreFormat: true,
 			initialVersions: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
 			},
 			versionsToAdd: []*Version{
-				NewVersion("1.0.0", ApkFormat),
+				New("1.0.0", ApkFormat),
 			},
 			expectedSize:     1,
-			expectedContains: NewVersion("1.0.0", ApkFormat), // latest added wins
+			expectedContains: New("1.0.0", ApkFormat), // latest added wins
 		},
 		{
 			name:         "add same version different format with ignoreFormat=false",
 			ignoreFormat: false,
 			initialVersions: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
 			},
 			versionsToAdd: []*Version{
-				NewVersion("1.0.0", ApkFormat),
+				New("1.0.0", ApkFormat),
 			},
 			expectedSize:     2,
-			expectedContains: NewVersion("1.0.0", SemanticFormat),
+			expectedContains: New("1.0.0", SemanticFormat),
 		},
 		{
 			name:         "add to set with nil versions map",
 			ignoreFormat: false,
 			versionsToAdd: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
 			},
 			expectedSize:     1,
-			expectedContains: NewVersion("1.0.0", SemanticFormat),
+			expectedContains: New("1.0.0", SemanticFormat),
 		},
 	}
 
@@ -176,7 +176,7 @@ func TestSet_Remove(t *testing.T) {
 			name:         "remove from empty set",
 			ignoreFormat: false,
 			versionsToRemove: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
 			},
 			expectedSize: 0,
 		},
@@ -184,45 +184,45 @@ func TestSet_Remove(t *testing.T) {
 			name:         "remove existing version",
 			ignoreFormat: false,
 			initialVersions: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
-				NewVersion("2.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
+				New("2.0.0", SemanticFormat),
 			},
 			versionsToRemove: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
 			},
 			expectedSize:     1,
-			shouldContain:    NewVersion("2.0.0", SemanticFormat),
-			shouldNotContain: NewVersion("1.0.0", SemanticFormat),
+			shouldContain:    New("2.0.0", SemanticFormat),
+			shouldNotContain: New("1.0.0", SemanticFormat),
 		},
 		{
 			name:         "remove nil version",
 			ignoreFormat: false,
 			initialVersions: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
 			},
 			versionsToRemove: []*Version{
 				nil,
 			},
 			expectedSize:  1,
-			shouldContain: NewVersion("1.0.0", SemanticFormat),
+			shouldContain: New("1.0.0", SemanticFormat),
 		},
 		{
 			name:         "remove non-existing version",
 			ignoreFormat: false,
 			initialVersions: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
 			},
 			versionsToRemove: []*Version{
-				NewVersion("2.0.0", SemanticFormat),
+				New("2.0.0", SemanticFormat),
 			},
 			expectedSize:  1,
-			shouldContain: NewVersion("1.0.0", SemanticFormat),
+			shouldContain: New("1.0.0", SemanticFormat),
 		},
 		{
 			name:         "remove from set with nil versions map",
 			ignoreFormat: false,
 			versionsToRemove: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
 			},
 			expectedSize: 0,
 		},
@@ -261,26 +261,26 @@ func TestSet_Contains(t *testing.T) {
 			name:         "contains existing version",
 			ignoreFormat: false,
 			versions: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
-				NewVersion("2.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
+				New("2.0.0", SemanticFormat),
 			},
-			checkVersion: NewVersion("1.0.0", SemanticFormat),
+			checkVersion: New("1.0.0", SemanticFormat),
 			expected:     true,
 		},
 		{
 			name:         "does not contain non-existing version",
 			ignoreFormat: false,
 			versions: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
 			},
-			checkVersion: NewVersion("2.0.0", SemanticFormat),
+			checkVersion: New("2.0.0", SemanticFormat),
 			expected:     false,
 		},
 		{
 			name:         "check nil version",
 			ignoreFormat: false,
 			versions: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
 			},
 			checkVersion: nil,
 			expected:     false,
@@ -289,32 +289,32 @@ func TestSet_Contains(t *testing.T) {
 			name:         "check version in empty set",
 			ignoreFormat: false,
 			versions:     nil,
-			checkVersion: NewVersion("1.0.0", SemanticFormat),
+			checkVersion: New("1.0.0", SemanticFormat),
 			expected:     false,
 		},
 		{
 			name:         "contains same version different format with ignoreFormat=true",
 			ignoreFormat: true,
 			versions: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
 			},
-			checkVersion: NewVersion("1.0.0", ApkFormat),
+			checkVersion: New("1.0.0", ApkFormat),
 			expected:     true,
 		},
 		{
 			name:         "does not contain same version different format with ignoreFormat=false",
 			ignoreFormat: false,
 			versions: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
 			},
-			checkVersion: NewVersion("1.0.0", ApkFormat),
+			checkVersion: New("1.0.0", ApkFormat),
 			expected:     false,
 		},
 		{
 			name:         "check version with nil versions map",
 			ignoreFormat: false,
 			versions:     []*Version{},
-			checkVersion: NewVersion("1.0.0", SemanticFormat),
+			checkVersion: New("1.0.0", SemanticFormat),
 			expected:     false,
 		},
 	}
@@ -353,9 +353,9 @@ func TestSet_Values(t *testing.T) {
 			name:         "set with versions returns sorted list",
 			ignoreFormat: false,
 			versions: []*Version{
-				NewVersion("2.0.0", SemanticFormat),
-				NewVersion("1.0.0", SemanticFormat),
-				NewVersion("3.0.0", SemanticFormat),
+				New("2.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
+				New("3.0.0", SemanticFormat),
 			},
 			expectedLength: 3,
 			checkSorted:    true,
@@ -370,7 +370,7 @@ func TestSet_Values(t *testing.T) {
 			name:         "set with single version",
 			ignoreFormat: false,
 			versions: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
 			},
 			expectedLength: 1,
 		},
@@ -422,8 +422,8 @@ func TestSet_Size(t *testing.T) {
 			name:         "set with versions",
 			ignoreFormat: false,
 			versions: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
-				NewVersion("2.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
+				New("2.0.0", SemanticFormat),
 			},
 			expected: 2,
 		},
@@ -431,8 +431,8 @@ func TestSet_Size(t *testing.T) {
 			name:         "set with duplicate versions",
 			ignoreFormat: false,
 			versions: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
-				NewVersion("1.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
 			},
 			expected: 1,
 		},
@@ -468,8 +468,8 @@ func TestSet_Clear(t *testing.T) {
 			name:         "clear non-empty set",
 			ignoreFormat: false,
 			versions: []*Version{
-				NewVersion("1.0.0", SemanticFormat),
-				NewVersion("2.0.0", SemanticFormat),
+				New("1.0.0", SemanticFormat),
+				New("2.0.0", SemanticFormat),
 			},
 		},
 		{
@@ -505,9 +505,9 @@ func TestSet_Integration(t *testing.T) {
 	// test combining multiple operations
 	s := NewSet(false)
 
-	v1 := NewVersion("1.0.0", SemanticFormat)
-	v2 := NewVersion("2.0.0", SemanticFormat)
-	v3 := NewVersion("3.0.0", SemanticFormat)
+	v1 := New("1.0.0", SemanticFormat)
+	v2 := New("2.0.0", SemanticFormat)
+	v3 := New("3.0.0", SemanticFormat)
 
 	// add versions
 	s.Add(v1, v2, v3)
