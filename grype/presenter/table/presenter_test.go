@@ -2,6 +2,8 @@ package table
 
 import (
 	"bytes"
+	"encoding/csv"
+	"strings"
 	"testing"
 
 	"github.com/charmbracelet/lipgloss"
@@ -465,4 +467,103 @@ func mustRow(t *testing.T, name, version, fix, pkgType, vulnID, severity string,
 		t.Fatalf("failed to create test row: %v", err)
 	}
 	return r
+}
+
+func TestCSVPresenter(t *testing.T) {
+	pb := internal.GeneratePresenterConfig(t, internal.ImageSource)
+
+	t.Run("CSV output", func(t *testing.T) {
+		var buffer bytes.Buffer
+		pres := NewPresenterWithOptions(pb, false, true)
+
+		err := pres.Present(&buffer)
+		require.NoError(t, err)
+
+		actual := buffer.String()
+		snaps.MatchSnapshot(t, actual)
+	})
+
+	t.Run("CSV with suppressed", func(t *testing.T) {
+		var buffer bytes.Buffer
+		pb := models.PresenterConfig{
+			Document: internal.GenerateAnalysisWithIgnoredMatches(t, internal.ImageSource),
+		}
+		pres := NewPresenterWithOptions(pb, true, true)
+
+		err := pres.Present(&buffer)
+		require.NoError(t, err)
+
+		actual := buffer.String()
+		snaps.MatchSnapshot(t, actual)
+	})
+}
+
+func TestCSVColumns(t *testing.T) {
+	match1 := models.Match{
+		Vulnerability: models.Vulnerability{
+			Risk: 87.2,
+			VulnerabilityMetadata: models.VulnerabilityMetadata{
+				ID:       "CVE-1999-0001",
+				Severity: "Medium",
+				EPSS: []models.EPSS{{EPSS: 0.3, Percentile: 0.5}},
+			},
+		},
+		Artifact: models.Package{Name: "package-1", Version: "2.0.0", Type: syftPkg.DebPkg},
+	}
+
+	p := NewPresenterWithOptions(models.PresenterConfig{}, false, true)
+	row := p.newRow(match1, "", false)
+	cols := row.CSVColumns()
+
+	assert.Len(t, cols, 9)
+	assert.Equal(t, "package-1", cols[0])
+	assert.Equal(t, "2.0.0", cols[1])
+	assert.Equal(t, "deb", cols[3])
+	assert.Equal(t, "CVE-1999-0001", cols[4])
+	assert.Equal(t, "Medium", cols[5])
+	assert.Equal(t, "30.0% (50th)", cols[6])
+	assert.Equal(t, "87.2", cols[7])
+
+	for _, col := range cols {
+		assert.NotContains(t, col, "\x1b[")
+	}
+}
+
+func TestEPSSCSVString(t *testing.T) {
+	tests := []struct {
+		score      float64
+		percentile float64
+		expected   string
+	}{
+		{0.0, 0.0, "N/A"},
+		{0.0005, 0.15, "< 0.1% (15th)"},
+		{0.153, 0.92, "15.3% (92nd)"},
+		{0.789, 0.99, "78.9% (99th)"},
+	}
+
+	for _, tt := range tests {
+		e := epss{Score: tt.score, Percentile: tt.percentile}
+		assert.Equal(t, tt.expected, e.CSVString())
+	}
+}
+
+func TestCSVFormat(t *testing.T) {
+	pb := internal.GeneratePresenterConfig(t, internal.ImageSource)
+	var buffer bytes.Buffer
+	pres := NewPresenterWithOptions(pb, false, true)
+
+	err := pres.Present(&buffer)
+	require.NoError(t, err)
+
+	reader := csv.NewReader(strings.NewReader(buffer.String()))
+	records, err := reader.ReadAll()
+	require.NoError(t, err)
+	require.Greater(t, len(records), 0)
+
+	expectedHeader := []string{"Name", "Installed", "Fixed-In", "Type", "Vulnerability", "Severity", "EPSS", "Risk", "Annotations"}
+	assert.Equal(t, expectedHeader, records[0])
+
+	for i := 1; i < len(records); i++ {
+		assert.Len(t, records[i], len(expectedHeader))
+	}
 }

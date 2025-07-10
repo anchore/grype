@@ -25,6 +25,8 @@ func GetPresenter(format Format, c PresentationConfig, pb models.PresenterConfig
 		return json.NewPresenter(pb)
 	case TableFormat:
 		return table.NewPresenter(pb, c.ShowSuppressed)
+	case CSVFormat:
+		return table.NewPresenterWithOptions(pb, c.ShowSuppressed, true)
 
 	// NOTE: cyclonedx is identical to EmbeddedVEXJSON
 	// The cyclonedx library only provides two BOM formats: JSON and XML
