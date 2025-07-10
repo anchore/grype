@@ -1,8 +1,10 @@
 package table
 
 import (
+	"encoding/csv"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -24,6 +26,7 @@ type Presenter struct {
 	document       models.Document
 	showSuppressed bool
 	withColor      bool
+	csvMode        bool
 
 	recommendedFixStyle lipgloss.Style
 	kevStyle            lipgloss.Style
@@ -59,6 +62,17 @@ func (e epss) String() string {
 	percentile := e.Percentile * 100
 	switch {
 	case percentile == 0:
+		return "N/A"
+	case percentile < 0.1:
+		return "< 0.1%"
+	}
+	return fmt.Sprintf("%.2f%%", percentile)
+}
+
+func (e epss) TableString() string {
+	percentile := e.Percentile * 100
+	switch {
+	case percentile == 0:
 		return "  N/A"
 	case percentile < 0.1:
 		return "< 0.1%"
@@ -68,15 +82,26 @@ func (e epss) String() string {
 
 // NewPresenter is a *Presenter constructor
 func NewPresenter(pb models.PresenterConfig, showSuppressed bool) *Presenter {
+	return NewPresenterWithOptions(pb, showSuppressed, false)
+}
+
+// NewPresenterWithOptions is a *Presenter constructor with additional options
+func NewPresenterWithOptions(pb models.PresenterConfig, showSuppressed bool, csvMode bool) *Presenter {
 	withColor := supportsColor()
 	fixStyle := lipgloss.NewStyle().Border(lipgloss.Border{Left: "*"}, false, false, false, true)
 	if withColor {
 		fixStyle = lipgloss.NewStyle()
 	}
+	// Disable color for CSV mode
+	if csvMode {
+		withColor = false
+	}
+
 	return &Presenter{
 		document:            pb.Document,
 		showSuppressed:      showSuppressed,
 		withColor:           withColor,
+		csvMode:             csvMode,
 		recommendedFixStyle: fixStyle,
 		negligibleStyle:     lipgloss.NewStyle().Foreground(lipgloss.Color("240")),                          // dark gray
 		lowStyle:            lipgloss.NewStyle().Foreground(lipgloss.Color("36")),                           // cyan/teal
@@ -90,10 +115,38 @@ func NewPresenter(pb models.PresenterConfig, showSuppressed bool) *Presenter {
 	}
 }
 
-// Present creates a JSON-based reporting
+// Present creates a table or CSV-based reporting
 func (p *Presenter) Present(output io.Writer) error {
 	rs := p.getRows(p.document, p.showSuppressed)
 
+	if p.csvMode {
+		return p.presentCSV(output, rs)
+	}
+	return p.presentTable(output, rs)
+}
+
+func (p *Presenter) presentCSV(output io.Writer, rs rows) error {
+	writer := csv.NewWriter(output)
+	defer writer.Flush()
+
+	if err := writer.Write([]string{"Name", "Installed", "Fixed-In", "Type", "Vulnerability", "Severity", "EPSS%", "Risk", "Annotations"}); err != nil {
+		return err
+	}
+
+	if len(rs) == 0 {
+		return nil
+	}
+
+	for _, row := range rs.RenderCSV() {
+		if err := writer.Write(row); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (p *Presenter) presentTable(output io.Writer, rs rows) error {
 	if len(rs) == 0 {
 		_, err := io.WriteString(output, "No vulnerabilities found\n")
 		return err
@@ -193,13 +246,19 @@ func (p *Presenter) newRow(m models.Match, extraAnnotation string, showDistro bo
 		annotation = kev + " " + annotation
 	}
 
+	// For CSV mode, use plain text without styling
+	severity := m.Vulnerability.Severity
+	if !p.csvMode {
+		severity = p.formatSeverity(m.Vulnerability.Severity)
+	}
+
 	return row{
 		Name:            m.Artifact.Name,
 		Version:         m.Artifact.Version,
 		Fix:             p.formatFix(m),
 		PackageType:     string(m.Artifact.Type),
 		VulnerabilityID: m.Vulnerability.ID,
-		Severity:        p.formatSeverity(m.Vulnerability.Severity),
+		Severity:        severity,
 		EPSS:            newEPSS(m.Vulnerability.EPSS),
 		Risk:            p.formatRisk(m.Vulnerability.Risk),
 		Annotation:      annotation,
@@ -242,9 +301,15 @@ func (p *Presenter) formatRisk(risk float64) string {
 	// TODO: add color to risk?
 	switch {
 	case risk == 0:
+		if p.csvMode {
+			return "N/A"
+		}
 		return "  N/A"
 	case risk < 0.1:
 		return "< 0.1"
+	}
+	if p.csvMode {
+		return fmt.Sprintf("%.1f", risk)
 	}
 	return fmt.Sprintf("%5.1f", risk)
 }
@@ -343,9 +408,25 @@ func (p *Presenter) applyTruncation(formattedVersions []string, allVersions []st
 
 func (r row) Columns() []string {
 	if r.Annotation != "" {
-		return []string{r.Name, r.Version, r.Fix, r.PackageType, r.VulnerabilityID, r.Severity, r.EPSS.String(), r.Risk, r.Annotation}
+		return []string{r.Name, r.Version, r.Fix, r.PackageType, r.VulnerabilityID, r.Severity, r.EPSS.TableString(), r.Risk, r.Annotation}
 	}
-	return []string{r.Name, r.Version, r.Fix, r.PackageType, r.VulnerabilityID, r.Severity, r.EPSS.String(), r.Risk}
+	return []string{r.Name, r.Version, r.Fix, r.PackageType, r.VulnerabilityID, r.Severity, r.EPSS.TableString(), r.Risk}
+}
+
+func (r row) CSVColumns() []string {
+	columns := []string{
+		stripANSI(r.Name),
+		stripANSI(r.Version),
+		stripANSI(r.Fix),
+		stripANSI(r.PackageType),
+		stripANSI(r.VulnerabilityID),
+		stripANSI(r.Severity),
+		stripANSI(r.EPSS.String()),
+		stripANSI(r.Risk),
+		stripANSI(r.Annotation),
+	}
+
+	return columns
 }
 
 func (r row) String() string {
@@ -357,6 +438,15 @@ func (rs rows) Render() [][]string {
 	out := make([][]string, len(deduped))
 	for idx, r := range deduped {
 		out[idx] = r.Columns()
+	}
+	return out
+}
+
+func (rs rows) RenderCSV() [][]string {
+	deduped := rs.Deduplicate()
+	out := make([][]string, len(deduped))
+	for idx, r := range deduped {
+		out[idx] = r.CSVColumns()
 	}
 	return out
 }
@@ -379,4 +469,10 @@ func (rs rows) Deduplicate() []row {
 
 	// render final columns
 	return deduped
+}
+
+// stripANSI removes ANSI escape sequences from a string
+func stripANSI(str string) string {
+	ansiRegex := regexp.MustCompile(`\x1b\[[0-9;]*m`)
+	return ansiRegex.ReplaceAllString(str, "")
 }
