@@ -203,7 +203,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		if !errors.Is(err, grypeerr.ErrAboveSeverityThreshold) {
 			return err
 		}
-		errs = appendErrors(errs, err)
+		err = appendErrors(errs, err)
 	}
 
 	log.WithFields("time", time.Since(startTime)).Info("found vulnerability matches")
@@ -220,7 +220,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		SBOM:     s,
 		Pretty:   opts.Pretty,
 	}); err != nil {
-		errs = appendErrors(errs, err)
+		err = appendErrors(errs, err)
 	}
 
 	log.WithFields("time", time.Since(startTime)).Trace("wrote vulnerability report")
