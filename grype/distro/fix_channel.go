@@ -29,7 +29,7 @@ type FixChannel struct {
 	// IDs is a list of distro release IDs that this channel applies to, e.g. "rhel" for RHEL (this is relative to the /etc/os-release ID field)
 	IDs []string
 
-	// Apply indicates how the channel should be applied to the distrp
+	// Apply indicates how the channel should be applied to the distro
 	Apply FixChannelEnabled
 
 	// Versions is a version constraint that indicates which versions of the distro this channel applies to (e.g. ">= 8.0" for RHEL 8 and above)

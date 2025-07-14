@@ -320,7 +320,7 @@ func Test_PurlProvider(t *testing.T) {
 					Name:    "systemd-x",
 					Version: "239-82.el8_10.2",
 					Type:    pkg.RpmPkg,
-					PURL:    "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?distro=rhel-8.10",                                     // important! no channel applied
+					PURL:    "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?distro=rhel-8.10+eus",                                 // important! we are NOT patching the channel out of the PURL
 					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.10", Channels: nil, IDLike: []string{"redhat"}}, // important! no channel applied
 				},
 			},
@@ -347,7 +347,7 @@ func Test_PurlProvider(t *testing.T) {
 					Name:    "systemd-x",
 					Version: "239-82.el8_10.2",
 					Type:    pkg.RpmPkg,
-					PURL:    "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?distro=rhel-8.10%2Beus",                                        // important! channel applied
+					PURL:    "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?distro=rhel-8.10",                                              // important! we are NOT patching the channel into the PURL
 					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.10", Channels: names("eus"), IDLike: []string{"redhat"}}, // important! channel applied
 				},
 			},

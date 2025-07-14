@@ -236,6 +236,7 @@ func warnWhenDistroHintNeeded(pkgs []pkg.Package, context *pkg.Context) {
 		case syftPkg.AlpmPkg, syftPkg.DebPkg, syftPkg.RpmPkg, syftPkg.KbPkg:
 			if p.Distro == nil {
 				hasOSPackageWithoutDistro = true
+				break
 			}
 		}
 	}

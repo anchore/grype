@@ -508,36 +508,11 @@ func handleDefaultUpstream(pkgName string, value string) []UpstreamPackage {
 
 func applyDistroOverride(override *distro.Distro) Enhancer {
 	// the override here comes from either the --distro flag, which already has a channel indication applied
-	return func(out *Package, purl packageurl.PackageURL, _ syftPkg.Package) {
+	return func(out *Package, _ packageurl.PackageURL, _ syftPkg.Package) {
 		if override == nil {
 			return
 		}
 		// allow downstream matchers to always consider the given user distro
 		out.Distro = override
-		updatePURLWithDistro(out, purl)
-	}
-}
-
-func updatePURLWithDistro(out *Package, purl packageurl.PackageURL) {
-	if out.Distro != nil {
-		// if the package has a purl with a distro qualifier, we should update it to match what the user has provided
-		for i := range purl.Qualifiers {
-			q := &purl.Qualifiers[i]
-			if q.Key == syftPkg.PURLQualifierDistro {
-				vs := out.Distro.Version
-				if vs == "" {
-					vs = out.Distro.Codename
-				}
-				q.Value = out.Distro.ID()
-				if vs != "" {
-					q.Value += "-" + vs
-				}
-				if len(out.Distro.Channels) > 0 {
-					q.Value += "+" + strings.Join(out.Distro.Channels, ",")
-				}
-				out.PURL = purl.String()
-				break
-			}
-		}
 	}
 }

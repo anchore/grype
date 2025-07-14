@@ -77,7 +77,7 @@ func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Con
 		Matches:        findings,
 		IgnoredMatches: ignoredMatchModels,
 		Source:         src,
-		Distro:         newDistribution(context, selectDistro(packages)),
+		Distro:         newDistribution(context, selectMostCommonDistro(packages)),
 		Descriptor: descriptor{
 			Name:          id.Name,
 			Version:       id.Version,
@@ -88,8 +88,8 @@ func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Con
 	}, nil
 }
 
-// selectDistro selects the most common distro from the provided packages.
-func selectDistro(pkgs []pkg.Package) *distro.Distro {
+// selectMostCommonDistro selects the most common distro from the provided packages.
+func selectMostCommonDistro(pkgs []pkg.Package) *distro.Distro {
 	distros := make(map[string]*distro.Distro)
 	count := make(map[string]int)
 

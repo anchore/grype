@@ -78,10 +78,7 @@ func setDistroFromPURL(applyChannel func(*distro.Distro) bool) func(out *Package
 	return func(out *Package, purl packageurl.PackageURL, _ syftPkg.Package) {
 		if out.Distro == nil {
 			out.Distro = distroFromPURL(purl)
-			if applyChannel(out.Distro) {
-				// the distro was modified by the channel, so we need to update the purl
-				updatePURLWithDistro(out, purl)
-			}
+			applyChannel(out.Distro)
 		}
 	}
 }
