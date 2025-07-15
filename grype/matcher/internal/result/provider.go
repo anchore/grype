@@ -42,13 +42,13 @@ func (p provider) FindResults(criteria ...vulnerability.Criteria) (Set, error) {
 			}
 
 			newResult := Result{
-				ID:              ID(v.ID),
+				ID:              v.ID,
 				Vulnerabilities: []vulnerability.Vulnerability{v},
 				Details:         detailProvider(p.matcher, p.catalogedPkg, criteria, v),
 				Package:         &p.catalogedPkg,
 			}
 
-			results[ID(v.ID)] = append(results[ID(v.ID)], newResult)
+			results[v.ID] = append(results[v.ID], newResult)
 		}
 	}
 	return results, nil

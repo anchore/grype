@@ -8,16 +8,25 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
+// Result represents a prototype match of a package used to search, a set of vulnerabilities discovered from the search,
+// and match details that describe the search itself. Note that all vulnerabilities in a Result share the same
+// vulnerability ID (in the ID field and `.Vulnerabilities[].ID` fields -- it is invalid to mix vulnerabilities into
+// a Result that have different IDs.
 type Result struct {
-	ID              ID
+	// ID is the vulnerability ID; all vulnerabilities in this Result share the same ID.
+	ID string
+
+	// Vulnerabilities is a set of vulnerabilities that were discovered from the search.
 	Vulnerabilities []vulnerability.Vulnerability
-	Details         []match.Detail
-	Package         *pkg.Package
+
+	// Details is a set of match details that describe the search itself
+	Details []match.Detail
+
+	// Package is the package that was used to search for vulnerabilities.
+	Package *pkg.Package
 }
 
-type ID string
-
-type Set map[ID][]Result
+type Set map[string][]Result
 
 func unionIntoResult(existing []Result) Result {
 	var merged Result
@@ -87,7 +96,7 @@ func (s Set) Merge(incoming Set, mergeFuncs ...func(existing, incoming []Result)
 	}
 
 	// det all unique IDs from both sets
-	allIDs := make(map[ID]bool)
+	allIDs := make(map[string]bool)
 	for id := range s {
 		allIDs[id] = true
 	}
@@ -122,7 +131,7 @@ func (s Set) Merge(incoming Set, mergeFuncs ...func(existing, incoming []Result)
 	return out
 }
 
-func (s Set) Contains(id ID) bool {
+func (s Set) Contains(id string) bool {
 	results, ok := s[id]
 	return ok && len(results) > 0
 }

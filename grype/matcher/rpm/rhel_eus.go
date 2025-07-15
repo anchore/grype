@@ -28,14 +28,47 @@ func shouldUseRedhatEUSMatching(d *distro.Distro) bool {
 	return strings.ToLower(d.Channel) == "eus"
 }
 
+// redhatEUSMatches returns matches for the given package with Extended Update Support (EUS) fixes considered.
+//
+// RedHat follows the below workflow when incorporating patches:
+//
+//	RHEL 9 ───▶ 9.1 ───▶ 9.2 ───▶ 9.2-EUS (mainline + 9.2 EUS fixes)
+//	                     │
+//	                     ▼
+//	                     9.3 ───▶ 9.4 ───▶ 9.4-EUS (mainline + 9.4 EUS fixes)
+//	                              │
+//	                              ▼
+//	                              9.5 ───▶ 9.6 ───▶ 9.6-EUS (mainline + 9.6 EUS fixes)
+//	                                       │
+//	                                       ▼ ...
+//
+// So...
+// - EUS branches are independent (no cross-EUS fixes)
+// - each EUS branch = mainline fixes up to branch point + its own EUS fixes
+//
+// In grype that means that searching for vulnerabilities should be done in two steps:
+// 1. find disclosures that match the base distro (e.g., '>= 9.0 && < 10').
+// 2. find fixes from the base distro (e.g., '>= 9.0 && < 10') as well as EUS fixes for the specific minor version of the distro (e.g. '9.4+eus').
+//
+// Once searching is complete, we have two collections (matching for each search step above).
+// We then merge these two (disclosure and resolution) collections together, the final result is a collection of
+// prototype matches that the package is vulnerable to that include both the base distro disclosures and the EUS fixes.
+// Any disclosure that does not apply to the original package version (e.g. a fix was found) at this point has been removed.
+//
+// The final step is to render the final matches from the merged collection.
 func redhatEUSMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
 	distroWithoutEUS := *searchPkg.Distro
-	distroWithoutEUS.Channel = "" // clear the EUS designator so that we can search for the base distro
+	distroWithoutEUS.Channel = "" // clear the EUS channel so that we can search for the base distro
+	pkgVersion := version.New(searchPkg.Version, pkg.VersionFormat(searchPkg))
 
+	// find all disclosures for the package in the base distro (e.g. '>= 9.0 && < 10')
 	disclosures, err := provider.FindResults(
 		search.ByPackageName(searchPkg.Name),
-		search.ByDistro(distroWithoutEUS), // e.g.  >= 9.0 && < 10
+		search.ByDistro(distroWithoutEUS), // e.g.  >= 9.0 && < 10 (no EUS channel)
 		internal.OnlyQualifiedPackages(searchPkg),
+		// note: we could apply a version constraint here (there would be no functional issue with this) but
+		// the current approach taken is to allow fixes from mainline disclosures to be accounted for in the final
+		// merge step below.
 	)
 	if err != nil {
 		return nil, fmt.Errorf("matcher failed to fetch disclosures for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
@@ -45,20 +78,26 @@ func redhatEUSMatches(provider result.Provider, searchPkg pkg.Package) ([]match.
 		return nil, nil
 	}
 
+	// find all base distro fixes (e.g. '>= 9.0 && < 10') and EUS fixes for the package in the specific minor version of the distro (e.g. '9.4+eus')
 	resolutions, err := provider.FindResults(
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(distroWithoutEUS, *searchPkg.Distro), // e.g.  (>= 9.0 && < 10) || 9.4+eus
 		internal.OnlyQualifiedPackages(searchPkg),
-		// note: we do not apply any version criteria to the search as to raise up all possible fixes and combine within
-		// the collection.
-		// If we do filter on a fix version, it will result in false positives (missing EUS fixes).
+		// note: we do **not** apply any version criteria to the search as to raise up all possible fixes
+		// and combine within the collection. If we do filter on a fix version, it could result in
+		// false positives (missing EUS fixes that resolve a disclosure).
 	)
 
 	if err != nil {
 		return nil, fmt.Errorf("matcher failed to fetch resolutions for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
 	}
 
-	remaining := disclosures.Merge(resolutions, resolveEUSDisclosures(version.New(searchPkg.Version, pkg.VersionFormat(searchPkg)), false))
+	// combine disclosures and fixes so that:
+	// a. disclosures that have EUS fixes that resolve the disclosure for an earlier version of the package (thus we're not vulnerable) are removed.
+	// b. disclosures that have EUS fixes that resolve the disclosure for future versions of the package (thus we're vulnerable) are kept.
+	// c. all fixes from the incoming resolutions are patched onto the disclosures in the returned collection, so the
+	//    final set of vulnerabilities is a fused set of disclosures and fixes together.
+	remaining := disclosures.Merge(resolutions, resolveEUSDisclosures(pkgVersion, false))
 
 	return remaining.ToMatches(), err
 }
@@ -123,7 +162,7 @@ func processDisclosureResult(v *version.Version, disclosures result.Result, advi
 		}
 	}
 
-	finalizeProcessedResult(&processedResult, disclosures.Details, v)
+	finalizeMatchDetails(&processedResult, disclosures.Details, v)
 	return processedResult
 }
 
@@ -139,7 +178,7 @@ func processVulnerabilityWithAdvisories(v *version.Version, disclosure vulnerabi
 		constraints = append(constraints, disclosure.Constraint)
 	}
 
-	// process advisory overlays
+	// process advisory overlays, incorporating new fix versions and updating the version constraints
 	for _, advisoryOverlay := range advisoryOverlays {
 		allAdvisoryDetails = append(allAdvisoryDetails, advisoryOverlay.Details...)
 		processAdvisoryVulnerabilities(v, advisoryOverlay.Vulnerabilities, fixVersions, &constraints, &state)
@@ -154,7 +193,7 @@ func processVulnerabilityWithAdvisories(v *version.Version, disclosure vulnerabi
 	return &patchedRecord, allAdvisoryDetails
 }
 
-// processAdvisoryVulnerabilities processes vulnerabilities from advisory overlays
+// processAdvisoryVulnerabilities processes vulnerabilities from advisory overlays, applying any new fix versions and updating the given fix state / constraints.
 func processAdvisoryVulnerabilities(v *version.Version, advisories []vulnerability.Vulnerability, fixVersions *version.Set, constraints *[]version.Constraint, state *vulnerability.FixState) {
 	for _, advisory := range advisories {
 		if advisory.Fix.State == vulnerability.FixStateWontFix && *state != vulnerability.FixStateFixed {
@@ -176,7 +215,7 @@ func processAdvisoryVulnerabilities(v *version.Version, advisories []vulnerabili
 	}
 }
 
-// buildPatchedVulnerabilityRecord creates the final patched vulnerability record
+// buildPatchedVulnerabilityRecord creates the final patched vulnerability record from the original disclosure and fix/constraint information from applicable advisories.
 func buildPatchedVulnerabilityRecord(v *version.Version, disclosure vulnerability.Vulnerability, fixVersions *version.Set, constraints []version.Constraint, state vulnerability.FixState) vulnerability.Vulnerability {
 	patchedRecord := disclosure
 
@@ -198,8 +237,8 @@ func buildPatchedVulnerabilityRecord(v *version.Version, disclosure vulnerabilit
 	return patchedRecord
 }
 
-// finalizeProcessedResult finalizes the processed result by adding details and patching version info
-func finalizeProcessedResult(processedResult *result.Result, originalDetails match.Details, v *version.Version) {
+// finalizeMatchDetails patches the processed result details with that of details in the post-processed result.
+func finalizeMatchDetails(processedResult *result.Result, originalDetails match.Details, v *version.Version) {
 	if len(processedResult.Vulnerabilities) == 0 {
 		return
 	}

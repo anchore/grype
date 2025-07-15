@@ -482,7 +482,7 @@ func TestSet_Contains(t *testing.T) {
 	tests := []struct {
 		name     string
 		receiver Set
-		id       ID
+		id       string
 		want     bool
 	}{
 		{
