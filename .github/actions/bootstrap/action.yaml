@@ -63,7 +63,10 @@ runs:
       if: inputs.bootstrap-apt-packages != ''
       shell: bash
       run: |
-        DEBIAN_FRONTEND=noninteractive sudo apt update && sudo -E apt install -y ${{ inputs.bootstrap-apt-packages }}
+        read -ra PACKAGES <<< "$BOOTSTRAP_APT_PACKAGES"
+        DEBIAN_FRONTEND=noninteractive sudo apt update && sudo -E apt install -y "${PACKAGES[@]}"
+      env:
+        BOOTSTRAP_APT_PACKAGES: ${{ inputs.bootstrap-apt-packages }}
 
     - name: Create all cache fingerprints
       if: inputs.compute-fingerprints == 'true'
