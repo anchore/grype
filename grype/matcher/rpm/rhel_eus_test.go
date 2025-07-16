@@ -32,53 +32,41 @@ func TestResolveEUSDisclosures(t *testing.T) {
 			packageVersion: "1.0.0", // vulnerable since 1.0.0 < 1.5.0
 			disclosures: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 1.6.0", version.RpmFormat), // important!
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateUnknown,
-								Versions: []string{"1.6.0"}, // important! this is the fix version that we should not consider
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("< 1.6.0", version.RpmFormat), // important!
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateUnknown,
+							Versions: []string{"1.6.0"}, // important! this is the fix version that we should not consider
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 			advisoryOverlay: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat), // important!
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateFixed, // important!
-								Versions: []string{"1.5.0"},           // important!
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat), // important!
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateFixed, // important!
+							Versions: []string{"1.5.0"},           // important!
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 			want: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference: vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.CombineConstraints(
-								version.MustGetConstraint("< 1.6.0", version.RpmFormat), // from disclosure
-								version.MustGetConstraint("< 1.5.0", version.RpmFormat), // from advisory
-							),
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateFixed, // important! from advisory
-								Versions: []string{"1.5.0"},           // important! from advisory, not the disclosure
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference: vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.CombineConstraints(
+							version.MustGetConstraint("< 1.6.0", version.RpmFormat), // from disclosure
+							version.MustGetConstraint("< 1.5.0", version.RpmFormat), // from advisory
+						),
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateFixed, // important! from advisory
+							Versions: []string{"1.5.0"},           // important! from advisory, not the disclosure
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 		},
@@ -87,34 +75,26 @@ func TestResolveEUSDisclosures(t *testing.T) {
 			packageVersion: "2.0.0", // not vulnerable since 2.0.0 > 1.5.0
 			disclosures: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat), // important!
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateUnknown,
-								Versions: []string{},
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat), // important!
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateUnknown,
+							Versions: []string{},
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 			advisoryOverlay: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat), // important!
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateFixed,
-								Versions: []string{"1.5.0"},
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat), // important!
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateFixed,
+							Versions: []string{"1.5.0"},
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 			want: []result.Result{},
@@ -124,84 +104,85 @@ func TestResolveEUSDisclosures(t *testing.T) {
 			packageVersion: "1.0.0",
 			disclosures: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference: vulnerability.Reference{ID: "CVE-2021-1"},
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateUnknown,
-								Versions: []string{},
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference: vulnerability.Reference{ID: "CVE-2021-1"},
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateUnknown,
+							Versions: []string{},
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 			advisoryOverlay: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{ // advisory does not apply!
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 0.9", version.RpmFormat),
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateFixed,
-								Versions: []string{"0.9"},
-							},
-						},
-						{
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateFixed,
-								Versions: []string{"1.5.0", "1.4.2"},
-							},
-						},
-						{ // duplicate advisory should already be counted from the first one
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateFixed,
-								Versions: []string{"1.5.0", "1.4.2"},
-							},
-						},
-						{ // duplicate advisory, with a different fix version
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateFixed,
-								Versions: []string{"1.4.3"},
-							},
-						},
-						{
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 2.0.0", version.RpmFormat),
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateFixed,
-								Versions: []string{"2.0.0"},
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						// advisory does not apply!
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("< 0.9", version.RpmFormat),
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateFixed,
+							Versions: []string{"0.9"},
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
+				},
+				{
+					Vulnerability: vulnerability.Vulnerability{
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateFixed,
+							Versions: []string{"1.5.0", "1.4.2"},
+						},
+					},
+				},
+				{
+					Vulnerability: vulnerability.Vulnerability{
+						// duplicate advisory should already be counted from the first one
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateFixed,
+							Versions: []string{"1.5.0", "1.4.2"},
+						},
+					},
+				},
+				{
+					Vulnerability: vulnerability.Vulnerability{
+						// duplicate advisory, with a different fix version
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateFixed,
+							Versions: []string{"1.4.3"},
+						},
+					},
+				},
+				{
+					Vulnerability: vulnerability.Vulnerability{
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("< 2.0.0", version.RpmFormat),
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateFixed,
+							Versions: []string{"2.0.0"},
+						},
+					},
 				},
 			},
 			want: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference: vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.CombineConstraints( // important! we are combining the constraints
-								version.MustGetConstraint("< 1.5.0", version.RpmFormat),
-								version.MustGetConstraint("< 2.0.0", version.RpmFormat),
-							),
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateFixed,
-								Versions: []string{"1.4.2", "1.4.3", "1.5.0", "2.0.0"}, // important! we have all fixes for advisories that apply
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference: vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.CombineConstraints( // important! we are combining the constraints
+							version.MustGetConstraint("< 1.5.0", version.RpmFormat),
+							version.MustGetConstraint("< 2.0.0", version.RpmFormat),
+							version.MustGetConstraint("< 1.4.2", version.RpmFormat),
+							version.MustGetConstraint("< 1.4.3", version.RpmFormat),
+						),
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateFixed,
+							Versions: []string{"1.4.2", "1.4.3", "1.5.0", "2.0.0"}, // important! we have all fixes for advisories that apply
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 		},
@@ -210,50 +191,38 @@ func TestResolveEUSDisclosures(t *testing.T) {
 			packageVersion: "1.0.0", // vulnerable since 1.0.0 < 2.0.0
 			disclosures: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 2.0.0", version.RpmFormat),
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateUnknown, // important! the disclosure doesn't have good fix info
-								Versions: []string{},
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("< 2.0.0", version.RpmFormat),
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateUnknown, // important! the disclosure doesn't have good fix info
+							Versions: []string{},
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 			advisoryOverlay: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 2.0.0", version.RpmFormat),
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateWontFix, // important! we want the match to reflect this property
-								Versions: []string{},
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("< 2.0.0", version.RpmFormat),
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateWontFix, // important! we want the match to reflect this property
+							Versions: []string{},
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 			want: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 2.0.0", version.RpmFormat),
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateWontFix,
-								Versions: []string{},
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("< 2.0.0", version.RpmFormat),
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateWontFix,
+							Versions: []string{},
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 		},
@@ -262,50 +231,39 @@ func TestResolveEUSDisclosures(t *testing.T) {
 			packageVersion: "1.0.0",
 			disclosures: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 2.0.0", version.RpmFormat), // important!
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateUnknown,
-								Versions: []string{},
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("< 2.0.0", version.RpmFormat), // important!
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateUnknown,
+							Versions: []string{},
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 			advisoryOverlay: []result.Result{
 				{ // ultimately, this advisory does not apply...
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 3.0.0", version.RpmFormat),
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateUnknown, // important!
-								Versions: []string{},
-							},
+
+					Vulnerability: vulnerability.Vulnerability{
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("< 3.0.0", version.RpmFormat),
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateUnknown, // important!
+							Versions: []string{},
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 			want: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 2.0.0", version.RpmFormat), // from the disclosure (nothing from the resolution since there was no fix information)
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateUnknown,
-								Versions: []string{},
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("< 2.0.0", version.RpmFormat), // from the disclosure (nothing from the resolution since there was no fix information)
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateUnknown,
+							Versions: []string{},
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 		},
@@ -314,49 +272,37 @@ func TestResolveEUSDisclosures(t *testing.T) {
 			packageVersion: "1.0.0",
 			disclosures: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference: vulnerability.Reference{ID: "CVE-2021-1"},
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateUnknown,
-								Versions: []string{},
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference: vulnerability.Reference{ID: "CVE-2021-1"},
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateUnknown,
+							Versions: []string{},
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 			advisoryOverlay: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateFixed,
-								Versions: []string{"", "1.5.0", ""}, // important!
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateFixed,
+							Versions: []string{"", "1.5.0", ""}, // important!
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 			want: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateFixed,
-								Versions: []string{"1.5.0"}, // note: empty versions are filtered out
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateFixed,
+							Versions: []string{"1.5.0"}, // note: empty versions are filtered out
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 		},
@@ -365,34 +311,26 @@ func TestResolveEUSDisclosures(t *testing.T) {
 			packageVersion: "W:1.2.3-456", // intentionally invalid epoch (will fail to parse)
 			disclosures: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateUnknown,
-								Versions: []string{},
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateUnknown,
+							Versions: []string{},
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 			advisoryOverlay: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateFixed,
-								Versions: []string{"1.5.0"},
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateFixed,
+							Versions: []string{"1.5.0"},
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 			want: []result.Result{},
@@ -402,26 +340,18 @@ func TestResolveEUSDisclosures(t *testing.T) {
 			packageVersion: "1.0.0",
 			disclosures: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: nil, // important! we're never vulnerable!
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateUnknown,
-								Versions: []string{},
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: nil, // important! we're never vulnerable!
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateUnknown,
+							Versions: []string{},
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 			advisoryOverlay: []result.Result{
-				{ // does not apply
-					ID:              "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{},
-					Details:         []match.Detail{},
-				},
+				// does not apply
 			},
 			want: []result.Result{},
 		},
@@ -430,41 +360,29 @@ func TestResolveEUSDisclosures(t *testing.T) {
 			packageVersion: "1.0.0",
 			disclosures: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("", version.RpmFormat), // important! we're always vulnerable
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateUnknown,
-								Versions: []string{},
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("", version.RpmFormat), // important! we're always vulnerable
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateUnknown,
+							Versions: []string{},
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 			advisoryOverlay: []result.Result{
-				{ // does not apply
-					ID:              "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{},
-					Details:         []match.Detail{},
-				},
+				// does not apply
 			},
 			want: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("", version.RpmFormat), // important! shows "none (rpm)"
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateUnknown,
-								Versions: []string{},
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("", version.RpmFormat), // important! shows "none (rpm)"
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateUnknown,
+							Versions: []string{},
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 		},
@@ -473,26 +391,18 @@ func TestResolveEUSDisclosures(t *testing.T) {
 			packageVersion: "1.0.0",
 			disclosures: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 0.9", version.RpmFormat), // important! we're not vulnerable!
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateUnknown,
-								Versions: []string{},
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("< 0.9", version.RpmFormat), // important! we're not vulnerable!
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateUnknown,
+							Versions: []string{},
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 			advisoryOverlay: []result.Result{
-				{ // does not apply
-					ID:              "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{},
-					Details:         []match.Detail{},
-				},
+				// does not apply
 			},
 			want: []result.Result{},
 		},
@@ -501,49 +411,37 @@ func TestResolveEUSDisclosures(t *testing.T) {
 			packageVersion: "1.0.0",
 			disclosures: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference: vulnerability.Reference{ID: "CVE-2021-1"},
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateUnknown,
-								Versions: []string{},
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference: vulnerability.Reference{ID: "CVE-2021-1"},
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateUnknown,
+							Versions: []string{},
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 			advisoryOverlay: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateWontFix,
-								Versions: []string{"1.5.0"}, // important: this is a wont-fix advisory so this should not be incorporated (an inconsistent advisory)
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateWontFix,
+							Versions: []string{"1.5.0"}, // important: this is a wont-fix advisory so this should not be incorporated (an inconsistent advisory)
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 			want: []result.Result{
 				{
-					ID: "CVE-2021-1",
-					Vulnerabilities: []vulnerability.Vulnerability{
-						{
-							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
-							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateWontFix, // wont-fix state is preserved
-								Versions: []string{},
-							},
+					Vulnerability: vulnerability.Vulnerability{
+						Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+						Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateWontFix, // wont-fix state is preserved
+							Versions: []string{},
 						},
 					},
-					Details: []match.Detail{{Type: match.ExactDirectMatch}},
 				},
 			},
 		},
@@ -557,13 +455,14 @@ func TestResolveEUSDisclosures(t *testing.T) {
 				v = nil
 			}
 
-			resolver := resolveEUSDisclosures(v, tt.resolutionsAsDisclosures)
+			resolver := mergeEUSAdvisoriesIntoMainDisclosures(v, tt.resolutionsAsDisclosures)
 
 			got := resolver(tt.disclosures, tt.advisoryOverlay)
 
 			opts := cmp.Options{
 				cmpopts.IgnoreUnexported(result.Result{}),
 				cmpopts.IgnoreUnexported(version.Version{}),
+				cmpopts.IgnoreFields(result.Result{}, "Criteria"),
 				cmpopts.EquateEmpty(),
 			}
 			if diff := cmp.Diff(tt.want, got, opts...); diff != "" {
@@ -1163,14 +1062,16 @@ func TestRedhatEUSMatches(t *testing.T) {
 			vulnProvider.setDisclosureError(tt.disclosureError)
 			vulnProvider.setResolutionError(tt.resolutionError)
 
-			resultProvider := result.NewProvider(vulnProvider, tt.catalogPkg, match.RpmMatcher)
+			resultProvider := result.NewProvider(vulnProvider)
 
-			got, err := redhatEUSMatches(resultProvider, *tt.searchPkg)
+			matches, err := redhatEUSMatches(resultProvider, *tt.searchPkg)
 			tt.wantErr(t, err)
 
 			if err != nil {
 				return
 			}
+
+			got := result.ToMatches(matches, match.RpmMatcher, tt.catalogPkg)
 
 			// need stable results for comparison
 			sort.Sort(match.ByElements(got))

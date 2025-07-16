@@ -29,7 +29,7 @@ func (m *Matcher) Type() match.MatcherType {
 func (m *Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	var matches []match.Match
 
-	provider := result.NewProvider(vp, p, m.Type())
+	provider := result.NewProvider(vp)
 
 	// 1. let's match with the package given to us (direct match)....
 
@@ -117,31 +117,26 @@ func (m *Matcher) matchPackage(provider result.Provider, p pkg.Package) ([]match
 		return nil, fmt.Errorf("failed to find vulnerabilities by dpkg source indirection: %w", err)
 	}
 
-	// we want to make certain that we are tracking the match based on the package from the SBOM (not the modified package).
-	// At the same time, we still want this to be treated as a direct match, thus using a reference package in the search
-	// is not correct.
-	for idx := range matches {
-		matches[idx].Package = originalPkg
-	}
-
-	return matches, nil
+	return result.ToMatches(matches, m.Type(), originalPkg), nil
 }
 
 func (m *Matcher) matchUpstreamPackages(provider result.Provider, p pkg.Package) ([]match.Match, error) {
 	var matches []match.Match
 
 	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indirectMatches, err := m.findMatches(provider, indirectPackage)
+		indirectResults, err := m.findMatches(provider, indirectPackage)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find vulnerabilities for rpm upstream source package: %w", err)
 		}
+
+		indirectMatches := result.ToMatches(indirectResults, m.Type(), p)
 		matches = append(matches, indirectMatches...)
 	}
 
 	return matches, nil
 }
 
-func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
+func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package) (result.Set, error) {
 	if searchPkg.Distro == nil {
 		return nil, nil
 	}
@@ -158,8 +153,8 @@ func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package) (
 	}
 }
 
-func standardMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
-	disclosures, err := provider.FindResults(
+func standardMatches(provider result.Provider, searchPkg pkg.Package) (result.Set, error) {
+	matches, err := provider.FindResults(
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(*searchPkg.Distro),
 		internal.OnlyQualifiedPackages(searchPkg),
@@ -169,7 +164,7 @@ func standardMatches(provider result.Provider, searchPkg pkg.Package) ([]match.M
 		return nil, fmt.Errorf("matcher failed to fetch disclosures for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
 	}
 
-	return disclosures.ToMatches(), nil
+	return matches, nil
 }
 
 func addEpochIfApplicable(p *pkg.Package) {

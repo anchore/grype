@@ -1,6 +1,8 @@
 package result
 
 import (
+	"slices"
+
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
@@ -15,23 +17,19 @@ type Provider interface {
 
 type provider struct {
 	vulnProvider vulnerability.Provider
-	catalogedPkg pkg.Package // this is what is passed into the matcher
-	matcher      match.MatcherType
 }
 
-func NewProvider(vp vulnerability.Provider, catalogedPkg pkg.Package, matcher match.MatcherType) Provider {
+func NewProvider(vp vulnerability.Provider) Provider {
 	return provider{
 		vulnProvider: vp,
-		catalogedPkg: catalogedPkg,
-		matcher:      matcher,
 	}
 }
 
 func (p provider) FindResults(criteria ...vulnerability.Criteria) (Set, error) {
 	results := Set{}
 	// get each iteration here so detailProvider will have the specific values used for searches
-	for _, cs := range search.CriteriaIterator(criteria) {
-		vulns, err := p.vulnProvider.FindVulnerabilities(cs...)
+	for _, matchCriteria := range search.CriteriaIterator(criteria) {
+		vulns, err := p.vulnProvider.FindVulnerabilities(matchCriteria...)
 		if err != nil {
 			return Set{}, err
 		}
@@ -41,14 +39,10 @@ func (p provider) FindResults(criteria ...vulnerability.Criteria) (Set, error) {
 				continue // skip vulnerabilities without an ID (should never happen)
 			}
 
-			newResult := Result{
-				ID:              v.ID,
-				Vulnerabilities: []vulnerability.Vulnerability{v},
-				Details:         detailProvider(p.matcher, p.catalogedPkg, criteria, v),
-				Package:         &p.catalogedPkg,
-			}
-
-			results[v.ID] = append(results[v.ID], newResult)
+			results.appendResults(Result{
+				Vulnerability: v,
+				Criteria:      append([]vulnerability.Criteria(nil), matchCriteria...),
+			})
 		}
 	}
 	return results, nil
@@ -64,6 +58,8 @@ func detailProvider(matcher match.MatcherType, catalogedPkg pkg.Package, criteri
 }
 
 // extractSearchParameters processes criteria set and extracts search parameters for different match types
+//
+//nolint:gocognit
 func extractSearchParameters(criteriaSet []vulnerability.Criteria, vuln vulnerability.Vulnerability) ([]match.CPEParameters, []match.DistroParameters, []match.EcosystemParameters, *match.PackageParameter) {
 	var cpeParams []match.CPEParameters
 	var distroParams []match.DistroParameters
@@ -85,28 +81,50 @@ func extractSearchParameters(criteriaSet []vulnerability.Criteria, vuln vulnerab
 			pkgParams.Version = c.Version.Raw
 
 		case *search.EcosystemCriteria:
-			ecosystemParams = append(ecosystemParams, match.EcosystemParameters{
+			ecosystemParam := match.EcosystemParameters{
 				Language:  c.Language.String(),
 				Namespace: vuln.Namespace, // TODO: this is a holdover and will be removed in the future
-			})
+			}
+			if slices.Contains(ecosystemParams, ecosystemParam) {
+				continue
+			}
+			ecosystemParams = append(ecosystemParams, ecosystemParam)
 
 		case *search.CPECriteria:
-			cpeParams = append(cpeParams, match.CPEParameters{
+			cpeParam := match.CPEParameters{
 				Namespace: vuln.Namespace, // TODO: this is a holdover and will be removed in the future
 				CPEs: []string{
 					c.CPE.Attributes.BindToFmtString(),
 				},
-			})
+			}
+			if slices.ContainsFunc(cpeParams, func(parameters match.CPEParameters) bool {
+				if len(parameters.CPEs) != len(cpeParam.CPEs) {
+					return false
+				}
+				for i := range parameters.CPEs {
+					if parameters.CPEs[i] != cpeParam.CPEs[i] {
+						return false
+					}
+				}
+				return true
+			}) {
+				continue
+			}
+			cpeParams = append(cpeParams, cpeParam)
 
 		case *search.DistroCriteria:
 			for _, d := range c.Distros {
-				distroParams = append(distroParams, match.DistroParameters{
+				distroParam := match.DistroParameters{
 					Distro: match.DistroIdentification{
 						Type:    d.Type.String(),
 						Version: d.VersionString(),
 					},
 					Namespace: vuln.Namespace, // TODO: this is a holdover and will be removed in the future
-				})
+				}
+				if slices.Contains(distroParams, distroParam) {
+					continue
+				}
+				distroParams = append(distroParams, distroParam)
 			}
 		}
 	}

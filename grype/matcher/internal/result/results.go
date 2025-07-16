@@ -1,9 +1,6 @@
 package result
 
 import (
-	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/matcher/internal"
-	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
 )
@@ -13,66 +10,29 @@ import (
 // vulnerability ID (in the ID field and `.Vulnerabilities[].ID` fields -- it is invalid to mix vulnerabilities into
 // a Result that have different IDs.
 type Result struct {
-	// ID is the vulnerability ID; all vulnerabilities in this Result share the same ID.
-	ID string
-
-	// Vulnerabilities is a set of vulnerabilities that were discovered from the search.
-	Vulnerabilities []vulnerability.Vulnerability
-
-	// Details is a set of match details that describe the search itself
-	Details []match.Detail
-
-	// Package is the package that was used to search for vulnerabilities.
-	Package *pkg.Package
+	vulnerability.Vulnerability
+	Criteria []vulnerability.Criteria
 }
 
 type Set map[string][]Result
-
-func unionIntoResult(existing []Result) Result {
-	var merged Result
-	for _, r := range existing {
-		if merged.ID == "" {
-			merged.ID = r.ID
-			merged.Package = r.Package
-		}
-		merged.Vulnerabilities = append(merged.Vulnerabilities, r.Vulnerabilities...)
-		merged.Details = append(merged.Details, r.Details...)
-	}
-	merged.Details = internal.NewMatchDetailsSet(merged.Details...).ToSlice()
-	return merged
-}
-
-func (s Set) ToMatches() []match.Match {
-	var out []match.Match
-	for _, results := range s {
-		merged := unionIntoResult(results)
-
-		if len(merged.Vulnerabilities) == 0 {
-			continue
-		}
-
-		if merged.Package == nil {
-			continue // skip results without a package
-		}
-
-		for _, vv := range merged.Vulnerabilities {
-			out = append(out,
-				match.Match{
-					Vulnerability: vv,
-					Package:       *merged.Package,
-					Details:       merged.Details,
-				},
-			)
-		}
-	}
-
-	return out
-}
 
 func (s Set) Remove(incoming Set) Set {
 	out := Set{}
 	for id, results := range s {
 		if incoming.Contains(id) {
+			vulnerability.LogDropped(id, "remove", "in remove set", nil)
+			continue
+		}
+		out[id] = results
+	}
+	return out
+}
+
+func (s Set) Keep(incoming Set) Set {
+	out := Set{}
+	for id, results := range s {
+		if !incoming.Contains(id) {
+			vulnerability.LogDropped(id, "keep", "not in kept set", nil)
 			continue
 		}
 		out[id] = results
@@ -96,12 +56,12 @@ func (s Set) Merge(incoming Set, mergeFuncs ...func(existing, incoming []Result)
 	}
 
 	// det all unique IDs from both sets
-	allIDs := make(map[string]bool)
+	allIDs := make(map[string]struct{})
 	for id := range s {
-		allIDs[id] = true
+		allIDs[id] = struct{}{}
 	}
 	for id := range incoming {
-		allIDs[id] = true
+		allIDs[id] = struct{}{}
 	}
 
 	// process each ID, applying all merge functions
@@ -114,18 +74,13 @@ func (s Set) Merge(incoming Set, mergeFuncs ...func(existing, incoming []Result)
 			mergedResults = mergeFunc(mergedResults, incomingResults)
 		}
 
-		if len(mergedResults) > 0 {
-			// filter out any results with empty vulnerabilities
-			var validResults []Result
-			for _, result := range mergedResults {
-				if result.ID != "" && len(result.Vulnerabilities) > 0 {
-					validResults = append(validResults, result)
-				}
-			}
-			if len(validResults) > 0 {
-				out[id] = validResults
-			}
+		if len(mergedResults) == 0 {
+			// this result is filtered out as part of the merge operation
+			vulnerability.LogDropped(id, "merge", "dropped", nil)
+			continue
 		}
+
+		out.appendResults(mergedResults...)
 	}
 
 	return out
@@ -137,50 +92,57 @@ func (s Set) Contains(id string) bool {
 }
 
 func (s Set) Filter(criteria ...vulnerability.Criteria) Set {
+	return s.FilterFunc(func(results []Result) ([]Result, error) {
+		return filterResults(results, criteria)
+	})
+}
+
+func (s Set) FilterFunc(filterFunc func(result []Result) ([]Result, error)) Set {
 	out := Set{}
-	for id, results := range s {
-		var filteredResults []Result
-
-		for _, result := range results {
-			vulns, err := filterVulns(result.Vulnerabilities, criteria)
-			if err != nil {
-				log.WithFields("vulnerability", result.ID, "error", err).Debug("failed to filter vulns")
-				// if there was an error filtering vulnerabilities, keep them all
-				vulns = result.Vulnerabilities
-			}
-			if len(vulns) == 0 {
-				continue
-			}
-
-			filteredResults = append(filteredResults, Result{
-				ID:              result.ID,
-				Vulnerabilities: vulns,
-				Details:         result.Details,
-			})
+	for id, existing := range s {
+		result, err := filterFunc(existing)
+		if err != nil {
+			log.WithFields("vulnerability", id, "error", err).Debug("failed to filter vulns")
+			// if there was an error filtering vulnerabilities, keep them all
+			result = existing
 		}
-
-		if len(filteredResults) > 0 {
-			out[id] = filteredResults
+		if len(result) == 0 {
+			vulnerability.LogDropped(id, "filter", "not kept", filterFunc)
+			continue
 		}
+		out.appendResults(result...)
 	}
 	return out
 }
 
-func filterVulns(vulnerabilities []vulnerability.Vulnerability, criteria []vulnerability.Criteria) ([]vulnerability.Vulnerability, error) {
-	var out []vulnerability.Vulnerability
+func (s Set) appendResults(results ...Result) {
+	for _, result := range results {
+		if result.ID == "" {
+			vulnerability.LogDropped(result.Namespace, "appendResults", "no ID", result)
+			return
+		}
+		// always use the ID returned on the filtered record, this could be changed, for example, if
+		// a "reorient by CVE" operation occurs and transitions a GHSA record to a corresponding CVE record
+		s[result.ID] = append(s[result.ID], result)
+	}
+}
+
+func filterResults(results []Result, criteria []vulnerability.Criteria) ([]Result, error) {
+	var out []Result
 nextVulnerability:
-	for _, v := range vulnerabilities {
+	for _, r := range results {
 		for _, c := range criteria {
-			matches, dropReason, err := c.MatchesVulnerability(v)
+			matches, dropReason, err := c.MatchesVulnerability(r.Vulnerability)
 			if err != nil {
 				return nil, err
 			}
 			if !matches {
-				vulnerability.LogDropped(v.ID, "filterVulns", dropReason, c)
+				vulnerability.LogDropped(r.ID, "filterVulns", dropReason, c)
 				continue nextVulnerability
 			}
 		}
-		out = append(out, v)
+		r.Criteria = append(r.Criteria, criteria...)
+		out = append(out, r)
 	}
 	return out, nil
 }
