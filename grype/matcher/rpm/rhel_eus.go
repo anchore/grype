@@ -25,7 +25,13 @@ func shouldUseRedhatEUSMatching(d *distro.Distro) bool {
 		return false
 	}
 
-	return strings.ToLower(d.Channel) == "eus"
+	for _, channel := range d.Channels {
+		if strings.ToLower(channel) == "eus" {
+			// if the distro has an EUS channel, we should consider EUS fixes
+			return true
+		}
+	}
+	return false
 }
 
 // redhatEUSMatches returns matches for the given package with Extended Update Support (EUS) fixes considered.
@@ -58,7 +64,7 @@ func shouldUseRedhatEUSMatching(d *distro.Distro) bool {
 // The final step is to render the final matches from the merged collection.
 func redhatEUSMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
 	distroWithoutEUS := *searchPkg.Distro
-	distroWithoutEUS.Channel = "" // clear the EUS channel so that we can search for the base distro
+	distroWithoutEUS.Channels = nil // clear the EUS channel so that we can search for the base distro
 	pkgVersion := version.New(searchPkg.Version, pkg.VersionFormat(searchPkg))
 
 	// find all disclosures for the package in the base distro (e.g. '>= 9.0 && < 10')

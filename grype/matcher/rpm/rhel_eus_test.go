@@ -580,9 +580,9 @@ func TestRedhatEUSMatches(t *testing.T) {
 		Version: "1.0.0",
 		Type:    syftPkg.RpmPkg,
 		Distro: &distro.Distro{
-			Type:    distro.RedHat,
-			Version: "9.4",
-			Channel: "eus",
+			Type:     distro.RedHat,
+			Version:  "9.4",
+			Channels: channels("eus"),
 		},
 	}
 
@@ -654,9 +654,9 @@ func TestRedhatEUSMatches(t *testing.T) {
 						Version: "1.0.0",
 						Type:    syftPkg.RpmPkg,
 						Distro: &distro.Distro{
-							Type:    distro.RedHat,
-							Version: "9.4",
-							Channel: "eus",
+							Type:     distro.RedHat,
+							Version:  "9.4",
+							Channels: channels("eus"),
 						},
 					},
 					Details: []match.Detail{
@@ -713,9 +713,9 @@ func TestRedhatEUSMatches(t *testing.T) {
 				Version: "1.0.0",
 				Type:    syftPkg.RpmPkg,
 				Distro: &distro.Distro{
-					Type:    distro.RedHat,
-					Version: "9.4",
-					Channel: "eus",
+					Type:     distro.RedHat,
+					Version:  "9.4",
+					Channels: channels("eus"),
 				},
 			},
 			disclosureVulns: []vulnerability.Vulnerability{
@@ -765,9 +765,9 @@ func TestRedhatEUSMatches(t *testing.T) {
 						Version: "1.0.0",
 						Type:    syftPkg.RpmPkg,
 						Distro: &distro.Distro{
-							Type:    distro.RedHat,
-							Version: "9.4",
-							Channel: "eus",
+							Type:     distro.RedHat,
+							Version:  "9.4",
+							Channels: channels("eus"),
 						},
 					},
 					Details: []match.Detail{
@@ -853,9 +853,9 @@ func TestRedhatEUSMatches(t *testing.T) {
 						Version: "1.0.0",
 						Type:    syftPkg.RpmPkg,
 						Distro: &distro.Distro{
-							Type:    distro.RedHat,
-							Version: "9.4",
-							Channel: "eus",
+							Type:     distro.RedHat,
+							Version:  "9.4",
+							Channels: channels("eus"),
 						},
 					},
 					Details: []match.Detail{
@@ -891,9 +891,9 @@ func TestRedhatEUSMatches(t *testing.T) {
 				Version: "2.0.0", // version higher than fix, so resolved
 				Type:    syftPkg.RpmPkg,
 				Distro: &distro.Distro{
-					Type:    distro.RedHat,
-					Version: "9.4",
-					Channel: "eus",
+					Type:     distro.RedHat,
+					Version:  "9.4",
+					Channels: channels("eus"),
 				},
 			},
 			disclosureVulns: []vulnerability.Vulnerability{
@@ -999,9 +999,9 @@ func TestRedhatEUSMatches(t *testing.T) {
 						Version: "1.0.0",
 						Type:    syftPkg.RpmPkg,
 						Distro: &distro.Distro{
-							Type:    distro.RedHat,
-							Version: "9.4",
-							Channel: "eus",
+							Type:     distro.RedHat,
+							Version:  "9.4",
+							Channels: channels("eus"),
 						},
 					},
 					Details: []match.Detail{
@@ -1085,9 +1085,9 @@ func TestRedhatEUSMatches(t *testing.T) {
 						Version: "1.0.0",
 						Type:    syftPkg.RpmPkg,
 						Distro: &distro.Distro{
-							Type:    distro.RedHat,
-							Version: "9.4",
-							Channel: "eus",
+							Type:     distro.RedHat,
+							Version:  "9.4",
+							Channels: channels("eus"),
 						},
 					},
 					Details: []match.Detail{
@@ -1244,4 +1244,8 @@ func (m *mockVulnProvider) FindVulnerabilities(criteria ...vulnerability.Criteri
 		return nil, m.resolutionError
 	}
 	return m.resolutionVulns, nil
+}
+
+func channels(s ...string) []string {
+	return s
 }
