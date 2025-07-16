@@ -567,7 +567,10 @@ type OperatingSystemSpecifierOverride struct {
 	VersionPattern string `gorm:"column:version_pattern;primaryKey"`
 
 	// Codename is the matching codename as found in the VERSION_CODENAME field if the /etc/os-release file
-	Codename string `gorm:"column:codename"`
+	Codename string `gorm:"column:codename;collate:NOCASE"`
+
+	// Channel is a string used to distinguish between fix and vulnerability data for the same OS release (e.g. RHEL mainline vs EUS).
+	Channel string `gorm:"column:channel;collate:NOCASE"`
 
 	// below are the fields that should be used as replacement for fields in the OperatingSystem table
 
@@ -575,7 +578,11 @@ type OperatingSystemSpecifierOverride struct {
 	ReplacementMajorVersion *string `gorm:"column:replacement_major_version;primaryKey"`
 	ReplacementMinorVersion *string `gorm:"column:replacement_minor_version;primaryKey"`
 	ReplacementLabelVersion *string `gorm:"column:replacement_label_version;primaryKey"`
+	ReplacementChannel      *string `gorm:"column:replacement_channel;primaryKey"`
 	Rolling                 bool    `gorm:"column:rolling;primaryKey"`
+
+	// ApplicableClientDBSchemas is a constraint on the database version that this override can be applied to (relative to the client library being used to access the DB).
+	ApplicableClientDBSchemas string `gorm:"column:applicable_client_db_schemas"`
 }
 
 func (os *OperatingSystemSpecifierOverride) BeforeCreate(_ *gorm.DB) (err error) {
