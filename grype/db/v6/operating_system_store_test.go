@@ -725,7 +725,7 @@ func TestApplyOSSpecifierOverrides(t *testing.T) {
 			},
 		},
 		{
-			name: "multiple overrides - last match wins",
+			name: "multiple overrides - first match wins",
 			osSpecifier: OSSpecifier{
 				Name:         "centos",
 				MajorVersion: "8",
@@ -734,43 +734,17 @@ func TestApplyOSSpecifierOverrides(t *testing.T) {
 			aliases: []OperatingSystemSpecifierOverride{
 				{
 					Alias:           "centos",
-					ReplacementName: strPtr("fedora"),
+					ReplacementName: strPtr("rhel"),
 				},
 				{
 					Alias:           "centos",
-					ReplacementName: strPtr("rhel"),
+					ReplacementName: strPtr("fedora"),
 				},
 			},
 			expected: OSSpecifier{
 				Name:         "rhel", // overridden
 				MajorVersion: "8",
 				MinorVersion: "1",
-			},
-		},
-		{
-			name: "multiple overrides - chain of changes",
-			osSpecifier: OSSpecifier{
-				Name:         "redhat",
-				MajorVersion: "8",
-				MinorVersion: "1",
-				Channel:      "eeus",
-			},
-			aliases: []OperatingSystemSpecifierOverride{
-				{
-					Alias:           "redhat",
-					ReplacementName: strPtr("rhel"),
-				},
-				{
-					Alias:              "rhel",
-					Channel:            "eeus",
-					ReplacementChannel: strPtr("eus"),
-				},
-			},
-			expected: OSSpecifier{
-				Name:         "rhel", // overridden
-				MajorVersion: "8",
-				MinorVersion: "1",
-				Channel:      "eus", // overridden
 			},
 		},
 		{

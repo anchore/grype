@@ -20,9 +20,6 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 		{Alias: "almalinux", ReplacementName: strRef("rhel")}, // non-standard, but common (dockerhub uses "almalinux")
 		{Alias: "gentoo", ReplacementName: strRef("rhel")},
 
-		// we pass in the distro.Type into the search specifier, not a raw release-id
-		{Alias: "redhat", ReplacementName: strRef("rhel")},
-
 		// to remain backwards compatible, we need to keep old clients from ignoring EUS data.
 		// we do this by diverting any requests for a specific major.minor version of rhel to only
 		// use the major version. But, this only applies to clients before v6.0.3 DB schema version.
@@ -31,6 +28,8 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 		// see the new channel column) will assume during OS resolution that there is major.minor vuln data
 		// that should be used (which is incorrect).
 		{Alias: "rhel", VersionPattern: `^\d+.\d+`, ReplacementMinorVersion: strRef(""), ApplicableClientDBSchemas: "< 6.0.3"},
+		// we pass in the distro.Type into the search specifier, not a raw release-id
+		{Alias: "redhat", VersionPattern: `^\d+.\d+`, ReplacementMinorVersion: strRef(""), ReplacementName: strRef("rhel"), ApplicableClientDBSchemas: "< 6.0.3"},
 
 		// alpine family
 		{Alias: "alpine", VersionPattern: `.*_alpha.*`, ReplacementLabelVersion: strRef("edge"), Rolling: true},

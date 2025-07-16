@@ -254,7 +254,9 @@ func applyOSSpecifierOverrides(d *OSSpecifier, overrides []OperatingSystemSpecif
 			continue
 		}
 
+		// first match wins, we do not apply any further overrides
 		applyOverride(d, o)
+		break
 	}
 
 	return nil
