@@ -3,6 +3,7 @@ package v6
 import (
 	"errors"
 	"fmt"
+	"github.com/anchore/grype/grype/version"
 	"regexp"
 	"strings"
 
@@ -124,14 +125,16 @@ type OperatingSystemStoreReader interface {
 }
 
 type operatingSystemStore struct {
-	db        *gorm.DB
-	blobStore *blobStore
+	db            *gorm.DB
+	blobStore     *blobStore
+	clientVersion *version.Version
 }
 
 func newOperatingSystemStore(db *gorm.DB, bs *blobStore) *operatingSystemStore {
 	return &operatingSystemStore{
-		db:        db,
-		blobStore: bs,
+		db:            db,
+		blobStore:     bs,
+		clientVersion: version.New(fmt.Sprintf("%d.%d.%d", ModelVersion, Revision, Addition), version.SemanticFormat),
 	}
 }
 
@@ -228,6 +231,25 @@ func (s *operatingSystemStore) applyOSAlias(d *OSSpecifier) error {
 	var alias *OperatingSystemSpecifierOverride
 
 	for _, a := range aliases {
+		if a.DBVersionConstraint != "" {
+			c, err := version.GetConstraint(a.DBVersionConstraint, version.SemanticFormat)
+			if err != nil {
+				log.Debugf("failed to parse version constraint %q for OS alias %#v: %v", a.DBVersionConstraint, a, err)
+				continue
+			}
+
+			ok, err := c.Satisfied(s.clientVersion)
+			if err != nil {
+				log.Debugf("failed to check version constraint %q for OS alias %#v: %v", a.DBVersionConstraint, a, err)
+				continue
+			}
+
+			if !ok {
+				// explicitly told that this override does not apply to this client version
+				continue
+			}
+		}
+
 		if a.Codename != "" && a.Codename != d.LabelVersion {
 			continue
 		}

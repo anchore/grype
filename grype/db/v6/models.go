@@ -576,6 +576,9 @@ type OperatingSystemSpecifierOverride struct {
 	ReplacementMinorVersion *string `gorm:"column:replacement_minor_version;primaryKey"`
 	ReplacementLabelVersion *string `gorm:"column:replacement_label_version;primaryKey"`
 	Rolling                 bool    `gorm:"column:rolling;primaryKey"`
+
+	// DBVersionConstraint is a constraint on the database version that this override can be applied to.
+	DBVersionConstraint string `gorm:"column:db_version_constraint"`
 }
 
 func (os *OperatingSystemSpecifierOverride) BeforeCreate(_ *gorm.DB) (err error) {
