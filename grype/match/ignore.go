@@ -2,6 +2,7 @@ package match
 
 import (
 	"regexp"
+	"time"
 
 	"github.com/bmatcuk/doublestar/v2"
 
@@ -56,7 +57,12 @@ type IgnoreRulePackage struct {
 // ApplyIgnoreRules returns two collections: the matches that are not being
 // ignored, and the matches that are being ignored.
 func ApplyIgnoreRules(matches Matches, rules []IgnoreRule) (Matches, []IgnoredMatch) {
-	matched, ignored := ApplyIgnoreFilters(matches.Sorted(), rules...)
+	startTime := time.Now()
+	s := matches.Sorted()
+	log.WithFields("time", time.Since(startTime)).Info("sorted matches")
+	startTime = time.Now()
+	matched, ignored := ApplyIgnoreFilters(s, rules...)
+	log.WithFields("time", time.Since(startTime)).Info("applied all ignore filters")
 	return NewMatches(matched...), ignored
 }
 
@@ -78,6 +84,8 @@ func ApplyIgnoreFilters[T IgnoreFilter](matches []Match, filters ...T) ([]Match,
 				Match:              match,
 				AppliedIgnoreRules: applicableRules,
 			})
+
+			log.Trace("ignored match %+v", match)
 
 			continue
 		}
@@ -140,7 +148,7 @@ func getIgnoreConditionsForRule(rule IgnoreRule) []ignoreCondition {
 	var ignoreConditions []ignoreCondition
 
 	if v := rule.Vulnerability; v != "" {
-		ignoreConditions = append(ignoreConditions, ifVulnerabilityApplies(v, rule.IncludeAliases))
+		ignoreConditions = append(ignoreConditions, ifVulnerabilityApplies(v, false))
 	}
 
 	if ns := rule.Namespace; ns != "" {

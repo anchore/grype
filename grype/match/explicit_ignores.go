@@ -1,6 +1,7 @@
 package match
 
 import (
+	"time"
 	"github.com/anchore/grype/internal/log"
 )
 
@@ -76,6 +77,7 @@ func init() {
 
 // ApplyExplicitIgnoreRules Filters out matches meeting the criteria defined above and those within the grype database
 func ApplyExplicitIgnoreRules(provider ExclusionProvider, matches Matches) (Matches, []IgnoredMatch) {
+	startTime := time.Now()
 	var ignoreRules []IgnoreRule
 	ignoreRules = append(ignoreRules, explicitIgnoreRules...)
 
@@ -90,6 +92,7 @@ func ApplyExplicitIgnoreRules(provider ExclusionProvider, matches Matches) (Matc
 
 			ignoreRules = append(ignoreRules, r...)
 		}
+		log.WithFields("time", time.Since(startTime)).Info("loaded relevant ignore rules")
 	}
 
 	return ApplyIgnoreRules(matches, ignoreRules)
