@@ -7,6 +7,8 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/anchore/grype/grype/version"
 )
 
 func TestOperatingSystemStore_ResolveOperatingSystem(t *testing.T) {
@@ -521,4 +523,379 @@ func TestOSSpecifier_clean(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestApplyOverride(t *testing.T) {
+	tests := []struct {
+		name        string
+		osSpecifier OSSpecifier
+		override    OperatingSystemSpecifierOverride
+		expected    OSSpecifier
+		wantApplied bool
+	}{
+		{
+			name: "replace name",
+			osSpecifier: OSSpecifier{
+				Name:         "centos",
+				MajorVersion: "8",
+				MinorVersion: "1",
+			},
+			override: OperatingSystemSpecifierOverride{
+				ReplacementName: strPtr("rhel"),
+			},
+			expected: OSSpecifier{
+				Name:         "rhel",
+				MajorVersion: "8",
+				MinorVersion: "1",
+			},
+			wantApplied: true,
+		},
+		{
+			name: "replace major version",
+			osSpecifier: OSSpecifier{
+				Name:         "rhel",
+				MajorVersion: "8",
+				MinorVersion: "1",
+			},
+			override: OperatingSystemSpecifierOverride{
+				ReplacementMajorVersion: strPtr("9"),
+			},
+			expected: OSSpecifier{
+				Name:         "rhel",
+				MajorVersion: "9",
+				MinorVersion: "1",
+			},
+			wantApplied: true,
+		},
+		{
+			name: "replace minor version",
+			osSpecifier: OSSpecifier{
+				Name:         "ubuntu",
+				MajorVersion: "20",
+				MinorVersion: "04",
+			},
+			override: OperatingSystemSpecifierOverride{
+				ReplacementMinorVersion: strPtr("10"),
+			},
+			expected: OSSpecifier{
+				Name:         "ubuntu",
+				MajorVersion: "20",
+				MinorVersion: "10",
+			},
+			wantApplied: true,
+		},
+		{
+			name: "replace label version",
+			osSpecifier: OSSpecifier{
+				Name:         "ubuntu",
+				MajorVersion: "20",
+				MinorVersion: "04",
+				LabelVersion: "focal",
+			},
+			override: OperatingSystemSpecifierOverride{
+				ReplacementLabelVersion: strPtr("jammy"),
+			},
+			expected: OSSpecifier{
+				Name:         "ubuntu",
+				MajorVersion: "20",
+				MinorVersion: "04",
+				LabelVersion: "jammy",
+			},
+			wantApplied: true,
+		},
+		{
+			name: "replace channel",
+			osSpecifier: OSSpecifier{
+				Name:         "rhel",
+				MajorVersion: "9",
+				MinorVersion: "1",
+				Channel:      "eeus",
+			},
+			override: OperatingSystemSpecifierOverride{
+				ReplacementChannel: strPtr("eus"),
+			},
+			expected: OSSpecifier{
+				Name:         "rhel",
+				MajorVersion: "9",
+				MinorVersion: "1",
+				Channel:      "eus",
+			},
+			wantApplied: true,
+		},
+		{
+			name: "rolling flag clears versions",
+			osSpecifier: OSSpecifier{
+				Name:         "arch",
+				MajorVersion: "2024",
+				MinorVersion: "01",
+				LabelVersion: "rolling",
+			},
+			override: OperatingSystemSpecifierOverride{
+				Rolling: true,
+			},
+			expected: OSSpecifier{
+				Name:         "arch",
+				MajorVersion: "",
+				MinorVersion: "",
+				LabelVersion: "rolling",
+			},
+			wantApplied: true,
+		},
+		{
+			name: "comprehensive override - all fields",
+			osSpecifier: OSSpecifier{
+				Name:         "centos",
+				MajorVersion: "7",
+				MinorVersion: "5",
+				LabelVersion: "core",
+			},
+			override: OperatingSystemSpecifierOverride{
+				ReplacementName:         strPtr("rhel"),
+				ReplacementMajorVersion: strPtr("7"),
+				ReplacementMinorVersion: strPtr("9"),
+				ReplacementLabelVersion: strPtr("server"),
+			},
+			expected: OSSpecifier{
+				Name:         "rhel",
+				MajorVersion: "7",
+				MinorVersion: "9",
+				LabelVersion: "server",
+			},
+			wantApplied: true,
+		},
+		{
+			name: "no replacement fields - no changes",
+			osSpecifier: OSSpecifier{
+				Name:         "ubuntu",
+				MajorVersion: "20",
+				MinorVersion: "04",
+				LabelVersion: "focal",
+			},
+			override: OperatingSystemSpecifierOverride{
+				Alias: "ubuntu",
+			},
+			expected: OSSpecifier{
+				Name:         "ubuntu",
+				MajorVersion: "20",
+				MinorVersion: "04",
+				LabelVersion: "focal",
+			},
+			wantApplied: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// make a copy to avoid modifying the original
+			d := tt.osSpecifier
+			applied := applyOverride(&d, tt.override)
+
+			require.Equal(t, tt.wantApplied, applied)
+
+			if diff := cmp.Diff(tt.expected, d); diff != "" {
+				t.Errorf("unexpected result (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestApplyOSSpecifierOverrides(t *testing.T) {
+	tests := []struct {
+		name          string
+		osSpecifier   OSSpecifier
+		aliases       []OperatingSystemSpecifierOverride
+		clientVersion *version.Version
+		wantErr       require.ErrorAssertionFunc
+		expected      OSSpecifier
+	}{
+		{
+			name: "no aliases - no change",
+			osSpecifier: OSSpecifier{
+				Name:         "ubuntu",
+				MajorVersion: "20",
+				MinorVersion: "04",
+				LabelVersion: "focal",
+			},
+			aliases: []OperatingSystemSpecifierOverride{},
+			expected: OSSpecifier{
+				Name:         "ubuntu",
+				MajorVersion: "20",
+				MinorVersion: "04",
+				LabelVersion: "focal",
+			},
+		},
+		{
+			name: "multiple overrides - first match wins",
+			osSpecifier: OSSpecifier{
+				Name:         "centos",
+				MajorVersion: "8",
+				MinorVersion: "1",
+			},
+			aliases: []OperatingSystemSpecifierOverride{
+				{
+					Alias:           "centos",
+					ReplacementName: strPtr("rhel"),
+				},
+				{
+					Alias:           "centos",
+					ReplacementName: strPtr("fedora"),
+				},
+			},
+			expected: OSSpecifier{
+				Name:         "rhel", // overridden
+				MajorVersion: "8",
+				MinorVersion: "1",
+			},
+		},
+		{
+			name: "codename mismatch - no override",
+			osSpecifier: OSSpecifier{
+				Name:         "ubuntu",
+				MajorVersion: "20",
+				MinorVersion: "04",
+				LabelVersion: "focal",
+			},
+			aliases: []OperatingSystemSpecifierOverride{
+				{
+					Alias:           "ubuntu",
+					Codename:        "jammy",
+					ReplacementName: strPtr("ubuntu-lts"),
+				},
+			},
+			expected: OSSpecifier{
+				Name:         "ubuntu",
+				MajorVersion: "20",
+				MinorVersion: "04",
+				LabelVersion: "focal", // not overridden
+			},
+		},
+		{
+			name: "version mismatch - no override",
+			osSpecifier: OSSpecifier{
+				Name:         "debian",
+				MajorVersion: "10",
+				MinorVersion: "5",
+			},
+			aliases: []OperatingSystemSpecifierOverride{
+				{
+					Alias:           "debian",
+					Version:         "11.0",
+					ReplacementName: strPtr("debian-bullseye"),
+				},
+			},
+			expected: OSSpecifier{
+				Name:         "debian",
+				MajorVersion: "10", // not overridden
+				MinorVersion: "5",  // not overridden
+			},
+		},
+		{
+			name: "version pattern mismatch - no override",
+			osSpecifier: OSSpecifier{
+				Name:         "alpine",
+				MajorVersion: "2",
+				MinorVersion: "18",
+			},
+			aliases: []OperatingSystemSpecifierOverride{
+				{
+					Alias:           "alpine",
+					VersionPattern:  "^3\\.[0-9]+$",
+					ReplacementName: strPtr("alpine-stable"),
+				},
+			},
+			expected: OSSpecifier{
+				Name:         "alpine", // not overridden
+				MajorVersion: "2",
+				MinorVersion: "18",
+			},
+		},
+		{
+			name: "client version constraint satisfied",
+			osSpecifier: OSSpecifier{
+				Name:         "ubuntu",
+				MajorVersion: "20",
+				MinorVersion: "04",
+			},
+			aliases: []OperatingSystemSpecifierOverride{
+				{
+					Alias:                     "ubuntu",
+					ApplicableClientDBSchemas: ">=1.0.0",
+					ReplacementName:           strPtr("ubuntu-new"),
+				},
+			},
+			clientVersion: version.New("1.2.0", version.SemanticFormat), // matches the constraint, thus allowed to override
+			expected: OSSpecifier{
+				Name:         "ubuntu-new", // overridden
+				MajorVersion: "20",
+				MinorVersion: "04",
+			},
+		},
+		{
+			name: "client version constraint not satisfied",
+			osSpecifier: OSSpecifier{
+				Name:         "ubuntu",
+				MajorVersion: "20",
+				MinorVersion: "04",
+			},
+			aliases: []OperatingSystemSpecifierOverride{
+				{
+					Alias:                     "ubuntu",
+					ApplicableClientDBSchemas: ">=2.0.0", // does not match the client version, thus no override
+					ReplacementName:           strPtr("ubuntu-new"),
+				},
+			},
+			clientVersion: version.New("1.2.0", version.SemanticFormat),
+			expected: OSSpecifier{
+				Name:         "ubuntu", // not overridden
+				MajorVersion: "20",
+				MinorVersion: "04",
+			},
+		},
+		{
+			name: "invalid client version constraint - honor the override",
+			osSpecifier: OSSpecifier{
+				Name:         "ubuntu",
+				MajorVersion: "20",
+				MinorVersion: "04",
+			},
+			aliases: []OperatingSystemSpecifierOverride{
+				{
+					Alias:                     "ubuntu",
+					ApplicableClientDBSchemas: "invalid-constraint", // oops!
+					ReplacementName:           strPtr("ubuntu-new"),
+				},
+			},
+			clientVersion: version.New("1.2.0", version.SemanticFormat),
+			expected: OSSpecifier{
+				Name:         "ubuntu-new", // overridden
+				MajorVersion: "20",
+				MinorVersion: "04",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.wantErr == nil {
+				tt.wantErr = require.NoError
+			}
+
+			// make a copy to avoid modifying the original
+			d := tt.osSpecifier
+			err := applyOSSpecifierOverrides(&d, tt.aliases, tt.clientVersion)
+			tt.wantErr(t, err)
+
+			if err != nil {
+				return
+			}
+
+			if diff := cmp.Diff(tt.expected, d); diff != "" {
+				t.Errorf("unexpected result (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func strPtr(s string) *string {
+	return &s
 }

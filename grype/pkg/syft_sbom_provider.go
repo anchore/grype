@@ -23,7 +23,7 @@ type SBOMFileMetadata struct {
 	Path string
 }
 
-func syftSBOMProvider(userInput string, config ProviderConfig) ([]Package, Context, *sbom.SBOM, error) {
+func syftSBOMProvider(userInput string, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]Package, Context, *sbom.SBOM, error) {
 	s, fmtID, path, err := getSBOM(userInput)
 	if err != nil {
 		return nil, Context{}, nil, err
@@ -36,13 +36,13 @@ func syftSBOMProvider(userInput string, config ProviderConfig) ([]Package, Conte
 		}
 	}
 
-	d := distro.FromRelease(s.Artifacts.LinuxDistribution)
+	d := distroFromSBOM(s, config, applyChannel)
 
 	catalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, d)
 
 	var enhancers []Enhancer
 	if fmtID != syftjson.ID {
-		enhancers = purlEnhancers
+		enhancers = purlEnhancers(applyChannel)
 	}
 
 	return FromCollection(catalog, config.SynthesisConfig, enhancers...), Context{

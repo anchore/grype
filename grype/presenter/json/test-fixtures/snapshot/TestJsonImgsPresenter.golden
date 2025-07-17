@@ -195,6 +195,9 @@
   "version": "8.0",
   "idLike": [
    "centos"
+  ],
+  "channels": [
+   "eus"
   ]
  },
  "descriptor": {

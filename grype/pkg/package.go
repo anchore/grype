@@ -3,7 +3,6 @@ package pkg
 import (
 	"fmt"
 	"regexp"
-	"slices"
 	"strings"
 
 	"github.com/anchore/grype/grype/distro"
@@ -44,6 +43,8 @@ type Package struct {
 	Upstreams []UpstreamPackage
 	Metadata  interface{} // This is NOT 1-for-1 the syft metadata! Only the select data needed for vulnerability matching
 }
+
+type Enhancer func(out *Package, purl packageurl.PackageURL, pkg syftPkg.Package)
 
 func New(p syftPkg.Package, enhancers ...Enhancer) Package {
 	metadata, upstreams := dataFromPkg(p)
@@ -89,26 +90,38 @@ func FromCollection(catalog *syftPkg.Collection, config SynthesisConfig, enhance
 	return FromPackages(catalog.Sorted(), config, enhancers...)
 }
 
-func FromPackages(syftpkgs []syftPkg.Package, config SynthesisConfig, enhancers ...Enhancer) []Package {
+func FromPackages(syftPkgs []syftPkg.Package, config SynthesisConfig, enhancers ...Enhancer) []Package {
 	var pkgs []Package
-	for _, p := range syftpkgs {
+
+	// if the user provided a distro explicitly, then use that over any distro that may be inferred from a package url
+	enhancers = append([]Enhancer{applyDistroOverride(config.Distro.Override)}, enhancers...)
+
+	for _, p := range syftPkgs {
 		if len(p.CPEs) == 0 {
-			// For SPDX (or any format, really) we may have no CPEs
+			// for SPDX (or any format, really) we may have no CPEs
 			if config.GenerateMissingCPEs {
 				p.CPEs = cpes.Generate(p)
 			} else {
 				log.Debugf("no CPEs for package: %s", p)
 			}
 		}
+
 		pkgs = append(pkgs, New(p, enhancers...))
 	}
 
 	return pkgs
 }
 
-// Stringer to represent a package.
 func (p Package) String() string {
-	return fmt.Sprintf("Pkg(type=%s, name=%s, version=%s, upstreams=%d)", p.Type, p.Name, p.Version, len(p.Upstreams))
+	var d string
+	if p.Distro != nil {
+		d = fmt.Sprintf(", distro=%s", p.Distro.String())
+	}
+	var u string
+	if len(p.Upstreams) > 0 {
+		u = fmt.Sprintf(", upstreams=%d", len(p.Upstreams))
+	}
+	return fmt.Sprintf("Pkg(type=%s, name=%s, version=%s%s%s)", p.Type, p.Name, p.Version, u, d)
 }
 
 func removePackagesByOverlap(catalog *syftPkg.Collection, relationships []artifact.Relationship, distro *distro.Distro) *syftPkg.Collection {
@@ -493,54 +506,13 @@ func handleDefaultUpstream(pkgName string, value string) []UpstreamPackage {
 	return nil
 }
 
-func setUpstreamsFromPURL(out *Package, purl packageurl.PackageURL, syftPkg syftPkg.Package) {
-	if len(out.Upstreams) == 0 {
-		out.Upstreams = upstreamsFromPURL(purl, syftPkg.Type)
-	}
-}
-
-// upstreamsFromPURL reads any additional data Grype can use, which is ignored by Syft's PURL conversion
-func upstreamsFromPURL(purl packageurl.PackageURL, pkgType syftPkg.Type) (upstreams []UpstreamPackage) {
-	for _, qualifier := range purl.Qualifiers {
-		if qualifier.Key == syftPkg.PURLQualifierUpstream {
-			for _, newUpstream := range parseUpstream(purl.Name, qualifier.Value, pkgType) {
-				if slices.Contains(upstreams, newUpstream) {
-					continue
-				}
-				upstreams = append(upstreams, newUpstream)
-			}
+func applyDistroOverride(override *distro.Distro) Enhancer {
+	// the override here comes from either the --distro flag, which already has a channel indication applied
+	return func(out *Package, _ packageurl.PackageURL, _ syftPkg.Package) {
+		if override == nil {
+			return
 		}
-	}
-	return upstreams
-}
-
-func setDistroFromPURL(out *Package, purl packageurl.PackageURL, _ syftPkg.Package) {
-	if out.Distro == nil {
-		out.Distro = distroFromPURL(purl)
+		// allow downstream matchers to always consider the given user distro
+		out.Distro = override
 	}
 }
-
-// distroFromPURL reads distro data for Grype can use, which is ignored by Syft's PURL conversion
-func distroFromPURL(purl packageurl.PackageURL) (d *distro.Distro) {
-	var distroName, distroVersion string
-
-	for _, qualifier := range purl.Qualifiers {
-		if qualifier.Key == syftPkg.PURLQualifierDistro {
-			fields := strings.SplitN(qualifier.Value, "-", 2)
-			distroName = fields[0]
-			if len(fields) > 1 {
-				distroVersion = fields[1]
-			}
-		}
-	}
-
-	if distroName != "" {
-		d = distro.NewFromNameVersion(distroName, distroVersion)
-	}
-
-	return d
-}
-
-type Enhancer func(out *Package, purl packageurl.PackageURL, pkg syftPkg.Package)
-
-var purlEnhancers = []Enhancer{setUpstreamsFromPURL, setDistroFromPURL}

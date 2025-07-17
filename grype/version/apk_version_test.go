@@ -114,7 +114,7 @@ func TestApkVersion_Compare(t *testing.T) {
 			thisVer, err := newApkVersion(test.thisVersion)
 			require.NoError(t, err)
 
-			otherVer := NewVersion(test.otherVersion, test.otherFormat)
+			otherVer := New(test.otherVersion, test.otherFormat)
 
 			result, err := thisVer.Compare(otherVer)
 
@@ -142,7 +142,7 @@ func TestApkVersion_Compare_EdgeCases(t *testing.T) {
 		{
 			name: "nil version object",
 			setupFunc: func(t testing.TB) (*Version, *Version) {
-				thisVer := NewVersion("1.2.3-r4", ApkFormat)
+				thisVer := New("1.2.3-r4", ApkFormat)
 				return thisVer, nil
 			},
 			expectError:    true,

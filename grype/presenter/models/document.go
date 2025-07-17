@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/anchore/clio"
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -76,7 +77,7 @@ func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Con
 		Matches:        findings,
 		IgnoredMatches: ignoredMatchModels,
 		Source:         src,
-		Distro:         newDistribution(context.Distro),
+		Distro:         newDistribution(context, selectMostCommonDistro(packages)),
 		Descriptor: descriptor{
 			Name:          id.Name,
 			Version:       id.Version,
@@ -85,4 +86,31 @@ func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Con
 			Timestamp:     string(timestamp),
 		},
 	}, nil
+}
+
+// selectMostCommonDistro selects the most common distro from the provided packages.
+func selectMostCommonDistro(pkgs []pkg.Package) *distro.Distro {
+	distros := make(map[string]*distro.Distro)
+	count := make(map[string]int)
+
+	var maxDistro *distro.Distro
+	maxCount := 0
+
+	for _, p := range pkgs {
+		if p.Distro != nil {
+			s := p.Distro.String()
+			count[s]++
+
+			if _, ok := distros[s]; !ok {
+				distros[s] = p.Distro
+			}
+
+			if count[s] > maxCount {
+				maxCount = count[s]
+				maxDistro = p.Distro
+			}
+		}
+	}
+
+	return maxDistro
 }

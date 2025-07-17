@@ -4,17 +4,18 @@ import (
 	"fmt"
 	"strings"
 
-	hashiVer "github.com/hashicorp/go-version"
-
+	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/grype/internal/stringutil"
 	"github.com/anchore/syft/syft/linux"
 )
 
 // Distro represents a Linux Distribution.
 type Distro struct {
 	Type     Type
-	Version  string
-	Codename string
+	Version  string   // major.minor.patch
+	Codename string   // in lieu of a version e.g. "fossa" instead of "20.04"
+	Channels []string // distinguish between different feeds for fix and vulnerability data, e.g. "eus" for RHEL
 	IDLike   []string
 
 	// fields populated in the constructor
@@ -26,23 +27,7 @@ type Distro struct {
 
 // New creates a new Distro object populated with the given values.
 func New(t Type, version, label string, idLikes ...string) *Distro {
-	var major, minor, remaining string
-	if version != "" {
-		// if starts with a digit, then assume it's a version and extract the major, minor, and remaining versions
-		if version[0] >= '0' && version[0] <= '9' {
-			// extract the major, minor, and remaining versions
-			parts := strings.Split(version, ".")
-			if len(parts) > 0 {
-				major = parts[0]
-				if len(parts) > 1 {
-					minor = parts[1]
-				}
-				if len(parts) > 2 {
-					remaining = strings.Join(parts[2:], ".")
-				}
-			}
-		}
-	}
+	major, minor, remaining, versionWithoutSuffix, channels := parseVersion(version)
 
 	for i := range idLikes {
 		typ, ok := IDMapping[strings.TrimSpace(idLikes[i])]
@@ -52,14 +37,48 @@ func New(t Type, version, label string, idLikes ...string) *Distro {
 	}
 
 	return &Distro{
-		Type:      t,
+		Type:     t,
+		Version:  versionWithoutSuffix,
+		Codename: label,
+		IDLike:   idLikes,
+		Channels: channels,
+
 		major:     major,
 		minor:     minor,
 		remaining: remaining,
-		Version:   version,
-		Codename:  label,
-		IDLike:    idLikes,
 	}
+}
+
+func parseVersion(version string) (major, minor, remaining, versionWithoutSuffix string, channels []string) {
+	if version == "" {
+		return "", "", "", "", nil
+	}
+
+	versionWithoutSuffix = version
+	var channelStr string
+	if strings.Contains(version, "+") {
+		vParts := strings.SplitN(version, "+", 2)
+		version = vParts[0]
+		versionWithoutSuffix = version
+		channelStr = vParts[1]
+	}
+
+	// if starts with a digit, then assume it's a version and extract the major, minor, and remaining versions
+	if version[0] >= '0' && version[0] <= '9' {
+		// extract the major, minor, and remaining versions
+		parts := strings.Split(version, ".")
+		if len(parts) > 0 {
+			major = parts[0]
+			if len(parts) > 1 {
+				minor = parts[1]
+			}
+			if len(parts) > 2 {
+				remaining = strings.Join(parts[2:], ".")
+			}
+		}
+	}
+
+	return major, minor, remaining, versionWithoutSuffix, stringutil.SplitOnAny(strings.TrimSpace(channelStr), ",", "+")
 }
 
 // NewFromNameVersion creates a new Distro object derived from the provided name and version
@@ -76,15 +95,16 @@ func NewFromNameVersion(name, version string) *Distro {
 	if typ == "" {
 		typ = Type(name)
 	}
+
 	return New(typ, version, codename, string(typ))
 }
 
 // FromRelease attempts to get a distro from the linux release, only logging any errors
-func FromRelease(linuxRelease *linux.Release) *Distro {
+func FromRelease(linuxRelease *linux.Release, channels []FixChannel) *Distro {
 	if linuxRelease == nil {
 		return nil
 	}
-	d, err := NewFromRelease(*linuxRelease)
+	d, err := NewFromRelease(*linuxRelease, channels)
 	if err != nil {
 		log.WithFields("error", err).Warn("unable to create distro from linux distribution")
 	}
@@ -92,22 +112,26 @@ func FromRelease(linuxRelease *linux.Release) *Distro {
 }
 
 // NewFromRelease creates a new Distro object derived from a syft linux.Release object.
-func NewFromRelease(release linux.Release) (*Distro, error) {
+func NewFromRelease(release linux.Release, channels []FixChannel) (*Distro, error) {
 	t := TypeFromRelease(release)
 	if t == "" {
 		return nil, fmt.Errorf("unable to determine distro type")
 	}
 
-	var selectedVersion string
+	var (
+		selectedVersion    string
+		selectedVersionObj *version.Version
+	)
 
-	for _, version := range []string{release.VersionID, release.Version} {
-		if version == "" {
+	for _, ver := range []string{release.VersionID, release.Version} {
+		if ver == "" {
 			continue
 		}
 
-		_, err := hashiVer.NewVersion(version)
-		if err == nil {
-			selectedVersion = version
+		selectedVersionObj = version.New(ver, version.SemanticFormat)
+
+		if selectedVersionObj.Validate() == nil {
+			selectedVersion = ver
 			break
 		}
 	}
@@ -116,7 +140,10 @@ func NewFromRelease(release linux.Release) (*Distro, error) {
 		selectedVersion = release.VersionID
 	}
 
-	return New(t, selectedVersion, release.VersionCodename, release.IDLike...), nil
+	d := New(t, selectedVersion, release.VersionCodename, release.IDLike...)
+	d.Channels = applyChannels(release, selectedVersionObj, d.Channels, channels)
+
+	return d, nil
 }
 
 func (d Distro) Name() string {
@@ -139,16 +166,31 @@ func (d Distro) RemainingVersion() string {
 
 // String returns a human-friendly representation of the Linux distribution.
 func (d Distro) String() string {
-	versionStr := "(version unknown)"
+	return fmt.Sprintf("%s %s", d.ID(), d.VersionString())
+}
+
+func (d Distro) ID() string {
+	return typeToIDMapping[d.Type]
+}
+
+func (d Distro) VersionString() string {
+	versionStr := ""
 	if d.Version != "" {
 		versionStr = d.Version
 	} else if d.Codename != "" {
 		versionStr = d.Codename
 	}
-	return fmt.Sprintf("%s %s", d.Type, versionStr)
+
+	channels := nonEmptyStrings(d.Channels...)
+
+	if len(channels) > 0 {
+		versionStr += "+" + strings.Join(channels, ",")
+	}
+
+	return versionStr
 }
 
-// Unsupported Linux distributions
+// Disabled is a way to convey if a Linux distribution is not supported by Grype.
 func (d Distro) Disabled() bool {
 	switch d.Type {
 	case ArchLinux:
@@ -156,4 +198,13 @@ func (d Distro) Disabled() bool {
 	default:
 		return false
 	}
+}
+
+func nonEmptyStrings(ss ...string) (res []string) {
+	for _, s := range ss {
+		if s != "" {
+			res = append(res, s)
+		}
+	}
+	return res
 }

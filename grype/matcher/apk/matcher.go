@@ -91,7 +91,7 @@ func (m *Matcher) cpeMatchesWithoutSecDBFixes(provider vulnerability.Provider, p
 
 	secDBVulnerabilitiesByID := vulnerabilitiesByID(secDBVulnerabilities)
 
-	verObj := version.NewVersionFromPkg(p)
+	verObj := version.New(p.Version, pkg.VersionFormat(p))
 
 	var finalCpeMatches []match.Match
 

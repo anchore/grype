@@ -8,6 +8,7 @@ import (
 
 	"gorm.io/gorm"
 
+	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/internal/log"
 )
 
@@ -29,6 +30,9 @@ type OSSpecifier struct {
 
 	// LabelVersion is a string that represents a floating version (e.g. "edge" or "unstable") or is the CODENAME field in /etc/os-release (e.g. "wheezy" for debian 7)
 	LabelVersion string
+
+	// Channel is a string that represents a different feed for fix and vulnerability data (e.g. "eus" for RHEL)
+	Channel string
 }
 
 func (d *OSSpecifier) clean() {
@@ -121,14 +125,16 @@ type OperatingSystemStoreReader interface {
 }
 
 type operatingSystemStore struct {
-	db        *gorm.DB
-	blobStore *blobStore
+	db            *gorm.DB
+	blobStore     *blobStore
+	clientVersion *version.Version
 }
 
 func newOperatingSystemStore(db *gorm.DB, bs *blobStore) *operatingSystemStore {
 	return &operatingSystemStore{
-		db:        db,
-		blobStore: bs,
+		db:            db,
+		blobStore:     bs,
+		clientVersion: version.New(fmt.Sprintf("%d.%d.%d", ModelVersion, Revision, Addition), version.SemanticFormat),
 	}
 }
 
@@ -222,51 +228,93 @@ func (s *operatingSystemStore) applyOSAlias(d *OSSpecifier) error {
 		return nil
 	}
 
-	var alias *OperatingSystemSpecifierOverride
+	return applyOSSpecifierOverrides(d, aliases, s.clientVersion)
+}
 
-	for _, a := range aliases {
-		if a.Codename != "" && a.Codename != d.LabelVersion {
+func applyOSSpecifierOverrides(d *OSSpecifier, overrides []OperatingSystemSpecifierOverride, clientVersion *version.Version) error {
+	for _, o := range overrides {
+		canUse, err := canUseOverride(o, clientVersion)
+		if err != nil {
+			log.Tracef("failed to check if override %q is applicable for client version %s: %v", o.Alias, clientVersion, err)
+			// we cannot check if we can use this override, so we assume it is applicable
+		} else if !canUse {
+			// this override is not applicable for the current client version
 			continue
 		}
 
-		if a.Version != "" && a.Version != d.version() {
+		if o.Codename != "" && o.Codename != d.LabelVersion {
 			continue
 		}
 
-		if a.VersionPattern != "" && !d.matchesVersionPattern(a.VersionPattern) {
+		if o.Version != "" && o.Version != d.version() {
 			continue
 		}
 
-		alias = &a
+		if o.VersionPattern != "" && !d.matchesVersionPattern(o.VersionPattern) {
+			continue
+		}
+
+		// first match wins, we do not apply any further overrides
+		applyOverride(d, o)
 		break
 	}
 
-	if alias == nil {
-		return nil
+	return nil
+}
+
+func applyOverride(d *OSSpecifier, override OperatingSystemSpecifierOverride) bool {
+	var applied bool
+	if override.ReplacementName != nil {
+		d.Name = *override.ReplacementName
+		applied = true
 	}
 
-	if alias.ReplacementName != nil {
-		d.Name = *alias.ReplacementName
-	}
-
-	if alias.Rolling {
+	if override.Rolling {
 		d.MajorVersion = ""
 		d.MinorVersion = ""
+		applied = true
 	}
 
-	if alias.ReplacementMajorVersion != nil {
-		d.MajorVersion = *alias.ReplacementMajorVersion
+	if override.ReplacementMajorVersion != nil {
+		d.MajorVersion = *override.ReplacementMajorVersion
+		applied = true
 	}
 
-	if alias.ReplacementMinorVersion != nil {
-		d.MinorVersion = *alias.ReplacementMinorVersion
+	if override.ReplacementMinorVersion != nil {
+		d.MinorVersion = *override.ReplacementMinorVersion
+		applied = true
 	}
 
-	if alias.ReplacementLabelVersion != nil {
-		d.LabelVersion = *alias.ReplacementLabelVersion
+	if override.ReplacementLabelVersion != nil {
+		d.LabelVersion = *override.ReplacementLabelVersion
+		applied = true
 	}
 
-	return nil
+	if override.ReplacementChannel != nil {
+		d.Channel = *override.ReplacementChannel
+		applied = true
+	}
+	return applied
+}
+
+func canUseOverride(override OperatingSystemSpecifierOverride, clientVersion *version.Version) (bool, error) {
+	if override.ApplicableClientDBSchemas == "" || clientVersion == nil {
+		return true, nil
+	}
+	c, err := version.GetConstraint(override.ApplicableClientDBSchemas, version.SemanticFormat)
+	if err != nil {
+		return true, fmt.Errorf("unable to parse version constraint: %w", err)
+	}
+	ok, err := c.Satisfied(clientVersion)
+	if err != nil {
+		return true, fmt.Errorf("unable to check if client constraint: %w", err)
+	}
+	if !ok {
+		// explicitly told that this override does not apply to this client version
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func (s *operatingSystemStore) prepareQuery(d OSSpecifier) *gorm.DB {
@@ -280,6 +328,12 @@ func (s *operatingSystemStore) prepareQuery(d OSSpecifier) *gorm.DB {
 		query = query.Where("codename = ? collate nocase OR label_version = ? collate nocase", d.LabelVersion, d.LabelVersion)
 	}
 
+	if d.Channel != "" {
+		query = query.Where("channel = ? collate nocase", d.Channel)
+	} else {
+		// we specifically want to match vanilla...
+		query = query.Where("channel IS NULL OR channel = ''")
+	}
 	return query
 }
 
