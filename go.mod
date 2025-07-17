@@ -9,7 +9,7 @@ require (
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 	github.com/adrg/xdg v0.5.3
 	github.com/anchore/archiver/v3 v3.5.3-0.20241210171143-5b1d8d1c7c51
-	github.com/anchore/bubbly v0.0.0-20250715193126-ff275bb48845
+	github.com/anchore/bubbly v0.0.0-20250717181826-8a411f9d8cbf
 	github.com/anchore/clio v0.0.0-20250715152405-a0fa658e5084
 	github.com/anchore/fangs v0.0.0-20250716230140-94c22408c232
 	github.com/anchore/go-collections v0.0.0-20241211140901-567f400e9a46
