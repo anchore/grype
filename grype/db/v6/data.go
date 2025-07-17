@@ -27,9 +27,9 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 		// rhel rows to the DB, all which have major.minor versions. This means that any old client (which wont
 		// see the new channel column) will assume during OS resolution that there is major.minor vuln data
 		// that should be used (which is incorrect).
-		{Alias: "rhel", VersionPattern: `^\d+.\d+`, ReplacementMinorVersion: strRef(""), ApplicableClientDBSchemas: "< 6.0.3"},
+		{Alias: "rhel", VersionPattern: `^\d+\.\d+`, ReplacementMinorVersion: strRef(""), ApplicableClientDBSchemas: "< 6.0.3"},
 		// we pass in the distro.Type into the search specifier, not a raw release-id
-		{Alias: "redhat", VersionPattern: `^\d+.\d+`, ReplacementMinorVersion: strRef(""), ReplacementName: strRef("rhel"), ApplicableClientDBSchemas: "< 6.0.3"},
+		{Alias: "redhat", VersionPattern: `^\d+\.\d+`, ReplacementMinorVersion: strRef(""), ReplacementName: strRef("rhel"), ApplicableClientDBSchemas: "< 6.0.3"},
 
 		// alpine family
 		{Alias: "alpine", VersionPattern: `.*_alpha.*`, ReplacementLabelVersion: strRef("edge"), Rolling: true},
