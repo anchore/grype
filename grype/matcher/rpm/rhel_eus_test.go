@@ -194,6 +194,8 @@ func TestResolveEUSDisclosures(t *testing.T) {
 							Constraint: version.CombineConstraints( // important! we are combining the constraints
 								version.MustGetConstraint("< 1.5.0", version.RpmFormat),
 								version.MustGetConstraint("< 2.0.0", version.RpmFormat),
+								version.MustGetConstraint("< 1.4.2", version.RpmFormat),
+								version.MustGetConstraint("< 1.4.3", version.RpmFormat),
 							),
 							Fix: vulnerability.Fix{
 								State:    vulnerability.FixStateFixed,
@@ -557,7 +559,7 @@ func TestResolveEUSDisclosures(t *testing.T) {
 				v = nil
 			}
 
-			resolver := resolveEUSDisclosures(v, tt.resolutionsAsDisclosures)
+			resolver := mergeEUSAdvisoriesIntoMainDisclosures(v, tt.resolutionsAsDisclosures)
 
 			got := resolver(tt.disclosures, tt.advisoryOverlay)
 
@@ -567,7 +569,7 @@ func TestResolveEUSDisclosures(t *testing.T) {
 				cmpopts.EquateEmpty(),
 			}
 			if diff := cmp.Diff(tt.want, got, opts...); diff != "" {
-				t.Errorf("resolveEUSDisclosures() mismatch (-want +got):\n%s", diff)
+				t.Errorf("mergeEUSAdvisoriesIntoMainDisclosures() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

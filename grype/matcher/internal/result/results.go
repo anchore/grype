@@ -96,12 +96,12 @@ func (s Set) Merge(incoming Set, mergeFuncs ...func(existing, incoming []Result)
 	}
 
 	// det all unique IDs from both sets
-	allIDs := make(map[string]bool)
+	allIDs := make(map[string]struct{})
 	for id := range s {
-		allIDs[id] = true
+		allIDs[id] = struct{}{}
 	}
 	for id := range incoming {
-		allIDs[id] = true
+		allIDs[id] = struct{}{}
 	}
 
 	// process each ID, applying all merge functions
@@ -116,14 +116,10 @@ func (s Set) Merge(incoming Set, mergeFuncs ...func(existing, incoming []Result)
 
 		if len(mergedResults) > 0 {
 			// filter out any results with empty vulnerabilities
-			var validResults []Result
 			for _, result := range mergedResults {
 				if result.ID != "" && len(result.Vulnerabilities) > 0 {
-					validResults = append(validResults, result)
+					out[result.ID] = append(out[result.ID], result)
 				}
-			}
-			if len(validResults) > 0 {
-				out[id] = validResults
 			}
 		}
 	}
@@ -161,6 +157,8 @@ func (s Set) Filter(criteria ...vulnerability.Criteria) Set {
 
 		if len(filteredResults) > 0 {
 			out[id] = filteredResults
+		} else if len(results) > 0 {
+			vulnerability.LogDropped(id, "filterVulns", "no vulnerabilities matched criteria", criteria)
 		}
 	}
 	return out
