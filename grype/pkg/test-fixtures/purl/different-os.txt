@@ -1,0 +1,2 @@
+pkg:apk/openssl@3.2.1?arch=aarch64&distro=alpine-3.20.3
+pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.2

@@ -1,17 +1,19 @@
 package pkg
 
 import (
-	"os"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/go-test/deep"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/file"
-	"github.com/anchore/syft/syft/linux"
+	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
 )
 
@@ -221,8 +223,8 @@ func TestParseSyftJSON(t *testing.T) {
 						},
 					},
 				},
-				Distro: &linux.Release{
-					Name:    "alpine",
+				Distro: &distro.Distro{
+					Type:    "alpine",
 					Version: "3.12.0",
 				},
 			},
@@ -339,24 +341,184 @@ var springImageTestCase = struct {
 				RepoDigests: []string{"springio/gs-spring-boot-docker@sha256:39c2ffc784f5f34862e22c1f2ccdbcb62430736114c13f60111eabdb79decb08"},
 			},
 		},
-		Distro: &linux.Release{
-			Name:    "debian",
+		Distro: &distro.Distro{
+			Type:    "debian",
 			Version: "9",
 		},
 	},
 }
 
-func TestGetSBOMReader_EmptySBOM(t *testing.T) {
-	sbomFile, err := os.CreateTemp("", "empty.sbom")
-	require.NoError(t, err)
-	defer func() {
-		err := sbomFile.Close()
-		assert.NoError(t, err)
-	}()
+func Test_PurlList(t *testing.T) {
+	tests := []struct {
+		name      string
+		userInput string
+		context   Context
+		pkgs      []Package
+		wantErr   require.ErrorAssertionFunc
+	}{
+		{
+			name:      "takes multiple purls",
+			userInput: "purl:test-fixtures/purl/valid-purl.txt",
+			context: Context{
+				Distro: &distro.Distro{
+					Type:    "debian",
+					IDLike:  []string{"debian"},
+					Version: "8",
+				},
+				Source: &source.Description{
+					Metadata: SBOMFileMetadata{
+						Path: "test-fixtures/purl/valid-purl.txt",
+					},
+				},
+			},
+			pkgs: []Package{
+				{
+					Name:    "ant",
+					Version: "1.10.8",
+					Type:    pkg.JavaPkg,
+					PURL:    "pkg:maven/org.apache.ant/ant@1.10.8",
+					Metadata: JavaMetadata{
+						PomArtifactID: "ant",
+						PomGroupID:    "org.apache.ant",
+					},
+				},
+				{
+					Name:    "log4j-core",
+					Version: "2.14.1",
+					Type:    pkg.JavaPkg,
+					PURL:    "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1",
+					Metadata: JavaMetadata{
+						PomArtifactID: "log4j-core",
+						PomGroupID:    "org.apache.logging.log4j",
+					},
+				},
+				{
+					Name:    "sysv-rc",
+					Version: "2.88dsf-59",
+					Type:    pkg.DebPkg,
+					PURL:    "pkg:deb/debian/sysv-rc@2.88dsf-59?arch=all&distro=debian-8&upstream=sysvinit",
+					Distro:  &distro.Distro{Type: distro.Debian, Version: "8", Codename: "", IDLike: []string{"debian"}},
+					Upstreams: []UpstreamPackage{
+						{
+							Name: "sysvinit",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "infer context when distro is present for multiple similar purls",
+			userInput: "purl:test-fixtures/purl/homogeneous-os.txt",
+			context: Context{
+				Distro: &distro.Distro{
+					Type:    "alpine",
+					IDLike:  []string{"alpine"},
+					Version: "3.20.3",
+				},
+				Source: &source.Description{
+					Metadata: SBOMFileMetadata{
+						Path: "test-fixtures/purl/homogeneous-os.txt",
+					},
+				},
+			},
+			pkgs: []Package{
+				{
+					Name:    "openssl",
+					Version: "3.2.1",
+					Type:    pkg.ApkPkg,
+					PURL:    "pkg:apk/openssl@3.2.1?arch=aarch64&distro=alpine-3.20.3",
+					Distro:  &distro.Distro{Type: distro.Alpine, Version: "3.20.3", Codename: "", IDLike: []string{"alpine"}},
+				},
+				{
+					Name:    "curl",
+					Version: "7.61.1",
+					Type:    pkg.ApkPkg,
+					PURL:    "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.3",
+					Distro:  &distro.Distro{Type: distro.Alpine, Version: "3.20.3", Codename: "", IDLike: []string{"alpine"}},
+				},
+			},
+		},
+		{
+			name:      "different distro info in purls does not infer context",
+			userInput: "purl:test-fixtures/purl/different-os.txt",
+			context: Context{
+				// important: no distro info inferred
+				Source: &source.Description{
+					Metadata: SBOMFileMetadata{
+						Path: "test-fixtures/purl/different-os.txt",
+					},
+				},
+			},
+			pkgs: []Package{
+				{
+					Name:    "openssl",
+					Version: "3.2.1",
+					Type:    pkg.ApkPkg,
+					PURL:    "pkg:apk/openssl@3.2.1?arch=aarch64&distro=alpine-3.20.3",
+					Distro:  &distro.Distro{Type: distro.Alpine, Version: "3.20.3", Codename: "", IDLike: []string{"alpine"}},
+				},
+				{
+					Name:    "curl",
+					Version: "7.61.1",
+					Type:    pkg.ApkPkg,
+					PURL:    "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.2",
+					Distro:  &distro.Distro{Type: distro.Alpine, Version: "3.20.2", Codename: "", IDLike: []string{"alpine"}},
+				},
+			},
+		},
+		{
+			name:      "fails on path with nonexistent file",
+			userInput: "purl:tttt/empty.txt",
+			wantErr:   require.Error,
+		},
+		{
+			name:      "fails on invalid path",
+			userInput: "purl:~&&",
+			wantErr:   require.Error,
+		},
+		{
+			name:      "fails for empty purl file",
+			userInput: "purl:test-fixtures/purl/empty.json",
+			wantErr:   require.Error,
+		},
+		{
+			name:      "fails on invalid purl in file",
+			userInput: "purl:test-fixtures/purl/invalid-purl.txt",
+			wantErr:   require.Error,
+		},
+	}
 
-	filepath := sbomFile.Name()
-	userInput := "sbom:" + filepath
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.wantErr == nil {
+				tc.wantErr = require.NoError
+			}
 
-	_, err = getSBOMReader(userInput)
-	assert.ErrorAs(t, err, &errEmptySBOM{})
+			packages, ctx, _, err := Provide(tc.userInput, ProviderConfig{})
+
+			tc.wantErr(t, err)
+			if err != nil {
+				require.Nil(t, packages)
+				return
+			}
+
+			if d := cmp.Diff(tc.context, ctx, diffOpts...); d != "" {
+				t.Errorf("unexpected context (-want +got):\n%s", d)
+			}
+			require.Len(t, packages, len(tc.pkgs))
+
+			slices.SortFunc(packages, func(a, b Package) int {
+				return strings.Compare(a.Name, b.Name)
+			})
+			slices.SortFunc(tc.pkgs, func(a, b Package) int {
+				return strings.Compare(a.Name, b.Name)
+			})
+
+			for idx, expected := range tc.pkgs {
+				if d := cmp.Diff(expected, packages[idx], diffOpts...); d != "" {
+					t.Errorf("unexpected context (-want +got):\n%s", d)
+				}
+			}
+		})
+	}
 }

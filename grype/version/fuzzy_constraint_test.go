@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSmartVerCmp(t *testing.T) {
+func TestFuzzyVersionComparison(t *testing.T) {
 	cases := []struct {
 		v1, v2 string
 		ret    int
@@ -69,7 +69,7 @@ func TestSmartVerCmp(t *testing.T) {
 	}
 }
 
-func TestFuzzyConstraintSatisfaction(t *testing.T) {
+func TestFuzzyVersion_Constraint(t *testing.T) {
 	tests := []testCase{
 		{
 			name:       "empty constraint",
@@ -193,7 +193,7 @@ func TestFuzzyConstraintSatisfaction(t *testing.T) {
 		},
 		{
 			name:       "bad semver (eq)",
-			version:    "5a2",
+			version:    "5a2", // with the hashicorp lib, without the strict check, this is interpreted as 5.0.0-alpha.2
 			constraint: "=5a2",
 			satisfied:  true,
 		},
@@ -332,7 +332,7 @@ func TestFuzzyConstraintSatisfaction(t *testing.T) {
 		},
 		{
 			name:       "openssl version with letter suffix and r0 are alphabetically greater than their versions",
-			version:    "1.0.2k-r0",
+			version:    "1.0.2k-r0", // the lib is saying the there is a prerelese starting at "k-r0"
 			constraint: ">= 1.0.2",
 			satisfied:  true,
 		},
@@ -376,7 +376,7 @@ func TestFuzzyConstraintSatisfaction(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			constraint, err := newFuzzyConstraint(test.constraint, "")
+			constraint, err := GetConstraint(test.constraint, UnknownFormat)
 			assert.NoError(t, err, "unexpected error from newFuzzyConstraint: %v", err)
 
 			test.assertVersionConstraint(t, UnknownFormat, constraint)

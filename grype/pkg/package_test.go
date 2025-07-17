@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/file"
@@ -42,6 +43,36 @@ func TestNew(t *testing.T) {
 			name: "dpkg with source info",
 			syftPkg: syftPkg.Package{
 				Metadata: syftPkg.DpkgDBEntry{
+					Package:       "pkg-info",
+					Source:        "src-info",
+					Version:       "version-info",
+					SourceVersion: "src-version-info",
+					Architecture:  "arch-info",
+					Maintainer:    "maintainer-info",
+					InstalledSize: 10,
+					Files: []syftPkg.DpkgFileRecord{
+						{
+							Path: "path-info",
+							Digest: &file.Digest{
+								Algorithm: "algo-info",
+								Value:     "digest-info",
+							},
+							IsConfigFile: true,
+						},
+					},
+				},
+			},
+			upstreams: []UpstreamPackage{
+				{
+					Name:    "src-info",
+					Version: "src-version-info",
+				},
+			},
+		},
+		{
+			name: "dpkg archive with source info",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.DpkgArchiveEntry{
 					Package:       "pkg-info",
 					Source:        "src-info",
 					Version:       "version-info",
@@ -291,6 +322,15 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
+			name: "github-actions-use-statement",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.GitHubActionsUseStatement{
+					Value:   "a",
+					Comment: "a",
+				},
+			},
+		},
+		{
 			name: "golang-metadata",
 			syftPkg: syftPkg.Package{
 				Metadata: syftPkg.GolangBinaryBuildinfoEntry{
@@ -337,11 +377,38 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
-			name: "dart-pub-metadata",
+			name: "dart-publock-metadata",
 			syftPkg: syftPkg.Package{
 				Metadata: syftPkg.DartPubspecLockEntry{
 					Name:    "a",
 					Version: "a",
+				},
+			},
+		},
+		{
+			name: "dart-pubspec-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.DartPubspec{
+					Homepage:      "a",
+					Repository:    "a",
+					Documentation: "a",
+					PublishTo:     "a",
+					Environment: &syftPkg.DartPubspecEnvironment{
+						SDK:     "a",
+						Flutter: "a",
+					},
+					Platforms:         []string{"a"},
+					IgnoredAdvisories: []string{"a"},
+				},
+			},
+		},
+		{
+			name: "homebrew-formula-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.HomebrewFormula{
+					Tap:         "a",
+					Homepage:    "a",
+					Description: "a",
 				},
 			},
 		},
@@ -582,6 +649,23 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
+			name: "swipl-pack-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.SwiplPackEntry{
+					Name:          "a",
+					Version:       "a",
+					Author:        "a",
+					AuthorEmail:   "a",
+					Packager:      "a",
+					PackagerEmail: "a",
+					Homepage:      "a",
+					Dependencies: []string{
+						"a",
+					},
+				},
+			},
+		},
+		{
 			name: "conaninfo-entry",
 			syftPkg: syftPkg.Package{
 				Metadata: syftPkg.ConaninfoEntry{
@@ -638,12 +722,136 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
-			name: "Php-pecl-entry",
+			name: "php-pecl-entry",
 			syftPkg: syftPkg.Package{
 				Metadata: syftPkg.PhpPeclEntry{
 					Name:    "a",
 					Version: "a",
 					License: []string{"a"},
+				},
+			},
+		},
+		{
+			name: "php-pear-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.PhpPearEntry{
+					Name:    "a",
+					Version: "a",
+				},
+			},
+		},
+		{
+			name: "lua-rocks-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.LuaRocksPackage{
+					Name:         "a",
+					Version:      "a",
+					License:      "a",
+					Homepage:     "a",
+					Description:  "a",
+					URL:          "a",
+					Dependencies: map[string]string{"b": "c"},
+				},
+			},
+		},
+		{
+			name: "ocaml-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.OpamPackage{
+					Name:         "a",
+					Version:      "a",
+					Licenses:     []string{"a"},
+					URL:          "a",
+					Checksums:    []string{"a"},
+					Homepage:     "a",
+					Dependencies: []string{"a"},
+				},
+			},
+		},
+		{
+			name: "jvm-installation-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.JavaVMInstallation{
+					Release: syftPkg.JavaVMRelease{
+						Implementor:        "a",
+						ImplementorVersion: "a",
+						JavaRuntimeVersion: "b",
+						JavaVersion:        "c",
+						JavaVersionDate:    "a",
+						Libc:               "a",
+						Modules:            []string{"a"},
+						OsArch:             "a",
+						OsName:             "a",
+						OsVersion:          "a",
+						Source:             "a",
+						BuildSource:        "a",
+						BuildSourceRepo:    "a",
+						SourceRepo:         "a",
+						FullVersion:        "d",
+						SemanticVersion:    "e",
+						BuildInfo:          "a",
+						JvmVariant:         "a",
+						JvmVersion:         "a",
+						ImageType:          "a",
+						BuildType:          "a",
+					},
+					Files: []string{"a"},
+				},
+			},
+			metadata: JavaVMInstallationMetadata{
+				Release: JavaVMReleaseMetadata{
+					JavaRuntimeVersion: "b",
+					JavaVersion:        "c",
+					FullVersion:        "d",
+					SemanticVersion:    "e",
+				},
+			},
+		},
+		{
+			name: "dotnet-package-lock-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.DotnetPackagesLockEntry{
+					Name:        "AutoMapper",
+					Version:     "13.0.1",
+					ContentHash: "/Fx1SbJ16qS7dU4i604Sle+U9VLX+WSNVJggk6MupKVkYvvBm4XqYaeFuf67diHefHKHs50uQIS2YEDFhPCakQ==",
+					Type:        "Direct",
+				},
+			},
+		},
+		{
+			name: "bitnami-sbom-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.BitnamiSBOMEntry{
+					Name:    "a",
+					Version: "1",
+				},
+			},
+		},
+		{
+			name: "terraform-lock-provider-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.TerraformLockProviderEntry{
+					URL:         "registry.terraform.io/hashicorp/aws",
+					Version:     "5.72.1",
+					Constraints: "> 5.72.0",
+					Hashes: []string{
+						"h1:jhd5O5o0CfZCNEwwN0EiDAzb7ApuFrtxJqa6HXW4EKE=",
+						"zh:0dea6843836e926d33469b48b948744079023816d16a2ff7666bcfb6aa3522d4",
+						"zh:195fa9513f75800a0d62797ebec75ee73e9b8c28d713fe9b63d3b1d1eec129b3",
+					},
+				},
+			},
+		},
+		{
+			name: "pe binary metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.PEBinary{
+					VersionResources: syftPkg.KeyValues{
+						{
+							Key:   "k",
+							Value: "k",
+						},
+					},
 				},
 			},
 		},
@@ -816,22 +1024,44 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 		},
 		{
 			name: "python bindings for system RPM install",
-			sbom: withDistro(catalogWithOverlaps(
+			sbom: withLinuxRelease(catalogWithOverlaps(
 				[]string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
 				[]string{"rpm:python3-rpm@4.14.3-26.el8 -> python:rpm@4.14.3"}), "rhel"),
 			expectedPackages: []string{"rpm:python3-rpm@4.14.3-26.el8"},
 		},
 		{
 			name: "amzn linux doesn't remove packages in this way",
-			sbom: withDistro(catalogWithOverlaps(
+			sbom: withLinuxRelease(catalogWithOverlaps(
 				[]string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
 				[]string{"rpm:python3-rpm@4.14.3-26.el8 -> python:rpm@4.14.3"}), "amzn"),
 			expectedPackages: []string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
 		},
+		{
+			name: "remove overlapping package when parent version is prefix of child version",
+			sbom: withLinuxRelease(catalogWithOverlaps(
+				[]string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5", "linux-kernel:linux-kernel@5.14.0-503.40.1.el9_5.x86_64+rt"},
+				[]string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5 -> linux-kernel:linux-kernel@5.14.0-503.40.1.el9_5.x86_64+rt"}), "rhel"),
+			expectedPackages: []string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5"},
+		},
+		{
+			name: "remove overlapping package when child version is prefix of parent version",
+			sbom: withLinuxRelease(catalogWithOverlaps(
+				[]string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5+rt", "linux-kernel:linux-kernel@5.14.0-503.40.1.el9_5"},
+				[]string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5+rt -> linux-kernel:linux-kernel@5.14.0-503.40.1.el9_5"}), "rhel"),
+			expectedPackages: []string{"rpm:kernel-rt-core@5.14.0-503.40.1.el9_5+rt"},
+		},
+		{
+			name: "do not remove overlapping package when versions are not similar",
+			sbom: withLinuxRelease(catalogWithOverlaps(
+				[]string{"rpm:kernel@5.14.0-503.40.1.el9_5", "linux-kernel:linux-kernel@6.17"},
+				[]string{"rpm:kernel@5.14.0-503.40.1.el9_5 -> linux-kernel:linux-kernel@6.17"}), "rhel"),
+			expectedPackages: []string{"rpm:kernel@5.14.0-503.40.1.el9_5", "linux-kernel:linux-kernel@6.17"},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			catalog := removePackagesByOverlap(test.sbom.Artifacts.Packages, test.sbom.Relationships, test.sbom.Artifacts.LinuxDistribution)
+			d := distro.FromRelease(test.sbom.Artifacts.LinuxDistribution)
+			catalog := removePackagesByOverlap(test.sbom.Artifacts.Packages, test.sbom.Relationships, d)
 			pkgs := FromCollection(catalog, SynthesisConfig{})
 			var pkgNames []string
 			for _, p := range pkgs {
@@ -874,7 +1104,7 @@ func catalogWithOverlaps(packages []string, overlaps []string) *sbom.SBOM {
 		pkgs = append(pkgs, p)
 	}
 
-	for _, overlap := range overlaps {
+	for i, overlap := range overlaps {
 		parts := strings.Split(overlap, "->")
 		if len(parts) < 2 {
 			panic("invalid overlap, use -> to specify, e.g.: pkg1->pkg2")
@@ -882,11 +1112,24 @@ func catalogWithOverlaps(packages []string, overlaps []string) *sbom.SBOM {
 		from := toPkg(parts[0])
 		to := toPkg(parts[1])
 
-		relationships = append(relationships, artifact.Relationship{
-			From: from,
-			To:   to,
-			Type: artifact.OwnershipByFileOverlapRelationship,
-		})
+		// The catalog will type check whether To or From is a pkg.Package or a *pkg.Package.
+		// Previously, there was a bug where Grype assumed that From was always a pkg.Package.
+		// Therefore, intentionally mix pointer and non-pointer packages to prevent Grype from
+		// assuming which is which again. (The correct usage, calling catalog.Package, always
+		// returns a *pkg.Package, and doesn't rely on any type assertion.)
+		if i%2 == 0 {
+			relationships = append(relationships, artifact.Relationship{
+				From: &from,
+				To:   &to,
+				Type: artifact.OwnershipByFileOverlapRelationship,
+			})
+		} else {
+			relationships = append(relationships, artifact.Relationship{
+				From: from,
+				To:   to,
+				Type: artifact.OwnershipByFileOverlapRelationship,
+			})
+		}
 	}
 
 	catalog := syftPkg.NewCollection(pkgs...)
@@ -899,7 +1142,7 @@ func catalogWithOverlaps(packages []string, overlaps []string) *sbom.SBOM {
 	}
 }
 
-func withDistro(s *sbom.SBOM, id string) *sbom.SBOM {
+func withLinuxRelease(s *sbom.SBOM, id string) *sbom.SBOM {
 	s.Artifacts.LinuxDistribution = &linux.Release{
 		ID: id,
 	}

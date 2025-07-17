@@ -58,6 +58,11 @@ func TestReflectTypeFromJSONName(t *testing.T) {
 			lookup:     "RpmMetadata",
 			wantRecord: reflect.TypeOf(pkg.RpmMetadata{}),
 		},
+		{
+			name:       "JavaVMInstallationMetadata lookup",
+			lookup:     "JavaVMInstallationMetadata",
+			wantRecord: reflect.TypeOf(pkg.JavaVMInstallationMetadata{}),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

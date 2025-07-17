@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/anchore/clio"
 	hashiVersion "github.com/anchore/go-version"
 	"github.com/anchore/grype/cmd/grype/internal"
 )
@@ -108,7 +109,7 @@ func TestIsUpdateAvailable(t *testing.T) {
 			latestAppVersionURL.host = mockSrv.URL
 			defer mockSrv.Close()
 
-			isAvailable, newVersion, err := isUpdateAvailable(version)
+			isAvailable, newVersion, err := isUpdateAvailable(clio.Identification{Version: version})
 			if err != nil && !test.err {
 				t.Fatalf("got error but expected none: %+v", err)
 			} else if err == nil && test.err {
@@ -190,7 +191,7 @@ func TestFetchLatestApplicationVersion(t *testing.T) {
 			latestAppVersionURL.host = mockSrv.URL
 			defer mockSrv.Close()
 
-			actual, err := fetchLatestApplicationVersion()
+			actual, err := fetchLatestApplicationVersion(clio.Identification{})
 			if err != nil && !test.err {
 				t.Fatalf("got error but expected none: %+v", err)
 			} else if err == nil && test.err {
@@ -207,4 +208,28 @@ func TestFetchLatestApplicationVersion(t *testing.T) {
 		})
 	}
 
+}
+
+func Test_UserAgent(t *testing.T) {
+	got := ""
+
+	// setup mock
+	handler := http.NewServeMux()
+	handler.HandleFunc(latestAppVersionURL.path, func(w http.ResponseWriter, r *http.Request) {
+		got = r.Header.Get("User-Agent")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("1.0.0"))
+	})
+	mockSrv := httptest.NewServer(handler)
+	latestAppVersionURL.host = mockSrv.URL
+	defer mockSrv.Close()
+
+	fetchLatestApplicationVersion(clio.Identification{
+		Name:    "the-app",
+		Version: "v3.2.1",
+	})
+
+	if got != "the-app v3.2.1" {
+		t.Errorf("expected User-Agent header to match, got: %v", got)
+	}
 }

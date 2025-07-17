@@ -1,1 +1,25 @@
 by-cve: true
+
+# we want to be able to validate CPE findings with the broadest lens possible (not just the default configuration)
+# to aid in validating CPE related changes (whereas the default configuration is more focused on non CPE matching)
+match:
+  java:
+    using-cpes: true
+  jvm:
+    using-cpes: true
+  dotnet:
+    using-cpes: true
+  golang:
+    using-cpes: true
+    always-use-cpe-for-stdlib: true
+  javascript:
+    using-cpes: true
+  python:
+    using-cpes: true
+  ruby:
+    using-cpes: true
+  rust:
+    using-cpes: true
+  stock:
+    using-cpes: true
+

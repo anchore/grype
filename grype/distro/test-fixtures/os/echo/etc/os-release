@@ -1,0 +1,6 @@
+NAME="Echo Linux"
+PRETTY_NAME="Echo Linux"
+ID="echo"
+ID_LIKE="debian"
+VERSION_ID="1"
+HOME_URL="https://echohq.com/"

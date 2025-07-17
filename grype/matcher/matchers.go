@@ -1,7 +1,9 @@
 package matcher
 
 import (
+	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/apk"
+	"github.com/anchore/grype/grype/matcher/bitnami"
 	"github.com/anchore/grype/grype/matcher/dotnet"
 	"github.com/anchore/grype/grype/matcher/dpkg"
 	"github.com/anchore/grype/grype/matcher/golang"
@@ -28,8 +30,8 @@ type Config struct {
 	Stock      stock.MatcherConfig
 }
 
-func NewDefaultMatchers(mc Config) []Matcher {
-	return []Matcher{
+func NewDefaultMatchers(mc Config) []match.Matcher {
+	return []match.Matcher{
 		&dpkg.Matcher{},
 		ruby.NewRubyMatcher(mc.Ruby),
 		python.NewPythonMatcher(mc.Python),
@@ -43,5 +45,6 @@ func NewDefaultMatchers(mc Config) []Matcher {
 		&portage.Matcher{},
 		rust.NewRustMatcher(mc.Rust),
 		stock.NewStockMatcher(mc.Stock),
+		&bitnami.Matcher{},
 	}
 }

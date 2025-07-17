@@ -42,11 +42,7 @@ func TestMatcherRpm(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.New(distro.CentOS, "8", "")
-				if err != nil {
-					t.Fatal("could not create distro: ", err)
-				}
-
+				d := distro.New(distro.CentOS, "8", "")
 				store := newMockProvider("neutron-libs", "neutron", false, false)
 
 				return store, d, matcher
@@ -73,10 +69,7 @@ func TestMatcherRpm(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.New(distro.CentOS, "8", "")
-				if err != nil {
-					t.Fatal("could not create distro: ", err)
-				}
+				d := distro.New(distro.CentOS, "8", "")
 
 				store := newMockProvider("neutron", "neutron-devel", false, false)
 
@@ -103,10 +96,7 @@ func TestMatcherRpm(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.New(distro.CentOS, "8", "")
-				if err != nil {
-					t.Fatal("could not create distro: ", err)
-				}
+				d := distro.New(distro.CentOS, "8", "")
 
 				store := newMockProvider("neutron-libs", "neutron", false, false)
 
@@ -137,10 +127,7 @@ func TestMatcherRpm(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.New(distro.CentOS, "8", "")
-				if err != nil {
-					t.Fatal("could not create distro: ", err)
-				}
+				d := distro.New(distro.CentOS, "8", "")
 
 				store := newMockProvider("perl-Errno", "perl", true, false)
 
@@ -162,10 +149,7 @@ func TestMatcherRpm(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.New(distro.CentOS, "8", "")
-				if err != nil {
-					t.Fatal("could not create distro: ", err)
-				}
+				d := distro.New(distro.CentOS, "8", "")
 
 				store := newMockProvider("perl-Errno", "doesn't-matter", false, false)
 
@@ -186,10 +170,7 @@ func TestMatcherRpm(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.New(distro.CentOS, "8", "")
-				if err != nil {
-					t.Fatal("could not create distro: ", err)
-				}
+				d := distro.New(distro.CentOS, "8", "")
 
 				store := newMockProvider("perl-Errno", "doesn't-matter", true, false)
 
@@ -210,10 +191,7 @@ func TestMatcherRpm(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.New(distro.CentOS, "8", "")
-				if err != nil {
-					t.Fatal("could not create distro: ", err)
-				}
+				d := distro.New(distro.CentOS, "8", "")
 
 				store := newMockProvider("perl-Errno", "doesn't-matter", false, false)
 
@@ -234,10 +212,7 @@ func TestMatcherRpm(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.New(distro.CentOS, "8", "")
-				if err != nil {
-					t.Fatal("could not create distro: ", err)
-				}
+				d := distro.New(distro.CentOS, "8", "")
 
 				store := newMockProvider("perl-Errno", "doesn't-matter", true, false)
 
@@ -258,10 +233,7 @@ func TestMatcherRpm(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.New(distro.CentOS, "8", "")
-				if err != nil {
-					t.Fatal("could not create distro: ", err)
-				}
+				d := distro.New(distro.CentOS, "8", "")
 
 				store := newMockProvider("maniac", "doesn't-matter", false, true)
 
@@ -285,10 +257,7 @@ func TestMatcherRpm(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.New(distro.CentOS, "8", "")
-				if err != nil {
-					t.Fatal("could not create distro: ", err)
-				}
+				d := distro.New(distro.CentOS, "8", "")
 
 				store := newMockProvider("maniac", "doesn't-matter", false, true)
 
@@ -308,10 +277,7 @@ func TestMatcherRpm(t *testing.T) {
 			},
 			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
 				matcher := Matcher{}
-				d, err := distro.New(distro.CentOS, "8", "")
-				if err != nil {
-					t.Fatal("could not create distro: ", err)
-				}
+				d := distro.New(distro.CentOS, "8", "")
 
 				store := newMockProvider("maniac", "doesn't-matter", false, true)
 
@@ -329,7 +295,10 @@ func TestMatcherRpm(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			store, d, matcher := test.setup()
-			actual, err := matcher.Match(store, d, test.p)
+			if test.p.Distro == nil {
+				test.p.Distro = d
+			}
+			actual, _, err := matcher.Match(store, test.p)
 			if err != nil {
 				t.Fatal("could not find match: ", err)
 			}
@@ -360,24 +329,52 @@ func TestMatcherRpm(t *testing.T) {
 	}
 }
 
-func Test_addZeroEpicIfApplicable(t *testing.T) {
+func Test_addEpochIfApplicable(t *testing.T) {
 	tests := []struct {
-		version  string
+		name     string
+		pkg      pkg.Package
 		expected string
 	}{
 		{
-			version:  "3.26.0-6.el8",
+			name: "assume 0 epoch",
+			pkg: pkg.Package{
+				Version: "3.26.0-6.el8",
+			},
 			expected: "0:3.26.0-6.el8",
 		},
 		{
-			version:  "7:3.26.0-6.el8",
+			name: "epoch already exists in version string",
+			pkg: pkg.Package{
+				Version: "7:3.26.0-6.el8",
+			},
 			expected: "7:3.26.0-6.el8",
+		},
+		{
+			name: "epoch only exists in metadata",
+			pkg: pkg.Package{
+				Version: "3.26.0-6.el8",
+				Metadata: pkg.RpmMetadata{
+					Epoch: intRef(7),
+				},
+			},
+			expected: "7:3.26.0-6.el8",
+		},
+		{
+			name: "epoch does not exist in metadata",
+			pkg: pkg.Package{
+				Version: "3.26.0-6.el8",
+				Metadata: pkg.RpmMetadata{
+					Epoch: nil,
+				},
+			},
+			expected: "0:3.26.0-6.el8",
 		},
 	}
 	for _, test := range tests {
-		t.Run(test.version, func(t *testing.T) {
-			actualVersion := addZeroEpicIfApplicable(test.version)
-			assert.Equal(t, test.expected, actualVersion)
+		t.Run(test.name, func(t *testing.T) {
+			p := test.pkg
+			addEpochIfApplicable(&p)
+			assert.Equal(t, test.expected, p.Version)
 		})
 	}
 }

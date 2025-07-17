@@ -32,8 +32,18 @@ test_positive_snapshot_install_asset() {
 	  arch="amd64_v1"
   fi
 
+  local_suffix=""
+  if [ "${arch}" == "arm64" ]; then
+    local_suffix="_v8.0"
+  fi
+
+  if [ "${arch}" == "ppc64le" ]; then
+    local_suffix="_power8"
+  fi
+
+
   assertFilesEqual \
-    "$(snapshot_dir)/${os}-build_${os}_${arch}/${binary}" \
+    "$(snapshot_dir)/${os}-build_${os}_${arch}${local_suffix}/${binary}" \
     "${expected_path}" \
     "unable to verify installation of os=${os} arch=${arch} format=${format}"
 

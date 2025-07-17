@@ -1,0 +1,21 @@
+FROM alpine as certs
+RUN apk update && apk add ca-certificates
+
+# note: using qemu with a multi-arch image results in redirects not working with wget
+# so let docker pull the image that matches the hosts architecture first and then pull the correct asset
+FROM busybox:1.36.1-musl
+
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        COSIGN_ARCH="amd64"; \
+    elif [ "$ARCH" = "aarch64" ]; then \
+        COSIGN_ARCH="arm64"; \
+    else \
+        echo "Unsupported architecture: $ARCH" && exit 1; \
+    fi && \
+    echo "Downloading cosign for $COSIGN_ARCH" && \
+    wget https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-${COSIGN_ARCH} && \
+    mv cosign-linux-${COSIGN_ARCH} /bin/cosign && \
+    chmod +x /bin/cosign
+
+COPY --from=certs /etc/ssl/certs /etc/ssl/certs

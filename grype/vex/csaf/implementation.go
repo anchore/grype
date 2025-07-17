@@ -11,7 +11,7 @@ import (
 	vexStatus "github.com/anchore/grype/grype/vex/status"
 
 	"github.com/aws/smithy-go/time"
-	"github.com/csaf-poc/csaf_distribution/v3/csaf"
+	"github.com/gocsaf/csaf/v3/csaf"
 )
 
 // searchedBy captures the parameters used to search through the VEX data

@@ -4,18 +4,13 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
-	"github.com/anchore/grype/cmd/grype/cli/options"
 )
 
-type DBOptions struct {
-	DB options.Database `yaml:"db" json:"db" mapstructure:"db"`
-}
-
-func dbOptionsDefault(id clio.Identification) *DBOptions {
-	return &DBOptions{
-		DB: options.DefaultDatabase(id),
-	}
-}
+const (
+	jsonOutputFormat  = "json"
+	tableOutputFormat = "table"
+	textOutputFormat  = "text"
+)
 
 func DB(app clio.Application) *cobra.Command {
 	db := &cobra.Command{
@@ -26,11 +21,12 @@ func DB(app clio.Application) *cobra.Command {
 	db.AddCommand(
 		DBCheck(app),
 		DBDelete(app),
-		DBDiff(app),
 		DBImport(app),
 		DBList(app),
 		DBStatus(app),
 		DBUpdate(app),
+		DBSearch(app),
+		DBProviders(app),
 	)
 
 	return db

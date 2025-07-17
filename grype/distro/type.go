@@ -23,13 +23,16 @@ const (
 	OpenSuseLeap Type = "opensuseleap"
 	SLES         Type = "sles"
 	Photon       Type = "photon"
+	Echo         Type = "echo"
 	Windows      Type = "windows"
 	Mariner      Type = "mariner"
+	Azure        Type = "azurelinux"
 	RockyLinux   Type = "rockylinux"
 	AlmaLinux    Type = "almalinux"
 	Gentoo       Type = "gentoo"
 	Wolfi        Type = "wolfi"
 	Chainguard   Type = "chainguard"
+	MinimOS      Type = "minimos"
 )
 
 // All contains all Linux distribution options
@@ -47,13 +50,16 @@ var All = []Type{
 	OpenSuseLeap,
 	SLES,
 	Photon,
+	Echo,
 	Windows,
 	Mariner,
+	Azure,
 	RockyLinux,
 	AlmaLinux,
 	Gentoo,
 	Wolfi,
 	Chainguard,
+	MinimOS,
 }
 
 // IDMapping connects a distro ID like "ubuntu" to a Distro type
@@ -64,6 +70,7 @@ var IDMapping = map[string]Type{
 	"centos":        CentOS,
 	"fedora":        Fedora,
 	"alpine":        Alpine,
+	"Alpine Linux":  Alpine,
 	"busybox":       Busybox,
 	"amzn":          AmazonLinux,
 	"ol":            OracleLinux,
@@ -71,13 +78,16 @@ var IDMapping = map[string]Type{
 	"opensuse-leap": OpenSuseLeap,
 	"sles":          SLES,
 	"photon":        Photon,
+	"echo":          Echo,
 	"windows":       Windows,
 	"mariner":       Mariner,
+	"azurelinux":    Azure,
 	"rocky":         RockyLinux,
 	"almalinux":     AlmaLinux,
 	"gentoo":        Gentoo,
 	"wolfi":         Wolfi,
 	"chainguard":    Chainguard,
+	"minimos":       MinimOS,
 }
 
 func TypeFromRelease(release linux.Release) Type {

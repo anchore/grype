@@ -7,7 +7,7 @@
         </properties>
         {{- range .Matches }}
         <testcase classname="{{ .Artifact.Name }}-{{ .Artifact.Version }} ({{ .Artifact.Type }})" name="[{{ .Vulnerability.Severity }}] {{ .Vulnerability.ID }}">
-            <failure message="{{ .Artifact.Name }}: {{ .Vulnerability.ID }}" type="description">{{ .Vulnerability.Description }} {{ .Artifact.CPEs }} {{ .Vulnerability.DataSource }}</failure>
+            <failure message="{{ .Artifact.Name }}: {{ .Vulnerability.ID }}" type="description">{{html .Vulnerability.Description }} {{ .Artifact.CPEs }} {{ .Vulnerability.DataSource }}</failure>
         </testcase>
         {{- end }}
     </testsuite>

@@ -1,11 +1,15 @@
 package java
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"sort"
+	"time"
+
+	"golang.org/x/time/rate"
 
 	"github.com/anchore/grype/grype/pkg"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -14,13 +18,24 @@ import (
 // MavenSearcher is the interface that wraps the GetMavenPackageBySha method.
 type MavenSearcher interface {
 	// GetMavenPackageBySha provides an interface for building a package from maven data based on a sha1 digest
-	GetMavenPackageBySha(string) (*pkg.Package, error)
+	GetMavenPackageBySha(context.Context, string) (*pkg.Package, error)
 }
 
 // mavenSearch implements the MavenSearcher interface
 type mavenSearch struct {
-	client  *http.Client
-	baseURL string
+	client      *http.Client
+	baseURL     string
+	rateLimiter *rate.Limiter
+}
+
+// newMavenSearch creates a new mavenSearch instance with rate limiting
+// rate is specified as 1 request per 300ms
+func newMavenSearch(client *http.Client, baseURL string, rateLimit time.Duration) *mavenSearch {
+	return &mavenSearch{
+		client:      client,
+		baseURL:     baseURL,
+		rateLimiter: rate.NewLimiter(rate.Every(rateLimit), 1),
+	}
 }
 
 type mavenAPIResponse struct {
@@ -37,8 +52,27 @@ type mavenAPIResponse struct {
 	} `json:"response"`
 }
 
-func (ms *mavenSearch) GetMavenPackageBySha(sha1 string) (*pkg.Package, error) {
-	req, err := http.NewRequest(http.MethodGet, ms.baseURL, nil)
+func (ms *mavenSearch) GetMavenPackageBySha(ctx context.Context, sha1 string) (*pkg.Package, error) {
+	if sha1 == "" {
+		return nil, errors.New("empty sha1 digest")
+	}
+	if ms.baseURL == "" {
+		return nil, errors.New("empty maven search URL")
+	}
+	if ms.rateLimiter == nil {
+		return nil, errors.New("rate limiter not initialized")
+	}
+	if ms.client == nil {
+		return nil, errors.New("HTTP client not initialized")
+	}
+
+	// Wait for rate limiter
+	err := ms.rateLimiter.Wait(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("rate limiter error: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ms.baseURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize HTTP client: %w", err)
 	}

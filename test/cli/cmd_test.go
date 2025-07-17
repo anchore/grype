@@ -26,12 +26,21 @@ func TestCmd(t *testing.T) {
 			},
 		},
 		{
+			name: "empty-string-arg-shows-help",
+			args: []string{""},
+			assertions: []traitAssertion{
+				assertInOutput("an image/directory argument is required"),                              // specific error that should be shown
+				assertInOutput("A vulnerability scanner for container images, filesystems, and SBOMs"), // excerpt from help description
+				assertFailingReturnCode,
+			},
+		},
+		{
 			name: "ensure valid descriptor",
 			args: []string{getFixtureImage(t, "image-bare"), "-o", "json"},
 			assertions: []traitAssertion{
-				assertInOutput(`"check-for-app-update": false`), // assert existence of the app config block
-				assertInOutput(`"db": {`),                       // assert existence of the db status block
-				assertInOutput(`"built":`),                      // assert existence of the db status block
+				assertInOutput(`"check-for-app-update":`), // assert existence of the app config block
+				assertInOutput(`"db":`),                   // assert existence of the db status block
+				assertInOutput(`"built":`),                // assert existence of the db status block
 			},
 		},
 		{
@@ -104,6 +113,15 @@ func TestCmd(t *testing.T) {
 			assertions: []traitAssertion{
 				assertSucceedingReturnCode,
 				assertRowInStdOut([]string{"Pygments", "2.6.1", "2.7.4", "python", "GHSA-pq64-v7f5-gqh8", "High", "(suppressed)"}),
+			},
+		},
+		{
+			// from: https://github.com/anchore/grype/issues/2412 we need to ensure that explicit ignores in code don't break
+			name: "explicit ignores wired up",
+			args: []string{getFixtureImage(t, "image-java-subprocess")},
+			assertions: []traitAssertion{
+				assertSucceedingReturnCode,
+				assertNotInOutput("CVE-2023-45853"),
 			},
 		},
 	}

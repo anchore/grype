@@ -1,19 +1,19 @@
 package grype
 
 import (
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/store"
+	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft"
-	"github.com/anchore/syft/syft/linux"
 	"github.com/anchore/syft/syft/source"
 )
 
 // TODO: deprecated, will remove before v1.0.0
-func FindVulnerabilities(store store.Store, userImageStr string, scopeOpt source.Scope, registryOptions *image.RegistryOptions) (match.Matches, pkg.Context, []pkg.Package, error) {
+func FindVulnerabilities(store vulnerability.Provider, userImageStr string, scopeOpt source.Scope, registryOptions *image.RegistryOptions) (match.Matches, pkg.Context, []pkg.Package, error) {
 	providerConfig := pkg.ProviderConfig{
 		SyftProviderConfig: pkg.SyftProviderConfig{
 			RegistryOptions: registryOptions,
@@ -33,11 +33,13 @@ func FindVulnerabilities(store store.Store, userImageStr string, scopeOpt source
 }
 
 // TODO: deprecated, will remove before v1.0.0
-func FindVulnerabilitiesForPackage(store store.Store, d *linux.Release, matchers []matcher.Matcher, packages []pkg.Package) match.Matches {
+func FindVulnerabilitiesForPackage(store vulnerability.Provider, d *distro.Distro, matchers []match.Matcher, packages []pkg.Package) match.Matches {
+	exclusionProvider, _ := store.(match.ExclusionProvider) // TODO v5 is an exclusion provider, but v6 is not
 	runner := VulnerabilityMatcher{
-		Store:          store,
-		Matchers:       matchers,
-		NormalizeByCVE: false,
+		VulnerabilityProvider: store,
+		ExclusionProvider:     exclusionProvider,
+		Matchers:              matchers,
+		NormalizeByCVE:        false,
 	}
 
 	actualResults, _, err := runner.FindMatches(packages, pkg.Context{

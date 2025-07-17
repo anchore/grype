@@ -1,55 +1,34 @@
 package dpkg
 
 import (
-	"strings"
-
-	"github.com/anchore/grype/grype/distro"
-	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/grype/vulnerability/mock"
 )
 
-type mockProvider struct {
-	data map[string]map[string][]vulnerability.Vulnerability
-}
-
-func newMockProvider() *mockProvider {
-	pr := mockProvider{
-		data: make(map[string]map[string][]vulnerability.Vulnerability),
-	}
-	pr.stub()
-	return &pr
-}
-
-func (pr *mockProvider) stub() {
-	pr.data["debian:8"] = map[string][]vulnerability.Vulnerability{
-		// direct...
-		"neutron": {
-			{
-				Constraint: version.MustGetConstraint("< 2014.1.3-6", version.DebFormat),
-				ID:         "CVE-2014-fake-1",
-			},
+func newMockProvider() vulnerability.Provider {
+	return mock.VulnerabilityProvider([]vulnerability.Vulnerability{
+		{
+			PackageName: "neutron",
+			Reference:   vulnerability.Reference{ID: "CVE-2014-fake-1", Namespace: "secdb:distro:debian:8"},
+			Constraint:  version.MustGetConstraint("< 2014.1.3-6", version.DebFormat),
 		},
-		// indirect...
-		"neutron-devel": {
-			// expected...
-			{
-				Constraint: version.MustGetConstraint("< 2014.1.4-5", version.DebFormat),
-				ID:         "CVE-2014-fake-2",
-			},
-			{
-				Constraint: version.MustGetConstraint("< 2015.0.0-1", version.DebFormat),
-				ID:         "CVE-2013-fake-3",
-			},
-			// unexpected...
-			{
-				Constraint: version.MustGetConstraint("< 2014.0.4-1", version.DebFormat),
-				ID:         "CVE-2013-fake-BAD",
-			},
+		// expected...
+		{
+			PackageName: "neutron-devel",
+			Constraint:  version.MustGetConstraint("< 2014.1.4-5", version.DebFormat),
+			Reference:   vulnerability.Reference{ID: "CVE-2014-fake-2", Namespace: "secdb:distro:debian:8"},
 		},
-	}
-}
-
-func (pr *mockProvider) GetByDistro(d *distro.Distro, p pkg.Package) ([]vulnerability.Vulnerability, error) {
-	return pr.data[strings.ToLower(d.Type.String())+":"+d.FullVersion()][p.Name], nil
+		{
+			PackageName: "neutron-devel",
+			Constraint:  version.MustGetConstraint("< 2015.0.0-1", version.DebFormat),
+			Reference:   vulnerability.Reference{ID: "CVE-2013-fake-3", Namespace: "secdb:distro:debian:8"},
+		},
+		// unexpected...
+		{
+			PackageName: "neutron-devel",
+			Constraint:  version.MustGetConstraint("< 2014.0.4-1", version.DebFormat),
+			Reference:   vulnerability.Reference{ID: "CVE-2013-fake-BAD", Namespace: "secdb:distro:debian:8"},
+		},
+	}...)
 }

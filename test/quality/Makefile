@@ -8,9 +8,9 @@ VULNERABILITY_LABELS = ./vulnerability-labels
 RESULT_SET = pr_vs_latest_via_sbom
 
 # update periodically with values from "grype db list"
-TEST_DB_URL = https://toolbox-data.anchore.io/grype/databases/vulnerability-db_v5_2024-02-23T01:23:09Z_d8fbe227a9343b20a702.tar.gz
-TEST_DB = db.tar.gz
-LISTING_FILE = https://toolbox-data.anchore.io/grype/databases/listing.json
+TEST_DB_URL_FILE = ./test-db
+TEST_DB_URL = "https://grype.anchore.io/databases/v6/$(shell cat $(TEST_DB_URL_FILE))"
+TEST_DB = db.tar.zst
 
 # formatting variables
 BOLD := $(shell tput -T linux bold)
@@ -27,32 +27,28 @@ all: capture validate ## Fetch or capture all data and run all quality checks
 
 .PHONY: validate
 validate: venv $(VULNERABILITY_LABELS)/Makefile ## Run all quality checks against already collected data
-	$(ACTIVATE_VENV) ./gate.py
+	$(YARDSTICK) validate -r $(RESULT_SET) -r $(RESULT_SET)_2022 -r $(RESULT_SET)_2024
 
 .PHONY: capture
 capture: sboms vulns ## Collect and store all syft and grype results
 
-.PHONY: capture
-vulns: venv $(TEST_DB) check-db ## Collect and store all grype results
+.PHONY: vulns
+vulns: venv $(TEST_DB) ## Collect and store all grype results
 	$(YARDSTICK) -v result capture -r $(RESULT_SET)
-
-.PHONY: check-db
-check-db:
-	@echo "Looking for test DB within the hosted listing file (which prunes DBs older that 90 days or the last 90 objects)"
-	@curl -sSL $(LISTING_FILE) | jq '.available[][] | select(.url == "$(TEST_DB_URL)") ' --exit-status || (echo "$(RED)DB is too stale to be used for testing. Please re-pin with a more up-to-date version.$(RESET)" && false)
-	@echo "DB is fresh enough to be used for testing!"
+	$(YARDSTICK) -v result capture -r $(RESULT_SET)_2022
+	$(YARDSTICK) -v result capture -r $(RESULT_SET)_2024
 
 $(TEST_DB):
-	curl -o $(TEST_DB) -SsL $(TEST_DB_URL)
+	@curl -o $(TEST_DB) -SsL $(TEST_DB_URL)
 
 .PHONY: sboms
 sboms: $(YARDSTICK_RESULT_DIR) venv clear-results ## Collect and store all syft results (deletes all existing results)
-	bash -c "make download-sboms || ($(YARDSTICK) -v result capture -r $(RESULT_SET) --only-producers)"
+	bash -c "make download-sboms || ($(YARDSTICK) -v result capture -r $(RESULT_SET) --only-producers && $(YARDSTICK) -v result capture -r $(RESULT_SET)_2022 -r $(RESULT_SET)_2024 --only-producers)"
 
 .PHONY: download-sboms
 download-sboms: $(VULNERABILITY_LABELS)/Makefile
 	cd vulnerability-match-labels && make venv
-	bash -c "export ORAS_CACHE=$(shell pwd)/.oras-cache && make venv && . vulnerability-match-labels/venv/bin/activate && ./vulnerability-match-labels/sboms.py download -r $(RESULT_SET)"
+	bash -c "export ORAS_CACHE=$(shell pwd)/.oras-cache && make venv && . vulnerability-match-labels/venv/bin/activate && ./vulnerability-match-labels/sboms.py download -r $(RESULT_SET) && ./vulnerability-match-labels/sboms.py download -r $(RESULT_SET)_2022 && ./vulnerability-match-labels/sboms.py download -r $(RESULT_SET)_2024"
 
 venv: venv/touchfile
 

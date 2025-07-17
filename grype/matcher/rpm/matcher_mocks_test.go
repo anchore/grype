@@ -1,145 +1,112 @@
 package rpm
 
 import (
-	"strings"
-
-	"github.com/anchore/grype/grype/distro"
-	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/pkg/qualifier"
 	"github.com/anchore/grype/grype/pkg/qualifier/rpmmodularity"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/syft/syft/cpe"
-	syftPkg "github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/grype/grype/vulnerability/mock"
 )
 
-type mockProvider struct {
-	data map[string]map[string][]vulnerability.Vulnerability
-}
-
-func (pr *mockProvider) Get(id, namespace string) ([]vulnerability.Vulnerability, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func newMockProvider(packageName, indirectName string, withEpoch bool, withPackageQualifiers bool) *mockProvider {
-	pr := mockProvider{
-		data: make(map[string]map[string][]vulnerability.Vulnerability),
-	}
+func newMockProvider(packageName, indirectName string, withEpoch bool, withPackageQualifiers bool) vulnerability.Provider {
 	if withEpoch {
-		pr.stubWithEpoch(packageName, indirectName)
+		return mock.VulnerabilityProvider(vulnerabilitiesWithEpoch(packageName, indirectName)...)
 	} else if withPackageQualifiers {
-		pr.stubWithPackageQualifiers(packageName)
-	} else {
-		pr.stub(packageName, indirectName)
+		return mock.VulnerabilityProvider(vulnerabilitiesWithPackageQualifiers(packageName)...)
 	}
-
-	return &pr
+	return mock.VulnerabilityProvider(vulnerabilitiesDefaults(packageName, indirectName)...)
 }
 
-func (pr *mockProvider) stub(packageName, indirectName string) {
-	pr.data["rhel:8"] = map[string][]vulnerability.Vulnerability{
+const namespace = "secdb:distro:centos:8"
+
+func vulnerabilitiesDefaults(packageName, indirectName string) []vulnerability.Vulnerability {
+	return []vulnerability.Vulnerability{
 		// direct...
-		packageName: {
-			{
-				Constraint: version.MustGetConstraint("<= 7.1.3-6", version.RpmFormat),
-				ID:         "CVE-2014-fake-1",
-			},
+		{
+			PackageName: packageName,
+			Constraint:  version.MustGetConstraint("<= 7.1.3-6", version.RpmFormat),
+			Reference:   vulnerability.Reference{ID: "CVE-2014-fake-1", Namespace: namespace},
 		},
 		// indirect...
-		indirectName: {
-			// expected...
-			{
-				Constraint: version.MustGetConstraint("< 7.1.4-5", version.RpmFormat),
-				ID:         "CVE-2014-fake-2",
-			},
-			{
-				Constraint: version.MustGetConstraint("< 8.0.2-0", version.RpmFormat),
-				ID:         "CVE-2013-fake-3",
-			},
-			// unexpected...
-			{
-				Constraint: version.MustGetConstraint("< 7.0.4-1", version.RpmFormat),
-				ID:         "CVE-2013-fake-BAD",
-			},
+		// expected...
+		{
+			PackageName: indirectName,
+			Constraint:  version.MustGetConstraint("< 7.1.4-5", version.RpmFormat),
+			Reference:   vulnerability.Reference{ID: "CVE-2014-fake-2", Namespace: namespace},
+		},
+		{
+			PackageName: indirectName,
+			Constraint:  version.MustGetConstraint("< 8.0.2-0", version.RpmFormat),
+			Reference:   vulnerability.Reference{ID: "CVE-2013-fake-3", Namespace: namespace},
+		},
+		// unexpected...
+		{
+			PackageName: indirectName,
+			Constraint:  version.MustGetConstraint("< 7.0.4-1", version.RpmFormat),
+			Reference:   vulnerability.Reference{ID: "CVE-2013-fake-BAD", Namespace: namespace},
 		},
 	}
 }
 
-func (pr *mockProvider) stubWithEpoch(packageName, indirectName string) {
-	pr.data["rhel:8"] = map[string][]vulnerability.Vulnerability{
+func vulnerabilitiesWithEpoch(packageName, indirectName string) []vulnerability.Vulnerability {
+	return []vulnerability.Vulnerability{
 		// direct...
-		packageName: {
-			{
-				Constraint: version.MustGetConstraint("<= 0:1.0-419.el8.", version.RpmFormat),
-				ID:         "CVE-2021-1",
-			},
-			{
-				Constraint: version.MustGetConstraint("<= 0:2.28-419.el8.", version.RpmFormat),
-				ID:         "CVE-2021-2",
-			},
+		{
+			PackageName: packageName,
+			Constraint:  version.MustGetConstraint("<= 0:1.0-419.el8.", version.RpmFormat),
+			Reference:   vulnerability.Reference{ID: "CVE-2021-1", Namespace: namespace},
+		},
+		{
+			PackageName: packageName,
+			Constraint:  version.MustGetConstraint("<= 0:2.28-419.el8.", version.RpmFormat),
+			Reference:   vulnerability.Reference{ID: "CVE-2021-2", Namespace: namespace},
 		},
 		// indirect...
-		indirectName: {
-			{
-				Constraint: version.MustGetConstraint("< 5.28.3-420.el8", version.RpmFormat),
-				ID:         "CVE-2021-3",
-			},
-			// unexpected...
-			{
-				Constraint: version.MustGetConstraint("< 4:5.26.3-419.el8", version.RpmFormat),
-				ID:         "CVE-2021-4",
-			},
+		{
+			PackageName: indirectName,
+			Constraint:  version.MustGetConstraint("< 5.28.3-420.el8", version.RpmFormat),
+			Reference:   vulnerability.Reference{ID: "CVE-2021-3", Namespace: namespace},
+		},
+		// unexpected...
+		{
+			PackageName: indirectName,
+			Constraint:  version.MustGetConstraint("< 4:5.26.3-419.el8", version.RpmFormat),
+			Reference:   vulnerability.Reference{ID: "CVE-2021-4", Namespace: namespace},
 		},
 	}
 }
 
-func (pr *mockProvider) stubWithPackageQualifiers(packageName string) {
-	pr.data["rhel:8"] = map[string][]vulnerability.Vulnerability{
+func vulnerabilitiesWithPackageQualifiers(packageName string) []vulnerability.Vulnerability {
+	return []vulnerability.Vulnerability{
 		// direct...
-		packageName: {
-			{
-				Constraint: version.MustGetConstraint("<= 0:1.0-419.el8.", version.RpmFormat),
-				ID:         "CVE-2021-1",
-				PackageQualifiers: []qualifier.Qualifier{
-					rpmmodularity.New("containertools:3"),
-				},
+		{
+			PackageName: packageName,
+			Constraint:  version.MustGetConstraint("<= 0:1.0-419.el8.", version.RpmFormat),
+			Reference:   vulnerability.Reference{ID: "CVE-2021-1", Namespace: namespace},
+			PackageQualifiers: []qualifier.Qualifier{
+				rpmmodularity.New("containertools:3"),
 			},
-			{
-				Constraint: version.MustGetConstraint("<= 0:1.0-419.el8.", version.RpmFormat),
-				ID:         "CVE-2021-2",
-				PackageQualifiers: []qualifier.Qualifier{
-					rpmmodularity.New(""),
-				},
+		},
+		{
+			PackageName: packageName,
+			Constraint:  version.MustGetConstraint("<= 0:1.0-419.el8.", version.RpmFormat),
+			Reference:   vulnerability.Reference{ID: "CVE-2021-2", Namespace: namespace},
+			PackageQualifiers: []qualifier.Qualifier{
+				rpmmodularity.New(""),
 			},
-			{
-				Constraint: version.MustGetConstraint("<= 0:1.0-419.el8.", version.RpmFormat),
-				ID:         "CVE-2021-3",
-			},
-			{
-				Constraint: version.MustGetConstraint("<= 0:1.0-419.el8.", version.RpmFormat),
-				ID:         "CVE-2021-4",
-				PackageQualifiers: []qualifier.Qualifier{
-					rpmmodularity.New("containertools:4"),
-				},
+		},
+		{
+			PackageName: packageName,
+			Constraint:  version.MustGetConstraint("<= 0:1.0-419.el8.", version.RpmFormat),
+			Reference:   vulnerability.Reference{ID: "CVE-2021-3", Namespace: namespace},
+		},
+		{
+			PackageName: packageName,
+			Constraint:  version.MustGetConstraint("<= 0:1.0-419.el8.", version.RpmFormat),
+			Reference:   vulnerability.Reference{ID: "CVE-2021-4", Namespace: namespace},
+			PackageQualifiers: []qualifier.Qualifier{
+				rpmmodularity.New("containertools:4"),
 			},
 		},
 	}
-}
-
-func (pr *mockProvider) GetByDistro(d *distro.Distro, p pkg.Package) ([]vulnerability.Vulnerability, error) {
-	var ty = strings.ToLower(d.Type.String())
-	if d.Type == distro.CentOS || d.Type == distro.RedHat || d.Type == distro.RockyLinux || d.Type == distro.AlmaLinux {
-		ty = "rhel"
-	}
-
-	return pr.data[ty+":"+d.FullVersion()][p.Name], nil
-}
-
-func (pr *mockProvider) GetByCPE(request cpe.CPE) (v []vulnerability.Vulnerability, err error) {
-	return v, err
-}
-
-func (pr *mockProvider) GetByLanguage(l syftPkg.Language, p pkg.Package) (v []vulnerability.Vulnerability, err error) {
-	return v, err
 }

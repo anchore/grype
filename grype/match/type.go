@@ -10,7 +10,17 @@ const (
 	CPEMatch           Type = "cpe-match"
 )
 
+var typeOrder = map[Type]int{
+	ExactDirectMatch:   1,
+	ExactIndirectMatch: 2,
+	CPEMatch:           3,
+}
+
 type Type string
+
+func (t Type) String() string {
+	return string(t)
+}
 
 func ConvertToIndirectMatches(matches []Match, p pkg.Package) {
 	for idx := range matches {

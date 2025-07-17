@@ -6,3 +6,4 @@ pull
 migrate.py
 .oras-cache
 *.tar.gz
+*.tar.zst

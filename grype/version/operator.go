@@ -3,18 +3,16 @@ package version
 import "fmt"
 
 const (
-	EQ  operator = "="
-	GT  operator = ">"
-	LT  operator = "<"
-	GTE operator = ">="
-	LTE operator = "<="
-	OR  operator = "||"
-	AND operator = ","
+	EQ  Operator = "="
+	GT  Operator = ">"
+	LT  Operator = "<"
+	GTE Operator = ">="
+	LTE Operator = "<="
 )
 
-type operator string
+type Operator string
 
-func parseOperator(op string) (operator, error) {
+func parseOperator(op string) (Operator, error) {
 	switch op {
 	case string(EQ), "":
 		return EQ, nil
@@ -26,10 +24,6 @@ func parseOperator(op string) (operator, error) {
 		return LT, nil
 	case string(LTE):
 		return LTE, nil
-	case string(OR):
-		return OR, nil
-	case string(AND):
-		return AND, nil
 	}
 	return "", fmt.Errorf("unknown operator: '%s'", op)
 }

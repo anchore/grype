@@ -4,19 +4,26 @@ inputs:
   go-version:
     description: "Go version to install"
     required: true
-    default: "1.21.x"
+    default: ">= 1.24"
   python-version:
     description: "Python version to install"
     required: true
-    default: "3.10"
+    default: "3.11"
+  go-dependencies:
+    description: "Download go dependencies"
+    required: true
+    default: "true"
   cache-key-prefix:
     description: "Prefix all cache keys with this value"
     required: true
-    default: "831180ac26"
-  build-cache-key-prefix:
-    description: "Prefix build cache key with this value"
+    default: "1ac8281053"
+  compute-fingerprints:
+    description: "Compute test fixture fingerprints"
     required: true
-    default: "f8b6d31dea"
+    default: "true"
+  tools:
+    description: "whether to install tools"
+    default: "true"
   bootstrap-apt-packages:
     description: "Space delimited list of tools to install via apt"
     default: "libxml2-utils"
@@ -25,45 +32,43 @@ runs:
   using: "composite"
   steps:
     # note: go mod and build is automatically cached on default with v4+
-    - uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe #v4.1.0
+    - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+      if: inputs.go-version != ''
       with:
         go-version: ${{ inputs.go-version }}
 
-    - uses: actions/setup-python@d27e3f3d7c64b4bbf8e4abfb9b63b83e846e0435 # v4.5.0
+    - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
       with:
         python-version: ${{ inputs.python-version }}
 
-    - name: Restore python cache
-      id: python-venv-cache
-      uses: actions/cache@69d9d449aced6a2ede0bc19182fadc3a0a42d2b0 # v3.2.6
-      with:
-        path: |
-          test/quality/venv
-          test/quality/vulnerability-match-labels/venv
-        key: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-python-${{ inputs.python-version }}-${{ hashFiles('**/test/quality/**/requirements.txt') }}
-
     - name: Restore tool cache
       id: tool-cache
-      uses: actions/cache@v3
+      uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      if: inputs.tools == 'true'
       with:
-        path: ${{ github.workspace }}/.tmp
-        key: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-tool-${{ hashFiles('Makefile') }}
+        path: ${{ github.workspace }}/.tool
+        key: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-tool-${{ hashFiles('.binny.yaml') }}
 
-    - name: (cache-miss) Bootstrap project tools
+    - name: Install project tools
+      if: inputs.tools == 'true'
       shell: bash
-      if: steps.tool-cache.outputs.cache-hit != 'true'
-      run: make bootstrap-tools
+      run: make tools
 
-    - name: Bootstrap go dependencies
+    - name: Install go dependencies
+      if: inputs.go-dependencies == 'true'
       shell: bash
-      run: make bootstrap-go
+      run: make ci-bootstrap-go
 
     - name: Install apt packages
       if: inputs.bootstrap-apt-packages != ''
       shell: bash
       run: |
-        DEBIAN_FRONTEND=noninteractive sudo apt update && sudo -E apt install -y ${{ inputs.bootstrap-apt-packages }}
+        read -ra PACKAGES <<< "$BOOTSTRAP_APT_PACKAGES"
+        DEBIAN_FRONTEND=noninteractive sudo apt update && sudo -E apt install -y "${PACKAGES[@]}"
+      env:
+        BOOTSTRAP_APT_PACKAGES: ${{ inputs.bootstrap-apt-packages }}
 
     - name: Create all cache fingerprints
+      if: inputs.compute-fingerprints == 'true'
       shell: bash
       run: make fingerprints

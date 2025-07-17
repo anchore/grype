@@ -402,7 +402,7 @@ func (b *viewModelBuilder) dedupeAndSortURLs(primaryVulnerability models.Vulnera
 	return result
 }
 
-func explainLocation(match models.Match, location file.Coordinates) explainedEvidence {
+func explainLocation(match models.Match, location file.Location) explainedEvidence {
 	path := location.RealPath
 	if javaMeta, ok := match.Artifact.Metadata.(map[string]any); ok {
 		if virtPath, ok := javaMeta["virtualPath"].(string); ok {

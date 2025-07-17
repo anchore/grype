@@ -9,10 +9,12 @@ import (
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
+
+	"github.com/anchore/clio"
 )
 
 // Completion returns a command to provide completion to various terminal shells
-func Completion() *cobra.Command {
+func Completion(app clio.Application) *cobra.Command {
 	return &cobra.Command{
 		Use:   "completion [bash|zsh|fish]",
 		Short: "Generate a shell completion for Grype (listing local docker images)",
@@ -49,6 +51,7 @@ $ grype completion fish > ~/.config/fish/completions/grype.fish
 `,
 		DisableFlagsInUseLine: true,
 		ValidArgs:             []string{"bash", "fish", "zsh"},
+		PreRunE:               disableUI(app),
 		Args:                  cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var err error

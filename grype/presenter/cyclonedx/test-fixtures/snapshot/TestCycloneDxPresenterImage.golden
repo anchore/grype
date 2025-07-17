@@ -1,11 +1,11 @@
 {
-  "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
+  "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",
-  "specVersion": "1.5",
-  "serialNumber": "urn:uuid:64003f04-3050-46ad-9491-0c5205dae86c",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:1ca232fc-acb3-4b0f-9640-ba68fb1c7452",
   "version": 1,
   "metadata": {
-    "timestamp": "2023-12-21T10:32:04-05:00",
+    "timestamp": "2025-07-02T13:38:20-04:00",
     "tools": {
       "components": [
         {
@@ -15,15 +15,21 @@
           "version": "[not provided]"
         }
       ]
+    },
+    "component": {
+      "bom-ref": "1882f79f937f7d91",
+      "type": "container",
+      "name": "user-input",
+      "version": "sha256:ca738abb87a8d58f112d3400ebb079b61ceae7dc290beb34bda735be4b1941d5"
     }
   },
   "components": [
     {
-      "bom-ref": "848a0f3b0d2402eb",
+      "bom-ref": "bbb0ba712c2b94ea",
       "type": "library",
       "name": "package-1",
       "version": "1.1.1",
-      "cpe": "cpe:2.3:a:anchore:engine:0.9.2:*:*:python:*:*:*:*",
+      "cpe": "cpe:2.3:a:anchore\\:oss:anchore\\/engine:0.9.2:*:*:en:*:*:*:*",
       "properties": [
         {
           "name": "syft:package:type",
@@ -52,7 +58,7 @@
       ]
     },
     {
-      "bom-ref": "7bb53d560434bc7f",
+      "bom-ref": "pkg:deb/package-2@2.2.2?package-id=74378afe15713625",
       "type": "library",
       "name": "package-2",
       "version": "2.2.2",
@@ -68,7 +74,8 @@
           }
         }
       ],
-      "cpe": "cpe:2.3:a:anchore:engine:2.2.2:*:*:python:*:*:*:*",
+      "cpe": "cpe:2.3:a:anchore:engine:2.2.2:*:*:en:*:*:*:*",
+      "purl": "pkg:deb/package-2@2.2.2",
       "properties": [
         {
           "name": "syft:package:type",
@@ -83,7 +90,7 @@
   ],
   "vulnerabilities": [
     {
-      "bom-ref": "urn:uuid:dbdc8fe0-9c9c-4111-ba0f-d2d5db801efe",
+      "bom-ref": "urn:uuid:c13f8188-e9ea-47b0-b2ef-d99062917f08",
       "id": "CVE-1999-0001",
       "source": {},
       "references": [
@@ -94,22 +101,28 @@
       ],
       "ratings": [
         {
-          "score": 4,
+          "score": 8.2,
           "severity": "low",
-          "method": "CVSSv3",
-          "vector": "another vector"
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:L/I:L/A:H"
+        },
+        {
+          "source": {
+            "name": "FIRST",
+            "url": "https://www.first.org/epss/"
+          },
+          "score": 0.03,
+          "method": "other"
         }
       ],
-      "description": "1999-01 description",
-      "advisories": [],
       "affects": [
         {
-          "ref": "848a0f3b0d2402eb"
+          "ref": "bbb0ba712c2b94ea"
         }
       ]
     },
     {
-      "bom-ref": "urn:uuid:85a1d6c4-b3be-4e19-8dde-2763651282ec",
+      "bom-ref": "urn:uuid:185ab413-ef21-48ae-acca-a6894c0c22d1",
       "id": "CVE-1999-0002",
       "source": {},
       "references": [
@@ -120,17 +133,32 @@
       ],
       "ratings": [
         {
-          "score": 1,
+          "score": 8.5,
           "severity": "critical",
-          "method": "CVSSv2",
-          "vector": "vector"
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:C/C:H/I:H/A:H"
+        },
+        {
+          "source": {
+            "name": "FIRST",
+            "url": "https://www.first.org/epss/"
+          },
+          "score": 0.08,
+          "method": "other"
+        },
+        {
+          "source": {
+            "name": "CISA KEV Catalog",
+            "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+          },
+          "score": 1,
+          "method": "other",
+          "justification": "Listed in CISA KEV"
         }
       ],
-      "description": "1999-02 description",
-      "advisories": [],
       "affects": [
         {
-          "ref": "7bb53d560434bc7f"
+          "ref": "pkg:deb/package-2@2.2.2?package-id=74378afe15713625"
         }
       ]
     }

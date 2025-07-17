@@ -51,6 +51,12 @@ func init() {
 			vulnerabilities: []string{"CVE-2017-14727"},
 			packages:        []string{"logger"},
 		},
+		// https://github.com/anchore/grype/issues/2412#issuecomment-2663656195
+		{
+			typ:             "deb",
+			vulnerabilities: []string{"CVE-2023-45853"},
+			packages:        []string{"zlib1g", "zlib"},
+		},
 	}
 
 	for _, ignore := range explicitIgnores {
@@ -73,15 +79,17 @@ func ApplyExplicitIgnoreRules(provider ExclusionProvider, matches Matches) (Matc
 	var ignoreRules []IgnoreRule
 	ignoreRules = append(ignoreRules, explicitIgnoreRules...)
 
-	for _, m := range matches.Sorted() {
-		r, err := provider.GetRules(m.Vulnerability.ID)
+	if provider != nil {
+		for _, m := range matches.Sorted() {
+			r, err := provider.IgnoreRules(m.Vulnerability.ID)
 
-		if err != nil {
-			log.Warnf("unable to get ignore rules for vuln id=%s", m.Vulnerability.ID)
-			continue
+			if err != nil {
+				log.Warnf("unable to get ignore rules for vuln id=%s", m.Vulnerability.ID)
+				continue
+			}
+
+			ignoreRules = append(ignoreRules, r...)
 		}
-
-		ignoreRules = append(ignoreRules, r...)
 	}
 
 	return ApplyIgnoreRules(matches, ignoreRules)

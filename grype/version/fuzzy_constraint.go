@@ -8,37 +8,39 @@ import (
 	hashiVer "github.com/anchore/go-version"
 )
 
-// derived from https://semver.org/, but additionally matches partial versions (e.g. "2.0")
-var pseudoSemverPattern = regexp.MustCompile(`^(0|[1-9]\d*)(\.(0|[1-9]\d*))?(\.(0|[1-9]\d*))?(?:(-|alpha|beta|rc)((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$`)
+// derived from https://semver.org/, but additionally matches:
+// - partial versions (e.g. "2.0")
+// - optional prefix "v" (e.g. "v1.0.0")
+var pseudoSemverPattern = regexp.MustCompile(`^v?(0|[1-9]\d*)(\.(0|[1-9]\d*))?(\.(0|[1-9]\d*))?(?:(-|alpha|beta|rc)((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$`)
 
 type fuzzyConstraint struct {
-	rawPhrase          string
-	phraseHint         string
-	semanticConstraint *hashiVer.Constraints
-	constraints        constraintExpression
+	RawPhrase          string
+	PhraseHint         string
+	SemanticConstraint *hashiVer.Constraints
+	Constraints        simpleRangeExpression
 }
 
-func newFuzzyConstraint(phrase, hint string) (*fuzzyConstraint, error) {
+func newFuzzyConstraint(phrase, hint string) (fuzzyConstraint, error) {
 	if phrase == "" {
 		// an empty constraint is always satisfied
-		return &fuzzyConstraint{
-			rawPhrase:  phrase,
-			phraseHint: hint,
+		return fuzzyConstraint{
+			RawPhrase:  phrase,
+			PhraseHint: hint,
 		}, nil
 	}
 
-	constraints, err := newConstraintExpression(phrase, newFuzzyComparator)
+	constraints, err := parseRangeExpression(phrase)
 	if err != nil {
-		return nil, fmt.Errorf("could not create fuzzy constraint: %+v", err)
+		return fuzzyConstraint{}, fmt.Errorf("could not create fuzzy constraint: %+v", err)
 	}
 	var semverConstraint *hashiVer.Constraints
 
 	// check all version unit phrases to see if this is a valid semver constraint
 	valid := true
 check:
-	for _, units := range constraints.units {
+	for _, units := range constraints.Units {
 		for _, unit := range units {
-			if !pseudoSemverPattern.MatchString(unit.version) {
+			if !pseudoSemverPattern.MatchString(unit.Version) {
 				valid = false
 				break check
 			}
@@ -49,28 +51,20 @@ check:
 		semverConstraint = &value
 	}
 
-	return &fuzzyConstraint{
-		rawPhrase:          phrase,
-		phraseHint:         hint,
-		constraints:        constraints,
-		semanticConstraint: semverConstraint,
+	return fuzzyConstraint{
+		RawPhrase:          phrase,
+		PhraseHint:         hint,
+		Constraints:        constraints,
+		SemanticConstraint: semverConstraint,
 	}, nil
 }
 
-func newFuzzyComparator(unit constraintUnit) (Comparator, error) {
-	ver, err := newFuzzyVersion(unit.version)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse constraint version (%s): %w", unit.version, err)
-	}
-	return &ver, nil
-}
-
-func (f *fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
-	if f.rawPhrase == "" && verObj != nil {
+func (f fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
+	if f.RawPhrase == "" && verObj != nil {
 		// an empty constraint is always satisfied
 		return true, nil
 	} else if verObj == nil {
-		if f.rawPhrase != "" {
+		if f.RawPhrase != "" {
 			// a non-empty constraint with no version given should always fail
 			return false, nil
 		}
@@ -81,11 +75,11 @@ func (f *fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
 
 	// rebuild temp constraint based off of ver obj
 	if verObj.Format != UnknownFormat {
-		newConstaint, err := GetConstraint(f.rawPhrase, verObj.Format)
+		newConstraint, err := GetConstraint(f.RawPhrase, verObj.Format)
 		// check if constraint is not fuzzyConstraint
-		_, ok := newConstaint.(*fuzzyConstraint)
+		_, ok := newConstraint.(fuzzyConstraint)
 		if err == nil && !ok {
-			satisfied, err := newConstaint.Satisfied(verObj)
+			satisfied, err := newConstraint.Satisfied(verObj)
 			if err == nil {
 				return satisfied, nil
 			}
@@ -93,25 +87,35 @@ func (f *fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
 	}
 
 	// attempt semver first, then fallback to fuzzy part matching...
-	if f.semanticConstraint != nil {
+	if f.SemanticConstraint != nil {
 		if pseudoSemverPattern.MatchString(version) {
-			if semver, err := newSemanticVersion(version); err == nil && semver != nil {
-				return f.semanticConstraint.Check(semver.verObj), nil
+			// we're stricter about accepting looser semver rules here since we have no context about
+			// the true format of the version, thus we want to reduce the change of false negatives
+			if semver, err := newSemanticVersion(version, true); err == nil {
+				return f.SemanticConstraint.Check(semver.obj), nil
 			}
 		}
 	}
 	// semver didn't work, use fuzzy part matching instead...
-	return f.constraints.satisfied(verObj)
+	return f.Constraints.satisfied(UnknownFormat, verObj)
 }
 
-func (f *fuzzyConstraint) String() string {
-	if f.rawPhrase == "" {
+func (f fuzzyConstraint) Format() Format {
+	return UnknownFormat
+}
+
+func (f fuzzyConstraint) String() string {
+	if f.RawPhrase == "" {
 		return "none (unknown)"
 	}
-	if f.phraseHint != "" {
-		return fmt.Sprintf("%s (%s)", f.rawPhrase, f.phraseHint)
+	if f.PhraseHint != "" {
+		return fmt.Sprintf("%s (%s)", f.RawPhrase, f.PhraseHint)
 	}
-	return fmt.Sprintf("%s (unknown)", f.rawPhrase)
+	return fmt.Sprintf("%s (unknown)", f.RawPhrase)
+}
+
+func (f fuzzyConstraint) Value() string {
+	return f.RawPhrase
 }
 
 // Note: the below code is from https://github.com/facebookincubator/nvdtools/blob/688794c4d3a41929eeca89304e198578d4595d53/cvefeed/nvd/smartvercmp.go (apache V2)
@@ -176,6 +180,8 @@ func parseVersionParts(v string) (int, int, int) {
 		// !"#$%&'()*+,-./ are dec 33 to 47, :;<=>?@ are dec 58 to 64, [\]^_` are dec 91 to 96 and {|}~ are dec 123 to 126.
 		// So, punctuation is in dec 33-126 range except 48-57, 65-90 and 97-122 gaps.
 		// This inverse logic allows for early short-circuiting for most of the chars and shaves ~20ns in benchmarks.
+		// linters might yell about De Morgan's law here - we ignore them in this case
+		//nolint:staticcheck
 		return b >= '!' && b <= '~' &&
 			!(b > '/' && b < ':' ||
 				b > '@' && b < '[' ||

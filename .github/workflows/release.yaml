@@ -5,16 +5,35 @@ on:
       version:
         description: tag the latest commit on main with the given version (prefixed with v)
         required: true
+      skip_quality_gate:
+        description: skip quality gate and proceed directly to releasing (for emergency releases)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
   quality-gate:
+    if: ${{ !inputs.skip_quality_gate }}
     environment: release
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b #v4.1.4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Check if running on main
+        if: github.ref != 'refs/heads/main'
+        # we are using the following flag when running `cosign blob-verify` for checksum signature verification:
+        #   --certificate-identity-regexp "https://github.com/anchore/.github/workflows/release.yaml@refs/heads/main"
+        # if we are not on the main branch, the signature will not be verifiable since the suffix requires the main branch
+        # at the time of when the OIDC token was issued on the Github Actions runner.
+        run: echo "This can only be run on the main branch otherwise releases produced will not be verifiable with cosign" && exit 1
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Check if pinned syft is a release version
         run: .github/scripts/check-syft-version-is-release.sh
@@ -22,8 +41,10 @@ jobs:
       - name: Check if tag already exists
         # note: this will fail if the tag already exists
         run: |
-          [[ "${{ github.event.inputs.version }}" == v* ]] || (echo "version '${{ github.event.inputs.version }}' does not have a 'v' prefix" && exit 1)
-          git tag ${{ github.event.inputs.version }}
+          [[ "$VERSION" == v* ]] || (echo "version '$VERSION' does not have a 'v' prefix" && exit 1)
+          git tag "$VERSION"
+        env:
+          VERSION: ${{ github.event.inputs.version }}
 
       - name: Check static analysis results
         uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be # v1.2.0
@@ -50,6 +71,17 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
           checkName: "Integration tests"
+          timeoutSeconds: 1200 # 20 minutes, it sometimes takes that long
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Check integration test results
+        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be # v1.2.0
+        id: quality_tests
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # This check name is defined as the github action job name (in .github/workflows/testing.yaml)
+          checkName: "Quality tests"
+          timeoutSeconds: 1200 # 20 minutes, it sometimes takes that long
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check acceptance test results (linux)
@@ -80,27 +112,42 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Quality gate
-        if: steps.static-analysis.outputs.conclusion != 'success' || steps.unit.outputs.conclusion != 'success' || steps.integration.outputs.conclusion != 'success' || steps.cli-linux.outputs.conclusion != 'success' || steps.acceptance-linux.outputs.conclusion != 'success' || steps.acceptance-mac.outputs.conclusion != 'success'
+        if: steps.static-analysis.outputs.conclusion != 'success' || steps.unit.outputs.conclusion != 'success' || steps.integration.outputs.conclusion != 'success' || steps.quality_tests.outputs.conclusion != 'success' || steps.cli-linux.outputs.conclusion != 'success' || steps.acceptance-linux.outputs.conclusion != 'success' || steps.acceptance-mac.outputs.conclusion != 'success'
+        env:
+          STATIC_ANALYSIS_STATUS: ${{ steps.static-analysis.conclusion }}
+          UNIT_TEST_STATUS: ${{ steps.unit.outputs.conclusion }}
+          INTEGRATION_TEST_STATUS: ${{ steps.integration.outputs.conclusion }}
+          QUALITY_TEST_STATUS: ${{ steps.quality_tests.outputs.conclusion }}
+          ACCEPTANCE_LINUX_STATUS: ${{ steps.acceptance-linux.outputs.conclusion }}
+          ACCEPTANCE_MAC_STATUS: ${{ steps.acceptance-mac.outputs.conclusion }}
+          CLI_LINUX_STATUS: ${{ steps.cli-linux.outputs.conclusion }}
         run: |
-          echo "Static Analysis Status: ${{ steps.static-analysis.conclusion }}"
-          echo "Unit Test Status: ${{ steps.unit.outputs.conclusion }}"
-          echo "Integration Test Status: ${{ steps.integration.outputs.conclusion }}"
-          echo "Acceptance Test (Linux) Status: ${{ steps.acceptance-linux.outputs.conclusion }}"
-          echo "Acceptance Test (Mac) Status: ${{ steps.acceptance-mac.outputs.conclusion }}"
-          echo "CLI Test (Linux) Status: ${{ steps.cli-linux.outputs.conclusion }}"
+          echo "Static Analysis Status: $STATIC_ANALYSIS_STATUS"
+          echo "Unit Test Status: $UNIT_TEST_STATUS"
+          echo "Integration Test Status: $INTEGRATION_TEST_STATUS"
+          echo "Quality Test Status: $QUALITY_TEST_STATUS"
+          echo "Acceptance Test (Linux) Status: $ACCEPTANCE_LINUX_STATUS"
+          echo "Acceptance Test (Mac) Status: $ACCEPTANCE_MAC_STATUS"
+          echo "CLI Test (Linux) Status: $CLI_LINUX_STATUS"
           false
 
+  # only release core assets within the "release" job. Any other assets not already under the purview of the
+  # goreleaser configuration should be added as separate jobs to allow for debugging separately from the release workflow
+  # as well as not accidentally be re-run as a step multiple times (as could be done within the release workflow) as
+  # not all actions are guaranteed to be idempotent.
   release:
     needs: [quality-gate]
-    runs-on: ubuntu-20.04
+    if: ${{ always() && (needs.quality-gate.result == 'success' || inputs.skip_quality_gate) }}
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       packages: write
       id-token: write
     steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b #v4.1.4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
@@ -109,28 +156,26 @@ jobs:
           build-cache-key-prefix: "snapshot"
 
       - name: Login to Docker Hub
-        uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20  #v3.1.0
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772  #v3.4.0
         with:
           username: ${{ secrets.ANCHOREOSSWRITE_DH_USERNAME }}
           password: ${{ secrets.ANCHOREOSSWRITE_DH_PAT }}
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20  #v3.1.0
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772  #v3.4.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Cosign install
-        uses: sigstore/cosign-installer@59acb6260d9c0ba8f4a2f9d9b48431a222b68e20 #v3.5.0
-
       - name: Tag release
         run: |
           git config user.name "anchoreci"
           git config user.email "anchoreci@users.noreply.github.com"
-          git tag -a ${{ github.event.inputs.version }} -m "Release ${{ github.event.inputs.version }}"
+          git tag -a "$VERSION" -m "Release $VERSION"
           git push origin --tags
         env:
+          VERSION: ${{ github.event.inputs.version }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build & publish release artifacts
@@ -146,17 +191,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # for updating brew formula in anchore/homebrew-syft
           GITHUB_BREW_TOKEN: ${{ secrets.ANCHOREOPS_GITHUB_OSS_WRITE_TOKEN }}
-          # for updating the VERSION file in S3...
-          AWS_ACCESS_KEY_ID: ${{ secrets.TOOLBOX_AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.TOOLBOX_AWS_SECRET_ACCESS_KEY }}
 
-
-      - uses: anchore/sbom-action@ab5d7b5f48981941c4c5d6bf33aeb98fe3bae38c # v0.15.10
+      - uses: anchore/sbom-action@cee1b8e05ae5b2593a75e197229729eabaa9f8ec # v0.20.2
         continue-on-error: true
         with:
           artifact-name: sbom.spdx.json
 
-      - uses: 8398a7/action-slack@28ba43ae48961b90635b50953d216767a6bea486 # v3.16.2
+      - uses: 8398a7/action-slack@1750b5085f3ec60384090fb7c52965ef822e869e # v3.18.0
         continue-on-error: true
         with:
           status: ${{ job.status }}
@@ -165,3 +206,13 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_TOOLBOX_WEBHOOK_URL }}
         if: ${{ success() }}
+
+  release-version-file:
+    needs: [release]
+    if: ${{ needs.release.result == 'success' }}
+    uses: ./.github/workflows/release-version-file.yaml
+    with:
+      version: ${{ github.event.inputs.version }}
+    secrets:
+      TOOLBOX_AWS_ACCESS_KEY_ID: ${{ secrets.TOOLBOX_AWS_ACCESS_KEY_ID }}
+      TOOLBOX_AWS_SECRET_ACCESS_KEY: ${{ secrets.TOOLBOX_AWS_SECRET_ACCESS_KEY }}

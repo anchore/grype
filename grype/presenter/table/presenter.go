@@ -3,63 +3,196 @@ package table
 import (
 	"fmt"
 	"io"
-	"sort"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/renderer"
+	"github.com/olekukonko/tablewriter/tw"
+	"github.com/scylladb/go-set/strset"
 
-	grypeDb "github.com/anchore/grype/grype/db/v5"
-	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/db/v5/namespace/distro"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
 const (
-	appendSuppressed    = " (suppressed)"
-	appendSuppressedVEX = " (suppressed by VEX)"
+	appendSuppressed    = "suppressed"
+	appendSuppressedVEX = "suppressed by VEX"
 )
 
 // Presenter is a generic struct for holding fields needed for reporting
 type Presenter struct {
-	results          match.Matches
-	ignoredMatches   []match.IgnoredMatch
-	packages         []pkg.Package
-	metadataProvider vulnerability.MetadataProvider
-	showSuppressed   bool
-	withColor        bool
+	document       models.Document
+	showSuppressed bool
+	withColor      bool
+
+	recommendedFixStyle lipgloss.Style
+	kevStyle            lipgloss.Style
+	criticalStyle       lipgloss.Style
+	highStyle           lipgloss.Style
+	mediumStyle         lipgloss.Style
+	lowStyle            lipgloss.Style
+	negligibleStyle     lipgloss.Style
+	auxiliaryStyle      lipgloss.Style
+	unknownStyle        lipgloss.Style
+}
+
+type rows []row
+
+type row struct {
+	Name            string
+	Version         string
+	Fix             string
+	PackageType     string
+	VulnerabilityID string
+	Severity        string
+	EPSS            epss
+	Risk            string
+	Annotation      string
+}
+
+type epss struct {
+	Score      float64
+	Percentile float64
+}
+
+func (e epss) String() string {
+	if e.Percentile == 0 {
+		return "N/A"
+	}
+
+	probability := e.Score * 100
+	percentile := e.Percentile * 100
+
+	if probability < 0.1 {
+		return fmt.Sprintf("< 0.1%% (%s)", formatPercentileWithSuffix(percentile))
+	}
+
+	return fmt.Sprintf("%.1f%% (%s)", probability, formatPercentileWithSuffix(percentile))
+}
+
+func formatPercentileWithSuffix(percentile float64) string {
+	p := int(percentile)
+
+	// Handle special cases for 11th, 12th, 13th
+	if p%100 >= 11 && p%100 <= 13 {
+		return fmt.Sprintf("%dth", p)
+	}
+
+	// Handle other cases
+	switch p % 10 {
+	case 1:
+		return fmt.Sprintf("%dst", p)
+	case 2:
+		return fmt.Sprintf("%dnd", p)
+	case 3:
+		return fmt.Sprintf("%drd", p)
+	default:
+		return fmt.Sprintf("%dth", p)
+	}
 }
 
 // NewPresenter is a *Presenter constructor
 func NewPresenter(pb models.PresenterConfig, showSuppressed bool) *Presenter {
+	withColor := supportsColor()
+	fixStyle := lipgloss.NewStyle().Border(lipgloss.Border{Left: "*"}, false, false, false, true)
+	if withColor {
+		fixStyle = lipgloss.NewStyle()
+	}
 	return &Presenter{
-		results:          pb.Matches,
-		ignoredMatches:   pb.IgnoredMatches,
-		packages:         pb.Packages,
-		metadataProvider: pb.MetadataProvider,
-		showSuppressed:   showSuppressed,
-		withColor:        supportsColor(),
+		document:            pb.Document,
+		showSuppressed:      showSuppressed,
+		withColor:           withColor,
+		recommendedFixStyle: fixStyle,
+		negligibleStyle:     lipgloss.NewStyle().Foreground(lipgloss.Color("240")),                          // dark gray
+		lowStyle:            lipgloss.NewStyle().Foreground(lipgloss.Color("36")),                           // cyan/teal
+		mediumStyle:         lipgloss.NewStyle().Foreground(lipgloss.Color("178")),                          // gold/amber
+		highStyle:           lipgloss.NewStyle().Foreground(lipgloss.Color("203")),                          // salmon/light red
+		criticalStyle:       lipgloss.NewStyle().Foreground(lipgloss.Color("198")).Bold(true),               // bright pink
+		kevStyle:            lipgloss.NewStyle().Foreground(lipgloss.Color("198")).Reverse(true).Bold(true), // white on bright pink
+		//kevStyle:       lipgloss.NewStyle().Foreground(lipgloss.Color("198")),             // bright pink
+		auxiliaryStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("240")), // dark gray
+		unknownStyle:   lipgloss.NewStyle().Foreground(lipgloss.Color("12")),  // light blue
 	}
 }
 
 // Present creates a JSON-based reporting
-func (pres *Presenter) Present(output io.Writer) error {
-	rows := make([][]string, 0)
+func (p *Presenter) Present(output io.Writer) error {
+	rs := p.getRows(p.document, p.showSuppressed)
 
-	columns := []string{"Name", "Installed", "Fixed-In", "Type", "Vulnerability", "Severity"}
-	// Generate rows for matching vulnerabilities
-	for m := range pres.results.Enumerate() {
-		row, err := createRow(m, pres.metadataProvider, "")
-		if err != nil {
-			return err
-		}
-		rows = append(rows, row)
+	if len(rs) == 0 {
+		_, err := io.WriteString(output, "No vulnerabilities found\n")
+		return err
 	}
 
-	// Generate rows for suppressed vulnerabilities
-	if pres.showSuppressed {
-		for _, m := range pres.ignoredMatches {
+	table := newTable(output, []string{"Name", "Installed", "Fixed In", "Type", "Vulnerability", "Severity", "EPSS", "Risk"})
+
+	if err := table.Bulk(rs.Render()); err != nil {
+		return fmt.Errorf("failed to add table rows: %w", err)
+	}
+
+	return table.Render()
+}
+
+func newTable(output io.Writer, columns []string) *tablewriter.Table {
+	return tablewriter.NewTable(output,
+		tablewriter.WithHeader(columns),
+		tablewriter.WithHeaderAutoWrap(tw.WrapNone),
+		tablewriter.WithRowAutoWrap(tw.WrapNone),
+		tablewriter.WithAutoHide(tw.On),
+		tablewriter.WithRenderer(renderer.NewBlueprint()),
+		tablewriter.WithBehavior(
+			tw.Behavior{
+				TrimSpace: tw.On,
+				AutoHide:  tw.On,
+			},
+		),
+		tablewriter.WithPadding(
+			tw.Padding{
+				Right: "  ",
+			},
+		),
+		tablewriter.WithRendition(
+			tw.Rendition{
+				Symbols: tw.NewSymbols(tw.StyleNone),
+				Settings: tw.Settings{
+					Lines: tw.Lines{
+						ShowTop:        tw.Off,
+						ShowBottom:     tw.Off,
+						ShowHeaderLine: tw.Off,
+						ShowFooterLine: tw.Off,
+					},
+				},
+			},
+		),
+	)
+}
+
+func (p *Presenter) getRows(doc models.Document, showSuppressed bool) rows {
+	var rs rows
+
+	multipleDistros := false
+	existingDistro := ""
+	for _, m := range doc.Matches {
+		if _, err := distro.FromString(m.Vulnerability.Namespace); err == nil {
+			if existingDistro == "" {
+				existingDistro = m.Vulnerability.Namespace
+			} else if existingDistro != m.Vulnerability.Namespace {
+				multipleDistros = true
+				break
+			}
+		}
+	}
+
+	// generate rows for matching vulnerabilities
+	for _, m := range doc.Matches {
+		rs = append(rs, p.newRow(m, "", multipleDistros))
+	}
+
+	// generate rows for suppressed vulnerabilities
+	if showSuppressed {
+		for _, m := range doc.IgnoredMatches {
 			msg := appendSuppressed
 			if m.AppliedIgnoreRules != nil {
 				for i := range m.AppliedIgnoreRules {
@@ -68,144 +201,230 @@ func (pres *Presenter) Present(output io.Writer) error {
 					}
 				}
 			}
-			row, err := createRow(m.Match, pres.metadataProvider, msg)
-
-			if err != nil {
-				return err
-			}
-			rows = append(rows, row)
+			rs = append(rs, p.newRow(m.Match, msg, multipleDistros))
 		}
 	}
-
-	if len(rows) == 0 {
-		_, err := io.WriteString(output, "No vulnerabilities found\n")
-		return err
-	}
-
-	rows = sortRows(removeDuplicateRows(rows))
-
-	table := tablewriter.NewWriter(output)
-	table.SetHeader(columns)
-	table.SetAutoWrapText(false)
-	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
-
-	table.SetHeaderLine(false)
-	table.SetBorder(false)
-	table.SetAutoFormatHeaders(true)
-	table.SetCenterSeparator("")
-	table.SetColumnSeparator("")
-	table.SetRowSeparator("")
-	table.SetTablePadding("  ")
-	table.SetNoWhiteSpace(true)
-
-	if pres.withColor {
-		for _, row := range rows {
-			severityColor := getSeverityColor(row[len(row)-1])
-			table.Rich(row, []tablewriter.Colors{{}, {}, {}, {}, {}, severityColor})
-		}
-	} else {
-		table.AppendBulk(rows)
-	}
-
-	table.Render()
-
-	return nil
+	return rs
 }
 
 func supportsColor() bool {
 	return lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Render("") != ""
 }
 
-func sortRows(rows [][]string) [][]string {
-	// sort
-	sort.SliceStable(rows, func(i, j int) bool {
-		var (
-			name        = 0
-			ver         = 1
-			packageType = 3
-			vuln        = 4
-			sev         = 5
-		)
-		// name, version, type, severity, vulnerability
-		// > is for numeric sorting like severity or year/number of vulnerability
-		// < is for alphabetical sorting like name, version, type
-		if rows[i][name] == rows[j][name] {
-			if rows[i][ver] == rows[j][ver] {
-				if rows[i][packageType] == rows[j][packageType] {
-					if models.SeverityScore(rows[i][sev]) == models.SeverityScore(rows[j][sev]) {
-						// we use > here to get the most recently filed vulnerabilities
-						// to show at the top of the severity
-						return rows[i][vuln] > rows[j][vuln]
-					}
-					return models.SeverityScore(rows[i][sev]) > models.SeverityScore(rows[j][sev])
-				}
-				return rows[i][packageType] < rows[j][packageType]
-			}
-			return rows[i][ver] < rows[j][ver]
-		}
-		return rows[i][name] < rows[j][name]
-	})
+func (p *Presenter) newRow(m models.Match, extraAnnotation string, showDistro bool) row {
+	var annotations []string
 
-	return rows
+	if showDistro {
+		if d, err := distro.FromString(m.Vulnerability.Namespace); err == nil {
+			annotations = append(annotations, p.auxiliaryStyle.Render(fmt.Sprintf("%s:%s", d.DistroType(), d.Version())))
+		}
+	}
+
+	if extraAnnotation != "" {
+		annotations = append(annotations, p.auxiliaryStyle.Render(extraAnnotation))
+	}
+
+	var kev, annotation string
+	if len(m.Vulnerability.KnownExploited) > 0 {
+		if p.withColor {
+			kev = p.kevStyle.Render(" KEV ") // ⚡❋◆◉፨⿻⨳✖• (requires non-standard fonts:  )
+		} else {
+			annotations = append([]string{"kev"}, annotations...)
+		}
+	}
+
+	if len(annotations) > 0 {
+		annotation = p.auxiliaryStyle.Render("(") + strings.Join(annotations, p.auxiliaryStyle.Render(", ")) + p.auxiliaryStyle.Render(")")
+	}
+
+	if kev != "" {
+		annotation = kev + " " + annotation
+	}
+
+	return row{
+		Name:            m.Artifact.Name,
+		Version:         m.Artifact.Version,
+		Fix:             p.formatFix(m),
+		PackageType:     string(m.Artifact.Type),
+		VulnerabilityID: m.Vulnerability.ID,
+		Severity:        p.formatSeverity(m.Vulnerability.Severity),
+		EPSS:            newEPSS(m.Vulnerability.EPSS),
+		Risk:            p.formatRisk(m.Vulnerability.Risk),
+		Annotation:      annotation,
+	}
 }
 
-func removeDuplicateRows(items [][]string) [][]string {
-	seen := map[string][]string{}
-	var result [][]string
+func newEPSS(es []models.EPSS) epss {
+	if len(es) == 0 {
+		return epss{}
+	}
+	return epss{
+		Score:      es[0].EPSS,
+		Percentile: es[0].Percentile,
+	}
+}
 
-	for _, v := range items {
-		key := strings.Join(v, "|")
-		if seen[key] != nil {
+func (p *Presenter) formatSeverity(severity string) string {
+	var severityStyle *lipgloss.Style
+	switch strings.ToLower(severity) {
+	case "critical":
+		severityStyle = &p.criticalStyle
+	case "high":
+		severityStyle = &p.highStyle
+	case "medium":
+		severityStyle = &p.mediumStyle
+	case "low":
+		severityStyle = &p.lowStyle
+	case "negligible":
+		severityStyle = &p.negligibleStyle
+	}
+
+	if severityStyle == nil {
+		severityStyle = &p.unknownStyle
+	}
+
+	return severityStyle.Render(severity)
+}
+
+func (p *Presenter) formatRisk(risk float64) string {
+	// TODO: add color to risk?
+	switch {
+	case risk == 0:
+		return "  N/A"
+	case risk < 0.1:
+		return "< 0.1"
+	}
+	return fmt.Sprintf("%5.1f", risk)
+}
+
+func (p *Presenter) formatFix(m models.Match) string {
+	// adjust the model fix state values for better presentation
+	switch m.Vulnerability.Fix.State {
+	case vulnerability.FixStateWontFix.String():
+		return "(won't fix)"
+	case vulnerability.FixStateUnknown.String():
+		return ""
+	}
+
+	// do our best to summarize the fixed versions, de-epmhasize non-recommended versions
+	// also, since there is not a lot of screen real estate, we will truncate the list of fixed versions
+	// to ~30 characters (or so) to avoid wrapping.
+	return p.applyTruncation(
+		p.formatVersionsToDisplay(
+			m,
+			getRecommendedVersions(m),
+		),
+		m.Vulnerability.Fix.Versions,
+	)
+}
+
+func getRecommendedVersions(m models.Match) *strset.Set {
+	recommended := strset.New()
+	for _, d := range m.MatchDetails {
+		if d.Fix == nil {
+			continue
+		}
+		if d.Fix.SuggestedVersion != "" {
+			recommended.Add(d.Fix.SuggestedVersion)
+		}
+	}
+	return recommended
+}
+
+const maxVersionFieldLength = 30
+
+func (p *Presenter) formatVersionsToDisplay(m models.Match, recommendedVersions *strset.Set) []string {
+	hasMultipleVersions := len(m.Vulnerability.Fix.Versions) > 1
+	shouldHighlightRecommended := hasMultipleVersions && recommendedVersions.Size() > 0
+
+	var currentCharacterCount int
+	added := strset.New()
+	var vers []string
+
+	for _, v := range m.Vulnerability.Fix.Versions {
+		if added.Has(v) {
+			continue // skip duplicates
+		}
+
+		if shouldHighlightRecommended {
+			if recommendedVersions.Has(v) {
+				// recommended versions always get added
+				added.Add(v)
+				currentCharacterCount += len(v)
+				vers = append(vers, p.recommendedFixStyle.Render(v))
+				continue
+			}
+
+			// skip not-necessarily-recommended versions if we're running out of space
+			if currentCharacterCount+len(v) > maxVersionFieldLength {
+				continue
+			}
+
+			// add not-necessarily-recommended versions with auxiliary styling
+			currentCharacterCount += len(v)
+			added.Add(v)
+			vers = append(vers, p.auxiliaryStyle.Render(v))
+		} else {
+			// when not prioritizing, add all versions
+			added.Add(v)
+			vers = append(vers, v)
+		}
+	}
+
+	return vers
+}
+
+func (p *Presenter) applyTruncation(formattedVersions []string, allVersions []string) string {
+	finalVersions := strings.Join(formattedVersions, p.auxiliaryStyle.Render(", "))
+
+	var characterCount int
+	for _, v := range allVersions {
+		characterCount += len(v)
+	}
+
+	if characterCount > maxVersionFieldLength && len(allVersions) > 1 {
+		finalVersions += p.auxiliaryStyle.Render(", ...")
+	}
+
+	return finalVersions
+}
+
+func (r row) Columns() []string {
+	if r.Annotation != "" {
+		return []string{r.Name, r.Version, r.Fix, r.PackageType, r.VulnerabilityID, r.Severity, r.EPSS.String(), r.Risk, r.Annotation}
+	}
+	return []string{r.Name, r.Version, r.Fix, r.PackageType, r.VulnerabilityID, r.Severity, r.EPSS.String(), r.Risk}
+}
+
+func (r row) String() string {
+	return strings.Join(r.Columns(), "|")
+}
+
+func (rs rows) Render() [][]string {
+	deduped := rs.Deduplicate()
+	out := make([][]string, len(deduped))
+	for idx, r := range deduped {
+		out[idx] = r.Columns()
+	}
+	return out
+}
+
+func (rs rows) Deduplicate() []row {
+	// deduplicate
+	seen := map[string]row{}
+	var deduped rows
+
+	for _, v := range rs {
+		key := v.String()
+		if _, ok := seen[key]; ok {
 			// dup!
 			continue
 		}
 
 		seen[key] = v
-		result = append(result, v)
-	}
-	return result
-}
-
-func createRow(m match.Match, metadataProvider vulnerability.MetadataProvider, severitySuffix string) ([]string, error) {
-	var severity string
-
-	metadata, err := metadataProvider.GetMetadata(m.Vulnerability.ID, m.Vulnerability.Namespace)
-	if err != nil {
-		return nil, fmt.Errorf("unable to fetch vuln=%q metadata: %+v", m.Vulnerability.ID, err)
+		deduped = append(deduped, v)
 	}
 
-	if metadata != nil {
-		severity = metadata.Severity + severitySuffix
-	}
-
-	fixVersion := strings.Join(m.Vulnerability.Fix.Versions, ", ")
-	switch m.Vulnerability.Fix.State {
-	case grypeDb.WontFixState:
-		fixVersion = "(won't fix)"
-	case grypeDb.UnknownFixState:
-		fixVersion = ""
-	}
-
-	return []string{m.Package.Name, m.Package.Version, fixVersion, string(m.Package.Type), m.Vulnerability.ID, severity}, nil
-}
-
-func getSeverityColor(severity string) tablewriter.Colors {
-	severityFontType, severityColor := tablewriter.Normal, tablewriter.Normal
-
-	switch strings.ToLower(severity) {
-	case "critical":
-		severityFontType = tablewriter.Bold
-		severityColor = tablewriter.FgRedColor
-	case "high":
-		severityColor = tablewriter.FgRedColor
-	case "medium":
-		severityColor = tablewriter.FgYellowColor
-	case "low":
-		severityColor = tablewriter.FgGreenColor
-	case "negligible":
-		severityColor = tablewriter.FgBlueColor
-	}
-
-	return tablewriter.Colors{severityFontType, severityColor}
+	// render final columns
+	return deduped
 }

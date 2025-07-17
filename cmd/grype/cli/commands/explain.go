@@ -27,9 +27,10 @@ func (d *explainOptions) AddFlags(flags clio.FlagSet) {
 func Explain(app clio.Application) *cobra.Command {
 	opts := &explainOptions{}
 
-	return app.SetupCommand(&cobra.Command{
-		Use:   "explain --id [VULNERABILITY ID]",
-		Short: "Ask grype to explain a set of findings",
+	cmd := &cobra.Command{
+		Use:     "explain --id [VULNERABILITY ID]",
+		Short:   "Ask grype to explain a set of findings",
+		PreRunE: disableUI(app),
 		RunE: func(_ *cobra.Command, _ []string) error {
 			log.Warn("grype explain is a prototype feature and is subject to change")
 			isStdinPipeOrRedirect, err := internal.IsStdinPipeOrRedirect()
@@ -52,5 +53,12 @@ func Explain(app clio.Application) *cobra.Command {
 			// TODO: implement
 			return fmt.Errorf("requires grype json on stdin, please run 'grype -o json ... | grype explain ...'")
 		},
-	}, opts)
+	}
+
+	// prevent from being shown in the grype config
+	type configWrapper struct {
+		Opts *explainOptions `json:"-" yaml:"-" mapstructure:"-"`
+	}
+
+	return app.SetupCommand(cmd, &configWrapper{opts})
 }

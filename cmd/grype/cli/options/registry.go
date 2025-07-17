@@ -25,7 +25,10 @@ type registry struct {
 	CACert                string                `yaml:"ca-cert" json:"ca-cert" mapstructure:"ca-cert"`
 }
 
-var _ clio.PostLoader = (*registry)(nil)
+var _ interface {
+	clio.PostLoader
+	clio.FieldDescriber
+} = (*registry)(nil)
 
 func (cfg *registry) PostLoad() error {
 	// there may be additional credentials provided by env var that should be appended to the set of credentials
@@ -51,6 +54,20 @@ func (cfg *registry) PostLoad() error {
 		}, cfg.Auth...)
 	}
 	return nil
+}
+
+func (cfg *registry) DescribeFields(descriptions clio.FieldDescriptionSet) {
+	descriptions.Add(&cfg.InsecureSkipTLSVerify, "skip TLS verification when communicating with the registry")
+	descriptions.Add(&cfg.InsecureUseHTTP, "use http instead of https when connecting to the registry")
+	descriptions.Add(&cfg.CACert, "filepath to a CA certificate (or directory containing *.crt, *.cert, *.pem) used to generate the client certificate")
+	descriptions.Add(&cfg.Auth, `Authentication credentials for specific registries. Each entry describes authentication for a specific authority:
+-	authority: the registry authority URL the URL to the registry (e.g. "docker.io", "localhost:5000", etc.) (env: SYFT_REGISTRY_AUTH_AUTHORITY)
+	username: a username if using basic credentials (env: SYFT_REGISTRY_AUTH_USERNAME)
+	password: a corresponding password (env: SYFT_REGISTRY_AUTH_PASSWORD)
+	token: a token if using token-based authentication, mutually exclusive with username/password (env: SYFT_REGISTRY_AUTH_TOKEN)
+	tls-cert: filepath to the client certificate used for TLS authentication to the registry (env: SYFT_REGISTRY_AUTH_TLS_CERT)
+	tls-key: filepath to the client key used for TLS authentication to the registry (env: SYFT_REGISTRY_AUTH_TLS_KEY)
+`)
 }
 
 func hasNonEmptyCredentials(username, password, token, tlsCert, tlsKey string) bool {

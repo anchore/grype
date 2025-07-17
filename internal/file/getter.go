@@ -7,9 +7,12 @@ import (
 
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/go-getter/helper/url"
+	"github.com/spf13/afero"
 	"github.com/wagoodman/go-progress"
 
+	"github.com/anchore/clio"
 	"github.com/anchore/grype/internal/stringutil"
+	"github.com/anchore/stereoscope/pkg/file"
 )
 
 var (
@@ -32,10 +35,13 @@ type HashiGoGetter struct {
 
 // NewGetter creates and returns a new Getter. Providing an http.Client is optional. If one is provided,
 // it will be used for all HTTP(S) getting; otherwise, go-getter's default getters will be used.
-func NewGetter(httpClient *http.Client) *HashiGoGetter {
+func NewGetter(id clio.Identification, httpClient *http.Client) *HashiGoGetter {
 	return &HashiGoGetter{
 		httpGetter: getter.HttpGetter{
 			Client: httpClient,
+			Header: http.Header{
+				"User-Agent": []string{fmt.Sprintf("%v %v", id.Name, id.Version)},
+			},
 		},
 	}
 }
@@ -107,13 +113,32 @@ func withProgress(monitor *progress.Manual) func(client *getter.Client) error {
 }
 
 func mapToGetterClientOptions(monitors []*progress.Manual) []getter.ClientOption {
-	// TODO: This function is no longer needed once a generic `map` method is available.
-
 	var result []getter.ClientOption
 
 	for _, monitor := range monitors {
 		result = append(result, withProgress(monitor))
 	}
+
+	// derived from https://github.com/hashicorp/go-getter/blob/v2.2.3/decompress.go#L23-L63
+	fileSizeLimit := int64(5 * file.GB)
+
+	dec := getter.LimitedDecompressors(0, fileSizeLimit)
+	fs := afero.NewOsFs()
+	xzd := &xzDecompressor{
+		FileSizeLimit: fileSizeLimit,
+		Fs:            fs,
+	}
+	txzd := &tarXzDecompressor{
+		FilesLimit:    0,
+		FileSizeLimit: fileSizeLimit,
+		Fs:            fs,
+	}
+
+	dec["xz"] = xzd
+	dec["tar.xz"] = txzd
+	dec["txz"] = txzd
+
+	result = append(result, getter.WithDecompressors(dec))
 
 	return result
 }

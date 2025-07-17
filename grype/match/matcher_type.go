@@ -17,6 +17,7 @@ const (
 	OpenVexMatcher     MatcherType = "openvex-matcher"
 	CsafVexMatcher     MatcherType = "csafvex-matcher"
 	RustMatcher        MatcherType = "rust-matcher"
+	BitnamiMatcher     MatcherType = "bitnami-matcher"
 )
 
 var AllMatcherTypes = []MatcherType{
@@ -34,6 +35,11 @@ var AllMatcherTypes = []MatcherType{
 	OpenVexMatcher,
 	CsafVexMatcher,
 	RustMatcher,
+	BitnamiMatcher,
 }
 
 type MatcherType string
+
+func (t MatcherType) String() string {
+	return string(t)
+}
