@@ -12,7 +12,7 @@ import (
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/vex"
+	vexStatus "github.com/anchore/grype/grype/vex/status"
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/cataloging"
@@ -114,8 +114,8 @@ func Test_applyVexRules(t *testing.T) {
 			vexDocuments:       []string{"path/to/vex.json"},
 			vexAdd:             []string{},
 			expectedIgnoreRules: []match.IgnoreRule{
-				{VexStatus: string(vex.StatusNotAffected)},
-				{VexStatus: string(vex.StatusFixed)},
+				{VexStatus: string(vexStatus.NotAffected)},
+				{VexStatus: string(vexStatus.Fixed)},
 			},
 			expectError: false,
 		},
@@ -128,8 +128,8 @@ func Test_applyVexRules(t *testing.T) {
 			vexAdd:       []string{},
 			expectedIgnoreRules: []match.IgnoreRule{
 				{Vulnerability: "CVE-2023-1234"},
-				{VexStatus: string(vex.StatusNotAffected)},
-				{VexStatus: string(vex.StatusFixed)},
+				{VexStatus: string(vexStatus.NotAffected)},
+				{VexStatus: string(vexStatus.Fixed)},
 			},
 			expectError: false,
 		},
@@ -139,10 +139,10 @@ func Test_applyVexRules(t *testing.T) {
 			vexDocuments:       []string{"path/to/vex.json"},
 			vexAdd:             []string{"affected", "under_investigation"},
 			expectedIgnoreRules: []match.IgnoreRule{
-				{VexStatus: string(vex.StatusNotAffected)},
-				{VexStatus: string(vex.StatusFixed)},
-				{VexStatus: string(vex.StatusAffected)},
-				{VexStatus: string(vex.StatusUnderInvestigation)},
+				{VexStatus: string(vexStatus.NotAffected)},
+				{VexStatus: string(vexStatus.Fixed)},
+				{VexStatus: string(vexStatus.Affected)},
+				{VexStatus: string(vexStatus.UnderInvestigation)},
 			},
 			expectError: false,
 		},
@@ -175,9 +175,9 @@ func Test_applyVexRules(t *testing.T) {
 			expectedIgnoreRules: []match.IgnoreRule{
 				{Vulnerability: "CVE-2023-1234"},
 				{FixState: "unknown"},
-				{VexStatus: string(vex.StatusNotAffected)},
-				{VexStatus: string(vex.StatusFixed)},
-				{VexStatus: string(vex.StatusAffected)},
+				{VexStatus: string(vexStatus.NotAffected)},
+				{VexStatus: string(vexStatus.Fixed)},
+				{VexStatus: string(vexStatus.Affected)},
 			},
 			expectError: false,
 		},
