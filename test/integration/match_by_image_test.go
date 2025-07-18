@@ -90,7 +90,7 @@ func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 				},
 				Found: match.DistroResult{
 					VersionConstraint: "< 0.9.10 (unknown)",
-					VulnerabilityID:   "CVE-alpine-libvncserver",
+					VulnerabilityID:   "CVE-2024-0000",
 				},
 				Matcher:    match.ApkMatcher,
 				Confidence: 1,
@@ -821,7 +821,6 @@ func TestMatchByImage(t *testing.T) {
 			}
 
 			expectedMatches := match.NewMatches()
-
 			// The single match in the actual results is the same in ignoredMatched
 			// but must the details of the VEX matcher appended
 			if len(vexedResults.Sorted()) < 1 {
@@ -879,7 +878,7 @@ func testIgnoredMatches() []match.IgnoredMatch {
 			Match: match.Match{
 				Vulnerability: vulnerability.Vulnerability{
 					Reference: vulnerability.Reference{
-						ID:        "CVE-alpine-libvncserver",
+						ID:        "CVE-2024-0000",
 						Namespace: "alpine:distro:alpine:3.12",
 					},
 				},
@@ -918,7 +917,7 @@ func testIgnoredMatches() []match.IgnoredMatch {
 						},
 						Found: match.DistroResult{
 							VersionConstraint: "< 0.9.10 (unknown)",
-							VulnerabilityID:   "CVE-alpine-libvncserver",
+							VulnerabilityID:   "CVE-2024-0000",
 						},
 						Matcher:    match.ApkMatcher,
 						Confidence: 1,
