@@ -71,6 +71,18 @@ func productIdentifiersFromContext(pkgContext *pkg.Context) ([]string, error) {
 	}
 }
 
+// productIdentifierFromVEX reads the VEX documents and returns software
+// identifiers listed in the statements.
+func productIdentifierFromVEX(doc *openvex.VEX) []string {
+	var products []string
+	for _, stmt := range doc.Statements {
+		for _, product := range stmt.Products {
+			products = append(products, product.ID)
+		}
+	}
+	return products
+}
+
 func identifiersFromTags(tags []string, name string) []string {
 	identifiers := []string{}
 
@@ -164,9 +176,16 @@ func (ovm *Processor) FilterMatches(
 
 	remainingMatches := match.NewMatches()
 
+	// this works only when grype uses the SBOM syft format
 	products, err := productIdentifiersFromContext(pkgContext)
 	if err != nil {
 		return nil, nil, fmt.Errorf("reading product identifiers from context: %w", err)
+	}
+
+	// if the previous method didn't work to find products,
+	// we get them from the VEX document.
+	if len(products) == 0 {
+		products = productIdentifierFromVEX(doc)
 	}
 
 	// TODO(alex): should we apply the vex ignore rules to the already ignored matches?
