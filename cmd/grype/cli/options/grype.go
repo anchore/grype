@@ -37,6 +37,7 @@ type Grype struct {
 	VexDocuments               []string           `yaml:"vex-documents" json:"vex-documents" mapstructure:"vex-documents"`
 	VexAdd                     []string           `yaml:"vex-add" json:"vex-add" mapstructure:"vex-add"`                                                                   // GRYPE_VEX_ADD
 	MatchUpstreamKernelHeaders bool               `yaml:"match-upstream-kernel-headers" json:"match-upstream-kernel-headers" mapstructure:"match-upstream-kernel-headers"` // Show matches on kernel-headers packages where the match is on kernel upstream instead of marking them as ignored, default=false
+	Timestamp                  bool               `yaml:"timestamp" json:"timestamp" mapstructure:"timestamp"`
 	DatabaseCommand            `yaml:",inline" json:",inline" mapstructure:",squash"`
 }
 
@@ -66,6 +67,7 @@ func DefaultGrype(id clio.Identification) *Grype {
 		VexAdd:                     []string{},
 		MatchUpstreamKernelHeaders: false,
 		SortBy:                     defaultSortBy(),
+		Timestamp:                  true,
 	}
 }
 
