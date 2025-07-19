@@ -8,6 +8,7 @@ const (
 	UnknownFormat   Format = "unknown"
 	JSONFormat      Format = "json"
 	TableFormat     Format = "table"
+	CSVFormat       Format = "csv"
 	CycloneDXFormat Format = "cyclonedx"
 	CycloneDXJSON   Format = "cyclonedx-json"
 	CycloneDXXML    Format = "cyclonedx-xml"
@@ -35,6 +36,8 @@ func Parse(userInput string) Format {
 		return JSONFormat
 	case strings.ToLower(TableFormat.String()):
 		return TableFormat
+	case strings.ToLower(CSVFormat.String()):
+		return CSVFormat
 	case strings.ToLower(SarifFormat.String()):
 		return SarifFormat
 	case strings.ToLower(TemplateFormat.String()):
@@ -58,6 +61,7 @@ func Parse(userInput string) Format {
 var AvailableFormats = []Format{
 	JSONFormat,
 	TableFormat,
+	CSVFormat,
 	CycloneDXFormat,
 	CycloneDXJSON,
 	SarifFormat,
