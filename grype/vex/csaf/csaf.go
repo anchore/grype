@@ -55,7 +55,7 @@ func (m *advisoryMatch) statement() string {
 				continue
 			}
 			if *pID == m.ProductID {
-				return string(*th.Details)
+				return *th.Details
 			}
 		}
 	}
@@ -65,9 +65,10 @@ func (m *advisoryMatch) statement() string {
 
 type advisories []*csaf.Advisory
 
-// Matches returns the first CSAF advisory to match for a given vulnerability ID and package URL
+// matches returns the first CSAF advisory to match for a given vulnerability ID and package URL
+//
+//nolint:gocognit
 func (advisories advisories) matches(vulnID, purl string) *advisoryMatch {
-
 	for _, adv := range advisories {
 		if adv == nil || adv.Vulnerabilities == nil {
 			continue

@@ -48,9 +48,9 @@ func (*Processor) ReadVexDocuments(docs []string) (interface{}, error) {
 
 	// The collection is sorted by date, so newer advisories are guaranteed to be consumed before.
 	sort.SliceStable(advs, func(i, j int) bool {
-		i_t, _ := time.ParseDateTime(*advs[i].Document.Tracking.CurrentReleaseDate)
-		j_t, _ := time.ParseDateTime(*advs[j].Document.Tracking.CurrentReleaseDate)
-		return i_t.Before(j_t)
+		iT, _ := time.ParseDateTime(*advs[i].Document.Tracking.CurrentReleaseDate)
+		jT, _ := time.ParseDateTime(*advs[j].Document.Tracking.CurrentReleaseDate)
+		return iT.Before(jT)
 	})
 
 	return advs, nil
@@ -61,7 +61,6 @@ func (*Processor) ReadVexDocuments(docs []string) (interface{}, error) {
 func (*Processor) FilterMatches(
 	docRaw interface{}, ignoreRules []match.IgnoreRule, _ *pkg.Context, matches *match.Matches, ignoredMatches []match.IgnoredMatch,
 ) (*match.Matches, []match.IgnoredMatch, error) {
-
 	advisories, ok := docRaw.(advisories)
 	if !ok {
 		return nil, nil, errors.New("unable to cast vex document as CSAF Advisories")
@@ -105,7 +104,6 @@ func (*Processor) FilterMatches(
 func (*Processor) AugmentMatches(
 	docRaw interface{}, ignoreRules []match.IgnoreRule, _ *pkg.Context, matches *match.Matches, ignoredMatches []match.IgnoredMatch,
 ) (*match.Matches, []match.IgnoredMatch, error) {
-
 	advisories, ok := docRaw.(advisories)
 	if !ok {
 		return nil, nil, errors.New("unable to cast vex document as CSAF Advisories")
