@@ -222,13 +222,21 @@ func packageNameRegex(packageName string) (*regexp.Regexp, error) {
 }
 
 func ifPackageNameApplies(name string) ignoreCondition {
-	pattern, err := packageNameRegex(name)
-	if err != nil {
-		return func(Match) bool { return false }
-	}
+	// with enough ignore rules, we could end up needlessly creating a lot of regexes, which is not ideal.
+	// instead lets detect if the input string is a regex or not, and if it is, then compile it...
+	// otherwise, we can just do a simple string comparison
+	if isLikelyARegex(name) {
+		pattern, err := packageNameRegex(name)
+		if err != nil || pattern == nil {
+			return func(Match) bool { return false }
+		}
 
+		return func(match Match) bool {
+			return pattern.MatchString(match.Package.Name)
+		}
+	}
 	return func(match Match) bool {
-		return pattern.MatchString(match.Package.Name)
+		return name == match.Package.Name
 	}
 }
 
@@ -257,19 +265,41 @@ func ifPackageLocationApplies(location string) ignoreCondition {
 }
 
 func ifUpstreamPackageNameApplies(name string) ignoreCondition {
-	pattern, err := packageNameRegex(name)
-	if err != nil {
-		log.WithFields("name", name, "error", err).Debug("unable to parse name expression")
-		return func(Match) bool { return false }
+	// with enough ignore rules, we could end up needlessly creating a lot of regexes, which is not ideal.
+	// instead lets detect if the input string is a regex or not, and if it is, then compile it...
+	// otherwise, we can just do a simple string comparison
+	if isLikelyARegex(name) {
+		pattern, err := packageNameRegex(name)
+		if err != nil {
+			log.WithFields("name", name, "error", err).Debug("unable to parse name expression")
+			return func(Match) bool { return false }
+		}
+		return func(match Match) bool {
+			for _, upstream := range match.Package.Upstreams {
+				if pattern.MatchString(upstream.Name) {
+					return true
+				}
+			}
+			return false
+		}
 	}
 	return func(match Match) bool {
 		for _, upstream := range match.Package.Upstreams {
-			if pattern.MatchString(upstream.Name) {
+			if name == upstream.Name {
 				return true
 			}
 		}
 		return false
 	}
+}
+
+// isRegexPattern is a compiled regex that matches common regex characters. We intentionally leave out
+// the '.' character, as it is a common character in package names and versions, and we do not want to
+// treat it as a regex unless there is other evidence that it is a regex.
+var isRegexPattern = regexp.MustCompile(`[\^\$\*\+\?\[\]\(\)\{\}\|\\]|\\[dDwWsSnrtfv]`)
+
+func isLikelyARegex(s string) bool {
+	return isRegexPattern.MatchString(s)
 }
 
 func ifMatchTypeApplies(matchType Type) ignoreCondition {

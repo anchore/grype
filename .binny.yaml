@@ -26,7 +26,7 @@ tools:
   # used for linting
   - name: golangci-lint
     version:
-      want: v2.2.1
+      want: v2.2.2
     method: github-release
     with:
       repo: golangci/golangci-lint
@@ -42,7 +42,7 @@ tools:
   # used for signing the checksums file at release
   - name: cosign
     version:
-      want: v2.5.2
+      want: v2.5.3
     method: github-release
     with:
       repo: sigstore/cosign
@@ -50,7 +50,7 @@ tools:
   # used to release all artifacts
   - name: goreleaser
     version:
-      want: v2.10.2
+      want: v2.11.0
     method: github-release
     with:
       repo: goreleaser/goreleaser
@@ -90,7 +90,7 @@ tools:
   # used for triggering a release
   - name: gh
     version:
-      want: v2.74.2
+      want: v2.76.0
     method: github-release
     with:
       repo: cli/cli

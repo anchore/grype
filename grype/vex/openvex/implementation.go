@@ -26,7 +26,7 @@ type Match struct {
 	Statement openvex.Statement
 }
 
-// SearchedBy captures the prameters used to search through the VEX data
+// SearchedBy captures the parameters used to search through the VEX data
 type SearchedBy struct {
 	Vulnerability string
 	Product       string
