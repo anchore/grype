@@ -855,6 +855,20 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "uv lock metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.PythonUvLockEntry{
+					Index: "https://pypi.org/simple",
+					Dependencies: []syftPkg.PythonUvLockDependencyEntry{
+						{Name: "certifi"},
+						{Name: "charset-normalizer"},
+						{Name: "idna"},
+						{Name: "urllib3"},
+					},
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
