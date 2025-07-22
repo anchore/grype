@@ -718,7 +718,7 @@ func TestCurator_SetLastSuccessfulUpdateCheck(t *testing.T) {
 	})
 
 	t.Run("error writing last successful update check", func(t *testing.T) {
-		invalidFs := afero.NewReadOnlyFs(fs) // make it read-only, which should simular a write error
+		invalidFs := afero.NewReadOnlyFs(fs) // make it read-only, which should simulate a write error
 		curator.fs = invalidFs
 
 		curator.setLastSuccessfulUpdateCheck()

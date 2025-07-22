@@ -104,7 +104,7 @@ func isUnknownTarget(targetSW string) bool {
 	}
 
 	// There are some common target software CPE components which are not currently
-	// supported by syft but are signifcant sources of false positives and should be
+	// supported by syft but are significant sources of false positives and should be
 	// considered known for the purposes of filtering here
 	known := map[string]bool{
 		"joomla":    true,

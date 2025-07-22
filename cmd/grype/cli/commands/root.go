@@ -170,22 +170,26 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 			}()
 			log.Debug("loading DB")
 			vp, status, err = grype.LoadVulnerabilityDB(opts.ToClientConfig(), opts.ToCuratorConfig(), opts.DB.AutoUpdate)
+
 			return validateDBLoad(err, status)
 		},
 		func() (err error) {
 			startTime := time.Now()
-			var count int
-			defer func() { log.WithFields("time", time.Since(startTime), "packages", count).Info("gathered packages") }()
+
+			defer func() {
+				log.WithFields("time", time.Since(startTime), "packages", len(packages)).Info("gathered packages")
+			}()
+
 			log.Debugf("gathering packages")
 			// packages are grype.Package, not syft.Package
 			// the SBOM is returned for downstream formatting concerns
 			// grype uses the SBOM in combination with syft formatters to produce cycloneDX
 			// with vulnerability information appended
 			packages, pkgContext, s, err = pkg.Provide(userInput, getProviderConfig(opts))
-			count = len(packages)
 			if err != nil {
 				return fmt.Errorf("failed to catalog: %w", err)
 			}
+
 			return nil
 		},
 	)
@@ -360,14 +364,6 @@ func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
 	}
 }
 
-func applyDistroHint(hint string) *distro.Distro {
-	if hint == "" {
-		return nil
-	}
-
-	return distro.NewFromNameVersion(stringutil.SplitOnFirstString(hint, ":", "@"))
-}
-
 func getFixChannels(fixChannelOpts options.FixChannels) []distro.FixChannel {
 	// get more detailed information from the API defaults
 	apiDefaults := distro.DefaultFixChannels()
@@ -399,6 +395,14 @@ func getFixChannels(fixChannelOpts options.FixChannels) []distro.FixChannel {
 			Apply: distro.FixChannelEnabled(fixChannelOpts.RedHatEUS.Apply),
 		},
 	}
+}
+
+func applyDistroHint(hint string) *distro.Distro {
+	if hint == "" {
+		return nil
+	}
+
+	return distro.NewFromNameVersion(stringutil.SplitOnFirstString(hint, ":", "@"))
 }
 
 func validateDBLoad(loadErr error, status *vulnerability.ProviderStatus) error {
