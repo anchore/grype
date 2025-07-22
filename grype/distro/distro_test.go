@@ -15,15 +15,7 @@ import (
 )
 
 func testFixChannels() []FixChannel {
-	// TODO: change this to DefaultFixChannels() when EUS is configured "auto" by default
-	//return DefaultFixChannels()
-	return []FixChannel{
-		{
-			Name:  "eus",
-			IDs:   []string{"rhel"},
-			Apply: ChannelConditionallyEnabled,
-		},
-	}
+	return DefaultFixChannels()
 }
 
 func Test_NewDistroFromRelease(t *testing.T) {

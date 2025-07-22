@@ -8,8 +8,8 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
-// onlyQualifiedPackages returns a criteria object that tests vulnerability qualifiers against the provided package
-func onlyQualifiedPackages(p pkg.Package) vulnerability.Criteria {
+// OnlyQualifiedPackages returns a criteria object that tests vulnerability qualifiers against the provided package
+func OnlyQualifiedPackages(p pkg.Package) vulnerability.Criteria {
 	return search.ByFunc(func(vuln vulnerability.Vulnerability) (bool, string, error) {
 		for _, qualifier := range vuln.PackageQualifiers {
 			satisfied, err := qualifier.Satisfied(p)
