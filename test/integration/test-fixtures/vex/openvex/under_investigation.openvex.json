@@ -8,7 +8,7 @@
     {
       "timestamp": "2023-07-16T18:28:47.696004345-06:00",
       "vulnerability": {
-        "name": "CVE-alpine-libvncserver"
+        "name": "CVE-2024-0000"
       },
       "products": [
         {
