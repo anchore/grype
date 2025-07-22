@@ -30,7 +30,7 @@ type JavaVMReleaseMetadata struct {
 	SemanticVersion    string `json:"semanticVersion,omitempty"`
 }
 
-func IsJvmPackage(p Package) bool {
+func isJvmPackage(p Package) bool {
 	if _, ok := p.Metadata.(JavaVMInstallationMetadata); ok {
 		return true
 	}

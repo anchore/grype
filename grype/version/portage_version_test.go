@@ -151,7 +151,7 @@ func TestPortageVersion_Constraint_UnsupportedFormat(t *testing.T) {
 	assert.NoError(t, err)
 
 	// test with a semantic version (wrong format)
-	version := NewVersion("1.2.3", SemanticFormat)
+	version := New("1.2.3", SemanticFormat)
 
 	satisfied, err := c.Satisfied(version)
 	require.Error(t, err)
@@ -214,8 +214,8 @@ func TestPortageVersion_Compare(t *testing.T) {
 	for _, test := range tests {
 		name := test.v1 + "_vs_" + test.v2
 		t.Run(name, func(t *testing.T) {
-			v1 := NewVersion(test.v1, PortageFormat)
-			v2 := NewVersion(test.v2, PortageFormat)
+			v1 := New(test.v1, PortageFormat)
+			v2 := New(test.v2, PortageFormat)
 
 			actual, err := v1.Compare(v2)
 			require.NoError(t, err)
@@ -258,8 +258,8 @@ func TestPortageVersion_Compare_Format(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			thisVer := NewVersion(test.thisVersion, PortageFormat)
-			otherVer := NewVersion(test.otherVersion, test.otherFormat)
+			thisVer := New(test.thisVersion, PortageFormat)
+			otherVer := New(test.otherVersion, test.otherFormat)
 
 			result, err := thisVer.Compare(otherVer)
 
@@ -287,7 +287,7 @@ func TestPortageVersion_Compare_EdgeCases(t *testing.T) {
 		{
 			name: "nil version object",
 			setupFunc: func(t testing.TB) (*Version, *Version) {
-				thisVer := NewVersion("1.2.3", PortageFormat)
+				thisVer := New("1.2.3", PortageFormat)
 				return thisVer, nil
 			},
 			expectError:    true,

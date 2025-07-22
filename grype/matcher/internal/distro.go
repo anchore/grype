@@ -27,7 +27,7 @@ func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(*searchPkg.Distro),
 		onlyQualifiedPackages(searchPkg),
-		onlyVulnerableVersions(version.NewVersionFromPkg(searchPkg)),
+		onlyVulnerableVersions(version.New(searchPkg.Version, pkg.VersionFormat(searchPkg))),
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)

@@ -68,7 +68,7 @@ func MatchPackageByCPEs(provider vulnerability.Provider, p pkg.Package, upstream
 		// may alter the version based on above processing)
 		c.Attributes.Version = searchVersion
 
-		format := version.FormatFromPkg(p)
+		format := pkg.VersionFormat(p)
 
 		if format == version.JVMFormat {
 			searchVersion = transformJvmVersion(searchVersion, c.Attributes.Update)
@@ -77,7 +77,7 @@ func MatchPackageByCPEs(provider vulnerability.Provider, p pkg.Package, upstream
 		var verObj *version.Version
 		var err error
 		if searchVersion != "" {
-			verObj = version.NewVersion(searchVersion, format)
+			verObj = version.New(searchVersion, format)
 		}
 
 		// find all vulnerability records in the DB for the given CPE (not including version comparisons)

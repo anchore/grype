@@ -3,8 +3,10 @@ package pkg
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/bmatcuk/doublestar/v2"
+	"github.com/scylladb/go-set/strset"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/internal/log"
@@ -16,17 +18,96 @@ var errDoesNotProvide = fmt.Errorf("cannot provide packages from the given sourc
 
 // Provide a set of packages and context metadata describing where they were sourced from.
 func Provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom.SBOM, error) {
-	packages, ctx, s, err := provide(userInput, config)
+	applyChannel := getDistroChannelApplier(config.Distro.FixChannels)
+	if config.Distro.Override != nil {
+		applyChannel(config.Distro.Override)
+		log.Infof("using distro: %s", config.Distro.Override.String())
+	}
+
+	packages, ctx, s, err := provide(userInput, config, applyChannel)
 	if err != nil {
 		return nil, Context{}, nil, err
 	}
 	setContextDistro(packages, &ctx)
+
+	// set the distro on each package if there is not already one set
+	if ctx.Distro != nil {
+		for i := range packages {
+			if packages[i].Distro == nil {
+				packages[i].Distro = ctx.Distro
+			}
+		}
+
+		if config.Distro.Override == nil {
+			log.Infof("using distro: %s", ctx.Distro.String())
+		}
+	}
+
 	return packages, ctx, s, nil
 }
 
+func getDistroChannelApplier(channels []distro.FixChannel) func(d *distro.Distro) bool { // nolint:gocognit
+	// build a map of channel names to channels
+	idx := make(map[string][]distro.FixChannel, len(channels))
+	for _, c := range channels {
+		if c.Name == "" {
+			continue
+		}
+		for _, id := range c.IDs {
+			if id == "" {
+				continue
+			}
+			id = strings.ToLower(id)
+			idx[id] = append(idx[id], c)
+		}
+	}
+
+	return func(d *distro.Distro) bool {
+		if d == nil {
+			return false
+		}
+
+		var result []string
+
+		id := strings.ToLower(d.ID())
+		channels, ok := idx[id]
+		if !ok {
+			return false
+		}
+
+		existing := strset.New(d.Channels...)
+
+		var modified bool
+		for _, channel := range channels {
+			if channel.Name == "" {
+				continue
+			}
+			switch channel.Apply {
+			case distro.ChannelNeverEnabled:
+				if existing.Has(channel.Name) {
+					modified = true
+				}
+			case distro.ChannelAlwaysEnabled:
+				result = append(result, channel.Name)
+				if !existing.Has(channel.Name) {
+					modified = true
+				}
+			case distro.ChannelConditionallyEnabled:
+				if existing.Has(channel.Name) {
+					result = append(result, channel.Name)
+				}
+			}
+		}
+
+		d.Channels = result
+
+		return modified
+	}
+}
+
 // Provide a set of packages and context metadata describing where they were sourced from.
-func provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom.SBOM, error) {
-	packages, ctx, s, err := purlProvider(userInput, config)
+func provide(userInput string, config ProviderConfig, applyChannel func(d *distro.Distro) bool) ([]Package, Context, *sbom.SBOM, error) {
+	packages, ctx, s, err := purlProvider(userInput, config, applyChannel)
 	if !errors.Is(err, errDoesNotProvide) {
 		log.WithFields("input", userInput).Trace("interpreting input as one or more PURLs")
 		return packages, ctx, s, err
@@ -38,7 +119,7 @@ func provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom
 		return packages, ctx, s, err
 	}
 
-	packages, ctx, s, err = syftSBOMProvider(userInput, config)
+	packages, ctx, s, err = syftSBOMProvider(userInput, config, applyChannel)
 	if !errors.Is(err, errDoesNotProvide) {
 		if len(config.Exclusions) > 0 {
 			var exclusionsErr error
@@ -52,7 +133,7 @@ func provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom
 	}
 
 	log.WithFields("input", userInput).Trace("passing input to syft for interpretation")
-	return syftProvider(userInput, config)
+	return syftProvider(userInput, config, applyChannel)
 }
 
 // This will filter the provided packages list based on a set of exclusion expressions. Globs
@@ -117,9 +198,11 @@ func setContextDistro(packages []Package, ctx *Context) {
 			singleDistro = p.Distro
 			continue
 		}
+		// if we have a distro already, ensure that the new one matches...
 		if singleDistro.Type != p.Distro.Type ||
 			singleDistro.Version != p.Distro.Version ||
 			singleDistro.Codename != p.Distro.Codename {
+			// ...if not then we bail, not setting a singular distro in the context
 			return
 		}
 	}

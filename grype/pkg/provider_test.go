@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/stereoscope/pkg/imagetest"
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/file"
@@ -238,6 +239,108 @@ func Test_matchesLocation(t *testing.T) {
 			matches, err := locationMatches(file.NewVirtualLocation(test.realPath, test.virtualPath), test.match)
 			assert.NoError(t, err)
 			assert.Equal(t, test.expected, matches)
+		})
+	}
+}
+
+func Test_getDistroChannelApplier(t *testing.T) {
+
+	defaultOSGen := func() *distro.Distro {
+		return distro.NewFromNameVersion("rhel", "8.4")
+	}
+
+	tests := []struct {
+		name     string
+		channels []distro.FixChannel
+		distro   func() *distro.Distro
+		want     []string
+	}{
+		{
+			name:     "nil distro",
+			channels: distro.DefaultFixChannels(),
+			distro:   func() *distro.Distro { return nil },
+			want:     nil,
+		},
+		{
+			name:     "no matching channel",
+			channels: distro.DefaultFixChannels(),
+			distro: func() *distro.Distro {
+				return distro.NewFromNameVersion("ubuntu", "20.04")
+			},
+			want: nil,
+		},
+		{
+			name: "channel never enabled",
+			channels: []distro.FixChannel{
+				{
+					Name:  "test-channel",
+					IDs:   []string{"rhel"},
+					Apply: distro.ChannelNeverEnabled,
+				},
+			},
+			distro: defaultOSGen,
+			want:   nil,
+		},
+		{
+			name: "channel always enabled",
+			channels: []distro.FixChannel{
+				{
+					Name:  "eus",
+					IDs:   []string{"rhel"},
+					Apply: distro.ChannelAlwaysEnabled,
+				},
+			},
+			distro: defaultOSGen,
+			want:   []string{"eus"},
+		},
+		{
+			name: "case insensitive matching",
+			channels: []distro.FixChannel{
+				{
+					Name:  "eus",
+					IDs:   []string{"RHEL"},
+					Apply: distro.ChannelAlwaysEnabled,
+				},
+			},
+			distro: defaultOSGen,
+			want:   []string{"eus"},
+		},
+		{
+			name: "multiple IDs in channel",
+			channels: []distro.FixChannel{
+				{
+					Name:  "test-channel",
+					IDs:   []string{"centos", "rhel", "fedora"},
+					Apply: distro.ChannelAlwaysEnabled,
+				},
+			},
+			distro: defaultOSGen,
+			want:   []string{"test-channel"},
+		},
+		{
+			name: "empty channel name skipped",
+			channels: []distro.FixChannel{
+				{
+					Name:  "",
+					IDs:   []string{"rhel"},
+					Apply: distro.ChannelAlwaysEnabled,
+				},
+			},
+			distro: defaultOSGen,
+			want:   nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			applier := getDistroChannelApplier(tt.channels)
+			d := tt.distro()
+
+			applier(d)
+
+			if d != nil {
+				assert.Equal(t, tt.want, d.Channels)
+			}
 		})
 	}
 }
