@@ -99,6 +99,18 @@ func TestNewSource(t *testing.T) {
 			},
 		},
 		{
+			name: "snap metadata",
+			metadata: syftSource.Description{
+				Name:     "a-snap",
+				Version:  "10.2.3",
+				Metadata: syftSource.SnapMetadata{},
+			},
+			expected: source{
+				Type:   "snap",
+				Target: "a-snap@10.2.3",
+			},
+		},
+		{
 			name: "nil metadata",
 			metadata: syftSource.Description{
 				Metadata: nil,
