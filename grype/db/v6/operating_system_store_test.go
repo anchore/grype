@@ -264,7 +264,7 @@ func TestOperatingSystemStore_ResolveOperatingSystem(t *testing.T) {
 				Name:         "alma",
 				MajorVersion: "8",
 			},
-			expected: []OperatingSystem{*rhel8},
+			expected: []OperatingSystem{*alma8},
 		},
 		{
 			name: "lookup by non-standard name (almalinux)",
@@ -272,7 +272,7 @@ func TestOperatingSystemStore_ResolveOperatingSystem(t *testing.T) {
 				Name:         "almalinux",
 				MajorVersion: "8",
 			},
-			expected: []OperatingSystem{*rhel8},
+			expected: []OperatingSystem{*alma8},
 		},
 		{
 			name: "echo rolling variant",
