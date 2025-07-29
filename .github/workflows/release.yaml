@@ -207,12 +207,17 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_TOOLBOX_WEBHOOK_URL }}
         if: ${{ success() }}
 
-  release-version-file:
+  release-install-script:
     needs: [release]
     if: ${{ needs.release.result == 'success' }}
-    uses: ./.github/workflows/release-version-file.yaml
+    uses: "anchore/workflows/.github/workflows/release-install-script.yaml@main"
     with:
-      version: ${{ github.event.inputs.version }}
+      tag: ${{ github.event.inputs.version }}
     secrets:
-      TOOLBOX_AWS_ACCESS_KEY_ID: ${{ secrets.TOOLBOX_AWS_ACCESS_KEY_ID }}
-      TOOLBOX_AWS_SECRET_ACCESS_KEY: ${{ secrets.TOOLBOX_AWS_SECRET_ACCESS_KEY }}
+      # needed for r2...
+      R2_INSTALL_ACCESS_KEY_ID: ${{ secrets.OSS_R2_INSTALL_ACCESS_KEY_ID }}
+      R2_INSTALL_SECRET_ACCESS_KEY: ${{ secrets.OSS_R2_INSTALL_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.TOOLBOX_CLOUDFLARE_R2_ENDPOINT }}
+      # needed for s3...
+      S3_INSTALL_AWS_ACCESS_KEY_ID: ${{ secrets.TOOLBOX_AWS_ACCESS_KEY_ID }}
+      S3_INSTALL_AWS_SECRET_ACCESS_KEY: ${{ secrets.TOOLBOX_AWS_SECRET_ACCESS_KEY }}
