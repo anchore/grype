@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/source"
 )
@@ -349,6 +350,34 @@ func Test_PurlProvider(t *testing.T) {
 					Type:    pkg.RpmPkg,
 					PURL:    "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?distro=rhel-8.10",                                              // important! we are NOT patching the channel into the PURL
 					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.10", Channels: names("eus"), IDLike: []string{"redhat"}}, // important! channel applied
+				},
+			},
+		},
+		{
+			name:      "RPM without extended support (always) outside of version range",
+			userInput: "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?distro=rhel-8.10", // important! no channel hint
+			channels: []distro.FixChannel{
+				{
+					Name:     "eus",
+					IDs:      []string{"rhel"},
+					Apply:    distro.ChannelAlwaysEnabled,                               // important!
+					Versions: version.MustGetConstraint(">= 9", version.SemanticFormat), // important! outside of the version range
+				},
+			},
+			wantContext: Context{
+				Source: &source.Description{
+					Metadata: PURLLiteralMetadata{
+						PURL: "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?distro=rhel-8.10",
+					},
+				},
+			},
+			wantPkgs: []Package{
+				{
+					Name:    "systemd-x",
+					Version: "239-82.el8_10.2",
+					Type:    pkg.RpmPkg,
+					PURL:    "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?distro=rhel-8.10",                      // important! we are NOT patching the channel into the PURL
+					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.10", IDLike: []string{"redhat"}}, // important! channel NOT applied because outside of version range
 				},
 			},
 		},

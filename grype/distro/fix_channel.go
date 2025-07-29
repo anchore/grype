@@ -1,6 +1,8 @@
 package distro
 
 import (
+	"strings"
+
 	"github.com/scylladb/go-set/strset"
 
 	"github.com/anchore/grype/grype/version"
@@ -54,6 +56,15 @@ func (f FixChannels) Apply(enable FixChannelEnabled) FixChannels {
 		f[i].Apply = enable
 	}
 	return f
+}
+
+func (f FixChannels) Get(name string) *FixChannel {
+	for i := range f {
+		if strings.EqualFold(f[i].Name, name) {
+			return &f[i]
+		}
+	}
+	return nil
 }
 
 func applyChannels(release linux.Release, ver *version.Version, existingChannels []string, channels []FixChannel) []string {

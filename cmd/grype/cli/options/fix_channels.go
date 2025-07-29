@@ -18,7 +18,11 @@ type FixChannels struct {
 }
 
 type FixChannel struct {
-	Apply string `yaml:"apply" json:"apply" mapstructure:"apply"` // whether this channel should be applied to the distro when matching
+	// Apply indicates how the channel should be applied to the distro
+	Apply string `yaml:"apply" json:"apply" mapstructure:"apply"`
+
+	// Versions specifies a constraint string indicating which versions of the distro this channel applies to (e.g. ">= 8.0" for RHEL 8 and above)
+	Versions string `yaml:"versions" json:"versions" mapstructure:"versions"`
 }
 
 func (o *FixChannel) PostLoad() error {
@@ -35,9 +39,17 @@ func (o *FixChannel) PostLoad() error {
 }
 
 func DefaultFixChannels() FixChannels {
+	rhelEUS := distro.DefaultFixChannels().Get("eus")
+
+	if rhelEUS == nil {
+		panic("default fix channels do not contain Red Hat EUS channel")
+	}
+
+	// use API defaults for the CLI configuration
 	return FixChannels{
 		RedHatEUS: FixChannel{
-			Apply: string(distro.ChannelConditionallyEnabled),
+			Apply:    string(rhelEUS.Apply),
+			Versions: rhelEUS.Versions.Value(),
 		},
 	}
 }
