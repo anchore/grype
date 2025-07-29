@@ -39,14 +39,7 @@ func (o *FixChannel) PostLoad() error {
 }
 
 func DefaultFixChannels() FixChannels {
-	var rhelEUS *distro.FixChannel
-
-	for _, fc := range distro.DefaultFixChannels() {
-		if fc.Name == "eus" {
-			rhelEUS = &fc
-			break
-		}
-	}
+	rhelEUS := distro.DefaultFixChannels().Get("eus")
 
 	if rhelEUS == nil {
 		panic("default fix channels do not contain Red Hat EUS channel")

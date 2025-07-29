@@ -9,6 +9,7 @@ import (
 	"github.com/scylladb/go-set/strset"
 
 	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/sbom"
@@ -46,9 +47,9 @@ func Provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom
 	return packages, ctx, s, nil
 }
 
-func getDistroChannelApplier(channels []distro.FixChannel) func(d *distro.Distro) bool { // nolint:gocognit
-	// build a map of channel names to channels
-	idx := make(map[string][]distro.FixChannel, len(channels))
+// buildChannelIndex creates a map of distro IDs to their applicable fix channels
+func buildChannelIndex(channels []distro.FixChannel) map[string]distro.FixChannels {
+	idx := make(map[string]distro.FixChannels, len(channels))
 	for _, c := range channels {
 		if c.Name == "" {
 			continue
@@ -61,13 +62,16 @@ func getDistroChannelApplier(channels []distro.FixChannel) func(d *distro.Distro
 			idx[id] = append(idx[id], c)
 		}
 	}
+	return idx
+}
+
+func getDistroChannelApplier(channels []distro.FixChannel) func(d *distro.Distro) bool {
+	idx := buildChannelIndex(channels)
 
 	return func(d *distro.Distro) bool {
 		if d == nil {
 			return false
 		}
-
-		var result []string
 
 		id := strings.ToLower(d.ID())
 		channels, ok := idx[id]
@@ -75,34 +79,58 @@ func getDistroChannelApplier(channels []distro.FixChannel) func(d *distro.Distro
 			return false
 		}
 
-		existing := strset.New(d.Channels...)
+		return applyChannelsToDistro(d, channels)
+	}
+}
 
-		var modified bool
-		for _, channel := range channels {
-			if channel.Name == "" {
-				continue
+// applyChannelsToDistro applies fix channels to a distro based on channel configuration
+func applyChannelsToDistro(d *distro.Distro, channels distro.FixChannels) bool {
+	var result []string
+	existing := strset.New(d.Channels...)
+	ver := version.New(d.Version, version.SemanticFormat)
+
+	shouldReview := func(channel distro.FixChannel) bool {
+		if channel.Versions != nil && ver != nil {
+			isApplicable, err := channel.Versions.Satisfied(ver)
+			if err != nil {
+				log.WithFields("error", err, "constraint", channel.Versions).Debugf("unable to determine if channel %q is applicable for distro %q with version %q", channel.Name, d.Type, ver)
+				return true
 			}
-			switch channel.Apply {
-			case distro.ChannelNeverEnabled:
-				if existing.Has(channel.Name) {
-					modified = true
-				}
-			case distro.ChannelAlwaysEnabled:
-				result = append(result, channel.Name)
-				if !existing.Has(channel.Name) {
-					modified = true
-				}
-			case distro.ChannelConditionallyEnabled:
-				if existing.Has(channel.Name) {
-					result = append(result, channel.Name)
-				}
-			}
+			return isApplicable
+		}
+		return true
+	}
+
+	var modified bool
+	for _, channel := range channels {
+		if channel.Name == "" {
+			continue
 		}
 
-		d.Channels = result
+		if !shouldReview(channel) {
+			log.WithFields("channel", channel.Name, "distro", d.Type, "version", ver).Debugf("skipping channel %q for distro %q with version %q", channel.Name, d.Type, ver)
+			continue
+		}
 
-		return modified
+		switch channel.Apply {
+		case distro.ChannelNeverEnabled:
+			if existing.Has(channel.Name) {
+				modified = true
+			}
+		case distro.ChannelAlwaysEnabled:
+			result = append(result, channel.Name)
+			if !existing.Has(channel.Name) {
+				modified = true
+			}
+		case distro.ChannelConditionallyEnabled:
+			if existing.Has(channel.Name) {
+				result = append(result, channel.Name)
+			}
+		}
 	}
+
+	d.Channels = result
+	return modified
 }
 
 // Provide a set of packages and context metadata describing where they were sourced from.

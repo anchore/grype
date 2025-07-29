@@ -364,35 +364,28 @@ func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
 	}
 }
 
-func getFixChannels(fixChannelOpts options.FixChannels) []distro.FixChannel {
-	// get more detailed information from the API defaults
-	apiDefaults := distro.DefaultFixChannels()
+func getFixChannels(fixChannelOpts options.FixChannels) distro.FixChannels {
+	// use the API defaults as a starting point, then overlay the application options
+	eusOptions := distro.DefaultFixChannels().Get("eus")
 
-	var eus *distro.FixChannel
-	for i := range apiDefaults {
-		fc := &apiDefaults[i]
-		if fc.Name == "eus" {
-			eus = fc
-			break
-		}
+	if eusOptions == nil {
+		panic("default fix channels do not contain Red Hat EUS channel")
 	}
 
-	var c version.Constraint
-	var ids []string
-	if eus != nil {
-		c = eus.Versions
-		ids = eus.IDs
+	eusOptions.Apply = distro.FixChannelEnabled(fixChannelOpts.RedHatEUS.Apply)
+	if fixChannelOpts.RedHatEUS.Versions != "" {
+		eusOptions.Versions = version.MustGetConstraint(fixChannelOpts.RedHatEUS.Versions, version.SemanticFormat)
 	}
 
 	return []distro.FixChannel{
 		{
 			// information inherent to the channel (part of the API defaults)
-			Name:     "eus",
-			IDs:      ids,
-			Versions: c,
+			Name: "eus",
+			IDs:  eusOptions.IDs,
 
-			// user configuration
-			Apply: distro.FixChannelEnabled(fixChannelOpts.RedHatEUS.Apply),
+			// user configurable options
+			Versions: eusOptions.Versions,
+			Apply:    eusOptions.Apply,
 		},
 	}
 }

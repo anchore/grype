@@ -3,9 +3,12 @@ package pkg
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/stereoscope/pkg/imagetest"
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/file"
@@ -341,6 +344,193 @@ func Test_getDistroChannelApplier(t *testing.T) {
 			if d != nil {
 				assert.Equal(t, tt.want, d.Channels)
 			}
+		})
+	}
+}
+
+func Test_applyChannelsToDistro(t *testing.T) {
+	tests := []struct {
+		name             string
+		distro           func() *distro.Distro
+		channels         distro.FixChannels
+		expectedResult   []string
+		expectedModified bool
+	}{
+		{
+			name:   "always enabled channel adds new channel",
+			distro: func() *distro.Distro { return distro.NewFromNameVersion("rhel", "8.4") },
+			channels: distro.FixChannels{
+				{
+					Name:  "eus",
+					Apply: distro.ChannelAlwaysEnabled,
+				},
+			},
+			expectedResult:   []string{"eus"},
+			expectedModified: true,
+		},
+		{
+			name: "always enabled channel keeps existing channel",
+			distro: func() *distro.Distro {
+				d := distro.NewFromNameVersion("rhel", "8.4")
+				d.Channels = []string{"eus"}
+				return d
+			},
+			channels: distro.FixChannels{
+				{
+					Name:  "eus",
+					Apply: distro.ChannelAlwaysEnabled,
+				},
+			},
+			expectedResult:   []string{"eus"},
+			expectedModified: false,
+		},
+		{
+			name: "conditionally enabled channel keeps existing channel",
+			distro: func() *distro.Distro {
+				d := distro.NewFromNameVersion("rhel", "8.4")
+				d.Channels = []string{"eus"}
+				return d
+			},
+			channels: distro.FixChannels{
+				{
+					Name:  "eus",
+					Apply: distro.ChannelConditionallyEnabled,
+				},
+			},
+			expectedResult:   []string{"eus"},
+			expectedModified: false,
+		},
+		{
+			name:   "conditionally enabled channel does not add missing channel",
+			distro: func() *distro.Distro { return distro.NewFromNameVersion("rhel", "8.4") },
+			channels: distro.FixChannels{
+				{
+					Name:  "eus",
+					Apply: distro.ChannelConditionallyEnabled,
+				},
+			},
+			expectedResult:   []string{},
+			expectedModified: false,
+		},
+		{
+			name: "never enabled channel removes existing channel",
+			distro: func() *distro.Distro {
+				d := distro.NewFromNameVersion("rhel", "8.4")
+				d.Channels = []string{"eus"}
+				return d
+			},
+			channels: distro.FixChannels{
+				{
+					Name:  "eus",
+					Apply: distro.ChannelNeverEnabled,
+				},
+			},
+			expectedResult:   []string{},
+			expectedModified: true,
+		},
+		{
+			name:   "never enabled channel with no existing channel",
+			distro: func() *distro.Distro { return distro.NewFromNameVersion("rhel", "8.4") },
+			channels: distro.FixChannels{
+				{
+					Name:  "eus",
+					Apply: distro.ChannelNeverEnabled,
+				},
+			},
+			expectedResult:   []string{},
+			expectedModified: false,
+		},
+		{
+			name:   "empty channel name is skipped",
+			distro: func() *distro.Distro { return distro.NewFromNameVersion("rhel", "8.4") },
+			channels: distro.FixChannels{
+				{
+					Name:  "",
+					Apply: distro.ChannelAlwaysEnabled,
+				},
+				{
+					Name:  "eus",
+					Apply: distro.ChannelAlwaysEnabled,
+				},
+			},
+			expectedResult:   []string{"eus"},
+			expectedModified: true,
+		},
+		{
+			name:   "version constraint allows channel",
+			distro: func() *distro.Distro { return distro.NewFromNameVersion("rhel", "8.4") },
+			channels: distro.FixChannels{
+				{
+					Name:     "eus",
+					Apply:    distro.ChannelAlwaysEnabled,
+					Versions: version.MustGetConstraint(">= 8.0", version.SemanticFormat),
+				},
+			},
+			expectedResult:   []string{"eus"},
+			expectedModified: true,
+		},
+		{
+			name:   "version constraint blocks channel",
+			distro: func() *distro.Distro { return distro.NewFromNameVersion("rhel", "7.9") },
+			channels: distro.FixChannels{
+				{
+					Name:     "eus",
+					Apply:    distro.ChannelAlwaysEnabled,
+					Versions: version.MustGetConstraint(">= 8.0", version.SemanticFormat),
+				},
+			},
+			expectedResult:   []string{},
+			expectedModified: false,
+		},
+		{
+			name: "multiple channels with different behaviors",
+			distro: func() *distro.Distro {
+				d := distro.NewFromNameVersion("rhel", "8.4")
+				d.Channels = []string{"eus", "optional"}
+				return d
+			},
+			channels: distro.FixChannels{
+				{
+					Name:  "eus",
+					Apply: distro.ChannelConditionallyEnabled,
+				},
+				{
+					Name:  "main",
+					Apply: distro.ChannelAlwaysEnabled,
+				},
+				{
+					Name:  "optional",
+					Apply: distro.ChannelNeverEnabled,
+				},
+			},
+			expectedResult:   []string{"eus", "main"},
+			expectedModified: true,
+		},
+		{
+			name:   "invalid version string defaults to allowing channel",
+			distro: func() *distro.Distro { return distro.NewFromNameVersion("rhel", "invalid-version") },
+			channels: distro.FixChannels{
+				{
+					Name:     "eus",
+					Apply:    distro.ChannelAlwaysEnabled,
+					Versions: version.MustGetConstraint(">= 8.0", version.SemanticFormat),
+				},
+			},
+			expectedResult:   []string{"eus"},
+			expectedModified: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := tt.distro()
+
+			modified := applyChannelsToDistro(d, tt.channels)
+
+			if d := cmp.Diff(tt.expectedResult, d.Channels, cmpopts.EquateEmpty()); d != "" {
+				t.Errorf("applyChannelsToDistro() mismatch (-want +got):\n%s", d)
+			}
+			assert.Equal(t, tt.expectedModified, modified)
 		})
 	}
 }
