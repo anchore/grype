@@ -64,7 +64,7 @@ If you encounter an issue, please [let us know using the issue tracker](https://
 ### Recommended
 
 ```bash
-curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+curl -sSfL https://get.anchore.io/grype | sudo sh -s -- -b /usr/local/bin
 ```
 Install script options:
 -	`-b`: Specify a custom installation directory (defaults to `./bin`)

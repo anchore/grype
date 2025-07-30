@@ -9,7 +9,7 @@ TASK = $(TOOL_DIR)/task
 # note: we need to assume that binny and task have not already been installed
 $(BINNY):
 	@mkdir -p $(TOOL_DIR)
-	@curl -sSfL https://raw.githubusercontent.com/anchore/binny/main/install.sh | sh -s -- -b $(TOOL_DIR)
+	@curl -sSfL https://get.anchore.io/binny | sh -s -- -b $(TOOL_DIR)
 
 # note: we need to assume that binny and task have not already been installed
 .PHONY: task
