@@ -91,6 +91,10 @@ homebrew_casks:
     homepage: *website
     description: *description
     license: "Apache License 2.0"
+    conflicts:
+      # claim that the previous grype formula (in the root of homebrew-grype) conflicts with the new cask
+      # see https://goreleaser.com/deprecations/#brews for more information
+      - formula: grype
 
 dockers:
   # production images...
