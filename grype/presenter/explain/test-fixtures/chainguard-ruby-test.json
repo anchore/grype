@@ -104,21 +104,21 @@
           "PSF-2.0"
         ],
         "cpes": [
-          "cpe:2.3:a:ruby-lang:ruby-3.0:3.0.4-r1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:ruby-lang:ruby_3.0:3.0.4-r1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:ruby_lang:ruby-3.0:3.0.4-r1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:ruby_lang:ruby_3.0:3.0.4-r1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:ruby-3.0:ruby-3.0:3.0.4-r1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:ruby-3.0:ruby_3.0:3.0.4-r1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:ruby_3.0:ruby-3.0:3.0.4-r1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:ruby_3.0:ruby_3.0:3.0.4-r1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:ruby-lang:ruby:3.0.4-r1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:ruby_lang:ruby:3.0.4-r1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:ruby-3.0:ruby:3.0.4-r1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:ruby:ruby-3.0:3.0.4-r1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:ruby:ruby_3.0:3.0.4-r1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:ruby_3.0:ruby:3.0.4-r1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:ruby:ruby:3.0.4-r1:*:*:*:*:*:*:*"
+          {"cpe": "cpe:2.3:a:ruby-lang:ruby-3.0:3.0.4-r1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:ruby-lang:ruby_3.0:3.0.4-r1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:ruby_lang:ruby-3.0:3.0.4-r1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:ruby_lang:ruby_3.0:3.0.4-r1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:ruby-3.0:ruby-3.0:3.0.4-r1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:ruby-3.0:ruby_3.0:3.0.4-r1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:ruby_3.0:ruby-3.0:3.0.4-r1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:ruby_3.0:ruby_3.0:3.0.4-r1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:ruby-lang:ruby:3.0.4-r1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:ruby_lang:ruby:3.0.4-r1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:ruby-3.0:ruby:3.0.4-r1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:ruby:ruby-3.0:3.0.4-r1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:ruby:ruby_3.0:3.0.4-r1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:ruby_3.0:ruby:3.0.4-r1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:ruby:ruby:3.0.4-r1:*:*:*:*:*:*:*", "source": "syft-generated"}
         ],
         "purl": "pkg:apk/wolfi/ruby-3.0@3.0.4-r1?arch=aarch64&distro=wolfi-20221118",
         "upstreams": [
@@ -200,12 +200,12 @@
           "BSD-2-Clause"
         ],
         "cpes": [
-          "cpe:2.3:a:akira-yamada:uri:0.10.1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:akira_yamada:uri:0.10.1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:ruby-lang:uri:0.10.1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:ruby_lang:uri:0.10.1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:ruby:uri:0.10.1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:uri:uri:0.10.1:*:*:*:*:*:*:*"
+          {"cpe": "cpe:2.3:a:akira-yamada:uri:0.10.1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:akira_yamada:uri:0.10.1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:ruby-lang:uri:0.10.1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:ruby_lang:uri:0.10.1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:ruby:uri:0.10.1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:uri:uri:0.10.1:*:*:*:*:*:*:*", "source": "syft-generated"}
         ],
         "purl": "pkg:gem/uri@0.10.1",
         "upstreams": []
@@ -291,12 +291,12 @@
           "BSD-2-Clause"
         ],
         "cpes": [
-          "cpe:2.3:a:akira-yamada:uri:0.10.1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:akira_yamada:uri:0.10.1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:ruby-lang:uri:0.10.1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:ruby_lang:uri:0.10.1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:ruby:uri:0.10.1:*:*:*:*:*:*:*",
-          "cpe:2.3:a:uri:uri:0.10.1:*:*:*:*:*:*:*"
+          {"cpe": "cpe:2.3:a:akira-yamada:uri:0.10.1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:akira_yamada:uri:0.10.1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:ruby-lang:uri:0.10.1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:ruby_lang:uri:0.10.1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:ruby:uri:0.10.1:*:*:*:*:*:*:*", "source": "syft-generated"},
+          {"cpe": "cpe:2.3:a:uri:uri:0.10.1:*:*:*:*:*:*:*", "source": "syft-generated"}
         ],
         "purl": "pkg:gem/uri@0.10.1",
         "upstreams": []

@@ -94,8 +94,8 @@
         "MPLv2.0"
       ],
       "cpes": [
-        "cpe:2.3:a:redhat:nspr:4.34.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nspr:nspr:4.34.0-17.el9_1:*:*:*:*:*:*:*"
+        {"cpe": "cpe:2.3:a:redhat:nspr:4.34.0-17.el9_1:*:*:*:*:*:*:*", "source": "syft-generated"},
+        {"cpe": "cpe:2.3:a:nspr:nspr:4.34.0-17.el9_1:*:*:*:*:*:*:*", "source": "syft-generated"}
       ],
       "purl": "pkg:rpm/rhel/nspr@4.34.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1",
       "upstreams": [
@@ -206,8 +206,8 @@
         "MPLv2.0"
       ],
       "cpes": [
-        "cpe:2.3:a:redhat:nss:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss:nss:3.79.0-17.el9_1:*:*:*:*:*:*:*"
+        {"cpe":" cpe:2.3:a:redhat:nss:3.79.0-17.el9_1:*:*:*:*:*:*:*", "source": "syft-generated"},
+        {"cpe": "cpe:2.3:a:nss:nss:3.79.0-17.el9_1:*:*:*:*:*:*:*", "source": "syft-generated"}
       ],
       "purl": "pkg:rpm/rhel/nss@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1",
       "upstreams": [],
@@ -313,14 +313,14 @@
         "MPLv2.0"
       ],
       "cpes": [
-        "cpe:2.3:a:nss-softokn:nss-softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss-softokn:nss_softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss_softokn:nss-softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss_softokn:nss_softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:redhat:nss-softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:redhat:nss_softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss:nss-softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss:nss_softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*"
+        {"cpe":"cpe:2.3:a:nss-softokn:nss-softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*", "source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:nss-softokn:nss_softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:nss_softokn:nss-softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:nss_softokn:nss_softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:redhat:nss-softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:redhat:nss_softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:nss:nss-softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:nss:nss_softokn:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"}
       ],
       "purl": "pkg:rpm/rhel/nss-softokn@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1",
       "upstreams": [
@@ -431,18 +431,18 @@
         "MPLv2.0"
       ],
       "cpes": [
-        "cpe:2.3:a:nss-softokn-freebl:nss-softokn-freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss-softokn-freebl:nss_softokn_freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss_softokn_freebl:nss-softokn-freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss_softokn_freebl:nss_softokn_freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss-softokn:nss-softokn-freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss-softokn:nss_softokn_freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss_softokn:nss-softokn-freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss_softokn:nss_softokn_freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:redhat:nss-softokn-freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:redhat:nss_softokn_freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss:nss-softokn-freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss:nss_softokn_freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*"
+        {"cpe":"cpe:2.3:a:nss-softokn-freebl:nss-softokn-freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*", "source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:nss-softokn-freebl:nss_softokn_freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:nss_softokn_freebl:nss-softokn-freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:nss_softokn_freebl:nss_softokn_freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:nss-softokn:nss-softokn-freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:nss-softokn:nss_softokn_freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:nss_softokn:nss-softokn-freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:nss_softokn:nss_softokn_freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:redhat:nss-softokn-freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:redhat:nss_softokn_freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:nss:nss-softokn-freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:nss:nss_softokn_freebl:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"}
       ],
       "purl": "pkg:rpm/rhel/nss-softokn-freebl@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1",
       "upstreams": [
@@ -553,14 +553,14 @@
         "MPLv2.0"
       ],
       "cpes": [
-        "cpe:2.3:a:nss-sysinit:nss-sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss-sysinit:nss_sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss_sysinit:nss-sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss_sysinit:nss_sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:redhat:nss-sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:redhat:nss_sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss:nss-sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss:nss_sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*"
+        {"cpe":"cpe:2.3:a:nss-sysinit:nss-sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*", "source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:nss-sysinit:nss_sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:nss_sysinit:nss-sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:nss_sysinit:nss_sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:redhat:nss-sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:redhat:nss_sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:nss:nss-sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe":"cpe:2.3:a:nss:nss_sysinit:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"}
       ],
       "purl": "pkg:rpm/rhel/nss-sysinit@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1",
       "upstreams": [
@@ -671,14 +671,14 @@
         "MPLv2.0"
       ],
       "cpes": [
-        "cpe:2.3:a:nss-util:nss-util:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss-util:nss_util:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss_util:nss-util:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss_util:nss_util:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:redhat:nss-util:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:redhat:nss_util:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss:nss-util:3.79.0-17.el9_1:*:*:*:*:*:*:*",
-        "cpe:2.3:a:nss:nss_util:3.79.0-17.el9_1:*:*:*:*:*:*:*"
+        {"cpe": "cpe:2.3:a:nss-util:nss-util:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe": "cpe:2.3:a:nss-util:nss_util:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe": "cpe:2.3:a:nss_util:nss-util:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe": "cpe:2.3:a:nss_util:nss_util:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe": "cpe:2.3:a:redhat:nss-util:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe": "cpe:2.3:a:redhat:nss_util:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe": "cpe:2.3:a:nss:nss-util:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"},
+        {"cpe": "cpe:2.3:a:nss:nss_util:3.79.0-17.el9_1:*:*:*:*:*:*:*","source": "syft-generated"}
       ],
       "purl": "pkg:rpm/rhel/nss-util@3.79.0-17.el9_1?arch=x86_64&upstream=nss-3.79.0-17.el9_1.src.rpm&distro=rhel-9.1",
       "upstreams": [

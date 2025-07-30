@@ -120,7 +120,7 @@
         "language": "java",
         "licenses": [],
         "cpes": [
-          "cpe:2.3:a:apache:httpclient:4.1.1:*:*:*:*:*:*:*"
+          {"cpe": "cpe:2.3:a:apache:httpclient:4.1.1:*:*:*:*:*:*:*", "source": "syft-generated"}
         ],
         "purl": "pkg:maven/org.apache.httpcomponents/httpclient@4.1.1",
         "upstreams": [],
@@ -245,7 +245,7 @@
         "language": "java",
         "licenses": [],
         "cpes": [
-          "cpe:2.3:a:apache:httpclient:4.1.1:*:*:*:*:*:*:*"
+          {"cpe": "cpe:2.3:a:apache:httpclient:4.1.1:*:*:*:*:*:*:*", "source": "syft-generated"}
         ],
         "purl": "pkg:maven/org.apache.httpcomponents/httpclient@4.1.1",
         "upstreams": [],
