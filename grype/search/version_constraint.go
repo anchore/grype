@@ -57,6 +57,30 @@ func (v VersionCriteria) criteria(constraint version.Constraint) (bool, error) {
 	return satisfied, nil
 }
 
+// ByFixedVersion returns criteria which constrains vulnerabilities to those that are fixed based on the provided version,
+// in other words: vulnerabilities where the fix version is less than v
+func ByFixedVersion(v version.Version) vulnerability.Criteria {
+	return &funcCriteria{
+		func(vuln vulnerability.Vulnerability) (bool, string, error) {
+			var err error
+			if vuln.Fix.State != vulnerability.FixStateFixed {
+				return false, "", nil
+			}
+			for _, fixVersion := range vuln.Fix.Versions {
+				cmp, e := version.New(fixVersion, v.Format).Compare(&v)
+				if e != nil {
+					err = e
+				}
+				if cmp <= 0 {
+					// fix version is less than or equal to the provided version, so is considered fixed
+					return true, fmt.Sprintf("fix version %v is less than %v", v, fixVersion), err
+				}
+			}
+			return false, "", err
+		},
+	}
+}
+
 // ByVersion returns criteria which constrains vulnerabilities to those with matching version constraints
 func ByVersion(v version.Version) vulnerability.Criteria {
 	return &VersionCriteria{

@@ -1118,6 +1118,241 @@ func TestRedhatEUSMatches(t *testing.T) {
 			},
 		},
 		{
+			name:       "multiple valid disclosures with mixed resolutions",
+			catalogPkg: testPkg1,
+			disclosureVulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2021-1",
+						Namespace: "namespace",
+					},
+					PackageName: "test-pkg", // direct match
+					Constraint:  version.MustGetConstraint("", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateUnknown,
+						Versions: []string{},
+					},
+				},
+				{
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2021-2",
+						Namespace: "namespace",
+					},
+					PackageName: "test-pkg", // direct match
+					Constraint:  version.MustGetConstraint("", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateUnknown,
+						Versions: []string{},
+					},
+				},
+				{
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2021-3",
+						Namespace: "namespace",
+					},
+					PackageName: "test-pkg", // direct match
+					Constraint:  nil,        // no constraint, so we assume we're never vulnerable to this
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateUnknown,
+						Versions: []string{},
+					},
+				},
+			},
+			resolutionVulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2021-1",
+						Namespace: "namespace",
+					},
+					PackageName: "test-pkg", // direct match
+					Constraint:  version.MustGetConstraint("< 1.5.0", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateFixed,
+						Versions: []string{"1.5.0"},
+					},
+				},
+			},
+			want: []match.Match{
+				{
+					Vulnerability: vulnerability.Vulnerability{
+						Reference: vulnerability.Reference{
+							ID:        "CVE-2021-1",
+							Namespace: "namespace",
+						},
+						PackageName: "test-pkg",
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateFixed,
+							Versions: []string{"1.5.0"},
+						},
+					},
+					Package: pkg.Package{
+						ID:      pkg.ID("test-pkg-id"),
+						Name:    "test-pkg",
+						Version: "1.0.0",
+						Type:    syftPkg.RpmPkg,
+						Distro: &distro.Distro{
+							Type:     distro.RedHat,
+							Version:  "9.4",
+							Channels: channels("eus"),
+						},
+					},
+					Details: []match.Detail{
+						{
+							Type: match.ExactDirectMatch,
+							SearchedBy: match.DistroParameters{
+								Distro: match.DistroIdentification{
+									Type:    "redhat",
+									Version: "9.4",
+								},
+								Package: match.PackageParameter{
+									Name:    "test-pkg",
+									Version: "1.0.0",
+								},
+								Namespace: "namespace",
+							},
+							Found: match.DistroResult{
+								VulnerabilityID:   "CVE-2021-1",
+								VersionConstraint: "< 1.5.0 (rpm)",
+							},
+							Matcher:    match.RpmMatcher,
+							Confidence: 1,
+						},
+						{
+							Type: match.ExactDirectMatch,
+							SearchedBy: match.DistroParameters{
+								Distro: match.DistroIdentification{
+									Type:    "redhat",
+									Version: "9.4+eus",
+								},
+								Package: match.PackageParameter{
+									Name:    "test-pkg",
+									Version: "1.0.0",
+								},
+								Namespace: "namespace",
+							},
+							Found: match.DistroResult{
+								VulnerabilityID:   "CVE-2021-1",
+								VersionConstraint: "< 1.5.0 (rpm)",
+							},
+							Matcher:    match.RpmMatcher,
+							Confidence: 1,
+						},
+						{
+							Type: match.ExactDirectMatch,
+							SearchedBy: match.DistroParameters{
+								Distro: match.DistroIdentification{
+									Type:    "redhat",
+									Version: "9.4",
+								},
+								Package: match.PackageParameter{
+									Name:    "test-pkg",
+									Version: "1.0.0",
+								},
+								Namespace: "namespace",
+							},
+							Found: match.DistroResult{
+								VulnerabilityID:   "CVE-2021-1",
+								VersionConstraint: "none (rpm)", // important! this is the disclosure with no constraint
+							},
+							Matcher:    match.RpmMatcher,
+							Confidence: 1,
+						},
+					},
+				},
+				{
+					Vulnerability: vulnerability.Vulnerability{
+						Reference: vulnerability.Reference{
+							ID:        "CVE-2021-2",
+							Namespace: "namespace",
+						},
+						PackageName: "test-pkg",
+						Fix: vulnerability.Fix{
+							State:    vulnerability.FixStateUnknown,
+							Versions: []string{},
+						},
+					},
+					Package: pkg.Package{
+						ID:      pkg.ID("test-pkg-id"),
+						Name:    "test-pkg",
+						Version: "1.0.0",
+						Type:    syftPkg.RpmPkg,
+						Distro: &distro.Distro{
+							Type:     distro.RedHat,
+							Version:  "9.4",
+							Channels: channels("eus"),
+						},
+					},
+					Details: []match.Detail{
+						{
+							Type: match.ExactDirectMatch,
+							SearchedBy: match.DistroParameters{
+								Distro: match.DistroIdentification{
+									Type:    "redhat",
+									Version: "9.4",
+								},
+								Package: match.PackageParameter{
+									Name:    "test-pkg",
+									Version: "1.0.0",
+								},
+								Namespace: "namespace",
+							},
+							Found: match.DistroResult{
+								VulnerabilityID:   "CVE-2021-2",
+								VersionConstraint: "none (rpm)",
+							},
+							Matcher:    match.RpmMatcher,
+							Confidence: 1,
+						},
+					},
+				},
+			},
+		},
+		{
+			name:       "multiple advisories with mixed fix state relative to search package",
+			catalogPkg: testPkg1,
+			disclosureVulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2021-1",
+						Namespace: "namespace",
+					},
+					PackageName: "test-pkg", // direct match
+					Constraint:  version.MustGetConstraint("", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateUnknown,
+						Versions: []string{},
+					},
+				},
+			},
+			resolutionVulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2021-1",
+						Namespace: "namespace",
+					},
+					PackageName: "test-pkg", // direct match
+					Constraint:  version.MustGetConstraint("< 1.5.0", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateFixed,
+						Versions: []string{"1.5.0"},
+					},
+				},
+				{
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2021-1",
+						Namespace: "namespace",
+					},
+					PackageName: "test-pkg", // direct match
+					Constraint:  version.MustGetConstraint("< 1.0.0", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateFixed,
+						Versions: []string{"1.0.0"},
+					},
+				},
+			},
+			want: []match.Match{},
+		},
+		{
 			name:            "error fetching disclosures",
 			catalogPkg:      testPkg1,
 			disclosureVulns: []vulnerability.Vulnerability{},
