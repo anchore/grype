@@ -72,9 +72,7 @@ func redhatEUSMatches(provider result.Provider, searchPkg pkg.Package) ([]match.
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(distroWithoutEUS), // e.g.  >= 9.0 && < 10 (no EUS channel)
 		internal.OnlyQualifiedPackages(searchPkg),
-		// note: we could apply a version constraint here (there would be no functional issue with this) but
-		// the current approach taken is to allow fixes from mainline disclosures to be accounted for in the final
-		// merge step below.
+		internal.OnlyVulnerableVersions(pkgVersion), // if these records indicate the version of the package is not vulnerable, do not include them
 	)
 	if err != nil {
 		return nil, fmt.Errorf("matcher failed to fetch disclosures for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
@@ -98,12 +96,17 @@ func redhatEUSMatches(provider result.Provider, searchPkg pkg.Package) ([]match.
 		return nil, fmt.Errorf("matcher failed to fetch resolutions for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
 	}
 
+	eusFixes := resolutions.Filter(search.ByFixedVersion(*pkgVersion))
+
+	// remove EUS fixed vulns for this version
+	remaining := disclosures.Remove(eusFixes)
+
 	// combine disclosures and fixes so that:
 	// a. disclosures that have EUS fixes that resolve the disclosure for an earlier version of the package (thus we're not vulnerable) are removed.
 	// b. disclosures that have EUS fixes that resolve the disclosure for future versions of the package (thus we're vulnerable) are kept.
 	// c. all fixes from the incoming resolutions are patched onto the disclosures in the returned collection, so the
 	//    final set of vulnerabilities is a fused set of disclosures and fixes together.
-	remaining := disclosures.Merge(resolutions, mergeEUSAdvisoriesIntoMainDisclosures(pkgVersion, false))
+	remaining = remaining.Merge(resolutions, mergeEUSAdvisoriesIntoMainDisclosures(pkgVersion, false))
 
 	return remaining.ToMatches(), err
 }

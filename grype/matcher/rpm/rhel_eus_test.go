@@ -1118,6 +1118,51 @@ func TestRedhatEUSMatches(t *testing.T) {
 			},
 		},
 		{
+			name:       "multiple advisories with mixed fix state relative to search package",
+			catalogPkg: testPkg1,
+			disclosureVulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2021-1",
+						Namespace: "namespace",
+					},
+					PackageName: "test-pkg", // direct match
+					Constraint:  version.MustGetConstraint("", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateUnknown,
+						Versions: []string{},
+					},
+				},
+			},
+			resolutionVulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2021-1",
+						Namespace: "namespace",
+					},
+					PackageName: "test-pkg", // direct match
+					Constraint:  version.MustGetConstraint("< 1.5.0", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateFixed,
+						Versions: []string{"1.5.0"},
+					},
+				},
+				{
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2021-1",
+						Namespace: "namespace",
+					},
+					PackageName: "test-pkg", // direct match
+					Constraint:  version.MustGetConstraint("< 1.0.0", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateFixed,
+						Versions: []string{"1.0.0"},
+					},
+				},
+			},
+			want: []match.Match{},
+		},
+		{
 			name:            "error fetching disclosures",
 			catalogPkg:      testPkg1,
 			disclosureVulns: []vulnerability.Vulnerability{},
