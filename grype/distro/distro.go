@@ -2,6 +2,7 @@ package distro
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	hashiVer "github.com/hashicorp/go-version"
@@ -100,15 +101,22 @@ func NewFromRelease(release linux.Release) (*Distro, error) {
 
 	var selectedVersion string
 
-	for _, version := range []string{release.VersionID, release.Version} {
-		if version == "" {
-			continue
-		}
+	if release.ID == "openEuler" {
+		// In the CVE data released by openEuler,
+		// the corresponding openEuler version information matches the `Version`
+		re := regexp.MustCompile(`\(|\)`)
+		selectedVersion = strings.ReplaceAll(re.ReplaceAllString(strings.Trim(release.Version, `"'`), ""), " ", "-")
+	} else {
+		for _, version := range []string{release.VersionID, release.Version} {
+			if version == "" {
+				continue
+			}
 
-		_, err := hashiVer.NewVersion(version)
-		if err == nil {
-			selectedVersion = version
-			break
+			_, err := hashiVer.NewVersion(version)
+			if err == nil {
+				selectedVersion = version
+				break
+			}
 		}
 	}
 

@@ -33,6 +33,7 @@ const (
 	Wolfi        Type = "wolfi"
 	Chainguard   Type = "chainguard"
 	MinimOS      Type = "minimos"
+	OpenEuler    Type = "openeuler"
 )
 
 // All contains all Linux distribution options
@@ -60,6 +61,7 @@ var All = []Type{
 	Wolfi,
 	Chainguard,
 	MinimOS,
+	OpenEuler,
 }
 
 // IDMapping connects a distro ID like "ubuntu" to a Distro type
@@ -88,6 +90,7 @@ var IDMapping = map[string]Type{
 	"wolfi":         Wolfi,
 	"chainguard":    Chainguard,
 	"minimos":       MinimOS,
+	"openEuler":     OpenEuler,
 }
 
 func TypeFromRelease(release linux.Release) Type {

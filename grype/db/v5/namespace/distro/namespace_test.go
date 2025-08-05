@@ -49,6 +49,10 @@ func TestFromString(t *testing.T) {
 			namespaceString: "minimos:distro:minimos:rolling",
 			result:          NewNamespace("minimos", grypeDistro.MinimOS, "rolling"),
 		},
+		{
+			namespaceString: "openeuler:distro:openeuler:22.03-LTS",
+			result:          NewNamespace("openeuler", grypeDistro.OpenEuler, "22.03-LTS"),
+		},
 	}
 
 	for _, test := range successTests {

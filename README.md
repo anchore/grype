@@ -41,6 +41,7 @@ For commercial support options with Syft or Grype, please [contact Anchore](http
   - Echo
   - Distroless
   - MinimOS
+  - openEuler
   - Oracle Linux
   - Red Hat (RHEL)
   - Ubuntu
@@ -557,6 +558,7 @@ When Grype performs a scan for vulnerabilities, it does so using a vulnerability
 - GitHub Security Advisories (GHSAs): https://github.com/advisories
 - MinimOS SecDB: https://packages.mini.dev/advisories/secdb/security.json
 - National Vulnerability Database (NVD): https://nvd.nist.gov/vuln/data-feeds
+- openEuler Security Advisories: https://repo.openeuler.org/security/data/csaf/advisories/
 - Oracle Linux OVAL: https://linux.oracle.com/security/oval/
 - RedHat Linux Security Data: https://access.redhat.com/hydra/rest/securitydata/
 - RedHat RHSAs: https://www.redhat.com/security/data/oval/
