@@ -44,7 +44,7 @@ func TestKbVersion_Compare(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			thisVer := newKBVersion(test.thisVersion)
 
-			otherVer := NewVersion(test.otherVersion, test.otherFormat)
+			otherVer := New(test.otherVersion, test.otherFormat)
 
 			result, err := thisVer.Compare(otherVer)
 
@@ -72,7 +72,7 @@ func TestKbVersion_Compare_EdgeCases(t *testing.T) {
 		{
 			name: "nil version object",
 			setupFunc: func(t testing.TB) (*Version, *Version) {
-				v := NewVersion("KB4562562", KBFormat)
+				v := New("KB4562562", KBFormat)
 				return v, nil
 			},
 			expectError:    true,

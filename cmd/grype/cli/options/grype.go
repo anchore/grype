@@ -37,6 +37,7 @@ type Grype struct {
 	VexDocuments               []string           `yaml:"vex-documents" json:"vex-documents" mapstructure:"vex-documents"`
 	VexAdd                     []string           `yaml:"vex-add" json:"vex-add" mapstructure:"vex-add"`                                                                   // GRYPE_VEX_ADD
 	MatchUpstreamKernelHeaders bool               `yaml:"match-upstream-kernel-headers" json:"match-upstream-kernel-headers" mapstructure:"match-upstream-kernel-headers"` // Show matches on kernel-headers packages where the match is on kernel upstream instead of marking them as ignored, default=false
+	FixChannel                 FixChannels        `yaml:"fix-channel" json:"fix-channel" mapstructure:"fix-channel"`                                                       // the fix channels to apply to the distro when matching
 	DatabaseCommand            `yaml:",inline" json:",inline" mapstructure:",squash"`
 }
 
@@ -56,7 +57,8 @@ var _ interface {
 
 func DefaultGrype(id clio.Identification) *Grype {
 	return &Grype{
-		Search: defaultSearch(source.SquashedScope),
+		Search:     defaultSearch(source.SquashedScope),
+		FixChannel: DefaultFixChannels(),
 		DatabaseCommand: DatabaseCommand{
 			DB: DefaultDatabase(id),
 		},

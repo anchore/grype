@@ -1,7 +1,16 @@
+# AI
+.claude
+CLAUDE.MD
+
 # local development tailoring
 go.work
 go.work.sum
 .tool-versions
+.jj/
+
+# AI and LLM related files
+CLAUDE.md
+.claude
 
 # app configuration
 /.grype.yaml

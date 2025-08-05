@@ -8,9 +8,20 @@ import (
 
 	"github.com/anchore/grype/grype/pkg"
 	syftSource "github.com/anchore/syft/syft/source"
+	"github.com/anchore/syft/syft/testutil"
 )
 
 func TestNewSource(t *testing.T) {
+	// there isn't a great way to programmatically find only source metadata types in the pkg package, so we'll add them here.
+	grypeOnlySources := []any{
+		pkg.SBOMFileMetadata{},
+		pkg.PURLLiteralMetadata{},
+		pkg.CPELiteralMetadata{},
+	}
+
+	tracker := testutil.NewSourceMetadataCompletionTester(t)
+	tracker.Expect(grypeOnlySources...)
+
 	testCases := []struct {
 		name     string
 		metadata syftSource.Description
@@ -99,6 +110,18 @@ func TestNewSource(t *testing.T) {
 			},
 		},
 		{
+			name: "snap metadata",
+			metadata: syftSource.Description{
+				Name:     "a-snap",
+				Version:  "10.2.3",
+				Metadata: syftSource.SnapMetadata{},
+			},
+			expected: source{
+				Type:   "snap",
+				Target: "a-snap@10.2.3",
+			},
+		},
+		{
 			name: "nil metadata",
 			metadata: syftSource.Description{
 				Metadata: nil,
@@ -116,6 +139,7 @@ func TestNewSource(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Equal(t, testCase.expected, actual)
+			tracker.Tested(t, testCase.metadata.Metadata)
 		})
 	}
 }

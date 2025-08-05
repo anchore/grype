@@ -1,0 +1,1 @@
+pkg:rpm/redhat/kernel@0:5.14.0-100?distro=rhel-9.4+eus
