@@ -980,6 +980,9 @@ dev:
   db:
     # show sql queries in trace logging (requires -vv) (env: GRYPE_DEV_DB_DEBUG)
     debug: false
+
+# include a timestamp (env: GRYPE_TIMESTAMP)
+timestamp: true
 ```
 
 ## Future plans
