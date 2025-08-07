@@ -62,7 +62,7 @@ var All = []Type{
 	MinimOS,
 }
 
-// IDMapping connects a distro ID like "ubuntu" to a Distro type
+// IDMapping maps a distro ID from the /etc/os-release (e.g. like "ubuntu") to a Distro type.
 var IDMapping = map[string]Type{
 	"debian":        Debian,
 	"ubuntu":        Ubuntu,
@@ -70,7 +70,6 @@ var IDMapping = map[string]Type{
 	"centos":        CentOS,
 	"fedora":        Fedora,
 	"alpine":        Alpine,
-	"Alpine Linux":  Alpine,
 	"busybox":       Busybox,
 	"amzn":          AmazonLinux,
 	"ol":            OracleLinux,
@@ -79,7 +78,6 @@ var IDMapping = map[string]Type{
 	"sles":          SLES,
 	"photon":        Photon,
 	"echo":          Echo,
-	"windows":       Windows,
 	"mariner":       Mariner,
 	"azurelinux":    Azure,
 	"rocky":         RockyLinux,
@@ -90,10 +88,30 @@ var IDMapping = map[string]Type{
 	"minimos":       MinimOS,
 }
 
+// aliasTypes maps common aliases to their corresponding Type.
+var aliasTypes = map[string]Type{
+	"Alpine Linux": Alpine, // needed for CPE matching (see #2039)
+	"windows":      Windows,
+}
+
+var typeToIDMapping = map[Type]string{}
+
+func init() {
+	for id, t := range IDMapping {
+		if _, ok := typeToIDMapping[t]; ok {
+			panic("duplicate Type found for ID: " + id + " with Type: " + string(t))
+		}
+		typeToIDMapping[t] = id
+	}
+}
+
 func TypeFromRelease(release linux.Release) Type {
 	// first try the release ID
-	t, ok := IDMapping[release.ID]
-	if ok {
+	if t, ok := IDMapping[release.ID]; ok {
+		return t
+	}
+
+	if t, ok := aliasTypes[release.ID]; ok {
 		return t
 	}
 
@@ -102,11 +120,17 @@ func TypeFromRelease(release linux.Release) Type {
 		if t, ok := IDMapping[l]; ok {
 			return t
 		}
+		if t, ok := aliasTypes[l]; ok {
+			return t
+		}
 	}
 
-	// first try the release name as a fallback
-	t, ok = IDMapping[release.Name]
-	if ok {
+	// then try the release name as a fallback
+	if t, ok := IDMapping[release.Name]; ok {
+		return t
+	}
+
+	if t, ok := aliasTypes[release.Name]; ok {
 		return t
 	}
 

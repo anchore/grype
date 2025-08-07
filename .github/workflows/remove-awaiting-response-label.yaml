@@ -6,6 +6,9 @@ on:
 
 jobs:
   run:
+    permissions:
+      issues: write
+      pull-requests: write
     uses: "anchore/workflows/.github/workflows/remove-awaiting-response-label.yaml@main"
     secrets:
       token: ${{ secrets.OSS_PROJECT_GH_TOKEN }}

@@ -855,6 +855,20 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "uv lock metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.PythonUvLockEntry{
+					Index: "https://pypi.org/simple",
+					Dependencies: []syftPkg.PythonUvLockDependencyEntry{
+						{Name: "certifi"},
+						{Name: "charset-normalizer"},
+						{Name: "idna"},
+						{Name: "urllib3"},
+					},
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
@@ -1060,7 +1074,7 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			d := distro.FromRelease(test.sbom.Artifacts.LinuxDistribution)
+			d := distro.FromRelease(test.sbom.Artifacts.LinuxDistribution, distro.DefaultFixChannels())
 			catalog := removePackagesByOverlap(test.sbom.Artifacts.Packages, test.sbom.Relationships, d)
 			pkgs := FromCollection(catalog, SynthesisConfig{})
 			var pkgNames []string

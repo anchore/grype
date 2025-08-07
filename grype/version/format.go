@@ -1,11 +1,6 @@
 package version
 
-import (
-	"strings"
-
-	"github.com/anchore/grype/grype/pkg"
-	syftPkg "github.com/anchore/syft/syft/pkg"
-)
+import "strings"
 
 const (
 	UnknownFormat Format = iota
@@ -83,37 +78,6 @@ func ParseFormat(userStr string) Format {
 	case strings.ToLower(JVMFormat.String()), "jvm", "jre", "jdk", "openjdk", "jep223":
 		return JVMFormat
 	}
-	return UnknownFormat
-}
-
-func FormatFromPkg(p pkg.Package) Format {
-	switch p.Type {
-	case syftPkg.ApkPkg:
-		return ApkFormat
-	case syftPkg.BitnamiPkg:
-		return BitnamiFormat
-	case syftPkg.DebPkg:
-		return DebFormat
-	case syftPkg.JavaPkg:
-		return MavenFormat
-	case syftPkg.RpmPkg:
-		return RpmFormat
-	case syftPkg.GemPkg:
-		return GemFormat
-	case syftPkg.PythonPkg:
-		return PythonFormat
-	case syftPkg.KbPkg:
-		return KBFormat
-	case syftPkg.PortagePkg:
-		return PortageFormat
-	case syftPkg.GoModulePkg:
-		return GolangFormat
-	}
-
-	if pkg.IsJvmPackage(p) {
-		return JVMFormat
-	}
-
 	return UnknownFormat
 }
 

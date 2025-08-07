@@ -20,6 +20,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Check if running on main
         if: github.ref != 'refs/heads/main'
@@ -30,6 +32,8 @@ jobs:
         run: echo "This can only be run on the main branch otherwise releases produced will not be verifiable with cosign" && exit 1
 
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Check if pinned syft is a release version
         run: .github/scripts/check-syft-version-is-release.sh
@@ -37,8 +41,10 @@ jobs:
       - name: Check if tag already exists
         # note: this will fail if the tag already exists
         run: |
-          [[ "${{ github.event.inputs.version }}" == v* ]] || (echo "version '${{ github.event.inputs.version }}' does not have a 'v' prefix" && exit 1)
-          git tag ${{ github.event.inputs.version }}
+          [[ "$VERSION" == v* ]] || (echo "version '$VERSION' does not have a 'v' prefix" && exit 1)
+          git tag "$VERSION"
+        env:
+          VERSION: ${{ github.event.inputs.version }}
 
       - name: Check static analysis results
         uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be # v1.2.0
@@ -107,14 +113,22 @@ jobs:
 
       - name: Quality gate
         if: steps.static-analysis.outputs.conclusion != 'success' || steps.unit.outputs.conclusion != 'success' || steps.integration.outputs.conclusion != 'success' || steps.quality_tests.outputs.conclusion != 'success' || steps.cli-linux.outputs.conclusion != 'success' || steps.acceptance-linux.outputs.conclusion != 'success' || steps.acceptance-mac.outputs.conclusion != 'success'
+        env:
+          STATIC_ANALYSIS_STATUS: ${{ steps.static-analysis.conclusion }}
+          UNIT_TEST_STATUS: ${{ steps.unit.outputs.conclusion }}
+          INTEGRATION_TEST_STATUS: ${{ steps.integration.outputs.conclusion }}
+          QUALITY_TEST_STATUS: ${{ steps.quality_tests.outputs.conclusion }}
+          ACCEPTANCE_LINUX_STATUS: ${{ steps.acceptance-linux.outputs.conclusion }}
+          ACCEPTANCE_MAC_STATUS: ${{ steps.acceptance-mac.outputs.conclusion }}
+          CLI_LINUX_STATUS: ${{ steps.cli-linux.outputs.conclusion }}
         run: |
-          echo "Static Analysis Status: ${{ steps.static-analysis.conclusion }}"
-          echo "Unit Test Status: ${{ steps.unit.outputs.conclusion }}"
-          echo "Integration Test Status: ${{ steps.integration.outputs.conclusion }}"
-          echo "Quality Test Status: ${{ steps.quality_tests.outputs.conclusion }}"
-          echo "Acceptance Test (Linux) Status: ${{ steps.acceptance-linux.outputs.conclusion }}"
-          echo "Acceptance Test (Mac) Status: ${{ steps.acceptance-mac.outputs.conclusion }}"
-          echo "CLI Test (Linux) Status: ${{ steps.cli-linux.outputs.conclusion }}"
+          echo "Static Analysis Status: $STATIC_ANALYSIS_STATUS"
+          echo "Unit Test Status: $UNIT_TEST_STATUS"
+          echo "Integration Test Status: $INTEGRATION_TEST_STATUS"
+          echo "Quality Test Status: $QUALITY_TEST_STATUS"
+          echo "Acceptance Test (Linux) Status: $ACCEPTANCE_LINUX_STATUS"
+          echo "Acceptance Test (Mac) Status: $ACCEPTANCE_MAC_STATUS"
+          echo "CLI Test (Linux) Status: $CLI_LINUX_STATUS"
           false
 
   # only release core assets within the "release" job. Any other assets not already under the purview of the
@@ -133,6 +147,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
         with:
           fetch-depth: 0
+          persist-credentials: true
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
@@ -157,9 +172,10 @@ jobs:
         run: |
           git config user.name "anchoreci"
           git config user.email "anchoreci@users.noreply.github.com"
-          git tag -a ${{ github.event.inputs.version }} -m "Release ${{ github.event.inputs.version }}"
+          git tag -a "$VERSION" -m "Release $VERSION"
           git push origin --tags
         env:
+          VERSION: ${{ github.event.inputs.version }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build & publish release artifacts
@@ -176,7 +192,7 @@ jobs:
           # for updating brew formula in anchore/homebrew-syft
           GITHUB_BREW_TOKEN: ${{ secrets.ANCHOREOPS_GITHUB_OSS_WRITE_TOKEN }}
 
-      - uses: anchore/sbom-action@cee1b8e05ae5b2593a75e197229729eabaa9f8ec # v0.20.2
+      - uses: anchore/sbom-action@7b36ad622f042cab6f59a75c2ac24ccb256e9b45 # v0.20.4
         continue-on-error: true
         with:
           artifact-name: sbom.spdx.json
@@ -191,10 +207,17 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_TOOLBOX_WEBHOOK_URL }}
         if: ${{ success() }}
 
-  release-version-file:
+  release-install-script:
     needs: [release]
     if: ${{ needs.release.result == 'success' }}
-    uses: ./.github/workflows/release-version-file.yaml
+    uses: "anchore/workflows/.github/workflows/release-install-script.yaml@main"
     with:
-      version: ${{ github.event.inputs.version }}
-    secrets: inherit
+      tag: ${{ github.event.inputs.version }}
+    secrets:
+      # needed for r2...
+      R2_INSTALL_ACCESS_KEY_ID: ${{ secrets.OSS_R2_INSTALL_ACCESS_KEY_ID }}
+      R2_INSTALL_SECRET_ACCESS_KEY: ${{ secrets.OSS_R2_INSTALL_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.TOOLBOX_CLOUDFLARE_R2_ENDPOINT }}
+      # needed for s3...
+      S3_INSTALL_AWS_ACCESS_KEY_ID: ${{ secrets.TOOLBOX_AWS_ACCESS_KEY_ID }}
+      S3_INSTALL_AWS_SECRET_ACCESS_KEY: ${{ secrets.TOOLBOX_AWS_SECRET_ACCESS_KEY }}

@@ -10,46 +10,16 @@ import (
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/options"
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vex"
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/cataloging"
 	"github.com/anchore/syft/syft/pkg/cataloger/binary"
 )
-
-func Test_applyDistroHint(t *testing.T) {
-	ctx := pkg.Context{}
-	cfg := options.Grype{}
-
-	applyDistroHint([]pkg.Package{}, &ctx, &cfg)
-	assert.Nil(t, ctx.Distro)
-
-	// works when distro is nil
-	cfg.Distro = "alpine:3.10"
-	applyDistroHint([]pkg.Package{}, &ctx, &cfg)
-	assert.NotNil(t, ctx.Distro)
-
-	assert.Equal(t, "alpine", ctx.Distro.Name())
-	assert.Equal(t, "3.10", ctx.Distro.Version)
-
-	// does override an existing distro
-	cfg.Distro = "ubuntu:24.04"
-	applyDistroHint([]pkg.Package{}, &ctx, &cfg)
-	assert.NotNil(t, ctx.Distro)
-
-	assert.Equal(t, "ubuntu", ctx.Distro.Name())
-	assert.Equal(t, "24.04", ctx.Distro.Version)
-
-	// doesn't remove an existing distro when empty
-	cfg.Distro = ""
-	applyDistroHint([]pkg.Package{}, &ctx, &cfg)
-	assert.NotNil(t, ctx.Distro)
-
-	assert.Equal(t, "ubuntu", ctx.Distro.Name())
-	assert.Equal(t, "24.04", ctx.Distro.Version)
-}
 
 func Test_getProviderConfig(t *testing.T) {
 	tests := []struct {
@@ -72,6 +42,20 @@ func Test_getProviderConfig(t *testing.T) {
 					}(),
 					RegistryOptions: &image.RegistryOptions{
 						Credentials: []image.RegistryCredentials{},
+					},
+				},
+				SynthesisConfig: pkg.SynthesisConfig{
+					GenerateMissingCPEs: false,
+					Distro: pkg.DistroConfig{
+						Override: nil,
+						FixChannels: []distro.FixChannel{
+							{
+								Name:     "eus",
+								IDs:      []string{"rhel"},
+								Apply:    "auto",
+								Versions: version.MustGetConstraint(">= 8.0", version.SemanticFormat),
+							},
+						},
 					},
 				},
 			},
