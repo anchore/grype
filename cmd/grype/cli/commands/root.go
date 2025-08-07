@@ -47,9 +47,35 @@ func Root(app clio.Application) *cobra.Command {
 	return app.SetupRootCommand(&cobra.Command{
 		Use:   fmt.Sprintf("%s [IMAGE]", app.ID().Name),
 		Short: "A vulnerability scanner for container images, filesystems, and SBOMs",
-		Long: stringutil.Tprintf(`A vulnerability scanner for container images, filesystems, and SBOMs.\n\nSupports the following image sources:\n    {{.appName}} yourrepo/yourimage:tag             defaults to using images from a Docker daemon\n    {{.appName}} path/to/yourproject                a Docker tar, OCI tar, OCI directory, SIF container, or generic filesystem directory\n\nYou can also explicitly specify the scheme to use:\n    {{.appName}} podman:yourrepo/yourimage:tag          explicitly use the Podman daemon\n    {{.appName}} docker:yourrepo/yourimage:tag          explicitly use the Docker daemon\n    {{.appName}} docker-archive:path/to/yourimage.tar   use a tarball from disk for archives created from "docker save"\n    {{.appName}} oci-archive:path/to/yourimage.tar      use a tarball from disk for OCI archives (from Podman or otherwise)\n    {{.appName}} oci-dir:path/to/yourimage              read directly from a path on disk for OCI layout directories (from Skopeo or otherwise)\n    {{.appName}} singularity:path/to/yourimage.sif      read directly from a Singularity Image Format (SIF) container on disk\n    {{.appName}} dir:path/to/yourproject                read directly from a path on disk (any directory)\n    {{.appName}} file:path/to/yourfile                  read directly from a file on disk\n    {{.appName}} sbom:path/to/syft.json                 read Syft JSON from path on disk\n    {{.appName}} registry:yourrepo/yourimage:tag        pull image directly from a registry (no container runtime required)\n    {{.appName}} purl:path/to/purl/file                 read a newline separated file of package URLs from a path on disk\n    {{.appName}} PURL                                   read a single package PURL directly (e.g. pkg:apk/openssl@3.2.1?distro=alpine-3.20.3)\n    {{.appName}} CPE                                    read a single CPE directly (e.g. cpe:2.3:a:openssl:openssl:3.0.14:*:*:*:*:*)\n\nYou can also pipe in Syft JSON directly:\n\tsyft yourimage:tag -o json | {{.appName}}\n\n`, map[string]interface{}{
+
+		Long: stringutil.Tprintf(`A vulnerability scanner for container images, filesystems, and SBOMs.
+
+Supports the following image sources:
+    {{.appName}} yourrepo/yourimage:tag             defaults to using images from a Docker daemon
+    {{.appName}} path/to/yourproject                a Docker tar, OCI tar, OCI directory, SIF container, or generic filesystem directory
+
+You can also explicitly specify the scheme to use:
+    {{.appName}} podman:yourrepo/yourimage:tag          explicitly use the Podman daemon
+    {{.appName}} docker:yourrepo/yourimage:tag          explicitly use the Docker daemon
+    {{.appName}} docker-archive:path/to/yourimage.tar   use a tarball from disk for archives created from "docker save"
+    {{.appName}} oci-archive:path/to/yourimage.tar      use a tarball from disk for OCI archives (from Podman or otherwise)
+    {{.appName}} oci-dir:path/to/yourimage              read directly from a path on disk for OCI layout directories (from Skopeo or otherwise)
+    {{.appName}} singularity:path/to/yourimage.sif      read directly from a Singularity Image Format (SIF) container on disk
+    {{.appName}} dir:path/to/yourproject                read directly from a path on disk (any directory)
+    {{.appName}} file:path/to/yourfile                  read directly from a file on disk
+    {{.appName}} sbom:path/to/syft.json                 read Syft JSON from path on disk
+    {{.appName}} registry:yourrepo/yourimage:tag        pull image directly from a registry (no container runtime required)
+    {{.appName}} purl:path/to/purl/file                 read a newline separated file of package URLs from a path on disk
+    {{.appName}} PURL                                   read a single package PURL directly (e.g. pkg:apk/openssl@3.2.1?distro=alpine-3.20.3)
+    {{.appName}} CPE                                    read a single CPE directly (e.g. cpe:2.3:a:openssl:openssl:3.0.14:*:*:*:*:*)
+
+You can also pipe in Syft JSON directly:
+	syft yourimage:tag -o json | {{.appName}}
+
+`, map[string]interface{}{
 			"appName": app.ID().Name,
 		}),
+		
 		Args:          validateRootArgs,
 		SilenceUsage:  true,
 		SilenceErrors: true,
