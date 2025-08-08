@@ -156,13 +156,13 @@ jobs:
           build-cache-key-prefix: "snapshot"
 
       - name: Login to Docker Hub
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772  #v3.4.0
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1  #v3.5.0
         with:
           username: ${{ secrets.ANCHOREOSSWRITE_DH_USERNAME }}
           password: ${{ secrets.ANCHOREOSSWRITE_DH_PAT }}
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772  #v3.4.0
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1  #v3.5.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
