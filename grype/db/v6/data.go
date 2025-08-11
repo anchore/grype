@@ -45,22 +45,22 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 		{Alias: "amazon", ReplacementName: strRef("amzn")},                   // non-standard, but common
 		{Alias: "amazonlinux", ReplacementName: strRef("amzn")},              // non-standard, but common (dockerhub uses "amazonlinux")
 		{Alias: "echo", Rolling: true},
-		// TODO: trixie is a placeholder for now, but should be updated to sid when the time comes
+		// TODO: forky is a placeholder for now, but should be updated to sid when the time comes
 		// this needs to be automated, but isn't clear how to do so since you'll see things like this:
 		//
 		// ❯ docker run --rm debian:sid cat /etc/os-release | grep VERSION_CODENAME
-		//   VERSION_CODENAME=trixie
+		//   VERSION_CODENAME=forky
 		// ❯ docker run --rm debian:testing cat /etc/os-release | grep VERSION_CODENAME
-		//   VERSION_CODENAME=trixie
+		//   VERSION_CODENAME=forky
 		//
 		// ❯ curl -s http://deb.debian.org/debian/dists/testing/Release | grep '^Codename:'
-		//   Codename: trixie
+		//   Codename: forky
 		// ❯ curl -s http://deb.debian.org/debian/dists/sid/Release | grep '^Codename:'
 		//   Codename: sid
 		//
 		// depending where the team is during the development cycle you will see different behavior, making automating
 		// this a little challenging.
-		{Alias: "debian", Codename: "trixie", Rolling: true, ReplacementLabelVersion: strRef("unstable")}, // is currently sid, which is considered rolling
+		{Alias: "debian", Codename: "forky", Rolling: true, ReplacementLabelVersion: strRef("unstable")}, // is currently sid, which is considered rolling
 	}
 }
 
