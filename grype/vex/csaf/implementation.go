@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+	"time"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	vexStatus "github.com/anchore/grype/grype/vex/status"
 
-	"github.com/aws/smithy-go/time"
 	"github.com/gocsaf/csaf/v3/csaf"
 )
 
@@ -48,8 +48,8 @@ func (*Processor) ReadVexDocuments(docs []string) (interface{}, error) {
 
 	// The collection is sorted by date, so newer advisories are guaranteed to be consumed before.
 	sort.SliceStable(advs, func(i, j int) bool {
-		iT, _ := time.ParseDateTime(*advs[i].Document.Tracking.CurrentReleaseDate)
-		jT, _ := time.ParseDateTime(*advs[j].Document.Tracking.CurrentReleaseDate)
+		iT, _ := time.Parse(time.RFC3339, *advs[i].Document.Tracking.CurrentReleaseDate)
+		jT, _ := time.Parse(time.RFC3339, *advs[j].Document.Tracking.CurrentReleaseDate)
 		return iT.Before(jT)
 	})
 

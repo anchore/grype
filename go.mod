@@ -22,7 +22,6 @@ require (
 	github.com/anchore/syft v1.29.0
 	github.com/aquasecurity/go-pep440-version v0.0.1
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
-	github.com/aws/smithy-go v1.22.4
 	github.com/bitnami/go-version v0.0.0-20250505154626-452e8c5ee607
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/charmbracelet/bubbletea v1.3.6
