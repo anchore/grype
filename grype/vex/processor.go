@@ -2,6 +2,7 @@ package vex
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -39,16 +40,20 @@ func getVexImplementation(documents []string) (vexProcessorImplementation, error
 		return nil, nil
 	}
 
-	// We assume that, even N documents are provided, all of them use the same format
-	// so we can use the first one to determine the implementation to use.
-	if csaf.IsCSAF(documents[0]) {
+	firstDoc := documents[0]
+	
+	if _, err := os.Stat(firstDoc); err != nil {
+		return nil, fmt.Errorf("VEX document %q not found", firstDoc)
+	}
+	
+	if csaf.IsCSAF(firstDoc) {
 		return csaf.New(), nil
 	}
-	if openvex.IsOpenVex(documents[0]) {
+	if openvex.IsOpenVex(firstDoc) {
 		return openvex.New(), nil
 	}
 
-	return nil, fmt.Errorf("unsupported VEX document format")
+	return nil, fmt.Errorf("unsupported VEX document format for %q", firstDoc)
 }
 
 // NewProcessor returns a new VEX processor
