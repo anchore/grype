@@ -37,9 +37,9 @@ func MatchPackageByEcosystemPackageName(provider vulnerability.Provider, p pkg.P
 	vulns, err := provider.FindVulnerabilities(
 		search.ByEcosystem(p.Language, p.Type),
 		search.ByPackageName(packageName),
-		onlyQualifiedPackages(p),
-		onlyVulnerableVersions(version.NewVersionFromPkg(p)),
-		onlyNonWithdrawnVulnerabilities(),
+		OnlyQualifiedPackages(p),
+		OnlyVulnerableVersions(version.New(p.Version, pkg.VersionFormat(p))),
+		OnlyNonWithdrawnVulnerabilities(),
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("matcher failed to fetch language=%q pkg=%q: %w", p.Language, p.Name, err)

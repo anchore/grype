@@ -18,8 +18,8 @@ require (
 	github.com/anchore/go-testutils v0.0.0-20200925183923-d5f45b0d3c04
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/packageurl-go v0.1.1-0.20250220190351-d62adb6e1115
-	github.com/anchore/stereoscope v0.1.7-0.20250716200927-94c6f92877d4
-	github.com/anchore/syft v1.29.0
+	github.com/anchore/stereoscope v0.1.8
+	github.com/anchore/syft v1.30.0
 	github.com/aquasecurity/go-pep440-version v0.0.1
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/bitnami/go-version v0.0.0-20250505154626-452e8c5ee607
@@ -27,11 +27,11 @@ require (
 	github.com/charmbracelet/bubbletea v1.3.6
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/dave/jennifer v1.7.1
-	github.com/docker/docker v28.3.2+incompatible
+	github.com/docker/docker v28.3.3+incompatible
 	github.com/dustin/go-humanize v1.0.1
 	github.com/facebookincubator/nvdtools v0.1.5
 	github.com/gabriel-vasile/mimetype v1.4.9
-	github.com/gkampitakis/go-snaps v0.5.13
+	github.com/gkampitakis/go-snaps v0.5.14
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-test/deep v1.1.1
 	github.com/go-viper/mapstructure/v2 v2.4.0
@@ -45,14 +45,13 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-getter v1.7.8
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/hashicorp/go-version v1.7.0
 	github.com/iancoleman/strcase v0.3.0
 	github.com/invopop/jsonschema v0.13.0
 	github.com/knqyf263/go-apk-version v0.0.0-20200609155635-041fdbb8563f
 	github.com/knqyf263/go-deb-version v0.0.0-20241115132648-6f4aee6ccd23
 	github.com/masahiro331/go-mvn-version v0.0.0-20250131095131-f4974fa13b8a
 	github.com/muesli/termenv v0.16.0
-	github.com/olekukonko/tablewriter v1.0.8
+	github.com/olekukonko/tablewriter v1.0.9
 	github.com/openvex/go-vex v0.2.5
 	github.com/owenrumney/go-sarif v1.1.2-0.20231003122901-1000f5e05554
 	github.com/pandatix/go-cvss v0.6.2
@@ -69,9 +68,9 @@ require (
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
 	golang.org/x/exp v0.0.0-20250711185948-6ae5c78190dc
 	golang.org/x/time v0.12.0
-	golang.org/x/tools v0.35.0
+	golang.org/x/tools v0.36.0
 	gopkg.in/yaml.v3 v3.0.1
-	gorm.io/gorm v1.30.0
+	gorm.io/gorm v1.30.1
 )
 
 require (
@@ -115,7 +114,7 @@ require (
 	github.com/becheran/wildmatch-go v1.0.0 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb // indirect
-	github.com/bmatcuk/doublestar/v4 v4.9.0 // indirect
+	github.com/bmatcuk/doublestar/v4 v4.9.1 // indirect
 	github.com/bodgit/plumbing v1.3.0 // indirect
 	github.com/bodgit/sevenzip v1.6.1 // indirect
 	github.com/bodgit/windows v1.0.1 // indirect
@@ -184,6 +183,7 @@ require (
 	github.com/googleapis/gax-go/v2 v2.15.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-safetemp v1.0.0 // indirect
+	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/hashicorp/hcl/v2 v2.24.0 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
@@ -297,14 +297,14 @@ require (
 	go.opentelemetry.io/otel/trace v1.37.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
-	golang.org/x/crypto v0.40.0 // indirect
-	golang.org/x/mod v0.26.0 // indirect
-	golang.org/x/net v0.42.0 // indirect
+	golang.org/x/crypto v0.41.0 // indirect
+	golang.org/x/mod v0.27.0 // indirect
+	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
-	golang.org/x/sys v0.34.0 // indirect
-	golang.org/x/term v0.33.0 // indirect
-	golang.org/x/text v0.27.0 // indirect
+	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/term v0.34.0 // indirect
+	golang.org/x/text v0.28.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	google.golang.org/api v0.242.0 // indirect
 	google.golang.org/genproto v0.0.0-20250715232539-7130f93afb79 // indirect
@@ -316,5 +316,5 @@ require (
 	modernc.org/libc v1.66.3 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
-	modernc.org/sqlite v1.38.0 // indirect
+	modernc.org/sqlite v1.38.2 // indirect
 )

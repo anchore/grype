@@ -113,7 +113,7 @@ func TestBitnamiVersion_Compare(t *testing.T) {
 			thisVer, err := newBitnamiVersion(test.thisVersion)
 			require.NoError(t, err)
 
-			otherVer := NewVersion(test.otherVersion, test.otherFormat)
+			otherVer := New(test.otherVersion, test.otherFormat)
 
 			result, err := thisVer.Compare(otherVer)
 
@@ -141,7 +141,7 @@ func TestBitnamiVersion_Compare_EdgeCases(t *testing.T) {
 		{
 			name: "nil version object",
 			setupFunc: func(t testing.TB) (*Version, *Version) {
-				thisVer := NewVersion("1.2.3-4", BitnamiFormat)
+				thisVer := New("1.2.3-4", BitnamiFormat)
 
 				return thisVer, nil
 			},

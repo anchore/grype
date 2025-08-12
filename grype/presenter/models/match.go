@@ -56,7 +56,7 @@ func newMatch(m match.Match, p pkg.Package, metadataProvider vulnerability.Metad
 		}
 	}
 
-	format := version.FormatFromPkg(p)
+	format := pkg.VersionFormat(p)
 
 	details := make([]MatchDetails, len(m.Details))
 	for idx, d := range m.Details {
@@ -113,8 +113,8 @@ func calculateSuggestedFixedVersion(p pkg.Package, fixedVersions []string, forma
 	}
 
 	sort.SliceStable(fixedVersions, func(i, j int) bool {
-		v1 := version.NewVersion(fixedVersions[i], format)
-		v2 := version.NewVersion(fixedVersions[j], format)
+		v1 := version.New(fixedVersions[i], format)
+		v2 := version.New(fixedVersions[j], format)
 		err1 := v1.Validate()
 		err2 := v2.Validate()
 		if err1 != nil || err2 != nil {

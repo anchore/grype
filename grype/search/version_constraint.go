@@ -9,6 +9,11 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
+var _ interface {
+	vulnerability.Criteria
+	VersionConstraintMatcher
+} = (*VersionCriteria)(nil)
+
 // VersionConstraintMatcher is used for searches which include version.Constraints; this should be used instead of
 // post-filtering vulnerabilities in order to most efficiently hydrate data in memory
 type VersionConstraintMatcher interface {
@@ -20,27 +25,67 @@ func ByConstraintFunc(constraintFunc func(constraint version.Constraint) (bool, 
 	return &constraintFuncCriteria{fn: constraintFunc}
 }
 
+type VersionCriteria struct {
+	Version version.Version
+}
+
+func (v VersionCriteria) MatchesVulnerability(value vulnerability.Vulnerability) (bool, string, error) {
+	return ByConstraintFunc(v.criteria).MatchesVulnerability(value)
+}
+
+func (v VersionCriteria) MatchesConstraint(constraint version.Constraint) (bool, error) {
+	return v.criteria(constraint)
+}
+
+func (v VersionCriteria) criteria(constraint version.Constraint) (bool, error) {
+	satisfied, err := constraint.Satisfied(&v.Version)
+	if err != nil {
+		var unsupportedError *version.UnsupportedComparisonError
+		if errors.As(err, &unsupportedError) {
+			// if the format is unsupported, then the constraint is not satisfied, but this should not be conveyed as an error
+			log.WithFields("reason", err).Trace("unsatisfied constraint")
+			return false, nil
+		}
+
+		var e *version.NonFatalConstraintError
+		if errors.As(err, &e) {
+			log.Warn(e)
+		} else {
+			return false, fmt.Errorf("failed to check constraint=%v version=%v: %w", constraint, v, err)
+		}
+	}
+	return satisfied, nil
+}
+
+// ByFixedVersion returns criteria which constrains vulnerabilities to those that are fixed based on the provided version,
+// in other words: vulnerabilities where the fix version is less than v
+func ByFixedVersion(v version.Version) vulnerability.Criteria {
+	return &funcCriteria{
+		func(vuln vulnerability.Vulnerability) (bool, string, error) {
+			var err error
+			if vuln.Fix.State != vulnerability.FixStateFixed {
+				return false, "", nil
+			}
+			for _, fixVersion := range vuln.Fix.Versions {
+				cmp, e := version.New(fixVersion, v.Format).Compare(&v)
+				if e != nil {
+					err = e
+				}
+				if cmp <= 0 {
+					// fix version is less than or equal to the provided version, so is considered fixed
+					return true, fmt.Sprintf("fix version %v is less than %v", v, fixVersion), err
+				}
+			}
+			return false, "", err
+		},
+	}
+}
+
 // ByVersion returns criteria which constrains vulnerabilities to those with matching version constraints
 func ByVersion(v version.Version) vulnerability.Criteria {
-	return ByConstraintFunc(func(constraint version.Constraint) (bool, error) {
-		satisfied, err := constraint.Satisfied(&v)
-		if err != nil {
-			var unsupportedError *version.UnsupportedComparisonError
-			if errors.As(err, &unsupportedError) {
-				// if the format is unsupported, then the constraint is not satisfied, but this should not be conveyed as an error
-				log.WithFields("reason", err).Trace("unsatisfied constraint")
-				return false, nil
-			}
-
-			var e *version.NonFatalConstraintError
-			if errors.As(err, &e) {
-				log.Warn(e)
-			} else {
-				return false, fmt.Errorf("failed to check constraint=%v version=%v: %w", constraint, v, err)
-			}
-		}
-		return satisfied, nil
-	})
+	return &VersionCriteria{
+		Version: v,
+	}
 }
 
 // constraintFuncCriteria implements vulnerability.Criteria by providing a function implementing the same signature as MatchVulnerability

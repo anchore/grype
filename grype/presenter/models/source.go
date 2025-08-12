@@ -53,6 +53,11 @@ func newSource(src syftSource.Description) (source, error) {
 			Type:   "file",
 			Target: m.Path,
 		}, nil
+	case syftSource.SnapMetadata:
+		return source{
+			Type:   "snap",
+			Target: fmt.Sprintf("%s@%s", src.Name, src.Version),
+		}, nil
 	case nil:
 		// we may be showing results from a input source that does not support source information
 		return source{

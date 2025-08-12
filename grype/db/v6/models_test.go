@@ -119,6 +119,11 @@ func TestOperatingSystem_Version(t *testing.T) {
 			os:             &OperatingSystem{Codename: "buster"},
 			expectedResult: "buster",
 		},
+		{
+			name:           "with channel",
+			os:             &OperatingSystem{MajorVersion: "10", MinorVersion: "1", Channel: "stable"},
+			expectedResult: "10.1+stable",
+		},
 	}
 
 	for _, tt := range tests {

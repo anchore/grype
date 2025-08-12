@@ -24,7 +24,6 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 				},
 			},
 		},
-		Distro: nil,
 	}
 
 	libCryptoPackage := pkg.Package{

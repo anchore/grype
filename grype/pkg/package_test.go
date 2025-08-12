@@ -1074,7 +1074,7 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			d := distro.FromRelease(test.sbom.Artifacts.LinuxDistribution)
+			d := distro.FromRelease(test.sbom.Artifacts.LinuxDistribution, distro.DefaultFixChannels())
 			catalog := removePackagesByOverlap(test.sbom.Artifacts.Packages, test.sbom.Relationships, d)
 			pkgs := FromCollection(catalog, SynthesisConfig{})
 			var pkgNames []string

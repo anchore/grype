@@ -6,8 +6,8 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
-// onlyVulnerableVersions returns a criteria object that tests affected vulnerability ranges against the provided version
-func onlyVulnerableVersions(v *version.Version) vulnerability.Criteria {
+// OnlyVulnerableVersions returns a criteria object that tests affected vulnerability ranges against the provided version
+func OnlyVulnerableVersions(v *version.Version) vulnerability.Criteria {
 	if v == nil || v.Raw == "" {
 		// if no version is provided, match everything
 		return search.ByFunc(func(_ vulnerability.Vulnerability) (bool, string, error) {
