@@ -4,14 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"sort"
 	"time"
+
+	"github.com/gocsaf/csaf/v3/csaf"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	vexStatus "github.com/anchore/grype/grype/vex/status"
-
-	"github.com/gocsaf/csaf/v3/csaf"
 )
 
 // searchedBy captures the parameters used to search through the VEX data
@@ -46,14 +45,36 @@ func (*Processor) ReadVexDocuments(docs []string) (interface{}, error) {
 		advs = append(advs, adv)
 	}
 
-	// The collection is sorted by date, so newer advisories are guaranteed to be consumed before.
-	sort.SliceStable(advs, func(i, j int) bool {
-		iT, _ := time.Parse(time.RFC3339, *advs[i].Document.Tracking.CurrentReleaseDate)
-		jT, _ := time.Parse(time.RFC3339, *advs[j].Document.Tracking.CurrentReleaseDate)
-		return iT.Before(jT)
-	})
+	slices.SortStableFunc(advs, newerCurrentReleaseDateFirst)
 
 	return advs, nil
+}
+
+// newerCurrentReleaseDateFirst compares csaf.Advisories by the document.Tracking.CurrentReleaseDate
+// field, treating newer dates as earlier values, and nil and invalid dates as later than
+// all valid dates
+func newerCurrentReleaseDateFirst(a, b *csaf.Advisory) int {
+	parseDate := func(datePtr *string) (time.Time, bool) {
+		if datePtr == nil {
+			return time.Time{}, false
+		}
+		t, err := time.Parse(time.RFC3339, *datePtr)
+		return t, err == nil
+	}
+
+	aT, aValid := parseDate(a.Document.Tracking.CurrentReleaseDate)
+	bT, bValid := parseDate(b.Document.Tracking.CurrentReleaseDate)
+
+	switch {
+	case !aValid && !bValid:
+		return 0
+	case !bValid:
+		return -1
+	case !aValid:
+		return 1
+	default:
+		return bT.Compare(aT) // newer first
+	}
 }
 
 // FilterMatches takes a set of scanning results and moves any results marked in

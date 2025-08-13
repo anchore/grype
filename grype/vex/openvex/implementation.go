@@ -6,14 +6,14 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/google/go-containerregistry/pkg/name"
+	openvex "github.com/openvex/go-vex/pkg/vex"
+
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	vexStatus "github.com/anchore/grype/grype/vex/status"
-
 	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/source"
-	"github.com/google/go-containerregistry/pkg/name"
-	openvex "github.com/openvex/go-vex/pkg/vex"
 )
 
 type Processor struct{}

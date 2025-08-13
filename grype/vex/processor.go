@@ -41,11 +41,11 @@ func getVexImplementation(documents []string) (vexProcessorImplementation, error
 	}
 
 	firstDoc := documents[0]
-	
+
 	if _, err := os.Stat(firstDoc); err != nil {
 		return nil, fmt.Errorf("VEX document %q not found", firstDoc)
 	}
-	
+
 	if csaf.IsCSAF(firstDoc) {
 		return csaf.New(), nil
 	}
