@@ -182,14 +182,37 @@ func (f Fix) String() string {
 
 // FixDetail is additional information about a fix, such as commit details and patch URLs.
 type FixDetail struct {
-	// GitCommit is the identifier for the Git commit associated with the fix.
-	GitCommit string `json:"git_commit,omitempty"`
-
-	// Timestamp is the date and time when the fix was committed.
-	Timestamp *time.Time `json:"timestamp,omitempty"`
+	// Available indicates when the fix information became available and how it was obtained.
+	Available *FixAvailability `json:"available,omitempty"`
 
 	// References contains URLs or identifiers for additional resources on the fix.
 	References []Reference `json:"references,omitempty"`
+}
+
+type FixAvailability struct {
+	// Date is the date and time when fix information became available. Note: this might not be when the fix was created, committed or merged.
+	Date *time.Time `json:"date,omitempty"`
+
+	// Kind describes how this date was obtained (e.g. advisory, release, commit, PR, issue, first-observed-record)
+	Kind string `json:"kind,omitempty"`
+}
+
+func (f FixAvailability) MarshalJSON() ([]byte, error) {
+	type Alias FixAvailability
+	aux := &struct {
+		Date *string `json:"date,omitempty"`
+		*Alias
+	}{
+		Alias: (*Alias)(&f),
+	}
+
+	// the JSON marshaller should interpret the time.Time as a Date, not a timestamp
+	if f.Date != nil {
+		dateStr := f.Date.Format("2006-01-02")
+		aux.Date = &dateStr
+	}
+
+	return json.Marshal(aux)
 }
 
 // AffectedVersion defines the versioning format and constraints.
