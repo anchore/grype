@@ -7,7 +7,7 @@
   "statements": [
     {
       "vulnerability": {
-        "name": "CVE-alpine-libvncserver"
+        "name": "CVE-2024-0000"
       },
       "products": [
         {
