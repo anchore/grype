@@ -16,8 +16,7 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 		{Alias: "centos", ReplacementName: strRef("rhel")},
 		{Alias: "rocky", ReplacementName: strRef("rhel")},
 		{Alias: "rockylinux", ReplacementName: strRef("rhel")}, // non-standard, but common (dockerhub uses "rockylinux")
-		{Alias: "alma", ReplacementName: strRef("rhel")},
-		{Alias: "almalinux", ReplacementName: strRef("rhel")}, // non-standard, but common (dockerhub uses "almalinux")
+		{Alias: "alma", ReplacementName: strRef("almalinux")},
 		{Alias: "gentoo", ReplacementName: strRef("rhel")},
 
 		// to remain backwards compatible, we need to keep old clients from ignoring EUS data.
