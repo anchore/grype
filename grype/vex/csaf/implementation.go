@@ -121,7 +121,7 @@ func (*Processor) FilterMatches(
 
 // AugmentMatches adds results to the match.Matches array when matching data
 // about an affected VEX product is found on loaded VEX documents. Matches
-// are moved from the ignore list or synthesized when no previous data is found.
+// are moved from the ignore list back to active matches.
 func (*Processor) AugmentMatches(
 	docRaw interface{}, ignoreRules []match.IgnoreRule, _ *pkg.Context, matches *match.Matches, ignoredMatches []match.IgnoredMatch,
 ) (*match.Matches, []match.IgnoredMatch, error) {

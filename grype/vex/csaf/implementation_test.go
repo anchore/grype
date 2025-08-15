@@ -1,11 +1,18 @@
 package csaf
 
 import (
+	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 	"slices"
 	"testing"
 
 	"github.com/gocsaf/csaf/v3/csaf"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/pkg"
+	vexStatus "github.com/anchore/grype/grype/vex/status"
+	"github.com/anchore/grype/grype/vulnerability"
 )
 
 func Test_newerCurrentReleaseDateFirst(t *testing.T) {
@@ -120,6 +127,74 @@ func Test_newerCurrentReleaseDateFirst(t *testing.T) {
 			}
 
 			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func Test_matchingRule(t *testing.T) {
+	tests := []struct {
+		name            string
+		ignoreRules     []match.IgnoreRule
+		m               match.Match
+		advMatch        *advisoryMatch
+		allowedStatuses []vexStatus.Status
+		expected        *match.IgnoreRule
+	}{
+		{
+			name:        "no ignore rules, not_affected status with inline mitigations",
+			ignoreRules: []match.IgnoreRule{}, // No existing ignore rules
+			m: match.Match{
+				Vulnerability: vulnerability.Vulnerability{
+					Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
+				},
+				Package: pkg.Package{Name: "test-package"},
+			},
+			advMatch: &advisoryMatch{
+				Vulnerability: &csaf.Vulnerability{
+					CVE: func() *csaf.CVE { cve := csaf.CVE("CVE-2023-1234"); return &cve }(),
+				},
+				Status:    knownNotAffected, // CSAF status
+				ProductID: "test-product-1",
+			},
+			allowedStatuses: vexStatus.IgnoreList(), // [Fixed, NotAffected]
+			expected: &match.IgnoreRule{
+				Namespace:        "vex",
+				Vulnerability:    "CVE-2023-1234",
+				VexJustification: "", // Will be empty since no flags/threats in this simple case
+				VexStatus:        "not_affected",
+			},
+		},
+		{
+			name:        "no ignore rules, under_investigation status should return nil",
+			ignoreRules: []match.IgnoreRule{}, // No existing ignore rules
+			m: match.Match{
+				Vulnerability: vulnerability.Vulnerability{
+					Reference: vulnerability.Reference{ID: "CVE-2023-5678"},
+				},
+				Package: pkg.Package{Name: "another-package"},
+			},
+			advMatch: &advisoryMatch{
+				Vulnerability: &csaf.Vulnerability{
+					CVE: func() *csaf.CVE { cve := csaf.CVE("CVE-2023-5678"); return &cve }(),
+				},
+				Status:    underInvestigation, // CSAF status
+				ProductID: "test-product-2",
+			},
+			allowedStatuses: vexStatus.IgnoreList(), // [Fixed, NotAffected] - doesn't include UnderInvestigation
+			expected:        nil,                    // Should return nil since under_investigation is not in allowed statuses
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := matchingRule(tt.ignoreRules, tt.m, tt.advMatch, tt.allowedStatuses)
+			if tt.expected == nil {
+				require.Nil(t, result)
+				return
+			}
+			if d := cmp.Diff(*result, *tt.expected); d != "" {
+				t.Errorf("mismatch (-want +got):\n%s", d)
+			}
 		})
 	}
 }
