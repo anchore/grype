@@ -251,5 +251,11 @@ func renderDBSearchPackagesTableRows(structuredRows []dbsearch.AffectedPackage) 
 }
 
 func mimicV5Namespace(row dbsearch.AffectedPackage) string {
-	return v6.MimicV5Namespace(&row.Vulnerability.Model, row.Model)
+	namespace := v6.MimicV5Namespace(&row.Vulnerability.Model, row.Model)
+
+	if row.Model != nil && row.Model.OperatingSystem != nil && row.Model.OperatingSystem.Channel != "" {
+		return namespace + ":" + row.Model.OperatingSystem.Channel
+	}
+
+	return namespace
 }
