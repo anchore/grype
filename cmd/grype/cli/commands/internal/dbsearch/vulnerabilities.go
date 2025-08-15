@@ -185,7 +185,8 @@ func FindVulnerabilities(reader interface { //nolint:funlen
 	v6.VulnerabilityStoreReader
 	v6.AffectedPackageStoreReader
 	v6.VulnerabilityDecoratorStoreReader
-}, config VulnerabilitiesOptions) ([]Vulnerability, error) {
+}, config VulnerabilitiesOptions,
+) ([]Vulnerability, error) {
 	log.WithFields("vulnSpecs", len(config.Vulnerability)).Debug("fetching vulnerabilities")
 
 	if config.RecordLimit == 0 {
