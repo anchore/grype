@@ -43,7 +43,6 @@ type AffectedPackageInfo struct {
 
 // Package represents a package name within a known ecosystem, such as "python" or "golang".
 type Package struct {
-
 	// Name is the name of the package within the ecosystem
 	Name string `json:"name"`
 
@@ -167,14 +166,10 @@ func toOS(os *v6.OperatingSystem) *OperatingSystem {
 	if os == nil {
 		return nil
 	}
-	version := os.VersionNumber()
-	if version == "" {
-		version = os.Version()
-	}
 
 	return &OperatingSystem{
 		Name:    os.Name,
-		Version: version,
+		Version: os.Version(),
 	}
 }
 
@@ -182,7 +177,8 @@ func FindAffectedPackages(reader interface {
 	v6.AffectedPackageStoreReader
 	v6.AffectedCPEStoreReader
 	v6.VulnerabilityDecoratorStoreReader
-}, criteria AffectedPackagesOptions) ([]AffectedPackage, error) {
+}, criteria AffectedPackagesOptions,
+) ([]AffectedPackage, error) {
 	allAffectedPkgs, allAffectedCPEs, err := findAffectedPackages(reader, criteria)
 	if err != nil {
 		return nil, err
@@ -195,7 +191,8 @@ func findAffectedPackages(reader interface { //nolint:funlen,gocognit
 	v6.AffectedPackageStoreReader
 	v6.AffectedCPEStoreReader
 	v6.VulnerabilityDecoratorStoreReader
-}, config AffectedPackagesOptions) ([]affectedPackageWithDecorations, []affectedCPEWithDecorations, error) {
+}, config AffectedPackagesOptions,
+) ([]affectedPackageWithDecorations, []affectedCPEWithDecorations, error) {
 	var allAffectedPkgs []affectedPackageWithDecorations
 	var allAffectedCPEs []affectedCPEWithDecorations
 
