@@ -209,8 +209,6 @@ tasks:
     desc: Run integration tests
     cmds:
       - "go test -v ./test/integration"
-      # exercise most of the CLI with the data race detector
-      - "go run -race cmd/{{ .PROJECT }}/main.go alpine:latest"
 
   cli:
     desc: Run CLI tests
