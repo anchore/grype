@@ -209,6 +209,11 @@ tasks:
     desc: Run integration tests
     cmds:
       - "go test -v ./test/integration"
+      # update database outside race detector, since doing so with
+      # race detector on is very slow
+      - "go run cmd/{{ .PROJECT }}/main.go db update"
+      # exercise most of the CLI with the data race detector enabled
+      - "go run -race cmd/{{ .PROJECT }}/main.go alpine:latest"
 
   cli:
     desc: Run CLI tests
