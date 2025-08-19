@@ -1,13 +1,13 @@
 package csaf
 
 import (
-	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/require"
 	"slices"
 	"testing"
 
 	"github.com/gocsaf/csaf/v3/csaf"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
