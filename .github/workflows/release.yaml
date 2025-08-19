@@ -19,7 +19,7 @@ jobs:
     environment: release
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
         with:
           persist-credentials: false
 
@@ -31,7 +31,7 @@ jobs:
         # at the time of when the OIDC token was issued on the Github Actions runner.
         run: echo "This can only be run on the main branch otherwise releases produced will not be verifiable with cosign" && exit 1
 
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
         with:
           persist-credentials: false
 
@@ -144,7 +144,7 @@ jobs:
       packages: write
       id-token: write
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
         with:
           fetch-depth: 0
           persist-credentials: true
@@ -156,13 +156,13 @@ jobs:
           build-cache-key-prefix: "snapshot"
 
       - name: Login to Docker Hub
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772  #v3.4.0
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1  #v3.5.0
         with:
           username: ${{ secrets.ANCHOREOSSWRITE_DH_USERNAME }}
           password: ${{ secrets.ANCHOREOSSWRITE_DH_PAT }}
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772  #v3.4.0
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1  #v3.5.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -192,7 +192,7 @@ jobs:
           # for updating brew formula in anchore/homebrew-syft
           GITHUB_BREW_TOKEN: ${{ secrets.ANCHOREOPS_GITHUB_OSS_WRITE_TOKEN }}
 
-      - uses: anchore/sbom-action@7b36ad622f042cab6f59a75c2ac24ccb256e9b45 # v0.20.4
+      - uses: anchore/sbom-action@da167eac915b4e86f08b264dbdbc867b61be6f0c # v0.20.5
         continue-on-error: true
         with:
           artifact-name: sbom.spdx.json
