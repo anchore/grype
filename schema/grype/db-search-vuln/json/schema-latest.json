@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "anchore.io/schema/grype/db-search-vuln/json/1.1.0/vulnerabilities",
+  "$id": "anchore.io/schema/grype/db-search-vuln/json/1.0.3/vulnerabilities",
   "$ref": "#/$defs/Vulnerabilities",
   "$defs": {
     "EPSS": {
