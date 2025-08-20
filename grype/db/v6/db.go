@@ -21,16 +21,18 @@ const (
 	ModelVersion = 6
 
 	// Revision indicates how many changes have been introduced which **may** prevent interaction with some historical data
-	Revision = 0
+	Revision = 1
 
 	// Addition indicates how many changes have been introduced that are compatible with all historical data
-	Addition = 3
+	Addition = 0
 
 	// v6 model changelog:
 	// 6.0.0: Initial version 🎉
 	// 6.0.1: Add CISA KEV to VulnerabilityDecorator store
 	// 6.0.2: Add EPSS to VulnerabilityDecorator store
 	// 6.0.3: Add channel column to OperatingSystem model
+	// 6.1.0: Add Fix availability information to AffectedPackageBlob.AffectedRange.Fix.Detail.
+	//        Existing git commit and timestamp information was removed (as it was unused)
 )
 
 const (
