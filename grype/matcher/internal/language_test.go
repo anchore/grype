@@ -35,6 +35,15 @@ func newMockProviderByLanguage() vulnerability.Provider {
 			Constraint:  version.MustGetConstraint("< 3.7.4", version.GemFormat),
 		},
 		{
+			// ignore filter entry
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2017-fake-2",
+				Namespace: "github:language:ruby",
+			},
+			PackageName: "activerecord",
+			Constraint:  version.MustGetConstraint("< 3.7.4", version.GemFormat),
+		},
+		{
 			Reference: vulnerability.Reference{
 				ID:        "CVE-2017-fake-1",
 				Namespace: "github:language:ruby",
@@ -42,6 +51,11 @@ func newMockProviderByLanguage() vulnerability.Provider {
 			PackageName: "nokogiri",
 			// make sure we find it with gem version constraint
 			Constraint: version.MustGetConstraint("< 1.7.6", version.GemFormat),
+			// detail a fix by vendor "foo"
+			Fix: vulnerability.Fix{
+				Versions: []string{"1.7.4+foo.1"},
+				State:    vulnerability.FixStateFixed,
+			},
 		},
 		{
 			Reference: vulnerability.Reference{
@@ -83,10 +97,30 @@ func expectedMatch(p pkg.Package, constraint string) []match.Match {
 	}
 }
 
+func expectedIgnored(pkgName string, fix string) []match.IgnoreRule {
+	if fix == "" {
+		return nil
+	}
+	return []match.IgnoreRule{
+		{
+			Vulnerability: "CVE-2017-fake-1",
+			Reason:        "Fix",
+			Namespace:     "github:language:ruby",
+			FixState:      vulnerability.FixStateFixed.String(),
+			Package: match.IgnoreRulePackage{
+				Name:    pkgName,
+				Version: fix,
+			},
+			MatchType: match.ExactDirectMatch,
+		},
+	}
+}
+
 func TestFindMatchesByPackageLanguage(t *testing.T) {
 	cases := []struct {
 		p           pkg.Package
 		constraint  string
+		expIgnores  []match.IgnoreRule
 		assertEmpty bool
 	}{
 		{
@@ -101,6 +135,7 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 		},
 		{
 			constraint: "< 1.7.6 (gem)",
+			// no ignores expected as version doesn't contain +foo
 			p: pkg.Package{
 				ID:       pkg.ID(uuid.NewString()),
 				Name:     "nokogiri",
@@ -109,6 +144,17 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 				Type:     syftPkg.GemPkg,
 			},
 		},
+		// {
+		// 	constraint: "< 1.7.6 (gem)",
+		// 	expIgnores: expectedIgnored("nokogiri", "1.7.4+foo.1"),
+		// 	p: pkg.Package{
+		// 		ID:       pkg.ID(uuid.NewString()),
+		// 		Name:     "nokogiri",
+		// 		Version:  "1.7.5+foo.1",
+		// 		Language: syftPkg.Ruby,
+		// 		Type:     syftPkg.GemPkg,
+		// 	},
+		// },
 		{
 			p: pkg.Package{
 				ID:       pkg.ID(uuid.NewString()),
@@ -126,7 +172,7 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 		t.Run(c.p.Name, func(t *testing.T) {
 			actual, ignored, err := MatchPackageByLanguage(store, c.p, match.RubyGemMatcher)
 			require.NoError(t, err)
-			require.Empty(t, ignored)
+			assert.ElementsMatch(t, ignored, c.expIgnores)
 			if c.assertEmpty {
 				assert.Empty(t, actual)
 				return
