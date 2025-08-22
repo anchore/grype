@@ -31,7 +31,7 @@ const (
 	// 6.0.1: Add CISA KEV to VulnerabilityDecorator store
 	// 6.0.2: Add EPSS to VulnerabilityDecorator store
 	// 6.0.3: Add channel column to OperatingSystem model
-	// 6.1.0: Add Fix availability information to AffectedPackageBlob.AffectedRange.Fix.Detail.
+	// 6.1.0: Add Fix availability information to PackageBlob.Range.Fix.Detail.
 	//        Existing git commit and timestamp information was removed (as it was unused)
 )
 
@@ -59,7 +59,9 @@ type Reader interface {
 	VulnerabilityDecoratorStoreReader
 	OperatingSystemStoreReader
 	AffectedPackageStoreReader
+	UnaffectedPackageStoreReader
 	AffectedCPEStoreReader
+	UnaffectedCPEStoreReader
 	io.Closer
 	attachBlobValue(...blobable) error
 }
@@ -70,7 +72,9 @@ type Writer interface {
 	VulnerabilityStoreWriter
 	VulnerabilityDecoratorStoreWriter
 	AffectedPackageStoreWriter
+	UnaffectedPackageStoreWriter
 	AffectedCPEStoreWriter
+	UnaffectedCPEStoreWriter
 	io.Closer
 }
 
