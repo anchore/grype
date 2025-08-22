@@ -106,19 +106,19 @@ func (c CVSSSeverity) String() string {
 	return vector
 }
 
-// AffectedPackageBlob represents a package affected by a vulnerability.
-type AffectedPackageBlob struct {
+// PackageBlob represents a package that is affected by a vulnerability.
+type PackageBlob struct {
 	// CVEs is a list of Common Vulnerabilities and Exposures (CVE) identifiers related to this vulnerability.
 	CVEs []string `json:"cves,omitempty"`
 
 	// Qualifiers are package attributes that confirm the package is affected by the vulnerability.
-	Qualifiers *AffectedPackageQualifiers `json:"qualifiers,omitempty"`
+	Qualifiers *PackageQualifiers `json:"qualifiers,omitempty"`
 
 	// Ranges specifies the affected version ranges and fixes if available.
-	Ranges []AffectedRange `json:"ranges,omitempty"`
+	Ranges []Range `json:"ranges,omitempty"`
 }
 
-func (a AffectedPackageBlob) String() string {
+func (a PackageBlob) String() string {
 	var fields []string
 
 	if len(a.Ranges) > 0 {
@@ -136,8 +136,8 @@ func (a AffectedPackageBlob) String() string {
 	return strings.Join(fields, ", ")
 }
 
-// AffectedPackageQualifiers contains package attributes that confirm the package is affected by the vulnerability.
-type AffectedPackageQualifiers struct {
+// PackageQualifiers contains package attributes that should hold true to associate a vulnerablity to that package.
+type PackageQualifiers struct {
 	// RpmModularity indicates if the package follows RPM modularity for versioning.
 	RpmModularity *string `json:"rpm_modularity,omitempty"`
 
@@ -145,16 +145,16 @@ type AffectedPackageQualifiers struct {
 	PlatformCPEs []string `json:"platform_cpes,omitempty"`
 }
 
-// AffectedRange defines a specific range of versions affected by a vulnerability.
-type AffectedRange struct {
+// Range defines a specific range of package versions pertaining to a vulnerability.
+type Range struct {
 	// Version defines the version constraints for affected software.
-	Version AffectedVersion `json:"version,omitempty"`
+	Version Version `json:"version,omitempty"`
 
 	// Fix provides details on the fix version and its state if available.
 	Fix *Fix `json:"fix,omitempty"`
 }
 
-func (a AffectedRange) String() string {
+func (a Range) String() string {
 	return fmt.Sprintf("%s (%s)", a.Version, a.Fix)
 }
 
@@ -245,8 +245,8 @@ func (f *FixAvailability) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// AffectedVersion defines the versioning format and constraints.
-type AffectedVersion struct {
+// Version defines the versioning format and constraints.
+type Version struct {
 	// Type specifies the versioning system used (e.g., "semver", "rpm").
 	Type string `json:"type,omitempty"`
 

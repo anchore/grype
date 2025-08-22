@@ -13,24 +13,24 @@ import (
 	"github.com/anchore/syft/syft/cpe"
 )
 
-type affectedPackageHandlePreloadConfig struct {
+type unaffectedPackageHandlePreloadConfig struct {
 	name                 string
 	PreloadOS            bool
 	PreloadPackage       bool
 	PreloadBlob          bool
 	PreloadVulnerability bool
-	prepExpectations     func(*testing.T, []AffectedPackageHandle) []AffectedPackageHandle
+	prepExpectations     func(*testing.T, []UnaffectedPackageHandle) []UnaffectedPackageHandle
 }
 
-func defaultAffectedPackageHandlePreloadCases() []affectedPackageHandlePreloadConfig {
-	return []affectedPackageHandlePreloadConfig{
+func defaultUnaffectedPackageHandlePreloadCases() []unaffectedPackageHandlePreloadConfig {
+	return []unaffectedPackageHandlePreloadConfig{
 		{
 			name:                 "preload-all",
 			PreloadOS:            true,
 			PreloadPackage:       true,
 			PreloadBlob:          true,
 			PreloadVulnerability: true,
-			prepExpectations: func(t *testing.T, in []AffectedPackageHandle) []AffectedPackageHandle {
+			prepExpectations: func(t *testing.T, in []UnaffectedPackageHandle) []UnaffectedPackageHandle {
 				for _, a := range in {
 					if a.OperatingSystemID != nil {
 						require.NotNil(t, a.OperatingSystem)
@@ -44,8 +44,8 @@ func defaultAffectedPackageHandlePreloadCases() []affectedPackageHandlePreloadCo
 		},
 		{
 			name: "preload-none",
-			prepExpectations: func(t *testing.T, in []AffectedPackageHandle) []AffectedPackageHandle {
-				var out []AffectedPackageHandle
+			prepExpectations: func(t *testing.T, in []UnaffectedPackageHandle) []UnaffectedPackageHandle {
+				var out []UnaffectedPackageHandle
 				for _, a := range in {
 					if a.OperatingSystem == nil && a.BlobValue == nil && a.Package == nil && a.Vulnerability == nil {
 						t.Skip("preload already matches expectation")
@@ -62,8 +62,8 @@ func defaultAffectedPackageHandlePreloadCases() []affectedPackageHandlePreloadCo
 		{
 			name:      "preload-os-only",
 			PreloadOS: true,
-			prepExpectations: func(t *testing.T, in []AffectedPackageHandle) []AffectedPackageHandle {
-				var out []AffectedPackageHandle
+			prepExpectations: func(t *testing.T, in []UnaffectedPackageHandle) []UnaffectedPackageHandle {
+				var out []UnaffectedPackageHandle
 				for _, a := range in {
 					if a.OperatingSystemID != nil {
 						require.NotNil(t, a.OperatingSystem)
@@ -82,8 +82,8 @@ func defaultAffectedPackageHandlePreloadCases() []affectedPackageHandlePreloadCo
 		{
 			name:           "preload-package-only",
 			PreloadPackage: true,
-			prepExpectations: func(t *testing.T, in []AffectedPackageHandle) []AffectedPackageHandle {
-				var out []AffectedPackageHandle
+			prepExpectations: func(t *testing.T, in []UnaffectedPackageHandle) []UnaffectedPackageHandle {
+				var out []UnaffectedPackageHandle
 				for _, a := range in {
 					require.NotNil(t, a.Package)
 					if a.OperatingSystem == nil && a.BlobValue == nil && a.Vulnerability == nil {
@@ -100,8 +100,8 @@ func defaultAffectedPackageHandlePreloadCases() []affectedPackageHandlePreloadCo
 		{
 			name:        "preload-blob-only",
 			PreloadBlob: true,
-			prepExpectations: func(t *testing.T, in []AffectedPackageHandle) []AffectedPackageHandle {
-				var out []AffectedPackageHandle
+			prepExpectations: func(t *testing.T, in []UnaffectedPackageHandle) []UnaffectedPackageHandle {
+				var out []UnaffectedPackageHandle
 				for _, a := range in {
 					if a.OperatingSystem == nil && a.Package == nil && a.Vulnerability == nil {
 						t.Skip("preload already matches expectation")
@@ -117,8 +117,8 @@ func defaultAffectedPackageHandlePreloadCases() []affectedPackageHandlePreloadCo
 		{
 			name:                 "preload-vulnerability-only",
 			PreloadVulnerability: true,
-			prepExpectations: func(t *testing.T, in []AffectedPackageHandle) []AffectedPackageHandle {
-				var out []AffectedPackageHandle
+			prepExpectations: func(t *testing.T, in []UnaffectedPackageHandle) []UnaffectedPackageHandle {
+				var out []UnaffectedPackageHandle
 				for _, a := range in {
 					if a.OperatingSystem == nil && a.Package == nil && a.BlobValue == nil {
 						t.Skip("preload already matches expectation")
@@ -134,15 +134,15 @@ func defaultAffectedPackageHandlePreloadCases() []affectedPackageHandlePreloadCo
 	}
 }
 
-func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
-	setupAffectedPackageStore := func(t *testing.T) *affectedPackageStore {
+func TestUnaffectedPackageStore_AddUnaffectedPackages(t *testing.T) {
+	setupUnaffectedPackageStore := func(t *testing.T) *unaffectedPackageStore {
 		db := setupTestStore(t).db
 		bs := newBlobStore(db)
-		return newAffectedPackageStore(db, bs, newOperatingSystemStore(db, bs))
+		return newUnaffectedPackageStore(db, bs, newOperatingSystemStore(db, bs))
 	}
 
-	setupTestStoreWithPackages := func(t *testing.T) (*AffectedPackageHandle, *AffectedPackageHandle, *affectedPackageStore) {
-		pkg1 := &AffectedPackageHandle{
+	setupTestStoreWithPackages := func(t *testing.T) (*UnaffectedPackageHandle, *UnaffectedPackageHandle, *unaffectedPackageStore) {
+		pkg1 := &UnaffectedPackageHandle{
 			Vulnerability: &VulnerabilityHandle{
 				Name: "CVE-2023-1234",
 				Provider: &Provider{
@@ -155,25 +155,25 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 			},
 		}
 
-		pkg2 := testDistro1AffectedPackage2Handle()
+		pkg2 := testDistro1UnaffectedPackage2Handle()
 
-		return pkg1, pkg2, setupAffectedPackageStore(t)
+		return pkg1, pkg2, setupUnaffectedPackageStore(t)
 	}
 
 	t.Run("no preloading", func(t *testing.T) {
 		pkg1, pkg2, s := setupTestStoreWithPackages(t)
 
-		err := s.AddAffectedPackages(pkg1, pkg2)
+		err := s.AddUnaffectedPackages(pkg1, pkg2)
 		require.NoError(t, err)
 
-		var result1 AffectedPackageHandle
+		var result1 UnaffectedPackageHandle
 		err = s.db.Where("package_id = ?", pkg1.PackageID).First(&result1).Error
 		require.NoError(t, err)
 		assert.Equal(t, pkg1.PackageID, result1.PackageID)
 		assert.Equal(t, pkg1.BlobID, result1.BlobID)
 		require.Nil(t, result1.BlobValue) // no preloading on fetch
 
-		var result2 AffectedPackageHandle
+		var result2 UnaffectedPackageHandle
 		err = s.db.Where("package_id = ?", pkg2.PackageID).First(&result2).Error
 		require.NoError(t, err)
 		assert.Equal(t, pkg2.PackageID, result2.PackageID)
@@ -184,7 +184,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 	t.Run("preloading", func(t *testing.T) {
 		pkg1, pkg2, s := setupTestStoreWithPackages(t)
 
-		err := s.AddAffectedPackages(pkg1, pkg2)
+		err := s.AddUnaffectedPackages(pkg1, pkg2)
 		require.NoError(t, err)
 
 		options := &GetPackageOptions{
@@ -193,7 +193,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 			PreloadBlob:    true,
 		}
 
-		results, err := s.GetAffectedPackages(pkgFromName(pkg1.Package.Name), options)
+		results, err := s.GetUnaffectedPackages(pkgFromName(pkg1.Package.Name), options)
 		require.NoError(t, err)
 		require.Len(t, results, 1)
 
@@ -213,7 +213,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 		}
 		pkg1.Package.CPEs = []Cpe{c}
 
-		err := s.AddAffectedPackages(pkg1)
+		err := s.AddUnaffectedPackages(pkg1)
 		require.NoError(t, err)
 
 		options := &GetPackageOptions{
@@ -221,7 +221,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 			PreloadPackageCPEs: true,
 		}
 
-		results, err := s.GetAffectedPackages(pkgFromName(pkg1.Package.Name), options)
+		results, err := s.GetUnaffectedPackages(pkgFromName(pkg1.Package.Name), options)
 		require.NoError(t, err)
 		require.Len(t, results, 1)
 
@@ -237,7 +237,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 	})
 
 	t.Run("Package deduplication", func(t *testing.T) {
-		pkg1 := &AffectedPackageHandle{
+		pkg1 := &UnaffectedPackageHandle{
 			Vulnerability: &VulnerabilityHandle{
 				Name: "CVE-2023-1234",
 				Provider: &Provider{
@@ -250,7 +250,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 			},
 		}
 
-		pkg2 := &AffectedPackageHandle{
+		pkg2 := &UnaffectedPackageHandle{
 			Vulnerability: &VulnerabilityHandle{
 				Name: "CVE-2023-1234",
 				Provider: &Provider{
@@ -263,8 +263,8 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 			},
 		}
 
-		s := setupAffectedPackageStore(t)
-		err := s.AddAffectedPackages(pkg1, pkg2)
+		s := setupUnaffectedPackageStore(t)
+		err := s.AddUnaffectedPackages(pkg1, pkg2)
 		require.NoError(t, err)
 
 		var pkgs []Package
@@ -293,7 +293,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 			Product: "product2",
 		}
 
-		pkg1 := &AffectedPackageHandle{
+		pkg1 := &UnaffectedPackageHandle{
 			Vulnerability: &VulnerabilityHandle{
 				Name: "CVE-2023-1234",
 				Provider: &Provider{
@@ -306,7 +306,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 			},
 		}
 
-		pkg2 := &AffectedPackageHandle{
+		pkg2 := &UnaffectedPackageHandle{
 			Vulnerability: &VulnerabilityHandle{
 				Name: "CVE-2023-56789",
 				Provider: &Provider{
@@ -319,8 +319,8 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 			},
 		}
 
-		s := setupAffectedPackageStore(t)
-		err := s.AddAffectedPackages(pkg1, pkg2)
+		s := setupUnaffectedPackageStore(t)
+		err := s.AddUnaffectedPackages(pkg1, pkg2)
 		require.NoError(t, err)
 
 		var pkgs []Package
@@ -364,7 +364,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 			Product: "product2",
 		}
 
-		pkg1 := &AffectedPackageHandle{
+		pkg1 := &UnaffectedPackageHandle{
 			Vulnerability: &VulnerabilityHandle{
 				Name: "CVE-2023-1234",
 				Provider: &Provider{
@@ -377,7 +377,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 			},
 		}
 
-		pkg2 := &AffectedPackageHandle{
+		pkg2 := &UnaffectedPackageHandle{
 			Vulnerability: &VulnerabilityHandle{
 				Name: "CVE-2023-56789",
 				Provider: &Provider{
@@ -390,8 +390,8 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 			},
 		}
 
-		s := setupAffectedPackageStore(t)
-		err := s.AddAffectedPackages(pkg1, pkg2)
+		s := setupUnaffectedPackageStore(t)
+		err := s.AddUnaffectedPackages(pkg1, pkg2)
 		require.NoError(t, err)
 
 		var pkgs []Package
@@ -428,16 +428,16 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 	})
 }
 
-func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
+func TestUnaffectedPackageStore_GetUnaffectedPackages_ByCPE(t *testing.T) {
 	db := setupTestStore(t).db
 	bs := newBlobStore(db)
 	oss := newOperatingSystemStore(db, bs)
-	s := newAffectedPackageStore(db, bs, oss)
+	s := newUnaffectedPackageStore(db, bs, oss)
 
 	cpe1 := Cpe{Part: "a", Vendor: "vendor1", Product: "product1"}
 	cpe2 := Cpe{Part: "a", Vendor: "vendor2", Product: "product2"}
 	cpe3 := Cpe{Part: "a", Vendor: "vendor2", Product: "product2", TargetSoftware: "target1"}
-	pkg1 := &AffectedPackageHandle{
+	pkg1 := &UnaffectedPackageHandle{
 		Vulnerability: &VulnerabilityHandle{
 			Name: "CVE-2023-1234",
 			Provider: &Provider{
@@ -449,7 +449,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 			CVEs: []string{"CVE-2023-1234"},
 		},
 	}
-	pkg2 := &AffectedPackageHandle{
+	pkg2 := &UnaffectedPackageHandle{
 		Vulnerability: &VulnerabilityHandle{
 			Name: "CVE-2023-5678",
 			Provider: &Provider{
@@ -462,7 +462,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 		},
 	}
 
-	pkg3 := &AffectedPackageHandle{
+	pkg3 := &UnaffectedPackageHandle{
 		Vulnerability: &VulnerabilityHandle{
 			Name: "CVE-2023-5678",
 			Provider: &Provider{
@@ -475,14 +475,14 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 		},
 	}
 
-	err := s.AddAffectedPackages(pkg1, pkg2, pkg3)
+	err := s.AddUnaffectedPackages(pkg1, pkg2, pkg3)
 	require.NoError(t, err)
 
 	tests := []struct {
 		name     string
 		cpe      cpe.Attributes
 		options  *GetPackageOptions
-		expected []AffectedPackageHandle
+		expected []UnaffectedPackageHandle
 		wantErr  require.ErrorAssertionFunc
 	}{
 		{
@@ -498,7 +498,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 				PreloadBlob:          true,
 				PreloadVulnerability: true,
 			},
-			expected: []AffectedPackageHandle{*pkg1},
+			expected: []UnaffectedPackageHandle{*pkg1},
 		},
 		{
 			name: "partial match CPE",
@@ -512,7 +512,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 				PreloadBlob:          true,
 				PreloadVulnerability: true,
 			},
-			expected: []AffectedPackageHandle{*pkg2, *pkg3},
+			expected: []UnaffectedPackageHandle{*pkg2, *pkg3},
 		},
 		{
 			name: "match on any TSW when specific one provided when broad matching enabled",
@@ -528,7 +528,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 				PreloadVulnerability:  true,
 				AllowBroadCPEMatching: true,
 			},
-			expected: []AffectedPackageHandle{*pkg2, *pkg3},
+			expected: []UnaffectedPackageHandle{*pkg2, *pkg3},
 		},
 		{
 			name: "do NOT match on any TSW when specific one provided when broad matching disabled",
@@ -544,7 +544,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 				PreloadVulnerability:  true,
 				AllowBroadCPEMatching: false,
 			},
-			expected: []AffectedPackageHandle{*pkg3},
+			expected: []UnaffectedPackageHandle{*pkg3},
 		},
 		{
 			name: "missing attributes",
@@ -557,7 +557,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 				PreloadBlob:          true,
 				PreloadVulnerability: true,
 			},
-			expected: []AffectedPackageHandle{*pkg1, *pkg2, *pkg3},
+			expected: []UnaffectedPackageHandle{*pkg1, *pkg2, *pkg3},
 		},
 		{
 			name: "no matches",
@@ -582,7 +582,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 				tt.wantErr = require.NoError
 			}
 
-			result, err := s.GetAffectedPackages(&PackageSpecifier{CPE: &tt.cpe}, tt.options)
+			result, err := s.GetUnaffectedPackages(&PackageSpecifier{CPE: &tt.cpe}, tt.options)
 			tt.wantErr(t, err)
 			if err != nil {
 				return
@@ -594,14 +594,14 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 	}
 }
 
-func TestAffectedPackageStore_GetAffectedPackages_CaseInsensitive(t *testing.T) {
+func TestUnaffectedPackageStore_GetUnaffectedPackages_CaseInsensitive(t *testing.T) {
 	db := setupTestStore(t).db
 	bs := newBlobStore(db)
 	oss := newOperatingSystemStore(db, bs)
-	s := newAffectedPackageStore(db, bs, oss)
+	s := newUnaffectedPackageStore(db, bs, oss)
 
 	cpe1 := Cpe{Part: "a", Vendor: "Vendor1", Product: "Product1"} // capitalized
-	pkg1 := &AffectedPackageHandle{
+	pkg1 := &UnaffectedPackageHandle{
 		Vulnerability: &VulnerabilityHandle{
 			Name: "CVE-2023-1234",
 			Provider: &Provider{
@@ -621,7 +621,7 @@ func TestAffectedPackageStore_GetAffectedPackages_CaseInsensitive(t *testing.T) 
 		},
 	}
 
-	pkg2 := &AffectedPackageHandle{ // this should never register as a match
+	pkg2 := &UnaffectedPackageHandle{ // this should never register as a match
 		Vulnerability: &VulnerabilityHandle{
 			Name: "CVE-2222-2222",
 			Provider: &Provider{
@@ -640,7 +640,7 @@ func TestAffectedPackageStore_GetAffectedPackages_CaseInsensitive(t *testing.T) 
 		},
 	}
 
-	err := s.AddAffectedPackages(pkg1, pkg2)
+	err := s.AddUnaffectedPackages(pkg1, pkg2)
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -724,7 +724,7 @@ func TestAffectedPackageStore_GetAffectedPackages_CaseInsensitive(t *testing.T) 
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := s.GetAffectedPackages(tt.pkgSpec, tt.options)
+			result, err := s.GetUnaffectedPackages(tt.pkgSpec, tt.options)
 			require.NoError(t, err)
 			require.Len(t, result, tt.expected)
 			if tt.expected > 0 {
@@ -734,15 +734,15 @@ func TestAffectedPackageStore_GetAffectedPackages_CaseInsensitive(t *testing.T) 
 	}
 }
 
-func TestAffectedPackageStore_GetAffectedPackages_MultipleVulnerabilitySpecs(t *testing.T) {
+func TestUnaffectedPackageStore_GetUnaffectedPackages_MultipleVulnerabilitySpecs(t *testing.T) {
 	db := setupTestStore(t).db
 	bs := newBlobStore(db)
 	oss := newOperatingSystemStore(db, bs)
-	s := newAffectedPackageStore(db, bs, oss)
+	s := newUnaffectedPackageStore(db, bs, oss)
 
 	cpe1 := Cpe{Part: "a", Vendor: "vendor1", Product: "product1"}
 	cpe2 := Cpe{Part: "a", Vendor: "vendor2", Product: "product2"}
-	pkg1 := &AffectedPackageHandle{
+	pkg1 := &UnaffectedPackageHandle{
 		Vulnerability: &VulnerabilityHandle{
 			Name: "CVE-2023-1234",
 			Provider: &Provider{
@@ -754,7 +754,7 @@ func TestAffectedPackageStore_GetAffectedPackages_MultipleVulnerabilitySpecs(t *
 			CVEs: []string{"CVE-2023-1234"},
 		},
 	}
-	pkg2 := &AffectedPackageHandle{
+	pkg2 := &UnaffectedPackageHandle{
 		Vulnerability: &VulnerabilityHandle{
 			Name: "CVE-2023-5678",
 			Provider: &Provider{
@@ -767,10 +767,10 @@ func TestAffectedPackageStore_GetAffectedPackages_MultipleVulnerabilitySpecs(t *
 		},
 	}
 
-	err := s.AddAffectedPackages(pkg1, pkg2)
+	err := s.AddUnaffectedPackages(pkg1, pkg2)
 	require.NoError(t, err)
 
-	result, err := s.GetAffectedPackages(nil, &GetPackageOptions{
+	result, err := s.GetUnaffectedPackages(nil, &GetPackageOptions{
 		PreloadVulnerability: true,
 		Vulnerabilities: []VulnerabilitySpecifier{
 			{Name: "CVE-2023-1234"},
@@ -790,23 +790,23 @@ func TestAffectedPackageStore_GetAffectedPackages_MultipleVulnerabilitySpecs(t *
 
 }
 
-func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
+func TestUnaffectedPackageStore_GetUnaffectedPackages(t *testing.T) {
 	db := setupTestStore(t).db
 	bs := newBlobStore(db)
 	oss := newOperatingSystemStore(db, bs)
-	s := newAffectedPackageStore(db, bs, oss)
+	s := newUnaffectedPackageStore(db, bs, oss)
 
-	pkg2d1 := testDistro1AffectedPackage2Handle()
-	pkg2 := testNonDistroAffectedPackage2Handle()
-	pkg2d2 := testDistro2AffectedPackage2Handle()
-	err := s.AddAffectedPackages(pkg2d1, pkg2, pkg2d2)
+	pkg2d1 := testDistro1UnaffectedPackage2Handle()
+	pkg2 := testNonDistroUnaffectedPackage2Handle()
+	pkg2d2 := testDistro2UnaffectedPackage2Handle()
+	err := s.AddUnaffectedPackages(pkg2d1, pkg2, pkg2d2)
 	require.NoError(t, err)
 
 	tests := []struct {
 		name     string
 		pkg      *PackageSpecifier
 		options  *GetPackageOptions
-		expected []AffectedPackageHandle
+		expected []UnaffectedPackageHandle
 		wantErr  require.ErrorAssertionFunc
 	}{
 		{
@@ -819,7 +819,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 					MinorVersion: "04",
 				}},
 			},
-			expected: []AffectedPackageHandle{*pkg2d1},
+			expected: []UnaffectedPackageHandle{*pkg2d1},
 		},
 		{
 			name: "distro major version only",
@@ -830,7 +830,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 					MajorVersion: "20",
 				}},
 			},
-			expected: []AffectedPackageHandle{*pkg2d1, *pkg2d2},
+			expected: []UnaffectedPackageHandle{*pkg2d1, *pkg2d2},
 		},
 		{
 			name: "distro codename",
@@ -841,7 +841,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 					LabelVersion: "groovy",
 				}},
 			},
-			expected: []AffectedPackageHandle{*pkg2d2},
+			expected: []UnaffectedPackageHandle{*pkg2d2},
 		},
 		{
 			name: "no distro",
@@ -849,7 +849,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			options: &GetPackageOptions{
 				OSs: []*OSSpecifier{NoOSSpecified},
 			},
-			expected: []AffectedPackageHandle{*pkg2},
+			expected: []UnaffectedPackageHandle{*pkg2},
 		},
 		{
 			name: "any distro",
@@ -857,12 +857,12 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			options: &GetPackageOptions{
 				OSs: []*OSSpecifier{AnyOSSpecified},
 			},
-			expected: []AffectedPackageHandle{*pkg2d1, *pkg2, *pkg2d2},
+			expected: []UnaffectedPackageHandle{*pkg2d1, *pkg2, *pkg2d2},
 		},
 		{
 			name:     "package type",
 			pkg:      &PackageSpecifier{Name: pkg2.Package.Name, Ecosystem: "type2"},
-			expected: []AffectedPackageHandle{*pkg2},
+			expected: []UnaffectedPackageHandle{*pkg2},
 		},
 		{
 			name: "specific CVE",
@@ -872,7 +872,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 					Name: "CVE-2023-1234",
 				}},
 			},
-			expected: []AffectedPackageHandle{*pkg2d1},
+			expected: []UnaffectedPackageHandle{*pkg2d1},
 		},
 		{
 			name: "any CVE published after a date",
@@ -885,7 +885,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 					}(),
 				}},
 			},
-			expected: []AffectedPackageHandle{*pkg2d1, *pkg2d2},
+			expected: []UnaffectedPackageHandle{*pkg2d1, *pkg2d2},
 		},
 		{
 			name: "any CVE modified after a date",
@@ -898,7 +898,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 					}(),
 				}},
 			},
-			expected: []AffectedPackageHandle{*pkg2d1},
+			expected: []UnaffectedPackageHandle{*pkg2d1},
 		},
 		{
 			name: "any rejected CVE",
@@ -908,7 +908,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 					Status: VulnerabilityRejected,
 				}},
 			},
-			expected: []AffectedPackageHandle{*pkg2d1},
+			expected: []UnaffectedPackageHandle{*pkg2d1},
 		},
 	}
 
@@ -917,7 +917,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 			if tt.wantErr == nil {
 				tt.wantErr = require.NoError
 			}
-			for _, pc := range defaultAffectedPackageHandlePreloadCases() {
+			for _, pc := range defaultUnaffectedPackageHandlePreloadCases() {
 				t.Run(pc.name, func(t *testing.T) {
 					opts := tt.options
 					if opts == nil {
@@ -931,7 +931,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 					if pc.prepExpectations != nil {
 						expected = pc.prepExpectations(t, expected)
 					}
-					result, err := s.GetAffectedPackages(tt.pkg, opts)
+					result, err := s.GetUnaffectedPackages(tt.pkg, opts)
 					tt.wantErr(t, err)
 					if err != nil {
 						return
@@ -945,11 +945,11 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 	}
 }
 
-func TestAffectedPackageStore_ApplyPackageAlias(t *testing.T) {
+func TestUnaffectedPackageStore_ApplyPackageAlias(t *testing.T) {
 	db := setupTestStore(t).db
 	bs := newBlobStore(db)
 	oss := newOperatingSystemStore(db, bs)
-	s := newAffectedPackageStore(db, bs, oss)
+	s := newUnaffectedPackageStore(db, bs, oss)
 
 	tests := []struct {
 		name     string
@@ -985,10 +985,10 @@ func TestAffectedPackageStore_ApplyPackageAlias(t *testing.T) {
 	}
 }
 
-func testDistro1AffectedPackage2Handle() *AffectedPackageHandle {
+func testDistro1UnaffectedPackage2Handle() *UnaffectedPackageHandle {
 	now := time.Date(2023, 1, 1, 3, 4, 5, 0, time.UTC)
 	later := now.Add(time.Hour * 200)
-	return &AffectedPackageHandle{
+	return &UnaffectedPackageHandle{
 		Package: &Package{
 			Name:      "pkg2",
 			Ecosystem: "type2d",
@@ -1014,10 +1014,10 @@ func testDistro1AffectedPackage2Handle() *AffectedPackageHandle {
 	}
 }
 
-func testDistro2AffectedPackage2Handle() *AffectedPackageHandle {
+func testDistro2UnaffectedPackage2Handle() *UnaffectedPackageHandle {
 	now := time.Date(2020, 1, 1, 3, 4, 5, 0, time.UTC)
 	later := now.Add(time.Hour * 200)
-	return &AffectedPackageHandle{
+	return &UnaffectedPackageHandle{
 		Package: &Package{
 			Name:      "pkg2",
 			Ecosystem: "type2d",
@@ -1042,10 +1042,10 @@ func testDistro2AffectedPackage2Handle() *AffectedPackageHandle {
 	}
 }
 
-func testNonDistroAffectedPackage2Handle() *AffectedPackageHandle {
+func testNonDistroUnaffectedPackage2Handle() *UnaffectedPackageHandle {
 	now := time.Date(2005, 1, 1, 3, 4, 5, 0, time.UTC)
 	later := now.Add(time.Hour * 200)
-	return &AffectedPackageHandle{
+	return &UnaffectedPackageHandle{
 		Package: &Package{
 			Name:      "pkg2",
 			Ecosystem: "type2",
@@ -1062,16 +1062,4 @@ func testNonDistroAffectedPackage2Handle() *AffectedPackageHandle {
 			CVEs: []string{"CVE-2023-4567"},
 		},
 	}
-}
-
-func expectErrIs(t *testing.T, expected error) require.ErrorAssertionFunc {
-	t.Helper()
-	return func(t require.TestingT, err error, msgAndArgs ...interface{}) {
-		require.Error(t, err, msgAndArgs...)
-		assert.ErrorIs(t, err, expected)
-	}
-}
-
-func pkgFromName(name string) *PackageSpecifier {
-	return &PackageSpecifier{Name: name}
 }
