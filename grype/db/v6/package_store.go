@@ -152,16 +152,16 @@ func addPackages[T packageHandleStore](s *packageStore, packages ...T) (bool, er
 	}
 
 	// update the cache with the new records
-	for _, ref := range final {
-		cacheInst.set(ref)
+	for _, r := range final {
+		cacheInst.set(r)
 	}
 
 	// update all references with the IDs from the cache
 	for _, refs := range byCacheKey {
-		for _, ref := range refs {
-			id, ok := cacheInst.getID(ref)
+		for _, r := range refs {
+			id, ok := cacheInst.getID(r)
 			if ok {
-				ref.setRowID(id)
+				r.setRowID(id)
 			}
 		}
 	}
