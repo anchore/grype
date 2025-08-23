@@ -2,6 +2,7 @@ package distro
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/anchore/grype/grype/version"
@@ -123,16 +124,22 @@ func NewFromRelease(release linux.Release, channels []FixChannel) (*Distro, erro
 		selectedVersionObj *version.Version
 	)
 
-	for _, ver := range []string{release.VersionID, release.Version} {
-		if ver == "" {
-			continue
-		}
+	if release.ID == "openEuler" {
+		// In the CVE data released by openEuler,
+		// the corresponding openEuler version information matches the `Version`
+		re := regexp.MustCompile(`\(|\)`)
+		selectedVersion = strings.ReplaceAll(re.ReplaceAllString(strings.Trim(release.Version, `"'`), ""), " ", "-")
+	} else {
+		for _, version := range []string{release.VersionID, release.Version} {
+			if version == "" {
+				continue
+			}
 
-		selectedVersionObj = version.New(ver, version.SemanticFormat)
-
-		if selectedVersionObj.Validate() == nil {
-			selectedVersion = ver
-			break
+			_, err := hashiVer.NewVersion(version)
+			if err == nil {
+				selectedVersion = version
+				break
+			}
 		}
 	}
 
