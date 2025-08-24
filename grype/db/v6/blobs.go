@@ -215,6 +215,36 @@ func (f FixAvailability) MarshalJSON() ([]byte, error) {
 	return json.Marshal(aux)
 }
 
+func (f *FixAvailability) UnmarshalJSON(data []byte) error {
+	type Alias FixAvailability
+	aux := &struct {
+		Date *string `json:"date,omitempty"`
+		*Alias
+	}{
+		Alias: (*Alias)(f),
+	}
+
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+
+	if aux.Date != nil {
+		if t, err := time.Parse("2006-01-02", *aux.Date); err == nil {
+			f.Date = &t
+			return nil
+		}
+
+		if t, err := time.Parse(time.RFC3339, *aux.Date); err == nil {
+			f.Date = &t
+			return nil
+		}
+
+		return fmt.Errorf("unable to parse date %q: expected format YYYY-MM-DD or RFC3339", *aux.Date)
+	}
+
+	return nil
+}
+
 // AffectedVersion defines the versioning format and constraints.
 type AffectedVersion struct {
 	// Type specifies the versioning system used (e.g., "semver", "rpm").
