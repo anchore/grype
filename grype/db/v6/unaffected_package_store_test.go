@@ -945,45 +945,45 @@ func TestUnaffectedPackageStore_GetUnaffectedPackages(t *testing.T) {
 	}
 }
 
-//func TestUnaffectedPackageStore_ApplyPackageAlias(t *testing.T) {
-//	db := setupTestStore(t).db
-//	bs := newBlobStore(db)
-//	oss := newOperatingSystemStore(db, bs)
-//	s := newUnaffectedPackageStore(db, bs, oss)
-//
-//	tests := []struct {
-//		name     string
-//		input    *PackageSpecifier
-//		expected string
-//	}{
-//		// positive cases
-//		{name: "alias cocoapods", input: &PackageSpecifier{Ecosystem: "cocoapods"}, expected: "pod"},
-//		{name: "alias pub", input: &PackageSpecifier{Ecosystem: "pub"}, expected: "dart-pub"},
-//		{name: "alias otp", input: &PackageSpecifier{Ecosystem: "otp"}, expected: "erlang-otp"},
-//		{name: "alias github", input: &PackageSpecifier{Ecosystem: "github"}, expected: "github-action"},
-//		{name: "alias golang", input: &PackageSpecifier{Ecosystem: "golang"}, expected: "go-module"},
-//		{name: "alias maven", input: &PackageSpecifier{Ecosystem: "maven"}, expected: "java-archive"},
-//		{name: "alias composer", input: &PackageSpecifier{Ecosystem: "composer"}, expected: "php-composer"},
-//		{name: "alias pecl", input: &PackageSpecifier{Ecosystem: "pecl"}, expected: "php-pecl"},
-//		{name: "alias pypi", input: &PackageSpecifier{Ecosystem: "pypi"}, expected: "python"},
-//		{name: "alias cran", input: &PackageSpecifier{Ecosystem: "cran"}, expected: "R-package"},
-//		{name: "alias luarocks", input: &PackageSpecifier{Ecosystem: "luarocks"}, expected: "lua-rocks"},
-//		{name: "alias cargo", input: &PackageSpecifier{Ecosystem: "cargo"}, expected: "rust-crate"},
-//
-//		// negative cases
-//		{name: "generic type", input: &PackageSpecifier{Ecosystem: "generic/linux-kernel"}, expected: "generic/linux-kernel"},
-//		{name: "empty ecosystem", input: &PackageSpecifier{Ecosystem: ""}, expected: ""},
-//		{name: "matching type", input: &PackageSpecifier{Ecosystem: "python"}, expected: "python"},
-//	}
-//
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			err := s.applyPackageAlias(tt.input)
-//			require.NoError(t, err)
-//			assert.Equal(t, tt.expected, tt.input.Ecosystem)
-//		})
-//	}
-//}
+func TestUnaffectedPackageStore_ApplyPackageAlias(t *testing.T) {
+	db := setupTestStore(t).db
+	bs := newBlobStore(db)
+	oss := newOperatingSystemStore(db, bs)
+	s := newUnaffectedPackageStore(db, bs, oss)
+
+	tests := []struct {
+		name     string
+		input    *PackageSpecifier
+		expected string
+	}{
+		// positive cases
+		{name: "alias cocoapods", input: &PackageSpecifier{Ecosystem: "cocoapods"}, expected: "pod"},
+		{name: "alias pub", input: &PackageSpecifier{Ecosystem: "pub"}, expected: "dart-pub"},
+		{name: "alias otp", input: &PackageSpecifier{Ecosystem: "otp"}, expected: "erlang-otp"},
+		{name: "alias github", input: &PackageSpecifier{Ecosystem: "github"}, expected: "github-action"},
+		{name: "alias golang", input: &PackageSpecifier{Ecosystem: "golang"}, expected: "go-module"},
+		{name: "alias maven", input: &PackageSpecifier{Ecosystem: "maven"}, expected: "java-archive"},
+		{name: "alias composer", input: &PackageSpecifier{Ecosystem: "composer"}, expected: "php-composer"},
+		{name: "alias pecl", input: &PackageSpecifier{Ecosystem: "pecl"}, expected: "php-pecl"},
+		{name: "alias pypi", input: &PackageSpecifier{Ecosystem: "pypi"}, expected: "python"},
+		{name: "alias cran", input: &PackageSpecifier{Ecosystem: "cran"}, expected: "R-package"},
+		{name: "alias luarocks", input: &PackageSpecifier{Ecosystem: "luarocks"}, expected: "lua-rocks"},
+		{name: "alias cargo", input: &PackageSpecifier{Ecosystem: "cargo"}, expected: "rust-crate"},
+
+		// negative cases
+		{name: "generic type", input: &PackageSpecifier{Ecosystem: "generic/linux-kernel"}, expected: "generic/linux-kernel"},
+		{name: "empty ecosystem", input: &PackageSpecifier{Ecosystem: ""}, expected: ""},
+		{name: "matching type", input: &PackageSpecifier{Ecosystem: "python"}, expected: "python"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := s.pkgStore.applyPackageAlias(tt.input)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, tt.input.Ecosystem)
+		})
+	}
+}
 
 func testDistro1UnaffectedPackage2Handle() *UnaffectedPackageHandle {
 	now := time.Date(2023, 1, 1, 3, 4, 5, 0, time.UTC)
