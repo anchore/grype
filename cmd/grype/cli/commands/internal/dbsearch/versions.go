@@ -2,7 +2,7 @@ package dbsearch
 
 const (
 	// MatchesSchemaVersion is the schema version for the `db search` command
-	MatchesSchemaVersion = "1.1.0"
+	MatchesSchemaVersion = "1.1.1"
 
 	// MatchesSchemaVersion Changelog:
 	// 1.0.0 - Initial schema 🎉
@@ -10,6 +10,7 @@ const (
 	// 1.0.2 - Add v5 namespace emulation for affected packages
 	// 1.0.3 - Add severity string field to vulnerability object
 	// 1.1.0 - Add fix available date information to vulnerability range object. This removes existing unused git-commit and date fields from the schema, but is a non-breaking change.
+	// 1.1.1 - Add unaffected package and unaffected cpe to output
 
 	// VulnerabilitiesSchemaVersion is the schema version for the `db search vuln` command
 	VulnerabilitiesSchemaVersion = "1.0.3"
