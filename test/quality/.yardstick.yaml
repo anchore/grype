@@ -182,7 +182,7 @@ result-sets:
         fail_on_empty_match_set: false
     matrix:
       images:
-        - docker.io/bitnami/redis:7.4.0@sha256:4bad45268adfdbb0b456d6bf74ded449ef79f3706cb4e473516a0a5b393968c0
+        - ghcr.io/anchore/test-images/bitnami/redis:7.4.0@sha256:4bad45268adfdbb0b456d6bf74ded449ef79f3706cb4e473516a0a5b393968c0
 
       tools:
         - name: syft
