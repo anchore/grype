@@ -16,14 +16,18 @@ import (
 
 var (
 	// ensure that the generic packageHandleStore will function when type asserting
-	_ blobable = (*packageHandle)(nil)
-	_ blobable = (*AffectedPackageHandle)(nil)
-	_ blobable = (*UnaffectedPackageHandle)(nil)
+	_ blobable              = (*packageHandle)(nil)
+	_ blobable              = (*AffectedPackageHandle)(nil)
+	_ blobable              = (*UnaffectedPackageHandle)(nil)
+	_ packageHandleAccessor = (*AffectedPackageHandle)(nil)
+	_ packageHandleAccessor = (*UnaffectedPackageHandle)(nil)
 
 	// ensure that the generic cpeHandleStore will function when type asserting
-	_ blobable = (*cpeHandle)(nil)
-	_ blobable = (*AffectedCPEHandle)(nil)
-	_ blobable = (*UnaffectedCPEHandle)(nil)
+	_ blobable          = (*cpeHandle)(nil)
+	_ blobable          = (*AffectedCPEHandle)(nil)
+	_ blobable          = (*UnaffectedCPEHandle)(nil)
+	_ cpeHandleAccessor = (*AffectedCPEHandle)(nil)
+	_ cpeHandleAccessor = (*UnaffectedCPEHandle)(nil)
 )
 
 func Models() []any {

@@ -69,14 +69,14 @@ func TestFixAvailability_RoundTripMarshalUnmarshal(t *testing.T) {
 	assert.Equal(t, "advisory", unmarshaled.Kind)
 }
 
-func TestAffectedPackageBlob_WithFixAvailability(t *testing.T) {
+func TestPackageBlob_WithFixAvailability(t *testing.T) {
 	testTime := time.Date(2022, 4, 9, 0, 0, 0, 0, time.UTC)
 
-	blob := AffectedPackageBlob{
+	blob := PackageBlob{
 		CVEs: []string{"CVE-2021-3521"},
-		Ranges: []AffectedRange{
+		Ranges: []Range{
 			{
-				Version: AffectedVersion{
+				Version: Version{
 					Type:       "rpm",
 					Constraint: "< 0:4.14.2-15.cm1",
 				},
@@ -100,7 +100,7 @@ func TestAffectedPackageBlob_WithFixAvailability(t *testing.T) {
 	assert.Contains(t, string(jsonData), `"date":"2022-04-09"`)
 	assert.NotContains(t, string(jsonData), `"date":"2022-04-09T`)
 
-	var unmarshaledBlob AffectedPackageBlob
+	var unmarshaledBlob PackageBlob
 	err = json.Unmarshal(jsonData, &unmarshaledBlob)
 	require.NoError(t, err)
 
