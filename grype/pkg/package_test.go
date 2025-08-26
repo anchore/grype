@@ -869,6 +869,37 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "conda meta package metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.CondaMetaPackage{
+					Name:        "numpy",
+					Version:     "1.21.0",
+					Build:       "py39h20b1b1c_0",
+					BuildNumber: 0,
+					Channel:     "conda-forge",
+				},
+			},
+		},
+		{
+			name: "golang source entry metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.GolangSourceEntry{
+					H1Digest:        "h1:some-hash-value",
+					OperatingSystem: "linux",
+					Architecture:    "amd64",
+					BuildTags:       "release",
+					CgoEnabled:      true,
+				},
+			},
+			metadata: GolangSourceMetadata{
+				H1Digest:        "h1:some-hash-value",
+				OperatingSystem: "linux",
+				Architecture:    "amd64",
+				BuildTags:       "release",
+				CgoEnabled:      true,
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
