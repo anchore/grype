@@ -11,6 +11,7 @@ import (
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/stereoscope/pkg/imagetest"
 	"github.com/anchore/syft/syft"
+	"github.com/anchore/syft/syft/cataloging"
 	"github.com/anchore/syft/syft/file"
 )
 
@@ -56,10 +57,13 @@ func TestProviderLocationExcludes(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			sbomConfig := syft.DefaultCreateSBOMConfig().
+				WithCatalogerSelection(cataloging.NewSelectionRequest().
+					WithRemovals("rpm-db-cataloger"))
 			cfg := ProviderConfig{
 				SyftProviderConfig: SyftProviderConfig{
 					Exclusions:  test.excludes,
-					SBOMOptions: syft.DefaultCreateSBOMConfig(),
+					SBOMOptions: sbomConfig,
 				},
 			}
 			if test.wantErr == nil {
@@ -118,10 +122,13 @@ func TestSyftLocationExcludes(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			userInput := imagetest.GetFixtureImageTarPath(t, test.fixture)
+			sbomConfig := syft.DefaultCreateSBOMConfig().
+				WithCatalogerSelection(cataloging.NewSelectionRequest().
+					WithRemovals("rpm-db-cataloger"))
 			cfg := ProviderConfig{
 				SyftProviderConfig: SyftProviderConfig{
 					Exclusions:  test.excludes,
-					SBOMOptions: syft.DefaultCreateSBOMConfig(),
+					SBOMOptions: sbomConfig,
 				},
 			}
 			pkgs, _, _, err := Provide(userInput, cfg)
