@@ -20,6 +20,9 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 		{Alias: "almalinux", ReplacementName: strRef("rhel")}, // non-standard, but common (dockerhub uses "almalinux")
 		{Alias: "gentoo", ReplacementName: strRef("rhel")},
 
+		// Alternaitve distros that should match against the debian vulnerability data
+		{Alias: "raspbian", ReplacementName: strRef("debian")},
+
 		// to remain backwards compatible, we need to keep old clients from ignoring EUS data.
 		// we do this by diverting any requests for a specific major.minor version of rhel to only
 		// use the major version. But, this only applies to clients before v6.0.3 DB schema version.

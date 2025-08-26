@@ -456,6 +456,11 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			Type:    MinimOS,
 			Version: "20241031",
 		},
+		{
+			Name:    "test-fixtures/os/raspbian",
+			Type:    Raspbian,
+			Version: "9",
+		},
 	}
 
 	for _, tt := range tests {

@@ -33,6 +33,7 @@ const (
 	Wolfi        Type = "wolfi"
 	Chainguard   Type = "chainguard"
 	MinimOS      Type = "minimos"
+	Raspbian     Type = "raspbian"
 )
 
 // All contains all Linux distribution options
@@ -60,6 +61,7 @@ var All = []Type{
 	Wolfi,
 	Chainguard,
 	MinimOS,
+	Raspbian,
 }
 
 // IDMapping maps a distro ID from the /etc/os-release (e.g. like "ubuntu") to a Distro type.
@@ -86,6 +88,7 @@ var IDMapping = map[string]Type{
 	"wolfi":         Wolfi,
 	"chainguard":    Chainguard,
 	"minimos":       MinimOS,
+	"raspbian":      Raspbian,
 }
 
 // aliasTypes maps common aliases to their corresponding Type.
