@@ -2,7 +2,6 @@ package result
 
 import (
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
@@ -38,7 +37,7 @@ func unionIntoResult(existing []Result) Result {
 		merged.Vulnerabilities = append(merged.Vulnerabilities, r.Vulnerabilities...)
 		merged.Details = append(merged.Details, r.Details...)
 	}
-	merged.Details = internal.NewMatchDetailsSet(merged.Details...).ToSlice()
+	merged.Details = NewMatchDetailsSet(merged.Details...).ToSlice()
 	return merged
 }
 
