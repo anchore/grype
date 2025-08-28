@@ -1,6 +1,9 @@
 package internal
 
 import (
+	"slices"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -8,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -15,7 +19,7 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-func newMockProviderByLanguage() vulnerability.Provider {
+func newMockProviderRuby() vulnerability.Provider {
 	return mock.VulnerabilityProvider([]vulnerability.Vulnerability{
 		{
 			Reference: vulnerability.Reference{
@@ -68,7 +72,7 @@ func newMockProviderByLanguage() vulnerability.Provider {
 	}...)
 }
 
-func expectedMatch(p pkg.Package, constraint string) []match.Match {
+func expectedMatchRuby(p pkg.Package, constraint string) []match.Match {
 	return []match.Match{
 		{
 			Vulnerability: vulnerability.Vulnerability{
@@ -97,26 +101,7 @@ func expectedMatch(p pkg.Package, constraint string) []match.Match {
 	}
 }
 
-func expectedIgnored(pkgName string, fix string) []match.IgnoreRule {
-	if fix == "" {
-		return nil
-	}
-	return []match.IgnoreRule{
-		{
-			Vulnerability: "CVE-2017-fake-1",
-			Reason:        "Fix",
-			Namespace:     "github:language:ruby",
-			FixState:      vulnerability.FixStateFixed.String(),
-			Package: match.IgnoreRulePackage{
-				Name:    pkgName,
-				Version: fix,
-			},
-			MatchType: match.ExactDirectMatch,
-		},
-	}
-}
-
-func TestFindMatchesByPackageLanguage(t *testing.T) {
+func TestFindMatchesByPackageRuby(t *testing.T) {
 	cases := []struct {
 		p           pkg.Package
 		constraint  string
@@ -144,17 +129,6 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 				Type:     syftPkg.GemPkg,
 			},
 		},
-		// {
-		// 	constraint: "< 1.7.6 (gem)",
-		// 	expIgnores: expectedIgnored("nokogiri", "1.7.4+foo.1"),
-		// 	p: pkg.Package{
-		// 		ID:       pkg.ID(uuid.NewString()),
-		// 		Name:     "nokogiri",
-		// 		Version:  "1.7.5+foo.1",
-		// 		Language: syftPkg.Ruby,
-		// 		Type:     syftPkg.GemPkg,
-		// 	},
-		// },
 		{
 			p: pkg.Package{
 				ID:       pkg.ID(uuid.NewString()),
@@ -167,7 +141,7 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 		},
 	}
 
-	store := newMockProviderByLanguage()
+	store := newMockProviderRuby()
 	for _, c := range cases {
 		t.Run(c.p.Name, func(t *testing.T) {
 			actual, ignored, err := MatchPackageByLanguage(store, c.p, match.RubyGemMatcher)
@@ -177,7 +151,372 @@ func TestFindMatchesByPackageLanguage(t *testing.T) {
 				assert.Empty(t, actual)
 				return
 			}
-			assertMatchesUsingIDsForVulnerabilities(t, expectedMatch(c.p, c.constraint), actual)
+			assertMatchesUsingIDsForVulnerabilities(t, expectedMatchRuby(c.p, c.constraint), actual)
+		})
+	}
+}
+
+// Golang tests
+
+func expectedMatchGolang(p pkg.Package, vulnConstraint map[string]string) []match.Match {
+	matches := make([]match.Match, 0, len(vulnConstraint))
+	// get sorted keys for consistent test results
+	keys := make([]string, 0, len(vulnConstraint))
+	for k := range vulnConstraint {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, vuln := range keys {
+		constraint := vulnConstraint[vuln]
+		matches = append(matches, match.Match{
+			Vulnerability: vulnerability.Vulnerability{
+				Reference: vulnerability.Reference{
+					ID: vuln,
+				},
+			},
+			Package: p,
+			Details: []match.Detail{
+				{
+					Type: match.ExactDirectMatch,
+					// Confidence zero since ecosystems get hardcoded confidence of zero
+					Confidence: 0,
+					SearchedBy: match.EcosystemParameters{
+						Language:  "go",
+						Namespace: "github:language:go",
+						Package:   match.PackageParameter{Name: p.Name, Version: p.Version},
+					},
+					Found: match.EcosystemResult{
+						VulnerabilityID:   vuln,
+						VersionConstraint: constraint,
+					},
+					Matcher: match.GoModuleMatcher,
+				},
+			},
+		})
+	}
+	return matches
+}
+
+func newMockProviderGolang() vulnerability.Provider {
+	return mock.VulnerabilityProvider([]vulnerability.Vulnerability{
+		{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2017-fake-1",
+				Namespace: "github:language:go",
+			},
+			PackageName: "package",
+			Constraint:  version.MustGetConstraint("< 1.2.4", version.GolangFormat),
+			Fix: vulnerability.Fix{
+				Versions: []string{"1.2.4"},
+				State:    vulnerability.FixStateFixed,
+			},
+		},
+		{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2017-fake-2",
+				Namespace: "github:language:go",
+			},
+			PackageName: "package",
+			Constraint:  version.MustGetConstraint("< 1.3.1", version.GolangFormat),
+			Fix: vulnerability.Fix{
+				Versions: []string{"1.3.1"},
+				State:    vulnerability.FixStateFixed,
+			},
+		},
+		{
+			// unaffected entry
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2017-fake-1",
+				Namespace: "github:language:go",
+			},
+			PackageName: "package",
+			Constraint:  version.MustGetConstraint("= 1.2.1+foo.1", version.GolangFormat),
+			Fix: vulnerability.Fix{
+				Versions: []string{"1.2.1+foo.1"},
+				State:    vulnerability.FixStateFixed,
+			},
+			Unaffected: true,
+		},
+	}...)
+}
+
+func TestFindMatchesByPackageGolang(t *testing.T) {
+	cases := []struct {
+		p          pkg.Package
+		expMatches map[string]string
+	}{
+		{
+			p: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "package",
+				Version:  "1.2.3",
+				Language: syftPkg.Go,
+				Type:     syftPkg.GoModulePkg,
+			},
+			expMatches: map[string]string{"CVE-2017-fake-2": "< 1.3.1 (go)", "CVE-2017-fake-1": "< 1.2.4 (go)"},
+		},
+		{
+			p: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "package",
+				Version:  "1.2.5",
+				Language: syftPkg.Go,
+				Type:     syftPkg.GoModulePkg,
+			},
+			expMatches: map[string]string{"CVE-2017-fake-2": "< 1.3.1 (go)"},
+		},
+		{
+			p: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "package",
+				Version:  "1.2.1+foo.1",
+				Language: syftPkg.Go,
+				Type:     syftPkg.GoModulePkg,
+			},
+			expMatches: map[string]string{"CVE-2017-fake-2": "< 1.3.1 (go)"},
+		},
+	}
+
+	store := newMockProviderGolang()
+	for _, c := range cases {
+		t.Run(c.p.Name, func(t *testing.T) {
+			actual, ignored, err := MatchPackageByLanguage(store, c.p, match.GoModuleMatcher)
+			// sort for consistency
+			slices.SortFunc(actual, func(a, b match.Match) int {
+				return strings.Compare(a.Vulnerability.ID, b.Vulnerability.ID)
+			})
+			require.NoError(t, err)
+			assert.Empty(t, ignored)
+			assertMatchesUsingIDsForVulnerabilities(t, expectedMatchGolang(c.p, c.expMatches), actual)
+		})
+	}
+}
+
+func TestAddAliasesToResolutions(t *testing.T) {
+	tests := []struct {
+		name        string
+		disclosures result.Set
+		resolutions result.Set
+		expected    result.Set
+	}{
+		{
+			name:        "empty sets",
+			disclosures: result.Set{},
+			resolutions: result.Set{},
+			expected:    result.Set{},
+		},
+		{
+			name: "no aliases match resolutions",
+			disclosures: result.Set{
+				"CVE-2021-1": []result.Result{
+					{
+						ID: "CVE-2021-1",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2021-1"},
+								RelatedVulnerabilities: []vulnerability.Reference{
+									{ID: "GHSA-1234"},
+								},
+							},
+						},
+					},
+				},
+			},
+			resolutions: result.Set{
+				"CVE-2021-2": []result.Result{
+					{ID: "CVE-2021-2"},
+				},
+			},
+			expected: result.Set{
+				"CVE-2021-2": []result.Result{
+					{ID: "CVE-2021-2"},
+				},
+			},
+		},
+		{
+			name: "alias matches resolution - adds original ID",
+			disclosures: result.Set{
+				"CVE-2021-1": []result.Result{
+					{
+						ID: "CVE-2021-1",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2021-1"},
+								RelatedVulnerabilities: []vulnerability.Reference{
+									{ID: "GHSA-1234"},
+								},
+							},
+						},
+					},
+				},
+			},
+			resolutions: result.Set{
+				"GHSA-1234": []result.Result{
+					{ID: "GHSA-1234"},
+				},
+			},
+			expected: result.Set{
+				"GHSA-1234": []result.Result{
+					{ID: "GHSA-1234"},
+				},
+				"CVE-2021-1": []result.Result{
+					{
+						ID: "CVE-2021-1",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2021-1"},
+								RelatedVulnerabilities: []vulnerability.Reference{
+									{ID: "GHSA-1234"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "multiple aliases, some match resolutions",
+			disclosures: result.Set{
+				"CVE-2021-1": []result.Result{
+					{
+						ID: "CVE-2021-1",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2021-1"},
+								RelatedVulnerabilities: []vulnerability.Reference{
+									{ID: "GHSA-1234"},
+									{ID: "GHSA-5678"},
+								},
+							},
+						},
+					},
+				},
+			},
+			resolutions: result.Set{
+				"GHSA-1234": []result.Result{
+					{ID: "GHSA-1234"},
+				},
+			},
+			expected: result.Set{
+				"GHSA-1234": []result.Result{
+					{ID: "GHSA-1234"},
+				},
+				"CVE-2021-1": []result.Result{
+					{
+						ID: "CVE-2021-1",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2021-1"},
+								RelatedVulnerabilities: []vulnerability.Reference{
+									{ID: "GHSA-1234"},
+									{ID: "GHSA-5678"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "multiple disclosures with aliases",
+			disclosures: result.Set{
+				"CVE-2021-1": []result.Result{
+					{
+						ID: "CVE-2021-1",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2021-1"},
+								RelatedVulnerabilities: []vulnerability.Reference{
+									{ID: "GHSA-1111"},
+								},
+							},
+						},
+					},
+				},
+				"CVE-2021-2": []result.Result{
+					{
+						ID: "CVE-2021-2",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2021-2"},
+								RelatedVulnerabilities: []vulnerability.Reference{
+									{ID: "GHSA-2222"},
+								},
+							},
+						},
+					},
+				},
+			},
+			resolutions: result.Set{
+				"GHSA-1111": []result.Result{
+					{ID: "GHSA-1111"},
+				},
+				"GHSA-2222": []result.Result{
+					{ID: "GHSA-2222"},
+				},
+			},
+			expected: result.Set{
+				"GHSA-1111": []result.Result{
+					{ID: "GHSA-1111"},
+				},
+				"GHSA-2222": []result.Result{
+					{ID: "GHSA-2222"},
+				},
+				"CVE-2021-1": []result.Result{
+					{
+						ID: "CVE-2021-1",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2021-1"},
+								RelatedVulnerabilities: []vulnerability.Reference{
+									{ID: "GHSA-1111"},
+								},
+							},
+						},
+					},
+				},
+				"CVE-2021-2": []result.Result{
+					{
+						ID: "CVE-2021-2",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2021-2"},
+								RelatedVulnerabilities: []vulnerability.Reference{
+									{ID: "GHSA-2222"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "vulnerability with no aliases",
+			disclosures: result.Set{
+				"CVE-2021-1": []result.Result{
+					{
+						ID:              "CVE-2021-1",
+						Vulnerabilities: []vulnerability.Vulnerability{},
+					},
+				},
+			},
+			resolutions: result.Set{
+				"GHSA-1234": []result.Result{
+					{ID: "GHSA-1234"},
+				},
+			},
+			expected: result.Set{
+				"GHSA-1234": []result.Result{
+					{ID: "GHSA-1234"},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := addAliasesToResolutions(tt.disclosures, tt.resolutions)
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
