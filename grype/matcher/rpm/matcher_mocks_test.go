@@ -110,3 +110,28 @@ func vulnerabilitiesWithPackageQualifiers(packageName string) []vulnerability.Vu
 		},
 	}
 }
+
+func newMockProviderWithFixedDownstream() vulnerability.Provider {
+	return mock.VulnerabilityProvider(
+		// Vulnerability affecting upstream pcre (no fix available)
+		vulnerability.Vulnerability{
+			PackageName: "pcre",
+			Constraint:  version.MustGetConstraint("< 8.40", version.RpmFormat),
+			Reference:   vulnerability.Reference{ID: "CVE-2015-2325", Namespace: "secdb:distro:sles:12.4"},
+			Fix: vulnerability.Fix{
+				State:    vulnerability.FixStateNotFixed, // No fix available for upstream
+				Versions: []string{},
+			},
+		},
+		// Fix available for downstream libpcre1 (should prevent vulnerability match)
+		vulnerability.Vulnerability{
+			PackageName: "libpcre1",
+			Constraint:  version.MustGetConstraint("< 0:8.39-8.3.1", version.RpmFormat),
+			Reference:   vulnerability.Reference{ID: "CVE-2015-2325", Namespace: "secdb:distro:sles:12.4"},
+			Fix: vulnerability.Fix{
+				State:    vulnerability.FixStateFixed,
+				Versions: []string{"0:8.39-8.3.1"}, // Fixed in this exact version
+			},
+		},
+	)
+}

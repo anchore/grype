@@ -27,108 +27,119 @@ func (m *Matcher) Type() match.MatcherType {
 
 //nolint:funlen
 func (m *Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
-	var matches []match.Match
-
-	exactMatches, err := m.matchPackage(vp, p)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to match by exact package name: %w", err)
-	}
-
-	matches = append(matches, exactMatches...)
-
-	sourceMatches, err := m.matchUpstreamPackages(vp, p)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to match by source indirection: %w", err)
-	}
-	matches = append(matches, sourceMatches...)
-
-	return matches, nil, nil
-}
-
-// matchPackage matches the given package against the vulnerability provider (direct match).
-//
-// Regarding RPM epochs... we know that the package and vulnerability will have
-// well-specified epochs since both are sourced from either the RPM DB directly or
-// the upstream RedHat vulnerability data. Note: this is very much UNLIKE our
-// matching on a source package above where the epoch could be dropped in the
-// reference data. This means that any missing epoch CAN be assumed to be zero,
-// as it falls into the case of "the project elected to NOT have an epoch for the
-// first version scheme" and not into any other case.
-//
-// For this reason match exactly on a package, we should be EXPLICIT about the
-// epoch (since downstream version comparison logic will strip the epoch during
-// comparison for the above-mentioned reasons --essentially for the source RPM
-// case). To do this, we fill in missing epoch values in the package versions with
-// an explicit 0.
-func (m *Matcher) matchPackage(vp vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
 	provider := result.NewProvider(vp, p, m.Type())
 
-	// we want to ensure that the version ALWAYS has an epoch specified... but at the same time we do not want to modify the
-	// original package that was passed in when making matches. This is why we create the provider with the original package
-	// then patch the epoch into the version of the package that we are searching with.
-	addEpochIfApplicable(&p)
+	// Ensure package version always has an explicit epoch for accurate comparison
+	searchPkg := p
+	addEpochIfApplicable(&searchPkg)
 
-	matches, err := m.findMatches(provider, p)
+	switch {
+	case shouldUseRedhatEUSMatching(searchPkg.Distro):
+		matches, err := redhatEUSMatches(provider, searchPkg)
+		return matches, nil, err
+	default:
+		matches, err := m.dualSearchMatches(provider, searchPkg)
+		return matches, nil, err
+	}
+}
+
+// dualSearchMatches implements the new dual-search algorithm that finds vulnerabilities for both
+// downstream and upstream packages, then applies resolution logic to determine final matches.
+func (m *Matcher) dualSearchMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
+	if searchPkg.Distro == nil {
+		return nil, nil
+	}
+	if isUnknownVersion(searchPkg.Version) {
+		log.WithFields("package", searchPkg.Name).Trace("skipping package with unknown version")
+		return nil, nil
+	}
+
+	var matches []match.Match
+
+	// Phase 1: Check for downstream package vulnerabilities (direct matches)
+	downstreamMatches, err := m.findMatches(provider, searchPkg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find vulnerabilities by dpkg source indirection: %w", err)
+		return nil, fmt.Errorf("failed to find downstream matches for pkg=%q: %w", searchPkg.Name, err)
+	}
+	matches = append(matches, downstreamMatches...)
+
+	// Phase 2: Check for downstream fixes to filter out fixed vulnerabilities
+	downstreamFixes, err := m.findDownstreamFixes(provider, searchPkg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find downstream fixes for pkg=%q: %w", searchPkg.Name, err)
+	}
+
+	// Phase 3: Check for upstream package vulnerabilities (indirect matches)
+	// But exclude vulnerabilities that are fixed by downstream packages
+	upstreamMatches, err := m.findUpstreamMatches(provider, searchPkg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find upstream matches for pkg=%q: %w", searchPkg.Name, err)
+	}
+
+	// Filter upstream matches based on downstream state
+	downstreamVulnIDs := make(map[string]bool)
+	downstreamFixedVulnIDs := make(map[string]bool)
+
+	// Track downstream disclosures
+	for _, m := range downstreamMatches {
+		downstreamVulnIDs[m.Vulnerability.ID] = true
+	}
+
+	// Track downstream fixes
+	for vulnID := range downstreamFixes {
+		downstreamFixedVulnIDs[vulnID] = true
+	}
+
+	for _, upstreamMatch := range upstreamMatches {
+		vulnID := upstreamMatch.Vulnerability.ID
+
+		// Skip if there's a downstream disclosure (already included as direct match)
+		if downstreamVulnIDs[vulnID] {
+			continue
+		}
+
+		// Skip if there's a downstream fix (vulnerability is resolved)
+		if downstreamFixedVulnIDs[vulnID] {
+			continue
+		}
+
+		// Convert to indirect match type
+		for i := range upstreamMatch.Details {
+			upstreamMatch.Details[i].Type = match.ExactIndirectMatch
+		}
+		matches = append(matches, upstreamMatch)
 	}
 
 	return matches, nil
 }
 
-// matchUpstreamPackages finds matches with a synthetic package based on the sourceRPM (indirect match).
+// findDownstreamFixes finds all fixes available for the downstream package
+func (m *Matcher) findDownstreamFixes(provider result.Provider, searchPkg pkg.Package) (result.Set, error) {
+	allResults, err := provider.FindResults(
+		search.ByPackageName(searchPkg.Name),
+		search.ByDistro(*searchPkg.Distro),
+		internal.OnlyQualifiedPackages(searchPkg),
+	)
+	if err != nil {
+		return result.Set{}, err
+	}
 
-// Regarding RPM epoch and comparisons... RedHat is explicit that when an RPM
-// epoch is not specified that it should be assumed to be zero (see
-// https://github.com/rpm-software-management/rpm/issues/450). This comment from
-// RedHat is applicable for a project that has elected to not use epoch and has
-// not changed their version scheme at all --therefore it is safe to assume that
-// the epoch (though not specified) is 0. However, in cases where there may be a
-// non-zero epoch and it has been omitted from the version string, it is NOT safe
-// to assume an epoch of 0... as this could lead to misleading comparison
-// results.
+	pkgVersion := version.New(searchPkg.Version, pkg.VersionFormat(searchPkg))
 
-// For example, take the perl-Errno package:
-//		name: 		perl-Errno
-//		version:	0:1.28-419.el8_4.1
-//		sourceRPM:	perl-5.26.3-419.el8_4.1.src.rpm
+	// Filter to only explicit fixes that apply to our package version
+	return allResults.Filter(search.ByFixedVersion(*pkgVersion)), nil
+}
 
-// Say we have a vulnerability with the following information (note this is
-// against the SOURCE package "perl", not the target package, "perl-Errno"):
-// 		ID:					CVE-2020-10543
-//		Package Name:		perl
-//		Version constraint:	< 4:5.26.3-419.el8
-
-// Note that the vulnerability information has complete knowledge about the
-// version and it's lineage (epoch + version), however, the source package
-// information for perl-Errno does not include any information about epoch. With
-// the rule from RedHat we should assume a 0 epoch and make the comparison:
-
-//		0:5.26.3-419.el8 < 4:5.26.3-419.el8 = true! ... therefore, we've been vulnerable since epoch 0 < 4.
-//                                                  ... this is an INVALID comparison!
-
-// The problem with this is that sourceRPMs tend to not specify epoch even though
-// there may be a non-zero epoch for that package! This is important. The "more
-// correct" thing to do in this case is to drop the epoch:
-
-//		5.26.3-419.el8 < 5.26.3-419.el8 = false!    ... these are the SAME VERSION
-
-// There is still a problem with this approach: it essentially makes an
-// assumption that a missing epoch really is the SAME epoch to the other version
-// being compared (in our example, no perl epoch on one side means we should
-// really assume an epoch of 4 on the other side). This could still lead to
-// problems since an epoch delimits potentially non-comparable version lineages.
-func (m *Matcher) matchUpstreamPackages(vp vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
-	provider := result.NewProvider(vp, p, m.Type())
-
+// findUpstreamMatches finds vulnerability matches for all upstream packages
+func (m *Matcher) findUpstreamMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
 	var matches []match.Match
 
-	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indirectMatches, err := m.findMatches(provider, indirectPackage)
+	for _, upstreamPkg := range pkg.UpstreamPackages(searchPkg) {
+		upstreamMatches, err := m.findMatches(provider, upstreamPkg)
 		if err != nil {
-			return nil, fmt.Errorf("failed to find vulnerabilities for rpm upstream source package: %w", err)
+			return nil, fmt.Errorf("failed to find matches for upstream package %q: %w", upstreamPkg.Name, err)
 		}
-		matches = append(matches, indirectMatches...)
+		matches = append(matches, upstreamMatches...)
 	}
 
 	return matches, nil

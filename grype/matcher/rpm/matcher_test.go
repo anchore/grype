@@ -286,6 +286,31 @@ func TestMatcherRpm(t *testing.T) {
 				"CVE-2021-4": match.ExactDirectMatch,
 			},
 		},
+		{
+			// Test case for new dual-search behavior: libpcre1 has downstream fix, but pcre source has no fix
+			// New behavior: correctly reports libpcre1 as fixed (not vulnerable)
+			name: "Fixed downstream package not reported as vulnerable despite unfixed upstream",
+			p: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "libpcre1",
+				Version: "0:8.39-8.3.1",
+				Type:    syftPkg.RpmPkg,
+				Upstreams: []pkg.UpstreamPackage{
+					{
+						Name:    "pcre",
+						Version: "8.39-8.3.1",
+					},
+				},
+			},
+			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
+				matcher := Matcher{}
+				d := distro.New(distro.SLES, "12.4", "")
+				store := newMockProviderWithFixedDownstream()
+				return store, d, matcher
+			},
+			// Behavior: reports NO matches because libpcre1 has an explicit fix
+			expectedMatches: map[string]match.Type{}, // Empty - package is fixed
+		},
 	}
 
 	for _, test := range tests {
