@@ -6,16 +6,14 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/anchore/syft/syft/cpe"
 )
 
-func TestAffectedCPEStore_AddAffectedCPEs(t *testing.T) {
+func TestUnaffectedCPEStore_AddUnaffectedCPEs(t *testing.T) {
 	db := setupTestStore(t).db
 	bw := newBlobStore(db)
-	s := newAffectedCPEStore(db, bw)
+	s := newUnaffectedCPEStore(db, bw)
 
-	cpe1 := &AffectedCPEHandle{
+	cpe1 := &UnaffectedCPEHandle{
 		Vulnerability: &VulnerabilityHandle{ // vuln id = 1
 			Provider: &Provider{
 				ID: "nvd",
@@ -33,12 +31,12 @@ func TestAffectedCPEStore_AddAffectedCPEs(t *testing.T) {
 		},
 	}
 
-	cpe2 := testAffectedCPEHandle() // vuln id = 2
+	cpe2 := testUnaffectedCPEHandle() // vuln id = 2
 
-	err := s.AddAffectedCPEs(cpe1, cpe2)
+	err := s.AddUnaffectedCPEs(cpe1, cpe2)
 	require.NoError(t, err)
 
-	var result1 AffectedCPEHandle
+	var result1 UnaffectedCPEHandle
 	err = db.Where("cpe_id = ?", 1).First(&result1).Error
 	require.NoError(t, err)
 	assert.Equal(t, cpe1.VulnerabilityID, result1.VulnerabilityID)
@@ -46,7 +44,7 @@ func TestAffectedCPEStore_AddAffectedCPEs(t *testing.T) {
 	assert.Equal(t, cpe1.BlobID, result1.BlobID)
 	assert.Nil(t, result1.BlobValue) // since we're not preloading any fields on the fetch
 
-	var result2 AffectedCPEHandle
+	var result2 UnaffectedCPEHandle
 	err = db.Where("cpe_id = ?", 2).First(&result2).Error
 	require.NoError(t, err)
 	assert.Equal(t, cpe2.VulnerabilityID, result2.VulnerabilityID)
@@ -55,19 +53,19 @@ func TestAffectedCPEStore_AddAffectedCPEs(t *testing.T) {
 	assert.Nil(t, result2.BlobValue) // since we're not preloading any fields on the fetch
 }
 
-func TestAffectedCPEStore_GetCPEs(t *testing.T) {
+func TestUnaffectedCPEStore_GetCPEs(t *testing.T) {
 	db := setupTestStore(t).db
 	bw := newBlobStore(db)
-	s := newAffectedCPEStore(db, bw)
+	s := newUnaffectedCPEStore(db, bw)
 
-	c := testAffectedCPEHandle()
-	err := s.AddAffectedCPEs(c)
+	c := testUnaffectedCPEHandle()
+	err := s.AddUnaffectedCPEs(c)
 	require.NoError(t, err)
 
-	results, err := s.GetAffectedCPEs(cpeFromProduct(c.CPE.Product), nil)
+	results, err := s.GetUnaffectedCPEs(cpeFromProduct(c.CPE.Product), nil)
 	require.NoError(t, err)
 
-	expected := []AffectedCPEHandle{*c}
+	expected := []UnaffectedCPEHandle{*c}
 	require.Len(t, results, len(expected))
 	result := results[0]
 	assert.Equal(t, c.CpeID, result.CpeID)
@@ -76,7 +74,7 @@ func TestAffectedCPEStore_GetCPEs(t *testing.T) {
 	require.Nil(t, result.BlobValue) // since we're not preloading any fields on the fetch
 
 	// fetch again with blob & cpe preloaded
-	results, err = s.GetAffectedCPEs(cpeFromProduct(c.CPE.Product), &GetCPEOptions{PreloadCPE: true, PreloadBlob: true, PreloadVulnerability: true})
+	results, err = s.GetUnaffectedCPEs(cpeFromProduct(c.CPE.Product), &GetCPEOptions{PreloadCPE: true, PreloadBlob: true, PreloadVulnerability: true})
 	require.NoError(t, err)
 	require.Len(t, results, len(expected))
 	result = results[0]
@@ -86,37 +84,37 @@ func TestAffectedCPEStore_GetCPEs(t *testing.T) {
 	}
 }
 
-func TestAffectedCPEStore_GetExact(t *testing.T) {
+func TestUnaffectedCPEStore_GetExact(t *testing.T) {
 	db := setupTestStore(t).db
 	bw := newBlobStore(db)
-	s := newAffectedCPEStore(db, bw)
+	s := newUnaffectedCPEStore(db, bw)
 
-	c := testAffectedCPEHandle()
-	err := s.AddAffectedCPEs(c)
+	c := testUnaffectedCPEHandle()
+	err := s.AddUnaffectedCPEs(c)
 	require.NoError(t, err)
 
 	// we want to search by all fields to ensure that all are accounted for in the query (since there are string fields referenced in the where clauses)
-	results, err := s.GetAffectedCPEs(toCPE(c.CPE), nil)
+	results, err := s.GetUnaffectedCPEs(toCPE(c.CPE), nil)
 	require.NoError(t, err)
 
-	expected := []AffectedCPEHandle{*c}
+	expected := []UnaffectedCPEHandle{*c}
 	require.Len(t, results, len(expected))
 	result := results[0]
 	assert.Equal(t, c.CpeID, result.CpeID)
 
 }
 
-func TestAffectedCPEStore_Get_CaseInsensitive(t *testing.T) {
+func TestUnaffectedCPEStore_Get_CaseInsensitive(t *testing.T) {
 	db := setupTestStore(t).db
 	bw := newBlobStore(db)
-	s := newAffectedCPEStore(db, bw)
+	s := newUnaffectedCPEStore(db, bw)
 
-	c := testAffectedCPEHandle()
-	err := s.AddAffectedCPEs(c)
+	c := testUnaffectedCPEHandle()
+	err := s.AddUnaffectedCPEs(c)
 	require.NoError(t, err)
 
 	// we want to search by all fields to ensure that all are accounted for in the query (since there are string fields referenced in the where clauses)
-	results, err := s.GetAffectedCPEs(toCPE(&Cpe{
+	results, err := s.GetUnaffectedCPEs(toCPE(&Cpe{
 		Part:            "Application",      // capitalized
 		Vendor:          "Vendor",           // capitalized
 		Product:         "Product",          // capitalized
@@ -129,18 +127,18 @@ func TestAffectedCPEStore_Get_CaseInsensitive(t *testing.T) {
 	}), nil)
 	require.NoError(t, err)
 
-	expected := []AffectedCPEHandle{*c}
+	expected := []UnaffectedCPEHandle{*c}
 	require.Len(t, results, len(expected))
 	result := results[0]
 	assert.Equal(t, c.CpeID, result.CpeID)
 }
 
-func TestAffectedCPEStore_PreventDuplicateCPEs(t *testing.T) {
+func TestUnaffectedCPEStore_PreventDuplicateCPEs(t *testing.T) {
 	db := setupTestStore(t).db
 	bw := newBlobStore(db)
-	s := newAffectedCPEStore(db, bw)
+	s := newUnaffectedCPEStore(db, bw)
 
-	cpe1 := &AffectedCPEHandle{
+	cpe1 := &UnaffectedCPEHandle{
 		Vulnerability: &VulnerabilityHandle{ // vuln id = 1
 			Name: "CVE-2023-5678",
 			Provider: &Provider{
@@ -158,11 +156,11 @@ func TestAffectedCPEStore_PreventDuplicateCPEs(t *testing.T) {
 		},
 	}
 
-	err := s.AddAffectedCPEs(cpe1)
+	err := s.AddUnaffectedCPEs(cpe1)
 	require.NoError(t, err)
 
 	// attempt to add a duplicate CPE with the same values
-	duplicateCPE := &AffectedCPEHandle{
+	duplicateCPE := &UnaffectedCPEHandle{
 		Vulnerability: &VulnerabilityHandle{ // vuln id = 2, different VulnerabilityID for testing...
 			Name: "CVE-2024-1234",
 			Provider: &Provider{
@@ -182,7 +180,7 @@ func TestAffectedCPEStore_PreventDuplicateCPEs(t *testing.T) {
 		},
 	}
 
-	err = s.AddAffectedCPEs(duplicateCPE)
+	err = s.AddUnaffectedCPEs(duplicateCPE)
 	require.NoError(t, err)
 
 	require.Equal(t, cpe1.CpeID, duplicateCPE.CpeID, "expected the CPE DB ID to be the same")
@@ -192,7 +190,7 @@ func TestAffectedCPEStore_PreventDuplicateCPEs(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, existingCPEs, 1, "expected only one CPE to exist")
 
-	actualHandles, err := s.GetAffectedCPEs(cpeFromProduct(cpe1.CPE.Product), &GetCPEOptions{
+	actualHandles, err := s.GetUnaffectedCPEs(cpeFromProduct(cpe1.CPE.Product), &GetCPEOptions{
 		PreloadCPE:           true,
 		PreloadBlob:          true,
 		PreloadVulnerability: true,
@@ -203,35 +201,15 @@ func TestAffectedCPEStore_PreventDuplicateCPEs(t *testing.T) {
 	duplicateCPE.CpeID = cpe1.CpeID
 	duplicateCPE.CPE.ID = cpe1.CPE.ID
 
-	expected := []AffectedCPEHandle{*cpe1, *duplicateCPE}
+	expected := []UnaffectedCPEHandle{*cpe1, *duplicateCPE}
 	require.Len(t, actualHandles, len(expected), "expected both handles to be stored")
 	if d := cmp.Diff(expected, actualHandles); d != "" {
 		t.Errorf("unexpected result (-want +got):\n%s", d)
 	}
 }
 
-func cpeFromProduct(product string) *cpe.Attributes {
-	return &cpe.Attributes{
-		Product: product,
-	}
-}
-
-func toCPE(c *Cpe) *cpe.Attributes {
-	return &cpe.Attributes{
-		Part:      c.Part,
-		Vendor:    c.Vendor,
-		Product:   c.Product,
-		Edition:   c.Edition,
-		Language:  c.Language,
-		SWEdition: c.SoftwareEdition,
-		TargetSW:  c.TargetSoftware,
-		TargetHW:  c.TargetHardware,
-		Other:     c.Other,
-	}
-}
-
-func testAffectedCPEHandle() *AffectedCPEHandle {
-	return &AffectedCPEHandle{
+func testUnaffectedCPEHandle() *UnaffectedCPEHandle {
+	return &UnaffectedCPEHandle{
 		Vulnerability: &VulnerabilityHandle{
 			Name: "CVE-2024-4321",
 			Provider: &Provider{

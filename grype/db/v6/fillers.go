@@ -58,6 +58,60 @@ func affectedCPEHandleVulnerabilityHandleRef(t *AffectedCPEHandle) idRef[Vulnera
 	}
 }
 
+// fillUnaffectedPackageHandles lazy loads all properties on the list of UnaffectedPackageHandles
+func fillUnaffectedPackageHandles(reader Reader, handles []*UnaffectedPackageHandle) error {
+	return errors.Join(
+		reader.attachBlobValue(toBlobables(handles)...),
+		fillRefs(reader, handles, unaffectedPackageHandleOperatingSystemRef, operatingSystemID),
+		fillRefs(reader, handles, unaffectedPackageHandlePackageRef, packageID),
+		fillVulnerabilityHandles(reader, handles, unaffectedPackageHandleVulnerabilityHandleRef),
+	)
+}
+
+func unaffectedPackageHandleOperatingSystemRef(t *UnaffectedPackageHandle) idRef[OperatingSystem] {
+	return idRef[OperatingSystem]{
+		id:  t.OperatingSystemID,
+		ref: &t.OperatingSystem,
+	}
+}
+
+func unaffectedPackageHandlePackageRef(t *UnaffectedPackageHandle) idRef[Package] {
+	return idRef[Package]{
+		id:  &t.PackageID,
+		ref: &t.Package,
+	}
+}
+
+func unaffectedPackageHandleVulnerabilityHandleRef(t *UnaffectedPackageHandle) idRef[VulnerabilityHandle] {
+	return idRef[VulnerabilityHandle]{
+		id:  &t.VulnerabilityID,
+		ref: &t.Vulnerability,
+	}
+}
+
+// fillUnaffectedCPEHandles lazy loads all properties on the list of UnaffectedCPEHandles
+func fillUnaffectedCPEHandles(reader Reader, handles []*UnaffectedCPEHandle) error {
+	return errors.Join(
+		reader.attachBlobValue(toBlobables(handles)...),
+		fillRefs(reader, handles, unaffectedCPEHandleCpeRef, cpeHandleID),
+		fillVulnerabilityHandles(reader, handles, unaffectedCPEHandleVulnerabilityHandleRef),
+	)
+}
+
+func unaffectedCPEHandleCpeRef(t *UnaffectedCPEHandle) idRef[Cpe] {
+	return idRef[Cpe]{
+		id:  &t.CpeID,
+		ref: &t.CPE,
+	}
+}
+
+func unaffectedCPEHandleVulnerabilityHandleRef(t *UnaffectedCPEHandle) idRef[VulnerabilityHandle] {
+	return idRef[VulnerabilityHandle]{
+		id:  &t.VulnerabilityID,
+		ref: &t.Vulnerability,
+	}
+}
+
 // fillVulnerabilityHandles lazy loads vulnerability handle properties
 func fillVulnerabilityHandles[T any](reader Reader, handles []*T, vulnHandleRef refProvider[T, VulnerabilityHandle]) error {
 	// fill vulnerabilities
