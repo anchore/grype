@@ -6,5 +6,5 @@ type descriptor struct {
 	Version       string `json:"version"`
 	Configuration any    `json:"configuration,omitempty"`
 	DB            any    `json:"db,omitempty"`
-	Timestamp     string `json:"timestamp"`
+	Timestamp     string `json:"timestamp,omitempty"`
 }
