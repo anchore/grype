@@ -26,6 +26,9 @@ type VulnerabilityBlob struct {
 
 	// Severities is a list of severity indications (quantitative or qualitative) for the vulnerability
 	Severities []Severity `json:"severities,omitempty"`
+
+	// CWEs is a list of Common Weakness Enumeration (CWE) identifiers that classify the type of vulnerability
+	CWEs []string `json:"cwes,omitempty"`
 }
 
 func (v VulnerabilityBlob) String() string {
