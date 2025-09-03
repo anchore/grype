@@ -1,8 +1,9 @@
 package result
 
 import (
+	"github.com/scylladb/go-set/strset"
+
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
@@ -38,7 +39,7 @@ func unionIntoResult(existing []Result) Result {
 		merged.Vulnerabilities = append(merged.Vulnerabilities, r.Vulnerabilities...)
 		merged.Details = append(merged.Details, r.Details...)
 	}
-	merged.Details = internal.NewMatchDetailsSet(merged.Details...).ToSlice()
+	merged.Details = NewMatchDetailsSet(merged.Details...).ToSlice()
 	return merged
 }
 
@@ -69,15 +70,55 @@ func (s Set) ToMatches() []match.Match {
 	return out
 }
 
+// Remove will prune elements from the current set that have any ids/aliases in common with the incoming set.
+// For example:
+//
+// set 1:
+//
+//	Entry A: GHSA-g4mx-q9vg-27p4  (alias CVE-2023-45803)
+//
+// set 2:
+//
+//	Entry B: CGA-7qjw-ggh3-pp9f (alias CVE-2023-45803)
+//
+// We want to be able to remove Entry A from set 1 because it has the same alias as Entry B in set 2.
+// This is because the vulnerability IDs are different, but they refer to the same underlying vulnerability.
 func (s Set) Remove(incoming Set) Set {
+	// collect all incoming identifiers into one unified set
+	incomingIdentifiers := strset.New()
+	for id, results := range incoming {
+		incomingIdentifiers.Add(getIdentity(id, results).List()...)
+	}
+
+	// keep only entries whose identities don't overlap with incoming
 	out := Set{}
 	for id, results := range s {
-		if incoming.Contains(id) {
-			continue
+		identity := getIdentity(id, results)
+		if strset.Intersection(identity, incomingIdentifiers).IsEmpty() {
+			out[id] = results
 		}
-		out[id] = results
 	}
 	return out
+}
+
+func extractAliases(results []Result) *strset.Set {
+	aliases := strset.New()
+	for _, r := range results {
+		for _, v := range r.Vulnerabilities {
+			for _, a := range v.RelatedVulnerabilities {
+				aliases.Add(a.ID)
+			}
+		}
+	}
+	return aliases
+}
+
+// getIdentity returns all identifiers (ID + aliases) for a vulnerability entry
+func getIdentity(id string, results []Result) *strset.Set {
+	identity := strset.New()
+	identity.Add(id)
+	identity.Add(extractAliases(results).List()...)
+	return identity
 }
 
 func unionResults(existing, incoming []Result) (n []Result) {
@@ -130,6 +171,46 @@ func (s Set) Merge(incoming Set, mergeFuncs ...func(existing, incoming []Result)
 func (s Set) Contains(id string) bool {
 	results, ok := s[id]
 	return ok && len(results) > 0
+}
+
+func (s Set) ContainsAny(ids ...string) bool {
+	for _, id := range ids {
+		results, ok := s[id]
+		if ok && len(results) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// ContainsByIdentity checks if the set contains an entry with overlapping identity (ID or aliases)
+func (s Set) ContainsByIdentity(searchID string, searchResults []Result) bool {
+	searchIdentity := getIdentity(searchID, searchResults)
+
+	for id, results := range s {
+		identity := getIdentity(id, results)
+		if !strset.Intersection(identity, searchIdentity).IsEmpty() {
+			return true
+		}
+	}
+	return false
+}
+
+// Intersection returns entries that exist in both sets (by identity overlap)
+func (s Set) Intersection(other Set) Set {
+	otherIdentifiers := strset.New()
+	for id, results := range other {
+		otherIdentifiers.Add(getIdentity(id, results).List()...)
+	}
+
+	out := Set{}
+	for id, results := range s {
+		identity := getIdentity(id, results)
+		if !strset.Intersection(identity, otherIdentifiers).IsEmpty() {
+			out[id] = results
+		}
+	}
+	return out
 }
 
 func (s Set) Filter(criteria ...vulnerability.Criteria) Set {

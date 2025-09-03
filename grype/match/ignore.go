@@ -241,6 +241,7 @@ func ifPackageNameApplies(name string) ignoreCondition {
 }
 
 func ifPackageVersionApplies(version string) ignoreCondition {
+	// TODO I think we will might need to add the metadata compare logic here
 	return func(match Match) bool {
 		return version == match.Package.Version
 	}

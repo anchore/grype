@@ -15,7 +15,9 @@ type store struct {
 	*vulnerabilityStore
 	*operatingSystemStore
 	*affectedPackageStore
+	*unaffectedPackageStore
 	*affectedCPEStore
+	*unaffectedCPEStore
 	*vulnerabilityDecoratorStore
 	blobStore *blobStore
 	db        *gorm.DB
@@ -90,8 +92,10 @@ func newStore(cfg Config, empty, writable bool) (*store, error) {
 		vulnerabilityStore:          newVulnerabilityStore(db, bs),
 		operatingSystemStore:        osStore,
 		affectedPackageStore:        newAffectedPackageStore(db, bs, osStore),
+		unaffectedPackageStore:      newUnaffectedPackageStore(db, bs, osStore),
 		affectedCPEStore:            newAffectedCPEStore(db, bs),
 		vulnerabilityDecoratorStore: newVulnerabilityDecoratorStore(db, bs, dbVersion),
+		unaffectedCPEStore:          newUnaffectedCPEStore(db, bs),
 		blobStore:                   bs,
 		db:                          db,
 		config:                      cfg,
