@@ -114,6 +114,288 @@ func TestSet_Remove(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "remove entry with shared alias (comment example)",
+			receiver: Set{
+				"GHSA-g4mx-q9vg-27p4": []Result{
+					{
+						ID: "GHSA-g4mx-q9vg-27p4",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "GHSA-g4mx-q9vg-27p4"},
+								RelatedVulnerabilities: []vulnerability.Reference{
+									{ID: "CVE-2023-45803"},
+								},
+							},
+						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
+					},
+				},
+			},
+			incoming: Set{
+				"CGA-7qjw-ggh3-pp9f": []Result{
+					{
+						ID: "CGA-7qjw-ggh3-pp9f",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CGA-7qjw-ggh3-pp9f"},
+								RelatedVulnerabilities: []vulnerability.Reference{
+									{ID: "CVE-2023-45803"},
+								},
+							},
+						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
+					},
+				},
+			},
+			want: Set{}, // GHSA-g4mx-q9vg-27p4 should be removed due to shared CVE-2023-45803 alias
+		},
+		{
+			name: "remove entry where receiver ID appears as alias in incoming",
+			receiver: Set{
+				"CVE-2023-45803": []Result{
+					{
+						ID: "CVE-2023-45803",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{Reference: vulnerability.Reference{ID: "CVE-2023-45803"}},
+						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
+					},
+				},
+			},
+			incoming: Set{
+				"GHSA-main-id": []Result{
+					{
+						ID: "GHSA-main-id",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "GHSA-main-id"},
+								RelatedVulnerabilities: []vulnerability.Reference{
+									{ID: "CVE-2023-45803"},
+								},
+							},
+						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
+					},
+				},
+			},
+			want: Set{}, // CVE-2023-45803 should be removed because it appears as alias in incoming
+		},
+		{
+			name: "multiple aliases with partial overlap",
+			receiver: Set{
+				"vuln-1": []Result{
+					{
+						ID: "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "vuln-1"},
+								RelatedVulnerabilities: []vulnerability.Reference{
+									{ID: "CVE-2021-1"},
+									{ID: "CVE-2021-2"},
+								},
+							},
+						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
+					},
+				},
+				"vuln-2": []Result{
+					{
+						ID: "vuln-2",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "vuln-2"},
+								RelatedVulnerabilities: []vulnerability.Reference{
+									{ID: "CVE-2021-3"},
+								},
+							},
+						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
+					},
+				},
+			},
+			incoming: Set{
+				"incoming-vuln": []Result{
+					{
+						ID: "incoming-vuln",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "incoming-vuln"},
+								RelatedVulnerabilities: []vulnerability.Reference{
+									{ID: "CVE-2021-1"}, // overlaps with vuln-1
+								},
+							},
+						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
+					},
+				},
+			},
+			want: Set{
+				"vuln-2": []Result{ // vuln-1 removed, vuln-2 preserved
+					{
+						ID: "vuln-2",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "vuln-2"},
+								RelatedVulnerabilities: []vulnerability.Reference{
+									{ID: "CVE-2021-3"},
+								},
+							},
+						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
+					},
+				},
+			},
+		},
+		{
+			name: "no aliases in vulnerabilities",
+			receiver: Set{
+				"vuln-1": []Result{
+					{
+						ID: "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{Reference: vulnerability.Reference{ID: "vuln-1"}},
+						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
+					},
+				},
+			},
+			incoming: Set{
+				"vuln-2": []Result{
+					{
+						ID: "vuln-2",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{Reference: vulnerability.Reference{ID: "vuln-2"}},
+						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
+					},
+				},
+			},
+			want: Set{
+				"vuln-1": []Result{
+					{
+						ID: "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{Reference: vulnerability.Reference{ID: "vuln-1"}},
+						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
+					},
+				},
+			},
+		},
+		{
+			name: "complex transitive relationship chain",
+			receiver: Set{
+				"A": []Result{
+					{
+						ID: "A",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "A"},
+								RelatedVulnerabilities: []vulnerability.Reference{
+									{ID: "CVE-1"},
+								},
+							},
+						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
+					},
+				},
+				"B": []Result{
+					{
+						ID: "B",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "B"},
+								RelatedVulnerabilities: []vulnerability.Reference{
+									{ID: "CVE-2"},
+								},
+							},
+						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
+					},
+				},
+			},
+			incoming: Set{
+				"C": []Result{
+					{
+						ID: "C",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "C"},
+								RelatedVulnerabilities: []vulnerability.Reference{
+									{ID: "CVE-1"}, // matches A's alias
+									{ID: "CVE-3"},
+								},
+							},
+						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
+					},
+				},
+			},
+			want: Set{
+				"B": []Result{ // A should be removed, B should remain
+					{
+						ID: "B",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "B"},
+								RelatedVulnerabilities: []vulnerability.Reference{
+									{ID: "CVE-2"},
+								},
+							},
+						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
+					},
+				},
+			},
+		},
+		{
+			name: "empty related vulnerabilities field",
+			receiver: Set{
+				"vuln-1": []Result{
+					{
+						ID: "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference:              vulnerability.Reference{ID: "vuln-1"},
+								RelatedVulnerabilities: []vulnerability.Reference{}, // empty
+							},
+						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
+					},
+				},
+			},
+			incoming: Set{
+				"vuln-2": []Result{
+					{
+						ID: "vuln-2",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "vuln-2"},
+								RelatedVulnerabilities: []vulnerability.Reference{
+									{ID: "some-cve"},
+								},
+							},
+						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
+					},
+				},
+			},
+			want: Set{
+				"vuln-1": []Result{
+					{
+						ID: "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference:              vulnerability.Reference{ID: "vuln-1"},
+								RelatedVulnerabilities: []vulnerability.Reference{},
+							},
+						},
+						Details: match.Details{{Type: match.ExactDirectMatch}},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
