@@ -59,27 +59,7 @@ func MatchPackageByEcosystemPackageName(vp vulnerability.Provider, p pkg.Package
 	}
 
 	// remove any disclosures that have been explicitly nacked
-	resolutions = addAliasesToResolutions(disclosures, resolutions)
 	remaining := disclosures.Remove(resolutions)
 
 	return remaining.ToMatches(), nil, err
-}
-
-// addAliasesToResolutions checks disclosures for aliases in resolutions, and adds disclosure id to the resolutions set
-func addAliasesToResolutions(disclosures, resolutions result.Set) result.Set {
-	for _, results := range disclosures {
-		for _, result := range results {
-			for _, vuln := range result.Vulnerabilities {
-				for _, alias := range vuln.RelatedVulnerabilities {
-					// if the alias is in resolutions, add the original vuln ID to the resolutions set
-					if resolutions.Contains(alias.ID) {
-						// TODO: could this use result.ID instead of vuln.ID?
-						// NOTE: this must have at least one result, else contains would be false
-						resolutions[vuln.ID] = results
-					}
-				}
-			}
-		}
-	}
-	return resolutions
 }
