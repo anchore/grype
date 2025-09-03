@@ -1,8 +1,9 @@
 package version
 
 import (
-	"github.com/anchore/packageurl-go"
 	"strings"
+
+	"github.com/anchore/packageurl-go"
 )
 
 const (
