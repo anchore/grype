@@ -5,6 +5,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
+	"github.com/scylladb/go-set/strset"
 )
 
 // Result represents a prototype match of a package used to search, a set of vulnerabilities discovered from the search,
@@ -68,15 +69,65 @@ func (s Set) ToMatches() []match.Match {
 	return out
 }
 
+// Remove will prune elements from the current set that have any ids/aliases in common with the incoming set.
+// For example:
+//
+// set 1:
+//
+//	Entry A: GHSA-g4mx-q9vg-27p4  (alias CVE-2023-45803)
+//
+// set 2:
+//
+//	Entry B: CGA-7qjw-ggh3-pp9f (alias CVE-2023-45803)
+//
+// We want to be able to remove Entry A from set 1 because it has the same alias as Entry B in set 2.
+// This is because the vulnerability IDs are different, but they refer to the same underlying vulnerability.
 func (s Set) Remove(incoming Set) Set {
 	out := Set{}
+
+	incomingIDsByAliases := map[string]*strset.Set{}
+	for id, results := range incoming {
+		for _, alias := range extractAliases(results).List() {
+			if _, ok := incomingIDsByAliases[alias]; !ok {
+				incomingIDsByAliases[alias] = strset.New()
+			}
+			incomingIDsByAliases[alias].Add(id)
+		}
+	}
+
 	for id, results := range s {
+		// remove if incoming set contains the same ID directly
 		if incoming.Contains(id) {
 			continue
 		}
+		// remove if this entry's ID appears as an alias in the incoming set
+		if _, ok := incomingIDsByAliases[id]; ok {
+			continue
+		}
+		// remove if any of this entry's aliases overlap with incoming aliases
+		currentAliases := extractAliases(results).List()
+		for _, alias := range currentAliases {
+			if _, ok := incomingIDsByAliases[alias]; ok {
+				goto remove
+			}
+		}
 		out[id] = results
+		continue
+		remove:
 	}
 	return out
+}
+
+func extractAliases(results []Result) *strset.Set {
+	aliases := strset.New()
+	for _, r := range results {
+		for _, v := range r.Vulnerabilities {
+			for _, a := range v.RelatedVulnerabilities {
+				aliases.Add(a.ID)
+			}
+		}
+	}
+	return aliases
 }
 
 func unionResults(existing, incoming []Result) (n []Result) {
@@ -129,6 +180,16 @@ func (s Set) Merge(incoming Set, mergeFuncs ...func(existing, incoming []Result)
 func (s Set) Contains(id string) bool {
 	results, ok := s[id]
 	return ok && len(results) > 0
+}
+
+func (s Set) ContainsAny(ids ...string) bool {
+	for _, id := range ids {
+		results, ok := s[id]
+		if ok && len(results) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func (s Set) Filter(criteria ...vulnerability.Criteria) Set {
