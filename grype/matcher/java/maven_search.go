@@ -72,51 +72,81 @@ func (ms *mavenSearch) GetMavenPackageBySha(ctx context.Context, sha1 string) (*
 		return nil, fmt.Errorf("rate limiter error: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ms.baseURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize HTTP client: %w", err)
+	resultChan := make(chan *pkg.Package)
+	errChan := make(chan error)
+
+	// Create a new context with cancelation to clean up resources
+	searchCtx, cancel := context.WithCancel(ctx)
+	defer cancel() // Ensure resources are cleaned up when function returns
+
+	go func() {
+		defer close(resultChan)
+		defer close(errChan)
+
+		// Create request with the proper context
+		req, err := http.NewRequestWithContext(searchCtx, http.MethodGet, ms.baseURL, nil)
+		if err != nil {
+			errChan <- fmt.Errorf("unable to initialize HTTP client: %w", err)
+			return
+		}
+
+		q := req.URL.Query()
+		q.Set("q", fmt.Sprintf(sha1Query, sha1))
+		q.Set("rows", "1")
+		q.Set("wt", "json")
+		req.URL.RawQuery = q.Encode()
+
+		resp, err := ms.client.Do(req)
+		if err != nil {
+			errChan <- fmt.Errorf("sha1 search error: %w", err)
+			return
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			errChan <- fmt.Errorf("status %s from %s", resp.Status, req.URL.String())
+			return
+		}
+
+		var res mavenAPIResponse
+		if err = json.NewDecoder(resp.Body).Decode(&res); err != nil {
+			errChan <- fmt.Errorf("json decode error: %w", err)
+			return
+		}
+
+		if len(res.Response.Docs) == 0 {
+			errChan <- fmt.Errorf("digest %s: %w", sha1, errors.New("no artifact found"))
+			return
+		}
+
+		// artifacts might have the same SHA-1 digests.
+		// e.g. "javax.servlet:jstl" and "jstl:jstl"
+		docs := res.Response.Docs
+		sort.Slice(docs, func(i, j int) bool {
+			return docs[i].ID < docs[j].ID
+		})
+		d := docs[0]
+
+		resultChan <- &pkg.Package{
+			Name:     fmt.Sprintf("%s:%s", d.GroupID, d.ArtifactID),
+			Version:  d.Version,
+			Language: syftPkg.Java,
+			Metadata: pkg.JavaMetadata{
+				PomArtifactID: d.ArtifactID,
+				PomGroupID:    d.GroupID,
+			},
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		// The context was canceled or its deadline was exceeded
+		return nil, ctx.Err()
+	case res := <-resultChan:
+		// The work finished before the context was done
+		return res, nil
+	case err := <-errChan:
+		// There was an error getting the package
+		return nil, err
 	}
-
-	q := req.URL.Query()
-	q.Set("q", fmt.Sprintf(sha1Query, sha1))
-	q.Set("rows", "1")
-	q.Set("wt", "json")
-	req.URL.RawQuery = q.Encode()
-
-	resp, err := ms.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("sha1 search error: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("status %s from %s", resp.Status, req.URL.String())
-	}
-
-	var res mavenAPIResponse
-	if err = json.NewDecoder(resp.Body).Decode(&res); err != nil {
-		return nil, fmt.Errorf("json decode error: %w", err)
-	}
-
-	if len(res.Response.Docs) == 0 {
-		return nil, fmt.Errorf("digest %s: %w", sha1, errors.New("no artifact found"))
-	}
-
-	// artifacts might have the same SHA-1 digests.
-	// e.g. "javax.servlet:jstl" and "jstl:jstl"
-	docs := res.Response.Docs
-	sort.Slice(docs, func(i, j int) bool {
-		return docs[i].ID < docs[j].ID
-	})
-	d := docs[0]
-
-	return &pkg.Package{
-		Name:     fmt.Sprintf("%s:%s", d.GroupID, d.ArtifactID),
-		Version:  d.Version,
-		Language: syftPkg.Java,
-		Metadata: pkg.JavaMetadata{
-			PomArtifactID: d.ArtifactID,
-			PomGroupID:    d.GroupID,
-		},
-	}, nil
 }
