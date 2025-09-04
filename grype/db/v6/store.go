@@ -32,7 +32,6 @@ func (s *store) attachBlobValue(values ...blobable) error {
 	return s.blobStore.attachBlobValue(values...)
 }
 
-
 func newStore(cfg Config, empty, writable bool) (*store, error) {
 	var path string
 	if cfg.DBDirPath != "" {

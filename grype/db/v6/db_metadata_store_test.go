@@ -85,7 +85,7 @@ func setupTestStore(t testing.TB, d ...string) *store {
 // grype's override matching behavior. In production, this data is managed by grype-db.
 func populateTestOverridesForMatchingTests(s *store) error {
 	// Populate OS specifier overrides for testing grype's matching logic
-	osOverrides := KnownOperatingSystemSpecifierOverrides()
+	osOverrides := testOperatingSystemSpecifierOverrides()
 	for i := range osOverrides {
 		override := &osOverrides[i]
 		if err := s.db.Create(override).Error; err != nil {
@@ -94,7 +94,7 @@ func populateTestOverridesForMatchingTests(s *store) error {
 	}
 
 	// Populate package specifier overrides for testing grype's matching logic
-	packageOverrides := KnownPackageSpecifierOverrides()
+	packageOverrides := testPackageSpecifierOverrides()
 	for i := range packageOverrides {
 		override := &packageOverrides[i]
 		if err := s.db.Create(override).Error; err != nil {
