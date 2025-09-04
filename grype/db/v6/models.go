@@ -804,7 +804,7 @@ type EpssHandle struct {
 type CWEHandle struct {
 	ID     int64  `gorm:"primaryKey"`
 	Cve    string `gorm:"column:cve;not null;index:cwes_cve_idx,collate:NOCASE"`
-	CWE    string `gorm:"column:cwe;"`
+	CWE    string `gorm:"column:cwe;not null;"`
 	Source string `gorm:"column:source;"`
 	Type   string `gorm:"column:type;"`
 }
