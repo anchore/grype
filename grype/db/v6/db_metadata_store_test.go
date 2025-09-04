@@ -74,7 +74,35 @@ func setupTestStore(t testing.TB, d ...string) *store {
 
 	require.NoError(t, s.SetDBMetadata())
 
+	// Populate test data for grype's matching behavior tests
+	// In production, this data is managed by grype-db during database construction
+	require.NoError(t, populateTestOverridesForMatchingTests(s))
+
 	return s
+}
+
+// populateTestOverridesForMatchingTests populates OS and package aliases solely for testing
+// grype's override matching behavior. In production, this data is managed by grype-db.
+func populateTestOverridesForMatchingTests(s *store) error {
+	// Populate OS specifier overrides for testing grype's matching logic
+	osOverrides := KnownOperatingSystemSpecifierOverrides()
+	for i := range osOverrides {
+		override := &osOverrides[i]
+		if err := s.db.Create(override).Error; err != nil {
+			return err
+		}
+	}
+
+	// Populate package specifier overrides for testing grype's matching logic
+	packageOverrides := KnownPackageSpecifierOverrides()
+	for i := range packageOverrides {
+		override := &packageOverrides[i]
+		if err := s.db.Create(override).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func setupReadOnlyTestStore(t testing.TB, dir string) *store {

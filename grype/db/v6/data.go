@@ -7,6 +7,9 @@ import (
 )
 
 // TODO: in a future iteration these should be raised up more explicitly by the vunnel providers
+// KnownOperatingSystemSpecifierOverrides returns OS aliases for testing grype's matching behavior.
+// NOTE: In production, this data is managed by grype-db during database construction.
+// This function is kept solely for testing grype's override application logic.
 func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride {
 	strRef := func(s string) *string {
 		return &s
@@ -20,7 +23,7 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 		{Alias: "almalinux", ReplacementName: strRef("rhel")}, // non-standard, but common (dockerhub uses "almalinux")
 		{Alias: "gentoo", ReplacementName: strRef("rhel")},
 
-		// Alternaitve distros that should match against the debian vulnerability data
+		// Alternative distros that should match against the debian vulnerability data
 		{Alias: "raspbian", ReplacementName: strRef("debian")},
 
 		// to remain backwards compatible, we need to keep old clients from ignoring EUS data.
@@ -67,6 +70,9 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 	}
 }
 
+// KnownPackageSpecifierOverrides returns package ecosystem aliases for testing grype's matching behavior.
+// NOTE: In production, this data is managed by grype-db during database construction.
+// This function is kept solely for testing grype's override application logic.
 func KnownPackageSpecifierOverrides() []PackageSpecifierOverride {
 	// when matching packages, grype will always attempt to do so based off of the package type which means
 	// that any request must be in terms of the package type (relative to syft).

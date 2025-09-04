@@ -125,7 +125,7 @@ func NewLowLevelDB(dbFilePath string, empty, writable, debug bool) (*gorm.DB, er
 
 	if empty {
 		opts = append(opts,
-			gormadapter.WithTruncate(true, Models(), InitialData()),
+			gormadapter.WithTruncate(true, Models(), nil),
 		)
 	} else if writable {
 		opts = append(opts, gormadapter.WithWritable(true, Models()))

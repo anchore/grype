@@ -32,19 +32,6 @@ func (s *store) attachBlobValue(values ...blobable) error {
 	return s.blobStore.attachBlobValue(values...)
 }
 
-func InitialData() []any {
-	var data []any
-	os := KnownOperatingSystemSpecifierOverrides()
-	for i := range os {
-		data = append(data, &os[i])
-	}
-
-	p := KnownPackageSpecifierOverrides()
-	for i := range p {
-		data = append(data, &p[i])
-	}
-	return data
-}
 
 func newStore(cfg Config, empty, writable bool) (*store, error) {
 	var path string
