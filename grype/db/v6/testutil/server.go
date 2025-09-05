@@ -245,8 +245,8 @@ func (s *ServerBuilder) buildDB() []byte {
 				ac := &v6.AffectedCPEHandle{
 					Vulnerability: vuln,
 					CPE:           &c,
-					BlobValue: &v6.AffectedPackageBlob{
-						Ranges: []v6.AffectedRange{
+					BlobValue: &v6.PackageBlob{
+						Ranges: []v6.Range{
 							{
 								Version: toAffectedVersion(v.Constraint),
 							},
@@ -268,10 +268,10 @@ func (s *ServerBuilder) buildDB() []byte {
 			PackageID:         0,
 			Package:           pkg,
 			BlobID:            0,
-			BlobValue: &v6.AffectedPackageBlob{
+			BlobValue: &v6.PackageBlob{
 				CVEs:       nil,
 				Qualifiers: nil,
-				Ranges: []v6.AffectedRange{
+				Ranges: []v6.Range{
 					{
 						Fix:     nil,
 						Version: toAffectedVersion(v.Constraint),
@@ -339,14 +339,14 @@ func pack(t *testing.T, typ string, contents []byte) []byte {
 	panic("unsupported type: " + typ)
 }
 
-func toAffectedVersion(c version.Constraint) v6.AffectedVersion {
+func toAffectedVersion(c version.Constraint) v6.Version {
 	parts := strings.SplitN(c.String(), "(", 2)
 	if len(parts) < 2 {
-		return v6.AffectedVersion{
+		return v6.Version{
 			Constraint: strings.TrimSpace(parts[0]),
 		}
 	}
-	return v6.AffectedVersion{
+	return v6.Version{
 		Type:       strings.TrimSpace(strings.Split(parts[1], ")")[0]),
 		Constraint: strings.TrimSpace(parts[0]),
 	}

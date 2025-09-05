@@ -138,7 +138,7 @@ func newOperatingSystemStore(db *gorm.DB, bs *blobStore) *operatingSystemStore {
 	}
 }
 
-func (s *operatingSystemStore) addOsFromPackages(packages ...*AffectedPackageHandle) error { // nolint:dupl
+func (s *operatingSystemStore) addOsFromPackages(packages ...*packageHandle) error { // nolint:dupl
 	cacheInst, ok := cacheFromContext(s.db.Statement.Context)
 	if !ok {
 		return fmt.Errorf("unable to fetch OS cache from context")
