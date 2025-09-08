@@ -162,7 +162,7 @@ func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 					Language:  "python",
 					Namespace: "github:language:python",
 					Package: match.PackageParameter{
-						Name:    thePkg.Name,
+						Name:    provider.PackageSearchNames(thePkg)[0], // there is normalization that should be accounted for
 						Version: thePkg.Version,
 					},
 				},
@@ -359,7 +359,7 @@ func addJavaMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 					Language:  "java",
 					Namespace: "github:language:java",
 					Package: match.PackageParameter{
-						Name:    thePkg.Name,
+						Name:    provider.PackageSearchNames(thePkg)[0], // there is normalization that should be accounted for
 						Version: thePkg.Version,
 					},
 				},
