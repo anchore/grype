@@ -253,7 +253,7 @@ func finalizeMatchDetails(processedResult *result.Result, originalDetails match.
 
 	// keep details around only if we have vulnerabilities they describe
 	processedResult.Details = append(processedResult.Details, originalDetails...)
-	processedResult.Details = internal.NewMatchDetailsSet(processedResult.Details...).ToSlice()
+	processedResult.Details = result.NewMatchDetailsSet(processedResult.Details...).ToSlice()
 
 	// patch the version in the details if it is missing
 	for idx := range processedResult.Details {

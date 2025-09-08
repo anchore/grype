@@ -190,6 +190,7 @@ func buildMatchDetails(matcher match.MatcherType, distroMatchType match.Type, co
 				VulnerabilityID:   vuln.ID,
 				VersionConstraint: constraintStr,
 			},
+			Confidence: 1.0, // TODO: this is hard coded for now
 		})
 	}
 

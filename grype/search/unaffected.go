@@ -11,10 +11,13 @@ func ForUnaffected() vulnerability.Criteria {
 	return &UnaffectedCriteria{}
 }
 
-type UnaffectedCriteria struct{}
+type UnaffectedCriteria struct {
+	UnaffectedValue bool
+}
 
-func (c *UnaffectedCriteria) MatchesVulnerability(_ vulnerability.Vulnerability) (bool, string, error) {
+func (c *UnaffectedCriteria) MatchesVulnerability(v vulnerability.Vulnerability) (bool, string, error) {
 	// unaffected criteria filtering happens at the store level, so all vulnerabilities returned
-	// from unaffected stores already match this criteria
-	return true, "", nil
+	// from unaffected stores _should_ already match this criteria. Boolean indicator is a backup
+	// sanity check.
+	return v.Unaffected, "", nil
 }
