@@ -52,7 +52,7 @@ func MatchPackageByEcosystemPackageName(vp vulnerability.Provider, p pkg.Package
 	}
 
 	// we want to perform the same results, but look for explicit naks, which indicates that a vulnerability should not apply
-	criteria = append(criteria, search.ForUnaffected(true))
+	criteria = append(criteria, search.ForUnaffected())
 	resolutions, err := provider.FindResults(criteria...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("matcher failed to fetch resolution language=%q pkg=%q: %w", p.Language, p.Name, err)

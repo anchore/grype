@@ -31,7 +31,7 @@ func TestNewSearchCriteria(t *testing.T) {
 		{
 			name: "unaffected criteria sets flag",
 			criteria: []vulnerability.Criteria{
-				search.ForUnaffected(true),
+				search.ForUnaffected(),
 			},
 			validate: func(t *testing.T, input *searchQuery) {
 				require.True(t, input.unaffectedOnly)
@@ -99,7 +99,7 @@ func TestQueryBuilder_ApplyCriteria(t *testing.T) {
 		{
 			name: "unaffected criteria",
 			criteria: []vulnerability.Criteria{
-				search.ForUnaffected(true),
+				search.ForUnaffected(),
 			},
 			validate: func(t *testing.T, builder *searchQueryBuilder) {
 				require.True(t, builder.query.unaffectedOnly)
@@ -154,7 +154,7 @@ func TestQueryBuilder_ApplyCriteria(t *testing.T) {
 			name: "multiple criteria",
 			criteria: []vulnerability.Criteria{
 				search.ByPackageName("test-package"),
-				search.ForUnaffected(true),
+				search.ForUnaffected(),
 				search.ByID("CVE-2021-1234"),
 			},
 			validate: func(t *testing.T, builder *searchQueryBuilder) {
@@ -291,7 +291,7 @@ func TestQueryBuilder_IntegrationWithRealCriteria(t *testing.T) {
 		search.ByEcosystem(syftPkg.Java, syftPkg.JavaPkg),
 		search.ByDistro(*distro.New(distro.Ubuntu, "20.04", "")),
 		search.ByID("CVE-2021-44228"),
-		search.ForUnaffected(true),
+		search.ForUnaffected(),
 		search.ByFunc(func(vulnerability.Vulnerability) (bool, string, error) {
 			return true, "", nil
 		}),
