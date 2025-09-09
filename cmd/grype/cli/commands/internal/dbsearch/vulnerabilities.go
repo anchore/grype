@@ -57,6 +57,9 @@ type VulnerabilityInfo struct {
 
 	// EPSS is a list of Exploit Prediction Scoring System (EPSS) scores for the vulnerability
 	EPSS []EPSS `json:"epss,omitempty"`
+
+	// CWEs is a list of Common Weakness Enumeration (CWE) identifiers for the vulnerability
+	CWEs []CWE `json:"cwes,omitempty"`
 }
 
 // OperatingSystem represents specific release of an operating system.
@@ -86,6 +89,13 @@ type EPSS struct {
 	EPSS       float64 `json:"epss"`
 	Percentile float64 `json:"percentile"`
 	Date       string  `json:"date"`
+}
+
+type CWE struct {
+	Cve    string `json:"cve"`
+	CWE    string `json:"cwe"`
+	Source string `json:"source"`
+	Type   string `json:"type"`
 }
 
 type CVSSSeverity struct {
