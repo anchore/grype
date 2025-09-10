@@ -146,6 +146,8 @@ func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package) (
 	switch {
 	case shouldUseRedhatEUSMatching(searchPkg.Distro):
 		return redhatEUSMatches(provider, searchPkg)
+	case shouldUseAlmaLinuxMatching(searchPkg.Distro):
+		return almaLinuxMatches(provider, searchPkg)
 	default:
 		return standardMatches(provider, searchPkg)
 	}
