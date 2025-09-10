@@ -84,12 +84,14 @@ func Test_CPEProvider(t *testing.T) {
 			},
 		},
 		{
-			name:      "takes CPE 2.3 format",
-			userInput: "cpe:2.3:a:apache:log4j:2.14.1:*:*:*:*:*:*:*",
+			name: "takes multiple CPEs",
+			userInput: `cpe:/a:apache:log4j:2.14.1
+						cpe:2.3:a:f5:nginx:*:*:*:*:*:*:*:*`,
 			context: Context{
 				Source: &source.Description{
 					Metadata: CPELiteralMetadata{
-						CPE: "cpe:2.3:a:apache:log4j:2.14.1:*:*:*:*:*:*:*",
+						CPE: `cpe:/a:apache:log4j:2.14.1
+						cpe:2.3:a:f5:nginx:*:*:*:*:*:*:*:*`,
 					},
 				},
 			},
@@ -101,6 +103,13 @@ func Test_CPEProvider(t *testing.T) {
 						cpe.Must("cpe:2.3:a:apache:log4j:2.14.1:*:*:*:*:*:*:*", ""),
 					},
 				},
+				{
+					Name:    "nginx",
+					Version: "",
+					CPEs: []cpe.CPE{
+						cpe.Must("cpe:2.3:a:f5:nginx:*:*:*:*:*:*:*:*", ""),
+					},
+				},
 			},
 			sbom: &sbom.SBOM{
 				Artifacts: sbom.Artifacts{
@@ -110,11 +119,18 @@ func Test_CPEProvider(t *testing.T) {
 						CPEs: []cpe.CPE{
 							cpe.Must("cpe:2.3:a:apache:log4j:2.14.1:*:*:*:*:*:*:*", ""),
 						},
-					}),
+					},
+						pkg.Package{
+							Name:    "nginx",
+							Version: "",
+							CPEs: []cpe.CPE{
+								cpe.Must("cpe:2.3:a:f5:nginx:*:*:*:*:*:*:*:*", ""),
+							},
+						},
+					),
 				},
 			},
 		},
-
 		{
 			name:      "invalid prefix",
 			userInput: "dir:test-fixtures/cpe",
@@ -137,7 +153,7 @@ func Test_CPEProvider(t *testing.T) {
 				tc.wantErr = require.NoError
 			}
 
-			packages, ctx, gotSBOM, err := cpeProvider(tc.userInput)
+			packages, ctx, gotSBOM, err := cpeProvider(tc.userInput, ProviderConfig{})
 
 			tc.wantErr(t, err)
 			if err != nil {
