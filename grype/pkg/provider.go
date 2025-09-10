@@ -141,7 +141,7 @@ func provide(userInput string, config ProviderConfig, applyChannel func(d *distr
 		return packages, ctx, s, err
 	}
 
-	packages, ctx, s, err = cpeProvider(userInput)
+	packages, ctx, s, err = cpeProvider(userInput, config)
 	if !errors.Is(err, errDoesNotProvide) {
 		log.WithFields("input", userInput).Trace("interpreting input as a CPE")
 		return packages, ctx, s, err
