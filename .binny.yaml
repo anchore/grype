@@ -90,7 +90,7 @@ tools:
   # used for triggering a release
   - name: gh
     version:
-      want: v2.78.0
+      want: v2.79.0
     method: github-release
     with:
       repo: cli/cli
