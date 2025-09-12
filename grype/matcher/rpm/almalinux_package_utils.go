@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/internal/log"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -102,50 +101,4 @@ func generateCommonBinaryPackageNames(sourcePackageName string) []string {
 	}
 
 	return names
-}
-
-// packageNameMatches checks if a package name matches against any of the related package names.
-// This is used to determine if an unaffected package record applies to a given package.
-func packageNameMatches(targetPackageName string, candidatePackage pkg.Package) bool {
-	relatedNames := getRelatedPackageNames(candidatePackage)
-
-	for _, name := range relatedNames {
-		if strings.EqualFold(name, targetPackageName) {
-			return true
-		}
-	}
-
-	return false
-}
-
-// isSourcePackage determines if a package appears to be a source package based on metadata
-func isSourcePackage(p pkg.Package) bool {
-	// Check if package has no upstream sources (likely a source package itself)
-	if len(p.Upstreams) == 0 {
-		return true
-	}
-
-	// Check if the upstream name is the same as package name (self-referential)
-	for _, upstream := range p.Upstreams {
-		if upstream.Name == p.Name {
-			return true
-		}
-	}
-
-	return false
-}
-
-// debugLogPackageRelationship logs debug information about package relationships for troubleshooting
-func debugLogPackageRelationship(p pkg.Package, unaffectedPackageName string) {
-	sourceRPM := extractSourceRPMName(p)
-	relatedNames := getRelatedPackageNames(p)
-
-	log.WithFields(
-		"package", p.Name,
-		"sourceRPM", sourceRPM,
-		"upstreams", len(p.Upstreams),
-		"relatedNames", strings.Join(relatedNames, ", "),
-		"unaffectedPackage", unaffectedPackageName,
-		"isSource", isSourcePackage(p),
-	).Trace("AlmaLinux package relationship analysis")
 }
