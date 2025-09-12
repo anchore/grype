@@ -2,6 +2,7 @@ package rpm
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
@@ -31,6 +32,11 @@ func shouldUseAlmaLinuxMatching(d *distro.Distro) bool {
 // 2. Find AlmaLinux unaffected packages that apply to this package (including source/binary relationships)
 // 3. Remove vulnerabilities that are marked as unaffected in AlmaLinux
 func almaLinuxMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
+	if strings.HasSuffix(searchPkg.Name, "-debuginfo") || strings.HasSuffix(searchPkg.Name, "-debugsource") {
+		return nil, nil // almaloinux explicitly never publishes advisories for RPMs that are only debug material
+		// consider these as fixed; otherwise we will have no fixed version for them, and they will be considered
+		// to be affected by every CVE that affects their src rpm at any version.
+	}
 	// Create a RHEL-compatible distro for finding base disclosures
 	rhelCompatibleDistro := *searchPkg.Distro
 	rhelCompatibleDistro.Type = distro.RedHat // treat as RHEL for disclosure lookup
