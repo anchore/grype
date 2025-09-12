@@ -55,7 +55,7 @@ func almaLinuxMatches(provider result.Provider, searchPkg pkg.Package) ([]match.
 	// Step 2: Find AlmaLinux unaffected packages that apply to this package
 	unaffectedResults, err := provider.FindResults(
 		search.ByPackageName(searchPkg.Name),
-		search.ByDistro(*searchPkg.Distro), // use actual AlmaLinux distro for unaffected lookup
+		search.ByExactDistro(*searchPkg.Distro), // use exact AlmaLinux distro for unaffected lookup (no aliases)
 		internal.OnlyQualifiedPackages(searchPkg),
 		search.ForUnaffected(),
 	)
@@ -95,7 +95,7 @@ func findRelatedUnaffectedPackages(provider result.Provider, searchPkg pkg.Packa
 		// Search for unaffected records using related package names
 		relatedResults, err := provider.FindResults(
 			search.ByPackageName(relatedName),
-			search.ByDistro(*searchPkg.Distro),
+			search.ByExactDistro(*searchPkg.Distro), // use exact distro to avoid alias mapping
 			internal.OnlyQualifiedPackages(searchPkg),
 			search.ForUnaffected(),
 		)
