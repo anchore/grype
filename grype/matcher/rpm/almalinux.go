@@ -73,15 +73,16 @@ func almaLinuxMatches(provider result.Provider, searchPkg pkg.Package) ([]match.
 
 	// Step 3: Also look for unaffected packages using source/binary RPM relationships
 	relatedUnaffectedResults := findRelatedUnaffectedPackages(provider, searchPkg)
-	if relatedUnaffectedResults != nil {
-		// Merge the related results into the main unaffected results
-		for key, results := range relatedUnaffectedResults {
-			unaffectedResults[key] = append(unaffectedResults[key], results...)
-		}
+	// Merge the related results into the main unaffected results
+	for key, results := range relatedUnaffectedResults {
+		unaffectedResults[key] = append(unaffectedResults[key], results...)
 	}
 
-	// Step 4: Filter disclosures by removing those that have unaffected matches
-	filteredDisclosures := filterDisclosuresByUnaffected(disclosures, unaffectedResults, pkgVersion)
+	// Step 4: Filter unaffected results to only include those where version constraints are satisfied
+	relevantUnaffectedResults := filterUnaffectedByVersionConstraints(unaffectedResults, pkgVersion)
+
+	// Step 5: Filter disclosures by removing those that have unaffected matches
+	filteredDisclosures := disclosures.Remove(relevantUnaffectedResults)
 
 	return filteredDisclosures.ToMatches(), nil
 }
@@ -122,58 +123,36 @@ func findRelatedUnaffectedPackages(provider result.Provider, searchPkg pkg.Packa
 	return allResults
 }
 
-// filterDisclosuresByUnaffected removes disclosures that are marked as unaffected
-func filterDisclosuresByUnaffected(disclosures result.Set, unaffectedResults result.Set, pkgVersion *version.Version) result.Set {
-	if len(unaffectedResults) == 0 {
-		return disclosures
-	}
+// filterUnaffectedByVersionConstraints filters unaffected results to only include those
+// where the package version satisfies the unaffected constraint
+func filterUnaffectedByVersionConstraints(unaffectedResults result.Set, pkgVersion *version.Version) result.Set {
+	filtered := make(result.Set)
 
-	// Create a map of vulnerability IDs that are unaffected for this version
-	unaffectedVulns := make(map[string]bool)
+	for key, resultList := range unaffectedResults {
+		var validResults []result.Result
 
-	for _, unaffectedResultList := range unaffectedResults {
-		for _, unaffectedResult := range unaffectedResultList {
+		for _, unaffectedResult := range resultList {
+			var validVulns []vulnerability.Vulnerability
+
 			for _, vuln := range unaffectedResult.Vulnerabilities {
 				// Check if this package version is covered by the unaffected constraint
 				if isVersionUnaffected(pkgVersion, vuln.Constraint, vuln.ID) {
-					unaffectedVulns[vuln.ID] = true
+					validVulns = append(validVulns, vuln)
 					log.WithFields("vulnID", vuln.ID, "packageVersion", pkgVersion.Raw, "constraint", vuln.Constraint).Trace("marking vulnerability as unaffected for AlmaLinux")
 				}
 			}
-		}
-	}
 
-	// Filter out disclosures for vulnerabilities that are unaffected
-	filtered := make(result.Set)
-	for key, disclosureList := range disclosures {
-		var filteredDisclosures []result.Result
-
-		for _, disclosure := range disclosureList {
-			var remainingVulns []vulnerability.Vulnerability
-
-			for _, vuln := range disclosure.Vulnerabilities {
-				if !unaffectedVulns[vuln.ID] {
-					remainingVulns = append(remainingVulns, vuln)
-				} else {
-					var packageName string
-					if disclosure.Package != nil {
-						packageName = disclosure.Package.Name
-					}
-					log.WithFields("vulnID", vuln.ID, "package", packageName).Debug("filtered out unaffected vulnerability for AlmaLinux")
-				}
-			}
-
-			// Only include the disclosure if it still has vulnerabilities
-			if len(remainingVulns) > 0 {
-				filteredDisclosure := disclosure
-				filteredDisclosure.Vulnerabilities = remainingVulns
-				filteredDisclosures = append(filteredDisclosures, filteredDisclosure)
+			// Only include results that have vulnerabilities with satisfied constraints
+			if len(validVulns) > 0 {
+				validResult := unaffectedResult
+				validResult.Vulnerabilities = validVulns
+				validResults = append(validResults, validResult)
 			}
 		}
 
-		// Only add to filtered set if there are remaining disclosures
-		if len(filteredDisclosures) > 0 {
-			filtered[key] = filteredDisclosures
+		// Only add to filtered set if there are valid results
+		if len(validResults) > 0 {
+			filtered[key] = validResults
 		}
 	}
 
