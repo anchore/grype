@@ -7,6 +7,11 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
+type CPE struct {
+	CPE    string `json:"cpe"`
+	Source string `json:"source"`
+}
+
 // Package is meant to be only the fields that are needed when displaying a single pkg.Package object for the JSON presenter.
 type Package struct {
 	ID           string            `json:"id"`
@@ -16,7 +21,7 @@ type Package struct {
 	Locations    file.Locations    `json:"locations"`
 	Language     syftPkg.Language  `json:"language"`
 	Licenses     []string          `json:"licenses"`
-	CPEs         []string          `json:"cpes"`
+	CPEs         []CPE             `json:"cpes"`
 	PURL         string            `json:"purl"`
 	Upstreams    []UpstreamPackage `json:"upstreams"`
 	MetadataType string            `json:"metadataType,omitempty"`
@@ -29,10 +34,10 @@ type UpstreamPackage struct {
 }
 
 func newPackage(p pkg.Package) Package {
-	var cpes = make([]string, 0)
+	var cpes = make([]CPE, 0)
 	for _, c := range p.CPEs {
 		// use .String() to ensure proper escaping
-		cpes = append(cpes, c.Attributes.String())
+		cpes = append(cpes, CPE{c.Attributes.String(), c.Source.String()})
 	}
 
 	licenses := p.Licenses
