@@ -17,6 +17,15 @@ func ByDistro(d ...distro.Distro) vulnerability.Criteria {
 	}
 }
 
+// ByExactDistro returns criteria which will match vulnerabilities based on any of the provided Distros
+// without applying alias mappings. This is useful when you need to find records specific to a distro
+// that would normally be aliased to another (e.g., AlmaLinux-specific records vs RHEL records).
+func ByExactDistro(d ...distro.Distro) vulnerability.Criteria {
+	return &ExactDistroCriteria{
+		Distros: d,
+	}
+}
+
 type DistroCriteria struct {
 	Distros []distro.Distro
 }
@@ -53,9 +62,49 @@ func (c *DistroCriteria) Summarize() string {
 	return "does not match distro(s): " + strings.Join(distroStrs, ", ")
 }
 
+type ExactDistroCriteria struct {
+	Distros []distro.Distro
+}
+
+func (c *ExactDistroCriteria) MatchesVulnerability(value vulnerability.Vulnerability) (bool, string, error) {
+	ns, err := namespace.FromString(value.Namespace)
+	if err != nil {
+		return false, fmt.Sprintf("unable to determine namespace for vulnerability %v: %v", value.ID, err), nil
+	}
+	dns, ok := ns.(*distroNs.Namespace)
+	if !ok || dns == nil {
+		// not a Distro-based vulnerability
+		return false, "not a distro-based vulnerability", nil
+	}
+	if len(c.Distros) == 0 {
+		return true, "", nil
+	}
+	var distroStrs []string
+	for _, d := range c.Distros {
+		if matchesExactDistro(&d, dns) {
+			return true, "", nil
+		}
+		distroStrs = append(distroStrs, d.String())
+	}
+
+	return false, fmt.Sprintf("does not match any known distro: %q", strings.Join(distroStrs, ", ")), nil
+}
+
+func (c *ExactDistroCriteria) Summarize() string {
+	var distroStrs []string
+	for _, d := range c.Distros {
+		distroStrs = append(distroStrs, d.String())
+	}
+	return "does not match distro(s): " + strings.Join(distroStrs, ", ")
+}
+
 var _ interface {
 	vulnerability.Criteria
 } = (*DistroCriteria)(nil)
+
+var _ interface {
+	vulnerability.Criteria
+} = (*ExactDistroCriteria)(nil)
 
 // matchesDistro returns true distro types are equal and versions are compatible
 func matchesDistro(d *distro.Distro, ns *distroNs.Namespace) bool {
@@ -116,4 +165,19 @@ func mimicV6DistroTypeOverrides(t distro.Type) distro.Type {
 	}
 
 	return applyMapping(string(t))
+}
+
+// matchesExactDistro returns true when distro types are equal and versions are compatible,
+// without applying any alias mappings
+func matchesExactDistro(d *distro.Distro, ns *distroNs.Namespace) bool {
+	if d == nil || ns == nil {
+		return false
+	}
+
+	// Compare distro types directly without any alias mappings
+	if string(d.Type) != string(ns.DistroType()) {
+		return false
+	}
+
+	return compatibleVersion(d.Version, ns.Version())
 }
