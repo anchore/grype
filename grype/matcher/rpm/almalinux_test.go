@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
@@ -363,14 +364,27 @@ func TestAlmaLinuxMatchingWithAliases(t *testing.T) {
 	matches, err := almaLinuxMatches(mockProvider, testPkg)
 	require.NoError(t, err)
 
-	// Verify results
-	assert.Len(t, matches, 1, "Should have 1 match remaining after filtering")
-	assert.Equal(t, "CVE-2023-5678", matches[0].Vulnerability.ID, "CVE-2023-5678 should remain")
+	// Verify results - both vulnerabilities should be present, but CVE-2023-1234 should have AlmaLinux fix info
+	assert.Len(t, matches, 2, "Should have 2 matches - both vulnerabilities should be reported")
 
-	// CVE-2023-1234 should be filtered out because ALSA-2023:1234 has it as an alias
-	for _, match := range matches {
-		assert.NotEqual(t, "CVE-2023-1234", match.Vulnerability.ID, "CVE-2023-1234 should be filtered out by ALSA alias")
+	// Find the matches by vulnerability ID
+	var cve1234Match, cve5678Match *match.Match
+	for i := range matches {
+		if matches[i].Vulnerability.ID == "CVE-2023-1234" {
+			cve1234Match = &matches[i]
+		} else if matches[i].Vulnerability.ID == "CVE-2023-5678" {
+			cve5678Match = &matches[i]
+		}
 	}
+
+	// CVE-2023-1234 should be present with AlmaLinux fix information
+	require.NotNil(t, cve1234Match, "CVE-2023-1234 should be present")
+	assert.Equal(t, vulnerability.FixStateFixed, cve1234Match.Vulnerability.Fix.State, "CVE-2023-1234 should show as fixed")
+	assert.NotEmpty(t, cve1234Match.Vulnerability.Fix.Versions, "CVE-2023-1234 should have AlmaLinux fix version")
+	assert.Equal(t, "0", cve1234Match.Vulnerability.Fix.Versions[0], "CVE-2023-1234 should show correct AlmaLinux fix version")
+
+	// CVE-2023-5678 should be present with original (RHEL) fix information
+	require.NotNil(t, cve5678Match, "CVE-2023-5678 should be present")
 }
 
 func TestVersionConstraintFiltering(t *testing.T) {
@@ -452,17 +466,22 @@ func TestVersionConstraintFiltering(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			pkgVersion := version.New(tt.packageVersion, version.RpmFormat)
 
-			// Filter unaffected results by version constraints
-			relevantUnaffected := filterUnaffectedByVersionConstraints(tt.unaffected, pkgVersion)
+			// Apply AlmaLinux fix processing
+			updated := updateDisclosuresWithAlmaLinuxFixes(tt.disclosures, tt.unaffected, pkgVersion)
 
-			// Apply the filtering
-			filtered := tt.disclosures.Remove(relevantUnaffected)
+			// Check results - vulnerability should always be present, but with different fix info
+			assert.Len(t, updated, 1, "vulnerability should always be reported")
+			assert.Contains(t, updated, "CVE-2023-1234")
 
+			// Check if fix information was updated based on constraint satisfaction
+			vuln := updated["CVE-2023-1234"][0].Vulnerabilities[0]
 			if tt.expectedFiltered {
-				assert.Empty(t, filtered, tt.description)
+				// Version satisfied constraint, so AlmaLinux fix should be applied
+				assert.Equal(t, vulnerability.FixStateFixed, vuln.Fix.State, tt.description)
+				assert.NotEmpty(t, vuln.Fix.Versions, tt.description)
 			} else {
-				assert.Len(t, filtered, 1, tt.description)
-				assert.Contains(t, filtered, "CVE-2023-1234")
+				// Version didn't satisfy constraint, so original (empty) fix info remains
+				assert.Empty(t, vuln.Fix.Versions, tt.description)
 			}
 		})
 	}
