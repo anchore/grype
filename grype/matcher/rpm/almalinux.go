@@ -78,13 +78,10 @@ func almaLinuxMatches(provider result.Provider, searchPkg pkg.Package) ([]match.
 		unaffectedResults[key] = append(unaffectedResults[key], results...)
 	}
 
-	// Step 4: Filter unaffected results to only include those where version constraints are satisfied
-	relevantUnaffectedResults := filterUnaffectedByVersionConstraints(unaffectedResults, pkgVersion)
+	// Step 4: Update RHEL disclosures with AlmaLinux-specific fix information
+	updatedDisclosures := updateDisclosuresWithAlmaLinuxFixes(disclosures, unaffectedResults, pkgVersion)
 
-	// Step 5: Filter disclosures by removing those that have unaffected matches
-	filteredDisclosures := disclosures.Remove(relevantUnaffectedResults)
-
-	return filteredDisclosures.ToMatches(), nil
+	return updatedDisclosures.ToMatches(), nil
 }
 
 // findRelatedUnaffectedPackages searches for unaffected packages using source/binary RPM relationships
@@ -123,40 +120,121 @@ func findRelatedUnaffectedPackages(provider result.Provider, searchPkg pkg.Packa
 	return allResults
 }
 
-// filterUnaffectedByVersionConstraints filters unaffected results to only include those
-// where the package version satisfies the unaffected constraint
-func filterUnaffectedByVersionConstraints(unaffectedResults result.Set, pkgVersion *version.Version) result.Set {
-	filtered := make(result.Set)
 
-	for key, resultList := range unaffectedResults {
-		var validResults []result.Result
+// updateDisclosuresWithAlmaLinuxFixes updates RHEL disclosures with AlmaLinux-specific fix information
+// instead of removing them entirely. This ensures users see AlmaLinux fix versions.
+func updateDisclosuresWithAlmaLinuxFixes(disclosures result.Set, unaffectedResults result.Set, pkgVersion *version.Version) result.Set {
+	if len(unaffectedResults) == 0 {
+		return disclosures
+	}
 
-		for _, unaffectedResult := range resultList {
-			var validVulns []vulnerability.Vulnerability
+	// Build a map of vulnerability ID to AlmaLinux fix information
+	almaLinuxFixes := make(map[string]vulnerability.Fix)
 
+	for _, unaffectedResultList := range unaffectedResults {
+		for _, unaffectedResult := range unaffectedResultList {
 			for _, vuln := range unaffectedResult.Vulnerabilities {
 				// Check if this package version is covered by the unaffected constraint
 				if isVersionUnaffected(pkgVersion, vuln.Constraint, vuln.ID) {
-					validVulns = append(validVulns, vuln)
-					log.WithFields("vulnID", vuln.ID, "packageVersion", pkgVersion.Raw, "constraint", vuln.Constraint).Trace("marking vulnerability as unaffected for AlmaLinux")
+					// Extract fix version from constraint (e.g., ">= 2.4.48" → "2.4.48")
+					fixVersion := extractFixVersionFromConstraint(vuln.Constraint)
+					if fixVersion != "" {
+						almaLinuxFixes[vuln.ID] = vulnerability.Fix{
+							Versions: []string{fixVersion},
+							State:    vulnerability.FixStateFixed,
+						}
+						log.WithFields("vulnID", vuln.ID, "almaLinuxFix", fixVersion).Trace("found AlmaLinux fix version")
+					}
+
+					// Also check related vulnerabilities (aliases)
+					for _, related := range vuln.RelatedVulnerabilities {
+						if fixVersion != "" {
+							almaLinuxFixes[related.ID] = vulnerability.Fix{
+								Versions: []string{fixVersion},
+								State:    vulnerability.FixStateFixed,
+							}
+							log.WithFields("vulnID", related.ID, "almaLinuxFix", fixVersion).Trace("found AlmaLinux fix version via alias")
+						}
+					}
 				}
 			}
-
-			// Only include results that have vulnerabilities with satisfied constraints
-			if len(validVulns) > 0 {
-				validResult := unaffectedResult
-				validResult.Vulnerabilities = validVulns
-				validResults = append(validResults, validResult)
-			}
-		}
-
-		// Only add to filtered set if there are valid results
-		if len(validResults) > 0 {
-			filtered[key] = validResults
 		}
 	}
 
-	return filtered
+	// Update disclosures with AlmaLinux fix information
+	updated := make(result.Set)
+	for key, disclosureList := range disclosures {
+		var updatedDisclosures []result.Result
+
+		for _, disclosure := range disclosureList {
+			var updatedVulns []vulnerability.Vulnerability
+
+			for _, vuln := range disclosure.Vulnerabilities {
+				if almaFix, hasAlmaFix := almaLinuxFixes[vuln.ID]; hasAlmaFix {
+					// Update with AlmaLinux fix information
+					updatedVuln := vuln
+					updatedVuln.Fix = almaFix
+					updatedVulns = append(updatedVulns, updatedVuln)
+					log.WithFields("vulnID", vuln.ID, "almaLinuxFixVersions", almaFix.Versions).Debug("updated vulnerability with AlmaLinux fix version")
+				} else {
+					// Keep original vulnerability
+					updatedVulns = append(updatedVulns, vuln)
+				}
+			}
+
+			// Include disclosure if it has vulnerabilities
+			if len(updatedVulns) > 0 {
+				updatedDisclosure := disclosure
+				updatedDisclosure.Vulnerabilities = updatedVulns
+				updatedDisclosures = append(updatedDisclosures, updatedDisclosure)
+			}
+		}
+
+		// Add to updated set if there are disclosures
+		if len(updatedDisclosures) > 0 {
+			updated[key] = updatedDisclosures
+		}
+	}
+
+	return updated
+}
+
+// extractFixVersionFromConstraint extracts a fix version from a version constraint
+// e.g., ">= 2.4.48" → "2.4.48", "= 1.2.3-4.el8" → "1.2.3-4.el8"
+func extractFixVersionFromConstraint(constraint version.Constraint) string {
+	if constraint == nil {
+		return ""
+	}
+
+	constraintStr := constraint.String()
+
+	// Handle common constraint patterns
+	// ">= version" → "version"
+	if strings.HasPrefix(constraintStr, ">= ") {
+		version := strings.TrimPrefix(constraintStr, ">= ")
+		return cleanVersionString(version)
+	}
+
+	// "= version" → "version"
+	if strings.HasPrefix(constraintStr, "= ") {
+		version := strings.TrimPrefix(constraintStr, "= ")
+		return cleanVersionString(version)
+	}
+
+	// "> version" → we can't determine exact fix version, return empty
+	// "< version" → this wouldn't make sense for a fix constraint
+
+	return ""
+}
+
+// cleanVersionString removes format suffixes from version strings
+// e.g., "2.4.48 (rpm)" → "2.4.48"
+func cleanVersionString(versionStr string) string {
+	// Remove format suffixes like " (rpm)", " (deb)", etc.
+	if idx := strings.Index(versionStr, " ("); idx != -1 {
+		return versionStr[:idx]
+	}
+	return versionStr
 }
 
 // isVersionUnaffected checks if a package version is unaffected according to the given constraint
