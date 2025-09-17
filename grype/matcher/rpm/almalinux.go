@@ -17,7 +17,10 @@ import (
 
 // shouldUseAlmaLinuxMatching determines if AlmaLinux-specific matching should be used
 func shouldUseAlmaLinuxMatching(d *distro.Distro) bool {
-	return d != nil && d.Type == distro.AlmaLinux
+	if d == nil {
+		return false
+	}
+	return d.Type == distro.AlmaLinux
 }
 
 // almaLinuxMatches returns matches for the given package with AlmaLinux unaffected filtering applied.
@@ -120,40 +123,55 @@ func findRelatedUnaffectedPackages(provider result.Provider, searchPkg pkg.Packa
 	return allResults
 }
 
-
-// updateDisclosuresWithAlmaLinuxFixes updates RHEL disclosures with AlmaLinux-specific fix information
-// instead of removing them entirely. This ensures users see AlmaLinux fix versions.
+// updateDisclosuresWithAlmaLinuxFixes filters out vulnerabilities that are unaffected in AlmaLinux
+// and updates remaining vulnerabilities with AlmaLinux-specific fix information.
 func updateDisclosuresWithAlmaLinuxFixes(disclosures result.Set, unaffectedResults result.Set, pkgVersion *version.Version) result.Set {
 	if len(unaffectedResults) == 0 {
 		return disclosures
 	}
 
-	// Build a map of vulnerability ID to AlmaLinux fix information
+	// Build maps of vulnerability IDs that should be filtered and their fix information
+	unaffectedVulns := make(map[string]bool)
 	almaLinuxFixes := make(map[string]vulnerability.Fix)
 
 	for _, unaffectedResultList := range unaffectedResults {
 		for _, unaffectedResult := range unaffectedResultList {
 			for _, vuln := range unaffectedResult.Vulnerabilities {
+				// Extract fix version from constraint for potential use
+				fixVersion := extractFixVersionFromConstraint(vuln.Constraint)
+
 				// Check if this package version is covered by the unaffected constraint
 				if isVersionUnaffected(pkgVersion, vuln.Constraint, vuln.ID) {
-					// Extract fix version from constraint (e.g., ">= 2.4.48" → "2.4.48")
-					fixVersion := extractFixVersionFromConstraint(vuln.Constraint)
-					if fixVersion != "" {
-						almaLinuxFixes[vuln.ID] = vulnerability.Fix{
-							Versions: []string{fixVersion},
-							State:    vulnerability.FixStateFixed,
-						}
-						log.WithFields("vulnID", vuln.ID, "almaLinuxFix", fixVersion).Trace("found AlmaLinux fix version")
-					}
+					// Check if this constraint indicates the package is at or above the fix version
+					// For constraints like ">= X.Y.Z", when our package version equals X.Y.Z, it means we have the fix
+					if strings.HasPrefix(vuln.Constraint.String(), ">= ") && fixVersion != "" {
+						fixVersionParsed := version.New(fixVersion, pkgVersion.Format)
+						cmp, err := pkgVersion.Compare(fixVersionParsed)
+						if err == nil && cmp >= 0 {
+							// Package version is equal to or greater than the fix version - completely fixed
+							unaffectedVulns[vuln.ID] = true
+							log.WithFields("vulnID", vuln.ID, "packageVersion", pkgVersion.String(), "fixVersion", fixVersion).Trace("vulnerability filtered: package >= fix version")
 
-					// Also check related vulnerabilities (aliases)
-					for _, related := range vuln.RelatedVulnerabilities {
+							// Also check related vulnerabilities (aliases)
+							for _, related := range vuln.RelatedVulnerabilities {
+								unaffectedVulns[related.ID] = true
+							}
+						}
+					} else {
+						// Other constraint types - update fix info but keep vulnerability
 						if fixVersion != "" {
-							almaLinuxFixes[related.ID] = vulnerability.Fix{
+							almaLinuxFixes[vuln.ID] = vulnerability.Fix{
 								Versions: []string{fixVersion},
 								State:    vulnerability.FixStateFixed,
 							}
-							log.WithFields("vulnID", related.ID, "almaLinuxFix", fixVersion).Trace("found AlmaLinux fix version via alias")
+
+							// Also update related vulnerabilities (aliases)
+							for _, related := range vuln.RelatedVulnerabilities {
+								almaLinuxFixes[related.ID] = vulnerability.Fix{
+									Versions: []string{fixVersion},
+									State:    vulnerability.FixStateFixed,
+								}
+							}
 						}
 					}
 				}
@@ -161,7 +179,7 @@ func updateDisclosuresWithAlmaLinuxFixes(disclosures result.Set, unaffectedResul
 		}
 	}
 
-	// Update disclosures with AlmaLinux fix information
+	// Filter disclosures and update remaining ones with AlmaLinux fix information
 	updated := make(result.Set)
 	for key, disclosureList := range disclosures {
 		var updatedDisclosures []result.Result
@@ -170,19 +188,24 @@ func updateDisclosuresWithAlmaLinuxFixes(disclosures result.Set, unaffectedResul
 			var updatedVulns []vulnerability.Vulnerability
 
 			for _, vuln := range disclosure.Vulnerabilities {
+				// Check if this vulnerability should be filtered out
+				if unaffectedVulns[vuln.ID] {
+					continue // Skip this vulnerability - it's unaffected
+				}
+
+				// Keep the vulnerability, possibly with updated fix information
 				if almaFix, hasAlmaFix := almaLinuxFixes[vuln.ID]; hasAlmaFix {
 					// Update with AlmaLinux fix information
 					updatedVuln := vuln
 					updatedVuln.Fix = almaFix
 					updatedVulns = append(updatedVulns, updatedVuln)
-					log.WithFields("vulnID", vuln.ID, "almaLinuxFixVersions", almaFix.Versions).Debug("updated vulnerability with AlmaLinux fix version")
 				} else {
 					// Keep original vulnerability
 					updatedVulns = append(updatedVulns, vuln)
 				}
 			}
 
-			// Include disclosure if it has vulnerabilities
+			// Include disclosure only if it has remaining vulnerabilities
 			if len(updatedVulns) > 0 {
 				updatedDisclosure := disclosure
 				updatedDisclosure.Vulnerabilities = updatedVulns
@@ -190,7 +213,7 @@ func updateDisclosuresWithAlmaLinuxFixes(disclosures result.Set, unaffectedResul
 			}
 		}
 
-		// Add to updated set if there are disclosures
+		// Add to updated set only if there are remaining disclosures
 		if len(updatedDisclosures) > 0 {
 			updated[key] = updatedDisclosures
 		}
