@@ -72,6 +72,9 @@ func (b *searchQueryBuilder) ApplyCriteria(criteriaSet []vulnerability.Criteria)
 		case *search.DistroCriteria:
 			b.handleDistro(c)
 			applied = true
+		case *search.ExactDistroCriteria:
+			b.handleExactDistro(c)
+			applied = true
 		}
 
 		if !applied {
@@ -162,6 +165,38 @@ func (b *searchQueryBuilder) handleDistro(c *search.DistroCriteria) {
 				MinorVersion:     d.MinorVersion(),
 				RemainingVersion: d.RemainingVersion(),
 				LabelVersion:     d.Codename,
+			})
+		}
+	}
+}
+
+func (b *searchQueryBuilder) handleExactDistro(c *search.ExactDistroCriteria) {
+	for _, d := range c.Distros {
+		var foundChannels int
+		for _, channel := range d.Channels {
+			if channel == "" {
+				// if the channel is empty, we should not add it to the OS specifier
+				continue
+			}
+			foundChannels++
+			b.query.osSpecs = append(b.query.osSpecs, &OSSpecifier{
+				Name:             d.Name(),
+				MajorVersion:     d.MajorVersion(),
+				MinorVersion:     d.MinorVersion(),
+				RemainingVersion: d.RemainingVersion(),
+				LabelVersion:     d.Codename,
+				Channel:          channel,
+				DisableAliasing:  true,
+			})
+		}
+		if foundChannels == 0 {
+			b.query.osSpecs = append(b.query.osSpecs, &OSSpecifier{
+				Name:             d.Name(),
+				MajorVersion:     d.MajorVersion(),
+				MinorVersion:     d.MinorVersion(),
+				RemainingVersion: d.RemainingVersion(),
+				LabelVersion:     d.Codename,
+				DisableAliasing:  true,
 			})
 		}
 	}
