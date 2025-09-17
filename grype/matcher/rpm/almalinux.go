@@ -130,82 +130,85 @@ func updateDisclosuresWithAlmaLinuxFixes(disclosures result.Set, unaffectedResul
 		return disclosures
 	}
 
-	// Build maps of vulnerability IDs that should be filtered and their fix information
+	unaffectedVulns, almaLinuxFixes := buildVulnerabilityMaps(unaffectedResults, pkgVersion)
+	return filterAndUpdateDisclosures(disclosures, unaffectedVulns, almaLinuxFixes)
+}
+
+// buildVulnerabilityMaps creates maps of unaffected vulnerabilities and AlmaLinux fixes
+func buildVulnerabilityMaps(unaffectedResults result.Set, pkgVersion *version.Version) (map[string]bool, map[string]vulnerability.Fix) {
 	unaffectedVulns := make(map[string]bool)
 	almaLinuxFixes := make(map[string]vulnerability.Fix)
 
 	for _, unaffectedResultList := range unaffectedResults {
 		for _, unaffectedResult := range unaffectedResultList {
 			for _, vuln := range unaffectedResult.Vulnerabilities {
-				// Extract fix version from constraint for potential use
-				fixVersion := extractFixVersionFromConstraint(vuln.Constraint)
-
-				// Check if this package version is covered by the unaffected constraint
-				if isVersionUnaffected(pkgVersion, vuln.Constraint, vuln.ID) {
-					// Check if this constraint indicates the package is at or above the fix version
-					// For constraints like ">= X.Y.Z", when our package version equals X.Y.Z, it means we have the fix
-					if strings.HasPrefix(vuln.Constraint.String(), ">= ") && fixVersion != "" {
-						fixVersionParsed := version.New(fixVersion, pkgVersion.Format)
-						cmp, err := pkgVersion.Compare(fixVersionParsed)
-						if err == nil && cmp >= 0 {
-							// Package version is equal to or greater than the fix version - completely fixed
-							unaffectedVulns[vuln.ID] = true
-							log.WithFields("vulnID", vuln.ID, "packageVersion", pkgVersion.String(), "fixVersion", fixVersion).Trace("vulnerability filtered: package >= fix version")
-
-							// Also check related vulnerabilities (aliases)
-							for _, related := range vuln.RelatedVulnerabilities {
-								unaffectedVulns[related.ID] = true
-							}
-						}
-					} else {
-						// Other constraint types - update fix info but keep vulnerability
-						if fixVersion != "" {
-							almaLinuxFixes[vuln.ID] = vulnerability.Fix{
-								Versions: []string{fixVersion},
-								State:    vulnerability.FixStateFixed,
-							}
-
-							// Also update related vulnerabilities (aliases)
-							for _, related := range vuln.RelatedVulnerabilities {
-								almaLinuxFixes[related.ID] = vulnerability.Fix{
-									Versions: []string{fixVersion},
-									State:    vulnerability.FixStateFixed,
-								}
-							}
-						}
-					}
-				}
+				processUnaffectedVulnerability(vuln, pkgVersion, unaffectedVulns, almaLinuxFixes)
 			}
 		}
 	}
 
-	// Filter disclosures and update remaining ones with AlmaLinux fix information
+	return unaffectedVulns, almaLinuxFixes
+}
+
+// processUnaffectedVulnerability processes a single unaffected vulnerability record
+func processUnaffectedVulnerability(vuln vulnerability.Vulnerability, pkgVersion *version.Version, unaffectedVulns map[string]bool, almaLinuxFixes map[string]vulnerability.Fix) {
+	fixVersion := extractFixVersionFromConstraint(vuln.Constraint)
+
+	if !isVersionUnaffected(pkgVersion, vuln.Constraint, vuln.ID) {
+		return
+	}
+
+	if shouldFilterVulnerability(vuln.Constraint, fixVersion, pkgVersion) {
+		markVulnerabilityAsUnaffected(vuln, unaffectedVulns, pkgVersion, fixVersion)
+	} else if fixVersion != "" {
+		updateVulnerabilityFixes(vuln, fixVersion, almaLinuxFixes)
+	}
+}
+
+// shouldFilterVulnerability determines if a vulnerability should be completely filtered out
+func shouldFilterVulnerability(constraint version.Constraint, fixVersion string, pkgVersion *version.Version) bool {
+	if !strings.HasPrefix(constraint.String(), ">= ") || fixVersion == "" {
+		return false
+	}
+
+	fixVersionParsed := version.New(fixVersion, pkgVersion.Format)
+	cmp, err := pkgVersion.Compare(fixVersionParsed)
+	return err == nil && cmp >= 0
+}
+
+// markVulnerabilityAsUnaffected marks a vulnerability and its aliases as unaffected
+func markVulnerabilityAsUnaffected(vuln vulnerability.Vulnerability, unaffectedVulns map[string]bool, pkgVersion *version.Version, fixVersion string) {
+	unaffectedVulns[vuln.ID] = true
+	log.WithFields("vulnID", vuln.ID, "packageVersion", pkgVersion.String(), "fixVersion", fixVersion).Trace("vulnerability filtered: package >= fix version")
+
+	for _, related := range vuln.RelatedVulnerabilities {
+		unaffectedVulns[related.ID] = true
+	}
+}
+
+// updateVulnerabilityFixes updates fix information for a vulnerability and its aliases
+func updateVulnerabilityFixes(vuln vulnerability.Vulnerability, fixVersion string, almaLinuxFixes map[string]vulnerability.Fix) {
+	fix := vulnerability.Fix{
+		Versions: []string{fixVersion},
+		State:    vulnerability.FixStateFixed,
+	}
+
+	almaLinuxFixes[vuln.ID] = fix
+	for _, related := range vuln.RelatedVulnerabilities {
+		almaLinuxFixes[related.ID] = fix
+	}
+}
+
+// filterAndUpdateDisclosures filters disclosures and updates remaining ones with AlmaLinux fix information
+func filterAndUpdateDisclosures(disclosures result.Set, unaffectedVulns map[string]bool, almaLinuxFixes map[string]vulnerability.Fix) result.Set {
 	updated := make(result.Set)
+
 	for key, disclosureList := range disclosures {
 		var updatedDisclosures []result.Result
 
 		for _, disclosure := range disclosureList {
-			var updatedVulns []vulnerability.Vulnerability
+			updatedVulns := filterVulnerabilities(disclosure.Vulnerabilities, unaffectedVulns, almaLinuxFixes)
 
-			for _, vuln := range disclosure.Vulnerabilities {
-				// Check if this vulnerability should be filtered out
-				if unaffectedVulns[vuln.ID] {
-					continue // Skip this vulnerability - it's unaffected
-				}
-
-				// Keep the vulnerability, possibly with updated fix information
-				if almaFix, hasAlmaFix := almaLinuxFixes[vuln.ID]; hasAlmaFix {
-					// Update with AlmaLinux fix information
-					updatedVuln := vuln
-					updatedVuln.Fix = almaFix
-					updatedVulns = append(updatedVulns, updatedVuln)
-				} else {
-					// Keep original vulnerability
-					updatedVulns = append(updatedVulns, vuln)
-				}
-			}
-
-			// Include disclosure only if it has remaining vulnerabilities
 			if len(updatedVulns) > 0 {
 				updatedDisclosure := disclosure
 				updatedDisclosure.Vulnerabilities = updatedVulns
@@ -213,13 +216,33 @@ func updateDisclosuresWithAlmaLinuxFixes(disclosures result.Set, unaffectedResul
 			}
 		}
 
-		// Add to updated set only if there are remaining disclosures
 		if len(updatedDisclosures) > 0 {
 			updated[key] = updatedDisclosures
 		}
 	}
 
 	return updated
+}
+
+// filterVulnerabilities filters and updates vulnerabilities based on unaffected status and fixes
+func filterVulnerabilities(vulns []vulnerability.Vulnerability, unaffectedVulns map[string]bool, almaLinuxFixes map[string]vulnerability.Fix) []vulnerability.Vulnerability {
+	var updatedVulns []vulnerability.Vulnerability
+
+	for _, vuln := range vulns {
+		if unaffectedVulns[vuln.ID] {
+			continue // Skip this vulnerability - it's unaffected
+		}
+
+		if almaFix, hasAlmaFix := almaLinuxFixes[vuln.ID]; hasAlmaFix {
+			updatedVuln := vuln
+			updatedVuln.Fix = almaFix
+			updatedVulns = append(updatedVulns, updatedVuln)
+		} else {
+			updatedVulns = append(updatedVulns, vuln)
+		}
+	}
+
+	return updatedVulns
 }
 
 // extractFixVersionFromConstraint extracts a fix version from a version constraint
