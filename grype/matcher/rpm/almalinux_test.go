@@ -335,7 +335,7 @@ func TestAlmaLinuxMatchingWithAliases(t *testing.T) {
 						RelatedVulnerabilities: []vulnerability.Reference{
 							{ID: "CVE-2023-1234"}, // ALSA aliases CVE
 						},
-						Constraint: createConstraint(t, ">= 0", version.RpmFormat), // any version is unaffected
+						Constraint: createConstraint(t, ">= 2.4.37-40.module_el8.6.0+1000+ce6a2ac1", version.RpmFormat), // older versions unaffected
 					},
 				},
 				Package: &testPkg,
@@ -364,27 +364,22 @@ func TestAlmaLinuxMatchingWithAliases(t *testing.T) {
 	matches, err := almaLinuxMatches(mockProvider, testPkg)
 	require.NoError(t, err)
 
-	// Verify results - both vulnerabilities should be present, but CVE-2023-1234 should have AlmaLinux fix info
-	assert.Len(t, matches, 2, "Should have 2 matches - both vulnerabilities should be reported")
+	// Verify results - CVE-2023-1234 should be filtered out because package version is >= fix version
+	// Only CVE-2023-5678 should remain (no unaffected record for it)
+	assert.Len(t, matches, 1, "Should have 1 match - CVE-2023-1234 should be filtered out as fixed")
 
-	// Find the matches by vulnerability ID
-	var cve1234Match, cve5678Match *match.Match
-	for i := range matches {
-		if matches[i].Vulnerability.ID == "CVE-2023-1234" {
-			cve1234Match = &matches[i]
-		} else if matches[i].Vulnerability.ID == "CVE-2023-5678" {
-			cve5678Match = &matches[i]
-		}
-	}
-
-	// CVE-2023-1234 should be present with AlmaLinux fix information
-	require.NotNil(t, cve1234Match, "CVE-2023-1234 should be present")
-	assert.Equal(t, vulnerability.FixStateFixed, cve1234Match.Vulnerability.Fix.State, "CVE-2023-1234 should show as fixed")
-	assert.NotEmpty(t, cve1234Match.Vulnerability.Fix.Versions, "CVE-2023-1234 should have AlmaLinux fix version")
-	assert.Equal(t, "0", cve1234Match.Vulnerability.Fix.Versions[0], "CVE-2023-1234 should show correct AlmaLinux fix version")
+	// Find the remaining match
+	require.Len(t, matches, 1, "Should have exactly one match")
+	remainingMatch := matches[0]
 
 	// CVE-2023-5678 should be present with original (RHEL) fix information
-	require.NotNil(t, cve5678Match, "CVE-2023-5678 should be present")
+	assert.Equal(t, "CVE-2023-5678", remainingMatch.Vulnerability.ID, "CVE-2023-5678 should be the only remaining vulnerability")
+
+	// CVE-2023-1234 should NOT be present because the package version (47+1111) is greater than
+	// the AlmaLinux fix version (40+1000), so it's completely fixed
+	for _, match := range matches {
+		assert.NotEqual(t, "CVE-2023-1234", match.Vulnerability.ID, "CVE-2023-1234 should be filtered out as the package is >= fix version")
+	}
 }
 
 func TestVersionConstraintFiltering(t *testing.T) {
@@ -402,7 +397,8 @@ func TestVersionConstraintFiltering(t *testing.T) {
 			disclosures: result.Set{
 				"CVE-2023-1234": []result.Result{
 					{
-						ID: "CVE-2023-1234",
+						ID:      "CVE-2023-1234",
+						Package: &pkg.Package{Name: "test-package"},
 						Vulnerabilities: []vulnerability.Vulnerability{
 							{Reference: vulnerability.Reference{ID: "CVE-2023-1234"}},
 						},
@@ -434,7 +430,8 @@ func TestVersionConstraintFiltering(t *testing.T) {
 			disclosures: result.Set{
 				"CVE-2023-1234": []result.Result{
 					{
-						ID: "CVE-2023-1234",
+						ID:      "CVE-2023-1234",
+						Package: &pkg.Package{Name: "test-package"},
 						Vulnerabilities: []vulnerability.Vulnerability{
 							{Reference: vulnerability.Reference{ID: "CVE-2023-1234"}},
 						},
@@ -469,18 +466,15 @@ func TestVersionConstraintFiltering(t *testing.T) {
 			// Apply AlmaLinux fix processing
 			updated := updateDisclosuresWithAlmaLinuxFixes(tt.disclosures, tt.unaffected, pkgVersion)
 
-			// Check results - vulnerability should always be present, but with different fix info
-			assert.Len(t, updated, 1, "vulnerability should always be reported")
-			assert.Contains(t, updated, "CVE-2023-1234")
-
-			// Check if fix information was updated based on constraint satisfaction
-			vuln := updated["CVE-2023-1234"][0].Vulnerabilities[0]
 			if tt.expectedFiltered {
-				// Version satisfied constraint, so AlmaLinux fix should be applied
-				assert.Equal(t, vulnerability.FixStateFixed, vuln.Fix.State, tt.description)
-				assert.NotEmpty(t, vuln.Fix.Versions, tt.description)
+				// Version satisfied unaffected constraint >= fix version, so vulnerability should be completely filtered out
+				assert.Empty(t, updated, tt.description)
+				assert.NotContains(t, updated, "CVE-2023-1234", "vulnerability should be filtered out when package >= fix version")
 			} else {
-				// Version didn't satisfy constraint, so original (empty) fix info remains
+				// Version didn't satisfy constraint, so vulnerability should remain with original fix info
+				assert.Len(t, updated, 1, "vulnerability should be reported when package < fix version")
+				assert.Contains(t, updated, "CVE-2023-1234")
+				vuln := updated["CVE-2023-1234"][0].Vulnerabilities[0]
 				assert.Empty(t, vuln.Fix.Versions, tt.description)
 			}
 		})
@@ -609,6 +603,99 @@ func TestAlmaLinuxAliasEdgeCases(t *testing.T) {
 			assert.ElementsMatch(t, tt.expectedIDs, foundIDs, tt.description)
 		})
 	}
+}
+
+func TestCVE202232084UnaffectedFiltering(t *testing.T) {
+	// Test verifies that AlmaLinux unaffected records properly exclude vulnerabilities
+	// when the package version satisfies the unaffected constraint.
+
+	mockProvider := &MockProvider{}
+
+	almaDistro := &distro.Distro{
+		Type:    distro.AlmaLinux,
+		Version: "8",
+	}
+	testPkg := pkg.Package{
+		Name:    "mariadb",
+		Version: "3:10.3.39-1.module_el8.8.0+3609+204d4ab0",
+		Type:    syftPkg.RpmPkg,
+		Distro:  almaDistro,
+	}
+
+	// RHEL reports this package as vulnerable (3609 < 19673 in module build numbers)
+	rhelDisclosures := result.Set{
+		"CVE-2022-32084": []result.Result{
+			{
+				ID: "CVE-2022-32084",
+				Vulnerabilities: []vulnerability.Vulnerability{
+					{
+						Reference:  vulnerability.Reference{ID: "CVE-2022-32084"},
+						Constraint: createConstraint(t, "< 3:10.3.39-1.module+el8.8.0+19673+72b0d35f", version.RpmFormat),
+						Fix: vulnerability.Fix{
+							Versions: []string{"3:10.3.39-1.module+el8.8.0+19673+72b0d35f"},
+							State:    vulnerability.FixStateFixed,
+						},
+					},
+				},
+				Package: &testPkg,
+			},
+		},
+	}
+
+	// AlmaLinux marks this exact package version as unaffected
+	almaUnaffected := result.Set{
+		"ALSA-2023:5259": []result.Result{
+			{
+				ID: "ALSA-2023:5259",
+				Vulnerabilities: []vulnerability.Vulnerability{
+					{
+						Reference: vulnerability.Reference{ID: "ALSA-2023:5259"},
+						RelatedVulnerabilities: []vulnerability.Reference{
+							{ID: "CVE-2022-32084"},
+						},
+						Constraint: createConstraint(t, ">= 3:10.3.39-1.module_el8.8.0+3609+204d4ab0", version.RpmFormat),
+						Fix: vulnerability.Fix{
+							Versions: []string{"3:10.3.39-1.module_el8.8.0+3609+204d4ab0"},
+							State:    vulnerability.FixStateFixed,
+						},
+					},
+				},
+				Package: &testPkg,
+			},
+		},
+	}
+
+	callCount := 0
+	mockProvider.findResultsFunc = func(criteria ...vulnerability.Criteria) (result.Set, error) {
+		callCount++
+		switch callCount {
+		case 1:
+			return rhelDisclosures, nil
+		case 2:
+			return almaUnaffected, nil
+		default:
+			return result.Set{}, nil
+		}
+	}
+
+	matches, err := almaLinuxMatches(mockProvider, testPkg)
+	require.NoError(t, err)
+
+	var cve202232084Match *match.Match
+	for i := range matches {
+		if matches[i].Vulnerability.ID == "CVE-2022-32084" {
+			cve202232084Match = &matches[i]
+			break
+		}
+	}
+
+	if cve202232084Match != nil {
+		t.Errorf("CVE-2022-32084 should not be reported for package %s "+
+			"because AlmaLinux unaffected record excludes it",
+			testPkg.Version)
+	}
+
+	assert.Empty(t, matches, "No vulnerabilities should be reported when unaffected records exclude them")
 }
 
 // Helper functions for tests
