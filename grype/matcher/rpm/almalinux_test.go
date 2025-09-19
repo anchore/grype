@@ -464,7 +464,7 @@ func TestVersionConstraintFiltering(t *testing.T) {
 			pkgVersion := version.New(tt.packageVersion, version.RpmFormat)
 
 			// Apply AlmaLinux fix processing
-			updated := updateDisclosuresWithAlmaLinuxFixes(tt.disclosures, tt.unaffected, pkgVersion)
+			updated := applyAlmaLinuxUnaffectedFiltering(tt.disclosures, tt.unaffected, pkgVersion)
 
 			if tt.expectedFiltered {
 				// Version satisfied unaffected constraint >= fix version, so vulnerability should be completely filtered out
