@@ -14,6 +14,7 @@ import (
 func ByDistro(d ...distro.Distro) vulnerability.Criteria {
 	return &DistroCriteria{
 		Distros: d,
+		Exact:   false,
 	}
 }
 
@@ -21,13 +22,15 @@ func ByDistro(d ...distro.Distro) vulnerability.Criteria {
 // without applying alias mappings. This is useful when you need to find records specific to a distro
 // that would normally be aliased to another (e.g., AlmaLinux-specific records vs RHEL records).
 func ByExactDistro(d ...distro.Distro) vulnerability.Criteria {
-	return &ExactDistroCriteria{
+	return &DistroCriteria{
 		Distros: d,
+		Exact:   true,
 	}
 }
 
 type DistroCriteria struct {
 	Distros []distro.Distro
+	Exact   bool // if true, disable alias mappings (e.g., AlmaLinux -> RHEL)
 }
 
 func (c *DistroCriteria) MatchesVulnerability(value vulnerability.Vulnerability) (bool, string, error) {
@@ -45,7 +48,13 @@ func (c *DistroCriteria) MatchesVulnerability(value vulnerability.Vulnerability)
 	}
 	var distroStrs []string
 	for _, d := range c.Distros {
-		if matchesDistro(&d, dns) {
+		var matches bool
+		if c.Exact {
+			matches = matchesExactDistro(&d, dns)
+		} else {
+			matches = matchesDistro(&d, dns)
+		}
+		if matches {
 			return true, "", nil
 		}
 		distroStrs = append(distroStrs, d.String())
@@ -62,49 +71,9 @@ func (c *DistroCriteria) Summarize() string {
 	return "does not match distro(s): " + strings.Join(distroStrs, ", ")
 }
 
-type ExactDistroCriteria struct {
-	Distros []distro.Distro
-}
-
-func (c *ExactDistroCriteria) MatchesVulnerability(value vulnerability.Vulnerability) (bool, string, error) {
-	ns, err := namespace.FromString(value.Namespace)
-	if err != nil {
-		return false, fmt.Sprintf("unable to determine namespace for vulnerability %v: %v", value.ID, err), nil
-	}
-	dns, ok := ns.(*distroNs.Namespace)
-	if !ok || dns == nil {
-		// not a Distro-based vulnerability
-		return false, "not a distro-based vulnerability", nil
-	}
-	if len(c.Distros) == 0 {
-		return true, "", nil
-	}
-	var distroStrs []string
-	for _, d := range c.Distros {
-		if matchesExactDistro(&d, dns) {
-			return true, "", nil
-		}
-		distroStrs = append(distroStrs, d.String())
-	}
-
-	return false, fmt.Sprintf("does not match any known distro: %q", strings.Join(distroStrs, ", ")), nil
-}
-
-func (c *ExactDistroCriteria) Summarize() string {
-	var distroStrs []string
-	for _, d := range c.Distros {
-		distroStrs = append(distroStrs, d.String())
-	}
-	return "does not match distro(s): " + strings.Join(distroStrs, ", ")
-}
-
 var _ interface {
 	vulnerability.Criteria
 } = (*DistroCriteria)(nil)
-
-var _ interface {
-	vulnerability.Criteria
-} = (*ExactDistroCriteria)(nil)
 
 // matchesDistro returns true distro types are equal and versions are compatible
 func matchesDistro(d *distro.Distro, ns *distroNs.Namespace) bool {
