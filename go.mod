@@ -24,7 +24,7 @@ require (
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/bitnami/go-version v0.0.0-20250505154626-452e8c5ee607
 	github.com/bmatcuk/doublestar/v2 v2.0.4
-	github.com/charmbracelet/bubbletea v1.3.9
+	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/dave/jennifer v1.7.1
 	github.com/docker/docker v28.4.0+incompatible
