@@ -6,7 +6,7 @@ if [ "$(git status --porcelain | wc -l)" -ne "0" ]; then
   exit 1
 fi
 
-if ! task generate-db-schema; then
+if ! make generate-db-schema; then
   echo "Generating database blob schemas failed"
   exit 1
 fi
