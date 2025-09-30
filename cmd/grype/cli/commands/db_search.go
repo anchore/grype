@@ -165,6 +165,7 @@ func runDBSearchMatches(opts dbSearchMatchOptions) error {
 		OS:                    opts.OS.Specs,
 		AllowBroadCPEMatching: opts.Package.AllowBroadCPEMatching,
 		RecordLimit:           opts.Bounds.RecordLimit,
+		FixedStates:           opts.Vulnerability.FixedState,
 	})
 	if queryErr != nil {
 		if !errors.Is(queryErr, v6.ErrLimitReached) {

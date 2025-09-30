@@ -897,3 +897,249 @@ func (m *affectedMockReader) GetEpss(cve string) ([]v6.EpssHandle, error) {
 func ptr[T any](t T) *T {
 	return &t
 }
+
+func TestGetFixStateFromPackageBlob(t *testing.T) {
+	tests := []struct {
+		name     string
+		blob     *v6.PackageBlob
+		expected string
+	}{
+		{
+			name:     "nil blob returns unknown",
+			blob:     nil,
+			expected: "unknown",
+		},
+		{
+			name:     "empty blob returns unknown",
+			blob:     &v6.PackageBlob{},
+			expected: "unknown",
+		},
+		{
+			name: "blob with fixed status",
+			blob: &v6.PackageBlob{
+				Ranges: []v6.Range{
+					{
+						Fix: &v6.Fix{
+							State:   v6.FixedStatus,
+							Version: "1.2.3",
+						},
+					},
+				},
+			},
+			expected: "fixed",
+		},
+		{
+			name: "blob with not-fixed status",
+			blob: &v6.PackageBlob{
+				Ranges: []v6.Range{
+					{
+						Fix: &v6.Fix{
+							State: v6.NotFixedStatus,
+						},
+					},
+				},
+			},
+			expected: "not-fixed",
+		},
+		{
+			name: "blob with wont-fix status",
+			blob: &v6.PackageBlob{
+				Ranges: []v6.Range{
+					{
+						Fix: &v6.Fix{
+							State: v6.WontFixStatus,
+						},
+					},
+				},
+			},
+			expected: "wont-fix",
+		},
+		{
+			name: "blob with no fix returns unknown",
+			blob: &v6.PackageBlob{
+				Ranges: []v6.Range{
+					{
+						Fix: nil,
+					},
+				},
+			},
+			expected: "unknown",
+		},
+		{
+			name: "blob with mixed statuses prefers fixed",
+			blob: &v6.PackageBlob{
+				Ranges: []v6.Range{
+					{
+						Fix: &v6.Fix{
+							State: v6.NotFixedStatus,
+						},
+					},
+					{
+						Fix: &v6.Fix{
+							State:   v6.FixedStatus,
+							Version: "2.0.0",
+						},
+					},
+				},
+			},
+			expected: "fixed",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getFixStateFromPackageBlob(tt.blob)
+			require.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestFilterByFixedStateForPackages(t *testing.T) {
+	tests := []struct {
+		name        string
+		packages    []affectedPackageWithDecorations
+		fixedStates []string
+		expectedLen int
+	}{
+		{
+			name: "empty fixed states returns all packages",
+			packages: []affectedPackageWithDecorations{
+				{AffectedPackageHandle: v6.AffectedPackageHandle{BlobValue: &v6.PackageBlob{}}},
+				{AffectedPackageHandle: v6.AffectedPackageHandle{BlobValue: &v6.PackageBlob{}}},
+			},
+			fixedStates: []string{},
+			expectedLen: 2,
+		},
+		{
+			name: "filter by fixed state",
+			packages: []affectedPackageWithDecorations{
+				makeAffectedPackageWithFixState(v6.FixedStatus),
+				makeAffectedPackageWithFixState(v6.NotFixedStatus),
+			},
+			fixedStates: []string{"fixed"},
+			expectedLen: 1,
+		},
+		{
+			name: "filter by multiple states",
+			packages: []affectedPackageWithDecorations{
+				makeAffectedPackageWithFixState(v6.FixedStatus),
+				makeAffectedPackageWithFixState(v6.NotFixedStatus),
+				makeAffectedPackageWithFixState(v6.WontFixStatus),
+			},
+			fixedStates: []string{"fixed", "wont-fix"},
+			expectedLen: 2,
+		},
+		{
+			name: "filter with no matches",
+			packages: []affectedPackageWithDecorations{
+				makeAffectedPackageWithFixState(v6.NotFixedStatus),
+			},
+			fixedStates: []string{"fixed"},
+			expectedLen: 0,
+		},
+		{
+			name: "packages with nil blob are filtered out",
+			packages: []affectedPackageWithDecorations{
+				makeAffectedPackageWithFixState(v6.FixedStatus),
+				{AffectedPackageHandle: v6.AffectedPackageHandle{BlobValue: nil}},
+			},
+			fixedStates: []string{"fixed"},
+			expectedLen: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := filterByFixedStateForPackages(tt.packages, tt.fixedStates)
+			require.Equal(t, tt.expectedLen, len(result))
+		})
+	}
+}
+
+func TestFilterByFixedStateForCPEs(t *testing.T) {
+	tests := []struct {
+		name        string
+		cpes        []affectedCPEWithDecorations
+		fixedStates []string
+		expectedLen int
+	}{
+		{
+			name: "empty fixed states returns all CPEs",
+			cpes: []affectedCPEWithDecorations{
+				{AffectedCPEHandle: v6.AffectedCPEHandle{BlobValue: &v6.PackageBlob{}}},
+				{AffectedCPEHandle: v6.AffectedCPEHandle{BlobValue: &v6.PackageBlob{}}},
+			},
+			fixedStates: []string{},
+			expectedLen: 2,
+		},
+		{
+			name: "filter by fixed state",
+			cpes: []affectedCPEWithDecorations{
+				makeAffectedCPEWithFixState(v6.FixedStatus),
+				makeAffectedCPEWithFixState(v6.NotFixedStatus),
+			},
+			fixedStates: []string{"fixed"},
+			expectedLen: 1,
+		},
+		{
+			name: "filter by multiple states",
+			cpes: []affectedCPEWithDecorations{
+				makeAffectedCPEWithFixState(v6.FixedStatus),
+				makeAffectedCPEWithFixState(v6.NotFixedStatus),
+				makeAffectedCPEWithFixState(v6.WontFixStatus),
+			},
+			fixedStates: []string{"not-fixed", "wont-fix"},
+			expectedLen: 2,
+		},
+		{
+			name: "CPEs with nil blob are filtered out",
+			cpes: []affectedCPEWithDecorations{
+				makeAffectedCPEWithFixState(v6.FixedStatus),
+				{AffectedCPEHandle: v6.AffectedCPEHandle{BlobValue: nil}},
+			},
+			fixedStates: []string{"fixed"},
+			expectedLen: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := filterByFixedStateForCPEs(tt.cpes, tt.fixedStates)
+			require.Equal(t, tt.expectedLen, len(result))
+		})
+	}
+}
+
+func makeAffectedPackageWithFixState(state v6.FixStatus) affectedPackageWithDecorations {
+	return affectedPackageWithDecorations{
+		AffectedPackageHandle: v6.AffectedPackageHandle{
+			BlobValue: &v6.PackageBlob{
+				Ranges: []v6.Range{
+					{
+						Fix: &v6.Fix{
+							State:   state,
+							Version: "1.0.0",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func makeAffectedCPEWithFixState(state v6.FixStatus) affectedCPEWithDecorations {
+	return affectedCPEWithDecorations{
+		AffectedCPEHandle: v6.AffectedCPEHandle{
+			BlobValue: &v6.PackageBlob{
+				Ranges: []v6.Range{
+					{
+						Fix: &v6.Fix{
+							State:   state,
+							Version: "1.0.0",
+						},
+					},
+				},
+			},
+		},
+	}
+}

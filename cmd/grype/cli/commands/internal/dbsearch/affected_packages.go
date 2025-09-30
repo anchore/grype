@@ -72,6 +72,7 @@ type AffectedPackagesOptions struct {
 	OS                    v6.OSSpecifiers
 	AllowBroadCPEMatching bool
 	RecordLimit           int
+	FixedStates           []string
 }
 
 type affectedPackageWithDecorations struct {
@@ -182,6 +183,11 @@ func FindAffectedPackages(reader interface {
 	allAffectedPkgs, allAffectedCPEs, err := findAffectedPackages(reader, criteria)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(criteria.FixedStates) > 0 {
+		allAffectedPkgs = filterByFixedStateForPackages(allAffectedPkgs, criteria.FixedStates)
+		allAffectedCPEs = filterByFixedStateForCPEs(allAffectedCPEs, criteria.FixedStates)
 	}
 
 	return newAffectedPackageRows(allAffectedPkgs, allAffectedCPEs), nil
@@ -303,4 +309,90 @@ func findAffectedPackages(reader interface { //nolint:funlen,gocognit
 	}
 
 	return allAffectedPkgs, allAffectedCPEs, nil
+}
+
+func filterByFixedStateForPackages(packages []affectedPackageWithDecorations, fixedStates []string) []affectedPackageWithDecorations {
+	if len(fixedStates) == 0 {
+		return packages
+	}
+
+	stateSet := make(map[string]bool)
+	for _, state := range fixedStates {
+		stateSet[state] = true
+	}
+
+	var filtered []affectedPackageWithDecorations
+	for _, pkg := range packages {
+		if pkg.BlobValue == nil {
+			continue
+		}
+
+		fixState := getFixStateFromPackageBlob(pkg.BlobValue)
+		if stateSet[fixState] {
+			filtered = append(filtered, pkg)
+		}
+	}
+
+	return filtered
+}
+
+func filterByFixedStateForCPEs(cpes []affectedCPEWithDecorations, fixedStates []string) []affectedCPEWithDecorations {
+	if len(fixedStates) == 0 {
+		return cpes
+	}
+
+	stateSet := make(map[string]bool)
+	for _, state := range fixedStates {
+		stateSet[state] = true
+	}
+
+	var filtered []affectedCPEWithDecorations
+	for _, cpe := range cpes {
+		if cpe.BlobValue == nil {
+			continue
+		}
+
+		fixState := getFixStateFromPackageBlob(cpe.BlobValue)
+		if stateSet[fixState] {
+			filtered = append(filtered, cpe)
+		}
+	}
+
+	return filtered
+}
+
+func getFixStateFromPackageBlob(blob *v6.PackageBlob) string {
+	if blob == nil {
+		return "unknown"
+	}
+
+	hasFixed := false
+	hasNotFixed := false
+	hasWontFix := false
+
+	for _, r := range blob.Ranges {
+		if r.Fix == nil {
+			continue
+		}
+		switch r.Fix.State {
+		case v6.FixedStatus:
+			hasFixed = true
+		case v6.WontFixStatus:
+			hasWontFix = true
+		case v6.NotFixedStatus:
+			hasNotFixed = true
+		}
+	}
+
+	if hasFixed {
+		return "fixed"
+	}
+	if hasWontFix {
+		return "wont-fix"
+	}
+	if hasNotFixed {
+		return "not-fixed"
+	}
+
+	return "unknown"
 }
