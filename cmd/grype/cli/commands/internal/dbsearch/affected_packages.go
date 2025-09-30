@@ -360,39 +360,3 @@ func filterByFixedStateForCPEs(cpes []affectedCPEWithDecorations, fixedStates []
 
 	return filtered
 }
-
-func getFixStateFromPackageBlob(blob *v6.PackageBlob) string {
-	if blob == nil {
-		return "unknown"
-	}
-
-	hasFixed := false
-	hasNotFixed := false
-	hasWontFix := false
-
-	for _, r := range blob.Ranges {
-		if r.Fix == nil {
-			continue
-		}
-		switch r.Fix.State {
-		case v6.FixedStatus:
-			hasFixed = true
-		case v6.WontFixStatus:
-			hasWontFix = true
-		case v6.NotFixedStatus:
-			hasNotFixed = true
-		}
-	}
-
-	if hasFixed {
-		return "fixed"
-	}
-	if hasWontFix {
-		return "wont-fix"
-	}
-	if hasNotFixed {
-		return "not-fixed"
-	}
-
-	return "unknown"
-}

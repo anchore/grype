@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -989,7 +990,7 @@ func TestGetFixStateFromPackageBlob(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := getFixStateFromPackageBlob(tt.blob)
-			require.Equal(t, tt.expected, result)
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
@@ -1051,7 +1052,7 @@ func TestFilterByFixedStateForPackages(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := filterByFixedStateForPackages(tt.packages, tt.fixedStates)
-			require.Equal(t, tt.expectedLen, len(result))
+			assert.Equal(t, tt.expectedLen, len(result))
 		})
 	}
 }
@@ -1105,7 +1106,7 @@ func TestFilterByFixedStateForCPEs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := filterByFixedStateForCPEs(tt.cpes, tt.fixedStates)
-			require.Equal(t, tt.expectedLen, len(result))
+			assert.Equal(t, tt.expectedLen, len(result))
 		})
 	}
 }

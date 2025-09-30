@@ -116,7 +116,7 @@ func TestGetFixStateFromBlob(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := getFixStateFromBlob(tt.blob)
+			result := getFixStateFromPackageBlob(tt.blob)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -189,7 +189,7 @@ func TestFilterByFixedState(t *testing.T) {
 			if tt.expectedStrs != nil {
 				var resultStates []string
 				for _, pkg := range result {
-					resultStates = append(resultStates, getFixStateFromBlob(pkg.BlobValue))
+					resultStates = append(resultStates, getFixStateFromPackageBlob(pkg.BlobValue))
 				}
 				assert.ElementsMatch(t, tt.expectedStrs, resultStates)
 			}
@@ -254,7 +254,7 @@ func TestFilterCPEsByFixedState(t *testing.T) {
 			if tt.expectedStrs != nil {
 				var resultStates []string
 				for _, cpe := range result {
-					resultStates = append(resultStates, getFixStateFromBlob(cpe.BlobValue))
+					resultStates = append(resultStates, getFixStateFromPackageBlob(cpe.BlobValue))
 				}
 				assert.ElementsMatch(t, tt.expectedStrs, resultStates)
 			}
