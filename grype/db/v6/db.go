@@ -24,7 +24,7 @@ const (
 	Revision = 1
 
 	// Addition indicates how many changes have been introduced that are compatible with all historical data
-	Addition = 1
+	Addition = 2
 
 	// v6 model changelog:
 	// 6.0.0: Initial version 🎉
@@ -34,6 +34,7 @@ const (
 	// 6.1.0: Add Fix availability information to AffectedPackageBlob.Range.Fix.Detail.
 	//        Existing git commit and timestamp information was removed (as it was unused)
 	// 6.1.1: Add UnaffectedCPE / UnaffectedPackage models and stores (remove "Affected" prefixes from existing blobs)
+	// 6.1.2: Add CWEs
 )
 
 const (
