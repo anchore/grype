@@ -63,6 +63,7 @@ tasks:
       - task: check-licenses
       - task: lint
       - task: check-json-schema-drift
+      - task: check-db-schema-drift
 # TODO: while developing v6, we need to disable this check (since v5 and v6 are imported in the same codebase)
 #      - task: validate-grype-db-schema
 
@@ -181,6 +182,11 @@ tasks:
     desc: Ensure there is no drift between the JSON schema and the code
     cmds:
       - .github/scripts/json-schema-drift-check.sh
+
+  check-db-schema-drift:
+    desc: Ensure there is no drift between the database blob schemas and the code
+    cmds:
+      - .github/scripts/db-schema-drift-check.sh
 
   validate-grype-db-schema:
     desc: Ensure the codebase is only referencing a single grype-db schema version (multiple is not allowed)
@@ -325,6 +331,7 @@ tasks:
     desc: Run code and data generation tasks
     cmds:
       - task: generate-json-schema
+      - task: generate-db-schema
 
   generate-json-schema:
     desc: Generate a new JSON schema
@@ -333,6 +340,12 @@ tasks:
       - "cd grype/internal && go generate"
       # generate the JSON schema for the CLI output
       - "cd cmd/grype/cli/commands/internal/jsonschema && go run ."
+
+  generate-db-schema:
+    desc: Generate database blob JSON schemas
+    cmds:
+      # generate the JSON schema for database blob types
+      - "cd grype/db/v6/schema && go run ."
 
 
   ## Build-related targets #################################
