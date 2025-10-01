@@ -15,7 +15,20 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-type Matcher struct{}
+type Matcher struct {
+	cfg MatcherConfig
+}
+
+type MatcherConfig struct {
+	UseCPEs              bool
+	MissingEpochStrategy string
+}
+
+func NewRpmMatcher(cfg MatcherConfig) *Matcher {
+	return &Matcher{
+		cfg: cfg,
+	}
+}
 
 func (m *Matcher) PackageTypes() []syftPkg.Type {
 	return []syftPkg.Type{syftPkg.RpmPkg}
@@ -179,18 +192,23 @@ func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package) (
 
 	switch {
 	case shouldUseRedhatEUSMatching(searchPkg.Distro):
-		return redhatEUSMatches(provider, searchPkg)
+		return redhatEUSMatches(provider, searchPkg, m.cfg.MissingEpochStrategy)
 	default:
-		return standardMatches(provider, searchPkg)
+		return m.standardMatches(provider, searchPkg)
 	}
 }
 
-func standardMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
+func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
 	disclosures, err := provider.FindResults(
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(*searchPkg.Distro),
 		internal.OnlyQualifiedPackages(searchPkg),
-		internal.OnlyVulnerableVersions(version.New(searchPkg.Version, pkg.VersionFormat(searchPkg))),
+		internal.OnlyVulnerableVersionsWithConfig(
+			version.New(searchPkg.Version, pkg.VersionFormat(searchPkg)),
+			version.ComparisonConfig{
+				MissingEpochStrategy: m.cfg.MissingEpochStrategy,
+			},
+		),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("matcher failed to fetch disclosures for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)

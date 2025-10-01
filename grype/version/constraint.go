@@ -7,6 +7,7 @@ type Constraint interface {
 	Value() string
 	Format() Format
 	Satisfied(*Version) (bool, error)
+	SatisfiedWithConfig(*Version, ComparisonConfig) (bool, error)
 }
 
 func GetConstraint(constStr string, format Format) (Constraint, error) {

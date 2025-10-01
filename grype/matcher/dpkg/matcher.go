@@ -6,11 +6,24 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 type Matcher struct {
+	cfg MatcherConfig
+}
+
+type MatcherConfig struct {
+	UseCPEs              bool
+	MissingEpochStrategy string
+}
+
+func NewDpkgMatcher(cfg MatcherConfig) *Matcher {
+	return &Matcher{
+		cfg: cfg,
+	}
 }
 
 func (m *Matcher) PackageTypes() []syftPkg.Type {
@@ -30,7 +43,10 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	}
 	matches = append(matches, sourceMatches...)
 
-	exactMatches, _, err := internal.MatchPackageByDistro(store, p, nil, m.Type())
+	versionConfig := version.ComparisonConfig{
+		MissingEpochStrategy: m.cfg.MissingEpochStrategy,
+	}
+	exactMatches, _, err := internal.MatchPackageByDistro(store, p, nil, m.Type(), &versionConfig)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to match by exact package name: %w", err)
 	}
@@ -42,8 +58,11 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 func (m *Matcher) matchUpstreamPackages(store vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
 	var matches []match.Match
 
+	versionConfig := version.ComparisonConfig{
+		MissingEpochStrategy: m.cfg.MissingEpochStrategy,
+	}
 	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indirectMatches, _, err := internal.MatchPackageByDistro(store, indirectPackage, &p, m.Type())
+		indirectMatches, _, err := internal.MatchPackageByDistro(store, indirectPackage, &p, m.Type(), &versionConfig)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find vulnerabilities for dpkg upstream source package: %w", err)
 		}

@@ -52,6 +52,50 @@ func (v rpmVersion) Compare(other *Version) (int, error) {
 	return v.compare(o), nil
 }
 
+// CompareWithConfig compares two RPM versions using the provided comparison
+// configuration. The config controls behavior for missing epochs:
+//   - "zero" strategy: missing epochs are treated as 0
+//   - "auto" strategy: missing epochs in the package version match the constraint's epoch
+//
+// Returns:
+//
+//	-1 if v < other
+//	 0 if v == other
+//	 1 if v > other
+//
+// Only the package version's (v) missing epoch is handled by the auto strategy. If the
+// constraint (other) is missing an epoch, it is always treated as 0 per RPM specification.
+func (v rpmVersion) CompareWithConfig(other *Version, cfg ComparisonConfig) (int, error) {
+	if other == nil {
+		return -1, ErrNoVersionProvided
+	}
+
+	o, err := newRpmVersion(other.Raw)
+	if err != nil {
+		return 0, err
+	}
+
+	return v.compareWithConfig(o, cfg), nil
+}
+
+func (v rpmVersion) compareWithConfig(v2 rpmVersion, cfg ComparisonConfig) int {
+	if reflect.DeepEqual(v, v2) {
+		return 0
+	}
+
+	// Handle epoch comparison based on strategy
+	if cfg.MissingEpochStrategy == "auto" {
+		// If v (package) is missing epoch but v2 (constraint) has one, temporarily use v2's epoch for v
+		if !epochIsPresent(v.epoch) && epochIsPresent(v2.epoch) {
+			vWithEpoch := v
+			vWithEpoch.epoch = v2.epoch
+			return vWithEpoch.compare(v2)
+		}
+	}
+
+	return v.compare(v2)
+}
+
 // Compare returns 0 if v == v2, -1 if v < v2, and +1 if v > v2.
 // This a pragmatic adaptation of comparison for the messy data
 // encountered in vuln scanning. If epochs are NOT present and explicit
