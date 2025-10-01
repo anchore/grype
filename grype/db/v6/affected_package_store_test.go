@@ -150,7 +150,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 				},
 			},
 			Package: &Package{Name: "pkg1", Ecosystem: "type1"},
-			BlobValue: &AffectedPackageBlob{
+			BlobValue: &PackageBlob{
 				CVEs: []string{"CVE-2023-1234"},
 			},
 		}
@@ -187,7 +187,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 		err := s.AddAffectedPackages(pkg1, pkg2)
 		require.NoError(t, err)
 
-		options := &GetAffectedPackageOptions{
+		options := &GetPackageOptions{
 			PreloadOS:      true,
 			PreloadPackage: true,
 			PreloadBlob:    true,
@@ -216,7 +216,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 		err := s.AddAffectedPackages(pkg1)
 		require.NoError(t, err)
 
-		options := &GetAffectedPackageOptions{
+		options := &GetPackageOptions{
 			PreloadPackage:     true,
 			PreloadPackageCPEs: true,
 		}
@@ -245,7 +245,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 				},
 			},
 			Package: &Package{Name: "pkg1", Ecosystem: "type1"},
-			BlobValue: &AffectedPackageBlob{
+			BlobValue: &PackageBlob{
 				CVEs: []string{"CVE-2023-1234"},
 			},
 		}
@@ -258,7 +258,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 				},
 			},
 			Package: &Package{Name: "pkg1", Ecosystem: "type1"}, // same!
-			BlobValue: &AffectedPackageBlob{
+			BlobValue: &PackageBlob{
 				CVEs: []string{"CVE-2023-56789"},
 			},
 		}
@@ -301,7 +301,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 				},
 			},
 			Package: &Package{Name: "pkg1", Ecosystem: "type1", CPEs: []Cpe{cpe1}},
-			BlobValue: &AffectedPackageBlob{
+			BlobValue: &PackageBlob{
 				CVEs: []string{"CVE-2023-1234"},
 			},
 		}
@@ -314,7 +314,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 				},
 			},
 			Package: &Package{Name: "pkg1", Ecosystem: "type1", CPEs: []Cpe{cpe1, cpe2}}, // duplicate CPE + additional CPE
-			BlobValue: &AffectedPackageBlob{
+			BlobValue: &PackageBlob{
 				CVEs: []string{"CVE-2023-56789"},
 			},
 		}
@@ -372,7 +372,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 				},
 			},
 			Package: &Package{Name: "pkg1", Ecosystem: "type1", CPEs: []Cpe{cpe1}},
-			BlobValue: &AffectedPackageBlob{
+			BlobValue: &PackageBlob{
 				CVEs: []string{"CVE-2023-1234"},
 			},
 		}
@@ -385,7 +385,7 @@ func TestAffectedPackageStore_AddAffectedPackages(t *testing.T) {
 				},
 			},
 			Package: &Package{Name: "pkg2", Ecosystem: "type1", CPEs: []Cpe{cpe1, cpe2}}, // overlapping CPEs for different packages
-			BlobValue: &AffectedPackageBlob{
+			BlobValue: &PackageBlob{
 				CVEs: []string{"CVE-2023-56789"},
 			},
 		}
@@ -445,7 +445,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 			},
 		},
 		Package: &Package{Name: "pkg1", Ecosystem: "type1", CPEs: []Cpe{cpe1}},
-		BlobValue: &AffectedPackageBlob{
+		BlobValue: &PackageBlob{
 			CVEs: []string{"CVE-2023-1234"},
 		},
 	}
@@ -457,7 +457,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 			},
 		},
 		Package: &Package{Name: "pkg2", Ecosystem: "type2", CPEs: []Cpe{cpe2}},
-		BlobValue: &AffectedPackageBlob{
+		BlobValue: &PackageBlob{
 			CVEs: []string{"CVE-2023-5678"},
 		},
 	}
@@ -470,7 +470,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 			},
 		},
 		Package: &Package{Name: "pkg3", Ecosystem: "type2", CPEs: []Cpe{cpe3}},
-		BlobValue: &AffectedPackageBlob{
+		BlobValue: &PackageBlob{
 			CVEs: []string{"CVE-2023-5678"},
 		},
 	}
@@ -481,7 +481,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 	tests := []struct {
 		name     string
 		cpe      cpe.Attributes
-		options  *GetAffectedPackageOptions
+		options  *GetPackageOptions
 		expected []AffectedPackageHandle
 		wantErr  require.ErrorAssertionFunc
 	}{
@@ -492,7 +492,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 				Vendor:  "vendor1",
 				Product: "product1",
 			},
-			options: &GetAffectedPackageOptions{
+			options: &GetPackageOptions{
 				PreloadPackageCPEs:   true,
 				PreloadPackage:       true,
 				PreloadBlob:          true,
@@ -506,7 +506,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 				Part:   "a",
 				Vendor: "vendor2",
 			},
-			options: &GetAffectedPackageOptions{
+			options: &GetPackageOptions{
 				PreloadPackageCPEs:   true,
 				PreloadPackage:       true,
 				PreloadBlob:          true,
@@ -521,7 +521,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 				Vendor:   "vendor2",
 				TargetSW: "target1",
 			},
-			options: &GetAffectedPackageOptions{
+			options: &GetPackageOptions{
 				PreloadPackageCPEs:    true,
 				PreloadPackage:        true,
 				PreloadBlob:           true,
@@ -537,7 +537,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 				Vendor:   "vendor2",
 				TargetSW: "target1",
 			},
-			options: &GetAffectedPackageOptions{
+			options: &GetPackageOptions{
 				PreloadPackageCPEs:    true,
 				PreloadPackage:        true,
 				PreloadBlob:           true,
@@ -551,7 +551,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 			cpe: cpe.Attributes{
 				Part: "a",
 			},
-			options: &GetAffectedPackageOptions{
+			options: &GetPackageOptions{
 				PreloadPackageCPEs:   true,
 				PreloadPackage:       true,
 				PreloadBlob:          true,
@@ -566,7 +566,7 @@ func TestAffectedPackageStore_GetAffectedPackages_ByCPE(t *testing.T) {
 				Vendor:  "unknown_vendor",
 				Product: "unknown_product",
 			},
-			options: &GetAffectedPackageOptions{
+			options: &GetPackageOptions{
 				PreloadPackageCPEs:   true,
 				PreloadPackage:       true,
 				PreloadBlob:          true,
@@ -616,7 +616,7 @@ func TestAffectedPackageStore_GetAffectedPackages_CaseInsensitive(t *testing.T) 
 			Codename:     "focal",
 		},
 		Package: &Package{Name: "Pkg1", Ecosystem: "Type1", CPEs: []Cpe{cpe1}}, // capitalized
-		BlobValue: &AffectedPackageBlob{
+		BlobValue: &PackageBlob{
 			CVEs: []string{"CVE-2023-1234"},
 		},
 	}
@@ -635,7 +635,7 @@ func TestAffectedPackageStore_GetAffectedPackages_CaseInsensitive(t *testing.T) 
 			MinorVersion: "10",
 		},
 		Package: &Package{Name: "pkg2", Ecosystem: "type2"},
-		BlobValue: &AffectedPackageBlob{
+		BlobValue: &PackageBlob{
 			CVEs: []string{"CVE-2222-2222"},
 		},
 	}
@@ -646,7 +646,7 @@ func TestAffectedPackageStore_GetAffectedPackages_CaseInsensitive(t *testing.T) 
 	tests := []struct {
 		name     string
 		pkgSpec  *PackageSpecifier
-		options  *GetAffectedPackageOptions
+		options  *GetPackageOptions
 		expected int
 	}{
 		{
@@ -675,7 +675,7 @@ func TestAffectedPackageStore_GetAffectedPackages_CaseInsensitive(t *testing.T) 
 		},
 		{
 			name: "get by OS name and version (leading 0)",
-			options: &GetAffectedPackageOptions{
+			options: &GetPackageOptions{
 				OSs: []*OSSpecifier{{
 					Name:         "uBUNtu",
 					MajorVersion: "20",
@@ -686,7 +686,7 @@ func TestAffectedPackageStore_GetAffectedPackages_CaseInsensitive(t *testing.T) 
 		},
 		{
 			name: "get by OS name and version",
-			options: &GetAffectedPackageOptions{
+			options: &GetPackageOptions{
 				OSs: []*OSSpecifier{{
 					Name:         "uBUNtu",
 					MajorVersion: "20",
@@ -697,7 +697,7 @@ func TestAffectedPackageStore_GetAffectedPackages_CaseInsensitive(t *testing.T) 
 		},
 		{
 			name: "get by OS release",
-			options: &GetAffectedPackageOptions{
+			options: &GetPackageOptions{
 				OSs: []*OSSpecifier{{
 					Name: "zUBuntu",
 				}},
@@ -706,7 +706,7 @@ func TestAffectedPackageStore_GetAffectedPackages_CaseInsensitive(t *testing.T) 
 		},
 		{
 			name: "get by OS codename",
-			options: &GetAffectedPackageOptions{
+			options: &GetPackageOptions{
 				OSs: []*OSSpecifier{{
 					LabelVersion: "fOCAL",
 				}},
@@ -715,7 +715,7 @@ func TestAffectedPackageStore_GetAffectedPackages_CaseInsensitive(t *testing.T) 
 		},
 		{
 			name: "get by vuln ID",
-			options: &GetAffectedPackageOptions{
+			options: &GetPackageOptions{
 				Vulnerabilities: []VulnerabilitySpecifier{{Name: "cVe-2023-1234"}},
 			},
 			expected: 1,
@@ -750,7 +750,7 @@ func TestAffectedPackageStore_GetAffectedPackages_MultipleVulnerabilitySpecs(t *
 			},
 		},
 		Package: &Package{Name: "pkg1", Ecosystem: "type1", CPEs: []Cpe{cpe1}},
-		BlobValue: &AffectedPackageBlob{
+		BlobValue: &PackageBlob{
 			CVEs: []string{"CVE-2023-1234"},
 		},
 	}
@@ -762,7 +762,7 @@ func TestAffectedPackageStore_GetAffectedPackages_MultipleVulnerabilitySpecs(t *
 			},
 		},
 		Package: &Package{Name: "pkg2", Ecosystem: "type2", CPEs: []Cpe{cpe2}},
-		BlobValue: &AffectedPackageBlob{
+		BlobValue: &PackageBlob{
 			CVEs: []string{"CVE-2023-5678"},
 		},
 	}
@@ -770,7 +770,7 @@ func TestAffectedPackageStore_GetAffectedPackages_MultipleVulnerabilitySpecs(t *
 	err := s.AddAffectedPackages(pkg1, pkg2)
 	require.NoError(t, err)
 
-	result, err := s.GetAffectedPackages(nil, &GetAffectedPackageOptions{
+	result, err := s.GetAffectedPackages(nil, &GetPackageOptions{
 		PreloadVulnerability: true,
 		Vulnerabilities: []VulnerabilitySpecifier{
 			{Name: "CVE-2023-1234"},
@@ -805,14 +805,14 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 	tests := []struct {
 		name     string
 		pkg      *PackageSpecifier
-		options  *GetAffectedPackageOptions
+		options  *GetPackageOptions
 		expected []AffectedPackageHandle
 		wantErr  require.ErrorAssertionFunc
 	}{
 		{
 			name: "specific distro",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
-			options: &GetAffectedPackageOptions{
+			options: &GetPackageOptions{
 				OSs: []*OSSpecifier{{
 					Name:         "ubuntu",
 					MajorVersion: "20",
@@ -824,7 +824,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 		{
 			name: "distro major version only",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
-			options: &GetAffectedPackageOptions{
+			options: &GetPackageOptions{
 				OSs: []*OSSpecifier{{
 					Name:         "ubuntu",
 					MajorVersion: "20",
@@ -835,7 +835,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 		{
 			name: "distro codename",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
-			options: &GetAffectedPackageOptions{
+			options: &GetPackageOptions{
 				OSs: []*OSSpecifier{{
 					Name:         "ubuntu",
 					LabelVersion: "groovy",
@@ -846,7 +846,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 		{
 			name: "no distro",
 			pkg:  pkgFromName(pkg2.Package.Name),
-			options: &GetAffectedPackageOptions{
+			options: &GetPackageOptions{
 				OSs: []*OSSpecifier{NoOSSpecified},
 			},
 			expected: []AffectedPackageHandle{*pkg2},
@@ -854,7 +854,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 		{
 			name: "any distro",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
-			options: &GetAffectedPackageOptions{
+			options: &GetPackageOptions{
 				OSs: []*OSSpecifier{AnyOSSpecified},
 			},
 			expected: []AffectedPackageHandle{*pkg2d1, *pkg2, *pkg2d2},
@@ -867,7 +867,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 		{
 			name: "specific CVE",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
-			options: &GetAffectedPackageOptions{
+			options: &GetPackageOptions{
 				Vulnerabilities: []VulnerabilitySpecifier{{
 					Name: "CVE-2023-1234",
 				}},
@@ -877,7 +877,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 		{
 			name: "any CVE published after a date",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
-			options: &GetAffectedPackageOptions{
+			options: &GetPackageOptions{
 				Vulnerabilities: []VulnerabilitySpecifier{{
 					PublishedAfter: func() *time.Time {
 						now := time.Date(2020, 1, 1, 1, 1, 1, 0, time.UTC)
@@ -890,7 +890,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 		{
 			name: "any CVE modified after a date",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
-			options: &GetAffectedPackageOptions{
+			options: &GetPackageOptions{
 				Vulnerabilities: []VulnerabilitySpecifier{{
 					ModifiedAfter: func() *time.Time {
 						now := time.Date(2023, 1, 1, 3, 4, 5, 0, time.UTC).Add(time.Hour * 2)
@@ -903,7 +903,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 		{
 			name: "any rejected CVE",
 			pkg:  pkgFromName(pkg2d1.Package.Name),
-			options: &GetAffectedPackageOptions{
+			options: &GetPackageOptions{
 				Vulnerabilities: []VulnerabilitySpecifier{{
 					Status: VulnerabilityRejected,
 				}},
@@ -921,7 +921,7 @@ func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
 				t.Run(pc.name, func(t *testing.T) {
 					opts := tt.options
 					if opts == nil {
-						opts = &GetAffectedPackageOptions{}
+						opts = &GetPackageOptions{}
 					}
 					opts.PreloadOS = pc.PreloadOS
 					opts.PreloadPackage = pc.PreloadPackage
@@ -978,7 +978,7 @@ func TestAffectedPackageStore_ApplyPackageAlias(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := s.applyPackageAlias(tt.input)
+			err := s.pkgStore.applyPackageAlias(tt.input)
 			require.NoError(t, err)
 			assert.Equal(t, tt.expected, tt.input.Ecosystem)
 		})
@@ -1008,7 +1008,7 @@ func testDistro1AffectedPackage2Handle() *AffectedPackageHandle {
 			MinorVersion: "04",
 			LabelVersion: "focal",
 		},
-		BlobValue: &AffectedPackageBlob{
+		BlobValue: &PackageBlob{
 			CVEs: []string{"CVE-2023-1234"},
 		},
 	}
@@ -1036,7 +1036,7 @@ func testDistro2AffectedPackage2Handle() *AffectedPackageHandle {
 			MinorVersion: "10",
 			LabelVersion: "groovy",
 		},
-		BlobValue: &AffectedPackageBlob{
+		BlobValue: &PackageBlob{
 			CVEs: []string{"CVE-2023-4567"},
 		},
 	}
@@ -1058,7 +1058,7 @@ func testNonDistroAffectedPackage2Handle() *AffectedPackageHandle {
 				ID: "wolfi",
 			},
 		},
-		BlobValue: &AffectedPackageBlob{
+		BlobValue: &PackageBlob{
 			CVEs: []string{"CVE-2023-4567"},
 		},
 	}

@@ -226,7 +226,7 @@ func FindVulnerabilities(reader interface { //nolint:funlen
 	// find all affected packages for this vulnerability, so we can gather os information
 	var pairs []vulnerabilityAffectedPackageJoin
 	for _, vuln := range vulns {
-		affected, fetchErr := reader.GetAffectedPackages(nil, &v6.GetAffectedPackageOptions{
+		affected, fetchErr := reader.GetAffectedPackages(nil, &v6.GetPackageOptions{
 			PreloadOS: true,
 			Vulnerabilities: []v6.VulnerabilitySpecifier{
 				{

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/version"
@@ -27,48 +28,38 @@ func MatchPackageByLanguage(store vulnerability.Provider, p pkg.Package, matcher
 	return matches, ignored, nil
 }
 
-func MatchPackageByEcosystemPackageName(provider vulnerability.Provider, p pkg.Package, packageName string, matcherType match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
+func MatchPackageByEcosystemPackageName(vp vulnerability.Provider, p pkg.Package, packageName string, matcherType match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
 	if isUnknownVersion(p.Version) {
 		log.WithFields("package", p.Name).Trace("skipping package with unknown version")
 		return nil, nil, nil
 	}
 
-	var matches []match.Match
-	vulns, err := provider.FindVulnerabilities(
+	provider := result.NewProvider(vp, p, matcherType)
+
+	criteria := []vulnerability.Criteria{
 		search.ByEcosystem(p.Language, p.Type),
 		search.ByPackageName(packageName),
 		OnlyQualifiedPackages(p),
 		OnlyVulnerableVersions(version.New(p.Version, pkg.VersionFormat(p))),
 		OnlyNonWithdrawnVulnerabilities(),
-	)
-	if err != nil {
-		return nil, nil, fmt.Errorf("matcher failed to fetch language=%q pkg=%q: %w", p.Language, p.Name, err)
 	}
 
-	for _, vuln := range vulns {
-		matches = append(matches, match.Match{
-			Vulnerability: vuln,
-			Package:       p,
-			Details: []match.Detail{
-				{
-					Type:       match.ExactDirectMatch,
-					Confidence: 1.0, // TODO: this is hard coded for now
-					Matcher:    matcherType,
-					SearchedBy: match.EcosystemParameters{
-						Language:  string(p.Language),
-						Namespace: vuln.Namespace,
-						Package: match.PackageParameter{
-							Name:    p.Name,
-							Version: p.Version,
-						},
-					},
-					Found: match.EcosystemResult{
-						VulnerabilityID:   vuln.ID,
-						VersionConstraint: vuln.Constraint.String(),
-					},
-				},
-			},
-		})
+	// TODO: previous impl set confidence to 1, this results in
+	// a confidence of zero. What should it be?
+	disclosures, err := provider.FindResults(criteria...)
+	if err != nil {
+		return nil, nil, fmt.Errorf("matcher failed to fetch disclosure language=%q pkg=%q: %w", p.Language, p.Name, err)
 	}
-	return matches, nil, err
+
+	// we want to perform the same results, but look for explicit naks, which indicates that a vulnerability should not apply
+	criteria = append(criteria, search.ForUnaffected())
+	resolutions, err := provider.FindResults(criteria...)
+	if err != nil {
+		return nil, nil, fmt.Errorf("matcher failed to fetch resolution language=%q pkg=%q: %w", p.Language, p.Name, err)
+	}
+
+	// remove any disclosures that have been explicitly nacked
+	remaining := disclosures.Remove(resolutions)
+
+	return remaining.ToMatches(), nil, err
 }

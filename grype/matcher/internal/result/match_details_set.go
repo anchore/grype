@@ -1,4 +1,4 @@
-package internal
+package result
 
 import "github.com/anchore/grype/grype/match"
 
