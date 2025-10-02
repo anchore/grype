@@ -12,6 +12,16 @@ import (
 	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher"
+	"github.com/anchore/grype/grype/matcher/dotnet"
+	"github.com/anchore/grype/grype/matcher/dpkg"
+	"github.com/anchore/grype/grype/matcher/golang"
+	"github.com/anchore/grype/grype/matcher/java"
+	"github.com/anchore/grype/grype/matcher/javascript"
+	"github.com/anchore/grype/grype/matcher/python"
+	"github.com/anchore/grype/grype/matcher/rpm"
+	"github.com/anchore/grype/grype/matcher/ruby"
+	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	vexStatus "github.com/anchore/grype/grype/vex/status"
@@ -69,6 +79,166 @@ func Test_getProviderConfig(t *testing.T) {
 			}
 			if d := cmp.Diff(tt.want, getProviderConfig(tt.opts), opts...); d != "" {
 				t.Errorf("getProviderConfig() mismatch (-want +got):\n%s", d)
+			}
+		})
+	}
+}
+
+func Test_getMatcherConfig(t *testing.T) {
+	tests := []struct {
+		name string
+		opts *options.Grype
+		want matcher.Config
+	}{
+		{
+			name: "default options",
+			opts: options.DefaultGrype(clio.Identification{
+				Name:    "test",
+				Version: "1.0",
+			}),
+			want: matcher.Config{
+				Java: java.MatcherConfig{
+					ExternalSearchConfig: java.ExternalSearchConfig{
+						SearchMavenUpstream: false,
+						MavenBaseURL:        "https://search.maven.org/solrsearch/select",
+						MavenRateLimit:      300000000, // 300ms in nanoseconds
+					},
+					UseCPEs: false,
+				},
+				Ruby:       ruby.MatcherConfig{},
+				Python:     python.MatcherConfig{},
+				Dotnet:     dotnet.MatcherConfig{},
+				Javascript: javascript.MatcherConfig{},
+				Golang: golang.MatcherConfig{
+					UseCPEs:                                false,
+					AlwaysUseCPEForStdlib:                  true,
+					AllowMainModulePseudoVersionComparison: false,
+				},
+				Stock: stock.MatcherConfig{UseCPEs: true},
+				Rpm: rpm.MatcherConfig{
+					MissingEpochStrategy: "zero",
+					UseCPEs:              true,
+				},
+				Dpkg: dpkg.MatcherConfig{
+					MissingEpochStrategy: "zero",
+					UseCPEs:              true,
+				},
+			},
+		},
+		{
+			name: "rpm missing-epoch-strategy set to auto",
+			opts: func() *options.Grype {
+				opts := options.DefaultGrype(clio.Identification{Name: "test", Version: "1.0"})
+				opts.Match.Rpm.MissingEpochStrategy = "auto"
+				return opts
+			}(),
+			want: matcher.Config{
+				Java: java.MatcherConfig{
+					ExternalSearchConfig: java.ExternalSearchConfig{
+						SearchMavenUpstream: false,
+						MavenBaseURL:        "https://search.maven.org/solrsearch/select",
+						MavenRateLimit:      300000000,
+					},
+					UseCPEs: false,
+				},
+				Ruby:       ruby.MatcherConfig{},
+				Python:     python.MatcherConfig{},
+				Dotnet:     dotnet.MatcherConfig{},
+				Javascript: javascript.MatcherConfig{},
+				Golang: golang.MatcherConfig{
+					UseCPEs:                                false,
+					AlwaysUseCPEForStdlib:                  true,
+					AllowMainModulePseudoVersionComparison: false,
+				},
+				Stock: stock.MatcherConfig{UseCPEs: true},
+				Rpm: rpm.MatcherConfig{
+					MissingEpochStrategy: "auto",
+					UseCPEs:              true,
+				},
+				Dpkg: dpkg.MatcherConfig{
+					MissingEpochStrategy: "zero",
+					UseCPEs:              true,
+				},
+			},
+		},
+		{
+			name: "dpkg missing-epoch-strategy set to auto",
+			opts: func() *options.Grype {
+				opts := options.DefaultGrype(clio.Identification{Name: "test", Version: "1.0"})
+				opts.Match.Dpkg.MissingEpochStrategy = "auto"
+				return opts
+			}(),
+			want: matcher.Config{
+				Java: java.MatcherConfig{
+					ExternalSearchConfig: java.ExternalSearchConfig{
+						SearchMavenUpstream: false,
+						MavenBaseURL:        "https://search.maven.org/solrsearch/select",
+						MavenRateLimit:      300000000,
+					},
+					UseCPEs: false,
+				},
+				Ruby:       ruby.MatcherConfig{},
+				Python:     python.MatcherConfig{},
+				Dotnet:     dotnet.MatcherConfig{},
+				Javascript: javascript.MatcherConfig{},
+				Golang: golang.MatcherConfig{
+					UseCPEs:                                false,
+					AlwaysUseCPEForStdlib:                  true,
+					AllowMainModulePseudoVersionComparison: false,
+				},
+				Stock: stock.MatcherConfig{UseCPEs: true},
+				Rpm: rpm.MatcherConfig{
+					MissingEpochStrategy: "zero",
+					UseCPEs:              true,
+				},
+				Dpkg: dpkg.MatcherConfig{
+					MissingEpochStrategy: "auto",
+					UseCPEs:              true,
+				},
+			},
+		},
+		{
+			name: "rpm and dpkg with UseCPEs disabled",
+			opts: func() *options.Grype {
+				opts := options.DefaultGrype(clio.Identification{Name: "test", Version: "1.0"})
+				opts.Match.Rpm.UseCPEs = false
+				opts.Match.Dpkg.UseCPEs = false
+				return opts
+			}(),
+			want: matcher.Config{
+				Java: java.MatcherConfig{
+					ExternalSearchConfig: java.ExternalSearchConfig{
+						SearchMavenUpstream: false,
+						MavenBaseURL:        "https://search.maven.org/solrsearch/select",
+						MavenRateLimit:      300000000,
+					},
+					UseCPEs: false,
+				},
+				Ruby:       ruby.MatcherConfig{},
+				Python:     python.MatcherConfig{},
+				Dotnet:     dotnet.MatcherConfig{},
+				Javascript: javascript.MatcherConfig{},
+				Golang: golang.MatcherConfig{
+					UseCPEs:                                false,
+					AlwaysUseCPEForStdlib:                  true,
+					AllowMainModulePseudoVersionComparison: false,
+				},
+				Stock: stock.MatcherConfig{UseCPEs: true},
+				Rpm: rpm.MatcherConfig{
+					MissingEpochStrategy: "zero",
+					UseCPEs:              false,
+				},
+				Dpkg: dpkg.MatcherConfig{
+					MissingEpochStrategy: "zero",
+					UseCPEs:              false,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if d := cmp.Diff(tt.want, getMatcherConfig(tt.opts)); d != "" {
+				t.Errorf("getMatcherConfig() mismatch (-want +got):\n%s", d)
 			}
 		})
 	}
