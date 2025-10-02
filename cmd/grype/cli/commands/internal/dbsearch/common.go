@@ -48,3 +48,53 @@ func getFixStateFromPackageBlob(blob *v6.PackageBlob) string {
 
 	return fixStateUnknown
 }
+
+func filterByFixedStateForPackages(packages []affectedPackageWithDecorations, fixedStates []string) []affectedPackageWithDecorations {
+	if len(fixedStates) == 0 {
+		return packages
+	}
+
+	stateSet := make(map[string]bool)
+	for _, state := range fixedStates {
+		stateSet[state] = true
+	}
+
+	var filtered []affectedPackageWithDecorations
+	for _, pkg := range packages {
+		if pkg.BlobValue == nil {
+			continue
+		}
+
+		fixState := getFixStateFromPackageBlob(pkg.BlobValue)
+		if stateSet[fixState] {
+			filtered = append(filtered, pkg)
+		}
+	}
+
+	return filtered
+}
+
+func filterByFixedStateForCPEs(cpes []affectedCPEWithDecorations, fixedStates []string) []affectedCPEWithDecorations {
+	if len(fixedStates) == 0 {
+		return cpes
+	}
+
+	stateSet := make(map[string]bool)
+	for _, state := range fixedStates {
+		stateSet[state] = true
+	}
+
+	var filtered []affectedCPEWithDecorations
+	for _, cpe := range cpes {
+		if cpe.BlobValue == nil {
+			continue
+		}
+
+		fixState := getFixStateFromPackageBlob(cpe.BlobValue)
+		if stateSet[fixState] {
+			filtered = append(filtered, cpe)
+		}
+	}
+
+	return filtered
+}

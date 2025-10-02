@@ -131,8 +131,8 @@ func FindMatches(reader interface {
 	}
 
 	if len(criteria.FixedStates) > 0 {
-		allAffectedPkgs = filterByFixedState(allAffectedPkgs, criteria.FixedStates)
-		allAffectedCPEs = filterCPEsByFixedState(allAffectedCPEs, criteria.FixedStates)
+		allAffectedPkgs = filterByFixedStateForPackages(allAffectedPkgs, criteria.FixedStates)
+		allAffectedCPEs = filterByFixedStateForCPEs(allAffectedCPEs, criteria.FixedStates)
 	}
 
 	rows, presErr := newMatchesRows(allAffectedPkgs, allAffectedCPEs)
@@ -140,54 +140,4 @@ func FindMatches(reader interface {
 		return nil, presErr
 	}
 	return rows, fetchErr
-}
-
-func filterByFixedState(packages []affectedPackageWithDecorations, fixedStates []string) []affectedPackageWithDecorations {
-	if len(fixedStates) == 0 {
-		return packages
-	}
-
-	stateSet := make(map[string]bool)
-	for _, state := range fixedStates {
-		stateSet[state] = true
-	}
-
-	var filtered []affectedPackageWithDecorations
-	for _, pkg := range packages {
-		if pkg.BlobValue == nil {
-			continue
-		}
-
-		fixState := getFixStateFromPackageBlob(pkg.BlobValue)
-		if stateSet[fixState] {
-			filtered = append(filtered, pkg)
-		}
-	}
-
-	return filtered
-}
-
-func filterCPEsByFixedState(cpes []affectedCPEWithDecorations, fixedStates []string) []affectedCPEWithDecorations {
-	if len(fixedStates) == 0 {
-		return cpes
-	}
-
-	stateSet := make(map[string]bool)
-	for _, state := range fixedStates {
-		stateSet[state] = true
-	}
-
-	var filtered []affectedCPEWithDecorations
-	for _, cpe := range cpes {
-		if cpe.BlobValue == nil {
-			continue
-		}
-
-		fixState := getFixStateFromPackageBlob(cpe.BlobValue)
-		if stateSet[fixState] {
-			filtered = append(filtered, cpe)
-		}
-	}
-
-	return filtered
 }

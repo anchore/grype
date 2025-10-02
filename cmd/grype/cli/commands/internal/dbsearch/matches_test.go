@@ -183,7 +183,7 @@ func TestFilterByFixedState(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := filterByFixedState(tt.packages, tt.fixedStates)
+			result := filterByFixedStateForPackages(tt.packages, tt.fixedStates)
 			assert.Equal(t, tt.expectedLen, len(result))
 
 			if tt.expectedStrs != nil {
@@ -248,7 +248,7 @@ func TestFilterCPEsByFixedState(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := filterCPEsByFixedState(tt.cpes, tt.fixedStates)
+			result := filterByFixedStateForCPEs(tt.cpes, tt.fixedStates)
 			assert.Equal(t, tt.expectedLen, len(result))
 
 			if tt.expectedStrs != nil {
