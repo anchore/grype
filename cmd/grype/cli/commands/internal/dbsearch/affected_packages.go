@@ -72,6 +72,7 @@ type AffectedPackagesOptions struct {
 	OS                    v6.OSSpecifiers
 	AllowBroadCPEMatching bool
 	RecordLimit           int
+	FixedStates           []string
 }
 
 type affectedPackageWithDecorations struct {
@@ -182,6 +183,11 @@ func FindAffectedPackages(reader interface {
 	allAffectedPkgs, allAffectedCPEs, err := findAffectedPackages(reader, criteria)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(criteria.FixedStates) > 0 {
+		allAffectedPkgs = filterByFixedStateForPackages(allAffectedPkgs, criteria.FixedStates)
+		allAffectedCPEs = filterByFixedStateForCPEs(allAffectedCPEs, criteria.FixedStates)
 	}
 
 	return newAffectedPackageRows(allAffectedPkgs, allAffectedCPEs), nil

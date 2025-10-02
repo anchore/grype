@@ -130,6 +130,11 @@ func FindMatches(reader interface {
 		}
 	}
 
+	if len(criteria.FixedStates) > 0 {
+		allAffectedPkgs = filterByFixedStateForPackages(allAffectedPkgs, criteria.FixedStates)
+		allAffectedCPEs = filterByFixedStateForCPEs(allAffectedCPEs, criteria.FixedStates)
+	}
+
 	rows, presErr := newMatchesRows(allAffectedPkgs, allAffectedCPEs)
 	if presErr != nil {
 		return nil, presErr
