@@ -11,12 +11,24 @@ type Version struct {
 	Raw         string
 	Format      Format
 	comparators map[Format]Comparator
+	Config      ComparisonConfig
 }
 
+// New creates a new Version with the default comparison configuration.
+// The default MissingEpochStrategy is "zero" for backward compatibility.
 func New(raw string, format Format) *Version {
+	return NewWithConfig(raw, format, ComparisonConfig{
+		MissingEpochStrategy: "zero",
+	})
+}
+
+// NewWithConfig creates a new Version with a specific comparison configuration.
+// This allows control over how missing epochs are handled during version comparison.
+func NewWithConfig(raw string, format Format, cfg ComparisonConfig) *Version {
 	return &Version{
 		Raw:    raw,
 		Format: format,
+		Config: cfg,
 	}
 }
 

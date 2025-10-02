@@ -73,13 +73,24 @@ func (v debVersion) CompareWithConfig(other *Version, cfg ComparisonConfig) (int
 			vWithEpoch, err := deb.NewVersion(versionWithEpoch)
 			if err != nil {
 				// Fall back to normal comparison if we can't create the modified version
-				return v.obj.Compare(o.obj), nil
+				return normalizeComparison(v.obj.Compare(o.obj)), nil
 			}
-			return vWithEpoch.Compare(o.obj), nil
+			return normalizeComparison(vWithEpoch.Compare(o.obj)), nil
 		}
 	}
 
-	return v.obj.Compare(o.obj), nil
+	return normalizeComparison(v.obj.Compare(o.obj)), nil
+}
+
+// normalizeComparison normalizes a comparison result to -1, 0, or 1
+func normalizeComparison(cmp int) int {
+	if cmp < 0 {
+		return -1
+	}
+	if cmp > 0 {
+		return 1
+	}
+	return 0
 }
 
 // extractDebEpoch extracts the epoch from a Debian version string.

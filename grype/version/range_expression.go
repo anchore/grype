@@ -41,6 +41,11 @@ func parseRangeExpression(phrase string) (simpleRangeExpression, error) {
 }
 
 func (c *simpleRangeExpression) satisfied(format Format, version *Version) (bool, error) {
+	// If version has config embedded, use config-aware comparison
+	if version != nil && version.Config.MissingEpochStrategy != "" && (format == RpmFormat || format == DebFormat) {
+		return c.satisfiedWithConfig(format, version, version.Config)
+	}
+
 	oneSatisfied := false
 	for i, andOperand := range c.Units {
 		allSatisfied := true

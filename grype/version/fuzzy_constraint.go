@@ -102,50 +102,6 @@ func (f fuzzyConstraint) Satisfied(verObj *Version) (bool, error) {
 	return f.Constraints.satisfied(UnknownFormat, verObj)
 }
 
-func (f fuzzyConstraint) SatisfiedWithConfig(verObj *Version, cfg ComparisonConfig) (bool, error) {
-	// Fuzzy constraints delegate to the underlying format if possible, so we need to check
-	// if the underlying constraint supports config-aware comparison
-	if f.RawPhrase == "" && verObj != nil {
-		// an empty constraint is always satisfied
-		return true, nil
-	} else if verObj == nil {
-		if f.RawPhrase != "" {
-			// a non-empty constraint with no version given should always fail
-			return false, nil
-		}
-		return true, nil
-	}
-
-	version := verObj.Raw
-
-	// rebuild temp constraint based off of ver obj
-	if verObj.Format != UnknownFormat {
-		newConstraint, err := GetConstraint(f.RawPhrase, verObj.Format)
-		// check if constraint is not fuzzyConstraint
-		_, ok := newConstraint.(fuzzyConstraint)
-		if err == nil && !ok {
-			// Use config-aware satisfaction if available
-			satisfied, err := newConstraint.SatisfiedWithConfig(verObj, cfg)
-			if err == nil {
-				return satisfied, nil
-			}
-		}
-	}
-
-	// attempt semver first, then fallback to fuzzy part matching...
-	if f.SemanticConstraint != nil {
-		if pseudoSemverPattern.MatchString(version) {
-			// we're stricter about accepting looser semver rules here since we have no context about
-			// the true format of the version, thus we want to reduce the change of false negatives
-			if semver, err := newSemanticVersion(version, true); err == nil {
-				return f.SemanticConstraint.Check(semver.obj), nil
-			}
-		}
-	}
-	// semver didn't work, use fuzzy part matching instead...
-	return f.Constraints.satisfiedWithConfig(UnknownFormat, verObj, cfg)
-}
-
 func (f fuzzyConstraint) Format() Format {
 	return UnknownFormat
 }

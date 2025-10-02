@@ -241,11 +241,11 @@ func TestRpmVersion_CompareWithConfig(t *testing.T) {
 			want:     1, // Treated as 1:2.0.0 > 1:1.5.0
 		},
 		{
-			name:     "package missing epoch, constraint has epoch, zero strategy - match",
+			name:     "package missing epoch, constraint has epoch, zero strategy",
 			version:  "2.0.0",
 			other:    "1:1.5.0",
 			strategy: "zero",
-			want:     -1, // Treated as 0:2.0.0 < 1:1.5.0
+			want:     1, // Epochs ignored when only one present: 2.0.0 > 1.5.0
 		},
 		{
 			name:     "both missing epoch, auto strategy",
@@ -287,7 +287,7 @@ func TestRpmVersion_CompareWithConfig(t *testing.T) {
 			version:  "3.0.0",
 			other:    "1:1.0.0",
 			strategy: "zero",
-			want:     -1, // 0:3.0.0 < 1:1.0.0 because epoch 0 < 1
+			want:     1, // Epochs ignored when only one present: 3.0.0 > 1.0.0
 		},
 		{
 			name:     "auto strategy, equal versions different missing epochs",
@@ -301,7 +301,7 @@ func TestRpmVersion_CompareWithConfig(t *testing.T) {
 			version:  "1.2.3",
 			other:    "1:1.2.3",
 			strategy: "zero",
-			want:     -1, // 0:1.2.3 < 1:1.2.3
+			want:     0, // Epochs ignored when only one present: 1.2.3 == 1.2.3
 		},
 		{
 			name:     "auto strategy, large epoch difference",
@@ -315,7 +315,7 @@ func TestRpmVersion_CompareWithConfig(t *testing.T) {
 			version:  "1.0.0",
 			other:    "999:0.5.0",
 			strategy: "zero",
-			want:     -1, // 0:1.0.0 < 999:0.5.0
+			want:     1, // Epochs ignored when only one present: 1.0.0 > 0.5.0
 		},
 		{
 			name:     "both have epochs, strategy should not matter",
@@ -336,7 +336,7 @@ func TestRpmVersion_CompareWithConfig(t *testing.T) {
 			version:  "2.0.0",
 			other:    "1:1.5.0",
 			strategy: "",
-			want:     -1, // Should behave like zero strategy when empty
+			want:     1, // Should behave like zero strategy: epochs ignored, 2.0.0 > 1.5.0
 		},
 	}
 

@@ -65,16 +65,22 @@ func shouldUseRedhatEUSMatching(d *distro.Distro) bool {
 func redhatEUSMatches(provider result.Provider, searchPkg pkg.Package, missingEpochStrategy string) ([]match.Match, error) {
 	distroWithoutEUS := *searchPkg.Distro
 	distroWithoutEUS.Channels = nil // clear the EUS channel so that we can search for the base distro
-	pkgVersion := version.New(searchPkg.Version, pkg.VersionFormat(searchPkg))
+
+	// Create version with config embedded
+	pkgVersion := version.NewWithConfig(
+		searchPkg.Version,
+		pkg.VersionFormat(searchPkg),
+		version.ComparisonConfig{
+			MissingEpochStrategy: missingEpochStrategy,
+		},
+	)
 
 	// find all disclosures for the package in the base distro (e.g. '>= 9.0 && < 10')
 	disclosures, err := provider.FindResults(
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(distroWithoutEUS), // e.g.  >= 9.0 && < 10 (no EUS channel)
 		internal.OnlyQualifiedPackages(searchPkg),
-		internal.OnlyVulnerableVersionsWithConfig(pkgVersion, version.ComparisonConfig{
-			MissingEpochStrategy: missingEpochStrategy,
-		}), // if these records indicate the version of the package is not vulnerable, do not include them
+		internal.OnlyVulnerableVersions(pkgVersion), // if these records indicate the version of the package is not vulnerable, do not include them
 	)
 	if err != nil {
 		return nil, fmt.Errorf("matcher failed to fetch disclosures for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)

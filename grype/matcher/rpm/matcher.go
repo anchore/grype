@@ -199,16 +199,20 @@ func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package) (
 }
 
 func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
+	// Create version with config embedded
+	pkgVersion := version.NewWithConfig(
+		searchPkg.Version,
+		pkg.VersionFormat(searchPkg),
+		version.ComparisonConfig{
+			MissingEpochStrategy: m.cfg.MissingEpochStrategy,
+		},
+	)
+
 	disclosures, err := provider.FindResults(
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(*searchPkg.Distro),
 		internal.OnlyQualifiedPackages(searchPkg),
-		internal.OnlyVulnerableVersionsWithConfig(
-			version.New(searchPkg.Version, pkg.VersionFormat(searchPkg)),
-			version.ComparisonConfig{
-				MissingEpochStrategy: m.cfg.MissingEpochStrategy,
-			},
-		),
+		internal.OnlyVulnerableVersions(pkgVersion),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("matcher failed to fetch disclosures for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)

@@ -305,8 +305,3 @@ func (m mockConstraint) Satisfied(*Version) (bool, error) {
 	}
 	return m.satisfied, nil
 }
-
-func (m mockConstraint) SatisfiedWithConfig(*Version, ComparisonConfig) (bool, error) {
-	// For mock purposes, delegate to Satisfied
-	return m.Satisfied(nil)
-}

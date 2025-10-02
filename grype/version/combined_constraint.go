@@ -68,24 +68,6 @@ func (c combinedConstraint) Satisfied(version *Version) (bool, error) {
 	return false, nil
 }
 
-func (c combinedConstraint) SatisfiedWithConfig(version *Version, cfg ComparisonConfig) (bool, error) {
-	if version == nil {
-		return false, fmt.Errorf("cannot evaluate combined constraint with nil version")
-	}
-
-	for _, op := range c.OrOperands {
-		satisfied, err := op.SatisfiedWithConfig(version, cfg)
-		if err != nil {
-			return false, fmt.Errorf("error evaluating constraint %s: %w", op, err)
-		}
-		if satisfied {
-			return true, nil
-		}
-	}
-
-	return false, nil
-}
-
 func uniqueConstraints(constraints ...Constraint) []Constraint {
 	var nonNil []Constraint
 	seen := strset.New()

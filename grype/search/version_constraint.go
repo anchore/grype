@@ -39,15 +39,8 @@ func (v VersionCriteria) MatchesConstraint(constraint version.Constraint) (bool,
 }
 
 func (v VersionCriteria) criteria(constraint version.Constraint) (bool, error) {
-	var satisfied bool
-	var err error
-
-	// Use config-aware comparison if config is provided
-	if v.Config.MissingEpochStrategy != "" {
-		satisfied, err = constraint.SatisfiedWithConfig(&v.Version, v.Config)
-	} else {
-		satisfied, err = constraint.Satisfied(&v.Version)
-	}
+	// The config is now embedded in the version itself, so just call Satisfied
+	satisfied, err := constraint.Satisfied(&v.Version)
 
 	if err != nil {
 		var unsupportedError *version.UnsupportedComparisonError

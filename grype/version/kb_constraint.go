@@ -45,11 +45,6 @@ func (c kbConstraint) Satisfied(version *Version) (bool, error) {
 	return c.Expression.satisfied(KBFormat, version)
 }
 
-func (c kbConstraint) SatisfiedWithConfig(version *Version, _ ComparisonConfig) (bool, error) {
-	// KB format doesn't use epochs, so we can just delegate to the regular Satisfied method
-	return c.Satisfied(version)
-}
-
 func (c kbConstraint) Format() Format {
 	return KBFormat
 }

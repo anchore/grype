@@ -24,17 +24,15 @@ func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package
 
 	var matches []match.Match
 
-	var versionCriteria vulnerability.Criteria
+	// Create version with config embedded if provided
+	var pkgVersion *version.Version
 	if cfg != nil {
-		versionCriteria = OnlyVulnerableVersionsWithConfig(
-			version.New(searchPkg.Version, pkg.VersionFormat(searchPkg)),
-			*cfg,
-		)
+		pkgVersion = version.NewWithConfig(searchPkg.Version, pkg.VersionFormat(searchPkg), *cfg)
 	} else {
-		versionCriteria = OnlyVulnerableVersions(
-			version.New(searchPkg.Version, pkg.VersionFormat(searchPkg)),
-		)
+		pkgVersion = version.New(searchPkg.Version, pkg.VersionFormat(searchPkg))
 	}
+
+	versionCriteria := OnlyVulnerableVersions(pkgVersion)
 
 	vulns, err := provider.FindVulnerabilities(
 		search.ByPackageName(searchPkg.Name),

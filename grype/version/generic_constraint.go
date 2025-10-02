@@ -60,23 +60,3 @@ func (g genericConstraint) Satisfied(version *Version) (bool, error) {
 	}
 	return g.Expression.satisfied(g.Fmt, version)
 }
-
-func (g genericConstraint) SatisfiedWithConfig(version *Version, cfg ComparisonConfig) (bool, error) {
-	if g.Raw == "" && version != nil {
-		// empty constraints are always satisfied
-		return true, nil
-	}
-	if version == nil {
-		if g.Raw != "" {
-			// a non-empty constraint with no version given should always fail
-			return false, nil
-		}
-		return true, nil
-	}
-	// we want to prevent against two known formats that are different from being compared.
-	// if the passed in version is unknown, we allow the comparison to proceed
-	if version.Format != g.Fmt && version.Format != UnknownFormat {
-		return false, newUnsupportedFormatError(g.Fmt, version)
-	}
-	return g.Expression.satisfiedWithConfig(g.Fmt, version, cfg)
-}
