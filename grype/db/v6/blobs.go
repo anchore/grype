@@ -37,6 +37,9 @@ type Reference struct {
 	// URL is the external resource
 	URL string `json:"url"`
 
+	// ID is an optional identifier for the reference (e.g., advisory ID like "RHSA-2023:5455")
+	ID string `json:"id,omitempty"`
+
 	// Tags is a free-form organizational field to convey additional information about the reference
 	Tags []string `json:"tags,omitempty"`
 }

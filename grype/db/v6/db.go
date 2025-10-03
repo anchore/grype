@@ -24,7 +24,7 @@ const (
 	Revision = 1
 
 	// Addition indicates how many changes have been introduced that are compatible with all historical data
-	Addition = 2
+	Addition = 3
 
 	// v6 model changelog:
 	// 6.0.0: Initial version 🎉
@@ -35,6 +35,7 @@ const (
 	//        Existing git commit and timestamp information was removed (as it was unused)
 	// 6.1.1: Add UnaffectedCPE / UnaffectedPackage models and stores (remove "Affected" prefixes from existing blobs)
 	// 6.1.2: Add CWEs
+	// 6.1.3: Add ID field to Reference (for advisory IDs like RHSA-2023:5455)
 )
 
 const (
