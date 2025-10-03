@@ -409,11 +409,13 @@ Each rule can specify any combination of the following criteria:
 - vulnerability ID (e.g. `"CVE-2008-4318"`)
 - namespace (e.g. `"nvd"`)
 - fix state (allowed values: `"fixed"`, `"not-fixed"`, `"wont-fix"`, or `"unknown"`)
+- match type (allowed values: `"exact-direct-match"`, `"exact-indirect-match"`)
 - package name (e.g. `"libcurl"`)
 - package version (e.g. `"1.5.1"`)
 - package language (e.g. `"python"`; these values are defined [here](https://github.com/anchore/syft/blob/main/syft/pkg/language.go#L14-L23))
 - package type (e.g. `"npm"`; these values are defined [here](https://github.com/anchore/syft/blob/main/syft/pkg/type.go#L10-L24))
 - package location (e.g. `"/usr/local/lib/node_modules/**"`; supports glob patterns)
+- package upstream name (e.g. `"curl"`)
 
 Here's an example `~/.grype.yaml` that demonstrates the expected format for ignore rules:
 
@@ -422,6 +424,7 @@ ignore:
   # This is the full set of supported rule fields:
   - vulnerability: CVE-2008-4318
     fix-state: unknown
+    match-type: exact-direct-match
     # VEX fields apply when Grype reads vex data:
     vex-status: not_affected
     vex-justification: vulnerable_code_not_present
@@ -430,6 +433,7 @@ ignore:
       version: 1.5.1
       type: npm
       location: "/usr/local/lib/node_modules/**"
+      upstream-name: curl
 
   # We can make rules to match just by vulnerability ID:
   - vulnerability: CVE-2014-54321
