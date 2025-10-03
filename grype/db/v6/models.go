@@ -950,12 +950,12 @@ type EpssHandle struct {
 
 type CWEHandle struct {
 	ID     int64  `gorm:"primaryKey"`
-	Cve    string `gorm:"column:cve;not null;index:cwes_cve_idx,collate:NOCASE"`
+	CVE    string `gorm:"column:cve;not null;index:cwes_cve_idx,collate:NOCASE"`
 	CWE    string `gorm:"column:cwe;not null;"`
 	Source string `gorm:"column:source;"`
 	Type   string `gorm:"column:type;"`
 }
 
 func (c CWEHandle) String() string {
-	return fmt.Sprintf("CWE(%s: %s, source=%s, type=%s)", c.Cve, c.CWE, c.Source, c.Type)
+	return fmt.Sprintf("CWE(%s: %s, source=%s, type=%s)", c.CVE, c.CWE, c.Source, c.Type)
 }
