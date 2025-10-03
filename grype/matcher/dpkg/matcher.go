@@ -16,7 +16,6 @@ type Matcher struct {
 }
 
 type MatcherConfig struct {
-	UseCPEs              bool
 	MissingEpochStrategy string
 }
 
