@@ -62,6 +62,7 @@ func Models() []any {
 		&KnownExploitedVulnerabilityHandle{},
 		&EpssHandle{},
 		&EpssMetadata{},
+		&CWEHandle{},
 	}
 }
 
@@ -945,4 +946,16 @@ type EpssHandle struct {
 	Epss       float64   `gorm:"column:epss;not null"`
 	Percentile float64   `gorm:"column:percentile;not null"`
 	Date       time.Time `gorm:"-"` // note we do not store the date in this table since it is expected to be the same for all records, that is what EpssMetadata is for
+}
+
+type CWEHandle struct {
+	ID     int64  `gorm:"primaryKey"`
+	CVE    string `gorm:"column:cve;not null;index:cwes_cve_idx,collate:NOCASE"`
+	CWE    string `gorm:"column:cwe;not null;"`
+	Source string `gorm:"column:source;"`
+	Type   string `gorm:"column:type;"`
+}
+
+func (c CWEHandle) String() string {
+	return fmt.Sprintf("CWE(%s: %s, source=%s, type=%s)", c.CVE, c.CWE, c.Source, c.Type)
 }
