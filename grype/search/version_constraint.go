@@ -27,6 +27,7 @@ func ByConstraintFunc(constraintFunc func(constraint version.Constraint) (bool, 
 
 type VersionCriteria struct {
 	Version version.Version
+	Config  version.ComparisonConfig
 }
 
 func (v VersionCriteria) MatchesVulnerability(value vulnerability.Vulnerability) (bool, string, error) {
@@ -38,7 +39,9 @@ func (v VersionCriteria) MatchesConstraint(constraint version.Constraint) (bool,
 }
 
 func (v VersionCriteria) criteria(constraint version.Constraint) (bool, error) {
+	// The config is now embedded in the version itself, so just call Satisfied
 	satisfied, err := constraint.Satisfied(&v.Version)
+
 	if err != nil {
 		var unsupportedError *version.UnsupportedComparisonError
 		if errors.As(err, &unsupportedError) {
@@ -85,6 +88,15 @@ func ByFixedVersion(v version.Version) vulnerability.Criteria {
 func ByVersion(v version.Version) vulnerability.Criteria {
 	return &VersionCriteria{
 		Version: v,
+	}
+}
+
+// ByVersionWithConfig returns criteria which constrains vulnerabilities to those with matching version constraints,
+// using the specified comparison configuration.
+func ByVersionWithConfig(v version.Version, cfg version.ComparisonConfig) vulnerability.Criteria {
+	return &VersionCriteria{
+		Version: v,
+		Config:  cfg,
 	}
 }
 
