@@ -407,13 +407,18 @@ If you're seeing Grype report **false positives** or any other vulnerability mat
 Each rule can specify any combination of the following criteria:
 
 - vulnerability ID (e.g. `"CVE-2008-4318"`)
+- include vulnerability aliases when matching on a vulnerability ID (set `"include-aliases"` to `true`)
 - namespace (e.g. `"nvd"`)
 - fix state (allowed values: `"fixed"`, `"not-fixed"`, `"wont-fix"`, or `"unknown"`)
+- match type (allowed values: `"exact-direct-match"`, `"exact-indirect-match"`, or `"cpe-match"`)
 - package name (e.g. `"libcurl"`)
 - package version (e.g. `"1.5.1"`)
 - package language (e.g. `"python"`; these values are defined [here](https://github.com/anchore/syft/blob/main/syft/pkg/language.go#L14-L23))
 - package type (e.g. `"npm"`; these values are defined [here](https://github.com/anchore/syft/blob/main/syft/pkg/type.go#L10-L24))
 - package location (e.g. `"/usr/local/lib/node_modules/**"`; supports glob patterns)
+- package upstream name (e.g. `"curl"`)
+
+You can also document a rule with a free-form `reason`, and use VEX-specific fields (`vex-status` and `vex-justification`) when providing VEX data.
 
 Here's an example `~/.grype.yaml` that demonstrates the expected format for ignore rules:
 
@@ -421,15 +426,21 @@ Here's an example `~/.grype.yaml` that demonstrates the expected format for igno
 ignore:
   # This is the full set of supported rule fields:
   - vulnerability: CVE-2008-4318
+    include-aliases: true
+    reason: "False positive due to bundled curl version"
     fix-state: unknown
+    namespace: nvd
     # VEX fields apply when Grype reads vex data:
     vex-status: not_affected
     vex-justification: vulnerable_code_not_present
+    match-type: exact-direct-match
     package:
       name: libcurl
       version: 1.5.1
+      language: python
       type: npm
       location: "/usr/local/lib/node_modules/**"
+      upstream-name: curl
 
   # We can make rules to match just by vulnerability ID:
   - vulnerability: CVE-2014-54321
