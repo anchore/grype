@@ -374,6 +374,11 @@ func (m *mockVulnReader) GetEpss(cve string) ([]v6.EpssHandle, error) {
 	return args.Get(0).([]v6.EpssHandle), args.Error(1)
 }
 
+func (m *mockVulnReader) GetCWEs(cve string) ([]v6.CWEHandle, error) {
+	args := m.Called(cve)
+	return args.Get(0).([]v6.CWEHandle), args.Error(1)
+}
+
 func cmpOpts() []cmp.Option {
 	return []cmp.Option{
 		cmpopts.IgnoreFields(AffectedPackageInfo{}, "Model"),
