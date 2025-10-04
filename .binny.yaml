@@ -42,7 +42,7 @@ tools:
   # used for signing the checksums file at release
   - name: cosign
     version:
-      want: v2.6.0
+      want: v2.6.1
     method: github-release
     with:
       repo: sigstore/cosign
@@ -50,7 +50,7 @@ tools:
   # used to release all artifacts
   - name: goreleaser
     version:
-      want: v2.12.3
+      want: v2.12.5
     method: github-release
     with:
       repo: goreleaser/goreleaser
@@ -90,7 +90,7 @@ tools:
   # used for triggering a release
   - name: gh
     version:
-      want: v2.80.0
+      want: v2.81.0
     method: github-release
     with:
       repo: cli/cli
