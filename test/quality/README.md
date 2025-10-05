@@ -49,9 +49,9 @@ Ideally the F1 score for an image-tool pair should be 1. F1 score is a good way
 to summarize the matching performance but does not explain why the matching
 performance is what it is.
 
-Indeterminate matches are matches from results that could not be pared with a
+Indeterminate matches are matches from results that could not be paired with a
 label (TP or FP). This could also mean that multiple conflicting labels were
-found for the a single match. The more indeterminate matches there are the less
+found for a single match. The more indeterminate matches there are the less
 confident you can be about the F1 score. Ideally there should be 0 indeterminate
 matches, but this is difficult to achieve since vulnerability data is constantly
 changing. 
@@ -144,9 +144,9 @@ to keep in mind:
 ## Workflow
 
 One way of working is to simply run `yardstick` and `gate.py` in the `test/quality` directory.
-You will need to make sure the `vulnerabilty-match-labels` submodule has been initialized. This happens automatically
+You will need to make sure the `vulnerability-match-labels` submodule has been initialized. This happens automatically
 for some `make` commands, but you can ensure this by `git submodule update --init`. After the submodule has been
-initialized, the match data from `vulnerabilty-match-labels` will be available locally.
+initialized, the match data from `vulnerability-match-labels` will be available locally.
 
 **TIP**: when dealing with submodules, it may be convenient to set the git config option `submodule.recurse` to `true`
 so `git checkout` will automatically update submodules to the correct commit:
@@ -213,8 +213,8 @@ how changes to the label data have affected the result:
 ./gate.py --image docker.io/anchore/test_images@sha256:808f6cf3cf4473eb39ff9bb47ead639d2ed71255b75b9b140162b58c6102bcc9
 ```
 
-After iterating on all the changes we need using `yardstick label explore`, we're now ready to commit changes. Since
-we're using `git submodules`, we need to do two steps:
+After iterating on all the changes we need using `yardstick label explore`, we're now ready to commit the changes. Since
+we're using `git submodules`, we need to complete two steps:
 1. get the changes merged to the `vulnerability-match-labels` repository `main` branch
 2. update the submodule in this repository
 

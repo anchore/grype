@@ -216,8 +216,8 @@ grype --add-cpes-if-none --distro alpine:3.10 sbom:some-alpine-3.10.spdx.json
 
 This section explains the columns and UI cues that help prioritize remediation efforts:
 
-- **Severity**: String severity based on CVSS scores and indicate the significance of a vulnerability in levels.
-  This balances concerns such as ease of exploitability, and the potential to affect 
+- **Severity**: String-based severity derived from CVSS scores that indicates the significance of a vulnerability in levels.
+  This balances concerns such as ease of exploitability, and the potential to affect
   confidentiality, integrity, and availability of software and services.
 
 - **EPSS**:
@@ -301,8 +301,8 @@ COSIGN_EXPERIMENTAL=1 cosign verify-attestation caphill4/java-spdx-tools:latest 
 ```
 
 - **Vulnerability**: All information on the specific vulnerability that was directly matched on (e.g. ID, severity, CVSS score, fix information, links for more information)
-- **RelatedVulnerabilities**: Information pertaining to vulnerabilities found to be related to the main reported vulnerability. Maybe the vulnerability we matched on was a GitHub Security Advisory, which has an upstream CVE (in the authoritative national vulnerability database). In these cases we list the upstream vulnerabilities here.
-- **MatchDetails**: This section tries to explain what we searched for while looking for a match and exactly what details on the package and vulnerability that lead to a match.
+- **RelatedVulnerabilities**: Information pertaining to vulnerabilities found to be related to the main reported vulnerability. Perhaps the vulnerability we matched on was a GitHub Security Advisory, which has an upstream CVE (in the authoritative national vulnerability database). In these cases we list the upstream vulnerabilities here.
+- **MatchDetails**: This section tries to explain what we searched for while looking for a match and exactly what details on the package and vulnerability that led to a match.
 - **Artifact**: This is a subset of the information that we know about the package (when compared to the [Syft](https://github.com/anchore/syft) json output, we summarize the metadata section).
   This has information about where within the container image or directory we found the package, what kind of package it is, licensing info, pURLs, CPEs, etc.
 
