@@ -216,3 +216,75 @@ func Test_newSBOMWriterDescription(t *testing.T) {
 		})
 	}
 }
+
+func Test_newSBOMWriterDescription_TemplatePath(t *testing.T) {
+	tests := []struct {
+		name             string
+		path             string
+		inputCfg         PresentationConfig
+		expectedPath     string
+		expectedTemplate string
+	}{
+		{
+			name:             "template path with equals - simple paths",
+			path:             "template.tpl=output.txt",
+			inputCfg:         PresentationConfig{TemplateFilePath: "original.tpl"},
+			expectedPath:     "output.txt",
+			expectedTemplate: "template.tpl",
+		},
+		{
+			name:             "template path with equals - home expansion",
+			path:             "my-template.tpl=~/output.txt",
+			inputCfg:         PresentationConfig{},
+			expectedPath:     filepath.Join(homedir.Get(), "output.txt"),
+			expectedTemplate: "my-template.tpl",
+		},
+		{
+			name:             "template path with equals - absolute paths",
+			path:             "/path/to/template.tpl=/path/to/output.txt",
+			inputCfg:         PresentationConfig{TemplateFilePath: "should-be-overridden.tpl"},
+			expectedPath:     "/path/to/output.txt",
+			expectedTemplate: "/path/to/template.tpl",
+		},
+		{
+			name:             "template path with multiple equals - only first split",
+			path:             "template=name.tpl=output=file.txt",
+			inputCfg:         PresentationConfig{},
+			expectedPath:     "name.tpl=output=file.txt",
+			expectedTemplate: "template",
+		},
+		{
+			name:             "template path empty first part",
+			path:             "=output.txt",
+			inputCfg:         PresentationConfig{TemplateFilePath: "original.tpl"},
+			expectedPath:     "output.txt",
+			expectedTemplate: "",
+		},
+		{
+			name:             "template path empty second part",
+			path:             "template.tpl=",
+			inputCfg:         PresentationConfig{},
+			expectedPath:     "",
+			expectedTemplate: "template.tpl",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Make a copy of input config to verify it doesn't get modified
+			originalCfg := tt.inputCfg
+
+			o := newWriterDescription("table", tt.path, tt.inputCfg)
+
+			// Verify the path is correct
+			assert.Equal(t, tt.expectedPath, o.Path)
+
+			// Verify template path is set correctly when expected
+			if tt.expectedTemplate != "" {
+				assert.Equal(t, tt.expectedTemplate, o.Cfg.TemplateFilePath)
+			}
+
+			// Verify original config was not modified
+			assert.Equal(t, originalCfg, tt.inputCfg, "original config should not be modified")
+		})
+	}
+}
