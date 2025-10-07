@@ -41,32 +41,12 @@ func parseRangeExpression(phrase string) (simpleRangeExpression, error) {
 }
 
 func (c *simpleRangeExpression) satisfied(format Format, version *Version) (bool, error) {
-	// If version has config embedded, use config-aware comparison
-	if version != nil && version.Config.MissingEpochStrategy != "" && (format == RpmFormat || format == DebFormat) {
-		return c.satisfiedWithConfig(format, version, version.Config)
+	// Use the version's embedded config if present, otherwise use empty config
+	cfg := ComparisonConfig{}
+	if version != nil {
+		cfg = version.Config
 	}
-
-	oneSatisfied := false
-	for i, andOperand := range c.Units {
-		allSatisfied := true
-		for j, andUnit := range andOperand {
-			result, err := version.Compare(&Version{
-				Format: format,
-				Raw:    andUnit.Version,
-			})
-			if err != nil {
-				return false, fmt.Errorf("uncomparable %T vs %q: %w", andUnit, version.String(), err)
-			}
-			unit := c.Units[i][j]
-
-			if !unit.Satisfied(result) {
-				allSatisfied = false
-			}
-		}
-
-		oneSatisfied = oneSatisfied || allSatisfied
-	}
-	return oneSatisfied, nil
+	return c.satisfiedWithConfig(format, version, cfg)
 }
 
 func (c *simpleRangeExpression) satisfiedWithConfig(format Format, version *Version, cfg ComparisonConfig) (bool, error) {

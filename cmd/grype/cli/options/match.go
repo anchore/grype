@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/anchore/clio"
+	"github.com/anchore/grype/grype/version"
 )
 
 // matchConfig contains all matching-related configuration options available to the user via the application config.
@@ -97,14 +98,14 @@ func defaultGolangConfig() golangConfig {
 func defaultRpmConfig() rpmConfig {
 	return rpmConfig{
 		matcherConfig:        matcherConfig{UseCPEs: true},
-		MissingEpochStrategy: "zero",
+		MissingEpochStrategy: version.MissingEpochStrategyZero,
 	}
 }
 
 func defaultDpkgConfig() dpkgConfig {
 	return dpkgConfig{
 		matcherConfig:        matcherConfig{UseCPEs: true},
-		MissingEpochStrategy: "zero",
+		MissingEpochStrategy: version.MissingEpochStrategyZero,
 	}
 }
 
@@ -138,18 +139,18 @@ func (cfg *matchConfig) PostLoad() error {
 
 // PostLoad validates the RPM configuration.
 func (cfg *rpmConfig) PostLoad() error {
-	if cfg.MissingEpochStrategy != "zero" && cfg.MissingEpochStrategy != "auto" {
-		return fmt.Errorf("invalid rpm.missing-epoch-strategy: %q (allowable: zero, auto)",
-			cfg.MissingEpochStrategy)
+	if cfg.MissingEpochStrategy != version.MissingEpochStrategyZero && cfg.MissingEpochStrategy != version.MissingEpochStrategyAuto {
+		return fmt.Errorf("invalid rpm.missing-epoch-strategy: %q (allowable: %s, %s)",
+			cfg.MissingEpochStrategy, version.MissingEpochStrategyZero, version.MissingEpochStrategyAuto)
 	}
 	return nil
 }
 
 // PostLoad validates the dpkg configuration.
 func (cfg *dpkgConfig) PostLoad() error {
-	if cfg.MissingEpochStrategy != "zero" && cfg.MissingEpochStrategy != "auto" {
-		return fmt.Errorf("invalid dpkg.missing-epoch-strategy: %q (allowable: zero, auto)",
-			cfg.MissingEpochStrategy)
+	if cfg.MissingEpochStrategy != version.MissingEpochStrategyZero && cfg.MissingEpochStrategy != version.MissingEpochStrategyAuto {
+		return fmt.Errorf("invalid dpkg.missing-epoch-strategy: %q (allowable: %s, %s)",
+			cfg.MissingEpochStrategy, version.MissingEpochStrategyZero, version.MissingEpochStrategyAuto)
 	}
 	return nil
 }

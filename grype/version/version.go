@@ -15,10 +15,10 @@ type Version struct {
 }
 
 // New creates a new Version with the default comparison configuration.
-// The default MissingEpochStrategy is "zero" for backward compatibility.
+// The default MissingEpochStrategy is MissingEpochStrategyZero for backward compatibility.
 func New(raw string, format Format) *Version {
 	return NewWithConfig(raw, format, ComparisonConfig{
-		MissingEpochStrategy: "zero",
+		MissingEpochStrategy: MissingEpochStrategyZero,
 	})
 }
 

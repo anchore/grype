@@ -1,13 +1,21 @@
 package version
 
+// MissingEpochStrategy constants define how missing epochs in package versions are handled
+const (
+	// MissingEpochStrategyZero treats missing epochs as 0 (default, backward compatible)
+	MissingEpochStrategyZero = "zero"
+	// MissingEpochStrategyAuto assumes missing epoch matches the constraint's epoch
+	MissingEpochStrategyAuto = "auto"
+)
+
 // ComparisonConfig contains configuration for version comparison behavior.
 type ComparisonConfig struct {
 	// MissingEpochStrategy controls how missing epochs in package versions are handled
 	// during vulnerability matching.
 	//
 	// Valid values:
-	//   - "zero": Treat missing epochs as 0 (default, backward compatible)
-	//   - "auto": Assume missing epoch matches the constraint's epoch
+	//   - MissingEpochStrategyZero ("zero"): Treat missing epochs as 0 (default, backward compatible)
+	//   - MissingEpochStrategyAuto ("auto"): Assume missing epoch matches the constraint's epoch
 	MissingEpochStrategy string
 }
 

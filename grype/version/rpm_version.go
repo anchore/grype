@@ -84,7 +84,7 @@ func (v rpmVersion) compareWithConfig(v2 rpmVersion, cfg ComparisonConfig) int {
 	}
 
 	// Handle epoch comparison based on strategy
-	if cfg.MissingEpochStrategy == "auto" {
+	if cfg.MissingEpochStrategy == MissingEpochStrategyAuto {
 		// If v (package) is missing epoch but v2 (constraint) has one, temporarily use v2's epoch for v
 		if !epochIsPresent(v.epoch) && epochIsPresent(v2.epoch) {
 			vWithEpoch := v

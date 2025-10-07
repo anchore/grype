@@ -66,7 +66,7 @@ func (v debVersion) CompareWithConfig(other *Version, cfg ComparisonConfig) (int
 
 	// Handle auto strategy: if package (v) is missing epoch but constraint (other) has one,
 	// temporarily inject the constraint's epoch into the package version
-	if cfg.MissingEpochStrategy == "auto" {
+	if cfg.MissingEpochStrategy == MissingEpochStrategyAuto {
 		if v.epoch == nil && o.epoch != nil {
 			// Create a temporary version string with the constraint's epoch
 			versionWithEpoch := strconv.Itoa(*o.epoch) + ":" + v.raw
