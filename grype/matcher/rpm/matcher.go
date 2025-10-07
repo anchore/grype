@@ -29,6 +29,17 @@ func (m *Matcher) Type() match.MatcherType {
 func (m *Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	var matches []match.Match
 
+	// Handle AlmaLinux matching at the top level before the binary/upstream split
+	// AlmaLinux matching needs to handle both binary and upstream packages internally
+	if p.Distro != nil && shouldUseAlmaLinuxMatching(p.Distro) {
+		almaMatches, err := m.matchAlmaLinux(vp, p)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to match AlmaLinux: %w", err)
+		}
+		return almaMatches, nil, nil
+	}
+
+	// For non-AlmaLinux distros, use the standard binary/upstream split
 	exactMatches, err := m.matchPackage(vp, p)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to match by exact package name: %w", err)
@@ -43,6 +54,29 @@ func (m *Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match
 	matches = append(matches, sourceMatches...)
 
 	return matches, nil, nil
+}
+
+// matchAlmaLinux handles AlmaLinux-specific matching logic that considers both binary and upstream packages
+// This must be called at the top level (before the binary/upstream split) because AlmaLinux matching
+// needs to search for RHEL disclosures for both the binary package and its upstreams, then filter
+// using AlmaLinux unaffected records for both the binary package and related packages
+func (m *Matcher) matchAlmaLinux(vp vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
+	if p.Distro == nil {
+		return nil, nil
+	}
+	if isUnknownVersion(p.Version) {
+		log.WithFields("package", p.Name).Trace("skipping package with unknown version")
+		return nil, nil
+	}
+
+	provider := result.NewProvider(vp, p, m.Type())
+
+	// Add epoch if applicable for the binary package
+	binaryPkg := p
+	addEpochIfApplicable(&binaryPkg)
+
+	// Call almaLinuxMatches with both the binary package and its upstreams
+	return almaLinuxMatchesWithUpstreams(provider, binaryPkg)
 }
 
 // matchPackage matches the given package against the vulnerability provider (direct match).
@@ -146,8 +180,6 @@ func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package) (
 	switch {
 	case shouldUseRedhatEUSMatching(searchPkg.Distro):
 		return redhatEUSMatches(provider, searchPkg)
-	case shouldUseAlmaLinuxMatching(searchPkg.Distro):
-		return almaLinuxMatches(provider, searchPkg)
 	default:
 		return standardMatches(provider, searchPkg)
 	}

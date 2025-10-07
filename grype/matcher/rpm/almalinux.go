@@ -23,65 +23,91 @@ func shouldUseAlmaLinuxMatching(d *distro.Distro) bool {
 	return d.Type == distro.AlmaLinux
 }
 
-// almaLinuxMatches returns matches for the given package with AlmaLinux unaffected filtering applied.
-//
-// AlmaLinux follows this workflow:
-// 1. Use RHEL vulnerability disclosures as the base (similar to RHEL EUS)
-// 2. Filter results using AlmaLinux-specific unaffected package records
-// 3. Handle source RPM to binary RPM relationships when matching unaffected records
-//
-// The matching process:
-// 1. Find RHEL disclosures that match the package (treating AlmaLinux as RHEL-compatible)
-// 2. Find AlmaLinux unaffected packages that apply to this package (including source/binary relationships)
-// 3. Remove vulnerabilities that are marked as unaffected in AlmaLinux
-func almaLinuxMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
-	if strings.HasSuffix(searchPkg.Name, "-debuginfo") || strings.HasSuffix(searchPkg.Name, "-debugsource") {
-		return nil, nil // almaloinux explicitly never publishes advisories for RPMs that are only debug material
-		// consider these as fixed; otherwise we will have no fixed version for them, and they will be considered
-		// to be affected by every CVE that affects their src rpm at any version.
+// almaLinuxMatchesWithUpstreams handles AlmaLinux matching for both the binary package and its upstream packages
+// This function orchestrates the complete AlmaLinux matching flow:
+// 1. Search for RHEL disclosures for the binary package
+// 2. Search for RHEL disclosures for all upstream (source) packages
+// 3. Search for AlmaLinux unaffected records for the binary package and related packages
+// 4. Apply filtering logic to determine which disclosures are still vulnerable on AlmaLinux
+func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Package) ([]match.Match, error) {
+	if strings.HasSuffix(binaryPkg.Name, "-debuginfo") || strings.HasSuffix(binaryPkg.Name, "-debugsource") {
+		return nil, nil // almalinux explicitly never publishes advisories for RPMs that are only debug material
 	}
+
 	// Create a RHEL-compatible distro for finding base disclosures
-	rhelCompatibleDistro := *searchPkg.Distro
+	rhelCompatibleDistro := *binaryPkg.Distro
 	rhelCompatibleDistro.Type = distro.RedHat // treat as RHEL for disclosure lookup
 
-	pkgVersion := version.New(searchPkg.Version, pkg.VersionFormat(searchPkg))
+	pkgVersion := version.New(binaryPkg.Version, pkg.VersionFormat(binaryPkg))
 
-	// Step 1: Find RHEL disclosures for the package
-	disclosures, err := provider.FindResults(
-		search.ByPackageName(searchPkg.Name),
-		search.ByDistro(rhelCompatibleDistro), // look for RHEL disclosures
-		internal.OnlyQualifiedPackages(searchPkg),
+	// Step 1: Find RHEL disclosures for the binary package (direct match)
+	binaryDisclosures, err := provider.FindResults(
+		search.ByPackageName(binaryPkg.Name),
+		search.ByDistro(rhelCompatibleDistro),
+		internal.OnlyQualifiedPackages(binaryPkg),
 		internal.OnlyVulnerableVersions(pkgVersion),
+		internal.OnlyAffectedVulnerabilities(), // exclude unaffected records
 	)
 	if err != nil {
-		return nil, fmt.Errorf("matcher failed to fetch RHEL disclosures for AlmaLinux pkg=%q: %w", searchPkg.Name, err)
+		return nil, fmt.Errorf("matcher failed to fetch RHEL disclosures for AlmaLinux binary pkg=%q: %w", binaryPkg.Name, err)
 	}
 
-	if len(disclosures) == 0 {
+	// Step 2: Find RHEL disclosures for upstream (source) packages (indirect match)
+	upstreamDisclosures := result.Set{}
+	for _, upstreamPkg := range pkg.UpstreamPackages(binaryPkg) {
+		upstreamResults, err := provider.FindResults(
+			search.ByPackageName(upstreamPkg.Name),
+			search.ByDistro(rhelCompatibleDistro),
+			internal.OnlyQualifiedPackages(upstreamPkg),
+			internal.OnlyVulnerableVersions(pkgVersion),
+			internal.OnlyAffectedVulnerabilities(), // exclude unaffected records
+		)
+		if err != nil {
+			log.WithFields("error", err, "upstreamPkg", upstreamPkg.Name, "binaryPkg", binaryPkg.Name).Debug("failed to fetch RHEL disclosures for upstream package")
+			continue
+		}
+		upstreamDisclosures = upstreamDisclosures.Merge(upstreamResults)
+	}
+
+	// Merge all disclosures (binary + upstream)
+	allDisclosures := binaryDisclosures.Merge(upstreamDisclosures)
+
+	if len(allDisclosures) == 0 {
 		return nil, nil
 	}
 
-	// Step 2: Find AlmaLinux unaffected packages that apply to this package
-	unaffectedResults, err := provider.FindResults(
-		search.ByPackageName(searchPkg.Name),
-		search.ByExactDistro(*searchPkg.Distro), // use exact AlmaLinux distro for unaffected lookup (no aliases)
-		internal.OnlyQualifiedPackages(searchPkg),
+	// Step 3: Find AlmaLinux unaffected records for the binary package
+	directUnaffected, err := provider.FindResults(
+		search.ByPackageName(binaryPkg.Name),
+		search.ByExactDistro(*binaryPkg.Distro), // use exact AlmaLinux distro for unaffected lookup (no aliases)
+		internal.OnlyQualifiedPackages(binaryPkg),
 		search.ForUnaffected(),
 	)
 	if err != nil {
-		log.WithFields("error", err, "distro", searchPkg.Distro, "pkg", searchPkg.Name).Debug("failed to fetch AlmaLinux unaffected packages")
+		log.WithFields("error", err, "distro", binaryPkg.Distro, "pkg", binaryPkg.Name).Debug("failed to fetch AlmaLinux unaffected packages")
 		// If we can't get unaffected data, return the original disclosures
-		return disclosures.ToMatches(), nil
+		return allDisclosures.ToMatches(), nil
 	}
 
-	// Step 3: Also look for unaffected packages using source/binary RPM relationships and merge
-	relatedUnaffectedResults := findRelatedUnaffectedPackages(provider, searchPkg)
-	allUnaffectedResults := unaffectedResults.Merge(relatedUnaffectedResults)
+	// Step 4: Find AlmaLinux unaffected records for related packages (source/binary relationships)
+	// This handles cases where AlmaLinux publishes unaffected records for binary packages (e.g., python3-tkinter)
+	// but the disclosure is for the source package (e.g., python3)
+	relatedUnaffected := findRelatedUnaffectedPackages(provider, binaryPkg)
 
-	// Step 4: Remove vulnerabilities that are unaffected and update remaining ones with AlmaLinux fix info
-	updatedDisclosures := applyAlmaLinuxUnaffectedFiltering(disclosures, allUnaffectedResults, pkgVersion)
+	// Merge all unaffected results
+	allUnaffected := directUnaffected.Merge(relatedUnaffected)
+
+	// Step 5: Apply filtering logic: if disclosure exists and no fix applies, the package is vulnerable
+	updatedDisclosures := applyAlmaLinuxUnaffectedFiltering(allDisclosures, allUnaffected, pkgVersion)
 
 	return updatedDisclosures.ToMatches(), nil
+}
+
+// almaLinuxMatches is a compatibility wrapper for tests that calls the new implementation
+// Deprecated: This function is kept for backward compatibility with existing tests
+// New code should use almaLinuxMatchesWithUpstreams instead
+func almaLinuxMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
+	return almaLinuxMatchesWithUpstreams(provider, searchPkg)
 }
 
 // findRelatedUnaffectedPackages searches for unaffected packages using source/binary RPM relationships
@@ -179,7 +205,10 @@ func shouldCompletelyFilter(vuln vulnerability.Vulnerability, pkgVersion *versio
 func updateRemainingWithAlmaLinuxFixes(disclosures result.Set, unaffectedResults result.Set, pkgVersion *version.Version) result.Set {
 	almaLinuxFixes := buildAlmaLinuxFixesMap(unaffectedResults, pkgVersion)
 
+	log.WithFields("almaLinuxFixesCount", len(almaLinuxFixes), "unaffectedResultsCount", len(unaffectedResults)).Debug("built AlmaLinux fixes map")
+
 	if len(almaLinuxFixes) == 0 {
+		log.Debug("no AlmaLinux fixes found, returning original disclosures")
 		return disclosures
 	}
 
@@ -216,27 +245,54 @@ func updateRemainingWithAlmaLinuxFixes(disclosures result.Set, unaffectedResults
 }
 
 // buildAlmaLinuxFixesMap builds a map of vulnerability fixes from unaffected results
+// This extracts fix information from AlmaLinux unaffected records and makes it available
+// for both vulnerable packages (to show the fix version) and unaffected packages (to filter them out)
 func buildAlmaLinuxFixesMap(unaffectedResults result.Set, pkgVersion *version.Version) map[string]vulnerability.Fix {
 	almaLinuxFixes := make(map[string]vulnerability.Fix)
 
 	for _, unaffectedResultList := range unaffectedResults {
 		for _, unaffectedResult := range unaffectedResultList {
 			for _, vuln := range unaffectedResult.Vulnerabilities {
-				if isVersionUnaffected(pkgVersion, vuln.Constraint, vuln.ID) {
-					fixVersion := extractFixVersionFromConstraint(vuln.Constraint)
+				constraintStr := ""
+				if vuln.Constraint != nil {
+					constraintStr = vuln.Constraint.String()
+				}
 
-					// Only update fix info if we're not completely filtering it out
-					if !shouldFilterVulnerability(vuln.Constraint, fixVersion, pkgVersion) && fixVersion != "" {
-						fix := vulnerability.Fix{
-							Versions: []string{fixVersion},
-							State:    vulnerability.FixStateFixed,
-						}
+				fixVersion := extractFixVersionFromConstraint(vuln.Constraint)
+				if fixVersion == "" {
+					continue
+				}
 
-						almaLinuxFixes[vuln.ID] = fix
-						for _, related := range vuln.RelatedVulnerabilities {
-							almaLinuxFixes[related.ID] = fix
-						}
-					}
+				// Determine if we should add this fix based on the constraint type
+				shouldAddFix := false
+
+				if strings.HasPrefix(constraintStr, ">= ") {
+					// For ">= X" constraints: always add fix
+					// - If package >= X: will be filtered completely (handled in shouldCompletelyFilter)
+					// - If package < X: package is vulnerable, X is the fix version
+					shouldAddFix = true
+				} else if strings.HasPrefix(constraintStr, "= ") {
+					// For "= X" constraints: only add fix if package matches exactly
+					// This handles cases where AlmaLinux marks specific versions as fixed
+					shouldAddFix = isVersionUnaffected(pkgVersion, vuln.Constraint, vuln.ID)
+				}
+
+				if !shouldAddFix {
+					continue
+				}
+
+				// Create fix from AlmaLinux unaffected record
+				fix := vulnerability.Fix{
+					Versions: []string{fixVersion},
+					State:    vulnerability.FixStateFixed,
+				}
+
+				// Add fix for the vulnerability itself
+				almaLinuxFixes[vuln.ID] = fix
+
+				// Also add fix for all related vulnerabilities (e.g., CVEs that ALSA fixes)
+				for _, related := range vuln.RelatedVulnerabilities {
+					almaLinuxFixes[related.ID] = fix
 				}
 			}
 		}

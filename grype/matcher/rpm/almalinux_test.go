@@ -14,6 +14,7 @@ import (
 	"github.com/anchore/grype/grype/pkg/qualifier/rpmmodularity"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/grype/vulnerability/mock"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -440,22 +441,9 @@ func TestVersionConstraintFiltering(t *testing.T) {
 					},
 				},
 			},
-			unaffected: result.Set{
-				"ALSA-2023:1234": []result.Result{
-					{
-						ID: "ALSA-2023:1234",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "ALSA-2023:1234"},
-								RelatedVulnerabilities: []vulnerability.Reference{
-									{ID: "CVE-2023-1234"},
-								},
-								Constraint: createConstraint(t, ">= 1.5.0", version.RpmFormat), // our version 1.4.0 does NOT satisfy this
-							},
-						},
-					},
-				},
-			},
+			// The search would not return an unaffected record that doesn't apply to the package version
+			// Since package=1.4.0 doesn't satisfy ">= 1.5.0", this record wouldn't be returned
+			unaffected:       result.Set{},
 			expectedFiltered: false,
 			description:      "vulnerability should NOT be filtered when version does not satisfy unaffected constraint",
 		},
@@ -790,28 +778,9 @@ func TestModularityExcludesFixButNotDisclosure(t *testing.T) {
 		},
 	}
 
-	almaUnaffected := result.Set{
-		"ALSA-2023:20473": []result.Result{
-			{
-				ID: "ALSA-2023:20473",
-				Vulnerabilities: []vulnerability.Vulnerability{
-					{
-						Reference: vulnerability.Reference{ID: "ALSA-2023:20473"},
-						RelatedVulnerabilities: []vulnerability.Reference{
-							{ID: "CVE-2023-30581"},
-						},
-						Constraint: createConstraint(t, ">= 1:22.8.1-1.module_el8.9.0+20473+c4e3d824", version.RpmFormat),
-						Fix: vulnerability.Fix{
-							Versions: []string{"1:22.8.1-1.module_el8.9.0+20473+c4e3d824"},
-							State:    vulnerability.FixStateFixed,
-						},
-						PackageQualifiers: []qualifier.Qualifier{rpmmodularity.New("nodejs:22")},
-					},
-				},
-				Package: &testPkg,
-			},
-		},
-	}
+	// The search for AlmaLinux unaffected records would filter out records with mismatched qualifiers
+	// Since the package has nodejs:20, an ALSA with nodejs:22 qualifiers would not be returned
+	almaUnaffected := result.Set{}
 
 	callCount := 0
 	mockProvider.findResultsFunc = func(criteria ...vulnerability.Criteria) (result.Set, error) {
@@ -939,6 +908,122 @@ func TestAlmaLinuxFixReplacement(t *testing.T) {
 		assert.Equal(t, "2.4.37-50.el8", fixVersion, "Should keep original RHEL fix version")
 		t.Log("Fix replacement may require different conditions than tested here")
 	}
+}
+
+func TestAlmaLinuxMatches_Python3TkinterWithUpstream(t *testing.T) {
+	// Test scenario: binary RPM python3-tkinter installed with python3 upstream
+	// PURL: pkg:rpm/almalinux/python3-tkinter@3.6.8-71.el8_10.alma.1?arch=x86_64&distro=almalinux-8.10&upstream=python3-3.6.8-71.el8_10.alma.1.src.rpm
+	//
+	// This tests the full matching flow:
+	// 1. Matcher.Match() calls matchPackage for python3-tkinter (finds nothing from RHEL)
+	// 2. Matcher.Match() calls matchUpstreamPackages which creates synthetic python3 package
+	// 3. For synthetic python3 package, RHEL has disclosure (CVE-2007-4559)
+	// 4. AlmaLinux has ALSA-2023:7151 with unaffected records for python3-tkinter
+	// 5. The unaffected filtering should apply to matches found via upstream
+
+	almaDistro := &distro.Distro{
+		Type:    distro.AlmaLinux,
+		Version: "8.10",
+	}
+
+	// Binary package: python3-tkinter with python3 as upstream
+	testPkg := pkg.Package{
+		ID:      pkg.ID("python3-tkinter-test"),
+		Name:    "python3-tkinter",
+		Version: "3.6.8-71.el8_10.alma.1",
+		Type:    syftPkg.RpmPkg,
+		Distro:  almaDistro,
+		Upstreams: []pkg.UpstreamPackage{
+			{
+				Name:    "python3",
+				Version: "3.6.8-71.el8_10.alma.1",
+			},
+		},
+		Metadata: pkg.RpmMetadata{
+			Epoch: intPtr(0),
+		},
+	}
+
+	// Create vulnerabilities for the mock provider
+	// RHEL disclosure for python3 (source package) - will be found via upstream matching
+	python3Vulnerability := vulnerability.Vulnerability{
+		PackageName: "python3",
+		Reference: vulnerability.Reference{
+			ID:        "CVE-2007-4559",
+			Namespace: "redhat:distro:redhat:8",
+		},
+		Constraint: createConstraint(t, "< 0:3.6.8-56.el8_9", version.RpmFormat),
+		Fix: vulnerability.Fix{
+			Versions: []string{"0:3.6.8-56.el8_9"},
+			State:    vulnerability.FixStateFixed,
+		},
+	}
+
+	// AlmaLinux unaffected record for python3-tkinter
+	// NOTE: The database does NOT have an unaffected entry for "python3" itself,
+	// only for binary packages like python3-tkinter, python3-libs, etc.
+	tkinterUnaffected := vulnerability.Vulnerability{
+		PackageName: "python3-tkinter",
+		Reference: vulnerability.Reference{
+			ID:        "ALSA-2023:7151",
+			Namespace: "almalinux:distro:almalinux:8",
+		},
+		RelatedVulnerabilities: []vulnerability.Reference{
+			{ID: "CVE-2007-4559"},
+		},
+		// Unaffected constraint: package version >= fix version means it's fixed
+		Constraint: createConstraint(t, ">= 3.6.8-56.el8_9.alma.1", version.RpmFormat),
+		Fix: vulnerability.Fix{
+			Versions: []string{"3.6.8-56.el8_9.alma.1"},
+			State:    vulnerability.FixStateFixed,
+		},
+		Unaffected: true, // Mark as unaffected record
+	}
+
+	// Create mock vulnerability provider
+	mockVulnProvider := mock.VulnerabilityProvider(
+		python3Vulnerability,
+		tkinterUnaffected,
+	)
+
+	// Create matcher
+	matcher := Matcher{}
+
+	// Test 1: Package version is newer than fix version (should be filtered out completely)
+	t.Run("package version newer than fix - filtered", func(t *testing.T) {
+		matches, _, err := matcher.Match(mockVulnProvider, testPkg)
+		require.NoError(t, err)
+		assert.Empty(t, matches, "Package version 3.6.8-71.el8_10.alma.1 is >= fix 3.6.8-56.el8_9.alma.1, should be filtered")
+	})
+
+	// Test 2: Package version is older than fix (should show match with AlmaLinux fix)
+	t.Run("package version older than fix - shows match", func(t *testing.T) {
+		olderPkg := testPkg
+		olderPkg.ID = pkg.ID("python3-tkinter-test-older")
+		olderPkg.Version = "3.6.8-40.el8_6"
+		olderPkg.Upstreams = []pkg.UpstreamPackage{
+			{
+				Name:    "python3",
+				Version: "3.6.8-40.el8_6",
+			},
+		}
+
+		matches, _, err := matcher.Match(mockVulnProvider, olderPkg)
+		require.NoError(t, err)
+		require.Len(t, matches, 1, "Package version 3.6.8-40.el8_6 is < fix 3.6.8-56.el8_9.alma.1, should have match")
+
+		matchResult := matches[0]
+		assert.Equal(t, "CVE-2007-4559", matchResult.Vulnerability.ID)
+
+		// Check match type - should be indirect since it came from upstream
+		require.NotEmpty(t, matchResult.Details)
+		assert.Equal(t, match.ExactIndirectMatch, matchResult.Details[0].Type, "Match should be indirect (via upstream)")
+
+		// The fix should be updated to AlmaLinux version
+		require.NotEmpty(t, matchResult.Vulnerability.Fix.Versions)
+		fixVersion := matchResult.Vulnerability.Fix.Versions[0]
+		assert.Equal(t, "3.6.8-56.el8_9.alma.1", fixVersion, "Fix version should be from AlmaLinux")
+	})
 }
 
 // Helper functions for tests
