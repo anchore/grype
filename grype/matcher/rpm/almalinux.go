@@ -213,9 +213,10 @@ func updateRemainingWithAlmaLinuxFixes(disclosures result.Set, unaffectedResults
 			var updatedVulns []vulnerability.Vulnerability
 
 			for _, vuln := range disclosure.Vulnerabilities {
-				if almaFix, hasAlmaFix := almaLinuxFixes[vuln.ID]; hasAlmaFix {
+				if almaFixInfo, hasAlmaFix := almaLinuxFixes[vuln.ID]; hasAlmaFix {
 					updatedVuln := vuln
-					updatedVuln.Fix = almaFix
+					updatedVuln.Fix = almaFixInfo.Fix
+					updatedVuln.Advisories = almaFixInfo.Advisories
 					updatedVulns = append(updatedVulns, updatedVuln)
 				} else {
 					updatedVulns = append(updatedVulns, vuln)
@@ -237,11 +238,17 @@ func updateRemainingWithAlmaLinuxFixes(disclosures result.Set, unaffectedResults
 	return updated
 }
 
+// almaLinuxFixInfo holds fix and advisory information from AlmaLinux unaffected records
+type almaLinuxFixInfo struct {
+	Fix        vulnerability.Fix
+	Advisories []vulnerability.Advisory
+}
+
 // buildAlmaLinuxFixesMap builds a map of vulnerability fixes from unaffected results
 // This extracts fix information from AlmaLinux unaffected records and makes it available
 // for both vulnerable packages (to show the fix version) and unaffected packages (to filter them out)
-func buildAlmaLinuxFixesMap(unaffectedResults result.Set) map[string]vulnerability.Fix {
-	almaLinuxFixes := make(map[string]vulnerability.Fix)
+func buildAlmaLinuxFixesMap(unaffectedResults result.Set) map[string]almaLinuxFixInfo {
+	almaLinuxFixes := make(map[string]almaLinuxFixInfo)
 
 	for _, unaffectedResultList := range unaffectedResults {
 		for _, unaffectedResult := range unaffectedResultList {
@@ -255,23 +262,66 @@ func buildAlmaLinuxFixesMap(unaffectedResults result.Set) map[string]vulnerabili
 				// We always add AlmaLinux fix information when available, regardless of whether
 				// the vulnerability will be filtered. Filtering decisions are made separately
 				// in shouldCompletelyFilter based on version comparison.
-				fix := vulnerability.Fix{
-					Versions: []string{fixVersion},
-					State:    vulnerability.FixStateFixed,
+
+				// Build advisories - prefer from database, but construct if missing
+				advisories := vuln.Advisories
+				if len(advisories) == 0 {
+					advisories = constructAdvisory(vuln, unaffectedResult.Package)
+				}
+
+				fixInfo := almaLinuxFixInfo{
+					Fix: vulnerability.Fix{
+						Versions: []string{fixVersion},
+						State:    vulnerability.FixStateFixed,
+					},
+					Advisories: advisories,
 				}
 
 				// Add fix for the vulnerability itself
-				almaLinuxFixes[vuln.ID] = fix
+				almaLinuxFixes[vuln.ID] = fixInfo
 
 				// Also add fix for all related vulnerabilities (e.g., CVEs that ALSA fixes)
 				for _, related := range vuln.RelatedVulnerabilities {
-					almaLinuxFixes[related.ID] = fix
+					almaLinuxFixes[related.ID] = fixInfo
 				}
 			}
 		}
 	}
 
 	return almaLinuxFixes
+}
+
+// constructAdvisory builds advisory information from an ALSA vulnerability
+// This is a fallback for databases that don't yet have advisory IDs in fix references.
+// Once grype-db is updated to include advisory IDs, this will no longer be needed.
+func constructAdvisory(vuln vulnerability.Vulnerability, pkg *pkg.Package) []vulnerability.Advisory {
+	// Only construct for ALSA advisories
+	if !strings.HasPrefix(vuln.ID, "ALSA-") {
+		return nil
+	}
+
+	// Extract major version from package distro
+	if pkg == nil || pkg.Distro == nil {
+		return nil
+	}
+
+	majorVersion := pkg.Distro.Version
+	if idx := strings.Index(majorVersion, "."); idx != -1 {
+		majorVersion = majorVersion[:idx]
+	}
+
+	if majorVersion == "" {
+		return nil
+	}
+
+	// Format: ALSA-YYYY:NNNN -> https://errata.almalinux.org/{major}/ALSA-YYYY-NNNN.html
+	alsaURLID := strings.Replace(vuln.ID, ":", "-", 1) // ALSA-2025:2686 -> ALSA-2025-2686
+	return []vulnerability.Advisory{
+		{
+			ID:   vuln.ID,
+			Link: fmt.Sprintf("https://errata.almalinux.org/%s/%s.html", majorVersion, alsaURLID),
+		},
+	}
 }
 
 // shouldFilterVulnerability determines if a vulnerability should be completely filtered out
