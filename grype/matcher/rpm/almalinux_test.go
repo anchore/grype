@@ -1026,6 +1026,100 @@ func TestAlmaLinuxMatches_Python3TkinterWithUpstream(t *testing.T) {
 	})
 }
 
+func TestAlmaLinuxMatches_PerlErrnoEpochMismatch(t *testing.T) {
+	// Test scenario: binary RPM perl-Errno with epoch 0, upstream perl with epoch 4
+	// This is a regression test for false positives caused by comparing binary package epoch
+	// against source package epoch when the vulnerability is for the source package.
+	//
+	// Real example from almalinux:8.10:
+	// - Binary package: perl-Errno 0:1.28-422.el8.0.1 (epoch 0)
+	// - Source package: perl-5.26.3-422.el8.0.1.src.rpm (epoch 4 in RHEL vuln data)
+	// - Vuln constraint: < 4:5.26.3-419.el8 (for source package "perl")
+	//
+	// The bug was comparing binary epoch (0) against the constraint with source epoch (4),
+	// causing: 0:1.28-422.el8.0.1 < 4:5.26.3-419.el8 = true (FALSE POSITIVE!)
+	//
+	// Correct behavior: Don't add epochs to source package versions during matching,
+	// which allows proper comparison: 5.26.3-422.el8.0.1 < 5.26.3-419.el8 = false (CORRECT)
+
+	almaDistro := &distro.Distro{
+		Type:    distro.AlmaLinux,
+		Version: "8.10",
+	}
+
+	// Binary package: perl-Errno (epoch 0) with perl upstream (no epoch in sourceRPM)
+	testPkg := pkg.Package{
+		ID:      pkg.ID("perl-errno-test"),
+		Name:    "perl-Errno",
+		Version: "0:1.28-422.el8.0.1",
+		Type:    syftPkg.RpmPkg,
+		Distro:  almaDistro,
+		Upstreams: []pkg.UpstreamPackage{
+			{
+				Name:    "perl",
+				Version: "5.26.3-422.el8.0.1", // No epoch in sourceRPM metadata
+			},
+		},
+		Metadata: pkg.RpmMetadata{
+			Epoch: intPtr(0),
+		},
+	}
+
+	// RHEL vulnerability for perl (source package) with epoch in constraint
+	perlVulnerability := vulnerability.Vulnerability{
+		PackageName: "perl",
+		Reference: vulnerability.Reference{
+			ID:        "CVE-2020-10543",
+			Namespace: "redhat:distro:redhat:8",
+		},
+		Constraint: createConstraint(t, "< 4:5.26.3-419.el8", version.RpmFormat),
+		Fix: vulnerability.Fix{
+			Versions: []string{"4:5.26.3-419.el8"},
+			State:    vulnerability.FixStateFixed,
+		},
+	}
+
+	// Create mock vulnerability provider
+	mockVulnProvider := mock.VulnerabilityProvider(
+		perlVulnerability,
+	)
+
+	matcher := Matcher{}
+
+	// Test: perl-Errno version 5.26.3-422.el8.0.1 is NEWER than fix 5.26.3-419.el8
+	// (ignoring epochs because sourceRPM has no epoch)
+	// Should NOT match because 422 > 419
+	t.Run("no false positive from epoch mismatch", func(t *testing.T) {
+		matches, _, err := matcher.Match(mockVulnProvider, testPkg)
+		require.NoError(t, err)
+		assert.Empty(t, matches, "perl-Errno 5.26.3-422.el8.0.1 > perl fix 5.26.3-419.el8 (ignoring epochs), should NOT match")
+	})
+
+	// Test with older version to verify matching still works when it should
+	t.Run("match works for vulnerable version", func(t *testing.T) {
+		olderPkg := testPkg
+		olderPkg.ID = pkg.ID("perl-errno-test-older")
+		olderPkg.Version = "0:1.28-418.el8"
+		olderPkg.Upstreams = []pkg.UpstreamPackage{
+			{
+				Name:    "perl",
+				Version: "5.26.3-418.el8", // Older than fix
+			},
+		}
+
+		matches, _, err := matcher.Match(mockVulnProvider, olderPkg)
+		require.NoError(t, err)
+		require.Len(t, matches, 1, "perl-Errno 5.26.3-418.el8 < fix 5.26.3-419.el8, should match")
+
+		matchResult := matches[0]
+		assert.Equal(t, "CVE-2020-10543", matchResult.Vulnerability.ID)
+
+		// Check match type - should be indirect since it came from upstream
+		require.NotEmpty(t, matchResult.Details)
+		assert.Equal(t, match.ExactIndirectMatch, matchResult.Details[0].Type, "Match should be indirect (via upstream)")
+	})
+}
+
 // Helper functions for tests
 
 func createConstraint(t *testing.T, constraintStr string, format version.Format) version.Constraint {

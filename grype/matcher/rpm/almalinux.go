@@ -53,13 +53,20 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 	}
 
 	// Step 2: Find RHEL disclosures for upstream (source) packages (indirect match)
+	// Note: We do NOT add epochs to upstream package versions because sourceRPMs often omit epochs
+	// even when the source package has a non-zero epoch. See the comment in matchUpstreamPackages
+	// in matcher.go for the full explanation of why this is necessary.
 	upstreamDisclosures := result.Set{}
 	for _, upstreamPkg := range pkg.UpstreamPackages(binaryPkg) {
+		// Create a version object from the upstream package WITHOUT adding epoch
+		// This avoids false positives where binary package epochs differ from source package epochs
+		upstreamVersion := version.New(upstreamPkg.Version, pkg.VersionFormat(upstreamPkg))
+
 		upstreamResults, err := provider.FindResults(
 			search.ByPackageName(upstreamPkg.Name),
 			search.ByDistro(rhelCompatibleDistro),
 			internal.OnlyQualifiedPackages(upstreamPkg),
-			internal.OnlyVulnerableVersions(pkgVersion),
+			internal.OnlyVulnerableVersions(upstreamVersion),
 			internal.OnlyAffectedVulnerabilities(), // exclude unaffected records
 		)
 		if err != nil {
