@@ -103,13 +103,6 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 	return updatedDisclosures.ToMatches(), nil
 }
 
-// almaLinuxMatches is a compatibility wrapper for tests that calls the new implementation
-// Deprecated: This function is kept for backward compatibility with existing tests
-// New code should use almaLinuxMatchesWithUpstreams instead
-func almaLinuxMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
-	return almaLinuxMatchesWithUpstreams(provider, searchPkg)
-}
-
 // findRelatedUnaffectedPackages searches for unaffected packages using source/binary RPM relationships
 func findRelatedUnaffectedPackages(provider result.Provider, searchPkg pkg.Package) result.Set {
 	allResults := make(result.Set)
@@ -159,7 +152,7 @@ func applyAlmaLinuxUnaffectedFiltering(disclosures result.Set, unaffectedResults
 	filtered := disclosures.Remove(toRemove)
 
 	// Then update remaining vulnerabilities with AlmaLinux fix information
-	return updateRemainingWithAlmaLinuxFixes(filtered, unaffectedResults, pkgVersion)
+	return updateRemainingWithAlmaLinuxFixes(filtered, unaffectedResults)
 }
 
 // identifyVulnerabilitiesToRemove identifies vulnerabilities that should be completely filtered out
@@ -202,8 +195,8 @@ func shouldCompletelyFilter(vuln vulnerability.Vulnerability, pkgVersion *versio
 }
 
 // updateRemainingWithAlmaLinuxFixes updates remaining vulnerabilities with AlmaLinux fix information
-func updateRemainingWithAlmaLinuxFixes(disclosures result.Set, unaffectedResults result.Set, pkgVersion *version.Version) result.Set {
-	almaLinuxFixes := buildAlmaLinuxFixesMap(unaffectedResults, pkgVersion)
+func updateRemainingWithAlmaLinuxFixes(disclosures result.Set, unaffectedResults result.Set) result.Set {
+	almaLinuxFixes := buildAlmaLinuxFixesMap(unaffectedResults)
 
 	log.WithFields("almaLinuxFixesCount", len(almaLinuxFixes), "unaffectedResultsCount", len(unaffectedResults)).Debug("built AlmaLinux fixes map")
 
@@ -247,41 +240,21 @@ func updateRemainingWithAlmaLinuxFixes(disclosures result.Set, unaffectedResults
 // buildAlmaLinuxFixesMap builds a map of vulnerability fixes from unaffected results
 // This extracts fix information from AlmaLinux unaffected records and makes it available
 // for both vulnerable packages (to show the fix version) and unaffected packages (to filter them out)
-func buildAlmaLinuxFixesMap(unaffectedResults result.Set, pkgVersion *version.Version) map[string]vulnerability.Fix {
+func buildAlmaLinuxFixesMap(unaffectedResults result.Set) map[string]vulnerability.Fix {
 	almaLinuxFixes := make(map[string]vulnerability.Fix)
 
 	for _, unaffectedResultList := range unaffectedResults {
 		for _, unaffectedResult := range unaffectedResultList {
 			for _, vuln := range unaffectedResult.Vulnerabilities {
-				constraintStr := ""
-				if vuln.Constraint != nil {
-					constraintStr = vuln.Constraint.String()
-				}
-
 				fixVersion := extractFixVersionFromConstraint(vuln.Constraint)
 				if fixVersion == "" {
 					continue
 				}
 
-				// Determine if we should add this fix based on the constraint type
-				shouldAddFix := false
-
-				if strings.HasPrefix(constraintStr, ">= ") {
-					// For ">= X" constraints: always add fix
-					// - If package >= X: will be filtered completely (handled in shouldCompletelyFilter)
-					// - If package < X: package is vulnerable, X is the fix version
-					shouldAddFix = true
-				} else if strings.HasPrefix(constraintStr, "= ") {
-					// For "= X" constraints: only add fix if package matches exactly
-					// This handles cases where AlmaLinux marks specific versions as fixed
-					shouldAddFix = isVersionUnaffected(pkgVersion, vuln.Constraint, vuln.ID)
-				}
-
-				if !shouldAddFix {
-					continue
-				}
-
 				// Create fix from AlmaLinux unaffected record
+				// We always add AlmaLinux fix information when available, regardless of whether
+				// the vulnerability will be filtered. Filtering decisions are made separately
+				// in shouldCompletelyFilter based on version comparison.
 				fix := vulnerability.Fix{
 					Versions: []string{fixVersion},
 					State:    vulnerability.FixStateFixed,

@@ -364,7 +364,7 @@ func TestAlmaLinuxMatchingWithAliases(t *testing.T) {
 	}
 
 	// Execute AlmaLinux matching
-	matches, err := almaLinuxMatches(mockProvider, testPkg)
+	matches, err := almaLinuxMatchesWithUpstreams(mockProvider, testPkg)
 	require.NoError(t, err)
 
 	// Verify results - CVE-2023-1234 should be filtered out because package version is >= fix version
@@ -668,7 +668,7 @@ func TestCVE202232084UnaffectedFiltering(t *testing.T) {
 		}
 	}
 
-	matches, err := almaLinuxMatches(mockProvider, testPkg)
+	matches, err := almaLinuxMatchesWithUpstreams(mockProvider, testPkg)
 	require.NoError(t, err)
 
 	var cve202232084Match *match.Match
@@ -712,7 +712,7 @@ func TestModularityExcludesDisclosure(t *testing.T) {
 		return result.Set{}, nil
 	}
 
-	_, err := almaLinuxMatches(mockProvider, testPkg)
+	_, err := almaLinuxMatchesWithUpstreams(mockProvider, testPkg)
 	require.NoError(t, err)
 
 	// Verify that FindResults was called with OnlyQualifiedPackages criteria
@@ -795,7 +795,7 @@ func TestModularityExcludesFixButNotDisclosure(t *testing.T) {
 		}
 	}
 
-	matches, err := almaLinuxMatches(mockProvider, testPkg)
+	matches, err := almaLinuxMatchesWithUpstreams(mockProvider, testPkg)
 	require.NoError(t, err)
 
 	assert.Len(t, matches, 1)
@@ -881,7 +881,7 @@ func TestAlmaLinuxFixReplacement(t *testing.T) {
 		}
 	}
 
-	matches, err := almaLinuxMatches(mockProvider, testPkg)
+	matches, err := almaLinuxMatchesWithUpstreams(mockProvider, testPkg)
 	require.NoError(t, err)
 	require.Len(t, matches, 1, "Should have one match (not filtered)")
 
