@@ -1026,6 +1026,300 @@ func TestAlmaLinuxMatches_Python3TkinterWithUpstream(t *testing.T) {
 	})
 }
 
+func TestAlmaLinuxMatches_Scenario1_HttpdFixReplacement(t *testing.T) {
+	// Scenario 1: Vuln with Fix Available - RHEL Advisory Replaced by AlmaLinux Advisory
+	// Real data from database:
+	// - CVE: CVE-2006-20001
+	// - Package: httpd with modularity httpd:2.4
+	// - RHEL: RHSA-2023:0852, fix: 2.4.37-51.module+el8.7.0+18026+7b169787.1
+	// - AlmaLinux: ALSA-2023:0852, fix: 2.4.37-51.module_el8.7.0+3405+9516b832.1
+	// - Test with version 2.4.37-50 which is < 51 (still vulnerable)
+	// - Expected: Report CVE with AlmaLinux fix version and ALSA advisory
+
+	almaDistro := &distro.Distro{
+		Type:    distro.AlmaLinux,
+		Version: "8.7",
+	}
+
+	testPkg := pkg.Package{
+		ID:      pkg.ID("httpd-test"),
+		Name:    "httpd",
+		Version: "2.4.37-50.module_el8.7.0+3405+9516b832",
+		Type:    syftPkg.RpmPkg,
+		Distro:  almaDistro,
+		Metadata: pkg.RpmMetadata{
+			ModularityLabel: strPtr("httpd:2.4:8070020220920142155:f8e95b4e"),
+		},
+	}
+
+	// RHEL disclosure for CVE-2006-20001
+	cve200620001Vulnerability := vulnerability.Vulnerability{
+		PackageName: "httpd",
+		Reference: vulnerability.Reference{
+			ID:        "CVE-2006-20001",
+			Namespace: "redhat:distro:redhat:8",
+		},
+		Constraint: createConstraint(t, "< 0:2.4.37-51.module+el8.7.0+18026+7b169787.1", version.RpmFormat),
+		Fix: vulnerability.Fix{
+			Versions: []string{"0:2.4.37-51.module+el8.7.0+18026+7b169787.1"},
+			State:    vulnerability.FixStateFixed,
+		},
+		Advisories: []vulnerability.Advisory{
+			{
+				ID:   "RHSA-2023:0852",
+				Link: "https://access.redhat.com/errata/RHSA-2023:0852",
+			},
+		},
+		PackageQualifiers: []qualifier.Qualifier{rpmmodularity.New("httpd:2.4")},
+	}
+
+	// AlmaLinux unaffected record for ALSA-2023:0852
+	alsa20230852Unaffected := vulnerability.Vulnerability{
+		PackageName: "httpd",
+		Reference: vulnerability.Reference{
+			ID:        "ALSA-2023:0852",
+			Namespace: "almalinux:distro:almalinux:8",
+		},
+		RelatedVulnerabilities: []vulnerability.Reference{
+			{ID: "CVE-2006-20001"},
+			{ID: "CVE-2022-36760"},
+			{ID: "CVE-2022-37436"},
+		},
+		Constraint: createConstraint(t, ">= 2.4.37-51.module_el8.7.0+3405+9516b832.1", version.RpmFormat),
+		Fix: vulnerability.Fix{
+			Versions: []string{"2.4.37-51.module_el8.7.0+3405+9516b832.1"},
+			State:    vulnerability.FixStateFixed,
+		},
+		Advisories: []vulnerability.Advisory{
+			{
+				ID:   "ALSA-2023:0852",
+				Link: "https://errata.almalinux.org/8/ALSA-2023-0852.html",
+			},
+		},
+		PackageQualifiers: []qualifier.Qualifier{rpmmodularity.New("httpd:2.4")},
+		Unaffected:        true,
+	}
+
+	// Create mock vulnerability provider
+	mockVulnProvider := mock.VulnerabilityProvider(
+		cve200620001Vulnerability,
+		alsa20230852Unaffected,
+	)
+
+	matcher := Matcher{}
+
+	// Test: Package version 2.4.37-50 < fix 2.4.37-51, should report vulnerability
+	// with AlmaLinux fix version (not RHEL's)
+	matches, _, err := matcher.Match(mockVulnProvider, testPkg)
+	require.NoError(t, err)
+	require.Len(t, matches, 1, "Should have 1 match for CVE-2006-20001")
+
+	matchResult := matches[0]
+	assert.Equal(t, "CVE-2006-20001", matchResult.Vulnerability.ID)
+
+	// Verify fix version is from AlmaLinux (not RHEL)
+	require.NotEmpty(t, matchResult.Vulnerability.Fix.Versions)
+	fixVersion := matchResult.Vulnerability.Fix.Versions[0]
+	assert.Equal(t, "2.4.37-51.module_el8.7.0+3405+9516b832.1", fixVersion,
+		"Fix version should be from AlmaLinux, not RHEL")
+	assert.NotEqual(t, "0:2.4.37-51.module+el8.7.0+18026+7b169787.1", fixVersion,
+		"Fix version should NOT be from RHEL")
+
+	// Verify advisory is from AlmaLinux (not RHEL)
+	require.NotEmpty(t, matchResult.Vulnerability.Advisories)
+	advisory := matchResult.Vulnerability.Advisories[0]
+	assert.Equal(t, "ALSA-2023:0852", advisory.ID,
+		"Advisory should be ALSA, not RHSA")
+	assert.Equal(t, "https://errata.almalinux.org/8/ALSA-2023-0852.html", advisory.Link,
+		"Advisory link should point to errata.almalinux.org")
+}
+
+func TestAlmaLinuxMatches_Scenario2A_AAdvisoryFiltersVuln(t *testing.T) {
+	// Scenario 2A: A-advisory filters vuln when package is at fix version, RHEL has no fix
+	// Real data from database:
+	// - CVE: CVE-2025-22247
+	// - Package: open-vm-tools (no modularity)
+	// - RHEL: not-fixed state, no version constraint, no fix version
+	// - AlmaLinux: ALSA-2025:A001 (A-advisory), fix: 12.3.5-2.el8.alma.1
+	// - Test with version 12.3.5-2.el8.alma.1 which is >= fix (unaffected)
+	// - Expected: Vulnerability filtered out (not reported)
+
+	almaDistro := &distro.Distro{
+		Type:    distro.AlmaLinux,
+		Version: "8.0",
+	}
+
+	testPkg := pkg.Package{
+		ID:      pkg.ID("open-vm-tools-test"),
+		Name:    "open-vm-tools",
+		Version: "12.3.5-2.el8.alma.1",
+		Type:    syftPkg.RpmPkg,
+		Distro:  almaDistro,
+		Metadata: pkg.RpmMetadata{
+			ModularityLabel: nil, // no modularity
+		},
+	}
+
+	// RHEL disclosure for CVE-2025-22247 with no fix
+	cve202522247Vulnerability := vulnerability.Vulnerability{
+		PackageName: "open-vm-tools",
+		Reference: vulnerability.Reference{
+			ID:        "CVE-2025-22247",
+			Namespace: "redhat:distro:redhat:8",
+		},
+		// No constraint - RHEL considers all versions affected (using >= 0 to match all)
+		Constraint: createConstraint(t, ">= 0", version.RpmFormat),
+		Fix: vulnerability.Fix{
+			Versions: []string{}, // no fix version
+			State:    vulnerability.FixStateNotFixed,
+		},
+		Advisories:        []vulnerability.Advisory{}, // no advisory
+		PackageQualifiers: []qualifier.Qualifier{},
+	}
+
+	// AlmaLinux A-advisory unaffected record for ALSA-2025:A001
+	alsa2025A001Unaffected := vulnerability.Vulnerability{
+		PackageName: "open-vm-tools",
+		Reference: vulnerability.Reference{
+			ID:        "ALSA-2025:A001",
+			Namespace: "almalinux:distro:almalinux:8",
+		},
+		RelatedVulnerabilities: []vulnerability.Reference{
+			{ID: "CVE-2025-22247"},
+		},
+		Constraint: createConstraint(t, ">= 12.3.5-2.el8.alma.1", version.RpmFormat),
+		Fix: vulnerability.Fix{
+			Versions: []string{"12.3.5-2.el8.alma.1"},
+			State:    vulnerability.FixStateFixed,
+		},
+		Advisories: []vulnerability.Advisory{
+			{
+				ID:   "ALSA-2025:A001",
+				Link: "https://errata.almalinux.org/8/ALSA-2025-A001.html",
+			},
+		},
+		PackageQualifiers: []qualifier.Qualifier{},
+		Unaffected:        true,
+	}
+
+	// Create mock vulnerability provider
+	mockVulnProvider := mock.VulnerabilityProvider(
+		cve202522247Vulnerability,
+		alsa2025A001Unaffected,
+	)
+
+	matcher := Matcher{}
+
+	// Test: Package version 12.3.5-2 >= fix 12.3.5-2, should be filtered out
+	matches, _, err := matcher.Match(mockVulnProvider, testPkg)
+	require.NoError(t, err)
+	assert.Len(t, matches, 0, "Should have 0 matches - vulnerability filtered by A-advisory")
+}
+
+func TestAlmaLinuxMatches_Scenario2B_AAdvisoryReportsVulnWithFix(t *testing.T) {
+	// Scenario 2B: A-advisory reports vuln with AlmaLinux fix when package below fix version, RHEL has no fix
+	// Real data from database:
+	// - CVE: CVE-2025-22247
+	// - Package: open-vm-tools (no modularity)
+	// - RHEL: not-fixed state, no version constraint, no fix version
+	// - AlmaLinux: ALSA-2025:A001 (A-advisory), fix: 12.3.5-2.el8.alma.1
+	// - Test with version 12.3.5-1.el8 which is < fix (still vulnerable)
+	// - Expected: Vulnerability reported with AlmaLinux fix version and A-advisory
+
+	almaDistro := &distro.Distro{
+		Type:    distro.AlmaLinux,
+		Version: "8.0",
+	}
+
+	testPkg := pkg.Package{
+		ID:      pkg.ID("open-vm-tools-test"),
+		Name:    "open-vm-tools",
+		Version: "12.3.5-1.el8",
+		Type:    syftPkg.RpmPkg,
+		Distro:  almaDistro,
+		Metadata: pkg.RpmMetadata{
+			ModularityLabel: nil, // no modularity
+		},
+	}
+
+	// RHEL disclosure for CVE-2025-22247 with no fix
+	cve202522247Vulnerability := vulnerability.Vulnerability{
+		PackageName: "open-vm-tools",
+		Reference: vulnerability.Reference{
+			ID:        "CVE-2025-22247",
+			Namespace: "redhat:distro:redhat:8",
+		},
+		// No constraint - RHEL considers all versions affected (using >= 0 to match all)
+		Constraint: createConstraint(t, ">= 0", version.RpmFormat),
+		Fix: vulnerability.Fix{
+			Versions: []string{}, // no fix version
+			State:    vulnerability.FixStateNotFixed,
+		},
+		Advisories:        []vulnerability.Advisory{}, // no advisory
+		PackageQualifiers: []qualifier.Qualifier{},
+	}
+
+	// AlmaLinux A-advisory unaffected record for ALSA-2025:A001
+	alsa2025A001Unaffected := vulnerability.Vulnerability{
+		PackageName: "open-vm-tools",
+		Reference: vulnerability.Reference{
+			ID:        "ALSA-2025:A001",
+			Namespace: "almalinux:distro:almalinux:8",
+		},
+		RelatedVulnerabilities: []vulnerability.Reference{
+			{ID: "CVE-2025-22247"},
+		},
+		Constraint: createConstraint(t, ">= 12.3.5-2.el8.alma.1", version.RpmFormat),
+		Fix: vulnerability.Fix{
+			Versions: []string{"12.3.5-2.el8.alma.1"},
+			State:    vulnerability.FixStateFixed,
+		},
+		Advisories: []vulnerability.Advisory{
+			{
+				ID:   "ALSA-2025:A001",
+				Link: "https://errata.almalinux.org/8/ALSA-2025-A001.html",
+			},
+		},
+		PackageQualifiers: []qualifier.Qualifier{},
+		Unaffected:        true,
+	}
+
+	// Create mock vulnerability provider
+	mockVulnProvider := mock.VulnerabilityProvider(
+		cve202522247Vulnerability,
+		alsa2025A001Unaffected,
+	)
+
+	matcher := Matcher{}
+
+	// Test: Package version 12.3.5-1 < fix 12.3.5-2, should report vulnerability
+	// with AlmaLinux fix version (RHEL has none)
+	matches, _, err := matcher.Match(mockVulnProvider, testPkg)
+	require.NoError(t, err)
+	require.Len(t, matches, 1, "Should have 1 match for CVE-2025-22247")
+
+	matchResult := matches[0]
+	assert.Equal(t, "CVE-2025-22247", matchResult.Vulnerability.ID)
+
+	// Verify fix version is from AlmaLinux (RHEL has none)
+	require.NotEmpty(t, matchResult.Vulnerability.Fix.Versions)
+	fixVersion := matchResult.Vulnerability.Fix.Versions[0]
+	assert.Equal(t, "12.3.5-2.el8.alma.1", fixVersion,
+		"Fix version should be from AlmaLinux A-advisory (RHEL has no fix)")
+
+	// Verify fix state is fixed (from AlmaLinux, even though RHEL says not-fixed)
+	assert.Equal(t, vulnerability.FixStateFixed, matchResult.Vulnerability.Fix.State,
+		"Fix state should be 'fixed' from AlmaLinux A-advisory")
+
+	// Verify advisory is the A-advisory from AlmaLinux
+	require.NotEmpty(t, matchResult.Vulnerability.Advisories)
+	advisory := matchResult.Vulnerability.Advisories[0]
+	assert.Equal(t, "ALSA-2025:A001", advisory.ID,
+		"Advisory should be AlmaLinux A-advisory")
+	assert.Equal(t, "https://errata.almalinux.org/8/ALSA-2025-A001.html", advisory.Link,
+		"Advisory link should point to errata.almalinux.org")
+}
+
 func TestAlmaLinuxMatches_PerlErrnoEpochMismatch(t *testing.T) {
 	// Test scenario: binary RPM perl-Errno with epoch 0, upstream perl with epoch 4
 	// This is a regression test for false positives caused by comparing binary package epoch
@@ -1126,4 +1420,8 @@ func createConstraint(t *testing.T, constraintStr string, format version.Format)
 	constraint, err := version.GetConstraint(constraintStr, format)
 	require.NoError(t, err)
 	return constraint
+}
+
+func strPtr(s string) *string {
+	return &s
 }
