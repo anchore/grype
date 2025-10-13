@@ -1320,6 +1320,202 @@ func TestAlmaLinuxMatches_Scenario2B_AAdvisoryReportsVulnWithFix(t *testing.T) {
 		"Advisory link should point to errata.almalinux.org")
 }
 
+func TestAlmaLinuxMatches_Scenario3A_ModuleBuildNumberMismatchFilters(t *testing.T) {
+	// Scenario 3A: Module build number mismatch - AlmaLinux lower build filters vuln
+	// Real data from database:
+	// - CVE: CVE-2007-4559
+	// - Package: python38 with modularity python38:3.8
+	// - RHEL: fix with build number 19642 (high)
+	// - AlmaLinux: fix with build number 3633 (low, 5.8x difference!)
+	// - Package has AlmaLinux build number 3633
+	// - Naive comparison: 3633 < 19642 would flag as vulnerable
+	// - AlmaLinux unaffected record: >= 3633 is fixed
+	// - Expected: Vulnerability filtered (package IS fixed despite lower build number)
+
+	almaDistro := &distro.Distro{
+		Type:    distro.AlmaLinux,
+		Version: "8.9",
+	}
+
+	testPkg := pkg.Package{
+		ID:      pkg.ID("python38-test"),
+		Name:    "python38",
+		Version: "3.8.17-2.module_el8.9.0+3633+e453b53a",
+		Type:    syftPkg.RpmPkg,
+		Distro:  almaDistro,
+		Metadata: pkg.RpmMetadata{
+			ModularityLabel: strPtr("python38:3.8:8090020230810123456:3b72e4d2"),
+		},
+	}
+
+	// RHEL disclosure for CVE-2007-4559 with HIGH build number
+	cve20074559Vulnerability := vulnerability.Vulnerability{
+		PackageName: "python38",
+		Reference: vulnerability.Reference{
+			ID:        "CVE-2007-4559",
+			Namespace: "redhat:distro:redhat:8",
+		},
+		Constraint: createConstraint(t, "< 0:3.8.17-2.module+el8.9.0+19642+a12b4af6", version.RpmFormat),
+		Fix: vulnerability.Fix{
+			Versions: []string{"0:3.8.17-2.module+el8.9.0+19642+a12b4af6"},
+			State:    vulnerability.FixStateFixed,
+		},
+		Advisories: []vulnerability.Advisory{
+			{
+				ID:   "RHSA-2023:7050",
+				Link: "https://access.redhat.com/errata/RHSA-2023:7050",
+			},
+		},
+		PackageQualifiers: []qualifier.Qualifier{rpmmodularity.New("python38:3.8")},
+	}
+
+	// AlmaLinux unaffected record for ALSA-2023:7050 with LOW build number
+	alsa20237050Unaffected := vulnerability.Vulnerability{
+		PackageName: "python38",
+		Reference: vulnerability.Reference{
+			ID:        "ALSA-2023:7050",
+			Namespace: "almalinux:distro:almalinux:8",
+		},
+		RelatedVulnerabilities: []vulnerability.Reference{
+			{ID: "CVE-2007-4559"},
+			{ID: "CVE-2023-32681"},
+		},
+		Constraint: createConstraint(t, ">= 3.8.17-2.module_el8.9.0+3633+e453b53a", version.RpmFormat),
+		Fix: vulnerability.Fix{
+			Versions: []string{"3.8.17-2.module_el8.9.0+3633+e453b53a"},
+			State:    vulnerability.FixStateFixed,
+		},
+		Advisories: []vulnerability.Advisory{
+			{
+				ID:   "ALSA-2023:7050",
+				Link: "https://errata.almalinux.org/8/ALSA-2023-7050.html",
+			},
+		},
+		PackageQualifiers: []qualifier.Qualifier{rpmmodularity.New("python38:3.8")},
+		Unaffected:        true,
+	}
+
+	// Create mock vulnerability provider
+	mockVulnProvider := mock.VulnerabilityProvider(
+		cve20074559Vulnerability,
+		alsa20237050Unaffected,
+	)
+
+	matcher := Matcher{}
+
+	// Test: Package has AlmaLinux build 3633, should be filtered despite being < RHEL's 19642
+	matches, _, err := matcher.Match(mockVulnProvider, testPkg)
+	require.NoError(t, err)
+	assert.Len(t, matches, 0, "Should have 0 matches - vulnerability filtered despite lower build number (3633 vs 19642)")
+}
+
+func TestAlmaLinuxMatches_Scenario3B_ModuleBuildNumberMismatchReportsVuln(t *testing.T) {
+	// Scenario 3B: Module build number mismatch - vulnerable version still reported
+	// Real data from database:
+	// - CVE: CVE-2007-4559
+	// - Package: python38 with modularity python38:3.8
+	// - RHEL: fix with build number 19642 (high)
+	// - AlmaLinux: fix with build number 3633 (low)
+	// - Package version 3.8.17-1 (one version before fix 3.8.17-2)
+	// - Expected: Vulnerability reported with AlmaLinux fix info
+
+	almaDistro := &distro.Distro{
+		Type:    distro.AlmaLinux,
+		Version: "8.9",
+	}
+
+	testPkg := pkg.Package{
+		ID:      pkg.ID("python38-test"),
+		Name:    "python38",
+		Version: "3.8.17-1.module_el8.9.0+3633+e453b53a",
+		Type:    syftPkg.RpmPkg,
+		Distro:  almaDistro,
+		Metadata: pkg.RpmMetadata{
+			ModularityLabel: strPtr("python38:3.8:8090020230810123456:3b72e4d2"),
+		},
+	}
+
+	// RHEL disclosure for CVE-2007-4559 with HIGH build number
+	cve20074559Vulnerability := vulnerability.Vulnerability{
+		PackageName: "python38",
+		Reference: vulnerability.Reference{
+			ID:        "CVE-2007-4559",
+			Namespace: "redhat:distro:redhat:8",
+		},
+		Constraint: createConstraint(t, "< 0:3.8.17-2.module+el8.9.0+19642+a12b4af6", version.RpmFormat),
+		Fix: vulnerability.Fix{
+			Versions: []string{"0:3.8.17-2.module+el8.9.0+19642+a12b4af6"},
+			State:    vulnerability.FixStateFixed,
+		},
+		Advisories: []vulnerability.Advisory{
+			{
+				ID:   "RHSA-2023:7050",
+				Link: "https://access.redhat.com/errata/RHSA-2023:7050",
+			},
+		},
+		PackageQualifiers: []qualifier.Qualifier{rpmmodularity.New("python38:3.8")},
+	}
+
+	// AlmaLinux unaffected record for ALSA-2023:7050 with LOW build number
+	alsa20237050Unaffected := vulnerability.Vulnerability{
+		PackageName: "python38",
+		Reference: vulnerability.Reference{
+			ID:        "ALSA-2023:7050",
+			Namespace: "almalinux:distro:almalinux:8",
+		},
+		RelatedVulnerabilities: []vulnerability.Reference{
+			{ID: "CVE-2007-4559"},
+			{ID: "CVE-2023-32681"},
+		},
+		Constraint: createConstraint(t, ">= 3.8.17-2.module_el8.9.0+3633+e453b53a", version.RpmFormat),
+		Fix: vulnerability.Fix{
+			Versions: []string{"3.8.17-2.module_el8.9.0+3633+e453b53a"},
+			State:    vulnerability.FixStateFixed,
+		},
+		Advisories: []vulnerability.Advisory{
+			{
+				ID:   "ALSA-2023:7050",
+				Link: "https://errata.almalinux.org/8/ALSA-2023-7050.html",
+			},
+		},
+		PackageQualifiers: []qualifier.Qualifier{rpmmodularity.New("python38:3.8")},
+		Unaffected:        true,
+	}
+
+	// Create mock vulnerability provider
+	mockVulnProvider := mock.VulnerabilityProvider(
+		cve20074559Vulnerability,
+		alsa20237050Unaffected,
+	)
+
+	matcher := Matcher{}
+
+	// Test: Package version 3.8.17-1 < fix 3.8.17-2, should report vulnerability
+	// with AlmaLinux fix version (with lower build number 3633, not RHEL's 19642)
+	matches, _, err := matcher.Match(mockVulnProvider, testPkg)
+	require.NoError(t, err)
+	require.Len(t, matches, 1, "Should have 1 match for CVE-2007-4559")
+
+	matchResult := matches[0]
+	assert.Equal(t, "CVE-2007-4559", matchResult.Vulnerability.ID)
+
+	// Verify fix version is from AlmaLinux (lower build number 3633, not RHEL's 19642)
+	require.NotEmpty(t, matchResult.Vulnerability.Fix.Versions)
+	fixVersion := matchResult.Vulnerability.Fix.Versions[0]
+	assert.Equal(t, "3.8.17-2.module_el8.9.0+3633+e453b53a", fixVersion,
+		"Fix version should be from AlmaLinux with lower build number (3633)")
+	assert.NotContains(t, fixVersion, "19642",
+		"Fix version should NOT contain RHEL's higher build number (19642)")
+
+	// Verify advisory is from AlmaLinux
+	require.NotEmpty(t, matchResult.Vulnerability.Advisories)
+	advisory := matchResult.Vulnerability.Advisories[0]
+	assert.Equal(t, "ALSA-2023:7050", advisory.ID,
+		"Advisory should be ALSA")
+	assert.Equal(t, "https://errata.almalinux.org/8/ALSA-2023-7050.html", advisory.Link,
+		"Advisory link should point to errata.almalinux.org")
+}
+
 func TestAlmaLinuxMatches_PerlErrnoEpochMismatch(t *testing.T) {
 	// Test scenario: binary RPM perl-Errno with epoch 0, upstream perl with epoch 4
 	// This is a regression test for false positives caused by comparing binary package epoch
