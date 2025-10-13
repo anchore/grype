@@ -843,8 +843,8 @@ func TestAlmaLinuxFixReplacement(t *testing.T) {
 	}
 
 	// AlmaLinux unaffected record that demonstrates fix replacement:
-	// Use "= " constraint so shouldFilterVulnerability returns false (doesn't start with ">= ")
-	// but isVersionUnaffected can still return true if package matches exactly
+	// Package version 2.4.37-10.el8 is vulnerable (< 2.4.37-43.module_el8.6.0 which is AlmaLinux's fix)
+	// but we provide AlmaLinux fix info to replace RHEL's
 	almaUnaffected := result.Set{
 		"ALSA-2022:0123": []result.Result{
 			{
@@ -855,12 +855,13 @@ func TestAlmaLinuxFixReplacement(t *testing.T) {
 						RelatedVulnerabilities: []vulnerability.Reference{
 							{ID: "CVE-2021-44790"},
 						},
-						// Use "= 2.4.37-10.el8" which exactly matches our package version
-						// isVersionUnaffected will return true (constraint.Satisfied returns true)
-						// shouldFilterVulnerability will return false (doesn't start with ">= ")
-						// extractFixVersionFromConstraint will extract "2.4.37-10.el8"
-						// This should trigger fix replacement without complete filtering
-						Constraint: createConstraint(t, "= 2.4.37-10.el8", version.RpmFormat),
+						// Package 2.4.37-10.el8 < fix 2.4.37-43, so it's still vulnerable
+						// but fix info should come from AlmaLinux
+						Constraint: createConstraint(t, ">= 2.4.37-43.module_el8.6.0+1000+ce6a2ac1", version.RpmFormat),
+						Fix: vulnerability.Fix{
+							Versions: []string{"2.4.37-43.module_el8.6.0+1000+ce6a2ac1"}, // AlmaLinux fix
+							State:    vulnerability.FixStateFixed,
+						},
 					},
 				},
 				Package: &testPkg,
@@ -891,23 +892,14 @@ func TestAlmaLinuxFixReplacement(t *testing.T) {
 	// The fix version should be from AlmaLinux if replacement worked
 	fixVersion := match.Vulnerability.Fix.Versions[0]
 
-	// This test demonstrates fix replacement with "= " constraint
-	// With constraint "= 2.4.37-10.el8" and package "2.4.37-10.el8":
-	// - isVersionUnaffected returns true (package exactly matches constraint)
-	// - shouldFilterVulnerability returns false (constraint doesn't start with ">= ")
-	// - extractFixVersionFromConstraint extracts "2.4.37-10.el8"
-	// This should allow fix replacement to occur
+	// Package version 2.4.37-10.el8 is vulnerable (< both RHEL fix 2.4.37-50 and AlmaLinux fix 2.4.37-43)
+	// After filtering, package is still vulnerable
+	// After fix replacement, fix info should come from AlmaLinux
+	expectedAlmaFix := "2.4.37-43.module_el8.6.0+1000+ce6a2ac1" // AlmaLinux fix version
 
-	expectedAlmaFix := "2.4.37-10.el8" // The extracted fix version from "= 2.4.37-10.el8"
-
-	if fixVersion == expectedAlmaFix {
-		t.Log("SUCCESS: Fix replacement worked - AlmaLinux constraint provided fix version")
-		// Note: In this case the fix version happens to be the same as package version
-		// but the important thing is that the fix replacement logic was triggered
-	} else {
-		assert.Equal(t, "2.4.37-50.el8", fixVersion, "Should keep original RHEL fix version")
-		t.Log("Fix replacement may require different conditions than tested here")
-	}
+	assert.Equal(t, expectedAlmaFix, fixVersion,
+		"Fix version should be replaced with AlmaLinux fix (not RHEL's 2.4.37-50.el8)")
+	t.Log("SUCCESS: Fix replacement worked - AlmaLinux fix version used")
 }
 
 func TestAlmaLinuxMatches_Python3TkinterWithUpstream(t *testing.T) {

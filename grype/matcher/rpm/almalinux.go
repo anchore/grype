@@ -152,13 +152,13 @@ func applyAlmaLinuxUnaffectedFiltering(disclosures result.Set, unaffectedResults
 		return disclosures
 	}
 
-	// First, identify vulnerabilities that should be completely filtered out
-	toRemove := identifyVulnerabilitiesToRemove(unaffectedResults, pkgVersion)
+	// Step 5a: Remove vulnerabilities where package version satisfies the unaffected constraint
+	// (i.e., package IS safe according to AlmaLinux)
+	filtered := disclosures.Remove(
+		unaffectedResults.Filter(search.ByVersion(*pkgVersion)),
+	)
 
-	// Remove completely unaffected vulnerabilities using result.Set.Remove()
-	filtered := disclosures.Remove(toRemove)
-
-	// Then update remaining vulnerabilities with AlmaLinux fix information
+	// Step 5b: Update remaining vulnerabilities with AlmaLinux fix information
 	return updateRemainingWithAlmaLinuxFixes(filtered, unaffectedResults)
 }
 
