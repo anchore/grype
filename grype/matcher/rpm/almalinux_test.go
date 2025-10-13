@@ -1516,6 +1516,80 @@ func TestAlmaLinuxMatches_Scenario3B_ModuleBuildNumberMismatchReportsVuln(t *tes
 		"Advisory link should point to errata.almalinux.org")
 }
 
+func TestAlmaLinuxMatches_Scenario4_WontFixReportedWithoutAlmaFix(t *testing.T) {
+	// Scenario 4: Wont-fix vuln reported when no AlmaLinux unaffected record exists
+	// Real data from database:
+	// - CVE: CVE-2005-2541
+	// - Package: tar (no modularity)
+	// - RHEL: wont-fix state, no version constraint, no fix version
+	// - AlmaLinux: NO unaffected record (follows RHEL's won't-fix decision)
+	// - Expected: Vulnerability reported with RHEL info preserved
+
+	almaDistro := &distro.Distro{
+		Type:    distro.AlmaLinux,
+		Version: "8.0",
+	}
+
+	testPkg := pkg.Package{
+		ID:      pkg.ID("tar-test"),
+		Name:    "tar",
+		Version: "2:1.30-5.el8",
+		Type:    syftPkg.RpmPkg,
+		Distro:  almaDistro,
+		Metadata: pkg.RpmMetadata{
+			ModularityLabel: nil, // no modularity
+		},
+	}
+
+	// RHEL disclosure for CVE-2005-2541 with wont-fix state
+	cve20052541Vulnerability := vulnerability.Vulnerability{
+		PackageName: "tar",
+		Reference: vulnerability.Reference{
+			ID:        "CVE-2005-2541",
+			Namespace: "redhat:distro:redhat:8",
+		},
+		// No constraint - RHEL considers all versions affected
+		Constraint: createConstraint(t, ">= 0", version.RpmFormat),
+		Fix: vulnerability.Fix{
+			Versions: []string{}, // no fix version
+			State:    vulnerability.FixStateWontFix,
+		},
+		Advisories:        []vulnerability.Advisory{}, // no advisory
+		PackageQualifiers: []qualifier.Qualifier{},
+	}
+
+	// NO AlmaLinux unaffected record - this is the key!
+	// AlmaLinux follows RHEL's wont-fix decision
+
+	// Create mock vulnerability provider with only RHEL disclosure
+	mockVulnProvider := mock.VulnerabilityProvider(
+		cve20052541Vulnerability,
+		// Note: NO AlmaLinux unaffected record provided
+	)
+
+	matcher := Matcher{}
+
+	// Test: Vulnerability should be reported with RHEL info (not filtered)
+	matches, _, err := matcher.Match(mockVulnProvider, testPkg)
+	require.NoError(t, err)
+	require.Len(t, matches, 1, "Should have 1 match for CVE-2005-2541 (wont-fix)")
+
+	matchResult := matches[0]
+	assert.Equal(t, "CVE-2005-2541", matchResult.Vulnerability.ID)
+
+	// Verify fix state is wont-fix (preserved from RHEL)
+	assert.Equal(t, vulnerability.FixStateWontFix, matchResult.Vulnerability.Fix.State,
+		"Fix state should be 'wont-fix' from RHEL")
+
+	// Verify no fix versions (RHEL won't fix it)
+	assert.Empty(t, matchResult.Vulnerability.Fix.Versions,
+		"Fix versions should be empty (no fix available)")
+
+	// Verify no advisories (RHEL didn't publish advisory for wont-fix)
+	assert.Empty(t, matchResult.Vulnerability.Advisories,
+		"Advisories should be empty (no advisory for wont-fix)")
+}
+
 func TestAlmaLinuxMatches_PerlErrnoEpochMismatch(t *testing.T) {
 	// Test scenario: binary RPM perl-Errno with epoch 0, upstream perl with epoch 4
 	// This is a regression test for false positives caused by comparing binary package epoch
