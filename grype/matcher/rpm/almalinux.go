@@ -152,150 +152,47 @@ func applyAlmaLinuxUnaffectedFiltering(disclosures result.Set, unaffectedResults
 		return disclosures
 	}
 
-	// Step 5a: Remove vulnerabilities where package version satisfies the unaffected constraint
+	// Filter out vulnerabilities where package version satisfies the unaffected constraint
 	// (i.e., package IS safe according to AlmaLinux)
 	filtered := disclosures.Remove(
 		unaffectedResults.Filter(search.ByVersion(*pkgVersion)),
 	)
 
-	// Step 5b: Update remaining vulnerabilities with AlmaLinux fix information
-	return updateRemainingWithAlmaLinuxFixes(filtered, unaffectedResults)
+	// Update remaining vulnerabilities with AlmaLinux fix information
+	return filtered.UpdateByIdentity(unaffectedResults, replaceWithAlmaLinuxFixInfo)
 }
 
-// identifyVulnerabilitiesToRemove identifies vulnerabilities that should be completely filtered out
-func identifyVulnerabilitiesToRemove(unaffectedResults result.Set, pkgVersion *version.Version) result.Set {
-	toRemove := make(result.Set)
-
-	for _, unaffectedResultList := range unaffectedResults {
-		for _, unaffectedResult := range unaffectedResultList {
-			for _, vuln := range unaffectedResult.Vulnerabilities {
-				if shouldCompletelyFilter(vuln, pkgVersion) {
-					// Create a result entry to mark this vulnerability for removal
-					toRemove[vuln.ID] = []result.Result{{
-						ID:              vuln.ID,
-						Vulnerabilities: []vulnerability.Vulnerability{vuln},
-					}}
-
-					// Also mark related vulnerabilities (aliases) for removal
-					for _, related := range vuln.RelatedVulnerabilities {
-						toRemove[related.ID] = []result.Result{{
-							ID:              related.ID,
-							Vulnerabilities: []vulnerability.Vulnerability{{Reference: related}},
-						}}
-					}
-				}
-			}
-		}
-	}
-
-	return toRemove
-}
-
-// shouldCompletelyFilter determines if a vulnerability should be completely filtered out
-func shouldCompletelyFilter(vuln vulnerability.Vulnerability, pkgVersion *version.Version) bool {
-	if !isVersionUnaffected(pkgVersion, vuln.Constraint, vuln.ID) {
-		return false
-	}
-
-	fixVersion := extractFixVersionFromConstraint(vuln.Constraint)
-	return shouldFilterVulnerability(vuln.Constraint, fixVersion, pkgVersion)
-}
-
-// updateRemainingWithAlmaLinuxFixes updates remaining vulnerabilities with AlmaLinux fix information
-func updateRemainingWithAlmaLinuxFixes(disclosures result.Set, unaffectedResults result.Set) result.Set {
-	almaLinuxFixes := buildAlmaLinuxFixesMap(unaffectedResults)
-
-	log.WithFields("almaLinuxFixesCount", len(almaLinuxFixes), "unaffectedResultsCount", len(unaffectedResults)).Debug("built AlmaLinux fixes map")
-
-	if len(almaLinuxFixes) == 0 {
-		log.Debug("no AlmaLinux fixes found, returning original disclosures")
-		return disclosures
-	}
-
-	updated := make(result.Set)
-	for key, disclosureList := range disclosures {
-		var updatedDisclosures []result.Result
-
-		for _, disclosure := range disclosureList {
-			var updatedVulns []vulnerability.Vulnerability
-
-			for _, vuln := range disclosure.Vulnerabilities {
-				if almaFixInfo, hasAlmaFix := almaLinuxFixes[vuln.ID]; hasAlmaFix {
-					updatedVuln := vuln
-					updatedVuln.Fix = almaFixInfo.Fix
-					updatedVuln.Advisories = almaFixInfo.Advisories
-					updatedVulns = append(updatedVulns, updatedVuln)
-				} else {
-					updatedVulns = append(updatedVulns, vuln)
-				}
+// replaceWithAlmaLinuxFixInfo updates the Fix and Advisories fields from AlmaLinux unaffected data
+// while preserving the match Details from the RHEL disclosure. This is used to replace RHEL fix
+// versions with AlmaLinux-specific fix versions when available.
+func replaceWithAlmaLinuxFixInfo(existing *result.Result, incoming result.Result) {
+	// For each vulnerability in the existing result (RHEL disclosure)
+	for i := range existing.Vulnerabilities {
+		// Find the corresponding AlmaLinux vulnerability and extract fix info
+		for _, incomingVuln := range incoming.Vulnerabilities {
+			// Extract fix version from the unaffected constraint (e.g., ">= 2.4.48" -> "2.4.48")
+			fixVersion := extractFixVersionFromConstraint(incomingVuln.Constraint)
+			if fixVersion == "" {
+				continue
 			}
 
-			if len(updatedVulns) > 0 {
-				updatedDisclosure := disclosure
-				updatedDisclosure.Vulnerabilities = updatedVulns
-				updatedDisclosures = append(updatedDisclosures, updatedDisclosure)
+			// Update fix version and advisories to AlmaLinux's data
+			existing.Vulnerabilities[i].Fix = vulnerability.Fix{
+				Versions: []string{fixVersion},
+				State:    vulnerability.FixStateFixed,
 			}
-		}
 
-		if len(updatedDisclosures) > 0 {
-			updated[key] = updatedDisclosures
+			// Use advisories from database, or construct if missing
+			advisories := incomingVuln.Advisories
+			if len(advisories) == 0 {
+				advisories = constructAdvisory(incomingVuln, existing.Package)
+			}
+			existing.Vulnerabilities[i].Advisories = advisories
+
+			// Note: We keep existing.Details intact - those contain the RHEL match details
+			break // Only need first match
 		}
 	}
-
-	return updated
-}
-
-// almaLinuxFixInfo holds fix and advisory information from AlmaLinux unaffected records
-type almaLinuxFixInfo struct {
-	Fix        vulnerability.Fix
-	Advisories []vulnerability.Advisory
-}
-
-// buildAlmaLinuxFixesMap builds a map of vulnerability fixes from unaffected results
-// This extracts fix information from AlmaLinux unaffected records and makes it available
-// for both vulnerable packages (to show the fix version) and unaffected packages (to filter them out)
-func buildAlmaLinuxFixesMap(unaffectedResults result.Set) map[string]almaLinuxFixInfo {
-	almaLinuxFixes := make(map[string]almaLinuxFixInfo)
-
-	for _, unaffectedResultList := range unaffectedResults {
-		for _, unaffectedResult := range unaffectedResultList {
-			for _, vuln := range unaffectedResult.Vulnerabilities {
-				fixVersion := extractFixVersionFromConstraint(vuln.Constraint)
-				if fixVersion == "" {
-					continue
-				}
-
-				// Create fix from AlmaLinux unaffected record
-				// We always add AlmaLinux fix information when available, regardless of whether
-				// the vulnerability will be filtered. Filtering decisions are made separately
-				// in shouldCompletelyFilter based on version comparison.
-
-				// Build advisories - prefer from database, but construct if missing
-				advisories := vuln.Advisories
-				if len(advisories) == 0 {
-					advisories = constructAdvisory(vuln, unaffectedResult.Package)
-				}
-
-				fixInfo := almaLinuxFixInfo{
-					Fix: vulnerability.Fix{
-						Versions: []string{fixVersion},
-						State:    vulnerability.FixStateFixed,
-					},
-					Advisories: advisories,
-				}
-
-				// Add fix for the vulnerability itself
-				almaLinuxFixes[vuln.ID] = fixInfo
-
-				// Also add fix for all related vulnerabilities (e.g., CVEs that ALSA fixes)
-				for _, related := range vuln.RelatedVulnerabilities {
-					almaLinuxFixes[related.ID] = fixInfo
-				}
-			}
-		}
-	}
-
-	return almaLinuxFixes
 }
 
 // constructAdvisory builds advisory information from an ALSA vulnerability
@@ -329,17 +226,6 @@ func constructAdvisory(vuln vulnerability.Vulnerability, pkg *pkg.Package) []vul
 			Link: fmt.Sprintf("https://errata.almalinux.org/%s/%s.html", majorVersion, alsaURLID),
 		},
 	}
-}
-
-// shouldFilterVulnerability determines if a vulnerability should be completely filtered out
-func shouldFilterVulnerability(constraint version.Constraint, fixVersion string, pkgVersion *version.Version) bool {
-	if !strings.HasPrefix(constraint.String(), ">= ") || fixVersion == "" {
-		return false
-	}
-
-	fixVersionParsed := version.New(fixVersion, pkgVersion.Format)
-	cmp, err := pkgVersion.Compare(fixVersionParsed)
-	return err == nil && cmp >= 0
 }
 
 // extractFixVersionFromConstraint extracts a fix version from a version constraint
@@ -378,19 +264,4 @@ func cleanVersionString(versionStr string) string {
 		return versionStr[:idx]
 	}
 	return versionStr
-}
-
-// isVersionUnaffected checks if a package version is unaffected according to the given constraint
-func isVersionUnaffected(v *version.Version, c version.Constraint, id string) bool {
-	if c == nil {
-		return false
-	}
-
-	isUnaffected, err := c.Satisfied(v)
-	if err != nil {
-		log.WithFields("vulnerability", id, "error", err).Trace("failed to check unaffected constraint")
-		return false
-	}
-
-	return isUnaffected
 }

@@ -213,6 +213,43 @@ func (s Set) Intersection(other Set) Set {
 	return out
 }
 
+// UpdateByIdentity applies an update function to results in the current set when they match
+// (by ID or alias) with entries in the incoming set. This is useful for replacing specific fields
+// (like fix information) while preserving other fields (like match details).
+//
+// For example, if the current set has CVE-2006-20001 and the incoming set has ALSA-2023:0852
+// with alias CVE-2006-20001, the updateFunc will be called to update the CVE entry with data
+// from the ALSA entry.
+func (s Set) UpdateByIdentity(incoming Set, updateFunc func(existing *Result, incoming Result)) Set {
+	out := make(Set)
+
+	// Copy everything from base set
+	for id, results := range s {
+		out[id] = append([]Result(nil), results...)
+	}
+
+	// For each entry in base, find matching incoming by identity and update
+	for id, existingResults := range out {
+		existingIdentity := getIdentity(id, existingResults)
+
+		for incomingID, incomingResults := range incoming {
+			incomingIdentity := getIdentity(incomingID, incomingResults)
+			if !strset.Intersection(existingIdentity, incomingIdentity).IsEmpty() {
+				// Found match - update in place
+				for i := range existingResults {
+					for _, incomingResult := range incomingResults {
+						updateFunc(&existingResults[i], incomingResult)
+					}
+				}
+				out[id] = existingResults
+				break
+			}
+		}
+	}
+
+	return out
+}
+
 func (s Set) Filter(criteria ...vulnerability.Criteria) Set {
 	out := Set{}
 	for id, results := range s {
