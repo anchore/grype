@@ -82,7 +82,7 @@ choco install grype -y
 ### Homebrew
 
 ```bash
-brew install anchore/grype/grype --cask
+brew install grype
 ```
 
 ### MacPorts
