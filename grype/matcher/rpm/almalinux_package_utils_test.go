@@ -94,37 +94,40 @@ func TestGetRelatedPackageNames(t *testing.T) {
 			expected: []string{"python3-criu", "criu"}, // should include both binary and source names
 		},
 		{
-			name: "source package generates binary patterns",
+			name: "known library gap - base package gcc",
 			pkg: pkg.Package{
-				Name:      "python3",
+				Name:      "gcc",
 				Type:      syftPkg.RpmPkg,
 				Upstreams: []pkg.UpstreamPackage{},
 			},
-			// should include the source name plus common binary patterns
-			expected: []string{
-				"python3",
-				"python3-devel", "python3-libs", "python3-tools", "python3-utils",
-				"python3-client", "python3-server", "python3-common", "python3-doc",
-				"python3-debuginfo", "libpython3", "libpython3-devel",
-				"python3-python3", "python2-python3", "python3-python3", "python3-python2",
-			},
+			expected: []string{"gcc", "libgcc"}, // should include the known library package
 		},
 		{
-			name: "python package with prefix handling",
+			name: "known library gap - library package libgcc",
 			pkg: pkg.Package{
-				Name:      "python3-requests",
+				Name:      "libgcc",
 				Type:      syftPkg.RpmPkg,
 				Upstreams: []pkg.UpstreamPackage{},
 			},
-			expected: []string{
-				"python3-requests",
-				"python3-requests-devel", "python3-requests-libs", "python3-requests-tools",
-				"python3-requests-utils", "python3-requests-client", "python3-requests-server",
-				"python3-requests-common", "python3-requests-doc", "python3-requests-debuginfo",
-				"libpython3-requests", "libpython3-requests-devel",
-				"python3-python3-requests", "python2-python3-requests", "python3-requests-python3",
-				"python3-requests-python2", "requests", "python3-requests",
+			expected: []string{"libgcc", "gcc"}, // should include the base package
+		},
+		{
+			name: "known library gap - cups",
+			pkg: pkg.Package{
+				Name:      "cups",
+				Type:      syftPkg.RpmPkg,
+				Upstreams: []pkg.UpstreamPackage{},
 			},
+			expected: []string{"cups", "cups-libs"}, // should include the known library package
+		},
+		{
+			name: "package not in known gaps",
+			pkg: pkg.Package{
+				Name:      "httpd",
+				Type:      syftPkg.RpmPkg,
+				Upstreams: []pkg.UpstreamPackage{},
+			},
+			expected: []string{"httpd"}, // should only include itself
 		},
 	}
 
@@ -140,66 +143,6 @@ func TestGetRelatedPackageNames(t *testing.T) {
 			// The first name should always be the package name itself
 			require.NotEmpty(t, result)
 			assert.Equal(t, tt.pkg.Name, result[0])
-		})
-	}
-}
-
-func TestGenerateCommonBinaryPackageNames(t *testing.T) {
-	tests := []struct {
-		name             string
-		sourcePackage    string
-		shouldContain    []string
-		shouldNotContain []string
-	}{
-		{
-			name:          "basic package",
-			sourcePackage: "util-linux",
-			shouldContain: []string{
-				"util-linux-devel",
-				"util-linux-libs",
-				"util-linux-tools",
-				"libutil-linux",
-				"libutil-linux-devel",
-			},
-			shouldNotContain: []string{
-				"python3-util-linux", // python patterns shouldn't apply
-			},
-		},
-		{
-			name:          "python package",
-			sourcePackage: "python-requests",
-			shouldContain: []string{
-				"python-requests-devel",
-				"python3-python-requests",
-				"python2-python-requests",
-				"python-requests-python3",
-				"python3-requests", // from python prefix removal
-			},
-			shouldNotContain: []string{},
-		},
-		{
-			name:          "python3 package",
-			sourcePackage: "python3-flask",
-			shouldContain: []string{
-				"python3-flask-devel",
-				"flask", // from python3 prefix removal
-				"python3-python3-flask",
-			},
-			shouldNotContain: []string{},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := generateCommonBinaryPackageNames(tt.sourcePackage)
-
-			for _, expected := range tt.shouldContain {
-				assert.Contains(t, result, expected, "Missing expected pattern: %s", expected)
-			}
-
-			for _, notExpected := range tt.shouldNotContain {
-				assert.NotContains(t, result, notExpected, "Should not contain: %s", notExpected)
-			}
 		})
 	}
 }
