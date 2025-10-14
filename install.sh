@@ -758,7 +758,7 @@ prep_signature_verification() {
   if is_command "${COSIGN_BINARY}"; then
     log_trace "${COSIGN_BINARY} binary is installed"
   else
-    log_err "signature verification is requested but ${COSIGN_BINARY} binary is not installed (see https://docs.sigstore.dev/system_config/installation/ to install it)"
+    log_err "signature verification is requested but ${COSIGN_BINARY} binary is not installed (see https://docs.sigstore.dev/cosign/system_config/installation/ to install it)"
     return 1
   fi
 }
