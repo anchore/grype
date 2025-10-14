@@ -46,7 +46,6 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 		search.ByDistro(rhelCompatibleDistro),
 		internal.OnlyQualifiedPackages(binaryPkg),
 		internal.OnlyVulnerableVersions(pkgVersion),
-		internal.OnlyAffectedVulnerabilities(), // exclude unaffected records
 	)
 	if err != nil {
 		return nil, fmt.Errorf("matcher failed to fetch RHEL disclosures for AlmaLinux binary pkg=%q: %w", binaryPkg.Name, err)
@@ -67,7 +66,6 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 			search.ByDistro(rhelCompatibleDistro),
 			internal.OnlyQualifiedPackages(upstreamPkg),
 			internal.OnlyVulnerableVersions(upstreamVersion),
-			internal.OnlyAffectedVulnerabilities(), // exclude unaffected records
 		)
 		if err != nil {
 			log.WithFields("error", err, "upstreamPkg", upstreamPkg.Name, "binaryPkg", binaryPkg.Name).Debug("failed to fetch RHEL disclosures for upstream package")
@@ -235,33 +233,22 @@ func extractFixVersionFromConstraint(constraint version.Constraint) string {
 		return ""
 	}
 
-	constraintStr := constraint.String()
+	// constraint.Value() returns raw constraint without format suffix (e.g., ">= 2.4.48" instead of ">= 2.4.48 (rpm)")
+	constraintStr := constraint.Value()
 
 	// Handle common constraint patterns
 	// ">= version" → "version"
 	if strings.HasPrefix(constraintStr, ">= ") {
-		version := strings.TrimPrefix(constraintStr, ">= ")
-		return cleanVersionString(version)
+		return strings.TrimPrefix(constraintStr, ">= ")
 	}
 
 	// "= version" → "version"
 	if strings.HasPrefix(constraintStr, "= ") {
-		version := strings.TrimPrefix(constraintStr, "= ")
-		return cleanVersionString(version)
+		return strings.TrimPrefix(constraintStr, "= ")
 	}
 
 	// "> version" → we can't determine exact fix version, return empty
 	// "< version" → this wouldn't make sense for a fix constraint
 
 	return ""
-}
-
-// cleanVersionString removes format suffixes from version strings
-// e.g., "2.4.48 (rpm)" → "2.4.48"
-func cleanVersionString(versionStr string) string {
-	// Remove format suffixes like " (rpm)", " (deb)", etc.
-	if idx := strings.Index(versionStr, " ("); idx != -1 {
-		return versionStr[:idx]
-	}
-	return versionStr
 }
