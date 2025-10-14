@@ -89,14 +89,14 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 	}
 
 	store := newMockProviderByDistro()
-	actual, ignored, err := MatchPackageByDistro(store, p, nil, match.PythonMatcher)
+	actual, ignored, err := MatchPackageByDistro(store, p, nil, match.PythonMatcher, nil)
 	require.NoError(t, err)
 	require.Empty(t, ignored)
 	assertMatchesUsingIDsForVulnerabilities(t, expected, actual)
 
 	// prove we do not search for unknown versions
 	p.Version = "unknown"
-	actual, ignored, err = MatchPackageByDistro(store, p, nil, match.PythonMatcher)
+	actual, ignored, err = MatchPackageByDistro(store, p, nil, match.PythonMatcher, nil)
 	require.NoError(t, err)
 	require.Empty(t, ignored)
 	assert.Empty(t, actual)
@@ -153,7 +153,7 @@ func TestFindMatchesByPackageDistroSles(t *testing.T) {
 	}
 
 	store := newMockProviderByDistro()
-	actual, ignored, err := MatchPackageByDistro(store, p, nil, match.PythonMatcher)
+	actual, ignored, err := MatchPackageByDistro(store, p, nil, match.PythonMatcher, nil)
 	assert.NoError(t, err)
 	require.Empty(t, ignored)
 	assertMatchesUsingIDsForVulnerabilities(t, expected, actual)
