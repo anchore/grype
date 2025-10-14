@@ -94,40 +94,24 @@ func TestGetRelatedPackageNames(t *testing.T) {
 			expected: []string{"python3-criu", "criu"}, // should include both binary and source names
 		},
 		{
-			name: "known library gap - base package gcc",
-			pkg: pkg.Package{
-				Name:      "gcc",
-				Type:      syftPkg.RpmPkg,
-				Upstreams: []pkg.UpstreamPackage{},
-			},
-			expected: []string{"gcc", "libgcc"}, // should include the known library package
-		},
-		{
-			name: "known library gap - library package libgcc",
-			pkg: pkg.Package{
-				Name:      "libgcc",
-				Type:      syftPkg.RpmPkg,
-				Upstreams: []pkg.UpstreamPackage{},
-			},
-			expected: []string{"libgcc", "gcc"}, // should include the base package
-		},
-		{
-			name: "known library gap - cups",
-			pkg: pkg.Package{
-				Name:      "cups",
-				Type:      syftPkg.RpmPkg,
-				Upstreams: []pkg.UpstreamPackage{},
-			},
-			expected: []string{"cups", "cups-libs"}, // should include the known library package
-		},
-		{
-			name: "package not in known gaps",
+			name: "source package with no upstreams",
 			pkg: pkg.Package{
 				Name:      "httpd",
 				Type:      syftPkg.RpmPkg,
 				Upstreams: []pkg.UpstreamPackage{},
 			},
 			expected: []string{"httpd"}, // should only include itself
+		},
+		{
+			name: "package with self-referential upstream",
+			pkg: pkg.Package{
+				Name: "kernel",
+				Type: syftPkg.RpmPkg,
+				Upstreams: []pkg.UpstreamPackage{
+					{Name: "kernel", Version: "5.4.0"},
+				},
+			},
+			expected: []string{"kernel"}, // should only include itself since source name is same
 		},
 	}
 
@@ -139,6 +123,9 @@ func TestGetRelatedPackageNames(t *testing.T) {
 			for _, expected := range tt.expected {
 				assert.Contains(t, result, expected, "Missing expected package name: %s", expected)
 			}
+
+			// Check that we don't have unexpected names
+			assert.Equal(t, len(tt.expected), len(result), "Unexpected number of package names")
 
 			// The first name should always be the package name itself
 			require.NotEmpty(t, result)
