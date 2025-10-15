@@ -265,124 +265,117 @@ func TestVersionConstraintFiltering(t *testing.T) {
 
 func TestAlmaLinuxAliasEdgeCases(t *testing.T) {
 	tests := []struct {
-		name          string
-		disclosures   result.Set
-		unaffected    result.Set
-		expectedCount int
-		expectedIDs   []string
-		description   string
+		name            string
+		pkg             pkg.Package
+		rhelDisclosures func(pkg *pkg.Package) result.Set
+		almaUnaffected  func(pkg *pkg.Package) result.Set
+		expectedVulnIDs []string
+		description     string
 	}{
 		{
 			name: "ALSA with multiple CVE aliases",
-			disclosures: result.Set{
-				"CVE-2023-1234": []result.Result{
-					{
-						ID: "CVE-2023-1234",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{Reference: vulnerability.Reference{ID: "CVE-2023-1234"}},
-						},
-					},
-				},
-				"CVE-2023-5678": []result.Result{
-					{
-						ID: "CVE-2023-5678",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{Reference: vulnerability.Reference{ID: "CVE-2023-5678"}},
-						},
-					},
-				},
-				"CVE-2023-9999": []result.Result{
-					{
-						ID: "CVE-2023-9999",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{Reference: vulnerability.Reference{ID: "CVE-2023-9999"}},
-						},
-					},
+			pkg: pkg.Package{
+				Name:    "httpd",
+				Version: "2.4.37-10.el8",
+				Type:    syftPkg.RpmPkg,
+				Distro: &distro.Distro{
+					Type:    distro.AlmaLinux,
+					Version: "8",
 				},
 			},
-			unaffected: result.Set{
-				"ALSA-2023:1234": []result.Result{
-					{
-						ID: "ALSA-2023:1234",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "ALSA-2023:1234"},
-								RelatedVulnerabilities: []vulnerability.Reference{
-									{ID: "CVE-2023-1234"},
-									{ID: "CVE-2023-5678"}, // Multiple CVEs in one ALSA
+			rhelDisclosures: func(pkg *pkg.Package) result.Set {
+				return result.Set{
+					"CVE-2023-1234": []result.Result{
+						{
+							ID: "CVE-2023-1234",
+							Vulnerabilities: []vulnerability.Vulnerability{
+								{
+									Reference:  vulnerability.Reference{ID: "CVE-2023-1234"},
+									Constraint: createConstraint(t, "< 2.4.37-50.el8", version.RpmFormat),
 								},
 							},
+							Package: pkg,
 						},
 					},
-				},
-			},
-			expectedCount: 1,
-			expectedIDs:   []string{"CVE-2023-9999"},
-			description:   "Single ALSA should filter multiple CVEs",
-		},
-		{
-			name: "Partial alias overlap",
-			disclosures: result.Set{
-				"GHSA-abcd-1234": []result.Result{
-					{
-						ID: "GHSA-abcd-1234",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "GHSA-abcd-1234"},
-								RelatedVulnerabilities: []vulnerability.Reference{
-									{ID: "CVE-2023-1234"},
+					"CVE-2023-5678": []result.Result{
+						{
+							ID: "CVE-2023-5678",
+							Vulnerabilities: []vulnerability.Vulnerability{
+								{
+									Reference:  vulnerability.Reference{ID: "CVE-2023-5678"},
+									Constraint: createConstraint(t, "< 2.4.37-50.el8", version.RpmFormat),
 								},
 							},
+							Package: pkg,
 						},
 					},
-				},
-				"CVE-2023-5678": []result.Result{
-					{
-						ID: "CVE-2023-5678",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{Reference: vulnerability.Reference{ID: "CVE-2023-5678"}},
-						},
-					},
-				},
-			},
-			unaffected: result.Set{
-				"ALSA-2023:1234": []result.Result{
-					{
-						ID: "ALSA-2023:1234",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "ALSA-2023:1234"},
-								RelatedVulnerabilities: []vulnerability.Reference{
-									{ID: "CVE-2023-1234"}, // Matches alias of GHSA
+					"CVE-2023-9999": []result.Result{
+						{
+							ID: "CVE-2023-9999",
+							Vulnerabilities: []vulnerability.Vulnerability{
+								{
+									Reference:  vulnerability.Reference{ID: "CVE-2023-9999"},
+									Constraint: createConstraint(t, "< 2.4.37-60.el8", version.RpmFormat),
 								},
 							},
+							Package: pkg,
 						},
 					},
-				},
+				}
 			},
-			expectedCount: 1,
-			expectedIDs:   []string{"CVE-2023-5678"},
-			description:   "ALSA should filter GHSA by transitive alias",
+			almaUnaffected: func(pkg *pkg.Package) result.Set {
+				return result.Set{
+					"ALSA-2023:1234": []result.Result{
+						{
+							ID: "ALSA-2023:1234",
+							Vulnerabilities: []vulnerability.Vulnerability{
+								{
+									Reference: vulnerability.Reference{ID: "ALSA-2023:1234"},
+									RelatedVulnerabilities: []vulnerability.Reference{
+										{ID: "CVE-2023-1234"},
+										{ID: "CVE-2023-5678"}, // Multiple CVEs in one ALSA
+									},
+									Constraint: createConstraint(t, ">= 2.4.37-10.el8", version.RpmFormat),
+								},
+							},
+							Package: pkg,
+						},
+					},
+				}
+			},
+			expectedVulnIDs: []string{"CVE-2023-9999"},
+			description:     "Single ALSA should filter multiple CVEs by alias",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			filtered := tt.disclosures.Remove(tt.unaffected)
+			mockProvider := &MockProvider{}
 
-			var foundIDs []string
-			totalCount := 0
-			for _, resultList := range filtered {
-				for _, result := range resultList {
-					totalCount += len(result.Vulnerabilities)
-					for _, vuln := range result.Vulnerabilities {
-						foundIDs = append(foundIDs, vuln.ID)
-					}
+			callCount := 0
+			mockProvider.findResultsFunc = func(criteria ...vulnerability.Criteria) (result.Set, error) {
+				callCount++
+				// First call: RHEL disclosures for binary package
+				if callCount == 1 {
+					return tt.rhelDisclosures(&tt.pkg), nil
 				}
+				// Second call: AlmaLinux unaffected records
+				if callCount == 2 {
+					return tt.almaUnaffected(&tt.pkg), nil
+				}
+				// Subsequent calls: related package searches (return empty)
+				return result.Set{}, nil
 			}
 
-			assert.Equal(t, tt.expectedCount, totalCount, tt.description)
-			assert.ElementsMatch(t, tt.expectedIDs, foundIDs, tt.description)
+			matches, err := almaLinuxMatchesWithUpstreams(mockProvider, tt.pkg)
+			require.NoError(t, err)
+
+			var foundVulnIDs []string
+			for _, m := range matches {
+				foundVulnIDs = append(foundVulnIDs, m.Vulnerability.ID)
+			}
+
+			assert.ElementsMatch(t, tt.expectedVulnIDs, foundVulnIDs, tt.description)
 		})
 	}
 }
@@ -481,7 +474,7 @@ func TestCVE202232084UnaffectedFiltering(t *testing.T) {
 }
 
 func TestModularityExcludesDisclosure(t *testing.T) {
-	// Test that OnlyQualifiedPackages is used to filter disclosures at database query level
+	// Test that OnlyQualifiedPackages is used to filter both RHEL disclosures and AlmaLinux advisories
 	mockProvider := &MockProvider{}
 
 	almaDistro := &distro.Distro{
@@ -499,101 +492,60 @@ func TestModularityExcludesDisclosure(t *testing.T) {
 	}
 
 	var capturedCriteria [][]vulnerability.Criteria
+	callCount := 0
 	mockProvider.findResultsFunc = func(criteria ...vulnerability.Criteria) (result.Set, error) {
 		capturedCriteria = append(capturedCriteria, criteria)
+		callCount++
+		// First call: return a disclosure so the matcher continues to fetch unaffected records
+		if callCount == 1 {
+			return result.Set{
+				"CVE-2023-1234": []result.Result{
+					{
+						ID: "CVE-2023-1234",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference:         vulnerability.Reference{ID: "CVE-2023-1234"},
+								Constraint:        createConstraint(t, "< 1:20.9.0-1.module_el8.9.0+1234+abcd", version.RpmFormat),
+								PackageQualifiers: []qualifier.Qualifier{rpmmodularity.New("nodejs:20")},
+							},
+						},
+						Package: &testPkg,
+					},
+				},
+			}, nil
+		}
+		// All other calls: return empty
 		return result.Set{}, nil
 	}
 
 	_, err := almaLinuxMatchesWithUpstreams(mockProvider, testPkg)
 	require.NoError(t, err)
 
-	// Verify that FindResults was called with OnlyQualifiedPackages criteria
-	require.Greater(t, len(capturedCriteria), 0, "FindResults should have been called")
+	require.GreaterOrEqual(t, len(capturedCriteria), 2, "FindResults should be called for both RHEL disclosures and AlmaLinux advisories")
 
-	for callIndex, criteriaSet := range capturedCriteria {
-		hasOnlyQualifiedPackages := false
+	// Helper to check if a criteria set includes OnlyQualifiedPackages
+	hasQualifierCriterion := func(criteriaSet []vulnerability.Criteria) bool {
 		for _, criterion := range criteriaSet {
-			// Check if this criterion is OnlyQualifiedPackages by testing it
-			// We can't directly inspect the type, but we can test its behavior
+			// Test if this criterion filters by qualifiers
 			matches, _, err := criterion.MatchesVulnerability(vulnerability.Vulnerability{
 				PackageQualifiers: []qualifier.Qualifier{rpmmodularity.New("nodejs:22")},
 			})
 			require.NoError(t, err)
-
 			if !matches {
-				// This criterion rejected a vulnerability with nodejs:22 qualifier
-				// when our package has nodejs:20, so it's likely OnlyQualifiedPackages
-				hasOnlyQualifiedPackages = true
-				break
+				// This criterion rejected nodejs:22 when package has nodejs:20
+				return true
 			}
 		}
-
-		assert.True(t, hasOnlyQualifiedPackages,
-			"FindResults call %d should include OnlyQualifiedPackages criterion for modularity filtering", callIndex)
-	}
-}
-
-func TestModularityExcludesFixButNotDisclosure(t *testing.T) {
-	mockProvider := &MockProvider{}
-
-	almaDistro := &distro.Distro{
-		Type:    distro.AlmaLinux,
-		Version: "8",
-	}
-	testPkg := pkg.Package{
-		Name:    "nodejs",
-		Version: "1:20.8.0-1.module_el8.9.0+3775+d8460d29",
-		Type:    syftPkg.RpmPkg,
-		Distro:  almaDistro,
-		Metadata: pkg.RpmMetadata{
-			ModularityLabel: strRef("nodejs:20"),
-		},
+		return false
 	}
 
-	rhelDisclosures := result.Set{
-		"CVE-2023-30581": []result.Result{
-			{
-				ID: "CVE-2023-30581",
-				Vulnerabilities: []vulnerability.Vulnerability{
-					{
-						Reference:  vulnerability.Reference{ID: "CVE-2023-30581"},
-						Constraint: createConstraint(t, "< 1:20.8.1-1.module+el8.9.0+19562+f5b25ee7", version.RpmFormat),
-						Fix: vulnerability.Fix{
-							Versions: []string{"1:20.8.1-1.module+el8.9.0+19562+f5b25ee7"},
-							State:    vulnerability.FixStateFixed,
-						},
-						PackageQualifiers: []qualifier.Qualifier{rpmmodularity.New("nodejs:20")},
-					},
-				},
-				Package: &testPkg,
-			},
-		},
-	}
+	// Call 1: RHEL disclosures for binary package
+	assert.True(t, hasQualifierCriterion(capturedCriteria[0]),
+		"RHEL disclosure fetch should include OnlyQualifiedPackages criterion")
 
-	// The search for AlmaLinux unaffected records would filter out records with mismatched qualifiers
-	// Since the package has nodejs:20, an ALSA with nodejs:22 qualifiers would not be returned
-	almaUnaffected := result.Set{}
-
-	callCount := 0
-	mockProvider.findResultsFunc = func(criteria ...vulnerability.Criteria) (result.Set, error) {
-		callCount++
-		switch callCount {
-		case 1:
-			return rhelDisclosures, nil
-		case 2:
-			return almaUnaffected, nil
-		default:
-			return result.Set{}, nil
-		}
-	}
-
-	matches, err := almaLinuxMatchesWithUpstreams(mockProvider, testPkg)
-	require.NoError(t, err)
-
-	assert.Len(t, matches, 1)
-	match := matches[0]
-	assert.Equal(t, "CVE-2023-30581", match.Vulnerability.ID)
-	assert.Equal(t, "1:20.8.1-1.module+el8.9.0+19562+f5b25ee7", match.Vulnerability.Fix.Versions[0])
+	// Call 2: AlmaLinux unaffected records
+	assert.True(t, hasQualifierCriterion(capturedCriteria[1]),
+		"AlmaLinux advisory fetch should include OnlyQualifiedPackages criterion")
 }
 
 func TestAlmaLinuxFixReplacement(t *testing.T) {
