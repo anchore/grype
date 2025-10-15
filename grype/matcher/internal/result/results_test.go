@@ -522,114 +522,6 @@ func TestSet_Merge(t *testing.T) {
 			incoming: Set{},
 			want:     Set{},
 		},
-		{
-			name: "merge with custom function that replaces fix info",
-			receiver: Set{
-				"CVE-2023-1234": []Result{
-					{
-						ID: "CVE-2023-1234",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
-								Fix: vulnerability.Fix{
-									Versions: []string{"1.0.0"},
-									State:    vulnerability.FixStateFixed,
-								},
-								Advisories: []vulnerability.Advisory{
-									{ID: "ADV-2023-001", Link: "https://example.com/adv-001"},
-								},
-							},
-						},
-						Details: match.Details{{Type: match.ExactDirectMatch}},
-					},
-				},
-			},
-			incoming: Set{
-				"CVE-2023-1234": []Result{
-					{
-						ID: "CVE-2023-1234",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
-								Fix: vulnerability.Fix{
-									Versions: []string{"2.0.0"},
-									State:    vulnerability.FixStateFixed,
-								},
-								Advisories: []vulnerability.Advisory{
-									{ID: "ADV-2023-002", Link: "https://example.com/adv-002"},
-								},
-							},
-						},
-						Details: match.Details{{Type: match.ExactIndirectMatch}},
-					},
-				},
-			},
-			mergeFuncs: []func(existing, incoming []Result) []Result{
-				func(existing, incoming []Result) []Result {
-					// Replace fix info from existing with incoming
-					if len(incoming) == 0 {
-						return existing
-					}
-
-					var updated []Result
-					for _, existingResult := range existing {
-						var updatedVulns []vulnerability.Vulnerability
-						for _, existingVuln := range existingResult.Vulnerabilities {
-							// Find matching incoming vulnerability
-							found := false
-							for _, incomingResult := range incoming {
-								for _, incomingVuln := range incomingResult.Vulnerabilities {
-									if existingVuln.ID == incomingVuln.ID {
-										// Replace Fix and Advisories
-										updatedVuln := existingVuln
-										updatedVuln.Fix = incomingVuln.Fix
-										updatedVuln.Advisories = incomingVuln.Advisories
-										updatedVulns = append(updatedVulns, updatedVuln)
-										found = true
-										break
-									}
-								}
-								if found {
-									break
-								}
-							}
-							if !found {
-								updatedVulns = append(updatedVulns, existingVuln)
-							}
-						}
-						if len(updatedVulns) > 0 {
-							updated = append(updated, Result{
-								ID:              existingResult.ID,
-								Vulnerabilities: updatedVulns,
-								Details:         existingResult.Details, // Keep original details
-								Package:         existingResult.Package,
-							})
-						}
-					}
-					return updated
-				},
-			},
-			want: Set{
-				"CVE-2023-1234": []Result{
-					{
-						ID: "CVE-2023-1234",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
-								Fix: vulnerability.Fix{
-									Versions: []string{"2.0.0"},
-									State:    vulnerability.FixStateFixed,
-								},
-								Advisories: []vulnerability.Advisory{
-									{ID: "ADV-2023-002", Link: "https://example.com/adv-002"},
-								},
-							},
-						},
-						Details: match.Details{{Type: match.ExactDirectMatch}},
-					},
-				},
-			},
-		},
 	}
 
 	for _, tt := range tests {
@@ -923,171 +815,16 @@ func TestSet_Contains(t *testing.T) {
 	}
 }
 
-// TestSet_AlmaLinuxUnaffectedFilteringAndFixReplacement tests the AlmaLinux matcher workflow:
-// filtering out vulnerabilities where the package is unaffected, then updating remaining
-// vulnerabilities with AlmaLinux-specific fix information using UpdateByIdentity.
-func TestSet_AlmaLinuxUnaffectedFilteringAndFixReplacement(t *testing.T) {
-	tests := []struct {
-		name              string
-		disclosures       Set
-		unaffectedResults Set
-		pkgVersion        version.Version
-		want              Set
-	}{
-		{
-			name: "filter out unaffected vulnerability and update remaining with ALSA fix info",
-			// RHEL disclosures are keyed by CVE ID
-			disclosures: Set{
-				"CVE-2023-1234": []Result{
-					{
-						ID: "CVE-2023-1234",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
-								Fix: vulnerability.Fix{
-									Versions: []string{"7.61.1-25.el8"},
-									State:    vulnerability.FixStateFixed,
-								},
-								Advisories: []vulnerability.Advisory{
-									{ID: "RHSA-2023:5678", Link: "https://access.redhat.com/..."},
-								},
-								Constraint: version.MustGetConstraint("< 7.61.1-25.el8", version.RpmFormat),
-							},
-						},
-						Details: match.Details{
-							{Type: match.ExactDirectMatch, SearchedBy: map[string]interface{}{"distro": "rhel"}},
-						},
-					},
-				},
-				"CVE-2023-5678": []Result{
-					{
-						ID: "CVE-2023-5678",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "CVE-2023-5678"},
-								Fix: vulnerability.Fix{
-									Versions: []string{"7.61.1-20.el8"},
-									State:    vulnerability.FixStateFixed,
-								},
-								Advisories: []vulnerability.Advisory{
-									{ID: "RHSA-2023:8888", Link: "https://access.redhat.com/..."},
-								},
-								Constraint: version.MustGetConstraint("< 7.61.1-20.el8", version.RpmFormat),
-							},
-						},
-						Details: match.Details{
-							{Type: match.ExactDirectMatch, SearchedBy: map[string]interface{}{"distro": "rhel"}},
-						},
-					},
-				},
-			},
-			// AlmaLinux unaffected records are keyed by ALSA ID with CVE aliases
-			unaffectedResults: Set{
-				"ALSA-2023:9012": []Result{
-					{
-						ID: "ALSA-2023:9012",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "ALSA-2023:9012"},
-								RelatedVulnerabilities: []vulnerability.Reference{
-									{ID: "CVE-2023-1234"},
-								},
-								Fix: vulnerability.Fix{
-									Versions: []string{"7.61.1-23.el8_9.alma"},
-									State:    vulnerability.FixStateFixed,
-								},
-								Advisories: []vulnerability.Advisory{
-									{ID: "ALSA-2023:9012", Link: "https://errata.almalinux.org/..."},
-								},
-								Constraint: version.MustGetConstraint(">= 7.61.1-23.el8_9.alma", version.RpmFormat),
-								Unaffected: true,
-							},
-						},
-					},
-				},
-				"ALSA-2023:8888": []Result{
-					{
-						ID: "ALSA-2023:8888",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "ALSA-2023:8888"},
-								RelatedVulnerabilities: []vulnerability.Reference{
-									{ID: "CVE-2023-5678"},
-								},
-								Fix: vulnerability.Fix{
-									Versions: []string{"7.61.1-18.el8_9.alma"},
-									State:    vulnerability.FixStateFixed,
-								},
-								Advisories: []vulnerability.Advisory{
-									{ID: "ALSA-2023:8888", Link: "https://errata.almalinux.org/..."},
-								},
-								Constraint: version.MustGetConstraint(">= 7.61.1-18.el8_9.alma", version.RpmFormat),
-								Unaffected: true,
-							},
-						},
-					},
-				},
-			},
-			pkgVersion: *version.New("7.61.1-22.el8", version.RpmFormat),
-			// Expected result:
-			// - CVE-2023-5678 removed (22 >= 18, package is unaffected)
-			// - CVE-2023-1234 remains but with AlmaLinux fix info (22 < 23, still vulnerable but using ALSA fix)
-			want: Set{
-				"CVE-2023-1234": []Result{
-					{
-						ID: "CVE-2023-1234",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
-								Fix: vulnerability.Fix{
-									Versions: []string{"7.61.1-23.el8_9.alma"},
-									State:    vulnerability.FixStateFixed,
-								},
-								Advisories: []vulnerability.Advisory{
-									{ID: "ALSA-2023:9012", Link: "https://errata.almalinux.org/..."},
-								},
-								Constraint: version.MustGetConstraint("< 7.61.1-25.el8", version.RpmFormat),
-							},
-						},
-						Details: match.Details{
-							{Type: match.ExactDirectMatch, SearchedBy: map[string]interface{}{"distro": "rhel"}},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Step 5a: Remove vulnerabilities where package is unaffected
-			filtered := tt.disclosures.Remove(
-				tt.unaffectedResults.Filter(search.ByVersion(tt.pkgVersion)),
-			)
-
-			// Step 5b: Update remaining with AlmaLinux fix info using UpdateByIdentity
-			got := filtered.UpdateByIdentity(tt.unaffectedResults, func(existing *Result, incoming Result) {
-				for i := range existing.Vulnerabilities {
-					for _, incomingVuln := range incoming.Vulnerabilities {
-						existing.Vulnerabilities[i].Fix = incomingVuln.Fix
-						existing.Vulnerabilities[i].Advisories = incomingVuln.Advisories
-					}
-				}
-			})
-
-			opts := cmp.Options{
-				cmpopts.IgnoreUnexported(file.LocationSet{}),
-				cmpopts.IgnoreFields(vulnerability.Vulnerability{}, "Constraint"),
-				cmpopts.EquateEmpty(),
-			}
-			if diff := cmp.Diff(tt.want, got, opts...); diff != "" {
-				t.Errorf("AlmaLinux unaffected filtering and fix replacement mismatch (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
-
 func TestSet_UpdateByIdentity(t *testing.T) {
+	// Simple update function that replaces the Status field
+	replaceStatus := func(existing *Result, incoming Result) {
+		for i := range existing.Vulnerabilities {
+			for _, incomingVuln := range incoming.Vulnerabilities {
+				existing.Vulnerabilities[i].Status = incomingVuln.Status
+			}
+		}
+	}
+
 	tests := []struct {
 		name     string
 		base     Set
@@ -1103,7 +840,7 @@ func TestSet_UpdateByIdentity(t *testing.T) {
 						Vulnerabilities: []vulnerability.Vulnerability{
 							{
 								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
-								Fix:       vulnerability.Fix{State: "fixed", Versions: []string{"1.0.0"}},
+								Status:    "original",
 							},
 						},
 					},
@@ -1116,7 +853,7 @@ func TestSet_UpdateByIdentity(t *testing.T) {
 						Vulnerabilities: []vulnerability.Vulnerability{
 							{
 								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
-								Fix:       vulnerability.Fix{State: "fixed", Versions: []string{"2.0.0"}},
+								Status:    "updated",
 							},
 						},
 					},
@@ -1129,7 +866,7 @@ func TestSet_UpdateByIdentity(t *testing.T) {
 						Vulnerabilities: []vulnerability.Vulnerability{
 							{
 								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
-								Fix:       vulnerability.Fix{State: "fixed", Versions: []string{"2.0.0"}},
+								Status:    "updated",
 							},
 						},
 					},
@@ -1137,163 +874,44 @@ func TestSet_UpdateByIdentity(t *testing.T) {
 			},
 		},
 		{
-			name: "update by alias - ALSA matches CVE",
+			name: "update by alias - identities overlap",
 			base: Set{
-				"CVE-2006-20001": []Result{
+				"CVE-2023-1234": []Result{
 					{
-						ID: "CVE-2006-20001",
+						ID: "CVE-2023-1234",
 						Vulnerabilities: []vulnerability.Vulnerability{
 							{
-								Reference: vulnerability.Reference{ID: "CVE-2006-20001"},
-								Fix:       vulnerability.Fix{State: "fixed", Versions: []string{"RHEL-version"}},
-								Advisories: []vulnerability.Advisory{
-									{ID: "RHSA-2023:0852", Link: "https://access.redhat.com/..."},
-								},
-							},
-						},
-						Details: match.Details{
-							{Type: match.ExactDirectMatch, SearchedBy: map[string]interface{}{"distro": "rhel"}},
-						},
-					},
-				},
-			},
-			incoming: Set{
-				"ALSA-2023:0852": []Result{
-					{
-						ID: "ALSA-2023:0852",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "ALSA-2023:0852"},
-								RelatedVulnerabilities: []vulnerability.Reference{
-									{ID: "CVE-2006-20001"},
-									{ID: "CVE-2022-36760"},
-								},
-								Fix: vulnerability.Fix{State: "fixed", Versions: []string{"AlmaLinux-version"}},
-								Advisories: []vulnerability.Advisory{
-									{ID: "ALSA-2023:0852", Link: "https://errata.almalinux.org/..."},
-								},
-							},
-						},
-					},
-				},
-			},
-			want: Set{
-				"CVE-2006-20001": []Result{
-					{
-						ID: "CVE-2006-20001",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "CVE-2006-20001"},
-								Fix:       vulnerability.Fix{State: "fixed", Versions: []string{"AlmaLinux-version"}},
-								Advisories: []vulnerability.Advisory{
-									{ID: "ALSA-2023:0852", Link: "https://errata.almalinux.org/..."},
-								},
-							},
-						},
-						Details: match.Details{
-							{Type: match.ExactDirectMatch, SearchedBy: map[string]interface{}{"distro": "rhel"}},
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "multiple CVEs updated by single ALSA with multiple aliases",
-			base: Set{
-				"CVE-2006-20001": []Result{
-					{
-						ID: "CVE-2006-20001",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "CVE-2006-20001"},
-								Fix:       vulnerability.Fix{State: "fixed", Versions: []string{"RHEL-v1"}},
-							},
-						},
-					},
-				},
-				"CVE-2022-36760": []Result{
-					{
-						ID: "CVE-2022-36760",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "CVE-2022-36760"},
-								Fix:       vulnerability.Fix{State: "fixed", Versions: []string{"RHEL-v2"}},
-							},
-						},
-					},
-				},
-				"CVE-2022-37436": []Result{
-					{
-						ID: "CVE-2022-37436",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "CVE-2022-37436"},
-								Fix:       vulnerability.Fix{State: "fixed", Versions: []string{"RHEL-v3"}},
+								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
+								Status:    "original",
 							},
 						},
 					},
 				},
 			},
 			incoming: Set{
-				"ALSA-2023:0852": []Result{
+				"VULN-2023-001": []Result{
 					{
-						ID: "ALSA-2023:0852",
+						ID: "VULN-2023-001",
 						Vulnerabilities: []vulnerability.Vulnerability{
 							{
-								Reference: vulnerability.Reference{ID: "ALSA-2023:0852"},
+								Reference: vulnerability.Reference{ID: "VULN-2023-001"},
 								RelatedVulnerabilities: []vulnerability.Reference{
-									{ID: "CVE-2006-20001"},
-									{ID: "CVE-2022-36760"},
-									{ID: "CVE-2022-37436"},
+									{ID: "CVE-2023-1234"},
 								},
-								Fix: vulnerability.Fix{State: "fixed", Versions: []string{"AlmaLinux-unified"}},
-								Advisories: []vulnerability.Advisory{
-									{ID: "ALSA-2023:0852"},
-								},
+								Status: "updated via alias",
 							},
 						},
 					},
 				},
 			},
 			want: Set{
-				"CVE-2006-20001": []Result{
+				"CVE-2023-1234": []Result{
 					{
-						ID: "CVE-2006-20001",
+						ID: "CVE-2023-1234",
 						Vulnerabilities: []vulnerability.Vulnerability{
 							{
-								Reference: vulnerability.Reference{ID: "CVE-2006-20001"},
-								Fix:       vulnerability.Fix{State: "fixed", Versions: []string{"AlmaLinux-unified"}},
-								Advisories: []vulnerability.Advisory{
-									{ID: "ALSA-2023:0852"},
-								},
-							},
-						},
-					},
-				},
-				"CVE-2022-36760": []Result{
-					{
-						ID: "CVE-2022-36760",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "CVE-2022-36760"},
-								Fix:       vulnerability.Fix{State: "fixed", Versions: []string{"AlmaLinux-unified"}},
-								Advisories: []vulnerability.Advisory{
-									{ID: "ALSA-2023:0852"},
-								},
-							},
-						},
-					},
-				},
-				"CVE-2022-37436": []Result{
-					{
-						ID: "CVE-2022-37436",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "CVE-2022-37436"},
-								Fix:       vulnerability.Fix{State: "fixed", Versions: []string{"AlmaLinux-unified"}},
-								Advisories: []vulnerability.Advisory{
-									{ID: "ALSA-2023:0852"},
-								},
+								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
+								Status:    "updated via alias",
 							},
 						},
 					},
@@ -1309,7 +927,7 @@ func TestSet_UpdateByIdentity(t *testing.T) {
 						Vulnerabilities: []vulnerability.Vulnerability{
 							{
 								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
-								Fix:       vulnerability.Fix{State: "fixed", Versions: []string{"1.0.0"}},
+								Status:    "original",
 							},
 						},
 					},
@@ -1322,7 +940,7 @@ func TestSet_UpdateByIdentity(t *testing.T) {
 						Vulnerabilities: []vulnerability.Vulnerability{
 							{
 								Reference: vulnerability.Reference{ID: "CVE-2023-9999"},
-								Fix:       vulnerability.Fix{State: "fixed", Versions: []string{"2.0.0"}},
+								Status:    "different",
 							},
 						},
 					},
@@ -1335,7 +953,37 @@ func TestSet_UpdateByIdentity(t *testing.T) {
 						Vulnerabilities: []vulnerability.Vulnerability{
 							{
 								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
-								Fix:       vulnerability.Fix{State: "fixed", Versions: []string{"1.0.0"}},
+								Status:    "original",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "empty incoming set - no updates",
+			base: Set{
+				"CVE-2023-1234": []Result{
+					{
+						ID: "CVE-2023-1234",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
+								Status:    "original",
+							},
+						},
+					},
+				},
+			},
+			incoming: Set{},
+			want: Set{
+				"CVE-2023-1234": []Result{
+					{
+						ID: "CVE-2023-1234",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
+								Status:    "original",
 							},
 						},
 					},
@@ -1352,43 +1000,13 @@ func TestSet_UpdateByIdentity(t *testing.T) {
 						Vulnerabilities: []vulnerability.Vulnerability{
 							{
 								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
-								Fix:       vulnerability.Fix{State: "fixed", Versions: []string{"1.0.0"}},
+								Status:    "some status",
 							},
 						},
 					},
 				},
 			},
 			want: Set{},
-		},
-		{
-			name: "empty incoming set leaves base unchanged",
-			base: Set{
-				"CVE-2023-1234": []Result{
-					{
-						ID: "CVE-2023-1234",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
-								Fix:       vulnerability.Fix{State: "fixed", Versions: []string{"1.0.0"}},
-							},
-						},
-					},
-				},
-			},
-			incoming: Set{},
-			want: Set{
-				"CVE-2023-1234": []Result{
-					{
-						ID: "CVE-2023-1234",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
-								Fix:       vulnerability.Fix{State: "fixed", Versions: []string{"1.0.0"}},
-							},
-						},
-					},
-				},
-			},
 		},
 		{
 			name: "preserves Details field from base",
@@ -1399,13 +1017,12 @@ func TestSet_UpdateByIdentity(t *testing.T) {
 						Vulnerabilities: []vulnerability.Vulnerability{
 							{
 								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
-								Fix:       vulnerability.Fix{State: "fixed", Versions: []string{"1.0.0"}},
+								Status:    "original",
 							},
 						},
 						Details: match.Details{
-							{Type: match.ExactDirectMatch, SearchedBy: map[string]interface{}{"important": "data"}},
+							{Type: match.ExactDirectMatch, SearchedBy: map[string]interface{}{"key": "value"}},
 						},
-						Package: &pkg.Package{Name: "test-pkg"},
 					},
 				},
 			},
@@ -1416,11 +1033,11 @@ func TestSet_UpdateByIdentity(t *testing.T) {
 						Vulnerabilities: []vulnerability.Vulnerability{
 							{
 								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
-								Fix:       vulnerability.Fix{State: "fixed", Versions: []string{"2.0.0"}},
+								Status:    "updated",
 							},
 						},
 						Details: match.Details{
-							{Type: match.ExactIndirectMatch, SearchedBy: map[string]interface{}{"different": "data"}},
+							{Type: match.ExactIndirectMatch},
 						},
 					},
 				},
@@ -1432,13 +1049,12 @@ func TestSet_UpdateByIdentity(t *testing.T) {
 						Vulnerabilities: []vulnerability.Vulnerability{
 							{
 								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
-								Fix:       vulnerability.Fix{State: "fixed", Versions: []string{"2.0.0"}},
+								Status:    "updated",
 							},
 						},
 						Details: match.Details{
-							{Type: match.ExactDirectMatch, SearchedBy: map[string]interface{}{"important": "data"}},
+							{Type: match.ExactDirectMatch, SearchedBy: map[string]interface{}{"key": "value"}},
 						},
-						Package: &pkg.Package{Name: "test-pkg"},
 					},
 				},
 			},
@@ -1447,22 +1063,9 @@ func TestSet_UpdateByIdentity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.base.UpdateByIdentity(tt.incoming, func(existing *Result, incoming Result) {
-				// Update fix information from incoming
-				for i := range existing.Vulnerabilities {
-					for _, incomingVuln := range incoming.Vulnerabilities {
-						existing.Vulnerabilities[i].Fix = incomingVuln.Fix
-						existing.Vulnerabilities[i].Advisories = incomingVuln.Advisories
-					}
-				}
-			})
-
-			opts := cmp.Options{
-				cmpopts.IgnoreUnexported(file.LocationSet{}),
-				cmpopts.EquateEmpty(),
-			}
-			if diff := cmp.Diff(tt.want, got, opts...); diff != "" {
-				t.Errorf("UpdateByIdentity() mismatch (-want +got):\n%s", diff)
+			got := tt.base.UpdateByIdentity(tt.incoming, replaceStatus)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("Set.UpdateByIdentity() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
