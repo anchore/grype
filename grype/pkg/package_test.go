@@ -900,6 +900,18 @@ func TestNew(t *testing.T) {
 				CgoEnabled:      true,
 			},
 		},
+		{
+			name: "snap-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.SnapEntry{
+					SnapType:     "app",
+					Base:         "core22",
+					SnapName:     "test-snap",
+					SnapVersion:  "1.0.0",
+					Architecture: "amd64",
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
