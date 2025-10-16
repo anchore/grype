@@ -815,7 +815,7 @@ func TestSet_Contains(t *testing.T) {
 	}
 }
 
-func TestSet_UpdateByIdentity(t *testing.T) {
+func TestSet_Update(t *testing.T) {
 	// Simple update function that replaces the Status field
 	replaceStatus := func(existing *Result, incoming Result) {
 		for i := range existing.Vulnerabilities {
@@ -1063,9 +1063,9 @@ func TestSet_UpdateByIdentity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.base.UpdateByIdentity(tt.incoming, replaceStatus)
+			got := tt.base.Update(tt.incoming, IdentitiesOverlap, replaceStatus)
 			if diff := cmp.Diff(tt.want, got); diff != "" {
-				t.Errorf("Set.UpdateByIdentity() mismatch (-want +got):\n%s", diff)
+				t.Errorf("Set.Update() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

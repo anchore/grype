@@ -157,7 +157,7 @@ func applyAlmaLinuxUnaffectedFiltering(disclosures result.Set, unaffectedResults
 	)
 
 	// Update remaining vulnerabilities with AlmaLinux fix information
-	return filtered.UpdateByIdentity(unaffectedResults, replaceWithAlmaLinuxFixInfo)
+	return filtered.Update(unaffectedResults, result.IdentitiesOverlap, replaceWithAlmaLinuxFixInfo)
 }
 
 // replaceWithAlmaLinuxFixInfo updates the Fix and Advisories fields from AlmaLinux unaffected data

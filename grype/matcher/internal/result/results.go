@@ -213,14 +213,25 @@ func (s Set) Intersection(other Set) Set {
 	return out
 }
 
-// UpdateByIdentity applies an update function to results in the current set when they match
-// (by ID or alias) with entries in the incoming set. This is useful for replacing specific fields
-// (like fix information) while preserving other fields (like match details).
+// IdentitiesOverlap returns true if two results share any common identifiers, where identity
+// includes both the primary ID and any aliases (from RelatedVulnerabilities). This can be used
+// as a shouldUpdate predicate for Update when matching results by ID or alias relationships.
+func IdentitiesOverlap(existing Result, incoming Result) bool {
+	existingIdentity := getIdentity(existing.ID, []Result{existing})
+	incomingIdentity := getIdentity(incoming.ID, []Result{incoming})
+	return !strset.Intersection(existingIdentity, incomingIdentity).IsEmpty()
+}
+
+// Update applies an update function to each result in the set where shouldUpdate returns true
+// for the existing-incoming result pair. The updateFunc can modify fields of the existing result
+// in-place while preserving other fields. Returns a new Set with updated results.
 //
-// For example, if the current set has CVE-2006-20001 and the incoming set has ALSA-2023:0852
-// with alias CVE-2006-20001, the updateFunc will be called to update the CVE entry with data
-// from the ALSA entry.
-func (s Set) UpdateByIdentity(incoming Set, updateFunc func(existing *Result, incoming Result)) Set {
+// Example with identity-based matching:
+//
+//	updated := base.Update(incoming, IdentitiesOverlap, func(existing *Result, incoming Result) {
+//	    existing.Vulnerabilities[0].Fix = incoming.Vulnerabilities[0].Fix
+//	})
+func (s Set) Update(incoming Set, shouldUpdate func(existing Result, incoming Result) bool, updateFunc func(existing *Result, incoming Result)) Set {
 	out := make(Set)
 
 	// Copy everything from base set
@@ -228,23 +239,18 @@ func (s Set) UpdateByIdentity(incoming Set, updateFunc func(existing *Result, in
 		out[id] = append([]Result(nil), results...)
 	}
 
-	// For each entry in base, find matching incoming by identity and update
+	// For each entry in base, check all incoming entries with shouldUpdate
 	for id, existingResults := range out {
-		existingIdentity := getIdentity(id, existingResults)
-
-		for incomingID, incomingResults := range incoming {
-			incomingIdentity := getIdentity(incomingID, incomingResults)
-			if !strset.Intersection(existingIdentity, incomingIdentity).IsEmpty() {
-				// Found match - update in place
-				for i := range existingResults {
-					for _, incomingResult := range incomingResults {
+		for i := range existingResults {
+			for _, incomingResults := range incoming {
+				for _, incomingResult := range incomingResults {
+					if shouldUpdate(existingResults[i], incomingResult) {
 						updateFunc(&existingResults[i], incomingResult)
 					}
 				}
-				out[id] = existingResults
-				break
 			}
 		}
+		out[id] = existingResults
 	}
 
 	return out
