@@ -103,16 +103,40 @@ type scanResultWriterDescription struct {
 }
 
 func newWriterDescription(f Format, p string, cfg PresentationConfig) scanResultWriterDescription {
-	expandedPath, err := homedir.Expand(p)
-	if err != nil {
-		log.Warnf("could not expand given writer output path=%q: %w", p, err)
-		// ignore errors
-		expandedPath = p
+	var expandedPath string
+	var err error
+
+	// Create a local copy of cfg to avoid modifying the original
+	localCfg := cfg
+
+	// Check if p contains "=" to handle template path configuration
+	if strings.Contains(p, "=") {
+		parts := strings.SplitN(p, "=", 2)
+		templatePath := parts[0]
+		outputPath := parts[1]
+
+		// Update the template path in local cfg copy
+		localCfg.TemplateFilePath = templatePath
+
+		expandedPath, err = homedir.Expand(outputPath)
+		if err != nil {
+			log.Warnf("could not expand given writer output path=%q: %w", outputPath, err)
+			// ignore errors
+			expandedPath = outputPath
+		}
+	} else {
+		expandedPath, err = homedir.Expand(p)
+		if err != nil {
+			log.Warnf("could not expand given writer output path=%q: %w", p, err)
+			// ignore errors
+			expandedPath = p
+		}
 	}
+
 	return scanResultWriterDescription{
 		Format: f,
 		Path:   expandedPath,
-		Cfg:    cfg,
+		Cfg:    localCfg,
 	}
 }
 
