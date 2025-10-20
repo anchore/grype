@@ -160,7 +160,7 @@ func applyAlmaLinuxUnaffectedFiltering(disclosures result.Set, unaffectedResults
 	return filtered.Update(unaffectedResults, result.IdentitiesOverlap, replaceWithAlmaLinuxFixInfo)
 }
 
-// replaceWithAlmaLinuxFixInfo updates the Fix and Advisories fields from AlmaLinux unaffected data
+// replaceWithAlmaLinuxFixInfo updates the Constraint, Fix, and Advisories fields from AlmaLinux unaffected data
 // while preserving the match Details from the RHEL disclosure. This is used to replace RHEL fix
 // versions with AlmaLinux-specific fix versions when available.
 func replaceWithAlmaLinuxFixInfo(existing *result.Result, incoming result.Result) {
@@ -173,6 +173,14 @@ func replaceWithAlmaLinuxFixInfo(existing *result.Result, incoming result.Result
 			if fixVersion == "" {
 				continue
 			}
+
+			// Update constraint to match AlmaLinux fix version (form: "< fixVersion")
+			newConstraint, err := version.GetConstraint(fmt.Sprintf("< %s", fixVersion), version.RpmFormat)
+			if err != nil {
+				log.WithFields("error", err, "fixVersion", fixVersion).Debug("failed to create constraint from AlmaLinux fix version")
+				continue
+			}
+			existing.Vulnerabilities[i].Constraint = newConstraint
 
 			// Update fix version and advisories to AlmaLinux's data
 			existing.Vulnerabilities[i].Fix = vulnerability.Fix{
@@ -187,7 +195,14 @@ func replaceWithAlmaLinuxFixInfo(existing *result.Result, incoming result.Result
 			}
 			existing.Vulnerabilities[i].Advisories = advisories
 
-			// Note: We keep existing.Details intact - those contain the RHEL match details
+			// Update Details to reflect the AlmaLinux constraint in the match details
+			for j := range existing.Details {
+				if distroResult, ok := existing.Details[j].Found.(match.DistroResult); ok {
+					distroResult.VersionConstraint = newConstraint.String()
+					existing.Details[j].Found = distroResult
+				}
+			}
+
 			break // Only need first match
 		}
 	}
