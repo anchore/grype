@@ -277,8 +277,8 @@ func extractFixVersionFromConstraint(constraint version.Constraint) string {
 
 	// Handle common constraint patterns
 	// ">= version" → "version"
-	if strings.HasPrefix(constraintStr, ">= ") {
-		return strings.TrimPrefix(constraintStr, ">= ")
+	if strings.HasPrefix(constraintStr, ">=") {
+		return strings.TrimSpace(strings.TrimPrefix(constraintStr, ">="))
 	}
 
 	// "= version" → "version"
