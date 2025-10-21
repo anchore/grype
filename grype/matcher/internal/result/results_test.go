@@ -814,3 +814,259 @@ func TestSet_Contains(t *testing.T) {
 		})
 	}
 }
+
+func TestSet_Update(t *testing.T) {
+	// Simple update function that replaces the Status field
+	replaceStatus := func(existing *Result, incoming Result) {
+		for i := range existing.Vulnerabilities {
+			for _, incomingVuln := range incoming.Vulnerabilities {
+				existing.Vulnerabilities[i].Status = incomingVuln.Status
+			}
+		}
+	}
+
+	tests := []struct {
+		name     string
+		base     Set
+		incoming Set
+		want     Set
+	}{
+		{
+			name: "update by exact ID match",
+			base: Set{
+				"CVE-2023-1234": []Result{
+					{
+						ID: "CVE-2023-1234",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
+								Status:    "original",
+							},
+						},
+					},
+				},
+			},
+			incoming: Set{
+				"CVE-2023-1234": []Result{
+					{
+						ID: "CVE-2023-1234",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
+								Status:    "updated",
+							},
+						},
+					},
+				},
+			},
+			want: Set{
+				"CVE-2023-1234": []Result{
+					{
+						ID: "CVE-2023-1234",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
+								Status:    "updated",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "update by alias - identities overlap",
+			base: Set{
+				"CVE-2023-1234": []Result{
+					{
+						ID: "CVE-2023-1234",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
+								Status:    "original",
+							},
+						},
+					},
+				},
+			},
+			incoming: Set{
+				"VULN-2023-001": []Result{
+					{
+						ID: "VULN-2023-001",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "VULN-2023-001"},
+								RelatedVulnerabilities: []vulnerability.Reference{
+									{ID: "CVE-2023-1234"},
+								},
+								Status: "updated via alias",
+							},
+						},
+					},
+				},
+			},
+			want: Set{
+				"CVE-2023-1234": []Result{
+					{
+						ID: "CVE-2023-1234",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
+								Status:    "updated via alias",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "no match - base unchanged",
+			base: Set{
+				"CVE-2023-1234": []Result{
+					{
+						ID: "CVE-2023-1234",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
+								Status:    "original",
+							},
+						},
+					},
+				},
+			},
+			incoming: Set{
+				"CVE-2023-9999": []Result{
+					{
+						ID: "CVE-2023-9999",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2023-9999"},
+								Status:    "different",
+							},
+						},
+					},
+				},
+			},
+			want: Set{
+				"CVE-2023-1234": []Result{
+					{
+						ID: "CVE-2023-1234",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
+								Status:    "original",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "empty incoming set - no updates",
+			base: Set{
+				"CVE-2023-1234": []Result{
+					{
+						ID: "CVE-2023-1234",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
+								Status:    "original",
+							},
+						},
+					},
+				},
+			},
+			incoming: Set{},
+			want: Set{
+				"CVE-2023-1234": []Result{
+					{
+						ID: "CVE-2023-1234",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
+								Status:    "original",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "empty base set returns empty",
+			base: Set{},
+			incoming: Set{
+				"CVE-2023-1234": []Result{
+					{
+						ID: "CVE-2023-1234",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
+								Status:    "some status",
+							},
+						},
+					},
+				},
+			},
+			want: Set{},
+		},
+		{
+			name: "preserves Details field from base",
+			base: Set{
+				"CVE-2023-1234": []Result{
+					{
+						ID: "CVE-2023-1234",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
+								Status:    "original",
+							},
+						},
+						Details: match.Details{
+							{Type: match.ExactDirectMatch, SearchedBy: map[string]interface{}{"key": "value"}},
+						},
+					},
+				},
+			},
+			incoming: Set{
+				"CVE-2023-1234": []Result{
+					{
+						ID: "CVE-2023-1234",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
+								Status:    "updated",
+							},
+						},
+						Details: match.Details{
+							{Type: match.ExactIndirectMatch},
+						},
+					},
+				},
+			},
+			want: Set{
+				"CVE-2023-1234": []Result{
+					{
+						ID: "CVE-2023-1234",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference: vulnerability.Reference{ID: "CVE-2023-1234"},
+								Status:    "updated",
+							},
+						},
+						Details: match.Details{
+							{Type: match.ExactDirectMatch, SearchedBy: map[string]interface{}{"key": "value"}},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.base.Update(tt.incoming, IdentitiesOverlap, replaceStatus)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("Set.Update() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}

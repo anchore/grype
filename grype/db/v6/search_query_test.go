@@ -284,6 +284,66 @@ func TestQueryBuilder_Build(t *testing.T) {
 	require.Len(t, remaining, 1)
 }
 
+func TestQueryBuilder_ExactDistroCriteria(t *testing.T) {
+	tests := []struct {
+		name     string
+		criteria []vulnerability.Criteria
+		validate func(t *testing.T, query *searchQuery, remaining []vulnerability.Criteria)
+	}{
+		{
+			name: "exact distro criteria should be handled with DisableAliasing set",
+			criteria: []vulnerability.Criteria{
+				search.ByExactDistro(*distro.New(distro.AlmaLinux, "8", "")),
+			},
+			validate: func(t *testing.T, query *searchQuery, remaining []vulnerability.Criteria) {
+				require.Len(t, query.osSpecs, 1)
+				require.Equal(t, "almalinux", query.osSpecs[0].Name)
+				require.Equal(t, "8", query.osSpecs[0].MajorVersion)
+				require.True(t, query.osSpecs[0].DisableAliasing, "ExactDistroCriteria should set DisableAliasing=true")
+				require.Empty(t, remaining, "ExactDistroCriteria should be handled, not left in remaining")
+			},
+		},
+		{
+			name: "exact distro criteria should not be left in remaining criteria",
+			criteria: []vulnerability.Criteria{
+				search.ByPackageName("mariadb"),
+				search.ByExactDistro(*distro.New(distro.AlmaLinux, "8", "")),
+				search.ForUnaffected(),
+			},
+			validate: func(t *testing.T, query *searchQuery, remaining []vulnerability.Criteria) {
+				require.NotNil(t, query.pkgSpec)
+				require.Equal(t, "mariadb", query.pkgSpec.Name)
+				require.Len(t, query.osSpecs, 1)
+				require.Equal(t, "almalinux", query.osSpecs[0].Name)
+				require.True(t, query.osSpecs[0].DisableAliasing, "ExactDistroCriteria should set DisableAliasing=true")
+				require.True(t, query.unaffectedOnly)
+				require.Empty(t, remaining, "ExactDistroCriteria should be handled, not left in remaining")
+			},
+		},
+		{
+			name: "regular distro criteria should not set DisableAliasing",
+			criteria: []vulnerability.Criteria{
+				search.ByDistro(*distro.New(distro.AlmaLinux, "8", "")),
+			},
+			validate: func(t *testing.T, query *searchQuery, remaining []vulnerability.Criteria) {
+				require.Len(t, query.osSpecs, 1)
+				require.Equal(t, "almalinux", query.osSpecs[0].Name)
+				require.Equal(t, "8", query.osSpecs[0].MajorVersion)
+				require.False(t, query.osSpecs[0].DisableAliasing, "Regular DistroCriteria should keep DisableAliasing=false")
+				require.Empty(t, remaining)
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			query, remaining, err := newSearchQuery(test.criteria)
+			require.NoError(t, err)
+			test.validate(t, query, remaining)
+		})
+	}
+}
+
 func TestQueryBuilder_IntegrationWithRealCriteria(t *testing.T) {
 	// test the full flow that mimics parseCriteria behavior
 	criteria := []vulnerability.Criteria{

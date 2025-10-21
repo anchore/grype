@@ -153,6 +153,7 @@ func (b *searchQueryBuilder) handleDistro(c *search.DistroCriteria) {
 				RemainingVersion: d.RemainingVersion(),
 				LabelVersion:     d.Codename,
 				Channel:          channel,
+				DisableAliasing:  c.Exact,
 			})
 		}
 		if foundChannels == 0 {
@@ -162,6 +163,7 @@ func (b *searchQueryBuilder) handleDistro(c *search.DistroCriteria) {
 				MinorVersion:     d.MinorVersion(),
 				RemainingVersion: d.RemainingVersion(),
 				LabelVersion:     d.Codename,
+				DisableAliasing:  c.Exact,
 			})
 		}
 	}

@@ -213,6 +213,49 @@ func (s Set) Intersection(other Set) Set {
 	return out
 }
 
+// IdentitiesOverlap returns true if two results share any common identifiers, where identity
+// includes both the primary ID and any aliases (from RelatedVulnerabilities). This can be used
+// as a shouldUpdate predicate for Update when matching results by ID or alias relationships.
+func IdentitiesOverlap(existing Result, incoming Result) bool {
+	existingIdentity := getIdentity(existing.ID, []Result{existing})
+	incomingIdentity := getIdentity(incoming.ID, []Result{incoming})
+	return !strset.Intersection(existingIdentity, incomingIdentity).IsEmpty()
+}
+
+// Update applies an update function to each result in the set where shouldUpdate returns true
+// for the existing-incoming result pair. The updateFunc can modify fields of the existing result
+// in-place while preserving other fields. Returns a new Set with updated results.
+//
+// Example with identity-based matching:
+//
+//	updated := base.Update(incoming, IdentitiesOverlap, func(existing *Result, incoming Result) {
+//	    existing.Vulnerabilities[0].Fix = incoming.Vulnerabilities[0].Fix
+//	})
+func (s Set) Update(incoming Set, shouldUpdate func(existing Result, incoming Result) bool, updateFunc func(existing *Result, incoming Result)) Set {
+	out := make(Set)
+
+	// Copy everything from base set
+	for id, results := range s {
+		out[id] = append([]Result(nil), results...)
+	}
+
+	// For each entry in base, check all incoming entries with shouldUpdate
+	for id, existingResults := range out {
+		for i := range existingResults {
+			for _, incomingResults := range incoming {
+				for _, incomingResult := range incomingResults {
+					if shouldUpdate(existingResults[i], incomingResult) {
+						updateFunc(&existingResults[i], incomingResult)
+					}
+				}
+			}
+		}
+		out[id] = existingResults
+	}
+
+	return out
+}
+
 func (s Set) Filter(criteria ...vulnerability.Criteria) Set {
 	out := Set{}
 	for id, results := range s {
