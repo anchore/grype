@@ -23,6 +23,26 @@ func shouldUseAlmaLinuxMatching(d *distro.Distro) bool {
 	return d.Type == distro.AlmaLinux
 }
 
+// markAsIndirectMatches updates all match details in the result set to indicate indirect matches
+func markAsIndirectMatches(results result.Set) result.Set {
+	updated := make(result.Set)
+	for key, resultList := range results {
+		var updatedResults []result.Result
+		for _, r := range resultList {
+			// Update all Details to ExactIndirectMatch
+			updatedDetails := make([]match.Detail, len(r.Details))
+			for i, detail := range r.Details {
+				updatedDetails[i] = detail
+				updatedDetails[i].Type = match.ExactIndirectMatch
+			}
+			r.Details = updatedDetails
+			updatedResults = append(updatedResults, r)
+		}
+		updated[key] = updatedResults
+	}
+	return updated
+}
+
 // almaLinuxMatchesWithUpstreams handles AlmaLinux matching for both the binary package and its upstream packages
 // This function orchestrates the complete AlmaLinux matching flow:
 // 1. Search for RHEL disclosures for the binary package
@@ -71,6 +91,10 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 			log.WithFields("error", err, "upstreamPkg", upstreamPkg.Name, "binaryPkg", binaryPkg.Name).Debug("failed to fetch RHEL disclosures for upstream package")
 			continue
 		}
+
+		// Mark these as indirect matches since they came from upstream package search
+		upstreamResults = markAsIndirectMatches(upstreamResults)
+
 		upstreamDisclosures = upstreamDisclosures.Merge(upstreamResults)
 	}
 

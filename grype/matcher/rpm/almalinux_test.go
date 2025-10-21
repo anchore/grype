@@ -77,302 +77,7 @@ func TestShouldUseAlmaLinuxMatching(t *testing.T) {
 	}
 }
 
-func TestVersionConstraintFiltering(t *testing.T) {
-	tests := []struct {
-		name             string
-		packageVersion   string
-		disclosures      result.Set
-		unaffected       result.Set
-		expectedFiltered bool
-		description      string
-	}{
-		{
-			name:           "version satisfies unaffected constraint - should filter",
-			packageVersion: "1.5.0-1.el8",
-			disclosures: result.Set{
-				"CVE-2023-1234": []result.Result{
-					{
-						ID:      "CVE-2023-1234",
-						Package: &pkg.Package{Name: "test-package"},
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{Reference: vulnerability.Reference{ID: "CVE-2023-1234"}},
-						},
-					},
-				},
-			},
-			unaffected: result.Set{
-				"ALSA-2023:1234": []result.Result{
-					{
-						ID: "ALSA-2023:1234",
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{
-								Reference: vulnerability.Reference{ID: "ALSA-2023:1234"},
-								RelatedVulnerabilities: []vulnerability.Reference{
-									{ID: "CVE-2023-1234"},
-								},
-								Constraint: createConstraint(t, ">= 1.5.0", version.RpmFormat), // our version 1.5.0 satisfies this
-							},
-						},
-					},
-				},
-			},
-			expectedFiltered: true,
-			description:      "vulnerability should be filtered when version satisfies unaffected constraint",
-		},
-		{
-			name:           "version does not satisfy unaffected constraint - should not filter",
-			packageVersion: "1.4.0-1.el8",
-			disclosures: result.Set{
-				"CVE-2023-1234": []result.Result{
-					{
-						ID:      "CVE-2023-1234",
-						Package: &pkg.Package{Name: "test-package"},
-						Vulnerabilities: []vulnerability.Vulnerability{
-							{Reference: vulnerability.Reference{ID: "CVE-2023-1234"}},
-						},
-					},
-				},
-			},
-			// The search would not return an unaffected record that doesn't apply to the package version
-			// Since package=1.4.0 doesn't satisfy ">= 1.5.0", this record wouldn't be returned
-			unaffected:       result.Set{},
-			expectedFiltered: false,
-			description:      "vulnerability should NOT be filtered when version does not satisfy unaffected constraint",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			pkgVersion := version.New(tt.packageVersion, version.RpmFormat)
-
-			// Apply AlmaLinux fix processing
-			updated := applyAlmaLinuxUnaffectedFiltering(tt.disclosures, tt.unaffected, pkgVersion)
-
-			if tt.expectedFiltered {
-				// Version satisfied unaffected constraint >= fix version, so vulnerability should be completely filtered out
-				assert.Empty(t, updated, tt.description)
-				assert.NotContains(t, updated, "CVE-2023-1234", "vulnerability should be filtered out when package >= fix version")
-			} else {
-				// Version didn't satisfy constraint, so vulnerability should remain with original fix info
-				assert.Len(t, updated, 1, "vulnerability should be reported when package < fix version")
-				assert.Contains(t, updated, "CVE-2023-1234")
-				vuln := updated["CVE-2023-1234"][0].Vulnerabilities[0]
-				assert.Empty(t, vuln.Fix.Versions, tt.description)
-			}
-		})
-	}
-}
-
-func TestAlmaLinuxAliasEdgeCases(t *testing.T) {
-	tests := []struct {
-		name            string
-		pkg             pkg.Package
-		rhelDisclosures func(pkg *pkg.Package) result.Set
-		almaUnaffected  func(pkg *pkg.Package) result.Set
-		expectedVulnIDs []string
-		description     string
-	}{
-		{
-			name: "ALSA with multiple CVE aliases",
-			pkg: pkg.Package{
-				Name:    "httpd",
-				Version: "2.4.37-10.el8",
-				Type:    syftPkg.RpmPkg,
-				Distro: &distro.Distro{
-					Type:    distro.AlmaLinux,
-					Version: "8",
-				},
-			},
-			rhelDisclosures: func(pkg *pkg.Package) result.Set {
-				return result.Set{
-					"CVE-2023-1234": []result.Result{
-						{
-							ID: "CVE-2023-1234",
-							Vulnerabilities: []vulnerability.Vulnerability{
-								{
-									Reference:  vulnerability.Reference{ID: "CVE-2023-1234"},
-									Constraint: createConstraint(t, "< 2.4.37-50.el8", version.RpmFormat),
-								},
-							},
-							Package: pkg,
-						},
-					},
-					"CVE-2023-5678": []result.Result{
-						{
-							ID: "CVE-2023-5678",
-							Vulnerabilities: []vulnerability.Vulnerability{
-								{
-									Reference:  vulnerability.Reference{ID: "CVE-2023-5678"},
-									Constraint: createConstraint(t, "< 2.4.37-50.el8", version.RpmFormat),
-								},
-							},
-							Package: pkg,
-						},
-					},
-					"CVE-2023-9999": []result.Result{
-						{
-							ID: "CVE-2023-9999",
-							Vulnerabilities: []vulnerability.Vulnerability{
-								{
-									Reference:  vulnerability.Reference{ID: "CVE-2023-9999"},
-									Constraint: createConstraint(t, "< 2.4.37-60.el8", version.RpmFormat),
-								},
-							},
-							Package: pkg,
-						},
-					},
-				}
-			},
-			almaUnaffected: func(pkg *pkg.Package) result.Set {
-				return result.Set{
-					"ALSA-2023:1234": []result.Result{
-						{
-							ID: "ALSA-2023:1234",
-							Vulnerabilities: []vulnerability.Vulnerability{
-								{
-									Reference: vulnerability.Reference{ID: "ALSA-2023:1234"},
-									RelatedVulnerabilities: []vulnerability.Reference{
-										{ID: "CVE-2023-1234"},
-										{ID: "CVE-2023-5678"}, // Multiple CVEs in one ALSA
-									},
-									Constraint: createConstraint(t, ">= 2.4.37-10.el8", version.RpmFormat),
-								},
-							},
-							Package: pkg,
-						},
-					},
-				}
-			},
-			expectedVulnIDs: []string{"CVE-2023-9999"},
-			description:     "Single ALSA should filter multiple CVEs by alias",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			mockProvider := &MockProvider{}
-
-			callCount := 0
-			mockProvider.findResultsFunc = func(criteria ...vulnerability.Criteria) (result.Set, error) {
-				callCount++
-				// First call: RHEL disclosures for binary package
-				if callCount == 1 {
-					return tt.rhelDisclosures(&tt.pkg), nil
-				}
-				// Second call: AlmaLinux unaffected records
-				if callCount == 2 {
-					return tt.almaUnaffected(&tt.pkg), nil
-				}
-				// Subsequent calls: related package searches (return empty)
-				return result.Set{}, nil
-			}
-
-			matches, err := almaLinuxMatchesWithUpstreams(mockProvider, tt.pkg)
-			require.NoError(t, err)
-
-			var foundVulnIDs []string
-			for _, m := range matches {
-				foundVulnIDs = append(foundVulnIDs, m.Vulnerability.ID)
-			}
-
-			assert.ElementsMatch(t, tt.expectedVulnIDs, foundVulnIDs, tt.description)
-		})
-	}
-}
-
-func TestCVE202232084UnaffectedFiltering(t *testing.T) {
-	// Test verifies that AlmaLinux unaffected records properly exclude vulnerabilities
-	// when the package version satisfies the unaffected constraint.
-
-	mockProvider := &MockProvider{}
-
-	almaDistro := &distro.Distro{
-		Type:    distro.AlmaLinux,
-		Version: "8",
-	}
-	testPkg := pkg.Package{
-		Name:    "mariadb",
-		Version: "3:10.3.39-1.module_el8.8.0+3609+204d4ab0",
-		Type:    syftPkg.RpmPkg,
-		Distro:  almaDistro,
-	}
-
-	// RHEL reports this package as vulnerable (3609 < 19673 in module build numbers)
-	rhelDisclosures := result.Set{
-		"CVE-2022-32084": []result.Result{
-			{
-				ID: "CVE-2022-32084",
-				Vulnerabilities: []vulnerability.Vulnerability{
-					{
-						Reference:  vulnerability.Reference{ID: "CVE-2022-32084"},
-						Constraint: createConstraint(t, "< 3:10.3.39-1.module+el8.8.0+19673+72b0d35f", version.RpmFormat),
-						Fix: vulnerability.Fix{
-							Versions: []string{"3:10.3.39-1.module+el8.8.0+19673+72b0d35f"},
-							State:    vulnerability.FixStateFixed,
-						},
-					},
-				},
-				Package: &testPkg,
-			},
-		},
-	}
-
-	// AlmaLinux marks this exact package version as unaffected
-	almaUnaffected := result.Set{
-		"ALSA-2023:5259": []result.Result{
-			{
-				ID: "ALSA-2023:5259",
-				Vulnerabilities: []vulnerability.Vulnerability{
-					{
-						Reference: vulnerability.Reference{ID: "ALSA-2023:5259"},
-						RelatedVulnerabilities: []vulnerability.Reference{
-							{ID: "CVE-2022-32084"},
-						},
-						Constraint: createConstraint(t, ">= 3:10.3.39-1.module_el8.8.0+3609+204d4ab0", version.RpmFormat),
-						Fix: vulnerability.Fix{
-							Versions: []string{"3:10.3.39-1.module_el8.8.0+3609+204d4ab0"},
-							State:    vulnerability.FixStateFixed,
-						},
-					},
-				},
-				Package: &testPkg,
-			},
-		},
-	}
-
-	callCount := 0
-	mockProvider.findResultsFunc = func(criteria ...vulnerability.Criteria) (result.Set, error) {
-		callCount++
-		switch callCount {
-		case 1:
-			return rhelDisclosures, nil
-		case 2:
-			return almaUnaffected, nil
-		default:
-			return result.Set{}, nil
-		}
-	}
-
-	matches, err := almaLinuxMatchesWithUpstreams(mockProvider, testPkg)
-	require.NoError(t, err)
-
-	var cve202232084Match *match.Match
-	for i := range matches {
-		if matches[i].Vulnerability.ID == "CVE-2022-32084" {
-			cve202232084Match = &matches[i]
-			break
-		}
-	}
-
-	if cve202232084Match != nil {
-		t.Errorf("CVE-2022-32084 should not be reported for package %s "+
-			"because AlmaLinux unaffected record excludes it",
-			testPkg.Version)
-	}
-
-	assert.Empty(t, matches, "No vulnerabilities should be reported when unaffected records exclude them")
-}
-
+// this should be called "TestModularityQualifiersPassedToVulnProvider"
 func TestModularityExcludesDisclosure(t *testing.T) {
 	// Test that OnlyQualifiedPackages is used to filter both RHEL disclosures and AlmaLinux advisories
 	mockProvider := &MockProvider{}
@@ -446,459 +151,6 @@ func TestModularityExcludesDisclosure(t *testing.T) {
 	// Call 2: AlmaLinux unaffected records
 	assert.True(t, hasQualifierCriterion(capturedCriteria[1]),
 		"AlmaLinux advisory fetch should include OnlyQualifiedPackages criterion")
-}
-
-func TestAlmaLinuxFixReplacement(t *testing.T) {
-	mockProvider := &MockProvider{}
-
-	almaDistro := &distro.Distro{
-		Type:    distro.AlmaLinux,
-		Version: "8",
-	}
-
-	// Use a package version that will be:
-	// 1. Vulnerable to RHEL disclosure (version < RHEL fix)
-	// 2. Have AlmaLinux unaffected record that doesn't completely filter it but provides different fix info
-	testPkg := pkg.Package{
-		Name:    "httpd",
-		Version: "2.4.37-10.el8", // Early version
-		Type:    syftPkg.RpmPkg,
-		Distro:  almaDistro,
-	}
-
-	// RHEL disclosure with original fix version
-	rhelDisclosures := result.Set{
-		"CVE-2021-44790": []result.Result{
-			{
-				ID: "CVE-2021-44790",
-				Vulnerabilities: []vulnerability.Vulnerability{
-					{
-						Reference:  vulnerability.Reference{ID: "CVE-2021-44790"},
-						Constraint: createConstraint(t, "< 2.4.37-50.el8", version.RpmFormat),
-						Fix: vulnerability.Fix{
-							Versions: []string{"2.4.37-50.el8"}, // RHEL fix version
-							State:    vulnerability.FixStateFixed,
-						},
-					},
-				},
-				Package: &testPkg,
-			},
-		},
-	}
-
-	// AlmaLinux unaffected record that demonstrates fix replacement:
-	// Package version 2.4.37-10.el8 is vulnerable (< 2.4.37-43.module_el8.6.0 which is AlmaLinux's fix)
-	// but we provide AlmaLinux fix info to replace RHEL's
-	almaUnaffected := result.Set{
-		"ALSA-2022:0123": []result.Result{
-			{
-				ID: "ALSA-2022:0123",
-				Vulnerabilities: []vulnerability.Vulnerability{
-					{
-						Reference: vulnerability.Reference{ID: "ALSA-2022:0123"},
-						RelatedVulnerabilities: []vulnerability.Reference{
-							{ID: "CVE-2021-44790"},
-						},
-						// Package 2.4.37-10.el8 < fix 2.4.37-43, so it's still vulnerable
-						// but fix info should come from AlmaLinux
-						Constraint: createConstraint(t, ">= 2.4.37-43.module_el8.6.0+1000+ce6a2ac1", version.RpmFormat),
-						Fix: vulnerability.Fix{
-							Versions: []string{"2.4.37-43.module_el8.6.0+1000+ce6a2ac1"}, // AlmaLinux fix
-							State:    vulnerability.FixStateFixed,
-						},
-					},
-				},
-				Package: &testPkg,
-			},
-		},
-	}
-
-	callCount := 0
-	mockProvider.findResultsFunc = func(criteria ...vulnerability.Criteria) (result.Set, error) {
-		callCount++
-		switch callCount {
-		case 1:
-			return rhelDisclosures, nil
-		case 2:
-			return almaUnaffected, nil
-		default:
-			return result.Set{}, nil
-		}
-	}
-
-	matches, err := almaLinuxMatchesWithUpstreams(mockProvider, testPkg)
-	require.NoError(t, err)
-	require.Len(t, matches, 1, "Should have one match (not filtered)")
-
-	match := matches[0]
-	assert.Equal(t, "CVE-2021-44790", match.Vulnerability.ID)
-
-	// The fix version should be from AlmaLinux if replacement worked
-	fixVersion := match.Vulnerability.Fix.Versions[0]
-
-	// Package version 2.4.37-10.el8 is vulnerable (< both RHEL fix 2.4.37-50 and AlmaLinux fix 2.4.37-43)
-	// After filtering, package is still vulnerable
-	// After fix replacement, fix info should come from AlmaLinux
-	expectedAlmaFix := "2.4.37-43.module_el8.6.0+1000+ce6a2ac1" // AlmaLinux fix version
-
-	assert.Equal(t, expectedAlmaFix, fixVersion,
-		"Fix version should be replaced with AlmaLinux fix (not RHEL's 2.4.37-50.el8)")
-	t.Log("SUCCESS: Fix replacement worked - AlmaLinux fix version used")
-}
-
-func TestAlmaLinuxMatches_Python3TkinterWithUpstream(t *testing.T) {
-	// Test scenario: binary RPM python3-tkinter installed with python3 upstream
-	// PURL: pkg:rpm/almalinux/python3-tkinter@3.6.8-71.el8_10.alma.1?arch=x86_64&distro=almalinux-8.10&upstream=python3-3.6.8-71.el8_10.alma.1.src.rpm
-	//
-	// This tests the full matching flow:
-	// 1. Matcher.Match() calls matchPackage for python3-tkinter (finds nothing from RHEL)
-	// 2. Matcher.Match() calls matchUpstreamPackages which creates synthetic python3 package
-	// 3. For synthetic python3 package, RHEL has disclosure (CVE-2007-4559)
-	// 4. AlmaLinux has ALSA-2023:7151 with unaffected records for python3-tkinter
-	// 5. The unaffected filtering should apply to matches found via upstream
-
-	almaDistro := &distro.Distro{
-		Type:    distro.AlmaLinux,
-		Version: "8.10",
-	}
-
-	// Binary package: python3-tkinter with python3 as upstream
-	testPkg := pkg.Package{
-		ID:      pkg.ID("python3-tkinter-test"),
-		Name:    "python3-tkinter",
-		Version: "3.6.8-71.el8_10.alma.1",
-		Type:    syftPkg.RpmPkg,
-		Distro:  almaDistro,
-		Upstreams: []pkg.UpstreamPackage{
-			{
-				Name:    "python3",
-				Version: "3.6.8-71.el8_10.alma.1",
-			},
-		},
-		Metadata: pkg.RpmMetadata{
-			Epoch: intPtr(0),
-		},
-	}
-
-	// Create vulnerabilities for the mock provider
-	// RHEL disclosure for python3 (source package) - will be found via upstream matching
-	python3Vulnerability := vulnerability.Vulnerability{
-		PackageName: "python3",
-		Reference: vulnerability.Reference{
-			ID:        "CVE-2007-4559",
-			Namespace: "redhat:distro:redhat:8",
-		},
-		Constraint: createConstraint(t, "< 0:3.6.8-56.el8_9", version.RpmFormat),
-		Fix: vulnerability.Fix{
-			Versions: []string{"0:3.6.8-56.el8_9"},
-			State:    vulnerability.FixStateFixed,
-		},
-	}
-
-	// AlmaLinux unaffected record for python3-tkinter
-	// NOTE: The database does NOT have an unaffected entry for "python3" itself,
-	// only for binary packages like python3-tkinter, python3-libs, etc.
-	tkinterUnaffected := vulnerability.Vulnerability{
-		PackageName: "python3-tkinter",
-		Reference: vulnerability.Reference{
-			ID:        "ALSA-2023:7151",
-			Namespace: "almalinux:distro:almalinux:8",
-		},
-		RelatedVulnerabilities: []vulnerability.Reference{
-			{ID: "CVE-2007-4559"},
-		},
-		// Unaffected constraint: package version >= fix version means it's fixed
-		Constraint: createConstraint(t, ">= 3.6.8-56.el8_9.alma.1", version.RpmFormat),
-		Fix: vulnerability.Fix{
-			Versions: []string{"3.6.8-56.el8_9.alma.1"},
-			State:    vulnerability.FixStateFixed,
-		},
-		Unaffected: true, // Mark as unaffected record
-	}
-
-	// Create mock vulnerability provider
-	mockVulnProvider := mock.VulnerabilityProvider(
-		python3Vulnerability,
-		tkinterUnaffected,
-	)
-
-	// Create matcher
-	matcher := Matcher{}
-
-	tests := []struct {
-		name            string
-		pkg             pkg.Package
-		expectedMatches []match.Match
-	}{
-		{
-			name: "package version newer than fix - filtered",
-			pkg: pkg.Package{
-				ID:      pkg.ID("python3-tkinter-test"),
-				Name:    "python3-tkinter",
-				Version: "3.6.8-71.el8_10.alma.1",
-				Type:    syftPkg.RpmPkg,
-				Distro:  almaDistro,
-				Upstreams: []pkg.UpstreamPackage{
-					{
-						Name:    "python3",
-						Version: "3.6.8-71.el8_10.alma.1",
-					},
-				},
-				Metadata: pkg.RpmMetadata{
-					Epoch: intPtr(0),
-				},
-			},
-			expectedMatches: nil,
-		},
-		{
-			name: "package version older than fix - shows match",
-			pkg: pkg.Package{
-				ID:      pkg.ID("python3-tkinter-test-older"),
-				Name:    "python3-tkinter",
-				Version: "3.6.8-40.el8_6",
-				Type:    syftPkg.RpmPkg,
-				Distro:  almaDistro,
-				Upstreams: []pkg.UpstreamPackage{
-					{
-						Name:    "python3",
-						Version: "3.6.8-40.el8_6",
-					},
-				},
-				Metadata: pkg.RpmMetadata{
-					Epoch: intPtr(0),
-				},
-			},
-			expectedMatches: []match.Match{
-				{
-					Vulnerability: vulnerability.Vulnerability{
-						PackageName: "python3",
-						Reference: vulnerability.Reference{
-							ID:        "CVE-2007-4559",
-							Namespace: "redhat:distro:redhat:8",
-						},
-						// Constraint should be updated to match AlmaLinux fix version
-						Constraint: createConstraint(t, "< 3.6.8-56.el8_9.alma.1", version.RpmFormat),
-						Fix: vulnerability.Fix{
-							Versions: []string{"3.6.8-56.el8_9.alma.1"},
-							State:    vulnerability.FixStateFixed,
-						},
-						Advisories: []vulnerability.Advisory{
-							{
-								ID:   "ALSA-2023:7151",
-								Link: "https://errata.almalinux.org/8/ALSA-2023-7151.html",
-							},
-						},
-					},
-					Package: pkg.Package{
-						ID:      pkg.ID("python3-tkinter-test-older"),
-						Name:    "python3-tkinter",
-						Version: "3.6.8-40.el8_6",
-						Type:    syftPkg.RpmPkg,
-						Distro:  almaDistro,
-						Upstreams: []pkg.UpstreamPackage{
-							{
-								Name:    "python3",
-								Version: "3.6.8-40.el8_6",
-							},
-						},
-						Metadata: pkg.RpmMetadata{
-							Epoch: intPtr(0),
-						},
-					},
-					Details: []match.Detail{{
-						Type:    match.ExactIndirectMatch,
-						Matcher: match.RpmMatcher,
-						SearchedBy: match.DistroParameters{
-							Distro: match.DistroIdentification{
-								Type:    distro.RedHat.String(),
-								Version: "8.10",
-							},
-							Package: match.PackageParameter{
-								Name:    "python3",
-								Version: "3.6.8-40.el8_6",
-							},
-							Namespace: "redhat:distro:redhat:8",
-						},
-						Found: match.DistroResult{
-							VulnerabilityID: "CVE-2007-4559",
-							// Details should reflect the AlmaLinux constraint
-							VersionConstraint: "< 3.6.8-56.el8_9.alma.1 (rpm)",
-						},
-						Confidence: 1.0,
-					}},
-				},
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			matches, _, err := matcher.Match(mockVulnProvider, tt.pkg)
-			require.NoError(t, err)
-
-			// Compare matches using cmp.Diff
-			if diff := cmp.Diff(tt.expectedMatches, matches,
-				cmpopts.IgnoreUnexported(match.Match{}, match.Detail{}, pkg.Package{}, pkg.RpmMetadata{}, pkg.UpstreamPackage{}, file.LocationSet{}, distro.Distro{}),
-				cmpopts.IgnoreFields(vulnerability.Vulnerability{}, "PackageQualifiers")); diff != "" {
-				t.Errorf("matches mismatch (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
-
-func TestAlmaLinuxMatches_PerlErrnoEpochMismatch(t *testing.T) {
-	// Test scenario: binary RPM perl-Errno with epoch 0, upstream perl with epoch 4
-	// This is a regression test for false positives caused by comparing binary package epoch
-	// against source package epoch when the vulnerability is for the source package.
-	//
-	// Real example from almalinux:8.10:
-	// - Binary package: perl-Errno 0:1.28-422.el8.0.1 (epoch 0)
-	// - Source package: perl-5.26.3-422.el8.0.1.src.rpm (epoch 4 in RHEL vuln data)
-	// - Vuln constraint: < 4:5.26.3-419.el8 (for source package "perl")
-	//
-	// The bug was comparing binary epoch (0) against the constraint with source epoch (4),
-	// causing: 0:1.28-422.el8.0.1 < 4:5.26.3-419.el8 = true (FALSE POSITIVE!)
-	//
-	// Correct behavior: Don't add epochs to source package versions during matching,
-	// which allows proper comparison: 5.26.3-422.el8.0.1 < 5.26.3-419.el8 = false (CORRECT)
-
-	almaDistro := &distro.Distro{
-		Type:    distro.AlmaLinux,
-		Version: "8.10",
-	}
-
-	// RHEL vulnerability for perl (source package) with epoch in constraint
-	perlVulnerability := vulnerability.Vulnerability{
-		PackageName: "perl",
-		Reference: vulnerability.Reference{
-			ID:        "CVE-2020-10543",
-			Namespace: "redhat:distro:redhat:8",
-		},
-		Constraint: createConstraint(t, "< 4:5.26.3-419.el8", version.RpmFormat),
-		Fix: vulnerability.Fix{
-			Versions: []string{"4:5.26.3-419.el8"},
-			State:    vulnerability.FixStateFixed,
-		},
-	}
-
-	// Create mock vulnerability provider
-	mockVulnProvider := mock.VulnerabilityProvider(
-		perlVulnerability,
-	)
-
-	matcher := Matcher{}
-
-	tests := []struct {
-		name            string
-		pkg             pkg.Package
-		expectedMatches []match.Match
-	}{
-		{
-			name: "no false positive from epoch mismatch",
-			pkg: pkg.Package{
-				ID:      pkg.ID("perl-errno-test"),
-				Name:    "perl-Errno",
-				Version: "0:1.28-422.el8.0.1",
-				Type:    syftPkg.RpmPkg,
-				Distro:  almaDistro,
-				Upstreams: []pkg.UpstreamPackage{
-					{
-						Name:    "perl",
-						Version: "5.26.3-422.el8.0.1", // No epoch in sourceRPM metadata
-					},
-				},
-				Metadata: pkg.RpmMetadata{
-					Epoch: intPtr(0),
-				},
-			},
-			expectedMatches: nil,
-		},
-		{
-			name: "match works for vulnerable version",
-			pkg: pkg.Package{
-				ID:      pkg.ID("perl-errno-test-older"),
-				Name:    "perl-Errno",
-				Version: "0:1.28-418.el8",
-				Type:    syftPkg.RpmPkg,
-				Distro:  almaDistro,
-				Upstreams: []pkg.UpstreamPackage{
-					{
-						Name:    "perl",
-						Version: "5.26.3-418.el8", // Older than fix
-					},
-				},
-				Metadata: pkg.RpmMetadata{
-					Epoch: intPtr(0),
-				},
-			},
-			expectedMatches: []match.Match{
-				{
-					Vulnerability: vulnerability.Vulnerability{
-						PackageName: "perl",
-						Reference: vulnerability.Reference{
-							ID:        "CVE-2020-10543",
-							Namespace: "redhat:distro:redhat:8",
-						},
-						Constraint: createConstraint(t, "< 4:5.26.3-419.el8", version.RpmFormat),
-						Fix: vulnerability.Fix{
-							Versions: []string{"4:5.26.3-419.el8"},
-							State:    vulnerability.FixStateFixed,
-						},
-					},
-					Package: pkg.Package{
-						ID:      pkg.ID("perl-errno-test-older"),
-						Name:    "perl-Errno",
-						Version: "0:1.28-418.el8",
-						Type:    syftPkg.RpmPkg,
-						Distro:  almaDistro,
-						Upstreams: []pkg.UpstreamPackage{
-							{
-								Name:    "perl",
-								Version: "5.26.3-418.el8",
-							},
-						},
-						Metadata: pkg.RpmMetadata{
-							Epoch: intPtr(0),
-						},
-					},
-					Details: []match.Detail{{
-						Type:    match.ExactIndirectMatch,
-						Matcher: match.RpmMatcher,
-						SearchedBy: match.DistroParameters{
-							Distro: match.DistroIdentification{
-								Type:    distro.RedHat.String(),
-								Version: "8.10",
-							},
-							Package: match.PackageParameter{
-								Name:    "perl",
-								Version: "5.26.3-418.el8",
-							},
-							Namespace: "redhat:distro:redhat:8",
-						},
-						Found: match.DistroResult{
-							VulnerabilityID:   "CVE-2020-10543",
-							VersionConstraint: "< 4:5.26.3-419.el8 (rpm)",
-						},
-						Confidence: 1.0,
-					}},
-				},
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			matches, _, err := matcher.Match(mockVulnProvider, tt.pkg)
-			require.NoError(t, err)
-
-			// Compare matches using cmp.Diff
-			if diff := cmp.Diff(tt.expectedMatches, matches,
-				cmpopts.IgnoreUnexported(match.Match{}, match.Detail{}, pkg.Package{}, pkg.RpmMetadata{}, pkg.UpstreamPackage{}, file.LocationSet{}, distro.Distro{}),
-				cmpopts.IgnoreFields(vulnerability.Vulnerability{}, "PackageQualifiers")); diff != "" {
-				t.Errorf("matches mismatch (-want +got):\n%s", diff)
-			}
-		})
-	}
 }
 
 // Comprehensive table-driven test for AlmaLinux matching
@@ -1788,19 +1040,27 @@ func TestAlmaLinuxMatching(t *testing.T) {
 							Epoch: intPtr(0),
 						},
 					},
-					// Use createExpectedDetails helper - table test mock treats upstream matches as direct
-					Details: createExpectedDetails(pkg.Package{
-						Name:    "python3-tkinter",
-						Version: "3.6.8-40.el8_6",
-						Distro:  &distro.Distro{Type: distro.AlmaLinux, Version: "8.10"},
-					}, vulnerability.Vulnerability{
-						Reference: vulnerability.Reference{
-							ID:        "CVE-2007-4559",
+					// Details should show ExactIndirectMatch since vulnerability is via upstream
+					Details: []match.Detail{{
+						Type:    match.ExactIndirectMatch,
+						Matcher: match.RpmMatcher,
+						SearchedBy: match.DistroParameters{
+							Distro: match.DistroIdentification{
+								Type:    "almalinux",
+								Version: "8.10",
+							},
+							Package: match.PackageParameter{
+								Name:    "python3-tkinter",
+								Version: "3.6.8-40.el8_6",
+							},
 							Namespace: "redhat:distro:redhat:8",
 						},
-						// Details should reflect the AlmaLinux constraint
-						Constraint: createConstraint(t, "< 3.6.8-56.el8_9.alma.1", version.RpmFormat),
-					}),
+						Found: match.DistroResult{
+							VulnerabilityID:   "CVE-2007-4559",
+							VersionConstraint: "< 3.6.8-56.el8_9.alma.1 (rpm)",
+						},
+						Confidence: 1.0,
+					}},
 				},
 			},
 		},
@@ -1901,6 +1161,355 @@ func TestAlmaLinuxMatching(t *testing.T) {
 						},
 						Constraint: createConstraint(t, "< 2.4.37-50.el8", version.RpmFormat),
 					}),
+				},
+			},
+		},
+		{
+			name:        "Epoch mismatch regression: no false positive from binary/source epoch difference",
+			description: "Binary package epoch 0, upstream source package version without epoch, RHEL constraint has epoch 4",
+
+			pkg: pkg.Package{
+				ID:      pkg.ID("perl-errno-epoch"),
+				Name:    "perl-Errno",
+				Version: "0:1.28-422.el8.0.1",
+				Type:    syftPkg.RpmPkg,
+				Distro: &distro.Distro{
+					Type:    distro.AlmaLinux,
+					Version: "8.10",
+				},
+				Upstreams: []pkg.UpstreamPackage{
+					{
+						Name:    "perl",
+						Version: "5.26.3-422.el8.0.1", // No epoch in sourceRPM metadata
+					},
+				},
+				Metadata: pkg.RpmMetadata{
+					Epoch: intPtr(0),
+				},
+			},
+
+			rhelVulns: []vulnerability.Vulnerability{
+				{
+					PackageName: "perl",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2020-10543",
+						Namespace: "redhat:distro:redhat:8",
+					},
+					Constraint: createConstraint(t, "< 4:5.26.3-419.el8", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						Versions: []string{"4:5.26.3-419.el8"},
+						State:    vulnerability.FixStateFixed,
+					},
+				},
+			},
+
+			almaVulns: []vulnerability.Vulnerability{},
+
+			// Package version 5.26.3-422 > fix 5.26.3-419, NOT vulnerable
+			// This is a regression test: the bug was comparing binary epoch (0) against constraint with source epoch (4),
+			// causing false positive: 0:1.28-422.el8.0.1 < 4:5.26.3-419.el8 = true (WRONG!)
+			// Correct behavior: Don't add binary epoch to source version, compare without epochs
+			expectedMatches: nil,
+		},
+		{
+			name:        "Epoch handling: upstream vulnerable, no AlmaLinux advisory",
+			description: "Binary package with upstream source, source version < RHEL fix, no AlmaLinux advisory → match",
+
+			pkg: pkg.Package{
+				ID:      pkg.ID("perl-errno-vulnerable"),
+				Name:    "perl-Errno",
+				Version: "0:1.28-416.el8",
+				Type:    syftPkg.RpmPkg,
+				Distro: &distro.Distro{
+					Type:    distro.AlmaLinux,
+					Version: "8.10",
+				},
+				Upstreams: []pkg.UpstreamPackage{
+					{
+						Name:    "perl",
+						Version: "5.26.3-416.el8", // No epoch, version 416 < fix 419
+					},
+				},
+				Metadata: pkg.RpmMetadata{
+					Epoch: intPtr(0),
+				},
+			},
+
+			rhelVulns: []vulnerability.Vulnerability{
+				{
+					PackageName: "perl",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2020-10543",
+						Namespace: "redhat:distro:redhat:8",
+					},
+					Constraint: createConstraint(t, "< 4:5.26.3-419.el8", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						Versions: []string{"4:5.26.3-419.el8"},
+						State:    vulnerability.FixStateFixed,
+					},
+				},
+			},
+
+			almaVulns: []vulnerability.Vulnerability{},
+
+			// Package version 5.26.3-416 < fix 5.26.3-419, IS vulnerable
+			// No AlmaLinux advisory, so RHEL disclosure should be reported
+			expectedMatches: []match.Match{
+				{
+					Vulnerability: vulnerability.Vulnerability{
+						PackageName: "perl",
+						Reference: vulnerability.Reference{
+							ID:        "CVE-2020-10543",
+							Namespace: "redhat:distro:redhat:8",
+						},
+						Constraint: createConstraint(t, "< 4:5.26.3-419.el8", version.RpmFormat),
+						Fix: vulnerability.Fix{
+							Versions: []string{"4:5.26.3-419.el8"},
+							State:    vulnerability.FixStateFixed,
+						},
+					},
+					Package: pkg.Package{
+						ID:      pkg.ID("perl-errno-vulnerable"),
+						Name:    "perl-Errno",
+						Version: "0:1.28-416.el8",
+						Type:    syftPkg.RpmPkg,
+						Distro: &distro.Distro{
+							Type:    distro.AlmaLinux,
+							Version: "8.10",
+						},
+						Upstreams: []pkg.UpstreamPackage{
+							{
+								Name:    "perl",
+								Version: "5.26.3-416.el8",
+							},
+						},
+						Metadata: pkg.RpmMetadata{
+							Epoch: intPtr(0),
+						},
+					},
+					// Details should show ExactIndirectMatch since vulnerability is via upstream
+					Details: []match.Detail{{
+						Type:    match.ExactIndirectMatch,
+						Matcher: match.RpmMatcher,
+						SearchedBy: match.DistroParameters{
+							Distro: match.DistroIdentification{
+								Type:    "almalinux",
+								Version: "8.10",
+							},
+							Package: match.PackageParameter{
+								Name:    "perl-Errno",
+								Version: "0:1.28-416.el8",
+							},
+							Namespace: "redhat:distro:redhat:8",
+						},
+						Found: match.DistroResult{
+							VulnerabilityID:   "CVE-2020-10543",
+							VersionConstraint: "< 4:5.26.3-419.el8 (rpm)",
+						},
+						Confidence: 1.0,
+					}},
+				},
+			},
+		},
+		{
+			name:        "Epoch handling: upstream vulnerable, AlmaLinux fixes binary package",
+			description: "Binary package with upstream source, source version < RHEL fix, AlmaLinux fixes binary → filtered",
+
+			pkg: pkg.Package{
+				ID:      pkg.ID("perl-errno-alma-fixed"),
+				Name:    "perl-Errno",
+				Version: "0:1.28-416.el8",
+				Type:    syftPkg.RpmPkg,
+				Distro: &distro.Distro{
+					Type:    distro.AlmaLinux,
+					Version: "8.10",
+				},
+				Upstreams: []pkg.UpstreamPackage{
+					{
+						Name:    "perl",
+						Version: "5.26.3-416.el8", // No epoch, version 416 < RHEL fix 419
+					},
+				},
+				Metadata: pkg.RpmMetadata{
+					Epoch: intPtr(0),
+				},
+			},
+
+			rhelVulns: []vulnerability.Vulnerability{
+				{
+					PackageName: "perl",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2020-10543",
+						Namespace: "redhat:distro:redhat:8",
+					},
+					Constraint: createConstraint(t, "< 4:5.26.3-419.el8", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						Versions: []string{"4:5.26.3-419.el8"},
+						State:    vulnerability.FixStateFixed,
+					},
+				},
+			},
+
+			almaVulns: []vulnerability.Vulnerability{
+				{
+					PackageName: "perl-Errno",
+					Reference: vulnerability.Reference{
+						ID:        "ALSA-2020:4514",
+						Namespace: "almalinux:distro:almalinux:8",
+					},
+					RelatedVulnerabilities: []vulnerability.Reference{
+						{ID: "CVE-2020-10543"},
+					},
+					// AlmaLinux fixes at binary package version 1.28-416.el8, marking it unaffected
+					Constraint: createConstraint(t, ">= 1.28-416.el8", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						Versions: []string{"1.28-416.el8"},
+						State:    vulnerability.FixStateFixed,
+					},
+					Advisories: []vulnerability.Advisory{
+						{
+							ID:   "ALSA-2020:4514",
+							Link: "https://errata.almalinux.org/8/ALSA-2020-4514.html",
+						},
+					},
+					Unaffected: true,
+				},
+			},
+
+			// Even though upstream source is vulnerable per RHEL,
+			// AlmaLinux marks this binary package version as unaffected
+			// Package version 1.28-416.el8 >= AlmaLinux fix 1.28-416.el8 → filtered
+			expectedMatches: nil,
+		},
+		{
+			name:        "Epoch handling: upstream vulnerable, AlmaLinux fix on binary, package below fix",
+			description: "Binary package with upstream source, source version < RHEL fix, AlmaLinux has fix but package < fix → match with AlmaLinux fix",
+
+			pkg: pkg.Package{
+				ID:      pkg.ID("perl-errno-needs-alma-fix"),
+				Name:    "perl-Errno",
+				Version: "0:1.28-415.el8",
+				Type:    syftPkg.RpmPkg,
+				Distro: &distro.Distro{
+					Type:    distro.AlmaLinux,
+					Version: "8.10",
+				},
+				Upstreams: []pkg.UpstreamPackage{
+					{
+						Name:    "perl",
+						Version: "5.26.3-415.el8", // No epoch, version 415 < RHEL fix 419
+					},
+				},
+				Metadata: pkg.RpmMetadata{
+					Epoch: intPtr(0),
+				},
+			},
+
+			rhelVulns: []vulnerability.Vulnerability{
+				{
+					PackageName: "perl",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2020-10543",
+						Namespace: "redhat:distro:redhat:8",
+					},
+					Constraint: createConstraint(t, "< 4:5.26.3-419.el8", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						Versions: []string{"4:5.26.3-419.el8"},
+						State:    vulnerability.FixStateFixed,
+					},
+				},
+			},
+
+			almaVulns: []vulnerability.Vulnerability{
+				{
+					PackageName: "perl-Errno",
+					Reference: vulnerability.Reference{
+						ID:        "ALSA-2020:4514",
+						Namespace: "almalinux:distro:almalinux:8",
+					},
+					RelatedVulnerabilities: []vulnerability.Reference{
+						{ID: "CVE-2020-10543"},
+					},
+					// AlmaLinux fixes at binary package version 1.28-418.el8
+					Constraint: createConstraint(t, ">= 1.28-418.el8", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						Versions: []string{"1.28-418.el8"},
+						State:    vulnerability.FixStateFixed,
+					},
+					Advisories: []vulnerability.Advisory{
+						{
+							ID:   "ALSA-2020:4514",
+							Link: "https://errata.almalinux.org/8/ALSA-2020-4514.html",
+						},
+					},
+					Unaffected: true,
+				},
+			},
+
+			// Upstream source is vulnerable per RHEL (415 < 419)
+			// Binary package version 1.28-415.el8 < AlmaLinux fix 1.28-418.el8
+			// Should report vulnerability with AlmaLinux fix info (fix replacement)
+			expectedMatches: []match.Match{
+				{
+					Vulnerability: vulnerability.Vulnerability{
+						PackageName: "perl",
+						Reference: vulnerability.Reference{
+							ID:        "CVE-2020-10543",
+							Namespace: "redhat:distro:redhat:8",
+						},
+						// Constraint should be updated to match AlmaLinux fix version
+						Constraint: createConstraint(t, "< 1.28-418.el8", version.RpmFormat),
+						Fix: vulnerability.Fix{
+							Versions: []string{"1.28-418.el8"},
+							State:    vulnerability.FixStateFixed,
+						},
+						Advisories: []vulnerability.Advisory{
+							{
+								ID:   "ALSA-2020:4514",
+								Link: "https://errata.almalinux.org/8/ALSA-2020-4514.html",
+							},
+						},
+					},
+					Package: pkg.Package{
+						ID:      pkg.ID("perl-errno-needs-alma-fix"),
+						Name:    "perl-Errno",
+						Version: "0:1.28-415.el8",
+						Type:    syftPkg.RpmPkg,
+						Distro: &distro.Distro{
+							Type:    distro.AlmaLinux,
+							Version: "8.10",
+						},
+						Upstreams: []pkg.UpstreamPackage{
+							{
+								Name:    "perl",
+								Version: "5.26.3-415.el8",
+							},
+						},
+						Metadata: pkg.RpmMetadata{
+							Epoch: intPtr(0),
+						},
+					},
+					// Details should show ExactIndirectMatch since vulnerability is via upstream
+					Details: []match.Detail{{
+						Type:    match.ExactIndirectMatch,
+						Matcher: match.RpmMatcher,
+						SearchedBy: match.DistroParameters{
+							Distro: match.DistroIdentification{
+								Type:    "almalinux",
+								Version: "8.10",
+							},
+							Package: match.PackageParameter{
+								Name:    "perl-Errno",
+								Version: "0:1.28-415.el8",
+							},
+							Namespace: "redhat:distro:redhat:8",
+						},
+						Found: match.DistroResult{
+							VulnerabilityID:   "CVE-2020-10543",
+							VersionConstraint: "< 1.28-418.el8 (rpm)",
+						},
+						Confidence: 1.0,
+					}},
 				},
 			},
 		},
