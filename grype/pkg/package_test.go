@@ -912,6 +912,20 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "python-pdm-lock-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.PythonPdmLockEntry{
+					Summary: "Test package",
+					Files: []syftPkg.PythonFileRecord{
+						{
+							Path: "test/file.py",
+						},
+					},
+					Dependencies: []string{"dependency1", "dependency2"},
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
