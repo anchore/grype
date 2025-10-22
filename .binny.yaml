@@ -50,7 +50,7 @@ tools:
   # used to release all artifacts
   - name: goreleaser
     version:
-      want: v2.12.5
+      want: v2.12.6
     method: github-release
     with:
       repo: goreleaser/goreleaser
@@ -90,7 +90,7 @@ tools:
   # used for triggering a release
   - name: gh
     version:
-      want: v2.82.0
+      want: v2.82.1
     method: github-release
     with:
       repo: cli/cli
