@@ -204,6 +204,30 @@ func Test_PurlProvider(t *testing.T) {
 			},
 		},
 		{
+			name:      "RPM with rpmmod",
+			userInput: "pkg:rpm/redhat/httpd@2.4.37-51?arch=x86_64&distro=rhel-8.7&rpmmod=httpd:2.4",
+			channels:  testFixChannels(),
+			wantContext: Context{
+				Source: &source.Description{
+					Metadata: PURLLiteralMetadata{
+						PURL: "pkg:rpm/redhat/httpd@2.4.37-51?arch=x86_64&distro=rhel-8.7&rpmmod=httpd:2.4",
+					},
+				},
+			},
+			wantPkgs: []Package{
+				{
+					Name:    "httpd",
+					Version: "2.4.37-51",
+					Type:    pkg.RpmPkg,
+					PURL:    "pkg:rpm/redhat/httpd@2.4.37-51?arch=x86_64&distro=rhel-8.7&rpmmod=httpd:2.4",
+					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.7", Codename: "", IDLike: []string{"redhat"}},
+					Metadata: RpmMetadata{
+						ModularityLabel: strRef("httpd:2.4"),
+					},
+				},
+			},
+		},
+		{
 			name:      "infer context when distro is present for single purl",
 			userInput: "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.3",
 			channels:  testFixChannels(),
