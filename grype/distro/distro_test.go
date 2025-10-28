@@ -577,3 +577,129 @@ func TestDistro_MajorVersion(t *testing.T) {
 func names(ns ...string) []string {
 	return ns
 }
+
+func TestParseDistroString(t *testing.T) {
+	tests := []struct {
+		name            string
+		input           string
+		expectedName    string
+		expectedVersion string
+	}{
+		{
+			name:            "hyphen separator",
+			input:           "debian-11",
+			expectedName:    "debian",
+			expectedVersion: "11",
+		},
+		{
+			name:            "colon separator",
+			input:           "debian:11",
+			expectedName:    "debian",
+			expectedVersion: "11",
+		},
+		{
+			name:            "at separator",
+			input:           "debian@11",
+			expectedName:    "debian",
+			expectedVersion: "11",
+		},
+		{
+			name:            "no separator",
+			input:           "debian",
+			expectedName:    "debian",
+			expectedVersion: "",
+		},
+		{
+			name:            "with major.minor version",
+			input:           "ubuntu-20.04",
+			expectedName:    "ubuntu",
+			expectedVersion: "20.04",
+		},
+		{
+			name:            "with codename",
+			input:           "ubuntu@focal",
+			expectedName:    "ubuntu",
+			expectedVersion: "focal",
+		},
+		{
+			name:            "with channels",
+			input:           "rhel:9.4+eus",
+			expectedName:    "rhel",
+			expectedVersion: "9.4+eus",
+		},
+		{
+			name:            "opensuse-leap with hyphen separator",
+			input:           "opensuse-leap-15.2",
+			expectedName:    "opensuse-leap",
+			expectedVersion: "15.2",
+		},
+		{
+			name:            "opensuse-leap with colon separator",
+			input:           "opensuse-leap:15.2",
+			expectedName:    "opensuse-leap",
+			expectedVersion: "15.2",
+		},
+		{
+			name:            "opensuse-leap with at separator",
+			input:           "opensuse-leap@15.2",
+			expectedName:    "opensuse-leap",
+			expectedVersion: "15.2",
+		},
+		{
+			name:            "opensuse-leap without version",
+			input:           "opensuse-leap",
+			expectedName:    "opensuse-leap",
+			expectedVersion: "",
+		},
+		{
+			name:            "opensuse-leap with mixed case",
+			input:           "OpenSUSE-Leap-15.2",
+			expectedName:    "opensuse-leap",
+			expectedVersion: "15.2",
+		},
+		{
+			name:            "empty string",
+			input:           "",
+			expectedName:    "",
+			expectedVersion: "",
+		},
+		{
+			name:            "with whitespace",
+			input:           "  debian : 11  ",
+			expectedName:    "debian",
+			expectedVersion: "11",
+		},
+		{
+			name:            "multiple separators uses first",
+			input:           "debian-11:test",
+			expectedName:    "debian",
+			expectedVersion: "11:test",
+		},
+		{
+			name:            "rhel with hyphen",
+			input:           "rhel-8",
+			expectedName:    "rhel",
+			expectedVersion: "8",
+		},
+		{
+			name:            "centos with colon",
+			input:           "centos:7",
+			expectedName:    "centos",
+			expectedVersion: "7",
+		},
+		{
+			name:            "alpine with at",
+			input:           "alpine@3.11",
+			expectedName:    "alpine",
+			expectedVersion: "3.11",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			name, version := ParseDistroString(tt.input)
+			assert.Equal(t, tt.expectedName, name, "unexpected name")
+			assert.Equal(t, tt.expectedVersion, version, "unexpected version")
+		})
+	}
+}

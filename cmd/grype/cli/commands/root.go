@@ -401,7 +401,8 @@ func applyDistroHint(hint string) *distro.Distro {
 		return nil
 	}
 
-	return distro.NewFromNameVersion(stringutil.SplitOnFirstString(hint, ":", "@"))
+	name, version := distro.ParseDistroString(hint)
+	return distro.NewFromNameVersion(name, version)
 }
 
 func validateDBLoad(loadErr error, status *vulnerability.ProviderStatus) error {

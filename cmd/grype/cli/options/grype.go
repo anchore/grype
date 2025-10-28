@@ -97,7 +97,7 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 
 	flags.StringVarP(&o.Distro,
 		"distro", "",
-		"distro to match against in the format: <distro>:<version>",
+		"distro to match against in the format: <distro>[-:@]<version>",
 	)
 
 	flags.BoolVarP(&o.GenerateMissingCPEs,
