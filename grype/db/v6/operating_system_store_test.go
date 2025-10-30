@@ -22,6 +22,7 @@ func TestOperatingSystemStore_ResolveOperatingSystem(t *testing.T) {
 	rhel8 := &OperatingSystem{Name: "rhel", ReleaseID: "rhel", MajorVersion: "8"}
 	rhel81 := &OperatingSystem{Name: "rhel", ReleaseID: "rhel", MajorVersion: "8", MinorVersion: "1"}
 	debian10 := &OperatingSystem{Name: "debian", ReleaseID: "debian", MajorVersion: "10"}
+	debian13 := &OperatingSystem{Name: "debian", ReleaseID: "debian", MajorVersion: "13", Codename: "trixie"}
 	echo := &OperatingSystem{Name: "echo", ReleaseID: "echo", MajorVersion: "1"}
 	alpine318 := &OperatingSystem{Name: "alpine", ReleaseID: "alpine", MajorVersion: "3", MinorVersion: "18"}
 	alpineEdge := &OperatingSystem{Name: "alpine", ReleaseID: "alpine", LabelVersion: "edge"}
@@ -42,6 +43,7 @@ func TestOperatingSystemStore_ResolveOperatingSystem(t *testing.T) {
 		rhel8,
 		rhel81,
 		debian10,
+		debian13,
 		alpine318,
 		alpineEdge,
 		debianUnstable,
@@ -165,6 +167,15 @@ func TestOperatingSystemStore_ResolveOperatingSystem(t *testing.T) {
 				Name:         "debian",
 				MajorVersion: "13",
 				LabelVersion: "trixie",
+			},
+			expected: []OperatingSystem{*debian13},
+		},
+		{
+			name: "debian by codename for rolling alias",
+			os: OSSpecifier{
+				Name:         "debian",
+				MajorVersion: "14",
+				LabelVersion: "forky",
 			},
 			expected: []OperatingSystem{*debianUnstable},
 		},

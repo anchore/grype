@@ -92,7 +92,7 @@ func TestEmptyJsonPresenter(t *testing.T) {
 		},
 	}
 
-	doc, err := models.NewDocument(clio.Identification{Name: "grype", Version: "[not provided]"}, nil, ctx, match.NewMatches(), nil, models.NewMetadataMock(), nil, nil, models.SortByPackage)
+	doc, err := models.NewDocument(clio.Identification{Name: "grype", Version: "[not provided]"}, nil, ctx, match.NewMatches(), nil, models.NewMetadataMock(), nil, nil, models.SortByPackage, true)
 	require.NoError(t, err)
 
 	pb := models.PresenterConfig{

@@ -20,7 +20,7 @@ func newMockDbProvider() vulnerability.Provider {
 		},
 		{
 			Reference: vulnerability.Reference{
-				ID:        "CVE-alpine-libvncserver",
+				ID:        "CVE-2024-0000",
 				Namespace: "nvd:cpe",
 			},
 			PackageName: "libvncserver",
@@ -47,7 +47,7 @@ func newMockDbProvider() vulnerability.Provider {
 		},
 		{
 			Reference: vulnerability.Reference{
-				ID:        "CVE-alpine-libvncserver",
+				ID:        "CVE-2024-0000",
 				Namespace: "alpine:distro:alpine:3.12",
 			},
 			PackageName: "libvncserver",

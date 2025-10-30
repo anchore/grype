@@ -33,6 +33,9 @@ type OSSpecifier struct {
 
 	// Channel is a string that represents a different feed for fix and vulnerability data (e.g. "eus" for RHEL)
 	Channel string
+
+	// DisableAliasing prevents OS aliasing when true (used for exact distro matching)
+	DisableAliasing bool
 }
 
 func (d *OSSpecifier) clean() {
@@ -138,7 +141,7 @@ func newOperatingSystemStore(db *gorm.DB, bs *blobStore) *operatingSystemStore {
 	}
 }
 
-func (s *operatingSystemStore) addOsFromPackages(packages ...*AffectedPackageHandle) error { // nolint:dupl
+func (s *operatingSystemStore) addOsFromPackages(packages ...*packageHandle) error { // nolint:dupl
 	cacheInst, ok := cacheFromContext(s.db.Statement.Context)
 	if !ok {
 		return fmt.Errorf("unable to fetch OS cache from context")
@@ -201,8 +204,11 @@ func (s *operatingSystemStore) GetOperatingSystems(d OSSpecifier) ([]OperatingSy
 	// search for aliases for the given distro; we intentionally map some OSs to other OSs in terms of
 	// vulnerability (e.g. `centos` is an alias for `rhel`). If an alias is found always use that alias in
 	// searches (there will never be anything in the DB for aliased distros).
-	if err := s.applyOSAlias(&d); err != nil {
-		return nil, err
+	// Skip aliasing if explicitly disabled (used for exact distro matching).
+	if !d.DisableAliasing {
+		if err := s.applyOSAlias(&d); err != nil {
+			return nil, err
+		}
 	}
 
 	d.clean()

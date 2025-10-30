@@ -21,7 +21,7 @@ const (
 	ModelVersion = 6
 
 	// Revision indicates how many changes have been introduced which **may** prevent interaction with some historical data
-	Revision = 0
+	Revision = 1
 
 	// Addition indicates how many changes have been introduced that are compatible with all historical data
 	Addition = 3
@@ -31,6 +31,11 @@ const (
 	// 6.0.1: Add CISA KEV to VulnerabilityDecorator store
 	// 6.0.2: Add EPSS to VulnerabilityDecorator store
 	// 6.0.3: Add channel column to OperatingSystem model
+	// 6.1.0: Add Fix availability information to AffectedPackageBlob.Range.Fix.Detail.
+	//        Existing git commit and timestamp information was removed (as it was unused)
+	// 6.1.1: Add UnaffectedCPE / UnaffectedPackage models and stores (remove "Affected" prefixes from existing blobs)
+	// 6.1.2: Add CWEs
+	// 6.1.3: Add ID field to Reference (for advisory IDs like RHSA-2023:5455)
 )
 
 const (
@@ -57,7 +62,9 @@ type Reader interface {
 	VulnerabilityDecoratorStoreReader
 	OperatingSystemStoreReader
 	AffectedPackageStoreReader
+	UnaffectedPackageStoreReader
 	AffectedCPEStoreReader
+	UnaffectedCPEStoreReader
 	io.Closer
 	attachBlobValue(...blobable) error
 }
@@ -68,7 +75,9 @@ type Writer interface {
 	VulnerabilityStoreWriter
 	VulnerabilityDecoratorStoreWriter
 	AffectedPackageStoreWriter
+	UnaffectedPackageStoreWriter
 	AffectedCPEStoreWriter
+	UnaffectedCPEStoreWriter
 	io.Closer
 }
 

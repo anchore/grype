@@ -53,7 +53,9 @@ func (g genericConstraint) Satisfied(version *Version) (bool, error) {
 		}
 		return true, nil
 	}
-	if version.Format != g.Fmt {
+	// we want to prevent against two known formats that are different from being compared.
+	// if the passed in version is unknown, we allow the comparison to proceed
+	if version.Format != g.Fmt && version.Format != UnknownFormat {
 		return false, newUnsupportedFormatError(g.Fmt, version)
 	}
 	return g.Expression.satisfied(g.Fmt, version)

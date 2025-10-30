@@ -61,6 +61,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		string(syftPkg.DotnetPkg),
 		string(syftPkg.PhpComposerPkg),
 		string(syftPkg.ConanPkg),
+		string(syftPkg.CondaPkg),
 		string(syftPkg.HexPkg),
 		string(syftPkg.PortagePkg),
 		string(syftPkg.HomebrewPkg),

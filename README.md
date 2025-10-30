@@ -216,8 +216,8 @@ grype --add-cpes-if-none --distro alpine:3.10 sbom:some-alpine-3.10.spdx.json
 
 This section explains the columns and UI cues that help prioritize remediation efforts:
 
-- **Severity**: String severity based on CVSS scores and indicate the significance of a vulnerability in levels.
-  This balances concerns such as ease of exploitability, and the potential to affect 
+- **Severity**: String-based severity derived from CVSS scores that indicates the significance of a vulnerability in levels.
+  This balances concerns such as ease of exploitability, and the potential to affect
   confidentiality, integrity, and availability of software and services.
 
 - **EPSS**:
@@ -301,8 +301,8 @@ COSIGN_EXPERIMENTAL=1 cosign verify-attestation caphill4/java-spdx-tools:latest 
 ```
 
 - **Vulnerability**: All information on the specific vulnerability that was directly matched on (e.g. ID, severity, CVSS score, fix information, links for more information)
-- **RelatedVulnerabilities**: Information pertaining to vulnerabilities found to be related to the main reported vulnerability. Maybe the vulnerability we matched on was a GitHub Security Advisory, which has an upstream CVE (in the authoritative national vulnerability database). In these cases we list the upstream vulnerabilities here.
-- **MatchDetails**: This section tries to explain what we searched for while looking for a match and exactly what details on the package and vulnerability that lead to a match.
+- **RelatedVulnerabilities**: Information pertaining to vulnerabilities found to be related to the main reported vulnerability. Perhaps the vulnerability we matched on was a GitHub Security Advisory, which has an upstream CVE (in the authoritative national vulnerability database). In these cases we list the upstream vulnerabilities here.
+- **MatchDetails**: This section tries to explain what we searched for while looking for a match and exactly what details on the package and vulnerability that led to a match.
 - **Artifact**: This is a subset of the information that we know about the package (when compared to the [Syft](https://github.com/anchore/syft) json output, we summarize the metadata section).
   This has information about where within the container image or directory we found the package, what kind of package it is, licensing info, pURLs, CPEs, etc.
 
@@ -407,13 +407,18 @@ If you're seeing Grype report **false positives** or any other vulnerability mat
 Each rule can specify any combination of the following criteria:
 
 - vulnerability ID (e.g. `"CVE-2008-4318"`)
+- include vulnerability aliases when matching on a vulnerability ID (set `"include-aliases"` to `true`)
 - namespace (e.g. `"nvd"`)
 - fix state (allowed values: `"fixed"`, `"not-fixed"`, `"wont-fix"`, or `"unknown"`)
+- match type (allowed values: `"exact-direct-match"`, `"exact-indirect-match"`, or `"cpe-match"`)
 - package name (e.g. `"libcurl"`)
 - package version (e.g. `"1.5.1"`)
 - package language (e.g. `"python"`; these values are defined [here](https://github.com/anchore/syft/blob/main/syft/pkg/language.go#L14-L23))
 - package type (e.g. `"npm"`; these values are defined [here](https://github.com/anchore/syft/blob/main/syft/pkg/type.go#L10-L24))
 - package location (e.g. `"/usr/local/lib/node_modules/**"`; supports glob patterns)
+- package upstream name (e.g. `"curl"`)
+
+You can also document a rule with a free-form `reason`, and use VEX-specific fields (`vex-status` and `vex-justification`) when providing VEX data.
 
 Here's an example `~/.grype.yaml` that demonstrates the expected format for ignore rules:
 
@@ -421,15 +426,21 @@ Here's an example `~/.grype.yaml` that demonstrates the expected format for igno
 ignore:
   # This is the full set of supported rule fields:
   - vulnerability: CVE-2008-4318
+    include-aliases: true
+    reason: "False positive due to bundled curl version"
     fix-state: unknown
+    namespace: nvd
     # VEX fields apply when Grype reads vex data:
     vex-status: not_affected
     vex-justification: vulnerable_code_not_present
+    match-type: exact-direct-match
     package:
       name: libcurl
       version: 1.5.1
+      language: python
       type: npm
       location: "/usr/local/lib/node_modules/**"
+      upstream-name: curl
 
   # We can make rules to match just by vulnerability ID:
   - vulnerability: CVE-2014-54321
@@ -980,6 +991,9 @@ dev:
   db:
     # show sql queries in trace logging (requires -vv) (env: GRYPE_DEV_DB_DEBUG)
     debug: false
+
+# include a timestamp (env: GRYPE_TIMESTAMP)
+timestamp: true
 ```
 
 ## Future plans

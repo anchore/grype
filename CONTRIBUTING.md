@@ -33,7 +33,7 @@ This username and email address will matter later in this guide.
 
 ## Fork the repo
 
-You should fork the Grype repo using the "Fork" button at the top right of the Grype GitHub [site](https://github.com/anchore/grype/). You will be doing your development in your fork, then submit a pull request to Grype. There are many resources how to use GitHub effectively, we will not cover those here.
+You should fork the Grype repo using the "Fork" button at the top right of the Grype GitHub [site](https://github.com/anchore/grype/). You will be doing your development in your fork, then submit a pull request to Grype. There are many resources on how to use GitHub effectively, we will not cover those here.
 
 ## Adding a feature or fix
 
@@ -162,4 +162,4 @@ If nobody knows new features exist, they can't use them!
 
 ## Security Vulnerabilities
 
-Found a security vulnerability? See in our [Security Policy](SECURITY.md) to see how to report it to be solved as soon as possible. 
+Found a security vulnerability? See our [Security Policy](SECURITY.md) to see how to report it to be solved as soon as possible. 

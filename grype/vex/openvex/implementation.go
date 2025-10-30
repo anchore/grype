@@ -11,6 +11,7 @@ import (
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	vexStatus "github.com/anchore/grype/grype/vex/status"
 	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/source"
 )
@@ -33,16 +34,12 @@ type SearchedBy struct {
 	Subcomponents []string
 }
 
-// augmentStatuses are the VEX statuses that augment results
-var augmentStatuses = []openvex.Status{
-	openvex.StatusAffected,
-	openvex.StatusUnderInvestigation,
-}
-
-// filterStatuses are the VEX statuses that filter matched to the ignore list
-var ignoreStatuses = []openvex.Status{
-	openvex.StatusNotAffected,
-	openvex.StatusFixed,
+// IsOpenVex checks if the provided document is a VEX document
+func IsOpenVex(document string) bool {
+	if _, err := openvex.Load(document); err == nil {
+		return true
+	}
+	return false
 }
 
 // ReadVexDocuments reads and merges VEX documents
@@ -69,6 +66,18 @@ func productIdentifiersFromContext(pkgContext *pkg.Context) ([]string, error) {
 		// Fail for now
 		return nil, errors.New("source type not supported for VEX")
 	}
+}
+
+// productIdentifierFromVEX reads the VEX documents and returns software
+// identifiers listed in the statements.
+func productIdentifierFromVEX(doc *openvex.VEX) []string {
+	var products []string
+	for _, stmt := range doc.Statements {
+		for _, product := range stmt.Products {
+			products = append(products, product.ID)
+		}
+	}
+	return products
 }
 
 func identifiersFromTags(tags []string, name string) []string {
@@ -164,9 +173,16 @@ func (ovm *Processor) FilterMatches(
 
 	remainingMatches := match.NewMatches()
 
+	// this works only when grype uses the SBOM syft format
 	products, err := productIdentifiersFromContext(pkgContext)
 	if err != nil {
 		return nil, nil, fmt.Errorf("reading product identifiers from context: %w", err)
+	}
+
+	// if the previous method didn't work to find products,
+	// we get them from the VEX document.
+	if len(products) == 0 {
+		products = productIdentifierFromVEX(doc)
 	}
 
 	// TODO(alex): should we apply the vex ignore rules to the already ignored matches?
@@ -192,7 +208,7 @@ func (ovm *Processor) FilterMatches(
 			continue
 		}
 
-		rule := matchingRule(ignoreRules, sorted[i], statement, ignoreStatuses)
+		rule := matchingRule(ignoreRules, sorted[i], statement, vexStatus.IgnoreList())
 		if rule == nil {
 			remainingMatches.Add(sorted[i])
 			continue
@@ -214,13 +230,20 @@ func (ovm *Processor) FilterMatches(
 
 // matchingRule cycles through a set of ignore rules and returns the first
 // one that matches the statement and the match. Returns nil if none match.
-func matchingRule(ignoreRules []match.IgnoreRule, m match.Match, statement *openvex.Statement, allowedStatuses []openvex.Status) *match.IgnoreRule {
+func matchingRule(ignoreRules []match.IgnoreRule, m match.Match, statement *openvex.Statement, allowedStatuses []vexStatus.Status) *match.IgnoreRule {
 	ms := match.NewMatches()
 	ms.Add(m)
 
-	revStatuses := map[string]struct{}{}
-	for _, s := range allowedStatuses {
-		revStatuses[string(s)] = struct{}{}
+	// By default, if there are no ignore rules (which means the user didn't provide
+	// any custom VEX rule), a matching rule should be returned if the statement
+	// status is one of the allowed statuses.
+	if len(ignoreRules) == 0 && slices.Contains(allowedStatuses, vexStatus.Status(statement.Status)) {
+		return &match.IgnoreRule{
+			Namespace:        "vex",
+			Vulnerability:    statement.Vulnerability.ID,
+			VexJustification: string(statement.Justification),
+			VexStatus:        string(statement.Status),
+		}
 	}
 
 	for _, rule := range ignoreRules {
@@ -241,10 +264,8 @@ func matchingRule(ignoreRules []match.IgnoreRule, m match.Match, statement *open
 		}
 
 		// If the rule has a statement other than the allowed ones, skip:
-		if len(revStatuses) > 0 && rule.VexStatus != "" {
-			if _, ok := revStatuses[rule.VexStatus]; !ok {
-				continue
-			}
+		if rule.VexStatus != "" && !slices.Contains(allowedStatuses, vexStatus.Status(rule.VexStatus)) {
+			continue
 		}
 
 		// If the rule applies to a VEX justification it needs to match the
@@ -318,7 +339,7 @@ func (ovm *Processor) AugmentMatches(
 		}
 
 		// Only match if rules to augment are configured
-		rule := matchingRule(ignoreRules, ignoredMatches[i].Match, statement, augmentStatuses)
+		rule := matchingRule(ignoreRules, ignoredMatches[i].Match, statement, vexStatus.AugmentList())
 		if rule == nil {
 			additionalIgnoredMatches = append(additionalIgnoredMatches, ignoredMatches[i])
 			continue
