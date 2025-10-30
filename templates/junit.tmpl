@@ -11,10 +11,14 @@
 <![CDATA[
 {{ html .Vulnerability.Description }}
 
-{{ .Artifact.CPEs }}
+CPEs:
+{{- range .Artifact.CPEs }}
+{{ . }}
+{{- end }}
 
+DataSource:
 {{ html .Vulnerability.DataSource }}
-            
+
 ]]></failure>
         </testcase>
         {{- end }}
