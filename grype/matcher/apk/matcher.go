@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher/common"
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
@@ -49,6 +50,9 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 		return nil, nil, err
 	}
 	matches = append(matches, indirectMatches...)
+
+	// Check if this is a Root.io package and filter unaffected vulnerabilities
+	matches = common.FilterRootIoUnaffectedMatches(store, p, matches)
 
 	// APK sources are also able to NAK vulnerabilities, so we want to return these as explicit ignores in order
 	// to allow rules later to use these to ignore "the same" vulnerability found in "the same" locations
@@ -269,3 +273,4 @@ func (m *Matcher) findNaksForPackage(provider vulnerability.Provider, p pkg.Pack
 
 	return ignores, nil
 }
+
