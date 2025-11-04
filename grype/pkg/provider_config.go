@@ -18,6 +18,7 @@ type SyftProviderConfig struct {
 	Exclusions             []string
 	Name                   string
 	DefaultImagePullSource string
+	Sources                []string
 }
 
 type SynthesisConfig struct {

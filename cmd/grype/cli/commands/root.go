@@ -359,6 +359,7 @@ func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
 			Platform:               opts.Platform,
 			Name:                   opts.Name,
 			DefaultImagePullSource: opts.DefaultImagePullSource,
+			Sources:                opts.From,
 		},
 		SynthesisConfig: pkg.SynthesisConfig{
 			GenerateMissingCPEs: opts.GenerateMissingCPEs,
