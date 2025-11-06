@@ -152,6 +152,42 @@ func TestMavenVersion_Compare(t *testing.T) {
 			v2:   "5.2.25",
 			want: 0,
 		},
+		// JRE/JDK qualifier tests (GitHub issue: JRE version matching)
+		{
+			v1:   "12.10.2",
+			v2:   "12.10.2.jre11",
+			want: 0,
+		},
+		{
+			v1:   "12.10.2.jre11",
+			v2:   "12.10.2",
+			want: 0,
+		},
+		{
+			v1:   "12.10.2.jdk17",
+			v2:   "12.10.2",
+			want: 0,
+		},
+		{
+			v1:   "12.10.2.jre11",
+			v2:   "12.10.2.jdk17",
+			want: 0,
+		},
+		{
+			v1:   "12.10.1",
+			v2:   "12.10.2.jre11",
+			want: -1,
+		},
+		{
+			v1:   "12.10.2.jre11",
+			v2:   "12.10.1",
+			want: 1,
+		},
+		{
+			v1:   "1.2.3.jre8",
+			v2:   "1.2.4.jre8",
+			want: -1,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.v1+" vs "+tt.v2, func(t *testing.T) {
