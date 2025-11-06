@@ -127,6 +127,7 @@ func DBSearch(app clio.Application) *cobra.Command {
 
 	cmd.AddCommand(
 		DBSearchVulnerabilities(app),
+		DBSearchOS(app),
 	)
 
 	// prevent from being shown in the grype config
