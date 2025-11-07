@@ -41,14 +41,34 @@ func parseRangeExpression(phrase string) (simpleRangeExpression, error) {
 }
 
 func (c *simpleRangeExpression) satisfied(format Format, version *Version) (bool, error) {
+	// Use the version's embedded config if present, otherwise use empty config
+	cfg := ComparisonConfig{}
+	if version != nil {
+		cfg = version.Config
+	}
+	return c.satisfiedWithConfig(format, version, cfg)
+}
+
+func (c *simpleRangeExpression) satisfiedWithConfig(format Format, version *Version, cfg ComparisonConfig) (bool, error) {
 	oneSatisfied := false
 	for i, andOperand := range c.Units {
 		allSatisfied := true
 		for j, andUnit := range andOperand {
-			result, err := version.Compare(&Version{
+			constraintVersion := &Version{
 				Format: format,
 				Raw:    andUnit.Version,
-			})
+			}
+
+			var result int
+			var err error
+
+			// Use config-aware comparison for RPM and Deb formats when config is provided
+			if cfg.MissingEpochStrategy != "" && (format == RpmFormat || format == DebFormat) {
+				result, err = compareWithConfig(version, constraintVersion, cfg)
+			} else {
+				result, err = version.Compare(constraintVersion)
+			}
+
 			if err != nil {
 				return false, fmt.Errorf("uncomparable %T vs %q: %w", andUnit, version.String(), err)
 			}
@@ -62,6 +82,27 @@ func (c *simpleRangeExpression) satisfied(format Format, version *Version) (bool
 		oneSatisfied = oneSatisfied || allSatisfied
 	}
 	return oneSatisfied, nil
+}
+
+// compareWithConfig performs a version comparison using the provided configuration.
+// This function extracts the comparator and calls CompareWithConfig if the comparator
+// supports it (RPM and Deb versions).
+func compareWithConfig(version *Version, constraintVersion *Version, cfg ComparisonConfig) (int, error) {
+	comparator, err := version.getComparator(version.Format)
+	if err != nil {
+		return 0, err
+	}
+
+	// Check if the comparator supports config-aware comparison
+	switch v := comparator.(type) {
+	case rpmVersion:
+		return v.CompareWithConfig(constraintVersion, cfg)
+	case debVersion:
+		return v.CompareWithConfig(constraintVersion, cfg)
+	default:
+		// Fall back to regular comparison for other formats
+		return comparator.Compare(constraintVersion)
+	}
 }
 
 func scanExpression(phrase string) ([][]string, error) {
