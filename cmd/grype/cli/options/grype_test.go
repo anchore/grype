@@ -25,7 +25,7 @@ func Test_flatten(t *testing.T) {
 		{
 			name:     "multiple entries with commas",
 			input:    []string{"docker,registry", "podman"},
-			expected: []string{"docker", "podman", "registry"}, // sorted
+			expected: []string{"docker", "registry", "podman"}, // preserves order
 		},
 		{
 			name:     "whitespace trimming",

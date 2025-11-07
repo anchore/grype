@@ -2,7 +2,6 @@ package options
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/anchore/clio"
@@ -218,7 +217,7 @@ func (o Grype) FailOnSeverity() *vulnerability.Severity {
 	return &severity
 }
 
-// flatten takes a list of comma-separated entries and returns a flattened list of trimmed values
+// flatten takes a list of comma-separated entries and returns a flattened list of trimmed values (preserving order)
 func flatten(commaSeparatedEntries []string) []string {
 	var out []string
 	for _, v := range commaSeparatedEntries {
@@ -226,6 +225,5 @@ func flatten(commaSeparatedEntries []string) []string {
 			out = append(out, strings.TrimSpace(s))
 		}
 	}
-	sort.Strings(out)
 	return out
 }
