@@ -11,7 +11,6 @@ permissions: read-all
 jobs:
   analysis:
     name: Scorecards analysis
-    # Scorecards analysis: runs-on 'small-arm' (ARM, t4g/m7g, spot) - Go has excellent ARM support, job is standard automation/testing
     # Runner definition: workflows/.github/runs-on.yml
     runs-on: runs-on=${{ github.run_id }}/runner=small-arm
     permissions:

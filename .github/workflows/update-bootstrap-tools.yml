@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   update-bootstrap-tools:
-    # update-bootstrap-tools: runs-on 'small' (m7i-flex.large, spot) - Optimal for cpu-balanced workload with ephemeral priority
     # Runner definition: workflows/.github/runs-on.yml
     runs-on: runs-on=${{ github.run_id }}/runner=small
     if: github.repository == 'anchore/grype' # only run for main repo

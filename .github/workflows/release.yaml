@@ -17,7 +17,6 @@ jobs:
   quality-gate:
     if: ${{ !inputs.skip_quality_gate }}
     environment: release
-    # quality-gate: runs-on 'tiny' (ARM t4g, spot) - Lightweight validation/orchestration in release
     # Runner definition: workflows/.github/runs-on.yml
     runs-on: runs-on=${{ github.run_id }}/runner=tiny
     steps:
@@ -140,7 +139,6 @@ jobs:
   release:
     needs: [quality-gate]
     if: ${{ always() && (needs.quality-gate.result == 'success' || inputs.skip_quality_gate) }}
-    # release: runs-on 'release' (m7i-flex.large, on-demand) - Optimal for cpu-balanced workload with production-critical priority
     # Runner definition: workflows/.github/runs-on.yml
     runs-on: runs-on=${{ github.run_id }}/runner=release
     permissions:
