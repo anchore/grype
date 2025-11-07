@@ -11,7 +11,9 @@ permissions: read-all
 jobs:
   analysis:
     name: Scorecards analysis
-    runs-on: ubuntu-latest
+    # Scorecards analysis: runs-on 'small' (m7i-flex.large, spot) - Optimal for cpu-balanced workload with security-scanning priority
+    # Runner definition: workflows/.github/runs-on.yml
+    runs-on: runs-on=${{ github.run_id }}/runner=small
     permissions:
       # Needed to upload the results to code-scanning dashboard.
       security-events: write

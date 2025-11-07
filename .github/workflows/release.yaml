@@ -17,7 +17,9 @@ jobs:
   quality-gate:
     if: ${{ !inputs.skip_quality_gate }}
     environment: release
-    runs-on: ubuntu-24.04
+    # quality-gate: runs-on 'large' (r7i.xlarge, on-demand) - Optimal for memory-intensive workload with production-critical priority
+    # Runner definition: workflows/.github/runs-on.yml
+    runs-on: runs-on=${{ github.run_id }}/runner=large
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
         with:
@@ -138,7 +140,9 @@ jobs:
   release:
     needs: [quality-gate]
     if: ${{ always() && (needs.quality-gate.result == 'success' || inputs.skip_quality_gate) }}
-    runs-on: ubuntu-24.04
+    # release: runs-on 'release' (m7i-flex.large, on-demand) - Optimal for cpu-balanced workload with production-critical priority
+    # Runner definition: workflows/.github/runs-on.yml
+    runs-on: runs-on=${{ github.run_id }}/runner=release
     permissions:
       contents: write
       packages: write

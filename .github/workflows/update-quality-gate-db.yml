@@ -10,7 +10,9 @@ permissions:
 
 jobs:
   update-test-db-url:
-    runs-on: ubuntu-latest
+    # update-test-db-url: runs-on 'quality-gate' (c7a.xlarge, spot) - Optimal for cpu-intensive workload with ephemeral priority
+    # Runner definition: workflows/.github/runs-on.yml
+    runs-on: runs-on=${{ github.run_id }}/runner=quality-gate
     if: github.repository == 'anchore/grype' # only run for main repo
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0

@@ -14,7 +14,9 @@ jobs:
   Static-Analysis:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Static analysis"
-    runs-on: ubuntu-24.04
+    # Static analysis: runs-on 'small' (m7i-flex.large, spot) - Optimal for cpu-balanced workload with ephemeral priority
+    # Runner definition: workflows/.github/runs-on.yml
+    runs-on: runs-on=${{ github.run_id }}/runner=small
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
@@ -29,7 +31,9 @@ jobs:
   Unit-Test:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Unit tests"
-    runs-on: ubuntu-24.04
+    # Unit tests: runs-on 'small' (m7i-flex.large, spot) - Optimal for cpu-balanced workload with ephemeral priority
+    # Runner definition: workflows/.github/runs-on.yml
+    runs-on: runs-on=${{ github.run_id }}/runner=small
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
@@ -37,14 +41,16 @@ jobs:
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
-      
+
       - name: Run unit tests
         run: make unit
 
   Quality-Test:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Quality tests"
-    runs-on: ubuntu-22.04-4core-16gb
+    # Quality tests: runs-on 'quality-gate' (c7a.xlarge, spot) - Optimal for cpu-intensive workload with ephemeral priority
+    # Runner definition: workflows/.github/runs-on.yml
+    runs-on: runs-on=${{ github.run_id }}/runner=quality-gate
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
@@ -100,7 +106,9 @@ jobs:
   Integration-Test:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Integration tests"
-    runs-on: ubuntu-24.04
+    # Integration tests: runs-on 'quality-gate' (c7a.xlarge, spot) - Optimal for cpu-intensive workload with ephemeral priority
+    # Runner definition: workflows/.github/runs-on.yml
+    runs-on: runs-on=${{ github.run_id }}/runner=quality-gate
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
@@ -120,7 +128,9 @@ jobs:
 
   Build-Snapshot-Artifacts:
     name: "Build snapshot artifacts"
-    runs-on: ubuntu-24.04
+    # Build snapshot artifacts: runs-on 'quality-gate' (c7a.xlarge, spot) - Optimal for cpu-intensive workload with ephemeral priority
+    # Runner definition: workflows/.github/runs-on.yml
+    runs-on: runs-on=${{ github.run_id }}/runner=quality-gate
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
@@ -151,7 +161,8 @@ jobs:
   Upload-Snapshot-Artifacts:
     name: "Upload snapshot artifacts"
     needs: [Build-Snapshot-Artifacts]
-    runs-on: ubuntu-24.04
+    # Upload snapshot artifacts: GitHub ARM runner (Artifact/cache management - I/O bound, very short duration)
+    runs-on: ubuntu-latest-arm
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
         with:
@@ -194,7 +205,9 @@ jobs:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Acceptance tests (Linux)"
     needs: [Build-Snapshot-Artifacts]
-    runs-on: ubuntu-24.04
+    # Acceptance tests (Linux): runs-on 'quality-gate' (c7a.xlarge, spot) - Optimal for cpu-intensive workload with ephemeral priority
+    # Runner definition: workflows/.github/runs-on.yml
+    runs-on: runs-on=${{ github.run_id }}/runner=quality-gate
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
         with:
@@ -228,6 +241,7 @@ jobs:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Acceptance tests (Mac)"
     needs: [Build-Snapshot-Artifacts]
+    # Acceptance tests (Mac): GitHub ARM runner (Requires macOS runner)
     runs-on: macos-latest
     steps:
       - name: Install Cosign
@@ -258,7 +272,9 @@ jobs:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "CLI tests (Linux)"
     needs: [Build-Snapshot-Artifacts]
-    runs-on: ubuntu-24.04
+    # CLI tests (Linux): runs-on 'quality-gate' (c7a.xlarge, spot) - Optimal for cpu-intensive workload with ephemeral priority
+    # Runner definition: workflows/.github/runs-on.yml
+    runs-on: runs-on=${{ github.run_id }}/runner=quality-gate
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
         with:
@@ -285,7 +301,8 @@ jobs:
   Cleanup-Cache:
     name: "Cleanup snapshot cache"
     if: github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-24.04
+    # Cleanup snapshot cache: GitHub ARM runner (Artifact/cache management - I/O bound, very short duration)
+    runs-on: ubuntu-latest-arm
     permissions:
       actions: write
     needs:

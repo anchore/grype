@@ -18,7 +18,9 @@ permissions:
 jobs:
   zizmor:
     name: "Lint"
-    runs-on: ubuntu-latest
+    # Lint: runs-on 'small' (t3.medium, spot) - Optimal for cpu-light workload with other priority
+    # Runner definition: workflows/.github/runs-on.yml
+    runs-on: runs-on=${{ github.run_id }}/runner=small
     permissions:
       contents: read
       security-events: write  # for uploading SARIF results

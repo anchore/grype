@@ -10,7 +10,9 @@ permissions:
 
 jobs:
   update-bootstrap-tools:
-    runs-on: ubuntu-latest
+    # update-bootstrap-tools: runs-on 'small' (m7i-flex.large, spot) - Optimal for cpu-balanced workload with ephemeral priority
+    # Runner definition: workflows/.github/runs-on.yml
+    runs-on: runs-on=${{ github.run_id }}/runner=small
     if: github.repository == 'anchore/grype' # only run for main repo
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
@@ -29,16 +31,16 @@ jobs:
         run: |
           make update-tools
           make list-tools
-          
+
           export NO_COLOR=1
           delimiter="$(openssl rand -hex 8)"
-          
+
           {
             echo "status<<${delimiter}"
             make list-tool-updates
             echo "${delimiter}"
           } >> $GITHUB_OUTPUT
-          
+
           {
             echo "### Tool version status"
             echo "\`\`\`"
