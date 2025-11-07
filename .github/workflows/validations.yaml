@@ -14,9 +14,9 @@ jobs:
   Static-Analysis:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Static analysis"
-    # Static analysis: runs-on 'small' (m7i-flex.large, spot) - Optimal for cpu-balanced workload with ephemeral priority
+    # Static analysis: runs-on 'small-arm' (ARM, t4g/m7g, spot) - Go has excellent ARM support, job is standard automation/testing
     # Runner definition: workflows/.github/runs-on.yml
-    runs-on: runs-on=${{ github.run_id }}/runner=small
+    runs-on: runs-on=${{ github.run_id }}/runner=small-arm
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
@@ -31,9 +31,9 @@ jobs:
   Unit-Test:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Unit tests"
-    # Unit tests: runs-on 'small' (m7i-flex.large, spot) - Optimal for cpu-balanced workload with ephemeral priority
+    # Unit tests: runs-on 'small-arm' (ARM, t4g/m7g, spot) - Go has excellent ARM support, job is standard automation/testing
     # Runner definition: workflows/.github/runs-on.yml
-    runs-on: runs-on=${{ github.run_id }}/runner=small
+    runs-on: runs-on=${{ github.run_id }}/runner=small-arm
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:

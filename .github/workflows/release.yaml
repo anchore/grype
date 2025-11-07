@@ -17,9 +17,9 @@ jobs:
   quality-gate:
     if: ${{ !inputs.skip_quality_gate }}
     environment: release
-    # quality-gate: runs-on 'large' (r7i.xlarge, on-demand) - Optimal for memory-intensive workload with production-critical priority
+    # quality-gate: runs-on 'tiny' (ARM t4g, spot) - Lightweight validation/orchestration in release
     # Runner definition: workflows/.github/runs-on.yml
-    runs-on: runs-on=${{ github.run_id }}/runner=large
+    runs-on: runs-on=${{ github.run_id }}/runner=tiny
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
         with:

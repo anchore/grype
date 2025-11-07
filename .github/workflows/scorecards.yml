@@ -11,9 +11,9 @@ permissions: read-all
 jobs:
   analysis:
     name: Scorecards analysis
-    # Scorecards analysis: runs-on 'small' (m7i-flex.large, spot) - Optimal for cpu-balanced workload with security-scanning priority
+    # Scorecards analysis: runs-on 'small-arm' (ARM, t4g/m7g, spot) - Go has excellent ARM support, job is standard automation/testing
     # Runner definition: workflows/.github/runs-on.yml
-    runs-on: runs-on=${{ github.run_id }}/runner=small
+    runs-on: runs-on=${{ github.run_id }}/runner=small-arm
     permissions:
       # Needed to upload the results to code-scanning dashboard.
       security-events: write
