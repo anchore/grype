@@ -126,7 +126,7 @@ spec:
             limits:
               cpu: 200m
               memory: 256Mi
-          # securityContext:
+          # securityContext:  I commented these as they might cause issues in some environments
           #   allowPrivilegeEscalation: false
           #   runAsNonRoot: true
           #   runAsUser: 1000
@@ -140,7 +140,7 @@ spec:
       volumes:
         - name: tmp
           emptyDir: {}
-      # securityContext:
+      # securityContext: I commented these as they might cause issues in some environments
       #   fsGroup: 1000
       #   runAsNonRoot: true
       #   seccompProfile:
