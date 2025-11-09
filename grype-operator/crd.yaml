@@ -1,0 +1,136 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: vulnerabilityreports.security.grype.io
+spec:
+  group: security.grype.io
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                pod:
+                  type: string
+                  description: Name of the scanned pod
+                scanTime:
+                  type: string
+                  description: Timestamp of the scan
+                scanner:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    vendor:
+                      type: string
+                summary:
+                  type: object
+                  properties:
+                    critical:
+                      type: integer
+                    high:
+                      type: integer
+                    medium:
+                      type: integer
+                    low:
+                      type: integer
+                    negligible:
+                      type: integer
+                    unknown:
+                      type: integer
+                    total:
+                      type: integer
+                containerReports:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      container:
+                        type: string
+                      image:
+                        type: string
+                      error:
+                        type: string
+                      summary:
+                        type: object
+                        properties:
+                          critical:
+                            type: integer
+                          high:
+                            type: integer
+                          medium:
+                            type: integer
+                          low:
+                            type: integer
+                          negligible:
+                            type: integer
+                          unknown:
+                            type: integer
+                          total:
+                            type: integer
+                      vulnerabilities:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            severity:
+                              type: string
+                            package:
+                              type: string
+                            version:
+                              type: string
+                            fixedVersion:
+                              type: array
+                              items:
+                                type: string
+                            description:
+                              type: string
+                            urls:
+                              type: array
+                              items:
+                                type: string
+                            cvss:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  version:
+                                    type: string
+                                  vector:
+                                    type: string
+                                  score:
+                                    type: number
+      additionalPrinterColumns:
+        - name: Pod
+          type: string
+          jsonPath: .spec.pod
+        - name: Critical
+          type: integer
+          jsonPath: .spec.summary.critical
+        - name: High
+          type: integer
+          jsonPath: .spec.summary.high
+        - name: Medium
+          type: integer
+          jsonPath: .spec.summary.medium
+        - name: Low
+          type: integer
+          jsonPath: .spec.summary.low
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+  scope: Namespaced
+  names:
+    plural: vulnerabilityreports
+    singular: vulnerabilityreport
+    kind: VulnerabilityReport
+    shortNames:
+      - vulnreport
+      - vr
