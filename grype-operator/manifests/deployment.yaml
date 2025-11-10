@@ -19,7 +19,7 @@ spec:
       serviceAccountName: grype-operator
       containers:
         - name: operator
-          image: ttl.sh/grype-rohan:24h
+          image: rohanrustagi18/grype-operator:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: OPERATOR_NAMESPACE
