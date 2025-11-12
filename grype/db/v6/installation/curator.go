@@ -640,7 +640,7 @@ func unarchive(source, destination string) error {
 		return err
 	}
 
-	err = extractor.Extract(ctx, stream, func(ctx context.Context, file archives.FileInfo) error {
+	err = extractor.Extract(ctx, stream, func(_ context.Context, file archives.FileInfo) error {
 		if file.IsDir() || file.LinkTarget != "" {
 			return nil
 		}
