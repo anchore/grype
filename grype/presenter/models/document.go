@@ -21,6 +21,8 @@ type Document struct {
 }
 
 // NewDocument creates and populates a new Document struct, representing the populated JSON document.
+//
+//nolint:staticcheck // MetadataProvider is deprecated but still used internally
 func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Context, matches match.Matches, ignoredMatches []match.IgnoredMatch, metadataProvider vulnerability.MetadataProvider, appConfig any, dbInfo any, strategy SortStrategy, outputTimestamp bool) (Document, error) {
 	var timestamp []byte
 

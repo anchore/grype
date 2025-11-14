@@ -34,6 +34,7 @@ type AffectedPackageInfo struct {
 	CPE *CPE `json:"cpe,omitempty"`
 
 	// Namespace is a holdover value from the v5 DB schema that combines provider and search methods into a single value
+	//
 	// Deprecated: this field will be removed in a later version of the search schema
 	Namespace string `json:"namespace"`
 

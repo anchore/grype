@@ -12,7 +12,7 @@
           "description": "is the detailed information about the affected package"
         },
         "namespace": {
-          "description": "is a holdover value from the v5 DB schema that combines provider and search methods into a single value\nDeprecated: this field will be removed in a later version of the search schema"
+          "description": "is a holdover value from the v5 DB schema that combines provider and search methods into a single value\n\nDeprecated: this field will be removed in a later version of the search schema"
         },
         "os": {
           "description": "identifies the operating system release that the affected package is released for"
