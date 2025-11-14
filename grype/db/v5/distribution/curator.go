@@ -527,9 +527,7 @@ func unarchive(source, destination string) error {
 		return err
 	}
 
-	ctx := context.Background()
-
-	format, stream, err := archives.Identify(ctx, source, sourceFile)
+	format, stream, err := archives.Identify(context.Background(), source, sourceFile)
 	if err != nil {
 		return err
 	}
@@ -544,7 +542,7 @@ func unarchive(source, destination string) error {
 		return err
 	}
 
-	err = extractor.Extract(ctx, stream, func(_ context.Context, file archives.FileInfo) error {
+	visitor := func(_ context.Context, file archives.FileInfo) error {
 		if file.IsDir() || file.LinkTarget != "" {
 			return nil
 		}
@@ -566,7 +564,7 @@ func unarchive(source, destination string) error {
 		_, err = io.Copy(outputFile, fileReader)
 
 		return err
-	})
+	}
 
-	return err
+	return extractor.Extract(context.Background(), stream, visitor)
 }
