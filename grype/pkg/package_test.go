@@ -917,12 +917,42 @@ func TestNew(t *testing.T) {
 			syftPkg: syftPkg.Package{
 				Metadata: syftPkg.PythonPdmLockEntry{
 					Summary: "Test package",
-					Files: []syftPkg.PythonFileRecord{
+					Files: []syftPkg.PythonPdmFileEntry{
 						{
-							Path: "test/file.py",
+							URL: "test/file.py",
 						},
 					},
 					Dependencies: []string{"dependency1", "dependency2"},
+				},
+			},
+		},
+		{
+			name: "javascript-pnpm-lock-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.PnpmLockEntry{
+					Resolution: syftPkg.PnpmLockResolution{
+						Integrity: "",
+					},
+					Dependencies: map[string]string{
+						"dependency1": "1.2.3",
+						"dependency2": "4.5.6"},
+				},
+			},
+		},
+		{
+			name: "gguf-file-header",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.GGUFFileHeader{
+					GGUFVersion:  1,
+					FileSize:     2,
+					Architecture: "arch",
+					Quantization: "quant",
+					Parameters:   3,
+					TensorCount:  4,
+					RemainingKeyValues: map[string]any{
+						"key1": "value1",
+					},
+					MetadataKeyValuesHash: "f00bar123",
 				},
 			},
 		},
