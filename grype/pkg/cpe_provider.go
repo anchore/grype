@@ -6,9 +6,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/anchore/grype/grype/internal"
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/pkg"
+	cpe_cataloger "github.com/anchore/syft/syft/pkg/cataloger/common/cpe"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
 )
@@ -83,7 +83,7 @@ func cpeToPackage(rawLine string) (*Package, *pkg.Package, error) {
 		Name:    c.Attributes.Product,
 		Version: c.Attributes.Version,
 		CPEs:    []cpe.CPE{c},
-		Type:    internal.CPETargetSoftwareToPackageType(c.Attributes.TargetSW),
+		Type:    cpe_cataloger.TargetSoftwareToPackageType(c.Attributes.TargetSW),
 	}
 
 	syftPkg.SetID()
