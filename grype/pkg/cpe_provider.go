@@ -11,6 +11,7 @@ import (
 )
 
 const cpeInputPrefix = "cpe:"
+const cpeListPrefix = "cpes:"
 
 type CPELiteralMetadata struct {
 	CPE string
