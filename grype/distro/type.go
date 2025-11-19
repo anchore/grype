@@ -16,6 +16,8 @@ const (
 	CentOS       Type = "centos"
 	Fedora       Type = "fedora"
 	Alpine       Type = "alpine"
+	Alpaquita    Type = "alpaquita"
+	BellSoftHardenedContainers Type = "bellsoft-hardened-containers"
 	Busybox      Type = "busybox"
 	AmazonLinux  Type = "amazonlinux"
 	OracleLinux  Type = "oraclelinux"
@@ -48,6 +50,8 @@ var All = []Type{
 	CentOS,
 	Fedora,
 	Alpine,
+	Alpaquita,
+	BellSoftHardenedContainers,
 	Busybox,
 	AmazonLinux,
 	OracleLinux,
@@ -80,6 +84,8 @@ var IDMapping = map[string]Type{
 	"centos":        CentOS,
 	"fedora":        Fedora,
 	"alpine":        Alpine,
+	"alpaquita":     Alpaquita,
+	"bellsoft-hardened-containers": BellSoftHardenedContainers,
 	"busybox":       Busybox,
 	"amzn":          AmazonLinux,
 	"ol":            OracleLinux,
