@@ -622,6 +622,7 @@ func unarchive(source, destination string) error {
 	if err != nil {
 		return err
 	}
+	defer sourceFile.Close()
 
 	format, stream, err := archives.Identify(context.Background(), source, sourceFile)
 	if err != nil {
