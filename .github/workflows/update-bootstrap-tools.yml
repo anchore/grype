@@ -29,16 +29,16 @@ jobs:
         run: |
           make update-tools
           make list-tools
-          
+
           export NO_COLOR=1
           delimiter="$(openssl rand -hex 8)"
-          
+
           {
             echo "status<<${delimiter}"
             make list-tool-updates
             echo "${delimiter}"
           } >> $GITHUB_OUTPUT
-          
+
           {
             echo "### Tool version status"
             echo "\`\`\`"
