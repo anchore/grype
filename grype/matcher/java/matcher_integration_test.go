@@ -1,5 +1,4 @@
 //go:build api_limits
-// +build api_limits
 
 package java
 

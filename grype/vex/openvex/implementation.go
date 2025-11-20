@@ -63,6 +63,9 @@ func productIdentifiersFromContext(pkgContext *pkg.Context) ([]string, error) {
 		identifiers := slices.Concat(tagIdentifiers, digestIdentifiers)
 		return identifiers, nil
 	default:
+		if pkgContext.Source.Name != "" && pkgContext.Source.Version != "" {
+			return []string{"pkg:generic/" + strings.ToLower(pkgContext.Source.Name) + "@" + pkgContext.Source.Version}, nil
+		}
 		// Fail for now
 		return nil, errors.New("source type not supported for VEX")
 	}

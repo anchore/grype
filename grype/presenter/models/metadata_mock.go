@@ -4,6 +4,7 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
+//nolint:staticcheck // MetadataProvider is deprecated but still used internally for testing
 var _ vulnerability.MetadataProvider = (*MetadataMock)(nil)
 
 // MetadataMock provides the behavior required for a vulnerability.Provider for the purpose of testing.
