@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -14,9 +15,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mholt/archives"
 	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/archiver/v3"
 	"github.com/anchore/grype/grype/db/v5/namespace"
 	distroNs "github.com/anchore/grype/grype/db/v5/namespace/distro"
 	"github.com/anchore/grype/grype/db/v5/namespace/language"
@@ -330,7 +331,12 @@ func pack(t *testing.T, typ string, contents []byte) []byte {
 		require.NoError(t, err)
 
 		tarZstd := bytes.Buffer{}
-		err = archiver.NewZstd().Compress(&tarContents, &tarZstd)
+		compressor, err := archives.Zstd{}.OpenWriter(&tarZstd)
+		require.NoError(t, err)
+
+		_, err = io.Copy(compressor, &tarContents)
+		require.NoError(t, err)
+		err = compressor.Close()
 		require.NoError(t, err)
 
 		return tarZstd.Bytes()

@@ -1,8 +1,10 @@
 package installation
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -12,11 +14,11 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/hako/durafmt"
+	"github.com/mholt/archives"
 	"github.com/spf13/afero"
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
 
-	"github.com/anchore/archiver/v3"
 	"github.com/anchore/clio"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/distribution"
@@ -458,7 +460,7 @@ func (c curator) Import(reference string) error {
 		} else {
 			// assume it is an archive
 			log.Info("unarchiving DB")
-			err := archiver.Unarchive(reference, tempDir)
+			err := unarchive(reference, tempDir)
 			if err != nil {
 				return err
 			}
@@ -613,6 +615,55 @@ func removeAllOrLog(fs afero.Fs, dir string) {
 	if err := fs.RemoveAll(dir); err != nil {
 		log.WithFields("error", err).Warnf("failed to remove path %q", dir)
 	}
+}
+
+func unarchive(source, destination string) error {
+	sourceFile, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+	defer sourceFile.Close()
+
+	format, stream, err := archives.Identify(context.Background(), source, sourceFile)
+	if err != nil {
+		return err
+	}
+
+	extractor, ok := format.(archives.Extractor)
+	if !ok {
+		return fmt.Errorf("unable to extract DB file, format not supported: %s", source)
+	}
+
+	root, err := os.OpenRoot(destination)
+	if err != nil {
+		return err
+	}
+
+	visitor := func(_ context.Context, file archives.FileInfo) error {
+		if file.IsDir() || file.LinkTarget != "" {
+			return nil
+		}
+
+		fileReader, err := file.Open()
+		if err != nil {
+			return err
+		}
+		defer fileReader.Close()
+
+		filename := filepath.Clean(file.NameInArchive)
+
+		outputFile, err := root.Create(filename)
+		if err != nil {
+			return err
+		}
+		defer outputFile.Close()
+
+		_, err = io.Copy(outputFile, fileReader)
+
+		return err
+	}
+
+	return extractor.Extract(context.Background(), stream, visitor)
 }
 
 func newMonitor() monitor {
