@@ -924,3 +924,170 @@ func Test_nakConstraint(t *testing.T) {
 		})
 	}
 }
+
+func Test_nakIgnoreRules(t *testing.T) {
+	cases := []struct {
+		name                    string
+		pkgs                    []pkg.Package
+		vulns                   []vulnerability.Vulnerability
+		expectedLocationIgnores map[string][]string
+		errAssertion            assert.ErrorAssertionFunc
+	}{
+		{
+			name: "false positive in wolfi package adds index entry",
+			pkgs: []pkg.Package{
+				{
+					Name:   "foo",
+					Distro: &distro.Distro{Type: distro.Wolfi},
+					Metadata: pkg.ApkMetadata{Files: []pkg.ApkFileRecord{
+						{
+							Path: "/bin/foo-binary",
+						},
+					}},
+				},
+			},
+			vulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "GHSA-2014-fake-3",
+						Namespace: "wolfi:distro:wolfi:rolling",
+					},
+					PackageName: "foo",
+					Constraint:  version.MustGetConstraint("< 0", version.ApkFormat),
+				},
+			},
+			expectedLocationIgnores: map[string][]string{
+				"/bin/foo-binary": {"GHSA-2014-fake-3"},
+			},
+			errAssertion: assert.NoError,
+		},
+		{
+			name: "false positive in wolfi subpackage adds index entry",
+			pkgs: []pkg.Package{
+				{
+					Name:   "subpackage-foo",
+					Distro: &distro.Distro{Type: distro.Wolfi},
+					Metadata: pkg.ApkMetadata{Files: []pkg.ApkFileRecord{
+						{
+							Path: "/bin/foo-subpackage-binary",
+						},
+					}},
+					Upstreams: []pkg.UpstreamPackage{
+						{
+							Name: "origin-foo",
+						},
+					},
+				},
+			},
+			vulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "GHSA-2014-fake-3",
+						Namespace: "wolfi:distro:wolfi:rolling",
+					},
+					PackageName: "origin-foo",
+					Constraint:  version.MustGetConstraint("< 0", version.ApkFormat),
+				},
+			},
+			expectedLocationIgnores: map[string][]string{
+				"/bin/foo-subpackage-binary": {"GHSA-2014-fake-3"},
+			},
+			errAssertion: assert.NoError,
+		},
+		{
+			name: "fixed vuln (not a false positive) in wolfi package",
+			pkgs: []pkg.Package{
+				{
+					Name:   "foo",
+					Distro: &distro.Distro{Type: distro.Wolfi},
+					Metadata: pkg.ApkMetadata{Files: []pkg.ApkFileRecord{
+						{
+							Path: "/bin/foo-binary",
+						},
+					}},
+				},
+			},
+			vulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "GHSA-2014-fake-3",
+						Namespace: "wolfi:distro:wolfi:rolling",
+					},
+					PackageName: "foo",
+					Constraint:  version.MustGetConstraint("< 1.2.3-r4", version.ApkFormat),
+				},
+			},
+			expectedLocationIgnores: map[string][]string{},
+			errAssertion:            assert.NoError,
+		},
+		{
+			name: "no vuln data for wolfi package",
+			pkgs: []pkg.Package{
+				{
+					Name:   "foo",
+					Distro: &distro.Distro{Type: distro.Wolfi},
+					Metadata: pkg.ApkMetadata{Files: []pkg.ApkFileRecord{
+						{
+							Path: "/bin/foo-binary",
+						},
+					}},
+				},
+			},
+			vulns:                   []vulnerability.Vulnerability{},
+			expectedLocationIgnores: map[string][]string{},
+			errAssertion:            assert.NoError,
+		},
+		{
+			name: "no files listed for a wolfi package",
+			pkgs: []pkg.Package{
+				{
+					Name:     "foo",
+					Distro:   &distro.Distro{Type: distro.Wolfi},
+					Metadata: pkg.ApkMetadata{Files: nil},
+				},
+			},
+			vulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "GHSA-2014-fake-3",
+						Namespace: "wolfi:distro:wolfi:rolling",
+					},
+					PackageName: "foo",
+					Constraint:  version.MustGetConstraint("< 0", version.ApkFormat),
+				},
+			},
+			expectedLocationIgnores: map[string][]string{},
+			errAssertion:            assert.NoError,
+		},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			// create mock vulnerability provider
+			vp := mock.VulnerabilityProvider(tt.vulns...)
+			apkMatcher := &Matcher{}
+
+			var allMatches []match.Match
+			var allIgnores []match.IgnoreFilter
+			for _, p := range tt.pkgs {
+				matches, ignores, err := apkMatcher.Match(vp, p)
+				require.NoError(t, err)
+				allMatches = append(allMatches, matches...)
+				allIgnores = append(allIgnores, ignores...)
+			}
+
+			actualResult := map[string][]string{}
+			for _, ignore := range allIgnores {
+				rule, ok := ignore.(match.IgnoreRule)
+				if !ok {
+					require.Fail(t, "expected ignore to be of type IgnoreRule")
+				}
+				if rule.Package.Location == "" {
+					require.Fail(t, "expected package location to be set in ignore rule")
+				}
+				actualResult[rule.Package.Location] = append(actualResult[rule.Package.Location], rule.Vulnerability)
+			}
+			require.Equal(t, tt.expectedLocationIgnores, actualResult)
+		})
+	}
+}

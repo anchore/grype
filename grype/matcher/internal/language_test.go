@@ -15,6 +15,7 @@ import (
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/grype/vulnerability/mock"
+	"github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -243,6 +244,7 @@ func TestFindMatchesByPackageGolang(t *testing.T) {
 	cases := []struct {
 		p          pkg.Package
 		expMatches map[string]string
+		unaffected bool
 	}{
 		{
 			p: pkg.Package{
@@ -273,6 +275,7 @@ func TestFindMatchesByPackageGolang(t *testing.T) {
 				Type:     syftPkg.GoModulePkg,
 			},
 			expMatches: map[string]string{"CVE-2017-fake-2": "< 1.3.1 (go)"},
+			unaffected: true, // this vuln matches an unaffected entry
 		},
 	}
 
@@ -285,8 +288,107 @@ func TestFindMatchesByPackageGolang(t *testing.T) {
 				return strings.Compare(a.Vulnerability.ID, b.Vulnerability.ID)
 			})
 			require.NoError(t, err)
-			assert.Empty(t, ignored)
+			if c.unaffected {
+				assert.NotEmpty(t, ignored)
+			} else {
+				assert.Empty(t, ignored)
+			}
 			assertMatchesUsingIDsForVulnerabilities(t, expectedMatchGolang(c.p, c.expMatches), actual)
+		})
+	}
+}
+
+func Test_unaffectedPackageIgnoreRules(t *testing.T) {
+	someProjectCPE := cpe.Must(`cpe:2.3:a:some_vendor:some_project:*:*:*:*:*:*:*:*`, cpe.DeclaredSource)
+	provider := mock.VulnerabilityProvider([]vulnerability.Vulnerability{
+		{
+			Reference:   vulnerability.Reference{ID: "vuln1", Namespace: "github:language:python"},
+			Constraint:  version.MustGetConstraint("< 1.2.3", version.PythonFormat),
+			PackageName: "some_project",
+			Unaffected:  false,
+		},
+		{
+			Reference:   vulnerability.Reference{ID: "vuln2", Namespace: "github:language:python"},
+			Constraint:  version.MustGetConstraint("< 1.2.3", version.PythonFormat),
+			PackageName: "some_project",
+			Unaffected:  true,
+		},
+		{
+			Reference:   vulnerability.Reference{ID: "vuln2", Namespace: "nvd:cpe"},
+			Constraint:  version.MustGetConstraint("< 1.2.3", version.PythonFormat),
+			PackageName: "some_project",
+			CPEs:        []cpe.CPE{someProjectCPE},
+			Unaffected:  false,
+		},
+	}...)
+
+	tests := []struct {
+		name     string
+		pkg      pkg.Package
+		expected []match.IgnoreFilter
+	}{
+		{
+			name: "matching unaffected",
+			pkg: pkg.Package{
+				Name:     "some_project",
+				Version:  "1.2.2",
+				Language: syftPkg.Python,
+				Type:     syftPkg.PythonPkg,
+				CPEs:     []cpe.CPE{someProjectCPE},
+			},
+			expected: []match.IgnoreFilter{
+				match.IgnoreRule{
+					Vulnerability:  "vuln2",
+					IncludeAliases: true,
+					Reason:         "UnaffectedPackageEntry",
+					Package: match.IgnoreRulePackage{
+						Name:    "some_project",
+						Version: "1.2.2",
+						Type:    string(syftPkg.PythonPkg),
+					},
+				},
+			},
+		},
+		{
+			name: "not unaffected by version",
+			pkg: pkg.Package{
+				Name:     "some_project",
+				Version:  "1.2.4",
+				Language: syftPkg.Python,
+				Type:     syftPkg.PythonPkg,
+				CPEs:     []cpe.CPE{someProjectCPE},
+			},
+			expected: nil,
+		},
+		{
+			name: "not unaffected by name",
+			pkg: pkg.Package{
+				Name:     "some_other_project",
+				Version:  "1.2.2",
+				Language: syftPkg.Python,
+				Type:     syftPkg.PythonPkg,
+				CPEs:     []cpe.CPE{someProjectCPE},
+			},
+			expected: nil,
+		},
+		{
+			name: "not unaffected by type",
+			pkg: pkg.Package{
+				Name:     "some_project",
+				Version:  "1.2.2",
+				Language: syftPkg.Go,
+				Type:     syftPkg.GoModulePkg,
+				CPEs:     []cpe.CPE{someProjectCPE},
+			},
+			expected: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, ignoreRules, err := MatchPackageByEcosystemPackageName(provider, tt.pkg, tt.pkg.Name, "")
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, ignoreRules)
 		})
 	}
 }
