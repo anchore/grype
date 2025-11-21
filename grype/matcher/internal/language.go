@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal/result"
@@ -53,13 +54,50 @@ func MatchPackageByEcosystemPackageName(vp vulnerability.Provider, p pkg.Package
 
 	// we want to perform the same results, but look for explicit naks, which indicates that a vulnerability should not apply
 	criteria = append(criteria, search.ForUnaffected())
-	resolutions, err := provider.FindResults(criteria...)
+	unaffected, err := provider.FindResults(criteria...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("matcher failed to fetch resolution language=%q pkg=%q: %w", p.Language, p.Name, err)
 	}
 
 	// remove any disclosures that have been explicitly nacked
-	remaining := disclosures.Remove(resolutions)
+	remaining := disclosures.Remove(unaffected)
 
-	return remaining.ToMatches(), nil, err
+	return remaining.ToMatches(), constructIgnoreFilters(unaffected, p), err
+}
+
+func constructIgnoreFilters(unaffectedVulns result.Set, p pkg.Package) []match.IgnoreFilter {
+	var ignores []match.IgnoreFilter
+
+	// collect all IDs to exclude
+	var ids []string
+	for _, vulnResults := range unaffectedVulns {
+		for _, vulnResult := range vulnResults {
+			ids = append(ids, vulnResult.ID)
+			for _, vuln := range vulnResult.Vulnerabilities {
+				if !slices.Contains(ids, vuln.ID) {
+					ids = append(ids, vuln.ID)
+				}
+				for _, id := range vuln.RelatedVulnerabilities {
+					if !slices.Contains(ids, id.ID) {
+						ids = append(ids, id.ID)
+					}
+				}
+			}
+		}
+	}
+
+	// ignore rules for all IDs
+	for _, id := range ids {
+		ignores = append(ignores, match.IgnoreRule{
+			Vulnerability:  id,
+			IncludeAliases: true,
+			Reason:         "UnaffectedPackageEntry",
+			Package: match.IgnoreRulePackage{
+				Type:    string(p.Type),
+				Name:    p.Name,
+				Version: p.Version,
+			},
+		})
+	}
+	return ignores
 }
