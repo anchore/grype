@@ -83,12 +83,7 @@ func getGrypeBinaryLocationByOS(t testing.TB, goOS string) string {
 }
 
 func buildBinary(t testing.TB, loc string) {
-	wd, err := os.Getwd()
-	require.NoError(t, err)
-	require.NoError(t, os.Chdir(repoRoot(t)))
-	defer func() {
-		require.NoError(t, os.Chdir(wd))
-	}()
+	t.Chdir(repoRoot(t))
 	t.Log("Building grype...")
 	c := exec.Command("go", "build", "-o", loc, "./cmd/grype")
 	c.Stdout = os.Stdout
