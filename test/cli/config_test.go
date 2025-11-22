@@ -13,7 +13,6 @@ import (
 func Test_configLoading(t *testing.T) {
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
-	defer func() { require.NoError(t, os.Chdir(cwd)) }()
 
 	configsDir := filepath.Join(cwd, "test-fixtures", "configs")
 	path := func(path string) string {
@@ -149,8 +148,7 @@ func Test_configLoading(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			require.NoError(t, os.Chdir(test.cwd))
-			defer func() { require.NoError(t, os.Chdir(cwd)) }()
+			t.Chdir(test.cwd)
 			env := map[string]string{
 				"HOME":            test.home,
 				"XDG_CONFIG_HOME": test.home,
