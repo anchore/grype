@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher/common"
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -36,6 +37,9 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	}
 	matches = append(matches, exactMatches...)
 
+	// Check if this is a Root.io package and filter unaffected vulnerabilities
+	matches = common.FilterRootIoUnaffectedMatches(store, p, matches)
+
 	return matches, nil, nil
 }
 
@@ -56,3 +60,4 @@ func (m *Matcher) matchUpstreamPackages(store vulnerability.Provider, p pkg.Pack
 
 	return matches, nil
 }
+

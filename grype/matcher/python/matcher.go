@@ -2,6 +2,7 @@ package python
 
 import (
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher/common"
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -31,5 +32,14 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
-	return internal.MatchPackageByEcosystemAndCPEs(store, p, m.Type(), m.cfg.UseCPEs)
+	matches, ignores, err := internal.MatchPackageByEcosystemAndCPEs(store, p, m.Type(), m.cfg.UseCPEs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Check if this is a Root.io package and filter unaffected vulnerabilities
+	matches = common.FilterRootIoUnaffectedMatchesForLanguage(store, p, "python", matches)
+
+	return matches, ignores, nil
 }
+
