@@ -21,5 +21,13 @@ func (r *secret) PostLoad() error {
 }
 
 func (r secret) String() string {
-	return string(r)
+	if r == "" {
+		return ""
+	}
+	// match the redactor's behavior, replacing with 7 asterisks
+	return "*******"
+}
+
+func (r secret) MarshalText() ([]byte, error) {
+	return []byte(r.String()), nil
 }
