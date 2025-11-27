@@ -85,6 +85,11 @@ func NewCurator(cfg Config, downloader distribution.Client) (db.Curator, error) 
 }
 
 func (c curator) Reader() (db.Reader, error) {
+	status := c.Status()
+	if err := status.Error; err != nil && errors.Is(err, db.ErrDBDoesNotExist) {
+		return nil, fmt.Errorf("vulnerability database error: %w. Try 'grype db update'", err)
+	}
+
 	s, err := db.NewReader(
 		db.Config{
 			DBDirPath: c.config.DBDirectoryPath(),
