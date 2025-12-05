@@ -125,7 +125,7 @@
         /* Main container styling */
         .main-container {
             width: 90%;
-            max-width: 1200px;
+            max-width: 1600px;
             background-color: var(--container-bg);
             padding: 20px;
             box-shadow: 0 4px 8px var(--container-shadow);
@@ -769,21 +769,29 @@
                 <thead>
                     <tr>
                         <th>Name</th>
+                        <th>Locations</th>
                         <th>Version</th>
                         <th>Type</th>
                         <th>Vulnerability</th>
                         <th>Severity</th>
                         <th>State</th>
-                        <th>Fixed In</th>
                         <th>Description</th>
                         <th>Related URLs</th>
                         <th>PURL</th>
+                        <th>Fixed In</th>
                     </tr>
                 </thead>
                 <tbody>
                     {{- range $FilteredMatches }}
                     <tr>
                         <td>{{.Artifact.Name}}</td>
+                        <td>
+                            <ul>
+                            {{- range .Artifact.Locations }}
+                                <li>{{ .RealPath }}</li>
+                            {{- end }}
+                            </ul>
+                        </td>
                         <td>{{.Artifact.Version}}</td>
                         <td>{{.Artifact.Type}}</td>
                         <td>
@@ -791,6 +799,9 @@
                         </td>
                         <td>{{.Vulnerability.Severity}}</td>
                         <td>{{.Vulnerability.Fix.State}}</td>
+                        <td>{{html .Vulnerability.Description}}</td>
+                        <td>{{ toJson .Vulnerability.URLs }}</td>
+                        <td>{{ .Artifact.PURL }}</td>
                         <td>
                             {{- if .Vulnerability.Fix.Versions }}
                             <ul>
@@ -802,9 +813,6 @@
                             N/A
                             {{- end }}
                         </td>
-                        <td>{{html .Vulnerability.Description}}</td>
-                        <td>{{ toJson .Vulnerability.URLs }}</td>
-                        <td>{{ .Artifact.PURL }}</td>
                     </tr>
                     {{- end }}
                 </tbody>
@@ -1159,10 +1167,10 @@
                 // Create a regex string like "^Critical$|^High$|^Medium$"
                 // This ensures exact matches for each selected severity
                 const filterRegex = activeSeverityFilters.map(sev => `^${sev}$`).join('|');
-                table.column(4).search(filterRegex, true, false); // Enable regex, disable smart search
+                table.column(5).search(filterRegex, true, false); // Enable regex, disable smart search
             } else {
                 // If no filters are active, clear the specific column search
-                table.column(4).search('');
+                table.column(5).search('');
             }
             
             // Redraw the table to apply the filter changes
