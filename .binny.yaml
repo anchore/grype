@@ -26,7 +26,7 @@ tools:
   # used for linting
   - name: golangci-lint
     version:
-      want: v2.6.2
+      want: v2.7.1
     method: github-release
     with:
       repo: golangci/golangci-lint
@@ -98,7 +98,7 @@ tools:
   # used for integration tests
   - name: skopeo
     version:
-      want: v1.20.0
+      want: v1.21.0
     method: go-install
     with:
       module: github.com/containers/skopeo
