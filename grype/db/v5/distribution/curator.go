@@ -1,22 +1,25 @@
 package distribution
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"time"
 
 	"github.com/hako/durafmt"
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/mholt/archives"
 	"github.com/spf13/afero"
 	"github.com/wagoodman/go-partybus"
 	"github.com/wagoodman/go-progress"
 
-	"github.com/anchore/archiver/v3"
 	"github.com/anchore/clio"
 	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/db/v5/store"
@@ -358,7 +361,7 @@ func (c *Curator) ImportFrom(dbArchivePath string) error {
 		return fmt.Errorf("unable to create db temp dir: %w", err)
 	}
 
-	err = archiver.Unarchive(dbArchivePath, tempDir)
+	err = unarchive(dbArchivePath, tempDir)
 	if err != nil {
 		return err
 	}
@@ -516,4 +519,53 @@ func defaultHTTPClient(fs afero.Fs, caCertPath string) (*http.Client, error) {
 		}
 	}
 	return httpClient, nil
+}
+
+func unarchive(source, destination string) error {
+	sourceFile, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+	defer sourceFile.Close()
+
+	format, stream, err := archives.Identify(context.Background(), source, sourceFile)
+	if err != nil {
+		return err
+	}
+
+	extractor, ok := format.(archives.Extractor)
+	if !ok {
+		return fmt.Errorf("unable to extract DB file, format not supported: %s", source)
+	}
+
+	root, err := os.OpenRoot(destination)
+	if err != nil {
+		return err
+	}
+
+	visitor := func(_ context.Context, file archives.FileInfo) error {
+		if file.IsDir() || file.LinkTarget != "" {
+			return nil
+		}
+
+		fileReader, err := file.Open()
+		if err != nil {
+			return err
+		}
+		defer fileReader.Close()
+
+		filename := filepath.Clean(file.NameInArchive)
+
+		outputFile, err := root.Create(filename)
+		if err != nil {
+			return err
+		}
+		defer outputFile.Close()
+
+		_, err = io.Copy(outputFile, fileReader)
+
+		return err
+	}
+
+	return extractor.Extract(context.Background(), stream, visitor)
 }

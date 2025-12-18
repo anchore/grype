@@ -16,6 +16,7 @@ var jsonNameFromType = map[reflect.Type][]string{
 	reflect.TypeOf(pkg.ApkMetadata{}):                nameList("ApkMetadata"),
 	reflect.TypeOf(pkg.GolangBinMetadata{}):          nameList("GolangBinMetadata"),
 	reflect.TypeOf(pkg.GolangModMetadata{}):          nameList("GolangModMetadata"),
+	reflect.TypeOf(pkg.GolangSourceMetadata{}):       nameList("GolangSourceMetadata"),
 	reflect.TypeOf(pkg.JavaMetadata{}):               nameList("JavaMetadata"),
 	reflect.TypeOf(pkg.RpmMetadata{}):                nameList("RpmMetadata"),
 	reflect.TypeOf(pkg.JavaVMInstallationMetadata{}): nameList("JavaVMInstallationMetadata"),

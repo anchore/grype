@@ -8,6 +8,87 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestStripJavaRuntimeQualifier(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "version with jre11",
+			input: "12.10.2.jre11",
+			want:  "12.10.2",
+		},
+		{
+			name:  "version with jdk17",
+			input: "12.10.2.jdk17",
+			want:  "12.10.2",
+		},
+		{
+			name:  "version with uppercase JRE11",
+			input: "12.10.2.JRE11",
+			want:  "12.10.2",
+		},
+		{
+			name:  "version with uppercase JDK17",
+			input: "12.10.2.JDK17",
+			want:  "12.10.2",
+		},
+		{
+			name:  "version with mixed case Jre11",
+			input: "12.10.2.Jre11",
+			want:  "12.10.2",
+		},
+		{
+			name:  "version without qualifier",
+			input: "12.10.2",
+			want:  "12.10.2",
+		},
+		{
+			name:  "version with jre but no digits",
+			input: "12.10.2.jre",
+			want:  "12.10.2.jre",
+		},
+		{
+			name:  "version with jdk but no digits",
+			input: "12.10.2.jdk",
+			want:  "12.10.2.jdk",
+		},
+		{
+			name:  "version with jre0 (zero)",
+			input: "12.10.2.jre0",
+			want:  "12.10.2",
+		},
+		{
+			name:  "version with jdk999 (large number)",
+			input: "12.10.2.jdk999",
+			want:  "12.10.2",
+		},
+		{
+			name:  "version with jre11 followed by SNAPSHOT",
+			input: "12.10.2.jre11-SNAPSHOT",
+			want:  "12.10.2.jre11-SNAPSHOT",
+		},
+		{
+			name:  "version with jdk17 followed by beta",
+			input: "12.10.2.jdk17.beta",
+			want:  "12.10.2.jdk17.beta",
+		},
+		{
+			name:  "version with JRE uppercase followed by SNAPSHOT",
+			input: "12.10.2.JRE11-SNAPSHOT",
+			want:  "12.10.2.JRE11-SNAPSHOT",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := stripJavaRuntimeQualifier(tt.input)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestMavenVersion_Constraint(t *testing.T) {
 	tests := []testCase{
 		// range expressions
@@ -151,6 +232,42 @@ func TestMavenVersion_Compare(t *testing.T) {
 			v1:   "5.2.25.ga",
 			v2:   "5.2.25",
 			want: 0,
+		},
+		// JRE/JDK qualifier tests (GitHub issue: JRE version matching)
+		{
+			v1:   "12.10.2",
+			v2:   "12.10.2.jre11",
+			want: 0,
+		},
+		{
+			v1:   "12.10.2.jre11",
+			v2:   "12.10.2",
+			want: 0,
+		},
+		{
+			v1:   "12.10.2.jdk17",
+			v2:   "12.10.2",
+			want: 0,
+		},
+		{
+			v1:   "12.10.2.jre11",
+			v2:   "12.10.2.jdk17",
+			want: 0,
+		},
+		{
+			v1:   "12.10.1",
+			v2:   "12.10.2.jre11",
+			want: -1,
+		},
+		{
+			v1:   "12.10.2.jre11",
+			v2:   "12.10.1",
+			want: 1,
+		},
+		{
+			v1:   "1.2.3.jre8",
+			v2:   "1.2.4.jre8",
+			want: -1,
 		},
 	}
 	for _, tt := range tests {

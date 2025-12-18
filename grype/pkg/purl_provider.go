@@ -89,11 +89,8 @@ func distroFromPURL(purl packageurl.PackageURL) (d *distro.Distro) {
 
 	for _, qualifier := range purl.Qualifiers {
 		if qualifier.Key == syftPkg.PURLQualifierDistro {
-			fields := strings.SplitN(qualifier.Value, "-", 2)
-			distroName = fields[0]
-			if len(fields) > 1 {
-				distroVersion = fields[1]
-			}
+			// Use shared parsing logic to support -, :, and @ separators
+			distroName, distroVersion = distro.ParseDistroString(qualifier.Value)
 		}
 	}
 

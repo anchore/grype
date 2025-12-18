@@ -71,8 +71,8 @@ func SetupConfig(id clio.Identification) *clio.SetupConfig {
 				redact.Set(state.RedactStore)
 
 				log.Set(state.Logger)
-				syft.SetLogger(state.Logger)
-				stereoscope.SetLogger(state.Logger)
+				syft.SetLogger(state.Logger.Nested("from", "syft"))
+				stereoscope.SetLogger(state.Logger.Nested("from", "stereoscope"))
 
 				return nil
 			},

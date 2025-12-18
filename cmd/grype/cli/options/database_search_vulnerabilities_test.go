@@ -95,6 +95,34 @@ func TestDBSearchVulnerabilitiesPostLoad(t *testing.T) {
 				{Providers: []string{"provider1", "provider2"}},
 			},
 		},
+		{
+			name: "valid fixed-state: fixed",
+			input: DBSearchVulnerabilities{
+				FixedState: []string{"fixed"},
+			},
+			expectedSpecs: nil,
+		},
+		{
+			name: "valid fixed-state: multiple values",
+			input: DBSearchVulnerabilities{
+				FixedState: []string{"fixed", "not-fixed", "wont-fix", "unknown"},
+			},
+			expectedSpecs: nil,
+		},
+		{
+			name: "invalid fixed-state",
+			input: DBSearchVulnerabilities{
+				FixedState: []string{"invalid-state"},
+			},
+			expectedErrMsg: "invalid fixed-state value: \"invalid-state\"",
+		},
+		{
+			name: "mixed valid and invalid fixed-state",
+			input: DBSearchVulnerabilities{
+				FixedState: []string{"fixed", "bad-state"},
+			},
+			expectedErrMsg: "invalid fixed-state value: \"bad-state\"",
+		},
 	}
 
 	for _, tc := range testCases {

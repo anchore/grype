@@ -29,6 +29,7 @@ import (
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vex"
+	vexStatus "github.com/anchore/grype/grype/vex/status"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/bus"
@@ -99,8 +100,8 @@ var ignoreFixedMatches = []match.IgnoreRule{
 }
 
 var ignoreVEXFixedNotAffected = []match.IgnoreRule{
-	{VexStatus: string(vex.StatusNotAffected)},
-	{VexStatus: string(vex.StatusFixed)},
+	{VexStatus: string(vexStatus.NotAffected)},
+	{VexStatus: string(vexStatus.Fixed)},
 }
 
 var ignoreLinuxKernelHeaders = []match.IgnoreRule{
@@ -207,16 +208,21 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 
 	startTime := time.Now()
 
+	vexProcessor, err := vex.NewProcessor(vex.ProcessorOptions{
+		Documents:   opts.VexDocuments,
+		IgnoreRules: opts.Ignore,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create VEX processor: %w", err)
+	}
+
 	vulnMatcher := grype.VulnerabilityMatcher{
 		VulnerabilityProvider: vp,
 		IgnoreRules:           opts.Ignore,
 		NormalizeByCVE:        opts.ByCVE,
 		FailSeverity:          opts.FailOnSeverity(),
 		Matchers:              getMatchers(opts),
-		VexProcessor: vex.NewProcessor(vex.ProcessorOptions{
-			Documents:   opts.VexDocuments,
-			IgnoreRules: opts.Ignore,
-		}),
+		VexProcessor:          vexProcessor,
 	}
 
 	remainingMatches, ignoredMatches, err := vulnMatcher.FindMatches(packages, pkgContext)
@@ -230,7 +236,10 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 	log.WithFields("time", time.Since(startTime)).Info("found vulnerability matches")
 	startTime = time.Now()
 
-	model, err := models.NewDocument(app.ID(), packages, pkgContext, *remainingMatches, ignoredMatches, vp, opts, dbInfo(status, vp), models.SortStrategy(opts.SortBy.Criteria))
+	// clear out the registry auth information to avoid including possibly sensitive information in the report
+	opts.Registry.Auth = nil
+
+	model, err := models.NewDocument(app.ID(), packages, pkgContext, *remainingMatches, ignoredMatches, vp, opts, dbInfo(status, vp), models.SortStrategy(opts.SortBy.Criteria), opts.Timestamp)
 	if err != nil {
 		return fmt.Errorf("failed to create document: %w", err)
 	}
@@ -353,6 +362,7 @@ func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
 			Platform:               opts.Platform,
 			Name:                   opts.Name,
 			DefaultImagePullSource: opts.DefaultImagePullSource,
+			Sources:                opts.From,
 		},
 		SynthesisConfig: pkg.SynthesisConfig{
 			GenerateMissingCPEs: opts.GenerateMissingCPEs,
@@ -395,7 +405,8 @@ func applyDistroHint(hint string) *distro.Distro {
 		return nil
 	}
 
-	return distro.NewFromNameVersion(stringutil.SplitOnFirstString(hint, ":", "@"))
+	name, version := distro.ParseDistroString(hint)
+	return distro.NewFromNameVersion(name, version)
 }
 
 func validateDBLoad(loadErr error, status *vulnerability.ProviderStatus) error {
@@ -451,18 +462,18 @@ func applyVexRules(opts *options.Grype) error {
 		opts.Ignore = append(opts.Ignore, ignoreVEXFixedNotAffected...)
 	}
 
-	for _, vexStatus := range opts.VexAdd {
-		switch vexStatus {
-		case string(vex.StatusAffected):
+	for _, status := range opts.VexAdd {
+		switch status {
+		case string(vexStatus.Affected):
 			opts.Ignore = append(
-				opts.Ignore, match.IgnoreRule{VexStatus: string(vex.StatusAffected)},
+				opts.Ignore, match.IgnoreRule{VexStatus: string(vexStatus.Affected)},
 			)
-		case string(vex.StatusUnderInvestigation):
+		case string(vexStatus.UnderInvestigation):
 			opts.Ignore = append(
-				opts.Ignore, match.IgnoreRule{VexStatus: string(vex.StatusUnderInvestigation)},
+				opts.Ignore, match.IgnoreRule{VexStatus: string(vexStatus.UnderInvestigation)},
 			)
 		default:
-			return fmt.Errorf("invalid VEX status in vex-add setting: %s", vexStatus)
+			return fmt.Errorf("invalid VEX status in vex-add setting: %s", status)
 		}
 	}
 

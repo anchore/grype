@@ -17,7 +17,7 @@ Current templates:
 
 ## Table
 
-This template mimics the "default" table output of Grype, there are some drawbacks using the template vs the native output such as:
+This template mimics the "default" table output of Grype, there are some drawbacks to using the template vs the native output such as:
 
 - unsorted
 - duplicate rows

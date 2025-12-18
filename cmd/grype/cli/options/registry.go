@@ -21,7 +21,7 @@ type RegistryCredentials struct {
 type registry struct {
 	InsecureSkipTLSVerify bool                  `yaml:"insecure-skip-tls-verify" json:"insecure-skip-tls-verify" mapstructure:"insecure-skip-tls-verify"`
 	InsecureUseHTTP       bool                  `yaml:"insecure-use-http" json:"insecure-use-http" mapstructure:"insecure-use-http"`
-	Auth                  []RegistryCredentials `yaml:"auth" json:"auth" mapstructure:"auth"`
+	Auth                  []RegistryCredentials `yaml:"auth" json:"auth,omitempty" mapstructure:"auth"`
 	CACert                string                `yaml:"ca-cert" json:"ca-cert" mapstructure:"ca-cert"`
 }
 
@@ -82,9 +82,9 @@ func (cfg *registry) ToOptions() *image.RegistryOptions {
 	for i, a := range cfg.Auth {
 		auth[i] = image.RegistryCredentials{
 			Authority:  a.Authority,
-			Username:   a.Username.String(),
-			Password:   a.Password.String(),
-			Token:      a.Token.String(),
+			Username:   string(a.Username),
+			Password:   string(a.Password),
+			Token:      string(a.Token),
 			ClientCert: a.TLSCert,
 			ClientKey:  a.TLSKey,
 		}

@@ -28,7 +28,7 @@ func TestAffectedCPEStore_AddAffectedCPEs(t *testing.T) {
 			Product: "product-1",
 			Edition: "edition-1",
 		},
-		BlobValue: &AffectedPackageBlob{
+		BlobValue: &PackageBlob{
 			CVEs: []string{"CVE-2023-5678"},
 		},
 	}
@@ -76,7 +76,7 @@ func TestAffectedCPEStore_GetCPEs(t *testing.T) {
 	require.Nil(t, result.BlobValue) // since we're not preloading any fields on the fetch
 
 	// fetch again with blob & cpe preloaded
-	results, err = s.GetAffectedCPEs(cpeFromProduct(c.CPE.Product), &GetAffectedCPEOptions{PreloadCPE: true, PreloadBlob: true, PreloadVulnerability: true})
+	results, err = s.GetAffectedCPEs(cpeFromProduct(c.CPE.Product), &GetCPEOptions{PreloadCPE: true, PreloadBlob: true, PreloadVulnerability: true})
 	require.NoError(t, err)
 	require.Len(t, results, len(expected))
 	result = results[0]
@@ -153,7 +153,7 @@ func TestAffectedCPEStore_PreventDuplicateCPEs(t *testing.T) {
 			Product: "product-1",
 			Edition: "edition-1",
 		},
-		BlobValue: &AffectedPackageBlob{
+		BlobValue: &PackageBlob{
 			CVEs: []string{"CVE-2023-5678"},
 		},
 	}
@@ -177,7 +177,7 @@ func TestAffectedCPEStore_PreventDuplicateCPEs(t *testing.T) {
 			Product: "product-1", // same
 			Edition: "edition-1", // same
 		},
-		BlobValue: &AffectedPackageBlob{
+		BlobValue: &PackageBlob{
 			CVEs: []string{"CVE-2024-1234"},
 		},
 	}
@@ -192,7 +192,7 @@ func TestAffectedCPEStore_PreventDuplicateCPEs(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, existingCPEs, 1, "expected only one CPE to exist")
 
-	actualHandles, err := s.GetAffectedCPEs(cpeFromProduct(cpe1.CPE.Product), &GetAffectedCPEOptions{
+	actualHandles, err := s.GetAffectedCPEs(cpeFromProduct(cpe1.CPE.Product), &GetCPEOptions{
 		PreloadCPE:           true,
 		PreloadBlob:          true,
 		PreloadVulnerability: true,
@@ -249,7 +249,7 @@ func testAffectedCPEHandle() *AffectedCPEHandle {
 			TargetSoftware:  "target_software",
 			Other:           "other",
 		},
-		BlobValue: &AffectedPackageBlob{
+		BlobValue: &PackageBlob{
 			CVEs: []string{"CVE-2024-4321"},
 		},
 	}

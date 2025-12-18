@@ -7,7 +7,9 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/grype/cmd/grype/cli/commands/internal/dbsearch"
 	"github.com/anchore/grype/cmd/grype/cli/options"
+	v6 "github.com/anchore/grype/grype/db/v6"
 )
 
 func TestDBSearchMatchOptionsApplyArgs(t *testing.T) {
@@ -100,7 +102,57 @@ func TestDBSearchMatchOptionsApplyArgs(t *testing.T) {
 			if d := cmp.Diff(tc.expectedVulnIDs, opts.Vulnerability.VulnerabilityIDs, cmpopts.EquateEmpty()); d != "" {
 				t.Errorf("unexpected vulnerability specifiers: %s", d)
 			}
+		})
+	}
+}
 
+func TestMimicV5Namespace(t *testing.T) {
+	tests := []struct {
+		name      string
+		osName    string
+		osChannel string
+		expected  string
+	}{
+		{
+			name:      "distro namespace without channel",
+			osName:    "redhat",
+			osChannel: "",
+			expected:  "redhat:distro:redhat:8",
+		},
+		{
+			name:      "distro namespace with channel",
+			osName:    "redhat",
+			osChannel: "eus",
+			expected:  "redhat:distro:redhat:8:eus",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			row := dbsearch.AffectedPackage{
+				Vulnerability: dbsearch.VulnerabilityInfo{
+					Model: v6.VulnerabilityHandle{
+						Provider: &v6.Provider{ID: "rhel"},
+					},
+				},
+				AffectedPackageInfo: dbsearch.AffectedPackageInfo{
+					Model: &v6.AffectedPackageHandle{
+						OperatingSystem: &v6.OperatingSystem{
+							Name:         tt.osName,
+							MajorVersion: "8",
+							MinorVersion: "6",
+							Channel:      tt.osChannel,
+						},
+						Package: &v6.Package{
+							Name:      "test-package",
+							Ecosystem: "rpm",
+						},
+					},
+				},
+			}
+
+			result := mimicV5Namespace(row)
+			require.Equal(t, tt.expected, result)
 		})
 	}
 }

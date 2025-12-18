@@ -17,7 +17,8 @@ type DBSearchVulnerabilities struct {
 	PublishedAfter string `yaml:"published-after" json:"published-after" mapstructure:"published-after"`
 	ModifiedAfter  string `yaml:"modified-after" json:"modified-after" mapstructure:"modified-after"`
 
-	Providers []string `yaml:"providers" json:"providers" mapstructure:"providers"`
+	Providers  []string `yaml:"providers" json:"providers" mapstructure:"providers"`
+	FixedState []string `yaml:"fixed-state" json:"fixed-state" mapstructure:"fixed-state"`
 
 	Specs v6.VulnerabilitySpecifiers `yaml:"-" json:"-" mapstructure:"-"`
 }
@@ -29,6 +30,7 @@ func (c *DBSearchVulnerabilities) AddFlags(flags clio.FlagSet) {
 	flags.StringVarP(&c.PublishedAfter, "published-after", "", "only show vulnerabilities originally published after the given date (format: YYYY-MM-DD)")
 	flags.StringVarP(&c.ModifiedAfter, "modified-after", "", "only show vulnerabilities originally published or modified since the given date (format: YYYY-MM-DD)")
 	flags.StringArrayVarP(&c.Providers, "provider", "", "only show vulnerabilities from the given provider")
+	flags.StringArrayVarP(&c.FixedState, "fixed-state", "", "only show vulnerabilities with the given fix state (fixed, not-fixed, unknown, wont-fix)")
 }
 
 func (c *DBSearchVulnerabilities) PostLoad() error {
@@ -48,6 +50,18 @@ func (c *DBSearchVulnerabilities) PostLoad() error {
 
 	if c.PublishedAfter != "" && c.ModifiedAfter != "" {
 		return fmt.Errorf("only one of --published-after or --modified-after can be set")
+	}
+
+	validFixStates := map[string]bool{
+		"fixed":     true,
+		"not-fixed": true,
+		"unknown":   true,
+		"wont-fix":  true,
+	}
+	for _, fs := range c.FixedState {
+		if !validFixStates[fs] {
+			return fmt.Errorf("invalid fixed-state value: %q (valid values: fixed, not-fixed, unknown, wont-fix)", fs)
+		}
 	}
 
 	var publishedAfter, modifiedAfter *time.Time

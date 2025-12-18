@@ -4,7 +4,7 @@ Note: Makefile, server.crt, and server.key are used in automated testing, the re
 
 You will require Python 3 to run these utils.
 
-To standup a test server:
+To stand up a test server:
 ```
 make serve
 ```

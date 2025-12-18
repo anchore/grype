@@ -70,11 +70,15 @@ func getSource(userInput string, config ProviderConfig) (source.Source, error) {
 		}
 	}
 
-	var sources []string
-	schemeSource, newUserInput := stereoscope.ExtractSchemeSource(userInput, allSourceTags()...)
-	if schemeSource != "" {
-		sources = []string{schemeSource}
-		userInput = newUserInput
+	// prioritize explicitly specified sources from --from flag
+	sources := config.Sources
+	if len(sources) == 0 {
+		// fallback to extracting from scheme if --from not specified (for backward compatibility)
+		schemeSource, newUserInput := stereoscope.ExtractSchemeSource(userInput, allSourceTags()...)
+		if schemeSource != "" {
+			sources = []string{schemeSource}
+			userInput = newUserInput
+		}
 	}
 
 	return syft.GetSource(context.Background(), userInput, syft.DefaultGetSourceConfig().

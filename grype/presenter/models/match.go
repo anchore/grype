@@ -33,10 +33,11 @@ type FixDetails struct {
 	SuggestedVersion string `json:"suggestedVersion"`
 }
 
+//nolint:staticcheck // MetadataProvider is deprecated but still used internally
 func newMatch(m match.Match, p pkg.Package, metadataProvider vulnerability.MetadataProvider) (*Match, error) {
 	relatedVulnerabilities := make([]VulnerabilityMetadata, 0)
 	for _, r := range m.Vulnerability.RelatedVulnerabilities {
-		relatedMetadata, err := metadataProvider.VulnerabilityMetadata(r)
+		relatedMetadata, err := metadataProvider.VulnerabilityMetadata(r) //nolint:staticcheck // deprecated API still used internally
 		if err != nil {
 			return nil, fmt.Errorf("unable to fetch related vuln=%q metadata: %+v", r, err)
 		}
@@ -50,7 +51,7 @@ func newMatch(m match.Match, p pkg.Package, metadataProvider vulnerability.Metad
 	metadata := m.Vulnerability.Metadata
 	if metadata == nil {
 		var err error
-		metadata, err = metadataProvider.VulnerabilityMetadata(m.Vulnerability.Reference)
+		metadata, err = metadataProvider.VulnerabilityMetadata(m.Vulnerability.Reference) //nolint:staticcheck // deprecated API still used internally
 		if err != nil {
 			return nil, fmt.Errorf("unable to fetch related vuln=%q metadata: %+v", m.Vulnerability.Reference, err)
 		}

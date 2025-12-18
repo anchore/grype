@@ -57,6 +57,9 @@ type VulnerabilityInfo struct {
 
 	// EPSS is a list of Exploit Prediction Scoring System (EPSS) scores for the vulnerability
 	EPSS []EPSS `json:"epss,omitempty"`
+
+	// CWEs is a list of Common Weakness Enumeration (CWE) identifiers for the vulnerability
+	CWEs []CWE `json:"cwes,omitempty"`
 }
 
 // OperatingSystem represents specific release of an operating system.
@@ -86,6 +89,13 @@ type EPSS struct {
 	EPSS       float64 `json:"epss"`
 	Percentile float64 `json:"percentile"`
 	Date       string  `json:"date"`
+}
+
+type CWE struct {
+	Cve    string `json:"cve"`
+	CWE    string `json:"cwe"`
+	Source string `json:"source"`
+	Type   string `json:"type"`
 }
 
 type CVSSSeverity struct {
@@ -185,7 +195,8 @@ func FindVulnerabilities(reader interface { //nolint:funlen
 	v6.VulnerabilityStoreReader
 	v6.AffectedPackageStoreReader
 	v6.VulnerabilityDecoratorStoreReader
-}, config VulnerabilitiesOptions) ([]Vulnerability, error) {
+}, config VulnerabilitiesOptions,
+) ([]Vulnerability, error) {
 	log.WithFields("vulnSpecs", len(config.Vulnerability)).Debug("fetching vulnerabilities")
 
 	if config.RecordLimit == 0 {
@@ -215,7 +226,7 @@ func FindVulnerabilities(reader interface { //nolint:funlen
 	// find all affected packages for this vulnerability, so we can gather os information
 	var pairs []vulnerabilityAffectedPackageJoin
 	for _, vuln := range vulns {
-		affected, fetchErr := reader.GetAffectedPackages(nil, &v6.GetAffectedPackageOptions{
+		affected, fetchErr := reader.GetAffectedPackages(nil, &v6.GetPackageOptions{
 			PreloadOS: true,
 			Vulnerabilities: []v6.VulnerabilitySpecifier{
 				{

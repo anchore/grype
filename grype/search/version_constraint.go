@@ -99,6 +99,10 @@ func (f *constraintFuncCriteria) MatchesConstraint(constraint version.Constraint
 }
 
 func (f *constraintFuncCriteria) MatchesVulnerability(value vulnerability.Vulnerability) (bool, string, error) {
+	if value.Constraint == nil {
+		// if there is no constraint, then we cannot match against it
+		return false, "no version constraint", nil
+	}
 	matches, err := f.fn(value.Constraint)
 	// TODO: should we do something about this?
 	return matches, "", err

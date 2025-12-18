@@ -3,7 +3,9 @@ package version
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
+	"unicode"
 
 	hashiVer "github.com/anchore/go-version"
 )
@@ -144,7 +146,12 @@ func fuzzyVersionComparison(v1, v2 string) int {
 			ns1 = leftPad(ns1, -diff)
 		}
 
-		if cmp := strings.Compare(ns1, ns2); cmp != 0 {
+		// Check if both parts look like they have patch numbers (e.g., "p9" vs "p15")
+		if hasPatchNumber(ns1) && hasPatchNumber(ns2) {
+			if cmp := comparePatchNumbers(ns1, ns2); cmp != 0 {
+				return cmp
+			}
+		} else if cmp := strings.Compare(ns1, ns2); cmp != 0 {
 			return cmp
 		}
 
@@ -205,4 +212,55 @@ func leftPad(s string, n int) string {
 
 func stripLeadingV(ver string) string {
 	return strings.TrimPrefix(ver, "v")
+}
+
+// hasPatchNumber returns true if the version segment looks like it has a patch number
+// e.g., "p9", "p15", "rc1", "alpha2", "8p9", "8p15"
+func hasPatchNumber(segment string) bool {
+	for i, r := range segment {
+		if unicode.IsLetter(r) && i < len(segment)-1 {
+			next := rune(segment[i+1])
+			if unicode.IsDigit(next) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// comparePatchNumbers compares version segments with patch numbers numerically
+// e.g., "p9" < "p15", "rc1" < "rc10", "8p9" < "8p15"
+func comparePatchNumbers(left, right string) int {
+	findLetterDigitBoundary := func(s string) int {
+		for i, r := range s {
+			if unicode.IsLetter(r) && i < len(s)-1 && unicode.IsDigit(rune(s[i+1])) {
+				return i + 1
+			}
+		}
+		return -1
+	}
+
+	leftPos := findLetterDigitBoundary(left)
+	rightPos := findLetterDigitBoundary(right)
+
+	if leftPos > 0 && rightPos > 0 {
+		leftPrefix, leftNumStr := left[:leftPos], left[leftPos:]
+		rightPrefix, rightNumStr := right[:rightPos], right[rightPos:]
+
+		if cmp := strings.Compare(leftPrefix, rightPrefix); cmp != 0 {
+			return cmp
+		}
+
+		if leftNum, err1 := strconv.Atoi(leftNumStr); err1 == nil {
+			if rightNum, err2 := strconv.Atoi(rightNumStr); err2 == nil {
+				if leftNum < rightNum {
+					return -1
+				} else if leftNum > rightNum {
+					return 1
+				}
+			}
+		}
+	}
+
+	return strings.Compare(left, right)
 }

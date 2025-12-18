@@ -1,0 +1,44 @@
+# Grype
+
+Grype is a vulnerability scanner for container images and filesystems developed by Anchore. It easily finds vulnerabilities for major operating system packages and language-specific packages.
+
+## Key Features
+
+- Scans container images, filesystems, and SBOMs for known vulnerabilities
+- Supports major Linux distributions (Alpine, Ubuntu, Debian, RHEL, CentOS, etc.)
+- Language support for Java, JavaScript, Python, Go, Ruby, Rust, .NET, PHP, and more
+- Works with Docker, OCI, and Singularity image formats
+- Integrates with Syft for SBOM generation
+- Supports VEX (Vulnerability Exploitability Exchange) for filtering results
+- Risk scoring with EPSS (Exploit Prediction Scoring System) and CVSS metrics
+
+## Architecture
+
+- Written in Go
+- Uses SQLite for vulnerability database storage
+- Modular matcher system for different package types and ecosystems
+- Automatic database updates from multiple vulnerability sources
+- CLI-first design with multiple output formats (table, JSON, SARIF, CycloneDX)
+
+## Main Components
+
+- `cmd/grype/` - CLI application entry point
+- `grype/` - Core library with matchers, database, and scanning logic
+- `grype/matcher/` - Package-specific vulnerability matchers
+- `grype/db/` - Database management and vulnerability storage
+- `grype/pkg/` - Package identification and metadata
+- `grype/presenter/` - Output formatting (JSON, table, SARIF, etc.)
+
+## Usage
+
+Basic vulnerability scan:
+```bash
+grype <image>
+```
+
+Scan with SBOM:
+```bash
+grype sbom:./sbom.json
+```
+
+The tool automatically manages its vulnerability database and provides configurable output formats and filtering options.
