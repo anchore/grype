@@ -1,3 +1,4 @@
-yardstick==v0.12.2
+yardstick==v0.15.0
 # ../../../yardstick
 tabulate==0.9.0
+dataclass-wizard==0.36.2
