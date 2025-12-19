@@ -36,8 +36,8 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
-	//skip cpe matching for linux-kernel packages on major distros like ubuntu to avoid false positives from nvd's version ranges not covering backported fixes
-	//kernel vulns are still found accurately using dpkg/rpm matchers with distro data that includes backported fixes
+	// skip cpe matching for linux-kernel packages on major distros like ubuntu to avoid false positives from nvd's version ranges not covering backported fixes
+	// kernel vulns are still found accurately using dpkg/rpm matchers with distro data that includes backported fixes
 	if p.Type == syftPkg.LinuxKernelPkg && isMainDistro(p.Distro) {
 		return nil, nil, nil
 	}
