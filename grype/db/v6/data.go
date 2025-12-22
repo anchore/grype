@@ -38,6 +38,7 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 		{Alias: "alpine", VersionPattern: `.*_alpha.*`, ReplacementLabelVersion: strRef("edge"), Rolling: true},
 		{Alias: "wolfi", Rolling: true},
 		{Alias: "chainguard", Rolling: true},
+		{Alias: "secureos", Rolling: true},
 
 		// others
 		{Alias: "arch", Rolling: true},
