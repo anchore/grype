@@ -52,7 +52,10 @@ runs:
     - name: Install project tools
       if: inputs.tools == 'true'
       shell: bash
-      run: make tools
+      run: |
+        make tools
+        .tool/binny list
+        .tool/binny check
 
     - name: Install go dependencies
       if: inputs.go-dependencies == 'true'
