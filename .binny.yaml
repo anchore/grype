@@ -82,7 +82,7 @@ tools:
   # used for running all local and CI tasks
   - name: task
     version:
-      want: v3.45.5
+      want: v3.46.3
     method: github-release
     with:
       repo: go-task/task
