@@ -409,3 +409,40 @@ func TestPseudoSemverPattern(t *testing.T) {
 		})
 	}
 }
+func TestStripLeadingV(t *testing.T) {
+	cases := []struct {
+		in   string
+		want string
+	}{
+		{"v1.2.3", "1.2.3"},
+		{"V1.2.3", "1.2.3"},
+		{"1.2.3", "1.2.3"},
+		{"", ""},
+	}
+
+	for _, c := range cases {
+		got := stripLeadingV(c.in)
+		if got != c.want {
+			t.Fatalf("stripLeadingV(%q) = %q; want %q", c.in, got, c.want)
+		}
+	}
+}
+func TestFuzzyVersionComparison_UppercaseV(t *testing.T) {
+	cases := []struct {
+		a, b string
+		want int
+	}{
+		{"v1.2.3", "V1.2.3", 0},  
+		{"V1.2.3", "1.2.3", 0},   
+		{"V1.2.3", "v1.2.4", -1}, 
+		{"v2.0", "V1.9.9", 1},    
+	}
+
+	for _, c := range cases {
+		got := fuzzyVersionComparison(c.a, c.b)
+		if got != c.want {
+			t.Fatalf("fuzzyVersionComparison(%q, %q) = %d; want %d", c.a, c.b, got, c.want)
+		}
+	}
+}
+
