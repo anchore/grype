@@ -112,7 +112,7 @@ var ignoreLinuxKernelHeaders = []match.IgnoreRule{
 
 //nolint:funlen
 func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs error) {
-	writer, err := format.MakeScanResultWriter(opts.Outputs, opts.File, format.PresentationConfig{
+	writer, err := format.MakeScanResultWriter(opts.Outputs, opts.File, opts.Stdout, format.PresentationConfig{
 		TemplateFilePath: opts.OutputTemplateFile,
 		ShowSuppressed:   opts.ShowSuppressed,
 		Pretty:           opts.Pretty,

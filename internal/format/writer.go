@@ -29,8 +29,8 @@ var _ interface {
 
 // MakeScanResultWriter creates a ScanResultWriter for output or returns an error. this will either return a valid writer
 // or an error but neither both and if there is no error, ScanResultWriter.Close() should be called
-func MakeScanResultWriter(outputs []string, defaultFile string, cfg PresentationConfig) (ScanResultWriter, error) {
-	outputOptions, err := parseOutputFlags(outputs, defaultFile, cfg)
+func MakeScanResultWriter(outputs []string, defaultFile string, stdoutFormat string, cfg PresentationConfig) (ScanResultWriter, error) {
+	outputOptions, err := parseOutputFlags(outputs, defaultFile, stdoutFormat, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -59,8 +59,9 @@ func MakeScanResultWriterForFormat(f string, path string, cfg PresentationConfig
 	return writer, nil
 }
 
-// parseOutputFlags utility to parse command-line option strings and retain the existing behavior of default format and file
-func parseOutputFlags(outputs []string, defaultFile string, cfg PresentationConfig) (out []scanResultWriterDescription, errs error) {
+// parseOutputFlags utility to parse command-line option strings and retain the existing behavior of default format and file.
+// If stdoutFormat is provided, it will be used for explicit stdout output regardless of other output configurations.
+func parseOutputFlags(outputs []string, defaultFile string, stdoutFormat string, cfg PresentationConfig) (out []scanResultWriterDescription, errs error) {
 	// always should have one option -- we generally get the default of "table", but just make sure
 	if len(outputs) == 0 {
 		outputs = append(outputs, TableFormat.String())
@@ -90,8 +91,30 @@ func parseOutputFlags(outputs []string, defaultFile string, cfg PresentationConf
 			continue
 		}
 
+		// if stdoutFormat is specified and this output would go to stdout, skip it
+		// (the explicit stdoutFormat takes precedence)
+		if stdoutFormat != "" && file == "" {
+			continue
+		}
+
 		out = append(out, newWriterDescription(format, file, cfg))
 	}
+
+	// if explicit stdout format is specified, add it as a stdout output
+	if stdoutFormat != "" {
+		stdoutFmt := Parse(stdoutFormat)
+		if stdoutFmt == UnknownFormat {
+			errs = multierror.Append(errs, fmt.Errorf(`unsupported stdout format "%s", supported formats are: %+v`, stdoutFormat, AvailableFormats))
+		} else {
+			out = append(out, newWriterDescription(stdoutFmt, "", cfg))
+		}
+	}
+
+	// ensure we have at least one output if nothing was added
+	if len(out) == 0 && errs == nil {
+		out = append(out, newWriterDescription(TableFormat, "", cfg))
+	}
+
 	return out, errs
 }
 

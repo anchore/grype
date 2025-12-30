@@ -14,6 +14,7 @@ import (
 type Grype struct {
 	Outputs                    []string           `yaml:"output" json:"output" mapstructure:"output"` // -o, <presenter>=<file> the Presenter hint string to use for report formatting and the output file
 	File                       string             `yaml:"file" json:"file" mapstructure:"file"`       // --file, the file to write report output to
+	Stdout                     string             `yaml:"stdout" json:"stdout" mapstructure:"stdout"` // --stdout, explicit output format for stdout (use with --file to get both file and stdout output)
 	Pretty                     bool               `yaml:"pretty" json:"pretty" mapstructure:"pretty"`
 	Distro                     string             `yaml:"distro" json:"distro" mapstructure:"distro"`                                           // --distro, specify a distro to explicitly use
 	GenerateMissingCPEs        bool               `yaml:"add-cpes-if-none" json:"add-cpes-if-none" mapstructure:"add-cpes-if-none"`             // --add-cpes-if-none, automatically generate CPEs if they are not present in import (e.g. from a 3rd party SPDX document)
@@ -90,6 +91,11 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 	flags.StringVarP(&o.File,
 		"file", "",
 		"file to write the default report output to (default is STDOUT)",
+	)
+
+	flags.StringVarP(&o.Stdout,
+		"stdout", "",
+		fmt.Sprintf("explicitly set the output format for stdout (useful with --file to get both file and stdout output), formats=%v", format.AvailableFormats),
 	)
 
 	flags.StringVarP(&o.Name,
@@ -171,6 +177,14 @@ func (o *Grype) PostLoad() error {
 			return fmt.Errorf("bad --fail-on severity value '%s'", o.FailOn)
 		}
 	}
+
+	if o.Stdout != "" {
+		stdoutFormat := format.Parse(o.Stdout)
+		if stdoutFormat == format.UnknownFormat {
+			return fmt.Errorf("bad --stdout format value '%s', supported formats are: %v", o.Stdout, format.AvailableFormats)
+		}
+	}
+
 	return nil
 }
 
