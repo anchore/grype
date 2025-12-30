@@ -31,8 +31,68 @@ func Test_MakeScanResultWriter(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		_, err := MakeScanResultWriter(tt.outputs, "", PresentationConfig{})
+		_, err := MakeScanResultWriter(tt.outputs, "", "", PresentationConfig{})
 		tt.wantErr(t, err)
+	}
+}
+
+func Test_MakeScanResultWriterWithStdout(t *testing.T) {
+	tmp := t.TempDir()
+
+	tests := []struct {
+		name         string
+		outputs      []string
+		defaultFile  string
+		stdoutFormat string
+		wantErr      assert.ErrorAssertionFunc
+		expectCount  int
+	}{
+		{
+			name:         "stdout format with file output",
+			outputs:      []string{"sarif"},
+			defaultFile:  filepath.Join(tmp, "output.sarif"),
+			stdoutFormat: "table",
+			wantErr:      assert.NoError,
+			expectCount:  2, // one file writer + one stdout publisher
+		},
+		{
+			name:         "stdout format replaces default stdout output",
+			outputs:      []string{"table"},
+			defaultFile:  "",
+			stdoutFormat: "json",
+			wantErr:      assert.NoError,
+			expectCount:  1, // only the explicit stdout (json), table is skipped
+		},
+		{
+			name:         "invalid stdout format",
+			outputs:      []string{"table"},
+			defaultFile:  "",
+			stdoutFormat: "invalid",
+			wantErr: func(t assert.TestingT, err error, bla ...interface{}) bool {
+				return assert.ErrorContains(t, err, `unsupported stdout format "invalid"`)
+			},
+			expectCount: 0,
+		},
+		{
+			name:         "empty stdout format preserves normal behavior",
+			outputs:      []string{"table"},
+			defaultFile:  "",
+			stdoutFormat: "",
+			wantErr:      assert.NoError,
+			expectCount:  1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			writer, err := MakeScanResultWriter(tt.outputs, tt.defaultFile, tt.stdoutFormat, PresentationConfig{})
+			tt.wantErr(t, err)
+			if err == nil {
+				mw, ok := writer.(*scanResultMultiWriter)
+				assert.True(t, ok)
+				assert.Len(t, mw.writers, tt.expectCount)
+			}
+		})
 	}
 }
 
