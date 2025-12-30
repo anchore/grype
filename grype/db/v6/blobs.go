@@ -146,6 +146,10 @@ type PackageQualifiers struct {
 
 	// PlatformCPEs lists Common Platform Enumeration (CPE) identifiers for affected platforms.
 	PlatformCPEs []string `json:"platform_cpes,omitempty"`
+
+	// RootIO indicates that the vulnerability applies only to Root IO packages (packages with Root IO fixes).
+	// When true, standard packages will not match this vulnerability (NAK pattern).
+	RootIO *bool `json:"rootio,omitempty"`
 }
 
 // Range defines a specific range of package versions pertaining to a vulnerability.
