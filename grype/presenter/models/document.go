@@ -13,17 +13,18 @@ import (
 
 // Document represents the JSON document to be presented
 type Document struct {
-	Matches        []Match        `json:"matches"`
-	IgnoredMatches []IgnoredMatch `json:"ignoredMatches,omitempty"`
-	Source         *source        `json:"source"`
-	Distro         distribution   `json:"distro"`
-	Descriptor     descriptor     `json:"descriptor"`
+	Matches         []Match         `json:"matches"`
+	IgnoredMatches  []IgnoredMatch  `json:"ignoredMatches,omitempty"`
+	AlertsByPackage []PackageAlerts `json:"alertsByPackage,omitempty"`
+	Source          *source         `json:"source"`
+	Distro          distribution    `json:"distro"`
+	Descriptor      descriptor      `json:"descriptor"`
 }
 
 // NewDocument creates and populates a new Document struct, representing the populated JSON document.
 //
 //nolint:staticcheck // MetadataProvider is deprecated but still used internally
-func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Context, matches match.Matches, ignoredMatches []match.IgnoredMatch, metadataProvider vulnerability.MetadataProvider, appConfig any, dbInfo any, strategy SortStrategy, outputTimestamp bool) (Document, error) {
+func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Context, matches match.Matches, ignoredMatches []match.IgnoredMatch, metadataProvider vulnerability.MetadataProvider, appConfig any, dbInfo any, strategy SortStrategy, outputTimestamp bool, distroAlerts *DistroAlertData) (Document, error) {
 	var timestamp []byte
 
 	if !outputTimestamp {
@@ -84,10 +85,11 @@ func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Con
 	}
 
 	return Document{
-		Matches:        findings,
-		IgnoredMatches: ignoredMatchModels,
-		Source:         src,
-		Distro:         newDistribution(context, selectMostCommonDistro(packages)),
+		Matches:         findings,
+		IgnoredMatches:  ignoredMatchModels,
+		AlertsByPackage: buildPackageAlerts(distroAlerts),
+		Source:          src,
+		Distro:          newDistribution(context, selectMostCommonDistro(packages)),
 		Descriptor: descriptor{
 			Name:          id.Name,
 			Version:       id.Version,
@@ -96,6 +98,76 @@ func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Con
 			Timestamp:     string(timestamp),
 		},
 	}, nil
+}
+
+// buildPackageAlerts creates PackageAlerts from distro tracking data.
+func buildPackageAlerts(data *DistroAlertData) []PackageAlerts {
+	if data == nil {
+		return nil
+	}
+
+	// map package ID to alerts for deduplication
+	alertsByPkg := make(map[string]*PackageAlerts)
+
+	// helper to add an alert for a package
+	addAlert := func(p pkg.Package, alertType AlertType, message string) {
+		pkgID := string(p.ID)
+		if existing, ok := alertsByPkg[pkgID]; ok {
+			existing.Alerts = append(existing.Alerts, Alert{
+				Type:    alertType,
+				Message: message,
+			})
+		} else {
+			alertsByPkg[pkgID] = &PackageAlerts{
+				Package: newPackage(p),
+				Alerts: []Alert{
+					{
+						Type:    alertType,
+						Message: message,
+					},
+				},
+			}
+		}
+	}
+
+	// add alerts for disabled distro packages
+	for _, p := range data.DisabledDistroPackages {
+		distroName := "unknown"
+		if p.Distro != nil {
+			distroName = p.Distro.String()
+		}
+		addAlert(p, AlertTypeDistroDisabled, fmt.Sprintf("Package is from %s which is disabled for vulnerability matching", distroName))
+	}
+
+	// add alerts for unknown distro packages
+	for _, p := range data.UnknownDistroPackages {
+		distroName := "unknown"
+		if p.Distro != nil {
+			distroName = p.Distro.String()
+		}
+		addAlert(p, AlertTypeDistroUnknown, fmt.Sprintf("Package is from unrecognized distro: %s", distroName))
+	}
+
+	// add alerts for EOL distro packages
+	for _, p := range data.EOLDistroPackages {
+		distroName := "unknown"
+		if p.Distro != nil {
+			distroName = p.Distro.String()
+		}
+		addAlert(p, AlertTypeDistroEOL, fmt.Sprintf("Package is from end-of-life distro: %s", distroName))
+	}
+
+	// convert map to slice
+	if len(alertsByPkg) == 0 {
+		return nil
+	}
+
+	result := make([]PackageAlerts, 0, len(alertsByPkg))
+	for _, pa := range alertsByPkg {
+		result = append(result, *pa)
+	}
+
+	return result
 }
 
 // selectMostCommonDistro selects the most common distro from the provided packages.

@@ -29,6 +29,7 @@ type Config struct {
 	Golang     golang.MatcherConfig
 	Rust       rust.MatcherConfig
 	Stock      stock.MatcherConfig
+	Rpm        rpm.MatcherConfig
 }
 
 func NewDefaultMatchers(mc Config) []match.Matcher {
@@ -37,7 +38,7 @@ func NewDefaultMatchers(mc Config) []match.Matcher {
 		ruby.NewRubyMatcher(mc.Ruby),
 		python.NewPythonMatcher(mc.Python),
 		dotnet.NewDotnetMatcher(mc.Dotnet),
-		&rpm.Matcher{},
+		rpm.NewRpmMatcher(mc.Rpm),
 		java.NewJavaMatcher(mc.Java),
 		javascript.NewJavascriptMatcher(mc.Javascript),
 		&apk.Matcher{},

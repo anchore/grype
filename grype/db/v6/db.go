@@ -74,6 +74,7 @@ type Writer interface {
 	ProviderStoreWriter
 	VulnerabilityStoreWriter
 	VulnerabilityDecoratorStoreWriter
+	OperatingSystemStoreWriter
 	AffectedPackageStoreWriter
 	UnaffectedPackageStoreWriter
 	AffectedCPEStoreWriter

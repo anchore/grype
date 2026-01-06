@@ -15,7 +15,19 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-type Matcher struct{}
+type Matcher struct {
+	cfg MatcherConfig
+}
+
+type MatcherConfig struct {
+	UseCPEsForEOL bool
+}
+
+func NewRpmMatcher(cfg MatcherConfig) *Matcher {
+	return &Matcher{
+		cfg: cfg,
+	}
+}
 
 func (m *Matcher) PackageTypes() []syftPkg.Type {
 	return []syftPkg.Type{syftPkg.RpmPkg}

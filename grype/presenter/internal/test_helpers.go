@@ -58,7 +58,7 @@ func GenerateAnalysis(t *testing.T, scheme SyftSource) (*sbom.SBOM, models.Docum
 
 	matches := generateMatches(t, grypePackages[0], grypePackages[1])
 
-	doc, err := models.NewDocument(clio.Identification{Name: "grype", Version: "[not provided]"}, grypePackages, context, matches, nil, models.NewMetadataMock(), nil, nil, models.SortByPackage, true)
+	doc, err := models.NewDocument(clio.Identification{Name: "grype", Version: "[not provided]"}, grypePackages, context, matches, nil, models.NewMetadataMock(), nil, nil, models.SortByPackage, true, nil)
 	require.NoError(t, err)
 
 	return s, doc
@@ -79,7 +79,7 @@ func GenerateAnalysisWithIgnoredMatches(t *testing.T, scheme SyftSource) models.
 	ignoredMatches := generateIgnoredMatches(t, grypePackages[1])
 	context := generateContext(t, scheme)
 
-	doc, err := models.NewDocument(clio.Identification{Name: "grype", Version: "devel"}, grypePackages, context, matches, ignoredMatches, models.NewMetadataMock(), nil, nil, models.SortByPackage, true)
+	doc, err := models.NewDocument(clio.Identification{Name: "grype", Version: "devel"}, grypePackages, context, matches, ignoredMatches, models.NewMetadataMock(), nil, nil, models.SortByPackage, true, nil)
 	require.NoError(t, err)
 	return doc
 }
