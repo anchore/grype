@@ -241,7 +241,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 	// clear out the registry auth information to avoid including possibly sensitive information in the report
 	opts.Registry.Auth = nil
 
-	model, err := models.NewDocument(app.ID(), packages, pkgContext, *remainingMatches, ignoredMatches, vp, opts, dbInfo(status, vp), models.SortStrategy(opts.SortBy.Criteria), opts.Timestamp)
+	model, err := models.NewDocument(app.ID(), packages, pkgContext, *remainingMatches, ignoredMatches, vp, opts, dbInfo(status, vp), models.SortStrategy(opts.SortBy.Criteria), opts.Timestamp, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create document: %w", err)
 	}

@@ -21,6 +21,7 @@ type Matcher struct {
 
 type MatcherConfig struct {
 	MissingEpochStrategy version.MissingEpochStrategy
+	UseCPEsForEOL        bool
 }
 
 func NewRpmMatcher(cfg MatcherConfig) *Matcher {

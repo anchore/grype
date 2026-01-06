@@ -148,3 +148,13 @@ func TypeFromRelease(release linux.Release) Type {
 func (t Type) String() string {
 	return string(t)
 }
+
+// IsKnown returns true if the distro type is in the set of known distributions.
+func (t Type) IsKnown() bool {
+	for _, known := range All {
+		if t == known {
+			return true
+		}
+	}
+	return false
+}
