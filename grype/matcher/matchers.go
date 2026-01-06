@@ -10,6 +10,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
 	"github.com/anchore/grype/grype/matcher/msrc"
+	"github.com/anchore/grype/grype/matcher/pacman"
 	"github.com/anchore/grype/grype/matcher/portage"
 	"github.com/anchore/grype/grype/matcher/python"
 	"github.com/anchore/grype/grype/matcher/rpm"
@@ -46,5 +47,6 @@ func NewDefaultMatchers(mc Config) []match.Matcher {
 		rust.NewRustMatcher(mc.Rust),
 		stock.NewStockMatcher(mc.Stock),
 		&bitnami.Matcher{},
+		&pacman.Matcher{},
 	}
 }
