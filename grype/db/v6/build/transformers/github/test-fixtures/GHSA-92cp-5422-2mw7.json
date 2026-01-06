@@ -1,0 +1,56 @@
+{
+  "Vulnerability": {},
+  "Advisory": {
+    "Classification": "GENERAL",
+    "Severity": "Low",
+    "CVSS": {
+      "version": "3.1",
+      "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:L/A:N",
+      "base_metrics": {
+        "base_score": 3.7,
+        "exploitability_score": 2.2,
+        "impact_score": 1.4,
+        "base_severity": "Low"
+      },
+      "status": "N/A"
+    },
+    "FixedIn": [
+      {
+        "name": "github.com/redis/go-redis/v9",
+        "identifier": "9.7.3",
+        "ecosystem": "go",
+        "namespace": "github:go",
+        "range": ">= 9.7.0-beta.1 < 9.7.3"
+      },
+      {
+        "name": "github.com/redis/go-redis/v9",
+        "identifier": "9.6.3",
+        "ecosystem": "go",
+        "namespace": "github:go",
+        "range": ">= 9.6.0b1 < 9.6.3"
+      },
+      {
+        "name": "github.com/redis/go-redis/v9",
+        "identifier": "9.5.5",
+        "ecosystem": "go",
+        "namespace": "github:go",
+        "range": ">= 9.5.1 < 9.5.5"
+      }
+    ],
+    "Summary": "go-redis allows potential out of order responses when `CLIENT SETINFO` times out during connection establishment",
+    "url": "https://github.com/advisories/GHSA-92cp-5422-2mw7",
+    "CVE": [
+      "CVE-2025-29923"
+    ],
+    "Metadata": {
+      "CVE": [
+        "CVE-2025-29923"
+      ]
+    },
+    "ghsaId": "GHSA-92cp-5422-2mw7",
+    "published": "2025-03-20T18:49:59Z",
+    "updated": "2025-03-20T18:50:01Z",
+    "withdrawn": null,
+    "namespace": "github:go"
+  }
+}
