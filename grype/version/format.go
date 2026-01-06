@@ -20,6 +20,7 @@ const (
 	GolangFormat
 	JVMFormat
 	BitnamiFormat
+	PacmanFormat
 )
 
 type Format int
@@ -38,6 +39,7 @@ var formatStr = []string{
 	"Go",
 	"JVM",
 	"Bitnami",
+	"Pacman",
 }
 
 var Formats = []Format{
@@ -53,6 +55,7 @@ var Formats = []Format{
 	GolangFormat,
 	JVMFormat,
 	BitnamiFormat,
+	PacmanFormat,
 }
 
 func ParseFormat(userStr string) Format {
@@ -82,6 +85,8 @@ func ParseFormat(userStr string) Format {
 		return PortageFormat
 	case strings.ToLower(JVMFormat.String()), "jvm", "jre", "jdk", "openjdk", "jep223":
 		return JVMFormat
+	case strings.ToLower(PacmanFormat.String()), "pacman":
+		return PacmanFormat
 	}
 	return UnknownFormat
 }
