@@ -19,7 +19,7 @@ const (
 	Busybox      Type = "busybox"
 	AmazonLinux  Type = "amazonlinux"
 	OracleLinux  Type = "oraclelinux"
-	ArchLinux    Type = "archlinux"
+	ArchLinux    Type = "arch"
 	OpenSuseLeap Type = "opensuseleap"
 	SLES         Type = "sles"
 	Photon       Type = "photon"
