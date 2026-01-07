@@ -332,6 +332,7 @@ tasks:
     cmds:
       - task: generate-json-schema
       - task: generate-db-schema
+      - task: generate-codename-data
 
   generate-json-schema:
     desc: Generate a new JSON schema
@@ -346,6 +347,12 @@ tasks:
     cmds:
       # generate the JSON schema for database blob types
       - "cd grype/db/v6/schema && go run ."
+
+  generate-codename-data:
+    desc: Generate OS codename lookup data
+    cmds:
+      - "go generate ./grype/db"
+      - task: format
 
 
   ## Build-related targets #################################

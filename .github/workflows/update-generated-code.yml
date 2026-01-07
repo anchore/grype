@@ -1,0 +1,47 @@
+name: PR to update OS generated code
+on:
+  schedule:
+    - cron: "0 1 * * 1" # every Monday at 1 AM UTC
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  update-generated-code:
+    runs-on: ubuntu-latest
+    if: github.repository == 'anchore/grype' # only run for main repo
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 #v6.0.1
+        with:
+          persist-credentials: false
+
+      - name: Bootstrap environment
+        uses: ./.github/actions/bootstrap
+        with:
+          bootstrap-apt-packages: ""
+          compute-fingerprints: "false"
+          go-dependencies: true
+
+      - name: "Generate codename data"
+        run: |
+          make generate-codename-data
+
+      - uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a #v2.1.0
+        id: generate-token
+        with:
+          app_id: ${{ secrets.TOKEN_APP_ID }}
+          private_key: ${{ secrets.TOKEN_APP_PRIVATE_KEY }}
+
+      - uses: peter-evans/create-pull-request@98357b18bf14b5342f975ff684046ec3b2a07725 #v8.0.0
+        with:
+          signoff: true
+          delete-branch: true
+          branch: auto/latest-codename-data
+          labels: dependencies
+          commit-message: "chore(deps): update OS codename data"
+          title: "chore(deps): update OS codename data"
+          body: |
+            Update OS codename data from endoflife.date
+          token: ${{ steps.generate-token.outputs.token }}
