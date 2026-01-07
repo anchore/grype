@@ -17,6 +17,7 @@ type Matcher struct {
 
 type MatcherConfig struct {
 	MissingEpochStrategy version.MissingEpochStrategy
+	UseCPEsForEOL        bool
 }
 
 func NewDpkgMatcher(cfg MatcherConfig) *Matcher {

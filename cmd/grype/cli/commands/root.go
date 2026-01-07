@@ -394,11 +394,13 @@ func getMatcherConfig(opts *options.Grype) matcher.Config {
 			AllowMainModulePseudoVersionComparison: opts.Match.Golang.AllowMainModulePseudoVersionComparison,
 		},
 		Stock: stock.MatcherConfig(opts.Match.Stock),
-		Rpm: rpm.MatcherConfig{
-			MissingEpochStrategy: opts.Match.Rpm.MissingEpochStrategy,
-		},
 		Dpkg: dpkg.MatcherConfig{
 			MissingEpochStrategy: opts.Match.Dpkg.MissingEpochStrategy,
+			UseCPEsForEOL:        opts.Match.Dpkg.UseCPEsForEOL,
+		},
+		Rpm: rpm.MatcherConfig{
+			MissingEpochStrategy: opts.Match.Rpm.MissingEpochStrategy,
+			UseCPEsForEOL:        opts.Match.Rpm.UseCPEsForEOL,
 		},
 	}
 }
