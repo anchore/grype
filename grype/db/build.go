@@ -10,9 +10,9 @@ import (
 	"github.com/spf13/afero"
 
 	"github.com/anchore/grype/grype/db/data"
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/provider"
 	"github.com/anchore/grype/grype/db/provider/entry"
-	"github.com/anchore/grype/grype/db/provider/unmarshal"
 	grypeDBv5 "github.com/anchore/grype/grype/db/v5"
 	v5 "github.com/anchore/grype/grype/db/v5/build"
 	grypeDBv6 "github.com/anchore/grype/grype/db/v6"

@@ -5,14 +5,14 @@ import (
 
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/processors"
-	"github.com/anchore/grype/grype/db/v6/build/transformers/epss"
-	"github.com/anchore/grype/grype/db/v6/build/transformers/github"
-	"github.com/anchore/grype/grype/db/v6/build/transformers/kev"
-	"github.com/anchore/grype/grype/db/v6/build/transformers/msrc"
-	"github.com/anchore/grype/grype/db/v6/build/transformers/nvd"
-	"github.com/anchore/grype/grype/db/v6/build/transformers/openvex"
-	"github.com/anchore/grype/grype/db/v6/build/transformers/os"
-	"github.com/anchore/grype/grype/db/v6/build/transformers/osv"
+	"github.com/anchore/grype/grype/db/v6/build/internal/transformers/epss"
+	"github.com/anchore/grype/grype/db/v6/build/internal/transformers/github"
+	"github.com/anchore/grype/grype/db/v6/build/internal/transformers/kev"
+	"github.com/anchore/grype/grype/db/v6/build/internal/transformers/msrc"
+	"github.com/anchore/grype/grype/db/v6/build/internal/transformers/nvd"
+	"github.com/anchore/grype/grype/db/v6/build/internal/transformers/openvex"
+	"github.com/anchore/grype/grype/db/v6/build/internal/transformers/os"
+	"github.com/anchore/grype/grype/db/v6/build/internal/transformers/osv"
 )
 
 type Config struct {

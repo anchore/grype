@@ -8,7 +8,7 @@ import (
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/provider"
 	grypeDB "github.com/anchore/grype/grype/db/v6"
-	"github.com/anchore/grype/grype/db/v6/build/transformers"
+	"github.com/anchore/grype/grype/db/v6/build/internal/transformers"
 	"github.com/anchore/grype/internal/log"
 )
 

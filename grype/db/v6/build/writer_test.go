@@ -10,7 +10,7 @@ import (
 
 	"github.com/anchore/grype/grype/db/data"
 	grypeDB "github.com/anchore/grype/grype/db/v6"
-	"github.com/anchore/grype/grype/db/v6/build/transformers"
+	"github.com/anchore/grype/grype/db/v6/build/internal/transformers"
 )
 
 func TestFillInMissingSeverity(t *testing.T) {

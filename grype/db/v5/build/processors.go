@@ -5,11 +5,11 @@ import (
 
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/processors"
-	"github.com/anchore/grype/grype/db/v5/build/transformers/github"
-	"github.com/anchore/grype/grype/db/v5/build/transformers/matchexclusions"
-	"github.com/anchore/grype/grype/db/v5/build/transformers/msrc"
-	"github.com/anchore/grype/grype/db/v5/build/transformers/nvd"
-	"github.com/anchore/grype/grype/db/v5/build/transformers/os"
+	"github.com/anchore/grype/grype/db/v5/build/internal/transformers/github"
+	"github.com/anchore/grype/grype/db/v5/build/internal/transformers/matchexclusions"
+	"github.com/anchore/grype/grype/db/v5/build/internal/transformers/msrc"
+	"github.com/anchore/grype/grype/db/v5/build/internal/transformers/nvd"
+	"github.com/anchore/grype/grype/db/v5/build/internal/transformers/os"
 )
 
 type Config struct {

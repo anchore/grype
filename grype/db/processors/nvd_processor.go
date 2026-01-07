@@ -4,8 +4,8 @@ import (
 	"io"
 
 	"github.com/anchore/grype/grype/db/data"
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/provider"
-	"github.com/anchore/grype/grype/db/provider/unmarshal"
 	"github.com/anchore/grype/internal/log"
 )
 
