@@ -1,0 +1,75 @@
+[
+  {
+    "Vulnerability": {
+      "CVSS": [
+        {
+          "base_metrics": {
+            "base_score": 7.1,
+            "base_severity": "High",
+            "exploitability_score": 1.2,
+            "impact_score": 5.9
+          },
+          "status": "verified",
+          "vector_string": "CVSS:3.1/AV:N/AC:H/PR:L/UI:R/S:U/C:H/I:H/A:H",
+          "version": "3.1"
+        }
+      ],
+      "Description": "A flaw was found in PostgreSQL, where some PostgreSQL extensions did not use the search_path safely in their installation script. This flaw allows an attacker with sufficient privileges to trick an administrator into executing a specially crafted script during the extension's installation or update. The highest threat from this vulnerability is to confidentiality, integrity, as well as system availability.",
+      "FixedIn": [
+        {
+          "Module": "postgresql:10",
+          "Name": "postgresql",
+          "NamespaceName": "rhel:8",
+          "VendorAdvisory": {
+            "AdvisorySummary": [
+              {
+                "ID": "RHSA-2020:3669",
+                "Link": "https://access.redhat.com/errata/RHSA-2020:3669"
+              }
+            ],
+            "NoAdvisory": false
+          },
+          "Version": "0:10.14-1.module+el8.2.0+7801+be0fed80",
+          "VersionFormat": "rpm"
+        },
+        {
+          "Module": "postgresql:12",
+          "Name": "postgresql",
+          "NamespaceName": "rhel:8",
+          "VendorAdvisory": {
+            "AdvisorySummary": [
+              {
+                "ID": "RHSA-2020:5620",
+                "Link": "https://access.redhat.com/errata/RHSA-2020:5620"
+              }
+            ],
+            "NoAdvisory": false
+          },
+          "Version": "0:12.5-1.module+el8.3.0+9042+664538f4",
+          "VersionFormat": "rpm"
+        },
+        {
+          "Module": "postgresql:9.6",
+          "Name": "postgresql",
+          "NamespaceName": "rhel:8",
+          "VendorAdvisory": {
+            "AdvisorySummary": [
+              {
+                "ID": "RHSA-2020:5619",
+                "Link": "https://access.redhat.com/errata/RHSA-2020:5619"
+              }
+            ],
+            "NoAdvisory": false
+          },
+          "Version": "0:9.6.20-1.module+el8.3.0+8938+7f0e88b6",
+          "VersionFormat": "rpm"
+        }
+      ],
+      "Link": "https://access.redhat.com/security/cve/CVE-2020-14350",
+      "Metadata": {},
+      "Name": "CVE-2020-14350",
+      "NamespaceName": "rhel:8",
+      "Severity": "Medium"
+    }
+  }
+]

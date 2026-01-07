@@ -1,0 +1,38 @@
+[
+  {
+  },
+  {
+    "id": "CVE-1234-5678",
+    "justification": "CVE-1234-5678 is imaginary"
+  },
+  {
+    "id": "CVE-2012-abcxyz",
+    "constraints": [
+      {
+        "namespaces": [
+          "nvd:cpe",
+          "abc.xyz:python"
+        ]
+      }
+    ],
+    "justification": "some reason"
+  },
+  {
+    "id": "CVE-2015-abc123",
+    "constraints": [
+      {
+        "ecosystem_constraints": [
+          {
+            "language": "python",
+            "package_constraints": [
+              {
+                "package_name": "clock"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "justification": ""
+  }
+]

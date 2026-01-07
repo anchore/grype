@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.5.0",
+  "id": "BIT-node-2020-8201",
+  "details": "Node.js < 12.18.4 and < 14.11 can be exploited to perform HTTP desync attacks and deliver malicious payloads to unsuspecting users. The payloads can be crafted by an attacker to hijack user sessions, poison cookies, perform clickjacking, and a multitude of other attacks depending on the architecture of the underlying system. The attack was possible due to a bug in processing of carrier-return symbols in the HTTP header names.",
+  "aliases": [
+    "CVE-2020-8201"
+  ],
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "Bitnami",
+        "name": "node",
+        "purl": "pkg:bitnami/node"
+      },
+      "severity": [
+        {
+          "type": "CVSS_V3",
+          "score": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N"
+        }
+      ],
+      "ranges": [
+        {
+          "type": "SEMVER",
+          "events": [
+            {
+              "introduced": "12.0.0"
+            },
+            {
+              "fixed": "12.18.4"
+            },
+            {
+              "introduced": "14.0.0"
+            },
+            {
+              "fixed": "14.11.0"
+            }
+          ],
+          "database_specific": {
+            "anchore": {
+              "fixes": [
+                {
+                  "version": "12.18.4",
+                  "date": "2020-09-15",
+                  "kind": "first-observed"
+                },
+                {
+                  "version": "14.11.0",
+                  "date": "2020-09-15",
+                  "kind": "first-observed"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "database_specific": {
+    "severity": "High",
+    "cpes": [
+      "cpe:2.3:a:nodejs:node.js:*:*:*:*:*:*:*:*",
+      "cpe:2.3:a:nodejs:node.js:*:*:*:*:lts:*:*:*"
+    ]
+  },
+  "references": [
+    {
+      "type": "WEB",
+      "url": "https://nodejs.org/en/blog/vulnerability/september-2020-security-releases/"
+    },
+    {
+      "type": "WEB",
+      "url": "https://security.gentoo.org/glsa/202101-07"
+    }
+  ],
+  "published": "2024-03-06T11:08:09.371Z",
+  "modified": "2024-03-06T11:25:28.861Z"
+}

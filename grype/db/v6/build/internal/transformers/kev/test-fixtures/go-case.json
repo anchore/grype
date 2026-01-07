@@ -1,0 +1,15 @@
+{
+  "cveID": "CVE-2025-0108",
+  "vendorProject": "Palo Alto Networks",
+  "product": "PAN-OS",
+  "vulnerabilityName": "Palo Alto Networks PAN-OS Authentication Bypass Vulnerability",
+  "dateAdded": "2025-02-18",
+  "shortDescription": "Palo Alto Networks PAN-OS contains an authentication bypass vulnerability in its management web interface. This vulnerability allows an unauthenticated attacker with network access to the management web interface to bypass the authentication normally required and invoke certain PHP scripts.",
+  "requiredAction": "Apply mitigations per vendor instructions [https://www.vendor.com/instructions] or discontinue use of the product if mitigations are unavailable [https:\/\/www.vendor.com\/something-else].",
+  "dueDate": "2025-03-11",
+  "knownRansomwareCampaignUse": "Unknown",
+  "notes": "https:\/\/security.paloaltonetworks.com\/CVE-2025-0108 ; https:\/\/nvd.nist.gov\/vuln\/detail\/CVE-2025-0108 ; remaining information",
+  "cwes": [
+    "CWE-306"
+  ]
+}

@@ -1,0 +1,62 @@
+[
+  {
+    "Vulnerability": {
+      "CVSS": [],
+      "Description": "",
+      "FixedIn": [
+        {
+          "Name": "rsyslog",
+          "NamespaceName": "debian:8",
+          "VendorAdvisory": {
+            "AdvisorySummary": [],
+            "NoAdvisory": false
+          },
+          "Version": "5.7.4-1",
+          "VersionFormat": "dpkg"
+        }
+      ],
+      "Link": "https://security-tracker.debian.org/tracker/CVE-2011-4623",
+      "Metadata": {
+        "NVD": {
+          "CVSSv2": {
+            "Score": 2.1,
+            "Vectors": "AV:L/AC:L/Au:N/C:N/I:N/A:P"
+          }
+        }
+      },
+      "Name": "CVE-2011-4623",
+      "NamespaceName": "debian:8",
+      "Severity": "Low"
+    }
+  },
+  {
+    "Vulnerability": {
+      "CVSS": [],
+      "Description": "",
+      "FixedIn": [
+        {
+          "Name": "rsyslog",
+          "NamespaceName": "debian:8",
+          "VendorAdvisory": {
+            "AdvisorySummary": [],
+            "NoAdvisory": false
+          },
+          "Version": "3.18.6-1",
+          "VersionFormat": "dpkg"
+        }
+      ],
+      "Link": "https://security-tracker.debian.org/tracker/CVE-2008-5618",
+      "Metadata": {
+        "NVD": {
+          "CVSSv2": {
+            "Score": 5,
+            "Vectors": "AV:N/AC:L/Au:N/C:N/I:N/A:P"
+          }
+        }
+      },
+      "Name": "CVE-2008-5618",
+      "NamespaceName": "debian:8",
+      "Severity": "Low"
+    }
+  }
+]
