@@ -19,10 +19,12 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/matcher/dotnet"
+	"github.com/anchore/grype/grype/matcher/dpkg"
 	"github.com/anchore/grype/grype/matcher/golang"
 	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
 	"github.com/anchore/grype/grype/matcher/python"
+	"github.com/anchore/grype/grype/matcher/rpm"
 	"github.com/anchore/grype/grype/matcher/ruby"
 	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
@@ -393,6 +395,8 @@ func getMatchers(opts *options.Grype) []match.Matcher {
 				AllowMainModulePseudoVersionComparison: opts.Match.Golang.AllowMainModulePseudoVersionComparison,
 			},
 			Stock: stock.MatcherConfig(opts.Match.Stock),
+			Dpkg:  dpkg.MatcherConfig{UseCPEsForEOL: opts.Match.Dpkg.UseCPEsForEOL},
+			Rpm:   rpm.MatcherConfig{UseCPEsForEOL: opts.Match.Rpm.UseCPEsForEOL},
 		},
 	)
 }

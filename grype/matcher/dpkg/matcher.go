@@ -11,6 +11,17 @@ import (
 )
 
 type Matcher struct {
+	cfg MatcherConfig
+}
+
+type MatcherConfig struct {
+	UseCPEsForEOL bool
+}
+
+func NewDpkgMatcher(cfg MatcherConfig) *Matcher {
+	return &Matcher{
+		cfg: cfg,
+	}
 }
 
 func (m *Matcher) PackageTypes() []syftPkg.Type {
