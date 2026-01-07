@@ -299,17 +299,23 @@ func warnDistroAlerts(data *models.DistroAlertData) {
 
 	// warn about EOL distro packages
 	for distroName, count := range eolDistros {
-		log.Warnf("%d packages from end-of-life distro %q may have unpatched vulnerabilities", count, distroName)
+		msg := fmt.Sprintf("%d packages from EOL distro %q - vulnerability data may be incomplete or outdated", count, distroName)
+		bus.Notify(msg)
+		log.Warn(msg)
 	}
 
 	// warn about disabled distro packages
 	for distroName, count := range disabledDistros {
-		log.Warnf("%d packages from disabled distro %q were not matched against vulnerabilities", count, distroName)
+		msg := fmt.Sprintf("%d packages from disabled distro %q were not matched against vulnerabilities", count, distroName)
+		bus.Notify(msg)
+		log.Warn(msg)
 	}
 
 	// warn about unknown distro packages
 	for distroName, count := range unknownDistros {
-		log.Warnf("%d packages from unrecognized distro %q may have incomplete vulnerability matching", count, distroName)
+		msg := fmt.Sprintf("%d packages from unrecognized distro %q may have incomplete vulnerability matching", count, distroName)
+		bus.Notify(msg)
+		log.Warn(msg)
 	}
 }
 

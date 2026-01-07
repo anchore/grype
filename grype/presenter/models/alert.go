@@ -20,9 +20,15 @@ const (
 
 // Alert represents a non-vulnerability concern for a package
 type Alert struct {
-	Type    AlertType   `json:"type"`
-	Message string      `json:"message"`
-	Details interface{} `json:"details,omitempty"`
+	Type     AlertType `json:"type"`
+	Message  string    `json:"message"`
+	Metadata any       `json:"metadata,omitempty"`
+}
+
+// DistroAlertMetadata contains machine-readable details for distro-related alerts
+type DistroAlertMetadata struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
 }
 
 // PackageAlerts groups alerts for a specific package
