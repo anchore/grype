@@ -248,6 +248,8 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		EOLDistroPackages:      vulnMatcher.EOLDistroPackages(),
 	}
 
+	warnDistroAlerts(distroAlertData)
+
 	model, err := models.NewDocument(app.ID(), packages, pkgContext, *remainingMatches, ignoredMatches, vp, opts, dbInfo(status, vp), models.SortStrategy(opts.SortBy.Criteria), opts.Timestamp, distroAlertData)
 	if err != nil {
 		return fmt.Errorf("failed to create document: %w", err)
@@ -283,6 +285,44 @@ func warnWhenDistroHintNeeded(pkgs []pkg.Package, context *pkg.Context) {
 		log.Warnf("Unable to determine the OS distribution of some packages. This may result in missing vulnerabilities. " +
 			"You may specify a distro using: --distro <distro>:<version>")
 	}
+}
+
+func warnDistroAlerts(data *models.DistroAlertData) {
+	if data == nil {
+		return
+	}
+
+	// count packages by distro for each alert type
+	eolDistros := countPackagesByDistro(data.EOLDistroPackages)
+	disabledDistros := countPackagesByDistro(data.DisabledDistroPackages)
+	unknownDistros := countPackagesByDistro(data.UnknownDistroPackages)
+
+	// warn about EOL distro packages
+	for distroName, count := range eolDistros {
+		log.Warnf("%d packages from end-of-life distro %q may have unpatched vulnerabilities", count, distroName)
+	}
+
+	// warn about disabled distro packages
+	for distroName, count := range disabledDistros {
+		log.Warnf("%d packages from disabled distro %q were not matched against vulnerabilities", count, distroName)
+	}
+
+	// warn about unknown distro packages
+	for distroName, count := range unknownDistros {
+		log.Warnf("%d packages from unrecognized distro %q may have incomplete vulnerability matching", count, distroName)
+	}
+}
+
+func countPackagesByDistro(packages []pkg.Package) map[string]int {
+	counts := make(map[string]int)
+	for _, p := range packages {
+		distroName := "unknown"
+		if p.Distro != nil {
+			distroName = p.Distro.String()
+		}
+		counts[distroName]++
+	}
+	return counts
 }
 
 func dbInfo(status *vulnerability.ProviderStatus, vp vulnerability.Provider) any {
