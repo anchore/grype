@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/anchore/grype/grype/db/data"
-	"github.com/anchore/grype/grype/db/internal/common"
+	"github.com/anchore/grype/grype/db/internal/versionutil"
 	"github.com/anchore/grype/grype/db/provider"
 	"github.com/anchore/grype/grype/db/provider/unmarshal"
 	grypeDB "github.com/anchore/grype/grype/db/v6"
@@ -92,7 +92,7 @@ func getAffectedPackage(vuln unmarshal.GitHubAdvisory) []grypeDB.AffectedPackage
 func getRanges(fixedInEntry unmarshal.GithubFixedIn) ([]grypeDB.Range, error) {
 	fixedVersion := grypeDB.Version{
 		Type:       getAffectedVersionFormat(fixedInEntry),
-		Constraint: common.EnforceSemVerConstraint(fixedInEntry.Range),
+		Constraint: versionutil.EnforceSemVerConstraint(fixedInEntry.Range),
 	}
 	err := validateAffectedVersion(fixedVersion)
 	if err != nil {
@@ -138,7 +138,7 @@ func getAffectedVersionFormat(fixedInEntry unmarshal.GithubFixedIn) string {
 }
 
 func getFix(fixedInEntry unmarshal.GithubFixedIn) *grypeDB.Fix {
-	fixedInVersion := common.CleanFixedInVersion(fixedInEntry.Identifier)
+	fixedInVersion := versionutil.CleanFixedInVersion(fixedInEntry.Identifier)
 
 	fixState := grypeDB.NotFixedStatus
 	if len(fixedInVersion) > 0 {

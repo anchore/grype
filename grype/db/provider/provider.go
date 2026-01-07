@@ -1,22 +1,26 @@
 package provider
 
-import "context"
+import (
+	"context"
+)
 
 type Kind string
 
-const (
-	InternalKind Kind = "internal" // reserved, not implemented (golang vulnerability data providers in-repo)
-	ExternalKind Kind = "external"
-	VunnelKind   Kind = "vunnel" // special case of external
-)
-
-type Provider interface {
+type Reader interface {
 	ID() Identifier
-	Update(context.Context) error
 	State() (*State, error)
 }
 
-type Providers []Provider
+type Writer interface {
+	Update(context.Context) error
+}
+
+type Identifier struct {
+	Name string `yaml:"name" json:"name" mapstructure:"name"`
+	Kind Kind   `yaml:"kind,omitempty" json:"kind" mapstructure:"kind"`
+}
+
+type Providers []Reader
 
 func (ps Providers) Filter(names ...string) Providers {
 	var filtered Providers
@@ -28,4 +32,9 @@ func (ps Providers) Filter(names ...string) Providers {
 		}
 	}
 	return filtered
+}
+
+type Collection struct {
+	Root      string
+	Providers Providers
 }

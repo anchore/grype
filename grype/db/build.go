@@ -106,7 +106,7 @@ func getWriter(cfg BuildConfig) (data.Writer, error) {
 	}
 }
 
-func build(results []providerResults, writer data.Writer, processors ...data.Processor) error {
+func build(results []providerResults, writer data.Writer, processors ...data.Processor) error { // nolint:funlen
 	lastUpdate := time.Now()
 	var totalRecords int
 	for _, result := range results {

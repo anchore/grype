@@ -79,9 +79,7 @@ require (
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/jinzhu/copier v0.4.0
 	github.com/klauspost/compress v1.18.2
-	github.com/mitchellh/mapstructure v1.5.0
 	github.com/umisama/go-cpe v0.0.0-20190323060751-cdd6c3c28a23
-	golang.org/x/sync v0.19.0
 	golang.org/x/text v0.32.0
 )
 
@@ -332,6 +330,7 @@ require (
 	golang.org/x/mod v0.31.0 // indirect
 	golang.org/x/net v0.48.0 // indirect
 	golang.org/x/oauth2 v0.33.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/term v0.38.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect

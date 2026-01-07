@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/anchore/grype/grype/db/data"
-	"github.com/anchore/grype/grype/db/internal/common"
+	"github.com/anchore/grype/grype/db/internal/versionutil"
 	"github.com/anchore/grype/grype/db/provider/unmarshal"
 	grypeDB "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/db/v5/build/transformers"
@@ -72,7 +72,7 @@ func Transform(vulnerability unmarshal.GitHubAdvisory) ([]data.Entry, error) {
 	// separate vulnerability entries (one for each name|namespaces combo) while merging
 	// constraint ranges as they are found.
 	for idx, fixedInEntry := range vulnerability.Advisory.FixedIn {
-		constraint := common.EnforceSemVerConstraint(fixedInEntry.Range)
+		constraint := versionutil.EnforceSemVerConstraint(fixedInEntry.Range)
 
 		var versionFormat string
 		switch entryNamespace {
@@ -113,7 +113,7 @@ func getFix(entry unmarshal.GitHubAdvisory, idx int) grypeDB.Fix {
 	fixedInEntry := entry.Advisory.FixedIn[idx]
 
 	var fixedInVersions []string
-	fixedInVersion := common.CleanFixedInVersion(fixedInEntry.Identifier)
+	fixedInVersion := versionutil.CleanFixedInVersion(fixedInEntry.Identifier)
 	if fixedInVersion != "" {
 		fixedInVersions = append(fixedInVersions, fixedInVersion)
 	}

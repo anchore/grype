@@ -1,10 +1,10 @@
 package v6
 
 import (
-	"github.com/anchore/grype/grype/db/processors"
 	"github.com/scylladb/go-set/strset"
 
 	"github.com/anchore/grype/grype/db/data"
+	"github.com/anchore/grype/grype/db/processors"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/epss"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/github"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/kev"

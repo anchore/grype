@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/anchore/grype/grype/db/data"
-	"github.com/anchore/grype/grype/db/internal/common"
+	"github.com/anchore/grype/grype/db/internal/versionutil"
 	"github.com/anchore/grype/grype/db/provider/unmarshal"
 	grypeDB "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/db/v5/build/transformers"
@@ -34,7 +34,7 @@ func Transform(vulnerability unmarshal.MSRCVulnerability) ([]data.Entry, error) 
 	allVulns := []grypeDB.Vulnerability{
 		{
 			ID:                vulnerability.ID,
-			VersionConstraint: common.OrConstraints(versionConstraint...),
+			VersionConstraint: versionutil.OrConstraints(versionConstraint...),
 			VersionFormat:     "kb",
 			PackageName:       grypeNamespace.Resolver().Normalize(vulnerability.Product.ID),
 			Namespace:         entryNamespace,

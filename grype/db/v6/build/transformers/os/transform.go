@@ -1,4 +1,4 @@
-package os
+package os // nolint:revive
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/internal/codename"
-	"github.com/anchore/grype/grype/db/internal/common"
+	"github.com/anchore/grype/grype/db/internal/versionutil"
 	"github.com/anchore/grype/grype/db/provider"
 	"github.com/anchore/grype/grype/db/provider/unmarshal"
 	grypeDB "github.com/anchore/grype/grype/db/v6"
@@ -104,7 +104,7 @@ func getAffectedPackages(vuln unmarshal.OSVulnerability) []grypeDB.AffectedPacka
 }
 
 func getFix(fixedInEntry unmarshal.OSFixedIn) *grypeDB.Fix {
-	fixedInVersion := common.CleanFixedInVersion(fixedInEntry.Version)
+	fixedInVersion := versionutil.CleanFixedInVersion(fixedInEntry.Version)
 
 	fixState := grypeDB.NotFixedStatus
 	if len(fixedInVersion) > 0 {
@@ -168,13 +168,13 @@ func enforceConstraint(fixedVersion, vulnerableRange, format, vulnerabilityID st
 	if len(vulnerableRange) > 0 {
 		return vulnerableRange
 	}
-	fixedVersion = common.CleanConstraint(fixedVersion)
+	fixedVersion = versionutil.CleanConstraint(fixedVersion)
 	if len(fixedVersion) == 0 {
 		return ""
 	}
 	switch strings.ToLower(format) {
 	case "semver":
-		return common.EnforceSemVerConstraint(fixedVersion)
+		return versionutil.EnforceSemVerConstraint(fixedVersion)
 	default:
 		// the passed constraint is a fixed version
 		return deriveConstraintFromFix(fixedVersion, vulnerabilityID)

@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/anchore/grype/grype/db/data"
-	"github.com/anchore/grype/grype/db/internal/common"
+	"github.com/anchore/grype/grype/db/internal/versionutil"
 	"github.com/anchore/grype/grype/db/provider"
 	"github.com/anchore/grype/grype/db/provider/unmarshal"
 	grypeDB "github.com/anchore/grype/grype/db/v6"
@@ -65,7 +65,7 @@ func getRanges(vuln unmarshal.MSRCVulnerability) []grypeDB.Range {
 		{
 			Version: grypeDB.Version{
 				Type:       "kb",
-				Constraint: common.OrConstraints(vuln.Vulnerable...),
+				Constraint: versionutil.OrConstraints(vuln.Vulnerable...),
 			},
 			Fix: getFix(vuln),
 		},

@@ -6,7 +6,7 @@ import (
 
 	"github.com/umisama/go-cpe"
 
-	"github.com/anchore/grype/grype/db/internal/common"
+	"github.com/anchore/grype/grype/db/internal/versionutil"
 	"github.com/anchore/grype/grype/db/provider/unmarshal/nvd"
 	"github.com/anchore/grype/internal/log"
 )
@@ -184,7 +184,7 @@ func buildConstraints(matches []nvd.CpeMatch) string {
 		constraints = append(constraints, buildConstraint(match))
 	}
 
-	return common.OrConstraints(removeDuplicateConstraints(constraints)...)
+	return versionutil.OrConstraints(removeDuplicateConstraints(constraints)...)
 }
 
 func buildConstraint(match nvd.CpeMatch) string {

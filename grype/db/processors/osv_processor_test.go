@@ -4,11 +4,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/anchore/grype/grype/db/internal/tests"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/db/data"
+	"github.com/anchore/grype/grype/db/internal/tests"
 	"github.com/anchore/grype/grype/db/provider"
 	"github.com/anchore/grype/grype/db/provider/unmarshal"
 )

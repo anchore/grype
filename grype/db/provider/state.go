@@ -118,7 +118,7 @@ func (sd State) Verify(workspaceRoots ...string) error {
 
 			log.WithFields("path", resultConfig.Path, "provider", sd.Provider).Trace("validating result file")
 
-			matches, _, err := file.ValidateByHash(afero.NewOsFs(), path, resultConfig.Digest)
+			matches, _, err := file.ValidateByHash(afero.NewOsFs(), path, resultConfig.Algorithm+":"+resultConfig.Digest)
 			if err != nil {
 				return fmt.Errorf("unable to validate result file %q: %w", path, err)
 			}

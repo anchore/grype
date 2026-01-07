@@ -11,7 +11,7 @@ import (
 
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/internal/codename"
-	"github.com/anchore/grype/grype/db/internal/common"
+	"github.com/anchore/grype/grype/db/internal/versionutil"
 	"github.com/anchore/grype/grype/db/provider"
 	"github.com/anchore/grype/grype/db/provider/unmarshal"
 	grypeDB "github.com/anchore/grype/grype/db/v6"
@@ -205,7 +205,7 @@ func extractRpmModularity(affected models.Affected) string {
 //	}
 //
 // ]
-func getGrypeRangesFromRange(r models.Range, ecosystem string) []grypeDB.Range { // nolint: gocognit
+func getGrypeRangesFromRange(r models.Range, ecosystem string) []grypeDB.Range { // nolint: gocognit,funlen
 	var ranges []grypeDB.Range
 	if len(r.Events) == 0 {
 		return nil
@@ -216,7 +216,7 @@ func getGrypeRangesFromRange(r models.Range, ecosystem string) []grypeDB.Range {
 		if constraint == "" {
 			constraint = c
 		} else {
-			constraint = common.AndConstraints(constraint, c)
+			constraint = versionutil.AndConstraints(constraint, c)
 		}
 	}
 
@@ -301,13 +301,13 @@ func getGrypeRangesFromRange(r models.Range, ecosystem string) []grypeDB.Range {
 
 func normalizeConstraint(constraint string, rangeType string) string {
 	if rangeType == "semver" || rangeType == "bitnami" {
-		return common.EnforceSemVerConstraint(constraint)
+		return versionutil.EnforceSemVerConstraint(constraint)
 	}
 	return constraint
 }
 
 func normalizeFix(fix string, detail *grypeDB.FixDetail) *grypeDB.Fix {
-	fixedInVersion := common.CleanFixedInVersion(fix)
+	fixedInVersion := versionutil.CleanFixedInVersion(fix)
 	fixState := grypeDB.NotFixedStatus
 	if len(fixedInVersion) > 0 {
 		fixState = grypeDB.FixedStatus
