@@ -110,24 +110,32 @@ func buildPackageAlerts(data *DistroAlertData) []PackageAlerts {
 	alertsByPkg := make(map[string]*PackageAlerts)
 
 	// helper to add an alert for a package
-	addAlert := func(p pkg.Package, alertType AlertType, message string) {
+	addAlert := func(p pkg.Package, alertType AlertType, message string, metadata any) {
 		pkgID := string(p.ID)
+		alert := Alert{
+			Type:     alertType,
+			Message:  message,
+			Metadata: metadata,
+		}
 		if existing, ok := alertsByPkg[pkgID]; ok {
-			existing.Alerts = append(existing.Alerts, Alert{
-				Type:    alertType,
-				Message: message,
-			})
+			existing.Alerts = append(existing.Alerts, alert)
 		} else {
 			alertsByPkg[pkgID] = &PackageAlerts{
 				Package: newPackage(p),
-				Alerts: []Alert{
-					{
-						Type:    alertType,
-						Message: message,
-					},
-				},
+				Alerts:  []Alert{alert},
 			}
 		}
+	}
+
+	// helper to extract distro metadata
+	distroMetadata := func(p pkg.Package) DistroAlertMetadata {
+		if p.Distro != nil {
+			return DistroAlertMetadata{
+				Name:    p.Distro.Name(),
+				Version: p.Distro.VersionString(),
+			}
+		}
+		return DistroAlertMetadata{Name: "unknown"}
 	}
 
 	// add alerts for disabled distro packages
@@ -136,7 +144,7 @@ func buildPackageAlerts(data *DistroAlertData) []PackageAlerts {
 		if p.Distro != nil {
 			distroName = p.Distro.String()
 		}
-		addAlert(p, AlertTypeDistroDisabled, fmt.Sprintf("Package is from %s which is disabled for vulnerability matching", distroName))
+		addAlert(p, AlertTypeDistroDisabled, fmt.Sprintf("Package is from %s which is disabled for vulnerability matching", distroName), distroMetadata(p))
 	}
 
 	// add alerts for unknown distro packages
@@ -145,7 +153,7 @@ func buildPackageAlerts(data *DistroAlertData) []PackageAlerts {
 		if p.Distro != nil {
 			distroName = p.Distro.String()
 		}
-		addAlert(p, AlertTypeDistroUnknown, fmt.Sprintf("Package is from unrecognized distro: %s", distroName))
+		addAlert(p, AlertTypeDistroUnknown, fmt.Sprintf("Package is from unrecognized distro: %s", distroName), distroMetadata(p))
 	}
 
 	// add alerts for EOL distro packages
@@ -154,7 +162,7 @@ func buildPackageAlerts(data *DistroAlertData) []PackageAlerts {
 		if p.Distro != nil {
 			distroName = p.Distro.String()
 		}
-		addAlert(p, AlertTypeDistroEOL, fmt.Sprintf("Package is from end-of-life distro: %s", distroName))
+		addAlert(p, AlertTypeDistroEOL, fmt.Sprintf("Package is from end-of-life distro: %s", distroName), distroMetadata(p))
 	}
 
 	// convert map to slice

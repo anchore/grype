@@ -42,8 +42,9 @@ func TestAlertJSONSerialization(t *testing.T) {
 	alert := Alert{
 		Type:    AlertTypeDistroEOL,
 		Message: "Ubuntu 18.04 reached end-of-life on 2023-05-31",
-		Details: map[string]interface{}{
-			"eolDate": "2023-05-31",
+		Metadata: DistroAlertMetadata{
+			Name:    "ubuntu",
+			Version: "18.04",
 		},
 	}
 
@@ -56,7 +57,10 @@ func TestAlertJSONSerialization(t *testing.T) {
 
 	assert.Equal(t, "distro-eol", result["type"])
 	assert.Equal(t, "Ubuntu 18.04 reached end-of-life on 2023-05-31", result["message"])
-	assert.NotNil(t, result["details"])
+	assert.NotNil(t, result["metadata"])
+	metadata := result["metadata"].(map[string]interface{})
+	assert.Equal(t, "ubuntu", metadata["name"])
+	assert.Equal(t, "18.04", metadata["version"])
 }
 
 func TestPackageAlertsJSONSerialization(t *testing.T) {
