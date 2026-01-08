@@ -1,6 +1,7 @@
 package rpm
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -49,22 +50,35 @@ func (m *Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to match AlmaLinux: %w", err)
 		}
-		return almaMatches, nil, nil
+		matches = append(matches, almaMatches...)
+	} else {
+		// For non-AlmaLinux distros, use the standard binary/upstream split
+		exactMatches, err := m.matchPackage(vp, p)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to match by exact package name: %w", err)
+		}
+
+		matches = append(matches, exactMatches...)
+
+		sourceMatches, err := m.matchUpstreamPackages(vp, p)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to match by source indirection: %w", err)
+		}
+		matches = append(matches, sourceMatches...)
 	}
 
-	// For non-AlmaLinux distros, use the standard binary/upstream split
-	exactMatches, err := m.matchPackage(vp, p)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to match by exact package name: %w", err)
+	// if configured, also search by CPEs for packages from EOL distros
+	if m.cfg.UseCPEsForEOL && internal.IsDistroEOL(vp, p.Distro) {
+		log.WithFields("package", p.Name, "distro", p.Distro).Debug("distro is EOL, searching by CPEs")
+		cpeMatches, err := internal.MatchPackageByCPEs(vp, p, m.Type())
+		if errors.Is(err, internal.ErrEmptyCPEMatch) {
+			log.WithFields("package", p.Name).Debug("package has no CPEs for EOL fallback matching")
+		} else if err != nil {
+			log.WithFields("package", p.Name, "error", err).Debug("failed to match by CPEs for EOL distro")
+		} else {
+			matches = append(matches, cpeMatches...)
+		}
 	}
-
-	matches = append(matches, exactMatches...)
-
-	sourceMatches, err := m.matchUpstreamPackages(vp, p)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to match by source indirection: %w", err)
-	}
-	matches = append(matches, sourceMatches...)
 
 	return matches, nil, nil
 }

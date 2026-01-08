@@ -1,11 +1,15 @@
 package rpm
 
 import (
+	"time"
+
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg/qualifier"
 	"github.com/anchore/grype/grype/pkg/qualifier/rpmmodularity"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/grype/vulnerability/mock"
+	syftCpe "github.com/anchore/syft/syft/cpe"
 )
 
 func newMockProvider(packageName, indirectName string, withEpoch bool, withPackageQualifiers bool) vulnerability.Provider {
@@ -108,5 +112,39 @@ func vulnerabilitiesWithPackageQualifiers(packageName string) []vulnerability.Vu
 				rpmmodularity.New("containertools:4"),
 			},
 		},
+	}
+}
+
+// mockEOLProvider wraps mock.VulnerabilityProvider and adds EOLChecker support for testing
+type mockEOLProvider struct {
+	vulnerability.Provider
+	eolDate *time.Time
+}
+
+func (m *mockEOLProvider) GetOperatingSystemEOL(d *distro.Distro) (eolDate, eoasDate *time.Time, err error) {
+	return m.eolDate, nil, nil
+}
+
+func newMockEOLProvider(eolDate *time.Time) *mockEOLProvider {
+	// include CPE vulnerability for testing CPE fallback
+	return &mockEOLProvider{
+		Provider: mock.VulnerabilityProvider([]vulnerability.Vulnerability{
+			// distro-based vulnerability
+			{
+				PackageName: "openssl",
+				Reference:   vulnerability.Reference{ID: "CVE-2014-distro-1", Namespace: namespace},
+				Constraint:  version.MustGetConstraint("< 1.0.2", version.RpmFormat),
+			},
+			// CPE-based vulnerability
+			{
+				PackageName: "openssl",
+				Reference:   vulnerability.Reference{ID: "CVE-2014-cpe-1", Namespace: "nvd:cpe"},
+				Constraint:  version.MustGetConstraint("< 1.0.2", version.UnknownFormat),
+				CPEs: []syftCpe.CPE{
+					syftCpe.Must("cpe:2.3:a:openssl:openssl:*:*:*:*:*:*:*:*", ""),
+				},
+			},
+		}...),
+		eolDate: eolDate,
 	}
 }
