@@ -91,6 +91,34 @@ func TestPacmanVersionCompare(t *testing.T) {
 			want:    0,
 			wantErr: false,
 		},
+		{
+			name:    "version with plus sign",
+			v1:      "0.115+24+g5230646-1",
+			v2:      "0.116-1",
+			want:    -1,
+			wantErr: false,
+		},
+		{
+			name:    "version with git hash suffix",
+			v1:      "0.12.8+8+ga957a90b-1",
+			v2:      "0.12.8+8+ga957a90b-2",
+			want:    -1,
+			wantErr: false,
+		},
+		{
+			name:    "real arch versions curl",
+			v1:      "8.4.0-1",
+			v2:      "8.5.0-1",
+			want:    -1,
+			wantErr: false,
+		},
+		{
+			name:    "real arch versions openssl with epoch",
+			v1:      "1:3.0.7-4",
+			v2:      "1:3.0.8-1",
+			want:    -1,
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
