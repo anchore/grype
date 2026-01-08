@@ -171,7 +171,8 @@ func vulnerabilitiesByID(vulns []vulnerability.Vulnerability) map[string][]vulne
 
 func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Package, catalogPkg *pkg.Package) ([]match.Match, error) {
 	// find SecDB matches for the given package name and version
-	secDBMatches, _, err := internal.MatchPackageByDistro(store, p, catalogPkg, m.Type())
+	// APK doesn't use epochs, so pass nil for the config
+	secDBMatches, _, err := internal.MatchPackageByDistro(store, p, catalogPkg, m.Type(), nil)
 	if err != nil {
 		return nil, err
 	}

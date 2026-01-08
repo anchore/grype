@@ -19,10 +19,12 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/matcher/dotnet"
+	"github.com/anchore/grype/grype/matcher/dpkg"
 	"github.com/anchore/grype/grype/matcher/golang"
 	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
 	"github.com/anchore/grype/grype/matcher/python"
+	"github.com/anchore/grype/grype/matcher/rpm"
 	"github.com/anchore/grype/grype/matcher/ruby"
 	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
@@ -323,25 +325,33 @@ func checkForAppUpdate(id clio.Identification, opts *options.Grype) {
 	}
 }
 
-func getMatchers(opts *options.Grype) []match.Matcher {
-	return matcher.NewDefaultMatchers(
-		matcher.Config{
-			Java: java.MatcherConfig{
-				ExternalSearchConfig: opts.ExternalSources.ToJavaMatcherConfig(),
-				UseCPEs:              opts.Match.Java.UseCPEs,
-			},
-			Ruby:       ruby.MatcherConfig(opts.Match.Ruby),
-			Python:     python.MatcherConfig(opts.Match.Python),
-			Dotnet:     dotnet.MatcherConfig(opts.Match.Dotnet),
-			Javascript: javascript.MatcherConfig(opts.Match.Javascript),
-			Golang: golang.MatcherConfig{
-				UseCPEs:                                opts.Match.Golang.UseCPEs,
-				AlwaysUseCPEForStdlib:                  opts.Match.Golang.AlwaysUseCPEForStdlib,
-				AllowMainModulePseudoVersionComparison: opts.Match.Golang.AllowMainModulePseudoVersionComparison,
-			},
-			Stock: stock.MatcherConfig(opts.Match.Stock),
+func getMatcherConfig(opts *options.Grype) matcher.Config {
+	return matcher.Config{
+		Java: java.MatcherConfig{
+			ExternalSearchConfig: opts.ExternalSources.ToJavaMatcherConfig(),
+			UseCPEs:              opts.Match.Java.UseCPEs,
 		},
-	)
+		Ruby:       ruby.MatcherConfig(opts.Match.Ruby),
+		Python:     python.MatcherConfig(opts.Match.Python),
+		Dotnet:     dotnet.MatcherConfig(opts.Match.Dotnet),
+		Javascript: javascript.MatcherConfig(opts.Match.Javascript),
+		Golang: golang.MatcherConfig{
+			UseCPEs:                                opts.Match.Golang.UseCPEs,
+			AlwaysUseCPEForStdlib:                  opts.Match.Golang.AlwaysUseCPEForStdlib,
+			AllowMainModulePseudoVersionComparison: opts.Match.Golang.AllowMainModulePseudoVersionComparison,
+		},
+		Stock: stock.MatcherConfig(opts.Match.Stock),
+		Rpm: rpm.MatcherConfig{
+			MissingEpochStrategy: opts.Match.Rpm.MissingEpochStrategy,
+		},
+		Dpkg: dpkg.MatcherConfig{
+			MissingEpochStrategy: opts.Match.Dpkg.MissingEpochStrategy,
+		},
+	}
+}
+
+func getMatchers(opts *options.Grype) []match.Matcher {
+	return matcher.NewDefaultMatchers(getMatcherConfig(opts))
 }
 
 func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
