@@ -147,15 +147,6 @@ func buildPackageAlerts(data *DistroAlertData) []PackageAlerts {
 		addAlert(p, AlertTypeDistroDisabled, fmt.Sprintf("Package is from %s which is disabled for vulnerability matching", distroName), distroMetadata(p))
 	}
 
-	// add alerts for unknown distro packages
-	for _, p := range data.UnknownDistroPackages {
-		distroName := "unknown"
-		if p.Distro != nil {
-			distroName = p.Distro.String()
-		}
-		addAlert(p, AlertTypeDistroUnknown, fmt.Sprintf("Package is from unrecognized distro: %s", distroName), distroMetadata(p))
-	}
-
 	// add alerts for EOL distro packages
 	for _, p := range data.EOLDistroPackages {
 		distroName := "unknown"

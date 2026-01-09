@@ -11,9 +11,6 @@ const (
 	// AlertTypeDistroEOL indicates a package is from an end-of-life distro
 	AlertTypeDistroEOL AlertType = "distro-eol"
 
-	// AlertTypeDistroUnknown indicates a package is from an unrecognized distro
-	AlertTypeDistroUnknown AlertType = "distro-unknown"
-
 	// AlertTypeDistroDisabled indicates a package is from a distro that is disabled for matching
 	AlertTypeDistroDisabled AlertType = "distro-disabled"
 )
@@ -43,9 +40,6 @@ type PackageAlerts struct {
 type DistroAlertData struct {
 	// DisabledDistroPackages are packages from distros that are disabled for matching (e.g., Arch Linux)
 	DisabledDistroPackages []pkg.Package
-
-	// UnknownDistroPackages are packages from unrecognized distros
-	UnknownDistroPackages []pkg.Package
 
 	// EOLDistroPackages are packages from distros that have reached end-of-life
 	EOLDistroPackages []pkg.Package
