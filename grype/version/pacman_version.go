@@ -90,9 +90,12 @@ func (v pacmanVersion) String() string {
 // comparePacmanVersions compares two version or release strings without the epoch.
 // Pacman version comparison is similar to RPM, comparing alphanumeric segments.
 // Source: https://wiki.archlinux.org/title/Pacman/Tips_and_tricks#Version_comparison
-// The scheme is based on RPM's algorithm
+// The scheme is based on RPM's algorithm.
 //
-//nolint:funlen,gocognit
+// Note: dupl lint is suppressed because although pacman's vercmp is based on rpm's vercmp,
+// they are not identical and may diverge in the future. We intentionally keep them decoupled.
+//
+//nolint:funlen,gocognit,dupl
 func comparePacmanVersions(a, b string) int {
 	// shortcut for equality
 	if a == b {
