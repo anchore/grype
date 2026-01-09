@@ -20,11 +20,6 @@ func TestAlertTypes(t *testing.T) {
 			expected: "distro-eol",
 		},
 		{
-			name:     "distro unknown alert type",
-			alert:    AlertTypeDistroUnknown,
-			expected: "distro-unknown",
-		},
-		{
 			name:     "distro disabled alert type",
 			alert:    AlertTypeDistroDisabled,
 			expected: "distro-disabled",
@@ -98,9 +93,9 @@ func TestPackageAlertsJSONSerialization(t *testing.T) {
 
 func TestAlertDetailsOmitEmpty(t *testing.T) {
 	alert := Alert{
-		Type:    AlertTypeDistroUnknown,
-		Message: "Unknown distro",
-		// Details intentionally nil
+		Type:    AlertTypeDistroDisabled,
+		Message: "Disabled distro",
+		// Metadata intentionally nil
 	}
 
 	jsonBytes, err := json.Marshal(alert)
@@ -110,7 +105,7 @@ func TestAlertDetailsOmitEmpty(t *testing.T) {
 	err = json.Unmarshal(jsonBytes, &result)
 	require.NoError(t, err)
 
-	// Details should be omitted when nil
-	_, hasDetails := result["details"]
-	assert.False(t, hasDetails, "details should be omitted when nil")
+	// Metadata should be omitted when nil
+	_, hasMetadata := result["metadata"]
+	assert.False(t, hasMetadata, "metadata should be omitted when nil")
 }
