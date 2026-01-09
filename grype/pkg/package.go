@@ -205,6 +205,7 @@ func distroFeedIsComprehensive(dst *distro.Distro) bool {
 // sqlite3 vulnerability.db 'select distinct namespace from vulnerability where fix_state in ("wont-fix", "not-fixed") order by namespace;' | cut -d ':' -f 1 | sort | uniq
 // then removing 'github'
 var comprehensiveDistros = []distro.Type{
+	distro.ArchLinux,
 	distro.Azure,
 	distro.Debian,
 	distro.Mariner,

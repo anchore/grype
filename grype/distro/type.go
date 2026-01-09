@@ -93,7 +93,8 @@ var IDMapping = map[string]Type{
 
 // aliasTypes maps common aliases to their corresponding Type.
 var aliasTypes = map[string]Type{
-	"Alpine Linux": Alpine, // needed for CPE matching (see #2039)
+	"Alpine Linux": Alpine,    // needed for CPE matching (see #2039)
+	"archlinux":    ArchLinux, // namespace uses "archlinux", os-release uses "arch"
 	"windows":      Windows,
 }
 

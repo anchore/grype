@@ -3,24 +3,22 @@ package version
 import (
 	"fmt"
 	"reflect"
-	"regexp"
-	"strconv"
 	"strings"
 	"unicode"
 )
 
-var _ Comparator = (*rpmVersion)(nil)
+var _ Comparator = (*pacmanVersion)(nil)
 
-type rpmVersion struct {
+type pacmanVersion struct {
 	epoch   *int
 	version string
 	release string
 }
 
-func newRpmVersion(raw string) (rpmVersion, error) {
+func newPacmanVersion(raw string) (pacmanVersion, error) {
 	epoch, remainingVersion, err := splitEpochFromVersion(raw)
 	if err != nil {
-		return rpmVersion{}, err
+		return pacmanVersion{}, err
 	}
 
 	fields := strings.SplitN(remainingVersion, "-", 2)
@@ -32,19 +30,19 @@ func newRpmVersion(raw string) (rpmVersion, error) {
 		release = fields[1]
 	}
 
-	return rpmVersion{
+	return pacmanVersion{
 		epoch:   epoch,
 		version: version,
 		release: release,
 	}, nil
 }
 
-func (v rpmVersion) Compare(other *Version) (int, error) {
+func (v pacmanVersion) Compare(other *Version) (int, error) {
 	if other == nil {
 		return -1, ErrNoVersionProvided
 	}
 
-	o, err := newRpmVersion(other.Raw)
+	o, err := newPacmanVersion(other.Raw)
 	if err != nil {
 		return 0, err
 	}
@@ -53,20 +51,14 @@ func (v rpmVersion) Compare(other *Version) (int, error) {
 }
 
 // Compare returns 0 if v == v2, -1 if v < v2, and +1 if v > v2.
-// This a pragmatic adaptation of comparison for the messy data
-// encountered in vuln scanning. If epochs are NOT present and explicit
-// (e.g. >= 0) in both versions then they are ignored for the comparison.
-// For a rpm spec-compliant comparison, see strictCompare() instead
-func (v rpmVersion) compare(v2 rpmVersion) int {
+// Pacman uses a similar scheme to RPM: epoch:version-release
+// If epochs are NOT present and explicit in both versions then they are ignored for the comparison.
+func (v pacmanVersion) compare(v2 pacmanVersion) int {
 	if reflect.DeepEqual(v, v2) {
 		return 0
 	}
 
-	// Only compare epochs if both are present and explicit. This is technically
-	// against what RedHat says to do with missing epoch (which is to assume a 0 epoch).
-	// However, since we may be dealing with upstream data sources where there is an epoch
-	// for a package but the value was stripped, the best we can do is to compare only the
-	// version values without the epoch values.
+	// Only compare epochs if both are present and explicit
 	if epochIsPresent(v.epoch) && epochIsPresent(v2.epoch) {
 		epochResult := compareEpochs(*v.epoch, *v2.epoch)
 		if epochResult != 0 {
@@ -74,31 +66,15 @@ func (v rpmVersion) compare(v2 rpmVersion) int {
 		}
 	}
 
-	ret := compareRpmVersions(v.version, v2.version)
+	ret := comparePacmanVersions(v.version, v2.version)
 	if ret != 0 {
 		return ret
 	}
 
-	return compareRpmVersions(v.release, v2.release)
+	return comparePacmanVersions(v.release, v2.release)
 }
 
-func epochIsPresent(epoch *int) bool {
-	return epoch != nil
-}
-
-// Epoch comparison, standard int comparison for sorting
-func compareEpochs(e1 int, e2 int) int {
-	switch {
-	case e1 > e2:
-		return 1
-	case e1 < e2:
-		return -1
-	default:
-		return 0
-	}
-}
-
-func (v rpmVersion) String() string {
+func (v pacmanVersion) String() string {
 	version := ""
 	if v.epoch != nil {
 		version += fmt.Sprintf("%d:", *v.epoch)
@@ -111,41 +87,16 @@ func (v rpmVersion) String() string {
 	return version
 }
 
-func splitEpochFromVersion(rawVersion string) (*int, string, error) {
-	fields := strings.SplitN(rawVersion, ":", 2)
-
-	// When the epoch is not included, should be considered to be 0 during
-	// comparisons (see https://github.com/rpm-software-management/rpm/issues/450).
-	// But, often the inclusion of the epoch in vuln databases or source RPM
-	// filenames is not consistent so, represent a missing epoch as nil. This allows
-	// the comparison logic itself to determine if it should use a zero or another
-	// value which supports more flexible comparison options because the version
-	// creation is not lossy
-
-	if len(fields) == 1 {
-		return nil, rawVersion, nil
-	}
-
-	// there is an epoch
-	epochStr := strings.TrimLeft(fields[0], " ")
-
-	epoch, err := strconv.Atoi(epochStr)
-	if err != nil {
-		return nil, "", fmt.Errorf("unable to parse epoch (%s): %w", epochStr, err)
-	}
-
-	return &epoch, fields[1], nil
-}
-
-// compareRpmVersions compares two version or release strings without the epoch.
-// Source: https://github.com/cavaliercoder/go-rpm/blob/master/version.go
+// comparePacmanVersions compares two version or release strings without the epoch.
+// Pacman version comparison is similar to RPM, comparing alphanumeric segments.
+// Source: https://wiki.archlinux.org/title/Pacman/Tips_and_tricks#Version_comparison
+// The scheme is based on RPM's algorithm.
 //
-// For the original C implementation, see:
-// https://github.com/rpm-software-management/rpm/blob/master/lib/rpmvercmp.c#L16
-var alphanumPattern = regexp.MustCompile("([a-zA-Z]+)|([0-9]+)|(~)")
-
-//nolint:funlen,gocognit,dupl // see comparePacmanVersions for why we keep these decoupled
-func compareRpmVersions(a, b string) int {
+// Note: dupl lint is suppressed because although pacman's vercmp is based on rpm's vercmp,
+// they are not identical and may diverge in the future. We intentionally keep them decoupled.
+//
+//nolint:funlen,gocognit,dupl
+func comparePacmanVersions(a, b string) int {
 	// shortcut for equality
 	if a == b {
 		return 0
