@@ -32,7 +32,7 @@ func TestMatch(t *testing.T) {
 	archVuln := vulnerability.Vulnerability{
 		Reference: vulnerability.Reference{
 			ID:        "AVG-1234",
-			Namespace: "arch:distro:arch:rolling",
+			Namespace: "arch:distro:archlinux:rolling",
 		},
 		PackageName: "curl",
 		Constraint:  version.MustGetConstraint("< 8.5.0-1", version.PacmanFormat),
@@ -68,7 +68,7 @@ func TestMatch(t *testing.T) {
 							Name:    "curl",
 							Version: "8.4.0-1",
 						},
-						Namespace: "arch:distro:arch:rolling",
+						Namespace: "arch:distro:archlinux:rolling",
 					},
 					Found: match.DistroResult{
 						VulnerabilityID:   "AVG-1234",
@@ -90,7 +90,7 @@ func TestMatchNoVulnerability(t *testing.T) {
 	archVuln := vulnerability.Vulnerability{
 		Reference: vulnerability.Reference{
 			ID:        "AVG-1234",
-			Namespace: "arch:distro:arch:rolling",
+			Namespace: "arch:distro:archlinux:rolling",
 		},
 		PackageName: "curl",
 		Constraint:  version.MustGetConstraint("< 8.0.0-1", version.PacmanFormat),
@@ -119,7 +119,7 @@ func TestMatchWithEpoch(t *testing.T) {
 	archVuln := vulnerability.Vulnerability{
 		Reference: vulnerability.Reference{
 			ID:        "AVG-5678",
-			Namespace: "arch:distro:arch:rolling",
+			Namespace: "arch:distro:archlinux:rolling",
 		},
 		PackageName: "openssl",
 		Constraint:  version.MustGetConstraint("< 1:3.0.8-1", version.PacmanFormat),
