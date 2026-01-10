@@ -42,7 +42,7 @@ tools:
   # used for signing the checksums file at release
   - name: cosign
     version:
-      want: v3.0.3
+      want: v3.0.4
     method: github-release
     with:
       repo: sigstore/cosign
@@ -50,7 +50,7 @@ tools:
   # used to release all artifacts
   - name: goreleaser
     version:
-      want: v2.13.2
+      want: v2.13.3
     method: github-release
     with:
       repo: goreleaser/goreleaser
