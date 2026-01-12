@@ -91,8 +91,9 @@ var IDMapping = map[string]Type{
 	"raspbian":      Raspbian,
 }
 
-// aliasTypes maps common aliases to their corresponding Type.
-var aliasTypes = map[string]Type{
+// AliasTypes maps common aliases to their corresponding Type.
+// These are names that aren't the canonical os-release ID but should still be recognized.
+var AliasTypes = map[string]Type{
 	"Alpine Linux": Alpine,    // needed for CPE matching (see #2039)
 	"archlinux":    ArchLinux, // namespace uses "archlinux", os-release uses "arch"
 	"windows":      Windows,
@@ -115,7 +116,7 @@ func TypeFromRelease(release linux.Release) Type {
 		return t
 	}
 
-	if t, ok := aliasTypes[release.ID]; ok {
+	if t, ok := AliasTypes[release.ID]; ok {
 		return t
 	}
 
@@ -124,7 +125,7 @@ func TypeFromRelease(release linux.Release) Type {
 		if t, ok := IDMapping[l]; ok {
 			return t
 		}
-		if t, ok := aliasTypes[l]; ok {
+		if t, ok := AliasTypes[l]; ok {
 			return t
 		}
 	}
@@ -134,7 +135,7 @@ func TypeFromRelease(release linux.Release) Type {
 		return t
 	}
 
-	if t, ok := aliasTypes[release.Name]; ok {
+	if t, ok := AliasTypes[release.Name]; ok {
 		return t
 	}
 
