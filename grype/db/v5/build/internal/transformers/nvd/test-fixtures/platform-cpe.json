@@ -1,0 +1,204 @@
+{
+    "cve": {
+      "id": "CVE-2022-26488",
+      "sourceIdentifier": "cve@mitre.org",
+      "published": "2022-03-10T17:47:45.383",
+      "lastModified": "2022-09-03T03:34:19.933",
+      "vulnStatus": "Analyzed",
+      "descriptions": [
+        {
+          "lang": "en",
+          "value": "In Python before 3.10.3 on Windows, local users can gain privileges because the search path is inadequately secured. The installer may allow a local attacker to add user-writable directories to the system search path. To exploit, an administrator must have installed Python for all users and enabled PATH entries. A non-administrative user can trigger a repair that incorrectly adds user-writable paths into PATH, enabling search-path hijacking of other users and system services. This affects Python (CPython) through 3.7.12, 3.8.x through 3.8.12, 3.9.x through 3.9.10, and 3.10.x through 3.10.2."
+        },
+        {
+          "lang": "es",
+          "value": "En Python versiones anteriores a 3.10.3 en Windows, los usuarios locales pueden alcanzar privilegios porque la ruta de búsqueda no está asegurada apropiadamente. El instalador puede permitir a un atacante local añadir directorios escribibles por el usuario a la ruta de búsqueda del sistema. Para explotarla, un administrador debe haber instalado Python para todos los usuarios y habilitar las entradas PATH. Un usuario no administrador puede desencadenar una reparación que añada incorrectamente rutas escribibles por el usuario en el PATH, permitiendo el secuestro de la ruta de búsqueda de otros usuarios y servicios del sistema. Esto afecta a Python (CPython) versiones hasta 3.7.12, versiones 3.8.x hasta 3.8.12, versiones 3.9.x hasta 3.9.10, y versiones 3.10.x hasta 3.10.2"
+        }
+      ],
+      "metrics": {
+        "cvssMetricV31": [
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "cvssData": {
+              "version": "3.1",
+              "vectorString": "CVSS:3.1/AV:L/AC:H/PR:L/UI:N/S:U/C:H/I:H/A:H",
+              "attackVector": "LOCAL",
+              "attackComplexity": "HIGH",
+              "privilegesRequired": "LOW",
+              "userInteraction": "NONE",
+              "scope": "UNCHANGED",
+              "confidentialityImpact": "HIGH",
+              "integrityImpact": "HIGH",
+              "availabilityImpact": "HIGH",
+              "baseScore": 7,
+              "baseSeverity": "HIGH"
+            },
+            "exploitabilityScore": 1,
+            "impactScore": 5.9
+          }
+        ],
+        "cvssMetricV2": [
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "cvssData": {
+              "version": "2.0",
+              "vectorString": "AV:L/AC:M/Au:N/C:P/I:P/A:P",
+              "accessVector": "LOCAL",
+              "accessComplexity": "MEDIUM",
+              "authentication": "NONE",
+              "confidentialityImpact": "PARTIAL",
+              "integrityImpact": "PARTIAL",
+              "availabilityImpact": "PARTIAL",
+              "baseScore": 4.4
+            },
+            "baseSeverity": "MEDIUM",
+            "exploitabilityScore": 3.4,
+            "impactScore": 6.4,
+            "acInsufInfo": false,
+            "obtainAllPrivilege": false,
+            "obtainUserPrivilege": false,
+            "obtainOtherPrivilege": false,
+            "userInteractionRequired": false
+          }
+        ]
+      },
+      "weaknesses": [
+        {
+          "source": "nvd@nist.gov",
+          "type": "Primary",
+          "description": [
+            {
+              "lang": "en",
+              "value": "CWE-426"
+            }
+          ]
+        }
+      ],
+      "configurations": [
+        {
+          "operator": "AND",
+          "nodes": [
+            {
+              "operator": "OR",
+              "negate": false,
+              "cpeMatch": [
+                {
+                  "vulnerable": true,
+                  "criteria": "cpe:2.3:a:python:python:*:*:*:*:*:*:*:*",
+                  "versionEndIncluding": "3.7.12",
+                  "matchCriteriaId": "1E05F88A-70C2-4DB6-9CCC-1D599AD26D4C"
+                },
+                {
+                  "vulnerable": true,
+                  "criteria": "cpe:2.3:a:python:python:*:*:*:*:*:*:*:*",
+                  "versionStartIncluding": "3.8.0",
+                  "versionEndIncluding": "3.8.12",
+                  "matchCriteriaId": "E80CA0FB-E708-4E92-BF36-7267F799FF8D"
+                },
+                {
+                  "vulnerable": true,
+                  "criteria": "cpe:2.3:a:python:python:*:*:*:*:*:*:*:*",
+                  "versionStartIncluding": "3.9.0",
+                  "versionEndIncluding": "3.9.10",
+                  "matchCriteriaId": "DD4B9F29-F505-4721-A630-C75103942F29"
+                },
+                {
+                  "vulnerable": true,
+                  "criteria": "cpe:2.3:a:python:python:*:*:*:*:*:*:*:*",
+                  "versionStartIncluding": "3.10.0",
+                  "versionEndIncluding": "3.10.2",
+                  "matchCriteriaId": "D5B55D1D-031C-4006-A368-BB66C2057916"
+                },
+                {
+                  "vulnerable": true,
+                  "criteria": "cpe:2.3:a:python:python:3.11.0:alpha1:*:*:*:*:*:*",
+                  "matchCriteriaId": "514A577E-5E60-40BA-ABD0-A8C5EB28BD90"
+                },
+                {
+                  "vulnerable": true,
+                  "criteria": "cpe:2.3:a:python:python:3.11.0:alpha2:*:*:*:*:*:*",
+                  "matchCriteriaId": "83B71795-9C81-4E5F-967C-C11808F24B05"
+                },
+                {
+                  "vulnerable": true,
+                  "criteria": "cpe:2.3:a:python:python:3.11.0:alpha3:*:*:*:*:*:*",
+                  "matchCriteriaId": "3F6F71F3-299E-4A4B-ADD1-EAD5A1D433E2"
+                },
+                {
+                  "vulnerable": true,
+                  "criteria": "cpe:2.3:a:python:python:3.11.0:alpha4:*:*:*:*:*:*",
+                  "matchCriteriaId": "09BBF4E9-EA54-41B5-948E-8E3D2660B7EF"
+                },
+                {
+                  "vulnerable": true,
+                  "criteria": "cpe:2.3:a:python:python:3.11.0:alpha4:*:*:*:*:*:*",
+                  "matchCriteriaId": "D9BBF4E9-EA54-41B5-948E-8E3D2660B7EF"
+                },
+                {
+                  "vulnerable": true,
+                  "criteria": "cpe:2.3:a:python:python:3.11.0:alpha5:*:*:*:*:*:*",
+                  "matchCriteriaId": "AEBFDCE7-81D4-4741-BB88-12C704515F5C"
+                },
+                {
+                  "vulnerable": true,
+                  "criteria": "cpe:2.3:a:python:python:3.11.0:alpha6:*:*:*:*:*:*",
+                  "matchCriteriaId": "156EB4C2-EFB7-4CEB-804D-93DB62992A63"
+                }
+              ]
+            },
+            {
+              "operator": "OR",
+              "negate": false,
+              "cpeMatch": [
+                {
+                  "vulnerable": false,
+                  "criteria": "cpe:2.3:o:microsoft:windows:-:*:*:*:*:*:*:*",
+                  "matchCriteriaId": "A2572D17-1DE6-457B-99CC-64AFD54487EA"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "operator": "AND",
+          "nodes": [
+            {
+              "operator": "OR",
+              "negate": false,
+              "cpeMatch": [
+                {
+                  "vulnerable": true,
+                  "criteria": "cpe:2.3:a:netapp:active_iq_unified_manager:-:*:*:*:*:windows:*:*",
+                  "matchCriteriaId": "B55E8D50-99B4-47EC-86F9-699B67D473CE"
+                },
+                {
+                  "vulnerable": true,
+                  "criteria": "cpe:2.3:a:netapp:ontap_select_deploy_administration_utility:-:*:*:*:*:*:*:*",
+                  "matchCriteriaId": "E7CF3019-975D-40BB-A8A4-894E62BD3797"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "references": [
+        {
+          "url": "https://mail.python.org/archives/list/security-announce@python.org/thread/657Z4XULWZNIY5FRP3OWXHYKUSIH6DMN/",
+          "source": "cve@mitre.org",
+          "tags": [
+            "Patch",
+            "Vendor Advisory"
+          ]
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20220419-0005/",
+          "source": "cve@mitre.org",
+          "tags": [
+            "Third Party Advisory"
+          ]
+        }
+      ]
+    }
+  }

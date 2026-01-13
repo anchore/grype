@@ -1,0 +1,23 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://openvex.dev/docs/public/vex-9f343308bfdc28ef92df6b952671127b25fbc1aa202e706467fee6ce7f9cb777",
+  "author": "Unknown Author",
+  "timestamp": "2025-08-01T15:13:37.914697-07:00",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2023-45803"
+      },
+      "timestamp": "2025-08-01T15:13:37.914697-07:00",
+      "products": [
+        {
+          "identifiers": {
+            "purl": "pkg:pypi/urllib3@1.26.16+cgr.1"
+          }
+        }
+      ],
+      "status": "fixed"
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+[
+  {
+    "cveID": "CVE-2025-24989",
+    "vendorProject": "Microsoft",
+    "product": "Power Pages",
+    "vulnerabilityName": "Microsoft Power Pages Improper Access Control Vulnerability",
+    "dateAdded": "2025-02-21",
+    "shortDescription": "Microsoft Power Pages contains an improper access control vulnerability that allows an unauthorized attacker to elevate privileges over a network potentially bypassing the user registration control.",
+    "requiredAction": "Apply mitigations per vendor instructions, follow BOD 22-01 guidance for cloud services, or discontinue use of the product if mitigations are unavailable.",
+    "dueDate": "2025-03-14",
+    "knownRansomwareCampaignUse": "Unknown",
+    "notes": "https:\/\/msrc.microsoft.com\/update-guide\/en-US\/advisory\/CVE-2025-24989 ; https:\/\/nvd.nist.gov\/vuln\/detail\/CVE-2025-24989",
+    "cwes": [
+      "CWE-284"
+    ]
+  },
+  {
+    "cveID": "CVE-2025-0111",
+    "vendorProject": "Palo Alto Networks",
+    "product": "PAN-OS",
+    "vulnerabilityName": "Palo Alto Networks PAN-OS File Read Vulnerability",
+    "dateAdded": "2025-02-20",
+    "shortDescription": "Palo Alto Networks PAN-OS contains an external control of file name or path vulnerability. Successful exploitation enables an authenticated attacker with network access to the management web interface to read files on the PAN-OS filesystem that are readable by the \u201cnobody\u201d user.",
+    "requiredAction": "Apply mitigations per vendor instructions or discontinue use of the product if mitigations are unavailable.",
+    "dueDate": "2025-03-13",
+    "knownRansomwareCampaignUse": "Unknown",
+    "notes": "https:\/\/security.paloaltonetworks.com\/CVE-2025-0111 ; https:\/\/nvd.nist.gov\/vuln\/detail\/CVE-2025-0111",
+    "cwes": [
+      "CWE-73"
+    ]
+  },
+  {
+    "cveID": "CVE-2025-23209",
+    "vendorProject": "Craft CMS",
+    "product": "Craft CMS",
+    "vulnerabilityName": "Craft CMS Code Injection Vulnerability",
+    "dateAdded": "2025-02-20",
+    "shortDescription": "Craft CMS contains a code injection vulnerability caused by improper validation of the database backup path, ultimately enabling remote code execution.",
+    "requiredAction": "Apply mitigations per vendor instructions or discontinue use of the product if mitigations are unavailable.",
+    "dueDate": "2025-03-13",
+    "knownRansomwareCampaignUse": "Unknown",
+    "notes": "https:\/\/github.com\/craftcms\/cms\/security\/advisories\/GHSA-x684-96hh-833x ; https:\/\/nvd.nist.gov\/vuln\/detail\/CVE-2025-23209",
+    "cwes": [
+      "CWE-94"
+    ]
+  },
+  {
+    "cveID": "CVE-2025-0108",
+    "vendorProject": "Palo Alto Networks",
+    "product": "PAN-OS",
+    "vulnerabilityName": "Palo Alto Networks PAN-OS Authentication Bypass Vulnerability",
+    "dateAdded": "2025-02-18",
+    "shortDescription": "Palo Alto Networks PAN-OS contains an authentication bypass vulnerability in its management web interface. This vulnerability allows an unauthenticated attacker with network access to the management web interface to bypass the authentication normally required and invoke certain PHP scripts.",
+    "requiredAction": "Apply mitigations per vendor instructions or discontinue use of the product if mitigations are unavailable.",
+    "dueDate": "2025-03-11",
+    "knownRansomwareCampaignUse": "Unknown",
+    "notes": "https:\/\/security.paloaltonetworks.com\/CVE-2025-0108 ; https:\/\/nvd.nist.gov\/vuln\/detail\/CVE-2025-0108",
+    "cwes": [
+      "CWE-306"
+    ]
+  }
+]
