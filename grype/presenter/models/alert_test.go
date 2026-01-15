@@ -19,11 +19,6 @@ func TestAlertTypes(t *testing.T) {
 			alert:    AlertTypeDistroEOL,
 			expected: "distro-eol",
 		},
-		{
-			name:     "distro disabled alert type",
-			alert:    AlertTypeDistroDisabled,
-			expected: "distro-disabled",
-		},
 	}
 
 	for _, tc := range tests {
@@ -93,8 +88,8 @@ func TestPackageAlertsJSONSerialization(t *testing.T) {
 
 func TestAlertDetailsOmitEmpty(t *testing.T) {
 	alert := Alert{
-		Type:    AlertTypeDistroDisabled,
-		Message: "Disabled distro",
+		Type:    AlertTypeDistroEOL,
+		Message: "EOL distro",
 		// Metadata intentionally nil
 	}
 

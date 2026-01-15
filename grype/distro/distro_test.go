@@ -588,46 +588,6 @@ func names(ns ...string) []string {
 	return ns
 }
 
-func TestDistro_Disabled(t *testing.T) {
-	tests := []struct {
-		name     string
-		distro   *Distro
-		disabled bool
-	}{
-		{
-			name:     "ArchLinux is disabled",
-			distro:   New(ArchLinux, "", ""),
-			disabled: true,
-		},
-		{
-			name:     "Ubuntu is not disabled",
-			distro:   New(Ubuntu, "22.04", "jammy"),
-			disabled: false,
-		},
-		{
-			name:     "Debian is not disabled",
-			distro:   New(Debian, "11", ""),
-			disabled: false,
-		},
-		{
-			name:     "Alpine is not disabled",
-			distro:   New(Alpine, "3.18", ""),
-			disabled: false,
-		},
-		{
-			name:     "RedHat is not disabled",
-			distro:   New(RedHat, "9", ""),
-			disabled: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.disabled, tt.distro.Disabled())
-		})
-	}
-}
-
 func TestParseDistroString(t *testing.T) {
 	tests := []struct {
 		name            string
