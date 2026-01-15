@@ -243,8 +243,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 
 	// collect distro alert data from the vulnerability matcher
 	distroAlertData := &models.DistroAlertData{
-		DisabledDistroPackages: vulnMatcher.DisabledDistroPackages(),
-		EOLDistroPackages:      vulnMatcher.EOLDistroPackages(),
+		EOLDistroPackages: vulnMatcher.EOLDistroPackages(),
 	}
 
 	warnDistroAlerts(distroAlertData)
@@ -291,20 +290,9 @@ func warnDistroAlerts(data *models.DistroAlertData) {
 		return
 	}
 
-	// count packages by distro for each alert type
-	eolDistros := countPackagesByDistro(data.EOLDistroPackages)
-	disabledDistros := countPackagesByDistro(data.DisabledDistroPackages)
-
 	// warn about EOL distro packages
-	for distroName, count := range eolDistros {
+	for distroName, count := range countPackagesByDistro(data.EOLDistroPackages) {
 		msg := fmt.Sprintf("%d packages from EOL distro %q - vulnerability data may be incomplete or outdated", count, distroName)
-		bus.Notify(msg)
-		log.Warn(msg)
-	}
-
-	// warn about disabled distro packages
-	for distroName, count := range disabledDistros {
-		msg := fmt.Sprintf("%d packages from disabled distro %q were not matched against vulnerabilities", count, distroName)
 		bus.Notify(msg)
 		log.Warn(msg)
 	}

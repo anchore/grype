@@ -223,39 +223,6 @@ func TestBuildPackageAlerts(t *testing.T) {
 				"pkg-2-id": {AlertTypeDistroEOL},
 			},
 		},
-		{
-			name: "disabled distro packages",
-			data: &DistroAlertData{
-				DisabledDistroPackages: []pkg.Package{pkg1},
-			},
-			wantLen: 1,
-			wantAlerts: map[string][]AlertType{
-				"pkg-1-id": {AlertTypeDistroDisabled},
-			},
-		},
-		{
-			name: "mixed distro packages",
-			data: &DistroAlertData{
-				EOLDistroPackages:      []pkg.Package{pkg1},
-				DisabledDistroPackages: []pkg.Package{pkg2},
-			},
-			wantLen: 2,
-			wantAlerts: map[string][]AlertType{
-				"pkg-1-id": {AlertTypeDistroEOL},
-				"pkg-2-id": {AlertTypeDistroDisabled},
-			},
-		},
-		{
-			name: "duplicate packages with multiple alert types",
-			data: &DistroAlertData{
-				DisabledDistroPackages: []pkg.Package{pkg1},
-				EOLDistroPackages:      []pkg.Package{pkg1}, // Same package in both
-			},
-			wantLen: 1,
-			wantAlerts: map[string][]AlertType{
-				"pkg-1-id": {AlertTypeDistroDisabled, AlertTypeDistroEOL}, // Both alerts
-			},
-		},
 	}
 
 	for _, tc := range tests {
