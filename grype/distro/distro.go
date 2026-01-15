@@ -236,16 +236,6 @@ func (d Distro) VersionString() string {
 	return versionStr
 }
 
-// Disabled is a way to convey if a Linux distribution is not supported by Grype.
-func (d Distro) Disabled() bool {
-	switch d.Type {
-	case ArchLinux:
-		return true
-	default:
-		return false
-	}
-}
-
 func nonEmptyStrings(ss ...string) (res []string) {
 	for _, s := range ss {
 		if s != "" {

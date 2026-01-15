@@ -142,6 +142,11 @@ func TestParseFormat(t *testing.T) {
 			input:  "jep223",
 			format: JVMFormat,
 		},
+		// PacmanFormat cases
+		{
+			input:  "pacman",
+			format: PacmanFormat,
+		},
 		// UnknownFormat case
 		{
 			input:  "unknown",
