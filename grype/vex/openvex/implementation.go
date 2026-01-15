@@ -67,7 +67,7 @@ func productIdentifiersFromContext(pkgContext *pkg.Context) ([]string, error) {
 			return []string{"pkg:generic/" + strings.ToLower(pkgContext.Source.Name) + "@" + pkgContext.Source.Version}, nil
 		}
 		// Fail for now
-		return nil, errors.New("source type not supported for VEX")
+		return []string{}, nil
 	}
 }
 
@@ -178,6 +178,7 @@ func (ovm *Processor) FilterMatches(
 
 	// this works only when grype uses the SBOM syft format
 	products, err := productIdentifiersFromContext(pkgContext)
+
 	if err != nil {
 		return nil, nil, fmt.Errorf("reading product identifiers from context: %w", err)
 	}
