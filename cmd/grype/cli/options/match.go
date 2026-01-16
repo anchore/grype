@@ -58,7 +58,7 @@ type rpmConfig struct {
 	//
 	//   With "zero": Treat package as 0:2.0.0 → MATCH (0 < 1)
 	//   With "auto": Treat package as 1:2.0.0 → NO MATCH (2.0.0 > 1.5.0)
-	MissingEpochStrategy string `yaml:"missing-epoch-strategy" json:"missing-epoch-strategy" mapstructure:"missing-epoch-strategy"`
+	MissingEpochStrategy version.MissingEpochStrategy `yaml:"missing-epoch-strategy" json:"missing-epoch-strategy" mapstructure:"missing-epoch-strategy"`
 }
 
 // dpkgConfig contains configuration for the dpkg matcher.
@@ -82,7 +82,7 @@ type dpkgConfig struct {
 	//
 	//   With "zero": Treat package as 0:2.0.0 → MATCH (0 < 1)
 	//   With "auto": Treat package as 1:2.0.0 → NO MATCH (2.0.0 > 1.5.0)
-	MissingEpochStrategy string `yaml:"missing-epoch-strategy" json:"missing-epoch-strategy" mapstructure:"missing-epoch-strategy"`
+	MissingEpochStrategy version.MissingEpochStrategy `yaml:"missing-epoch-strategy" json:"missing-epoch-strategy" mapstructure:"missing-epoch-strategy"`
 }
 
 func defaultGolangConfig() golangConfig {

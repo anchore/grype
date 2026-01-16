@@ -62,7 +62,7 @@ func shouldUseRedhatEUSMatching(d *distro.Distro) bool {
 // Any disclosure that does not apply to the original package version (e.g. a fix was found) at this point has been removed.
 //
 // The final step is to render the final matches from the merged collection.
-func redhatEUSMatches(provider result.Provider, searchPkg pkg.Package, missingEpochStrategy string) ([]match.Match, error) {
+func redhatEUSMatches(provider result.Provider, searchPkg pkg.Package, missingEpochStrategy version.MissingEpochStrategy) ([]match.Match, error) {
 	distroWithoutEUS := *searchPkg.Distro
 	distroWithoutEUS.Channels = nil // clear the EUS channel so that we can search for the base distro
 

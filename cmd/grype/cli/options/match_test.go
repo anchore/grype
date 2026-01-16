@@ -5,6 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/anchore/grype/grype/version"
 )
 
 func TestRpmConfig_PostLoad(t *testing.T) {
@@ -174,7 +176,7 @@ func TestMatchConfig_PostLoad(t *testing.T) {
 
 func TestDefaultRpmConfig(t *testing.T) {
 	cfg := defaultRpmConfig()
-	assert.Equal(t, "zero", cfg.MissingEpochStrategy, "default should be zero for backward compatibility")
+	assert.Equal(t, version.MissingEpochStrategyZero, cfg.MissingEpochStrategy, "default should be zero for backward compatibility")
 	assert.True(t, cfg.UseCPEs, "rpm matcher should use CPEs by default")
 
 	// Ensure default is valid
@@ -184,7 +186,7 @@ func TestDefaultRpmConfig(t *testing.T) {
 
 func TestDefaultDpkgConfig(t *testing.T) {
 	cfg := defaultDpkgConfig()
-	assert.Equal(t, "zero", cfg.MissingEpochStrategy, "default should be zero for backward compatibility")
+	assert.Equal(t, version.MissingEpochStrategyZero, cfg.MissingEpochStrategy, "default should be zero for backward compatibility")
 	assert.True(t, cfg.UseCPEs, "dpkg matcher should use CPEs by default")
 
 	// Ensure default is valid
@@ -196,11 +198,11 @@ func TestDefaultMatchConfig(t *testing.T) {
 	cfg := defaultMatchConfig()
 
 	// Verify RPM defaults
-	assert.Equal(t, "zero", cfg.Rpm.MissingEpochStrategy)
+	assert.Equal(t, version.MissingEpochStrategyZero, cfg.Rpm.MissingEpochStrategy)
 	assert.True(t, cfg.Rpm.UseCPEs)
 
 	// Verify dpkg defaults
-	assert.Equal(t, "zero", cfg.Dpkg.MissingEpochStrategy)
+	assert.Equal(t, version.MissingEpochStrategyZero, cfg.Dpkg.MissingEpochStrategy)
 	assert.True(t, cfg.Dpkg.UseCPEs)
 
 	// Ensure the entire default config is valid

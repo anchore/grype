@@ -134,14 +134,14 @@ func TestDebVersion_CompareWithConfig(t *testing.T) {
 		name     string
 		version  string
 		other    string
-		strategy string
+		strategy MissingEpochStrategy
 		want     int // -1, 0, or 1
 	}{
 		{
 			name:     "package has epoch, no behavior change with auto",
 			version:  "1:2.0.0",
 			other:    "1:1.5.0",
-			strategy: "auto",
+			strategy: MissingEpochStrategyAuto,
 			want:     1, // 1:2.0.0 > 1:1.5.0
 		},
 		{
@@ -155,7 +155,7 @@ func TestDebVersion_CompareWithConfig(t *testing.T) {
 			name:     "package missing epoch, constraint has epoch, auto strategy - no match",
 			version:  "2.0.0",
 			other:    "1:1.5.0",
-			strategy: "auto",
+			strategy: MissingEpochStrategyAuto,
 			want:     1, // Treated as 1:2.0.0 > 1:1.5.0
 		},
 		{
@@ -169,7 +169,7 @@ func TestDebVersion_CompareWithConfig(t *testing.T) {
 			name:     "both missing epoch, auto strategy",
 			version:  "2.0.0",
 			other:    "1.5.0",
-			strategy: "auto",
+			strategy: MissingEpochStrategyAuto,
 			want:     1, // 2.0.0 > 1.5.0
 		},
 		{
@@ -183,21 +183,21 @@ func TestDebVersion_CompareWithConfig(t *testing.T) {
 			name:     "constraint missing epoch, package has epoch",
 			version:  "1:2.0.0-1",
 			other:    "1.5.0-1",
-			strategy: "auto",
+			strategy: MissingEpochStrategyAuto,
 			want:     1, // 1:2.0.0 > 0:1.5.0 (constraint gets epoch 0)
 		},
 		{
 			name:     "auto strategy, package less than constraint",
 			version:  "1.0.0",
 			other:    "1:1.5.0",
-			strategy: "auto",
+			strategy: MissingEpochStrategyAuto,
 			want:     -1, // Treated as 1:1.0.0 < 1:1.5.0
 		},
 		{
 			name:     "auto strategy, different epochs on constraints",
 			version:  "1.2.0",
 			other:    "2:1.5.0",
-			strategy: "auto",
+			strategy: MissingEpochStrategyAuto,
 			want:     -1, // Treated as 2:1.2.0 < 2:1.5.0
 		},
 		{
@@ -211,7 +211,7 @@ func TestDebVersion_CompareWithConfig(t *testing.T) {
 			name:     "auto strategy, equal versions different missing epochs",
 			version:  "1.2.3-1",
 			other:    "1:1.2.3-1",
-			strategy: "auto",
+			strategy: MissingEpochStrategyAuto,
 			want:     0, // Treated as 1:1.2.3 == 1:1.2.3
 		},
 		{
@@ -225,7 +225,7 @@ func TestDebVersion_CompareWithConfig(t *testing.T) {
 			name:     "auto strategy, large epoch difference",
 			version:  "1.0.0",
 			other:    "999:0.5.0",
-			strategy: "auto",
+			strategy: MissingEpochStrategyAuto,
 			want:     1, // Treated as 999:1.0.0 > 999:0.5.0
 		},
 		{
@@ -239,7 +239,7 @@ func TestDebVersion_CompareWithConfig(t *testing.T) {
 			name:     "both have epochs, strategy should not matter",
 			version:  "2:1.5.0-1",
 			other:    "1:2.0.0-1",
-			strategy: "auto",
+			strategy: MissingEpochStrategyAuto,
 			want:     1, // 2:1.5.0 > 1:2.0.0 (epoch takes precedence)
 		},
 		{
@@ -253,7 +253,7 @@ func TestDebVersion_CompareWithConfig(t *testing.T) {
 			name:     "debian revision comparison with auto",
 			version:  "1.0-1ubuntu1",
 			other:    "1:1.0-1ubuntu1",
-			strategy: "auto",
+			strategy: MissingEpochStrategyAuto,
 			want:     0, // Treated as 1:1.0-1ubuntu1 == 1:1.0-1ubuntu1
 		},
 		{
@@ -293,21 +293,21 @@ func TestDebVersion_CompareWithConfig_ErrorCases(t *testing.T) {
 		name     string
 		version  string
 		other    *Version
-		strategy string
+		strategy MissingEpochStrategy
 		wantErr  bool
 	}{
 		{
 			name:     "nil other version",
 			version:  "1.0.0",
 			other:    nil,
-			strategy: "auto",
+			strategy: MissingEpochStrategyAuto,
 			wantErr:  true,
 		},
 		{
 			name:     "invalid other version format",
 			version:  "1.0.0",
 			other:    &Version{Format: DebFormat, Raw: "not-a-valid-debian-version!@#$%"},
-			strategy: "auto",
+			strategy: MissingEpochStrategyAuto,
 			wantErr:  true,
 		},
 	}
@@ -349,7 +349,7 @@ func TestDebVersion_CompareWithConfig_ConsistencyWithCompare(t *testing.T) {
 			v2 := &Version{Format: DebFormat, Raw: tt.v2}
 
 			// Test with both strategies
-			for _, strategy := range []string{"zero", "auto"} {
+			for _, strategy := range []MissingEpochStrategy{MissingEpochStrategyZero, MissingEpochStrategyAuto} {
 				cfg := ComparisonConfig{MissingEpochStrategy: strategy}
 
 				resultWithConfig, err1 := v1.CompareWithConfig(v2, cfg)

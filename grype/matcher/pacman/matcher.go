@@ -21,7 +21,7 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
-	matches, ignoreFilters, err := internal.MatchPackageByDistro(store, p, nil, m.Type())
+	matches, ignoreFilters, err := internal.MatchPackageByDistro(store, p, nil, m.Type(), nil)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to match pacman package: %w", err)
 	}

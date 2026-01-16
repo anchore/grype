@@ -16,7 +16,7 @@ type Matcher struct {
 }
 
 type MatcherConfig struct {
-	MissingEpochStrategy string
+	MissingEpochStrategy version.MissingEpochStrategy
 }
 
 func NewDpkgMatcher(cfg MatcherConfig) *Matcher {
