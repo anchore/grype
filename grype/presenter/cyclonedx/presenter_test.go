@@ -22,6 +22,10 @@ var update = flag.Bool("update", false, "update the *.golden files for cyclonedx
 var validatorImage = "cyclonedx/cyclonedx-cli:0.27.2@sha256:829c9ea8f2104698bc3c1228575bfa495f6cc4ec151329323c013ca94408477f"
 
 func Test_CycloneDX_Valid(t *testing.T) {
+	if _, err := exec.LookPath("docker"); err != nil {
+		t.Skip("docker not available")
+	}
+
 	tests := []struct {
 		name   string
 		scheme internal.SyftSource

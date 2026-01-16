@@ -2,6 +2,7 @@ package dpkg
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -11,6 +12,7 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/internal/stringutil"
+	syftCpe "github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -59,5 +61,91 @@ func TestMatcherDpkg_matchBySourceIndirection(t *testing.T) {
 	}
 	if t.Failed() {
 		t.Logf("discovered CVES: %+v", foundCVEs)
+	}
+}
+
+func TestMatcherDpkg_CPEFallbackWhenEOL(t *testing.T) {
+	pastEOL := time.Now().AddDate(-1, 0, 0)  // 1 year ago
+	futureEOL := time.Now().AddDate(1, 0, 0) // 1 year from now
+
+	d := distro.New(distro.Debian, "8", "")
+
+	// package with CPEs for CPE-based matching
+	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
+		Name:    "openssl",
+		Version: "1.0.1",
+		Type:    syftPkg.DebPkg,
+		Distro:  d,
+		CPEs: []syftCpe.CPE{
+			syftCpe.Must("cpe:2.3:a:openssl:openssl:1.0.1:*:*:*:*:*:*:*", ""),
+		},
+	}
+
+	tests := []struct {
+		name             string
+		useCPEsForEOL    bool
+		eolDate          *time.Time
+		expectCPEMatches bool
+	}{
+		{
+			name:             "CPE fallback enabled and distro is EOL - should include CPE matches",
+			useCPEsForEOL:    true,
+			eolDate:          &pastEOL,
+			expectCPEMatches: true,
+		},
+		{
+			name:             "CPE fallback enabled but distro not EOL - should not include CPE matches",
+			useCPEsForEOL:    true,
+			eolDate:          &futureEOL,
+			expectCPEMatches: false,
+		},
+		{
+			name:             "CPE fallback disabled and distro is EOL - should not include CPE matches",
+			useCPEsForEOL:    false,
+			eolDate:          &pastEOL,
+			expectCPEMatches: false,
+		},
+		{
+			name:             "CPE fallback disabled and distro not EOL - should not include CPE matches",
+			useCPEsForEOL:    false,
+			eolDate:          &futureEOL,
+			expectCPEMatches: false,
+		},
+		{
+			name:             "CPE fallback enabled but no EOL data - should not include CPE matches",
+			useCPEsForEOL:    true,
+			eolDate:          nil,
+			expectCPEMatches: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			matcher := NewDpkgMatcher(MatcherConfig{
+				UseCPEsForEOL: tt.useCPEsForEOL,
+			})
+
+			vp := newMockEOLProvider(tt.eolDate)
+			matches, _, err := matcher.Match(vp, p)
+			require.NoError(t, err)
+
+			// check if any CPE matches were found
+			hasCPEMatch := false
+			for _, m := range matches {
+				for _, detail := range m.Details {
+					if detail.Type == match.CPEMatch {
+						hasCPEMatch = true
+						break
+					}
+				}
+			}
+
+			if tt.expectCPEMatches {
+				assert.True(t, hasCPEMatch, "expected CPE matches for EOL distro")
+			} else {
+				assert.False(t, hasCPEMatch, "did not expect CPE matches")
+			}
+		})
 	}
 }
