@@ -55,19 +55,19 @@ func (ovm *Processor) ReadVexDocuments(docs []string) (interface{}, error) {
 
 // productIdentifiersFromContext reads the package context and returns software
 // identifiers identifying the scanned image.
-func productIdentifiersFromContext(pkgContext *pkg.Context) ([]string, error) {
+func productIdentifiersFromContext(pkgContext *pkg.Context) []string {
 	switch v := pkgContext.Source.Metadata.(type) {
 	case source.ImageMetadata:
 		tagIdentifiers := identifiersFromTags(v.Tags, pkgContext.Source.Name)
 		digestIdentifiers := identifiersFromDigests(v.RepoDigests)
 		identifiers := slices.Concat(tagIdentifiers, digestIdentifiers)
-		return identifiers, nil
+		return identifiers
 	default:
 		if pkgContext.Source.Name != "" && pkgContext.Source.Version != "" {
-			return []string{"pkg:generic/" + strings.ToLower(pkgContext.Source.Name) + "@" + pkgContext.Source.Version}, nil
+			return []string{"pkg:generic/" + strings.ToLower(pkgContext.Source.Name) + "@" + pkgContext.Source.Version}
 		}
-		// Fail for now
-		return []string{}, nil
+		// remove a empty list so VEX can match the products afterwards by the component
+		return []string{}
 	}
 }
 
@@ -177,11 +177,7 @@ func (ovm *Processor) FilterMatches(
 	remainingMatches := match.NewMatches()
 
 	// this works only when grype uses the SBOM syft format
-	products, err := productIdentifiersFromContext(pkgContext)
-
-	if err != nil {
-		return nil, nil, fmt.Errorf("reading product identifiers from context: %w", err)
-	}
+	products := productIdentifiersFromContext(pkgContext)
 
 	// if the previous method didn't work to find products,
 	// we get them from the VEX document.
@@ -307,10 +303,7 @@ func (ovm *Processor) AugmentMatches(
 
 	additionalIgnoredMatches := []match.IgnoredMatch{}
 
-	products, err := productIdentifiersFromContext(pkgContext)
-	if err != nil {
-		return nil, nil, fmt.Errorf("reading product identifiers from context: %w", err)
-	}
+	products := productIdentifiersFromContext(pkgContext)
 
 	// Now, let's go through grype's matches
 	for i := range ignoredMatches {
