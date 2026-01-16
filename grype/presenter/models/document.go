@@ -100,6 +100,14 @@ func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Con
 	}, nil
 }
 
+// distroString returns the distro string representation, or "unknown" if nil.
+func distroString(p pkg.Package) string {
+	if p.Distro != nil {
+		return p.Distro.String()
+	}
+	return "unknown"
+}
+
 // buildPackageAlerts creates PackageAlerts from distro tracking data.
 func buildPackageAlerts(data *DistroAlertData) []PackageAlerts {
 	if data == nil {
@@ -140,11 +148,7 @@ func buildPackageAlerts(data *DistroAlertData) []PackageAlerts {
 
 	// add alerts for EOL distro packages
 	for _, p := range data.EOLDistroPackages {
-		distroName := "unknown"
-		if p.Distro != nil {
-			distroName = p.Distro.String()
-		}
-		addAlert(p, AlertTypeDistroEOL, fmt.Sprintf("Package is from end-of-life distro: %s", distroName), distroMetadata(p))
+		addAlert(p, AlertTypeDistroEOL, fmt.Sprintf("Package is from end-of-life distro: %s", distroString(p)), distroMetadata(p))
 	}
 
 	// convert map to slice

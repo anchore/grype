@@ -292,7 +292,7 @@ func warnDistroAlerts(data *models.DistroAlertData) {
 
 	// warn about EOL distro packages
 	for distroName, count := range countPackagesByDistro(data.EOLDistroPackages) {
-		msg := fmt.Sprintf("%d packages from EOL distro %q - vulnerability data may be incomplete or outdated", count, distroName)
+		msg := fmt.Sprintf("%d packages from EOL distro %q - vulnerability data may be incomplete or outdated; consider upgrading to a supported version", count, distroName)
 		bus.Notify(msg)
 		log.Warn(msg)
 	}
