@@ -58,11 +58,12 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	if m.cfg.UseCPEsForEOL && internal.IsDistroEOL(store, p.Distro) {
 		log.WithFields("package", p.Name, "distro", p.Distro).Debug("distro is EOL, searching by CPEs")
 		cpeMatches, err := internal.MatchPackageByCPEs(store, p, m.Type())
-		if errors.Is(err, internal.ErrEmptyCPEMatch) {
+		switch {
+		case errors.Is(err, internal.ErrEmptyCPEMatch):
 			log.WithFields("package", p.Name).Debug("package has no CPEs for EOL fallback matching")
-		} else if err != nil {
+		case err != nil:
 			log.WithFields("package", p.Name, "error", err).Debug("failed to match by CPEs for EOL distro")
-		} else {
+		default:
 			matches = append(matches, cpeMatches...)
 		}
 	}

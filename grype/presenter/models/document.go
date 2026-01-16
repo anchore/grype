@@ -25,17 +25,9 @@ type Document struct {
 //
 //nolint:staticcheck // MetadataProvider is deprecated but still used internally
 func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Context, matches match.Matches, ignoredMatches []match.IgnoredMatch, metadataProvider vulnerability.MetadataProvider, appConfig any, dbInfo any, strategy SortStrategy, outputTimestamp bool, distroAlerts *DistroAlertData) (Document, error) {
-	var timestamp []byte
-
-	if !outputTimestamp {
-		// can't be nil in string() call
-		timestamp = []byte{}
-	} else {
-		var timestampErr error
-		timestamp, timestampErr = time.Now().Local().MarshalText()
-		if timestampErr != nil {
-			return Document{}, timestampErr
-		}
+	timestamp, err := createTimestamp(outputTimestamp)
+	if err != nil {
+		return Document{}, err
 	}
 
 	// we must preallocate the findings to ensure the JSON document does not show "null" when no matches are found
@@ -95,9 +87,21 @@ func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Con
 			Version:       id.Version,
 			Configuration: appConfig,
 			DB:            dbInfo,
-			Timestamp:     string(timestamp),
+			Timestamp:     timestamp,
 		},
 	}, nil
+}
+
+// createTimestamp creates a timestamp string for the document descriptor.
+func createTimestamp(outputTimestamp bool) (string, error) {
+	if !outputTimestamp {
+		return "", nil
+	}
+	timestamp, err := time.Now().Local().MarshalText()
+	if err != nil {
+		return "", err
+	}
+	return string(timestamp), nil
 }
 
 // distroString returns the distro string representation, or "unknown" if nil.
