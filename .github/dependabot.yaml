@@ -4,6 +4,9 @@ updates:
     directory: "/"
     schedule:
       interval: daily
+    cooldown:
+      days: 7
+      default-days: 7
 
   - package-ecosystem: "github-actions"
     directory: "/.github/actions/bootstrap"
@@ -12,8 +15,14 @@ updates:
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
+    cooldown:
+      days: 7
+      default-days: 7
 
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
       interval: daily
+    cooldown:
+      days: 7
+      default-days: 7
