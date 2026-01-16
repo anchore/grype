@@ -15,11 +15,11 @@ type Version struct {
 }
 
 // New creates a new Version with the default comparison configuration.
-// The default MissingEpochStrategy is MissingEpochStrategyZero for backward compatibility.
+// The default uses no explicit MissingEpochStrategy, which preserves the native
+// behavior of each format's comparator (RPM ignores one-sided epochs, DEB treats
+// missing as 0). Use NewWithConfig to explicitly control epoch handling.
 func New(raw string, format Format) *Version {
-	return NewWithConfig(raw, format, ComparisonConfig{
-		MissingEpochStrategy: MissingEpochStrategyZero,
-	})
+	return NewWithConfig(raw, format, ComparisonConfig{})
 }
 
 // NewWithConfig creates a new Version with a specific comparison configuration.

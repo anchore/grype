@@ -116,7 +116,7 @@ func Test_getMatcherConfig(t *testing.T) {
 				},
 				Stock: stock.MatcherConfig{UseCPEs: true},
 				Rpm: rpm.MatcherConfig{
-					MissingEpochStrategy: "zero",
+					MissingEpochStrategy: "auto",
 				},
 				Dpkg: dpkg.MatcherConfig{
 					MissingEpochStrategy: "zero",
@@ -124,10 +124,10 @@ func Test_getMatcherConfig(t *testing.T) {
 			},
 		},
 		{
-			name: "rpm missing-epoch-strategy set to auto",
+			name: "rpm missing-epoch-strategy set to zero",
 			opts: func() *options.Grype {
 				opts := options.DefaultGrype(clio.Identification{Name: "test", Version: "1.0"})
-				opts.Match.Rpm.MissingEpochStrategy = "auto"
+				opts.Match.Rpm.MissingEpochStrategy = "zero"
 				return opts
 			}(),
 			want: matcher.Config{
@@ -150,7 +150,7 @@ func Test_getMatcherConfig(t *testing.T) {
 				},
 				Stock: stock.MatcherConfig{UseCPEs: true},
 				Rpm: rpm.MatcherConfig{
-					MissingEpochStrategy: "auto",
+					MissingEpochStrategy: "zero",
 				},
 				Dpkg: dpkg.MatcherConfig{
 					MissingEpochStrategy: "zero",
@@ -184,7 +184,7 @@ func Test_getMatcherConfig(t *testing.T) {
 				},
 				Stock: stock.MatcherConfig{UseCPEs: true},
 				Rpm: rpm.MatcherConfig{
-					MissingEpochStrategy: "zero",
+					MissingEpochStrategy: "auto",
 				},
 				Dpkg: dpkg.MatcherConfig{
 					MissingEpochStrategy: "auto",

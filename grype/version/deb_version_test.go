@@ -63,6 +63,35 @@ func TestDebVersion_Constraint(t *testing.T) {
 		{version: "43.0.2357.81-0ubuntu0.14.04.1.1089", constraint: "<43.0.2358-0ubuntu0.14.04.1.1089", satisfied: true},
 		{version: "43.0.2357.81-0ubuntu0.14.04.1.1089", constraint: "<43.1-0ubuntu0.14.04.1.1089", satisfied: true},
 		{version: "43.0.2357.81-0ubuntu0.14.04.1.1089", constraint: "<44-0ubuntu0.14.04.1.1089", satisfied: true},
+		// epoch - both sides have epoch
+		{version: "1:0", constraint: "< 0:1", satisfied: false},
+		{version: "2:4.19.01-1", constraint: "< 2:4.19.1-1", satisfied: false},
+		{version: "2:4.19.01-1", constraint: "<= 2:4.19.1-1", satisfied: true},
+		{version: "0:4.19.1-1", constraint: "< 2:4.19.1-1", satisfied: true},
+		{version: "11:4.19.0-1", constraint: "< 12:4.19.0-1", satisfied: true},
+		{version: "13:4.19.0-1", constraint: "< 12:4.19.0-1", satisfied: false},
+		// epoch - missing epoch treated as 0 (standard dpkg behavior)
+		// This differs from RPM which ignores epochs when only one side has them
+		{version: "1:0", constraint: "< 1", satisfied: false},                 // 1:0 vs 0:1 -> epoch 1 > 0, not satisfied
+		{version: "0:0", constraint: "< 0", satisfied: false},                 // 0:0 vs 0:0 -> equal, not satisfied
+		{version: "0:0", constraint: "= 0", satisfied: true},                  // 0:0 vs 0:0 -> equal
+		{version: "0", constraint: "= 0:0", satisfied: true},                  // 0:0 vs 0:0 -> equal
+		{version: "1.0", constraint: "< 2:1.0", satisfied: true},              // 0:1.0 vs 2:1.0 -> epoch 0 < 2, satisfied
+		{version: "1.0", constraint: "<= 2:1.0", satisfied: true},             // 0:1.0 vs 2:1.0 -> epoch 0 < 2, satisfied
+		{version: "1:2", constraint: "< 1", satisfied: false},                 // 1:2 vs 0:1 -> epoch 1 > 0, not satisfied
+		{version: "1:2", constraint: "> 1", satisfied: true},                  // 1:2 vs 0:1 -> epoch 1 > 0, satisfied
+		{version: "2:4.19.01-1", constraint: "< 4.19.1-1", satisfied: false},  // epoch 2 > 0
+		{version: "2:4.19.01-1", constraint: "<= 4.19.1-1", satisfied: false}, // epoch 2 > 0
+		{version: "4.19.01-1", constraint: "< 2:4.19.1-1", satisfied: true},   // epoch 0 < 2
+		{version: "4.19.0-1", constraint: "< 12:4.19.0-1", satisfied: true},   // epoch 0 < 12
+		{version: "4.19.0-1", constraint: "<= 12:4.19.0-1", satisfied: true},  // epoch 0 < 12
+		{version: "3:4.19.0-1", constraint: "< 4.21.0-1", satisfied: false},   // epoch 3 > 0
+		// real-world debian version formats with epochs
+		{version: "1.5.4-2+deb9u1", constraint: "< 0:1.5.4-2+deb9u1", satisfied: false},
+		{version: "1.5.4-2+deb9u1", constraint: "<= 0:1.5.4-2+deb9u1", satisfied: true},
+		{version: "1.5.4-2+deb9u1", constraint: "< 1:1.5.4-2+deb9u1", satisfied: true}, // epoch 0 < 1
+		{version: "8.3.1-5ubuntu1", constraint: "< 0:8.3.1-5ubuntu2", satisfied: true},
+		{version: "8.3.1-5ubuntu1.40", constraint: "< 0:8.3.1-5ubuntu1.5", satisfied: false},
 	}
 
 	for _, test := range tests {
@@ -124,6 +153,54 @@ func TestDebVersion_Compare(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.Contains(t, []int{-1, 0, 1}, result, "Expected comparison result to be -1, 0, or 1")
+			}
+		})
+	}
+}
+
+func TestDebVersion_Compare_Epochs(t *testing.T) {
+	// Test epoch comparison behavior - this is critical for vulnerability matching
+	// The deb library treats missing epochs as 0, which differs from RPM behavior
+	tests := []struct {
+		name   string
+		v1     string
+		v2     string
+		expect string // "less", "equal", "greater"
+	}{
+		// both have epochs - standard comparison
+		{"epoch 1 vs 0, same version", "1:0", "0:1", "greater"},
+		{"same epoch, different version", "1:2", "1:1", "greater"},
+		{"different epochs, same version", "0:4.19.1-1", "2:4.19.1-1", "less"},
+		{"equal with epochs", "2:1.0-1", "2:1.0-1", "equal"},
+
+		// missing epoch treated as 0 (differs from RPM which ignores one-sided epochs)
+		{"epoch 1 vs missing (treated as 0)", "1:0", "1", "greater"},    // 1:0 vs 0:1 -> epoch 1 > 0
+		{"epoch 2 vs missing", "2:4.19.01-1", "4.19.1-1", "greater"},    // epoch 2 > 0
+		{"missing vs epoch 2", "4.19.01-1", "2:4.19.1-1", "less"},       // epoch 0 < 2
+		{"missing vs epoch 12", "4.19.0-1", "12:4.19.0-1", "less"},      // epoch 0 < 12
+		{"epoch 3 vs missing", "3:4.19.0-1", "4.21.0-1", "greater"},     // epoch 3 > 0
+		{"missing epoch equal to 0 epoch", "1.0-1", "0:1.0-1", "equal"}, // 0:1.0-1 == 0:1.0-1
+		{"explicit 0 epoch vs missing", "0:1.0-1", "1.0-1", "equal"},    // 0:1.0-1 == 0:1.0-1
+
+		// tilde behavior (not epoch-specific but important for deb)
+		{"tilde sorts before everything", "1.0~rc1-1", "1.0-1", "less"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			v1 := New(test.v1, DebFormat)
+			v2 := New(test.v2, DebFormat)
+
+			actual, err := v1.Compare(v2)
+			require.NoError(t, err, "unexpected error comparing versions: %s vs %s", test.v1, test.v2)
+
+			switch test.expect {
+			case "less":
+				assert.Less(t, actual, 0, "expected %s < %s", test.v1, test.v2)
+			case "equal":
+				assert.Equal(t, 0, actual, "expected %s == %s", test.v1, test.v2)
+			case "greater":
+				assert.Greater(t, actual, 0, "expected %s > %s", test.v1, test.v2)
 			}
 		})
 	}
