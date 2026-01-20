@@ -177,7 +177,7 @@ func TestMatchConfig_PostLoad(t *testing.T) {
 func TestDefaultRpmConfig(t *testing.T) {
 	cfg := defaultRpmConfig()
 	assert.Equal(t, version.MissingEpochStrategyAuto, cfg.MissingEpochStrategy, "default should be auto for backward compatibility (RPM ignores one-sided epochs)")
-	assert.True(t, cfg.UseCPEs, "rpm matcher should use CPEs by default")
+	assert.False(t, cfg.UseCPEs, "rpm matcher should not use CPEs by default")
 
 	// Ensure default is valid
 	err := cfg.PostLoad()
@@ -187,7 +187,7 @@ func TestDefaultRpmConfig(t *testing.T) {
 func TestDefaultDpkgConfig(t *testing.T) {
 	cfg := defaultDpkgConfig()
 	assert.Equal(t, version.MissingEpochStrategyZero, cfg.MissingEpochStrategy, "default should be zero for backward compatibility")
-	assert.True(t, cfg.UseCPEs, "dpkg matcher should use CPEs by default")
+	assert.False(t, cfg.UseCPEs, "dpkg matcher should not use CPEs by default")
 
 	// Ensure default is valid
 	err := cfg.PostLoad()
@@ -199,11 +199,11 @@ func TestDefaultMatchConfig(t *testing.T) {
 
 	// Verify RPM defaults (auto preserves legacy behavior where one-sided epochs are ignored)
 	assert.Equal(t, version.MissingEpochStrategyAuto, cfg.Rpm.MissingEpochStrategy)
-	assert.True(t, cfg.Rpm.UseCPEs)
+	assert.False(t, cfg.Rpm.UseCPEs)
 
 	// Verify dpkg defaults (zero preserves legacy behavior where missing epoch = 0)
 	assert.Equal(t, version.MissingEpochStrategyZero, cfg.Dpkg.MissingEpochStrategy)
-	assert.True(t, cfg.Dpkg.UseCPEs)
+	assert.False(t, cfg.Dpkg.UseCPEs)
 
 	// Ensure the entire default config is valid
 	err := cfg.PostLoad()

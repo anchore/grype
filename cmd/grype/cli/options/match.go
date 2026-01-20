@@ -97,14 +97,14 @@ func defaultGolangConfig() golangConfig {
 
 func defaultRpmConfig() rpmConfig {
 	return rpmConfig{
-		matcherConfig:        matcherConfig{UseCPEs: true},
+		matcherConfig:        matcherConfig{UseCPEs: false},
 		MissingEpochStrategy: version.MissingEpochStrategyAuto,
 	}
 }
 
 func defaultDpkgConfig() dpkgConfig {
 	return dpkgConfig{
-		matcherConfig:        matcherConfig{UseCPEs: true},
+		matcherConfig:        matcherConfig{UseCPEs: false},
 		MissingEpochStrategy: version.MissingEpochStrategyZero,
 	}
 }
