@@ -18,6 +18,8 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 		{Alias: "rockylinux", ReplacementName: strRef("rhel")}, // non-standard, but common (dockerhub uses "rockylinux")
 		{Alias: "alma", ReplacementName: strRef("rhel")},
 		{Alias: "almalinux", ReplacementName: strRef("rhel")}, // non-standard, but common (dockerhub uses "almalinux")
+		{Alias: "scientific", ReplacementName: strRef("rhel")},
+		{Alias: "sl", ReplacementName: strRef("rhel")}, // non-standard, but common (dockerhub uses "sl")
 		{Alias: "gentoo", ReplacementName: strRef("rhel")},
 
 		// Alternaitve distros that should match against the debian vulnerability data

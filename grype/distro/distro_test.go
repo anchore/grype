@@ -370,7 +370,7 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 		},
 		{
 			Name:    "test-fixtures/os/custom",
-			Type:    RedHat,
+			Type:    Scientific,
 			Version: "8",
 		},
 		{
@@ -460,6 +460,16 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			Name:    "test-fixtures/os/raspbian",
 			Type:    Raspbian,
 			Version: "9",
+		},
+		{
+			Name:    "test-fixtures/os/scientific",
+			Type:    Scientific,
+			Version: "7.5",
+		},
+		{
+			Name:    "test-fixtures/os/scientific6",
+			Type:    Scientific,
+			Version: "6.10",
 		},
 	}
 
