@@ -2,6 +2,6 @@
   "name": "nested-package",
   "version": "2.9.35",
   "dependencies": {
-    "lodash": "4.17.21"
+    "lodash": "4.17.23"
   }
 }
