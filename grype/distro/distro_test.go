@@ -270,6 +270,32 @@ func Test_NewDistroFromRelease(t *testing.T) {
 			major: "9",
 			minor: "4",
 		},
+		{
+			name: "v versionID prefix postmarketos",
+			release: linux.Release{
+				ID:        "postmarketos",
+				VersionID: "v24.06",
+			},
+			expected: &Distro{
+				Type:    PostmarketOS,
+				Version: "v24.06",
+			},
+			major: "24",
+			minor: "06",
+		},
+		{
+			name: "edge as versionID prefix postmarketos",
+			release: linux.Release{
+				ID:        "postmarketos",
+				VersionID: "edge",
+			},
+			expected: &Distro{
+				Type:    PostmarketOS,
+				Version: "edge",
+			},
+			major: "",
+			minor: "",
+		},
 	}
 
 	for _, tt := range tests {
@@ -475,6 +501,16 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			Name:    "test-fixtures/os/secureos",
 			Type:    SecureOS,
 			Version: "2025.09.09",
+		},
+		{
+			Name:    "test-fixtures/os/postmarketos",
+			Type:    PostmarketOS,
+			Version: "v25.06",
+		},
+		{
+			Name:    "test-fixtures/os/postmarketos-edge",
+			Type:    PostmarketOS,
+			Version: "edge",
 		},
 	}
 
