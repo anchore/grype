@@ -1,7 +1,9 @@
 package models
 
 import (
+	"cmp"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/anchore/clio"
@@ -164,6 +166,10 @@ func buildPackageAlerts(data *DistroAlertData) []PackageAlerts {
 	for _, pa := range alertsByPkg {
 		result = append(result, *pa)
 	}
+
+	slices.SortFunc(result, func(a, b PackageAlerts) int {
+		return cmp.Compare(a.Package.ID, b.Package.ID)
+	})
 
 	return result
 }
