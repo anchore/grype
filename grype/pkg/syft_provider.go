@@ -33,27 +33,30 @@ func syftProvider(userInput string, config ProviderConfig, applyChannel func(*di
 
 	srcDescription := src.Describe()
 
-	d := distroFromSBOM(s, config, applyChannel)
+	d, distroDetectionFailed := distroFromSBOM(s, config, applyChannel)
 
 	pkgCatalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, d)
 
 	packages := FromCollection(pkgCatalog, config.SynthesisConfig)
 	pkgCtx := Context{
-		Source: &srcDescription,
-		Distro: d,
+		Source:                &srcDescription,
+		Distro:                d,
+		DistroDetectionFailed: distroDetectionFailed,
 	}
 
 	return packages, pkgCtx, s, nil
 }
 
-func distroFromSBOM(s *sbom.SBOM, config ProviderConfig, applyChannel func(*distro.Distro) bool) (d *distro.Distro) {
+func distroFromSBOM(s *sbom.SBOM, config ProviderConfig, applyChannel func(*distro.Distro) bool) (d *distro.Distro, detectionFailed bool) {
 	if config.Distro.Override != nil {
 		d = config.Distro.Override
 	} else {
 		d = distro.FromRelease(s.Artifacts.LinuxDistribution, config.Distro.FixChannels)
 		applyChannel(d)
+		// detection failed if we had linux release info but couldn't determine distro type
+		detectionFailed = s.Artifacts.LinuxDistribution != nil && d == nil
 	}
-	return d
+	return d, detectionFailed
 }
 
 func getSource(userInput string, config ProviderConfig) (source.Source, error) {

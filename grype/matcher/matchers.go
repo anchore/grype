@@ -29,8 +29,8 @@ type Config struct {
 	Golang     golang.MatcherConfig
 	Rust       rust.MatcherConfig
 	Stock      stock.MatcherConfig
-	Rpm        rpm.MatcherConfig
 	Dpkg       dpkg.MatcherConfig
+	Rpm        rpm.MatcherConfig
 }
 
 func NewDefaultMatchers(mc Config) []match.Matcher {

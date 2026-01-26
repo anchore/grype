@@ -1,6 +1,7 @@
 package dpkg
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/anchore/grype/grype/match"
@@ -8,6 +9,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal/log"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -17,6 +19,7 @@ type Matcher struct {
 
 type MatcherConfig struct {
 	MissingEpochStrategy version.MissingEpochStrategy
+	UseCPEsForEOL        bool
 }
 
 func NewDpkgMatcher(cfg MatcherConfig) *Matcher {
@@ -50,6 +53,20 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 		return nil, nil, fmt.Errorf("failed to match by exact package name: %w", err)
 	}
 	matches = append(matches, exactMatches...)
+
+	// if configured, also search by CPEs for packages from EOL distros
+	if m.cfg.UseCPEsForEOL && internal.IsDistroEOL(store, p.Distro) {
+		log.WithFields("package", p.Name, "distro", p.Distro).Debug("distro is EOL, searching by CPEs")
+		cpeMatches, err := internal.MatchPackageByCPEs(store, p, m.Type())
+		switch {
+		case errors.Is(err, internal.ErrEmptyCPEMatch):
+			log.WithFields("package", p.Name).Debug("package has no CPEs for EOL fallback matching")
+		case err != nil:
+			log.WithFields("package", p.Name, "error", err).Debug("failed to match by CPEs for EOL distro")
+		default:
+			matches = append(matches, cpeMatches...)
+		}
+	}
 
 	return matches, nil, nil
 }

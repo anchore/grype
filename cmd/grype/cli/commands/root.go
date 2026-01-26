@@ -241,7 +241,14 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 	// clear out the registry auth information to avoid including possibly sensitive information in the report
 	opts.Registry.Auth = nil
 
-	model, err := models.NewDocument(app.ID(), packages, pkgContext, *remainingMatches, ignoredMatches, vp, opts, dbInfo(status, vp), models.SortStrategy(opts.SortBy.Criteria), opts.Timestamp)
+	// collect distro alert data from the vulnerability matcher
+	distroAlertData := &models.DistroAlertData{
+		EOLDistroPackages: vulnMatcher.EOLDistroPackages(),
+	}
+
+	warnDistroAlerts(distroAlertData)
+
+	model, err := models.NewDocument(app.ID(), packages, pkgContext, *remainingMatches, ignoredMatches, vp, opts, dbInfo(status, vp), models.SortStrategy(opts.SortBy.Criteria), opts.Timestamp, distroAlertData)
 	if err != nil {
 		return fmt.Errorf("failed to create document: %w", err)
 	}
@@ -276,6 +283,30 @@ func warnWhenDistroHintNeeded(pkgs []pkg.Package, context *pkg.Context) {
 		log.Warnf("Unable to determine the OS distribution of some packages. This may result in missing vulnerabilities. " +
 			"You may specify a distro using: --distro <distro>:<version>")
 	}
+}
+
+func warnDistroAlerts(data *models.DistroAlertData) {
+	if data == nil {
+		return
+	}
+
+	// warn about EOL distro packages
+	for distroName, count := range countPackagesByDistro(data.EOLDistroPackages) {
+		msg := fmt.Sprintf("%d packages from EOL distro %q - vulnerability data may be incomplete or outdated; consider upgrading to a supported version", count, distroName)
+		bus.Notify(msg)
+	}
+}
+
+func countPackagesByDistro(packages []pkg.Package) map[string]int {
+	counts := make(map[string]int)
+	for _, p := range packages {
+		distroName := "unknown"
+		if p.Distro != nil {
+			distroName = p.Distro.String()
+		}
+		counts[distroName]++
+	}
+	return counts
 }
 
 func dbInfo(status *vulnerability.ProviderStatus, vp vulnerability.Provider) any {
@@ -341,11 +372,13 @@ func getMatcherConfig(opts *options.Grype) matcher.Config {
 			AllowMainModulePseudoVersionComparison: opts.Match.Golang.AllowMainModulePseudoVersionComparison,
 		},
 		Stock: stock.MatcherConfig(opts.Match.Stock),
-		Rpm: rpm.MatcherConfig{
-			MissingEpochStrategy: opts.Match.Rpm.MissingEpochStrategy,
-		},
 		Dpkg: dpkg.MatcherConfig{
 			MissingEpochStrategy: opts.Match.Dpkg.MissingEpochStrategy,
+			UseCPEsForEOL:        opts.Match.Dpkg.UseCPEsForEOL,
+		},
+		Rpm: rpm.MatcherConfig{
+			MissingEpochStrategy: opts.Match.Rpm.MissingEpochStrategy,
+			UseCPEsForEOL:        opts.Match.Rpm.UseCPEsForEOL,
 		},
 	}
 }
