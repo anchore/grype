@@ -229,3 +229,64 @@ func Test_dpkgUseCPEsForEOLEnvVar(t *testing.T) {
 		})
 	}
 }
+
+func Test_rpmUseCPEsForEOLEnvVar(t *testing.T) {
+	// Test that GRYPE_MATCH_RPM_USE_CPES_FOR_EOL env var is properly wired up
+	type matchConfig struct {
+		Rpm struct {
+			UseCPEsForEOL bool `yaml:"use-cpes-for-eol"`
+		} `yaml:"rpm"`
+	}
+	type testConfig struct {
+		Match matchConfig `yaml:"match"`
+	}
+
+	tests := []struct {
+		name     string
+		envValue string
+		expected bool
+	}{
+		{
+			name:     "env var true enables CPE matching for EOL",
+			envValue: "true",
+			expected: true,
+		},
+		{
+			name:     "env var false disables CPE matching for EOL",
+			envValue: "false",
+			expected: false,
+		},
+		{
+			name:     "default is false",
+			envValue: "",
+			expected: false,
+		},
+	}
+
+	// Create a minimal config file for testing
+	tmpDir := t.TempDir()
+	cfgPath := filepath.Join(tmpDir, ".grype.yaml")
+	err := os.WriteFile(cfgPath, []byte("check-for-app-update: false\n"), 0644)
+	require.NoError(t, err)
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			env := map[string]string{
+				"HOME":            tmpDir,
+				"XDG_CONFIG_HOME": tmpDir,
+			}
+			if test.envValue != "" {
+				env["GRYPE_MATCH_RPM_USE_CPES_FOR_EOL"] = test.envValue
+			}
+
+			_, stdout, stderr := runGrype(t, env, "-c", cfgPath, "config", "--load")
+			require.Empty(t, stderr)
+
+			got := testConfig{}
+			err := yaml.NewDecoder(strings.NewReader(stdout)).Decode(&got)
+			require.NoError(t, err)
+			assert.Equal(t, test.expected, got.Match.Rpm.UseCPEsForEOL,
+				"expected match.rpm.use-cpes-for-eol to be %v", test.expected)
+		})
+	}
+}
