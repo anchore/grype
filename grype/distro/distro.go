@@ -238,6 +238,18 @@ func (d Distro) VersionString() string {
 	return versionStr
 }
 
+func (d Distro) LabelVersion() string {
+	if d.Codename != "" {
+		return d.Codename
+	}
+
+	if d.major == "" && d.minor == "" && d.remaining == "" {
+		return d.Version
+	}
+
+	return ""
+}
+
 func nonEmptyStrings(ss ...string) (res []string) {
 	for _, s := range ss {
 		if s != "" {

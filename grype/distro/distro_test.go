@@ -508,9 +508,10 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			Version: "v25.06",
 		},
 		{
-			Name:    "test-fixtures/os/postmarketos-edge",
-			Type:    PostmarketOS,
-			Version: "edge",
+			Name:         "test-fixtures/os/postmarketos-edge",
+			Type:         PostmarketOS,
+			Version:      "edge",
+			LabelVersion: "edge",
 		},
 	}
 
@@ -533,7 +534,7 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			observedDistros.Add(d.Type.String())
 
 			assert.Equal(t, tt.Type, d.Type, "unexpected distro type")
-			assert.Equal(t, tt.LabelVersion, d.Codename, "unexpected label version")
+			assert.Equal(t, tt.LabelVersion, d.LabelVersion(), "unexpected label version")
 			assert.Equal(t, tt.Version, d.Version, "unexpected version")
 		})
 	}
