@@ -72,13 +72,12 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 		// NOTE: These are not the values as-is from the corresponding /etc/os-release files, these are the values after grype has parsed
 		// the raw linux.Release objects from syft into grype Distro objects, so for instance the v prefix on the postmarketos VERSION_ID fields
 		// is removed here.
-		// If no version is specified, map generally to alpine which has same behaviour as today where it matches against all possible alpine releases
-		// Otherwise this will map to nothing
-		{Alias: "postmarketos", ReplacementName: strRef("alpine")},
+
 		// edge is specified in the VERSION_ID field pf the /etc/os-release file for postmarketos, and there is no codename; however,
 		// to be resilient handle both cases where edge may be parsed as the raw version or as the codename
 		{Alias: "postmarketos", Version: "edge", ReplacementName: strRef("alpine"), ReplacementLabelVersion: strRef("edge"), Rolling: true},
 		{Alias: "postmarketos", Codename: "edge", ReplacementName: strRef("alpine"), ReplacementLabelVersion: strRef("edge"), Rolling: true},
+
 		{Alias: "postmarketos", Version: "25.12", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("23")},
 		{Alias: "postmarketos", Version: "25.06", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("22")},
 		{Alias: "postmarketos", Version: "24.12", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("21")},
@@ -91,6 +90,12 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 		{Alias: "postmarketos", Version: "21.06", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("14")},
 		{Alias: "postmarketos", Version: "21.03", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("13")},
 		{Alias: "postmarketos", Version: "20.05", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("12")},
+
+		// If no version is specified, map generally to alpine which has same behaviour as today where it matches against all possible
+		// alpine releases, otherwise we will get no matches.
+		// NOTE: We have to use a hack here with VersionPattern matching empty string because setting Version to "" with no other
+		// primary key properties set breaks matching against the above release mappings
+		{Alias: "postmarketos", VersionPattern: "^$", ReplacementName: strRef("alpine")},
 	}
 }
 
