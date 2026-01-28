@@ -35,6 +35,7 @@ const (
 	MinimOS      Type = "minimos"
 	Raspbian     Type = "raspbian"
 	Scientific   Type = "scientific"
+	SecureOS     Type = "secureos"
 )
 
 // All contains all Linux distribution options
@@ -64,6 +65,7 @@ var All = []Type{
 	MinimOS,
 	Raspbian,
 	Scientific,
+	SecureOS,
 }
 
 // IDMapping maps a distro ID from the /etc/os-release (e.g. like "ubuntu") to a Distro type.
@@ -92,6 +94,7 @@ var IDMapping = map[string]Type{
 	"minimos":       MinimOS,
 	"raspbian":      Raspbian,
 	"scientific":    Scientific,
+	"secureos":      SecureOS,
 }
 
 // aliasTypes maps common aliases to their corresponding Type.

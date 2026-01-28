@@ -471,6 +471,11 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			Type:    Scientific,
 			Version: "6.10",
 		},
+		{
+			Name:    "test-fixtures/os/secureos",
+			Type:    SecureOS,
+			Version: "2025.09.09",
+		},
 	}
 
 	for _, tt := range tests {
