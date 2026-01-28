@@ -1,8 +1,10 @@
 package openvex
 
 import (
+	"strings"
 	"testing"
 
+	"github.com/anchore/packageurl-go"
 	openvex "github.com/openvex/go-vex/pkg/vex"
 	"github.com/stretchr/testify/require"
 
@@ -412,4 +414,29 @@ func TestProductIdentifiersFromContext(t *testing.T) {
 			require.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestIdentifiersFromDigests_NormalizesDockerHubRepositoryURL(t *testing.T) {
+	const hash = "124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126"
+	const digest = "docker.io/library/alpine@sha256:" + hash
+
+	ids := identifiersFromDigests([]string{digest})
+
+	var repoURL string
+	for _, id := range ids {
+		if !strings.HasPrefix(id, "pkg:oci/") {
+			continue
+		}
+
+		p, err := packageurl.FromString(id)
+		require.NoError(t, err)
+
+		if p.Name == "alpine" && p.Version == "sha256:"+hash {
+			repoURL = p.Qualifiers.Map()["repository_url"]
+			break
+		}
+	}
+
+	require.NotEmpty(t, repoURL, "expected to find alpine purl in identifiers: %#v", ids)
+	require.Equal(t, "index.docker.io/library", repoURL)
 }
