@@ -7,6 +7,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/dotnet"
 	"github.com/anchore/grype/grype/matcher/dpkg"
 	"github.com/anchore/grype/grype/matcher/golang"
+	"github.com/anchore/grype/grype/matcher/hex"
 	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
 	"github.com/anchore/grype/grype/matcher/msrc"
@@ -28,6 +29,7 @@ type Config struct {
 	Javascript javascript.MatcherConfig
 	Golang     golang.MatcherConfig
 	Rust       rust.MatcherConfig
+	Hex        hex.MatcherConfig
 	Stock      stock.MatcherConfig
 	Dpkg       dpkg.MatcherConfig
 	Rpm        rpm.MatcherConfig
@@ -47,6 +49,7 @@ func NewDefaultMatchers(mc Config) []match.Matcher {
 		&msrc.Matcher{},
 		&portage.Matcher{},
 		rust.NewRustMatcher(mc.Rust),
+		hex.NewHexMatcher(mc.Hex),
 		stock.NewStockMatcher(mc.Stock),
 		&bitnami.Matcher{},
 		&pacman.Matcher{},

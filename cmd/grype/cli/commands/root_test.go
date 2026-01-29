@@ -16,6 +16,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/dotnet"
 	"github.com/anchore/grype/grype/matcher/dpkg"
 	"github.com/anchore/grype/grype/matcher/golang"
+	"github.com/anchore/grype/grype/matcher/hex"
 	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
 	"github.com/anchore/grype/grype/matcher/python"
@@ -114,6 +115,7 @@ func Test_getMatcherConfig(t *testing.T) {
 					AlwaysUseCPEForStdlib:                  true,
 					AllowMainModulePseudoVersionComparison: false,
 				},
+				Hex:   hex.MatcherConfig{},
 				Stock: stock.MatcherConfig{UseCPEs: true},
 				Rpm: rpm.MatcherConfig{
 					MissingEpochStrategy: "auto",
@@ -148,6 +150,7 @@ func Test_getMatcherConfig(t *testing.T) {
 					AlwaysUseCPEForStdlib:                  true,
 					AllowMainModulePseudoVersionComparison: false,
 				},
+				Hex:   hex.MatcherConfig{},
 				Stock: stock.MatcherConfig{UseCPEs: true},
 				Rpm: rpm.MatcherConfig{
 					MissingEpochStrategy: "zero",
@@ -182,6 +185,7 @@ func Test_getMatcherConfig(t *testing.T) {
 					AlwaysUseCPEForStdlib:                  true,
 					AllowMainModulePseudoVersionComparison: false,
 				},
+				Hex:   hex.MatcherConfig{},
 				Stock: stock.MatcherConfig{UseCPEs: true},
 				Rpm: rpm.MatcherConfig{
 					MissingEpochStrategy: "auto",

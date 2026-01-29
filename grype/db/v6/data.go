@@ -78,7 +78,8 @@ func KnownPackageSpecifierOverrides() []PackageSpecifierOverride {
 		{Ecosystem: pkg.Dart.String(), ReplacementEcosystem: ptr(string(pkg.DartPubPkg))},
 		{Ecosystem: pkg.Dotnet.String(), ReplacementEcosystem: ptr(string(pkg.DotnetPkg))},
 		{Ecosystem: pkg.Elixir.String(), ReplacementEcosystem: ptr(string(pkg.HexPkg))},
-		{Ecosystem: pkg.Erlang.String(), ReplacementEcosystem: ptr(string(pkg.ErlangOTPPkg))},
+		{Ecosystem: pkg.Erlang.String(), ReplacementEcosystem: ptr(string(pkg.HexPkg))},      // Erlang packages use hex.pm, same as Elixir
+		{Ecosystem: string(pkg.ErlangOTPPkg), ReplacementEcosystem: ptr(string(pkg.HexPkg))}, // remap erlang-otp to hex for GHSA matching
 		{Ecosystem: pkg.Go.String(), ReplacementEcosystem: ptr(string(pkg.GoModulePkg))},
 		{Ecosystem: pkg.Haskell.String(), ReplacementEcosystem: ptr(string(pkg.HackagePkg))},
 		{Ecosystem: pkg.Java.String(), ReplacementEcosystem: ptr(string(pkg.JavaPkg))},

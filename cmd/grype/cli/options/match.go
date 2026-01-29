@@ -17,6 +17,7 @@ type matchConfig struct {
 	Python     matcherConfig `yaml:"python" json:"python" mapstructure:"python"`             // settings for the python matcher
 	Ruby       matcherConfig `yaml:"ruby" json:"ruby" mapstructure:"ruby"`                   // settings for the ruby matcher
 	Rust       matcherConfig `yaml:"rust" json:"rust" mapstructure:"rust"`                   // settings for the rust matcher
+	Hex        matcherConfig `yaml:"hex" json:"hex" mapstructure:"hex"`                      // settings for the hex matcher (Elixir/Erlang)
 	Stock      matcherConfig `yaml:"stock" json:"stock" mapstructure:"stock"`                // settings for the default/stock matcher
 	Dpkg       dpkgConfig    `yaml:"dpkg" json:"dpkg" mapstructure:"dpkg"`                   // settings for the dpkg matcher
 	Rpm        rpmConfig     `yaml:"rpm" json:"rpm" mapstructure:"rpm"`                      // settings for the rpm matcher
@@ -125,6 +126,7 @@ func defaultMatchConfig() matchConfig {
 		Python:     dontUseCpe,
 		Ruby:       dontUseCpe,
 		Rust:       dontUseCpe,
+		Hex:        dontUseCpe,
 		Stock:      useCpe,
 		Dpkg:       defaultDpkgConfig(),
 		Rpm:        defaultRpmConfig(),
@@ -170,6 +172,7 @@ func (cfg *matchConfig) DescribeFields(descriptions clio.FieldDescriptionSet) {
 	descriptions.Add(&cfg.Python.UseCPEs, usingCpeDescription)
 	descriptions.Add(&cfg.Ruby.UseCPEs, usingCpeDescription)
 	descriptions.Add(&cfg.Rust.UseCPEs, usingCpeDescription)
+	descriptions.Add(&cfg.Hex.UseCPEs, usingCpeDescription)
 	descriptions.Add(&cfg.Stock.UseCPEs, usingCpeDescription)
 	descriptions.Add(&cfg.Dpkg.MissingEpochStrategy,
 		`strategy for handling missing epochs in dpkg package versions during matching (options: zero, auto)`)
