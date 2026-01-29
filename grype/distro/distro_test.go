@@ -498,6 +498,11 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			Version: "6.10",
 		},
 		{
+			Name:    "test-fixtures/os/secureos",
+			Type:    SecureOS,
+			Version: "2025.09.09",
+		},
+		{
 			Name:    "test-fixtures/os/postmarketos",
 			Type:    PostmarketOS,
 			Version: "v25.06",

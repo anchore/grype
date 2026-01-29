@@ -1,0 +1,5 @@
+ID=secureos
+NAME="SecureOS"
+PRETTY_NAME="SecureOS (SecureBuild)"
+VERSION_ID="2025.09.09"
+HOME_URL="https://securebuild.com/"

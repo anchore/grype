@@ -37,6 +37,11 @@ type OSSpecifier struct {
 
 	// DisableAliasing prevents OS aliasing when true (used for exact distro matching)
 	DisableAliasing bool
+
+	// DisableFallback prevents fallback to less specific version matching when true.
+	// When set, only exact version matches are returned (no major-only fallback).
+	// Used for EOL lookups where we don't want e.g. Alpine 3.24 to match Alpine 3.12.
+	DisableFallback bool
 }
 
 func (d *OSSpecifier) clean() {
@@ -379,6 +384,11 @@ func (s *operatingSystemStore) searchForOSExactVersions(query *gorm.DB, d OSSpec
 			if err != nil || len(result) > 0 {
 				return result, err
 			}
+		}
+
+		// when fallback is disabled, don't try less specific version matches
+		if d.DisableFallback {
+			return nil, nil
 		}
 
 		// fallback to major version only, requiring the minor version to be blank. Note: it is important that we don't

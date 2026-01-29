@@ -35,6 +35,7 @@ const (
 	MinimOS      Type = "minimos"
 	Raspbian     Type = "raspbian"
 	Scientific   Type = "scientific"
+	SecureOS     Type = "secureos"
 	PostmarketOS Type = "postmarketos"
 )
 
@@ -65,6 +66,7 @@ var All = []Type{
 	MinimOS,
 	Raspbian,
 	Scientific,
+	SecureOS,
 	PostmarketOS,
 }
 
@@ -94,6 +96,7 @@ var IDMapping = map[string]Type{
 	"minimos":       MinimOS,
 	"raspbian":      Raspbian,
 	"scientific":    Scientific,
+	"secureos":      SecureOS,
 	"postmarketos":  PostmarketOS,
 }
 
