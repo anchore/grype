@@ -15,6 +15,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/rpm"
 	"github.com/anchore/grype/grype/matcher/ruby"
 	"github.com/anchore/grype/grype/matcher/rust"
+	"github.com/anchore/grype/grype/matcher/kernel"
 	"github.com/anchore/grype/grype/matcher/stock"
 )
 
@@ -44,6 +45,7 @@ func NewDefaultMatchers(mc Config) []match.Matcher {
 		&msrc.Matcher{},
 		&portage.Matcher{},
 		rust.NewRustMatcher(mc.Rust),
+		&kernel.Matcher{},
 		stock.NewStockMatcher(mc.Stock),
 		&bitnami.Matcher{},
 	}
