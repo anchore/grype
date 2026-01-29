@@ -174,6 +174,14 @@ func newMockDbProvider() vulnerability.Provider {
 		},
 		{
 			Reference: vulnerability.Reference{
+				ID:        "CVE-hex-plug",
+				Namespace: "github:language:elixir",
+			},
+			PackageName: "plug",
+			Constraint:  version.MustGetConstraint("< 1.12.0", version.UnknownFormat),
+		},
+		{
+			Reference: vulnerability.Reference{
 				ID:        "CVE-rust-sample-1",
 				Namespace: "github:language:rust",
 			},
