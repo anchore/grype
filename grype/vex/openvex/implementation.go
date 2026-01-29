@@ -83,6 +83,30 @@ func productIdentifierFromVEX(doc *openvex.VEX) []string {
 	return products
 }
 
+func normalizeDockerHubRepositoryURL(repoURL string) string {
+	repoURL = strings.TrimSpace(repoURL)
+	if repoURL == "" {
+		return repoURL
+	}
+
+	repoURL = strings.TrimPrefix(repoURL, "https://")
+	repoURL = strings.TrimPrefix(repoURL, "http://")
+
+	repoURL = strings.TrimSuffix(repoURL, "/")
+
+	host, rest, hasSlash := strings.Cut(repoURL, "/")
+
+	switch strings.ToLower(host) {
+	case "docker.io", "index.docker.io", "registry-1.docker.io":
+		host = "index.docker.io"
+	}
+
+	if !hasSlash || rest == "" {
+		return host
+	}
+	return host + "/" + rest
+}
+
 func identifiersFromTags(tags []string, name string) []string {
 	identifiers := []string{}
 
@@ -130,11 +154,14 @@ func identifiersFromDigests(digests []string) []string {
 			fmt.Sprintf("/%s", name),
 		)
 
+		repoURL = normalizeDockerHubRepositoryURL(repoURL)
+
 		qMap := map[string]string{}
 
 		if repoURL != "" {
 			qMap["repository_url"] = repoURL
 		}
+
 		qs := packageurl.QualifiersFromMap(qMap)
 		identifiers = append(identifiers, packageurl.NewPackageURL(
 			"oci", "", name, shaString, qs, "",
