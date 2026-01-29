@@ -29,6 +29,7 @@ type Config struct {
 	Golang     golang.MatcherConfig
 	Rust       rust.MatcherConfig
 	Stock      stock.MatcherConfig
+	Kernel     kernel.MatcherConfig
 }
 
 func NewDefaultMatchers(mc Config) []match.Matcher {
@@ -45,7 +46,7 @@ func NewDefaultMatchers(mc Config) []match.Matcher {
 		&msrc.Matcher{},
 		&portage.Matcher{},
 		rust.NewRustMatcher(mc.Rust),
-		&kernel.Matcher{},
+		kernel.NewKernelMatcher(mc.Kernel),
 		stock.NewStockMatcher(mc.Stock),
 		&bitnami.Matcher{},
 	}
