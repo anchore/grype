@@ -613,6 +613,43 @@ func addHaskellMatches(t *testing.T, theSource source.Source, catalog *syftPkg.C
 	})
 }
 
+func addHexMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, provider vulnerability.Provider, theResult *match.Matches) {
+	packages := catalog.PackagesByPath("/hex/mix.lock")
+	if len(packages) < 1 {
+		t.Logf("Hex Packages: %+v", packages)
+		t.Fatalf("problem with upstream syft cataloger (elixir-mix-lock)")
+	}
+	thePkg := pkg.New(packages[0])
+	vulns, err := provider.FindVulnerabilities(byNamespace("github:language:elixir"), search.ByPackageName(thePkg.Name))
+	require.NoError(t, err)
+	require.NotEmpty(t, vulns)
+	vulnObj := vulns[0]
+
+	theResult.Add(match.Match{
+		Vulnerability: vulnObj,
+		Package:       thePkg,
+		Details: []match.Detail{
+			{
+				Type:       match.ExactDirectMatch,
+				Confidence: 1.0,
+				SearchedBy: match.EcosystemParameters{
+					Language:  "elixir",
+					Namespace: "github:language:elixir",
+					Package: match.PackageParameter{
+						Name:    thePkg.Name,
+						Version: thePkg.Version,
+					},
+				},
+				Found: match.EcosystemResult{
+					VersionConstraint: "< 1.12.0 (unknown)",
+					VulnerabilityID:   "CVE-hex-plug",
+				},
+				Matcher: match.HexMatcher,
+			},
+		},
+	})
+}
+
 func addJvmMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, provider vulnerability.Provider, theResult *match.Matches) {
 	packages := catalog.PackagesByPath("/opt/java/openjdk/release")
 	if len(packages) < 1 {
@@ -723,6 +760,7 @@ func TestMatchByImage(t *testing.T) {
 				addDotnetMatches(t, theSource, catalog, provider, &expectedMatches)
 				addGolangMatches(t, theSource, catalog, provider, &expectedMatches)
 				addHaskellMatches(t, theSource, catalog, provider, &expectedMatches)
+				addHexMatches(t, theSource, catalog, provider, &expectedMatches)
 				return expectedMatches
 			},
 		},
