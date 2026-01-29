@@ -183,6 +183,8 @@ result-sets:
     matrix:
       images:
         - ghcr.io/anchore/test-images/bitnami/redis:7.4.0@sha256:4bad45268adfdbb0b456d6bf74ded449ef79f3706cb4e473516a0a5b393968c0
+        - ghcr.io/anchore/test-images/postmarketos:edge@sha256:2bdab220693cecfe3474055076bcbfe9ec8faf466867a5db3e0b76afaa9f4b89
+        - ghcr.io/anchore/test-images/postmarketos:24.06@sha256:05b42fdb332f8a5794c9d1e6ab83cd32030bf0cd3ef797ada5546419e9ad293d
 
       tools:
         - name: syft
