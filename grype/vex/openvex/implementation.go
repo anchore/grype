@@ -92,7 +92,7 @@ func normalizeDockerHubRepositoryURL(repoURL string) string {
 	repoURL = strings.TrimPrefix(repoURL, "https://")
 	repoURL = strings.TrimPrefix(repoURL, "http://")
 
-	repoURL = strings.TrimSuffix(repoURL, "/") // <-- add here
+	repoURL = strings.TrimSuffix(repoURL, "/")
 
 	host, rest, hasSlash := strings.Cut(repoURL, "/")
 

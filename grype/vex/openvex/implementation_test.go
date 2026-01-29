@@ -440,3 +440,28 @@ func TestIdentifiersFromDigests_NormalizesDockerHubRepositoryURL(t *testing.T) {
 	require.NotEmpty(t, repoURL, "expected to find alpine purl in identifiers: %#v", ids)
 	require.Equal(t, "index.docker.io/library", repoURL)
 }
+
+func TestNormalizeDockerHubRepositoryURL(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"docker.io/library", "index.docker.io/library"},
+		{"index.docker.io/library", "index.docker.io/library"},
+		{"registry-1.docker.io/library", "index.docker.io/library"},
+		{"https://docker.io/library", "index.docker.io/library"},
+		{"http://docker.io/library", "index.docker.io/library"},
+		{"gcr.io/myorg", "gcr.io/myorg"},
+		{"", ""},
+		{"DOCKER.IO/Library", "index.docker.io/Library"},
+		{"docker.io", "index.docker.io"},
+		{"docker.io/", "index.docker.io"},
+		{"  docker.io/library  ", "index.docker.io/library"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.input, func(t *testing.T) {
+			got := normalizeDockerHubRepositoryURL(tc.input)
+			require.Equal(t, tc.expected, got)
+		})
+	}
+}
