@@ -260,7 +260,6 @@ func TestProductIdentifiersFromContext(t *testing.T) {
 		name       string
 		pkgContext *pkg.Context
 		want       []string
-		wantErr    require.ErrorAssertionFunc
 	}{
 		{
 			name: "image metadata with tags and digests",
@@ -368,7 +367,7 @@ func TestProductIdentifiersFromContext(t *testing.T) {
 					},
 				},
 			},
-			wantErr: require.Error,
+			want: []string{},
 		},
 		{
 			name: "generic source with only version",
@@ -381,7 +380,7 @@ func TestProductIdentifiersFromContext(t *testing.T) {
 					},
 				},
 			},
-			wantErr: require.Error,
+			want: []string{},
 		},
 		{
 			name: "generic source with neither name nor version",
@@ -394,22 +393,13 @@ func TestProductIdentifiersFromContext(t *testing.T) {
 					},
 				},
 			},
-			wantErr: require.Error,
+			want: []string{},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.wantErr == nil {
-				tt.wantErr = require.NoError
-			}
-
-			got, err := productIdentifiersFromContext(tt.pkgContext)
-			tt.wantErr(t, err)
-
-			if err != nil {
-				return
-			}
+			got := productIdentifiersFromContext(tt.pkgContext)
 
 			require.Equal(t, tt.want, got)
 		})
