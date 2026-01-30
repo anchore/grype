@@ -4,13 +4,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anchore/packageurl-go"
 	openvex "github.com/openvex/go-vex/pkg/vex"
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/source"
 )
 
