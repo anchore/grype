@@ -36,6 +36,7 @@ const (
 	Raspbian     Type = "raspbian"
 	Scientific   Type = "scientific"
 	SecureOS     Type = "secureos"
+	PostmarketOS Type = "postmarketos"
 )
 
 // All contains all Linux distribution options
@@ -66,6 +67,7 @@ var All = []Type{
 	Raspbian,
 	Scientific,
 	SecureOS,
+	PostmarketOS,
 }
 
 // IDMapping maps a distro ID from the /etc/os-release (e.g. like "ubuntu") to a Distro type.
@@ -95,6 +97,7 @@ var IDMapping = map[string]Type{
 	"raspbian":      Raspbian,
 	"scientific":    Scientific,
 	"secureos":      SecureOS,
+	"postmarketos":  PostmarketOS,
 }
 
 // aliasTypes maps common aliases to their corresponding Type.
