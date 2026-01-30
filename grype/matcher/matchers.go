@@ -9,13 +9,13 @@ import (
 	"github.com/anchore/grype/grype/matcher/golang"
 	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
+	"github.com/anchore/grype/grype/matcher/kernel"
 	"github.com/anchore/grype/grype/matcher/msrc"
 	"github.com/anchore/grype/grype/matcher/portage"
 	"github.com/anchore/grype/grype/matcher/python"
 	"github.com/anchore/grype/grype/matcher/rpm"
 	"github.com/anchore/grype/grype/matcher/ruby"
 	"github.com/anchore/grype/grype/matcher/rust"
-	"github.com/anchore/grype/grype/matcher/kernel"
 	"github.com/anchore/grype/grype/matcher/stock"
 )
 
