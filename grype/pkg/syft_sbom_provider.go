@@ -36,7 +36,7 @@ func syftSBOMProvider(userInput string, config ProviderConfig, applyChannel func
 		}
 	}
 
-	d := distroFromSBOM(s, config, applyChannel)
+	d, distroDetectionFailed := distroFromSBOM(s, config, applyChannel)
 
 	catalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, d)
 
@@ -46,8 +46,9 @@ func syftSBOMProvider(userInput string, config ProviderConfig, applyChannel func
 	}
 
 	return FromCollection(catalog, config.SynthesisConfig, enhancers...), Context{
-		Source: &src,
-		Distro: d,
+		Source:                &src,
+		Distro:                d,
+		DistroDetectionFailed: distroDetectionFailed,
 	}, s, nil
 }
 

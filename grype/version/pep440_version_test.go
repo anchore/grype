@@ -234,6 +234,50 @@ func TestPep440Version_Constraint(t *testing.T) {
 			constraint: "<=6.4.0",
 			satisfied:  true,
 		},
+		// When constraint has a local version, require exact match (important for unaffected entries)
+		{
+			name:       "local version in constraint should not match version without local segment",
+			version:    "2.0.0",
+			constraint: "= 2.0.0+cgr.1",
+			satisfied:  false,
+		},
+		{
+			name:       "local version in constraint should match same local version",
+			version:    "2.0.0+cgr.1",
+			constraint: "= 2.0.0+cgr.1",
+			satisfied:  true,
+		},
+		{
+			name:       "version with local segment should match constraint without local segment",
+			version:    "2.0.0+cgr.1",
+			constraint: "= 2.0.0",
+			satisfied:  true,
+		},
+		{
+			name:       "version with local segment should satisfy less-than constraint",
+			version:    "2.0.0+cgr.1",
+			constraint: "< 2.0.1",
+			satisfied:  true,
+		},
+		{
+			name:       "different local versions should not match on equality",
+			version:    "2.0.0+other",
+			constraint: "= 2.0.0+cgr.1",
+			satisfied:  false,
+		},
+		// Local version segments compared per PEP 440 (numeric segments as integers)
+		{
+			name:       "local version segments compared numerically not lexicographically",
+			version:    "2.0.0+cgr.12",
+			constraint: "> 2.0.0+cgr.2",
+			satisfied:  true,
+		},
+		{
+			name:       "local version segment numeric comparison - less than",
+			version:    "2.0.0+cgr.2",
+			constraint: "< 2.0.0+cgr.12",
+			satisfied:  true,
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

@@ -18,6 +18,8 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 		{Alias: "rockylinux", ReplacementName: strRef("rhel")}, // non-standard, but common (dockerhub uses "rockylinux")
 		{Alias: "alma", ReplacementName: strRef("rhel")},
 		{Alias: "almalinux", ReplacementName: strRef("rhel")}, // non-standard, but common (dockerhub uses "almalinux")
+		{Alias: "scientific", ReplacementName: strRef("rhel")},
+		{Alias: "sl", ReplacementName: strRef("rhel")}, // non-standard, but common (dockerhub uses "sl")
 		{Alias: "gentoo", ReplacementName: strRef("rhel")},
 
 		// Alternaitve distros that should match against the debian vulnerability data
@@ -38,11 +40,12 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 		{Alias: "alpine", VersionPattern: `.*_alpha.*`, ReplacementLabelVersion: strRef("edge"), Rolling: true},
 		{Alias: "wolfi", Rolling: true},
 		{Alias: "chainguard", Rolling: true},
+		{Alias: "secureos", Rolling: true},
 
 		// others
-		{Alias: "arch", Rolling: true},
+		{Alias: "archlinux", Rolling: true},
 		{Alias: "minimos", Rolling: true},
-		{Alias: "archlinux", ReplacementName: strRef("arch"), Rolling: true}, // non-standard, but common (dockerhub uses "archlinux")
+		{Alias: "arch", ReplacementName: strRef("archlinux"), Rolling: true}, // os-release ID=arch, but namespace uses archlinux
 		{Alias: "oracle", ReplacementName: strRef("ol")},                     // non-standard, but common
 		{Alias: "oraclelinux", ReplacementName: strRef("ol")},                // non-standard, but common (dockerhub uses "oraclelinux")
 		{Alias: "amazon", ReplacementName: strRef("amzn")},                   // non-standard, but common
@@ -76,7 +79,8 @@ func KnownPackageSpecifierOverrides() []PackageSpecifierOverride {
 		{Ecosystem: pkg.Dart.String(), ReplacementEcosystem: ptr(string(pkg.DartPubPkg))},
 		{Ecosystem: pkg.Dotnet.String(), ReplacementEcosystem: ptr(string(pkg.DotnetPkg))},
 		{Ecosystem: pkg.Elixir.String(), ReplacementEcosystem: ptr(string(pkg.HexPkg))},
-		{Ecosystem: pkg.Erlang.String(), ReplacementEcosystem: ptr(string(pkg.ErlangOTPPkg))},
+		{Ecosystem: pkg.Erlang.String(), ReplacementEcosystem: ptr(string(pkg.HexPkg))},      // Erlang packages use hex.pm, same as Elixir
+		{Ecosystem: string(pkg.ErlangOTPPkg), ReplacementEcosystem: ptr(string(pkg.HexPkg))}, // remap erlang-otp to hex for GHSA matching
 		{Ecosystem: pkg.Go.String(), ReplacementEcosystem: ptr(string(pkg.GoModulePkg))},
 		{Ecosystem: pkg.Haskell.String(), ReplacementEcosystem: ptr(string(pkg.HackagePkg))},
 		{Ecosystem: pkg.Java.String(), ReplacementEcosystem: ptr(string(pkg.JavaPkg))},

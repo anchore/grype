@@ -7,10 +7,12 @@ import (
 	"github.com/anchore/grype/grype/matcher/dotnet"
 	"github.com/anchore/grype/grype/matcher/dpkg"
 	"github.com/anchore/grype/grype/matcher/golang"
+	"github.com/anchore/grype/grype/matcher/hex"
 	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
 	"github.com/anchore/grype/grype/matcher/kernel"
 	"github.com/anchore/grype/grype/matcher/msrc"
+	"github.com/anchore/grype/grype/matcher/pacman"
 	"github.com/anchore/grype/grype/matcher/portage"
 	"github.com/anchore/grype/grype/matcher/python"
 	"github.com/anchore/grype/grype/matcher/rpm"
@@ -28,17 +30,20 @@ type Config struct {
 	Javascript javascript.MatcherConfig
 	Golang     golang.MatcherConfig
 	Rust       rust.MatcherConfig
+	Hex        hex.MatcherConfig
 	Stock      stock.MatcherConfig
 	Kernel     kernel.MatcherConfig
+	Dpkg       dpkg.MatcherConfig
+	Rpm        rpm.MatcherConfig
 }
 
 func NewDefaultMatchers(mc Config) []match.Matcher {
 	return []match.Matcher{
-		&dpkg.Matcher{},
+		dpkg.NewDpkgMatcher(mc.Dpkg),
 		ruby.NewRubyMatcher(mc.Ruby),
 		python.NewPythonMatcher(mc.Python),
 		dotnet.NewDotnetMatcher(mc.Dotnet),
-		&rpm.Matcher{},
+		rpm.NewRpmMatcher(mc.Rpm),
 		java.NewJavaMatcher(mc.Java),
 		javascript.NewJavascriptMatcher(mc.Javascript),
 		&apk.Matcher{},
@@ -47,7 +52,9 @@ func NewDefaultMatchers(mc Config) []match.Matcher {
 		&portage.Matcher{},
 		rust.NewRustMatcher(mc.Rust),
 		kernel.NewKernelMatcher(mc.Kernel),
+		hex.NewHexMatcher(mc.Hex),
 		stock.NewStockMatcher(mc.Stock),
 		&bitnami.Matcher{},
+		&pacman.Matcher{},
 	}
 }

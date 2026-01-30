@@ -536,6 +536,46 @@ func addSlesMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 	})
 }
 
+func addArchMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, provider vulnerability.Provider, theResult *match.Matches) {
+	packages := catalog.PackagesByPath("/var/lib/pacman/local/xz-5.2.4-1/desc")
+	if len(packages) != 1 {
+		t.Logf("Arch Packages: %+v", packages)
+		t.Fatalf("problem with upstream syft cataloger (pacman)")
+	}
+	thePkg := pkg.New(packages[0])
+	vulns, err := provider.FindVulnerabilities(byNamespace("arch:distro:arch:rolling"), search.ByPackageName(thePkg.Name))
+	require.NoError(t, err)
+	require.NotEmpty(t, vulns)
+	vulnObj := vulns[0]
+
+	theResult.Add(match.Match{
+		Vulnerability: vulnObj,
+		Package:       thePkg,
+		Details: []match.Detail{
+			{
+				Type:       match.ExactDirectMatch,
+				Confidence: 1.0,
+				SearchedBy: match.DistroParameters{
+					Distro: match.DistroIdentification{
+						Type:    "archlinux",
+						Version: "",
+					},
+					Namespace: "arch:distro:arch:rolling",
+					Package: match.PackageParameter{
+						Name:    "xz",
+						Version: "5.2.4-1",
+					},
+				},
+				Found: match.DistroResult{
+					VersionConstraint: "< 5.6.1-2 (pacman)",
+					VulnerabilityID:   vulnObj.ID,
+				},
+				Matcher: match.PacmanMatcher,
+			},
+		},
+	})
+}
+
 func addHaskellMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, provider vulnerability.Provider, theResult *match.Matches) {
 	packages := catalog.PackagesByPath("/haskell/stack.yaml")
 	if len(packages) < 1 {
@@ -568,6 +608,43 @@ func addHaskellMatches(t *testing.T, theSource source.Source, catalog *syftPkg.C
 					VulnerabilityID:   "CVE-haskell-sample",
 				},
 				Matcher: match.StockMatcher,
+			},
+		},
+	})
+}
+
+func addHexMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, provider vulnerability.Provider, theResult *match.Matches) {
+	packages := catalog.PackagesByPath("/hex/mix.lock")
+	if len(packages) < 1 {
+		t.Logf("Hex Packages: %+v", packages)
+		t.Fatalf("problem with upstream syft cataloger (elixir-mix-lock)")
+	}
+	thePkg := pkg.New(packages[0])
+	vulns, err := provider.FindVulnerabilities(byNamespace("github:language:elixir"), search.ByPackageName(thePkg.Name))
+	require.NoError(t, err)
+	require.NotEmpty(t, vulns)
+	vulnObj := vulns[0]
+
+	theResult.Add(match.Match{
+		Vulnerability: vulnObj,
+		Package:       thePkg,
+		Details: []match.Detail{
+			{
+				Type:       match.ExactDirectMatch,
+				Confidence: 1.0,
+				SearchedBy: match.EcosystemParameters{
+					Language:  "elixir",
+					Namespace: "github:language:elixir",
+					Package: match.PackageParameter{
+						Name:    thePkg.Name,
+						Version: thePkg.Version,
+					},
+				},
+				Found: match.EcosystemResult{
+					VersionConstraint: "< 1.12.0 (unknown)",
+					VulnerabilityID:   "CVE-hex-plug",
+				},
+				Matcher: match.HexMatcher,
 			},
 		},
 	})
@@ -683,6 +760,7 @@ func TestMatchByImage(t *testing.T) {
 				addDotnetMatches(t, theSource, catalog, provider, &expectedMatches)
 				addGolangMatches(t, theSource, catalog, provider, &expectedMatches)
 				addHaskellMatches(t, theSource, catalog, provider, &expectedMatches)
+				addHexMatches(t, theSource, catalog, provider, &expectedMatches)
 				return expectedMatches
 			},
 		},
@@ -707,6 +785,14 @@ func TestMatchByImage(t *testing.T) {
 			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, provider vulnerability.Provider) match.Matches {
 				expectedMatches := match.NewMatches()
 				addSlesMatches(t, theSource, catalog, provider, &expectedMatches)
+				return expectedMatches
+			},
+		},
+		{
+			name: "image-arch-match-coverage",
+			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, provider vulnerability.Provider) match.Matches {
+				expectedMatches := match.NewMatches()
+				addArchMatches(t, theSource, catalog, provider, &expectedMatches)
 				return expectedMatches
 			},
 		},

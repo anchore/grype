@@ -19,6 +19,8 @@ const (
 	RustMatcher        MatcherType = "rust-matcher"
 	BitnamiMatcher     MatcherType = "bitnami-matcher"
 	KernelMatcher      MatcherType = "kernel-matcher"
+	PacmanMatcher      MatcherType = "pacman-matcher"
+	HexMatcher         MatcherType = "hex-matcher"
 )
 
 var AllMatcherTypes = []MatcherType{
@@ -38,6 +40,8 @@ var AllMatcherTypes = []MatcherType{
 	RustMatcher,
 	BitnamiMatcher,
 	KernelMatcher,
+	PacmanMatcher,
+	HexMatcher,
 }
 
 type MatcherType string

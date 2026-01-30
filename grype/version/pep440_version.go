@@ -7,7 +7,10 @@ import (
 var _ Comparator = (*pep440Version)(nil)
 
 type pep440Version struct {
-	obj goPepVersion.Version
+	// public is the public portion of the version (without local segment), used for most comparisons
+	public goPepVersion.Version
+	// full is the complete parsed version including local segment, used when constraint has local
+	full goPepVersion.Version
 }
 
 func newPep440Version(raw string) (pep440Version, error) {
@@ -30,7 +33,8 @@ func newPep440Version(raw string) (pep440Version, error) {
 		return pep440Version{}, invalidFormatError(SemanticFormat, raw, err)
 	}
 	return pep440Version{
-		obj: public,
+		public: public,
+		full:   parsed,
 	}, nil
 }
 
@@ -44,5 +48,17 @@ func (v pep440Version) Compare(other *Version) (int, error) {
 		return 0, err
 	}
 
-	return v.obj.Compare(o.obj), nil
+	result := v.public.Compare(o.public)
+	if result != 0 {
+		return result, nil
+	}
+
+	// Public portions are equal - handle local version segments per PEP 440 specifier semantics.
+	// If constraint has no local segment, ignore package's local (they're equal).
+	// If constraint has a local segment, require exact match.
+	if o.full.Local() == "" {
+		return 0, nil
+	}
+
+	return v.full.Compare(o.full), nil
 }
