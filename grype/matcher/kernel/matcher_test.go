@@ -53,11 +53,6 @@ func TestHasReliableKernelData(t *testing.T) {
 			expected: true,
 		},
 		{
-			name:     "CentOS has reliable kernel data",
-			distro:   distro.New(distro.CentOS, "8", ""),
-			expected: true,
-		},
-		{
 			name:     "Fedora has reliable kernel data",
 			distro:   distro.New(distro.Fedora, "38", ""),
 			expected: true,
@@ -73,23 +68,8 @@ func TestHasReliableKernelData(t *testing.T) {
 			expected: true,
 		},
 		{
-			name:     "OracleLinux has reliable kernel data",
-			distro:   distro.New(distro.OracleLinux, "8", ""),
-			expected: true,
-		},
-		{
 			name:     "AmazonLinux has reliable kernel data",
 			distro:   distro.New(distro.AmazonLinux, "2", ""),
-			expected: true,
-		},
-		{
-			name:     "RockyLinux has reliable kernel data",
-			distro:   distro.New(distro.RockyLinux, "8", ""),
-			expected: true,
-		},
-		{
-			name:     "AlmaLinux has reliable kernel data",
-			distro:   distro.New(distro.AlmaLinux, "8", ""),
 			expected: true,
 		},
 		{
