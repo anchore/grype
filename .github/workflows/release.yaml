@@ -192,7 +192,7 @@ jobs:
           # for updating brew formula in anchore/homebrew-syft
           GITHUB_BREW_TOKEN: ${{ secrets.ANCHOREOPS_GITHUB_OSS_WRITE_TOKEN }}
 
-      - uses: anchore/sbom-action@0b82b0b1a22399a1c542d4d656f70cd903571b5c # v0.21.1
+      - uses: anchore/sbom-action@deef08a0db64bfad603422135db61477b16cef56 # v0.22.1
         continue-on-error: true
         with:
           artifact-name: sbom.spdx.json
