@@ -227,6 +227,9 @@ func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, us
 		FailSeverity:          opts.FailOnSeverity(),
 		Matchers:              getMatchers(opts),
 		VexProcessor:          vexProcessor,
+		Alerts: grype.AlertsConfig{
+			EnableEOLDistroWarnings: opts.Alerts.EnableEOLDistroWarnings,
+		},
 	}
 
 	remainingMatches, ignoredMatches, err := vulnMatcher.FindMatchesContext(ctx, packages, pkgContext)
@@ -243,12 +246,14 @@ func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, us
 	// clear out the registry auth information to avoid including possibly sensitive information in the report
 	opts.Registry.Auth = nil
 
-	// collect distro alert data from the vulnerability matcher
-	distroAlertData := &models.DistroAlertData{
-		EOLDistroPackages: vulnMatcher.EOLDistroPackages(),
+	// collect distro alert data from the vulnerability matcher (if enabled)
+	var distroAlertData *models.DistroAlertData
+	if opts.Alerts.EnableEOLDistroWarnings {
+		distroAlertData = &models.DistroAlertData{
+			EOLDistroPackages: vulnMatcher.EOLDistroPackages(),
+		}
+		warnDistroAlerts(distroAlertData)
 	}
-
-	warnDistroAlerts(distroAlertData)
 
 	model, err := models.NewDocument(app.ID(), packages, pkgContext, *remainingMatches, ignoredMatches, vp, opts, dbInfo(status, vp), models.SortStrategy(opts.SortBy.Criteria), opts.Timestamp, distroAlertData)
 	if err != nil {
