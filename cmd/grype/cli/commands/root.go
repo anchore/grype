@@ -228,7 +228,7 @@ func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, us
 		Matchers:              getMatchers(opts),
 		VexProcessor:          vexProcessor,
 		Alerts: grype.AlertsConfig{
-			ShowEOLDistroWarnings: opts.Alerts.ShowEOLDistroWarnings,
+			EnableEOLDistroWarnings: opts.Alerts.EnableEOLDistroWarnings,
 		},
 	}
 
@@ -248,7 +248,7 @@ func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, us
 
 	// collect distro alert data from the vulnerability matcher (if enabled)
 	var distroAlertData *models.DistroAlertData
-	if opts.Alerts.ShowEOLDistroWarnings {
+	if opts.Alerts.EnableEOLDistroWarnings {
 		distroAlertData = &models.DistroAlertData{
 			EOLDistroPackages: vulnMatcher.EOLDistroPackages(),
 		}
