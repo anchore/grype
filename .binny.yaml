@@ -2,7 +2,7 @@ tools:
   # we want to use a pinned version of binny to manage the toolchain (so binny manages itself!)
   - name: binny
     version:
-      want: v0.11.1
+      want: v0.11.2
     method: github-release
     with:
       repo: anchore/binny
