@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -36,6 +37,11 @@ type OSSpecifier struct {
 
 	// DisableAliasing prevents OS aliasing when true (used for exact distro matching)
 	DisableAliasing bool
+
+	// DisableFallback prevents fallback to less specific version matching when true.
+	// When set, only exact version matches are returned (no major-only fallback).
+	// Used for EOL lookups where we don't want e.g. Alpine 3.24 to match Alpine 3.12.
+	DisableFallback bool
 }
 
 func (d *OSSpecifier) clean() {
@@ -125,6 +131,12 @@ func (d OSSpecifier) matchesVersionPattern(pattern string) bool {
 
 type OperatingSystemStoreReader interface {
 	GetOperatingSystems(OSSpecifier) ([]OperatingSystem, error)
+}
+
+type OperatingSystemStoreWriter interface {
+	// UpdateOperatingSystemEOL updates the EOL and EOAS dates for an operating system
+	// matching the given specifier. Returns the number of records updated.
+	UpdateOperatingSystemEOL(spec OSSpecifier, eolDate, eoasDate *time.Time) (int64, error)
 }
 
 type operatingSystemStore struct {
@@ -374,6 +386,11 @@ func (s *operatingSystemStore) searchForOSExactVersions(query *gorm.DB, d OSSpec
 			}
 		}
 
+		// when fallback is disabled, don't try less specific version matches
+		if d.DisableFallback {
+			return nil, nil
+		}
+
 		// fallback to major version only, requiring the minor version to be blank. Note: it is important that we don't
 		// match on any record with the given major version, we must only match on records that are intentionally empty
 		// minor version. For instance, the DB may have rhel 8.1, 8.2, 8.3, 8.4, etc. We don't want to arbitrarily match
@@ -394,6 +411,44 @@ func (s *operatingSystemStore) searchForOSExactVersions(query *gorm.DB, d OSSpec
 	}
 
 	return allOs, nil
+}
+
+// UpdateOperatingSystemEOL updates the EOL and EOAS dates for operating systems
+// matching the given specifier. Returns the number of records updated.
+func (s *operatingSystemStore) UpdateOperatingSystemEOL(spec OSSpecifier, eolDate, eoasDate *time.Time) (int64, error) {
+	spec.clean()
+
+	// Build the query to find matching OS records
+	query := s.db.Model(&OperatingSystem{})
+
+	if spec.Name != "" {
+		query = query.Where("name = ? collate nocase", spec.Name)
+	}
+
+	if spec.MajorVersion != "" {
+		query = query.Where("major_version = ?", spec.MajorVersion)
+	}
+
+	if spec.MinorVersion != "" {
+		query = query.Where("minor_version = ?", spec.MinorVersion)
+	}
+
+	if spec.LabelVersion != "" {
+		query = query.Where("codename = ? collate nocase OR label_version = ? collate nocase", spec.LabelVersion, spec.LabelVersion)
+	}
+
+	// Update the EOL fields
+	updates := map[string]interface{}{
+		"eol_date":  eolDate,
+		"eoas_date": eoasDate,
+	}
+
+	result := query.Updates(updates)
+	if result.Error != nil {
+		return 0, fmt.Errorf("failed to update OS EOL data: %w", result.Error)
+	}
+
+	return result.RowsAffected, nil
 }
 
 func trimZeroes(s string) string {

@@ -38,7 +38,9 @@ func (v VersionCriteria) MatchesConstraint(constraint version.Constraint) (bool,
 }
 
 func (v VersionCriteria) criteria(constraint version.Constraint) (bool, error) {
+	// The config is now embedded in the version itself, so just call Satisfied
 	satisfied, err := constraint.Satisfied(&v.Version)
+
 	if err != nil {
 		var unsupportedError *version.UnsupportedComparisonError
 		if errors.As(err, &unsupportedError) {

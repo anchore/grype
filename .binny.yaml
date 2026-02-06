@@ -2,7 +2,7 @@ tools:
   # we want to use a pinned version of binny to manage the toolchain (so binny manages itself!)
   - name: binny
     version:
-      want: v0.11.1
+      want: v0.11.2
     method: github-release
     with:
       repo: anchore/binny
@@ -82,7 +82,7 @@ tools:
   # used for running all local and CI tasks
   - name: task
     version:
-      want: v3.46.4
+      want: v3.48.0
     method: github-release
     with:
       repo: go-task/task
@@ -90,7 +90,7 @@ tools:
   # used for triggering a release
   - name: gh
     version:
-      want: v2.85.0
+      want: v2.86.0
     method: github-release
     with:
       repo: cli/cli

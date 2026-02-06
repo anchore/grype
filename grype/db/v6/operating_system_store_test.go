@@ -314,6 +314,25 @@ func TestOperatingSystemStore_ResolveOperatingSystem(t *testing.T) {
 			},
 			expected: []OperatingSystem{*minimos},
 		},
+		{
+			name: "nonexistent minor version falls back to major by default",
+			os: OSSpecifier{
+				Name:         "alpine",
+				MajorVersion: "3",
+				MinorVersion: "99", // doesn't exist, should fall back to 3.18
+			},
+			expected: []OperatingSystem{*alpine318},
+		},
+		{
+			name: "nonexistent minor version with DisableFallback returns nothing",
+			os: OSSpecifier{
+				Name:            "alpine",
+				MajorVersion:    "3",
+				MinorVersion:    "99", // doesn't exist
+				DisableFallback: true, // should NOT fall back
+			},
+			expected: nil,
+		},
 	}
 
 	for _, tt := range tests {

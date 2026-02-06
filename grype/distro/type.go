@@ -34,6 +34,8 @@ const (
 	Chainguard   Type = "chainguard"
 	MinimOS      Type = "minimos"
 	Raspbian     Type = "raspbian"
+	Scientific   Type = "scientific"
+	SecureOS     Type = "secureos"
 )
 
 // All contains all Linux distribution options
@@ -62,6 +64,8 @@ var All = []Type{
 	Chainguard,
 	MinimOS,
 	Raspbian,
+	Scientific,
+	SecureOS,
 }
 
 // IDMapping maps a distro ID from the /etc/os-release (e.g. like "ubuntu") to a Distro type.
@@ -89,12 +93,15 @@ var IDMapping = map[string]Type{
 	"chainguard":    Chainguard,
 	"minimos":       MinimOS,
 	"raspbian":      Raspbian,
+	"scientific":    Scientific,
+	"secureos":      SecureOS,
 }
 
 // aliasTypes maps common aliases to their corresponding Type.
 var aliasTypes = map[string]Type{
-	"Alpine Linux": Alpine, // needed for CPE matching (see #2039)
-	"windows":      Windows,
+	"Alpine Linux":     Alpine, // needed for CPE matching (see #2039)
+	"windows":          Windows,
+	"scientific linux": Scientific, // Scientific linux prior to v7 didn't have an os-release file and syft raises up "scientific linux" as the release id as parsed from /etc/redhat-release
 }
 
 var typeToIDMapping = map[Type]string{}
