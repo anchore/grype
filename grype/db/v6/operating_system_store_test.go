@@ -333,6 +333,34 @@ func TestOperatingSystemStore_ResolveOperatingSystem(t *testing.T) {
 			},
 			expected: nil,
 		},
+		{
+			name: "major-only distro with DisableFallback finds exact match (Debian EOL lookup)",
+			os: OSSpecifier{
+				Name:            "debian",
+				MajorVersion:    "10",
+				MinorVersion:    "", // Debian uses major-only versions
+				DisableFallback: true,
+			},
+			expected: []OperatingSystem{*debian10},
+		},
+		{
+			name: "RHEL major-only lookup finds major-only record (vuln matching)",
+			os: OSSpecifier{
+				Name:         "rhel",
+				MajorVersion: "8",
+				MinorVersion: "", // empty minor should find rhel8 directly
+			},
+			expected: []OperatingSystem{*rhel8},
+		},
+		{
+			name: "RHEL nonexistent minor falls back to major-only record (vuln matching)",
+			os: OSSpecifier{
+				Name:         "rhel",
+				MajorVersion: "8",
+				MinorVersion: "5", // 8.5 doesn't exist, should fall back to 8
+			},
+			expected: []OperatingSystem{*rhel8},
+		},
 	}
 
 	for _, tt := range tests {
