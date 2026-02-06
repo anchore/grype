@@ -66,21 +66,10 @@ func productIdentifiersFromContext(pkgContext *pkg.Context) []string {
 		if pkgContext.Source.Name != "" && pkgContext.Source.Version != "" {
 			return []string{"pkg:generic/" + strings.ToLower(pkgContext.Source.Name) + "@" + pkgContext.Source.Version}
 		}
-		// remove a empty list so VEX can match the products afterwards by the component
+		// return an empty list so matching can be attempted using the
+		// package's own identifiers as the product
 		return []string{}
 	}
-}
-
-// productIdentifierFromVEX reads the VEX documents and returns software
-// identifiers listed in the statements.
-func productIdentifierFromVEX(doc *openvex.VEX) []string {
-	var products []string
-	for _, stmt := range doc.Statements {
-		for _, product := range stmt.Products {
-			products = append(products, product.ID)
-		}
-	}
-	return products
 }
 
 func identifiersFromTags(tags []string, name string) []string {
@@ -164,6 +153,27 @@ func subcomponentIdentifiersFromMatch(m *match.Match) []string {
 	return ret
 }
 
+// findMatchingStatement searches a VEX document for a statement matching the
+// given vulnerability. It performs a two-pass search:
+//  1. Try SBOM/context product identifiers (handles image-as-product cases)
+//  2. Try the match's own package identifiers as the product (handles
+//     package-as-product cases, where the VEX product is a package PURL)
+func findMatchingStatement(doc *openvex.VEX, vulnID string, products []string, subcmp []string) (stmt *openvex.Statement, product string, subcomponents []string) {
+	for _, product := range products {
+		if stmts := doc.Matches(vulnID, product, subcmp); len(stmts) != 0 {
+			return &stmts[0], product, subcmp
+		}
+	}
+
+	for _, pkgID := range subcmp {
+		if stmts := doc.Matches(vulnID, pkgID, nil); len(stmts) != 0 {
+			return &stmts[0], pkgID, nil
+		}
+	}
+
+	return nil, "", nil
+}
+
 // FilterMatches takes a set of scanning results and moves any results marked in
 // the VEX data as fixed or not_affected to the ignored list.
 func (ovm *Processor) FilterMatches(
@@ -176,14 +186,7 @@ func (ovm *Processor) FilterMatches(
 
 	remainingMatches := match.NewMatches()
 
-	// this works only when grype uses the SBOM syft format
 	products := productIdentifiersFromContext(pkgContext)
-
-	// if the previous method didn't work to find products,
-	// we get them from the VEX document.
-	if len(products) == 0 {
-		products = productIdentifierFromVEX(doc)
-	}
 
 	// TODO(alex): should we apply the vex ignore rules to the already ignored matches?
 	// that way the end user sees all of the reasons a match was ignored in case multiple apply
@@ -191,16 +194,8 @@ func (ovm *Processor) FilterMatches(
 	// Now, let's go through grype's matches
 	sorted := matches.Sorted()
 	for i := range sorted {
-		var statement *openvex.Statement
 		subcmp := subcomponentIdentifiersFromMatch(&sorted[i])
-
-		// Range through the product's different names
-		for _, product := range products {
-			if matchingStatements := doc.Matches(sorted[i].Vulnerability.ID, product, subcmp); len(matchingStatements) != 0 {
-				statement = &matchingStatements[0]
-				break
-			}
-		}
+		statement, _, _ := findMatchingStatement(doc, sorted[i].Vulnerability.ID, products, subcmp)
 
 		// No data about this match's component. Next.
 		if statement == nil {
@@ -307,30 +302,12 @@ func (ovm *Processor) AugmentMatches(
 
 	// Now, let's go through grype's matches
 	for i := range ignoredMatches {
-		var statement *openvex.Statement
-		var searchedBy *SearchedBy
 		subcmp := subcomponentIdentifiersFromMatch(&ignoredMatches[i].Match)
 
-		// Range through the product's different names to see if they match the
-		// statement data
-		for _, product := range products {
-			if matchingStatements := doc.Matches(ignoredMatches[i].Vulnerability.ID, product, subcmp); len(matchingStatements) != 0 {
-				if matchingStatements[0].Status != openvex.StatusAffected &&
-					matchingStatements[0].Status != openvex.StatusUnderInvestigation {
-					break
-				}
-				statement = &matchingStatements[0]
-				searchedBy = &SearchedBy{
-					Vulnerability: ignoredMatches[i].Vulnerability.ID,
-					Product:       product,
-					Subcomponents: subcmp,
-				}
-				break
-			}
-		}
+		statement, matchedProduct, matchedSubcmp := findMatchingStatement(doc, ignoredMatches[i].Vulnerability.ID, products, subcmp)
 
-		// No data about this match's component. Next.
-		if statement == nil {
+		// Only augment for affected or under_investigation statuses
+		if statement == nil || (statement.Status != openvex.StatusAffected && statement.Status != openvex.StatusUnderInvestigation) {
 			additionalIgnoredMatches = append(additionalIgnoredMatches, ignoredMatches[i])
 			continue
 		}
@@ -344,8 +321,12 @@ func (ovm *Processor) AugmentMatches(
 
 		newMatch := ignoredMatches[i].Match
 		newMatch.Details = append(newMatch.Details, match.Detail{
-			Type:       match.ExactDirectMatch,
-			SearchedBy: searchedBy,
+			Type: match.ExactDirectMatch,
+			SearchedBy: &SearchedBy{
+				Vulnerability: ignoredMatches[i].Vulnerability.ID,
+				Product:       matchedProduct,
+				Subcomponents: matchedSubcmp,
+			},
 			Found: Match{
 				Statement: *statement,
 			},

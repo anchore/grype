@@ -359,3 +359,130 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 		})
 	}
 }
+
+func TestProcessor_ApplyVEX_ImageNoSubcomponents(t *testing.T) {
+	// Scenario 1: Image product, no subcomponents → applies to entire scan.
+	// When a VEX statement specifies an image product with no subcomponents,
+	// ALL matches for that CVE should be filtered regardless of package.
+	pkgContext := &pkg.Context{
+		Source: &source.Description{
+			Name: "alpine",
+			Metadata: source.ImageMetadata{
+				RepoDigests: []string{
+					"alpine@sha256:124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
+				},
+			},
+		},
+	}
+
+	matchLibcrypto := match.Match{
+		Vulnerability: vulnerability.Vulnerability{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2023-1255",
+				Namespace: "alpine:distro:alpine:3.17",
+			},
+		},
+		Package: pkg.Package{
+			ID:   "cc8f90662d91481d",
+			Name: "libcrypto3",
+			PURL: "pkg:apk/alpine/libcrypto3@3.0.8-r3",
+		},
+	}
+	matchLibssl := match.Match{
+		Vulnerability: vulnerability.Vulnerability{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2023-1255",
+				Namespace: "alpine:distro:alpine:3.17",
+			},
+		},
+		Package: pkg.Package{
+			ID:   "aa1234567890abcd",
+			Name: "libssl3",
+			PURL: "pkg:apk/alpine/libssl3@3.0.8-r3",
+		},
+	}
+
+	matches := match.NewMatches(matchLibcrypto, matchLibssl)
+
+	p, err := NewProcessor(ProcessorOptions{
+		Documents: []string{
+			"testdata/vex-docs/openvex-image-no-subcomponents.json",
+		},
+		IgnoreRules: []match.IgnoreRule{{
+			VexStatus: string(status.Fixed),
+		}},
+	})
+	require.NoError(t, err)
+
+	actualMatches, actualIgnored, err := p.ApplyVEX(pkgContext, &matches, nil)
+	require.NoError(t, err)
+
+	// Both matches should be filtered since the VEX statement has no subcomponents
+	assert.Empty(t, actualMatches.Sorted(), "all matches for the CVE should be filtered")
+	assert.Len(t, actualIgnored, 2, "both matches should be ignored")
+}
+
+func TestProcessor_ApplyVEX_ImageWithSubcomponents(t *testing.T) {
+	// Scenario 2: Image product, with subcomponents → applies only to matching packages.
+	// When a VEX statement specifies an image product WITH subcomponents,
+	// only matches whose package PURL matches a subcomponent should be filtered.
+	pkgContext := &pkg.Context{
+		Source: &source.Description{
+			Name: "alpine",
+			Metadata: source.ImageMetadata{
+				RepoDigests: []string{
+					"alpine@sha256:124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
+				},
+			},
+		},
+	}
+
+	matchLibcrypto := match.Match{
+		Vulnerability: vulnerability.Vulnerability{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2023-1255",
+				Namespace: "alpine:distro:alpine:3.17",
+			},
+		},
+		Package: pkg.Package{
+			ID:   "cc8f90662d91481d",
+			Name: "libcrypto3",
+			PURL: "pkg:apk/alpine/libcrypto3@3.0.8-r3",
+		},
+	}
+	matchUnrelated := match.Match{
+		Vulnerability: vulnerability.Vulnerability{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2023-1255",
+				Namespace: "alpine:distro:alpine:3.17",
+			},
+		},
+		Package: pkg.Package{
+			ID:   "bb9876543210fedc",
+			Name: "curl",
+			PURL: "pkg:apk/alpine/curl@8.1.2-r0",
+		},
+	}
+
+	matches := match.NewMatches(matchLibcrypto, matchUnrelated)
+
+	p, err := NewProcessor(ProcessorOptions{
+		Documents: []string{
+			"testdata/vex-docs/openvex-demo1.json",
+		},
+		IgnoreRules: []match.IgnoreRule{{
+			VexStatus: string(status.Fixed),
+		}},
+	})
+	require.NoError(t, err)
+
+	actualMatches, actualIgnored, err := p.ApplyVEX(pkgContext, &matches, nil)
+	require.NoError(t, err)
+
+	// Only the libcrypto3 match should be filtered (it's listed as a subcomponent)
+	// The curl match should remain since it's not a subcomponent in the VEX doc
+	assert.Len(t, actualMatches.Sorted(), 1, "only the non-matching subcomponent should remain")
+	assert.Equal(t, "curl", actualMatches.Sorted()[0].Package.Name)
+	assert.Len(t, actualIgnored, 1, "only the matching subcomponent should be ignored")
+	assert.Equal(t, "libcrypto3", actualIgnored[0].Match.Package.Name)
+}
