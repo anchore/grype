@@ -91,6 +91,10 @@ func getSBOMReader(userInput string) (io.ReadSeeker, string, error) {
 		filepath := strings.TrimPrefix(userInput, purlInputPrefix)
 		return openFile(filepath)
 
+	case explicitlySpecifyingCPEList(userInput):
+		filepath := strings.TrimPrefix(userInput, cpeListPrefix)
+		return openFile(filepath)
+
 	case explicitlySpecifyingSBOM(userInput):
 		filepath := strings.TrimPrefix(userInput, "sbom:")
 		return openFile(filepath)
@@ -177,4 +181,8 @@ func explicitlySpecifyingSBOM(userInput string) bool {
 
 func explicitlySpecifyingPurlList(userInput string) bool {
 	return strings.HasPrefix(userInput, purlInputPrefix)
+}
+
+func explicitlySpecifyingCPEList(userInput string) bool {
+	return strings.HasPrefix(userInput, cpeListPrefix)
 }
