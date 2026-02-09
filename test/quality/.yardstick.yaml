@@ -57,7 +57,6 @@ x-ref:
     - docker.io/keycloak/keycloak:21.0.2@sha256:347a0d748d05a050dc64b92de2246d2240db6eb38afbc17c3c08d0acb0db1b50
     - docker.io/datawire/aes:3.6.0@sha256:86a072278135462b6cbef70e89894df8f9b20f428b361fda2132fbb442ef257b
     - ghcr.io/anchore/test-images/bitnami/spark:3.2.4-debian-11-r8@sha256:267d5a6345636710b4b57b7fe981c9760203e7e092c705416310ea30a9806d74
-    - mcr.microsoft.com/cbl-mariner/base/core:2.0.20220731-arm64@sha256:51101e635f56032d5afd3fb56d66c7b93b34d5a39ddac01695d62b94473cc34e
     - docker.io/grafana/grafana:9.2.4@sha256:a11c6829cdfe7fd791e48ba5b511f3562384361fb4c568ec2d8a5041ac52babe
     - docker.io/hashicorp/vault:1.12.0@sha256:09354ca0891f7cee8fbfe8db08c62d2d757fad8ae6c91f2b6cce7a34440e3fae
     - docker.io/ubuntu:12.04@sha256:18305429afa14ea462f810146ba44d4363ae76e4c8dfc38288cf73aa07485005
@@ -140,7 +139,51 @@ result-sets:
         fail_on_empty_match_set: false
     matrix:
       images:
+        - mcr.microsoft.com/cbl-mariner/base/core:2.0.20220731-arm64@sha256:51101e635f56032d5afd3fb56d66c7b93b34d5a39ddac01695d62b94473cc34e
         - docker.io/anchore/test_images:azurelinux3-63671fe@sha256:2d761ba36575ddd4e07d446f4f2a05448298c20e5bdcd3dedfbbc00f9865240d
+
+      tools:
+        - name: syft
+          # note: we want to use a fixed version of syft for capturing all results (NOT "latest")
+          version: v1.14.0
+          produces: SBOM
+          refresh: false
+
+        - name: grype
+          # note: we import a static (pinned) DB as to prevent changes in the DB from affecting the results. The
+          # point of this test is to ensure the correctness of the logic in grype itself with real production data.
+          # By pinning the DB the grype code itself becomes the independent variable under test (and not the
+          # every-changing DB). That being said, we should be updating this DB periodically to ensure what we
+          # are testing with is not too stale.
+          # version: git:current-commit+import-db=db.tar.zst
+          # for local build of grype, use for example:
+          version: path:../../+import-db=db.tar.zst
+          takes: SBOM
+          label: candidate # is candidate better than the current baseline?
+
+        - name: grype
+          # note: we import a static (pinned) DB as to prevent changes in the DB from affecting the results. The
+          # point of this test is to ensure the correctness of the logic in grype itself with real production data.
+          # By pinning the DB the grype code itself becomes the independent variable under test (and not the
+          # every-changing DB). That being said, we should be updating this DB periodically to ensure what we
+          # are testing with is not too stale.
+          version: latest+import-db=db.tar.zst
+          takes: SBOM
+          label: reference # this run is the current baseline
+
+  pr_vs_latest_via_sbom_2023:
+    description: "same as 'pr_vs_latest_via_sbom', but includes vulnerabilities from 2023 and before, instead of 2021 and before"
+    max_year: 2023
+    validations:
+      - max-f1-regression: 0.1 # allowed to regress 0.1 on f1 score
+        max-new-false-negatives: 10
+        max-unlabeled-percent: 0
+        max_year: 2023
+        fail_on_empty_match_set: false
+    matrix:
+      images:
+        - docker.io/anchore/test_images:archlinux-28cca4e@sha256:a933b27534e5c911e2c660f7090aa497dee763fbbcb214a37207c2320cfedd98
+        - docker.io/anchore/test_images:almalinux8-271722c@sha256:6485db654df0452bd15ea71ec43e808bc8eb05b91f1c2754669a5573479a6c19
 
       tools:
         - name: syft
@@ -183,6 +226,58 @@ result-sets:
     matrix:
       images:
         - ghcr.io/anchore/test-images/bitnami/redis:7.4.0@sha256:4bad45268adfdbb0b456d6bf74ded449ef79f3706cb4e473516a0a5b393968c0
+        # echo
+        - ghcr.io/buildecho/scanner-test:latest@sha256:60557350ad6976dad3b88d891de8f090b20b3271c660272d30d44b5d07b23edc
+        # minimos
+        - docker.io/dimastopelmini/forgrype:3.1.6@sha256:ebe0c6ca122deef072c29be2f915130e5c8b4c277ad5ef551385f6496dae4dfa
+        - docker.io/dimastopelmini/forgrype:3.1.7@sha256:653c8980c63a9ac403a3b9f56a08f43f929432ece69894423c165b4d61d3dcdb
+        # postmarketos
+        - ghcr.io/anchore/test-images/postmarketos:edge@sha256:2bdab220693cecfe3474055076bcbfe9ec8faf466867a5db3e0b76afaa9f4b89
+        - ghcr.io/anchore/test-images/postmarketos:24.06@sha256:05b42fdb332f8a5794c9d1e6ab83cd32030bf0cd3ef797ada5546419e9ad293d
+
+      tools:
+        - name: syft
+          # note: we want to use a fixed version of syft for capturing all results (NOT "latest")
+          version: v1.14.0
+          produces: SBOM
+          refresh: false
+
+        - name: grype
+          # note: we import a static (pinned) DB as to prevent changes in the DB from affecting the results. The
+          # point of this test is to ensure the correctness of the logic in grype itself with real production data.
+          # By pinning the DB the grype code itself becomes the independent variable under test (and not the
+          # every-changing DB). That being said, we should be updating this DB periodically to ensure what we
+          # are testing with is not too stale.
+          # version: git:current-commit+import-db=db.tar.zst
+          # for local build of grype, use for example:
+          version: path:../../+import-db=db.tar.zst
+          takes: SBOM
+          label: candidate # is candidate better than the current baseline?
+
+        - name: grype
+          # note: we import a static (pinned) DB as to prevent changes in the DB from affecting the results. The
+          # point of this test is to ensure the correctness of the logic in grype itself with real production data.
+          # By pinning the DB the grype code itself becomes the independent variable under test (and not the
+          # every-changing DB). That being said, we should be updating this DB periodically to ensure what we
+          # are testing with is not too stale.
+          version: latest+import-db=db.tar.zst
+          takes: SBOM
+          label: reference # this run is the current baseline
+
+  pr_vs_latest_via_sbom_2025:
+    description: "same as 'pr_vs_latest_via_sbom', but includes vulnerabilities from 2025 and before, instead of 2021 and before"
+    max_year: 2025
+    validations:
+      - max-f1-regression: 0.1 # allowed to regress 0.1 on f1 score
+        max-new-false-negatives: 10
+        max-unlabeled-percent: 0
+        max_year: 2025
+        fail_on_empty_match_set: false
+    matrix:
+      images:
+        - ghcr.io/chainguard-images/scanner-test:python-library-aiohttp-chainguard@sha256:046b2c1b2df1e496eb3abf9e21224ffd879d92abc2bd57401456764d9aa8ddf1
+        # secureos
+        - registry.replicated.com/library/grype-test:20250106@sha256:3339bcd874d21fa3ca5bd20636e793c0c33bd71ace3a18a9a3b3d147b91dd000
 
       tools:
         - name: syft
