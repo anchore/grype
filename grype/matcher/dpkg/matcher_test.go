@@ -11,6 +11,7 @@ import (
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/internal/dbtest"
 	"github.com/anchore/grype/internal/stringutil"
 	syftCpe "github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -148,4 +149,65 @@ func TestMatcherDpkg_CPEFallbackWhenEOL(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestMatcherDpkg_RealDB_DirectMatch tests the dpkg matcher with direct package
+// matching using a real database built from vunnel provider fixtures.
+func TestMatcherDpkg_RealDB_DirectMatch(t *testing.T) {
+	dbtest.DBs(t, "dpkg-fixture").Run(func(t *testing.T, db *dbtest.DB) {
+		// neutron 2014.1.3-5 is vulnerable to CVE-2014-fake-1 (fixed in 2014.1.3-6)
+		p := dbtest.NewPackage("neutron", "2014.1.3-5", syftPkg.DebPkg).
+			WithDistro(dbtest.Debian8).
+			Build()
+
+		actual := db.MustMatch(t, &Matcher{}, p)
+
+		dbtest.AssertMatchVulnerabilityIDs(t, actual, "CVE-2014-fake-1")
+
+		require.Len(t, actual, 1)
+		dbtest.AssertMatch(t, actual[0]).
+			HasVulnerabilityID("CVE-2014-fake-1").
+			HasPackageName("neutron")
+	})
+}
+
+// TestMatcherDpkg_RealDB_NoMatchWhenFixed tests that a fixed version does not match.
+func TestMatcherDpkg_RealDB_NoMatchWhenFixed(t *testing.T) {
+	dbtest.DBs(t, "dpkg-fixture").Run(func(t *testing.T, db *dbtest.DB) {
+		// neutron 2014.1.3-6 is the fixed version, should not match
+		p := dbtest.NewPackage("neutron", "2014.1.3-6", syftPkg.DebPkg).
+			WithDistro(dbtest.Debian8).
+			Build()
+
+		actual := db.MustMatch(t, &Matcher{}, p)
+
+		dbtest.AssertNoMatches(t, actual)
+	})
+}
+
+// TestMatcherDpkg_RealDB_IndirectMatch tests the dpkg matcher with upstream/indirect
+// package matching using a real database.
+func TestMatcherDpkg_RealDB_IndirectMatch(t *testing.T) {
+	dbtest.DBs(t, "dpkg-fixture").Run(func(t *testing.T, db *dbtest.DB) {
+		// neutron with upstream neutron-devel should match CVE-2014-fake-2 and CVE-2013-fake-3
+		// but NOT CVE-2013-fake-BAD (version constraint too old)
+		p := dbtest.NewPackage("neutron", "2014.1.3-6", syftPkg.DebPkg).
+			WithDistro(dbtest.Debian8).
+			WithUpstream("neutron-devel", "").
+			Build()
+
+		actual := db.MustMatch(t, &Matcher{}, p)
+
+		// should match the two upstream vulnerabilities
+		dbtest.AssertMatchCount(t, actual, 2)
+		dbtest.AssertMatchVulnerabilityIDs(t, actual, "CVE-2014-fake-2", "CVE-2013-fake-3")
+
+		// verify all matches are indirect
+		for _, m := range actual {
+			require.NotEmpty(t, m.Details)
+			for _, d := range m.Details {
+				assert.Equal(t, match.ExactIndirectMatch, d.Type, "expected indirect match type")
+			}
+		}
+	})
 }
