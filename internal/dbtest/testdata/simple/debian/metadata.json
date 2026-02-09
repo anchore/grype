@@ -1,0 +1,16 @@
+{
+  "provider": "debian",
+  "version": 1,
+  "processor": "vunnel",
+  "schema": {
+    "version": "1.0.0",
+    "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/os/schema-1.0.0.json"
+  },
+  "timestamp": "2024-01-15T12:00:00Z",
+  "listing": {
+    "path": "results/listing.xxh64",
+    "digest": "",
+    "algorithm": "xxh64"
+  },
+  "store": "flat-file"
+}
