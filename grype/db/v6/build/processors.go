@@ -1,6 +1,7 @@
 package v6
 
 import (
+	"github.com/anchore/grype/grype/db/v6/build/internal/transformers/eol"
 	"github.com/scylladb/go-set/strset"
 
 	"github.com/anchore/grype/grype/db/data"
@@ -53,5 +54,7 @@ func Processors(cfg Config) []data.Processor {
 		processors.NewV2EPSSProcessor(epss.Transform),
 		processors.NewV2OpenVEXProcessor(openvex.Transform),
 		processors.NewV2AnnotatedOpenVEXProcessor(openvex.AnnotatedTransform),
+		// EOL processor must be last to update existing OS records
+		processors.NewV2EOLProcessor(eol.Transform),
 	}
 }

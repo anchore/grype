@@ -23,7 +23,8 @@ func NewEntries(models ...any) []data.Entry {
 		case grypeDB.VulnerabilityHandle:
 			entry.VulnerabilityHandle = &m
 		case grypeDB.AffectedPackageHandle, grypeDB.UnaffectedPackageHandle, grypeDB.AffectedCPEHandle,
-			grypeDB.UnaffectedCPEHandle, grypeDB.KnownExploitedVulnerabilityHandle, grypeDB.EpssHandle, grypeDB.CWEHandle:
+			grypeDB.UnaffectedCPEHandle, grypeDB.KnownExploitedVulnerabilityHandle, grypeDB.EpssHandle, grypeDB.CWEHandle,
+			grypeDB.OperatingSystemEOLHandle:
 			entry.Related = append(entry.Related, m)
 		case grypeDB.Provider:
 			entry.Provider = &m

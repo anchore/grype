@@ -1,0 +1,32 @@
+[
+  {
+    "product": "ubuntu",
+    "identifiers": [],
+    "name": "22.04",
+    "codename": "Jammy Jellyfish",
+    "label": "22.04 LTS (Jammy Jellyfish)",
+    "releaseDate": "2022-04-21",
+    "isLts": true,
+    "ltsFrom": "2022-04-21",
+    "isEoas": false,
+    "eoasFrom": null,
+    "isEol": false,
+    "eolFrom": "2027-04-01",
+    "isMaintained": true
+  },
+  {
+    "product": "debian",
+    "identifiers": [],
+    "name": "11",
+    "codename": "Bullseye",
+    "label": "11 (Bullseye)",
+    "releaseDate": "2021-08-14",
+    "isLts": false,
+    "ltsFrom": null,
+    "isEoas": false,
+    "eoasFrom": null,
+    "isEol": false,
+    "eolFrom": "2026-08-14",
+    "isMaintained": true
+  }
+]
