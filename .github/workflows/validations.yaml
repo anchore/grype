@@ -281,6 +281,9 @@ jobs:
 
       - name: Run CLI Tests (Linux)
         run: make cli
+        env:
+          GRYPE_SNAPSHOT_PREBUILT: "true"
+          GRYPE_BINARY_LOCATION: ${{ github.workspace }}/snapshot/linux-build_linux_amd64_v1/grype
 
   Cleanup-Cache:
     name: "Cleanup snapshot cache"
