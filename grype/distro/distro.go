@@ -63,6 +63,8 @@ func parseVersion(version string) (major, minor, remaining, versionWithoutSuffix
 		channelStr = vParts[1]
 	}
 
+	version = strings.TrimPrefix(version, "v")
+
 	// if starts with a digit, then assume it's a version and extract the major, minor, and remaining versions
 	if version[0] >= '0' && version[0] <= '9' {
 		// extract the major, minor, and remaining versions
@@ -234,6 +236,18 @@ func (d Distro) VersionString() string {
 	}
 
 	return versionStr
+}
+
+func (d Distro) LabelVersion() string {
+	if d.Codename != "" {
+		return d.Codename
+	}
+
+	if d.major == "" && d.minor == "" && d.remaining == "" {
+		return d.Version
+	}
+
+	return ""
 }
 
 func nonEmptyStrings(ss ...string) (res []string) {

@@ -132,9 +132,9 @@ result-sets:
     description: "same as 'pr_vs_latest_via_sbom', but includes vulnerabilities from 2022 and before, instead of 2021 and before"
     max_year: 2022
     validations:
-      - max-f1-regression: 0.1 # allowed to regress 0.1 on f1 score
-        max-new-false-negatives: 10
-        max-unlabeled-percent: 0
+      - max-f1-regression: 0.0
+        max-new-false-negatives: 00
+        max-unlabeled-percent: 10
         max_year: 2022
         fail_on_empty_match_set: false
     matrix:
@@ -175,9 +175,9 @@ result-sets:
     description: "same as 'pr_vs_latest_via_sbom', but includes vulnerabilities from 2023 and before, instead of 2021 and before"
     max_year: 2023
     validations:
-      - max-f1-regression: 0.1 # allowed to regress 0.1 on f1 score
-        max-new-false-negatives: 10
-        max-unlabeled-percent: 0
+      - max-f1-regression: 0.0
+        max-new-false-negatives: 00
+        max-unlabeled-percent: 10
         max_year: 2023
         fail_on_empty_match_set: false
     matrix:
@@ -218,9 +218,9 @@ result-sets:
     description: "same as 'pr_vs_latest_via_sbom', but includes vulnerabilities from 2024 and before, instead of 2021 and before"
     max_year: 2024
     validations:
-      - max-f1-regression: 0.1 # allowed to regress 0.1 on f1 score
-        max-new-false-negatives: 10
-        max-unlabeled-percent: 0
+      - max-f1-regression: 0.0
+        max-new-false-negatives: 00
+        max-unlabeled-percent: 10
         max_year: 2024
         fail_on_empty_match_set: false
     matrix:
@@ -268,9 +268,9 @@ result-sets:
     description: "same as 'pr_vs_latest_via_sbom', but includes vulnerabilities from 2025 and before, instead of 2021 and before"
     max_year: 2025
     validations:
-      - max-f1-regression: 0.1 # allowed to regress 0.1 on f1 score
-        max-new-false-negatives: 10
-        max-unlabeled-percent: 0
+      - max-f1-regression: 0.0
+        max-new-false-negatives: 00
+        max-unlabeled-percent: 10
         max_year: 2025
         fail_on_empty_match_set: false
     matrix:
