@@ -122,6 +122,28 @@ func TestNewSource(t *testing.T) {
 			},
 		},
 		{
+			name: "oci metadata",
+			metadata: syftSource.Description{
+				Metadata: syftSource.OCIModelMetadata{
+					UserInput:      "ai-model",
+					ID:             "ai-model-edf",
+					ManifestDigest: "abcdef",
+					Size:           100,
+				},
+			},
+			expected: source{
+				Type: "oci-model",
+				Target: syftSource.OCIModelMetadata{
+					UserInput:      "ai-model",
+					ID:             "ai-model-edf",
+					ManifestDigest: "abcdef",
+					Size:           100,
+					RepoDigests:    []string{},
+					Tags:           []string{},
+				},
+			},
+		},
+		{
 			name: "nil metadata",
 			metadata: syftSource.Description{
 				Metadata: nil,
