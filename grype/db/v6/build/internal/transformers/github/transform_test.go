@@ -322,6 +322,66 @@ func TestGetVulnerability(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "test-fixtures/GHSA-qc55-vm3j-74gp.json",
+			expected: []grypeDB.VulnerabilityHandle{
+				{
+					Name:       "GHSA-qc55-vm3j-74gp",
+					ProviderID: "github",
+					Provider: &grypeDB.Provider{
+						ID:           "github",
+						Version:      "1",
+						DateCaptured: &now,
+					},
+					ModifiedDate:  internal.ParseTime("2024-09-24T21:02:13Z"),
+					PublishedDate: internal.ParseTime("2018-07-12T20:30:36Z"),
+					WithdrawnDate: nil,
+					Status:        grypeDB.VulnerabilityActive,
+					BlobValue: &grypeDB.VulnerabilityBlob{
+						ID:          "GHSA-qc55-vm3j-74gp",
+						Description: "JSNAPy allows unprivileged local users to alter files under the directory",
+						References: []grypeDB.Reference{
+							{
+								URL: "https://github.com/advisories/GHSA-qc55-vm3j-74gp",
+							},
+							{
+								URL: "https://nvd.nist.gov/vuln/detail/CVE-2018-0023",
+							},
+							{
+								URL: "https://kb.juniper.net/JSA10856",
+							},
+							{
+								URL: "https://github.com/pypa/advisory-database/tree/main/vulns/jsnapy/PYSEC-2018-84.yaml",
+							},
+							{
+								URL: "https://web.archive.org/web/20200227125151/http://www.securityfocus.com/bid/103745",
+							},
+						},
+						Aliases: []string{"CVE-2018-0023"},
+						Severities: []grypeDB.Severity{
+							{
+								Scheme: grypeDB.SeveritySchemeCHML,
+								Value:  "high",
+							},
+							{
+								Scheme: grypeDB.SeveritySchemeCVSS,
+								Value: grypeDB.CVSSSeverity{
+									Vector:  "CVSS:3.0/AV:L/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:N",
+									Version: "3.0",
+								},
+							},
+							{
+								Scheme: grypeDB.SeveritySchemeCVSS,
+								Value: grypeDB.CVSSSeverity{
+									Vector:  "CVSS:4.0/AV:N/AC:L/AT:N/PR:L/UI:N/VC:N/VI:H/VA:N/SC:N/SI:N/SA:N",
+									Version: "4.0",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {

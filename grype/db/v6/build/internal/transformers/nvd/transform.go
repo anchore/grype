@@ -357,51 +357,5 @@ func getReferences(vuln unmarshal.NVDVulnerability) []grypeDB.Reference {
 		})
 	}
 
-	return deduplicateReferences(references)
-}
-
-// deduplicateReferences removes duplicate references, where two references are considered
-// identical if they have the same URL and their normalized, sorted tags are equal
-func deduplicateReferences(references []grypeDB.Reference) []grypeDB.Reference {
-	var result []grypeDB.Reference
-	seenBefore := make(map[string][]grypeDB.Reference)
-	for _, ref := range references {
-		if _, anySeenRefs := seenBefore[ref.URL]; !anySeenRefs {
-			seenBefore[ref.URL] = []grypeDB.Reference{ref}
-			result = append(result, ref)
-			continue
-		}
-		alreadySeenRefs := seenBefore[ref.URL]
-		isDuplicate := false
-		// Check if this reference already exists for this URL
-		for _, already := range alreadySeenRefs {
-			if refsAreEqual(already, ref) {
-				isDuplicate = true
-				break
-			}
-		}
-		if !isDuplicate {
-			seenBefore[ref.URL] = append(seenBefore[ref.URL], ref)
-			result = append(result, ref)
-		}
-	}
-
-	return result
-}
-
-func refsAreEqual(a, b grypeDB.Reference) bool {
-	if a.URL != b.URL {
-		return false
-	}
-
-	if len(a.Tags) != len(b.Tags) {
-		return false
-	}
-
-	for i := range a.Tags {
-		if a.Tags[i] != b.Tags[i] {
-			return false
-		}
-	}
-	return true
+	return transformers.DeduplicateReferences(references)
 }

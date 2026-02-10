@@ -264,7 +264,8 @@ func getSeverities(vulnerability unmarshal.GitHubAdvisory) []grypeDB.Severity {
 		})
 	}
 
-	if vulnerability.Advisory.CVSS != nil {
+	// If the new CVSSSeverities field isn't populated, fallback to the old CVSS property
+	if len(vulnerability.Advisory.CVSSSeverities) == 0 && vulnerability.Advisory.CVSS != nil {
 		severities = append(severities, grypeDB.Severity{
 			Scheme: grypeDB.SeveritySchemeCVSS,
 			Value: grypeDB.CVSSSeverity{
@@ -272,6 +273,16 @@ func getSeverities(vulnerability unmarshal.GitHubAdvisory) []grypeDB.Severity {
 				Version: vulnerability.Advisory.CVSS.Version,
 			},
 		})
+	} else {
+		for _, cvss := range vulnerability.Advisory.CVSSSeverities {
+			severities = append(severities, grypeDB.Severity{
+				Scheme: grypeDB.SeveritySchemeCVSS,
+				Value: grypeDB.CVSSSeverity{
+					Vector:  cvss.Vector,
+					Version: cvss.Version,
+				},
+			})
+		}
 	}
 
 	return severities
@@ -283,13 +294,23 @@ func getAliases(vulnerability unmarshal.GitHubAdvisory) (aliases []string) {
 }
 
 func getReferences(vulnerability unmarshal.GitHubAdvisory) []grypeDB.Reference {
-	// TODO: The additional reference links are not currently captured in the vunnel result, but should be enhanced to
-	// https://github.com/anchore/vunnel/issues/646 to capture this
+	// Capture the GitHub Advisory URL as the first reference
 	refs := []grypeDB.Reference{
 		{
 			URL: vulnerability.Advisory.URL,
 		},
 	}
 
-	return refs
+	for _, reference := range vulnerability.Advisory.References {
+		clean := strings.TrimSpace(reference.URL)
+		if clean == "" {
+			continue
+		}
+		// TODO there is other info we could be capturing too (source)
+		refs = append(refs, grypeDB.Reference{
+			URL: clean,
+		})
+	}
+
+	return transformers.DeduplicateReferences(refs)
 }

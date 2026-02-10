@@ -19,18 +19,25 @@ type GitHubAdvisory struct {
 			VectorString string `json:"vector_string"`
 			Version      string `json:"version"`
 		} `json:"CVSS"`
+		CVSSSeverities []*struct {
+			Vector  string `json:"vector"`
+			Version string `json:"version"`
+		} `json:"cvss_severities"`
 		FixedIn  []GithubFixedIn `json:"FixedIn"`
 		Metadata struct {
 			CVE []string `json:"CVE"`
 		} `json:"Metadata"`
-		Severity  string `json:"Severity"`
-		Summary   string `json:"Summary"`
-		GhsaID    string `json:"ghsaId"`
-		Namespace string `json:"namespace"`
-		URL       string `json:"url"`
-		Published string `json:"published"`
-		Updated   string `json:"updated"`
-		Withdrawn string `json:"withdrawn"`
+		Severity   string `json:"Severity"`
+		Summary    string `json:"Summary"`
+		GhsaID     string `json:"ghsaId"`
+		Namespace  string `json:"namespace"`
+		URL        string `json:"url"`
+		Published  string `json:"published"`
+		Updated    string `json:"updated"`
+		Withdrawn  string `json:"withdrawn"`
+		References []*struct {
+			URL string `json:"url"`
+		} `json:"references"`
 	} `json:"Advisory"`
 }
 
