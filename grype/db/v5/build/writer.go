@@ -8,6 +8,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/spf13/afero"
@@ -33,6 +34,14 @@ type writer struct {
 	dbPath string
 	store  grypeDB.Store
 	states provider.States
+
+	// Batching infrastructure
+	batchSize   int
+	batchBuffer []func() error
+	mu          sync.Mutex // Protect batch state
+
+	// Metrics
+	totalBatches int
 }
 
 type ProviderMetadata struct {
@@ -44,7 +53,7 @@ type Provider struct {
 	LastSuccessfulRun time.Time `json:"lastSuccessfulRun"`
 }
 
-func NewWriter(directory string, dataAge time.Time, states provider.States) (data.Writer, error) {
+func NewWriter(directory string, dataAge time.Time, states provider.States, batchSize int) (data.Writer, error) {
 	dbPath := path.Join(directory, grypeDB.VulnerabilityStoreFileName)
 	theStore, err := grypeDBStore.New(dbPath, true)
 	if err != nil {
@@ -55,14 +64,21 @@ func NewWriter(directory string, dataAge time.Time, states provider.States) (dat
 		return nil, fmt.Errorf("unable to set DB ID: %w", err)
 	}
 
+	// Use default if not configured
+	if batchSize == 0 {
+		batchSize = 2000
+	}
+
 	return &writer{
-		dbPath: dbPath,
-		store:  theStore,
-		states: states,
+		dbPath:      dbPath,
+		store:       theStore,
+		states:      states,
+		batchSize:   batchSize,
+		batchBuffer: make([]func() error, 0, batchSize),
 	}, nil
 }
 
-func (w writer) Write(entries ...data.Entry) error {
+func (w *writer) Write(entries ...data.Entry) error {
 	log.WithFields("records", len(entries)).Trace("writing records to DB")
 	for _, entry := range entries {
 		if entry.DBSchemaVersion != grypeDB.SchemaVersion {
@@ -71,17 +87,29 @@ func (w writer) Write(entries ...data.Entry) error {
 
 		switch row := entry.Data.(type) {
 		case grypeDB.Vulnerability:
-			if err := w.store.AddVulnerability(row); err != nil {
-				return fmt.Errorf("unable to write vulnerability to store: %w", err)
+			// Batch the vulnerability write
+			vuln := row
+			if err := w.addToBatch(func() error {
+				return w.store.AddVulnerability(vuln)
+			}); err != nil {
+				return fmt.Errorf("unable to batch vulnerability write: %w", err)
 			}
 		case grypeDB.VulnerabilityMetadata:
+			// Normalize severity before batching
 			normalizeSeverity(&row, w.store)
-			if err := w.store.AddVulnerabilityMetadata(row); err != nil {
-				return fmt.Errorf("unable to write vulnerability metadata to store: %w", err)
+			metadata := row
+			if err := w.addToBatch(func() error {
+				return w.store.AddVulnerabilityMetadata(metadata)
+			}); err != nil {
+				return fmt.Errorf("unable to batch vulnerability metadata write: %w", err)
 			}
 		case grypeDB.VulnerabilityMatchExclusion:
-			if err := w.store.AddVulnerabilityMatchExclusion(row); err != nil {
-				return fmt.Errorf("unable to write vulnerability match exclusion to store: %w", err)
+			// Batch the exclusion write
+			exclusion := row
+			if err := w.addToBatch(func() error {
+				return w.store.AddVulnerabilityMatchExclusion(exclusion)
+			}); err != nil {
+				return fmt.Errorf("unable to batch vulnerability match exclusion write: %w", err)
 			}
 		default:
 			return fmt.Errorf("data entry is not of type vulnerability, vulnerability metadata, or exclusion: %T", row)
@@ -91,11 +119,53 @@ func (w writer) Write(entries ...data.Entry) error {
 	return nil
 }
 
+// addToBatch adds an operation to the batch buffer and flushes if batch size is reached
+func (w *writer) addToBatch(op func() error) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	w.batchBuffer = append(w.batchBuffer, op)
+
+	if len(w.batchBuffer) >= w.batchSize {
+		return w.flushUnlocked()
+	}
+	return nil
+}
+
+// Flush executes all pending operations in the batch buffer
+func (w *writer) Flush() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.flushUnlocked()
+}
+
+// flushUnlocked executes all pending operations without acquiring the lock (must be called with lock held)
+func (w *writer) flushUnlocked() error {
+	if len(w.batchBuffer) == 0 {
+		return nil
+	}
+
+	log.WithFields(
+		"operations", len(w.batchBuffer),
+		"batch_size", w.batchSize,
+	).Debug("flushing batch")
+
+	for i, op := range w.batchBuffer {
+		if err := op(); err != nil {
+			return fmt.Errorf("batch operation %d failed: %w", i, err)
+		}
+	}
+
+	w.batchBuffer = w.batchBuffer[:0]
+	w.totalBatches++
+	return nil
+}
+
 // metadataAndClose closes the database and returns its metadata.
 // The reason this is a compound action is that getting the built time and
 // schema version from the database is an operation on the open database,
 // but the checksum must be computed after the database is compacted and closed.
-func (w writer) metadataAndClose() (*distribution.Metadata, error) {
+func (w *writer) metadataAndClose() (*distribution.Metadata, error) {
 	storeID, err := w.store.GetID()
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch store ID: %w", err)
@@ -120,7 +190,7 @@ func NewProviderMetadata() ProviderMetadata {
 	}
 }
 
-func (w writer) ProviderMetadata() *ProviderMetadata {
+func (w *writer) ProviderMetadata() *ProviderMetadata {
 	metadata := NewProviderMetadata()
 	// Set provider time from states
 	for _, state := range w.states {
@@ -132,7 +202,12 @@ func (w writer) ProviderMetadata() *ProviderMetadata {
 	return &metadata
 }
 
-func (w writer) Close() error {
+func (w *writer) Close() error {
+	// Flush any remaining batched operations
+	if err := w.Flush(); err != nil {
+		return fmt.Errorf("unable to flush pending writes: %w", err)
+	}
+
 	metadata, err := w.metadataAndClose()
 	if err != nil {
 		return err
@@ -148,7 +223,10 @@ func (w writer) Close() error {
 		return err
 	}
 
-	log.WithFields("path", w.dbPath).Info("database created")
+	log.WithFields(
+		"path", w.dbPath,
+		"total_batches", w.totalBatches,
+	).Info("database created")
 	log.WithFields("path", metadataPath).Debug("database metadata created")
 	log.WithFields("path", providerMetadataPath).Debug("provider metadata created")
 

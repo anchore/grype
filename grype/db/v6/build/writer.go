@@ -3,6 +3,8 @@ package v6
 import (
 	"fmt"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/anchore/go-logger"
 	"github.com/anchore/grype/grype/db/data"
@@ -21,9 +23,30 @@ type writer struct {
 	providerCache        map[string]grypeDB.Provider
 	states               provider.States
 	severityCache        map[string]grypeDB.Severity
+
+	// Two-tier batching: parent records (vulnerabilities + providers) and child records (related entries)
+	// This maintains FK integrity while maximizing batch sizes
+	parentBatchSize int
+	childBatchSize  int
+	parentBuffer    []func() error
+	childBuffer     []func() error
+	mu              sync.Mutex // Protect batch state
+
+	// Metrics
+	totalParentBatches int
+	totalChildBatches  int
 }
 
-func NewWriter(directory string, states provider.States, failOnMissingFixDate bool) (data.Writer, error) {
+type ProviderMetadata struct {
+	Providers []Provider `json:"providers"`
+}
+
+type Provider struct {
+	Name              string    `json:"name"`
+	LastSuccessfulRun time.Time `json:"lastSuccessfulRun"`
+}
+
+func NewWriter(directory string, states provider.States, failOnMissingFixDate bool, batchSize int) (data.Writer, error) {
 	cfg := grypeDB.Config{
 		DBDirPath: directory,
 	}
@@ -36,6 +59,11 @@ func NewWriter(directory string, states provider.States, failOnMissingFixDate bo
 		return nil, fmt.Errorf("unable to set DB ID: %w", err)
 	}
 
+	// Use default if not configured
+	if batchSize == 0 {
+		batchSize = 2000
+	}
+
 	return &writer{
 		dbPath:               cfg.DBFilePath(),
 		failOnMissingFixDate: failOnMissingFixDate,
@@ -43,10 +71,14 @@ func NewWriter(directory string, states provider.States, failOnMissingFixDate bo
 		store:                s,
 		states:               states,
 		severityCache:        make(map[string]grypeDB.Severity),
+		parentBatchSize:      batchSize,
+		childBatchSize:       batchSize,
+		parentBuffer:         make([]func() error, 0, batchSize),
+		childBuffer:          make([]func() error, 0, batchSize),
 	}, nil
 }
 
-func (w writer) Write(entries ...data.Entry) error {
+func (w *writer) Write(entries ...data.Entry) error {
 	for _, entry := range entries {
 		if entry.DBSchemaVersion != grypeDB.ModelVersion {
 			return fmt.Errorf("wrong schema version: want %+v got %+v", grypeDB.ModelVersion, entry.DBSchemaVersion)
@@ -71,17 +103,30 @@ func (w *writer) writeEntry(entry transformers.RelatedEntries) error {
 	if entry.VulnerabilityHandle != nil {
 		w.fillInMissingSeverity(entry.VulnerabilityHandle)
 
-		if err := w.store.AddVulnerabilities(entry.VulnerabilityHandle); err != nil {
-			return fmt.Errorf("unable to write vulnerability to store: %w", err)
+		// Add vulnerability to parent batch
+		// CRITICAL: Use pointer directly (not copy) so ID assignment propagates to child operations
+		vulnHandle := entry.VulnerabilityHandle
+		if err := w.addToParentBatch(func() error {
+			return w.store.AddVulnerabilities(vulnHandle)
+		}); err != nil {
+			return fmt.Errorf("unable to batch vulnerability write: %w", err)
 		}
 	}
 
-	if entry.Provider != nil {
-		if err := w.store.AddProvider(*entry.Provider); err != nil {
-			return fmt.Errorf("unable to write provider to store: %w", err)
+	// Handle providers for entries without vulnerabilities (EPSS, KEV, etc.)
+	// AddVulnerabilities() only handles providers implicitly for vulnerability entries
+	if entry.Provider != nil && entry.VulnerabilityHandle == nil {
+		provider := *entry.Provider
+		if err := w.addToParentBatch(func() error {
+			return w.store.AddProvider(provider)
+		}); err != nil {
+			return fmt.Errorf("unable to batch provider write: %w", err)
 		}
 	}
 
+	// Add all related entries to child batch
+	// NOTE: No explicit flush here. Parent batch auto-flushes at threshold.
+	// Child batch auto-flush will flush parent first to maintain FK integrity.
 	for i := range entry.Related {
 		if err := w.writeRelatedEntry(entry.VulnerabilityHandle, entry.Related[i]); err != nil {
 			return err
@@ -98,29 +143,43 @@ func (w *writer) writeRelatedEntry(vulnHandle *grypeDB.VulnerabilityHandle, rela
 	case grypeDB.AffectedCPEHandle:
 		return w.writeAffectedCPE(vulnHandle, row)
 	case grypeDB.KnownExploitedVulnerabilityHandle:
-		return w.store.AddKnownExploitedVulnerabilities(&row)
+		// Add KEV to child batch - copy to avoid pointer reuse
+		kevHandle := row
+		return w.addToChildBatch(func() error {
+			handleCopy := kevHandle
+			return w.store.AddKnownExploitedVulnerabilities(&handleCopy)
+		})
 	case grypeDB.UnaffectedPackageHandle:
 		return w.writeUnaffectedPackage(vulnHandle, row)
 	case grypeDB.UnaffectedCPEHandle:
 		return w.writeUnaffectedCPE(vulnHandle, row)
 	case grypeDB.EpssHandle:
-		return w.store.AddEpss(&row)
+		// Add EPSS to child batch - copy to avoid pointer reuse
+		epssHandle := row
+		return w.addToChildBatch(func() error {
+			handleCopy := epssHandle
+			return w.store.AddEpss(&handleCopy)
+		})
 	case grypeDB.CWEHandle:
-		return w.store.AddCWE(&row)
+		// Add CWE to child batch - copy to avoid pointer reuse
+		cweHandle := row
+		return w.addToChildBatch(func() error {
+			handleCopy := cweHandle
+			return w.store.AddCWE(&handleCopy)
+		})
 	case grypeDB.OperatingSystemEOLHandle:
-		return w.writeOperatingSystemEOL(row)
+		// Add OS EOL to child batch - copy to avoid pointer reuse
+		eolHandle := row
+		return w.addToChildBatch(func() error {
+			handleCopy := eolHandle
+			return w.writeOperatingSystemEOL(handleCopy)
+		})
 	default:
 		return fmt.Errorf("data entry is not of type vulnerability, vulnerability metadata, or exclusion: %T", row)
 	}
 }
 
 func (w *writer) writeAffectedPackage(vulnHandle *grypeDB.VulnerabilityHandle, row grypeDB.AffectedPackageHandle) error {
-	if vulnHandle != nil {
-		row.VulnerabilityID = vulnHandle.ID
-	} else {
-		log.WithFields("package", row.Package).Warn("affected package entry does not have a vulnerability ID")
-	}
-
 	if w.failOnMissingFixDate {
 		if err := ensureFixDates(&row); err != nil {
 			fields := logger.Fields{
@@ -140,46 +199,60 @@ func (w *writer) writeAffectedPackage(vulnHandle *grypeDB.VulnerabilityHandle, r
 		}
 	}
 
-	if err := w.store.AddAffectedPackages(&row); err != nil {
-		return fmt.Errorf("unable to write affected-package to store: %w", err)
-	}
-	return nil
+	// Add affected package to child batch - defer VulnerabilityID assignment until flush
+	pkgHandle := row
+	return w.addToChildBatch(func() error {
+		handleCopy := pkgHandle
+		if vulnHandle != nil {
+			handleCopy.VulnerabilityID = vulnHandle.ID
+		} else {
+			log.WithFields("package", handleCopy.Package).Warn("affected package entry does not have a vulnerability ID")
+		}
+		return w.store.AddAffectedPackages(&handleCopy)
+	})
 }
 
 func (w *writer) writeAffectedCPE(vulnHandle *grypeDB.VulnerabilityHandle, row grypeDB.AffectedCPEHandle) error {
-	if vulnHandle != nil {
-		row.VulnerabilityID = vulnHandle.ID
-	} else {
-		log.WithFields("cpe", row.CPE).Warn("affected CPE entry does not have a vulnerability ID")
-	}
-	if err := w.store.AddAffectedCPEs(&row); err != nil {
-		return fmt.Errorf("unable to write affected-cpe to store: %w", err)
-	}
-	return nil
+	// Add affected CPE to child batch - defer VulnerabilityID assignment until flush
+	// when the parent vulnerability has been written and ID is assigned
+	cpeHandle := row
+	return w.addToChildBatch(func() error {
+		handleCopy := cpeHandle
+		if vulnHandle != nil {
+			handleCopy.VulnerabilityID = vulnHandle.ID
+		} else {
+			log.WithFields("cpe", handleCopy.CPE).Warn("affected CPE entry does not have a vulnerability ID")
+		}
+		return w.store.AddAffectedCPEs(&handleCopy)
+	})
 }
 
 func (w *writer) writeUnaffectedPackage(vulnHandle *grypeDB.VulnerabilityHandle, row grypeDB.UnaffectedPackageHandle) error {
-	if vulnHandle != nil {
-		row.VulnerabilityID = vulnHandle.ID
-	} else {
-		log.WithFields("package", row.Package).Warn("unaffected package entry does not have a vulnerability ID")
-	}
-	if err := w.store.AddUnaffectedPackages(&row); err != nil {
-		return fmt.Errorf("unable to write unaffected-package to store: %w", err)
-	}
-	return nil
+	// Add unaffected package to child batch - defer VulnerabilityID assignment until flush
+	pkgHandle := row
+	return w.addToChildBatch(func() error {
+		handleCopy := pkgHandle
+		if vulnHandle != nil {
+			handleCopy.VulnerabilityID = vulnHandle.ID
+		} else {
+			log.WithFields("package", handleCopy.Package).Warn("unaffected package entry does not have a vulnerability ID")
+		}
+		return w.store.AddUnaffectedPackages(&handleCopy)
+	})
 }
 
 func (w *writer) writeUnaffectedCPE(vulnHandle *grypeDB.VulnerabilityHandle, row grypeDB.UnaffectedCPEHandle) error {
-	if vulnHandle != nil {
-		row.VulnerabilityID = vulnHandle.ID
-	} else {
-		log.WithFields("cpe", row.CPE).Warn("unaffected CPE entry does not have a vulnerability ID")
-	}
-	if err := w.store.AddUnaffectedCPEs(&row); err != nil {
-		return fmt.Errorf("unable to write unaffected-cpe to store: %w", err)
-	}
-	return nil
+	// Add unaffected CPE to child batch - defer VulnerabilityID assignment until flush
+	cpeHandle := row
+	return w.addToChildBatch(func() error {
+		handleCopy := cpeHandle
+		if vulnHandle != nil {
+			handleCopy.VulnerabilityID = vulnHandle.ID
+		} else {
+			log.WithFields("cpe", handleCopy.CPE).Warn("unaffected CPE entry does not have a vulnerability ID")
+		}
+		return w.store.AddUnaffectedCPEs(&handleCopy)
+	})
 }
 
 // fillInMissingSeverity will add a severity entry to the vulnerability record if it is missing, empty, or "unknown".
@@ -239,32 +312,111 @@ func (w *writer) fillInMissingSeverity(handle *grypeDB.VulnerabilityHandle) {
 	handle.BlobValue.Severities = sevs
 }
 
-func (w *writer) writeOperatingSystemEOL(row grypeDB.OperatingSystemEOLHandle) error {
-	spec := grypeDB.OSSpecifier{
-		Name:         row.Name,
-		MajorVersion: row.MajorVersion,
-		MinorVersion: row.MinorVersion,
-		LabelVersion: row.Codename,
-	}
+// addToParentBatch adds an operation to parent buffer and flushes when threshold reached
+func (w *writer) addToParentBatch(op func() error) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
 
-	updated, err := w.store.UpdateOperatingSystemEOL(spec, row.EOLDate, row.EOASDate)
-	if err != nil {
-		return fmt.Errorf("unable to update OS EOL data: %w", err)
-	}
+	w.parentBuffer = append(w.parentBuffer, op)
 
-	if updated == 0 {
-		log.WithFields("os", row.String()).Trace("no OS record found to update with EOL data")
+	// Flush parent batch when it reaches threshold to limit memory usage
+	if len(w.parentBuffer) >= w.parentBatchSize {
+		return w.flushParentBatchLocked()
 	}
-
 	return nil
 }
 
-func (w writer) Close() error {
+// addToChildBatch adds an operation to child buffer and flushes when threshold reached
+func (w *writer) addToChildBatch(op func() error) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	w.childBuffer = append(w.childBuffer, op)
+
+	// When child buffer is full, flush BOTH buffers (parents first for FK integrity)
+	if len(w.childBuffer) >= w.childBatchSize {
+		// Flush parents first to ensure IDs are assigned for children to reference
+		if err := w.flushParentBatchLocked(); err != nil {
+			return err
+		}
+		// Then flush children
+		return w.flushChildBatchLocked()
+	}
+	return nil
+}
+
+// flushParentBatch executes all pending parent operations in batches of parentBatchSize
+func (w *writer) flushParentBatch() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.flushParentBatchLocked()
+}
+
+// flushParentBatchLocked executes all pending parent operations (must be called with lock held)
+func (w *writer) flushParentBatchLocked() error {
+	if len(w.parentBuffer) == 0 {
+		return nil
+	}
+
+	log.WithFields("total_operations", len(w.parentBuffer), "batch_size", w.parentBatchSize).Debug("flushing parent operations")
+
+	// Execute all accumulated operations
+	for j, op := range w.parentBuffer {
+		if err := op(); err != nil {
+			return fmt.Errorf("parent operation %d failed: %w", j, err)
+		}
+	}
+
+	w.totalParentBatches++
+	w.parentBuffer = w.parentBuffer[:0]
+	return nil
+}
+
+// flushChildBatch executes all pending child operations in batches of childBatchSize
+func (w *writer) flushChildBatch() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.flushChildBatchLocked()
+}
+
+// flushChildBatchLocked executes all pending child operations (must be called with lock held)
+func (w *writer) flushChildBatchLocked() error {
+	if len(w.childBuffer) == 0 {
+		return nil
+	}
+
+	log.WithFields("total_operations", len(w.childBuffer), "batch_size", w.childBatchSize).Debug("flushing child operations")
+
+	// Execute all accumulated operations
+	for j, op := range w.childBuffer {
+		if err := op(); err != nil {
+			return fmt.Errorf("child operation %d failed: %w", j, err)
+		}
+	}
+
+	w.totalChildBatches++
+	w.childBuffer = w.childBuffer[:0]
+	return nil
+}
+
+func (w *writer) Close() error {
+	// Flush any remaining batched operations (both parent and child)
+	if err := w.flushParentBatch(); err != nil {
+		return fmt.Errorf("unable to flush parent batch: %w", err)
+	}
+	if err := w.flushChildBatch(); err != nil {
+		return fmt.Errorf("unable to flush child batch: %w", err)
+	}
+
 	if err := w.store.Close(); err != nil {
 		return fmt.Errorf("unable to close store: %w", err)
 	}
 
-	log.WithFields("path", w.dbPath).Info("database created")
+	log.WithFields(
+		"path", w.dbPath,
+		"parent_batches", w.totalParentBatches,
+		"child_batches", w.totalChildBatches,
+	).Info("database created")
 
 	return nil
 }
@@ -312,4 +464,24 @@ func ensureFixDates(row *grypeDB.AffectedPackageHandle) error {
 
 func isFixVersion(v string) bool {
 	return v != "" && v != "0" && strings.ToLower(v) != "none"
+}
+
+func (w *writer) writeOperatingSystemEOL(row grypeDB.OperatingSystemEOLHandle) error {
+	spec := grypeDB.OSSpecifier{
+		Name:         row.Name,
+		MajorVersion: row.MajorVersion,
+		MinorVersion: row.MinorVersion,
+		LabelVersion: row.Codename,
+	}
+
+	updated, err := w.store.UpdateOperatingSystemEOL(spec, row.EOLDate, row.EOASDate)
+	if err != nil {
+		return fmt.Errorf("unable to update OS EOL data: %w", err)
+	}
+
+	if updated == 0 {
+		log.WithFields("os", row.String()).Trace("no OS record found to update with EOL data")
+	}
+
+	return nil
 }
