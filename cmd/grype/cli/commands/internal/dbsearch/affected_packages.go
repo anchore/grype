@@ -232,15 +232,11 @@ func findAffectedPackages(reader interface { //nolint:funlen,gocognit
 	// ensures that all paths are handled the same way.
 	defer func() {
 		for i := range allAffectedPkgs {
-			if err := decorateVulnerabilities(reader, &allAffectedPkgs[i]); err != nil {
-				log.WithFields("error", err).Debug("unable to decorate vulnerability on affected package")
-			}
+			decorateVulnerabilities(reader, &allAffectedPkgs[i])
 		}
 
 		for i := range allAffectedCPEs {
-			if err := decorateVulnerabilities(reader, &allAffectedCPEs[i]); err != nil {
-				log.WithFields("error", err).Debug("unable to decorate vulnerability on affected CPE")
-			}
+			decorateVulnerabilities(reader, &allAffectedCPEs[i])
 		}
 	}()
 
