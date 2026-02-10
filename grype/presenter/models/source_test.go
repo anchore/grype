@@ -122,7 +122,7 @@ func TestNewSource(t *testing.T) {
 			},
 		},
 		{
-			name: "oci metadata",
+			name: "oci model metadata",
 			metadata: syftSource.Description{
 				Metadata: syftSource.OCIModelMetadata{
 					UserInput:      "ai-model",
