@@ -30,8 +30,8 @@ func buildGrypeNamespace(group string) (namespace.Namespace, error) {
 		switch feedGroupLang {
 		case "nuget":
 			syftLanguage = syftPkg.Dotnet
-		case "github-action":
-			// we don't want to error out on this, but grype at this version does not support github-action matching
+		case "github-action", "erlang":
+			// we don't want to error out on this, but grype at this version does not support these ecosystems
 			return nil, errSkip
 		default:
 			return nil, fmt.Errorf("unable to determine grype namespace for enterprise namespace=%s", group)

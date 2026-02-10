@@ -219,6 +219,8 @@ func getPackageType(ecosystem string) pkg.Type {
 		return pkg.SwiftPkg
 	case "rubygems", "ruby", "gem":
 		return pkg.GemPkg
+	case "erlang", "hex", "elixir":
+		return pkg.HexPkg
 	case "apk":
 		return pkg.ApkPkg
 	case "rpm":
