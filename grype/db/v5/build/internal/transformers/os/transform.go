@@ -24,6 +24,12 @@ func buildGrypeNamespace(group string) (namespace.Namespace, error) {
 
 	// Currently known enterprise feed groups are expected to be of the form {distroID}:{version}
 	feedGroupDistroID := feedGroupComponents[0]
+
+	// secureos and photon are not supported in the grype v5 schema, so the records should be dropped entirely
+	if feedGroupDistroID == "secureos" || feedGroupDistroID == "photon" {
+		return nil, nil
+	}
+
 	d, ok := distro.IDMapping[feedGroupDistroID]
 	if !ok {
 		return nil, fmt.Errorf("unable to determine grype namespace for enterprise namespace=%s", group)

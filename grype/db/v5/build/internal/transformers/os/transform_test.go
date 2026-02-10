@@ -443,6 +443,12 @@ func TestParseVulnerabilitiesEntry(t *testing.T) {
 			// intentionally creates no vulnerabilities to write to the DB
 		},
 		{
+			name:       "Photon (ignore)",
+			numEntries: 1,
+			fixture:    "test-fixtures/photon-4.0.json",
+			// photon is not supported in v5, records should be dropped entirely
+		},
+		{
 			name:       "Alpine",
 			numEntries: 1,
 			fixture:    "test-fixtures/alpine-3.9.json",
